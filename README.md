@@ -1,6 +1,6 @@
-DF
+D2D:F
 ==
 
-Doom2D:Forever sources.
+Doom 2D: Forever sources.
 
 Site of the game: http://doom2d.org
