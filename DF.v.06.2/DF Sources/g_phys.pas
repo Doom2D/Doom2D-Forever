@@ -350,8 +350,11 @@ end;
 procedure g_Obj_Splash(Obj: PObj);
 begin
  g_Sound_PlayExAt('SOUND_GAME_BULK1', 255, Obj^.X, Obj^.Y);
- {g_GFX_Water(Obj^.X+Obj^.Rect.X+(Obj^.Rect.Width div 2), Obj^.Y+Obj.Rect.Y,
-             Min(Round(15*(Obj^.Vel.X+Obj^.Vel.Y)), 100), -Obj^.Vel.X, -Obj^.Vel.Y, Obj^.Rect.Width, 16);}
+ g_GFX_Water(Obj^.X+Obj^.Rect.X+(Obj^.Rect.Width div 2),
+             Obj^.Y+Obj.Rect.Y+(Obj^.Rect.Height div 2),
+             Min(5*(Abs(Obj^.Vel.X)+Abs(Obj^.Vel.Y)), 75),
+             -Obj^.Vel.X, -Obj^.Vel.Y,
+             Obj^.Rect.Width, 16);
 end;
 
 procedure g_Obj_SetSpeed(Obj: PObj; s: Integer);
