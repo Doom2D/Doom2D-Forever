@@ -327,7 +327,7 @@ procedure e_ReleaseSoundEngine();
 begin
  e_RemoveAllSamples;
  e_RemoveAllSongs;
- FSOUND_Close();
+ {FSOUND_Close();}
 end;
 
 end.

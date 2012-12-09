@@ -280,17 +280,18 @@ begin
   begin
    X := fX-DevX1+Random(DevX2);
    Y := fY-DevY1+Random(DevY2);
-   VelX := fVelX*Random + Random(2) - Random(2);
+   VelX := fVelX*Random;
+   if Random(10) < 7 then VelX := -VelX;
    VelY := fVelY*Random;
-   AccelX := VelX/5*(-1+Random(2));
-   AccelY := -VelY/20;
-   Red := Random(2)*255;
+   AccelX := 0.0;
+   AccelY := 0.8;
+   Red := Trunc(255*Random);
    Green := Red;
    Blue := 155+Random(10)*10;
    State := STATE_NORMAL;
    Time := 0;
-   LiveTime := 100+Random(100);
-   ParticleType := PARTICLE_BLOOD;
+   LiveTime := 40+Random(60);
+   ParticleType := PARTICLE_WATER;
   end;
   if CurrentParticle+2 > MaxParticles then CurrentParticle := 0
    else CurrentParticle := CurrentParticle+1;
@@ -629,7 +630,7 @@ begin
 
     PARTICLE_WATER:
     begin
-     if (State = STATE_STICK) and (Random(200) = 100) then
+     if (State = STATE_STICK) and (Random(30) = 15) then
      begin
       VelY := 0.5;
       AccelY := 0.15;
@@ -673,6 +674,7 @@ begin
         AccelX := 0;
         AccelY := 0;
         State := STATE_STICK;
+        LiveTime := LiveTime + 50;
         Break;
        end else X := X+s;
       end;
@@ -693,15 +695,18 @@ begin
         Break;
        end;
 
-       c := gCollideMap[Y+s, X];
-
        if c = MARK_WALL then
        begin
         VelX := 0;
         VelY := 0;
         AccelX := 0;
         AccelY := 0;
-        if s > 0 then State := STATE_NORMAL else State := STATE_STICK;
+        if s > 0 then State := STATE_NORMAL 
+         else
+          begin
+            State := STATE_STICK;
+            LiveTime := LiveTime + 50;
+          end;
         Break;
        end;
 
