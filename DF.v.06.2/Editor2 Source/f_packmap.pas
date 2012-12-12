@@ -105,8 +105,8 @@ end;
 procedure TPackMapForm.bPackClick(Sender: TObject);
 var
   wad: TWADEditor_1;
-  mr: TMapReader_1;
-  mw: TMapWriter_1;
+  mr: TMapReader_2;
+  mw: TMapWriter_2;
   data: Pointer;
   len: LongWord;
   textures: TTexturesRec1Array;
@@ -128,7 +128,7 @@ begin
  if cbAdd.Checked then
   if wad.ReadFile(eWAD.Text) then wad.CreateImage();
 
- mr := TMapReader_1.Create();
+ mr := TMapReader_2.Create();
  mr.LoadMap(data);
  FreeMem(data);
 
@@ -202,7 +202,7 @@ begin
   end;
  end;
 
- mw := TMapWriter_1.Create();
+ mw := TMapWriter_2.Create();
  mw.AddHeader(header);
  mw.AddTextures(textures);
  mw.AddPanels(mr.GetPanels());

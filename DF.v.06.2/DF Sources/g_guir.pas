@@ -2245,7 +2245,7 @@ end;
 procedure TGUIMapPreview.SetMap(Res: string);
 var
   WAD: TWADEditor_1;
-  MapReader: TMapReader_1;
+  MapReader: TMapReader_2;
   panels: TPanelsRec1Array;
   header: TMapHeaderRec_1;
   a: Integer;
@@ -2270,7 +2270,7 @@ begin
 
  WAD.Destroy;
 
- MapReader := TMapReader_1.Create;
+ MapReader := TMapReader_2.Create;
 
  MapReader.LoadMap(Data);
  FreeMem(Data);

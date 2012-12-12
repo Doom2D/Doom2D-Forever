@@ -108,6 +108,18 @@ type
    DATA:         Byte128;
   end;
 
+  TTriggerRec_2 = packed record
+   X, Y:         Integer;
+   Width,
+   Height:       Word;
+   Enabled:      Byte;
+   TexturePanel: Integer;
+   TriggerType:  Word;
+   ActivateType: Cardinal;
+   Keys:         Word;
+   DATA:         Byte128;
+  end;
+
   TBlock = packed record
    BlockType: Byte;
    Reserved:  LongWord;
@@ -120,7 +132,8 @@ type
   TMonsterRec1Array = array of TMonsterRec_1;
   TAreasRec1Array = array of TAreaRec_1;
   TTriggersRec1Array = array of TTriggerRec_1;
-
+  TTriggersRec2Array = array of TTriggerRec_2;
+                                
 implementation
 
 end.

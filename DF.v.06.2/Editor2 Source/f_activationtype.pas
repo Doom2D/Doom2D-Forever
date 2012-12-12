@@ -15,6 +15,9 @@ type
     cbMonsterPress: TCheckBox;
     cbShot: TCheckBox;
     cbNoMonster: TCheckBox;
+    cbNoPlayer: TCheckBox;
+    cbItemCollide: TCheckBox;
+    cbNoItem: TCheckBox;
   private
     { Private declarations }
   public

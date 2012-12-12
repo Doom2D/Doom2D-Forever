@@ -103,25 +103,27 @@ const
   MONSTER_ROBO   = 19;
   MONSTER_MAN    = 20;
 
-  TRIGGER_NONE      = 0;
-  TRIGGER_EXIT	    = 1;
-  TRIGGER_TELEPORT  = 2;
-  TRIGGER_OPENDOOR  = 3;
-  TRIGGER_CLOSEDOOR = 4;
-  TRIGGER_DOOR      = 5;
-  TRIGGER_DOOR5     = 6;
-  TRIGGER_CLOSETRAP = 7;
-  TRIGGER_TRAP      = 8;
-  TRIGGER_PRESS     = 9;
-  TRIGGER_SECRET    = 10;
-  TRIGGER_LIFTUP    = 11;
-  TRIGGER_LIFTDOWN  = 12;
-  TRIGGER_LIFT      = 13;
-  TRIGGER_TEXTURE   = 14;
-  TRIGGER_ON        = 15;
-  TRIGGER_OFF       = 16;
-  TRIGGER_ONOFF     = 17;
-  TRIGGER_SOUND     = 18;
+  TRIGGER_NONE            = 0;
+  TRIGGER_EXIT	          = 1;
+  TRIGGER_TELEPORT        = 2;
+  TRIGGER_OPENDOOR        = 3;
+  TRIGGER_CLOSEDOOR       = 4;
+  TRIGGER_DOOR            = 5;
+  TRIGGER_DOOR5           = 6;
+  TRIGGER_CLOSETRAP       = 7;
+  TRIGGER_TRAP            = 8;
+  TRIGGER_PRESS           = 9;
+  TRIGGER_SECRET          = 10;
+  TRIGGER_LIFTUP          = 11;
+  TRIGGER_LIFTDOWN        = 12;
+  TRIGGER_LIFT            = 13;
+  TRIGGER_TEXTURE         = 14;
+  TRIGGER_ON              = 15;
+  TRIGGER_OFF             = 16;
+  TRIGGER_ONOFF           = 17;
+  TRIGGER_SOUND           = 18;
+  TRIGGER_SPAWNMONSTER    = 19;
+  TRIGGER_SPAWNITEM       = 20;
 
   ACTIVATE_PLAYERCOLLIDE  = 1;
   ACTIVATE_MONSTERCOLLIDE = 2;
@@ -129,6 +131,9 @@ const
   ACTIVATE_MONSTERPRESS   = 8;
   ACTIVATE_SHOT           = 16;
   ACTIVATE_NOMONSTER      = 32;
+  ACTIVATE_NOPLAYER       = 64;
+  ACTIVATE_ITEMCOLLIDE    = 128;
+  ACTIVATE_NOITEM         = 256;
 
   KEY_RED      = 1;
   KEY_GREEN    = 2;
@@ -138,12 +143,13 @@ const
 
 type
   TTriggerData = record
-   case Byte of
+   case Word of
     0: (Default: Byte128);
-    TRIGGER_EXIT:      (MapName: Char16);
-    TRIGGER_TELEPORT:  (TargetPoint: TPoint;
-                        d2d_teleport: Boolean;
-                        silent_teleport: Boolean);
+    TRIGGER_EXIT:         (MapName: Char16);
+    TRIGGER_TELEPORT:     (TargetPoint: TPoint;
+                           d2d_teleport: Boolean;
+                           silent_teleport: Boolean;
+                           TlpDir: Byte);
     TRIGGER_OPENDOOR,
     TRIGGER_CLOSEDOOR,
     TRIGGER_DOOR,
@@ -152,26 +158,33 @@ type
     TRIGGER_TRAP,
     TRIGGER_LIFTUP,
     TRIGGER_LIFTDOWN,
-    TRIGGER_LIFT:      (PanelID: Integer;
-                        NoSound: Boolean;
-                        d2d_doors: Boolean);
+    TRIGGER_LIFT:         (PanelID: Integer;
+                           NoSound: Boolean;
+                           d2d_doors: Boolean);
     TRIGGER_PRESS,
     TRIGGER_ON,
     TRIGGER_OFF,
-    TRIGGER_ONOFF:     (tX, tY: Integer;
-                        tWidth, tHeight: Word;
-                        Wait: Word;
-                        Count: Word;
-                        MonsterID: Integer);
-    TRIGGER_SECRET:    ();
-    TRIGGER_TEXTURE:   (ActivateOnce: Boolean;
-                        AnimOnce: Boolean);
-    TRIGGER_SOUND:     (SoundName: Char64;
-                        Volume: Byte;
-                        Pan: Byte;
-                        Local: Boolean;
-                        PlayCount: Byte;
-                        SoundSwitch: Boolean);
+    TRIGGER_ONOFF:        (tX, tY: Integer;
+                           tWidth, tHeight: Word;
+                           Wait: Word;
+                           Count: Word;
+                           MonsterID: Integer);
+    TRIGGER_SECRET:       ();
+    TRIGGER_TEXTURE:      (ActivateOnce: Boolean;
+                           AnimOnce: Boolean);
+    TRIGGER_SOUND:        (SoundName: Char64;
+                           Volume: Byte;
+                           Pan: Byte;
+                           Local: Boolean;
+                           PlayCount: Byte;
+                           SoundSwitch: Boolean);
+    TRIGGER_SPAWNMONSTER: (MonPos: TPoint;
+                           MonType: Byte;
+                           MonHealth: Integer;
+                           MonDir: Byte);
+    TRIGGER_SPAWNITEM:    (ItemPos: TPoint;
+                           ItemType: Byte;
+                           ItemFalls: Boolean);
    end;
 
 implementation

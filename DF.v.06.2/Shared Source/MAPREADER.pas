@@ -2,9 +2,9 @@ unit MAPREADER;
 
 {
 -----------------------------------
-MAPREADER.PAS ВЕРСИЯ ОТ 13.11.07
+MAPREADER.PAS ВЕРСИЯ ОТ 09.12.12
 
-Поддержка карт версии 1
+Поддержка карт версии 2
 -----------------------------------
 }
 
@@ -34,6 +34,7 @@ type
     procedure FreeMap();
     function HandledVersion(): Byte; virtual;
     property GetError: Byte read FError;
+    property GetVersion: Byte read FVersion;
   end;
 
   TMapReader_1 = class(TMapReader)
@@ -46,6 +47,13 @@ type
     function GetAreas(): TAreasRec1Array;
     function GetMonsters(): TMonsterRec1Array;
     function GetTriggers(): TTriggersRec1Array;
+    function HandledVersion(): Byte; override;
+  end;
+
+  TMapReader_2 = class(TMapReader_1)
+   private
+   public
+    function GetTriggers(): TTriggersRec2Array;
     function HandledVersion(): Byte; override;
   end;
 
@@ -224,12 +232,70 @@ begin
  Result := $01;
 end;
 
+{ TMapReader_2 }
+
+function TMapReader_2.GetTriggers(): TTriggersRec2Array;
+var
+  TempDataBlocks: TDataBlocksArray;
+  a: Integer;
+  b, Size: LongWord;
+  OldTrigs: TTriggersRec1Array;
+
+begin
+  Result := nil;
+
+  if GetVersion = $01 then
+    begin
+      OldTrigs := inherited GetTriggers;
+      if OldTrigs <> nil then
+        begin
+          SetLength(Result, Length(OldTrigs));
+          for a := 0 to High(OldTrigs) do
+            begin
+              Result[a].X := OldTrigs[a].X;
+              Result[a].Y := OldTrigs[a].Y;
+              Result[a].Width := OldTrigs[a].Width;
+              Result[a].Height := OldTrigs[a].Height;
+              Result[a].Enabled := OldTrigs[a].Enabled;
+              Result[a].TexturePanel := OldTrigs[a].TexturePanel;
+              Result[a].TriggerType := OldTrigs[a].TriggerType;
+              Result[a].ActivateType := OldTrigs[a].ActivateType;
+              Result[a].Keys := OldTrigs[a].Keys;
+              Result[a].DATA := OldTrigs[a].DATA;
+            end;
+        end;
+    end
+  else // version = $02
+    begin
+      TempDataBlocks := GetBlocks(BLOCK_TRIGGERS);
+      if TempDataBlocks = nil then
+        Exit;
+
+      size := SizeOf(TTriggerRec_2);
+
+      for a := 0 to High(TempDataBlocks) do
+        for b := 0 to (TempDataBlocks[a].Block.BlockSize div size)-1 do
+          begin
+            SetLength(Result, Length(Result)+1);
+            CopyMemory(@Result[High(Result)], Pointer(LongWord(TempDataBlocks[a].Data)+b*size), size);
+          end;
+
+      TempDataBlocks := nil;
+    end;
+end;
+
+function TMapReader_2.HandledVersion: Byte;
+begin
+  Result := $02;
+end;
+
 { TMapReader }
 
 constructor TMapReader.Create();
 begin
  FDataBlocks := nil;
  FError := MAP_ERROR_NONE;
+ FVersion := $00;
 end;
 
 destructor TMapReader.Destroy();
@@ -291,6 +357,7 @@ begin
  adr := 3;
 
  CopyMemory(@Ver, Pointer(LongWord(Data)+adr), 1);
+ FVersion := Ver;
  if Ver > HandledVersion() then
  begin
   FError := MAP_ERROR_VERSION;

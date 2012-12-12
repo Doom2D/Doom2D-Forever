@@ -262,7 +262,7 @@ begin
 
   0:
   begin
-   Obj^.Vel.Y := Obj^.Vel.Y+1;
+   Obj^.Vel.Y := Obj^.Vel.Y+1; { Gravity }
    if Obj^.Vel.Y > MAX_YV then Obj^.Vel.Y := Obj^.Vel.Y-1;
   end;
  end;

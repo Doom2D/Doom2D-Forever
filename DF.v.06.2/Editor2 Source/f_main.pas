@@ -130,6 +130,11 @@ type
     bClearTexture: TButton;
     cbFall: TCheckBox;
     miPackMap: TMenuItem;
+    N10: TMenuItem;
+    miMapTestSettings: TMenuItem;
+    miTestMap: TMenuItem;
+    ToolButton2: TToolButton;
+    tbTestMap: TToolButton;
     procedure aAboutExecute(Sender: TObject);
     procedure aCheckMapExecute(Sender: TObject);
     procedure aMoveToFore(Sender: TObject);
@@ -188,9 +193,13 @@ type
     procedure miSaveMiniMapClick(Sender: TObject);
     procedure bClearTextureClick(Sender: TObject);
     procedure miPackMapClick(Sender: TObject);
+    procedure aRecentFileExecute(Sender: TObject);
+    procedure miMapTestSettingsClick(Sender: TObject);
+    procedure miTestMapClick(Sender: TObject);
    private
     procedure Draw();
     procedure OnIdle(Sender: TObject; var Done: Boolean);
+    procedure RefreshRecentMenu;
    public
   end;
 
@@ -219,11 +228,23 @@ var
   PreviewColor: TColor;
   Scale: Byte;
 
+  RecentFiles: TStringList;
+
+  TestGameMode: String;
+  TestLimTime: String;
+  TestLimGoal: String;
+  TestOptionsTwoPlayers: Boolean;
+  TestOptionsTeamDamage: Boolean;
+  TestOptionsAllowExit: Boolean;
+  TestOptionsWeaponStay: Boolean;
+  TestOptionsMonstersDM: Boolean;
+  TestD2dExe: String;
+
   LayerEnabled: array[LAYER_BACK..LAYER_TRIGGERS] of Boolean =
   (True, True, True, True, True, True, True, True, True);
   PreviewMode: Boolean = False;
 
-procedure OpenMap(FileName: string);
+procedure OpenMap(FileName: string; mapN: string);
 
 implementation
 
@@ -231,7 +252,8 @@ uses f_options, e_graphics, e_log, dglOpenGL, Math, f_mapoptions,
   g_basic, f_about, f_mapoptimization, f_mapcheck, f_addresource_texture,
   g_textures, f_activationtype, f_keys, MAPWRITER, MAPSTRUCT, MAPREADER,
   f_selectmap, f_savemap, WADEDITOR, MAPDEF, g_map, f_saveminimap,
-  f_addresource, CONFIG, f_packmap, f_addresource_sound;
+  f_addresource, CONFIG, f_packmap, f_addresource_sound, f_maptest,
+  f_choosetype;
 
 const
   BoolNames: array[False..True] of string = ('Нет', 'Да');
@@ -273,12 +295,16 @@ const
   RESIZEDIR_RIGHT = 3;
   RESIZEDIR_LEFT  = 4;
 
-  SELECTFLAG_NONE     = 0;
-  SELECTFLAG_TELEPORT = 1;
-  SELECTFLAG_DOOR     = 2;
-  SELECTFLAG_TEXTURE  = 3;
-  SELECTFLAG_LIFT     = 4;
-  SELECTFLAG_MONSTER  = 5;
+  SELECTFLAG_NONE       = 0;
+  SELECTFLAG_TELEPORT   = 1;
+  SELECTFLAG_DOOR       = 2;
+  SELECTFLAG_TEXTURE    = 3;
+  SELECTFLAG_LIFT       = 4;
+  SELECTFLAG_MONSTER    = 5;
+  SELECTFLAG_SPAWNPOINT = 6;
+
+  MAX_RECENT_FILES    = 8;
+  RECENT_FILES_MENU_START = 12;
 
 type
   TUndoRec = record
@@ -356,21 +382,24 @@ begin
  if Name = DirNames[D_LEFT] then Result := D_LEFT else Result := D_RIGHT;
 end;
 
-function ActivateToStr(ActivateType: Byte): string;
+function ActivateToStr(ActivateType: Cardinal): string;
 begin
  Result := '';
 
- if ByteBool(ACTIVATE_PLAYERCOLLIDE and ActivateType) then Result := Result+'+PC';
- if ByteBool(ACTIVATE_MONSTERCOLLIDE and ActivateType) then Result := Result+'+MC';
- if ByteBool(ACTIVATE_PLAYERPRESS and ActivateType) then Result := Result+'+PP';
- if ByteBool(ACTIVATE_MONSTERPRESS and ActivateType) then Result := Result+'+MP';
- if ByteBool(ACTIVATE_SHOT and ActivateType) then Result := Result+'+SH';
- if ByteBool(ACTIVATE_NOMONSTER and ActivateType) then Result := Result+'+NM';
+ if LongBool(ACTIVATE_PLAYERCOLLIDE and ActivateType) then Result := Result+'+PC';
+ if LongBool(ACTIVATE_MONSTERCOLLIDE and ActivateType) then Result := Result+'+MC';
+ if LongBool(ACTIVATE_PLAYERPRESS and ActivateType) then Result := Result+'+PP';
+ if LongBool(ACTIVATE_MONSTERPRESS and ActivateType) then Result := Result+'+MP';
+ if LongBool(ACTIVATE_SHOT and ActivateType) then Result := Result+'+SH';
+ if LongBool(ACTIVATE_NOMONSTER and ActivateType) then Result := Result+'+NM';
+ if LongBool(ACTIVATE_NOPLAYER and ActivateType) then Result := Result+'+NP';
+ if LongBool(ACTIVATE_ITEMCOLLIDE and ActivateType) then Result := Result+'+IC';
+ if LongBool(ACTIVATE_NOITEM and ActivateType) then Result := Result+'+NI';
 
  if (Result <> '') and (Result[1] = '+') then Delete(Result, 1, 1);
 end;
 
-function StrToActivate(Str: string): Byte;
+function StrToActivate(Str: string): Cardinal;
 begin
  Result := 0;
 
@@ -380,22 +409,25 @@ begin
  if Pos('MP', Str) > 0 then Result := Result or ACTIVATE_MONSTERPRESS;
  if Pos('SH', Str) > 0 then Result := Result or ACTIVATE_SHOT;
  if Pos('NM', Str) > 0 then Result := Result or ACTIVATE_NOMONSTER;
+ if Pos('NP', Str) > 0 then Result := Result or ACTIVATE_NOPLAYER;
+ if Pos('IC', Str) > 0 then Result := Result or ACTIVATE_ITEMCOLLIDE;
+ if Pos('NI', Str) > 0 then Result := Result or ACTIVATE_NOITEM;
 end;
 
-function KeyToStr(Key: Byte): string;
+function KeyToStr(Key: Word): string;
 begin
  Result := '';
 
- if ByteBool(KEY_RED and Key) then Result := Result+'+RK';
- if ByteBool(KEY_GREEN and Key) then Result := Result+'+GK';
- if ByteBool(KEY_BLUE and Key) then Result := Result+'+BK';
- if ByteBool(KEY_REDTEAM and Key) then Result := Result+'+RT';
- if ByteBool(KEY_BLUETEAM and Key) then Result := Result+'+BT';
+ if WordBool(KEY_RED and Key) then Result := Result+'+RK';
+ if WordBool(KEY_GREEN and Key) then Result := Result+'+GK';
+ if WordBool(KEY_BLUE and Key) then Result := Result+'+BK';
+ if WordBool(KEY_REDTEAM and Key) then Result := Result+'+RT';
+ if WordBool(KEY_BLUETEAM and Key) then Result := Result+'+BT';
 
  if (Result <> '') and (Result[1] = '+') then Delete(Result, 1, 1);
 end;
 
-function StrToKey(Str: string): Byte;
+function StrToKey(Str: string): Word;
 begin
  Result := 0;
 
@@ -404,6 +436,50 @@ begin
  if Pos('BK', Str) > 0 then Result := Result or KEY_BLUE;
  if Pos('RT', Str) > 0 then Result := Result or KEY_REDTEAM;
  if Pos('BT', Str) > 0 then Result := Result or KEY_BLUETEAM;
+end;
+
+function MonsterToStr(MonType: Byte): String;
+begin
+  if MonType in [MONSTER_DEMON..MONSTER_MAN] then
+    Result := MonsterNames[MonType]
+  else
+    Result := MonsterNames[MONSTER_ZOMBY];
+end;
+
+function StrToMonster(Str: String): Byte;
+var
+  i: Integer;
+
+begin
+  Result := MONSTER_ZOMBY;
+  for i := MONSTER_DEMON to MONSTER_MAN do
+    if MonsterNames[i] = Str then
+      begin
+        Result := i;
+        Exit;
+      end;
+end;
+
+function ItemToStr(ItemType: Byte): String;
+begin
+  if ItemType in [ITEM_MEDKIT_SMALL..ITEM_KEY_BLUE] then
+    Result := ItemNames[ItemType]
+  else
+    Result := ItemNames[ITEM_AMMO_BULLETS];
+end;
+
+function StrToItem(Str: String): Byte;
+var
+  i: Integer;
+
+begin
+  Result := ITEM_AMMO_BULLETS;
+  for i := ITEM_MEDKIT_SMALL to ITEM_KEY_BLUE do
+    if ItemNames[i] = Str then
+      begin
+        Result := i;
+        Exit;
+      end;
 end;
 
 function SelectedObjectCount(): Word;
@@ -708,6 +784,12 @@ begin
       ReadOnly := True;
      end;
 
+     with ItemProps[InsertRow('Направление', DirNames[TDirection(Data.TlpDir)], True)-1] do
+       begin
+         EditStyle := esPickList;
+         ReadOnly := True;
+       end;
+
      {with ItemProps[InsertRow('Телепорт итемов', BoolNames[Data.items_teleport], True)-1] do
      begin
       EditStyle := esPickList;
@@ -867,6 +949,56 @@ begin
       ReadOnly := True;
      end;
     end;
+
+    TRIGGER_SPAWNMONSTER:
+      begin
+        with ItemProps[InsertRow('Тип монстра', MonsterToStr(Data.MonType), True)-1] do
+          begin
+            EditStyle := esEllipsis;
+            ReadOnly := True;
+          end;
+
+        with ItemProps[InsertRow('Точка появления', Format('(%d:%d)',
+             [Data.MonPos.X, Data.MonPos.Y]), True)-1] do
+          begin
+            EditStyle := esEllipsis;
+            ReadOnly := True;
+          end;
+
+        with ItemProps[InsertRow('Направление', DirNames[TDirection(Data.MonDir)], True)-1] do
+          begin
+            EditStyle := esPickList;
+            ReadOnly := True;
+          end;
+
+        with ItemProps[InsertRow('Здоровье', IntToStr(Data.MonHealth), True)-1] do
+          begin
+           EditStyle := esSimple;
+           MaxLength := 5;
+          end;
+      end;
+
+    TRIGGER_SPAWNITEM:
+      begin
+        with ItemProps[InsertRow('Тип предмета', ItemToStr(Data.ItemType), True)-1] do
+          begin
+            EditStyle := esEllipsis;
+            ReadOnly := True;
+          end;
+
+        with ItemProps[InsertRow('Точка появления', Format('(%d:%d)',
+             [Data.ItemPos.X, Data.ItemPos.Y]), True)-1] do
+          begin
+            EditStyle := esEllipsis;
+            ReadOnly := True;
+          end;
+
+        with ItemProps[InsertRow('Падает', BoolNames[Data.ItemFalls], True)-1] do
+          begin
+            EditStyle := esPickList;
+            ReadOnly := True;
+          end;
+      end;
     end; //case TriggerType
    end;
   end; // OBJECT_TRIGGER:
@@ -1179,24 +1311,47 @@ begin
  Result := ok;
 end;
 
-procedure OpenMap(FileName: string);
+procedure OpenMap(FileName: string; mapN: string);
 var
   MapName: string;
+  idx: Integer;
+
 begin
  SelectMapForm.GetMaps(FileName);
+ 
+ if mapN = '' then
+   idx := -1
+ else
+   idx := SelectMapForm.lbMapList.Items.IndexOf(mapN);
 
- if (SelectMapForm.ShowModal = mrOK) and (SelectMapForm.lbMapList.ItemIndex <> -1) then
+ if idx < 0 then
+   begin
+     if (SelectMapForm.ShowModal = mrOK) and (SelectMapForm.lbMapList.ItemIndex <> -1) then
+       idx := SelectMapForm.lbMapList.ItemIndex
+     else
+       Exit;
+   end;
+
+ MapName := SelectMapForm.lbMapList.Items[idx];
+
  with MainForm do
  begin
   FullClear();
-
-  MapName := SelectMapForm.lbMapList.Items[SelectMapForm.lbMapList.ItemIndex];
 
   pLoadProgress.Left := (RenderPanel.Width div 2)-(pLoadProgress.Width div 2);
   pLoadProgress.Top := (RenderPanel.Height div 2)-(pLoadProgress.Height div 2);
   pLoadProgress.Show;
 
-  OpenedMap := FileName+':\'+MapName;                
+  OpenedMap := FileName+':\'+MapName;
+
+  idx := RecentFiles.IndexOf(OpenedMap);
+  if idx >= 0 then
+    RecentFiles.Delete(idx);
+  RecentFiles.Insert(0, OpenedMap);
+  while RecentFiles.Count > MAX_RECENT_FILES do
+    RecentFiles.Delete(RecentFiles.Count-1);
+  RefreshRecentMenu;
+    
   LoadMap(FileName+':\'+MapName);
 
   pLoadProgress.Hide;
@@ -1256,6 +1411,18 @@ begin
      begin
       if okX then gTriggers[SelectedObjects[a].ID].Data.TargetPoint.X := gTriggers[SelectedObjects[a].ID].Data.TargetPoint.X+dx;
       if okY then gTriggers[SelectedObjects[a].ID].Data.TargetPoint.Y := gTriggers[SelectedObjects[a].ID].Data.TargetPoint.Y+dy;
+     end;
+
+     if gTriggers[SelectedObjects[a].ID].TriggerType in [TRIGGER_SPAWNMONSTER] then
+     begin
+      if okX then gTriggers[SelectedObjects[a].ID].Data.MonPos.X := gTriggers[SelectedObjects[a].ID].Data.MonPos.X+dx;
+      if okY then gTriggers[SelectedObjects[a].ID].Data.MonPos.Y := gTriggers[SelectedObjects[a].ID].Data.MonPos.Y+dy;
+     end;
+
+     if gTriggers[SelectedObjects[a].ID].TriggerType in [TRIGGER_SPAWNITEM] then
+     begin
+      if okX then gTriggers[SelectedObjects[a].ID].Data.ItemPos.X := gTriggers[SelectedObjects[a].ID].Data.ItemPos.X+dx;
+      if okY then gTriggers[SelectedObjects[a].ID].Data.ItemPos.Y := gTriggers[SelectedObjects[a].ID].Data.ItemPos.Y+dy;
      end;
     end;
    end;
@@ -1347,6 +1514,59 @@ end;
 //Закончились вспомогательные процедуры
 //----------------------------------------
 
+procedure TMainForm.RefreshRecentMenu;
+var
+  i: Integer;
+  MI: TMenuItem;
+
+begin
+  if MainMenu.Items[0].Count < RECENT_FILES_MENU_START then
+    begin
+      if RecentFiles.Count > 0 then
+        begin
+          MI := TMenuItem.Create(MainMenu.Items[0]);
+          MI.Caption := '-';
+          MainMenu.Items[0].Add(MI);
+        end;
+    end
+  else
+    begin
+      while MainMenu.Items[0].Count > RECENT_FILES_MENU_START do
+        MainMenu.Items[0].Delete(MainMenu.Items[0].Count-1);
+      if RecentFiles.Count = 0 then
+        MainMenu.Items[0].Delete(MainMenu.Items[0].Count-1);
+    end;
+
+  for i := 0 to RecentFiles.Count-1 do
+    begin
+      MI := TMenuItem.Create(MainMenu.Items[0]);
+      MI.Caption := IntToStr(i+1) + '  ' + RecentFiles[i];
+      MI.OnClick := aRecentFileExecute;
+      MainMenu.Items[0].Add(MI);
+    end;
+end;
+
+procedure TMainForm.aRecentFileExecute(Sender: TObject);
+var
+  n: Integer;
+  s, fn: String;
+
+begin
+  s := LowerCase((Sender as TMenuItem).Caption);
+  n := StrToInt(Copy(s, 2, 1)) - 1;
+  s := LowerCase(RecentFiles[n]);
+  if Pos('.wad:\', s) > 0 then
+    begin // map name included
+      fn := Copy(s, 1, Pos('.wad:\', s)+3);
+      Delete(s, 1, Pos('.wad:\', s)+5);
+      if (FileExists(fn)) then
+        OpenMap(fn, s);
+    end
+  else // only wad name
+    if (FileExists(s)) then
+        OpenMap(s, '');
+end;
+
 procedure TMainForm.aEditorOptionsExecute(Sender: TObject);
 begin
  OptionsForm.ShowModal;
@@ -1357,6 +1577,8 @@ var
   PixelFormat: GLuint;
   pfd: TPIXELFORMATDESCRIPTOR;
   config: TConfig;
+  i: Integer;
+  s: String;
 begin
  Randomize;
 
@@ -1413,6 +1635,16 @@ begin
  config := TConfig.CreateFile(EditorDir+'\editor.cfg');
  if config.ReadBool('Editor', 'Maximize', False) then WindowState := wsMaximized;
  ShowMap := config.ReadBool('Editor', 'Minimap', False);
+
+ RecentFiles := TStringList.Create;
+ for i := 0 to MAX_RECENT_FILES-1 do
+   begin
+     s := config.ReadStr('RecentFiles', IntToStr(i+1), '');
+     if s <> '' then
+       RecentFiles.Add(s);
+   end;
+ RefreshRecentMenu;
+
  config.Destroy;
 
  Application.OnIdle := OnIdle;
@@ -1488,8 +1720,8 @@ begin
  begin
   with gTriggers[SelectedObjects[GetFirstSelected()].ID] do
    if Data.d2d_teleport then
-    e_DrawLine(2, MapOffset.X+MousePos.X-16, MapOffset.Y+MousePos.Y-1,
-               MapOffset.X+MousePos.X+16, MapOffset.Y+MousePos.Y-1,
+    e_DrawLine(2, MousePos.X-16, MousePos.Y-1,
+               MousePos.X+16, MousePos.Y-1,
                0, 0, 255)
    else
     e_DrawQuad(MousePos.X, MousePos.Y, MousePos.X+AreaSize[AREA_DMPOINT].Width,
@@ -1498,6 +1730,16 @@ begin
   e_DrawFillQuad(MousePos.X, MousePos.Y, MousePos.X+180, MousePos.Y+18, 192, 192, 192, 127);
   e_DrawQuad(MousePos.X+1, MousePos.Y+1, MousePos.X+179, MousePos.Y+17, 1, 255, 255, 255);
   e_SimpleFontPrint(MousePos.X+8, MousePos.Y+14, 'Выберите точку телепорта', gEditorFont, 0, 0, 0);
+ end;
+
+ if SelectFlag = SELECTFLAG_SPAWNPOINT then
+ begin
+  e_DrawLine(2, MousePos.X-16, MousePos.Y-1,
+             MousePos.X+16, MousePos.Y-1,
+             0, 0, 255);
+  e_DrawFillQuad(MousePos.X, MousePos.Y, MousePos.X+180, MousePos.Y+18, 192, 192, 192, 127);
+  e_DrawQuad(MousePos.X+1, MousePos.Y+1, MousePos.X+179, MousePos.Y+17, 1, 255, 255, 255);
+  e_SimpleFontPrint(MousePos.X+8, MousePos.Y+14, 'Выберите точку появления', gEditorFont, 0, 0, 0);
  end;
 
  if SelectFlag = SELECTFLAG_DOOR then
@@ -1755,6 +1997,19 @@ begin
      Y := MousePos.Y-MapOffset.Y;
     end;
 
+    SELECTFLAG_SPAWNPOINT:
+      with gTriggers[SelectedObjects[GetFirstSelected()].ID] do
+        if TriggerType = TRIGGER_SPAWNMONSTER then
+          begin
+            Data.MonPos.X := MousePos.X-MapOffset.X;
+            Data.MonPos.Y := MousePos.Y-MapOffset.Y;
+          end
+        else if TriggerType = TRIGGER_SPAWNITEM then
+          begin
+            Data.ItemPos.X := MousePos.X-MapOffset.X;
+            Data.ItemPos.Y := MousePos.Y-MapOffset.Y;
+          end;
+
     SELECTFLAG_DOOR:
     begin
      IDArray := ObjectInRect(MousePos.X-MapOffset.X, MousePos.Y-MapOffset.Y, 2, 2,
@@ -1982,6 +2237,12 @@ begin
       trigger.ActivateType := Trigger.ActivateType or ACTIVATE_SHOT;
      if clbActivationType.Checked[5] then
       trigger.ActivateType := Trigger.ActivateType or ACTIVATE_NOMONSTER;
+     if clbActivationType.Checked[6] then
+      trigger.ActivateType := Trigger.ActivateType or ACTIVATE_NOPLAYER;
+     if clbActivationType.Checked[7] then
+      trigger.ActivateType := Trigger.ActivateType or ACTIVATE_ITEMCOLLIDE;
+     if clbActivationType.Checked[8] then
+      trigger.ActivateType := Trigger.ActivateType or ACTIVATE_NOITEM;
 
      trigger.Key := 0;
 
@@ -2002,6 +2263,11 @@ begin
        trigger.Data.TargetPoint.X := trigger.X-64;
        trigger.Data.TargetPoint.Y := trigger.Y-64;
        trigger.Data.d2d_teleport := True;
+       trigger.Data.TlpDir := 0;
+      end;
+      TRIGGER_PRESS, TRIGGER_ON, TRIGGER_OFF, TRIGGER_ONOFF:
+      begin
+        trigger.Data.Count := 1;
       end;
       TRIGGER_SOUND:
       begin
@@ -2012,6 +2278,20 @@ begin
        //trigger.Data.SoundDistance := 255;
        trigger.Data.SoundSwitch := False;
       end;
+      TRIGGER_SPAWNMONSTER:
+        begin
+          trigger.Data.MonType := MONSTER_ZOMBY;
+          trigger.Data.MonPos.X := trigger.X-64;
+          trigger.Data.MonPos.Y := trigger.Y-64;
+          trigger.Data.MonHealth := 0;
+        end;
+      TRIGGER_SPAWNITEM:
+        begin
+          trigger.Data.ItemType := ITEM_AMMO_BULLETS;
+          trigger.Data.ItemPos.X := trigger.X-64;
+          trigger.Data.ItemPos.Y := trigger.Y-64;
+          trigger.Data.ItemFalls := False;
+        end;
      end;
 
      Undo_Add(OBJECT_TRIGGER, AddTrigger(trigger));
@@ -2097,7 +2377,7 @@ begin
           ((SelectedObjects[_id].ObjectType = OBJECT_PANEL) and
            IsTexturedPanel(gPanels[SelectedObjects[_id].ID].PanelType) and
            (gPanels[SelectedObjects[_id].ID].TextureName <> '') and
-           not IsSpecialTextureSel()) then
+           (not IsSpecialTexture(gPanels[SelectedObjects[_id].ID].TextureName))) then
  begin
   sX := gPanels[SelectedObjects[_id].ID].TextureWidth;
   sY := gPanels[SelectedObjects[_id].ID].TextureHeight;
@@ -2196,10 +2476,19 @@ end;
 procedure TMainForm.FormDestroy(Sender: TObject);
 var
   config: TConfig;
+  i: Integer;
 begin
  config := TConfig.CreateFile(EditorDir+'\editor.cfg');
  config.WriteBool('Editor', 'Maximize', WindowState = wsMaximized);
  config.WriteBool('Editor', 'Minimap', ShowMap);
+
+ for i := 0 to MAX_RECENT_FILES-1 do
+   if i < RecentFiles.Count then
+     config.WriteStr('RecentFiles', IntToStr(i+1), RecentFiles[i])
+   else
+     config.WriteStr('RecentFiles', IntToStr(i+1), '');
+ RecentFiles.Free;
+
  config.SaveFile(EditorDir+'\editor.cfg');
  config.Destroy;
 
@@ -2308,6 +2597,9 @@ end;
 
 procedure TMainForm.vleObjectPropertyGetPickList(Sender: TObject;
   const KeyName: string; Values: TStrings);
+var
+  i: Integer;
+
 begin
  if vleObjectProperty.ItemProps[KeyName].EditStyle = esPickList then
  begin
@@ -2468,6 +2760,7 @@ begin
      begin
       Data.Wait := Min(StrToIntDef(vleObjectProperty.Values['Задержка'], 0), 65535);
       Data.Count := Min(StrToIntDef(vleObjectProperty.Values['Счетчик'], 0), 65535);
+      if Data.Count < 1 then Data.Count := 1;
      end;
      TRIGGER_OPENDOOR, TRIGGER_CLOSEDOOR, TRIGGER_DOOR, TRIGGER_DOOR5,
      TRIGGER_CLOSETRAP, TRIGGER_TRAP, TRIGGER_LIFTUP, TRIGGER_LIFTDOWN,
@@ -2480,6 +2773,7 @@ begin
      begin
       Data.d2d_teleport := NameToBool(vleObjectProperty.Values['Как в D2D']);
       Data.silent_teleport := NameToBool(vleObjectProperty.Values['Тихий телепорт']);
+      Data.TlpDir := Byte(NameToDir(vleObjectProperty.Values['Направление']));
       //Data.items_teleport := NameToBool(vleObjectProperty.Values['Телепорт итемов']);
      end;
      TRIGGER_SOUND:
@@ -2495,6 +2789,19 @@ begin
       //Data.SoundDistance := Min(StrToIntDef(vleObjectProperty.Values['Дистанция'], 0), 255);
       Data.SoundSwitch := NameToBool(vleObjectProperty.Values['Переключение']);
      end;
+     TRIGGER_SPAWNMONSTER:
+       begin
+         Data.MonType := StrToMonster(vleObjectProperty.Values['Тип монстра']);
+         Data.MonDir := Byte(NameToDir(vleObjectProperty.Values['Направление']));
+         Data.MonHealth := Min(StrToIntDef(vleObjectProperty.Values['Здоровье'], 0), 1000000);
+         if Data.MonHealth < 0 then
+           Data.MonHealth := 0;
+       end;
+     TRIGGER_SPAWNITEM:
+       begin
+         Data.ItemType := StrToItem(vleObjectProperty.Values['Тип предмета']);
+         Data.ItemFalls := NameToBool(vleObjectProperty.Values['Падает']);
+       end;
     end;
    end;
   end;
@@ -2728,11 +3035,14 @@ end;
 procedure TMainForm.vleObjectPropertyEditButtonClick(Sender: TObject);
 var
   Key, FileName: string;
+  c: Cardinal;
+  w: Word;
   b: Byte;
 begin
  Key := vleObjectProperty.Keys[vleObjectProperty.Row];
 
  if Key = 'Точка телепорта' then SelectFlag := SELECTFLAG_TELEPORT
+ else if Key = 'Точка появления' then SelectFlag := SELECTFLAG_SPAWNPOINT
  else if (Key = 'Панель двери') or (Key = 'Панель ловушки') then SelectFlag := SELECTFLAG_DOOR
  else if Key = 'Панель с текстурой' then SelectFlag := SELECTFLAG_TEXTURE
  else if Key = 'Панель лифта' then SelectFlag := SELECTFLAG_LIFT
@@ -2763,16 +3073,23 @@ begin
    cbMonsterPress.Checked := Pos('MP', Values[Key]) > 0;
    cbShot.Checked := Pos('SH', Values[Key]) > 0;
    cbNoMonster.Checked := Pos('NM', Values[Key]) > 0;
+   cbNoPlayer.Checked := Pos('NP', Values[Key]) > 0;
+   cbItemCollide.Checked := Pos('IC', Values[Key]) > 0;
+   cbNoItem.Checked := Pos('NI', Values[Key]) > 0;
+
    if ShowModal = mrOK then
    begin
-    b := 0;
-    if cbPlayerCollide.Checked then b := ACTIVATE_PLAYERCOLLIDE;
-    if cbMonsterCollide.Checked then b := b or ACTIVATE_MONSTERCOLLIDE;
-    if cbPlayerPress.Checked then b := b or ACTIVATE_PLAYERPRESS;
-    if cbMonsterPress.Checked then b := b or ACTIVATE_MONSTERPRESS;
-    if cbShot.Checked then b := b or ACTIVATE_SHOT;
-    if cbNoMonster.Checked then b := b or ACTIVATE_NOMONSTER;
-    Values[Key] := ActivateToStr(b);
+    c := 0;
+    if cbPlayerCollide.Checked then c := ACTIVATE_PLAYERCOLLIDE;
+    if cbMonsterCollide.Checked then c := c or ACTIVATE_MONSTERCOLLIDE;
+    if cbPlayerPress.Checked then c := c or ACTIVATE_PLAYERPRESS;
+    if cbMonsterPress.Checked then c := c or ACTIVATE_MONSTERPRESS;
+    if cbShot.Checked then c := c or ACTIVATE_SHOT;
+    if cbNoMonster.Checked then c := c or ACTIVATE_NOMONSTER;
+    if cbNoPlayer.Checked then c := c or ACTIVATE_NOPLAYER;
+    if cbItemCollide.Checked then c := c or ACTIVATE_ITEMCOLLIDE;
+    if cbNoItem.Checked then c := c or ACTIVATE_NOITEM;
+    Values[Key] := ActivateToStr(c);
     bApplyProperty.Click()
    end;
  end
@@ -2786,16 +3103,52 @@ begin
    cbBlueTeam.Checked := Pos('BT', Values[Key]) > 0;
    if ShowModal = mrOK then
    begin
-    b := 0;
-    if cbRedKey.Checked then b := KEY_RED;
-    if cbGreenKey.Checked then b := b or KEY_GREEN;
-    if cbBlueKey.Checked then b := b or KEY_BLUE;
-    if cbRedTeam.Checked then b := b or KEY_REDTEAM;
-    if cbBlueTeam.Checked then b := b or KEY_BLUETEAM;
-    Values[Key] := KeyToStr(b);
+    w := 0;
+    if cbRedKey.Checked then w := KEY_RED;
+    if cbGreenKey.Checked then w := w or KEY_GREEN;
+    if cbBlueKey.Checked then w := w or KEY_BLUE;
+    if cbRedTeam.Checked then w := w or KEY_REDTEAM;
+    if cbBlueTeam.Checked then w := w or KEY_BLUETEAM;
+    Values[Key] := KeyToStr(w);
     bApplyProperty.Click()
    end;
-  end;
+  end
+ else if Key = 'Тип монстра' then
+   with ChooseTypeForm, vleObjectProperty do
+     begin
+       Caption := 'Выберите тип монстра';
+       lbTypeSelect.Items.Clear;
+
+       for b := MONSTER_DEMON to MONSTER_MAN do
+         lbTypeSelect.Items.Add(MonsterToStr(b));
+
+       lbTypeSelect.ItemIndex := StrToMonster(Values[Key]) - MONSTER_DEMON;
+
+       if ShowModal = mrOK then
+         begin
+           b := lbTypeSelect.ItemIndex + MONSTER_DEMON;
+           Values[Key] := MonsterToStr(b);
+           bApplyProperty.Click();
+         end;
+     end
+ else if Key = 'Тип предмета' then
+   with ChooseTypeForm, vleObjectProperty do
+     begin
+       Caption := 'Выберите тип предмета';
+       lbTypeSelect.Items.Clear;
+
+       for b := ITEM_MEDKIT_SMALL to ITEM_KEY_BLUE do
+         lbTypeSelect.Items.Add(ItemToStr(b));
+
+       lbTypeSelect.ItemIndex := StrToItem(Values[Key]) - ITEM_MEDKIT_SMALL;
+
+       if ShowModal = mrOK then
+         begin
+           b := lbTypeSelect.ItemIndex + ITEM_MEDKIT_SMALL;
+           Values[Key] := ItemToStr(b);
+           bApplyProperty.Click();
+         end;
+     end;
 end;
 
 procedure TMainForm.aSaveMapExecute(Sender: TObject);
@@ -2817,7 +3170,7 @@ procedure TMainForm.aOpenMapExecute(Sender: TObject);
 begin
  OpenDialog.Filter := 'Карты Doom2D: Forever (*.wad)|*.wad|All files (*.*)|*.*';
 
- if OpenDialog.Execute then OpenMap(OpenDialog.FileName);
+ if OpenDialog.Execute then OpenMap(OpenDialog.FileName, '');
 end;
 
 procedure TMainForm.FormActivate(Sender: TObject);
@@ -3158,6 +3511,58 @@ end;
 procedure TMainForm.miPackMapClick(Sender: TObject);
 begin
  PackMapForm.ShowModal();
+end;
+
+procedure TMainForm.miMapTestSettingsClick(Sender: TObject);
+begin
+  MapTestForm.ShowModal;
+end;
+
+procedure TMainForm.miTestMapClick(Sender: TObject);
+var
+  cmd: String;
+  opt: LongWord;
+  si: STARTUPINFO;
+  pi: PROCESS_INFORMATION;
+  lpMsgBuf: PAnsiChar;
+
+begin
+  if OpenedMap = '' then
+    Exit;
+
+  aSaveMapExecute(nil);
+
+  opt := 0;
+  if TestOptionsTwoPlayers then
+    opt := opt + 1;
+  if TestOptionsTeamDamage then
+    opt := opt + 2;
+  if TestOptionsAllowExit then
+    opt := opt + 4;
+  if TestOptionsWeaponStay then
+    opt := opt + 8;
+  if TestOptionsMonstersDM then
+    opt := opt + 16;
+
+  cmd := '"' + TestD2dExe + '"';
+  cmd := cmd + ' -map "' + OpenedMap + '"';
+  cmd := cmd + ' -gmode ' + TestGameMode;
+  cmd := cmd + ' -glimt ' + TestLimTime;
+  cmd := cmd + ' -glimg ' + TestLimGoal;
+  cmd := cmd + ' -gopt ' + IntToStr(opt);
+
+  ZeroMemory(@si, SizeOf(si));
+  si.cb := SizeOf(si);
+  ZeroMemory(@pi, SizeOf(pi));
+
+  if not CreateProcess(0, PAnsiChar(cmd),
+                       nil, nil, False, 0,
+                       nil, nil, si, pi) then
+    begin
+      FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER or FORMAT_MESSAGE_FROM_SYSTEM,
+        nil, GetLastError(), LANG_SYSTEM_DEFAULT, @lpMsgBuf, 0, nil);
+      MessageBox(0, lpMsgBuf, 'Ошибка запуска', MB_OK or MB_ICONERROR);
+    end;
 end;
 
 end.

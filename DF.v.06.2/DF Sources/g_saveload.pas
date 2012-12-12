@@ -28,7 +28,7 @@ uses
 
 const
   SIGNATURE = 'DFSAVE';
-  VERSION = $01;
+  VERSION = $02;
   BLOCK_NONE    = 0;
   BLOCK_GAME    = 1;
   BLOCK_MAP     = 2;
@@ -199,8 +199,6 @@ begin
    FreeMem(p);
   end;
 
-  { TODO 5 : Сохранение ИД монстров у триггеров }
-
   block.BlockType := BLOCK_MONSTER;
   block.Reserved := 0;
   block.BlockSize := g_Monsters_Save(p);
@@ -254,6 +252,8 @@ begin
  FileName := DataDir+'SAVGAME'+IntToStr(n)+'.DAT';
  if not FileExists(FileName) then Exit;
 
+ g_Game_SetLoadingText('Save File', 0);
+
  AssignFile(f, FileName);
  Reset(f, 1);
   BlockRead(f, sign[0], 6);
@@ -286,6 +286,7 @@ begin
    case block.BlockType of
     BLOCK_MAP:
     begin
+     g_Game_SetLoadingText('Map State', 0);
      p := GetMemory(block.BlockSize);
      BlockRead(f, p^, block.BlockSize);
      g_Map_LoadState(p, block.BlockSize);
@@ -294,6 +295,7 @@ begin
 
     BLOCK_ITEM:
     begin
+     g_Game_SetLoadingText('Items State', 0);
      p := GetMemory(block.BlockSize);
      BlockRead(f, p^, block.BlockSize);
      g_Items_Load(p, block.BlockSize);
@@ -302,6 +304,7 @@ begin
 
     BLOCK_TRIGGER:
     begin
+     g_Game_SetLoadingText('Triggers State', 0);
      p := GetMemory(block.BlockSize);
      BlockRead(f, p^, block.BlockSize);
      g_Triggers_Load(p, block.BlockSize);
@@ -310,6 +313,7 @@ begin
 
     BLOCK_WEAPON:
     begin
+     g_Game_SetLoadingText('Weapons State', 0);
      p := GetMemory(block.BlockSize);
      BlockRead(f, p^, block.BlockSize);
      g_Weapon_Load(p, block.BlockSize);
@@ -318,6 +322,7 @@ begin
 
     BLOCK_MONSTER:
     begin
+     g_Game_SetLoadingText('Monsters State', 0);
      p := GetMemory(block.BlockSize);
      BlockRead(f, p^, block.BlockSize);
      g_Monsters_Load(p, block.BlockSize);
@@ -339,6 +344,9 @@ begin
     else Seek(f, block.BlockSize);
    end;
   until block.BlockType = 0;
+
+  if (gMonsters <> nil) and (gTriggers <> nil) then
+    g_Map_ReAdd_DieTriggers;
 
   gLoadGameMode := False;
  CloseFile(f);
