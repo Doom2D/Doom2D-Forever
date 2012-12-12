@@ -6,6 +6,8 @@ uses windows;
 
 procedure g_Menu_Init();
 procedure g_Menu_Free();
+procedure LoadFont(txtres, fntres: string; cwdt, chgt: Byte; spc: ShortInt;
+                   var FontID: DWORD);
 
 var
   gMenuFont: DWORD;
@@ -544,15 +546,6 @@ begin
  ProcChangeColor(nil);
 end;
 
-procedure MenuLoadData();
-const
-  CHRWDT1 = 32;
-  CHRHGT1 = 32;
-  FNTSPC1 = -2;
-  CHRWDT2 = 16;
-  CHRHGT2 = 16;
-  FNTSPC2 = -1;
-
 procedure LoadFont(txtres, fntres: string; cwdt, chgt: Byte; spc: ShortInt;
                    var FontID: DWORD);
 var
@@ -597,11 +590,9 @@ begin
  if fntlen <> 0 then FreeMem(fntdata);
 end;
 
+procedure MenuLoadData();
 begin
  e_WriteLog('Loading menu data...', MSG_NOTIFY);
-
- LoadFont('MENUTXT', 'MENUFONT', CHRWDT1, CHRHGT1, FNTSPC1, gMenuFont);
- LoadFont('SMALLTXT', 'SMALLFONT', CHRWDT2, CHRHGT2, FNTSPC2, gMenuSmallFont);
 
  g_Texture_CreateWADEx('MAINMENU_MARKER1', GameWAD+':TEXTURES\MARKER1');
  g_Texture_CreateWADEx('MAINMENU_MARKER2', GameWAD+':TEXTURES\MARKER2');
@@ -678,13 +669,40 @@ begin
 end;
 
 procedure ProcExitMenuKeyDown(Key: Byte);
+var
+  sn: ShortString;
+
 begin
- if Key = Ord('Y') then
- begin
-  g_Sound_PlayEx('SOUND_PLAYER_FALL', 127, 255); 
-  Sleep(2000);
-  g_Game_Quit;
- end else if Key = Ord('N') then g_GUI_HideWindow();
+  if Key = Ord('Y') then
+  begin
+    g_Game_StopMusic;
+    case (Random(18)) of
+      0: sn := 'SOUND_MONSTER_PAIN';
+      1: sn := 'SOUND_MONSTER_DIE_3';
+      2: sn := 'SOUND_MONSTER_SLOP';
+      3: sn := 'SOUND_MONSTER_DEMON_DIE';
+      4: sn := 'SOUND_MONSTER_IMP_DIE_2';
+      5: sn := 'SOUND_MONSTER_MAN_DIE';
+      6: sn := 'SOUND_MONSTER_BSP_DIE';
+      7: sn := 'SOUND_MONSTER_VILE_DIE';
+      8: sn := 'SOUND_MONSTER_SKEL_DIE';
+      9: sn := 'SOUND_MONSTER_MANCUB_ALERT';
+      10: sn := 'SOUND_MONSTER_PAIN_PAIN';
+      11: sn := 'SOUND_MONSTER_BARON_DIE';
+      12: sn := 'SOUND_MONSTER_CACO_DIE';
+      13: sn := 'SOUND_MONSTER_CYBER_DIE';
+      14: sn := 'SOUND_MONSTER_KNIGHT_ALERT';
+      15: sn := 'SOUND_MONSTER_SPIDER_ALERT';
+     else sn := 'SOUND_PLAYER_FALL';
+    end;
+    if not g_Sound_PlayEx(sn, 127, 255) then
+      g_Sound_PlayEx('SOUND_PLAYER_FALL', 127, 255);
+    Sleep(1500);
+    g_Game_Quit;
+  end
+    else
+      if Key = Ord('N') then
+        g_GUI_HideWindow();
 end;
 
 procedure ProcLoadMenu();

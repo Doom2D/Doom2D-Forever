@@ -53,9 +53,14 @@ function g_Game_GetMegaWADInfo(WAD: string): TMegaWADInfo;
 procedure g_TakeScreenShot();
 procedure g_FatalError(Text: string);
 procedure GameCommands(P: SArray);
+procedure g_Game_Process_Params;
+procedure g_Game_SetLoadingText(Text: String; Max: Integer);
+procedure g_Game_StepLoading();
+procedure DrawLoadingStat();
 
 const
   GAME_TICK = 28;
+  LOADING_SHOW_STEP = 100;
   GT_NONE   = 0;
   GT_SINGLE = 1;
   GT_CUSTOM = 2;
@@ -141,6 +146,19 @@ type
    TotalSecrets: Integer;
   end;
 
+  TLoadingStat = record
+    Text: String;
+    CurValue: Integer;
+    MaxValue: Integer;
+    ShowCount: Integer;
+  end;
+
+  TParamStrValue = record
+    Name: String;
+    Value: String;
+  end;
+  TParamStrValues = array of TParamStrValue;
+
 const
   INTER_ACTION_TEXT = 1;
   INTER_ACTION_PIC = 2;
@@ -156,6 +174,7 @@ var
   IsDrawStat: Boolean = False;
   CustomStat: TEndCustomGameStat;
   SingleStat: TEndSingleGameStat;
+  LoadingStat: TLoadingStat;
   EndingGameCounter: Byte = 0;
   P1MoveButton: Byte = 0;
   P2MoveButton: Byte = 0;
@@ -598,20 +617,34 @@ begin
 end;
 
 procedure g_Game_Init();
+const
+  CHRWDT1 = 32;
+  CHRHGT1 = 32;
+  FNTSPC1 = -2;
+  CHRWDT2 = 16;
+  CHRHGT2 = 16;
+  FNTSPC2 = -1;
 var
   ID: DWORD;
   SR: TSearchRec;
 begin
  gExit := 0;
 
- g_Music_CreateWADEx('INTERMUS', GameWAD+':MUSIC\INTERMUS');
- g_Music_CreateWADEx('MENU', GameWAD+':MUSIC\MENU');
- g_Sound_CreateWADEx('INTER', GameWAD+':MUSIC\INTER');
  g_Texture_CreateWADEx('MENU_BACKGROUND', GameWAD+':TEXTURES\TITLE');
  g_Texture_CreateWADEx('INTER', GameWAD+':TEXTURES\INTER');
  g_Texture_CreateWADEx('FONT_STD', GameWAD+':FONTS\STDFONT');
- if g_Texture_Get('FONT_STD', ID) then e_TextureFontBuild(ID, gStdFont, 16, 16, -6);
+ if g_Texture_Get('FONT_STD', ID) then
+   e_TextureFontBuild(ID, gStdFont, 16, 16, -6);
 
+ LoadFont('MENUTXT', 'MENUFONT', CHRWDT1, CHRHGT1, FNTSPC1, gMenuFont);
+ LoadFont('SMALLTXT', 'SMALLFONT', CHRWDT2, CHRHGT2, FNTSPC2, gMenuSmallFont);
+
+ g_Game_SetLoadingText('Music', 0);
+ g_Music_CreateWADEx('INTERMUS', GameWAD+':MUSIC\INTERMUS');
+ g_Music_CreateWADEx('MENU', GameWAD+':MUSIC\MENU');
+ g_Sound_CreateWADEx('INTER', GameWAD+':MUSIC\INTER');
+
+ g_Game_SetLoadingText('Models', 0);
  g_PlayerModel_LoadData();
  
  if FindFirst(ModelsDir+'*.wad', faAnyFile, SR) = 0 then
@@ -621,11 +654,15 @@ begin
  until FindNext(SR) <> 0;
  FindClose(SR);
 
- g_Console_Init();
+ g_Game_SetLoadingText('Menus', 0);
  g_Menu_Init();
+
+ g_Game_SetLoadingText('Console', 0);
+ g_Console_Init();
 
  DataLoaded := False;
 
+ gGameOn := False;
  gPause := False;
  gTime := 0;
  LastScreenShot := 0;
@@ -633,7 +670,7 @@ begin
  e_MouseInfo.Accel := 1.0;
 
  g_Game_PlayMusic('MENU');
- gState := STATE_MENU;   
+ gState := STATE_MENU;
 end;
 
 procedure g_Game_Free();
@@ -664,6 +701,7 @@ begin
   if ((e_KeyBuffer[28] = $080) or (e_KeyBuffer[57] = $080))
      and not gConsoleShow then
   begin
+   g_Sound_All_Stop();
    g_Game_StopMusic();
 
    if NextMap <> '' then
@@ -917,11 +955,17 @@ procedure g_Game_LoadData();
 begin
  if DataLoaded then Exit;
 
+ g_Game_SetLoadingText('Items Data', 0);
  g_Items_LoadData();
+
+ g_Game_SetLoadingText('Weapons Data', 0);
  g_Weapon_LoadData();
+
  g_Monsters_LoadData();
 
  e_WriteLog('Loading game data...', MSG_NOTIFY);
+
+ g_Game_SetLoadingText('Game Data', 0);
 
  g_Texture_CreateWADEx('TEXTURE_PLAYER_HUD', GameWAD+':TEXTURES\HUD');
  g_Texture_CreateWADEx('TEXTURE_PLAYER_HUDBG', GameWAD+':TEXTURES\HUDBG');
@@ -1160,6 +1204,26 @@ begin
  end;
 end;
 
+procedure DrawLoadingStat();
+var
+  ww, hh, yy: Word;
+  s: String;
+
+begin
+  e_CharFont_GetSize(gMenuFont, I_MENU_LOADING, ww, hh);
+  yy := (gScreenHeight div 2)-(hh div 2);
+  e_CharFont_Print(gMenuFont, (gScreenWidth div 2)-(ww div 2), yy-2*hh, I_MENU_LOADING);
+
+  with LoadingStat do
+    if MaxValue > 0 then
+      s := Format('%s:  %d/%d', [Text, CurValue, MaxValue])
+    else
+      s := Text;
+
+  e_CharFont_GetSize(gMenuFont, s, ww, hh);
+  e_CharFont_PrintEx(gMenuFont, (gScreenWidth div 2)-(ww div 2), yy+hh, s, _RGB(255, 0, 0));
+end;
+
 procedure DrawPlayer(p: TPlayer);
 var
  px, py, a, b, c, d: Integer;
@@ -1363,18 +1427,19 @@ begin
  end;
 
  if g_ActiveWindow <> nil then
- begin
-  if gGameOn then e_DrawFillQuad(0, 0, gScreenWidth, gScreenHeight, 0, 0, 0, 180);
-  g_ActiveWindow.Draw();
- end;
+   begin
+     if gGameOn then
+       e_DrawFillQuad(0, 0, gScreenWidth, gScreenHeight, 0, 0, 0, 180);
+       g_ActiveWindow.Draw();
+     end;
 
  g_Console_Draw();
 
  if gShowFPS then
- begin
-  e_TextureFontPrint(0, 0, Format('FPS: %d', [FPS]), gStdFont);
-  e_TextureFontPrint(0, 16, Format('UPS: %d', [UPS*2]), gStdFont);
- end;
+   begin
+     e_TextureFontPrint(0, 0, Format('FPS: %d', [FPS]), gStdFont);
+     e_TextureFontPrint(0, 16, Format('UPS: %d', [UPS*2]), gStdFont);
+   end;
 
  if gGameOn and gShowTime and (gGameSettings.GameType = GT_CUSTOM) then
   e_TextureFontPrint(gScreenWidth-64, 0,
@@ -1384,6 +1449,8 @@ end;
 
 procedure g_Game_Quit();
 begin
+ g_Sound_All_Stop();
+ g_Game_StopMusic();
  g_Game_FreeData();
  g_PlayerModel_FreeData();
  g_Texture_DeleteAll();
@@ -1413,6 +1480,7 @@ begin
  gGameSettings.GameType := GT_SINGLE;
  if TwoPlayers then gGameSettings.Options := GAME_OPTION_TWOPLAYER;
  gGameSettings.Options := gGameSettings.Options+GAME_OPTION_ALLOWEXIT;
+ gGameSettings.Options := gGameSettings.Options+GAME_OPTION_MONSTERDM;
  gGameSettings.WAD := WAD;
 
  LoadMegaWAD(WAD);
@@ -1422,7 +1490,7 @@ begin
   gPlayerScreenSize.Y := gScreenHeight div 2 else gPlayerScreenSize.Y := gScreenHeight;
 
  with gPlayer1Settings do
-  gPlayer1 := g_Player_Get(g_Player_Create('Doomer', Color, TEAM_NONE, False, PLAYERNUM_1));
+  gPlayer1 := g_Player_Get(g_Player_Create('Doomer', Color, TEAM_RED, False, PLAYERNUM_1));
 
  if gPlayer1 = nil then
  begin
@@ -1434,7 +1502,7 @@ begin
  if TwoPlayers then
  begin
   with gPlayer2Settings do
-    gPlayer2 := g_Player_Get(g_Player_Create('Doomer', Color, TEAM_NONE, False, PLAYERNUM_2));
+    gPlayer2 := g_Player_Get(g_Player_Create('Doomer', Color, TEAM_RED, False, PLAYERNUM_2));
 
   if gPlayer2 = nil then
   begin
@@ -1476,8 +1544,19 @@ begin
  if LongBool(gGameSettings.Options and GAME_OPTION_TWOPLAYER) then
   gPlayerScreenSize.Y := gScreenHeight div 2 else gPlayerScreenSize.Y := gScreenHeight;
 
+ if gGameSettings.GameMode = GM_COOP then
+ begin
+   gGameSettings.GameType := GT_SINGLE;
+ end;
+
  with gPlayer1Settings do
-  gPlayer1 := g_Player_Get(g_Player_Create(Model, Color, IfThen(GameMode = GM_DM, TEAM_NONE, Team), False, 0));
+   if LongBool(gGameSettings.Options and GAME_OPTION_TWOPLAYER) and
+      (gGameSettings.GameType = GT_SINGLE) then
+     gPlayer1 := g_Player_Get(g_Player_Create(Model, Color,
+       TEAM_RED, False, PLAYERNUM_1))
+   else
+     gPlayer1 := g_Player_Get(g_Player_Create(Model, Color,
+       IfThen(GameMode = GM_DM, TEAM_NONE, Team), False, PLAYERNUM_1));
 
  if gPlayer1 = nil then
  begin
@@ -1490,7 +1569,12 @@ begin
  if LongBool(gGameSettings.Options and GAME_OPTION_TWOPLAYER) then
  begin
   with gPlayer2Settings do
-   gPlayer2 := g_Player_Get(g_Player_Create(Model, Color, IfThen(GameMode = GM_DM, TEAM_NONE, Team), False, 0));
+   if gGameSettings.GameType = GT_SINGLE then
+     gPlayer2 := g_Player_Get(g_Player_Create(Model, Color,
+       TEAM_RED, False, PLAYERNUM_2))
+   else
+     gPlayer2 := g_Player_Get(g_Player_Create(Model, Color,
+       IfThen(GameMode = GM_DM, TEAM_NONE, Team), False, PLAYERNUM_2));
 
   if gPlayer2 = nil then
    begin
@@ -1499,11 +1583,6 @@ begin
    end;
 
   gPlayer2.Name := gPlayer2Settings.Name;
- end;
-
- if gGameSettings.GameMode = GM_COOP then
- begin
-   gGameSettings.GameType := GT_SINGLE;
  end;
 
  if not g_Game_StartMap(ResName, True) then
@@ -1650,6 +1729,22 @@ begin
      g_Game_StartCustom(s, GameMode, TimeLimit, GoalLimit, Options);
   end;
  end;
+
+ if LowerCase(P[0]) = 'friendlyfire' then
+   with gGameSettings do
+     begin
+       if (Length(P) > 1) and ((P[1] = '1') or (P[1] = '0')) then
+         begin
+           if (P[1][1] = '1') then
+             Options := Options or GAME_OPTION_TEAMDAMAGE
+           else
+             Options := Options and (not GAME_OPTION_TEAMDAMAGE);
+         end;
+       if (LongBool(Options and GAME_OPTION_TEAMDAMAGE)) then
+         g_Console_Add('FriendlyFire is On')
+       else
+         g_Console_Add('FriendlyFire is Off');
+     end;
 
  if gGameSettings.GameType = GT_CUSTOM then
  begin
@@ -1825,6 +1920,110 @@ begin
   MapList[High(MapList)] := s;
  end;
  CloseFile(ListFile);
+end;
+
+procedure g_Game_SetLoadingText(Text: String; Max: Integer);
+begin
+  LoadingStat.Text := Text;
+  LoadingStat.CurValue := 0;
+  LoadingStat.MaxValue := Max;
+  LoadingStat.ShowCount := 0;
+  ProcessLoading;
+end;
+
+procedure g_Game_StepLoading();
+begin
+  Inc(LoadingStat.CurValue);
+  Inc(LoadingStat.ShowCount);
+  if (LoadingStat.ShowCount > LOADING_SHOW_STEP) then
+    begin
+      LoadingStat.ShowCount := 0;
+      ProcessLoading;
+    end;
+end;
+
+procedure Parse_Params(var pars: TParamStrValues);
+var
+  i: Integer;
+  s: String;
+
+begin
+  SetLength(pars, 0);
+  i := 1;
+  while i <= ParamCount do
+    begin
+      s := ParamStr(i);
+      if (s[1] = '-') and (Length(s) > 1) and (i < ParamCount) then
+        begin
+          Inc(i);
+          SetLength(pars, Length(pars) + 1);
+          with pars[High(pars)] do
+            begin
+              Name := LowerCase(s);
+              Value := LowerCase(ParamStr(i));
+            end;
+        end;
+      Inc(i);
+    end;
+end;
+
+function Find_Param_Value(var pars: TParamStrValues; aName: String): String;
+var
+  i: Integer;
+
+begin
+  Result := '';
+  for i := 0 to High(pars) do
+    if pars[i].Name = aName then
+      begin
+        Result := pars[i].Value;
+        Break;
+      end;
+end;
+
+procedure g_Game_Process_Params;
+var
+  pars: TParamStrValues;
+  map: String;
+  GMode: Byte;
+  LimT, LimG, Opt: Integer;
+  s: String;
+
+begin
+  Parse_Params(pars);
+
+  map := Find_Param_Value(pars, '-map');
+  if (map <> '') and (Pos('.wad:\', map) > 0) then
+    begin
+    // Game mode:
+      s := Find_Param_Value(pars, '-gmode');
+      if s = 'tdm' then GMode := GM_TDM
+      else if s = 'ctf' then GMode := GM_CTF
+      else if s = 'coop' then GMode := GM_COOP
+      else GMode := GM_DM;
+    // Time limit:
+      s := Find_Param_Value(pars, '-glimt');
+      if (s = '') or (not TryStrToInt(s, LimT)) then
+        LimT := 0;
+      if LimT < 0 then
+        LimT := 0;
+    // Goal limit:
+      s := Find_Param_Value(pars, '-glimg');
+      if (s = '') or (not TryStrToInt(s, LimG)) then
+        LimG := 0;
+      if LimG < 0 then
+        LimG := 0;
+    // Options:
+      s := Find_Param_Value(pars, '-gopt');
+      if (s = '') or (not TryStrToInt(s, Opt)) then
+        Opt := GAME_OPTION_ALLOWEXIT;
+      if Opt < 0 then
+        Opt := GAME_OPTION_ALLOWEXIT;
+    // Start:
+      g_Game_StartCustom(map, GMode, LimT, LimG, Opt);
+    end;
+
+  SetLength(pars, 0);
 end;
 
 end.

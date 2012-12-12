@@ -11,6 +11,8 @@ procedure ResetTimer();
 function SetDisplay(): Boolean;
 function CreateGLWindow(Title: PChar): Bool; stdcall;
 procedure KillGLWindow();
+function ProcessMessage: Boolean;
+procedure ProcessLoading;
 
 var
   h_Wnd: HWND;
@@ -19,7 +21,7 @@ implementation
 
 uses
   messages, dglOpenGL, e_graphics, e_log, g_main, g_console, SysUtils, e_input,
-  g_options, g_game, g_basic;
+  g_options, g_game, g_basic, g_textures;
 
 var
   h_RC:  HGLRC;
@@ -260,7 +262,7 @@ end;
 function GetTimer(): Int64;
 var
  F, C: Int64;
-begin 
+begin
  QueryPerformanceFrequency(F);
  QueryPerformanceCounter(C);
  Result := Round(C*1000000/F);
@@ -271,38 +273,44 @@ begin
  a := True;
 end;
 
-function WinMain(hInstance: HINST; hPrevInstance: HINST; lpCmdLine: PChar;
-                 nCmdShow: Integer): Integer; stdcall;
+procedure ProcessLoading;
 var
   msg: TMsg;
-  i: Integer;
+  ID: DWORD;
+
 begin
- e_WriteLog('Initializing OpenGL', MSG_NOTIFY);
- InitOpenGL();
-
- e_WriteLog('Creating GL window', MSG_NOTIFY);
- if not CreateGLWindow(PChar(Format('Doom 2D: Forever %s', [GAME_VERSION]))) then
- begin
-  Result := 0;
-  Exit
- end;
-
- Init();
-
- e_WriteLog('Entering the main loop', MSG_NOTIFY);
-
- Time_Old := GetTimer;
-
- while msg.message <> WM_QUIT do
- begin
   if PeekMessage(msg, 0, 0, 0, PM_REMOVE) then
-  begin
-   TranslateMessage(msg);
-   DispatchMessage(msg);
-  end;
+    begin
+      TranslateMessage(msg);
+      DispatchMessage(msg);
+    end;
+
+  if GetActiveWindow() = h_Wnd then
+    begin
+      if g_Texture_Get('INTER', ID) then
+        e_DrawSize(ID, 0, 0, 0, False, False, gScreenWidth, gScreenHeight)
+      else
+        e_Clear(GL_COLOR_BUFFER_BIT, 0, 0, 0);
+
+      DrawLoadingStat();
+      SwapBuffers(h_DC);
+    end;
+end;
+
+function ProcessMessage: Boolean;
+var
+  i: Integer;
+  msg: TMsg;
+  
+begin
+  if PeekMessage(msg, 0, 0, 0, PM_REMOVE) then
+    begin
+      TranslateMessage(msg);
+      DispatchMessage(msg);
+    end;
 
   if GetActiveWindow = h_Wnd then
-   SetCursorPos(WinX+(gScreenWidth div 2), WinY+(gScreenHeight div 2));
+    SetCursorPos(WinX+(gScreenWidth div 2), WinY+(gScreenHeight div 2));
 
   Time := GetTimer();
   Time_Delta := Time - Time_Old;
@@ -310,34 +318,64 @@ begin
   flag := False;
 
   if a then
-  begin
-   Time_Delta := 27777;
-   Time_Old := Time-30000;
-   a := False;
-  end;
+    begin
+      Time_Delta := 27777;
+      Time_Old := Time-30000;
+      a := False;
+    end;
 
-  //if Time_Delta div 27777 > 1 then g_Console_Add('lag '+IntToStr(Time_Delta div 27777), True);
-
-  //if Time_Delta div 27777 > 0 then
   for i := 1 to Time_Delta div 27777 do
-  begin
-   Update();
-   flag := true;
-  end;
+    begin
+      Update();
+      flag := true;
+    end;
 
-  if flag then Time_Old := Time - (Time_Delta mod 27777);
+  if flag then
+    Time_Old := Time - (Time_Delta mod 27777);
 
   if GetActiveWindow() = h_Wnd then
-  begin
-   Draw();
-   SwapBuffers(h_DC);
-  end;
- end;
+    begin
+      Draw();
+      SwapBuffers(h_DC);
+    end;
 
- Release();
+  Result := msg.message = WM_QUIT;
+end;
 
- KillGLWindow();
- Result := msg.wParam;
+function WinMain(hInstance: HINST; hPrevInstance: HINST; lpCmdLine: PChar;
+                 nCmdShow: Integer): Integer; stdcall;
+var
+  msg: TMsg;
+
+begin
+  e_WriteLog('Initializing OpenGL', MSG_NOTIFY);
+  InitOpenGL();
+
+  e_WriteLog('Creating GL window', MSG_NOTIFY);
+  if not CreateGLWindow(PChar(Format('Doom 2D: Forever %s', [GAME_VERSION]))) then
+    begin
+      Result := 0;
+      Exit
+    end;
+
+  Init();
+
+  Time_Old := GetTimer;
+  Time := GetTimer();
+  Time_Delta := Time - Time_Old;
+
+  if ParamCount > 0 then
+    g_Game_Process_Params;
+
+  e_WriteLog('Entering the main loop', MSG_NOTIFY);
+
+  while not ProcessMessage do
+    { Main Loop } ;
+
+  Release();
+
+  KillGLWindow();
+  Result := msg.wParam;
 end;
 
 end.

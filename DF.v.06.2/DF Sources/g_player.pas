@@ -167,13 +167,13 @@ type
     procedure   ReleaseKeys();
     procedure   SetModel(ModelName: string);
     procedure   SetColor(Color: TRGB);
-    function    GetKeys(): Byte;
+    function    GetKeys(): Word;
     function    Collide(X, Y: Integer; Width, Height: Word): Boolean; overload;
     function    Collide(Rect: TRectWH): Boolean; overload;
     function    Collide(X, Y: Integer): Boolean; overload;
     procedure   SetDirection(Direction: TDirection);
     procedure   GetSecret();
-    function    TeleportTo(X, Y: Integer; silent: Boolean): Boolean;
+    function    TeleportTo(X, Y: Integer; silent: Boolean; dir: TDirection): Boolean;
     procedure   Push(vx, vy: Integer);
     procedure   ChangeModel(ModelName: string);
     procedure   BFGHit();
@@ -404,8 +404,8 @@ begin
 
  if (g_Player_Get(UID1) = nil) or (g_Player_Get(UID2) = nil) then Exit;
 
- if (g_Player_Get(UID1).Team = TEAM_NONE) or
-    (g_Player_Get(UID2).Team = TEAM_NONE) then Exit;
+ if ((g_Player_Get(UID1).Team = TEAM_NONE) or
+     (g_Player_Get(UID2).Team = TEAM_NONE)) then Exit;
 
  Result := g_Player_Get(UID1).FTeam = g_Player_Get(UID2).FTeam;
 end;
@@ -1868,8 +1868,13 @@ begin
  begin
   if FTime[T_RESPAWN] > gTime then Exit;
 
-  if FPlayerNum = PLAYERNUM_1 then c := RESPAWNPOINT_PLAYER1
-   else c := RESPAWNPOINT_PLAYER2;
+  if FPlayerNum = PLAYERNUM_1 then
+    c := RESPAWNPOINT_PLAYER1
+  else
+    if FPlayerNum = PLAYERNUM_2 then
+      c := RESPAWNPOINT_PLAYER2
+    else
+      c := RESPAWNPOINT_DM;
 
   FRulez := FRulez-[R_KEY_RED, R_KEY_GREEN, R_KEY_BLUE, R_BERSERK];
  end;
@@ -2014,7 +2019,7 @@ begin
                                    PLAYER_RECT.Width, 1, PANEL_STEP);
 end;
 
-function TPlayer.TeleportTo(X, Y: Integer; silent: Boolean): Boolean;
+function TPlayer.TeleportTo(X, Y: Integer; silent: Boolean; dir: TDirection): Boolean;
 var
   Anim: TAnimation;
   ID: DWORD;
@@ -2038,6 +2043,7 @@ begin
  
  FObj.X := X-PLAYER_RECT.X;
  FObj.Y := Y-PLAYER_RECT.Y;
+ FDirection := dir;
 
  if not silent and (Anim <> nil) then
  begin
@@ -2442,7 +2448,7 @@ begin
  FDirection := Direction;
 end;
 
-function TPlayer.GetKeys(): Byte;
+function TPlayer.GetKeys(): Word;
 begin
  Result := 0;
 

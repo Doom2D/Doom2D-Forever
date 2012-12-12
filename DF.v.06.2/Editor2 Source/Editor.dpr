@@ -37,7 +37,8 @@ uses
   fmodpresets in '..\Lib\FMOD\fmodpresets.pas',
   fmodtypes in '..\Lib\FMOD\fmodtypes.pas',
   f_saveminimap in 'f_saveminimap.pas' {SaveMiniMapForm},
-  f_packmap in 'f_packmap.pas' {PackMapForm};
+  f_packmap in 'f_packmap.pas' {PackMapForm},
+  f_maptest in 'f_maptest.pas' {MapTestForm};
 
 {$R *.res}
 
@@ -59,7 +60,8 @@ begin
   Application.CreateForm(TAddSoundForm, AddSoundForm);
   Application.CreateForm(TSaveMiniMapForm, SaveMiniMapForm);
   Application.CreateForm(TPackMapForm, PackMapForm);
-  if ParamStr(1) <> '' then OpenMap(ParamStr(1));
+  Application.CreateForm(TMapTestForm, MapTestForm);
+  if ParamStr(1) <> '' then OpenMap(ParamStr(1), '');
 
   Application.Run;
 end.

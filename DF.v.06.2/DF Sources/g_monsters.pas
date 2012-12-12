@@ -31,7 +31,6 @@ type
    Pain: Integer;
    Sleep: Integer;
    PainSound: Boolean;
-   DieTriggers: array[0..15] of Integer;
    tx, ty: Integer;
    vilefire: TAnimRec;
   end;
@@ -74,14 +73,16 @@ type
     function Collide(X, Y: Integer; Width, Height: Word): Boolean; overload;
     function Collide(Rect: TRectWH): Boolean; overload;
     function Collide(X, Y: Integer): Boolean; overload;
-    function TeleportTo(X, Y: Integer; silent: Boolean): Boolean;
+    function TeleportTo(X, Y: Integer; silent: Boolean; dir: TDirection): Boolean;
     function Live(): Boolean;
+    procedure SetHealth(aH: Integer);
     procedure Push(vx, vy: Integer);
     function Damage(Damage: Word; VelX, VelY: Integer; SpawnerUID: Word; t: Byte): Boolean;
     procedure BFGHit();
     procedure Update();
     procedure Draw();
     procedure AddTrigger(t: Integer);
+    procedure ClearTriggers;
     procedure Save(Rec: PMonsterSaveRec);
     procedure Load(Rec: PMonsterSaveRec);
     property MonsterType: Byte read FMonsterType;
@@ -377,6 +378,8 @@ var
 begin
  e_WriteLog('Loading monsters data...', MSG_NOTIFY);
 
+ g_Game_SetLoadingText('Monsters Textures 0/3', 0);
+
  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_BARREL_SLEEP', GameWAD+':MTEXTURES\BARREL_SLEEP', 64, 64, 3);
  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_BARREL_DIE', GameWAD+':MTEXTURES\BARREL_DIE', 64, 64, 4);
  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_BARREL_PAIN', GameWAD+':MTEXTURES\BARREL_PAIN', 64, 64, 1);
@@ -432,6 +435,8 @@ begin
  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_FISH_ATTACK', GameWAD+':MTEXTURES\FISH_ATTACK', 32, 32, 2);
  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_FISH_DIE', GameWAD+':MTEXTURES\FISH_DIE', 32, 32, 1);
 
+ g_Game_SetLoadingText('Monsters Textures 1/3', 0);
+
  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_SPIDER_SLEEP', GameWAD+':MTEXTURES\SPIDER_SLEEP', 256, 128, 2);
  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_SPIDER_GO', GameWAD+':MTEXTURES\SPIDER_GO', 256, 128, 6);
  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_SPIDER_PAIN', GameWAD+':MTEXTURES\SPIDER_PAIN', 256, 128, 1);
@@ -476,6 +481,8 @@ begin
  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_KNIGHT_ATTACK_L', GameWAD+':MTEXTURES\KNIGHT_ATTACK_L', 128, 128, 3);
  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_KNIGHT_DIE', GameWAD+':MTEXTURES\KNIGHT_DIE', 128, 128, 7);
 
+ g_Game_SetLoadingText('Monsters Textures 2/3', 0);
+
  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_MANCUB_SLEEP', GameWAD+':MTEXTURES\MANCUB_SLEEP', 128, 128, 2);
  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_MANCUB_GO', GameWAD+':MTEXTURES\MANCUB_GO', 128, 128, 6);
  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_MANCUB_PAIN', GameWAD+':MTEXTURES\MANCUB_PAIN', 128, 128, 1);
@@ -519,6 +526,8 @@ begin
  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_CYBER_ATTACK', GameWAD+':MTEXTURES\CYBER_ATTACK', 128, 128, 2);
  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_CYBER_ATTACK_L', GameWAD+':MTEXTURES\CYBER_ATTACK_L', 128, 128, 2);
  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_CYBER_DIE', GameWAD+':MTEXTURES\CYBER_DIE', 128, 128, 9);
+
+ g_Game_SetLoadingText('Monsters Sounds', 0);
 
  g_Sound_CreateWADEx('SOUND_MONSTER_BARREL_DIE', GameWAD+':MSOUNDS\BARREL_DIE');
 
@@ -1446,7 +1455,7 @@ begin
  end;
 end;
 
-function TMonster.TeleportTo(X, Y: Integer; silent: Boolean): Boolean;
+function TMonster.TeleportTo(X, Y: Integer; silent: Boolean; dir: TDirection): Boolean;
 var
   TA: TAnimation;
   FramesID: DWORD;
@@ -1467,6 +1476,7 @@ begin
  
  FObj.X := X-FObj.Rect.X;
  FObj.Y := Y-FObj.Rect.Y;
+ FDirection := dir;
 
  if not silent and (TA <> nil) then
  begin
@@ -2199,6 +2209,12 @@ begin
  Result := (FState <> STATE_DIE) and (FState <> STATE_DEAD) and (FHealth > 0);
 end;
 
+procedure TMonster.SetHealth(aH: Integer);
+begin
+  if (aH > 0) and (aH < 1000000) then
+    FHealth := aH;
+end;
+
 procedure TMonster.Load(Rec: PMonsterSaveRec);
 var
   a: Integer;
@@ -2215,10 +2231,6 @@ begin
   if FAnim[a, D_RIGHT] <> nil then
    FAnim[a, D_RIGHT].Load(@Rec^.Anim[a, D_RIGHT]);
  end;
-
- for a := 0 to 15 do
-  if Rec^.DieTriggers[a] = -1 then Break
-   else AddTrigger(Rec^.DieTriggers[a]);
 
  FCurAnim := Rec^.CurAnim;
  FState := Rec^.State;
@@ -2252,10 +2264,6 @@ begin
    FAnim[a, D_RIGHT].Save(@Rec^.Anim[a, D_RIGHT]);
  end;
 
- for a := 0 to 15 do Rec^.DieTriggers[a] := -1;
- for a := 0 to Min(15, High(FDieTriggers)) do
-  Rec^.DieTriggers[a] := FDieTriggers[a];
-
  Rec^.CurAnim := FCurAnim;
  Rec^.State := FState;
  Rec^.TargetUID := FTargetUID;
@@ -2284,6 +2292,11 @@ procedure TMonster.AddTrigger(t: Integer);
 begin
  SetLength(FDieTriggers, Length(FDieTriggers)+1);
  FDieTriggers[High(FDieTriggers)] := t;
+end;
+
+procedure TMonster.ClearTriggers;
+begin
+  SetLength(FDieTriggers, 0);
 end;
 
 end.

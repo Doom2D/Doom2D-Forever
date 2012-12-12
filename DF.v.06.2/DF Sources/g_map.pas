@@ -74,6 +74,7 @@ procedure g_Map_EnableWall(RenderID: DWORD);
 procedure g_Map_DisableWall(RenderID: DWORD);
 procedure g_Map_SwitchTexture(PanelType: Word; ID: DWORD; AnimLoop: Byte = 0);
 procedure g_Map_SetLift(ID: DWORD; t: Integer);
+procedure g_Map_ReAdd_DieTriggers;
 
 function g_Map_GetPoint(PointType: Byte; var RespawnPoint: TRespawnPoint): Boolean;
 function g_Map_GetPointCount(PointType: Byte): Word;
@@ -200,6 +201,7 @@ begin
 
  if i = 0 then Exit;
 
+ g_Game_SetLoadingText('Door Map', i-1);
  for a := 0 to i-1 do
   if PanelArray[a].Active then
   begin
@@ -231,6 +233,8 @@ begin
        Break;
       end;
    end;
+
+   g_Game_StepLoading();
   end;
 
  PanelArray := nil;
@@ -259,6 +263,7 @@ begin
  SetLength(gLiftMap, len);
  i := 0;
 
+ g_Game_SetLoadingText('Lift Map', len-1);
  for a := 0 to len-1 do
   if PanelArray[a].Active then
   begin
@@ -296,6 +301,8 @@ begin
 
    SetLength(gLiftMap[i], j+1);
    i := i+1;
+
+   g_Game_StepLoading;
   end;
 
  SetLength(gLiftMap, i);
@@ -781,7 +788,7 @@ begin
  end;
 end;
 
-procedure CreateTrigger(Trigger: TTriggerRec_1; fTexturePanelType: Word);
+procedure CreateTrigger(Trigger: TTriggerRec_2; fTexturePanelType: Word);
 var
   _trigger: TTrigger;
 begin
@@ -820,6 +827,22 @@ begin
  end;
 end;
 
+procedure g_Map_ReAdd_DieTriggers;
+var
+  i, a: Integer;
+  
+begin
+  for i := 0 to High(gMonsters) do
+    if gMonsters[i] <> nil then
+      begin
+        gMonsters[i].ClearTriggers;
+        for a := 0 to High(gTriggers) do
+          if gTriggers[a].TriggerType in [TRIGGER_PRESS, TRIGGER_ON, TRIGGER_OFF, TRIGGER_ONOFF] then
+            if (gTriggers[a].Data.MonsterID-1) = i then
+              gMonsters[i].AddTrigger(a);
+      end;
+end;
+
 function g_Map_Load(Res: string): Boolean;
 const
   DefaultMusRes = 'Standart.wad:STDMUS\MUS1';
@@ -827,14 +850,14 @@ const
 
 var
   WAD: TWADEditor_1;
-  MapReader: TMapReader_1;
+  MapReader: TMapReader_2;
   Header: TMapHeaderRec_1;
   _textures: TTexturesRec1Array;
   panels: TPanelsRec1Array;
   items: TItemsRec1Array;
   monsters: TMonsterRec1Array;
   areas: TAreasRec1Array;
-  triggers: TTriggersRec1Array;
+  triggers: TTriggersRec2Array;
   a, b, c: Integer;
   d: Single;
   PanelID, SecondTextureID: DWORD;
@@ -852,6 +875,8 @@ var
 begin
  Result := False;
  gMapInfo.Map := Res;
+
+ g_Game_SetLoadingText('WAD File', 0);
 
  g_ProcessResourceStr(Res, FileName, SectionName, ResName);
 
@@ -871,12 +896,16 @@ begin
  end;
 
  WAD.Destroy;
- MapReader := TMapReader_1.Create;
+
+ g_Game_SetLoadingText('MAP Resource', 0);
+ MapReader := TMapReader_2.Create;
  MapReader.LoadMap(Data);
 
+ g_Game_SetLoadingText('Textures', 0);
  _textures := MapReader.GetTextures();
  if _textures <> nil then
  begin
+  g_Game_SetLoadingText('Textures', High(_textures));
   for a := 0 to High(_textures) do
   begin
    if ByteBool(_textures[a].Anim) then
@@ -898,15 +927,22 @@ begin
      MapReader.Destroy;
      Exit;
     end;
+    
+   g_Game_StepLoading();
   end;
  end;
+
+ g_Game_SetLoadingText('Triggers', 0);
  triggers := MapReader.GetTriggers;
+ 
+ g_Game_SetLoadingText('Panels', 0);
  panels := MapReader.GetPanels;
 
  if triggers <> nil then
  begin
   SetLength(TriggersTable, Length(triggers));
 
+  g_Game_SetLoadingText('TriggersTable', High(TriggersTable));
   for a := 0 to High(TriggersTable) do
   begin
    TriggersTable[a].TexturePanel := triggers[a].TexturePanel;
@@ -920,11 +956,14 @@ begin
                                   TRIGGER_PRESS] then
     TriggersTable[a].DoorPanel := TTriggerData(triggers[a].DATA).PanelID
      else TriggersTable[a].DoorPanel := -1;
+
+   g_Game_StepLoading();
   end;
  end;
 
  if panels <> nil then
  begin
+  g_Game_SetLoadingText('Triggers for Panels', High(panels));
   for a := 0 to High(panels) do
   begin
    SecondTextureID := DWORD(-1);
@@ -982,11 +1021,14 @@ begin
    for b := 0 to High(triggers) do
     if triggers[b].TexturePanel = a then
      triggers[b].TexturePanel := PanelID;
+
+   g_Game_StepLoading();
   end;
  end;
 
  if (triggers <> nil) and not gLoadGameMode then
  begin
+  g_Game_SetLoadingText('Create Triggers', 0);
   for a := 0 to High(triggers) do
   begin
    if triggers[a].TexturePanel <> -1 then b := panels[TriggersTable[a].TexturePanel].PanelType
@@ -996,27 +1038,36 @@ begin
   end;
  end;
 
+ g_Game_SetLoadingText('Items', 0);
  items := MapReader.GetItems();
+ 
  if (items <> nil) and not gLoadGameMode then
  begin
+  g_Game_SetLoadingText('Create Items', 0);
   for a := 0 to High(items) do
    CreateItem(Items[a]);
  end;
 
+ g_Game_SetLoadingText('Areas', 0);
  areas := MapReader.GetAreas();
+ 
  if areas <> nil then
  begin
+  g_Game_SetLoadingText('Create Areas', 0);
   for a := 0 to High(areas) do
    CreateArea(areas[a]);
  end;
 
+ g_Game_SetLoadingText('Monsters', 0);
  monsters := MapReader.GetMonsters();
  if (monsters <> nil) and not gLoadGameMode then
  begin
+  g_Game_SetLoadingText('Create Monsters', 0);
   for a := 0 to High(monsters) do
    CreateMonster(monsters[a]);
  end;
 
+ g_Game_SetLoadingText('Map Header', 0);
  Header := MapReader.GetMapHeader();
 
  MapReader.Destroy;
@@ -1034,6 +1085,7 @@ begin
 
  if gMapInfo.SkyName <> '' then
  begin
+  g_Game_SetLoadingText('Sky', 0);
   g_ProcessResourceStr(gMapInfo.SkyName, FileName, SectionName, ResName);
   
   if FileName <> '' then FileName := GameDir+'\wads\'+FileName
@@ -1057,6 +1109,7 @@ begin
 
  if gMapInfo.MusicName <> '' then
  begin
+  g_Game_SetLoadingText('Music', 0);
   g_ProcessResourceStr(gMapInfo.MusicName, FileName, SectionName, ResName);
   
   if FileName <> '' then FileName := GameDir+'\wads\'+FileName
@@ -1070,6 +1123,7 @@ begin
   if g_Music_CreateWADEx(gMapInfo.MusicName, s) then g_Game_PlayMusic(gMapInfo.MusicName)
    else g_Console_Add(Format('! ошибка загрузки музыки %s', [s]));
  end;
+
  CreateDoorMap();
  CreateLiftMap();                                    
 
@@ -1592,12 +1646,26 @@ begin
 
  if tp^.Anim then
  begin
-  b := tp^.Animation;
-  tp^.Animation := tp^.Animation2;
-  tp^.Animation2 := b;
-
-  if AnimLoop = 1 then tp^.Animation.Loop := True
-   else if AnimLoop = 2 then tp^.Animation.Loop := False;
+  if (tp^.Animation = nil) then
+    Exit;
+  if (tp^.Animation2 <> nil) then
+    begin
+      b := tp^.Animation;
+      tp^.Animation := tp^.Animation2;
+      tp^.Animation2 := b;
+    end
+  else
+    begin
+      if tp^.Animation.Enabled then
+        tp^.Animation.Disable
+      else
+        tp^.Animation.Enable;
+    end;
+  if AnimLoop = 1 then
+    tp^.Animation.Loop := True
+  else
+    if AnimLoop = 2 then
+      tp^.Animation.Loop := False;
   tp^.Animation.Reset();
  end
   else

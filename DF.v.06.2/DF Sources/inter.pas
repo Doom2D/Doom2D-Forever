@@ -89,6 +89,7 @@ const
   I_MENU_INTER5 = 'Kills-per-minute';
   I_MENU_INTER6 = 'Secrets found';
   I_MENU_INTER7 = 'Of';
+  I_MENU_LOADING = 'Loading...';
   I_MENU_PLAYER1 = 'Player 1';
   I_MENU_PLAYER2 = 'Player 2';
   I_MENU_UP = '';

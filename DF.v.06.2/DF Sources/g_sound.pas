@@ -34,11 +34,13 @@ function g_Sound_CreateFileEx(SoundName: ShortString; FileName: string): Boolean
 procedure g_Sound_Delete(SoundName: ShortString);
 function g_Sound_Exists(SoundName: string): Boolean;
 function g_Sound_Get(var ID: DWORD; SoundName: ShortString): Boolean;
+procedure g_Sound_All_Stop();
 
 function g_Music_PlayEx(MusicName: ShortString; Volume: Byte): Boolean;
 procedure g_Music_Play(ID: DWORD; Volume: Byte);
 procedure g_Music_Stop(ID: DWORD);
 procedure g_Music_StopEx(MusicName: ShortString);
+procedure g_Music_PauseEx(MusicName: ShortString; Pause: Boolean);
 function g_Music_CreateWAD(var ID: DWORD; Resource: string): Boolean;
 function g_Music_CreateFile(var ID: DWORD; FileName: string): Boolean;
 function g_Music_CreateWADEx(MusicName: ShortString; Resource: string): Boolean;
@@ -395,6 +397,11 @@ begin
    end;
 end;
 
+procedure g_Sound_All_Stop();
+begin
+  e_StopAllSamples();
+end;
+
 function FindMusic(): DWORD;
 var
   i: integer;
@@ -439,6 +446,20 @@ begin
   if MusicArray[a].MusicName = MusicName then
   begin
    e_StopSong(MusicArray[a].ID);
+   Exit;
+  end;
+end;
+
+procedure g_Music_PauseEx(MusicName: ShortString; Pause: Boolean);
+var
+  a: DWORD;
+begin
+ if MusicArray = nil then Exit;
+
+ for a := 0 to High(MusicArray) do
+  if MusicArray[a].MusicName = MusicName then
+  begin
+   e_PauseSong(MusicArray[a].ID, Pause);
    Exit;
   end;
 end;

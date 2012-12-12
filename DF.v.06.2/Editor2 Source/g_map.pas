@@ -48,9 +48,9 @@ type
    Width, Height: Word;
    Enabled:       Boolean;
    TexturePanel:  Integer;
-   TriggerType:   Byte;
-   ActivateType:  Byte;
-   Key:           Byte;
+   TriggerType:   Word;
+   ActivateType:  Cardinal;
+   Key:           Word;
    Data:          TTriggerData;
   end;
 
@@ -126,6 +126,64 @@ const
      (X:30; Y:52; Width:68; Height:76), //ROBO
      (X:19; Y:10; Width:29; Height:54));//MAN
 
+  MonsterNames: array [MONSTER_DEMON..MONSTER_MAN] of String =
+    ('Демон',
+     'Бес',
+     'Зомби',
+     'Сержант',
+     'Кибердемон',
+     'Пулемётчик',
+     'Барон ада',
+     'Рыцарь ада',
+     'Какодемон',
+     'Огненный череп',
+     'Авиабаза',
+     'Большой паук',
+     'Арахнотрон',
+     'Манкубус',
+     'Скелет',
+     'Колдун',
+     'Рыба',
+     'Бочка',
+     'Робот',
+     'Приколист');
+
+  ItemNames: array [ITEM_MEDKIT_SMALL..ITEM_KEY_BLUE] of String =
+    ('Аптечка',
+     'Большая аптечка',
+     'Черная аптечка',
+     'Зеленая броня',
+     'Синяя броня',
+     'Шарик 100%',
+     'Мегасфера',
+     'Костюм',
+     'Акваланг',
+     'Неуязвимость',
+     'Бензопила',
+     'Ружье',
+     'Двустволка',
+     'Пулемет',
+     'Ракетница',
+     'Плазменная пушка',
+     'BFG9000',
+     'Суперпулемет',
+     'Патроны',
+     'Ящик патронов',
+     '4 гильзы',
+     '25 гильз',
+     '1 ракета',
+     '5 ракет',
+     'Батарейка',
+     'Батарея',
+     'Рюкзак',
+     'Красный ключ',
+     'Зеленый ключ',
+     'Синий ключ');
+
+
+
+
+
 var
   gPanels: array of TPanel;
   gItems: array of TItem;
@@ -155,8 +213,8 @@ function ObjectSelected(ObjectType: Byte; ID: DWORD): Boolean;
 
 function GetPanelName(PanelType: Word): string;
 function GetPanelType(PanelName: string): Word;
-function GetTriggerName(TriggerType: Byte): string;
-function GetTriggerType(TriggerName: string): Byte;
+function GetTriggerName(TriggerType: Word): string;
+function GetTriggerType(TriggerName: string): Word;
 
 function IsSpecialTexture(TextureName: string): Boolean;
 function SpecialTextureID(TextureName: string): DWORD;
@@ -750,14 +808,14 @@ begin
  Assert(Result <> 0);
 end;
 
-function GetTriggerName(TriggerType: Byte): string;
+function GetTriggerName(TriggerType: Word): string;
 begin
  Assert(TriggerType-1 < MainForm.lbTriggersList.Items.Count);
 
  Result := MainForm.lbTriggersList.Items[TriggerType-1];
 end;
 
-function GetTriggerType(TriggerName: string): Byte;
+function GetTriggerType(TriggerName: string): Word;
 var
   a: Integer;
 begin
@@ -794,13 +852,13 @@ end;
 function SaveMap(Res: string): Pointer;
 var
   WAD: TWADEditor_1;
-  MapWriter: TMapWriter_1;
+  MapWriter: TMapWriter_2;
   textures: TTexturesRec1Array;
   panels: TPanelsRec1Array;
   items: TItemsRec1Array;
   areas: TAreasRec1Array;
   monsters: TMonsterRec1Array;
-  triggers: TTriggersRec1Array;
+  triggers: TTriggersRec2Array;
   header: TMapHeaderRec_1;
   a, b, c: Integer;
   s: string;
@@ -821,7 +879,7 @@ begin
   WAD.CreateImage();
  end;
 
- MapWriter := TMapWriter_1.Create;
+ MapWriter := TMapWriter_2.Create;
 
  with header do
  begin
@@ -1068,14 +1126,14 @@ end;
 function LoadMap(Res: string): Boolean;
 var
   WAD: TWADEditor_1;
-  MapReader: TMapReader_1;
+  MapReader: TMapReader_2;
   Header: TMapHeaderRec_1;
   textures: TTexturesRec1Array;
   panels: TPanelsRec1Array;
   items: TItemsRec1Array;
   monsters: TMonsterRec1Array;
   areas: TAreasRec1Array;
-  triggers: TTriggersRec1Array;
+  triggers: TTriggersRec2Array;
   panel: TPanel;
   item: TItem;
   monster: TMonster;
@@ -1111,7 +1169,7 @@ begin
 
  WAD.Destroy;
 
- MapReader := TMapReader_1.Create;
+ MapReader := TMapReader_2.Create;
 
  MainForm.lLoad.Caption := 'Чтение карты';
  Application.ProcessMessages;
@@ -1517,10 +1575,15 @@ begin
   for a := 0 to High(gPanels) do
    if gPanels[a].TextureName <> '' then g_DeleteTexture(gPanels[a].TextureName); 
 
+ SetLength(gPanels, 0);
  gPanels := nil;
+ SetLength(gItems, 0);
  gItems := nil;
+ SetLength(gAreas, 0);
  gAreas := nil;
+ SetLength(gMonsters, 0);
  gMonsters := nil;
+ SetLength(gTriggers, 0);
  gTriggers := nil;
 
  with gMapInfo do
@@ -1847,6 +1910,26 @@ begin
        end;
      end;
      TRIGGER_SECRET: ;
+     TRIGGER_SPAWNMONSTER, TRIGGER_SPAWNITEM:
+       begin
+         if TriggerType = TRIGGER_SPAWNMONSTER then
+           begin
+             xx := Data.MonPos.X;
+             yy := Data.MonPos.Y;
+           end
+         else
+           begin
+             xx := Data.ItemPos.X;
+             yy := Data.ItemPos.Y;
+           end;
+         e_DrawLine(2, MapOffset.X+xx-16, MapOffset.Y+yy-1,
+                    MapOffset.X+xx+16, MapOffset.Y+yy-1,
+                    0, 0, 255);
+         e_DrawPoint(2, MapOffset.X+xx, MapOffset.Y+yy, 255, 0, 0);
+         e_DrawLine(1, MapOffset.X+X+(Width div 2), MapOffset.Y+Y+(Height div 2),
+                    MapOffset.X+xx, MapOffset.Y+yy,
+                    255, IfThen(sel, 0, 255), IfThen(sel, 0, 255));
+       end;
     end;
    end;
 end;

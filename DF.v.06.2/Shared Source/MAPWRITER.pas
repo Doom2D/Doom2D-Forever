@@ -2,9 +2,9 @@ unit MAPWRITER;
 
 {
 -----------------------------------
-MAPWRITER.PAS ВЕРСИЯ ОТ 24.09.06
+MAPWRITER.PAS ВЕРСИЯ ОТ 09.12.12
 
-Поддержка карт версии 1
+Поддержка карт версии 2
 -----------------------------------
 }
 
@@ -43,6 +43,13 @@ type
     function AddHeader(MapHeader: TMapHeaderRec_1): Boolean;
     function HandledVersion(): Byte; override;
   end;
+
+  TMapWriter_2 = class(TMapWriter_1)
+   public
+    function AddTriggers(Triggers: TTriggersRec2Array): Boolean;
+    function HandledVersion(): Byte; override;
+  end;
+
 
 implementation
 
@@ -259,7 +266,7 @@ begin
   for a := 0 to High(Textures) do
    CopyMemory(Pointer(LongWord(Data)+a*size), @Textures[a], size);
  end;
- 
+
  Result := True;
 end;
 
@@ -288,7 +295,7 @@ begin
   for a := 0 to High(Triggers) do
    CopyMemory(Pointer(LongWord(Data)+a*size), @Triggers[a], size);
  end;
- 
+
  Result := True;
 end;
 
@@ -317,6 +324,43 @@ end;
 function TMapWriter_1.HandledVersion(): Byte;
 begin
  Result := $01;
+end;
+
+{ TMapWriter_2 }
+
+function TMapWriter_2.AddTriggers(Triggers: TTriggersRec2Array): Boolean;
+var
+  a, size: LongWord;
+
+begin
+  if Triggers = nil then
+    begin
+      Result := True;
+      Exit;
+    end;
+
+  SetLength(FDataBlocks, Length(FDataBlocks)+1);
+
+  size := SizeOf(TTriggerRec_2);
+
+  with FDataBlocks[High(FDataBlocks)] do
+    begin
+      Block.BlockType := BLOCK_TRIGGERS;
+      Block.Reserved := $00000000;
+      Block.BlockSize := LongWord(Length(Triggers))*size;
+
+      Data := GetMemory(Block.BlockSize);
+
+      for a := 0 to High(Triggers) do
+        CopyMemory(Pointer(LongWord(Data)+a*size), @Triggers[a], size);
+    end;
+
+  Result := True;
+end;
+
+function TMapWriter_2.HandledVersion(): Byte;
+begin
+  Result := $02;
 end;
 
 end.
