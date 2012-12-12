@@ -116,9 +116,9 @@ begin
  begin
   Name := 'Player1';
   Model := 'Doomer';
-  Color.R := 48;
-  Color.G := 144;
-  Color.B := 48;
+  Color.R := PLAYER1_DEF_COLOR.R;
+  Color.G := PLAYER1_DEF_COLOR.G;
+  Color.B := PLAYER1_DEF_COLOR.B;
   Team := TEAM_RED;
  end;
 
@@ -126,9 +126,9 @@ begin
  begin
   Name := 'Player2';
   Model := 'Doomer';
-  Color.R := 96;
-  Color.G := 96;
-  Color.B := 96;
+  Color.R := PLAYER2_DEF_COLOR.R;
+  Color.G := PLAYER2_DEF_COLOR.G;
+  Color.B := PLAYER2_DEF_COLOR.B;
   Team := TEAM_BLUE;
  end;
 end;
@@ -180,9 +180,9 @@ begin
  begin
   Name := ReadStr('Player1', 'name', 'Player1');
   Model := ReadStr('Player1', 'model', 'Doomer');
-  Color.R := Min(Abs(ReadInt('Player1', 'red', 48)), 255);
-  Color.G := Min(Abs(ReadInt('Player1', 'green', 144)), 255);
-  Color.B := Min(Abs(ReadInt('Player1', 'blue', 48)), 255);
+  Color.R := Min(Abs(ReadInt('Player1', 'red', PLAYER1_DEF_COLOR.R)), 255);
+  Color.G := Min(Abs(ReadInt('Player1', 'green', PLAYER1_DEF_COLOR.G)), 255);
+  Color.B := Min(Abs(ReadInt('Player1', 'blue', PLAYER1_DEF_COLOR.B)), 255);
   Team := ReadInt('Player1', 'team', TEAM_RED);
   if (Team < TEAM_RED) or (Team > TEAM_BLUE) then Team := TEAM_RED;
  end;
@@ -204,9 +204,9 @@ begin
  begin
   Name := ReadStr('Player2', 'name', 'Player2');
   Model := ReadStr('Player2', 'model', 'Doomer');
-  Color.R := Min(Abs(ReadInt('Player2', 'red', 96)), 255);
-  Color.G := Min(Abs(ReadInt('Player2', 'green', 96)), 255);
-  Color.B := Min(Abs(ReadInt('Player2', 'blue', 96)), 255);
+  Color.R := Min(Abs(ReadInt('Player2', 'red', PLAYER2_DEF_COLOR.R)), 255);
+  Color.G := Min(Abs(ReadInt('Player2', 'green', PLAYER2_DEF_COLOR.G)), 255);
+  Color.B := Min(Abs(ReadInt('Player2', 'blue', PLAYER2_DEF_COLOR.B)), 255);
   Team := ReadInt('Player2', 'team', TEAM_BLUE);
   if (Team < TEAM_RED) or (Team > TEAM_BLUE) then Team := TEAM_RED;
  end;

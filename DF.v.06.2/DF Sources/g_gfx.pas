@@ -110,32 +110,54 @@ procedure CreateCollideMap();
 var
   a: Integer;
 begin
+ g_Game_SetLoadingText('Collide Map 0/6', 0);
  SetLength(gCollideMap, gMapInfo.Height+1);
  for a := 0 to High(gCollideMap) do
   SetLength(gCollideMap[a], gMapInfo.Width+1);
 
  if gWater <> nil then
- for a := 0 to High(gWater) do
-  with gWater[a] do g_Mark(X, Y, Width, Height, MARK_WATER);
+   begin
+     g_Game_SetLoadingText('Collide Map 1/6', 0);
+     for a := 0 to High(gWater) do
+       with gWater[a] do
+         g_Mark(X, Y, Width, Height, MARK_WATER);
+   end;
 
  if gAcid1 <> nil then
- for a := 0 to High(gAcid1) do
-  with gAcid1[a] do g_Mark(X, Y, Width, Height, MARK_ACID);
+   begin
+     g_Game_SetLoadingText('Collide Map 2/6', 0);
+     for a := 0 to High(gAcid1) do
+        with gAcid1[a] do
+          g_Mark(X, Y, Width, Height, MARK_ACID);
+   end;
 
  if gAcid2 <> nil then
- for a := 0 to High(gAcid2) do
-  with gAcid2[a] do g_Mark(X, Y, Width, Height, MARK_ACID);
+   begin
+     g_Game_SetLoadingText('Collide Map 3/6', 0);
+     for a := 0 to High(gAcid2) do
+       with gAcid2[a] do
+         g_Mark(X, Y, Width, Height, MARK_ACID);
+   end;
 
  if gLifts <> nil then
- for a := 0 to High(gLifts) do
-  with gLifts[a].Rect do
-   if gLifts[a].LiftType = 1 then g_Mark(X, Y, Width, Height, MARK_LIFTDOWN)
-    else g_Mark(X, Y, Width, Height, MARK_LIFTUP);
+   begin
+     g_Game_SetLoadingText('Collide Map 4/6', 0);
+     for a := 0 to High(gLifts) do
+       with gLifts[a].Rect do
+         if gLifts[a].LiftType = 1 then
+           g_Mark(X, Y, Width, Height, MARK_LIFTDOWN)
+         else
+           g_Mark(X, Y, Width, Height, MARK_LIFTUP);
+   end;
 
  if gWalls <> nil then
- for a := 0 to High(gWalls) do
-  with gWalls[a], gWalls[a].Rect do
-   g_Mark(X, Y, Width, Height, IfThen(Door, IfThen(Enabled, MARK_DOOR, MARK_FREE), MARK_WALL));
+   begin
+     g_Game_SetLoadingText('Collide Map 5/6', 0);
+     for a := 0 to High(gWalls) do
+       with gWalls[a], gWalls[a].Rect do
+         g_Mark(X, Y, Width, Height,
+           IfThen(Door, IfThen(Enabled, MARK_DOOR, MARK_FREE), MARK_WALL));
+   end;
 end;
 
 procedure g_GFX_Init();
@@ -290,7 +312,7 @@ begin
    Blue := 155+Random(10)*10;
    State := STATE_NORMAL;
    Time := 0;
-   LiveTime := 40+Random(60);
+   LiveTime := 60+Random(60);
    ParticleType := PARTICLE_WATER;
   end;
   if CurrentParticle+2 > MaxParticles then CurrentParticle := 0
@@ -660,8 +682,8 @@ begin
       begin
        c := gCollideMap[Y, X+s];
 
-       if (c = MARK_WATER) or (c = MARK_ACID) or
-          (X+s >= w) or (X+s <= 0) then
+       if ( ((c = MARK_WATER) or (c = MARK_ACID)) and
+            (dY > 0) ) or (X+s >= w) or (X+s <= 0) then
        begin
         State := STATE_FREE;
         Break;
@@ -674,7 +696,6 @@ begin
         AccelX := 0;
         AccelY := 0;
         State := STATE_STICK;
-        LiveTime := LiveTime + 50;
         Break;
        end else X := X+s;
       end;
@@ -688,8 +709,8 @@ begin
       begin
        c := gCollideMap[Y+s, X];
 
-       if (c = MARK_WATER) or (c = MARK_ACID) or
-          (Y+s >= h) or (Y+s <= 0) then
+       if ( ((c = MARK_WATER) or (c = MARK_ACID)) and
+            (dY > 0) ) or (Y+s >= h) or (Y+s <= 0) then
        begin
         State := STATE_FREE;
         Break;
@@ -702,17 +723,15 @@ begin
         AccelX := 0;
         AccelY := 0;
         if s > 0 then State := STATE_NORMAL 
-         else
-          begin
-            State := STATE_STICK;
-            LiveTime := LiveTime + 50;
-          end;
+         else State := STATE_STICK;
         Break;
        end;
 
        Y := Y+s;
       end;
      end;
+
+     Time := Time+1;
     end;
 
     PARTICLE_BUBBLES:

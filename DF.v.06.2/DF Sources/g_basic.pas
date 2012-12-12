@@ -30,6 +30,7 @@ function g_CollideWater(X1, Y1: Integer; Width1, Height1: Word;
                         X2, Y2: Integer; Width2, Height2: Word): Boolean;
 function g_CollidePlayer(X, Y: Integer; Width, Height: Word): Boolean;
 function g_CollideMonster(X, Y: Integer; Width, Height: Word): Boolean;
+function g_CollideItem(X, Y: Integer; Width, Height: Word): Boolean;
 function g_PatchLength(X1, Y1, X2, Y2: Integer): Word;
 function g_TraceVector(X1, Y1, X2, Y2: Integer): Boolean;
 function g_GetAcidHit(X, Y: Integer; Width, Height: Word): Byte;
@@ -69,7 +70,7 @@ function parse2(s: string; delim: Char): SArray;
 implementation
 
 uses Math, g_map, g_gfx, g_player, SysUtils, MAPDEF, StrUtils, e_graphics,
-  g_monsters;
+  g_monsters, g_items;
 
 function g_PatchLength(X1, Y1, X2, Y2: Integer): Word;
 begin
@@ -128,6 +129,25 @@ begin
    Result := True;
    Exit;
   end;
+end;
+
+function g_CollideItem(X, Y: Integer; Width, Height: Word): Boolean;
+var
+  a: Integer;
+
+begin
+  Result := False;
+
+  if gItems = nil then
+    Exit;
+
+  for a := 0 to High(gItems) do
+    if (gItems[a].Live) then
+      if g_Obj_Collide(X, Y, Width, Height, @gItems[a].Obj) then
+        begin
+          Result := True;
+          Exit;
+        end;
 end;
 
 function g_TraceVector(X1, Y1, X2, Y2: Integer): Boolean;

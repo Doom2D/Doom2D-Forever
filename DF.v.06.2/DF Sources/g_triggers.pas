@@ -12,9 +12,9 @@ type
    Enabled: Boolean;
    TexturePanel: Integer;
    TexturePanelType: Word;
-   TriggerType: Byte;
-   ActivateType: Byte;
-   Keys: Byte;
+   TriggerType: Word;
+   ActivateType: Cardinal;
+   Keys: Word;
    TimeOut: Word;
    ActivateUID: Word;
    PlayerCollide: Boolean;
@@ -29,11 +29,11 @@ type
    X, Y:             Integer;
    Width, Height:    Word;
    Enabled:          Boolean;
-   TexturePanel:     Integer;
+   TexturePanel:     Integer;  
    TexturePanelType: Word;
-   TriggerType:      Byte;
-   ActivateType:     Byte;
-   Keys:             Byte;
+   TriggerType:      Word;
+   ActivateType:     Cardinal;
+   Keys:             Word;
    TimeOut:          Word;
    ActivateUID:      Word;
 
@@ -53,8 +53,8 @@ function g_Triggers_Create(Trigger: TTrigger): DWORD;
 procedure g_Triggers_Update();
 procedure g_Triggers_Press(ID: DWORD);
 function g_Triggers_PressR(X, Y: Integer; Width, Height: Word; UID: Word;
-                           ActivateType: Byte; IgnoreList: DWArray = nil): DWArray;
-procedure g_Triggers_PressL(X1, Y1, X2, Y2: Integer; UID: DWORD; ActivateType: Byte);
+                           ActivateType: Cardinal; IgnoreList: DWArray = nil): DWArray;
+procedure g_Triggers_PressL(X1, Y1, X2, Y2: Integer; UID: DWORD; ActivateType: Cardinal);
 procedure g_Triggers_OpenAll();
 procedure g_Triggers_Free();
 function g_Triggers_Save(var p: Pointer): Integer;
@@ -68,7 +68,7 @@ implementation
 
 uses
   g_player, g_map, Math, g_gfx, g_game, g_textures, g_console,
-  g_monsters, g_phys, g_weapons, WADEDITOR, g_main, SysUtils;
+  g_monsters, g_items, g_phys, g_weapons, WADEDITOR, g_main, SysUtils;
 
 function FindTrigger(): DWORD;
 var
@@ -350,6 +350,7 @@ var
   animonce: Boolean;
   p: TPlayer;
   m: TMonster;
+  i: Integer;
 begin
  Result := False;
 
@@ -377,11 +378,21 @@ begin
      begin
       p := g_Player_Get(ActivateUID);
       if p = nil then Exit;
-      
+
       if Data.d2d_teleport then
-       (if p.TeleportTo(Data.TargetPoint.X-(p.Obj.Rect.Width div 2),
-                        Data.TargetPoint.Y-p.Obj.Rect.Height, Data.silent_teleport) then Result := True)
-      else if p.TeleportTo(Data.TargetPoint.X, Data.TargetPoint.Y, Data.silent_teleport) then Result := True;
+        begin
+          if p.TeleportTo(Data.TargetPoint.X-(p.Obj.Rect.Width div 2),
+                          Data.TargetPoint.Y-p.Obj.Rect.Height,
+                          Data.silent_teleport,
+                          TDirection(Data.TlpDir)) then
+            Result := True;
+        end
+      else
+        if p.TeleportTo(Data.TargetPoint.X,
+                        Data.TargetPoint.Y,
+                        Data.silent_teleport,
+                        TDirection(Data.TlpDir)) then
+          Result := True;
      end;
 
      UID_MONSTER:
@@ -390,9 +401,19 @@ begin
       if m = nil then Exit;
 
       if Data.d2d_teleport then
-       (if m.TeleportTo(Data.TargetPoint.X-(m.Obj.Rect.Width div 2),
-                        Data.TargetPoint.Y-m.Obj.Rect.Height, Data.silent_teleport) then Result := True)
-      else if m.TeleportTo(Data.TargetPoint.X, Data.TargetPoint.Y, Data.silent_teleport) then Result := True;
+        begin
+          if m.TeleportTo(Data.TargetPoint.X-(m.Obj.Rect.Width div 2),
+                          Data.TargetPoint.Y-m.Obj.Rect.Height,
+                          Data.silent_teleport,
+                          TDirection(Data.TlpDir)) then
+            Result := True;
+        end
+      else
+        if m.TeleportTo(Data.TargetPoint.X,
+                        Data.TargetPoint.Y,
+                        Data.silent_teleport,
+                        TDirection(Data.TlpDir)) then
+          Result := True;
      end;
     end;
 
@@ -492,6 +513,26 @@ begin
      end;
     end;
    end;
+
+   TRIGGER_SPAWNMONSTER:
+     if (Data.MonType in [MONSTER_DEMON..MONSTER_MAN]) then
+       begin
+         i := g_Monsters_Create(Data.MonType,
+                Data.MonPos.X, Data.MonPos.Y, TDirection(Data.MonDir));
+         if (Data.MonHealth > 0) then
+           gMonsters[i].SetHealth(Data.MonHealth);
+         TimeOut := 18;
+         Result := True;
+       end;
+
+   TRIGGER_SPAWNITEM:
+     if (Data.ItemType in [ITEM_MEDKIT_SMALL..ITEM_KEY_BLUE]) then
+       begin
+         g_Items_Create(Data.ItemPos.X, Data.ItemPos.Y,
+           Data.ItemType, Data.ItemFalls, False);
+         TimeOut := 18;
+         Result := True;
+       end;
   end;
  end;
  
@@ -508,6 +549,10 @@ begin
 
  if (Trigger.TriggerType = TRIGGER_EXIT) and not
     LongBool(gGameSettings.Options and GAME_OPTION_ALLOWEXIT) then Exit;
+
+ if (Trigger.TriggerType = TRIGGER_SPAWNMONSTER) and
+    (not LongBool(gGameSettings.Options and GAME_OPTION_MONSTERDM)) and
+    (gGameSettings.GameType <> GT_SINGLE) then Exit;
 
  if Trigger.TriggerType = TRIGGER_SECRET then gSecretsCount := gSecretsCount+1;
 
@@ -589,9 +634,9 @@ begin
     begin
      for b := 0 to High(gTriggers) do
       if g_Collide(Data.tX, Data.tY, Data.tWidth, Data.tHeight, gTriggers[b].X, gTriggers[b].Y,
-                   gTriggers[b].Width, gTriggers[b].Height) {and (gTriggers[b].TimeOut = 0)} and
+                   gTriggers[b].Width, gTriggers[b].Height) and
          ((b <> a) or (Data.Wait > 0)) then
-      begin
+      begin { Can be self-activated, if there is Data.Wait }                    
        case TriggerType of
         TRIGGER_PRESS:
          begin
@@ -630,50 +675,86 @@ begin
      Continue;
     end;
 
-    if ByteBool(ActivateType and ACTIVATE_PLAYERCOLLIDE) and (TimeOut = 0) then
-     if gPlayers <> nil then
-      for b := 0 to High(gPlayers) do
-       if gPlayers[b] <> nil then
-        with gPlayers[b] do
-         if Live and ((gTriggers[a].Keys and GetKeys) = gTriggers[a].Keys) and
-            Collide(X, Y, Width, Height) then
-         begin
-          gTriggers[a].ActivateUID := UID;
+    if LongBool(ActivateType and ACTIVATE_PLAYERCOLLIDE) and
+       (TimeOut = 0) then
+      if gPlayers <> nil then
+        for b := 0 to High(gPlayers) do
+          if gPlayers[b] <> nil then
+            with gPlayers[b] do
+              if ((gTriggers[a].Keys and GetKeys) = gTriggers[a].Keys) and
+                 Live and Collide(X, Y, Width, Height) then
+                begin
+                  gTriggers[a].ActivateUID := UID;
 
-          if (gTriggers[a].TriggerType<>TRIGGER_SOUND) or (not PlayerCollide) then
-           ActivateTrigger(gTriggers[a]);
-         end;
+                  if (gTriggers[a].TriggerType = TRIGGER_SOUND) and PlayerCollide then
+                    { Don't activate sound again if player is here }
+                  else
+                    ActivateTrigger(gTriggers[a]);
+                end;
 
     { TODO 5 : активация монстрами триггеров с ключами }
-    if (Keys = 0) and ByteBool(ActivateType and ACTIVATE_MONSTERCOLLIDE) and (TimeOut = 0) then
-     if gMonsters <> nil then
-      for b := 0 to High(gMonsters) do
-       if (gMonsters[b] <> nil) then
-        with gMonsters[b] do
-         if Collide(X, Y, Width, Height) then
-         begin
-          flag := True;
-          gTriggers[a].ActivateUID := UID;
-          ActivateTrigger(gTriggers[a]);
-         end;
 
-    if (Keys = 0) and ByteBool(ActivateType and ACTIVATE_NOMONSTER) and (TimeOut = 0) then
-     if not g_CollideMonster(X, Y, Width, Height) then ActivateTrigger(gTriggers[a]);
+    if LongBool(ActivateType and ACTIVATE_MONSTERCOLLIDE) and
+       (TimeOut = 0) and (Keys = 0) then
+      if gMonsters <> nil then
+        for b := 0 to High(gMonsters) do
+          if (gMonsters[b] <> nil) and (gMonsters[b].Live) then
+            with gMonsters[b] do
+              if Collide(X, Y, Width, Height) then
+                begin
+                  flag := True; { What is this? }
+                  gTriggers[a].ActivateUID := UID;
+                  ActivateTrigger(gTriggers[a]);
+                end;
+
+    if LongBool(ActivateType and ACTIVATE_NOMONSTER) and
+       (TimeOut = 0) and (Keys = 0) then
+      if not g_CollideMonster(X, Y, Width, Height) then
+        begin
+          gTriggers[a].ActivateUID := 0;
+          ActivateTrigger(gTriggers[a]);
+        end;
 
     PlayerCollide := g_CollidePlayer(X, Y, Width, Height);
+    if LongBool(ActivateType and ACTIVATE_NOPLAYER) and
+       (not PlayerCollide) and (TimeOut = 0) and (Keys = 0) then
+      begin
+        gTriggers[a].ActivateUID := 0;
+        ActivateTrigger(gTriggers[a]);
+      end;
+
+    if LongBool(ActivateType and ACTIVATE_ITEMCOLLIDE) and
+       (TimeOut = 0) and (Keys = 0) then
+      if gItems <> nil then
+        for b := 0 to High(gItems) do
+          if (gItems[b].Live) and (gItems[b].Fall) then
+            if g_Obj_Collide(X, Y, Width, Height, @gItems[b].Obj) then
+              begin
+                gTriggers[a].ActivateUID := 0;
+                ActivateTrigger(gTriggers[a]);
+              end;
+
+    if LongBool(ActivateType and ACTIVATE_NOITEM) and
+       (TimeOut = 0) and (Keys = 0) then
+      if not g_CollideItem(X, Y, Width, Height) then
+        begin
+          gTriggers[a].ActivateUID := 0;
+          ActivateTrigger(gTriggers[a]);
+        end;
    end;
 end;
 
 procedure g_Triggers_Press(ID: DWORD);
 begin
- ActivateTrigger(gTriggers[ID]);
+  gTriggers[ID].ActivateUID := 0;
+  ActivateTrigger(gTriggers[ID]);
 end;
 
 function g_Triggers_PressR(X, Y: Integer; Width, Height: Word; UID: Word;
-                           ActivateType: Byte; IgnoreList: DWArray = nil): DWArray;
+                           ActivateType: Cardinal; IgnoreList: DWArray = nil): DWArray;
 var
   a: Integer;
-  k: Byte;
+  k: Word;
 begin
  if gTriggers = nil then Exit;
 
@@ -683,12 +764,14 @@ begin
   else k := 0;
  end;
 
+ Result := nil;
+
  for a := 0 to High(gTriggers) do
   if (gTriggers[a].TriggerType <> TRIGGER_NONE) and
      (gTriggers[a].TimeOut = 0) and
      (not InDWArray(a, IgnoreList)) and
      ((gTriggers[a].Keys and k) = gTriggers[a].Keys) and
-     ByteBool(gTriggers[a].ActivateType and ActivateType) then
+     LongBool(gTriggers[a].ActivateType and ActivateType) then
    if g_Collide(X, Y, Width, Height, gTriggers[a].X, gTriggers[a].Y, gTriggers[a].Width,
                 gTriggers[a].Height) then
    begin
@@ -701,21 +784,24 @@ begin
    end;
 end;
 
-procedure g_Triggers_PressL(X1, Y1, X2, Y2: Integer; UID: DWORD; ActivateType: Byte);
+procedure g_Triggers_PressL(X1, Y1, X2, Y2: Integer; UID: DWORD; ActivateType: Cardinal);
 var
   a: Integer;
-  k: Byte;
+  k: Word;
 begin
  if gTriggers = nil then Exit;
 
- if g_GetUIDType(UID) = UID_GAME then k := 255
-  else if g_GetUIDType(UID) = UID_PLAYER then k := g_Player_Get(UID).GetKeys
-   else k := 0;
+ case g_GetUIDType(UID) of
+  UID_GAME: k := 255;
+  UID_PLAYER: k := g_Player_Get(UID).GetKeys;
+  else k := 0;
+ end;
 
  for a := 0 to High(gTriggers) do
-  if (gTriggers[a].TriggerType <> TRIGGER_NONE) and (gTriggers[a].TimeOut = 0) and
-     ((gTriggers[a].Keys = 0) or ((gTriggers[a].Keys and k) = gTriggers[a].Keys)) and
-     ByteBool(gTriggers[a].ActivateType and ActivateType) then
+  if (gTriggers[a].TriggerType <> TRIGGER_NONE) and
+     (gTriggers[a].TimeOut = 0) and
+     ((gTriggers[a].Keys and k) = gTriggers[a].Keys) and
+     LongBool(gTriggers[a].ActivateType and ActivateType) then
    if g_CollideLine(x1, y1, x2, y2, gTriggers[a].X, gTriggers[a].Y, gTriggers[a].Width,
                     gTriggers[a].Height) then
    begin

@@ -89,6 +89,7 @@ const
   I_MENU_INTER5 = 'сахиярб б лхмсрс';
   I_MENU_INTER6 = 'мюьек яейпернб';
   I_MENU_INTER7 = 'хг';
+  I_MENU_LOADING = 'гЮЦПСГЙЮ...';
   I_MENU_PLAYER1 = 'оепбши хцпнй';
   I_MENU_PLAYER2 = 'брнпни хцпнй';
   I_MENU_UP = '';

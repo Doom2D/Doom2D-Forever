@@ -28,12 +28,14 @@ function e_LoadSampleMem(pData: Pointer; Length: Integer; var ID: DWORD): Boolea
 function e_PlaySample(ID: DWORD; Pan, Volume: Byte): Integer;
 function e_IsPlayingSample(ID: DWORD; Channel: Integer): Boolean;
 procedure e_DeleteSample(ID: DWORD);
+procedure e_StopAllSamples();
 procedure e_RemoveAllSamples();
 function e_LoadSong(FileName: string; var ID: DWORD): Boolean;
 function e_LoadSongMem(pData: Pointer; Length: Integer; var ID: DWORD): Boolean;
 procedure e_PlaySong(ID: DWORD; Volume: Byte);
 procedure e_DeleteSong(ID: DWORD);
 procedure e_StopSong(ID: DWORD);
+procedure e_PauseSong(ID: DWORD; Pause: Boolean);
 procedure e_SetSongVolume(ID: DWORD; Volume: Integer);
 procedure e_RemoveAllSongs();
 procedure e_ReleaseSoundEngine();
@@ -153,6 +155,11 @@ begin
 
  e_SamplesArray[ID].SoundSample := nil;
  e_SamplesArray[ID].Data := nil;
+end;
+
+procedure e_StopAllSamples();
+begin
+  FSOUND_StopSound(FSOUND_ALL);
 end;
 
 procedure e_RemoveAllSamples();
@@ -280,6 +287,12 @@ procedure e_StopSong(ID: DWORD);
 begin
  if e_SongsArray[ID].MusicModule <> nil then FMUSIC_StopSong(e_SongsArray[ID].MusicModule);
  if e_SongsArray[ID].SoundStream <> nil then FSOUND_Stream_Stop(e_SongsArray[ID].SoundStream);
+end;
+
+procedure e_PauseSong(ID: DWORD; Pause: Boolean);
+begin
+  if e_SongsArray[ID].MusicModule <> nil then
+    FMUSIC_SetPaused(e_SongsArray[ID].MusicModule, ByteBool(Pause));
 end;
 
 procedure e_SetSongVolume(ID: DWORD; Volume: Integer);

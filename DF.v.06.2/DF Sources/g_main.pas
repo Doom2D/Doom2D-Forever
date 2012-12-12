@@ -98,7 +98,7 @@ const
   c5 = 'CBVCBV';
   c6 = 'GOODBYE';
   c7 = 'GJITKYF';
-  c8 = '¼TKSQJHTK';
+  c8 = 'jTKSQJHTK'; 
   c9 = 'BULLFROG';
   c10 = 'FORMULA1';
 begin

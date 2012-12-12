@@ -23,8 +23,8 @@ function g_Weapon_Hit(obj: PObj; d: Integer; SpawnerUID: Word; t: Byte): Byte;
 function g_Weapon_HitUID(UID: Word; d: Integer; SpawnerUID: Word; t: Byte): Boolean;
 
 procedure g_Weapon_gun(x, y, xd, yd, v: Integer; SpawnerUID: Word; CheckTrigger: Boolean);
-procedure g_Weapon_punch(x, y, d, SpawnerUID: Word);
-function g_Weapon_chainsaw(x, y, d, SpawnerUID: Word): Integer;
+procedure g_Weapon_punch(x, y: Integer; d, SpawnerUID: Word);
+function g_Weapon_chainsaw(x, y: Integer; d, SpawnerUID: Word): Integer;
 procedure g_Weapon_rocket(x, y, xd, yd: Integer; SpawnerUID: Word);
 procedure g_Weapon_revf(x, y, xd, yd: Integer; SpawnerUID, TargetUID: Word);
 procedure g_Weapon_plasma(x, y, xd, yd: Integer; SpawnerUID: Word);
@@ -153,6 +153,8 @@ begin
   WaterArray[a].Active := True;
  end;
 
+ g_Game_SetLoadingText('Water Map', High(WaterArray));
+
  for a := 0 to High(WaterArray) do
   if WaterArray[a].Active then
   begin
@@ -181,6 +183,8 @@ begin
        Break;
       end;
    end;
+
+   g_Game_StepLoading;
   end;
 
  WaterArray := nil;
@@ -735,7 +739,7 @@ begin
  if CheckTrigger then g_Triggers_PressL(X, Y, xx, yy, SpawnerUID, ACTIVATE_SHOT);
 end;
 
-procedure g_Weapon_punch(x, y, d, SpawnerUID: Word);
+procedure g_Weapon_punch(x, y: Integer; d, SpawnerUID: Word);
 var
   obj: TObj;
 begin
@@ -752,7 +756,7 @@ begin
   g_Sound_PlayExAt('SOUND_WEAPON_HITPUNCH', 255, x, y);
 end;
 
-function g_Weapon_chainsaw(x, y, d, SpawnerUID: Word): Integer;
+function g_Weapon_chainsaw(x, y: Integer; d, SpawnerUID: Word): Integer;
 var
   obj: TObj;
 begin
