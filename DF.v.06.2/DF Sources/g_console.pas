@@ -184,7 +184,7 @@ begin
  AddCommand('g_showstat', GameCommands);
  AddCommand('g_showkillmsg', GameCommands);
  //AddCommand('monster', GameCommands);
- AddCommand('friendlyfire', GameCommands);
+ AddCommand('ffire', GameCommands);
  AddCommand('addbot', GameCommands);
  AddCommand('bot_add', GameCommands);
  AddCommand('bot_addlist', GameCommands);

@@ -238,6 +238,7 @@ var
   TestOptionsAllowExit: Boolean;
   TestOptionsWeaponStay: Boolean;
   TestOptionsMonstersDM: Boolean;
+  TestD2dExe: String;
 
   LayerEnabled: array[LAYER_BACK..LAYER_TRIGGERS] of Boolean =
   (True, True, True, True, True, True, True, True, True);
@@ -251,7 +252,8 @@ uses f_options, e_graphics, e_log, dglOpenGL, Math, f_mapoptions,
   g_basic, f_about, f_mapoptimization, f_mapcheck, f_addresource_texture,
   g_textures, f_activationtype, f_keys, MAPWRITER, MAPSTRUCT, MAPREADER,
   f_selectmap, f_savemap, WADEDITOR, MAPDEF, g_map, f_saveminimap,
-  f_addresource, CONFIG, f_packmap, f_addresource_sound, f_maptest;
+  f_addresource, CONFIG, f_packmap, f_addresource_sound, f_maptest,
+  f_choosetype;
 
 const
   BoolNames: array[False..True] of string = ('Нет', 'Да');
@@ -952,7 +954,7 @@ begin
       begin
         with ItemProps[InsertRow('Тип монстра', MonsterToStr(Data.MonType), True)-1] do
           begin
-            EditStyle := esPickList;
+            EditStyle := esEllipsis;
             ReadOnly := True;
           end;
 
@@ -980,7 +982,7 @@ begin
       begin
         with ItemProps[InsertRow('Тип предмета', ItemToStr(Data.ItemType), True)-1] do
           begin
-            EditStyle := esPickList;
+            EditStyle := esEllipsis;
             ReadOnly := True;
           end;
 
@@ -1409,6 +1411,18 @@ begin
      begin
       if okX then gTriggers[SelectedObjects[a].ID].Data.TargetPoint.X := gTriggers[SelectedObjects[a].ID].Data.TargetPoint.X+dx;
       if okY then gTriggers[SelectedObjects[a].ID].Data.TargetPoint.Y := gTriggers[SelectedObjects[a].ID].Data.TargetPoint.Y+dy;
+     end;
+
+     if gTriggers[SelectedObjects[a].ID].TriggerType in [TRIGGER_SPAWNMONSTER] then
+     begin
+      if okX then gTriggers[SelectedObjects[a].ID].Data.MonPos.X := gTriggers[SelectedObjects[a].ID].Data.MonPos.X+dx;
+      if okY then gTriggers[SelectedObjects[a].ID].Data.MonPos.Y := gTriggers[SelectedObjects[a].ID].Data.MonPos.Y+dy;
+     end;
+
+     if gTriggers[SelectedObjects[a].ID].TriggerType in [TRIGGER_SPAWNITEM] then
+     begin
+      if okX then gTriggers[SelectedObjects[a].ID].Data.ItemPos.X := gTriggers[SelectedObjects[a].ID].Data.ItemPos.X+dx;
+      if okY then gTriggers[SelectedObjects[a].ID].Data.ItemPos.Y := gTriggers[SelectedObjects[a].ID].Data.ItemPos.Y+dy;
      end;
     end;
    end;
@@ -2585,7 +2599,7 @@ procedure TMainForm.vleObjectPropertyGetPickList(Sender: TObject;
   const KeyName: string; Values: TStrings);
 var
   i: Integer;
-  
+
 begin
  if vleObjectProperty.ItemProps[KeyName].EditStyle = esPickList then
  begin
@@ -2617,17 +2631,7 @@ begin
   begin
    Values.Add(BoolNames[True]);
    Values.Add(BoolNames[False]);
-  end
-    else if (KeyName = 'Тип монстра') then
-      begin
-        for i := MONSTER_DEMON to MONSTER_MAN do
-          Values.Add(MonsterToStr(i));
-      end
-    else if (KeyName = 'Тип предмета') then
-      begin
-        for i := ITEM_MEDKIT_SMALL to ITEM_KEY_BLUE do
-          Values.Add(ItemToStr(i));
-      end;
+  end;
  end;
 end;
 
@@ -3033,6 +3037,7 @@ var
   Key, FileName: string;
   c: Cardinal;
   w: Word;
+  b: Byte;
 begin
  Key := vleObjectProperty.Keys[vleObjectProperty.Row];
 
@@ -3107,7 +3112,43 @@ begin
     Values[Key] := KeyToStr(w);
     bApplyProperty.Click()
    end;
-  end;
+  end
+ else if Key = 'Тип монстра' then
+   with ChooseTypeForm, vleObjectProperty do
+     begin
+       Caption := 'Выберите тип монстра';
+       lbTypeSelect.Items.Clear;
+
+       for b := MONSTER_DEMON to MONSTER_MAN do
+         lbTypeSelect.Items.Add(MonsterToStr(b));
+
+       lbTypeSelect.ItemIndex := StrToMonster(Values[Key]) - MONSTER_DEMON;
+
+       if ShowModal = mrOK then
+         begin
+           b := lbTypeSelect.ItemIndex + MONSTER_DEMON;
+           Values[Key] := MonsterToStr(b);
+           bApplyProperty.Click();
+         end;
+     end
+ else if Key = 'Тип предмета' then
+   with ChooseTypeForm, vleObjectProperty do
+     begin
+       Caption := 'Выберите тип предмета';
+       lbTypeSelect.Items.Clear;
+
+       for b := ITEM_MEDKIT_SMALL to ITEM_KEY_BLUE do
+         lbTypeSelect.Items.Add(ItemToStr(b));
+
+       lbTypeSelect.ItemIndex := StrToItem(Values[Key]) - ITEM_MEDKIT_SMALL;
+
+       if ShowModal = mrOK then
+         begin
+           b := lbTypeSelect.ItemIndex + ITEM_MEDKIT_SMALL;
+           Values[Key] := ItemToStr(b);
+           bApplyProperty.Click();
+         end;
+     end;
 end;
 
 procedure TMainForm.aSaveMapExecute(Sender: TObject);
@@ -3483,6 +3524,7 @@ var
   opt: LongWord;
   si: STARTUPINFO;
   pi: PROCESS_INFORMATION;
+  lpMsgBuf: PAnsiChar;
 
 begin
   if OpenedMap = '' then
@@ -3502,7 +3544,7 @@ begin
   if TestOptionsMonstersDM then
     opt := opt + 16;
 
-  cmd := 'DoomForever.exe';
+  cmd := '"' + TestD2dExe + '"';
   cmd := cmd + ' -map "' + OpenedMap + '"';
   cmd := cmd + ' -gmode ' + TestGameMode;
   cmd := cmd + ' -glimt ' + TestLimTime;
@@ -3513,10 +3555,14 @@ begin
   si.cb := SizeOf(si);
   ZeroMemory(@pi, SizeOf(pi));
 
-  CreateProcess(PAnsiChar('DoomForever.exe'),
-                PAnsiChar(cmd), nil, nil,
-                False, 0,
-                nil, nil, si, pi);
+  if not CreateProcess(0, PAnsiChar(cmd),
+                       nil, nil, False, 0,
+                       nil, nil, si, pi) then
+    begin
+      FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER or FORMAT_MESSAGE_FROM_SYSTEM,
+        nil, GetLastError(), LANG_SYSTEM_DEFAULT, @lpMsgBuf, 0, nil);
+      MessageBox(0, lpMsgBuf, 'Ошибка запуска', MB_OK or MB_ICONERROR);
+    end;
 end;
 
 end.

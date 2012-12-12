@@ -1145,7 +1145,7 @@ end;
 function g_Map_GetMapInfo(Res: string): TMapInfo;
 var
   WAD: TWADEditor_1;
-  MapReader: TMapReader_1;
+  MapReader: TMapReader_2;
   Header: TMapHeaderRec_1;
   FileName, SectionName, ResName: string;
   Data: Pointer;
@@ -1168,7 +1168,7 @@ begin
 
  WAD.Destroy;
 
- MapReader := TMapReader_1.Create;
+ MapReader := TMapReader_2.Create;
 
  MapReader.LoadMap(Data);
  Header := MapReader.GetMapHeader;

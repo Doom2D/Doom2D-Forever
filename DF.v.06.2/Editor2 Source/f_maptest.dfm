@@ -4,7 +4,7 @@ object MapTestForm: TMapTestForm
   BorderIcons = [biSystemMenu]
   BorderStyle = bsSingle
   Caption = #1053#1072#1089#1090#1088#1086#1081#1082#1080' '#1090#1077#1089#1090#1072' '#1082#1072#1088#1090#1099' '#1074' D2D:F'
-  ClientHeight = 204
+  ClientHeight = 252
   ClientWidth = 366
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -20,7 +20,7 @@ object MapTestForm: TMapTestForm
   TextHeight = 13
   object bOK: TButton
     Left = 192
-    Top = 176
+    Top = 224
     Width = 75
     Height = 25
     Caption = 'OK'
@@ -29,8 +29,8 @@ object MapTestForm: TMapTestForm
     OnClick = bOKClick
   end
   object bCancel: TButton
-    Left = 280
-    Top = 176
+    Left = 288
+    Top = 224
     Width = 75
     Height = 25
     Cancel = True
@@ -42,7 +42,7 @@ object MapTestForm: TMapTestForm
     Left = 8
     Top = 0
     Width = 353
-    Height = 169
+    Height = 217
     TabOrder = 2
     object Label1: TLabel
       Left = 16
@@ -64,6 +64,13 @@ object MapTestForm: TMapTestForm
       Width = 102
       Height = 13
       Caption = #1054#1075#1088#1072#1085#1080#1095#1077#1085#1080#1077' '#1087#1086#1073#1077#1076':'
+    end
+    object Label4: TLabel
+      Left = 16
+      Top = 168
+      Width = 123
+      Height = 13
+      Caption = #1055#1091#1090#1100' '#1082' DoomForever.exe:'
     end
     object rbDM: TRadioButton
       Left = 8
@@ -175,5 +182,35 @@ object MapTestForm: TMapTestForm
       Max = 28800
       TabOrder = 12
     end
+    object edD2dexe: TEdit
+      Left = 16
+      Top = 184
+      Width = 297
+      Height = 21
+      TabOrder = 13
+      Text = 'DoomForever.exe'
+    end
+    object bChooseD2d: TButton
+      Left = 320
+      Top = 184
+      Width = 25
+      Height = 20
+      Caption = '...'
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clWindowText
+      Font.Height = -11
+      Font.Name = 'MS Sans Serif'
+      Font.Style = [fsBold]
+      ParentFont = False
+      TabOrder = 14
+      OnClick = bChooseD2dClick
+    end
+  end
+  object FindD2dDialog: TOpenDialog
+    DefaultExt = 'DoomForever.exe'
+    Filter = 'DoomForever.exe|DoomForever.exe'
+    Title = #1042#1099#1073#1077#1088#1080#1090#1077' '#1092#1072#1081#1083' '#1080#1075#1088#1099' Doom2D:Forever'
+    Left = 320
+    Top = 144
   end
 end

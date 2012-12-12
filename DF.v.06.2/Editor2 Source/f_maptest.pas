@@ -27,10 +27,15 @@ type
     edGoal: TEdit;
     UpDown1: TUpDown;
     UpDown2: TUpDown;
+    edD2dexe: TEdit;
+    Label4: TLabel;
+    bChooseD2d: TButton;
+    FindD2dDialog: TOpenDialog;
     procedure bOKClick(Sender: TObject);
     procedure bCancelClick(Sender: TObject);
     procedure FormActivate(Sender: TObject);
     procedure FormCreate(Sender: TObject);
+    procedure bChooseD2dClick(Sender: TObject);
   private
     { Private declarations }
   public
@@ -90,6 +95,8 @@ begin
   TestOptionsWeaponStay := cbWeaponStay.Checked;
   config.WriteBool('TestRun', 'MonstersDM', cbMonstersDM.Checked);
   TestOptionsMonstersDM := cbMonstersDM.Checked;
+  config.WriteStr('TestRun', 'Exe', edD2dExe.Text);
+  TestD2dExe := edD2dExe.Text;
 
   config.SaveFile(EditorDir+'\editor.cfg');
   config.Destroy;
@@ -120,6 +127,7 @@ begin
   cbAllowExit.Checked := TestOptionsAllowExit;
   cbWeaponStay.Checked := TestOptionsWeaponStay;
   cbMonstersDM.Checked := TestOptionsMonstersDM;
+  edD2dExe.Text := TestD2dExe;
 end;
 
 procedure TMapTestForm.FormCreate(Sender: TObject);
@@ -137,8 +145,19 @@ begin
   TestOptionsAllowExit := config.ReadBool('TestRun', 'AllowExit', True);
   TestOptionsWeaponStay := config.ReadBool('TestRun', 'WeaponStay', False);
   TestOptionsMonstersDM := config.ReadBool('TestRun', 'MonstersDM', False);
+  TestD2dExe := config.ReadStr('TestRun', 'Exe', EditorDir+'DoomForever.exe');
 
   config.Destroy;
+
+  FindD2dDialog.InitialDir := TestD2dExe;
+end;
+
+procedure TMapTestForm.bChooseD2dClick(Sender: TObject);
+begin
+  if FindD2dDialog.Execute then
+    begin
+      edD2dExe.Text := FindD2dDialog.FileName;
+    end;
 end;
 
 end.

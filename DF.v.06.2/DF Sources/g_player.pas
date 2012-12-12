@@ -46,6 +46,8 @@ const
   PLAYER_RECT_CX       = 15+(33 div 2);
   PLAYER_RECT_CY       = 12+(52 div 2);
   PLAYER_CORPSERECT: TRectWH = (X:15; Y:48; Width:33; Height:16);
+  PLAYER1_DEF_COLOR: TRGB = (R:48; G:192; B:48);
+  PLAYER2_DEF_COLOR: TRGB = (R:96; G:96; B:96);
 
 type
   TPlayerStat = record

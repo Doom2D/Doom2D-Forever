@@ -1490,7 +1490,8 @@ begin
   gPlayerScreenSize.Y := gScreenHeight div 2 else gPlayerScreenSize.Y := gScreenHeight;
 
  with gPlayer1Settings do
-  gPlayer1 := g_Player_Get(g_Player_Create('Doomer', Color, TEAM_RED, False, PLAYERNUM_1));
+  gPlayer1 := g_Player_Get(g_Player_Create('Doomer', PLAYER1_DEF_COLOR,
+                           TEAM_RED, False, PLAYERNUM_1));
 
  if gPlayer1 = nil then
  begin
@@ -1502,7 +1503,8 @@ begin
  if TwoPlayers then
  begin
   with gPlayer2Settings do
-    gPlayer2 := g_Player_Get(g_Player_Create('Doomer', Color, TEAM_RED, False, PLAYERNUM_2));
+    gPlayer2 := g_Player_Get(g_Player_Create('Doomer', PLAYER2_DEF_COLOR,
+                             TEAM_RED, False, PLAYERNUM_2));
 
   if gPlayer2 = nil then
   begin
@@ -1550,10 +1552,15 @@ begin
  end;
 
  with gPlayer1Settings do
-   if LongBool(gGameSettings.Options and GAME_OPTION_TWOPLAYER) and
-      (gGameSettings.GameType = GT_SINGLE) then
-     gPlayer1 := g_Player_Get(g_Player_Create(Model, Color,
-       TEAM_RED, False, PLAYERNUM_1))
+   if (gGameSettings.GameType = GT_SINGLE) then
+     begin
+       if LongBool(gGameSettings.Options and GAME_OPTION_TWOPLAYER) then
+         gPlayer1 := g_Player_Get(g_Player_Create('Doomer', PLAYER1_DEF_COLOR,
+           TEAM_RED, False, PLAYERNUM_1))
+       else
+         gPlayer1 := g_Player_Get(g_Player_Create('Doomer', PLAYER1_DEF_COLOR,
+           TEAM_NONE, False, PLAYERNUM_1));
+     end
    else
      gPlayer1 := g_Player_Get(g_Player_Create(Model, Color,
        IfThen(GameMode = GM_DM, TEAM_NONE, Team), False, PLAYERNUM_1));
@@ -1570,7 +1577,7 @@ begin
  begin
   with gPlayer2Settings do
    if gGameSettings.GameType = GT_SINGLE then
-     gPlayer2 := g_Player_Get(g_Player_Create(Model, Color,
+     gPlayer2 := g_Player_Get(g_Player_Create('Doomer', PLAYER2_DEF_COLOR,
        TEAM_RED, False, PLAYERNUM_2))
    else
      gPlayer2 := g_Player_Get(g_Player_Create(Model, Color,
@@ -1730,7 +1737,7 @@ begin
   end;
  end;
 
- if LowerCase(P[0]) = 'friendlyfire' then
+ if LowerCase(P[0]) = 'ffire' then
    with gGameSettings do
      begin
        if (Length(P) > 1) and ((P[1] = '1') or (P[1] = '0')) then

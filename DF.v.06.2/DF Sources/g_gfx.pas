@@ -682,8 +682,8 @@ begin
       begin
        c := gCollideMap[Y, X+s];
 
-       if (c = MARK_WATER) or (c = MARK_ACID) or
-          (X+s >= w) or (X+s <= 0) then
+       if ( ((c = MARK_WATER) or (c = MARK_ACID)) and
+            (dY > 0) ) or (X+s >= w) or (X+s <= 0) then
        begin
         State := STATE_FREE;
         Break;
@@ -709,8 +709,8 @@ begin
       begin
        c := gCollideMap[Y+s, X];
 
-       if (c = MARK_WATER) or (c = MARK_ACID) or
-          (Y+s >= h) or (Y+s <= 0) then
+       if ( ((c = MARK_WATER) or (c = MARK_ACID)) and
+            (dY > 0) ) or (Y+s >= h) or (Y+s <= 0) then
        begin
         State := STATE_FREE;
         Break;
