@@ -103,7 +103,7 @@ type
     miSelectAll: TMenuItem;
     clbActivationType: TCheckListBox;
     clbKeys: TCheckListBox;
-    ToolButton1: TToolButton;
+    tbGridOn: TToolButton;
     miMapPreview: TMenuItem;
     ilToolbar: TImageList;
     N9: TMenuItem;
@@ -135,6 +135,8 @@ type
     miTestMap: TMenuItem;
     ToolButton2: TToolButton;
     tbTestMap: TToolButton;
+    pmMapTest: TPopupMenu;
+    miMapTestPMSet: TMenuItem;
     procedure aAboutExecute(Sender: TObject);
     procedure aCheckMapExecute(Sender: TObject);
     procedure aMoveToFore(Sender: TObject);
@@ -174,7 +176,7 @@ type
     procedure vleObjectPropertyGetPickList(Sender: TObject; const KeyName: String; Values: TStrings);
     procedure vleObjectPropertyKeyDown(Sender: TObject; var Key: Word;
       Shift: TShiftState);
-    procedure ToolButton1Click(Sender: TObject);
+    procedure tbGridOnClick(Sender: TObject);
     procedure miMapPreviewClick(Sender: TObject);
     procedure miLayer1Click(Sender: TObject);
     procedure miLayer2Click(Sender: TObject);
@@ -239,12 +241,14 @@ var
   TestOptionsWeaponStay: Boolean;
   TestOptionsMonstersDM: Boolean;
   TestD2dExe: String;
+  TestMapOnce: Boolean;
 
   LayerEnabled: array[LAYER_BACK..LAYER_TRIGGERS] of Boolean =
   (True, True, True, True, True, True, True, True, True);
   PreviewMode: Boolean = False;
 
 procedure OpenMap(FileName: string; mapN: string);
+function  AddTexture(aWAD, aSection, aTex: String): Boolean;
 
 implementation
 
@@ -258,6 +262,7 @@ uses f_options, e_graphics, e_log, dglOpenGL, Math, f_mapoptions,
 const
   BoolNames: array[False..True] of string = ('Нет', 'Да');
   DirNames: array[D_LEFT..D_RIGHT] of string = ('Влево', 'Вправо');
+  DirNamesAdv: array [0..2] of string = ('Не менять', 'Влево', 'Вправо');
 
   UNDO_DELETE_PANEL   = 1;
   UNDO_DELETE_ITEM    = 2;
@@ -303,7 +308,7 @@ const
   SELECTFLAG_MONSTER    = 5;
   SELECTFLAG_SPAWNPOINT = 6;
 
-  MAX_RECENT_FILES    = 8;
+  MAX_RECENT_FILES    = 10;
   RECENT_FILES_MENU_START = 12;
 
 type
@@ -380,6 +385,17 @@ end;
 function NameToDir(Name: string): TDirection;
 begin
  if Name = DirNames[D_LEFT] then Result := D_LEFT else Result := D_RIGHT;
+end;
+
+function NameToDirAdv(Name: string): Byte;
+begin
+ if Name = DirNamesAdv[1] then
+   Result := 1
+ else
+   if Name = DirNamesAdv[2] then
+     Result := 2
+ else
+   Result := 0;
 end;
 
 function ActivateToStr(ActivateType: Cardinal): string;
@@ -784,7 +800,7 @@ begin
       ReadOnly := True;
      end;
 
-     with ItemProps[InsertRow('Направление', DirNames[TDirection(Data.TlpDir)], True)-1] do
+     with ItemProps[InsertRow('Направление после', DirNamesAdv[Data.TlpDir], True)-1] do
        begin
          EditStyle := esPickList;
          ReadOnly := True;
@@ -999,6 +1015,15 @@ begin
             ReadOnly := True;
           end;
       end;
+
+   TRIGGER_MUSIC:
+     begin
+       with ItemProps[InsertRow('Музыка', Data.MusicName, True)-1] do
+         begin
+           EditStyle := esEllipsis;
+           ReadOnly := True;
+         end;
+     end;
     end; //case TriggerType
    end;
   end; // OBJECT_TRIGGER:
@@ -1226,89 +1251,86 @@ begin
  Result := True;
 end;
 
-function AddTexture(): Boolean;
+function AddTexture(aWAD, aSection, aTex: String): Boolean;
 var
-  i: Integer;
   a: Integer;
   ok: Boolean;
-  FileName: string;
-  ResourceName: string;
-  FullResourceName: string;
-  SectionName: string;
+  FileName: String;
+  ResourceName: String;
+  FullResourceName: String;
+  SectionName: String;
   Data: Pointer;
   Width, Height: Word;
-  fn: string;
+  fn: String;
+  
 begin
- ok := False;
+  if aSection = '..' then
+    SectionName := ''
+  else
+    SectionName := aSection;
 
- for i := 0 to AddTextureForm.lbResourcesList.Count-1 do
-  if AddTextureForm.lbResourcesList.Selected[i] then
-  begin
-   ok := True;
-
-   if AddTextureForm.cbSectionsList.Text = '..' then
-    SectionName := '' else SectionName := AddTextureForm.cbSectionsList.Text;
-
-   if AddTextureForm.cbWADList.Text = WAD_SPECIAL_MAP then
-   begin
-    g_ProcessResourceStr(OpenedMap, @fn, nil, nil);
+  if aWAD = WAD_SPECIAL_MAP then
+    begin
+      g_ProcessResourceStr(OpenedMap, @fn, nil, nil);
     //FileName := EditorDir+'maps\'+ExtractFileName(fn);
-    FileName := fn;
-    ResourceName := ':'+SectionName+'\'+AddTextureForm.lbResourcesList.Items[i];
-   end
-    else if AddTextureForm.cbWADList.Text = WAD_SPECIAL_TEXTURES then
-   begin
-    FileName := '';
-    ResourceName := AddTextureForm.lbResourcesList.Items[i];
-   end
-    else
-   begin
-    FileName := EditorDir+'wads\'+AddTextureForm.cbWADList.Text;
-    ResourceName := AddTextureForm.cbWADList.Text+':'+SectionName+'\'+
-                    AddTextureForm.lbResourcesList.Items[i]
-   end;
-
-   for a := 0 to MainForm.lbTextureList.Items.Count-1 do
-    if ResourceName = MainForm.lbTextureList.Items[a] then
-    begin
-     MessageBox(0, PChar(Format('Текстура "%s" уже существует', [ResourceName])),
-                'Ошибка', MB_ICONINFORMATION or MB_OK or MB_TASKMODAL or MB_DEFBUTTON1);
-     ok := False;
-    end;
-
-   if Length(ResourceName) > 64 then
-   begin
-    MessageBox(0, PChar(Format('Имя ресурса "%s" должно быть <= 64 символам', [ResourceName])),
-               'Ошибка', MB_ICONINFORMATION or MB_OK or MB_TASKMODAL or MB_DEFBUTTON1);
-    ok := False;
-   end;
-
-   if ok then
-   begin
-    if AddTextureForm.cbWADList.Text = WAD_SPECIAL_TEXTURES then
-    begin
-     MainForm.lbTextureList.Items.Add(ResourceName);
-     Continue;
-    end;
-
-    FullResourceName := FileName+':'+SectionName+'\'+AddTextureForm.lbResourcesList.Items[i];
-
-    if IsAnim(FullResourceName) then
-    begin
-     GetFrame(FullResourceName, Data, Width, Height);
-
-     if g_CreateTextureMemorySize(Data, ResourceName, 0, 0, Width, Height, 1) then
-      MainForm.lbTextureList.Items.Add(ResourceName);
+      FileName := fn;
+      ResourceName := ':'+SectionName+'\'+aTex;
     end
-     else
-    begin
-     if g_CreateTextureWAD(ResourceName, FullResourceName) then
-     MainForm.lbTextureList.Items.Add(ResourceName);
-    end;
-   end;
- end;
+  else
+    if aWAD = WAD_SPECIAL_TEXTURES then
+      begin
+        FileName := '';
+        ResourceName := aTex;
+      end
+    else
+      begin
+        FileName := EditorDir+'wads\'+aWAD;
+        ResourceName := aWAD+':'+SectionName+'\'+aTex;
+      end;
 
- Result := ok;
+  ok := True;
+
+  for a := 0 to MainForm.lbTextureList.Items.Count-1 do
+    if ResourceName = MainForm.lbTextureList.Items[a] then
+      begin
+        MessageBox(0, PChar(Format('Текстура "%s" уже существует', [ResourceName])),
+                   'Ошибка', MB_ICONINFORMATION or MB_OK or MB_TASKMODAL or MB_DEFBUTTON1);
+        ok := False;
+      end;
+
+  if Length(ResourceName) > 64 then
+    begin
+      MessageBox(0, PChar(Format('Имя ресурса "%s" должно быть <= 64 символам', [ResourceName])),
+                 'Ошибка', MB_ICONINFORMATION or MB_OK or MB_TASKMODAL or MB_DEFBUTTON1);
+      ok := False;
+    end;
+
+  if ok then
+    begin
+      if aWAD = WAD_SPECIAL_TEXTURES then
+        begin
+          MainForm.lbTextureList.Items.Add(ResourceName);
+          Result := True;
+          Exit;
+        end;
+
+      FullResourceName := FileName+':'+SectionName+'\'+aTex;
+
+      if IsAnim(FullResourceName) then
+        begin
+          GetFrame(FullResourceName, Data, Width, Height);
+
+          if g_CreateTextureMemorySize(Data, ResourceName, 0, 0, Width, Height, 1) then
+            MainForm.lbTextureList.Items.Add(ResourceName);
+        end
+      else
+        begin
+          if g_CreateTextureWAD(ResourceName, FullResourceName) then
+            MainForm.lbTextureList.Items.Add(ResourceName);
+        end;
+    end;
+
+  Result := ok;
 end;
 
 procedure OpenMap(FileName: string; mapN: string);
@@ -1647,6 +1669,18 @@ begin
 
  config.Destroy;
 
+ lbItemList.Clear;
+ for i := ITEM_MEDKIT_SMALL to ITEM_KEY_BLUE do
+   lbItemList.Items.Add(ItemNames[i]);
+
+ lbMonsterList.Clear;
+ for i := MONSTER_DEMON to MONSTER_MAN do
+   lbMonsterList.Items.Add(MonsterNames[i]);
+
+ lbAreasList.Clear;
+ for i := AREA_PLAYERPOINT1 to AREA_BLUETEAMPOINT do
+   lbAreasList.Items.Add(AreaNames[i]);
+
  Application.OnIdle := OnIdle;
 end;
 
@@ -1941,7 +1975,7 @@ begin
        begin
         item.X := MousePos.X-MapOffset.X;
         item.Y := MousePos.Y-MapOffset.Y;
-        item.ItemType := lbItemList.ItemIndex+1;
+        item.ItemType := lbItemList.ItemIndex + ITEM_MEDKIT_SMALL;
         item.OnlyDM := cbOnlyDM.Checked;
         item.Fall := (item.ItemType in [ITEM_KEY_RED, ITEM_KEY_GREEN, ITEM_KEY_BLUE]) or cbFall.Checked;
         Undo_Add(OBJECT_ITEM, AddItem(item));
@@ -1953,7 +1987,7 @@ begin
        begin
         monster.X := MousePos.X-MapOffset.X;
         monster.Y := MousePos.Y-MapOffset.Y;
-        monster.MonsterType := lbMonsterList.ItemIndex+1;
+        monster.MonsterType := lbMonsterList.ItemIndex + MONSTER_DEMON;
         if rbMonsterLeft.Checked then monster.Direction := D_LEFT else
          monster.Direction := D_RIGHT;
         Undo_Add(OBJECT_MONSTER, AddMonster(monster));
@@ -2572,9 +2606,8 @@ end;
 
 procedure TMainForm.bbAddTextureClick(Sender: TObject);
 begin
- AddTextureForm.OKFunction := AddTexture;
- AddTextureForm.lbResourcesList.MultiSelect := True;
- AddTextureForm.ShowModal();
+  AddTextureForm.lbResourcesList.MultiSelect := True;
+  AddTextureForm.ShowModal();
 end;
 
 procedure TMainForm.lbTextureListClick(Sender: TObject);
@@ -2622,6 +2655,12 @@ begin
   begin
    Values.Add(DirNames[D_LEFT]);
    Values.Add(DirNames[D_RIGHT]);
+  end
+   else if KeyName = 'Направление после' then
+  begin
+   Values.Add(DirNamesAdv[0]);
+   Values.Add(DirNamesAdv[1]);
+   Values.Add(DirNamesAdv[2]);
   end
    else if (KeyName = 'Только DM') or (KeyName = 'Падает') or (KeyName = 'Смешивание') or
            (KeyName = 'Один раз') or (KeyName = 'Включен') or (KeyName = 'Без звука') or
@@ -2773,7 +2812,7 @@ begin
      begin
       Data.d2d_teleport := NameToBool(vleObjectProperty.Values['Как в D2D']);
       Data.silent_teleport := NameToBool(vleObjectProperty.Values['Тихий телепорт']);
-      Data.TlpDir := Byte(NameToDir(vleObjectProperty.Values['Направление']));
+      Data.TlpDir := NameToDirAdv(vleObjectProperty.Values['Направление после']);
       //Data.items_teleport := NameToBool(vleObjectProperty.Values['Телепорт итемов']);
      end;
      TRIGGER_SOUND:
@@ -2802,6 +2841,13 @@ begin
          Data.ItemType := StrToItem(vleObjectProperty.Values['Тип предмета']);
          Data.ItemFalls := NameToBool(vleObjectProperty.Values['Падает']);
        end;
+     TRIGGER_MUSIC:
+       begin
+         s := vleObjectProperty.Values['Музыка'];
+         ZeroMemory(@Data.MusicName[0], 64);
+         if s <> '' then
+           CopyMemory(@Data.MusicName[0], @s[1], Min(Length(s), 64));
+       end;
     end;
    end;
   end;
@@ -2829,7 +2875,7 @@ begin
    if (gPanels[a].PanelType <> 0) and
       (gPanels[a].TextureName = SelectedTexture()) then
    begin
-    MessageBox(0, 'Нельзя удалить текстуру пока она используется. Удали все '+
+    MessageBox(0, 'Нельзя удалить текстуру пока она используется. Удалите все '+
                'панели с этой текстурой.', 'Нельзя', MB_ICONINFORMATION or MB_OK
                or MB_TASKMODAL or MB_DEFBUTTON1);
     Exit;
@@ -3053,16 +3099,22 @@ begin
   g_ProcessResourceStr(OpenedMap, @FileName, nil, nil);
   SelectMapForm.GetMaps(FileName); 
   if SelectMapForm.ShowModal = mrOK then
-   vleObjectProperty.Values[Key] := SelectMapForm.lbMapList.Items[SelectMapForm.lbMapList.ItemIndex];
+    begin
+      vleObjectProperty.Values[Key] := SelectMapForm.lbMapList.Items[SelectMapForm.lbMapList.ItemIndex];
+      bApplyProperty.Click();
+    end;
  end
- else if Key = 'Звук' then
+ else if (Key = 'Звук') or (Key = 'Музыка') then
  begin
   AddSoundForm.OKFunction := nil;
   AddSoundForm.lbResourcesList.MultiSelect := False;
   AddSoundForm.SetResource := vleObjectProperty.Values[Key];
   AddSoundForm.ShowModal();
   if AddSoundForm.ResourceName <> '' then
-   vleObjectProperty.Values[Key] := AddSoundForm.ResourceName;
+    begin
+      vleObjectProperty.Values[Key] := AddSoundForm.ResourceName;
+      bApplyProperty.Click();
+    end;
  end
  else if Key = 'Тип активации' then
   with ActivationTypeForm, vleObjectProperty do
@@ -3090,7 +3142,7 @@ begin
     if cbItemCollide.Checked then c := c or ACTIVATE_ITEMCOLLIDE;
     if cbNoItem.Checked then c := c or ACTIVATE_NOITEM;
     Values[Key] := ActivateToStr(c);
-    bApplyProperty.Click()
+    bApplyProperty.Click();
    end;
  end
  else if Key = 'Ключи' then
@@ -3110,7 +3162,7 @@ begin
     if cbRedTeam.Checked then w := w or KEY_REDTEAM;
     if cbBlueTeam.Checked then w := w or KEY_BLUETEAM;
     Values[Key] := KeyToStr(w);
-    bApplyProperty.Click()
+    bApplyProperty.Click();
    end;
   end
  else if Key = 'Тип монстра' then
@@ -3363,7 +3415,7 @@ begin
  end;
 end;
 
-procedure TMainForm.ToolButton1Click(Sender: TObject);
+procedure TMainForm.tbGridOnClick(Sender: TObject);
 begin
  DotEnable := not DotEnable;
 end;
@@ -3520,7 +3572,7 @@ end;
 
 procedure TMainForm.miTestMapClick(Sender: TObject);
 var
-  cmd: String;
+  cmd, dir: String;
   opt: LongWord;
   si: STARTUPINFO;
   pi: PROCESS_INFORMATION;
@@ -3528,7 +3580,10 @@ var
 
 begin
   if OpenedMap = '' then
-    Exit;
+    begin
+      aSaveMapAsExecute(nil);
+      Exit;
+    end;
 
   aSaveMapExecute(nil);
 
@@ -3544,6 +3599,8 @@ begin
   if TestOptionsMonstersDM then
     opt := opt + 16;
 
+  dir := ExtractFilePath(TestD2dExe);
+
   cmd := '"' + TestD2dExe + '"';
   cmd := cmd + ' -map "' + OpenedMap + '"';
   cmd := cmd + ' -gmode ' + TestGameMode;
@@ -3551,13 +3608,17 @@ begin
   cmd := cmd + ' -glimg ' + TestLimGoal;
   cmd := cmd + ' -gopt ' + IntToStr(opt);
 
+  if TestMapOnce then
+    cmd := cmd + ' +gclose';
+
   ZeroMemory(@si, SizeOf(si));
   si.cb := SizeOf(si);
   ZeroMemory(@pi, SizeOf(pi));
 
   if not CreateProcess(0, PAnsiChar(cmd),
-                       nil, nil, False, 0,
-                       nil, nil, si, pi) then
+                       nil, nil, False, 0, nil,
+                       PAnsiChar(dir),
+                       si, pi) then
     begin
       FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER or FORMAT_MESSAGE_FROM_SYSTEM,
         nil, GetLastError(), LANG_SYSTEM_DEFAULT, @lpMsgBuf, 0, nil);

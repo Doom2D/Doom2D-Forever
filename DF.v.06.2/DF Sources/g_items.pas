@@ -30,7 +30,8 @@ procedure g_Items_LoadData();
 procedure g_Items_FreeData();
 procedure g_Items_Init();
 procedure g_Items_Free();
-function g_Items_Create(X, Y: Integer; ItemType: Byte; Fall, Respawnable: Boolean): DWORD;
+function g_Items_Create(X, Y: Integer; ItemType: Byte;
+           Fall, Respawnable: Boolean; AdjCoord: Boolean = False): DWORD;
 procedure g_Items_Update();
 procedure g_Items_Draw();
 procedure g_Items_Pick(ID: DWORD);
@@ -242,7 +243,8 @@ begin
  end;
 end;
 
-function g_Items_Create(X, Y: Integer; ItemType: Byte; Fall, Respawnable: Boolean): DWORD;
+function g_Items_Create(X, Y: Integer; ItemType: Byte;
+           Fall, Respawnable: Boolean; AdjCoord: Boolean = False): DWORD;
 var
   find_id: DWORD;
   ID: DWORD;
@@ -260,6 +262,15 @@ begin
  gItems[find_id].Fall := Fall;
  gItems[find_id].Live := True;
  gItems[find_id].Animation := nil;
+
+ if AdjCoord then
+   with gItems[find_id] do
+     begin
+       Obj.X := X - (Obj.Rect.Width div 2);
+       Obj.Y := Y - Obj.Rect.Height;
+       InitX := Obj.X;
+       InitY := Obj.Y;
+     end;
 
  with gItems[find_id] do
  begin

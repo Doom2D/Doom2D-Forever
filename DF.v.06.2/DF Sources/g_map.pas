@@ -36,14 +36,13 @@ type
    Hide:          Boolean;
    Enabled:       Boolean;
    WallID:        DWORD;
-   SwitchTexture: Boolean;
-   case Anim: Boolean of
-    False: (TextureID:  DWORD;
-            TextureID2: DWORD;
-            Alpha:      Byte;
-            Blending:   Boolean);
-    True:  (Animation:  TAnimation;
-            Animation2: TAnimation);
+   SaveIt:        Boolean; // Сохранять в State?
+   CurTexture:    Integer; // Номер текстуры в Texts / Anims
+   Anim:          Boolean; // Анимированные текстуры?
+   Alpha:         Byte;
+   Blending:      Boolean;
+   Texts:         DWArray;
+   Anims:         Array of TAnimation;
   end;
 
   TRPanelArray = array of TRenderPanel;
@@ -59,6 +58,7 @@ type
 
   TMapSaveRec = packed record
    state_count: Integer;
+   Music:       Char64;
   end;
 
 function g_Map_Load(Res: string): Boolean;
@@ -156,7 +156,6 @@ const
   TEXTURE_SPECIAL_WATER = DWORD(-1);
   TEXTURE_SPECIAL_ACID1 = DWORD(-2);
   TEXTURE_SPECIAL_ACID2 = DWORD(-3);
-  TEXTURE_SPECIAL_NONE = DWORD(-4);
 
 var
   Textures:      array of TLevelTexture;
@@ -201,7 +200,7 @@ begin
 
  if i = 0 then Exit;
 
- g_Game_SetLoadingText('Door Map', i-1);
+ g_Game_SetLoadingText(I_LOAD_DOOR_MAP, i-1);
  for a := 0 to i-1 do
   if PanelArray[a].Active then
   begin
@@ -263,7 +262,7 @@ begin
  SetLength(gLiftMap, len);
  i := 0;
 
- g_Game_SetLoadingText('Lift Map', len-1);
+ g_Game_SetLoadingText(I_LOAD_LIFT_MAP, len-1);
  for a := 0 to len-1 do
   if PanelArray[a].Active then
   begin
@@ -318,78 +317,110 @@ begin
 end;
 
 procedure CreateRenderPanel(var RenderPanel: TRenderPanel; PanelRec: TPanelRec_1;
-                            SecondTextureNum: DWORD);
+                            AddTextures: DWArray; CurTex: Integer);
+var
+  i: Integer;
+
 begin
- with RenderPanel do
- begin
-  X := PanelRec.X;
-  Y := PanelRec.Y;
-  Width := PanelRec.Width;
-  Height := PanelRec.Height;
-  Hide := ByteBool(PanelRec.Flags and PANEL_FLAG_HIDE);
-  Enabled := not (PanelRec.PanelType = PANEL_OPENDOOR);
+  with RenderPanel do
+    begin
+      X := PanelRec.X;
+      Y := PanelRec.Y;
+      Width := PanelRec.Width;
+      Height := PanelRec.Height;
+      Hide := ByteBool(PanelRec.Flags and PANEL_FLAG_HIDE);
+      Enabled := not (PanelRec.PanelType = PANEL_OPENDOOR);
+      SaveIt := False;
+      Alpha := 0;
+      Blending := False;
+      CurTexture := CurTex;
+      SetLength(Texts, 0);
+      SetLength(Anims, 0);
 
-  Animation := nil;
-  Animation2 := nil;
+      if Hide then
+        begin
+          Anim := False;
+          CurTexture := -1;
+          Exit;
+        end;
 
-  if Hide then
-  begin
-   TextureID := 0;
-   TextureID2 := 0;
-   Exit;
-  end;
+    // Если это вода - спецтекстуру:
+      if WordBool(PanelRec.PanelType and (PANEL_WATER or PANEL_ACID1 or PANEL_ACID2)) and
+          not ByteBool(PanelRec.Flags and PANEL_FLAG_WATERTEXTURES) then
+        begin
+          Anim := False;
+          SetLength(Texts, 1);
 
-  if WordBool(PanelRec.PanelType and (PANEL_WATER or PANEL_ACID1 or PANEL_ACID2)) and
-     not ByteBool(PanelRec.Flags and PANEL_FLAG_WATERTEXTURES) then
-  begin
-   case PanelRec.PanelType of
-    PANEL_WATER: TextureID := TEXTURE_SPECIAL_WATER;
-    PANEL_ACID1: TextureID := TEXTURE_SPECIAL_ACID1;
-    PANEL_ACID2: TextureID := TEXTURE_SPECIAL_ACID2;
-   end;
+          case PanelRec.PanelType of
+            PANEL_WATER: Texts[0] := TEXTURE_SPECIAL_WATER;
+            PANEL_ACID1: Texts[0] := TEXTURE_SPECIAL_ACID1;
+            PANEL_ACID2: Texts[0] := TEXTURE_SPECIAL_ACID2;
+          end;
 
-   TextureID2 := TextureID;
-   Exit;
-  end;
+          CurTexture := 0;
+          Exit;
+        end;
 
-  Anim := Textures[PanelRec.TextureNum].Anim;
+      Anim := Textures[PanelRec.TextureNum].Anim;
 
-  if not Anim then
-  begin
-   TextureID := Textures[PanelRec.TextureNum].TextureID;
+      if not Anim then
+        begin // Обычная текстура
+          if Length(AddTextures) > 0 then
+            begin // Есть список текстур
+              Assert(CurTexture >= 0, 'Error: CurTexture < 0');
+              Assert(AddTextures[CurTexture] = PanelRec.TextureNum,
+                'Error: CurTexture <> PanelRec.TextureNum');
+              SetLength(Texts, Length(AddTextures));
+              for i := 0 to High(AddTextures) do
+                Texts[i] := Textures[AddTextures[i]].TextureID;
+              SaveIt := True;
+            end
+          else
+            begin // Только текущая текстура. Не будет изменений
+              SetLength(Texts, 1);
+              CurTexture := 0;
+              Texts[0] := Textures[PanelRec.TextureNum].TextureID;
+            end;
 
-   if SecondTextureNum <> DWORD(-1) then TextureID2 := Textures[SecondTextureNum].TextureID
-    else TextureID2 := TEXTURE_SPECIAL_NONE;//TextureID;
-
-   if not IsSpecialTexture(Textures[PanelRec.TextureNum].TextureName) then
-   begin
-    TextureHeight := Textures[PanelRec.TextureNum].Height;
-    TextureWidth := Textures[PanelRec.TextureNum].Width;
-    Alpha := PanelRec.Alpha;
-    Blending := ByteBool(PanelRec.Flags and PANEL_FLAG_BLENDING);
-   end;
-  end
-   else
-  begin
-   TextureID := 0;
-   TextureID2 := 0;
-
-   Animation := TAnimation.Create(Textures[PanelRec.TextureNum].FramesID,
-                                  True, Textures[PanelRec.TextureNum].Speed);
-   Animation.Blending := ByteBool(PanelRec.Flags and PANEL_FLAG_BLENDING);
-   Animation.Alpha := PanelRec.Alpha;
-   TextureHeight := Textures[PanelRec.TextureNum].Height;
-   TextureWidth := Textures[PanelRec.TextureNum].Width;
-
-   if SecondTextureNum <> DWORD(-1) then
-   begin
-    Animation2 := TAnimation.Create(Textures[SecondTextureNum].FramesID, True,
-                                    Textures[SecondTextureNum].Speed);
-    Animation2.Blending := ByteBool(PanelRec.Flags and PANEL_FLAG_BLENDING);
-    Animation2.Alpha := PanelRec.Alpha;
-   end else Animation2 := nil;
-  end;
- end;
+          if not IsSpecialTexture(Textures[PanelRec.TextureNum].TextureName) then
+            begin
+              TextureWidth := Textures[PanelRec.TextureNum].Width;
+              TextureHeight := Textures[PanelRec.TextureNum].Height;
+              Alpha := PanelRec.Alpha;
+              Blending := ByteBool(PanelRec.Flags and PANEL_FLAG_BLENDING);
+            end;
+        end
+      else
+        begin // Анимированная текстура
+          if Length(AddTextures) > 0 then
+            begin // Есть список текстур
+              Assert(CurTexture >= 0, 'Error: CurTexture < 0');
+              Assert(AddTextures[CurTexture] = PanelRec.TextureNum,
+                'Error: CurTexture <> PanelRec.TextureNum');
+              SetLength(Anims, Length(AddTextures));
+              for i := 0 to High(AddTextures) do
+                begin
+                  Anims[i] := TAnimation.Create(Textures[AddTextures[i]].FramesID,
+                                True, Textures[AddTextures[i]].Speed);
+                  Anims[i].Blending := ByteBool(PanelRec.Flags and PANEL_FLAG_BLENDING);
+                  Anims[i].Alpha := PanelRec.Alpha;
+                end;
+            end
+          else
+            begin // Только текущая текстура. Не будет изменений
+              SetLength(Anims, 1);
+              CurTexture := 0;
+              Anims[0] := TAnimation.Create(Textures[PanelRec.TextureNum].FramesID,
+                            True, Textures[PanelRec.TextureNum].Speed);
+              Anims[0].Blending := ByteBool(PanelRec.Flags and PANEL_FLAG_BLENDING);
+              Anims[0].Alpha := PanelRec.Alpha;
+            end;
+            
+          SaveIt := True;
+          TextureWidth := Textures[PanelRec.TextureNum].Width;
+          TextureHeight := Textures[PanelRec.TextureNum].Height;
+        end;
+    end;
 end;
 
 procedure CreatePanelRect(var Rect: TRectWH; PanelRec: TPanelRec_1);
@@ -403,7 +434,7 @@ begin
  end;
 end;
 
-function CreatePanel(PanelRec: TPanelRec_1; SecondTextureNum: DWORD): Integer;
+function CreatePanel(PanelRec: TPanelRec_1; AddTextures: DWArray; CurTex: Integer): Integer;
 begin
  Result := -1;
 
@@ -414,7 +445,8 @@ begin
    CreatePanelRect(gWalls[High(gWalls)].Rect, PanelRec);
 
    SetLength(gRenderWalls, Length(gRenderWalls)+1);
-   CreateRenderPanel(gRenderWalls[High(gRenderWalls)], PanelRec, SecondTextureNum);
+   CreateRenderPanel(gRenderWalls[High(gRenderWalls)],
+     PanelRec, AddTextures, CurTex);
    with gWalls[High(gWalls)] do
    begin
     Door := False;
@@ -428,7 +460,8 @@ begin
   PANEL_BACK:
   begin
    SetLength(gRenderBackgrounds, Length(gRenderBackgrounds)+1);
-   CreateRenderPanel(gRenderBackgrounds[High(gRenderBackgrounds)], PanelRec, SecondTextureNum);
+   CreateRenderPanel(gRenderBackgrounds[High(gRenderBackgrounds)],
+     PanelRec, AddTextures, CurTex);
    with gRenderBackgrounds[High(gRenderBackgrounds)] do
    begin
     Enabled := True;
@@ -441,7 +474,8 @@ begin
   PANEL_FORE:
   begin
    SetLength(gRenderForegrounds, Length(gRenderForegrounds)+1);
-   CreateRenderPanel(gRenderForegrounds[High(gRenderForegrounds)], PanelRec, SecondTextureNum);
+   CreateRenderPanel(gRenderForegrounds[High(gRenderForegrounds)],
+     PanelRec, AddTextures, CurTex);
    with gRenderForegrounds[High(gRenderForegrounds)] do
    begin
     Enabled := True;
@@ -457,7 +491,7 @@ begin
    CreatePanelRect(gWalls[High(gWalls)].Rect, PanelRec);
 
    SetLength(gRenderWalls, Length(gRenderWalls)+1);
-   CreateRenderPanel(gRenderWalls[High(gRenderWalls)], PanelRec, DWORD(-1));
+   CreateRenderPanel(gRenderWalls[High(gRenderWalls)], PanelRec, nil, -1);
    with gWalls[High(gWalls)] do
    begin
     Door := True;
@@ -474,7 +508,7 @@ begin
    CreatePanelRect(gWater[High(gWater)], PanelRec);
 
    SetLength(RenderWater, Length(RenderWater)+1);
-   CreateRenderPanel(RenderWater[High(RenderWater)], PanelRec, DWORD(-1));
+   CreateRenderPanel(RenderWater[High(RenderWater)], PanelRec, nil, -1);
    RenderWater[High(RenderWater)].WallID := High(gWater);
 
    Result := High(RenderWater);
@@ -486,7 +520,7 @@ begin
    CreatePanelRect(gAcid1[High(gAcid1)], PanelRec);
 
    SetLength(RenderAcid1, Length(RenderAcid1)+1);
-   CreateRenderPanel(RenderAcid1[High(RenderAcid1)], PanelRec, DWORD(-1));
+   CreateRenderPanel(RenderAcid1[High(RenderAcid1)], PanelRec, nil, -1);
    RenderAcid1[High(RenderAcid1)].WallID := High(gAcid1);
 
    Result := High(RenderAcid1);
@@ -498,7 +532,7 @@ begin
    CreatePanelRect(gAcid2[High(gAcid2)], PanelRec);
 
    SetLength(RenderAcid2, Length(RenderAcid2)+1);
-   CreateRenderPanel(RenderAcid2[High(RenderAcid2)], PanelRec, DWORD(-1));
+   CreateRenderPanel(RenderAcid2[High(RenderAcid2)], PanelRec, nil, -1);
    RenderAcid2[High(RenderAcid2)].WallID := High(gAcid2);
 
    Result := High(RenderAcid2);
@@ -510,7 +544,7 @@ begin
    CreatePanelRect(gSteps[High(gSteps)], PanelRec);
 
    SetLength(RenderSteps, Length(RenderSteps)+1);
-   CreateRenderPanel(RenderSteps[High(RenderSteps)], PanelRec, DWORD(-1));
+   CreateRenderPanel(RenderSteps[High(RenderSteps)], PanelRec, nil, -1);
    with RenderSteps[High(RenderSteps)] do
    begin
     Enabled := True;
@@ -538,7 +572,7 @@ begin
  end;
 end;
 
-function CreateTexture(Rec: TTextureRec_1; Map: string): Boolean;
+function CreateTexture(RecName: String; Map: string): Boolean;
 var
   WAD: TWADEditor_1;
   TextureData: Pointer;
@@ -551,24 +585,21 @@ begin
 
  if Textures <> nil then
   for a := 0 to High(Textures) do
-   if Textures[a].TextureName = Rec.Resource then
+   if Textures[a].TextureName = RecName then
    begin
-    SetLength(Textures, Length(Textures)+1);
-    Textures[High(Textures)] := Textures[a];
-
     Result := True;
     Exit;
    end;
 
- if (Rec.Resource = TEXTURE_NAME_WATER) or
-    (Rec.Resource = TEXTURE_NAME_ACID1) or
-    (Rec.Resource = TEXTURE_NAME_ACID2) then
+ if (RecName = TEXTURE_NAME_WATER) or
+    (RecName = TEXTURE_NAME_ACID1) or
+    (RecName = TEXTURE_NAME_ACID2) then
  begin
   SetLength(Textures, Length(Textures)+1);
 
   with Textures[High(Textures)] do
   begin
-   TextureName := Rec.Resource;
+   TextureName := RecName;
    
    if TextureName = TEXTURE_NAME_WATER then TextureID := TEXTURE_SPECIAL_WATER
    else if TextureName = TEXTURE_NAME_ACID1 then TextureID := TEXTURE_SPECIAL_ACID1
@@ -581,7 +612,7 @@ begin
   Exit;
  end;
 
- g_ProcessResourceStr(Rec.Resource, WADName, SectionName, TextureName);
+ g_ProcessResourceStr(RecName, WADName, SectionName, TextureName);
 
  WAD := TWADEditor_1.Create;
 
@@ -597,20 +628,20 @@ begin
                    @Textures[High(Textures)].Width,
                    @Textures[High(Textures)].Height);
   FreeMem(TextureData);
-  Textures[High(Textures)].TextureName := Rec.Resource;
+  Textures[High(Textures)].TextureName := RecName;
   Textures[High(Textures)].Anim := False;
 
   Result := True;
  end
   else
  begin
-  e_WriteLog(Format('Error loading texture %s', [Rec.Resource]), MSG_WARNING);
+  e_WriteLog(Format('Error loading texture %s', [RecName]), MSG_WARNING);
   e_WriteLog(Format('WAD Reader error: %s', [WAD.GetLastErrorStr]), MSG_WARNING);
  end;
  WAD.Destroy;
 end;
 
-function CreateAnimTexture(Rec: TTextureRec_1; Map: string): Boolean;
+function CreateAnimTexture(RecName: String; Map: string): Boolean;
 var
   WAD: TWADEditor_1;
   TextureWAD: Pointer;
@@ -628,7 +659,7 @@ var
 begin
  Result := False;
 
- g_ProcessResourceStr(Rec.Resource, WADName, SectionName, TextureName);
+ g_ProcessResourceStr(RecName, WADName, SectionName, TextureName);
 
  WAD := TWADEditor_1.Create;
 
@@ -637,7 +668,7 @@ begin
  WAD.ReadFile(WADName);
  if not WAD.GetResource(SectionName, TextureName, TextureWAD, ResLength) then
  begin
-  e_WriteLog(Format('Error loading animation texture %s', [Rec.Resource]), MSG_WARNING);
+  e_WriteLog(Format('Error loading animation texture %s', [RecName]), MSG_WARNING);
   e_WriteLog(Format('WAD Reader error: %s', [WAD.GetLastErrorStr]), MSG_WARNING);
   WAD.Destroy;
   Exit;
@@ -694,15 +725,15 @@ begin
   if g_Frames_CreateMemory(@FramesID, '', TextureData, _width, _height, _framecount,
                            _backanimation) then
   begin
-   TextureName := Rec.Resource;
+   TextureName := RecName;
    Width := _width;
    Height := _height;
    Anim := True;
    Speed := _speed;
-   TextureName := Rec.Resource;
+   TextureName := RecName;
 
    Result := True;
-  end else e_WriteLog(Format('Error loading animation texture %s', [Rec.Resource]), MSG_WARNING);
+  end else e_WriteLog(Format('Error loading animation texture %s', [RecName]), MSG_WARNING);
  end;
 
  FreeMem(TextureWAD);
@@ -858,9 +889,10 @@ var
   monsters: TMonsterRec1Array;
   areas: TAreasRec1Array;
   triggers: TTriggersRec2Array;
-  a, b, c: Integer;
+  a, b, c, k: Integer;
   d: Single;
-  PanelID, SecondTextureID: DWORD;
+  PanelID: DWORD;
+  AddTextures: DWArray;
   texture: TTextureRec_1;
   TriggersTable: array of record
                            TexturePanel: Integer;
@@ -868,278 +900,363 @@ var
                            DoorPanel: Integer;
                           end;
   FileName, SectionName, ResName,
-  FileName2, s: string;
+  FileName2, s, TexName: String;
   Data: Pointer;
   Len: Integer;
   ok: Boolean;
+  NumChar, NumTex, CurTex: Integer;
+  
 begin
- Result := False;
- gMapInfo.Map := Res;
+  Result := False;
+  gMapInfo.Map := Res;
 
- g_Game_SetLoadingText('WAD File', 0);
+// Загрузка WAD:
+  g_Game_SetLoadingText(I_LOAD_WAD_FILE, 0);
+  g_ProcessResourceStr(Res, FileName, SectionName, ResName);
 
- g_ProcessResourceStr(Res, FileName, SectionName, ResName);
-
- WAD := TWADEditor_1.Create;
- if not WAD.ReadFile(FileName) then
- begin
-  g_Console_Add('! ошибка чтения WAD карты');
-  WAD.Destroy;
-  Exit;
- end;
-
- if not WAD.GetResource('', ResName, Data, Len) then
- begin
-  g_Console_Add('! ошибка чтения карты из WAD');
-  WAD.Destroy;
-  Exit;
- end;
-
- WAD.Destroy;
-
- g_Game_SetLoadingText('MAP Resource', 0);
- MapReader := TMapReader_2.Create;
- MapReader.LoadMap(Data);
-
- g_Game_SetLoadingText('Textures', 0);
- _textures := MapReader.GetTextures();
- if _textures <> nil then
- begin
-  g_Game_SetLoadingText('Textures', High(_textures));
-  for a := 0 to High(_textures) do
-  begin
-   if ByteBool(_textures[a].Anim) then
-    if not CreateAnimTexture(_textures[a], FileName) then
+  WAD := TWADEditor_1.Create;
+  if not WAD.ReadFile(FileName) then
     begin
-     SetLength(s, 64);
-     CopyMemory(@s[1], @_textures[a].Resource[0], 64);
-     g_Console_Add(Format('! ошибка создания анимированной текстуры %s', [s]));
-     MapReader.Destroy;
-     Exit;
+      g_Console_Add('! ошибка чтения WAD карты');
+      WAD.Destroy;
+      Exit;
     end;
-
-   if not ByteBool(_textures[a].Anim) then
-    if not CreateTexture(_textures[a], FileName) then
+  if not WAD.GetResource('', ResName, Data, Len) then
     begin
-     SetLength(s, 64);
-     CopyMemory(@s[1], @_textures[a].Resource[0], 64);
-     g_Console_Add(Format('! ошибка создания текстуры %s', [s]));
-     MapReader.Destroy;
-     Exit;
+      g_Console_Add('! ошибка чтения карты из WAD');
+      WAD.Destroy;
+      Exit;
     end;
-    
-   g_Game_StepLoading();
-  end;
- end;
+  WAD.Destroy;
 
- g_Game_SetLoadingText('Triggers', 0);
- triggers := MapReader.GetTriggers;
- 
- g_Game_SetLoadingText('Panels', 0);
- panels := MapReader.GetPanels;
+// Загрузка карты:
+  g_Game_SetLoadingText(I_LOAD_MAP, 0);
+  MapReader := TMapReader_2.Create;
+  MapReader.LoadMap(Data);
 
- if triggers <> nil then
- begin
-  SetLength(TriggersTable, Length(triggers));
+// Загрузка текстур:
+  g_Game_SetLoadingText(I_LOAD_TEXTURES, 0);
+  _textures := MapReader.GetTextures();
 
-  g_Game_SetLoadingText('TriggersTable', High(TriggersTable));
-  for a := 0 to High(TriggersTable) do
-  begin
-   TriggersTable[a].TexturePanel := triggers[a].TexturePanel;
-
-   if triggers[a].TriggerType in [TRIGGER_LIFTUP, TRIGGER_LIFTDOWN, TRIGGER_LIFT] then
-    TriggersTable[a].LiftPanel := TTriggerData(triggers[a].DATA).PanelID
-     else TriggersTable[a].LiftPanel := -1;
-
-   if triggers[a].TriggerType in [TRIGGER_OPENDOOR, TRIGGER_CLOSEDOOR, TRIGGER_DOOR,
-                                  TRIGGER_DOOR5, TRIGGER_CLOSETRAP, TRIGGER_TRAP,
-                                  TRIGGER_PRESS] then
-    TriggersTable[a].DoorPanel := TTriggerData(triggers[a].DATA).PanelID
-     else TriggersTable[a].DoorPanel := -1;
-
-   g_Game_StepLoading();
-  end;
- end;
-
- if panels <> nil then
- begin
-  g_Game_SetLoadingText('Triggers for Panels', High(panels));
-  for a := 0 to High(panels) do
-  begin
-   SecondTextureID := DWORD(-1);
-
-   // Смотрим, ссылаются ли на эту панель триггеры. Если да - то надо создать еще одну текстуру.
-   if (triggers <> nil) and (_textures <> nil) then
-    for b := 0 to High(triggers) do
-     if triggers[b].TexturePanel = a then
-     begin
-      texture := _textures[panels[a].TextureNum];
-
-      for c := 0 to High(texture.Resource)-1 do
-       if texture.Resource[c+1] = #0 then
-       begin
-        if texture.Resource[c] = '0' then texture.Resource[c] := '1'
-         else texture.Resource[c] := '0';
-        Break;
-       end;
-
-      if ByteBool(texture.Anim) then ok := CreateAnimTexture(texture, FileName)
-       else ok := CreateTexture(texture, FileName);
-
-      if ok then
-      begin
-       for c := 0 to High(Textures) do
-        if Textures[c].TextureName = texture.Resource then
+// Добавление текстур в Textures[]:
+  if _textures <> nil then
+    begin
+      g_Game_SetLoadingText(I_LOAD_TEXTURES, High(_textures));
+      for a := 0 to High(_textures) do
         begin
-         SecondTextureID := c;
-         Break;
+        // Анимированная текстура:
+          if ByteBool(_textures[a].Anim) then
+            if not CreateAnimTexture(_textures[a].Resource, FileName) then
+              begin
+                SetLength(s, 64);
+                CopyMemory(@s[1], @_textures[a].Resource[0], 64);
+                g_Console_Add(Format('! ошибка создания анимированной текстуры %s', [s]));
+                MapReader.Destroy;
+                Exit;
+              end;
+        // Обычная текстура:
+          if not ByteBool(_textures[a].Anim) then
+            if not CreateTexture(_textures[a].Resource, FileName) then
+              begin
+                SetLength(s, 64);
+                CopyMemory(@s[1], @_textures[a].Resource[0], 64);
+                g_Console_Add(Format('! ошибка создания текстуры %s', [s]));
+                MapReader.Destroy;
+                Exit;
+              end;
+
+          g_Game_StepLoading();
         end;
-      end
-       else
+    end;
+
+// Загрузка триггеров:
+  g_Game_SetLoadingText(I_LOAD_TRIGGERS, 0);
+  triggers := MapReader.GetTriggers;
+
+// Загрузка панелей:
+  g_Game_SetLoadingText(I_LOAD_PANELS, 0);
+  panels := MapReader.GetPanels;
+
+// Создание таблицы триггеров (соответствие панелей триггерам):
+  if triggers <> nil then
+    begin
+      SetLength(TriggersTable, Length(triggers));
+      g_Game_SetLoadingText(I_LOAD_TRIGGERS_TABLE, High(TriggersTable));
+      for a := 0 to High(TriggersTable) do
+        begin
+        // Смена текстуры (возможно, кнопки):
+          TriggersTable[a].TexturePanel := triggers[a].TexturePanel;
+        // Лифты:
+          if triggers[a].TriggerType in [TRIGGER_LIFTUP, TRIGGER_LIFTDOWN, TRIGGER_LIFT] then
+            TriggersTable[a].LiftPanel := TTriggerData(triggers[a].DATA).PanelID
+          else
+            TriggersTable[a].LiftPanel := -1;
+        // Двери:
+          if triggers[a].TriggerType in [TRIGGER_OPENDOOR,
+              TRIGGER_CLOSEDOOR, TRIGGER_DOOR, TRIGGER_DOOR5,
+              TRIGGER_CLOSETRAP, TRIGGER_TRAP, TRIGGER_PRESS] then
+            TriggersTable[a].DoorPanel := TTriggerData(triggers[a].DATA).PanelID
+          else
+            TriggersTable[a].DoorPanel := -1;
+
+          g_Game_StepLoading();
+        end;
+    end;
+
+// Создаем панели:
+  if panels <> nil then
+    begin
+      g_Game_SetLoadingText(I_LOAD_LINK_TRIGGERS, High(panels));
+      for a := 0 to High(panels) do
+        begin
+          SetLength(AddTextures, 0);
+          CurTex := -1;
+        // Смотрим, ссылаются ли на эту панель триггеры.
+        // Если да - то надо создать еще текстур:
+          ok := False;
+          if (triggers <> nil) and (_textures <> nil) then
+            for b := 0 to High(triggers) do
+              if triggers[b].TexturePanel = a then
+                begin
+                  ok := True;
+                  Break;
+                end;
+
+          if ok then
+            begin
+              texture := _textures[panels[a].TextureNum];
+              NumChar := -1;
+              SetLength(s, 64);
+              CopyMemory(@s[1], @texture.Resource[0], 64);
+            // Измеряем длину:
+              Len := Length(s);
+              for c := Length(s) downto 1 do
+                if s[c] <> #0 then
+                  begin
+                    Len := c;      
+                    Break;
+                  end;
+              SetLength(s, Len);
+            // Определяем наличие и положение цифр в конце строки:
+              for c := Len downto 1 do
+                if not (s[c] in ['0'..'9']) then
+                  begin
+                    NumChar := c+1;
+                    Break;
+                  end;
+              ok := True;
+              if (NumChar = -1) or (NumChar > Len) then
+                ok := False
+              else
+                ok := TryStrToInt(Copy(s, NumChar, Len-NumChar+1), NumTex);
+            // Если ok, значит есть цифры в конце.
+            // Загружаем текстуры с остальными #:
+              if ok then
+                begin
+                  Delete(s, NumChar, Len-NumChar+1);
+                  k := 0;
+                  ok := True;
+                // Цикл по изменению имени текстуры:
+                  while ok or (k <= NumTex) do
+                    begin
+                      if k <> NumTex then
+                        begin
+                        // Пробуем добавить новую текстуру:
+                          TexName := s + IntToStr(k);
+                          if ByteBool(texture.Anim) then
+                            ok := CreateAnimTexture(TexName, FileName)
+                          else
+                            ok := CreateTexture(TexName, FileName);
+                        // Она существует. Заносим ее ID в список панели:
+                          if ok then
+                            begin
+                              for c := 0 to High(Textures) do
+                                if Textures[c].TextureName = TexName then
+                                  begin
+                                    SetLength(AddTextures, Length(AddTextures)+1);
+                                    AddTextures[High(AddTextures)] := c;
+                                    Break;
+                                  end;
+                            end;
+                        end
+                      else // k = NumTex
+                        begin
+                        // Заносим текущую текстуру на свое место:
+                          SetLength(AddTextures, Length(AddTextures)+1);
+                          AddTextures[High(AddTextures)] := panels[a].TextureNum;
+                          CurTex := High(AddTextures);
+                        end;
+
+                      Inc(k);
+                    end; // while ok or (k <= NumTex)
+                end; // if ok - есть смежные текстуры
+            end; // if ok - ссылаются триггеры
+
+        // Создаем панель и запоминаем ее номер:
+          PanelID := CreatePanel(panels[a], AddTextures, CurTex);
+
+        // Если используется в триггерах дверей/лифтов, то ставим точный ID:
+          if triggers <> nil then
+            for b := 0 to High(triggers) do
+              if (triggers[b].TriggerType in [TRIGGER_OPENDOOR,
+                  TRIGGER_CLOSEDOOR, TRIGGER_DOOR, TRIGGER_DOOR5,
+                  TRIGGER_CLOSETRAP, TRIGGER_TRAP, TRIGGER_LIFTUP,
+                  TRIGGER_LIFTDOWN, TRIGGER_LIFT]) and
+                  (TTriggerData(triggers[b].DATA).PanelID = a) then
+                TTriggerData(triggers[b].DATA).PanelID := PanelID;
+
+        // Если используется в триггерах, то ставим точный ID:
+          for b := 0 to High(triggers) do
+            if triggers[b].TexturePanel = a then
+              triggers[b].TexturePanel := PanelID;
+
+          g_Game_StepLoading();
+        end;
+    end;
+
+// Если не LoadState, то создаем триггеры:
+  if (triggers <> nil) and not gLoadGameMode then
+    begin
+      g_Game_SetLoadingText(I_LOAD_CREATE_TRIGGERS, 0);
+    // Указываем тип панели, если есть:
+      for a := 0 to High(triggers) do
+        begin
+          if triggers[a].TexturePanel <> -1 then
+            b := panels[TriggersTable[a].TexturePanel].PanelType
+          else
+            b := 0;
+          CreateTrigger(triggers[a], b);
+        end;
+    end;
+
+// Загрузка предметов:
+  g_Game_SetLoadingText(I_LOAD_ITEMS, 0);
+  items := MapReader.GetItems();
+
+// Если не LoadState, то создаем предметы:
+  if (items <> nil) and not gLoadGameMode then
+    begin
+      g_Game_SetLoadingText(I_LOAD_CREATE_ITEMS, 0);
+      for a := 0 to High(items) do
+        CreateItem(Items[a]);
+    end;
+
+// Загрузка областей:
+  g_Game_SetLoadingText(I_LOAD_AREAS, 0);
+  areas := MapReader.GetAreas();
+
+// Если не LoadState, то создаем области:
+  if areas <> nil then
+    begin
+      g_Game_SetLoadingText(I_LOAD_CREATE_AREAS, 0);
+      for a := 0 to High(areas) do
+        CreateArea(areas[a]);
+    end;
+
+// Загрузка монстров:
+  g_Game_SetLoadingText(I_LOAD_MONSTERS, 0);
+  monsters := MapReader.GetMonsters();
+
+// Если не LoadState, то создаем монстров:
+  if (monsters <> nil) and not gLoadGameMode then
+    begin
+      g_Game_SetLoadingText(I_LOAD_CREATE_MONSTERS, 0);
+      for a := 0 to High(monsters) do
+        CreateMonster(monsters[a]);
+    end;
+
+// Загрузка описания карты:
+  g_Game_SetLoadingText(I_LOAD_MAP_HEADER, 0);
+  Header := MapReader.GetMapHeader();
+
+  MapReader.Destroy;
+
+  with gMapInfo do
+    begin
+      Name := Header.MapName;
+      Description := Header.MapDescription;
+      Author := Header.MapAuthor;
+      MusicName := Header.MusicName;
+      SkyName := Header.SkyName;
+      Height := Header.Height;
+      Width := Header.Width;
+    end;
+
+// Загрузка неба:
+  if gMapInfo.SkyName <> '' then
+  begin
+    g_Game_SetLoadingText(I_LOAD_SKY, 0);
+    g_ProcessResourceStr(gMapInfo.SkyName, FileName, SectionName, ResName);
+  
+    if FileName <> '' then
+      FileName := GameDir+'\wads\'+FileName
+    else
       begin
-       //SetLength(s, 64);
-       //CopyMemory(@s[1], @texture.Resource[0], 64);
-       //g_Console_Add(Format('! ошибка создания текстуры кнопки %s', [s]));
-       //triggers[b].TexturePanel := -1;
+        g_ProcessResourceStr(Res, @FileName2, nil, nil);
+        FileName := FileName2;
       end;
 
-      Break;
-     end;
+    s := FileName+':'+SectionName+'\'+ResName;
+    if g_Texture_CreateWAD(BackID, s) then
+      begin
+        d := SKY_STRETCH;
 
-   // Создаем панель и запоминаем ее номер
-   PanelID := CreatePanel(panels[a], SecondTextureID);
+        if (gScreenWidth*d > gMapInfo.Width) or
+            (gScreenHeight*d > gMapInfo.Height) then
+          d := 1;
 
-   if triggers <> nil then
-   for b := 0 to High(triggers) do
-    if (triggers[b].TriggerType in [TRIGGER_OPENDOOR, TRIGGER_CLOSEDOOR, TRIGGER_DOOR,
-                                    TRIGGER_DOOR5, TRIGGER_CLOSETRAP, TRIGGER_TRAP,
-                                    TRIGGER_LIFTUP, TRIGGER_LIFTDOWN, TRIGGER_LIFT]) and
-       (TTriggerData(triggers[b].DATA).PanelID = a) then
-     TTriggerData(triggers[b].DATA).PanelID := PanelID;
-
-   //Если на панель ссылаются триггеры - надо поставить у них TexturePanel
-   for b := 0 to High(triggers) do
-    if triggers[b].TexturePanel = a then
-     triggers[b].TexturePanel := PanelID;
-
-   g_Game_StepLoading();
-  end;
- end;
-
- if (triggers <> nil) and not gLoadGameMode then
- begin
-  g_Game_SetLoadingText('Create Triggers', 0);
-  for a := 0 to High(triggers) do
-  begin
-   if triggers[a].TexturePanel <> -1 then b := panels[TriggersTable[a].TexturePanel].PanelType
-    else b := 0;
-
-   CreateTrigger(triggers[a], b);
-  end;
- end;
-
- g_Game_SetLoadingText('Items', 0);
- items := MapReader.GetItems();
- 
- if (items <> nil) and not gLoadGameMode then
- begin
-  g_Game_SetLoadingText('Create Items', 0);
-  for a := 0 to High(items) do
-   CreateItem(Items[a]);
- end;
-
- g_Game_SetLoadingText('Areas', 0);
- areas := MapReader.GetAreas();
- 
- if areas <> nil then
- begin
-  g_Game_SetLoadingText('Create Areas', 0);
-  for a := 0 to High(areas) do
-   CreateArea(areas[a]);
- end;
-
- g_Game_SetLoadingText('Monsters', 0);
- monsters := MapReader.GetMonsters();
- if (monsters <> nil) and not gLoadGameMode then
- begin
-  g_Game_SetLoadingText('Create Monsters', 0);
-  for a := 0 to High(monsters) do
-   CreateMonster(monsters[a]);
- end;
-
- g_Game_SetLoadingText('Map Header', 0);
- Header := MapReader.GetMapHeader();
-
- MapReader.Destroy;
-
- with gMapInfo do
- begin
-  Name := Header.MapName;
-  Description := Header.MapDescription;
-  Author := Header.MapAuthor;
-  MusicName := Header.MusicName;
-  SkyName := Header.SkyName;
-  Height := Header.Height;
-  Width := Header.Width;
- end;
-
- if gMapInfo.SkyName <> '' then
- begin
-  g_Game_SetLoadingText('Sky', 0);
-  g_ProcessResourceStr(gMapInfo.SkyName, FileName, SectionName, ResName);
-  
-  if FileName <> '' then FileName := GameDir+'\wads\'+FileName
-   else
-  begin
-   g_ProcessResourceStr(Res, @FileName2, nil, nil);
-   FileName := FileName2;
+        gBackSize.X := Round(gScreenWidth*d);
+        gBackSize.Y := Round(gScreenHeight*d);
+      end
+    else
+      g_Console_Add(Format('! ошибка загрузки неба %s', [s]));
   end;
 
-  s := FileName+':'+SectionName+'\'+ResName;
-  if g_Texture_CreateWAD(BackID, s) then
-  begin
-   d := SKY_STRETCH;
+// Загрузка музыки:
+  ok := False;
+  if gMapInfo.MusicName <> '' then
+    begin
+      g_Game_SetLoadingText(I_LOAD_MUSIC, 0);
+      g_ProcessResourceStr(gMapInfo.MusicName, FileName, SectionName, ResName);
 
-   if (gScreenWidth*d > gMapInfo.Width) or (gScreenHeight*d > gMapInfo.Height) then d := 1;
+      if FileName <> '' then
+        FileName := GameDir+'\wads\'+FileName
+      else
+        begin
+          g_ProcessResourceStr(Res, @FileName2, nil, nil);
+          FileName := FileName2;
+        end;
 
-   gBackSize.X := Round(gScreenWidth*d);
-   gBackSize.Y := Round(gScreenHeight*d);
-  end else g_Console_Add(Format('! ошибка загрузки неба %s', [s]));
- end;
+      s := FileName+':'+SectionName+'\'+ResName;
+      if g_Music_CreateWADEx(gMapInfo.MusicName, s) then
+        ok := True
+      else
+        g_Console_Add(Format('! Error loading music %s', [s]));
+    end;
 
- if gMapInfo.MusicName <> '' then
- begin
-  g_Game_SetLoadingText('Music', 0);
-  g_ProcessResourceStr(gMapInfo.MusicName, FileName, SectionName, ResName);
-  
-  if FileName <> '' then FileName := GameDir+'\wads\'+FileName
-   else
-  begin
-   g_ProcessResourceStr(Res, @FileName2, nil, nil);
-   FileName := FileName2;
-  end;
+// Остальные устанвки:
+  CreateDoorMap();
+  CreateLiftMap();
 
-  s := FileName+':'+SectionName+'\'+ResName;
-  if g_Music_CreateWADEx(gMapInfo.MusicName, s) then g_Game_PlayMusic(gMapInfo.MusicName)
-   else g_Console_Add(Format('! ошибка загрузки музыки %s', [s]));
- end;
+  g_Items_Init();
+  g_GFX_Init();
+  g_Weapon_Init();
+  g_Monsters_Init();
 
- CreateDoorMap();
- CreateLiftMap();                                    
+// Сброс локальных массивов:
+  _textures := nil;
+  panels := nil;
+  items := nil;
+  areas := nil;
+  triggers := nil;
+  TriggersTable := nil;
+  AddTextures := nil;
 
- g_Items_Init();
- g_GFX_Init();
- g_Weapon_Init();
- g_Monsters_Init();
+// Включаем музыку, если это не загрузка:
+  if ok and (not gLoadGameMode) then
+    g_Game_PlayMusic(gMapInfo.MusicName);
 
- _textures := nil;
- panels := nil;
- items := nil;
- areas := nil;
- triggers := nil;
- TriggersTable := nil;
-
- Result := True;
+  Result := True;
 end;
 
 function g_Map_GetMapInfo(Res: string): TMapInfo;
@@ -1256,6 +1373,19 @@ end;
 procedure g_Map_Free();
 var
   a: Integer;
+
+  procedure Free_RenderPanel(var RP: TRenderPanel);
+  var
+    i: Integer;
+  begin
+    if RP.Anim then
+      for i := 0 to High(RP.Anims) do
+        if (RP.Anims[i] <> nil) then
+          RP.Anims[i].Destroy;
+    SetLength(RP.Texts, 0);
+    SetLength(RP.Anims, 0);
+  end;
+
 begin
  g_GFX_Free();
  g_Weapon_Free();
@@ -1296,62 +1426,53 @@ begin
  end;
 
  if gRenderWalls <> nil then
- begin
-  for a := 0 to High(gRenderWalls) do
-   if gRenderWalls[a].Anim and (gRenderWalls[a].Animation <> nil) then
-    gRenderWalls[a].Animation.Destroy;
-  gRenderWalls := nil;
- end;
+   begin
+     for a := 0 to High(gRenderWalls) do
+       Free_RenderPanel(gRenderWalls[a]);
+     gRenderWalls := nil;
+   end;
 
  if gRenderBackgrounds <> nil then
- begin
-  for a := 0 to High(gRenderBackgrounds) do
-   if gRenderBackgrounds[a].Anim and (gRenderBackgrounds[a].Animation <> nil) then
-    gRenderBackgrounds[a].Animation.Destroy;
-
-  gRenderBackgrounds := nil;
- end;
+   begin
+     for a := 0 to High(gRenderBackgrounds) do
+       Free_RenderPanel(gRenderBackgrounds[a]);
+     gRenderBackgrounds := nil;
+   end;
 
  if gRenderForegrounds <> nil then
- begin
-  for a := 0 to High(gRenderForegrounds) do
-   if gRenderForegrounds[a].Anim and (gRenderForegrounds[a].Animation <> nil) then
-    gRenderForegrounds[a].Animation.Destroy;
-  gRenderForegrounds := nil;
- end;
+   begin
+     for a := 0 to High(gRenderForegrounds) do
+       Free_RenderPanel(gRenderForegrounds[a]);
+     gRenderForegrounds := nil;
+   end;
 
  if RenderSteps <> nil then
- begin
-  for a := 0 to High(RenderSteps) do
-   if RenderSteps[a].Anim and (RenderSteps[a].Animation <> nil) then
-    RenderSteps[a].Animation.Destroy;
-  RenderSteps := nil;
- end;
+   begin
+     for a := 0 to High(RenderSteps) do
+       Free_RenderPanel(RenderSteps[a]);
+     RenderSteps := nil;
+   end;
 
  if RenderWater <> nil then
- begin
-  for a := 0 to High(RenderWater) do
-   if RenderWater[a].Anim and (RenderWater[a].Animation <> nil) then
-    RenderWater[a].Animation.Destroy;
-  RenderWater := nil;
- end;
+   begin
+     for a := 0 to High(RenderWater) do
+       Free_RenderPanel(RenderWater[a]);
+     RenderWater := nil;
+   end;
 
  if RenderAcid1 <> nil then
- begin
-  for a := 0 to High(RenderAcid1) do
-   if RenderAcid1[a].Anim and (RenderAcid1[a].Animation <> nil) then
-    RenderAcid1[a].Animation.Destroy;
-  RenderAcid1 := nil;
- end;
+   begin
+     for a := 0 to High(RenderAcid1) do
+       Free_RenderPanel(RenderAcid1[a]);
+     RenderAcid1 := nil;
+   end;
 
  if RenderAcid2 <> nil then
- begin
-  for a := 0 to High(RenderAcid2) do
-   if RenderAcid2[a].Anim and (RenderAcid2[a].Animation <> nil) then
-    RenderAcid2[a].Animation.Destroy;
-  RenderAcid2 := nil;
- end;
-
+   begin
+     for a := 0 to High(RenderAcid2) do
+       Free_RenderPanel(RenderAcid2[a]);
+     RenderAcid2 := nil;
+   end;
 
  if BackID <> DWORD(-1) then
  begin
@@ -1383,22 +1504,30 @@ begin
  if gRenderWalls <> nil then
   for a := 0 to High(gRenderWalls) do
    with gRenderWalls[a] do
-    if (not Hide) and (Width > 0) and (Alpha < 255) and Anim then Animation.Update;
+    if (not Hide) and (Width > 0) and (Alpha < 255) and
+        Anim and (CurTexture >= 0) then
+      Anims[CurTexture].Update;
 
  if gRenderBackgrounds <> nil then
   for a := 0 to High(gRenderBackgrounds) do
    with gRenderBackgrounds[a] do
-    if (not Hide) and (Width > 0) and (Alpha < 255) and Anim then Animation.Update;
+    if (not Hide) and (Width > 0) and (Alpha < 255) and
+        Anim and (CurTexture >= 0) then
+      Anims[CurTexture].Update;
 
  if gRenderForegrounds <> nil then
   for a := 0 to High(gRenderForegrounds) do
    with gRenderForegrounds[a] do
-    if (not Hide) and (Width > 0) and (Alpha < 255) and Anim then Animation.Update;
+    if (not Hide) and (Width > 0) and (Alpha < 255) and
+        Anim and (CurTexture >= 0) then
+      Anims[CurTexture].Update;
 
  if RenderSteps <> nil then
   for a := 0 to High(RenderSteps) do
    with RenderSteps[a] do
-    if (not Hide) and (Width > 0) and (Alpha < 255) and Anim then Animation.Update;
+    if (not Hide) and (Width > 0) and (Alpha < 255) and
+        Anim and (CurTexture >= 0) then
+      Anims[CurTexture].Update;
 
  if gGameSettings.GameMode = GM_CTF then
  begin
@@ -1442,12 +1571,11 @@ procedure DrawTexture(rpanel: PRenderPanel);
 begin
  with rpanel^ do
  begin
-  case TextureID of
+  case Texts[CurTexture] of
    TEXTURE_SPECIAL_WATER: e_DrawFillQuad(X, Y, X+Width, Y+Height, 0, 0, 255, 0, B_FILTER);
    TEXTURE_SPECIAL_ACID1: e_DrawFillQuad(X, Y, X+Width, Y+Height, 0, 128, 0, 0, B_FILTER);
    TEXTURE_SPECIAL_ACID2: e_DrawFillQuad(X, Y, X+Width, Y+Height, 128, 0, 0, 0, B_FILTER);
-   TEXTURE_SPECIAL_NONE: ;
-   else e_DrawFill(TextureID, X, Y, Width div TextureWidth, Height div TextureHeight,
+   else e_DrawFill(Texts[CurTexture], X, Y, Width div TextureWidth, Height div TextureHeight,
                    Alpha, True, Blending);
   end;
  end;
@@ -1459,11 +1587,11 @@ var
 begin
  with rpanel^ do
  begin
-  if Animation = nil then Exit;
+  if Anims[CurTexture] = nil then Exit;
   
   for xx := 0 to (Width div TextureWidth)-1 do
    for yy := 0 to (Height div TextureHeight)-1 do
-    Animation.Draw(X+xx*TextureWidth, Y+yy*TextureHeight, M_NONE);
+    Anims[CurTexture].Draw(X+xx*TextureWidth, Y+yy*TextureHeight, M_NONE);
  end;
 end;
 
@@ -1477,7 +1605,8 @@ begin
 
  for a := 0 to h do
   with panels[a] do
-   if Enabled and ((not door) or (gWalls[a].Door)) and
+   if Enabled and (CurTexture >= 0) and
+      ((not door) or (gWalls[a].Door)) and
       g_Collide(X, Y, Width, Height, sX, sY, sWidth, sHeight) and
       (not Hide) and (Width > 0) and (Alpha < 255) then
     if Anim then DrawAnim(@panels[a]) else DrawTexture(@panels[a]);
@@ -1636,46 +1765,65 @@ var
   a: DWORD;
   tp: ^TRenderPanel;
   b: TAnimation;
-begin
- case PanelType of
-  PANEL_WALL: tp := @gRenderWalls[ID];
-  PANEL_FORE: tp := @gRenderForegrounds[ID];
-  PANEL_BACK: tp := @gRenderBackgrounds[ID];
-  else Exit;
- end;
 
- if tp^.Anim then
- begin
-  if (tp^.Animation = nil) then
-    Exit;
-  if (tp^.Animation2 <> nil) then
-    begin
-      b := tp^.Animation;
-      tp^.Animation := tp^.Animation2;
-      tp^.Animation2 := b;
-    end
-  else
-    begin
-      if tp^.Animation.Enabled then
-        tp^.Animation.Disable
-      else
-        tp^.Animation.Enable;
-    end;
-  if AnimLoop = 1 then
-    tp^.Animation.Loop := True
-  else
-    if AnimLoop = 2 then
-      tp^.Animation.Loop := False;
-  tp^.Animation.Reset();
- end
-  else
- begin
-  a := tp^.TextureID;
-  tp^.TextureID := tp^.TextureID2;
-  tp^.TextureID2 := a;
- end;
+begin            
+  case PanelType of
+    PANEL_WALL: tp := @gRenderWalls[ID];
+    PANEL_FORE: tp := @gRenderForegrounds[ID];
+    PANEL_BACK: tp := @gRenderBackgrounds[ID];
+    else Exit;
+  end;
 
- tp^.SwitchTexture := not tp^.SwitchTexture;
+  with tp^ do
+    if Anim then
+      begin // Анимированная текстура
+        if CurTexture < 0 then
+          begin
+            CurTexture := 0;
+            if Length(Anims) = 0 then
+              CurTexture := -1;
+          end
+        else
+          begin
+            Inc(CurTexture);
+            if CurTexture >= Length(Anims) then
+              CurTexture := 0;
+            if Length(Anims) = 1 then
+              CurTexture := -1;
+          end;
+
+        if (CurTexture >= 0) then
+          begin
+            if (Anims[CurTexture] = nil) then
+              begin
+                g_Console_Add('Error switching anim texture: no anim');
+                Exit;
+              end;
+            if AnimLoop = 1 then
+              Anims[CurTexture].Loop := True
+            else
+              if AnimLoop = 2 then
+                Anims[CurTexture].Loop := False;
+            Anims[CurTexture].Reset();
+          end;
+      end
+    else
+      begin // Обычная текстура
+        if CurTexture < 0 then
+          begin
+            CurTexture := 0;
+            if Length(Texts) = 0 then
+              CurTexture := -1;
+          end
+        else
+          begin
+            Inc(CurTexture);
+            if CurTexture >= Length(Texts) then
+              CurTexture := 0;
+            if Length(Texts) = 1 then
+              CurTexture := -1;
+          end;
+      end;
 end;
 
 procedure g_Map_SetLift(ID: DWORD; t: Integer);
@@ -1765,13 +1913,12 @@ end;
 
 type
   TStateRec = packed record
-   panel_type: Word;
-   id: Integer;
-   enabled: Boolean;
-   switch: Boolean;
-   lift: Byte;
-   anim1: TAnimRec;
-   anim2: TAnimRec;
+    Panel_Type:  Word;
+    ID:          Integer;
+    Enabled:     Boolean;
+    Lift:        Byte;
+    CurTex:      Integer;
+    Anim:        TAnimRec;
   end;
 
 function g_Map_SaveState(var p: Pointer): Integer;
@@ -1783,32 +1930,34 @@ var
 procedure SavePanel(id: DWORD; panel: PRenderPanel; panel_type: Word);
 var
   b: Integer;
-begin
- if panel <> nil then
-  if ((panel_type = PANEL_WALL) and gWalls[panel^.WallID].Door) or
-     (panel^.Animation <> nil) or (panel^.Animation2 <> nil) or panel^.SwitchTexture then
- begin
-  SetLength(state, Length(state)+1);
-  b := High(state);
-  state[b].panel_type := panel_type;
-  state[b].id := id;
-  state[b].enabled := panel^.Enabled;
-  state[b].switch := panel^.SwitchTexture;
-  if panel^.Anim then
-  begin
-   panel^.Animation.Save(@state[b].anim1);
-   if panel^.Animation2 <> nil then panel^.Animation2.Save(@state[b].anim2);
-  end;
- end;
 
- if panel_type = PANEL_LIFTUP then
- begin
-  SetLength(state, Length(state)+1);
-  b := High(state);
-  state[b].panel_type := PANEL_LIFTUP;
-  state[b].id := id;
-  state[b].lift := gLifts[id].LiftType;
- end;
+begin
+  if panel <> nil then
+    if ((panel_type = PANEL_WALL) and gWalls[panel^.WallID].Door) or
+        (panel^.SaveIt) then
+      begin // Если это дверь, или анимация, или изменяемая тестура 
+        SetLength(state, Length(state)+1);
+        b := High(state);
+        state[b].Panel_Type := panel_type;
+        state[b].ID := id;
+        state[b].Enabled := panel^.Enabled;
+        state[b].CurTex := panel^.CurTexture;
+
+        if panel^.Anim and (panel^.CurTexture >= 0) and
+            (panel^.Anims[panel^.CurTexture] <> nil) then
+          begin
+            panel^.Anims[panel^.CurTexture].Save(@state[b].Anim);
+          end;
+      end;
+
+  if panel_type = PANEL_LIFTUP then
+    begin
+      SetLength(state, Length(state)+1);
+      b := High(state);
+      state[b].Panel_Type := PANEL_LIFTUP;
+      state[b].ID := id;
+      state[b].Lift := gLifts[id].LiftType;
+    end;
 end;
 
 begin
@@ -1822,6 +1971,9 @@ begin
   SavePanel(a, nil, PANEL_LIFTUP);
 
  map.state_count := Length(state);
+ 
+ ZeroMemory(@map.Music[0], 64);
+ CopyMemory(@map.Music[0], @gMusic[1], Min(Length(gMusic), 64));
 
  s := SizeOf(TMapSaveRec)+map.state_count*SizeOf(TStateRec);
  p := GetMemory(s);
@@ -1842,34 +1994,48 @@ var
 
 procedure LoadPanel(state_id: DWORD; panel: PRenderPanel);
 begin
- if panel <> nil then
-  if ((state[state_id].panel_type = PANEL_WALL) and gWalls[panel^.WallID].Door) or
-     (panel^.Animation <> nil) or (panel^.Animation2 <> nil) or panel^.SwitchTexture then
- begin
-  if state[state_id].panel_type = PANEL_WALL then
-   if gWalls[panel^.WallID].Door then
-    if state[state_id].enabled then g_Map_EnableWall(state[state_id].id)
-     else g_Map_DisableWall(state[state_id].id);
+  if panel <> nil then
+    if ((state[state_id].Panel_Type = PANEL_WALL) and gWalls[panel^.WallID].Door) or
+        (panel^.SaveIt) then
+      begin
+        if state[state_id].Panel_Type = PANEL_WALL then
+          if gWalls[panel^.WallID].Door then
+            if state[state_id].Enabled then
+              g_Map_EnableWall(state[state_id].id)
+            else
+              g_Map_DisableWall(state[state_id].id);
 
-  if state[state_id].switch then
-   g_Map_SwitchTexture(state[state_id].panel_type, state[state_id].id);
+        if state[state_id].CurTex <> panel^.CurTexture then
+          with panel^ do // Переключаем текстуру
+            if Anim then
+              begin // Анимированная текстура
+                CurTexture := state[state_id].CurTex;
+                if CurTexture >= Length(Anims) then
+                  CurTexture := 0;
+              end
+            else
+              begin // Обычная текстура
+                CurTexture := state[state_id].CurTex;
+                if CurTexture >= Length(Texts) then
+                  CurTexture := 0;
+              end;
 
-  if panel^.Anim then
-  begin
-   panel^.Animation.Load(@state[state_id].anim1);
-   if panel^.Animation2 <> nil then panel^.Animation2.Load(@state[state_id].anim2);
-  end;
- end;
+        if (panel^.Anim) and (panel^.CurTexture >= 0) then
+          begin
+            panel^.Anims[panel^.CurTexture].Load(@state[state_id].Anim);
+          end;
+      end;
 
- if (state[state_id].panel_type = PANEL_LIFTUP) or
-    (state[state_id].panel_type = PANEL_LIFTDOWN) then
-  g_Map_SetLift(state[state_id].id, state[state_id].lift);
+  if (state[state_id].Panel_Type = PANEL_LIFTUP) or
+      (state[state_id].Panel_Type = PANEL_LIFTDOWN) then
+    g_Map_SetLift(state[state_id].ID, state[state_id].Lift);
 end;
 
 begin
  if len < SizeOf(TMapSaveRec) then Exit;
 
  CopyMemory(@map, p, SizeOf(TMapSaveRec));
+ g_Game_PlayMusic(map.Music);
  if map.state_count = 0 then Exit;
 
  SetLength(state, map.state_count);

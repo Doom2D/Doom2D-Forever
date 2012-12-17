@@ -34,10 +34,10 @@ begin
  DataDir := GameDir+'\data\';
  ModelsDir := DataDir+'models\';
  GameWAD := DataDir+'Game.wad';
- e_InitLog(GameDir+'\DoomForever.log', WM_NEWFILE);
+ e_InitLog(GameDir+'\Doom2DF.log', WM_NEWFILE);
 
  e_WriteLog('Read config file', MSG_NOTIFY);
- g_Options_Read(GameDir+'\doomforever.cfg'); 
+ g_Options_Read(GameDir+'\Doom2DF.cfg');
 
  e_WriteLog('Call WinMain', MSG_NOTIFY);
  {$WARNINGS OFF}
@@ -98,7 +98,7 @@ const
   c5 = 'CBVCBV';
   c6 = 'GOODBYE';
   c7 = 'GJITKYF';
-  c8 = 'jTKSQJHTK'; 
+  c8 = 'TKSQJHTK';
   c9 = 'BULLFROG';
   c10 = 'FORMULA1';
 begin
@@ -152,7 +152,8 @@ begin
    g_Game_ExitLevel(c);
   end;
  end
-  else if Copy(charbuff, 8, 9) = c8 then
+  else if (Copy(charbuff, 9, 8) = c8) and
+          (charbuff[7] = Chr(188)) then
  begin
   gFly := not gFly;
  end
@@ -174,9 +175,17 @@ var
   Msg: g_gui.TMessage;
   a: Integer;
 begin
- if K = 19 then g_Game_Pause(not gPause);
+ if K = 19 then
+   if (g_ActiveWindow = nil) then
+     begin
+       g_Game_Pause(not gPause);
+     end;
 
- if (K = 192) and (g_ActiveWindow = nil) then g_Console_Switch() else if gConsoleShow then g_Console_Control(K);
+ if (K = 192) then
+   g_Console_Switch()
+ else
+   if gConsoleShow then
+     g_Console_Control(K);
 
  if (K = 27) and (gConsoleShow) then
  begin
@@ -199,7 +208,7 @@ begin
   if (K = 27) and (not gGameOn) and (gExit = 0) then
   begin
    g_GUI_ShowWindow('MainMenu');
-   g_Sound_PlayEx('MENU_OPEN', 127, 255); 
+   g_Sound_PlayEx('MENU_OPEN', 127, 255);
   end;
  end;
 

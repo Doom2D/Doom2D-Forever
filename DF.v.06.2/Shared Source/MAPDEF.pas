@@ -124,6 +124,7 @@ const
   TRIGGER_SOUND           = 18;
   TRIGGER_SPAWNMONSTER    = 19;
   TRIGGER_SPAWNITEM       = 20;
+  TRIGGER_MUSIC           = 21;
 
   ACTIVATE_PLAYERCOLLIDE  = 1;
   ACTIVATE_MONSTERCOLLIDE = 2;
@@ -185,6 +186,7 @@ type
     TRIGGER_SPAWNITEM:    (ItemPos: TPoint;
                            ItemType: Byte;
                            ItemFalls: Boolean);
+    TRIGGER_MUSIC:        (MusicName: Char64);
    end;
 
 implementation

@@ -19,6 +19,7 @@ type
     procedure Play(Pan: Byte; Volume: Byte; force: Boolean = False); overload;
     procedure Play(X, Y: Integer; Volume: Byte; force: Boolean = False); overload;
     procedure Stop();
+    procedure Pause(Pause: Boolean);
     property Loop: Boolean read FLoop write FLoop;
   end;
 
@@ -46,6 +47,7 @@ function g_Music_CreateFile(var ID: DWORD; FileName: string): Boolean;
 function g_Music_CreateWADEx(MusicName: ShortString; Resource: string): Boolean;
 function g_Music_CreateFileEx(MusicName: ShortString; FileName: string): Boolean;
 procedure g_Music_Delete(MusicName: ShortString);
+function g_Music_Exists(MusicName: String): Boolean;
 function g_Music_Get(var ID: DWORD; MusicName: ShortString): Boolean;
 
 implementation
@@ -323,7 +325,8 @@ begin
    SoundArray[find_id].SoundName := SoundName;
    ok := True;
   end else FreeMem(SoundData)
- end else e_WriteLog(Format('WAD Reader error: %s', [WAD.GetLastErrorStr]), MSG_WARNING);
+ end else
+  e_WriteLog(Format('WAD Reader error: %s', [WAD.GetLastErrorStr]), MSG_WARNING);
 
  WAD.Destroy;
 
@@ -372,6 +375,9 @@ var
 begin
  Result := False;
 
+ if SoundName = '' then
+   Exit;
+
  if SoundArray <> nil then
   for a := 0 to High(SoundArray) do
    if SoundArray[a].SoundName = SoundName then
@@ -386,6 +392,9 @@ var
   a: Integer;
 begin
  Result := False;
+
+ if SoundName = '' then
+   Exit;
 
  if SoundArray <> nil then
   for a := 0 to High(SoundArray) do
@@ -593,11 +602,33 @@ begin
   end;
 end;
 
+function g_Music_Exists(MusicName: String): Boolean;
+var
+  a: Integer;
+  
+begin
+  Result := False;
+
+  if MusicName = '' then
+    Exit;
+
+  if MusicArray <> nil then
+    for a := 0 to High(MusicArray) do
+      if MusicArray[a].MusicName = MusicName then
+        begin
+          Result := True;
+          Exit;
+        end;
+end;
+
 function g_Music_Get(var ID: DWORD; MusicName: ShortString): Boolean;
 var
   a: Integer;
 begin
  Result := False;
+
+ if MusicName = '' then
+   Exit;
 
  if MusicArray <> nil then
   for a := 0 to High(MusicArray) do
@@ -621,7 +652,6 @@ destructor TSound.Destroy();
 begin
  FreeSound();
 end;
-
 
 procedure TSound.SetID(ID: DWORD);
 begin
@@ -724,6 +754,12 @@ begin
   FSOUND_StopSound(FCurrentChannel);
   FCurrentChannel := -1;
  end;
+end;
+
+procedure TSound.Pause(Pause: Boolean);
+begin
+  if FCurrentChannel > 0 then
+    e_PauseSample(FCurrentChannel, Pause);
 end;
 
 end.

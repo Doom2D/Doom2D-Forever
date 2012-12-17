@@ -39,7 +39,7 @@ var
 implementation
 
 uses g_map, g_basic, Math, e_graphics, dglOpenGL, windows, g_options, g_console,
-     SysUtils, g_triggers, MAPDEF, g_game;
+     SysUtils, g_triggers, MAPDEF, g_game, inter;
 
 type
   TParticle = record
@@ -110,14 +110,14 @@ procedure CreateCollideMap();
 var
   a: Integer;
 begin
- g_Game_SetLoadingText('Collide Map 0/6', 0);
+ g_Game_SetLoadingText(I_LOAD_COLLIDE_MAP+' 1/6', 0);
  SetLength(gCollideMap, gMapInfo.Height+1);
  for a := 0 to High(gCollideMap) do
   SetLength(gCollideMap[a], gMapInfo.Width+1);
 
  if gWater <> nil then
    begin
-     g_Game_SetLoadingText('Collide Map 1/6', 0);
+     g_Game_SetLoadingText(I_LOAD_COLLIDE_MAP+' 2/6', 0);
      for a := 0 to High(gWater) do
        with gWater[a] do
          g_Mark(X, Y, Width, Height, MARK_WATER);
@@ -125,7 +125,7 @@ begin
 
  if gAcid1 <> nil then
    begin
-     g_Game_SetLoadingText('Collide Map 2/6', 0);
+     g_Game_SetLoadingText(I_LOAD_COLLIDE_MAP+' 3/6', 0);
      for a := 0 to High(gAcid1) do
         with gAcid1[a] do
           g_Mark(X, Y, Width, Height, MARK_ACID);
@@ -133,7 +133,7 @@ begin
 
  if gAcid2 <> nil then
    begin
-     g_Game_SetLoadingText('Collide Map 3/6', 0);
+     g_Game_SetLoadingText(I_LOAD_COLLIDE_MAP+' 4/6', 0);
      for a := 0 to High(gAcid2) do
        with gAcid2[a] do
          g_Mark(X, Y, Width, Height, MARK_ACID);
@@ -141,7 +141,7 @@ begin
 
  if gLifts <> nil then
    begin
-     g_Game_SetLoadingText('Collide Map 4/6', 0);
+     g_Game_SetLoadingText(I_LOAD_COLLIDE_MAP+' 5/6', 0);
      for a := 0 to High(gLifts) do
        with gLifts[a].Rect do
          if gLifts[a].LiftType = 1 then
@@ -152,7 +152,7 @@ begin
 
  if gWalls <> nil then
    begin
-     g_Game_SetLoadingText('Collide Map 5/6', 0);
+     g_Game_SetLoadingText(I_LOAD_COLLIDE_MAP+' 6/6', 0);
      for a := 0 to High(gWalls) do
        with gWalls[a], gWalls[a].Rect do
          g_Mark(X, Y, Width, Height,

@@ -27,6 +27,7 @@ function e_LoadSample(FileName: string; var ID: DWORD): Boolean;
 function e_LoadSampleMem(pData: Pointer; Length: Integer; var ID: DWORD): Boolean;
 function e_PlaySample(ID: DWORD; Pan, Volume: Byte): Integer;
 function e_IsPlayingSample(ID: DWORD; Channel: Integer): Boolean;
+procedure e_PauseSample(Channel: Integer; Pause: Boolean);
 procedure e_DeleteSample(ID: DWORD);
 procedure e_StopAllSamples();
 procedure e_RemoveAllSamples();
@@ -144,6 +145,11 @@ end;
 function e_IsPlayingSample(ID: DWORD; Channel: Integer): Boolean;
 begin
  Result := e_SamplesArray[ID].SoundSample = FSOUND_GetCurrentSample(Channel); 
+end;
+
+procedure e_PauseSample(Channel: Integer; Pause: Boolean);
+begin
+  FSOUND_SetPaused(Channel, ByteBool(Pause));
 end;
 
 procedure e_DeleteSample(ID: DWORD);

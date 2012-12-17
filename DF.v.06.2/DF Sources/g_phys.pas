@@ -160,9 +160,14 @@ begin
  if g_Obj_CollideLevel(Obj, sx, 0) then st := st or MOVE_HITWALL;
 
  if CollideLiquid(Obj, sx, 0) then
- begin
-  if not WordBool(st and MOVE_INWATER) and not WordBool(st and MOVE_HITWALL) then st := st or MOVE_HITWATER;
- end else if WordBool(st and MOVE_INWATER) then st := st or MOVE_HITAIR;
+   begin
+     if not WordBool(st and MOVE_INWATER) and
+         not WordBool(st and MOVE_HITWALL) then
+       st := st or MOVE_HITWATER;
+   end
+ else
+   if WordBool(st and MOVE_INWATER) then
+     st := st or MOVE_HITAIR;
 
  if WordBool(st and MOVE_HITWALL) then Exit;
 
@@ -182,9 +187,15 @@ begin
   if sy > 0 then st := st or MOVE_HITLAND else st := st or MOVE_HITCEIL;
 
  if CollideLiquid(Obj, 0, sy) then
- begin
-  if not WordBool(st and MOVE_INWATER) and not WordBool(st and MOVE_HITLAND) and not WordBool(st and MOVE_HITCEIL) then st := st or MOVE_HITWATER;
- end else if WordBool(st and MOVE_INWATER) then st := st or MOVE_HITAIR;
+   begin
+     if not WordBool(st and MOVE_INWATER) and
+         not WordBool(st and MOVE_HITLAND) and
+         not WordBool(st and MOVE_HITCEIL) then
+       st := st or MOVE_HITWATER;
+   end
+ else
+   if WordBool(st and MOVE_INWATER) then
+     st := st or MOVE_HITAIR;
 
  if WordBool(st and (MOVE_HITLAND or MOVE_HITCEIL)) then Exit;
 
