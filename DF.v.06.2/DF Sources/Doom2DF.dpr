@@ -1,4 +1,4 @@
-program DoomForever;
+program Doom2DF;
 
 uses
   DirectInput in '..\Lib\DX\DirectInput.pas',

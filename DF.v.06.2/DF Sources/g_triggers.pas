@@ -68,7 +68,8 @@ implementation
 
 uses
   g_player, g_map, Math, g_gfx, g_game, g_textures, g_console,
-  g_monsters, g_items, g_phys, g_weapons, WADEDITOR, g_main, SysUtils;
+  g_monsters, g_items, g_phys, g_weapons, WADEDITOR, g_main, SysUtils,
+  e_log;
 
 function FindTrigger(): DWORD;
 var
@@ -384,14 +385,14 @@ begin
           if p.TeleportTo(Data.TargetPoint.X-(p.Obj.Rect.Width div 2),
                           Data.TargetPoint.Y-p.Obj.Rect.Height,
                           Data.silent_teleport,
-                          TDirection(Data.TlpDir)) then
+                          Data.TlpDir) then
             Result := True;
         end
       else
         if p.TeleportTo(Data.TargetPoint.X,
                         Data.TargetPoint.Y,
                         Data.silent_teleport,
-                        TDirection(Data.TlpDir)) then
+                        Data.TlpDir) then
           Result := True;
      end;
 
@@ -405,14 +406,14 @@ begin
           if m.TeleportTo(Data.TargetPoint.X-(m.Obj.Rect.Width div 2),
                           Data.TargetPoint.Y-m.Obj.Rect.Height,
                           Data.silent_teleport,
-                          TDirection(Data.TlpDir)) then
+                          Data.TlpDir) then
             Result := True;
         end
       else
         if m.TeleportTo(Data.TargetPoint.X,
                         Data.TargetPoint.Y,
                         Data.silent_teleport,
-                        TDirection(Data.TlpDir)) then
+                        Data.TlpDir) then
           Result := True;
      end;
     end;
@@ -518,7 +519,8 @@ begin
      if (Data.MonType in [MONSTER_DEMON..MONSTER_MAN]) then
        begin
          i := g_Monsters_Create(Data.MonType,
-                Data.MonPos.X, Data.MonPos.Y, TDirection(Data.MonDir));
+                Data.MonPos.X, Data.MonPos.Y,
+                TDirection(Data.MonDir), True);
          if (Data.MonHealth > 0) then
            gMonsters[i].SetHealth(Data.MonHealth);
          TimeOut := 18;
@@ -529,10 +531,17 @@ begin
      if (Data.ItemType in [ITEM_MEDKIT_SMALL..ITEM_KEY_BLUE]) then
        begin
          g_Items_Create(Data.ItemPos.X, Data.ItemPos.Y,
-           Data.ItemType, Data.ItemFalls, False);
+           Data.ItemType, Data.ItemFalls, False, True);
          TimeOut := 18;
          Result := True;
        end;
+
+   TRIGGER_MUSIC:
+     begin
+       g_Game_PlayMusic(Trigger.Data.MusicName);
+       TimeOut := 36;
+       Result := True;
+     end;
   end;
  end;
  
@@ -582,7 +591,8 @@ begin
     fn := mapw+Trigger.Data.SoundName;
    end else fn := GameDir+'\wads\'+Trigger.Data.SoundName;
 
-   g_Sound_CreateWADEx(Trigger.Data.SoundName, fn);
+   if not g_Sound_CreateWADEx(Trigger.Data.SoundName, fn) then
+     g_Console_Add(Format('! Error loading sound %s for trigger', [fn]))
   end;
 
   if g_Sound_Get(id, Trigger.Data.SoundName) then
@@ -592,6 +602,24 @@ begin
     Sound.SetID(id);
    end;
  end;
+
+ if Trigger.TriggerType = TRIGGER_MUSIC then
+   begin
+     if not g_Music_Exists(Trigger.Data.MusicName) then
+       begin
+         g_ProcessResourceStr(Trigger.Data.MusicName, @fn, nil, nil);
+         if fn = '' then
+           begin
+             g_ProcessResourceStr(gMapInfo.Map, @mapw, nil, nil);
+             fn := mapw + Trigger.Data.MusicName;
+           end
+         else
+           fn := GameDir+'\wads\'+Trigger.Data.MusicName;
+
+         if not g_Music_CreateWADEx(Trigger.Data.MusicName, fn) then
+           g_Console_Add(Format('! Error loading music %s for trigger', [fn]));
+       end;
+   end;
 
  Result := find_id;
 end;
@@ -686,8 +714,9 @@ begin
                 begin
                   gTriggers[a].ActivateUID := UID;
 
-                  if (gTriggers[a].TriggerType = TRIGGER_SOUND) and PlayerCollide then
-                    { Don't activate sound again if player is here }
+                  if (gTriggers[a].TriggerType in [TRIGGER_SOUND, TRIGGER_MUSIC]) and
+                     PlayerCollide then
+                    { Don't activate sound/music again if player is here }
                   else
                     ActivateTrigger(gTriggers[a]);
                 end;
@@ -727,7 +756,7 @@ begin
        (TimeOut = 0) and (Keys = 0) then
       if gItems <> nil then
         for b := 0 to High(gItems) do
-          if (gItems[b].Live) and (gItems[b].Fall) then
+          if (gItems[b].Live) then
             if g_Obj_Collide(X, Y, Width, Height, @gItems[b].Obj) then
               begin
                 gTriggers[a].ActivateUID := 0;

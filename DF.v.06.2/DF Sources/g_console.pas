@@ -36,7 +36,8 @@ const
 
 var
   ID: DWORD;
-  Y: SmallInt;
+  Cons_Y: SmallInt;
+  Cons_Shown: Boolean;
   Line: string;
   CPos: Word;
   ConsoleHistory: SArray;
@@ -157,8 +158,9 @@ var
   a: Integer;
 begin
  g_Texture_CreateWAD(ID, GameWAD+':TEXTURES\CONSOLE');
- Y := -(gScreenHeight div 2);
+ Cons_Y := -(gScreenHeight div 2);
  gConsoleShow := False;
+ Cons_Shown := False;
  CPos := 1;
 
  for a := 0 to High(MsgArray) do
@@ -209,15 +211,24 @@ procedure g_Console_Update();
 var
   a, b: Integer;
 begin
- if gConsoleShow and (Y < 0) then
- begin
-  Y := Y+Step;
-  CPos := 1;
-  Line := '';
- end;
- if not gConsoleShow and (Y > -(gScreenHeight div 2)) then Y := Y-Step;
- if Y > 0 then Y := 0;
- if Y < -(gScreenHeight div 2) then Y := -(gScreenHeight div 2);
+ if Cons_Shown and gWinActive then
+   begin
+     if gConsoleShow and (Cons_Y < 0) then
+       begin
+         Cons_Y := Cons_Y+Step;
+         CPos := 1;
+         Line := '';
+       end;
+     if not gConsoleShow and (Cons_Y > -(gScreenHeight div 2)) then
+       Cons_Y := Cons_Y-Step;
+     if Cons_Y > 0 then
+       Cons_Y := 0;
+     if Cons_Y <= (-(gScreenHeight div 2)) then
+       begin
+         Cons_Y := -(gScreenHeight div 2);
+         Cons_Shown := False;
+       end;
+   end;
 
  a := 0;
  while a <= High(MsgArray) do
@@ -248,16 +259,17 @@ var
   CHeight: Byte;
   a, b, c, d: Integer;
 begin
+ if not Cons_Shown then
+   Exit;
+
  e_TextureFontGetSize(gStdFont, CWidth, CHeight);
 
  for a := 0 to High(MsgArray) do
   if MsgArray[a].Time > 0 then
    e_TextureFontPrint(0, CHeight*a, MsgArray[a].Msg, gStdFont);
 
- if Y = -(gScreenHeight div 2) then Exit;
-
- e_DrawSize(ID, 0, Y, Alpha, False, False, gScreenWidth, gScreenHeight div 2);
- e_TextureFontPrint(0, Y+(gScreenHeight div 2)-CHeight, '>'+Line, gStdFont);
+ e_DrawSize(ID, 0, Cons_Y, Alpha, False, False, gScreenWidth, gScreenHeight div 2);
+ e_TextureFontPrint(0, Cons_Y+(gScreenHeight div 2)-CHeight, '>'+Line, gStdFont);
 
  if ConsoleHistory <> nil then
  begin
@@ -271,18 +283,19 @@ begin
   c := 2;
   for a := d downto b do
   begin
-   e_TextureFontPrintEx(0, (gScreenHeight div 2)-c*CHeight-Abs(Y), ConsoleHistory[a],
+   e_TextureFontPrintEx(0, (gScreenHeight div 2)-c*CHeight-Abs(Cons_Y), ConsoleHistory[a],
                         gStdFont, 200, 200, 200, 1.0);
    c := c+1;
   end;
  end;
 
- e_TextureFontPrint(CPos*CWidth, Y+(gScreenHeight div 2)-17, '_', gStdFont);
+ e_TextureFontPrint(CPos*CWidth, Cons_Y+(gScreenHeight div 2)-17, '_', gStdFont);
 end;
 
 procedure g_Console_Switch();
 begin
  gConsoleShow := not gConsoleShow;
+ Cons_Shown := True;
  Line := '';
  CPos := 1;
 end;

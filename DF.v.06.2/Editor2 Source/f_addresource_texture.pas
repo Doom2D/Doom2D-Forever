@@ -11,12 +11,16 @@ type
    Panel1: TPanel;
    iPreview: TImage;
    eTextureName: TEdit;
+   bAddTexture: TButton;
+   bClose: TButton;
    procedure bOKClick(Sender: TObject);
    procedure FormActivate(Sender: TObject);
    procedure lbResourcesListClick(Sender: TObject);
    procedure eTextureNameChange(Sender: TObject);
    procedure cbWADListChange(Sender: TObject);
    procedure cbSectionsListChange(Sender: TObject);
+    procedure bCloseClick(Sender: TObject);
+    procedure bAddTextureClick(Sender: TObject);
   private
   public
   end;
@@ -352,6 +356,9 @@ begin
 
  eTextureName.Text := '';
  iPreview.Canvas.FillRect(iPreview.Canvas.ClipRect);
+
+ bOK.Visible := False;
+ bCancel.Visible := False;
 end;
 
 procedure TAddTextureForm.lbResourcesListClick(Sender: TObject);
@@ -418,6 +425,25 @@ begin
  end;
 
  inherited;
+end;
+
+procedure TAddTextureForm.bCloseClick(Sender: TObject);
+begin
+  Close;
+end;
+
+procedure TAddTextureForm.bAddTextureClick(Sender: TObject);
+var
+  i: Integer;
+
+begin
+  for i := 0 to lbResourcesList.Count-1 do
+    if lbResourcesList.Selected[i] then
+      begin
+        AddTexture(cbWADlist.Text, cbSectionsList.Text,
+                   lbResourcesList.Items[i]);
+        lbResourcesList.Selected[i] := False;
+      end;
 end;
 
 end.

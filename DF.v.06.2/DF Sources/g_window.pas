@@ -31,6 +31,7 @@ var
   flag: Boolean;
   a: Boolean = False;
   WinX, WinY: Word;
+  WinPause: Boolean = False;
 
 function SetDisplay(): Boolean;
 var
@@ -99,13 +100,33 @@ begin
    begin
     if LOWORD(wParam) = WA_ACTIVE then
     begin
+     if gGameOn then
+       begin
+         if WinPause then
+           begin
+             WinPause := False;
+             g_Game_Pause(False);
+           end;
+       end
+     else
+       g_Game_PauseMusic(False);
      e_EnableInput := True;
+     gWinActive := True;
      ShowWindow(h_Wnd, SW_SHOWNORMAL);
      if gFullscreen then SetDisplay();
     end
      else
     begin
+     if gGameOn then
+       begin
+         if not gPause then // не было паузы от игрока или меню
+           WinPause := True;
+         g_Game_Pause(True);
+       end
+     else
+       g_Game_PauseMusic(True);
      e_EnableInput := False;
+     gWinActive := False;
      ShowWindow(h_Wnd, SW_SHOWMINIMIZED);
      if gFullscreen then ChangeDisplaySettings(_devicemodeA(nil^), CDS_FULLSCREEN);
     end;
@@ -213,7 +234,9 @@ begin
   else
  begin
   dwExStyle := WS_EX_APPWINDOW or WS_EX_WINDOWEDGE;
-  dwStyle := WS_OVERLAPPEDWINDOW or WS_CLIPSIBLINGS or WS_CLIPCHILDREN;
+  dwStyle := WS_OVERLAPPED or WS_CAPTION or WS_SYSMENU or
+             WS_MINIMIZEBOX or WS_MAXIMIZEBOX or WS_CLIPSIBLINGS or
+             WS_CLIPCHILDREN;
  end;
 
  e_WriteLog('Creating window', MSG_NOTIFY);
@@ -309,9 +332,11 @@ begin
       DispatchMessage(msg);
     end;
 
+    {
   if GetActiveWindow = h_Wnd then
     SetCursorPos(WinX+(gScreenWidth div 2), WinY+(gScreenHeight div 2));
-
+    }
+    
   Time := GetTimer();
   Time_Delta := Time - Time_Old;
 

@@ -71,7 +71,8 @@ const
 implementation
 
 uses Math, g_map, g_player, g_gfx, g_sound, g_main, g_textures, g_console,
-  SysUtils, g_options, g_game, g_triggers, MAPDEF, e_log, g_monsters, g_saveload;
+  SysUtils, g_options, g_game, g_triggers, MAPDEF, e_log, g_monsters,
+  g_saveload, inter;
 
 type
   TShotSaveRec = packed record
@@ -153,7 +154,7 @@ begin
   WaterArray[a].Active := True;
  end;
 
- g_Game_SetLoadingText('Water Map', High(WaterArray));
+ g_Game_SetLoadingText(I_LOAD_WATER_MAP, High(WaterArray));
 
  for a := 0 to High(WaterArray) do
   if WaterArray[a].Active then
@@ -259,7 +260,7 @@ var
   tt, mt: Byte;
 begin
  Result := False;
- 
+
  tt := g_GetUIDType(SpawnerUID);
  if tt = UID_MONSTER then mt := g_Monsters_Get(SpawnerUID).MonsterType else mt := 0;
 
@@ -284,7 +285,7 @@ begin
     MONSTER_SOUL, MONSTER_MANCUB, MONSTER_SKEL, MONSTER_FISH: Exit;
    end;
  end;
- 
+
  Result := m.Damage(d, vx, vy, SpawnerUID, t);
 end;
 

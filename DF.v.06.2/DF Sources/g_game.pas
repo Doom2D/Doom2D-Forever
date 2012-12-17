@@ -48,6 +48,8 @@ procedure g_Game_Message(Msg: string; Time: Word);
 procedure g_Game_LoadMapList(FileName: string);
 procedure g_Game_PlayMusic(name: string);
 procedure g_Game_StopMusic();
+procedure g_Game_PauseMusic(Enable: Boolean);
+procedure g_Game_PauseTriggerSounds(Enable: Boolean);
 procedure g_Game_SetMusicVolume();
 function g_Game_GetMegaWADInfo(WAD: string): TMegaWADInfo;
 procedure g_TakeScreenShot();
@@ -56,11 +58,13 @@ procedure GameCommands(P: SArray);
 procedure g_Game_Process_Params;
 procedure g_Game_SetLoadingText(Text: String; Max: Integer);
 procedure g_Game_StepLoading();
+procedure g_Game_ClearLoading();
 procedure DrawLoadingStat();
 
 const
   GAME_TICK = 28;
   LOADING_SHOW_STEP = 100;
+  LOADING_INTERLINE = 20;
   GT_NONE   = 0;
   GT_SINGLE = 1;
   GT_CUSTOM = 2;
@@ -119,6 +123,8 @@ var
   gMusic: string = '';
   gLoadGameMode: Boolean;
   gCheats: Boolean = False;
+  gMapOnce: Boolean = False;
+  gWinActive: Boolean = False;
 
 implementation
 
@@ -147,10 +153,11 @@ type
   end;
 
   TLoadingStat = record
-    Text: String;
     CurValue: Integer;
     MaxValue: Integer;
     ShowCount: Integer;
+    Msgs: Array of String;
+    NextMsg: Word;
   end;
 
   TParamStrValue = record
@@ -386,20 +393,29 @@ begin
  gPause := False;
  gGameOn := False;
 
+ g_Game_StopMusic();
+
  MessageTime := 0;
  MessageText := '';
 
- g_Game_StopMusic();
-
  case gExit of
   EXIT_SIMPLE:
-  begin
-   EndingGameCounter := 0;
-   g_Game_Free();
-   g_GUI_ShowWindow('MainMenu');
-   g_Game_PlayMusic('MENU');
-   gState := STATE_MENU;
-  end;
+    begin
+      EndingGameCounter := 0;
+      g_Game_Free();
+      
+      if gMapOnce then
+        begin
+          g_Game_Quit();
+          Exit;
+        end
+      else
+        begin
+          g_GUI_ShowWindow('MainMenu');
+          g_Game_PlayMusic('MENU');
+          gState := STATE_MENU;
+        end;
+    end;
 
   EXIT_RESTART:
   begin
@@ -639,12 +655,13 @@ begin
  LoadFont('MENUTXT', 'MENUFONT', CHRWDT1, CHRHGT1, FNTSPC1, gMenuFont);
  LoadFont('SMALLTXT', 'SMALLFONT', CHRWDT2, CHRHGT2, FNTSPC2, gMenuSmallFont);
 
- g_Game_SetLoadingText('Music', 0);
+ g_Game_ClearLoading();
+ g_Game_SetLoadingText(I_LOAD_MUSIC, 0);
  g_Music_CreateWADEx('INTERMUS', GameWAD+':MUSIC\INTERMUS');
  g_Music_CreateWADEx('MENU', GameWAD+':MUSIC\MENU');
  g_Sound_CreateWADEx('INTER', GameWAD+':MUSIC\INTER');
 
- g_Game_SetLoadingText('Models', 0);
+ g_Game_SetLoadingText(I_LOAD_MODELS, 0);
  g_PlayerModel_LoadData();
  
  if FindFirst(ModelsDir+'*.wad', faAnyFile, SR) = 0 then
@@ -654,10 +671,10 @@ begin
  until FindNext(SR) <> 0;
  FindClose(SR);
 
- g_Game_SetLoadingText('Menus', 0);
+ g_Game_SetLoadingText(I_LOAD_MENUS, 0);
  g_Menu_Init();
 
- g_Game_SetLoadingText('Console', 0);
+ g_Game_SetLoadingText(I_LOAD_CONSOLE, 0);
  g_Console_Init();
 
  DataLoaded := False;
@@ -698,22 +715,26 @@ begin
 
  if gState = STATE_INTERCUSTOM then
  begin
-  if ((e_KeyBuffer[28] = $080) or (e_KeyBuffer[57] = $080))
-     and not gConsoleShow then
+  if ((e_KeyBuffer[28] = $080) or (e_KeyBuffer[57] = $080)) and
+      (not gConsoleShow) and (g_ActiveWindow = nil) then
   begin
    g_Sound_All_Stop();
    g_Game_StopMusic();
 
-   if NextMap <> '' then
-   begin
-    gExit := 0;
-    g_Game_StartMap(NextMap);
-   end
-    else
-   begin
-    //gState := STATE_ENDGAMECUSTOM;
-    gExit := EXIT_SIMPLE;
-   end;
+   if gMapOnce then
+     gExit := EXIT_SIMPLE
+   else
+     if NextMap <> '' then
+       begin
+         gExit := 0;
+         g_Game_ClearLoading();
+         g_Game_StartMap(NextMap);
+       end
+     else
+       begin
+       //gState := STATE_ENDGAMECUSTOM;
+         gExit := EXIT_SIMPLE;
+       end;
 
    Exit;
   end;
@@ -745,38 +766,52 @@ begin
 
  if gState = STATE_INTERSINGLE then
  begin
-  if ((e_KeyBuffer[28] = $080) or (e_KeyBuffer[57] = $080)) and not gConsoleShow then
+  if ((e_KeyBuffer[28] = $080) or (e_KeyBuffer[57] = $080)) and
+      (not gConsoleShow) and (g_ActiveWindow = nil) then
   begin
+   g_Sound_All_Stop();
    g_Game_StopMusic();
 
-   if NextMap <> '' then
-   begin
-    gExit := 0;
-    g_Game_StartMap(NextMap);
-   end else gExit := EXIT_SIMPLE;
+   if gMapOnce then
+     gExit := EXIT_SIMPLE
+   else
+     if NextMap <> '' then
+       begin
+         gExit := 0;
+         g_Game_ClearLoading();
+         g_Game_StartMap(NextMap);
+       end
+     else
+       gExit := EXIT_SIMPLE;
+
    Exit;
   end;
  end;
 
  if gState = STATE_INTERTEXT then
  begin
-  if ((e_KeyBuffer[28] = $080) or (e_KeyBuffer[57] = $080))
-     and not gConsoleShow then
+  if ((e_KeyBuffer[28] = $080) or (e_KeyBuffer[57] = $080)) and
+      (not gConsoleShow) and (g_ActiveWindow = nil) then
   begin
+   g_Sound_All_Stop();
    g_Game_StopMusic();
 
    //if next_trigger() then Exit;
 
-   if NextMap <> '' then
-   begin
-    gExit := 0;
-    g_Game_StartMap(NextMap);
-   end
-    else
-   begin
-    //gState := STATE_ENDGAMECUSTOM;
-    gExit := EXIT_SIMPLE;
-   end;
+   if gMapOnce then
+     gExit := EXIT_SIMPLE
+   else
+     if NextMap <> '' then
+       begin
+         gExit := 0;
+         g_Game_ClearLoading();
+         g_Game_StartMap(NextMap);
+       end
+     else
+       begin
+       //gState := STATE_ENDGAMECUSTOM;
+         gExit := EXIT_SIMPLE;
+       end;
 
    Exit;
   end;
@@ -786,23 +821,28 @@ begin
 
  if gState = STATE_INTERPIC then
  begin
-  if ((e_KeyBuffer[28] = $080) or (e_KeyBuffer[57] = $080))
-     and not gConsoleShow then
+  if ((e_KeyBuffer[28] = $080) or (e_KeyBuffer[57] = $080)) and
+      (not gConsoleShow) and (g_ActiveWindow = nil) then
   begin
+   g_Sound_All_Stop();
    g_Game_StopMusic();
 
    //if next_trigger() then Exit;
 
-   if NextMap <> '' then
-   begin
-    gExit := 0;
-    g_Game_StartMap(NextMap);
-   end
-    else
-   begin
-    //gState := STATE_ENDGAMECUSTOM;
-    gExit := EXIT_SIMPLE;
-   end;
+   if gMapOnce then
+     gExit := EXIT_SIMPLE
+   else
+     if NextMap <> '' then
+       begin
+         gExit := 0;
+         g_Game_ClearLoading();
+         g_Game_StartMap(NextMap);
+       end
+     else
+       begin
+       //gState := STATE_ENDGAMECUSTOM;
+         gExit := EXIT_SIMPLE;
+       end;
 
    Exit;
   end;
@@ -810,6 +850,8 @@ begin
 
  if gState = STATE_ENDPIC then
  begin
+   if gMapOnce then
+     gExit := EXIT_SIMPLE;
  end;
 
  if gGameOn then
@@ -955,17 +997,17 @@ procedure g_Game_LoadData();
 begin
  if DataLoaded then Exit;
 
- g_Game_SetLoadingText('Items Data', 0);
+ g_Game_SetLoadingText(I_LOAD_ITEMS_DATA, 0);
  g_Items_LoadData();
 
- g_Game_SetLoadingText('Weapons Data', 0);
+ g_Game_SetLoadingText(I_LOAD_WEAPONS_DATA, 0);
  g_Weapon_LoadData();
 
  g_Monsters_LoadData();
 
  e_WriteLog('Loading game data...', MSG_NOTIFY);
 
- g_Game_SetLoadingText('Game Data', 0);
+ g_Game_SetLoadingText(I_LOAD_GAME_DATA, 0);
 
  g_Texture_CreateWADEx('TEXTURE_PLAYER_HUD', GameWAD+':TEXTURES\HUD');
  g_Texture_CreateWADEx('TEXTURE_PLAYER_HUDBG', GameWAD+':TEXTURES\HUDBG');
@@ -1206,22 +1248,29 @@ end;
 
 procedure DrawLoadingStat();
 var
-  ww, hh, yy: Word;
+  ww, hh, xx, yy, i: Word;
   s: String;
 
 begin
+  if Length(LoadingStat.Msgs) = 0 then
+    Exit;
+
   e_CharFont_GetSize(gMenuFont, I_MENU_LOADING, ww, hh);
-  yy := (gScreenHeight div 2)-(hh div 2);
+  yy := (gScreenHeight div 3);
   e_CharFont_Print(gMenuFont, (gScreenWidth div 2)-(ww div 2), yy-2*hh, I_MENU_LOADING);
+  xx := (gScreenWidth div 3);
 
   with LoadingStat do
-    if MaxValue > 0 then
-      s := Format('%s:  %d/%d', [Text, CurValue, MaxValue])
-    else
-      s := Text;
+    for i := 0 to NextMsg-1 do
+      begin
+        if (i = (NextMsg-1)) and (MaxValue > 0) then
+          s := Format('%s:  %d/%d', [Msgs[i], CurValue, MaxValue])
+        else
+          s := Msgs[i];
 
-  e_CharFont_GetSize(gMenuFont, s, ww, hh);
-  e_CharFont_PrintEx(gMenuFont, (gScreenWidth div 2)-(ww div 2), yy+hh, s, _RGB(255, 0, 0));
+        e_CharFont_PrintEx(gMenuSmallFont, xx, yy, s, _RGB(255, 0, 0));
+        yy := yy + LOADING_INTERLINE;
+      end;
 end;
 
 procedure DrawPlayer(p: TPlayer);
@@ -1430,8 +1479,8 @@ begin
    begin
      if gGameOn then
        e_DrawFillQuad(0, 0, gScreenWidth, gScreenHeight, 0, 0, 0, 180);
-       g_ActiveWindow.Draw();
-     end;
+     g_ActiveWindow.Draw();
+   end;
 
  g_Console_Draw();
 
@@ -1474,6 +1523,7 @@ begin
 
  e_WriteLog('Starting single game...', MSG_NOTIFY);
 
+ g_Game_ClearLoading();
  g_Game_LoadData();
 
  ZeroMemory(@gGameSettings, sizeof(TGameSettings));
@@ -1533,6 +1583,7 @@ begin
 
  e_WriteLog('Starting custom game...', MSG_NOTIFY);
 
+ g_Game_ClearLoading();
  g_Game_LoadData();
 
  gGameSettings.GameType := GT_CUSTOM;
@@ -1623,6 +1674,7 @@ begin
  g_ProcessResourceStr(gMapInfo.Map, nil, nil, @Map);
 
  gGameOn := False;
+ g_Game_ClearLoading();
  g_Game_StartMap(Map, True);
 end;
 
@@ -1709,129 +1761,166 @@ end;
 procedure GameCommands(P: SArray);
 var
   a, b: Integer;
-  s: string;
+  s: String;
   stat: TPlayerStatArray;
+  
 begin
- if (LowerCase(P[0]) = 'quit') or (LowerCase(P[0]) = 'exit') then g_Game_Quit();
- if LowerCase(P[0]) = 'pause' then if gGameOn then gPause := not gPause;
- if LowerCase(P[0]) = 'endgame' then gExit := EXIT_SIMPLE;
- if LowerCase(P[0]) = 'restart' then if gGameOn then g_Game_Restart();
+  if (LowerCase(P[0]) = 'quit') or (LowerCase(P[0]) = 'exit') then
+    g_Game_Quit();
 
- if LowerCase(P[0]) = 'g_showfps' then
-  if (Length(P) > 1) and ((P[1] = '1') or (P[1] = '0')) then
-   gShowFPS := P[1][1] = '1'
-    else g_Console_Add(Format('g_showfps is %d', [Byte(gShowFPS)]));
+  if LowerCase(P[0]) = 'pause' then
+    if gGameOn then
+      if (g_ActiveWindow = nil) then
+        g_Game_Pause(not gPause);
 
- if LowerCase(P[0]) = 'map' then if (Length(P) > 1) then
- begin
-  if Pos('.wad', LowerCase(P[1])) = 0 then P[1] := P[1]+'.wad';
+  if LowerCase(P[0]) = 'endgame' then
+   gExit := EXIT_SIMPLE;
 
-  if Length(P) > 2 then s := MapsDir+P[1]+':\'+UpperCase(P[2])
-   else s := MapsDir+P[1]+':\MAP01';
+  if LowerCase(P[0]) = 'restart' then
+    if gGameOn then
+      g_Game_Restart();
 
-  if g_Map_Exist(s) then
-  begin
-    g_Game_Free();
-    with gGameSettings do
-     g_Game_StartCustom(s, GameMode, TimeLimit, GoalLimit, Options);
-  end;
- end;
+  if LowerCase(P[0]) = 'g_showfps' then
+    if (Length(P) > 1) and ((P[1] = '1') or (P[1] = '0')) then
+      gShowFPS := P[1][1] = '1'
+    else
+      g_Console_Add(Format('g_showfps is %d', [Byte(gShowFPS)]));
 
- if LowerCase(P[0]) = 'ffire' then
-   with gGameSettings do
-     begin
-       if (Length(P) > 1) and ((P[1] = '1') or (P[1] = '0')) then
+  if LowerCase(P[0]) = 'map' then
+    if (Length(P) > 1) then
+      begin
+        if Pos('.wad', LowerCase(P[1])) = 0 then
+          P[1] := P[1]+'.wad';
+
+        if Length(P) > 2 then
+          s := MapsDir+P[1]+':\'+UpperCase(P[2])
+        else
+          s := MapsDir+P[1]+':\MAP01';
+
+       if g_Map_Exist(s) then
          begin
-           if (P[1][1] = '1') then
-             Options := Options or GAME_OPTION_TEAMDAMAGE
-           else
-             Options := Options and (not GAME_OPTION_TEAMDAMAGE);
+           g_Game_Free();
+           with gGameSettings do
+             g_Game_StartCustom(s, GameMode, TimeLimit, GoalLimit, Options);
          end;
-       if (LongBool(Options and GAME_OPTION_TEAMDAMAGE)) then
-         g_Console_Add('FriendlyFire is On')
-       else
-         g_Console_Add('FriendlyFire is Off');
-     end;
+      end;
 
- if gGameSettings.GameType = GT_CUSTOM then
- begin
+  if LowerCase(P[0]) = 'ffire' then
+    with gGameSettings do
+      begin
+        if (Length(P) > 1) and ((P[1] = '1') or (P[1] = '0')) then
+          begin
+            if (P[1][1] = '1') then
+              Options := Options or GAME_OPTION_TEAMDAMAGE
+            else
+              Options := Options and (not GAME_OPTION_TEAMDAMAGE);
+          end;
+        if (LongBool(Options and GAME_OPTION_TEAMDAMAGE)) then
+          g_Console_Add('FriendlyFire is On')
+        else
+          g_Console_Add('FriendlyFire is Off');
+      end;
 
-  if LowerCase(P[0]) = 'p1_name' then
-   if (Length(P) > 1) and gGameOn and (gPlayer1 <> nil) then gPlayer1.Name := P[1];
-
-  if LowerCase(P[0]) = 'p2_name' then
-   if (Length(P) > 1) and gGameOn and (gPlayer2 <> nil) then gPlayer2.Name := P[1];
-
-  if LowerCase(P[0]) = 'g_showtime' then
-   if (Length(P) > 1) and ((P[1] = '1') or (P[1] = '0')) then
-    gShowTime := P[1][1] = '1'
-     else g_Console_Add(Format('g_showtime is %d', [Byte(gShowTime)]));
-
-  if LowerCase(P[0]) = 'g_showgoals' then
-   if (Length(P) > 1) and ((P[1] = '1') or (P[1] = '0')) then
-    gShowGoals := P[1][1] = '1'
-     else g_Console_Add(Format('g_showgoals is %d', [Byte(gShowGoals)]));
-
-  if LowerCase(P[0]) = 'g_showstat' then
-   if (Length(P) > 1) and ((P[1] = '1') or (P[1] = '0')) then
-    gShowStat := P[1][1] = '1'
-     else g_Console_Add(Format('g_showstat is %d', [Byte(gShowStat)]));
-
-  if LowerCase(P[0]) = 'g_showkillmsg' then
-   if (Length(P) > 1) and ((P[1] = '1') or (P[1] = '0')) then
-    gShowKillMsg := P[1][1] = '1'
-     else g_Console_Add(Format('g_showkillmsg is %d', [Byte(gShowKillMsg)]));
-
-  if LowerCase(P[0]) = 'p1_color' then
-   if (gPlayer1 <> nil) and (Length(P) > 3) then
-    gPlayer1.Model.SetColor(EnsureRange(StrToIntDef(P[1], 0), 0, 255),
-                            EnsureRange(StrToIntDef(P[2], 0), 0, 255),
-                            EnsureRange(StrToIntDef(P[3], 0), 0, 255));
-
-  if LowerCase(P[0]) = 'p2_color' then
-   if (gPlayer2 <> nil) and (Length(P) > 3) then
-    gPlayer2.Model.SetColor(EnsureRange(StrToIntDef(P[1], 0), 0, 255),
-                            EnsureRange(StrToIntDef(P[2], 0), 0, 255),
-                            EnsureRange(StrToIntDef(P[3], 0), 0, 255));
-
-  if LowerCase(P[0]) = 'fraglimit' then
-   if Length(P) > 1 then
-   begin
-    b := 0;
-
-    if gGameSettings.GameMode = GM_DM then
+  if gGameSettings.GameType = GT_CUSTOM then
     begin
-     stat := g_Player_GetStats();
-     if stat <> nil then
-      for a := 0 to High(stat) do
-       if stat[a].Frags > b then b := stat[a].Frags;
-    end else b := Max(gTeamStat[TEAM_RED].Goals, gTeamStat[TEAM_BLUE].Goals);
 
-    gGameSettings.GoalLimit := Max(StrToIntDef(P[1], b), b)
-   end else g_Console_Add(Format('fraglimit is %d', [gGameSettings.GoalLimit]));
+    if LowerCase(P[0]) = 'p1_name' then
+      if (Length(P) > 1) and gGameOn and (gPlayer1 <> nil) then
+        gPlayer1.Name := P[1];
 
- if (LowerCase(P[0]) = 'monster') and (Length(P) > 1) then
-  g_Monsters_Create(StrToIntDef(P[1], 255), gPlayer1.GameX, gPlayer1.GameY-48, D_LEFT);
+    if LowerCase(P[0]) = 'p2_name' then
+      if (Length(P) > 1) and gGameOn and (gPlayer2 <> nil) then
+        gPlayer2.Name := P[1];
 
-  if (LowerCase(P[0]) = 'addbot') or (LowerCase(P[0]) = 'bot_add') then
-   if Length(P) > 1 then g_Bot_Add(TEAM_NONE, StrToIntDef(P[1], 2))
-    else g_Bot_Add(TEAM_NONE, 2);
+    if LowerCase(P[0]) = 'g_showtime' then
+      if (Length(P) > 1) and ((P[1] = '1') or (P[1] = '0')) then
+        gShowTime := P[1][1] = '1'
+      else
+        g_Console_Add(Format('g_showtime is %d', [Byte(gShowTime)]));
 
-  if LowerCase(P[0]) = 'bot_addlist' then
-   if Length(P) > 1 then
-    if Length(P) = 2 then g_Bot_AddList(TEAM_NONE, P[1], StrToIntDef(P[1], -1))
-     else g_Bot_AddList(IfThen(P[2] = 'red', TEAM_RED, TEAM_BLUE), P[1], StrToIntDef(P[1], -1));
+    if LowerCase(P[0]) = 'g_showgoals' then
+      if (Length(P) > 1) and ((P[1] = '1') or (P[1] = '0')) then
+        gShowGoals := P[1][1] = '1'
+      else
+        g_Console_Add(Format('g_showgoals is %d', [Byte(gShowGoals)]));
 
-  if LowerCase(P[0]) = 'bot_addred' then
-   if Length(P) > 1 then g_Bot_Add(TEAM_RED, StrToIntDef(P[1], 2))
-    else g_Bot_Add(TEAM_RED, 2);
+    if LowerCase(P[0]) = 'g_showstat' then
+      if (Length(P) > 1) and ((P[1] = '1') or (P[1] = '0')) then
+        gShowStat := P[1][1] = '1'
+      else
+        g_Console_Add(Format('g_showstat is %d', [Byte(gShowStat)]));
 
-  if LowerCase(P[0]) = 'bot_addblue' then
-   if Length(P) > 1 then g_Bot_Add(TEAM_BLUE, StrToIntDef(P[1], 2))
-    else g_Bot_Add(TEAM_BLUE, 2);
+    if LowerCase(P[0]) = 'g_showkillmsg' then
+      if (Length(P) > 1) and ((P[1] = '1') or (P[1] = '0')) then
+        gShowKillMsg := P[1][1] = '1'
+      else
+        g_Console_Add(Format('g_showkillmsg is %d', [Byte(gShowKillMsg)]));
 
-  if LowerCase(P[0]) = 'bot_removeall' then g_Bot_RemoveAll();
- end;
+    if LowerCase(P[0]) = 'p1_color' then
+      if (gPlayer1 <> nil) and (Length(P) > 3) then
+        gPlayer1.Model.SetColor(EnsureRange(StrToIntDef(P[1], 0), 0, 255),
+                                EnsureRange(StrToIntDef(P[2], 0), 0, 255),
+                                EnsureRange(StrToIntDef(P[3], 0), 0, 255));
+
+    if LowerCase(P[0]) = 'p2_color' then
+      if (gPlayer2 <> nil) and (Length(P) > 3) then
+        gPlayer2.Model.SetColor(EnsureRange(StrToIntDef(P[1], 0), 0, 255),
+                                EnsureRange(StrToIntDef(P[2], 0), 0, 255),
+                                EnsureRange(StrToIntDef(P[3], 0), 0, 255));
+
+    if LowerCase(P[0]) = 'fraglimit' then
+      if Length(P) > 1 then
+        begin
+          b := 0;
+
+          if gGameSettings.GameMode = GM_DM then
+            begin
+              stat := g_Player_GetStats();
+              if stat <> nil then
+                for a := 0 to High(stat) do
+                  if stat[a].Frags > b then
+                    b := stat[a].Frags;
+            end
+          else
+            b := Max(gTeamStat[TEAM_RED].Goals, gTeamStat[TEAM_BLUE].Goals);
+
+          gGameSettings.GoalLimit := Max(StrToIntDef(P[1], b), b)
+        end
+      else
+        g_Console_Add(Format('fraglimit is %d', [gGameSettings.GoalLimit]));
+
+    if (LowerCase(P[0]) = 'monster') and (Length(P) > 1) then
+      g_Monsters_Create(StrToIntDef(P[1], 255), gPlayer1.GameX, gPlayer1.GameY-48, D_LEFT);
+
+    if (LowerCase(P[0]) = 'addbot') or (LowerCase(P[0]) = 'bot_add') then
+      if Length(P) > 1 then
+        g_Bot_Add(TEAM_NONE, StrToIntDef(P[1], 2))
+      else
+        g_Bot_Add(TEAM_NONE, 2);
+
+    if LowerCase(P[0]) = 'bot_addlist' then
+      if Length(P) > 1 then
+        if Length(P) = 2 then
+          g_Bot_AddList(TEAM_NONE, P[1], StrToIntDef(P[1], -1))
+        else
+          g_Bot_AddList(IfThen(P[2] = 'red', TEAM_RED, TEAM_BLUE), P[1], StrToIntDef(P[1], -1));
+
+    if LowerCase(P[0]) = 'bot_addred' then
+      if Length(P) > 1 then
+        g_Bot_Add(TEAM_RED, StrToIntDef(P[1], 2))
+      else
+        g_Bot_Add(TEAM_RED, 2);
+
+    if LowerCase(P[0]) = 'bot_addblue' then
+      if Length(P) > 1 then
+        g_Bot_Add(TEAM_BLUE, StrToIntDef(P[1], 2))
+      else
+        g_Bot_Add(TEAM_BLUE, 2);
+
+    if LowerCase(P[0]) = 'bot_removeall' then
+      g_Bot_RemoveAll();
+
+    end;
 end;
 
 procedure g_Game_PlayMusic(name: string);
@@ -1880,22 +1969,64 @@ begin
  if not gGameOn then Exit;
 
  if (g_ActiveWindow = nil) and Show then
- begin
-  if gGameSettings.GameType = GT_SINGLE then g_GUI_ShowWindow('GameSingleMenu')
-   else g_GUI_ShowWindow('GameCustomMenu');
-  g_Sound_PlayEx('MENU_OPEN', 127, 255);
-  g_Game_Pause(True);
- end else if (g_ActiveWindow <> nil) and not Show then gPause := False;
+   begin
+     if gGameSettings.GameType = GT_SINGLE then
+       g_GUI_ShowWindow('GameSingleMenu')
+     else
+       g_GUI_ShowWindow('GameCustomMenu');
+     g_Sound_PlayEx('MENU_OPEN', 127, 255);
+     g_Game_Pause(True);
+   end
+ else
+   if (g_ActiveWindow <> nil) and not Show then
+     begin
+       g_Game_Pause(False);
+     end;
 end;
 
 procedure g_Game_Pause(Enable: Boolean);
 begin
  if not gGameOn then Exit;
 
+ if gPause = Enable then
+   Exit;
+
+ if not (gGameSettings.GameType in [GT_SINGLE, GT_CUSTOM]) then
+   Exit;
+
  if Enable then
- begin
-  if gGameSettings.GameType in [GT_SINGLE, GT_CUSTOM] then gPause := True;
- end else if g_ActiveWindow = nil then gPause := False;
+   begin
+     gPause := True;
+     g_Game_PauseMusic(True);
+     g_Game_PauseTriggerSounds(True);
+   end
+ else
+   begin
+     gPause := False;
+     g_Game_PauseMusic(False);
+     g_Game_PauseTriggerSounds(False);
+   end;
+end;
+
+procedure g_Game_PauseMusic(Enable: Boolean);
+begin
+  if gMusic <> '' then
+    g_Music_PauseEx(gMusic, Enable);
+end;
+
+procedure g_Game_PauseTriggerSounds(Enable: Boolean);
+var
+  i: Integer;
+
+begin
+  if gTriggers <> nil then
+    for i := 0 to High(gTriggers) do
+      with gTriggers[i] do
+        if (TriggerType = TRIGGER_SOUND) and (Sound <> nil) then
+          if Sound.IsPlaying then
+            begin
+              Sound.Pause(Enable);
+            end;
 end;
 
 procedure g_Game_Message(Msg: string; Time: Word);
@@ -1930,22 +2061,61 @@ begin
 end;
 
 procedure g_Game_SetLoadingText(Text: String; Max: Integer);
+var
+  i: Word;
+
 begin
-  LoadingStat.Text := Text;
-  LoadingStat.CurValue := 0;
-  LoadingStat.MaxValue := Max;
-  LoadingStat.ShowCount := 0;
+  if Length(LoadingStat.Msgs) = 0 then
+    Exit;
+
+  with LoadingStat do
+    begin
+      if NextMsg = Length(Msgs) then
+        begin
+          for i := 0 to High(Msgs)-1 do
+            Msgs[i] := Msgs[i+1];
+        end
+      else
+        Inc(NextMsg);
+
+      Msgs[NextMsg-1] := Text;
+      CurValue := 0;
+      MaxValue := Max;
+      ShowCount := 0;
+    end;
+
   ProcessLoading;
 end;
 
 procedure g_Game_StepLoading();
 begin
-  Inc(LoadingStat.CurValue);
-  Inc(LoadingStat.ShowCount);
-  if (LoadingStat.ShowCount > LOADING_SHOW_STEP) then
+  with LoadingStat do
     begin
-      LoadingStat.ShowCount := 0;
-      ProcessLoading;
+      Inc(CurValue);
+      Inc(ShowCount);
+      if (ShowCount > LOADING_SHOW_STEP) then
+        begin
+          ShowCount := 0;
+          ProcessLoading;
+        end;
+    end;
+end;
+
+procedure g_Game_ClearLoading();
+var
+  len: Word;
+
+begin
+  with LoadingStat do
+    begin
+      CurValue := 0;
+      MaxValue := 0;
+      ShowCount := 0;
+      len := ((gScreenHeight div 3)*2 - 50) div LOADING_INTERLINE;
+      SetLength(Msgs, len);
+      for len := 0 to High(Msgs) do
+        Msgs[len] := '';
+      NextMsg := 0;
     end;
 end;
 
@@ -1969,7 +2139,17 @@ begin
               Name := LowerCase(s);
               Value := LowerCase(ParamStr(i));
             end;
-        end;
+        end
+      else
+        if (s[1] = '+') and (Length(s) > 1) then
+          begin
+            SetLength(pars, Length(pars) + 1);
+            with pars[High(pars)] do
+              begin
+                Name := LowerCase(s);
+                Value := '+';
+              end;
+          end;
       Inc(i);
     end;
 end;
@@ -2026,6 +2206,10 @@ begin
         Opt := GAME_OPTION_ALLOWEXIT;
       if Opt < 0 then
         Opt := GAME_OPTION_ALLOWEXIT;
+    // Close after map:
+      s := Find_Param_Value(pars, '+gclose');
+      if (s <> '') then
+        gMapOnce := True;
     // Start:
       g_Game_StartCustom(map, GMode, LimT, LimG, Opt);
     end;

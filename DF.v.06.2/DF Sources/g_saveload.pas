@@ -24,7 +24,8 @@ implementation
 
 uses
   g_game, g_items, g_map, g_monsters, g_triggers, g_basic, windows,
-  g_main, SysUtils, Math, WADEDITOR, MAPSTRUCT, MAPDEF, g_weapons, g_player;
+  g_main, SysUtils, Math, WADEDITOR, MAPSTRUCT, MAPDEF, g_weapons,
+  g_player, inter;
 
 const
   SIGNATURE = 'DFSAVE';
@@ -252,7 +253,8 @@ begin
  FileName := DataDir+'SAVGAME'+IntToStr(n)+'.DAT';
  if not FileExists(FileName) then Exit;
 
- g_Game_SetLoadingText('Save File', 0);
+ g_Game_ClearLoading();
+ g_Game_SetLoadingText(I_LOAD_SAVE_FILE, 0);
 
  AssignFile(f, FileName);
  Reset(f, 1);
@@ -286,7 +288,7 @@ begin
    case block.BlockType of
     BLOCK_MAP:
     begin
-     g_Game_SetLoadingText('Map State', 0);
+     g_Game_SetLoadingText(I_LOAD_MAP_STATE, 0);
      p := GetMemory(block.BlockSize);
      BlockRead(f, p^, block.BlockSize);
      g_Map_LoadState(p, block.BlockSize);
@@ -295,7 +297,7 @@ begin
 
     BLOCK_ITEM:
     begin
-     g_Game_SetLoadingText('Items State', 0);
+     g_Game_SetLoadingText(I_LOAD_ITEMS_STATE, 0);
      p := GetMemory(block.BlockSize);
      BlockRead(f, p^, block.BlockSize);
      g_Items_Load(p, block.BlockSize);
@@ -304,7 +306,7 @@ begin
 
     BLOCK_TRIGGER:
     begin
-     g_Game_SetLoadingText('Triggers State', 0);
+     g_Game_SetLoadingText(I_LOAD_TRIGGERS_STATE, 0);
      p := GetMemory(block.BlockSize);
      BlockRead(f, p^, block.BlockSize);
      g_Triggers_Load(p, block.BlockSize);
@@ -313,7 +315,7 @@ begin
 
     BLOCK_WEAPON:
     begin
-     g_Game_SetLoadingText('Weapons State', 0);
+     g_Game_SetLoadingText(I_LOAD_WEAPONS_STATE, 0);
      p := GetMemory(block.BlockSize);
      BlockRead(f, p^, block.BlockSize);
      g_Weapon_Load(p, block.BlockSize);
@@ -322,7 +324,7 @@ begin
 
     BLOCK_MONSTER:
     begin
-     g_Game_SetLoadingText('Monsters State', 0);
+     g_Game_SetLoadingText(I_LOAD_MONSTERS_STATE, 0);
      p := GetMemory(block.BlockSize);
      BlockRead(f, p^, block.BlockSize);
      g_Monsters_Load(p, block.BlockSize);

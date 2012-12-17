@@ -49,6 +49,8 @@ begin
      end;
  end;
 
+ // g_Game_ClearLoading(); - when wiil be resolution change without restart
+
  Fullscreen := TGUISwitch(menu.GetControl('swFullScreen')).ItemIndex = 0;
  gVSync := TGUISwitch(menu.GetControl('swVSync')).ItemIndex = 0;
  if TGUISwitch(menu.GetControl('swBPP')).ItemIndex = 0 then BPP := 16 else BPP := 32;
@@ -161,7 +163,7 @@ begin
 
  e_WriteLog('Writing config', MSG_NOTIFY);
  
- config := TConfig.CreateFile(GameDir+'\doomforever.cfg');
+ config := TConfig.CreateFile(GameDir+'\Doom2DF.cfg');
 
  config.WriteInt('Video', 'ScreenWidth', SWidth);
  config.WriteInt('Video', 'ScreenHeight', SHeight);
@@ -240,7 +242,7 @@ begin
  config.WriteBool('Game', 'Messages', gShowMessages);
  config.WriteBool('Game', 'RevertPlayers', gRevertPlayers);
 
- config.SaveFile(GameDir+'\doomforever.cfg');
+ config.SaveFile(GameDir+'\Doom2DF.cfg');
  config.Destroy;
 end;
 
@@ -252,10 +254,9 @@ begin
 
  with TGUISwitch(menu.GetControl('swResolution')) do
  case gScreenWidth of
-  640: ItemIndex := 0;
-  800: ItemIndex := 1;
-  else
-    ItemIndex := 2;
+   590..640: ItemIndex := 0;
+   750..800: ItemIndex := 1;
+   else ItemIndex := 2;
  end;
 
  with TGUISwitch(menu.GetControl('swFullScreen')) do
@@ -629,6 +630,7 @@ end;
 procedure MenuFreeData();
 begin
  e_CharFont_Remove(gMenuFont);
+ e_CharFont_Remove(gMenuSmallFont);
 
  g_Texture_Delete('MAINMENU_MARKER1');
  g_Texture_Delete('MAINMENU_MARKER2');
@@ -731,7 +733,7 @@ begin
  g_SaveGame(a, TGUIEdit(Sender).Text);
 
  g_ActiveWindow := nil;
- gPause := False;
+ g_Game_Pause(False);
 end;
 
 procedure ProcLoadGame(Sender: TGUIControl);

@@ -175,7 +175,7 @@ type
     function    Collide(X, Y: Integer): Boolean; overload;
     procedure   SetDirection(Direction: TDirection);
     procedure   GetSecret();
-    function    TeleportTo(X, Y: Integer; silent: Boolean; dir: TDirection): Boolean;
+    function    TeleportTo(X, Y: Integer; silent: Boolean; dir: Byte): Boolean;
     procedure   Push(vx, vy: Integer);
     procedure   ChangeModel(ModelName: string);
     procedure   BFGHit();
@@ -1532,7 +1532,7 @@ begin
 
   ITEM_WEAPON_SAW:
   begin
-   if (not respawn) and (not gGameSettings.GameType = GT_SINGLE) then
+   if (not respawn) and (gGameSettings.GameType <> GT_SINGLE) then
    begin
     FWeapon[WEAPON_SAW] := True;
     remove := True;
@@ -2021,7 +2021,7 @@ begin
                                    PLAYER_RECT.Width, 1, PANEL_STEP);
 end;
 
-function TPlayer.TeleportTo(X, Y: Integer; silent: Boolean; dir: TDirection): Boolean;
+function TPlayer.TeleportTo(X, Y: Integer; silent: Boolean; dir: Byte): Boolean;
 var
   Anim: TAnimation;
   ID: DWORD;
@@ -2045,7 +2045,17 @@ begin
  
  FObj.X := X-PLAYER_RECT.X;
  FObj.Y := Y-PLAYER_RECT.Y;
- FDirection := dir;
+ if dir = 1 then
+   begin
+     FDirection := D_LEFT;
+     FAngle := 180;
+   end
+ else
+   if dir = 2 then
+     begin
+       FDirection := D_RIGHT;
+       FAngle := 0;
+     end;
 
  if not silent and (Anim <> nil) then
  begin

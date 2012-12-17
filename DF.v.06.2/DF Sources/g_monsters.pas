@@ -73,7 +73,7 @@ type
     function Collide(X, Y: Integer; Width, Height: Word): Boolean; overload;
     function Collide(Rect: TRectWH): Boolean; overload;
     function Collide(X, Y: Integer): Boolean; overload;
-    function TeleportTo(X, Y: Integer; silent: Boolean; dir: TDirection): Boolean;
+    function TeleportTo(X, Y: Integer; silent: Boolean; dir: Byte): Boolean;
     function Live(): Boolean;
     procedure SetHealth(aH: Integer);
     procedure Push(vx, vy: Integer);
@@ -94,7 +94,8 @@ procedure g_Monsters_LoadData();
 procedure g_Monsters_FreeData();
 procedure g_Monsters_Init();
 procedure g_Monsters_Free();
-function g_Monsters_Create(MonsterType: Byte; X, Y: Integer; Direction: TDirection): Integer;
+function g_Monsters_Create(MonsterType: Byte; X, Y: Integer;
+           Direction: TDirection; AdjCoord: Boolean = False): Integer;
 procedure g_Monsters_Update();
 procedure g_Monsters_Draw();
 function g_Monsters_Get(UID: Word): TMonster;
@@ -111,7 +112,7 @@ implementation
 uses
   e_log, g_main, g_sound, g_gfx, g_player, g_game, g_weapons, g_triggers,
   MAPDEF, g_items, g_options, g_console, g_map, Math, SysUtils, g_menu,
-  WADEDITOR;
+  WADEDITOR, inter;
 
 const
   ANIM_SLEEP   = 0;
@@ -378,7 +379,7 @@ var
 begin
  e_WriteLog('Loading monsters data...', MSG_NOTIFY);
 
- g_Game_SetLoadingText('Monsters Textures 0/3', 0);
+ g_Game_SetLoadingText(I_LOAD_MONSTER_TEXTURES+' 0%', 0);
 
  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_BARREL_SLEEP', GameWAD+':MTEXTURES\BARREL_SLEEP', 64, 64, 3);
  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_BARREL_DIE', GameWAD+':MTEXTURES\BARREL_DIE', 64, 64, 4);
@@ -435,7 +436,7 @@ begin
  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_FISH_ATTACK', GameWAD+':MTEXTURES\FISH_ATTACK', 32, 32, 2);
  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_FISH_DIE', GameWAD+':MTEXTURES\FISH_DIE', 32, 32, 1);
 
- g_Game_SetLoadingText('Monsters Textures 1/3', 0);
+ g_Game_SetLoadingText(I_LOAD_MONSTER_TEXTURES+' 50%', 0);
 
  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_SPIDER_SLEEP', GameWAD+':MTEXTURES\SPIDER_SLEEP', 256, 128, 2);
  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_SPIDER_GO', GameWAD+':MTEXTURES\SPIDER_GO', 256, 128, 6);
@@ -481,7 +482,7 @@ begin
  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_KNIGHT_ATTACK_L', GameWAD+':MTEXTURES\KNIGHT_ATTACK_L', 128, 128, 3);
  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_KNIGHT_DIE', GameWAD+':MTEXTURES\KNIGHT_DIE', 128, 128, 7);
 
- g_Game_SetLoadingText('Monsters Textures 2/3', 0);
+ g_Game_SetLoadingText(I_LOAD_MONSTER_TEXTURES+' 100%', 0);
 
  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_MANCUB_SLEEP', GameWAD+':MTEXTURES\MANCUB_SLEEP', 128, 128, 2);
  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_MANCUB_GO', GameWAD+':MTEXTURES\MANCUB_GO', 128, 128, 6);
@@ -527,7 +528,7 @@ begin
  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_CYBER_ATTACK_L', GameWAD+':MTEXTURES\CYBER_ATTACK_L', 128, 128, 2);
  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_CYBER_DIE', GameWAD+':MTEXTURES\CYBER_DIE', 128, 128, 9);
 
- g_Game_SetLoadingText('Monsters Sounds', 0);
+ g_Game_SetLoadingText(I_LOAD_MONSTER_SOUNDS, 0);
 
  g_Sound_CreateWADEx('SOUND_MONSTER_BARREL_DIE', GameWAD+':MSOUNDS\BARREL_DIE');
 
@@ -864,7 +865,8 @@ begin
  gMonsters := nil;
 end;
 
-function g_Monsters_Create(MonsterType: Byte; X, Y: Integer; Direction: TDirection): Integer;
+function g_Monsters_Create(MonsterType: Byte; X, Y: Integer;
+           Direction: TDirection; AdjCoord: Boolean = False): Integer;
 var
   find_id: DWORD;
 begin
@@ -881,8 +883,17 @@ begin
 
  with gMonsters[find_id] do
  begin
-  FObj.X := X-FObj.Rect.X;
-  FObj.Y := Y-FObj.Rect.Y;
+  if AdjCoord then
+    begin
+      FObj.X := X-FObj.Rect.X - (FObj.Rect.Width div 2);
+      FObj.Y := Y-FObj.Rect.Y - FObj.Rect.Height;
+    end
+  else
+    begin
+      FObj.X := X-FObj.Rect.X;
+      FObj.Y := Y-FObj.Rect.Y;
+    end;
+
   FDirection := Direction;
  end;
 
@@ -1455,7 +1466,7 @@ begin
  end;
 end;
 
-function TMonster.TeleportTo(X, Y: Integer; silent: Boolean; dir: TDirection): Boolean;
+function TMonster.TeleportTo(X, Y: Integer; silent: Boolean; dir: Byte): Boolean;
 var
   TA: TAnimation;
   FramesID: DWORD;
@@ -1476,7 +1487,11 @@ begin
  
  FObj.X := X-FObj.Rect.X;
  FObj.Y := Y-FObj.Rect.Y;
- FDirection := dir;
+ if dir = 1 then
+   FDirection := D_LEFT
+ else
+   if dir = 2 then
+     FDirection := D_RIGHT;
 
  if not silent and (TA <> nil) then
  begin
@@ -1559,7 +1574,7 @@ begin
      (FAnim[FCurAnim, FDirection].Counter = 0) then
    g_Weapon_Explode(FObj.X+FObj.Rect.X+(FObj.Rect.Width div 2),
                     FObj.Y+FObj.Rect.Y+FObj.Rect.Height-16,
-                    60, FTargetUID);
+                    60, FUID);
  end;
 
  if FMonsterType = MONSTER_SOUL then

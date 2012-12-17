@@ -31,6 +31,7 @@ type
     Label4: TLabel;
     bChooseD2d: TButton;
     FindD2dDialog: TOpenDialog;
+    cbMapOnce: TCheckBox;
     procedure bOKClick(Sender: TObject);
     procedure bCancelClick(Sender: TObject);
     procedure FormActivate(Sender: TObject);
@@ -95,6 +96,10 @@ begin
   TestOptionsWeaponStay := cbWeaponStay.Checked;
   config.WriteBool('TestRun', 'MonstersDM', cbMonstersDM.Checked);
   TestOptionsMonstersDM := cbMonstersDM.Checked;
+
+  config.WriteBool('TestRun', 'MapOnce', cbMapOnce.Checked);
+  TestMapOnce := cbMapOnce.Checked;
+  
   config.WriteStr('TestRun', 'Exe', edD2dExe.Text);
   TestD2dExe := edD2dExe.Text;
 
@@ -127,6 +132,7 @@ begin
   cbAllowExit.Checked := TestOptionsAllowExit;
   cbWeaponStay.Checked := TestOptionsWeaponStay;
   cbMonstersDM.Checked := TestOptionsMonstersDM;
+  cbMapOnce.Checked := TestMapOnce;
   edD2dExe.Text := TestD2dExe;
 end;
 
@@ -145,6 +151,7 @@ begin
   TestOptionsAllowExit := config.ReadBool('TestRun', 'AllowExit', True);
   TestOptionsWeaponStay := config.ReadBool('TestRun', 'WeaponStay', False);
   TestOptionsMonstersDM := config.ReadBool('TestRun', 'MonstersDM', False);
+  TestMapOnce := config.ReadBool('TestRun', 'MapOnce', False);
   TestD2dExe := config.ReadStr('TestRun', 'Exe', EditorDir+'DoomForever.exe');
 
   config.Destroy;
