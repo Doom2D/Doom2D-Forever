@@ -1,6 +1,6 @@
 object MapOptimizationForm: TMapOptimizationForm
-  Left = 196
-  Top = 188
+  Left = 268
+  Top = 189
   BorderIcons = [biSystemMenu]
   BorderStyle = bsToolWindow
   Caption = #1054#1087#1090#1080#1084#1080#1079#1072#1094#1080#1103' '#1082#1072#1088#1090#1099
@@ -18,7 +18,7 @@ object MapOptimizationForm: TMapOptimizationForm
   OnActivate = FormActivate
   PixelsPerInch = 96
   TextHeight = 13
-  object GroupBox1: TGroupBox
+  object GroupBoxOpt: TGroupBox
     Left = 0
     Top = 0
     Width = 257
@@ -63,7 +63,7 @@ object MapOptimizationForm: TMapOptimizationForm
     Top = 3
     Width = 169
     Height = 190
-    ActivePage = tsPanelOptimization
+    ActivePage = tsTextureOptimization
     TabOrder = 1
     object tsTextureOptimization: TTabSheet
       TabVisible = False

@@ -5,7 +5,7 @@ interface
 uses windows, WADEDITOR, g_phys;
 
 const
-  GAME_VERSION  = '0.62';
+  GAME_VERSION  = '0.62.1';
   UID_GAME    = 1;
   UID_PLAYER  = 2;
   UID_MONSTER = 3;
@@ -15,9 +15,10 @@ const
   UID_MAX_MONSTER = $FFFF;
 
 type
-  TDirection=(D_LEFT, D_RIGHT);
+  TDirection = (D_LEFT, D_RIGHT);
   WArray = array of Word;
   DWArray = array of DWORD;
+  String20 = String[20];
 
 function g_CreateUID(UIDType: Byte): Word;
 function g_GetUIDType(UID: Word): Byte;
@@ -26,8 +27,8 @@ function g_Collide(X1, Y1: Integer; Width1, Height1: Word;
 function g_CollideLine(x1, y1, x2, y2, rX, rY: Integer; rWidth, rHeight: Word): Boolean;
 function g_CollidePoint(X, Y, X2, Y2: Integer; Width, Height: Word): Boolean;
 function g_CollideLevel(X, Y: Integer; Width, Height: Word): Boolean;
-function g_CollideWater(X1, Y1: Integer; Width1, Height1: Word;
-                        X2, Y2: Integer; Width2, Height2: Word): Boolean;
+function g_CollideAround(X1, Y1: Integer; Width1, Height1: Word;
+                         X2, Y2: Integer; Width2, Height2: Word): Boolean;
 function g_CollidePlayer(X, Y: Integer; Width, Height: Word): Boolean;
 function g_CollideMonster(X, Y: Integer; Width, Height: Word): Boolean;
 function g_CollideItem(X, Y: Integer; Width, Height: Word): Boolean;
@@ -67,6 +68,7 @@ function GetPos(UID: Word; o: PObj): Boolean;
 function parse(s: string): SArray;
 function parse2(s: string; delim: Char): SArray;
 
+
 implementation
 
 uses Math, g_map, g_gfx, g_player, SysUtils, MAPDEF, StrUtils, e_graphics,
@@ -80,20 +82,22 @@ end;
 function g_CollideLevel(X, Y: Integer; Width, Height: Word): Boolean;
 var
   a: Integer;
+
 begin
- Result := False;
+  Result := False;
 
- if gWalls = nil then Exit;
+  if gWalls = nil then
+    Exit;
 
- for a := 0 to High(gWalls) do
-  if gWalls[a].Enabled and
-     not (((Y + Height <= gWalls[a].Rect.Y) or
-           (Y          >= gWalls[a].Rect.Y + gWalls[a].Rect.Height)) or
-          ((X + Width  <= gWalls[a].Rect.X) or
-           (X          >= gWalls[a].Rect.X + gWalls[a].Rect.Width))) then
+  for a := 0 to High(gWalls) do
+    if gWalls[a].Enabled and
+       not ( ((Y + Height <= gWalls[a].Y) or
+              (Y           >= gWalls[a].Y + gWalls[a].Height)) or
+             ((X + Width  <= gWalls[a].X) or
+              (X          >= gWalls[a].X + gWalls[a].Width)) ) then
   begin
-   Result := True;
-   Exit;
+    Result := True;
+    Exit;
   end;
 end;
 
@@ -142,7 +146,7 @@ begin
     Exit;
 
   for a := 0 to High(gItems) do
-    if (gItems[a].Live) then
+    if gItems[a].Live then
       if g_Obj_Collide(X, Y, Width, Height, @gItems[a].Obj) then
         begin
           Result := True;
@@ -193,8 +197,11 @@ begin
     Inc(y, incY);
    end;
 
-   if (y > gMapInfo.Height-1) or (y < 0) or (x > gMapInfo.Width-1) or (x < 0) then Exit;
-   if (gCollideMap[y, x] = MARK_WALL) or (gCollideMap[y, x] = MARK_DOOR) then Exit;
+   if (y > gMapInfo.Height-1) or
+      (y < 0) or (x > gMapInfo.Width-1) or (x < 0) then
+     Exit;
+   if ByteBool(gCollideMap[y, x] and MARK_BLOCKED) then
+     Exit;
   end;
 
  Result := True;
@@ -246,22 +253,26 @@ end;
 
 function g_GetUIDType(UID: Word): Byte;
 begin
- if UID <= UID_MAX_GAME then Result := UID_GAME
-  else if UID <= UID_MAX_PLAYER then Result := UID_PLAYER
-   else Result := UID_MONSTER;
+  if UID <= UID_MAX_GAME then
+    Result := UID_GAME
+  else
+    if UID <= UID_MAX_PLAYER then
+      Result := UID_PLAYER
+    else
+      Result := UID_MONSTER;
 end;
 
 function g_Collide(X1, Y1: Integer; Width1, Height1: Word;
                    X2, Y2: Integer; Width2, Height2: Word): Boolean;
 begin
- Result := not (((Y1 + Height1 <= Y2) or
-                (Y1           >= Y2 + Height2)) or
-                ((X1 + Width1 <= X2) or
-                (X1           >= X2 + Width2)));
+ Result := not ( ((Y1 + Height1 <= Y2) or
+                  (Y2 + Height2 <= Y1)) or
+                 ((X1 + Width1  <= X2) or
+                  (X2 + Width2  <= X1)) );
 end;
 
-function g_CollideWater(X1, Y1: Integer; Width1, Height1: Word;
-                        X2, Y2: Integer; Width2, Height2: Word): Boolean;
+function g_CollideAround(X1, Y1: Integer; Width1, Height1: Word;
+                         X2, Y2: Integer; Width2, Height2: Word): Boolean;
 begin
  Result := g_Collide(X1, Y1, Width1, Height1, X2, Y2, Width2, Height2) or
            g_Collide(X1+1, Y1, Width1, Height1, X2, Y2, Width2, Height2) or
@@ -390,29 +401,41 @@ end;
 
 function PointToRect(X, Y, X1, Y1: Integer; Width, Height: Word): Integer;
 begin
- X := X-X1;
- Y := Y-Y1;
-
- if X < 0 then
- begin
-  if Y < 0 then Result := Round(Hypot(X, Y))
-   else if Y > Height then Result := Round(Hypot(X, Y-Height))
-    else Result := -X;
- end
+  X := X-X1;            // A(0;0) --- B(W;0)
+  Y := Y-Y1;            // |          |
+                        // D(0;H) --- C(W;H)
+  if X < 0 then
+    begin // Слева
+      if Y < 0 then // Слева сверху: расстояние до A
+        Result := Round(Hypot(X, Y))
+      else
+        if Y > Height then // Слева снизу: расстояние до D
+          Result := Round(Hypot(X, Y-Height))
+        else // Слева посередине: расстояние до AD
+          Result := -X;
+    end
   else
- if X > Width then
- begin
-  X := X-width;
-  if y < 0 then Result := Round(Hypot(X, Y))
-   else if Y > Height then Result := Round(Hypot(X, Y-Height))
-    else Result := X;
- end
-  else
- begin
-  if Y < 0 then Result := -Y
-   else if Y > Height then Result := Y-Height
-    else Result:=0;
- end;
+    if X > Width then
+      begin // Справа
+        X := X-Width;
+        if y < 0 then // Справа сверху: расстояние до B
+          Result := Round(Hypot(X, Y))
+        else
+          if Y > Height then // Справа снизу: расстояние до C
+            Result := Round(Hypot(X, Y-Height))
+          else // Справа посередине: расстояние до BC
+            Result := X;
+      end
+    else // Посередине
+      begin
+        if Y < 0 then // Посередине сверху: расстояние до AB
+          Result := -Y
+        else
+          if Y > Height then // Посередине снизу: расстояние до DC
+            Result := Y-Height
+          else // Внутри прямоугольника: расстояние 0
+            Result := 0;
+      end;
 end;
 
 function g_GetAcidHit(X, Y: Integer; Width, Height: Word): Byte;
@@ -424,8 +447,8 @@ var
 begin
  a := 0;
 
- if g_Map_CollidePanel(X, Y, Width, Height, PANEL_ACID1) then a := a or 1;
- if g_Map_CollidePanel(X, Y, Width, Height, PANEL_ACID2) then a := a or 2;
+ if g_Map_CollidePanel(X, Y, Width, Height, PANEL_ACID1, False) then a := a or 1;
+ if g_Map_CollidePanel(X, Y, Width, Height, PANEL_ACID2, False) then a := a or 2;
 
  Result := tab[a];
 end;
@@ -467,18 +490,22 @@ var
   c: Single;
   a, b: Integer;
 begin
- a := abs(vx);
- b := abs(vy);
+  a := abs(vx);
+  b := abs(vy);
 
- if a = 0 then c := 90
-  else c := RadToDeg(ArcTan(b/a));
+  if a = 0 then 
+    c := 90
+  else 
+    c := RadToDeg(ArcTan(b/a));
 
- if vy < 0 then c := -c;
- if vx > 0 then c := 180-c;
+  if vy < 0 then 
+    c := -c;
+  if vx > 0 then 
+    c := 180 - c;
 
- c := c+180;
+  c := c + 180;
 
- Result := Round(c);
+  Result := Round(c);
 end;
 
 {function g_CollideLine(x1, y1, x2, y2, rX, rY: Integer; rWidth, rHeight: Word): Boolean;
@@ -558,11 +585,11 @@ begin
  x := X1;
  y := Y1;
 
- for i := 1 to d do
+ for i := 1 to d+1 do
   begin
    Inc(Xerr, dx);
    Inc(Yerr, dy);
-   if Xerr>d then
+   if Xerr > d then
    begin
     Dec(Xerr, d);
     Inc(x, incX);
@@ -573,8 +600,8 @@ begin
     Inc(y, incY);
    end;
 
-   if (x-rX >= 0) and (x-rX <= rWidth) and
-      (y-rY >= 0) and (y-rY <= rHeight) then Exit;
+   if (x >= rX) and (x <= (rX + rWidth - 1)) and
+      (y >= rY) and (y <= (rY + rHeight - 1)) then Exit;
   end;
 
  Result := False;
@@ -655,49 +682,55 @@ var
   b: array of string;
   str: string;
 begin
- Text := Trim(Text);
+  Text := Trim(Text);
 
- while Pos('  ', Text) <> 0 do Text := AnsiReplaceStr(Text, '  ', ' ');
+// Удаляем множественные пробелы:
+  while Pos('  ', Text) <> 0 do
+    Text := AnsiReplaceStr(Text, '  ', ' ');
 
- while Text <> '' do
- begin
-  SetLength(b, Length(b)+1);
-  b[High(b)] := GetStr(Text);
- end;
-
- a := 0;
- while True do
- begin
-  if a > High(b) then Break;
-
-  str := b[a];
-  a := a+1;
-
-  if TextLen(str) > MaxWidth then
+  while Text <> '' do
   begin
-   while str <> '' do
-   begin
-    SetLength(Result, Length(Result)+1);
-
-    c := 0;
-    while (c < TextLen(str)) or (TextLen(Copy(str, 1, c+1)) < MaxWidth) do c := c+1;
-
-    Result[High(Result)] := Copy(str, 1, c);
-    Delete(str, 1, c);
-   end;
-
-   Continue;
+    SetLength(b, Length(b)+1);
+    b[High(b)] := GetStr(Text);
   end;
 
-  while (a <= High(b)) and (TextLen(str+' '+b[a]) <= MaxWidth) do
+  a := 0;
+  while True do
   begin
-   str := str+' '+b[a];
-   a := a+1;
-  end;
+    if a > High(b) then
+      Break;
 
-  SetLength(Result, Length(Result)+1);
-  Result[High(Result)] := str;
- end;
+    str := b[a];
+    a := a+1;
+
+    if TextLen(str) > MaxWidth then
+      begin // Текущая строка слишком длинная => разбиваем
+        while str <> '' do
+        begin
+          SetLength(Result, Length(Result)+1);
+
+          c := 0;
+          while (c < Length(str)) and
+                (TextLen(Copy(str, 1, c+1)) < MaxWidth) do
+            c := c+1;
+
+          Result[High(Result)] := Copy(str, 1, c);
+          Delete(str, 1, c);
+        end;
+      end
+    else // Строка нормальной длины => соединяем со следующими
+      begin
+        while (a <= High(b)) and
+              (TextLen(str+' '+b[a]) < MaxWidth) do
+        begin
+          str := str+' '+b[a];
+          a := a + 1;
+        end;
+
+        SetLength(Result, Length(Result)+1);
+        Result[High(Result)] := str;
+      end;
+  end;
 end;
 
 procedure Sort(var a: SArray);
@@ -717,82 +750,95 @@ begin
    end;
 end;
 
-function Sscanf(const s: string; const fmt: string;
+function Sscanf(const s: String; const fmt: String;
                 const Pointers: array of Pointer): Integer;
 var
-  i,j,n,m : integer;
-  s1 : shortstring;
-  L : LongInt;
-  X : Extended;
+  i, j, n, m: Integer;
+  s1: ShortString;
+  L: LongInt;
+  X: Extended;
 
-  function GetInt : Integer;
+  function GetInt(): Integer;
   begin
     s1 := '';
-    while (n <= length(s)) and (s[n] = ' ') do 
-      inc(n);
-    while (n <= length(s)) and (s[n] in ['0'..'9', '+', '-']) do begin
-      s1 := s1+s[n];
-      inc(n);
+    while (n <= Length(s)) and (s[n] = ' ') do
+      Inc(n);
+
+    while (n <= Length(s)) and (s[n] in ['0'..'9', '+', '-']) do
+    begin
+      s1 := s1 + s[n];
+      Inc(n);
     end;
+
     Result := Length(s1);
   end;
 
-  function GetFloat : Integer;
+  function GetFloat(): Integer;
   begin
     s1 := '';
-    while (n <= length(s)) and (s[n] = ' ') do 
-      inc(n);
-    while (n <= length(s)) and //jd >= rather than >
-          (s[n] in ['0'..'9', '+', '-', '.', 'e', 'E']) do begin
-      s1 := s1+s[n];
-      inc(n);
+    while (n <= Length(s)) and (s[n] = ' ') do
+      Inc(n);
+
+    while (n <= Length(s)) and //jd >= rather than >
+          (s[n] in ['0'..'9', '+', '-', '.', 'e', 'E']) do
+    begin
+      s1 := s1 + s[n];
+      Inc(n);
     end;
+
     Result := Length(s1);
   end;
 
-  function GetString : Integer;
+  function GetString(): Integer;
   begin
     s1 := '';
-    while (n <= length(s)) and (s[n] = ' ') do 
-      inc(n);
-    while (n <= length(s)) and (s[n] <> ' ') do begin
-      s1 := s1+s[n];
-      inc(n);
+    while (n <= Length(s)) and (s[n] = ' ') do
+      Inc(n);
+
+    while (n <= Length(s)) and (s[n] <> ' ') do
+    begin
+      s1 := s1 + s[n];
+      Inc(n);
     end;
+
     Result := Length(s1);
   end;
 
-  function ScanStr(c : Char) : Boolean;
+  function ScanStr(c: Char): Boolean;
   begin
-    while (n <= length(s)) and (s[n] <> c) do 
-      inc(n);
-    inc(n);
+    while (n <= Length(s)) and (s[n] <> c) do
+      Inc(n);
+    Inc(n);
 
-    result := (n <= length(s));
+    Result := (n <= Length(s));
   end;
 
-  function GetFmt : Integer;
+  function GetFmt(): Integer;
   begin
     Result := -1;
 
-    while (TRUE) do begin
-      while (fmt[m] = ' ') and (Length(fmt) > m) do 
-        inc(m);
+    while (True) do
+    begin
+      while (fmt[m] = ' ') and (m < Length(fmt)) do
+        Inc(m);
       if (m >= Length(fmt)) then 
-        break;
-      if (fmt[m] = '%') then begin
-        inc(m);
+        Break;
+
+      if (fmt[m] = '%') then
+      begin
+        Inc(m);
         case fmt[m] of
           'd': Result := vtInteger;
           'f': Result := vtExtended;
           's': Result := vtString;
         end;
-        inc(m);
-        break;
+        Inc(m);
+        Break;
       end;
-      if (ScanStr(fmt[m]) = False) then 
-        break;
-      inc(m);
+
+      if (not ScanStr(fmt[m])) then
+        Break;
+      Inc(m);
     end;
   end;
 
@@ -801,38 +847,48 @@ begin
   m := 1;
   Result := 0;
 
-  for i := 0 to High(Pointers) do begin
-    j := GetFmt;
+  for i := 0 to High(Pointers) do
+  begin
+    j := GetFmt();
 
     case j of
-      vtInteger : begin
-        if GetInt > 0 then begin
-          L := StrToInt(s1);
-          Move(L, Pointers[i]^, SizeOf(LongInt));
-          inc(Result);
-        end else 
-          break;
-      end;
+      vtInteger :
+        begin
+          if GetInt() > 0 then
+            begin
+              L := StrToIntDef(s1, 0);
+              Move(L, Pointers[i]^, SizeOf(LongInt));
+              Inc(Result);
+            end
+          else
+            Break;
+        end;
 
-      vtExtended : begin
-        if GetFloat > 0 then begin
-          X := StrToFloat(s1);
-          Move(X, Pointers[i]^, SizeOf(Extended));
-          inc(Result);
-        end else 
-          break;
-      end;
+      vtExtended :
+        begin
+          if GetFloat() > 0 then
+            begin
+              X := StrToFloatDef(s1, 0.0);
+              Move(X, Pointers[i]^, SizeOf(Extended));
+              Inc(Result);
+            end
+          else
+            Break;
+        end;
 
-      vtString : begin
-        if GetString > 0 then begin
-          Move(s1, Pointers[i]^, Length(s1)+1);
-          inc(Result);
-        end else 
-          break;
-      end;
+      vtString :
+        begin
+          if GetString() > 0 then
+            begin
+              Move(s1, Pointers[i]^, Length(s1)+1);
+              Inc(Result);
+            end
+          else
+            Break;
+        end;
       
-      else  {case}
-        break;
+      else {case}
+        Break;
     end; {case}
   end;
 end;
@@ -903,6 +959,7 @@ begin
 
    o^ := p.Obj;
   end;
+  
   UID_MONSTER:
   begin
    m := g_Monsters_Get(UID);
@@ -917,27 +974,31 @@ begin
  Result := True;
 end;
 
-function parse(s: string): SArray;
+function parse(s: String): SArray;
 var
   a: Integer;
+
 begin
- Result := nil;
- if s = '' then Exit;
+  Result := nil;
+  if s = '' then
+    Exit;
 
- while s <> '' do
- begin
-  for a := 1 to Length(s) do
-   if (s[a] = ',') or (a = Length(s)) then
-   begin
-    SetLength(Result, Length(Result)+1);
+  while s <> '' do
+  begin
+    for a := 1 to Length(s) do
+      if (s[a] = ',') or (a = Length(s)) then
+      begin
+        SetLength(Result, Length(Result)+1);
 
-    if s[a] = ',' then Result[High(Result)] := Copy(s, 1, a-1)
-     else Result[High(Result)] := s;
+        if s[a] = ',' then
+          Result[High(Result)] := Copy(s, 1, a-1)
+        else // Конец строки
+          Result[High(Result)] := s;
 
-    Delete(s, 1, a);
-    Break;
-   end;
- end;
+        Delete(s, 1, a);
+        Break;
+      end;
+  end;
 end;
 
 function parse2(s: string; delim: Char): SArray;

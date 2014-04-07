@@ -20,29 +20,39 @@ var
 implementation
 
 uses
-  WADEDITOR, e_log, g_window, dglOpenGL, e_graphics, e_input, g_game, g_console,
-  g_gui, messages, e_sound, g_options, g_sound, g_player, g_weapons, SysUtils,
-  g_triggers, MAPDEF, g_map, MAPSTRUCT;
+  Windows, WADEDITOR, e_log, g_window, dglOpenGL,
+  e_graphics, e_input, g_game, g_console, g_gui,
+  messages, e_sound, g_options, g_sound, g_player,
+  g_weapons, SysUtils, g_triggers, MAPDEF, g_map,
+  MAPSTRUCT, g_menu, g_language;
 
 var
-  charbuff: array[0..15] of Char;
+  charbuff: Array [0..15] of Char;
 
 procedure Main();
 begin
- GetDir(0, GameDir);
- MapsDir := GameDir+'\maps\';
- DataDir := GameDir+'\data\';
- ModelsDir := DataDir+'models\';
- GameWAD := DataDir+'Game.wad';
- e_InitLog(GameDir+'\Doom2DF.log', WM_NEWFILE);
+  GetDir(0, GameDir);
+  MapsDir := GameDir + '\maps\';
+  DataDir := GameDir + '\data\';
+  ModelsDir := DataDir + 'models\';
+  GameWAD := DataDir + 'Game.wad';
 
- e_WriteLog('Read config file', MSG_NOTIFY);
- g_Options_Read(GameDir+'\Doom2DF.cfg');
+  e_InitLog(GameDir + '\' + LOG_FILENAME, WM_NEWFILE);
 
- e_WriteLog('Call WinMain', MSG_NOTIFY);
- {$WARNINGS OFF}
- WinMain(hInstance, 0, CmdLine, CmdShow);
- {$WARNINGS ON}
+  e_WriteLog('Read config file', MSG_NOTIFY);
+  g_Options_Read(GameDir + '\' + CONFIG_FILENAME);
+
+  //GetSystemDefaultLCID()
+
+  //e_WriteLog('Read language file', MSG_NOTIFY);
+  //g_Language_Load(DataDir + gLanguage + '.txt');
+  g_Language_Set(gLanguage);
+
+  e_WriteLog('Call WinMain', MSG_NOTIFY);
+  
+  {$WARNINGS OFF}
+  WinMain(hInstance, 0, CmdLine, CmdShow);
+  {$WARNINGS ON}
 end;
 
 procedure Init();
@@ -55,7 +65,7 @@ begin
  e_InitDirectInput(h_Wnd);
 
  e_WriteLog('Init FMOD', MSG_NOTIFY);
- e_InitSound(44100); 
+ e_InitSoundSystem(48000); 
 
  e_WriteLog('Init game', MSG_NOTIFY);
  g_Game_Init();
@@ -72,7 +82,7 @@ begin
  e_ReleaseDirectInput();
 
  e_WriteLog('Releasing FMOD', MSG_NOTIFY);
- e_ReleaseSoundEngine();
+ e_ReleaseSoundSystem();
 end;
 
 procedure Update();
@@ -82,7 +92,7 @@ end;
 
 procedure Draw();
 begin
- g_Game_Draw();
+  g_Game_Draw();
 end;
 
 procedure Cheat();
@@ -102,7 +112,7 @@ const
   c9 = 'BULLFROG';
   c10 = 'FORMULA1';
 begin
- if (not gGameOn) or (not gCheats) or (gGameSettings.GameType <> GT_SINGLE) then Exit;
+ if (not gGameOn) or (not gCheats) or ((gGameSettings.GameType <> GT_SINGLE) and (not gDebugMode)) then Exit;
 
  s := 'SOUND_GAME_RADIO';
 
@@ -167,74 +177,122 @@ begin
  end
  else Exit;
 
- g_Sound_PlayEx(s, 127, 255);
+ g_Sound_PlayEx(s);
 end;
 
 procedure KeyPress(K: Byte);
 var
   Msg: g_gui.TMessage;
   a: Integer;
+  b: Boolean;
+  
 begin
- if K = 19 then
-   if (g_ActiveWindow = nil) then
-     begin
-       g_Game_Pause(not gPause);
-     end;
+  case K of
+    VK_PAUSE: // <Pause/Break>:
+      begin
+      // Переключить паузу:
+        if gIsNetGame or (g_ActiveWindow = nil) then
+          g_Game_Pause(not gPause);
+      end;
+                          
+    192: // <`/~/ё/Ё>:
+      begin
+        g_Console_Switch();
+      end;
 
- if (K = 192) then
-   g_Console_Switch()
- else
-   if gConsoleShow then
-     g_Console_Control(K);
+    VK_ESCAPE: // <Esc>:
+      begin
+        if gConsoleShow then // Убрать консоль
+          g_Console_Switch()
+        else
+          if g_ActiveWindow <> nil then
+            begin // Выйти из меню
+              Msg.Msg := WM_KEYDOWN;
+              Msg.WParam := VK_ESCAPE;
+              g_ActiveWindow.OnMessage(Msg);
+            end
+          else
+            if gGameOn then // Войти во внутриигровое меню
+              g_Game_InGameMenu(True)
+            else
+              if gExit = 0 then
+                begin // Войти в главное меню
+                  g_GUI_ShowWindow('MainMenu');
+                  g_Sound_PlayEx('MENU_OPEN');
+                end;
+      end;
 
- if (K = 27) and (gConsoleShow) then
- begin
-  gConsoleShow := False;
-  Exit;
- end;
+    VK_F2, VK_F3, VK_F4, VK_F5, VK_F6, VK_F10:
+      begin // <F2> .. <F6> и <F12>
+      // Только во время игры, в отсутствии консоли:
+        if gGameOn and (not gConsoleShow) then
+        begin
+        // Закрываем все окна:
+          while g_ActiveWindow <> nil do
+            g_GUI_HideWindow(False);
 
- if g_ActiveWindow <> nil then
- begin
-  if not gConsoleShow then
-  begin
-   Msg.Msg := WM_KEYDOWN;
-   Msg.WParam := K;
-   g_ActiveWindow.OnMessage(Msg);
+        // Пауза при меню только в одиночной игре:
+          if (not gIsNetGame) then
+            g_Game_Pause(True);
+
+          b := (gGameSettings.GameType = GT_CUSTOM);
+
+          case K of
+            VK_F2:
+              g_Menu_Show_SaveMenu(b);
+            VK_F3:
+              g_Menu_Show_LoadMenu(b);
+            VK_F4:
+              g_Menu_Show_GameSetGame(b);
+            VK_F5:
+              g_Menu_Show_OptionsVideo(b);
+            VK_F6:
+              g_Menu_Show_OptionsSound(b);
+            VK_F10:
+              g_Menu_Show_EndGameMenu(b);
+          end;
+        end;
+      end;
+
+    else // Остальные клавиши:
+      begin
+        if gConsoleShow then // Клавиши -> консоли
+          g_Console_Control(K)
+        else
+          if g_ActiveWindow <> nil then
+            begin // Клавиши -> меню
+              Msg.Msg := WM_KEYDOWN;
+              Msg.WParam := K;
+              g_ActiveWindow.OnMessage(Msg);
+            end
+          else
+            begin // Клавиши -> набору кода
+              for a := 0 to 14 do
+                charbuff[a] := charbuff[a+1];
+              charbuff[15] := Chr(K);
+
+              Cheat();
+            end;
+      end;
   end;
-  Exit;
- end
-  else if not gGameOn then
- begin
-  if (K = 27) and (not gGameOn) and (gExit = 0) then
-  begin
-   g_GUI_ShowWindow('MainMenu');
-   g_Sound_PlayEx('MENU_OPEN', 127, 255);
-  end;
- end;
-
- if K = 27 then g_Game_InGameMenu(True);
-
- if not gConsoleShow then
- begin
-  for a := 0 to 14 do charbuff[a] := charbuff[a+1];
-  charbuff[15] := Chr(K);
-
-  Cheat();
- end;
 end;
 
 procedure CharPress(C: Char);
 var
   Msg: g_gui.TMessage;
 begin
- if C = '`' then Exit;
+  if (C = '`') or (C = '~') or (C = 'ё') or (C = 'Ё') then
+    Exit;
 
- if gConsoleShow then g_Console_Char(C) else if g_ActiveWindow <> nil then
- begin
-  Msg.Msg := WM_CHAR;
-  Msg.WParam := Ord(C);
-  g_ActiveWindow.OnMessage(Msg);
- end;
+  if gConsoleShow then // Символы -> консоли
+    g_Console_Char(C)
+  else
+    if g_ActiveWindow <> nil then
+    begin // Символы -> меню
+      Msg.Msg := WM_CHAR;
+      Msg.WParam := Ord(C);
+      g_ActiveWindow.OnMessage(Msg);
+    end;
 end;
 
 end.

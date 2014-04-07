@@ -2,8 +2,10 @@ unit g_player;
 
 interface
 
-uses windows, e_graphics, g_playermodel, g_basic, g_textures, g_weapons, g_phys,
-     g_sound, g_saveload, MAPSTRUCT;
+uses
+  windows, e_graphics, g_playermodel, g_basic, g_textures,
+  g_weapons, g_phys, g_sound, g_saveload, MAPSTRUCT,
+  BinEditor, g_panel;
 
 const
   KEY_LEFT       = 1;
@@ -15,138 +17,122 @@ const
   KEY_PREVWEAPON = 7;
   KEY_OPEN       = 8;
   KEY_JUMP       = 9;
+
   R_ITEM_BACKPACK   = 0;
   R_KEY_RED         = 1;
   R_KEY_GREEN       = 2;
   R_KEY_BLUE        = 3;
   R_BERSERK         = 4;
+
   MR_SUIT           = 0;
   MR_INV            = 1;
+
   A_BULLETS         = 0;
   A_SHELLS          = 1;
   A_ROCKETS         = 2;
   A_CELLS           = 3;
+
   K_SIMPLEKILL      = 0;
   K_HARDKILL        = 1;
   K_EXTRAHARDKILL   = 2;
   K_FALLKILL        = 3;
+
   T_RESPAWN         = 0;
   T_SWITCH          = 1;
   T_USE             = 2;
+
   TEAM_NONE         = 0;
   TEAM_RED          = 1;
   TEAM_BLUE         = 2;
+
   PLAYERNUM_1       = 1;
   PLAYERNUM_2       = 2;
+
   ANGLE_NONE        = Low(SmallInt);
+
   CORPSE_STATE_REMOVEME = 0;
   CORPSE_STATE_NORMAL   = 1;
   CORPSE_STATE_MESS     = 2;
-  PLAYER_RECT: TRectWH = (X:15; Y:12; Width:33; Height:52);
-  PLAYER_RECT_CX       = 15+(33 div 2);
+
+  PLAYER_RECT: TRectWH = (X:15; Y:12; Width:34; Height:52);
+  PLAYER_RECT_CX       = 15+(34 div 2);
   PLAYER_RECT_CY       = 12+(52 div 2);
-  PLAYER_CORPSERECT: TRectWH = (X:15; Y:48; Width:33; Height:16);
+  PLAYER_CORPSERECT: TRectWH = (X:15; Y:48; Width:34; Height:16);
+
   PLAYER1_DEF_COLOR: TRGB = (R:48; G:192; B:48);
   PLAYER2_DEF_COLOR: TRGB = (R:96; G:96; B:96);
 
-type
+Type
   TPlayerStat = record
-   Name: string;
-   Team: Byte;
-   Frags: SmallInt;
-   Deaths: SmallInt;
-   Kills: Word;
-   Color: TRGB;
+    Name: String;
+    Team: Byte;
+    Frags: SmallInt;
+    Deaths: SmallInt;
+    Kills: Word;
+    Color: TRGB;
   end;
 
-  TPlayerStatArray = array of TPlayerStat;
+  TPlayerStatArray = Array of TPlayerStat;
 
   TKeyState = record
-   Pressed: Boolean;
-   Time: Word;
+    Pressed: Boolean;
+    Time: Word;
   end;
 
-  PPlayerSaveRec = ^TPlayerSaveRec;
-  TPlayerSaveRec = packed record
-   Obj: TObjRec;
-   Direction: TDirection;
-   UID: Word;
-   Health: Integer;
-   Armor: Integer;
-   Air: Integer;
-   Live: Boolean;
-   Kills: Integer;
-   MonsterKills: Integer;
-   Frags: Integer;
-   Death: Integer;
-   Flag: Byte;
-   Secrets: Integer;
-   Pain: Integer;
-   Ammo: array[A_BULLETS..A_CELLS] of Word;
-   MaxAmmo: array[A_BULLETS..A_CELLS] of Word;
-   Weapon: array[WEAPON_KASTET..WEAPON_SUPERPULEMET] of Boolean;
-   Reloading: array[WEAPON_KASTET..WEAPON_SUPERPULEMET] of Word;
-   Rulez: set of R_ITEM_BACKPACK..R_BERSERK;
-   MegaRulez: array[MR_SUIT..MR_INV] of LongWord;
-   CurrWeap: Byte;
-   BFGFireCounter: SmallInt;
-   DamageBuffer: Integer;
-   LastSpawnerUID: Word;
-   LastHit: Byte;
-  end;
-
-  TPlayer = class(TObject)
-   private
-    FObj:       TObj;
-    FDirection: TDirection;
-    FKeys:      array[KEY_LEFT..KEY_JUMP] of TKeyState;
+  TPlayer = Class (TObject)
+  Private
+    FIamBot:    Boolean;
     FUID:       Word;
+    FName:      String;
+    FTeam:      Byte;
+    FLive:      Boolean;
+    FDirection: TDirection;
     FHealth:    Integer;
     FArmor:     Integer;
     FAir:       Integer;
-    FLive:      Boolean;
+    FPain:      Integer;
     FKills:     Integer;
     FMonsterKills: Integer;
     FFrags:     Integer;
     FDeath:     Integer;
-    FName:      string;
-    FTeam:      Byte;
-    FPlayerNum: Byte;
     FFlag:      Byte;
     FSecrets:   Integer;
-    FModel:     TPlayerModel;
-    FPain:      Integer;
-    FAmmo:      array[A_BULLETS..A_CELLS] of Word;
-    FMaxAmmo:   array[A_BULLETS..A_CELLS] of Word;
-    FWeapon:    array[WEAPON_KASTET..WEAPON_SUPERPULEMET] of Boolean;
-    FReloading: array[WEAPON_KASTET..WEAPON_SUPERPULEMET] of Word;
-    FRulez:     set of R_ITEM_BACKPACK..R_BERSERK;
-    FMegaRulez: array[MR_SUIT..MR_INV] of LongWord;
-    FTime:      array[T_RESPAWN..T_USE] of LongWord;
-    FActionPrior:   Byte;
-    FActionAnim:    Byte;
-    FActionForce:   Boolean;
-    FActionChanged: Boolean;
     FCurrWeap:  Byte;
-    FAngle:     SmallInt;
-    FFireAngle: SmallInt;
     FBFGFireCounter: SmallInt;
     FDamageBuffer:   Integer;
     FLastSpawnerUID: Word;
-    FLastHit:        Byte;
+    FLastHit:   Byte;
+    FObj:       TObj;
+    FAmmo:      Array [A_BULLETS..A_CELLS] of Word;
+    FMaxAmmo:   Array [A_BULLETS..A_CELLS] of Word;
+    FWeapon:    Array [WEAPON_KASTET..WEAPON_SUPERPULEMET] of Boolean;
+    FReloading: Array [WEAPON_KASTET..WEAPON_SUPERPULEMET] of Word;
+    FRulez:     Set of R_ITEM_BACKPACK..R_BERSERK;
+    FMegaRulez: Array [MR_SUIT..MR_INV] of DWORD;
+    FTime:      Array [T_RESPAWN..T_USE] of DWORD;
+
+    FKeys:      Array [KEY_LEFT..KEY_JUMP] of TKeyState;
+    FPlayerNum: Byte;
+    FModel:     TPlayerModel;
+    FActionPrior:    Byte;
+    FActionAnim:     Byte;
+    FActionForce:    Boolean;
+    FActionChanged:  Boolean;
+    FAngle:     SmallInt;
+    FFireAngle: SmallInt;
     FIncCam:         Integer;
-    FSawSound:     TSound;
-    FSawSoundIdle: TSound;
-    FSawSoundHit:  TSound;
-    FSawSoundSelect: TSound;
+    FSawSound:       TPlayableSound;
+    FSawSoundIdle:   TPlayableSound;
+    FSawSoundHit:    TPlayableSound;
+    FSawSoundSelect: TPlayableSound;
     FGodMode:   Boolean;
+
     function    CollideLevel(XInc, YInc: Integer): Boolean;
     function    StayOnStep(XInc, YInc: Integer): Boolean;
     function    HeadInLiquid(XInc, YInc: Integer): Boolean;
     function    BodyInLiquid(XInc, YInc: Integer): Boolean;
     function    FullInLift(XInc, YInc: Integer): Integer;
-    function    PickItem(ItemType: Byte; respawn: Boolean; var remove: Boolean): Boolean; virtual;
-    procedure   CollideItem();
+    {procedure   CollideItem();}
     procedure   FlySmoke();
     function    GetAmmoByWeapon(Weapon: Byte): Word;
     procedure   SetAction(Action: Byte; Force: Boolean = False);
@@ -162,24 +148,26 @@ type
     procedure   Fire();
     procedure   Jump();
     procedure   Use();
-   public
-    constructor Create(ModelName: string); virtual;
+    
+  Public
+    constructor Create(); virtual;
     destructor  Destroy(); override;
     procedure   PressKey(Key: Byte; Time: Word = 0);
     procedure   ReleaseKeys();
-    procedure   SetModel(ModelName: string);
+    procedure   SetModel(ModelName: String);
     procedure   SetColor(Color: TRGB);
-    function    GetKeys(): Word;
+    function    GetKeys(): Byte;
+    function    PickItem(ItemType: Byte; respawn: Boolean; var remove: Boolean): Boolean; virtual;
     function    Collide(X, Y: Integer; Width, Height: Word): Boolean; overload;
-    function    Collide(Rect: TRectWH): Boolean; overload;
+    function    Collide(Panel: TPanel): Boolean; overload;
     function    Collide(X, Y: Integer): Boolean; overload;
     procedure   SetDirection(Direction: TDirection);
     procedure   GetSecret();
     function    TeleportTo(X, Y: Integer; silent: Boolean; dir: Byte): Boolean;
     procedure   Push(vx, vy: Integer);
-    procedure   ChangeModel(ModelName: string);
+    procedure   ChangeModel(ModelName: String);
     procedure   BFGHit();
-    procedure   GetFlag(Flag: Byte);
+    function    GetFlag(Flag: Byte): Boolean;
     procedure   AllRulez(Health: Boolean);
     procedure   Damage(value: Word; SpawnerUID: Word; vx, vy: Integer; t: Byte); virtual;
     procedure   MakeBloodVector(Count: Word; VelX, VelY: Integer);
@@ -191,9 +179,11 @@ type
     procedure   DrawInv();
     procedure   DrawGUI();
     procedure   Update(); virtual;
-    procedure   Save(Rec: PPlayerSaveRec);
-    procedure   Load(Rec: PPlayerSaveRec);
-    property    Name: string read FName write FName;
+    procedure   SaveState(var Mem: TBinMemoryWriter); virtual;
+    procedure   LoadState(var Mem: TBinMemoryReader); virtual;
+    procedure   PauseSounds(Enable: Boolean);
+
+    property    Name: String read FName write FName;
     property    Model: TPlayerModel read FModel;
     property    Frags: Integer read FFrags;
     property    Death: Integer read FDeath;
@@ -210,147 +200,160 @@ type
     property    Obj: TObj read FObj;
     property    IncCam: Integer read FIncCam write FIncCam;
     property    UID: Word read FUID;
-   end;
+    property    Direction: TDirection read FDirection;
+  end;
 
-  TWeaponPrior = array[0..9] of Byte;
   TDifficult = record
-   DiagFire: Byte;
-   InvisFire: Byte;
-   DiagPrecision: Byte;
-   FlyPrecision: Byte;
-   Cover: Byte;
-   CloseJump: Byte;
-   WeaponPrior: TWeaponPrior;
-   CloseWeaponPrior: TWeaponPrior;
-   //SafeWeaponPrior: TWeaponPrior;
+    DiagFire: Byte;
+    InvisFire: Byte;
+    DiagPrecision: Byte;
+    FlyPrecision: Byte;
+    Cover: Byte;
+    CloseJump: Byte;
+    WeaponPrior: Array [WEAPON_KASTET..WEAPON_SUPERPULEMET] of Byte;
+    CloseWeaponPrior: Array [WEAPON_KASTET..WEAPON_SUPERPULEMET] of Byte;
+    //SafeWeaponPrior: Array [WEAPON_KASTET..WEAPON_SUPERPULEMET] of Byte;
   end;
 
   TAIFlag = record
-   Name: ShortString;
-   Value: ShortString;
+    Name: String;
+    Value: String;
   end;
 
-  TBot = class(TPlayer)
-   private
-    FAIFlags: array of TAIFlag;
-    FSelectedWeapon: Byte;
-    FTargetUID: Word;
-    FLastVisible: LongWord;
-    FDifficult: TDifficult;
+  TBot = Class (TPlayer)
+  Private
+    FSelectedWeapon:  Byte;
+    FTargetUID:       Word;
+    FLastVisible:     DWORD;
+    FAIFlags:         Array of TAIFlag;
+    FDifficult:       TDifficult;
+
     function    GetRnd(a: Byte): Boolean;
     function    GetInterval(a: Byte; radius: SmallInt): SmallInt;
     function    RunDirection(): TDirection;
     function    FullInStep(XInc, YInc: Integer): Boolean;
     //function    NeedItem(Item: Byte): Byte;
     procedure   SelectWeapon(Dist: Integer);
-    procedure   SetAIFlag(fName, fValue: ShortString);
-    function    GetAIFlag(fName: ShortString): ShortString;
-    procedure   RemoveAIFlag(fName: ShortString);
+    procedure   SetAIFlag(fName, fValue: String20);
+    function    GetAIFlag(fName: String20): String20;
+    procedure   RemoveAIFlag(fName: String20);
     function    PickItem(ItemType: Byte; force: Boolean; var remove: Boolean): Boolean; override;
     function    Healthy(): Byte;
     procedure   UpdateMove();
     procedure   UpdateCombat();
     function    KeyPressed(Key: Word): Boolean;
     procedure   ReleaseKey(Key: Byte);
-    function    PlayerOnScreen(PX, PY: Integer): Boolean;
+    function    TargetOnScreen(TX, TY: Integer): Boolean;
     procedure   OnDamage(Angle: SmallInt); override;
-   public
+
+  Public
     procedure   Respawn(Silent: Boolean); override;
-    constructor Create(ModelName: string); override;
+    constructor Create(); override;
     destructor  Destroy(); override;
     procedure   Draw(); override;
     procedure   Update(); override;
+    procedure   SaveState(var Mem: TBinMemoryWriter); override;
+    procedure   LoadState(var Mem: TBinMemoryReader); override;
   end;
 
   TGib = record
-   RAngle: Integer;
-   ID: DWORD;
-   MaskID: DWORD;
-   Color: TRGB;
-   Live: Boolean;
-   Obj: TObj;
+    Live:   Boolean;
+    ID:     DWORD;
+    MaskID: DWORD;
+    RAngle: Integer;
+    Color:  TRGB;
+    Obj:    TObj;
   end;
 
-  TCorpse = class(TObject)
-   private
-    FObj: TObj;
-    FState: Byte;
-    FColor: TRGB;
-    FAnimation: TAnimation;
+  TCorpse = Class (TObject)
+  Private
+    FModelName:     String;
+    FMess:          Boolean;
+    FState:         Byte;
+    FDamage:        Byte;
+    FColor:         TRGB;
+    FObj:           TObj;
+    FAnimation:     TAnimation;
     FAnimationMask: TAnimation;
-    FDamage: Byte;
-    FModelName: string;
-   public
-    constructor Create(X, Y: Integer; ModelName: string; Mess: Boolean);
-    destructor Destroy; override;
-    procedure Damage(Value: Word; vx, vy: Integer);
-    procedure Update();
-    procedure Draw();
-    property Obj: TObj read FObj;
-    property State: Byte read FState;
-   end;
-
-  TTeamStat = array[TEAM_RED..TEAM_BLUE] of
-  record
-   Goals: SmallInt;
+    
+  Public
+    constructor Create(X, Y: Integer; ModelName: String; aMess: Boolean);
+    destructor  Destroy(); override;
+    procedure   Damage(Value: Word; vx, vy: Integer);
+    procedure   Update();
+    procedure   Draw();
+    procedure   SaveState(var Mem: TBinMemoryWriter);
+    procedure   LoadState(var Mem: TBinMemoryReader);
+    
+    property    Obj: TObj read FObj;
+    property    State: Byte read FState;
+    property    Mess: Boolean read FMess;
   end;
+
+  TTeamStat = Array [TEAM_RED..TEAM_BLUE] of
+    record
+      Goals: SmallInt;
+    end;
 
 var
-  gPlayers: array of TPlayer;
-  gCorpses: array of TCorpse;
-  gGibs: array of TGib;
+  gPlayers: Array of TPlayer;
+  gCorpses: Array of TCorpse;
+  gGibs: Array of TGib;
   gTeamStat: TTeamStat;
   gFly: Boolean = False;
   MAX_RUNVEL: Integer = 8;
   VEL_JUMP: Integer = 10;
 
 procedure g_Gibs_SetMax(Count: Word);
-function g_Gibs_GetMax(): Word;
+function  g_Gibs_GetMax(): Word;
 procedure g_Corpses_SetMax(Count: Word);
-function g_Corpses_GetMax(): Word;
+function  g_Corpses_GetMax(): Word;
 
 procedure g_Player_Init();
 procedure g_Player_Free();
-function g_Player_Create(ModelName: string; Color: TRGB; Team: Byte;
-                         Bot: Boolean; PlayerNum: Byte): Word;
+function  g_Player_Create(ModelName: String; Color: TRGB; Team: Byte;
+                          Bot: Boolean; PlayerNum: Byte): Word;
 procedure g_Player_Remove(UID: Word);
 procedure g_Player_UpdateAll();
 procedure g_Player_DrawAll();
 procedure g_Player_ResetAll(Force, Silent: Boolean);
-function g_Player_Get(UID: Word): TPlayer;
-function g_Player_GetCount(): Byte;
-function g_Player_GetStats(): TPlayerStatArray;
-function g_Player_ValidName(Name: string): Boolean;
+function  g_Player_Get(UID: Word): TPlayer;
+function  g_Player_GetCount(): Byte;
+function  g_Player_GetStats(): TPlayerStatArray;
+function  g_Player_ValidName(Name: String): Boolean;
 procedure g_Player_CreateCorpse(Player: TPlayer);
-procedure g_Player_CreateGibs(fX, fY: Integer; ModelName: string; fColor: TRGB);
+procedure g_Player_CreateGibs(fX, fY: Integer; ModelName: String; fColor: TRGB);
 procedure g_Player_UpdateCorpse();
 procedure g_Player_DrawCorpses();
 procedure g_Player_RemoveAllCorpses();
+procedure g_Player_Corpses_SaveState(var Mem: TBinMemoryWriter);
+procedure g_Player_Corpses_LoadState(var Mem: TBinMemoryReader);
 procedure g_Bot_Add(Team, Difficult: Byte);
 procedure g_Bot_AddList(Team: Byte; lname: ShortString; num: Integer = -1);
 procedure g_Bot_RemoveAll();
 
 implementation
 
-uses g_map, g_items, g_console, SysUtils, inter, g_gfx,
-  Math, g_options, g_triggers, g_menu, MAPDEF, g_game, WADEDITOR, g_main,
-  g_monsters, CONFIG;
+uses
+  g_map, g_items, g_console, SysUtils, g_gfx, Math,
+  g_options, g_triggers, g_menu, MAPDEF, g_game,
+  WADEDITOR, g_main, g_monsters, CONFIG, g_language;
 
-type
+Type
   TBotProfile = record
-   name: ShortString;
-   model: ShortString;
-   team: Byte;
-   color: TRGB;
-   diag_fire: Byte;
-   invis_fire: Byte;
-   diag_precision: Byte;
-   fly_precision: Byte;
-   cover: Byte;
-   close_jump: Byte;
-   w_prior1: TWeaponPrior;
-   w_prior2: TWeaponPrior;
-   w_prior3: TWeaponPrior;
+    name: ShortString;
+    model: ShortString;
+    team: Byte;
+    color: TRGB;
+    diag_fire: Byte;
+    invis_fire: Byte;
+    diag_precision: Byte;
+    fly_precision: Byte;
+    cover: Byte;
+    close_jump: Byte;
+    w_prior1: Array [WEAPON_KASTET..WEAPON_SUPERPULEMET] of Byte;
+    w_prior2: Array [WEAPON_KASTET..WEAPON_SUPERPULEMET] of Byte;
+    w_prior3: Array [WEAPON_KASTET..WEAPON_SUPERPULEMET] of Byte;
   end;
 
 const
@@ -367,12 +370,12 @@ const
   ANGLE_RIGHTDOWN = -35;
   ANGLE_LEFTUP    = 125;      
   ANGLE_LEFTDOWN  = -145;
-  PLAYER_HEADRECT: TRectWH = (X:36; Y:16; Width:8; Height:8);
-  WEAPONPOINT: array[TDirection] of TPoint = ((X:16; Y:32), (X:47; Y:32));
+  PLAYER_HEADRECT: TRectWH = (X:24; Y:12; Width:20; Height:12);
+  WEAPONPOINT: Array [TDirection] of TPoint = ((X:16; Y:32), (X:47; Y:32));
   BOT_MAXJUMP = 84;
   BOT_LONGDIST   = 300;
   BOT_UNSAFEDIST = 128;
-  TEAMCOLOR: array[TEAM_RED..TEAM_BLUE] of TRGB = ((R:255; G:0; B:0),
+  TEAMCOLOR: Array [TEAM_RED..TEAM_BLUE] of TRGB = ((R:255; G:0; B:0),
                                                    (R:0; G:0; B:255));
   DIFFICULT_EASY: TDifficult = (DiagFire: 32; InvisFire: 32; DiagPrecision: 32;
                                 FlyPrecision: 32; Cover: 32; CloseJump: 32);
@@ -380,22 +383,31 @@ const
                                   FlyPrecision: 127; Cover: 127; CloseJump: 127);
   DIFFICULT_HARD: TDifficult = (DiagFire: 255; InvisFire: 255; DiagPrecision: 255;
                                 FlyPrecision: 255; Cover: 255; CloseJump: 255);
-  WEAPON_PRIOR1: TWeaponPrior = (WEAPON_SUPERPULEMET, WEAPON_SHOTGUN2, WEAPON_SHOTGUN1,
+  WEAPON_PRIOR1: Array [WEAPON_KASTET..WEAPON_SUPERPULEMET] of Byte =
+                                (WEAPON_SUPERPULEMET, WEAPON_SHOTGUN2, WEAPON_SHOTGUN1,
                                  WEAPON_CHAINGUN, WEAPON_PLASMA, WEAPON_ROCKETLAUNCHER,
                                  WEAPON_BFG, WEAPON_PISTOL, WEAPON_SAW, WEAPON_KASTET);
-  WEAPON_PRIOR2: TWeaponPrior = (WEAPON_SUPERPULEMET, WEAPON_BFG, WEAPON_ROCKETLAUNCHER,
+  WEAPON_PRIOR2: Array [WEAPON_KASTET..WEAPON_SUPERPULEMET] of Byte =
+                                (WEAPON_SUPERPULEMET, WEAPON_BFG, WEAPON_ROCKETLAUNCHER,
                                  WEAPON_SHOTGUN2, WEAPON_PLASMA, WEAPON_SHOTGUN1,
                                  WEAPON_CHAINGUN, WEAPON_PISTOL, WEAPON_SAW, WEAPON_KASTET);
-  //WEAPON_PRIOR3: TWeaponPrior = (WEAPON_SUPERPULEMET, WEAPON_BFG, WEAPON_PLASMA,
+  //WEAPON_PRIOR3: Array [WEAPON_KASTET..WEAPON_SUPERPULEMET] of Byte =
+  //                              (WEAPON_SUPERPULEMET, WEAPON_BFG, WEAPON_PLASMA,
   //                               WEAPON_SHOTGUN2, WEAPON_CHAINGUN, WEAPON_SHOTGUN1,
   //                               WEAPON_SAW, WEAPON_ROCKETLAUNCHER, WEAPON_PISTOL, WEAPON_KASTET);
+
+  PLAYER_SIGNATURE = $52594C50; // 'PLYR'
+  CORPSE_SIGNATURE = $50524F43; // 'CORP'
+
+  BOTNAMES_FILENAME = 'botnames.txt';
+  BOTLIST_FILENAME = 'botlist.txt';
 
 var
   MaxGibs: Word = 150;
   MaxCorpses: Word = 20;
   CurrentGib: Integer = 0;
-  BotNames: array of string;
-  BotList: array of TBotProfile;
+  BotNames: Array of String;
+  BotList: Array of TBotProfile;
 
 function SameTeam(UID1, UID2: Word): Boolean;
 begin
@@ -436,154 +448,227 @@ begin
  Result := MaxCorpses;
 end;
 
-function g_Player_Create(ModelName: string; Color: TRGB; Team: Byte;
+function g_Player_Create(ModelName: String; Color: TRGB; Team: Byte;
                          Bot: Boolean; PlayerNum: Byte): Word;
 var
   a: Integer;
   ok: Boolean;
+
 begin
- Result := 0;
+  Result := 0;
 
- ok := False;
- a := 0;
- 
- if gPlayers <> nil then
-  for a := 0 to High(gPlayers) do
-   if gPlayers[a] = nil then
-   begin
-    ok := True;
-    Break;
-   end;
+  ok := False;
+  a := 0;
 
- if not ok then
- begin
-  SetLength(gPlayers, Length(gPlayers)+1);
-  a := High(gPlayers);
- end;
+// Есть ли место в gPlayers:
+  if gPlayers <> nil then
+    for a := 0 to High(gPlayers) do
+      if gPlayers[a] = nil then
+      begin
+        ok := True;
+        Break;
+      end;
 
- if Bot then gPlayers[a] := TBot.Create(ModelName)
-  else gPlayers[a] := TPlayer.Create(ModelName);
+// Нет места - расширяем gPlayers:
+  if not ok then
+  begin
+    SetLength(gPlayers, Length(gPlayers)+1);
+    a := High(gPlayers);
+  end;
 
- if gPlayers[a].FModel = nil then
- begin
-  if Bot then gPlayers[a].Destroy;
-  gPlayers[a] := nil;
-  g_Console_Add(Format(I_GAME_MODELERROR, [ModelName]));
-  Exit;
- end;
+// Создаем объект игрока:
+  if Bot then
+    gPlayers[a] := TBot.Create()
+  else
+    gPlayers[a] := TPlayer.Create();
 
- if (gGameSettings.GameMode = GM_CTF) or (gGameSettings.GameMode = GM_TDM) then
-  gPlayers[a].FModel.Color := TEAMCOLOR[Team] else gPlayers[a].FModel.Color := Color;
+  gPlayers[a].SetModel(ModelName);
 
- gPlayers[a].FTeam := Team;
- gPlayers[a].FUID := g_CreateUID(UID_PLAYER);
- gPlayers[a].FPlayerNum := PlayerNum;
- gPlayers[a].FLive := False;
+// Нет модели - создание не возможно:
+  if gPlayers[a].FModel = nil then
+  begin
+    gPlayers[a].Free();
+    gPlayers[a] := nil;
+    g_FatalError(Format(_lc[I_GAME_ERROR_MODEL], [ModelName]));
+    Exit;
+  end;
 
- Result := gPlayers[a].FUID;
+// Если командная игра - красим модель в цвет команды:
+  if ((gGameSettings.GameMode = GM_CTF) or
+      (gGameSettings.GameMode = GM_TDM)) and
+     ((Team = TEAM_RED) or (Team = TEAM_BLUE)) then
+    gPlayers[a].FModel.Color := TEAMCOLOR[Team]
+  else
+    gPlayers[a].FModel.Color := Color;
+
+  gPlayers[a].FTeam := Team;
+  gPlayers[a].FUID := g_CreateUID(UID_PLAYER);
+  gPlayers[a].FPlayerNum := PlayerNum;
+  gPlayers[a].FLive := False;
+
+  Result := gPlayers[a].FUID;
 end;
 
 procedure g_Bot_Add(Team, Difficult: Byte);
 var
   m: SArray;
-  _name, _model: string;
-  a: Integer;
+  _name, _model: String;
+  a, tr, tb: Integer;
+
 begin
- if gGameSettings.GameType = GT_SINGLE then Exit;
- if gGameSettings.GameMode = GM_CTF then Exit;
+// Список названий моделей:
+  m := g_PlayerModel_GetNames();
+  if m = nil then
+    Exit;
 
- m := g_PlayerModel_GetNames();
- if m = nil then Exit;
+// Команда:
+  if gGameSettings.GameType = GT_SINGLE then
+    Team := TEAM_RED // COOP
+  else
+    if gGameSettings.GameMode = GM_DM then
+      Team := TEAM_NONE // DM
+    else
+      if Team = TEAM_NONE then // CTF / TDM
+      begin
+      // Автобаланс команд:
+        tr := 0;
+        tb := 0;
 
- if gGameSettings.GameMode = GM_DM then Team := TEAM_NONE
-  else if Team = TEAM_NONE then
-   if Random(2) = 0 then team := TEAM_RED else team := TEAM_BLUE;
+        for a := 0 to High(gPlayers) do
+          if gPlayers[a] <> nil then
+          begin
+            if gPlayers[a].Team = TEAM_RED then
+              Inc(tr)
+            else
+              if gPlayers[a].Team = TEAM_BLUE then
+                Inc(tb);
+          end;
 
- _name := '';
- if BotNames <> nil then
-  for a := 0 to High(BotNames) do
-   if g_Player_ValidName(BotNames[a]) then
-   begin
-    _name := BotNames[a];
-    Break;
-   end;
+        if tr > tb then
+          Team := TEAM_BLUE
+        else
+          if tb > tr then
+            Team := TEAM_RED
+          else // tr = tb
+            if Random(2) = 0 then
+              Team := TEAM_RED
+            else
+              Team := TEAM_BLUE;
+      end;
 
- if _name = '' then
- repeat
-  _name := Format('DFBOT%.2d', [Random(100)]);
- until g_Player_ValidName(_name);
+// Выбираем боту имя:
+  _name := '';
+  if BotNames <> nil then
+    for a := 0 to High(BotNames) do
+      if g_Player_ValidName(BotNames[a]) then
+      begin
+        _name := BotNames[a];
+        Break;
+      end;
 
- _model := m[Random(Length(m))];
+// Имени нет, задаем случайное:
+  if _name = '' then
+    repeat
+      _name := Format('DFBOT%.2d', [Random(100)]);
+    until g_Player_ValidName(_name);
 
- with g_Player_Get(g_Player_Create(_model, _RGB(Min(Random(9)*32, 255),
-                                   Min(Random(9)*32, 255), Min(Random(9)*32, 255)),
-                                   Team, True, 0)) as TBot do
- begin
-  Name := _name;
-
-  case Difficult of
-   1: FDifficult := DIFFICULT_EASY;
-   2: FDifficult := DIFFICULT_MEDIUM;
-   else FDifficult := DIFFICULT_HARD;
-  end;
-  
-  FDifficult.WeaponPrior := WEAPON_PRIOR1;
-  FDifficult.CloseWeaponPrior := WEAPON_PRIOR2;
- end;
-end;
-
-procedure g_Bot_AddList(Team: Byte; lname: ShortString; num: Integer = -1);
-var
-  m: SArray;
-  _name, _model: string;
-  a: Integer;
-begin
- if gGameSettings.GameType = GT_SINGLE then Exit;
- if gGameSettings.GameMode = GM_CTF then Exit;
-
- m := g_PlayerModel_GetNames();
- if m = nil then Exit;
-
- if gGameSettings.GameMode = GM_DM then Team := TEAM_NONE
-  else if Team = TEAM_NONE then Team := BotList[num].team;
-
- lname := AnsiLowerCase(lname);
- if (num < 0) or (num > Length(BotList)-1) then num := -1;
- if (num = -1) and (lname <> '') and (BotList <> nil) then
-  for a := 0 to High(BotList) do
-   if AnsiLowerCase(BotList[a].name) = lname then
-   begin
-    num := a;
-    Break;
-   end;
-
- if num = -1 then Exit;
-
- _name := BotList[num].name;
- if not g_Player_ValidName(_name) then
- repeat
-  _name := Format('DFBOT%.2d', [Random(100)]);
- until g_Player_ValidName(_name);
-
- _model := BotList[num].model;
- if not InSArray(_model, m) then
+// Выбираем случайную модель:
   _model := m[Random(Length(m))];
 
- with g_Player_Get(g_Player_Create(_model, BotList[num].color, Team, True, 0)) as TBot do
- begin
-  Name := _name;
+// Создаем бота:
+  with g_Player_Get(g_Player_Create(_model,
+                                    _RGB(Min(Random(9)*32, 255),
+                                         Min(Random(9)*32, 255),
+                                         Min(Random(9)*32, 255)),
+                                    Team, True, 0)) as TBot do
+  begin
+    Name := _name;
 
-  FDifficult.DiagFire := BotList[num].diag_fire;
-  FDifficult.InvisFire := BotList[num].invis_fire;
-  FDifficult.DiagPrecision := BotList[num].diag_precision;
-  FDifficult.FlyPrecision := BotList[num].fly_precision;
-  FDifficult.Cover := BotList[num].cover;
-  FDifficult.CloseJump := BotList[num].close_jump;
+    case Difficult of
+      1: FDifficult := DIFFICULT_EASY;
+      2: FDifficult := DIFFICULT_MEDIUM;
+      else FDifficult := DIFFICULT_HARD;
+    end;
+  
+    for a := WEAPON_KASTET to WEAPON_SUPERPULEMET do
+    begin
+      FDifficult.WeaponPrior[a] := WEAPON_PRIOR1[a];
+      FDifficult.CloseWeaponPrior[a] := WEAPON_PRIOR2[a];
+      //FDifficult.SafeWeaponPrior[a] := WEAPON_PRIOR3[a];
+    end;
+  end;
+end;
 
-  FDifficult.WeaponPrior := BotList[num].w_prior1;
-  FDifficult.CloseWeaponPrior := BotList[num].w_prior2;
-  //FDifficult.SafeWeaponPrior := BotList[num].w_prior3;
- end;
+procedure g_Bot_AddList(Team: Byte; lName: ShortString; num: Integer = -1);
+var
+  m: SArray;
+  _name, _model: String;
+  a: Integer;
+
+begin
+// Список названий моделей:
+  m := g_PlayerModel_GetNames();
+  if m = nil then
+    Exit;
+
+// Команда:
+  if gGameSettings.GameType = GT_SINGLE then
+    Team := TEAM_RED // COOP
+  else
+    if gGameSettings.GameMode = GM_DM then
+      Team := TEAM_NONE // DM
+    else
+      if Team = TEAM_NONE then
+        Team := BotList[num].team; // CTF / TDM
+
+// Выбираем настройки бота из списка по номеру или имени:
+  lName := AnsiLowerCase(lName);
+  if (num < 0) or (num > Length(BotList)-1) then
+    num := -1;
+  if (num = -1) and (lName <> '') and (BotList <> nil) then
+    for a := 0 to High(BotList) do
+      if AnsiLowerCase(BotList[a].name) = lName then
+      begin
+        num := a;
+        Break;
+      end;
+  if num = -1 then
+    Exit;
+
+// Имя бота:
+  _name := BotList[num].name;
+// Занято - выбираем случайное:
+  if not g_Player_ValidName(_name) then
+  repeat
+    _name := Format('DFBOT%.2d', [Random(100)]);
+  until g_Player_ValidName(_name);
+
+// Модель:
+  _model := BotList[num].model;
+// Нет такой - выбираем случайную:
+  if not InSArray(_model, m) then
+    _model := m[Random(Length(m))];
+
+// Создаем бота:
+  with g_Player_Get(g_Player_Create(_model, BotList[num].color,
+                                    Team, True, 0)) as TBot do
+  begin
+    Name := _name;
+
+    FDifficult.DiagFire := BotList[num].diag_fire;
+    FDifficult.InvisFire := BotList[num].invis_fire;
+    FDifficult.DiagPrecision := BotList[num].diag_precision;
+    FDifficult.FlyPrecision := BotList[num].fly_precision;
+    FDifficult.Cover := BotList[num].cover;
+    FDifficult.CloseJump := BotList[num].close_jump;
+
+    for a := WEAPON_KASTET to WEAPON_SUPERPULEMET do
+    begin
+      FDifficult.WeaponPrior[a] := BotList[num].w_prior1[a];
+      FDifficult.CloseWeaponPrior[a] := BotList[num].w_prior2[a];
+      //FDifficult.SafeWeaponPrior[a] := BotList[num].w_prior3[a];
+    end;
+  end;
 end;
 
 procedure g_Bot_RemoveAll();
@@ -607,8 +692,10 @@ begin
   if gPlayers[i] <> nil then
    if gPlayers[i].FUID = UID then
    begin
-    if gPlayers[i] is TPlayer then gPlayers[i].Destroy()
-     else TBot(gPlayers[i]).Destroy();
+    if gPlayers[i] is TPlayer then
+      TPlayer(gPlayers[i]).Free()
+    else
+      TBot(gPlayers[i]).Free();
     gPlayers[i] := nil;
     Exit;
    end;
@@ -617,81 +704,103 @@ end;
 procedure g_Player_Init();
 var
   F: TextFile;
-  s: string;
+  s: String;
   a, b: Integer;
   config: TConfig;
   sa: SArray;
+
 begin
- BotNames := nil;
+  BotNames := nil;
 
- if not FileExists(DataDir+'botnames.txt') then Exit; 
+  if not FileExists(DataDir + BOTNAMES_FILENAME) then
+    Exit;
 
- AssignFile(F, DataDir+'botnames.txt');
- Reset(F);
- while not EOF(F) do
- begin
-  ReadLn(F, s);
+// Читаем возможные имена ботов из файла:
+  AssignFile(F, DataDir + BOTNAMES_FILENAME);
+  Reset(F);
 
-  s := Trim(s);
-  if s = '' then Continue;
-
-  SetLength(BotNames, Length(BotNames)+1);
-  BotNames[High(BotNames)] := s;
- end;
- CloseFile(F);
-
- if BotNames <> nil then
-  for a := 0 to High(BotNames) do
+  while not EOF(F) do
   begin
-   b := Random(Length(BotNames));
-   s := BotNames[a];
-   Botnames[a] := BotNames[b];
-   BotNames[b] := s;
+    ReadLn(F, s);
+
+    s := Trim(s);
+    if s = '' then
+      Continue;
+
+    SetLength(BotNames, Length(BotNames)+1);
+    BotNames[High(BotNames)] := s;
   end;
 
- BotList := nil;
- a := 0;
+  CloseFile(F);
 
- config := TConfig.CreateFile(DataDir+'botlist.txt');
- while config.SectionExists(IntToStr(a)) do
- begin
-  SetLength(BotList, Length(BotList)+1);
-  with BotList[High(BotList)] do
+// Перемешиваем их:
+  if BotNames <> nil then
+    for a := 0 to High(BotNames) do
+    begin
+      b := Random(Length(BotNames));
+      s := BotNames[a];
+      Botnames[a] := BotNames[b];
+      BotNames[b] := s;
+    end;
+
+// Читаем файл с параметрами ботов:
+  config := TConfig.CreateFile(DataDir + BOTLIST_FILENAME);
+  BotList := nil;
+  a := 0;
+
+  while config.SectionExists(IntToStr(a)) do
   begin
-   name := config.ReadStr(IntToStr(a), 'name', '');
-   model := config.ReadStr(IntToStr(a), 'model', '');
-   if config.ReadStr(IntToStr(a), 'team', 'red') = 'red' then
-    team := TEAM_RED else team := TEAM_BLUE;
-   sa := parse(config.ReadStr(IntToStr(a), 'color', ''));
-   color.R := StrToIntDef(sa[0], 0);
-   color.G := StrToIntDef(sa[1], 0);
-   color.B := StrToIntDef(sa[2], 0);
-   diag_fire := config.ReadInt(IntToStr(a), 'diag_fire', 0);
-   invis_fire := config.ReadInt(IntToStr(a), 'invis_fire', 0);
-   diag_precision := config.ReadInt(IntToStr(a), 'diag_precision', 0);
-   fly_precision := config.ReadInt(IntToStr(a), 'fly_precision', 0);
-   cover := config.ReadInt(IntToStr(a), 'cover', 0);
-   close_jump := config.ReadInt(IntToStr(a), 'close_jump', 0);
+    SetLength(BotList, Length(BotList)+1);
 
-   sa := parse(config.ReadStr(IntToStr(a), 'w_prior1', ''));
-   if Length(sa) = 10 then
-    for b := 0 to 9 do
-     w_prior1[b] := EnsureRange(StrToInt(sa[b]), 0, 9);
+    with BotList[High(BotList)] do
+    begin
+    // Имя бота:
+      name := config.ReadStr(IntToStr(a), 'name', '');
+    // Модель:
+      model := config.ReadStr(IntToStr(a), 'model', '');
+    // Команда:
+      if config.ReadStr(IntToStr(a), 'team', 'red') = 'red' then
+        team := TEAM_RED
+      else
+        team := TEAM_BLUE;
+    // Цвет модели:
+      sa := parse(config.ReadStr(IntToStr(a), 'color', ''));
+      color.R := StrToIntDef(sa[0], 0);
+      color.G := StrToIntDef(sa[1], 0);
+      color.B := StrToIntDef(sa[2], 0);
+    // Вероятность стрельбы под углом:
+      diag_fire := config.ReadInt(IntToStr(a), 'diag_fire', 0);
+    // Вероятность ответного огня по невидимому сопернику:
+      invis_fire := config.ReadInt(IntToStr(a), 'invis_fire', 0);
+    // Точность стрельбы под углом:
+      diag_precision := config.ReadInt(IntToStr(a), 'diag_precision', 0);
+    // Точность стрельбы в полете:
+      fly_precision := config.ReadInt(IntToStr(a), 'fly_precision', 0);
+    // Точность уклонения от снарядов:
+      cover := config.ReadInt(IntToStr(a), 'cover', 0);
+    // Вероятность прыжка при приближении соперника:
+      close_jump := config.ReadInt(IntToStr(a), 'close_jump', 0);
+    // Приоритеты оружия для дальнего боя:
+      sa := parse(config.ReadStr(IntToStr(a), 'w_prior1', ''));
+      if Length(sa) = 10 then
+        for b := 0 to 9 do
+          w_prior1[b] := EnsureRange(StrToInt(sa[b]), 0, 9);
+    // Приоритеты оружия для ближнего боя:
+      sa := parse(config.ReadStr(IntToStr(a), 'w_prior2', ''));
+      if Length(sa) = 10 then
+        for b := 0 to 9 do
+          w_prior2[b] := EnsureRange(StrToInt(sa[b]), 0, 9);
 
-   sa := parse(config.ReadStr(IntToStr(a), 'w_prior2', ''));
-   if Length(sa) = 10 then
-    for b := 0 to 9 do
-     w_prior2[b] := EnsureRange(StrToInt(sa[b]), 0, 9);
+      {sa := parse(config.ReadStr(IntToStr(a), 'w_prior3', ''));
+      if Length(sa) = 10 then
+        for b := 0 to 9 do
+          w_prior3[b] := EnsureRange(StrToInt(sa[b]), 0, 9);}
+    end;
 
-   {sa := parse(config.ReadStr(IntToStr(a), 'w_prior3', ''));
-   if Length(sa) = 10 then
-    for b := 0 to 9 do
-     w_prior3[b] := EnsureRange(StrToInt(sa[b]), 0, 9);}
+    a := a + 1;
   end;
-  a := a+1;
- end;
  
- config.Destroy();
+  config.Free();
 end;
 
 procedure g_Player_Free();
@@ -703,9 +812,11 @@ begin
   for i := 0 to High(gPlayers) do
    if gPlayers[i] <> nil then
    begin
-    if gPlayers[i] is TPlayer then gPlayers[i].Destroy()
-     else TBot(gPlayers[i]).Destroy();
-    gPlayers[i] := nil;
+     if gPlayers[i] is TPlayer then
+       TPlayer(gPlayers[i]).Free()
+     else
+       TBot(gPlayers[i]).Free();
+     gPlayers[i] := nil;
    end;
 
   gPlayers := nil;
@@ -742,30 +853,35 @@ end;
 function g_Player_Get(UID: Word): TPlayer;
 var
   a: Integer;
+
 begin
- Result := nil;
+  Result := nil;
 
- if gPlayers = nil then Exit;
-
- for a := 0 to High(gPlayers) do
-  if gPlayers[a] <> nil then
-   if gPlayers[a].FUID = UID then
-   begin
-    Result := gPlayers[a];
+  if gPlayers = nil then
     Exit;
-   end;
+
+  for a := 0 to High(gPlayers) do
+    if gPlayers[a] <> nil then
+      if gPlayers[a].FUID = UID then
+      begin
+        Result := gPlayers[a];
+        Exit;
+      end;
 end;
 
 function g_Player_GetCount(): Byte;
 var
   a: Integer;
+
 begin
- Result := 0;
+  Result := 0;
 
- if gPlayers = nil then Exit;
+  if gPlayers = nil then
+    Exit;
 
- for a := 0 to High(gPlayers) do
-  if gPlayers[a] <> nil then Result := Result+1;
+  for a := 0 to High(gPlayers) do
+    if gPlayers[a] <> nil then
+      Result := Result + 1;
 end;
 
 function g_Player_GetStats(): TPlayerStatArray;
@@ -795,21 +911,271 @@ end;
 procedure g_Player_ResetAll(Force, Silent: Boolean);
 var
   i: Integer;
-begin
- gTeamStat[TEAM_RED].Goals := 0;
- gTeamStat[TEAM_BLUE].Goals := 0;
 
- if gPlayers <> nil then
- for i := 0 to High(gPlayers) do
-  if gPlayers[i] <> nil then
+begin
+  gTeamStat[TEAM_RED].Goals := 0;
+  gTeamStat[TEAM_BLUE].Goals := 0;
+
+  if gPlayers <> nil then
+    for i := 0 to High(gPlayers) do
+      if gPlayers[i] <> nil then
+      begin
+        gPlayers[i].Reset(Force);
+        
+        if gPlayers[i] is TPlayer then
+          gPlayers[i].Respawn(Silent)
+        else
+          TBot(gPlayers[i]).Respawn(Silent);
+      end;
+end;
+
+procedure g_Player_CreateCorpse(Player: TPlayer);
+var
+  find_id: DWORD;
+  ok: Boolean;
+
+begin
+  if Player.Live then
+    Exit;
+  if Player.FObj.Y >= gMapInfo.Height+128 then
+    Exit;
+
+  with Player do
   begin
-   gPlayers[i].Reset(Force);
-   if gPlayers[i] is TPlayer then gPlayers[i].Respawn(Silent)
-     else TBot(gPlayers[i]).Respawn(Silent);
+    if (FHealth >= -50) or (gGibsCount = 0) then
+      begin
+        if gCorpses = nil then
+          Exit;
+
+        ok := False;
+        for find_id := 0 to High(gCorpses) do
+          if gCorpses[find_id] = nil then
+          begin
+            ok := True;
+            Break;
+          end;
+
+        if not ok then
+          find_id := Random(Length(gCorpses));
+
+        gCorpses[find_id] := TCorpse.Create(FObj.X, FObj.Y, FModel.Name, FHealth < -20);
+        gCorpses[find_id].FColor := FModel.Color;
+        gCorpses[find_id].FObj.Vel := FObj.Vel;
+        gCorpses[find_id].FObj.Accel := FObj.Accel;
+      end
+    else
+      g_Player_CreateGibs(FObj.X + PLAYER_RECT_CX,
+                          FObj.Y + PLAYER_RECT_CY,
+                          FModel.Name, FModel.Color);
   end;
 end;
 
-{ TPlayer }
+procedure g_Player_CreateGibs(fX, fY: Integer; ModelName: string; fColor: TRGB);
+var
+  a: Integer;
+  GibsArray: TGibsArray;
+
+begin
+  if gGibs = nil then
+    Exit;
+  if not g_PlayerModel_GetGibs(ModelName, GibsArray) then
+    Exit;
+
+  for a := 0 to High(GibsArray) do
+    with gGibs[CurrentGib] do
+    begin
+      Color := fColor;
+      ID := GibsArray[a].ID;
+      MaskID := GibsArray[a].MaskID;
+      Live := True;
+      g_Obj_Init(@Obj);
+      Obj.Rect := GibsArray[a].Rect;
+      Obj.X := fX-GibsArray[a].Rect.X-(GibsArray[a].Rect.Width div 2);
+      Obj.Y := fY-GibsArray[a].Rect.Y-(GibsArray[a].Rect.Height div 2);
+      g_Obj_PushA(@Obj, 25 + Random(10), Random(361));
+      RAngle := 0;
+
+      if gBloodCount > 0 then
+        g_GFX_Blood(fX, fY, 16*gBloodCount+Random(5*gBloodCount), -16+Random(33), -16+Random(33),
+                    Random(48), Random(48));
+
+      if CurrentGib >= High(gGibs) then
+        CurrentGib := 0
+      else
+        CurrentGib := CurrentGib + 1;
+    end;
+end;
+
+procedure g_Player_UpdateCorpse();
+var
+  i: Integer;
+  vel: TPoint2i;
+  mr: Word;
+
+begin
+  if gGibs <> nil then
+    for i := 0 to High(gGibs) do
+      if gGibs[i].Live then
+        with gGibs[i] do
+        begin
+          vel := Obj.Vel;
+          mr := g_Obj_Move(@Obj, True);
+
+          if WordBool(mr and MOVE_FALLOUT) then
+          begin
+            Live := False;
+            Continue;
+          end;
+
+        // Отлетает от удара о стену/потолок/пол:
+          if WordBool(mr and MOVE_HITWALL) then
+            Obj.Vel.X := -(vel.X div 2);
+          if WordBool(mr and (MOVE_HITCEIL or MOVE_HITLAND)) then
+            Obj.Vel.Y := -(vel.Y div 2);
+
+          RAngle := RAngle + Abs(Obj.Vel.X) + Abs(Obj.Vel.Y);
+          if RAngle > 360 then
+            RAngle := RAngle mod 360;
+
+        // Сопротивление воздуха для куска трупа:
+          if gTime mod (GAME_TICK*3) = 0 then
+            Obj.Vel.X := z_dec(Obj.Vel.X, 1);
+        end;
+
+  if gCorpses <> nil then
+    for i := 0 to High(gCorpses) do
+      if gCorpses[i] <> nil then
+        if gCorpses[i].State = CORPSE_STATE_REMOVEME then
+          begin
+            gCorpses[i].Free();
+            gCorpses[i] := nil;
+          end
+        else
+          gCorpses[i].Update();
+end;
+
+procedure g_Player_DrawCorpses();
+var
+  i: Integer;
+  a: TPoint;
+
+begin
+  if gGibs <> nil then
+    for i := 0 to High(gGibs) do
+      if gGibs[i].Live then
+        with gGibs[i] do
+        begin
+          if not g_Obj_Collide(sX, sY, sWidth, sHeight, @Obj) then
+            Continue;
+
+          a.X := Obj.Rect.X+(Obj.Rect.Width div 2);
+          a.y := Obj.Rect.Y+(Obj.Rect.Height div 2);
+
+          e_DrawAdv(ID, Obj.X, Obj.Y, 0, True, False, RAngle, @a, M_NONE);
+
+          e_Colors := Color;
+          e_DrawAdv(MaskID, Obj.X, Obj.Y, 0, True, False, RAngle, @a, M_NONE);
+          e_Colors.R := 255;
+          e_Colors.G := 255;
+          e_Colors.B := 255;
+        end;
+
+  if gCorpses <> nil then
+    for i := 0 to High(gCorpses) do
+      if gCorpses[i] <> nil then
+        gCorpses[i].Draw();
+end;
+
+procedure g_Player_RemoveAllCorpses();
+var
+  i: Integer;
+
+begin
+  gGibs := nil;
+  SetLength(gGibs, MaxGibs);
+  CurrentGib := 0;
+
+  if gCorpses <> nil then
+    for i := 0 to High(gCorpses) do
+      gCorpses[i].Free();
+
+  gCorpses := nil;
+  SetLength(gCorpses, MaxCorpses);
+end;
+
+procedure g_Player_Corpses_SaveState(var Mem: TBinMemoryWriter);
+var
+  count, i: Integer;
+  b: Boolean;
+
+begin
+// Считаем количество существующих трупов:
+  count := 0;
+  if gCorpses <> nil then
+    for i := 0 to High(gCorpses) do
+      if gCorpses[i] <> nil then
+        count := count + 1;
+
+  Mem := TBinMemoryWriter.Create((count+1) * 128);
+
+// Количество трупов:
+  Mem.WriteInt(count);
+
+  if count = 0 then
+    Exit;
+
+// Сохраняем трупы:
+  for i := 0 to High(gCorpses) do
+    if gCorpses[i] <> nil then
+    begin
+    // Название модели:
+      Mem.WriteString(gCorpses[i].FModelName);
+    // Тип смерти:
+      b := gCorpses[i].Mess;
+      Mem.WriteBoolean(b);
+    // Сохраняем данные трупа:
+      gCorpses[i].SaveState(Mem);
+    end;
+end;
+
+procedure g_Player_Corpses_LoadState(var Mem: TBinMemoryReader);
+var
+  count, i: Integer;
+  str: String;
+  b: Boolean;
+
+begin
+  if Mem = nil then
+    Exit;
+
+  g_Player_RemoveAllCorpses();
+
+// Количество трупов:
+  Mem.ReadInt(count);
+
+  if count > Length(gCorpses) then
+  begin
+    raise EBinSizeError.Create('g_Player_Corpses_LoadState: Too Many Corpses');
+  end;
+
+  if count = 0 then
+    Exit;
+
+// Загружаем трупы:
+  for i := 0 to count-1 do
+  begin
+  // Название модели:
+    Mem.ReadString(str);
+  // Тип смерти:
+    Mem.ReadBoolean(b);
+  // Создаем труп:
+    gCorpses[i] := TCorpse.Create(0, 0, str, b);
+  // Загружаем данные трупа:
+    gCorpses[i].LoadState(Mem);
+  end;
+end;
+
+{ T P l a y e r : }
 
 procedure TPlayer.BFGHit();
 begin
@@ -824,10 +1190,11 @@ begin
  Model := g_PlayerModel_Get(ModelName);
  if Model = nil then Exit;
 
- if FModel <> nil then FModel.Destroy;
+ FModel.Free();
  FModel := Model;
 end;
 
+{
 procedure TPlayer.CollideItem();
 var
   i: Integer;
@@ -846,42 +1213,41 @@ begin
     if not PickItem(ItemType, gItems[i].Respawnable, r) then Continue;
 
     if ItemType in [ITEM_SPHERE_BLUE, ITEM_SPHERE_WHITE, ITEM_INV] then
-     g_Sound_PlayExAt('SOUND_ITEM_GETRULEZ', 255, FObj.X, FObj.Y)
+     g_Sound_PlayExAt('SOUND_ITEM_GETRULEZ', FObj.X, FObj.Y)
     else if ItemType in [ITEM_MEDKIT_SMALL, ITEM_MEDKIT_LARGE, ITEM_MEDKIT_BLACK] then
-     g_Sound_PlayExAt('SOUND_ITEM_GETMED', 255, FObj.X, FObj.Y)
-    else g_Sound_PlayExAt('SOUND_ITEM_GETITEM', 255, FObj.X, FObj.Y);
+     g_Sound_PlayExAt('SOUND_ITEM_GETMED', FObj.X, FObj.Y)
+    else g_Sound_PlayExAt('SOUND_ITEM_GETITEM', FObj.X, FObj.Y);
 
+    // Надо убрать с карты, если это не ключ, которым нужно поделится с другим игроком:
     if r and not ((ItemType in [ITEM_KEY_RED, ITEM_KEY_GREEN, ITEM_KEY_BLUE]) and
                   (gGameSettings.GameType = GT_SINGLE) and
-                  LongBool(gGameSettings.Options and GAME_OPTION_TWOPLAYER)) then
+                  (g_Player_GetCount() > 1)) then
      if not Respawnable then g_Items_Remove(i) else g_Items_Pick(i);
    end;
   end;
 end;
+}
 
 function TPlayer.CollideLevel(XInc, YInc: Integer): Boolean;
 begin
  Result := g_Map_CollidePanel(FObj.X+PLAYER_RECT.X+XInc, FObj.Y+PLAYER_RECT.Y+YInc,
-                              PLAYER_RECT.Width, PLAYER_RECT.Height, PANEL_WALL);
+                              PLAYER_RECT.Width, PLAYER_RECT.Height, PANEL_WALL,
+                              False);
 end;
 
-constructor TPlayer.Create(ModelName: string);
-var
-  ID: DWORD;
+constructor TPlayer.Create();
 begin
- FSawSound := TSound.Create();
- if g_Sound_Get(ID, 'SOUND_WEAPON_FIRESAW') then FSawSound.SetID(ID);
+ FIamBot := False;
+ 
+ FSawSound := TPlayableSound.Create();
+ FSawSoundIdle := TPlayableSound.Create();
+ FSawSoundHit := TPlayableSound.Create();
+ FSawSoundSelect := TPlayableSound.Create();
 
- FSawSoundIdle := TSound.Create();
- if g_Sound_Get(ID, 'SOUND_WEAPON_IDLESAW') then FSawSoundIdle.SetID(ID);
-
- FSawSoundHit := TSound.Create();
- if g_Sound_Get(ID, 'SOUND_WEAPON_HITSAW') then FSawSoundHit.SetID(ID);
-
- FSawSoundSelect := TSound.Create();
- if g_Sound_Get(ID, 'SOUND_WEAPON_SELECTSAW') then FSawSoundSelect.SetID(ID);
-
- SetModel(ModelName);
+ FSawSound.SetByName('SOUND_WEAPON_FIRESAW');
+ FSawSoundIdle.SetByName('SOUND_WEAPON_IDLESAW');
+ FSawSoundHit.SetByName('SOUND_WEAPON_HITSAW');
+ FSawSoundSelect.SetByName('SOUND_WEAPON_SELECTSAW');
 
  g_Obj_Init(@FObj);
  FObj.Rect := PLAYER_RECT;
@@ -890,59 +1256,87 @@ end;
 procedure TPlayer.Damage(value: Word; SpawnerUID: Word; vx, vy: Integer; t: Byte);
 var
   c: Word;
+
 begin
- if not FLive then Exit;
- FLastSpawnerUID := SpawnerUID;
+  if not FLive then
+    Exit;
 
- if (t = HIT_TRAP) and (t = FLastHit) then Exit;
+  FLastSpawnerUID := SpawnerUID;
 
- FLastHit := t;
+// Нет повторного урона от той же ловушки:
+  if (t = HIT_TRAP) and (t = FLastHit) then
+    Exit;
 
- if gBloodCount > 0 then
- begin
-  c := Min(value, 200)*gBloodCount-(value div 4)+Random(Min(value, 200) div 2);
+  FLastHit := t;
 
-  if (t = HIT_SOME) and (vx = 0) and (vy = 0) then MakeBloodSimple(c) else
-  case t of
-   HIT_TRAP, HIT_ACID, HIT_FLAME: MakeBloodSimple(c);
-   HIT_BFG, HIT_ROCKET, HIT_SOME: MakeBloodVector(c, vx, vy);
+// Кровь (пузырьки, если в воде):
+  if gBloodCount > 0 then
+  begin
+    c := Min(value, 200)*gBloodCount-(value div 4)+Random(Min(value, 200) div 2);
+
+    if (t = HIT_SOME) and (vx = 0) and (vy = 0) then
+      MakeBloodSimple(c)
+    else
+      case t of
+        HIT_TRAP, HIT_ACID, HIT_FLAME: MakeBloodSimple(c);
+        HIT_BFG, HIT_ROCKET, HIT_SOME: MakeBloodVector(c, vx, vy);
+      end;
+
+    if t = HIT_WATER then
+      g_GFX_Bubbles(FObj.X+PLAYER_RECT.X+(PLAYER_RECT.Width div 2),
+                    FObj.Y+PLAYER_RECT.Y-4, value div 2, 8, 4);
   end;
 
-  if t = HIT_WATER then g_GFX_Bubbles(FObj.X+PLAYER_RECT.X+(PLAYER_RECT.Width div 2),
-                                      FObj.Y+PLAYER_RECT.Y-4, value div 2, 8, 4);
- end;
+// Неуязвимость не спасает от ловушек:
+  if t = HIT_TRAP then
+    FMegaRulez[MR_INV] := 0;
 
- if t = HIT_TRAP then FMegaRulez[MR_INV] := 0;
+// Но от остального спасает:
+  if FMegaRulez[MR_INV] > gTime then
+    Exit;
 
- if FMegaRulez[MR_INV] > gTime then Exit;
-
- if not FGodMode then
- begin
-  if LongBool(gGameSettings.Options and GAME_OPTION_TEAMDAMAGE) or
-     (SpawnerUID = FUID) or not SameTeam(FUID, SpawnerUID) then Inc(FDamageBuffer, value);
-  if gFlash then FPain := FPain+value;
- end;
+// Если не "ГОРЕЦ":
+  if not FGodMode then
+  begin
+  // Если есть урон своим, или ранил сам себя, или тебя ранил противник:
+    if LongBool(gGameSettings.Options and GAME_OPTION_TEAMDAMAGE) or
+       (SpawnerUID = FUID) or
+       (not SameTeam(FUID, SpawnerUID)) then
+    begin
+      Inc(FDamageBuffer, value);
+      if gFlash then
+        FPain := FPain+value;
+    end;
+  end;
 end;
 
 destructor TPlayer.Destroy();
 begin
- if FSawSound <> nil then FSawSound.Destroy();
- if FSawSoundIdle <> nil then FSawSoundIdle.Destroy();
- if FSawSoundHit <> nil then FSawSoundHit.Destroy();
- if FModel <> nil then FModel.Destroy();
+  FSawSound.Free();
+  FSawSoundIdle.Free();
+  FSawSoundHit.Free();
+  FModel.Free();
 
- inherited;
+  inherited;
 end;
 
 procedure TPlayer.Draw();
 begin
- if not Live then Exit;
+  if not Live then
+    Exit;
 
- FModel.Draw(FObj.X, FObj.Y);
+  FModel.Draw(FObj.X, FObj.Y);
 
- //e_DrawQuad(FObj.X+PLAYER_RECT.X, FObj.Y+PLAYER_RECT.Y,
- //           FObj.X+PLAYER_RECT.X+PLAYER_RECT.Width,
- //           FObj.Y+PLAYER_RECT.Y+PLAYER_RECT.Height, 1, 255, 0, 0);
+  if g_debug_Frames then
+  begin
+    e_DrawQuad(FObj.X+FObj.Rect.X,
+               FObj.Y+FObj.Rect.Y,
+               FObj.X+FObj.Rect.X+FObj.Rect.Width-1,
+               FObj.Y+FObj.Rect.Y+FObj.Rect.Height-1,
+               0, 255, 0);
+  end;
+
+ // e_DrawPoint(5, 335, 288, 255, 0, 0); // DL, UR, DL, UR
 end;
 
 procedure TPlayer.DrawGUI();
@@ -1010,7 +1404,7 @@ begin
      end;
    end;
 
-   s := IntToStr(p)+'\'+IntToStr(Length(stat))+' ';
+   s := IntToStr(p)+' / '+IntToStr(Length(stat))+' ';
    if Frags >= m then s := s+'+' else s := s+'-';
    s := s+IntToStr(Abs(Frags-m));
 
@@ -1067,13 +1461,33 @@ begin
 end;
 
 procedure TPlayer.DrawInv();
-begin
- if FMegaRulez[MR_INV] < gTime then Exit;
+var
+  dr: Boolean;
 
- if FMegaRulez[MR_INV]-gTime <= 300 then
-  e_DrawFillQuad(0, 0, gPlayerScreenSize.X, gPlayerScreenSize.Y, 200, 200, 200,
-                 90+Round((300-(FMegaRulez[MR_INV]-gTime))*0.55), B_BLEND)
- else e_DrawFillQuad(0, 0, gPlayerScreenSize.X, gPlayerScreenSize.Y, 200, 200, 200, 90, B_BLEND);
+begin
+  if FMegaRulez[MR_INV] >= gTime then
+  begin
+    if (FMegaRulez[MR_INV]-gTime) <= 2100 then
+      dr := not Odd((FMegaRulez[MR_INV]-gTime) div 300)
+    else
+      dr := True;
+
+    if dr then
+      e_DrawFillQuad(0, 0, gPlayerScreenSize.X-1, gPlayerScreenSize.Y-1,
+                     200, 200, 200, 0, B_INVERT);
+  end;
+
+  if FMegaRulez[MR_SUIT] >= gTime then
+  begin
+    if (FMegaRulez[MR_SUIT]-gTime) <= 2100 then
+      dr := not Odd((FMegaRulez[MR_SUIT]-gTime) div 300)
+    else
+      dr := True;
+
+    if dr then
+      e_DrawFillQuad(0, 0, gPlayerScreenSize.X-1, gPlayerScreenSize.Y-1,
+                     0, 96, 0, 200, B_NONE);
+  end;
 end;
 
 procedure TPlayer.DrawPain();
@@ -1093,8 +1507,8 @@ begin
 
  //if a > 255 then a := 255;
 
- e_DrawFillQuad(0, 0, gPlayerScreenSize.X, gPlayerScreenSize.Y, 255, 0, 0, 255-h*50);
- //e_DrawFillQuad(0, 0, gPlayerScreenSize.X, gPlayerScreenSize.Y, 255-min(128, a), 255-a, 255-a, 0, B_FILTER);
+ e_DrawFillQuad(0, 0, gPlayerScreenSize.X-1, gPlayerScreenSize.Y-1, 255, 0, 0, 255-h*50);
+ //e_DrawFillQuad(0, 0, gPlayerScreenSize.X-1, gPlayerScreenSize.Y-1, 255-min(128, a), 255-a, 255-a, 0, B_FILTER);
 end;
 
 procedure TPlayer.Fire();
@@ -1105,6 +1519,9 @@ var
   wx, wy, xd, yd: Integer;
   obj: TObj;
 begin
+// FBFGCounter - время перед выстрелом (для BFG)
+// FReloading - время после выстрела (для всего)
+
  if FReloading[FCurrWeap] <> 0 then Exit;
 
  f := False;
@@ -1125,13 +1542,17 @@ begin
     obj.rect.Y := 0;
     obj.rect.Width := 39;
     obj.rect.Height := 52;
-    obj.Vel := _Point((xd-wx) div 2, (yd-wy) div 2);
-    obj.Accel := _Point((xd-wx), (yd-wy));
+    obj.Vel.X := (xd-wx) div 2;
+    obj.Vel.Y := (yd-wy) div 2;
+    obj.Accel.X := xd-wx;
+    obj.Accel.y := yd-wy;
 
     if g_Weapon_Hit(@obj, 50, FUID, HIT_SOME) <> 1 then
-     g_Sound_PlayExAt('SOUND_WEAPON_HITPUNCH', 255, FObj.X, FObj.Y);
+     g_Sound_PlayExAt('SOUND_WEAPON_HITPUNCH', FObj.X, FObj.Y);
 
-    Inc(FPain, 25);
+    if gFlash then
+      if FPain < 50 then
+        FPain := min(FPain + 25, 50);
    end else g_Weapon_punch(FObj.X+FObj.Rect.X, FObj.Y+FObj.Rect.Y, 3, FUID);
 
    FReloading[FCurrWeap] := ft[FCurrWeap];
@@ -1144,12 +1565,12 @@ begin
    begin
     FSawSoundSelect.Stop();
     FSawSound.Stop();
-    FSawSoundHit.Play(127, 255);
+    FSawSoundHit.PlayAt(FObj.X, FObj.Y);
    end
     else if not FSawSoundHit.IsPlaying() then
    begin
     FSawSoundSelect.Stop();
-    FSawSound.Play(127, 255);
+    FSawSound.PlayAt(FObj.X, FObj.Y);
    end;
 
    FReloading[FCurrWeap] := ft[FCurrWeap];
@@ -1220,7 +1641,7 @@ begin
   if (FAmmo[A_CELLS] >= 40) and (FBFGFireCounter = -1) then
   begin
    FBFGFireCounter := 21;
-   g_Sound_PlayExAt('SOUND_WEAPON_STARTFIREBFG', 255, FObj.X, FObj.Y);
+   g_Sound_PlayExAt('SOUND_WEAPON_STARTFIREBFG', FObj.X, FObj.Y);
    Dec(FAmmo[A_CELLS], 40);
   end;
 
@@ -1257,165 +1678,228 @@ function TPlayer.HeadInLiquid(XInc, YInc: Integer): Boolean;
 begin
  Result := g_Map_CollidePanel(FObj.X+PLAYER_HEADRECT.X+XInc, FObj.Y+PLAYER_HEADRECT.Y+YInc,
                               PLAYER_HEADRECT.Width, PLAYER_HEADRECT.Height,
-                              PANEL_WATER or PANEL_ACID1 or PANEL_ACID2);
+                              PANEL_WATER or PANEL_ACID1 or PANEL_ACID2, True);
 end;
 
 procedure TPlayer.Jump();
 begin
  if gFly then
  begin
+ // Полет (чит-код):
   FObj.Vel.Y := -VEL_FLY;
   Exit;
  end;
 
+// Прыгаем или всплываем:
  if CollideLevel(0, 1) or
     g_Map_CollidePanel(FObj.X+PLAYER_RECT.X, FObj.Y+PLAYER_RECT.Y+36, PLAYER_RECT.Width,
-                       PLAYER_RECT.Height-33, PANEL_STEP) then FObj.Vel.Y := -VEL_JUMP
+                       PLAYER_RECT.Height-33, PANEL_STEP, False) then
+   FObj.Vel.Y := -VEL_JUMP
  else
-  if BodyInLiquid(0, 0) then FObj.Vel.Y := -VEL_SW;
+   if BodyInLiquid(0, 0) then
+     FObj.Vel.Y := -VEL_SW;
 end;
 
 procedure TPlayer.Kill(KillType: Byte; SpawnerUID: Word; t: Byte);
 var
-  a: Byte;
-  b: DWORD;
-  s: string;
+  a, i: Byte;
+  s: String;
+  mon: TMonster;
+  plr: TPlayer;
+
+  procedure PushItem(t: Byte);
+  var
+    id: DWORD;
+
+  begin
+    id := g_Items_Create(FObj.X, FObj.Y, t, True, False);
+    if KillType = K_EXTRAHARDKILL then // -7..+7; -8..0
+      g_Obj_Push(@gItems[id].Obj, (FObj.Vel.X div 2)-7+Random(15),
+                                  (FObj.Vel.Y div 2)-Random(9))
+    else
+      if KillType = K_HARDKILL then // -5..+5; -5..0
+        g_Obj_Push(@gItems[id].Obj, (FObj.Vel.X div 2)-5+Random(11),
+                                    (FObj.Vel.Y div 2)-Random(6))
+      else // -3..+3; -3..0
+        g_Obj_Push(@gItems[id].Obj, (FObj.Vel.X div 2)-3+Random(7),
+                                    (FObj.Vel.Y div 2)-Random(4));
+  end;
+
 begin
- FDeath := FDeath+1;
- FLive := False;
+  FDeath := FDeath + 1;
+  FLive := False;
 
- a := 1;
- case KillType of
-  K_SIMPLEKILL: a := 1;
-  K_HARDKILL: a := 2;
-  K_EXTRAHARDKILL: a := 3;
-  K_FALLKILL: a := 4;
- end;
+// Номер типа смерти:
+  a := 1;
+  case KillType of
+    K_SIMPLEKILL:    a := 1;
+    K_HARDKILL:      a := 2;
+    K_EXTRAHARDKILL: a := 3;
+    K_FALLKILL:      a := 4;
+  end;
 
- if not FModel.PlaySound(MODELSOUND_DIE, a, FObj.X, FObj.Y) then
-  for b := 1 to 3 do
-   if FModel.PlaySound(MODELSOUND_DIE, b, FObj.X, FObj.Y) then Break;
+// Звук смерти:
+  if not FModel.PlaySound(MODELSOUND_DIE, a, FObj.X, FObj.Y) then
+    for i := 1 to 3 do
+      if FModel.PlaySound(MODELSOUND_DIE, i, FObj.X, FObj.Y) then
+        Break;
 
- case KillType of
-  K_SIMPLEKILL: FTime[T_RESPAWN] := gTime+TIME_RESPAWN1;
-  K_HARDKILL: FTime[T_RESPAWN] := gTime+TIME_RESPAWN2;
-  K_EXTRAHARDKILL,
-  K_FALLKILL: FTime[T_RESPAWN] := gTime+TIME_RESPAWN3;
- end;
+// Время респауна:
+  case KillType of
+    K_SIMPLEKILL:
+      FTime[T_RESPAWN] := gTime + TIME_RESPAWN1;
+    K_HARDKILL:
+      FTime[T_RESPAWN] := gTime + TIME_RESPAWN2;
+    K_EXTRAHARDKILL, K_FALLKILL:
+      FTime[T_RESPAWN] := gTime+  TIME_RESPAWN3;
+  end;
 
- case KillType of
-  K_SIMPLEKILL: SetAction(A_DIE1);
-  K_HARDKILL,
-  K_EXTRAHARDKILL: SetAction(A_DIE2);
- end;
+// Переключаем состояние:
+  case KillType of
+    K_SIMPLEKILL:
+      SetAction(A_DIE1);
+    K_HARDKILL, K_EXTRAHARDKILL:
+      SetAction(A_DIE2);
+  end;
 
- if KillType <> K_FALLKILL then g_Monsters_killedp();
+// Реакция монстров на смерть игрока:
+  if KillType <> K_FALLKILL then
+    g_Monsters_killedp();
 
- if not (gGameSettings.GameType = GT_SINGLE) then
- begin
+// Особые типы смерти:
   case t of
-   HIT_FALL: g_Console_Add(Format(I_PLAYER_FALLKILL, [FName]), True);
-   HIT_WATER: g_Console_Add(Format(I_PLAYER_WATERKILL, [FName]), True);
-   HIT_ACID: g_Console_Add(Format(I_PLAYER_ACIDKILL, [FName]), True);
-   HIT_TRAP: g_Console_Add(Format(I_PLAYER_TRAPKILL, [FName]), True);
+    HIT_FALL: g_Console_Add(Format(_lc[I_PLAYER_KILL_FALL], [FName]), True);
+    HIT_WATER: g_Console_Add(Format(_lc[I_PLAYER_KILL_WATER], [FName]), True);
+    HIT_ACID: g_Console_Add(Format(_lc[I_PLAYER_KILL_ACID], [FName]), True);
+    HIT_TRAP: g_Console_Add(Format(_lc[I_PLAYER_KILL_TRAP], [FName]), True);
   end;
 
   if SpawnerUID = FUID then
-  begin
-   FFrags := FFrags-1;
-   g_Console_Add(Format(I_PLAYER_SELFKILL, [FName]), True);
-  end
-   else if g_GetUIDType(SpawnerUID) = UID_PLAYER then
-  begin
-   Inc(g_Player_Get(SpawnerUID).FFrags, IfThen(SameTeam(FUID, SpawnerUID), -1, 1));
-
-   if gGameSettings.GameMode = GM_TDM then
-    Inc(gTeamStat[g_Player_Get(SpawnerUID).Team].Goals, IfThen(SameTeam(FUID, SpawnerUID), -1, 1));
-
-   if KillType = K_EXTRAHARDKILL then
-    case Random(2) of
-     0: g_Console_Add(Format(I_PLAYER_EXTRAHARDKILL1, [FName, g_Player_Get(SpawnerUID).FName]), True and gShowKillMsg);
-     1: g_Console_Add(Format(I_PLAYER_EXTRAHARDKILL2, [FName, g_Player_Get(SpawnerUID).FName]), True and gShowKillMsg);
+    begin // Самоубился
+      FFrags := FFrags - 1;
+      g_Console_Add(Format(_lc[I_PLAYER_KILL_SELF], [FName]), True);
     end
-     else g_Console_Add(Format(I_PLAYER_KILL, [FName, g_Player_Get(SpawnerUID).FName]), True and gShowKillMsg);
-  end
-   else if g_GetUIDType(SpawnerUID) = UID_MONSTER then
+  else
+    if g_GetUIDType(SpawnerUID) = UID_PLAYER then
+      begin // Убит другим игроком
+        Inc(g_Player_Get(SpawnerUID).FFrags,
+            IfThen(SameTeam(FUID, SpawnerUID), -1, 1));
+
+        if gGameSettings.GameMode = GM_TDM then
+          Inc(gTeamStat[g_Player_Get(SpawnerUID).Team].Goals,
+              IfThen(SameTeam(FUID, SpawnerUID), -1, 1));
+
+        plr := g_Player_Get(SpawnerUID);
+        if plr = nil then
+          s := '?'
+        else
+          s := plr.FName;
+
+        if KillType = K_EXTRAHARDKILL then
+          case Random(2) of
+            0: g_Console_Add(Format(_lc[I_PLAYER_KILL_EXTRAHARD_1],
+                                    [FName, s]),
+                             gShowKillMsg);
+            1: g_Console_Add(Format(_lc[I_PLAYER_KILL_EXTRAHARD_2],
+                                    [FName, s]),
+                             gShowKillMsg);
+          end
+        else
+          g_Console_Add(Format(_lc[I_PLAYER_KILL],
+                               [FName, s]),
+                        gShowKillMsg);
+      end
+    else
+      if g_GetUIDType(SpawnerUID) = UID_MONSTER then
+      begin // Убит монстром
+        mon := g_Monsters_Get(SpawnerUID);
+        if mon = nil then
+          s := '?'
+        else
+          s := g_Monsters_GetKilledBy(mon.MonsterType);
+
+        if KillType = K_EXTRAHARDKILL then
+          case Random(2) of
+            0: g_Console_Add(Format(_lc[I_PLAYER_KILL_EXTRAHARD_1],
+                                    [FName, s]),
+                             gShowKillMsg);
+            1: g_Console_Add(Format(_lc[I_PLAYER_KILL_EXTRAHARD_2],
+                                    [FName, s]),
+                             gShowKillMsg);
+          end
+        else
+          g_Console_Add(Format(_lc[I_PLAYER_KILL],
+                               [FName, s]),
+                        gShowKillMsg);
+      end;
+
+// Выброс оружия:
+  for a := WEAPON_KASTET to WEAPON_SUPERPULEMET do
+    if FWeapon[a] then
+    begin
+      case a of
+        WEAPON_SAW: i := ITEM_WEAPON_SAW;
+        WEAPON_SHOTGUN1: i := ITEM_WEAPON_SHOTGUN1;
+        WEAPON_SHOTGUN2: i := ITEM_WEAPON_SHOTGUN2;
+        WEAPON_CHAINGUN: i := ITEM_WEAPON_CHAINGUN;
+        WEAPON_ROCKETLAUNCHER: i := ITEM_WEAPON_ROCKETLAUNCHER;
+        WEAPON_PLASMA: i := ITEM_WEAPON_PLASMA;
+        WEAPON_BFG: i := ITEM_WEAPON_BFG;
+        WEAPON_SUPERPULEMET: i := ITEM_WEAPON_SUPERPULEMET;
+        else i := 0;
+      end;
+
+      if i <> 0 then
+        PushItem(i);
+    end;
+
+// Выброс рюкзака:
+  if R_ITEM_BACKPACK in FRulez then
+    PushItem(ITEM_AMMO_BACKPACK);
+
+// Выброс ключей:
+  if gGameSettings.GameType <> GT_CUSTOM then
   begin
-   { TODO 5 : мессаг }
-  end;
- end;
+    if R_KEY_RED in FRulez then
+      PushItem(ITEM_KEY_RED);
 
- for a := WEAPON_KASTET to WEAPON_SUPERPULEMET do
-  if FWeapon[a] then
+    if R_KEY_GREEN in FRulez then
+      PushItem(ITEM_KEY_GREEN);
+
+    if R_KEY_BLUE in FRulez then
+      PushItem(ITEM_KEY_BLUE);
+  end;
+
+// Выброс флага:
+  if FFlag <> FLAG_NONE then
   begin
-   case a of
-    WEAPON_SAW: b := g_Items_Create(FObj.X, FObj.Y, ITEM_WEAPON_SAW, True, False);
-    WEAPON_SHOTGUN1: b := g_Items_Create(FObj.X, FObj.Y, ITEM_WEAPON_SHOTGUN1, True, False);
-    WEAPON_SHOTGUN2: b := g_Items_Create(FObj.X, FObj.Y, ITEM_WEAPON_SHOTGUN2, True, False);
-    WEAPON_CHAINGUN: b := g_Items_Create(FObj.X, FObj.Y, ITEM_WEAPON_CHAINGUN, True, False);
-    WEAPON_ROCKETLAUNCHER: b := g_Items_Create(FObj.X, FObj.Y, ITEM_WEAPON_ROCKETLAUNCHER, True, False);
-    WEAPON_PLASMA: b := g_Items_Create(FObj.X, FObj.Y, ITEM_WEAPON_PLASMA, True, False);
-    WEAPON_BFG: b := g_Items_Create(FObj.X, FObj.Y, ITEM_WEAPON_BFG, True, False);
-    WEAPON_SUPERPULEMET: b := g_Items_Create(FObj.X, FObj.Y, ITEM_WEAPON_SUPERPULEMET, True, False);
-    else b := DWORD(-1);
-   end;
+    with gFlags[FFlag] do
+    begin
+      Obj.X := FObj.X;
+      Obj.Y := FObj.Y;
+      Direction := FDirection;
+      State := FLAG_STATE_DROPPED;
+      Count := FLAG_TIME;
+      g_Obj_Push(@Obj, (FObj.Vel.X div 2)-2+Random(5),
+                       (FObj.Vel.Y div 2)-2+Random(5));
 
-   if b <> DWORD(-1) then g_Obj_Push(@gItems[b].Obj, (FObj.Vel.X div 2)-2+Random(5),
-                                     (FObj.Vel.Y div 2)-2+Random(5));
+      if FFlag = FLAG_RED then
+        s := _lc[I_PLAYER_FLAG_RED]
+      else
+        s := _lc[I_PLAYER_FLAG_BLUE];
+
+      g_Console_Add(Format(_lc[I_PLAYER_FLAG_DROP], [FName, s]), True);
+      g_Game_Message(Format(_lc[I_MESSAGE_FLAG_DROP], [AnsiUpperCase(s)]), 144);
+    end;
   end;
 
- if R_ITEM_BACKPACK in FRulez then
- begin
-  b := g_Items_Create(FObj.X, FObj.Y, ITEM_AMMO_BACKPACK, True, False);
-  g_Obj_Push(@gItems[b].Obj, (FObj.Vel.X div 2)-2+Random(5), (FObj.Vel.Y div 2)-2+Random(5));
- end;
-
- if gGameSettings.GameType <> GT_CUSTOM then
- begin
-  if R_KEY_RED in FRulez then
-  begin
-   b := g_Items_Create(FObj.X, FObj.Y, ITEM_KEY_RED, True, False);
-   g_Obj_Push(@gItems[b].Obj, (FObj.Vel.X div 2)-2+Random(5), (FObj.Vel.Y div 2)-2+Random(5));
-  end;
-
-  if R_KEY_GREEN in FRulez then
-  begin
-   b := g_Items_Create(FObj.X, FObj.Y, ITEM_KEY_GREEN, True, False);
-   g_Obj_Push(@gItems[b].Obj, (FObj.Vel.X div 2)-2+Random(5), (FObj.Vel.Y div 2)-2+Random(5));
-  end;
-
-  if R_KEY_BLUE in FRulez then
-  begin
-   b := g_Items_Create(FObj.X, FObj.Y, ITEM_KEY_BLUE, True, False);
-   g_Obj_Push(@gItems[b].Obj, (FObj.Vel.X div 2)-2+Random(5), (FObj.Vel.Y div 2)-2+Random(5));
-  end;
- end;
-
- if FFlag <> FLAG_NONE then
- begin
-  with gFlags[FFlag] do
-  begin
-   Obj.X := FObj.X;
-   Obj.Y := FObj.Y;
-   Direction := FDirection;
-   State := FLAG_STATE_DROPPED;
-   Count := FLAG_TIME;
-   g_Obj_Push(@Obj, (FObj.Vel.X div 2)-2+Random(5), (FObj.Vel.Y div 2)-2+Random(5));
-
-   if FFlag = FLAG_RED then s := I_PLAYER_REDFLAG else s := I_PLAYER_BLUEFLAG;
-
-   g_Console_Add(Format(I_PLAYER_DROPFLAG, [FName, s]), True);
-   g_Game_Message(Format(I_MESSAGE_DROPFLAG, [AnsiUpperCase(s)]), 144);
-  end;
- end;
-
- g_Player_CreateCorpse(Self);
+  g_Player_CreateCorpse(Self);
 end;
 
 function TPlayer.BodyInLiquid(XInc, YInc: Integer): Boolean;
 begin
  Result := g_Map_CollidePanel(FObj.X+PLAYER_RECT.X+XInc, FObj.Y+PLAYER_RECT.Y+YInc, PLAYER_RECT.Width,
-                              PLAYER_RECT.Height-20, PANEL_WATER or PANEL_ACID1 or PANEL_ACID2);
+                              PLAYER_RECT.Height-20, PANEL_WATER or PANEL_ACID1 or PANEL_ACID2, False);
 end;
 
 procedure TPlayer.MakeBloodSimple(Count: Word);
@@ -1467,7 +1951,8 @@ begin
 
  FTime[T_SWITCH] := gTime+72;
 
- if FCurrWeap = WEAPON_SAW then FSawSoundSelect.Play(127, 255, True);
+ if FCurrWeap = WEAPON_SAW then
+   FSawSoundSelect.PlayAt(FObj.X, FObj.Y);
 
  FModel.SetWeapon(FCurrWeap);
 end;
@@ -1477,6 +1962,7 @@ var
   a: Boolean;
 begin
  Result := False;
+ // a = true - место спавна предмета:
  a := LongBool(gGameSettings.Options and GAME_OPTION_WEAPONSTAY) and respawn;
  remove := not a;
 
@@ -1506,9 +1992,9 @@ begin
   end;
 
   ITEM_ARMOR_BLUE:
-  if (FHealth < 100) or (FArmor < 200) then
+  if FArmor < 200 then
   begin
-   if FArmor < 200 then FArmor := 200;
+   FArmor := 200;
    Result := True;
    remove := True;
   end;
@@ -1531,24 +2017,16 @@ begin
   end;
 
   ITEM_WEAPON_SAW:
-  begin
-   if (not respawn) and (gGameSettings.GameType <> GT_SINGLE) then
-   begin
-    FWeapon[WEAPON_SAW] := True;
-    remove := True;
-    Result := True;
-    Exit;
-   end;
-
-   if a or FWeapon[WEAPON_SAW] then Exit;
-
-   Result := not FWeapon[WEAPON_SAW];
-   FWeapon[WEAPON_SAW] := True;
-  end;
+    if not FWeapon[WEAPON_SAW] then
+    begin
+      FWeapon[WEAPON_SAW] := True;
+      Result := True;
+    end;
 
   ITEM_WEAPON_SHOTGUN1:
   if (FAmmo[A_SHELLS] < FMaxAmmo[A_SHELLS]) or not FWeapon[WEAPON_SHOTGUN1] then
   begin
+  // Нужно, чтобы не взять все пули сразу:
    if a and FWeapon[WEAPON_SHOTGUN1] then Exit;
 
    IncMax(FAmmo[A_SHELLS], 4, FMaxAmmo[A_SHELLS]);
@@ -1693,13 +2171,13 @@ begin
    FMaxAmmo[A_CELLS] := 600;
 
    if FAmmo[A_BULLETS] < FMaxAmmo[A_BULLETS] then
-    IncMax(FAmmo[A_BULLETS], 10, FMaxAmmo[A_BULLETS]);
+     IncMax(FAmmo[A_BULLETS], 10, FMaxAmmo[A_BULLETS]);
    if FAmmo[A_SHELLS] < FMaxAmmo[A_SHELLS] then
-    IncMax(FAmmo[A_SHELLS], 4, FMaxAmmo[A_SHELLS]);
+     IncMax(FAmmo[A_SHELLS], 4, FMaxAmmo[A_SHELLS]);
    if FAmmo[A_ROCKETS] < FMaxAmmo[A_ROCKETS] then
-    IncMax(FAmmo[A_ROCKETS], 1, FMaxAmmo[A_ROCKETS]);
+     IncMax(FAmmo[A_ROCKETS], 1, FMaxAmmo[A_ROCKETS]);
    if FAmmo[A_CELLS] < FMaxAmmo[A_CELLS] then
-    IncMax(FAmmo[A_CELLS], 40, FMaxAmmo[A_CELLS]);
+     IncMax(FAmmo[A_CELLS], 40, FMaxAmmo[A_CELLS]);
 
    FRulez := FRulez + [R_ITEM_BACKPACK];
    Result := True;
@@ -1811,34 +2289,30 @@ begin
 
  FTime[T_SWITCH] := gTime+72;
 
- if FCurrWeap = WEAPON_SAW then FSawSoundSelect.Play(127, 255, True);
+ if FCurrWeap = WEAPON_SAW then
+   FSawSoundSelect.PlayAt(FObj.X, FObj.Y);
 
  FModel.SetWeapon(FCurrWeap);
 end;
 
 procedure TPlayer.Push(vx, vy: Integer);
 begin
- //g_Console_Add(Format('Push x=%d y=%d', [vx, vy]));
-
- FObj.Accel.X := FObj.Accel.X+vx;
- FObj.Accel.Y := FObj.Accel.Y+vy;
+  FObj.Accel.X := FObj.Accel.X + vx;
+  FObj.Accel.Y := FObj.Accel.Y + vy;
 end;
 
 procedure TPlayer.Reset(Force: Boolean);
 begin
- if Force then FLive := False;
+  if Force then
+    FLive := False;
 
- FTime[T_RESPAWN] := 0;
- FGodMode := False;
- FFrags := 0;
- FKills := 0;
-
- if gGameSettings.GameType = GT_SINGLE then
- begin
+  FTime[T_RESPAWN] := 0;
+  FGodMode := False;
+  FFrags := 0;
+  FKills := 0;
   FMonsterKills := 0;
   FDeath := 0;
   FSecrets := 0;
- end;
 end;
 
 procedure TPlayer.Respawn(Silent: Boolean);
@@ -1847,123 +2321,259 @@ var
   a, b, c: Byte;
   Anim: TAnimation;
   ID: DWORD;
+
 begin
- if gGameSettings.GameType = GT_CUSTOM then
- begin
-  if FTime[T_RESPAWN] > gTime then Exit;
+  if gGameSettings.GameType = GT_CUSTOM then
+    begin // "Своя игра"
+    // Еще нельзя возродиться:
+      if FTime[T_RESPAWN] > gTime then
+        Exit;
 
-  case FTeam of
-   TEAM_RED: c := RESPAWNPOINT_RED;
-   TEAM_BLUE: c := RESPAWNPOINT_BLUE;
-   else c := RESPAWNPOINT_DM;
-  end;
+      if gGameSettings.GameMode = GM_DM then
+        begin // DM ...
+        // Точка возрождения DM:
+          c := RESPAWNPOINT_DM;
 
-  if (c = RESPAWNPOINT_DM) and (g_Map_GetPointCount(c) = 0) then
-   c := IfThen(FTeam = TEAM_RED, RESPAWNPOINT_RED, RESPAWNPOINT_BLUE);
+          if g_Map_GetPointCount(c) = 0 then
+          begin // Точек возрождения DM нет
+          // Пробуем точку начала одиночной игры:
+            if Random(2) = 0 then
+              c := RESPAWNPOINT_PLAYER1
+            else
+              c := RESPAWNPOINT_PLAYER2;
 
-  if (c <> RESPAWNPOINT_DM) and (g_Map_GetPointCount(RESPAWNPOINT_DM) <> 0) then
-   if (g_Map_GetPointCount(c) = 0) or (Random(2) = 1) then c := RESPAWNPOINT_DM;
+            if g_Map_GetPointCount(c) = 0 then
+            begin // Этой точки нет
+            // Пробуем противоположную:
+              if c = RESPAWNPOINT_PLAYER1 then
+                c := RESPAWNPOINT_PLAYER2
+              else
+                c := RESPAWNPOINT_PLAYER1;
 
-  FRulez := FRulez{+[R_KEY_RED, R_KEY_GREEN, R_KEY_BLUE]}-[R_BERSERK];
- end
-  else
- begin
-  if FTime[T_RESPAWN] > gTime then Exit;
+              if g_Map_GetPointCount(c) = 0 then
+              begin // Точек игроков нет
+              // Пробуем командную точку:
+                if Random(2) = 0 then
+                  c := RESPAWNPOINT_RED
+                else
+                  c := RESPAWNPOINT_BLUE;
 
-  if FPlayerNum = PLAYERNUM_1 then
-    c := RESPAWNPOINT_PLAYER1
-  else
-    if FPlayerNum = PLAYERNUM_2 then
-      c := RESPAWNPOINT_PLAYER2
+                if g_Map_GetPointCount(c) = 0 then
+                begin // Этой точки нет
+                // Пробуем другую команду:
+                  if c = RESPAWNPOINT_RED then
+                    c := RESPAWNPOINT_BLUE
+                  else
+                    c := RESPAWNPOINT_RED;
+                end;
+              end;
+            end;
+          end;
+        end // ... DM
+      else
+        begin // TDM / CTF ...
+        // Командная точка возрождения:
+          if FTeam = TEAM_RED then
+            c := RESPAWNPOINT_RED
+          else
+            c := RESPAWNPOINT_BLUE;
+
+          if g_Map_GetPointCount(c) = 0 then
+          begin // Точки этой команды нет
+          // Пробуем другую команду:
+            if c = RESPAWNPOINT_RED then
+              c := RESPAWNPOINT_BLUE
+            else
+              c := RESPAWNPOINT_RED;
+
+            if g_Map_GetPointCount(c) = 0 then
+            begin // Командных точек возрождения нет
+            // Пробуем точку возрождения DM:
+              c := RESPAWNPOINT_DM;
+
+              if g_Map_GetPointCount(c) = 0 then
+              begin // Точек возрождения DM нет
+              // Пробуем точку начала одиночной игры:
+                if Random(2) = 0 then
+                  c := RESPAWNPOINT_PLAYER1
+                else
+                  c := RESPAWNPOINT_PLAYER2;
+
+                if g_Map_GetPointCount(c) = 0 then
+                begin // Этой точки нет
+                // Пробуем противоположную:
+                  if c = RESPAWNPOINT_PLAYER1 then
+                    c := RESPAWNPOINT_PLAYER2
+                  else
+                    c := RESPAWNPOINT_PLAYER1;
+                end;
+              end;
+            end;
+          end;
+        end; // ... TDM / CTF
+
+    // Берсерк не сохраняется между уровнями:
+      FRulez := FRulez-[R_BERSERK];
+    end
+  else // "Одиночная игра"
+    begin
+    // Еще нельзя возродиться:
+      if FTime[T_RESPAWN] > gTime then
+        Exit;
+
+    // Точка появления игрока:
+      if FPlayerNum = PLAYERNUM_1 then
+        c := RESPAWNPOINT_PLAYER1
+      else
+        if FPlayerNum = PLAYERNUM_2 then
+          c := RESPAWNPOINT_PLAYER2
+        else
+          if Random(2) = 0 then // Боты
+            c := RESPAWNPOINT_PLAYER1
+          else
+            c := RESPAWNPOINT_PLAYER2;
+
+      if g_Map_GetPointCount(c) = 0 then
+      begin // Правильной точки появления нет
+      // Пробуем противоположную точку:
+        if c = RESPAWNPOINT_PLAYER1 then
+          c := RESPAWNPOINT_PLAYER2
+        else
+          c := RESPAWNPOINT_PLAYER1;
+
+        if g_Map_GetPointCount(c) = 0 then
+        begin // Противоположной точки тоже нет
+        // Остается только точка DM:
+          c := RESPAWNPOINT_DM;
+
+          if g_Map_GetPointCount(c) = 0 then
+          begin // Точек возрождения DM нет
+          // Пробуем командную точку:
+            if Random(2) = 0 then
+              c := RESPAWNPOINT_RED
+            else
+              c := RESPAWNPOINT_BLUE;
+
+            if g_Map_GetPointCount(c) = 0 then
+            begin // Этой точки нет
+            // Пробуем другую команду:
+              if c = RESPAWNPOINT_RED then
+                c := RESPAWNPOINT_BLUE
+              else
+                c := RESPAWNPOINT_RED;
+            end;
+          end;
+        end;
+      end;
+
+    // Берсерк и ключи не сохраняются между уровнями:
+      FRulez := FRulez-[R_KEY_RED, R_KEY_GREEN, R_KEY_BLUE, R_BERSERK];
+    end;
+
+  ReleaseKeys();
+  FModel.SetFlag(FLAG_NONE);
+
+// Воскрешение без оружия:
+  if not FLive then
+  begin
+    FHealth := 100;
+    FArmor := 0;
+    FLive := True;
+    FAir := AIR;
+
+    for a := WEAPON_KASTET to WEAPON_SUPERPULEMET do
+    begin
+      FWeapon[a] := False;
+      FReloading[a] := 0;
+    end;
+
+    FWeapon[WEAPON_PISTOL] := True;
+    FWeapon[WEAPON_KASTET] := True;
+    FCurrWeap := WEAPON_PISTOL;
+
+    FModel.SetWeapon(FCurrWeap);
+
+    for b := A_BULLETS to A_CELLS do
+      FAmmo[b] := 0;
+
+    FAmmo[A_BULLETS] := 50;
+
+    FMaxAmmo[A_BULLETS] := 200;
+    FMaxAmmo[A_SHELLS] := 50;
+    FMaxAmmo[A_ROCKETS] := 50;
+    FMaxAmmo[A_CELLS] := 300;
+
+    if gGameSettings.GameType = GT_CUSTOM then
+      FRulez := [R_KEY_RED, R_KEY_GREEN, R_KEY_BLUE]
     else
-      c := RESPAWNPOINT_DM;
-
-  FRulez := FRulez-[R_KEY_RED, R_KEY_GREEN, R_KEY_BLUE, R_BERSERK];
- end;
-
- ReleaseKeys();
- FModel.SetFlag(FLAG_NONE); 
-
- if not FLive then
- begin
-  FHealth := 100;
-  FArmor := 0;
-  FLive := True;
-  FAir := AIR;
-
-  for a := WEAPON_KASTET to WEAPON_SUPERPULEMET do
-  begin
-   FWeapon[a] := False;
-   FReloading[a] := 0;
+      FRulez := [];
   end;
 
-  FWeapon[WEAPON_PISTOL] := True;
-  FWeapon[WEAPON_KASTET] := True;
-  FCurrWeap := WEAPON_PISTOL;
-
-  FModel.SetWeapon(FCurrWeap);
-
-  for b := A_BULLETS to A_CELLS do FAmmo[b] := 0;
-
-  FAmmo[A_BULLETS] := 50;
-
-  FMaxAmmo[A_BULLETS] := 200;
-  FMaxAmmo[A_SHELLS] := 50;
-  FMaxAmmo[A_ROCKETS] := 50;
-  FMaxAmmo[A_CELLS] := 300;
-
-  if gGameSettings.GameType = GT_CUSTOM then FRulez := [R_KEY_RED, R_KEY_GREEN, R_KEY_BLUE]
-   else FRulez := [];
- end;
-
- if not g_Map_GetPoint(c, RespawnPoint) then
- begin
-  g_FatalError(I_GAME_GETDMERROR);
-  Exit;
- end;
-
- FObj.X := RespawnPoint.X-PLAYER_RECT.X;
- FObj.Y := RespawnPoint.Y-PLAYER_RECT.Y;
- FObj.Vel := _Point(0, 0);
- FObj.Accel := _Point(0, 0);
-
- FDirection := RespawnPoint.Direction;
- if FDirection = D_LEFT then FAngle := 180 else FAngle := 0;
-
- FIncCam := 0;
- FBFGFireCounter := -1;
- FFlag := 0;
- FPain := 0;
- FLastHit := 0;
-
- SetAction(A_STAND, True);
- FModel.Direction := FDirection;
-
- for a := Low(FTime) to High(FTime) do FTime[a] := 0;
- for a := Low(FMegaRulez) to High(FMegaRulez) do FMegaRulez[a] := 0;
-
- FDamageBuffer := 0;
-
- if (not gLoadGameMode) and (not Silent) then
-  if g_Frames_Get(ID, 'FRAMES_TELEPORT') then
+// Получаем координаты точки возрождения:
+  if not g_Map_GetPoint(c, RespawnPoint) then
   begin
-   Anim := TAnimation.Create(ID, False, 3);
-   g_GFX_OnceAnim(FObj.X+PLAYER_RECT.X+(PLAYER_RECT.Width div 2)-24,
-                  FObj.Y+PLAYER_RECT.Y+(PLAYER_RECT.Height div 2)-32, Anim);
-   Anim.Destroy;
+    g_FatalError(_lc[I_GAME_ERROR_GET_SPAWN]);
+    Exit;
   end;
+
+// Установка координат и сброс всех параметров:
+  FObj.X := RespawnPoint.X-PLAYER_RECT.X;
+  FObj.Y := RespawnPoint.Y-PLAYER_RECT.Y;
+  FObj.Vel.X := 0;
+  FObj.Vel.Y := 0;
+  FObj.Accel.X := 0;
+  FObj.Accel.Y := 0;
+
+  FDirection := RespawnPoint.Direction;
+  if FDirection = D_LEFT then
+    FAngle := 180
+  else
+    FAngle := 0;
+
+  FIncCam := 0;
+  FBFGFireCounter := -1;
+  FFlag := 0;
+  FPain := 0;
+  FLastHit := 0;
+
+  SetAction(A_STAND, True);
+  FModel.Direction := FDirection;
+
+  for a := Low(FTime) to High(FTime) do
+    FTime[a] := 0;
+
+  for a := Low(FMegaRulez) to High(FMegaRulez) do
+    FMegaRulez[a] := 0;
+
+  FDamageBuffer := 0;
+
+// Анимация возрождения:
+  if (not gLoadGameMode) and (not Silent) then
+    if g_Frames_Get(ID, 'FRAMES_TELEPORT') then
+    begin
+      Anim := TAnimation.Create(ID, False, 3);
+      g_GFX_OnceAnim(FObj.X+PLAYER_RECT.X+(PLAYER_RECT.Width div 2)-24,
+                     FObj.Y+PLAYER_RECT.Y+(PLAYER_RECT.Height div 2)-32, Anim);
+      Anim.Free();
+    end;
 end;
 
 procedure TPlayer.Run(Direction: TDirection);
 begin
- if MAX_RUNVEL > 8 then FlySmoke();
+  if MAX_RUNVEL > 8 then
+    FlySmoke();
 
- if Direction = D_LEFT then
-  (if FObj.Vel.X > -MAX_RUNVEL then FObj.Vel.X := FObj.Vel.X-(MAX_RUNVEL shr 3))
- else
-  if FObj.Vel.X < MAX_RUNVEL then FObj.Vel.X := FObj.Vel.X+(MAX_RUNVEL shr 3);
+// Бежим:
+  if Direction = D_LEFT then
+    begin
+      if FObj.Vel.X > -MAX_RUNVEL then
+        FObj.Vel.X := FObj.Vel.X - (MAX_RUNVEL shr 3);
+    end
+  else
+    if FObj.Vel.X < MAX_RUNVEL then
+      FObj.Vel.X := FObj.Vel.X + (MAX_RUNVEL shr 3);
 
- SetAction(A_WALK);
+  SetAction(A_WALK);
 end;
 
 procedure TPlayer.SeeDown();
@@ -2016,9 +2626,9 @@ end;
 function TPlayer.StayOnStep(XInc, YInc: Integer): Boolean;
 begin
  Result :=  not g_Map_CollidePanel(FObj.X+PLAYER_RECT.X, FObj.Y+YInc+PLAYER_RECT.Y+PLAYER_RECT.Height-1,
-                                   PLAYER_RECT.Width, 1, PANEL_STEP)
+                                   PLAYER_RECT.Width, 1, PANEL_STEP, False)
             and g_Map_CollidePanel(FObj.X+PLAYER_RECT.X, FObj.Y+YInc+PLAYER_RECT.Y+PLAYER_RECT.Height,
-                                   PLAYER_RECT.Width, 1, PANEL_STEP);
+                                   PLAYER_RECT.Width, 1, PANEL_STEP, False);
 end;
 
 function TPlayer.TeleportTo(X, Y: Integer; silent: Boolean; dir: Byte): Boolean;
@@ -2038,30 +2648,45 @@ begin
    Anim := TAnimation.Create(ID, False, 3);
   end;
 
-  g_Sound_PlayExAt('SOUND_GAME_TELEPORT', 255, FObj.X, FObj.Y);
+  g_Sound_PlayExAt('SOUND_GAME_TELEPORT', FObj.X, FObj.Y);
   g_GFX_OnceAnim(FObj.X+PLAYER_RECT.X+(PLAYER_RECT.Width div 2)-24,
                  FObj.Y+PLAYER_RECT.Y+(PLAYER_RECT.Height div 2)-32, Anim);
  end;
  
  FObj.X := X-PLAYER_RECT.X;
  FObj.Y := Y-PLAYER_RECT.Y;
+ 
  if dir = 1 then
    begin
-     FDirection := D_LEFT;
+     SetDirection(D_LEFT);
      FAngle := 180;
    end
  else
    if dir = 2 then
      begin
-       FDirection := D_RIGHT;
+       SetDirection(D_RIGHT);
        FAngle := 0;
+     end
+   else
+     if dir = 3 then
+     begin // обратное
+       if FDirection = D_RIGHT then
+         begin
+           SetDirection(D_LEFT);
+           FAngle := 180;
+         end
+       else
+         begin
+           SetDirection(D_RIGHT);
+           FAngle := 0;
+         end;
      end;
 
  if not silent and (Anim <> nil) then
  begin
   g_GFX_OnceAnim(FObj.X+PLAYER_RECT.X+(PLAYER_RECT.Width div 2)-24,
                  FObj.Y+PLAYER_RECT.Y+(PLAYER_RECT.Height div 2)-32, Anim);
-  Anim.Destroy;
+  Anim.Free();
  end;
 
  Result := True;
@@ -2069,7 +2694,10 @@ end;
 
 function nonz(a: Single): Single;
 begin
- if a <> 0 then Result := a else Result := 1;
+  if a <> 0 then
+    Result := a
+  else
+    Result := 1;
 end;
 
 procedure TPlayer.Update();
@@ -2079,80 +2707,94 @@ var
   blockmon, headwater: Boolean;
   st: Word;
 begin
- if gFly then FlySmoke();
- if FDirection = D_LEFT then FAngle := 180 else FAngle := 0;
+  if gFly then
+    FlySmoke();
 
- //if (FObj.Accel.X <> 0) then
- // g_Console_Add('1 Accel.X='+IntToStr(FObj.Accel.X), True);
+  if FDirection = D_LEFT then
+    FAngle := 180
+  else
+    FAngle := 0;
 
- if FLive then
- begin
-  if FKeys[KEY_UP].Pressed then SeeUp();
-  if FKeys[KEY_DOWN].Pressed then SeeDown();
- end;
-
- if not (FKeys[KEY_UP].Pressed or FKeys[KEY_DOWN].Pressed) and (FIncCam <> 0) then
- begin
-  i := g_Basic.Sign(FIncCam);
-  FIncCam := Abs(FIncCam);
-  DecMin(FIncCam, 5, 0);
-  FIncCam := FIncCam*i;
- end;
-
- if gTime mod (GAME_TICK*2) <> 0 then
- begin
-  if (FObj.Vel.X = 0) and FLive then
+  if FLive then
   begin
-   if FKeys[KEY_LEFT].Pressed then Run(D_LEFT);
-   if FKeys[KEY_RIGHT].Pressed then Run(D_RIGHT);
+    if FKeys[KEY_UP].Pressed then
+      SeeUp();
+    if FKeys[KEY_DOWN].Pressed then
+      SeeDown();
   end;
 
-  //if (FObj.Accel.X <> 0) then g_Console_Add('2 Accel.X='+IntToStr(FObj.Accel.X), True);
-  st := g_Obj_Move(@FObj);
-  if WordBool(st and MOVE_HITWATER) then g_Obj_Splash(@FObj);
-  Exit;
- end;
-
- FActionChanged := False;
-
- if FLive then
- begin
-  if FKeys[KEY_LEFT].Pressed then Run(D_LEFT);
-  if FKeys[KEY_RIGHT].Pressed then Run(D_RIGHT);
-  if FKeys[KEY_NEXTWEAPON].Pressed then NextWeapon();
-  if FKeys[KEY_PREVWEAPON].Pressed then PrevWeapon();
-  if FKeys[KEY_FIRE].Pressed then Fire();
-  if FKeys[KEY_OPEN].Pressed then Use();
-  if FKeys[KEY_JUMP].Pressed then Jump();
- end
-  else if FKeys[KEY_UP].Pressed then
- begin
-  if gGameSettings.GameType = GT_CUSTOM then Respawn(False)
-   else
+  if (not (FKeys[KEY_UP].Pressed or FKeys[KEY_DOWN].Pressed)) and
+     (FIncCam <> 0) then
   begin
-   if (FTime[T_RESPAWN] <= gTime) and gGameOn and (not FLive) then
-   begin
-    if LongBool(gGameSettings.Options and GAME_OPTION_TWOPLAYER) then Respawn(False)
-     else
+    i := g_Basic.Sign(FIncCam);
+    FIncCam := Abs(FIncCam);
+    DecMin(FIncCam, 5, 0);
+    FIncCam := FIncCam*i;
+  end;
+
+  if gTime mod (GAME_TICK*2) <> 0 then
+  begin
+    if (FObj.Vel.X = 0) and FLive then
     begin
-     gExit := EXIT_RESTART;
-     Exit;
+      if FKeys[KEY_LEFT].Pressed then
+        Run(D_LEFT);
+      if FKeys[KEY_RIGHT].Pressed then
+        Run(D_RIGHT);
     end;
-   end;
+
+    st := g_Obj_Move(@FObj, True);
+    if WordBool(st and MOVE_HITWATER) then
+      g_Obj_Splash(@FObj);
+    Exit;
   end;
- end;
 
- st := g_Obj_Move(@FObj);
+  FActionChanged := False;
 
- if WordBool(st and MOVE_HITWATER) then g_Obj_Splash(@FObj);
+  if FLive then
+    begin
+      if FKeys[KEY_LEFT].Pressed then Run(D_LEFT);
+      if FKeys[KEY_RIGHT].Pressed then Run(D_RIGHT);
+      if FKeys[KEY_NEXTWEAPON].Pressed then NextWeapon();
+      if FKeys[KEY_PREVWEAPON].Pressed then PrevWeapon();
+      if FKeys[KEY_FIRE].Pressed then Fire();
+      if FKeys[KEY_OPEN].Pressed then Use();
+      if FKeys[KEY_JUMP].Pressed then Jump();
+    end
+  else // Dead
+    if FKeys[KEY_UP].Pressed then
+    begin
+      if gGameSettings.GameType = GT_CUSTOM then
+        Respawn(False)
+      else // Single
+        begin
+          if (FTime[T_RESPAWN] <= gTime) and
+             gGameOn and (not FLive) then
+          begin
+            if (g_Player_GetCount() > 1) then
+              Respawn(False)
+            else
+              begin
+                gExit := EXIT_RESTART;
+                Exit;
+              end;
+          end;
+        end;
+    end;
 
- blockmon := g_Map_CollidePanel(FObj.X+PLAYER_HEADRECT.X, FObj.Y+PLAYER_HEADRECT.Y,
-                                PLAYER_HEADRECT.Width, PLAYER_HEADRECT.Height,
-                                PANEL_BLOCKMON);
- headwater := HeadInLiquid(0, 0);
+  st := g_Obj_Move(@FObj, True);
 
+  if WordBool(st and MOVE_HITWATER) then
+    g_Obj_Splash(@FObj);
+
+  blockmon := g_Map_CollidePanel(FObj.X+PLAYER_HEADRECT.X, FObj.Y+PLAYER_HEADRECT.Y,
+                                 PLAYER_HEADRECT.Width, PLAYER_HEADRECT.Height,
+                                 PANEL_BLOCKMON, True);
+  headwater := HeadInLiquid(0, 0);
+
+// Сопротивление воздуха:
  if (not FLive) or not (FKeys[KEY_LEFT].Pressed or FKeys[KEY_RIGHT].Pressed) then
-  if FObj.Vel.X <> 0 then FObj.Vel.X := z_dec(FObj.Vel.X, 1);
+   if FObj.Vel.X <> 0 then
+     FObj.Vel.X := z_dec(FObj.Vel.X, 1);
 
  if (FLastHit = HIT_TRAP) and (FPain > 90) then FPain := 90;
  DecMin(FPain, 5, 0);
@@ -2165,7 +2807,8 @@ begin
  begin
   if FCurrWeap = WEAPON_SAW then
    if not (FSawSound.IsPlaying() or FSawSoundHit.IsPlaying() or
-           FSawSoundSelect.IsPlaying()) then FSawSoundIdle.Play(127, 255);
+           FSawSoundSelect.IsPlaying()) then
+     FSawSoundIdle.PlayAt(FObj.X, FObj.Y);
 
   for b := WEAPON_KASTET to WEAPON_SUPERPULEMET do
    if FReloading[b] > 0 then Dec(FReloading[b]);
@@ -2206,7 +2849,7 @@ begin
     else if (FAir mod 31 = 0) and not blockmon then
    begin
     g_GFX_Bubbles(FObj.X+PLAYER_RECT.X+(PLAYER_RECT.Width div 2), FObj.Y+PLAYER_RECT.Y-4, 5+Random(6), 8, 4);
-    g_Sound_PlayExAt('SOUND_GAME_BUBBLES', 255, FObj.X, FObj.Y);
+    g_Sound_PlayExAt('SOUND_GAME_BUBBLES', FObj.X, FObj.Y);
    end;
   end else if FAir < AIR then FAir := AIR;
 
@@ -2246,8 +2889,8 @@ begin
    FDamageBuffer := 0;
   end;
 
-  CollideItem();
- end;
+  {CollideItem();}
+ end; // if FLive then ...
 
  if (FActionAnim = A_PAIN) and (FModel.Animation <> A_PAIN) then
  begin
@@ -2265,170 +2908,32 @@ begin
   if FKeys[b].Time = 0 then FKeys[b].Pressed := False else Dec(FKeys[b].Time);
 end;
 
-procedure g_Player_CreateCorpse(Player: TPlayer);
-var
-  find_id: DWORD;
-  ok: Boolean;
-begin
- if Player.Live then Exit;
- if Player.FObj.Y >= gMapInfo.Height+128 then Exit;
-
- with Player do
- begin
-  if (FHealth >= -50) or (gGibsCount = 0) then
-  begin
-   if gCorpses = nil then Exit;
-
-   ok := False;
-   for find_id := 0 to High(gCorpses) do
-    if gCorpses[find_id] = nil then
-    begin
-     ok := True;
-     Break;
-    end;
-
-   if not ok then find_id := Random(Length(gCorpses));
-
-   gCorpses[find_id] := TCorpse.Create(FObj.X, FObj.Y, FModel.Name, FHealth < -20);
-   gCorpses[find_id].FColor := FModel.Color;
-   gCorpses[find_id].FObj.Vel := FObj.Vel;
-   gCorpses[find_id].FObj.Accel := FObj.Accel;
-  end else g_Player_CreateGibs(FObj.X+PLAYER_RECT_CX, FObj.Y+PLAYER_RECT_CY, FModel.Name, FModel.Color);
- end;
-end;
-
-procedure g_Player_CreateGibs(fX, fY: Integer; ModelName: string; fColor: TRGB);
-var
-  a: Integer;
-  GibsArray: TGibsArray;
-begin
- if gGibs = nil then Exit;
- if not g_PlayerModel_GetGibs(ModelName, GibsArray) then Exit;
-
- for a := 0 to High(GibsArray) do
- with gGibs[CurrentGib] do
- begin
-  Color := fColor;
-  ID := GibsArray[a].ID;
-  MaskID := GibsArray[a].MaskID;
-  Live := True;
-  g_Obj_Init(@Obj);
-  Obj.Rect := GibsArray[a].Rect;
-  Obj.X := fX-GibsArray[a].Rect.X-(GibsArray[a].Rect.Width div 2);
-  Obj.Y := fY-GibsArray[a].Rect.Y-(GibsArray[a].Rect.Height div 2);
-  g_Obj_PushA(@Obj, 25+Random(10), Random(361));
-  RAngle := 0;
-
-  if gBloodCount > 0 then
-   g_GFX_Blood(fX, fY, 16*gBloodCount+Random(5*gBloodCount), -16+Random(33), -16+Random(33),
-               Random(48), Random(48));
-
-  if CurrentGib >= High(gGibs) then CurrentGib := 0
-   else CurrentGib := CurrentGib+1;
- end;
-end;
-
-procedure g_Player_UpdateCorpse();
-var
-  i: Integer;
-  vel: TPoint2i;
-  mr: Word;
-begin
- if gGibs <> nil then
- for i := 0 to High(gGibs) do
-  if gGibs[i].Live then
-  with gGibs[i] do
-  begin
-   vel := Obj.Vel;
-   mr := g_Obj_Move(@Obj);
-
-   if WordBool(mr and MOVE_FALLOUT) then
-   begin
-    Live := False;
-    Continue;
-   end;
-
-   if WordBool(mr and MOVE_HITWALL) then Obj.Vel.X := -(vel.X div 2);
-   if WordBool(mr and (MOVE_HITCEIL or MOVE_HITLAND)) then Obj.Vel.Y := -(vel.Y div 2);
-
-   RAngle := RAngle+Round((Abs(Obj.Vel.X)+Abs(Obj.Vel.Y)));
-   if RAngle > 360 then RAngle := RAngle mod 360;
-
-   if gTime mod (GAME_TICK*3) = 0 then Obj.Vel.X := z_dec(Obj.Vel.X, 1);
-  end;
-
- if gCorpses <> nil then 
- for i := 0 to High(gCorpses) do
-  if gCorpses[i] <> nil then
-   if gCorpses[i].State = CORPSE_STATE_REMOVEME then
-   begin
-    gCorpses[i].Destroy();
-    gCorpses[i] := nil;
-   end else gCorpses[i].Update;
-end;
-
-procedure g_Player_DrawCorpses();
-var
-  i: Integer;
-  a: TPoint;
-begin
- if gGibs <> nil then
- for i := 0 to High(gGibs) do if gGibs[i].Live then
-  with gGibs[i] do
-  begin
-   if not g_Obj_Collide(sX, sY, sWidth, sHeight, @Obj) then Continue;
-
-   a.X := Obj.Rect.X+(Obj.Rect.Width div 2);
-   a.y := Obj.Rect.Y+(Obj.Rect.Height div 2);
-
-   e_DrawAdv(ID, Obj.X, Obj.Y, 0, True, False, RAngle, @a, M_NONE);
-
-   e_Colors := Color;
-   e_DrawAdv(MaskID, Obj.X, Obj.Y, 0, True, False, RAngle, @a, M_NONE);
-   e_Colors.R := 255;
-   e_Colors.G := 255;
-   e_Colors.B := 255;
-  end;
-
- if gCorpses <> nil then 
- for i := 0 to High(gCorpses) do
-  if gCorpses[i] <> nil then gCorpses[i].Draw;
-end;
-
 function TPlayer.Collide(X, Y: Integer; Width, Height: Word): Boolean;
 begin
- Result := g_Collide(FObj.X+PLAYER_RECT.X, FObj.Y+PLAYER_RECT.Y, PLAYER_RECT.Width,
-                     PLAYER_RECT.Height, X, Y, Width, Height);
+  Result := g_Collide(FObj.X+PLAYER_RECT.X,
+                      FObj.Y+PLAYER_RECT.Y,
+                      PLAYER_RECT.Width,
+                      PLAYER_RECT.Height,
+                      X, Y,
+                      Width, Height);
 end;
 
-function TPlayer.Collide(Rect: TRectWH): Boolean;
+function TPlayer.Collide(Panel: TPanel): Boolean;
 begin
- Result := g_Collide(FObj.X+PLAYER_RECT.X, FObj.Y+PLAYER_RECT.Y, PLAYER_RECT.Width,
-                     PLAYER_RECT.Height, Rect.X, Rect.Y, Rect.Width, Rect.Height);
+  Result := g_Collide(FObj.X+PLAYER_RECT.X,
+                      FObj.Y+PLAYER_RECT.Y,
+                      PLAYER_RECT.Width,
+                      PLAYER_RECT.Height,
+                      Panel.X, Panel.Y,
+                      Panel.Width, Panel.Height);
 end;
 
 function TPlayer.Collide(X, Y: Integer): Boolean;
 begin
- X := X-FObj.X-PLAYER_RECT.X;
- Y := Y-FObj.Y-PLAYER_RECT.Y;
- Result := (x >= 0) and (x <= PLAYER_RECT.Width) and
-           (y >= 0) and (y <= PLAYER_RECT.Height);
-end;
-
-procedure g_Player_RemoveAllCorpses();
-var
-  i: Integer;
-begin
- gGibs := nil;
- SetLength(gGibs, MaxGibs);
- CurrentGib := 0;
-
- if gCorpses <> nil then
-  for i := 0 to High(gCorpses) do
-   if gCorpses[i] <> nil then gCorpses[i].Destroy;
-
- gCorpses := nil;
- SetLength(gCorpses, MaxCorpses);
+  X := X-FObj.X-PLAYER_RECT.X;
+  Y := Y-FObj.Y-PLAYER_RECT.Y;
+  Result := (x >= 0) and (x <= PLAYER_RECT.Width) and
+            (y >= 0) and (y <= PLAYER_RECT.Height);
 end;
 
 function g_Player_ValidName(Name: string): Boolean;
@@ -2460,7 +2965,7 @@ begin
  FDirection := Direction;
 end;
 
-function TPlayer.GetKeys(): Word;
+function TPlayer.GetKeys(): Byte;
 begin
  Result := 0;
 
@@ -2484,60 +2989,86 @@ end;
 function TPlayer.FullInLift(XInc, YInc: Integer): Integer;
 begin
  if g_Map_CollidePanel(FObj.X+PLAYER_RECT.X+XInc, FObj.Y+PLAYER_RECT.Y+YInc,
-                       PLAYER_RECT.Width, PLAYER_RECT.Height-8, PANEL_LIFTUP) then Result := -1
+                       PLAYER_RECT.Width, PLAYER_RECT.Height-8,
+                       PANEL_LIFTUP, False) then Result := -1
   else
  if g_Map_CollidePanel(FObj.X+PLAYER_RECT.X+XInc, FObj.Y+PLAYER_RECT.Y+YInc,
-                       PLAYER_RECT.Width, PLAYER_RECT.Height-8, PANEL_LIFTDOWN) then Result := 1
+                       PLAYER_RECT.Width, PLAYER_RECT.Height-8,
+                       PANEL_LIFTDOWN, False) then Result := 1
  else Result := 0;
 end;
 
-procedure TPlayer.GetFlag(Flag: Byte);
+function TPlayer.GetFlag(Flag: Byte): Boolean;
 var
-  s: string;
+  s: String;
+
 begin
- if Flag = FLAG_NONE then Exit;
+  Result := False;
 
- if (Flag = FTeam) and (gFlags[Flag].State = FLAG_STATE_NORMAL) and (FFlag <> FLAG_NONE) then
- begin
-  if FFlag = FLAG_RED then s := I_PLAYER_REDFLAG else s := I_PLAYER_BLUEFLAG;
+  if Flag = FLAG_NONE then
+    Exit;
 
-  g_Console_Add(Format(I_PLAYER_CAPTUREFLAG, [FName, s]), True);
+// Принес чужой флаг на свою базу:
+  if (Flag = FTeam) and
+     (gFlags[Flag].State = FLAG_STATE_NORMAL) and
+     (FFlag <> FLAG_NONE) then
+  begin
+    if FFlag = FLAG_RED then
+      s := _lc[I_PLAYER_FLAG_RED]
+    else
+      s := _lc[I_PLAYER_FLAG_BLUE];
 
-  g_Map_ResetFlag(FFlag);
-  g_Game_Message(Format(I_MESSAGE_CAPTUREFLAG, [AnsiUpperCase(s)]), 144);
+    g_Console_Add(Format(_lc[I_PLAYER_FLAG_CAPTURE], [FName, s]), True);
 
-  gTeamStat[FTeam].Goals := gTeamStat[FTeam].Goals+1;
+    g_Map_ResetFlag(FFlag);
+    g_Game_Message(Format(_lc[I_MESSAGE_FLAG_CAPTURE], [AnsiUpperCase(s)]), 144);
 
-  FFlag := FLAG_NONE;
-  FModel.SetFlag(FLAG_NONE);
+    gTeamStat[FTeam].Goals := gTeamStat[FTeam].Goals + 1;
 
-  Exit;
- end;
+    FFlag := FLAG_NONE;
+    FModel.SetFlag(FLAG_NONE);
 
- if (Flag = FTeam) and (gFlags[Flag].State = FLAG_STATE_DROPPED) then
- begin
-  if Flag = FLAG_RED then s := I_PLAYER_REDFLAG else s := I_PLAYER_BLUEFLAG;
+    Result := True;
+    Exit;
+  end;
 
-  g_Console_Add(Format(I_PLAYER_RETURNFLAG, [FName, s]), True);
+// Подобрал свой флаг - вернул его на базу:
+  if (Flag = FTeam) and
+     (gFlags[Flag].State = FLAG_STATE_DROPPED) then
+  begin
+    if Flag = FLAG_RED then
+      s := _lc[I_PLAYER_FLAG_RED]
+    else
+      s := _lc[I_PLAYER_FLAG_BLUE];
 
-  g_Map_ResetFlag(Flag);
-  g_Game_Message(Format(I_MESSAGE_RETURNFLAG, [AnsiUpperCase(s)]), 144);
+    g_Console_Add(Format(_lc[I_PLAYER_FLAG_RETURN], [FName, s]), True);
 
-  Exit;
- end;
+    g_Map_ResetFlag(Flag);
+    g_Game_Message(Format(_lc[I_MESSAGE_FLAG_RETURN], [AnsiUpperCase(s)]), 144);
 
- if Flag <> FTeam then
- begin
-  FFlag := Flag;
-  FModel.SetFlag(FFlag);
+    Result := True;
+    Exit;
+  end;
 
-  if Flag = FLAG_RED then s := I_PLAYER_REDFLAG else s := I_PLAYER_BLUEFLAG;
-  g_Console_Add(Format(I_PLAYER_GETFLAG, [FName, s]), True);
+// Подобрал чужой флаг:
+  if Flag <> FTeam then
+  begin
+    FFlag := Flag;
+    FModel.SetFlag(FFlag);
 
-  g_Game_Message(Format(I_MESSAGE_GETFLAG, [AnsiUpperCase(s)]), 144);
+    if Flag = FLAG_RED then
+      s := _lc[I_PLAYER_FLAG_RED]
+    else
+      s := _lc[I_PLAYER_FLAG_BLUE];
 
-  gFlags[Flag].State := FLAG_STATE_CAPTURED;
- end;
+    g_Console_Add(Format(_lc[I_PLAYER_FLAG_GET], [FName, s]), True);
+
+    g_Game_Message(Format(_lc[I_MESSAGE_FLAG_GET], [AnsiUpperCase(s)]), 144);
+
+    gFlags[Flag].State := FLAG_STATE_CAPTURED;
+
+    Result := True;
+  end;
 end;
 
 procedure TPlayer.GetSecret();
@@ -2566,7 +3097,6 @@ end;
 
 procedure TPlayer.OnDamage(Angle: SmallInt);
 begin
-
 end;
 
 function TPlayer.firediry(): Integer;
@@ -2576,64 +3106,247 @@ begin
  else Result := 0;
 end;
 
-procedure TPlayer.Load(Rec: PPlayerSaveRec);
-begin
- loadobj(@Rec^.Obj, @FObj);
- CopyMemory(@FAmmo, @Rec^.Ammo, SizeOf(FAmmo));
- CopyMemory(@FMaxAmmo, @Rec^.MaxAmmo, SizeOf(FMaxAmmo));
- CopyMemory(@FWeapon, @Rec^.Weapon, SizeOf(FWeapon));
- CopyMemory(@FMegaRulez, @Rec^.MegaRulez, SizeOf(FMegaRulez));
- CopyMemory(@FReloading, @Rec^.Reloading, SizeOf(FReloading));
- CopyMemory(@FRulez, @Rec^.Rulez, SizeOf(FRulez));
- SetDirection(Rec^.Direction);
- FUID := Rec^.UID;
- FHealth := Rec^.Health;
- FArmor := Rec^.Armor;
- FAir := Rec^.Air;
- FLive := Rec^.Live;
- FKills := Rec^.Kills;
- FMonsterKills := Rec^.MonsterKills;
- FFrags := Rec^.Frags;
- FDeath := Rec^.Death;
- FFlag := Rec^.Flag;
- FSecrets := Rec^.Secrets;
- FPain := Rec^.Pain;
- FCurrWeap := Rec^.CurrWeap;
- FBFGFireCounter := Rec^.BFGFireCounter;
- FDamageBuffer := Rec^.DamageBuffer;
- FLastSpawnerUID := Rec^.LastSpawnerUID;
- FLastHit := Rec^.LastHit;
+procedure TPlayer.SaveState(var Mem: TBinMemoryWriter);
+var
+  i: Integer;
+  sig: DWORD;
+  str: String;
+  b: Byte;
 
- FModel.SetWeapon(FCurrWeap);
+begin
+  if FIamBot then
+    i := 512
+  else
+    i := 256;
+
+  Mem := TBinMemoryWriter.Create(i);
+
+// Сигнатура игрока:
+  sig := PLAYER_SIGNATURE; // 'PLYR'
+  Mem.WriteDWORD(sig);
+// Бот или человек:
+  Mem.WriteBoolean(FIamBot);
+// UID игрока:
+  Mem.WriteWord(FUID);
+// Имя игрока:
+  Mem.WriteString(FName, 32);
+// Команда:
+  Mem.WriteByte(FTeam);
+// Жив ли:
+  Mem.WriteBoolean(FLive);
+// Направление:
+  if FDirection = D_LEFT then
+    b := 1
+  else // D_RIGHT
+    b := 2;
+  Mem.WriteByte(b);
+// Здоровье:
+  Mem.WriteInt(FHealth);
+// Броня:
+  Mem.WriteInt(FArmor);
+// Запас воздуха:
+  Mem.WriteInt(FAir);
+// Боль:
+  Mem.WriteInt(FPain);
+// Убил:
+  Mem.WriteInt(FKills);
+// Убил монстров:
+  Mem.WriteInt(FMonsterKills);
+// Фрагов:
+  Mem.WriteInt(FFrags);
+// Смертей:
+  Mem.WriteInt(FDeath);
+// Какой флаг несет:
+  Mem.WriteByte(FFlag);
+// Нашел секретов:
+  Mem.WriteInt(FSecrets);
+// Текущее оружие:
+  Mem.WriteByte(FCurrWeap);
+// Время зарядки BFG:
+  Mem.WriteSmallInt(FBFGFireCounter);
+// Буфер урона:
+  Mem.WriteInt(FDamageBuffer);
+// Последний ударивший:
+  Mem.WriteWord(FLastSpawnerUID);
+// Тип последнего полученного урона:
+  Mem.WriteByte(FLastHit);
+// Объект игрока:
+  Obj_SaveState(@FObj, Mem);
+// Текущее количество патронов:
+  for i := A_BULLETS to A_CELLS do
+    Mem.WriteWord(FAmmo[i]);
+// Максимальное количество патронов:
+  for i := A_BULLETS to A_CELLS do
+    Mem.WriteWord(FMaxAmmo[i]);
+// Наличие оружия:
+  for i := WEAPON_KASTET to WEAPON_SUPERPULEMET do
+    Mem.WriteBoolean(FWeapon[i]);
+// Время перезарядки оружия:
+  for i := WEAPON_KASTET to WEAPON_SUPERPULEMET do
+    Mem.WriteWord(FReloading[i]);
+// Наличие рюкзака:
+  if R_ITEM_BACKPACK in FRulez then
+    b := 1
+  else
+    b := 0;
+  Mem.WriteByte(b);
+// Наличие красного ключа:
+  if R_KEY_RED in FRulez then
+    b := 1
+  else
+    b := 0;
+  Mem.WriteByte(b);
+// Наличие зеленого ключа:
+  if R_KEY_GREEN in FRulez then
+    b := 1
+  else
+    b := 0;
+  Mem.WriteByte(b);
+// Наличие синего ключа:
+  if R_KEY_BLUE in FRulez then
+    b := 1
+  else
+    b := 0;
+  Mem.WriteByte(b);
+// Наличие берсерка:
+  if R_BERSERK in FRulez then
+    b := 1
+  else
+    b := 0;
+  Mem.WriteByte(b);
+// Время действия специальных предметов:
+  for i := MR_SUIT to MR_INV do
+    Mem.WriteDWORD(FMegaRulez[i]);
+// Время до повторного респауна, смены оружия, исользования:
+  for i := T_RESPAWN to T_USE do
+    Mem.WriteDWORD(FTime[i]);
+// Название модели:
+  str := FModel.Name;
+  Mem.WriteString(str);
+// Цвет модели:
+  b := FModel.Color.R;
+  Mem.WriteByte(b);
+  b := FModel.Color.G;
+  Mem.WriteByte(b);
+  b := FModel.Color.B;
+  Mem.WriteByte(b);
 end;
 
-procedure TPlayer.Save(Rec: PPlayerSaveRec);
+procedure TPlayer.LoadState(var Mem: TBinMemoryReader);
+var
+  i: Integer;
+  sig: DWORD;
+  str: String;
+  b: Byte;
+  col: TRGB;
+
 begin
- saveobj(@FObj, @Rec^.Obj);
- CopyMemory(@Rec^.Ammo, @FAmmo, SizeOf(FAmmo));
- CopyMemory(@Rec^.MaxAmmo, @FMaxAmmo, SizeOf(FMaxAmmo));
- CopyMemory(@Rec^.Weapon, @FWeapon, SizeOf(FWeapon));
- CopyMemory(@Rec^.MegaRulez, @FMegaRulez, SizeOf(FMegaRulez));
- CopyMemory(@Rec^.Reloading, @FReloading, SizeOf(FReloading));
- CopyMemory(@Rec^.Rulez, @FRulez, SizeOf(FRulez));
- Rec^.Direction := FDirection;
- Rec^.UID := FUID;
- Rec^.Health := FHealth;
- Rec^.Armor := FArmor;
- Rec^.Air := FAir;
- Rec^.Live := FLive;
- Rec^.Kills := FKills;
- Rec^.MonsterKills := FMonsterKills;
- Rec^.Frags := FFrags;
- Rec^.Death := FDeath;
- Rec^.Flag := FFlag;
- Rec^.Secrets := FSecrets;
- Rec^.Pain := FPain;
- Rec^.CurrWeap := FCurrWeap;
- Rec^.BFGFireCounter := FBFGFireCounter;
- Rec^.DamageBuffer := FDamageBuffer;
- Rec^.LastSpawnerUID := FLastSpawnerUID;
- Rec^.LastHit := FLastHit;
+  if Mem = nil then
+    Exit;
+
+// Сигнатура игрока:
+  Mem.ReadDWORD(sig);
+  if sig <> PLAYER_SIGNATURE then // 'PLYR'
+  begin
+    raise EBinSizeError.Create('TPlayer.LoadState: Wrong Player Signature');
+  end;
+// Бот или человек:
+  Mem.ReadBoolean(FIamBot);
+// UID игрока:
+  Mem.ReadWord(FUID);
+// Имя игрока:
+  Mem.ReadString(str);
+  if (FPlayerNum <> 1) and (FPlayerNum <> 2) then
+    FName := str;
+// Команда:
+  Mem.ReadByte(FTeam);
+// Жив ли:
+  Mem.ReadBoolean(FLive);
+// Направление:
+  Mem.ReadByte(b);
+  if b = 1 then
+    FDirection := D_LEFT
+  else // b = 2
+    FDirection := D_RIGHT;
+// Здоровье:
+  Mem.ReadInt(FHealth);
+// Броня:
+  Mem.ReadInt(FArmor);
+// Запас воздуха:
+  Mem.ReadInt(FAir);
+// Боль:
+  Mem.ReadInt(FPain);
+// Убил:
+  Mem.ReadInt(FKills);
+// Убил монстров:
+  Mem.ReadInt(FMonsterKills);
+// Фрагов:
+  Mem.ReadInt(FFrags);
+// Смертей:
+  Mem.ReadInt(FDeath);
+// Какой флаг несет:
+  Mem.ReadByte(FFlag);
+// Нашел секретов:
+  Mem.ReadInt(FSecrets);
+// Текущее оружие:
+  Mem.ReadByte(FCurrWeap);
+// Время зарядки BFG:
+  Mem.ReadSmallInt(FBFGFireCounter);
+// Буфер урона:
+  Mem.ReadInt(FDamageBuffer);
+// Последний ударивший:
+  Mem.ReadWord(FLastSpawnerUID);
+// Тип последнего полученного урона:
+  Mem.ReadByte(FLastHit);
+// Объект игрока:
+  Obj_LoadState(@FObj, Mem);
+// Текущее количество патронов:
+  for i := A_BULLETS to A_CELLS do
+    Mem.ReadWord(FAmmo[i]);
+// Максимальное количество патронов:
+  for i := A_BULLETS to A_CELLS do
+    Mem.ReadWord(FMaxAmmo[i]);
+// Наличие оружия:
+  for i := WEAPON_KASTET to WEAPON_SUPERPULEMET do
+    Mem.ReadBoolean(FWeapon[i]);
+// Время перезарядки оружия:
+  for i := WEAPON_KASTET to WEAPON_SUPERPULEMET do
+    Mem.ReadWord(FReloading[i]);
+// Наличие рюкзака:
+  Mem.ReadByte(b);
+  if b = 1 then
+    Include(FRulez, R_ITEM_BACKPACK);
+// Наличие красного ключа:
+  Mem.ReadByte(b);
+  if b = 1 then
+    Include(FRulez, R_KEY_RED);
+// Наличие зеленого ключа:
+  Mem.ReadByte(b);
+  if b = 1 then
+    Include(FRulez, R_KEY_GREEN);
+// Наличие синего ключа:
+  Mem.ReadByte(b);
+  if b = 1 then
+    Include(FRulez, R_KEY_BLUE);
+// Наличие берсерка:
+  Mem.ReadByte(b);
+  if b = 1 then
+    Include(FRulez, R_BERSERK);
+// Время действия специальных предметов:
+  for i := MR_SUIT to MR_INV do
+    Mem.ReadDWORD(FMegaRulez[i]);
+// Время до повторного респауна, смены оружия, исользования:
+  for i := T_RESPAWN to T_USE do
+    Mem.ReadDWORD(FTime[i]);
+// Название модели:
+  Mem.ReadString(str);
+// Цвет модели:
+  Mem.ReadByte(col.R);
+  Mem.ReadByte(col.G);
+  Mem.ReadByte(col.B);
+// Обновляем модель игрока:
+  SetModel(str);
+  FModel.Color := col;
 end;
 
 procedure TPlayer.AllRulez(Health: Boolean);
@@ -2656,24 +3369,26 @@ procedure TPlayer.SetModel(ModelName: string);
 var
   m: TPlayerModel;
   old_color: TRGB;
+
 begin
- m := g_PlayerModel_Get(ModelName);
- if m = nil then Exit;
+  m := g_PlayerModel_Get(ModelName);
+  if m = nil then
+    Exit;
 
- old_color := _RGB(0, 0, 0);
+  old_color := _RGB(0, 0, 0);
 
- if FModel <> nil then
- begin
-  old_color := FModel.Color;
-  FModel.Destroy;
- end;
+  if FModel <> nil then
+  begin
+    old_color := FModel.Color;
+    FModel.Free();
+  end;
 
- FModel := m;
+  FModel := m;
 
- FModel.Color := old_color;
- FModel.SetWeapon(FCurrWeap);
- FModel.SetFlag(FFlag);
- SetDirection(FDirection);
+  FModel.Color := old_color;
+  FModel.SetWeapon(FCurrWeap);
+  FModel.SetFlag(FFlag);
+  SetDirection(FDirection);
 end;
 
 procedure TPlayer.SetColor(Color: TRGB);
@@ -2686,126 +3401,238 @@ procedure TPlayer.FlySmoke();
 var
   id: DWORD;
   Anim: TAnimation;
+
 begin
- if BodyInLiquid(0, 0) then Exit;
+  if Random(3) <> 2 then
+    Exit;
 
- if g_Frames_Get(id, 'FRAMES_SMOKE') then
- begin
-  Anim := TAnimation.Create(id, False, 3);
-  Anim.Alpha := 150;
-  g_GFX_OnceAnim(Obj.X+Obj.Rect.X+Random(Obj.Rect.Width)-(Anim.Width div 2),
-                 Obj.Y+Obj.Rect.Height-4+Random(5), Anim, ONCEANIM_SMOKE);
-  Anim.Destroy;
- end;
-end;
+  if BodyInLiquid(0, 0) then
+    Exit;
 
-{ TCorpse }
-
-constructor TCorpse.Create(X, Y: Integer; ModelName: string; Mess: Boolean);
-begin
- g_Obj_Init(@FObj);
- FObj.X := X;
- FObj.Y := Y;
- FObj.Rect := PLAYER_CORPSERECT;
- FModelName := ModelName;
- if Mess then
- begin
-  FState := CORPSE_STATE_MESS;
-  g_PlayerModel_GetAnim(ModelName, A_DIE2, FAnimation, FAnimationMask);
- end
-  else
- begin
-  FState := CORPSE_STATE_NORMAL;
-  g_PlayerModel_GetAnim(ModelName, A_DIE1, FAnimation, FAnimationMask);
- end;
-end;
-
-procedure TCorpse.Damage(Value: Word; vx, vy: Integer);
-begin
- if FState = CORPSE_STATE_REMOVEME then Exit;
-
- FDamage := FDamage+Value;
-
- if FDamage > 150 then
- begin
-  if FAnimation <> nil then
+  if g_Frames_Get(id, 'FRAMES_SMOKE') then
   begin
-   FAnimation.Destroy;
-   FAnimation := nil;
-
-   FState := CORPSE_STATE_REMOVEME;
-
-   g_Player_CreateGibs(FObj.X+FObj.Rect.X+(FObj.Rect.Width div 2),
-                       FObj.Y+FObj.Rect.Y+(FObj.Rect.Height div 2),
-                       FModelName, FColor);
+    Anim := TAnimation.Create(id, False, 3);
+    Anim.Alpha := 150;
+    g_GFX_OnceAnim(Obj.X+Obj.Rect.X+Random(Obj.Rect.Width)-(Anim.Width div 2),
+                   Obj.Y+Obj.Rect.Height-4+Random(5), Anim, ONCEANIM_SMOKE);
+    Anim.Free();
   end;
- end
+end;
+
+procedure TPlayer.PauseSounds(Enable: Boolean);
+begin
+  FSawSound.Pause(Enable);
+  FSawSoundIdle.Pause(Enable);
+  FSawSoundHit.Pause(Enable);
+  FSawSoundSelect.Pause(Enable);
+end;
+
+{ T C o r p s e : }
+
+constructor TCorpse.Create(X, Y: Integer; ModelName: String; aMess: Boolean);
+begin
+  g_Obj_Init(@FObj);
+  FObj.X := X;
+  FObj.Y := Y;
+  FObj.Rect := PLAYER_CORPSERECT;
+  FModelName := ModelName;
+  FMess := aMess;
+
+  if FMess then
+    begin
+      FState := CORPSE_STATE_MESS;
+      g_PlayerModel_GetAnim(ModelName, A_DIE2, FAnimation, FAnimationMask);
+    end
   else
- begin
-  FObj.Vel.X := FObj.Vel.X+vx;
-  FObj.Vel.Y := FObj.Vel.Y+vy;
- end;
+    begin
+      FState := CORPSE_STATE_NORMAL;
+      g_PlayerModel_GetAnim(ModelName, A_DIE1, FAnimation, FAnimationMask);
+    end;
 end;
 
 destructor TCorpse.Destroy();
 begin
- if FAnimation <> nil then FAnimation.Destroy;
+  FAnimation.Free();
 
- inherited;
+  inherited;
+end;
+
+procedure TCorpse.Damage(Value: Word; vx, vy: Integer);
+begin
+  if FState = CORPSE_STATE_REMOVEME then
+    Exit;
+
+  FDamage := FDamage + Value;
+
+  if FDamage > 150 then
+    begin
+      if FAnimation <> nil then
+      begin
+        FAnimation.Free();
+        FAnimation := nil;
+
+        FState := CORPSE_STATE_REMOVEME;
+
+        g_Player_CreateGibs(FObj.X+FObj.Rect.X+(FObj.Rect.Width div 2),
+                            FObj.Y+FObj.Rect.Y+(FObj.Rect.Height div 2),
+                            FModelName, FColor);
+      end;
+    end
+  else
+    begin
+      FObj.Vel.X := FObj.Vel.X + vx;
+      FObj.Vel.Y := FObj.Vel.Y + vy;
+    end;
 end;
 
 procedure TCorpse.Draw();
 begin
- if FState = CORPSE_STATE_REMOVEME then Exit;
+  if FState = CORPSE_STATE_REMOVEME then
+    Exit;
 
- if FAnimation <> nil then FAnimation.Draw(FObj.X, FObj.Y, M_NONE);
- if FAnimationMask <> nil then
- begin
-  e_Colors := FColor;
-  FAnimationMask.Draw(FObj.X, FObj.Y, M_NONE);
-  e_Colors.R := 255;
-  e_Colors.G := 255;
-  e_Colors.B := 255;
- end;
+  if FAnimation <> nil then
+    FAnimation.Draw(FObj.X, FObj.Y, M_NONE);
+
+  if FAnimationMask <> nil then
+  begin
+    e_Colors := FColor;
+    FAnimationMask.Draw(FObj.X, FObj.Y, M_NONE);
+    e_Colors.R := 255;
+    e_Colors.G := 255;
+    e_Colors.B := 255;
+  end;
 end;
 
 procedure TCorpse.Update();
 var
   st: Word;
+
 begin
- if FState = CORPSE_STATE_REMOVEME then Exit;
+  if FState = CORPSE_STATE_REMOVEME then
+    Exit;
 
- if gTime mod (GAME_TICK*2) <> 0 then
- begin
-  g_Obj_Move(@FObj);
-  Exit;
- end;
+  if gTime mod (GAME_TICK*2) <> 0 then
+  begin
+    g_Obj_Move(@FObj, True);
+    Exit;
+  end;
 
- FObj.Vel.X := z_dec(FObj.Vel.X, 1);
+// Сопротивление воздуха для трупа:
+  FObj.Vel.X := z_dec(FObj.Vel.X, 1);
 
- st := g_Obj_Move(@FObj);
+  st := g_Obj_Move(@FObj, True);
 
- if WordBool(st and MOVE_FALLOUT) then
- begin
-  FState := CORPSE_STATE_REMOVEME;
-  Exit;
- end;
+  if WordBool(st and MOVE_FALLOUT) then
+  begin
+    FState := CORPSE_STATE_REMOVEME;
+    Exit;
+  end;
 
- if WordBool(st and MOVE_HITWATER) then g_Obj_Splash(@FObj);
+  if WordBool(st and MOVE_HITWATER) then
+    g_Obj_Splash(@FObj);
 
- if FAnimation <> nil then FAnimation.Update;
- if FAnimationMask <> nil then FAnimationMask.Update;
+  if FAnimation <> nil then
+    FAnimation.Update();
+  if FAnimationMask <> nil then
+    FAnimationMask.Update();
 end;
 
-{ TBot }
+procedure TCorpse.SaveState(var Mem: TBinMemoryWriter);
+var
+  sig: DWORD;
+  anim: Boolean;
 
-constructor TBot.Create(ModelName: string);
 begin
- inherited Create(ModelName);
+  if Mem = nil then
+    Exit;
 
- FDifficult.WeaponPrior := WEAPON_PRIOR1;
- FDifficult.CloseWeaponPrior := WEAPON_PRIOR2;
- //FDifficult.SafeWeaponPrior := WEAPON_PRIOR3;
+// Сигнатура трупа:
+  sig := CORPSE_SIGNATURE; // 'CORP'
+  Mem.WriteDWORD(sig);
+// Состояние:
+  Mem.WriteByte(FState);
+// Накопленный урон:
+  Mem.WriteByte(FDamage);
+// Цвет:
+  Mem.WriteByte(FColor.R);
+  Mem.WriteByte(FColor.G);
+  Mem.WriteByte(FColor.B);
+// Объект трупа:
+  Obj_SaveState(@FObj, Mem);
+// Есть ли анимация:
+  anim := FAnimation <> nil;
+  Mem.WriteBoolean(anim);
+// Если есть - сохраняем:
+  if anim then
+    FAnimation.SaveState(Mem);
+// Есть ли маска анимации:
+  anim := FAnimationMask <> nil;
+  Mem.WriteBoolean(anim);
+// Если есть - сохраняем:
+  if anim then
+    FAnimationMask.SaveState(Mem);
+end;
+
+procedure TCorpse.LoadState(var Mem: TBinMemoryReader);
+var
+  sig: DWORD;
+  anim: Boolean;
+
+begin
+  if Mem = nil then
+    Exit;
+
+// Сигнатура трупа:
+  Mem.ReadDWORD(sig);
+  if sig <> CORPSE_SIGNATURE then // 'CORP'
+  begin
+    raise EBinSizeError.Create('TCorpse.LoadState: Wrong Corpse Signature');
+  end;
+// Состояние:
+  Mem.ReadByte(FState);
+// Накопленный урон:
+  Mem.ReadByte(FDamage);
+// Цвет:
+  Mem.ReadByte(FColor.R);
+  Mem.ReadByte(FColor.G);
+  Mem.ReadByte(FColor.B);
+// Объект трупа:
+  Obj_LoadState(@FObj, Mem);
+// Есть ли анимация:
+  Mem.ReadBoolean(anim);
+// Если есть - загружаем:
+  if anim then
+  begin
+    Assert(FAnimation <> nil, 'TCorpse.LoadState: no FAnimation');
+    FAnimation.LoadState(Mem);
+  end;
+// Есть ли маска анимации:
+  Mem.ReadBoolean(anim);
+// Если есть - загружаем:
+  if anim then
+  begin
+    Assert(FAnimationMask <> nil, 'TCorpse.LoadState: no FAnimationMask');
+    FAnimationMask.LoadState(Mem);
+  end;
+end;
+
+{ T B o t : }
+
+constructor TBot.Create();
+var
+  a: Integer;
+
+begin
+  inherited Create();
+
+  FIamBot := True;
+
+  for a := WEAPON_KASTET to WEAPON_SUPERPULEMET do
+  begin
+    FDifficult.WeaponPrior[a] := WEAPON_PRIOR1[a];
+    FDifficult.CloseWeaponPrior[a] := WEAPON_PRIOR2[a];
+    //FDifficult.SafeWeaponPrior[a] := WEAPON_PRIOR3[a];
+  end;
 end;
 
 destructor TBot.Destroy();
@@ -2837,22 +3664,34 @@ type
   TTarget = record
    UID: Word;
    X, Y: Integer;
+   Rect: TRectWH;
    cX, cY: Integer;
    Dist: Word;
    Line: Boolean;
    Visible: Boolean;
+   IsPlayer: Boolean;
   end;
 
   TTargetRecord = array of TTarget;
 
-function Compare(a, b: TTarget): Integer;
-begin
- if a.Line and not b.Line then Result := -1
- else if not a.Line and b.Line then Result := 1
- else if (a.Line and b.Line) or ((not a.Line) and (not b.Line)) then
-  (if a.Dist > b.Dist then Result := 1 else Result := -1)
- else Result := -1;
-end;
+  function Compare(a, b: TTarget): Integer;
+  begin
+    if a.Line and not b.Line then // A на линии огня
+      Result := -1
+   else
+     if not a.Line and b.Line then // B на линии огня
+       Result := 1
+     else // И A, и B на линии или не на линии огня
+       if (a.Line and b.Line) or ((not a.Line) and (not b.Line)) then
+         begin
+           if a.Dist > b.Dist then // B ближе
+             Result := 1
+           else // A ближе или равноудаленно с B
+             Result := -1;
+         end
+       else // Странно -> A
+         Result := -1;
+  end;
 
 var
   a, x1, y1, x2, y2: Integer;
@@ -2861,294 +3700,462 @@ var
   Target, BestTarget: TTarget;
   firew, fireh: Integer;
   angle: SmallInt;
-begin
- if FCurrWeap <> FSelectedWeapon then NextWeapon();
-
- if (GetAIFlag('NEEDFIRE') <> '') and (FCurrWeap = FSelectedWeapon) then
- begin
-  RemoveAIFlag('NEEDFIRE');
-
-  case FCurrWeap of
-   WEAPON_PLASMA, WEAPON_SUPERPULEMET, WEAPON_CHAINGUN: PressKey(KEY_FIRE, 30);
-   WEAPON_SAW, WEAPON_KASTET, WEAPON_MEGAKASTET: PressKey(KEY_FIRE, 60);
-   else PressKey(KEY_FIRE, 0);
-  end;
- end;
-
- x1 := FObj.X+WEAPONPOINT[FDirection].X;
- y1 := FObj.Y+WEAPONPOINT[FDirection].Y;
-
- Target.UID := FTargetUID;
-
- if Target.UID <> 0 then
- begin
-  with g_Player_Get(Target.UID) do
-  begin
-   Target.X := FObj.X;
-   Target.Y := FObj.Y;
-  end;
-
-  Target.cX := Target.X+PLAYER_RECT_CX;
-  Target.cY := Target.Y+PLAYER_RECT_CY;
-  Target.Visible := g_TraceVector(x1, y1, Target.cX, Target.cY);
-  Target.Line := (y1+4 < Target.Y+PLAYER_RECT.Y+PLAYER_RECT.Height) and
-                 (y1-4 > Target.Y+PLAYER_RECT.Y);
- end
-  else
- begin
-  Target.X := 0;
-  Target.Y := 0;
-  Target.cX := 0;
-  Target.cY := 0;
-  Target.Visible := False;
-  Target.Line := False;
- end;
-
- targets := nil;
-
- if not (Target.Line and Target.Visible) then
- for a := 0 to High(gPlayers) do
-  if (gPlayers[a] <> nil) and (gPlayers[a].Live) and
-     (gPlayers[a].FUID <> FUID) and not SameTeam(FUID, gPlayers[a].FUID) then
-  begin
-   x2 := gPlayers[a].FObj.X+PLAYER_RECT_CX;
-   y2 := gPlayers[a].FObj.Y+PLAYER_RECT_CY;
-
-   if PlayerOnScreen(gPlayers[a].FObj.X, gPlayers[a].FObj.Y) and
-      g_TraceVector(x1, y1, x2, y2) then
-   begin
-    SetLength(targets, Length(targets)+1);
-
-    with targets[High(targets)] do
-    begin
-     UID := gPlayers[a].FUID;
-     X := gPlayers[a].FObj.X;
-     Y := gPlayers[a].FObj.Y;
-     cX := x2;
-     cY := y2;
-     Dist := g_PatchLength(x1, y1, x2, y2);
-     Line := (y1+4 < Target.Y+PLAYER_RECT.Y+PLAYER_RECT.Height) and
-             (y1-4 > Target.Y+PLAYER_RECT.Y);
-     Visible := True;
-    end;
-   end;
-  end;
+  mon: TMonster;
+  pla: TPlayer;
+  vsPlayer, vsMonster, ok: Boolean;
   
- if targets <> nil then
- begin
-  BestTarget := targets[0];
-  if Length(targets) > 1 then
-   for a := 1 to High(targets) do
-    if Compare(BestTarget, targets[a]) = 1 then
-     BestTarget := targets[a];
+begin
+  vsPlayer := LongBool(gGameSettings.Options and GAME_OPTION_BOTVSPLAYER);
+  vsMonster := LongBool(gGameSettings.Options and GAME_OPTION_BOTVSMONSTER);
 
-  if ((not Target.Visible) and BestTarget.Visible and (Target.UID <> BestTarget.UID)) or
-     ((not Target.Line) and BestTarget.Line and BestTarget.Visible) then
-  begin
-   Target := BestTarget;
+// Если текущее оружие не то, что нужно, то меняем:
+  if FCurrWeap <> FSelectedWeapon then
+    NextWeapon();
 
-   if (Healthy() = 3) or ((Healthy() = 2)) then
-   begin
-    if ((RunDirection() = D_LEFT) and (Target.X > FObj.X)) then SetAIFlag('GORIGHT', '1');
-    if ((RunDirection() = D_RIGHT) and (Target.X < FObj.X)) then SetAIFlag('GOLEFT', '1');
-   end
+// Если нужно стрелять и нужное оружие, то нажать "Стрелять":
+  if (GetAIFlag('NEEDFIRE') <> '') and (FCurrWeap = FSelectedWeapon) then
+    begin
+      RemoveAIFlag('NEEDFIRE');
+
+      case FCurrWeap of
+        WEAPON_PLASMA, WEAPON_SUPERPULEMET, WEAPON_CHAINGUN: PressKey(KEY_FIRE, 20);
+        WEAPON_SAW, WEAPON_KASTET, WEAPON_MEGAKASTET: PressKey(KEY_FIRE, 40);
+        else PressKey(KEY_FIRE, 0);
+      end;
+    end;
+
+// Координаты ствола:
+  x1 := FObj.X + WEAPONPOINT[FDirection].X;
+  y1 := FObj.Y + WEAPONPOINT[FDirection].Y;
+
+  Target.UID := FTargetUID;
+
+  ok := False;
+  if Target.UID <> 0 then
+    begin // Цель есть - настраиваем
+      if (g_GetUIDType(Target.UID) = UID_PLAYER) and
+          vsPlayer then
+        begin // Игрок
+          with g_Player_Get(Target.UID) do
+            begin
+              Target.X := FObj.X;
+              Target.Y := FObj.Y;
+            end;
+
+          Target.cX := Target.X + PLAYER_RECT_CX;
+          Target.cY := Target.Y + PLAYER_RECT_CY;
+          Target.Rect := PLAYER_RECT;
+          Target.Visible := g_TraceVector(x1, y1, Target.cX, Target.cY);
+          Target.Line := (y1+4 < Target.Y+PLAYER_RECT.Y+PLAYER_RECT.Height) and
+                         (y1-4 > Target.Y+PLAYER_RECT.Y);
+          Target.IsPlayer := True;
+          ok := True;
+        end
+      else
+        if (g_GetUIDType(Target.UID) = UID_MONSTER) and
+            vsMonster then
+          begin // Монстр
+            mon := g_Monsters_Get(Target.UID);
+            if mon <> nil then
+              begin
+                Target.X := mon.Obj.X;
+                Target.Y := mon.Obj.Y;
+
+                Target.cX := Target.X + mon.Obj.Rect.X + (mon.Obj.Rect.Width div 2);
+                Target.cY := Target.Y + mon.Obj.Rect.Y + (mon.Obj.Rect.Height div 2);
+                Target.Rect := mon.Obj.Rect;
+                Target.Visible := g_TraceVector(x1, y1, Target.cX, Target.cY);
+                Target.Line := (y1+4 < Target.Y + mon.Obj.Rect.Y + mon.Obj.Rect.Height) and
+                               (y1-4 > Target.Y + mon.Obj.Rect.Y);
+                Target.IsPlayer := False;
+                ok := True;
+              end;
+          end;
+    end;
+
+  if not ok then 
+    begin // Цели нет - обнуляем
+      Target.X := 0;
+      Target.Y := 0;
+      Target.cX := 0;
+      Target.cY := 0;
+      Target.Visible := False;
+      Target.Line := False;
+      Target.IsPlayer := False;
+    end;
+
+  targets := nil;
+
+// Если цель не видима или не на линии огня, то ищем все возможные цели:
+  if (not Target.Line) or (not Target.Visible) then
+    begin
+    // Игроки:
+      if vsPlayer then
+        for a := 0 to High(gPlayers) do
+          if (gPlayers[a] <> nil) and (gPlayers[a].Live) and
+              (gPlayers[a].FUID <> FUID) and
+              (not SameTeam(FUID, gPlayers[a].FUID)) then
+            begin
+              if not TargetOnScreen(gPlayers[a].FObj.X + PLAYER_RECT.X,
+                                    gPlayers[a].FObj.Y + PLAYER_RECT.Y) then
+                Continue;
+
+              x2 := gPlayers[a].FObj.X + PLAYER_RECT_CX;
+              y2 := gPlayers[a].FObj.Y + PLAYER_RECT_CY;
+
+            // Если игрок на экране и не прикрыт стеной:
+              if g_TraceVector(x1, y1, x2, y2) then
+                begin
+                // Добавляем к списку возможных целей:
+                  SetLength(targets, Length(targets)+1);
+                  with targets[High(targets)] do
+                    begin
+                      UID := gPlayers[a].FUID;
+                      X := gPlayers[a].FObj.X;
+                      Y := gPlayers[a].FObj.Y;
+                      cX := x2;
+                      cY := y2;
+                      Rect := PLAYER_RECT;
+                      Dist := g_PatchLength(x1, y1, x2, y2);
+                      Line := (y1+4 < Target.Y+PLAYER_RECT.Y+PLAYER_RECT.Height) and
+                              (y1-4 > Target.Y+PLAYER_RECT.Y);
+                      Visible := True;
+                      IsPlayer := True;
+                    end;
+                end;
+            end;
+
+    // Монстры:
+      if vsMonster and (gMonsters <> nil) then
+        for a := 0 to High(gMonsters) do
+          if (gMonsters[a] <> nil) and (gMonsters[a].Live) and
+             (gMonsters[a].MonsterType <> MONSTER_BARREL) then
+            begin
+              mon := gMonsters[a];
+
+              if not TargetOnScreen(mon.Obj.X + mon.Obj.Rect.X,
+                                    mon.Obj.Y + mon.Obj.Rect.Y) then
+                Continue;
+
+              x2 := mon.Obj.X + mon.Obj.Rect.X + (mon.Obj.Rect.Width div 2);
+              y2 := mon.Obj.Y + mon.Obj.Rect.Y + (mon.Obj.Rect.Height div 2);
+
+            // Если монстр на экране и не прикрыт стеной:
+              if g_TraceVector(x1, y1, x2, y2) then
+                begin
+                // Добавляем к списку возможных целей:
+                  SetLength(targets, Length(targets)+1);
+                  with targets[High(targets)] do
+                    begin
+                      UID := mon.UID;
+                      X := mon.Obj.X;
+                      Y := mon.Obj.Y;
+                      cX := x2;
+                      cY := y2;
+                      Rect := mon.Obj.Rect;
+                      Dist := g_PatchLength(x1, y1, x2, y2);
+                      Line := (y1+4 < Target.Y + mon.Obj.Rect.Y + mon.Obj.Rect.Height) and
+                              (y1-4 > Target.Y + mon.Obj.Rect.Y);
+                      Visible := True;
+                      IsPlayer := False;
+                    end;
+                end;
+            end;
+    end;
+
+// Если есть возможные цели:
+// (Выбираем лучшую, меняем оружие и бежим к ней/от нее)
+  if targets <> nil then
+    begin
+    // Выбираем наилучшую цель:
+      BestTarget := targets[0];
+      if Length(targets) > 1 then
+        for a := 1 to High(targets) do
+          if Compare(BestTarget, targets[a]) = 1 then
+            BestTarget := targets[a];
+
+    // Если лучшая цель "виднее" текущей, то текущая := лучшая:
+      if ((not Target.Visible) and BestTarget.Visible and (Target.UID <> BestTarget.UID)) or
+          ((not Target.Line) and BestTarget.Line and BestTarget.Visible) then
+        begin
+          Target := BestTarget;
+
+          if (Healthy() = 3) or ((Healthy() = 2)) then
+            begin // Если здоровы - догоняем
+              if ((RunDirection() = D_LEFT) and (Target.X > FObj.X)) then
+                SetAIFlag('GORIGHT', '1');
+              if ((RunDirection() = D_RIGHT) and (Target.X < FObj.X)) then
+                SetAIFlag('GOLEFT', '1');
+            end
+          else
+            begin // Если побиты - убегаем
+              if ((RunDirection() = D_LEFT) and (Target.X < FObj.X)) then
+                SetAIFlag('GORIGHT', '1');
+              if ((RunDirection() = D_RIGHT) and (Target.X > FObj.X)) then
+                SetAIFlag('GOLEFT', '1');
+            end;
+
+        // Выбираем оружие на основе расстояния и приоритетов:
+          SelectWeapon(Abs(x1-Target.cX));
+        end;
+    end;
+
+// Если есть цель:
+// (Догоняем/убегаем, стреляем по направлению к цели)
+// (Если цель далеко, то хватит следить за ней)
+  if Target.UID <> 0 then
+    begin
+      if not TargetOnScreen(Target.X + Target.Rect.X,
+                            Target.Y + Target.Rect.Y) then
+        begin // Цель сбежала с "экрана"
+          if (Healthy() = 3) or ((Healthy() = 2)) then
+            begin // Если здоровы - догоняем
+              if ((RunDirection() = D_LEFT) and (Target.X > FObj.X)) then
+                SetAIFlag('GORIGHT', '1');
+              if ((RunDirection() = D_RIGHT) and (Target.X < FObj.X)) then
+                SetAIFlag('GOLEFT', '1');
+            end
+          else
+            begin // Если побиты - забываем о цели и убегаем
+              Target.UID := 0;
+              if ((RunDirection() = D_LEFT) and (Target.X < FObj.X)) then
+                SetAIFlag('GORIGHT', '1');
+              if ((RunDirection() = D_RIGHT) and (Target.X > FObj.X)) then
+                SetAIFlag('GOLEFT', '1');
+            end;
+        end
+      else
+        begin // Цель пока на "экране"
+        // Если цель не загорожена стеной, то отмечаем, когда ее видели:
+          if g_TraceVector(x1, y1, Target.cX, Target.cY) then
+            FLastVisible := gTime;
+        // Если разница высот не велика, то догоняем:
+          if (Abs(FObj.Y-Target.Y) <= 128) then
+            begin
+              if ((RunDirection() = D_LEFT) and (Target.X > FObj.X)) then
+                SetAIFlag('GORIGHT', '1');
+              if ((RunDirection() = D_RIGHT) and (Target.X < FObj.X)) then
+                SetAIFlag('GOLEFT', '1');
+            end;
+        end;
+
+    // Выбираем угол вверх:
+      if FDirection = D_LEFT then
+        angle := ANGLE_LEFTUP
+      else
+        angle := ANGLE_RIGHTUP;
+
+      firew := Trunc(Cos(DegToRad(-angle))*gPlayerScreenSize.X*0.6);
+      fireh := Trunc(Sin(DegToRad(-angle))*gPlayerScreenSize.X*0.6);
+
+    // Если при угле вверх можно попасть в приблизительное положение цели:
+      if g_CollideLine(x1, y1, x1+firew, y1+fireh,
+            Target.X+Target.Rect.X+GetInterval(FDifficult.DiagPrecision, 128), //96
+            Target.Y+Target.Rect.Y+GetInterval(FDifficult.DiagPrecision, 128),
+            Target.Rect.Width, Target.Rect.Height) and
+          g_TraceVector(x1, y1, Target.cX, Target.cY) then
+        begin // то нужно стрелять вверх
+          SetAIFlag('NEEDFIRE', '1');
+          SetAIFlag('NEEDSEEUP', '1');
+        end;
+
+    // Выбираем угол вниз:
+      if FDirection = D_LEFT then
+        angle := ANGLE_LEFTDOWN
+      else
+        angle := ANGLE_RIGHTDOWN;
+
+      firew := Trunc(Cos(DegToRad(-angle))*gPlayerScreenSize.X*0.6);
+      fireh := Trunc(Sin(DegToRad(-angle))*gPlayerScreenSize.X*0.6);
+
+    // Если при угле вниз можно попасть в приблизительное положение цели:
+      if g_CollideLine(x1, y1, x1+firew, y1+fireh,
+            Target.X+Target.Rect.X+GetInterval(FDifficult.DiagPrecision, 128),
+            Target.Y+Target.Rect.Y+GetInterval(FDifficult.DiagPrecision, 128),
+            Target.Rect.Width, Target.Rect.Height) and
+          g_TraceVector(x1, y1, Target.cX, Target.cY) then
+        begin // то нужно стрелять вниз
+          SetAIFlag('NEEDFIRE', '1');
+          SetAIFlag('NEEDSEEDOWN', '1');
+        end;
+
+    // Если цель видно и она на такой же высоте:
+      if Target.Visible and
+          (y1+4 < Target.Y+Target.Rect.Y+Target.Rect.Height) and
+          (y1-4 > Target.Y+Target.Rect.Y) then
+        begin
+        // Если идем в сторону цели, то надо стрелять:
+          if ((FDirection = D_LEFT) and (Target.X < FObj.X)) or
+              ((FDirection = D_RIGHT) and (Target.X > FObj.X)) then
+            SetAIFlag('NEEDFIRE', '1');
+
+        // Если цель в пределах "экрана" и сложность позволяет прыжки сближения:
+          if Abs(FObj.X-Target.X) < Trunc(gPlayerScreenSize.X*0.75) then
+            if GetRnd(FDifficult.CloseJump) then
+              begin // то если повезет - прыгаем (особенно, если близко)
+                if Abs(FObj.X-Target.X) < 128 then
+                  a := 4
+                else
+                  a := 30;
+                if Random(a) = 0 then
+                  SetAIFlag('NEEDJUMP', '1');
+              end;
+        end;
+
+    // Если цель все еще есть:
+      if Target.UID <> 0 then
+        if gTime-FLastVisible > 2000 then // Если видели давно
+          Target.UID := 0 // то забыть цель
+        else // Если видели недавно
+          begin // но цель убили
+            if Target.IsPlayer then
+              begin // Цель - игрок
+                pla := g_Player_Get(Target.UID);
+                if (pla = nil) or (not pla.Live) then
+                  Target.UID := 0; // то забыть цель
+              end
+            else
+              begin // Цель - монстр
+                mon := g_Monsters_Get(Target.UID);
+                if (mon = nil) or (not mon.Live) then
+                  Target.UID := 0; // то забыть цель
+              end;
+          end;
+    end; // if Target.UID <> 0
+
+  FTargetUID := Target.UID;
+
+// Если возможных целей нет:
+// (Атака чего-нибудь слева или справа)
+  if targets = nil then
+    if GetAIFlag('ATTACKLEFT') <> '' then
+      begin // Если нужно атаковать налево
+        RemoveAIFlag('ATTACKLEFT');
+
+        SetAIFlag('NEEDJUMP', '1');
+
+        if RunDirection() = D_RIGHT then
+          begin // Идем не в ту сторону
+            if (Healthy() > 1) and GetRnd(FDifficult.InvisFire) then
+              begin // Если здоровы, то, возможно, стреляем бежим влево и стреляем
+                SetAIFlag('NEEDFIRE', '1');
+                SetAIFlag('GOLEFT', '1');
+              end;
+          end
+        else
+          begin // Идем в нужную сторону
+            if GetRnd(FDifficult.InvisFire) then // Возможно, стреляем вслепую
+              SetAIFlag('NEEDFIRE', '1');
+            if Healthy() <= 1 then // Побиты - убегаем
+              SetAIFlag('GORIGHT', '1');
+          end;
+      end
     else
-   begin
-    if ((RunDirection() = D_LEFT) and (Target.X < FObj.X)) then SetAIFlag('GORIGHT', '1');
-    if ((RunDirection() = D_RIGHT) and (Target.X > FObj.X)) then SetAIFlag('GOLEFT', '1');
-   end;
+      if GetAIFlag('ATTACKRIGHT') <> '' then
+        begin // Если нужно атаковать направо
+          RemoveAIFlag('ATTACKRIGHT');
 
-   SelectWeapon(Abs(x1-Target.cX));
-  end;
- end;
- 
- if Target.UID <> 0 then
- begin
-  if not PlayerOnScreen(Target.X, Target.Y) then
-  begin
-   if (Healthy() = 3) or ((Healthy() = 2)) then
-   begin
-    if ((RunDirection() = D_LEFT) and (Target.X > FObj.X)) then SetAIFlag('GORIGHT', '1');
-    if ((RunDirection() = D_RIGHT) and (Target.X < FObj.X)) then SetAIFlag('GOLEFT', '1');
-   end
-    else
-   begin
-    Target.UID := 0;
-    if ((RunDirection() = D_LEFT) and (Target.X < FObj.X)) then SetAIFlag('GORIGHT', '1');
-    if ((RunDirection() = D_RIGHT) and (Target.X > FObj.X)) then SetAIFlag('GOLEFT', '1');
-   end;
-  end
-   else
-  begin
-   if g_TraceVector(x1, y1, Target.cX, Target.cY) then FLastVisible := gTime;
+          SetAIFlag('NEEDJUMP', '1');
 
-   if (Abs(FObj.Y-Target.Y) <= 128) then
-   begin
-    if ((RunDirection() = D_LEFT) and (Target.X > FObj.X)) then SetAIFlag('GORIGHT', '1');
-    if ((RunDirection() = D_RIGHT) and (Target.X < FObj.X)) then SetAIFlag('GOLEFT', '1');
-   end;
-  end;
+          if RunDirection() = D_LEFT then
+            begin // Идем не в ту сторону
+              if (Healthy() > 1) and GetRnd(FDifficult.InvisFire) then
+                begin // Если здоровы, то, возможно, бежим вправо и стреляем
+                  SetAIFlag('NEEDFIRE', '1');
+                  SetAIFlag('GORIGHT', '1');
+                end;
+            end
+          else
+            begin
+              if GetRnd(FDifficult.InvisFire) then // Возможно, стреляем вслепую
+                SetAIFlag('NEEDFIRE', '1');
+              if Healthy() <= 1 then // Побиты - убегаем
+                SetAIFlag('GOLEFT', '1');
+            end;
+        end;
+                  
+// Если есть возможные цели:
+// (Стреляем по направлению к целям)
+  if (targets <> nil) and (GetAIFlag('NEEDFIRE') <> '') then
+    for a := 0 to High(targets) do
+      begin
+      // Если можем стрелять по диагонали:
+        if GetRnd(FDifficult.DiagFire) then
+          begin
+          // Ищем цель сверху и стреляем, если есть:
+            if FDirection = D_LEFT then
+              angle := ANGLE_LEFTUP
+            else
+              angle := ANGLE_RIGHTUP;
 
-  if FDirection = D_LEFT then angle := ANGLE_LEFTUP else angle := ANGLE_RIGHTUP;
+            firew := Trunc(Cos(DegToRad(-angle))*gPlayerScreenSize.X*0.6);
+            fireh := Trunc(Sin(DegToRad(-angle))*gPlayerScreenSize.X*0.6);
 
-  firew := Trunc(Cos(DegToRad(-angle))*gPlayerScreenSize.X*0.6);
-  fireh := Trunc(Sin(DegToRad(-angle))*gPlayerScreenSize.X*0.6);
+            if g_CollideLine(x1, y1, x1+firew, y1+fireh,
+                  targets[a].X+targets[a].Rect.X+GetInterval(FDifficult.DiagPrecision, 128),
+                  targets[a].Y+targets[a].Rect.Y+GetInterval(FDifficult.DiagPrecision, 128),
+                  targets[a].Rect.Width, targets[a].Rect.Height) and
+                g_TraceVector(x1, y1, targets[a].cX, targets[a].cY) then
+              begin
+                SetAIFlag('NEEDFIRE', '1');
+                SetAIFlag('NEEDSEEUP', '1');
+              end;
 
-  if g_CollideLine(x1, y1, x1+firew, y1+fireh,
-                   Target.X+PLAYER_RECT.X+8+GetInterval(FDifficult.DiagPrecision, 128), //96
-                   Target.Y+PLAYER_RECT.Y+8+GetInterval(FDifficult.DiagPrecision, 128),
-                   PLAYER_RECT.Width-16, PLAYER_RECT.Height-16) and
-     g_TraceVector(x1, y1, Target.cX, Target.cY) then
-  begin
-   SetAIFlag('NEEDFIRE', '1');
-   SetAIFlag('NEEDSEEUP', '1');
-  end;
+          // Ищем цель снизу и стреляем, если есть:
+            if FDirection = D_LEFT then
+              angle := ANGLE_LEFTDOWN
+            else
+              angle := ANGLE_RIGHTDOWN;
 
-  if FDirection = D_LEFT then angle := ANGLE_LEFTDOWN else angle := ANGLE_RIGHTDOWN;
+            firew := Trunc(Cos(DegToRad(-angle))*gPlayerScreenSize.X*0.6);
+            fireh := Trunc(Sin(DegToRad(-angle))*gPlayerScreenSize.X*0.6);
 
-  firew := Trunc(Cos(DegToRad(-angle))*gPlayerScreenSize.X*0.6);
-  fireh := Trunc(Sin(DegToRad(-angle))*gPlayerScreenSize.X*0.6);
+            if g_CollideLine(x1, y1, x1+firew, y1+fireh,
+                  targets[a].X+targets[a].Rect.X+GetInterval(FDifficult.DiagPrecision, 128),
+                  targets[a].Y+targets[a].Rect.Y+GetInterval(FDifficult.DiagPrecision, 128),
+                  targets[a].Rect.Width, targets[a].Rect.Height) and
+                g_TraceVector(x1, y1, targets[a].cX, targets[a].cY) then
+              begin
+                SetAIFlag('NEEDFIRE', '1');
+                SetAIFlag('NEEDSEEDOWN', '1');
+              end;
+          end;
 
-  if g_CollideLine(x1, y1, x1+firew, y1+fireh,
-                   Target.X+PLAYER_RECT.X+8+GetInterval(FDifficult.DiagPrecision, 128),
-                   Target.Y+PLAYER_RECT.Y+8+GetInterval(FDifficult.DiagPrecision, 128),
-                   PLAYER_RECT.Width-16, PLAYER_RECT.Height-16) and
-     g_TraceVector(x1, y1, Target.cX, Target.cY) then
-  begin
-   SetAIFlag('NEEDFIRE', '1');
-   SetAIFlag('NEEDSEEDOWN', '1');
-  end;
+      // Если цель "перед носом", то стреляем:
+        if targets[a].Line and targets[a].Visible and
+            (((FDirection = D_LEFT) and (targets[a].X < FObj.X)) or
+            ((FDirection = D_RIGHT) and (targets[a].X > FObj.X))) then
+          begin
+            SetAIFlag('NEEDFIRE', '1');
+            Break;
+          end;
+      end;
 
-  if Target.Visible and
-     (y1+4 < Target.Y+PLAYER_RECT.Y+PLAYER_RECT.Height) and
-     (y1-4 > Target.Y+PLAYER_RECT.Y) then
-  begin
-   if ((FDirection = D_LEFT) and (Target.X < FObj.X)) or
-      ((FDirection = D_RIGHT) and (Target.X > FObj.X)) then SetAIFlag('NEEDFIRE', '1');
-
-   if Abs(FObj.X-Target.X) < Trunc(gPlayerScreenSize.X*0.75) then
-    if GetRnd(FDifficult.CloseJump) then
-    begin
-     if Abs(FObj.X-Target.X) < 128 then a := 4 else a := 30;
-     if Random(a) = 0 then SetAIFlag('NEEDJUMP', '1');
-    end;
-  end;
-
-   if Target.UID <> 0 then
-    if gTime-FLastVisible > 2000 then Target.UID := 0
-     else if not g_Player_Get(Target.UID).Live then Target.UID := 0;
- end;
-
- FTargetUID := Target.UID;
-
- if targets = nil then
-  if GetAIFlag('ATTACKLEFT') <> '' then
-  begin
-   RemoveAIFlag('ATTACKLEFT');
-
-   SetAIFlag('NEEDJUMP', '1');
-
-   if RunDirection() = D_RIGHT then
-   begin
-    if (Healthy() > 1) and GetRnd(FDifficult.InvisFire) then
-    begin
-     SetAIFlag('NEEDFIRE', '1');
-     SetAIFlag('GOLEFT', '1');
-    end;
-   end
-    else
-   begin
-    if GetRnd(FDifficult.InvisFire) then SetAIFlag('NEEDFIRE', '1');
-    if Healthy() <= 1 then SetAIFlag('GORIGHT', '1');
-   end;
-  end
-   else if GetAIFlag('ATTACKRIGHT') <> '' then
-  begin
-   RemoveAIFlag('ATTACKRIGHT');
-
-   SetAIFlag('NEEDJUMP', '1');
-
-   if RunDirection() = D_LEFT then
-   begin
-    if (Healthy() > 1) and GetRnd(FDifficult.InvisFire) then
-    begin
-     SetAIFlag('NEEDFIRE', '1');
-     SetAIFlag('GORIGHT', '1');
-    end;
-   end
-    else
-   begin
-    if GetRnd(FDifficult.InvisFire) then SetAIFlag('NEEDFIRE', '1');
-    if Healthy() <= 1 then SetAIFlag('GOLEFT', '1');
-   end;
-  end;
-
- if targets <> nil then
-  for a := 0 to High(targets) do
-  begin
-   if GetRnd(FDifficult.DiagFire) then
-   begin
-    if FDirection = D_LEFT then angle := ANGLE_LEFTUP else angle := ANGLE_RIGHTUP;
-
-    firew := Trunc(Cos(DegToRad(-angle))*gPlayerScreenSize.X*0.6);
-    fireh := Trunc(Sin(DegToRad(-angle))*gPlayerScreenSize.X*0.6);
-
-    if g_CollideLine(x1, y1, x1+firew, y1+fireh,
-                    targets[a].X+PLAYER_RECT.X+8+GetInterval(FDifficult.DiagPrecision, 128),
-                    targets[a].Y+PLAYER_RECT.Y+8+GetInterval(FDifficult.DiagPrecision, 128),
-                    PLAYER_RECT.Width-16, PLAYER_RECT.Height-16) and
-       g_TraceVector(x1, y1, targets[a].cX, targets[a].cY) then
-    begin
-     SetAIFlag('NEEDFIRE', '1');
-     SetAIFlag('NEEDSEEUP', '1');
-    end;
-
-    if FDirection = D_LEFT then angle := ANGLE_LEFTDOWN else angle := ANGLE_RIGHTDOWN;
-
-    firew := Trunc(Cos(DegToRad(-angle))*gPlayerScreenSize.X*0.6);
-    fireh := Trunc(Sin(DegToRad(-angle))*gPlayerScreenSize.X*0.6);
-
-    if g_CollideLine(x1, y1, x1+firew, y1+fireh,
-                    targets[a].X+PLAYER_RECT.X+8+GetInterval(FDifficult.DiagPrecision, 128),
-                    targets[a].Y+PLAYER_RECT.Y+8+GetInterval(FDifficult.DiagPrecision, 128),
-                    PLAYER_RECT.Width-16, PLAYER_RECT.Height-16) and
-       g_TraceVector(x1, y1, targets[a].cX, targets[a].cY) then
-    begin
-     SetAIFlag('NEEDFIRE', '1');
-     SetAIFlag('NEEDSEEDOWN', '1');
-    end;
-   end;
-
-   if targets[a].Line and targets[a].Visible and
-      (((FDirection = D_LEFT) and (targets[a].X < FObj.X)) or
-       ((FDirection = D_RIGHT) and (targets[a].X > FObj.X))) then
-   begin
-    SetAIFlag('NEEDFIRE', '1');
-    Break;
-   end;
-  end;
-
- if g_Weapon_Danger(FUID, FObj.X+PLAYER_RECT.X, FObj.Y+PLAYER_RECT.Y,
+// Если летит пуля, то, возможно, подпрыгиваем:
+  if g_Weapon_Danger(FUID, FObj.X+PLAYER_RECT.X, FObj.Y+PLAYER_RECT.Y,
                     PLAYER_RECT.Width, PLAYER_RECT.Height,
                     40+GetInterval(FDifficult.Cover, 40)) then
-  SetAIFlag('NEEDJUMP', '1');
+    SetAIFlag('NEEDJUMP', '1');
 
- ammo := GetAmmoByWeapon(FCurrWeap);
- if ((FCurrWeap = WEAPON_SHOTGUN2) and (ammo < 2)) or
-    ((FCurrWeap = WEAPON_BFG) and (ammo < 40)) or
-    (ammo = 0) then SetAIFlag('SELECTWEAPON', '1'); 
+// Если кончились паторны, то нужно сменить оружие:
+  ammo := GetAmmoByWeapon(FCurrWeap);
+  if ((FCurrWeap = WEAPON_SHOTGUN2) and (ammo < 2)) or
+      ((FCurrWeap = WEAPON_BFG) and (ammo < 40)) or
+      (ammo = 0) then
+    SetAIFlag('SELECTWEAPON', '1');
 
- if GetAIFlag('SELECTWEAPON') = '1' then
- begin
-  SelectWeapon(-1);
-  RemoveAIFlag('SELECTWEAPON');
- end;
+// Если нужно сменить оружие, то выбираем нужное:
+  if GetAIFlag('SELECTWEAPON') = '1' then
+    begin
+      SelectWeapon(-1);
+      RemoveAIFlag('SELECTWEAPON');
+    end;
 end;
 
 procedure TBot.Update();
 begin
  if not FLive then
- begin
+ begin // Respawn
   ReleaseKeys();
   PressKey(KEY_UP);
  end
@@ -3175,7 +4182,7 @@ begin
  Result := FKeys[Key].Pressed;
 end;
 
-function TBot.GetAIFlag(fName: ShortString): ShortString;
+function TBot.GetAIFlag(fName: String20): String20;
 var
   a: Integer;
 begin
@@ -3192,7 +4199,7 @@ begin
    end;
 end;
 
-procedure TBot.RemoveAIFlag(fName: ShortString);
+procedure TBot.RemoveAIFlag(fName: String20);
 var
   a, b: Integer;
 begin
@@ -3212,7 +4219,7 @@ begin
   end;
 end;
 
-procedure TBot.SetAIFlag(fName, fValue: ShortString);
+procedure TBot.SetAIFlag(fName, fValue: String20);
 var
   a: Integer;
   ok: Boolean;
@@ -3471,96 +4478,135 @@ begin
 end;
 
 begin
- if OnLadder() or ((BelowLadder() or BelowLiftUp()) and Rnd(8)) then
- begin
-  ReleaseKey(KEY_LEFT);
-  ReleaseKey(KEY_RIGHT);
-  Jump();
- end;
+// Возможно, нажимаем кнопку:
+  if Rnd(16) then
+    PressKey(KEY_OPEN, 0);
 
- if GetAIFlag('GOLEFT') <> '' then
- begin
-  RemoveAIFlag('GOLEFT');
-  if CanRunLeft() then GoLeft(360);
- end;
+// Если под лифтом или ступеньками, то, возможно, прыгаем:
+  if OnLadder() or ((BelowLadder() or BelowLiftUp()) and Rnd(8)) then
+    begin
+      ReleaseKey(KEY_LEFT);
+      ReleaseKey(KEY_RIGHT);
+      Jump();
+    end;
 
- if GetAIFlag('GORIGHT') <> '' then
- begin
-  RemoveAIFlag('GORIGHT');
-  if CanRunRight() then GoRight(360);
- end;
+// Идем влево, если надо было:
+  if GetAIFlag('GOLEFT') <> '' then
+    begin
+      RemoveAIFlag('GOLEFT');
+      if CanRunLeft() then
+        GoLeft(360);
+    end;
 
- if FObj.X < -32 then GoRight(360)
-  else if FObj.X+32 > gMapInfo.Width then GoLeft(360);
+// Идем вправо, если надо было:
+  if GetAIFlag('GORIGHT') <> '' then
+    begin
+      RemoveAIFlag('GORIGHT');
+      if CanRunRight() then
+        GoRight(360);
+    end;
 
- if GetAIFlag('NEEDJUMP') <> '' then
- begin
-  Jump(0);
-  RemoveAIFlag('NEEDJUMP');
- end;
+// Если вылетели за карту, то пробуем вернуться:
+  if FObj.X < -32 then
+    GoRight(360)
+  else
+    if FObj.X+32 > gMapInfo.Width then
+      GoLeft(360);
 
- if GetAIFlag('NEEDSEEUP') <> '' then
- begin
-  ReleaseKey(KEY_UP);
-  ReleaseKey(KEY_DOWN);
-  PressKey(KEY_UP, 20);
-  RemoveAIFlag('NEEDSEEUP');
- end;
+// Прыгаем, если надо было:
+  if GetAIFlag('NEEDJUMP') <> '' then
+    begin
+      Jump(0);
+      RemoveAIFlag('NEEDJUMP');
+    end;
 
- if GetAIFlag('NEEDSEEDOWN') <> '' then
- begin
-  ReleaseKey(KEY_UP);
-  ReleaseKey(KEY_DOWN);
-  PressKey(KEY_DOWN, 20);
-  RemoveAIFlag('NEEDSEEDOWN');
- end;
+// Смотрим вверх, если надо было:
+  if GetAIFlag('NEEDSEEUP') <> '' then
+    begin
+      ReleaseKey(KEY_UP);
+      ReleaseKey(KEY_DOWN);
+      PressKey(KEY_UP, 20);
+      RemoveAIFlag('NEEDSEEUP');
+    end;
 
- if GetAIFlag('GOINHOLE') <> '' then
-  if not OnGround() then
-  begin
-   ReleaseKey(KEY_LEFT);
-   ReleaseKey(KEY_RIGHT);
-   RemoveAIFlag('GOINHOLE');
-   SetAIFlag('FALLINHOLE', '1');
-  end;
+// Смотрим вниз, если надо было:
+  if GetAIFlag('NEEDSEEDOWN') <> '' then
+    begin
+      ReleaseKey(KEY_UP);
+      ReleaseKey(KEY_DOWN);
+      PressKey(KEY_DOWN, 20);
+      RemoveAIFlag('NEEDSEEDOWN');
+    end;
 
- if GetAIFlag('FALLINHOLE') <> '' then
-  if OnGround() then RemoveAIFlag('FALLINHOLE');
+// Если нужно было в дыру и мы не на земле, то покорно летим:
+  if GetAIFlag('GOINHOLE') <> '' then
+    if not OnGround() then
+      begin
+        ReleaseKey(KEY_LEFT);
+        ReleaseKey(KEY_RIGHT);
+        RemoveAIFlag('GOINHOLE');
+        SetAIFlag('FALLINHOLE', '1');
+      end;
 
- if not (KeyPressed(KEY_LEFT) or KeyPressed(KEY_RIGHT)) then
-  if GetAIFlag('FALLINHOLE') = '' then
-   if (not OnLadder()) or (FObj.Vel.Y >= 0) or (OnTopLift()) then
-    if Rnd(2) then GoLeft(360) else GoRight(360);
+// Если падали и достигли земли, то хватит падать:
+  if GetAIFlag('FALLINHOLE') <> '' then
+    if OnGround() then
+      RemoveAIFlag('FALLINHOLE');
 
- if OnGround() and CanJumpUp(IfThen(RunDirection() = D_LEFT, -1, 1)*32) and Rnd(8) then Jump();
+// Если летели прямо и сейчас не на лестнице или на вершине лифта, то отходим в сторону:
+  if not (KeyPressed(KEY_LEFT) or KeyPressed(KEY_RIGHT)) then
+    if GetAIFlag('FALLINHOLE') = '' then
+      if (not OnLadder()) or (FObj.Vel.Y >= 0) or (OnTopLift()) then
+        if Rnd(2) then
+          GoLeft(360)
+        else
+          GoRight(360);
 
- if OnGround() and NearHole() then
-  if NearDeepHole() then
-   case Random(6) of
-    0..3: Turn();
-    4: Jump();
-    5: begin
-        Turn();
-        Jump();
-       end;
-   end
-  else if GetAIFlag('GOINHOLE') = '' then
-   case Random(6) of
-    0: Turn();
-    1: Jump();
-    else if BorderHole() then SetAIFlag('GOINHOLE', '1');
+// Если на земле и можно подпрыгнуть, то, возможно, прыгаем:
+  if OnGround() and
+      CanJumpUp(IfThen(RunDirection() = D_LEFT, -1, 1)*32) and
+      Rnd(8) then
+    Jump();
+
+// Если на земле и возле дыры (глубина > 2 ростов игрока):
+  if OnGround() and NearHole() then
+    if NearDeepHole() then // Если это бездна
+      case Random(6) of
+        0..3: Turn(); // Бежим обратно
+        4: Jump(); // Прыгаем
+        5: begin // Прыгаем обратно
+             Turn();
+             Jump();
+           end;
+      end
+    else // Это не бездна и мы еще не летим туда
+      if GetAIFlag('GOINHOLE') = '' then
+        case Random(6) of
+          0: Turn(); // Не нужно туда
+          1: Jump(); // Вдруг повезет - прыгаем
+          else // Если яма с границей, то при случае можно туда прыгнуть
+            if BorderHole() then
+              SetAIFlag('GOINHOLE', '1');
    end;
 
- if (not CanRun()) and OnGround() then
- begin
-  if CanJumpOver() or OnLadder() then Jump() else Turn();
- end;
+// Если на земле, но некуда идти:
+  if (not CanRun()) and OnGround() then
+    begin
+    // Если мы на лестнице или можно перепрыгнуть, то прыгаем:
+      if CanJumpOver() or OnLadder() then
+        Jump()
+      else // иначе попытаемся в другую сторону
+        if Random(2) = 0 then
+          PressKey(KEY_OPEN, 0)
+        else
+          Turn();
+    end;
 end;
 
 function TBot.FullInStep(XInc, YInc: Integer): Boolean;
 begin
  Result := g_Map_CollidePanel(FObj.X+PLAYER_RECT.X+XInc, FObj.Y+PLAYER_RECT.Y+YInc,
-                              PLAYER_RECT.Width, PLAYER_RECT.Height, PANEL_STEP);
+                              PLAYER_RECT.Width, PLAYER_RECT.Height, PANEL_STEP, False);
 end;
 
 {function TBot.NeedItem(Item: Byte): Byte;
@@ -3591,7 +4637,7 @@ begin
  if Dist = -1 then Dist := BOT_LONGDIST;
 
  if Dist > BOT_LONGDIST then
- begin
+ begin // Дальний бой
   for a := 0 to 9 do
    if FWeapon[FDifficult.WeaponPrior[a]] and HaveAmmo(FDifficult.WeaponPrior[a]) then
    begin
@@ -3600,7 +4646,7 @@ begin
    end;
  end
   else //if Dist > BOT_UNSAFEDIST then
- begin
+ begin // Ближний бой
   for a := 0 to 9 do
    if FWeapon[FDifficult.CloseWeaponPrior[a]] and HaveAmmo(FDifficult.CloseWeaponPrior[a]) then
    begin
@@ -3635,24 +4681,46 @@ begin
  else Result := 0;
 end;
 
-function TBot.PlayerOnScreen(PX, PY: Integer): Boolean;
+function TBot.TargetOnScreen(TX, TY: Integer): Boolean;
 begin
- Result := (Abs(FObj.X-PX-PLAYER_RECT.X) <= Trunc(gPlayerScreenSize.X*0.6)) and
-           (Abs(FObj.Y-PY-PLAYER_RECT.Y) <= Trunc(gPlayerScreenSize.Y*0.6));
+ Result := (Abs(FObj.X-TX) <= Trunc(gPlayerScreenSize.X*0.6)) and
+           (Abs(FObj.Y-TY) <= Trunc(gPlayerScreenSize.Y*0.6));
 end;
 
 procedure TBot.OnDamage(Angle: SmallInt);
 var
-  p: TPlayer;
+  pla: TPlayer;
+  mon: TMonster;
+  ok: Boolean;
+  
 begin
- inherited;
+  inherited;
 
- if ((Angle = 0) or (Angle = 180)) and (g_GetUIDType(FLastSpawnerUID) = UID_PLAYER) then
- begin
-  p := g_Player_Get(FLastSpawnerUID);
-  if not PlayerOnScreen(p.FObj.X, p.FObj.Y) then
-   if Angle = 0 then SetAIFlag('ATTACKLEFT', '1') else SetAIFlag('ATTACKRIGHT', '1'); 
- end;
+  if (Angle = 0) or (Angle = 180) then
+    begin
+      ok := False;
+      if (g_GetUIDType(FLastSpawnerUID) = UID_PLAYER) and
+          LongBool(gGameSettings.Options and GAME_OPTION_BOTVSPLAYER) then
+        begin // Игрок
+          pla := g_Player_Get(FLastSpawnerUID);
+          ok := not TargetOnScreen(pla.FObj.X + PLAYER_RECT.X,
+                                   pla.FObj.Y + PLAYER_RECT.Y);
+        end
+      else
+        if (g_GetUIDType(FLastSpawnerUID) = UID_MONSTER) and
+           LongBool(gGameSettings.Options and GAME_OPTION_BOTVSMONSTER) then
+        begin // Монстр
+          mon := g_Monsters_Get(FLastSpawnerUID);
+          ok := not TargetOnScreen(mon.Obj.X + mon.Obj.Rect.X,
+                                   mon.Obj.Y + mon.Obj.Rect.Y);
+        end;
+
+      if ok then
+        if Angle = 0 then
+          SetAIFlag('ATTACKLEFT', '1')
+        else
+          SetAIFlag('ATTACKRIGHT', '1');
+    end;
 end;
 
 function TBot.RunDirection(): TDirection;
@@ -3675,4 +4743,66 @@ begin
  Result := Round((255-a)/255*radius*(Random(2)-1));
 end;
 
-end.
+procedure TBot.SaveState(var Mem: TBinMemoryWriter);
+var
+  i: Integer;
+  dw: DWORD;
+  p: Pointer;
+  
+begin
+  Inherited SaveState(Mem);
+
+// Выбранное оружие:
+  Mem.WriteByte(FSelectedWeapon);
+// UID цели:
+  Mem.WriteWord(FTargetUID);
+// Время потери цели:
+  Mem.WriteDWORD(FLastVisible);
+// Количество флагов ИИ:
+  dw := Length(FAIFlags);
+  Mem.WriteDWORD(dw);
+// Флаги ИИ:
+  for i := 0 to Integer(dw)-1 do
+  begin
+    Mem.WriteString(FAIFlags[i].Name, 20);
+    Mem.WriteString(FAIFlags[i].Value, 20);
+  end;
+// Настройки сложности:
+  p := @FDifficult;
+  Mem.WriteMemory(p, SizeOf(TDifficult));
+end;
+
+procedure TBot.LoadState(var Mem: TBinMemoryReader);
+var
+  i: Integer;
+  dw: DWORD;
+  p: Pointer;
+  
+begin
+  Inherited LoadState(Mem);
+
+// Выбранное оружие:
+  Mem.ReadByte(FSelectedWeapon);
+// UID цели:
+  Mem.ReadWord(FTargetUID);
+// Время потери цели:
+  Mem.ReadDWORD(FLastVisible);
+// Количество флагов ИИ:
+  Mem.ReadDWORD(dw);
+  SetLength(FAIFlags, dw);
+// Флаги ИИ:
+  for i := 0 to Integer(dw)-1 do
+  begin
+    Mem.ReadString(FAIFlags[i].Name);
+    Mem.ReadString(FAIFlags[i].Value);
+  end;
+// Настройки сложности:
+  Mem.ReadMemory(p, dw);
+  if dw <> SizeOf(TDifficult) then
+  begin
+    raise EBinSizeError.Create('TBot.LoadState: Wrong FDifficult Size');
+  end;
+  FDifficult := TDifficult(p^);
+end;
+
+End.

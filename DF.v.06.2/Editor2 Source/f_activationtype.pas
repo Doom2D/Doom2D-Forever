@@ -3,21 +3,19 @@ unit f_activationtype;
 interface
 
 uses
-  Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
-  Dialogs, StdCtrls;
+  Windows, Messages, SysUtils, Variants, Classes,
+  Graphics, Controls, Forms, Dialogs, StdCtrls;
 
 type
-  TActivationTypeForm = class(TForm)
+  TActivationTypeForm = class (TForm)
     cbPlayerCollide: TCheckBox;
     cbMonsterCollide: TCheckBox;
     cbPlayerPress: TCheckBox;
-    bOK: TButton;
     cbMonsterPress: TCheckBox;
     cbShot: TCheckBox;
     cbNoMonster: TCheckBox;
-    cbNoPlayer: TCheckBox;
-    cbItemCollide: TCheckBox;
-    cbNoItem: TCheckBox;
+    bOK: TButton;
+
   private
     { Private declarations }
   public

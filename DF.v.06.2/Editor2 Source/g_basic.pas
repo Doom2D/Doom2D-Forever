@@ -2,19 +2,20 @@ unit g_basic;
 
 interface
 
-uses windows;
+uses
+  windows;
 
-type
-  String16   = string[16];
+Type
+  String16   = String[16];
   Char16     = packed array[0..15] of Char;
   Char32     = packed array[0..31] of Char;
   Char64     = packed array[0..63] of Char;
   Char256    = packed array[0..255] of Char;
-  ArrayStr16 = array of String16;
-  SArray     = array of string;
-  DWArray    = array of DWORD;
+  ArrayStr16 = Array of String16;
+  SArray     = Array of String;
+  DWArray    = Array of DWORD;
 
-  TDirection=(D_LEFT, D_RIGHT);
+  TDirection = (D_LEFT, D_RIGHT);
 
 function g_Collide(X1, Y1: Integer; Width1, Height1: Word;
                    X2, Y2: Integer; Width2, Height2: Word): Boolean;
@@ -44,7 +45,8 @@ function PointToRect(X, Y: Integer; X1, Y1, Width, Height: Integer): Integer;
 
 implementation
 
-uses Math, g_map, MAPDEF;
+uses
+  Math, g_map, MAPDEF;
 
 function g_PatchLength(X1, Y1, X2, Y2: Integer): Word;
 begin

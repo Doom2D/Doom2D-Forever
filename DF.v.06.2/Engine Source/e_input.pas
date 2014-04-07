@@ -16,9 +16,10 @@ type
   end;
 
 function e_PollKeyboard(): boolean;
-procedure e_PollMouse;
+procedure e_PollMouse();
 function e_InitDirectInput(hWnd: HWND): Boolean;
 procedure e_ReleaseDirectInput();
+procedure e_ClearInputBuffer();
 
 var
  e_KeyBuffer: array [0..255] of Byte;
@@ -34,15 +35,16 @@ var
   ms:           TDIMOUSESTATE;
   _h_Wnd:       HWND;
 
-procedure e_PollMouse;                                
+procedure e_PollMouse();
 begin
-  if (GetForegroundWindow = _h_Wnd) and
-     (lpDImouse.GetDeviceState(SizeOf(TDIMOUSESTATE), @ms) <> 0) then
-  begin
-   e_WriteLog('DirectInput mouse acquired', MSG_NOTIFY);
-   lpDIMouse.Acquire();
-   if FAILED(lpDImouse.GetDeviceState(SizeOf(TDIMOUSESTATE), @ms)) then Exit;
-  end;
+  if (GetForegroundWindow = _h_Wnd) then
+    if (lpDImouse.GetDeviceState(SizeOf(TDIMOUSESTATE), @ms) <> 0) then
+    begin
+      e_WriteLog('DirectInput mouse acquired', MSG_NOTIFY);
+      lpDIMouse.Acquire();
+      if FAILED(lpDImouse.GetDeviceState(SizeOf(TDIMOUSESTATE), @ms)) then
+        Exit;
+    end;
 
   if ms.lX < 0 then ms.lX := Round(ms.lX * e_MouseInfo.Accel) else
   if ms.lX > 0 then ms.lX := Round(ms.lX * e_MouseInfo.Accel);
@@ -59,19 +61,20 @@ begin
   e_MouseInfo.Buttons[3] := ms.rgbButtons[3] = $080;
 end;
 
-function e_PollKeyboard: boolean;
+function e_PollKeyboard(): boolean;
 begin
- Result := False;
+  Result := False;
 
- if (GetForegroundWindow() = _h_Wnd) and
-    (lpDIKeyboard.GetDeviceState(SizeOf(e_KeyBuffer), @e_KeyBuffer) <> 0) then
- begin
-  e_WriteLog('DirectInput keyboard asqured', MSG_NOTIFY);
-  lpDIKeyboard.Acquire();
-  if FAILED(lpDIKeyboard.GetDeviceState(SizeOf(e_KeyBuffer), @e_KeyBuffer)) then exit;
- end;
+  if (GetForegroundWindow() = _h_Wnd) then
+    if (lpDIKeyboard.GetDeviceState(SizeOf(e_KeyBuffer), @e_KeyBuffer) <> 0) then
+    begin
+      e_WriteLog('DirectInput keyboard acquired', MSG_NOTIFY);
+      lpDIKeyboard.Acquire();
+      if FAILED(lpDIKeyboard.GetDeviceState(SizeOf(e_KeyBuffer), @e_KeyBuffer)) then
+        Exit;
+    end;
 
- Result := True;
+  Result := True;
 end;
 
 function e_InitDirectInput(hWnd: HWND): Boolean;
@@ -126,6 +129,15 @@ begin
   lpDI8._Release();
   lpDI8 := nil;
  end;
+end;
+                                                         
+procedure e_ClearInputBuffer();
+var
+  i: Integer;
+
+begin
+  for i := 0 to 255 do
+    e_KeyBuffer[i] := 0;
 end;
 
 end.

@@ -2,9 +2,9 @@ unit MAPREADER;
 
 {
 -----------------------------------
-MAPREADER.PAS ВЕРСИЯ ОТ 09.12.12
+MAPREADER.PAS ВЕРСИЯ ОТ 13.11.07
 
-Поддержка карт версии 2
+Поддержка карт версии 1
 -----------------------------------
 }
 
@@ -33,6 +33,7 @@ type
     function LoadMap(Data: Pointer): Boolean;
     procedure FreeMap();
     function HandledVersion(): Byte; virtual;
+    
     property GetError: Byte read FError;
     property GetVersion: Byte read FVersion;
   end;
@@ -50,23 +51,86 @@ type
     function HandledVersion(): Byte; override;
   end;
 
-  TMapReader_2 = class(TMapReader_1)
-   private
-   public
-    function GetTriggers(): TTriggersRec2Array;
-    function HandledVersion(): Byte; override;
-  end;
-
 const
   MAP_ERROR_NONE      = $00;
   MAP_ERROR_SIGNATURE = $01;
   MAP_ERROR_VERSION   = $02;
 
+  NNF_NO_NAME         = 0;
+  NNF_NAME_BEFORE     = 1;
+  NNF_NAME_EQUALS     = 2;
+  NNF_NAME_AFTER      = 3;
+
+function g_Texture_NumNameFindStart(name: String): Boolean;
+function g_Texture_NumNameFindNext(var newName: String): Byte;
+
 implementation
 
-uses Windows;
+uses
+  Windows, SysUtils;
 
-{ TMapReader_1 }
+var
+  NNF_PureName: String; // Имя текстуры без цифр в конце
+  NNF_FirstNum: Integer; // Число у начальной текстуры
+  NNF_CurrentNum: Integer; // Следующее число у текстуры
+
+function g_Texture_NumNameFindStart(name: String): Boolean;
+var
+  i: Integer;
+
+begin
+  Result := False;
+  NNF_PureName := '';
+  NNF_FirstNum := -1;
+  NNF_CurrentNum := -1;
+
+  for i := Length(name) downto 1 do
+    if (name[i] < '0') or (name[i] > '9') then
+    begin // Не цифра
+      if i = Length(name) then
+        begin // Нет цифр в конце строки
+          Exit;
+        end
+      else
+        begin
+          NNF_PureName := Copy(name, 1, i);
+          Delete(name, 1, i);
+          Break;
+        end;
+    end;
+
+// Не перевести в число:
+  if not TryStrToInt(name, NNF_FirstNum) then
+    Exit;
+
+  NNF_CurrentNum := 0;
+
+  Result := True;
+end;
+
+function g_Texture_NumNameFindNext(var newName: String): Byte;
+begin
+  if (NNF_PureName = '') or (NNF_CurrentNum < 0) then
+  begin
+    newName := '';
+    Result := NNF_NO_NAME;
+    Exit;
+  end;
+
+  newName := NNF_PureName + IntToStr(NNF_CurrentNum);
+
+  if NNF_CurrentNum < NNF_FirstNum then
+    Result := NNF_NAME_BEFORE
+  else
+    if NNF_CurrentNum > NNF_FirstNum then
+      Result := NNF_NAME_AFTER
+    else
+      Result := NNF_NAME_EQUALS;
+
+  Inc(NNF_CurrentNum);
+end;
+
+{ T M a p R e a d e r _ 1 : }
 
 function TMapReader_1.GetAreas(): TAreasRec1Array;
 var
@@ -232,64 +296,7 @@ begin
  Result := $01;
 end;
 
-{ TMapReader_2 }
-
-function TMapReader_2.GetTriggers(): TTriggersRec2Array;
-var
-  TempDataBlocks: TDataBlocksArray;
-  a: Integer;
-  b, Size: LongWord;
-  OldTrigs: TTriggersRec1Array;
-
-begin
-  Result := nil;
-
-  if GetVersion = $01 then
-    begin
-      OldTrigs := inherited GetTriggers;
-      if OldTrigs <> nil then
-        begin
-          SetLength(Result, Length(OldTrigs));
-          for a := 0 to High(OldTrigs) do
-            begin
-              Result[a].X := OldTrigs[a].X;
-              Result[a].Y := OldTrigs[a].Y;
-              Result[a].Width := OldTrigs[a].Width;
-              Result[a].Height := OldTrigs[a].Height;
-              Result[a].Enabled := OldTrigs[a].Enabled;
-              Result[a].TexturePanel := OldTrigs[a].TexturePanel;
-              Result[a].TriggerType := OldTrigs[a].TriggerType;
-              Result[a].ActivateType := OldTrigs[a].ActivateType;
-              Result[a].Keys := OldTrigs[a].Keys;
-              Result[a].DATA := OldTrigs[a].DATA;
-            end;
-        end;
-    end
-  else // version = $02
-    begin
-      TempDataBlocks := GetBlocks(BLOCK_TRIGGERS);
-      if TempDataBlocks = nil then
-        Exit;
-
-      size := SizeOf(TTriggerRec_2);
-
-      for a := 0 to High(TempDataBlocks) do
-        for b := 0 to (TempDataBlocks[a].Block.BlockSize div size)-1 do
-          begin
-            SetLength(Result, Length(Result)+1);
-            CopyMemory(@Result[High(Result)], Pointer(LongWord(TempDataBlocks[a].Data)+b*size), size);
-          end;
-
-      TempDataBlocks := nil;
-    end;
-end;
-
-function TMapReader_2.HandledVersion: Byte;
-begin
-  Result := $02;
-end;
-
-{ TMapReader }
+{ T M a p R e a d e r : }
 
 constructor TMapReader.Create();
 begin

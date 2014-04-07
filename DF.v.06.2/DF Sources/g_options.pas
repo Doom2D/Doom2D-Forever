@@ -2,7 +2,10 @@ unit g_options;
 
 interface
 
-type
+uses
+  g_language;
+
+Type
   TPlayerControl = record
    KeyRight:      Byte;
    KeyLeft:       Byte;
@@ -31,42 +34,44 @@ procedure g_Options_Read(FileName: string);
 
 var
   gGameControls: TControls;
-  gScreenWidth: Word   = 800;
-  gScreenHeight: Word  = 600;
-  gBPP: Byte           = 16;
-  gFreq: Byte          = 0;
-  gFullscreen: Boolean = True;
-  gVSync: Boolean      = False;
-  gTextureFilter: Boolean = True;
-  gSoundLevel: Byte    = 255;
-  gMusicLevel: Byte    = 255;
-  gAdvCorpses: Boolean = True;
-  gAdvBlood: Boolean   = True;
-  gAdvGibs: Boolean    = True;
-  gGibsCount: Integer  = 32;
-  gBloodCount: Byte    = 3;
-  gFlash: Boolean      = True;
-  gDrawBackGround: Boolean = True;
-  gShowMessages: Boolean = True;
-  gRevertPlayers: Boolean = False;
+  gScreenWidth: Word          = 800;
+  gScreenHeight: Word         = 600;
+  gWinRealPosX: Integer       = 0;
+  gWinRealPosY: Integer       = 0;
+  gBPP: Byte                  = 16;
+  gFreq: Byte                 = 0;
+  gFullscreen: Boolean        = True;
+  gWinMaximized: Boolean      = False;
+  gVSync: Boolean             = False;
+  gTextureFilter: Boolean     = True;
+  gSoundLevel: Byte           = 255;
+  gMusicLevel: Byte           = 255;
+  gMaxSimSounds: Byte         = 8;
+  gMuteWhenInactive: Boolean  = False;
+  gAdvCorpses: Boolean        = True;
+  gAdvBlood: Boolean          = True;
+  gAdvGibs: Boolean           = True;
+  gGibsCount: Integer         = 32;
+  gBloodCount: Byte           = 3;
+  gFlash: Boolean             = True;
+  gDrawBackGround: Boolean    = True;
+  gShowMessages: Boolean      = True;
+  gRevertPlayers: Boolean     = False;
+  gLanguage: String           = LANGUAGE_RUSSIAN;
+  
 
 implementation
 
-uses e_log, g_window, g_sound, g_gfx, g_player, Math, g_map, SysUtils, CONFIG,
-     g_game, g_main, e_textures, dglOpenGL;
+uses
+  e_log, g_window, g_sound, g_gfx, g_player, Math,
+  g_map, SysUtils, CONFIG, g_game, g_main, e_textures,
+  dglOpenGL;
 
 procedure g_Options_SetDefault();
 begin
- gScreenWidth := 800;
- gScreenHeight := 600;
- gFullScreen := True;
- gBPP := 16;
- gVSync := False;
- gTextureFilter := True;
-
- gSoundLevel := 255;
- gMusicLevel := 255;
-
+ g_Sound_SetupAllVolumes(255, 255);
+ gMaxSimSounds := 8;
+ gMuteWhenInactive := False;
  g_GFX_SetMax(2000);
  g_Gibs_SetMax(150);
  g_Corpses_SetMax(20);
@@ -115,7 +120,7 @@ begin
  with gPlayer1Settings do
  begin
   Name := 'Player1';
-  Model := 'Doomer';
+  Model := STD_PLAYER_MODEL;
   Color.R := PLAYER1_DEF_COLOR.R;
   Color.G := PLAYER1_DEF_COLOR.G;
   Color.B := PLAYER1_DEF_COLOR.B;
@@ -125,7 +130,7 @@ begin
  with gPlayer2Settings do
  begin
   Name := 'Player2';
-  Model := 'Doomer';
+  Model := STD_PLAYER_MODEL;
   Color.R := PLAYER2_DEF_COLOR.R;
   Color.G := PLAYER2_DEF_COLOR.G;
   Color.B := PLAYER2_DEF_COLOR.B;
@@ -136,19 +141,44 @@ end;
 procedure g_Options_Read(FileName: string);
 var
   config: TConfig;
+  str: String;
+
 begin
  if not FileExists(FileName) then
  begin
   e_WriteLog('config file '+FileName+' not founded', MSG_WARNING);
   g_Options_SetDefault();
+
+// Default video options:
+  gScreenWidth := 800;
+  gScreenHeight := 600;
+  gWinRealPosX := 0;
+  gWinRealPosY := 0;
+  gWinMaximized := False;
+  gFullScreen := True;
+  gBPP := 16;
+  gVSync := False;
+  gTextureFilter := True;
+
   Exit;
  end;
 
  config := TConfig.CreateFile(FileName);
 
  gScreenWidth := config.ReadInt('Video', 'ScreenWidth', 800);
+ if gScreenWidth < 640 then
+   gScreenWidth := 640;
  gScreenHeight := config.ReadInt('Video', 'ScreenHeight', 600);
+ if gScreenHeight < 480 then
+   gScreenHeight := 480;
+ gWinRealPosX := config.ReadInt('Video', 'WinPosX', 0);
+ if gWinRealPosX < 0 then
+   gWinRealPosX := 0;
+ gWinRealPosY := config.ReadInt('Video', 'WinPosY', 0);
+ if gWinRealPosY < 0 then
+   gWinRealPosY := 0;
  gFullScreen := config.ReadBool('Video', 'Fullscreen', True);
+ gWinMaximized := config.ReadBool('Video', 'Maximized', False);
  gBPP := config.ReadInt('Video', 'BPP', 16);
  gFreq := config.ReadInt('Video', 'Freq', 0);
  gVSync := config.ReadBool('Video', 'VSync', True);
@@ -156,6 +186,8 @@ begin
 
  gSoundLevel := Min(config.ReadInt('Sound', 'SoundLevel', 255), 255);
  gMusicLevel := Min(config.ReadInt('Sound', 'MusicLevel', 255), 255);
+ gMaxSimSounds := Max(Min(config.ReadInt('Sound', 'MaxSimSounds', 8), 66), 2);
+ gMuteWhenInactive := config.ReadBool('Sound', 'MuteInactive', False);
 
  with gGameControls.GameControls do
  begin
@@ -179,7 +211,7 @@ begin
  with gPlayer1Settings, config do
  begin
   Name := ReadStr('Player1', 'name', 'Player1');
-  Model := ReadStr('Player1', 'model', 'Doomer');
+  Model := ReadStr('Player1', 'model', STD_PLAYER_MODEL);
   Color.R := Min(Abs(ReadInt('Player1', 'red', PLAYER1_DEF_COLOR.R)), 255);
   Color.G := Min(Abs(ReadInt('Player1', 'green', PLAYER1_DEF_COLOR.G)), 255);
   Color.B := Min(Abs(ReadInt('Player1', 'blue', PLAYER1_DEF_COLOR.B)), 255);
@@ -203,7 +235,7 @@ begin
  with gPlayer2Settings, config do
  begin
   Name := ReadStr('Player2', 'name', 'Player2');
-  Model := ReadStr('Player2', 'model', 'Doomer');
+  Model := ReadStr('Player2', 'model', STD_PLAYER_MODEL);
   Color.R := Min(Abs(ReadInt('Player2', 'red', PLAYER2_DEF_COLOR.R)), 255);
   Color.G := Min(Abs(ReadInt('Player2', 'green', PLAYER2_DEF_COLOR.G)), 255);
   Color.B := Min(Abs(ReadInt('Player2', 'blue', PLAYER2_DEF_COLOR.B)), 255);
@@ -232,9 +264,18 @@ begin
  gShowMessages := config.ReadBool('Game', 'Messages', True);
  gRevertPlayers := config.ReadBool('Game', 'RevertPlayers', False);
 
- config.Destroy;
+// язык:
+  str := config.ReadStr('Game', 'Language', LANGUAGE_RUSSIAN);
+  if (str = LANGUAGE_RUSSIAN) or
+     (str = LANGUAGE_ENGLISH) then
+    gLanguage := str;
 
- if gTextureFilter then TEXTUREFILTER := GL_LINEAR else TEXTUREFILTER := GL_NEAREST;
+ config.Free();
+
+ if gTextureFilter then
+   TEXTUREFILTER := GL_LINEAR
+ else
+   TEXTUREFILTER := GL_NEAREST;
 end;
 
 end.

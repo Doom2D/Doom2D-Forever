@@ -3,13 +3,14 @@ unit f_choosetype;
 interface
 
 uses
-  Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
-  Dialogs, StdCtrls;
+  Windows, Messages, SysUtils, Variants, Classes,
+  Graphics, Controls, Forms, Dialogs, StdCtrls;
 
 type
-  TChooseTypeForm = class(TForm)
+  TChooseTypeForm = class (TForm)
     lbTypeSelect: TListBox;
     bOK: TButton;
+
   private
     { Private declarations }
   public

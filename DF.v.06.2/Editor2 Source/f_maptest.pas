@@ -3,40 +3,48 @@ unit f_maptest;
 interface
 
 uses
-  Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
-  Dialogs, StdCtrls, ExtCtrls, ComCtrls;
+  Windows, Messages, SysUtils, Variants, Classes,
+  Graphics, Controls, Forms, Dialogs, StdCtrls, ExtCtrls,
+  ComCtrls;
 
 type
-  TMapTestForm = class(TForm)
+  TMapTestForm = class (TForm)
     bOK: TButton;
     bCancel: TButton;
     GroupBox1: TGroupBox;
+  // Режим игры:
     rbDM: TRadioButton;
     rbTDM: TRadioButton;
     rbCTF: TRadioButton;
     rbCOOP: TRadioButton;
+  // Опции:
     cbTwoPlayers: TCheckBox;
     cbTeamDamage: TCheckBox;
     cbAllowExit: TCheckBox;
     cbWeaponStay: TCheckBox;
     cbMonstersDM: TCheckBox;
-    Label1: TLabel;
-    Label2: TLabel;
-    Label3: TLabel;
+    cbMapOnce: TCheckBox;
+  // Лимит времени:
+    LabelTime: TLabel;
     edTime: TEdit;
-    edGoal: TEdit;
-    UpDown1: TUpDown;
     UpDown2: TUpDown;
+    LabelSecs: TLabel;
+  // Лимит очков:
+    LabelScore: TLabel;
+    edScore: TEdit;
+    UpDown1: TUpDown;
+  // Путь:
+    LabelPath: TLabel;
     edD2dexe: TEdit;
-    Label4: TLabel;
     bChooseD2d: TButton;
     FindD2dDialog: TOpenDialog;
-    cbMapOnce: TCheckBox;
+
     procedure bOKClick(Sender: TObject);
     procedure bCancelClick(Sender: TObject);
     procedure FormActivate(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure bChooseD2dClick(Sender: TObject);
+
   private
     { Private declarations }
   public
@@ -48,7 +56,8 @@ var
 
 implementation
 
-uses f_main, CONFIG;
+uses
+  f_main, CONFIG;
 
 {$R *.dfm}
 
@@ -59,7 +68,7 @@ var
   n: Integer;
   
 begin
-  config := TConfig.CreateFile(EditorDir+'\editor.cfg');
+  config := TConfig.CreateFile(EditorDir+'\Editor.cfg');
 
   if rbTDM.Checked then
     s := 'TDM'
@@ -80,11 +89,11 @@ begin
   config.WriteStr('TestRun', 'LimTime', s);
   TestLimTime := s;
 
-  s := edGoal.Text;
+  s := edScore.Text;
   if (not TryStrToInt(s, n)) then
     s := '0';
-  config.WriteStr('TestRun', 'LimGoal', s);
-  TestLimGoal := s;
+  config.WriteStr('TestRun', 'LimScore', s);
+  TestLimScore := s;
 
   config.WriteBool('TestRun', 'TwoPlayers', cbTwoPlayers.Checked);
   TestOptionsTwoPlayers := cbTwoPlayers.Checked;
@@ -103,14 +112,14 @@ begin
   config.WriteStr('TestRun', 'Exe', edD2dExe.Text);
   TestD2dExe := edD2dExe.Text;
 
-  config.SaveFile(EditorDir+'\editor.cfg');
-  config.Destroy;
-  Close;
+  config.SaveFile(EditorDir+'\Editor.cfg');
+  config.Free();
+  Close();
 end;
 
 procedure TMapTestForm.bCancelClick(Sender: TObject);
 begin
-  Close;
+  Close();
 end;
 
 procedure TMapTestForm.FormActivate(Sender: TObject);
@@ -125,8 +134,9 @@ begin
         rbCOOP.Checked := True
       else
         rbDM.Checked := True;
+        
   edTime.Text := TestLimTime;
-  edGoal.Text := TestLimGoal;
+  edScore.Text := TestLimScore;
   cbTwoPlayers.Checked := TestOptionsTwoPlayers;
   cbTeamDamage.Checked := TestOptionsTeamDamage;
   cbAllowExit.Checked := TestOptionsAllowExit;
@@ -141,20 +151,20 @@ var
   config: TConfig;
   
 begin
-  config := TConfig.CreateFile(EditorDir+'\editor.cfg');
+  config := TConfig.CreateFile(EditorDir+'\Editor.cfg');
 
   TestGameMode := config.ReadStr('TestRun', 'GameMode', 'DM');
   TestLimTime := config.ReadStr('TestRun', 'LimTime', '0');
-  TestLimGoal := config.ReadStr('TestRun', 'LimGoal', '0');
+  TestLimScore := config.ReadStr('TestRun', 'LimScore', '0');
   TestOptionsTwoPlayers := config.ReadBool('TestRun', 'TwoPlayers', False);
   TestOptionsTeamDamage := config.ReadBool('TestRun', 'TeamDamage', False);
   TestOptionsAllowExit := config.ReadBool('TestRun', 'AllowExit', True);
   TestOptionsWeaponStay := config.ReadBool('TestRun', 'WeaponStay', False);
   TestOptionsMonstersDM := config.ReadBool('TestRun', 'MonstersDM', False);
   TestMapOnce := config.ReadBool('TestRun', 'MapOnce', False);
-  TestD2dExe := config.ReadStr('TestRun', 'Exe', EditorDir+'DoomForever.exe');
+  TestD2dExe := config.ReadStr('TestRun', 'Exe', EditorDir+'Doom2DF.exe');
 
-  config.Destroy;
+  config.Free();
 
   FindD2dDialog.InitialDir := TestD2dExe;
 end;
@@ -162,9 +172,9 @@ end;
 procedure TMapTestForm.bChooseD2dClick(Sender: TObject);
 begin
   if FindD2dDialog.Execute then
-    begin
-      edD2dExe.Text := FindD2dDialog.FileName;
-    end;
+  begin
+    edD2dExe.Text := FindD2dDialog.FileName;
+  end;
 end;
 
 end.

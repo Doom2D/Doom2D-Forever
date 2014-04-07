@@ -3,14 +3,12 @@ inherited AddSoundForm: TAddSoundForm
   Top = 110
   Caption = #1042#1099#1073#1077#1088#1080#1090#1077' '#1079#1074#1091#1082' '#1080#1083#1080' '#1084#1091#1079#1099#1082#1091
   ClientWidth = 450
+  OldCreateOrder = True
   OnClose = FormClose
   OnCreate = FormCreate
   OnDestroy = FormDestroy
   PixelsPerInch = 96
   TextHeight = 13
-  inherited bOK: TButton
-    ModalResult = 0
-  end
   object pSpectrum: TPanel
     Left = 204
     Top = 52
@@ -62,6 +60,16 @@ inherited AddSoundForm: TAddSoundForm
       70E337F33333333337F3E0FFFFFFFFFFF0E337FFFFFFFFFFF7F3E00000000000
       00E33777777777777733EEEEEEEEEEEEEEE33333333333333333}
     NumGlyphs = 2
+  end
+  object bEmpty: TButton
+    Left = 216
+    Top = 236
+    Width = 75
+    Height = 25
+    Caption = #1053#1077#1090' '#1079#1074#1091#1082#1072
+    ModalResult = 1
+    TabOrder = 8
+    OnClick = bEmptyClick
   end
   object Timer: TTimer
     Enabled = False

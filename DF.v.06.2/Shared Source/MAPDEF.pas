@@ -132,9 +132,6 @@ const
   ACTIVATE_MONSTERPRESS   = 8;
   ACTIVATE_SHOT           = 16;
   ACTIVATE_NOMONSTER      = 32;
-  ACTIVATE_NOPLAYER       = 64;
-  ACTIVATE_ITEMCOLLIDE    = 128;
-  ACTIVATE_NOITEM         = 256;
 
   KEY_RED      = 1;
   KEY_GREEN    = 2;
@@ -142,52 +139,65 @@ const
   KEY_REDTEAM  = 8;
   KEY_BLUETEAM = 16;
 
-type
+  TEXTURE_NAME_WATER = '_water_0';
+  TEXTURE_NAME_ACID1 = '_water_1';
+  TEXTURE_NAME_ACID2 = '_water_2';
+  
+  TEXTURE_SPECIAL_WATER = DWORD(-1);
+  TEXTURE_SPECIAL_ACID1 = DWORD(-2);
+  TEXTURE_SPECIAL_ACID2 = DWORD(-3);
+
+Type
   TTriggerData = record
-   case Word of
-    0: (Default: Byte128);
-    TRIGGER_EXIT:         (MapName: Char16);
-    TRIGGER_TELEPORT:     (TargetPoint: TPoint;
-                           d2d_teleport: Boolean;
-                           silent_teleport: Boolean;
-                           TlpDir: Byte);
-    TRIGGER_OPENDOOR,
-    TRIGGER_CLOSEDOOR,
-    TRIGGER_DOOR,
-    TRIGGER_DOOR5,
-    TRIGGER_CLOSETRAP,
-    TRIGGER_TRAP,
-    TRIGGER_LIFTUP,
-    TRIGGER_LIFTDOWN,
-    TRIGGER_LIFT:         (PanelID: Integer;
-                           NoSound: Boolean;
-                           d2d_doors: Boolean);
-    TRIGGER_PRESS,
-    TRIGGER_ON,
-    TRIGGER_OFF,
-    TRIGGER_ONOFF:        (tX, tY: Integer;
-                           tWidth, tHeight: Word;
-                           Wait: Word;
-                           Count: Word;
-                           MonsterID: Integer);
-    TRIGGER_SECRET:       ();
-    TRIGGER_TEXTURE:      (ActivateOnce: Boolean;
-                           AnimOnce: Boolean);
-    TRIGGER_SOUND:        (SoundName: Char64;
-                           Volume: Byte;
-                           Pan: Byte;
-                           Local: Boolean;
-                           PlayCount: Byte;
-                           SoundSwitch: Boolean);
-    TRIGGER_SPAWNMONSTER: (MonPos: TPoint;
-                           MonType: Byte;
-                           MonHealth: Integer;
-                           MonDir: Byte);
-    TRIGGER_SPAWNITEM:    (ItemPos: TPoint;
-                           ItemType: Byte;
-                           ItemFalls: Boolean);
-    TRIGGER_MUSIC:        (MusicName: Char64);
-   end;
+    case Byte of
+      0: (Default: Byte128);
+      TRIGGER_EXIT:         (MapName: Char16);
+      TRIGGER_TELEPORT:     (TargetPoint: TPoint;
+                             d2d_teleport: Boolean;
+                             silent_teleport: Boolean;
+                             TlpDir: Byte);
+      TRIGGER_OPENDOOR,
+      TRIGGER_CLOSEDOOR,
+      TRIGGER_DOOR,
+      TRIGGER_DOOR5,
+      TRIGGER_CLOSETRAP,
+      TRIGGER_TRAP,
+      TRIGGER_LIFTUP,
+      TRIGGER_LIFTDOWN,
+      TRIGGER_LIFT:         (PanelID: Integer;
+                             NoSound: Boolean;
+                             d2d_doors: Boolean);
+      TRIGGER_PRESS,
+      TRIGGER_ON,
+      TRIGGER_OFF,
+      TRIGGER_ONOFF:        (tX, tY: Integer;
+                             tWidth, tHeight: Word;
+                             Wait: Word;
+                             Count: Word;
+                             MonsterID: Integer);
+      TRIGGER_SECRET:       ();
+      TRIGGER_TEXTURE:      (ActivateOnce: Boolean;
+                             AnimOnce: Boolean);
+      TRIGGER_SOUND:        (SoundName: Char64;
+                             Volume: Byte;
+                             Pan: Byte;
+                             Local: Boolean;
+                             PlayCount: Byte;
+                             SoundSwitch: Boolean);
+      TRIGGER_SPAWNMONSTER: (MonPos: TPoint;
+                             MonType: Byte;
+                             MonHealth: Integer;
+                             MonDir: Byte;
+                             MonActive: Boolean;
+                             MonCount: Integer);
+      TRIGGER_SPAWNITEM:    (ItemPos: TPoint;
+                             ItemType: Byte;
+                             ItemFalls: Boolean;
+                             ItemOnlyDM: Boolean;
+                             ItemCount: Integer);
+      TRIGGER_MUSIC:        (MusicName: Char64;
+                             MusicAction: Byte);
+  end;
 
 implementation
 

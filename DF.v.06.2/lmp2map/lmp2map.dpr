@@ -584,7 +584,7 @@ begin
 end;
 
 begin
- if (ParamStr(1) = '') or (ParamStr(2) = '') or (ParamStr(3) = '') then
+ if (ParamCount() < 2) or (ParamStr(1) = '') or (ParamStr(2) = '') or (ParamStr(3) = '') then
  begin
   ShowHelp();
   Exit;

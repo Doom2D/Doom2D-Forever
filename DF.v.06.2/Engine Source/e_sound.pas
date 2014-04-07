@@ -11,342 +11,932 @@ uses
   Windows;
 
 type
-  TSound = record
-   Data: Pointer;
-   SoundSample: PFSoundSample;
+  TSoundRec = record
+    Data: Pointer;
+    Sound: FMOD_SOUND;
+    Loop: Boolean;
+    nRefs: Integer;
   end;
 
-  TMusic = record
-   Data: Pointer;
-   MusicModule: PFMusicModule;
-   SoundStream: PFSoundStream;
+  TBasicSound = class (TObject)
+  private
+    FChannel: FMOD_CHANNEL;
+  
+  protected
+    FID: DWORD;
+    FLoop: Boolean;
+    FPosition: DWORD;
+
+    function RawPlay(Pan: Single; Volume: Single; aPos: DWORD): Boolean;
+    
+  public
+    constructor Create();
+    destructor Destroy(); override;
+    procedure SetID(ID: DWORD);
+    procedure FreeSound();
+    function IsPlaying(): Boolean;
+    procedure Stop();
+    function IsPaused(): Boolean;
+    procedure Pause(Enable: Boolean);
+    function GetVolume(): Single;
+    procedure SetVolume(Volume: Single);
+    function IsMuted(): Boolean;
+    procedure Mute(Enable: Boolean);
+    function GetPosition(): DWORD;
+    procedure SetPosition(aPos: DWORD);
   end;
 
-function e_InitSound(Freq: Word): Boolean;
-function e_LoadSample(FileName: string; var ID: DWORD): Boolean;
-function e_LoadSampleMem(pData: Pointer; Length: Integer; var ID: DWORD): Boolean;
-function e_PlaySample(ID: DWORD; Pan, Volume: Byte): Integer;
-function e_IsPlayingSample(ID: DWORD; Channel: Integer): Boolean;
-procedure e_PauseSample(Channel: Integer; Pause: Boolean);
-procedure e_DeleteSample(ID: DWORD);
-procedure e_StopAllSamples();
-procedure e_RemoveAllSamples();
-function e_LoadSong(FileName: string; var ID: DWORD): Boolean;
-function e_LoadSongMem(pData: Pointer; Length: Integer; var ID: DWORD): Boolean;
-procedure e_PlaySong(ID: DWORD; Volume: Byte);
-procedure e_DeleteSong(ID: DWORD);
-procedure e_StopSong(ID: DWORD);
-procedure e_PauseSong(ID: DWORD; Pause: Boolean);
-procedure e_SetSongVolume(ID: DWORD; Volume: Integer);
-procedure e_RemoveAllSongs();
-procedure e_ReleaseSoundEngine();
+const
+  NO_SOUND_ID = DWORD(-1);
+
+function e_InitSoundSystem(Freq: Integer): Boolean;
+
+function e_LoadSound(FileName: string; var ID: DWORD; bLoop: Boolean): Boolean;
+function e_LoadSoundMem(pData: Pointer; Length: Integer; var ID: DWORD; bLoop: Boolean): Boolean;
+
+function e_PlaySound(ID: DWORD): Boolean;
+function e_PlaySoundPan(ID: DWORD; Pan: Single): Boolean;
+function e_PlaySoundVolume(ID: DWORD; Volume: Single): Boolean;
+function e_PlaySoundPanVolume(ID: DWORD; Pan, Volume: Single): Boolean;
+
+procedure e_ModifyChannelsVolumes(SoundMod: Single; setMode: Boolean);
+procedure e_MuteChannels(Enable: Boolean);
+procedure e_StopChannels();
+
+procedure e_DeleteSound(ID: DWORD);
+procedure e_RemoveAllSounds();
+procedure e_ReleaseSoundSystem();
+procedure e_SoundUpdate();
 
 var
-  e_SamplesArray: array of TSound = nil;
-  e_SongsArray: array of TMusic = nil;
+  e_SoundsArray: array of TSoundRec = nil;
 
 implementation
 
-function e_InitSound(Freq: Word): Boolean;
-begin
-Result := False;
+uses
+  g_window, g_options;
 
-FSOUND_SetOutput(FSOUND_OUTPUT_DSOUND);
-FSOUND_SetDriver(0);
-FSOUND_SetMixer(FSOUND_MIXER_QUALITY_AUTODETECT);
+const
+  N_CHANNELS = 64;
 
-if not FSOUND_Init(Freq, 64, 0) then
-begin
- e_WriteLog('Error initializing FMOD !', MSG_FATALERROR);
- e_WriteLog(FMOD_ErrorString(FSOUND_GetError()), MSG_FATALERROR);
- FSOUND_Close();
- Exit;
-end;
-
-case FSOUND_GetOutput() of
- FSOUND_OUTPUT_NOSOUND: e_WriteLog('FSOUND Output Method: FSOUND_OUTPUT_NOSOUND', MSG_NOTIFY);
- FSOUND_OUTPUT_WINMM: e_WriteLog('FSOUND Output Method: FSOUND_OUTPUT_WINMM', MSG_NOTIFY);
- FSOUND_OUTPUT_DSOUND: e_WriteLog('FSOUND Output Method: FSOUND_OUTPUT_DSOUND', MSG_NOTIFY);
- FSOUND_OUTPUT_A3D: e_WriteLog('FSOUND Output Method: FSOUND_OUTPUT_A3D', MSG_NOTIFY);
-end;
-
-case FSOUND_GetMixer() of
- FSOUND_MIXER_BLENDMODE: e_WriteLog('FSOUND Mixer: FSOUND_MIXER_BLENDMODE', MSG_NOTIFY);
- FSOUND_MIXER_MMXP5: e_WriteLog('FSOUND Mixer: FSOUND_MIXER_MMXP5', MSG_NOTIFY);
- FSOUND_MIXER_MMXP6: e_WriteLog('FSOUND Mixer: FSOUND_MIXER_MMXP6', MSG_NOTIFY);
- FSOUND_MIXER_QUALITY_FPU: e_WriteLog('FSOUND Mixer: FSOUND_MIXER_QUALITY_FPU', MSG_NOTIFY);
- FSOUND_MIXER_QUALITY_MMXP5: e_WriteLog('FSOUND Mixer: FSOUND_MIXER_QUALITY_MMXP5', MSG_NOTIFY);
- FSOUND_MIXER_QUALITY_MMXP6: e_WriteLog('FSOUND Mixer: FSOUND_MIXER_QUALITY_MMXP6', MSG_NOTIFY);
-end;
-
-e_WriteLog('FSOUND Driver: '+FSOUND_GetDriverName(FSOUND_GetDriver()), MSG_NOTIFY);
-
-Result := True;
-end;
-
-function FindSample(): DWORD;
 var
-  i: integer;
-begin
- if e_SamplesArray <> nil then
- for i := 0 to High(e_SamplesArray) do if e_SamplesArray[i].SoundSample = nil then
- begin
-  Result := i;
-  Exit;
- end;
+  F_System: FMOD_SYSTEM = nil;
+  SoundMuted: Boolean = False;
 
- if e_SamplesArray = nil then
- begin
-  SetLength(e_SamplesArray, 16);
-  Result := 0;
- end
-  else
- begin
-  Result := High(e_SamplesArray) + 1;
-  SetLength(e_SamplesArray, Length(e_SamplesArray) + 16);
- end;
-end;
 
-function e_LoadSample(FileName: String; var ID: DWORD): Boolean;
+function Channel_Callback(channel: FMOD_CHANNEL; callbacktype: FMOD_CHANNEL_CALLBACKTYPE;
+                          commanddata1: Pointer; commanddata2: Pointer): FMOD_RESULT; stdcall;
 var
-  find_id: DWORD;
+  res: FMOD_RESULT;
+  sound: FMOD_SOUND;
+  ud: Pointer;
+  id: DWORD;
+
 begin
- Result := False;
+  res := FMOD_OK;
 
- e_WriteLog('Loading sample '+FileName+'...', MSG_NOTIFY);
-
- find_id := FindSample;
-
- e_SamplesArray[find_id].Data := nil;
-
- e_SamplesArray[find_id].SoundSample := FSOUND_Sample_Load(FSOUND_FREE, PChar(FileName), FSOUND_HW2D, 0, 0);
- if e_SamplesArray[find_id].SoundSample = nil then
- begin
-  e_WriteLog('Error loading sample '''+FileName+''' !', MSG_WARNING);
-  e_WriteLog(FMOD_ErrorString(FSOUND_GetError()), MSG_WARNING);
-  Exit;
- end;
-
- ID := find_id;
-
- Result := True;
-end;
-
-function e_PlaySample(ID: DWORD; Pan, Volume: Byte): Integer;
-var
-  ChannelID: Integer;
-begin
- ChannelID := FSOUND_PlaySound(FSOUND_FREE, e_SamplesArray[ID].SoundSample);
- FSOUND_SetPan(ChannelID, Pan);
- FSOUND_SetVolume(ChannelID, Volume);
- Result := ChannelID;
-end;
-
-function e_IsPlayingSample(ID: DWORD; Channel: Integer): Boolean;
-begin
- Result := e_SamplesArray[ID].SoundSample = FSOUND_GetCurrentSample(Channel); 
-end;
-
-procedure e_PauseSample(Channel: Integer; Pause: Boolean);
-begin
-  FSOUND_SetPaused(Channel, ByteBool(Pause));
-end;
-
-procedure e_DeleteSample(ID: DWORD);
-begin
- if e_SamplesArray[ID].SoundSample = nil then Exit;
-
- if e_SamplesArray[ID].Data <> nil then FreeMem(e_SamplesArray[ID].Data);
- FSOUND_Sample_Free(e_SamplesArray[ID].SoundSample);
-
- e_SamplesArray[ID].SoundSample := nil;
- e_SamplesArray[ID].Data := nil;
-end;
-
-procedure e_StopAllSamples();
-begin
-  FSOUND_StopSound(FSOUND_ALL);
-end;
-
-procedure e_RemoveAllSamples();
-var
-  i: Integer;
-begin
- for i := 0 to High(e_SamplesArray) do
-  if e_SamplesArray[i].SoundSample <> nil then e_DeleteSample(i);
-
- e_SamplesArray := nil;
-end;
-
-function FindSong(): DWORD;
-var
-  i: integer;
-begin
- if e_SongsArray <> nil then
- for i := 0 to High(e_SongsArray) do
-  if (e_SongsArray[i].MusicModule = nil) and (e_SongsArray[i].SoundStream = nil) then
- begin
-  Result := i;
-  Exit;
- end;
-
- if e_SongsArray = nil then
- begin
-  SetLength(e_SongsArray, 8);
-  Result := 0;
- end
-  else
- begin
-  Result := High(e_SongsArray) + 1;
-  SetLength(e_SongsArray, Length(e_SongsArray) + 8);
- end;
-end;
-
-function e_LoadSong(FileName: String; var ID: DWORD): Boolean;
-var
-  find_id: DWORD;
-begin
-Result := False;
-
-e_WriteLog(Format('Loading song "%s"...', [FileName]), MSG_NOTIFY);
-
-find_id := FindSong;
-
-e_SongsArray[find_id].MusicModule := FMUSIC_LoadSong(PChar(FileName));
-if e_SongsArray[find_id].MusicModule = nil then
-begin
- e_SongsArray[find_id].SoundStream := FSOUND_Stream_Open(PChar(FileName),
-  FSOUND_NORMAL or FSOUND_2D or FSOUND_MPEGACCURATE or FSOUND_NONBLOCKING, 0, 0);
-
- if e_SongsArray[find_id].SoundStream = nil then
- begin
-  e_WriteLog(Format('Error loading song "%s" !', [FileName]), MSG_WARNING);
-  e_WriteLog(FMOD_ErrorString(FSOUND_GetError()), MSG_WARNING);
-  Exit;
- end;
-end;
-
-ID := find_id;
-
-Result := True;
-end;
-
-function e_LoadSongMem(pData: Pointer; Length: Integer; var ID: DWORD): Boolean;
-var
-  find_id: DWORD;
-  a: Integer;
-begin
- Result := False;
-
- e_WriteLog('Loading song from $'+IntToHex(Integer(pData), 8), MSG_NOTIFY);
-
- find_id := FindSong;
-
- e_SongsArray[find_id].MusicModule := FMUSIC_LoadSongEx(pData, 0, Length, FSOUND_LOADMEMORY, a, 0);
- if e_SongsArray[find_id].MusicModule = nil then
- begin
-  e_SongsArray[find_id].Data := pData;
-
-  e_SongsArray[find_id].SoundStream := FSOUND_Stream_Open(pData, FSOUND_LOADMEMORY, 0, Length);
-
-  if e_SongsArray[find_id].SoundStream = nil then
+  if callbacktype = FMOD_CHANNEL_CALLBACKTYPE_END then
   begin
-   e_WriteLog('Error loading song from memory', MSG_WARNING);
-   e_WriteLog(FMOD_ErrorString(FSOUND_GetError()), MSG_WARNING);
-   Exit;
+    res := FMOD_Channel_GetCurrentSound(channel, sound);
+    if res = FMOD_OK then
+    begin
+      res := FMOD_Sound_GetUserData(sound, ud);
+      if res = FMOD_OK then
+      begin
+        id := DWORD(ud^);
+        if id < Length(e_SoundsArray) then
+          if e_SoundsArray[id].nRefs > 0 then
+            Dec(e_SoundsArray[id].nRefs);
+      end;
+    end;
   end;
 
-  Result := True;
- end else Result := True;
-
- ID := find_id;
+  Result := res;
 end;
 
-procedure e_PlaySong(ID: DWORD; Volume: Byte);
-begin
- if e_SongsArray[ID].MusicModule <> nil then
- begin
-  FMUSIC_PlaySong(e_SongsArray[ID].MusicModule);
-  FMUSIC_SetMasterVolume(e_SongsArray[ID].MusicModule, Volume);
- end
-  else if e_SongsArray[ID].SoundStream <> nil then
- begin
-  FSOUND_Stream_SetMode(e_SongsArray[ID].SoundStream, FSOUND_LOOP_NORMAL);
-	FSOUND_SetVolume(FSOUND_Stream_Play(FSOUND_FREE, e_SongsArray[ID].SoundStream), Volume);
- end;
-end;
-
-procedure e_DeleteSong(ID: DWORD);
-begin
- if e_SongsArray[ID].MusicModule <> nil then FMUSIC_FreeSong(e_SongsArray[ID].MusicModule);
- if e_SongsArray[ID].SoundStream <> nil then
- begin
-  FSOUND_Stream_Close(e_SongsArray[ID].SoundStream);
-  if e_SongsArray[ID].Data <> nil then FreeMem(e_SongsArray[ID].Data);
- end;
-
- e_SongsArray[ID].MusicModule := nil;
- e_SongsArray[ID].SoundStream := nil;
-end;                                                     
-
-procedure e_StopSong(ID: DWORD);
-begin
- if e_SongsArray[ID].MusicModule <> nil then FMUSIC_StopSong(e_SongsArray[ID].MusicModule);
- if e_SongsArray[ID].SoundStream <> nil then FSOUND_Stream_Stop(e_SongsArray[ID].SoundStream);
-end;
-
-procedure e_PauseSong(ID: DWORD; Pause: Boolean);
-begin
-  if e_SongsArray[ID].MusicModule <> nil then
-    FMUSIC_SetPaused(e_SongsArray[ID].MusicModule, ByteBool(Pause));
-end;
-
-procedure e_SetSongVolume(ID: DWORD; Volume: Integer);
-begin
- if e_SongsArray[ID].MusicModule <> nil then FMUSIC_SetMasterVolume(e_SongsArray[ID].MusicModule, Volume); 
-end;
-
-function e_LoadSampleMem(pData: Pointer; Length: Integer; var ID: DWORD): Boolean;
+function e_InitSoundSystem(Freq: Integer): Boolean;
 var
-  find_id: DWORD;
+  res: FMOD_RESULT;
+  ver: Cardinal;
+  output: FMOD_OUTPUTTYPE;
+  drv: Integer;
+  str: PAnsiChar;
+
 begin
- Result := False;
+  Result := False;
 
- e_WriteLog('Loading sample from $'+IntToHex(Integer(pData), 8), MSG_NOTIFY);
+  res := FMOD_System_Create(F_System);
+  if res <> FMOD_OK then
+  begin
+    e_WriteLog('Error creating FMOD system!', MSG_FATALERROR);
+    e_WriteLog(FMOD_ErrorString(res), MSG_FATALERROR);
+    Exit;
+  end;
 
- find_id := FindSample;
+  res := FMOD_System_GetVersion(F_System, ver);
+  if res <> FMOD_OK then
+  begin
+    e_WriteLog('Error getting FMOD version!', MSG_FATALERROR);
+    e_WriteLog(FMOD_ErrorString(res), MSG_FATALERROR);
+    Exit;
+  end;
 
- e_SamplesArray[find_id].SoundSample := FSOUND_Sample_Load(FSOUND_FREE, pData, FSOUND_LOADMEMORY, 0, Length);
- if e_SamplesArray[find_id].SoundSample = nil then
- begin
-  e_WriteLog('Error loading sample from memory', MSG_WARNING);
-  e_WriteLog(FMOD_ErrorString(FSOUND_GetError()), MSG_WARNING);
-  Exit;
- end;
+  if ver < FMOD_VERSION then
+  begin
+    e_WriteLog('FMOD version is too old! Need '+IntToStr(FMOD_VERSION), MSG_FATALERROR);
+    Exit;
+  end;
 
- e_SamplesArray[find_id].Data := pData;
+  res := FMOD_System_SetOutput(F_System, FMOD_OUTPUTTYPE_DSOUND);
+  if res <> FMOD_OK then
+  begin
+    e_WriteLog('Error setting FMOD output type!', MSG_FATALERROR);
+    e_WriteLog(FMOD_ErrorString(res), MSG_FATALERROR);
+    Exit;
+  end;
 
- ID := find_id;
+  res := FMOD_System_SetSoftwareFormat(F_System, Freq,
+           FMOD_SOUND_FORMAT_PCM16, 0, 0, FMOD_DSP_RESAMPLER_LINEAR);
+  if res <> FMOD_OK then
+  begin
+    e_WriteLog('Error setting FMOD software format!', MSG_FATALERROR);
+    e_WriteLog(FMOD_ErrorString(res), MSG_FATALERROR);
+    Exit;
+  end;
 
- Result := True;
+  res := FMOD_System_Init(F_System, N_CHANNELS, FMOD_INIT_NORMAL, nil);
+  if res <> FMOD_OK then
+  begin
+    e_WriteLog('Error initializing FMOD system!', MSG_FATALERROR);
+    e_WriteLog(FMOD_ErrorString(res), MSG_FATALERROR);
+    Exit;
+  end;
+
+  res := FMOD_System_GetOutput(F_System, output);
+  if res <> FMOD_OK then
+    e_WriteLog('Error getting FMOD output!', MSG_WARNING)
+  else
+    case output of
+      FMOD_OUTPUTTYPE_NOSOUND: e_WriteLog('FMOD Output Method: NOSOUND', MSG_NOTIFY);
+      FMOD_OUTPUTTYPE_NOSOUND_NRT: e_WriteLog('FMOD Output Method: NOSOUND_NRT', MSG_NOTIFY);
+      FMOD_OUTPUTTYPE_DSOUND: e_WriteLog('FMOD Output Method: DSOUND', MSG_NOTIFY);
+      FMOD_OUTPUTTYPE_WINMM: e_WriteLog('FMOD Output Method: WINMM', MSG_NOTIFY);
+      FMOD_OUTPUTTYPE_OPENAL: e_WriteLog('FMOD Output Method: OPENAL', MSG_NOTIFY);
+      FMOD_OUTPUTTYPE_WASAPI: e_WriteLog('FMOD Output Method: WASAPI', MSG_NOTIFY);
+      FMOD_OUTPUTTYPE_ASIO: e_WriteLog('FMOD Output Method: ASIO', MSG_NOTIFY);
+      else e_WriteLog('FMOD Output Method: Unknown', MSG_NOTIFY);
+    end;
+
+  res := FMOD_System_GetDriver(F_System, drv);
+  if res <> FMOD_OK then
+    e_WriteLog('Error getting FMOD driver!', MSG_WARNING)
+  else
+    begin
+      {res := FMOD_System_GetDriverName(F_System, drv, str, 64);
+      if res <> FMOD_OK then
+        e_WriteLog('Error getting FMOD driver name!', MSG_WARNING)
+      else }
+        e_WriteLog('FMOD driver id: '+IntToStr(drv), MSG_NOTIFY);
+    end;
+
+  Result := True;
 end;
 
-procedure e_RemoveAllSongs();
+function FindESound(): DWORD;
 var
   i: Integer;
+  
 begin
- for i := 0 to High(e_SongsArray) do
-  if (e_SongsArray[i].MusicModule <> nil) or (e_SongsArray[i].SoundStream <> nil) then
-   e_DeleteSong(i);
+  if e_SoundsArray <> nil then
+    for i := 0 to High(e_SoundsArray) do
+      if e_SoundsArray[i].Sound = nil then
+      begin
+        Result := i;
+        Exit;
+      end;
 
- e_SongsArray := nil;
+  if e_SoundsArray = nil then
+    begin
+      SetLength(e_SoundsArray, 16);
+      Result := 0;
+    end
+  else
+    begin
+      Result := High(e_SoundsArray) + 1;
+      SetLength(e_SoundsArray, Length(e_SoundsArray) + 16);
+    end;
 end;
 
-procedure e_ReleaseSoundEngine();
+function e_LoadSound(FileName: String; var ID: DWORD; bLoop: Boolean): Boolean;
+var
+  find_id: DWORD;
+  res: FMOD_RESULT;
+  bt: Cardinal;
+  ud: Pointer;
+
 begin
- e_RemoveAllSamples;
- e_RemoveAllSongs;
- {FSOUND_Close();}
+  Result := False;
+
+  e_WriteLog('Loading sound '+FileName+'...', MSG_NOTIFY);
+
+  find_id := FindESound();
+
+  if bLoop then
+    bt := FMOD_LOOP_NORMAL
+  else
+    bt := FMOD_LOOP_OFF;
+
+  if not bLoop then
+    res := FMOD_System_CreateSound(F_System, PAnsiChar(FileName),
+             bt + FMOD_2D + FMOD_HARDWARE,
+             0, e_SoundsArray[find_id].Sound)
+  else
+    res := FMOD_System_CreateStream(F_System, PAnsiChar(FileName),
+             bt + FMOD_2D + FMOD_HARDWARE,
+             0, e_SoundsArray[find_id].Sound);
+  if res <> FMOD_OK then
+  begin
+    e_SoundsArray[find_id].Sound := nil;
+    Exit;
+  end;
+
+  GetMem(ud, SizeOf(DWORD));
+  DWORD(ud^) := find_id;
+  res := FMOD_Sound_SetUserData(e_SoundsArray[find_id].Sound, ud);
+  if res <> FMOD_OK then
+  begin
+    e_SoundsArray[find_id].Sound := nil;
+    Exit;
+  end;
+
+  e_SoundsArray[find_id].Data := nil;
+  e_SoundsArray[find_id].Loop := bLoop;
+  e_SoundsArray[find_id].nRefs := 0;
+
+  ID := find_id;
+
+  Result := True;
+end;
+
+function e_LoadSoundMem(pData: Pointer; Length: Integer; var ID: DWORD; bLoop: Boolean): Boolean;
+var
+  find_id: DWORD;
+  res: FMOD_RESULT;
+  sz: Integer;
+  bt: Cardinal;
+  soundExInfo: FMOD_CREATESOUNDEXINFO;
+  ud: Pointer;
+
+begin
+  Result := False;
+
+  e_WriteLog('Loading sound from $'+IntToHex(Integer(pData), 8), MSG_NOTIFY);
+
+  find_id := FindESound();
+
+  sz := SizeOf(FMOD_CREATESOUNDEXINFO);
+  FillMemory(@soundExInfo, sz, 0);
+  soundExInfo.cbsize := sz;
+  soundExInfo.length := Length;
+
+  if bLoop then
+    bt := FMOD_LOOP_NORMAL
+  else
+    bt := FMOD_LOOP_OFF;
+
+  if not bLoop then
+    res := FMOD_System_CreateSound(F_System, pData,
+             bt + FMOD_2D + FMOD_HARDWARE + FMOD_OPENMEMORY,
+             @soundExInfo, e_SoundsArray[find_id].Sound)
+  else
+    res := FMOD_System_CreateStream(F_System, pData,
+             bt + FMOD_2D + FMOD_HARDWARE + FMOD_OPENMEMORY,
+             @soundExInfo, e_SoundsArray[find_id].Sound);
+  if res <> FMOD_OK then
+  begin
+    e_SoundsArray[find_id].Sound := nil;
+    Exit;
+  end;
+
+  GetMem(ud, SizeOf(DWORD));
+  DWORD(ud^) := find_id;
+  res := FMOD_Sound_SetUserData(e_SoundsArray[find_id].Sound, ud);
+  if res <> FMOD_OK then
+  begin
+    e_SoundsArray[find_id].Sound := nil;
+    Exit;
+  end;
+
+  e_SoundsArray[find_id].Data := pData;
+  e_SoundsArray[find_id].Loop := bLoop;
+  e_SoundsArray[find_id].nRefs := 0;
+
+  ID := find_id;
+
+  Result := True;
+end;
+
+function e_PlaySound(ID: DWORD): Boolean;
+var
+  res: FMOD_RESULT;
+  Chan: FMOD_CHANNEL;
+
+begin
+  if e_SoundsArray[ID].nRefs >= gMaxSimSounds then
+  begin
+    Result := True;
+    Exit;
+  end;
+
+  Result := False;
+
+  res := FMOD_System_PlaySound(F_System, FMOD_CHANNEL_FREE,
+           e_SoundsArray[ID].Sound, False, Chan);
+  if res <> FMOD_OK then
+  begin
+    Exit;
+  end;
+
+  res := FMOD_Channel_SetCallback(Chan, Channel_Callback);
+  if res <> FMOD_OK then
+  begin
+  end;
+
+  if SoundMuted then
+  begin
+    res := FMOD_Channel_SetMute(Chan, True);
+    if res <> FMOD_OK then
+    begin
+    end;
+  end;
+
+  Inc(e_SoundsArray[ID].nRefs);
+  Result := True;
+end;
+
+function e_PlaySoundPan(ID: DWORD; Pan: Single): Boolean;
+var
+  res: FMOD_RESULT;
+  Chan: FMOD_CHANNEL;
+
+begin
+  if e_SoundsArray[ID].nRefs >= gMaxSimSounds then
+  begin
+    Result := True;
+    Exit;
+  end;
+
+  Result := False;
+
+  res := FMOD_System_PlaySound(F_System, FMOD_CHANNEL_FREE,
+           e_SoundsArray[ID].Sound, False, Chan);
+  if res <> FMOD_OK then
+  begin
+    Exit;
+  end;
+
+  res := FMOD_Channel_SetPan(Chan, Pan);
+  if res <> FMOD_OK then
+  begin
+  end;
+
+  res := FMOD_Channel_SetCallback(Chan, Channel_Callback);
+  if res <> FMOD_OK then
+  begin
+  end;
+
+  if SoundMuted then
+  begin
+    res := FMOD_Channel_SetMute(Chan, True);
+    if res <> FMOD_OK then
+    begin
+    end;
+  end;
+
+  Inc(e_SoundsArray[ID].nRefs);
+  Result := True;
+end;
+
+function e_PlaySoundVolume(ID: DWORD; Volume: Single): Boolean;
+var
+  res: FMOD_RESULT;
+  Chan: FMOD_CHANNEL;
+
+begin
+  if e_SoundsArray[ID].nRefs >= gMaxSimSounds then
+  begin
+    Result := True;
+    Exit;
+  end;
+
+  Result := False;
+
+  res := FMOD_System_PlaySound(F_System, FMOD_CHANNEL_FREE,
+           e_SoundsArray[ID].Sound, False, Chan);
+  if res <> FMOD_OK then
+  begin
+    Exit;
+  end;
+
+  res := FMOD_Channel_SetVolume(Chan, Volume);
+  if res <> FMOD_OK then
+  begin
+  end;
+
+  res := FMOD_Channel_SetCallback(Chan, Channel_Callback);
+  if res <> FMOD_OK then
+  begin
+  end;
+
+  if SoundMuted then
+  begin
+    res := FMOD_Channel_SetMute(Chan, True);
+    if res <> FMOD_OK then
+    begin
+    end;
+  end;
+
+  Inc(e_SoundsArray[ID].nRefs);
+  Result := True;
+end;
+
+function e_PlaySoundPanVolume(ID: DWORD; Pan, Volume: Single): Boolean;
+var
+  res: FMOD_RESULT;
+  Chan: FMOD_CHANNEL;
+
+begin
+  if e_SoundsArray[ID].nRefs >= gMaxSimSounds then
+  begin
+    Result := True;
+    Exit;
+  end;
+
+  Result := False;
+
+  res := FMOD_System_PlaySound(F_System, FMOD_CHANNEL_FREE,
+           e_SoundsArray[ID].Sound, False, Chan);
+  if res <> FMOD_OK then
+  begin
+    Exit;
+  end;
+
+  res := FMOD_Channel_SetPan(Chan, Pan);
+  if res <> FMOD_OK then
+  begin
+  end;
+
+  res := FMOD_Channel_SetVolume(Chan, Volume);
+  if res <> FMOD_OK then
+  begin
+  end;
+
+  res := FMOD_Channel_SetCallback(Chan, Channel_Callback);
+  if res <> FMOD_OK then
+  begin
+  end;
+
+  if SoundMuted then
+  begin
+    res := FMOD_Channel_SetMute(Chan, True);
+    if res <> FMOD_OK then
+    begin
+    end;
+  end;
+
+  Inc(e_SoundsArray[ID].nRefs);
+  Result := True;
+end;
+
+procedure e_DeleteSound(ID: DWORD);
+var
+  res: FMOD_RESULT;
+  ud: Pointer;
+
+begin
+  if e_SoundsArray[ID].Sound = nil then
+    Exit;
+
+  if e_SoundsArray[ID].Data <> nil then
+    FreeMem(e_SoundsArray[ID].Data);
+
+  res := FMOD_Sound_GetUserData(e_SoundsArray[ID].Sound, ud);
+  if res = FMOD_OK then
+  begin
+    FreeMem(ud);
+  end;
+
+  res := FMOD_Sound_Release(e_SoundsArray[ID].Sound);
+  if res <> FMOD_OK then
+  begin
+    e_WriteLog('Error releasing sound:', MSG_WARNING);
+    e_WriteLog(FMOD_ErrorString(res), MSG_WARNING);
+  end;
+
+  e_SoundsArray[ID].Sound := nil;
+  e_SoundsArray[ID].Data := nil;
+end;
+
+procedure e_ModifyChannelsVolumes(SoundMod: Single; setMode: Boolean);
+var
+  res: FMOD_RESULT;
+  i: Integer;
+  Chan: FMOD_CHANNEL;
+  vol: Single;
+  
+begin
+  for i := 0 to N_CHANNELS-1 do
+  begin
+    Chan := nil;
+    res := FMOD_System_GetChannel(F_System, i, Chan);
+    
+    if (res = FMOD_OK) and (Chan <> nil) then
+    begin
+      res := FMOD_Channel_GetVolume(Chan, vol);
+
+      if res = FMOD_OK then
+      begin
+        if setMode then
+          vol := SoundMod
+        else
+          vol := vol * SoundMod;
+          
+        res := FMOD_Channel_SetVolume(Chan, vol);
+
+        if res <> FMOD_OK then
+        begin
+        end;
+      end;
+    end;
+  end;
+end;
+
+procedure e_MuteChannels(Enable: Boolean);
+var
+  res: FMOD_RESULT;
+  i: Integer;
+  Chan: FMOD_CHANNEL;
+  
+begin
+  if Enable = SoundMuted then
+    Exit;
+
+  SoundMuted := Enable;
+
+  for i := 0 to N_CHANNELS-1 do
+  begin
+    Chan := nil;
+    res := FMOD_System_GetChannel(F_System, i, Chan);
+    
+    if (res = FMOD_OK) and (Chan <> nil) then
+    begin
+      res := FMOD_Channel_SetMute(Chan, Enable);
+
+      if res <> FMOD_OK then
+      begin
+      end;
+    end;
+  end;
+end;
+
+procedure e_StopChannels();
+var
+  res: FMOD_RESULT;
+  i: Integer;
+  Chan: FMOD_CHANNEL;
+  
+begin
+  for i := 0 to N_CHANNELS-1 do
+  begin
+    Chan := nil;
+    res := FMOD_System_GetChannel(F_System, i, Chan);
+    
+    if (res = FMOD_OK) and (Chan <> nil) then
+    begin
+      res := FMOD_Channel_Stop(Chan);
+
+      if res <> FMOD_OK then
+      begin
+      end;
+    end;
+  end;
+end;
+
+procedure e_RemoveAllSounds();
+var
+  i: Integer;
+
+begin
+  for i := 0 to High(e_SoundsArray) do
+    if e_SoundsArray[i].Sound <> nil then
+      e_DeleteSound(i);
+
+  SetLength(e_SoundsArray, 0);
+  e_SoundsArray := nil;
+end;
+
+procedure e_ReleaseSoundSystem();
+var
+  res: FMOD_RESULT;
+
+begin
+  e_RemoveAllSounds();
+
+  res := FMOD_System_Close(F_System);
+  if res <> FMOD_OK then
+  begin
+    e_WriteLog('Error closing FMOD system!', MSG_FATALERROR);
+    e_WriteLog(FMOD_ErrorString(res), MSG_FATALERROR);
+    Exit;
+  end;
+  
+  res := FMOD_System_Release(F_System);
+  if res <> FMOD_OK then
+  begin
+    e_WriteLog('Error releasing FMOD system!', MSG_FATALERROR);
+    e_WriteLog(FMOD_ErrorString(res), MSG_FATALERROR);
+  end;
+end;
+
+procedure e_SoundUpdate();
+begin
+  FMOD_System_Update(F_System);
+end;
+
+{ TBasicSound: }
+
+constructor TBasicSound.Create();
+begin
+  FID := NO_SOUND_ID;
+  FLoop := False;
+  FChannel := nil;
+  FPosition := 0;
+end;
+
+destructor TBasicSound.Destroy();
+begin
+  FreeSound();
+  inherited;
+end;
+
+procedure TBasicSound.FreeSound();
+begin
+  if FID = NO_SOUND_ID then
+    Exit;
+
+  Stop();
+  FID := NO_SOUND_ID;
+  FLoop := False;
+  FPosition := 0;
+end;
+
+function TBasicSound.RawPlay(Pan: Single; Volume: Single; aPos: DWORD): Boolean;
+var
+  res: FMOD_RESULT;
+
+begin
+  if e_SoundsArray[FID].nRefs >= gMaxSimSounds then
+  begin
+    Result := True;
+    Exit;
+  end;
+
+  Result := False;
+
+  if FID = NO_SOUND_ID then
+    Exit;
+
+  res := FMOD_System_PlaySound(F_System, FMOD_CHANNEL_FREE,
+           e_SoundsArray[FID].Sound, False, FChannel);
+  if res <> FMOD_OK then
+  begin
+    FChannel := nil;
+    Exit;
+  end;
+
+  res := FMOD_Channel_SetPosition(FChannel, aPos, FMOD_TIMEUNIT_MS);
+  if res <> FMOD_OK then
+    begin
+      FPosition := 0;
+    end
+  else
+    FPosition := aPos;
+
+  res := FMOD_Channel_SetPan(FChannel, Pan);
+  if res <> FMOD_OK then
+  begin
+  end;
+
+  res := FMOD_Channel_SetVolume(FChannel, Volume);
+  if res <> FMOD_OK then
+  begin
+  end;
+
+  res := FMOD_Channel_SetCallback(FChannel, Channel_Callback);
+  if res <> FMOD_OK then
+  begin
+  end;
+
+  if SoundMuted then
+  begin
+    res := FMOD_Channel_SetMute(FChannel, True);
+    if res <> FMOD_OK then
+    begin
+    end;
+  end;
+
+  Inc(e_SoundsArray[FID].nRefs);
+  Result := True;
+end;
+
+procedure TBasicSound.SetID(ID: DWORD);
+begin
+  FreeSound();
+  FID := ID;
+  FLoop := e_SoundsArray[ID].Loop;
+end;
+
+function TBasicSound.IsPlaying(): Boolean;
+var
+  res: FMOD_RESULT;
+  b: LongBool;
+                         
+begin
+  Result := False;
+
+  if FChannel = nil then
+    Exit;
+
+  res := FMOD_Channel_IsPlaying(FChannel, b);
+  if res <> FMOD_OK then
+  begin
+    Exit;
+  end;
+
+  Result := b;
+end;
+
+procedure TBasicSound.Stop();
+var
+  res: FMOD_RESULT;
+  
+begin
+  if FChannel = nil then
+    Exit;
+
+  GetPosition();
+
+  res := FMOD_Channel_Stop(FChannel);
+  if res <> FMOD_OK then
+  begin
+  end;
+
+  FChannel := nil;
+end;
+
+function TBasicSound.IsPaused(): Boolean;
+var
+  res: FMOD_RESULT;
+  b: LongBool;
+
+begin
+  Result := False;
+
+  if FChannel = nil then
+    Exit;
+
+  res := FMOD_Channel_GetPaused(FChannel, b);
+  if res <> FMOD_OK then
+  begin
+    Exit;
+  end;
+
+  Result := b;
+end;
+
+procedure TBasicSound.Pause(Enable: Boolean);
+var
+  res: FMOD_RESULT;
+
+begin
+  if FChannel = nil then
+    Exit;
+
+  res := FMOD_Channel_SetPaused(FChannel, Enable);
+  if res <> FMOD_OK then
+  begin
+  end;
+
+  if Enable then
+  begin
+    res := FMOD_Channel_GetPosition(FChannel, FPosition, FMOD_TIMEUNIT_MS);
+    if res <> FMOD_OK then
+    begin
+    end;
+  end;
+end;
+
+function TBasicSound.GetVolume(): Single;
+var
+  res: FMOD_RESULT;
+  vol: Single;
+
+begin
+  Result := 0.0;
+
+  if FChannel = nil then
+    Exit;
+
+  res := FMOD_Channel_GetVolume(FChannel, vol);
+  if res <> FMOD_OK then
+  begin
+    Exit;
+  end;
+
+  Result := vol;
+end;
+
+procedure TBasicSound.SetVolume(Volume: Single);
+var
+  res: FMOD_RESULT;
+
+begin
+  if FChannel = nil then
+    Exit;
+
+  res := FMOD_Channel_SetVolume(FChannel, Volume);
+  if res <> FMOD_OK then
+  begin
+  end;
+end;
+
+function TBasicSound.IsMuted(): Boolean;
+var
+  res: FMOD_RESULT;
+  b: LongBool;
+
+begin
+  Result := False;
+
+  if FChannel = nil then
+    Exit;
+
+  res := FMOD_Channel_GetMute(FChannel, b);
+  if res <> FMOD_OK then
+  begin
+    Exit;
+  end;
+
+  Result := b;
+end;
+
+procedure TBasicSound.Mute(Enable: Boolean);
+var
+  res: FMOD_RESULT;
+
+begin
+  if FChannel = nil then
+    Exit;
+
+  res := FMOD_Channel_SetMute(FChannel, Enable);
+  if res <> FMOD_OK then
+  begin
+  end;
+end;
+
+function TBasicSound.GetPosition(): DWORD;
+var
+  res: FMOD_RESULT;
+
+begin
+  Result := 0;
+
+  if FChannel = nil then
+    Exit;
+
+  res := FMOD_Channel_GetPosition(FChannel, FPosition, FMOD_TIMEUNIT_MS);
+  if res <> FMOD_OK then
+  begin
+    Exit;
+  end;
+
+  Result := FPosition;
+end;
+
+procedure TBasicSound.SetPosition(aPos: DWORD);
+var
+  res: FMOD_RESULT;
+
+begin
+  FPosition := aPos;
+
+  if FChannel = nil then
+    Exit;
+
+  res := FMOD_Channel_SetPosition(FChannel, FPosition, FMOD_TIMEUNIT_MS);
+  if res <> FMOD_OK then
+  begin
+  end;
 end;
 
 end.

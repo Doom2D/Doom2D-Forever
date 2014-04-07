@@ -1,51 +1,51 @@
 object SaveMiniMapForm: TSaveMiniMapForm
-  Left = 448
-  Top = 312
+  Left = 362
+  Top = 299
   Width = 431
-  Height = 224
+  Height = 225
   Caption = #1057#1086#1093#1088#1072#1085#1080#1090#1100' '#1084#1080#1085#1080'-'#1082#1072#1088#1090#1091
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
-  Font.Height = -13
+  Font.Height = -11
   Font.Name = 'MS Sans Serif'
   Font.Style = []
   OldCreateOrder = False
   Position = poScreenCenter
   OnActivate = FormActivate
-  PixelsPerInch = 110
-  TextHeight = 16
+  PixelsPerInch = 96
+  TextHeight = 13
   object pbMiniMap: TPaintBox
-    Left = 228
+    Left = 185
     Top = 0
-    Width = 195
-    Height = 196
+    Width = 230
+    Height = 187
     Align = alClient
     OnPaint = pbMiniMapPaint
   end
   object Panel1: TPanel
     Left = 0
     Top = 0
-    Width = 228
-    Height = 196
+    Width = 185
+    Height = 187
     Align = alLeft
     BevelOuter = bvNone
     TabOrder = 0
     DesignSize = (
-      228
-      196)
-    object Label1: TLabel
-      Left = 7
-      Top = 15
-      Width = 61
-      Height = 16
+      185
+      187)
+    object LabelScale: TLabel
+      Left = 6
+      Top = 12
+      Width = 49
+      Height = 13
       Caption = #1052#1072#1089#1096#1090#1072#1073':'
     end
     object bSave: TButton
-      Left = 5
-      Top = 170
-      Width = 213
-      Height = 31
+      Left = 4
+      Top = 130
+      Width = 173
+      Height = 25
       Anchors = [akLeft, akBottom]
       Caption = #1057#1086#1093#1088#1072#1085#1080#1090#1100
       Default = True
@@ -53,12 +53,12 @@ object SaveMiniMapForm: TSaveMiniMapForm
       OnClick = bSaveClick
     end
     object cbScale: TComboBox
-      Left = 123
-      Top = 10
-      Width = 90
-      Height = 24
+      Left = 100
+      Top = 8
+      Width = 73
+      Height = 21
       Style = csDropDownList
-      ItemHeight = 16
+      ItemHeight = 13
       ItemIndex = 0
       TabOrder = 0
       Text = '1x'
@@ -68,10 +68,10 @@ object SaveMiniMapForm: TSaveMiniMapForm
         '2x')
     end
     object bClose: TButton
-      Left = 5
-      Top = 207
-      Width = 213
-      Height = 31
+      Left = 4
+      Top = 160
+      Width = 173
+      Height = 25
       Anchors = [akLeft, akBottom]
       Cancel = True
       Caption = #1047#1072#1082#1088#1099#1090#1100

@@ -4,8 +4,8 @@ object MapTestForm: TMapTestForm
   BorderIcons = [biSystemMenu]
   BorderStyle = bsSingle
   Caption = #1053#1072#1089#1090#1088#1086#1081#1082#1080' '#1090#1077#1089#1090#1072' '#1082#1072#1088#1090#1099' '#1074' D2D:F'
-  ClientHeight = 269
-  ClientWidth = 366
+  ClientHeight = 270
+  ClientWidth = 367
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -29,7 +29,7 @@ object MapTestForm: TMapTestForm
     OnClick = bOKClick
   end
   object bCancel: TButton
-    Left = 288
+    Left = 286
     Top = 240
     Width = 75
     Height = 25
@@ -44,28 +44,28 @@ object MapTestForm: TMapTestForm
     Width = 353
     Height = 233
     TabOrder = 2
-    object Label1: TLabel
+    object LabelTime: TLabel
       Left = 16
       Top = 112
       Width = 83
       Height = 13
       Caption = #1051#1080#1084#1080#1090' '#1074#1088#1077#1084#1077#1085#1080':'
     end
-    object Label2: TLabel
+    object LabelSecs: TLabel
       Left = 176
       Top = 112
       Width = 35
       Height = 13
       Caption = #1089#1077#1082#1091#1085#1076
     end
-    object Label3: TLabel
+    object LabelScore: TLabel
       Left = 16
       Top = 136
-      Width = 69
+      Width = 68
       Height = 13
-      Caption = #1051#1080#1084#1080#1090' '#1087#1086#1073#1077#1076':'
+      Caption = #1051#1080#1084#1080#1090' '#1086#1095#1082#1086#1074':'
     end
-    object Label4: TLabel
+    object LabelPath: TLabel
       Left = 16
       Top = 184
       Width = 107
@@ -156,7 +156,7 @@ object MapTestForm: TMapTestForm
       TabOrder = 9
       Text = '0'
     end
-    object edGoal: TEdit
+    object edScore: TEdit
       Left = 104
       Top = 136
       Width = 49
@@ -164,19 +164,19 @@ object MapTestForm: TMapTestForm
       TabOrder = 10
       Text = '0'
     end
-    object UpDown1: TUpDown
+    object UpDown2: TUpDown
       Left = 153
       Top = 136
-      Width = 16
+      Width = 12
       Height = 21
-      Associate = edGoal
+      Associate = edScore
       Max = 1000
       TabOrder = 11
     end
-    object UpDown2: TUpDown
+    object UpDown1: TUpDown
       Left = 153
       Top = 112
-      Width = 16
+      Width = 12
       Height = 21
       Associate = edTime
       Max = 28800
@@ -217,7 +217,8 @@ object MapTestForm: TMapTestForm
   object FindD2dDialog: TOpenDialog
     DefaultExt = 'Doom2DF.exe'
     Filter = 'Doom2DF.exe|Doom2DF.exe'
-    Title = #1042#1099#1073#1077#1088#1080#1090#1077' '#1092#1072#1081#1083' '#1080#1075#1088#1099' Doom2D:Forever'
+    Options = [ofHideReadOnly, ofNoChangeDir, ofEnableSizing]
+    Title = #1042#1099#1073#1077#1088#1080#1090#1077' '#1092#1072#1081#1083' '#1080#1075#1088#1099' Doom 2D:Forever'
     Left = 320
     Top = 144
   end

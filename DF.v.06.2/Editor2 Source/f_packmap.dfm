@@ -4,7 +4,7 @@ object PackMapForm: TPackMapForm
   BorderIcons = [biSystemMenu]
   BorderStyle = bsSingle
   Caption = #1059#1087#1072#1082#1086#1074#1072#1090#1100' '#1082#1072#1088#1090#1091
-  ClientHeight = 227
+  ClientHeight = 229
   ClientWidth = 360
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -17,13 +17,6 @@ object PackMapForm: TPackMapForm
   OnCreate = FormCreate
   PixelsPerInch = 96
   TextHeight = 13
-  object Label5: TLabel
-    Left = 216
-    Top = 104
-    Width = 103
-    Height = 13
-    Caption = #1057#1077#1082#1094#1080#1103' '#1076#1083#1103' '#1090#1077#1082#1089#1090#1091#1088':'
-  end
   object Panel1: TPanel
     Left = 4
     Top = 4
@@ -32,35 +25,35 @@ object PackMapForm: TPackMapForm
     BevelInner = bvRaised
     BevelOuter = bvLowered
     TabOrder = 0
-    object Label1: TLabel
+    object LabelSaveTo: TLabel
       Left = 8
       Top = 8
       Width = 65
       Height = 13
       Caption = #1057#1086#1093#1088#1072#1085#1080#1090#1100' '#1074':'
     end
-    object Label2: TLabel
+    object LabelMapName: TLabel
       Left = 216
       Top = 8
       Width = 109
       Height = 13
       Caption = #1048#1084#1103' '#1088#1077#1089#1091#1088#1089#1072' ('#1082#1072#1088#1090#1099'):'
     end
-    object Label3: TLabel
+    object LabelTextures: TLabel
       Left = 96
       Top = 64
       Width = 103
       Height = 13
       Caption = #1057#1077#1082#1094#1080#1103' '#1076#1083#1103' '#1090#1077#1082#1089#1090#1091#1088':'
     end
-    object Label4: TLabel
+    object LabelSky: TLabel
       Left = 96
       Top = 88
       Width = 88
       Height = 13
       Caption = #1057#1077#1082#1094#1080#1103' '#1076#1083#1103' '#1085#1077#1073#1072':'
     end
-    object Label6: TLabel
+    object LabelMusic: TLabel
       Left = 96
       Top = 112
       Width = 103
@@ -155,7 +148,7 @@ object PackMapForm: TPackMapForm
       Top = 144
       Width = 193
       Height = 17
-      Caption = #1053#1077' '#1087#1077#1088#1077#1079#1072#1087#1080#1089#1099#1074#1072#1090#1100' '#1074#1072#1076
+      Caption = #1053#1077' '#1087#1077#1088#1077#1079#1072#1087#1080#1089#1099#1074#1072#1090#1100' WAD'
       TabOrder = 9
     end
     object cbNonStandart: TCheckBox
@@ -182,7 +175,7 @@ object PackMapForm: TPackMapForm
     DefaultExt = 'wad'
     Filter = #1050#1072#1088#1090#1099' Doom2D: Forever (*.wad)|*.wad|All files (*.*)|*.*'
     Options = [ofHideReadOnly, ofPathMustExist, ofEnableSizing, ofDontAddToRecent]
-    Left = 248
-    Top = 192
+    Left = 8
+    Top = 200
   end
 end

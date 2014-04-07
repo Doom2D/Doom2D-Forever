@@ -3,17 +3,18 @@ unit f_keys;
 interface
 
 uses
-  Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
-  Dialogs, StdCtrls;
+  Windows, Messages, SysUtils, Variants, Classes,
+  Graphics, Controls, Forms, Dialogs, StdCtrls;
 
 type
-  TKeysForm = class(TForm)
+  TKeysForm = class (TForm)
     cbRedKey: TCheckBox;
     cbGreenKey: TCheckBox;
     cbBlueKey: TCheckBox;
-    bOK: TButton;
     cbRedTeam: TCheckBox;
     cbBlueTeam: TCheckBox;
+    bOK: TButton;
+
   private
     { Private declarations }
   public

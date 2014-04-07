@@ -3,8 +3,8 @@ Version=7.0
 [Compiler]
 A=8
 B=0
-C=0
-D=0
+C=1
+D=1
 E=0
 F=0
 G=1
@@ -12,20 +12,20 @@ H=1
 I=1
 J=0
 K=0
-L=0
+L=1
 M=0
 N=1
 O=1
 P=1
-Q=0
-R=0
+Q=1
+R=1
 S=0
 T=0
 U=0
 V=1
 W=0
 X=1
-Y=0
+Y=2
 Z=1
 ShowHints=1
 ShowWarnings=1
@@ -90,11 +90,11 @@ MaxStackSize=1048576
 ImageBase=4194304
 ExeDescription=
 [Directories]
-OutputDir=C:\Users\FGSFDS\Desktop\Work\DFS
-UnitOutputDir=
-PackageDLLOutputDir=
-PackageDCPOutputDir=
-SearchPath=
+OutputDir=F:\DFv062 Compiled
+UnitOutputDir=F:\DFv062 Compiled\Delphi dcus\Editor
+PackageDLLOutputDir=F:\DFv062 Compiled\Delphi dcus\Editor
+PackageDCPOutputDir=F:\DFv062 Compiled\Delphi dcus\Editor
+SearchPath=F:\DFv062 Compiled
 Packages=vcl;rtl;vclx;indy;inet;xmlrtl;vclie;inetdbbde;inetdbxpress;dbrtl;dsnap;dsnapcon;vcldb;soaprtl;VclSmp;dbexpress;dbxcds;inetdb;bdertl;vcldbx;webdsnap;websnap;adortl;ibxpress;teeui;teedb;tee;dss;visualclx;visualdbclx;vclactnband;vclshlctrls;dclOffice2k
 Conditionals=
 DebugSourceDirs=
@@ -105,10 +105,14 @@ HostApplication=
 Launcher=
 UseLauncher=0
 DebugCWD=
+[Language]
+ActiveLang=
+ProjectLang=
+RootDir=
 [Version Info]
-IncludeVerInfo=0
+IncludeVerInfo=1
 AutoIncBuild=0
-MajorVer=0
+MajorVer=2
 MinorVer=0
 Release=0
 Build=0
@@ -120,20 +124,36 @@ DLL=0
 Locale=1049
 CodePage=1251
 [Version Info Keys]
-CompanyName=
-FileDescription=
-FileVersion=0.0.0.0
-InternalName=
-LegalCopyright=
+CompanyName=www.doom2d.org
+FileDescription=Doom 2D: Forever Map Editor
+FileVersion=2.0.0.0
+InternalName=Редактор карт Doom 2D: Forever
+LegalCopyright=All rights reserved.
 LegalTrademarks=
-OriginalFilename=
-ProductName=
-ProductVersion=1.0.0.0
+OriginalFilename=Editor.exe
+ProductName=Doom 2D: Forever Map Editor
+ProductVersion=2.0.0.0
 Comments=
 [HistoryLists\hlUnitAliases]
 Count=1
 Item0=WinTypes=Windows;WinProcs=Windows;DbiTypes=BDE;DbiProcs=BDE;DbiErrs=BDE;
-[HistoryLists\hlOutputDirectorry]
+[HistoryLists\hlSearchPath]
+Count=1
+Item0=F:\DFv062 Compiled
+[HistoryLists\hlUnitOutputDirectory]
 Count=2
-Item0=C:\Users\FGSFDS\Desktop\Work\DFS
-Item1=..\..\DoomForever
+Item0=F:\DFv062 Compiled\Delphi dcus\Editor
+Item1=F:\DFv062 Compiled\Delphi dcus
+[HistoryLists\hlOutputDirectorry]
+Count=3
+Item0=F:\DFv062 Compiled
+Item1=C:\Users\FGSFDS\Desktop\Work\DFS
+Item2=..\..\DoomForever
+[HistoryLists\hlBPLOutput]
+Count=2
+Item0=F:\DFv062 Compiled\Delphi dcus\Editor
+Item1=F:\DFv062 Compiled\Delphi dcus
+[HistoryLists\hlDCPOutput]
+Count=2
+Item0=F:\DFv062 Compiled\Delphi dcus\Editor
+Item1=F:\DFv062 Compiled\Delphi dcus

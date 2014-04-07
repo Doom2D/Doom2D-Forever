@@ -2,13 +2,9 @@ program Doom2DF;
 
 uses
   DirectInput in '..\Lib\DX\DirectInput.pas',
-  fmod in '..\Lib\FMOD\fmod.pas',
+  GL in '..\Lib\OpenGL\GL.pas',
   dglOpenGL in '..\Lib\OpenGL\dglOpenGL.pas',
   DXTypes in '..\Lib\DX\DXTypes.pas',
-  fmoddyn in '..\Lib\FMOD\FMODDYN.PAS',
-  fmoderrors in '..\Lib\FMOD\fmoderrors.pas',
-  fmodpresets in '..\Lib\FMOD\fmodpresets.pas',
-  fmodtypes in '..\Lib\FMOD\fmodtypes.pas',
   glExt in '..\Lib\OpenGL\glExt.pas',
   e_graphics in '..\Engine Source\e_graphics.pas',
   e_input in '..\Engine Source\e_input.pas',
@@ -42,16 +38,27 @@ uses
   g_triggers in 'g_triggers.pas',
   g_weapons in 'g_weapons.pas',
   g_window in 'g_window.pas',
-  inter in 'inter.pas',
-  sysutils;
+  sysutils,
+  fmod in '..\Lib\FMOD\fmod.pas',
+  fmoderrors in '..\Lib\FMOD\fmoderrors.pas',
+  fmodpresets in '..\Lib\FMOD\fmodpresets.pas',
+  fmodtypes in '..\Lib\FMOD\fmodtypes.pas',
+  BinEditor in '..\Shared Source\BinEditor.pas',
+  g_panel in 'g_panel.pas',
+  g_language in 'g_language.pas';
 
+{$R *.RES}
 {$R DF.RES}
 
 begin
- try
-  Main();
- except
-  e_WriteLog(Format(I_SYSTEM_ERROR, [LongWord(ExceptAddr())]), MSG_FATALERROR);
- end;
+  try
+    Main();
+    e_WriteLog('Correct completion of the program.', MSG_NOTIFY);
+  except
+    on E: Exception do
+      e_WriteLog(Format(_lc[I_SYSTEM_ERROR_MSG], [E.Message]), MSG_FATALERROR);
+    else
+      e_WriteLog(Format(_lc[I_SYSTEM_ERROR_UNKNOWN], [LongWord(ExceptAddr())]), MSG_FATALERROR);
+  end;
 end.
  

@@ -19,6 +19,7 @@ const
   WINDOW_CLOSESOUND = 'MENU_CLOSE';
   MENU_HEADERCOLOR: TRGB = (R:255; G:255; B:255);
   MENU_ITEMSTEXT_COLOR: TRGB = (R:255; G:255; B:255);
+  MENU_UNACTIVEITEMS_COLOR: TRGB = (R:128; G:128; B:128);
   MENU_ITEMSCTRL_COLOR: TRGB = (R:255; G:0; B:0);
   MENU_VSPACE = 2;
   MENU_HSPACE = 32;
@@ -150,7 +151,7 @@ type
    procedure Draw(); override;
    function GetWidth(): Integer;
    function GetHeight(): Integer;
-   procedure Click();
+   procedure Click(Silent: Boolean = False);
    property Color: TRGB read FColor write FColor;
    property Font: TFont read FFont write FFont;
    property ShowWindow: string read FShowWindow write FShowWindow;
@@ -203,6 +204,7 @@ type
    FItems: array of string;
    FIndex: Integer;
    FColor: TRGB;
+   FOnChangeEvent: TOnChangeEvent;
   public
    constructor Create(FontID: DWORD);
    procedure OnMessage(var Msg: TMessage); override;
@@ -214,6 +216,7 @@ type
    property ItemIndex: Integer read FIndex write FIndex;
    property Color: TRGB read FColor write FColor;
    property Font: TFont read FFont write FFont;
+   property OnChange: TOnChangeEvent read FOnChangeEvent write FOnChangeEvent;
  end;
 
  TGUIEdit = class(TGUIControl)
@@ -253,11 +256,9 @@ type
    FColor: TRGB;
    FKey: Byte;
    FIsQuery: Boolean;
-   FCounter: Byte;
   public
    constructor Create(FontID: DWORD);
    procedure OnMessage(var Msg: TMessage); override;
-   procedure Update; override;
    procedure Draw; override;
    function GetWidth(): Word;
    property Key: Byte read FKey write FKey;
@@ -283,7 +284,7 @@ type
  end;
 
  TPreviewPanel = record
-  Rect: TRectWH;
+  X1, Y1, X2, Y2: Integer;
   PanelType: Word;
  end;
 
@@ -291,7 +292,7 @@ type
   private
    FMapData: array of TPreviewPanel;
    FMapSize: TPoint;
-   FOffset: TPoint;
+   FScale: Single;
   public
    constructor Create();
    destructor Destroy(); override;
@@ -300,6 +301,7 @@ type
    procedure ClearMap();
    procedure Update(); override;
    procedure Draw(); override;
+   function GetScaleStr: String;
  end;
 
  TGUIImage = class(TGUIControl)
@@ -332,6 +334,7 @@ type
    FDrawScroll: Boolean;
    FOnChangeEvent: TOnChangeEvent;
    procedure FSetItems(Items: SArray);
+   procedure FSetIndex(aIndex: Integer);
   public
    constructor Create(FontID: DWORD; Width, Height: Word);
    procedure OnMessage(var Msg: TMessage); override;
@@ -344,7 +347,7 @@ type
    function SelectedItem(): string;
    property OnChange: TOnChangeEvent read FOnChangeEvent write FOnChangeEvent;
    property Sort: Boolean read FSort write FSort;
-   property ItemIndex: Integer read FIndex write FIndex;
+   property ItemIndex: Integer read FIndex write FSetIndex;
    property Items: SArray read FItems write FSetItems;
    property DrawBack: Boolean read FDrawBack write FDrawBack;
    property DrawScrollBar: Boolean read FDrawScroll write FDrawScroll;
@@ -451,30 +454,15 @@ type
    function AddMemo(fText: string; Width, Height: Word): TGUIMemo;
    procedure ReAlign();
    function GetControl(Name: string): TGUIControl;
+   function GetControlsText(Name: string): TGUILabel;
    procedure Draw; override;
    procedure Update; override;
+   procedure UpdateIndex();
    property Align: Boolean read FAlign write FAlign;
    property Left: Integer read FLeft write FLeft;
  end;
 
 var
- g_GUIWindows: array of TGUIWindow;
- g_ActiveWindow: TGUIWindow;
-
-procedure g_GUI_Init();
-function g_GUI_AddWindow(Window: TGUIWindow): TGUIWindow;
-function g_GUI_GetWindow(Name: string): TGUIWindow;
-procedure g_GUI_ShowWindow(Name: string);
-procedure g_GUI_HideWindow(PlaySound: Boolean = True);
-procedure g_GUI_Destroy();
-
-implementation
-
-uses
-  dglOpenGL, g_textures, g_sound, Messages, SysUtils, g_game, Math,
-  StrUtils, g_player, g_options, MAPREADER, g_map, MAPDEF, g_weapons;
-
-const
   KEYTABLE: array[0..255] of string = (
     '', 'ESC', '1', '2', '3', '4', '5', '6',  // 0
     '7', '8', '9', '0', '-', '=', 'BackSpace', 'Tab',  // 8
@@ -510,87 +498,203 @@ const
     '', '', '', '', '', '', '', ''); // 248
 
 var
-  Box: array[0..8] of DWORD;
+ g_GUIWindows: array of TGUIWindow;
+ g_ActiveWindow: TGUIWindow = nil;
+
+procedure g_GUI_Init();
+function  g_GUI_AddWindow(Window: TGUIWindow): TGUIWindow;
+function  g_GUI_GetWindow(Name: string): TGUIWindow;
+procedure g_GUI_ShowWindow(Name: string);
+procedure g_GUI_HideWindow(PlaySound: Boolean = True);
+function  g_GUI_Destroy(): Boolean;
+procedure g_GUI_SaveMenuPos();
+procedure g_GUI_LoadMenuPos();
+
+implementation
+
+uses
+  dglOpenGL, g_textures, g_sound, Messages, SysUtils,
+  g_game, Math, StrUtils, g_player, g_options, MAPREADER,
+  g_map, MAPDEF, g_weapons;
+
+var
+  Box: Array [0..8] of DWORD;
+  Saved_Windows: SArray;
 
 procedure g_GUI_Init();
 begin
- g_Texture_Get(BOX1, Box[0]);
- g_Texture_Get(BOX2, Box[1]);
- g_Texture_Get(BOX3, Box[2]);
- g_Texture_Get(BOX4, Box[3]);
- g_Texture_Get(BOX5, Box[4]);
- g_Texture_Get(BOX6, Box[5]);
- g_Texture_Get(BOX7, Box[6]);
- g_Texture_Get(BOX8, Box[7]);
- g_Texture_Get(BOX9, Box[8]);
+  g_Texture_Get(BOX1, Box[0]);
+  g_Texture_Get(BOX2, Box[1]);
+  g_Texture_Get(BOX3, Box[2]);
+  g_Texture_Get(BOX4, Box[3]);
+  g_Texture_Get(BOX5, Box[4]);
+  g_Texture_Get(BOX6, Box[5]);
+  g_Texture_Get(BOX7, Box[6]);
+  g_Texture_Get(BOX8, Box[7]);
+  g_Texture_Get(BOX9, Box[8]);
 end;
 
-procedure g_GUI_Destroy();
+function g_GUI_Destroy(): Boolean;
 var
   i: Integer;
+  
 begin
- for i := 0 to High(g_GUIWindows) do
-  if g_GUIWindows[i] <> nil then g_GUIWindows[i].Destroy;
+  Result := (Length(g_GUIWindows) > 0);
 
- g_GUIWindows := nil;
+  for i := 0 to High(g_GUIWindows) do
+    g_GUIWindows[i].Free();
+
+  g_GUIWindows := nil;
+  g_ActiveWindow := nil;
 end;
 
 function g_GUI_AddWindow(Window: TGUIWindow): TGUIWindow;
 begin
- SetLength(g_GUIWindows, Length(g_GUIWindows)+1);
- g_GUIWindows[High(g_GUIWindows)] := Window;
- Result := Window;
+  SetLength(g_GUIWindows, Length(g_GUIWindows)+1);
+  g_GUIWindows[High(g_GUIWindows)] := Window;
+
+  Result := Window;
 end;
 
 function g_GUI_GetWindow(Name: string): TGUIWindow;
- var
+var
   i: Integer;
+
 begin
- Result := nil;
+  Result := nil;
 
- if g_GUIWindows <> nil then
-  for i := 0 to High(g_GUIWindows) do
-   if g_GUIWindows[i].FName = Name then
-    begin
-     Result := g_GUIWindows[i];
-     Break;
-    end;
+  if g_GUIWindows <> nil then
+    for i := 0 to High(g_GUIWindows) do
+      if g_GUIWindows[i].FName = Name then
+      begin
+        Result := g_GUIWindows[i];
+        Break;
+      end;
 
- Assert(Result <> nil);
+  Assert(Result <> nil, 'GUI_Window "'+Name+'" not found');
 end;
 
 procedure g_GUI_ShowWindow(Name: string);
 var
   i: Integer;
 begin
- if g_GUIWindows = nil then Exit;
+  if g_GUIWindows = nil then
+    Exit;
 
- for i := 0 to High(g_GUIWindows) do
-  if g_GUIWindows[i].FName = Name then
-   begin
-    g_GUIWindows[i].FPrevWindow := g_ActiveWindow;
-    g_ActiveWindow := g_GUIWindows[i];
+  for i := 0 to High(g_GUIWindows) do
+    if g_GUIWindows[i].FName = Name then
+    begin
+      g_GUIWindows[i].FPrevWindow := g_ActiveWindow;
+      g_ActiveWindow := g_GUIWindows[i];
 
-    if g_ActiveWindow.MainWindow then g_ActiveWindow.FPrevWindow := nil;
+      if g_ActiveWindow.MainWindow then
+        g_ActiveWindow.FPrevWindow := nil;
 
-    if g_ActiveWindow.FDefControl <> '' then
-     g_ActiveWindow.SetActive(g_ActiveWindow.GetControl(g_ActiveWindow.FDefControl))
-      else g_ActiveWindow.SetActive(nil);
+      if g_ActiveWindow.FDefControl <> '' then
+        g_ActiveWindow.SetActive(g_ActiveWindow.GetControl(g_ActiveWindow.FDefControl))
+      else
+        g_ActiveWindow.SetActive(nil);
 
-    if @g_ActiveWindow.FOnShowEvent <> nil then g_ActiveWindow.FOnShowEvent();
+      if @g_ActiveWindow.FOnShowEvent <> nil then
+        g_ActiveWindow.FOnShowEvent();
 
-    Break;
-   end;
+      Break;
+    end;
 end;
 
 procedure g_GUI_HideWindow(PlaySound: Boolean = True);
 begin
- if g_ActiveWindow <> nil then
- begin
-  if @g_ActiveWindow.OnClose <> nil then g_ActiveWindow.OnClose;
-  g_ActiveWindow := g_ActiveWindow.FPrevWindow;
-  if PlaySound then g_Sound_PlayEx(WINDOW_CLOSESOUND, 127, 255);
- end;
+  if g_ActiveWindow <> nil then
+  begin
+    if @g_ActiveWindow.OnClose <> nil then
+      g_ActiveWindow.OnClose();
+    g_ActiveWindow := g_ActiveWindow.FPrevWindow;
+    if PlaySound then
+      g_Sound_PlayEx(WINDOW_CLOSESOUND);
+  end;
+end;
+
+procedure g_GUI_SaveMenuPos();
+var
+  len: Integer;
+  win: TGUIWindow;
+
+begin
+  SetLength(Saved_Windows, 0);
+  win := g_ActiveWindow;
+
+  while win <> nil do
+  begin
+    len := Length(Saved_Windows);
+    SetLength(Saved_Windows, len + 1);
+
+    Saved_Windows[len] := win.Name;
+
+    if win.MainWindow then
+      win := nil
+    else
+      win := win.FPrevWindow;
+  end;
+end;
+
+procedure g_GUI_LoadMenuPos();
+var
+  i, j, k, len: Integer;
+  ok: Boolean;
+
+begin
+  g_ActiveWindow := nil;
+  len := Length(Saved_Windows);
+
+  if len = 0 then
+    Exit;
+
+// Окно с главным меню:
+  g_GUI_ShowWindow(Saved_Windows[len-1]);
+
+// Не переключилось (или некуда дальше):
+  if (len = 1) or (g_ActiveWindow = nil) then
+    Exit;
+
+// Ищем кнопки в остальных окнах:
+  for k := len-1 downto 1 do
+  begin
+    ok := False;
+    
+    for i := 0 to Length(g_ActiveWindow.Childs)-1 do
+    begin
+      if g_ActiveWindow.Childs[i] is TGUIMainMenu then
+        begin // GUI_MainMenu
+          with TGUIMainMenu(g_ActiveWindow.Childs[i]) do
+            for j := 0 to Length(FButtons)-1 do
+              if FButtons[j].ShowWindow = Saved_Windows[k-1] then
+              begin
+                FButtons[j].Click(True);
+                ok := True;
+                Break;
+              end;
+        end
+      else // GUI_Menu
+        if g_ActiveWindow.Childs[i] is TGUIMenu then
+          with TGUIMenu(g_ActiveWindow.Childs[i]) do
+            for j := 0 to Length(FItems)-1 do
+              if FItems[j].ControlType = TGUITextButton then
+                if TGUITextButton(FItems[j].Control).ShowWindow = Saved_Windows[k-1] then
+                begin
+                  TGUITextButton(FItems[j].Control).Click(True);
+                  ok := True;
+                  Break;
+                end;
+
+      if ok then
+        Break;
+    end;
+
+  // Не переключилось:
+    if (not ok) or
+       (g_ActiveWindow.Name = Saved_Windows[k]) then
+      Break;
+  end;
 end;
 
 procedure DrawBox(X, Y: Integer; Width, Height: Word);
@@ -633,16 +737,18 @@ begin
  FName := Name;
  FOnKeyDown := nil;
  FOnCloseEvent := nil;
+ FOnShowEvent := nil;
 end;
 
 destructor TGUIWindow.Destroy;
 var
   i: Integer;
 begin
- if Childs = nil then Exit;
+  if Childs = nil then
+    Exit;
 
- for i := 0 to High(Childs) do
-  if Childs[i] <> nil then Childs[i].Destroy;
+  for i := 0 to High(Childs) do
+    Childs[i].Free();
 end;
 
 function TGUIWindow.AddChild(Child: TGUIControl): TGUIControl;
@@ -709,7 +815,7 @@ begin
     Break;
    end;
 
- Assert(Result <> nil);
+ Assert(Result <> nil, 'Window Control "'+Name+'" not Found!');
 end;
 
 { TGUIControl }
@@ -739,12 +845,15 @@ end;
 
 { TGUITextButton }
 
-procedure TGUITextButton.Click();
+procedure TGUITextButton.Click(Silent: Boolean = False);
 begin
- if FSound <> '' then g_Sound_PlayEx(FSound, 127, 255);
+  if (FSound <> '') and (not Silent) then
+    g_Sound_PlayEx(FSound);
 
- if @Proc <> nil then Proc();
- if FShowWindow <> '' then g_GUI_ShowWindow(FShowWindow);
+  if @Proc <> nil then
+    Proc();
+  if FShowWindow <> '' then
+    g_GUI_ShowWindow(FShowWindow);
 end;
 
 constructor TGUITextButton.Create(Proc: Pointer; FontID: DWORD; Text: string);
@@ -927,9 +1036,9 @@ var
 begin
  if FButtons <> nil then
   for a := 0 to High(FButtons) do
-   FButtons[a].Destroy;
+   FButtons[a].Free();
 
- FHeader.Destroy;
+ FHeader.Free();
 
  inherited;
 end;
@@ -1014,7 +1123,7 @@ begin
              if FIndex < 0 then FIndex := High(FButtons);
             until FButtons[FIndex] <> nil;
 
-            g_Sound_PlayEx(MENU_CHANGESOUND, 127, 255);
+            g_Sound_PlayEx(MENU_CHANGESOUND);
            end;
     VK_DOWN: begin
               repeat
@@ -1022,7 +1131,7 @@ begin
                if FIndex > High(FButtons) then FIndex := 0;
               until FButtons[FIndex] <> nil;
 
-              g_Sound_PlayEx(MENU_CHANGESOUND, 127, 255);
+              g_Sound_PlayEx(MENU_CHANGESOUND);
              end;
     VK_RETURN: if (FIndex <> -1) and FButtons[FIndex].FEnabled then FButtons[FIndex].Click;
    end;
@@ -1201,13 +1310,13 @@ begin
   for a := 0 to High(FItems) do
    with FItems[a] do
    begin
-    if Text <> nil then Text.Destroy;
-    if Control <> nil then Control.Destroy;
+     Text.Free();
+     Control.Free();
    end;
 
  FItems := nil;
 
- if FHeader <> nil then FHeader.Destroy;
+ FHeader.Free();
 
  inherited;
 end;
@@ -1249,22 +1358,42 @@ begin
  end;
 end;
 
-function TGUIMenu.GetControl(Name: string): TGUIControl;
+function TGUIMenu.GetControl(Name: String): TGUIControl;
 var
   a: Integer;
+
 begin
- Result := nil;
+  Result := nil;
 
- if FItems <> nil then
-  for a := 0 to High(FItems) do
-   if FItems[a].Control <> nil then
-    if LowerCase(FItems[a].Control.Name) = LowerCase(Name) then
-    begin
-     Result := FItems[a].Control;
-     Break;
-    end;
+  if FItems <> nil then
+    for a := 0 to High(FItems) do
+      if FItems[a].Control <> nil then
+        if LowerCase(FItems[a].Control.Name) = LowerCase(Name) then
+        begin
+          Result := FItems[a].Control;
+          Break;
+        end;
 
- Assert(Result <> nil);
+  Assert(Result <> nil, 'GUI control "'+Name+'" not found!');
+end;
+
+function TGUIMenu.GetControlsText(Name: String): TGUILabel;
+var
+  a: Integer;
+
+begin
+  Result := nil;
+
+  if FItems <> nil then
+    for a := 0 to High(FItems) do
+      if FItems[a].Control <> nil then
+        if LowerCase(FItems[a].Control.Name) = LowerCase(Name) then
+        begin
+          Result := FItems[a].Text;
+          Break;
+        end;
+
+  Assert(Result <> nil, 'GUI control''s text "'+Name+'" not found!');
 end;
 
 function TGUIMenu.NewItem: Integer;
@@ -1314,7 +1443,7 @@ begin
      until (FItems[FIndex].Control <> nil) and
            (FItems[FIndex].Control.Enabled);
 
-     g_Sound_PlayEx(MENU_CHANGESOUND, 127, 255);
+     g_Sound_PlayEx(MENU_CHANGESOUND);
     end;
 
     VK_DOWN:
@@ -1333,7 +1462,7 @@ begin
      until (FItems[FIndex].Control <> nil) and
            (FItems[FIndex].Control.Enabled);
 
-     g_Sound_PlayEx(MENU_CHANGESOUND, 127, 255);
+     g_Sound_PlayEx(MENU_CHANGESOUND);
     end;
 
      VK_LEFT, VK_RIGHT:
@@ -1347,7 +1476,7 @@ begin
                   if FItems[FIndex].Control <> nil then
                    FItems[FIndex].Control.OnMessage(Msg);
 
-                 g_Sound_PlayEx(MENU_CLICKSOUND, 127, 255);
+                 g_Sound_PlayEx(MENU_CLICKSOUND);
                 end;
     end;
    end;
@@ -1708,6 +1837,28 @@ begin
  ReAlign();
 end;
 
+procedure TGUIMenu.UpdateIndex();
+var
+  res: Boolean;
+
+begin
+  res := True;
+
+  while res do
+  begin
+    if (FIndex < 0) or (FIndex > High(FItems)) then
+      begin
+        FIndex := -1;
+        res := False;
+      end
+    else
+      if FItems[FIndex].Control.Enabled then
+        res := False
+      else
+        Inc(FIndex);
+  end;
+end;
+
 { TGUIScroll }
 
 constructor TGUIScroll.Create;
@@ -1838,8 +1989,27 @@ begin
  case Msg.Msg of
   WM_KEYDOWN:
    case Msg.wParam of
-    VK_RETURN, VK_RIGHT: if FIndex < High(FItems) then Inc(FIndex) else FIndex := 0;
-    VK_LEFT: if FIndex > 0 then Dec(FIndex) else FIndex := High(FItems);
+    VK_RETURN, VK_RIGHT:
+      begin
+        if FIndex < High(FItems) then
+          Inc(FIndex)
+        else
+          FIndex := 0;
+
+        if @FOnChangeEvent <> nil then
+          FOnChangeEvent(Self);
+      end;
+
+    VK_LEFT:
+      begin
+        if FIndex > 0 then
+          Dec(FIndex)
+        else
+          FIndex := High(FItems);
+
+        if @FOnChangeEvent <> nil then
+          FOnChangeEvent(Self);
+      end;
    end;
  end;
 end;
@@ -2003,64 +2173,64 @@ end;
 
 procedure TGUIKeyRead.OnMessage(var Msg: TMessage);
 begin
- inherited;
+  inherited;
 
- if not FEnabled then Exit;
+  if not FEnabled then
+    Exit;
 
- with Msg do
-  case Msg of
-   WM_KEYDOWN:
-    case wParam of
-     VK_ESCAPE:
-      begin
-       if FIsQuery then
-        with FWindow do
-         if FDefControl <> '' then SetActive(GetControl(FDefControl))
-          else SetActive(nil);
+  with Msg do
+    case Msg of
+      WM_KEYDOWN:
+        case wParam of
+          VK_ESCAPE:
+            begin
+              if FIsQuery then
+                with FWindow do
+                  if FDefControl <> '' then
+                    SetActive(GetControl(FDefControl))
+                  else
+                    SetActive(nil);
 
-       FIsQuery := False;
-      end;
-     VK_RETURN:
-      begin
-       if not FIsQuery then
-        with FWindow do if FActiveControl <> Self
-        then
-        begin
-          SetActive(Self);
-          FCounter := KEYREAD_TIMEOUT;
-          FIsQuery := True;
-        end
-        else
-        begin
-          FCounter := 0;
-          FKey := VK_RETURN;
-          FIsQuery := False;
-          with FWindow do
-          if FDefControl <> '' then SetActive(GetControl(FDefControl))
-           else SetActive(nil);
+              FIsQuery := False;
+            end;
+          VK_RETURN:
+            begin
+              if not FIsQuery then
+                begin
+                  with FWindow do
+                    if FActiveControl <> Self then
+                      SetActive(Self);
+
+                  FIsQuery := True;
+                end
+              else
+                begin
+                  FKey := 28; // <Enter>
+                  FIsQuery := False;
+                  
+                  with FWindow do
+                    if FDefControl <> '' then
+                      SetActive(GetControl(FDefControl))
+                    else
+                      SetActive(nil);
+                end;   
+            end;
         end;
-      end;
+
+      MESSAGE_DIKEY:
+        if FIsQuery and (wParam <> 28) then
+        begin
+          if KEYTABLE[wParam] <> '' then
+            FKey := wParam;
+          FIsQuery := False;
+
+          with FWindow do
+            if FDefControl <> '' then
+              SetActive(GetControl(FDefControl))
+            else
+              SetActive(nil);
+        end;
     end;
-   MESSAGE_DIKEY:
-    if FIsQuery and ((FCounter = 0) or (wParam <> 28)) then
-    begin
-     FCounter := 0;
-
-     if KEYTABLE[wParam] <> '' then FKey := wParam;
-     FIsQuery := False;
-
-     with FWindow do
-      if FDefControl <> '' then SetActive(GetControl(FDefControl))
-       else SetActive(nil);
-    end;
-  end;
-end;
-
-procedure TGUIKeyRead.Update;
-begin
- inherited;
-
- if FCounter > 0 then Dec(FCounter);
 end;
 
 { TGUIModelView }
@@ -2074,9 +2244,9 @@ end;
 
 destructor TGUIModelView.Destroy;
 begin
- if FModel <> nil then FModel.Destroy;
+  FModel.Free();
 
- inherited;
+  inherited;
 end;
 
 procedure TGUIModelView.Draw;
@@ -2088,20 +2258,26 @@ begin
  if FModel <> nil then FModel.Draw(FX+4, FY+4); 
 end;
 
-procedure TGUIModelView.NextAnim;
+procedure TGUIModelView.NextAnim();
 begin
- if FModel = nil then Exit;
+  if FModel = nil then
+    Exit;
 
- if FModel.Animation < A_PAIN then FModel.ChangeAnimation(FModel.Animation+1, True)
-  else FModel.ChangeAnimation(A_STAND, True);
+  if FModel.Animation < A_PAIN then
+    FModel.ChangeAnimation(FModel.Animation+1, True)
+  else
+    FModel.ChangeAnimation(A_STAND, True);
 end;
 
-procedure TGUIModelView.NextWeapon;
+procedure TGUIModelView.NextWeapon();
 begin
- if FModel = nil then Exit;
+  if FModel = nil then
+    Exit;
 
- if FModel.Weapon < WEAPON_SUPERPULEMET then FModel.SetWeapon(FModel.Weapon+1)
-  else FModel.SetWeapon(WEAPON_KASTET);
+  if FModel.Weapon < WEAPON_SUPERPULEMET then
+    FModel.SetWeapon(FModel.Weapon+1)
+  else
+    FModel.SetWeapon(WEAPON_KASTET);
 end;
 
 procedure TGUIModelView.OnMessage(var Msg: TMessage);
@@ -2117,7 +2293,7 @@ end;
 
 procedure TGUIModelView.SetModel(ModelName: string);
 begin
- if FModel <> nil then FModel.Destroy;
+ FModel.Free();
 
  FModel := g_PlayerModel_Get(ModelName);
 end;
@@ -2137,102 +2313,90 @@ end;
 constructor TGUIMapPreview.Create();
 begin
  inherited Create();
+ ClearMap;
 end;
 
 destructor TGUIMapPreview.Destroy();
 begin
-
+ ClearMap;
  inherited;
 end;
 
 procedure TGUIMapPreview.Draw();
 var
   a: Integer;
-  _rect: TRectWH;
   r, g, b: Byte;
 begin
  inherited;
 
  DrawBox(FX, FY, MAPPREVIEW_WIDTH, MAPPREVIEW_HEIGHT);
 
- _rect.Width := FMapSize.X+FOffset.X;
- _rect.Height := FMapSize.Y+FOffset.Y;
+ if (FMapSize.X <= 0) or (FMapSize.Y <= 0) then
+   Exit;
 
- if _rect.Width > MAPPREVIEW_WIDTH*16 then _rect.Width := MAPPREVIEW_WIDTH*16;
- if _rect.Height > MAPPREVIEW_HEIGHT*16 then _rect.Height := MAPPREVIEW_HEIGHT*16;
-
- e_DrawFillQuad(FX+4, FY+4, FX+4+_rect.Width, FY+4+_rect.Height, 32, 32, 32, 0);
+ e_DrawFillQuad(FX+4, FY+4,
+   FX+4 + Trunc(FMapSize.X / FScale) - 1,
+   FY+4 + Trunc(FMapSize.Y / FScale) - 1,
+   32, 32, 32, 0);     
 
  if FMapData <> nil then
   for a := 0 to High(FMapData) do
-  begin
-   _rect := FMapData[a].Rect;
-   _rect.X := _rect.X+FOffset.X;
-   _rect.Y := _rect.Y+FOffset.Y;
+    with FMapData[a] do
+    begin
+      if X1 > MAPPREVIEW_WIDTH*16 then Continue;
+      if Y1 > MAPPREVIEW_HEIGHT*16 then Continue;
 
-   if _rect.X > MAPPREVIEW_WIDTH*16 then Continue;
-   if _rect.Y > MAPPREVIEW_HEIGHT*16 then Continue;
-
-   if _rect.X+_rect.Width < 0 then Continue;
-   if _rect.Y+_rect.Height < 0 then Continue;
+      if X2 < 0 then Continue;
+      if Y2 < 0 then Continue;
    
-   if _rect.X+_rect.Width > MAPPREVIEW_WIDTH*16 then _rect.Width := MAPPREVIEW_WIDTH*16-_rect.X;
-   if _rect.Y+_rect.Height > MAPPREVIEW_HEIGHT*16 then _rect.Height := MAPPREVIEW_HEIGHT*16-_rect.Y;
+      if X2 > MAPPREVIEW_WIDTH*16 then X2 := MAPPREVIEW_WIDTH*16;
+      if Y2 > MAPPREVIEW_HEIGHT*16 then Y2 := MAPPREVIEW_HEIGHT*16;
 
-   if _rect.X < 0 then
-   begin
-    _rect.Width := _rect.Width+_rect.X;
-    _rect.X := 0;
-   end;
+      if X1 < 0 then X1 := 0;
+      if Y1 < 0 then Y1 := 0;
 
-   if _rect.Y < 0 then
-   begin
-    _rect.Height := _rect.Height+_rect.Y;
-    _rect.Y := 0;
-   end;
+      case PanelType of
+        PANEL_WALL:
+          begin
+            r := 255;
+            g := 255;
+            b := 255;
+          end;
+        PANEL_CLOSEDOOR:
+          begin
+            r := 255;
+            g := 255;
+            b := 0;
+          end;
+        PANEL_WATER:
+          begin
+            r := 0;
+            g := 0;
+            b := 255;
+          end;
+        PANEL_ACID1:
+          begin
+            r := 0;
+            g := 255;
+            b := 0;
+          end;
+        PANEL_ACID2:
+          begin
+            r := 255;
+            g := 0;
+            b := 0;
+          end;
+        else
+          begin
+            r := 127;
+            g := 127;
+            b := 127;
+          end;
+      end;
 
-   case FMapData[a].PanelType of
-    PANEL_WALL:
-    begin
-     r := 255;
-     g := 255;
-     b := 255;
-    end;
-    PANEL_CLOSEDOOR:
-    begin
-     r := 255;
-     g := 255;
-     b := 0;
-    end;
-    PANEL_WATER:
-    begin
-     r := 0;
-     g := 0;
-     b := 255;
-    end;
-    PANEL_ACID1:
-    begin
-     r := 0;
-     g := 255;
-     b := 0;
-    end;
-    PANEL_ACID2:
-    begin
-     r := 255;
-     g := 0;
-     b := 0;
-    end;
-     else
-    begin
-     r := 127;
-     g := 127;
-     b := 127;
-    end;
-   end;
-
-   if (_rect.Width > 0) and (_rect.Height > 0) then
-    e_DrawFillQuad(FX+4+_rect.X, FY+4+_rect.Y, FX+4+_rect.X+_rect.Width,
-                   FY+4+_rect.Y+_rect.Height, r, g, b, 0);
+      if ((X2-X1) > 0) and ((Y2-Y1) > 0) then
+        e_DrawFillQuad(FX+4 + X1, FY+4 + Y1,
+          FX+4 + X2 - 1, FY+4 + Y2 - 1, r, g, b, 0);
   end;
 end;
 
@@ -2245,37 +2409,57 @@ end;
 procedure TGUIMapPreview.SetMap(Res: string);
 var
   WAD: TWADEditor_1;
-  MapReader: TMapReader_2;
+  MapReader: TMapReader_1;
   panels: TPanelsRec1Array;
   header: TMapHeaderRec_1;
   a: Integer;
   FileName, SectionName, ResName: string;
   Data: Pointer;
   Len: Integer;
+  rX, rY: Single;
+
 begin
  g_ProcessResourceStr(Res, FileName, SectionName, ResName);
 
- WAD := TWADEditor_1.Create;
+ WAD := TWADEditor_1.Create();
  if not WAD.ReadFile(FileName) then
  begin
-  WAD.Destroy;
+  WAD.Free();
   Exit;
  end;
 
  if not WAD.GetResource('', ResName, Data, Len) then
  begin
-  WAD.Destroy;
+  WAD.Free();
   Exit;
  end;
 
- WAD.Destroy;
+ WAD.Free();
 
- MapReader := TMapReader_2.Create;
+ MapReader := TMapReader_1.Create();
 
- MapReader.LoadMap(Data);
+ if not MapReader.LoadMap(Data) then
+ begin
+   FreeMem(Data);
+   MapReader.Free();
+   FMapSize.X := 0;
+   FMapSize.Y := 0;
+   FScale := 0.0;
+   FMapData := nil;
+   Exit;
+ end;
+
  FreeMem(Data);
 
- panels := MapReader.GetPanels;
+ panels := MapReader.GetPanels();
+ header := MapReader.GetMapHeader();
+
+ FMapSize.X := header.Width div 16;
+ FMapSize.Y := header.Height div 16;
+
+ rX := Ceil(header.Width / (MAPPREVIEW_WIDTH*256.0));
+ rY := Ceil(header.Height / (MAPPREVIEW_HEIGHT*256.0));
+ FScale := max(rX, rY);
 
  FMapData := nil;
 
@@ -2288,37 +2472,62 @@ begin
     SetLength(FMapData, Length(FMapData)+1);
     with FMapData[High(FMapData)] do
     begin
-     Rect.X := panels[a].X div 16;
-     Rect.Y := panels[a].Y div 16;
-     Rect.Width := panels[a].Width div 16;
-     Rect.Height := panels[a].Height div 16;
+     X1 := panels[a].X div 16;
+     Y1 := panels[a].Y div 16;
 
-     if Rect.Width = 0 then Rect.Width := 1;
-     if Rect.Height = 0 then Rect.Height := 1;
+     X2 := (panels[a].X + panels[a].Width) div 16;
+     Y2 := (panels[a].Y + panels[a].Height) div 16;
+
+     X1 := Trunc(X1/FScale + 0.5);
+     Y1 := Trunc(Y1/FScale + 0.5);
+     X2 := Trunc(X2/FScale + 0.5);
+     Y2 := Trunc(Y2/FScale + 0.5);
+
+     if (X1 <> X2) or (Y1 <> Y2) then
+     begin
+       if X1 = X2 then
+         X2 := X2 + 1;
+       if Y1 = Y2 then
+         Y2 := Y2 + 1;
+     end;
 
      PanelType := panels[a].PanelType;
     end;
    end;
 
- header := MapReader.GetMapHeader;
-
- FMapSize.X := Round(header.Width/16);
- FMapSize.Y := Round(header.Height/16);
-
  panels := nil;
 
- MapReader.Destroy;
+ MapReader.Free();
 end;
 
 procedure TGUIMapPreview.ClearMap();
 begin
+ SetLength(FMapData, 0);
  FMapData := nil;
+ FMapSize.X := 0;
+ FMapSize.Y := 0;
+ FScale := 0.0;
 end;
 
 procedure TGUIMapPreview.Update();
 begin
  inherited;
 
+end;
+
+function TGUIMapPreview.GetScaleStr(): String;
+begin
+  if FScale > 0.0 then
+    begin
+      Result := FloatToStrF(FScale*16.0, ffFixed, 3, 3);
+      while (Result[Length(Result)] = '0') do
+        Delete(Result, Length(Result), 1);
+      if (Result[Length(Result)] = ',') or (Result[Length(Result)] = '.') then
+        Delete(Result, Length(Result), 1);
+      Result := '1 : ' + Result;
+    end
+  else
+    Result := '';
 end;
 
 { TGUIListBox }
@@ -2457,13 +2666,16 @@ function TGUIListBox.SelectedItem: string;
 begin
  Result := '';
 
- if (FIndex = -1) or (FItems = nil) or (FIndex > High(FItems)) then Exit;
+ if (FIndex < 0) or (FItems = nil) or (FIndex > High(FItems)) then Exit;
 
  Result := FItems[FIndex];
 end;
 
 procedure TGUIListBox.FSetItems(Items: SArray);
 begin
+ if FItems <> nil then
+   FItems := nil;
+   
  FItems := Items;
 
  FStartLine := 0;
@@ -2489,6 +2701,22 @@ begin
 
  if FIndex <= FHeight then FStartLine := 0
   else FStartLine := Min(FIndex, Length(FItems)-FHeight);
+end;
+
+procedure TGUIListBox.FSetIndex(aIndex: Integer);
+begin
+  if FItems = nil then
+    Exit;
+
+  if (aIndex < 0) or (aIndex > High(FItems)) then
+    Exit;
+
+  FIndex := aIndex;
+
+  if FIndex <= FHeight then
+    FStartLine := 0
+  else
+    FStartLine := Min(FIndex, Length(FItems)-FHeight);
 end;
 
 { TGUIFileListBox }
@@ -2547,7 +2775,7 @@ begin
        if FActiveControl <> Self then SetActive(Self)
         else
        begin
-        if FItems[FIndex][1] = #127 then
+        if FItems[FIndex][1] = #127 then // Папка
         begin
          OpenDir(FPath+Copy(FItems[FIndex], 2, 255));
          FIndex := 0;
@@ -2561,7 +2789,11 @@ begin
     end;
    WM_CHAR:
     for a := 0 to High(FItems) do
-     if (Length(FItems[a]) > 0) and (LowerCase(FItems[a][1]) = LowerCase(Chr(wParam))) then
+     if ( (Length(FItems[a]) > 0) and
+          (LowerCase(FItems[a][1]) = LowerCase(Chr(wParam))) ) or
+        ( (Length(FItems[a]) > 1) and
+          (FItems[a][1] = #127) and // Папка
+          (LowerCase(FItems[a][2]) = LowerCase(Chr(wParam))) ) then
      begin
       FIndex := a;
       FStartLine := Min(Max(FIndex-1, 0), Length(FItems)-FHeight);
@@ -2574,6 +2806,7 @@ end;
 procedure TGUIFileListBox.OpenDir(path: string);
 var
   SR: TSearchRec;
+  i: Integer;
 begin
  Clear();
 
@@ -2587,7 +2820,7 @@ begin
    if SR.Attr <> faDirectory then Continue;
    if (SR.Name = '.') or ((SR.Name = '..') and (path = FBasePath)) then Continue;
 
-   AddItem(#127+SR.Name)
+   AddItem(#1+SR.Name)
   until FindNext(SR) <> 0;
   FindClose(SR);
  end;
@@ -2597,6 +2830,10 @@ begin
   AddItem(SR.Name);
  until FindNext(SR) <> 0;
  FindClose(SR);
+
+ for i := 0 to High(FItems) do
+   if FItems[i][1] = #1 then
+     FItems[i][1] := #127;
 
  FPath := path;
 end;
@@ -2675,10 +2912,12 @@ begin
   case Msg of
    WM_KEYDOWN:
     case wParam of
-     VK_UP: if FStartLine > 0 then Dec(FStartLine);
-     VK_DOWN: if FStartLine < Length(FLines)-FHeight then Inc(FStartLine);
-     VK_LEFT: ;
-     VK_RIGHT: ;
+     VK_UP, VK_LEFT:
+       if FStartLine > 0 then
+         Dec(FStartLine);
+     VK_DOWN, VK_RIGHT:
+       if FStartLine < Length(FLines)-FHeight then
+         Inc(FStartLine);
      VK_RETURN:
       with FWindow do
       begin
@@ -2697,6 +2936,7 @@ end;
 
 procedure TGUIMemo.SetText(Text: string);
 begin
+ FStartLine := 0;
  FLines := GetLines(Text, FFont.ID, FWidth*16);
 end;
 

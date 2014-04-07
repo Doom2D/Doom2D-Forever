@@ -8,18 +8,25 @@ inherited AddTextureForm: TAddTextureForm
   PixelsPerInch = 96
   TextHeight = 13
   inherited bOK: TButton
-    Left = 307
-    Top = 271
+    Left = 11
+    Top = 272
+    Width = 22
+    Height = 17
+    Visible = False
+    OnClick = nil
   end
   inherited bCancel: TButton
-    Left = 387
+    Left = 35
     Top = 271
+    Width = 22
+    Height = 18
+    Visible = False
   end
   inherited lbResourcesList: TListBox
     Top = 112
     Height = 150
   end
-  object Panel1: TPanel
+  object PanelTexPreview: TPanel
     Left = 204
     Top = 4
     Width = 258
@@ -42,9 +49,9 @@ inherited AddTextureForm: TAddTextureForm
     OnChange = eTextureNameChange
   end
   object bAddTexture: TButton
-    Left = 8
+    Left = 160
     Top = 272
-    Width = 105
+    Width = 81
     Height = 25
     Caption = #1044#1086#1073#1072#1074#1080#1090#1100
     Default = True
@@ -52,12 +59,21 @@ inherited AddTextureForm: TAddTextureForm
     OnClick = bAddTextureClick
   end
   object bClose: TButton
-    Left = 120
+    Left = 248
     Top = 272
-    Width = 75
+    Width = 81
     Height = 25
     Caption = #1047#1072#1082#1088#1099#1090#1100
     TabOrder = 8
     OnClick = bCloseClick
+  end
+  object bAddClose: TButton
+    Left = 336
+    Top = 272
+    Width = 121
+    Height = 25
+    Caption = #1044#1086#1073#1072#1074#1080#1090#1100' '#1080' '#1079#1072#1082#1088#1099#1090#1100
+    TabOrder = 9
+    OnClick = bAddCloseClick
   end
 end

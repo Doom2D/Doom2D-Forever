@@ -1,0 +1,986 @@
+
+----- Console Messages --------------------------
+
+[CONSOLE DUMPED]
+Saved to "%s"
+
+[CONSOLE ERROR WRITE]
+Error writing file "%s"
+
+[CONSOLE SCREENSHOT]
+Screenshot saved to "%s"
+
+[CONSOLE UNKNOWN]
+Unknown command "%s"
+
+[CONSOLE WELCOME]
+Welcome to Doom 2D: Forever %s
+
+
+----- Game Error Messages -----------------------
+
+[GAME ERROR GET SPAWN]
+Can't find a spawn point!
+
+[GAME ERROR CTF]
+There is no flags on this map!
+
+[GAME ERROR MAP WAD]
+Can't read map WAD "%s"
+
+[GAME ERROR MAP RES]            
+Can't load map resource "%s"
+
+[GAME ERROR MAP LOAD]
+Can't load map "%s"
+
+[GAME ERROR MAP SELECT]          
+Map Reading Error!
+
+[GAME ERROR PLAYER CREATE]
+Can't create player #%d
+
+[GAME ERROR TEXTURE ANIM]
+Can't create Animation Texture "%s"
+
+[GAME ERROR TEXTURE SIMPLE]
+Can't create ordinary Texture "%s"
+
+[GAME ERROR MODEL]
+Model "%s" not found
+
+[GAME ERROR SKY]                 
+Can't load sky "%s"
+
+[GAME ERROR MUSIC]               
+Can't load music "%s"
+
+[GAME ERROR SAVE]
+Saving State Error!
+
+[GAME ERROR LOAD]
+Loading State Error!
+
+[GAME ERROR SOUND]               
+Can't load sound "%s"
+
+[GAME ERROR FRAMES]
+Can't load animation's frame list "%s"
+
+[GAME ERROR TR SOUND]          
+Can't load sound "%s:%s" for trigger
+
+[GAME ERROR SWITCH TEXTURE]      
+Error texture switching: no Animation
+
+
+----- Ingame Statistics -------------------------
+
+[GAME PLAYER NAME]
+Player name
+
+[GAME GAME TIME]
+Game time:
+
+[GAME FRAGS]
+Frags
+
+[GAME DEATHS]
+Deaths
+
+[GAME DM]
+DeathMatch
+
+[GAME CTF]
+CTF
+
+[GAME TDM]
+TDM
+
+[GAME FRAG LIMIT]
+Frag Limit: %d
+
+[GAME SCORE LIMIT]
+Score Limit: %d
+
+[GAME TIME LIMIT]
+Time Limit: %.2d:%.2d
+
+[GAME TEAM SCORE RED]
+Red Team (%d)
+
+[GAME TEAM SCORE BLUE]
+Blue Team (%d)
+
+[GAME TEAM RED]
+Red
+
+[GAME TEAM BLUE]
+Blue
+
+[GAME WIN RED]
+Red Team Wins!
+
+[GAME WIN BLUE]
+Blue Team Wins!
+
+[GAME WIN DRAW]
+Stalemate!
+
+
+----- Menus' Captions ---------------------------
+
+[MENU START GAME]
+Start Game
+
+[MENU MAIN MENU]
+Menu
+
+[MENU NEW GAME]
+New Game
+
+[MENU MULTIPLAYER]
+Multiplayer
+
+[MENU OPTIONS]
+Options
+
+[MENU AUTHORS]
+Credits
+
+[MENU EXIT]
+Exit
+
+[MENU 1 PLAYER]
+Single player
+
+[MENU 2 PLAYERS]
+Two players
+
+[MENU CUSTOM GAME]
+Custom game
+
+[MENU EPISODE]
+Episode select
+
+[MENU SELECT MAP]
+Map
+
+[MENU VIDEO OPTIONS]
+Video
+
+[MENU SOUND OPTIONS]
+Sound
+
+[MENU SAVED OPTIONS]
+Saved options
+
+[MENU DEFAULT OPTIONS]
+Default options
+
+[MENU GAME OPTIONS]
+Gameplay
+
+[MENU CONTROLS OPTIONS]
+Controls
+
+[MENU PLAYER OPTIONS]
+Players
+
+[MENU LANGUAGE OPTIONS]
+Language
+
+[MENU LOAD GAME]
+Load game
+
+[MENU SAVE GAME]
+Save game
+
+[MENU END GAME]
+End game
+
+[MENU RESTART]
+Restart game
+
+[MENU SET GAME]
+Setup game
+
+
+----- Custom Game Settings ----------------------
+
+[MENU STATISTICS]
+Statistics
+
+[MENU MAP]
+Map:
+
+[MENU GAME TYPE]
+Game type:
+
+[MENU GAME TYPE DM]
+DM
+
+[MENU GAME TYPE CTF]
+CTF
+
+[MENU GAME TYPE TDM]
+TDM
+
+[MENU GAME TYPE COOP]
+SINGLE / COOP
+
+[MENU TIME LIMIT]
+Time Limit:
+
+[MENU GOAL LIMIT]
+Score Limit:
+
+[MENU TEAM DAMAGE]
+Friendly Fire:
+
+[MENU ENABLE EXITS]
+Enable Exit:
+
+[MENU WEAPONS STAY]
+Weapons stay:
+
+[MENU ENABLE MONSTERS]
+Enable monsters:
+
+[MENU BOTS VS]
+Bots fight with:
+
+[MENU BOTS VS PLAYERS]
+Players
+
+[MENU BOTS VS MONSTERS]
+Monsters
+
+[MENU BOTS VS ALL]
+Everybody
+
+
+----- Map Selection Settings --------------------
+
+[MENU MAP WAD]
+Select WAD:
+
+[MENU MAP RESOURCE]
+Select Map:
+
+[MENU MAP NAME]
+Map Name:
+
+[MENU MAP AUTHOR]
+Author:
+
+[MENU MAP DESCRIPTION]
+Description:
+
+[MENU MAP SIZE]
+Size:
+
+[MENU PLAYERS]
+Players:
+
+[MENU PLAYERS ONE]
+One
+
+[MENU PLAYERS TWO]
+Two
+
+
+----- Level Completion Statistics ---------------
+
+[MENU INTER1]
+Game over
+
+[MENU INTER2]
+Level complete
+
+[MENU INTER3]
+Time
+
+[MENU INTER4]
+Kills
+
+[MENU INTER5]
+Kills-per-minute
+
+[MENU INTER6]
+Secrets found
+
+[MENU INTER7]
+Of
+
+[MENU LOADING]
+Loading...
+
+[MENU PLAYER 1]
+Player 1
+
+[MENU PLAYER 2]
+Player 2
+
+
+----- Controls Settings -------------------------
+
+[MENU CONTROL GLOBAL]
+Global Controls
+
+[MENU CONTROL SCREENSHOT]
+Screenshot:
+
+[MENU CONTROL STAT]
+Statistics:
+
+[MENU CONTROL LEFT]
+Left:
+
+[MENU CONTROL RIGHT]
+Right:
+
+[MENU CONTROL UP]
+Up:
+
+[MENU CONTROL DOWN]
+Down:
+
+[MENU CONTROL JUMP]
+Jump:
+
+[MENU CONTROL FIRE]
+Fire:
+
+[MENU CONTROL USE]
+Use:
+
+[MENU CONTROL NEXT WEAPON]
+Next weapon:
+
+[MENU CONTROL PREV WEAPON]
+Prev weapon:
+
+
+----- Measures of Quantity ----------------------
+
+[MENU COUNT NONE]
+None
+
+[MENU COUNT SMALL]
+Little
+
+[MENU COUNT NORMAL]
+Normal
+
+[MENU COUNT BIG]
+Lots
+
+[MENU COUNT VERYBIG]
+Massacre
+
+
+----- Gameplay Settings -------------------------
+
+[MENU GAME BLOOD COUNT]
+Blood:
+
+[MENU GAME MAX GIBS]
+Max. gibs:
+
+[MENU GAME MAX CORPSES]
+Max. corpses:
+
+[MENU GAME GIBS COUNT]
+Gibs count:
+
+[MENU GAME BLOOD TYPE]
+Blood type:
+
+[MENU GAME BLOOD TYPE SIMPLE]
+Simple
+
+[MENU GAME BLOOD TYPE ADV]
+Dripping
+
+[MENU GAME CORPSE TYPE]
+Corpse type:
+
+[MENU GAME CORPSE TYPE SIMPLE]
+Simple
+
+[MENU GAME CORPSE TYPE ADV]
+Interactive
+
+[MENU GAME GIBS TYPE]
+Gibs type:
+
+[MENU GAME GIBS TYPE SIMPLE]
+Simple
+
+[MENU GAME GIBS TYPE ADV]
+Interactive
+
+[MENU GAME PARTICLES COUNT]
+Max. Particles:
+
+[MENU GAME SCREEN FLASH]
+Screen flash:
+
+[MENU GAME BACKGROUND]
+Draw Background:
+
+[MENU GAME MESSAGES]
+Show messages:
+
+[MENU GAME REVERT PLAYERS]
+Revert players:
+
+
+----- Video Settings ----------------------------
+
+[MENU VIDEO RESOLUTION]
+Change resolution...
+
+[MENU VIDEO BPP]
+Bits-per-pixel:
+
+[MENU VIDEO VSYNC]
+VSync
+
+[MENU VIDEO FILTER SKY]
+Anisotropic Sky
+
+[MENU VIDEO NEED RESTART]
+Video settings will be changed after game restart.
+
+
+----- Video Resolution Settings -----------------
+
+[MENU RESOLUTION SELECT]
+SELECT RESOLUTION
+
+[MENU RESOLUTION CURRENT]
+Current:
+
+[MENU RESOLUTION LIST]
+New:
+
+[MENU RESOLUTION FULLSCREEN]
+Fullscreen:
+
+[MENU RESOLUTION APPLY]
+Apply resolution
+
+
+----- Sound Settings ----------------------------
+
+[MENU SOUND MUSIC LEVEL]
+Music Volume:
+
+[MENU SOUND SOUND LEVEL]
+Sound Volume:
+
+[MENU SOUND MAX SIM SOUNDS]
+One sound count:
+
+[MENU SOUND INACTIVE SOUNDS]
+Window inactive:
+
+[MENU SOUND INACTIVE SOUNDS ON]
+Sounds play
+
+[MENU SOUND INACTIVE SOUNDS OFF]
+Sounds mute
+
+
+----- Player Settings ---------------------------
+
+[MENU PLAYER NAME]
+Name:
+
+[MENU PLAYER TEAM]
+Team:
+
+[MENU PLAYER TEAM RED]
+Red
+
+[MENU PLAYER TEAM BLUE]
+Blue
+
+[MENU PLAYER MODEL]
+Model:
+
+[MENU PLAYER RED]
+Red:
+
+[MENU PLAYER GREEN]
+Green:
+
+[MENU PLAYER BLUE]
+Blue:
+
+
+----- Player Model Descriptions -----------------
+
+[MENU MODEL INFO]
+Model info
+
+[MENU MODEL ANIMATION]
+Change anim
+
+[MENU MODEL CHANGE WEAPON]
+Change weapon
+
+[MENU MODEL ROTATE]
+Reflect model
+
+[MENU MODEL NAME]
+Model name:
+
+[MENU MODEL AUTHOR]
+Author:
+
+[MENU MODEL COMMENT]
+Description:
+
+[MENU MODEL OPTIONS]
+Model Options:
+
+[MENU MODEL WEAPON]
+Weapon:
+
+
+----- Language names ----------------------------
+
+[MENU LANGUAGE RUSSIAN]
+Русский
+
+[MENU LANGUAGE ENGLISH]
+English
+
+
+----- Generic Buttons' Captions -----------------
+
+[MENU PAUSE]
+Pause
+
+[MENU YES]
+Yes
+
+[MENU NO]
+No
+
+[MENU OK]
+OK
+
+[MENU FINISH]
+Done
+
+
+----- Prompt Messages ---------------------------
+
+[MENU END GAME PROMT]
+End game?
+
+[MENU RESTART GAME PROMT]
+Restart level?
+
+[MENU EXIT PROMT]
+Chickening out already?
+
+[MENU SET DEFAULT PROMT]
+Load default settings?
+
+[MENU LOAD SAVED PROMT]
+Load saved settings?
+
+
+----- Player Death Messages ---------------------
+
+[PLAYER KILL]
+*** %s was killed by %s
+
+[PLAYER KILL EXTRAHARD 1]
+*** %s was fragged by %s
+
+[PLAYER KILL EXTRAHARD 2]
+*** %s was murdered by %s
+
+[PLAYER KILL ACID]
+*** %s dissolved in acid
+
+[PLAYER KILL TRAP]
+*** %s got caught in a trap
+
+[PLAYER KILL FALL]
+*** %s fell too far
+
+[PLAYER KILL SELF]
+*** %s killed himself
+
+[PLAYER KILL WATER]
+*** %s drowned
+
+
+----- Player-Flag Interaction Messages ----------
+
+[PLAYER FLAG GET]
+*** %s stole the %s flag!
+
+[PLAYER FLAG RETURN]
+*** %s returned the %s flag!
+
+[PLAYER FLAG CAPTURE]
+*** %s captured the %s flag! Team scored.
+
+[PLAYER FLAG DROP]
+*** %s dropped the %s flag!
+
+[PLAYER FLAG RED]
+red
+
+[PLAYER FLAG BLUE]
+blue
+
+
+----- Flag Staus Messages -----------------------
+
+[MESSAGE FLAG GET]
+%s flag stolen
+
+[MESSAGE FLAG RETURN]
+%s flag returned
+
+[MESSAGE FLAG CAPTURE]
+%s flag captured
+
+[MESSAGE FLAG DROP]
+%s flag dropped
+
+
+----- Key Names ---------------------------------
+
+[KEY UP]
+Up
+
+[KEY DOWN]
+Down
+
+[KEY LEFT]
+Left
+
+[KEY RIGHT]
+Right
+
+
+----- Killed by Monster Messages ----------------
+
+[MONSTER DEMON]                  
+Demon
+
+[MONSTER IMP]                    
+Imp
+
+[MONSTER ZOMBIE]                 
+Zombie
+
+[MONSTER SERGEANT]               
+Sergeant
+
+[MONSTER CYBER]                  
+Cyberdemon
+
+[MONSTER CGUN]                   
+Chaingunner
+
+[MONSTER BARON]                  
+Hell Baron
+
+[MONSTER KNIGHT]                 
+Hell Knight
+
+[MONSTER CACODEMON]              
+Cacodemon
+
+[MONSTER SOUL]                   
+Lost Soul
+
+[MONSTER PAIN]                   
+Pain Elemental
+
+[MONSTER MASTERMIND]             
+Spider Mastermind
+
+[MONSTER SPIDER]                 
+Big Spider
+
+[MONSTER MANCUBUS]               
+Mancubus
+
+[MONSTER REVENANT]               
+Revenant
+
+[MONSTER ARCHVILE]               
+Archvile
+
+[MONSTER FISH]                   
+Fish
+
+[MONSTER BARREL]                 
+Barrel explosion
+
+[MONSTER ROBOT]                  
+Robot
+
+[MONSTER PRIKOLIST]
+Rogue
+
+
+----- Loading Screen Messages -------------------
+
+[LOAD MUSIC]
+Music
+
+[LOAD MODELS]
+Models
+
+[LOAD MENUS]
+Menus
+
+[LOAD CONSOLE]
+Console
+
+[LOAD ITEMS DATA]
+Items Data
+
+[LOAD WEAPONS DATA]
+Weapons Data
+
+[LOAD GAME DATA]
+Game Data
+
+[LOAD COLLIDE MAP]
+Collide Map
+
+[LOAD DOOR MAP]
+Door Map
+
+[LOAD LIFT MAP]
+Lift Map
+
+[LOAD WATER MAP]
+Water Map
+
+[LOAD WAD FILE]
+WAD File
+
+[LOAD MAP]
+Map
+
+[LOAD TEXTURES]
+Textures
+
+[LOAD TRIGGERS]
+Triggers
+
+[LOAD PANELS]
+Panels
+
+[LOAD TRIGGERS TABLE]
+Triggers Table
+
+[LOAD LINK TRIGGERS]
+Link Triggers
+
+[LOAD CREATE TRIGGERS]
+Adding of Triggers
+
+[LOAD ITEMS]
+Items
+
+[LOAD CREATE ITEMS]
+Adding of Items
+
+[LOAD AREAS]
+Areas
+
+[LOAD CREATE AREAS]
+Adding of Areas
+
+[LOAD MONSTERS]
+Monsters
+
+[LOAD CREATE MONSTERS]
+Adding of Monsters
+
+[LOAD MAP HEADER]
+Map Description
+
+[LOAD SKY]
+Background
+
+[LOAD MONSTER TEXTURES]
+Monsters' Textures
+
+[LOAD MONSTER SOUNDS]
+Monsters' Sounds
+
+[LOAD SAVE FILE]
+Save File
+
+[LOAD MAP STATE]
+Map State
+
+[LOAD ITEMS STATE]
+Items State
+
+[LOAD TRIGGERS STATE]
+Triggers State
+
+[LOAD WEAPONS STATE]
+Weapons State
+
+[LOAD MONSTERS STATE]
+Monsters State
+
+
+----- Credits Screen ----------------------------
+
+[CREDITS CAP 1]                  
+Doom 2D: Forever
+
+[CREDITS CAP 1]                  
+version %s
+
+[CREDITS A 1]                    
+Project Author:
+
+[CREDITS A 1 1]                  
+rs.falcon
+
+[CREDITS A 2]                    
+Programmers:
+
+[CREDITS A 2 1]                  
+PSS
+
+[CREDITS A 2 2]                  
+rs.falcon
+
+[CREDITS A 2 3]                  
+PrimuS
+
+[CREDITS A 2 4]                  
+OutCast
+
+[CREDITS A 3]                    
+Artists:
+
+[CREDITS A 3 1]                  
+Jabberwock
+
+[CREDITS A 3 2]                  
+FireHawK
+
+[CREDITS A 4]                    
+Assistants:
+
+[CREDITS A 4 1]                  
+Jabberwock
+
+[CREDITS A 4 2]                  
+Чёрный Думер
+
+[CREDITS A 4 3]                  
+DEAD
+
+[CREDITS A 4 4]                  
+kevingpo
+
+[CREDITS CAP 3]                  
+Special respect to:
+
+[CREDITS CLO 1]                  
+Prikol Software, who made Doom 2D.
+
+[CREDITS CLO 2]                  
+ID Software, for the great games,
+
+[CREDITS CLO 3]                  
+which they used to make.
+
+[CREDITS CLO 4]                  
+And everyone who helped us on this project.
+
+[CREDITS CLO 5]                  
+www.doom2d.org
+
+[CREDITS CLO 6]                  
+2003-2014
+
+
+----- Miscellaneous Messages --------------------
+
+[MSG SHOW FPS ON]                
+FPS are Shown
+
+[MSG SHOW FPS OFF]               
+FPS are Hidden
+
+[MSG FRIENDLY FIRE ON]           
+Friendly Fire Enabled
+
+[MSG FRIENDLY FIRE OFF]          
+Friendly Fire Disabled
+
+[MSG TIME ON]                    
+Time is Shown
+
+[MSG TIME OFF]                   
+Time is Hidden
+
+[MSG SCORE ON]                   
+Score is Shown
+
+[MSG SCORE OFF]                  
+Score is Hidden
+
+[MSG STATS ON]                   
+Statistics is Shown
+
+[MSG STATS OFF]                 
+Statistics is Hidden
+
+[MSG KILL MSGS ON]               
+Death Messages are Shown
+
+[MSG KILL MSGS OFF]              
+Death Messages are Hidden
+
+[MSG NO MAP]                     
+Map "%s" doesn''t exist!
+
+[MSG NO MONSTER]                 
+"%s" is not monster type name!
+
+[MSG SCORE LIMIT]                
+Score Limit is %d
+
+[MSG TIME LIMIT]                 
+Time Limit is %.2d:%.2d
+
+	
+----- General Messages --------------------------
+
+[VERSION]
+Doom 2D: Forever v %s
+
+[FATAL ERROR]
+Fatal error: %s
+
+[SYSTEM ERROR UNKNOWN]
+GAME CRASHED! Unknown error. Address: $%.8x
+
+[SYSTEM ERROR MSG]
+GAME CRASHED! Error: %s
