@@ -479,6 +479,7 @@ function CreateGLWindow(Title: PChar): Bool; stdcall;
 var
   WC: TWndClass;
   h_Instance: HInst;
+  hIC: Cardinal;
   ps, sz: TPoint;
   dwStyle, dwExStyle: DWORD;
 
@@ -489,14 +490,21 @@ begin
 
   ShowCursor(False);
 
+// »конка:
+  hIC := LoadImage(hInstance, 'DFICON',
+                   IMAGE_ICON, 0, 0,
+                   LR_DEFAULTCOLOR + LR_LOADTRANSPARENT + LR_COPYFROMRESOURCE);
+ 
   ZeroMemory(@WC, SizeOf(TWndClass));
 
+//  ласс окна:
   with WC do
   begin
     Style := CS_HREDRAW or CS_VREDRAW or CS_OWNDC;
     lpfnWndProc   := @WndProc;
     hInstance     := h_Instance;
     hCursor       := LoadCursor(0, IDC_ARROW);
+    hIcon         := hIC;
     lpszClassname := D2DF_CLASSNAME;
   end;         
 

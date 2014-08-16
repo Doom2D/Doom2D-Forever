@@ -48,7 +48,7 @@ uses
   g_language in 'g_language.pas';
 
 {$R *.RES}
-{$R DF.RES}
+{$R CustomRes.RES}
 
 begin
   try

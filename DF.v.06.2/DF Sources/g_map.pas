@@ -1338,7 +1338,7 @@ begin
     BackID := DWORD(-1);
   end;
 
-  g_Game_StopAllSounds();
+  g_Game_StopAllSounds(False);
   gMusic.FreeSound();
   g_Sound_Delete(gMapInfo.MusicName);
 

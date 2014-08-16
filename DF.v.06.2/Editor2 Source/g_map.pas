@@ -2374,26 +2374,29 @@ begin
         end;
 
 // Границы карты:
-  e_DrawFillQuad(-32+MapOffset.X,
-                 -32+MapOffset.Y,
-                 gMapInfo.Width+31+MapOffset.X,
-                 -1+MapOffset.Y,
-                 255, 0, 0, 192, B_NONE); // Top
-  e_DrawFillQuad(-32+MapOffset.X,
-                 gMapInfo.Height+MapOffset.Y,
-                 gMapInfo.Width+31+MapOffset.X,
-                 gMapInfo.Height+31+MapOffset.Y,
-                 255, 0, 0, 192, B_NONE); // Bottom
-  e_DrawFillQuad(-32+MapOffset.X,
-                 -32+MapOffset.Y,
-                 -1+MapOffset.X,
-                 gMapInfo.Height+31+MapOffset.Y,
-                 255, 0, 0, 192, B_NONE); // Left
-  e_DrawFillQuad(gMapInfo.Width+MapOffset.X,
-                 -32+MapOffset.Y,
-                 gMapInfo.Width+31+MapOffset.X,
-                 gMapInfo.Height+31+MapOffset.Y,
-                 255, 0, 0, 192, B_NONE); // Right
+  if not PreviewMode then
+  begin
+    e_DrawFillQuad(-32+MapOffset.X,
+                   -32+MapOffset.Y,
+                   gMapInfo.Width+31+MapOffset.X,
+                   -1+MapOffset.Y,
+                   255, 0, 0, 192, B_NONE); // Top
+    e_DrawFillQuad(-32+MapOffset.X,
+                   gMapInfo.Height+MapOffset.Y,
+                   gMapInfo.Width+31+MapOffset.X,
+                   gMapInfo.Height+31+MapOffset.Y,
+                   255, 0, 0, 192, B_NONE); // Bottom
+    e_DrawFillQuad(-32+MapOffset.X,
+                   -32+MapOffset.Y,
+                   -1+MapOffset.X,
+                   gMapInfo.Height+31+MapOffset.Y,
+                   255, 0, 0, 192, B_NONE); // Left
+    e_DrawFillQuad(gMapInfo.Width+MapOffset.X,
+                   -32+MapOffset.Y,
+                   gMapInfo.Width+31+MapOffset.X,
+                   gMapInfo.Height+31+MapOffset.Y,
+                   255, 0, 0, 192, B_NONE); // Right
+  end;
 end;
 
 procedure ShiftMapObjects(dx, dy: Integer);

@@ -726,7 +726,7 @@ var
 begin
   if Key = Ord('Y') then
   begin
-    g_Game_StopAllSounds();
+    g_Game_StopAllSounds(True);
     case (Random(18)) of
       0: s := 'SOUND_MONSTER_PAIN';
       1: s := 'SOUND_MONSTER_DIE_3';

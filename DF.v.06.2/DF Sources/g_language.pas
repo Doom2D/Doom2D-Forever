@@ -557,7 +557,7 @@ Const
     ('MENU INTER2',                    'Level Complete',
                                        'спнбемэ опнидем'),
     ('MENU INTER3',                    'Time:',
-                                       'гю:'),
+                                       'бпелъ:'),
     ('MENU INTER4',                    'Kills:',
                                        'сахк:'),
     ('MENU INTER5',                    'Kills-per-minute:',

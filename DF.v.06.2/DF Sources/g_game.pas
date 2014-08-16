@@ -51,7 +51,7 @@ procedure g_Game_InGameMenu(Show: Boolean);
 procedure g_Game_Message(Msg: String; Time: Word);
 procedure g_Game_LoadMapList(FileName: String);
 procedure g_Game_PauseAllSounds(Enable: Boolean);
-procedure g_Game_StopAllSounds();
+procedure g_Game_StopAllSounds(all: Boolean);
 procedure g_Game_UpdateTriggerSounds();
 function g_Game_GetMegaWADInfo(WAD: String): TMegaWADInfo;
 procedure g_TakeScreenShot();
@@ -437,7 +437,7 @@ begin
   gPause := False;
   gGameOn := False;
 
-  g_Game_StopAllSounds();
+  g_Game_StopAllSounds(False);
 
   MessageTime := 0;
   MessageText := '';
@@ -781,7 +781,7 @@ begin
         if ((e_KeyBuffer[28] = $080) or (e_KeyBuffer[57] = $080)) and
            (not gConsoleShow) and (g_ActiveWindow = nil) then
         begin // Нажали <Enter> или <Пробел>:
-          g_Game_StopAllSounds();
+          g_Game_StopAllSounds(True);
 
           if gMapOnce then // Это был тест
             gExit := EXIT_SIMPLE
@@ -1666,7 +1666,7 @@ end;
 
 procedure g_Game_Quit();
 begin
-  g_Game_StopAllSounds();
+  g_Game_StopAllSounds(True);
   gMusic.Free();
   g_Game_SaveOptions();
   g_Game_FreeData();
@@ -2572,7 +2572,7 @@ begin
     gMusic.Pause(Enable);
 end;
 
-procedure g_Game_StopAllSounds();
+procedure g_Game_StopAllSounds(all: Boolean);
 var
   i: Integer;
 
@@ -2586,8 +2586,9 @@ begin
 
   if gMusic <> nil then
     gMusic.Stop();
-    
-  e_StopChannels();
+
+  if all then
+    e_StopChannels();
 end;
 
 procedure g_Game_UpdateTriggerSounds();
