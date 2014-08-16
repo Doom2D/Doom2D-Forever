@@ -222,7 +222,7 @@ begin
                 end;
       end;
 
-    VK_F2, VK_F3, VK_F4, VK_F5, VK_F6, VK_F10:
+    VK_F2, VK_F3, VK_F4, VK_F5, VK_F6, VK_F7, VK_F10:
       begin // <F2> .. <F6> и <F12>
       // “олько во врем€ игры, в отсутствии консоли:
         if gGameOn and (not gConsoleShow) then
@@ -248,8 +248,10 @@ begin
               g_Menu_Show_OptionsVideo(b);
             VK_F6:
               g_Menu_Show_OptionsSound(b);
-            VK_F10:
+            VK_F7:
               g_Menu_Show_EndGameMenu(b);
+            VK_F10:
+              g_Menu_Show_QuitGameMenu(b);
           end;
         end;
       end;

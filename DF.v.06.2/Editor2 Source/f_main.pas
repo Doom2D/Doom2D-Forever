@@ -239,6 +239,14 @@ Type
       var ScrollPos: Integer);
     procedure miOpenWadMapClick(Sender: TObject);
     procedure selectall1Click(Sender: TObject);
+    procedure Splitter1CanResize(Sender: TObject; var NewSize: Integer;
+      var Accept: Boolean);
+    procedure Splitter2CanResize(Sender: TObject; var NewSize: Integer;
+      var Accept: Boolean);
+    procedure vleObjectPropertyEnter(Sender: TObject);
+    procedure vleObjectPropertyExit(Sender: TObject);
+    procedure FormKeyUp(Sender: TObject; var Key: Word;
+      Shift: TShiftState);
 
   Private
     procedure Draw();
@@ -301,7 +309,10 @@ var
   
 
 procedure OpenMap(FileName: String; mapN: String);
-function  AddTexture(aWAD, aSection, aTex: String): Boolean;
+function  AddTexture(aWAD, aSection, aTex: String; silent: Boolean): Boolean;
+procedure RemoveSelectFromObjects();
+procedure ChangeShownProperty(Name: String; NewValue: String);
+
 
 Implementation
 
@@ -313,7 +324,7 @@ Uses
   MAPREADER, f_selectmap, f_savemap, WADEDITOR, MAPDEF,
   g_map, f_saveminimap, f_addresource, CONFIG, f_packmap,
   f_addresource_sound, f_maptest, f_choosetype,
-  g_language;
+  g_language, f_selectlang, ClipBrd;
 
 Const
   UNDO_DELETE_PANEL   = 1;
@@ -341,6 +352,7 @@ Const
   MOUSEACTION_RESIZE      = 4;
   MOUSEACTION_MOVEMAP     = 5;
   MOUSEACTION_DRAWPRESS   = 6;
+  MOUSEACTION_NOACTION    = 7;
 
   RESIZETYPE_NONE       = 0;
   RESIZETYPE_VERTICAL   = 1;
@@ -359,8 +371,11 @@ Const
   SELECTFLAG_LIFT       = 4;
   SELECTFLAG_MONSTER    = 5;
   SELECTFLAG_SPAWNPOINT = 6;
+  SELECTFLAG_SELECTED   = 7;
 
   RECENT_FILES_MENU_START = 11;
+
+  CLIPBOARD_SIG         = 'DF:ED';
 
 Type
   TUndoRec = record
@@ -387,6 +402,7 @@ Type
 
   TCopyRec = record
     ObjectType: Byte;
+    ID: Cardinal;
     case Byte of
       OBJECT_PANEL: (Panel: ^TPanel);
       OBJECT_ITEM: (Item: TItem);
@@ -395,13 +411,14 @@ Type
       OBJECT_TRIGGER: (Trigger: TTrigger);
   end;
 
+  TCopyRecArray = Array of TCopyRec;
+
 Var
   hDC: THandle;
   hRC: THandle;
   gEditorFont: DWORD;
   ShowMap: Boolean = False;
   DrawRect: PRect = nil;
-  _DotEnabled: Boolean;
   SnapToGrid: Boolean = True;
 
   MousePos: Types.TPoint;
@@ -417,9 +434,9 @@ Var
   ResizeDirection: Byte = RESIZEDIR_NONE;
 
   DrawPressRect: Boolean = False;
+  EditingProperties: Boolean = False;
 
   UndoBuffer: Array of Array of TUndoRec = nil;
-  CopyBuffer: Array of TCopyRec = nil;
 
 
 {$R *.dfm}
@@ -556,7 +573,7 @@ end;
 
 function ItemToStr(ItemType: Byte): String;
 begin
-  if ItemType in [ITEM_MEDKIT_SMALL..ITEM_KEY_BLUE] then
+  if ItemType in [ITEM_MEDKIT_SMALL..ITEM_HELMET] then
     Result := ItemNames[ItemType]
   else
     Result := ItemNames[ITEM_AMMO_BULLETS];
@@ -568,7 +585,7 @@ var
 
 begin
   Result := ITEM_AMMO_BULLETS;
-  for i := ITEM_MEDKIT_SMALL to ITEM_KEY_BLUE do
+  for i := ITEM_MEDKIT_SMALL to ITEM_HELMET do
     if ItemNames[i] = Str then
       begin
         Result := i;
@@ -672,6 +689,7 @@ var
 begin
   MainForm.vleObjectProperty.Strings.Clear();
 
+// Отображаем свойства если выделен только один объект:
   if SelectedObjectCount() <> 1 then
     Exit;
     
@@ -716,37 +734,35 @@ begin
             MaxLength := 5;
           end;
 
+          with ItemProps[InsertRow(_lc[I_PROP_PANEL_TYPE], GetPanelName(PanelType), True)-1] do
+          begin
+            EditStyle := esPickList;
+            ReadOnly := True;
+          end;
+
           if IsTexturedPanel(PanelType) then
-            begin // Может быть текстура
-              with ItemProps[InsertRow(_lc[I_PROP_PANEL_TYPE], GetPanelName(PanelType), True)-1] do
+          begin // Может быть текстура
+            with ItemProps[InsertRow(_lc[I_PROP_PANEL_TEX], TextureName, True)-1] do
+            begin
+              EditStyle := esEllipsis;
+              ReadOnly := True;
+            end;
+
+            if TextureName <> '' then
+            begin // Есть текстура
+              with ItemProps[InsertRow(_lc[I_PROP_PANEL_ALPHA], IntToStr(Alpha), True)-1] do
+              begin
+                EditStyle := esSimple;
+                MaxLength := 3;
+              end;
+
+              with ItemProps[InsertRow(_lc[I_PROP_PANEL_BLEND], BoolNames[Blending], True)-1] do
               begin
                 EditStyle := esPickList;
                 ReadOnly := True;
               end;
-
-              if TextureName <> '' then
-              begin // Есть текстура
-                with ItemProps[InsertRow(_lc[I_PROP_PANEL_ALPHA], IntToStr(Alpha), True)-1] do
-                begin
-                  EditStyle := esSimple;
-                  MaxLength := 3;
-                end;
-
-                with ItemProps[InsertRow(_lc[I_PROP_PANEL_BLEND], BoolNames[Blending], True)-1] do
-                begin
-                  EditStyle := esPickList;
-                  ReadOnly := True;
-                end;
-              end;
-            end
-          else // Не может быть текстуры
-            begin
-              with ItemProps[InsertRow(_lc[I_PROP_PANEL_TYPE], GetPanelName(PanelType), True)-1] do
-              begin
-                EditStyle := esSimple;
-                ReadOnly := True;
-              end;
             end;
+          end;
         end;
       end;
 
@@ -1176,6 +1192,23 @@ begin
   end;
 end;
 
+procedure ChangeShownProperty(Name: String; NewValue: String);
+var
+  row: Integer;
+
+begin
+  if SelectedObjectCount() <> 1 then
+    Exit;
+  if not SelectedObjects[GetFirstSelected()].Live then
+    Exit;
+
+// Есть ли такой ключ:
+  if MainForm.vleObjectProperty.FindRow(Name, row) then
+  begin
+    MainForm.vleObjectProperty.Values[Name] := NewValue;
+  end;
+end;
+
 procedure SelectObject(fObjectType: Byte; fID: DWORD; Multi: Boolean);
 var
   a: Integer;
@@ -1231,7 +1264,7 @@ begin
   end;
 end;
 
-procedure RemoveSelect();
+procedure RemoveSelectFromObjects();
 begin
   SelectedObjects := nil;
   DrawPressRect := False;
@@ -1303,7 +1336,7 @@ begin
         RemoveObject(ID, ObjectType);
       end;
 
-  RemoveSelect();
+  RemoveSelectFromObjects();
 
   MainForm.miUndo.Enabled := UndoBuffer <> nil;
 end;
@@ -1313,7 +1346,7 @@ var
   i, ii: Integer;
 
 begin
-  if not Group then
+  if (not Group) or (Length(UndoBuffer) = 0) then
     SetLength(UndoBuffer, Length(UndoBuffer)+1);
   SetLength(UndoBuffer[High(UndoBuffer)], Length(UndoBuffer[High(UndoBuffer)])+1);
   i := High(UndoBuffer);
@@ -1339,15 +1372,13 @@ end;
 
 procedure FullClear();
 begin
-  RemoveSelect();
+  RemoveSelectFromObjects();
   ClearMap();
   UndoBuffer := nil;
-  CopyBuffer := nil;
   MapCheckForm.lbErrorList.Clear();
   MapCheckForm.mErrorDescription.Clear();
 
   MainForm.miUndo.Enabled := False;
-  MainForm.miPaste.Enabled := False;
   MainForm.sbHorizontal.Position := 0;
   MainForm.sbVertical.Position := 0;
   MainForm.FormResize(nil);
@@ -1417,7 +1448,7 @@ begin
   Result := True;
 end;
 
-function AddTexture(aWAD, aSection, aTex: String): Boolean;
+function AddTexture(aWAD, aSection, aTex: String; silent: Boolean): Boolean;
 var
   a: Integer;
   ok: Boolean;
@@ -1460,16 +1491,18 @@ begin
   for a := 0 to MainForm.lbTextureList.Items.Count-1 do
     if ResourceName = MainForm.lbTextureList.Items[a] then
     begin
-      ErrorMessageBox(Format(_lc[I_MSG_TEXTURE_ALREADY],
-                             [ResourceName]));
+      if not silent then
+        ErrorMessageBox(Format(_lc[I_MSG_TEXTURE_ALREADY],
+                               [ResourceName]));
       ok := False;
     end;
 
 // Название ресурса <= 64 символов:
   if Length(ResourceName) > 64 then
   begin
-    ErrorMessageBox(Format(_lc[I_MSG_RES_NAME_64],
-                           [ResourceName]));
+    if not silent then
+      ErrorMessageBox(Format(_lc[I_MSG_RES_NAME_64],
+                             [ResourceName]));
     ok := False;
   end;
 
@@ -1696,7 +1729,7 @@ begin
       end;
   end;
 
-  RemoveSelect();
+  RemoveSelectFromObjects();
 end;
 
 procedure SwitchLayer(Layer: Byte);
@@ -1722,6 +1755,244 @@ function IsSpecialTextureSel(): Boolean;
 begin
   Result := (MainForm.lbTextureList.ItemIndex <> -1) and
             IsSpecialTexture(MainForm.lbTextureList.Items[MainForm.lbTextureList.ItemIndex]);
+end;
+
+function CopyBufferToString(var CopyBuf: TCopyRecArray): String;
+var
+  i, j: Integer;
+  Res: String;
+
+  procedure AddInt(x: Integer);
+  begin
+    Res := Res + IntToStr(x) + ' ';
+  end;
+
+begin
+  Result := '';
+
+  if Length(CopyBuf) = 0 then
+    Exit;
+
+  Res := CLIPBOARD_SIG + ' ';
+
+  for i := 0 to High(CopyBuf) do
+  begin
+    if (CopyBuf[i].ObjectType = OBJECT_PANEL) and
+       (CopyBuf[i].Panel = nil) then
+      Continue;
+
+  // Тип объекта:
+    AddInt(CopyBuf[i].ObjectType);
+    Res := Res + '; ';
+
+  // Свойства объекта:
+    case CopyBuf[i].ObjectType of
+      OBJECT_PANEL:
+        with CopyBuf[i].Panel^ do
+        begin
+          AddInt(PanelType);
+          AddInt(X);
+          AddInt(Y);
+          AddInt(Width);
+          AddInt(Height);
+          Res := Res + '"' + TextureName + '" ';
+          AddInt(Alpha);
+          AddInt(IfThen(Blending, 1, 0));
+        end;
+
+      OBJECT_ITEM:
+        with CopyBuf[i].Item do
+        begin
+          AddInt(ItemType);
+          AddInt(X);
+          AddInt(Y);
+          AddInt(IfThen(OnlyDM, 1, 0));
+          AddInt(IfThen(Fall, 1, 0));
+        end;
+
+      OBJECT_MONSTER:
+        with CopyBuf[i].Monster do
+        begin
+          AddInt(MonsterType);
+          AddInt(X);
+          AddInt(Y);
+          AddInt(IfThen(Direction = D_LEFT, 1, 0));
+        end;
+
+      OBJECT_AREA:
+        with CopyBuf[i].Area do
+        begin
+          AddInt(AreaType);
+          AddInt(X);
+          AddInt(Y);
+          AddInt(IfThen(Direction = D_LEFT, 1, 0));
+        end;
+
+      OBJECT_TRIGGER:
+        with CopyBuf[i].Trigger do
+        begin
+          AddInt(TriggerType);
+          AddInt(X);
+          AddInt(Y);
+          AddInt(Width);
+          AddInt(Height);
+          AddInt(ActivateType);
+          AddInt(Key);
+          AddInt(IfThen(Enabled, 1, 0));
+          AddInt(TexturePanel);
+
+          for j := 0 to 127 do
+            AddInt(Data.Default[j]);
+        end;
+    end;
+  end;
+
+  Result := Res;
+end;
+
+procedure StringToCopyBuffer(Str: String; var CopyBuf: TCopyRecArray);
+var
+  i, j, t: Integer;
+
+  function GetNext(): String;
+  var
+    p: Integer;
+
+  begin
+    if Str[1] = '"' then
+      begin
+        Delete(Str, 1, 1);
+        p := Pos('"', Str);
+
+        if p = 0 then
+          begin
+            Result := Str;
+            Str := '';
+          end
+        else
+          begin
+            Result := Copy(Str, 1, p-1);
+            Delete(Str, 1, p);
+            Str := Trim(Str);
+          end;
+      end
+    else
+      begin
+        p := Pos(' ', Str);
+
+        if p = 0 then
+          begin
+            Result := Str;
+            Str := '';
+          end
+        else
+          begin
+            Result := Copy(Str, 1, p-1);
+            Delete(Str, 1, p);
+            Str := Trim(Str);
+          end;
+      end;
+  end;
+
+begin
+  Str := Trim(Str);
+
+  if GetNext() <> CLIPBOARD_SIG then
+    Exit;
+
+  while Str <> '' do
+  begin
+  // Тип объекта:
+    t := StrToIntDef(GetNext(), 0);
+
+    if (t < OBJECT_PANEL) or (t > OBJECT_TRIGGER) or
+       (GetNext() <> ';') then
+    begin // Что-то не то => пропускаем:
+      t := Pos(';', Str);
+      Delete(Str, 1, t);
+      Str := Trim(Str);
+
+      Continue;
+    end;
+
+    i := Length(CopyBuf);
+    SetLength(CopyBuf, i + 1);
+
+    CopyBuf[i].ObjectType := t;
+    CopyBuf[i].Panel := nil;
+
+  // Свойства объекта:
+    case t of
+      OBJECT_PANEL:
+        begin
+          New(CopyBuf[i].Panel);
+          
+          with CopyBuf[i].Panel^ do
+          begin
+            PanelType := StrToIntDef(GetNext(), PANEL_WALL);
+            X := StrToIntDef(GetNext(), 0);
+            Y := StrToIntDef(GetNext(), 0);
+            Width := StrToIntDef(GetNext(), 16);
+            Height := StrToIntDef(GetNext(), 16);
+            TextureName := GetNext();
+            Alpha := StrToIntDef(GetNext(), 0);
+            Blending := (GetNext() = '1');
+          end;
+        end;
+
+      OBJECT_ITEM:
+        with CopyBuf[i].Item do
+        begin
+          ItemType := StrToIntDef(GetNext(), ITEM_MEDKIT_SMALL);
+          X := StrToIntDef(GetNext(), 0);
+          Y := StrToIntDef(GetNext(), 0);
+          OnlyDM := (GetNext() = '1');
+          Fall := (GetNext() = '1');
+        end;
+
+      OBJECT_MONSTER:
+        with CopyBuf[i].Monster do
+        begin
+          MonsterType := StrToIntDef(GetNext(), MONSTER_DEMON);
+          X := StrToIntDef(GetNext(), 0);
+          Y := StrToIntDef(GetNext(), 0);
+
+          if GetNext() = '1' then
+            Direction := D_LEFT
+          else
+            Direction := D_RIGHT;
+        end;
+
+      OBJECT_AREA:
+        with CopyBuf[i].Area do
+        begin
+          AreaType := StrToIntDef(GetNext(), AREA_PLAYERPOINT1);
+          X := StrToIntDef(GetNext(), 0);
+          Y := StrToIntDef(GetNext(), 0);
+          if GetNext() = '1' then
+            Direction := D_LEFT
+          else
+            Direction := D_RIGHT;
+        end;
+
+      OBJECT_TRIGGER:
+        with CopyBuf[i].Trigger do
+        begin
+          TriggerType := StrToIntDef(GetNext(), TRIGGER_EXIT);
+          X := StrToIntDef(GetNext(), 0);
+          Y := StrToIntDef(GetNext(), 0);
+          Width := StrToIntDef(GetNext(), 16);
+          Height := StrToIntDef(GetNext(), 16);
+          ActivateType := StrToIntDef(GetNext(), 0);
+          Key := StrToIntDef(GetNext(), 0);
+          Enabled := (GetNext() = '1');
+          TexturePanel := StrToIntDef(GetNext(), 0);
+
+          for j := 0 to 127 do
+            Data.Default[j] := StrToIntDef(GetNext(), 0);
+        end;
+    end;
+  end;
 end;
 
 //----------------------------------------
@@ -1762,7 +2033,7 @@ end;
 
 procedure TMainForm.aRecentFileExecute(Sender: TObject);
 var
-  n: Integer;
+  n, pw: Integer;
   s, fn: String;
 
 begin
@@ -1773,13 +2044,14 @@ begin
 
   if (n < 0) or (n >= RecentFiles.Count) then
     Exit;
-    
-  s := LowerCase(RecentFiles[n]);
+
+  s := RecentFiles[n];
+  pw := Pos('.wad:\', LowerCase(s));
   
-  if Pos('.wad:\', s) > 0 then
+  if pw > 0 then
     begin // Map name included
-      fn := Copy(s, 1, Pos('.wad:\', s)+3);
-      Delete(s, 1, Pos('.wad:\', s)+5);
+      fn := Copy(s, 1, pw + 3);
+      Delete(s, 1, pw + 5);
       if (FileExists(fn)) then
         OpenMap(fn, s);
     end
@@ -1879,10 +2151,8 @@ begin
   OpenDialog.InitialDir := config.ReadStr('Editor', 'LastOpenDir', EditorDir);
   SaveDialog.InitialDir := config.ReadStr('Editor', 'LastSaveDir', EditorDir);
 
-  s := config.ReadStr('Editor', 'Language', LANGUAGE_RUSSIAN);
-  if (s = LANGUAGE_RUSSIAN) or
-     (s = LANGUAGE_ENGLISH) then
-    gLanguage := s;
+  s := config.ReadStr('Editor', 'Language', '');
+  gLanguage := s;
 
   RecentCount := config.ReadInt('Editor', 'RecentCount', 5);
   if RecentCount > 10 then
@@ -1966,7 +2236,7 @@ begin
   end;
 
 // Рисуем сетку:
-  if DotEnable then
+  if DotEnable and (not PreviewMode) then
   begin
     if DotSize = 2 then
       a := -1
@@ -2223,6 +2493,126 @@ begin
   MapOffset.Y := -Normalize16(sbVertical.Position);
 end;
 
+procedure SelectNextObject(X, Y: Integer; ObjectType: Byte; ID: DWORD);
+var
+  j, j_max: Integer;
+  res: Boolean;
+
+begin
+  case ObjectType of
+    OBJECT_PANEL:
+      begin
+        res := (gPanels <> nil) and
+               PanelInShownLayer(gPanels[ID].PanelType) and
+               g_CollidePoint(X, Y, gPanels[ID].X, gPanels[ID].Y,
+                              gPanels[ID].Width,
+                              gPanels[ID].Height);
+        j_max := Length(gPanels) - 1;
+      end;
+
+    OBJECT_ITEM:
+      begin
+        res := (gItems <> nil) and
+               LayerEnabled[LAYER_ITEMS] and
+               g_CollidePoint(X, Y, gItems[ID].X, gItems[ID].Y,
+                              ItemSize[gItems[ID].ItemType][0],
+                              ItemSize[gItems[ID].ItemType][1]);
+        j_max := Length(gItems) - 1;
+      end;
+
+    OBJECT_MONSTER:
+      begin
+        res := (gMonsters <> nil) and
+               LayerEnabled[LAYER_MONSTERS] and
+               g_CollidePoint(X, Y, gMonsters[ID].X, gMonsters[ID].Y,
+                              MonsterSize[gMonsters[ID].MonsterType].Width,
+                              MonsterSize[gMonsters[ID].MonsterType].Height);
+        j_max := Length(gMonsters) - 1;
+      end;
+
+    OBJECT_AREA:
+      begin
+        res := (gAreas <> nil) and
+               LayerEnabled[LAYER_AREAS] and
+               g_CollidePoint(X, Y, gAreas[ID].X, gAreas[ID].Y,
+                              AreaSize[gAreas[ID].AreaType].Width,
+                              AreaSize[gAreas[ID].AreaType].Height);
+        j_max := Length(gAreas) - 1;
+      end;
+
+    OBJECT_TRIGGER:
+      begin
+        res := (gTriggers <> nil) and
+               LayerEnabled[LAYER_TRIGGERS] and 
+               g_CollidePoint(X, Y, gTriggers[ID].X, gTriggers[ID].Y,
+                              gTriggers[ID].Width,
+                              gTriggers[ID].Height);
+        j_max := Length(gTriggers) - 1;
+      end;
+
+    else
+      res := False;
+  end;
+
+  if not res then
+    Exit;
+
+// Перебор ID: от ID-1 до 0; потом от High до ID+1:
+  j := ID;
+  
+  while True do
+  begin
+    Dec(j);
+            
+    if j < 0 then
+      j := j_max;
+    if j = ID then
+      Break;
+
+    case ObjectType of
+      OBJECT_PANEL:
+        res := PanelInShownLayer(gPanels[j].PanelType) and
+               g_CollidePoint(X, Y, gPanels[j].X, gPanels[j].Y,
+                              gPanels[j].Width,
+                              gPanels[j].Height);
+      OBJECT_ITEM:
+        res := (gItems[j].ItemType <> ITEM_NONE) and
+               g_CollidePoint(X, Y, gItems[j].X, gItems[j].Y,
+                              ItemSize[gItems[j].ItemType][0],
+                              ItemSize[gItems[j].ItemType][1]);
+      OBJECT_MONSTER:
+        res := (gMonsters[j].MonsterType <> MONSTER_NONE) and
+               g_CollidePoint(X, Y, gMonsters[j].X, gMonsters[j].Y,
+                              MonsterSize[gMonsters[j].MonsterType].Width,
+                              MonsterSize[gMonsters[j].MonsterType].Height);
+      OBJECT_AREA:
+        res := (gAreas[j].AreaType <> AREA_NONE) and
+               g_CollidePoint(X, Y, gAreas[j].X, gAreas[j].Y,
+                              AreaSize[gAreas[j].AreaType].Width,
+                              AreaSize[gAreas[j].AreaType].Height);
+      OBJECT_TRIGGER:
+        res := (gTriggers[j].TriggerType <> TRIGGER_NONE) and
+               g_CollidePoint(X, Y, gTriggers[j].X, gTriggers[j].Y,
+                              gTriggers[j].Width,
+                              gTriggers[j].Height);
+      else
+        res := False;
+    end;
+    
+    if res then
+    begin
+      SetLength(SelectedObjects, 1);
+
+      SelectedObjects[0].ObjectType := ObjectType;
+      SelectedObjects[0].ID := j;
+      SelectedObjects[0].Live := True;
+
+      FillProperty();
+      Break;
+    end;
+  end;
+end;
+
 procedure TMainForm.RenderPanelMouseDown(Sender: TObject;
   Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
 var
@@ -2239,6 +2629,8 @@ begin
   MainForm.ActiveControl := RenderPanel;
   RenderPanel.SetFocus();
 
+  RenderPanelMouseMove(RenderPanel, Shift, X, Y);
+
   if Button = mbLeft then // Left Mouse Button
   begin
   // Двигаем карту с помощью мыши и миникарты:
@@ -2248,14 +2640,15 @@ begin
        g_CollidePoint(X, Y,
                       RenderPanel.Width-max(gMapInfo.Width div (16 div Scale), 1)-1,
                       1,
-                      RenderPanel.Width-2,
+                      max(gMapInfo.Width div (16 div Scale), 1),
                       max(gMapInfo.Height div (16 div Scale), 1) ) then
       begin
         MoveMap(X, Y);
         MouseAction := MOUSEACTION_MOVEMAP;
       end
     else // Ставим предмет/монстра/область:
-      if pcObjects.ActivePageIndex in [1, 2, 3] then
+      if (pcObjects.ActivePageIndex in [1, 2, 3]) and
+         (not (ssShift in Shift)) then
         begin
           case pcObjects.ActivePageIndex of
             1:
@@ -2264,6 +2657,8 @@ begin
               else
                 begin
                   item.ItemType := lbItemList.ItemIndex + ITEM_MEDKIT_SMALL;
+                  if item.ItemType >= ITEM_WEAPON_KASTET then
+                    item.ItemType := item.ItemType + 2;
                   item.X := MousePos.X-MapOffset.X;
                   item.Y := MousePos.Y-MapOffset.Y;
 
@@ -2273,9 +2668,8 @@ begin
                     item.Y := item.Y - ItemSize[item.ItemType][1];
                   end;
 
-                  item.ItemType := lbItemList.ItemIndex + ITEM_MEDKIT_SMALL;
                   item.OnlyDM := cbOnlyDM.Checked;
-                  item.Fall := (item.ItemType in [ITEM_KEY_RED, ITEM_KEY_GREEN, ITEM_KEY_BLUE]) or cbFall.Checked;
+                  item.Fall := cbFall.Checked;
                   Undo_Add(OBJECT_ITEM, AddItem(item));
                 end;
             2:
@@ -2329,99 +2723,15 @@ begin
         begin
           i := GetFirstSelected();
 
-        // Выбираем панель под текущей:
+        // Выбираем объект под текущим:
           if (SelectedObjects <> nil) and
-             (ssCtrl in Shift) and (i >= 0) and
-             (SelectedObjects[i].ObjectType = OBJECT_PANEL) and
+             (ssShift in Shift) and (i >= 0) and
              (SelectedObjects[i].Live) then
             begin
-              panel := gPanels[SelectedObjects[i].ID];
-              if g_CollidePoint(X-MapOffset.X, Y-MapOffset.Y,
-                   panel.X, panel.Y, panel.Width, panel.Height) then
-              begin // Ctrl-левый-клик на выбранную панель
-                c1 := False;
-                for j := Integer(SelectedObjects[i].ID)-1 downto 0 do
-                begin
-                  if (gPanels[j].PanelType = PANEL_NONE) then
-                    Continue;
-                  if (gPanels[j].PanelType = PANEL_WALL) and
-                     (not LayerEnabled[LAYER_WALLS]) then
-                    Continue;
-                  if (gPanels[j].PanelType = PANEL_BACK) and
-                     (not LayerEnabled[LAYER_BACK]) then
-                    Continue;
-                  if (gPanels[j].PanelType = PANEL_FORE) and
-                     (not LayerEnabled[LAYER_FOREGROUND]) then
-                    Continue;
-                  if (gPanels[j].PanelType = PANEL_STEP) and
-                     (not LayerEnabled[LAYER_STEPS]) then
-                    Continue;
-                  if WordBool( gPanels[j].PanelType and
-                       (PANEL_WATER or PANEL_ACID1 or
-                        PANEL_ACID2 or PANEL_LIFTUP or
-                        PANEL_LIFTDOWN or PANEL_OPENDOOR or
-                        PANEL_CLOSEDOOR or PANEL_BLOCKMON) ) and
-                     (not LayerEnabled[LAYER_WATER]) then
-                    Continue;
-                  if g_CollidePoint(X-MapOffset.X, Y-MapOffset.Y,
-                       gPanels[j].X, gPanels[j].Y,
-                       gPanels[j].Width, gPanels[j].Height) then
-                  begin
-                    SetLength(SelectedObjects, 1);
-                    with SelectedObjects[0] do
-                    begin
-                      ObjectType := OBJECT_PANEL;
-                      ID := j;
-                      Live := True;
-                    end;
-                    FillProperty();
-                    c1 := True;
-                    Break;
-                  end;
-                end;
-              // Нет панелей с меньшим ID - выбираем с самым большим:
-                if not c1 then
-                begin
-                  for j := High(gPanels) downto SelectedObjects[i].ID+1 do
-                  begin
-                    if (gPanels[j].PanelType = PANEL_NONE) then
-                      Continue;
-                    if (gPanels[j].PanelType = PANEL_WALL) and
-                       (not LayerEnabled[LAYER_WALLS]) then
-                      Continue;
-                    if (gPanels[j].PanelType = PANEL_BACK) and
-                       (not LayerEnabled[LAYER_BACK]) then
-                      Continue;
-                    if (gPanels[j].PanelType = PANEL_FORE) and
-                       (not LayerEnabled[LAYER_FOREGROUND]) then
-                      Continue;
-                    if (gPanels[j].PanelType = PANEL_STEP) and
-                       (not LayerEnabled[LAYER_STEPS]) then
-                      Continue;
-                    if WordBool( gPanels[j].PanelType and
-                         (PANEL_WATER or PANEL_ACID1 or
-                          PANEL_ACID2 or PANEL_LIFTUP or
-                          PANEL_LIFTDOWN or PANEL_OPENDOOR or
-                          PANEL_CLOSEDOOR or PANEL_BLOCKMON) ) and
-                       (not LayerEnabled[LAYER_WATER]) then
-                      Continue;
-                    if g_CollidePoint(X-MapOffset.X, Y-MapOffset.Y,
-                         gPanels[j].X, gPanels[j].Y,
-                         gPanels[j].Width, gPanels[j].Height) then
-                    begin
-                      SetLength(SelectedObjects, 1);
-                      with SelectedObjects[0] do
-                      begin
-                        ObjectType := OBJECT_PANEL;
-                        ID := j;
-                        Live := True;
-                      end;
-                      FillProperty();
-                      Break;
-                    end;
-                  end;
-                end;
-              end;
+              if SelectedObjectCount() = 1 then
+                SelectNextObject(X-MapOffset.X, Y-MapOffset.Y,
+                                 SelectedObjects[i].ObjectType,
+                                 SelectedObjects[i].ID);
             end
           else
             begin
@@ -2448,186 +2758,198 @@ begin
 
   if Button = mbRight then // Right Mouse Button
   begin
-  // Нужно что-то выбрать мышью:
-    if SelectFlag <> SELECTFLAG_NONE then
+  // Клик по миникарте:
+    if ShowMap and
+       ((gMapInfo.Width > RenderPanel.Width) or
+        (gMapInfo.Height > RenderPanel.Height)) and
+       g_CollidePoint(X, Y,
+                      RenderPanel.Width-max(gMapInfo.Width div (16 div Scale), 1)-1,
+                      1,
+                      max(gMapInfo.Width div (16 div Scale), 1),
+                      max(gMapInfo.Height div (16 div Scale), 1) ) then
       begin
-        case SelectFlag of
-          SELECTFLAG_TELEPORT:
-          // Точку назначения телепортации:
-            with gTriggers[SelectedObjects[
-                   GetFirstSelected() ].ID].Data.TargetPoint do
-            begin
-              X := MousePos.X-MapOffset.X;
-              Y := MousePos.Y-MapOffset.Y;
-            end;
-
-          SELECTFLAG_SPAWNPOINT:
-          // Точку создания монстра:
-            with gTriggers[SelectedObjects[GetFirstSelected()].ID] do
-              if TriggerType = TRIGGER_SPAWNMONSTER then
-                begin
-                  Data.MonPos.X := MousePos.X-MapOffset.X;
-                  Data.MonPos.Y := MousePos.Y-MapOffset.Y;
-                end
-              else // Точка создания предмета:
-                if TriggerType = TRIGGER_SPAWNITEM then
-                begin
-                  Data.ItemPos.X := MousePos.X-MapOffset.X;
-                  Data.ItemPos.Y := MousePos.Y-MapOffset.Y;
-                end;
-
-          SELECTFLAG_DOOR:
-          // Дверь:
-            begin
-              IDArray := ObjectInRect(MousePos.X-MapOffset.X,
-                                      MousePos.Y-MapOffset.Y,
-                                      2, 2, OBJECT_PANEL, True);
-              if IDArray <> nil then
-                begin
-                  for i := 0 to High(IDArray) do
-                    if (gPanels[IDArray[i]].PanelType = PANEL_OPENDOOR) or
-                       (gPanels[IDArray[i]].PanelType = PANEL_CLOSEDOOR) then
-                    begin
-                      gTriggers[SelectedObjects[
-                        GetFirstSelected() ].ID].Data.PanelID := IDArray[i];
-                      Break;
-                    end;
-                end
-              else
-                gTriggers[SelectedObjects[
-                  GetFirstSelected() ].ID].Data.PanelID := -1;
-            end;
-
-          SELECTFLAG_TEXTURE:
-          // Панель с текстурой:
-            begin
-              IDArray := ObjectInRect(MousePos.X-MapOffset.X,
-                           MousePos.Y-MapOffset.Y,
-                           2, 2, OBJECT_PANEL, True);
-              if IDArray <> nil then
-                begin
-                  for i := 0 to High(IDArray) do
-                    if ((gPanels[IDArray[i]].PanelType in
-                         [PANEL_WALL, PANEL_BACK, PANEL_FORE,
-                          PANEL_WATER, PANEL_ACID1, PANEL_ACID2,
-                          PANEL_STEP]) or
-                        (gPanels[IDArray[i]].PanelType = PANEL_OPENDOOR) or
-                        (gPanels[IDArray[i]].PanelType = PANEL_CLOSEDOOR)) and
-                       (gPanels[IDArray[i]].TextureName <> '') then
-                    begin
-                      gTriggers[SelectedObjects[
-                        GetFirstSelected() ].ID].TexturePanel := IDArray[i];
-                      Break;
-                    end;
-                end
-              else
-                gTriggers[SelectedObjects[
-                  GetFirstSelected() ].ID].TexturePanel := -1;
-            end;
-
-          SELECTFLAG_LIFT:
-          // Лифт:
-            begin
-              IDArray := ObjectInRect(MousePos.X-MapOffset.X,
-                                      MousePos.Y-MapOffset.Y,
-                                      2, 2, OBJECT_PANEL, True);
-              if IDArray <> nil then
-                begin
-                  for i := 0 to High(IDArray) do
-                    if (gPanels[IDArray[i]].PanelType = PANEL_LIFTUP) or
-                       (gPanels[IDArray[i]].PanelType = PANEL_LIFTDOWN) then
-                    begin
-                      gTriggers[SelectedObjects[
-                        GetFirstSelected() ].ID].Data.PanelID := IDArray[i];
-                      Break;
-                    end;
-                end
-              else
-                gTriggers[SelectedObjects[
-                  GetFirstSelected() ].ID].Data.PanelID := -1;
-            end;
-
-          SELECTFLAG_MONSTER:
-          // Монстра:
-            begin
-              IDArray := ObjectInRect(MousePos.X-MapOffset.X,
-                                      MousePos.Y-MapOffset.Y,
-                                      2, 2, OBJECT_MONSTER, False);
-              if IDArray <> nil then
-                gTriggers[SelectedObjects[
-                  GetFirstSelected() ].ID].Data.MonsterID := IDArray[0]+1
-              else
-                gTriggers[SelectedObjects[
-                  GetFirstSelected() ].ID].Data.MonsterID := 0;
-            end;
-        end;
-
-        SelectFlag := SELECTFLAG_NONE;
+        MouseAction := MOUSEACTION_NOACTION;
       end
-    else // if SelectFlag <> SELECTFLAG_NONE
-      begin
-      // Что уже выбрано и не нажат Ctrl:
-        if (SelectedObjects <> nil) and
-           (not (ssCtrl in Shift)) then
-          for i := 0 to High(SelectedObjects) do
-            with SelectedObjects[i] do
-              if Live then
+    else // Нужно что-то выбрать мышью:
+      if SelectFlag <> SELECTFLAG_NONE then
+        begin
+          case SelectFlag of
+            SELECTFLAG_TELEPORT:
+            // Точку назначения телепортации:
+              with gTriggers[SelectedObjects[
+                     GetFirstSelected() ].ID].Data.TargetPoint do
               begin
-                if (ObjectType in [OBJECT_PANEL, OBJECT_TRIGGER]) and
-                   (SelectedObjectCount = 1) then
-                begin
-                  Rect := ObjectGetRect(ObjectType, ID);
+                X := MousePos.X-MapOffset.X;
+                Y := MousePos.Y-MapOffset.Y;
+              end;
 
-                  c1 := g_Collide(X-MapOffset.X-1, Y-MapOffset.Y-1, 2, 2,
-                          Rect.X-2, Rect.Y+(Rect.Height div 2)-2, 4, 4);
-                  c2 := g_Collide(X-MapOffset.X-1, Y-MapOffset.Y-1, 2, 2,
-                          Rect.X+Rect.Width-3, Rect.Y+(Rect.Height div 2)-2, 4, 4);
-                  c3 := g_Collide(X-MapOffset.X-1, Y-MapOffset.Y-1, 2, 2,
-                          Rect.X+(Rect.Width div 2)-2, Rect.Y-2, 4, 4);
-                  c4 := g_Collide(X-MapOffset.X-1, Y-MapOffset.Y-1, 2, 2,
-                          Rect.X+(Rect.Width div 2)-2, Rect.Y+Rect.Height-3, 4, 4);
-
-                // Меняем размер панели или триггера:
-                  if c1 or c2 or c3 or c4 then
+            SELECTFLAG_SPAWNPOINT:
+            // Точку создания монстра:
+              with gTriggers[SelectedObjects[GetFirstSelected()].ID] do
+                if TriggerType = TRIGGER_SPAWNMONSTER then
                   begin
-                    MouseAction := MOUSEACTION_RESIZE;
-                    LastMovePoint := MousePos;
+                    Data.MonPos.X := MousePos.X-MapOffset.X;
+                    Data.MonPos.Y := MousePos.Y-MapOffset.Y;
+                  end
+                else // Точка создания предмета:
+                  if TriggerType = TRIGGER_SPAWNITEM then
+                  begin
+                    Data.ItemPos.X := MousePos.X-MapOffset.X;
+                    Data.ItemPos.Y := MousePos.Y-MapOffset.Y;
+                  end;
 
-                    if c1 or c2 then
+            SELECTFLAG_DOOR:
+            // Дверь:
+              begin
+                IDArray := ObjectInRect(MousePos.X-MapOffset.X,
+                                        MousePos.Y-MapOffset.Y,
+                                        2, 2, OBJECT_PANEL, True);
+                if IDArray <> nil then
+                  begin
+                    for i := 0 to High(IDArray) do
+                      if (gPanels[IDArray[i]].PanelType = PANEL_OPENDOOR) or
+                         (gPanels[IDArray[i]].PanelType = PANEL_CLOSEDOOR) then
                       begin
-                        ResizeType := RESIZETYPE_HORIZONTAL;
-                        if c1 then
-                          ResizeDirection := RESIZEDIR_LEFT
-                        else
-                          ResizeDirection := RESIZEDIR_RIGHT;
-                        RenderPanel.Cursor := crSizeWE;
-                      end
-                    else
-                      begin
-                        ResizeType := RESIZETYPE_VERTICAL;
-                        if c3 then
-                          ResizeDirection := RESIZEDIR_UP
-                        else
-                          ResizeDirection := RESIZEDIR_DOWN;
-                        RenderPanel.Cursor := crSizeNS;
+                        gTriggers[SelectedObjects[
+                          GetFirstSelected() ].ID].Data.PanelID := IDArray[i];
+                        Break;
                       end;
+                  end
+                else
+                  gTriggers[SelectedObjects[
+                    GetFirstSelected() ].ID].Data.PanelID := -1;
+              end;
+
+            SELECTFLAG_TEXTURE:
+            // Панель с текстурой:
+              begin
+                IDArray := ObjectInRect(MousePos.X-MapOffset.X,
+                             MousePos.Y-MapOffset.Y,
+                             2, 2, OBJECT_PANEL, True);
+                if IDArray <> nil then
+                  begin
+                    for i := 0 to High(IDArray) do
+                      if ((gPanels[IDArray[i]].PanelType in
+                           [PANEL_WALL, PANEL_BACK, PANEL_FORE,
+                            PANEL_WATER, PANEL_ACID1, PANEL_ACID2,
+                            PANEL_STEP]) or
+                          (gPanels[IDArray[i]].PanelType = PANEL_OPENDOOR) or
+                          (gPanels[IDArray[i]].PanelType = PANEL_CLOSEDOOR)) and
+                         (gPanels[IDArray[i]].TextureName <> '') then
+                      begin
+                        gTriggers[SelectedObjects[
+                          GetFirstSelected() ].ID].TexturePanel := IDArray[i];
+                        Break;
+                      end;
+                  end
+                else
+                  gTriggers[SelectedObjects[
+                    GetFirstSelected() ].ID].TexturePanel := -1;
+              end;
+
+            SELECTFLAG_LIFT:
+            // Лифт:
+              begin
+                IDArray := ObjectInRect(MousePos.X-MapOffset.X,
+                                        MousePos.Y-MapOffset.Y,
+                                        2, 2, OBJECT_PANEL, True);
+                if IDArray <> nil then
+                  begin
+                    for i := 0 to High(IDArray) do
+                      if (gPanels[IDArray[i]].PanelType = PANEL_LIFTUP) or
+                         (gPanels[IDArray[i]].PanelType = PANEL_LIFTDOWN) then
+                      begin
+                        gTriggers[SelectedObjects[
+                          GetFirstSelected() ].ID].Data.PanelID := IDArray[i];
+                        Break;
+                      end;
+                  end
+                else
+                  gTriggers[SelectedObjects[
+                    GetFirstSelected() ].ID].Data.PanelID := -1;
+              end;
+
+            SELECTFLAG_MONSTER:
+            // Монстра:
+              begin
+                IDArray := ObjectInRect(MousePos.X-MapOffset.X,
+                                        MousePos.Y-MapOffset.Y,
+                                        2, 2, OBJECT_MONSTER, False);
+                if IDArray <> nil then
+                  gTriggers[SelectedObjects[
+                    GetFirstSelected() ].ID].Data.MonsterID := IDArray[0]+1
+                else
+                  gTriggers[SelectedObjects[
+                    GetFirstSelected() ].ID].Data.MonsterID := 0;
+              end;
+          end;
+
+          SelectFlag := SELECTFLAG_SELECTED;
+        end
+      else // if SelectFlag <> SELECTFLAG_NONE...
+        begin
+        // Что уже выбрано и не нажат Ctrl:
+          if (SelectedObjects <> nil) and
+             (not (ssCtrl in Shift)) then
+            for i := 0 to High(SelectedObjects) do
+              with SelectedObjects[i] do
+                if Live then
+                begin
+                  if (ObjectType in [OBJECT_PANEL, OBJECT_TRIGGER]) and
+                     (SelectedObjectCount() = 1) then
+                  begin
+                    Rect := ObjectGetRect(ObjectType, ID);
+
+                    c1 := g_Collide(X-MapOffset.X-1, Y-MapOffset.Y-1, 2, 2,
+                            Rect.X-2, Rect.Y+(Rect.Height div 2)-2, 4, 4);
+                    c2 := g_Collide(X-MapOffset.X-1, Y-MapOffset.Y-1, 2, 2,
+                            Rect.X+Rect.Width-3, Rect.Y+(Rect.Height div 2)-2, 4, 4);
+                    c3 := g_Collide(X-MapOffset.X-1, Y-MapOffset.Y-1, 2, 2,
+                            Rect.X+(Rect.Width div 2)-2, Rect.Y-2, 4, 4);
+                    c4 := g_Collide(X-MapOffset.X-1, Y-MapOffset.Y-1, 2, 2,
+                            Rect.X+(Rect.Width div 2)-2, Rect.Y+Rect.Height-3, 4, 4);
+
+                  // Меняем размер панели или триггера:
+                    if c1 or c2 or c3 or c4 then
+                    begin
+                      MouseAction := MOUSEACTION_RESIZE;
+                      LastMovePoint := MousePos;
+
+                      if c1 or c2 then
+                        begin // Шире/уже
+                          ResizeType := RESIZETYPE_HORIZONTAL;
+                          if c1 then
+                            ResizeDirection := RESIZEDIR_LEFT
+                          else
+                            ResizeDirection := RESIZEDIR_RIGHT;
+                          RenderPanel.Cursor := crSizeWE;
+                        end
+                      else
+                        begin // Выше/ниже
+                          ResizeType := RESIZETYPE_VERTICAL;
+                          if c3 then
+                            ResizeDirection := RESIZEDIR_UP
+                          else
+                            ResizeDirection := RESIZEDIR_DOWN;
+                          RenderPanel.Cursor := crSizeNS;
+                        end;
+
+                      Break;
+                    end;
+                  end;
+
+                // Перемещаем панель или триггер:
+                  if ObjectCollide(ObjectType, ID,
+                       MousePos.X-MapOffset.X-1,
+                       MousePos.Y-MapOffset.Y-1, 2, 2) then
+                  begin
+                    MouseAction := MOUSEACTION_MOVEOBJ;
+                    LastMovePoint := MousePos;
 
                     Break;
                   end;
                 end;
-
-              // Перемещаем панель или триггер:
-                if ObjectCollide(ObjectType, ID,
-                     MousePos.X-MapOffset.X-1,
-                     MousePos.Y-MapOffset.Y-1, 2, 2) then
-                begin
-                  MouseAction := MOUSEACTION_MOVEOBJ;
-                  LastMovePoint := MousePos;
-
-                  Break;
-                end;
-              end;
-      end;
+        end;
   end; // if Button = mbRight
 
   MouseRDown := Button = mbRight;
@@ -2857,20 +3179,31 @@ begin
 
         MouseAction := MOUSEACTION_NONE;
       end;
-    end // if Button = mbLeft
+    end // if Button = mbLeft...
   else // Right Mouse Button:
     begin
+      if MouseAction = MOUSEACTION_NOACTION then
+      begin
+        MouseAction := MOUSEACTION_NONE;
+        Exit;
+      end;
+
     // Объект передвинут или изменен в размере:
       if MouseAction in [MOUSEACTION_MOVEOBJ, MOUSEACTION_RESIZE] then
       begin
-        FillProperty();
         MouseAction := MOUSEACTION_NONE;
+        FillProperty();
         Exit;
       end;
 
     // Еще не все выбрали:
       if SelectFlag <> SELECTFLAG_NONE then
+      begin
+        if SelectFlag = SELECTFLAG_SELECTED then
+          SelectFlag := SELECTFLAG_NONE;
+        FillProperty();
         Exit;
+      end;
 
     // Мышь сдвинулась во время удержания клавиши:
       if (MousePos.X <> MouseRDownPos.X) and
@@ -2895,7 +3228,7 @@ begin
 
     // Если зажат Ctrl - выделять еще, иначе только один выделенный объект: 
       if not (ssCtrl in Shift) then
-        RemoveSelect();
+        RemoveSelectFromObjects();
 
     // Выделяем всё в выбранном прямоугольнике:
       IDArray := ObjectInRect(rRect.X, rRect.Y,
@@ -3113,9 +3446,51 @@ end;
 procedure TMainForm.FormKeyDown(Sender: TObject; var Key: Word;
   Shift: TShiftState);
 var
-  dx, dy: Integer;
+  dx, dy, i: Integer;
 
 begin
+  if (not EditingProperties) then
+  begin
+    if Key = Ord('1') then
+      SwitchLayer(LAYER_BACK);
+    if Key = Ord('2') then
+      SwitchLayer(LAYER_WALLS);
+    if Key = Ord('3') then
+      SwitchLayer(LAYER_FOREGROUND);
+    if Key = Ord('4') then
+      SwitchLayer(LAYER_STEPS);
+    if Key = Ord('5') then
+      SwitchLayer(LAYER_WATER);
+    if Key = Ord('6') then
+      SwitchLayer(LAYER_ITEMS);
+    if Key = Ord('7') then
+      SwitchLayer(LAYER_MONSTERS);
+    if Key = Ord('8') then
+      SwitchLayer(LAYER_AREAS);
+    if Key = Ord('9') then
+      SwitchLayer(LAYER_TRIGGERS);
+    if Key = Ord('0') then
+      tbShowClick(tbShow);
+      
+    if Key = Ord('V') then
+    begin // Поворот монстров и областей:
+      if (SelectedObjects <> nil) then
+        for i := 0 to High(SelectedObjects) do
+          if (SelectedObjects[i].Live) then
+          begin
+            if (SelectedObjects[i].ObjectType = OBJECT_MONSTER) then
+              begin
+                g_ChangeDir(gMonsters[SelectedObjects[i].ID].Direction);
+              end
+            else
+              if (SelectedObjects[i].ObjectType = OBJECT_AREA) then
+              begin
+                g_ChangeDir(gAreas[SelectedObjects[i].ID].Direction);
+              end;
+          end;
+    end;
+  end;
+
 // Удалить выделенные объекты:
   if (Key = VK_DELETE) and (SelectedObjects <> nil) and
      RenderPanel.Focused() then
@@ -3123,7 +3498,7 @@ begin
 
 // Снять выделение:
   if (Key = VK_ESCAPE) and (SelectedObjects <> nil) then
-    RemoveSelect();
+    RemoveSelectFromObjects();
 
 // Передвинуть объекты:
   if MainForm.ActiveControl = RenderPanel then
@@ -3182,13 +3557,13 @@ end;
 
 procedure TMainForm.aOptimizeExecute(Sender: TObject);
 begin
-  RemoveSelect();
-  MapOptimizationForm.Show();
+  RemoveSelectFromObjects();
+  MapOptimizationForm.ShowModal();
 end;
 
 procedure TMainForm.aCheckMapExecute(Sender: TObject);
 begin
-  MapCheckForm.Show();
+  MapCheckForm.ShowModal();
 end;
 
 procedure TMainForm.bbAddTextureClick(Sender: TObject);
@@ -3267,7 +3642,6 @@ begin
             (KeyName = _lc[I_PROP_TR_TEXTURE_ONCE]) or
             (KeyName = _lc[I_PROP_TR_TEXTURE_ANIM_ONCE]) or
             (KeyName = _lc[I_PROP_TR_SOUND_LOCAL]) or
-            (KeyName = _lc[I_PROP_TR_SOUND_COUNT]) or
             (KeyName = _lc[I_PROP_TR_SOUND_SWITCH]) or
             (KeyName = _lc[I_PROP_TR_MONSTER_ACTIVE]) then
       begin
@@ -3281,6 +3655,7 @@ procedure TMainForm.bApplyPropertyClick(Sender: TObject);
 var
   _id, a, r, c: Integer;
   s: String;
+  res: Boolean;
 
 begin
   if SelectedObjectCount() <> 1 then
@@ -3310,46 +3685,106 @@ begin
           Width := StrToInt(Trim(vleObjectProperty.Values[_lc[I_PROP_WIDTH]]));
           Height := StrToInt(Trim(vleObjectProperty.Values[_lc[I_PROP_HEIGHT]]));
 
+          PanelType := GetPanelType(vleObjectProperty.Values[_lc[I_PROP_PANEL_TYPE]]);
+
+        // Сброс ссылки на триггеры смены текстуры:
+          if not WordBool(PanelType and (PANEL_WALL or PANEL_FORE or PANEL_BACK)) then
+            if gTriggers <> nil then
+              for a := 0 to High(gTriggers) do
+                if (gTriggers[a].TriggerType <> 0) and
+                   (gTriggers[a].TexturePanel = Integer(SelectedObjects[_id].ID)) then
+                  gTriggers[a].TexturePanel := -1;
+
+        // Сброс ссылки на триггеры лифта:
+          if not WordBool(PanelType and (PANEL_LIFTUP or PANEL_LIFTDOWN)) then
+            if gTriggers <> nil then
+              for a := 0 to High(gTriggers) do
+                if (gTriggers[a].TriggerType in [TRIGGER_LIFTUP, TRIGGER_LIFTDOWN, TRIGGER_LIFT]) and
+                   (gTriggers[a].Data.PanelID = Integer(SelectedObjects[_id].ID)) then
+                     gTriggers[a].Data.PanelID := -1;
+
+        // Сброс ссылки на триггеры двери:
+          if not WordBool(PanelType and (PANEL_OPENDOOR or PANEL_CLOSEDOOR)) then
+            if gTriggers <> nil then
+              for a := 0 to High(gTriggers) do
+                if (gTriggers[a].TriggerType in [TRIGGER_OPENDOOR, TRIGGER_CLOSEDOOR, TRIGGER_DOOR,
+                                                 TRIGGER_DOOR5, TRIGGER_CLOSETRAP, TRIGGER_TRAP]) and
+                   (gTriggers[a].Data.PanelID = Integer(SelectedObjects[_id].ID)) then
+                  gTriggers[a].Data.PanelID := -1;
+
           if IsTexturedPanel(PanelType) then
             begin // Может быть текстура
-              PanelType := GetPanelType(vleObjectProperty.Values[_lc[I_PROP_PANEL_TYPE]]);
+              if TextureName <> '' then
+                begin // Была текстура
+                  Alpha := StrToInt(Trim(vleObjectProperty.Values[_lc[I_PROP_PANEL_ALPHA]]));
+                  Blending := NameToBool(vleObjectProperty.Values[_lc[I_PROP_PANEL_BLEND]]);
+                end
+              else // Не было
+                begin
+                  Alpha := 0;
+                  Blending := False;
+                end;
+
+            // Новая текстура:
+              TextureName := vleObjectProperty.Values[_lc[I_PROP_PANEL_TEX]];
 
               if TextureName <> '' then
-              begin // Есть текстура
-                Alpha := StrToInt(Trim(vleObjectProperty.Values[_lc[I_PROP_PANEL_ALPHA]]));
-                Blending := NameToBool(vleObjectProperty.Values[_lc[I_PROP_PANEL_BLEND]]);
-              end;
+                begin // Есть текстура
+                // Обычная текстура:
+                  if not IsSpecialTexture(TextureName) then
+                    begin
+                      g_GetTextureSizeByName(TextureName,
+                        TextureWidth, TextureHeight);
+                        
+                    // Проверка кратности размеров панели:
+                      res := True;
+                      if TextureWidth <> 0 then
+                        if gPanels[SelectedObjects[_id].ID].Width mod TextureWidth <> 0 then
+                        begin
+                          ErrorMessageBox(Format(_lc[I_MSG_WRONG_TEXWIDTH],
+                                          [TextureWidth]));
+                          Res := False;
+                        end;
+                      if Res and (TextureHeight <> 0) then
+                        if gPanels[SelectedObjects[_id].ID].Height mod TextureHeight <> 0 then
+                        begin
+                          ErrorMessageBox(Format(_lc[I_MSG_WRONG_TEXHEIGHT],
+                                          [TextureHeight]));
+                          Res := False;
+                        end;
 
-            // Сброс ссылки на триггеры смены текстуры:
-              if not WordBool(PanelType and (PANEL_WALL or PANEL_FORE or PANEL_BACK)) then
-                if gTriggers <> nil then
-                  for a := 0 to High(gTriggers) do
-                    if (gTriggers[a].TriggerType <> 0) and
-                       (gTriggers[a].TexturePanel = Integer(SelectedObjects[_id].ID)) then
-                      gTriggers[a].TexturePanel := -1;
-
-            // Сброс ссылки на триггеры лифта:
-              if not WordBool(PanelType and (PANEL_LIFTUP or PANEL_LIFTDOWN)) then
-                if gTriggers <> nil then
-                  for a := 0 to High(gTriggers) do
-                    if (gTriggers[a].TriggerType in [TRIGGER_LIFTUP, TRIGGER_LIFTDOWN, TRIGGER_LIFT]) and
-                       (gTriggers[a].Data.PanelID = Integer(SelectedObjects[_id].ID)) then
-                         gTriggers[a].Data.PanelID := -1;
-
-            // Сброс ссылки на триггеры двери:
-              if not WordBool(PanelType and (PANEL_OPENDOOR or PANEL_CLOSEDOOR)) then
-                if gTriggers <> nil then
-                  for a := 0 to High(gTriggers) do
-                    if (gTriggers[a].TriggerType in [TRIGGER_OPENDOOR, TRIGGER_CLOSEDOOR, TRIGGER_DOOR,
-                                                     TRIGGER_DOOR5, TRIGGER_CLOSETRAP, TRIGGER_TRAP]) and
-                       (gTriggers[a].Data.PanelID = Integer(SelectedObjects[_id].ID)) then
-                      gTriggers[a].Data.PanelID := -1;
+                      if Res then 
+                        g_GetTexture(TextureName, TextureID)
+                      else
+                        begin
+                          TextureName := '';
+                          TextureWidth := 1;
+                          TextureHeight := 1;
+                          TextureID := TEXTURE_SPECIAL_NONE;
+                        end;
+                    end
+                  else // Спец.текстура
+                    begin
+                      TextureHeight := 1;
+                      TextureWidth := 1;
+                      TextureID := SpecialTextureID(TextureName);
+                    end;
+                end
+              else // Нет текстуры
+                begin
+                  TextureWidth := 1;
+                  TextureHeight := 1;
+                  TextureID := TEXTURE_SPECIAL_NONE;
+                end;
             end
           else // Не может быть текстуры
             begin
               Alpha := 0;
               Blending := False;
               TextureName := '';
+              TextureWidth := 1;
+              TextureHeight := 1;
+              TextureID := TEXTURE_SPECIAL_NONE;
             end;
         end;
       end;
@@ -3565,87 +4000,267 @@ begin
 
   SetLength(UndoBuffer, Length(UndoBuffer)-1);
 
-  RemoveSelect();
+  RemoveSelectFromObjects();
 
   miUndo.Enabled := UndoBuffer <> nil;
 end;
 
+
 procedure TMainForm.aCopyObjectExecute(Sender: TObject);
 var
-  a, i: Integer;
+  a, b: Integer;
+  CopyBuffer: TCopyRecArray;
+  str: String;
+  ok: Boolean;
+
+  function CB_Compare(I1, I2: TCopyRec): Integer;
+  begin
+    Result := Integer(I1.ObjectType) - Integer(I2.ObjectType);
+
+    if Result = 0 then // Одного типа
+      Result := Integer(I1.ID) - Integer(I2.ID);
+  end;
+
+  procedure QuickSortCopyBuffer(L, R: Integer);
+  var
+    I, J: Integer;
+    P, T: TCopyRec;
+
+  begin
+    repeat
+      I := L;
+      J := R;
+      P := CopyBuffer[(L + R) shr 1];
+      
+      repeat
+        while CB_Compare(CopyBuffer[I], P) < 0 do
+          Inc(I);
+        while CB_Compare(CopyBuffer[J], P) > 0 do
+          Dec(J);
+
+        if I <= J then
+        begin
+          T := CopyBuffer[I];
+          CopyBuffer[I] := CopyBuffer[J];
+          CopyBuffer[J] := T;
+          Inc(I);
+          Dec(J);
+        end;
+      until I > J;
+
+      if L < J then
+        QuickSortCopyBuffer(L, J);
+        
+      L := I;
+    until I >= R;
+  end;
   
 begin
   if SelectedObjects = nil then
     Exit;
 
+  b := -1;
   CopyBuffer := nil;
 
+// Копируем объекты:
   for a := 0 to High(SelectedObjects) do
     if SelectedObjects[a].Live then
       with SelectedObjects[a] do
       begin
         SetLength(CopyBuffer, Length(CopyBuffer)+1);
-        i := High(CopyBuffer);
+        b := High(CopyBuffer);
+        CopyBuffer[b].ID := ID;
+        CopyBuffer[b].Panel := nil;
 
         case ObjectType of
           OBJECT_PANEL:
             begin
-              CopyBuffer[i].ObjectType := OBJECT_PANEL;
-              New(CopyBuffer[i].Panel);
-              CopyBuffer[i].Panel^ := gPanels[ID];
+              CopyBuffer[b].ObjectType := OBJECT_PANEL;
+              New(CopyBuffer[b].Panel);
+              CopyBuffer[b].Panel^ := gPanels[ID];
             end;
 
           OBJECT_ITEM:
             begin
-              CopyBuffer[i].ObjectType := OBJECT_ITEM;
-              CopyBuffer[i].Item := gItems[ID];
+              CopyBuffer[b].ObjectType := OBJECT_ITEM;
+              CopyBuffer[b].Item := gItems[ID];
             end;
 
           OBJECT_MONSTER:
             begin
-              CopyBuffer[i].ObjectType := OBJECT_MONSTER;
-              CopyBuffer[i].Monster := gMonsters[ID];
+              CopyBuffer[b].ObjectType := OBJECT_MONSTER;
+              CopyBuffer[b].Monster := gMonsters[ID];
             end;
 
           OBJECT_AREA:
             begin
-              CopyBuffer[i].ObjectType := OBJECT_AREA;
-              CopyBuffer[i].Area := gAreas[ID];
+              CopyBuffer[b].ObjectType := OBJECT_AREA;
+              CopyBuffer[b].Area := gAreas[ID];
             end;
 
           OBJECT_TRIGGER:
             begin
-              CopyBuffer[i].ObjectType := OBJECT_TRIGGER;
-              CopyBuffer[i].Trigger := gTriggers[ID];
+              CopyBuffer[b].ObjectType := OBJECT_TRIGGER;
+              CopyBuffer[b].Trigger := gTriggers[ID];
             end;
         end;
       end;
 
-  miPaste.Enabled := CopyBuffer <> nil;
+// Сортировка по ID:
+  if CopyBuffer <> nil then
+  begin
+    QuickSortCopyBuffer(0, b);
+  end;
+
+// Пестановка ссылок триггеров:
+  for a := 0 to Length(CopyBuffer)-1 do
+    if CopyBuffer[a].ObjectType = OBJECT_TRIGGER then
+    begin
+      case CopyBuffer[a].Trigger.TriggerType of
+        TRIGGER_OPENDOOR, TRIGGER_CLOSEDOOR, TRIGGER_DOOR,
+        TRIGGER_DOOR5, TRIGGER_CLOSETRAP, TRIGGER_TRAP,
+        TRIGGER_LIFTUP, TRIGGER_LIFTDOWN, TRIGGER_LIFT:
+          if CopyBuffer[a].Trigger.Data.PanelID <> -1 then
+          begin
+            ok := False;
+
+            for b := 0 to Length(CopyBuffer)-1 do
+              if (CopyBuffer[b].ObjectType = OBJECT_PANEL) and
+                 (CopyBuffer[b].ID = CopyBuffer[a].Trigger.Data.PanelID) then
+              begin
+                CopyBuffer[a].Trigger.Data.PanelID := b;
+                ok := True;
+                Break;
+              end;
+
+          // Этих панелей нет среди копируемых:
+            if not ok then
+              CopyBuffer[a].Trigger.Data.PanelID := -1;
+          end;
+              
+        TRIGGER_PRESS, TRIGGER_ON,
+        TRIGGER_OFF, TRIGGER_ONOFF:
+          if CopyBuffer[a].Trigger.Data.MonsterID <> 0 then
+          begin
+            ok := False;
+
+            for b := 0 to Length(CopyBuffer)-1 do
+              if (CopyBuffer[b].ObjectType = OBJECT_MONSTER) and
+                 (CopyBuffer[b].ID = CopyBuffer[a].Trigger.Data.MonsterID-1) then
+              begin
+                CopyBuffer[a].Trigger.Data.MonsterID := b+1;
+                ok := True;
+                Break;
+              end;
+
+          // Этих монстров нет среди копируемых:
+            if not ok then
+              CopyBuffer[a].Trigger.Data.MonsterID := 0;
+          end;
+      end;
+
+      if CopyBuffer[a].Trigger.TexturePanel <> -1 then
+      begin
+        ok := False;
+
+        for b := 0 to Length(CopyBuffer)-1 do
+          if (CopyBuffer[b].ObjectType = OBJECT_PANEL) and
+             (CopyBuffer[b].ID = CopyBuffer[a].Trigger.TexturePanel) then
+          begin
+            CopyBuffer[a].Trigger.TexturePanel := b;
+            ok := True;
+            Break;
+          end;
+
+      // Этих панелей нет среди копируемых:
+        if not ok then
+          CopyBuffer[a].Trigger.TexturePanel := -1;
+      end;
+    end;
+
+// В буфер обмена:
+  str := CopyBufferToString(CopyBuffer);
+  ClipBoard.AsText := str;
+
+  for a := 0 to Length(CopyBuffer)-1 do
+    if (CopyBuffer[a].ObjectType = OBJECT_PANEL) and
+       (CopyBuffer[a].Panel <> nil) then
+      Dispose(CopyBuffer[a].Panel);
+
+  CopyBuffer := nil;
 end;
 
 procedure TMainForm.aPasteObjectExecute(Sender: TObject);
 var
   a, h: Integer;
   ID: DWORD;
+  CopyBuffer: TCopyRecArray;
+  res: Boolean;
+  swad, ssec, sres: String;
   
 begin
+  CopyBuffer := nil;
+
+  StringToCopyBuffer(ClipBoard.AsText, CopyBuffer);
+
   if CopyBuffer = nil then
     Exit;
 
-  RemoveSelect();
+  RemoveSelectFromObjects();
 
   h := High(CopyBuffer);
-  for a := h downto 0 do
+  for a := 0 to h do
     with CopyBuffer[a] do
     begin
       case ObjectType of
         OBJECT_PANEL:
+          if Panel <> nil then
           begin
             Panel^.X := Panel^.X + 16;
             Panel^.Y := Panel^.Y + 16;
+
+            Panel^.TextureID := TEXTURE_SPECIAL_NONE;
+            Panel^.TextureWidth := 1;
+            Panel^.TextureHeight := 1;
+
+            if (Panel^.PanelType = PANEL_LIFTUP) or
+               (Panel^.PanelType = PANEL_LIFTDOWN) or
+               (Panel^.PanelType = PANEL_BLOCKMON) or
+               (Panel^.TextureName = '') then
+              begin // Нет или не может быть текстуры:
+              end
+            else // Есть текстура:
+              begin
+              // Обычная текстура:
+                if not IsSpecialTexture(Panel^.TextureName) then
+                  begin
+                    res := g_GetTexture(Panel^.TextureName, Panel^.TextureID);
+
+                    if not res then
+                    begin
+                      g_ProcessResourceStr(Panel^.TextureName, swad, ssec, sres);
+                      AddTexture(swad, ssec, sres, True);
+                      res := g_GetTexture(Panel^.TextureName, Panel^.TextureID);
+                    end;
+
+                    if res then
+                      g_GetTextureSizeByName(Panel^.TextureName,
+                        Panel^.TextureWidth, Panel^.TextureHeight)
+                    else
+                      Panel^.TextureName := '';
+                  end
+                else // Спец.текстура:
+                  begin
+                    Panel^.TextureID := SpecialTextureID(Panel^.TextureName);
+                    with MainForm.lbTextureList.Items do
+                      if IndexOf(Panel^.TextureName) = -1 then
+                        Add(Panel^.TextureName);
+                  end;
+              end;
+
             ID := AddPanel(Panel^);
-            Undo_Add(OBJECT_PANEL, ID, a < h);
+            Dispose(Panel);
+            Undo_Add(OBJECT_PANEL, ID, a > 0);
             SelectObject(OBJECT_PANEL, ID, True);
           end;
 
@@ -3653,8 +4268,9 @@ begin
           begin
             Item.X := Item.X + 16;
             Item.Y := Item.Y + 16;
+
             ID := AddItem(Item);
-            Undo_Add(OBJECT_ITEM, ID, a < h);
+            Undo_Add(OBJECT_ITEM, ID, a > 0);
             SelectObject(OBJECT_ITEM, ID, True);
           end;
 
@@ -3662,8 +4278,9 @@ begin
           begin
             Monster.X := Monster.X + 16;
             Monster.Y := Monster.Y + 16;
+
             ID := AddMonster(Monster);
-            Undo_Add(OBJECT_MONSTER, ID, a < h);
+            Undo_Add(OBJECT_MONSTER, ID, a > 0);
             SelectObject(OBJECT_MONSTER, ID, True);
           end;
 
@@ -3671,8 +4288,9 @@ begin
           begin
             Area.X := Area.X + 16;
             Area.Y := Area.Y + 16;
+
             ID := AddArea(Area);
-            Undo_Add(OBJECT_AREA, ID, a < h);
+            Undo_Add(OBJECT_AREA, ID, a > 0);
             SelectObject(OBJECT_AREA, ID, True);
           end;
 
@@ -3680,13 +4298,39 @@ begin
           begin
             Trigger.X := Trigger.X + 16;
             Trigger.Y := Trigger.Y + 16;
-            Trigger.TexturePanel := -1;
+
             ID := AddTrigger(Trigger);
-            Undo_Add(OBJECT_TRIGGER, ID, a < h);
+            Undo_Add(OBJECT_TRIGGER, ID, a > 0);
             SelectObject(OBJECT_TRIGGER, ID, True);
           end;
       end;
     end;
+
+// Переставляем ссылки триггеров:
+  for a := 0 to High(CopyBuffer) do
+    if CopyBuffer[a].ObjectType = OBJECT_TRIGGER then
+    begin
+      case CopyBuffer[a].Trigger.TriggerType of
+        TRIGGER_OPENDOOR, TRIGGER_CLOSEDOOR, TRIGGER_DOOR,
+        TRIGGER_DOOR5, TRIGGER_CLOSETRAP, TRIGGER_TRAP,
+        TRIGGER_LIFTUP, TRIGGER_LIFTDOWN, TRIGGER_LIFT:
+          if CopyBuffer[a].Trigger.Data.PanelID <> -1 then
+            gTriggers[CopyBuffer[a].ID].Data.PanelID :=
+              CopyBuffer[CopyBuffer[a].Trigger.Data.PanelID].ID;
+
+        TRIGGER_PRESS, TRIGGER_ON,
+        TRIGGER_OFF, TRIGGER_ONOFF:
+          if CopyBuffer[a].Trigger.Data.MonsterID <> 0 then
+            gTriggers[CopyBuffer[a].ID].Data.MonsterID :=
+              CopyBuffer[CopyBuffer[a].Trigger.Data.MonsterID-1].ID+1;
+      end;
+
+      if CopyBuffer[a].Trigger.TexturePanel <> -1 then
+        gTriggers[CopyBuffer[a].ID].TexturePanel :=
+          CopyBuffer[CopyBuffer[a].Trigger.TexturePanel].ID;
+    end;
+
+  CopyBuffer := nil;
 
   if h = 0 then
     FillProperty();
@@ -3829,15 +4473,27 @@ begin
 
       for b := ITEM_MEDKIT_SMALL to ITEM_KEY_BLUE do
         lbTypeSelect.Items.Add(ItemToStr(b));
+      lbTypeSelect.Items.Add(ItemToStr(ITEM_BOTTLE));
+      lbTypeSelect.Items.Add(ItemToStr(ITEM_HELMET));
 
-      lbTypeSelect.ItemIndex := StrToItem(Values[Key]) - ITEM_MEDKIT_SMALL;
+      b := StrToItem(Values[Key]);
+      if b >= ITEM_BOTTLE then
+        b := b - 2;
+      lbTypeSelect.ItemIndex := b - ITEM_MEDKIT_SMALL;
 
       if ShowModal() = mrOK then
       begin
         b := lbTypeSelect.ItemIndex + ITEM_MEDKIT_SMALL;
+        if b >= ITEM_WEAPON_KASTET then
+          b := b + 2;
         Values[Key] := ItemToStr(b);
         bApplyProperty.Click();
       end;
+    end
+  else if Key = _lc[I_PROP_PANEL_TEX] then
+    begin // Смена текстуры:
+      vleObjectProperty.Values[Key] := SelectedTexture();
+      bApplyProperty.Click();
     end;
 end;
 
@@ -3859,7 +4515,7 @@ end;
 
 procedure TMainForm.aOpenMapExecute(Sender: TObject);
 begin
-  OpenDialog.Filter := _lc[I_FILE_FILTER];
+  OpenDialog.Filter := _lc[I_FILE_FILTER_ALL];
 
   if OpenDialog.Execute() then
   begin
@@ -3891,10 +4547,28 @@ begin
 end;
 
 procedure TMainForm.FormActivate(Sender: TObject);
+var
+  lang: Integer;
+  config: TConfig;
+  
 begin
   MainForm.ActiveControl := RenderPanel;
 
 // Язык:
+  if gLanguage = '' then
+  begin
+    lang := SelectLanguageForm.ShowModal();
+    case lang of
+      1:   gLanguage := LANGUAGE_ENGLISH;
+      else gLanguage := LANGUAGE_RUSSIAN;
+    end;
+
+    config := TConfig.CreateFile(EditorDir+'\Editor.cfg');
+    config.WriteStr('Editor', 'Language', gLanguage);
+    config.SaveFile(EditorDir+'\Editor.cfg');
+    config.Free();
+  end;
+
   //e_WriteLog('Read language file', MSG_NOTIFY);
   //g_Language_Load(EditorDir+'\data\'+gLanguage+LANGUAGE_FILE_NAME);
   g_Language_Set(gLanguage);
@@ -3909,7 +4583,7 @@ var
   str: String;
 
 begin
-  OpenDialog.Filter := _lc[I_FILE_FILTER];
+  OpenDialog.Filter := _lc[I_FILE_FILTER_WAD];
 
   if not OpenDialog.Execute() then
     Exit;
@@ -3983,6 +4657,8 @@ begin
   if (ID = 0) and (MoveType = 0) then
     Exit;
   if (ID = DWORD(High(gPanels))) and (MoveType <> 0) then
+    Exit;
+  if (ID > DWORD(High(gPanels))) then
     Exit;
 
   _id := Integer(ID);
@@ -4072,7 +4748,13 @@ begin
   for a := 0 to High(SelectedObjects) do
     with SelectedObjects[a] do
       if Live and (ObjectType = OBJECT_PANEL) then
+      begin
+        SelectedObjects[0] := SelectedObjects[a];
+        SetLength(SelectedObjects, 1);
         MovePanel(ID, 0);
+        FillProperty();
+        Break;
+      end;
 end;
 
 procedure TMainForm.aMoveToFore(Sender: TObject);
@@ -4086,7 +4768,13 @@ begin
   for a := 0 to High(SelectedObjects) do
     with SelectedObjects[a] do
       if Live and (ObjectType = OBJECT_PANEL) then
+      begin
+        SelectedObjects[0] := SelectedObjects[a];
+        SetLength(SelectedObjects, 1);
         MovePanel(ID, 1);
+        FillProperty();
+        Break;
+      end;
 end;
 
 procedure TMainForm.aSaveMapAsExecute(Sender: TObject);
@@ -4094,12 +4782,12 @@ var
   idx: Integer;
   
 begin
-  SaveDialog.Filter := _lc[I_FILE_FILTER];
+  SaveDialog.Filter := _lc[I_FILE_FILTER_WAD];
 
   if not SaveDialog.Execute() then
     Exit;
 
-  SaveMapForm.GetMaps(SaveDialog.FileName);
+  SaveMapForm.GetMaps(SaveDialog.FileName, True);
 
   if SaveMapForm.ShowModal() <> mrOK then
     Exit;
@@ -4126,7 +4814,7 @@ var
   a: Integer;
 
 begin
-  RemoveSelect();
+  RemoveSelectFromObjects();
 
   case pcObjects.ActivePageIndex+1 of
     OBJECT_PANEL:
@@ -4172,16 +4860,14 @@ procedure TMainForm.miMapPreviewClick(Sender: TObject);
 begin
   if not PreviewMode then
     begin
+      Splitter2.Visible := False;
+      Splitter1.Visible := False;
       StatusBar.Visible := False;
       PanelObjs.Visible := False;
       PanelProps.Visible := False;
-      Splitter2.Visible := False;
-      Splitter1.Visible := False;
       MainToolBar.Visible := False;
       sbHorizontal.Visible := False;
       sbVertical.Visible := False;
-      _DotEnabled := DotEnable;
-      DotEnable := False;
     end
   else
     begin
@@ -4193,7 +4879,6 @@ begin
       MainToolBar.Visible := True;
       sbHorizontal.Visible := True;
       sbVertical.Visible := True;
-      DotEnable := _DotEnabled;
     end;
 
   PreviewMode := not PreviewMode;
@@ -4326,8 +5011,9 @@ end;
 
 procedure TMainForm.miTestMapClick(Sender: TObject);
 var
-  cmd, dir, mapToRun: String;
+  cmd, dir, mapWAD, mapToRun: String;
   opt: LongWord;
+  time: Integer;
   si: STARTUPINFO;
   pi: PROCESS_INFORMATION;
   lpMsgBuf: PChar;
@@ -4341,12 +5027,14 @@ begin
   end;
 
 // Сохраняем под тестовым именем:
-  g_ProcessResourceStr(OpenedMap, mapToRun, cmd, dir);
-  mapTorun := mapToRun + ':\' + TEST_MAP_NAME;
-  SaveMap(mapTorun);
+  g_ProcessResourceStr(OpenedMap, mapWAD, cmd, dir);
+  mapToRun := mapWAD + ':\' + TEST_MAP_NAME;
+  time := g_GetFileTime(mapWAD);
+  SaveMap(mapToRun);
+  g_SetFileTime(mapWAD, time);
 
 // Опции игры:
-  opt := 0;
+  opt := 32 + 64;
   if TestOptionsTwoPlayers then
     opt := opt + 1;
   if TestOptionsTeamDamage then
@@ -4418,7 +5106,7 @@ var
   a: Integer;
 
 begin
-  RemoveSelect();
+  RemoveSelectFromObjects();
 
   if gPanels <> nil then
     for a := 0 to High(gPanels) do
@@ -4444,6 +5132,43 @@ begin
     for a := 0 to High(gTriggers) do
       if gTriggers[a].TriggerType <> TRIGGER_NONE then
         SelectObject(OBJECT_TRIGGER, a, True);
+end;
+
+procedure TMainForm.Splitter1CanResize(Sender: TObject;
+  var NewSize: Integer; var Accept: Boolean);
+begin
+  Accept := (NewSize > 140);
+end;
+
+procedure TMainForm.Splitter2CanResize(Sender: TObject;
+  var NewSize: Integer; var Accept: Boolean);
+begin
+  Accept := (NewSize > 110);
+end;
+
+procedure TMainForm.vleObjectPropertyEnter(Sender: TObject);
+begin
+  EditingProperties := True;
+end;
+
+procedure TMainForm.vleObjectPropertyExit(Sender: TObject);
+begin
+  EditingProperties := False;
+end;
+
+procedure TMainForm.FormKeyUp(Sender: TObject; var Key: Word;
+  Shift: TShiftState);
+begin
+// Объекты передвигались:
+  if MainForm.ActiveControl = RenderPanel then
+  begin
+    if (Key = VK_NUMPAD4) or
+       (Key = VK_NUMPAD6) or
+       (Key = VK_NUMPAD8) or
+       (Key = VK_NUMPAD5) or
+       (Key = Ord('V')) then
+      FillProperty();
+  end;
 end;
 
 End.

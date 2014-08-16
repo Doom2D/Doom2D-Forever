@@ -1,28 +1,28 @@
-unit g_map;
+Unit g_map;
 
-interface
+Interface
 
-uses
+Uses
   e_graphics, g_basic, MAPSTRUCT, windows, g_textures,
   g_phys, WADEDITOR, BinEditor, g_panel;
 
 Type
   TMapInfo = record
-   Map:           string;
-   Name:          string;
-   Description:   string;
-   Author:        string;
-   MusicName:     string;
-   SkyName:       string;
-   Height:        Word;
-   Width:         Word;
+    Map:           String;
+    Name:          String;
+    Description:   String;
+    Author:        String;
+    MusicName:     String;
+    SkyName:       String;
+    Height:        Word;
+    Width:         Word;
   end;
 
   PRespawnPoint = ^TRespawnPoint;
   TRespawnPoint = record
-   X, Y:      Integer;
-   Direction: TDirection;
-   PointType: Byte;
+    X, Y:      Integer;
+    Direction: TDirection;
+    PointType: Byte;
   end;
 
   PFlagPoint = ^TFlagPoint;
@@ -30,36 +30,37 @@ Type
   
   PFlag = ^TFlag;
   TFlag = record
-   Obj:         TObj;
-   RespawnType: Byte;
-   State:       Byte;
-   Count:       Integer;
-   Animation:   TAnimation;
-   Direction:   TDirection;
+    Obj:         TObj;
+    RespawnType: Byte;
+    State:       Byte;
+    Count:       Integer;
+    Animation:   TAnimation;
+    Direction:   TDirection;
   end;
 
 
-function g_Map_Load(Res: string): Boolean;
-function g_Map_GetMapInfo(Res: string): TMapInfo;
-function g_Map_GetMapsList(WADName: string): SArray;
-function g_Map_Exist(Res: string): Boolean;
+function  g_Map_Load(Res: String): Boolean;
+function  g_Map_GetMapInfo(Res: String): TMapInfo;
+function  g_Map_GetMapsList(WADName: String): SArray;
+function  g_Map_Exist(Res: String): Boolean;
 procedure g_Map_Free();
 procedure g_Map_Update();
 procedure g_Map_DrawPanels(PanelType: Word);
 procedure g_Map_DrawBack(dx, dy: Integer);
-function g_Map_CollidePanel(X, Y: Integer; Width, Height: Word;
-                            PanelType: Word; b1x3: Boolean): Boolean;
+function  g_Map_CollidePanel(X, Y: Integer; Width, Height: Word;
+                             PanelType: Word; b1x3: Boolean): Boolean;
+function  g_Map_CollideLiquid_Texture(X, Y: Integer; Width, Height: Word): DWORD;
 procedure g_Map_EnableWall(ID: DWORD);
 procedure g_Map_DisableWall(ID: DWORD);
 procedure g_Map_SwitchTexture(PanelType: Word; ID: DWORD; AnimLoop: Byte = 0);
 procedure g_Map_SetLift(ID: DWORD; t: Integer);
 procedure g_Map_ReAdd_DieTriggers();
-function g_Map_IsSpecialTexture(Texture: String): Boolean;
+function  g_Map_IsSpecialTexture(Texture: String): Boolean;
 
-function g_Map_GetPoint(PointType: Byte; var RespawnPoint: TRespawnPoint): Boolean;
-function g_Map_GetPointCount(PointType: Byte): Word;
+function  g_Map_GetPoint(PointType: Byte; var RespawnPoint: TRespawnPoint): Boolean;
+function  g_Map_GetPointCount(PointType: Byte): Word;
 
-function g_Map_HaveFlagPoints(): Boolean;
+function  g_Map_HaveFlagPoints(): Boolean;
 
 procedure g_Map_ResetFlag(Flag: Byte);
 procedure g_Map_DrawFlags();
@@ -103,9 +104,9 @@ var
   gLiftMap: array of array of DWORD;
   BackID:  DWORD = DWORD(-1);
 
-implementation
+Implementation
 
-uses
+Uses
   g_main, e_log, SysUtils, g_items, g_gfx, g_console,
   dglOpenGL, g_weapons, g_game, g_sound, e_sound, CONFIG,
   g_options, MAPREADER, g_triggers, g_player, MAPDEF,
@@ -118,9 +119,9 @@ const
 
 var
   Textures:      TLevelTextureArray;
-  RespawnPoints: array of TRespawnPoint;
-  FlagPoints:    array [FLAG_RED..FLAG_BLUE] of PFlagPoint;
-  //DOMFlagPoints: array of TFlagPoint;
+  RespawnPoints: Array of TRespawnPoint;
+  FlagPoints:    Array [FLAG_RED..FLAG_BLUE] of PFlagPoint;
+  //DOMFlagPoints: Array of TFlagPoint;
 
 
 function g_Map_IsSpecialTexture(Texture: String): Boolean;
@@ -132,7 +133,7 @@ end;
 
 procedure CreateDoorMap();
 var
-  PanelArray: array of record
+  PanelArray: Array of record
                          X, Y: Integer;
                          Width, Height: Word;
                          Active: Boolean;
@@ -339,6 +340,20 @@ begin
     panels^[len].SaveIt := True;
 
   Result := len;
+end;
+
+procedure CreateNullTexture(RecName: String);
+begin
+  SetLength(Textures, Length(Textures)+1);
+
+  with Textures[High(Textures)] do
+  begin
+    TextureName := RecName;
+    Width := 1;
+    Height := 1;
+    Anim := False;
+    TextureID := TEXTURE_NONE;
+  end;
 end;
 
 function CreateTexture(RecName: String; Map: string; log: Boolean): Boolean;
@@ -658,6 +673,9 @@ begin
              TRIGGER_ON, TRIGGER_OFF, TRIGGER_ONOFF] then
           if (gTriggers[a].Data.MonsterID-1) = gMonsters[i].StartID then
             gMonsters[i].AddTrigger(a);
+
+    if monster.MonsterType <> MONSTER_BARREL then
+      Inc(gTotalMonsters);
   end;
 end;
 
@@ -764,9 +782,14 @@ begin
           begin
             SetLength(s, 64);
             CopyMemory(@s[1], @_textures[a].Resource[0], 64);
-            g_FatalError(Format(_lc[I_GAME_ERROR_TEXTURE_ANIM], [s]));
-            MapReader.Free();
-            Exit;
+            for b := 1 to Length(s) do
+              if s[b] = #0 then
+              begin
+                SetLength(s, b-1);
+                Break;
+              end;
+            g_SimpleError(Format(_lc[I_GAME_ERROR_TEXTURE_ANIM], [s]));
+            CreateNullTexture(_textures[a].Resource);
           end;
         end
       else // Обычная текстура:
@@ -774,9 +797,14 @@ begin
         begin
           SetLength(s, 64);
           CopyMemory(@s[1], @_textures[a].Resource[0], 64);
-          g_FatalError(Format(_lc[I_GAME_ERROR_TEXTURE_SIMPLE], [s]));
-          MapReader.Free();
-          Exit;
+          for b := 1 to Length(s) do
+            if s[b] = #0 then
+            begin
+              SetLength(s, b-1);
+              Break;
+            end;
+          g_SimpleError(Format(_lc[I_GAME_ERROR_TEXTURE_SIMPLE], [s]));
+          CreateNullTexture(_textures[a].Resource);
         end;
 
       g_Game_StepLoading();
@@ -828,19 +856,28 @@ begin
       SetLength(AddTextures, 0);
       trigRef := False;
       CurTex := -1;
-      texture := _textures[panels[a].TextureNum];
-      
-    // Смотрим, ссылаются ли на эту панель триггеры.
-    // Если да - то надо создать еще текстур:
-      ok := False;
-      if (TriggersTable <> nil) and (_textures <> nil) then
-        for b := 0 to High(TriggersTable) do
-          if TriggersTable[b].TexturePanel = a then
-          begin
-            trigRef := True;
-            ok := True;
-            Break;
-          end;
+      if _textures <> nil then
+        begin
+          texture := _textures[panels[a].TextureNum];
+          ok := True;
+        end
+      else
+        ok := False;
+
+      if ok then
+      begin
+      // Смотрим, ссылаются ли на эту панель триггеры.
+      // Если да - то надо создать еще текстур:
+        ok := False;
+        if (TriggersTable <> nil) and (_textures <> nil) then
+          for b := 0 to High(TriggersTable) do
+            if TriggersTable[b].TexturePanel = a then
+            begin
+              trigRef := True;
+              ok := True;
+              Break;
+            end;
+      end;
 
       if ok then
       begin // Есть ссылки триггеров на эту панель
@@ -1003,6 +1040,8 @@ begin
   g_Game_SetLoadingText(_lc[I_LOAD_MONSTERS], 0, False);
   monsters := MapReader.GetMonsters();
 
+  gTotalMonsters := 0;
+
 // Если не LoadState, то создаем монстров:
   if (monsters <> nil) and not gLoadGameMode then
   begin
@@ -1078,9 +1117,12 @@ begin
   CreateLiftMap();
 
   g_Items_Init();
-  g_GFX_Init();
   g_Weapon_Init();
   g_Monsters_Init();
+
+// Если не LoadState, то создаем карту столкновений:
+  if not gLoadGameMode then
+    g_GFX_Init();
 
 // Сброс локальных массивов:
   _textures := nil;
@@ -1093,10 +1135,12 @@ begin
 
 // Включаем музыку, если это не загрузка:
   if ok and (not gLoadGameMode) then
-  begin
-    gMusic.SetByName(gMapInfo.MusicName);
-    gMusic.Play();
-  end;
+    begin
+      gMusic.SetByName(gMapInfo.MusicName);
+      gMusic.Play();
+    end
+  else
+    gMusic.SetByName('');
 
   Result := True;
 end;
@@ -1270,7 +1314,8 @@ begin
         if Textures[a].Anim then
           g_Frames_DeleteByID(Textures[a].FramesID)
         else
-          e_DeleteTexture(Textures[a].TextureID);
+          if Textures[a].TextureID <> TEXTURE_NONE then
+            e_DeleteTexture(Textures[a].TextureID);
 
     Textures := nil;
   end;
@@ -1341,10 +1386,7 @@ begin
           if gFlags[a].Animation <> nil then
             gFlags[a].Animation.Update();
 
-          m := g_Obj_Move(@Obj, True);
-
-          if WordBool(m and MOVE_HITWATER) then
-            g_Obj_Splash(@Obj);
+          m := g_Obj_Move(@Obj, True, True);
 
           if gTime mod (GAME_TICK*2) <> 0 then
             Continue;
@@ -1428,6 +1470,7 @@ function g_Map_CollidePanel(X, Y: Integer; Width, Height: Word;
                             PanelType: Word; b1x3: Boolean): Boolean;
 var
   a, h: Integer;
+
 begin
  Result := False;
 
@@ -1531,7 +1574,7 @@ begin
 
    for a := 0 to h do
     if ( (not b1x3) or
-         ((gBlockMon[a].Width + gBlockMon[a].Height) >= 64) ) and
+         ((gBlockMon[a].Width + gBlockMon[a].Height) >= 64) ) and 
        g_Collide(X, Y, Width, Height,
                  gBlockMon[a].X, gBlockMon[a].Y,
                  gBlockMon[a].Width, gBlockMon[a].Height) then
@@ -1539,6 +1582,56 @@ begin
      Result := True;
      Exit;
     end;
+  end;
+end;
+
+function g_Map_CollideLiquid_Texture(X, Y: Integer; Width, Height: Word): DWORD;
+var
+  a, h: Integer;
+
+begin
+  Result := TEXTURE_NONE;
+
+  if gWater <> nil then
+  begin
+    h := High(gWater);
+
+    for a := 0 to h do
+      if g_Collide(X, Y, Width, Height,
+                   gWater[a].X, gWater[a].Y,
+                   gWater[a].Width, gWater[a].Height) then
+      begin
+        Result := gWater[a].GetTextureID();
+        Exit;
+      end;
+  end;
+
+  if gAcid1 <> nil then
+  begin
+    h := High(gAcid1);
+
+    for a := 0 to h do
+      if g_Collide(X, Y, Width, Height,
+                   gAcid1[a].X, gAcid1[a].Y,
+                   gAcid1[a].Width, gAcid1[a].Height) then
+      begin
+        Result := gAcid1[a].GetTextureID();
+        Exit;
+      end;
+  end;
+
+  if gAcid2 <> nil then
+  begin
+    h := High(gAcid2);
+
+    for a := 0 to h do
+      if g_Collide(X, Y, Width, Height,
+                   gAcid2[a].X, gAcid2[a].Y,
+                   gAcid2[a].Width, gAcid2[a].Height) then
+      begin
+        Result := gAcid2[a].GetTextureID();
+        Exit;
+      end;
   end;
 end;
 
@@ -1778,7 +1871,10 @@ begin
   Mem.WriteDWORD(dw);
 // Название музыки:
   Assert(gMusic <> nil, 'g_Map_SaveState: gMusic = nil');
-  str := gMusic.Name;
+  if gMusic.NoMusic then
+    str := ''
+  else
+    str := gMusic.Name;
   Mem.WriteString(str, 64);
 // Позиция проигрывания музыки:
   dw := gMusic.GetPosition();
@@ -1786,6 +1882,10 @@ begin
 // Стоит ли музыка на спец-паузе:
   boo := gMusic.SpecPause;
   Mem.WriteBoolean(boo);
+///// /////
+
+///// Сохраняем количество монстров: /////
+  Mem.WriteInt(gTotalMonsters);
 ///// /////
 
 //// Сохраняем флаги, если это CTF: /////
@@ -1813,14 +1913,14 @@ procedure g_Map_LoadState(Var Mem: TBinMemoryReader);
 var
   dw: DWORD;
   b: Byte;
-  id: Integer;
+  j: Integer;
   str: String;
   boo: Boolean;
 
   procedure LoadPanelArray(var panels: TPanelArray);
   var
     PAMem: TBinMemoryReader;
-    i: Integer;
+    i, id: Integer;
 
   begin
   // Загружаем текущий список панелей:
@@ -1889,6 +1989,9 @@ begin
   LoadPanelArray(gLifts);
 ///// /////
 
+// Обновляем карту столкновений:
+  g_GFX_Init();
+
 ///// Загружаем музыку: /////
 // Сигнатура музыки:
   Mem.ReadDWORD(dw);
@@ -1909,6 +2012,10 @@ begin
   gMusic.Play();
   gMusic.Pause(True);
   gMusic.SetPosition(dw);
+///// /////
+
+///// Загружаем количество монстров: /////
+  Mem.ReadInt(gTotalMonsters);
 ///// /////
 
 //// Загружаем флаги, если это CTF: /////

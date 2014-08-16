@@ -31,8 +31,8 @@ procedure g_Items_SaveState(var Mem: TBinMemoryWriter);
 procedure g_Items_LoadState(var Mem: TBinMemoryReader);
 
 var
-  gItems: array of TItem = nil;
-  gItemsTexturesID: array [1..32] of DWORD;
+  gItems: Array of TItem = nil;
+  gItemsTexturesID: Array [1..32] of DWORD;
   gMaxDist: Integer = 1;
 
 const
@@ -40,13 +40,15 @@ const
 
 implementation
 
-uses g_basic, e_graphics, g_sound, g_main, g_gfx, g_map, Math, g_game,
-  g_console, SysUtils, g_player, MAPDEF, e_log;
+uses
+  g_basic, e_graphics, g_sound, g_main, g_gfx, g_map,
+  Math, g_game, g_console, SysUtils, g_player, MAPDEF,
+  e_log;
 
 const
   ITEM_SIGNATURE = $4D455449; // 'ITEM'
 
-  ITEMSIZE: Array [ITEM_MEDKIT_SMALL..ITEM_KEY_BLUE] of Array [0..1] of Byte =
+  ITEMSIZE: Array [ITEM_MEDKIT_SMALL..ITEM_HELMET] of Array [0..1] of Byte =
     (((14), (15)), // MEDKIT_SMALL
      ((28), (19)), // MEDKIT_LARGE
      ((28), (19)), // MEDKIT_BLACK
@@ -76,7 +78,11 @@ const
      ((22), (29)), // AMMO_BACKPACK
      ((16), (16)), // KEY_RED
      ((16), (16)), // KEY_GREEN
-     ((16), (16))); // KEY_BLUE
+     ((16), (16)), // KEY_BLUE
+     (( 1), ( 1)), // WEAPON_KASTET
+     ((43), (16)), // WEAPON_PISTOL
+     ((14), (18)), // BOTTLE
+     ((16), (15))); // HELMET
 
 procedure InitTextures();
 begin
@@ -124,6 +130,8 @@ begin
  g_Frames_CreateWAD(nil, 'FRAMES_ITEM_ARMORBLUE', GameWAD+':TEXTURES\ARMORBLUE', 32, 16, 3, True);
  g_Frames_CreateWAD(nil, 'FRAMES_ITEM_INV', GameWAD+':TEXTURES\INV', 32, 32, 4, True);
  g_Frames_CreateWAD(nil, 'FRAMES_ITEM_RESPAWN', GameWAD+':TEXTURES\ITEMRESPAWN', 32, 32, 5, True);
+ g_Frames_CreateWAD(nil, 'FRAMES_ITEM_BOTTLE', GameWAD+':TEXTURES\BOTTLE', 16, 32, 4, True);
+ g_Frames_CreateWAD(nil, 'FRAMES_ITEM_HELMET', GameWAD+':TEXTURES\HELMET', 16, 16, 4, True);
  g_Frames_CreateWAD(nil, 'FRAMES_FLAG_RED', GameWAD+':TEXTURES\FLAGRED', 64, 64, 5, False);
  g_Frames_CreateWAD(nil, 'FRAMES_FLAG_BLUE', GameWAD+':TEXTURES\FLAGBLUE', 64, 64, 5, False);
  g_Frames_CreateWAD(nil, 'FRAMES_FLAG_DOM', GameWAD+':TEXTURES\FLAGDOM', 64, 64, 5, False);
@@ -174,6 +182,8 @@ begin
  g_Frames_DeleteByName('FRAMES_ITEM_ARMORBLUE');
  g_Frames_DeleteByName('FRAMES_ITEM_INV');
  g_Frames_DeleteByName('FRAMES_ITEM_RESPAWN');
+ g_Frames_DeleteByName('FRAMES_ITEM_BOTTLE');
+ g_Frames_DeleteByName('FRAMES_ITEM_HELMET');
  g_Frames_DeleteByName('FRAMES_FLAG_RED');
  g_Frames_DeleteByName('FRAMES_FLAG_BLUE');
  g_Frames_DeleteByName('FRAMES_FLAG_DOM');
@@ -210,50 +220,57 @@ end;
 function FindItem(): DWORD;
 var
   i: Integer;
-begin
- if gItems <> nil then
- for i := 0 to High(gItems) do
-  if gItems[i].ItemType = ITEM_NONE then
-  begin
-   Result := i;
-   Exit;
-  end;
 
- if gItems = nil then
- begin
-  SetLength(gItems, 32);
-  Result := 0;
- end
+begin
+  if gItems <> nil then
+    for i := 0 to High(gItems) do
+      if gItems[i].ItemType = ITEM_NONE then
+      begin
+        Result := i;
+        Exit;
+      end;
+
+  if gItems = nil then
+    begin
+      SetLength(gItems, 32);
+      Result := 0;
+    end
   else
- begin
-  Result := High(gItems) + 1;
-  SetLength(gItems, Length(gItems) + 32);
- end;
+    begin
+      Result := High(gItems) + 1;
+      SetLength(gItems, Length(gItems) + 32);
+    end;
 end;
 
 procedure g_Items_Init();
 var
   a, b: Integer;
+
 begin
- if gMapInfo.Height > gPlayerScreenSize.Y then
-  a := gMapInfo.Height - gPlayerScreenSize.Y else a := gMapInfo.Height;
+  if gMapInfo.Height > gPlayerScreenSize.Y then
+    a := gMapInfo.Height - gPlayerScreenSize.Y
+  else
+    a := gMapInfo.Height;
 
- if gMapInfo.Width > gPlayerScreenSize.X then
-  b := gMapInfo.Width - gPlayerScreenSize.X else b := gMapInfo.Width;
+  if gMapInfo.Width > gPlayerScreenSize.X then
+    b := gMapInfo.Width - gPlayerScreenSize.X
+  else
+    b := gMapInfo.Width;
 
- gMaxDist := Trunc(Hypot(a, b));
+  gMaxDist := Trunc(Hypot(a, b));
 end;
 
 procedure g_Items_Free();
 var
   i: Integer;
+
 begin
- if gItems <> nil then
- begin
-  for i := 0 to High(gItems) do
-    gItems[i].Animation.Free();
-  gItems := nil;
- end;
+  if gItems <> nil then
+  begin
+    for i := 0 to High(gItems) do
+      gItems[i].Animation.Free();
+    gItems := nil;
+  end;
 end;
 
 function g_Items_Create(X, Y: Integer; ItemType: Byte;
@@ -310,6 +327,12 @@ begin
       ITEM_INV:
         if g_Frames_Get(ID, 'FRAMES_ITEM_INV') then
           Animation := TAnimation.Create(ID, True, 20);
+      ITEM_BOTTLE:
+        if g_Frames_Get(ID, 'FRAMES_ITEM_BOTTLE') then
+          Animation := TAnimation.Create(ID, True, 20);
+      ITEM_HELMET:
+        if g_Frames_Get(ID, 'FRAMES_ITEM_HELMET') then
+          Animation := TAnimation.Create(ID, True, 20);
     end;
   end;
 
@@ -336,10 +359,8 @@ begin
           begin
             if Fall then
             begin
-              m := g_Obj_Move(@Obj, True);
-
-              if WordBool(m and MOVE_HITWATER) then
-                g_Obj_Splash(@Obj);
+              m := g_Obj_Move(@Obj, True, True);
+                
             // Сопротивление воздуха:
               if gTime mod (GAME_TICK*2) = 0 then
                 Obj.Vel.X := z_dec(Obj.Vel.X, 1);
@@ -378,7 +399,8 @@ begin
                     g_Sound_PlayExAt('SOUND_ITEM_GETRULEZ',
                       gPlayers[j].Obj.X, gPlayers[j].Obj.Y)
                   else
-                    if ItemType in [ITEM_MEDKIT_SMALL, ITEM_MEDKIT_LARGE, ITEM_MEDKIT_BLACK] then
+                    if ItemType in [ITEM_MEDKIT_SMALL, ITEM_MEDKIT_LARGE,
+                                    ITEM_MEDKIT_BLACK, ITEM_BOTTLE, ITEM_HELMET] then
                       g_Sound_PlayExAt('SOUND_ITEM_GETMED',
                         gPlayers[j].Obj.X, gPlayers[j].Obj.Y)
                     else
@@ -466,19 +488,21 @@ end;
 
 procedure g_Items_Pick(ID: DWORD);
 begin
- gItems[ID].Live := False;
- gItems[ID].RespawnTime := ITEM_RESPAWNTIME;
+  gItems[ID].Live := False;
+  gItems[ID].RespawnTime := ITEM_RESPAWNTIME;
 end;
 
 procedure g_Items_Remove(ID: DWORD);
 begin
- gItems[ID].ItemType := ITEM_NONE;
- if gItems[ID].Animation <> nil then
- begin
-  gItems[ID].Animation.Free();
-  gItems[ID].Animation := nil;
- end;
- gItems[ID].Live := False;
+  gItems[ID].ItemType := ITEM_NONE;
+
+  if gItems[ID].Animation <> nil then
+  begin
+    gItems[ID].Animation.Free();
+    gItems[ID].Animation := nil;
+  end;
+
+  gItems[ID].Live := False;
 end;
 
 procedure g_Items_SaveState(var Mem: TBinMemoryWriter);

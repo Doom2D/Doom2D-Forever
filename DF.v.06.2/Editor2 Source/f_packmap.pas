@@ -62,7 +62,7 @@ const
 
 procedure TPackMapForm.bSelectWADClick(Sender: TObject);
 begin
-  SaveDialog.Filter := _lc[I_FILE_FILTER];
+  SaveDialog.Filter := _lc[I_FILE_FILTER_WAD];
 
   if SaveDialog.Execute() then
     eWAD.Text := SaveDialog.FileName;

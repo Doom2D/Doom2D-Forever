@@ -11,7 +11,7 @@ procedure g_GFX_Free();
 procedure g_GFX_Blood(fX, fY: Integer; Count: Word; vx, vy: Integer;{Angle: SmallInt; Vel: Single;}
                       DevX, DevY: Word);
 procedure g_GFX_Spark(fX, fY: Integer; Count: Word; Angle: SmallInt; DevX, DevY: Byte);
-procedure g_GFX_Water(fX, fY: Integer; Count: Word; fVelX, fVelY: Single; DevX, DevY: Byte);
+procedure g_GFX_Water(fX, fY: Integer; Count: Word; fVelX, fVelY: Single; DevX, DevY, Color: Byte);
 procedure g_GFX_Bubbles(fX, fY: Integer; Count: Word; DevX, DevY: Byte);
 procedure g_GFX_SetMax(Count: Integer);
 function  g_GFX_GetMax(): Integer;
@@ -53,6 +53,7 @@ type
     VelX, VelY:         Single;
     AccelX, AccelY:     Single;
     Red, Green, Blue:   Byte;
+    Alpha:              Byte;
     Time, LiveTime:     Word;
     State:              Byte;
     ParticleType:       Byte;
@@ -134,7 +135,6 @@ end;
 procedure CreateCollideMap();
 var
   a: Integer;
-  t: Byte;
 
 begin
   g_Game_SetLoadingText(_lc[I_LOAD_COLLIDE_MAP]+' 1/6', 0, False);
@@ -171,10 +171,14 @@ begin
     g_Game_SetLoadingText(_lc[I_LOAD_COLLIDE_MAP]+' 5/6', 0, True);
     for a := 0 to High(gLifts) do
       with gLifts[a] do
+      begin
+        g_Mark(X, Y, Width, Height, MARK_LIFT, False);
+
         if LiftType = 1 then
           g_Mark(X, Y, Width, Height, MARK_LIFTDOWN, True)
         else
           g_Mark(X, Y, Width, Height, MARK_LIFTUP, True);
+      end;
   end;
 
   if gWalls <> nil then
@@ -186,15 +190,16 @@ begin
         begin
         // Закрытая дверь:
           if gWalls[a].Enabled then
-            t := MARK_DOOR
+            with gWalls[a] do
+              g_Mark(X, Y, Width, Height, MARK_DOOR, True)
           else // Открытая дверь:
-            t := MARK_FREE;
+            if gWalls[a].Enabled then
+              with gWalls[a] do
+                g_Mark(X, Y, Width, Height, MARK_DOOR, False);
         end
       else // Стена
-        t := MARK_WALL;
-
-      with gWalls[a] do
-        g_Mark(X, Y, Width, Height, t, True);
+        with gWalls[a] do
+          g_Mark(X, Y, Width, Height, MARK_WALL, True);
     end;
   end;
 end;
@@ -222,6 +227,22 @@ begin
   end;
 
   gCollideMap := nil;
+end;
+
+procedure CorrectOffsets(id: Integer);
+begin
+  with Particles[id] do
+  begin
+    if (Y > 0) and (ByteBool(gCollideMap[Y-1, X] and MARK_BLOCKED)) then
+      offsetY := 1 // Стена сверху
+    else
+      offsetY := 0;
+      
+    if (X > 0) and (ByteBool(gCollideMap[Y, X-1] and MARK_BLOCKED)) then
+      offsetX := 1 // Стена слева
+    else
+      offsetX := 0;
+  end;
 end;
 
 procedure g_GFX_Blood(fX, fY: Integer; Count: Word; vx, vy: Integer; DevX, DevY: Word);
@@ -269,12 +290,14 @@ begin
       Red := 100+20*Random(6);
       Green := 0;
       Blue := 0;
+      Alpha := 255;
+      
       State := STATE_NORMAL;
       Time := 0;
-      LiveTime := 500+Random(200);
+      LiveTime := 120+Random(40);
       ParticleType := PARTICLE_BLOOD;
-      offsetX := 0;
-      offsetY := 0;
+
+      CorrectOffsets(CurrentParticle);
     end;
 
     if CurrentParticle >= MaxParticles-1 then
@@ -312,6 +335,7 @@ begin
     begin
       X := fX-DevX1+Random(DevX2);
       Y := fY-DevY1+Random(DevY2);
+      
       b := DegToRad(Angle);
       VelX := cos(b);
       VelY := 1.6*sin(b);
@@ -323,15 +347,18 @@ begin
       VelY := VelY-Random;
       AccelX := VelX/3.0;
       AccelY := VelY/5.0;
+
       Red := 255;
       Green := 100+Random(155);
       Blue := 64;
+      Alpha := 255;
+
       State := STATE_NORMAL;
       Time := 0;
       LiveTime := 30+Random(60);
       ParticleType := PARTICLE_SPARK;
-      offsetX := 0;
-      offsetY := 0;
+
+      CorrectOffsets(CurrentParticle);
     end;
 
     if CurrentParticle+2 > MaxParticles then
@@ -341,7 +368,7 @@ begin
   end;
 end;
 
-procedure g_GFX_Water(fX, fY: Integer; Count: Word; fVelX, fVelY: Single; DevX, DevY: Byte);
+procedure g_GFX_Water(fX, fY: Integer; Count: Word; fVelX, fVelY: Single; DevX, DevY, Color: Byte);
 var
   a: Integer;
   DevX1, DevX2,
@@ -369,21 +396,52 @@ begin
     begin
       X := fX-DevX1+Random(DevX2);
       Y := fY-DevY1+Random(DevY2);
-      VelX := fVelX*Random;
+
+      if Abs(fVelX) < 0.5 then
+        VelX := 1.0 - 2.0*Random
+      else
+        VelX := fVelX*Random;
       if Random(10) < 7 then
         VelX := -VelX;
       VelY := fVelY*Random;
       AccelX := 0.0;
       AccelY := 0.8;
-      Red := Trunc(255*Random);
-      Green := Red;
-      Blue := 155+Random(10)*10;
+
+      case Color of
+        1: // Красный
+          begin
+            Red := 155 + Random(9)*10;
+            Green := Trunc(150*Random);
+            Blue := Green;
+          end;
+        2: // Зеленый
+          begin
+            Red := Trunc(150*Random);
+            Green := 175 + Random(9)*10;
+            Blue := Red;
+          end;
+        3: // Синий
+          begin
+            Red := Trunc(200*Random);
+            Green := Red;
+            Blue := 175 + Random(9)*10;
+          end;
+        else // Серый
+          begin
+            Red := 90 + Random(12)*10;
+            Green := Red;
+            Blue := Red;
+          end;
+      end;
+
+      Alpha := 255;
+      
       State := STATE_NORMAL;
       Time := 0;
       LiveTime := 60+Random(60);
       ParticleType := PARTICLE_WATER;
-      offsetX := 0;
-      offsetY := 0;
+      
+      CorrectOffsets(CurrentParticle);
     end;
 
     if CurrentParticle+2 > MaxParticles then
@@ -430,15 +488,18 @@ begin
       VelY := -1-Random;
       AccelX := 0;
       AccelY := VelY/10;
+
       Red := 255;
       Green := 255;
       Blue := 255;
+      Alpha := 255;
+      
       State := STATE_NORMAL;
       Time := 0;
       LiveTime := 65535;
       ParticleType := PARTICLE_BUBBLES;
-      offsetX := 0;
-      offsetY := 0;
+      
+      CorrectOffsets(CurrentParticle);
     end;
 
     if CurrentParticle+2 > MaxParticles then
@@ -674,6 +735,14 @@ begin
 
               VelX := VelX + AccelX;
               VelY := VelY + AccelY;
+
+            // Кровь растворяется в жидкости:
+              if ByteBool(gCollideMap[Y, X] and MARK_LIQUID) then
+              begin
+                Inc(Time);
+
+                Alpha := 255 - Trunc((255.0 * Time) / LiveTime);
+              end;
             end;
 
             PARTICLE_SPARK:
@@ -941,14 +1010,7 @@ begin
             end;
           end; // case
 
-          if (Y > 0) and (ByteBool(gCollideMap[Y-1, X] and MARK_BLOCKED)) then
-            offsetY := 1 // Стена сверху
-          else
-            offsetY := 0;
-          if (X > 0) and (ByteBool(gCollideMap[Y, X-1] and MARK_BLOCKED)) then
-            offsetX := 1 // Стена слева
-          else
-            offsetX := 0;
+          CorrectOffsets(a);
         end;
   end; // Particles <> nil
 
@@ -987,6 +1049,10 @@ begin
   begin
     glDisable(GL_TEXTURE_2D);
     glPointSize(2);
+    
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
     glBegin(GL_POINTS);
 
     len := High(Particles);
@@ -996,11 +1062,13 @@ begin
         if (State <> STATE_FREE) and (X >= sX) and (Y >= sY) and
            (X <= sX+sWidth) and (sY <= sY+sHeight) then
         begin
-          glColor3ub(Red, Green, Blue);
+          glColor4ub(Red, Green, Blue, Alpha);
           glVertex2i(X + offsetX, Y + offsetY);
         end;
 
     glEnd();
+
+    glDisable(GL_BLEND);
   end;
 
   if OnceAnims <> nil then

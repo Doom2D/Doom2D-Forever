@@ -36,7 +36,8 @@ uses
 
 procedure TSelectMapForm.FormActivate(Sender: TObject);
 begin
-  bOK.Enabled := False;
+  bOK.Enabled := (lbMapList.ItemIndex <> -1);
+  lbMapList.SetFocus();
 end;
 
 procedure TSelectMapForm.lbMapListClick(Sender: TObject);

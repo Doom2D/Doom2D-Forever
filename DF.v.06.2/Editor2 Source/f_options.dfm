@@ -1,6 +1,6 @@
 object OptionsForm: TOptionsForm
-  Left = 273
-  Top = 177
+  Left = 202
+  Top = 174
   BorderIcons = [biSystemMenu]
   BorderStyle = bsSingle
   Caption = #1053#1072#1089#1090#1088#1086#1081#1082#1080' '#1088#1077#1076#1072#1082#1090#1086#1088#1072

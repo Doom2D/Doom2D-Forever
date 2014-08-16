@@ -1,6 +1,7 @@
 program lmp2map;
 
 {$APPTYPE CONSOLE}
+{$R *.RES}
 
 uses
   SysUtils,
@@ -35,50 +36,73 @@ const
   VERSION = '2.0';
   TABLE_FILENAME = 'textures.txt';
   NO_TEXTURE = 'Standart.wad:STDTEXTURES\NO_TEXTURE';
-  ItemSize: array[ITEM_MEDKIT_SMALL..ITEM_KEY_BLUE] of array[0..1] of Byte =
-    (((13), (14)), ((28), (18)), ((28), (18)),
-     ((32), (16)), ((32), (16)), ((24), (24)),
-     ((24), (24)), ((23), (46)), ((8),  (28)),
-     ((24), (24)), ((61), (23)), ((62), (11)),
-     ((53), (12)), ((53), (16)), ((61), (16)),
-     ((53), (16)), ((60), (35)), ((54), (16)),
-     ((8),  (10)), ((27), (16)), ((14), (6)),
-     ((31), (11)), ((11), (26)), ((53), (20)),
-     ((14), (11)), ((32), (20)), ((21), (28)),
-     ((16), (16)), ((16), (16)), ((16), (16)));
-  AreaSize: array[AREA_PLAYERPOINT1..AREA_BLUETEAMPOINT] of TRectWH =
-    ((X:12; Y:12; Width:39; Height:52),
-     (X:12; Y:12; Width:39; Height:52),
-     (X:12; Y:12; Width:39; Height:52),
-     (X:0; Y:0; Width:64; Height:64),
-     (X:0; Y:0; Width:64; Height:64),
-     (X:0; Y:0; Width:64; Height:64),
-     (X:12; Y:12; Width:39; Height:52),
-     (X:12; Y:12; Width:39; Height:52));
-  MonsterSize: array[MONSTER_DEMON..MONSTER_MAN] of TRectWH =
-    ((X:7; Y:1; Width:48; Height:53),   //DEMON
-     (X:12; Y:13; Width:30; Height:51), //IMP
-     (X:19; Y:10; Width:29; Height:54), //ZOMBY
-     (X:19; Y:10; Width:29; Height:54), //SERG
-     (X:24; Y:12; Width:80; Height:110), //CYBER
-     (X:19; Y:6;  Width:30; Height:56), //CGUN
-     (X:40; Y:32; Width:48; Height:64), //BARON
-     (X:40; Y:32; Width:48; Height:64), //KNIGHT
-     (X:34; Y:39; Width:60; Height:56), //CACO
-     (X:16; Y:23; Width:32; Height:36), //SOUL
-     (X:34; Y:39; Width:60; Height:56), //PAIN
-     (X:14; Y:3; Width:211; Height:100), //SPIDER
-     (X:14; Y:9; Width:100; Height:43), //BSP
-     (X:28; Y:36; Width:72; Height:60), //MANCUB
-     (X:30; Y:24; Width:68; Height:72), //SKEL
-     (X:30; Y:48; Width:68; Height:72), //VILE
-     (X:6; Y:11; Width:20; Height:10), //FISH
-     (X:18; Y:26; Width:24; Height:37), //BARREL
-     (X:30; Y:52; Width:68; Height:76), //ROBO
-     (X:19; Y:10; Width:29; Height:54));//MAN
+
+  ItemSize: Array [ITEM_MEDKIT_SMALL..ITEM_KEY_BLUE] of Array [0..1] of Byte =
+    (((14), (15)), // MEDKIT_SMALL
+     ((28), (19)), // MEDKIT_LARGE
+     ((28), (19)), // MEDKIT_BLACK
+     ((31), (16)), // ARMOR_GREEN
+     ((31), (16)), // ARMOR_BLUE
+     ((25), (25)), // SPHERE_BLUE
+     ((25), (25)), // SPHERE_WHITE
+     ((24), (47)), // SUIT
+     ((14), (27)), // OXYGEN
+     ((25), (25)), // INV
+     ((62), (24)), // WEAPON_SAW
+     ((63), (12)), // WEAPON_SHOTGUN1
+     ((54), (13)), // WEAPON_SHOTGUN2
+     ((54), (16)), // WEAPON_CHAINGUN
+     ((62), (16)), // WEAPON_ROCKETLAUNCHER
+     ((54), (16)), // WEAPON_PLASMA
+     ((61), (36)), // WEAPON_BFG
+     ((54), (16)), // WEAPON_SUPERPULEMET
+     (( 9), (11)), // AMMO_BULLETS
+     ((28), (16)), // AMMO_BULLETS_BOX
+     ((15), ( 7)), // AMMO_SHELLS
+     ((32), (12)), // AMMO_SHELLS_BOX
+     ((12), (27)), // AMMO_ROCKET
+     ((54), (21)), // AMMO_ROCKET_BOX
+     ((15), (12)), // AMMO_CELL
+     ((32), (21)), // AMMO_CELL_BIG
+     ((22), (29)), // AMMO_BACKPACK
+     ((16), (16)), // KEY_RED
+     ((16), (16)), // KEY_GREEN
+     ((16), (16))); // KEY_BLUE
+
+  AreaSize: Array [AREA_PLAYERPOINT1..AREA_BLUETEAMPOINT] of TRectWH =
+    ((X:15; Y:12; Width:34; Height:52), // PLAYERPOINT1
+     (X:15; Y:12; Width:34; Height:52), // PLAYERPOINT2
+     (X:15; Y:12; Width:34; Height:52), // DMPOINT
+     (X: 0; Y: 0; Width:64; Height:64), // REDFLAG
+     (X: 0; Y: 0; Width:64; Height:64), // BLUEFLAG
+     (X: 0; Y: 0; Width:64; Height:64), // DOMFLAG
+     (X:15; Y:12; Width:34; Height:52), // REDTEAMPOINT
+     (X:15; Y:12; Width:34; Height:52)); // BLUETEAMPOINT
+
+  MonsterSize: Array [MONSTER_DEMON..MONSTER_MAN] of TRectWH =
+    ((X:  7; Y:  8; Width:  50; Height:  52),  // DEMON
+     (X: 15; Y: 10; Width:  34; Height:  50),  // IMP
+     (X: 15; Y:  8; Width:  34; Height:  52),  // ZOMBY
+     (X: 15; Y:  8; Width:  34; Height:  52),  // SERG
+     (X: 24; Y:  9; Width:  80; Height: 110),  // CYBER
+     (X: 15; Y:  4; Width:  34; Height:  56),  // CGUN
+     (X: 39; Y: 32; Width:  50; Height:  64),  // BARON
+     (X: 39; Y: 32; Width:  50; Height:  64),  // KNIGHT
+     (X: 34; Y: 36; Width:  60; Height:  56),  // CACO
+     (X: 16; Y: 14; Width:  32; Height:  36),  // SOUL
+     (X: 34; Y: 36; Width:  60; Height:  56),  // PAIN
+     (X: 23; Y: 14; Width: 210; Height: 100),  // SPIDER
+     (X: 14; Y: 17; Width: 100; Height:  42),  // BSP
+     (X: 28; Y: 34; Width:  72; Height:  60),  // MANCUB
+     (X: 30; Y: 28; Width:  68; Height:  72),  // SKEL
+     (X: 30; Y: 28; Width:  68; Height:  72),  // VILE
+     (X:  6; Y: 11; Width:  20; Height:  10),  // FISH
+     (X: 20; Y: 13; Width:  24; Height:  36),  // BARREL
+     (X: 30; Y: 26; Width:  68; Height:  76),  // ROBO
+     (X: 15; Y:  6; Width:  34; Height:  52)); // MAN
 
 var
-  Dir: string;
+  Dir: String;
 
   _i: Boolean = False;
   _n: Boolean = False;
@@ -90,21 +114,21 @@ var
 
   header: map_header_t;
   blk: map_block_t;
-  musname: array[0..8] of Char = '';
+  musname: Array [0..8] of Char = '';
   sky_type: SmallInt;
-  wal: array[0..254] of wall_t;
-  th: array[0..MAXTH-1] of thing_t;
-  sw: array[0..MAXSW-1] of sw_t;
-  fldb: packed array [0..FLDH-1, 0..FLDW-1] of Byte;
-  fldf: packed array [0..FLDH-1, 0..FLDW-1] of Byte;
-  fld: packed array [0..FLDH-1, 0..FLDW-1] of Byte;
+  wal: Array [0..254] of wall_t;
+  th: Array [0..MAXTH-1] of thing_t;
+  sw: Array [0..MAXSW-1] of sw_t;
+  fldb: packed Array [0..FLDH-1, 0..FLDW-1] of Byte;
+  fldf: packed Array [0..FLDH-1, 0..FLDW-1] of Byte;
+  fld: packed Array [0..FLDH-1, 0..FLDW-1] of Byte;
 
   sa: SArray;
   Buffer, p: Pointer;
   i, j, ii, jj, a, b, c, id, d, ind: Integer;
   t: Byte;
   strz: PChar;
-  str: string;
+  str: String;
   e: Boolean;
   tdata: TTriggerData;
 
@@ -122,8 +146,8 @@ var
   MapSize: LongWord;
 
   TableFile: TConfig;
-  TextureTable: array of TTexture;
-  texture_flags: array of Integer;
+  TextureTable: Array of TTexture;
+  texture_flags: Array of Integer;
 
 label
   _end;

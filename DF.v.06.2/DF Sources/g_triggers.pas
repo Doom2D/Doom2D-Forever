@@ -50,7 +50,8 @@ implementation
 uses
   g_player, g_map, Math, g_gfx, g_game, g_textures,
   g_console, g_monsters, g_items, g_phys, g_weapons,
-  WADEDITOR, g_main, SysUtils, e_log, g_language;
+  WADEDITOR, g_main, SysUtils, e_log, g_language,
+  g_options;
 
 const
   TRIGGER_SIGNATURE = $52475254; // 'TRGR'
@@ -297,8 +298,8 @@ begin
    begin
     g_Map_SetLift(PanelID, t);
 
-    if not NoSound then
-      g_Sound_PlayExAt('SOUND_GAME_SWITCH0', X, Y);
+    {if not NoSound then
+      g_Sound_PlayExAt('SOUND_GAME_SWITCH0', X, Y);}
     Result := True;
    end;
  end
@@ -320,14 +321,14 @@ begin
   end;
   if c = -1 then Exit;
 
-  if not NoSound then
+  {if not NoSound then
    for b := 0 to High(gLiftMap[c]) do
     if gLifts[gLiftMap[c, b]].LiftType <> t then
     begin
      with gLifts[PanelID] do
       g_Sound_PlayExAt('SOUND_GAME_SWITCH0', X, Y);
      Break;
-    end;
+    end;}
 
   for b := 0 to High(gLiftMap[c]) do
    with gLifts[gLiftMap[c, b]] do
@@ -348,249 +349,288 @@ var
   i, k: Integer;
 
 begin
- Result := False;
+  Result := False;
 
- if not Trigger.Enabled then Exit;
- if Trigger.TimeOut <> 0 then Exit;
-
- animonce := False;
-
- with Trigger do
- begin
-  case TriggerType of
-   TRIGGER_EXIT:
-   begin
-    g_Sound_PlayEx('SOUND_GAME_SWITCH0');
-    g_Game_ExitLevel(Data.MapName);
-    Result := True;
-    TimeOut := 18;
+  if not Trigger.Enabled then
     Exit;
-   end;
+  if Trigger.TimeOut <> 0 then
+    Exit;
 
-   TRIGGER_TELEPORT:
-   begin
-    case g_GetUIDType(ActivateUID) of
-     UID_PLAYER:
-     begin
-      p := g_Player_Get(ActivateUID);
-      if p = nil then Exit;
+  animonce := False;
 
-      if Data.d2d_teleport then
+  with Trigger do
+  begin
+    case TriggerType of
+      TRIGGER_EXIT:
         begin
-          if p.TeleportTo(Data.TargetPoint.X-(p.Obj.Rect.Width div 2),
-                          Data.TargetPoint.Y-p.Obj.Rect.Height,
-                          Data.silent_teleport,
-                          Data.TlpDir) then
-            Result := True;
-        end
-      else
-        if p.TeleportTo(Data.TargetPoint.X,
-                        Data.TargetPoint.Y,
-                        Data.silent_teleport,
-                        Data.TlpDir) then
+          g_Sound_PlayEx('SOUND_GAME_SWITCH0');
+          g_Game_ExitLevel(Data.MapName);
+          TimeOut := 18;
           Result := True;
-     end;
 
-     UID_MONSTER:
-     begin
-      m := g_Monsters_Get(ActivateUID);
-      if m = nil then Exit;
+          Exit;
+        end;
 
-      if Data.d2d_teleport then
+      TRIGGER_TELEPORT:
         begin
-          if m.TeleportTo(Data.TargetPoint.X-(m.Obj.Rect.Width div 2),
-                          Data.TargetPoint.Y-m.Obj.Rect.Height,
-                          Data.silent_teleport,
-                          Data.TlpDir) then
-            Result := True;
-        end
-      else
-        if m.TeleportTo(Data.TargetPoint.X,
-                        Data.TargetPoint.Y,
-                        Data.silent_teleport,
-                        Data.TlpDir) then
+          case g_GetUIDType(ActivateUID) of
+            UID_PLAYER:
+              begin
+                p := g_Player_Get(ActivateUID);
+                if p = nil then
+                  Exit;
+
+                if Data.d2d_teleport then
+                  begin
+                    if p.TeleportTo(Data.TargetPoint.X-(p.Obj.Rect.Width div 2),
+                                    Data.TargetPoint.Y-p.Obj.Rect.Height,
+                                    Data.silent_teleport,
+                                    Data.TlpDir) then
+                      Result := True;
+                  end
+                else
+                  if p.TeleportTo(Data.TargetPoint.X,
+                                  Data.TargetPoint.Y,
+                                  Data.silent_teleport,
+                                  Data.TlpDir) then
+                    Result := True;
+              end;
+
+            UID_MONSTER:
+              begin
+                m := g_Monsters_Get(ActivateUID);
+                if m = nil then
+                  Exit;
+
+                if Data.d2d_teleport then
+                  begin
+                    if m.TeleportTo(Data.TargetPoint.X-(m.Obj.Rect.Width div 2),
+                                    Data.TargetPoint.Y-m.Obj.Rect.Height,
+                                    Data.silent_teleport,
+                                    Data.TlpDir) then
+                      Result := True;
+                  end
+                else
+                  if m.TeleportTo(Data.TargetPoint.X,
+                                  Data.TargetPoint.Y,
+                                  Data.silent_teleport,
+                                  Data.TlpDir) then
+                    Result := True;
+              end;
+          end;
+
+          TimeOut := 0;
+        end;
+
+      TRIGGER_OPENDOOR:
+        begin
+          Result := OpenDoor(Data.PanelID, Data.NoSound, Data.d2d_doors);
+          TimeOut := 0;
+        end;
+
+      TRIGGER_CLOSEDOOR:
+        begin
+          Result := CloseDoor(Data.PanelID, Data.NoSound, Data.d2d_doors);
+          TimeOut := 0;
+        end;
+
+      TRIGGER_DOOR, TRIGGER_DOOR5:
+        begin
+          if Data.PanelID <> -1 then
+          begin
+            if gWalls[Data.PanelID].Enabled then
+              begin
+                Result := OpenDoor(Data.PanelID, Data.NoSound, Data.d2d_doors);
+
+                if TriggerType = TRIGGER_DOOR5 then
+                  DoorTime := 180;
+              end
+            else
+              Result := CloseDoor(Data.PanelID, Data.NoSound, Data.d2d_doors);
+
+            if Result then
+              TimeOut := 18;
+          end;
+        end;
+
+      TRIGGER_CLOSETRAP, TRIGGER_TRAP:
+        begin
+          CloseTrap(Data.PanelID, Data.NoSound, Data.d2d_doors);
+
+          if TriggerType = TRIGGER_TRAP then
+            begin
+              DoorTime := 40;
+              TimeOut := 76;
+            end
+          else
+            begin
+              DoorTime := -1;
+              TimeOut := 36;
+            end;
+
           Result := True;
-     end;
+        end;
+
+      TRIGGER_PRESS, TRIGGER_ON, TRIGGER_OFF, TRIGGER_ONOFF:
+        begin
+          PressCount := PressCount + 1;
+          
+          if PressTime = -1 then
+            PressTime := Data.Wait;
+
+          TimeOut := 18;
+          Result := True;
+        end;
+
+      TRIGGER_SECRET:
+        if g_GetUIDType(ActivateUID) = UID_PLAYER then
+        begin
+          g_Player_Get(ActivateUID).GetSecret();
+          Enabled := False;
+          Result := True;
+        end;
+
+      TRIGGER_LIFTUP:
+      begin
+        Result := SetLift(Data.PanelID, 0, Data.NoSound, Data.d2d_doors);
+        TimeOut := 0;
+
+        if (not Data.NoSound) and Result then
+          g_Sound_PlayExAt('SOUND_GAME_SWITCH0',
+                           X + (Width div 2),
+                           Y + (Height div 2));
+      end;
+
+      TRIGGER_LIFTDOWN:
+        begin
+          Result := SetLift(Data.PanelID, 1, Data.NoSound, Data.d2d_doors);
+          TimeOut := 0;
+
+          if (not Data.NoSound) and Result then
+            g_Sound_PlayExAt('SOUND_GAME_SWITCH0',
+                             X + (Width div 2),
+                             Y + (Height div 2));
+        end;
+
+      TRIGGER_LIFT:
+        begin
+          Result := SetLift(Data.PanelID, 3, Data.NoSound, Data.d2d_doors);
+
+          if Result then
+          begin
+            TimeOut := 18;
+
+            if (not Data.NoSound) and Result then
+              g_Sound_PlayExAt('SOUND_GAME_SWITCH0',
+                               X + (Width div 2),
+                               Y + (Height div 2));
+          end;
+        end;
+
+      TRIGGER_TEXTURE:
+        begin
+          if ByteBool(Data.ActivateOnce) then
+            begin
+              Enabled := False;
+              TriggerType := TRIGGER_NONE;
+            end
+          else
+            TimeOut := 6;
+
+          animonce := Data.AnimOnce;
+          Result := True;
+        end;
+
+      TRIGGER_SOUND:
+        begin
+          if Sound <> nil then
+          begin
+            if Data.SoundSwitch and Sound.IsPlaying() then
+              begin // Нужно выключить, если играл
+                Sound.Stop();
+                SoundPlayCount := 0;
+                Result := True;
+              end
+            else // (not Data.SoundSwitch) or (not Sound.IsPlaying())
+              if (Data.PlayCount > 0) or (not Sound.IsPlaying()) then
+                begin
+                  if Data.PlayCount > 0 then
+                    SoundPlayCount := Data.PlayCount
+                  else // 0 - играем бесконечно
+                    SoundPlayCount := 1;
+                  Result := True;
+                end;
+          end;
+        end;
+
+      TRIGGER_SPAWNMONSTER:
+        if (Data.MonType in [MONSTER_DEMON..MONSTER_MAN]) then
+        begin
+          for k := 1 to Data.MonCount do
+          begin
+            i := g_Monsters_Create(Data.MonType,
+                   Data.MonPos.X, Data.MonPos.Y,
+                   TDirection(Data.MonDir), True);
+          // Здоровье:
+            if (Data.MonHealth > 0) then
+              gMonsters[i].SetHealth(Data.MonHealth);
+          // Идем искать цель, если надо:
+            if (Data.MonActive) then
+              gMonsters[i].WakeUp();
+
+            Inc(gTotalMonsters);
+          end;
+
+          TimeOut := 18;
+          Result := True;
+        end;
+
+      TRIGGER_SPAWNITEM:
+        if (Data.ItemType in [ITEM_MEDKIT_SMALL..ITEM_HELMET]) then
+        begin
+          if (not Data.ItemOnlyDM) or
+             (gGameSettings.GameType = GT_CUSTOM) then
+            for k := 1 to Data.ItemCount do
+            begin
+              g_Items_Create(Data.ItemPos.X, Data.ItemPos.Y,
+                Data.ItemType, Data.ItemFalls, False, True);
+            end;
+
+          TimeOut := 18;
+          Result := True;
+        end;
+
+      TRIGGER_MUSIC:
+        begin
+        // Меняем музыку, если есть на что:
+          if (Trigger.Data.MusicName <> '') then
+          begin
+            gMusic.SetByName(Trigger.Data.MusicName);
+            gMusic.SpecPause := True;
+            gMusic.Play();
+          end;
+
+          if Trigger.Data.MusicAction = 1 then
+            begin // Включить
+              if gMusic.SpecPause then // Была на паузе => играть
+                gMusic.SpecPause := False
+              else // Играла => сначала
+                gMusic.SetPosition(0);
+            end
+          else // Выключить
+            begin
+            // Пауза:
+              gMusic.SpecPause := True;
+            end;
+
+          TimeOut := 36;
+          Result := True;
+        end;
     end;
-
-    TimeOut := 0;
-   end;
-
-   TRIGGER_OPENDOOR:
-   begin
-    Result := OpenDoor(Data.PanelID, Data.NoSound, Data.d2d_doors);
-    TimeOut := 0;
-   end;
-
-   TRIGGER_CLOSEDOOR:
-   begin
-    Result := CloseDoor(Data.PanelID, Data.NoSound, Data.d2d_doors);
-    TimeOut := 0;
-   end;
-
-   TRIGGER_DOOR, TRIGGER_DOOR5:
-   begin
-    if Data.PanelID <> -1 then
-    begin
-     if gWalls[Data.PanelID].Enabled then
-       begin
-         Result := OpenDoor(Data.PanelID, Data.NoSound, Data.d2d_doors);
-         if TriggerType = TRIGGER_DOOR5 then
-           DoorTime := 180;
-       end
-     else
-       Result := CloseDoor(Data.PanelID, Data.NoSound, Data.d2d_doors);
-
-     if Result then TimeOut := 18;
-    end;
-   end;
-
-   TRIGGER_CLOSETRAP, TRIGGER_TRAP:
-   begin
-    CloseTrap(Data.PanelID, Data.NoSound, Data.d2d_doors);
-    if TriggerType = TRIGGER_TRAP then DoorTime := 40;
-    Result := True;
-    TimeOut := DoorTime+36;
-   end;
-
-   TRIGGER_PRESS, TRIGGER_ON, TRIGGER_OFF, TRIGGER_ONOFF:
-   begin
-    PressCount := PressCount + 1;
-    if PressTime = -1 then PressTime := Data.Wait;
-    TimeOut := 18;
-    Result := True;
-   end;
-
-   TRIGGER_SECRET:
-   if g_GetUIDType(ActivateUID) = UID_PLAYER then
-   begin
-    g_Player_Get(ActivateUID).GetSecret();
-    Enabled := False;
-    TriggerType := TRIGGER_NONE;
-    Result := True;
-   end;
-
-   TRIGGER_LIFTUP:
-   begin
-     Result := SetLift(Data.PanelID, 0, Data.NoSound, Data.d2d_doors);
-     TimeOut := 0;
-   end;
-
-   TRIGGER_LIFTDOWN:
-   begin
-     Result := SetLift(Data.PanelID, 1, Data.NoSound, Data.d2d_doors);
-     TimeOut := 0;
-   end;
-
-   TRIGGER_LIFT:
-   begin
-     Result := SetLift(Data.PanelID, 3, Data.NoSound, Data.d2d_doors);
-     if Result then
-       TimeOut := 18;
-   end;
-
-   TRIGGER_TEXTURE:
-   begin
-     if ByteBool(Data.ActivateOnce) then
-       begin
-         Enabled := False;
-         TriggerType := TRIGGER_NONE;
-       end
-     else
-       TimeOut := 6;
-     animonce := Data.AnimOnce;
-
-     Result := True;
-   end;
-
-   TRIGGER_SOUND:
-   begin
-     if Sound <> nil then
-     begin
-       if Data.SoundSwitch and Sound.IsPlaying() then
-         begin
-           Sound.Stop();
-           SoundPlayCount := 0;
-           Result := True;
-         end
-       else
-         if not ((Data.PlayCount = 0) and Sound.IsPlaying()) then
-           begin
-             if Data.PlayCount > 0 then
-               SoundPlayCount := Data.PlayCount
-             else
-               SoundPlayCount := 1;
-             Result := True;
-           end;
-     end;
-   end;
-
-   TRIGGER_SPAWNMONSTER:
-     if (Data.MonType in [MONSTER_DEMON..MONSTER_MAN]) then
-     begin
-       for k := 1 to Data.MonCount do
-       begin
-         i := g_Monsters_Create(Data.MonType,
-                Data.MonPos.X, Data.MonPos.Y,
-                TDirection(Data.MonDir), True);
-       // Здоровье:
-         if (Data.MonHealth > 0) then
-           gMonsters[i].SetHealth(Data.MonHealth);
-       // Идем искать цель, если надо:
-         if (Data.MonActive) then
-           gMonsters[i].WakeUp();
-       end;
-
-       TimeOut := 18;
-       Result := True;
-     end;
-
-   TRIGGER_SPAWNITEM:
-     if (Data.ItemType in [ITEM_MEDKIT_SMALL..ITEM_KEY_BLUE]) then
-     begin
-       if (not Data.ItemOnlyDM) or
-          (gGameSettings.GameType = GT_CUSTOM) then
-         for k := 1 to Data.ItemCount do
-         begin
-           g_Items_Create(Data.ItemPos.X, Data.ItemPos.Y,
-             Data.ItemType, Data.ItemFalls, False, True);
-         end;
-
-       TimeOut := 18;
-       Result := True;
-     end;
-
-   TRIGGER_MUSIC:
-     begin
-     // Меняем музыку, если есть на что:
-       if (Trigger.Data.MusicName <> '') then
-       begin
-         gMusic.SetByName(Trigger.Data.MusicName);
-         gMusic.SpecPause := True;
-         gMusic.Play();
-       end;
-
-       if Trigger.Data.MusicAction = 1 then
-         begin // Включить
-           if gMusic.SpecPause then // Была на паузе => играть
-             gMusic.SpecPause := False
-           else // Играла => сначала
-             gMusic.SetPosition(0);
-         end
-       else // Выключить
-         begin
-         // Пауза:
-           gMusic.SpecPause := True;
-         end;
-
-       TimeOut := 36;
-       Result := True;
-     end;
   end;
- end;
  
- if Result and (Trigger.TexturePanel <> -1) then
-  g_Map_SwitchTexture(Trigger.TexturePanelType, Trigger.TexturePanel, IfThen(animonce, 2, 1));
+  if Result and (Trigger.TexturePanel <> -1) then
+    g_Map_SwitchTexture(Trigger.TexturePanelType, Trigger.TexturePanel, IfThen(animonce, 2, 1));
 end;
 
 function g_Triggers_Create(Trigger: TTrigger): DWORD;
@@ -710,7 +750,7 @@ begin
         if (TriggerType = TRIGGER_SOUND) and (Sound <> nil) then
           if (SoundPlayCount > 0) and (not Sound.IsPlaying()) then
           begin
-            if Data.PlayCount > 0 then
+            if Data.PlayCount > 0 then // Если 0 - играем звук бесконечно
               SoundPlayCount := SoundPlayCount - 1;
             if Data.Local then
               Sound.PlayVolumeAt(X+(Width div 2), Y+(Height div 2), Data.Volume/255.0)
@@ -759,7 +799,6 @@ begin
                   begin
                     gTriggers[b].ActivateUID := gTriggers[a].ActivateUID;
                     ActivateTrigger(gTriggers[b]);
-                    gTriggers[b].TimeOut := 0;
                   end;
                 TRIGGER_ON:
                   begin
@@ -911,7 +950,7 @@ begin
 
   case g_GetUIDType(UID) of
     UID_GAME: k := 255;
-    UID_PLAYER: k := g_Player_Get(UID).GetKeys;
+    UID_PLAYER: k := g_Player_Get(UID).GetKeys();
     else k := 0;
   end;
 
@@ -923,16 +962,16 @@ begin
        ((gTriggers[a].Keys and k) = gTriggers[a].Keys) and
        ByteBool(gTriggers[a].ActivateType and ActivateType) then
       with gTriggers[a] do
-        if g_Collide(CX-Radius, CY-Radius, CX+Radius, CY+Radius,
+        if g_Collide(CX-Radius, CY-Radius, 2*Radius, 2*Radius,
                      X, Y, Width, Height) then
-          if ((Sqr(CX-X)+Sqr(CY-Y)) < rsq) or
-             ((Sqr(CX-X-Width)+Sqr(CY-Y)) < rsq) or
-             ((Sqr(CX-X-Width)+Sqr(CY-Y-Height)) < rsq) or
-             ((Sqr(CX-X)+Sqr(CY-Y-Height)) < rsq) or
-             ((CX > (X-Radius)) and (CX < (X+Width+Radius)) and
-              (CY > Y) and (CY < (Y+Height))) or
-             ((CY > (Y-Radius)) and (CY < (Y+Height+Radius)) and
-              (CX > X) and (CX < (X+Width))) then
+          if ((Sqr(CX-X)+Sqr(CY-Y)) < rsq) or // Центр круга близок к верхнему левому углу
+             ((Sqr(CX-X-Width)+Sqr(CY-Y)) < rsq) or // Центр круга близок к верхнему правому углу
+             ((Sqr(CX-X-Width)+Sqr(CY-Y-Height)) < rsq) or // Центр круга близок к нижнему правому углу
+             ((Sqr(CX-X)+Sqr(CY-Y-Height)) < rsq) or // Центр круга близок к нижнему левому углу
+             ( (CX > (X-Radius)) and (CX < (X+Width+Radius)) and
+               (CY > Y) and (CY < (Y+Height)) ) or // Центр круга недалеко от вертикальных границ прямоугольника
+             ( (CY > (Y-Radius)) and (CY < (Y+Height+Radius)) and
+               (CX > X) and (CX < (X+Width)) ) then // Центр круга недалеко от горизонтальных границ прямоугольника
           begin
             ActivateUID := UID;
             ActivateTrigger(gTriggers[a]);
@@ -983,6 +1022,8 @@ procedure g_Triggers_SaveState(var Mem: TBinMemoryWriter);
 var
   count, i: Integer;
   dw: DWORD;
+  sg: Single;
+  b: Boolean;
   p: Pointer;
 
 begin
@@ -990,8 +1031,7 @@ begin
   count := 0;
   if gTriggers <> nil then
     for i := 0 to High(gTriggers) do
-      {if gTriggers[i].TriggerType <> TRIGGER_NONE then}
-        count := count + 1;
+      count := count + 1;
 
   Mem := TBinMemoryWriter.Create((count+1) * 200);
 
@@ -1002,59 +1042,73 @@ begin
     Exit;
 
   for i := 0 to High(gTriggers) do
-    {if gTriggers[i].TriggerType <> TRIGGER_NONE then}
+  begin
+  // Сигнатура триггера:
+    dw := TRIGGER_SIGNATURE; // 'TRGR'
+    Mem.WriteDWORD(dw);
+  // Тип триггера:
+    Mem.WriteByte(gTriggers[i].TriggerType);
+  // Специальные данные триггера:
+    p := @gTriggers[i].Data;
+    Mem.WriteMemory(p, SizeOf(TTriggerData));
+  // Координаты левого верхнего угла:
+    Mem.WriteInt(gTriggers[i].X);
+    Mem.WriteInt(gTriggers[i].Y);
+  // Размеры:
+    Mem.WriteWord(gTriggers[i].Width);
+    Mem.WriteWord(gTriggers[i].Height);
+  // Включен ли триггер:
+    Mem.WriteBoolean(gTriggers[i].Enabled);
+  // Тип активации триггера:
+    Mem.WriteByte(gTriggers[i].ActivateType);
+  // Ключи, необходимые для активации:
+    Mem.WriteByte(gTriggers[i].Keys);
+  // ID панели, текстура которой изменится:
+    Mem.WriteInt(gTriggers[i].TexturePanel);
+  // Тип этой панели:
+    Mem.WriteWord(gTriggers[i].TexturePanelType);
+  // Время до возможности активации:
+    Mem.WriteWord(gTriggers[i].TimeOut);
+  // UID того, кто активировал этот триггер:
+    Mem.WriteWord(gTriggers[i].ActivateUID);
+  // Стоит ли игрок в области триггера:
+    Mem.WriteBoolean(gTriggers[i].PlayerCollide);
+  // Время до закрытия двери:
+    Mem.WriteInt(gTriggers[i].DoorTime);
+  // Задержка активации:
+    Mem.WriteInt(gTriggers[i].PressTime);
+  // Счетчик нажатий:
+    Mem.WriteInt(gTriggers[i].PressCount);
+  // Сколько раз проигран звук:
+    Mem.WriteInt(gTriggers[i].SoundPlayCount);
+  // Проигрывается ли звук?
+    if gTriggers[i].Sound <> nil then
+      b := gTriggers[i].Sound.IsPlaying()
+    else
+      b := False;
+    Mem.WriteBoolean(b);
+    if b then
     begin
-    // Сигнатура триггера:
-      dw := TRIGGER_SIGNATURE; // 'TRGR'
-      Mem.WriteDWORD(dw);
-    // Тип триггера:
-      Mem.WriteByte(gTriggers[i].TriggerType);
-    // Специальные данные триггера:
-      p := @gTriggers[i].Data;
-      Mem.WriteMemory(p, SizeOf(TTriggerData));
-    // Координаты левого верхнего угла:
-      Mem.WriteInt(gTriggers[i].X);
-      Mem.WriteInt(gTriggers[i].Y);
-    // Размеры:
-      Mem.WriteWord(gTriggers[i].Width);
-      Mem.WriteWord(gTriggers[i].Height);
-    // Включен ли триггер:
-      Mem.WriteBoolean(gTriggers[i].Enabled);
-    // Тип активации триггера:
-      Mem.WriteByte(gTriggers[i].ActivateType);
-    // Ключи, необходимые для активации:
-      Mem.WriteByte(gTriggers[i].Keys);
-    // ID панели, текстура которой изменится:
-      Mem.WriteInt(gTriggers[i].TexturePanel);
-    // Тип этой панели:
-      Mem.WriteWord(gTriggers[i].TexturePanelType);
-    // Время до возможности активации:
-      Mem.WriteWord(gTriggers[i].TimeOut);
-    // UID того, кто активировал этот триггер:
-      Mem.WriteWord(gTriggers[i].ActivateUID);
-    // Стоит ли игрок в области триггера:
-      Mem.WriteBoolean(gTriggers[i].PlayerCollide);
-    // Время до закрытия двери:
-      Mem.WriteInt(gTriggers[i].DoorTime);
-    // Задержка активации:
-      Mem.WriteInt(gTriggers[i].PressTime);
-    // Счетчик нажатий:
-      Mem.WriteInt(gTriggers[i].PressCount);
-    // Сколько раз проигран звук:
-      Mem.WriteInt(gTriggers[i].SoundPlayCount);
     // Позиция проигрывания звука:
-      if gTriggers[i].Sound <> nil then
-        dw := gTriggers[i].Sound.GetPosition()
-      else
-        dw := 0;
+      dw := gTriggers[i].Sound.GetPosition();
       Mem.WriteDWORD(dw);
+    // Громкость звука:
+      sg := gTriggers[i].Sound.GetVolume();
+      sg := sg / (gSoundLevel/255.0);
+      Mem.WriteSingle(sg);
+    // Стерео смещение звука:
+      sg := gTriggers[i].Sound.GetPan();
+      Mem.WriteSingle(sg);
     end;
+  end;
 end;
 
 procedure g_Triggers_LoadState(var Mem: TBinMemoryReader);
 var
   count, i, a: Integer;
   dw: DWORD;
+  vol, pan: Single;
+  b: Boolean;
   p: Pointer;
   Trig: TTrigger;
 
@@ -1119,16 +1173,24 @@ begin
     Mem.ReadInt(gTriggers[i].PressCount);
   // Сколько раз проигран звук:
     Mem.ReadInt(gTriggers[i].SoundPlayCount);
-  // Позиция проигрывания звука:
-    Mem.ReadDWORD(dw);    
-  // Запускаем звук, если есть:
-    if gTriggers[i].Sound <> nil then
-      if dw > 0 then
+  // Проигрывается ли звук?
+    Mem.ReadBoolean(b);
+    if b then
+    begin
+    // Позиция проигрывания звука:
+      Mem.ReadDWORD(dw);
+    // Громкость звука:
+      Mem.ReadSingle(vol);
+    // Стерео смещение звука:
+      Mem.ReadSingle(pan);
+    // Запускаем звук, если есть:
+      if gTriggers[i].Sound <> nil then
       begin
-        gTriggers[i].Sound.Play();
+        gTriggers[i].Sound.PlayPanVolume(pan, vol);
         gTriggers[i].Sound.Pause(True);
         gTriggers[i].Sound.SetPosition(dw);
-      end;
+      end
+    end;
   end;
 end;
 

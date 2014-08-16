@@ -2,10 +2,11 @@ unit g_basic;
 
 interface
 
-uses windows, WADEDITOR, g_phys;
+uses
+  windows, WADEDITOR, g_phys;
 
 const
-  GAME_VERSION  = '0.62.1';
+  GAME_VERSION  = '0.62.4';
   UID_GAME    = 1;
   UID_PLAYER  = 2;
   UID_MONSTER = 3;
@@ -67,16 +68,19 @@ function InSArray(a: string; arr: SArray): Boolean;
 function GetPos(UID: Word; o: PObj): Boolean;
 function parse(s: string): SArray;
 function parse2(s: string; delim: Char): SArray;
+function g_GetFileTime(fileName: String): Integer;
+function g_SetFileTime(fileName: String; time: Integer): Boolean;
 
 
 implementation
 
-uses Math, g_map, g_gfx, g_player, SysUtils, MAPDEF, StrUtils, e_graphics,
-  g_monsters, g_items;
+uses
+  Math, g_map, g_gfx, g_player, SysUtils, MAPDEF,
+  StrUtils, e_graphics, g_monsters, g_items;
 
 function g_PatchLength(X1, Y1, X2, Y2: Integer): Word;
 begin
- Result := Min(Round(Hypot(Abs(X2-X1), Abs(Y2-Y1))), 65535);
+  Result := Min(Round(Hypot(Abs(X2-X1), Abs(Y2-Y1))), 65535);
 end;
 
 function g_CollideLevel(X, Y: Integer; Width, Height: Word): Boolean;
@@ -1022,6 +1026,40 @@ begin
     Break;
    end;
  end;
+end;
+
+function g_GetFileTime(fileName: String): Integer;
+var
+  F: File;
+
+begin
+  if not FileExists(fileName) then
+  begin
+    Result := -1;
+    Exit;
+  end;
+
+  AssignFile(F, fileName);
+  Reset(F);
+  Result := FileGetDate(TFileRec(F).Handle);
+  CloseFile(F);
+end;
+
+function g_SetFileTime(fileName: String; time: Integer): Boolean;
+var
+  F: File;
+
+begin
+  if (not FileExists(fileName)) or (time < 0) then
+  begin
+    Result := False;
+    Exit;
+  end;
+
+  AssignFile(F, fileName);
+  Reset(F);
+  Result := (FileSetDate(TFileRec(F).Handle, time) = 0);
+  CloseFile(F);
 end;
 
 end.

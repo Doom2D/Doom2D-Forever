@@ -500,7 +500,7 @@ begin
     if lbResourcesList.Selected[i] then
     begin
       AddTexture(cbWADlist.Text, cbSectionsList.Text,
-                 lbResourcesList.Items[i]);
+                 lbResourcesList.Items[i], False);
       lbResourcesList.Selected[i] := False;
     end;
 end;

@@ -52,9 +52,11 @@ procedure g_Game_Message(Msg: String; Time: Word);
 procedure g_Game_LoadMapList(FileName: String);
 procedure g_Game_PauseAllSounds(Enable: Boolean);
 procedure g_Game_StopAllSounds();
+procedure g_Game_UpdateTriggerSounds();
 function g_Game_GetMegaWADInfo(WAD: String): TMegaWADInfo;
 procedure g_TakeScreenShot();
 procedure g_FatalError(Text: String);
+procedure g_SimpleError(Text: String);
 procedure g_Game_DeleteTestMap();
 procedure GameCommands(P: SArray);
 procedure g_Game_Process_Params;
@@ -130,6 +132,7 @@ Var
   gPlayer2: TPlayer = nil;
   gTime: LongWord;
   gGameStartTime: LongWord = 0;
+  gTotalMonsters: Integer = 0;
   gPause: Boolean;
   gShowTime: Boolean = True;
   gShowFPS: Boolean = False;
@@ -168,7 +171,7 @@ Uses
   g_gui, e_input, e_log, g_console, g_items, g_map,
   g_playermodel, g_gfx, g_options, g_weapons, Math,
   g_triggers, MAPDEF, g_monsters, e_sound, CONFIG,
-  BinEditor, g_language;
+  DirectInput, BinEditor, g_language;
 
 Type
   TEndCustomGameStat = record
@@ -283,12 +286,13 @@ begin
    end;
 end;
 
-function g_Game_GetMegaWADInfo(WAD: string): TMegaWADInfo;
+function g_Game_GetMegaWADInfo(WAD: String): TMegaWADInfo;
 var
   w: TWADEditor_1;
   cfg: TConfig;
   p: Pointer;
   len: Integer;
+
 begin
  Result.name := ExtractFileName(WAD);
  Result.description := '';
@@ -757,7 +761,11 @@ begin
     Exit;
 // Игра закончилась - обрабатываем:
   if gExit <> 0 then
+  begin
     EndGame();
+    if gExit = EXIT_QUIT then
+      Exit;
+  end;
 
 // Читаем клавиатуру, если окно активно:
   e_PollKeyboard();
@@ -781,7 +789,11 @@ begin
             if NextMap <> '' then
               begin // Переходим на следующую карту
                 g_Game_ClearLoading();
-                g_Game_StartMap(NextMap);
+                if not g_Game_StartMap(NextMap) then
+                begin
+                  g_FatalError(Format(_lc[I_GAME_ERROR_MAP_LOAD],
+                                      [ExtractFileName(gGameSettings.WAD) + ':\' + NextMap]));
+                end;
               end
             else // Следующей карты нет
               begin
@@ -995,6 +1007,9 @@ begin
     g_GFX_Update();
     g_Player_UpdateAll();
     g_Player_UpdateCorpse();
+
+    if (gTime mod (GAME_TICK*9)) = 0 then
+      g_Game_UpdateTriggerSounds();
   end; // if gameOn ...
 
 // Активно окно интерфейса - передаем клавиши ему:
@@ -1039,6 +1054,15 @@ begin
       g_TakeScreenShot();
       LastScreenShot := GetTimer();
     end;
+
+// Горячая клавиша для вызова меню выхода из игры (F10):
+  if (e_KeyBuffer[DIK_F10] = $080) and
+     gGameOn and
+     (not gConsoleShow) and
+     (g_ActiveWindow = nil) then
+  begin
+    KeyPress(VK_F10);
+  end;
 
 // Каждую секунду обновляем счетчик обновлений:
   Time := GetTimer() div 1000;
@@ -1237,72 +1261,101 @@ end;
 
 procedure DrawSingleStat();
 var
-  x, y, t: Integer;
-  ww1, hh1, ww2, hh2: Word;
-  s1, s2, s3, s4: string;
+  tm, key_x, val_x, y: Integer;
+  w1, w2, h: Word;
+  s1, s2: String;
 
- procedure player_stat(n: Integer);
- begin
-  s1 := _lc[I_MENU_INTER5];
-  s2 := Format(' %.1f', [(SingleStat.PlayerStat[n].Kills/t)*60]);
-  e_CharFont_GetSize(gMenuFont, s1, ww1, hh1);
-  e_CharFont_GetSize(gMenuFont, s2, ww2, hh2);
 
-  x := (gScreenWidth div 2)-((ww1+ww2) div 2);
-  e_CharFont_Print(gMenuFont, x, y+32, s1);
-  e_CharFont_PrintEx(gMenuFont, x+ww1, y+32, s2, _RGB(255, 0, 0));
+  procedure player_stat(n: Integer);
+  var
+    kpm: Real;
 
-  s1 := _lc[I_MENU_INTER4];
-  s2 := Format(' %d', [SingleStat.PlayerStat[n].Kills]);
-  e_CharFont_Print(gMenuFont, x, y, s1);
-  e_CharFont_PrintEx(gMenuFont, x+ww1, y, s2, _RGB(255, 0, 0));
+  begin
+  // "Kills: # / #":
+    s1 := Format(' %d ', [SingleStat.PlayerStat[n].Kills]);
+    s2 := Format(' %d', [gTotalMonsters]);
 
-  s1 := _lc[I_MENU_INTER6];
-  s2 := _lc[I_MENU_INTER7];
-  s3 := Format(' %d ', [SingleStat.PlayerStat[n].Secrets]);
-  s4 := Format(' %d', [SingleStat.TotalSecrets]);
+    e_CharFont_Print(gMenuFont, key_x, y, _lc[I_MENU_INTER4]);
+    e_CharFont_PrintEx(gMenuFont, val_x, y, s1, _RGB(255, 0, 0));
+    e_CharFont_GetSize(gMenuFont, s1, w1, h);
+    e_CharFont_Print(gMenuFont, val_x+w1, y, '/');
+    s1 := s1 + '/';
+    e_CharFont_GetSize(gMenuFont, s1, w1, h);
+    e_CharFont_PrintEx(gMenuFont, val_x+w1, y, s2, _RGB(255, 0, 0));
 
-  e_CharFont_Print(gMenuFont, x, y+64, s1);
-  e_CharFont_GetSize(gMenuFont, s1, ww1, hh1);
-  e_CharFont_PrintEx(gMenuFont, x+ww1, y+64, s3, _RGB(255, 0, 0));
-  e_CharFont_GetSize(gMenuFont, s1+s3, ww1, hh1);
-  e_CharFont_Print(gMenuFont, x+ww1, y+64, s2);
-  e_CharFont_GetSize(gMenuFont, s1+s3+s2, ww1, hh1);
-  e_CharFont_PrintEx(gMenuFont, x+ww1, y+64, s4, _RGB(255, 0, 0));
- end;
+  // "Kills-per-minute: ##.#":
+    s1 := _lc[I_MENU_INTER5];
+    if tm > 0 then
+      kpm := (SingleStat.PlayerStat[n].Kills / tm) * 60
+    else
+      kpm := SingleStat.PlayerStat[n].Kills;
+    s2 := Format(' %.1f', [kpm]);
+
+    e_CharFont_Print(gMenuFont, key_x, y+32, s1);
+    e_CharFont_PrintEx(gMenuFont, val_x, y+32, s2, _RGB(255, 0, 0));
+
+  // "Secrets found: # / #":
+    s1 := Format(' %d ', [SingleStat.PlayerStat[n].Secrets]);
+    s2 := Format(' %d', [SingleStat.TotalSecrets]);
+
+    e_CharFont_Print(gMenuFont, key_x, y+64, _lc[I_MENU_INTER6]);
+    e_CharFont_PrintEx(gMenuFont, val_x, y+64, s1, _RGB(255, 0, 0));
+    e_CharFont_GetSize(gMenuFont, s1, w1, h);
+    e_CharFont_Print(gMenuFont, val_x+w1, y+64, '/');
+    s1 := s1 + '/';
+    e_CharFont_GetSize(gMenuFont, s1, w1, h);
+    e_CharFont_PrintEx(gMenuFont, val_x+w1, y+64, s2, _RGB(255, 0, 0));
+  end;
 
 begin
- e_CharFont_GetSize(gMenuFont, _lc[I_MENU_INTER2], ww1, hh1);
- e_CharFont_Print(gMenuFont, (gScreenWidth div 2)-(ww1 div 2), 32, _lc[I_MENU_INTER2]);
+// "Level Complete":
+  e_CharFont_GetSize(gMenuFont, _lc[I_MENU_INTER2], w1, h);
+  e_CharFont_Print(gMenuFont, (gScreenWidth-w1) div 2, 32, _lc[I_MENU_INTER2]);
 
- t := SingleStat.GameTime div 1000;
- s1 := _lc[I_MENU_INTER3];
- s2 := Format(' %d:%.2d:%.2d', [t div (60*60), (t mod (60*60)) div 60, t mod 60]);
+// Определяем координаты выравнивания по самой длинной строке:
+  s1 := _lc[I_MENU_INTER5];
+  e_CharFont_GetSize(gMenuFont, s1, w1, h);
+  Inc(w1, 16);
+  s1 := ' 9999.9';
+  e_CharFont_GetSize(gMenuFont, s1, w2, h);
 
- e_CharFont_GetSize(gMenuFont, s1, ww1, hh1);
- e_CharFont_GetSize(gMenuFont, s2, ww2, hh2);
- e_CharFont_Print(gMenuFont, (gScreenWidth div 2)-((ww1+ww2) div 2), 80, s1);
- e_CharFont_PrintEx(gMenuFont, (gScreenWidth div 2)-((ww1+ww2) div 2)+ww1, 80, s2, _RGB(255, 0, 0));
+  key_x := (gScreenWidth-w1-w2) div 2;
+  val_x := key_x + w1;
 
- if SingleStat.TwoPlayers then
- begin
-  s1 := _lc[I_MENU_PLAYER_1];
-  e_CharFont_GetSize(gMenuFont, s1, ww1, hh1);
-  e_CharFont_Print(gMenuFont, (gScreenWidth div 2)-(ww1 div 2), 128, s1);
-  y := 176;
-  player_stat(0);
+// "Time: #:##:##":
+  tm := SingleStat.GameTime div 1000;
+  s1 := _lc[I_MENU_INTER3];
+  s2 := Format(' %d:%.2d:%.2d', [tm div (60*60), (tm mod (60*60)) div 60, tm mod 60]);
 
-  s1 := _lc[I_MENU_PLAYER_2];
-  e_CharFont_GetSize(gMenuFont, s1, ww1, hh1);
-  e_CharFont_Print(gMenuFont, (gScreenWidth div 2)-(ww1 div 2), 288, s1);
-  y := 336;
-  player_stat(1);
- end
+  e_CharFont_Print(gMenuFont, key_x, 80, s1);
+  e_CharFont_PrintEx(gMenuFont, val_x, 80, s2, _RGB(255, 0, 0));
+
+  if SingleStat.TwoPlayers then
+    begin
+    // "Player 1":
+      s1 := _lc[I_MENU_PLAYER_1];
+      e_CharFont_GetSize(gMenuFont, s1, w1, h);
+      e_CharFont_Print(gMenuFont, (gScreenWidth-w1) div 2, 128, s1);
+
+    // Статистика первого игрока:
+      y := 176;
+      player_stat(0);
+
+    // "Player 2":
+      s1 := _lc[I_MENU_PLAYER_2];
+      e_CharFont_GetSize(gMenuFont, s1, w1, h);
+      e_CharFont_Print(gMenuFont, (gScreenWidth-w1) div 2, 288, s1);
+
+    // Статистика второго игрока:
+      y := 336;
+      player_stat(1);
+    end
   else
- begin
-  y := 128;
-  player_stat(0);
- end;
+    begin
+    // Статистика первого игрока:
+      y := 128;
+      player_stat(0);
+    end;
 end;
 
 procedure DrawLoadingStat();
@@ -1335,77 +1388,122 @@ end;
 
 procedure DrawPlayer(p: TPlayer);
 var
- px, py, a, b, c, d: Integer;
+  px, py, a, b, c, d: Integer;
+
 begin
- glPushMatrix;
- px := p.GameX+PLAYER_RECT_CX;
- py := p.GameY+PLAYER_RECT_CY;
- if px > (gPlayerScreenSize.X div 2) then a := -px+(gPlayerScreenSize.X div 2) else a := 0;
- if py > (gPlayerScreenSize.Y div 2) then b := -py+(gPlayerScreenSize.Y div 2) else b := 0;
- if px > gMapInfo.Width-(gPlayerScreenSize.X div 2) then a := -gMapInfo.Width+gPlayerScreenSize.X;
- if py > gMapInfo.Height-(gPlayerScreenSize.Y div 2) then b := -gMapInfo.Height+gPlayerScreenSize.Y;
- if gMapInfo.Width <= gPlayerScreenSize.X then a := 0;
- if gMapInfo.Height <= gPlayerScreenSize.Y then b := 0;
+  glPushMatrix();
 
- if p.IncCam <> 0 then
- begin
-  if py > gMapInfo.Height-(gPlayerScreenSize.Y div 2) then
+  px := p.GameX + PLAYER_RECT_CX;
+  py := p.GameY + PLAYER_RECT_CY;
+
+  if px > (gPlayerScreenSize.X div 2) then
+    a := -px + (gPlayerScreenSize.X div 2)
+  else
+    a := 0;
+  if py > (gPlayerScreenSize.Y div 2) then
+    b := -py + (gPlayerScreenSize.Y div 2)
+  else
+    b := 0;
+  if px > (gMapInfo.Width - (gPlayerScreenSize.X div 2)) then
+    a := -gMapInfo.Width + gPlayerScreenSize.X;
+  if py > (gMapInfo.Height - (gPlayerScreenSize.Y div 2)) then
+    b := -gMapInfo.Height + gPlayerScreenSize.Y;
+  if gMapInfo.Width <= gPlayerScreenSize.X then
+    a := 0;
+  if gMapInfo.Height <= gPlayerScreenSize.Y then
+    b := 0;
+
+  if p.IncCam <> 0 then
   begin
-   if p.IncCam > 120-(py-(gMapInfo.Height-(gPlayerScreenSize.Y div 2))) then
-    p.IncCam := 120-(py-(gMapInfo.Height-(gPlayerScreenSize.Y div 2)));
+    if py > (gMapInfo.Height - (gPlayerScreenSize.Y div 2)) then
+    begin
+      if p.IncCam > 120-(py-(gMapInfo.Height-(gPlayerScreenSize.Y div 2))) then
+        p.IncCam := 120-(py-(gMapInfo.Height-(gPlayerScreenSize.Y div 2)));
+    end;
+
+    if py < (gPlayerScreenSize.Y div 2) then
+    begin
+      if p.IncCam < -120+((gPlayerScreenSize.Y div 2)-py) then
+        p.IncCam := -120+((gPlayerScreenSize.Y div 2)-py);
+    end;
+
+    if p.IncCam < 0 then
+      while (py+(gPlayerScreenSize.Y div 2)-p.IncCam > gMapInfo.Height) and
+            (p.IncCam < 0) do
+        p.IncCam := p.IncCam + 1;
+
+    if p.IncCam > 0 then
+      while (py-(gPlayerScreenSize.Y div 2)-p.IncCam < 0) and
+            (p.IncCam > 0) do
+        p.IncCam := p.IncCam - 1;
   end;
 
-  if py < (gPlayerScreenSize.Y div 2) then
-  begin
-   if p.IncCam < -120+((gPlayerScreenSize.Y div 2)-py) then
-    p.IncCam := -120+((gPlayerScreenSize.Y div 2)-py);
-  end;
+  if (px< gPlayerScreenSize.X div 2) or
+     (gMapInfo.Width-gPlayerScreenSize.X <= 256) then
+    c := 0
+  else
+    if (px > gMapInfo.Width-(gPlayerScreenSize.X div 2)) then
+      c := gBackSize.X - gPlayerScreenSize.X
+    else
+      c := Round((px-(gPlayerScreenSize.X div 2))/(gMapInfo.Width-gPlayerScreenSize.X)*(gBackSize.X-gPlayerScreenSize.X));
 
-  if p.IncCam < 0 then
-   while (py+(gPlayerScreenSize.Y div 2)-p.IncCam > gMapInfo.Height) and
-         (p.IncCam < 0) do p.IncCam := p.IncCam+1;
+  if (py-p.IncCam <= gPlayerScreenSize.Y div 2) or
+     (gMapInfo.Height-gPlayerScreenSize.Y <= 256) then
+    d := 0
+  else
+    if (py-p.IncCam >= gMapInfo.Height-(gPlayerScreenSize.Y div 2)) then
+      d := gBackSize.Y - gPlayerScreenSize.Y
+    else
+      d := Round((py-p.IncCam-(gPlayerScreenSize.Y div 2))/(gMapInfo.Height-gPlayerScreenSize.Y)*(gBackSize.Y-gPlayerScreenSize.Y));
 
-  if p.IncCam > 0 then
-   while (py-(gPlayerScreenSize.Y div 2)-p.IncCam < 0) and
-         (p.IncCam > 0) do p.IncCam := p.IncCam-1;
- end;
+  g_Map_DrawBack(-c, -d);
 
- if ((px< gPlayerScreenSize.X div 2) or (gMapInfo.Width-gPlayerScreenSize.X <= 256)) then c := 0
-  else if (px > gMapInfo.Width-(gPlayerScreenSize.X div 2)) then c := gBackSize.X-gPlayerScreenSize.X
-   else c := Round((px-(gPlayerScreenSize.X div 2))/(gMapInfo.Width-gPlayerScreenSize.X)*(gBackSize.X-gPlayerScreenSize.X));
+  sX := -a;
+  sY := -(b+p.IncCam);
+  sWidth := gPlayerScreenSize.X;
+  sHeight := gPlayerScreenSize.Y;
 
- if (py-p.IncCam <= gPlayerScreenSize.Y div 2) or (gMapInfo.Height-gPlayerScreenSize.Y <= 256) then d := 0
-  else if (py-p.IncCam >= gMapInfo.Height-(gPlayerScreenSize.Y div 2)) then d := gBackSize.Y-gPlayerScreenSize.Y
-   else d := Round((py-p.IncCam-(gPlayerScreenSize.Y div 2))/(gMapInfo.Height-gPlayerScreenSize.Y)*(gBackSize.Y-gPlayerScreenSize.Y));
+  glTranslatef(a, b+p.IncCam, 0);
 
- g_Map_DrawBack(-c, -d);
+  g_Map_DrawPanels(PANEL_BACK);
+  g_Map_DrawPanels(PANEL_STEP);
+  g_Items_Draw();
+  g_Weapon_Draw();
+  g_Player_DrawAll();
+  g_Player_DrawCorpses();
+  g_Map_DrawPanels(PANEL_WALL);
+  g_Monsters_Draw();
+  g_Map_DrawPanels(PANEL_CLOSEDOOR);
+  g_GFX_Draw();
+  g_Map_DrawFlags();
+  g_Map_DrawPanels(PANEL_ACID1);
+  g_Map_DrawPanels(PANEL_ACID2);
+  g_Map_DrawPanels(PANEL_WATER);
+  g_Map_DrawPanels(PANEL_FORE);
 
- sX := -a;
- sY := -(b+p.IncCam);
- sWidth := gPlayerScreenSize.X;
- sHeight := gPlayerScreenSize.Y;
+  {
+  for a := 0 to High(gCollideMap) do
+    for b := 0 to High(gCollideMap[a]) do
+    begin
+      d := 0;
+      if ByteBool(gCollideMap[a, b] and MARK_WALL) then
+        d := d + 1;
+      if ByteBool(gCollideMap[a, b] and MARK_DOOR) then
+        d := d + 2;
 
- glTranslatef(a, b+p.IncCam, 0);
- g_Map_DrawPanels(PANEL_BACK);
- g_Map_DrawPanels(PANEL_STEP);
- g_Items_Draw();
- g_Weapon_Draw();
- g_Player_DrawAll();
- g_Player_DrawCorpses();
- g_Map_DrawPanels(PANEL_WALL);
- g_Monsters_Draw();
- g_Map_DrawPanels(PANEL_CLOSEDOOR);
- g_GFX_Draw();
- g_Map_DrawFlags();
- g_Map_DrawPanels(PANEL_ACID1);
- g_Map_DrawPanels(PANEL_ACID2);
- g_Map_DrawPanels(PANEL_WATER);
- g_Map_DrawPanels(PANEL_FORE);
- glPopMatrix();
+      case d of
+        1: e_DrawPoint(1, b, a, 200, 200, 200);
+        2: e_DrawPoint(1, b, a, 64, 64, 255);
+        3: e_DrawPoint(1, b, a, 255, 0, 255);
+      end;
+    end;
+  }
 
- p.DrawPain();
- p.DrawInv();
- p.DrawGUI();
+  glPopMatrix();
+
+  p.DrawPain();
+  p.DrawInv();
+  p.DrawGUI();
 end;
 
 procedure g_Game_Draw();
@@ -1579,7 +1677,7 @@ begin
 
 // Надо удалить карту после теста:
   if gMapToDelete <> '' then
-    g_Game_DeleteTestMap();
+    g_Game_DeleteTestMap();     
 
   gExit := EXIT_QUIT;
   PostQuitMessage(0);
@@ -1591,6 +1689,12 @@ begin
   e_WriteLog(Format(_lc[I_FATAL_ERROR], [Text]), MSG_WARNING);
 
   gExit := EXIT_SIMPLE;
+end;
+
+procedure g_SimpleError(Text: String);
+begin
+  g_Console_Add(Format(_lc[I_SIMPLE_ERROR], [Text]), True);
+  e_WriteLog(Format(_lc[I_SIMPLE_ERROR], [Text]), MSG_WARNING);
 end;
 
 procedure g_Game_SetupScreenSize();
@@ -1860,7 +1964,8 @@ begin
 // Загрузка и запуск карты:
   if not g_Game_StartMap(ResName, True) then
   begin
-    g_FatalError(Format(_lc[I_GAME_ERROR_MAP_LOAD], [ExtractFileName(gGameSettings.WAD)+':\'+ResName]));
+    g_FatalError(Format(_lc[I_GAME_ERROR_MAP_LOAD],
+                        [ExtractFileName(gGameSettings.WAD)+':\'+ResName]));
     Exit;
   end;
 
@@ -1941,18 +2046,25 @@ begin
 
   Result := g_Map_Load(gGameSettings.WAD+':\'+Map);
   if Result then
-    g_Player_ResetAll(Force, True);
+    begin
+      g_Player_ResetAll(Force, True);
+
+      gState := STATE_NONE;
+      g_ActiveWindow := nil;
+      gGameOn := True;
+
+      DisableCheats();
+      ResetTimer();
+    end
+  else
+    begin
+      gState := STATE_MENU;
+      gGameOn := False;
+    end;
 
   gExit := 0;
-  gState := STATE_NONE;
-  g_ActiveWindow := nil;
-
-  gGameOn := True;
   gPause := False;
   gTime := 0;
-
-  DisableCheats();
-  ResetTimer();
 end;
 
 procedure g_Game_ExitLevel(Map: Char16);
@@ -2021,7 +2133,7 @@ var
   WAD: TWADEditor_1;
   MapName: Char16;
   MapList: SArray;
-  a: Integer;
+  a, time: Integer;
   WadName: string;
 
 begin
@@ -2040,6 +2152,7 @@ begin
   if MapName <> TEST_MAP_NAME then
     Exit;
 
+  time := g_GetFileTime(WadName);
   WAD := TWADEditor_1.Create();
 
 // Читаем Wad-файл:
@@ -2064,6 +2177,7 @@ begin
       end;
 
   WAD.Free();
+  g_SetFileTime(WadName, time);
 end;
 
 procedure GameCommands(P: SArray);
@@ -2233,7 +2347,7 @@ begin
             with gPlayer1.Obj do
               g_Monsters_Create(a,
                 X + Rect.X + (Rect.Width div 2),
-                Y + Rect.Y + Rect.Height - 5,
+                Y + Rect.Y + Rect.Height,
                 gPlayer1.Direction, True);
           end;
       end;
@@ -2440,11 +2554,12 @@ begin
   if gTriggers <> nil then
     for i := 0 to High(gTriggers) do
       with gTriggers[i] do
-        if (TriggerType = TRIGGER_SOUND) and (Sound <> nil) then
-          if Sound.IsPlaying() then
-            begin
-              Sound.Pause(Enable);
-            end;
+        if (TriggerType = TRIGGER_SOUND) and
+           (Sound <> nil) and
+           Sound.IsPlaying() then
+        begin
+          Sound.Pause(Enable);
+        end;
 
 // Звуки игроков:
   if gPlayers <> nil then
@@ -2465,13 +2580,31 @@ begin
   if gTriggers <> nil then
     for i := 0 to High(gTriggers) do
       with gTriggers[i] do
-        if (TriggerType = TRIGGER_SOUND) and (Sound <> nil) then
+        if (TriggerType = TRIGGER_SOUND) and
+           (Sound <> nil) then
           Sound.Stop();
 
   if gMusic <> nil then
     gMusic.Stop();
     
   e_StopChannels();
+end;
+
+procedure g_Game_UpdateTriggerSounds();
+var
+  i: Integer;
+
+begin
+  if gTriggers <> nil then
+    for i := 0 to High(gTriggers) do
+      with gTriggers[i] do
+        if (TriggerType = TRIGGER_SOUND) and
+           (Sound <> nil) and
+           (Data.Local) and
+           Sound.IsPlaying() then
+        begin
+          Sound.SetCoords(X+(Width div 2), Y+(Height div 2), Data.Volume/255.0);
+        end;
 end;
 
 procedure g_Game_Message(Msg: string; Time: Word);
@@ -2680,9 +2813,9 @@ begin
   // Options:
     s := Find_Param_Value(pars, '-opt');
     if (s = '') or (not TryStrToInt(s, Opt)) then
-      Opt := GAME_OPTION_ALLOWEXIT;
+      Opt := GAME_OPTION_ALLOWEXIT and GAME_OPTION_BOTVSPLAYER and GAME_OPTION_BOTVSMONSTER;
     if Opt < 0 then
-      Opt := GAME_OPTION_ALLOWEXIT;
+      Opt := GAME_OPTION_ALLOWEXIT and GAME_OPTION_BOTVSPLAYER and GAME_OPTION_BOTVSMONSTER;
   // Close after map:
     s := Find_Param_Value(pars, '--close');
     if (s <> '') then

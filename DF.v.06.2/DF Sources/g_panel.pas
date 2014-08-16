@@ -44,6 +44,7 @@ Type
     procedure   Draw();
     procedure   Update();
     procedure   NextTexture(AnimLoop: Byte = 0);
+    function    GetTextureID(): Cardinal;
 
     procedure   SaveState(var Mem: TBinMemoryWriter);
     procedure   LoadState(var Mem: TBinMemoryReader);
@@ -221,6 +222,20 @@ begin
           TEXTURE_SPECIAL_ACID2:
             e_DrawFillQuad(X, Y, X+Width-1, Y+Height-1,
                            128, 0, 0, 0, B_FILTER);
+          TEXTURE_NONE:
+            begin
+              xx := X + (Width div 2);
+              yy := Y + (Height div 2);
+              e_DrawFillQuad(X, Y, xx, yy,
+                             255, 0, 255, 0);
+              e_DrawFillQuad(xx, Y, X+Width-1, yy,
+                             255, 255, 0, 0);
+              e_DrawFillQuad(X, yy, xx, Y+Height-1,
+                             255, 255, 0, 0);
+              e_DrawFillQuad(xx, yy, X+Width-1, Y+Height-1,
+                             255, 0, 255, 0);
+            end;
+            
           else
             e_DrawFill(FTextureIDs[FCurTexture].Tex, X, Y,
                        Width div FTextureWidth,
@@ -282,6 +297,19 @@ begin
         FTextureIDs[FCurTexture].AnTex.Loop := False;
         
     FTextureIDs[FCurTexture].AnTex.Reset();
+  end;
+end;
+
+function TPanel.GetTextureID(): DWORD;
+begin
+  Result := TEXTURE_NONE;
+
+  if (FCurTexture >= 0) then
+  begin
+    if FTextureIDs[FCurTexture].Anim then
+      Result := FTextureIDs[FCurTexture].AnTex.FramesID
+    else
+      Result := FTextureIDs[FCurTexture].Tex;
   end;
 end;
 

@@ -1,8 +1,8 @@
-unit g_phys;
+Unit g_phys;
 
-interface
+Interface
 
-uses
+Uses
   e_graphics, windows;
 
 Type
@@ -28,122 +28,151 @@ const
   MOVE_BLOCK      = 128;
 
 procedure g_Obj_Init(Obj: PObj);
-function g_Obj_Move(Obj: PObj; Fallable: Boolean): Word;
-function g_Obj_Collide(Obj1, Obj2: PObj): Boolean; overload;
-function g_Obj_Collide(X, Y: Integer; Width, Height: Word; Obj: PObj): Boolean; overload;
-function g_Obj_CollidePoint(X, Y: Integer; Obj: PObj): Boolean;
-function g_Obj_CollideLevel(Obj: PObj; XInc, YInc: Integer): Boolean;
-function g_Obj_CollideStep(Obj: PObj; XInc, YInc: Integer): Boolean;
-function g_Obj_CollideWater(Obj: PObj; XInc, YInc: Integer): Boolean;
-function g_Obj_CollidePanel(Obj: PObj; XInc, YInc: Integer; PanelType: Word): Boolean;
-function g_Obj_StayOnStep(Obj: PObj): Boolean;
+function  g_Obj_Move(Obj: PObj; Fallable: Boolean; Splash: Boolean): Word;
+function  g_Obj_Collide(Obj1, Obj2: PObj): Boolean; overload;
+function  g_Obj_Collide(X, Y: Integer; Width, Height: Word; Obj: PObj): Boolean; overload;
+function  g_Obj_CollidePoint(X, Y: Integer; Obj: PObj): Boolean;
+function  g_Obj_CollideLevel(Obj: PObj; XInc, YInc: Integer): Boolean;
+function  g_Obj_CollideStep(Obj: PObj; XInc, YInc: Integer): Boolean;
+function  g_Obj_CollideWater(Obj: PObj; XInc, YInc: Integer): Boolean;
+function  g_Obj_CollidePanel(Obj: PObj; XInc, YInc: Integer; PanelType: Word): Boolean;
+function  g_Obj_StayOnStep(Obj: PObj): Boolean;
 procedure g_Obj_Push(Obj: PObj; VelX, VelY: Integer);
 procedure g_Obj_PushA(Obj: PObj; Vel: Integer; Angle: SmallInt);
-procedure g_Obj_Splash(Obj: PObj);
 procedure g_Obj_SetSpeed(Obj: PObj; s: Integer);
-function z_dec(a, b: Integer): Integer;
-function z_fdec(a, b: Double): Double;
+function  z_dec(a, b: Integer): Integer;
+function  z_fdec(a, b: Double): Double;
 
 var
   gMon: Boolean = False;
 
 Implementation
 
-uses
+Uses
   g_map, g_basic, Math, g_player, g_console, SysUtils,
   g_sound, g_gfx, MAPDEF, g_monsters, g_game;
 
 function g_Obj_StayOnStep(Obj: PObj): Boolean;
 begin
- Result := not g_Map_CollidePanel(Obj^.X+Obj^.Rect.X, Obj^.Y+Obj^.Rect.Y+Obj^.Rect.Height-1,
-                                  Obj^.Rect.Width, 1, PANEL_STEP, False)
-           and g_Map_CollidePanel(Obj^.X+Obj^.Rect.X, Obj^.Y+Obj^.Rect.Y+Obj^.Rect.Height,
-                                  Obj^.Rect.Width, 1, PANEL_STEP, False);
+  Result := not g_Map_CollidePanel(Obj^.X+Obj^.Rect.X, Obj^.Y+Obj^.Rect.Y+Obj^.Rect.Height-1,
+                                   Obj^.Rect.Width, 1,
+                                   PANEL_STEP, False)
+            and g_Map_CollidePanel(Obj^.X+Obj^.Rect.X, Obj^.Y+Obj^.Rect.Y+Obj^.Rect.Height,
+                                   Obj^.Rect.Width, 1,
+                                   PANEL_STEP, False);
 end;
 
 function CollideLiquid(Obj: PObj; XInc, YInc: Integer): Boolean;
 begin
- Result := g_Map_CollidePanel(Obj^.X+Obj^.Rect.X+XInc, Obj^.Y+Obj^.Rect.Y+YInc, Obj^.Rect.Width,
-                              Obj^.Rect.Height*2 div 3, PANEL_WATER or PANEL_ACID1 or PANEL_ACID2, False);
+  Result := g_Map_CollidePanel(Obj^.X+Obj^.Rect.X+XInc, Obj^.Y+Obj^.Rect.Y+YInc,
+                               Obj^.Rect.Width, Obj^.Rect.Height*2 div 3,
+                               PANEL_WATER or PANEL_ACID1 or PANEL_ACID2, False);
 end;
 
 function CollideLift(Obj: PObj; XInc, YInc: Integer): Integer;
 begin
- if g_Map_CollidePanel(Obj^.X+Obj^.Rect.X+XInc, Obj^.Y+Obj^.Rect.Y+YInc, Obj^.Rect.Width,
-                       Obj^.Rect.Height, PANEL_LIFTUP, False) then Result := -1
- else if g_Map_CollidePanel(Obj^.X+Obj^.Rect.X+XInc, Obj^.Y+Obj^.Rect.Y+YInc, Obj^.Rect.Width,
-                            Obj^.Rect.Height, PANEL_LIFTDOWN, False) then Result := 1
- else Result := 0;
+  if g_Map_CollidePanel(Obj^.X+Obj^.Rect.X+XInc, Obj^.Y+Obj^.Rect.Y+YInc,
+                        Obj^.Rect.Width, Obj^.Rect.Height,
+                        PANEL_LIFTUP, False) then
+    Result := -1
+  else
+    if g_Map_CollidePanel(Obj^.X+Obj^.Rect.X+XInc, Obj^.Y+Obj^.Rect.Y+YInc,
+                          Obj^.Rect.Width, Obj^.Rect.Height,
+                          PANEL_LIFTDOWN, False) then
+      Result := 1
+    else
+      Result := 0;
 end;
 
 function CollidePlayers(_Obj: PObj; XInc, YInc: Integer): Boolean;
 var
   a: Integer;
+
 begin
- Result := False;
+  Result := False;
 
- if gPlayers = nil then Exit;
+  if gPlayers = nil then
+    Exit;
 
- for a := 0 to High(gPlayers) do
-  if gPlayers[a] <> nil then
-   with gPlayers[a] do
-    if Live and g_Collide(GameX+PLAYER_RECT.X, GameY+PLAYER_RECT.Y,
-                          PLAYER_RECT.Width, PLAYER_RECT.Height,
-                          _Obj^.X+_Obj^.Rect.X+XInc, _Obj^.Y+_Obj^.Rect.Y+YInc,
-                          _Obj^.Rect.Width, _Obj^.Rect.Height) then
-    begin
-     Result := True;
-     Exit;
-    end;
+  for a := 0 to High(gPlayers) do
+    if gPlayers[a] <> nil then
+      with gPlayers[a] do
+        if Live and
+           g_Collide(GameX+PLAYER_RECT.X, GameY+PLAYER_RECT.Y,
+                     PLAYER_RECT.Width, PLAYER_RECT.Height,
+                     _Obj^.X+_Obj^.Rect.X+XInc, _Obj^.Y+_Obj^.Rect.Y+YInc,
+                     _Obj^.Rect.Width, _Obj^.Rect.Height) then
+        begin
+          Result := True;
+          Exit;
+        end;
 end;
 
 function CollideMonsters(Obj: PObj; XInc, YInc: Integer): Boolean;
 var
   a: Integer;
+
 begin
- Result := False;
+  Result := False;
 
- if gMonsters = nil then Exit;
-
- for a := 0 to High(gMonsters) do
-  if gMonsters[a] <> nil then
-   if gMonsters[a].Live and
-      gMonsters[a].Collide(Obj^.X+Obj^.Rect.X+XInc, Obj^.Y+Obj^.Rect.Y+YInc,
-                         Obj^.Rect.Width, Obj^.Rect.Height) then
-   begin
-    Result := True;
+  if gMonsters = nil then
     Exit;
-   end;
+
+  for a := 0 to High(gMonsters) do
+    if gMonsters[a] <> nil then
+      if gMonsters[a].Live and
+         gMonsters[a].Collide(Obj^.X+Obj^.Rect.X+XInc, Obj^.Y+Obj^.Rect.Y+YInc,
+                              Obj^.Rect.Width, Obj^.Rect.Height) then
+      begin
+        Result := True;
+        Exit;
+      end;
 end;
 
 function Blocked(Obj: PObj; XInc, YInc: Integer): Boolean;
 begin
- Result := g_Map_CollidePanel(Obj^.X+Obj^.Rect.X+XInc, Obj^.Y+Obj.Rect.Y+YInc, Obj^.Rect.Width,
-                              Obj^.Rect.Height, PANEL_BLOCKMON, False);
+  Result := g_Map_CollidePanel(Obj^.X+Obj^.Rect.X+XInc, Obj^.Y+Obj.Rect.Y+YInc,
+                               Obj^.Rect.Width, Obj^.Rect.Height,
+                               PANEL_BLOCKMON, False);
 end;
 
 function g_Obj_CollideLevel(Obj: PObj; XInc, YInc: Integer): Boolean;
 begin
- Result := g_Map_CollidePanel(Obj^.X+Obj^.Rect.X+XInc, Obj^.Y+Obj.Rect.Y+YInc, Obj^.Rect.Width,
-                              Obj^.Rect.Height, PANEL_WALL, False);
+  Result := g_Map_CollidePanel(Obj^.X+Obj^.Rect.X+XInc, Obj^.Y+Obj.Rect.Y+YInc,
+                               Obj^.Rect.Width, Obj^.Rect.Height,
+                               PANEL_WALL, False);
 end;
 
 function g_Obj_CollideStep(Obj: PObj; XInc, YInc: Integer): Boolean;
 begin
- Result := g_Map_CollidePanel(Obj^.X+Obj^.Rect.X+XInc, Obj^.Y+Obj.Rect.Y+YInc, Obj^.Rect.Width,
-                              Obj^.Rect.Height, PANEL_STEP, False);
+  Result := g_Map_CollidePanel(Obj^.X+Obj^.Rect.X+XInc, Obj^.Y+Obj.Rect.Y+YInc,
+                               Obj^.Rect.Width, Obj^.Rect.Height,
+                               PANEL_STEP, False);
 end;
 
 function g_Obj_CollideWater(Obj: PObj; XInc, YInc: Integer): Boolean;
 begin
- Result := g_Map_CollidePanel(Obj^.X+Obj^.Rect.X+XInc, Obj^.Y+Obj.Rect.Y+YInc, Obj^.Rect.Width,
-                              Obj^.Rect.Height, PANEL_WATER, False);
+  Result := g_Map_CollidePanel(Obj^.X+Obj^.Rect.X+XInc, Obj^.Y+Obj.Rect.Y+YInc,
+                               Obj^.Rect.Width, Obj^.Rect.Height,
+                               PANEL_WATER, False);
 end;
 
 function g_Obj_CollidePanel(Obj: PObj; XInc, YInc: Integer; PanelType: Word): Boolean;
 begin
-  Result := g_Map_CollidePanel(Obj^.X+Obj^.Rect.X+XInc, Obj^.Y+Obj.Rect.Y+YInc, Obj^.Rect.Width,
-                               Obj^.Rect.Height, PanelType, False);
+  Result := g_Map_CollidePanel(Obj^.X+Obj^.Rect.X+XInc, Obj^.Y+Obj.Rect.Y+YInc,
+                               Obj^.Rect.Width, Obj^.Rect.Height,
+                               PanelType, False);
+end;
+
+procedure g_Obj_Splash(Obj: PObj; Color: Byte);
+begin
+  g_Sound_PlayExAt('SOUND_GAME_BULK1', Obj^.X, Obj^.Y);
+  
+  g_GFX_Water(Obj^.X+Obj^.Rect.X+(Obj^.Rect.Width div 2),
+              Obj^.Y+Obj^.Rect.Y+(Obj^.Rect.Height div 2),
+              Min(5*(Abs(Obj^.Vel.X)+Abs(Obj^.Vel.Y)), 50),
+              -Obj^.Vel.X, -Obj^.Vel.Y,
+              Obj^.Rect.Width, 16, Color);
 end;
 
 function move(Obj: PObj; dx, dy: Integer): Word;
@@ -152,74 +181,74 @@ var
   sx, sy: ShortInt;
   st: Word;
 
-function movex(): Boolean;
-begin
-  Result := False;
+  function movex(): Boolean;
+  begin
+    Result := False;
 
-// Если монстру шагнуть в сторону, а там блокмон:
-  if gMon and not WordBool(st and MOVE_BLOCK) then
-    if Blocked(Obj, sx, 0) then
-      st := st or MOVE_BLOCK;
+  // Если монстру шагнуть в сторону, а там блокмон:
+    if gMon and not WordBool(st and MOVE_BLOCK) then
+      if Blocked(Obj, sx, 0) then
+        st := st or MOVE_BLOCK;
 
-// Если шагнуть в сторону, а там стена => шагать нельзя:
-  if g_Obj_CollideLevel(Obj, sx, 0) then
-    begin
-      st := st or MOVE_HITWALL;
-    end
-  else // Там стены нет
-    begin
-      if CollideLiquid(Obj, sx, 0) then
-        begin // Если шагнуть в сторону, а там теперь жидкость
-          if not WordBool(st and MOVE_INWATER) then
-            st := st or MOVE_HITWATER;
-        end
-      else // Если шагнуть в сторону, а там уже нет жидкости
-        if WordBool(st and MOVE_INWATER) then
-          st := st or MOVE_HITAIR;
+  // Если шагнуть в сторону, а там стена => шагать нельзя:
+    if g_Obj_CollideLevel(Obj, sx, 0) then
+      begin
+        st := st or MOVE_HITWALL;
+      end
+    else // Там стены нет
+      begin
+        if CollideLiquid(Obj, sx, 0) then
+          begin // Если шагнуть в сторону, а там теперь жидкость
+            if not WordBool(st and MOVE_INWATER) then
+              st := st or MOVE_HITWATER;
+          end
+        else // Если шагнуть в сторону, а там уже нет жидкости
+          if WordBool(st and MOVE_INWATER) then
+            st := st or MOVE_HITAIR;
 
-    // Шаг:
-      Obj^.X := Obj^.X + sx;
+      // Шаг:
+        Obj^.X := Obj^.X + sx;
 
-      Result := True;
-    end;
-end;
+        Result := True;
+      end;
+  end;
 
-function movey(): Boolean;
-begin
-  Result := False;
+  function movey(): Boolean;
+  begin
+    Result := False;
 
-// Если монстру шагнуть по вертикали, а там блокмон:
-  if gMon and not WordBool(st and MOVE_BLOCK) then
-    if Blocked(Obj, 0, sy) then
-      st := st or MOVE_BLOCK;
+  // Если монстру шагнуть по вертикали, а там блокмон:
+    if gMon and not WordBool(st and MOVE_BLOCK) then
+      if Blocked(Obj, 0, sy) then
+        st := st or MOVE_BLOCK;
 
-// Если шагнуть в по вертикали, а там стена => шагать нельзя:
-// Или если шагнуть вниз, а там ступень => шагать нельзя:
-  if g_Obj_CollideLevel(Obj, 0, sy) or
-     ((sy > 0) and g_Obj_StayOnStep(Obj)) then
-    begin
-      if sy > 0 then
-        st := st or MOVE_HITLAND
-      else
-        st := st or MOVE_HITCEIL;
-    end
-  else // Там стены нет. И ступени снизу тоже нет
-    begin
-      if CollideLiquid(Obj, 0, sy) then
-        begin // Если шагнуть в по вертикали, а там теперь жидкость
-          if not WordBool(st and MOVE_INWATER) then
-            st := st or MOVE_HITWATER;
-        end
-      else // Если шагнуть в по вертикали, а там уже нет жидкости
-        if WordBool(st and MOVE_INWATER) then
-          st := st or MOVE_HITAIR;
+  // Если шагнуть в по вертикали, а там стена => шагать нельзя:
+  // Или если шагнуть вниз, а там ступень => шагать нельзя:
+    if g_Obj_CollideLevel(Obj, 0, sy) or
+       ((sy > 0) and g_Obj_StayOnStep(Obj)) then
+      begin
+        if sy > 0 then
+          st := st or MOVE_HITLAND
+        else
+          st := st or MOVE_HITCEIL;
+      end
+    else // Там стены нет. И ступени снизу тоже нет
+      begin
+        if CollideLiquid(Obj, 0, sy) then
+          begin // Если шагнуть в по вертикали, а там теперь жидкость
+            if not WordBool(st and MOVE_INWATER) then
+              st := st or MOVE_HITWATER;
+          end
+        else // Если шагнуть в по вертикали, а там уже нет жидкости
+          if WordBool(st and MOVE_INWATER) then
+            st := st or MOVE_HITAIR;
 
-    // Шаг:
-      Obj^.Y := Obj^.Y + sy;
+      // Шаг:
+        Obj^.Y := Obj^.Y + sy;
 
-      Result := True;
-    end;
-end;
+        Result := True;
+      end;
+  end;
 
 begin
   st := MOVE_NONE;
@@ -262,11 +291,12 @@ begin
   ZeroMemory(Obj, SizeOf(TObj));
 end;
 
-function g_Obj_Move(Obj: PObj; Fallable: Boolean): Word;
+function g_Obj_Move(Obj: PObj; Fallable: Boolean; Splash: Boolean): Word;
 var
   xv, yv, dx, dy: Integer;
   inwater: Boolean;
   c: Boolean;
+  wtx: DWORD;
 
 label
   _move;
@@ -343,6 +373,28 @@ _move:
 
   Result := move(Obj, dx, dy);
 
+// Брызги (если нужны):
+  if Splash then
+    if WordBool(Result and MOVE_HITWATER) then
+    begin
+      wtx := g_Map_CollideLiquid_Texture(Obj^.X+Obj^.Rect.X,
+                                         Obj^.Y+Obj^.Rect.Y,
+                                         Obj^.Rect.Width,
+                                         Obj^.Rect.Height*2 div 3);
+      case wtx of
+        TEXTURE_SPECIAL_WATER:
+          g_Obj_Splash(Obj, 3);
+        TEXTURE_SPECIAL_ACID1:
+          g_Obj_Splash(Obj, 2);
+        TEXTURE_SPECIAL_ACID2:
+          g_Obj_Splash(Obj, 1);
+        TEXTURE_NONE:
+          ;
+        else
+          g_Obj_Splash(Obj, 0);
+      end;
+    end;
+
 // Меняем скорость и ускорение только по четным кадрам:
   if c then
     Exit;
@@ -364,20 +416,24 @@ end;
 
 function g_Obj_Collide(Obj1, Obj2: PObj): Boolean;
 begin
- Result := g_Collide(Obj1^.X+Obj1^.Rect.X, Obj1^.Y+Obj1^.Rect.Y, Obj1^.Rect.Width, Obj1^.Rect.Height,
-                     Obj2^.X+Obj2^.Rect.X, Obj2^.Y+Obj2^.Rect.Y, Obj2^.Rect.Width, Obj2^.Rect.Height);
+  Result := g_Collide(Obj1^.X+Obj1^.Rect.X, Obj1^.Y+Obj1^.Rect.Y,
+                      Obj1^.Rect.Width, Obj1^.Rect.Height,
+                      Obj2^.X+Obj2^.Rect.X, Obj2^.Y+Obj2^.Rect.Y,
+                      Obj2^.Rect.Width, Obj2^.Rect.Height);
 end;
 
 function g_Obj_Collide(X, Y: Integer; Width, Height: Word; Obj: PObj): Boolean;
 begin
- Result := g_Collide(X, Y, Width, Height, Obj^.X+Obj^.Rect.X, Obj^.Y+Obj^.Rect.Y,
-                     Obj^.Rect.Width, Obj^.Rect.Height);
+  Result := g_Collide(X, Y,
+                      Width, Height,
+                      Obj^.X+Obj^.Rect.X, Obj^.Y+Obj^.Rect.Y,
+                      Obj^.Rect.Width, Obj^.Rect.Height);
 end;
 
 function g_Obj_CollidePoint(X, Y: Integer; Obj: PObj): Boolean;
 begin
- Result := g_CollidePoint(X, Y, Obj^.X+Obj^.Rect.X, Obj^.Y+Obj^.Rect.Y,
-                          Obj^.Rect.Width, Obj^.Rect.Height);
+  Result := g_CollidePoint(X, Y, Obj^.X+Obj^.Rect.X, Obj^.Y+Obj^.Rect.Y,
+                           Obj^.Rect.Width, Obj^.Rect.Height);
 end;
 
 procedure g_Obj_Push(Obj: PObj; VelX, VelY: Integer);
@@ -389,21 +445,12 @@ end;
 procedure g_Obj_PushA(Obj: PObj; Vel: Integer; Angle: SmallInt);
 var
   s, c: Extended;
+
 begin
   SinCos(DegToRad(-Angle), s, c);
 
   Obj^.Vel.X := Obj^.Vel.X + Round(Vel*c);
   Obj^.Vel.Y := Obj^.Vel.Y + Round(Vel*s);
-end;
-
-procedure g_Obj_Splash(Obj: PObj);
-begin
-  g_Sound_PlayExAt('SOUND_GAME_BULK1', Obj^.X, Obj^.Y);
-  g_GFX_Water(Obj^.X+Obj^.Rect.X+(Obj^.Rect.Width div 2),
-              Obj^.Y+Obj.Rect.Y+(Obj^.Rect.Height div 2),
-              Min(5*(Abs(Obj^.Vel.X)+Abs(Obj^.Vel.Y)), 75),
-              -Obj^.Vel.X, -Obj^.Vel.Y,
-              Obj^.Rect.Width, 16);
 end;
 
 procedure g_Obj_SetSpeed(Obj: PObj; s: Integer);

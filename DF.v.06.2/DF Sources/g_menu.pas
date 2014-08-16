@@ -10,6 +10,7 @@ procedure g_Menu_Free();
 procedure g_Menu_Reset();
 procedure LoadFont(txtres, fntres: string; cwdt, chgt: Byte; spc: ShortInt;
                    var FontID: DWORD);
+procedure g_Menu_AskLanguage();
 
 procedure g_Menu_Show_SaveMenu(custom: Boolean);
 procedure g_Menu_Show_LoadMenu(custom: Boolean);
@@ -17,6 +18,7 @@ procedure g_Menu_Show_GameSetGame(custom: Boolean);
 procedure g_Menu_Show_OptionsVideo(custom: Boolean);
 procedure g_Menu_Show_OptionsSound(custom: Boolean);
 procedure g_Menu_Show_EndGameMenu(custom: Boolean);
+procedure g_Menu_Show_QuitGameMenu(custom: Boolean);
 
 var
   gMenuFont: DWORD;
@@ -451,10 +453,13 @@ end;
 
 procedure ProcSelectMap(Sender: TGUIControl);
 var
+  win: TGUIWindow;
   a: TMapInfo;
-  wad, map, res: string;
+  wad, map, res: String;
+  
 begin
-  with TGUIMenu(g_ActiveWindow.GetControl('mSelectMapMenu')) do
+  win := g_GUI_GetWindow('SelectMapMenu');
+  with TGUIMenu(win.GetControl('mSelectMapMenu')) do
   begin
     wad := TGUIFileListBox(GetControl('lsMapWAD')).SelectedItem();
     map := TGUIListBox(GetControl('lsMapRes')).SelectedItem();
@@ -465,8 +470,8 @@ begin
         TGUILabel(GetControl('lbMapAuthor')).Text := '';
         TGUILabel(GetControl('lbMapSize')).Text := '';
         TGUIMemo(GetControl('meMapDescription')).SetText('');
-        TGUIMapPreview(g_ActiveWindow.GetControl('mpMapPreview')).ClearMap();
-        TGUILabel(g_ActiveWindow.GetControl('lbMapScale')).Text := '';
+        TGUIMapPreview(win.GetControl('mpMapPreview')).ClearMap();
+        TGUILabel(win.GetControl('lbMapScale')).Text := '';
       end
     else // Это карта
       begin
@@ -478,34 +483,38 @@ begin
         TGUILabel(GetControl('lbMapAuthor')).Text := a.Author;
         TGUILabel(GetControl('lbMapSize')).Text := Format('%dx%d', [a.Width, a.Height]);
         TGUIMemo(GetControl('meMapDescription')).SetText(a.Description);
-        TGUIMapPreview(g_ActiveWindow.GetControl('mpMapPreview')).SetMap(res);
-        TGUILabel(g_ActiveWindow.GetControl('lbMapScale')).Text :=
-          TGUIMapPreview(g_ActiveWindow.GetControl('mpMapPreview')).GetScaleStr;
+        TGUIMapPreview(win.GetControl('mpMapPreview')).SetMap(res);
+        TGUILabel(win.GetControl('lbMapScale')).Text :=
+          TGUIMapPreview(win.GetControl('mpMapPreview')).GetScaleStr;
       end;
   end;
 end;
 
 procedure ProcSelectWAD(Sender: TGUIControl);
 var
-  wad: string;
+  wad: String;
   list: SArray;
+
 begin
- with TGUIMenu(g_ActiveWindow.GetControl('mSelectMapMenu')) do
- begin
-  wad := TGUIFileListBox(GetControl('lsMapWAD')).SelectedItem();
-  if wad = '' then Exit;
-
-  with TGUIListBox(GetControl('lsMapRes')) do
+  with TGUIMenu(g_GUI_GetWindow('SelectMapMenu').GetControl('mSelectMapMenu')) do
   begin
-   list := g_Map_GetMapsList(wad);
+    wad := TGUIFileListBox(GetControl('lsMapWAD')).SelectedItem();
 
-   if list <> nil then
-   begin
-    Items := list;
-    ItemIndex := 0;
-   end
-    else Clear();
-  end;
+    with TGUIListBox(GetControl('lsMapRes')) do
+    begin
+      Clear();
+
+      if wad <> '' then
+      begin
+        list := g_Map_GetMapsList(wad);
+
+        if list <> nil then
+        begin
+          Items := list;
+          ItemIndex := 0;
+        end
+      end;
+    end;
  end;
  
  ProcSelectMap(nil);
@@ -513,35 +522,40 @@ end;
 
 procedure ProcSelectEpisodeWAD(Sender: TGUIControl);
 var
+  win: TGUIWindow;
   a: TMegaWADInfo;
-  wad, fn: string;
+  wad, fn: String;
+
 begin
- with TGUIMenu(g_ActiveWindow.GetControl('mEpisodeMenu')) do
- begin
-  wad := TGUIFileListBox(GetControl('lsWAD')).SelectedItem();
-
-  if wad = '' then
+  win := g_GUI_GetWindow('EpisodeMenu');
+  with TGUIMenu(win.GetControl('mEpisodeMenu')) do
   begin
-   TGUILabel(GetControl('lbWADName')).Text := '';
-   TGUILabel(GetControl('lbWADAuthor')).Text := '';
-   TGUIMemo(GetControl('meWADDescription')).SetText('');
+    wad := TGUIFileListBox(GetControl('lsWAD')).SelectedItem();
+
+    if wad = '' then
+    begin
+      TGUILabel(GetControl('lbWADName')).Text := '';
+      TGUILabel(GetControl('lbWADAuthor')).Text := '';
+      TGUIMemo(GetControl('meWADDescription')).SetText('');
+    end;
+
+    a := g_Game_GetMegaWADInfo(wad);
+
+    TGUILabel(GetControl('lbWADName')).Text := a.Name;
+    TGUILabel(GetControl('lbWADAuthor')).Text := a.Author;
+    TGUIMemo(GetControl('meWADDescription')).SetText(a.Description);
+
+    TGUIImage(win.GetControl('mpWADImage')).ClearImage();
+
+    if a.pic <> '' then
+    begin
+      g_ProcessResourceStr(a.pic, @fn, nil, nil);
+      if fn = '' then
+        TGUIImage(win.GetControl('mpWADImage')).SetImage(wad+a.pic)
+      else
+        TGUIImage(win.GetControl('mpWADImage')).SetImage(a.pic);
+    end;
   end;
-
-  a := g_Game_GetMegaWADInfo(wad);
-
-  TGUILabel(GetControl('lbWADName')).Text := a.Name;
-  TGUILabel(GetControl('lbWADAuthor')).Text := a.Author;
-  TGUIMemo(GetControl('meWADDescription')).SetText(a.Description);
-
-  TGUIImage(g_ActiveWindow.GetControl('mpWADImage')).ClearImage();
-
-  if a.pic <> '' then
-  begin
-   g_ProcessResourceStr(a.pic, @fn, nil, nil);
-   if fn = '' then TGUIImage(g_ActiveWindow.GetControl('mpWADImage')).SetImage(wad+a.pic)
-    else TGUIImage(g_ActiveWindow.GetControl('mpWADImage')).SetImage(a.pic);
-  end;
- end;
 end;
 
 procedure ProcChangeColor(Sender: TGUIControl);
@@ -785,12 +799,13 @@ end;
 procedure ProcLoadGame(Sender: TGUIControl);
 var
   a: Integer;
+  
 begin
- a := StrToInt(Copy(Sender.Name, Length(Sender.Name), 1));
- if g_LoadGame(a) then
-   g_Game_PauseAllSounds(False)
- else // Не загрузилось - возврат в меню
-   g_GUI_GetWindow('LoadMenu').SetActive(g_GUI_GetWindow('LoadMenu').GetControl('mmLoadMenu'));
+  a := StrToInt(Copy(Sender.Name, Length(Sender.Name), 1));
+  if g_LoadGame(a) then
+    g_Game_PauseAllSounds(False)
+  else // Не загрузилось - возврат в меню
+    g_GUI_GetWindow('LoadMenu').SetActive(g_GUI_GetWindow('LoadMenu').GetControl('mmLoadMenu'));
 end;
 
 procedure ProcSingle1Player();
@@ -806,12 +821,48 @@ end;
 procedure ProcSelectMapMenu();
 var
   menu: TGUIMenu;
+  wad_lb: TGUIFileListBox;
+  map_lb: TGUIListBox;
+  map: String;
 
 begin
   menu := TGUIMenu(g_GUI_GetWindow('SelectMapMenu').GetControl('mSelectMapMenu'));
-  TGUIFileListBox(menu.GetControl('lsMapWAD')).SetBase(MapsDir);
+  wad_lb := TGUIFileListBox(menu.GetControl('lsMapWAD'));
+  map_lb := TGUIListBox(menu.GetControl('lsMapRes'));
+
+  if wad_lb.SelectedItem() <> '' then
+    map := map_lb.SelectedItem()
+  else
+    map := '';
+
+  wad_lb.UpdateFileList();
+  map_lb.Clear();
+
+  if wad_lb.SelectedItem() <> '' then
+  begin
+    ProcSelectWAD(nil);
+    map_lb.SelectItem(map);
+
+    if map_lb.SelectedItem() <> '' then
+      ProcSelectMap(nil);
+  end;
 
   g_GUI_ShowWindow('SelectMapMenu');
+end;
+
+procedure ProcSelectEpisodeMenu();
+var
+  menu: TGUIMenu;
+  wad_lb: TGUIFileListBox;
+
+begin
+  menu := TGUIMenu(g_GUI_GetWindow('EpisodeMenu').GetControl('mEpisodeMenu'));
+  wad_lb := TGUIFileListBox(menu.GetControl('lsWAD'));
+
+  wad_lb.UpdateFileList();
+
+  if wad_lb.SelectedItem() <> '' then
+    ProcSelectEpisodeWAD(nil);
 end;
 
 procedure ProcSetMap();
@@ -978,6 +1029,7 @@ begin
   begin
     gLanguage := LANGUAGE_RUSSIAN;
     gLanguageChange := True;
+    gAskLanguage := False;
 
     config := TConfig.CreateFile(GameDir+'\'+CONFIG_FILENAME);
     config.WriteStr('Game', 'Language', gLanguage);
@@ -998,6 +1050,7 @@ begin
   begin
     gLanguage := LANGUAGE_ENGLISH;
     gLanguageChange := True;
+    gAskLanguage := False;
 
     config := TConfig.CreateFile(GameDir+'\'+CONFIG_FILENAME);
     config.WriteStr('Game', 'Language', gLanguage);
@@ -1276,7 +1329,7 @@ begin
   ProcApplyOptions();
 end;
 
-function CreateYNMenu(Name, Text: string; MaxLen: Word; FontID: DWORD;
+function CreateYNMenu(Name, Text: String; MaxLen: Word; FontID: DWORD;
                       KeyDownProc: Pointer): TGUIWindow;
 var
   a: Integer;
@@ -1318,10 +1371,66 @@ begin
  end;
 end;
 
-procedure CreatePlayerOptionsMenu(s: string);
+procedure ProcSetFirstRussianLanguage();
+var
+  config: TConfig;
+
+begin
+  gLanguage := LANGUAGE_RUSSIAN;
+  gLanguageChange := True;
+  gAskLanguage := False;
+
+  config := TConfig.CreateFile(GameDir+'\'+CONFIG_FILENAME);
+  config.WriteStr('Game', 'Language', gLanguage);
+  config.SaveFile(GameDir+'\'+CONFIG_FILENAME);
+  config.Free();
+end;
+
+procedure ProcSetFirstEnglishLanguage();
+var
+  config: TConfig;
+
+begin
+  gLanguage := LANGUAGE_ENGLISH;
+  gLanguageChange := True;
+  gAskLanguage := False;
+
+  config := TConfig.CreateFile(GameDir+'\'+CONFIG_FILENAME);
+  config.WriteStr('Game', 'Language', gLanguage);
+  config.SaveFile(GameDir+'\'+CONFIG_FILENAME);
+  config.Free();
+end;
+
+procedure CreateFirstLanguageMenu();
 var
   Menu: TGUIWindow;
-  a: string;
+  
+begin
+  Menu := TGUIWindow.Create('FirstLanguageMenu');
+
+  with TGUIMainMenu(Menu.AddChild(TGUIMainMenu.Create(gMenuFont, 'Язык / Language:'))) do
+  begin
+    Name := 'mmFirstLanguageMenu';
+    AddButton(@ProcSetFirstRussianLanguage, 'Русский', '');
+    AddButton(@ProcSetFirstEnglishLanguage, 'English', '');
+  end;
+
+  Menu.DefControl := 'mmFirstLanguageMenu';
+  Menu.MainWindow := True;
+  g_GUI_AddWindow(Menu);
+end;
+
+procedure g_Menu_AskLanguage();
+begin
+  CreateFirstLanguageMenu();
+  g_GUI_ShowWindow('FirstLanguageMenu');
+end;
+
+procedure CreatePlayerOptionsMenu(s: String);
+var
+  Menu: TGUIWindow;
+  a: String;
+
 begin
  Menu := TGUIWindow.Create('OptionsPlayers'+s+'Menu');
  if s = 'P1' then
@@ -1421,7 +1530,7 @@ begin
   AddButton(@ProcSingle1Player, _lc[I_MENU_1_PLAYER]);
   AddButton(@ProcSingle2Players, _lc[I_MENU_2_PLAYERS]);
   AddButton(nil, _lc[I_MENU_CUSTOM_GAME], 'CustomGameMenu');
-  AddButton(nil, _lc[I_MENU_EPISODE], 'EpisodeMenu');
+  AddButton(@ProcSelectEpisodeMenu, _lc[I_MENU_EPISODE], 'EpisodeMenu');
  end;
  Menu.DefControl := 'mmNewGameMenu';
  g_GUI_AddWindow(Menu);
@@ -1535,7 +1644,7 @@ begin
    AddItem(_lc[I_MENU_BOTS_VS_PLAYERS]);
    AddItem(_lc[I_MENU_BOTS_VS_MONSTERS]);
    AddItem(_lc[I_MENU_BOTS_VS_ALL]);
-   ItemIndex := 0;
+   ItemIndex := 2;
   end;
   AddSpace();
   AddButton(@ProcStartCustomGame, _lc[I_MENU_START_GAME]);
@@ -2229,7 +2338,7 @@ begin
      AddItem(_lc[I_MENU_BOTS_VS_PLAYERS]);
      AddItem(_lc[I_MENU_BOTS_VS_MONSTERS]);
      AddItem(_lc[I_MENU_BOTS_VS_ALL]);
-     ItemIndex := 0;
+     ItemIndex := 2;
    end;
 
    ReAlign();               
@@ -2296,6 +2405,15 @@ begin
   else
     g_GUI_ShowWindow('GameSingleMenu');
   g_GUI_ShowWindow('EndGameMenu');
+end;
+
+procedure g_Menu_Show_QuitGameMenu(custom: Boolean);
+begin
+  if custom then
+    g_GUI_ShowWindow('GameCustomMenu')
+  else
+    g_GUI_ShowWindow('GameSingleMenu');
+  g_GUI_ShowWindow('ExitMenu');
 end;
 
 procedure g_Menu_Init();

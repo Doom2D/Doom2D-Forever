@@ -320,7 +320,7 @@ type
  end;
 
  TGUIListBox = class(TGUIControl)
-  private
+ private
    FItems: SArray;
    FActiveColor: TRGB;
    FUnActiveColor: TRGB;
@@ -333,18 +333,21 @@ type
    FDrawBack: Boolean;
    FDrawScroll: Boolean;
    FOnChangeEvent: TOnChangeEvent;
+
    procedure FSetItems(Items: SArray);
    procedure FSetIndex(aIndex: Integer);
-  public
+   
+ public
    constructor Create(FontID: DWORD; Width, Height: Word);
    procedure OnMessage(var Msg: TMessage); override;
    procedure Draw(); override;
-   procedure AddItem(Item: string);
-   procedure SelectItem(Item: string);
+   procedure AddItem(Item: String);
+   procedure SelectItem(Item: String);
    procedure Clear();
-   function GetWidth(): Word;
-   function GetHeight(): Word;
-   function SelectedItem(): string;
+   function  GetWidth(): Word;
+   function  GetHeight(): Word;
+   function  SelectedItem(): String;
+
    property OnChange: TOnChangeEvent read FOnChangeEvent write FOnChangeEvent;
    property Sort: Boolean read FSort write FSort;
    property ItemIndex: Integer read FIndex write FSetIndex;
@@ -356,20 +359,24 @@ type
    property Font: TFont read FFont write FFont;
   end;
 
-  TGUIFileListBox = class(TGUIListBox)
-   private
-    FBasePath: string;
-    FPath: string;
-    FFileMask: string;
+  TGUIFileListBox = class (TGUIListBox)
+  private
+    FBasePath: String;
+    FPath: String;
+    FFileMask: String;
     FDirs: Boolean;
-    procedure OpenDir(path: string);
-   public
+
+    procedure OpenDir(path: String);
+
+  public
     procedure OnMessage(var Msg: TMessage); override;
-    procedure SetBase(path: string);
-    function SelectedItem(): string;
+    procedure SetBase(path: String);
+    function  SelectedItem(): String;
+    procedure UpdateFileList();
+
     property Dirs: Boolean read FDirs write FDirs;
-    property FileMask: string read FFileMask write FFileMask;
-    property Path: string read FPath;
+    property FileMask: String read FFileMask write FFileMask;
+    property Path: String read FPath;
   end;
 
  TGUIMemo = class(TGUIControl)
@@ -798,47 +805,50 @@ end;
 
 procedure TGUIWindow.SetActive(Control: TGUIControl);
 begin
- FActiveControl := Control;
+  FActiveControl := Control;
 end;
 
-function TGUIWindow.GetControl(Name: string): TGUIControl;
+function TGUIWindow.GetControl(Name: String): TGUIControl;
 var
   i: Integer;
+
 begin
- Result := nil;
+  Result := nil;
 
- if Childs <> nil then
-  for i := 0 to High(Childs) do
-   if Childs[i] <> nil then if LowerCase(Childs[i].FName) = LowerCase(Name) then
-   begin
-    Result := Childs[i];
-    Break;
-   end;
+  if Childs <> nil then
+    for i := 0 to High(Childs) do
+      if Childs[i] <> nil then
+        if LowerCase(Childs[i].FName) = LowerCase(Name) then
+        begin
+          Result := Childs[i];
+          Break;
+        end;
 
- Assert(Result <> nil, 'Window Control "'+Name+'" not Found!');
+  Assert(Result <> nil, 'Window Control "'+Name+'" not Found!');
 end;
 
 { TGUIControl }
 
-constructor TGUIControl.Create;
+constructor TGUIControl.Create();
 begin
- FX := 0;
- FY := 0;
+  FX := 0;
+  FY := 0;
 
- FEnabled := True;
+  FEnabled := True;
 end;
 
 procedure TGUIControl.OnMessage(var Msg: TMessage);
 begin
- if not FEnabled then Exit;
+  if not FEnabled then
+    Exit;
 end;
 
-procedure TGUIControl.Update;
+procedure TGUIControl.Update();
 begin
 
 end;
 
-procedure TGUIControl.Draw;
+procedure TGUIControl.Draw();
 begin
 
 end;
@@ -2542,10 +2552,10 @@ end;
 
 procedure TGUIListBox.Clear();
 begin
- FItems := nil;
+  FItems := nil;
 
- FStartLine := 0;
- FIndex := -1;
+  FStartLine := 0;
+  FIndex := -1;
 end;
 
 constructor TGUIListBox.Create(FontID: DWORD; Width, Height: Word);
@@ -2662,13 +2672,15 @@ begin
   end;
 end;
 
-function TGUIListBox.SelectedItem: string;
+function TGUIListBox.SelectedItem(): String;
 begin
- Result := '';
+  Result := '';
 
- if (FIndex < 0) or (FItems = nil) or (FIndex > High(FItems)) then Exit;
+  if (FIndex < 0) or (FItems = nil) or
+     (FIndex > High(FItems)) then
+    Exit;
 
- Result := FItems[FIndex];
+  Result := FItems[FIndex];
 end;
 
 procedure TGUIListBox.FSetItems(Items: SArray);
@@ -2684,23 +2696,28 @@ begin
  if FSort then g_Basic.Sort(FItems);
 end;
 
-procedure TGUIListBox.SelectItem(Item: string);
+procedure TGUIListBox.SelectItem(Item: String);
 var
   a: Integer;
+
 begin
- if FItems = nil then Exit;
+  if FItems = nil then
+    Exit;
 
- FIndex := 0;
+  FIndex := 0;
+  Item := LowerCase(Item);
 
- for a := 0 to High(FItems) do
-  if LowerCase(FItems[a]) = LowerCase(Item) then
-  begin
-   FIndex := a;
-   Break;
-  end;
+  for a := 0 to High(FItems) do
+    if LowerCase(FItems[a]) = Item then
+    begin
+      FIndex := a;
+      Break;
+    end;
 
- if FIndex <= FHeight then FStartLine := 0
-  else FStartLine := Min(FIndex, Length(FItems)-FHeight);
+  if FIndex <= FHeight then
+    FStartLine := 0
+  else
+    FStartLine := Min(FIndex, Length(FItems)-FHeight);
 end;
 
 procedure TGUIListBox.FSetIndex(aIndex: Integer);
@@ -2724,134 +2741,197 @@ end;
 procedure TGUIFileListBox.OnMessage(var Msg: TMessage);
 var
   a: Integer;
+
 begin
- if not FEnabled then Exit;
+  if not FEnabled then
+    Exit;
 
- if FItems = nil then Exit;
+  if FItems = nil then
+    Exit;
 
- with Msg do
-  case Msg of
-   WM_KEYDOWN:
-    case wParam of
-     VK_HOME:
-      begin
-       FIndex := 0;
-       FStartLine := 0;
-       if @FOnChangeEvent <> nil then FOnChangeEvent(Self);
-      end;
-     VK_END:
-      begin
-       FIndex := High(FItems);
-       FStartLine := Max(High(FItems)-FHeight+1, 0);
-       if @FOnChangeEvent <> nil then FOnChangeEvent(Self);
-      end;
-     VK_PRIOR:
-     begin
-      if FIndex > FHeight then FIndex := FIndex-FHeight else FIndex := 0;
-      if FStartLine > FHeight then FStartLine := FStartLine-FHeight else FStartLine := 0;
-     end;
-     VK_NEXT:
-     begin
-      if FIndex < High(FItems)-FHeight then FIndex := FIndex+FHeight else FIndex := High(FItems);
-      if FStartLine < High(FItems)-FHeight then FStartLine := FStartLine+FHeight else FStartLine := High(FItems)-FHeight+1;
-     end;
-     VK_UP, VK_LEFT:
-      if FIndex > 0 then
-      begin
-       Dec(FIndex);
-       if FIndex < FStartLine then Dec(FStartLine);
-       if @FOnChangeEvent <> nil then FOnChangeEvent(Self);
-      end;
-     VK_DOWN, VK_RIGHT:
-      if FIndex < High(FItems) then
-      begin
-       Inc(FIndex);
-       if FIndex > FStartLine+FHeight-1 then Inc(FStartLine);
-       if @FOnChangeEvent <> nil then FOnChangeEvent(Self);
-      end;
-     VK_RETURN:
-      with FWindow do
-      begin
-       if FActiveControl <> Self then SetActive(Self)
-        else
-       begin
-        if FItems[FIndex][1] = #127 then // Папка
-        begin
-         OpenDir(FPath+Copy(FItems[FIndex], 2, 255));
-         FIndex := 0;
-         Exit;
+  with Msg do
+    case Msg of
+      WM_KEYDOWN:
+        case wParam of
+          VK_HOME:
+            begin
+              FIndex := 0;
+              FStartLine := 0;
+              if @FOnChangeEvent <> nil then
+                FOnChangeEvent(Self);
+            end;
+
+          VK_END:
+            begin
+              FIndex := High(FItems);
+              FStartLine := Max(High(FItems)-FHeight+1, 0);
+              if @FOnChangeEvent <> nil then
+                FOnChangeEvent(Self);
+            end;
+
+          VK_PRIOR:
+            begin
+              if FIndex > FHeight then
+                FIndex := FIndex-FHeight
+              else
+                FIndex := 0;
+
+              if FStartLine > FHeight then
+                FStartLine := FStartLine-FHeight
+              else
+                FStartLine := 0;
+            end;
+
+          VK_NEXT:
+            begin
+              if FIndex < High(FItems)-FHeight then
+                FIndex := FIndex+FHeight
+              else
+                FIndex := High(FItems);
+
+              if FStartLine < High(FItems)-FHeight then
+                FStartLine := FStartLine+FHeight
+              else
+                FStartLine := High(FItems)-FHeight+1;
+            end;
+
+          VK_UP, VK_LEFT:
+            if FIndex > 0 then
+            begin
+              Dec(FIndex);
+              if FIndex < FStartLine then
+                Dec(FStartLine);
+              if @FOnChangeEvent <> nil then
+                FOnChangeEvent(Self);
+            end;
+
+          VK_DOWN, VK_RIGHT:
+            if FIndex < High(FItems) then
+            begin
+              Inc(FIndex);
+              if FIndex > FStartLine+FHeight-1 then
+                Inc(FStartLine);
+              if @FOnChangeEvent <> nil then
+                FOnChangeEvent(Self);
+            end;
+
+          VK_RETURN:
+            with FWindow do
+            begin
+              if FActiveControl <> Self then
+                SetActive(Self)
+              else
+                begin
+                  if FItems[FIndex][1] = #127 then // Папка
+                  begin
+                    OpenDir(FPath+Copy(FItems[FIndex], 2, 255));
+                    FIndex := 0;
+                    Exit;
+                  end;
+
+                  if FDefControl <> '' then
+                    SetActive(GetControl(FDefControl))
+                  else
+                    SetActive(nil);
+                end;
+            end;
         end;
 
-        if FDefControl <> '' then SetActive(GetControl(FDefControl))
-         else SetActive(nil);
-       end;
-      end;
+      WM_CHAR:
+        for a := 0 to High(FItems) do
+          if ( (Length(FItems[a]) > 0) and
+               (LowerCase(FItems[a][1]) = LowerCase(Chr(wParam))) ) or
+             ( (Length(FItems[a]) > 1) and
+               (FItems[a][1] = #127) and // Папка
+               (LowerCase(FItems[a][2]) = LowerCase(Chr(wParam))) ) then
+          begin
+            FIndex := a;
+            FStartLine := Min(Max(FIndex-1, 0), Length(FItems)-FHeight);
+            if @FOnChangeEvent <> nil then
+              FOnChangeEvent(Self);
+            Break;
+          end;
     end;
-   WM_CHAR:
-    for a := 0 to High(FItems) do
-     if ( (Length(FItems[a]) > 0) and
-          (LowerCase(FItems[a][1]) = LowerCase(Chr(wParam))) ) or
-        ( (Length(FItems[a]) > 1) and
-          (FItems[a][1] = #127) and // Папка
-          (LowerCase(FItems[a][2]) = LowerCase(Chr(wParam))) ) then
-     begin
-      FIndex := a;
-      FStartLine := Min(Max(FIndex-1, 0), Length(FItems)-FHeight);
-      if @FOnChangeEvent <> nil then FOnChangeEvent(Self);
-      Break;
-     end;
-  end;
 end;
 
-procedure TGUIFileListBox.OpenDir(path: string);
+procedure TGUIFileListBox.OpenDir(path: String);
 var
   SR: TSearchRec;
   i: Integer;
+
 begin
- Clear();
+  Clear();
 
- path := IncludeTrailingPathDelimiter(path);
- path := ExpandFileName(path);
+  path := IncludeTrailingPathDelimiter(path);
+  path := ExpandFileName(path);
 
- if FDirs then
- begin
-  if FindFirst(path+'*', faDirectory, SR) = 0 then
-  repeat
-   if SR.Attr <> faDirectory then Continue;
-   if (SR.Name = '.') or ((SR.Name = '..') and (path = FBasePath)) then Continue;
+// Каталоги:
+  if FDirs then
+  begin
+    if FindFirst(path+'*', faDirectory, SR) = 0 then
+    repeat
+      if SR.Attr <> faDirectory then
+        Continue;
+      if (SR.Name = '.') or
+         ((SR.Name = '..') and (path = FBasePath)) then
+        Continue;
 
-   AddItem(#1+SR.Name)
-  until FindNext(SR) <> 0;
+      AddItem(#1 + SR.Name);
+    until FindNext(SR) <> 0;
+
+    FindClose(SR);
+  end;
+
+// Файлы:
+  if FindFirst(path+FFileMask, faAnyFile, SR) = 0 then
+    repeat
+      AddItem(SR.Name);
+    until FindNext(SR) <> 0;
+    
   FindClose(SR);
- end;
 
- if FindFirst(path+FFileMask, faAnyFile, SR) = 0 then
- repeat
-  AddItem(SR.Name);
- until FindNext(SR) <> 0;
- FindClose(SR);
+  for i := 0 to High(FItems) do
+    if FItems[i][1] = #1 then
+      FItems[i][1] := #127;
 
- for i := 0 to High(FItems) do
-   if FItems[i][1] = #1 then
-     FItems[i][1] := #127;
-
- FPath := path;
+  FPath := path;
 end;
 
-procedure TGUIFileListBox.SetBase(path: string);
+procedure TGUIFileListBox.SetBase(path: String);
 begin
- FBasePath := path;
- OpenDir(FBasePath);
+  FBasePath := path;
+  OpenDir(FBasePath);
 end;
 
-function TGUIFileListBox.SelectedItem(): string;
+function TGUIFileListBox.SelectedItem(): String;
 begin
- Result := '';
+  Result := '';
 
- if (FIndex = -1) or (FItems = nil) or (FIndex > High(FItems)) then Exit;
- if FItems[FIndex][1] = '\' then Exit;
+  if (FIndex = -1) or (FItems = nil) or
+     (FIndex > High(FItems)) or
+     (FItems[FIndex][1] = '\') then
+    Exit;
 
- Result := FPath+FItems[FIndex];
+  Result := FPath + FItems[FIndex];
+end;
+
+procedure TGUIFileListBox.UpdateFileList();
+var
+  fn: String;
+  i: Integer;
+
+begin
+  if (FIndex = -1) or (FItems = nil) or
+     (FIndex > High(FItems)) or
+     (FItems[FIndex][1] = '\') then
+    fn := ''
+  else
+    fn := FItems[FIndex];
+
+  OpenDir(FPath);
+
+  if fn <> '' then
+    SelectItem(fn);
 end;
 
 { TGUIMemo }

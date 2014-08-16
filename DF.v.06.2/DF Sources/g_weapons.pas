@@ -358,6 +358,7 @@ end;
 procedure BFG9000(X, Y: Integer; SpawnerUID: Word);
 var
   i, h: Integer;
+
 begin
  //g_Sound_PlayEx('SOUND_WEAPON_EXPLODEBFG', 255);
 
@@ -610,7 +611,9 @@ begin
  g_Sound_CreateWADEx('SOUND_WEAPON_STARTFIREBFG', GameWAD+':SOUNDS\STARTFIREBFG');
  g_Sound_CreateWADEx('SOUND_WEAPON_EXPLODEROCKET', GameWAD+':SOUNDS\EXPLODEROCKET');
  g_Sound_CreateWADEx('SOUND_WEAPON_EXPLODEBFG', GameWAD+':SOUNDS\EXPLODEBFG');
+ g_Sound_CreateWADEx('SOUND_WEAPON_BFGWATER', GameWAD+':SOUNDS\BFGWATER');
  g_Sound_CreateWADEx('SOUND_WEAPON_EXPLODEPLASMA', GameWAD+':SOUNDS\EXPLODEPLASMA');
+ g_Sound_CreateWADEx('SOUND_WEAPON_PLASMAWATER', GameWAD+':SOUNDS\PLASMAWATER');
  g_Sound_CreateWADEx('SOUND_WEAPON_FIREBALL', GameWAD+':SOUNDS\FIREBALL');
  g_Sound_CreateWADEx('SOUND_WEAPON_EXPLODEBALL', GameWAD+':SOUNDS\EXPLODEBALL');
  g_Sound_CreateWADEx('SOUND_WEAPON_FIREREV', GameWAD+':SOUNDS\FIREREV');
@@ -656,7 +659,10 @@ begin
  g_Sound_Delete('SOUND_FIRE');
  g_Sound_Delete('SOUND_WEAPON_STARTFIREBFG');
  g_Sound_Delete('SOUND_WEAPON_EXPLODEROCKET');
+ g_Sound_Delete('SOUND_WEAPON_EXPLODEBFG');
+ g_Sound_Delete('SOUND_WEAPON_BFGWATER');
  g_Sound_Delete('SOUND_WEAPON_EXPLODEPLASMA');
+ g_Sound_Delete('SOUND_WEAPON_PLASMAWATER');
  g_Sound_Delete('SOUND_WEAPON_FIREBALL');
  g_Sound_Delete('SOUND_WEAPON_EXPLODEBALL');
 
@@ -694,6 +700,7 @@ var
   i: Integer;
   t1, _collide: Boolean;
   w, h: Word;
+  
 begin
  a := GetAngle(x, y, xd, yd)+180;
 
@@ -1135,243 +1142,284 @@ var
   Anim: TAnimation;
   t: DWArray;
   st: Word;
-  s: string;
+  s: String;
   o: TObj;
+  spl: Boolean;
 
 begin
- if Shots = nil then Exit;
+  if Shots = nil then
+    Exit;
 
- for i := 0 to High(Shots) do
- begin
-  if Shots[i].ShotType = 0 then Continue;
-
-  with Shots[i] do
+  for i := 0 to High(Shots) do
   begin
-   t := g_Triggers_PressR(Obj.X, Obj.Y, Obj.Rect.Width, Obj.Rect.Height,
-                          SpawnerUID, ACTIVATE_SHOT, triggers);
+    if Shots[i].ShotType = 0 then
+      Continue;
 
-   if t <> nil then
-   begin
-    if triggers = nil then triggers := t
-     else
+    with Shots[i] do
     begin
-     h := High(t);
+    // Активировать триггеры по пути (кроме уже активированных):
+      t := g_Triggers_PressR(Obj.X, Obj.Y, Obj.Rect.Width, Obj.Rect.Height,
+                             SpawnerUID, ACTIVATE_SHOT, triggers);
 
-     for a := 0 to h do
-      if not InDWArray(t[a], triggers) then
+      if t <> nil then
       begin
-       SetLength(triggers, Length(triggers)+1);
-       triggers[High(triggers)] := t[a];
-      end;
-    end;                                                  
-   end;
-
-   if Animation <> nil then Animation.Update();
-
-   st := g_Obj_Move(@Obj, False);
-
-   if WordBool(st and MOVE_FALLOUT) or (Obj.X < -1000) or
-      (Obj.X > gMapInfo.Width+1000) or (Obj.Y < -1000) then
-   begin
-    ShotType := 0;
-    Animation.Free();
-    Continue;
-   end;
-
-   if WordBool(st and MOVE_HITWATER) then
-   case ShotType of
-    WEAPON_PLASMA, WEAPON_BFG, WEAPON_BSP_FIRE: ;
-    else g_Obj_Splash(@Obj);
-   end;
-
-   cx := Obj.X+(Obj.Rect.Width div 2);
-   cy := Obj.Y+(Obj.Rect.Height div 2);
-
-   case ShotType of
-    WEAPON_ROCKETLAUNCHER, WEAPON_SKEL_FIRE:
-    begin
-     if WordBool(st and MOVE_HITAIR) then g_Obj_SetSpeed(@Obj, 12);
-
-     if WordBool(st and MOVE_INWATER) then
-      g_GFX_Bubbles(Obj.X+(Obj.Rect.Width div 2), Obj.Y+(Obj.Rect.Height div 2), 1+Random(3), 16, 16)
-     else if g_Frames_Get(_id, 'FRAMES_SMOKE') then
-     begin
-      Anim := TAnimation.Create(_id, False, 3);
-      Anim.Alpha := 150;
-      g_GFX_OnceAnim(Obj.X-8+Random(9), Obj.Y+(Obj.Rect.Height div 2)-20+Random(9), Anim, ONCEANIM_SMOKE);
-      Anim.Free();
-     end;
-
-     if WordBool(st and (MOVE_HITWALL or MOVE_HITLAND or MOVE_HITCEIL)) or
-        (g_Weapon_Hit(@Obj, 10, SpawnerUID, HIT_SOME) <> 0) then
-     begin
-      Obj.Vel.X := 0;
-      Obj.Vel.Y := 0;
-
-      g_Weapon_Explode(cx, cy, 60, SpawnerUID);
-
-      if ShotType = WEAPON_SKEL_FIRE then
-        begin
-          if g_Frames_Get(TextureID, 'FRAMES_EXPLODE_SKELFIRE') then
+      // Пополняем список активированных триггеров:
+        if triggers = nil then
+          triggers := t
+        else
           begin
-            Anim := TAnimation.Create(TextureID, False, 8);
-            Anim.Blending := False;
-            g_GFX_OnceAnim((Obj.X+32)-32, (Obj.Y+8)-32, Anim);
-            Anim.Free();
+            h := High(t);
+
+            for a := 0 to h do
+              if not InDWArray(t[a], triggers) then
+              begin
+                SetLength(triggers, Length(triggers)+1);
+                triggers[High(triggers)] := t[a];
+              end;
           end;
-        end
-      else
-        begin
-          if g_Frames_Get(TextureID, 'FRAMES_EXPLODE_ROCKET') then
+      end;
+
+    // Анимация снаряда:
+      if Animation <> nil then
+        Animation.Update();
+
+    // Движение:
+      spl := (ShotType <> WEAPON_PLASMA) and
+             (ShotType <> WEAPON_BFG) and
+             (ShotType <> WEAPON_BSP_FIRE);
+
+      st := g_Obj_Move(@Obj, False, spl);
+
+      if WordBool(st and MOVE_FALLOUT) or (Obj.X < -1000) or
+        (Obj.X > gMapInfo.Width+1000) or (Obj.Y < -1000) then
+      begin
+        ShotType := 0;
+        Animation.Free();
+        Continue;
+      end;
+
+      cx := Obj.X + (Obj.Rect.Width div 2);
+      cy := Obj.Y + (Obj.Rect.Height div 2);
+
+      case ShotType of
+        WEAPON_ROCKETLAUNCHER, WEAPON_SKEL_FIRE: // Ракеты и снаряды Скелета
           begin
-            Anim := TAnimation.Create(TextureID, False, 6);
-            Anim.Blending := False;
-            g_GFX_OnceAnim(cx-64, cy-64, Anim);
-            Anim.Free();
+          // Вылетела из воды:
+            if WordBool(st and MOVE_HITAIR) then
+              g_Obj_SetSpeed(@Obj, 12);
+
+          // В воде шлейф - пузыри, в воздухе шлейф - дым:
+            if WordBool(st and MOVE_INWATER) then
+              g_GFX_Bubbles(Obj.X+(Obj.Rect.Width div 2),
+                            Obj.Y+(Obj.Rect.Height div 2),
+                            1+Random(3), 16, 16)
+            else
+              if g_Frames_Get(_id, 'FRAMES_SMOKE') then
+              begin
+                Anim := TAnimation.Create(_id, False, 3);
+                Anim.Alpha := 150;
+                g_GFX_OnceAnim(Obj.X-8+Random(9),
+                               Obj.Y+(Obj.Rect.Height div 2)-20+Random(9),
+                               Anim, ONCEANIM_SMOKE);
+                Anim.Free();
+              end;
+
+          // Попали в кого-то или в стену:
+            if WordBool(st and (MOVE_HITWALL or MOVE_HITLAND or MOVE_HITCEIL)) or
+               (g_Weapon_Hit(@Obj, 10, SpawnerUID, HIT_SOME) <> 0) then
+            begin
+              Obj.Vel.X := 0;
+              Obj.Vel.Y := 0;
+
+              g_Weapon_Explode(cx, cy, 60, SpawnerUID);
+
+              if ShotType = WEAPON_SKEL_FIRE then
+                begin // Взрыв снаряда Скелета
+                  if g_Frames_Get(TextureID, 'FRAMES_EXPLODE_SKELFIRE') then
+                  begin
+                    Anim := TAnimation.Create(TextureID, False, 8);
+                    Anim.Blending := False;
+                    g_GFX_OnceAnim((Obj.X+32)-32, (Obj.Y+8)-32, Anim);
+                    Anim.Free();
+                  end;
+                end
+              else
+                begin // Взрыв Ракеты
+                  if g_Frames_Get(TextureID, 'FRAMES_EXPLODE_ROCKET') then
+                  begin
+                    Anim := TAnimation.Create(TextureID, False, 6);
+                    Anim.Blending := False;
+                    g_GFX_OnceAnim(cx-64, cy-64, Anim);
+                    Anim.Free();
+                  end;
+                end;
+
+              g_Sound_PlayExAt('SOUND_WEAPON_EXPLODEROCKET', Obj.X, Obj.Y);
+
+              ShotType := 0;
+            end;
+
+            if ShotType = WEAPON_SKEL_FIRE then
+            begin // Самонаводка снаряда Скелета:
+              if GetPos(target, @o) then
+                throw(i, Obj.X, Obj.Y,
+                      o.X+o.Rect.X+(o.Rect.Width div 2)+o.Vel.X+o.Accel.X,
+                      o.Y+o.Rect.Y+(o.Rect.Height div 2)+o.Vel.Y+o.Accel.Y,
+                      12);
+            end;
           end;
-        end;
 
-      g_Sound_PlayExAt('SOUND_WEAPON_EXPLODEROCKET', Obj.X, Obj.Y);
+        WEAPON_PLASMA, WEAPON_BSP_FIRE: // Плазма, плазма Арахнатрона
+          begin
+          // Попала в воду - электрошок по воде:
+            if WordBool(st and (MOVE_INWATER or MOVE_HITWATER)) then
+            begin
+              g_Sound_PlayExAt('SOUND_WEAPON_PLASMAWATER', Obj.X, Obj.Y);
+              CheckTrap(i, 10, HIT_ELECTRO);
+              ShotType := 0;
+              Continue;
+            end;
 
-      ShotType := 0;
-     end;
+          // Величина урона:
+            if (ShotType = WEAPON_PLASMA) and
+               (gGameSettings.GameType = GT_CUSTOM) then
+              a := 10
+            else
+              a := 5;
 
-     if ShotType = WEAPON_SKEL_FIRE then
-     begin // Homming
-      if GetPos(target, @o) then
-       throw(i, Obj.X, Obj.Y,
-             o.X+o.Rect.X+(o.Rect.Width div 2)+o.Vel.X+o.Accel.X,
-             o.Y+o.Rect.Y+(o.Rect.Height div 2)+o.Vel.Y+o.Accel.Y, 12);
-     end;
+            if ShotType = WEAPON_BSP_FIRE then
+              a := 10;
+
+          // Попали в кого-то или в стену:
+            if WordBool(st and (MOVE_HITWALL or MOVE_HITLAND or MOVE_HITCEIL)) or
+               (g_Weapon_Hit(@Obj, a, SpawnerUID, HIT_SOME) <> 0) then
+            begin
+              if ShotType = WEAPON_PLASMA then
+                s := 'FRAMES_EXPLODE_PLASMA'
+              else
+                s := 'FRAMES_EXPLODE_BSPFIRE';
+
+            // Взрыв Плазмы:
+              if g_Frames_Get(TextureID, s) then
+              begin
+                Anim := TAnimation.Create(TextureID, False, 3);
+                Anim.Blending := False;
+                g_GFX_OnceAnim(cx-16, cy-16, Anim);
+                Anim.Free();
+              end;
+
+              g_Sound_PlayExAt('SOUND_WEAPON_EXPLODEPLASMA', Obj.X, Obj.Y);
+
+              ShotType := 0;
+            end;
+          end;
+
+        WEAPON_BFG: // BFG
+          begin
+          // Попала в воду - электрошок по воде:
+            if WordBool(st and (MOVE_INWATER or MOVE_HITWATER)) then
+            begin
+              g_Sound_PlayExAt('SOUND_WEAPON_BFGWATER', Obj.X, Obj.Y);
+              CheckTrap(i, 1000, HIT_ELECTRO);
+              ShotType := 0;
+              Continue;
+            end;
+
+          // Попали в кого-то или в стену:
+            if WordBool(st and (MOVE_HITWALL or MOVE_HITLAND or MOVE_HITCEIL)) or
+               (g_Weapon_Hit(@Obj, SHOT_BFG_DAMAGE, SpawnerUID, HIT_BFG) <> 0) then
+            begin
+            // Лучи BFG:
+              BFG9000(cx, cy, SpawnerUID);
+
+            // Взрыв BFG:
+              if g_Frames_Get(TextureID, 'FRAMES_EXPLODE_BFG') then
+              begin
+                Anim := TAnimation.Create(TextureID, False, 6);
+                Anim.Blending := False;
+                g_GFX_OnceAnim(cx-64, cy-64, Anim);
+                Anim.Free();
+              end;
+
+              g_Sound_PlayExAt('SOUND_WEAPON_EXPLODEBFG', Obj.X, Obj.Y);
+
+              ShotType := 0;
+            end;
+          end;
+
+        WEAPON_IMP_FIRE, WEAPON_CACO_FIRE, WEAPON_BARON_FIRE: // Выстрелы Беса, Какодемона Рыцаря/Барона ада
+          begin
+          // Вылетел из воды:
+            if WordBool(st and MOVE_HITAIR) then
+              g_Obj_SetSpeed(@Obj, 16);
+
+          // Величина урона:
+            if ShotType = WEAPON_IMP_FIRE then
+              a := 5
+            else
+              if ShotType = WEAPON_CACO_FIRE then
+                a := 20
+              else
+                a := 40;
+
+          // Попали в кого-то или в стену:
+            if WordBool(st and (MOVE_HITWALL or MOVE_HITLAND or MOVE_HITCEIL)) or
+               (g_Weapon_Hit(@Obj, a, SpawnerUID, HIT_SOME) <> 0) then
+            begin
+              if ShotType = WEAPON_IMP_FIRE then
+                s := 'FRAMES_EXPLODE_IMPFIRE'
+              else
+                if ShotType = WEAPON_CACO_FIRE then
+                  s := 'FRAMES_EXPLODE_CACOFIRE'
+                else
+                  s := 'FRAMES_EXPLODE_BARONFIRE';
+
+            // Взрыв:
+              if g_Frames_Get(TextureID, s) then
+              begin
+                Anim := TAnimation.Create(TextureID, False, 6);
+                Anim.Blending := False;
+                g_GFX_OnceAnim(cx-32, cy-32, Anim);
+                Anim.Free();
+              end;
+
+              g_Sound_PlayExAt('SOUND_WEAPON_EXPLODEBALL', Obj.X, Obj.Y);
+
+              ShotType := 0;
+            end;
+          end;
+
+        WEAPON_MANCUB_FIRE: // Выстрел Манкубуса
+          begin
+          // Вылетел из воды:
+            if WordBool(st and MOVE_HITAIR) then
+              g_Obj_SetSpeed(@Obj, 16);
+
+          // Попали в кого-то или в стену:
+            if WordBool(st and (MOVE_HITWALL or MOVE_HITLAND or MOVE_HITCEIL)) or
+               (g_Weapon_Hit(@Obj, 40, SpawnerUID, HIT_SOME) <> 0) then
+            begin
+            // Взрыв:
+              if g_Frames_Get(TextureID, 'FRAMES_EXPLODE_ROCKET') then
+              begin
+                Anim := TAnimation.Create(TextureID, False, 6);
+                Anim.Blending := False;
+                g_GFX_OnceAnim(cx-64, cy-64, Anim);
+                Anim.Free();
+              end;
+
+              g_Sound_PlayExAt('SOUND_WEAPON_EXPLODEBALL', Obj.X, Obj.Y);
+
+              ShotType := 0;
+            end;
+          end;
+      end; // case ShotType of...
+
+    // Если снаряда уже нет, удаляем анимацию:
+      if ShotType = 0 then
+        Animation.Free();
     end;
-
-     WEAPON_PLASMA, WEAPON_BSP_FIRE:
-     begin
-      if WordBool(st and (MOVE_INWATER or MOVE_HITWATER)) then
-      begin
-       CheckTrap(i, 10, HIT_ELECTRO);
-       ShotType := 0;
-       Continue;
-      end;
-
-      if (ShotType = WEAPON_PLASMA) and (gGameSettings.GameType = GT_CUSTOM) then
-        a := 5
-      else
-        a := 15;
-      if ShotType = WEAPON_BSP_FIRE then a := 10;
-
-      if WordBool(st and (MOVE_HITWALL or MOVE_HITLAND or MOVE_HITCEIL)) or
-         (g_Weapon_Hit(@Obj, a, SpawnerUID, HIT_SOME) <> 0) then
-      begin
-       if ShotType = WEAPON_PLASMA then s := 'FRAMES_EXPLODE_PLASMA'
-        else s := 'FRAMES_EXPLODE_BSPFIRE';
-
-       //g_Triggers_PressC(cx, cy, 16, SpawnerUID, ACTIVATE_SHOT);
-
-       if g_Frames_Get(TextureID, s) then
-       begin
-        Anim := TAnimation.Create(TextureID, False, 3);
-        Anim.Blending := False;
-        g_GFX_OnceAnim(cx-16, cy-16, Anim);
-        Anim.Free();
-       end;
-
-       g_Sound_PlayExAt('SOUND_WEAPON_EXPLODEPLASMA', Obj.X, Obj.Y);
-
-       ShotType := 0;
-      end;
-     end;
-
-     WEAPON_BFG:         
-     begin
-      if WordBool(st and (MOVE_INWATER or MOVE_HITWATER)) then
-      begin
-       CheckTrap(i, 1000, HIT_ELECTRO);
-       ShotType := 0;
-       Continue;
-      end;
-                           
-      if WordBool(st and (MOVE_HITWALL or MOVE_HITLAND or MOVE_HITCEIL)) or
-         (g_Weapon_Hit(@Obj, SHOT_BFG_DAMAGE, SpawnerUID, HIT_BFG) <> 0) then
-      begin
-       BFG9000(cx, cy, SpawnerUID);
-
-       //g_Triggers_PressC(cx, cy, 64, SpawnerUID, ACTIVATE_SHOT);
-
-       if g_Frames_Get(TextureID, 'FRAMES_EXPLODE_BFG') then
-       begin
-        Anim := TAnimation.Create(TextureID, False, 6);
-        Anim.Blending := False;
-
-        g_GFX_OnceAnim(cx-64, cy-64, Anim);
-        Anim.Free();
-       end;
-
-       g_Sound_PlayExAt('SOUND_WEAPON_EXPLODEBFG', Obj.X, Obj.Y);
-
-       ShotType := 0;
-      end;
-     end;
-
-     WEAPON_IMP_FIRE, WEAPON_CACO_FIRE, WEAPON_BARON_FIRE:
-     begin
-      if WordBool(st and MOVE_HITAIR) then g_Obj_SetSpeed(@Obj, 16);
-
-      if ShotType = WEAPON_IMP_FIRE then a := 5
-      else if ShotType = WEAPON_CACO_FIRE then a := 20
-      else a := 40;
-
-      if WordBool(st and (MOVE_HITWALL or MOVE_HITLAND or MOVE_HITCEIL)) or
-         (g_Weapon_Hit(@Obj, a, SpawnerUID, HIT_SOME) <> 0) then
-      begin
-       if ShotType = WEAPON_IMP_FIRE then s := 'FRAMES_EXPLODE_IMPFIRE'
-       else if ShotType = WEAPON_CACO_FIRE then s := 'FRAMES_EXPLODE_CACOFIRE'
-       else s := 'FRAMES_EXPLODE_BARONFIRE';
-
-       g_Triggers_PressC(cx, cy, 32, SpawnerUID, ACTIVATE_SHOT);
-
-       if g_Frames_Get(TextureID, s) then
-       begin
-        Anim := TAnimation.Create(TextureID, False, 6);
-        Anim.Blending := False;
-        g_GFX_OnceAnim(cx-32, cy-32, Anim);
-        Anim.Free();
-       end;
-
-       g_Sound_PlayExAt('SOUND_WEAPON_EXPLODEBALL', Obj.X, Obj.Y);
-
-       ShotType := 0;
-      end;
-     end;
-
-     WEAPON_MANCUB_FIRE:
-     begin
-      if WordBool(st and MOVE_HITAIR) then g_Obj_SetSpeed(@Obj, 16);
-
-      if WordBool(st and (MOVE_HITWALL or MOVE_HITLAND or MOVE_HITCEIL)) or
-         (g_Weapon_Hit(@Obj, 40, SpawnerUID, HIT_SOME) <> 0) then
-      begin
-       g_Triggers_PressC(cx, cy, 64, SpawnerUID, ACTIVATE_SHOT);
-
-       if g_Frames_Get(TextureID, 'FRAMES_EXPLODE_ROCKET') then
-       begin
-        Anim := TAnimation.Create(TextureID, False, 6);
-        Anim.Blending := False;
-        g_GFX_OnceAnim(cx-64, cy-64, Anim);
-        Anim.Free();
-       end;
-
-       g_Sound_PlayExAt('SOUND_WEAPON_EXPLODEBALL', Obj.X, Obj.Y);
-
-       ShotType := 0;
-      end;
-     end;
-    end;
-
-   if ShotType = 0 then
-     Animation.Free();
   end;
- end;
 end;
 
 procedure g_Weapon_Draw();

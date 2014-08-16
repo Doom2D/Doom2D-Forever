@@ -55,11 +55,11 @@ object AboutForm: TAboutForm
       WordWrap = True
     end
     object LabelVer: TLabel
-      Left = 210
+      Left = 202
       Top = 24
-      Width = 55
+      Width = 64
       Height = 13
-      Caption = #1042#1077#1088#1089#1080#1103' 2.1'
+      Caption = #1042#1077#1088#1089#1080#1103' 2.0.3'
     end
     object LabelAuthor: TLabel
       Left = 12

@@ -756,10 +756,10 @@ end;
 //------------------------------------------------------------------
 procedure e_DeleteTexture(ID: DWORD);
 begin
- glDeleteTextures(1, @e_Textures[ID].ID);
- e_Textures[ID].ID := 0;
- e_Textures[ID].Width := 0;
- e_Textures[ID].Height := 0;
+  glDeleteTextures(1, @e_Textures[ID].ID);
+  e_Textures[ID].ID := 0;
+  e_Textures[ID].Width := 0;
+  e_Textures[ID].Height := 0;
 end;
 
 //------------------------------------------------------------------

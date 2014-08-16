@@ -146,22 +146,22 @@ const
                     Pain: Byte;
                     Jump: Byte;
                   end =
-   ((Name:'DEMON'; Rect:(X:1; Y:4; Width:62; Height:56); Health:60;
+   ((Name:'DEMON'; Rect:(X:7; Y:8; Width:50; Height:52); Health:60;
      RunVel: 7; MinPain: 10; Pain: 20; Jump: 10),
 
-    (Name:'IMP'; Rect:(X:11; Y:4; Width:42; Height:56); Health:25;
+    (Name:'IMP'; Rect:(X:15; Y:10; Width:34; Height:50); Health:25;
      RunVel: 3; MinPain: 0; Pain: 15; Jump: 10),
 
-    (Name:'ZOMBY'; Rect:(X:11; Y:4; Width:42; Height:56); Health:15;
+    (Name:'ZOMBY'; Rect:(X:15; Y:8; Width:34; Height:52); Health:15;
      RunVel: 3; MinPain: 0; Pain: 10; Jump: 10),
 
-    (Name:'SERG'; Rect:(X:11; Y:4; Width:42; Height:56); Health:20;
+    (Name:'SERG'; Rect:(X:15; Y:8; Width:34; Height:52); Health:20;
      RunVel: 3; MinPain: 0; Pain: 10; Jump: 10),
-
-    (Name:'CYBER'; Rect:(X:23; Y:9; Width:82; Height:110); Health:500;
+                                          
+    (Name:'CYBER'; Rect:(X:24; Y:9; Width:80; Height:110); Health:500;
      RunVel: 5; MinPain: 50; Pain: 70; Jump: 10),
 
-    (Name:'CGUN'; Rect:(X:7; Y:4; Width:50; Height:56); Health:60;
+    (Name:'CGUN'; Rect:(X:15; Y:4; Width:34; Height:56); Health:60;
      RunVel: 3; MinPain: 10; Pain: 20; Jump: 10),
 
     (Name:'BARON'; Rect:(X:39; Y:32; Width:50; Height:64); Health:150;
@@ -170,37 +170,37 @@ const
     (Name:'KNIGHT'; Rect:(X:39; Y:32; Width:50; Height:64); Health:75;
      RunVel: 3; MinPain: 30; Pain: 40; Jump: 10),
 
-    (Name:'CACO'; Rect:(X:33; Y:36; Width:62; Height:56); Health:100;
+    (Name:'CACO'; Rect:(X:34; Y:36; Width:60; Height:56); Health:100;
      RunVel: 4; MinPain: 0; Pain: 10; Jump: 4),
 
-    (Name:'SOUL'; Rect:(X:15; Y:14; Width:34; Height:36); Health:60;
+    (Name:'SOUL'; Rect:(X:16; Y:14; Width:32; Height:36); Health:60;
      RunVel: 4; MinPain: 0; Pain: 10; Jump: 4),
 
-    (Name:'PAIN'; Rect:(X:33; Y:36; Width:62; Height:56); Health:100;
+    (Name:'PAIN'; Rect:(X:34; Y:36; Width:60; Height:56); Health:100;
      RunVel: 4; MinPain: 0; Pain: 10; Jump: 4),
 
-    (Name:'SPIDER'; Rect:(X:0; Y:14; Width:256; Height:100); Health:500;
+    (Name:'SPIDER'; Rect:(X:23; Y:14; Width:210; Height:100); Health:500;
      RunVel: 4; MinPain: 50; Pain: 70; Jump: 10),
 
-    (Name:'BSP'; Rect:(X:13; Y:5; Width:102; Height:54); Health:150;
+    (Name:'BSP'; Rect:(X:14; Y:17; Width:100; Height:42); Health:150;
      RunVel: 4; MinPain: 0; Pain: 20; Jump: 10),
 
-    (Name:'MANCUB'; Rect:(X:27; Y:34; Width:74; Height:60); Health:200;
+    (Name:'MANCUB'; Rect:(X:28; Y:34; Width:72; Height:60); Health:200;
      RunVel: 3; MinPain: 20; Pain: 40; Jump: 7),
 
-    (Name:'SKEL'; Rect:(X:29; Y:28; Width:70; Height:72); Health:200;
+    (Name:'SKEL'; Rect:(X:30; Y:28; Width:68; Height:72); Health:200;
      RunVel: 6; MinPain: 20; Pain: 40; Jump: 11),
 
-    (Name:'VILE'; Rect:(X:29; Y:28; Width:70; Height:72); Health:150;
+    (Name:'VILE'; Rect:(X:30; Y:28; Width:68; Height:72); Health:150;
      RunVel: 7; MinPain: 10; Pain: 30; Jump: 12),
 
-    (Name:'FISH'; Rect:(X:5; Y:11; Width:22; Height:10); Health:35;
+    (Name:'FISH'; Rect:(X:6; Y:11; Width:20; Height:10); Health:35;
      RunVel: 14; MinPain: 10; Pain: 20; Jump: 6),
 
-    (Name:'BARREL'; Rect:(X:21; Y:15; Width:22; Height:34); Health:20;
+    (Name:'BARREL'; Rect:(X:20; Y:13; Width:24; Height:36); Health:20;
      MinPain: 0; Pain: 0),
 
-    (Name:'ROBO'; Rect:(X:29; Y:26; Width:70; Height:76); Health:20;
+    (Name:'ROBO'; Rect:(X:30; Y:26; Width:68; Height:76); Health:20;
      RunVel: 3; MinPain: 20; Pain: 40; Jump: 6),
 
     (Name:'MAN'; Rect:(X:15; Y:6; Width:34; Height:52); Health:400;
@@ -283,7 +283,7 @@ const
      AnimDeltaRight: ((X: -1; Y:  0), (X: -1; Y:  0), (X: -2; Y: -1), (X: -2; Y: -1), (X: -1; Y: -1), (X: -1; Y: -1), (X: -1; Y: -1));
      AnimDeltaLeft:  ((X: -1; Y:  0), (X: -1; Y:  0), (X: -2; Y: -1), (X: -2; Y: -1), (X: -1; Y: -1), (X: -1; Y: -1), (X: -1; Y: -1 ))),
 
-    (LeftAnim: False; wX: 32; wY: 32; AnimSpeed:(3, 0, 3, 0, 0, 0, 5);                 //BARREL
+    (LeftAnim: False; wX: 32; wY: 32; AnimSpeed:(3, 0, 3, 0, 0, 0, 5); //BARREL
      AnimDeltaRight: ((X:  0; Y:-15), (X:  0; Y:-15), (X: -1; Y:-15), (X: -1; Y:-15), (X:  0; Y:-15), (X:  0; Y:-15), (X:  0; Y:-15));
      AnimDeltaLeft:  ((X:  0; Y:-15), (X:  0; Y:-15), (X: -1; Y:-15), (X: -1; Y:-15), (X:  0; Y:-15), (X:  0; Y:-15), (X:  0; Y:-15))),
 
@@ -1608,10 +1608,10 @@ begin
           dx := FAnim[FCurAnim, FDirection].Width - c - MONSTERTABLE[FMonsterType].Rect.X;
         // Т.к. двигать текстуру нужно будет в противоположном направлении:
           dx := -dx;
-        // Это значит: dx := -frameWidth - dx + hitX + hitWidth + hitX
+        // Это значит: dX := -frameWidth - animDeltaX + hitX + hitWidth + hitX
         end;
       end
-    else // Правая анимация
+    else // Правая анимация                    
       begin
         dx := MONSTER_ANIMTABLE[FMonsterType].AnimDeltaRight[FCurAnim].X;
         dy := MONSTER_ANIMTABLE[FMonsterType].AnimDeltaRight[FCurAnim].Y;
@@ -1793,16 +1793,15 @@ begin
 // Меняем скорость только по четным кадрам:
   if gTime mod (GAME_TICK*2) <> 0 then
   begin
-    st := g_Obj_Move(@FObj, fall);
-    if WordBool(st and MOVE_HITWATER) then
-      g_Obj_Splash(@FObj);
+    st := g_Obj_Move(@FObj, fall, True);
+
     Exit;
   end;
 
   FPainSound := False;
 
 // Двигаемся:
-  st := g_Obj_Move(@FObj, fall);
+  st := g_Obj_Move(@FObj, fall, True);
 
 // Вылетел за карту - удаляем и запускаем триггеры:
   if WordBool(st and MOVE_FALLOUT) or (FObj.X < -1000) or
@@ -1812,9 +1811,6 @@ begin
     ActivateTriggers();
     Exit;
   end;
-
-  if WordBool(st and MOVE_HITWATER) then
-    g_Obj_Splash(@FObj);
 
 // Сопротивление воздуха для трупа:
   if (FState = STATE_DIE) or (FState = STATE_DEAD) then
@@ -1989,6 +1985,18 @@ begin
         sx := o.X+o.Rect.X+(o.Rect.Width div 2)-(FObj.X+FObj.Rect.X+(FObj.Rect.Width div 2));
         sy := o.Y+o.Rect.Y+(o.Rect.Height div 2)-(FObj.Y+FObj.Rect.Y+(FObj.Rect.Height div 2));
 
+      // Поворачиваемся в сторону цели:
+        if sx > 0 then
+          FDirection := D_RIGHT
+        else
+          FDirection := D_LEFT;
+
+      // Если монстр умеет стрелять и есть по кому - стреляем:
+        if canShoot(FMonsterType) and (FTargetUID <> 0) then
+          if Abs(sx) > Abs(sy) then // угол выстрела удобный
+            if shoot(@o, False) then
+              goto _end;
+
       // Если цель почти на одной вертикали - бегаем туда-сюда:
         if Abs(sx) < 40 then
           if FMonsterType <> MONSTER_FISH then
@@ -2028,18 +2036,6 @@ begin
 
           goto _end;
         end;
-
-      // Поворачиваемся в сторону цели:
-        if sx > 0 then
-          FDirection := D_RIGHT
-        else
-          FDirection := D_LEFT;
-
-      // Если монстр умеет стрелять и есть по кому - стреляем:
-        if canShoot(FMonsterType) and (FTargetUID <> 0) then
-          if Abs(sx) > Abs(sy) then // угол выстрела удобный
-            if shoot(@o, False) then
-              goto _end;
 
       // Монстры, не подверженные гравитации:
         if (FMonsterType = MONSTER_CACO) or (FMonsterType = MONSTER_SOUL) or
@@ -2314,17 +2310,26 @@ _end:
         sx := g_Monsters_Create(MONSTER_SOUL, FObj.X+FObj.Rect.X+(FObj.Rect.Width div 2)-30,
                                 FObj.Y+FObj.Rect.Y+20, D_LEFT);
         if sx <> -1 then
+        begin
           gMonsters[sx].SetState(STATE_GO);
+          Inc(gTotalMonsters);
+        end;
 
         sx := g_Monsters_Create(MONSTER_SOUL, FObj.X+FObj.Rect.X+(FObj.Rect.Width div 2),
                                 FObj.Y+FObj.Rect.Y+20, D_RIGHT);
         if sx <> -1 then
+        begin
           gMonsters[sx].SetState(STATE_GO);
+          Inc(gTotalMonsters);
+        end;
 
         sx := g_Monsters_Create(MONSTER_SOUL, FObj.X+FObj.Rect.X+(FObj.Rect.Width div 2)-15,
                                 FObj.Y+FObj.Rect.Y, D_RIGHT);
         if sx <> -1 then
+        begin
           gMonsters[sx].SetState(STATE_GO);
+          Inc(gTotalMonsters);
+        end;
       end;
 
     // У этих монстров нет трупов:
@@ -2409,7 +2414,7 @@ _end:
                       gMonsters[sx].SetState(STATE_REVIVE);
                       g_Sound_PlayExAt('SOUND_MONSTER_SLOP', FObj.X, FObj.Y);
                     // Воскрешать - себе вредить:
-                      g_Weapon_HitUID(FUID, 5, 0, HIT_SOME);
+                      {g_Weapon_HitUID(FUID, 5, 0, HIT_SOME);}
                     end;
                   end;
               end;
@@ -2472,6 +2477,7 @@ _end:
                       gMonsters[sx].FTargetTime := 0;
                       gMonsters[sx].SetState(STATE_GO);
                       gMonsters[sx].shoot(@o, True);
+                      Inc(gTotalMonsters);
                     end;
                   end;
               end;

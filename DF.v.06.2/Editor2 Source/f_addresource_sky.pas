@@ -154,7 +154,7 @@ begin
   iPreview.Canvas.FillRect(iPreview.Canvas.ClipRect);
   if Texture = nil then
     Exit;
-  iPreview.Canvas.CopyRect(iPreview.Canvas.ClipRect, Texture.Canvas, Texture.Canvas.ClipRect);
+  iPreview.Canvas.StretchDraw(iPreview.Canvas.ClipRect, Texture);
   Texture.Free();
 end;
 

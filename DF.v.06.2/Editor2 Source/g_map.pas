@@ -39,7 +39,7 @@ Type
   end;
 
   TMonster = record
-    X, XL, Y, YL:  Integer;
+    X, Y:  Integer;
     MonsterType:   Byte;
     Direction:     TDirection;
   end;
@@ -87,7 +87,7 @@ const
   TEXTURE_SPECIAL_ACID1 = DWORD(-3);
   TEXTURE_SPECIAL_ACID2 = DWORD(-4);
 
-  ItemSize: Array [ITEM_MEDKIT_SMALL..ITEM_KEY_BLUE] of Array [0..1] of Byte =
+  ItemSize: Array [ITEM_MEDKIT_SMALL..ITEM_HELMET] of Array [0..1] of Byte =
     (((14), (15)), // MEDKIT_SMALL
      ((28), (19)), // MEDKIT_LARGE
      ((28), (19)), // MEDKIT_BLACK
@@ -117,38 +117,42 @@ const
      ((22), (29)), // AMMO_BACKPACK
      ((16), (16)), // KEY_RED
      ((16), (16)), // KEY_GREEN
-     ((16), (16))); // KEY_BLUE
+     ((16), (16)), // KEY_BLUE
+     (( 1), ( 1)), // WEAPON_KASTET
+     ((43), (16)), // WEAPON_PISTOL
+     ((14), (18)), // BOTTLE
+     ((16), (15))); // HELMET
 
   AreaSize: Array [AREA_PLAYERPOINT1..AREA_BLUETEAMPOINT] of TRectWH =
-    ((X:15; Y:12; Width:34; Height:52),
-     (X:15; Y:12; Width:34; Height:52),
-     (X:15; Y:12; Width:34; Height:52),
-     (X:15; Y:12; Width:34; Height:52),
-     (X:15; Y:12; Width:34; Height:52),
-     (X:15; Y:12; Width:34; Height:52),
-     (X:15; Y:12; Width:34; Height:52),
-     (X:15; Y:12; Width:34; Height:52));
+    ((X:15; Y:12; Width:34; Height:52), // PLAYERPOINT1
+     (X:15; Y:12; Width:34; Height:52), // PLAYERPOINT2
+     (X:15; Y:12; Width:34; Height:52), // DMPOINT
+     (X:15; Y:11; Width:34; Height:52), // REDFLAG
+     (X:15; Y:11; Width:34; Height:52), // BLUEFLAG
+     (X:15; Y:11; Width:34; Height:52), // DOMFLAG
+     (X:15; Y:12; Width:34; Height:52), // REDTEAMPOINT
+     (X:15; Y:12; Width:34; Height:52)); // BLUETEAMPOINT
 
   MonsterSize: Array [MONSTER_DEMON..MONSTER_MAN] of TRectWH =
-    ((X:  1; Y:  4; Width:  62; Height:  56),  // DEMON
-     (X: 11; Y:  4; Width:  42; Height:  56),  // IMP
-     (X: 11; Y:  4; Width:  42; Height:  56),  // ZOMBY
-     (X: 11; Y:  4; Width:  42; Height:  56),  // SERG
-     (X: 23; Y:  9; Width:  82; Height: 110),  // CYBER
-     (X:  7; Y:  4; Width:  50; Height:  56),  // CGUN
+    ((X:  7; Y:  8; Width:  50; Height:  52),  // DEMON
+     (X: 15; Y: 10; Width:  34; Height:  50),  // IMP
+     (X: 15; Y:  8; Width:  34; Height:  52),  // ZOMBY
+     (X: 15; Y:  8; Width:  34; Height:  52),  // SERG
+     (X: 24; Y:  9; Width:  80; Height: 110),  // CYBER
+     (X: 15; Y:  4; Width:  34; Height:  56),  // CGUN
      (X: 39; Y: 32; Width:  50; Height:  64),  // BARON
      (X: 39; Y: 32; Width:  50; Height:  64),  // KNIGHT
-     (X: 33; Y: 36; Width:  62; Height:  56),  // CACO
-     (X: 15; Y: 14; Width:  34; Height:  36),  // SOUL
-     (X: 33; Y: 36; Width:  62; Height:  56),  // PAIN
-     (X:  0; Y: 14; Width: 256; Height: 100),  // SPIDER
-     (X: 13; Y:  5; Width: 102; Height:  54),  // BSP
-     (X: 27; Y: 34; Width:  74; Height:  60),  // MANCUB
-     (X: 29; Y: 28; Width:  70; Height:  72),  // SKEL
-     (X: 29; Y: 28; Width:  70; Height:  72),  // VILE
-     (X:  5; Y: 11; Width:  22; Height:  10),  // FISH
-     (X: 21; Y: 15; Width:  22; Height:  34),  // BARREL
-     (X: 29; Y: 26; Width:  70; Height:  76),  // ROBO
+     (X: 34; Y: 36; Width:  60; Height:  56),  // CACO
+     (X: 16; Y: 14; Width:  32; Height:  36),  // SOUL
+     (X: 34; Y: 36; Width:  60; Height:  56),  // PAIN
+     (X: 23; Y: 14; Width: 210; Height: 100),  // SPIDER
+     (X: 14; Y: 17; Width: 100; Height:  42),  // BSP
+     (X: 28; Y: 34; Width:  72; Height:  60),  // MANCUB
+     (X: 30; Y: 28; Width:  68; Height:  72),  // SKEL
+     (X: 30; Y: 28; Width:  68; Height:  72),  // VILE
+     (X:  6; Y: 11; Width:  20; Height:  10),  // FISH
+     (X: 20; Y: 13; Width:  24; Height:  36),  // BARREL
+     (X: 30; Y: 26; Width:  68; Height:  76),  // ROBO
      (X: 15; Y:  6; Width:  34; Height:  52)); // MAN
 
   MonsterSizeDelta: Array [MONSTER_DEMON..MONSTER_MAN] of TMonsterSizeDelta =
@@ -186,33 +190,34 @@ var
 
 procedure LoadSky(Res: String);
 
-function AddItem(Item: TItem): DWORD;
-function AddPanel(Panel: TPanel): DWORD;
-function AddArea(Area: TArea): DWORD;
-function AddMonster(Monster: TMonster): DWORD;
-function AddTrigger(Trigger: TTrigger): DWORD;
+function  AddItem(Item: TItem): DWORD;
+function  AddPanel(Panel: TPanel): DWORD;
+function  AddArea(Area: TArea): DWORD;
+function  AddMonster(Monster: TMonster): DWORD;
+function  AddTrigger(Trigger: TTrigger): DWORD;
 
 procedure RemoveObject(ID: DWORD; ObjectType: Byte);
-function ObjectInRect(fX, fY: Integer; fWidth, fHeight: Word; ObjectType: Byte; All: Boolean): DWArray;
-function ObjectCollideLevel(fID: DWORD; ObjectType: Byte; dX, dY: Integer): Boolean;
-function ObjectCollide(ObjectType: Byte; ID: DWORD; fX, fY: Integer; fWidth, fHeight: Word): Boolean;
-function ObjectGetRect(ObjectType: Byte; ID: DWORD): TRectWH;
+function  PanelInShownLayer(PanelType: Word): Boolean;
+function  ObjectInRect(fX, fY: Integer; fWidth, fHeight: Word; ObjectType: Byte; All: Boolean): DWArray;
+function  ObjectCollideLevel(fID: DWORD; ObjectType: Byte; dX, dY: Integer): Boolean;
+function  ObjectCollide(ObjectType: Byte; ID: DWORD; fX, fY: Integer; fWidth, fHeight: Word): Boolean;
+function  ObjectGetRect(ObjectType: Byte; ID: DWORD): TRectWH;
 procedure MoveObject(ObjectType: Byte; ID: DWORD; dX, dY: Integer);
 procedure ResizeObject(ObjectType: Byte; ID: DWORD; dWidth, dHeight: Integer; ResizeDir: Byte);
-function ObjectSelected(ObjectType: Byte; ID: DWORD): Boolean;
+function  ObjectSelected(ObjectType: Byte; ID: DWORD): Boolean;
 
-function GetPanelName(PanelType: Word): String;
-function GetPanelType(PanelName: String): Word;
-function GetTriggerName(TriggerType: Byte): String;
-function GetTriggerType(TriggerName: String): Byte;
+function  GetPanelName(PanelType: Word): String;
+function  GetPanelType(PanelName: String): Word;
+function  GetTriggerName(TriggerType: Byte): String;
+function  GetTriggerType(TriggerName: String): Byte;
 
-function IsSpecialTexture(TextureName: String): Boolean;
-function SpecialTextureID(TextureName: String): DWORD;
+function  IsSpecialTexture(TextureName: String): Boolean;
+function  SpecialTextureID(TextureName: String): DWORD;
 
 procedure ClearMap();
-function SaveMap(Res: String): Pointer;
-function LoadMap(Res: String): Boolean;
-function LoadMapOld(_FileName: String): Boolean;
+function  SaveMap(Res: String): Pointer;
+function  LoadMap(Res: String): Boolean;
+function  LoadMapOld(_FileName: String): Boolean;
 procedure DrawMap();
 procedure LoadData();
 procedure FreeData();
@@ -259,16 +264,70 @@ const
   OLD_ITEM_INV                   = 30;
 
   ITEMSCONVERT: Array [OLD_ITEM_MEDKIT_SMALL..OLD_ITEM_INV] of Integer =
-                ((ITEM_MEDKIT_SMALL), (ITEM_MEDKIT_LARGE), (ITEM_ARMOR_GREEN),
-                 (ITEM_ARMOR_BLUE), (ITEM_SPHERE_BLUE), (ITEM_SPHERE_WHITE),
-                 (ITEM_WEAPON_SAW), (ITEM_WEAPON_SHOTGUN1), (ITEM_WEAPON_SHOTGUN2),
-                 (ITEM_WEAPON_CHAINGUN), (ITEM_WEAPON_ROCKETLAUNCHER), (ITEM_WEAPON_PLASMA),
-                 (ITEM_WEAPON_BFG), (ITEM_WEAPON_SUPERPULEMET), (ITEM_AMMO_BULLETS),
-                 (ITEM_AMMO_BULLETS_BOX), (ITEM_AMMO_SHELLS), (ITEM_AMMO_SHELLS_BOX),
-                 (ITEM_AMMO_CELL_BIG), (ITEM_AMMO_BACKPACK), (ITEM_KEY_RED),
-                 (ITEM_KEY_GREEN), (ITEM_KEY_BLUE), (ITEM_SUIT),
-                 (ITEM_AMMO_ROCKET), (ITEM_AMMO_ROCKET_BOX), (ITEM_AMMO_CELL),
-                 (ITEM_OXYGEN), (ITEM_MEDKIT_BLACK), (ITEM_INV));
+                ((ITEM_MEDKIT_SMALL),
+                 (ITEM_MEDKIT_LARGE),
+                 (ITEM_ARMOR_GREEN),
+                 (ITEM_ARMOR_BLUE),
+                 (ITEM_SPHERE_BLUE),
+                 (ITEM_SPHERE_WHITE),
+                 (ITEM_WEAPON_SAW),
+                 (ITEM_WEAPON_SHOTGUN1),
+                 (ITEM_WEAPON_SHOTGUN2),
+                 (ITEM_WEAPON_CHAINGUN),
+                 (ITEM_WEAPON_ROCKETLAUNCHER),
+                 (ITEM_WEAPON_PLASMA),
+                 (ITEM_WEAPON_BFG),
+                 (ITEM_WEAPON_SUPERPULEMET),
+                 (ITEM_AMMO_BULLETS),
+                 (ITEM_AMMO_BULLETS_BOX),
+                 (ITEM_AMMO_SHELLS),
+                 (ITEM_AMMO_SHELLS_BOX),
+                 (ITEM_AMMO_ROCKET),
+                 (ITEM_AMMO_ROCKET_BOX),
+                 (ITEM_AMMO_CELL),
+                 (ITEM_AMMO_CELL_BIG),
+                 (ITEM_AMMO_BACKPACK),
+                 (ITEM_KEY_RED),
+                 (ITEM_KEY_GREEN),
+                 (ITEM_KEY_BLUE),
+                 (ITEM_SUIT),
+                 (ITEM_OXYGEN),
+                 (ITEM_MEDKIT_BLACK),
+                 (ITEM_INV));
+
+  OldItemSize: Array [ITEM_MEDKIT_SMALL..ITEM_KEY_BLUE] of Array [0..1] of Byte =
+    (((14), (15)), // MEDKIT_SMALL
+     ((28), (19)), // MEDKIT_LARGE
+     ((28), (19)), // MEDKIT_BLACK - not in map generator
+     ((30), (16)), // ARMOR_GREEN
+     ((30), (16)), // ARMOR_BLUE
+     ((24), (24)), // SPHERE_BLUE
+     ((24), (24)), // SPHERE_WHITE
+     ((24), (46)), // SUIT
+     ((14), (27)), // OXYGEN
+     ((25), (25)), // INV - not in map generator
+     ((61), (23)), // WEAPON_SAW
+     ((62), (10)), // WEAPON_SHOTGUN1
+     ((52), (12)), // WEAPON_SHOTGUN2
+     ((53), (15)), // WEAPON_CHAINGUN
+     ((61), (15)), // WEAPON_ROCKETLAUNCHER
+     ((53), (14)), // WEAPON_PLASMA
+     ((61), (34)), // WEAPON_BFG
+     ((53), (16)), // WEAPON_SUPERPULEMET
+     (( 9), (10)), // AMMO_BULLETS
+     ((28), (16)), // AMMO_BULLETS_BOX
+     ((15), ( 7)), // AMMO_SHELLS
+     ((32), (12)), // AMMO_SHELLS_BOX
+     ((12), (26)), // AMMO_ROCKET
+     ((54), (21)), // AMMO_ROCKET_BOX
+     ((15), (12)), // AMMO_CELL
+     ((32), (21)), // AMMO_CELL_BIG
+     ((22), (29)), // AMMO_BACKPACK
+     ((16), (16)), // KEY_RED
+     ((16), (16)), // KEY_GREEN
+     ((16), (16))); // KEY_BLUE
+
+  OldAreaSize: Array [0..1] of Byte = ((34), (56));
 
   SKY_TEXTURE = 'SKY';
 
@@ -496,6 +555,34 @@ begin
   end;
 end;
 
+function PanelInShownLayer(PanelType: Word): Boolean;
+begin
+  Result := True;
+
+  case PanelType of
+    PANEL_WALL:
+      Result := LayerEnabled[LAYER_WALLS];
+
+    PANEL_BACK:
+      Result := LayerEnabled[LAYER_BACK];
+
+    PANEL_FORE:
+      Result := LayerEnabled[LAYER_FOREGROUND];
+
+    PANEL_STEP:
+      Result := LayerEnabled[LAYER_STEPS];
+
+    PANEL_WATER, PANEL_ACID1, PANEL_ACID2,
+    PANEL_LIFTUP, PANEL_LIFTDOWN,
+    PANEL_OPENDOOR, PANEL_CLOSEDOOR,
+    PANEL_BLOCKMON:
+      Result := LayerEnabled[LAYER_WATER];
+
+    else
+      Result := False;
+  end;
+end;
+
 function ObjectInRect(fX, fY: Integer; fWidth, fHeight: Word; ObjectType: Byte; All: Boolean): DWArray;
 var
   a: Integer;
@@ -509,22 +596,10 @@ begin
         for a := High(gPanels) downto 0 do
           with gPanels[a] do
           begin
-            if (PanelType = PANEL_WALL) and not LayerEnabled[LAYER_WALLS] then
-              Continue;
-            if (PanelType = PANEL_BACK) and not LayerEnabled[LAYER_BACK] then
-              Continue;
-            if (PanelType = PANEL_FORE) and not LayerEnabled[LAYER_FOREGROUND] then
-              Continue;
-            if (PanelType = PANEL_STEP) and not LayerEnabled[LAYER_STEPS] then
-              Continue;
-            if WordBool(PanelType and (PANEL_WATER or PANEL_ACID1 or
-                        PANEL_ACID2 or PANEL_LIFTUP or PANEL_LIFTDOWN or
-                        PANEL_OPENDOOR or PANEL_CLOSEDOOR or PANEL_BLOCKMON)) and
-                        not LayerEnabled[LAYER_WATER] then
+            if not PanelInShownLayer(gPanels[a].PanelType) then
               Continue;
 
-            if (PanelType <> 0) and
-               g_Collide(X, Y, Width, Height,
+            if g_Collide(X, Y, Width, Height,
                          fX, fY, fWidth, fHeight) then
             begin
               SetLength(Result, Length(Result)+1);
@@ -1583,139 +1658,206 @@ begin
   if not FileExists(_FileName) then
     Exit;
 
+// Открытие карты:
   MainForm.pbLoad.Position := 0;
   MainForm.lLoad.Caption := _lc[I_LOAD_MAP];;
   Application.ProcessMessages();
+
   map := TConfig.CreateFile(_FileName);
 
- i := map.ReadInt('MapOptions', 'TextureCount', 0);
- MainForm.pbLoad.Max := i;
- MainForm.pbLoad.Position := 0;
- MainForm.lLoad.Caption := _lc[I_LOAD_TEXTURES];
- for a := 1 to i do
- begin
-  MainForm.pbLoad.StepIt;
-  Application.ProcessMessages;
+// Чтение текстур:
+  i := map.ReadInt('MapOptions', 'TextureCount', 0);
 
-  s := TexturePrefix+UpperCase(map.ReadStr('Textures', 'TextureName'+IntToStr(a), ''));
-  if s = TexturePrefix then Continue;
+  MainForm.pbLoad.Max := i;
+  MainForm.pbLoad.Position := 0;
+  MainForm.lLoad.Caption := _lc[I_LOAD_TEXTURES];
 
-  if not g_CreateTextureWAD(s, EditorDir+'\wads\'+s) then
+  for a := 1 to i do
   begin
-   s := ExtractFileName(_FileName);
-   Delete(s, Length(s)-3, 4);
-   s := UpperCase(s)+'.WAD:TEXTURES\'+UpperCase(map.ReadStr('Textures', 'TextureName'+IntToStr(a), ''));
+    MainForm.pbLoad.StepIt();
+    Application.ProcessMessages();
 
-   if not g_CreateTextureWAD(s, EditorDir+'\wads\'+s) then Continue;
-  end;
+    s := TexturePrefix + UpperCase(map.ReadStr('Textures', 'TextureName'+IntToStr(a), ''));
+    if s = TexturePrefix then
+      Continue;
 
-  MainForm.lbTextureList.Items.Add(s);
- end;
-
- i := map.ReadInt('MapOptions', 'PanelCount', 0);
- MainForm.pbLoad.Max := i;
- MainForm.pbLoad.Position := 0;
- MainForm.lLoad.Caption := _lc[I_LOAD_PANELS];
- for a := 1 to i do
- begin
-  MainForm.pbLoad.StepIt;
-  Application.ProcessMessages;
-  { TODO 5 : панель воды в INI }
-  section := 'Panel'+IntToStr(a);
-  if not map.SectionExists(section) then Continue; 
-
-  panel.X := map.ReadInt(section, 'X1', 0);
-  panel.Y := map.ReadInt(section, 'Y1', 0);
-  panel.Height := map.ReadInt(section, 'Height', 0);
-  panel.Width := map.ReadInt(section, 'Width', 0);
-  case map.ReadInt(section, 'PanelType', 0) of
-   0: panel.PanelType := PANEL_WALL;
-   1: panel.PanelType := PANEL_BACK;
-   2: panel.PanelType := PANEL_FORE;
-   3: panel.PanelType := PANEL_STEP;
-   4: panel.PanelType := PANEL_WATER;
-   5: panel.PanelType := PANEL_ACID1;
-   6: panel.PanelType := PANEL_ACID2;
-  end;
-  panel.Alpha := map.ReadInt(section, 'Alpha', 0);
-
-  if panel.PanelType in [PANEL_WALL, PANEL_BACK, PANEL_FORE, PANEL_STEP] then
-  begin
-   s := TexturePrefix+UpperCase(map.ReadStr(section, 'TextureName', ''));
-
-   if g_GetTexture(s, panel.TextureID) then
-   begin
-    g_GetTextureSizeByID(panel.TextureID, panel.TextureWidth, panel.TextureHeight);
-    panel.TextureName := s;
-   end
-    else
-   begin
-    s := ExtractFileName(_FileName);
-    Delete(s, Length(s)-3, 4);
-    s := UpperCase(s)+'.WAD:TEXTURES\'+UpperCase(map.ReadStr(section, 'TextureName', ''));
-
-    if g_GetTexture(s, panel.TextureID) then
+  // Нет такой текстуры - ищем в WAD карты:
+    if not g_CreateTextureWAD(s, EditorDir+'\wads\'+s) then
     begin
-     g_GetTextureSizeByID(panel.TextureID, panel.TextureWidth, panel.TextureHeight);
-     panel.TextureName := s;
-    end else Continue;
-   end;
+      s := ExtractFileName(_FileName);
+      Delete(s, Length(s)-3, 4);
+      s := UpperCase(s) + '.WAD:TEXTURES\'+ UpperCase(map.ReadStr('Textures', 'TextureName'+IntToStr(a), ''));
+
+      if not g_CreateTextureWAD(s, EditorDir+'\wads\'+s) then
+        Continue;
+    end;
+
+    MainForm.lbTextureList.Items.Add(s);
   end;
 
-  AddPanel(panel);
- end;
+// Чтение панелей:
+  i := map.ReadInt('MapOptions', 'PanelCount', 0);
 
- i := map.ReadInt('MapOptions', 'ItemCount', 0);
- MainForm.pbLoad.Max := i;
- MainForm.pbLoad.Position := 0;
- MainForm.lLoad.Caption := _lc[I_LOAD_ITEMS];
- for a := 1 to i do
- begin
-  MainForm.pbLoad.StepIt;
-  Application.ProcessMessages();
+  MainForm.pbLoad.Max := i;
+  MainForm.pbLoad.Position := 0;
+  MainForm.lLoad.Caption := _lc[I_LOAD_PANELS];
 
-  section := 'Item'+IntToStr(a);
+  for a := 1 to i do
+  begin
+    MainForm.pbLoad.StepIt();
+    Application.ProcessMessages();
 
-  item.X := map.ReadInt(section, 'X', 0);
-  item.Y := map.ReadInt(section, 'Y', 0);
-  item.ItemType := ITEMSCONVERT[map.ReadInt(section, 'Type', 0)];
-  item.OnlyDM := False;
-  item.Fall := item.ItemType in [ITEM_KEY_RED, ITEM_KEY_GREEN, ITEM_KEY_BLUE];
-  AddItem(item);
- end;
+    section := 'Panel' + IntToStr(a);
+    if not map.SectionExists(section) then
+      Continue;
 
- i := map.ReadInt('MapOptions', 'AreaCount', 0);
- MainForm.pbLoad.Max := i;
- MainForm.pbLoad.Position := 0;
- MainForm.lLoad.Caption := _lc[I_LOAD_AREAS];
- for a := 1 to i do
- begin
-  MainForm.pbLoad.StepIt;
-  Application.ProcessMessages;
+    panel.X := map.ReadInt(section, 'X1', 0);
+    panel.Y := map.ReadInt(section, 'Y1', 0);
+    panel.Height := map.ReadInt(section, 'Height', 16);
+    panel.Width := map.ReadInt(section, 'Width', 16);
 
-  section := 'Area'+IntToStr(a);
+    case map.ReadInt(section, 'PanelType', 0) of
+      0: panel.PanelType := PANEL_WALL;
+      1: panel.PanelType := PANEL_BACK;
+      2: panel.PanelType := PANEL_FORE;
+      3: panel.PanelType := PANEL_STEP;
+      4: panel.PanelType := PANEL_WATER;
+      5: panel.PanelType := PANEL_ACID1;
+      6: panel.PanelType := PANEL_ACID2;
+    end;
 
-  area.X := map.ReadInt(section, 'X', 0);
-  area.Y := map.ReadInt(section, 'Y', 0);
-  area.AreaType := map.ReadInt(section, 'Type', 0);
-  area.Direction := D_RIGHT;
-  AddArea(area);
- end;
- 
- with gMapInfo do
- begin
-  Name := map.ReadStr('MapOptions', 'MapName', '');
-  Description := map.ReadStr('MapOptions', 'MapDescription', '');
-  Author := '';
-  MusicName := DefaultMusRes;
-  SkyName := DefaultSkyRes;
-  FileName := _FileName;
-  Height := map.ReadInt('MapOptions', 'Height', 480);
-  Width := map.ReadInt('MapOptions', 'Width', 640);
+    panel.Alpha := map.ReadInt(section, 'Alpha', 0);
 
-  if Length(Name) > 32 then SetLength(Name, 32);
-  if Length(Description) > 256 then SetLength(Description, 256);
- end;
+  // Текстура панели:
+    if panel.PanelType in [PANEL_WALL, PANEL_BACK, PANEL_FORE, PANEL_STEP] then
+      begin
+        s := TexturePrefix + UpperCase(map.ReadStr(section, 'TextureName', ''));
+
+        if g_GetTexture(s, panel.TextureID) then
+          begin
+            g_GetTextureSizeByID(panel.TextureID, panel.TextureWidth, panel.TextureHeight);
+            panel.TextureName := s;
+          end
+        else // Нет такой текстуры - ищем в WAD карты:
+          begin
+            s := ExtractFileName(_FileName);
+            Delete(s, Length(s)-3, 4);
+            s := UpperCase(s) + '.WAD:TEXTURES\' + UpperCase(map.ReadStr(section, 'TextureName', ''));
+
+            if g_GetTexture(s, panel.TextureID) then
+              begin
+                g_GetTextureSizeByID(panel.TextureID, panel.TextureWidth, panel.TextureHeight);
+                panel.TextureName := s;
+              end
+            else
+              Continue;
+          end;
+      end
+    else if panel.PanelType in [PANEL_WATER, PANEL_ACID1, PANEL_ACID2] then
+      begin
+        case panel.PanelType of
+          PANEL_WATER:
+            begin
+              s := TEXTURE_NAME_WATER;
+              panel.TextureID := TEXTURE_SPECIAL_WATER;
+            end;
+          PANEL_ACID1:
+            begin
+              s := TEXTURE_NAME_ACID2;
+              panel.TextureID := TEXTURE_SPECIAL_ACID2;
+            end;
+          PANEL_ACID2: 
+            begin
+              s := TEXTURE_NAME_ACID1;
+              panel.TextureID := TEXTURE_SPECIAL_ACID1;
+            end;
+        end;
+
+        with MainForm.lbTextureList.Items do
+          if IndexOf(s) = -1 then
+            Add(s);
+        panel.TextureName := s;
+        panel.TextureWidth := 1;
+        panel.TextureHeight := 1;
+      end;
+
+    AddPanel(panel);
+  end;
+
+// Чтение предметов:
+  i := map.ReadInt('MapOptions', 'ItemCount', 0);
+
+  MainForm.pbLoad.Max := i;
+  MainForm.pbLoad.Position := 0;
+  MainForm.lLoad.Caption := _lc[I_LOAD_ITEMS];
+
+  for a := 1 to i do
+  begin
+    MainForm.pbLoad.StepIt();
+    Application.ProcessMessages();
+
+    section := 'Item' + IntToStr(a);
+    if not map.SectionExists(section) then
+      Continue;
+
+    item.X := map.ReadInt(section, 'X', 0);
+    item.Y := map.ReadInt(section, 'Y', 0);
+    item.ItemType := ITEMSCONVERT[map.ReadInt(section, 'Type', 0)];
+    item.OnlyDM := False;
+    item.Fall := item.ItemType in [ITEM_KEY_RED, ITEM_KEY_GREEN, ITEM_KEY_BLUE];
+
+  // Размер предметов теперь другой:
+    item.X := item.X + OldItemSize[item.ItemType][0] - ItemSize[item.ItemType][0];
+    item.Y := item.Y + OldItemSize[item.ItemType][1] - ItemSize[item.ItemType][1];
+
+    AddItem(item);
+  end;
+
+// Чтение областей:
+  i := map.ReadInt('MapOptions', 'AreaCount', 0);
+
+  MainForm.pbLoad.Max := i;
+  MainForm.pbLoad.Position := 0;
+  MainForm.lLoad.Caption := _lc[I_LOAD_AREAS];
+
+  for a := 1 to i do
+  begin
+    MainForm.pbLoad.StepIt();
+    Application.ProcessMessages();
+
+    section := 'Area' + IntToStr(a);
+    if not map.SectionExists(section) then
+      Continue;
+
+    area.X := map.ReadInt(section, 'X', 0);
+    area.Y := map.ReadInt(section, 'Y', 0);
+    area.AreaType := map.ReadInt(section, 'Type', 0);
+    area.Direction := D_RIGHT;
+
+  // Размер областей теперь другой:
+    area.X := area.X + OldAreaSize[0] - AreaSize[area.AreaType].Width;
+    area.Y := area.Y + OldAreaSize[1] - AreaSize[area.AreaType].Height;
+
+    AddArea(area);
+  end;
+
+// Чтение параметров карты:
+  with gMapInfo do
+  begin
+    Name := map.ReadStr('MapOptions', 'MapName', '');
+    Description := map.ReadStr('MapOptions', 'MapDescription', '');
+    Author := '';
+    MusicName := DefaultMusRes;
+    SkyName := DefaultSkyRes;
+    FileName := _FileName;
+    Height := map.ReadInt('MapOptions', 'Height', 1600);
+    Width := map.ReadInt('MapOptions', 'Width', 1600);
+
+    if Length(Name) > 32 then
+      SetLength(Name, 32);
+    if Length(Description) > 256 then
+      SetLength(Description, 256);
+  end;
 
   map.Free();
 
@@ -1868,13 +2010,17 @@ var
 
 begin
 // В режиме Превью рисуем небо:
-  if PreviewMode and g_GetTexture(SKY_TEXTURE, ID) then
+  if PreviewMode then
   begin
     w := Max(MainForm.RenderPanel.Width, MainForm.RenderPanel.Height);
     if MainForm.RenderPanel.Height > MainForm.RenderPanel.Width*3/4 then
       w := Round(w*4/3);
     h := Round(w*3/4);
-    e_DrawSize(ID, 0, 0, 0, False, False, w, h);
+
+    if g_GetTexture(SKY_TEXTURE, ID) then
+      e_DrawSize(ID, 0, 0, 0, False, False, w, h)
+    else
+      e_DrawFillQuad(0, 0, w-1, h-1, 0, 0, 0, 0, B_NONE);
   end;
 
 // Рисуем панели (если Превью или если включен слой):
@@ -1932,6 +2078,8 @@ begin
             ITEM_KEY_RED: g_GetTexture('ITEM_KEY_RED', ID);
             ITEM_KEY_GREEN: g_GetTexture('ITEM_KEY_GREEN', ID);
             ITEM_KEY_BLUE: g_GetTexture('ITEM_KEY_BLUE', ID);
+            ITEM_BOTTLE: g_GetTexture('ITEM_BOTTLE', ID);
+            ITEM_HELMET: g_GetTexture('ITEM_HELMET', ID);
           end;
 
           if ID <> DWORD(-1) then
@@ -2013,8 +2161,8 @@ begin
     DrawPanels(PANEL_CLOSEDOOR);
 
 // Рисуем области:
-  if LayerEnabled[LAYER_AREAS] and
-     (not PreviewMode) and (gAreas <> nil) then
+  if (LayerEnabled[LAYER_AREAS] or PreviewMode) and
+     (gAreas <> nil) then
     for a := 0 to High(gAreas) do
       if gAreas[a].AreaType <> AREA_NONE then
         with AreaSize[gAreas[a].AreaType] do
@@ -2032,13 +2180,17 @@ begin
             AREA_BLUETEAMPOINT: g_GetTexture('AREA_BLUEPOINT', ID);
           end;
 
-          if ID <> DWORD(-1) then
-            if gAreas[a].Direction = D_LEFT then
-              e_Draw(ID, MapOffset.X+gAreas[a].X-X, MapOffset.Y+gAreas[a].Y-Y,
-                     0, True, False, M_HORIZONTAL)
-            else
-              e_Draw(ID, MapOffset.X+gAreas[a].X-X, MapOffset.Y+gAreas[a].Y-Y,
-                     0, True, False);
+          if (not PreviewMode) or
+             (gAreas[a].AreaType = AREA_REDFLAG) or
+             (gAreas[a].AreaType = AREA_BLUEFLAG) or
+             (gAreas[a].AreaType = AREA_DOMFLAG) then
+            if ID <> DWORD(-1) then
+              if gAreas[a].Direction = D_LEFT then
+                e_Draw(ID, MapOffset.X+gAreas[a].X-X, MapOffset.Y+gAreas[a].Y-Y,
+                       0, True, False, M_HORIZONTAL)
+              else
+                e_Draw(ID, MapOffset.X+gAreas[a].X-X, MapOffset.Y+gAreas[a].Y-Y,
+                       0, True, False);
 
         // Рамка:
           if not PreviewMode then
@@ -2220,6 +2372,28 @@ begin
               end;
           end;
         end;
+
+// Границы карты:
+  e_DrawFillQuad(-32+MapOffset.X,
+                 -32+MapOffset.Y,
+                 gMapInfo.Width+31+MapOffset.X,
+                 -1+MapOffset.Y,
+                 255, 0, 0, 192, B_NONE); // Top
+  e_DrawFillQuad(-32+MapOffset.X,
+                 gMapInfo.Height+MapOffset.Y,
+                 gMapInfo.Width+31+MapOffset.X,
+                 gMapInfo.Height+31+MapOffset.Y,
+                 255, 0, 0, 192, B_NONE); // Bottom
+  e_DrawFillQuad(-32+MapOffset.X,
+                 -32+MapOffset.Y,
+                 -1+MapOffset.X,
+                 gMapInfo.Height+31+MapOffset.Y,
+                 255, 0, 0, 192, B_NONE); // Left
+  e_DrawFillQuad(gMapInfo.Width+MapOffset.X,
+                 -32+MapOffset.Y,
+                 gMapInfo.Width+31+MapOffset.X,
+                 gMapInfo.Height+31+MapOffset.Y,
+                 255, 0, 0, 192, B_NONE); // Right
 end;
 
 procedure ShiftMapObjects(dx, dy: Integer);
@@ -2302,6 +2476,8 @@ begin
  g_CreateTextureWADSize('ITEM_ARMORGREEN', EditorDir+'\data\Game.wad:TEXTURES\ARMORGREEN', 0, 0, 32, 16);
  g_CreateTextureWADSize('ITEM_ARMORBLUE', EditorDir+'\data\Game.wad:TEXTURES\ARMORBLUE', 0, 0, 32, 16);
  g_CreateTextureWADSize('ITEM_INV', EditorDir+'\data\Game.wad:TEXTURES\INV', 0, 0, 32, 32);
+ g_CreateTextureWADSize('ITEM_BOTTLE', EditorDir+'\data\Game.wad:TEXTURES\BOTTLE', 0, 0, 16, 32);
+ g_CreateTextureWADSize('ITEM_HELMET', EditorDir+'\data\Game.wad:TEXTURES\HELMET', 0, 0, 16, 16);
  g_CreateTextureWADSize('AREA_REDFLAG', EditorDir+'\data\Game.wad:TEXTURES\FLAGRED', 0, 0, 64, 64);
  g_CreateTextureWADSize('AREA_BLUEFLAG', EditorDir+'\data\Game.wad:TEXTURES\FLAGBLUE', 0, 0, 64, 64);
  g_CreateTextureWADSize('AREA_DOMFLAG', EditorDir+'\data\Game.wad:TEXTURES\FLAGDOM', 0, 0, 64, 64);
@@ -2368,7 +2544,8 @@ begin
  g_DeleteTexture('ITEM_ARMORGREEN');
  g_DeleteTexture('ITEM_ARMORBLUE');
  g_DeleteTexture('ITEM_INV');
- g_DeleteTexture('ITEM_RESPAWN');
+ g_DeleteTexture('ITEM_BOTTLE');
+ g_DeleteTexture('ITEM_HELMET');
  g_DeleteTexture('AREA_REDFLAG');
  g_DeleteTexture('AREA_BLUEFLAG');
  g_DeleteTexture('AREA_DOMFLAG');

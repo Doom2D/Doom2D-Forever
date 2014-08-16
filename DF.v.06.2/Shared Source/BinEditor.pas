@@ -26,6 +26,7 @@ Type
     Procedure   WriteShortInt(Var x: ShortInt);
     Procedure   WriteSmallInt(Var x: SmallInt);
     Procedure   WriteInt(Var x: Integer);
+    Procedure   WriteSingle(Var x: Single);
     Procedure   WriteBoolean(Var x: Boolean);
     Procedure   WriteString(Var x: String; aMaxLen: Byte = 255);
     Procedure   WriteMemory(Var x: Pointer; memSize: Cardinal);
@@ -51,6 +52,7 @@ Type
     Procedure   ReadShortInt(Var x: ShortInt);
     Procedure   ReadSmallInt(Var x: SmallInt);
     Procedure   ReadInt(Var x: Integer);
+    Procedure   ReadSingle(Var x: Single);
     Procedure   ReadBoolean(Var x: Boolean);
     Procedure   ReadString(Var x: String);
     Procedure   ReadMemory(Var x: Pointer; Var memSize: Cardinal);
@@ -189,6 +191,11 @@ end;
 Procedure TBinMemoryWriter.WriteInt(Var x: Integer);
 begin
   WriteVar(x, SizeOf(Integer));
+end;
+
+Procedure TBinMemoryWriter.WriteSingle(Var x: Single);
+begin
+  WriteVar(x, SizeOf(Single));
 end;
 
 Procedure TBinMemoryWriter.WriteBoolean(Var x: Boolean);
@@ -349,6 +356,11 @@ end;
 Procedure TBinMemoryReader.ReadInt(Var x: Integer);
 begin
   ReadVar(x, SizeOf(Integer));
+end;
+
+Procedure TBinMemoryReader.ReadSingle(Var x: Single);
+begin
+  ReadVar(x, SizeOf(Single));
 end;
 
 Procedure TBinMemoryReader.ReadBoolean(Var x: Boolean);

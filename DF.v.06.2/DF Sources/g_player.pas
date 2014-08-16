@@ -1019,7 +1019,7 @@ begin
         with gGibs[i] do
         begin
           vel := Obj.Vel;
-          mr := g_Obj_Move(@Obj, True);
+          mr := g_Obj_Move(@Obj, True, False);
 
           if WordBool(mr and MOVE_FALLOUT) then
           begin
@@ -1269,24 +1269,6 @@ begin
 
   FLastHit := t;
 
-// Кровь (пузырьки, если в воде):
-  if gBloodCount > 0 then
-  begin
-    c := Min(value, 200)*gBloodCount-(value div 4)+Random(Min(value, 200) div 2);
-
-    if (t = HIT_SOME) and (vx = 0) and (vy = 0) then
-      MakeBloodSimple(c)
-    else
-      case t of
-        HIT_TRAP, HIT_ACID, HIT_FLAME: MakeBloodSimple(c);
-        HIT_BFG, HIT_ROCKET, HIT_SOME: MakeBloodVector(c, vx, vy);
-      end;
-
-    if t = HIT_WATER then
-      g_GFX_Bubbles(FObj.X+PLAYER_RECT.X+(PLAYER_RECT.Width div 2),
-                    FObj.Y+PLAYER_RECT.Y-4, value div 2, 8, 4);
-  end;
-
 // Неуязвимость не спасает от ловушек:
   if t = HIT_TRAP then
     FMegaRulez[MR_INV] := 0;
@@ -1295,18 +1277,39 @@ begin
   if FMegaRulez[MR_INV] > gTime then
     Exit;
 
-// Если не "ГОРЕЦ":
-  if not FGodMode then
+// Чит-код "ГОРЕЦ":
+  if FGodMode then
+    Exit;
+
+// Если есть урон своим, или ранил сам себя, или тебя ранил противник:
+  if LongBool(gGameSettings.Options and GAME_OPTION_TEAMDAMAGE) or
+     (SpawnerUID = FUID) or
+     (not SameTeam(FUID, SpawnerUID)) then
   begin
-  // Если есть урон своим, или ранил сам себя, или тебя ранил противник:
-    if LongBool(gGameSettings.Options and GAME_OPTION_TEAMDAMAGE) or
-       (SpawnerUID = FUID) or
-       (not SameTeam(FUID, SpawnerUID)) then
+  // Кровь (пузырьки, если в воде):
+    if gBloodCount > 0 then
     begin
-      Inc(FDamageBuffer, value);
-      if gFlash then
-        FPain := FPain+value;
+      c := Min(value, 200)*gBloodCount-(value div 4)+Random(Min(value, 200) div 2);
+
+      if (t = HIT_SOME) and (vx = 0) and (vy = 0) then
+        MakeBloodSimple(c)
+      else
+        case t of
+          HIT_TRAP, HIT_ACID, HIT_FLAME: MakeBloodSimple(c);
+          HIT_BFG, HIT_ROCKET, HIT_SOME: MakeBloodVector(c, vx, vy);
+        end;
+
+      if t = HIT_WATER then
+        g_GFX_Bubbles(FObj.X+PLAYER_RECT.X+(PLAYER_RECT.Width div 2),
+                      FObj.Y+PLAYER_RECT.Y-4, value div 2, 8, 4);
     end;
+
+  // Буфер урона:
+    Inc(FDamageBuffer, value);
+
+  // Вспышка боли:
+    if gFlash then
+      FPain := FPain + value;
   end;
 end;
 
@@ -2253,6 +2256,22 @@ begin
    Result := True;
    remove := True;
   end;
+
+  ITEM_BOTTLE:
+    if FHealth < 200 then
+    begin
+      IncMax(FHealth, 4, 200);
+      Result := True;
+      remove := True;
+    end;
+
+  ITEM_HELMET:
+    if FArmor < 200 then
+    begin
+      IncMax(FArmor, 5, 200);
+      Result := True;
+      remove := True;
+    end;
  end;
 end;
 
@@ -2706,6 +2725,7 @@ var
   i, ii, wx, wy, xd, yd: Integer;
   blockmon, headwater: Boolean;
   st: Word;
+
 begin
   if gFly then
     FlySmoke();
@@ -2742,9 +2762,8 @@ begin
         Run(D_RIGHT);
     end;
 
-    st := g_Obj_Move(@FObj, True);
-    if WordBool(st and MOVE_HITWATER) then
-      g_Obj_Splash(@FObj);
+    st := g_Obj_Move(@FObj, True, True);
+      
     Exit;
   end;
 
@@ -2781,10 +2800,7 @@ begin
         end;
     end;
 
-  st := g_Obj_Move(@FObj, True);
-
-  if WordBool(st and MOVE_HITWATER) then
-    g_Obj_Splash(@FObj);
+  st := g_Obj_Move(@FObj, True, True);
 
   blockmon := g_Map_CollidePanel(FObj.X+PLAYER_HEADRECT.X, FObj.Y+PLAYER_HEADRECT.Y,
                                  PLAYER_HEADRECT.Width, PLAYER_HEADRECT.Height,
@@ -3073,7 +3089,7 @@ end;
 
 procedure TPlayer.GetSecret();
 begin
- Inc(FSecrets);
+  Inc(FSecrets);
 end;
 
 procedure TPlayer.PressKey(Key: Byte; Time: Word = 0);
@@ -3513,23 +3529,21 @@ begin
 
   if gTime mod (GAME_TICK*2) <> 0 then
   begin
-    g_Obj_Move(@FObj, True);
+    g_Obj_Move(@FObj, True, True);
+    
     Exit;
   end;
 
 // Сопротивление воздуха для трупа:
   FObj.Vel.X := z_dec(FObj.Vel.X, 1);
 
-  st := g_Obj_Move(@FObj, True);
+  st := g_Obj_Move(@FObj, True, True);
 
   if WordBool(st and MOVE_FALLOUT) then
   begin
     FState := CORPSE_STATE_REMOVEME;
     Exit;
   end;
-
-  if WordBool(st and MOVE_HITWATER) then
-    g_Obj_Splash(@FObj);
 
   if FAnimation <> nil then
     FAnimation.Update();

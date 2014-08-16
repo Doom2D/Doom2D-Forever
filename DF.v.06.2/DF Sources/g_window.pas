@@ -195,14 +195,9 @@ begin
   if message = WM_SYSCOMMAND then
   begin
     case wParam of
-      SC_SCREENSAVE, SC_MONITORPOWER: // Включен скринсэйвер
+      SC_SCREENSAVE, SC_MONITORPOWER, // Включен скринсэйвер
+      SC_KEYMENU: // Alt, F10
         begin
-          Result := 0;
-          Exit;
-        end;
-      SC_KEYMENU: // F10
-        begin
-          KeyPress(VK_F10);
           Result := 0;
           Exit;
         end;
@@ -778,8 +773,13 @@ begin
 
   Time_Old := GetTimer();
 
+// Командная строка:
   if ParamCount > 0 then
     g_Game_Process_Params();
+
+// Запрос языка:
+  if (not gGameOn) and gAskLanguage then
+    g_Menu_AskLanguage();
 
   e_WriteLog('Entering the main loop', MSG_NOTIFY);
 

@@ -15,7 +15,7 @@ type
     Panel2: TPanel;
     eMapName: TEdit;
 
-    procedure GetMaps(FileName: String);
+    procedure GetMaps(FileName: String; placeName: Boolean);
     procedure FormActivate(Sender: TObject);
     procedure eMapNameChange(Sender: TObject);
     procedure lbMapListClick(Sender: TObject);
@@ -39,8 +39,7 @@ uses
 
 procedure TSaveMapForm.FormActivate(Sender: TObject);
 begin
-  bOK.Enabled := False;
-  eMapName.Text := '';
+  bOK.Enabled := (eMapName.Text <> '');
   eMapName.SetFocus();
 end;
 
@@ -84,14 +83,15 @@ begin
     SaveMapForm.ModalResult := mrCancel;
 end;
 
-procedure TSaveMapForm.GetMaps(FileName: String);
+procedure TSaveMapForm.GetMaps(FileName: String; placeName: Boolean);
 var
   WAD: TWADEditor_1;
-  a: Integer;
+  a, max_num, j: Integer;
   ResList: SArray;
   Data: Pointer;
   Len: Integer;
   Sign: Array [0..2] of Char;
+  nm: String;
 
 begin
   lbMapList.Items.Clear();
@@ -104,6 +104,7 @@ begin
   end;
 
   ResList := WAD.GetResourcesList('');
+  max_num := 1;
 
   if ResList <> nil then
     for a := 0 to High(ResList) do
@@ -115,11 +116,40 @@ begin
       FreeMem(Data);
    
       if Sign = MAP_SIGNATURE then
-        lbMapList.Items.Add(ResList[a]);
+      begin
+        nm := ResList[a];
+        lbMapList.Items.Add(nm);
+
+        if placeName then
+        begin
+          nm := UpperCase(nm);
+          if (nm[1] = 'M') and
+             (nm[2] = 'A') and
+             (nm[3] = 'P') then
+          begin
+            nm := Trim(Copy(nm, 4, Length(nm)-3));
+            j := StrToIntDef(nm, 0);
+            if j >= max_num then
+              max_num := j + 1;
+          end;
+        end;
+      end;
+
       Sign := '';
     end;
 
   WAD.Free();
+
+  if placeName then
+    begin
+      nm := IntToStr(max_num);
+      if Length(nm) < 2 then
+        nm := '0' + nm;
+      nm := 'MAP' + nm;
+      eMapName.Text := nm;
+    end
+  else
+    eMapName.Text := '';
 end;
 
 end.

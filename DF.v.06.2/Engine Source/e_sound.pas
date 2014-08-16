@@ -40,6 +40,8 @@ type
     procedure Pause(Enable: Boolean);
     function GetVolume(): Single;
     procedure SetVolume(Volume: Single);
+    function GetPan(): Single;
+    procedure SetPan(Pan: Single);
     function IsMuted(): Boolean;
     procedure Mute(Enable: Boolean);
     function GetPosition(): DWORD;
@@ -865,6 +867,40 @@ begin
     Exit;
 
   res := FMOD_Channel_SetVolume(FChannel, Volume);
+  if res <> FMOD_OK then
+  begin
+  end;
+end;
+
+function TBasicSound.GetPan(): Single;
+var
+  res: FMOD_RESULT;
+  pan: Single;
+
+begin
+  Result := 0.0;
+
+  if FChannel = nil then
+    Exit;
+
+  res := FMOD_Channel_GetPan(FChannel, pan);
+  if res <> FMOD_OK then
+  begin
+    Exit;
+  end;
+
+  Result := pan;
+end;
+
+procedure TBasicSound.SetPan(Pan: Single);
+var
+  res: FMOD_RESULT;
+
+begin
+  if FChannel = nil then
+    Exit;
+
+  res := FMOD_Channel_SetPan(FChannel, Pan);
   if res <> FMOD_OK then
   begin
   end;

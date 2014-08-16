@@ -223,8 +223,6 @@ begin
     if gConsoleShow and (Cons_Y < 0) then
     begin
       Cons_Y := Cons_Y+Step;
-      CPos := 1;
-      Line := '';
     end;
 
   // В процессе закрытия:
@@ -323,14 +321,12 @@ procedure g_Console_Switch();
 begin
   gConsoleShow := not gConsoleShow;
   Cons_Shown := True;
-  Line := '';
-  CPos := 1;
 end;
 
 procedure g_Console_Char(C: Char);
 begin
   Insert(C, Line, CPos);
-  CPos := CPos+1;
+  CPos := CPos + 1;
 end;
 
 procedure Complete();
@@ -500,9 +496,18 @@ begin
 end;
 
 procedure AddToHistory(L: String);
+var
+  len: Integer;
+
 begin
-  SetLength(CommandHistory, Length(CommandHistory)+1);
-  CommandHistory[High(CommandHistory)] := L;
+  len := Length(CommandHistory);
+
+  if (len = 0) or
+     (LowerCase(CommandHistory[len-1]) <> LowerCase(L)) then
+  begin
+    SetLength(CommandHistory, len+1);
+    CommandHistory[len] := L;
+  end;
 
   CmdIndex := Length(CommandHistory);
 end;

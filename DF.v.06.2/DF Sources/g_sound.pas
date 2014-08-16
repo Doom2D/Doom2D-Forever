@@ -18,6 +18,7 @@ type
     function PlayPanVolume(Pan, Volume: Single; Force: Boolean = False): Boolean;
     function PlayVolumeAt(X, Y: Integer; Volume: Single): Boolean;
     function SetByName(SN: String): Boolean;
+    function SetCoords(X, Y: Integer; Volume: Single): Boolean;
     
     property Loop: Boolean read FLoop write FLoop;
     property Name: String read FName;
@@ -27,6 +28,7 @@ type
   private
     FName: String;
     FSpecPause: Boolean; // Спец-пауза. "Сильнее" обычной
+    FNoMusic: Boolean;
 
     procedure SetSpecPause(Enable: Boolean);
 
@@ -40,6 +42,7 @@ type
     
     property Name: String read FName;
     property SpecPause: Boolean read FSpecPause write SetSpecPause;
+    property NoMusic: Boolean read FNoMusic;
   end;
 
 function g_Sound_PlayEx(SoundName: ShortString): Boolean;
@@ -535,6 +538,25 @@ begin
     Result := False;
 end;
 
+function TPlayableSound.SetCoords(X, Y: Integer; Volume: Single): Boolean;
+var
+  Pan, Vol: Single;
+
+begin
+  Result := False;
+
+  if IsPlaying() then
+  begin
+    if PlaySoundAt(X, Y, Pan, Vol) then
+    begin
+      SetVolume(Volume * Vol * (gSoundLevel/255.0));
+      SetPan(Pan);
+
+      Result := True;
+    end;
+  end;
+end;
+
 function TPlayableSound.SetByName(SN: String): Boolean;
 var
   id: DWORD;
@@ -557,6 +579,7 @@ begin
   inherited;
   FName := '';
   FSpecPause := False;
+  FNoMusic := True;
 end;
 
 destructor TMusic.Destroy();
@@ -566,6 +589,12 @@ end;
 
 function TMusic.Play(Force: Boolean = False): Boolean;
 begin
+  if FNoMusic then
+  begin
+    Result := True;
+    Exit;
+  end;
+
   if Force or not IsPlaying() then
     begin
       Stop();
@@ -582,10 +611,18 @@ var
   id: DWORD;
 
 begin
+  if SN = '' then
+  begin
+    FNoMusic := True;
+    Result := True;
+    Exit;
+  end;
+
   if g_Sound_Get(id, SN) then
     begin
       SetID(id);
       FName := SN;
+      FNoMusic := False;
       FSpecPause := False;
       Result := True;
     end

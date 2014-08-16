@@ -39,7 +39,8 @@ uses
   fmoderrors in '..\Lib\FMOD\fmoderrors.pas',
   fmodpresets in '..\Lib\FMOD\fmodpresets.pas',
   fmodtypes in '..\Lib\FMOD\fmodtypes.pas',
-  g_language in 'g_language.pas';
+  g_language in 'g_language.pas',
+  f_selectlang in 'f_selectlang.pas' {SelectLanguageForm};
 
 {$R *.res}
 
@@ -63,6 +64,7 @@ begin
   Application.CreateForm(TPackMapForm, PackMapForm);
   Application.CreateForm(TMapTestForm, MapTestForm);
   Application.CreateForm(TChooseTypeForm, ChooseTypeForm);
+  Application.CreateForm(TSelectLanguageForm, SelectLanguageForm);
   if ParamStr(1) <> '' then OpenMap(ParamStr(1), '');
 
   Application.Run;
