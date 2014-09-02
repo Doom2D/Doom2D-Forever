@@ -51,7 +51,7 @@ uses
   g_player, g_map, Math, g_gfx, g_game, g_textures,
   g_console, g_monsters, g_items, g_phys, g_weapons,
   WADEDITOR, g_main, SysUtils, e_log, g_language,
-  g_options;
+  g_options, g_netmsg;
 
 const
   TRIGGER_SIGNATURE = $52475254; // 'TRGR'
@@ -98,7 +98,12 @@ begin
 
    if not Enabled then
    begin
-    if not NoSound then g_Sound_PlayExAt('SOUND_GAME_DOORCLOSE', X, Y);
+    if not NoSound then
+    begin
+     g_Sound_PlayExAt('SOUND_GAME_DOORCLOSE', X, Y);
+     if g_Game_IsServer and g_Game_IsNet then
+      MH_SEND_Sound(X, Y, 'SOUND_GAME_DOORCLOSE');
+    end;
     g_Map_EnableWall(PanelID);
     Result := True;
    end;
@@ -134,7 +139,11 @@ begin
     if not gWalls[gDoorMap[c, b]].Enabled then
     begin
      with gWalls[PanelID] do
+     begin
       g_Sound_PlayExAt('SOUND_GAME_DOORCLOSE', X, Y);
+      if g_Game_IsServer and g_Game_IsNet then
+       MH_SEND_Sound(X, Y, 'SOUND_GAME_DOORCLOSE');
+     end;
      Break;
     end;
 
@@ -157,7 +166,12 @@ begin
  begin
   with gWalls[PanelID] do
    if (not NoSound) and (not Enabled) then
-     g_Sound_PlayExAt('SOUND_GAME_SWITCH1', X, Y);
+   begin
+    g_Sound_PlayExAt('SOUND_GAME_SWITCH1', X, Y);
+    if g_Game_IsServer and g_Game_IsNet then
+     MH_SEND_Sound(X, Y, 'SOUND_GAME_SWITCH1');
+   end;
+
 
   with gWalls[PanelID] do
   begin
@@ -199,7 +213,11 @@ begin
     if not gWalls[gDoorMap[c, b]].Enabled then
     begin
      with gWalls[PanelID] do
+     begin
       g_Sound_PlayExAt('SOUND_GAME_SWITCH1', X, Y);
+      if g_Game_IsServer and g_Game_IsNet then
+       MH_SEND_Sound(X, Y, 'SOUND_GAME_SWITCH1');
+     end;
      Break;
     end;
 
@@ -236,7 +254,12 @@ begin
   with gWalls[PanelID] do
    if Enabled then
    begin
-    if not NoSound then g_Sound_PlayExAt('SOUND_GAME_DOOROPEN', X, Y);
+    if not NoSound then
+    begin
+     g_Sound_PlayExAt('SOUND_GAME_DOOROPEN', X, Y);
+     if g_Game_IsServer and g_Game_IsNet then
+      MH_SEND_Sound(X, Y, 'SOUND_GAME_DOOROPEN');
+    end;
     g_Map_DisableWall(PanelID);
     Result := True;
    end;
@@ -264,7 +287,11 @@ begin
     if gWalls[gDoorMap[c, b]].Enabled then
     begin
      with gWalls[PanelID] do
+     begin
       g_Sound_PlayExAt('SOUND_GAME_DOOROPEN', X, Y);
+      if g_Game_IsServer and g_Game_IsNet then
+       MH_SEND_Sound(X, Y, 'SOUND_GAME_DOOROPEN');
+     end;
      Break;
     end;
 
@@ -347,9 +374,11 @@ var
   p: TPlayer;
   m: TMonster;
   i, k: Integer;
+  iid: LongWord;
 
 begin
   Result := False;
+  if g_Game_IsClient then Exit;
 
   if not Trigger.Enabled then
     Exit;
@@ -364,6 +393,7 @@ begin
       TRIGGER_EXIT:
         begin
           g_Sound_PlayEx('SOUND_GAME_SWITCH0');
+          if g_Game_IsNet then MH_SEND_Sound(X, Y, 'SOUND_GAME_SWITCH0');
           g_Game_ExitLevel(Data.MapName);
           TimeOut := 18;
           Result := True;
@@ -488,6 +518,8 @@ begin
           g_Player_Get(ActivateUID).GetSecret();
           Enabled := False;
           Result := True;
+          Inc(gCoopSecretsFound);
+          if g_Game_IsNet then MH_SEND_GameStats();
         end;
 
       TRIGGER_LIFTUP:
@@ -560,6 +592,7 @@ begin
                     SoundPlayCount := 1;
                   Result := True;
                 end;
+            if g_Game_IsNet then MH_SEND_TriggerSound(Trigger);
           end;
         end;
 
@@ -578,7 +611,14 @@ begin
             if (Data.MonActive) then
               gMonsters[i].WakeUp();
 
-            Inc(gTotalMonsters);
+            if Data.MonType <> MONSTER_BARREL then Inc(gTotalMonsters);  
+
+            if g_Game_IsNet then
+            begin
+              MH_SEND_MonsterSpawn(gMonsters[i].UID);
+              MH_SEND_GameStats();
+              MH_SEND_CoopStats(gMonsters[sx].UID);
+            end;
           end;
 
           TimeOut := 18;
@@ -589,11 +629,14 @@ begin
         if (Data.ItemType in [ITEM_MEDKIT_SMALL..ITEM_HELMET]) then
         begin
           if (not Data.ItemOnlyDM) or
-             (gGameSettings.GameType = GT_CUSTOM) then
+             (gGameSettings.GameMode in [GM_DM, GM_TDM, GM_CTF]) then
             for k := 1 to Data.ItemCount do
             begin
-              g_Items_Create(Data.ItemPos.X, Data.ItemPos.Y,
+              iid := g_Items_Create(Data.ItemPos.X, Data.ItemPos.Y,
                 Data.ItemType, Data.ItemFalls, False, True);
+
+              if g_Game_IsNet then
+                MH_SEND_ItemSpawn(True, iid);
             end;
 
           TimeOut := 18;
@@ -625,6 +668,7 @@ begin
 
           TimeOut := 36;
           Result := True;
+          if g_Game_IsNet then MH_SEND_TriggerMusic;
         end;
     end;
   end;
@@ -882,12 +926,20 @@ function g_Triggers_PressR(X, Y: Integer; Width, Height: Word; UID: Word;
 var
   a: Integer;
   k: Byte;
+  p: TPlayer;
 begin
  if gTriggers = nil then Exit;
 
  case g_GetUIDType(UID) of
   UID_GAME: k := 255;
-  UID_PLAYER: k := g_Player_Get(UID).GetKeys;
+  UID_PLAYER:
+  begin
+    p := g_Player_Get(UID);
+    if p <> nil then
+      k := p.GetKeys
+    else
+      k := 0;
+  end;
   else k := 0;
  end;
 
@@ -916,12 +968,20 @@ procedure g_Triggers_PressL(X1, Y1, X2, Y2: Integer; UID: DWORD; ActivateType: B
 var
   a: Integer;
   k: Byte;
+  p: TPlayer;
 begin
  if gTriggers = nil then Exit;
 
  case g_GetUIDType(UID) of
   UID_GAME: k := 255;
-  UID_PLAYER: k := g_Player_Get(UID).GetKeys;
+  UID_PLAYER:
+  begin
+    p := g_Player_Get(UID);
+    if p <> nil then
+      k := p.GetKeys
+    else
+      k := 0;
+  end;
   else k := 0;
  end;
 
@@ -943,14 +1003,21 @@ var
   a: Integer;
   k: Byte;
   rsq: Word;
-
+  p: TPlayer;
 begin
   if gTriggers = nil then
     Exit;
 
   case g_GetUIDType(UID) of
     UID_GAME: k := 255;
-    UID_PLAYER: k := g_Player_Get(UID).GetKeys();
+    UID_PLAYER:
+    begin
+     p := g_Player_Get(UID);
+     if p <> nil then
+      k := p.GetKeys
+     else
+      k := 0;
+    end;
     else k := 0;
   end;
 

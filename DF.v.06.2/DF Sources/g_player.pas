@@ -17,6 +17,7 @@ const
   KEY_PREVWEAPON = 7;
   KEY_OPEN       = 8;
   KEY_JUMP       = 9;
+  KEY_CHAT       = 10;
 
   R_ITEM_BACKPACK   = 0;
   R_KEY_RED         = 1;
@@ -44,6 +45,7 @@ const
   TEAM_NONE         = 0;
   TEAM_RED          = 1;
   TEAM_BLUE         = 2;
+  TEAM_COOP         = 3;
 
   PLAYERNUM_1       = 1;
   PLAYERNUM_2       = 2;
@@ -70,6 +72,7 @@ Type
     Deaths: SmallInt;
     Kills: Word;
     Color: TRGB;
+    Spectator: Boolean;
   end;
 
   TPlayerStatArray = Array of TPlayerStat;
@@ -83,7 +86,7 @@ Type
   Private
     FIamBot:    Boolean;
     FUID:       Word;
-    FName:      String;
+    FName:        String;
     FTeam:      Byte;
     FLive:      Boolean;
     FDirection: TDirection;
@@ -99,19 +102,12 @@ Type
     FSecrets:   Integer;
     FCurrWeap:  Byte;
     FBFGFireCounter: SmallInt;
-    FDamageBuffer:   Integer;
     FLastSpawnerUID: Word;
     FLastHit:   Byte;
     FObj:       TObj;
-    FAmmo:      Array [A_BULLETS..A_CELLS] of Word;
-    FMaxAmmo:   Array [A_BULLETS..A_CELLS] of Word;
-    FWeapon:    Array [WEAPON_KASTET..WEAPON_SUPERPULEMET] of Boolean;
-    FReloading: Array [WEAPON_KASTET..WEAPON_SUPERPULEMET] of Word;
-    FRulez:     Set of R_ITEM_BACKPACK..R_BERSERK;
-    FMegaRulez: Array [MR_SUIT..MR_INV] of DWORD;
-    FTime:      Array [T_RESPAWN..T_USE] of DWORD;
+    FXTo, FYTo: Integer;
+    FSpectatePlayer: Integer;
 
-    FKeys:      Array [KEY_LEFT..KEY_JUMP] of TKeyState;
     FPlayerNum: Byte;
     FModel:     TPlayerModel;
     FActionPrior:    Byte;
@@ -139,7 +135,6 @@ Type
     procedure   OnDamage(Angle: SmallInt); virtual;
     function    firediry(): Integer;
 
-    procedure   Respawn(Silent: Boolean); virtual;
     procedure   Run(Direction: TDirection);
     procedure   NextWeapon();
     procedure   PrevWeapon();
@@ -150,12 +145,29 @@ Type
     procedure   Use();
     
   Public
+    FDamageBuffer:   Integer;
+    
+    FAmmo:      Array [A_BULLETS..A_CELLS] of Word;
+    FMaxAmmo:   Array [A_BULLETS..A_CELLS] of Word;
+    FWeapon:    Array [WEAPON_KASTET..WEAPON_SUPERPULEMET] of Boolean;
+    FRulez:     Set of R_ITEM_BACKPACK..R_BERSERK;
+    FMegaRulez: Array [MR_SUIT..MR_INV] of DWORD;
+    FReloading: Array [WEAPON_KASTET..WEAPON_SUPERPULEMET] of Word;
+    FTime:      Array [T_RESPAWN..T_USE] of DWORD;
+    FKeys:      Array [KEY_LEFT..KEY_CHAT] of TKeyState;
+    FSpectator: Boolean;
+    FGhost:     Boolean;
+    FPhysics:   Boolean;
+    
     constructor Create(); virtual;
     destructor  Destroy(); override;
+    procedure   Respawn(Silent: Boolean); virtual;
     procedure   PressKey(Key: Byte; Time: Word = 0);
     procedure   ReleaseKeys();
     procedure   SetModel(ModelName: String);
     procedure   SetColor(Color: TRGB);
+    procedure   SetWeapon(W: Byte);
+    function    IsKeyPressed(K: Byte): Boolean;
     function    GetKeys(): Byte;
     function    PickItem(ItemType: Byte; respawn: Boolean; var remove: Boolean): Boolean; virtual;
     function    Collide(X, Y: Integer; Width, Height: Word): Boolean; overload;
@@ -166,14 +178,18 @@ Type
     function    TeleportTo(X, Y: Integer; silent: Boolean; dir: Byte): Boolean;
     procedure   Push(vx, vy: Integer);
     procedure   ChangeModel(ModelName: String);
+    procedure   ChangeTeam;
     procedure   BFGHit();
     function    GetFlag(Flag: Byte): Boolean;
+    procedure   SetFlag(Flag: Byte);
     procedure   AllRulez(Health: Boolean);
     procedure   Damage(value: Word; SpawnerUID: Word; vx, vy: Integer; t: Byte); virtual;
     procedure   MakeBloodVector(Count: Word; VelX, VelY: Integer);
     procedure   MakeBloodSimple(Count: Word);
     procedure   Kill(KillType: Byte; SpawnerUID: Word; t: Byte);
     procedure   Reset(Force: Boolean);
+    procedure   Spectate;
+    procedure   SoftReset();
     procedure   Draw(); virtual;
     procedure   DrawPain();
     procedure   DrawInv();
@@ -182,24 +198,34 @@ Type
     procedure   SaveState(var Mem: TBinMemoryWriter); virtual;
     procedure   LoadState(var Mem: TBinMemoryReader); virtual;
     procedure   PauseSounds(Enable: Boolean);
+    procedure   NetFire(Wpn: Byte; X, Y, AX, AY: Integer; WID: Integer = -1);
+    procedure   DoLerp(Level: Integer = 2);
+    procedure   SetLerp(XTo, YTo: Integer);
+
 
     property    Name: String read FName write FName;
     property    Model: TPlayerModel read FModel;
-    property    Frags: Integer read FFrags;
-    property    Death: Integer read FDeath;
-    property    Kills: Integer read FKills;
+    property    Health: Integer read FHealth write FHealth;
+    property    Armor: Integer read FArmor write FArmor;
+    property    Air:   Integer read FAir write FAir;
+    property    Frags: Integer read FFrags write FFrags;
+    property    Death: Integer read FDeath write FDeath;
+    property    Kills: Integer read FKills write FKills;
+    property    CurrWeap: Byte read FCurrWeap write FCurrWeap;
     property    MonsterKills: Integer read FMonsterKills write FMonsterKills;
     property    Secrets: Integer read FSecrets;
     property    GodMode: Boolean read FGodMode write FGodMode;
-    property    Live: Boolean read FLive;
+    property    Live: Boolean read FLive write FLive;
     property    Flag: Byte read FFlag;
-    property    Team: Byte read FTeam;
-    property    GameX: Integer read FObj.X;
-    property    GameY: Integer read FObj.Y;
+    property    Team: Byte read FTeam write FTeam;
+    property    GameX: Integer read FObj.X write FObj.X;
+    property    GameY: Integer read FObj.Y write FObj.Y;
+    property    GameVelX: Integer read FObj.Vel.X write FObj.Vel.X;
+    property    GameVelY: Integer read FObj.Vel.Y write FObj.Vel.Y;
     property    Vel: TPoint2i read FObj.Vel;
     property    Obj: TObj read FObj;
     property    IncCam: Integer read FIncCam write FIncCam;
-    property    UID: Word read FUID;
+    property    UID: Word read FUID write FUID;
     property    Direction: TDirection read FDirection;
   end;
 
@@ -301,8 +327,11 @@ var
   gGibs: Array of TGib;
   gTeamStat: TTeamStat;
   gFly: Boolean = False;
+  gLastSpawnUsed: Byte = 0;
   MAX_RUNVEL: Integer = 8;
   VEL_JUMP: Integer = 10;
+
+function  Lerp(X, Y, Factor: Integer): Integer;
 
 procedure g_Gibs_SetMax(Count: Word);
 function  g_Gibs_GetMax(): Word;
@@ -335,9 +364,9 @@ procedure g_Bot_RemoveAll();
 implementation
 
 uses
-  g_map, g_items, g_console, SysUtils, g_gfx, Math,
+  e_log, g_map, g_items, g_console, SysUtils, g_gfx, Math,
   g_options, g_triggers, g_menu, MAPDEF, g_game,
-  WADEDITOR, g_main, g_monsters, CONFIG, g_language;
+  WADEDITOR, g_main, g_monsters, CONFIG, g_language, g_net, g_netmsg;
 
 Type
   TBotProfile = record
@@ -360,7 +389,7 @@ const
   TIME_RESPAWN1 = 1500;
   TIME_RESPAWN2 = 2000;
   TIME_RESPAWN3 = 3000;
-  AIR     = 360;
+  AIR_DEF = 360;
   AIR_MAX = 1091;
   PLAYER_SUIT_TIME    = 30000;
   PLAYER_INV_TIME     = 30000;
@@ -408,6 +437,11 @@ var
   CurrentGib: Integer = 0;
   BotNames: Array of String;
   BotList: Array of TBotProfile;
+
+function Lerp(X, Y, Factor: Integer): Integer;
+begin
+  Result := X + ((Y - X) div Factor);
+end;
 
 function SameTeam(UID1, UID2: Word): Boolean;
 begin
@@ -482,6 +516,7 @@ begin
   else
     gPlayers[a] := TPlayer.Create();
 
+
   gPlayers[a].SetModel(ModelName);
 
 // Нет модели - создание не возможно:
@@ -516,21 +551,23 @@ var
   a, tr, tb: Integer;
 
 begin
+  if not g_Game_IsServer then Exit;
+
 // Список названий моделей:
   m := g_PlayerModel_GetNames();
   if m = nil then
     Exit;
 
 // Команда:
-  if gGameSettings.GameType = GT_SINGLE then
-    Team := TEAM_RED // COOP
+  if (gGameSettings.GameType = GT_SINGLE) or (gGameSettings.GameMode = GM_COOP) then
+    Team := TEAM_COOP // COOP
   else
     if gGameSettings.GameMode = GM_DM then
       Team := TEAM_NONE // DM
     else
       if Team = TEAM_NONE then // CTF / TDM
       begin
-      // Автобаланс команд:
+       // Автобаланс команд:
         tr := 0;
         tb := 0;
 
@@ -596,6 +633,8 @@ begin
       FDifficult.CloseWeaponPrior[a] := WEAPON_PRIOR2[a];
       //FDifficult.SafeWeaponPrior[a] := WEAPON_PRIOR3[a];
     end;
+
+    if g_Game_IsNet then MH_SEND_PlayerCreate(UID);
   end;
 end;
 
@@ -606,14 +645,16 @@ var
   a: Integer;
 
 begin
+  if not g_Game_IsServer then Exit;
+
 // Список названий моделей:
   m := g_PlayerModel_GetNames();
   if m = nil then
     Exit;
 
 // Команда:
-  if gGameSettings.GameType = GT_SINGLE then
-    Team := TEAM_RED // COOP
+  if (gGameSettings.GameType = GT_SINGLE) or (gGameSettings.GameMode = GM_COOP) then
+    Team := TEAM_COOP // COOP
   else
     if gGameSettings.GameMode = GM_DM then
       Team := TEAM_NONE // DM
@@ -668,6 +709,8 @@ begin
       FDifficult.CloseWeaponPrior[a] := BotList[num].w_prior2[a];
       //FDifficult.SafeWeaponPrior[a] := BotList[num].w_prior3[a];
     end;
+
+    if g_Game_IsNet then MH_SEND_PlayerCreate(UID);
   end;
 end;
 
@@ -675,6 +718,7 @@ procedure g_Bot_RemoveAll();
 var
   a: Integer;
 begin
+ if not g_Game_IsServer then Exit;
  if gPlayers = nil then Exit;
 
  for a := 0 to High(gPlayers) do
@@ -687,6 +731,9 @@ var
   i: Integer;
 begin
  if gPlayers = nil then Exit;
+
+ if g_Game_IsServer and g_Game_IsNet then
+   MH_SEND_PlayerDelete(UID);
 
  for i := 0 to High(gPlayers) do
   if gPlayers[i] <> nil then
@@ -904,6 +951,7 @@ begin
     Deaths := gPlayers[a].FDeath;
     Kills := gPlayers[a].FKills;
     Color := gPlayers[a].FModel.Color;
+    Spectator := gPlayers[a].FSpectator;
    end;
   end;
 end;
@@ -923,7 +971,12 @@ begin
         gPlayers[i].Reset(Force);
         
         if gPlayers[i] is TPlayer then
-          gPlayers[i].Respawn(Silent)
+        begin
+          if not gPlayers[i].FSpectator then
+            gPlayers[i].Respawn(Silent)
+          else
+            gPlayers[i].Spectate;
+        end
         else
           TBot(gPlayers[i]).Respawn(Silent);
       end;
@@ -1194,6 +1247,26 @@ begin
  FModel := Model;
 end;
 
+procedure TPlayer.ChangeTeam;
+begin
+  if not (gGameSettings.GameMode in [GM_TDM, GM_CTF]) then Exit;
+  
+  if g_Game_IsServer and gGameOn then Kill(K_SIMPLEKILL, FUID, 0);
+  
+  if FTeam = TEAM_RED then
+  begin
+    FTeam := TEAM_BLUE;
+    FModel.Color := _RGB(0, 0, 255);
+    g_Console_Add(FName + ' is now on Blue.', True);
+  end
+  else
+  begin
+    FTeam := TEAM_RED;
+    FModel.Color := _RGB(255, 0, 0);
+    g_Console_Add(FName + ' is now on Red.', True);
+  end;
+end;
+
 {
 procedure TPlayer.CollideItem();
 var
@@ -1249,8 +1322,12 @@ begin
  FSawSoundHit.SetByName('SOUND_WEAPON_HITSAW');
  FSawSoundSelect.SetByName('SOUND_WEAPON_SELECTSAW');
 
+ FSpectatePlayer := -1;
+
  g_Obj_Init(@FObj);
  FObj.Rect := PLAYER_RECT;
+
+ FBFGFireCounter := -1;
 end;
 
 procedure TPlayer.Damage(value: Word; SpawnerUID: Word; vx, vy: Integer; t: Byte);
@@ -1311,6 +1388,12 @@ begin
     if gFlash then
       FPain := FPain + value;
   end;
+
+  if g_Game_IsServer and g_Game_IsNet then
+  begin
+    MH_SEND_PlayerDamage(FUID, t, SpawnerUID, value, vx, vy);
+    MH_SEND_PlayerStats(FUID);
+  end;
 end;
 
 destructor TPlayer.Destroy();
@@ -1324,11 +1407,11 @@ begin
 end;
 
 procedure TPlayer.Draw();
+var
+  bubX, bubY: Integer;
 begin
-  if not Live then
-    Exit;
-
-  FModel.Draw(FObj.X, FObj.Y);
+  if FLive then
+    FModel.Draw(FObj.X, FObj.Y);
 
   if g_debug_Frames then
   begin
@@ -1339,6 +1422,13 @@ begin
                0, 255, 0);
   end;
 
+  if (FKeys[KEY_CHAT].Pressed) and not FGhost then
+    if (gPlayer1 <> nil) then
+    begin
+      bubX := FObj.X+FObj.Rect.X - 11;
+      bubY := FObj.Y+FObj.Rect.Y - 17;
+      e_TextureFontPrint(bubX, bubY, '[...]', gStdFont);
+    end;
  // e_DrawPoint(5, 335, 288, 255, 0, 0); // DL, UR, DL, UR
 end;
 
@@ -1383,7 +1473,7 @@ begin
  if g_Texture_Get('TEXTURE_PLAYER_HUD', ID) then
   e_Draw(ID, X+2, Y, 0, True, False);
 
- if gGameSettings.GameType = GT_CUSTOM then
+ if gGameSettings.GameType in [GT_CUSTOM, GT_SERVER, GT_CLIENT] then
  begin
   if gShowStat then
   begin
@@ -1461,6 +1551,21 @@ begin
   e_Draw(gItemsTexturesID[ITEM_KEY_BLUE], X+112, Y+214, 0, True, False);
 
  e_DrawLine(4, X+16, Y+129, X+16+Trunc(169*IfThen(FAir > 0, FAir, 0)/AIR_MAX), Y+129, 0, 0, 255);
+
+ if g_Game_IsClient then
+ begin
+   s := 'Ping: ' + IntToStr(NetPeer.lastRoundTripTime);
+   e_TextureFontPrint(X + 4, Y + 242, s, gStdFont);
+   Y := Y + 16;
+ end;
+
+ if FSpectator then
+ begin
+   e_TextureFontPrint(X + 4, Y + 242, _lc[I_PLAYER_SPECT], gStdFont);
+   e_TextureFontPrint(X + 4, Y + 258, _lc[I_PLAYER_SPECT1], gStdFont);
+   e_TextureFontPrint(X + 4, Y + 274, _lc[I_PLAYER_SPECT2], gStdFont);
+   e_TextureFontPrint(X + 4, Y + 290, _lc[I_PLAYER_SPECT3], gStdFont);
+ end;
 end;
 
 procedure TPlayer.DrawInv();
@@ -1518,14 +1623,23 @@ procedure TPlayer.Fire();
 const
   ft: array[WEAPON_KASTET..WEAPON_SUPERPULEMET] of Byte = (5, 2, 6, 18, 36, 2, 12, 2, 0, 2);
 var
-  f: Boolean;
+  f, DidFire: Boolean;
   wx, wy, xd, yd: Integer;
   obj: TObj;
 begin
+ if g_Game_IsClient then Exit;
 // FBFGCounter - время перед выстрелом (для BFG)
 // FReloading - время после выстрела (для всего)
 
+ if FSpectator then
+ begin
+   Respawn(False);
+   Exit;
+ end;
+
  if FReloading[FCurrWeap] <> 0 then Exit;
+
+ DidFire := False;
 
  f := False;
  wx := FObj.X+WEAPONPOINT[FDirection].X;
@@ -1550,7 +1664,7 @@ begin
     obj.Accel.X := xd-wx;
     obj.Accel.y := yd-wy;
 
-    if g_Weapon_Hit(@obj, 50, FUID, HIT_SOME) <> 1 then
+    if g_Weapon_Hit(@obj, 50, FUID, HIT_SOME) <> 0 then
      g_Sound_PlayExAt('SOUND_WEAPON_HITPUNCH', FObj.X, FObj.Y);
 
     if gFlash then
@@ -1558,13 +1672,14 @@ begin
         FPain := min(FPain + 25, 50);
    end else g_Weapon_punch(FObj.X+FObj.Rect.X, FObj.Y+FObj.Rect.Y, 3, FUID);
 
+   DidFire := True;
    FReloading[FCurrWeap] := ft[FCurrWeap];
   end;
 
   WEAPON_SAW:
   begin
    if g_Weapon_chainsaw(FObj.X+FObj.Rect.X, FObj.Y+FObj.Rect.Y,
-                        IfThen(gGameSettings.GameType = GT_CUSTOM, 9, 3), FUID) <> 0 then
+                        IfThen(gGameSettings.GameMode in [GM_DM, GM_TDM, GM_CTF], 9, 3), FUID) <> 0 then
    begin
     FSawSoundSelect.Stop();
     FSawSound.Stop();
@@ -1577,6 +1692,7 @@ begin
    end;
 
    FReloading[FCurrWeap] := ft[FCurrWeap];
+   DidFire := True;
    f := True;
   end;
 
@@ -1588,6 +1704,7 @@ begin
    Dec(FAmmo[A_BULLETS]);
    FFireAngle := FAngle;
    f := True;
+   DidFire := True;
   end;
 
   WEAPON_SHOTGUN1:
@@ -1598,6 +1715,7 @@ begin
    Dec(FAmmo[A_SHELLS]);
    FFireAngle := FAngle;
    f := True;
+   DidFire := True;
   end;
 
   WEAPON_SHOTGUN2:
@@ -1608,6 +1726,7 @@ begin
    Dec(FAmmo[A_SHELLS], 2);
    FFireAngle := FAngle;
    f := True;
+   DidFire := True;
   end;
 
   WEAPON_CHAINGUN:
@@ -1618,6 +1737,7 @@ begin
    Dec(FAmmo[A_BULLETS]);
    FFireAngle := FAngle;
    f := True;
+   DidFire := True;
   end;
 
   WEAPON_ROCKETLAUNCHER:
@@ -1628,6 +1748,7 @@ begin
    Dec(FAmmo[A_ROCKETS]);
    FFireAngle := FAngle;
    f := True;
+   DidFire := True;
   end;
 
   WEAPON_PLASMA:
@@ -1638,6 +1759,7 @@ begin
    Dec(FAmmo[A_CELLS]);
    FFireAngle := FAngle;
    f := True;
+   DidFire := True;
   end;
 
   WEAPON_BFG:
@@ -1646,6 +1768,7 @@ begin
    FBFGFireCounter := 21;
    g_Sound_PlayExAt('SOUND_WEAPON_STARTFIREBFG', FObj.X, FObj.Y);
    Dec(FAmmo[A_CELLS], 40);
+   DidFire := True;
   end;
 
   WEAPON_SUPERPULEMET:
@@ -1656,7 +1779,21 @@ begin
    Dec(FAmmo[A_SHELLS]);
    FFireAngle := FAngle;
    f := True;
+   DidFire := True;
   end;
+ end;
+
+ if g_Game_IsNet then
+ begin
+  if DidFire then
+  begin
+   if FCurrWeap <> WEAPON_BFG then
+    MH_SEND_PlayerFire(FUID, FCurrWeap, wx, wy, xd, yd, LastShotID)
+   else
+    MH_SEND_Sound(FObj.X, FObj.Y, 'SOUND_WEAPON_STARTFIREBFG');
+  end;
+  
+  MH_SEND_PlayerStats(FUID);
  end;
 
  if not f then Exit;
@@ -1709,6 +1846,9 @@ var
   s: String;
   mon: TMonster;
   plr: TPlayer;
+  srv: Boolean;
+  netsrv: Boolean;
+  KP: TPlayer;
 
   procedure PushItem(t: Byte);
   var
@@ -1726,10 +1866,15 @@ var
       else // -3..+3; -3..0
         g_Obj_Push(@gItems[id].Obj, (FObj.Vel.X div 2)-3+Random(7),
                                     (FObj.Vel.Y div 2)-Random(4));
+
+    if g_Game_IsNet and g_Game_IsServer then
+      MH_SEND_ItemSpawn(True, id);
   end;
 
 begin
-  FDeath := FDeath + 1;
+  Srv := g_Game_IsServer;
+  Netsrv := g_Game_IsServer and g_Game_IsNet;
+  if Srv then FDeath := FDeath + 1;
   FLive := False;
 
 // Номер типа смерти:
@@ -1748,14 +1893,15 @@ begin
         Break;
 
 // Время респауна:
-  case KillType of
-    K_SIMPLEKILL:
-      FTime[T_RESPAWN] := gTime + TIME_RESPAWN1;
-    K_HARDKILL:
-      FTime[T_RESPAWN] := gTime + TIME_RESPAWN2;
-    K_EXTRAHARDKILL, K_FALLKILL:
-      FTime[T_RESPAWN] := gTime+  TIME_RESPAWN3;
-  end;
+  if Srv then
+    case KillType of
+      K_SIMPLEKILL:
+        FTime[T_RESPAWN] := gTime + TIME_RESPAWN1;
+      K_HARDKILL:
+        FTime[T_RESPAWN] := gTime + TIME_RESPAWN2;
+      K_EXTRAHARDKILL, K_FALLKILL:
+        FTime[T_RESPAWN] := gTime+  TIME_RESPAWN3;
+    end;
 
 // Переключаем состояние:
   case KillType of
@@ -1766,7 +1912,7 @@ begin
   end;
 
 // Реакция монстров на смерть игрока:
-  if KillType <> K_FALLKILL then
+  if (KillType <> K_FALLKILL) and (Srv) then
     g_Monsters_killedp();
 
 // Особые типы смерти:
@@ -1779,18 +1925,24 @@ begin
 
   if SpawnerUID = FUID then
     begin // Самоубился
-      FFrags := FFrags - 1;
+      if Srv then FFrags := FFrags - 1;
       g_Console_Add(Format(_lc[I_PLAYER_KILL_SELF], [FName]), True);
     end
   else
     if g_GetUIDType(SpawnerUID) = UID_PLAYER then
       begin // Убит другим игроком
-        Inc(g_Player_Get(SpawnerUID).FFrags,
+        KP := g_Player_Get(SpawnerUID);
+        if (KP <> nil) and Srv then
+        begin
+          Inc(KP.FFrags,
             IfThen(SameTeam(FUID, SpawnerUID), -1, 1));
 
-        if gGameSettings.GameMode = GM_TDM then
-          Inc(gTeamStat[g_Player_Get(SpawnerUID).Team].Goals,
+          if (gGameSettings.GameMode = GM_TDM) then
+            Inc(gTeamStat[KP.Team].Goals,
               IfThen(SameTeam(FUID, SpawnerUID), -1, 1));
+
+          if netsrv then MH_SEND_PlayerStats(SpawnerUID);
+        end;
 
         plr := g_Player_Get(SpawnerUID);
         if plr = nil then
@@ -1836,6 +1988,9 @@ begin
                         gShowKillMsg);
       end;
 
+
+  if Srv then
+  begin
 // Выброс оружия:
   for a := WEAPON_KASTET to WEAPON_SUPERPULEMET do
     if FWeapon[a] then
@@ -1861,7 +2016,7 @@ begin
     PushItem(ITEM_AMMO_BACKPACK);
 
 // Выброс ключей:
-  if gGameSettings.GameType <> GT_CUSTOM then
+  if not (gGameSettings.GameMode in [GM_DM, GM_TDM, GM_CTF]) then
   begin
     if R_KEY_RED in FRulez then
       PushItem(ITEM_KEY_RED);
@@ -1893,10 +2048,21 @@ begin
 
       g_Console_Add(Format(_lc[I_PLAYER_FLAG_DROP], [FName, s]), True);
       g_Game_Message(Format(_lc[I_MESSAGE_FLAG_DROP], [AnsiUpperCase(s)]), 144);
+
+      if Netsrv then MH_SEND_FlagEvent(FLAG_STATE_DROPPED, Flag, FUID, False);
     end;
   end;
 
+  end;
+
   g_Player_CreateCorpse(Self);
+
+  if Netsrv then
+  begin
+    MH_SEND_PlayerStats(FUID);
+    MH_SEND_PlayerDeath(FUID, KillType, t, SpawnerUID);
+    if gGameSettings.GameMode = GM_TDM then MH_SEND_GameStats;
+  end;
 end;
 
 function TPlayer.BodyInLiquid(XInc, YInc: Integer): Boolean;
@@ -1927,6 +2093,7 @@ var
   i: Byte;
   ok: Boolean;
 begin
+ if g_Game_IsClient then Exit;
  if FBFGFireCounter <> -1 then Exit;
 
  if FTime[T_SWITCH] > gTime then Exit;
@@ -1958,6 +2125,17 @@ begin
    FSawSoundSelect.PlayAt(FObj.X, FObj.Y);
 
  FModel.SetWeapon(FCurrWeap);
+ if g_Game_IsNet then MH_SEND_PlayerStats(FUID);
+end;
+
+procedure TPlayer.SetWeapon(W: Byte);
+begin
+  if FCurrWeap <> W then
+    if W = WEAPON_SAW then
+      FSawSoundSelect.PlayAt(FObj.X, FObj.Y);
+
+  FCurrWeap := W;
+  FModel.SetWeapon(CurrWeap);
 end;
 
 function TPlayer.PickItem(ItemType: Byte; respawn: Boolean; var remove: Boolean): Boolean;
@@ -1965,6 +2143,8 @@ var
   a: Boolean;
 begin
  Result := False;
+ if g_Game_IsClient then Exit;
+
  // a = true - место спавна предмета:
  a := LongBool(gGameSettings.Options and GAME_OPTION_WEAPONSTAY) and respawn;
  remove := not a;
@@ -2020,11 +2200,12 @@ begin
   end;
 
   ITEM_WEAPON_SAW:
-    if not FWeapon[WEAPON_SAW] then
-    begin
-      FWeapon[WEAPON_SAW] := True;
-      Result := True;
-    end;
+  if (not FWeapon[WEAPON_SAW]) or (remove and (gGameSettings.GameMode in [GM_DM, GM_TDM, GM_CTF])) then
+  begin
+    FWeapon[WEAPON_SAW] := True;
+    Result := True;
+    if a and g_Game_IsNet then MH_SEND_Sound(GameX, GameY, 'SOUND_ITEM_GETITEM');
+  end;
 
   ITEM_WEAPON_SHOTGUN1:
   if (FAmmo[A_SHELLS] < FMaxAmmo[A_SHELLS]) or not FWeapon[WEAPON_SHOTGUN1] then
@@ -2035,6 +2216,7 @@ begin
    IncMax(FAmmo[A_SHELLS], 4, FMaxAmmo[A_SHELLS]);
    FWeapon[WEAPON_SHOTGUN1] := True;
    Result := True;
+   if a and g_Game_IsNet then MH_SEND_Sound(GameX, GameY, 'SOUND_ITEM_GETITEM');
   end;
 
   ITEM_WEAPON_SHOTGUN2:
@@ -2045,6 +2227,7 @@ begin
    IncMax(FAmmo[A_SHELLS], 4, FMaxAmmo[A_SHELLS]);
    FWeapon[WEAPON_SHOTGUN2] := True;
    Result := True;
+   if a and g_Game_IsNet then MH_SEND_Sound(GameX, GameY, 'SOUND_ITEM_GETITEM');
   end;
 
   ITEM_WEAPON_CHAINGUN:
@@ -2055,6 +2238,7 @@ begin
    IncMax(FAmmo[A_BULLETS], 50, FMaxAmmo[A_BULLETS]);
    FWeapon[WEAPON_CHAINGUN] := True;
    Result := True;
+   if a and g_Game_IsNet then MH_SEND_Sound(GameX, GameY, 'SOUND_ITEM_GETITEM');
   end;
 
   ITEM_WEAPON_ROCKETLAUNCHER:
@@ -2065,6 +2249,7 @@ begin
    IncMax(FAmmo[A_ROCKETS], 2, FMaxAmmo[A_ROCKETS]);
    FWeapon[WEAPON_ROCKETLAUNCHER] := True;
    Result := True;
+   if a and g_Game_IsNet then MH_SEND_Sound(GameX, GameY, 'SOUND_ITEM_GETITEM');
   end;
 
   ITEM_WEAPON_PLASMA:
@@ -2075,6 +2260,7 @@ begin
    IncMax(FAmmo[A_CELLS], 40, FMaxAmmo[A_CELLS]);
    FWeapon[WEAPON_PLASMA] := True;
    Result := True;
+   if a and g_Game_IsNet then MH_SEND_Sound(GameX, GameY, 'SOUND_ITEM_GETITEM');
   end;
 
   ITEM_WEAPON_BFG:
@@ -2085,6 +2271,7 @@ begin
    IncMax(FAmmo[A_CELLS], 40, FMaxAmmo[A_CELLS]);
    FWeapon[WEAPON_BFG] := True;
    Result := True;
+   if a and g_Game_IsNet then MH_SEND_Sound(GameX, GameY, 'SOUND_ITEM_GETITEM');
   end;
 
   ITEM_WEAPON_SUPERPULEMET:
@@ -2095,6 +2282,7 @@ begin
    IncMax(FAmmo[A_SHELLS], 4, FMaxAmmo[A_SHELLS]);
    FWeapon[WEAPON_SUPERPULEMET] := True;
    Result := True;
+   if a and g_Game_IsNet then MH_SEND_Sound(GameX, GameY, 'SOUND_ITEM_GETITEM');
   end;
 
   ITEM_AMMO_BULLETS:
@@ -2192,7 +2380,8 @@ begin
   begin
    Include(FRulez, R_KEY_RED);
    Result := True;
-   remove := True;
+   remove := (gGameSettings.GameMode <> GM_COOP);
+   if (not remove) and g_Game_IsNet then MH_SEND_Sound(GameX, GameY, 'SOUND_ITEM_GETMED');
   end;
 
   ITEM_KEY_GREEN:
@@ -2200,7 +2389,8 @@ begin
   begin
    Include(FRulez, R_KEY_GREEN);
    Result := True;
-   remove := True;
+   remove := (gGameSettings.GameMode <> GM_COOP);
+   if (not remove) and g_Game_IsNet then MH_SEND_Sound(GameX, GameY, 'SOUND_ITEM_GETMED');
   end;
 
   ITEM_KEY_BLUE:
@@ -2208,7 +2398,8 @@ begin
   begin
    Include(FRulez, R_KEY_BLUE);
    Result := True;
-   remove := True;
+   remove := (gGameSettings.GameMode <> GM_COOP);
+   if (not remove) and g_Game_IsNet then MH_SEND_Sound(GameX, GameY, 'SOUND_ITEM_GETMED');
   end;
 
   ITEM_SUIT:
@@ -2280,6 +2471,7 @@ var
   i: Byte;
   ok: Boolean;
 begin
+ if g_Game_IsClient then Exit;
  if FBFGFireCounter <> -1 then Exit;
 
  if FTime[T_SWITCH] > gTime then Exit;
@@ -2312,6 +2504,8 @@ begin
    FSawSoundSelect.PlayAt(FObj.X, FObj.Y);
 
  FModel.SetWeapon(FCurrWeap);
+
+ if g_Game_IsNet then MH_SEND_PlayerStats(FUID);
 end;
 
 procedure TPlayer.Push(vx, vy: Integer);
@@ -2332,6 +2526,24 @@ begin
   FMonsterKills := 0;
   FDeath := 0;
   FSecrets := 0;
+
+  FFlag := 0;
+  FModel.SetFlag(FLAG_NONE);
+end;
+
+procedure TPlayer.SoftReset();
+begin
+  ReleaseKeys();
+  FModel.SetFlag(FLAG_NONE);
+  
+  FDamageBuffer := 0;
+  FIncCam := 0;
+  FBFGFireCounter := -1;
+  FFlag := 0;
+  FPain := 0;
+  FLastHit := 0;
+
+  SetAction(A_STAND, True);
 end;
 
 procedure TPlayer.Respawn(Silent: Boolean);
@@ -2342,7 +2554,8 @@ var
   ID: DWORD;
 
 begin
-  if gGameSettings.GameType = GT_CUSTOM then
+  if not g_Game_IsServer then Exit;
+  if (gGameSettings.GameType <> GT_SINGLE) and (gGameSettings.GameMode <> GM_COOP) then
     begin // "Своя игра"
     // Еще нельзя возродиться:
       if FTime[T_RESPAWN] > gTime then
@@ -2434,23 +2647,25 @@ begin
     // Берсерк не сохраняется между уровнями:
       FRulez := FRulez-[R_BERSERK];
     end
-  else // "Одиночная игра"
+  else // "Одиночная игра"/"Кооп"
     begin
     // Еще нельзя возродиться:
       if FTime[T_RESPAWN] > gTime then
         Exit;
 
     // Точка появления игрока:
-      if FPlayerNum = PLAYERNUM_1 then
+      if (FPlayerNum = PLAYERNUM_1) and (gGameSettings.GameMode <> GM_COOP) then
         c := RESPAWNPOINT_PLAYER1
       else
-        if FPlayerNum = PLAYERNUM_2 then
+        if (FPlayerNum = PLAYERNUM_2) and (gGameSettings.GameMode <> GM_COOP) then
           c := RESPAWNPOINT_PLAYER2
         else
-          if Random(2) = 0 then // Боты
-            c := RESPAWNPOINT_PLAYER1
+        begin
+          if gLastSpawnUsed = RESPAWNPOINT_PLAYER1 then // Боты или кооп
+            c := RESPAWNPOINT_PLAYER2
           else
-            c := RESPAWNPOINT_PLAYER2;
+            c := RESPAWNPOINT_PLAYER1;
+        end;
 
       if g_Map_GetPointCount(c) = 0 then
       begin // Правильной точки появления нет
@@ -2485,6 +2700,8 @@ begin
         end;
       end;
 
+      gLastSpawnUsed := c;
+
     // Берсерк и ключи не сохраняются между уровнями:
       FRulez := FRulez-[R_KEY_RED, R_KEY_GREEN, R_KEY_BLUE, R_BERSERK];
     end;
@@ -2498,7 +2715,7 @@ begin
     FHealth := 100;
     FArmor := 0;
     FLive := True;
-    FAir := AIR;
+    FAir := AIR_DEF;
 
     for a := WEAPON_KASTET to WEAPON_SUPERPULEMET do
     begin
@@ -2522,7 +2739,7 @@ begin
     FMaxAmmo[A_ROCKETS] := 50;
     FMaxAmmo[A_CELLS] := 300;
 
-    if gGameSettings.GameType = GT_CUSTOM then
+    if gGameSettings.GameMode in [GM_DM, GM_TDM, GM_CTF] then
       FRulez := [R_KEY_RED, R_KEY_GREEN, R_KEY_BLUE]
     else
       FRulez := [];
@@ -2575,6 +2792,103 @@ begin
                      FObj.Y+PLAYER_RECT.Y+(PLAYER_RECT.Height div 2)-32, Anim);
       Anim.Free();
     end;
+
+  FSpectator := False;
+  FGhost := False;
+  FPhysics := True;
+  FSpectatePlayer := -1;
+
+  if g_Game_IsNet then
+  begin
+    MH_SEND_PlayerPos(True, FUID, NET_EVERYONE);
+    MH_SEND_PlayerStats(FUID, NET_EVERYONE);
+    if not Silent then MH_SEND_Effect(FObj.X+PLAYER_RECT.X+(PLAYER_RECT.Width div 2)-24,
+                                      FObj.Y+PLAYER_RECT.Y+(PLAYER_RECT.Height div 2)-32,
+                                      0, NET_GFX_SPAWN);
+  end;
+end;
+
+procedure TPlayer.Spectate;
+var
+  c: Integer;
+  RespawnPoint: TRespawnPoint;
+begin
+  if FLive then
+  begin
+    Kill(K_EXTRAHARDKILL, FUID, HIT_SOME);
+    FXTo := GameX;
+    FYTo := GameY;
+  end
+  else
+  begin
+   // Точка возрождения DM:
+   c := RESPAWNPOINT_DM;
+
+   if g_Map_GetPointCount(c) = 0 then
+   begin // Точек возрождения DM нет
+    // Пробуем точку начала одиночной игры:
+    if Random(2) = 0 then
+     c := RESPAWNPOINT_PLAYER1
+    else
+     c := RESPAWNPOINT_PLAYER2;
+
+    if g_Map_GetPointCount(c) = 0 then
+    begin // Этой точки нет
+     // Пробуем противоположную:
+     if c = RESPAWNPOINT_PLAYER1 then
+      c := RESPAWNPOINT_PLAYER2
+     else
+      c := RESPAWNPOINT_PLAYER1;
+
+     if g_Map_GetPointCount(c) = 0 then
+     begin // Точек игроков нет
+      // Пробуем командную точку:
+      if Random(2) = 0 then
+       c := RESPAWNPOINT_RED
+      else
+       c := RESPAWNPOINT_BLUE;
+
+      if g_Map_GetPointCount(c) = 0 then
+      begin // Этой точки нет
+                // Пробуем другую команду:
+       if c = RESPAWNPOINT_RED then
+        c := RESPAWNPOINT_BLUE
+       else
+        c := RESPAWNPOINT_RED;
+      end
+      else
+        c := -1;
+     end;
+    end;
+   end;
+
+   if c = -1 then
+   begin
+    GameX := gMapInfo.Width div 2;
+    GameY := gMapInfo.Height div 2;
+   end
+   else
+    if not g_Map_GetPoint(c, RespawnPoint) then
+    begin
+     GameX := gMapInfo.Width div 2;
+     GameY := gMapInfo.Height div 2;
+    end
+    else
+    begin
+     GameX := RespawnPoint.X;
+     GameY := RespawnPoint.Y;
+    end;
+
+    FXTo := GameX;
+    FYTo := GameY;
+  end;
+
+  FLive := False;
+  FSpectator := True;
+  FGhost := True;
+  FPhysics := False;
+
+  if g_Game_IsNet then MH_SEND_PlayerStats(UID);
 end;
 
 procedure TPlayer.Run(Direction: TDirection);
@@ -2670,17 +2984,23 @@ begin
   g_Sound_PlayExAt('SOUND_GAME_TELEPORT', FObj.X, FObj.Y);
   g_GFX_OnceAnim(FObj.X+PLAYER_RECT.X+(PLAYER_RECT.Width div 2)-24,
                  FObj.Y+PLAYER_RECT.Y+(PLAYER_RECT.Height div 2)-32, Anim);
+  if g_Game_IsServer and g_Game_IsNet then
+    MH_SEND_Effect(FObj.X+PLAYER_RECT.X+(PLAYER_RECT.Width div 2)-24,
+                   FObj.Y+PLAYER_RECT.Y+(PLAYER_RECT.Height div 2)-32, 1,
+                   NET_GFX_TELE);
  end;
  
  FObj.X := X-PLAYER_RECT.X;
  FObj.Y := Y-PLAYER_RECT.Y;
- 
- if dir = 1 then
+
+ if not g_Game_IsNet then
+ begin
+  if dir = 1 then
    begin
      SetDirection(D_LEFT);
      FAngle := 180;
    end
- else
+  else
    if dir = 2 then
      begin
        SetDirection(D_RIGHT);
@@ -2700,12 +3020,18 @@ begin
            FAngle := 0;
          end;
      end;
+ end;
 
  if not silent and (Anim <> nil) then
  begin
   g_GFX_OnceAnim(FObj.X+PLAYER_RECT.X+(PLAYER_RECT.Width div 2)-24,
                  FObj.Y+PLAYER_RECT.Y+(PLAYER_RECT.Height div 2)-32, Anim);
   Anim.Free();
+
+  if g_Game_IsServer and g_Game_IsNet then
+    MH_SEND_Effect(FObj.X+PLAYER_RECT.X+(PLAYER_RECT.Width div 2)-24,
+                   FObj.Y+PLAYER_RECT.Y+(PLAYER_RECT.Height div 2)-32, 0,
+                   NET_GFX_TELE);
  end;
 
  Result := True;
@@ -2725,8 +3051,19 @@ var
   i, ii, wx, wy, xd, yd: Integer;
   blockmon, headwater: Boolean;
   st: Word;
-
+  NetServer: Boolean;
+  AnyServer: Boolean;
+  SetSpect: Boolean;
 begin
+  NetServer := g_Game_IsNet and g_Game_IsServer;
+  AnyServer := g_Game_IsServer;
+
+  if g_Game_IsClient and (NetInterpLevel > 0) then
+    DoLerp(NetInterpLevel + 1)
+  else
+    if FGhost then
+      DoLerp(4);
+
   if gFly then
     FlySmoke();
 
@@ -2762,8 +3099,9 @@ begin
         Run(D_RIGHT);
     end;
 
-    st := g_Obj_Move(@FObj, True, True);
-      
+    if FPhysics then
+      st := g_Obj_Move(@FObj, True, True);
+
     Exit;
   end;
 
@@ -2773,34 +3111,91 @@ begin
     begin
       if FKeys[KEY_LEFT].Pressed then Run(D_LEFT);
       if FKeys[KEY_RIGHT].Pressed then Run(D_RIGHT);
-      if FKeys[KEY_NEXTWEAPON].Pressed then NextWeapon();
-      if FKeys[KEY_PREVWEAPON].Pressed then PrevWeapon();
-      if FKeys[KEY_FIRE].Pressed then Fire();
-      if FKeys[KEY_OPEN].Pressed then Use();
+      if FKeys[KEY_NEXTWEAPON].Pressed and AnyServer then NextWeapon();
+      if FKeys[KEY_PREVWEAPON].Pressed and AnyServer then PrevWeapon();
+      if FKeys[KEY_FIRE].Pressed and AnyServer then Fire();
+      if FKeys[KEY_OPEN].Pressed and AnyServer then Use();
       if FKeys[KEY_JUMP].Pressed then Jump();
     end
   else // Dead
-    if FKeys[KEY_UP].Pressed then
+  begin
+    if (FKeys[KEY_UP].Pressed) then
     begin
-      if gGameSettings.GameType = GT_CUSTOM then
+     if FGhost then
+     begin
+      if (not FSpectator) or (FSpectatePlayer = -1) then
+        FYTo := FObj.Y - 24
+     end
+     else
+      if gGameSettings.GameType in [GT_CUSTOM, GT_SERVER] then
         Respawn(False)
       else // Single
+        if (FTime[T_RESPAWN] <= gTime) and
+           gGameOn and (not FLive) then
         begin
-          if (FTime[T_RESPAWN] <= gTime) and
-             gGameOn and (not FLive) then
+          if (g_Player_GetCount() > 1) then
+            Respawn(False)
+          else
           begin
-            if (g_Player_GetCount() > 1) then
-              Respawn(False)
-            else
-              begin
-                gExit := EXIT_RESTART;
-                Exit;
-              end;
+            gExit := EXIT_RESTART;
+              Exit;
           end;
         end;
     end;
+    if FGhost then
+    begin
+      if FSpectatePlayer = -1 then
+      begin
+        if FKeys[KEY_DOWN].Pressed then FYTo := FObj.Y + 24;
+        if FKeys[KEY_LEFT].Pressed then FXTo := FObj.X - 24;
+        if FKeys[KEY_RIGHT].Pressed then FXto := FObj.X + 24;
+      end;
+      if FKeys[KEY_OPEN].Pressed and AnyServer then Fire();
+      if FKeys[KEY_JUMP].Pressed and AnyServer and FSpectator then
+        FSpectatePlayer := -1;
+      if FKeys[KEY_FIRE].Pressed and AnyServer then
+      begin
+        if FSpectator then
+        begin
+         if (FSpectatePlayer >= High(gPlayers)) then
+          FSpectatePlayer := -1
+         else
+         begin
+          SetSpect := False;
+          for I := FSpectatePlayer + 1 to High(gPlayers) do
+           if gPlayers[I] <> nil then
+            if gPlayers[I].Live then
+             if gPlayers[I].UID <> FUID then
+             begin
+              FSpectatePlayer := I;
+              SetSpect := True;
+              break;
+             end;
 
-  st := g_Obj_Move(@FObj, True, True);
+          if not SetSpect then FSpectatePlayer := -1;
+         end;
+
+         ReleaseKeys;
+        end;
+      end;
+    end;
+  end;
+
+  if FPhysics then
+    st := g_Obj_Move(@FObj, True, True)
+  else
+  begin
+    FObj.Vel.X := 0;
+    FObj.Vel.Y := 0;
+    if FSpectator then
+     if (FSpectatePlayer <= High(gPlayers)) and (FSpectatePlayer >= 0) then
+       if gPlayers[FSpectatePlayer] <> nil then
+         if gPlayers[FSpectatePlayer].Live then
+         begin
+          FXTo := gPlayers[FSpectatePlayer].GameX;
+          FYTo := gPlayers[FSpectatePlayer].GameY;
+         end;
+  end;
 
   blockmon := g_Map_CollidePanel(FObj.X+PLAYER_HEADRECT.X, FObj.Y+PLAYER_HEADRECT.Y,
                                  PLAYER_HEADRECT.Width, PLAYER_HEADRECT.Height,
@@ -2815,7 +3210,7 @@ begin
  if (FLastHit = HIT_TRAP) and (FPain > 90) then FPain := 90;
  DecMin(FPain, 5, 0);
 
- if FLive and (FObj.Y > gMapInfo.Height+128) then Kill(K_FALLKILL, 0, HIT_FALL);
+ if FLive and (FObj.Y > gMapInfo.Height+128) and AnyServer then Kill(K_FALLKILL, 0, HIT_FALL);
 
  i := 9;
 
@@ -2829,7 +3224,7 @@ begin
   for b := WEAPON_KASTET to WEAPON_SUPERPULEMET do
    if FReloading[b] > 0 then Dec(FReloading[b]);
 
-  if FBFGFireCounter > -1 then
+  if (FBFGFireCounter > -1) then
    if FBFGFireCounter = 0 then
    begin
     wx := FObj.X+WEAPONPOINT[FDirection].X;
@@ -2837,29 +3232,33 @@ begin
     xd := wx+IfThen(FDirection = D_LEFT, -30, 30);
     yd := wy+firediry();
 
-    g_Weapon_bfgshot(wx, wy, xd, yd, FUID);
+    if AnyServer then
+    begin
+     g_Weapon_bfgshot(wx, wy, xd, yd, FUID);
+     if NetServer then MH_SEND_PlayerFire(FUID, WEAPON_BFG, wx, wy, xd, yd);
+     if (FAngle = 0) or (FAngle = 180) then SetAction(A_ATTACK)
+      else if (FAngle = ANGLE_LEFTDOWN) or (FAngle = ANGLE_RIGHTDOWN) then SetAction(A_ATTACKDOWN)
+       else if (FAngle = ANGLE_LEFTUP) or (FAngle = ANGLE_RIGHTUP) then SetAction(A_ATTACKUP);
+    end;
+
     FReloading[WEAPON_BFG] := 0;
     FBFGFireCounter := -1;
-
-    if (FAngle = 0) or (FAngle = 180) then SetAction(A_ATTACK)
-     else if (FAngle = ANGLE_LEFTDOWN) or (FAngle = ANGLE_RIGHTDOWN) then SetAction(A_ATTACKDOWN)
-      else if (FAngle = ANGLE_LEFTUP) or (FAngle = ANGLE_RIGHTUP) then SetAction(A_ATTACKUP);
    end else FBFGFireCounter := FBFGFireCounter-1;
 
-  if FMegaRulez[MR_SUIT] < gTime then
+  if (FMegaRulez[MR_SUIT] < gTime) and AnyServer then
   begin
    b := g_GetAcidHit(FObj.X+PLAYER_RECT.X, FObj.Y+PLAYER_RECT.Y, PLAYER_RECT.Width, PLAYER_RECT.Height);
 
    if (b > 0) and (gTime mod (15*GAME_TICK) = 0) then Damage(b, 0, 0, 0, HIT_ACID);
   end;
 
-  if headwater or blockmon then
+  if (headwater or blockmon) then
   begin
    FAir := FAir-1;
 
    if FAir < -9 then
    begin
-    Damage(10, 0, 0, 0, HIT_WATER);
+    if AnyServer then Damage(10, 0, 0, 0, HIT_WATER);
     FAir := 0;
    end
     else if (FAir mod 31 = 0) and not blockmon then
@@ -2867,7 +3266,7 @@ begin
     g_GFX_Bubbles(FObj.X+PLAYER_RECT.X+(PLAYER_RECT.Width div 2), FObj.Y+PLAYER_RECT.Y-4, 5+Random(6), 8, 4);
     g_Sound_PlayExAt('SOUND_GAME_BUBBLES', FObj.X, FObj.Y);
    end;
-  end else if FAir < AIR then FAir := AIR;
+  end else if FAir < AIR_DEF then FAir := AIR_DEF;
 
   if FDamageBuffer > 0 then
   begin
@@ -2889,10 +3288,11 @@ begin
     FArmor := 0;
    end;
 
-   if FHealth <= 0 then
-    if FHealth > -30 then Kill(K_SIMPLEKILL, FLastSpawnerUID, FLastHit)
-     else if FHealth > -50 then Kill(K_HARDKILL, FLastSpawnerUID, FLastHit)
-      else Kill(K_EXTRAHARDKILL, FLastSpawnerUID, FLastHit);
+   if AnyServer then
+     if FHealth <= 0 then
+      if FHealth > -30 then Kill(K_SIMPLEKILL, FLastSpawnerUID, FLastHit)
+       else if FHealth > -50 then Kill(K_HARDKILL, FLastSpawnerUID, FLastHit)
+        else Kill(K_EXTRAHARDKILL, FLastSpawnerUID, FLastHit);
 
    if FLive then
    begin
@@ -3002,6 +3402,151 @@ begin
  FTime[T_USE] := gTime+120;
 end;
 
+procedure TPlayer.NetFire(Wpn: Byte; X, Y, AX, AY: Integer; WID: Integer = -1);
+var
+  Obj: TObj;
+  F: Boolean;
+  WX, WY, XD, YD: Integer;
+begin
+ F := False;
+ WX := X;
+ WY := Y;
+ XD := AX;
+ YD := AY;
+
+ case FCurrWeap of
+  WEAPON_KASTET:
+  begin
+   if R_BERSERK in FRulez then
+   begin
+    //g_Weapon_punch(FObj.X+FObj.Rect.X, FObj.Y+FObj.Rect.Y, 75, FUID);
+    obj.X := FObj.X+FObj.Rect.X;
+    obj.Y := FObj.Y+FObj.Rect.Y;
+    obj.rect.X := 0;
+    obj.rect.Y := 0;
+    obj.rect.Width := 39;
+    obj.rect.Height := 52;
+    obj.Vel.X := (xd-wx) div 2;
+    obj.Vel.Y := (yd-wy) div 2;
+    obj.Accel.X := xd-wx;
+    obj.Accel.y := yd-wy;
+
+    if g_Weapon_Hit(@obj, 50, FUID, HIT_SOME) <> 0 then
+     g_Sound_PlayExAt('SOUND_WEAPON_HITPUNCH', FObj.X, FObj.Y);
+
+    if gFlash then
+      if FPain < 50 then
+        FPain := min(FPain + 25, 50);
+   end else g_Weapon_punch(FObj.X+FObj.Rect.X, FObj.Y+FObj.Rect.Y, 3, FUID);
+  end;
+
+  WEAPON_SAW:
+  begin
+   if g_Weapon_chainsaw(FObj.X+FObj.Rect.X, FObj.Y+FObj.Rect.Y,
+                        IfThen(gGameSettings.GameMode in [GM_DM, GM_TDM, GM_CTF], 9, 3), FUID) <> 0 then
+   begin
+    FSawSoundSelect.Stop();
+    FSawSound.Stop();
+    FSawSoundHit.PlayAt(FObj.X, FObj.Y);
+   end
+    else if not FSawSoundHit.IsPlaying() then
+   begin
+    FSawSoundSelect.Stop();
+    FSawSound.PlayAt(FObj.X, FObj.Y);
+   end;
+   f := True;
+  end;
+
+  WEAPON_PISTOL:
+  begin
+   g_Sound_PlayExAt('SOUND_WEAPON_FIREPISTOL', GameX, Gamey);
+   FFireAngle := FAngle;
+   f := True;
+  end;
+
+  WEAPON_SHOTGUN1:
+  begin
+   g_Sound_PlayExAt('SOUND_WEAPON_FIRESHOTGUN', Gamex, Gamey);
+   FFireAngle := FAngle;
+   f := True;
+  end;
+
+  WEAPON_SHOTGUN2:
+  begin
+   g_Sound_PlayExAt('SOUND_WEAPON_FIRESHOTGUN2', Gamex, Gamey);
+   FFireAngle := FAngle;
+   f := True;
+  end;
+
+  WEAPON_CHAINGUN:
+  begin
+   g_Sound_PlayExAt('SOUND_WEAPON_FIRECGUN', Gamex, Gamey);
+   FFireAngle := FAngle;
+   f := True;
+  end;
+
+  WEAPON_ROCKETLAUNCHER:
+  begin
+   g_Weapon_Rocket(wx, wy, xd, yd, FUID, WID);
+   FFireAngle := FAngle;
+   f := True;
+  end;
+
+  WEAPON_PLASMA:
+  begin
+   g_Weapon_Plasma(wx, wy, xd, yd, FUID, WID);
+   FFireAngle := FAngle;
+   f := True;
+  end;
+
+  WEAPON_BFG:
+  begin
+   g_Weapon_BFGShot(wx, wy, xd, yd, FUID, WID);
+   FFireAngle := FAngle;
+   f := True;
+  end;
+
+  WEAPON_SUPERPULEMET:
+  begin
+   g_Sound_PlayExAt('SOUND_WEAPON_FIRESHOTGUN', Gamex, Gamey);
+   FFireAngle := FAngle;
+   f := True;
+  end;
+ end;
+
+ if not f then Exit;
+
+ if (FAngle = 0) or (FAngle = 180) then SetAction(A_ATTACK)
+  else if (FAngle = ANGLE_LEFTDOWN) or (FAngle = ANGLE_RIGHTDOWN) then SetAction(A_ATTACKDOWN)
+   else if (FAngle = ANGLE_LEFTUP) or (FAngle = ANGLE_RIGHTUP) then SetAction(A_ATTACKUP);
+end;
+
+procedure TPlayer.DoLerp(Level: Integer = 2);
+begin
+  if FObj.X <> FXTo then FObj.X := Lerp(FObj.X, FXTo, Level);
+  if FObj.Y <> FYTo then FObj.Y := Lerp(FObj.Y, FYTo, Level);
+end;
+
+procedure TPlayer.SetLerp(XTo, YTo: Integer);
+begin
+  if NetInterpLevel < 2 then
+  begin
+   FObj.X := XTo;
+   FObj.Y := YTo;
+  end
+  else
+  begin
+  
+   FXTo := XTo;
+   FYTo := YTo;
+  
+   if Abs(FXTo - FObj.X) > 32 then
+    FObj.X := FXTo;
+   if Abs(FYTo - FObj.Y) > 32 then
+    FObj.Y := FYTo;
+  end;
+end;
+
 function TPlayer.FullInLift(XInc, YInc: Integer): Integer;
 begin
  if g_Map_CollidePanel(FObj.X+PLAYER_RECT.X+XInc, FObj.Y+PLAYER_RECT.Y+YInc,
@@ -3017,12 +3562,15 @@ end;
 function TPlayer.GetFlag(Flag: Byte): Boolean;
 var
   s: String;
+  evtype: Byte;
 
 begin
   Result := False;
 
   if Flag = FLAG_NONE then
     Exit;
+
+  if not g_Game_IsServer then Exit;
 
 // Принес чужой флаг на свою базу:
   if (Flag = FTeam) and
@@ -3033,6 +3581,8 @@ begin
       s := _lc[I_PLAYER_FLAG_RED]
     else
       s := _lc[I_PLAYER_FLAG_BLUE];
+
+    evtype := FLAG_STATE_SCORED;
 
     g_Console_Add(Format(_lc[I_PLAYER_FLAG_CAPTURE], [FName, s]), True);
 
@@ -3045,6 +3595,11 @@ begin
     FModel.SetFlag(FLAG_NONE);
 
     Result := True;
+    if g_Game_IsNet then
+    begin
+      MH_SEND_FlagEvent(evtype, Flag, FUID, False);
+      MH_SEND_GameStats;
+    end;
     Exit;
   end;
 
@@ -3057,12 +3612,19 @@ begin
     else
       s := _lc[I_PLAYER_FLAG_BLUE];
 
+    evtype := FLAG_STATE_RETURNED;
+
     g_Console_Add(Format(_lc[I_PLAYER_FLAG_RETURN], [FName, s]), True);
 
     g_Map_ResetFlag(Flag);
     g_Game_Message(Format(_lc[I_MESSAGE_FLAG_RETURN], [AnsiUpperCase(s)]), 144);
 
     Result := True;
+    if g_Game_IsNet then
+    begin
+      MH_SEND_FlagEvent(evtype, Flag, FUID, False);
+      MH_SEND_GameStats;
+    end;
     Exit;
   end;
 
@@ -3077,6 +3639,8 @@ begin
     else
       s := _lc[I_PLAYER_FLAG_BLUE];
 
+    evtype := FLAG_STATE_CAPTURED;
+
     g_Console_Add(Format(_lc[I_PLAYER_FLAG_GET], [FName, s]), True);
 
     g_Game_Message(Format(_lc[I_MESSAGE_FLAG_GET], [AnsiUpperCase(s)]), 144);
@@ -3084,7 +3648,18 @@ begin
     gFlags[Flag].State := FLAG_STATE_CAPTURED;
 
     Result := True;
+    if g_Game_IsNet then
+    begin
+      MH_SEND_FlagEvent(evtype, Flag, FUID, False);
+      MH_SEND_GameStats;
+    end;
   end;
+end;
+
+procedure TPlayer.SetFlag(Flag: Byte);
+begin
+  FFlag := Flag;
+  FModel.SetFlag(FFlag);
 end;
 
 procedure TPlayer.GetSecret();
@@ -3098,6 +3673,11 @@ begin
 
  FKeys[Key].Pressed := True;
  FKeys[Key].Time := Time;
+end;
+
+function TPlayer.IsKeyPressed(K: Byte): Boolean;
+begin
+  Result := FKeys[K].Pressed;
 end;
 
 procedure TPlayer.ReleaseKeys();
@@ -3389,7 +3969,15 @@ var
 begin
   m := g_PlayerModel_Get(ModelName);
   if m = nil then
-    Exit;
+  begin
+    g_SimpleError('Could not find model: ' + ModelName + '. Using doomer instead.');
+    m := g_PlayerModel_Get('doomer');
+    if m = nil then
+    begin
+      g_FatalError('Could not find model: doomer.');
+      Exit;
+    end;
+  end;
 
   old_color := _RGB(0, 0, 0);
 
@@ -3638,6 +4226,10 @@ var
 
 begin
   inherited Create();
+
+  FPhysics := True;
+  FSpectator := False;
+  FGhost := False;
 
   FIamBot := True;
 

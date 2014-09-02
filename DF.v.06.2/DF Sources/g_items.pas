@@ -22,7 +22,7 @@ procedure g_Items_FreeData();
 procedure g_Items_Init();
 procedure g_Items_Free();
 function g_Items_Create(X, Y: Integer; ItemType: Byte;
-           Fall, Respawnable: Boolean; AdjCoord: Boolean = False): DWORD;
+           Fall, Respawnable: Boolean; AdjCoord: Boolean = False; ForcedID: Integer = -1): DWORD;
 procedure g_Items_Update();
 procedure g_Items_Draw();
 procedure g_Items_Pick(ID: DWORD);
@@ -42,7 +42,7 @@ implementation
 
 uses
   g_basic, e_graphics, g_sound, g_main, g_gfx, g_map,
-  Math, g_game, g_console, SysUtils, g_player, MAPDEF,
+  Math, g_game, g_console, SysUtils, g_player, g_net, g_netmsg, MAPDEF,
   e_log;
 
 const
@@ -274,13 +274,21 @@ begin
 end;
 
 function g_Items_Create(X, Y: Integer; ItemType: Byte;
-           Fall, Respawnable: Boolean; AdjCoord: Boolean = False): DWORD;
+           Fall, Respawnable: Boolean; AdjCoord: Boolean = False; ForcedID: Integer = -1): DWORD;
 var
   find_id: DWORD;
   ID: DWORD;
 
 begin
-  find_id := FindItem();
+  if ForcedID < 0 then
+    find_id := FindItem()
+  else
+  begin
+    find_id := ForcedID;
+
+    if find_id > High(gItems) then
+      SetLength(gItems, find_id + 32);
+  end;
 
   gItems[find_id].ItemType := ItemType;
   gItems[find_id].Respawnable := Respawnable;
@@ -385,8 +393,12 @@ begin
                 if (gPlayers[j] <> nil) and gPlayers[j].Live and
                    g_Obj_Collide(@gPlayers[j].Obj, @Obj) then
                 begin
+                  if g_Game_IsClient then Continue;
+
                   if not gPlayers[j].PickItem(ItemType, Respawnable, r) then
                     Continue;
+
+                  if g_Game_IsNet then MH_SEND_PlayerStats(gPlayers[j].UID);
 
 {
   Doom 2D: Original:
@@ -400,7 +412,8 @@ begin
                       gPlayers[j].Obj.X, gPlayers[j].Obj.Y)
                   else
                     if ItemType in [ITEM_MEDKIT_SMALL, ITEM_MEDKIT_LARGE,
-                                    ITEM_MEDKIT_BLACK, ITEM_BOTTLE, ITEM_HELMET] then
+                                    ITEM_MEDKIT_BLACK, ITEM_BOTTLE, ITEM_HELMET, ITEM_ARMOR_GREEN,
+                                    ITEM_ARMOR_BLUE, ITEM_KEY_RED, ITEM_KEY_GREEN, ITEM_KEY_BLUE] then
                       g_Sound_PlayExAt('SOUND_ITEM_GETMED',
                         gPlayers[j].Obj.X, gPlayers[j].Obj.Y)
                     else
@@ -417,6 +430,8 @@ begin
                       g_Items_Remove(i)
                     else
                       g_Items_Pick(i);
+
+                    if g_Game_IsNet then MH_SEND_ItemDestroy(False, i);
                     nxt := True;
                     Break;
                   end;
@@ -428,7 +443,7 @@ begin
               Continue;
           end;
 
-          if Respawnable then
+          if Respawnable and g_Game_IsServer then
           begin
             DecMin(RespawnTime, 0);
             if (RespawnTime = 0) and (not Live) then
@@ -450,6 +465,8 @@ begin
               Obj.Accel.Y := 0;
 
               Live := True;
+
+              if g_Game_IsNet then MH_SEND_ItemSpawn(False, i);
             end;
           end;
 

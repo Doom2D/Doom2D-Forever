@@ -24,7 +24,7 @@ uses
   e_graphics, e_input, g_game, g_console, g_gui,
   messages, e_sound, g_options, g_sound, g_player,
   g_weapons, SysUtils, g_triggers, MAPDEF, g_map,
-  MAPSTRUCT, g_menu, g_language;
+  MAPSTRUCT, g_menu, g_language, g_net;
 
 var
   charbuff: Array [0..15] of Char;
@@ -112,7 +112,7 @@ const
   c9 = 'BULLFROG';
   c10 = 'FORMULA1';
 begin
- if (not gGameOn) or (not gCheats) or ((gGameSettings.GameType <> GT_SINGLE) and (not gDebugMode)) then Exit;
+ if (not gGameOn) or (not gCheats) or ((gGameSettings.GameType <> GT_SINGLE) and (not gDebugMode)) or g_Game_IsNet then Exit;
 
  s := 'SOUND_GAME_RADIO';
 
@@ -191,7 +191,7 @@ begin
     VK_PAUSE: // <Pause/Break>:
       begin
       // Переключить паузу:
-        if gIsNetGame or (g_ActiveWindow = nil) then
+        if (g_ActiveWindow = nil) then
           g_Game_Pause(not gPause);
       end;
                           
@@ -202,6 +202,12 @@ begin
 
     VK_ESCAPE: // <Esc>:
       begin
+        if gChatShow then
+        begin
+          g_Console_Chat_Switch();
+          Exit;
+        end;
+          
         if gConsoleShow then // Убрать консоль
           g_Console_Switch()
         else
@@ -215,8 +221,17 @@ begin
             if gGameOn then // Войти во внутриигровое меню
               g_Game_InGameMenu(True)
             else
-              if gExit = 0 then
+              if (gExit = 0) then
                 begin // Войти в главное меню
+                  if gState <> STATE_MENU then
+                    if NetMode <> NET_NONE then
+                    begin
+                      g_Game_StopAllSounds(True);
+                      g_Game_Free;
+                      gState := STATE_MENU;
+                      Exit;
+                    end;
+
                   g_GUI_ShowWindow('MainMenu');
                   g_Sound_PlayEx('MENU_OPEN');
                 end;
@@ -224,15 +239,15 @@ begin
 
     VK_F2, VK_F3, VK_F4, VK_F5, VK_F6, VK_F7, VK_F10:
       begin // <F2> .. <F6> и <F12>
-      // Только во время игры, в отсутствии консоли:
-        if gGameOn and (not gConsoleShow) then
+      // Только во время игры, в отсутствии консоли и чата:
+        if gGameOn and (not gConsoleShow) and (not gChatShow) then
         begin
         // Закрываем все окна:
           while g_ActiveWindow <> nil do
             g_GUI_HideWindow(False);
 
         // Пауза при меню только в одиночной игре:
-          if (not gIsNetGame) then
+          if (not g_Game_IsNet) then
             g_Game_Pause(True);
 
           b := (gGameSettings.GameType = GT_CUSTOM);
@@ -258,7 +273,8 @@ begin
 
     else // Остальные клавиши:
       begin
-        if gConsoleShow then // Клавиши -> консоли
+        gJustChatted := False; // костылина
+        if gConsoleShow or gChatShow then // Клавиши -> консоли
           g_Console_Control(K)
         else
           if g_ActiveWindow <> nil then
@@ -286,7 +302,7 @@ begin
   if (C = '`') or (C = '~') or (C = 'ё') or (C = 'Ё') then
     Exit;
 
-  if gConsoleShow then // Символы -> консоли
+  if gConsoleShow or gChatShow then // Символы -> консоли
     g_Console_Char(C)
   else
     if g_ActiveWindow <> nil then

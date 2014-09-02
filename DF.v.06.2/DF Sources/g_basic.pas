@@ -6,7 +6,7 @@ uses
   windows, WADEDITOR, g_phys;
 
 const
-  GAME_VERSION  = '0.62.4';
+  GAME_VERSION  = '0.63b';
   UID_GAME    = 1;
   UID_PLAYER  = 2;
   UID_MONSTER = 3;

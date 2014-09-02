@@ -79,7 +79,6 @@ type
 var
   SoundArray: Array of TGameSound;
   SoundsMuted: Boolean = False;
-  oldSoundLevel, oldMusicLevel: Byte;
 
 
 function FindSound(): DWORD;

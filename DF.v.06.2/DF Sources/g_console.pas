@@ -12,16 +12,20 @@ procedure g_Console_Process(L: String);
 procedure g_Console_Add(L: String; Show: Boolean = False);
 procedure g_Console_Clear();
 
+procedure g_Console_Chat_Switch();
+
 var
   gConsoleShow: Boolean; // True - консоль открыта или открывается
+  gChatShow: Boolean;
   gAllowConsoleMessages: Boolean = True;
+  gJustChatted: Boolean = False; // чтобы админ в интере чатясь не проматывал статистику
 
 implementation
 
 uses
   g_textures, g_main, windows, e_graphics, g_game,
   SysUtils, g_basic, g_options, WADEDITOR, Math,
-  g_menu, g_language;
+  g_menu, g_language, g_net, g_netmsg;
 
 type
   TCmdProc = procedure (P: SArray);
@@ -33,7 +37,7 @@ type
 
 const
   Step = 32;
-  Alpha = 150;
+  Alpha = 25;
   MsgTime = 144;
 
   DEBUG_STRING = 'DEBUG MODE';
@@ -59,7 +63,6 @@ var
   Cmd, s: String;
   a: Integer;
   F: TextFile;
-
 begin
   Cmd := LowerCase(P[0]);
 
@@ -159,6 +162,7 @@ begin
   g_Texture_CreateWAD(ID, GameWAD+':TEXTURES\CONSOLE');
   Cons_Y := -(gScreenHeight div 2);
   gConsoleShow := False;
+  gChatShow := False;
   Cons_Shown := False;
   CPos := 1;
 
@@ -207,6 +211,15 @@ begin
   AddCommand('d_monoff', GameCommands);
   AddCommand('map', GameCommands);
   AddCommand('monster', GameCommands);
+  AddCommand('say', GameCommands);
+  AddCommand('changemap', GameCommands);
+  AddCommand('nextmap', GameCommands);
+  AddCommand('suicide', GameCommands);
+  AddCommand('spectate', GameCommands);
+  AddCommand('kick', GameCommands);
+  AddCommand('connect', GameCommands);
+  AddCommand('disconnect', GameCommands);
+  AddCommand('reconnect', GameCommands);
 
   g_Console_Add(Format(_lc[I_CONSOLE_WELCOME], [GAME_VERSION]));
   g_Console_Add('');
@@ -278,10 +291,20 @@ begin
 
   for a := 0 to High(MsgArray) do
     if MsgArray[a].Time > 0 then
-      e_TextureFontPrint(0, CHeight*a, MsgArray[a].Msg, gStdFont);
+      e_TextureFontPrintEx(0, CHeight*a, MsgArray[a].Msg,
+        gStdFont, 255, 255, 255, 1, True);
 
   if not Cons_Shown then
+  begin
+    if gChatShow then
+    begin
+      e_TextureFontPrintEx(0, gScreenHeight - 16, 'say> ' + Line,
+        gStdFont, 255, 255, 255, 1, True);
+      e_TextureFontPrintEx((CPos + 4)*CWidth, gScreenHeight - 16, '_',
+        gStdFont, 255, 255, 255, 1, True);
+    end;
     Exit;
+  end;
 
   if gDebugMode then
   begin
@@ -309,7 +332,7 @@ begin
     for a := d downto b do
     begin
       e_TextureFontPrintEx(0, (gScreenHeight div 2)-c*CHeight-Abs(Cons_Y), ConsoleHistory[a],
-                           gStdFont, 200, 200, 200, 1.0);
+                           gStdFont, 240, 240, 240, 1, True);
       c := c + 1;
     end;
   end;
@@ -319,8 +342,18 @@ end;
 
 procedure g_Console_Switch();
 begin
+  if gChatShow then Exit;
   gConsoleShow := not gConsoleShow;
   Cons_Shown := True;
+end;
+
+procedure g_Console_Chat_Switch();
+begin
+  if gConsoleShow then Exit;
+  if not g_Game_IsNet then Exit;
+  gChatShow := not gChatShow;
+  Line := '';
+  CPos := 1;
 end;
 
 procedure g_Console_Char(C: Char);
@@ -382,10 +415,31 @@ begin
       if CPos <= Length(Line) then
         CPos := CPos + 1;
     VK_RETURN:
-      g_Console_Process(Line);
+    begin
+      if Cons_Shown then
+        g_Console_Process(Line)
+      else
+        if gChatShow then
+        begin
+          if (Length(Line) > 0) and g_Game_IsNet then
+          begin
+            if g_Game_IsClient then
+              MC_SEND_Chat(Line)
+            else
+              MH_SEND_Chat('[' + gPlayer1Settings.Name + ']: ' + Line);
+          end;
+
+          Line := '';
+          CPos := 1;
+          gChatShow := False;
+          gJustChatted := True;
+        end;
+    end;
     VK_TAB:
+     if not gChatShow then
       Complete();
     VK_DOWN:
+     if not gChatShow then
       if (CommandHistory <> nil) and
          (CmdIndex < Length(CommandHistory)) then
       begin
@@ -395,6 +449,7 @@ begin
         CPos := Length(Line) + 1;
       end;
     VK_UP:
+     if not gChatShow then
       if (CommandHistory <> nil) and
          (CmdIndex <= Length(CommandHistory)) then
       begin
@@ -404,8 +459,10 @@ begin
         Cpos := Length(Line) + 1;
       end;
     VK_PRIOR: // PgUp
+     if not gChatShow then
       IncMax(OffSet, Length(ConsoleHistory)-1);
     VK_NEXT: // PgDown
+     if not gChatShow then
       DecMin(OffSet, 0);
     VK_HOME:
       CPos := 1;

@@ -83,6 +83,8 @@ const
   FLAG_STATE_NORMAL   = 0;
   FLAG_STATE_DROPPED  = 1;
   FLAG_STATE_CAPTURED = 2;
+  FLAG_STATE_SCORED   = 3; // Для эвентов через сетку.
+  FLAG_STATE_RETURNED = 4; // Для эвентов через сетку.
 
   FLAG_TIME = 720; // 20 seconds
 
@@ -102,6 +104,7 @@ var
   gBackSize: TPoint;
   gDoorMap: array of array of DWORD;
   gLiftMap: array of array of DWORD;
+  gRelativeMapResStr: string = '';
   BackID:  DWORD = DWORD(-1);
 
 Implementation
@@ -110,7 +113,7 @@ Uses
   g_main, e_log, SysUtils, g_items, g_gfx, g_console,
   dglOpenGL, g_weapons, g_game, g_sound, e_sound, CONFIG,
   g_options, MAPREADER, g_triggers, g_player, MAPDEF,
-  Math, g_monsters, g_saveload, g_language;
+  Math, g_monsters, g_saveload, g_language, g_netmsg;
 
 const
   FLAGRECT: TRectWH = (X:15; Y:12; Width:33; Height:52);
@@ -556,12 +559,14 @@ end;
 
 procedure CreateItem(Item: TItemRec_1);
 begin
-  if (gGameSettings.GameType <> GT_CUSTOM) and
+  if g_Game_IsClient then Exit;
+
+  if (not (gGameSettings.GameMode in [GM_DM, GM_TDM, GM_CTF])) and
      ByteBool(Item.Options and ITEM_OPTION_ONLYDM) then
     Exit;
     
   g_Items_Create(Item.X, Item.Y, Item.ItemType, ByteBool(Item.Options and ITEM_OPTION_FALL),
-                 gGameSettings.GameType = GT_CUSTOM)
+                 gGameSettings.GameMode in [GM_DM, GM_TDM, GM_CTF, GM_COOP]);
 end;
 
 procedure CreateArea(Area: TAreaRec_1);
@@ -638,6 +643,8 @@ procedure CreateTrigger(Trigger: TTriggerRec_1; fTexturePanelType: Word);
 var
   _trigger: TTrigger;
 begin
+ if g_Game_IsClient and not (Trigger.TriggerType in [TRIGGER_SOUND, TRIGGER_MUSIC]) then Exit;
+ 
  with _trigger do
  begin
   X := Trigger.X;
@@ -661,7 +668,9 @@ var
   a, i: Integer;
 
 begin
-  if (gGameSettings.GameType = GT_SINGLE) or
+  if g_Game_IsClient then Exit;
+
+  if (gGameSettings.GameType = GT_SINGLE) or (gGameSettings.GameMode = GM_COOP) or
      LongBool(gGameSettings.Options and GAME_OPTION_MONSTERDM) then
   begin
     i := g_Monsters_Create(monster.MonsterType, monster.X, monster.Y,
@@ -684,6 +693,8 @@ var
   i, a: Integer;
   
 begin
+  if g_Game_IsClient then Exit;
+
   for i := 0 to High(gMonsters) do
     if gMonsters[i] <> nil then
       begin
@@ -1394,7 +1405,7 @@ begin
         // Сопротивление воздуха:
           Obj.Vel.X := z_dec(Obj.Vel.X, 1);
 
-          if (Count = 0) or ByteBool(m and MOVE_FALLOUT) then
+          if ((Count = 0) or ByteBool(m and MOVE_FALLOUT)) and g_Game_IsServer then
           begin
             g_Map_ResetFlag(a);
             if a = FLAG_RED then
@@ -1402,6 +1413,8 @@ begin
             else
               s := _lc[I_PLAYER_FLAG_BLUE];
             g_Game_Message(Format(_lc[I_MESSAGE_FLAG_RETURN], [AnsiUpperCase(s)]), 144);
+
+            if g_Game_IsNet then MH_SEND_FlagEvent(FLAG_STATE_RETURNED, a, 0);
             Continue;
           end;
 
@@ -1641,6 +1654,8 @@ begin
   begin
     Enabled := True;
     g_Mark(X, Y, Width, Height, MARK_DOOR, True);
+
+    if g_Game_IsServer and g_Game_IsNet then MH_SEND_PanelState(PanelType, ID);
   end;
 end;
 
@@ -1650,6 +1665,8 @@ begin
   begin
     Enabled := False;
     g_Mark(X, Y, Width, Height, MARK_DOOR, False);
+
+    if g_Game_IsServer and g_Game_IsNet then MH_SEND_PanelState(PanelType, ID);
   end;
 end;
 
@@ -1678,6 +1695,7 @@ begin
   end;
 
   tp.NextTexture(AnimLoop);
+  if g_Game_IsServer and g_Game_IsNet then MH_SEND_PanelTexture(PanelType, ID, AnimLoop);
 end;
 
 procedure g_Map_SetLift(ID: DWORD; t: Integer);
@@ -1695,6 +1713,8 @@ begin
       g_Mark(X, Y, Width, Height, MARK_LIFTDOWN, True)
     else
       g_Mark(X, Y, Width, Height, MARK_LIFTUP, True);
+
+    if g_Game_IsServer and g_Game_IsNet then MH_SEND_PanelState(PanelType, ID);
   end;
 end;
 
@@ -1913,7 +1933,6 @@ procedure g_Map_LoadState(Var Mem: TBinMemoryReader);
 var
   dw: DWORD;
   b: Byte;
-  j: Integer;
   str: String;
   boo: Boolean;
 
