@@ -1,7 +1,7 @@
 object SelectMapForm: TSelectMapForm
-  Left = 186
-  Top = 166
-  Width = 160
+  Left = 488
+  Top = 205
+  Width = 169
   Height = 266
   BorderIcons = []
   Caption = #1042#1099#1073#1077#1088#1080#1090#1077' '#1082#1072#1088#1090#1091
@@ -19,8 +19,8 @@ object SelectMapForm: TSelectMapForm
   object lbMapList: TListBox
     Left = 0
     Top = 0
-    Width = 152
-    Height = 211
+    Width = 153
+    Height = 200
     Align = alClient
     Ctl3D = True
     ItemHeight = 13
@@ -31,8 +31,8 @@ object SelectMapForm: TSelectMapForm
   end
   object Panel1: TPanel
     Left = 0
-    Top = 211
-    Width = 152
+    Top = 200
+    Width = 153
     Height = 28
     Align = alBottom
     BevelOuter = bvNone

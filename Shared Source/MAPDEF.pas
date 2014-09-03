@@ -27,6 +27,8 @@ const
   PANEL_OPENDOOR  = 512;
   PANEL_CLOSEDOOR = 1024;
   PANEL_BLOCKMON  = 2048;
+  PANEL_LIFTLEFT  = 4096;
+  PANEL_LIFTRIGHT = 8192;
 
   PANEL_FLAG_BLENDING      = 1;
   PANEL_FLAG_HIDE          = 2;
@@ -65,6 +67,8 @@ const
   ITEM_KEY_BLUE              = 30;
   ITEM_WEAPON_KASTET         = 31;
   ITEM_WEAPON_PISTOL         = 32;
+  ITEM_BOTTLE                = 33;
+  ITEM_HELMET                = 34;
 
   ITEM_OPTION_ONLYDM = 1;
   ITEM_OPTION_FALL   = 2;
@@ -101,25 +105,28 @@ const
   MONSTER_ROBO   = 19;
   MONSTER_MAN    = 20;
 
-  TRIGGER_NONE      = 0;
-  TRIGGER_EXIT	    = 1;
-  TRIGGER_TELEPORT  = 2;
-  TRIGGER_OPENDOOR  = 3;
-  TRIGGER_CLOSEDOOR = 4;
-  TRIGGER_DOOR      = 5;
-  TRIGGER_DOOR5     = 6;
-  TRIGGER_CLOSETRAP = 7;
-  TRIGGER_TRAP      = 8;
-  TRIGGER_PRESS     = 9;
-  TRIGGER_SECRET    = 10;
-  TRIGGER_LIFTUP    = 11;
-  TRIGGER_LIFTDOWN  = 12;
-  TRIGGER_LIFT      = 13;
-  TRIGGER_TEXTURE   = 14;
-  TRIGGER_ON        = 15;
-  TRIGGER_OFF       = 16;
-  TRIGGER_ONOFF     = 17;
-  TRIGGER_SOUND     = 18;
+  TRIGGER_NONE            = 0;
+  TRIGGER_EXIT	          = 1;
+  TRIGGER_TELEPORT        = 2;
+  TRIGGER_OPENDOOR        = 3;
+  TRIGGER_CLOSEDOOR       = 4;
+  TRIGGER_DOOR            = 5;
+  TRIGGER_DOOR5           = 6;
+  TRIGGER_CLOSETRAP       = 7;
+  TRIGGER_TRAP            = 8;
+  TRIGGER_PRESS           = 9;
+  TRIGGER_SECRET          = 10;
+  TRIGGER_LIFTUP          = 11;
+  TRIGGER_LIFTDOWN        = 12;
+  TRIGGER_LIFT            = 13;
+  TRIGGER_TEXTURE         = 14;
+  TRIGGER_ON              = 15;
+  TRIGGER_OFF             = 16;
+  TRIGGER_ONOFF           = 17;
+  TRIGGER_SOUND           = 18;
+  TRIGGER_SPAWNMONSTER    = 19;
+  TRIGGER_SPAWNITEM       = 20;
+  TRIGGER_MUSIC           = 21;
 
   ACTIVATE_PLAYERCOLLIDE  = 1;
   ACTIVATE_MONSTERCOLLIDE = 2;
@@ -134,43 +141,66 @@ const
   KEY_REDTEAM  = 8;
   KEY_BLUETEAM = 16;
 
-type
+  TEXTURE_NAME_WATER = '_water_0';
+  TEXTURE_NAME_ACID1 = '_water_1';
+  TEXTURE_NAME_ACID2 = '_water_2';
+  
+  TEXTURE_SPECIAL_WATER = DWORD(-1);
+  TEXTURE_SPECIAL_ACID1 = DWORD(-2);
+  TEXTURE_SPECIAL_ACID2 = DWORD(-3);
+  TEXTURE_NONE = DWORD(-4);
+
+Type
   TTriggerData = record
-   case Byte of
-    0: (Default: Byte128);
-    TRIGGER_EXIT:      (MapName: Char16);
-    TRIGGER_TELEPORT:  (TargetPoint: TPoint;
-                        d2d_teleport: Boolean;
-                        silent_teleport: Boolean);
-    TRIGGER_OPENDOOR,
-    TRIGGER_CLOSEDOOR,
-    TRIGGER_DOOR,
-    TRIGGER_DOOR5,
-    TRIGGER_CLOSETRAP,
-    TRIGGER_TRAP,
-    TRIGGER_LIFTUP,
-    TRIGGER_LIFTDOWN,
-    TRIGGER_LIFT:      (PanelID: Integer;
-                        NoSound: Boolean;
-                        d2d_doors: Boolean);
-    TRIGGER_PRESS,
-    TRIGGER_ON,
-    TRIGGER_OFF,
-    TRIGGER_ONOFF:     (tX, tY: Integer;
-                        tWidth, tHeight: Word;
-                        Wait: Word;
-                        Count: Word;
-                        MonsterID: Integer);
-    TRIGGER_SECRET:    ();
-    TRIGGER_TEXTURE:   (ActivateOnce: Boolean;
-                        AnimOnce: Boolean);
-    TRIGGER_SOUND:     (SoundName: Char64;
-                        Volume: Byte;
-                        Pan: Byte;
-                        Local: Boolean;
-                        PlayCount: Byte;
-                        SoundSwitch: Boolean);
-   end;
+    case Byte of
+      0: (Default: Byte128);
+      TRIGGER_EXIT:         (MapName: Char16);
+      TRIGGER_TELEPORT:     (TargetPoint: TPoint;
+                             d2d_teleport: Boolean;
+                             silent_teleport: Boolean;
+                             TlpDir: Byte);
+      TRIGGER_OPENDOOR,
+      TRIGGER_CLOSEDOOR,
+      TRIGGER_DOOR,
+      TRIGGER_DOOR5,
+      TRIGGER_CLOSETRAP,
+      TRIGGER_TRAP,
+      TRIGGER_LIFTUP,
+      TRIGGER_LIFTDOWN,
+      TRIGGER_LIFT:         (PanelID: Integer;
+                             NoSound: Boolean;
+                             d2d_doors: Boolean);
+      TRIGGER_PRESS,
+      TRIGGER_ON,
+      TRIGGER_OFF,
+      TRIGGER_ONOFF:        (tX, tY: Integer;
+                             tWidth, tHeight: Word;
+                             Wait: Word;
+                             Count: Word;
+                             MonsterID: Integer);
+      TRIGGER_SECRET:       ();
+      TRIGGER_TEXTURE:      (ActivateOnce: Boolean;
+                             AnimOnce: Boolean);
+      TRIGGER_SOUND:        (SoundName: Char64;
+                             Volume: Byte;
+                             Pan: Byte;
+                             Local: Boolean;
+                             PlayCount: Byte;
+                             SoundSwitch: Boolean);
+      TRIGGER_SPAWNMONSTER: (MonPos: TPoint;
+                             MonType: Byte;
+                             MonHealth: Integer;
+                             MonDir: Byte;
+                             MonActive: Boolean;
+                             MonCount: Integer);
+      TRIGGER_SPAWNITEM:    (ItemPos: TPoint;
+                             ItemType: Byte;
+                             ItemFalls: Boolean;
+                             ItemOnlyDM: Boolean;
+                             ItemCount: Integer);
+      TRIGGER_MUSIC:        (MusicName: Char64;
+                             MusicAction: Byte);
+  end;
 
 implementation
 

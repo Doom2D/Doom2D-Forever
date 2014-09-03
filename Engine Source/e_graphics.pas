@@ -7,14 +7,14 @@ uses
 
 type
   TMirrorType=(M_NONE, M_HORIZONTAL, M_VERTICAL);
-  TBlending=(B_NONE, B_BLEND, B_FILTER);
+  TBlending=(B_NONE, B_BLEND, B_FILTER, B_INVERT);
 
   TPoint2i = record
-   X, Y: Integer;
+    X, Y: Integer;
   end;
 
   TPoint2f = record
-   X, Y: Single;
+    X, Y: Double;
   end;
 
   TRect = windows.TRect;
@@ -46,12 +46,14 @@ procedure e_Draw(ID: DWORD; X, Y: Integer; Alpha: Byte; AlphaChannel: Boolean;
 procedure e_DrawAdv(ID: DWORD; X, Y: Integer; Alpha: Byte; AlphaChannel: Boolean;
                     Blending: Boolean; Angle: Single; RC: PPoint; Mirror: TMirrorType = M_NONE);
 procedure e_DrawSize(ID: DWORD; X, Y: Integer; Alpha: Byte; AlphaChannel: Boolean;
-                     Blending: Boolean; Width, Height: Word);
+                     Blending: Boolean; Width, Height: Word; Mirror: TMirrorType = M_NONE);
+procedure e_DrawSizeMirror(ID: DWORD; X, Y: Integer; Alpha: Byte; AlphaChannel: Boolean;
+                           Blending: Boolean; Width, Height: Word; Mirror: TMirrorType = M_NONE);
 procedure e_DrawFill(ID: DWORD; X, Y: Integer; XCount, YCount: Word; Alpha: Integer;
                      AlphaChannel: Boolean; Blending: Boolean);
 procedure e_DrawPoint(Size: Byte; X, Y: Integer; Red, Green, Blue: Byte);
 procedure e_DrawLine(Width: Byte; X1, Y1, X2, Y2: Integer; Red, Green, Blue: Byte);
-procedure e_DrawQuad(X1, Y1, X2, Y2: Integer; Width: Byte; Red, Green, Blue: Byte);
+procedure e_DrawQuad(X1, Y1, X2, Y2: Integer; Red, Green, Blue: Byte);
 procedure e_DrawFillQuad(X1, Y1, X2, Y2: Integer; Red, Green, Blue, Alpha: Byte;
                          Blending: TBlending = B_NONE);
 
@@ -107,6 +109,7 @@ function _RGB(Red, Green, Blue: Byte): TRGB;
 function _Point(X, Y: Integer): TPoint2i;
 function _Rect(X, Y: Integer; Width, Height: Word): TRectWH;
 
+
 var
   e_Colors: TRGB;
 
@@ -146,27 +149,60 @@ var
 //------------------------------------------------------------------
 procedure e_InitGL(VSync: Boolean);
 begin
- if VSync then wglSwapIntervalEXT(1) else wglSwapIntervalEXT(0);
- glDisable(GL_DEPTH_TEST);
- glEnable(GL_SCISSOR_TEST);
- e_Colors.R := 255;
- e_Colors.G := 255;
- e_Colors.B := 255;
- glClearColor(0, 0, 0, 0);
+  if VSync then
+    wglSwapIntervalEXT(1)
+  else
+    wglSwapIntervalEXT(0);
+  glDisable(GL_DEPTH_TEST);
+  glEnable(GL_SCISSOR_TEST);
+  e_Colors.R := 255;
+  e_Colors.G := 255;
+  e_Colors.B := 255;
+  glClearColor(0, 0, 0, 0);
 end;
 
 procedure e_SetViewPort(X, Y, Width, Height: Word);
+var
+  mat: Array [0..15] of GLDouble;
+
 begin
- glLoadIdentity;
- glScissor(X, Y, Width, Height);
- glViewport(X, Y, Width, Height);
- gluOrtho2D(0, Width, Height, 0);
+  glLoadIdentity();
+  glScissor(X, Y, Width, Height);
+  glViewport(X, Y, Width, Height);
+  //gluOrtho2D(0, Width, Height, 0);
+
+  glMatrixMode(GL_PROJECTION);
+
+  mat[ 0] := 2.0 / Width;
+  mat[ 1] := 0.0;
+  mat[ 2] := 0.0;
+  mat[ 3] := 0.0;
+
+  mat[ 4] := 0.0;
+  mat[ 5] := -2.0 / Height;
+  mat[ 6] := 0.0;
+  mat[ 7] := 0.0;
+
+  mat[ 8] := 0.0;
+  mat[ 9] := 0.0;
+  mat[10] := 1.0;
+  mat[11] := 0.0;
+
+  mat[12] := -1.0;
+  mat[13] := 1.0;
+  mat[14] := 0.0;
+  mat[15] := 1.0;
+
+  glLoadMatrixd(@mat[0]);
+
+  glMatrixMode(GL_MODELVIEW);
+  glLoadIdentity();   
 end;
 
 //------------------------------------------------------------------
 // »щет свободный элемент в массиве текстур
 //------------------------------------------------------------------
-function FindTexture: DWORD;
+function FindTexture(): DWORD;
 var
   i: integer;
 begin
@@ -201,7 +237,7 @@ begin
 
  e_WriteLog('Loading texture from '+FileName, MSG_NOTIFY);
 
- find_id := FindTexture;
+ find_id := FindTexture();
 
  if not LoadTexture(FileName, e_Textures[find_id].ID, e_Textures[find_id].Width,
                     e_Textures[find_id].Height) then Exit;
@@ -220,7 +256,7 @@ begin
  e_WriteLog(Format('Loading texture segment (X:%d Y:%d W:%d H:%d) from %s',
                    [fX, fY, fWidth, fHeight, FileName]), MSG_NOTIFY);
 
- find_id := FindTexture;
+ find_id := FindTexture();
 
  if not LoadTextureEx(FileName, e_Textures[find_id].ID, fX, fY, fWidth, fHeight) then Exit;
 
@@ -258,7 +294,7 @@ begin
 
  e_WriteLog('Loading texture segment from $'+IntToHex(Integer(pData), 8), MSG_NOTIFY);
 
- find_id := FindTexture;
+ find_id := FindTexture();
 
  if not LoadTextureMemEx(pData, e_Textures[find_id].ID, fX, fY, fWidth, fHeight) then Exit;
 
@@ -373,207 +409,346 @@ end;
 
 procedure e_ResizeWindow(Width, Height: Integer);
 begin
- if Height = 0 then Height := 1;
- e_SetViewPort(0, 0, Width, Height);
+  if Height = 0 then
+    Height := 1;
+  e_SetViewPort(0, 0, Width, Height);
 end;
 
 procedure e_Draw(ID: DWORD; X, Y: Integer; Alpha: Byte; AlphaChannel: Boolean;
                  Blending: Boolean; Mirror: TMirrorType = M_NONE);
-begin
- glColor4ub(e_Colors.R, e_Colors.G, e_Colors.B, 255);
- if (Alpha > 0) or (AlphaChannel) or (Blending) then glEnable(GL_BLEND)
-  else glDisable(GL_BLEND);
+begin  
+  glColor4ub(e_Colors.R, e_Colors.G, e_Colors.B, 255);
+     
+  if (Alpha > 0) or (AlphaChannel) or (Blending) then
+    glEnable(GL_BLEND)
+  else
+    glDisable(GL_BLEND);
 
- if (AlphaChannel) or (Alpha > 0) then glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
- if Alpha > 0 then glColor4ub(e_Colors.R, e_Colors.G, e_Colors.B, 255-Alpha);
- if Blending then glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+  if (AlphaChannel) or (Alpha > 0) then
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
- glEnable(GL_TEXTURE_2D);
- glBindTexture(GL_TEXTURE_2D, e_Textures[ID].ID);
- glBegin(GL_QUADS);
+  if Alpha > 0 then
+    glColor4ub(e_Colors.R, e_Colors.G, e_Colors.B, 255-Alpha);
+
+  if Blending then
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+
+  glEnable(GL_TEXTURE_2D);
+  glBindTexture(GL_TEXTURE_2D, e_Textures[ID].ID);
+  glBegin(GL_QUADS);
+
   if Mirror = M_NONE then
-  begin
-   glTexCoord2i(1, 0); glVertex2i(X + e_Textures[id].Width, Y);
-   glTexCoord2i(0, 0); glVertex2i(X,                        Y);
-   glTexCoord2i(0, -1); glVertex2i(X,                        Y + e_Textures[id].Height);
-   glTexCoord2i(1, -1); glVertex2i(X + e_Textures[id].Width, Y + e_Textures[id].Height);
-  end
-   else if Mirror = M_HORIZONTAL then
-  begin
-   glTexCoord2i(1, 0); glVertex2i(X,                        Y);
-   glTexCoord2i(0, 0); glVertex2i(X + e_Textures[id].Width, Y);
-   glTexCoord2i(0, -1); glVertex2i(X + e_Textures[id].Width, Y + e_Textures[id].Height);
-   glTexCoord2i(1, -1); glVertex2i(X,                        Y + e_Textures[id].Height);
-  end
-   else if Mirror = M_VERTICAL then
-  begin
-   glTexCoord2i(1, -1); glVertex2i(X + e_Textures[id].Width, Y);
-   glTexCoord2i(0, -1); glVertex2i(X,                        Y);
-   glTexCoord2i(0, 0); glVertex2i(X,                        Y + e_Textures[id].Height);
-   glTexCoord2i(1, 0); glVertex2i(X + e_Textures[id].Width, Y + e_Textures[id].Height);
-  end;
- glEnd;
+    begin
+      glTexCoord2i(1,  0); glVertex2i(X + e_Textures[id].Width, Y);
+      glTexCoord2i(0,  0); glVertex2i(X,                        Y);
+      glTexCoord2i(0, -1); glVertex2i(X,                        Y + e_Textures[id].Height);
+      glTexCoord2i(1, -1); glVertex2i(X + e_Textures[id].Width, Y + e_Textures[id].Height);
+    end
+  else
+    if Mirror = M_HORIZONTAL then
+      begin
+        glTexCoord2i(1,  0); glVertex2i(X,                        Y);
+        glTexCoord2i(0,  0); glVertex2i(X + e_Textures[id].Width, Y);
+        glTexCoord2i(0, -1); glVertex2i(X + e_Textures[id].Width, Y + e_Textures[id].Height);
+        glTexCoord2i(1, -1); glVertex2i(X,                        Y + e_Textures[id].Height);
+      end
+    else
+      if Mirror = M_VERTICAL then
+      begin
+        glTexCoord2i(1, -1); glVertex2i(X + e_Textures[id].Width, Y);
+        glTexCoord2i(0, -1); glVertex2i(X,                        Y);
+        glTexCoord2i(0,  0); glVertex2i(X,                        Y + e_Textures[id].Height);
+        glTexCoord2i(1,  0); glVertex2i(X + e_Textures[id].Width, Y + e_Textures[id].Height);
+      end;
 
- glDisable(GL_BLEND);
+  glEnd();
+
+  glDisable(GL_BLEND);
 end;
 
 procedure e_DrawSize(ID: DWORD; X, Y: Integer; Alpha: Byte; AlphaChannel: Boolean;
-                     Blending: Boolean; Width, Height: Word);
+                     Blending: Boolean; Width, Height: Word; Mirror: TMirrorType = M_NONE);
 begin
- glColor4ub(e_Colors.R, e_Colors.G, e_Colors.B, 255);
- if (Alpha > 0) or (AlphaChannel) or (Blending) then glEnable(GL_BLEND)
-  else glDisable(GL_BLEND);
+  glColor4ub(e_Colors.R, e_Colors.G, e_Colors.B, 255);
 
- if (AlphaChannel) or (Alpha > 0) then glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
- if Alpha > 0 then glColor4ub(e_Colors.R, e_Colors.G, e_Colors.B, 255-Alpha);
- if Blending then glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+  if (Alpha > 0) or (AlphaChannel) or (Blending) then
+    glEnable(GL_BLEND)
+  else
+    glDisable(GL_BLEND);
 
- glEnable(GL_TEXTURE_2D);
- glBindTexture(GL_TEXTURE_2D, e_Textures[ID].ID);
- glBegin(GL_QUADS);
-  glTexCoord2i(0, 1); glVertex2i(X,         Y);
-  glTexCoord2i(1, 1); glVertex2i(X + Width, Y);
-  glTexCoord2i(1, 0); glVertex2i(X + Width, Y + Height);
-  glTexCoord2i(0, 0); glVertex2i(X,         Y + Height);
- glEnd;
+  if (AlphaChannel) or (Alpha > 0) then
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
- glDisable(GL_BLEND);
+  if Alpha > 0 then
+    glColor4ub(e_Colors.R, e_Colors.G, e_Colors.B, 255-Alpha);
+
+  if Blending then
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+
+  glEnable(GL_TEXTURE_2D);
+  glBindTexture(GL_TEXTURE_2D, e_Textures[ID].ID);
+
+  glBegin(GL_QUADS);
+    glTexCoord2i(0, 1); glVertex2i(X,         Y);
+    glTexCoord2i(1, 1); glVertex2i(X + Width, Y);
+    glTexCoord2i(1, 0); glVertex2i(X + Width, Y + Height);
+    glTexCoord2i(0, 0); glVertex2i(X,         Y + Height);
+  glEnd();
+
+  glDisable(GL_BLEND);
+end;
+
+procedure e_DrawSizeMirror(ID: DWORD; X, Y: Integer; Alpha: Byte; AlphaChannel: Boolean;
+                           Blending: Boolean; Width, Height: Word; Mirror: TMirrorType = M_NONE);
+begin
+  glColor4ub(e_Colors.R, e_Colors.G, e_Colors.B, 255);
+
+  if (Alpha > 0) or (AlphaChannel) or (Blending) then
+    glEnable(GL_BLEND)
+  else
+    glDisable(GL_BLEND);
+
+  if (AlphaChannel) or (Alpha > 0) then
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+  if Alpha > 0 then
+    glColor4ub(e_Colors.R, e_Colors.G, e_Colors.B, 255-Alpha);
+
+  if Blending then
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+
+  glEnable(GL_TEXTURE_2D);
+  glBindTexture(GL_TEXTURE_2D, e_Textures[ID].ID);
+  glBegin(GL_QUADS);
+
+  if Mirror = M_NONE then
+    begin
+      glTexCoord2i(1,  0); glVertex2i(X + Width, Y);
+      glTexCoord2i(0,  0); glVertex2i(X,         Y);
+      glTexCoord2i(0, -1); glVertex2i(X,         Y + Height);
+      glTexCoord2i(1, -1); glVertex2i(X + Width, Y + Height);
+    end
+  else
+    if Mirror = M_HORIZONTAL then
+      begin
+        glTexCoord2i(1,  0); glVertex2i(X,         Y);
+        glTexCoord2i(0,  0); glVertex2i(X + Width, Y);
+        glTexCoord2i(0, -1); glVertex2i(X + Width, Y + Height);
+        glTexCoord2i(1, -1); glVertex2i(X,         Y + Height);
+      end
+    else
+      if Mirror = M_VERTICAL then
+      begin
+        glTexCoord2i(1, -1); glVertex2i(X + Width, Y);
+        glTexCoord2i(0, -1); glVertex2i(X,         Y);
+        glTexCoord2i(0,  0); glVertex2i(X,         Y + Height);
+        glTexCoord2i(1,  0); glVertex2i(X + Width, Y + Height);
+      end;
+
+  glEnd();
+
+  glDisable(GL_BLEND);
 end;
 
 procedure e_DrawFill(ID: DWORD; X, Y: Integer; XCount, YCount: Word; Alpha: Integer;
                      AlphaChannel: Boolean; Blending: Boolean);
+var
+  X2, Y2: Integer;
+  
 begin
- glColor4ub(e_Colors.R, e_Colors.G, e_Colors.B, 255);
- if (Alpha > 0) or (AlphaChannel) or (Blending) then glEnable(GL_BLEND)
-  else glDisable(GL_BLEND);
+  glColor4ub(e_Colors.R, e_Colors.G, e_Colors.B, 255);
 
- if (AlphaChannel) or (Alpha > 0) then glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
- if Alpha > 0 then glColor4ub(e_Colors.R, e_Colors.G, e_Colors.B, 255-Alpha);
- if Blending then glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+  if (Alpha > 0) or (AlphaChannel) or (Blending) then
+    glEnable(GL_BLEND)
+  else
+    glDisable(GL_BLEND);
 
- if XCount = 0 then XCount := 1;
- if YCount = 0 then YCount := 1;
+  if (AlphaChannel) or (Alpha > 0) then
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
- glEnable(GL_TEXTURE_2D);
- glBindTexture(GL_TEXTURE_2D, e_Textures[ID].ID);
- glBegin(GL_QUADS);
-  glTexCoord2i(0, YCount);      glVertex2i(X, Y);
-  glTexCoord2i(XCount, YCount); glVertex2i(X + e_Textures[ID].Width*XCount, Y);
-  glTexCoord2i(XCount, 0);      glVertex2i(X + e_Textures[ID].Width*XCount, Y + e_Textures[ID].Height*YCount);
-  glTexCoord2i(0, 0);           glVertex2i(X, Y + e_Textures[ID].Height*YCount);
- glEnd;
+  if Alpha > 0 then
+    glColor4ub(e_Colors.R, e_Colors.G, e_Colors.B, 255-Alpha);
 
- glDisable(GL_BLEND);
+  if Blending then
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+
+  if XCount = 0 then
+    XCount := 1;
+
+  if YCount = 0 then
+    YCount := 1;
+
+  glEnable(GL_TEXTURE_2D);
+  glBindTexture(GL_TEXTURE_2D, e_Textures[ID].ID);
+
+  X2 := X + e_Textures[ID].Width * XCount;
+  Y2 := Y + e_Textures[ID].Height * YCount;
+ 
+  glBegin(GL_QUADS);
+    glTexCoord2i(0,      YCount); glVertex2i(X,  Y);
+    glTexCoord2i(XCount, YCount); glVertex2i(X2, Y);
+    glTexCoord2i(XCount, 0);      glVertex2i(X2, Y2);
+    glTexCoord2i(0,      0);      glVertex2i(X,  Y2);
+  glEnd();
+
+  glDisable(GL_BLEND);
 end;
 
 procedure e_DrawAdv(ID: DWORD; X, Y: Integer; Alpha: Byte; AlphaChannel: Boolean;
                     Blending: Boolean; Angle: Single; RC: PPoint; Mirror: TMirrorType = M_NONE);
-begin
- glColor4ub(e_Colors.R, e_Colors.G, e_Colors.B, 255);
- if (Alpha > 0) or (AlphaChannel) or (Blending) then glEnable(GL_BLEND)
-  else glDisable(GL_BLEND);
+begin  
+  glColor4ub(e_Colors.R, e_Colors.G, e_Colors.B, 255);
 
- if (AlphaChannel) or (Alpha > 0) then glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
- if Alpha > 0 then glColor4ub(e_Colors.R, e_Colors.G, e_Colors.B, 255-Alpha);
- if Blending then glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+  if (Alpha > 0) or (AlphaChannel) or (Blending) then
+    glEnable(GL_BLEND)
+  else
+    glDisable(GL_BLEND);
+      
+  if (AlphaChannel) or (Alpha > 0) then
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
- if (Angle <> 0) and (RC <> nil) then
- begin
-  glPushMatrix;
-  glTranslatef(X+RC.X, Y+RC.Y, 0);
-  glRotatef(Angle, 0, 0, 1);
-  glTranslatef(-(X+RC.X), -(Y+RC.Y), 0);
- end;
+  if Alpha > 0 then
+    glColor4ub(e_Colors.R, e_Colors.G, e_Colors.B, 255-Alpha);
 
- glEnable(GL_TEXTURE_2D);
- glBindTexture(GL_TEXTURE_2D, e_Textures[id].ID);
- glBegin(GL_QUADS);                            //0-1        1-1
-                                               //00         10
- if Mirror = M_NONE then
+  if Blending then
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+
+  if (Angle <> 0) and (RC <> nil) then
   begin
-   glTexCoord2i(1, 0); glVertex2i(X + e_Textures[id].Width, Y);
-   glTexCoord2i(0, 0); glVertex2i(X,                        Y);
-   glTexCoord2i(0, -1); glVertex2i(X,                        Y + e_Textures[id].Height);
-   glTexCoord2i(1, -1); glVertex2i(X + e_Textures[id].Width, Y + e_Textures[id].Height);
-  end
-   else if Mirror = M_HORIZONTAL then
-  begin
-   glTexCoord2i(1, 0); glVertex2i(X,                        Y);
-   glTexCoord2i(0, 0); glVertex2i(X + e_Textures[id].Width, Y);
-   glTexCoord2i(0, -1); glVertex2i(X + e_Textures[id].Width, Y + e_Textures[id].Height);
-   glTexCoord2i(1, -1); glVertex2i(X,                        Y + e_Textures[id].Height);
-  end
-   else if Mirror = M_VERTICAL then
-  begin
-   glTexCoord2i(1, -1); glVertex2i(X + e_Textures[id].Width, Y);
-   glTexCoord2i(0, -1); glVertex2i(X,                        Y);
-   glTexCoord2i(0, 0); glVertex2i(X,                        Y + e_Textures[id].Height);
-   glTexCoord2i(1, 0); glVertex2i(X + e_Textures[id].Width, Y + e_Textures[id].Height);
+    glPushMatrix();
+    glTranslatef(X+RC.X, Y+RC.Y, 0);
+    glRotatef(Angle, 0, 0, 1);
+    glTranslatef(-(X+RC.X), -(Y+RC.Y), 0);
   end;
- glEnd;
- if Angle <> 0 then glPopMatrix;
 
- glDisable(GL_BLEND);
+  glEnable(GL_TEXTURE_2D);
+  glBindTexture(GL_TEXTURE_2D, e_Textures[id].ID);
+  glBegin(GL_QUADS);                           //0-1        1-1
+                                               //00         10
+  if Mirror = M_NONE then
+    begin
+      glTexCoord2i(1,  0); glVertex2i(X + e_Textures[id].Width, Y);
+      glTexCoord2i(0,  0); glVertex2i(X,                        Y);
+      glTexCoord2i(0, -1); glVertex2i(X,                        Y + e_Textures[id].Height);
+      glTexCoord2i(1, -1); glVertex2i(X + e_Textures[id].Width, Y + e_Textures[id].Height);
+    end
+  else
+    if Mirror = M_HORIZONTAL then
+      begin
+        glTexCoord2i(1,  0); glVertex2i(X,                        Y);
+        glTexCoord2i(0,  0); glVertex2i(X + e_Textures[id].Width, Y);
+        glTexCoord2i(0, -1); glVertex2i(X + e_Textures[id].Width, Y + e_Textures[id].Height);
+        glTexCoord2i(1, -1); glVertex2i(X,                        Y + e_Textures[id].Height);
+      end
+    else
+      if Mirror = M_VERTICAL then
+      begin
+        glTexCoord2i(1, -1); glVertex2i(X + e_Textures[id].Width, Y);
+        glTexCoord2i(0, -1); glVertex2i(X,                        Y);
+        glTexCoord2i(0,  0); glVertex2i(X,                        Y + e_Textures[id].Height);
+        glTexCoord2i(1,  0); glVertex2i(X + e_Textures[id].Width, Y + e_Textures[id].Height);
+      end;
+
+  glEnd();
+
+  if Angle <> 0 then
+    glPopMatrix();
+
+  glDisable(GL_BLEND);
 end;
 
 procedure e_DrawPoint(Size: Byte; X, Y: Integer; Red, Green, Blue: Byte);
 begin
- glDisable(GL_TEXTURE_2D);
- glColor3ub(Red, Green, Blue);
- glPointSize(Size);
- glBegin(GL_POINTS);
-  glVertex2i(X, Y);
- glEnd;
- glColor4ub(e_Colors.R, e_Colors.G, e_Colors.B, 255);
+  glDisable(GL_TEXTURE_2D);
+  glColor3ub(Red, Green, Blue);
+  glPointSize(Size);
+  
+  if (Size = 2) or (Size = 4) then
+    X := X + 1;
+    
+  glBegin(GL_POINTS);
+    glVertex2f(X+0.3, Y+1.0);
+  glEnd();
+
+  glColor4ub(e_Colors.R, e_Colors.G, e_Colors.B, 255);
 end;
 
-procedure e_DrawQuad(X1, Y1, X2, Y2: Integer; Width: Byte; Red, Green, Blue: Byte);
+procedure e_DrawQuad(X1, Y1, X2, Y2: Integer; Red, Green, Blue: Byte);
+var
+  tmp: Integer;
+
 begin
- glDisable(GL_TEXTURE_2D);
- glColor3ub(Red, Green, Blue);
- glLineWidth(Width);                //   X1 Y1           X2 Y1
- glBegin(GL_LINE_LOOP);             //     . . . . . . .
-  glVertex2i(X1, Y1);               //     .           .
-  glVertex2i(X2, Y1);               //     .           .
-  glVertex2i(X2, Y2);               //     . . . . . . .
-  glVertex2i(X1, Y2);               //   X1 Y2           X2 Y2
- glEnd;
- glColor4ub(e_Colors.R, e_Colors.G, e_Colors.B, 255);
+  glDisable(GL_TEXTURE_2D);
+  glColor3ub(Red, Green, Blue);
+  glLineWidth(1);
+
+  glBegin(GL_LINES);
+    glVertex2f(X1+0.5, Y1+0.5);
+    glVertex2f(X2+0.5, Y1+0.5);
+
+    glVertex2f(X2+0.5, Y1+0.5);
+    glVertex2f(X2+0.5, Y2+0.5);
+
+    glVertex2f(X2+0.5, Y2+0.5);
+    glVertex2f(X1+0.5, Y2+0.5);
+
+    glVertex2f(X1+0.5, Y2+0.5);
+    glVertex2f(X1+0.5, Y1+0.5);
+  glEnd();
+
+  glColor4ub(e_Colors.R, e_Colors.G, e_Colors.B, 255);
 end;
 
 procedure e_DrawFillQuad(X1, Y1, X2, Y2: Integer; Red, Green, Blue, Alpha: Byte;
                          Blending: TBlending = B_NONE);
 begin
- if (Alpha > 0) or (Blending <> B_NONE) then glEnable(GL_BLEND)
-  else glDisable(GL_BLEND);
+  if (Alpha > 0) or (Blending <> B_NONE) then
+    glEnable(GL_BLEND)
+  else
+    glDisable(GL_BLEND);
 
- if Alpha > 0 then glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
- else if Blending = B_BLEND then glBlendFunc(GL_SRC_ALPHA, GL_ONE)
- else if Blending = B_FILTER then glBlendFunc(GL_DST_COLOR, GL_SRC_COLOR);
+  if Blending = B_BLEND then
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE)
+  else
+    if Blending = B_FILTER then
+      glBlendFunc(GL_DST_COLOR, GL_SRC_COLOR)
+    else
+      if Blending = B_INVERT then
+        glBlendFunc(GL_ONE_MINUS_DST_COLOR, GL_ZERO)
+      else
+        if Alpha > 0 then
+          glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
- glDisable(GL_TEXTURE_2D);
- glColor4ub(Red, Green, Blue, 255-Alpha);
- glBegin(GL_QUAD_STRIP);
-  glVertex2i(X1, Y1);
-  glVertex2i(X2, Y1);
-  glVertex2i(X1, Y2);
-  glVertex2i(X2, Y2);
- glEnd;
- glColor4ub(e_Colors.R, e_Colors.G, e_Colors.B, 255);
+  glDisable(GL_TEXTURE_2D);
+  glColor4ub(Red, Green, Blue, 255-Alpha);
 
- glDisable(GL_BLEND);
+  X2 := X2 + 1;
+  Y2 := Y2 + 1;
+
+  glBegin(GL_QUADS);
+    glVertex2i(X1, Y1);
+    glVertex2i(X2, Y1);
+    glVertex2i(X2, Y2);
+    glVertex2i(X1, Y2);
+  glEnd();
+
+  glColor4ub(e_Colors.R, e_Colors.G, e_Colors.B, 255);
+
+  glDisable(GL_BLEND);
 end;
 
 procedure e_DrawLine(Width: Byte; X1, Y1, X2, Y2: Integer; Red, Green, Blue: Byte);
 begin
- glDisable(GL_TEXTURE_2D);
- glColor3ub(Red, Green, Blue);
- glLineWidth(Width);
- glBegin(GL_LINES);
-  glVertex2i(X1, Y1);
-  glVertex2i(X2, Y2);
- glEnd;
- glColor4ub(e_Colors.R, e_Colors.G, e_Colors.B, 255);
+  glDisable(GL_TEXTURE_2D);
+  glColor3ub(Red, Green, Blue);
+  glLineWidth(Width);
+
+  glBegin(GL_LINES);
+    glVertex2i(X1, Y1);
+    glVertex2i(X2, Y2);
+  glEnd();
+  
+  glColor4ub(e_Colors.R, e_Colors.G, e_Colors.B, 255);
 end;
 
 //------------------------------------------------------------------
@@ -581,10 +756,10 @@ end;
 //------------------------------------------------------------------
 procedure e_DeleteTexture(ID: DWORD);
 begin
- glDeleteTextures(1, @e_Textures[ID].ID);
- e_Textures[ID].ID := 0;
- e_Textures[ID].Width := 0;
- e_Textures[ID].Height := 0;
+  glDeleteTextures(1, @e_Textures[ID].ID);
+  e_Textures[ID].ID := 0;
+  e_Textures[ID].Width := 0;
+  e_Textures[ID].Height := 0;
 end;
 
 //------------------------------------------------------------------
@@ -612,8 +787,8 @@ end;
 
 procedure e_BeginRender();
 begin
- glEnable(GL_ALPHA_TEST);
- glAlphaFunc(GL_GREATER, 0.0);
+  glEnable(GL_ALPHA_TEST);
+  glAlphaFunc(GL_GREATER, 0.0);
 end;
 
 procedure e_Clear(Mask: TGLbitfield; Red, Green, Blue: Single);
@@ -624,70 +799,76 @@ end;
 
 procedure e_EndRender();
 begin
- glPopMatrix;
+  glPopMatrix();
 end;
 
-procedure e_MakeScreenshot(FileName: string; Width, Height: Word);
+procedure e_MakeScreenshot(FileName: String; Width, Height: Word);
 type
- aRGB  = array [0..1] of TRGB;
- PaRGB = ^aRGB;
+  aRGB  = Array [0..1] of TRGB;
+  PaRGB = ^aRGB;
 
- TByteArray = array [0..1] of Byte;
- PByteArray = ^TByteArray;
+  TByteArray = Array [0..1] of Byte;
+  PByteArray = ^TByteArray;
 
 var
- FILEHEADER: BITMAPFILEHEADER;
- INFOHEADER: BITMAPINFOHEADER;
- pixels: PByteArray;
- tmp:    Byte;
- i:      Integer;
- F:      File of Byte;
+  FILEHEADER: BITMAPFILEHEADER;
+  INFOHEADER: BITMAPINFOHEADER;
+  pixels: PByteArray;
+  tmp:    Byte;
+  i:      Integer;
+  F:      File of Byte;
+
 begin
- GetMem(pixels, Width*Height*3);
- glReadPixels(0, 0, Width, Height, GL_RGB, GL_UNSIGNED_BYTE, pixels);
+  if (Width mod 4) > 0 then
+    Width := Width + 4 - (Width mod 4);
 
- {$R-}
- for i := 0 to Width * Height - 1 do
-  with PaRGB(pixels)[i] do
+  GetMem(pixels, Width*Height*3);
+  glReadPixels(0, 0, Width, Height, GL_RGB, GL_UNSIGNED_BYTE, pixels);
+
+  {$R-}
+  for i := 0 to Width * Height - 1 do
+    with PaRGB(pixels)[i] do
+    begin
+      tmp := R;
+      R := B;
+      B := tmp;
+    end;
+  {$R+}
+
+  with FILEHEADER do
   begin
-   tmp := R;
-   R := B;
-   B := tmp;
+    bfType := $4D42; // "BM"
+    bfSize := Width*Height*3 + SizeOf(BITMAPFILEHEADER) + SizeOf(BITMAPINFOHEADER);
+    bfReserved1 := 0;
+    bfReserved2 := 0;
+    bfOffBits := SizeOf(BITMAPFILEHEADER) + SizeOf(BITMAPINFOHEADER);
   end;
- {$R+}
 
- with FILEHEADER do
- begin
-  bfType := 19778;
-  bfSize := Width*Height*3+54;
-  bfReserved1 := 0;
-  bfReserved2 := 0;
-  bfOffBits := 54;
- end;
+  with INFOHEADER do
+  begin
+    biSize := SizeOf(BITMAPINFOHEADER);
+    biWidth := Width;
+    biHeight := Height;
+    biPlanes := 1;
+    biBitCount := 24;
+    biCompression := 0;
+    biSizeImage := Width*Height*3;
+    biXPelsPerMeter := 0;
+    biYPelsPerMeter := 0;
+    biClrUsed := 0;
+    biClrImportant := 0;
+  end;
 
- with INFOHEADER do
- begin
-  biSize := 40;
-  biWidth := Width;
-  biHeight := Height;
-  biPlanes := 1;
-  biBitCount := 24;
-  biCompression := 0;
-  biSizeImage := Width*Height*3;
-  biXPelsPerMeter := 0;
-  biYPelsPerMeter := 0;
-  biClrUsed := 0;
-  biClrImportant := 0;
- end;
+  AssignFile(F, FileName);
+  Rewrite(F);
 
- AssignFile(F, FileName);
- Rewrite(F);
- BlockWrite(F, FILEHEADER, SizeOf(FILEHEADER));
- BlockWrite(F, INFOHEADER, SizeOf(INFOHEADER));
- BlockWrite(F, pixels[0], Width*Height*3);
- CloseFile(F);
+  BlockWrite(F, FILEHEADER, SizeOf(FILEHEADER));
+  BlockWrite(F, INFOHEADER, SizeOf(INFOHEADER));
+  BlockWrite(F, pixels[0], Width*Height*3);
 
- FreeMem(pixels);
+  CloseFile(F);
+
+  FreeMem(pixels);
 end;
 
 function e_GetGamma(DC: HDC): Byte;
@@ -1140,6 +1321,7 @@ begin
  Result.Width := Width;
  Result.Height := Height;
 end;
+
 
 end.
 

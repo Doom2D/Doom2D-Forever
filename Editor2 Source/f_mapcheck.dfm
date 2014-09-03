@@ -1,6 +1,6 @@
 object MapCheckForm: TMapCheckForm
-  Left = 196
-  Top = 225
+  Left = 238
+  Top = 224
   Width = 525
   Height = 199
   BorderIcons = [biSystemMenu]
@@ -17,16 +17,16 @@ object MapCheckForm: TMapCheckForm
   Position = poScreenCenter
   PixelsPerInch = 96
   TextHeight = 13
-  object Panel1: TPanel
+  object PanelResults: TPanel
     Left = 0
-    Top = 96
-    Width = 517
+    Top = 85
+    Width = 509
     Height = 76
     Align = alBottom
     BevelOuter = bvNone
     TabOrder = 0
     DesignSize = (
-      517
+      509
       76)
     object bClose: TButton
       Left = 441
@@ -53,7 +53,7 @@ object MapCheckForm: TMapCheckForm
     object mErrorDescription: TMemo
       Left = 0
       Top = 0
-      Width = 517
+      Width = 509
       Height = 41
       Align = alTop
       Color = clBtnFace
@@ -65,8 +65,8 @@ object MapCheckForm: TMapCheckForm
   object lbErrorList: TListBox
     Left = 0
     Top = 0
-    Width = 517
-    Height = 96
+    Width = 509
+    Height = 85
     Align = alClient
     ItemHeight = 13
     TabOrder = 1

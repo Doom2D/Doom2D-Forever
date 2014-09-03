@@ -3,20 +3,24 @@ unit f_addresource_sky;
 interface
 
 uses
-  Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
-  Dialogs, f_addresource, ExtCtrls, StdCtrls;
+  Windows, Messages, SysUtils, Variants, Classes,
+  Graphics, Controls, Forms, Dialogs, f_addresource,
+  ExtCtrls, StdCtrls;
 
 type
-  TAddSkyForm = class(TAddResourceForm)
-   Panel1: TPanel;
-   iPreview: TImage;
-   procedure bOKClick(Sender: TObject);
-   procedure lbResourcesListClick(Sender: TObject);
-   procedure FormActivate(Sender: TObject);
+  TAddSkyForm = class (TAddResourceForm)
+    PanelTexPreview: TPanel;
+    iPreview: TImage;
+
+    procedure bOKClick(Sender: TObject);
+    procedure lbResourcesListClick(Sender: TObject);
+    procedure FormActivate(Sender: TObject);
+
   private
-   FSetResource: string;
+    FSetResource: String;
+    
   public
-   property SetResource: string read FSetResource write FSetResource;
+    property SetResource: String read FSetResource write FSetResource;
   end;
 
 var
@@ -25,7 +29,7 @@ var
 implementation
 
 uses
-  WADEDITOR, f_main;
+  WADEDITOR, f_main, g_language;
 
 {$R *.dfm}
 
@@ -46,7 +50,7 @@ end;
 
 function ShowTGATexture(ResourceStr: String): TBitMap;
 var
-  TGAHeader: packed record   // Header type for TGA images
+  TGAHeader: packed record // Header type for TGA images
     FileType:     Byte;
     ColorMapType: Byte;
     ImageType:    Byte;
@@ -63,121 +67,143 @@ var
   Height:     Integer;
   ColorDepth: Integer;
   ImageSize:  Integer;
-  i:          Integer;
+  I:          Integer;
   BitMap:     TBitMap;
 
   TextureData:  Pointer;
   WAD:          TWADEditor_1;
-  WADName:      string;
-  SectionName:  string;
-  ResourceName: string;
+  WADName:      String;
+  SectionName:  String;
+  ResourceName: String;
+
 begin
- Result := nil;
+  Result := nil;
 
- g_ProcessResourceStr(ResourceStr, WADName, SectionName, ResourceName); 
+// Загружаем ресурс текстуры из WAD:
+  g_ProcessResourceStr(ResourceStr, WADName, SectionName, ResourceName);
 
- WAD := TWADEditor_1.Create;
- WAD.ReadFile(WADName);
+  WAD := TWADEditor_1.Create();
+  WAD.ReadFile(WADName);
 
- WAD.GetResource(SectionName, ResourceName, TextureData, ImageSize);
+  WAD.GetResource(SectionName, ResourceName, TextureData, ImageSize);
 
- WAD.Destroy;
+  WAD.Free();
 
- CopyMemory(@TGAHeader, TextureData, SizeOf(TGAHeader));
+// Заголовок TGA:
+  CopyMemory(@TGAHeader, TextureData, SizeOf(TGAHeader));
 
- if TGAHeader.ImageType <> 2 then Exit;
- if TGAHeader.ColorMapType <> 0 then Exit;
- if TGAHeader.BPP < 24 then Exit;
+  if TGAHeader.ImageType <> 2 then
+    Exit;
+  if TGAHeader.ColorMapType <> 0 then
+    Exit;
+  if TGAHeader.BPP < 24 then
+    Exit;
 
- Width  := TGAHeader.Width[0]+TGAHeader.Width[1]*256;
- Height := TGAHeader.Height[0]+TGAHeader.Height[1]*256;
- ColorDepth := TGAHeader.BPP;
- ImageSize  := Width*Height*(ColorDepth div 8);
+  Width  := TGAHeader.Width[0]+TGAHeader.Width[1]*256;
+  Height := TGAHeader.Height[0]+TGAHeader.Height[1]*256;
+  ColorDepth := TGAHeader.BPP;
+  ImageSize  := Width*Height*(ColorDepth div 8);
 
- GetMem(Image, ImageSize);
+// Само изображение:
+  GetMem(Image, ImageSize);
 
- CopyMemory(Image, Pointer(Integer(TextureData)+SizeOf(TGAHeader)), ImageSize);
+  CopyMemory(Image, Pointer(Integer(TextureData)+SizeOf(TGAHeader)), ImageSize);
 
- BitMap := TBitMap.Create;
+  BitMap := TBitMap.Create();
 
- if TGAHeader.BPP = 24 then
-  BitMap.PixelFormat := pf24bit
-   else BitMap.PixelFormat := pf32bit;
+  if TGAHeader.BPP = 24 then
+    BitMap.PixelFormat := pf24bit
+  else
+    BitMap.PixelFormat := pf32bit;
   
- BitMap.Width := Width;
- BitMap.Height := Height;
+  BitMap.Width := Width;
+  BitMap.Height := Height;
 
- for I := Height-1 downto 0 do
-  CopyMemory(BitMap.ScanLine[Height-1-I], Pointer(Integer(Image)+(Width*I*(TGAHeader.BPP div 8))),
-             Width*(TGAHeader.BPP div 8));
+// Копируем изображение в BitMap:
+  for I := Height-1 downto 0 do
+    CopyMemory(BitMap.ScanLine[Height-1-I],
+               Pointer(Integer(Image)+(Width*I*(TGAHeader.BPP div 8))),
+               Width*(TGAHeader.BPP div 8));
 
- FreeMem(Image, ImageSize);
- FreeMem(TextureData);
- Result := BitMap;
+  FreeMem(Image, ImageSize);
+  FreeMem(TextureData);
+  Result := BitMap;
 end;
 
 procedure TAddSkyForm.bOKClick(Sender: TObject);
 begin
- inherited;
+  Inherited;
 
- if not FResourceSelected then Exit;
+  if not FResourceSelected then
+    Exit;
 end;
 
 procedure TAddSkyForm.lbResourcesListClick(Sender: TObject);
 var
   Texture: TBitMap;
+
 begin
- inherited;
+  Inherited;
 
- if lbResourcesList.ItemIndex = -1 then Exit;
- if FResourceName = '' then Exit;
+  if lbResourcesList.ItemIndex = -1 then
+    Exit;
+  if FResourceName = '' then
+    Exit;
 
- Texture := ShowTGATexture(FFullResourceName);
- iPreview.Canvas.FillRect(iPreview.Canvas.ClipRect);
- if Texture = nil then Exit;
- iPreview.Canvas.CopyRect(iPreview.Canvas.ClipRect, Texture.Canvas, Texture.Canvas.ClipRect);
- Texture.Destroy;
+  Texture := ShowTGATexture(FFullResourceName);
+  iPreview.Canvas.FillRect(iPreview.Canvas.ClipRect);
+  if Texture = nil then
+    Exit;
+  iPreview.Canvas.StretchDraw(iPreview.Canvas.ClipRect, Texture);
+  Texture.Free();
 end;
 
 procedure TAddSkyForm.FormActivate(Sender: TObject);
 var
   FileName,
   SectionName,
-  ResourceName: string;
+  ResourceName: String;
   a: Integer;
+
 begin
- inherited;
+  Inherited;
 
- iPreview.Canvas.FillRect(iPreview.Canvas.ClipRect);
+  iPreview.Canvas.FillRect(iPreview.Canvas.ClipRect);
 
- if FSetResource <> '' then
- begin
-  g_ProcessResourceStr(FSetResource, FileName, SectionName, ResourceName);
-
-  if FileName = '' then FileName := WAD_SPECIAL_MAP;
-  if SectionName = '' then SectionName := '..';
-
-  a := cbWADList.Items.IndexOf(FileName);
-  if a <> -1 then
+// Уже есть выбранный ресурс:
+  if FSetResource <> '' then
   begin
-   cbWADList.ItemIndex := a;
-   cbWADList.OnChange(nil);
-  end;
+    g_ProcessResourceStr(FSetResource, FileName, SectionName, ResourceName);
 
-  a := cbSectionsList.Items.IndexOf(SectionName);
-  if a <> -1 then
-  begin
-   cbSectionsList.ItemIndex := a;
-   cbSectionsList.OnChange(nil);
-  end;
+    if FileName = '' then
+      FileName := _lc[I_WAD_SPECIAL_MAP];
+    if SectionName = '' then
+      SectionName := '..';
 
-  a := lbResourcesList.Items.IndexOf(ResourceName);
-  if a <> -1 then
-  begin
-   lbResourcesList.ItemIndex := a;
-   lbResourcesList.OnClick(nil);
+  // WAD файл:
+    a := cbWADList.Items.IndexOf(FileName);
+    if a <> -1 then
+    begin
+      cbWADList.ItemIndex := a;
+      cbWADList.OnChange(nil);
+    end;
+
+  // Секция:
+    a := cbSectionsList.Items.IndexOf(SectionName);
+    if a <> -1 then
+    begin
+      cbSectionsList.ItemIndex := a;
+      cbSectionsList.OnChange(nil);
+    end;
+
+  // Ресурс:
+    a := lbResourcesList.Items.IndexOf(ResourceName);
+    if a <> -1 then
+    begin
+      lbResourcesList.ItemIndex := a;
+      lbResourcesList.OnClick(nil);
+    end;
   end;
- end;
 end;
 
 end.

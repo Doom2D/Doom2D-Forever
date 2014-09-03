@@ -2,261 +2,297 @@ unit g_sound;
 
 interface
 
-uses Windows;
+uses
+  Windows, e_sound;
 
 type
-  TSound = class(TObject)
-   private
-    FCurrentChannel: Integer;
-    FID: DWORD;
-    FLoop: Boolean;
-    procedure FreeSound();
-   public
+  TPlayableSound = class (TBasicSound)
+  private
+    FName: String;
+
+  public
     constructor Create();
     destructor Destroy(); override;
-    procedure SetID(ID: DWORD);
-    function IsPlaying(): Boolean;
-    procedure Play(Pan: Byte; Volume: Byte; force: Boolean = False); overload;
-    procedure Play(X, Y: Integer; Volume: Byte; force: Boolean = False); overload;
-    procedure Stop();
+    function Play(Force: Boolean = False): Boolean;
+    function PlayAt(X, Y: Integer): Boolean;
+    function PlayPanVolume(Pan, Volume: Single; Force: Boolean = False): Boolean;
+    function PlayVolumeAt(X, Y: Integer; Volume: Single): Boolean;
+    function SetByName(SN: String): Boolean;
+    function SetCoords(X, Y: Integer; Volume: Single): Boolean;
+    
     property Loop: Boolean read FLoop write FLoop;
+    property Name: String read FName;
   end;
 
-function g_Sound_PlayEx(SoundName: ShortString; Pan: Byte; Volume: Byte): Boolean;
-function g_Sound_PlayExC(SoundName: ShortString; Pan: Byte; Volume: Byte): Integer;
-function g_Sound_PlayExAt(SoundName: ShortString; Volume: Byte; X, Y: Integer): Boolean;
-function g_Sound_Play(ID: DWORD; Pan: Byte; Volume: Byte): Integer;
-function g_Sound_PlayAt(ID: DWORD; Volume: Byte; X, Y: Integer): Integer;
-function g_Sound_CreateWAD(var ID: DWORD; Resource: string): Boolean;
-function g_Sound_CreateFile(var ID: DWORD; FileName: string): Boolean;
-function g_Sound_CreateWADEx(SoundName: ShortString; Resource: string): Boolean;
-function g_Sound_CreateFileEx(SoundName: ShortString; FileName: string): Boolean;
+  TMusic = class (TBasicSound)
+  private
+    FName: String;
+    FSpecPause: Boolean; // Спец-пауза. "Сильнее" обычной
+    FNoMusic: Boolean;
+
+    procedure SetSpecPause(Enable: Boolean);
+
+  public
+    constructor Create();
+    destructor Destroy(); override;
+    function Play(Force: Boolean = False): Boolean;
+    function SetByName(SN: String): Boolean;
+    function IsPaused(): Boolean;
+    procedure Pause(Enable: Boolean);
+    
+    property Name: String read FName;
+    property SpecPause: Boolean read FSpecPause write SetSpecPause;
+    property NoMusic: Boolean read FNoMusic;
+  end;
+
+function g_Sound_PlayEx(SoundName: ShortString): Boolean;
+function g_Sound_PlayExPanVolume(SoundName: ShortString; Pan: Single; Volume: Single): Boolean;
+function g_Sound_PlayAt(ID: DWORD; X, Y: Integer): Boolean;
+function g_Sound_PlayExAt(SoundName: ShortString; X, Y: Integer): Boolean;
+
+function g_Sound_CreateWAD(var ID: DWORD; Resource: string; isMusic: Boolean = False): Boolean;
+function g_Sound_CreateWADEx(SoundName: ShortString; Resource: string; isMusic: Boolean = False): Boolean;
+function g_Sound_CreateFile(var ID: DWORD; FileName: string; isMusic: Boolean = False): Boolean;
+function g_Sound_CreateFileEx(SoundName: ShortString; FileName: string; isMusic: Boolean = False): Boolean;
+
 procedure g_Sound_Delete(SoundName: ShortString);
 function g_Sound_Exists(SoundName: string): Boolean;
 function g_Sound_Get(var ID: DWORD; SoundName: ShortString): Boolean;
 
-function g_Music_PlayEx(MusicName: ShortString; Volume: Byte): Boolean;
-procedure g_Music_Play(ID: DWORD; Volume: Byte);
-procedure g_Music_Stop(ID: DWORD);
-procedure g_Music_StopEx(MusicName: ShortString);
-function g_Music_CreateWAD(var ID: DWORD; Resource: string): Boolean;
-function g_Music_CreateFile(var ID: DWORD; FileName: string): Boolean;
-function g_Music_CreateWADEx(MusicName: ShortString; Resource: string): Boolean;
-function g_Music_CreateFileEx(MusicName: ShortString; FileName: string): Boolean;
-procedure g_Music_Delete(MusicName: ShortString);
-function g_Music_Get(var ID: DWORD; MusicName: ShortString): Boolean;
+procedure g_Sound_SetupAllVolumes(SoundVol, MusicVol: Byte);
+
 
 implementation
 
-uses e_sound, e_log, SysUtils, g_console, g_options, WADEDITOR, g_game, g_basic,
-  g_items, g_map, fmod, Math;
+uses
+  e_log, SysUtils, g_console, g_options, WADEDITOR,
+  g_game, g_basic, g_items, g_map, fmod, fmodtypes, Math,
+  g_language;
 
 type
   TGameSound = record
-    SoundName: ShortString;
-    ID:        DWORD;
-  end;
-
-  TGameMusic = record
-    MusicName: ShortString;
-    ID:        DWORD;
+    Name:     ShortString;
+    ID:       DWORD;
+    IsMusic:  Boolean;
   end;
 
 var
-  SoundArray: array of TGameSound;
-  MusicArray: array of TGameMusic;
+  SoundArray: Array of TGameSound;
+  SoundsMuted: Boolean = False;
+  oldSoundLevel, oldMusicLevel: Byte;
 
-function FindSound: DWORD;
+
+function FindSound(): DWORD;
 var
   i: integer;
-begin
- if SoundArray <> nil then
- for i := 0 to High(SoundArray) do
-  if SoundArray[i].SoundName = '' then
-  begin
-   Result := i;
-   Exit;
-  end;
 
- if SoundArray = nil then
- begin
-  SetLength(SoundArray, 8);
-  Result := 0;
- end
+begin
+  if SoundArray <> nil then
+    for i := 0 to High(SoundArray) do
+      if SoundArray[i].Name = '' then
+      begin
+        Result := i;
+        Exit;
+      end;
+
+  if SoundArray = nil then
+    begin
+      SetLength(SoundArray, 8);
+      Result := 0;
+    end
   else
- begin
-  Result := High(SoundArray) + 1;
-  SetLength(SoundArray, Length(SoundArray) + 8);
- end;
+    begin
+      Result := High(SoundArray) + 1;
+      SetLength(SoundArray, Length(SoundArray) + 8);
+    end;
 end;
 
-function g_Sound_Play(ID: DWORD; Pan: Byte; Volume: Byte): Integer;
-begin
- Result := e_PlaySample(ID, Pan, Round(Volume*gSoundLevel/255));
-end;
-
-function g_Sound_PlayAt(ID: DWORD; Volume: Byte; X, Y: Integer): Integer;
-var
-  l1, l2, d1, d2, a: Integer;
-  c: Boolean;
-begin
- Result := 0;
-
- l1 := gMaxDist;
- l2 := gMaxDist;
-
- d1 := 127;
-
- c := gPlayerScreenSize.X >= gMapInfo.Width;
-
- if X > gMapInfo.Width then X := gMapInfo.Width
-  else if X < 0 then X := 0;
-
- if Y > gMapInfo.Height then Y := gMapInfo.Height
-  else if Y < 0 then Y := 0;
-
- if gPlayer1 <> nil then
- begin
-  l1 := PointToRect(X, Y, gPlayer1ScreenCoord.X, gPlayer1ScreenCoord.Y,
-                    gPlayerScreenSize.X, gPlayerScreenSize.Y);
-
-  if c then d1 := 127
-  else if (X >= gPlayer1ScreenCoord.X) and (X <= gPlayer1ScreenCoord.X+gPlayerScreenSize.X) then d1 := 127
-  else if X < gPlayer1ScreenCoord.X then d1 := Round(127*X/gPlayer1ScreenCoord.X)
-  else
-  begin
-   a := gPlayer1ScreenCoord.X+gPlayerScreenSize.X;
-   d1 := 127+Round(127*(X-a)/(gMapInfo.Width-a));
-  end;
- end;
-
- d2 := d1;
-
- if gPlayer2 <> nil then
- begin
-  l2 := PointToRect(X, Y, gPlayer2ScreenCoord.X, gPlayer2ScreenCoord.Y,
-                    gPlayerScreenSize.X, gPlayerScreenSize.Y);
-
-  if c then d2 := 127
-  else if (X >= gPlayer2ScreenCoord.X) and (X <= gPlayer2ScreenCoord.X+gPlayerScreenSize.X) then d2 := 127
-  else if X < gPlayer2ScreenCoord.X then d2 := Round(127*X/gPlayer2ScreenCoord.X)
-  else
-  begin
-   a := gPlayer2ScreenCoord.X+gPlayerScreenSize.X;
-   d2 := 127+Round(127*(X-a)/(gMapInfo.Width-a));
-  end;
- end;
-
- d1 := d1+((d2-d1) div 2);
-
- if l2 < l1 then l1 := l2;
- l1 := l1*2;
-
- if l1 >= gMaxDist then Exit
-  else Volume := Round(Volume*(1-l1/gMaxDist));
-
- Result := g_Sound_Play(ID, d1, Volume);
-end;
-
-function g_Sound_PlayEx(SoundName: ShortString; Pan: Byte; Volume: Byte): Boolean;
+function g_Sound_PlayEx(SoundName: ShortString): Boolean;
 var
   a: DWORD;
+
 begin
- Result := False;
- if SoundArray = nil then Exit;
+  Result := False;
+  if SoundArray = nil then
+    Exit;
 
- for a := 0 to High(SoundArray) do
-  if SoundArray[a].SoundName = SoundName then
-  begin
-   e_PlaySample(SoundArray[a].ID, Pan, Round(Volume*gSoundLevel/255));
-   Result := True;
-   Exit;
-  end;
+  for a := 0 to High(SoundArray) do
+    if SoundArray[a].Name = SoundName then
+    begin
+      Result := e_PlaySoundVolume(SoundArray[a].ID, gSoundLevel/255.0);
+      Exit;
+    end;
 
- g_Console_Add('Sound '+SoundName+' not found');
+  g_FatalError(Format(_lc[I_GAME_ERROR_SOUND], [SoundName]));
 end;
 
-function g_Sound_PlayExC(SoundName: ShortString; Pan: Byte; Volume: Byte): Integer;
+function g_Sound_PlayExPanVolume(SoundName: ShortString; Pan: Single; Volume: Single): Boolean;
 var
   a: DWORD;
+
 begin
- Result := -1;
- if SoundArray = nil then Exit;
+  Result := False;
+  if SoundArray = nil then
+    Exit;
 
- for a := 0 to High(SoundArray) do
-  if SoundArray[a].SoundName = SoundName then
-  begin
-   Result := e_PlaySample(SoundArray[a].ID, Pan, Round(Volume*gSoundLevel/255));
-   Exit;
-  end;
+  for a := 0 to High(SoundArray) do
+    if SoundArray[a].Name = SoundName then
+    begin
+      Result := e_PlaySoundPanVolume(SoundArray[a].ID, Pan, Volume * (gSoundLevel/255.0));
+      Exit;
+    end;
 
- g_Console_Add('Sound '+SoundName+' not found');
+  g_FatalError(Format(_lc[I_GAME_ERROR_SOUND], [SoundName]));
 end;
 
-function g_Sound_PlayExAt(SoundName: ShortString; Volume: Byte; X, Y: Integer): Boolean;
+function PlaySoundAt(X, Y: Integer; var Pan: Single; var Volume: Single): Boolean;
 var
-  l1, l2, d1, d2, a: Integer;
+  l1, l2, a: Integer;
+  d1, d2: Single;
   c: Boolean;
+
 begin
- Result := False;
+  l1 := gMaxDist;
+  l2 := gMaxDist;
 
- l1 := gMaxDist;
- l2 := gMaxDist;
+  d1 := 0.0;
 
- d1 := 127;
+  c := gPlayerScreenSize.X >= gMapInfo.Width;
 
- c := gPlayerScreenSize.X >= gMapInfo.Width;
-
- if X > gMapInfo.Width then X := gMapInfo.Width
-  else if X < 0 then X := 0;
-
- if Y > gMapInfo.Height then Y := gMapInfo.Height
-  else if Y < 0 then Y := 0;
-
- if gPlayer1 <> nil then
- begin
-  l1 := PointToRect(X, Y, gPlayer1ScreenCoord.X, gPlayer1ScreenCoord.Y,
-                    gPlayerScreenSize.X, gPlayerScreenSize.Y);
-
-  if c then d1 := 127
-  else if (X >= gPlayer1ScreenCoord.X) and (X <= gPlayer1ScreenCoord.X+gPlayerScreenSize.X) then d1 := 127
-  else if X < gPlayer1ScreenCoord.X then d1 := Round(127*X/gPlayer1ScreenCoord.X)
+  if X > gMapInfo.Width then
+    X := gMapInfo.Width
   else
-  begin
-   a := gPlayer1ScreenCoord.X+gPlayerScreenSize.X;
-   d1 := 127+Round(127*(X-a)/(gMapInfo.Width-a));
-  end;
- end;
+    if X < 0 then
+      X := 0;
 
- d2 := d1;
-
- if gPlayer2 <> nil then
- begin
-  l2 := PointToRect(X, Y, gPlayer2ScreenCoord.X, gPlayer2ScreenCoord.Y,
-                    gPlayerScreenSize.X, gPlayerScreenSize.Y);
-
-  if c then d2 := 127
-  else if (X >= gPlayer2ScreenCoord.X) and (X <= gPlayer2ScreenCoord.X+gPlayerScreenSize.X) then d2 := 127
-  else if X < gPlayer2ScreenCoord.X then d2 := Round(127*X/gPlayer2ScreenCoord.X)
+  if Y > gMapInfo.Height then
+    Y := gMapInfo.Height
   else
+    if Y < 0 then
+      Y := 0;
+
+  if gPlayer1 <> nil then
   begin
-   a := gPlayer2ScreenCoord.X+gPlayerScreenSize.X;
-   d2 := 127+Round(127*(X-a)/(gMapInfo.Width-a));
+    l1 := PointToRect(X, Y, gPlayer1ScreenCoord.X, gPlayer1ScreenCoord.Y,
+                      gPlayerScreenSize.X, gPlayerScreenSize.Y);
+
+    if c then
+      d1 := 0.0
+    else
+      if (X >= gPlayer1ScreenCoord.X) and
+         (X <= gPlayer1ScreenCoord.X+gPlayerScreenSize.X) then
+        d1 := 0.0
+      else
+        if X < gPlayer1ScreenCoord.X then
+          d1 := -1.0 + X/gPlayer1ScreenCoord.X
+        else
+          begin
+            a := gPlayer1ScreenCoord.X+gPlayerScreenSize.X;
+            d1 := (X-a)/(gMapInfo.Width-a);
+          end;
   end;
- end;
 
- d1 := d1+((d2-d1) div 2);
+  d2 := d1;
 
- if l2 < l1 then l1 := l2;
- l1 := l1*2;
+  if gPlayer2 <> nil then
+  begin
+    l2 := PointToRect(X, Y, gPlayer2ScreenCoord.X, gPlayer2ScreenCoord.Y,
+                      gPlayerScreenSize.X, gPlayerScreenSize.Y);
 
- if l1 >= gMaxDist then Exit
-  else Volume := Round(Volume*(1-l1/gMaxDist));
+    if c then
+      d2 := 0.0
+    else
+      if (X >= gPlayer2ScreenCoord.X) and
+         (X <= gPlayer2ScreenCoord.X+gPlayerScreenSize.X) then
+        d2 := 0.0
+      else
+        if X < gPlayer2ScreenCoord.X then
+          d2 := -1.0 + X/gPlayer2ScreenCoord.X
+        else
+          begin
+            a := gPlayer2ScreenCoord.X+gPlayerScreenSize.X;
+            d2 := (X-a)/(gMapInfo.Width-a);
+          end;
+  end;
 
- Result := g_Sound_PlayEx(SoundName, d1, Volume);
+  d1 := (d1 + d2) / 2.0;
+
+  if l2 < l1 then
+    l1 := l2;
+  l1 := l1 * 2;
+
+  if l1 >= gMaxDist then 
+    begin
+      Pan := 0.0;
+      Volume := 0.0;
+      Result := False;
+    end
+  else
+    begin
+      Pan := d1;
+      Volume := 1.0 - l1/gMaxDist;
+      Result := True;
+    end;
 end;
 
-function g_Sound_CreateWAD(var ID: DWORD; Resource: string): Boolean;
+function g_Sound_PlayAt(ID: DWORD; X, Y: Integer): Boolean;
+var
+  Pan, Vol: Single;
+
+begin
+  if PlaySoundAt(X, Y, Pan, Vol) then
+    Result := e_PlaySoundPanVolume(ID, Pan, Vol * (gSoundLevel/255.0))
+  else
+    Result := False;
+end;
+
+function g_Sound_PlayExAt(SoundName: ShortString; X, Y: Integer): Boolean;
+var
+  a: DWORD;
+  Pan, Vol: Single;
+
+begin
+  Result := False;
+  
+  if SoundArray = nil then
+    Exit;
+
+  for a := 0 to High(SoundArray) do
+    if SoundArray[a].Name = SoundName then
+    begin
+      if PlaySoundAt(X, Y, Pan, Vol) then
+        Result := e_PlaySoundPanVolume(SoundArray[a].ID,
+                    Pan, Vol * (gSoundLevel/255.0));
+      Exit;
+    end;
+
+  g_FatalError(Format(_lc[I_GAME_ERROR_SOUND], [SoundName]));
+end;
+
+function g_Sound_CreateFile(var ID: DWORD; FileName: string; isMusic: Boolean = False): Boolean;
+begin
+  Result := e_LoadSound(FileName, ID, isMusic);
+end;
+
+function g_Sound_CreateFileEx(SoundName: ShortString; FileName: string; isMusic: Boolean = False): Boolean;
+var
+  find_id: DWORD;
+
+begin
+  Result := False;
+
+  find_id := FindSound();
+
+  if not e_LoadSound(FileName, SoundArray[find_id].ID, isMusic) then
+    Exit;
+
+  SoundArray[find_id].Name := SoundName;
+  SoundArray[find_id].IsMusic := isMusic;
+
+  Result := True;
+end;
+
+function g_Sound_CreateWAD(var ID: DWORD; Resource: string; isMusic: Boolean = False): Boolean;
 var
   WAD: TWADEditor_1;
   FileName,
@@ -265,37 +301,41 @@ var
   SoundData: Pointer;
   ResLength: Integer;
   ok: Boolean;
+
 begin
- Result := False;
+  Result := False;
+  ok := False;
 
- ok := False;
+  g_ProcessResourceStr(Resource, FileName, SectionName, ResourceName);
 
- g_ProcessResourceStr(Resource, FileName, SectionName, ResourceName);
+  WAD := TWADEditor_1.Create();
+  WAD.ReadFile(FileName);
 
- WAD := TWADEditor_1.Create;
- WAD.ReadFile(FileName);
+  if WAD.GetResource(SectionName, ResourceName, SoundData, ResLength) then
+    begin
+      if e_LoadSoundMem(SoundData, ResLength, ID, isMusic) then
+        ok := True
+      else
+        FreeMem(SoundData);
+    end
+  else
+    e_WriteLog(Format('WAD Reader error: %s', [WAD.GetLastErrorStr]), MSG_WARNING);
 
- if WAD.GetResource(SectionName, ResourceName, SoundData, ResLength) then
-  if e_LoadSampleMem(SoundData, ResLength, ID) then ok := True else FreeMem(SoundData);
+  WAD.Free();
 
- WAD.Destroy;
+  if not ok then
+  begin
+    if isMusic then
+      e_WriteLog(Format('Error loading music %s', [Resource]), MSG_WARNING)
+    else
+      e_WriteLog(Format('Error loading sound %s', [Resource]), MSG_WARNING);
+    Exit;
+  end;
 
- if not ok then
- begin
-  e_WriteLog(Format('Error loading sample %s', [Resource]), MSG_WARNING);
-  e_WriteLog(Format('WAD Reader error: %s', [WAD.GetLastErrorStr]), MSG_WARNING);
-  Exit;
- end;
-
- Result := True;
+  Result := True;
 end;
 
-function g_Sound_CreateFile(var ID: DWORD; FileName: string): Boolean;
-begin
- Result := e_LoadSample(FileName, ID);
-end;
-
-function g_Sound_CreateWADEx(SoundName: ShortString; Resource: string): Boolean;
+function g_Sound_CreateWADEx(SoundName: ShortString; Resource: string; isMusic: Boolean = False): Boolean;
 var
   WAD: TWADEditor_1;
   FileName, SectionName, ResourceName: string;
@@ -303,406 +343,310 @@ var
   ResLength: Integer;
   find_id: DWORD;
   ok: Boolean;
+
 begin
- Result := False;
- ok := False;
+  Result := False;
+  ok := False;
 
- g_ProcessResourceStr(Resource, FileName, SectionName, ResourceName);
+  g_ProcessResourceStr(Resource, FileName, SectionName, ResourceName);
 
- find_id := FindSound;
+  find_id := FindSound();
 
- WAD := TWADEditor_1.Create;
- WAD.ReadFile(FileName);
+  WAD := TWADEditor_1.Create();
+  WAD.ReadFile(FileName);
 
- if WAD.GetResource(SectionName, ResourceName, SoundData, ResLength) then
- begin
-  if e_LoadSampleMem(SoundData, ResLength, SoundArray[find_id].ID) then
+  if WAD.GetResource(SectionName, ResourceName, SoundData, ResLength) then
+    begin
+      if e_LoadSoundMem(SoundData, ResLength, SoundArray[find_id].ID, isMusic) then
+        begin
+          SoundArray[find_id].Name := SoundName;
+          SoundArray[find_id].IsMusic := isMusic;
+          ok := True;
+        end
+      else
+        FreeMem(SoundData);
+    end
+  else
+    e_WriteLog(Format('WAD Reader error: %s', [WAD.GetLastErrorStr]), MSG_WARNING);
+
+  WAD.Free();
+
+  if not ok then
   begin
-   SoundArray[find_id].SoundName := SoundName;
-   ok := True;
-  end else FreeMem(SoundData)
- end else e_WriteLog(Format('WAD Reader error: %s', [WAD.GetLastErrorStr]), MSG_WARNING);
+    if isMusic then
+      e_WriteLog(Format('Error loading music %s', [Resource]), MSG_WARNING)
+    else
+      e_WriteLog(Format('Error loading sound %s', [Resource]), MSG_WARNING);
+    Exit;
+  end;
 
- WAD.Destroy;
-
- if not ok then
- begin
-  e_WriteLog(Format('Error loading sample %s', [Resource]), MSG_WARNING);
-  Exit;
- end;
-
- Result := True;
-end;
-
-function g_Sound_CreateFileEx(SoundName: ShortString; FileName: string): Boolean;
-var
-  find_id: DWORD;
-begin
- Result := False;
-
- find_id := FindSound;
-
- if not e_LoadSample(FileName, SoundArray[find_id].ID) then Exit;
-
- SoundArray[find_id].SoundName := SoundName;
-
- Result := True;
+  Result := True;
 end;
 
 procedure g_Sound_Delete(SoundName: ShortString);
 var
   a: DWORD;
+  
 begin
- if SoundArray = nil then Exit;
+  if (SoundArray = nil) or (SoundName = '') then
+    Exit;
 
- for a := 0 to High(SoundArray) do
-  if SoundArray[a].SoundName = SoundName then
-  begin
-   e_DeleteSample(SoundArray[a].ID);
-   SoundArray[a].SoundName := '';
-   SoundArray[a].ID := 0;
-  end;
+  for a := 0 to High(SoundArray) do
+    if SoundArray[a].Name = SoundName then
+    begin
+      e_DeleteSound(SoundArray[a].ID);
+      SoundArray[a].Name := '';
+      SoundArray[a].ID := 0;
+      SoundArray[a].IsMusic := False;
+    end;
 end;
 
 function g_Sound_Exists(SoundName: string): Boolean;
 var
-  a: Integer;
+  a: DWORD;
+  
 begin
- Result := False;
+  Result := False;
 
- if SoundArray <> nil then
-  for a := 0 to High(SoundArray) do
-   if SoundArray[a].SoundName = SoundName then
-   begin
-    Result := True;
+  if SoundName = '' then
     Exit;
-   end;
+
+  if SoundArray <> nil then
+    for a := 0 to High(SoundArray) do
+      if SoundArray[a].Name = SoundName then
+      begin
+        Result := True;
+        Break;
+      end;
 end;
 
 function g_Sound_Get(var ID: DWORD; SoundName: ShortString): Boolean;
 var
-  a: Integer;
-begin
- Result := False;
+  a: DWORD;
 
- if SoundArray <> nil then
-  for a := 0 to High(SoundArray) do
-   if SoundArray[a].SoundName = SoundName then
-   begin
-    ID := SoundArray[a].ID;
+begin
+  Result := False;
+
+  if SoundName = '' then
+    Exit;
+
+  if SoundArray <> nil then
+    for a := 0 to High(SoundArray) do
+      if SoundArray[a].Name = SoundName then
+      begin
+        ID := SoundArray[a].ID;
+        Result := True;
+        Break;
+      end;
+end;
+
+procedure g_Sound_SetupAllVolumes(SoundVol, MusicVol: Byte);
+var
+  Svol, Mvol: Single;
+  sm: Boolean;
+
+begin
+  if (gSoundLevel = SoundVol) and (gMusicLevel = MusicVol) then
+    Exit;
+
+  if gSoundLevel > 0 then
+    begin
+      Svol := SoundVol / gSoundLevel;
+      sm := False;
+    end
+  else
+    begin
+      Svol := SoundVol / 255.0;
+      sm := True;
+    end;
+
+  if gMusic <> nil then
+    if gMusicLevel > 0 then
+      Mvol := gMusic.GetVolume() * MusicVol / gMusicLevel
+    else
+      Mvol := MusicVol / 255.0;
+
+  e_ModifyChannelsVolumes(Svol, sm);
+
+  if gMusic <> nil then
+    gMusic.SetVolume(Mvol);
+
+  gSoundLevel := SoundVol;
+  gMusicLevel := MusicVol;
+end;
+
+{ TPlayableSound: }
+
+constructor TPlayableSound.Create();
+begin
+  inherited;
+  FName := '';
+end;
+
+destructor TPlayableSound.Destroy();
+begin
+  inherited;
+end;
+
+function TPlayableSound.Play(Force: Boolean = False): Boolean;
+begin
+  if Force or not IsPlaying() then
+    begin
+      Stop();
+      Result := RawPlay(0.0, gSoundLevel/255.0, FPosition);
+    end
+  else
+    Result := False;
+end;
+
+function TPlayableSound.PlayAt(X, Y: Integer): Boolean;
+var
+  Pan, Vol: Single;
+
+begin
+  if PlaySoundAt(X, Y, Pan, Vol) then
+    begin
+      Stop();
+      Result := RawPlay(Pan, Vol * (gSoundLevel/255.0), FPosition);
+    end
+  else
+    Result := False;
+end;
+
+function TPlayableSound.PlayPanVolume(Pan, Volume: Single; Force: Boolean = False): Boolean;
+begin
+  if Force or not IsPlaying() then
+    begin
+      Stop();
+      Result := RawPlay(Pan, Volume * (gSoundLevel/255.0), FPosition);
+    end
+  else
+    Result := False;
+end;
+
+function TPlayableSound.PlayVolumeAt(X, Y: Integer; Volume: Single): Boolean;
+var
+  Pan, Vol: Single;
+
+begin
+  if PlaySoundAt(X, Y, Pan, Vol) then
+    begin
+      Stop();
+      Result := RawPlay(Pan, Volume * Vol * (gSoundLevel/255.0), FPosition);
+    end
+  else
+    Result := False;
+end;
+
+function TPlayableSound.SetCoords(X, Y: Integer; Volume: Single): Boolean;
+var
+  Pan, Vol: Single;
+
+begin
+  Result := False;
+
+  if IsPlaying() then
+  begin
+    if PlaySoundAt(X, Y, Pan, Vol) then
+    begin
+      SetVolume(Volume * Vol * (gSoundLevel/255.0));
+      SetPan(Pan);
+
+      Result := True;
+    end;
+  end;
+end;
+
+function TPlayableSound.SetByName(SN: String): Boolean;
+var
+  id: DWORD;
+
+begin
+  if g_Sound_Get(id, SN) then
+    begin
+      SetID(id);
+      FName := SN;
+      Result := True;
+    end
+  else
+    Result := False;
+end;
+
+{ TMusic: }
+
+constructor TMusic.Create();
+begin
+  inherited;
+  FName := '';
+  FSpecPause := False;
+  FNoMusic := True;
+end;
+
+destructor TMusic.Destroy();
+begin
+  inherited;
+end;
+
+function TMusic.Play(Force: Boolean = False): Boolean;
+begin
+  if FNoMusic then
+  begin
     Result := True;
     Exit;
-   end;
-end;
-
-function FindMusic(): DWORD;
-var
-  i: integer;
-begin
- if MusicArray <> nil then
- for i := 0 to High(MusicArray) do
-  if MusicArray[i].MusicName = '' then
-  begin
-   Result := i;
-   Exit;
   end;
 
- if MusicArray = nil then
- begin
-  SetLength(MusicArray, 8);
-  Result := 0;
- end
+  if Force or not IsPlaying() then
+    begin
+      Stop();
+      Result := RawPlay(0.0, gMusicLevel/255.0, FPosition);
+      if Result and FSpecPause then
+        Pause(True);
+    end
   else
- begin
-  Result := High(MusicArray) + 1;
-  SetLength(MusicArray, Length(MusicArray) + 8);
- end;
+    Result := False;
 end;
 
-procedure g_Music_Play(ID: DWORD; Volume: Byte);
-begin
- e_PlaySong(ID, Round(Volume*gMusicLevel/255));
-end;
-
-procedure g_Music_Stop(ID: DWORD);
-begin
- e_StopSong(ID);
-end;
-
-procedure g_Music_StopEx(MusicName: ShortString);
+function TMusic.SetByName(SN: String): Boolean;
 var
-  a: DWORD;
-begin
- if MusicArray = nil then Exit;
+  id: DWORD;
 
- for a := 0 to High(MusicArray) do
-  if MusicArray[a].MusicName = MusicName then
+begin
+  if SN = '' then
   begin
-   e_StopSong(MusicArray[a].ID);
-   Exit;
-  end;
-end;
-
-function g_Music_PlayEx(MusicName: ShortString; Volume: Byte): Boolean;
-var
-  a: DWORD;
-begin
- Result := False;
- if MusicArray = nil then Exit;
-
- for a := 0 to High(MusicArray) do
-  if MusicArray[a].MusicName = MusicName then
-  begin
-   Result := True;
-   e_PlaySong(MusicArray[a].ID, Round(Volume*gMusicLevel/255));
-   Exit;
-  end;
-
- g_Console_Add('Music '+MusicName+' not found');
-end;
-
-function g_Music_CreateWAD(var ID: DWORD; Resource: string): Boolean;
-var
-  WAD: TWADEditor_1;
-  FileName,
-  SectionName,
-  ResourceName: string;
-  MusicData: Pointer;
-  ResLength: Integer;
-  ok: Boolean;
-begin
- Result := False;
-
- ok := False;
-
- g_ProcessResourceStr(Resource, FileName, SectionName, ResourceName);
-
- WAD := TWADEditor_1.Create;
- WAD.ReadFile(FileName);
-
- if WAD.GetResource(SectionName, ResourceName, MusicData, ResLength) then
-  if e_LoadSongMem(MusicData, ResLength, ID) then ok := True else FreeMem(MusicData);
-
- WAD.Destroy;
-
- if not ok then
- begin
-  e_WriteLog(Format('Error loading music %s', [Resource]), MSG_WARNING);
-  e_WriteLog(Format('WAD Reader error: %s', [WAD.GetLastErrorStr]), MSG_WARNING);
-  Exit;
- end;
-
- Result := True;
-end;
-
-function g_Music_CreateFile(var ID: DWORD; FileName: string): Boolean;
-begin
- Result := e_LoadSong(FileName, ID); 
-end;
-
-function g_Music_CreateWADEx(MusicName: ShortString; Resource: string): Boolean;
-var
-  WAD: TWADEditor_1;
-  FileName,
-  SectionName,
-  ResourceName: String;
-  MusicData: Pointer;
-  ResLength: Integer;
-  find_id: DWORD;
-  ok: Boolean;
-begin
- Result := False;
-
- ok := False;
-
- g_ProcessResourceStr(Resource, FileName, SectionName, ResourceName);
-
- find_id := FindMusic;
-
- WAD := TWADEditor_1.Create;
- WAD.ReadFile(FileName);
-
- if WAD.GetResource(SectionName, ResourceName, MusicData, ResLength) then
-  if e_LoadSongMem(MusicData, ResLength, MusicArray[find_id].ID) then
-  begin
-   ok := True;
-   MusicArray[find_id].MusicName := MusicName;
-  end else FreeMem(MusicData);
-
- WAD.Destroy;
-
- if not ok then
- begin
-  e_WriteLog(Format('Error loading music %s', [Resource]), MSG_WARNING);
-  e_WriteLog(Format('WAD Reader error: %s', [WAD.GetLastErrorStr]), MSG_WARNING);
-  Exit;
- end;
-
- Result := True;
-end;
-
-function g_Music_CreateFileEx(MusicName: ShortString; FileName: string): Boolean;
-var
-  find_id: DWORD;
-begin
- Result := False;
-
- find_id := FindMusic;
-
- if not e_LoadSong(FileName, MusicArray[find_id].ID) then Exit;
-
- MusicArray[find_id].MusicName := MusicName;
-
- Result := True;
-end;
-
-procedure g_Music_Delete(MusicName: ShortString);
-var
-  a: DWORD;
-begin
- if MusicArray = nil then Exit;
- if MusicName = '' then Exit;
-
- for a := 0 to High(MusicArray) do
-  if MusicArray[a].MusicName = MusicName then
-  begin
-   e_DeleteSong(MusicArray[a].ID);
-   MusicArray[a].MusicName := '';
-   MusicArray[a].ID := 0;
-  end;
-end;
-
-function g_Music_Get(var ID: DWORD; MusicName: ShortString): Boolean;
-var
-  a: Integer;
-begin
- Result := False;
-
- if MusicArray <> nil then
-  for a := 0 to High(MusicArray) do
-   if MusicArray[a].MusicName = MusicName then
-   begin
-    ID := MusicArray[a].ID;
+    FNoMusic := True;
     Result := True;
     Exit;
-   end;
-end;
-
-{ TSound }
-
-constructor TSound.Create();
-begin
- FID := DWORD(-1);
- FCurrentChannel := -1;
-end;
-
-destructor TSound.Destroy();
-begin
- FreeSound();
-end;
-
-
-procedure TSound.SetID(ID: DWORD);
-begin
- FreeSound();
- FID := ID;
-end;
-
-procedure TSound.FreeSound();
-begin
- if FID = DWORD(-1) then Exit;
-
- FID := DWORD(-1);
- FCurrentChannel := -1;
-end;
-
-function TSound.IsPlaying(): Boolean;
-begin
- if (FID = DWORD(-1)) or (FCurrentChannel = -1) then Result := False
-  else Result := e_IsPlayingSample(FID, FCurrentChannel);
-end;
-
-procedure TSound.Play(Pan, Volume: Byte; force: Boolean);
-begin
- if FID = DWORD(-1) then Exit;
-
- if force or not IsPlaying() then
-  FCurrentChannel := e_PlaySample(FID, Pan, Round(Volume*gSoundLevel/255));
-end;
-
-procedure TSound.Play(X, Y: Integer; Volume: Byte; force: Boolean);
-var
-  l1, l2, d1, d2, a: Integer;
-  c: Boolean;
-begin
- if FID = DWORD(-1) then Exit;
-
- l1 := gMaxDist;
- l2 := gMaxDist;
-
- d1 := 127;
-
- c := gPlayerScreenSize.X >= gMapInfo.Width;
-
- if X > gMapInfo.Width then X := gMapInfo.Width
-  else if X < 0 then X := 0;
-
- if Y > gMapInfo.Height then Y := gMapInfo.Height
-  else if Y < 0 then Y := 0;
-
- if gPlayer1 <> nil then
- begin
-  l1 := PointToRect(X, Y, gPlayer1ScreenCoord.X, gPlayer1ScreenCoord.Y,
-                    gPlayerScreenSize.X, gPlayerScreenSize.Y);
-
-  if c then d1 := 127
-  else if (X >= gPlayer1ScreenCoord.X) and (X <= gPlayer1ScreenCoord.X+gPlayerScreenSize.X) then d1 := 127
-  else if X < gPlayer1ScreenCoord.X then d1 := Round(127*X/gPlayer1ScreenCoord.X)
-  else
-  begin
-   a := gPlayer1ScreenCoord.X+gPlayerScreenSize.X;
-   d1 := 127+Round(127*(X-a)/(gMapInfo.Width-a));
   end;
- end;
 
- d2 := d1;
-
- if gPlayer2 <> nil then
- begin
-  l2 := PointToRect(X, Y, gPlayer2ScreenCoord.X, gPlayer2ScreenCoord.Y,
-                    gPlayerScreenSize.X, gPlayerScreenSize.Y);
-
-  if c then d2 := 127
-  else if (X >= gPlayer2ScreenCoord.X) and (X <= gPlayer2ScreenCoord.X+gPlayerScreenSize.X) then d2 := 127
-  else if X < gPlayer2ScreenCoord.X then d2 := Round(127*X/gPlayer2ScreenCoord.X)
+  if g_Sound_Get(id, SN) then
+    begin
+      SetID(id);
+      FName := SN;
+      FNoMusic := False;
+      FSpecPause := False;
+      Result := True;
+    end
   else
-  begin
-   a := gPlayer2ScreenCoord.X+gPlayerScreenSize.X;
-   d2 := 127+Round(127*(X-a)/(gMapInfo.Width-a));
-  end;
- end;
-
- d1 := d1+((d2-d1) div 2);
-
- if l2 < l1 then l1 := l2;
- l1 := l1*2;
-
- if l1 >= gMaxDist then Exit
-  else Volume := Round(Volume*(1-l1/gMaxDist)); { TODO 5 : EnsureRange() }
-
- FCurrentChannel := e_PlaySample(FID, d1, Round(Volume*gSoundLevel/255));
+    Result := False;
 end;
 
-procedure TSound.Stop();
+function TMusic.IsPaused(): Boolean;
 begin
- if FID = DWORD(-1) then Exit;
- if FCurrentChannel = -1 then Exit;
+  Result := inherited IsPaused();
+  Result := Result or FSpecPause;
+end;
 
- if IsPlaying() then
- begin
-  FSOUND_StopSound(FCurrentChannel);
-  FCurrentChannel := -1;
- end;
+procedure TMusic.Pause(Enable: Boolean);
+begin
+// Отключаем паузу, только если не было спец-паузы:
+  if Enable or (not FSpecPause) then
+    inherited Pause(Enable);
+end;
+
+procedure TMusic.SetSpecPause(Enable: Boolean);
+begin
+  FSpecPause := Enable;
+  Pause(Enable);
 end;
 
 end.

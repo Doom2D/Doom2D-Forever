@@ -1,113 +1,47 @@
-unit f_main;
+Unit f_main;
 
-interface
+Interface
 
-uses
-  Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
-  Dialogs, ImgList, StdCtrls, Buttons, ComCtrls, ValEdit, Types, ToolWin,
-  Menus, ExtCtrls, CheckLst, Grids;
+Uses
+  Windows, Messages, SysUtils, Variants, Classes, Graphics,
+  Controls, Forms, Dialogs, ImgList, StdCtrls, Buttons,
+  ComCtrls, ValEdit, Types, ToolWin, Menus, ExtCtrls,
+  CheckLst, Grids;
 
-type
-  TMainForm = class(TForm)
-    Splitter1: TSplitter;
-    Splitter2: TSplitter;
-    Panel1: TPanel;
-    vleObjectProperty: TValueListEditor;
-    Panel6: TPanel;
-    bApplyProperty: TButton;
-    Panel2: TPanel;
-    RenderPanel: TPanel;
-    StatusBar: TStatusBar;
-    Panel3: TPanel;
-    pcObjects: TPageControl;
-    tsPanels: TTabSheet;
-    lbTextureList: TListBox;
-    Panel4: TPanel;
-    Label1: TLabel;
-    Label2: TLabel;
-    lTextureHeight: TLabel;
-    lTextureWidth: TLabel;
-    cbPreview: TCheckBox;
-    Panel5: TPanel;
-    GroupBox1: TGroupBox;
-    cbPanelType: TComboBox;
-    tsItems: TTabSheet;
-    lbItemList: TListBox;
-    cbOnlyDM: TCheckBox;
-    tsMonsters: TTabSheet;
-    lbMonsterList: TListBox;
-    rbMonsterLeft: TRadioButton;
-    rbMonsterRight: TRadioButton;
-    tsAreas: TTabSheet;
-    lbAreasList: TListBox;
-    rbAreaLeft: TRadioButton;
-    rbAreaRight: TRadioButton;
-    tsTriggers: TTabSheet;
-    lbTriggersList: TListBox;
-    OpenDialog: TOpenDialog;
-    ImageList: TImageList;
-    SaveDialog: TSaveDialog;
-    pLoadProgress: TPanel;
-    pbLoad: TProgressBar;
-    lLoad: TLabel;
+Type
+  TMainForm = Class (TForm)
+  // Главное меню:
     MainMenu: TMainMenu;
-    N1: TMenuItem;
-    N2: TMenuItem;
-    N3: TMenuItem;
-    N4: TMenuItem;
-    N5: TMenuItem;
+  // "Файл":
+    miMenuFile: TMenuItem;
     miNewMap: TMenuItem;
-    miOpenINI: TMenuItem;
     miOpenMap: TMenuItem;
-    N6: TMenuItem;
-    miExit: TMenuItem;
     miSaveMap: TMenuItem;
+    miSaveMapAs: TMenuItem;
+    miOpenWadMap: TMenuItem;
+    miLine1: TMenuItem;
+    miSaveMiniMap: TMenuItem;
+    miDeleteMap: TMenuItem;
+    miPackMap: TMenuItem;
+    miLine2: TMenuItem;
+    miExit: TMenuItem;
+  // "Правка":
+    miMenuEdit: TMenuItem;
     miUndo: TMenuItem;
+    miLine3: TMenuItem;
     miCopy: TMenuItem;
     miCut: TMenuItem;
     miPaste: TMenuItem;
-    N11: TMenuItem;
-    miCheckMap: TMenuItem;
-    miOptimmization: TMenuItem;
-    miMapOptions: TMenuItem;
-    N8: TMenuItem;
-    miOptions: TMenuItem;
-    miAbout: TMenuItem;
-    ToolBar1: TToolBar;
-    tbNewMap: TToolButton;
-    tbOpenMap: TToolButton;
-    tbSaveMap: TToolButton;
-    ToolButton4: TToolButton;
-    tbShowMap: TToolButton;
-    ToolButton8: TToolButton;
-    tbShow: TToolButton;
-    ToolButton7: TToolButton;
-    tbGrid: TToolButton;
-    pmShow: TPopupMenu;
-    miLayerP1: TMenuItem;
-    miLayerP2: TMenuItem;
-    miLayerP3: TMenuItem;
-    miLayerP4: TMenuItem;
-    miLayerP5: TMenuItem;
-    sbHorizontal: TScrollBar;
-    sbVertical: TScrollBar;
-    miLayerP6: TMenuItem;
-    miLayerP8: TMenuItem;
-    miLayerP9: TMenuItem;
-    miDeleteMap: TMenuItem;
-    N13: TMenuItem;
+    miLine4: TMenuItem;
+    miSelectAll: TMenuItem;
+    miLine5: TMenuItem;
     miToFore: TMenuItem;
     miToBack: TMenuItem;
-    miSaveMapAs: TMenuItem;
-    N14: TMenuItem;
-    miSelectAll: TMenuItem;
-    clbActivationType: TCheckListBox;
-    clbKeys: TCheckListBox;
-    ToolButton1: TToolButton;
-    miMapPreview: TMenuItem;
-    ilToolbar: TImageList;
-    N9: TMenuItem;
+  // "Инструменты":
+    miMenuTools: TMenuItem;
+    miSnapToGrid: TMenuItem;
     miMiniMap: TMenuItem;
+    miSwitchGrid: TMenuItem;
     miLayers: TMenuItem;
     miLayer1: TMenuItem;
     miLayer2: TMenuItem;
@@ -115,21 +49,132 @@ type
     miLayer4: TMenuItem;
     miLayer5: TMenuItem;
     miLayer6: TMenuItem;
+    miLayer7: TMenuItem;
     miLayer8: TMenuItem;
     miLayer9: TMenuItem;
-    miSwitchGrid: TMenuItem;
-    miSnapToGrid: TMenuItem;
-    hidden1: TMenuItem;
+  // "Сервис":
+    miMenuService: TMenuItem;
+    miCheckMap: TMenuItem;
+    miOptimmization: TMenuItem;
+    miMapPreview: TMenuItem;
+    miTestMap: TMenuItem;
+  // "Настройка":
+    miMenuSettings: TMenuItem;
+    miMapOptions: TMenuItem;
+    miLine6: TMenuItem;
+    miOptions: TMenuItem;
+    miLine7: TMenuItem;
+    miMapTestSettings: TMenuItem;
+  // "Справка":
+    miMenuHelp: TMenuItem;
+    miAbout: TMenuItem;
+  // Скрытый пункт меню для Ctrl+Tab:
+    miHidden1: TMenuItem;
     minexttab: TMenuItem;
-    N7: TMenuItem;
-    miSaveMiniMap: TMenuItem;
-    miLayer7: TMenuItem;
+
+  // Панель инструментов:
+    MainToolBar: TToolBar;
+    tbNewMap: TToolButton;
+    tbOpenMap: TToolButton;
+    tbSaveMap: TToolButton;
+    tbOpenWadMap: TToolButton;
+    tbLine1: TToolButton;
+    tbShowMap: TToolButton;
+    tbLine2: TToolButton;
+    tbShow: TToolButton;
+    tbLine3: TToolButton;
+    tbGridOn: TToolButton;
+    tbGrid: TToolButton;
+    tbLine4: TToolButton;
+    tbTestMap: TToolButton;
+  // Всплывающее меню для кнопки слоев:
+    pmShow: TPopupMenu;
+    miLayerP1: TMenuItem;
+    miLayerP2: TMenuItem;
+    miLayerP3: TMenuItem;
+    miLayerP4: TMenuItem;
+    miLayerP5: TMenuItem;
+    miLayerP6: TMenuItem;
     miLayerP7: TMenuItem;
+    miLayerP8: TMenuItem;
+    miLayerP9: TMenuItem;
+  // Всплывающее меню для кнопки теста карты:
+    pmMapTest: TPopupMenu;
+    miMapTestPMSet: TMenuItem;
+
+  // Панель карты:
+    PanelMap: TPanel;
+  // Панель отображения карты:
+    RenderPanel: TPanel;
+  // Панель загрузки:
+    pLoadProgress: TPanel;
+    lLoad: TLabel;
+    pbLoad: TProgressBar;
+  // Полосы прокрутки:
+    sbHorizontal: TScrollBar;
+    sbVertical: TScrollBar;
+
+  // Панель свойств:
+    PanelProps: TPanel;
+  // Панель применения свойств:
+    PanelPropApply: TPanel;
+    bApplyProperty: TButton;
+  // Редактор свойств объектов:
+    vleObjectProperty: TValueListEditor;
+
+  // Панель объектов - вкладки:
+    PanelObjs: TPanel;
+    pcObjects: TPageControl;
+  // Вкладка "Панели":
+    tsPanels: TTabSheet;
+    lbTextureList: TListBox;
+  // Панель настройки текстур:
+    PanelTextures: TPanel;
+    LabelTxW: TLabel;
+    lTextureWidth: TLabel;
+    LabelTxH: TLabel;
+    lTextureHeight: TLabel;
+    cbPreview: TCheckBox;
     bbAddTexture: TBitBtn;
     bbRemoveTexture: TBitBtn;
     bClearTexture: TButton;
+  // Панель типов панелей:
+    PanelPanelType: TPanel;
+    GroupBox1: TGroupBox;
+    cbPanelType: TComboBox;
+  // Вкладка "Предметы":
+    tsItems: TTabSheet;
+    lbItemList: TListBox;
+    cbOnlyDM: TCheckBox;
     cbFall: TCheckBox;
-    miPackMap: TMenuItem;
+  // Вкладка "Монстры":
+    tsMonsters: TTabSheet;
+    lbMonsterList: TListBox;
+    rbMonsterLeft: TRadioButton;
+    rbMonsterRight: TRadioButton;
+  // Вкладка "Области":
+    tsAreas: TTabSheet;
+    lbAreasList: TListBox;
+    rbAreaLeft: TRadioButton;
+    rbAreaRight: TRadioButton;
+  // Вкладка "Триггеры":
+    tsTriggers: TTabSheet;
+    lbTriggersList: TListBox;
+    clbActivationType: TCheckListBox;
+    clbKeys: TCheckListBox;
+
+  // Остальные панели
+    Splitter1: TSplitter;
+    Splitter2: TSplitter;
+    StatusBar: TStatusBar;
+
+  // Специальные объекты:
+    ImageList: TImageList;
+    ilToolbar: TImageList;
+    OpenDialog: TOpenDialog;
+    SaveDialog: TSaveDialog;
+    selectall1: TMenuItem;
+
     procedure aAboutExecute(Sender: TObject);
     procedure aCheckMapExecute(Sender: TObject);
     procedure aMoveToFore(Sender: TObject);
@@ -141,7 +186,6 @@ type
     procedure aMapOptionsExecute(Sender: TObject);
     procedure aNewMapExecute(Sender: TObject);
     procedure aOpenMapExecute(Sender: TObject);
-    procedure aOpenINIExecute(Sender: TObject);
     procedure aOptimizeExecute(Sender: TObject);
     procedure aPasteObjectExecute(Sender: TObject);
     procedure aSelectAllExecute(Sender: TObject);
@@ -163,13 +207,11 @@ type
     procedure RenderPanelMouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer);
     procedure RenderPanelMouseUp(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
     procedure RenderPanelResize(Sender: TObject);
-    procedure sbHorizontalChange(Sender: TObject);
-    procedure sbVerticalChange(Sender: TObject);
     procedure vleObjectPropertyEditButtonClick(Sender: TObject);
     procedure vleObjectPropertyGetPickList(Sender: TObject; const KeyName: String; Values: TStrings);
     procedure vleObjectPropertyKeyDown(Sender: TObject; var Key: Word;
-      Shift: TShiftState);
-    procedure ToolButton1Click(Sender: TObject);
+                                       Shift: TShiftState);
+    procedure tbGridOnClick(Sender: TObject);
     procedure miMapPreviewClick(Sender: TObject);
     procedure miLayer1Click(Sender: TObject);
     procedure miLayer2Click(Sender: TObject);
@@ -188,13 +230,33 @@ type
     procedure miSaveMiniMapClick(Sender: TObject);
     procedure bClearTextureClick(Sender: TObject);
     procedure miPackMapClick(Sender: TObject);
-   private
+    procedure aRecentFileExecute(Sender: TObject);
+    procedure miMapTestSettingsClick(Sender: TObject);
+    procedure miTestMapClick(Sender: TObject);
+    procedure sbVerticalScroll(Sender: TObject; ScrollCode: TScrollCode;
+      var ScrollPos: Integer);
+    procedure sbHorizontalScroll(Sender: TObject; ScrollCode: TScrollCode;
+      var ScrollPos: Integer);
+    procedure miOpenWadMapClick(Sender: TObject);
+    procedure selectall1Click(Sender: TObject);
+    procedure Splitter1CanResize(Sender: TObject; var NewSize: Integer;
+      var Accept: Boolean);
+    procedure Splitter2CanResize(Sender: TObject; var NewSize: Integer;
+      var Accept: Boolean);
+    procedure vleObjectPropertyEnter(Sender: TObject);
+    procedure vleObjectPropertyExit(Sender: TObject);
+    procedure FormKeyUp(Sender: TObject; var Key: Word;
+      Shift: TShiftState);
+
+  Private
     procedure Draw();
     procedure OnIdle(Sender: TObject; var Done: Boolean);
-   public
+
+  Public
+    procedure RefreshRecentMenu();
   end;
 
-const
+Const
   LAYER_BACK       = 0;
   LAYER_WALLS      = 1;
   LAYER_FOREGROUND = 2;
@@ -205,38 +267,66 @@ const
   LAYER_AREAS      = 7;
   LAYER_TRIGGERS   = 8;
 
+  TEST_MAP_NAME = '$$$_TEST_$$$';
+  LANGUAGE_FILE_NAME = '_Editor.txt';
+
 var
   MainForm: TMainForm;
-  EditorDir: string;
-  OpenedMap: string;
+  EditorDir: String;
+  OpenedMap: String;
+  OpenedWAD: String;
 
   DotColor: TColor;
   DotEnable: Boolean;
   DotStep: Byte;
+  DotStepOne, DotStepTwo: Byte;
+  DotSize: Byte;
   DrawTexturePanel: Boolean;
   DrawPanelSize: Boolean;
   BackColor: TColor;
   PreviewColor: TColor;
   Scale: Byte;
+  RecentCount: Integer;
+  RecentFiles: TStringList;
 
-  LayerEnabled: array[LAYER_BACK..LAYER_TRIGGERS] of Boolean =
-  (True, True, True, True, True, True, True, True, True);
+  TestGameMode: String;
+  TestLimTime: String;
+  TestLimScore: String;
+  TestOptionsTwoPlayers: Boolean;
+  TestOptionsTeamDamage: Boolean;
+  TestOptionsAllowExit: Boolean;
+  TestOptionsWeaponStay: Boolean;
+  TestOptionsMonstersDM: Boolean;
+  TestD2dExe: String;
+  TestMapOnce: Boolean;
+
+  LayerEnabled: Array [LAYER_BACK..LAYER_TRIGGERS] of Boolean =
+    (True, True, True, True, True, True, True, True, True);
   PreviewMode: Boolean = False;
+  gLanguage: String;
 
-procedure OpenMap(FileName: string);
+  FormCaption: String;
+  
 
-implementation
+procedure OpenMap(FileName: String; mapN: String);
+function  AddTexture(aWAD, aSection, aTex: String; silent: Boolean): Boolean;
+procedure RemoveSelectFromObjects();
+procedure ChangeShownProperty(Name: String; NewValue: String);
 
-uses f_options, e_graphics, e_log, dglOpenGL, Math, f_mapoptions,
-  g_basic, f_about, f_mapoptimization, f_mapcheck, f_addresource_texture,
-  g_textures, f_activationtype, f_keys, MAPWRITER, MAPSTRUCT, MAPREADER,
-  f_selectmap, f_savemap, WADEDITOR, MAPDEF, g_map, f_saveminimap,
-  f_addresource, CONFIG, f_packmap, f_addresource_sound;
 
-const
-  BoolNames: array[False..True] of string = ('Нет', 'Да');
-  DirNames: array[D_LEFT..D_RIGHT] of string = ('Влево', 'Вправо');
+Implementation
 
+Uses
+  f_options, e_graphics, e_log, dglOpenGL, Math,
+  f_mapoptions, g_basic, f_about, f_mapoptimization,
+  f_mapcheck, f_addresource_texture, g_textures,
+  f_activationtype, f_keys, MAPWRITER, MAPSTRUCT,
+  MAPREADER, f_selectmap, f_savemap, WADEDITOR, MAPDEF,
+  g_map, f_saveminimap, f_addresource, CONFIG, f_packmap,
+  f_addresource_sound, f_maptest, f_choosetype,
+  g_language, f_selectlang, ClipBrd;
+
+Const
   UNDO_DELETE_PANEL   = 1;
   UNDO_DELETE_ITEM    = 2;
   UNDO_DELETE_AREA    = 3;
@@ -262,6 +352,7 @@ const
   MOUSEACTION_RESIZE      = 4;
   MOUSEACTION_MOVEMAP     = 5;
   MOUSEACTION_DRAWPRESS   = 6;
+  MOUSEACTION_NOACTION    = 7;
 
   RESIZETYPE_NONE       = 0;
   RESIZETYPE_VERTICAL   = 1;
@@ -273,57 +364,63 @@ const
   RESIZEDIR_RIGHT = 3;
   RESIZEDIR_LEFT  = 4;
 
-  SELECTFLAG_NONE     = 0;
-  SELECTFLAG_TELEPORT = 1;
-  SELECTFLAG_DOOR     = 2;
-  SELECTFLAG_TEXTURE  = 3;
-  SELECTFLAG_LIFT     = 4;
-  SELECTFLAG_MONSTER  = 5;
+  SELECTFLAG_NONE       = 0;
+  SELECTFLAG_TELEPORT   = 1;
+  SELECTFLAG_DOOR       = 2;
+  SELECTFLAG_TEXTURE    = 3;
+  SELECTFLAG_LIFT       = 4;
+  SELECTFLAG_MONSTER    = 5;
+  SELECTFLAG_SPAWNPOINT = 6;
+  SELECTFLAG_SELECTED   = 7;
 
-type
+  RECENT_FILES_MENU_START = 11;
+
+  CLIPBOARD_SIG         = 'DF:ED';
+
+Type
   TUndoRec = record
-   UndoType: Byte;
-   case Byte of
-    UNDO_DELETE_PANEL:   (Panel: ^TPanel);
-    UNDO_DELETE_ITEM:    (Item: TItem);
-    UNDO_DELETE_AREA:    (Area: TArea);
-    UNDO_DELETE_MONSTER: (Monster: TMonster);
-    UNDO_DELETE_TRIGGER: (Trigger: TTrigger);
-    UNDO_ADD_PANEL,
-    UNDO_ADD_ITEM,
-    UNDO_ADD_AREA,
-    UNDO_ADD_MONSTER,
-    UNDO_ADD_TRIGGER:    (AddID: DWORD);
-    UNDO_MOVE_PANEL,
-    UNDO_MOVE_ITEM,
-    UNDO_MOVE_AREA,
-    UNDO_MOVE_MONSTER,
-    UNDO_MOVE_TRIGGER:   (MoveID: DWORD; dX, dY: Integer);
-    UNDO_RESIZE_PANEL,
-    UNDO_RESIZE_TRIGGER: (ResizeID: DWORD; dW, dH: Integer);
+    UndoType: Byte;
+    case Byte of
+      UNDO_DELETE_PANEL:   (Panel: ^TPanel);
+      UNDO_DELETE_ITEM:    (Item: TItem);
+      UNDO_DELETE_AREA:    (Area: TArea);
+      UNDO_DELETE_MONSTER: (Monster: TMonster);
+      UNDO_DELETE_TRIGGER: (Trigger: TTrigger);
+      UNDO_ADD_PANEL,
+      UNDO_ADD_ITEM,
+      UNDO_ADD_AREA,
+      UNDO_ADD_MONSTER,
+      UNDO_ADD_TRIGGER:    (AddID: DWORD);
+      UNDO_MOVE_PANEL,
+      UNDO_MOVE_ITEM,
+      UNDO_MOVE_AREA,
+      UNDO_MOVE_MONSTER,
+      UNDO_MOVE_TRIGGER:   (MoveID: DWORD; dX, dY: Integer);
+      UNDO_RESIZE_PANEL,
+      UNDO_RESIZE_TRIGGER: (ResizeID: DWORD; dW, dH: Integer);
   end;
 
   TCopyRec = record
-   ObjectType: Byte;
-   case Byte of
-    OBJECT_PANEL: (Panel: ^TPanel);
-    OBJECT_ITEM: (Item: TItem);                               
-    OBJECT_AREA: (Area: TArea);
-    OBJECT_MONSTER: (Monster: TMonster);
-    OBJECT_TRIGGER: (Trigger: TTrigger);
+    ObjectType: Byte;
+    ID: Cardinal;
+    case Byte of
+      OBJECT_PANEL: (Panel: ^TPanel);
+      OBJECT_ITEM: (Item: TItem);
+      OBJECT_AREA: (Area: TArea);
+      OBJECT_MONSTER: (Monster: TMonster);
+      OBJECT_TRIGGER: (Trigger: TTrigger);
   end;
 
-var
-  FormCaption: string;
+  TCopyRecArray = Array of TCopyRec;
 
+Var
   hDC: THandle;
   hRC: THandle;
   gEditorFont: DWORD;
   ShowMap: Boolean = False;
   DrawRect: PRect = nil;
-  _DotEnabled: Boolean;
   SnapToGrid: Boolean = True;
-  
+
   MousePos: Types.TPoint;
   LastMovePoint: Types.TPoint;
   MouseLDown: Boolean;
@@ -337,1019 +434,1635 @@ var
   ResizeDirection: Byte = RESIZEDIR_NONE;
 
   DrawPressRect: Boolean = False;
+  EditingProperties: Boolean = False;
 
-  UndoBuffer: array of array of TUndoRec = nil;
-  CopyBuffer: array of TCopyRec = nil;
+  UndoBuffer: Array of Array of TUndoRec = nil;
+
 
 {$R *.dfm}
 
 //----------------------------------------
 //Далее идут вспомогательные процедуры
 //----------------------------------------
-function NameToBool(Name: string): Boolean;
+
+function NameToBool(Name: String): Boolean;
 begin
- if Name = BoolNames[True] then Result := True else Result := False;
+  if Name = BoolNames[True] then
+    Result := True
+  else
+    Result := False;
 end;
 
-function NameToDir(Name: string): TDirection;
+function NameToDir(Name: String): TDirection;
 begin
- if Name = DirNames[D_LEFT] then Result := D_LEFT else Result := D_RIGHT;
+  if Name = DirNames[D_LEFT] then
+    Result := D_LEFT
+  else
+    Result := D_RIGHT;
 end;
 
-function ActivateToStr(ActivateType: Byte): string;
+function NameToDirAdv(Name: String): Byte;
 begin
- Result := '';
-
- if ByteBool(ACTIVATE_PLAYERCOLLIDE and ActivateType) then Result := Result+'+PC';
- if ByteBool(ACTIVATE_MONSTERCOLLIDE and ActivateType) then Result := Result+'+MC';
- if ByteBool(ACTIVATE_PLAYERPRESS and ActivateType) then Result := Result+'+PP';
- if ByteBool(ACTIVATE_MONSTERPRESS and ActivateType) then Result := Result+'+MP';
- if ByteBool(ACTIVATE_SHOT and ActivateType) then Result := Result+'+SH';
- if ByteBool(ACTIVATE_NOMONSTER and ActivateType) then Result := Result+'+NM';
-
- if (Result <> '') and (Result[1] = '+') then Delete(Result, 1, 1);
+  if Name = DirNamesAdv[1] then
+    Result := 1
+  else
+    if Name = DirNamesAdv[2] then
+      Result := 2
+    else
+      if Name = DirNamesAdv[3] then
+        Result := 3
+      else
+        Result := 0;
 end;
 
-function StrToActivate(Str: string): Byte;
+function ActivateToStr(ActivateType: Byte): String;
 begin
- Result := 0;
+  Result := '';
 
- if Pos('PC', Str) > 0 then Result := ACTIVATE_PLAYERCOLLIDE;
- if Pos('MC', Str) > 0 then Result := Result or ACTIVATE_MONSTERCOLLIDE;
- if Pos('PP', Str) > 0 then Result := Result or ACTIVATE_PLAYERPRESS;
- if Pos('MP', Str) > 0 then Result := Result or ACTIVATE_MONSTERPRESS;
- if Pos('SH', Str) > 0 then Result := Result or ACTIVATE_SHOT;
- if Pos('NM', Str) > 0 then Result := Result or ACTIVATE_NOMONSTER;
+  if ByteBool(ACTIVATE_PLAYERCOLLIDE and ActivateType) then
+    Result := Result + '+PC';
+  if ByteBool(ACTIVATE_MONSTERCOLLIDE and ActivateType) then
+    Result := Result + '+MC';
+  if ByteBool(ACTIVATE_PLAYERPRESS and ActivateType) then
+    Result := Result + '+PP';
+  if ByteBool(ACTIVATE_MONSTERPRESS and ActivateType) then
+    Result := Result + '+MP';
+  if ByteBool(ACTIVATE_SHOT and ActivateType) then
+    Result := Result + '+SH';
+  if ByteBool(ACTIVATE_NOMONSTER and ActivateType) then
+    Result := Result + '+NM';
+
+  if (Result <> '') and (Result[1] = '+') then
+    Delete(Result, 1, 1);
 end;
 
-function KeyToStr(Key: Byte): string;
+function StrToActivate(Str: String): Byte;
 begin
- Result := '';
+  Result := 0;
 
- if ByteBool(KEY_RED and Key) then Result := Result+'+RK';
- if ByteBool(KEY_GREEN and Key) then Result := Result+'+GK';
- if ByteBool(KEY_BLUE and Key) then Result := Result+'+BK';
- if ByteBool(KEY_REDTEAM and Key) then Result := Result+'+RT';
- if ByteBool(KEY_BLUETEAM and Key) then Result := Result+'+BT';
-
- if (Result <> '') and (Result[1] = '+') then Delete(Result, 1, 1);
+  if Pos('PC', Str) > 0 then
+    Result := ACTIVATE_PLAYERCOLLIDE;
+  if Pos('MC', Str) > 0 then
+    Result := Result or ACTIVATE_MONSTERCOLLIDE;
+  if Pos('PP', Str) > 0 then
+    Result := Result or ACTIVATE_PLAYERPRESS;
+  if Pos('MP', Str) > 0 then
+    Result := Result or ACTIVATE_MONSTERPRESS;
+  if Pos('SH', Str) > 0 then
+    Result := Result or ACTIVATE_SHOT;
+  if Pos('NM', Str) > 0 then
+    Result := Result or ACTIVATE_NOMONSTER;
 end;
 
-function StrToKey(Str: string): Byte;
+function KeyToStr(Key: Byte): String;
 begin
- Result := 0;
+  Result := '';
 
- if Pos('RK', Str) > 0 then Result := KEY_RED;
- if Pos('GK', Str) > 0 then Result := Result or KEY_GREEN;
- if Pos('BK', Str) > 0 then Result := Result or KEY_BLUE;
- if Pos('RT', Str) > 0 then Result := Result or KEY_REDTEAM;
- if Pos('BT', Str) > 0 then Result := Result or KEY_BLUETEAM;
+  if ByteBool(KEY_RED and Key) then
+    Result := Result + '+RK';
+  if ByteBool(KEY_GREEN and Key) then
+    Result := Result + '+GK';
+  if ByteBool(KEY_BLUE and Key) then
+    Result := Result + '+BK';
+  if ByteBool(KEY_REDTEAM and Key) then
+    Result := Result + '+RT';
+  if ByteBool(KEY_BLUETEAM and Key) then
+    Result := Result + '+BT';
+
+  if (Result <> '') and (Result[1] = '+') then
+    Delete(Result, 1, 1);
+end;
+
+function StrToKey(Str: String): Byte;
+begin
+  Result := 0;
+
+  if Pos('RK', Str) > 0 then
+    Result := KEY_RED;
+  if Pos('GK', Str) > 0 then
+    Result := Result or KEY_GREEN;
+  if Pos('BK', Str) > 0 then
+    Result := Result or KEY_BLUE;
+  if Pos('RT', Str) > 0 then
+    Result := Result or KEY_REDTEAM;
+  if Pos('BT', Str) > 0 then
+    Result := Result or KEY_BLUETEAM;
+end;
+
+function MonsterToStr(MonType: Byte): String;
+begin
+  if MonType in [MONSTER_DEMON..MONSTER_MAN] then
+    Result := MonsterNames[MonType]
+  else
+    Result := MonsterNames[MONSTER_ZOMBY];
+end;
+
+function StrToMonster(Str: String): Byte;
+var
+  i: Integer;
+
+begin
+  Result := MONSTER_ZOMBY;
+  for i := MONSTER_DEMON to MONSTER_MAN do
+    if MonsterNames[i] = Str then
+      begin
+        Result := i;
+        Exit;
+      end;
+end;
+
+function ItemToStr(ItemType: Byte): String;
+begin
+  if ItemType in [ITEM_MEDKIT_SMALL..ITEM_HELMET] then
+    Result := ItemNames[ItemType]
+  else
+    Result := ItemNames[ITEM_AMMO_BULLETS];
+end;
+
+function StrToItem(Str: String): Byte;
+var
+  i: Integer;
+
+begin
+  Result := ITEM_AMMO_BULLETS;
+  for i := ITEM_MEDKIT_SMALL to ITEM_HELMET do
+    if ItemNames[i] = Str then
+      begin
+        Result := i;
+        Exit;
+      end;
 end;
 
 function SelectedObjectCount(): Word;
 var
   a: Integer;
+
 begin
- Result := 0;
+  Result := 0;
 
- if SelectedObjects = nil then Exit;
+  if SelectedObjects = nil then
+    Exit;
 
- for a := 0 to High(SelectedObjects) do
-  if SelectedObjects[a].Live then Result := Result+1;
+  for a := 0 to High(SelectedObjects) do
+    if SelectedObjects[a].Live then
+      Result := Result + 1;
 end;
 
 function GetFirstSelected(): Integer;
 var
   a: Integer;
+
 begin
- Result := -1;
+  Result := -1;
 
- if SelectedObjects = nil then Exit;
+  if SelectedObjects = nil then
+    Exit;
 
- for a := 0 to High(SelectedObjects) do
-  if SelectedObjects[a].Live then
-  begin
-   Result := a;
-   Exit;
-  end;
+  for a := 0 to High(SelectedObjects) do
+    if SelectedObjects[a].Live then
+    begin
+      Result := a;
+      Exit;
+    end;
+end;
+
+function Normalize16(x: Integer): Integer;
+begin
+  Result := (x div 16) * 16;
 end;
 
 procedure MoveMap(X, Y: Integer);
+var                                     
+  rx, ry, ScaleSz: Integer;
+
 begin
- with MainForm.RenderPanel do
- begin
-  MapOffset.X := ((-(X-(Width-(gMapInfo.Width div 16)*Scale))*16)+
-                  (Width div 32)*Scale*16) div Scale;
-  if MapOffset.X > 0 then MapOffset.X := 0;
-  if MapOffset.X-Width < -gMapInfo.Width then
-   MapOffset.X := -(gMapInfo.Width div 16)*16+(Width div 16)*16;
+  with MainForm.RenderPanel do
+  begin
+    ScaleSz := 16 div Scale;
+  // Размер видимой части карты:
+    rx := min(Normalize16(Width), Normalize16(gMapInfo.Width)) div 2;
+    ry := min(Normalize16(Height), Normalize16(gMapInfo.Height)) div 2;
+  // Место клика на мини-карте:
+    MapOffset.X := X - (Width-max(gMapInfo.Width div ScaleSz, 1)-1);
+    MapOffset.Y := Y - 1;
+  // Это же место на "большой" карте:
+    MapOffset.X := MapOffset.X * ScaleSz;
+    MapOffset.Y := MapOffset.Y * ScaleSz;
+  // Левый верхний угол новой видимой части карты:
+    MapOffset.X := MapOffset.X - rx;
+    MapOffset.Y := MapOffset.Y - ry;
+  // Выход за границы:
+    if MapOffset.X < 0 then
+      MapOffset.X := 0;
+    if MapOffset.Y < 0 then
+      MapOffset.Y := 0;
+    if MapOffset.X > MainForm.sbHorizontal.Max then
+      MapOffset.X := MainForm.sbHorizontal.Max;
+    if MapOffset.Y > MainForm.sbVertical.Max then
+      MapOffset.Y := MainForm.sbVertical.Max;
+  // Кратно 16:
+    MapOffset.X := Normalize16(MapOffset.X);
+    MapOffset.Y := Normalize16(MapOffset.Y);
+  end;
 
-  MapOffset.Y := ((-Y*16)+(Height div 32)*16) div Scale;
-  if MapOffset.Y > 0 then MapOffset.Y := 0;
-  if MapOffset.Y-Height < -gMapInfo.Height then
-   MapOffset.Y := -(gMapInfo.Height div 16)*16+(Height div 16)*16;
- end;
+  MainForm.sbHorizontal.Position := MapOffset.X;
+  MainForm.sbVertical.Position := MapOffset.Y;
 
- MainForm.sbVertical.Position := Abs(MapOffset.Y);
- MainForm.sbHorizontal.Position := Abs(MapOffset.X);
+  MapOffset.X := -MapOffset.X;
+  MapOffset.Y := -MapOffset.Y;
 
- MainForm.Resize;
+  MainForm.Resize();
 end;
 
 function IsTexturedPanel(PanelType: Word): Boolean;
 begin
- Result := WordBool(PanelType and (PANEL_WALL or PANEL_BACK or PANEL_FORE or
-                                   PANEL_STEP or PANEL_OPENDOOR or PANEL_CLOSEDOOR));
+  Result := WordBool(PanelType and (PANEL_WALL or PANEL_BACK or PANEL_FORE or
+                                    PANEL_STEP or PANEL_OPENDOOR or PANEL_CLOSEDOOR or
+                                    PANEL_WATER or PANEL_ACID1 or PANEL_ACID2));
 end;
 
 procedure FillProperty();
 var
   _id: DWORD;
+  str: String;
+  
 begin
- MainForm.vleObjectProperty.Strings.Clear;
+  MainForm.vleObjectProperty.Strings.Clear();
 
- if SelectedObjectCount() <> 1 then Exit;
- _id := GetFirstSelected();
- if not SelectedObjects[_id].Live then Exit;
+// Отображаем свойства если выделен только один объект:
+  if SelectedObjectCount() <> 1 then
+    Exit;
+    
+  _id := GetFirstSelected();
+  if not SelectedObjects[_id].Live then
+    Exit;
 
- with MainForm.vleObjectProperty do
-  with ItemProps[InsertRow('ID', IntToStr(SelectedObjects[_id].ID), True)-1] do
-  begin
-   EditStyle := esSimple;
-   ReadOnly := True;
-  end;
-
- case SelectedObjects[0].ObjectType of
-  OBJECT_PANEL:
-  begin
-   with MainForm.vleObjectProperty, gPanels[SelectedObjects[_id].ID] do
-   begin
-    with ItemProps[InsertRow('X', IntToStr(X), True)-1] do
+  with MainForm.vleObjectProperty do
+    with ItemProps[InsertRow(_lc[I_PROP_ID], IntToStr(SelectedObjects[_id].ID), True)-1] do
     begin
-     EditStyle := esSimple;
-     MaxLength := 5;
-    end;
-
-    with ItemProps[InsertRow('Y', IntToStr(Y), True)-1] do
-    begin
-     EditStyle := esSimple;
-     MaxLength := 5;
-    end;
-
-    with ItemProps[InsertRow('Длина', IntToStr(Width), True)-1] do
-    begin
-     EditStyle := esSimple;
-     MaxLength := 5;
-    end;
-
-    with ItemProps[InsertRow('Высота', IntToStr(Height), True)-1] do
-    begin
-     EditStyle := esSimple;
-     MaxLength := 5;
-    end;
-
-    if IsTexturedPanel(PanelType) then
-    begin
-     with ItemProps[InsertRow('Тип панели', GetPanelName(PanelType), True)-1] do
-     begin
-      EditStyle := esPickList;
+      EditStyle := esSimple;
       ReadOnly := True;
-     end;
+    end;
 
-     if TextureName <> '' then
-     begin
-      with ItemProps[InsertRow('Прозрачность', IntToStr(Alpha), True)-1] do
+  case SelectedObjects[0].ObjectType of
+    OBJECT_PANEL:
       begin
-       EditStyle := esSimple;
-       MaxLength := 3;
+        with MainForm.vleObjectProperty,
+             gPanels[SelectedObjects[_id].ID] do
+        begin
+          with ItemProps[InsertRow(_lc[I_PROP_X], IntToStr(X), True)-1] do
+          begin
+            EditStyle := esSimple;
+            MaxLength := 5;
+          end;
+
+          with ItemProps[InsertRow(_lc[I_PROP_Y], IntToStr(Y), True)-1] do
+          begin
+            EditStyle := esSimple;
+            MaxLength := 5;
+          end;
+
+          with ItemProps[InsertRow(_lc[I_PROP_WIDTH], IntToStr(Width), True)-1] do
+          begin
+            EditStyle := esSimple;
+            MaxLength := 5;
+          end;
+
+          with ItemProps[InsertRow(_lc[I_PROP_HEIGHT], IntToStr(Height), True)-1] do
+          begin
+            EditStyle := esSimple;
+            MaxLength := 5;
+          end;
+
+          with ItemProps[InsertRow(_lc[I_PROP_PANEL_TYPE], GetPanelName(PanelType), True)-1] do
+          begin
+            EditStyle := esPickList;
+            ReadOnly := True;
+          end;
+
+          if IsTexturedPanel(PanelType) then
+          begin // Может быть текстура
+            with ItemProps[InsertRow(_lc[I_PROP_PANEL_TEX], TextureName, True)-1] do
+            begin
+              EditStyle := esEllipsis;
+              ReadOnly := True;
+            end;
+
+            if TextureName <> '' then
+            begin // Есть текстура
+              with ItemProps[InsertRow(_lc[I_PROP_PANEL_ALPHA], IntToStr(Alpha), True)-1] do
+              begin
+                EditStyle := esSimple;
+                MaxLength := 3;
+              end;
+
+              with ItemProps[InsertRow(_lc[I_PROP_PANEL_BLEND], BoolNames[Blending], True)-1] do
+              begin
+                EditStyle := esPickList;
+                ReadOnly := True;
+              end;
+            end;
+          end;
+        end;
       end;
 
-      with ItemProps[InsertRow('Смешивание', BoolNames[Blending], True)-1] do
+    OBJECT_ITEM:
       begin
-       EditStyle := esPickList;
-       ReadOnly := True;
+        with MainForm.vleObjectProperty,
+             gItems[SelectedObjects[_id].ID] do
+        begin
+          with ItemProps[InsertRow(_lc[I_PROP_X], IntToStr(X), True)-1] do
+          begin
+            EditStyle := esSimple;
+            MaxLength := 5;
+          end;
+
+          with ItemProps[InsertRow(_lc[I_PROP_Y], IntToStr(Y), True)-1] do
+          begin
+            EditStyle := esSimple;
+            MaxLength := 5;
+          end;
+
+          with ItemProps[InsertRow(_lc[I_PROP_DM_ONLY], BoolNames[OnlyDM], True)-1] do
+          begin
+            EditStyle := esPickList;
+            ReadOnly := True;
+          end;
+
+          with ItemProps[InsertRow(_lc[I_PROP_ITEM_FALLS], BoolNames[Fall], True)-1] do
+          begin
+            EditStyle := esPickList;
+            ReadOnly := True;
+          end;
+        end;
       end;
-     end;
-    end
-     else
-    begin
-     with ItemProps[InsertRow('Тип панели', GetPanelName(PanelType), True)-1] do
-     begin
-      EditStyle := esSimple;
-      ReadOnly := True;
-     end;
-    end;
-   end;
+
+    OBJECT_MONSTER:
+      begin
+        with MainForm.vleObjectProperty,
+             gMonsters[SelectedObjects[_id].ID] do
+        begin
+          with ItemProps[InsertRow(_lc[I_PROP_X], IntToStr(X), True)-1] do
+          begin
+            EditStyle := esSimple;
+            MaxLength := 5;
+          end;
+
+          with ItemProps[InsertRow(_lc[I_PROP_Y], IntToStr(Y), True)-1] do
+          begin
+            EditStyle := esSimple;
+            MaxLength := 5;
+          end;
+
+          with ItemProps[InsertRow(_lc[I_PROP_DIRECTION], DirNames[Direction], True)-1] do
+          begin
+            EditStyle := esPickList;
+            ReadOnly := True;
+          end;
+        end;
+      end;
+
+    OBJECT_AREA:
+      begin
+        with MainForm.vleObjectProperty,
+             gAreas[SelectedObjects[_id].ID] do
+        begin
+          with ItemProps[InsertRow(_lc[I_PROP_X], IntToStr(X), True)-1] do
+          begin
+            EditStyle := esSimple;
+            MaxLength := 5;
+          end;
+
+          with ItemProps[InsertRow(_lc[I_PROP_Y], IntToStr(Y), True)-1] do
+          begin
+            EditStyle := esSimple;
+            MaxLength := 5;
+          end;
+
+          with ItemProps[InsertRow(_lc[I_PROP_DIRECTION], DirNames[Direction], True)-1] do
+          begin
+            EditStyle := esPickList;
+            ReadOnly := True;
+          end;
+        end;
+      end;
+
+    OBJECT_TRIGGER:
+      begin
+        with MainForm.vleObjectProperty,
+             gTriggers[SelectedObjects[_id].ID] do
+        begin
+          with ItemProps[InsertRow(_lc[I_PROP_TR_TYPE], GetTriggerName(TriggerType), True)-1] do
+          begin
+            EditStyle := esSimple;
+            ReadOnly := True;
+          end;
+
+          with ItemProps[InsertRow(_lc[I_PROP_X], IntToStr(X), True)-1] do
+          begin
+            EditStyle := esSimple;
+            MaxLength := 5;
+          end;
+
+          with ItemProps[InsertRow(_lc[I_PROP_Y], IntToStr(Y), True)-1] do
+          begin
+            EditStyle := esSimple;
+            MaxLength := 5;
+          end;
+
+          with ItemProps[InsertRow(_lc[I_PROP_WIDTH], IntToStr(Width), True)-1] do
+          begin
+            EditStyle := esSimple;
+            MaxLength := 5;
+          end;
+
+          with ItemProps[InsertRow(_lc[I_PROP_HEIGHT], IntToStr(Height), True)-1] do
+          begin
+            EditStyle := esSimple;
+            MaxLength := 5;
+          end;
+
+          with ItemProps[InsertRow(_lc[I_PROP_TR_ENABLED], BoolNames[Enabled], True)-1] do
+          begin
+            EditStyle := esPickList;
+            ReadOnly := True;
+          end;
+
+          with ItemProps[InsertRow(_lc[I_PROP_TR_TEXTURE_PANEL], IntToStr(TexturePanel), True)-1] do
+          begin
+            EditStyle := esEllipsis;
+            ReadOnly := True;
+          end;
+
+          with ItemProps[InsertRow(_lc[I_PROP_TR_ACTIVATION], ActivateToStr(ActivateType), True)-1] do
+          begin
+            EditStyle := esEllipsis;
+            ReadOnly := True;
+          end;
+
+          with ItemProps[InsertRow(_lc[I_PROP_TR_KEYS], KeyToStr(Key), True)-1] do
+          begin
+            EditStyle := esEllipsis;
+            ReadOnly := True;
+          end;
+
+          case TriggerType of
+            TRIGGER_EXIT:
+              begin
+                with ItemProps[InsertRow(_lc[I_PROP_TR_NEXT_MAP], Data.MapName, True)-1] do
+                begin
+                  EditStyle := esEllipsis;
+                  ReadOnly := True;
+                end;
+              end;
+
+            TRIGGER_TELEPORT:
+              begin
+                with ItemProps[InsertRow(_lc[I_PROP_TR_TELEPORT_TO], Format('(%d:%d)', [Data.TargetPoint.X, Data.TargetPoint.Y]), True)-1] do
+                begin
+                  EditStyle := esEllipsis;
+                  ReadOnly := True;
+                end;
+
+                with ItemProps[InsertRow(_lc[I_PROP_TR_D2D], BoolNames[Data.d2d_teleport], True)-1] do
+                begin
+                  EditStyle := esPickList;
+                  ReadOnly := True;
+                end;
+
+                with ItemProps[InsertRow(_lc[I_PROP_TR_TELEPORT_SILENT], BoolNames[Data.silent_teleport], True)-1] do
+                begin
+                  EditStyle := esPickList;
+                  ReadOnly := True;
+                end;
+
+                with ItemProps[InsertRow(_lc[I_PROP_TR_TELEPORT_DIR], DirNamesAdv[Data.TlpDir], True)-1] do
+                begin
+                  EditStyle := esPickList;
+                  ReadOnly := True;
+                end;
+              end;
+
+            TRIGGER_OPENDOOR, TRIGGER_CLOSEDOOR,
+            TRIGGER_DOOR, TRIGGER_DOOR5:
+              begin
+                with ItemProps[InsertRow(_lc[I_PROP_TR_DOOR_PANEL], IntToStr(Data.PanelID), True)-1] do
+                begin
+                  EditStyle := esEllipsis;
+                  ReadOnly := True;
+                end;
+
+                with ItemProps[InsertRow(_lc[I_PROP_TR_SILENT], BoolNames[Data.NoSound], True)-1] do
+                begin
+                  EditStyle := esPickList;
+                  ReadOnly := True;
+                end;
+
+                with ItemProps[InsertRow(_lc[I_PROP_TR_D2D], BoolNames[Data.d2d_doors], True)-1] do
+                begin
+                  EditStyle := esPickList;
+                  ReadOnly := True;
+                end;
+              end;
+
+            TRIGGER_CLOSETRAP, TRIGGER_TRAP:
+              begin
+                with ItemProps[InsertRow(_lc[I_PROP_TR_TRAP_PANEL], IntToStr(Data.PanelID), True)-1] do
+                begin
+                  EditStyle := esEllipsis;
+                  ReadOnly := True;
+                end;
+
+                with ItemProps[InsertRow(_lc[I_PROP_TR_SILENT], BoolNames[Data.NoSound], True)-1] do
+                begin
+                  EditStyle := esPickList;
+                  ReadOnly := True;
+                end;
+
+                with ItemProps[InsertRow(_lc[I_PROP_TR_D2D], BoolNames[Data.d2d_doors], True)-1] do
+                begin
+                  EditStyle := esPickList;
+                  ReadOnly := True;
+                end;
+              end;
+
+            TRIGGER_PRESS, TRIGGER_ON, TRIGGER_OFF,
+            TRIGGER_ONOFF:
+              begin
+                with ItemProps[InsertRow(_lc[I_PROP_TR_EX_AREA],
+                                 Format('(%d:%d %d:%d)', [Data.tX, Data.tY, Data.tWidth, Data.tHeight]), True)-1] do
+                begin
+                  EditStyle := esEllipsis;
+                  ReadOnly := True;
+                end;
+
+                with ItemProps[InsertRow(_lc[I_PROP_TR_EX_DELAY], IntToStr(Data.Wait), True)-1] do
+                begin
+                  EditStyle := esSimple;
+                  MaxLength := 5;
+                end;
+
+                with ItemProps[InsertRow(_lc[I_PROP_TR_EX_COUNT], IntToStr(Data.Count), True)-1] do
+                begin
+                  EditStyle := esSimple;
+                  MaxLength := 5;
+                end;
+
+                with ItemProps[InsertRow(_lc[I_PROP_TR_EX_MONSTER], IntToStr(Data.MonsterID-1), True)-1] do
+                begin
+                  EditStyle := esEllipsis;
+                  ReadOnly := True;
+                end;
+              end;
+
+            TRIGGER_SECRET:
+              ;
+
+            TRIGGER_LIFTUP, TRIGGER_LIFTDOWN, TRIGGER_LIFT:
+              begin
+                with ItemProps[InsertRow(_lc[I_PROP_TR_LIFT_PANEL], IntToStr(Data.PanelID), True)-1] do
+                begin
+                  EditStyle := esEllipsis;
+                  ReadOnly := True;
+                end;
+
+                with ItemProps[InsertRow(_lc[I_PROP_TR_SILENT], BoolNames[Data.NoSound], True)-1] do
+                begin
+                  EditStyle := esPickList;
+                  ReadOnly := True;
+                end;
+
+                with ItemProps[InsertRow(_lc[I_PROP_TR_D2D], BoolNames[Data.d2d_doors], True)-1] do
+                begin
+                  EditStyle := esPickList;
+                  ReadOnly := True;
+                end;
+              end;
+
+            TRIGGER_TEXTURE:
+              begin
+                with ItemProps[InsertRow(_lc[I_PROP_TR_TEXTURE_ONCE], BoolNames[Data.ActivateOnce], True)-1] do
+                begin
+                  EditStyle := esPickList;
+                  ReadOnly := True;
+                end;
+
+                with ItemProps[InsertRow(_lc[I_PROP_TR_TEXTURE_ANIM_ONCE], BoolNames[Data.AnimOnce], True)-1] do
+                begin
+                  EditStyle := esPickList;
+                  ReadOnly := True;
+                end;
+              end;
+
+            TRIGGER_SOUND:
+              begin
+                with ItemProps[InsertRow(_lc[I_PROP_TR_SOUND_NAME], Data.SoundName, True)-1] do
+                begin
+                  EditStyle := esEllipsis;
+                  ReadOnly := True;
+                end;
+
+                with ItemProps[InsertRow(_lc[I_PROP_TR_SOUND_VOLUME], IntToStr(Data.Volume), True)-1] do
+                begin
+                  EditStyle := esSimple;
+                  MaxLength := 3;
+                end;
+
+                with ItemProps[InsertRow(_lc[I_PROP_TR_SOUND_PAN], IntToStr(Data.Pan), True)-1] do
+                begin
+                  EditStyle := esSimple;
+                  MaxLength := 3;
+                end;
+
+                with ItemProps[InsertRow(_lc[I_PROP_TR_SOUND_COUNT], IntToStr(Data.PlayCount), True)-1] do
+                begin
+                  EditStyle := esSimple;
+                  MaxLength := 3;
+                end;
+
+                with ItemProps[InsertRow(_lc[I_PROP_TR_SOUND_LOCAL], BoolNames[Data.Local], True)-1] do
+                begin
+                  EditStyle := esPickList;
+                  ReadOnly := True;
+                end;
+
+                with ItemProps[InsertRow(_lc[I_PROP_TR_SOUND_SWITCH], BoolNames[Data.SoundSwitch], True)-1] do
+                begin
+                  EditStyle := esPickList;
+                  ReadOnly := True;
+                end;
+              end;
+
+            TRIGGER_SPAWNMONSTER:
+              begin
+                with ItemProps[InsertRow(_lc[I_PROP_TR_MONSTER_TYPE], MonsterToStr(Data.MonType), True)-1] do
+                begin
+                  EditStyle := esEllipsis;
+                  ReadOnly := True;
+                end;
+
+                with ItemProps[InsertRow(_lc[I_PROP_TR_MONSTER_TO],
+                                 Format('(%d:%d)', [Data.MonPos.X, Data.MonPos.Y]), True)-1] do
+                begin
+                  EditStyle := esEllipsis;
+                  ReadOnly := True;
+                end;
+
+                with ItemProps[InsertRow(_lc[I_PROP_DIRECTION], DirNames[TDirection(Data.MonDir)], True)-1] do
+                begin
+                  EditStyle := esPickList;
+                  ReadOnly := True;
+                end;
+
+                with ItemProps[InsertRow(_lc[I_PROP_TR_MONSTER_HEALTH], IntToStr(Data.MonHealth), True)-1] do
+                begin
+                  EditStyle := esSimple;
+                  MaxLength := 5;
+                end;
+
+                with ItemProps[InsertRow(_lc[I_PROP_TR_MONSTER_ACTIVE], BoolNames[Data.MonActive], True)-1] do
+                begin
+                  EditStyle := esPickList;
+                  ReadOnly := True;
+                end;
+
+                with ItemProps[InsertRow(_lc[I_PROP_TR_MONSTER_COUNT], IntToStr(Data.MonCount), True)-1] do
+                begin
+                  EditStyle := esSimple;
+                  MaxLength := 5;
+                end;
+              end;
+
+            TRIGGER_SPAWNITEM:
+              begin
+                with ItemProps[InsertRow(_lc[I_PROP_TR_ITEM_TYPE], ItemToStr(Data.ItemType), True)-1] do
+                begin
+                  EditStyle := esEllipsis;
+                  ReadOnly := True;
+                end;
+
+                with ItemProps[InsertRow(_lc[I_PROP_TR_ITEM_TO],
+                                 Format('(%d:%d)', [Data.ItemPos.X, Data.ItemPos.Y]), True)-1] do
+                begin
+                  EditStyle := esEllipsis;
+                  ReadOnly := True;
+                end;
+
+                with ItemProps[InsertRow(_lc[I_PROP_DM_ONLY], BoolNames[Data.ItemOnlyDM], True)-1] do
+                begin
+                  EditStyle := esPickList;
+                  ReadOnly := True;
+                end;
+
+                with ItemProps[InsertRow(_lc[I_PROP_ITEM_FALLS], BoolNames[Data.ItemFalls], True)-1] do
+                begin
+                  EditStyle := esPickList;
+                  ReadOnly := True;
+                end;
+
+                with ItemProps[InsertRow(_lc[I_PROP_TR_ITEM_COUNT], IntToStr(Data.ItemCount), True)-1] do
+                begin
+                  EditStyle := esSimple;
+                  MaxLength := 5;
+                end;
+              end;
+
+           TRIGGER_MUSIC:
+             begin
+               with ItemProps[InsertRow(_lc[I_PROP_TR_MUSIC_NAME], Data.MusicName, True)-1] do
+               begin
+                 EditStyle := esEllipsis;
+                 ReadOnly := True;
+               end;
+
+               if Data.MusicAction = 1 then
+                 str := _lc[I_PROP_TR_MUSIC_ON]
+               else
+                 str := _lc[I_PROP_TR_MUSIC_OFF];
+
+               with ItemProps[InsertRow(_lc[I_PROP_TR_MUSIC_ACT], str, True)-1] do
+               begin
+                 EditStyle := esPickList;
+                 ReadOnly := True;
+               end;
+             end;
+          end; //case TriggerType
+        end;
+      end; // OBJECT_TRIGGER:
   end;
+end;
 
-  OBJECT_ITEM:
+procedure ChangeShownProperty(Name: String; NewValue: String);
+var
+  row: Integer;
+
+begin
+  if SelectedObjectCount() <> 1 then
+    Exit;
+  if not SelectedObjects[GetFirstSelected()].Live then
+    Exit;
+
+// Есть ли такой ключ:
+  if MainForm.vleObjectProperty.FindRow(Name, row) then
   begin
-   with MainForm.vleObjectProperty, gItems[SelectedObjects[_id].ID] do
-   begin
-    with ItemProps[InsertRow('X', IntToStr(X), True)-1] do
-    begin
-     EditStyle := esSimple;
-     MaxLength := 5;
-    end;
-
-    with ItemProps[InsertRow('Y', IntToStr(Y), True)-1] do
-    begin
-     EditStyle := esSimple;
-     MaxLength := 5;
-    end;
-
-    with ItemProps[InsertRow('Только DM', BoolNames[OnlyDM], True)-1] do
-    begin
-     EditStyle := esPickList;
-     ReadOnly := True;
-    end;
-
-    with ItemProps[InsertRow('Падает', BoolNames[Fall], True)-1] do
-    begin
-     EditStyle := esPickList;
-     ReadOnly := True;
-    end;
-   end;
+    MainForm.vleObjectProperty.Values[Name] := NewValue;
   end;
-
-  OBJECT_MONSTER:
-  begin
-   with MainForm.vleObjectProperty, gMonsters[SelectedObjects[_id].ID] do
-   begin
-    with ItemProps[InsertRow('X', IntToStr(X), True)-1] do
-    begin
-     EditStyle := esSimple;
-     MaxLength := 5;
-    end;
-
-    with ItemProps[InsertRow('Y', IntToStr(Y), True)-1] do
-    begin
-     EditStyle := esSimple;
-     MaxLength := 5;
-    end;
-
-    with ItemProps[InsertRow('Направление', DirNames[Direction], True)-1] do
-    begin
-     EditStyle := esPickList;
-     ReadOnly := True;
-    end;
-   end;
-  end;
-
-  OBJECT_AREA:
-  begin
-   with MainForm.vleObjectProperty, gAreas[SelectedObjects[_id].ID] do
-   begin
-    with ItemProps[InsertRow('X', IntToStr(X), True)-1] do
-    begin
-     EditStyle := esSimple;
-     MaxLength := 5;
-    end;
-
-    with ItemProps[InsertRow('Y', IntToStr(Y), True)-1] do
-    begin
-     EditStyle := esSimple;
-     MaxLength := 5;
-    end;
-
-    with ItemProps[InsertRow('Направление', DirNames[Direction], True)-1] do
-    begin
-     EditStyle := esPickList;
-     ReadOnly := True;
-    end;
-   end;
-  end;
-
-  OBJECT_TRIGGER:
-  begin
-   with MainForm.vleObjectProperty, gTriggers[SelectedObjects[_id].ID] do
-   begin
-    with ItemProps[InsertRow('Тип триггера', GetTriggerName(TriggerType), True)-1] do
-    begin
-     EditStyle := esSimple;
-     ReadOnly := True;
-    end;
-
-    with ItemProps[InsertRow('X', IntToStr(X), True)-1] do
-    begin
-     EditStyle := esSimple;
-     MaxLength := 5;
-    end;
-
-    with ItemProps[InsertRow('Y', IntToStr(Y), True)-1] do
-    begin
-     EditStyle := esSimple;
-     MaxLength := 5;
-    end;
-
-    with ItemProps[InsertRow('Длина', IntToStr(Width), True)-1] do
-    begin
-     EditStyle := esSimple;
-     MaxLength := 5;
-    end;
-
-    with ItemProps[InsertRow('Высота', IntToStr(Height), True)-1] do
-    begin
-     EditStyle := esSimple;
-     MaxLength := 5;
-    end;
-
-    with ItemProps[InsertRow('Включен', BoolNames[Enabled], True)-1] do
-    begin
-     EditStyle := esPickList;
-     ReadOnly := True;
-    end;
-
-    with ItemProps[InsertRow('Панель с текстурой', IntToStr(TexturePanel), True)-1] do
-    begin
-     EditStyle := esEllipsis;
-     ReadOnly := True;
-    end;
-
-    with ItemProps[InsertRow('Тип активации', ActivateToStr(ActivateType), True)-1] do
-    begin
-     EditStyle := esEllipsis;
-     ReadOnly := True;
-    end;
-
-    with ItemProps[InsertRow('Ключи', KeyToStr(Key), True)-1] do
-    begin
-     EditStyle := esEllipsis;
-     ReadOnly := True;
-    end;
-
-    case TriggerType of
-    TRIGGER_EXIT:
-    begin
-     with ItemProps[InsertRow('След. карта', Data.MapName, True)-1] do
-     begin
-      EditStyle := esEllipsis;
-      ReadOnly := True;
-     end;
-    end;
-
-    TRIGGER_TELEPORT:
-    begin
-     with ItemProps[InsertRow('Точка телепорта', Format('(%d:%d)', [Data.TargetPoint.X, Data.TargetPoint.Y]), True)-1] do
-     begin
-      EditStyle := esEllipsis;
-      ReadOnly := True;
-     end;
-
-     with ItemProps[InsertRow('Как в D2D', BoolNames[Data.d2d_teleport], True)-1] do
-     begin
-      EditStyle := esPickList;
-      ReadOnly := True;
-     end;
-
-     with ItemProps[InsertRow('Тихий телепорт', BoolNames[Data.silent_teleport], True)-1] do
-     begin
-      EditStyle := esPickList;
-      ReadOnly := True;
-     end;
-
-     {with ItemProps[InsertRow('Телепорт итемов', BoolNames[Data.items_teleport], True)-1] do
-     begin
-      EditStyle := esPickList;
-      ReadOnly := True;
-     end;}
-    end;
-
-    TRIGGER_OPENDOOR, TRIGGER_CLOSEDOOR, TRIGGER_DOOR, TRIGGER_DOOR5:
-    begin
-     with ItemProps[InsertRow('Панель двери', IntToStr(Data.PanelID), True)-1] do
-     begin
-      EditStyle := esEllipsis;
-      ReadOnly := True;
-     end;
-
-     with ItemProps[InsertRow('Без звука', BoolNames[Data.NoSound], True)-1] do
-     begin
-      EditStyle := esPickList;
-      ReadOnly := True;
-     end;
-
-     with ItemProps[InsertRow('Как в D2D', BoolNames[Data.d2d_doors], True)-1] do
-     begin
-      EditStyle := esPickList;
-      ReadOnly := True;
-     end;
-    end;
-
-    TRIGGER_CLOSETRAP, TRIGGER_TRAP:
-    begin
-     with ItemProps[InsertRow('Панель ловушки', IntToStr(Data.PanelID), True)-1] do
-     begin
-      EditStyle := esEllipsis;
-      ReadOnly := True;
-     end;
-
-     with ItemProps[InsertRow('Без звука', BoolNames[Data.NoSound], True)-1] do
-     begin
-      EditStyle := esPickList;
-      ReadOnly := True;
-     end;
-
-     with ItemProps[InsertRow('Как в D2D', BoolNames[Data.d2d_doors], True)-1] do
-     begin
-      EditStyle := esPickList;
-      ReadOnly := True;
-     end;
-    end;
-
-    TRIGGER_PRESS, TRIGGER_ON, TRIGGER_OFF, TRIGGER_ONOFF:
-    begin
-     with ItemProps[InsertRow('Область воздействия', Format('(%d:%d %d:%d)',
-                              [Data.tX, Data.tY, Data.tWidth, Data.tHeight]), True)-1] do
-     begin
-      EditStyle := esEllipsis;
-      ReadOnly := True;
-     end;
-
-     with ItemProps[InsertRow('Задержка', IntToStr(Data.Wait), True)-1] do
-     begin
-      EditStyle := esSimple;
-      MaxLength := 5;
-     end;
-
-     with ItemProps[InsertRow('Счетчик', IntToStr(Data.Count), True)-1] do
-     begin
-      EditStyle := esSimple;
-      MaxLength := 5;
-     end;
-
-     with ItemProps[InsertRow('ID монстра', IntToStr(Data.MonsterID-1), True)-1] do
-     begin
-      EditStyle := esEllipsis;
-      ReadOnly := True;
-     end;
-    end;
-
-    TRIGGER_SECRET: ;
-
-    TRIGGER_LIFTUP, TRIGGER_LIFTDOWN, TRIGGER_LIFT:
-    begin
-     with ItemProps[InsertRow('Панель лифта', IntToStr(Data.PanelID), True)-1] do
-     begin
-      EditStyle := esEllipsis;
-      ReadOnly := True;
-     end;
-
-     with ItemProps[InsertRow('Без звука', BoolNames[Data.NoSound], True)-1] do
-     begin
-      EditStyle := esPickList;
-      ReadOnly := True;
-     end;
-
-     with ItemProps[InsertRow('Как в D2D', BoolNames[Data.d2d_doors], True)-1] do
-     begin
-      EditStyle := esPickList;
-      ReadOnly := True;
-     end;
-    end;
-
-    TRIGGER_TEXTURE:
-    begin
-     with ItemProps[InsertRow('Один раз', BoolNames[Data.ActivateOnce], True)-1] do
-     begin
-      EditStyle := esPickList;
-      ReadOnly := True;
-     end;
-
-     with ItemProps[InsertRow('Аним. один раз', BoolNames[Data.AnimOnce], True)-1] do
-     begin
-      EditStyle := esPickList;
-      ReadOnly := True;
-     end;
-    end;
-
-    TRIGGER_SOUND:
-    begin
-     with ItemProps[InsertRow('Звук', Data.SoundName, True)-1] do
-     begin
-      EditStyle := esEllipsis;
-      ReadOnly := True;
-     end;
-
-     with ItemProps[InsertRow('Громкость', IntToStr(Data.Volume), True)-1] do
-     begin
-      EditStyle := esSimple;
-      MaxLength := 3;
-     end;
-
-     with ItemProps[InsertRow('Стерео', IntToStr(Data.Pan), True)-1] do
-     begin
-      EditStyle := esSimple;
-      MaxLength := 3;
-     end;
-
-     with ItemProps[InsertRow('Цикл', IntToStr(Data.PlayCount), True)-1] do
-     begin
-      EditStyle := esSimple;
-      MaxLength := 3;
-     end;
-
-     {with ItemProps[InsertRow('Дистанция', IntToStr(Data.SoundDistance), True)-1] do
-     begin
-      EditStyle := esSimple;
-      MaxLength := 3;
-     end;}
-
-     with ItemProps[InsertRow('Локальный', BoolNames[Data.Local], True)-1] do
-     begin
-      EditStyle := esPickList;
-      ReadOnly := True;
-     end;
-
-     with ItemProps[InsertRow('Переключение', BoolNames[Data.SoundSwitch], True)-1] do
-     begin
-      EditStyle := esPickList;
-      ReadOnly := True;
-     end;
-    end;
-    end; //case TriggerType
-   end;
-  end; // OBJECT_TRIGGER:
- end;
 end;
 
 procedure SelectObject(fObjectType: Byte; fID: DWORD; Multi: Boolean);
 var
   a: Integer;
   b: Boolean;
-begin
- if Multi then
- begin
-  b := False;
 
-  if SelectedObjects <> nil then
-   for a := 0 to High(SelectedObjects) do
-    with SelectedObjects[a] do
-    if Live and (ID = fID) and (ObjectType = fObjectType) then
+begin
+  if Multi then
     begin
-     Live := False;
-     b := True;
+      b := False;
+
+    // Уже выделен - убираем:
+      if SelectedObjects <> nil then
+        for a := 0 to High(SelectedObjects) do
+          with SelectedObjects[a] do
+           if Live and (ID = fID) and
+              (ObjectType = fObjectType) then
+           begin
+             Live := False;
+             b := True;
+           end;
+
+      if b then
+        Exit;
+
+      SetLength(SelectedObjects, Length(SelectedObjects)+1);
+
+      with SelectedObjects[High(SelectedObjects)] do
+      begin
+        ObjectType := fObjectType;
+        ID := fID;
+        Live := True;
+      end;
+    end
+  else // not Multi
+    begin
+      SetLength(SelectedObjects, 1);
+
+      with SelectedObjects[0] do
+      begin
+        ObjectType := fObjectType;
+        ID := fID;
+        Live := True;
+      end;
     end;
 
-  if b then Exit;
+  MainForm.miCopy.Enabled := True;
+  MainForm.miCut.Enabled := True;
 
-  SetLength(SelectedObjects, Length(SelectedObjects)+1);
-
-  with SelectedObjects[High(SelectedObjects)] do
+  if fObjectType = OBJECT_PANEL then
   begin
-   ObjectType := fObjectType;
-   ID := fID;
-   Live := True;
+    MainForm.miToFore.Enabled := True;
+    MainForm.miToBack.Enabled := True;
   end;
- end
-  else
- begin
-  SetLength(SelectedObjects, 1);
-
-  with SelectedObjects[0] do
-  begin
-   ObjectType := fObjectType;
-   ID := fID;
-   Live := True;
-  end;
- end;
-
- MainForm.miCopy.Enabled := True;
- MainForm.miCut.Enabled := True;
-
- if fObjectType = OBJECT_PANEL then
- begin
-  MainForm.miToFore.Enabled := True;
-  MainForm.miToBack.Enabled := True;
- end;
 end;
 
-procedure RemoveSelect();
+procedure RemoveSelectFromObjects();
 begin
- SelectedObjects := nil;
- DrawPressRect := False;
- MouseLDown := False;
- MouseRDown := False;
- MouseAction := MOUSEACTION_NONE;
- SelectFlag := SELECTFLAG_NONE;
- ResizeType := RESIZETYPE_NONE;
- ResizeDirection := RESIZEDIR_NONE;
- MainForm.vleObjectProperty.Strings.Clear;
- MainForm.miCopy.Enabled := False;
- MainForm.miCut.Enabled := False;
- MainForm.miToFore.Enabled := False;
- MainForm.miToBack.Enabled := False;
+  SelectedObjects := nil;
+  DrawPressRect := False;
+  MouseLDown := False;
+  MouseRDown := False;
+  MouseAction := MOUSEACTION_NONE;
+  SelectFlag := SELECTFLAG_NONE;
+  ResizeType := RESIZETYPE_NONE;
+  ResizeDirection := RESIZEDIR_NONE;
+
+  MainForm.vleObjectProperty.Strings.Clear();
+  
+  MainForm.miCopy.Enabled := False;
+  MainForm.miCut.Enabled := False;
+  MainForm.miToFore.Enabled := False;
+  MainForm.miToBack.Enabled := False;
 end;
 
 procedure DeleteSelectedObjects();
 var
   i, a, ii: Integer;
   b: Boolean;
+
 begin
- if SelectedObjects = nil then Exit;
+  if SelectedObjects = nil then
+    Exit;
 
- b := False;
- i := 0;
+  b := False;
+  i := 0;
 
- for a := 0 to High(SelectedObjects) do
- with SelectedObjects[a] do
-  if Live then
-  begin
-   if not b then
-   begin
-    SetLength(UndoBuffer, Length(UndoBuffer)+1);
-    i := High(UndoBuffer);
-    b := True;
-   end;
+  for a := 0 to High(SelectedObjects) do
+    with SelectedObjects[a] do
+      if Live then
+      begin
+        if not b then
+        begin
+          SetLength(UndoBuffer, Length(UndoBuffer)+1);
+          i := High(UndoBuffer);
+          b := True;
+        end;
 
-   SetLength(UndoBuffer[i], Length(UndoBuffer[i])+1);
-   ii := High(UndoBuffer[i]);
+        SetLength(UndoBuffer[i], Length(UndoBuffer[i])+1);
+        ii := High(UndoBuffer[i]);
 
-   case ObjectType of
-    OBJECT_PANEL:
-    begin
-     UndoBuffer[i, ii].UndoType := UNDO_DELETE_PANEL;
-     New(UndoBuffer[i, ii].Panel);
-     UndoBuffer[i, ii].Panel^ := gPanels[ID];
-    end;
-    OBJECT_ITEM:
-    begin
-     UndoBuffer[i, ii].UndoType := UNDO_DELETE_ITEM;
-     UndoBuffer[i, ii].Item := gItems[ID];
-    end;
-    OBJECT_AREA:
-    begin
-     UndoBuffer[i, ii].UndoType := UNDO_DELETE_AREA;
-     UndoBuffer[i, ii].Area := gAreas[ID];
-    end;
-    OBJECT_TRIGGER:
-    begin
-     UndoBuffer[i, ii].UndoType := UNDO_DELETE_TRIGGER;
-     UndoBuffer[i, ii].Trigger := gTriggers[ID];
-    end;
-   end;
+        case ObjectType of
+          OBJECT_PANEL:
+            begin
+              UndoBuffer[i, ii].UndoType := UNDO_DELETE_PANEL;
+              New(UndoBuffer[i, ii].Panel);
+              UndoBuffer[i, ii].Panel^ := gPanels[ID];
+            end;
+          OBJECT_ITEM:
+            begin
+              UndoBuffer[i, ii].UndoType := UNDO_DELETE_ITEM;
+              UndoBuffer[i, ii].Item := gItems[ID];
+            end;
+          OBJECT_AREA:
+            begin
+              UndoBuffer[i, ii].UndoType := UNDO_DELETE_AREA;
+              UndoBuffer[i, ii].Area := gAreas[ID];
+            end;
+          OBJECT_TRIGGER:
+            begin
+              UndoBuffer[i, ii].UndoType := UNDO_DELETE_TRIGGER;
+              UndoBuffer[i, ii].Trigger := gTriggers[ID];
+            end;
+        end;
 
-   RemoveObject(ID, ObjectType);
-  end;
+        RemoveObject(ID, ObjectType);
+      end;
 
- RemoveSelect();
+  RemoveSelectFromObjects();
 
- MainForm.miUndo.Enabled := UndoBuffer <> nil;
+  MainForm.miUndo.Enabled := UndoBuffer <> nil;
 end;
 
 procedure Undo_Add(ObjectType: Byte; ID: DWORD; Group: Boolean = False);
 var
   i, ii: Integer;
+
 begin
- if not Group then SetLength(UndoBuffer, Length(UndoBuffer)+1);
- SetLength(UndoBuffer[High(UndoBuffer)], Length(UndoBuffer[High(UndoBuffer)])+1);
- i := High(UndoBuffer);
- ii := High(UndoBuffer[i]);
+  if (not Group) or (Length(UndoBuffer) = 0) then
+    SetLength(UndoBuffer, Length(UndoBuffer)+1);
+  SetLength(UndoBuffer[High(UndoBuffer)], Length(UndoBuffer[High(UndoBuffer)])+1);
+  i := High(UndoBuffer);
+  ii := High(UndoBuffer[i]);
 
- case ObjectType of
-  OBJECT_PANEL: UndoBuffer[i, ii].UndoType := UNDO_ADD_PANEL;
-  OBJECT_ITEM: UndoBuffer[i, ii].UndoType := UNDO_ADD_ITEM;
-  OBJECT_MONSTER: UndoBuffer[i, ii].UndoType := UNDO_ADD_MONSTER;
-  OBJECT_AREA: UndoBuffer[i, ii].UndoType := UNDO_ADD_AREA;
-  OBJECT_TRIGGER: UndoBuffer[i, ii].UndoType := UNDO_ADD_TRIGGER;
- end;
+  case ObjectType of
+    OBJECT_PANEL:
+      UndoBuffer[i, ii].UndoType := UNDO_ADD_PANEL;
+    OBJECT_ITEM:
+      UndoBuffer[i, ii].UndoType := UNDO_ADD_ITEM;
+    OBJECT_MONSTER:
+      UndoBuffer[i, ii].UndoType := UNDO_ADD_MONSTER;
+    OBJECT_AREA:
+      UndoBuffer[i, ii].UndoType := UNDO_ADD_AREA;
+    OBJECT_TRIGGER:
+      UndoBuffer[i, ii].UndoType := UNDO_ADD_TRIGGER;
+  end;
 
- UndoBuffer[i, ii].AddID := ID;
+  UndoBuffer[i, ii].AddID := ID;
 
- MainForm.miUndo.Enabled := UndoBuffer <> nil;
+  MainForm.miUndo.Enabled := UndoBuffer <> nil;
 end;
 
 procedure FullClear();
 begin
- RemoveSelect();
- ClearMap();
- UndoBuffer := nil;
- CopyBuffer := nil;
- MapCheckForm.lbErrorList.Clear;
- MapCheckForm.mErrorDescription.Clear;
- MainForm.miUndo.Enabled := False;
- MainForm.miPaste.Enabled := False;
- MainForm.sbHorizontal.Position := 0;
- MainForm.sbVertical.Position := 0;
- MainForm.FormResize(nil);
- MainForm.Caption := FormCaption;
- OpenedMap := '';
+  RemoveSelectFromObjects();
+  ClearMap();
+  UndoBuffer := nil;
+  MapCheckForm.lbErrorList.Clear();
+  MapCheckForm.mErrorDescription.Clear();
+
+  MainForm.miUndo.Enabled := False;
+  MainForm.sbHorizontal.Position := 0;
+  MainForm.sbVertical.Position := 0;
+  MainForm.FormResize(nil);
+  MainForm.Caption := FormCaption;
+  OpenedMap := '';
+  OpenedWAD := '';
+end;
+
+procedure ErrorMessageBox(str: String);
+begin
+  MessageBox(0, PChar(str), PChar(_lc[I_MSG_ERROR]),
+             MB_ICONINFORMATION or MB_OK or
+             MB_TASKMODAL or MB_DEFBUTTON1);
 end;
 
 function CheckProperty(): Boolean;
 var
   _id: Integer;
+
 begin
- Result := False;
+  Result := False;
 
- _id := GetFirstSelected();
+  _id := GetFirstSelected();
 
- if SelectedObjects[_id].ObjectType = OBJECT_PANEL then
- with gPanels[SelectedObjects[_id].ID] do
- begin
-  if TextureWidth <> 0 then
-   if StrToIntDef(MainForm.vleObjectProperty.Values['Длина'], 1) mod TextureWidth <> 0 then
-   begin
-    MessageBox(0, PChar(Format('Длина панели должна быть кратна длине текстуры (%d)',
-               [gPanels[SelectedObjects[_id].ID].TextureWidth])), 'Ошибка',
-               MB_ICONINFORMATION or MB_OK or MB_TASKMODAL or MB_DEFBUTTON1);
-    Exit;
-   end;
+  if SelectedObjects[_id].ObjectType = OBJECT_PANEL then
+    with gPanels[SelectedObjects[_id].ID] do
+    begin
+      if TextureWidth <> 0 then
+        if StrToIntDef(MainForm.vleObjectProperty.Values[_lc[I_PROP_WIDTH]], 1) mod TextureWidth <> 0 then
+        begin
+          ErrorMessageBox(Format(_lc[I_MSG_WRONG_TEXWIDTH],
+                                 [TextureWidth]));
+          Exit;
+        end;
 
-  if TextureHeight <> 0 then
-   if StrToIntDef(Trim(MainForm.vleObjectProperty.Values['Высота']), 1) mod TextureHeight <> 0 then
-   begin
-    MessageBox(0, PChar(Format('Высота панели должна быть кратна высоте текстуры (%d)',
-               [TextureHeight])), 'Ошибка', MB_ICONINFORMATION or MB_OK or
-               MB_TASKMODAL or MB_DEFBUTTON1);
-    Exit;
-   end;
+      if TextureHeight <> 0 then
+        if StrToIntDef(Trim(MainForm.vleObjectProperty.Values[_lc[I_PROP_HEIGHT]]), 1) mod TextureHeight <> 0 then
+        begin
+          ErrorMessageBox(Format(_lc[I_MSG_WRONG_TEXHEIGHT],
+                                 [TextureHeight]));
+          Exit;
+        end;
 
-  if IsTexturedPanel(PanelType) and (TextureName <> '') then
-   if not (StrToIntDef(MainForm.vleObjectProperty.Values['Прозрачность'], -1) in [0..255]) then
-   begin
-    MessageBox(0, PChar('Прозрачность должна быть в интервале [0..255]'), 'Ошибка',
-              MB_ICONINFORMATION or MB_OK or MB_TASKMODAL or MB_DEFBUTTON1);
-    Exit;
-   end;
- end;
+      if IsTexturedPanel(PanelType) and (TextureName <> '') then
+        if not (StrToIntDef(MainForm.vleObjectProperty.Values[_lc[I_PROP_PANEL_ALPHA]], -1) in [0..255]) then
+        begin
+          ErrorMessageBox(_lc[I_MSG_WRONG_ALPHA]);
+          Exit;
+        end;
+    end;
 
- if SelectedObjects[_id].ObjectType in [OBJECT_PANEL, OBJECT_TRIGGER] then
-  if (StrToIntDef(MainForm.vleObjectProperty.Values['Длина'], 0) <= 0) or
-     (StrToIntDef(MainForm.vleObjectProperty.Values['Высота'], 0) <= 0) then
+  if SelectedObjects[_id].ObjectType in [OBJECT_PANEL, OBJECT_TRIGGER] then
+    if (StrToIntDef(MainForm.vleObjectProperty.Values[_lc[I_PROP_WIDTH]], 0) <= 0) or
+       (StrToIntDef(MainForm.vleObjectProperty.Values[_lc[I_PROP_HEIGHT]], 0) <= 0) then
+    begin
+      ErrorMessageBox(_lc[I_MSG_WRONG_SIZE]);
+      Exit;
+    end;
+
+  if (Trim(MainForm.vleObjectProperty.Values[_lc[I_PROP_X]]) = '') or
+     (Trim(MainForm.vleObjectProperty.Values[_lc[I_PROP_Y]]) = '') then
   begin
-   MessageBox(0, PChar('Высота и длина должны быть больше 0'), 'Ошибка',
-              MB_ICONINFORMATION or MB_OK or MB_TASKMODAL or MB_DEFBUTTON1);
-   Exit;
+    ErrorMessageBox(_lc[I_MSG_WRONG_XY]);
+    Exit;
   end;
 
- if (Trim(MainForm.vleObjectProperty.Values['X']) = '') or
-    (Trim(MainForm.vleObjectProperty.Values['Y']) = '') then
- begin
-  MessageBox(0, PChar('Не заданы координаты X и Y'), 'Ошибка',
-             MB_ICONINFORMATION or MB_OK or MB_TASKMODAL or MB_DEFBUTTON1);
-  Exit;
- end;
-
- Result := True;
+  Result := True;
 end;
 
-function AddTexture(): Boolean;
+function AddTexture(aWAD, aSection, aTex: String; silent: Boolean): Boolean;
 var
-  i: Integer;
   a: Integer;
   ok: Boolean;
-  FileName: string;
-  ResourceName: string;
-  FullResourceName: string;
-  SectionName: string;
+  FileName: String;
+  ResourceName: String;
+  FullResourceName: String;
+  SectionName: String;
   Data: Pointer;
   Width, Height: Word;
-  fn: string;
+  fn: String;
+  
 begin
- ok := False;
+  if aSection = '..' then
+    SectionName := ''
+  else
+    SectionName := aSection;
 
- for i := 0 to AddTextureForm.lbResourcesList.Count-1 do
-  if AddTextureForm.lbResourcesList.Selected[i] then
-  begin
-   ok := True;
-
-   if AddTextureForm.cbSectionsList.Text = '..' then
-    SectionName := '' else SectionName := AddTextureForm.cbSectionsList.Text;
-
-   if AddTextureForm.cbWADList.Text = WAD_SPECIAL_MAP then
-   begin
-    g_ProcessResourceStr(OpenedMap, @fn, nil, nil);
+  if aWAD = _lc[I_WAD_SPECIAL_MAP] then
+    begin // Файл карты
+      g_ProcessResourceStr(OpenedMap, @fn, nil, nil);
     //FileName := EditorDir+'maps\'+ExtractFileName(fn);
-    FileName := fn;
-    ResourceName := ':'+SectionName+'\'+AddTextureForm.lbResourcesList.Items[i];
-   end
-    else if AddTextureForm.cbWADList.Text = WAD_SPECIAL_TEXTURES then
-   begin
-    FileName := '';
-    ResourceName := AddTextureForm.lbResourcesList.Items[i];
-   end
+      FileName := fn;
+      ResourceName := ':'+SectionName+'\'+aTex;
+    end
+  else
+    if aWAD = _lc[I_WAD_SPECIAL_TEXS] then
+      begin // Спец. текстуры
+        FileName := '';
+        ResourceName := aTex;
+      end
     else
-   begin
-    FileName := EditorDir+'wads\'+AddTextureForm.cbWADList.Text;
-    ResourceName := AddTextureForm.cbWADList.Text+':'+SectionName+'\'+
-                    AddTextureForm.lbResourcesList.Items[i]
-   end;
+      begin // Внешний WAD
+        FileName := EditorDir+'wads\'+aWAD;
+        ResourceName := aWAD+':'+SectionName+'\'+aTex;
+      end;
 
-   for a := 0 to MainForm.lbTextureList.Items.Count-1 do
+  ok := True;
+
+// Есть ли уже такая текстура:
+  for a := 0 to MainForm.lbTextureList.Items.Count-1 do
     if ResourceName = MainForm.lbTextureList.Items[a] then
     begin
-     MessageBox(0, PChar(Format('Текстура "%s" уже существует', [ResourceName])),
-                'Ошибка', MB_ICONINFORMATION or MB_OK or MB_TASKMODAL or MB_DEFBUTTON1);
-     ok := False;
+      if not silent then
+        ErrorMessageBox(Format(_lc[I_MSG_TEXTURE_ALREADY],
+                               [ResourceName]));
+      ok := False;
     end;
 
-   if Length(ResourceName) > 64 then
-   begin
-    MessageBox(0, PChar(Format('Имя ресурса "%s" должно быть <= 64 символам', [ResourceName])),
-               'Ошибка', MB_ICONINFORMATION or MB_OK or MB_TASKMODAL or MB_DEFBUTTON1);
+// Название ресурса <= 64 символов:
+  if Length(ResourceName) > 64 then
+  begin
+    if not silent then
+      ErrorMessageBox(Format(_lc[I_MSG_RES_NAME_64],
+                             [ResourceName]));
     ok := False;
-   end;
+  end;
 
-   if ok then
-   begin
-    if AddTextureForm.cbWADList.Text = WAD_SPECIAL_TEXTURES then
+  if ok then
+  begin
+    if aWAD = _lc[I_WAD_SPECIAL_TEXS] then
     begin
-     MainForm.lbTextureList.Items.Add(ResourceName);
-     Continue;
+      MainForm.lbTextureList.Items.Add(ResourceName);
+      Result := True;
+      Exit;
     end;
 
-    FullResourceName := FileName+':'+SectionName+'\'+AddTextureForm.lbResourcesList.Items[i];
+    FullResourceName := FileName+':'+SectionName+'\'+aTex;
 
     if IsAnim(FullResourceName) then
-    begin
-     GetFrame(FullResourceName, Data, Width, Height);
+      begin // Аним. текстура
+        GetFrame(FullResourceName, Data, Width, Height);
 
-     if g_CreateTextureMemorySize(Data, ResourceName, 0, 0, Width, Height, 1) then
-      MainForm.lbTextureList.Items.Add(ResourceName);
-    end
-     else
-    begin
-     if g_CreateTextureWAD(ResourceName, FullResourceName) then
-     MainForm.lbTextureList.Items.Add(ResourceName);
-    end;
-   end;
- end;
+        if g_CreateTextureMemorySize(Data, ResourceName, 0, 0, Width, Height, 1) then
+          MainForm.lbTextureList.Items.Add(ResourceName);
+      end
+    else // Обычная текстура
+      begin
+        if g_CreateTextureWAD(ResourceName, FullResourceName) then
+          MainForm.lbTextureList.Items.Add(ResourceName);
+      end;
+  end;
 
- Result := ok;
+  Result := ok;
 end;
 
-procedure OpenMap(FileName: string);
+procedure OpenMap(FileName: String; mapN: String);
 var
-  MapName: string;
+  MapName: String;
+  idx: Integer;
+
 begin
- SelectMapForm.GetMaps(FileName);
+  SelectMapForm.GetMaps(FileName);
 
- if (SelectMapForm.ShowModal = mrOK) and (SelectMapForm.lbMapList.ItemIndex <> -1) then
- with MainForm do
- begin
-  FullClear();
+  if (FileName = OpenedWAD) and
+     (OpenedMap <> '') then
+  begin
+    MapName := OpenedMap;
+    while (Pos(':\', MapName) > 0) do
+      Delete(MapName, 1, Pos(':\', MapName) + 1);
 
-  MapName := SelectMapForm.lbMapList.Items[SelectMapForm.lbMapList.ItemIndex];
+    idx := SelectMapForm.lbMapList.Items.IndexOf(MapName);
+    SelectMapForm.lbMapList.ItemIndex := idx;
+  end;
+ 
+  if mapN = '' then
+    idx := -1
+  else
+    idx := SelectMapForm.lbMapList.Items.IndexOf(mapN);
 
-  pLoadProgress.Left := (RenderPanel.Width div 2)-(pLoadProgress.Width div 2);
-  pLoadProgress.Top := (RenderPanel.Height div 2)-(pLoadProgress.Height div 2);
-  pLoadProgress.Show;
+  if idx < 0 then
+  begin
+    if (SelectMapForm.ShowModal() = mrOK) and
+       (SelectMapForm.lbMapList.ItemIndex <> -1) then
+      idx := SelectMapForm.lbMapList.ItemIndex
+    else
+      Exit;
+  end;
 
-  OpenedMap := FileName+':\'+MapName;                
-  LoadMap(FileName+':\'+MapName);
+  MapName := SelectMapForm.lbMapList.Items[idx];
 
-  pLoadProgress.Hide;
-  FormResize(nil);
+  with MainForm do
+  begin
+    FullClear();
 
-  lbTextureList.Sorted := True;
-  lbTextureList.Sorted := False;
+    pLoadProgress.Left := (RenderPanel.Width div 2)-(pLoadProgress.Width div 2);
+    pLoadProgress.Top := (RenderPanel.Height div 2)-(pLoadProgress.Height div 2);
+    pLoadProgress.Show();
 
-  Caption := Format('%s - %s:%s', [FormCaption, ExtractFileName(FileName), MapName]);
- end;
+    OpenedMap := FileName+':\'+MapName;
+    OpenedWAD := FileName;
+
+    idx := RecentFiles.IndexOf(OpenedMap);
+  // Такая карта уже недавно открывалась:
+    if idx >= 0 then
+      RecentFiles.Delete(idx);
+    RecentFiles.Insert(0, OpenedMap);
+    RefreshRecentMenu();
+
+    LoadMap(OpenedMap);
+
+    pLoadProgress.Hide();
+    FormResize(nil);
+
+    lbTextureList.Sorted := True;
+    lbTextureList.Sorted := False;
+
+    Caption := Format('%s - %s:%s', [FormCaption, ExtractFileName(FileName), MapName]);
+  end;
 end;
 
 procedure MoveSelectedObjects(Wall, alt: Boolean; dx, dy: Integer);
 var
   okX, okY: Boolean;
   a: Integer;
+
 begin
- if SelectedObjects = nil then Exit;
+  if SelectedObjects = nil then
+    Exit;
 
- okX := True;
- okY := True;
+  okX := True;
+  okY := True;
 
- if Wall then
- for a := 0 to High(SelectedObjects) do
-  if SelectedObjects[a].Live then
+  if Wall then
+    for a := 0 to High(SelectedObjects) do
+      if SelectedObjects[a].Live then
+      begin
+        if ObjectCollideLevel(SelectedObjects[a].ID, SelectedObjects[a].ObjectType, dx, 0) then
+          okX := False;
+
+        if ObjectCollideLevel(SelectedObjects[a].ID, SelectedObjects[a].ObjectType, 0, dy) then
+          okY := False;
+
+        if (not okX) or (not okY) then
+          Break;
+      end;
+
+  if okX or okY then
   begin
-   if ObjectCollideLevel(SelectedObjects[a].ID, SelectedObjects[a].ObjectType, dx, 0) then
-    okX := False;
+    for a := 0 to High(SelectedObjects) do
+      if SelectedObjects[a].Live then
+      begin
+        if okX then
+          MoveObject(SelectedObjects[a].ObjectType, SelectedObjects[a].ID, dx, 0);
 
-   if ObjectCollideLevel(SelectedObjects[a].ID, SelectedObjects[a].ObjectType, 0, dy) then
-    okY := False;
+        if okY then
+          MoveObject(SelectedObjects[a].ObjectType, SelectedObjects[a].ID, 0, dy);
 
-   if not (okX and okY) then Break;
+        if alt and (SelectedObjects[a].ObjectType = OBJECT_TRIGGER) then
+        begin
+          if gTriggers[SelectedObjects[a].ID].TriggerType in [TRIGGER_PRESS,
+               TRIGGER_ON, TRIGGER_OFF, TRIGGER_ONOFF] then
+          begin // Двигаем зону Расширителя
+            if okX then
+              gTriggers[SelectedObjects[a].ID].Data.tX := gTriggers[SelectedObjects[a].ID].Data.tX+dx;
+            if okY then
+              gTriggers[SelectedObjects[a].ID].Data.tY := gTriggers[SelectedObjects[a].ID].Data.tY+dy;
+          end;
+
+          if gTriggers[SelectedObjects[a].ID].TriggerType in [TRIGGER_TELEPORT] then
+          begin // Двигаем точку назначения Телепорта
+            if okX then
+              gTriggers[SelectedObjects[a].ID].Data.TargetPoint.X := gTriggers[SelectedObjects[a].ID].Data.TargetPoint.X+dx;
+            if okY then
+              gTriggers[SelectedObjects[a].ID].Data.TargetPoint.Y := gTriggers[SelectedObjects[a].ID].Data.TargetPoint.Y+dy;
+          end;
+
+          if gTriggers[SelectedObjects[a].ID].TriggerType in [TRIGGER_SPAWNMONSTER] then
+          begin // Двигаем точку создания монстра
+            if okX then
+              gTriggers[SelectedObjects[a].ID].Data.MonPos.X := gTriggers[SelectedObjects[a].ID].Data.MonPos.X+dx;
+            if okY then
+              gTriggers[SelectedObjects[a].ID].Data.MonPos.Y := gTriggers[SelectedObjects[a].ID].Data.MonPos.Y+dy;
+          end;
+
+          if gTriggers[SelectedObjects[a].ID].TriggerType in [TRIGGER_SPAWNITEM] then
+          begin // Двигаем точку создания предмета
+            if okX then
+              gTriggers[SelectedObjects[a].ID].Data.ItemPos.X := gTriggers[SelectedObjects[a].ID].Data.ItemPos.X+dx;
+            if okY then
+              gTriggers[SelectedObjects[a].ID].Data.ItemPos.Y := gTriggers[SelectedObjects[a].ID].Data.ItemPos.Y+dy;
+          end;
+        end;
+      end;
+
+    LastMovePoint := MousePos;
   end;
-
- if okX or okY then
- begin
-  for a := 0 to High(SelectedObjects) do
-   if SelectedObjects[a].Live then
-   begin
-    if okX then
-     MoveObject(SelectedObjects[a].ObjectType, SelectedObjects[a].ID, dx, 0);
-
-    if okY then
-     MoveObject(SelectedObjects[a].ObjectType, SelectedObjects[a].ID, 0, dy);
-
-    if alt and (SelectedObjects[a].ObjectType = OBJECT_TRIGGER) then
-    begin
-     if gTriggers[SelectedObjects[a].ID].TriggerType in [TRIGGER_PRESS,
-        TRIGGER_ON, TRIGGER_OFF, TRIGGER_ONOFF] then
-     begin
-      if okX then gTriggers[SelectedObjects[a].ID].Data.tX := gTriggers[SelectedObjects[a].ID].Data.tX+dx;
-      if okY then gTriggers[SelectedObjects[a].ID].Data.tY := gTriggers[SelectedObjects[a].ID].Data.tY+dy;
-     end;
-
-     if gTriggers[SelectedObjects[a].ID].TriggerType in [TRIGGER_TELEPORT] then
-     begin
-      if okX then gTriggers[SelectedObjects[a].ID].Data.TargetPoint.X := gTriggers[SelectedObjects[a].ID].Data.TargetPoint.X+dx;
-      if okY then gTriggers[SelectedObjects[a].ID].Data.TargetPoint.Y := gTriggers[SelectedObjects[a].ID].Data.TargetPoint.Y+dy;
-     end;
-    end;
-   end;
-
-   LastMovePoint := MousePos;
- end;
 end;
 
 procedure ShowLayer(Layer: Byte; show: Boolean);
 begin
- LayerEnabled[Layer] := show;
+  LayerEnabled[Layer] := show;
 
- case Layer of
-  LAYER_BACK:
-  begin
-   MainForm.miLayer1.Checked := show;
-   MainForm.miLayerP1.Checked := show;
+  case Layer of
+    LAYER_BACK:
+      begin
+        MainForm.miLayer1.Checked := show;
+        MainForm.miLayerP1.Checked := show;
+      end;
+    LAYER_WALLS:
+      begin
+        MainForm.miLayer2.Checked := show;
+        MainForm.miLayerP2.Checked := show;
+      end;
+    LAYER_FOREGROUND:
+      begin
+        MainForm.miLayer3.Checked := show;
+        MainForm.miLayerP3.Checked := show;
+      end;
+    LAYER_STEPS:
+      begin
+        MainForm.miLayer4.Checked := show;
+        MainForm.miLayerP4.Checked := show;
+      end;
+    LAYER_WATER:
+      begin
+        MainForm.miLayer5.Checked := show;
+        MainForm.miLayerP5.Checked := show;
+      end;
+    LAYER_ITEMS:
+      begin
+        MainForm.miLayer6.Checked := show;
+        MainForm.miLayerP6.Checked := show;
+      end;
+    LAYER_MONSTERS:
+      begin
+        MainForm.miLayer7.Checked := show;
+        MainForm.miLayerP7.Checked := show;
+      end;
+    LAYER_AREAS:
+      begin
+        MainForm.miLayer8.Checked := show;
+        MainForm.miLayerP8.Checked := show;
+      end;
+    LAYER_TRIGGERS:
+      begin
+        MainForm.miLayer9.Checked := show;
+        MainForm.miLayerP9.Checked := show;
+      end;
   end;
-  LAYER_WALLS:
-  begin
-   MainForm.miLayer2.Checked := show;
-   MainForm.miLayerP2.Checked := show;
-  end;
-  LAYER_FOREGROUND:
-  begin
-   MainForm.miLayer3.Checked := show;
-   MainForm.miLayerP3.Checked := show;
-  end;
-  LAYER_STEPS:
-  begin
-   MainForm.miLayer4.Checked := show;
-   MainForm.miLayerP4.Checked := show;
-  end;
-  LAYER_WATER:
-  begin
-   MainForm.miLayer5.Checked := show;
-   MainForm.miLayerP5.Checked := show;
-  end;
-  LAYER_ITEMS:
-  begin
-   MainForm.miLayer6.Checked := show;
-   MainForm.miLayerP6.Checked := show;
-  end;
-  LAYER_MONSTERS:
-  begin
-   MainForm.miLayer7.Checked := show;
-   MainForm.miLayerP7.Checked := show;
-  end;
-  LAYER_AREAS:
-  begin
-   MainForm.miLayer8.Checked := show;
-   MainForm.miLayerP8.Checked := show;
-  end;
-  LAYER_TRIGGERS:
-  begin
-   MainForm.miLayer9.Checked := show;
-   MainForm.miLayerP9.Checked := show;
-  end;
- end;
 
- RemoveSelect();
+  RemoveSelectFromObjects();
 end;
 
 procedure SwitchLayer(Layer: Byte);
 begin
- ShowLayer(Layer, not LayerEnabled[Layer]);
+  ShowLayer(Layer, not LayerEnabled[Layer]);
 end;
 
 procedure SwitchMap();
 begin
- ShowMap := not ShowMap;
- MainForm.tbShowMap.Down := ShowMap;
+  ShowMap := not ShowMap;
+  MainForm.tbShowMap.Down := ShowMap;
 end;
 
-function SelectedTexture(): string;
+function SelectedTexture(): String;
 begin
- if MainForm.lbTextureList.ItemIndex <> -1 then
-  Result := MainForm.lbTextureList.Items[MainForm.lbTextureList.ItemIndex]
-   else Result := '';
+  if MainForm.lbTextureList.ItemIndex <> -1 then
+    Result := MainForm.lbTextureList.Items[MainForm.lbTextureList.ItemIndex]
+  else
+    Result := '';
 end;
 
 function IsSpecialTextureSel(): Boolean;
 begin
- Result := (MainForm.lbTextureList.ItemIndex <> -1) and
-           IsSpecialTexture(MainForm.lbTextureList.Items[MainForm.lbTextureList.ItemIndex]);
+  Result := (MainForm.lbTextureList.ItemIndex <> -1) and
+            IsSpecialTexture(MainForm.lbTextureList.Items[MainForm.lbTextureList.ItemIndex]);
+end;
+
+function CopyBufferToString(var CopyBuf: TCopyRecArray): String;
+var
+  i, j: Integer;
+  Res: String;
+
+  procedure AddInt(x: Integer);
+  begin
+    Res := Res + IntToStr(x) + ' ';
+  end;
+
+begin
+  Result := '';
+
+  if Length(CopyBuf) = 0 then
+    Exit;
+
+  Res := CLIPBOARD_SIG + ' ';
+
+  for i := 0 to High(CopyBuf) do
+  begin
+    if (CopyBuf[i].ObjectType = OBJECT_PANEL) and
+       (CopyBuf[i].Panel = nil) then
+      Continue;
+
+  // Тип объекта:
+    AddInt(CopyBuf[i].ObjectType);
+    Res := Res + '; ';
+
+  // Свойства объекта:
+    case CopyBuf[i].ObjectType of
+      OBJECT_PANEL:
+        with CopyBuf[i].Panel^ do
+        begin
+          AddInt(PanelType);
+          AddInt(X);
+          AddInt(Y);
+          AddInt(Width);
+          AddInt(Height);
+          Res := Res + '"' + TextureName + '" ';
+          AddInt(Alpha);
+          AddInt(IfThen(Blending, 1, 0));
+        end;
+
+      OBJECT_ITEM:
+        with CopyBuf[i].Item do
+        begin
+          AddInt(ItemType);
+          AddInt(X);
+          AddInt(Y);
+          AddInt(IfThen(OnlyDM, 1, 0));
+          AddInt(IfThen(Fall, 1, 0));
+        end;
+
+      OBJECT_MONSTER:
+        with CopyBuf[i].Monster do
+        begin
+          AddInt(MonsterType);
+          AddInt(X);
+          AddInt(Y);
+          AddInt(IfThen(Direction = D_LEFT, 1, 0));
+        end;
+
+      OBJECT_AREA:
+        with CopyBuf[i].Area do
+        begin
+          AddInt(AreaType);
+          AddInt(X);
+          AddInt(Y);
+          AddInt(IfThen(Direction = D_LEFT, 1, 0));
+        end;
+
+      OBJECT_TRIGGER:
+        with CopyBuf[i].Trigger do
+        begin
+          AddInt(TriggerType);
+          AddInt(X);
+          AddInt(Y);
+          AddInt(Width);
+          AddInt(Height);
+          AddInt(ActivateType);
+          AddInt(Key);
+          AddInt(IfThen(Enabled, 1, 0));
+          AddInt(TexturePanel);
+
+          for j := 0 to 127 do
+            AddInt(Data.Default[j]);
+        end;
+    end;
+  end;
+
+  Result := Res;
+end;
+
+procedure StringToCopyBuffer(Str: String; var CopyBuf: TCopyRecArray);
+var
+  i, j, t: Integer;
+
+  function GetNext(): String;
+  var
+    p: Integer;
+
+  begin
+    if Str[1] = '"' then
+      begin
+        Delete(Str, 1, 1);
+        p := Pos('"', Str);
+
+        if p = 0 then
+          begin
+            Result := Str;
+            Str := '';
+          end
+        else
+          begin
+            Result := Copy(Str, 1, p-1);
+            Delete(Str, 1, p);
+            Str := Trim(Str);
+          end;
+      end
+    else
+      begin
+        p := Pos(' ', Str);
+
+        if p = 0 then
+          begin
+            Result := Str;
+            Str := '';
+          end
+        else
+          begin
+            Result := Copy(Str, 1, p-1);
+            Delete(Str, 1, p);
+            Str := Trim(Str);
+          end;
+      end;
+  end;
+
+begin
+  Str := Trim(Str);
+
+  if GetNext() <> CLIPBOARD_SIG then
+    Exit;
+
+  while Str <> '' do
+  begin
+  // Тип объекта:
+    t := StrToIntDef(GetNext(), 0);
+
+    if (t < OBJECT_PANEL) or (t > OBJECT_TRIGGER) or
+       (GetNext() <> ';') then
+    begin // Что-то не то => пропускаем:
+      t := Pos(';', Str);
+      Delete(Str, 1, t);
+      Str := Trim(Str);
+
+      Continue;
+    end;
+
+    i := Length(CopyBuf);
+    SetLength(CopyBuf, i + 1);
+
+    CopyBuf[i].ObjectType := t;
+    CopyBuf[i].Panel := nil;
+
+  // Свойства объекта:
+    case t of
+      OBJECT_PANEL:
+        begin
+          New(CopyBuf[i].Panel);
+          
+          with CopyBuf[i].Panel^ do
+          begin
+            PanelType := StrToIntDef(GetNext(), PANEL_WALL);
+            X := StrToIntDef(GetNext(), 0);
+            Y := StrToIntDef(GetNext(), 0);
+            Width := StrToIntDef(GetNext(), 16);
+            Height := StrToIntDef(GetNext(), 16);
+            TextureName := GetNext();
+            Alpha := StrToIntDef(GetNext(), 0);
+            Blending := (GetNext() = '1');
+          end;
+        end;
+
+      OBJECT_ITEM:
+        with CopyBuf[i].Item do
+        begin
+          ItemType := StrToIntDef(GetNext(), ITEM_MEDKIT_SMALL);
+          X := StrToIntDef(GetNext(), 0);
+          Y := StrToIntDef(GetNext(), 0);
+          OnlyDM := (GetNext() = '1');
+          Fall := (GetNext() = '1');
+        end;
+
+      OBJECT_MONSTER:
+        with CopyBuf[i].Monster do
+        begin
+          MonsterType := StrToIntDef(GetNext(), MONSTER_DEMON);
+          X := StrToIntDef(GetNext(), 0);
+          Y := StrToIntDef(GetNext(), 0);
+
+          if GetNext() = '1' then
+            Direction := D_LEFT
+          else
+            Direction := D_RIGHT;
+        end;
+
+      OBJECT_AREA:
+        with CopyBuf[i].Area do
+        begin
+          AreaType := StrToIntDef(GetNext(), AREA_PLAYERPOINT1);
+          X := StrToIntDef(GetNext(), 0);
+          Y := StrToIntDef(GetNext(), 0);
+          if GetNext() = '1' then
+            Direction := D_LEFT
+          else
+            Direction := D_RIGHT;
+        end;
+
+      OBJECT_TRIGGER:
+        with CopyBuf[i].Trigger do
+        begin
+          TriggerType := StrToIntDef(GetNext(), TRIGGER_EXIT);
+          X := StrToIntDef(GetNext(), 0);
+          Y := StrToIntDef(GetNext(), 0);
+          Width := StrToIntDef(GetNext(), 16);
+          Height := StrToIntDef(GetNext(), 16);
+          ActivateType := StrToIntDef(GetNext(), 0);
+          Key := StrToIntDef(GetNext(), 0);
+          Enabled := (GetNext() = '1');
+          TexturePanel := StrToIntDef(GetNext(), 0);
+
+          for j := 0 to 127 do
+            Data.Default[j] := StrToIntDef(GetNext(), 0);
+        end;
+    end;
+  end;
 end;
 
 //----------------------------------------
 //Закончились вспомогательные процедуры
 //----------------------------------------
 
+procedure TMainForm.RefreshRecentMenu();
+var
+  i: Integer;
+  MI: TMenuItem;
+
+begin
+// Лишние запомненные карты:
+  while RecentFiles.Count > RecentCount do
+    RecentFiles.Delete(RecentFiles.Count-1);
+
+// Лишние строки меню:
+  while MainMenu.Items[0].Count > RECENT_FILES_MENU_START do
+    MainMenu.Items[0].Delete(MainMenu.Items[0].Count-1);
+
+// Отделение списка карт от строки "Выход":
+  if RecentFiles.Count > 0 then
+  begin
+    MI := TMenuItem.Create(MainMenu.Items[0]);
+    MI.Caption := '-';
+    MainMenu.Items[0].Add(MI);
+  end;
+
+// Добавление в меню списка запомненных карт:
+  for i := 0 to RecentFiles.Count-1 do
+  begin
+    MI := TMenuItem.Create(MainMenu.Items[0]);
+    MI.Caption := IntToStr(i+1) + '  ' + RecentFiles[i];
+    MI.OnClick := aRecentFileExecute;
+    MainMenu.Items[0].Add(MI);
+  end;
+end;
+
+procedure TMainForm.aRecentFileExecute(Sender: TObject);
+var
+  n, pw: Integer;
+  s, fn: String;
+
+begin
+  s := LowerCase((Sender as TMenuItem).Caption);
+  Delete(s, Pos('&', s), 1);
+  s := Trim(Copy(s, 1, 2));
+  n := StrToIntDef(s, 0) - 1;
+
+  if (n < 0) or (n >= RecentFiles.Count) then
+    Exit;
+
+  s := RecentFiles[n];
+  pw := Pos('.wad:\', LowerCase(s));
+  
+  if pw > 0 then
+    begin // Map name included
+      fn := Copy(s, 1, pw + 3);
+      Delete(s, 1, pw + 5);
+      if (FileExists(fn)) then
+        OpenMap(fn, s);
+    end
+  else // Only wad name
+    if (FileExists(s)) then
+      OpenMap(s, '');
+end;
+
 procedure TMainForm.aEditorOptionsExecute(Sender: TObject);
 begin
- OptionsForm.ShowModal;
+  OptionsForm.ShowModal();
 end;
 
 procedure TMainForm.FormCreate(Sender: TObject);
@@ -1357,524 +2070,895 @@ var
   PixelFormat: GLuint;
   pfd: TPIXELFORMATDESCRIPTOR;
   config: TConfig;
+  i: Integer;
+  s: String;
+
 begin
- Randomize;
+  Randomize();
 
- EditorDir := ExtractFilePath(Application.ExeName);
+  EditorDir := ExtractFilePath(Application.ExeName);
 
- OpenDialog.InitialDir := EditorDir;
- SaveDialog.InitialDir := EditorDir;
+  e_InitLog(EditorDir+'Editor.log', WM_NEWFILE);
 
- e_InitLog(EditorDir+'Editor.log', WM_NEWFILE);
+  e_WriteLog('Init OpenGL', MSG_NOTIFY);
 
- e_WriteLog('Init OpenGL', MSG_NOTIFY);
+  InitOpenGL();
+  hDC := GetDC(RenderPanel.Handle);
 
- InitOpenGL();
- hDC := GetDC(RenderPanel.Handle);
+  FillChar(pfd, SizeOf(pfd), 0);
+  with pfd do
+  begin
+    nSize := SizeOf(pfd);
+    nVersion := 1;
+    dwFlags := PFD_DRAW_TO_WINDOW or PFD_SUPPORT_OPENGL or PFD_DOUBLEBUFFER;
+    dwLayerMask := PFD_MAIN_PLANE;
+    iPixelType := PFD_TYPE_RGBA;
+    cColorBits := 24;
+    cDepthBits := 32;
+    iLayerType := PFD_MAIN_PLANE;
+  end;
+  PixelFormat := ChoosePixelFormat (hDC, @pfd);
+  SetPixelFormat(hDC, PixelFormat, @pfd);
 
- FillChar(pfd, SizeOf(pfd), 0);
- with pfd do begin
-  nSize := SizeOf(pfd);
-  nVersion := 1;
-  dwFlags := PFD_DRAW_TO_WINDOW or PFD_SUPPORT_OPENGL or PFD_DOUBLEBUFFER;
-  iPixelType := PFD_TYPE_RGBA;
-  cColorBits := 24;
-  cDepthBits := 32;
-  iLayerType := PFD_MAIN_PLANE;
- end;
- PixelFormat := ChoosePixelFormat (hDC, @pfd);
- SetPixelFormat (hDC, PixelFormat, @pfd);
+  hRC := wglCreateContext(hDC);
+  ActivateRenderingContext(hDC, hRC);
 
- hRC := wglCreateContext(hDC);
- ActivateRenderingContext(hDC, hRC);
+  e_InitGL(False);
 
- e_InitGL(False);
+  gEditorFont := e_SimpleFontCreate('Arial Cyr', 12, FW_BOLD, hDC);
 
- gEditorFont := e_SimpleFontCreate('Arial Cyr', 12, FW_BOLD, hDC);
+  e_WriteLog('Loading data', MSG_NOTIFY);
+  LoadData();
 
- e_WriteLog('Loading data', MSG_NOTIFY);
- LoadData();
+  ShowLayer(LAYER_BACK, True);
+  ShowLayer(LAYER_WALLS, True);
+  ShowLayer(LAYER_FOREGROUND, True);
+  ShowLayer(LAYER_STEPS, True);
+  ShowLayer(LAYER_WATER, True);
+  ShowLayer(LAYER_ITEMS, True);
+  ShowLayer(LAYER_MONSTERS, True);
+  ShowLayer(LAYER_AREAS, True);
+  ShowLayer(LAYER_TRIGGERS, True);
 
- ShowLayer(LAYER_BACK, True);
- ShowLayer(LAYER_WALLS, True);
- ShowLayer(LAYER_FOREGROUND, True);
- ShowLayer(LAYER_STEPS, True);
- ShowLayer(LAYER_WATER, True);
- ShowLayer(LAYER_ITEMS, True);
- ShowLayer(LAYER_MONSTERS, True);
- ShowLayer(LAYER_AREAS, True);
- ShowLayer(LAYER_TRIGGERS, True); 
+  ClearMap();
 
- ClearMap();
+  FormCaption := MainForm.Caption;
+  OpenedMap := '';
+  OpenedWAD := '';
 
- FormCaption := MainForm.Caption;
- OpenedMap := '';
+  config := TConfig.CreateFile(EditorDir+'\Editor.cfg');
 
- config := TConfig.CreateFile(EditorDir+'\editor.cfg');
- if config.ReadBool('Editor', 'Maximize', False) then WindowState := wsMaximized;
- ShowMap := config.ReadBool('Editor', 'Minimap', False);
- config.Destroy;
+  if config.ReadBool('Editor', 'Maximize', False) then
+    WindowState := wsMaximized;
+  ShowMap := config.ReadBool('Editor', 'Minimap', False);
+  DotEnable := config.ReadBool('Editor', 'DotEnable', True);
+  DotColor := config.ReadInt('Editor', 'DotColor', $FFFFFF);
+  DotStepOne := config.ReadInt('Editor', 'DotStepOne', 16);
+  DotStepTwo := config.ReadInt('Editor', 'DotStepTwo', 8);
+  DotStep := config.ReadInt('Editor', 'DotStep', DotStepOne);
+  DrawTexturePanel := config.ReadBool('Editor', 'DrawTexturePanel', True);
+  DrawPanelSize := config.ReadBool('Editor', 'DrawPanelSize', True);
+  BackColor := config.ReadInt('Editor', 'BackColor', $7F6040);
+  PreviewColor := config.ReadInt('Editor', 'PreviewColor', $00FF00);
+  if config.ReadInt('Editor', 'Scale', 0) = 1 then
+    Scale := 2
+  else
+    Scale := 1;
+  if config.ReadInt('Editor', 'DotSize', 0) = 1 then
+    DotSize := 2
+  else
+    DotSize := 1;
+  OpenDialog.InitialDir := config.ReadStr('Editor', 'LastOpenDir', EditorDir);
+  SaveDialog.InitialDir := config.ReadStr('Editor', 'LastSaveDir', EditorDir);
 
- Application.OnIdle := OnIdle;
+  s := config.ReadStr('Editor', 'Language', '');
+  gLanguage := s;
+
+  RecentCount := config.ReadInt('Editor', 'RecentCount', 5);
+  if RecentCount > 10 then
+    RecentCount := 10;
+  if RecentCount < 2 then
+    RecentCount := 2;
+
+  RecentFiles := TStringList.Create();
+  for i := 0 to RecentCount-1 do
+  begin
+    s := config.ReadStr('RecentFiles', IntToStr(i+1), '');
+    if s <> '' then
+      RecentFiles.Add(s);
+  end;
+  RefreshRecentMenu();
+
+  config.Free();
+
+  tbShowMap.Down := ShowMap;
+  tbGridOn.Down := DotEnable;
+  pcObjects.ActivePageIndex := 0;
+  Application.Title := _lc[I_EDITOR_TITLE];
+
+  Application.OnIdle := OnIdle;
 end;
 
 procedure TMainForm.Draw();
 var
- ps: TPaintStruct;
- x, y: Integer;
- a, b: Integer;
- ID: DWORD;
- Width, Height: Word;
- Rect: TRectWH;
- ObjCount: Word;
- aX, aY, aX2, aY2, XX: Integer;
+  ps: TPaintStruct;
+  x, y: Integer;
+  a, b: Integer;
+  ID: DWORD;
+  Width, Height: Word;
+  Rect: TRectWH;
+  ObjCount: Word;
+  aX, aY, aX2, aY2, XX, ScaleSz: Integer;
+
 begin
- BeginPaint(Handle, ps);
- e_BeginRender();
+  BeginPaint(Handle, ps);
+  e_BeginRender();
 
- e_Clear(GL_COLOR_BUFFER_BIT, GetRValue(BackColor)/255, GetGValue(BackColor)/255,
-         GetBValue(BackColor)/255);
+  e_Clear(GL_COLOR_BUFFER_BIT,
+          GetRValue(BackColor)/255,
+          GetGValue(BackColor)/255,
+          GetBValue(BackColor)/255);
 
- DrawMap();
+  DrawMap();
 
- ObjCount := SelectedObjectCount();
+  ObjCount := SelectedObjectCount();
 
- if ObjCount > 0 then
- begin
-  for a := 0 to High(SelectedObjects) do
-   if SelectedObjects[a].Live then
-   begin
-    Rect := ObjectGetRect(SelectedObjects[a].ObjectType, SelectedObjects[a].ID);
-
-    with Rect do
-    begin
-     e_DrawQuad(X+MapOffset.X, Y+MapOffset.Y, X+MapOffset.X+Width, Y+MapOffset.Y+Height, 1, 255, 0, 0);
-
-     if (ObjCount = 1) and
-        (SelectedObjects[GetFirstSelected].ObjectType in [OBJECT_PANEL, OBJECT_TRIGGER]) then
-     begin
-      e_DrawPoint(5, X+MapOffset.X, Y+MapOffset.Y+(Height div 2), 255, 255, 255);
-      e_DrawPoint(5, X+MapOffset.X+Width, Y+MapOffset.Y+(Height div 2), 255, 255, 255);
-      e_DrawPoint(5, X+MapOffset.X+(Width div 2), Y+MapOffset.Y, 255, 255, 255);
-      e_DrawPoint(5, X+MapOffset.X+(Width div 2), Y+MapOffset.Y+Height, 255, 255, 255);
-
-      e_DrawPoint(3, X+MapOffset.X, Y+MapOffset.Y+(Height div 2), 255, 0, 0);
-      e_DrawPoint(3, X+MapOffset.X+Width, Y+MapOffset.Y+(Height div 2), 255, 0, 0);
-      e_DrawPoint(3, X+MapOffset.X+(Width div 2), Y+MapOffset.Y, 255, 0, 0);
-      e_DrawPoint(3, X+MapOffset.X+(Width div 2), Y+MapOffset.Y+Height, 255, 0, 0);
-     end;
-    end;
-   end;
- end;
-
- if DotEnable then
-  for x := 0 to (RenderPanel.Width div DotStep) do
-   for y := 0 to (RenderPanel.Height div DotStep) do
-    e_DrawPoint(1, x*DotStep, y*DotStep, GetRValue(DotColor),
-                GetGValue(DotColor), GetBValue(DotColor));
-
- if (lbTextureList.ItemIndex <> -1) and (cbPreview.Checked) and
-    (not IsSpecialTextureSel()) and (not PreviewMode) then
- begin
-  g_GetTexture(SelectedTexture(), ID);
-  g_GetTextureSizeByID(ID, Width, Height);
-  e_DrawFillQuad(RenderPanel.Width-Width-1, RenderPanel.Height-Height-1,
-                 RenderPanel.Width, RenderPanel.Height, GetRValue(PreviewColor),
-                 GetGValue(PreviewColor), GetBValue(PreviewColor), 0);
-  e_Draw(ID, RenderPanel.Width-Width, RenderPanel.Height-Height, 0, True, False);
- end;
-
- if SelectFlag = SELECTFLAG_TELEPORT then
- begin
-  with gTriggers[SelectedObjects[GetFirstSelected()].ID] do
-   if Data.d2d_teleport then
-    e_DrawLine(2, MapOffset.X+MousePos.X-16, MapOffset.Y+MousePos.Y-1,
-               MapOffset.X+MousePos.X+16, MapOffset.Y+MousePos.Y-1,
-               0, 0, 255)
-   else
-    e_DrawQuad(MousePos.X, MousePos.Y, MousePos.X+AreaSize[AREA_DMPOINT].Width,
-               MousePos.Y+AreaSize[AREA_DMPOINT].Height, 1, 255, 255, 255);
-
-  e_DrawFillQuad(MousePos.X, MousePos.Y, MousePos.X+180, MousePos.Y+18, 192, 192, 192, 127);
-  e_DrawQuad(MousePos.X+1, MousePos.Y+1, MousePos.X+179, MousePos.Y+17, 1, 255, 255, 255);
-  e_SimpleFontPrint(MousePos.X+8, MousePos.Y+14, 'Выберите точку телепорта', gEditorFont, 0, 0, 0);
- end;
-
- if SelectFlag = SELECTFLAG_DOOR then
- begin
-  e_DrawFillQuad(MousePos.X, MousePos.Y, MousePos.X+180, MousePos.Y+18, 192, 192, 192, 127);
-  e_DrawQuad(MousePos.X+1, MousePos.Y+1, MousePos.X+179, MousePos.Y+17, 1, 255, 255, 255);
-  e_SimpleFontPrint(MousePos.X+8, MousePos.Y+14, 'Выберите панель двери', gEditorFont, 0, 0, 0);
- end;
-
- if SelectFlag = SELECTFLAG_TEXTURE then
- begin
-  e_DrawFillQuad(MousePos.X, MousePos.Y, MousePos.X+196, MousePos.Y+18, 192, 192, 192, 127);
-  e_DrawQuad(MousePos.X+1, MousePos.Y+1, MousePos.X+195, MousePos.Y+17, 1, 255, 255, 255);
-  e_SimpleFontPrint(MousePos.X+8, MousePos.Y+14, 'Выберите панель с текстурой', gEditorFont, 0, 0, 0);
- end;
-
- if SelectFlag = SELECTFLAG_LIFT then
- begin
-  e_DrawFillQuad(MousePos.X, MousePos.Y, MousePos.X+180, MousePos.Y+18, 192, 192, 192, 127);
-  e_DrawQuad(MousePos.X+1, MousePos.Y+1, MousePos.X+179, MousePos.Y+17, 1, 255, 255, 255);
-  e_SimpleFontPrint(MousePos.X+8, MousePos.Y+14, 'Выберите панель лифта', gEditorFont, 0, 0, 0);
- end;
-
- if SelectFlag = SELECTFLAG_MONSTER then
- begin
-  e_DrawFillQuad(MousePos.X, MousePos.Y, MousePos.X+120, MousePos.Y+18, 192, 192, 192, 127);
-  e_DrawQuad(MousePos.X+1, MousePos.Y+1, MousePos.X+119, MousePos.Y+17, 1, 255, 255, 255);
-  e_SimpleFontPrint(MousePos.X+8, MousePos.Y+14, 'Выберите монстра', gEditorFont, 0, 0, 0);
- end;
-
- if DrawPressRect then
- begin
-  e_DrawFillQuad(MousePos.X, MousePos.Y, MousePos.X+204, MousePos.Y+18, 192, 192, 192, 127);
-  e_DrawQuad(MousePos.X+1, MousePos.Y+1, MousePos.X+203, MousePos.Y+17, 1, 255, 255, 255);
-  e_SimpleFontPrint(MousePos.X+8, MousePos.Y+14, 'Нарисуйте область воздействия', gEditorFont, 0, 0, 0);
- end;
-
- if (MouseAction in [MOUSEACTION_DRAWPANEL, MOUSEACTION_DRAWTRIGGER, MOUSEACTION_RESIZE]) and
-    (DrawPanelSize) then
- begin
-  e_DrawFillQuad(MousePos.X, MousePos.Y, MousePos.X+88, MousePos.Y+32, 192, 192, 192, 127);
-  e_DrawQuad(MousePos.X+1, MousePos.Y+1, MousePos.X+87, MousePos.Y+31, 1, 255, 255, 255);
-
-  if MouseAction in [MOUSEACTION_DRAWPANEL, MOUSEACTION_DRAWTRIGGER] then
+// Обводим выделенные объекты красной рамкой:
+  if ObjCount > 0 then
   begin
-   e_SimpleFontPrint(MousePos.X+8, MousePos.Y+14, PChar(Format('Длина: %d',
-                     [Abs(MousePos.X-MouseLDownPos.X)])), gEditorFont, 0, 0, 0);
-   e_SimpleFontPrint(MousePos.X+8, MousePos.Y+28, PChar(Format('Высота: %d',
-                     [Abs(MousePos.Y-MouseLDownPos.Y)])), gEditorFont, 0, 0, 0);
-  end
-   else if SelectedObjects[GetFirstSelected].ObjectType in [OBJECT_PANEL, OBJECT_TRIGGER] then
+    for a := 0 to High(SelectedObjects) do
+      if SelectedObjects[a].Live then
+      begin
+        Rect := ObjectGetRect(SelectedObjects[a].ObjectType, SelectedObjects[a].ID);
+
+        with Rect do
+        begin
+          e_DrawQuad(X+MapOffset.X, Y+MapOffset.Y,
+                     X+MapOffset.X+Width-1, Y+MapOffset.Y+Height-1,
+                     255, 0, 0);
+
+        // Рисуем точки изменения размеров:
+          if (ObjCount = 1) and
+             (SelectedObjects[GetFirstSelected].ObjectType in [OBJECT_PANEL, OBJECT_TRIGGER]) then
+          begin
+            e_DrawPoint(5, X+MapOffset.X, Y+MapOffset.Y+(Height div 2), 255, 255, 255);
+            e_DrawPoint(5, X+MapOffset.X+Width-1, Y+MapOffset.Y+(Height div 2), 255, 255, 255);
+            e_DrawPoint(5, X+MapOffset.X+(Width div 2), Y+MapOffset.Y, 255, 255, 255);
+            e_DrawPoint(5, X+MapOffset.X+(Width div 2), Y+MapOffset.Y+Height-1, 255, 255, 255);
+
+            e_DrawPoint(3, X+MapOffset.X, Y+MapOffset.Y+(Height div 2), 255, 0, 0);
+            e_DrawPoint(3, X+MapOffset.X+Width-1, Y+MapOffset.Y+(Height div 2), 255, 0, 0);
+            e_DrawPoint(3, X+MapOffset.X+(Width div 2), Y+MapOffset.Y, 255, 0, 0);
+            e_DrawPoint(3, X+MapOffset.X+(Width div 2), Y+MapOffset.Y+Height-1, 255, 0, 0);
+          end;
+        end;
+      end;
+  end;
+
+// Рисуем сетку:
+  if DotEnable and (not PreviewMode) then
   begin
-   if SelectedObjects[GetFirstSelected].ObjectType = OBJECT_PANEL then
-   begin
-    Width := gPanels[SelectedObjects[GetFirstSelected].ID].Width;
-    Height := gPanels[SelectedObjects[GetFirstSelected].ID].Height;
-   end
+    if DotSize = 2 then
+      a := -1
     else
-   begin
-    Width := gTriggers[SelectedObjects[GetFirstSelected].ID].Width;
-    Height := gTriggers[SelectedObjects[GetFirstSelected].ID].Height;
-   end;
+      a := 0;
 
-   e_SimpleFontPrint(MousePos.X+8, MousePos.Y+14, PChar(Format('Длина: %d', [Width])),
-                     gEditorFont, 0, 0, 0);
-   e_SimpleFontPrint(MousePos.X+8, MousePos.Y+28, PChar(Format('Высота: %d', [Height])),
-                     gEditorFont, 0, 0, 0);
+    for x := 0 to (RenderPanel.Width div DotStep) do
+      for y := 0 to (RenderPanel.Height div DotStep) do
+        e_DrawPoint(DotSize, x*DotStep + a, y*DotStep + a,
+                    GetRValue(DotColor),
+                    GetGValue(DotColor),
+                    GetBValue(DotColor));
   end;
- end;
 
- if (MouseAction = MOUSEACTION_DRAWPANEL) and (DrawTexturePanel) and
-    (lbTextureList.ItemIndex <> -1) and (DrawRect <> nil) and
-    (cbPanelType.ItemIndex in [0..8]) and not IsSpecialTextureSel() then
- begin
-  g_GetTexture(SelectedTexture(), ID);
-  g_GetTextureSizeByID(ID, Width, Height);
-  with DrawRect^ do
-   e_DrawFill(ID, Min(Left, Right), Min(Top, Bottom), Abs(Right-Left) div Width,
-              Abs(Bottom-Top) div Height, 0, True, False);
- end;
-
- if DrawRect <> nil then
-  with DrawRect^ do e_DrawQuad(Left, Top, Right, Bottom, 1, 255, 255, 255);
-
- e_DrawPoint(3, MousePos.X, MousePos.Y, 0, 0, 255);
-
- if ShowMap then
- begin
-  XX := RenderPanel.Width-((gMapInfo.Width div 16)*Scale);
-  e_DrawFillQuad(XX-1, 0, RenderPanel.Width-1, ((gMapInfo.Height div 16)*Scale), 0, 0, 0, 0);
-  e_DrawQuad(XX-1, 0, RenderPanel.Width-1, ((gMapInfo.Height div 16)*Scale)+1, 1, 197, 197, 197);
-
-  if gPanels <> nil then
+// Превью текстуры:
+  if (lbTextureList.ItemIndex <> -1) and (cbPreview.Checked) and
+     (not IsSpecialTextureSel()) and (not PreviewMode) then
   begin
-   for a := 0 to High(gPanels) do
-   with gPanels[a] do
-    if PanelType <> 0 then
+    g_GetTexture(SelectedTexture(), ID);
+    g_GetTextureSizeByID(ID, Width, Height);
+    e_DrawFillQuad(RenderPanel.Width-Width-2, RenderPanel.Height-Height-2,
+                   RenderPanel.Width-1, RenderPanel.Height-1,
+                   GetRValue(PreviewColor), GetGValue(PreviewColor), GetBValue(PreviewColor), 0);
+    e_Draw(ID, RenderPanel.Width-Width-1, RenderPanel.Height-Height-1, 0, True, False);
+  end;
+
+// Подсказка при выборе точки Телепорта:
+  if SelectFlag = SELECTFLAG_TELEPORT then
+  begin
+    with gTriggers[SelectedObjects[GetFirstSelected()].ID] do
+      if Data.d2d_teleport then
+        e_DrawLine(2, MousePos.X-16, MousePos.Y-1,
+                   MousePos.X+16, MousePos.Y-1,
+                   0, 0, 255)
+      else
+        e_DrawQuad(MousePos.X, MousePos.Y, MousePos.X+AreaSize[AREA_DMPOINT].Width-1,
+                   MousePos.Y+AreaSize[AREA_DMPOINT].Height-1, 255, 255, 255);
+
+    e_DrawFillQuad(MousePos.X, MousePos.Y, MousePos.X+180, MousePos.Y+18, 192, 192, 192, 127);
+    e_DrawQuad(MousePos.X, MousePos.Y, MousePos.X+180, MousePos.Y+18, 255, 255, 255);
+    e_SimpleFontPrint(MousePos.X+8, MousePos.Y+14, PChar(_lc[I_HINT_TELEPORT]), gEditorFont, 0, 0, 0);
+  end;
+
+// Подсказка при выборе точки появления:
+  if SelectFlag = SELECTFLAG_SPAWNPOINT then
+  begin
+    e_DrawLine(2, MousePos.X-16, MousePos.Y-1,
+               MousePos.X+16, MousePos.Y-1,
+               0, 0, 255);
+    e_DrawFillQuad(MousePos.X, MousePos.Y, MousePos.X+180, MousePos.Y+18, 192, 192, 192, 127);
+    e_DrawQuad(MousePos.X, MousePos.Y, MousePos.X+180, MousePos.Y+18, 255, 255, 255);
+    e_SimpleFontPrint(MousePos.X+8, MousePos.Y+14, PChar(_lc[I_HINT_SPAWN]), gEditorFont, 0, 0, 0);
+  end;
+
+// Подсказка при выборе панели двери:
+  if SelectFlag = SELECTFLAG_DOOR then
+  begin
+    e_DrawFillQuad(MousePos.X, MousePos.Y, MousePos.X+180, MousePos.Y+18, 192, 192, 192, 127);
+    e_DrawQuad(MousePos.X, MousePos.Y, MousePos.X+180, MousePos.Y+18, 255, 255, 255);
+    e_SimpleFontPrint(MousePos.X+8, MousePos.Y+14, PChar(_lc[I_HINT_PANEL_DOOR]), gEditorFont, 0, 0, 0);
+  end;
+
+// Подсказка при выборе панели с текстурой:
+  if SelectFlag = SELECTFLAG_TEXTURE then
+  begin
+    e_DrawFillQuad(MousePos.X, MousePos.Y, MousePos.X+196, MousePos.Y+18, 192, 192, 192, 127);
+    e_DrawQuad(MousePos.X, MousePos.Y, MousePos.X+196, MousePos.Y+18, 255, 255, 255);
+    e_SimpleFontPrint(MousePos.X+8, MousePos.Y+14, PChar(_lc[I_HINT_PANEL_TEXTURE]), gEditorFont, 0, 0, 0);
+  end;
+
+// Подсказка при выборе панели лифта:
+  if SelectFlag = SELECTFLAG_LIFT then
+  begin
+    e_DrawFillQuad(MousePos.X, MousePos.Y, MousePos.X+180, MousePos.Y+18, 192, 192, 192, 127);
+    e_DrawQuad(MousePos.X, MousePos.Y, MousePos.X+180, MousePos.Y+18, 255, 255, 255);
+    e_SimpleFontPrint(MousePos.X+8, MousePos.Y+14, PChar(_lc[I_HINT_PANEL_LIFT]), gEditorFont, 0, 0, 0);
+  end;
+
+// Подсказка при выборе монстра:
+  if SelectFlag = SELECTFLAG_MONSTER then
+  begin
+    e_DrawFillQuad(MousePos.X, MousePos.Y, MousePos.X+120, MousePos.Y+18, 192, 192, 192, 127);
+    e_DrawQuad(MousePos.X, MousePos.Y, MousePos.X+120, MousePos.Y+18, 255, 255, 255);
+    e_SimpleFontPrint(MousePos.X+8, MousePos.Y+14, PChar(_lc[I_HINT_MONSTER]), gEditorFont, 0, 0, 0);
+  end;
+
+// Подсказка при выборе области воздействия:
+  if DrawPressRect then
+  begin
+    e_DrawFillQuad(MousePos.X, MousePos.Y, MousePos.X+204, MousePos.Y+18, 192, 192, 192, 127);
+    e_DrawQuad(MousePos.X, MousePos.Y, MousePos.X+204, MousePos.Y+18, 255, 255, 255);
+    e_SimpleFontPrint(MousePos.X+8, MousePos.Y+14, PChar(_lc[I_HINT_EXT_AREA]), gEditorFont, 0, 0, 0);
+  end;
+
+// Чертим мышью панель/триггер или меняем мышью их размер:
+  if (MouseAction in [MOUSEACTION_DRAWPANEL, MOUSEACTION_DRAWTRIGGER, MOUSEACTION_RESIZE]) and
+     (DrawPanelSize) then
+  begin
+    e_DrawFillQuad(MousePos.X, MousePos.Y, MousePos.X+88, MousePos.Y+32, 192, 192, 192, 127);
+    e_DrawQuad(MousePos.X, MousePos.Y, MousePos.X+88, MousePos.Y+32, 255, 255, 255);
+
+    if MouseAction in [MOUSEACTION_DRAWPANEL, MOUSEACTION_DRAWTRIGGER] then
+      begin // Чертим новый
+        e_SimpleFontPrint(MousePos.X+8, MousePos.Y+14, PChar(Format(_lc[I_HINT_WIDTH],
+                          [Abs(MousePos.X-MouseLDownPos.X)])), gEditorFont, 0, 0, 0);
+        e_SimpleFontPrint(MousePos.X+8, MousePos.Y+28, PChar(Format(_lc[I_HINT_HEIGHT],
+                          [Abs(MousePos.Y-MouseLDownPos.Y)])), gEditorFont, 0, 0, 0);
+      end
+    else // Растягиваем существующий
+      if SelectedObjects[GetFirstSelected].ObjectType in [OBJECT_PANEL, OBJECT_TRIGGER] then
+      begin
+        if SelectedObjects[GetFirstSelected].ObjectType = OBJECT_PANEL then
+          begin
+            Width := gPanels[SelectedObjects[GetFirstSelected].ID].Width;
+            Height := gPanels[SelectedObjects[GetFirstSelected].ID].Height;
+          end
+        else
+          begin
+            Width := gTriggers[SelectedObjects[GetFirstSelected].ID].Width;
+            Height := gTriggers[SelectedObjects[GetFirstSelected].ID].Height;
+          end;
+
+        e_SimpleFontPrint(MousePos.X+8, MousePos.Y+14, PChar(Format(_lc[I_HINT_WIDTH], [Width])),
+                          gEditorFont, 0, 0, 0);
+        e_SimpleFontPrint(MousePos.X+8, MousePos.Y+28, PChar(Format(_lc[I_HINT_HEIGHT], [Height])),
+                          gEditorFont, 0, 0, 0);
+      end;
+  end;
+
+// Рисуем текстуры, если чертим панель:
+  if (MouseAction = MOUSEACTION_DRAWPANEL) and (DrawTexturePanel) and
+     (lbTextureList.ItemIndex <> -1) and (DrawRect <> nil) and
+     (cbPanelType.ItemIndex in [0..8]) and not IsSpecialTextureSel() then
+  begin
+    g_GetTexture(SelectedTexture(), ID);
+    g_GetTextureSizeByID(ID, Width, Height);
+    with DrawRect^ do
+      e_DrawFill(ID, Min(Left, Right), Min(Top, Bottom), Abs(Right-Left) div Width,
+                 Abs(Bottom-Top) div Height, 0, True, False);
+  end;
+
+// Прямоугольник выделения:
+  if DrawRect <> nil then
+    with DrawRect^ do
+      e_DrawQuad(Left, Top, Right-1, Bottom-1, 255, 255, 255);
+
+// Ближайшая к курсору мыши точка не сетке:
+  e_DrawPoint(3, MousePos.X, MousePos.Y, 0, 0, 255);
+
+// Мини-карта:
+  if ShowMap and
+     ((gMapInfo.Width > RenderPanel.Width) or
+      (gMapInfo.Height > RenderPanel.Height)) then
+  begin
+  // Сколько пикселов карты в 1 пикселе мини-карты:
+    ScaleSz := 16 div Scale;
+  // Размеры мини-карты:
+    aX := max(gMapInfo.Width div ScaleSz, 1);
+    aY := max(gMapInfo.Height div ScaleSz, 1);
+  // X-координата на RenderPanel нулевой x-координаты карты: 
+    XX := RenderPanel.Width - aX - 1;
+  // Рамка карты:
+    e_DrawFillQuad(XX-1, 0, RenderPanel.Width-1, aY+1, 0, 0, 0, 0);
+    e_DrawQuad(XX-1, 0, RenderPanel.Width-1, aY+1, 197, 197, 197);
+
+    if gPanels <> nil then
     begin
-     aX := XX+(X div (16 div Scale));
-     aY := Y div (16 div Scale);
+    // Рисуем панели:
+      for a := 0 to High(gPanels) do
+        with gPanels[a] do
+          if PanelType <> 0 then
+          begin
+          // Левый верхний угол:
+            aX := XX + (X div ScaleSz);
+            aY := 1 + (Y div ScaleSz);
+          // Размеры:
+            aX2 := max(Width div ScaleSz, 1);
+            aY2 := max(Height div ScaleSz, 1);
+          // Правый нижний угол:
+            aX2 := aX + aX2 - 1;
+            aY2 := aY + aY2 - 1;  
 
-     if Width div (16 div Scale) = 0 then aX2 := aX+1
-      else aX2 := aX+Width div (16 div Scale);
-     if Height div (16 div Scale) = 0 then aY2 := aY+1
-      else aY2 := aY+Height div (16 div Scale);
+            case PanelType of
+              PANEL_WALL:      e_DrawFillQuad(aX, aY, aX2, aY2, 208, 208, 208, 0);
+              PANEL_WATER:     e_DrawFillQuad(aX, aY, aX2, aY2,   0,   0, 252, 0);
+              PANEL_ACID1:     e_DrawFillQuad(aX, aY, aX2, aY2, 200,  80,   4, 0);
+              PANEL_ACID2:     e_DrawFillQuad(aX, aY, aX2, aY2, 252, 140,  56, 0);
+              PANEL_STEP:      e_DrawFillQuad(aX, aY, aX2, aY2, 128, 128, 128, 0);
+              PANEL_LIFTUP:    e_DrawFillQuad(aX, aY, aX2, aY2, 116,  72,  36, 0);
+              PANEL_LIFTDOWN:  e_DrawFillQuad(aX, aY, aX2, aY2, 116, 124,  96, 0);
+              PANEL_OPENDOOR:  e_DrawFillQuad(aX, aY, aX2, aY2, 100, 220,  92, 0);
+              PANEL_CLOSEDOOR: e_DrawFillQuad(aX, aY, aX2, aY2, 212, 184,  64, 0);
+              PANEL_BLOCKMON:  e_DrawFillQuad(aX, aY, aX2, aY2, 255,   0, 255, 0);
+            end;
+          end;
 
-     case PanelType of
-      PANEL_WALL: e_DrawFillQuad(aX, aY, aX2, aY2, 208, 208, 208, 0);
-      PANEL_WATER: e_DrawFillQuad(aX, aY, aX2, aY2, 0, 0, 252, 0);
-      PANEL_ACID1: e_DrawFillQuad(aX, aY, aX2, aY2, 200, 80, 4, 0);
-      PANEL_ACID2: e_DrawFillQuad(aX, aY, aX2, aY2, 252, 140, 56, 0);
-      PANEL_STEP: e_DrawFillQuad(aX, aY, aX2, aY2, 128, 128, 128, 0);
-      PANEL_LIFTUP: e_DrawFillQuad(aX, aY, aX2, aY2, 116, 72, 36, 0);
-      PANEL_LIFTDOWN: e_DrawFillQuad(aX, aY, aX2, aY2, 116, 124, 96, 0);
-      PANEL_OPENDOOR: e_DrawFillQuad(aX, aY, aX2, aY2, 100, 220, 92, 0);
-      PANEL_CLOSEDOOR: e_DrawFillQuad(aX, aY, aX2, aY2, 212, 184, 64, 0);
-      PANEL_BLOCKMON: e_DrawFillQuad(aX, aY, aX2, aY2, 255, 0, 255, 0);
-     end;
+    // Рисуем красным выделенные панели:
+      if SelectedObjects <> nil then
+        for b := 0 to High(SelectedObjects) do
+          with SelectedObjects[b] do
+            if Live and (ObjectType = OBJECT_PANEL) then
+              with gPanels[SelectedObjects[b].ID] do
+                if PanelType and not(PANEL_BACK or PANEL_FORE) <> 0 then
+                begin
+                // Левый верхний угол:
+                  aX := XX + (X div ScaleSz);
+                  aY := 1 + (Y div ScaleSz);
+                // Размеры:
+                  aX2 := max(Width div ScaleSz, 1);
+                  aY2 := max(Height div ScaleSz, 1);
+                // Правый нижний угол:
+                  aX2 := aX + aX2 - 1;
+                  aY2 := aY + aY2 - 1;
+
+                  e_DrawFillQuad(aX, aY, aX2, aY2, 255, 0, 0, 0)
+                end;
     end;
 
-   if SelectedObjects <> nil then
-   for b := 0 to High(SelectedObjects) do
-    with SelectedObjects[b] do
-    if Live and (ObjectType = OBJECT_PANEL) then
-    with gPanels[SelectedObjects[b].ID] do
-     if PanelType and not(PANEL_BACK or PANEL_FORE) <> 0 then
-     begin
-      aX := XX+(X div (16 div Scale));
-      aY := Y div (16 div Scale);
+  // Окно, показывающее текущее положение экрана на карте:
+  // Размеры окна:
+    x := max(min(RenderPanel.Width, gMapInfo.Width) div ScaleSz, 1);
+    y := max(min(RenderPanel.Height, gMapInfo.Height) div ScaleSz, 1);
+  // Левый верхний угол:
+    aX := XX + ((-MapOffset.X) div ScaleSz);
+    aY := 1 + ((-MapOffset.Y) div ScaleSz);
+  // Правый нижний угол:
+    aX2 := aX + x - 1;
+    aY2 := aY + y - 1;
+    
+    e_DrawFillQuad(aX, aY, aX2, aY2, 127, 192, 127, 127, B_BLEND);
+    e_DrawQuad(aX, aY, aX2, aY2, 255, 0, 0);
+  end; // Мини-карта
 
-      if Width div (16 div Scale) = 0 then aX2 := aX+1
-       else aX2 := aX+Width div (16 div Scale);
-      if Height div (16 div Scale) = 0 then aY2 := aY+1
-       else aY2 := aY+Height div (16 div Scale);
-
-      e_DrawFillQuad(aX, aY, aX2, aY2, 255, 0, 0, 0)
-     end;
-
-   e_DrawFillQuad(XX+(Abs(MapOffset.X) div (16 div Scale)), Abs(MapOffset.Y) div (16 div Scale),
-                  XX+(Abs(MapOffset.X) div (16 div Scale))+(RenderPanel.Width div (16 div Scale)),
-                  (Abs(MapOffset.Y) div (16 div Scale))+(RenderPanel.Height div (16 div Scale)),
-                  127, 192, 127, 127, B_BLEND);
-
-   e_DrawQuad(XX+(Abs(MapOffset.X) div (16 div Scale)), Abs(MapOffset.Y) div (16 div Scale),
-              XX+(Abs(MapOffset.X) div (16 div Scale))+(RenderPanel.Width div (16 div Scale)),
-              (Abs(MapOffset.Y) div (16 div Scale))+(RenderPanel.Height div (16 div Scale)),
-              1, 255, 0, 0);
-  end;
- end;
-
- e_EndRender();
- SwapBuffers(hDC);
- EndPaint(Handle, ps);
+  e_EndRender();
+  SwapBuffers(hDC);
+  EndPaint(Handle, ps);
 end;
 
 procedure TMainForm.FormResize(Sender: TObject);
 begin
- e_SetViewPort(0, 0, RenderPanel.Width, RenderPanel.Height);
+  e_SetViewPort(0, 0, RenderPanel.Width, RenderPanel.Height);
 
- if gMapInfo.Width >= RenderPanel.Width
-  then sbHorizontal.Max := gMapInfo.Width-RenderPanel.Width
-   else sbHorizontal.Max := 0;
+  if gMapInfo.Width >= RenderPanel.Width then
+    sbHorizontal.Max := Normalize16(gMapInfo.Width-RenderPanel.Width+16)
+  else
+    sbHorizontal.Max := 0;
 
- if gMapInfo.Height >= RenderPanel.Height
-  then sbVertical.Max := gMapInfo.Height-RenderPanel.Height
-   else sbVertical.Max := 0;
+  if gMapInfo.Height >= RenderPanel.Height then
+    sbVertical.Max := Normalize16(gMapInfo.Height-RenderPanel.Height+16)
+  else
+    sbVertical.Max := 0;
+
+  MapOffset.X := -Normalize16(sbHorizontal.Position);
+  MapOffset.Y := -Normalize16(sbVertical.Position);
+end;
+
+procedure SelectNextObject(X, Y: Integer; ObjectType: Byte; ID: DWORD);
+var
+  j, j_max: Integer;
+  res: Boolean;
+
+begin
+  case ObjectType of
+    OBJECT_PANEL:
+      begin
+        res := (gPanels <> nil) and
+               PanelInShownLayer(gPanels[ID].PanelType) and
+               g_CollidePoint(X, Y, gPanels[ID].X, gPanels[ID].Y,
+                              gPanels[ID].Width,
+                              gPanels[ID].Height);
+        j_max := Length(gPanels) - 1;
+      end;
+
+    OBJECT_ITEM:
+      begin
+        res := (gItems <> nil) and
+               LayerEnabled[LAYER_ITEMS] and
+               g_CollidePoint(X, Y, gItems[ID].X, gItems[ID].Y,
+                              ItemSize[gItems[ID].ItemType][0],
+                              ItemSize[gItems[ID].ItemType][1]);
+        j_max := Length(gItems) - 1;
+      end;
+
+    OBJECT_MONSTER:
+      begin
+        res := (gMonsters <> nil) and
+               LayerEnabled[LAYER_MONSTERS] and
+               g_CollidePoint(X, Y, gMonsters[ID].X, gMonsters[ID].Y,
+                              MonsterSize[gMonsters[ID].MonsterType].Width,
+                              MonsterSize[gMonsters[ID].MonsterType].Height);
+        j_max := Length(gMonsters) - 1;
+      end;
+
+    OBJECT_AREA:
+      begin
+        res := (gAreas <> nil) and
+               LayerEnabled[LAYER_AREAS] and
+               g_CollidePoint(X, Y, gAreas[ID].X, gAreas[ID].Y,
+                              AreaSize[gAreas[ID].AreaType].Width,
+                              AreaSize[gAreas[ID].AreaType].Height);
+        j_max := Length(gAreas) - 1;
+      end;
+
+    OBJECT_TRIGGER:
+      begin
+        res := (gTriggers <> nil) and
+               LayerEnabled[LAYER_TRIGGERS] and 
+               g_CollidePoint(X, Y, gTriggers[ID].X, gTriggers[ID].Y,
+                              gTriggers[ID].Width,
+                              gTriggers[ID].Height);
+        j_max := Length(gTriggers) - 1;
+      end;
+
+    else
+      res := False;
+  end;
+
+  if not res then
+    Exit;
+
+// Перебор ID: от ID-1 до 0; потом от High до ID+1:
+  j := ID;
+  
+  while True do
+  begin
+    Dec(j);
+            
+    if j < 0 then
+      j := j_max;
+    if j = ID then
+      Break;
+
+    case ObjectType of
+      OBJECT_PANEL:
+        res := PanelInShownLayer(gPanels[j].PanelType) and
+               g_CollidePoint(X, Y, gPanels[j].X, gPanels[j].Y,
+                              gPanels[j].Width,
+                              gPanels[j].Height);
+      OBJECT_ITEM:
+        res := (gItems[j].ItemType <> ITEM_NONE) and
+               g_CollidePoint(X, Y, gItems[j].X, gItems[j].Y,
+                              ItemSize[gItems[j].ItemType][0],
+                              ItemSize[gItems[j].ItemType][1]);
+      OBJECT_MONSTER:
+        res := (gMonsters[j].MonsterType <> MONSTER_NONE) and
+               g_CollidePoint(X, Y, gMonsters[j].X, gMonsters[j].Y,
+                              MonsterSize[gMonsters[j].MonsterType].Width,
+                              MonsterSize[gMonsters[j].MonsterType].Height);
+      OBJECT_AREA:
+        res := (gAreas[j].AreaType <> AREA_NONE) and
+               g_CollidePoint(X, Y, gAreas[j].X, gAreas[j].Y,
+                              AreaSize[gAreas[j].AreaType].Width,
+                              AreaSize[gAreas[j].AreaType].Height);
+      OBJECT_TRIGGER:
+        res := (gTriggers[j].TriggerType <> TRIGGER_NONE) and
+               g_CollidePoint(X, Y, gTriggers[j].X, gTriggers[j].Y,
+                              gTriggers[j].Width,
+                              gTriggers[j].Height);
+      else
+        res := False;
+    end;
+    
+    if res then
+    begin
+      SetLength(SelectedObjects, 1);
+
+      SelectedObjects[0].ObjectType := ObjectType;
+      SelectedObjects[0].ID := j;
+      SelectedObjects[0].Live := True;
+
+      FillProperty();
+      Break;
+    end;
+  end;
 end;
 
 procedure TMainForm.RenderPanelMouseDown(Sender: TObject;
   Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
 var
-  i: Integer;
+  i, j: Integer;
   Rect: TRectWH;
   c1, c2, c3, c4: Boolean;
   item: TItem;
   area: TArea;
+  panel: TPanel;
   monster: TMonster;
   IDArray: DWArray;
+
 begin
- MainForm.ActiveControl := RenderPanel;
- RenderPanel.SetFocus;
+  MainForm.ActiveControl := RenderPanel;
+  RenderPanel.SetFocus();
 
- if Button = mbLeft then
- begin
-  if ShowMap and g_CollidePoint(X, Y, RenderPanel.Width-(gMapInfo.Width div 16)*Scale, 0,
-                               RenderPanel.Width-1, (gMapInfo.Height div 16)*Scale) then
+  RenderPanelMouseMove(RenderPanel, Shift, X, Y);
+
+  if Button = mbLeft then // Left Mouse Button
   begin
-   MoveMap(X, Y);
-   MouseAction := MOUSEACTION_MOVEMAP;
-  end
-   else
-  if pcObjects.ActivePageIndex in [1, 2, 3] then
-  begin
-   case pcObjects.ActivePageIndex of
-    1: if lbItemList.ItemIndex = -1 then
-        MessageBox(0, 'Выберите итем', 'Ошибка', MB_ICONINFORMATION or MB_OK or
-                   MB_TASKMODAL or MB_DEFBUTTON1)
-        else
-       begin
-        item.X := MousePos.X-MapOffset.X;
-        item.Y := MousePos.Y-MapOffset.Y;
-        item.ItemType := lbItemList.ItemIndex+1;
-        item.OnlyDM := cbOnlyDM.Checked;
-        item.Fall := (item.ItemType in [ITEM_KEY_RED, ITEM_KEY_GREEN, ITEM_KEY_BLUE]) or cbFall.Checked;
-        Undo_Add(OBJECT_ITEM, AddItem(item));
-       end;
-    2: if lbMonsterList.ItemIndex = -1 then
-        MessageBox(0, 'Выберите монстра', 'Ошибка', MB_ICONINFORMATION or MB_OK or
-                   MB_TASKMODAL or MB_DEFBUTTON1)
-        else
-       begin
-        monster.X := MousePos.X-MapOffset.X;
-        monster.Y := MousePos.Y-MapOffset.Y;
-        monster.MonsterType := lbMonsterList.ItemIndex+1;
-        if rbMonsterLeft.Checked then monster.Direction := D_LEFT else
-         monster.Direction := D_RIGHT;
-        Undo_Add(OBJECT_MONSTER, AddMonster(monster));
-       end;
-    3: if lbAreasList.ItemIndex = -1 then
-        MessageBox(0, 'Выберите область', 'Ошибка', MB_ICONINFORMATION or MB_OK or
-                   MB_TASKMODAL or MB_DEFBUTTON1)
-        else if lbAreasList.ItemIndex <> 5 then
-       begin
-        area.X := MousePos.X-MapOffset.X;
-        area.Y := MousePos.Y-MapOffset.Y;
-        area.AreaType := lbAreasList.ItemIndex+1;
-        if rbAreaLeft.Checked then area.Direction := D_LEFT else area.Direction := D_RIGHT;
-        Undo_Add(OBJECT_AREA, AddArea(area));
-       end else Beep;
-   end;
-  end
-   else
-  begin
-   i := GetFirstSelected();
-   if DrawPressRect and (i <> -1) and
-      (SelectedObjects[i].ObjectType = OBJECT_TRIGGER) and
-      (gTriggers[SelectedObjects[i].ID].TriggerType in
-      [TRIGGER_PRESS, TRIGGER_ON, TRIGGER_OFF, TRIGGER_ONOFF]) then
-    MouseAction := MOUSEACTION_DRAWPRESS
-   else
-    if pcObjects.ActivePageIndex = 0 then MouseAction := MOUSEACTION_DRAWPANEL
-     else MouseAction := MOUSEACTION_DRAWTRIGGER;
-  end;
- end; //if Button = mbLeft
-
- if Button = mbRight then
- begin
-  if SelectFlag <> SELECTFLAG_NONE then
-  begin
-   case SelectFlag of
-    SELECTFLAG_TELEPORT:
-    with gTriggers[SelectedObjects[GetFirstSelected()].ID].Data.TargetPoint do
-    begin
-     X := MousePos.X-MapOffset.X;
-     Y := MousePos.Y-MapOffset.Y;
-    end;
-
-    SELECTFLAG_DOOR:
-    begin
-     IDArray := ObjectInRect(MousePos.X-MapOffset.X, MousePos.Y-MapOffset.Y, 2, 2,
-                             OBJECT_PANEL, True);
-     if IDArray <> nil then
-     begin
-      for i := 0 to High(IDArray) do
-       if (gPanels[IDArray[i]].PanelType = PANEL_OPENDOOR) or
-          (gPanels[IDArray[i]].PanelType = PANEL_CLOSEDOOR) then
-       begin
-        gTriggers[SelectedObjects[GetFirstSelected()].ID].Data.PanelID := IDArray[i];
-        Break;
-       end;
-     end else gTriggers[SelectedObjects[GetFirstSelected()].ID].Data.PanelID := -1;
-    end;
-
-    SELECTFLAG_TEXTURE:
-    begin
-     IDArray := ObjectInRect(MousePos.X-MapOffset.X, MousePos.Y-MapOffset.Y, 2, 2,
-                             OBJECT_PANEL, True);
-     if IDArray <> nil then
-     begin
-      for i := 0 to High(IDArray) do
-       if (gPanels[IDArray[i]].PanelType in [PANEL_WALL, PANEL_BACK, PANEL_FORE]) and
-          (gPanels[IDArray[i]].TextureName <> '') then
-       begin
-        gTriggers[SelectedObjects[GetFirstSelected()].ID].TexturePanel := IDArray[i];
-        Break;
-       end;
-     end else gTriggers[SelectedObjects[GetFirstSelected()].ID].TexturePanel := -1;
-    end;
-
-    SELECTFLAG_LIFT:
-    begin
-     IDArray := ObjectInRect(MousePos.X-MapOffset.X, MousePos.Y-MapOffset.Y, 2, 2,
-                             OBJECT_PANEL, True);
-     if IDArray <> nil then
-     begin
-      for i := 0 to High(IDArray) do
-       if (gPanels[IDArray[i]].PanelType = PANEL_LIFTUP) or
-          (gPanels[IDArray[i]].PanelType = PANEL_LIFTDOWN) then
-       begin
-        gTriggers[SelectedObjects[GetFirstSelected()].ID].Data.PanelID := IDArray[i];
-        Break;
-       end;
-     end else gTriggers[SelectedObjects[GetFirstSelected()].ID].Data.PanelID := -1;
-    end;
-
-    SELECTFLAG_MONSTER:
-    begin
-     IDArray := ObjectInRect(MousePos.X-MapOffset.X, MousePos.Y-MapOffset.Y, 2, 2,
-                             OBJECT_MONSTER, False);
-     if IDArray <> nil then
-      gTriggers[SelectedObjects[GetFirstSelected()].ID].Data.MonsterID := IDArray[0]+1
-       else gTriggers[SelectedObjects[GetFirstSelected()].ID].Data.MonsterID := 0;
-    end;
-   end;
-
-   SelectFlag := SELECTFLAG_NONE;
-  end
-   else
-  begin
-   if (SelectedObjects <> nil) and not (ssCtrl in Shift) then
-    for i := 0 to High(SelectedObjects) do
-     with SelectedObjects[i] do
-      if Live then
+  // Двигаем карту с помощью мыши и миникарты:
+    if ShowMap and
+       ((gMapInfo.Width > RenderPanel.Width) or
+        (gMapInfo.Height > RenderPanel.Height)) and
+       g_CollidePoint(X, Y,
+                      RenderPanel.Width-max(gMapInfo.Width div (16 div Scale), 1)-1,
+                      1,
+                      max(gMapInfo.Width div (16 div Scale), 1),
+                      max(gMapInfo.Height div (16 div Scale), 1) ) then
       begin
-       if (ObjectType in [OBJECT_PANEL, OBJECT_TRIGGER]) and (SelectedObjectCount = 1) then
-       begin
-        Rect := ObjectGetRect(ObjectType, ID);
-
-        c1 := g_Collide(X-MapOffset.X-1, Y-MapOffset.Y-1, 2, 2,
-                        Rect.X-2, Rect.Y+(Rect.Height div 2)-2, 4, 4);
-        c2 := g_Collide(X-MapOffset.X-1, Y-MapOffset.Y-1, 2, 2,
-                        Rect.X+Rect.Width-2, Rect.Y+(Rect.Height div 2)-2, 4, 4);
-        c3 := g_Collide(X-MapOffset.X-1, Y-MapOffset.Y-1, 2, 2,
-                        Rect.X+(Rect.Width div 2)-2, Rect.Y-2, 4, 4);
-        c4 := g_Collide(X-MapOffset.X-1, Y-MapOffset.Y-1, 2, 2,
-                        Rect.X+(Rect.Width div 2)-2, Rect.Y+Rect.Height-2, 4, 4);
-
-        if c1 or c2 or c3 or c4 then
+        MoveMap(X, Y);
+        MouseAction := MOUSEACTION_MOVEMAP;
+      end
+    else // Ставим предмет/монстра/область:
+      if (pcObjects.ActivePageIndex in [1, 2, 3]) and
+         (not (ssShift in Shift)) then
         begin
-         MouseAction := MOUSEACTION_RESIZE;
-         LastMovePoint := MousePos;
+          case pcObjects.ActivePageIndex of
+            1:
+              if lbItemList.ItemIndex = -1 then
+                ErrorMessageBox(_lc[I_MSG_CHOOSE_ITEM])
+              else
+                begin
+                  item.ItemType := lbItemList.ItemIndex + ITEM_MEDKIT_SMALL;
+                  if item.ItemType >= ITEM_WEAPON_KASTET then
+                    item.ItemType := item.ItemType + 2;
+                  item.X := MousePos.X-MapOffset.X;
+                  item.Y := MousePos.Y-MapOffset.Y;
 
-         if c1 or c2 then
-         begin
-          ResizeType := RESIZETYPE_HORIZONTAL;
-          if c1 then ResizeDirection := RESIZEDIR_LEFT
-           else ResizeDirection := RESIZEDIR_RIGHT;
-          RenderPanel.Cursor := crSizeWE;
-         end
+                  if not (ssCtrl in Shift) then
+                  begin
+                    item.X := item.X - (ItemSize[item.ItemType][0] div 2);
+                    item.Y := item.Y - ItemSize[item.ItemType][1];
+                  end;
+
+                  item.OnlyDM := cbOnlyDM.Checked;
+                  item.Fall := cbFall.Checked;
+                  Undo_Add(OBJECT_ITEM, AddItem(item));
+                end;
+            2:
+              if lbMonsterList.ItemIndex = -1 then
+                ErrorMessageBox(_lc[I_MSG_CHOOSE_MONSTER])
+              else
+                begin
+                  monster.MonsterType := lbMonsterList.ItemIndex + MONSTER_DEMON;
+                  monster.X := MousePos.X-MapOffset.X;
+                  monster.Y := MousePos.Y-MapOffset.Y;
+
+                  if not (ssCtrl in Shift) then
+                  begin
+                    monster.X := monster.X - (MonsterSize[monster.MonsterType].Width div 2);
+                    monster.Y := monster.Y - MonsterSize[monster.MonsterType].Height;
+                  end;
+
+                  if rbMonsterLeft.Checked then
+                    monster.Direction := D_LEFT
+                  else
+                    monster.Direction := D_RIGHT;
+                  Undo_Add(OBJECT_MONSTER, AddMonster(monster));
+                end;
+            3:
+              if lbAreasList.ItemIndex = -1 then
+                ErrorMessageBox(_lc[I_MSG_CHOOSE_AREA])
+              else
+                if (lbAreasList.ItemIndex + 1) <> AREA_DOMFLAG then
+                  begin
+                    area.AreaType := lbAreasList.ItemIndex + AREA_PLAYERPOINT1;
+                    area.X := MousePos.X-MapOffset.X;
+                    area.Y := MousePos.Y-MapOffset.Y;
+
+                    if not (ssCtrl in Shift) then
+                    begin
+                      area.X := area.X - (AreaSize[area.AreaType].Width div 2);
+                      area.Y := area.Y - AreaSize[area.AreaType].Height;
+                    end;
+
+                    if rbAreaLeft.Checked then
+                      area.Direction := D_LEFT
+                    else
+                      area.Direction := D_RIGHT;
+                    Undo_Add(OBJECT_AREA, AddArea(area));
+                  end
+                else
+                  Beep();
+          end;
+        end
+      else
+        begin
+          i := GetFirstSelected();
+
+        // Выбираем объект под текущим:
+          if (SelectedObjects <> nil) and
+             (ssShift in Shift) and (i >= 0) and
+             (SelectedObjects[i].Live) then
+            begin
+              if SelectedObjectCount() = 1 then
+                SelectNextObject(X-MapOffset.X, Y-MapOffset.Y,
+                                 SelectedObjects[i].ObjectType,
+                                 SelectedObjects[i].ID);
+            end
           else
-         begin
-          ResizeType := RESIZETYPE_VERTICAL;
-          if c3 then ResizeDirection := RESIZEDIR_UP
-           else ResizeDirection := RESIZEDIR_DOWN;
-          RenderPanel.Cursor := crSizeNS;
-         end;
-
-         Break;
+            begin
+            // Рисуем область триггера "Расширитель":
+              if DrawPressRect and (i >= 0) and
+                 (SelectedObjects[i].ObjectType = OBJECT_TRIGGER) and
+                 (gTriggers[SelectedObjects[i].ID].TriggerType in
+                   [TRIGGER_PRESS, TRIGGER_ON, TRIGGER_OFF, TRIGGER_ONOFF]) then
+                MouseAction := MOUSEACTION_DRAWPRESS
+              else // Рисуем панель:
+                if pcObjects.ActivePageIndex = 0 then
+                  begin
+                    if (cbPanelType.ItemIndex >= 0) then
+                      MouseAction := MOUSEACTION_DRAWPANEL
+                  end
+                else // Рисуем триггер:
+                  if (lbTriggersList.ItemIndex >= 0) then
+                  begin
+                    MouseAction := MOUSEACTION_DRAWTRIGGER;
+                  end;
+            end;
         end;
-       end;
+  end; // if Button = mbLeft
 
-       if ObjectCollide(ObjectType, ID, MousePos.X-MapOffset.X-1, MousePos.Y-MapOffset.Y-1, 2, 2) then
-       begin
-        MouseAction := MOUSEACTION_MOVEOBJ;
-        LastMovePoint := MousePos;
+  if Button = mbRight then // Right Mouse Button
+  begin
+  // Клик по миникарте:
+    if ShowMap and
+       ((gMapInfo.Width > RenderPanel.Width) or
+        (gMapInfo.Height > RenderPanel.Height)) and
+       g_CollidePoint(X, Y,
+                      RenderPanel.Width-max(gMapInfo.Width div (16 div Scale), 1)-1,
+                      1,
+                      max(gMapInfo.Width div (16 div Scale), 1),
+                      max(gMapInfo.Height div (16 div Scale), 1) ) then
+      begin
+        MouseAction := MOUSEACTION_NOACTION;
+      end
+    else // Нужно что-то выбрать мышью:
+      if SelectFlag <> SELECTFLAG_NONE then
+        begin
+          case SelectFlag of
+            SELECTFLAG_TELEPORT:
+            // Точку назначения телепортации:
+              with gTriggers[SelectedObjects[
+                     GetFirstSelected() ].ID].Data.TargetPoint do
+              begin
+                X := MousePos.X-MapOffset.X;
+                Y := MousePos.Y-MapOffset.Y;
+              end;
 
-        Break;
-       end;
-      end;
-  end;
- end;
+            SELECTFLAG_SPAWNPOINT:
+            // Точку создания монстра:
+              with gTriggers[SelectedObjects[GetFirstSelected()].ID] do
+                if TriggerType = TRIGGER_SPAWNMONSTER then
+                  begin
+                    Data.MonPos.X := MousePos.X-MapOffset.X;
+                    Data.MonPos.Y := MousePos.Y-MapOffset.Y;
+                  end
+                else // Точка создания предмета:
+                  if TriggerType = TRIGGER_SPAWNITEM then
+                  begin
+                    Data.ItemPos.X := MousePos.X-MapOffset.X;
+                    Data.ItemPos.Y := MousePos.Y-MapOffset.Y;
+                  end;
 
- MouseRDown := Button = mbRight;
- if MouseRDown then MouseRDownPos := MousePos;
+            SELECTFLAG_DOOR:
+            // Дверь:
+              begin
+                IDArray := ObjectInRect(MousePos.X-MapOffset.X,
+                                        MousePos.Y-MapOffset.Y,
+                                        2, 2, OBJECT_PANEL, True);
+                if IDArray <> nil then
+                  begin
+                    for i := 0 to High(IDArray) do
+                      if (gPanels[IDArray[i]].PanelType = PANEL_OPENDOOR) or
+                         (gPanels[IDArray[i]].PanelType = PANEL_CLOSEDOOR) then
+                      begin
+                        gTriggers[SelectedObjects[
+                          GetFirstSelected() ].ID].Data.PanelID := IDArray[i];
+                        Break;
+                      end;
+                  end
+                else
+                  gTriggers[SelectedObjects[
+                    GetFirstSelected() ].ID].Data.PanelID := -1;
+              end;
 
- MouseLDown := Button = mbLeft;
- if MouseLDown then MouseLDownPos := MousePos;
+            SELECTFLAG_TEXTURE:
+            // Панель с текстурой:
+              begin
+                IDArray := ObjectInRect(MousePos.X-MapOffset.X,
+                             MousePos.Y-MapOffset.Y,
+                             2, 2, OBJECT_PANEL, True);
+                if IDArray <> nil then
+                  begin
+                    for i := 0 to High(IDArray) do
+                      if ((gPanels[IDArray[i]].PanelType in
+                           [PANEL_WALL, PANEL_BACK, PANEL_FORE,
+                            PANEL_WATER, PANEL_ACID1, PANEL_ACID2,
+                            PANEL_STEP]) or
+                          (gPanels[IDArray[i]].PanelType = PANEL_OPENDOOR) or
+                          (gPanels[IDArray[i]].PanelType = PANEL_CLOSEDOOR)) and
+                         (gPanels[IDArray[i]].TextureName <> '') then
+                      begin
+                        gTriggers[SelectedObjects[
+                          GetFirstSelected() ].ID].TexturePanel := IDArray[i];
+                        Break;
+                      end;
+                  end
+                else
+                  gTriggers[SelectedObjects[
+                    GetFirstSelected() ].ID].TexturePanel := -1;
+              end;
+
+            SELECTFLAG_LIFT:
+            // Лифт:
+              begin
+                IDArray := ObjectInRect(MousePos.X-MapOffset.X,
+                                        MousePos.Y-MapOffset.Y,
+                                        2, 2, OBJECT_PANEL, True);
+                if IDArray <> nil then
+                  begin
+                    for i := 0 to High(IDArray) do
+                      if (gPanels[IDArray[i]].PanelType = PANEL_LIFTUP) or
+                         (gPanels[IDArray[i]].PanelType = PANEL_LIFTDOWN) then
+                      begin
+                        gTriggers[SelectedObjects[
+                          GetFirstSelected() ].ID].Data.PanelID := IDArray[i];
+                        Break;
+                      end;
+                  end
+                else
+                  gTriggers[SelectedObjects[
+                    GetFirstSelected() ].ID].Data.PanelID := -1;
+              end;
+
+            SELECTFLAG_MONSTER:
+            // Монстра:
+              begin
+                IDArray := ObjectInRect(MousePos.X-MapOffset.X,
+                                        MousePos.Y-MapOffset.Y,
+                                        2, 2, OBJECT_MONSTER, False);
+                if IDArray <> nil then
+                  gTriggers[SelectedObjects[
+                    GetFirstSelected() ].ID].Data.MonsterID := IDArray[0]+1
+                else
+                  gTriggers[SelectedObjects[
+                    GetFirstSelected() ].ID].Data.MonsterID := 0;
+              end;
+          end;
+
+          SelectFlag := SELECTFLAG_SELECTED;
+        end
+      else // if SelectFlag <> SELECTFLAG_NONE...
+        begin
+        // Что уже выбрано и не нажат Ctrl:
+          if (SelectedObjects <> nil) and
+             (not (ssCtrl in Shift)) then
+            for i := 0 to High(SelectedObjects) do
+              with SelectedObjects[i] do
+                if Live then
+                begin
+                  if (ObjectType in [OBJECT_PANEL, OBJECT_TRIGGER]) and
+                     (SelectedObjectCount() = 1) then
+                  begin
+                    Rect := ObjectGetRect(ObjectType, ID);
+
+                    c1 := g_Collide(X-MapOffset.X-1, Y-MapOffset.Y-1, 2, 2,
+                            Rect.X-2, Rect.Y+(Rect.Height div 2)-2, 4, 4);
+                    c2 := g_Collide(X-MapOffset.X-1, Y-MapOffset.Y-1, 2, 2,
+                            Rect.X+Rect.Width-3, Rect.Y+(Rect.Height div 2)-2, 4, 4);
+                    c3 := g_Collide(X-MapOffset.X-1, Y-MapOffset.Y-1, 2, 2,
+                            Rect.X+(Rect.Width div 2)-2, Rect.Y-2, 4, 4);
+                    c4 := g_Collide(X-MapOffset.X-1, Y-MapOffset.Y-1, 2, 2,
+                            Rect.X+(Rect.Width div 2)-2, Rect.Y+Rect.Height-3, 4, 4);
+
+                  // Меняем размер панели или триггера:
+                    if c1 or c2 or c3 or c4 then
+                    begin
+                      MouseAction := MOUSEACTION_RESIZE;
+                      LastMovePoint := MousePos;
+
+                      if c1 or c2 then
+                        begin // Шире/уже
+                          ResizeType := RESIZETYPE_HORIZONTAL;
+                          if c1 then
+                            ResizeDirection := RESIZEDIR_LEFT
+                          else
+                            ResizeDirection := RESIZEDIR_RIGHT;
+                          RenderPanel.Cursor := crSizeWE;
+                        end
+                      else
+                        begin // Выше/ниже
+                          ResizeType := RESIZETYPE_VERTICAL;
+                          if c3 then
+                            ResizeDirection := RESIZEDIR_UP
+                          else
+                            ResizeDirection := RESIZEDIR_DOWN;
+                          RenderPanel.Cursor := crSizeNS;
+                        end;
+
+                      Break;
+                    end;
+                  end;
+
+                // Перемещаем панель или триггер:
+                  if ObjectCollide(ObjectType, ID,
+                       MousePos.X-MapOffset.X-1,
+                       MousePos.Y-MapOffset.Y-1, 2, 2) then
+                  begin
+                    MouseAction := MOUSEACTION_MOVEOBJ;
+                    LastMovePoint := MousePos;
+
+                    Break;
+                  end;
+                end;
+        end;
+  end; // if Button = mbRight
+
+  MouseRDown := Button = mbRight;
+  if MouseRDown then
+    MouseRDownPos := MousePos;
+
+  MouseLDown := Button = mbLeft;
+  if MouseLDown then
+    MouseLDownPos := MousePos;
 end;
 
 procedure TMainForm.RenderPanelMouseUp(Sender: TObject;
@@ -1886,193 +2970,278 @@ var
   IDArray: DWArray;
   rRect: TRectWH;
   rSelectRect: Boolean;
+
 begin
- if Button = mbLeft then MouseLDown := False;
- if Button = mbRight then MouseRDown := False;
+  if Button = mbLeft then
+    MouseLDown := False;
+  if Button = mbRight then
+    MouseRDown := False;
 
- DrawRect := nil;
- ResizeType := RESIZETYPE_NONE;
+  DrawRect := nil;
+  ResizeType := RESIZETYPE_NONE;
 
- if Button = mbLeft then
- begin
-  if MouseAction <> MOUSEACTION_NONE then
-  begin
-   if (MousePos.X <> MouseLDownPos.X) and (MousePos.Y <> MouseLDownPos.Y) then
-   case MouseAction of
-    MOUSEACTION_DRAWPANEL:
+  if Button = mbLeft then // Left Mouse Button
     begin
-     if (cbPanelType.ItemIndex in [1, 2]) and (lbTextureList.ItemIndex = -1) then
-      MessageBox(0, 'Выберите текстуру', 'Ошибка', MB_ICONINFORMATION or MB_OK
-                 or MB_TASKMODAL or MB_DEFBUTTON1)
-     else
+      if MouseAction <> MOUSEACTION_NONE then
+      begin // Было действие мышью
+      // Мышь сдвинулась во время удержания клавиши:
+        if (MousePos.X <> MouseLDownPos.X) and
+           (MousePos.Y <> MouseLDownPos.Y) then
+          case MouseAction of
+          // Рисовали панель:
+            MOUSEACTION_DRAWPANEL:
+              begin
+              // Фон или передний план без текстуры - ошибка:
+                if (cbPanelType.ItemIndex in [1, 2]) and
+                   (lbTextureList.ItemIndex = -1) then
+                  ErrorMessageBox(_lc[I_MSG_CHOOSE_TEXTURE])
+                else // Назначаем параметры панели:
+                  begin
+                    case cbPanelType.ItemIndex of
+                      0: Panel.PanelType := PANEL_WALL;
+                      1: Panel.PanelType := PANEL_BACK;
+                      2: Panel.PanelType := PANEL_FORE;
+                      3: Panel.PanelType := PANEL_OPENDOOR;
+                      4: Panel.PanelType := PANEL_CLOSEDOOR;
+                      5: Panel.PanelType := PANEL_STEP;
+                      6: Panel.PanelType := PANEL_WATER;
+                      7: Panel.PanelType := PANEL_ACID1;
+                      8: Panel.PanelType := PANEL_ACID2;
+                      9: Panel.PanelType := PANEL_LIFTUP;
+                      10: Panel.PanelType := PANEL_LIFTDOWN;
+                      11: Panel.PanelType := PANEL_BLOCKMON;
+                    end;
+
+                    Panel.X := Min(MousePos.X-MapOffset.X, MouseLDownPos.X-MapOffset.X);
+                    Panel.Y := Min(MousePos.Y-MapOffset.Y, MouseLDownPos.Y-MapOffset.Y);
+                    Panel.Width := Abs(MousePos.X-MouseLDownPos.X);
+                    Panel.Height := Abs(MousePos.Y-MouseLDownPos.Y);
+
+                  // Лифты, блокМон или отсутствие текстуры - пустая текстура:
+                    if (cbPanelType.ItemIndex in [9, 10, 11]) or
+                       (lbTextureList.ItemIndex = -1) then
+                      begin
+                        Panel.TextureHeight := 1;
+                        Panel.TextureWidth := 1;
+                        Panel.TextureName := '';
+                        Panel.TextureID := TEXTURE_SPECIAL_NONE;
+                      end
+                    else // Есть текстура:
+                      begin
+                        Panel.TextureName := SelectedTexture();
+
+                      // Обычная текстура:
+                        if not IsSpecialTextureSel() then
+                          begin
+                            g_GetTextureSizeByName(Panel.TextureName,
+                              Panel.TextureWidth, Panel.TextureHeight);
+                            g_GetTexture(Panel.TextureName, Panel.TextureID);
+                          end
+                        else // Спец.текстура:
+                          begin
+                            Panel.TextureHeight := 1;
+                            Panel.TextureWidth := 1;
+                            Panel.TextureID := SpecialTextureID(SelectedTexture());
+                          end;
+                      end;
+
+                    Panel.Alpha := 0;
+                    Panel.Blending := False;
+
+                    Undo_Add(OBJECT_PANEL, AddPanel(Panel));
+                  end;
+              end;
+
+          // Рисовали триггер:
+            MOUSEACTION_DRAWTRIGGER:
+              begin
+                trigger.X := Min(MousePos.X-MapOffset.X, MouseLDownPos.X-MapOffset.X);
+                trigger.Y := Min(MousePos.Y-MapOffset.Y, MouseLDownPos.Y-MapOffset.Y);
+                trigger.Width := Abs(MousePos.X-MouseLDownPos.X);
+                trigger.Height := Abs(MousePos.Y-MouseLDownPos.Y);
+
+                trigger.Enabled := True;
+                trigger.TriggerType := lbTriggersList.ItemIndex+1;
+                trigger.TexturePanel := -1;
+
+              // Типы активации:
+                trigger.ActivateType := 0;
+
+                if clbActivationType.Checked[0] then
+                  trigger.ActivateType := Trigger.ActivateType or ACTIVATE_PLAYERCOLLIDE;
+                if clbActivationType.Checked[1] then
+                  trigger.ActivateType := Trigger.ActivateType or ACTIVATE_MONSTERCOLLIDE;
+                if clbActivationType.Checked[2] then
+                  trigger.ActivateType := Trigger.ActivateType or ACTIVATE_PLAYERPRESS;
+                if clbActivationType.Checked[3] then
+                  trigger.ActivateType := Trigger.ActivateType or ACTIVATE_MONSTERPRESS;
+                if clbActivationType.Checked[4] then
+                  trigger.ActivateType := Trigger.ActivateType or ACTIVATE_SHOT;
+                if clbActivationType.Checked[5] then
+                  trigger.ActivateType := Trigger.ActivateType or ACTIVATE_NOMONSTER;
+
+              // Необходимые для активации ключи:
+                trigger.Key := 0;
+
+                if clbKeys.Checked[0] then
+                  trigger.Key := Trigger.Key or KEY_RED;
+                if clbKeys.Checked[1] then
+                  trigger.Key := Trigger.Key or KEY_GREEN;
+                if clbKeys.Checked[2] then
+                  trigger.Key := Trigger.Key or KEY_BLUE;
+                if clbKeys.Checked[3] then
+                  trigger.Key := Trigger.Key or KEY_REDTEAM;
+                if clbKeys.Checked[4] then
+                  trigger.Key := Trigger.Key or KEY_BLUETEAM;
+
+              // Параметры триггера:
+                ZeroMemory(@trigger.Data.Default[0], 128);
+
+                case trigger.TriggerType of
+                // Переключаемая панель:
+                  TRIGGER_OPENDOOR, TRIGGER_CLOSEDOOR, TRIGGER_DOOR,
+                  TRIGGER_DOOR5, TRIGGER_CLOSETRAP, TRIGGER_TRAP,
+                  TRIGGER_LIFTUP, TRIGGER_LIFTDOWN, TRIGGER_LIFT:
+                    begin
+                      Trigger.Data.PanelID := -1;
+                    end;
+
+                // Телепортация:
+                  TRIGGER_TELEPORT:
+                    begin
+                      trigger.Data.TargetPoint.X := trigger.X-64;
+                      trigger.Data.TargetPoint.Y := trigger.Y-64;
+                      trigger.Data.d2d_teleport := True;
+                      trigger.Data.TlpDir := 0;
+                    end;
+
+                // Изменение других триггеров:
+                  TRIGGER_PRESS, TRIGGER_ON, TRIGGER_OFF,
+                  TRIGGER_ONOFF:
+                    begin
+                      trigger.Data.Count := 1;
+                    end;
+
+                // Звук:
+                  TRIGGER_SOUND:
+                    begin
+                      trigger.Data.Volume := 255;
+                      trigger.Data.Pan := 127;
+                      trigger.Data.PlayCount := 1;
+                      trigger.Data.Local := True;
+                      trigger.Data.SoundSwitch := False;
+                    end;
+
+                // Музыка:
+                  TRIGGER_MUSIC:
+                    begin
+                      trigger.Data.MusicAction := 1;
+                    end;
+
+                // Создание монстра:
+                  TRIGGER_SPAWNMONSTER:
+                    begin
+                      trigger.Data.MonType := MONSTER_ZOMBY;
+                      trigger.Data.MonPos.X := trigger.X-64;
+                      trigger.Data.MonPos.Y := trigger.Y-64;
+                      trigger.Data.MonHealth := 0;
+                      trigger.Data.MonActive := False;
+                      trigger.Data.MonCount := 1;
+                    end;
+
+                // Создание предмета:
+                  TRIGGER_SPAWNITEM:
+                    begin
+                      trigger.Data.ItemType := ITEM_AMMO_BULLETS;
+                      trigger.Data.ItemPos.X := trigger.X-64;
+                      trigger.Data.ItemPos.Y := trigger.Y-64;
+                      trigger.Data.ItemOnlyDM := False;
+                      trigger.Data.ItemFalls := False;
+                      trigger.Data.ItemCount := 1;
+                    end;
+                end;
+
+                Undo_Add(OBJECT_TRIGGER, AddTrigger(trigger));
+              end;
+
+          // Рисовали область триггера "Расширитель":
+            MOUSEACTION_DRAWPRESS:
+              with gTriggers[SelectedObjects[GetFirstSelected].ID] do
+              begin
+                Data.tX := Min(MousePos.X-MapOffset.X, MouseLDownPos.X-MapOffset.X);
+                Data.tY := Min(MousePos.Y-MapOffset.Y, MouseLDownPos.Y-MapOffset.Y);
+                Data.tWidth := Abs(MousePos.X-MouseLDownPos.X);
+                Data.tHeight := Abs(MousePos.Y-MouseLDownPos.Y);
+
+                DrawPressRect := False;
+              end;
+          end;
+
+        MouseAction := MOUSEACTION_NONE;
+      end;
+    end // if Button = mbLeft...
+  else // Right Mouse Button:
+    begin
+      if MouseAction = MOUSEACTION_NOACTION then
       begin
-       case cbPanelType.ItemIndex of
-        0: Panel.PanelType := PANEL_WALL;
-        1: Panel.PanelType := PANEL_BACK;
-        2: Panel.PanelType := PANEL_FORE;
-        3: Panel.PanelType := PANEL_CLOSEDOOR;
-        4: Panel.PanelType := PANEL_OPENDOOR;
-        5: Panel.PanelType := PANEL_STEP;
-        6: Panel.PanelType := PANEL_WATER;
-        7: Panel.PanelType := PANEL_ACID1;
-        8: Panel.PanelType := PANEL_ACID2;
-        9: Panel.PanelType := PANEL_LIFTUP;
-        10: Panel.PanelType := PANEL_LIFTDOWN;
-        11: Panel.PanelType := PANEL_BLOCKMON;
-       end;
+        MouseAction := MOUSEACTION_NONE;
+        Exit;
+      end;
 
-       Panel.X := Min(MousePos.X-MapOffset.X, MouseLDownPos.X-MapOffset.X);
-       Panel.Y := Min(MousePos.Y-MapOffset.Y, MouseLDownPos.Y-MapOffset.Y);
-       Panel.Width := Abs(MousePos.X-MouseLDownPos.X);
-       Panel.Height := Abs(MousePos.Y-MouseLDownPos.Y);
+    // Объект передвинут или изменен в размере:
+      if MouseAction in [MOUSEACTION_MOVEOBJ, MOUSEACTION_RESIZE] then
+      begin
+        MouseAction := MOUSEACTION_NONE;
+        FillProperty();
+        Exit;
+      end;
 
-       if (cbPanelType.ItemIndex in [9, 10, 11]) or
-          (lbTextureList.ItemIndex = -1) then
-       begin
-        Panel.TextureHeight := 1;
-        Panel.TextureWidth := 1;
-        Panel.TextureName := '';
-        Panel.TextureID := TEXTURE_SPECIAL_NONE;
-       end
-        else
-       begin
-        Panel.TextureName := SelectedTexture();
+    // Еще не все выбрали:
+      if SelectFlag <> SELECTFLAG_NONE then
+      begin
+        if SelectFlag = SELECTFLAG_SELECTED then
+          SelectFlag := SELECTFLAG_NONE;
+        FillProperty();
+        Exit;
+      end;
 
-        if not IsSpecialTextureSel() then
+    // Мышь сдвинулась во время удержания клавиши:
+      if (MousePos.X <> MouseRDownPos.X) and
+         (MousePos.Y <> MouseRDownPos.Y) then
         begin
-         g_GetTextureSizeByName(Panel.TextureName, Panel.TextureWidth, Panel.TextureHeight);
-         g_GetTexture(Panel.TextureName, Panel.TextureID);
+          rSelectRect := True;
+
+          rRect.X := Min(MousePos.X, MouseRDownPos.X)-MapOffset.X;
+          rRect.Y := Min(MousePos.Y, MouseRDownPos.Y)-MapOffset.Y;
+          rRect.Width := Abs(MousePos.X-MouseRDownPos.X);
+          rRect.Height := Abs(MousePos.Y-MouseRDownPos.Y);
         end
-         else
+      else // Мышь не сдвинулась - нет прямоугольника:
         begin
-         Panel.TextureHeight := 1;
-         Panel.TextureWidth := 1;
-         Panel.TextureID := SpecialTextureID(SelectedTexture());
+          rSelectRect := False;
+
+          rRect.X := MousePos.X-MapOffset.X-1;
+          rRect.Y := MousePos.Y-MapOffset.Y-1;
+          rRect.Width := 2;
+          rRect.Height := 2;
         end;
-       end;
 
-       Panel.Alpha := 0;
-       Panel.Blending := False;
+    // Если зажат Ctrl - выделять еще, иначе только один выделенный объект: 
+      if not (ssCtrl in Shift) then
+        RemoveSelectFromObjects();
 
-       Undo_Add(OBJECT_PANEL, AddPanel(Panel));
-      end
+    // Выделяем всё в выбранном прямоугольнике:
+      IDArray := ObjectInRect(rRect.X, rRect.Y,
+                   rRect.Width, rRect.Height,
+                   pcObjects.ActivePageIndex+1, rSelectRect);
+
+      if IDArray <> nil then
+        for i := 0 to High(IDArray) do
+          SelectObject(pcObjects.ActivePageIndex+1, IDArray[i],
+            (ssCtrl in Shift) or rSelectRect);
+
+      FillProperty();
     end;
-
-    MOUSEACTION_DRAWTRIGGER:
-    begin
-     trigger.X := Min(MousePos.X-MapOffset.X, MouseLDownPos.X-MapOffset.X);
-     trigger.Y := Min(MousePos.Y-MapOffset.Y, MouseLDownPos.Y-MapOffset.Y);
-     trigger.Width := Abs(MousePos.X-MouseLDownPos.X);
-     trigger.Height := Abs(MousePos.Y-MouseLDownPos.Y);
-
-     trigger.Enabled := True;
-     trigger.TriggerType := lbTriggersList.ItemIndex+1;
-     trigger.TexturePanel := -1;
-     trigger.ActivateType := 0;
-
-     if clbActivationType.Checked[0] then
-      trigger.ActivateType := Trigger.ActivateType or ACTIVATE_PLAYERCOLLIDE;
-     if clbActivationType.Checked[1] then
-      trigger.ActivateType := Trigger.ActivateType or ACTIVATE_MONSTERCOLLIDE;
-     if clbActivationType.Checked[2] then
-      trigger.ActivateType := Trigger.ActivateType or ACTIVATE_PLAYERPRESS;
-     if clbActivationType.Checked[3] then
-      trigger.ActivateType := Trigger.ActivateType or ACTIVATE_MONSTERPRESS;
-     if clbActivationType.Checked[4] then
-      trigger.ActivateType := Trigger.ActivateType or ACTIVATE_SHOT;
-     if clbActivationType.Checked[5] then
-      trigger.ActivateType := Trigger.ActivateType or ACTIVATE_NOMONSTER;
-
-     trigger.Key := 0;
-
-     if clbKeys.Checked[0] then trigger.Key := Trigger.Key+KEY_RED;
-     if clbKeys.Checked[1] then trigger.Key := Trigger.Key+KEY_GREEN;
-     if clbKeys.Checked[2] then trigger.Key := Trigger.Key+KEY_BLUE;
-     if clbKeys.Checked[3] then trigger.Key := Trigger.Key+KEY_REDTEAM;
-     if clbKeys.Checked[4] then trigger.Key := Trigger.Key+KEY_BLUETEAM;
-
-     ZeroMemory(@trigger.Data.Default[0], 128);
-
-     case trigger.TriggerType of
-      TRIGGER_OPENDOOR, TRIGGER_CLOSEDOOR, TRIGGER_DOOR, TRIGGER_DOOR5,
-      TRIGGER_CLOSETRAP, TRIGGER_TRAP, TRIGGER_LIFTUP, TRIGGER_LIFTDOWN,
-      TRIGGER_LIFT: Trigger.Data.PanelID := -1;
-      TRIGGER_TELEPORT:
-      begin
-       trigger.Data.TargetPoint.X := trigger.X-64;
-       trigger.Data.TargetPoint.Y := trigger.Y-64;
-       trigger.Data.d2d_teleport := True;
-      end;
-      TRIGGER_SOUND:
-      begin
-       trigger.Data.Volume := 255;
-       trigger.Data.Pan := 127;
-       trigger.Data.PlayCount := 1;
-       trigger.Data.Local := True;
-       //trigger.Data.SoundDistance := 255;
-       trigger.Data.SoundSwitch := False;
-      end;
-     end;
-
-     Undo_Add(OBJECT_TRIGGER, AddTrigger(trigger));
-    end;
-
-    MOUSEACTION_DRAWPRESS:
-    with gTriggers[SelectedObjects[GetFirstSelected].ID] do
-    begin
-     Data.tX := Min(MousePos.X-MapOffset.X, MouseLDownPos.X-MapOffset.X);
-     Data.tY := Min(MousePos.Y-MapOffset.Y, MouseLDownPos.Y-MapOffset.Y);
-     Data.tWidth := Abs(MousePos.X-MouseLDownPos.X);
-     Data.tHeight := Abs(MousePos.Y-MouseLDownPos.Y);
-
-     DrawPressRect := False;
-    end;
-   end;
-
-   MouseAction := MOUSEACTION_NONE;
-  end;
- end
-  else
- begin
-  if MouseAction in [MOUSEACTION_MOVEOBJ, MOUSEACTION_RESIZE] then
-  begin
-   FillProperty();
-   MouseAction := MOUSEACTION_NONE;
-   Exit;
-  end;
-
-  if SelectFlag <> SELECTFLAG_NONE then Exit;
-
-  if (MousePos.X <> MouseRDownPos.X) and (MousePos.Y <> MouseRDownPos.Y) then
-  begin
-   rSelectRect := True;
-
-   rRect.X := Min(MousePos.X, MouseRDownPos.X)-MapOffset.X;
-   rRect.Y := Min(MousePos.Y, MouseRDownPos.Y)-MapOffset.Y;
-   rRect.Width := Abs(MousePos.X-MouseRDownPos.X);
-   rRect.Height := Abs(MousePos.Y-MouseRDownPos.Y);
-  end
-   else
-  begin
-   rSelectRect := False;
-
-   rRect.X := MousePos.X-MapOffset.X-1;
-   rRect.Y := MousePos.Y-MapOffset.Y-1;
-   rRect.Width := 2;
-   rRect.Height := 2;
-  end;
-
-  if not (ssCtrl in Shift) then RemoveSelect();
-
-  IDArray := ObjectInRect(rRect.X, rRect.Y, rRect.Width, rRect.Height,
-                          pcObjects.ActivePageIndex+1, rSelectRect);
-
-  if IDArray <> nil then
-   for i := 0 to High(IDArray) do
-    SelectObject(pcObjects.ActivePageIndex+1, IDArray[i], (ssCtrl in Shift) or rSelectRect);
-
-  FillProperty();
- end;
 end;
 
 procedure TMainForm.RenderPanelMouseMove(Sender: TObject;
@@ -2081,748 +3250,1328 @@ var
   sX, sY: Integer;
   dWidth, dHeight: Integer;
   _id: Integer;
+
 begin
- sX := 1;
- sY := 1;
+  _id := GetFirstSelected();
 
- _id := GetFirstSelected();
- if (MouseAction = MOUSEACTION_DRAWPANEL) and
-    (cbPanelType.ItemIndex in [0..8]) and
-    (lbTextureList.ItemIndex <> -1) and not IsSpecialTextureSel() then
- begin
-  sX := StrToIntDef(lTextureWidth.Caption, DotStep);
-  sY := StrToIntDef(lTextureHeight.Caption, DotStep);
- end
-  else if (MouseAction = MOUSEACTION_RESIZE) and
-          ((SelectedObjects[_id].ObjectType = OBJECT_PANEL) and
-           IsTexturedPanel(gPanels[SelectedObjects[_id].ID].PanelType) and
-           (gPanels[SelectedObjects[_id].ID].TextureName <> '') and
-           not IsSpecialTextureSel()) then
- begin
-  sX := gPanels[SelectedObjects[_id].ID].TextureWidth;
-  sY := gPanels[SelectedObjects[_id].ID].TextureHeight;
- end
-  else if SnapToGrid then
- begin
-  sX := DotStep;
-  sY := DotStep;
- end;
-
- if MouseLDown then
- begin
-  MousePos.X := (Round((X-MouseLDownPos.X)/sX)*sX)+MouseLDownPos.X;
-  MousePos.Y := (Round((Y-MouseLDownPos.Y)/sY)*sY)+MouseLDownPos.Y;
- end
-  else if MouseRDown then
- begin
-  MousePos.X := (Round((X-MouseRDownPos.X)/sX)*sX)+MouseRDownPos.X;
-  MousePos.Y := (Round((Y-MouseRDownPos.Y)/sY)*sY)+MouseRDownPos.Y;
- end
+// Рисуем панель с текстурой, сетка - размеры текстуры:
+  if (MouseAction = MOUSEACTION_DRAWPANEL) and
+     (cbPanelType.ItemIndex in [0..8]) and
+     (lbTextureList.ItemIndex <> -1) and
+     (not IsSpecialTextureSel()) then
+    begin
+      sX := StrToIntDef(lTextureWidth.Caption, DotStep);
+      sY := StrToIntDef(lTextureHeight.Caption, DotStep);
+    end
   else
- begin
-  MousePos.X := (Round(X/sX)*sX);
-  MousePos.Y := (Round(Y/sY)*sY);
- end;
+  // Меняем размер панели с текстурой, сетка - размеры текстуры:
+    if (MouseAction = MOUSEACTION_RESIZE) and
+       ( (SelectedObjects[_id].ObjectType = OBJECT_PANEL) and
+         IsTexturedPanel(gPanels[SelectedObjects[_id].ID].PanelType) and
+         (gPanels[SelectedObjects[_id].ID].TextureName <> '') and
+         (not IsSpecialTexture(gPanels[SelectedObjects[_id].ID].TextureName)) ) then
+      begin
+        sX := gPanels[SelectedObjects[_id].ID].TextureWidth;
+        sY := gPanels[SelectedObjects[_id].ID].TextureHeight;
+      end
+    else
+    // Выравнивание по сетке:
+      if SnapToGrid then
+        begin
+          sX := DotStep;
+          sY := DotStep;
+        end
+      else // Нет выравнивания по сетке:
+        begin
+          sX := 1;
+          sY := 1;
+        end;
 
- if ResizeType = RESIZETYPE_NONE then RenderPanel.Cursor := crDefault;
+// Новая позиция мыши:
+  if MouseLDown then
+    begin // Зажата левая кнопка мыши
+      MousePos.X := (Round((X-MouseLDownPos.X)/sX)*sX)+MouseLDownPos.X;
+      MousePos.Y := (Round((Y-MouseLDownPos.Y)/sY)*sY)+MouseLDownPos.Y;
+    end
+  else
+    if MouseRDown then
+      begin // Зажата правая кнопка мыши
+        MousePos.X := (Round((X-MouseRDownPos.X)/sX)*sX)+MouseRDownPos.X;
+        MousePos.Y := (Round((Y-MouseRDownPos.Y)/sY)*sY)+MouseRDownPos.Y;
+      end
+    else
+      begin // Кнопки мыши не зажаты
+        MousePos.X := (Round(X/sX)*sX);
+        MousePos.Y := (Round(Y/sY)*sY);
+      end;
 
- if (not MouseLDown) and (MouseRDown) then
- begin
-  if MouseAction = MOUSEACTION_NONE then
+// Изменение размера закончилось - ставим обычный курсор:
+  if ResizeType = RESIZETYPE_NONE then
+    RenderPanel.Cursor := crDefault;
+
+// Зажата только правая кнопка мыши:
+  if (not MouseLDown) and (MouseRDown) then
   begin
-   if DrawRect = nil then New(DrawRect);
-   DrawRect.TopLeft := MouseRDownPos;
-   DrawRect.BottomRight := MousePos;
-  end
-   else if MouseAction = MOUSEACTION_MOVEOBJ then
-  begin
-   MoveSelectedObjects(ssShift in Shift, ssCtrl in Shift, MousePos.X-LastMovePoint.X, MousePos.Y-LastMovePoint.Y);
-  end
-   else if MouseAction = MOUSEACTION_RESIZE then
-  begin
-   if (SelectedObjectCount = 1) and (SelectedObjects[GetFirstSelected].Live) then
-   begin
-    dWidth := MousePos.X-LastMovePoint.X;
-    dHeight := MousePos.Y-LastMovePoint.Y;
+  // Рисуем прямоугольник выделения:
+    if MouseAction = MOUSEACTION_NONE then
+      begin
+        if DrawRect = nil then
+          New(DrawRect);
+        DrawRect.TopLeft := MouseRDownPos;
+        DrawRect.BottomRight := MousePos;
+      end
+    else
+    // Двигаем выделенные объекты:
+      if MouseAction = MOUSEACTION_MOVEOBJ then
+        begin
+          MoveSelectedObjects(ssShift in Shift, ssCtrl in Shift,
+                              MousePos.X-LastMovePoint.X,
+                              MousePos.Y-LastMovePoint.Y);
+        end
+      else
+      // Меняем размер выделенного объекта:
+        if MouseAction = MOUSEACTION_RESIZE then
+        begin
+          if (SelectedObjectCount = 1) and
+             (SelectedObjects[GetFirstSelected].Live) then
+          begin
+            dWidth := MousePos.X-LastMovePoint.X;
+            dHeight := MousePos.Y-LastMovePoint.Y;
 
-    case ResizeType of
-     RESIZETYPE_VERTICAL: dWidth := 0;
-     RESIZETYPE_HORIZONTAL: dHeight := 0;
-    end;
+            case ResizeType of
+              RESIZETYPE_VERTICAL: dWidth := 0;
+              RESIZETYPE_HORIZONTAL: dHeight := 0;
+            end;
 
-    case ResizeDirection of
-     RESIZEDIR_UP: dHeight := -dHeight;
-     RESIZEDIR_LEFT: dWidth := -dWidth;
-    end;
+            case ResizeDirection of
+              RESIZEDIR_UP: dHeight := -dHeight;
+              RESIZEDIR_LEFT: dWidth := -dWidth;
+            end;
 
-    ResizeObject(SelectedObjects[GetFirstSelected].ObjectType, SelectedObjects[GetFirstSelected].ID,
-                 dWidth, dHeight, ResizeDirection);
-                  
-    LastMovePoint := MousePos;
-   end;
+            ResizeObject(SelectedObjects[GetFirstSelected].ObjectType,
+                         SelectedObjects[GetFirstSelected].ID,
+                         dWidth, dHeight, ResizeDirection);
+
+            LastMovePoint := MousePos;
+          end;
+        end;
   end;
- end;
 
- if (not MouseRDown) and (MouseLDown) then
- begin                                
-  if MouseAction in [MOUSEACTION_DRAWPANEL, MOUSEACTION_DRAWTRIGGER, MOUSEACTION_DRAWPRESS] then
+// Зажата только левая кнопка мыши:
+  if (not MouseRDown) and (MouseLDown) then
   begin
-   if DrawRect = nil then New(DrawRect);
-   DrawRect.TopLeft := MouseLDownPos;
-   DrawRect.BottomRight := MousePos;
-  end
-   else if MouseAction = MOUSEACTION_MOVEMAP then
-  begin
-   MoveMap(X, Y);
+  // Рисуем прямоугольник планирования панели:
+    if MouseAction in [MOUSEACTION_DRAWPANEL,
+                       MOUSEACTION_DRAWTRIGGER,
+                       MOUSEACTION_DRAWPRESS] then
+      begin
+        if DrawRect = nil then
+          New(DrawRect);
+        DrawRect.TopLeft := MouseLDownPos;
+        DrawRect.BottomRight := MousePos;
+      end
+    else // Двигаем карту:
+      if MouseAction = MOUSEACTION_MOVEMAP then
+      begin
+        MoveMap(X, Y);
+      end;
   end;
- end;
 
- if not (MouseRDown or MouseLDown) then DrawRect := nil;
+// Клавиши мыши не зажаты:
+  if (not MouseRDown) and (not MouseLDown) then
+    DrawRect := nil;
 
- StatusBar.Panels[1].Text := Format('(%d:%d)', [MousePos.X-MapOffset.X, MousePos.Y-MapOffset.Y]);
+// Строка состояния - координаты мыши:
+  StatusBar.Panels[1].Text := Format('(%d:%d)',
+    [MousePos.X-MapOffset.X, MousePos.Y-MapOffset.Y]);
 end;
 
 procedure TMainForm.FormCloseQuery(Sender: TObject; var CanClose: Boolean);
 begin
- CanClose := MessageBox(0, 'Уже уходите ?', 'Выход', MB_ICONQUESTION or MB_YESNO
-                        or MB_TASKMODAL or MB_DEFBUTTON1) = idYes;
+  CanClose := MessageBox(0, PChar(_lc[I_MSG_EXIT_PROMT]),
+                         PChar(_lc[I_MSG_EXIT]),
+                         MB_ICONQUESTION or MB_YESNO or
+                         MB_TASKMODAL or MB_DEFBUTTON1) = idYes;
 end;
 
 procedure TMainForm.aExitExecute(Sender: TObject);
 begin
- Close;
+  Close();
 end;
 
 procedure TMainForm.FormDestroy(Sender: TObject);
 var
   config: TConfig;
+  i: Integer;
+  
 begin
- config := TConfig.CreateFile(EditorDir+'\editor.cfg');
- config.WriteBool('Editor', 'Maximize', WindowState = wsMaximized);
- config.WriteBool('Editor', 'Minimap', ShowMap);
- config.SaveFile(EditorDir+'\editor.cfg');
- config.Destroy;
+  config := TConfig.CreateFile(EditorDir+'\Editor.cfg');
 
- wglDeleteContext(hRC);
-end;
+  config.WriteBool('Editor', 'Maximize', WindowState = wsMaximized);
+  config.WriteBool('Editor', 'Minimap', ShowMap);
+  config.WriteBool('Editor', 'DotEnable', DotEnable);
+  config.WriteInt('Editor', 'DotStep', DotStep);
+  config.WriteStr('Editor', 'LastOpenDir', OpenDialog.InitialDir);
+  config.WriteStr('Editor', 'LastSaveDir', SaveDialog.InitialDir);
 
-procedure TMainForm.sbHorizontalChange(Sender: TObject);
-begin
- MapOffset.X := -Round(sbHorizontal.Position/16)*16;
-end;
+  for i := 0 to RecentCount-1 do
+    if i < RecentFiles.Count then
+      config.WriteStr('RecentFiles', IntToStr(i+1), RecentFiles[i])
+    else
+      config.WriteStr('RecentFiles', IntToStr(i+1), '');
+  RecentFiles.Free();
 
-procedure TMainForm.sbVerticalChange(Sender: TObject);
-begin
- MapOffset.Y := -Round(sbVertical.Position/16)*16;
+  config.SaveFile(EditorDir+'\Editor.cfg');
+  config.Free();
+
+  wglDeleteContext(hRC);
 end;
 
 procedure TMainForm.RenderPanelResize(Sender: TObject);
 begin
- if MainForm.Visible then MainForm.Resize;
+  if MainForm.Visible then
+    MainForm.Resize();
 end;
 
 procedure TMainForm.aMapOptionsExecute(Sender: TObject);
 begin
- MapOptionsForm.ShowModal;
+  MapOptionsForm.ShowModal();
 end;
 
 procedure TMainForm.aAboutExecute(Sender: TObject);
 begin
- AboutForm.ShowModal;
+  AboutForm.ShowModal();
 end;
 
 procedure TMainForm.FormKeyDown(Sender: TObject; var Key: Word;
   Shift: TShiftState);
 var
-  dx, dy: Integer;
+  dx, dy, i: Integer;
+
 begin
- if (Key = VK_DELETE) and (SelectedObjects <> nil) and
- RenderPanel.Focused then DeleteSelectedObjects();
- if (Key = VK_ESCAPE) and (SelectedObjects <> nil) then RemoveSelect();
-
- if MainForm.ActiveControl = RenderPanel then
- begin
-  dx := 0;
-  dy := 0;
-
-  if Key = VK_NUMPAD4 then dx := IfThen(ssAlt in Shift, -1, -DotStep);
-  if Key = VK_NUMPAD6 then dx := IfThen(ssAlt in Shift, 1, DotStep);
-  if Key = VK_NUMPAD8 then dy := IfThen(ssAlt in Shift, -1, -DotStep);
-  if Key = VK_NUMPAD5 then dy := IfThen(ssAlt in Shift, 1, DotStep);
-
-  if (dx <> 0) or (dy <> 0) then
+  if (not EditingProperties) then
   begin
-   MoveSelectedObjects(ssShift in Shift, ssCtrl in Shift, dx, dy);
-   Key := 0;
+    if Key = Ord('1') then
+      SwitchLayer(LAYER_BACK);
+    if Key = Ord('2') then
+      SwitchLayer(LAYER_WALLS);
+    if Key = Ord('3') then
+      SwitchLayer(LAYER_FOREGROUND);
+    if Key = Ord('4') then
+      SwitchLayer(LAYER_STEPS);
+    if Key = Ord('5') then
+      SwitchLayer(LAYER_WATER);
+    if Key = Ord('6') then
+      SwitchLayer(LAYER_ITEMS);
+    if Key = Ord('7') then
+      SwitchLayer(LAYER_MONSTERS);
+    if Key = Ord('8') then
+      SwitchLayer(LAYER_AREAS);
+    if Key = Ord('9') then
+      SwitchLayer(LAYER_TRIGGERS);
+    if Key = Ord('0') then
+      tbShowClick(tbShow);
+      
+    if Key = Ord('V') then
+    begin // Поворот монстров и областей:
+      if (SelectedObjects <> nil) then
+        for i := 0 to High(SelectedObjects) do
+          if (SelectedObjects[i].Live) then
+          begin
+            if (SelectedObjects[i].ObjectType = OBJECT_MONSTER) then
+              begin
+                g_ChangeDir(gMonsters[SelectedObjects[i].ID].Direction);
+              end
+            else
+              if (SelectedObjects[i].ObjectType = OBJECT_AREA) then
+              begin
+                g_ChangeDir(gAreas[SelectedObjects[i].ID].Direction);
+              end;
+          end;
+    end;
   end;
- end;
 
- with sbVertical do
- begin
-  if Key = Ord('W') then Position := ifThen(Position > DotStep, Position-DotStep, 0);
-  if Key = Ord('S') then Position := ifThen(Position+DotStep < Max, Position+DotStep, Max);
- end;
+// Удалить выделенные объекты:
+  if (Key = VK_DELETE) and (SelectedObjects <> nil) and
+     RenderPanel.Focused() then
+    DeleteSelectedObjects();
 
- with sbHorizontal do
- begin
-  if Key = Ord('A') then Position := ifThen(Position > DotStep, Position-DotStep, 0);
-  if Key = Ord('D') then Position := ifThen(Position+DotStep < Max, Position+DotStep, Max);
- end;
+// Снять выделение:
+  if (Key = VK_ESCAPE) and (SelectedObjects <> nil) then
+    RemoveSelectFromObjects();
+
+// Передвинуть объекты:
+  if MainForm.ActiveControl = RenderPanel then
+  begin
+    dx := 0;
+    dy := 0;
+
+    if Key = VK_NUMPAD4 then
+      dx := IfThen(ssAlt in Shift, -1, -DotStep);
+    if Key = VK_NUMPAD6 then
+      dx := IfThen(ssAlt in Shift, 1, DotStep);
+    if Key = VK_NUMPAD8 then
+      dy := IfThen(ssAlt in Shift, -1, -DotStep);
+    if Key = VK_NUMPAD5 then
+      dy := IfThen(ssAlt in Shift, 1, DotStep);
+
+    if (dx <> 0) or (dy <> 0) then
+    begin
+      MoveSelectedObjects(ssShift in Shift, ssCtrl in Shift, dx, dy);
+      Key := 0;
+    end;
+  end;
+
+// Вертикальный скролл карты:
+  with sbVertical do
+  begin
+    if Key = Ord('W') then
+    begin
+      Position := IfThen(Position > DotStep, Position-DotStep, 0);
+      MapOffset.Y := -Round(Position/16) * 16;
+    end;
+
+    if Key = Ord('S') then
+    begin
+      Position := IfThen(Position+DotStep < Max, Position+DotStep, Max);
+      MapOffset.Y := -Round(Position/16) * 16;
+    end;
+  end;
+
+// Горизонтальный скролл карты:
+  with sbHorizontal do
+  begin
+    if Key = Ord('A') then
+    begin
+      Position := IfThen(Position > DotStep, Position-DotStep, 0);
+      MapOffset.X := -Round(Position/16) * 16;
+    end;
+
+    if Key = Ord('D') then
+    begin
+      Position := IfThen(Position+DotStep < Max, Position+DotStep, Max);
+      MapOffset.X := -Round(Position/16) * 16;
+    end;
+  end;
 end;
 
 procedure TMainForm.aOptimizeExecute(Sender: TObject);
 begin
- RemoveSelect();
- MapOptimizationForm.Show;
+  RemoveSelectFromObjects();
+  MapOptimizationForm.ShowModal();
 end;
 
 procedure TMainForm.aCheckMapExecute(Sender: TObject);
 begin
- MapCheckForm.Show;
+  MapCheckForm.ShowModal();
 end;
 
 procedure TMainForm.bbAddTextureClick(Sender: TObject);
 begin
- AddTextureForm.OKFunction := AddTexture;
- AddTextureForm.lbResourcesList.MultiSelect := True;
- AddTextureForm.ShowModal();
+  AddTextureForm.lbResourcesList.MultiSelect := True;
+  AddTextureForm.ShowModal();
 end;
 
 procedure TMainForm.lbTextureListClick(Sender: TObject);
 var
   TextureWidth, TextureHeight: Word;
-begin
- if (lbTextureList.ItemIndex <> -1) and not IsSpecialTextureSel() then
- begin
-  g_GetTextureSizeByName(SelectedTexture(), TextureWidth, TextureHeight);
 
-  lTextureWidth.Caption := IntToStr(TextureWidth);
-  lTextureHeight.Caption := IntToStr(TextureHeight);
- end
+begin
+  if (lbTextureList.ItemIndex <> -1) and
+     (not IsSpecialTextureSel()) then
+    begin
+      g_GetTextureSizeByName(SelectedTexture(), TextureWidth, TextureHeight);
+
+      lTextureWidth.Caption := IntToStr(TextureWidth);
+      lTextureHeight.Caption := IntToStr(TextureHeight);
+    end
   else
- begin
-  lTextureWidth.Caption := '';
-  lTextureHeight.Caption := '';
- end;
+    begin
+      lTextureWidth.Caption := '';
+      lTextureHeight.Caption := '';
+    end;
 end;
 
 procedure TMainForm.vleObjectPropertyGetPickList(Sender: TObject;
-  const KeyName: string; Values: TStrings);
+  const KeyName: String; Values: TStrings);
+var
+  i: Integer;
+
 begin
- if vleObjectProperty.ItemProps[KeyName].EditStyle = esPickList then
- begin
-  if KeyName = 'Тип панели' then
+  if vleObjectProperty.ItemProps[KeyName].EditStyle = esPickList then
   begin
-   Values.Add(GetPanelName(PANEL_WALL));
-   Values.Add(GetPanelName(PANEL_BACK));
-   Values.Add(GetPanelName(PANEL_FORE));
-   Values.Add(GetPanelName(PANEL_CLOSEDOOR));
-   Values.Add(GetPanelName(PANEL_OPENDOOR));
-   Values.Add(GetPanelName(PANEL_STEP));
-   Values.Add(GetPanelName(PANEL_WATER));
-   Values.Add(GetPanelName(PANEL_ACID1));
-   Values.Add(GetPanelName(PANEL_ACID2));
-   Values.Add(GetPanelName(PANEL_LIFTUP));
-   Values.Add(GetPanelName(PANEL_LIFTDOWN));
-   Values.Add(GetPanelName(PANEL_BLOCKMON));
-  end
-   else if KeyName = 'Направление' then
-  begin
-   Values.Add(DirNames[D_LEFT]);
-   Values.Add(DirNames[D_RIGHT]);
-  end
-   else if (KeyName = 'Только DM') or (KeyName = 'Падает') or (KeyName = 'Смешивание') or
-           (KeyName = 'Один раз') or (KeyName = 'Включен') or (KeyName = 'Без звука') or
-           (KeyName = 'Аним. один раз') or (KeyName = 'Как в D2D') or (KeyName = 'Локальный') or
-           (KeyName = 'Цикл') or (KeyName = 'Тихий телепорт') or (KeyName = 'Телепорт итемов') or
-           (KeyName = 'Переключение') then
-  begin
-   Values.Add(BoolNames[True]);
-   Values.Add(BoolNames[False]);
+    if KeyName = _lc[I_PROP_PANEL_TYPE] then
+      begin
+        Values.Add(GetPanelName(PANEL_WALL));
+        Values.Add(GetPanelName(PANEL_BACK));
+        Values.Add(GetPanelName(PANEL_FORE));
+        Values.Add(GetPanelName(PANEL_CLOSEDOOR));
+        Values.Add(GetPanelName(PANEL_OPENDOOR));
+        Values.Add(GetPanelName(PANEL_STEP));
+        Values.Add(GetPanelName(PANEL_WATER));
+        Values.Add(GetPanelName(PANEL_ACID1));
+        Values.Add(GetPanelName(PANEL_ACID2));
+        Values.Add(GetPanelName(PANEL_LIFTUP));
+        Values.Add(GetPanelName(PANEL_LIFTDOWN));
+        Values.Add(GetPanelName(PANEL_BLOCKMON));
+      end
+    else if KeyName = _lc[I_PROP_DIRECTION] then
+      begin
+        Values.Add(DirNames[D_LEFT]);
+        Values.Add(DirNames[D_RIGHT]);
+      end
+    else if KeyName = _lc[I_PROP_TR_TELEPORT_DIR] then
+      begin
+        Values.Add(DirNamesAdv[0]);
+        Values.Add(DirNamesAdv[1]);
+        Values.Add(DirNamesAdv[2]);
+        Values.Add(DirNamesAdv[3]);
+      end
+    else if KeyName = _lc[I_PROP_TR_MUSIC_ACT] then
+      begin
+        Values.Add(_lc[I_PROP_TR_MUSIC_ON]);
+        Values.Add(_lc[I_PROP_TR_MUSIC_OFF]);
+      end
+    else if (KeyName = _lc[I_PROP_PANEL_BLEND]) or
+            (KeyName = _lc[I_PROP_DM_ONLY]) or
+            (KeyName = _lc[I_PROP_ITEM_FALLS]) or
+            (KeyName = _lc[I_PROP_TR_ENABLED]) or
+            (KeyName = _lc[I_PROP_TR_D2D]) or
+            (KeyName = _lc[I_PROP_TR_SILENT]) or
+            (KeyName = _lc[I_PROP_TR_TELEPORT_SILENT]) or
+            (KeyName = _lc[I_PROP_TR_TEXTURE_ONCE]) or
+            (KeyName = _lc[I_PROP_TR_TEXTURE_ANIM_ONCE]) or
+            (KeyName = _lc[I_PROP_TR_SOUND_LOCAL]) or
+            (KeyName = _lc[I_PROP_TR_SOUND_SWITCH]) or
+            (KeyName = _lc[I_PROP_TR_MONSTER_ACTIVE]) then
+      begin
+        Values.Add(BoolNames[True]);
+        Values.Add(BoolNames[False]);
+      end;
   end;
- end;
 end;
 
 procedure TMainForm.bApplyPropertyClick(Sender: TObject);
 var
   _id, a, r, c: Integer;
-  s: string;
+  s: String;
+  res: Boolean;
+
 begin
- if SelectedObjectCount() <> 1 then Exit;
- if not SelectedObjects[GetFirstSelected()].Live then Exit;
- try
-  if not CheckProperty() then Exit;
- except
-  Exit;
- end;
+  if SelectedObjectCount() <> 1 then
+    Exit;
+  if not SelectedObjects[GetFirstSelected()].Live then
+    Exit;
 
- _id := GetFirstSelected();
-
- r := vleObjectProperty.Row;
- c := vleObjectProperty.Col;
-
- case SelectedObjects[_id].ObjectType of
- OBJECT_PANEL:
-  begin
-   with gPanels[SelectedObjects[_id].ID] do
-   begin
-    X := StrToInt(Trim(vleObjectProperty.Values['X']));
-    Y := StrToInt(Trim(vleObjectProperty.Values['Y']));
-    Width := StrToInt(Trim(vleObjectProperty.Values['Длина']));
-    Height := StrToInt(Trim(vleObjectProperty.Values['Высота']));
-
-    if IsTexturedPanel(PanelType) then
-    begin
-     PanelType := GetPanelType(vleObjectProperty.Values['Тип панели']);
-
-     if TextureName <> '' then
-     begin
-      Alpha := StrToInt(Trim(vleObjectProperty.Values['Прозрачность']));
-      Blending := NameToBool(vleObjectProperty.Values['Смешивание']);
-     end;
-
-     if not IsTexturedPanel(PanelType) then
-     begin
-      Alpha := 0;
-      Blending := False;
-      TextureName := '';
-     end;
-
-     if not WordBool(PanelType and (PANEL_WALL or PANEL_FORE or PANEL_BACK)) then
-      if gTriggers <> nil then
-       for a := 0 to High(gTriggers) do
-        if (gTriggers[a].TriggerType <> 0) and
-           (gTriggers[a].TexturePanel = Integer(SelectedObjects[_id].ID)) then
-         gTriggers[a].TexturePanel := -1;
-
-     if not WordBool(PanelType and (PANEL_LIFTUP or PANEL_LIFTDOWN)) then
-      if gTriggers <> nil then
-       for a := 0 to High(gTriggers) do
-         if (gTriggers[a].TriggerType in [TRIGGER_LIFTUP, TRIGGER_LIFTDOWN, TRIGGER_LIFT]) and
-            (gTriggers[a].Data.PanelID = Integer(SelectedObjects[_id].ID)) then gTriggers[a].Data.PanelID := -1;
-
-     if not WordBool(PanelType and (PANEL_OPENDOOR or PANEL_CLOSEDOOR)) then
-      if gTriggers <> nil then
-       for a := 0 to High(gTriggers) do
-         if (gTriggers[a].TriggerType in [TRIGGER_OPENDOOR, TRIGGER_CLOSEDOOR, TRIGGER_DOOR,
-                                          TRIGGER_DOOR5, TRIGGER_CLOSETRAP, TRIGGER_TRAP]) and
-            (gTriggers[a].Data.PanelID = Integer(SelectedObjects[_id].ID)) then gTriggers[a].Data.PanelID := -1;
-    end;
-   end;
+  try
+    if not CheckProperty() then
+      Exit;
+  except
+    Exit;
   end;
 
-  OBJECT_ITEM:
-  begin
-   with gItems[SelectedObjects[_id].ID] do
-   begin
-    X := StrToInt(Trim(vleObjectProperty.Values['X']));
-    Y := StrToInt(Trim(vleObjectProperty.Values['Y']));
-    OnlyDM := NameToBool(vleObjectProperty.Values['Только DM']);
-    Fall := NameToBool(vleObjectProperty.Values['Падает']);
-   end;
+  _id := GetFirstSelected();
+
+  r := vleObjectProperty.Row;
+  c := vleObjectProperty.Col;
+
+  case SelectedObjects[_id].ObjectType of
+    OBJECT_PANEL:
+      begin
+        with gPanels[SelectedObjects[_id].ID] do
+        begin
+          X := StrToInt(Trim(vleObjectProperty.Values[_lc[I_PROP_X]]));
+          Y := StrToInt(Trim(vleObjectProperty.Values[_lc[I_PROP_Y]]));
+          Width := StrToInt(Trim(vleObjectProperty.Values[_lc[I_PROP_WIDTH]]));
+          Height := StrToInt(Trim(vleObjectProperty.Values[_lc[I_PROP_HEIGHT]]));
+
+          PanelType := GetPanelType(vleObjectProperty.Values[_lc[I_PROP_PANEL_TYPE]]);
+
+        // Сброс ссылки на триггеры смены текстуры:
+          if not WordBool(PanelType and (PANEL_WALL or PANEL_FORE or PANEL_BACK)) then
+            if gTriggers <> nil then
+              for a := 0 to High(gTriggers) do
+                if (gTriggers[a].TriggerType <> 0) and
+                   (gTriggers[a].TexturePanel = Integer(SelectedObjects[_id].ID)) then
+                  gTriggers[a].TexturePanel := -1;
+
+        // Сброс ссылки на триггеры лифта:
+          if not WordBool(PanelType and (PANEL_LIFTUP or PANEL_LIFTDOWN)) then
+            if gTriggers <> nil then
+              for a := 0 to High(gTriggers) do
+                if (gTriggers[a].TriggerType in [TRIGGER_LIFTUP, TRIGGER_LIFTDOWN, TRIGGER_LIFT]) and
+                   (gTriggers[a].Data.PanelID = Integer(SelectedObjects[_id].ID)) then
+                     gTriggers[a].Data.PanelID := -1;
+
+        // Сброс ссылки на триггеры двери:
+          if not WordBool(PanelType and (PANEL_OPENDOOR or PANEL_CLOSEDOOR)) then
+            if gTriggers <> nil then
+              for a := 0 to High(gTriggers) do
+                if (gTriggers[a].TriggerType in [TRIGGER_OPENDOOR, TRIGGER_CLOSEDOOR, TRIGGER_DOOR,
+                                                 TRIGGER_DOOR5, TRIGGER_CLOSETRAP, TRIGGER_TRAP]) and
+                   (gTriggers[a].Data.PanelID = Integer(SelectedObjects[_id].ID)) then
+                  gTriggers[a].Data.PanelID := -1;
+
+          if IsTexturedPanel(PanelType) then
+            begin // Может быть текстура
+              if TextureName <> '' then
+                begin // Была текстура
+                  Alpha := StrToInt(Trim(vleObjectProperty.Values[_lc[I_PROP_PANEL_ALPHA]]));
+                  Blending := NameToBool(vleObjectProperty.Values[_lc[I_PROP_PANEL_BLEND]]);
+                end
+              else // Не было
+                begin
+                  Alpha := 0;
+                  Blending := False;
+                end;
+
+            // Новая текстура:
+              TextureName := vleObjectProperty.Values[_lc[I_PROP_PANEL_TEX]];
+
+              if TextureName <> '' then
+                begin // Есть текстура
+                // Обычная текстура:
+                  if not IsSpecialTexture(TextureName) then
+                    begin
+                      g_GetTextureSizeByName(TextureName,
+                        TextureWidth, TextureHeight);
+                        
+                    // Проверка кратности размеров панели:
+                      res := True;
+                      if TextureWidth <> 0 then
+                        if gPanels[SelectedObjects[_id].ID].Width mod TextureWidth <> 0 then
+                        begin
+                          ErrorMessageBox(Format(_lc[I_MSG_WRONG_TEXWIDTH],
+                                          [TextureWidth]));
+                          Res := False;
+                        end;
+                      if Res and (TextureHeight <> 0) then
+                        if gPanels[SelectedObjects[_id].ID].Height mod TextureHeight <> 0 then
+                        begin
+                          ErrorMessageBox(Format(_lc[I_MSG_WRONG_TEXHEIGHT],
+                                          [TextureHeight]));
+                          Res := False;
+                        end;
+
+                      if Res then 
+                        g_GetTexture(TextureName, TextureID)
+                      else
+                        begin
+                          TextureName := '';
+                          TextureWidth := 1;
+                          TextureHeight := 1;
+                          TextureID := TEXTURE_SPECIAL_NONE;
+                        end;
+                    end
+                  else // Спец.текстура
+                    begin
+                      TextureHeight := 1;
+                      TextureWidth := 1;
+                      TextureID := SpecialTextureID(TextureName);
+                    end;
+                end
+              else // Нет текстуры
+                begin
+                  TextureWidth := 1;
+                  TextureHeight := 1;
+                  TextureID := TEXTURE_SPECIAL_NONE;
+                end;
+            end
+          else // Не может быть текстуры
+            begin
+              Alpha := 0;
+              Blending := False;
+              TextureName := '';
+              TextureWidth := 1;
+              TextureHeight := 1;
+              TextureID := TEXTURE_SPECIAL_NONE;
+            end;
+        end;
+      end;
+
+    OBJECT_ITEM:
+      begin
+        with gItems[SelectedObjects[_id].ID] do
+        begin
+          X := StrToInt(Trim(vleObjectProperty.Values[_lc[I_PROP_X]]));
+          Y := StrToInt(Trim(vleObjectProperty.Values[_lc[I_PROP_Y]]));
+          OnlyDM := NameToBool(vleObjectProperty.Values[_lc[I_PROP_DM_ONLY]]);
+          Fall := NameToBool(vleObjectProperty.Values[_lc[I_PROP_ITEM_FALLS]]);
+        end;
+      end;
+
+    OBJECT_MONSTER:
+      begin
+        with gMonsters[SelectedObjects[_id].ID] do
+        begin
+          X := StrToInt(Trim(vleObjectProperty.Values[_lc[I_PROP_X]]));
+          Y := StrToInt(Trim(vleObjectProperty.Values[_lc[I_PROP_Y]]));
+          Direction := NameToDir(vleObjectProperty.Values[_lc[I_PROP_DIRECTION]]);
+        end;
+      end;
+
+    OBJECT_AREA:
+      begin
+        with gAreas[SelectedObjects[_id].ID] do
+        begin
+          X := StrToInt(Trim(vleObjectProperty.Values[_lc[I_PROP_X]]));
+          Y := StrToInt(Trim(vleObjectProperty.Values[_lc[I_PROP_Y]]));
+          Direction := NameToDir(vleObjectProperty.Values[_lc[I_PROP_DIRECTION]]);
+        end;
+      end;
+
+    OBJECT_TRIGGER:
+      begin
+        with gTriggers[SelectedObjects[_id].ID] do
+        begin
+          X := StrToInt(Trim(vleObjectProperty.Values[_lc[I_PROP_X]]));
+          Y := StrToInt(Trim(vleObjectProperty.Values[_lc[I_PROP_Y]]));
+          Width := StrToInt(Trim(vleObjectProperty.Values[_lc[I_PROP_WIDTH]]));
+          Height := StrToInt(Trim(vleObjectProperty.Values[_lc[I_PROP_HEIGHT]]));
+          Enabled := NameToBool(vleObjectProperty.Values[_lc[I_PROP_TR_ENABLED]]);
+          ActivateType := StrToActivate(vleObjectProperty.Values[_lc[I_PROP_TR_ACTIVATION]]);
+          Key := StrToKey(vleObjectProperty.Values[_lc[I_PROP_TR_KEYS]]);
+
+          case TriggerType of
+            TRIGGER_EXIT:
+              begin
+                s := vleObjectProperty.Values[_lc[I_PROP_TR_NEXT_MAP]];
+                ZeroMemory(@Data.MapName[0], 16);
+                if s <> '' then
+                  CopyMemory(@Data.MapName[0], @s[1], Min(Length(s), 16));
+              end;
+
+            TRIGGER_TEXTURE:
+              begin
+                Data.ActivateOnce := NameToBool(vleObjectProperty.Values[_lc[I_PROP_TR_TEXTURE_ONCE]]);
+                Data.AnimOnce := NameToBool(vleObjectProperty.Values[_lc[I_PROP_TR_TEXTURE_ANIM_ONCE]]);
+              end;
+
+            TRIGGER_PRESS, TRIGGER_ON, TRIGGER_OFF, TRIGGER_ONOFF:
+              begin
+                Data.Wait := Min(StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_EX_DELAY]], 0), 65535);
+                Data.Count := Min(StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_EX_COUNT]], 0), 65535);
+                if Data.Count < 1 then
+                  Data.Count := 1;
+              end;
+
+            TRIGGER_OPENDOOR, TRIGGER_CLOSEDOOR, TRIGGER_DOOR, TRIGGER_DOOR5,
+            TRIGGER_CLOSETRAP, TRIGGER_TRAP, TRIGGER_LIFTUP, TRIGGER_LIFTDOWN,
+            TRIGGER_LIFT:
+              begin
+                Data.NoSound := NameToBool(vleObjectProperty.Values[_lc[I_PROP_TR_SILENT]]);
+                Data.d2d_doors := NameToBool(vleObjectProperty.Values[_lc[I_PROP_TR_D2D]]);
+              end;
+
+            TRIGGER_TELEPORT:
+              begin
+                Data.d2d_teleport := NameToBool(vleObjectProperty.Values[_lc[I_PROP_TR_D2D]]);
+                Data.silent_teleport := NameToBool(vleObjectProperty.Values[_lc[I_PROP_TR_TELEPORT_SILENT]]);
+                Data.TlpDir := NameToDirAdv(vleObjectProperty.Values[_lc[I_PROP_TR_TELEPORT_DIR]]);
+              end;
+
+            TRIGGER_SOUND:
+              begin
+                s := vleObjectProperty.Values[_lc[I_PROP_TR_SOUND_NAME]];
+                ZeroMemory(@Data.SoundName[0], 64);
+                if s <> '' then
+                  CopyMemory(@Data.SoundName[0], @s[1], Min(Length(s), 64));
+
+                Data.Volume := Min(StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_SOUND_VOLUME]], 0), 255);
+                Data.Pan := Min(StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_SOUND_PAN]], 0), 255);
+                Data.PlayCount := Min(StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_SOUND_COUNT]], 0), 255);
+                Data.Local := NameToBool(vleObjectProperty.Values[_lc[I_PROP_TR_SOUND_LOCAL]]);
+                Data.SoundSwitch := NameToBool(vleObjectProperty.Values[_lc[I_PROP_TR_SOUND_SWITCH]]);
+              end;
+
+            TRIGGER_SPAWNMONSTER:
+              begin
+                Data.MonType := StrToMonster(vleObjectProperty.Values[_lc[I_PROP_TR_MONSTER_TYPE]]);
+                Data.MonDir := Byte(NameToDir(vleObjectProperty.Values[_lc[I_PROP_DIRECTION]]));
+                Data.MonHealth := Min(StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_MONSTER_HEALTH]], 0), 1000000);
+                if Data.MonHealth < 0 then
+                  Data.MonHealth := 0;
+                Data.MonActive := NameToBool(vleObjectProperty.Values[_lc[I_PROP_TR_MONSTER_ACTIVE]]);
+                Data.MonCount := Min(StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_MONSTER_COUNT]], 0), 64);
+                if Data.MonCount < 1 then
+                  Data.MonCount := 1;
+              end;
+
+            TRIGGER_SPAWNITEM:
+              begin
+                Data.ItemType := StrToItem(vleObjectProperty.Values[_lc[I_PROP_TR_ITEM_TYPE]]);
+                Data.ItemOnlyDM := NameToBool(vleObjectProperty.Values[_lc[I_PROP_DM_ONLY]]);
+                Data.ItemFalls := NameToBool(vleObjectProperty.Values[_lc[I_PROP_ITEM_FALLS]]);
+                Data.ItemCount := Min(StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_ITEM_COUNT]], 0), 64);
+                if Data.ItemCount < 1 then
+                  Data.ItemCount := 1;
+              end;
+
+            TRIGGER_MUSIC:
+              begin
+                s := vleObjectProperty.Values[_lc[I_PROP_TR_MUSIC_NAME]];
+                ZeroMemory(@Data.MusicName[0], 64);
+                if s <> '' then
+                  CopyMemory(@Data.MusicName[0], @s[1], Min(Length(s), 64));
+
+                if vleObjectProperty.Values[_lc[I_PROP_TR_MUSIC_ACT]] = _lc[I_PROP_TR_MUSIC_ON] then
+                  Data.MusicAction := 1
+                else
+                  Data.MusicAction := 2;
+              end;
+          end;
+        end;
+      end;
   end;
-  OBJECT_MONSTER:
-  begin
-   with gMonsters[SelectedObjects[_id].ID] do
-   begin
-    X := StrToInt(Trim(vleObjectProperty.Values['X']));
-    Y := StrToInt(Trim(vleObjectProperty.Values['Y']));
-    Direction := NameToDir(vleObjectProperty.Values['Направление']);
-   end;
-  end;
-  OBJECT_AREA:
-  begin
-   with gAreas[SelectedObjects[_id].ID] do
-   begin
-    X := StrToInt(Trim(vleObjectProperty.Values['X']));
-    Y := StrToInt(Trim(vleObjectProperty.Values['Y']));
-    Direction := NameToDir(vleObjectProperty.Values['Направление']);
-   end;
-  end;
-  OBJECT_TRIGGER:
-  begin
-   with gTriggers[SelectedObjects[_id].ID] do
-   begin
-    X := StrToInt(Trim(vleObjectProperty.Values['X']));
-    Y := StrToInt(Trim(vleObjectProperty.Values['Y']));
-    Width := StrToInt(Trim(vleObjectProperty.Values['Длина']));
-    Height := StrToInt(Trim(vleObjectProperty.Values['Высота']));
-    Enabled := NameToBool(vleObjectProperty.Values['Включен']);
-    ActivateType := StrToActivate(vleObjectProperty.Values['Тип активации']);
-    Key := StrToKey(vleObjectProperty.Values['Ключи']);
 
-    case TriggerType of
-     TRIGGER_EXIT:
-     begin
-      s := vleObjectProperty.Values['След. карта'];
+  FillProperty();
 
-      ZeroMemory(@Data.MapName[0], 16);
-      if s <> '' then CopyMemory(@Data.MapName[0], @s[1], Min(Length(s), 16));
-     end;
-     TRIGGER_TEXTURE:
-     begin
-      Data.ActivateOnce := NameToBool(vleObjectProperty.Values['Один раз']);
-      Data.AnimOnce := NameToBool(vleObjectProperty.Values['Аним. один раз']);
-     end;
-     TRIGGER_PRESS, TRIGGER_ON, TRIGGER_OFF, TRIGGER_ONOFF:
-     begin
-      Data.Wait := Min(StrToIntDef(vleObjectProperty.Values['Задержка'], 0), 65535);
-      Data.Count := Min(StrToIntDef(vleObjectProperty.Values['Счетчик'], 0), 65535);
-     end;
-     TRIGGER_OPENDOOR, TRIGGER_CLOSEDOOR, TRIGGER_DOOR, TRIGGER_DOOR5,
-     TRIGGER_CLOSETRAP, TRIGGER_TRAP, TRIGGER_LIFTUP, TRIGGER_LIFTDOWN,
-     TRIGGER_LIFT:
-     begin
-      Data.NoSound := NameToBool(vleObjectProperty.Values['Без звука']);
-      Data.d2d_doors := NameToBool(vleObjectProperty.Values['Как в D2D']);
-     end;
-     TRIGGER_TELEPORT:
-     begin
-      Data.d2d_teleport := NameToBool(vleObjectProperty.Values['Как в D2D']);
-      Data.silent_teleport := NameToBool(vleObjectProperty.Values['Тихий телепорт']);
-      //Data.items_teleport := NameToBool(vleObjectProperty.Values['Телепорт итемов']);
-     end;
-     TRIGGER_SOUND:
-     begin
-      s := vleObjectProperty.Values['Звук'];
-      ZeroMemory(@Data.SoundName[0], 64);
-      if s <> '' then CopyMemory(@Data.SoundName[0], @s[1], Min(Length(s), 64));
-
-      Data.Volume := Min(StrToIntDef(vleObjectProperty.Values['Громкость'], 0), 255);
-      Data.Pan := Min(StrToIntDef(vleObjectProperty.Values['Стерео'], 0), 255);
-      Data.PlayCount := Min(StrToIntDef(vleObjectProperty.Values['Цикл'], 0), 255);
-      Data.Local := NameToBool(vleObjectProperty.Values['Локальный']);
-      //Data.SoundDistance := Min(StrToIntDef(vleObjectProperty.Values['Дистанция'], 0), 255);
-      Data.SoundSwitch := NameToBool(vleObjectProperty.Values['Переключение']);
-     end;
-    end;
-   end;
-  end;
- end;
-
- FillProperty();
-
- vleObjectProperty.Row := r;
- vleObjectProperty.Col := c;
+  vleObjectProperty.Row := r;
+  vleObjectProperty.Col := c;
 end;
 
 procedure TMainForm.bbRemoveTextureClick(Sender: TObject);
 var
   a: Integer;
+
 begin
- if lbTextureList.ItemIndex = -1 then Exit;
- //if IsSpecialTextureSel() then Exit;
-
- if MessageBox(0, PChar(Format('Удалить текстуру %s ?', [SelectedTexture()])),
-               'Удалить текстуру', MB_ICONQUESTION or MB_YESNO or MB_TASKMODAL
-               or MB_DEFBUTTON1) <> idYes then Exit;
-
- if gPanels <> nil then
-  for a := 0 to High(gPanels) do
-   if (gPanels[a].PanelType <> 0) and
-      (gPanels[a].TextureName = SelectedTexture()) then
-   begin
-    MessageBox(0, 'Нельзя удалить текстуру пока она используется. Удали все '+
-               'панели с этой текстурой.', 'Нельзя', MB_ICONINFORMATION or MB_OK
-               or MB_TASKMODAL or MB_DEFBUTTON1);
+  if lbTextureList.ItemIndex = -1 then
     Exit;
-   end;
 
- g_DeleteTexture(SelectedTexture());
- lbTextureList.DeleteSelected;
-end;
+  if MessageBox(0, PChar(Format(_lc[I_MSG_DEL_TEXTURE_PROMT],
+                                [SelectedTexture()])),
+                PChar(_lc[I_MSG_DEL_TEXTURE]),
+                MB_ICONQUESTION or MB_YESNO or
+                MB_TASKMODAL or MB_DEFBUTTON1) <> idYes then
+    Exit;
 
-procedure TMainForm.aOpenINIExecute(Sender: TObject);
-begin
- OpenDialog.Filter := 'Doom2D: Forever maps (*.ini)|*.ini|All files (*.*)|*.*';
+  if gPanels <> nil then
+    for a := 0 to High(gPanels) do
+      if (gPanels[a].PanelType <> 0) and
+         (gPanels[a].TextureName = SelectedTexture()) then
+      begin
+        ErrorMessageBox(_lc[I_MSG_DEL_TEXTURE_CANT]);
+        Exit;
+      end;
 
- if OpenDialog.Execute then
- begin
-  FullClear();
-
-  pLoadProgress.Left := (RenderPanel.Width div 2)-(pLoadProgress.Width div 2);
-  pLoadProgress.Top := (RenderPanel.Height div 2)-(pLoadProgress.Height div 2);
-  pLoadProgress.Show;
-
-  LoadMapOld(OpenDialog.FileName);
-
-  MainForm.Caption := Format('%s - %s', [FormCaption, ExtractFileName(OpenDialog.FileName)]);
-                                             
-  pLoadProgress.Hide;
-  MainForm.FormResize(Self);
- end;
+  g_DeleteTexture(SelectedTexture());
+  lbTextureList.DeleteSelected();
 end;
 
 procedure TMainForm.aNewMapExecute(Sender: TObject);
 begin
- if (MessageBox(0, 'Очистить всю карту ?', 'Новая карта', MB_ICONQUESTION or
-     MB_YESNO or MB_TASKMODAL or MB_DEFBUTTON1) = mrYes) then FullClear();
+  if (MessageBox(0, PChar(_lc[I_MSG_CLEAR_MAP_PROMT]),
+                 PChar(_lc[I_MSG_CLEAR_MAP]),
+                 MB_ICONQUESTION or MB_YESNO or
+                 MB_TASKMODAL or MB_DEFBUTTON1) = mrYes) then
+    FullClear();
 end;
 
 procedure TMainForm.aUndoExecute(Sender: TObject);
 var
   a: Integer;
+
 begin
- if UndoBuffer = nil then Exit;
- if UndoBuffer[High(UndoBuffer)] = nil then Exit;
+  if UndoBuffer = nil then
+    Exit;
+  if UndoBuffer[High(UndoBuffer)] = nil then
+    Exit;
 
- for a := 0 to High(UndoBuffer[High(UndoBuffer)]) do
- with UndoBuffer[High(UndoBuffer)][a] do
- begin
-  case UndoType of
-   UNDO_DELETE_PANEL:
-   begin
-    AddPanel(Panel^);
-    Panel := nil;
-   end;
-   UNDO_DELETE_ITEM: AddItem(Item);
-   UNDO_DELETE_AREA: AddArea(Area);
-   UNDO_DELETE_MONSTER: AddMonster(Monster);
-   UNDO_DELETE_TRIGGER: AddTrigger(Trigger);
-   UNDO_ADD_PANEL: RemoveObject(AddID, OBJECT_PANEL);
-   UNDO_ADD_ITEM: RemoveObject(AddID, OBJECT_ITEM);
-   UNDO_ADD_AREA: RemoveObject(AddID, OBJECT_AREA);
-   UNDO_ADD_MONSTER: RemoveObject(AddID, OBJECT_MONSTER);
-   UNDO_ADD_TRIGGER: RemoveObject(AddID, OBJECT_TRIGGER);
-  end;
- end;
+  for a := 0 to High(UndoBuffer[High(UndoBuffer)]) do
+    with UndoBuffer[High(UndoBuffer)][a] do
+    begin
+      case UndoType of
+        UNDO_DELETE_PANEL:
+          begin
+            AddPanel(Panel^);
+            Panel := nil;
+          end;
+        UNDO_DELETE_ITEM: AddItem(Item);
+        UNDO_DELETE_AREA: AddArea(Area);
+        UNDO_DELETE_MONSTER: AddMonster(Monster);
+        UNDO_DELETE_TRIGGER: AddTrigger(Trigger);
+        UNDO_ADD_PANEL: RemoveObject(AddID, OBJECT_PANEL);
+        UNDO_ADD_ITEM: RemoveObject(AddID, OBJECT_ITEM);
+        UNDO_ADD_AREA: RemoveObject(AddID, OBJECT_AREA);
+        UNDO_ADD_MONSTER: RemoveObject(AddID, OBJECT_MONSTER);
+        UNDO_ADD_TRIGGER: RemoveObject(AddID, OBJECT_TRIGGER);
+      end;
+    end;
 
- SetLength(UndoBuffer, Length(UndoBuffer)-1);
+  SetLength(UndoBuffer, Length(UndoBuffer)-1);
 
- RemoveSelect();
+  RemoveSelectFromObjects();
 
- miUndo.Enabled := UndoBuffer <> nil;
+  miUndo.Enabled := UndoBuffer <> nil;
 end;
+
 
 procedure TMainForm.aCopyObjectExecute(Sender: TObject);
 var
-  a, i: Integer;
-begin
- if SelectedObjects = nil then Exit;
+  a, b: Integer;
+  CopyBuffer: TCopyRecArray;
+  str: String;
+  ok: Boolean;
 
- CopyBuffer := nil;
-
- for a := 0 to High(SelectedObjects) do
-  if SelectedObjects[a].Live then
-  with SelectedObjects[a] do
+  function CB_Compare(I1, I2: TCopyRec): Integer;
   begin
-   SetLength(CopyBuffer, Length(CopyBuffer)+1);
-   i := High(CopyBuffer);
-   
-   case ObjectType of
-    OBJECT_PANEL:
-    begin
-     CopyBuffer[i].ObjectType := OBJECT_PANEL;
-     New(CopyBuffer[i].Panel);
-     CopyBuffer[i].Panel^ := gPanels[ID];
-    end;
+    Result := Integer(I1.ObjectType) - Integer(I2.ObjectType);
 
-    OBJECT_ITEM:
-    begin
-     CopyBuffer[i].ObjectType := OBJECT_ITEM;
-     CopyBuffer[i].Item := gItems[ID];
-    end;
-
-    OBJECT_MONSTER:
-    begin
-     CopyBuffer[i].ObjectType := OBJECT_MONSTER;
-     CopyBuffer[i].Monster := gMonsters[ID];
-    end;
-
-    OBJECT_AREA:
-    begin
-     CopyBuffer[i].ObjectType := OBJECT_AREA;
-     CopyBuffer[i].Area := gAreas[ID];
-    end;
-
-    OBJECT_TRIGGER:
-    begin
-     CopyBuffer[i].ObjectType := OBJECT_TRIGGER;
-     CopyBuffer[i].Trigger := gTriggers[ID];
-    end;
-   end;
+    if Result = 0 then // Одного типа
+      Result := Integer(I1.ID) - Integer(I2.ID);
   end;
 
- miPaste.Enabled := CopyBuffer <> nil;
+  procedure QuickSortCopyBuffer(L, R: Integer);
+  var
+    I, J: Integer;
+    P, T: TCopyRec;
+
+  begin
+    repeat
+      I := L;
+      J := R;
+      P := CopyBuffer[(L + R) shr 1];
+      
+      repeat
+        while CB_Compare(CopyBuffer[I], P) < 0 do
+          Inc(I);
+        while CB_Compare(CopyBuffer[J], P) > 0 do
+          Dec(J);
+
+        if I <= J then
+        begin
+          T := CopyBuffer[I];
+          CopyBuffer[I] := CopyBuffer[J];
+          CopyBuffer[J] := T;
+          Inc(I);
+          Dec(J);
+        end;
+      until I > J;
+
+      if L < J then
+        QuickSortCopyBuffer(L, J);
+        
+      L := I;
+    until I >= R;
+  end;
+  
+begin
+  if SelectedObjects = nil then
+    Exit;
+
+  b := -1;
+  CopyBuffer := nil;
+
+// Копируем объекты:
+  for a := 0 to High(SelectedObjects) do
+    if SelectedObjects[a].Live then
+      with SelectedObjects[a] do
+      begin
+        SetLength(CopyBuffer, Length(CopyBuffer)+1);
+        b := High(CopyBuffer);
+        CopyBuffer[b].ID := ID;
+        CopyBuffer[b].Panel := nil;
+
+        case ObjectType of
+          OBJECT_PANEL:
+            begin
+              CopyBuffer[b].ObjectType := OBJECT_PANEL;
+              New(CopyBuffer[b].Panel);
+              CopyBuffer[b].Panel^ := gPanels[ID];
+            end;
+
+          OBJECT_ITEM:
+            begin
+              CopyBuffer[b].ObjectType := OBJECT_ITEM;
+              CopyBuffer[b].Item := gItems[ID];
+            end;
+
+          OBJECT_MONSTER:
+            begin
+              CopyBuffer[b].ObjectType := OBJECT_MONSTER;
+              CopyBuffer[b].Monster := gMonsters[ID];
+            end;
+
+          OBJECT_AREA:
+            begin
+              CopyBuffer[b].ObjectType := OBJECT_AREA;
+              CopyBuffer[b].Area := gAreas[ID];
+            end;
+
+          OBJECT_TRIGGER:
+            begin
+              CopyBuffer[b].ObjectType := OBJECT_TRIGGER;
+              CopyBuffer[b].Trigger := gTriggers[ID];
+            end;
+        end;
+      end;
+
+// Сортировка по ID:
+  if CopyBuffer <> nil then
+  begin
+    QuickSortCopyBuffer(0, b);
+  end;
+
+// Пестановка ссылок триггеров:
+  for a := 0 to Length(CopyBuffer)-1 do
+    if CopyBuffer[a].ObjectType = OBJECT_TRIGGER then
+    begin
+      case CopyBuffer[a].Trigger.TriggerType of
+        TRIGGER_OPENDOOR, TRIGGER_CLOSEDOOR, TRIGGER_DOOR,
+        TRIGGER_DOOR5, TRIGGER_CLOSETRAP, TRIGGER_TRAP,
+        TRIGGER_LIFTUP, TRIGGER_LIFTDOWN, TRIGGER_LIFT:
+          if CopyBuffer[a].Trigger.Data.PanelID <> -1 then
+          begin
+            ok := False;
+
+            for b := 0 to Length(CopyBuffer)-1 do
+              if (CopyBuffer[b].ObjectType = OBJECT_PANEL) and
+                 (CopyBuffer[b].ID = CopyBuffer[a].Trigger.Data.PanelID) then
+              begin
+                CopyBuffer[a].Trigger.Data.PanelID := b;
+                ok := True;
+                Break;
+              end;
+
+          // Этих панелей нет среди копируемых:
+            if not ok then
+              CopyBuffer[a].Trigger.Data.PanelID := -1;
+          end;
+              
+        TRIGGER_PRESS, TRIGGER_ON,
+        TRIGGER_OFF, TRIGGER_ONOFF:
+          if CopyBuffer[a].Trigger.Data.MonsterID <> 0 then
+          begin
+            ok := False;
+
+            for b := 0 to Length(CopyBuffer)-1 do
+              if (CopyBuffer[b].ObjectType = OBJECT_MONSTER) and
+                 (CopyBuffer[b].ID = CopyBuffer[a].Trigger.Data.MonsterID-1) then
+              begin
+                CopyBuffer[a].Trigger.Data.MonsterID := b+1;
+                ok := True;
+                Break;
+              end;
+
+          // Этих монстров нет среди копируемых:
+            if not ok then
+              CopyBuffer[a].Trigger.Data.MonsterID := 0;
+          end;
+      end;
+
+      if CopyBuffer[a].Trigger.TexturePanel <> -1 then
+      begin
+        ok := False;
+
+        for b := 0 to Length(CopyBuffer)-1 do
+          if (CopyBuffer[b].ObjectType = OBJECT_PANEL) and
+             (CopyBuffer[b].ID = CopyBuffer[a].Trigger.TexturePanel) then
+          begin
+            CopyBuffer[a].Trigger.TexturePanel := b;
+            ok := True;
+            Break;
+          end;
+
+      // Этих панелей нет среди копируемых:
+        if not ok then
+          CopyBuffer[a].Trigger.TexturePanel := -1;
+      end;
+    end;
+
+// В буфер обмена:
+  str := CopyBufferToString(CopyBuffer);
+  ClipBoard.AsText := str;
+
+  for a := 0 to Length(CopyBuffer)-1 do
+    if (CopyBuffer[a].ObjectType = OBJECT_PANEL) and
+       (CopyBuffer[a].Panel <> nil) then
+      Dispose(CopyBuffer[a].Panel);
+
+  CopyBuffer := nil;
 end;
 
 procedure TMainForm.aPasteObjectExecute(Sender: TObject);
 var
   a, h: Integer;
   ID: DWORD;
+  CopyBuffer: TCopyRecArray;
+  res: Boolean;
+  swad, ssec, sres: String;
+  
 begin
- if CopyBuffer = nil then Exit;
+  CopyBuffer := nil;
 
- RemoveSelect();
+  StringToCopyBuffer(ClipBoard.AsText, CopyBuffer);
 
- h := High(CopyBuffer);
- for a := h downto 0 do
- with CopyBuffer[a] do
- begin
-  case ObjectType of
-   OBJECT_PANEL:
-   begin
-    Panel^.X := Panel^.X+16;
-    Panel^.Y := Panel^.Y+16;
-    //Panel^.X := ((sbHorizontal.Position+RenderPanel.Width div 2) div 16)*16;
-    //Panel^.Y := ((sbVertical.Position+RenderPanel.Height div 2) div 16)*16;
-    ID := AddPanel(Panel^);
-    Undo_Add(OBJECT_PANEL, ID, a < h);
-    SelectObject(OBJECT_PANEL, ID, True);
-   end;
+  if CopyBuffer = nil then
+    Exit;
 
-   OBJECT_ITEM:
-   begin
-    Item.X := Item.X+16;
-    Item.Y := Item.Y+16;
-    //Item.X := ((sbHorizontal.Position+RenderPanel.Width div 2) div 16)*16;
-    //Item.Y := ((sbVertical.Position+RenderPanel.Height div 2) div 16)*16;
-    ID := AddItem(Item);
-    Undo_Add(OBJECT_ITEM, ID, a < h);
-    SelectObject(OBJECT_ITEM, ID, True);
-   end;
+  RemoveSelectFromObjects();
 
-   OBJECT_MONSTER:
-   begin
-    Monster.X := Monster.X+16;
-    Monster.Y := Monster.Y+16;
-    //Monster.X := ((sbHorizontal.Position+RenderPanel.Width div 2) div 16)*16;
-    //Monster.Y := ((sbVertical.Position+RenderPanel.Height div 2) div 16)*16;
-    ID := AddMonster(Monster);
-    Undo_Add(OBJECT_MONSTER, ID, a < h);
-    SelectObject(OBJECT_MONSTER, ID, True);
-   end;
+  h := High(CopyBuffer);
+  for a := 0 to h do
+    with CopyBuffer[a] do
+    begin
+      case ObjectType of
+        OBJECT_PANEL:
+          if Panel <> nil then
+          begin
+            Panel^.X := Panel^.X + 16;
+            Panel^.Y := Panel^.Y + 16;
 
-   OBJECT_AREA:
-   begin
-    Area.X := Area.X+16;
-    Area.Y := Area.Y+16;
-    //Area.X := ((sbHorizontal.Position+RenderPanel.Width div 2) div 16)*16;
-    //Area.Y := ((sbVertical.Position+RenderPanel.Height div 2) div 16)*16;
-    ID := AddArea(Area);
-    Undo_Add(OBJECT_AREA, ID, a < h);
-    SelectObject(OBJECT_AREA, ID, True);
-   end;
+            Panel^.TextureID := TEXTURE_SPECIAL_NONE;
+            Panel^.TextureWidth := 1;
+            Panel^.TextureHeight := 1;
 
-   OBJECT_TRIGGER:
-   begin
-    Trigger.X := Trigger.X+16;
-    Trigger.Y := Trigger.Y+16;
-    //Trigger.X := ((sbHorizontal.Position+RenderPanel.Width div 2) div 16)*16;
-    //Trigger.Y := ((sbVertical.Position+RenderPanel.Height div 2) div 16)*16;
-    Trigger.TexturePanel := -1;
-    ID := AddTrigger(Trigger);
-    Undo_Add(OBJECT_TRIGGER, ID, a < h);
-    SelectObject(OBJECT_TRIGGER, ID, True);
-   end;
-  end;
- end;
+            if (Panel^.PanelType = PANEL_LIFTUP) or
+               (Panel^.PanelType = PANEL_LIFTDOWN) or
+               (Panel^.PanelType = PANEL_BLOCKMON) or
+               (Panel^.TextureName = '') then
+              begin // Нет или не может быть текстуры:
+              end
+            else // Есть текстура:
+              begin
+              // Обычная текстура:
+                if not IsSpecialTexture(Panel^.TextureName) then
+                  begin
+                    res := g_GetTexture(Panel^.TextureName, Panel^.TextureID);
+
+                    if not res then
+                    begin
+                      g_ProcessResourceStr(Panel^.TextureName, swad, ssec, sres);
+                      AddTexture(swad, ssec, sres, True);
+                      res := g_GetTexture(Panel^.TextureName, Panel^.TextureID);
+                    end;
+
+                    if res then
+                      g_GetTextureSizeByName(Panel^.TextureName,
+                        Panel^.TextureWidth, Panel^.TextureHeight)
+                    else
+                      Panel^.TextureName := '';
+                  end
+                else // Спец.текстура:
+                  begin
+                    Panel^.TextureID := SpecialTextureID(Panel^.TextureName);
+                    with MainForm.lbTextureList.Items do
+                      if IndexOf(Panel^.TextureName) = -1 then
+                        Add(Panel^.TextureName);
+                  end;
+              end;
+
+            ID := AddPanel(Panel^);
+            Dispose(Panel);
+            Undo_Add(OBJECT_PANEL, ID, a > 0);
+            SelectObject(OBJECT_PANEL, ID, True);
+          end;
+
+        OBJECT_ITEM:
+          begin
+            Item.X := Item.X + 16;
+            Item.Y := Item.Y + 16;
+
+            ID := AddItem(Item);
+            Undo_Add(OBJECT_ITEM, ID, a > 0);
+            SelectObject(OBJECT_ITEM, ID, True);
+          end;
+
+        OBJECT_MONSTER:
+          begin
+            Monster.X := Monster.X + 16;
+            Monster.Y := Monster.Y + 16;
+
+            ID := AddMonster(Monster);
+            Undo_Add(OBJECT_MONSTER, ID, a > 0);
+            SelectObject(OBJECT_MONSTER, ID, True);
+          end;
+
+        OBJECT_AREA:
+          begin
+            Area.X := Area.X + 16;
+            Area.Y := Area.Y + 16;
+
+            ID := AddArea(Area);
+            Undo_Add(OBJECT_AREA, ID, a > 0);
+            SelectObject(OBJECT_AREA, ID, True);
+          end;
+
+        OBJECT_TRIGGER:
+          begin
+            Trigger.X := Trigger.X + 16;
+            Trigger.Y := Trigger.Y + 16;
+
+            ID := AddTrigger(Trigger);
+            Undo_Add(OBJECT_TRIGGER, ID, a > 0);
+            SelectObject(OBJECT_TRIGGER, ID, True);
+          end;
+      end;
+    end;
+
+// Переставляем ссылки триггеров:
+  for a := 0 to High(CopyBuffer) do
+    if CopyBuffer[a].ObjectType = OBJECT_TRIGGER then
+    begin
+      case CopyBuffer[a].Trigger.TriggerType of
+        TRIGGER_OPENDOOR, TRIGGER_CLOSEDOOR, TRIGGER_DOOR,
+        TRIGGER_DOOR5, TRIGGER_CLOSETRAP, TRIGGER_TRAP,
+        TRIGGER_LIFTUP, TRIGGER_LIFTDOWN, TRIGGER_LIFT:
+          if CopyBuffer[a].Trigger.Data.PanelID <> -1 then
+            gTriggers[CopyBuffer[a].ID].Data.PanelID :=
+              CopyBuffer[CopyBuffer[a].Trigger.Data.PanelID].ID;
+
+        TRIGGER_PRESS, TRIGGER_ON,
+        TRIGGER_OFF, TRIGGER_ONOFF:
+          if CopyBuffer[a].Trigger.Data.MonsterID <> 0 then
+            gTriggers[CopyBuffer[a].ID].Data.MonsterID :=
+              CopyBuffer[CopyBuffer[a].Trigger.Data.MonsterID-1].ID+1;
+      end;
+
+      if CopyBuffer[a].Trigger.TexturePanel <> -1 then
+        gTriggers[CopyBuffer[a].ID].TexturePanel :=
+          CopyBuffer[CopyBuffer[a].Trigger.TexturePanel].ID;
+    end;
+
+  CopyBuffer := nil;
+
+  if h = 0 then
+    FillProperty();
 end;
 
 procedure TMainForm.aCutObjectExecute(Sender: TObject);
 begin
- miCopy.Click;
- DeleteSelectedObjects();
+  miCopy.Click();
+  DeleteSelectedObjects();
 end;
 
 procedure TMainForm.vleObjectPropertyEditButtonClick(Sender: TObject);
 var
-  Key, FileName: string;
+  Key, FileName: String;
   b: Byte;
-begin
- Key := vleObjectProperty.Keys[vleObjectProperty.Row];
 
- if Key = 'Точка телепорта' then SelectFlag := SELECTFLAG_TELEPORT
- else if (Key = 'Панель двери') or (Key = 'Панель ловушки') then SelectFlag := SELECTFLAG_DOOR
- else if Key = 'Панель с текстурой' then SelectFlag := SELECTFLAG_TEXTURE
- else if Key = 'Панель лифта' then SelectFlag := SELECTFLAG_LIFT
- else if key = 'ID монстра' then SelectFlag := SELECTFLAG_MONSTER
- else if Key = 'Область воздействия' then DrawPressRect := True
- else if Key = 'След. карта' then
- begin
-  g_ProcessResourceStr(OpenedMap, @FileName, nil, nil);
-  SelectMapForm.GetMaps(FileName); 
-  if SelectMapForm.ShowModal = mrOK then
-   vleObjectProperty.Values[Key] := SelectMapForm.lbMapList.Items[SelectMapForm.lbMapList.ItemIndex];
- end
- else if Key = 'Звук' then
- begin
-  AddSoundForm.OKFunction := nil;
-  AddSoundForm.lbResourcesList.MultiSelect := False;
-  AddSoundForm.SetResource := vleObjectProperty.Values[Key];
-  AddSoundForm.ShowModal();
-  if AddSoundForm.ResourceName <> '' then
-   vleObjectProperty.Values[Key] := AddSoundForm.ResourceName;
- end
- else if Key = 'Тип активации' then
-  with ActivationTypeForm, vleObjectProperty do
-  begin
-   cbPlayerCollide.Checked := Pos('PC', Values[Key]) > 0;
-   cbMonsterCollide.Checked := Pos('MC', Values[Key]) > 0;
-   cbPlayerPress.Checked := Pos('PP', Values[Key]) > 0;
-   cbMonsterPress.Checked := Pos('MP', Values[Key]) > 0;
-   cbShot.Checked := Pos('SH', Values[Key]) > 0;
-   cbNoMonster.Checked := Pos('NM', Values[Key]) > 0;
-   if ShowModal = mrOK then
-   begin
-    b := 0;
-    if cbPlayerCollide.Checked then b := ACTIVATE_PLAYERCOLLIDE;
-    if cbMonsterCollide.Checked then b := b or ACTIVATE_MONSTERCOLLIDE;
-    if cbPlayerPress.Checked then b := b or ACTIVATE_PLAYERPRESS;
-    if cbMonsterPress.Checked then b := b or ACTIVATE_MONSTERPRESS;
-    if cbShot.Checked then b := b or ACTIVATE_SHOT;
-    if cbNoMonster.Checked then b := b or ACTIVATE_NOMONSTER;
-    Values[Key] := ActivateToStr(b);
-    bApplyProperty.Click()
-   end;
- end
- else if Key = 'Ключи' then
-  with KeysForm, vleObjectProperty do
-  begin
-   cbRedKey.Checked := Pos('RK', Values[Key]) > 0;
-   cbGreenKey.Checked := Pos('GK', Values[Key]) > 0;
-   cbBlueKey.Checked := Pos('BK', Values[Key]) > 0;
-   cbRedTeam.Checked := Pos('RT', Values[Key]) > 0;
-   cbBlueTeam.Checked := Pos('BT', Values[Key]) > 0;
-   if ShowModal = mrOK then
-   begin
-    b := 0;
-    if cbRedKey.Checked then b := KEY_RED;
-    if cbGreenKey.Checked then b := b or KEY_GREEN;
-    if cbBlueKey.Checked then b := b or KEY_BLUE;
-    if cbRedTeam.Checked then b := b or KEY_REDTEAM;
-    if cbBlueTeam.Checked then b := b or KEY_BLUETEAM;
-    Values[Key] := KeyToStr(b);
-    bApplyProperty.Click()
-   end;
-  end;
+begin
+  Key := vleObjectProperty.Keys[vleObjectProperty.Row];
+
+  if Key = _lc[I_PROP_TR_TELEPORT_TO] then
+    SelectFlag := SELECTFLAG_TELEPORT
+  else if (Key = _lc[I_PROP_TR_MONSTER_TO]) or
+          (Key = _lc[I_PROP_TR_ITEM_TO]) then
+    SelectFlag := SELECTFLAG_SPAWNPOINT
+  else if (Key = _lc[I_PROP_TR_DOOR_PANEL]) or
+          (Key = _lc[I_PROP_TR_TRAP_PANEL]) then
+    SelectFlag := SELECTFLAG_DOOR
+  else if Key = _lc[I_PROP_TR_TEXTURE_PANEL] then
+    SelectFlag := SELECTFLAG_TEXTURE
+  else if Key = _lc[I_PROP_TR_LIFT_PANEL] then
+    SelectFlag := SELECTFLAG_LIFT
+  else if key = _lc[I_PROP_TR_EX_MONSTER] then
+    SelectFlag := SELECTFLAG_MONSTER
+  else if Key = _lc[I_PROP_TR_EX_AREA] then
+    DrawPressRect := True
+  else if Key = _lc[I_PROP_TR_NEXT_MAP] then
+    begin // Выбор следующей карты:
+      g_ProcessResourceStr(OpenedMap, @FileName, nil, nil);
+      SelectMapForm.GetMaps(FileName);
+
+      if SelectMapForm.ShowModal() = mrOK then
+      begin
+        vleObjectProperty.Values[Key] := SelectMapForm.lbMapList.Items[SelectMapForm.lbMapList.ItemIndex];
+        bApplyProperty.Click();
+      end;
+    end
+  else if (Key = _lc[I_PROP_TR_SOUND_NAME]) or
+          (Key = _lc[I_PROP_TR_MUSIC_NAME]) then
+    begin // Выбор файла звука/музыки:
+      AddSoundForm.OKFunction := nil;
+      AddSoundForm.lbResourcesList.MultiSelect := False;
+      AddSoundForm.SetResource := vleObjectProperty.Values[Key];
+
+      if (AddSoundForm.ShowModal() = mrOk) then
+      begin
+        vleObjectProperty.Values[Key] := AddSoundForm.ResourceName;
+        bApplyProperty.Click();
+      end;
+    end
+  else if Key = _lc[I_PROP_TR_ACTIVATION] then
+    with ActivationTypeForm, vleObjectProperty do
+    begin // Выбор типов активации:
+      cbPlayerCollide.Checked := Pos('PC', Values[Key]) > 0;
+      cbMonsterCollide.Checked := Pos('MC', Values[Key]) > 0;
+      cbPlayerPress.Checked := Pos('PP', Values[Key]) > 0;
+      cbMonsterPress.Checked := Pos('MP', Values[Key]) > 0;
+      cbShot.Checked := Pos('SH', Values[Key]) > 0;
+      cbNoMonster.Checked := Pos('NM', Values[Key]) > 0;
+
+      if ShowModal() = mrOK then
+      begin
+        b := 0;
+        if cbPlayerCollide.Checked then
+          b := ACTIVATE_PLAYERCOLLIDE;
+        if cbMonsterCollide.Checked then
+          b := b or ACTIVATE_MONSTERCOLLIDE;
+        if cbPlayerPress.Checked then
+          b := b or ACTIVATE_PLAYERPRESS;
+        if cbMonsterPress.Checked then
+          b := b or ACTIVATE_MONSTERPRESS;
+        if cbShot.Checked then
+          b := b or ACTIVATE_SHOT;
+        if cbNoMonster.Checked then
+          b := b or ACTIVATE_NOMONSTER;
+
+        Values[Key] := ActivateToStr(b);
+        bApplyProperty.Click();
+      end;
+    end
+  else if Key = _lc[I_PROP_TR_KEYS] then
+    with KeysForm, vleObjectProperty do
+    begin // Выбор необходимых ключей:
+      cbRedKey.Checked := Pos('RK', Values[Key]) > 0;
+      cbGreenKey.Checked := Pos('GK', Values[Key]) > 0;
+      cbBlueKey.Checked := Pos('BK', Values[Key]) > 0;
+      cbRedTeam.Checked := Pos('RT', Values[Key]) > 0;
+      cbBlueTeam.Checked := Pos('BT', Values[Key]) > 0;
+      
+      if ShowModal() = mrOK then
+      begin
+        b := 0;
+        if cbRedKey.Checked then
+          b := KEY_RED;
+        if cbGreenKey.Checked then
+          b := b or KEY_GREEN;
+        if cbBlueKey.Checked then
+          b := b or KEY_BLUE;
+        if cbRedTeam.Checked then
+          b := b or KEY_REDTEAM;
+        if cbBlueTeam.Checked then
+          b := b or KEY_BLUETEAM;
+
+        Values[Key] := KeyToStr(b);
+        bApplyProperty.Click();
+      end;
+    end
+  else if Key = _lc[I_PROP_TR_MONSTER_TYPE] then
+    with ChooseTypeForm, vleObjectProperty do
+    begin // Выбор типа монстра:
+      Caption := _lc[I_CAP_MONSTER_TYPE];
+      lbTypeSelect.Items.Clear();
+
+      for b := MONSTER_DEMON to MONSTER_MAN do
+        lbTypeSelect.Items.Add(MonsterToStr(b));
+
+      lbTypeSelect.ItemIndex := StrToMonster(Values[Key]) - MONSTER_DEMON;
+
+      if ShowModal() = mrOK then
+      begin
+        b := lbTypeSelect.ItemIndex + MONSTER_DEMON;
+        Values[Key] := MonsterToStr(b);
+        bApplyProperty.Click();
+      end;
+    end
+  else if Key = _lc[I_PROP_TR_ITEM_TYPE] then
+    with ChooseTypeForm, vleObjectProperty do
+    begin // Выбор типа предмета:
+      Caption := _lc[I_CAP_ITEM_TYPE];
+      lbTypeSelect.Items.Clear();
+
+      for b := ITEM_MEDKIT_SMALL to ITEM_KEY_BLUE do
+        lbTypeSelect.Items.Add(ItemToStr(b));
+      lbTypeSelect.Items.Add(ItemToStr(ITEM_BOTTLE));
+      lbTypeSelect.Items.Add(ItemToStr(ITEM_HELMET));
+
+      b := StrToItem(Values[Key]);
+      if b >= ITEM_BOTTLE then
+        b := b - 2;
+      lbTypeSelect.ItemIndex := b - ITEM_MEDKIT_SMALL;
+
+      if ShowModal() = mrOK then
+      begin
+        b := lbTypeSelect.ItemIndex + ITEM_MEDKIT_SMALL;
+        if b >= ITEM_WEAPON_KASTET then
+          b := b + 2;
+        Values[Key] := ItemToStr(b);
+        bApplyProperty.Click();
+      end;
+    end
+  else if Key = _lc[I_PROP_PANEL_TEX] then
+    begin // Смена текстуры:
+      vleObjectProperty.Values[Key] := SelectedTexture();
+      bApplyProperty.Click();
+    end;
 end;
 
 procedure TMainForm.aSaveMapExecute(Sender: TObject);
 var
-  FileName, Section, Res: string;
+  FileName, Section, Res: String;
+
 begin
- if OpenedMap = '' then
- begin
-  aSaveMapAsExecute(nil);
-  Exit;
- end;
+  if OpenedMap = '' then
+  begin
+    aSaveMapAsExecute(nil);
+    Exit;
+  end;
 
- g_ProcessResourceStr(OpenedMap, FileName, Section, Res);
+  g_ProcessResourceStr(OpenedMap, FileName, Section, Res);
 
- SaveMap(FileName+':\'+Res);
+  SaveMap(FileName+':\'+Res);
 end;
 
 procedure TMainForm.aOpenMapExecute(Sender: TObject);
 begin
- OpenDialog.Filter := 'Карты Doom2D: Forever (*.wad)|*.wad|All files (*.*)|*.*';
+  OpenDialog.Filter := _lc[I_FILE_FILTER_ALL];
 
- if OpenDialog.Execute then OpenMap(OpenDialog.FileName);
+  if OpenDialog.Execute() then
+  begin
+    if (Pos('.ini', LowerCase(ExtractFileName(OpenDialog.FileName))) > 0) then
+      begin // INI карты:
+        FullClear();
+   
+        pLoadProgress.Left := (RenderPanel.Width div 2)-(pLoadProgress.Width div 2);
+        pLoadProgress.Top := (RenderPanel.Height div 2)-(pLoadProgress.Height div 2);
+        pLoadProgress.Show();
+
+        OpenedMap := '';
+        OpenedWAD := '';
+
+        LoadMapOld(OpenDialog.FileName);
+
+        MainForm.Caption := Format('%s - %s', [FormCaption, ExtractFileName(OpenDialog.FileName)]);
+
+        pLoadProgress.Hide();
+        MainForm.FormResize(Self);
+      end
+    else // Карты из WAD:
+      begin
+        OpenMap(OpenDialog.FileName, '');
+      end;
+
+    OpenDialog.InitialDir := ExtractFileDir(OpenDialog.FileName);
+  end;
 end;
 
 procedure TMainForm.FormActivate(Sender: TObject);
+var
+  lang: Integer;
+  config: TConfig;
+  
 begin
- MainForm.ActiveControl := RenderPanel;
+  MainForm.ActiveControl := RenderPanel;
+
+// Язык:
+  if gLanguage = '' then
+  begin
+    lang := SelectLanguageForm.ShowModal();
+    case lang of
+      1:   gLanguage := LANGUAGE_ENGLISH;
+      else gLanguage := LANGUAGE_RUSSIAN;
+    end;
+
+    config := TConfig.CreateFile(EditorDir+'\Editor.cfg');
+    config.WriteStr('Editor', 'Language', gLanguage);
+    config.SaveFile(EditorDir+'\Editor.cfg');
+    config.Free();
+  end;
+
+  //e_WriteLog('Read language file', MSG_NOTIFY);
+  //g_Language_Load(EditorDir+'\data\'+gLanguage+LANGUAGE_FILE_NAME);
+  g_Language_Set(gLanguage);
 end;
 
 procedure TMainForm.aDeleteMap(Sender: TObject);
@@ -2831,333 +4580,595 @@ var
   MapList: SArray;
   MapName: Char16;
   a: Integer;
-  str: string;
+  str: String;
+
 begin
- OpenDialog.Filter := 'Карты Doom2D: Forever (*.wad)|*.wad|All files (*.*)|*.*';
+  OpenDialog.Filter := _lc[I_FILE_FILTER_WAD];
 
- if not OpenDialog.Execute then Exit;
+  if not OpenDialog.Execute() then
+    Exit;
 
- WAD := TWADEditor_1.Create;
+  WAD := TWADEditor_1.Create();
 
- if not WAD.ReadFile(OpenDialog.FileName) then
- begin
-  WAD.Destroy;
-  Exit;
- end;
+  if not WAD.ReadFile(OpenDialog.FileName) then
+  begin
+    WAD.Free();
+    Exit;
+  end;
 
- WAD.CreateImage;
+  WAD.CreateImage();
 
- MapList := WAD.GetResourcesList('');
+  MapList := WAD.GetResourcesList('');
 
- SelectMapForm.lbMapList.Items.Clear;
+  SelectMapForm.lbMapList.Items.Clear();
 
- if MapList <> nil then
-  for a := 0 to High(MapList) do
-   SelectMapForm.lbMapList.Items.Add(MapList[a]);
+  if MapList <> nil then
+    for a := 0 to High(MapList) do
+      SelectMapForm.lbMapList.Items.Add(MapList[a]);
 
- if (SelectMapForm.ShowModal = mrOK) then
- begin
-  str := SelectMapForm.lbMapList.Items[SelectMapForm.lbMapList.ItemIndex];
-  MapName := '';
-  CopyMemory(@MapName[0], @str[1], Min(16, Length(str)));
+  if (SelectMapForm.ShowModal() = mrOK) then
+  begin
+    str := SelectMapForm.lbMapList.Items[SelectMapForm.lbMapList.ItemIndex];
+    MapName := '';
+    CopyMemory(@MapName[0], @str[1], Min(16, Length(str)));
 
-  if MessageBox(0, PChar(Format('Удалить карту %s из %s ?', [MapName, OpenDialog.FileName])),
-                'Удалить карту', MB_ICONQUESTION or MB_YESNO or MB_TASKMODAL or
-                MB_DEFBUTTON2) <> mrYes then Exit;
+    if MessageBox(0, PChar(Format(_lc[I_MSG_DELETE_MAP_PROMT],
+                           [MapName, OpenDialog.FileName])),
+                  PChar(_lc[I_MSG_DELETE_MAP]),
+                  MB_ICONQUESTION or MB_YESNO or
+                  MB_TASKMODAL or MB_DEFBUTTON2) <> mrYes then
+      Exit;
 
-  WAD.RemoveResource('', MapName);
-  MessageBox(0, PChar(Format('Карта %s удалена', [MapName])), 'Карта удалена',
-             MB_ICONINFORMATION or MB_OK or MB_TASKMODAL or MB_DEFBUTTON1);
+    WAD.RemoveResource('', MapName);
+    
+    MessageBox(0, PChar(Format(_lc[I_MSG_MAP_DELETED_PROMT],
+                               [MapName])),
+               PChar(_lc[I_MSG_MAP_DELETED]),
+               MB_ICONINFORMATION or MB_OK or
+               MB_TASKMODAL or MB_DEFBUTTON1);
 
-  WAD.SaveTo(OpenDialog.FileName);
- end;
+    WAD.SaveTo(OpenDialog.FileName);
 
- WAD.Destroy;
+  // Удалили текущую карту - сохранять по старому ее нельзя:
+    if OpenedMap = (OpenDialog.FileName+':\'+MapName) then
+    begin
+      OpenedMap := '';
+      OpenedWAD := '';
+      MainForm.Caption := FormCaption;
+    end;
+  end;
+
+  WAD.Free();
 end;
 
 procedure TMainForm.vleObjectPropertyKeyDown(Sender: TObject;
-  var Key: Word; Shift: TShiftState);
+            var Key: Word; Shift: TShiftState);
 begin
- if Key = VK_RETURN then bApplyProperty.Click();
+  if Key = VK_RETURN then
+    bApplyProperty.Click();
 end;
 
 procedure MovePanel(var ID: DWORD; MoveType: Byte);
 var
-  _id: Integer;
-  a: Integer;
+  _id, a: Integer;
+  tmp: TPanel;
+
 begin
- if (ID = 0) and (MoveType = 0) then Exit;
- if (ID = DWORD(High(gPanels))) and (MoveType <> 0) then Exit;
+  if (ID = 0) and (MoveType = 0) then
+    Exit;
+  if (ID = DWORD(High(gPanels))) and (MoveType <> 0) then
+    Exit;
+  if (ID > DWORD(High(gPanels))) then
+    Exit;
 
- _id := Integer(ID);
+  _id := Integer(ID);
 
- SetLength(gPanels, Length(gPanels)+1);
+  if MoveType = 0 then // to Back
+    begin
+      if gTriggers <> nil then
+        for a := 0 to High(gTriggers) do
+          with gTriggers[a] do
+          begin
+            if TriggerType = TRIGGER_NONE then
+              Continue;
 
- if MoveType = 0 then
- begin
-  for a := High(gPanels)-1 downto 0 do
-   gPanels[a+1] := gPanels[a];
-  gPanels[0] := gPanels[ID+1];
-  gPanels[ID+1].PanelType := PANEL_NONE;
+            if TexturePanel = _id then
+              TexturePanel := 0
+            else
+              if (TexturePanel >= 0) and (TexturePanel < _id) then
+                Inc(TexturePanel);
 
-  if gTriggers <> nil then
-  for a := 0 to High(gTriggers) do
-   with gTriggers[a] do
-   begin
-    if TriggerType = TRIGGER_NONE then Continue;
+            case TriggerType of
+              TRIGGER_OPENDOOR, TRIGGER_CLOSEDOOR, TRIGGER_DOOR,
+              TRIGGER_DOOR5, TRIGGER_CLOSETRAP, TRIGGER_TRAP,
+              TRIGGER_LIFTUP, TRIGGER_LIFTDOWN, TRIGGER_LIFT:
+                if Data.PanelID = _id then
+                  Data.PanelID := 0
+                else
+                  if (Data.PanelID >= 0) and (Data.PanelID < _id) then
+                    Inc(Data.PanelID);
+            end;
+          end;
 
-    if TexturePanel = _id then TexturePanel := 0
-     else if TexturePanel <> -1 then TexturePanel := TexturePanel+1;
+      tmp := gPanels[_id];
 
-    case TriggerType of
-     TRIGGER_OPENDOOR, TRIGGER_CLOSEDOOR, TRIGGER_DOOR, TRIGGER_DOOR5,
-     TRIGGER_CLOSETRAP, TRIGGER_TRAP, TRIGGER_LIFTUP, TRIGGER_LIFTDOWN,
-     TRIGGER_LIFT: if Data.PanelID = _id then Data.PanelID := 0
-                    else if Data.PanelID <> -1 then Data.PanelID := Data.PanelID+1;
+      for a := _id downto 1 do
+        gPanels[a] := gPanels[a-1];
+
+      gPanels[0] := tmp;
+
+      ID := 0;
+    end
+  else // to Front
+    begin
+      if gTriggers <> nil then
+        for a := 0 to High(gTriggers) do
+          with gTriggers[a] do
+          begin
+            if TriggerType = TRIGGER_NONE then
+              Continue;
+
+            if TexturePanel = _id then
+              TexturePanel := High(gPanels)
+            else
+              if TexturePanel > _id then
+                Dec(TexturePanel);
+
+            case TriggerType of
+              TRIGGER_OPENDOOR, TRIGGER_CLOSEDOOR, TRIGGER_DOOR,
+              TRIGGER_DOOR5, TRIGGER_CLOSETRAP, TRIGGER_TRAP,
+              TRIGGER_LIFTUP, TRIGGER_LIFTDOWN, TRIGGER_LIFT:
+                if Data.PanelID = _id then
+                  Data.PanelID := High(gPanels)
+                else
+                  if Data.PanelID > _id then
+                    Dec(Data.PanelID);
+            end;
+          end;
+
+      tmp := gPanels[_id];
+
+      for a := _id to High(gPanels)-1 do
+        gPanels[a] := gPanels[a+1];
+
+      gPanels[High(gPanels)] := tmp;
+
+      ID := High(gPanels);
     end;
-   end;
-
-  ID := 0;
- end
-  else
- begin
-  if gTriggers <> nil then
-  for a := 0 to High(gTriggers) do
-   with gTriggers[a] do
-   begin
-    if TriggerType = TRIGGER_NONE then Continue;
-
-    if TexturePanel = _id then TexturePanel := High(gPanels);
-
-    case TriggerType of
-     TRIGGER_OPENDOOR, TRIGGER_CLOSEDOOR, TRIGGER_DOOR, TRIGGER_DOOR5,
-     TRIGGER_CLOSETRAP, TRIGGER_TRAP, TRIGGER_LIFTUP, TRIGGER_LIFTDOWN,
-     TRIGGER_LIFT: if Data.PanelID = _id then Data.PanelID := High(gPanels);
-    end;
-   end;
-
-  gPanels[High(gPanels)] := gPanels[ID];
-  gPanels[ID].PanelType := PANEL_NONE;
-
-  ID := High(gPanels);
- end;
 end;
 
 procedure TMainForm.aMoveToBack(Sender: TObject);
 var
   a: Integer;
-begin
- if SelectedObjects = nil then Exit;
 
- for a := 0 to High(SelectedObjects) do
-  with SelectedObjects[a] do
-   if Live and (ObjectType = OBJECT_PANEL) then MovePanel(ID, 0);
+begin
+  if SelectedObjects = nil then
+    Exit;
+
+  for a := 0 to High(SelectedObjects) do
+    with SelectedObjects[a] do
+      if Live and (ObjectType = OBJECT_PANEL) then
+      begin
+        SelectedObjects[0] := SelectedObjects[a];
+        SetLength(SelectedObjects, 1);
+        MovePanel(ID, 0);
+        FillProperty();
+        Break;
+      end;
 end;
 
 procedure TMainForm.aMoveToFore(Sender: TObject);
 var
   a: Integer;
-begin
- if SelectedObjects = nil then Exit;
 
- for a := 0 to High(SelectedObjects) do
-  with SelectedObjects[a] do
-   if Live and (ObjectType = OBJECT_PANEL) then MovePanel(ID, 1);
+begin
+  if SelectedObjects = nil then
+    Exit;
+
+  for a := 0 to High(SelectedObjects) do
+    with SelectedObjects[a] do
+      if Live and (ObjectType = OBJECT_PANEL) then
+      begin
+        SelectedObjects[0] := SelectedObjects[a];
+        SetLength(SelectedObjects, 1);
+        MovePanel(ID, 1);
+        FillProperty();
+        Break;
+      end;
 end;
 
 procedure TMainForm.aSaveMapAsExecute(Sender: TObject);
+var
+  idx: Integer;
+  
 begin
- if not SaveDialog.Execute then Exit;
- SaveMapForm.GetMaps(SaveDialog.FileName);
+  SaveDialog.Filter := _lc[I_FILE_FILTER_WAD];
 
- if SaveMapForm.ShowModal <> mrOK then Exit;
+  if not SaveDialog.Execute() then
+    Exit;
 
- SaveMap(SaveDialog.FileName+':\'+SaveMapForm.eMapName.Text);
+  SaveMapForm.GetMaps(SaveDialog.FileName, True);
 
- Caption := Format('%s - %s:%s', [FormCaption, ExtractFileName(SaveDialog.FileName),
-                                  SaveMapForm.eMapName.Text]);
+  if SaveMapForm.ShowModal() <> mrOK then
+    Exit;
 
- OpenedMap := SaveDialog.FileName+':\'+SaveMapForm.eMapName.Text;
+  SaveDialog.InitialDir := ExtractFileDir(SaveDialog.FileName);
+  OpenedMap := SaveDialog.FileName+':\'+SaveMapForm.eMapName.Text;
+  OpenedWAD := SaveDialog.FileName;
+
+  idx := RecentFiles.IndexOf(OpenedMap);
+// Такая карта уже недавно открывалась:
+  if idx >= 0 then
+    RecentFiles.Delete(idx);
+  RecentFiles.Insert(0, OpenedMap);
+  RefreshRecentMenu;
+
+  SaveMap(OpenedMap);
+
+  Caption := Format('%s - %s:%s', [FormCaption, ExtractFileName(SaveDialog.FileName),
+                                   SaveMapForm.eMapName.Text]);
 end;
 
 procedure TMainForm.aSelectAllExecute(Sender: TObject);
 var
   a: Integer;
-begin
- RemoveSelect();
 
- case pcObjects.ActivePageIndex+1 of
-  OBJECT_PANEL:
-   if gPanels <> nil then
-    for a := 0 to High(gPanels) do
-     if gPanels[a].PanelType <> PANEL_NONE then SelectObject(OBJECT_PANEL, a, True);
-  OBJECT_ITEM:
-   if gItems <> nil then
-    for a := 0 to High(gItems) do
-     if gItems[a].ItemType <> ITEM_NONE then SelectObject(OBJECT_ITEM, a, True);
-  OBJECT_MONSTER:
-   if gMonsters <> nil then
-    for a := 0 to High(gMonsters) do
-     if gMonsters[a].MonsterType <> MONSTER_NONE then SelectObject(OBJECT_MONSTER, a, True);
-  OBJECT_AREA:
-   if gAreas <> nil then
-    for a := 0 to High(gAreas) do
-     if gAreas[a].AreaType <> AREA_NONE then SelectObject(OBJECT_AREA, a, True);
-  OBJECT_TRIGGER:
-   if gTriggers <> nil then
-    for a := 0 to High(gTriggers) do
-     if gTriggers[a].TriggerType <> TRIGGER_NONE then SelectObject(OBJECT_TRIGGER, a, True);
- end;
+begin
+  RemoveSelectFromObjects();
+
+  case pcObjects.ActivePageIndex+1 of
+    OBJECT_PANEL:
+      if gPanels <> nil then
+        for a := 0 to High(gPanels) do
+          if gPanels[a].PanelType <> PANEL_NONE then
+            SelectObject(OBJECT_PANEL, a, True);
+    OBJECT_ITEM:
+      if gItems <> nil then
+        for a := 0 to High(gItems) do
+          if gItems[a].ItemType <> ITEM_NONE then
+            SelectObject(OBJECT_ITEM, a, True);
+    OBJECT_MONSTER:
+      if gMonsters <> nil then
+        for a := 0 to High(gMonsters) do
+          if gMonsters[a].MonsterType <> MONSTER_NONE then
+            SelectObject(OBJECT_MONSTER, a, True);
+    OBJECT_AREA:
+      if gAreas <> nil then
+        for a := 0 to High(gAreas) do
+          if gAreas[a].AreaType <> AREA_NONE then
+            SelectObject(OBJECT_AREA, a, True);
+    OBJECT_TRIGGER:
+      if gTriggers <> nil then
+        for a := 0 to High(gTriggers) do
+          if gTriggers[a].TriggerType <> TRIGGER_NONE then
+            SelectObject(OBJECT_TRIGGER, a, True);
+  end;
 end;
 
-procedure TMainForm.ToolButton1Click(Sender: TObject);
+procedure TMainForm.tbGridOnClick(Sender: TObject);
 begin
- DotEnable := not DotEnable;
+  DotEnable := not DotEnable;
+  (Sender as TToolButton).Down := DotEnable;
 end;
 
 procedure TMainForm.OnIdle(Sender: TObject; var Done: Boolean);
 begin
- Draw();
+  Draw();
 end;
 
 procedure TMainForm.miMapPreviewClick(Sender: TObject);
 begin
- if not PreviewMode then
- begin
-  StatusBar.Visible := False;
-  Panel1.Visible := False;
-  Panel3.Visible := False;
-  Splitter2.Visible := False;
-  Splitter1.Visible := False;
-  ToolBar1.Visible := False;
-  sbHorizontal.Visible := False;
-  sbVertical.Visible := False;
-  _DotEnabled := DotEnable;
-  DotEnable := False;
- end
+  if not PreviewMode then
+    begin
+      Splitter2.Visible := False;
+      Splitter1.Visible := False;
+      StatusBar.Visible := False;
+      PanelObjs.Visible := False;
+      PanelProps.Visible := False;
+      MainToolBar.Visible := False;
+      sbHorizontal.Visible := False;
+      sbVertical.Visible := False;
+    end
   else
- begin
-  StatusBar.Visible := True;
-  Panel1.Visible := True;
-  Panel3.Visible := True;
-  Splitter2.Visible := True;
-  Splitter1.Visible := True;
-  ToolBar1.Visible := True;
-  sbHorizontal.Visible := True;
-  sbVertical.Visible := True;
-  DotEnable := _DotEnabled;
- end;
+    begin
+      StatusBar.Visible := True;
+      PanelObjs.Visible := True;
+      PanelProps.Visible := True;
+      Splitter2.Visible := True;
+      Splitter1.Visible := True;
+      MainToolBar.Visible := True;
+      sbHorizontal.Visible := True;
+      sbVertical.Visible := True;
+    end;
 
- PreviewMode := not PreviewMode;
+  PreviewMode := not PreviewMode;
+  (Sender as TMenuItem).Checked := PreviewMode;
 end;
 
 procedure TMainForm.miLayer1Click(Sender: TObject);
 begin
- SwitchLayer(LAYER_BACK);
+  SwitchLayer(LAYER_BACK);
 end;
 
 procedure TMainForm.miLayer2Click(Sender: TObject);
 begin
- SwitchLayer(LAYER_WALLS);
+  SwitchLayer(LAYER_WALLS);
 end;
 
 procedure TMainForm.miLayer3Click(Sender: TObject);
 begin
- SwitchLayer(LAYER_FOREGROUND);
+  SwitchLayer(LAYER_FOREGROUND);
 end;
 
 procedure TMainForm.miLayer4Click(Sender: TObject);
 begin
- SwitchLayer(LAYER_STEPS);
+  SwitchLayer(LAYER_STEPS);
 end;
 
 procedure TMainForm.miLayer5Click(Sender: TObject);
 begin
- SwitchLayer(LAYER_WATER);
+  SwitchLayer(LAYER_WATER);
 end;
 
 procedure TMainForm.miLayer6Click(Sender: TObject);
 begin
- SwitchLayer(LAYER_ITEMS);
+  SwitchLayer(LAYER_ITEMS);
+end;
+
+procedure TMainForm.miLayer7Click(Sender: TObject);
+begin
+  SwitchLayer(LAYER_MONSTERS);
 end;
 
 procedure TMainForm.miLayer8Click(Sender: TObject);
 begin
- SwitchLayer(LAYER_AREAS);
+  SwitchLayer(LAYER_AREAS);
 end;
 
 procedure TMainForm.miLayer9Click(Sender: TObject);
 begin
- SwitchLayer(LAYER_TRIGGERS);
+  SwitchLayer(LAYER_TRIGGERS);
 end;
 
 procedure TMainForm.tbShowClick(Sender: TObject);
 var
   a: Integer;
   b: Boolean;
+  
 begin
- b := True;
- for a := 0 to High(LayerEnabled) do
-  b := b and LayerEnabled[a];
+  b := True;
+  for a := 0 to High(LayerEnabled) do
+    b := b and LayerEnabled[a];
 
- b := not b;
+  b := not b;
 
- ShowLayer(LAYER_BACK, b);
- ShowLayer(LAYER_WALLS, b);
- ShowLayer(LAYER_FOREGROUND, b);
- ShowLayer(LAYER_STEPS, b);
- ShowLayer(LAYER_WATER, b);
- ShowLayer(LAYER_ITEMS, b);
- ShowLayer(LAYER_MONSTERS, b);
- ShowLayer(LAYER_AREAS, b);
- ShowLayer(LAYER_TRIGGERS, b);
+  ShowLayer(LAYER_BACK, b);
+  ShowLayer(LAYER_WALLS, b);
+  ShowLayer(LAYER_FOREGROUND, b);
+  ShowLayer(LAYER_STEPS, b);
+  ShowLayer(LAYER_WATER, b);
+  ShowLayer(LAYER_ITEMS, b);
+  ShowLayer(LAYER_MONSTERS, b);
+  ShowLayer(LAYER_AREAS, b);
+  ShowLayer(LAYER_TRIGGERS, b);
 end;
 
 procedure TMainForm.miMiniMapClick(Sender: TObject);
 begin
- SwitchMap();
+  SwitchMap();
 end;
 
 procedure TMainForm.miSwitchGridClick(Sender: TObject);
 begin
- DotStep := 24-DotStep;
+  if DotStep = DotStepOne then
+    DotStep := DotStepTwo
+  else
+    DotStep := DotStepOne;
+
+  MousePos.X := (MousePos.X div DotStep) * DotStep;
+  MousePos.Y := (MousePos.Y div DotStep) * DotStep;
 end;
 
 procedure TMainForm.miSnapToGridClick(Sender: TObject);
 begin
- SnapToGrid := not SnapToGrid;
+  SnapToGrid := not SnapToGrid;
 
- MousePos.X := (MousePos.X div DotStep)*DotStep;
- MousePos.Y := (MousePos.Y div DotStep)*DotStep;
+  MousePos.X := (MousePos.X div DotStep) * DotStep;
+  MousePos.Y := (MousePos.Y div DotStep) * DotStep;
 
- miSnapToGrid.Checked := SnapToGrid;
+  miSnapToGrid.Checked := SnapToGrid;
 end;
 
 procedure TMainForm.minexttabClick(Sender: TObject);
 begin
- if pcObjects.ActivePageIndex < pcObjects.PageCount-1 then
-  pcObjects.ActivePageIndex := pcObjects.ActivePageIndex+1
-   else pcObjects.ActivePageIndex := 0;
+  if pcObjects.ActivePageIndex < pcObjects.PageCount-1 then
+    pcObjects.ActivePageIndex := pcObjects.ActivePageIndex+1
+  else
+    pcObjects.ActivePageIndex := 0;
 end;
 
 procedure TMainForm.miSaveMiniMapClick(Sender: TObject);
 begin
- SaveMiniMapForm.ShowModal;
-end;
-
-procedure TMainForm.miLayer7Click(Sender: TObject);
-begin
- SwitchLayer(LAYER_MONSTERS);
+  SaveMiniMapForm.ShowModal();
 end;
 
 procedure TMainForm.bClearTextureClick(Sender: TObject);
 begin
- lbTextureList.ItemIndex := -1;
+  lbTextureList.ItemIndex := -1;
+  lTextureWidth.Caption := '';
+  lTextureHeight.Caption := '';
 end;
 
 procedure TMainForm.miPackMapClick(Sender: TObject);
 begin
- PackMapForm.ShowModal();
+  PackMapForm.ShowModal();
 end;
 
-end.
+procedure TMainForm.miMapTestSettingsClick(Sender: TObject);
+begin
+  MapTestForm.ShowModal();
+end;
+
+procedure TMainForm.miTestMapClick(Sender: TObject);
+var
+  cmd, dir, mapWAD, mapToRun: String;
+  opt: LongWord;
+  time: Integer;
+  si: STARTUPINFO;
+  pi: PROCESS_INFORMATION;
+  lpMsgBuf: PChar;
+
+begin
+// Новая карта:
+  if OpenedMap = '' then
+  begin
+    aSaveMapAsExecute(nil);
+    Exit;
+  end;
+
+// Сохраняем под тестовым именем:
+  g_ProcessResourceStr(OpenedMap, mapWAD, cmd, dir);
+  mapToRun := mapWAD + ':\' + TEST_MAP_NAME;
+  time := g_GetFileTime(mapWAD);
+  SaveMap(mapToRun);
+  g_SetFileTime(mapWAD, time);
+
+// Опции игры:
+  opt := 32 + 64;
+  if TestOptionsTwoPlayers then
+    opt := opt + 1;
+  if TestOptionsTeamDamage then
+    opt := opt + 2;
+  if TestOptionsAllowExit then
+    opt := opt + 4;
+  if TestOptionsWeaponStay then
+    opt := opt + 8;
+  if TestOptionsMonstersDM then
+    opt := opt + 16;
+
+// Каталог с Doom2DF.exe:
+  dir := ExtractFilePath(TestD2dExe);
+
+// Составляем командную строку:
+  cmd := '"' + TestD2dExe + '"';
+  cmd := cmd + ' -map "' + mapToRun + '"';
+  cmd := cmd + ' -gm ' + TestGameMode;
+  cmd := cmd + ' -limt ' + TestLimTime;
+  cmd := cmd + ' -lims ' + TestLimScore;
+  cmd := cmd + ' -opt ' + IntToStr(opt);
+
+  if TestMapOnce then
+    cmd := cmd + ' --close';
+
+  cmd := cmd + ' --testdelete';
+
+// Запускаем:
+  ZeroMemory(@si, SizeOf(si));
+  si.cb := SizeOf(si);
+  ZeroMemory(@pi, SizeOf(pi));
+
+  if not CreateProcess(0, PChar(cmd),
+                       nil, nil, False, 0, nil,
+                       PChar(dir),
+                       si, pi) then
+  begin 
+    FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER or FORMAT_MESSAGE_FROM_SYSTEM,
+                  nil, GetLastError(), LANG_SYSTEM_DEFAULT,
+                  @lpMsgBuf, 0, nil);
+    MessageBox(0, lpMsgBuf,
+               PChar(_lc[I_MSG_EXEC_ERROR]),
+               MB_OK or MB_ICONERROR);
+  end;
+end;
+
+procedure TMainForm.sbVerticalScroll(Sender: TObject;
+  ScrollCode: TScrollCode; var ScrollPos: Integer);
+begin
+  MapOffset.Y := -Normalize16(sbVertical.Position);
+end;
+
+procedure TMainForm.sbHorizontalScroll(Sender: TObject;
+  ScrollCode: TScrollCode; var ScrollPos: Integer);
+begin
+  MapOffset.X := -Normalize16(sbHorizontal.Position);
+end;
+
+procedure TMainForm.miOpenWadMapClick(Sender: TObject);
+begin
+  if OpenedWAD <> '' then
+  begin
+    OpenMap(OpenedWAD, '');
+  end;
+end;
+
+procedure TMainForm.selectall1Click(Sender: TObject);
+var
+  a: Integer;
+
+begin
+  RemoveSelectFromObjects();
+
+  if gPanels <> nil then
+    for a := 0 to High(gPanels) do
+      if gPanels[a].PanelType <> PANEL_NONE then
+        SelectObject(OBJECT_PANEL, a, True);
+
+  if gItems <> nil then
+    for a := 0 to High(gItems) do
+      if gItems[a].ItemType <> ITEM_NONE then
+        SelectObject(OBJECT_ITEM, a, True);
+
+  if gMonsters <> nil then
+    for a := 0 to High(gMonsters) do
+      if gMonsters[a].MonsterType <> MONSTER_NONE then
+        SelectObject(OBJECT_MONSTER, a, True);
+
+  if gAreas <> nil then
+    for a := 0 to High(gAreas) do
+      if gAreas[a].AreaType <> AREA_NONE then
+        SelectObject(OBJECT_AREA, a, True);
+
+  if gTriggers <> nil then
+    for a := 0 to High(gTriggers) do
+      if gTriggers[a].TriggerType <> TRIGGER_NONE then
+        SelectObject(OBJECT_TRIGGER, a, True);
+end;
+
+procedure TMainForm.Splitter1CanResize(Sender: TObject;
+  var NewSize: Integer; var Accept: Boolean);
+begin
+  Accept := (NewSize > 140);
+end;
+
+procedure TMainForm.Splitter2CanResize(Sender: TObject;
+  var NewSize: Integer; var Accept: Boolean);
+begin
+  Accept := (NewSize > 110);
+end;
+
+procedure TMainForm.vleObjectPropertyEnter(Sender: TObject);
+begin
+  EditingProperties := True;
+end;
+
+procedure TMainForm.vleObjectPropertyExit(Sender: TObject);
+begin
+  EditingProperties := False;
+end;
+
+procedure TMainForm.FormKeyUp(Sender: TObject; var Key: Word;
+  Shift: TShiftState);
+begin
+// Объекты передвигались:
+  if MainForm.ActiveControl = RenderPanel then
+  begin
+    if (Key = VK_NUMPAD4) or
+       (Key = VK_NUMPAD6) or
+       (Key = VK_NUMPAD8) or
+       (Key = VK_NUMPAD5) or
+       (Key = Ord('V')) then
+      FillProperty();
+  end;
+end;
+
+End.

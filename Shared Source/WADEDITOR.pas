@@ -48,6 +48,7 @@ type
                          var Len: Integer): Boolean;
     function GetSectionList(): SArray;
     function GetResourcesList(Section: string): SArray;
+    
     property GetLastError: Integer read FLastError;
     property GetLastErrorStr: string read LastErrorString;
     property GetResourcesCount: Word read FHeader.RecordsCount;
@@ -63,11 +64,13 @@ const
   DFWAD_ERROR_WADNOTLOADED     = -5;
   DFWAD_ERROR_READRESOURCE     = -6;
   DFWAD_ERROR_READWAD          = -7;
+  DFWAD_ERROR_WRONGVERSION     = -8;
 
- procedure g_ProcessResourceStr(ResourceStr: string; var FileName, SectionName,
-                                ResourceName: string); overload;
- procedure g_ProcessResourceStr(ResourceStr: string; FileName, SectionName,
-                                ResourceName: PString); overload;
+
+ procedure g_ProcessResourceStr(ResourceStr: String; var FileName,
+                                SectionName, ResourceName: String); overload;
+ procedure g_ProcessResourceStr(ResourceStr: String; FileName,
+                                SectionName, ResourceName: PString); overload;
 
 implementation
 
@@ -79,47 +82,58 @@ const
   DFWAD_OPENED_FILE   = 1;
   DFWAD_OPENED_MEMORY = 2;
 
-procedure g_ProcessResourceStr(ResourceStr: string; var FileName, SectionName, ResourceName: string);
+procedure g_ProcessResourceStr(ResourceStr: String; var FileName,
+                               SectionName, ResourceName: String);
 var
   a, i: Integer;
+
 begin
- for i := Length(ResourceStr) downto 1 do
-  if ResourceStr[i] = ':' then Break;
+  for i := Length(ResourceStr) downto 1 do
+    if ResourceStr[i] = ':' then
+      Break;
 
- FileName := Copy(ResourceStr, 1, i-1);
+  FileName := Copy(ResourceStr, 1, i-1);
 
- for a := i+1 to Length(ResourceStr) do
-  if ResourceStr[a] = '\' then Break;
+  for a := i+1 to Length(ResourceStr) do
+    if ResourceStr[a] = '\' then
+      Break;
 
- ResourceName := Copy(ResourceStr, a+1, Length(ResourceStr)-Abs(a));
- SectionName := Copy(ResourceStr, i+1, Length(ResourceStr)-Length(ResourceName)-Length(FileName)-2);
+  ResourceName := Copy(ResourceStr, a+1, Length(ResourceStr)-Abs(a));
+  SectionName := Copy(ResourceStr, i+1, Length(ResourceStr)-Length(ResourceName)-Length(FileName)-2);
 end;
 
-procedure g_ProcessResourceStr(ResourceStr: string; FileName, SectionName,
-                                ResourceName: PString);
+procedure g_ProcessResourceStr(ResourceStr: String; FileName,
+                               SectionName, ResourceName: PString);
 var
   a, i, l1, l2: Integer;
+
 begin
- for i := Length(ResourceStr) downto 1 do
-  if ResourceStr[i] = ':' then Break;
+  for i := Length(ResourceStr) downto 1 do
+    if ResourceStr[i] = ':' then
+      Break;
 
- if FileName <> nil then
- begin
-  FileName^ := Copy(ResourceStr, 1, i-1);
-  l1 := Length(FileName^);
- end else l1 := 0;
+  if FileName <> nil then
+    begin
+      FileName^ := Copy(ResourceStr, 1, i-1);
+      l1 := Length(FileName^);
+    end
+  else
+    l1 := 0;
 
- for a := i+1 to Length(ResourceStr) do
-  if ResourceStr[a] = '\' then Break;
+  for a := i+1 to Length(ResourceStr) do
+    if ResourceStr[a] = '\' then
+      Break;
 
- if ResourceName <> nil then
- begin
-  ResourceName^ := Copy(ResourceStr, a+1, Length(ResourceStr)-Abs(a));
-  l2 := Length(ResourceName^);
- end else l2 := 0;
+  if ResourceName <> nil then
+    begin
+      ResourceName^ := Copy(ResourceStr, a+1, Length(ResourceStr)-Abs(a));
+      l2 := Length(ResourceName^);
+    end
+  else
+    l2 := 0;
 
- if SectionName <> nil then
-  SectionName^ := Copy(ResourceStr, i+1, Length(ResourceStr)-l2-l1-2);
+  if SectionName <> nil then
+    SectionName^ := Copy(ResourceStr, i+1, Length(ResourceStr)-l2-l1-2);
 end;
 
 { TWADEditor_1 }
@@ -625,7 +639,7 @@ var
   Signature: array[0..4] of Char;
   a: Integer;
 begin
- FreeWAD;
+ FreeWAD();
 
  Result := False;
 
@@ -656,6 +670,13 @@ begin
   end;
 
   BlockRead(WADFile, FVersion, 1);
+  if FVersion <> DFWAD_VERSION then
+  begin
+    FLastError := DFWAD_ERROR_WRONGVERSION;
+    CloseFile(WADFile);
+    Exit;
+  end;
+
   BlockRead(WADFile, FHeader, SizeOf(TWADHeaderRec_1));
   SetLength(FResTable, FHeader.RecordsCount);
   if FResTable <> nil then
@@ -685,7 +706,7 @@ var
   Signature: array[0..4] of Char;
   a: Integer;
 begin
- FreeWAD;
+ FreeWAD();
 
  Result := False;
 
@@ -697,6 +718,11 @@ begin
  end;
 
  CopyMemory(@FVersion, Pointer(LongWord(Data)+5), 1);
+ if FVersion <> DFWAD_VERSION then
+ begin
+   FLastError := DFWAD_ERROR_WRONGVERSION;
+   Exit;
+ end;
 
  CopyMemory(@FHeader, Pointer(LongWord(Data)+6), SizeOf(TWADHeaderRec_1));
 

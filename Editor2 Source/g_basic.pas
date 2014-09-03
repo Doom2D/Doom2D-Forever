@@ -2,26 +2,27 @@ unit g_basic;
 
 interface
 
-uses windows;
+uses
+  windows;
 
-type
-  String16   = string[16];
+Type
+  String16   = String[16];
   Char16     = packed array[0..15] of Char;
   Char32     = packed array[0..31] of Char;
   Char64     = packed array[0..63] of Char;
   Char256    = packed array[0..255] of Char;
-  ArrayStr16 = array of String16;
-  SArray     = array of string;
-  DWArray    = array of DWORD;
+  ArrayStr16 = Array of String16;
+  SArray     = Array of String;
+  DWArray    = Array of DWORD;
 
-  TDirection=(D_LEFT, D_RIGHT);
+  TDirection = (D_LEFT, D_RIGHT);
 
-function g_Collide(X1, Y1: Integer; Width1, Height1: Word;
-                   X2, Y2: Integer; Width2, Height2: Word): Boolean;
-function g_CollidePoint(X, Y, X2, Y2: Integer; Width, Height: Word): Boolean;
-function g_CollideLevel(X, Y: Integer; Width, Height: Word): Boolean;
-function g_CollideLevel2(X, Y: Integer; Width, Height: Word; _ID: DWORD; var PanelID: DWORD): Boolean;
-function g_PatchLength(X1, Y1, X2, Y2: Integer): Word;
+function  g_Collide(X1, Y1: Integer; Width1, Height1: Word;
+                    X2, Y2: Integer; Width2, Height2: Word): Boolean;
+function  g_CollidePoint(X, Y, X2, Y2: Integer; Width, Height: Word): Boolean;
+function  g_CollideLevel(X, Y: Integer; Width, Height: Word): Boolean;
+function  g_CollideLevel2(X, Y: Integer; Width, Height: Word; _ID: DWORD; var PanelID: DWORD): Boolean;
+function  g_PatchLength(X1, Y1, X2, Y2: Integer): Word;
 procedure IncMax(var A: Integer; B, Max: Integer); overload;
 procedure IncMax(var A: Single; B, Max: Single); overload;
 procedure IncMax(var A: Integer; Max: Integer); overload;
@@ -38,22 +39,69 @@ procedure DecMin(var A: Word; B, Min: Word); overload;
 procedure DecMin(var A: Word; Min: Word); overload;
 procedure DecMin(var A: Byte; B, Min: Byte); overload;
 procedure DecMin(var A: Byte; Min: Byte); overload;
-function Sign(A: Integer): ShortInt; overload;
-function Sign(A: Single): ShortInt; overload;
-function PointToRect(X, Y: Integer; X1, Y1, Width, Height: Integer): Integer;
+function  Sign(A: Integer): ShortInt; overload;
+function  Sign(A: Single): ShortInt; overload;
+function  PointToRect(X, Y: Integer; X1, Y1, Width, Height: Integer): Integer;
+procedure g_ChangeDir(var dir: TDirection);
+function  g_GetFileTime(fileName: String): Integer;
+function  g_SetFileTime(fileName: String; time: Integer): Boolean;
 
 implementation
 
-uses Math, g_map, MAPDEF;
+uses
+  Math, g_map, MAPDEF, SysUtils;
+
+procedure g_ChangeDir(var dir: TDirection);
+begin
+  if dir = D_LEFT then
+    dir := D_RIGHT
+  else
+    dir := D_LEFT;
+end;
+
+function g_GetFileTime(fileName: String): Integer;
+var
+  F: File;
+
+begin
+  if not FileExists(fileName) then
+  begin
+    Result := -1;
+    Exit;
+  end;
+
+  AssignFile(F, fileName);
+  Reset(F);
+  Result := FileGetDate(TFileRec(F).Handle);
+  CloseFile(F);
+end;
+
+function g_SetFileTime(fileName: String; time: Integer): Boolean;
+var
+  F: File;
+
+begin
+  if (not FileExists(fileName)) or (time < 0) then
+  begin
+    Result := False;
+    Exit;
+  end;
+
+  AssignFile(F, fileName);
+  Reset(F);
+  Result := (FileSetDate(TFileRec(F).Handle, time) = 0);
+  CloseFile(F);
+end;
 
 function g_PatchLength(X1, Y1, X2, Y2: Integer): Word;
 begin
- Result := Trunc(Hypot(Abs(X2-X1), Abs(Y2-Y1)));
+  Result := Trunc(Hypot(Abs(X2-X1), Abs(Y2-Y1)));
 end;
 
 function g_CollideLevel(X, Y: Integer; Width, Height: Word): Boolean;
 var
   a: Integer;
+  
 begin
  Result := False;
 
@@ -122,10 +170,12 @@ end;
 
 function g_CollidePoint(X, Y, X2, Y2: Integer; Width, Height: Word): Boolean;
 begin
- X := X-X2;
+ {X := X-X2;
  Y := Y-Y2;
  Result := (x >= 0) and (x <= Width) and
-           (y >= 0) and (y <= Height);
+           (y >= 0) and (y <= Height);}
+ Result := (X >= X2) and (X <= (X2+Width)) and
+           (Y >= Y2) and (Y <= (Y2+Height));
 end;
 
 procedure IncMax(var A: Integer; B, Max: Integer);

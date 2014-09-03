@@ -76,6 +76,8 @@ var
   BPP:           Byte;
 begin
  Result := False;
+ pWidth := 0;
+ pHeight := 0;
 
  CopyMemory(@TGAHeader, pData, SizeOf(TGAHeader));
 
@@ -221,6 +223,8 @@ var
   BPP:           Byte;
 begin
  Result := False;
+ pWidth := 0;
+ pHeight := 0;
 
  if not FileExists(Filename) then
  begin
@@ -267,6 +271,8 @@ begin
   CloseFile(TGAFile);
   Exit;
  end;
+
+ CloseFile(TGAFile);
 
  for i := 0 to Width * Height - 1 do
  begin
@@ -347,6 +353,8 @@ begin
  ImageSize := Width*Height*(BPP div 8);
  GetMem(image2, ImageSize);
  BlockRead(TGAFile, image2^, ImageSize);
+
+ CloseFile(TGAFile);
 
  for i := 0 to Width * Height - 1 do
  begin

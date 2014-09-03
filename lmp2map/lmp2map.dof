@@ -9,7 +9,7 @@ E=0
 F=0
 G=1
 H=1
-I=1
+I=0
 J=0
 K=0
 L=0
@@ -90,10 +90,10 @@ MaxStackSize=1048576
 ImageBase=4194304
 ExeDescription=
 [Directories]
-OutputDir=..\..\Tools\
-UnitOutputDir=
-PackageDLLOutputDir=
-PackageDCPOutputDir=
+OutputDir=F:\DFv062 Compiled
+UnitOutputDir=F:\DFv062 Compiled\Delphi dcus\lmp2map
+PackageDLLOutputDir=F:\DFv062 Compiled\Delphi dcus\lmp2map
+PackageDCPOutputDir=F:\DFv062 Compiled\Delphi dcus\lmp2map
 SearchPath=
 Packages=vcl;rtl;vclx;indy;inet;xmlrtl;vclie;inetdbbde;inetdbxpress;dbrtl;dsnap;dsnapcon;vcldb;soaprtl;VclSmp;dbexpress;dbxcds;inetdb;bdertl;vcldbx;webdsnap;websnap;adortl;ibxpress;teeui;teedb;tee;dss;visualclx;visualdbclx;vclactnband;vclshlctrls;IntrawebDB_50_70;Intraweb_50_70
 Conditionals=
@@ -110,9 +110,9 @@ ActiveLang=
 ProjectLang=
 RootDir=
 [Version Info]
-IncludeVerInfo=0
+IncludeVerInfo=1
 AutoIncBuild=0
-MajorVer=1
+MajorVer=2
 MinorVer=0
 Release=0
 Build=0
@@ -124,21 +124,31 @@ DLL=0
 Locale=1049
 CodePage=1251
 [Version Info Keys]
-CompanyName=
-FileDescription=
-FileVersion=1.0.0.0
-InternalName=
-LegalCopyright=
+CompanyName=www.doom2d.org
+FileDescription=.lmp to .map converter
+FileVersion=2.0.0.0
+InternalName=Конвертер из .lmp в .map
+LegalCopyright=All rights reserved.
 LegalTrademarks=
-OriginalFilename=
-ProductName=
-ProductVersion=1.0.0.0
+OriginalFilename=lmp2map.exe
+ProductName=.lmp to .map converter
+ProductVersion=2.0.0.0
 Comments=
 [HistoryLists\hlUnitAliases]
 Count=1
 Item0=WinTypes=Windows;WinProcs=Windows;DbiTypes=BDE;DbiProcs=BDE;DbiErrs=BDE;
+[HistoryLists\hlUnitOutputDirectory]
+Count=1
+Item0=F:\DFv062 Compiled\Delphi dcus\lmp2map
 [HistoryLists\hlOutputDirectorry]
-Count=3
-Item0=..\..\Tools\
-Item1=..\..\Tools\LMP2MAP
-Item2=..\..\DoomForever
+Count=4
+Item0=F:\DFv062 Compiled
+Item1=..\..\Tools\
+Item2=..\..\Tools\LMP2MAP
+Item3=..\..\DoomForever
+[HistoryLists\hlBPLOutput]
+Count=1
+Item0=F:\DFv062 Compiled\Delphi dcus\lmp2map
+[HistoryLists\hlDCPOutput]
+Count=1
+Item0=F:\DFv062 Compiled\Delphi dcus\lmp2map

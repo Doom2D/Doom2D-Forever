@@ -17,19 +17,19 @@ object AddResourceForm: TAddResourceForm
   OnActivate = FormActivate
   PixelsPerInch = 96
   TextHeight = 13
-  object Label1: TLabel
+  object LabelWADs: TLabel
     Left = 4
     Top = 4
-    Width = 83
+    Width = 110
     Height = 13
-    Caption = #1057#1087#1080#1089#1086#1082' WAD'#39#1086#1074':'
+    Caption = #1057#1087#1080#1089#1086#1082' WAD-'#1092#1072#1081#1083#1086#1074':'
   end
-  object Label2: TLabel
+  object LabelSections: TLabel
     Left = 4
     Top = 44
-    Width = 108
+    Width = 143
     Height = 13
-    Caption = #1057#1087#1080#1089#1086#1082' '#1089#1077#1082#1094#1080#1081' WAD:'
+    Caption = #1057#1087#1080#1089#1086#1082' '#1089#1077#1082#1094#1080#1081' WAD-'#1092#1072#1081#1083#1072':'
   end
   object bOK: TButton
     Left = 36
@@ -38,6 +38,7 @@ object AddResourceForm: TAddResourceForm
     Height = 25
     Caption = #1054#1050
     Default = True
+    ModalResult = 1
     TabOrder = 0
     OnClick = bOKClick
   end

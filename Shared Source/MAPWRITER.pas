@@ -44,6 +44,7 @@ type
     function HandledVersion(): Byte; override;
   end;
 
+
 implementation
 
 uses
@@ -259,7 +260,7 @@ begin
   for a := 0 to High(Textures) do
    CopyMemory(Pointer(LongWord(Data)+a*size), @Textures[a], size);
  end;
- 
+
  Result := True;
 end;
 
@@ -288,7 +289,7 @@ begin
   for a := 0 to High(Triggers) do
    CopyMemory(Pointer(LongWord(Data)+a*size), @Triggers[a], size);
  end;
- 
+
  Result := True;
 end;
 

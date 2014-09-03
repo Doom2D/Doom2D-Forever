@@ -31,13 +31,16 @@ uses
   f_addresource_sky in 'f_addresource_sky.pas' {AddSkyForm},
   f_addresource_sound in 'f_addresource_sound.pas' {AddSoundForm},
   spectrum in 'spectrum.pas',
+  f_saveminimap in 'f_saveminimap.pas' {SaveMiniMapForm},
+  f_packmap in 'f_packmap.pas' {PackMapForm},
+  f_maptest in 'f_maptest.pas' {MapTestForm},
+  f_choosetype in 'f_choosetype.pas' {ChooseTypeForm},
   fmod in '..\Lib\FMOD\fmod.pas',
-  fmoddyn in '..\Lib\FMOD\FMODDYN.PAS',
   fmoderrors in '..\Lib\FMOD\fmoderrors.pas',
   fmodpresets in '..\Lib\FMOD\fmodpresets.pas',
   fmodtypes in '..\Lib\FMOD\fmodtypes.pas',
-  f_saveminimap in 'f_saveminimap.pas' {SaveMiniMapForm},
-  f_packmap in 'f_packmap.pas' {PackMapForm};
+  g_language in 'g_language.pas',
+  f_selectlang in 'f_selectlang.pas' {SelectLanguageForm};
 
 {$R *.res}
 
@@ -59,7 +62,10 @@ begin
   Application.CreateForm(TAddSoundForm, AddSoundForm);
   Application.CreateForm(TSaveMiniMapForm, SaveMiniMapForm);
   Application.CreateForm(TPackMapForm, PackMapForm);
-  if ParamStr(1) <> '' then OpenMap(ParamStr(1));
+  Application.CreateForm(TMapTestForm, MapTestForm);
+  Application.CreateForm(TChooseTypeForm, ChooseTypeForm);
+  Application.CreateForm(TSelectLanguageForm, SelectLanguageForm);
+  if ParamStr(1) <> '' then OpenMap(ParamStr(1), '');
 
   Application.Run;
 end.

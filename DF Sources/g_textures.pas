@@ -2,41 +2,42 @@ unit g_textures;
 
 interface
 
-uses windows, e_graphics;
+uses
+  Windows, e_graphics, BinEditor;
 
-type
-  PAnimRec = ^TAnimRec;
-  TAnimRec = packed record
-   Counter: Byte;
-   CurrentFrame: Integer;
-   Played: Boolean;
-   Alpha: Byte;
-   Blending: Boolean;
-   Speed: Byte;
-   Loop: Boolean;
-   Enabled: Boolean;
-   MinLength: Byte;
-   Revert: Boolean;
+Type
+  TLevelTexture = record
+    TextureName: String;
+    Width,
+    Height:      Word;
+    case Anim: Boolean of
+      False: (TextureID:   DWORD;);
+      True:  (FramesID:    DWORD;
+              FramesCount: Byte;
+              Speed:       Byte);
   end;
 
-  TAnimation = class(TObject)
-   private
+  TLevelTextureArray = Array of TLevelTexture;
+
+  TAnimation = Class (TObject)
+  Private
     ID:            DWORD;
     FAlpha:        Byte;
     FBlending:     Boolean;
-    FCounter:      Byte;
-    FSpeed:        Byte;
-    FCurrentFrame: Integer;
-    FLoop:         Boolean;
-    FEnabled:      Boolean;
-    FPlayed:       Boolean;
+    FCounter:      Byte;    // Счетчик ожидания между кадрами
+    FSpeed:        Byte;    // Время ожидания между кадрами
+    FCurrentFrame: Integer; // Текущий кадр (начиная с 0)
+    FLoop:         Boolean; // Переходить на первый кадр после последнего?
+    FEnabled:      Boolean; // Работа разрешена?
+    FPlayed:       Boolean; // Проиграна вся хотя бы раз?
     FHeight:       Word;
     FWidth:        Word;
-    FMinLength:    Byte;
-    FRevert:       Boolean;
-   public
+    FMinLength:    Byte;    // Ожидание после проигрывания
+    FRevert:       Boolean; // Смена кадров обратная?
+    
+  Public
     constructor Create(FramesID: DWORD; Loop: Boolean; Speed: Byte);
-    destructor  Destroy; override;
+    destructor  Destroy(); override;
     procedure   Draw(X, Y: Integer; Mirror: TMirrorType);
     procedure   DrawEx(X, Y: Integer; Mirror: TMirrorType; RPoint: TPoint;
                        Angle: SmallInt);
@@ -45,8 +46,10 @@ type
     procedure   Enable();
     procedure   Disable();
     procedure   Revert(r: Boolean);
-    procedure   Save(Rec: PAnimRec);
-    procedure   Load(Rec: PAnimRec);
+    procedure   SaveState(Var Mem: TBinMemoryWriter);
+    procedure   LoadState(Var Mem: TBinMemoryReader);
+    function    TotalFrames(): Integer;
+
     property    Played: Boolean read FPlayed;
     property    Enabled: Boolean read FEnabled;
     property    Loop: Boolean read FLoop write FLoop;
@@ -54,60 +57,65 @@ type
     property    MinLength: Byte read FMinLength write FMinLength;
     property    CurrentFrame: Integer read FCurrentFrame;
     property    Counter: Byte read FCounter;
-    function    TotalFrames(): Integer;
     property    Blending: Boolean read FBlending write FBlending;
     property    Alpha: Byte read FAlpha write FAlpha;
     property    FramesID: DWORD read ID;
     property    Width: Word read FWidth;
     property    Height: Word read FHeight;
-  end;
+  End;
 
-function g_Texture_CreateWAD(var ID: DWORD; Resource: string): Boolean;
-function g_Texture_CreateFile(var ID: DWORD; FileName: string): Boolean;
-function g_Texture_CreateWADEx(TextureName: ShortString; Resource: string): Boolean;
-function g_Texture_CreateFileEx(TextureName: ShortString; FileName: string): Boolean;
+function g_Texture_CreateWAD(var ID: DWORD; Resource: String): Boolean;
+function g_Texture_CreateFile(var ID: DWORD; FileName: String): Boolean;
+function g_Texture_CreateWADEx(TextureName: ShortString; Resource: String): Boolean;
+function g_Texture_CreateFileEx(TextureName: ShortString; FileName: String): Boolean;
 function g_Texture_Get(TextureName: ShortString; var ID: DWORD): Boolean;
 procedure g_Texture_Delete(TextureName: ShortString);
 procedure g_Texture_DeleteAll();
 
-function g_Frames_CreateWAD(ID: PDWORD; Name: ShortString; Resource: string;
+function g_Frames_CreateWAD(ID: PDWORD; Name: ShortString; Resource: String;
                             FWidth, FHeight, FCount: Word; BackAnimation: Boolean = False): Boolean;
-function g_Frames_CreateFile(ID: PDWORD; Name: ShortString; FileName: string;
+function g_Frames_CreateFile(ID: PDWORD; Name: ShortString; FileName: String;
                              FWidth, FHeight, FCount: Word; BackAnimation: Boolean = False): Boolean;
 function g_Frames_CreateMemory(ID: PDWORD; Name: ShortString; pData: Pointer;
                                FWidth, FHeight, FCount: Word; BackAnimation: Boolean = False): Boolean;
 //function g_Frames_CreateRevert(ID: PDWORD; Name: ShortString; Frames: string): Boolean;
 function g_Frames_Get(var ID: DWORD; FramesName: ShortString): Boolean;
 function g_Frames_GetTexture(var ID: DWORD; FramesName: ShortString; Frame: Word): Boolean;
-function g_Frames_Exists(FramesName: string): Boolean;
+function g_Frames_Exists(FramesName: String): Boolean;
 procedure g_Frames_DeleteByName(FramesName: ShortString);
 procedure g_Frames_DeleteByID(ID: DWORD);
 procedure g_Frames_DeleteAll();
 
+procedure DumpTextureNames();
+
 implementation
 
 uses
-  g_game, e_log, g_basic, SysUtils, g_console, WADEDITOR;
+  g_game, e_log, g_basic, SysUtils, g_console, WADEDITOR,
+  g_language;
 
 type
   _TTexture = record
-   Name: ShortString;
-   ID: DWORD;
-   Width, Height: Word;
+    Name: ShortString;
+    ID: DWORD;
+    Width, Height: Word;
   end;
 
   TFrames = record
-   TexturesID: array of DWORD;
-   Name: ShortString;
-   FrameWidth,
-   FrameHeight: Word;
+    TexturesID: Array of DWORD;
+    Name: ShortString;
+    FrameWidth,
+    FrameHeight: Word;
   end;
 
 var
-  TexturesArray: array of _TTexture = nil;
-  FramesArray: array of TFrames = nil;
+  TexturesArray: Array of _TTexture = nil;
+  FramesArray: Array of TFrames = nil;
 
-function FindTexture: DWORD;
+const
+  ANIM_SIGNATURE = $4D494E41; // 'ANIM'
+
+function FindTexture(): DWORD;
 var
   i: integer;
 begin
@@ -131,14 +139,15 @@ begin
  end;
 end;
 
-function g_Texture_CreateWAD(var ID: DWORD; Resource: string): Boolean;
+function g_Texture_CreateWAD(var ID: DWORD; Resource: String): Boolean;
 var
   WAD: TWADEditor_1;
   FileName,
   SectionName,
-  ResourceName: string;
+  ResourceName: String;
   TextureData: Pointer;
   ResourceLength: Integer;
+
 begin
  Result := False;
  g_ProcessResourceStr(Resource, FileName, SectionName, ResourceName);
@@ -156,7 +165,7 @@ begin
   e_WriteLog(Format('Error loading texture %s', [Resource]), MSG_WARNING);
   e_WriteLog(Format('WAD Reader error: %s', [WAD.GetLastErrorStr]), MSG_WARNING);
  end;
- WAD.Destroy;
+ WAD.Free();
 end;
 
 function g_Texture_CreateFile(var ID: DWORD; FileName: String): Boolean;
@@ -181,7 +190,7 @@ var
 begin
  g_ProcessResourceStr(Resource, FileName, SectionName, ResourceName);
 
- find_id := FindTexture;
+ find_id := FindTexture();
 
  WAD := TWADEditor_1.Create;
  WAD.ReadFile(FileName);
@@ -203,7 +212,7 @@ begin
   e_WriteLog(Format('WAD Reader error: %s', [WAD.GetLastErrorStr]), MSG_WARNING);
   Result := False;
  end;
- WAD.Destroy;
+ WAD.Free();
 end;
 
 function g_Texture_CreateFileEx(TextureName: ShortString; FileName: String): Boolean;
@@ -217,7 +226,7 @@ begin
  begin
   TexturesArray[find_id].Name := LowerCase(TextureName);
   e_GetTextureSize(TexturesArray[find_id].ID, @TexturesArray[find_id].Width,
-                   @TexturesArray[find_id].Height); 
+                   @TexturesArray[find_id].Height);
  end
   else e_WriteLog(Format('Error loading texture %s', [FileName]), MSG_WARNING);
 end;
@@ -250,6 +259,8 @@ var
   a: DWORD;
 begin
  if TexturesArray = nil then Exit;
+
+ TextureName := LowerCase(TextureName);
 
  for a := 0 to High(TexturesArray) do
   if TexturesArray[a].Name = TextureName then
@@ -324,8 +335,10 @@ begin
 
  FramesArray[find_id].FrameWidth := FWidth;
  FramesArray[find_id].FrameHeight := FHeight;
- if Name <> '' then FramesArray[find_id].Name := LowerCase(Name)
-  else FramesArray[find_id].Name := '<noname>';
+ if Name <> '' then
+   FramesArray[find_id].Name := LowerCase(Name)
+ else
+   FramesArray[find_id].Name := '<noname>';
 
  if ID <> nil then ID^ := find_id;
 
@@ -361,8 +374,10 @@ begin
 
  FramesArray[find_id].FrameWidth := FWidth;
  FramesArray[find_id].FrameHeight := FHeight;
- if Name <> '' then FramesArray[find_id].Name := LowerCase(Name)
-  else FramesArray[find_id].Name := '<noname>';
+ if Name <> '' then
+   FramesArray[find_id].Name := LowerCase(Name)
+ else
+   FramesArray[find_id].Name := '<noname>';
 
  if ID <> nil then ID^ := find_id;
 
@@ -385,12 +400,12 @@ begin
 
  g_ProcessResourceStr(Resource, FileName, SectionName, ResourceName);
 
- WAD := TWADEditor_1.Create;
+ WAD := TWADEditor_1.Create();
  WAD.ReadFile(FileName);
 
  if not WAD.GetResource(SectionName, ResourceName, TextureData, ResourceLength) then
  begin
-  WAD.Destroy;
+  WAD.Free();
   e_WriteLog(Format('Error loading texture %s', [Resource]), MSG_WARNING);
   e_WriteLog(Format('WAD Reader error: %s', [WAD.GetLastErrorStr]), MSG_WARNING);
   Exit;
@@ -398,11 +413,11 @@ begin
 
  if not CreateFramesMem(TextureData, ID, Name, FWidth, FHeight, FCount, BackAnimation) then
  begin
-  WAD.Destroy;
+  WAD.Free();
   Exit;
  end;
 
- WAD.Destroy;
+ WAD.Free();
 
  Result := True;
 end;
@@ -497,44 +512,50 @@ end;
 function g_Frames_Get(var ID: DWORD; FramesName: ShortString): Boolean;
 var
   a: DWORD;
+
 begin
- Result := False;
+  Result := False;
 
- if FramesArray = nil then Exit;
+  if FramesArray = nil then
+    Exit;
 
- FramesName := LowerCase(FramesName);
+  FramesName := LowerCase(FramesName);
 
- for a := 0 to High(FramesArray) do
-  if FramesArray[a].Name = FramesName then
-  begin
-   ID := a;
-   Result := True;
-   Break;
-  end;
+  for a := 0 to High(FramesArray) do
+    if FramesArray[a].Name = FramesName then
+    begin
+      ID := a;
+      Result := True;
+      Break;
+    end;
 
- if not Result then g_Console_Add('Frames '+FramesName+' not found');
+  if not Result then
+    g_FatalError(Format(_lc[I_GAME_ERROR_FRAMES], [FramesName]));
 end;
 
 function g_Frames_GetTexture(var ID: DWORD; FramesName: ShortString; Frame: Word): Boolean;
 var
   a: DWORD;
+  
 begin
- Result := False;
+  Result := False;
 
- if FramesArray = nil then Exit;
+  if FramesArray = nil then
+    Exit;
 
- FramesName := LowerCase(FramesName);
+  FramesName := LowerCase(FramesName);
 
- for a := 0 to High(FramesArray) do
-  if FramesArray[a].Name = FramesName then
-   if Frame <= High(FramesArray[a].TexturesID) then
-   begin
-    ID := FramesArray[a].TexturesID[Frame];
-    Result := True;
-    Break;
-   end;
+  for a := 0 to High(FramesArray) do
+    if FramesArray[a].Name = FramesName then
+      if Frame <= High(FramesArray[a].TexturesID) then
+      begin
+        ID := FramesArray[a].TexturesID[Frame];
+        Result := True;
+        Break;
+      end;
 
- if not Result then g_Console_Add('Frames '+FramesName+' not found');
+  if not Result then
+    g_FatalError(Format(_lc[I_GAME_ERROR_FRAMES], [FramesName]));
 end;
 
 function g_Frames_Exists(FramesName: string): Boolean;
@@ -555,141 +576,215 @@ begin
   end;
 end;
 
+procedure DumpTextureNames();
+var
+  i: Integer;
+
+begin
+  e_WriteLog('BEGIN Textures:', MSG_NOTIFY);
+  for i := 0 to High(TexturesArray) do
+    e_WriteLog('   '+IntToStr(i)+'. '+TexturesArray[i].Name, MSG_NOTIFY);
+  e_WriteLog('END Textures.', MSG_NOTIFY);
+
+  e_WriteLog('BEGIN Frames:', MSG_NOTIFY);
+  for i := 0 to High(FramesArray) do
+    e_WriteLog('   '+IntToStr(i)+'. '+FramesArray[i].Name, MSG_NOTIFY);
+  e_WriteLog('END Frames.', MSG_NOTIFY);
+end;
+
 { TAnimation }
 
 constructor TAnimation.Create(FramesID: DWORD; Loop: Boolean; Speed: Byte);
 begin
- ID := FramesID;
+  ID := FramesID;
 
- FMinLength := 0;
- FLoop := Loop;
- FSpeed := Speed;
- FEnabled := True;
- FCurrentFrame := 0;
- FPlayed := False;
- FAlpha := 0;
- FWidth := FramesArray[ID].FrameWidth;
- FHeight := FramesArray[ID].FrameHeight;
+  FMinLength := 0;
+  FLoop := Loop;
+  FSpeed := Speed;
+  FEnabled := True;
+  FCurrentFrame := 0;
+  FPlayed := False;
+  FAlpha := 0;
+  FWidth := FramesArray[ID].FrameWidth;
+  FHeight := FramesArray[ID].FrameHeight;
 end;
 
 destructor TAnimation.Destroy;
 begin
- inherited;
+  Inherited;
 end;
 
 procedure TAnimation.Draw(X, Y: Integer; Mirror: TMirrorType);
 begin
- if not FEnabled then Exit;
+  if not FEnabled then
+    Exit;
 
- e_DrawAdv(FramesArray[ID].TexturesID[FCurrentFrame], X, Y, FAlpha, True,
-           FBlending, 0, nil, Mirror);
+  e_DrawAdv(FramesArray[ID].TexturesID[FCurrentFrame], X, Y, FAlpha,
+            True, FBlending, 0, nil, Mirror);
+  //e_DrawQuad(X, Y, X+FramesArray[ID].FrameWidth-1, Y+FramesArray[ID].FrameHeight-1, 0, 255, 0);
 end;
 
 procedure TAnimation.Update();
 begin
- if not FEnabled then Exit;
+  if not FEnabled then
+    Exit;
 
- FCounter := FCounter+1;
+  FCounter := FCounter + 1;
 
- if FCounter >= FSpeed then
- begin
-  if FRevert then
-  begin
-   if FCurrentFrame = 0 then
-   if Length(FramesArray[ID].TexturesID)*FSpeed+FCounter < FMinLength then Exit;
+  if FCounter >= FSpeed then
+  begin // Ожидание между кадрами закончилось
+    if FRevert then
+      begin // Обратный порядок кадров
+      // Дошли до конца анимации. Возможно, ждем еще:
+        if FCurrentFrame = 0 then
+          if Length(FramesArray[ID].TexturesID) * FSpeed +
+               FCounter < FMinLength then
+            Exit;
 
-   FCurrentFrame := FCurrentFrame-1;
+        FCurrentFrame := FCurrentFrame - 1;
+        FPlayed := FCurrentFrame < 0;
 
-   FPlayed := FCurrentFrame < 0;
+      // Повторять ли анимацию по кругу:
+        if FPlayed then
+          if FLoop then
+            FCurrentFrame := High(FramesArray[ID].TexturesID)
+          else
+            FCurrentFrame := FCurrentFrame + 1;
 
-   if FPlayed then
-    if FLoop then FCurrentFrame := High(FramesArray[ID].TexturesID) else
-     FCurrentFrame := FCurrentFrame+1;
+        FCounter := 0;
+      end
+    else
+      begin // Прямой порядок кадров
+      // Дошли до конца анимации. Возможно, ждем еще:
+        if FCurrentFrame = High(FramesArray[ID].TexturesID) then
+          if Length(FramesArray[ID].TexturesID) * FSpeed +
+               FCounter < FMinLength then
+            Exit;
 
-   FCounter := 0;
-  end
-   else
-  begin
-   if FCurrentFrame = High(FramesArray[ID].TexturesID) then
-   if Length(FramesArray[ID].TexturesID)*FSpeed+FCounter < FMinLength then Exit;
+        FCurrentFrame := FCurrentFrame + 1;
+        FPlayed := (FCurrentFrame > High(FramesArray[ID].TexturesID));
 
-   FCurrentFrame := FCurrentFrame+1;
+      // Повторять ли анимацию по кругу:
+        if FPlayed then
+          if FLoop then
+            FCurrentFrame := 0
+          else
+            FCurrentFrame := FCurrentFrame - 1;
 
-   FPlayed := (FCurrentFrame > High(FramesArray[ID].TexturesID));// and not FLoop;
-
-   if FPlayed then
-    if FLoop then FCurrentFrame := 0 else FCurrentFrame := FCurrentFrame-1;
-
-   FCounter := 0;
+        FCounter := 0;
+      end;
   end;
- end;
 end;
 
 procedure TAnimation.Reset();
 begin
- if FRevert then FCurrentFrame := High(FramesArray[ID].TexturesID)
-  else FCurrentFrame := 0;
+  if FRevert then
+    FCurrentFrame := High(FramesArray[ID].TexturesID)
+  else
+    FCurrentFrame := 0;
 
- FCounter := 0;
- FPlayed := False;
+  FCounter := 0;
+  FPlayed := False;
 end;
 
 procedure TAnimation.Disable;
 begin
- FEnabled := False;
+  FEnabled := False;
 end;
 
 procedure TAnimation.Enable;
 begin
- FEnabled := True;
+  FEnabled := True;
 end;
 
 procedure TAnimation.DrawEx(X, Y: Integer; Mirror: TMirrorType; RPoint: TPoint;
                             Angle: SmallInt);
 begin
- if not FEnabled then Exit;
+  if not FEnabled then
+    Exit;
 
- e_DrawAdv(FramesArray[ID].TexturesID[FCurrentFrame], X, Y, FAlpha, True,
-           FBlending, Angle, @RPoint, Mirror);
+  e_DrawAdv(FramesArray[ID].TexturesID[FCurrentFrame], X, Y, FAlpha,
+            True, FBlending, Angle, @RPoint, Mirror);
 end;
 
 function TAnimation.TotalFrames(): Integer;
 begin
- Result := Length(FramesArray[ID].TexturesID);
+  Result := Length(FramesArray[ID].TexturesID);
 end;
 
 procedure TAnimation.Revert(r: Boolean);
 begin
- FRevert := r;
- Reset();
+  FRevert := r;
+  Reset();
 end;
 
-procedure TAnimation.Load(Rec: PAnimRec);
+procedure TAnimation.SaveState(Var Mem: TBinMemoryWriter);
+var
+  sig: DWORD;
+
 begin
- FCounter := Rec^.Counter;
- FCurrentFrame := Rec^.CurrentFrame;
- FPlayed := Rec^.Played;
- FAlpha := Rec^.Alpha;
- FBlending := Rec^.Blending;
- FSpeed := Rec^.Speed;
- FLoop := Rec^.Loop;
- FEnabled := Rec^.Enabled;
- FMinLength := Rec^.MinLength;
- FRevert := Rec^.Revert;
+  if Mem = nil then
+    Exit;
+
+// Сигнатура анимации:
+  sig := ANIM_SIGNATURE; // 'ANIM'
+  Mem.WriteDWORD(sig);
+// Счетчик ожидания между кадрами:
+  Mem.WriteByte(FCounter);
+// Текущий кадр:
+  Mem.WriteInt(FCurrentFrame);
+// Проиграна ли анимация целиком:
+  Mem.WriteBoolean(FPlayed);
+// Alpha-канал всей текстуры:
+  Mem.WriteByte(FAlpha);
+// Размытие текстуры:
+  Mem.WriteBoolean(FBlending);
+// Время ожидания между кадрами:
+  Mem.WriteByte(FSpeed);
+// Зациклена ли анимация:
+  Mem.WriteBoolean(FLoop);
+// Включена ли:
+  Mem.WriteBoolean(FEnabled);
+// Ожидание после проигрывания:
+  Mem.WriteByte(FMinLength);
+// Обратный ли порядок кадров:
+  Mem.WriteBoolean(FRevert);
 end;
 
-procedure TAnimation.Save(Rec: PAnimRec);
+procedure TAnimation.LoadState(Var Mem: TBinMemoryReader);
+var
+  sig: DWORD;
+
 begin
- Rec^.Counter := FCounter;
- Rec^.CurrentFrame := FCurrentFrame;
- Rec^.Played := FPlayed;
- Rec^.Alpha := FAlpha;
- Rec^.Blending := FBlending;
- Rec^.Speed := FSpeed;
- Rec^.Loop := FLoop;
- Rec^.Enabled := FEnabled;
- Rec^.MinLength := FMinLength;
- Rec^.Revert := FRevert;
+  if Mem = nil then
+    Exit;
+
+// Сигнатура анимации:
+  Mem.ReadDWORD(sig);
+  if sig <> ANIM_SIGNATURE then // 'ANIM'
+  begin
+    raise EBinSizeError.Create('TAnimation.LoadState: Wrong Animation Signature');
+  end;
+// Счетчик ожидания между кадрами:
+  Mem.ReadByte(FCounter);
+// Текущий кадр:
+  Mem.ReadInt(FCurrentFrame);
+// Проиграна ли анимация целиком:
+  Mem.ReadBoolean(FPlayed);
+// Alpha-канал всей текстуры:
+  Mem.ReadByte(FAlpha);
+// Размытие текстуры:
+  Mem.ReadBoolean(FBlending);
+// Время ожидания между кадрами:
+  Mem.ReadByte(FSpeed);
+// Зациклена ли анимация:
+  Mem.ReadBoolean(FLoop);
+// Включена ли:
+  Mem.ReadBoolean(FEnabled);
+// Ожидание после проигрывания:
+  Mem.ReadByte(FMinLength);
+// Обратный ли порядок кадров:
+  Mem.ReadBoolean(FRevert);
 end;
 
-end.
+End.

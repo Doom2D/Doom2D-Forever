@@ -2,7 +2,9 @@ unit g_playermodel;
 
 interface
 
-uses g_textures, g_basic, windows, e_graphics, WADEDITOR, WADSTRUCT, g_weapons;
+uses
+  g_textures, g_basic, windows, e_graphics, WADEDITOR,
+  WADSTRUCT, g_weapons;
 
 const
   A_STAND      = 0;
@@ -18,40 +20,41 @@ const
 
   MODELSOUND_PAIN = 0;
   MODELSOUND_DIE  = 1;
-type
+  
+Type
   TModelInfo = record
-   Name: string;
-   Author: string;
-   Description: string;
-   HaveWeapon: Boolean;
+    Name:        String;
+    Author:      String;
+    Description: String;
+    HaveWeapon:  Boolean;
   end;
 
   TModelSound = record
-   ID: DWORD;
-   Level: Byte;
+    ID:    DWORD;
+    Level: Byte;
   end;
 
   TGibSprite = record
-   ID: DWORD;
-   MaskID: DWORD;
-   Rect: TRectWH;
-   OnlyOne: Boolean;
+    ID: DWORD;
+    MaskID: DWORD;
+    Rect: TRectWH;
+    OnlyOne: Boolean;
   end;
 
-  TModelSoundArray = array of TModelSound;
-  TGibsArray = array of TGibSprite;
-  TWeaponPoints = array[WEAPON_SAW..WEAPON_SUPERPULEMET] of
-                  array[A_STAND..A_PAIN] of
-                  array[D_LEFT..D_RIGHT] of array of TPoint;
+  TModelSoundArray = Array of TModelSound;
+  TGibsArray = Array of TGibSprite;
+  TWeaponPoints = Array [WEAPON_SAW..WEAPON_SUPERPULEMET] of
+                  Array [A_STAND..A_PAIN] of
+                  Array [D_LEFT..D_RIGHT] of Array of TPoint;
 
-  TPlayerModel = class(TObject)
-   private
-    FName:             string;
+  TPlayerModel = Class (TObject)
+  Private
+    FName:             String;
     FDirection:        TDirection;
     FColor:            TRGB;
     FCurrentAnimation: Byte;
-    FAnim:             array[D_LEFT..D_RIGHT] of array[A_STAND..A_PAIN] of TAnimation;
-    FMaskAnim:         array[D_LEFT..D_RIGHT] of array[A_STAND..A_PAIN] of TAnimation;
+    FAnim:             Array [D_LEFT..D_RIGHT] of Array [A_STAND..A_PAIN] of TAnimation;
+    FMaskAnim:         Array [D_LEFT..D_RIGHT] of Array [A_STAND..A_PAIN] of TAnimation;
     FWeaponPoints:     TWeaponPoints;
     FPainSounds:       TModelSoundArray;
     FDieSounds:        TModelSoundArray;
@@ -62,8 +65,9 @@ type
     FFlagAngle:        SmallInt;
     FFlagAnim:         TAnimation;
     FFire:             Boolean;
-    FFireCounter:      Byte; 
-   public
+    FFireCounter:      Byte;
+
+  Public
     destructor  Destroy(); override;
     procedure   ChangeAnimation(Animation: Byte; Force: Boolean = False);
     function    GetCurrentAnimation: TAnimation;
@@ -75,38 +79,40 @@ type
     function    PlaySound(SoundType, Level: Byte; X, Y: Integer): Boolean;
     procedure   Update();
     procedure   Draw(X, Y: Integer);
+
     property    Fire: Boolean read FFire;
     property    Direction: TDirection read FDirection write FDirection;
     property    Animation: Byte read FCurrentAnimation;
     property    Weapon: Byte read FCurrentWeapon;
-    property    Name: string read FName;
+    property    Name: String read FName;
     property    Color: TRGB read FColor write FColor;
   end;
 
 procedure g_PlayerModel_LoadData();
 procedure g_PlayerModel_FreeData();
-function g_PlayerModel_Load(FileName: string): Boolean;
-function g_PlayerModel_GetNames(): SArray;
-function g_PlayerModel_GetInfo(ModelName: string): TModelInfo;
-function g_PlayerModel_Get(ModelName: string): TPlayerModel;
-function g_PlayerModel_GetAnim(ModelName: string; Anim: Byte; var _Anim, _Mask: TAnimation): Boolean;
-function g_PlayerModel_GetGibs(ModelName: string; var Gibs: TGibsArray): Boolean;
+function  g_PlayerModel_Load(FileName: String): Boolean;
+function  g_PlayerModel_GetNames(): SArray;
+function  g_PlayerModel_GetInfo(ModelName: String): TModelInfo;
+function  g_PlayerModel_Get(ModelName: String): TPlayerModel;
+function  g_PlayerModel_GetAnim(ModelName: String; Anim: Byte; var _Anim, _Mask: TAnimation): Boolean;
+function  g_PlayerModel_GetGibs(ModelName: String; var Gibs: TGibsArray): Boolean;
 
 implementation
 
-uses g_main, g_sound, g_console, SysUtils, g_player, CONFIG, dglOpenGL, e_sound,
-  g_options, g_map, Math, e_log;
+uses
+  g_main, g_sound, g_console, SysUtils, g_player, CONFIG,
+  dglOpenGL, e_sound, g_options, g_map, Math, e_log;
 
-type
+Type
   TPlayerModelInfo = record
-   Info:         TModelInfo;
-   ModelSpeed:   array[A_STAND..A_PAIN] of Byte;
-   FlagPoint:    TPoint;
-   FlagAngle:    SmallInt;
-   WeaponPoints: TWeaponPoints;
-   Gibs:         TGibsArray;
-   PainSounds:   TModelSoundArray;
-   DieSounds:    TModelSoundArray;
+    Info:         TModelInfo;
+    ModelSpeed:   Array [A_STAND..A_PAIN] of Byte;
+    FlagPoint:    TPoint;
+    FlagAngle:    SmallInt;
+    WeaponPoints: TWeaponPoints;
+    Gibs:         TGibsArray;
+    PainSounds:   TModelSoundArray;
+    DieSounds:    TModelSoundArray;
   end;
 
 const
@@ -120,21 +126,21 @@ const
   FLAG_BASEPOINT: TPoint = (X:16; Y:43);
   FLAG_DEFPOINT:  TPoint = (X:32; Y:16);
   FLAG_DEFANGLE = -20;
-  WEAPONBASE: array[WEAPON_SAW..WEAPON_SUPERPULEMET] of TPoint =
+  WEAPONBASE: Array [WEAPON_SAW..WEAPON_SUPERPULEMET] of TPoint =
               ((X:8; Y:4), (X:8; Y:8), (X:16; Y:16), (X:16; Y:24),
                (X:16; Y:16), (X:24; Y:24), (X:16; Y:16), (X:24; Y:24), (X:16; Y:16));
 
-  AnimNames: array[A_STAND..A_PAIN] of string =
+  AnimNames: Array [A_STAND..A_PAIN] of String =
              ('StandAnim','WalkAnim','Die1Anim','Die2Anim','AttackAnim',
               'SeeUpAnim','SeeDownAnim','AttackUpAnim','AttackDownAnim','PainAnim');
-  WeapNames: array[WEAPON_SAW..WEAPON_SUPERPULEMET] of string =
+  WeapNames: Array [WEAPON_SAW..WEAPON_SUPERPULEMET] of String =
              ('csaw', 'hgun', 'sg', 'ssg', 'mgun', 'rkt', 'plz', 'bfg', 'spl');
 
 var
-  WeaponID: array[WEAPON_SAW..WEAPON_SUPERPULEMET] of
-            array[W_POS_NORMAL..W_POS_DOWN] of
-            array[W_ACT_NORMAL..W_ACT_FIRE] of DWORD;
-  PlayerModelsArray: array of TPlayerModelInfo;
+  WeaponID: Array [WEAPON_SAW..WEAPON_SUPERPULEMET] of
+            Array [W_POS_NORMAL..W_POS_DOWN] of
+            Array [W_ACT_NORMAL..W_ACT_FIRE] of DWORD;
+  PlayerModelsArray: Array of TPlayerModelInfo;
 
 procedure g_PlayerModel_LoadData();
 var
@@ -151,75 +157,73 @@ begin
  end;
 end;
 
-function GetPoint(var str: string; var point: TPoint): Boolean;
+function GetPoint(var str: String; var point: TPoint): Boolean;
 var
   a, x, y: Integer;
-  s: string;
+  s: String;
+
 begin
- Result := False;
+  Result := False;
 
- str := Trim(str);
- if str = '' then Exit;
- if Length(str) < 3 then Exit;
+  str := Trim(str);
+  if Length(str) < 3 then
+    Exit;
 
- for a := 1 to Length(str) do
-  if (str[a] = ',') or (a = Length(str)) then
-  begin
-   s := Copy(str, 1, a);
-   if s[Length(s)] = ',' then SetLength(s, Length(s)-1);
-   Delete(str, 1, a);
+  for a := 1 to Length(str) do
+    if (str[a] = ',') or (a = Length(str)) then
+    begin
+      s := Copy(str, 1, a);
+      if s[Length(s)] = ',' then
+        SetLength(s, Length(s)-1);
+      Delete(str, 1, a);
 
-   if Sscanf(s, '%d:%d', [@x, @y]) < 2 then Exit;
+      if (Sscanf(s, '%d:%d', [@x, @y]) < 2) or
+         (x < -64) or (x > 128) or
+         (y < -64) or (y > 128) then
+        Exit;
 
-   if (x < 0) or (x > 64) then Exit;
-   if (y < 0) or (y > 64) then Exit;
+      point.X := x;
+      point.Y := y;
 
-   point.X := x;
-   point.Y := y;
+      Break;
+    end;
 
-   Break;
-  end;
-
- Result := True;
+  Result := True;
 end;
 
-function m(point: TPoint): TPoint;
-begin
- Result.X := 64-point.X-64;
- Result.Y := point.Y;
-end;
-
-procedure p(var point: TPoint; weapon: Byte; dir: TDirection);
-begin
- point.X := point.X-WEAPONBASE[weapon].X;
- point.Y := point.Y-WEAPONBASE[weapon].Y;
-
- if dir = D_LEFT then m(point);
-end;
-
-function GetWeapPoints(str: string; weapon: Byte; anim: Byte; dir: TDirection;
+function GetWeapPoints(str: String; weapon: Byte; anim: Byte; dir: TDirection;
                        frames: Word; backanim: Boolean; var wpoints: TWeaponPoints): Boolean;
 var
   a, b, h: Integer;
+
 begin
- Result := False;
+  Result := False;
 
- if frames = 0 then Exit;
+  if frames = 0 then
+    Exit;
 
- backanim := backanim and (frames > 2);
+  backanim := backanim and (frames > 2);
 
- for a := 1 to frames do
- begin
-  if not GetPoint(str, wpoints[weapon, anim, dir, a-1]) then Exit;
-  p(wpoints[weapon, anim, dir, a-1], weapon, dir);
- end;
+  for a := 1 to frames do
+  begin
+    if not GetPoint(str, wpoints[weapon, anim, dir, a-1]) then
+      Exit;
 
- h := High(wpoints[weapon, anim, dir]);
- if backanim then
-  for b := h downto frames do
-   wpoints[weapon, anim, dir, b] := wpoints[weapon, anim, dir, h-b+1];
+    with wpoints[weapon, anim, dir, a-1] do
+    begin
+      X := X - WEAPONBASE[weapon].X;
+      Y := Y - WEAPONBASE[weapon].Y;
+      if dir = D_LEFT then
+        X := -X;
+    end;
+  end;
 
- Result := True;
+  h := High(wpoints[weapon, anim, dir]);
+  if backanim then
+    for b := h downto frames do
+      wpoints[weapon, anim, dir, b] := wpoints[weapon, anim, dir, h-b+1];
+
+  Result := True;
 end;
 
 function g_PlayerModel_Load(FileName: string): Boolean;
@@ -243,13 +247,13 @@ begin
 
  if WAD.GetLastError <> DFWAD_NOERROR then
  begin
-  WAD.Destroy;
+  WAD.Free();
   Exit;
  end;
 
  if not WAD.GetResource('TEXT', 'MODEL', pData, len) then
  begin
-  WAD.Destroy;
+  WAD.Free();
   Exit;
  end;
  
@@ -259,8 +263,8 @@ begin
  s := config.ReadStr('Model', 'name', '');
  if s = '' then
  begin
-  config.Destroy;
-  WAD.Destroy;
+  config.Free();
+  WAD.Free();
   Exit;
  end; 
 
@@ -287,8 +291,8 @@ begin
                              64, 64, config.ReadInt(AnimNames[b], 'frames', 1),
                              config.ReadBool(AnimNames[b], 'backanim', False))) then
   begin
-   config.Destroy;
-   WAD.Destroy;
+   config.Free();
+   WAD.Free();
    Exit;
   end;
 
@@ -382,7 +386,10 @@ begin
                            config.ReadBool(AnimNames[bb], 'backanim', False),
                            WeaponPoints) then
        for f := 0 to High(WeaponPoints[aa, bb, D_RIGHT]) do
-        WeaponPoints[aa, bb, D_LEFT, f] := m(WeaponPoints[aa, bb, D_RIGHT, f]);
+       begin
+         WeaponPoints[aa, bb, D_LEFT, f].X := -WeaponPoints[aa, bb, D_RIGHT, f].X;
+         WeaponPoints[aa, bb, D_LEFT, f].Y := WeaponPoints[aa, bb, D_RIGHT, f].Y;
+       end;
 
       if not ok then Break;
      end;
@@ -396,13 +403,13 @@ begin
   FlagAngle := config.ReadInt('Model', 'flag_angle', FLAG_DEFANGLE);
  end;
 
- config.Destroy;
- WAD.Destroy;
+ config.Free();
+ WAD.Free();
 
  Result := True;
 end;
 
-function g_PlayerModel_Get(ModelName: string): TPlayerModel;
+function g_PlayerModel_Get(ModelName: String): TPlayerModel;
 var
   a: Integer;
   b: Byte;
@@ -426,7 +433,7 @@ begin
      if not (g_Frames_Get(ID, Info.Name+'_RIGHTANIM'+IntToStr(b)) and
              g_Frames_Get(ID2, Info.Name+'_RIGHTANIM'+IntToStr(b)+'_MASK')) then
      begin
-      Result.Destroy;
+      Result.Free();
       Result := nil;
       Exit;
      end;
@@ -587,10 +594,12 @@ begin
   end;
 
   if PainSounds <> nil then
-   for b := 0 to High(PainSounds) do e_DeleteSample(PainSounds[b].ID);
+   for b := 0 to High(PainSounds) do
+    e_DeleteSound(PainSounds[b].ID);
 
   if DieSounds <> nil then
-   for b := 0 to High(DieSounds) do e_DeleteSample(DieSounds[b].ID);
+   for b := 0 to High(DieSounds) do
+    e_DeleteSound(DieSounds[b].ID);
 
   if Gibs <> nil then
    for b := 0 to High(Gibs) do
@@ -629,15 +638,15 @@ destructor TPlayerModel.Destroy();
 var
   a: Byte;
 begin
- for a := A_STAND to A_PAIN do
- begin
-  if FAnim[D_LEFT][a] <> nil then FAnim[D_LEFT][a].Destroy;
-  if FMaskAnim[D_LEFT][a] <> nil then FMaskAnim[D_LEFT][a].Destroy;
-  if FAnim[D_RIGHT][a] <> nil then FAnim[D_RIGHT][a].Destroy;
-  if FMaskAnim[D_RIGHT][a] <> nil then FMaskAnim[D_RIGHT][a].Destroy;
- end;
+  for a := A_STAND to A_PAIN do
+  begin
+    FAnim[D_LEFT][a].Free();
+    FMaskAnim[D_LEFT][a].Free();
+    FAnim[D_RIGHT][a].Free();
+    FMaskAnim[D_RIGHT][a].Free();
+  end;
 
- inherited;
+  inherited;
 end;
 
 procedure TPlayerModel.Draw(X, Y: Integer);
@@ -645,52 +654,78 @@ var
   Mirror: TMirrorType;
   pos, act: Byte;
   p: TPoint;
+
 begin
- if Direction = D_LEFT then Mirror := M_NONE else Mirror := M_HORIZONTAL;
+// Флаги:
+  if Direction = D_LEFT then
+    Mirror := M_NONE
+  else
+    Mirror := M_HORIZONTAL;
 
- if (FFlag <> FLAG_NONE) and (FFlagAnim <> nil) and
-    not (FCurrentAnimation in [A_DIE1, A_DIE2]) then
- begin
-  p.X := IfThen(Direction=D_LEFT, FLAG_BASEPOINT.X, 64-FLAG_BASEPOINT.X);
-  p.Y := FLAG_BASEPOINT.Y;
+  if (FFlag <> FLAG_NONE) and (FFlagAnim <> nil) and
+     (not (FCurrentAnimation in [A_DIE1, A_DIE2])) then
+  begin
+    p.X := IfThen(Direction = D_LEFT,
+                  FLAG_BASEPOINT.X,
+                  64-FLAG_BASEPOINT.X);
+    p.Y := FLAG_BASEPOINT.Y;
 
-  FFlagAnim.DrawEx(X+IfThen(Direction=D_LEFT, FFlagPoint.X, 2*FLAG_BASEPOINT.X-FFlagPoint.X)-FLAG_BASEPOINT.X,
-                   Y+FFlagPoint.Y-FLAG_BASEPOINT.Y, Mirror, p,
-                   IfThen(FDirection=D_RIGHT, FFlagAngle, -FFlagAngle));
- end;
+    FFlagAnim.DrawEx(X+IfThen(Direction = D_LEFT, FFlagPoint.X-1, 2*FLAG_BASEPOINT.X-FFlagPoint.X+1)-FLAG_BASEPOINT.X,
+                     Y+FFlagPoint.Y-FLAG_BASEPOINT.Y+1, Mirror, p,
+                     IfThen(FDirection = D_RIGHT, FFlagAngle, -FFlagAngle));
+  end;
 
- if Direction = D_RIGHT then Mirror := M_NONE else Mirror := M_HORIZONTAL;
+// Оружие:
+  if Direction = D_RIGHT then
+    Mirror := M_NONE
+  else
+    Mirror := M_HORIZONTAL;
 
- if FDrawWeapon and (not (FCurrentAnimation in [A_DIE1, A_DIE2, A_PAIN])) and
+  if FDrawWeapon and
+    (not (FCurrentAnimation in [A_DIE1, A_DIE2, A_PAIN])) and
     (FCurrentWeapon in [WEAPON_SAW..WEAPON_SUPERPULEMET]) then
- begin
-  if FCurrentAnimation in [A_SEEUP, A_ATTACKUP] then pos := W_POS_UP
-   else if FCurrentAnimation in [A_SEEDOWN, A_ATTACKDOWN] then pos := W_POS_DOWN
-    else pos := W_POS_NORMAL;
+  begin
+    if FCurrentAnimation in [A_SEEUP, A_ATTACKUP] then
+      pos := W_POS_UP
+    else
+      if FCurrentAnimation in [A_SEEDOWN, A_ATTACKDOWN] then
+        pos := W_POS_DOWN
+      else
+        pos := W_POS_NORMAL;
 
-  if (FCurrentAnimation in [A_ATTACK, A_ATTACKUP, A_ATTACKDOWN]) or FFire then act := W_ACT_FIRE
-   else act := W_ACT_NORMAL;
+    if (FCurrentAnimation in [A_ATTACK, A_ATTACKUP, A_ATTACKDOWN]) or
+       FFire then
+      act := W_ACT_FIRE
+    else
+      act := W_ACT_NORMAL;
 
-  e_Draw(WeaponID[FCurrentWeapon][pos][act],
-         X+FWeaponPoints[FCurrentWeapon, FCurrentAnimation, FDirection,
-                         FAnim[D_RIGHT][FCurrentAnimation].CurrentFrame].X,
-         Y+FWeaponPoints[FCurrentWeapon, FCurrentAnimation, FDirection,
-                         FAnim[D_RIGHT][FCurrentAnimation].CurrentFrame].Y, 0, True, False, Mirror);
- end;
+    e_Draw(WeaponID[FCurrentWeapon][pos][act],
+           X+FWeaponPoints[FCurrentWeapon, FCurrentAnimation, FDirection,
+                           FAnim[D_RIGHT][FCurrentAnimation].CurrentFrame].X,
+           Y+FWeaponPoints[FCurrentWeapon, FCurrentAnimation, FDirection,
+                           FAnim[D_RIGHT][FCurrentAnimation].CurrentFrame].Y,
+           0, True, False, Mirror);
+  end;
 
- if (FDirection = D_LEFT) and (FAnim[D_LEFT][FCurrentAnimation] <> nil) then
-  FAnim[D_LEFT][FCurrentAnimation].Draw(X, Y, M_NONE)
-   else FAnim[D_RIGHT][FCurrentAnimation].Draw(X, Y, Mirror);
+// Модель:
+  if (FDirection = D_LEFT) and
+     (FAnim[D_LEFT][FCurrentAnimation] <> nil) then
+    FAnim[D_LEFT][FCurrentAnimation].Draw(X, Y, M_NONE)
+  else
+    FAnim[D_RIGHT][FCurrentAnimation].Draw(X, Y, Mirror);
 
- e_Colors := FColor;
+// Маска модели:
+  e_Colors := FColor;
 
- if (FDirection = D_LEFT) and (FMaskAnim[D_LEFT][FCurrentAnimation] <> nil) then
-  FMaskAnim[D_LEFT][FCurrentAnimation].Draw(X, Y, M_NONE)
-   else FMaskAnim[D_RIGHT][FCurrentAnimation].Draw(X, Y, Mirror);
+  if (FDirection = D_LEFT) and
+     (FMaskAnim[D_LEFT][FCurrentAnimation] <> nil) then
+    FMaskAnim[D_LEFT][FCurrentAnimation].Draw(X, Y, M_NONE)
+  else
+    FMaskAnim[D_RIGHT][FCurrentAnimation].Draw(X, Y, Mirror);
 
- e_Colors.R := 255;
- e_Colors.G := 255;
- e_Colors.B := 255;
+  e_Colors.R := 255;
+  e_Colors.G := 255;
+  e_Colors.B := 255;
 end;
 
 function TPlayerModel.GetCurrentAnimation: TAnimation;
@@ -739,7 +774,7 @@ begin
 
  if TempArray = nil then Exit;
 
- g_Sound_PlayAt(TempArray[Random(Length(TempArray))], 255, X, Y);
+ g_Sound_PlayAt(TempArray[Random(Length(TempArray))], X, Y);
 
  Result := True; 
 end;
@@ -765,11 +800,8 @@ var
 begin
  FFlag := Flag;
 
- if FFlagAnim <> nil then
- begin
-  FFlagAnim.Destroy;
-  FFlagAnim := nil;
- end;
+ FFlagAnim.Free();
+ FFlagAnim := nil;
 
  case Flag of
   FLAG_RED: g_Frames_Get(id, 'FRAMES_FLAG_RED');
