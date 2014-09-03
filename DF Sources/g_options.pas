@@ -21,6 +21,7 @@ Type
   TGameControls = record
     TakeScreenshot: Byte;
     Stat: Byte;
+    Chat: Byte;
   end;
 
   TControls = record
@@ -65,12 +66,12 @@ Implementation
 
 Uses
   e_log, g_window, g_sound, g_gfx, g_player, Math,
-  g_map, SysUtils, CONFIG, g_game, g_main, e_textures,
+  g_map, g_net, g_netmaster, SysUtils, CONFIG, g_game, g_main, e_textures,
   dglOpenGL;
 
 procedure g_Options_SetDefault();
 begin
-  g_Sound_SetupAllVolumes(255, 255);
+  g_Sound_SetupAllVolumes(125, 125);
   gMaxSimSounds := 8;
   gMuteWhenInactive := False;
   g_GFX_SetMax(2000);
@@ -90,6 +91,7 @@ begin
   begin
     TakeScreenshot := 183;
     Stat := 15;
+    Chat := 54; // [T]
   end;
 
   with gGameControls.P1Control do
@@ -137,6 +139,9 @@ begin
     Color.B := PLAYER2_DEF_COLOR.B;
     Team := TEAM_BLUE;
   end;
+
+  NetUseMaster := True;
+  g_Net_Slist_Set('mpms.doom2d.org', 25665);
 end;
 
 procedure g_Options_Read(FileName: String);
@@ -196,6 +201,7 @@ begin
   begin
     TakeScreenshot := config.ReadInt('GameControls', 'TakeScreenshot', 183);
     Stat := config.ReadInt('GameControls', 'Stat', 15);
+    Chat := config.ReadInt('GameControls', 'Chat', 54);
   end;
 
   with gGameControls.P1Control, config do
@@ -268,6 +274,27 @@ begin
   gDrawBackGround := config.ReadBool('Game', 'BackGround', True);
   gShowMessages := config.ReadBool('Game', 'Messages', True);
   gRevertPlayers := config.ReadBool('Game', 'RevertPlayers', False);
+
+// ќбщие сетевые
+  NetSlistIP := config.ReadStr('MasterServer', 'IP', 'mpms.doom2d.org');
+  NetSlistPort := config.ReadInt('MasterServer', 'Port', 25665);
+
+// —ервер
+  NetDedicated :=  config.ReadBool('Server', 'Dedicated', False);
+  NetServerName := config.ReadStr('Server', 'Name', 'Unnamed Server');
+  NetPassword :=  config.ReadStr('Server', 'Password', '');
+  NetMaxClients := Min(Max(0, config.ReadInt('Server', 'MaxClients', 16)), NET_MAXCLIENTS);
+  NetAllowRCON := config.ReadBool('Server', 'RCON', False);
+  NetRCONPassword := config.ReadStr('Server', 'RCONPassword', 'default');
+  NetUseMaster := config.ReadBool('Server', 'SyncWithMaster', True);
+  NetUpdateRate := Max(1, config.ReadInt('Server', 'UpdateInterval', 27));
+  NetRelupdRate := Max(1, config.ReadInt('Server', 'ReliableUpdateInterval', 140));
+  NetMasterRate := Max(1, config.ReadInt('Server', 'MasterSyncInterval', 60000));
+
+//  лиент
+  NetInterpLevel := Max(0, config.ReadInt('Client', 'InterpolationSteps', 3));
+  NetLastIP := config.ReadStr('Client', 'LastIP', 'localhost');
+  NetLastPort := Max(0, config.ReadInt('Client', 'LastPort', 25666));
 
 // язык:
   str := config.ReadStr('Game', 'Language', '');

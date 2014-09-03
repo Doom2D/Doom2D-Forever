@@ -18,7 +18,6 @@ Type
     FTextureHeight:   Word;
     FAlpha:           Byte;
     FBlending:        Boolean;
-    FCurTexture:      Integer; // Номер текущей текстуры
     FTextureIDs:      Array of
                         record
                           case Anim: Boolean of
@@ -27,6 +26,9 @@ Type
                         end;
 
   Public
+    FCurTexture:      Integer; // Номер текущей текстуры
+    FCurFrame:        Integer;
+    FCurFrameCount:   Byte;
     X, Y:             Integer;
     Width, Height:    Word;
     PanelType:        Word;
@@ -34,6 +36,7 @@ Type
     Enabled:          Boolean;
     Door:             Boolean;
     LiftType:         Byte;
+    LastAnimLoop:     Byte;
 
     constructor Create(PanelRec: TPanelRec_1;
                        AddTextures: TAddTextureArray;
@@ -43,8 +46,11 @@ Type
 
     procedure   Draw();
     procedure   Update();
+    procedure   SetFrame(Frame: Integer; Count: Byte);
     procedure   NextTexture(AnimLoop: Byte = 0);
+    procedure   SetTexture(ID: Integer; AnimLoop: Byte = 0);
     function    GetTextureID(): Cardinal;
+    function    GetTextureCount(): Integer;
 
     procedure   SaveState(var Mem: TBinMemoryWriter);
     procedure   LoadState(var Mem: TBinMemoryReader);
@@ -77,6 +83,9 @@ begin
   Height := PanelRec.Height;
   FAlpha := 0;
   FBlending := False;
+  FCurFrame := 0;
+  FCurFrameCount := 0;
+  LastAnimLoop := 0;
 
 // Тип панели:
   PanelType := PanelRec.PanelType;
@@ -252,7 +261,30 @@ begin
      (FTextureIDs[FCurTexture].Anim) and
      (FTextureIDs[FCurTexture].AnTex <> nil) and
      (Width > 0) and (Height > 0) and (FAlpha < 255) then
+  begin
     FTextureIDs[FCurTexture].AnTex.Update();
+    FCurFrame := FTextureIDs[FCurTexture].AnTex.CurrentFrame;
+    FCurFrameCount := FTextureIDs[FCurTexture].AnTex.CurrentCounter;
+  end;
+end;
+
+procedure TPanel.SetFrame(Frame: Integer; Count: Byte);
+ function ClampInt(X, A, B: Integer): Integer;
+ begin
+   Result := X;
+   if X < A then Result := A else if X > B then Result := B;
+ end;
+begin
+  if Enabled and (FCurTexture >= 0) and
+     (FTextureIDs[FCurTexture].Anim) and
+     (FTextureIDs[FCurTexture].AnTex <> nil) and
+     (Width > 0) and (Height > 0) and (FAlpha < 255) then
+  begin
+    FCurFrame := ClampInt(Frame, 0, FTextureIDs[FCurTexture].AnTex.TotalFrames);
+    FCurFrameCount := Count;
+    FTextureIDs[FCurTexture].AnTex.CurrentFrame := FCurFrame;
+    FTextureIDs[FCurTexture].AnTex.CurrentCounter := FCurFrameCount;
+  end;
 end;
 
 procedure TPanel.NextTexture(AnimLoop: Byte = 0);
@@ -298,6 +330,48 @@ begin
         
     FTextureIDs[FCurTexture].AnTex.Reset();
   end;
+
+  LastAnimLoop := AnimLoop;
+end;
+
+procedure TPanel.SetTexture(ID: Integer; AnimLoop: Byte = 0);
+begin
+// Нет текстур:
+  if Length(FTextureIDs) = 0 then
+    FCurTexture := -1
+  else
+  // Только одна текстура:
+    if Length(FTextureIDs) = 1 then
+      begin
+        if (ID = 0) or (ID = -1) then
+          FCurTexture := ID;
+      end
+    else
+    // Больше одной текстуры:
+      begin
+        if (ID >= -1) and (ID <= High(FTextureIDs)) then
+          FCurTexture := ID;
+      end;
+
+// Переключились на видимую аним. текстуру:
+  if (FCurTexture >= 0) and FTextureIDs[FCurTexture].Anim then
+  begin
+    if (FTextureIDs[FCurTexture].AnTex = nil) then
+    begin
+      g_FatalError(_lc[I_GAME_ERROR_SWITCH_TEXTURE]);
+      Exit;
+    end;
+
+    if AnimLoop = 1 then
+      FTextureIDs[FCurTexture].AnTex.Loop := True
+    else
+      if AnimLoop = 2 then
+        FTextureIDs[FCurTexture].AnTex.Loop := False;
+        
+    FTextureIDs[FCurTexture].AnTex.Reset();
+  end;
+
+  LastAnimLoop := AnimLoop;
 end;
 
 function TPanel.GetTextureID(): DWORD;
@@ -311,6 +385,16 @@ begin
     else
       Result := FTextureIDs[FCurTexture].Tex;
   end;
+end;
+
+function TPanel.GetTextureCount(): Integer;
+begin
+  Result := Length(FTextureIDs);
+  if Enabled and (FCurTexture >= 0) then
+     if (FTextureIDs[FCurTexture].Anim) and
+        (FTextureIDs[FCurTexture].AnTex <> nil) and
+        (Width > 0) and (Height > 0) and (FAlpha < 255) then
+       Result := Result + 100;
 end;
 
 procedure TPanel.SaveState(Var Mem: TBinMemoryWriter);

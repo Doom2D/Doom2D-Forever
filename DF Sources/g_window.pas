@@ -13,6 +13,8 @@ function  CreateGLWindow(Title: PChar): Bool; StdCall;
 procedure KillGLWindow();
 function  ProcessMessage: Boolean;
 procedure ProcessLoading;
+procedure PreventWindowFromLockUp;
+procedure ReDrawWindow;
 function  g_Window_SetDisplay(): Boolean;
 
 var
@@ -33,7 +35,7 @@ implementation
 uses
   messages, dglOpenGL, e_graphics, e_log, g_main,
   g_console, SysUtils, e_input, g_options, g_game,
-  g_basic, g_textures, e_sound, g_sound, g_menu;
+  g_basic, g_textures, e_sound, g_sound, g_menu, ENet, g_net;
 
 var
   h_RC:  HGLRC;
@@ -628,6 +630,17 @@ begin
   wNeedTimeReset := True;
 end;
 
+procedure PreventWindowFromLockUp;
+var
+  msg: TMsg;
+begin
+  if PeekMessage(msg, 0, 0, 0, PM_REMOVE) then
+  begin
+    TranslateMessage(msg);
+    DispatchMessage(msg);
+  end;
+end;
+
 procedure ProcessLoading();
 var
   msg: TMsg;
@@ -668,6 +681,13 @@ begin
   end;
 
   e_SoundUpdate();
+
+
+  if NetMode = NET_SERVER then
+    g_Net_Host_Update
+  else
+    if NetMode = NET_CLIENT then
+      g_Net_Client_UpdateWhileLoading;
 end;
 
 function ProcessMessage(): Boolean;
@@ -761,6 +781,12 @@ begin
   end;
 end;
 }
+
+procedure ReDrawWindow;
+begin
+  SwapBuffers(h_DC);
+  ReShowCursor;
+end;
 
 function WinMain(hInstance: HINST; hPrevInstance: HINST; lpCmdLine: PChar;
                  nCmdShow: Integer): Integer; stdcall;

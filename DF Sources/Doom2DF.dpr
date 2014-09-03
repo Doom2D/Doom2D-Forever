@@ -6,12 +6,19 @@ uses
   dglOpenGL in '..\Lib\OpenGL\dglOpenGL.pas',
   DXTypes in '..\Lib\DX\DXTypes.pas',
   glExt in '..\Lib\OpenGL\glExt.pas',
+  ENet in '..\Lib\ENet\ENet.pas',
+  ENet_Types in '..\Lib\ENet\ENet_Types.pas',
+  ENet_List in '..\Lib\ENet\ENet_List.pas',
+  ENet_Time in '..\Lib\ENet\ENet_Time.pas',
+  ENet_Protocol in '..\Lib\ENet\ENet_Protocol.pas',
+  ENet_Callbacks in '..\Lib\ENet\ENet_Callbacks.pas',
+  ENet_Win32 in '..\Lib\ENet\ENet_Win32.pas',
   e_graphics in '..\Engine Source\e_graphics.pas',
   e_input in '..\Engine Source\e_input.pas',
   e_log in '..\Engine Source\e_log.pas',
   e_sound in '..\Engine Source\e_sound.pas',
   e_textures in '..\Engine Source\e_textures.pas',
-  e_net in '..\Engine Source\e_net.pas',
+  e_fixedbuffer in '..\Engine Source\e_fixedbuffer.pas',
   WADEDITOR in '..\Shared Source\WADEDITOR.pas',
   WADSTRUCT in '..\Shared Source\WADSTRUCT.pas',
   MAPSTRUCT in '..\Shared Source\MAPSTRUCT.pas',
@@ -20,6 +27,10 @@ uses
   CONFIG in '..\Shared Source\CONFIG.pas',
   g_basic in 'g_basic.pas',
   g_console in 'g_console.pas',
+  g_net in 'g_net.pas',
+  g_netmsg in 'g_netmsg.pas',
+  g_nethandler in 'g_nethandler.pas',
+  g_netmaster in 'g_netmaster.pas',
   g_game in 'g_game.pas',
   g_gfx in 'g_gfx.pas',
   g_gui in 'g_gui.pas',
@@ -61,4 +72,3 @@ begin
       e_WriteLog(Format(_lc[I_SYSTEM_ERROR_UNKNOWN], [LongWord(ExceptAddr())]), MSG_FATALERROR);
   end;
 end.
- 

@@ -2918,7 +2918,6 @@ end;
 procedure TGUIFileListBox.UpdateFileList();
 var
   fn: String;
-  i: Integer;
 
 begin
   if (FIndex = -1) or (FItems = nil) or

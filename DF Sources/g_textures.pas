@@ -52,10 +52,12 @@ Type
 
     property    Played: Boolean read FPlayed;
     property    Enabled: Boolean read FEnabled;
+    property    IsReverse: Boolean read FRevert;
     property    Loop: Boolean read FLoop write FLoop;
     property    Speed: Byte read FSpeed write FSpeed;
     property    MinLength: Byte read FMinLength write FMinLength;
-    property    CurrentFrame: Integer read FCurrentFrame;
+    property    CurrentFrame: Integer read FCurrentFrame write FCurrentFrame;
+    property    CurrentCounter: Byte read FCounter write FCounter;
     property    Counter: Byte read FCounter;
     property    Blending: Boolean read FBlending write FBlending;
     property    Alpha: Byte read FAlpha write FAlpha;

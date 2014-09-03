@@ -23,15 +23,18 @@ procedure g_Menu_Show_QuitGameMenu(custom: Boolean);
 var
   gMenuFont: DWORD;
   gMenuSmallFont: DWORD;
+  PromptIP: string;
+  PromptPort: Word;
 
 implementation
 
 uses
-  g_gui, g_textures, e_graphics, g_main, g_window, g_game,
+  g_gui, g_textures, e_graphics, g_main, g_window, g_game, g_map,
   g_basic, g_console, g_sound, g_gfx, g_player, g_options,
-  e_log, SysUtils, g_map, CONFIG, g_playermodel, DateUtils,
+  e_log, SysUtils, CONFIG, g_playermodel, DateUtils,
   MAPSTRUCT, WADEDITOR, Math, WADSTRUCT, g_saveload,
-  e_textures, dglOpenGL, g_language;
+  e_textures, dglOpenGL, g_language,
+  g_net, g_netmsg, g_netmaster;
 
 procedure ProcChangeColor(Sender: TGUIControl); forward;
 procedure ProcSelectModel(Sender: TGUIControl); forward;
@@ -91,6 +94,7 @@ begin
  begin
   TakeScreenshot := TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_SCREENSHOT])).Key;
   Stat := TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_STAT])).Key;
+  Chat := TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_CHAT])).Key;
  end;
 
  menu := TGUIMenu(g_GUI_GetWindow('OptionsControlsP1Menu').GetControl('mOptionsControlsP1Menu'));
@@ -142,26 +146,41 @@ begin
                                  TEAM_RED, TEAM_BLUE);
  with TGUIModelView(g_GUI_GetWindow('OptionsPlayersP2Menu').GetControl('mvP2Model')) do
  begin
-  gPlayer2Settings.Model := Model.Name;
+ gPlayer2Settings.Model := Model.Name;
   gPlayer2Settings.Color := Model.Color;
  end;
 
- if gGameOn and (gGameSettings.GameType = GT_CUSTOM) then
+ if gPlayer1Settings.Name = '' then gPlayer1Settings.Name := 'Player1';
+ if gPlayer2Settings.Name = '' then gPlayer2Settings.Name := 'Player2';
+
+ if (gGameSettings.GameType in [GT_CUSTOM, GT_SERVER]) then
  begin
   if gPlayer1 <> nil then
   begin
    gPlayer1.SetModel(gPlayer1Settings.Model);
+   gPlayer1.Name := gPlayer1Settings.Name;
    if (gGameSettings.GameMode <> GM_TDM) and (gGameSettings.GameMode <> GM_CTF) then
-    gPlayer1.SetColor(gPlayer1Settings.Color);
+    gPlayer1.SetColor(gPlayer1Settings.Color)
+   else
+    if gPlayer1.Team <> gPlayer1Settings.Team then
+     gPlayer1.ChangeTeam;
+
+   if g_Game_IsNet then MH_SEND_PlayerSettings(gPlayer1.UID);
   end;
 
   if gPlayer2 <> nil then
   begin
    gPlayer2.SetModel(gPlayer2Settings.Model);
+   gPlayer2.Name := gPlayer2Settings.Name;
    if (gGameSettings.GameMode <> GM_TDM) and (gGameSettings.GameMode <> GM_CTF) then
-    gPlayer2.SetColor(gPlayer2Settings.Color);
+    gPlayer2.SetColor(gPlayer2Settings.Color)
+   else
+    if gPlayer2.Team <> gPlayer2Settings.Team then
+     gPlayer2.ChangeTeam;
   end;
  end;
+
+ if g_Game_IsClient then MC_SEND_PlayerSettings;
 
  e_WriteLog('Writing config', MSG_NOTIFY);
  
@@ -186,6 +205,7 @@ begin
  begin
   WriteInt('GameControls', 'TakeScreenshot', TakeScreenshot);
   WriteInt('GameControls', 'Stat', Stat);
+  WriteInt('GameControls', 'Chat', Chat);
  end;
 
  with config, gGameControls.P1Control, gPlayer1Settings do
@@ -248,6 +268,24 @@ begin
  config.WriteBool('Game', 'BackGround', gDrawBackGround);
  config.WriteBool('Game', 'Messages', gShowMessages);
  config.WriteBool('Game', 'RevertPlayers', gRevertPlayers);
+
+ config.WriteStr('MasterServer', 'IP', NetSlistIP);
+ config.WriteInt('MasterServer', 'Port', NetSlistPort);
+
+ config.WriteBool('Server', 'Dedicated', NetDedicated);
+ config.WriteStr ('Server', 'Name', NetServerName);
+ config.WriteStr ('Server', 'Password', NetPassword);
+ config.WriteInt ('Server', 'MaxClients', NetMaxClients);
+ config.WriteBool('Server', 'RCON', NetAllowRCON);
+ config.WriteStr ('Server', 'RCONPassword', NetRCONPassword);
+ config.WriteBool('Server', 'SyncWithMaster', NetUseMaster);
+ config.WriteInt ('Server', 'UpdateInterval', NetUpdateRate);
+ config.WriteInt ('Server', 'ReliableUpdateInterval', NetRelupdRate);
+ config.WriteInt ('Server', 'MasterSyncInterval', NetMasterRate);
+
+ config.WriteInt ('Client', 'InterpolationSteps', NetInterpLevel);
+ config.WriteStr ('Client', 'LastIP', NetLastIP);
+ config.WriteInt ('Client', 'LastPort', NetLastPort); 
 
  config.SaveFile(GameDir+'\'+CONFIG_FILENAME);
  config.Free();
@@ -318,6 +356,7 @@ begin
  begin
   TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_SCREENSHOT])).Key := TakeScreenshot;
   TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_STAT])).Key := Stat;
+  TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_CHAT])).Key := Chat;
  end;
 
  menu := TGUIMenu(g_GUI_GetWindow('OptionsGameMenu').GetControl('mOptionsGameMenu'));
@@ -390,7 +429,6 @@ var
   GameMode, n: Byte;
   TimeLimit, GoalLimit: Word;
   Options: LongWord;
-
 begin
   with TGUIMenu(g_ActiveWindow.GetControl('mCustomGameMenu')) do
   begin
@@ -429,6 +467,129 @@ begin
 
   g_Game_StartCustom(Map, GameMode, TimeLimit, GoalLimit,
                      Options, n);
+end;
+
+
+procedure ProcStartNetGame();
+var
+  Map: String;
+  GameMode: Byte;
+  TimeLimit, GoalLimit, Port: Word;
+  Options: LongWord;
+begin
+  with TGUIMenu(g_ActiveWindow.GetControl('mNetServerMenu')) do
+  begin
+    if TGUILabel(GetControl('lbMap')).Text = '' then
+      Exit;
+
+    GameMode := TGUISwitch(GetControl('swGameMode')).ItemIndex+1;
+    TimeLimit := StrToIntDef(TGUIEdit(GetControl('edTimeLimit')).Text, 0);
+    GoalLimit := StrToIntDef(TGUIEdit(GetControl('edGoalLimit')).Text, 0);
+    Port := StrToIntDef(TGUIEdit(GetControl('edPort')).Text, 0);
+
+    Options := 0;
+    if TGUISwitch(GetControl('swTeamDamage')).ItemIndex = 0 then
+      Options := Options or GAME_OPTION_TEAMDAMAGE;
+    if TGUISwitch(GetControl('swEnableExits')).ItemIndex = 0 then
+      Options := Options or GAME_OPTION_ALLOWEXIT;
+    if TGUISwitch(GetControl('swWeaponStay')).ItemIndex = 0 then
+      Options := Options or GAME_OPTION_WEAPONSTAY;
+    if TGUISwitch(GetControl('swMonsterDM')).ItemIndex = 0 then
+      Options := Options or GAME_OPTION_MONSTERDM;
+
+    case TGUISwitch(GetControl('swBotsVS')).ItemIndex of
+      1: Options := Options or GAME_OPTION_BOTVSMONSTER;
+      2: Options := Options or GAME_OPTION_BOTVSPLAYER or GAME_OPTION_BOTVSMONSTER;
+      else Options := Options or GAME_OPTION_BOTVSPLAYER;
+    end;
+
+    Map := MapsDir+TGUILabel(GetControl('lbMap')).Text;
+    gRelativeMapResStr := TGUILabel(GetControl('lbMap')).Text;
+    NetServerName := TGUIEdit(GetControl('edSrvName')).Text;
+    NetMaxClients := Max(1, StrToIntDef(TGUIEdit(GetControl('edMaxPlayers')).Text, 1));
+    NetMaxClients := Min(NET_MAXCLIENTS, NetMaxClients);
+    NetPassword := TGUIEdit(GetControl('edSrvPassword')).Text;
+  end;
+
+  g_Game_StartServer(Map, GameMode, TimeLimit, GoalLimit,
+                     Options, Port);
+end;
+
+procedure ProcConnectNetGame();
+var
+  IP, PW: String;
+  Port: Word;
+  config: TConfig;
+begin
+  with TGUIMenu(g_ActiveWindow.GetControl('mNetClientMenu')) do
+  begin
+    IP := TGUIEdit(GetControl('edIP')).Text;
+    Port := StrToIntDef(TGUIEdit(GetControl('edPort')).Text, 0);
+    PW := TGUIEdit(GetControl('edPW')).Text;
+  end;
+
+  config := TConfig.CreateFile(GameDir+'\'+CONFIG_FILENAME);
+
+  config.WriteStr ('Client', 'LastIP', IP);
+  config.WriteInt ('Client', 'LastPort', Port);
+
+  config.SaveFile(GameDir+'\'+CONFIG_FILENAME);
+  config.Free();
+
+  if PW = '' then PW := 'ASS';
+  g_Game_StartClient(IP, Port, PW);
+end;
+
+procedure ProcEnterPassword();
+var
+  IP, PW: string;
+  Port: Word;
+  config: TConfig;
+begin
+  with TGUIMenu(g_ActiveWindow.GetControl('mClientPasswordMenu')) do
+  begin
+    IP := PromptIP;
+    Port := PromptPort;
+    PW := TGUIEdit(GetControl('edPW')).Text;
+  end;
+  config := TConfig.CreateFile(GameDir+'\'+CONFIG_FILENAME);
+
+  config.WriteStr ('Client', 'LastIP', IP);
+  config.WriteInt ('Client', 'LastPort', Port);
+
+  config.SaveFile(GameDir+'\'+CONFIG_FILENAME);
+  config.Free();
+
+  if PW = '' then PW := 'ASS';
+  g_Game_StartClient(IP, Port, PW);
+end;
+
+procedure ProcServerlist();
+begin
+  if not NetInitDone then
+  begin
+    if (not g_Net_Init()) then
+    begin
+      g_Console_Add('NET: ERROR: Failed to init ENet!');
+      Exit;
+    end
+    else
+      NetInitDone := True;
+  end;
+
+  g_Net_Slist_Set(NetSlistIP, NetSlistPort);
+
+  gState := STATE_SLIST;
+  g_ActiveWindow := nil;
+
+  slWaitStr := _lc[I_NET_SLIST_WAIT];
+  
+  g_Game_Draw;
+  ReDrawWindow;
+
+  slReturnPressed := True;
+  slCurrent := g_Net_Slist_Fetch;
+  if slCurrent = nil then slWaitStr := _lc[I_NET_SLIST_NOSERVERS];
 end;
 
 procedure ProcStartEpisode();
@@ -788,6 +949,7 @@ procedure ProcSaveGame(Sender: TGUIControl);
 var
   a: Integer;
 begin
+ if g_Game_IsNet then Exit;
  a := StrToInt(Copy(Sender.Name, Length(Sender.Name), 1));
  g_Game_PauseAllSounds(True);
  g_SaveGame(a, TGUIEdit(Sender).Text);
@@ -801,6 +963,7 @@ var
   a: Integer;
   
 begin
+ if g_Game_IsNet then Exit;
   a := StrToInt(Copy(Sender.Name, Length(Sender.Name), 1));
   if g_LoadGame(a) then
     g_Game_PauseAllSounds(False)
@@ -882,6 +1045,7 @@ begin
   res := wad+':\'+map;
 
   TGUILabel(TGUIMenu(g_GUI_GetWindow('CustomGameMenu').GetControl('mCustomGameMenu')).GetControl('lbMap')).Text := res;
+  TGUILabel(TGUIMenu(g_GUI_GetWindow('NetServerMenu').GetControl('mNetServerMenu')).GetControl('lbMap')).Text := res;
 end;
 
 procedure ProcChangeSoundSettings(Sender: TGUIControl);
@@ -1090,7 +1254,7 @@ begin
         else
           ItemIndex := 0;
 
-    if GameType = GT_CUSTOM then
+    if GameType in [GT_CUSTOM, GT_SERVER] then
       begin
         TGUISwitch(menu.GetControl('swTeamDamage')).Enabled := True;
         TGUIEdit(menu.GetControl('edTimeLimit')).Enabled := True;
@@ -1127,6 +1291,8 @@ var
 
 begin
   menu := TGUIMenu(g_GUI_GetWindow('GameSetGameMenu').GetControl('mGameSetGameMenu'));
+
+  if not g_Game_IsServer then Exit;
 
   with gGameSettings do
   begin
@@ -1197,6 +1363,8 @@ begin
       end;
     end;
   end;
+
+  if g_Game_IsNet then MH_SEND_GameSettings;
 end;
 
 function GetDisplayModes(dBPP: DWORD; var SelRes: DWORD): SArray;
@@ -1507,7 +1675,7 @@ begin
  begin
   Name := 'mmMainMenu';
   AddButton(nil, _lc[I_MENU_NEW_GAME], 'NewGameMenu');
-  AddButton(nil, _lc[I_MENU_MULTIPLAYER], '');
+  AddButton(nil, _lc[I_MENU_MULTIPLAYER], 'NetGameMenu');
   AddButton(nil, _lc[I_MENU_LOAD_GAME], 'LoadMenu');
   AddButton(@ReadOptions, _lc[I_MENU_OPTIONS], 'OptionsMenu');
   AddButton(@ProcAuthorsMenu, _lc[I_MENU_AUTHORS], 'AuthorsMenu');
@@ -1533,6 +1701,167 @@ begin
   AddButton(@ProcSelectEpisodeMenu, _lc[I_MENU_EPISODE], 'EpisodeMenu');
  end;
  Menu.DefControl := 'mmNewGameMenu';
+ g_GUI_AddWindow(Menu);
+
+ Menu := TGUIWindow.Create('NetGameMenu');
+ with TGUIMainMenu(Menu.AddChild(TGUIMainMenu.Create(gMenuFont, _lc[I_MENU_MULTIPLAYER]))) do
+ begin
+  Name := 'mmNetGameMenu';
+  AddButton(nil, _lc[I_MENU_START_SERVER], 'NetServerMenu');
+  AddButton(nil, _lc[I_MENU_START_CLIENT], 'NetClientMenu');
+ end;
+ Menu.DefControl := 'mmNetGameMenu';
+ g_GUI_AddWindow(Menu);
+
+ Menu := TGUIWindow.Create('NetServerMenu');
+ with TGUIMenu(Menu.AddChild(TGUIMenu.Create(gMenuFont, gMenuSmallFont, _lc[I_MENU_START_SERVER]))) do
+ begin
+  Name := 'mNetServerMenu';
+  with AddEdit(_lc[I_NET_SERVER_NAME]) do
+  begin
+   Name := 'edSrvName';
+   OnlyDigits := False;
+   Width := 16;
+   MaxLength := 64;
+   Text := NetServerName;
+  end;
+  with AddEdit(_lc[I_NET_SERVER_PASSWORD]) do
+  begin
+   Name := 'edSrvPassword';
+   OnlyDigits := False;
+   Width := 16;
+   MaxLength := 24;
+   Text := NetPassword;
+  end;
+  with AddEdit(_lc[I_NET_PORT]) do
+  begin
+   Name := 'edPort';
+   OnlyDigits := True;
+   Width := 4;
+   MaxLength := 5;
+   Text := '25666';
+  end;
+  with AddEdit(_lc[I_NET_MAX_CLIENTS]) do
+  begin
+   Name := 'edMaxPlayers';
+   OnlyDigits := True;
+   Width := 4;
+   MaxLength := 2;
+   Text := IntToStr(NetMaxClients);
+  end;
+  AddSpace();
+  with AddLabel(_lc[I_MENU_MAP]) do
+  begin
+   Name := 'lbMap';
+   FixedLength := 16;
+   OnClick := @ProcSelectMapMenu;
+  end;
+  with AddSwitch(_lc[I_MENU_GAME_TYPE]) do
+  begin
+   Name := 'swGameMode';
+   AddItem(_lc[I_MENU_GAME_TYPE_DM]);
+   AddItem(_lc[I_MENU_GAME_TYPE_TDM]);
+   AddItem(_lc[I_MENU_GAME_TYPE_CTF]);
+   AddItem(_lc[I_MENU_GAME_TYPE_COOP]);
+   ItemIndex := 0;
+  end;
+  with AddEdit(_lc[I_MENU_TIME_LIMIT]) do
+  begin
+   Name := 'edTimeLimit';
+   OnlyDigits := True;
+   Width := 3;
+   MaxLength := 3;
+  end;
+  with AddEdit(_lc[I_MENU_GOAL_LIMIT]) do
+  begin
+   Name := 'edGoalLimit';
+   OnlyDigits := True;
+   Width := 3;
+   MaxLength := 3;
+  end;
+  with AddSwitch(_lc[I_MENU_TEAM_DAMAGE]) do
+  begin
+   Name := 'swTeamDamage';
+   AddItem(_lc[I_MENU_YES]);
+   AddItem(_lc[I_MENU_NO]);
+   ItemIndex := 1;
+  end;
+  with AddSwitch(_lc[I_MENU_ENABLE_EXITS]) do
+  begin
+   Name := 'swEnableExits';
+   AddItem(_lc[I_MENU_YES]);
+   AddItem(_lc[I_MENU_NO]);
+   ItemIndex := 0;
+  end;
+  with AddSwitch(_lc[I_MENU_WEAPONS_STAY]) do
+  begin
+   Name := 'swWeaponStay';
+   AddItem(_lc[I_MENU_YES]);
+   AddItem(_lc[I_MENU_NO]);
+   ItemIndex := 1;
+  end;
+  with AddSwitch(_lc[I_MENU_ENABLE_MONSTERS]) do
+  begin
+   Name := 'swMonsterDM';
+   AddItem(_lc[I_MENU_YES]);
+   AddItem(_lc[I_MENU_NO]);
+   ItemIndex := 1;
+  end;
+  with AddSwitch(_lc[I_MENU_BOTS_VS]) do
+  begin
+   Name := 'swBotsVS';
+   AddItem(_lc[I_MENU_BOTS_VS_PLAYERS]);
+   AddItem(_lc[I_MENU_BOTS_VS_MONSTERS]);
+   AddItem(_lc[I_MENU_BOTS_VS_ALL]);
+   ItemIndex := 2;
+  end;
+  AddSpace();
+  AddButton(@ProcStartNetGame, _lc[I_MENU_START_GAME]);
+
+  ReAlign();
+ end;
+ Menu.DefControl := 'mNetServerMenu';
+ g_GUI_AddWindow(Menu);
+
+  Menu := TGUIWindow.Create('NetClientMenu');
+ with TGUIMenu(Menu.AddChild(TGUIMenu.Create(gMenuFont, gMenuSmallFont, _lc[I_MENU_START_CLIENT]))) do
+ begin
+  Name := 'mNetClientMenu';
+  
+  AddButton(@ProcServerlist, _lc[I_NET_SLIST]);
+  AddSpace();
+  
+  with AddEdit(_lc[I_NET_ADDRESS]) do
+  begin
+   Name := 'edIP';
+   OnlyDigits :=False;
+   Width := 12;
+   MaxLength := 64;
+   Text := 'localhost';
+  end;
+  with AddEdit(_lc[I_NET_PORT]) do
+  begin
+   Name := 'edPort';
+   OnlyDigits := True;
+   Width := 4;
+   MaxLength := 5;
+   Text := '25666';
+  end;
+  with AddEdit(_lc[I_NET_SERVER_PASSWORD]) do
+  begin
+   Name := 'edPW';
+   OnlyDigits := False;
+   Width := 12;
+   MaxLength := 32;
+   Text := '';
+  end;
+
+  AddSpace();
+  AddButton(@ProcConnectNetGame, _lc[I_MENU_START_GAME]);
+
+  ReAlign();
+ end;
+ Menu.DefControl := 'mNetClientMenu';
  g_GUI_AddWindow(Menu);
 
  Menu := TGUIWindow.Create('LoadMenu');
@@ -1587,6 +1916,7 @@ begin
    AddItem(_lc[I_MENU_GAME_TYPE_DM]);
    AddItem(_lc[I_MENU_GAME_TYPE_TDM]);
    AddItem(_lc[I_MENU_GAME_TYPE_CTF]);
+   AddItem(_lc[I_MENU_GAME_TYPE_COOP]);
    ItemIndex := 0;
   end;
   with AddEdit(_lc[I_MENU_TIME_LIMIT]) do
@@ -1988,6 +2318,7 @@ begin
   AddLine(_lc[I_MENU_CONTROL_GLOBAL]);
   AddKeyRead(_lc[I_MENU_CONTROL_SCREENSHOT]).Name := _lc[I_MENU_CONTROL_SCREENSHOT];
   AddKeyRead(_lc[I_MENU_CONTROL_STAT]).Name := _lc[I_MENU_CONTROL_STAT];
+  AddKeyRead(_lc[I_MENU_CONTROL_CHAT]).Name := _lc[I_MENU_CONTROL_CHAT];
   AddSpace();
   AddButton(nil, _lc[I_MENU_PLAYER_1], 'OptionsControlsP1Menu');
   AddButton(nil, _lc[I_MENU_PLAYER_2], 'OptionsControlsP2Menu');
@@ -2100,7 +2431,7 @@ begin
     Y := _y;
     _y := _y+GetHeight();
   end;
-  with TGUILabel(Menu.AddChild(TGUILabel.Create(Format(_lc[I_CREDITS_CAP_2], [GAME_VERSION]), gMenuSmallFont))) do
+  with TGUILabel(Menu.AddChild(TGUILabel.Create(Format(_lc[I_CREDITS_CAP_2], [GAME_VERSION, NET_PROTOCOL_VER]), gMenuSmallFont))) do
   begin
     Color := _RGB(255, 0, 0);
     X := (gScreenWidth div 2)-(GetWidth() div 2);
@@ -2306,6 +2637,53 @@ begin
  Menu.OnClose := ProcGMClose;
  Menu.OnShow := ProcGMShow;
  g_GUI_AddWindow(Menu);
+
+ Menu := TGUIWindow.Create('GameServerMenu');
+ with TGUIMainMenu(Menu.AddChild(TGUIMainMenu.Create(gMenuFont, _lc[I_MENU_MAIN_MENU]))) do
+ begin
+  Name := 'mmGameServerMenu';
+  AddButton(@ReadGameSettings, _lc[I_MENU_SET_GAME], 'GameSetGameMenu');
+  AddButton(@ReadOptions, _lc[I_MENU_OPTIONS], 'OptionsMenu');
+  AddButton(nil, _lc[I_MENU_RESTART], 'RestartGameMenu');
+  AddButton(nil, _lc[I_MENU_END_GAME], 'EndGameMenu');
+ end;
+ Menu.DefControl := 'mmGameServerMenu';
+ Menu.MainWindow := True;
+ Menu.OnClose := ProcGMClose;
+ Menu.OnShow := ProcGMShow;
+ g_GUI_AddWindow(Menu);
+
+ Menu := TGUIWindow.Create('GameClientMenu');
+ with TGUIMainMenu(Menu.AddChild(TGUIMainMenu.Create(gMenuFont, _lc[I_MENU_MAIN_MENU]))) do
+ begin
+  Name := 'mmGameClientMenu';
+  AddButton(@ReadOptions, _lc[I_MENU_OPTIONS], 'OptionsMenu');
+  AddButton(nil, _lc[I_MENU_END_GAME], 'EndGameMenu');
+ end;
+ Menu.DefControl := 'mmGameClientMenu';
+ Menu.MainWindow := True;
+ Menu.OnClose := ProcGMClose;
+ Menu.OnShow := ProcGMShow;
+ g_GUI_AddWindow(Menu);
+ 
+ Menu := TGUIWindow.Create('ClientPasswordMenu');
+ with TGUIMenu(Menu.AddChild(TGUIMenu.Create(gMenuSmallFont, gMenuSmallFont, _lc[I_MENU_ENTERPASSWORD]))) do
+ begin
+  Name := 'mClientPasswordMenu';
+  with AddEdit(_lc[I_NET_SERVER_PASSWORD]) do
+  begin
+    Name := 'edPW';
+    Width := 12;
+    MaxLength := 32;
+  end;
+  AddSpace;
+
+  AddButton(@ProcEnterPassword, _lc[I_MENU_START_GAME]);
+  ReAlign;
+ end;
+ Menu.DefControl := 'mClientPasswordMenu';
+ g_GUI_AddWindow(Menu);
+
 
  Menu := TGUIWindow.Create('GameSetGameMenu');
  with TGUIMenu(Menu.AddChild(TGUIMenu.Create(gMenuFont, gMenuSmallFont, _lc[I_MENU_SET_GAME]))) do
