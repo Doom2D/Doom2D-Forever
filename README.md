@@ -1,6 +1,11 @@
 DF
 ==
+Doom 2D: Forever source code.
 
-Doom2D:Forever sources.
+Compilation
+-----------
+The source code can be compiled using Delphi 7. Project file is located in /DF Sources/Doom2DF.dpr.
 
-Site of the game: http://doom2d.org
+Website
+-------
+http://doom2d.org
