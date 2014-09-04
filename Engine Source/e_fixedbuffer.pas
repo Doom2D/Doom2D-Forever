@@ -7,7 +7,7 @@ unit e_fixedbuffer;
 interface
 
 const
-  BUF_SIZE = 65536;
+  BUF_SIZE = 131072;
 
 type
   TBuffer = record
