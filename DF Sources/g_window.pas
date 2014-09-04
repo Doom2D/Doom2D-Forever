@@ -731,25 +731,9 @@ begin
   if NetMode = NET_SERVER then
   begin
     g_Net_Host_Update();
-    
     if gGameOn then
     begin
-      if Time >= NetTimeToReliable then
-      begin
-        for I := 0 to High(gPlayers) do
-          if gPlayers[I] <> nil then
-            MH_SEND_PlayerPos(True, gPlayers[I].UID);
-
-        if gMonsters <> nil then
-          for I := 0 to High(gMonsters) do
-            if gMonsters[I] <> nil then
-              if (gMonsters[I].MonsterState <> 0) or (gMonsters[I].MonsterType = MONSTER_BARREL) then
-                if (gMonsters[I].MonsterState <> 5) or (gMonsters[I].GameVelX <> 0) or (gMonsters[I].GameVelY <> 0) then
-                  MH_SEND_MonsterPos(gMonsters[I].UID);
-
-        NetTimeToReliable := Time + NetRelUpdRate * 1000;
-      end
-      else if Time >= NetTimeToUpdate then
+      if Time >= NetTimeToUpdate then
       begin
         if gPlayers <> nil then
           for I := 0 to High(gPlayers) do
@@ -764,7 +748,23 @@ begin
                   MH_SEND_MonsterPos(gMonsters[I].UID);
 
         NetTimeToUpdate := Time + NetUpdateRate * 1000;
-      end;
+      end
+      else
+       if Time >= NetTimeToReliable then
+       begin
+         for I := 0 to High(gPlayers) do
+           if gPlayers[I] <> nil then
+             MH_SEND_PlayerPos(True, gPlayers[I].UID);
+
+         if gMonsters <> nil then
+           for I := 0 to High(gMonsters) do
+             if gMonsters[I] <> nil then
+               if (gMonsters[I].MonsterState <> 0) or (gMonsters[I].MonsterType = MONSTER_BARREL) then
+                 if (gMonsters[I].MonsterState <> 5) or (gMonsters[I].GameVelX <> 0) or (gMonsters[I].GameVelY <> 0) then
+                   MH_SEND_MonsterPos(gMonsters[I].UID);
+
+         NetTimeToReliable := Time + NetRelUpdRate * 1000;
+       end;
 
       if NetUseMaster then
         if Time >= NetTimeToMaster then
@@ -777,7 +777,7 @@ begin
   else
     if NetMode = NET_CLIENT then
     begin
-      if NetState = NET_STATE_GAME then g_Net_Client_Update();
+      g_Net_Client_Update();
       MC_SEND_PlayerPos;
     end;
 

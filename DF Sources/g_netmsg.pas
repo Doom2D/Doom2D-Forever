@@ -487,8 +487,6 @@ var
   Map: string;
 begin
   g_ProcessResourceStr(gMapInfo.Map, nil, nil, @Map);
-
-  e_Buffer_Clear(@NetOut);
   
   e_Buffer_Write(@NetOut, Byte(NET_MSG_INFO));
   e_Buffer_Write(@NetOut, ID);
@@ -1828,8 +1826,6 @@ end;
 
 procedure MC_SEND_Info(Password: string = 'ASS');
 begin
-  e_Buffer_Clear(@NetOut);
-
   e_Buffer_Write(@NetOut, Byte(NET_MSG_INFO));
   e_Buffer_Write(@NetOut, GAME_VERSION);
   e_Buffer_Write(@NetOut, Password);

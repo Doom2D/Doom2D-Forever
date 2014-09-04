@@ -2362,9 +2362,10 @@ begin
   end;
 
   g_Game_SetLoadingText(_lc[I_LOAD_SEND_INFO], 0, False);
-  g_Game_SetLoadingText(_lc[I_LOAD_WAIT_INFO], 0, False);
 
   MC_SEND_Info(PW);
+
+  g_Game_SetLoadingText(_lc[I_LOAD_WAIT_INFO], 0, False);
 
   OuterLoop := True;
   while OuterLoop do
@@ -2542,6 +2543,9 @@ begin
   gExit := 0;
   gPause := False;
   gTime := 0;
+  NetTimeToUpdate := 1;
+  NetTimeToReliable := 50;
+  NetTimeToMaster := 150;
   NextMap := '';
 
   gCoopMonstersKilled := 0;
