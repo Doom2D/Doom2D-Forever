@@ -2380,7 +2380,7 @@ begin
   begin
    Include(FRulez, R_KEY_RED);
    Result := True;
-   remove := (gGameSettings.GameMode <> GM_COOP);
+   remove := (gGameSettings.GameMode <> GM_COOP) and (g_Player_GetCount() < 2);
    if (not remove) and g_Game_IsNet then MH_SEND_Sound(GameX, GameY, 'SOUND_ITEM_GETMED');
   end;
 
@@ -2389,7 +2389,7 @@ begin
   begin
    Include(FRulez, R_KEY_GREEN);
    Result := True;
-   remove := (gGameSettings.GameMode <> GM_COOP);
+   remove := (gGameSettings.GameMode <> GM_COOP) and (g_Player_GetCount() < 2);
    if (not remove) and g_Game_IsNet then MH_SEND_Sound(GameX, GameY, 'SOUND_ITEM_GETMED');
   end;
 
@@ -2398,7 +2398,7 @@ begin
   begin
    Include(FRulez, R_KEY_BLUE);
    Result := True;
-   remove := (gGameSettings.GameMode <> GM_COOP);
+   remove := (gGameSettings.GameMode <> GM_COOP) and (g_Player_GetCount() < 2);
    if (not remove) and g_Game_IsNet then MH_SEND_Sound(GameX, GameY, 'SOUND_ITEM_GETMED');
   end;
 
@@ -3083,7 +3083,7 @@ begin
   if (not (FKeys[KEY_UP].Pressed or FKeys[KEY_DOWN].Pressed)) and
      (FIncCam <> 0) then
   begin
-    i := g_Basic.Sign(FIncCam);
+    i := g_basic.Sign(FIncCam);
     FIncCam := Abs(FIncCam);
     DecMin(FIncCam, 5, 0);
     FIncCam := FIncCam*i;

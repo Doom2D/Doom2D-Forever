@@ -421,10 +421,7 @@ begin
                         gPlayers[j].Obj.X, gPlayers[j].Obj.Y);
 
                 // Ќадо убрать с карты, если это не ключ, которым нужно поделитьс€ с другим игроком:
-                  if r and not (
-                      (ItemType in [ITEM_KEY_RED, ITEM_KEY_GREEN, ITEM_KEY_BLUE]) and
-                      (gGameSettings.GameType = GT_SINGLE) and
-                      (g_Player_GetCount() > 1) ) then
+                  if r then
                   begin
                     if not Respawnable then
                       g_Items_Remove(i)
