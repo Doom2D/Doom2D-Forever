@@ -279,9 +279,9 @@ begin
  config.WriteBool('Server', 'RCON', NetAllowRCON);
  config.WriteStr ('Server', 'RCONPassword', NetRCONPassword);
  config.WriteBool('Server', 'SyncWithMaster', NetUseMaster);
- config.WriteInt ('Server', 'UpdateInterval', NetUpdateRate);
- config.WriteInt ('Server', 'ReliableUpdateInterval', NetRelupdRate);
- config.WriteInt ('Server', 'MasterSyncInterval', NetMasterRate);
+ config.WriteInt ('Server', 'UpdateRate', NetUpdateRate);
+ config.WriteInt ('Server', 'ReliableUpdateRate', NetRelupdRate);
+ config.WriteInt ('Server', 'MasterSyncRate', NetMasterRate);
 
  config.WriteInt ('Client', 'InterpolationSteps', NetInterpLevel);
  config.WriteStr ('Client', 'LastIP', NetLastIP);
