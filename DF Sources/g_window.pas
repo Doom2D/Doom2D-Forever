@@ -34,10 +34,8 @@ implementation
 
 uses
   messages, dglOpenGL, e_graphics, e_log, g_main,
-  g_console, SysUtils, e_input, g_options, g_game, g_player, g_monsters,
-  g_basic, g_textures, e_sound, g_sound, g_menu, ENet, g_net, g_netmsg,
-  g_netmaster,
-  MAPDEF;
+  g_console, SysUtils, e_input, g_options, g_game,
+  g_basic, g_textures, e_sound, g_sound, g_menu, ENet, g_net;
 
 var
   h_RC:  HGLRC;
@@ -684,6 +682,7 @@ begin
 
   e_SoundUpdate();
 
+
   if NetMode = NET_SERVER then
     g_Net_Host_Update
   else
@@ -727,59 +726,6 @@ begin
     Update();
     flag := True;
   end;
-
-  if NetMode = NET_SERVER then
-  begin
-    g_Net_Host_Update();
-    if gGameOn then
-    begin
-      if Time >= NetTimeToUpdate then
-      begin
-        if gPlayers <> nil then
-          for I := 0 to High(gPlayers) do
-            if gPlayers[I] <> nil then
-              MH_SEND_PlayerPos(False, gPlayers[I].UID);
-
-        if gMonsters <> nil then
-          for I := 0 to High(gMonsters) do
-            if gMonsters[I] <> nil then
-              if (gMonsters[I].MonsterState <> 0) or (gMonsters[I].MonsterType = MONSTER_BARREL) then
-                if (gMonsters[I].MonsterState <> 5) or (gMonsters[I].GameVelX <> 0) or (gMonsters[I].GameVelY <> 0) then
-                  MH_SEND_MonsterPos(gMonsters[I].UID);
-
-        NetTimeToUpdate := Time + NetUpdateRate * 1000;
-      end
-      else
-       if Time >= NetTimeToReliable then
-       begin
-         for I := 0 to High(gPlayers) do
-           if gPlayers[I] <> nil then
-             MH_SEND_PlayerPos(True, gPlayers[I].UID);
-
-         if gMonsters <> nil then
-           for I := 0 to High(gMonsters) do
-             if gMonsters[I] <> nil then
-               if (gMonsters[I].MonsterState <> 0) or (gMonsters[I].MonsterType = MONSTER_BARREL) then
-                 if (gMonsters[I].MonsterState <> 5) or (gMonsters[I].GameVelX <> 0) or (gMonsters[I].GameVelY <> 0) then
-                   MH_SEND_MonsterPos(gMonsters[I].UID);
-
-         NetTimeToReliable := Time + NetRelUpdRate * 1000;
-       end;
-
-      if NetUseMaster then
-        if Time >= NetTimeToMaster then
-        begin
-          g_Net_Slist_Update;
-          NetTimeToMaster := Time + NetMasterRate * 1000;
-        end;
-    end;
-  end
-  else
-    if NetMode = NET_CLIENT then
-    begin
-      g_Net_Client_Update();
-      MC_SEND_PlayerPos;
-    end;
 
   if gExit = EXIT_QUIT then
   begin

@@ -65,9 +65,9 @@ var
   NetAllowRCON:    Boolean = False;
   NetRCONPassword: string = 'default';
 
-  NetTimeToUpdate:   Int64 = 0;
-  NetTimeToReliable: Int64 = 0;
-  NetTimeToMaster:   Int64 = 0;
+  NetTimeToUpdate:   Cardinal = 0;
+  NetTimeToReliable: Cardinal = 0;
+  NetTimeToMaster:   Cardinal = 0;
 
   NetHost:       pENetHost = nil;
   NetPeer:       pENetPeer = nil;
