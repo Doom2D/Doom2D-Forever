@@ -722,12 +722,6 @@ begin
     wNeedTimeReset := False;
   end;
 
-  if NetMode = NET_SERVER then
-    g_Net_Host_Update()
-  else
-    if (NetMode = NET_CLIENT) and (NetState = NET_STATE_GAME) then
-      g_Net_Client_Update();
-
   for i := 1 to Time_Delta div 27777 do
   begin
     Update();
@@ -736,16 +730,26 @@ begin
 
   if NetMode = NET_SERVER then
   begin
-    if flag then
-    begin
-      if NetTimeToUpdate > 0 then Dec(NetTimeToUpdate);
-      if NetTimeToReliable > 0 then Dec(NetTimeToReliable);
-      if NetTimeToMaster > 0 then Dec(NetTimeToMaster);
-    end;
+    g_Net_Host_Update();
     
     if gGameOn then
     begin
-      if NetTimeToUpdate = 0 then
+      if Time >= NetTimeToReliable then
+      begin
+        for I := 0 to High(gPlayers) do
+          if gPlayers[I] <> nil then
+            MH_SEND_PlayerPos(True, gPlayers[I].UID);
+
+        if gMonsters <> nil then
+          for I := 0 to High(gMonsters) do
+            if gMonsters[I] <> nil then
+              if (gMonsters[I].MonsterState <> 0) or (gMonsters[I].MonsterType = MONSTER_BARREL) then
+                if (gMonsters[I].MonsterState <> 5) or (gMonsters[I].GameVelX <> 0) or (gMonsters[I].GameVelY <> 0) then
+                  MH_SEND_MonsterPos(gMonsters[I].UID);
+
+        NetTimeToReliable := Time + NetRelUpdRate * 1000;
+      end
+      else if Time >= NetTimeToUpdate then
       begin
         if gPlayers <> nil then
           for I := 0 to High(gPlayers) do
@@ -755,58 +759,27 @@ begin
         if gMonsters <> nil then
           for I := 0 to High(gMonsters) do
             if gMonsters[I] <> nil then
-            begin
-              if (gMonsters[I].MonsterType = MONSTER_BARREL) then
-              begin
-                if (gMonsters[I].GameVelX <> 0) or (gMonsters[I].GameVelY <> 0) then
-                  MH_SEND_MonsterPos(gMonsters[I].UID)
-              end    
-              else
-                if (gMonsters[I].MonsterState <> 0) then
-                  if (gMonsters[I].MonsterState <> 5) or
-                     (gMonsters[I].GameVelX <> 0) or (gMonsters[I].GameVelY <> 0) then
-                    MH_SEND_MonsterPos(gMonsters[I].UID);
-            end;
+              if (gMonsters[I].MonsterState <> 0) or (gMonsters[I].MonsterType = MONSTER_BARREL) then
+                if (gMonsters[I].MonsterState <> 5) or (gMonsters[I].GameVelX <> 0) or (gMonsters[I].GameVelY <> 0) then
+                  MH_SEND_MonsterPos(gMonsters[I].UID);
 
-        NetTimeToUpdate := NetUpdateRate;
-      end;
-
-      if NetTimeToReliable = 0 then
-      begin
-        for I := 0 to High(gPlayers) do
-          if gPlayers[I] <> nil then
-            MH_SEND_PlayerPos(True, gPlayers[I].UID);
-
-        if gMonsters <> nil then
-          for I := 0 to High(gMonsters) do
-            if gMonsters[I] <> nil then
-            begin
-              if (gMonsters[I].MonsterType = MONSTER_BARREL) then
-              begin
-                if (gMonsters[I].GameVelX <> 0) or (gMonsters[I].GameVelY <> 0) then
-                  MH_SEND_MonsterPos(gMonsters[I].UID)
-              end    
-              else
-                if (gMonsters[I].MonsterState <> 0) then
-                  if (gMonsters[I].MonsterState <> 5) or
-                     (gMonsters[I].GameVelX <> 0) or (gMonsters[I].GameVelY <> 0) then
-                    MH_SEND_MonsterPos(gMonsters[I].UID);
-            end;
-
-        NetTimeToReliable := NetRelUpdRate;
+        NetTimeToUpdate := Time + NetUpdateRate * 1000;
       end;
 
       if NetUseMaster then
-        if NetTimeToMaster = 0 then
+        if Time >= NetTimeToMaster then
         begin
           g_Net_Slist_Update;
-          NetTimeToMaster := NetMasterRate;
+          NetTimeToMaster := Time + NetMasterRate * 1000;
         end;
     end;
   end
   else
     if NetMode = NET_CLIENT then
+    begin
+      if NetState = NET_STATE_GAME then g_Net_Client_Update();
       MC_SEND_PlayerPos;
+    end;
 
   if gExit = EXIT_QUIT then
   begin

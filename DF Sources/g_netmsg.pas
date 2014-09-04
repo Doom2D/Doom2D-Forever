@@ -657,8 +657,6 @@ begin
     e_Buffer_Write(@NetOut, GameY);
     e_Buffer_Write(@NetOut, GameVelX);
     e_Buffer_Write(@NetOut, GameVelY);
-    e_Buffer_Write(@NetOut, GameAccelX);
-    e_Buffer_Write(@NetOut, GameAccelY);
   end;
 
   g_Net_Host_Send(ID, Reliable, NET_CHAN_PLAYERPOS);
@@ -1287,8 +1285,6 @@ begin
 
     GameVelX := e_Raw_Read_LongInt(P);
     GameVelY := e_Raw_Read_LongInt(P);
-    GameAccelX := e_Raw_Read_LongInt(P);
-    GameAccelY := e_Raw_Read_LongInt(P);
 
     ReleaseKeys;
 

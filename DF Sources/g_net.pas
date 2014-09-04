@@ -6,7 +6,7 @@ uses
   e_log, e_fixedbuffer, ENet, ENet_Types;
 
 const
-  NET_PROTOCOL_VER = 136;
+  NET_PROTOCOL_VER = 135;
 
   NET_MAXCLIENTS = 24;
   NET_CHANS = 9;
@@ -65,9 +65,9 @@ var
   NetAllowRCON:    Boolean = False;
   NetRCONPassword: string = 'default';
 
-  NetTimeToUpdate:   Cardinal = 0;
-  NetTimeToReliable: Cardinal = 0;
-  NetTimeToMaster:   Cardinal = 0;
+  NetTimeToUpdate:   Int64 = 0;
+  NetTimeToReliable: Int64 = 0;
+  NetTimeToMaster:   Int64 = 0;
 
   NetHost:       pENetHost = nil;
   NetPeer:       pENetPeer = nil;
@@ -94,9 +94,9 @@ var
   NetPlrUID:     Integer = -1;
 
   NetInterpLevel: Integer = 3;
-  NetUpdateRate:  Integer = 1;
-  NetRelupdRate:  Integer = 100;
-  NetMasterRate:  Integer = 2500;
+  NetUpdateRate:  Integer = 27;
+  NetRelupdRate:  Integer = 140;
+  NetMasterRate:  Integer = 60000;
 
   NetGotEverything: Boolean = False;
 
