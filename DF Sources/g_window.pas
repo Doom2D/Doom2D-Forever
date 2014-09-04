@@ -721,6 +721,9 @@ begin
     wNeedTimeReset := False;
   end;
 
+  if NetMode = NET_SERVER then g_Net_Host_Update();
+  if NetMode = NET_CLIENT then g_Net_Client_Update();
+
   for i := 1 to Time_Delta div 27777 do
   begin
     Update();

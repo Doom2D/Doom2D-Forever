@@ -222,6 +222,8 @@ Type
     property    GameY: Integer read FObj.Y write FObj.Y;
     property    GameVelX: Integer read FObj.Vel.X write FObj.Vel.X;
     property    GameVelY: Integer read FObj.Vel.Y write FObj.Vel.Y;
+    property    GameAccelX: Integer read FObj.Accel.X write FObj.Accel.X;
+    property    GameAccelY: Integer read FObj.Accel.Y write FObj.Accel.Y;
     property    Vel: TPoint2i read FObj.Vel;
     property    Obj: TObj read FObj;
     property    IncCam: Integer read FIncCam write FIncCam;
@@ -1393,6 +1395,7 @@ begin
   begin
     MH_SEND_PlayerDamage(FUID, t, SpawnerUID, value, vx, vy);
     MH_SEND_PlayerStats(FUID);
+    MH_SEND_PlayerPos(False, FUID);
   end;
 end;
 
@@ -3529,14 +3532,13 @@ end;
 
 procedure TPlayer.SetLerp(XTo, YTo: Integer);
 begin
-  if NetInterpLevel < 2 then
+  if NetInterpLevel < 1 then
   begin
    FObj.X := XTo;
    FObj.Y := YTo;
   end
   else
   begin
-  
    FXTo := XTo;
    FYTo := YTo;
   

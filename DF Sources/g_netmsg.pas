@@ -487,6 +487,8 @@ var
   Map: string;
 begin
   g_ProcessResourceStr(gMapInfo.Map, nil, nil, @Map);
+
+  e_Buffer_Clear(@NetOut);
   
   e_Buffer_Write(@NetOut, Byte(NET_MSG_INFO));
   e_Buffer_Write(@NetOut, ID);
@@ -655,6 +657,8 @@ begin
     e_Buffer_Write(@NetOut, GameY);
     e_Buffer_Write(@NetOut, GameVelX);
     e_Buffer_Write(@NetOut, GameVelY);
+    e_Buffer_Write(@NetOut, GameAccelX);
+    e_Buffer_Write(@NetOut, GameAccelY);
   end;
 
   g_Net_Host_Send(ID, Reliable, NET_CHAN_PLAYERPOS);
@@ -1283,6 +1287,8 @@ begin
 
     GameVelX := e_Raw_Read_LongInt(P);
     GameVelY := e_Raw_Read_LongInt(P);
+    GameAccelX := e_Raw_Read_LongInt(P);
+    GameAccelY := e_Raw_Read_LongInt(P);
 
     ReleaseKeys;
 
@@ -1826,6 +1832,8 @@ end;
 
 procedure MC_SEND_Info(Password: string = 'ASS');
 begin
+  e_Buffer_Clear(@NetOut);
+
   e_Buffer_Write(@NetOut, Byte(NET_MSG_INFO));
   e_Buffer_Write(@NetOut, GAME_VERSION);
   e_Buffer_Write(@NetOut, Password);
@@ -1902,7 +1910,7 @@ begin
     if e_KeyBuffer[KeyJump] = $080 then
     begin
       kByte := kByte or NET_KEY_JUMP;
-      gPlayer1.PressKey(KEY_JUMP, 10000);
+      // gPlayer1.PressKey(KEY_JUMP, 10000); // TODO: Make a prediction option
     end;
     if e_KeyBuffer[KeyFire] = $080 then kByte := kByte or NET_KEY_FIRE;
     if e_KeyBuffer[KeyOpen] = $080 then kByte := kByte or NET_KEY_OPEN;
