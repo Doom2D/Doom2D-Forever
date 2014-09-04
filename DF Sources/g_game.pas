@@ -864,9 +864,6 @@ begin
 // Обновляем консоль (движение и сообщения):
   g_Console_Update();
 
-  if NetMode = NET_SERVER then g_Net_Host_Update();
-  if NetMode = NET_CLIENT then g_Net_Client_Update();
-
   if (NetMode = NET_NONE) and (g_Game_IsNet) and (gGameOn or (gState in [STATE_FOLD, STATE_INTERCUSTOM])) then
   begin
     gExit := EXIT_SIMPLE;
@@ -1134,7 +1131,6 @@ begin
       else
         if g_Game_IsNet and (gPlayer1 <> nil) then
           gPlayer1.PressKey(KEY_CHAT, 10000);
-
     end; // if server
 
   // Обновляем все остальное:
@@ -1149,44 +1145,6 @@ begin
 
     if (gTime mod (GAME_TICK*9)) = 0 then
       g_Game_UpdateTriggerSounds();
-
-    if (NetMode = NET_SERVER) then
-    begin
-      if gTime >= NetTimeToUpdate then
-      begin
-        for I := 0 to High(gPlayers) do
-          if gPlayers[I] <> nil then
-            MH_SEND_PlayerPos(False, gPlayers[I].UID);
-
-        if gMonsters <> nil then
-          for I := 0 to High(gMonsters) do
-            if gMonsters[I] <> nil then
-              if (gMonsters[I].MonsterState <> 0) or (gMonsters[I].MonsterType = MONSTER_BARREL) then
-                if (gMonsters[I].MonsterState <> 5) or (gMonsters[I].GameVelX <> 0) or (gMonsters[I].GameVelY <> 0) then
-                  MH_SEND_MonsterPos(gMonsters[I].UID);
-
-        NetTimeToUpdate := gTime + NetUpdateRate;
-      end;
-      
-      if gTime >= NetTimeToReliable then
-      begin
-        for I := 0 to High(gPlayers) do
-          if gPlayers[I] <> nil then
-            MH_SEND_PlayerPos(True, gPlayers[I].UID);
-
-        NetTimeToReliable := gTime + NetRelupdRate;
-      end;
-
-      if NetUseMaster then
-        if gTime >= NetTimeToMaster then
-        begin
-          g_Net_Slist_Update;
-          NetTimeToMaster := gTime + NetMasterRate;
-        end;
-    end
-    else
-      if NetMode = NET_CLIENT then
-        MC_SEND_PlayerPos();
   end; // if gameOn ...
 
 // Активно окно интерфейса - передаем клавиши ему:
