@@ -742,17 +742,17 @@ begin
 
 // Не рисуем в неактивном:
   if (not wMinimized) then
+  begin
+    if flag then
     begin
-      if flag then
-      begin
-        Draw();
-        SwapBuffers(h_DC);
+      Draw();
+      SwapBuffers(h_DC);
 
-        ReShowCursor();
-      end;
-    end
+      ReShowCursor();
+    end;
+  end
   else
-    Sleep(100);  
+    Sleep(5);
 
   e_SoundUpdate();
 end;
