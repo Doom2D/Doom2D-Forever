@@ -752,7 +752,7 @@ begin
     end;
   end
   else
-    Sleep(5);
+    Sleep(1);
 
   e_SoundUpdate();
 end;
