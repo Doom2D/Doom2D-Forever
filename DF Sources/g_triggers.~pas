@@ -389,7 +389,7 @@ begin
 
   animonce := False;
 
-  coolDown := (actType <> 0);
+  coolDown := (actType = 0);
 
   with Trigger do
   begin
