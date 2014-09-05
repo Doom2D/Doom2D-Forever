@@ -93,7 +93,7 @@ var
   NetMyID:       Integer = -1;
   NetPlrUID:     Integer = -1;
 
-  NetInterpLevel: Integer = 3;
+  NetInterpLevel: Integer = 1;
   NetUpdateRate:  Integer = 27;
   NetRelupdRate:  Integer = 140;
   NetMasterRate:  Integer = 60000;

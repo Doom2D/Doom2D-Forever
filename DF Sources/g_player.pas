@@ -37,7 +37,7 @@ const
   K_HARDKILL        = 1;
   K_EXTRAHARDKILL   = 2;
   K_FALLKILL        = 3;
-
+                                            
   T_RESPAWN         = 0;
   T_SWITCH          = 1;
   T_USE             = 2;
@@ -3531,6 +3531,8 @@ begin
 end;
 
 procedure TPlayer.SetLerp(XTo, YTo: Integer);
+var
+  AX, AY: Integer;
 begin
   if NetInterpLevel < 1 then
   begin
@@ -3541,10 +3543,12 @@ begin
   begin
    FXTo := XTo;
    FYTo := YTo;
-  
-   if Abs(FXTo - FObj.X) > 32 then
+
+   AX := Abs(FXTo - FObj.X);
+   AY := Abs(FYTo - FObj.Y);
+   if (AX > 32) or (AX < NetInterpLevel) then
     FObj.X := FXTo;
-   if Abs(FYTo - FObj.Y) > 32 then
+   if (AY > 32) or (AY < NetInterpLevel) then
     FObj.Y := FYTo;
   end;
 end;
