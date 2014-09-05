@@ -1340,8 +1340,6 @@ begin
   if not FLive then
     Exit;
 
-  FLastSpawnerUID := SpawnerUID;
-
 // Нет повторного урона от той же ловушки:
   if (t = HIT_TRAP) and (t = FLastHit) then
     Exit;
@@ -1365,6 +1363,8 @@ begin
      (SpawnerUID = FUID) or
      (not SameTeam(FUID, SpawnerUID)) then
   begin
+    FLastSpawnerUID := SpawnerUID;
+
   // Кровь (пузырьки, если в воде):
     if gBloodCount > 0 then
     begin
