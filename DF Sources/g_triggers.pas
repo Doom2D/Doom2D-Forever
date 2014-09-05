@@ -31,7 +31,7 @@ Type
 
 function g_Triggers_Create(Trigger: TTrigger): DWORD;
 procedure g_Triggers_Update();
-procedure g_Triggers_Press(ID: DWORD);
+procedure g_Triggers_Press(ID: DWORD; ActivateType: Byte);
 function g_Triggers_PressR(X, Y: Integer; Width, Height: Word; UID: Word;
                            ActivateType: Byte; IgnoreList: DWArray = nil): DWArray;
 procedure g_Triggers_PressL(X1, Y1, X2, Y2: Integer; UID: DWORD; ActivateType: Byte);
@@ -368,17 +368,19 @@ begin
  end;
 end;
 
-function ActivateTrigger(var Trigger: TTrigger): Boolean;
+function ActivateTrigger(var Trigger: TTrigger; actType: Byte): Boolean;
 var
   animonce: Boolean;
   p: TPlayer;
   m: TMonster;
   i, k: Integer;
   iid: LongWord;
+  coolDown: Boolean;
 
 begin
   Result := False;
-  if g_Game_IsClient then Exit;
+  if g_Game_IsClient then
+    Exit;
 
   if not Trigger.Enabled then
     Exit;
@@ -386,6 +388,8 @@ begin
     Exit;
 
   animonce := False;
+
+  coolDown := (actType = 0);
 
   with Trigger do
   begin
@@ -495,7 +499,7 @@ begin
           else
             begin
               DoorTime := -1;
-              TimeOut := 36;
+              TimeOut := 0;
             end;
 
           Result := True;
@@ -508,7 +512,10 @@ begin
           if PressTime = -1 then
             PressTime := Data.Wait;
 
-          TimeOut := 18;
+          if coolDown then
+            TimeOut := 18
+          else
+            TimeOut := 0;
           Result := True;
         end;
 
@@ -567,7 +574,10 @@ begin
               TriggerType := TRIGGER_NONE;
             end
           else
-            TimeOut := 6;
+            if coolDown then
+              TimeOut := 6
+           else
+             TimeOut := 0;
 
           animonce := Data.AnimOnce;
           Result := True;
@@ -621,7 +631,10 @@ begin
             end;
           end;
 
-          TimeOut := 18;
+          if coolDown then
+            TimeOut := 18
+          else
+            TimeOut := 0;
           Result := True;
         end;
 
@@ -639,7 +652,10 @@ begin
                 MH_SEND_ItemSpawn(True, iid);
             end;
 
-          TimeOut := 18;
+          if coolDown then
+            TimeOut := 18
+          else
+            TimeOut := 0;
           Result := True;
         end;
 
@@ -666,7 +682,10 @@ begin
               gMusic.SpecPause := True;
             end;
 
-          TimeOut := 36;
+          if coolDown then
+            TimeOut := 36
+          else
+            TimeOut := 0;
           Result := True;
           if g_Game_IsNet then MH_SEND_TriggerMusic;
         end;
@@ -842,7 +861,7 @@ begin
                 TRIGGER_PRESS:
                   begin
                     gTriggers[b].ActivateUID := gTriggers[a].ActivateUID;
-                    ActivateTrigger(gTriggers[b]);
+                    ActivateTrigger(gTriggers[b], 0);
                   end;
                 TRIGGER_ON:
                   begin
@@ -884,7 +903,7 @@ begin
                        PlayerCollide then
                       { Don't activate sound/music again if player is here }
                     else
-                      ActivateTrigger(gTriggers[a]);
+                      ActivateTrigger(gTriggers[a], ACTIVATE_PLAYERCOLLIDE);
                   end;
 
         { TODO 5 : активация монстрами триггеров с ключами }
@@ -899,7 +918,7 @@ begin
                   if Collide(X, Y, Width, Height) then
                   begin
                     gTriggers[a].ActivateUID := UID;
-                    ActivateTrigger(gTriggers[a]);
+                    ActivateTrigger(gTriggers[a], ACTIVATE_MONSTERCOLLIDE);
                   end;
 
       // "Монстров нет":
@@ -908,17 +927,17 @@ begin
           if not g_CollideMonster(X, Y, Width, Height) then
           begin
             gTriggers[a].ActivateUID := 0;
-            ActivateTrigger(gTriggers[a]);
+            ActivateTrigger(gTriggers[a], ACTIVATE_NOMONSTER);
           end;
 
         PlayerCollide := g_CollidePlayer(X, Y, Width, Height);
       end;
 end;
 
-procedure g_Triggers_Press(ID: DWORD);
+procedure g_Triggers_Press(ID: DWORD; ActivateType: Byte);
 begin
   gTriggers[ID].ActivateUID := 0;
-  ActivateTrigger(gTriggers[ID]);
+  ActivateTrigger(gTriggers[ID], ActivateType);
 end;
 
 function g_Triggers_PressR(X, Y: Integer; Width, Height: Word; UID: Word;
@@ -956,7 +975,7 @@ begin
                 gTriggers[a].Width, gTriggers[a].Height) then
    begin
     gTriggers[a].ActivateUID := UID;
-    if ActivateTrigger(gTriggers[a]) then
+    if ActivateTrigger(gTriggers[a], ActivateType) then
     begin
      SetLength(Result, Length(Result)+1);
      Result[High(Result)] := a;
@@ -994,7 +1013,7 @@ begin
                     gTriggers[a].Width, gTriggers[a].Height) then
    begin
     gTriggers[a].ActivateUID := UID;
-    ActivateTrigger(gTriggers[a]);
+    ActivateTrigger(gTriggers[a], ActivateType);
    end;
 end;
 
@@ -1041,7 +1060,7 @@ begin
                (CX > X) and (CX < (X+Width)) ) then // Центр круга недалеко от горизонтальных границ прямоугольника
           begin
             ActivateUID := UID;
-            ActivateTrigger(gTriggers[a]);
+            ActivateTrigger(gTriggers[a], ActivateType);
           end;
 end;
 

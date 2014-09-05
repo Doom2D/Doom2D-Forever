@@ -3658,7 +3658,7 @@ var
 begin
   if FDieTriggers <> nil then
     for a := 0 to High(FDieTriggers) do
-      g_Triggers_Press(FDieTriggers[a]);
+      g_Triggers_Press(FDieTriggers[a], ACTIVATE_MONSTERPRESS);
 end;
 
 procedure TMonster.AddTrigger(t: Integer);
