@@ -1567,7 +1567,6 @@ begin
    e_TextureFontPrint(X + 4, Y + 242, _lc[I_PLAYER_SPECT], gStdFont);
    e_TextureFontPrint(X + 4, Y + 258, _lc[I_PLAYER_SPECT1], gStdFont);
    e_TextureFontPrint(X + 4, Y + 274, _lc[I_PLAYER_SPECT2], gStdFont);
-   e_TextureFontPrint(X + 4, Y + 290, _lc[I_PLAYER_SPECT3], gStdFont);
  end;
 end;
 
@@ -3147,15 +3146,32 @@ begin
     end;
     if FGhost then
     begin
-      if FSpectatePlayer = -1 then
+      if FKeys[KEY_DOWN].Pressed then
       begin
-        if FKeys[KEY_DOWN].Pressed then FYTo := FObj.Y + 24;
-        if FKeys[KEY_LEFT].Pressed then FXTo := FObj.X - 24;
-        if FKeys[KEY_RIGHT].Pressed then FXto := FObj.X + 24;
-      end;
-      if FKeys[KEY_OPEN].Pressed and AnyServer then Fire();
-      if FKeys[KEY_JUMP].Pressed and AnyServer and FSpectator then
+        FYTo := FObj.Y + 32;
         FSpectatePlayer := -1;
+      end;
+      if FKeys[KEY_LEFT].Pressed then
+      begin
+        FXTo := FObj.X - 32;
+        FSpectatePlayer := -1;
+      end;
+      if FKeys[KEY_RIGHT].Pressed then
+      begin
+        FXto := FObj.X + 32;
+        FSpectatePlayer := -1;
+      end;
+
+      if (FXTo < 0) then
+        FXTo := 0
+      else
+        if (FXTo > gMapInfo.Width) then FXTo := gMapInfo.Width;
+      if (FYTo < 0) then
+        FYTo := 0
+      else
+        if (FYTo > gMapInfo.Height) then FYTo := gMapInfo.Height;
+
+      if FKeys[KEY_OPEN].Pressed and AnyServer then Fire();
       if FKeys[KEY_FIRE].Pressed and AnyServer then
       begin
         if FSpectator then

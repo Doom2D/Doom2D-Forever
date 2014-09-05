@@ -1747,9 +1747,9 @@ begin
   g_Map_DrawPanels(PANEL_FORE);
 
   if p.FSpectator then
-    e_TextureFontPrintEx(p.GameX, p.GameY, 'X',
-      gStdFont, 255, 255, 255, 1, True);
-
+    e_TextureFontPrintEx(p.GameX + PLAYER_RECT_CX - 4,
+                         p.GameY + PLAYER_RECT_CY - 4,
+                         'X', gStdFont, 255, 255, 255, 1, True);
   {
   for a := 0 to High(gCollideMap) do
     for b := 0 to High(gCollideMap[a]) do
