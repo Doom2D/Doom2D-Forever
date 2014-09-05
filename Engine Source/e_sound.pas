@@ -26,6 +26,7 @@ type
     FID: DWORD;
     FLoop: Boolean;
     FPosition: DWORD;
+    FPriority: Integer;
 
     function RawPlay(Pan: Single; Volume: Single; aPos: DWORD): Boolean;
     
@@ -46,6 +47,7 @@ type
     procedure Mute(Enable: Boolean);
     function GetPosition(): DWORD;
     procedure SetPosition(aPos: DWORD);
+    procedure SetPriority(priority: Integer);
   end;
 
 const
@@ -673,6 +675,7 @@ begin
   FLoop := False;
   FChannel := nil;
   FPosition := 0;
+  FPriority := 128;
 end;
 
 destructor TBasicSound.Destroy();
@@ -972,6 +975,22 @@ begin
   res := FMOD_Channel_SetPosition(FChannel, FPosition, FMOD_TIMEUNIT_MS);
   if res <> FMOD_OK then
   begin
+  end;
+end;
+
+procedure TBasicSound.SetPriority(priority: Integer);
+var
+  res: FMOD_RESULT;
+  
+begin
+  if (FChannel <> nil) and (FPriority <> priority) and
+     (priority >= 0) and (priority <= 256) then
+  begin
+    FPriority := priority;
+    res := FMOD_Channel_SetPriority(FChannel, priority);
+    if res <> FMOD_OK then
+    begin
+    end;
   end;
 end;
 

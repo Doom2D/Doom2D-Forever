@@ -598,6 +598,8 @@ begin
     begin
       Stop();
       Result := RawPlay(0.0, gMusicLevel/255.0, FPosition);
+      if Result then
+        SetPriority(0);
       if Result and FSpecPause then
         Pause(True);
     end
