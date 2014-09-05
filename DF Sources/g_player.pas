@@ -3546,9 +3546,9 @@ begin
 
    AX := Abs(FXTo - FObj.X);
    AY := Abs(FYTo - FObj.Y);
-   if (AX > 32) or (AX < NetInterpLevel) then
+   if (AX > 32) or (AX <= NetInterpLevel) then
     FObj.X := FXTo;
-   if (AY > 32) or (AY < NetInterpLevel) then
+   if (AY > 32) or (AY <= NetInterpLevel) then
     FObj.Y := FYTo;
   end;
 end;
