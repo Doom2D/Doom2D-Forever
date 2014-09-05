@@ -3595,10 +3595,7 @@ begin
 // Debug mode:
   s := Find_Param_Value(pars, '--debug');
   if (s <> '') then
-  begin
     g_Game_SetDebugMode();
-  end;
-
 
 // Connect when game loads
   ip := Find_Param_Value(pars, '-connect');

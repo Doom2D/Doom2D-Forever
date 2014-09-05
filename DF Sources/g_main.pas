@@ -112,8 +112,10 @@ const
   c9 = 'BULLFROG';
   c10 = 'FORMULA1';
 begin
- if (not gGameOn) or (not gCheats) or ((gGameSettings.GameType <> GT_SINGLE) and (not gDebugMode)) or g_Game_IsNet then Exit;
-
+ if (not gGameOn) or (not gCheats) or ((gGameSettings.GameType <> GT_SINGLE) and
+    (gGameSettings.GameMode <> GM_COOP) and (not gDebugMode))
+    or g_Game_IsNet then Exit;
+    
  s := 'SOUND_GAME_RADIO';
 
  if Copy(charbuff, 12, 5) = c1 then
