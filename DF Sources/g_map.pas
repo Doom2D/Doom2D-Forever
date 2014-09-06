@@ -105,6 +105,7 @@ var
   gDoorMap: array of array of DWORD;
   gLiftMap: array of array of DWORD;
   gRelativeMapResStr: string = '';
+  gWADHash: LongInt = 0;
   BackID:  DWORD = DWORD(-1);
 
 Implementation

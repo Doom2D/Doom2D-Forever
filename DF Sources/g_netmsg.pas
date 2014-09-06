@@ -495,6 +495,7 @@ begin
   e_Buffer_Write(@NetOut, NetClients[ID].Player);
   e_Buffer_Write(@NetOut, ExtractRelativePath(MapsDir, gGameSettings.WAD));
   e_Buffer_Write(@NetOut, Map);
+  e_Buffer_Write(@NetOut, gWADHash);
   e_Buffer_Write(@NetOut, gGameSettings.GameMode);
   e_Buffer_Write(@NetOut, gGameSettings.GoalLimit);
   e_Buffer_Write(@NetOut, gGameSettings.TimeLimit);

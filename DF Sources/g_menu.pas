@@ -2539,6 +2539,13 @@ begin
     Color := _RGB(255, 255, 255);
     X := cx+16;
     Y := _y;
+    _y := _y+GetHeight();
+  end;
+  with TGUILabel(Menu.AddChild(TGUILabel.Create(_lc[I_CREDITS_A_4_5], gMenuSmallFont))) do
+  begin
+    Color := _RGB(255, 255, 255);
+    X := cx+16;
+    Y := _y;
     _y := _y+GetHeight()+16;
   end;
 // Заключение:

@@ -292,7 +292,7 @@ begin
   NetMasterRate := Max(1, config.ReadInt('Server', 'MasterSyncInterval', 60000));
 
 // Клиент
-  NetInterpLevel := Max(0, config.ReadInt('Client', 'InterpolationSteps', 1));
+  NetInterpLevel := Max(0, config.ReadInt('Client', 'InterpolationSteps', 2));
   NetLastIP := config.ReadStr('Client', 'LastIP', 'localhost');
   NetLastPort := Max(0, config.ReadInt('Client', 'LastPort', 25666));
 

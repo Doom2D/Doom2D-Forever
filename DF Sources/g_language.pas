@@ -245,6 +245,7 @@ Type
     I_NET_ERR_CLIENT,
     I_NET_ERR_CONN,
     I_NET_ERR_TIMEOUT,
+    I_NET_ERR_HASH,
 
     I_NET_DISC_NONE,
     I_NET_DISC_PROTOCOL,
@@ -381,6 +382,7 @@ Type
     I_CREDITS_A_4_2,
     I_CREDITS_A_4_3,
     I_CREDITS_A_4_4,
+    I_CREDITS_A_4_5,
     I_CREDITS_CAP_3,                      
     I_CREDITS_CLO_1,
     I_CREDITS_CLO_2,
@@ -895,6 +897,8 @@ Const
                                        'Не вышло соединиться!'),
     ('NET ERR TIMEOUT',                'Connection timed out!',
                                        'Сервер не отвечает!'),
+    ('NET ERR HASH',                   'Your WAD is different from server''s!',
+                                       'Ваш WAD отличается от серверного!'),
 
     ('NET DISC NONE',                  'Server is down.',
                                        'Сервер не отвечает.'),
@@ -1158,6 +1162,8 @@ Const
                                        'DEAD'),
     ('CREDITS A 4 4',                  'kevingpo',
                                        'kevingpo'),
+    ('CREDITS A 4 5',                  'kevingpo',
+                                       'Grom PE'),
     ('CREDITS CAP 3',                  'Special respect to:',
                                        'Мы их не забудем:'),
     ('CREDITS CLO 1',                  'Prikol Software, who made Doom 2D.',

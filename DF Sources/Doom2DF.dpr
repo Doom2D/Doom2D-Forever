@@ -50,6 +50,7 @@ uses
   g_weapons in 'g_weapons.pas',
   g_window in 'g_window.pas',
   sysutils,
+  adler32 in '..\Lib\adler32.pas',
   fmod in '..\Lib\FMOD\fmod.pas',
   fmoderrors in '..\Lib\FMOD\fmoderrors.pas',
   fmodpresets in '..\Lib\FMOD\fmodpresets.pas',

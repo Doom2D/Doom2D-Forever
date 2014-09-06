@@ -193,7 +193,8 @@ Uses
   g_playermodel, g_gfx, g_options, g_weapons, Math,
   g_triggers, MAPDEF, g_monsters, e_sound, CONFIG,
   DirectInput, BinEditor, g_language, g_net,
-  ENet, e_fixedbuffer, g_netmsg, g_netmaster;
+  ENet, e_fixedbuffer, g_netmsg, g_netmaster,
+  Adler32;
 
 Type
   TEndCustomGameStat = record
@@ -2293,6 +2294,7 @@ procedure g_Game_StartServer(Map: String; GameMode: Byte;
 var
   ResName: String;
   Team: Byte;
+  F: file;
 
 begin
   g_Game_Free();
@@ -2365,6 +2367,14 @@ begin
     Exit;
   end;
 
+  try
+    Assign(F, gGameSettings.WAD);
+    Reset(F, 1);
+    gWADHash := Adler32File(F);
+  finally
+    Close(F);
+  end;
+
 // CTF, א פכאדמג םוע:
   if (GameMode = GM_CTF) and not g_Map_HaveFlagPoints() then
   begin
@@ -2398,6 +2408,8 @@ var
   MID: Byte;
   State: Byte;
   OuterLoop: Boolean;
+  WHash: LongInt;
+  F: file;
 begin
   g_Game_Free();
   State := 0;
@@ -2451,6 +2463,25 @@ begin
 
         gGameSettings.WAD := MapsDir + e_Raw_Read_String(Ptr);
         Map := e_Raw_Read_String(Ptr);
+
+        WHash := e_Raw_Read_LongInt(Ptr);
+        gWADHash := 1;
+
+        try
+          Assign(F, gGameSettings.WAD);
+          Reset(F, 1);
+          gWADHash := Adler32File(F);
+        finally
+          Close(F);
+        end;
+
+        if WHash <> gWADHash then
+        begin
+          g_FatalError(_lc[I_NET_MSG] + _lc[I_NET_ERR_HASH]);
+          enet_packet_destroy(NetEvent.packet);
+          NetState := NET_STATE_NONE;
+          Exit;
+        end;
 
         gGameSettings.GameMode := e_Raw_Read_Byte(Ptr);
         gGameSettings.GoalLimit := e_Raw_Read_Word(Ptr);
