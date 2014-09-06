@@ -181,6 +181,7 @@ Var
   gCoopTotalMonsters: Word = 0;
   gCoopTotalSecrets: Word = 0;
   gStatsOff: Boolean = False;
+  gStatsPressed: Boolean = False;
 
   P1MoveButton: Byte = 0;
   P2MoveButton: Byte = 0;
@@ -1352,6 +1353,19 @@ var
 
 begin
  e_TextureFontGetSize(gStdFont, ww2, hh2);
+
+ e_PollKeyboard;
+ if (e_KeyBuffer[$0F] = $080) then
+ begin
+   if not gStatsPressed then
+   begin
+     gStatsOff := not gStatsOff;
+     gStatsPressed := True;
+   end;
+ end
+ else
+   gStatsPressed := False;
+
  if gStatsOff then
  begin
    s1 := _lc[I_MENU_INTER7];
@@ -1359,10 +1373,6 @@ begin
    x := gScreenWidth div 2 - w;
    y := 8;
    e_TextureFontPrint(x, y, s1, gStdFont);
-
-   e_PollKeyboard;
-   if e_KeyBuffer[$0F] = $080 then
-     gStatsOff := False;
    Exit;
  end;
  
@@ -1872,7 +1882,7 @@ begin
    begin
      back := 'TEXTURE_endpic';
      if not g_Texture_Get(back, ID) then
-       back := 'INTER';
+       back := _lc[I_TEXTURE_ENDPIC];
    end
    else
      back := 'INTER';
@@ -2701,7 +2711,8 @@ begin
     if not g_Map_Exist(gGameSettings.WAD + ':\' + NextMap) then
     begin
       gLastMap := True;
-      gStatsOff := True;
+      if gGameSettings.GameMode = GM_COOP then gStatsOff := True;
+      gStatsPressed := True;
       NextMap := 'MAP01';
 
       if not g_Map_Exist(gGameSettings.WAD + ':\' + NextMap) then

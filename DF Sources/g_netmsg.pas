@@ -1093,7 +1093,8 @@ begin
   EvType := e_Raw_Read_Byte(P);
   EvParm := e_Raw_Read_String(P);
   gLastMap := e_Raw_Read_Byte(P) = 1;
-  if gLastMap then gStatsOff := True;
+  if gLastMap and (gGameSettings.GameMode = GM_COOP) then gStatsOff := True;
+  gStatsPressed := True;
   EvTime := e_Raw_Read_LongWord(P);
 
   gTime := EvTime;
