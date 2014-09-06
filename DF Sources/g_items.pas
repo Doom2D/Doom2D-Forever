@@ -34,9 +34,7 @@ var
   gItems: Array of TItem = nil;
   gItemsTexturesID: Array [1..32] of DWORD;
   gMaxDist: Integer = 1;
-
-const
-  ITEM_RESPAWNTIME = 60 * 36;
+  ITEM_RESPAWNTIME: Integer = 60 * 36;
 
 implementation
 
@@ -292,6 +290,8 @@ begin
 
   gItems[find_id].ItemType := ItemType;
   gItems[find_id].Respawnable := Respawnable;
+  if g_Game_IsServer and (ITEM_RESPAWNTIME = 0) then
+    gItems[find_id].Respawnable := False;
   gItems[find_id].InitX := X;
   gItems[find_id].InitY := Y;
   gItems[find_id].RespawnTime := 0;

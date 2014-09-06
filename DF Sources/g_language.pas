@@ -919,8 +919,8 @@ Const
 
     ('NET SLIST',                      'Server list',
                                        'Список серверов'),
-    ('NET SLIST NOSERVERS',            'No servers found.',
-                                       'Серверов не найдено.'),
+    ('NET SLIST NOSERVERS',            'No active servers.',
+                                       'Нет активных серверов.'),
     ('NET SLIST SERVERS',              ' server(s)',
                                        ' сервер(а, ов)'),
     ('NET SLIST HELP',                 '[ENTER] - join   [SPACE] - refresh   [ESC] - quit',

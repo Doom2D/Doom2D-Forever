@@ -34,7 +34,7 @@ uses
   e_log, SysUtils, CONFIG, g_playermodel, DateUtils,
   MAPSTRUCT, WADEDITOR, Math, WADSTRUCT, g_saveload,
   e_textures, dglOpenGL, g_language,
-  g_net, g_netmsg, g_netmaster;
+  g_net, g_netmsg, g_netmaster, g_items;
 
 procedure ProcChangeColor(Sender: TGUIControl); forward;
 procedure ProcSelectModel(Sender: TGUIControl); forward;
@@ -257,6 +257,7 @@ begin
    else config.WriteInt('Game', 'GibsCount', 4);
   end;
 
+ config.WriteInt('Game', 'ItemRespawnTime', ITEM_RESPAWNTIME);
  config.WriteInt('Game', 'MaxParticles', g_GFX_GetMax());
  config.WriteInt('Game', 'MaxGibs', g_Gibs_GetMax());
  config.WriteInt('Game', 'MaxCorpses', g_Corpses_GetMax());

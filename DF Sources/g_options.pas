@@ -67,7 +67,7 @@ Implementation
 Uses
   e_log, g_window, g_sound, g_gfx, g_player, Math,
   g_map, g_net, g_netmaster, SysUtils, CONFIG, g_game, g_main, e_textures,
-  dglOpenGL;
+  g_items, dglOpenGL;
 
 procedure g_Options_SetDefault();
 begin
@@ -201,7 +201,7 @@ begin
   begin
     TakeScreenshot := config.ReadInt('GameControls', 'TakeScreenshot', 183);
     Stat := config.ReadInt('GameControls', 'Stat', 15);
-    Chat := config.ReadInt('GameControls', 'Chat', 54);
+    Chat := config.ReadInt('GameControls', 'Chat', 20);
   end;
 
   with gGameControls.P1Control, config do
@@ -266,6 +266,7 @@ begin
     else gGibsCount := 48;
   end;
 
+  ITEM_RESPAWNTIME := Max(config.ReadInt('Game', 'ItemRespawnTime', 60*36), 0);
   gBloodCount := Min(config.ReadInt('Game', 'BloodCount', 4), 4);
   gAdvBlood := config.ReadBool('Game', 'AdvancesBlood', True);
   gAdvCorpses := config.ReadBool('Game', 'AdvancesCorpses', True);
