@@ -11,6 +11,7 @@ tmp/
 *.bak
 *.swp
 *~.nib
+*.~pas
 local.properties
 .classpath
 .settings/
