@@ -257,7 +257,7 @@ begin
    else config.WriteInt('Game', 'GibsCount', 4);
   end;
 
- config.WriteInt('Game', 'ItemRespawnTime', ITEM_RESPAWNTIME);
+ config.WriteInt('Game', 'ItemRespawnTime', ITEM_RESPAWNTIME div 36);
  config.WriteInt('Game', 'MaxParticles', g_GFX_GetMax());
  config.WriteInt('Game', 'MaxGibs', g_Gibs_GetMax());
  config.WriteInt('Game', 'MaxCorpses', g_Corpses_GetMax());

@@ -266,7 +266,7 @@ begin
     else gGibsCount := 48;
   end;
 
-  ITEM_RESPAWNTIME := Max(config.ReadInt('Game', 'ItemRespawnTime', 60*36), 0);
+  ITEM_RESPAWNTIME := 36*Max(config.ReadInt('Game', 'ItemRespawnTime', 60), 0);
   gBloodCount := Min(config.ReadInt('Game', 'BloodCount', 4), 4);
   gAdvBlood := config.ReadBool('Game', 'AdvancesBlood', True);
   gAdvCorpses := config.ReadBool('Game', 'AdvancesCorpses', True);
