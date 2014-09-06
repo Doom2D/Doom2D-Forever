@@ -4,7 +4,7 @@ Interface
 
 Uses
   e_graphics, g_basic, MAPSTRUCT, windows, g_textures,
-  g_phys, WADEDITOR, BinEditor, g_panel;
+  g_phys, WADEDITOR, BinEditor, g_panel, md5asm;
 
 Type
   TMapInfo = record
@@ -105,7 +105,7 @@ var
   gDoorMap: array of array of DWORD;
   gLiftMap: array of array of DWORD;
   gRelativeMapResStr: string = '';
-  gWADHash: LongInt = 0;
+  gWADHash: TMD5Digest;
   BackID:  DWORD = DWORD(-1);
 
 Implementation

@@ -463,7 +463,7 @@ begin
     e_WriteLog('Kicked from server: ' + IntToStr(NetEvent.data), MSG_NOTIFY);
     if (NetEvent.data <= 7) then
       g_Console_Add(_lc[I_NET_MSG] + _lc[I_NET_MSG_KICK] +
-        _lc[TStrings_Locale(Cardinal(I_NET_DISC_NONE) + NetEvent.data)]);
+        _lc[TStrings_Locale(Cardinal(I_NET_DISC_NONE) + NetEvent.data)], True);
   end;
 
   if NetHost <> nil then enet_host_destroy(NetHost);
@@ -538,7 +538,7 @@ var
 begin
   if NetMode <> NET_NONE then
   begin
-    g_Console_Add(_lc[I_NET_MSG] + _lc[I_NET_ERR_INGAME]);
+    g_Console_Add(_lc[I_NET_MSG] + _lc[I_NET_ERR_INGAME], True);
     Result := False;
     Exit;
   end;
@@ -551,7 +551,7 @@ begin
   begin
     if (not g_Net_Init()) then
     begin
-      g_Console_Add(_lc[I_NET_MSG_FERROR] + _lc[I_NET_ERR_ENET]);
+      g_Console_Add(_lc[I_NET_MSG_FERROR] + _lc[I_NET_ERR_ENET], True);
       Result := False;
       Exit;
     end
@@ -563,7 +563,7 @@ begin
 
   if (NetHost = nil) then
   begin
-    g_Console_Add(_lc[I_NET_MSG_ERROR] + _lc[I_NET_ERR_CLIENT]);
+    g_Console_Add(_lc[I_NET_MSG_ERROR] + _lc[I_NET_ERR_CLIENT], True);
     g_Net_Cleanup;
     Result := False;
     Exit;
@@ -576,7 +576,7 @@ begin
 
   if (NetPeer = nil) then
   begin
-    g_Console_Add(_lc[I_NET_MSG_ERROR] + _lc[I_NET_ERR_CLIENT]);
+    g_Console_Add(_lc[I_NET_MSG_ERROR] + _lc[I_NET_ERR_CLIENT], True);
     enet_host_destroy(NetHost);
     g_Net_Cleanup;
     Result := False;
@@ -605,7 +605,7 @@ begin
       OuterLoop := False;
   end;
 
-  g_Console_Add(_lc[I_NET_MSG_ERROR] + _lc[I_NET_ERR_TIMEOUT]);
+  g_Console_Add(_lc[I_NET_MSG_ERROR] + _lc[I_NET_ERR_TIMEOUT], True);
   if NetPeer <> nil then enet_peer_reset(NetPeer);
   if NetHost <> nil then enet_host_destroy(NetHost);
   g_Net_Cleanup;

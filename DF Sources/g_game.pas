@@ -194,7 +194,7 @@ Uses
   g_triggers, MAPDEF, g_monsters, e_sound, CONFIG,
   DirectInput, BinEditor, g_language, g_net,
   ENet, e_fixedbuffer, g_netmsg, g_netmaster,
-  Adler32;
+  md5asm;
 
 Type
   TEndCustomGameStat = record
@@ -2294,7 +2294,6 @@ procedure g_Game_StartServer(Map: String; GameMode: Byte;
 var
   ResName: String;
   Team: Byte;
-  F: file;
 
 begin
   g_Game_Free();
@@ -2367,13 +2366,7 @@ begin
     Exit;
   end;
 
-  try
-    Assign(F, gGameSettings.WAD);
-    Reset(F, 1);
-    gWADHash := Adler32File(F);
-  finally
-    Close(F);
-  end;
+  gWADHash := MD5File(gGameSettings.WAD);
 
 // CTF, א פכאדמג םוע:
   if (GameMode = GM_CTF) and not g_Map_HaveFlagPoints() then
@@ -2408,7 +2401,7 @@ var
   MID: Byte;
   State: Byte;
   OuterLoop: Boolean;
-  WHash: LongInt;
+  WHash: TMD5Digest;
   F: file;
 begin
   g_Game_Free();
@@ -2464,30 +2457,25 @@ begin
         gGameSettings.WAD := MapsDir + e_Raw_Read_String(Ptr);
         Map := e_Raw_Read_String(Ptr);
 
-        WHash := e_Raw_Read_LongInt(Ptr);
-        gWADHash := 1;
-
-        try
-          Assign(F, gGameSettings.WAD);
-          Reset(F, 1);
-          gWADHash := Adler32File(F);
-        finally
-          Close(F);
-        end;
-
-        if WHash <> gWADHash then
-        begin
-          g_FatalError(_lc[I_NET_MSG] + _lc[I_NET_ERR_HASH]);
-          enet_packet_destroy(NetEvent.packet);
-          NetState := NET_STATE_NONE;
-          Exit;
-        end;
+        WHash := e_Raw_Read_MD5(Ptr);
 
         gGameSettings.GameMode := e_Raw_Read_Byte(Ptr);
         gGameSettings.GoalLimit := e_Raw_Read_Word(Ptr);
         gGameSettings.TimeLimit := e_Raw_Read_Word(Ptr);
         gGameSettings.Options := e_Raw_Read_LongWord(Ptr);
         T := e_Raw_Read_LongWord(Ptr);
+
+        if FileExists(gGameSettings.WAD) then
+        begin
+          gWADHash := MD5File(gGameSettings.WAD);
+          if not MD5Compare(gWADHash, WHash) then
+          begin
+            g_FatalError(_lc[I_NET_ERR_HASH]);
+            enet_packet_destroy(NetEvent.packet);
+            NetState := NET_STATE_NONE;
+            Exit;
+          end;
+        end;
 
         ResName := Map;
 
@@ -2538,7 +2526,7 @@ begin
         State := 0;
         if (NetEvent.data <= 7) then
           g_Console_Add(_lc[I_NET_MSG_ERROR] + _lc[I_NET_ERR_CONN] + ' ' +
-            _lc[TStrings_Locale(Cardinal(I_NET_DISC_NONE) + NetEvent.data)]);
+            _lc[TStrings_Locale(Cardinal(I_NET_DISC_NONE) + NetEvent.data)], True);
         OuterLoop := False;
         Break;
       end;

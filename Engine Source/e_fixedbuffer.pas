@@ -6,6 +6,8 @@ unit e_fixedbuffer;
 
 interface
 
+uses md5asm;
+
 const
   BUF_SIZE = 65536;
 
@@ -40,6 +42,8 @@ procedure e_Buffer_Write(B: pTBuffer; V: LongInt); overload;
 
 procedure e_Buffer_Write(B: pTBuffer; V: string); overload;
 
+procedure e_Buffer_Write(B: pTBuffer; V: TMD5Digest); overload;
+
 
 function  e_Buffer_Read_Char(B: pTBuffer): Char;
 
@@ -52,6 +56,8 @@ function  e_Buffer_Read_SmallInt(B: pTBuffer): SmallInt;
 function  e_Buffer_Read_LongInt(B: pTBuffer): LongInt;
 
 function  e_Buffer_Read_String(B: pTBuffer): string;
+
+function  e_Buffer_Read_MD5(B: pTBuffer): TMD5Digest;
 
 
 procedure e_Raw_Read_Generic(P: Pointer; var V; N: Cardinal);
@@ -67,6 +73,8 @@ function  e_Raw_Read_SmallInt(P: Pointer): SmallInt;
 function  e_Raw_Read_LongInt(P: Pointer): LongInt;
 
 function  e_Raw_Read_String(P: Pointer): string;
+
+function  e_Raw_Read_MD5(P: Pointer): TMD5Digest;
 
 procedure e_Raw_Seek(I: Cardinal);
 
@@ -160,6 +168,14 @@ begin
   B^.WritePos := B^.WritePos + Len;
 end;
 
+procedure e_Buffer_Write(B: pTBuffer; V: TMD5Digest); overload;
+var
+  I: Integer;
+begin
+  for I := 0 to 15 do
+    e_Buffer_Write(B, V.v[I]);
+end;
+
 
 function  e_Buffer_Read_Char(B: pTBuffer): Char;
 begin
@@ -206,6 +222,13 @@ begin
   B^.ReadPos := B^.ReadPos + Len;
 end;
 
+function e_Buffer_Read_MD5(B: pTBuffer): TMD5Digest;
+var
+  I: Integer;
+begin
+  for I := 0 to 15 do
+    Result.v[I] := e_Buffer_Read_Byte(B);
+end;
 
 procedure e_Raw_Read_Generic(P: Pointer; var V; N: Cardinal);
 begin
@@ -257,6 +280,14 @@ begin
   MoveMemory(@Result[1], Pointer(Cardinal(P) + RawPos), Len);
 
   RawPos := RawPos + Len;
+end;
+
+function e_Raw_Read_MD5(P: Pointer): TMD5Digest;
+var
+  I: Integer;
+begin
+  for I := 0 to 15 do
+    Result.v[I] := e_Raw_Read_Byte(P);
 end;
 
 procedure e_Raw_Seek(I: Cardinal);

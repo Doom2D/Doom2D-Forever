@@ -181,14 +181,14 @@ begin
   NetMHost := enet_host_create(nil, 1, NET_MCHANS, 0, 0);
   if (NetMHost = nil) then
   begin
-    g_Console_Add(_lc[I_NET_MSG_ERROR] + _lc[I_NET_ERR_CLIENT]);
+    g_Console_Add(_lc[I_NET_MSG_ERROR] + _lc[I_NET_ERR_CLIENT], True);
     Exit;  
   end;
 
   NetMPeer := enet_host_connect(NetMHost, @NetSlistAddr, NET_MCHANS, 0);
   if (NetMPeer = nil) then
   begin
-    g_Console_Add(_lc[I_NET_MSG_ERROR] + _lc[I_NET_ERR_CLIENT]);
+    g_Console_Add(_lc[I_NET_MSG_ERROR] + _lc[I_NET_ERR_CLIENT], True);
     enet_host_destroy(NetMHost);
     NetMHost := nil;
     Exit;
@@ -205,7 +205,7 @@ begin
       if NetMEvent.kind = ENET_EVENT_TYPE_RECEIVE then
         enet_packet_destroy(NetMEvent.packet);
 
-  g_Console_Add(_lc[I_NET_MSG_ERROR] + _lc[I_NET_SLIST_ERROR]);
+  g_Console_Add(_lc[I_NET_MSG_ERROR] + _lc[I_NET_SLIST_ERROR], True);
 
   NetMHost := nil;
   NetMPeer := nil;
@@ -237,7 +237,7 @@ begin
   begin
     if NetMEvent.kind = ENET_EVENT_TYPE_DISCONNECT then
     begin
-      g_Console_Add(_lc[I_NET_MSG] + _lc[I_NET_SLIST_LOST]);
+      g_Console_Add(_lc[I_NET_MSG] + _lc[I_NET_SLIST_LOST], True);
       if NetMPeer <> nil then enet_peer_reset(NetMPeer);
       if NetMHost <> nil then enet_host_destroy(NetMHost);
       NetMPeer := nil;
