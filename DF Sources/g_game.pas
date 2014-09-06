@@ -3309,6 +3309,14 @@ begin
           end;
         end;
       end;
+
+    if LowerCase(P[0]) = 'net_interp' then
+    begin
+      if (Length(P) > 1) then
+        NetInterpLevel := StrToIntDef(P[1], NetInterpLevel);
+
+      g_Console_Add('net_interp = ' + IntToStr(NetInterpLevel));
+    end;
   end;
 end;
 

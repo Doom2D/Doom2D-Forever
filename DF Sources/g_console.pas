@@ -220,6 +220,7 @@ begin
   AddCommand('connect', GameCommands);
   AddCommand('disconnect', GameCommands);
   AddCommand('reconnect', GameCommands);
+  AddCommand('net_interp', GameCommands);
 
   g_Console_Add(Format(_lc[I_CONSOLE_WELCOME], [GAME_VERSION]));
   g_Console_Add('');
