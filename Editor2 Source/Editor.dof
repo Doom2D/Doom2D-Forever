@@ -90,11 +90,11 @@ MaxStackSize=1048576
 ImageBase=4194304
 ExeDescription=
 [Directories]
-OutputDir=F:\DFv062 Compiled
-UnitOutputDir=F:\DFv062 Compiled\Delphi dcus\Editor
-PackageDLLOutputDir=F:\DFv062 Compiled\Delphi dcus\Editor
-PackageDCPOutputDir=F:\DFv062 Compiled\Delphi dcus\Editor
-SearchPath=F:\DFv062 Compiled
+OutputDir=.\Bin
+UnitOutputDir=.\Temp
+PackageDLLOutputDir=.\Temp
+PackageDCPOutputDir=.\Temp
+SearchPath=..\
 Packages=vcl;rtl;vclx;indy;inet;xmlrtl;vclie;inetdbbde;inetdbxpress;dbrtl;dsnap;dsnapcon;vcldb;soaprtl;VclSmp;dbexpress;dbxcds;inetdb;bdertl;vcldbx;webdsnap;websnap;adortl;ibxpress;teeui;teedb;tee;dss;visualclx;visualdbclx;vclactnband;vclshlctrls;dclOffice2k
 Conditionals=
 DebugSourceDirs=
@@ -138,22 +138,27 @@ Comments=
 Count=1
 Item0=WinTypes=Windows;WinProcs=Windows;DbiTypes=BDE;DbiProcs=BDE;DbiErrs=BDE;
 [HistoryLists\hlSearchPath]
-Count=1
-Item0=F:\DFv062 Compiled
+Count=2
+Item0=..\
+Item1=F:\DFv062 Compiled
 [HistoryLists\hlUnitOutputDirectory]
-Count=2
-Item0=F:\DFv062 Compiled\Delphi dcus\Editor
-Item1=F:\DFv062 Compiled\Delphi dcus
-[HistoryLists\hlOutputDirectorry]
 Count=3
-Item0=F:\DFv062 Compiled
-Item1=C:\Users\FGSFDS\Desktop\Work\DFS
-Item2=..\..\DoomForever
+Item0=.\Temp
+Item1=F:\DFv062 Compiled\Delphi dcus\Editor
+Item2=F:\DFv062 Compiled\Delphi dcus
+[HistoryLists\hlOutputDirectorry]
+Count=4
+Item0=.\Bin
+Item1=F:\DFv062 Compiled
+Item2=C:\Users\FGSFDS\Desktop\Work\DFS
+Item3=..\..\DoomForever
 [HistoryLists\hlBPLOutput]
-Count=2
-Item0=F:\DFv062 Compiled\Delphi dcus\Editor
-Item1=F:\DFv062 Compiled\Delphi dcus
+Count=3
+Item0=.\Temp
+Item1=F:\DFv062 Compiled\Delphi dcus\Editor
+Item2=F:\DFv062 Compiled\Delphi dcus
 [HistoryLists\hlDCPOutput]
-Count=2
-Item0=F:\DFv062 Compiled\Delphi dcus\Editor
-Item1=F:\DFv062 Compiled\Delphi dcus
+Count=3
+Item0=.\Temp
+Item1=F:\DFv062 Compiled\Delphi dcus\Editor
+Item2=F:\DFv062 Compiled\Delphi dcus
