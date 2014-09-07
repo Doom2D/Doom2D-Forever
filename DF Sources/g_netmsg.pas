@@ -47,6 +47,7 @@ const
   NET_GFX_SPARK   = 1;
   NET_GFX_SPAWN   = 2;
   NET_GFX_TELE    = 3;
+  NET_GFX_BFG     = 4;
 
   NET_EV_MAPSTART = 1;
   NET_EV_MAPEND   = 2;
@@ -1031,6 +1032,15 @@ begin
       end;
       if Ang = 1 then
         g_Sound_PlayExAt('SOUND_GAME_TELEPORT', X, Y);
+    end;
+    NET_GFX_BFG:
+    begin
+      if g_Frames_Get(ID, 'FRAMES_BFGHIT') then
+      begin
+        Anim := TAnimation.Create(ID, False, 4);
+        g_GFX_OnceAnim(X-32, Y-32, Anim);
+        Anim.Free();
+      end;
     end;
   end;
 end;

@@ -1238,6 +1238,10 @@ procedure TPlayer.BFGHit();
 begin
  g_Weapon_BFGHit(FObj.X+FObj.Rect.X+(FObj.Rect.Width div 2),
                  FObj.Y+FObj.Rect.Y+(FObj.Rect.Height div 2));
+ if g_Game_IsServer and g_Game_IsNet then
+   MH_SEND_Effect(FObj.X+FObj.Rect.X+(FObj.Rect.Width div 2),
+                  FObj.Y+FObj.Rect.Y+(FObj.Rect.Height div 2),
+                  0, NET_GFX_BFG);
 end;
 
 procedure TPlayer.ChangeModel(ModelName: string);
