@@ -376,7 +376,6 @@ end;
 procedure MH_SEND_Everything(CreatePlayers: Boolean = False; ID: Integer = NET_EVERYONE);
 var
   I: Integer;
-  SendMusic: Boolean;
 begin
   for I := Low(gPlayers) to High(gPlayers) do
    if gPlayers[I] <> nil then
@@ -469,16 +468,12 @@ begin
           MH_SEND_PanelTexture(PanelType, I, LastAnimLoop, ID);
 
   // И триггеры "Звук" и "Музыка"
-  SendMusic := False;
   if gTriggers <> nil then
    for I := Low(gTriggers) to High(gTriggers) do
     if gTriggers[I].TriggerType = TRIGGER_SOUND then
-      MH_SEND_TriggerSound(gTriggers[I], ID)
-    else
-      if gTriggers[I].TriggerType = TRIGGER_MUSIC then
-        SendMusic := True;
+      MH_SEND_TriggerSound(gTriggers[I], ID);
 
-  if SendMusic then MH_SEND_TriggerMusic(ID);
+  MH_SEND_TriggerMusic(ID);
 
   if CreatePlayers and (ID >= 0) then NetClients[ID].State := NET_STATE_GAME;
 end;
@@ -1056,7 +1051,7 @@ var
 begin
   if not gGameOn then Exit;
   I := e_Raw_Read_LongInt(P);
-  L := (e_Raw_Read_Byte(P) = 1);
+  L := (e_Raw_Read_Byte(P) <> 0);
   X := e_Raw_Read_LongInt(P);
   Y := e_Raw_Read_LongInt(P);
 
@@ -1093,7 +1088,7 @@ var
 begin
   EvType := e_Raw_Read_Byte(P);
   EvParm := e_Raw_Read_String(P);
-  gLastMap := e_Raw_Read_Byte(P) = 1;
+  gLastMap := e_Raw_Read_Byte(P) <> 0;
   if gLastMap and (gGameSettings.GameMode = GM_COOP) then gStatsOff := True;
   gStatsPressed := True;
   EvTime := e_Raw_Read_LongWord(P);
@@ -1134,7 +1129,7 @@ begin
 
   if Fl = FLAG_NONE then Exit;
 
-  Quiet := (e_Raw_Read_Byte(P) = 1);
+  Quiet := (e_Raw_Read_Byte(P) <> 0);
   PID := e_Raw_Read_Word(P);
 
   gFlags[Fl].State := e_Raw_Read_Byte(P);
@@ -1321,14 +1316,14 @@ begin
   
   with Pl do
   begin
-    Live := (e_Raw_Read_Byte(P) = 1);
-    GodMode := (e_Raw_Read_Byte(P) = 1);
+    Live := (e_Raw_Read_Byte(P) <> 0);
+    GodMode := (e_Raw_Read_Byte(P) <> 0);
     Health := e_Raw_Read_LongInt(P);
     Armor := e_Raw_Read_LongInt(P);
     Air := e_Raw_Read_LongInt(P);
 
     for I := WEAPON_KASTET to WEAPON_SUPERPULEMET do
-      FWeapon[I] := (e_Raw_Read_Byte(P) = 1);
+      FWeapon[I] := (e_Raw_Read_Byte(P) <> 0);
 
     for I := A_BULLETS to A_CELLS do
       FAmmo[I] := e_Raw_Read_Word(P);
@@ -1340,15 +1335,15 @@ begin
       FMegaRulez[I] := e_Raw_Read_LongWord(P);
 
     FRulez := [];
-    if (e_Raw_Read_Byte(P) = 1) then
+    if (e_Raw_Read_Byte(P) <> 0) then
       FRulez := FRulez + [R_ITEM_BACKPACK];
-    if (e_Raw_Read_Byte(P) = 1) then
+    if (e_Raw_Read_Byte(P) <> 0) then
       FRulez := FRulez + [R_KEY_RED];
-    if (e_Raw_Read_Byte(P) = 1) then
+    if (e_Raw_Read_Byte(P) <> 0) then
       FRulez := FRulez + [R_KEY_GREEN];
-    if (e_Raw_Read_Byte(P) = 1) then
+    if (e_Raw_Read_Byte(P) <> 0) then
       FRulez := FRulez + [R_KEY_BLUE];
-    if (e_Raw_Read_Byte(P) = 1) then
+    if (e_Raw_Read_Byte(P) <> 0) then
       FRulez := FRulez + [R_BERSERK];
       
     Frags := e_Raw_Read_LongInt(P);
@@ -1356,9 +1351,9 @@ begin
 
     SetWeapon(e_Raw_Read_Byte(P));
 
-    FSpectator := e_Raw_Read_Byte(P) = 1;
-    FGhost := e_Raw_Read_Byte(P) = 1;
-    FPhysics := e_Raw_Read_Byte(P) = 1;
+    FSpectator := e_Raw_Read_Byte(P) <> 0;
+    FGhost := e_Raw_Read_Byte(P) <> 0;
+    FPhysics := e_Raw_Read_Byte(P) <> 0;
   end;
 
   Result := PID;
@@ -1498,9 +1493,9 @@ var
 begin
   if not gGameOn then Exit;
   ID := e_Raw_Read_Word(P);
-  Quiet := e_Raw_Read_Byte(P) = 1;
+  Quiet := e_Raw_Read_Byte(P) <> 0;
   T := e_Raw_Read_Byte(P);
-  Fall := e_Raw_Read_Byte(P) = 1;
+  Fall := e_Raw_Read_Byte(P) <> 0;
   {Resp :=} e_Raw_Read_Byte(P);
   X := e_Raw_Read_LongInt(P);
   Y := e_Raw_Read_LongInt(P);
@@ -1529,7 +1524,7 @@ var
 begin
   if not gGameOn then Exit;
   ID := e_Raw_Read_Word(P);
-  Quiet := e_Raw_Read_Byte(P) = 1;
+  Quiet := e_Raw_Read_Byte(P) <> 0;
   if gItems = nil then Exit;
   if (ID > High(gItems)) then Exit;
 
@@ -1612,7 +1607,7 @@ begin
   if not gGameOn then Exit;
   PType := e_Raw_Read_Word(P);
   ID := e_Raw_Read_LongWord(P);
-  E := (e_Raw_Read_Byte(P) = 1);
+  E := (e_Raw_Read_Byte(P) <> 0);
   Lift := e_Raw_Read_Byte(P);
 
   case PType of
@@ -1639,7 +1634,7 @@ begin
   if gTriggers = nil then Exit;
 
   SName := e_Raw_Read_String(P);
-  SPlaying := e_Raw_Read_Byte(P) = 1;
+  SPlaying := e_Raw_Read_Byte(P) <> 0;
   SPos := e_Raw_Read_LongWord(P);
   SCount := e_Raw_Read_LongInt(P);
 
@@ -1665,31 +1660,23 @@ var
   MPlaying: Boolean;
   MPos: LongWord;
   MPaused: Boolean;
-  I: Integer;
 begin
   if not gGameOn then Exit;
-  if gTriggers = nil then Exit;
 
   MName := e_Raw_Read_String(P);
-  MPlaying := e_Raw_Read_Byte(P) = 1;
+  MPlaying := e_Raw_Read_Byte(P) <> 0;
   MPos := e_Raw_Read_LongWord(P);
-  MPaused := e_Raw_Read_Byte(P) = 1;
+  MPaused := e_Raw_Read_Byte(P) <> 0;
 
-  for I := Low(gTriggers) to High(gTriggers) do
-    if gTriggers[I].TriggerType = TRIGGER_MUSIC then
-      if gTriggers[I].Data.MusicName = MName then
-        with gTriggers[I] do
-        begin
-          if MPlaying then
-          begin
-            gMusic.SetByName(MName);
-            gMusic.Play(True);
-            gMusic.SetPosition(MPos);
-            gMusic.SpecPause := MPaused;
-          end
-          else
-            if gMusic.IsPlaying then gMusic.Stop;
-        end;
+  if MPlaying then
+  begin
+    gMusic.SetByName(MName);
+    gMusic.Play(True);
+    gMusic.SetPosition(MPos);
+    gMusic.SpecPause := MPaused;
+  end
+  else
+    if gMusic.IsPlaying then gMusic.Stop;
 end;
 // MONSTERS
 procedure MC_RECV_MonsterSpawn(P: Pointer);
@@ -1783,7 +1770,7 @@ begin
     MonsterHealth := e_Raw_Read_LongInt(P);
     MonsterAmmo := e_Raw_Read_LongInt(P);
     MonsterPain := e_Raw_Read_LongInt(P);
-    AnimRevert := e_Raw_Read_Byte(P) = 1;
+    AnimRevert := e_Raw_Read_Byte(P) <> 0;
     RevertAnim(AnimRevert);
 
     if MonsterState <> MState then
