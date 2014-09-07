@@ -158,6 +158,7 @@ Type
     FSpectator: Boolean;
     FGhost:     Boolean;
     FPhysics:   Boolean;
+    FActualModelName: string;
     
     constructor Create(); virtual;
     destructor  Destroy(); override;
@@ -519,6 +520,7 @@ begin
     gPlayers[a] := TPlayer.Create();
 
 
+  gPlayers[a].FActualModelName := ModelName;
   gPlayers[a].SetModel(ModelName);
 
 // Нет модели - создание не возможно:
@@ -1325,6 +1327,8 @@ begin
  FSawSoundSelect.SetByName('SOUND_WEAPON_SELECTSAW');
 
  FSpectatePlayer := -1;
+
+ FActualModelName := 'doomer';
 
  g_Obj_Init(@FObj);
  FObj.Rect := PLAYER_RECT;

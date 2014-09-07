@@ -618,7 +618,8 @@ begin
   e_Buffer_Write(@NetOut, Byte(NET_MSG_PLR));
   e_Buffer_Write(@NetOut, PID);
   e_Buffer_Write(@NetOut, P.Name);
-  e_Buffer_Write(@NetOut, P.Model.Name);
+
+  e_Buffer_Write(@NetOut, P.FActualModelName);
   e_Buffer_Write(@NetOut, P.Model.Color.R);
   e_Buffer_Write(@NetOut, P.Model.Color.G);
   e_Buffer_Write(@NetOut, P.Model.Color.B);
