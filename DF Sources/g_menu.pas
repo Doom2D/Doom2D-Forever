@@ -2559,42 +2559,42 @@ begin
   end;
   with TGUILabel(Menu.AddChild(TGUILabel.Create(_lc[I_CREDITS_CLO_1], gMenuSmallFont))) do
   begin
-    Color := _RGB(255, 0, 0);
+    Color := _RGB(255, 255, 255);
     X := (gScreenWidth div 2)-(GetWidth() div 2);
     Y := _y;
      _y := _y+GetHeight();
   end;
   with TGUILabel(Menu.AddChild(TGUILabel.Create(_lc[I_CREDITS_CLO_2], gMenuSmallFont))) do
   begin
-    Color := _RGB(255, 0, 0);
+    Color := _RGB(255, 255, 255);
     X := (gScreenWidth div 2)-(GetWidth() div 2);
     Y := _y;
      _y := _y+GetHeight();
   end;
   with TGUILabel(Menu.AddChild(TGUILabel.Create(_lc[I_CREDITS_CLO_3], gMenuSmallFont))) do
   begin
-    Color := _RGB(255, 0, 0);
+    Color := _RGB(255, 255, 255);
     X := (gScreenWidth div 2)-(GetWidth() div 2);
     Y := _y;
      _y := _y+GetHeight();
   end;
   with TGUILabel(Menu.AddChild(TGUILabel.Create(_lc[I_CREDITS_CLO_4], gMenuSmallFont))) do
   begin
-    Color := _RGB(255, 0, 0);
+    Color := _RGB(255, 255, 255);
     X := (gScreenWidth div 2)-(GetWidth() div 2);
     Y := _y;
     _y := _y+GetHeight()+16;
    end;
   with TGUILabel(Menu.AddChild(TGUILabel.Create(_lc[I_CREDITS_CLO_5], gMenuSmallFont))) do
   begin
-    Color := _RGB(255, 0, 0);
+    Color := _RGB(255, 255, 255);
     X := (gScreenWidth div 2)-(GetWidth() div 2);
     Y := _y;
     _y := _y+GetHeight();
   end;
   with TGUILabel(Menu.AddChild(TGUILabel.Create(_lc[I_CREDITS_CLO_6], gMenuSmallFont))) do
   begin
-    Color := _RGB(255, 0, 0);
+    Color := _RGB(255, 255, 255);
     X := (gScreenWidth div 2)-(GetWidth() div 2);
     Y := _y;
   end;
