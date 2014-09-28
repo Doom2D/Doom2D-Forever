@@ -20,7 +20,7 @@ begin
   e_Raw_Seek(0);
 
   B := P^.data;
-  if not Assigned(B) then Exit;
+  if B = nil then Exit;
 
   MID := e_Raw_Read_Byte(B);
 
@@ -71,7 +71,7 @@ begin
   e_Raw_Seek(0);
 
   B := P^.data;
-  if not Assigned(B) then Exit;
+  if B = nil then Exit;
 
   MID := e_Raw_Read_Byte(B);
 
@@ -94,7 +94,7 @@ begin
   e_Raw_Seek(0);
 
   B := P^.data;
-  if not Assigned(B) then Exit;
+  if B = nil then Exit;
 
   MID := e_Raw_Read_Byte(B);
 

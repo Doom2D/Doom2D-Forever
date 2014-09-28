@@ -3644,7 +3644,10 @@ begin
     if (s = '') or not TryStrToInt(s, Port) then
       Port := 25666;
 
-    g_Game_StartClient(ip, Port);
+    s := Find_Param_Value(pars, '-pw');
+    if (s = '') then s := 'ASS';
+
+    g_Game_StartClient(ip, Port, s);
     Exit;
   end;
 

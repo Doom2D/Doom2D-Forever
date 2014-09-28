@@ -317,7 +317,7 @@ begin
   end;
 
   e_DrawSize(ID, 0, Cons_Y, Alpha, False, False, gScreenWidth, gScreenHeight div 2);
-  e_TextureFontPrint(0, Cons_Y+(gScreenHeight div 2)-CHeight, '>'+Line, gStdFont);
+  e_TextureFontPrint(0, Cons_Y+(gScreenHeight div 2)-CHeight-4, '>'+Line, gStdFont);
 
   if ConsoleHistory <> nil then
   begin
@@ -332,13 +332,13 @@ begin
     c := 2;
     for a := d downto b do
     begin
-      e_TextureFontPrintEx(0, (gScreenHeight div 2)-c*CHeight-Abs(Cons_Y), ConsoleHistory[a],
+      e_TextureFontPrintEx(0, (gScreenHeight div 2)-4-c*CHeight-Abs(Cons_Y), ConsoleHistory[a],
                            gStdFont, 240, 240, 240, 1, True);
       c := c + 1;
     end;
   end;
 
-  e_TextureFontPrint(CPos*CWidth, Cons_Y+(gScreenHeight div 2)-17, '_', gStdFont);
+  e_TextureFontPrint(CPos*CWidth, Cons_Y+(gScreenHeight div 2)-21, '_', gStdFont);
 end;
 
 procedure g_Console_Switch();

@@ -1259,19 +1259,23 @@ procedure TPlayer.ChangeTeam;
 begin
   if not (gGameSettings.GameMode in [GM_TDM, GM_CTF]) then Exit;
   
-  if g_Game_IsServer and gGameOn then Kill(K_SIMPLEKILL, FUID, 0);
+  if g_Game_IsServer and gGameOn then
+  begin
+    Inc(FFrags);
+    Kill(K_SIMPLEKILL, FUID, 0);
+  end;
   
   if FTeam = TEAM_RED then
   begin
     FTeam := TEAM_BLUE;
     FModel.Color := _RGB(0, 0, 255);
-    g_Console_Add(FName + ' is now on Blue.', True);
+    g_Console_Add(Format(_lc[I_PLAYER_CHTEAM_BLUE], [FName]), True);
   end
   else
   begin
     FTeam := TEAM_RED;
     FModel.Color := _RGB(255, 0, 0);
-    g_Console_Add(FName + ' is now on Red.', True);
+    g_Console_Add(Format(_lc[I_PLAYER_CHTEAM_RED], [FName]), True);
   end;
 end;
 

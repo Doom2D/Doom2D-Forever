@@ -1577,7 +1577,7 @@ var
 begin
   Menu := TGUIWindow.Create('FirstLanguageMenu');
 
-  with TGUIMainMenu(Menu.AddChild(TGUIMainMenu.Create(gMenuFont, 'Язык / Language:'))) do
+  with TGUIMainMenu(Menu.AddChild(TGUIMainMenu.Create(gMenuFont, ' '))) do
   begin
     Name := 'mmFirstLanguageMenu';
     AddButton(@ProcSetFirstRussianLanguage, 'Русский', '');
@@ -2437,166 +2437,101 @@ begin
     Color := _RGB(255, 0, 0);
     X := (gScreenWidth div 2)-(GetWidth() div 2);
     Y := _y;
-    _y := _y+GetHeight()+24;
+    _y := _y+GetHeight()+32;
   end;
 // Что делал: Кто делал
-  cx := (gScreenWidth div 2)+32;
+  cx := gScreenWidth div 2 - 320 + 64;
   with TGUILabel(Menu.AddChild(TGUILabel.Create(_lc[I_CREDITS_A_1], gMenuSmallFont))) do
   begin
     Color := _RGB(255, 0, 0);
-    X := cx-GetWidth()-16;
+    X := cx;
     Y := _y;
+    _y := _y+22;
   end;
   with TGUILabel(Menu.AddChild(TGUILabel.Create(_lc[I_CREDITS_A_1_1], gMenuSmallFont))) do
   begin
     Color := _RGB(255, 255, 255);
-    X := cx+16;
+    X := cx+32;
     Y := _y;
-    _y := _y+GetHeight()+16;
+    _y := _y+36;
   end;
   with TGUILabel(Menu.AddChild(TGUILabel.Create(_lc[I_CREDITS_A_2], gMenuSmallFont))) do
   begin
     Color := _RGB(255, 0, 0);
-    X := cx-GetWidth()-16;
+    X := cx;
     Y := _y;
+    _y := _y+22;
   end;
   with TGUILabel(Menu.AddChild(TGUILabel.Create(_lc[I_CREDITS_A_2_1], gMenuSmallFont))) do
   begin
     Color := _RGB(255, 255, 255);
-    X := cx+16;
+    X := cx+32;
     Y := _y;
-    _y := _y+GetHeight();
-  end;
-  with TGUILabel(Menu.AddChild(TGUILabel.Create(_lc[I_CREDITS_A_2_2], gMenuSmallFont))) do
-  begin
-    Color := _RGB(255, 255, 255);
-    X := cx+16;
-    Y := _y;
-    _y := _y+GetHeight();
-  end;
-  with TGUILabel(Menu.AddChild(TGUILabel.Create(_lc[I_CREDITS_A_2_3], gMenuSmallFont))) do
-  begin
-    Color := _RGB(255, 255, 255);
-    X := cx+16;
-    Y := _y;
-    _y := _y+GetHeight();
-  end;
-  with TGUILabel(Menu.AddChild(TGUILabel.Create(_lc[I_CREDITS_A_2_4], gMenuSmallFont))) do
-  begin
-    Color := _RGB(255, 255, 255);
-    X := cx+16;
-    Y := _y;
-    _y := _y+GetHeight()+16;
+    _y := _y+36;
   end;
   with TGUILabel(Menu.AddChild(TGUILabel.Create(_lc[I_CREDITS_A_3], gMenuSmallFont))) do
   begin
     Color := _RGB(255, 0, 0);
-    X := cx-GetWidth()-16;
+    X := cx;
     Y := _y;
+    _y := _y+22;
   end;
   with TGUILabel(Menu.AddChild(TGUILabel.Create(_lc[I_CREDITS_A_3_1], gMenuSmallFont))) do
   begin
     Color := _RGB(255, 255, 255);
-    X :=  cx+16;
+    X :=  cx+32;
     Y := _y;
-   _y := _y+GetHeight();
-  end;
-  with TGUILabel(Menu.AddChild(TGUILabel.Create(_lc[I_CREDITS_A_3_2], gMenuSmallFont))) do
-  begin
-    Color := _RGB(255, 255, 255);
-    X := cx+16;
-    Y := _y;
-    _y := _y+GetHeight()+16;
+   _y := _y+36;
   end;
   with TGUILabel(Menu.AddChild(TGUILabel.Create(_lc[I_CREDITS_A_4], gMenuSmallFont))) do
   begin
     Color := _RGB(255, 0, 0);
-    X := cx-GetWidth()-16;
+    X := cx;
     Y := _y;
+    _y := _y+22;
   end;
   with TGUILabel(Menu.AddChild(TGUILabel.Create(_lc[I_CREDITS_A_4_1], gMenuSmallFont))) do
   begin
     Color := _RGB(255, 255, 255);
-    X := cx+16;
+    X := cx+32;
     Y := _y;
-    _y := _y+GetHeight();
-  end;
-  with TGUILabel(Menu.AddChild(TGUILabel.Create(_lc[I_CREDITS_A_4_2], gMenuSmallFont))) do
-  begin
-    Color := _RGB(255, 255, 255);
-    X := cx+16;
-    Y := _y;
-    _y := _y+GetHeight();
-  end;
-  with TGUILabel(Menu.AddChild(TGUILabel.Create(_lc[I_CREDITS_A_4_3], gMenuSmallFont))) do
-  begin
-    Color := _RGB(255, 255, 255);
-    X := cx+16;
-    Y := _y;
-    _y := _y+GetHeight();
-  end;
-  with TGUILabel(Menu.AddChild(TGUILabel.Create(_lc[I_CREDITS_A_4_4], gMenuSmallFont))) do
-  begin
-    Color := _RGB(255, 255, 255);
-    X := cx+16;
-    Y := _y;
-    _y := _y+GetHeight();
-  end;
-  with TGUILabel(Menu.AddChild(TGUILabel.Create(_lc[I_CREDITS_A_4_5], gMenuSmallFont))) do
-  begin
-    Color := _RGB(255, 255, 255);
-    X := cx+16;
-    Y := _y;
-    _y := _y+GetHeight()+16;
+    _y := gScreenHeight - 128;
   end;
 // Заключение:
   with TGUILabel(Menu.AddChild(TGUILabel.Create(_lc[I_CREDITS_CAP_3], gMenuSmallFont))) do
   begin
     Color := _RGB(255, 0, 0);
-    X := (gScreenWidth div 2)-(GetWidth() div 2);
+    X := cx;
     Y := _y;
-    _y := _y+GetHeight()+16;
+    _y := _y+16;
   end;
   with TGUILabel(Menu.AddChild(TGUILabel.Create(_lc[I_CREDITS_CLO_1], gMenuSmallFont))) do
   begin
     Color := _RGB(255, 255, 255);
-    X := (gScreenWidth div 2)-(GetWidth() div 2);
+    X := cx+32;
     Y := _y;
      _y := _y+GetHeight();
   end;
   with TGUILabel(Menu.AddChild(TGUILabel.Create(_lc[I_CREDITS_CLO_2], gMenuSmallFont))) do
   begin
     Color := _RGB(255, 255, 255);
-    X := (gScreenWidth div 2)-(GetWidth() div 2);
+    X := cx+32;
     Y := _y;
      _y := _y+GetHeight();
   end;
   with TGUILabel(Menu.AddChild(TGUILabel.Create(_lc[I_CREDITS_CLO_3], gMenuSmallFont))) do
   begin
     Color := _RGB(255, 255, 255);
-    X := (gScreenWidth div 2)-(GetWidth() div 2);
+    X := cx+32;
     Y := _y;
-     _y := _y+GetHeight();
+     _y := gScreenHeight - 32;
   end;
   with TGUILabel(Menu.AddChild(TGUILabel.Create(_lc[I_CREDITS_CLO_4], gMenuSmallFont))) do
   begin
-    Color := _RGB(255, 255, 255);
-    X := (gScreenWidth div 2)-(GetWidth() div 2);
+    Color := _RGB(255, 0, 0);
+    X := gScreenWidth div 2 - GetWidth() div 2;
     Y := _y;
-    _y := _y+GetHeight()+16;
-   end;
-  with TGUILabel(Menu.AddChild(TGUILabel.Create(_lc[I_CREDITS_CLO_5], gMenuSmallFont))) do
-  begin
-    Color := _RGB(255, 255, 255);
-    X := (gScreenWidth div 2)-(GetWidth() div 2);
-    Y := _y;
-    _y := _y+GetHeight();
-  end;
-  with TGUILabel(Menu.AddChild(TGUILabel.Create(_lc[I_CREDITS_CLO_6], gMenuSmallFont))) do
-  begin
-    Color := _RGB(255, 255, 255);
-    X := (gScreenWidth div 2)-(GetWidth() div 2);
-    Y := _y;
+     _y := gScreenHeight - 32;
   end;
   g_GUI_AddWindow(Menu);
 
@@ -2687,7 +2622,7 @@ begin
   AddSpace;
 
   AddButton(@ProcEnterPassword, _lc[I_MENU_START_GAME]);
-  ReAlign;
+  ReAlign();
  end;
  Menu.DefControl := 'mClientPasswordMenu';
  g_GUI_AddWindow(Menu);

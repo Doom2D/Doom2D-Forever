@@ -378,36 +378,29 @@ procedure MH_SEND_Everything(CreatePlayers: Boolean = False; ID: Integer = NET_E
 var
   I: Integer;
 begin
-  for I := Low(gPlayers) to High(gPlayers) do
-   if gPlayers[I] <> nil then
-   begin
-    if CreatePlayers then MH_SEND_PlayerCreate(gPlayers[I].UID, ID);
-    MH_SEND_PlayerPos(True, gPlayers[I].UID, ID);
-    MH_SEND_PlayerStats(gPlayers[I].UID, ID);
+  if gPlayers <> nil then
+   for I := Low(gPlayers) to High(gPlayers) do
+    if gPlayers[I] <> nil then
+    begin
+     if CreatePlayers then MH_SEND_PlayerCreate(gPlayers[I].UID, ID);
+     MH_SEND_PlayerPos(True, gPlayers[I].UID, ID);
+     MH_SEND_PlayerStats(gPlayers[I].UID, ID);
 
-    if (gPlayers[I].Flag <> FLAG_NONE) and (gGameSettings.GameMode = GM_CTF) then
-      MH_SEND_FlagEvent(FLAG_STATE_CAPTURED, gPlayers[I].Flag, gPlayers[I].UID, True, ID);
-   end;
-  MH_SEND_GameStats(ID);
-  MH_SEND_CoopStats(ID);
-
-  if gGameSettings.GameMode = GM_CTF then
-  begin
-   if gFlags[FLAG_RED].State <> FLAG_STATE_CAPTURED then
-    MH_SEND_FlagEvent(gFlags[FLAG_RED].State, FLAG_RED, 0, True, ID);
-   if gFlags[FLAG_BLUE].State <> FLAG_STATE_CAPTURED then
-    MH_SEND_FlagEvent(gFlags[FLAG_BLUE].State, FLAG_BLUE, 0, True, ID);
-  end;
+     if (gPlayers[I].Flag <> FLAG_NONE) and (gGameSettings.GameMode = GM_CTF) then
+       MH_SEND_FlagEvent(FLAG_STATE_CAPTURED, gPlayers[I].Flag, gPlayers[I].UID, True, ID);
+    end;
 
   // Отошлем уебе все итемы
   if gItems <> nil then
-    for I := Low(gItems) to High(gItems) do
+  begin
+    for I := High(gItems) downto Low(gItems) do
       if gItems[I].Live then
         MH_SEND_ItemSpawn(True, I, ID);
+  end;
 
   // И всех монстров
   if gMonsters <> nil then
-    for I := Low(gMonsters) to High(gMonsters) do
+    for I := 0 to High(gMonsters) do
       if gMonsters[I] <> nil then
         MH_SEND_MonsterSpawn(gMonsters[I].UID, ID);
 
@@ -475,6 +468,17 @@ begin
       MH_SEND_TriggerSound(gTriggers[I], ID);
 
   MH_SEND_TriggerMusic(ID);
+
+  MH_SEND_GameStats(ID);
+  MH_SEND_CoopStats(ID);
+
+  if gGameSettings.GameMode = GM_CTF then
+  begin
+   if gFlags[FLAG_RED].State <> FLAG_STATE_CAPTURED then
+    MH_SEND_FlagEvent(gFlags[FLAG_RED].State, FLAG_RED, 0, True, ID);
+   if gFlags[FLAG_BLUE].State <> FLAG_STATE_CAPTURED then
+    MH_SEND_FlagEvent(gFlags[FLAG_BLUE].State, FLAG_BLUE, 0, True, ID);
+  end;
 
   if CreatePlayers and (ID >= 0) then NetClients[ID].State := NET_STATE_GAME;
 end;
