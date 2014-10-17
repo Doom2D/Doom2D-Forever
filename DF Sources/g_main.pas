@@ -46,6 +46,7 @@ begin
 
   //e_WriteLog('Read language file', MSG_NOTIFY);
   //g_Language_Load(DataDir + gLanguage + '.txt');
+  e_WriteLog(gLanguage, MSG_NOTIFY);
   g_Language_Set(gLanguage);
 
   e_WriteLog('Call WinMain', MSG_NOTIFY);

@@ -113,9 +113,9 @@ RootDir=
 IncludeVerInfo=1
 AutoIncBuild=0
 MajorVer=0
-MinorVer=62
-Release=4
-Build=0
+MinorVer=6
+Release=6
+Build=6
 Debug=0
 PreRelease=0
 Special=0
@@ -126,14 +126,13 @@ CodePage=1251
 [Version Info Keys]
 CompanyName=www.doom2d.org
 FileDescription=Doom 2D: Forever
-FileVersion=0.62.4.0
+FileVersion=0.6.6.6
 InternalName=Doom 2D: Forever
 LegalCopyright=All rights reserved.
 LegalTrademarks=
 OriginalFilename=Doom2DF.exe
 ProductName=Doom 2D: Forever
-ProductVersion=0.62.4.0
-Comments=
+ProductVersion=0.6.6.6
 [HistoryLists\hlUnitAliases]
 Count=1
 Item0=WinTypes=Windows;WinProcs=Windows;DbiTypes=BDE;DbiProcs=BDE;DbiErrs=BDE;

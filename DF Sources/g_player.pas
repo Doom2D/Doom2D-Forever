@@ -61,7 +61,7 @@ const
   PLAYER_RECT_CY       = 12+(52 div 2);
   PLAYER_CORPSERECT: TRectWH = (X:15; Y:48; Width:34; Height:16);
 
-  PLAYER1_DEF_COLOR: TRGB = (R:48; G:192; B:48);
+  PLAYER1_DEF_COLOR: TRGB = (R:64; G:175; B:48);
   PLAYER2_DEF_COLOR: TRGB = (R:96; G:96; B:96);
 
 Type

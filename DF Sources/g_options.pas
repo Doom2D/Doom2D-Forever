@@ -41,12 +41,12 @@ var
   gWinRealPosY: Integer       = 0;
   gBPP: Byte                  = 32;
   gFreq: Byte                 = 0;
-  gFullscreen: Boolean        = True;
+  gFullscreen: Boolean        = False;
   gWinMaximized: Boolean      = False;
   gVSync: Boolean             = False;
   gTextureFilter: Boolean     = True;
-  gSoundLevel: Byte           = 255;
-  gMusicLevel: Byte           = 255;
+  gSoundLevel: Byte           = 75;
+  gMusicLevel: Byte           = 65;
   gMaxSimSounds: Byte         = 8;
   gMuteWhenInactive: Boolean  = False;
   gAdvCorpses: Boolean        = True;
@@ -58,7 +58,7 @@ var
   gDrawBackGround: Boolean    = True;
   gShowMessages: Boolean      = True;
   gRevertPlayers: Boolean     = False;
-  gLanguage: String           = LANGUAGE_RUSSIAN;
+  gLanguage: String           = LANGUAGE_ENGLISH;
   gAskLanguage: Boolean       = True;
   
 
@@ -71,7 +71,7 @@ Uses
 
 procedure g_Options_SetDefault();
 begin
-  g_Sound_SetupAllVolumes(125, 125);
+  g_Sound_SetupAllVolumes(75, 65);
   gMaxSimSounds := 8;
   gMuteWhenInactive := False;
   g_GFX_SetMax(2000);
@@ -91,7 +91,7 @@ begin
   begin
     TakeScreenshot := 183;
     Stat := 15;
-    Chat := 54; // [T]
+    Chat := 20; // [T]
   end;
 
   with gGameControls.P1Control do
@@ -163,7 +163,7 @@ begin
     gWinRealPosX := 0;
     gWinRealPosY := 0;
     gWinMaximized := False;
-    gFullScreen := True;
+    gFullScreen := False;
     gBPP := 32;
     gVSync := False;
     gTextureFilter := True;
@@ -185,15 +185,15 @@ begin
   gWinRealPosY := config.ReadInt('Video', 'WinPosY', 0);
   if gWinRealPosY < 0 then
     gWinRealPosY := 0;
-  gFullScreen := config.ReadBool('Video', 'Fullscreen', True);
+  gFullScreen := config.ReadBool('Video', 'Fullscreen', False);
   gWinMaximized := config.ReadBool('Video', 'Maximized', False);
   gBPP := config.ReadInt('Video', 'BPP', 32);
   gFreq := config.ReadInt('Video', 'Freq', 0);
   gVSync := config.ReadBool('Video', 'VSync', True);
   gTextureFilter := config.ReadBool('Video', 'TextureFilter', True);
 
-  gSoundLevel := Min(config.ReadInt('Sound', 'SoundLevel', 255), 255);
-  gMusicLevel := Min(config.ReadInt('Sound', 'MusicLevel', 255), 255);
+  gSoundLevel := Min(config.ReadInt('Sound', 'SoundLevel', 75), 255);
+  gMusicLevel := Min(config.ReadInt('Sound', 'MusicLevel', 65), 255);
   gMaxSimSounds := Max(Min(config.ReadInt('Sound', 'MaxSimSounds', 8), 66), 2);
   gMuteWhenInactive := config.ReadBool('Sound', 'MuteInactive', False);
 
@@ -306,7 +306,7 @@ begin
       gAskLanguage := False;
     end
   else
-    gLanguage := LANGUAGE_RUSSIAN;
+    gLanguage := LANGUAGE_ENGLISH;
 
   config.Free();
 
