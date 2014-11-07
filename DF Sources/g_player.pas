@@ -3295,7 +3295,10 @@ begin
     else if (FAir mod 31 = 0) and not blockmon then
    begin
     g_GFX_Bubbles(FObj.X+PLAYER_RECT.X+(PLAYER_RECT.Width div 2), FObj.Y+PLAYER_RECT.Y-4, 5+Random(6), 8, 4);
-    g_Sound_PlayExAt('SOUND_GAME_BUBBLES', FObj.X, FObj.Y);
+    if Random(2) = 0 then
+      g_Sound_PlayExAt('SOUND_GAME_BUBBLE1', FObj.X, FObj.Y)
+    else
+      g_Sound_PlayExAt('SOUND_GAME_BUBBLE2', FObj.X, FObj.Y);
    end;
   end else if FAir < AIR_DEF then FAir := AIR_DEF;
 
