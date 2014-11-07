@@ -25,6 +25,7 @@ const
   MENU_HSPACE = 32;
   MENU_CLICKSOUND = 'MENU_SELECT';
   MENU_CHANGESOUND = 'MENU_CHANGE';
+  MENU_MOVESOUND = 'MENU_MOVE';
   MENU_MARKERDELAY = 24;
   SCROLL_LEFT = 'SCROLL_LEFT';
   SCROLL_RIGHT = 'SCROLL_RIGHT';
@@ -1922,11 +1923,13 @@ begin
     VK_LEFT: if FValue > 0 then
              begin
               Dec(FValue);
+              g_Sound_PlayEx(MENU_MOVESOUND);
               if @FOnChangeEvent <> nil then FOnChangeEvent(Self);
              end;
     VK_RIGHT: if FValue < FMax then
               begin
                Inc(FValue);
+               g_Sound_PlayEx(MENU_MOVESOUND);
                if @FOnChangeEvent <> nil then FOnChangeEvent(Self);
               end;
    end;
