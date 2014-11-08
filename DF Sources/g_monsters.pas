@@ -1511,9 +1511,11 @@ begin
       end;
   end;
 
-// Теперь цель - ударивший:
-  FTargetUID := SpawnerUID;
-  FTargetTime := 0;
+// Теперь цель - ударивший, если только не сам себя:
+  if SpawnerUID <> FUID then begin
+    FTargetUID := SpawnerUID;
+    FTargetTime := 0;
+  end;
 
 // Здоровье закончилось:
   if FHealth <= 0 then
