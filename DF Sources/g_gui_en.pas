@@ -24,12 +24,13 @@ const
   MENU_HSPACE = 32;
   MENU_CLICKSOUND = 'MENU_SELECT';
   MENU_CHANGESOUND = 'MENU_CHANGE';
-  MENU_MOVESOUND = 'MENU_MOVE';
   MENU_MARKERDELAY = 24;
   SCROLL_LEFT = 'SCROLL_LEFT';
   SCROLL_RIGHT = 'SCROLL_RIGHT';
   SCROLL_MIDDLE = 'SCROLL_MIDDLE';
   SCROLL_MARKER = 'SCROLL_MARKER';
+  SCROLL_ADDSOUND = 'SCROLL_ADD';
+  SCROLL_SUBSOUND = 'SCROLL_SUB';
   EDIT_LEFT = 'EDIT_LEFT';
   EDIT_RIGHT = 'EDIT_RIGHT';
   EDIT_MIDDLE = 'EDIT_MIDDLE';
@@ -1762,13 +1763,13 @@ begin
     VK_LEFT: if FValue > 0 then
              begin
               Dec(FValue);
-              g_Sound_PlayEx(MENU_MOVESOUND);
+              g_Sound_PlayEx(SCROLL_SUBSOUND);
               if @FOnChangeEvent <> nil then FOnChangeEvent(Self);
              end;
     VK_RIGHT: if FValue < FMax then
               begin
                Inc(FValue);
-               g_Sound_PlayEx(MENU_MOVESOUND);
+               g_Sound_PlayEx(SCROLL_ADDSOUND);
                if @FOnChangeEvent <> nil then FOnChangeEvent(Self);
               end;
    end;
