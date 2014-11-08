@@ -302,7 +302,7 @@ procedure CharPress(C: Char);
 var
   Msg: g_gui.TMessage;
 begin
-  if (C = '`') or (C = '~') or (C = 'ё') or (C = 'Ё') then
+  if (not gChatShow) and ((C = '`') or (C = '~') or (C = 'ё') or (C = 'Ё')) then
     Exit;
 
   if gConsoleShow or gChatShow then // Символы -> консоли
