@@ -165,9 +165,17 @@ begin
 end;
 
 procedure g_Obj_Splash(Obj: PObj; Color: Byte);
+var
+  MaxVel: Integer;
 begin
-  g_Sound_PlayExAt('SOUND_GAME_BULK1', Obj^.X, Obj^.Y);
-  
+  MaxVel := Max(Abs(Obj^.Vel.X), Abs(Obj^.Vel.Y));
+  if MaxVel > 4 then begin
+    if MaxVel < 10 then
+      g_Sound_PlayExAt('SOUND_GAME_BULK1', Obj^.X, Obj^.Y)
+    else
+      g_Sound_PlayExAt('SOUND_GAME_BULK2', Obj^.X, Obj^.Y);
+  end;
+
   g_GFX_Water(Obj^.X+Obj^.Rect.X+(Obj^.Rect.Width div 2),
               Obj^.Y+Obj^.Rect.Y+(Obj^.Rect.Height div 2),
               Min(5*(Abs(Obj^.Vel.X)+Abs(Obj^.Vel.Y)), 50),

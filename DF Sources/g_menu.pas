@@ -833,6 +833,7 @@ begin
  g_Sound_CreateWADEx('MENU_OPEN', GameWAD+':SOUNDS\MENUOPEN');
  g_Sound_CreateWADEx('MENU_CLOSE', GameWAD+':SOUNDS\MENUCLOSE');
  g_Sound_CreateWADEx('MENU_CHANGE', GameWAD+':SOUNDS\MENUCHANGE');
+ g_Sound_CreateWADEx('MENU_MOVE', GameWAD+':SOUNDS\MENUMOVE');
  g_Sound_CreateWADEx('SOUND_PLAYER_FALL', GameWAD+':SOUNDS\FALL');
 end;
 
@@ -870,6 +871,7 @@ begin
  g_Sound_Delete('MENU_OPEN');
  g_Sound_Delete('MENU_CLOSE');
  g_Sound_Delete('MENU_CHANGE');
+ g_Sound_Delete('MENU_MOVE');
  g_Sound_Delete('SOUND_PLAYER_FALL');
 end;
 
