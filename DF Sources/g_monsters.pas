@@ -1913,8 +1913,14 @@ begin
       MONSTER_ROBO, MONSTER_BARREL:
         g_GFX_Bubbles(FObj.X+FObj.Rect.X + Random(FObj.Rect.Width),
                       FObj.Y+FObj.Rect.Y + Random(4), 1, 0, 0);
-      else g_GFX_Bubbles(FObj.X+FObj.Rect.X + Random(FObj.Rect.Width-4),
-                         FObj.Y+FObj.Rect.Y + Random(4), 5, 4, 4);
+      else begin
+        g_GFX_Bubbles(FObj.X+FObj.Rect.X + Random(FObj.Rect.Width-4),
+                      FObj.Y+FObj.Rect.Y + Random(4), 5, 4, 4);
+        if Random(2) = 0 then
+          g_Sound_PlayExAt('SOUND_GAME_BUBBLE1', FObj.X, FObj.Y)
+        else
+          g_Sound_PlayExAt('SOUND_GAME_BUBBLE2', FObj.X, FObj.Y);
+      end;
     end;
 
 // Если прошел первый кадр анимации взрыва бочки, то взрыв:
@@ -2705,8 +2711,14 @@ begin
       MONSTER_ROBO, MONSTER_BARREL:
         g_GFX_Bubbles(FObj.X+FObj.Rect.X + Random(FObj.Rect.Width),
                       FObj.Y+FObj.Rect.Y + Random(4), 1, 0, 0);
-      else g_GFX_Bubbles(FObj.X+FObj.Rect.X + Random(FObj.Rect.Width-4),
-                         FObj.Y+FObj.Rect.Y + Random(4), 5, 4, 4);
+      else begin
+        g_GFX_Bubbles(FObj.X+FObj.Rect.X + Random(FObj.Rect.Width-4),
+                      FObj.Y+FObj.Rect.Y + Random(4), 5, 4, 4);
+        if Random(2) = 0 then
+          g_Sound_PlayExAt('SOUND_GAME_BUBBLE1', FObj.X, FObj.Y)
+        else
+          g_Sound_PlayExAt('SOUND_GAME_BUBBLE2', FObj.X, FObj.Y);
+      end;
     end;
 
 // Если прошел первый кадр анимации взрыва бочки, то взрыв:
