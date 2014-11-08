@@ -794,7 +794,7 @@ begin
  g_Game_SetLoadingText(_lc[I_LOAD_MUSIC], 0, False);
  g_Sound_CreateWADEx('MUSIC_INTERMUS', GameWAD+':MUSIC\INTERMUS', True);
  g_Sound_CreateWADEx('MUSIC_MENU', GameWAD+':MUSIC\MENU', True);
- g_Sound_CreateWADEx('SOUND_ROUNDMUS', GameWAD+':MUSIC\ROUNDMUS');
+ g_Sound_CreateWADEx('MUSIC_ROUNDMUS', GameWAD+':MUSIC\ROUNDMUS');
  g_Sound_CreateWADEx('MUSIC_STDENDMUS', GameWAD+':MUSIC\ENDMUS', True);
 
  g_Game_SetLoadingText(_lc[I_LOAD_MODELS], 0, False);
@@ -951,11 +951,11 @@ begin
                 begin
                   if not gMusic.SetByName('MUSIC_endmus') then
                     gMusic.SetByName('MUSIC_STDENDMUS');
-                  gMusic.Play();
                 end
                 else
-                  g_Sound_PlayEx('SOUND_ROUNDMUS');
+                  gMusic.SetByName('MUSIC_ROUNDMUS');
 
+                gMusic.Play();
                 gState := STATE_INTERCUSTOM;
               end
             else // Закончилась последняя карта в Одиночной игре
