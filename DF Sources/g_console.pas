@@ -578,10 +578,10 @@ var
 begin
   Arr := nil;
 
-  g_Console_Add(L);
-
-  if L = '' then
+  if Trim(L) = '' then
     Exit;
+
+  g_Console_Add(L);
 
   Arr := ParseString(L);
 
