@@ -3468,7 +3468,9 @@ begin
     obj.Accel.y := yd-wy;
 
     if g_Weapon_Hit(@obj, 50, FUID, HIT_SOME) <> 0 then
-     g_Sound_PlayExAt('SOUND_WEAPON_HITPUNCH', FObj.X, FObj.Y);
+      g_Sound_PlayExAt('SOUND_WEAPON_HITBERSERK', FObj.X, FObj.Y)
+    else
+      g_Sound_PlayExAt('SOUND_WEAPON_MISSBERSERK', FObj.X, FObj.Y);
 
     if gFlash then
       if FPain < 50 then
