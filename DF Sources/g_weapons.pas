@@ -604,6 +604,10 @@ procedure g_Weapon_LoadData();
 begin
  e_WriteLog('Loading weapons data...', MSG_NOTIFY);
 
+ g_Sound_CreateWADEx('SOUND_WEAPON_HITPUNCH', GameWAD+':SOUNDS\HITPUNCH');
+ g_Sound_CreateWADEx('SOUND_WEAPON_MISSPUNCH', GameWAD+':SOUNDS\MISSPUNCH');
+ g_Sound_CreateWADEx('SOUND_WEAPON_HITBERSERK', GameWAD+':SOUNDS\HITBERSERK');
+ g_Sound_CreateWADEx('SOUND_WEAPON_MISSBERSERK', GameWAD+':SOUNDS\MISSBERSERK');
  g_Sound_CreateWADEx('SOUND_WEAPON_SELECTSAW', GameWAD+':SOUNDS\SELECTSAW');
  g_Sound_CreateWADEx('SOUND_WEAPON_IDLESAW', GameWAD+':SOUNDS\IDLESAW');
  g_Sound_CreateWADEx('SOUND_WEAPON_HITSAW', GameWAD+':SOUNDS\HITSAW');
@@ -611,7 +615,6 @@ begin
  g_Sound_CreateWADEx('SOUND_WEAPON_FIRESHOTGUN', GameWAD+':SOUNDS\FIRESHOTGUN');
  g_Sound_CreateWADEx('SOUND_WEAPON_FIRESAW', GameWAD+':SOUNDS\FIRESAW');
  g_Sound_CreateWADEx('SOUND_WEAPON_FIREROCKET', GameWAD+':SOUNDS\FIREROCKET');
- g_Sound_CreateWADEx('SOUND_WEAPON_HITPUNCH', GameWAD+':SOUNDS\HITPUNCH');
  g_Sound_CreateWADEx('SOUND_WEAPON_FIREPLASMA', GameWAD+':SOUNDS\FIREPLASMA');
  g_Sound_CreateWADEx('SOUND_WEAPON_FIREPISTOL', GameWAD+':SOUNDS\FIREPISTOL');
  g_Sound_CreateWADEx('SOUND_WEAPON_FIRECGUN', GameWAD+':SOUNDS\FIRECGUN');
@@ -653,6 +656,10 @@ procedure g_Weapon_FreeData();
 begin
  e_WriteLog('Releasing weapons data...', MSG_NOTIFY);
 
+ g_Sound_Delete('SOUND_WEAPON_HITPUNCH');
+ g_Sound_Delete('SOUND_WEAPON_MISSPUNCH');
+ g_Sound_Delete('SOUND_WEAPON_HITBERSERK');
+ g_Sound_Delete('SOUND_WEAPON_MISSBERSERK');
  g_Sound_Delete('SOUND_WEAPON_SELECTSAW');
  g_Sound_Delete('SOUND_WEAPON_IDLESAW');
  g_Sound_Delete('SOUND_WEAPON_HITSAW');
@@ -660,7 +667,6 @@ begin
  g_Sound_Delete('SOUND_WEAPON_FIRESHOTGUN');
  g_Sound_Delete('SOUND_WEAPON_FIRESAW');
  g_Sound_Delete('SOUND_WEAPON_FIREROCKET');
- g_Sound_Delete('SOUND_WEAPON_HITPUNCH');
  g_Sound_Delete('SOUND_WEAPON_FIREPLASMA');
  g_Sound_Delete('SOUND_WEAPON_FIREPISTOL');
  g_Sound_Delete('SOUND_WEAPON_FIRECGUN');
@@ -791,19 +797,21 @@ procedure g_Weapon_punch(x, y: Integer; d, SpawnerUID: Word);
 var
   obj: TObj;
 begin
- obj.X := X;
- obj.Y := Y;
- obj.rect.X := 0;
- obj.rect.Y := 0;
- obj.rect.Width := 39;
- obj.rect.Height := 52;
- obj.Vel.X := 0;
- obj.Vel.Y := 0;
- obj.Accel.X := 0;
- obj.Accel.Y := 0;
+  obj.X := X;
+  obj.Y := Y;
+  obj.rect.X := 0;
+  obj.rect.Y := 0;
+  obj.rect.Width := 39;
+  obj.rect.Height := 52;
+  obj.Vel.X := 0;
+  obj.Vel.Y := 0;
+  obj.Accel.X := 0;
+  obj.Accel.Y := 0;
 
- if g_Weapon_Hit(@obj, d, SpawnerUID, HIT_SOME) <> 0 then
-  g_Sound_PlayExAt('SOUND_WEAPON_HITPUNCH', x, y);
+  if g_Weapon_Hit(@obj, d, SpawnerUID, HIT_SOME) <> 0 then
+    g_Sound_PlayExAt('SOUND_WEAPON_HITPUNCH', x, y)
+  else
+    g_Sound_PlayExAt('SOUND_WEAPON_MISSPUNCH', x, y);
 end;
 
 function g_Weapon_chainsaw(x, y: Integer; d, SpawnerUID: Word): Integer;
