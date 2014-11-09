@@ -284,6 +284,7 @@ begin
   NetDedicated :=  config.ReadBool('Server', 'Dedicated', False);
   NetServerName := config.ReadStr('Server', 'Name', 'Unnamed Server');
   NetPassword :=  config.ReadStr('Server', 'Password', '');
+  NetPort := Min(Max(0, config.ReadInt('Server', 'Port', 25666)), 65535);
   NetMaxClients := Min(Max(0, config.ReadInt('Server', 'MaxClients', 16)), NET_MAXCLIENTS);
   NetAllowRCON := config.ReadBool('Server', 'RCON', False);
   NetRCONPassword := config.ReadStr('Server', 'RCONPassword', 'default');

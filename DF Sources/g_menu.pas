@@ -276,6 +276,7 @@ begin
  config.WriteBool('Server', 'Dedicated', NetDedicated);
  config.WriteStr ('Server', 'Name', NetServerName);
  config.WriteStr ('Server', 'Password', NetPassword);
+ config.WriteInt ('Server', 'Port', NetPort);
  config.WriteInt ('Server', 'MaxClients', NetMaxClients);
  config.WriteBool('Server', 'RCON', NetAllowRCON);
  config.WriteStr ('Server', 'RCONPassword', NetRCONPassword);
@@ -475,8 +476,9 @@ procedure ProcStartNetGame();
 var
   Map: String;
   GameMode: Byte;
-  TimeLimit, GoalLimit, Port: Word;
+  TimeLimit, GoalLimit: Word;
   Options: LongWord;
+  config: TConfig;
 begin
   with TGUIMenu(g_ActiveWindow.GetControl('mNetServerMenu')) do
   begin
@@ -486,7 +488,7 @@ begin
     GameMode := TGUISwitch(GetControl('swGameMode')).ItemIndex+1;
     TimeLimit := StrToIntDef(TGUIEdit(GetControl('edTimeLimit')).Text, 0);
     GoalLimit := StrToIntDef(TGUIEdit(GetControl('edGoalLimit')).Text, 0);
-    Port := StrToIntDef(TGUIEdit(GetControl('edPort')).Text, 0);
+    NetPort := StrToIntDef(TGUIEdit(GetControl('edPort')).Text, 0);
 
     Options := 0;
     if TGUISwitch(GetControl('swTeamDamage')).ItemIndex = 0 then
@@ -512,8 +514,25 @@ begin
     NetPassword := TGUIEdit(GetControl('edSrvPassword')).Text;
   end;
 
+  config := TConfig.CreateFile(GameDir+'\'+CONFIG_FILENAME);
+
+  config.WriteBool('Server', 'Dedicated', NetDedicated);
+  config.WriteStr ('Server', 'Name', NetServerName);
+  config.WriteStr ('Server', 'Password', NetPassword);
+  config.WriteInt ('Server', 'Port', NetPort);
+  config.WriteInt ('Server', 'MaxClients', NetMaxClients);
+  config.WriteBool('Server', 'RCON', NetAllowRCON);
+  config.WriteStr ('Server', 'RCONPassword', NetRCONPassword);
+  config.WriteBool('Server', 'SyncWithMaster', NetUseMaster);
+  config.WriteInt ('Server', 'UpdateInterval', NetUpdateRate);
+  config.WriteInt ('Server', 'ReliableUpdateInterval', NetRelupdRate);
+  config.WriteInt ('Server', 'MasterSyncInterval', NetMasterRate);
+
+  config.SaveFile(GameDir+'\'+CONFIG_FILENAME);
+  config.Free();
+ 
   g_Game_StartServer(Map, GameMode, TimeLimit, GoalLimit,
-                     Options, Port);
+                     Options, NetPort);
 end;
 
 procedure ProcConnectNetGame();
@@ -1744,7 +1763,7 @@ begin
    OnlyDigits := True;
    Width := 4;
    MaxLength := 5;
-   Text := '25666';
+   Text := IntToStr(NetPort);
   end;
   with AddEdit(_lc[I_NET_MAX_CLIENTS]) do
   begin

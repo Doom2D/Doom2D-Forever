@@ -61,6 +61,7 @@ var
 
   NetServerName:   string = 'Unnamed Server';
   NetPassword:     string = '';
+  NetPort:         Word = 25666;
 
   NetAllowRCON:    Boolean = False;
   NetRCONPassword: string = 'default';
