@@ -305,7 +305,9 @@ begin
       ip := ip + '  ' + _lc[I_NET_SERVER_PASSWORD] + ' Y'
     else
       ip := ip + '  ' + _lc[I_NET_SERVER_PASSWORD] + ' N';
-  end;
+  end else
+    if Length(SL) > 0 then
+      slSelection := 0;
 
   mw := (gScreenWidth - 188);
   mx := 16 + mw;
