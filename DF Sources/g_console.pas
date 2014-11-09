@@ -317,7 +317,7 @@ begin
   end;
 
   e_DrawSize(ID, 0, Cons_Y, Alpha, False, False, gScreenWidth, gScreenHeight div 2);
-  e_TextureFontPrint(0, Cons_Y+(gScreenHeight div 2)-CHeight-4, '>'+Line, gStdFont);
+  e_TextureFontPrint(0, Cons_Y+(gScreenHeight div 2)-CHeight-4, '> '+Line, gStdFont);
 
   if ConsoleHistory <> nil then
   begin
@@ -338,7 +338,7 @@ begin
     end;
   end;
 
-  e_TextureFontPrint(CPos*CWidth, Cons_Y+(gScreenHeight div 2)-21, '_', gStdFont);
+  e_TextureFontPrint((CPos+1)*CWidth, Cons_Y+(gScreenHeight div 2)-21, '_', gStdFont);
 end;
 
 procedure g_Console_Switch();
@@ -581,7 +581,7 @@ begin
   if Trim(L) = '' then
     Exit;
 
-  g_Console_Add(L);
+  g_Console_Add('> '+L);
 
   Arr := ParseString(L);
 
