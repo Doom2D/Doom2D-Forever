@@ -2216,7 +2216,7 @@ begin
   end;
 
   ITEM_WEAPON_SAW:
-  if (not FWeapon[WEAPON_SAW]) or (remove and (gGameSettings.GameMode in [GM_DM, GM_TDM, GM_CTF])) then
+  if (not FWeapon[WEAPON_SAW]) or ((not respawn) and (gGameSettings.GameMode in [GM_DM, GM_TDM, GM_CTF])) then
   begin
     FWeapon[WEAPON_SAW] := True;
     Result := True;
