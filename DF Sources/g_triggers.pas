@@ -530,25 +530,35 @@ begin
         end;
 
       TRIGGER_LIFTUP:
-      begin
-        Result := SetLift(Data.PanelID, 0, Data.NoSound, Data.d2d_doors);
-        TimeOut := 0;
+        begin
+          Result := SetLift(Data.PanelID, 0, Data.NoSound, Data.d2d_doors);
+          TimeOut := 0;
 
-        if (not Data.NoSound) and Result then
-          g_Sound_PlayExAt('SOUND_GAME_SWITCH0',
-                           X + (Width div 2),
-                           Y + (Height div 2));
-      end;
+          if (not Data.NoSound) and Result then begin
+            g_Sound_PlayExAt('SOUND_GAME_SWITCH0',
+                             X + (Width div 2),
+                             Y + (Height div 2));
+            if g_Game_IsServer and g_Game_IsNet then
+              MH_SEND_Sound(X + (Width div 2),
+                            Y + (Height div 2),
+                            'SOUND_GAME_SWITCH0');
+          end;
+        end;
 
       TRIGGER_LIFTDOWN:
         begin
           Result := SetLift(Data.PanelID, 1, Data.NoSound, Data.d2d_doors);
           TimeOut := 0;
 
-          if (not Data.NoSound) and Result then
+          if (not Data.NoSound) and Result then begin
             g_Sound_PlayExAt('SOUND_GAME_SWITCH0',
                              X + (Width div 2),
                              Y + (Height div 2));
+            if g_Game_IsServer and g_Game_IsNet then
+              MH_SEND_Sound(X + (Width div 2),
+                            Y + (Height div 2),
+                            'SOUND_GAME_SWITCH0');
+          end;
         end;
 
       TRIGGER_LIFT:
@@ -559,10 +569,15 @@ begin
           begin
             TimeOut := 18;
 
-            if (not Data.NoSound) and Result then
+            if (not Data.NoSound) and Result then begin
               g_Sound_PlayExAt('SOUND_GAME_SWITCH0',
                                X + (Width div 2),
                                Y + (Height div 2));
+              if g_Game_IsServer and g_Game_IsNet then
+                MH_SEND_Sound(X + (Width div 2),
+                              Y + (Height div 2),
+                              'SOUND_GAME_SWITCH0');
+            end;
           end;
         end;
 
