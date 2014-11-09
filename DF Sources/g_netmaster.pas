@@ -145,7 +145,11 @@ begin
   e_Buffer_Write(@NetOut, Wad + ':\' + Map);
   e_Buffer_Write(@NetOut, gGameSettings.GameMode);
 
-  e_Buffer_Write(@NetOut, Byte(1 + NetClientCount));
+  if NetDedicated then
+    e_Buffer_Write(@NetOut, Byte(NetClientCount))
+  else
+    e_Buffer_Write(@NetOut, Byte(1 + NetClientCount));
+
   e_Buffer_Write(@NetOut, NetMaxClients);
 
   e_Buffer_Write(@NetOut, Byte(NET_PROTOCOL_VER));
