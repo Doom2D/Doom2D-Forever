@@ -625,21 +625,21 @@ begin
    begin
     s1 := _lc[I_GAME_DM];
     s2 := Format(_lc[I_GAME_FRAG_LIMIT], [gGameSettings.GoalLimit]);
-    s3 := Format(_lc[I_GAME_TIME_LIMIT], [gGameSettings.TimeLimit div 60, gGameSettings.TimeLimit mod 60]);
+    s3 := Format(_lc[I_GAME_TIME_LIMIT], [gGameSettings.TimeLimit div 3600, (gGameSettings.TimeLimit div 60) mod 60, gGameSettings.TimeLimit mod 60]);
    end;
 
   GM_TDM:
    begin
     s1 := _lc[I_GAME_TDM];
     s2 := Format(_lc[I_GAME_FRAG_LIMIT], [gGameSettings.GoalLimit]);
-    s3 := Format(_lc[I_GAME_TIME_LIMIT], [gGameSettings.TimeLimit div 60, gGameSettings.TimeLimit mod 60]);
+    s3 := Format(_lc[I_GAME_TIME_LIMIT], [gGameSettings.TimeLimit div 3600, (gGameSettings.TimeLimit div 60) mod 60, gGameSettings.TimeLimit mod 60]);
    end;
 
   GM_CTF:
    begin
     s1 := _lc[I_GAME_CTF];
     s2 := Format(_lc[I_GAME_SCORE_LIMIT], [gGameSettings.GoalLimit]);
-    s3 := Format(_lc[I_GAME_TIME_LIMIT], [gGameSettings.TimeLimit div 60, gGameSettings.TimeLimit mod 60]);
+    s3 := Format(_lc[I_GAME_TIME_LIMIT], [gGameSettings.TimeLimit div 3600, (gGameSettings.TimeLimit div 60) mod 60, gGameSettings.TimeLimit mod 60]);
    end;
 
   GM_COOP:
@@ -1413,8 +1413,9 @@ begin
 
  _y := _y+16;
  e_TextureFontPrintEx(x+8, _y, _lc[I_GAME_GAME_TIME], gStdFont, 255, 127, 0, 1);
- e_TextureFontPrint(x+8+m, _y, Format('%.2d:%.2d', [CustomStat.GameTime div 1000 div 60,
-                                                    CustomStat.GameTime div 1000 mod 60]), gStdFont);
+ e_TextureFontPrint(x+8+m, _y, Format('%d:%.2d:%.2d', [CustomStat.GameTime div 1000 div 3600,
+                                                      (CustomStat.GameTime div 1000 div 60) mod 60,
+                                                       CustomStat.GameTime div 1000 mod 60]), gStdFont);
 
  pc := Length(CustomStat.PlayerStat);
  if pc = 0 then Exit;
@@ -1955,8 +1956,8 @@ begin
  end;
 
  if gGameOn and gShowTime and (gGameSettings.GameType in [GT_CUSTOM, GT_SERVER, GT_CLIENT]) then
-  e_TextureFontPrint(gScreenWidth-64, 0,
-                     Format('%.2d:%.2d', [gTime div 1000 div 60, gTime div 1000 mod 60]),
+  e_TextureFontPrint(gScreenWidth-72, 0,
+                     Format('%d:%.2d:%.2d', [gTime div 1000 div 3600, (gTime div 1000 div 60) mod 60, gTime div 1000 mod 60]),
                      gStdFont);
 end;
 
@@ -3275,7 +3276,8 @@ begin
       end;
 
       g_Console_Add(Format(_lc[I_MSG_TIME_LIMIT],
-                           [gGameSettings.TimeLimit div 60,
+                           [gGameSettings.TimeLimit div 3600,
+                           (gGameSettings.TimeLimit div 60) mod 60,
                             gGameSettings.TimeLimit mod 60]));
       if g_Game_IsNet then MH_SEND_GameSettings;
     end;

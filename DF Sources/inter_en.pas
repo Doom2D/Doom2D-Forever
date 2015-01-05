@@ -26,7 +26,7 @@ const
   I_GAME_TDM = 'TDM';
   I_GAME_FRAGLIMIT = 'Frag Limit: %d';
   I_GAME_POINTLIMIT = 'Point Limit: %d';
-  I_GAME_TIMELIMIT = 'Time Limit: %.2d:%.2d';
+  I_GAME_TIMELIMIT = 'Time Limit: %d:%.2d:%.2d';
   I_GAME_REDTEAM = 'Red Team (%d)';
   I_GAME_BLUETEAM = 'Blue Team (%d)';
   I_GAME_REDTEAMNAME = 'Red';

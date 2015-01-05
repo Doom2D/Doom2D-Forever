@@ -26,7 +26,7 @@ const
   I_GAME_TDM = 'йнлюмдмши лъянонбюк';
   I_GAME_FRAGLIMIT = 'нцпюмхвемхе тпюцнб: %d';
   I_GAME_POINTLIMIT = 'нцпюмхвемхе нвйнб: %d';
-  I_GAME_TIMELIMIT = 'нцпюмхвемхе он бпелемх: %.2d:%.2d';
+  I_GAME_TIMELIMIT = 'нцпюмхвемхе он бпелемх: %d:%.2d:%.2d';
   I_GAME_REDTEAM = 'йпюямюъ йнлюмдю (%d)';
   I_GAME_BLUETEAM = 'яхмъъ йнлюмдю (%d)';
   I_GAME_REDTEAMNAME = 'йпюямюъ';
