@@ -4,12 +4,13 @@ unit ENet_Protocol;
   ENet - Reliable UDP networking library
 
   Delphi 7 DLL header: ENet_Protocol.pas
-  Copyright (c) 2014 Dmitry D. Chernov aka Black Doomer
+  Copyright (c) 2014-2015 Dmitry D. Chernov aka Black Doomer
 
   Original file: protocol.h
   Copyright (c) 2002-2014 Lee Salzman
 
   Version 1 for 1.3.12: 16.08.2014
+  Version 2 for 1.3.12: 10.02.2015
 
   Permission is hereby granted, free of charge, to any person obtaining a copy
   of this software and associated documentation files (the "Software"), to deal
@@ -70,28 +71,30 @@ type
                           ENET_PROTOCOL_HEADER_SESSION_MASK      = 3 shl 12,
                           ENET_PROTOCOL_HEADER_SESSION_SHIFT     = 12        );
 
+{$ALIGN OFF}
+
   pENetProtocolHeader = ^ENetProtocolHeader;
-  ENetProtocolHeader = packed record
+  ENetProtocolHeader = record
     peerID   : enet_uint16;
     sentTime : enet_uint16;
   end;
 
   pENetProtocolCommandHeader = ^ENetProtocolCommandHeader;
-  ENetProtocolCommandHeader = packed record
+  ENetProtocolCommandHeader = record
     command                : enet_uint8;
     channelID              : enet_uint8;
     reliableSequenceNumber : enet_uint16;
   end;
 
   pENetProtocolAcknowledge = ^ENetProtocolAcknowledge;
-  ENetProtocolAcknowledge = packed record
+  ENetProtocolAcknowledge = record
     header                         : ENetProtocolCommandHeader;
     receivedReliableSequenceNumber : enet_uint16;
     receivedSentTime               : enet_uint16;
   end;
 
   pENetProtocolConnect = ^ENetProtocolConnect;
-  ENetProtocolConnect = packed record
+  ENetProtocolConnect = record
     header                     : ENetProtocolCommandHeader;
     outgoingPeerID             : enet_uint16;
     incomingSessionID          : enet_uint8;
@@ -109,7 +112,7 @@ type
   end;
 
   pENetProtocolVerifyConnect = ^ENetProtocolVerifyConnect;
-  ENetProtocolVerifyConnect = packed record
+  ENetProtocolVerifyConnect = record
     header                     : ENetProtocolCommandHeader;
     outgoingPeerID             : enet_uint16;
     incomingSessionID          : enet_uint8;
@@ -126,14 +129,14 @@ type
   end;
 
   pENetProtocolBandwidthLimit = ^ENetProtocolBandwidthLimit;
-  ENetProtocolBandwidthLimit = packed record
+  ENetProtocolBandwidthLimit = record
     header            : ENetProtocolCommandHeader;
     incomingBandwidth : enet_uint32;
     outgoingBandwidth : enet_uint32;
   end;
 
   pENetProtocolThrottleConfigure = ^ENetProtocolThrottleConfigure;
-  ENetProtocolThrottleConfigure = packed record
+  ENetProtocolThrottleConfigure = record
     header                     : ENetProtocolCommandHeader;
     packetThrottleInterval     : enet_uint32;
     packetThrottleAcceleration : enet_uint32;
@@ -141,38 +144,38 @@ type
   end;
 
   pENetProtocolDisconnect = ^ENetProtocolDisconnect;
-  ENetProtocolDisconnect = packed record
+  ENetProtocolDisconnect = record
     header : ENetProtocolCommandHeader;
     data   : enet_uint32;
   end;
 
   pENetProtocolPing = ^ENetProtocolPing;
-  ENetProtocolPing = packed record
+  ENetProtocolPing = record
     header : ENetProtocolCommandHeader;
   end;
 
   pENetProtocolSendReliable = ^ENetProtocolSendReliable;
-  ENetProtocolSendReliable = packed record
+  ENetProtocolSendReliable = record
     header     : ENetProtocolCommandHeader;
     dataLength : enet_uint16;
   end;
 
   pENetProtocolSendUnreliable = ^ENetProtocolSendUnreliable;
-  ENetProtocolSendUnreliable = packed record
+  ENetProtocolSendUnreliable = record
     header                   : ENetProtocolCommandHeader;
     unreliableSequenceNumber : enet_uint16;
     dataLength               : enet_uint16;
   end;
 
   pENetProtocolSendUnsequenced = ^ENetProtocolSendUnsequenced;
-  ENetProtocolSendUnsequenced = packed record
+  ENetProtocolSendUnsequenced = record
     header           : ENetProtocolCommandHeader;
     unsequencedGroup : enet_uint16;
     dataLength       : enet_uint16;
   end;
 
   pENetProtocolSendFragment = ^ENetProtocolSendFragment;
-  ENetProtocolSendFragment = packed record
+  ENetProtocolSendFragment = record
     header              : ENetProtocolCommandHeader;
     startSequenceNumber : enet_uint16;
     dataLength          : enet_uint16;
@@ -183,7 +186,7 @@ type
   end;
 
   pENetProtocol = ^ENetProtocol;
-  ENetProtocol = packed record //union
+  ENetProtocol = record //union
   case Byte of
   0 : (header            : ENetProtocolCommandHeader);
   1 : (acknowledge       : ENetProtocolAcknowledge);
@@ -198,6 +201,8 @@ type
   10: (bandwidthLimit    : ENetProtocolBandwidthLimit);
   11: (throttleConfigure : ENetProtocolThrottleConfigure);
   end;
+
+{$ALIGN ON}
 
 implementation
 

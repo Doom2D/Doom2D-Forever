@@ -4,12 +4,13 @@ unit ENet;
   ENet - Reliable UDP networking library
 
   Delphi 7 DLL header: ENet.pas
-  Copyright (c) 2014 Dmitry D. Chernov aka Black Doomer
+  Copyright (c) 2014-2015 Dmitry D. Chernov aka Black Doomer
 
   Original file: enet.h
   Copyright (c) 2002-2014 Lee Salzman
 
   Version 1 for 1.3.12: 16.08.2014
+  Version 2 for 1.3.12: 10.02.2015
 
   Permission is hereby granted, free of charge, to any person obtaining a copy
   of this software and associated documentation files (the "Software"), to deal
@@ -76,24 +77,24 @@ const
 
 type
   //enums
-  ENetSocketType      = ( ENET_SOCKET_TYPE_STREAM         = 1,
-                          ENET_SOCKET_TYPE_DATAGRAM       = 2 );
-  ENetSocketWait      = ( ENET_SOCKET_WAIT_NONE           = 0,
-                          ENET_SOCKET_WAIT_SEND           = 1,
-                          ENET_SOCKET_WAIT_RECEIVE        = 2,
-                          ENET_SOCKET_WAIT_INTERRUPT      = 4 );
-  ENetSocketOption    = ( ENET_SOCKOPT_NONBLOCK           = 1,
-                          ENET_SOCKOPT_BROADCAST          = 2,
-                          ENET_SOCKOPT_RCVBUF             = 3,
-                          ENET_SOCKOPT_SNDBUF             = 4,
-                          ENET_SOCKOPT_REUSEADDR          = 5,
-                          ENET_SOCKOPT_RCVTIMEO           = 6,
-                          ENET_SOCKOPT_SNDTIMEO           = 7,
-                          ENET_SOCKOPT_ERROR              = 8,
-                          ENET_SOCKOPT_NODELAY            = 9 );
+  ENetSocketType      = ( ENET_SOCKET_TYPE_STREAM     = 1,
+                          ENET_SOCKET_TYPE_DATAGRAM   = 2 );
+  ENetSocketWait      = ( ENET_SOCKET_WAIT_NONE       = 0,
+                          ENET_SOCKET_WAIT_SEND       = 1,
+                          ENET_SOCKET_WAIT_RECEIVE    = 2,
+                          ENET_SOCKET_WAIT_INTERRUPT  = 4 );
+  ENetSocketOption    = ( ENET_SOCKOPT_NONBLOCK       = 1,
+                          ENET_SOCKOPT_BROADCAST      = 2,
+                          ENET_SOCKOPT_RCVBUF         = 3,
+                          ENET_SOCKOPT_SNDBUF         = 4,
+                          ENET_SOCKOPT_REUSEADDR      = 5,
+                          ENET_SOCKOPT_RCVTIMEO       = 6,
+                          ENET_SOCKOPT_SNDTIMEO       = 7,
+                          ENET_SOCKOPT_ERROR          = 8,
+                          ENET_SOCKOPT_NODELAY        = 9 );
   ENetSocketShutdown  = ( ENET_SOCKET_SHUTDOWN_READ,
                           ENET_SOCKET_SHUTDOWN_WRITE,
-                          ENET_SOCKET_SHUTDOWN_READ_WRITE     );
+                          ENET_SOCKET_SHUTDOWN_READ_WRITE );
 
   ENetPacketFlag      = ( ENET_PACKET_FLAG_RELIABLE            = 1,
                           ENET_PACKET_FLAG_UNSEQUENCED         = 2,

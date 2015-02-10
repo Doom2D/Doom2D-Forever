@@ -4,12 +4,13 @@ unit ENet_Types;
   ENet - Reliable UDP networking library
 
   Delphi 7 DLL header: ENet_Types.pas
-  Copyright (c) 2014 Dmitry D. Chernov aka Black Doomer
+  Copyright (c) 2014-2015 Dmitry D. Chernov aka Black Doomer
 
   Original file: types.h
   Copyright (c) 2002-2014 Lee Salzman
 
   Version 1 for 1.3.12: 16.08.2014
+  Version 2 for 1.3.12: 10.02.2015
 
   Permission is hereby granted, free of charge, to any person obtaining a copy
   of this software and associated documentation files (the "Software"), to deal
@@ -36,7 +37,7 @@ type
   enet_size_t = Cardinal; //alias for C size_t
   penet_size_t = ^enet_size_t;
 
-  enet_int = SmallInt; //alias for C int
+  enet_int = LongInt; //alias for C int
   penet_int = ^enet_int;
 
   enet_uint8 = Byte;
