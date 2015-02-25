@@ -4,12 +4,13 @@ unit ENet_List;
   ENet - Reliable UDP networking library
 
   Delphi 7 DLL header: ENet_List.pas
-  Copyright (c) 2014 Dmitry D. Chernov aka Black Doomer
+  Copyright (c) 2014-2015 Dmitry D. Chernov aka Black Doomer
 
   Original file: list.h
   Copyright (c) 2002-2014 Lee Salzman
 
   Version 1 for 1.3.12: 16.08.2014
+  Version 2 for 1.3.12: 10.02.2015
 
   Permission is hereby granted, free of charge, to any person obtaining a copy
   of this software and associated documentation files (the "Software"), to deal
@@ -31,8 +32,6 @@ unit ENet_List;
 }
 
 interface
-
-uses ENet_Types; //only for size_t
                                   
 type
   pENetListNode = ^ENetListNode;

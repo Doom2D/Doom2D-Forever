@@ -304,10 +304,10 @@ type
   end;
 
 //inline macros
-function ENET_VERSION_CREATE( major, minor, patch: Integer ): ENetVersion; // inline;
-function ENET_VERSION_GET_MAJOR( version: ENetVersion ): Integer; // inline;
-function ENET_VERSION_GET_MINOR( version: ENetVersion ): Integer; // inline;
-function ENET_VERSION_GET_PATCH( version: ENetVersion ): Integer; // inline;
+function ENET_VERSION_CREATE( const major, minor, patch: LongInt ): ENetVersion; // inline;
+function ENET_VERSION_GET_MAJOR( const version: ENetVersion ): LongInt; // inline;
+function ENET_VERSION_GET_MINOR( const version: ENetVersion ): LongInt; // inline;
+function ENET_VERSION_GET_PATCH( const version: ENetVersion ): LongInt; // inline;
 function ENET_VERSION(): ENetVersion; // inline;
 
 //external

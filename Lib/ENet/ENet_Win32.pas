@@ -4,12 +4,13 @@ unit ENet_Win32;
   ENet - Reliable UDP networking library
 
   Delphi 7 DLL header: ENet_Win32.pas
-  Copyright (c) 2014 Dmitry D. Chernov aka Black Doomer
+  Copyright (c) 2014-2015 Dmitry D. Chernov aka Black Doomer
 
   Original file: win32.h
   Copyright (c) 2002-2014 Lee Salzman
 
   Version 1 for 1.3.12: 16.08.2014
+  Version 2 for 1.3.12: 10.02.2015
 
   Permission is hereby granted, free of charge, to any person obtaining a copy
   of this software and associated documentation files (the "Software"), to deal
@@ -53,16 +54,16 @@ type
   end;
 
 //inline macros
-function ENET_HOST_TO_NET_16( value: u_short ): u_short; // inline;
-function ENET_HOST_TO_NET_32( value: u_long ): u_long; // inline;
+function ENET_HOST_TO_NET_16( const value: u_short ): u_short; // inline;
+function ENET_HOST_TO_NET_32( const value: u_long ): u_long; // inline;
 
-function ENET_NET_TO_HOST_16( value: u_short ): u_short; // inline;
-function ENET_NET_TO_HOST_32( value: u_long ): u_long; // inline;
+function ENET_NET_TO_HOST_16( const value: u_short ): u_short; // inline;
+function ENET_NET_TO_HOST_32( const value: u_long ): u_long; // inline;
 
-procedure ENET_SOCKETSET_EMPTY( sockset: ENetSocketSet ); // inline;
-procedure ENET_SOCKETSET_ADD( sockset: ENetSocketSet; socket: ENetSocket ); // inline;
-procedure ENET_SOCKETSET_REMOVE( sockset: ENetSocketSet; socket: ENetSocket ); // inline;
-function  ENET_SOCKETSET_CHECK( sockset: ENetSocketSet; socket: ENetSocket ): Boolean; // inline;
+procedure ENET_SOCKETSET_EMPTY( var sockset: ENetSocketSet ); // inline;
+procedure ENET_SOCKETSET_ADD( var sockset: ENetSocketSet; socket: ENetSocket ); // inline;
+procedure ENET_SOCKETSET_REMOVE( var sockset: ENetSocketSet; socket: ENetSocket ); // inline;
+function  ENET_SOCKETSET_CHECK( var sockset: ENetSocketSet; socket: ENetSocket ): Boolean; // inline;
 
 implementation
 
