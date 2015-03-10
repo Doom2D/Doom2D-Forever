@@ -156,9 +156,9 @@ object MapOptimizationForm: TMapOptimizationForm
       object cbOptimizeBlockMon: TCheckBox
         Left = 8
         Top = 128
-        Width = 97
+        Width = 145
         Height = 17
-        Caption = #1041#1083#1086#1082'. '#1084#1086#1085'.'
+        Caption = #1041#1083#1086#1082#1080#1088#1072#1090#1086#1088' '#1084#1086#1085#1089#1090#1088#1086#1074
         TabOrder = 9
       end
     end

@@ -6,7 +6,7 @@ Uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics,
   Controls, Forms, Dialogs, ImgList, StdCtrls, Buttons,
   ComCtrls, ValEdit, Types, ToolWin, Menus, ExtCtrls,
-  CheckLst, Grids;
+  CheckLst, Grids, XPMan;
 
 Type
   TMainForm = Class (TForm)
@@ -174,6 +174,7 @@ Type
     OpenDialog: TOpenDialog;
     SaveDialog: TSaveDialog;
     selectall1: TMenuItem;
+    XPManifest: TXPManifest;
 
     procedure aAboutExecute(Sender: TObject);
     procedure aCheckMapExecute(Sender: TObject);
@@ -5067,7 +5068,7 @@ begin
   si.cb := SizeOf(si);
   ZeroMemory(@pi, SizeOf(pi));
 
-  if not CreateProcess(0, PChar(cmd),
+  if not CreateProcess(nil, PChar(cmd),
                        nil, nil, False, 0, nil,
                        PChar(dir),
                        si, pi) then

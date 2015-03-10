@@ -255,9 +255,9 @@ object MainForm: TMainForm
           object LabelTxW: TLabel
             Left = 35
             Top = 0
-            Width = 86
+            Width = 92
             Height = 13
-            Caption = #1044#1083#1080#1085#1072' '#1090#1077#1082#1089#1090#1091#1088#1099':'
+            Caption = #1064#1080#1088#1080#1085#1072' '#1090#1077#1082#1089#1090#1091#1088#1099':'
           end
           object lTextureHeight: TLabel
             Left = 141
@@ -3445,5 +3445,9 @@ object MainForm: TMainForm
       Caption = #1055#1072#1088#1072#1084#1077#1090#1088#1099
       OnClick = miMapTestSettingsClick
     end
+  end
+  object XPManifest: TXPManifest
+    Left = 32
+    Top = 146
   end
 end
