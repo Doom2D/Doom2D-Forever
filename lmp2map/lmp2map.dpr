@@ -1,7 +1,7 @@
 program lmp2map;
 
 {$APPTYPE CONSOLE}
-{$R *.RES}
+{.$DEFINE BUILD_ENG}
 
 uses
   SysUtils,
@@ -13,8 +13,11 @@ uses
   d2ddef in 'd2ddef.pas',
   MAPDEF in '..\Shared Source\MAPDEF.pas',
   utils in 'utils.pas',
-  //inter_en in 'inter_en.pas',
+{$IFNDEF BUILD_ENG}
   inter_ru in 'inter_ru.pas',
+{$ELSE}
+  inter_en in 'inter_en.pas',
+{$ENDIF}
   codepage in '..\Shared Source\codepage.pas',
   console in '..\Shared Source\console.pas';
 
@@ -33,7 +36,7 @@ type
   end;
 
 const
-  VERSION = '2.0';
+  VERSION = '2.1';
   TABLE_FILENAME = 'textures.txt';
   NO_TEXTURE = 'Standart.wad:STDTEXTURES\NO_TEXTURE';
 
