@@ -3,7 +3,7 @@ Unit g_map;
 Interface
 
 Uses
-  e_graphics, g_basic, MAPSTRUCT, windows, g_textures,
+  e_graphics, g_basic, MAPSTRUCT, windows, g_textures, Classes,
   g_phys, WADEDITOR, BinEditor, g_panel, md5asm;
 
 Type
@@ -27,7 +27,7 @@ Type
 
   PFlagPoint = ^TFlagPoint;
   TFlagPoint = TRespawnPoint;
-  
+
   PFlag = ^TFlag;
   TFlag = record
     Obj:         TObj;
@@ -107,6 +107,7 @@ var
   gRelativeMapResStr: string = '';
   gWADHash: TMD5Digest;
   BackID:  DWORD = DWORD(-1);
+  gExternalResources: TStringList;
 
 Implementation
 
@@ -145,7 +146,7 @@ var
                        end;
   a, b, c, m, i, len: Integer;
   ok: Boolean;
-  
+
 begin
   if gWalls = nil then
     Exit;
@@ -232,7 +233,7 @@ var
                          Active: Boolean;
                        end;
   a, b, c, len, i, j: Integer;
-  ok: Boolean;   
+  ok: Boolean;
 
 begin
   if gLifts = nil then
@@ -390,7 +391,7 @@ begin
     with Textures[High(Textures)] do
     begin
       TextureName := RecName;
-   
+
       if TextureName = TEXTURE_NAME_WATER then
         TextureID := TEXTURE_SPECIAL_WATER
       else
@@ -461,7 +462,7 @@ var
 begin
   Result := False;
 
-// Читаем WAD-ресурс аним.текстуры из WAD'а в память: 
+// Читаем WAD-ресурс аним.текстуры из WAD'а в память:
   g_ProcessResourceStr(RecName, WADName, SectionName, TextureName);
 
   WAD := TWADEditor_1.Create();
@@ -485,7 +486,7 @@ begin
   end;
 
   WAD.FreeWAD();
-  
+
   if not WAD.ReadMemory(TextureWAD, ResLength) then
   begin
     FreeMem(TextureWAD);
@@ -565,7 +566,7 @@ begin
   if (not (gGameSettings.GameMode in [GM_DM, GM_TDM, GM_CTF])) and
      ByteBool(Item.Options and ITEM_OPTION_ONLYDM) then
     Exit;
-    
+
   g_Items_Create(Item.X, Item.Y, Item.ItemType, ByteBool(Item.Options and ITEM_OPTION_FALL),
                  gGameSettings.GameMode in [GM_DM, GM_TDM, GM_CTF, GM_COOP]);
 end;
@@ -645,7 +646,7 @@ var
   _trigger: TTrigger;
 begin
  if g_Game_IsClient and not (Trigger.TriggerType in [TRIGGER_SOUND, TRIGGER_MUSIC]) then Exit;
- 
+
  with _trigger do
  begin
   X := Trigger.X;
@@ -692,7 +693,7 @@ end;
 procedure g_Map_ReAdd_DieTriggers();
 var
   i, a: Integer;
-  
+
 begin
   if g_Game_IsClient then Exit;
 
@@ -707,6 +708,46 @@ begin
             if (gTriggers[a].Data.MonsterID-1) = gMonsters[i].StartID then
               gMonsters[i].AddTrigger(a);
       end;
+end;
+
+function extractWadName(resourceName: string): string;
+var posN: Integer;
+begin
+  posN := Pos(':', resourceName);
+  if posN > 0 then
+    Result:= Copy(resourceName, 0, posN-1)
+  else
+    Result := '';
+end;
+
+procedure addResToExternalResList(res: string);
+begin
+  res := extractWadName(res);
+  if (res <> '') and (gExternalResources.IndexOf(res) = -1) then
+    gExternalResources.Add(res);
+end;
+
+procedure generateExternalResourcesList(mapReader: TMapReader_1);
+var
+  textures: TTexturesRec1Array;
+  mapHeader: TMapHeaderRec_1;
+  i: integer;
+  resFile: String;
+begin
+  if gExternalResources = nil then
+    gExternalResources := TStringList.Create;
+
+  gExternalResources.Clear;
+  textures := mapReader.GetTextures();
+  for i := 0 to High(textures) do
+  begin
+    addResToExternalResList(resFile);
+  end;
+
+  mapHeader := mapReader.GetMapHeader;
+
+  addResToExternalResList(mapHeader.MusicName);
+  addResToExternalResList(mapHeader.SkyName);
 end;
 
 function g_Map_Load(Res: String): Boolean;
@@ -766,6 +807,7 @@ begin
 // Загрузка карты:
   g_Game_SetLoadingText(_lc[I_LOAD_MAP], 0, False);
   MapReader := TMapReader_1.Create();
+
   if not MapReader.LoadMap(Data) then
   begin
     g_FatalError(Format(_lc[I_GAME_ERROR_MAP_LOAD], [Res]));
@@ -775,7 +817,7 @@ begin
   end;
 
   FreeMem(Data);
-
+  generateExternalResourcesList(MapReader);
 // Загрузка текстур:
   g_Game_SetLoadingText(_lc[I_LOAD_TEXTURES], 0, False);
   _textures := MapReader.GetTextures();
