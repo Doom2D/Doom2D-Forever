@@ -744,6 +744,8 @@ begin
     addResToExternalResList(resFile);
   end;
 
+  textures := nil;
+
   mapHeader := mapReader.GetMapHeader;
 
   addResToExternalResList(mapHeader.MusicName);
