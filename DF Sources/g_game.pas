@@ -3,7 +3,7 @@ Unit g_game;
 Interface
 
 Uses
-  Windows, g_basic, g_player, Messages, e_graphics,
+  Windows, g_basic, g_player, Messages, e_graphics, Classes, g_res_downloader,
   SysUtils, g_sound, MAPSTRUCT, WADEDITOR;
 
 Type
@@ -2307,7 +2307,6 @@ procedure g_Game_StartServer(Map: String; GameMode: Byte;
 var
   ResName: String;
   Team: Byte;
-
 begin
   g_Game_Free();
 
@@ -2401,7 +2400,7 @@ begin
 
 // Настройки игроков и ботов:
   g_Player_Init();
-  
+
   NetState := NET_STATE_GAME;
 end;
 
@@ -2409,6 +2408,7 @@ procedure g_Game_StartClient(Addr: String; Port: Word; PW: String = 'ASS');
 var
   ResName: String;
   Map: String;
+  WadName: string;
   Ptr: Pointer;
   T: Cardinal;
   MID: Byte;
@@ -2416,6 +2416,7 @@ var
   OuterLoop: Boolean;
   WHash: TMD5Digest;
   F: file;
+  newResPath: string;
 begin
   g_Game_Free();
   State := 0;
@@ -2467,7 +2468,8 @@ begin
         NetMyID := e_Raw_Read_Byte(Ptr);
         NetPlrUID := e_Raw_Read_Word(Ptr);
 
-        gGameSettings.WAD := MapsDir + e_Raw_Read_String(Ptr);
+        WadName := e_Raw_Read_String(Ptr);
+        gGameSettings.WAD := MapsDir + WadName;
         Map := e_Raw_Read_String(Ptr);
 
         WHash := e_Raw_Read_MD5(Ptr);
@@ -2478,10 +2480,11 @@ begin
         gGameSettings.Options := e_Raw_Read_LongWord(Ptr);
         T := e_Raw_Read_LongWord(Ptr);
 
-        if FileExists(gGameSettings.WAD) then
+        newResPath := MapExist(MapsDir, WadName, WHash);
+        if newResPath = '' then
         begin
-          gWADHash := MD5File(gGameSettings.WAD);
-          if not MD5Compare(gWADHash, WHash) then
+          newResPath := g_Res_DownloadMapFromServer(WadName);
+          if newResPath = '' then
           begin
             g_FatalError(_lc[I_NET_ERR_HASH]);
             enet_packet_destroy(NetEvent.packet);
@@ -2490,6 +2493,7 @@ begin
           end;
         end;
 
+        gGameSettings.WAD := newResPath;
         ResName := Map;
 
         gPlayer1 := g_Player_Get(g_Player_Create(gPlayer1Settings.Model,

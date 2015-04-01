@@ -3,10 +3,10 @@ unit g_net;
 interface
 
 uses
-  e_log, e_fixedbuffer, ENet, ENet_Types;
+  e_log, e_fixedbuffer, ENet, ENet_Types, Classes;
 
 const
-  NET_PROTOCOL_VER = 141;
+  NET_PROTOCOL_VER = 142;
 
   NET_MAXCLIENTS = 24;
   NET_CHANS = 9;
@@ -52,6 +52,8 @@ type
     RequestedFullUpdate: Boolean;
   end;
   pTNetClient = ^TNetClient;
+
+  AByte = array of Byte;
 
 var
   NetInitDone:     Boolean = False;
@@ -115,6 +117,9 @@ procedure g_Net_Disconnect(Forced: Boolean = False);
 procedure g_Net_Client_Send(Reliable: Boolean; Chan: Byte = NET_CHAN_GAME);
 function  g_Net_Client_Update(): enet_size_t;
 function  g_Net_Client_UpdateWhileLoading(): enet_size_t;
+
+procedure g_Net_SendData(Data:AByte; peer: pENetPeer; Reliable: Boolean; Chan: Byte = NET_CHAN_GAME);
+function g_net_Wait_Event(msgId: Word):TMemoryStream;
 
 function  IpToStr(IP: LongWord): string;
 
@@ -626,6 +631,95 @@ begin
   Result := Result + IntToStr(e_Raw_Read_Byte(Ptr)) + '.';
   Result := Result + IntToStr(e_Raw_Read_Byte(Ptr));
   e_Raw_Seek(0);
+end;
+
+procedure g_Net_SendData(Data:AByte; peer: pENetPeer; Reliable: Boolean; Chan: Byte = NET_CHAN_GAME);
+var
+  P: pENetPacket;
+  F: enet_uint32;
+  dataLength: Cardinal;
+begin
+  P := nil;
+
+  dataLength := Length(Data);
+
+  if (Reliable) then
+    F := LongWord(ENET_PACKET_FLAG_RELIABLE)
+  else
+    F := 0;
+
+  if (peer <> nil) then
+  begin
+    P := enet_packet_create(@Data[0], dataLength, F);
+    if not Assigned(P) then Exit;
+    enet_peer_send(peer, Chan, P);
+  end
+  else
+  begin
+    P := enet_packet_create(@Data[0], dataLength, F);
+    if not Assigned(P) then Exit;
+
+    enet_host_widecast(NetHost, Chan, P);
+  end;
+
+  enet_host_flush(NetHost);
+end;
+
+function g_net_Wait_Event(msgId: Word):TMemoryStream;
+var
+  downloadEvent: ENetEvent;
+  OuterLoop: Boolean;
+  MID: Byte;
+  Ptr: Pointer;
+  msgStream: TMemoryStream;
+begin
+  msgStream := nil;
+  OuterLoop := True;
+  while OuterLoop do
+  begin
+   while (enet_host_service(NetHost, @downloadEvent, 0) > 0) do
+   begin
+    if (downloadEvent.kind = ENET_EVENT_TYPE_RECEIVE) then
+    begin
+      Ptr := downloadEvent.packet^.data;
+
+      MID := Byte(Ptr^);
+
+      if (MID = msgId) then
+      begin
+        msgStream := TMemoryStream.Create;
+        msgStream.SetSize(downloadEvent.packet^.dataLength);
+        msgStream.WriteBuffer(Ptr^, downloadEvent.packet^.dataLength);
+        msgStream.Seek(0, soFromBeginning);
+
+        OuterLoop := False;
+        enet_packet_destroy(downloadEvent.packet);
+        break;
+      end
+      else begin
+        enet_packet_destroy(downloadEvent.packet);
+      end;
+    end
+    else
+      if (downloadEvent.kind = ENET_EVENT_TYPE_DISCONNECT) then
+      begin
+        if (downloadEvent.data <= 7) then
+          g_Console_Add(_lc[I_NET_MSG_ERROR] + _lc[I_NET_ERR_CONN] + ' ' +
+            _lc[TStrings_Locale(Cardinal(I_NET_DISC_NONE) + downloadEvent.data)], True);
+        OuterLoop := False;
+        Break;
+      end;
+   end;
+
+   PreventWindowFromLockUp;
+
+   e_PollKeyboard();
+   if (e_KeyBuffer[1] = $080) or (e_KeyBuffer[57] = $080) then
+   begin
+    break;
+   end;
+  end;
+  Result := msgStream;
 end;
 
 end.
