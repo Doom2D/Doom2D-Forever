@@ -12,6 +12,7 @@ type
 procedure e_InitLog(fFileName: String; fWriteMode: TWriteMode);
 procedure e_WriteLog(TextLine: String; RecordCategory: TRecordCategory;
                      WriteTime: Boolean = True);
+function DecodeIPV4(ip: LongWord): string;
 
 implementation
 
@@ -20,6 +21,11 @@ var
   FileName: String;
 
 { TLog }
+
+function DecodeIPV4(ip: LongWord): string;
+begin
+  Result := Format('%d.%d.%d.%d', [ip and $FF, (ip shr 8) and $FF, (ip shr 16) and $FF, (ip shr 24)]);
+end;
 
 procedure e_WriteLog(TextLine: String; RecordCategory: TRecordCategory;
                      WriteTime: Boolean = True);

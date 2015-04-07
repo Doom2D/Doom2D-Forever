@@ -156,7 +156,7 @@ procedure MC_SEND_PlayerSettings();
 procedure MC_SEND_CheatRequest(Kind: Byte);
 
 procedure MC_SEND_MapRequest();
-procedure MC_SEND_ResRequest(resName: AnsiString);
+procedure MC_SEND_ResRequest(const resName: AnsiString);
 procedure MH_RECV_MapRequest(C: pTNetClient; P: Pointer);
 procedure MH_RECV_ResRequest(C: pTNetClient; P: Pointer);
 
@@ -2088,13 +2088,37 @@ begin
   msgStream.ReadBuffer(Result.ExternalResources[0], resCount * SizeOf(TExternalResourceInfo)); //res data
 end;
 
+//http://stackoverflow.com/questions/960772/how-can-i-sanitize-a-string-for-use-as-a-filename
+function IsValidFilePath(const FileName: String): Boolean;
+var
+  S: String;
+  I: Integer;
+begin
+  Result := False;
+  S := FileName;
+  repeat
+    I := LastDelimiter('\/', S);
+    MoveFile(nil, PChar(S));
+    if (GetLastError = ERROR_ALREADY_EXISTS) or
+       (
+         (GetFileAttributes(PChar(Copy(S, I + 1, MaxInt))) = $FFFFFFFF)
+         and
+         (GetLastError=ERROR_INVALID_NAME)
+       ) then
+      Exit;
+    if I>0 then
+      S := Copy(S,1,I-1);
+  until I = 0;
+  Result := True;
+end;
+
 procedure MC_SEND_MapRequest();
 begin
   e_Buffer_Write(@NetOut, Byte(NET_MSG_MAP_REQUEST));
   g_Net_Client_Send(True, NET_CHAN_IMPORTANT);
 end;
 
-procedure MC_SEND_ResRequest(resName: AnsiString);
+procedure MC_SEND_ResRequest(const resName: AnsiString);
 begin
   e_Buffer_Write(@NetOut, Byte(NET_MSG_RES_REQUEST));
   e_Buffer_Write(@NetOut, resName);
@@ -2107,6 +2131,7 @@ var
   peer: pENetPeer;
   mapDataMsg: TMapDataMsg;
 begin
+  e_WriteLog('Receive map request from ' + DecodeIPV4(C.Peer.address.host), MSG_NOTIFY);
   mapDataMsg := CreateMapDataMsg(gGameSettings.WAD, gExternalResources);
   peer := NetClients[C.ID].Peer;
 
@@ -2125,7 +2150,14 @@ var
   FileName: String;
   resDataMsg: TResDataMsg;
 begin
-  FileName := e_Raw_Read_String(P);
+  FileName := ExtractFileName(e_Raw_Read_String(P));
+  e_WriteLog('Receive resource request: ' + FileName + ' from ' + DecodeIPV4(C.Peer.address.host), MSG_NOTIFY);
+  if not IsValidFilePath(FileName) then
+  begin
+    e_WriteLog('Invalid filename: ' + FileName, MSG_WARNING);
+    exit;
+  end;
+
   peer := NetClients[C.ID].Peer;
 
   if gExternalResources.IndexOf(FileName) > -1 then
