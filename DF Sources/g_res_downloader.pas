@@ -102,8 +102,8 @@ var
   i: Integer;
   resData: TResDataMsg;
 begin
-  g_Console_Add('Map `' + FileName +'` not found. Download from server');
-  e_WriteLog('Download map`' + FileName + '`from server', MSG_NOTIFY);
+  g_Console_Add('Map `' + FileName +'` not found. Downloading from server...');
+  e_WriteLog('Download map `' + FileName + '` from server', MSG_NOTIFY);
   MC_SEND_MapRequest();
 
   msgStream := g_net_Wait_Event(NET_MSG_MAP_RESPONSE);
@@ -114,8 +114,8 @@ begin
   begin
     if not ResourceExists(GameDir + '\wads\', mapData.ExternalResources[i].Name, mapData.ExternalResources[i].md5) then
     begin
-      g_Console_Add('Wad `' + mapData.ExternalResources[i].Name +'` not found. Download from server');
-      e_WriteLog('Download Wad`' + mapData.ExternalResources[i].Name + '`from server', MSG_NOTIFY);
+      g_Console_Add('Wad `' + mapData.ExternalResources[i].Name +'` not found. Downloading from server...');
+      e_WriteLog('Download Wad `' + mapData.ExternalResources[i].Name + '` from server', MSG_NOTIFY);
       MC_SEND_ResRequest(mapData.ExternalResources[i].Name);
 
       msgStream := g_net_Wait_Event(NET_MSG_RES_RESPONSE);

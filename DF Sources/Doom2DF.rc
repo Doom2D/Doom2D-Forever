@@ -1,6 +1,6 @@
 APPVERINFO VERSIONINFO
-FILEVERSION 0,6,6,6
-PRODUCTVERSION 0,6,6,6
+FILEVERSION 0,6,6,7
+PRODUCTVERSION 0,6,6,7
 FILETYPE VFT_APP
 {
  BLOCK "StringFileInfo"
@@ -9,12 +9,12 @@ FILETYPE VFT_APP
   {
    VALUE "CompanyName",      "Doom2D Forever development team\0"
    VALUE "FileDescription",  "Doom2D Forever\0"
-   VALUE "FileVersion",      "0.6.6.6\0"
+   VALUE "FileVersion",      "0.6.6.7\0"
    VALUE "InternalName",     "doom2df.exe\0"
    VALUE "LegalCopyright",   "(c) Doom2D Forever development team\0"
    VALUE "OriginalFilename", "Doom2DF.exe\0"
    VALUE "ProductName",      "Doom2D Forever\0"
-   VALUE "ProductVersion",   "0.6.6.6\0"
+   VALUE "ProductVersion",   "0.6.6.7\0"
   }
  }
  BLOCK "VarFileInfo"

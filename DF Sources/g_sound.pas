@@ -122,7 +122,7 @@ begin
       Exit;
     end;
 
-  g_FatalError(Format(_lc[I_GAME_ERROR_SOUND], [SoundName]));
+  e_WriteLog(Format(_lc[I_GAME_ERROR_SOUND], [SoundName]), MSG_WARNING);
 end;
 
 function g_Sound_PlayExPanVolume(SoundName: ShortString; Pan: Single; Volume: Single): Boolean;
@@ -141,7 +141,7 @@ begin
       Exit;
     end;
 
-  g_FatalError(Format(_lc[I_GAME_ERROR_SOUND], [SoundName]));
+  e_WriteLog(Format(_lc[I_GAME_ERROR_SOUND], [SoundName]), MSG_WARNING);
 end;
 
 function PlaySoundAt(X, Y: Integer; var Pan: Single; var Volume: Single): Boolean;
@@ -265,7 +265,7 @@ begin
       Exit;
     end;
 
-  g_FatalError(Format(_lc[I_GAME_ERROR_SOUND], [SoundName]));
+  e_WriteLog(Format(_lc[I_GAME_ERROR_SOUND], [SoundName]), MSG_WARNING);
 end;
 
 function g_Sound_CreateFile(var ID: DWORD; FileName: string; isMusic: Boolean = False): Boolean;
