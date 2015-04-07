@@ -1,12 +1,12 @@
-Unit g_map;
+unit g_map;
 
-Interface
+interface
 
-Uses
+uses
   e_graphics, g_basic, MAPSTRUCT, windows, g_textures, Classes,
   g_phys, WADEDITOR, BinEditor, g_panel, md5asm;
 
-Type
+type
   TMapInfo = record
     Map:           String;
     Name:          String;
@@ -109,9 +109,9 @@ var
   BackID:  DWORD = DWORD(-1);
   gExternalResources: TStringList;
 
-Implementation
+implementation
 
-Uses
+uses
   g_main, e_log, SysUtils, g_items, g_gfx, g_console,
   dglOpenGL, g_weapons, g_game, g_sound, e_sound, CONFIG,
   g_options, MAPREADER, g_triggers, g_player, MAPDEF,
@@ -146,7 +146,6 @@ var
                        end;
   a, b, c, m, i, len: Integer;
   ok: Boolean;
-
 begin
   if gWalls = nil then
     Exit;
@@ -234,7 +233,6 @@ var
                        end;
   a, b, c, len, i, j: Integer;
   ok: Boolean;
-
 begin
   if gLifts = nil then
     Exit;
@@ -309,7 +307,6 @@ function CreatePanel(PanelRec: TPanelRec_1; AddTextures: TAddTextureArray;
 var
   len: Integer;
   panels: ^TPanelArray;
-
 begin
   Result := -1;
 
@@ -369,7 +366,6 @@ var
   SectionName: String;
   TextureName: String;
   a, ResLength: Integer;
-
 begin
   Result := False;
 
@@ -458,7 +454,6 @@ var
   TextureResource: String;
   _width, _height, _framecount, _speed: Integer;
   _backanimation: Boolean;
-
 begin
   Result := False;
 
@@ -576,99 +571,98 @@ var
   a: Integer;
   id: DWORD;
 begin
- case Area.AreaType of
-  AREA_DMPOINT, AREA_PLAYERPOINT1, AREA_PLAYERPOINT2,
-  AREA_REDTEAMPOINT, AREA_BLUETEAMPOINT:
-  begin
-   SetLength(RespawnPoints, Length(RespawnPoints)+1);
-   with RespawnPoints[High(RespawnPoints)] do
-   begin
-    X := Area.X;
-    Y := Area.Y;
-    Direction := TDirection(Area.Direction);
+  case Area.AreaType of
+    AREA_DMPOINT, AREA_PLAYERPOINT1, AREA_PLAYERPOINT2,
+    AREA_REDTEAMPOINT, AREA_BLUETEAMPOINT:
+    begin
+      SetLength(RespawnPoints, Length(RespawnPoints)+1);
+      with RespawnPoints[High(RespawnPoints)] do
+      begin
+        X := Area.X;
+        Y := Area.Y;
+        Direction := TDirection(Area.Direction);
 
-    case Area.AreaType of
-     AREA_DMPOINT: PointType := RESPAWNPOINT_DM;
-     AREA_PLAYERPOINT1: PointType := RESPAWNPOINT_PLAYER1;
-     AREA_PLAYERPOINT2: PointType := RESPAWNPOINT_PLAYER2;
-     AREA_REDTEAMPOINT: PointType := RESPAWNPOINT_RED;
-     AREA_BLUETEAMPOINT: PointType := RESPAWNPOINT_BLUE;
-    end;
-   end;
-  end;
-
-  AREA_REDFLAG, AREA_BLUEFLAG:
-  begin
-   if Area.AreaType = AREA_REDFLAG then a := FLAG_RED else a := FLAG_BLUE;
-
-   if FlagPoints[a] <> nil then Exit;
-
-   New(FlagPoints[a]);
-
-   with FlagPoints[a]^ do
-   begin
-    X := Area.X-FLAGRECT.X;
-    Y := Area.Y-FLAGRECT.Y;
-    Direction := TDirection(Area.Direction);
-   end;
-
-   with gFlags[a] do
-   begin
-    case a of
-     FLAG_RED: g_Frames_Get(id, 'FRAMES_FLAG_RED');
-     FLAG_BLUE: g_Frames_Get(id, 'FRAMES_FLAG_BLUE');
+        case Area.AreaType of
+          AREA_DMPOINT: PointType := RESPAWNPOINT_DM;
+          AREA_PLAYERPOINT1: PointType := RESPAWNPOINT_PLAYER1;
+          AREA_PLAYERPOINT2: PointType := RESPAWNPOINT_PLAYER2;
+          AREA_REDTEAMPOINT: PointType := RESPAWNPOINT_RED;
+          AREA_BLUETEAMPOINT: PointType := RESPAWNPOINT_BLUE;
+        end;
+      end;
     end;
 
-    Animation := TAnimation.Create(id, True, 8);
-    Obj.Rect := FLAGRECT;
+    AREA_REDFLAG, AREA_BLUEFLAG:
+    begin
+      if Area.AreaType = AREA_REDFLAG then a := FLAG_RED else a := FLAG_BLUE;
 
-    g_Map_ResetFlag(a);
-   end;
+      if FlagPoints[a] <> nil then Exit;
+
+      New(FlagPoints[a]);
+
+      with FlagPoints[a]^ do
+      begin
+        X := Area.X-FLAGRECT.X;
+        Y := Area.Y-FLAGRECT.Y;
+        Direction := TDirection(Area.Direction);
+      end;
+
+      with gFlags[a] do
+      begin
+        case a of
+          FLAG_RED: g_Frames_Get(id, 'FRAMES_FLAG_RED');
+          FLAG_BLUE: g_Frames_Get(id, 'FRAMES_FLAG_BLUE');
+        end;
+
+        Animation := TAnimation.Create(id, True, 8);
+        Obj.Rect := FLAGRECT;
+
+        g_Map_ResetFlag(a);
+      end;
+    end;
+
+    AREA_DOMFLAG:
+    begin
+      {SetLength(DOMFlagPoints, Length(DOMFlagPoints)+1);
+      with DOMFlagPoints[High(DOMFlagPoints)] do
+      begin
+        X := Area.X;
+        Y := Area.Y;
+        Direction := TDirection(Area.Direction);
+      end;
+
+      g_Map_CreateFlag(DOMFlagPoints[High(DOMFlagPoints)], FLAG_DOM, FLAG_STATE_NORMAL);}
+    end;
   end;
-
-  AREA_DOMFLAG:
-  begin
-   {SetLength(DOMFlagPoints, Length(DOMFlagPoints)+1);
-   with DOMFlagPoints[High(DOMFlagPoints)] do
-   begin
-    X := Area.X;
-    Y := Area.Y;
-    Direction := TDirection(Area.Direction);
-   end;
-
-   g_Map_CreateFlag(DOMFlagPoints[High(DOMFlagPoints)], FLAG_DOM, FLAG_STATE_NORMAL);}
-  end;
- end;
 end;
 
 procedure CreateTrigger(Trigger: TTriggerRec_1; fTexturePanelType: Word);
 var
   _trigger: TTrigger;
 begin
- if g_Game_IsClient and not (Trigger.TriggerType in [TRIGGER_SOUND, TRIGGER_MUSIC]) then Exit;
+  if g_Game_IsClient and not (Trigger.TriggerType in [TRIGGER_SOUND, TRIGGER_MUSIC]) then Exit;
 
- with _trigger do
- begin
-  X := Trigger.X;
-  Y := Trigger.Y;
-  Width := Trigger.Width;
-  Height := Trigger.Height;
-  Enabled := ByteBool(Trigger.Enabled);
-  TexturePanel := Trigger.TexturePanel;
-  TexturePanelType := fTexturePanelType;
-  TriggerType := Trigger.TriggerType;
-  ActivateType := Trigger.ActivateType;
-  Keys := Trigger.Keys;
-  Data.Default := Trigger.DATA;
- end;
+  with _trigger do
+  begin
+    X := Trigger.X;
+    Y := Trigger.Y;
+    Width := Trigger.Width;
+    Height := Trigger.Height;
+    Enabled := ByteBool(Trigger.Enabled);
+    TexturePanel := Trigger.TexturePanel;
+    TexturePanelType := fTexturePanelType;
+    TriggerType := Trigger.TriggerType;
+    ActivateType := Trigger.ActivateType;
+    Keys := Trigger.Keys;
+    Data.Default := Trigger.DATA;
+  end;
 
- g_Triggers_Create(_trigger);
+  g_Triggers_Create(_trigger);
 end;
 
 procedure CreateMonster(monster: TMonsterRec_1);
 var
   a, i: Integer;
-
 begin
   if g_Game_IsClient then Exit;
 
@@ -693,7 +687,6 @@ end;
 procedure g_Map_ReAdd_DieTriggers();
 var
   i, a: Integer;
-
 begin
   if g_Game_IsClient then Exit;
 
@@ -711,7 +704,8 @@ begin
 end;
 
 function extractWadName(resourceName: string): string;
-var posN: Integer;
+var
+  posN: Integer;
 begin
   posN := Pos(':', resourceName);
   if posN > 0 then
@@ -756,7 +750,6 @@ function g_Map_Load(Res: String): Boolean;
 const
   DefaultMusRes = 'Standart.wad:STDMUS\MUS1';
   DefaultSkyRes = 'Standart.wad:STDSKY\SKY0';
-
 var
   WAD: TWADEditor_1;
   MapReader: TMapReader_1;
@@ -782,7 +775,6 @@ var
   Len: Integer;
   ok, isAnim, trigRef: Boolean;
   CurTex: Integer;
-  
 begin
   Result := False;
   gMapInfo.Map := Res;
@@ -1209,7 +1201,6 @@ var
   FileName, SectionName, ResName: String;
   Data: Pointer;
   Len: Integer;
-
 begin
   g_ProcessResourceStr(Res, FileName, SectionName, ResName);
 
@@ -1261,36 +1252,35 @@ var
   Data: Pointer;
   Len: Integer;
   Sign: Array [0..2] of Char;
-
 begin
- Result := nil;
+  Result := nil;
 
- WAD := TWADEditor_1.Create();
- if not WAD.ReadFile(WADName) then
- begin
-  WAD.Free();
-  Exit;
- end;
-
- ResList := WAD.GetResourcesList('');
-
- if ResList <> nil then
-  for a := 0 to High(ResList) do
+  WAD := TWADEditor_1.Create();
+  if not WAD.ReadFile(WADName) then
   begin
-   if not WAD.GetResource('', ResList[a], Data, Len) then Continue;
-   CopyMemory(@Sign[0], Data, 3);
-   FreeMem(Data);
-   
-   if Sign = MAP_SIGNATURE then
-   begin
-    SetLength(Result, Length(Result)+1);
-    Result[High(Result)] := ResList[a];
-   end;
-   
-   Sign := '';
+    WAD.Free();
+    Exit;
   end;
 
- WAD.Free();
+  ResList := WAD.GetResourcesList('');
+
+  if ResList <> nil then
+    for a := 0 to High(ResList) do
+    begin
+      if not WAD.GetResource('', ResList[a], Data, Len) then Continue;
+      CopyMemory(@Sign[0], Data, 3);
+      FreeMem(Data);
+   
+      if Sign = MAP_SIGNATURE then
+      begin
+        SetLength(Result, Length(Result)+1);
+        Result[High(Result)] := ResList[a];
+      end;
+   
+      Sign := '';
+    end;
+
+  WAD.Free();
 end;
 
 function g_Map_Exist(Res: string): Boolean;
@@ -1300,28 +1290,28 @@ var
   ResList: SArray;
   a: Integer;
 begin
- Result := False;
+  Result := False;
 
- g_ProcessResourceStr(Res, FileName, SectionName, ResName);
+  g_ProcessResourceStr(Res, FileName, SectionName, ResName);
 
- if Pos('.wad', LowerCase(FileName)) = 0 then FileName := FileName+'.wad';
+  if Pos('.wad', LowerCase(FileName)) = 0 then FileName := FileName+'.wad';
 
- WAD := TWADEditor_1.Create;
- if not WAD.ReadFile(FileName) then
- begin
-  WAD.Free();
-  Exit;
- end;
-
- ResList := WAD.GetResourcesList('');
- WAD.Free();
- 
- if ResList <> nil then
-  for a := 0 to High(ResList) do if ResList[a] = ResName then
+  WAD := TWADEditor_1.Create;
+  if not WAD.ReadFile(FileName) then
   begin
-   Result := True;
-   Exit;
+    WAD.Free();
+    Exit;
   end;
+
+  ResList := WAD.GetResourcesList('');
+  WAD.Free();
+ 
+  if ResList <> nil then
+    for a := 0 to High(ResList) do if ResList[a] = ResName then
+    begin
+      Result := True;
+      Exit;
+    end;
 end;
 
 procedure g_Map_Free();
@@ -1519,134 +1509,133 @@ end;
 
 procedure g_Map_DrawBack(dx, dy: Integer);
 begin
- if gDrawBackGround and (BackID <> DWORD(-1)) then
-  e_DrawSize(BackID, dx, dy, 0, False, False, gBackSize.X, gBackSize.Y)
-   else e_Clear(GL_COLOR_BUFFER_BIT, 0, 0, 0);
+  if gDrawBackGround and (BackID <> DWORD(-1)) then
+    e_DrawSize(BackID, dx, dy, 0, False, False, gBackSize.X, gBackSize.Y)
+  else
+    e_Clear(GL_COLOR_BUFFER_BIT, 0, 0, 0);
 end;
 
 function g_Map_CollidePanel(X, Y: Integer; Width, Height: Word;
                             PanelType: Word; b1x3: Boolean): Boolean;
 var
   a, h: Integer;
-
 begin
  Result := False;
 
  if WordBool(PanelType and PANEL_WALL) then
-  if gWalls <> nil then
-  begin
-   h := High(gWalls);
-
-   for a := 0 to h do
-    if gWalls[a].Enabled and
-       g_Collide(X, Y, Width, Height,
-                 gWalls[a].X, gWalls[a].Y,
-                 gWalls[a].Width, gWalls[a].Height) then
+    if gWalls <> nil then
     begin
-     Result := True;
-     Exit;
+      h := High(gWalls);
+
+      for a := 0 to h do
+        if gWalls[a].Enabled and
+        g_Collide(X, Y, Width, Height,
+                  gWalls[a].X, gWalls[a].Y,
+                  gWalls[a].Width, gWalls[a].Height) then
+        begin
+          Result := True;
+          Exit;
+        end;
     end;
-  end;
 
- if WordBool(PanelType and PANEL_WATER) then
-  if gWater <> nil then
-  begin
-   h := High(gWater);
-
-   for a := 0 to h do
-    if g_Collide(X, Y, Width, Height,
-                 gWater[a].X, gWater[a].Y,
-                 gWater[a].Width, gWater[a].Height) then
+  if WordBool(PanelType and PANEL_WATER) then
+    if gWater <> nil then
     begin
-     Result := True;
-     Exit;
+      h := High(gWater);
+
+      for a := 0 to h do
+      if g_Collide(X, Y, Width, Height,
+                   gWater[a].X, gWater[a].Y,
+                   gWater[a].Width, gWater[a].Height) then
+      begin
+        Result := True;
+        Exit;
+      end;
     end;
-  end;
 
- if WordBool(PanelType and PANEL_ACID1) then
-  if gAcid1 <> nil then
-  begin
-   h := High(gAcid1);
-
-   for a := 0 to h do
-    if g_Collide(X, Y, Width, Height,
-                 gAcid1[a].X, gAcid1[a].Y,
-                 gAcid1[a].Width, gAcid1[a].Height) then
+  if WordBool(PanelType and PANEL_ACID1) then
+    if gAcid1 <> nil then
     begin
-     Result := True;
-     Exit;
+      h := High(gAcid1);
+
+      for a := 0 to h do
+        if g_Collide(X, Y, Width, Height,
+                     gAcid1[a].X, gAcid1[a].Y,
+                     gAcid1[a].Width, gAcid1[a].Height) then
+        begin
+          Result := True;
+          Exit;
+        end;
     end;
-  end;
 
- if WordBool(PanelType and PANEL_ACID2) then
-  if gAcid2 <> nil then
-  begin
-   h := High(gAcid2);
-
-   for a := 0 to h do
-    if g_Collide(X, Y, Width, Height,
-                 gAcid2[a].X, gAcid2[a].Y,
-                 gAcid2[a].Width, gAcid2[a].Height) then
+  if WordBool(PanelType and PANEL_ACID2) then
+    if gAcid2 <> nil then
     begin
-     Result := True;
-     Exit;
+      h := High(gAcid2);
+
+      for a := 0 to h do
+        if g_Collide(X, Y, Width, Height,
+                     gAcid2[a].X, gAcid2[a].Y,
+                     gAcid2[a].Width, gAcid2[a].Height) then
+        begin
+          Result := True;
+          Exit;
+        end;
     end;
-  end;
 
- if WordBool(PanelType and PANEL_STEP) then
-  if gSteps <> nil then
-  begin
-   h := High(gSteps);
-
-   for a := 0 to h do
-    if g_Collide(X, Y, Width, Height,
-                 gSteps[a].X, gSteps[a].Y,
-                 gSteps[a].Width, gSteps[a].Height) then
+  if WordBool(PanelType and PANEL_STEP) then
+    if gSteps <> nil then
     begin
-     Result := True;
-     Exit;
+      h := High(gSteps);
+
+      for a := 0 to h do
+        if g_Collide(X, Y, Width, Height,
+                     gSteps[a].X, gSteps[a].Y,
+                     gSteps[a].Width, gSteps[a].Height) then
+        begin
+          Result := True;
+          Exit;
+        end;
     end;
-  end;
 
- if WordBool(PanelType and (PANEL_LIFTUP or PANEL_LIFTDOWN)) then
-  if gLifts <> nil then
-  begin
-   h := High(gLifts);
-
-   for a := 0 to h do
-    if ((WordBool(PanelType and (PANEL_LIFTUP)) and (gLifts[a].LiftType = 0)) or
-        (WordBool(PanelType and (PANEL_LIFTDOWN)) and (gLifts[a].LiftType = 1))) and
-       g_Collide(X, Y, Width, Height,
-                 gLifts[a].X, gLifts[a].Y,
-                 gLifts[a].Width, gLifts[a].Height) then
+  if WordBool(PanelType and (PANEL_LIFTUP or PANEL_LIFTDOWN)) then
+    if gLifts <> nil then
     begin
-     Result := True;
-     Exit;
+      h := High(gLifts);
+
+      for a := 0 to h do
+        if ((WordBool(PanelType and (PANEL_LIFTUP)) and (gLifts[a].LiftType = 0)) or
+           (WordBool(PanelType and (PANEL_LIFTDOWN)) and (gLifts[a].LiftType = 1))) and
+           g_Collide(X, Y, Width, Height,
+           gLifts[a].X, gLifts[a].Y,
+           gLifts[a].Width, gLifts[a].Height) then
+        begin
+          Result := True;
+          Exit;
+        end;
     end;
-  end;
 
- if WordBool(PanelType and PANEL_BLOCKMON) then
-  if gBlockMon <> nil then
-  begin
-   h := High(gBlockMon);
-
-   for a := 0 to h do
-    if ( (not b1x3) or
-         ((gBlockMon[a].Width + gBlockMon[a].Height) >= 64) ) and 
-       g_Collide(X, Y, Width, Height,
-                 gBlockMon[a].X, gBlockMon[a].Y,
-                 gBlockMon[a].Width, gBlockMon[a].Height) then
+  if WordBool(PanelType and PANEL_BLOCKMON) then
+    if gBlockMon <> nil then
     begin
-     Result := True;
-     Exit;
+      h := High(gBlockMon);
+
+      for a := 0 to h do
+        if ( (not b1x3) or
+             ((gBlockMon[a].Width + gBlockMon[a].Height) >= 64) ) and 
+           g_Collide(X, Y, Width, Height,
+           gBlockMon[a].X, gBlockMon[a].Y,
+           gBlockMon[a].Width, gBlockMon[a].Height) then
+        begin
+          Result := True;
+          Exit;
+        end;
     end;
-  end;
 end;
 
 function g_Map_CollideLiquid_Texture(X, Y: Integer; Width, Height: Word): DWORD;
 var
   a, h: Integer;
-
 begin
   Result := TEXTURE_NONE;
 
@@ -1718,7 +1707,6 @@ end;
 procedure g_Map_SwitchTexture(PanelType: Word; ID: DWORD; AnimLoop: Byte = 0);
 var
   tp: TPanel;
-
 begin            
   case PanelType of
     PANEL_WALL, PANEL_OPENDOOR, PANEL_CLOSEDOOR:
@@ -1767,7 +1755,6 @@ function g_Map_GetPoint(PointType: Byte; var RespawnPoint: TRespawnPoint): Boole
 var
   a: Integer;
   PointsArray: Array of TRespawnPoint;
-
 begin
   Result := False;
 
@@ -1791,7 +1778,6 @@ end;
 function g_Map_GetPointCount(PointType: Byte): Word;
 var
   a: Integer;
-
 begin
   Result := 0;
 
@@ -1805,28 +1791,27 @@ end;
 
 function g_Map_HaveFlagPoints(): Boolean;
 begin
- Result := (FlagPoints[FLAG_RED] <> nil) and (FlagPoints[FLAG_BLUE] <> nil);
+  Result := (FlagPoints[FLAG_RED] <> nil) and (FlagPoints[FLAG_BLUE] <> nil);
 end;
 
 procedure g_Map_ResetFlag(Flag: Byte);
 begin
- with gFlags[Flag] do
- begin
-  Obj.X := FlagPoints[Flag]^.X;
-  Obj.Y := FlagPoints[Flag]^.Y;
-  Obj.Vel.X := 0;
-  Obj.Vel.Y := 0;
-  Direction := FlagPoints[Flag]^.Direction;
-  State := FLAG_STATE_NORMAL;
-  Count := -1;
- end;
+  with gFlags[Flag] do
+  begin
+    Obj.X := FlagPoints[Flag]^.X;
+    Obj.Y := FlagPoints[Flag]^.Y;
+    Obj.Vel.X := 0;
+    Obj.Vel.Y := 0;
+    Direction := FlagPoints[Flag]^.Direction;
+    State := FLAG_STATE_NORMAL;
+    Count := -1;
+  end;
 end;
 
 procedure g_Map_DrawFlags();
 var
   i, dx: Integer;
   Mirror: TMirrorType;
-
 begin
   if gGameSettings.GameMode <> GM_CTF then
     Exit;
@@ -1849,13 +1834,13 @@ begin
         Animation.Draw(Obj.X+dx, Obj.Y+1, Mirror);
 
         if g_debug_Frames then
-         begin
-           e_DrawQuad(Obj.X+Obj.Rect.X,
-                      Obj.Y+Obj.Rect.Y,
-                      Obj.X+Obj.Rect.X+Obj.Rect.Width-1,
-                      Obj.Y+Obj.Rect.Y+Obj.Rect.Height-1,
-                      0, 255, 0);
-         end;
+        begin
+          e_DrawQuad(Obj.X+Obj.Rect.X,
+                     Obj.Y+Obj.Rect.Y,
+                     Obj.X+Obj.Rect.X+Obj.Rect.Width-1,
+                     Obj.Y+Obj.Rect.Y+Obj.Rect.Height-1,
+                     0, 255, 0);
+        end;
       end;
 end;
 
@@ -1870,7 +1855,6 @@ var
   var
     PAMem: TBinMemoryWriter;
     i: Integer;
-
   begin
   // Создаем новый список сохраняемых панелей:
     PAMem := TBinMemoryWriter.Create((Length(panels)+1) * 40);
@@ -1985,7 +1969,6 @@ var
   var
     PAMem: TBinMemoryReader;
     i, id: Integer;
-
   begin
   // Загружаем текущий список панелей:
     PAMem := TBinMemoryReader.Create();
@@ -2060,9 +2043,9 @@ begin
 // Сигнатура музыки:
   Mem.ReadDWORD(dw);
   if dw <> MUSIC_SIGNATURE then // 'MUSI'
-    begin
-      raise EBinSizeError.Create('g_Map_LoadState: Wrong Music Signature');
-    end;
+  begin
+    raise EBinSizeError.Create('g_Map_LoadState: Wrong Music Signature');
+  end;
 // Название музыки:
   Assert(gMusic <> nil, 'g_Map_LoadState: gMusic = nil');
   Mem.ReadString(str);
@@ -2103,4 +2086,4 @@ begin
 ///// /////
 end;
 
-End.
+end.

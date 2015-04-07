@@ -4,26 +4,30 @@ interface
 
 uses sysutils, Classes, md5asm, g_net, g_netmsg, g_console, g_main, e_log;
 
-function MapExist(const path, filename: string; const resMd5:TMD5Digest):string;
-function g_res_DownloadMapFromServer(const FileName: string):string;
+function MapExist(const path, filename: string; const resMd5: TMD5Digest): string;
+function g_res_DownloadMapFromServer(const FileName: string): string;
 
 implementation
 
 const DOWNLOAD_DIR = 'downloads';
 
-procedure findFiles(const dirName, filename:string; var files:TStringList);
+procedure findFiles(const dirName, filename:string; var files: TStringList);
 var
   searchResult: TSearchRec;
 begin
-  if FindFirst(dirName+'\*', faAnyFile, searchResult)=0 then begin
+  if FindFirst(dirName+'\*', faAnyFile, searchResult)=0 then
+  begin
     try
       repeat
-        if (searchResult.Attr and faDirectory)=0 then begin
-          if searchResult.Name = filename then begin
+        if (searchResult.Attr and faDirectory)=0 then
+        begin
+          if searchResult.Name = filename then
+          begin
             files.Add(dirName+'\'+filename);
             Exit;
           end;
-        end else if (searchResult.Name<>'.') and (searchResult.Name<>'..') then begin
+        end else if (searchResult.Name<>'.') and (searchResult.Name<>'..') then
+        begin
           findFiles(IncludeTrailingBackSlash(dirName)+searchResult.Name, filename, files);
         end;
       until (FindNext(searchResult)<>0);
@@ -33,7 +37,7 @@ begin
   end;
 end;
 
-function compareFile(const filename: string; const resMd5:TMD5Digest):Boolean;
+function compareFile(const filename: string; const resMd5:TMD5Digest): Boolean;
 var
   gResHash: TMD5Digest;
 begin
@@ -41,12 +45,12 @@ begin
   Result := MD5Compare(gResHash, resMd5);
 end;
 
-function ResourceExists(const path, filename: string; const resMd5:TMD5Digest):Boolean;
+function ResourceExists(const path, filename: string; const resMd5: TMD5Digest): Boolean;
 begin
   Result := FileExists(path + filename) and compareFile(path + filename, resMd5)
 end;
 
-function MapExist(const path, filename: string; const resMd5:TMD5Digest):string;
+function MapExist(const path, filename: string; const resMd5: TMD5Digest): string;
 var
   res: string;
   files: TStringList;
@@ -76,7 +80,7 @@ begin
   files.Free;
 end;
 
-function saveMap(const path, filename: string; const data: array of Byte):string;
+function saveMap(const path, filename: string; const data: array of Byte): string;
 var
   resFile: TFileStream;
 begin
@@ -94,7 +98,7 @@ begin
   end;
 end;
 
-function g_res_DownloadMapFromServer(const FileName: string):string;
+function g_res_DownloadMapFromServer(const FileName: string): string;
 var
   msgStream: TMemoryStream;
   resStream: TFileStream;

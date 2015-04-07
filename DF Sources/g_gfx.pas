@@ -84,7 +84,6 @@ var
 procedure g_Mark(x, y, Width, Height: Integer; t: Byte; st: Boolean);
 var
   yy, y2, xx, x2: Integer;
-  
 begin
   if x < 0 then
   begin
@@ -135,7 +134,6 @@ end;
 procedure CreateCollideMap();
 var
   a: Integer;
-
 begin
   g_Game_SetLoadingText(_lc[I_LOAD_COLLIDE_MAP]+' 1/6', 0, False);
   SetLength(gCollideMap, gMapInfo.Height+1);
@@ -212,7 +210,6 @@ end;
 procedure g_GFX_Free();
 var
   a: Integer;
-
 begin
   Particles := nil;
   SetLength(Particles, MaxParticles);
@@ -251,7 +248,6 @@ var
   DevX1, DevX2,
   DevY1, DevY2: Word;
   l: Integer;
-
 begin
   l := Length(Particles);
   if l = 0 then
@@ -314,7 +310,6 @@ var
   DevX1, DevX2,
   DevY1, DevY2: Byte;
   l: Integer;
-
 begin
   l := Length(Particles);
   if l = 0 then
@@ -374,7 +369,6 @@ var
   DevX1, DevX2,
   DevY1, DevY2: Byte;
   l: Integer;
-  
 begin
   l := Length(Particles);
   if l = 0 then
@@ -457,7 +451,6 @@ var
   DevX1, DevX2,
   DevY1, DevY2: Byte;
   l: Integer;
-
 begin
   l := Length(Particles);
   if l = 0 then
@@ -528,7 +521,6 @@ end;
 function FindOnceAnim: DWORD;
 var
   i: Integer;
-
 begin
   if OnceAnims <> nil then
     for i := 0 to High(OnceAnims) do
@@ -553,7 +545,6 @@ end;
 procedure g_GFX_OnceAnim(X, Y: Integer; Anim: TAnimation; AnimType: Byte = 0);
 var
   find_id: DWORD;
-
 begin
   if Anim = nil then
     Exit;
@@ -576,7 +567,6 @@ var
   b, len: Integer;
   s: ShortInt;
   c: Byte;
-
 begin
   if Particles <> nil then
   begin
@@ -1043,7 +1033,6 @@ end;
 procedure g_GFX_Draw();
 var
   a, len: Integer;
-
 begin
   if Particles <> nil then
   begin

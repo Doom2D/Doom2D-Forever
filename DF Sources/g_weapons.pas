@@ -26,6 +26,7 @@ type
     Animation: TAnimation;
     TextureID: DWORD;
   end;
+
 var
   Shots: array of TShot = nil;
   LastShotID: Integer = 0;
@@ -92,7 +93,7 @@ uses
   g_triggers, MAPDEF, e_log, g_monsters, g_saveload,
   g_language, g_netmsg;
 
-Type
+type
   TWaterPanel = record
     X, Y: Integer;
     Width, Height: Word;
@@ -123,26 +124,26 @@ function FindShot(): DWORD;
 var
   i: Integer;
 begin
- if Shots <> nil then
- for i := 0 to High(Shots) do
-  if Shots[i].ShotType = 0 then
-  begin
-   Result := i;
-   LastShotID := Result;
-   Exit;
-  end;
+  if Shots <> nil then
+  for i := 0 to High(Shots) do
+    if Shots[i].ShotType = 0 then
+    begin
+      Result := i;
+      LastShotID := Result;
+      Exit;
+    end;
 
- if Shots = nil then
- begin
-  SetLength(Shots, 128);
-  Result := 0;
- end
+  if Shots = nil then
+  begin
+    SetLength(Shots, 128);
+    Result := 0;
+  end
   else
- begin
-  Result := High(Shots) + 1;
-  SetLength(Shots, Length(Shots) + 128);
- end;
- LastShotID := Result;
+  begin
+    Result := High(Shots) + 1;
+    SetLength(Shots, Length(Shots) + 128);
+  end;
+  LastShotID := Result;
 end;
 
 procedure CreateWaterMap();
@@ -150,7 +151,6 @@ var
   WaterArray: Array of TWaterPanel;
   a, b, c, m: Integer;
   ok: Boolean;
-  
 begin
   if gWater = nil then
     Exit;
@@ -213,63 +213,63 @@ var
   a, b, c, d, i1, i2: Integer;
   pl, mn: WArray;
 begin
- if (gWater = nil) or (WaterMap = nil) then Exit;
+  if (gWater = nil) or (WaterMap = nil) then Exit;
 
- i1 := -1;
- i2 := -1;
+  i1 := -1;
+  i2 := -1;
 
- SetLength(pl, 1024);
- SetLength(mn, 1024);
- for d := 0 to 1023 do pl[d] := $FFFF;
- for d := 0 to 1023 do mn[d] := $FFFF;
+  SetLength(pl, 1024);
+  SetLength(mn, 1024);
+  for d := 0 to 1023 do pl[d] := $FFFF;
+  for d := 0 to 1023 do mn[d] := $FFFF;
 
- for a := 0 to High(WaterMap) do
-  for b := 0 to High(WaterMap[a]) do
-  begin
-   if not g_Obj_Collide(gWater[WaterMap[a][b]].X, gWater[WaterMap[a][b]].Y,
-                        gWater[WaterMap[a][b]].Width, gWater[WaterMap[a][b]].Height,
-                        @Shots[ID].Obj) then Continue;
-
-   for c := 0 to High(WaterMap[a]) do
-   begin
-    if gPlayers <> nil then
+  for a := 0 to High(WaterMap) do
+    for b := 0 to High(WaterMap[a]) do
     begin
-     for d := 0 to High(gPlayers) do
-      if (gPlayers[d] <> nil) and (gPlayers[d].Live) then
-       if gPlayers[d].Collide(gWater[WaterMap[a][c]]) then
-        if not InWArray(d, pl) then
-         if i1 < 1023 then
-         begin
-          i1 := i1+1;
-          pl[i1] := d;
-         end;
+      if not g_Obj_Collide(gWater[WaterMap[a][b]].X, gWater[WaterMap[a][b]].Y,
+                           gWater[WaterMap[a][b]].Width, gWater[WaterMap[a][b]].Height,
+                           @Shots[ID].Obj) then Continue;
+
+      for c := 0 to High(WaterMap[a]) do
+      begin
+        if gPlayers <> nil then
+        begin
+          for d := 0 to High(gPlayers) do
+            if (gPlayers[d] <> nil) and (gPlayers[d].Live) then
+              if gPlayers[d].Collide(gWater[WaterMap[a][c]]) then
+                if not InWArray(d, pl) then
+                  if i1 < 1023 then
+                  begin
+                    i1 := i1+1;
+                    pl[i1] := d;
+                  end;
+        end;
+
+        if gMonsters <> nil then
+        begin
+          for d := 0 to High(gMonsters) do
+            if (gMonsters[d] <> nil) and (gMonsters[d].Live) then
+              if gMonsters[d].Collide(gWater[WaterMap[a][c]]) then
+                if not InWArray(d, mn) then
+                  if i2 < 1023 then
+                  begin
+                    i2 := i2+1;
+                    mn[i2] := d;
+                  end;
+        end;
+      end;
+
+      if i1 <> -1 then
+        for d := 0 to i1 do
+          gPlayers[pl[d]].Damage(dm, Shots[ID].SpawnerUID, 0, 0, t);
+
+      if i2 <> -1 then
+        for d := 0 to i2 do
+          gMonsters[mn[d]].Damage(dm, 0, 0, Shots[ID].SpawnerUID, t);
     end;
 
-    if gMonsters <> nil then
-    begin
-     for d := 0 to High(gMonsters) do
-      if (gMonsters[d] <> nil) and (gMonsters[d].Live) then
-       if gMonsters[d].Collide(gWater[WaterMap[a][c]]) then
-        if not InWArray(d, mn) then
-         if i2 < 1023 then
-         begin
-          i2 := i2+1;
-          mn[i2] := d;
-         end;
-    end;
-   end;
-
-   if i1 <> -1 then
-    for d := 0 to i1 do
-     gPlayers[pl[d]].Damage(dm, Shots[ID].SpawnerUID, 0, 0, t);
-
-   if i2 <> -1 then
-    for d := 0 to i2 do
-     gMonsters[mn[d]].Damage(dm, 0, 0, Shots[ID].SpawnerUID, t);
-  end;
-
- pl := nil;
- mn := nil;
+  pl := nil;
+  mn := nil;
 end;
 
 function HitMonster(m: TMonster; d: Integer; vx, vy: Integer; SpawnerUID: Word; t: Byte): Boolean;
@@ -336,70 +336,68 @@ function GunHit(X, Y: Integer; vx, vy: Integer; SpawnerUID: Word; AllowPush: Boo
 var
   i, h: Integer;
 begin
- Result := 0;
+  Result := 0;
 
- h := High(gPlayers);
+  h := High(gPlayers);
 
- if h <> -1 then
-  for i := 0 to h do
-   if (gPlayers[i] <> nil) and gPlayers[i].Live and gPlayers[i].Collide(X, Y) then
-    if HitPlayer(gPlayers[i], 3, vx*10, vy*10-3, SpawnerUID, HIT_SOME) then
-    begin
-     if AllowPush then gPlayers[i].Push(vx, vy);
-     Result := 1;
-    end;
+  if h <> -1 then
+    for i := 0 to h do
+      if (gPlayers[i] <> nil) and gPlayers[i].Live and gPlayers[i].Collide(X, Y) then
+        if HitPlayer(gPlayers[i], 3, vx*10, vy*10-3, SpawnerUID, HIT_SOME) then
+        begin
+          if AllowPush then gPlayers[i].Push(vx, vy);
+          Result := 1;
+        end;
 
- if Result <> 0 then Exit;
+  if Result <> 0 then Exit;
 
- h := High(gMonsters);
+  h := High(gMonsters);
 
- if h <> -1 then
-  for i := 0 to h do
-   if (gMonsters[i] <> nil) and gMonsters[i].Live and gMonsters[i].Collide(X, Y) then
-    if HitMonster(gMonsters[i], 3, vx*10, vy*10-3, SpawnerUID, HIT_SOME) then
-    begin
-     if AllowPush then gMonsters[i].Push(vx, vy);
-     Result := 2;
-     Exit;
-    end;
+  if h <> -1 then
+    for i := 0 to h do
+      if (gMonsters[i] <> nil) and gMonsters[i].Live and gMonsters[i].Collide(X, Y) then
+        if HitMonster(gMonsters[i], 3, vx*10, vy*10-3, SpawnerUID, HIT_SOME) then
+        begin
+          if AllowPush then gMonsters[i].Push(vx, vy);
+          Result := 2;
+          Exit;
+        end;
 end;
 
 procedure BFG9000(X, Y: Integer; SpawnerUID: Word);
 var
   i, h: Integer;
-
 begin
- //g_Sound_PlayEx('SOUND_WEAPON_EXPLODEBFG', 255);
+  //g_Sound_PlayEx('SOUND_WEAPON_EXPLODEBFG', 255);
 
- h := High(gPlayers);
+  h := High(gPlayers);
 
- if h <> -1 then
-  for i := 0 to h do
-   if (gPlayers[i] <> nil) and (gPlayers[i].Live) and (gPlayers[i].UID <> SpawnerUID) then
-   with gPlayers[i] do
-    if (g_PatchLength(X, Y, GameX+PLAYER_RECT.X+(PLAYER_RECT.Width div 2),
-                      GameY+PLAYER_RECT.Y+(PLAYER_RECT.Height div 2)) <= SHOT_BFG_RADIUS) and
-       g_TraceVector(X, Y, GameX+PLAYER_RECT.X+(PLAYER_RECT.Width div 2),
-                     GameY+PLAYER_RECT.Y+(PLAYER_RECT.Height div 2)) then
-     if HitPlayer(gPlayers[i], 50, 0, 0, SpawnerUID, HIT_SOME) then gPlayers[i].BFGHit();
+  if h <> -1 then
+    for i := 0 to h do
+      if (gPlayers[i] <> nil) and (gPlayers[i].Live) and (gPlayers[i].UID <> SpawnerUID) then
+        with gPlayers[i] do
+          if (g_PatchLength(X, Y, GameX+PLAYER_RECT.X+(PLAYER_RECT.Width div 2),
+                            GameY+PLAYER_RECT.Y+(PLAYER_RECT.Height div 2)) <= SHOT_BFG_RADIUS) and
+              g_TraceVector(X, Y, GameX+PLAYER_RECT.X+(PLAYER_RECT.Width div 2),
+                            GameY+PLAYER_RECT.Y+(PLAYER_RECT.Height div 2)) then
+            if HitPlayer(gPlayers[i], 50, 0, 0, SpawnerUID, HIT_SOME) then gPlayers[i].BFGHit();
 
- h := High(gMonsters);
+  h := High(gMonsters);
 
- if h <> -1 then
-  for i := 0 to h do
-   if (gMonsters[i] <> nil) and (gMonsters[i].Live) and (gMonsters[i].UID <> SpawnerUID) then
-   with gMonsters[i] do
-    if (g_PatchLength(X, Y, Obj.X+Obj.Rect.X+(Obj.Rect.Width div 2),
-                      Obj.Y+Obj.Rect.Y+(Obj.Rect.Height div 2)) <= SHOT_BFG_RADIUS) and
-       g_TraceVector(X, Y, Obj.X+Obj.Rect.X+(Obj.Rect.Width div 2),
-                     Obj.Y+Obj.Rect.Y+(Obj.Rect.Height div 2)) then
-     if HitMonster(gMonsters[i], 50, 0, 0, SpawnerUID, HIT_SOME) then gMonsters[i].BFGHit();
+  if h <> -1 then
+    for i := 0 to h do
+      if (gMonsters[i] <> nil) and (gMonsters[i].Live) and (gMonsters[i].UID <> SpawnerUID) then
+        with gMonsters[i] do
+          if (g_PatchLength(X, Y, Obj.X+Obj.Rect.X+(Obj.Rect.Width div 2),
+                            Obj.Y+Obj.Rect.Y+(Obj.Rect.Height div 2)) <= SHOT_BFG_RADIUS) and
+              g_TraceVector(X, Y, Obj.X+Obj.Rect.X+(Obj.Rect.Width div 2),
+                            Obj.Y+Obj.Rect.Y+(Obj.Rect.Height div 2)) then
+            if HitMonster(gMonsters[i], 50, 0, 0, SpawnerUID, HIT_SOME) then gMonsters[i].BFGHit();
 end;
 
 procedure throw(i, x, y, xd, yd, s: Integer);
 var
   a: Integer;
-
 begin
   yd := yd - y;
   xd := xd - x;
@@ -420,47 +418,47 @@ function g_Weapon_Hit(obj: PObj; d: Integer; SpawnerUID: Word; t: Byte): Byte;
 var
   i, h: Integer;
 begin
- Result := 0;
+  Result := 0;
 
- h := High(gPlayers);
+  h := High(gPlayers);
 
- if h <> -1 then
-  for i := 0 to h do
-   if (gPlayers[i] <> nil) and gPlayers[i].Live and g_Obj_Collide(obj, @gPlayers[i].Obj) then
-    if HitPlayer(gPlayers[i], d, obj^.Vel.X, obj^.Vel.Y, SpawnerUID, t) then
-    begin
-     gPlayers[i].Push((obj^.Vel.X+obj^.Accel.X)*IfThen(t = HIT_BFG, 8, 1) div 4,
-                      (obj^.Vel.Y+obj^.Accel.Y)*IfThen(t = HIT_BFG, 8, 1) div 4);
-     if t = HIT_BFG then g_Monsters_goodsnd();
-     Result := 1;
-     // TODO: Exit?
-    end;
+  if h <> -1 then
+    for i := 0 to h do
+      if (gPlayers[i] <> nil) and gPlayers[i].Live and g_Obj_Collide(obj, @gPlayers[i].Obj) then
+        if HitPlayer(gPlayers[i], d, obj^.Vel.X, obj^.Vel.Y, SpawnerUID, t) then
+        begin
+          gPlayers[i].Push((obj^.Vel.X+obj^.Accel.X)*IfThen(t = HIT_BFG, 8, 1) div 4,
+                           (obj^.Vel.Y+obj^.Accel.Y)*IfThen(t = HIT_BFG, 8, 1) div 4);
+          if t = HIT_BFG then g_Monsters_goodsnd();
+          Result := 1;
+          // TODO: Exit?
+        end;
 
- if Result <> 0 then Exit;
+  if Result <> 0 then Exit;
 
- h := High(gMonsters);
+  h := High(gMonsters);
 
- if h <> -1 then
-  for i := 0 to h do
-   if (gMonsters[i] <> nil) and gMonsters[i].Live and g_Obj_Collide(obj, @gMonsters[i].Obj) then
-    if HitMonster(gMonsters[i], d, obj^.Vel.X, obj^.Vel.Y, SpawnerUID, t) then
-    begin
-     gMonsters[i].Push((obj^.Vel.X+obj^.Accel.X)*IfThen(t = HIT_BFG, 8, 1) div 4,
-                       (obj^.Vel.Y+obj^.Accel.Y)*IfThen(t = HIT_BFG, 8, 1) div 4);
-     Result := 2;
-     Exit;
-    end;
+  if h <> -1 then
+    for i := 0 to h do
+      if (gMonsters[i] <> nil) and gMonsters[i].Live and g_Obj_Collide(obj, @gMonsters[i].Obj) then
+        if HitMonster(gMonsters[i], d, obj^.Vel.X, obj^.Vel.Y, SpawnerUID, t) then
+        begin
+          gMonsters[i].Push((obj^.Vel.X+obj^.Accel.X)*IfThen(t = HIT_BFG, 8, 1) div 4,
+                            (obj^.Vel.Y+obj^.Accel.Y)*IfThen(t = HIT_BFG, 8, 1) div 4);
+          Result := 2;
+          Exit;
+        end;
 end;
 
 function g_Weapon_HitUID(UID: Word; d: Integer; SpawnerUID: Word; t: Byte): Boolean;
 begin
- Result := False;
+  Result := False;
 
- case g_GetUIDType(UID) of
-  UID_PLAYER: Result := HitPlayer(g_Player_Get(UID), d, 0, 0, SpawnerUID, t);
-  UID_MONSTER: Result := HitMonster(g_Monsters_Get(UID), d, 0, 0, SpawnerUID, t);
-  else Exit;
- end;
+  case g_GetUIDType(UID) of
+    UID_PLAYER: Result := HitPlayer(g_Player_Get(UID), d, 0, 0, SpawnerUID, t);
+    UID_MONSTER: Result := HitMonster(g_Monsters_Get(UID), d, 0, 0, SpawnerUID, t);
+    else Exit;
+  end;
 end;
 
 function g_Weapon_Explode(X, Y: Integer; rad: Integer; SpawnerUID: Word): Boolean;
@@ -468,237 +466,237 @@ var
   i, h, r, dx, dy, m, mm: Integer;
   _angle: SmallInt;
 begin
- Result := False;
+  Result := False;
 
- g_Triggers_PressC(X, Y, rad, SpawnerUID, ACTIVATE_SHOT);
+  g_Triggers_PressC(X, Y, rad, SpawnerUID, ACTIVATE_SHOT);
 
- r := rad*rad;
+  r := rad*rad;
 
- h := High(gPlayers);
+  h := High(gPlayers);
 
- if h <> -1 then
-  for i := 0 to h do
-   if (gPlayers[i] <> nil) and gPlayers[i].Live then
-    with gPlayers[i] do
-    begin
-     dx := Obj.X+Obj.Rect.X+(Obj.Rect.Width div 2)-X;
-     dy := Obj.Y+Obj.Rect.Y+(Obj.Rect.Height div 2)-Y;
+  if h <> -1 then
+    for i := 0 to h do
+      if (gPlayers[i] <> nil) and gPlayers[i].Live then
+        with gPlayers[i] do
+        begin
+          dx := Obj.X+Obj.Rect.X+(Obj.Rect.Width div 2)-X;
+          dy := Obj.Y+Obj.Rect.Y+(Obj.Rect.Height div 2)-Y;
 
-     if dx > 1000 then dx := 1000;
-     if dy > 1000 then dy := 1000;
+          if dx > 1000 then dx := 1000;
+          if dy > 1000 then dy := 1000;
 
-     if dx*dx+dy*dy < r then
-     begin
-      //m := PointToRect(X, Y, GameX+PLAYER_RECT.X, GameY+PLAYER_RECT.Y,
-      //                 PLAYER_RECT.Width, PLAYER_RECT.Height);
+          if dx*dx+dy*dy < r then
+          begin
+            //m := PointToRect(X, Y, GameX+PLAYER_RECT.X, GameY+PLAYER_RECT.Y,
+            //                 PLAYER_RECT.Width, PLAYER_RECT.Height);
 
-      mm := Max(abs(dx), abs(dy));
-      if mm = 0 then mm := 1;
+            mm := Max(abs(dx), abs(dy));
+            if mm = 0 then mm := 1;
 
-      HitPlayer(gPlayers[i], (100*(rad-mm)) div rad, (dx*10) div mm, (dy*10) div mm, SpawnerUID, HIT_ROCKET);
-      gPlayers[i].Push((dx*7) div mm, (dy*7) div mm);
-     end;
-    end;
+            HitPlayer(gPlayers[i], (100*(rad-mm)) div rad, (dx*10) div mm, (dy*10) div mm, SpawnerUID, HIT_ROCKET);
+            gPlayers[i].Push((dx*7) div mm, (dy*7) div mm);
+          end;
+        end;
 
- h := High(gMonsters);
+  h := High(gMonsters);
 
- if h <> -1 then
-  for i := 0 to h do
-   if gMonsters[i] <> nil then
-    with gMonsters[i] do
-    begin
-     dx := Obj.X+Obj.Rect.X+(Obj.Rect.Width div 2)-X;
-     dy := Obj.Y+Obj.Rect.Y+(Obj.Rect.Height div 2)-Y;
+  if h <> -1 then
+    for i := 0 to h do
+      if gMonsters[i] <> nil then
+        with gMonsters[i] do
+        begin
+          dx := Obj.X+Obj.Rect.X+(Obj.Rect.Width div 2)-X;
+          dy := Obj.Y+Obj.Rect.Y+(Obj.Rect.Height div 2)-Y;
 
-     if dx > 1000 then dx := 1000;
-     if dy > 1000 then dy := 1000;
+          if dx > 1000 then dx := 1000;
+          if dy > 1000 then dy := 1000;
 
-     if dx*dx+dy*dy < r then
-     begin
-      //m := PointToRect(X, Y, Obj.X+Obj.Rect.X, Obj.Y+Obj.Rect.Y,
-      //                 Obj.Rect.Width, Obj.Rect.Height);
+          if dx*dx+dy*dy < r then
+          begin
+            //m := PointToRect(X, Y, Obj.X+Obj.Rect.X, Obj.Y+Obj.Rect.Y,
+            //                 Obj.Rect.Width, Obj.Rect.Height);
 
-      mm := Max(abs(dx), abs(dy));
-      if mm = 0 then mm := 1;
+            mm := Max(abs(dx), abs(dy));
+            if mm = 0 then mm := 1;
 
-      if gMonsters[i].Live then
-       HitMonster(gMonsters[i], ((gMonsters[i].Obj.Rect.Width div 4)*10*(rad-mm)) div rad,
-                  0, 0, SpawnerUID, HIT_ROCKET);
+            if gMonsters[i].Live then
+              HitMonster(gMonsters[i], ((gMonsters[i].Obj.Rect.Width div 4)*10*(rad-mm)) div rad,
+                         0, 0, SpawnerUID, HIT_ROCKET);
 
-      gMonsters[i].Push((dx*7) div mm, (dy*7) div mm);
-     end;
-    end;
+            gMonsters[i].Push((dx*7) div mm, (dy*7) div mm);
+          end;
+        end;
 
- h := High(gCorpses);
+  h := High(gCorpses);
 
- if gAdvCorpses and (h <> -1) then
-  for i := 0 to h do
-   if (gCorpses[i] <> nil) and (gCorpses[i].State <> CORPSE_STATE_REMOVEME) then
-   with gCorpses[i] do
-   begin
-    dx := Obj.X+Obj.Rect.X+(Obj.Rect.Width div 2)-X;
-    dy := Obj.Y+Obj.Rect.Y+(Obj.Rect.Height div 2)-Y;
+  if gAdvCorpses and (h <> -1) then
+    for i := 0 to h do
+      if (gCorpses[i] <> nil) and (gCorpses[i].State <> CORPSE_STATE_REMOVEME) then
+        with gCorpses[i] do
+        begin
+          dx := Obj.X+Obj.Rect.X+(Obj.Rect.Width div 2)-X;
+          dy := Obj.Y+Obj.Rect.Y+(Obj.Rect.Height div 2)-Y;
 
-    if dx > 1000 then dx := 1000;
-    if dy > 1000 then dy := 1000;
+          if dx > 1000 then dx := 1000;
+          if dy > 1000 then dy := 1000;
 
-    if dx*dx+dy*dy < r then
-    begin
-     m := PointToRect(X, Y, Obj.X+Obj.Rect.X, Obj.Y+Obj.Rect.Y,
-                      Obj.Rect.Width, Obj.Rect.Height);
+          if dx*dx+dy*dy < r then
+          begin
+            m := PointToRect(X, Y, Obj.X+Obj.Rect.X, Obj.Y+Obj.Rect.Y,
+                             Obj.Rect.Width, Obj.Rect.Height);
 
-     mm := Max(abs(dx), abs(dy));
-     if mm = 0 then mm := 1;
+            mm := Max(abs(dx), abs(dy));
+            if mm = 0 then mm := 1;
 
-     Damage(Round(100*(rad-m)/rad), (dx*10) div mm, (dy*10) div mm);
-    end;
-   end;
+            Damage(Round(100*(rad-m)/rad), (dx*10) div mm, (dy*10) div mm);
+          end;
+        end;
 
- h := High(gGibs);
+  h := High(gGibs);
 
- if gAdvGibs and (h <> -1) then
-  for i := 0 to h do
-   if gGibs[i].Live then
-   with gGibs[i] do
-   begin
-    dx := Obj.X+Obj.Rect.X+(Obj.Rect.Width div 2)-X;
-    dy := Obj.Y+Obj.Rect.Y+(Obj.Rect.Height div 2)-Y;
+  if gAdvGibs and (h <> -1) then
+    for i := 0 to h do
+      if gGibs[i].Live then
+        with gGibs[i] do
+        begin
+          dx := Obj.X+Obj.Rect.X+(Obj.Rect.Width div 2)-X;
+          dy := Obj.Y+Obj.Rect.Y+(Obj.Rect.Height div 2)-Y;
 
-    if dx > 1000 then dx := 1000;
-    if dy > 1000 then dy := 1000;
+          if dx > 1000 then dx := 1000;
+          if dy > 1000 then dy := 1000;
 
-    if dx*dx+dy*dy < r then
-    begin
-     m := PointToRect(X, Y, Obj.X+Obj.Rect.X, Obj.Y+Obj.Rect.Y,
-                      Obj.Rect.Width, Obj.Rect.Height);
-     _angle := GetAngle(Obj.X+Obj.Rect.X+(Obj.Rect.Width div 2),
-                        Obj.Y+Obj.Rect.Y+(Obj.Rect.Height div 2), X, Y);
+          if dx*dx+dy*dy < r then
+          begin
+            m := PointToRect(X, Y, Obj.X+Obj.Rect.X, Obj.Y+Obj.Rect.Y,
+                             Obj.Rect.Width, Obj.Rect.Height);
+            _angle := GetAngle(Obj.X+Obj.Rect.X+(Obj.Rect.Width div 2),
+                               Obj.Y+Obj.Rect.Y+(Obj.Rect.Height div 2), X, Y);
 
-     g_Obj_PushA(@Obj, Round(15*(rad-m)/rad), _angle);
-    end;
-   end;
+            g_Obj_PushA(@Obj, Round(15*(rad-m)/rad), _angle);
+          end;
+        end;
 end;
 
 procedure g_Weapon_Init();
 begin
- CreateWaterMap();
+  CreateWaterMap();
 end;
 
 procedure g_Weapon_Free();
 var
   i: Integer;
 begin
- if Shots <> nil then
- begin
-  for i := 0 to High(Shots) do
-   if Shots[i].ShotType <> 0 then
-     Shots[i].Animation.Free();
+  if Shots <> nil then
+  begin
+    for i := 0 to High(Shots) do
+      if Shots[i].ShotType <> 0 then
+        Shots[i].Animation.Free();
 
-  Shots := nil;
- end;
+    Shots := nil;
+  end;
 
- WaterMap := nil;
+  WaterMap := nil;
 end;
 
 procedure g_Weapon_LoadData();
 begin
- e_WriteLog('Loading weapons data...', MSG_NOTIFY);
+  e_WriteLog('Loading weapons data...', MSG_NOTIFY);
 
- g_Sound_CreateWADEx('SOUND_WEAPON_HITPUNCH', GameWAD+':SOUNDS\HITPUNCH');
- g_Sound_CreateWADEx('SOUND_WEAPON_MISSPUNCH', GameWAD+':SOUNDS\MISSPUNCH');
- g_Sound_CreateWADEx('SOUND_WEAPON_HITBERSERK', GameWAD+':SOUNDS\HITBERSERK');
- g_Sound_CreateWADEx('SOUND_WEAPON_MISSBERSERK', GameWAD+':SOUNDS\MISSBERSERK');
- g_Sound_CreateWADEx('SOUND_WEAPON_SELECTSAW', GameWAD+':SOUNDS\SELECTSAW');
- g_Sound_CreateWADEx('SOUND_WEAPON_IDLESAW', GameWAD+':SOUNDS\IDLESAW');
- g_Sound_CreateWADEx('SOUND_WEAPON_HITSAW', GameWAD+':SOUNDS\HITSAW');
- g_Sound_CreateWADEx('SOUND_WEAPON_FIRESHOTGUN2', GameWAD+':SOUNDS\FIRESHOTGUN2');
- g_Sound_CreateWADEx('SOUND_WEAPON_FIRESHOTGUN', GameWAD+':SOUNDS\FIRESHOTGUN');
- g_Sound_CreateWADEx('SOUND_WEAPON_FIRESAW', GameWAD+':SOUNDS\FIRESAW');
- g_Sound_CreateWADEx('SOUND_WEAPON_FIREROCKET', GameWAD+':SOUNDS\FIREROCKET');
- g_Sound_CreateWADEx('SOUND_WEAPON_FIREPLASMA', GameWAD+':SOUNDS\FIREPLASMA');
- g_Sound_CreateWADEx('SOUND_WEAPON_FIREPISTOL', GameWAD+':SOUNDS\FIREPISTOL');
- g_Sound_CreateWADEx('SOUND_WEAPON_FIRECGUN', GameWAD+':SOUNDS\FIRECGUN');
- g_Sound_CreateWADEx('SOUND_WEAPON_FIREBFG', GameWAD+':SOUNDS\FIREBFG');
- g_Sound_CreateWADEx('SOUND_FIRE', GameWAD+':SOUNDS\FIRE');
- g_Sound_CreateWADEx('SOUND_WEAPON_STARTFIREBFG', GameWAD+':SOUNDS\STARTFIREBFG');
- g_Sound_CreateWADEx('SOUND_WEAPON_EXPLODEROCKET', GameWAD+':SOUNDS\EXPLODEROCKET');
- g_Sound_CreateWADEx('SOUND_WEAPON_EXPLODEBFG', GameWAD+':SOUNDS\EXPLODEBFG');
- g_Sound_CreateWADEx('SOUND_WEAPON_BFGWATER', GameWAD+':SOUNDS\BFGWATER');
- g_Sound_CreateWADEx('SOUND_WEAPON_EXPLODEPLASMA', GameWAD+':SOUNDS\EXPLODEPLASMA');
- g_Sound_CreateWADEx('SOUND_WEAPON_PLASMAWATER', GameWAD+':SOUNDS\PLASMAWATER');
- g_Sound_CreateWADEx('SOUND_WEAPON_FIREBALL', GameWAD+':SOUNDS\FIREBALL');
- g_Sound_CreateWADEx('SOUND_WEAPON_EXPLODEBALL', GameWAD+':SOUNDS\EXPLODEBALL');
- g_Sound_CreateWADEx('SOUND_WEAPON_FIREREV', GameWAD+':SOUNDS\FIREREV');
+  g_Sound_CreateWADEx('SOUND_WEAPON_HITPUNCH', GameWAD+':SOUNDS\HITPUNCH');
+  g_Sound_CreateWADEx('SOUND_WEAPON_MISSPUNCH', GameWAD+':SOUNDS\MISSPUNCH');
+  g_Sound_CreateWADEx('SOUND_WEAPON_HITBERSERK', GameWAD+':SOUNDS\HITBERSERK');
+  g_Sound_CreateWADEx('SOUND_WEAPON_MISSBERSERK', GameWAD+':SOUNDS\MISSBERSERK');
+  g_Sound_CreateWADEx('SOUND_WEAPON_SELECTSAW', GameWAD+':SOUNDS\SELECTSAW');
+  g_Sound_CreateWADEx('SOUND_WEAPON_IDLESAW', GameWAD+':SOUNDS\IDLESAW');
+  g_Sound_CreateWADEx('SOUND_WEAPON_HITSAW', GameWAD+':SOUNDS\HITSAW');
+  g_Sound_CreateWADEx('SOUND_WEAPON_FIRESHOTGUN2', GameWAD+':SOUNDS\FIRESHOTGUN2');
+  g_Sound_CreateWADEx('SOUND_WEAPON_FIRESHOTGUN', GameWAD+':SOUNDS\FIRESHOTGUN');
+  g_Sound_CreateWADEx('SOUND_WEAPON_FIRESAW', GameWAD+':SOUNDS\FIRESAW');
+  g_Sound_CreateWADEx('SOUND_WEAPON_FIREROCKET', GameWAD+':SOUNDS\FIREROCKET');
+  g_Sound_CreateWADEx('SOUND_WEAPON_FIREPLASMA', GameWAD+':SOUNDS\FIREPLASMA');
+  g_Sound_CreateWADEx('SOUND_WEAPON_FIREPISTOL', GameWAD+':SOUNDS\FIREPISTOL');
+  g_Sound_CreateWADEx('SOUND_WEAPON_FIRECGUN', GameWAD+':SOUNDS\FIRECGUN');
+  g_Sound_CreateWADEx('SOUND_WEAPON_FIREBFG', GameWAD+':SOUNDS\FIREBFG');
+  g_Sound_CreateWADEx('SOUND_FIRE', GameWAD+':SOUNDS\FIRE');
+  g_Sound_CreateWADEx('SOUND_WEAPON_STARTFIREBFG', GameWAD+':SOUNDS\STARTFIREBFG');
+  g_Sound_CreateWADEx('SOUND_WEAPON_EXPLODEROCKET', GameWAD+':SOUNDS\EXPLODEROCKET');
+  g_Sound_CreateWADEx('SOUND_WEAPON_EXPLODEBFG', GameWAD+':SOUNDS\EXPLODEBFG');
+  g_Sound_CreateWADEx('SOUND_WEAPON_BFGWATER', GameWAD+':SOUNDS\BFGWATER');
+  g_Sound_CreateWADEx('SOUND_WEAPON_EXPLODEPLASMA', GameWAD+':SOUNDS\EXPLODEPLASMA');
+  g_Sound_CreateWADEx('SOUND_WEAPON_PLASMAWATER', GameWAD+':SOUNDS\PLASMAWATER');
+  g_Sound_CreateWADEx('SOUND_WEAPON_FIREBALL', GameWAD+':SOUNDS\FIREBALL');
+  g_Sound_CreateWADEx('SOUND_WEAPON_EXPLODEBALL', GameWAD+':SOUNDS\EXPLODEBALL');
+  g_Sound_CreateWADEx('SOUND_WEAPON_FIREREV', GameWAD+':SOUNDS\FIREREV');
 
- g_Texture_CreateWADEx('TEXTURE_WEAPON_ROCKET', GameWAD+':TEXTURES\BROCKET');
- g_Frames_CreateWAD(nil, 'FRAMES_WEAPON_SKELFIRE', GameWAD+':TEXTURES\BSKELFIRE', 64, 16, 2);
- g_Frames_CreateWAD(nil, 'FRAMES_WEAPON_BFG', GameWAD+':TEXTURES\BBFG', 64, 64, 2);
- g_Frames_CreateWAD(nil, 'FRAMES_WEAPON_PLASMA', GameWAD+':TEXTURES\BPLASMA', 16, 16, 2);
- g_Frames_CreateWAD(nil, 'FRAMES_WEAPON_IMPFIRE', GameWAD+':TEXTURES\BIMPFIRE', 16, 16, 2);
- g_Frames_CreateWAD(nil, 'FRAMES_WEAPON_BSPFIRE', GameWAD+':TEXTURES\BBSPFIRE', 16, 16, 2);
- g_Frames_CreateWAD(nil, 'FRAMES_WEAPON_CACOFIRE', GameWAD+':TEXTURES\BCACOFIRE', 16, 16, 2);
- g_Frames_CreateWAD(nil, 'FRAMES_WEAPON_BARONFIRE', GameWAD+':TEXTURES\BBARONFIRE', 64, 16, 2);
- g_Frames_CreateWAD(nil, 'FRAMES_WEAPON_MANCUBFIRE', GameWAD+':TEXTURES\BMANCUBFIRE', 64, 32, 2);
- g_Frames_CreateWAD(nil, 'FRAMES_EXPLODE_ROCKET', GameWAD+':TEXTURES\EROCKET', 128, 128, 6);
- g_Frames_CreateWAD(nil, 'FRAMES_EXPLODE_SKELFIRE', GameWAD+':TEXTURES\ESKELFIRE', 64, 64, 3);
- g_Frames_CreateWAD(nil, 'FRAMES_EXPLODE_BFG', GameWAD+':TEXTURES\EBFG', 128, 128, 6);
- g_Frames_CreateWAD(nil, 'FRAMES_EXPLODE_IMPFIRE', GameWAD+':TEXTURES\EIMPFIRE', 64, 64, 3);
- g_Frames_CreateWAD(nil, 'FRAMES_BFGHIT', GameWAD+':TEXTURES\BFGHIT', 64, 64, 4);
- g_Frames_CreateWAD(nil, 'FRAMES_FIRE', GameWAD+':TEXTURES\FIRE', 64, 128, 8);
- g_Frames_CreateWAD(nil, 'FRAMES_EXPLODE_PLASMA', GameWAD+':TEXTURES\EPLASMA', 32, 32, 4, True);
- g_Frames_CreateWAD(nil, 'FRAMES_EXPLODE_BSPFIRE', GameWAD+':TEXTURES\EBSPFIRE', 32, 32, 5);
- g_Frames_CreateWAD(nil, 'FRAMES_EXPLODE_CACOFIRE', GameWAD+':TEXTURES\ECACOFIRE', 64, 64, 3);
- g_Frames_CreateWAD(nil, 'FRAMES_EXPLODE_BARONFIRE', GameWAD+':TEXTURES\EBARONFIRE', 64, 64, 3);
- g_Frames_CreateWAD(nil, 'FRAMES_SMOKE', GameWAD+':TEXTURES\SMOKE', 32, 32, 10, False);
+  g_Texture_CreateWADEx('TEXTURE_WEAPON_ROCKET', GameWAD+':TEXTURES\BROCKET');
+  g_Frames_CreateWAD(nil, 'FRAMES_WEAPON_SKELFIRE', GameWAD+':TEXTURES\BSKELFIRE', 64, 16, 2);
+  g_Frames_CreateWAD(nil, 'FRAMES_WEAPON_BFG', GameWAD+':TEXTURES\BBFG', 64, 64, 2);
+  g_Frames_CreateWAD(nil, 'FRAMES_WEAPON_PLASMA', GameWAD+':TEXTURES\BPLASMA', 16, 16, 2);
+  g_Frames_CreateWAD(nil, 'FRAMES_WEAPON_IMPFIRE', GameWAD+':TEXTURES\BIMPFIRE', 16, 16, 2);
+  g_Frames_CreateWAD(nil, 'FRAMES_WEAPON_BSPFIRE', GameWAD+':TEXTURES\BBSPFIRE', 16, 16, 2);
+  g_Frames_CreateWAD(nil, 'FRAMES_WEAPON_CACOFIRE', GameWAD+':TEXTURES\BCACOFIRE', 16, 16, 2);
+  g_Frames_CreateWAD(nil, 'FRAMES_WEAPON_BARONFIRE', GameWAD+':TEXTURES\BBARONFIRE', 64, 16, 2);
+  g_Frames_CreateWAD(nil, 'FRAMES_WEAPON_MANCUBFIRE', GameWAD+':TEXTURES\BMANCUBFIRE', 64, 32, 2);
+  g_Frames_CreateWAD(nil, 'FRAMES_EXPLODE_ROCKET', GameWAD+':TEXTURES\EROCKET', 128, 128, 6);
+  g_Frames_CreateWAD(nil, 'FRAMES_EXPLODE_SKELFIRE', GameWAD+':TEXTURES\ESKELFIRE', 64, 64, 3);
+  g_Frames_CreateWAD(nil, 'FRAMES_EXPLODE_BFG', GameWAD+':TEXTURES\EBFG', 128, 128, 6);
+  g_Frames_CreateWAD(nil, 'FRAMES_EXPLODE_IMPFIRE', GameWAD+':TEXTURES\EIMPFIRE', 64, 64, 3);
+  g_Frames_CreateWAD(nil, 'FRAMES_BFGHIT', GameWAD+':TEXTURES\BFGHIT', 64, 64, 4);
+  g_Frames_CreateWAD(nil, 'FRAMES_FIRE', GameWAD+':TEXTURES\FIRE', 64, 128, 8);
+  g_Frames_CreateWAD(nil, 'FRAMES_EXPLODE_PLASMA', GameWAD+':TEXTURES\EPLASMA', 32, 32, 4, True);
+  g_Frames_CreateWAD(nil, 'FRAMES_EXPLODE_BSPFIRE', GameWAD+':TEXTURES\EBSPFIRE', 32, 32, 5);
+  g_Frames_CreateWAD(nil, 'FRAMES_EXPLODE_CACOFIRE', GameWAD+':TEXTURES\ECACOFIRE', 64, 64, 3);
+  g_Frames_CreateWAD(nil, 'FRAMES_EXPLODE_BARONFIRE', GameWAD+':TEXTURES\EBARONFIRE', 64, 64, 3);
+  g_Frames_CreateWAD(nil, 'FRAMES_SMOKE', GameWAD+':TEXTURES\SMOKE', 32, 32, 10, False);
 end;
 
 procedure g_Weapon_FreeData();
 begin
- e_WriteLog('Releasing weapons data...', MSG_NOTIFY);
+  e_WriteLog('Releasing weapons data...', MSG_NOTIFY);
 
- g_Sound_Delete('SOUND_WEAPON_HITPUNCH');
- g_Sound_Delete('SOUND_WEAPON_MISSPUNCH');
- g_Sound_Delete('SOUND_WEAPON_HITBERSERK');
- g_Sound_Delete('SOUND_WEAPON_MISSBERSERK');
- g_Sound_Delete('SOUND_WEAPON_SELECTSAW');
- g_Sound_Delete('SOUND_WEAPON_IDLESAW');
- g_Sound_Delete('SOUND_WEAPON_HITSAW');
- g_Sound_Delete('SOUND_WEAPON_FIRESHOTGUN2');
- g_Sound_Delete('SOUND_WEAPON_FIRESHOTGUN');
- g_Sound_Delete('SOUND_WEAPON_FIRESAW');
- g_Sound_Delete('SOUND_WEAPON_FIREROCKET');
- g_Sound_Delete('SOUND_WEAPON_FIREPLASMA');
- g_Sound_Delete('SOUND_WEAPON_FIREPISTOL');
- g_Sound_Delete('SOUND_WEAPON_FIRECGUN');
- g_Sound_Delete('SOUND_WEAPON_FIREBFG');
- g_Sound_Delete('SOUND_FIRE');
- g_Sound_Delete('SOUND_WEAPON_STARTFIREBFG');
- g_Sound_Delete('SOUND_WEAPON_EXPLODEROCKET');
- g_Sound_Delete('SOUND_WEAPON_EXPLODEBFG');
- g_Sound_Delete('SOUND_WEAPON_BFGWATER');
- g_Sound_Delete('SOUND_WEAPON_EXPLODEPLASMA');
- g_Sound_Delete('SOUND_WEAPON_PLASMAWATER');
- g_Sound_Delete('SOUND_WEAPON_FIREBALL');
- g_Sound_Delete('SOUND_WEAPON_EXPLODEBALL');
+  g_Sound_Delete('SOUND_WEAPON_HITPUNCH');
+  g_Sound_Delete('SOUND_WEAPON_MISSPUNCH');
+  g_Sound_Delete('SOUND_WEAPON_HITBERSERK');
+  g_Sound_Delete('SOUND_WEAPON_MISSBERSERK');
+  g_Sound_Delete('SOUND_WEAPON_SELECTSAW');
+  g_Sound_Delete('SOUND_WEAPON_IDLESAW');
+  g_Sound_Delete('SOUND_WEAPON_HITSAW');
+  g_Sound_Delete('SOUND_WEAPON_FIRESHOTGUN2');
+  g_Sound_Delete('SOUND_WEAPON_FIRESHOTGUN');
+  g_Sound_Delete('SOUND_WEAPON_FIRESAW');
+  g_Sound_Delete('SOUND_WEAPON_FIREROCKET');
+  g_Sound_Delete('SOUND_WEAPON_FIREPLASMA');
+  g_Sound_Delete('SOUND_WEAPON_FIREPISTOL');
+  g_Sound_Delete('SOUND_WEAPON_FIRECGUN');
+  g_Sound_Delete('SOUND_WEAPON_FIREBFG');
+  g_Sound_Delete('SOUND_FIRE');
+  g_Sound_Delete('SOUND_WEAPON_STARTFIREBFG');
+  g_Sound_Delete('SOUND_WEAPON_EXPLODEROCKET');
+  g_Sound_Delete('SOUND_WEAPON_EXPLODEBFG');
+  g_Sound_Delete('SOUND_WEAPON_BFGWATER');
+  g_Sound_Delete('SOUND_WEAPON_EXPLODEPLASMA');
+  g_Sound_Delete('SOUND_WEAPON_PLASMAWATER');
+  g_Sound_Delete('SOUND_WEAPON_FIREBALL');
+  g_Sound_Delete('SOUND_WEAPON_EXPLODEBALL');
 
- g_Texture_Delete('TEXTURE_WEAPON_ROCKET');
- g_Frames_DeleteByName('FRAMES_WEAPON_BFG');
- g_Frames_DeleteByName('FRAMES_WEAPON_PLASMA');
- g_Frames_DeleteByName('FRAMES_WEAPON_IMPFIRE');
- g_Frames_DeleteByName('FRAMES_WEAPON_BSPFIRE');
- g_Frames_DeleteByName('FRAMES_WEAPON_CACOFIRE');
- g_Frames_DeleteByName('FRAMES_WEAPON_MANCUBFIRE');
- g_Frames_DeleteByName('FRAMES_EXPLODE_ROCKET');
- g_Frames_DeleteByName('FRAMES_EXPLODE_BFG');
- g_Frames_DeleteByName('FRAMES_EXPLODE_IMPFIRE');
- g_Frames_DeleteByName('FRAMES_BFGHIT');
- g_Frames_DeleteByName('FRAMES_FIRE');
- g_Frames_DeleteByName('FRAMES_EXPLODE_PLASMA');
- g_Frames_DeleteByName('FRAMES_EXPLODE_BSPFIRE');
- g_Frames_DeleteByName('FRAMES_EXPLODE_CACOFIRE');
- g_Frames_DeleteByName('FRAMES_SMOKE');
- g_Frames_DeleteByName('FRAMES_WEAPON_BARONFIRE');
- g_Frames_DeleteByName('FRAMES_EXPLODE_BARONFIRE');
+  g_Texture_Delete('TEXTURE_WEAPON_ROCKET');
+  g_Frames_DeleteByName('FRAMES_WEAPON_BFG');
+  g_Frames_DeleteByName('FRAMES_WEAPON_PLASMA');
+  g_Frames_DeleteByName('FRAMES_WEAPON_IMPFIRE');
+  g_Frames_DeleteByName('FRAMES_WEAPON_BSPFIRE');
+  g_Frames_DeleteByName('FRAMES_WEAPON_CACOFIRE');
+  g_Frames_DeleteByName('FRAMES_WEAPON_MANCUBFIRE');
+  g_Frames_DeleteByName('FRAMES_EXPLODE_ROCKET');
+  g_Frames_DeleteByName('FRAMES_EXPLODE_BFG');
+  g_Frames_DeleteByName('FRAMES_EXPLODE_IMPFIRE');
+  g_Frames_DeleteByName('FRAMES_BFGHIT');
+  g_Frames_DeleteByName('FRAMES_FIRE');
+  g_Frames_DeleteByName('FRAMES_EXPLODE_PLASMA');
+  g_Frames_DeleteByName('FRAMES_EXPLODE_BSPFIRE');
+  g_Frames_DeleteByName('FRAMES_EXPLODE_CACOFIRE');
+  g_Frames_DeleteByName('FRAMES_SMOKE');
+  g_Frames_DeleteByName('FRAMES_WEAPON_BARONFIRE');
+  g_Frames_DeleteByName('FRAMES_EXPLODE_BARONFIRE');
 end;
 
 procedure g_Weapon_gun(x, y, xd, yd, v: Integer; SpawnerUID: Word; CheckTrigger: Boolean);
@@ -715,82 +713,81 @@ var
   i: Integer;
   t1, _collide: Boolean;
   w, h: Word;
-  
 begin
- a := GetAngle(x, y, xd, yd)+180;
+  a := GetAngle(x, y, xd, yd)+180;
 
- SinCos(DegToRad(-a), s, c);
+  SinCos(DegToRad(-a), s, c);
 
- if Abs(s) < 0.01 then s := 0;
- if Abs(c) < 0.01 then c := 0;
+  if Abs(s) < 0.01 then s := 0;
+  if Abs(c) < 0.01 then c := 0;
 
- x2 := x+Round(c*gMapInfo.Width);
- y2 := y+Round(s*gMapInfo.Width);
+  x2 := x+Round(c*gMapInfo.Width);
+  y2 := y+Round(s*gMapInfo.Width);
 
- t1 := gWalls <> nil;
- _collide := False;
- w := gMapInfo.Width;
- h := gMapInfo.Height;
+  t1 := gWalls <> nil;
+  _collide := False;
+  w := gMapInfo.Width;
+  h := gMapInfo.Height;
 
- xe := 0;
- ye := 0;
- dx := x2-x;
- dy := y2-y;
+  xe := 0;
+  ye := 0;
+  dx := x2-x;
+  dy := y2-y;
 
- if (xd = 0) and (yd = 0) then Exit;
+  if (xd = 0) and (yd = 0) then Exit;
 
- if dx > 0 then xi := 1 else if dx < 0 then xi := -1 else xi := 0;
- if dy > 0 then yi := 1 else if dy < 0 then yi := -1 else yi := 0;
+  if dx > 0 then xi := 1 else if dx < 0 then xi := -1 else xi := 0;
+  if dy > 0 then yi := 1 else if dy < 0 then yi := -1 else yi := 0;
 
- dx := Abs(dx);
- dy := Abs(dy);
+  dx := Abs(dx);
+  dy := Abs(dy);
 
- if dx > dy then d := dx else d := dy;
+  if dx > dy then d := dx else d := dy;
 
- //blood vel, for Monster.Damage()
- //vx := (dx*10 div d)*xi;
- //vy := (dy*10 div d)*yi;
+  //blood vel, for Monster.Damage()
+  //vx := (dx*10 div d)*xi;
+  //vy := (dy*10 div d)*yi;
 
- xx := x;
- yy := y;
+  xx := x;
+  yy := y;
 
- for i := 1 to d do
- begin
-  xe := xe+dx;
-  ye := ye+dy;
-
-  if xe > d then
+  for i := 1 to d do
   begin
-   xe := xe-d;
-   xx := xx+xi;
-  end;
+    xe := xe+dx;
+    ye := ye+dy;
 
-  if ye > d then
-  begin
-   ye := ye-d;
-   yy := yy+yi;
-  end;
-
-  if (yy > h) or (yy < 0) then Break;
-  if (xx > w) or (xx < 0) then Break;
-
-  if t1 then
-    if ByteBool(gCollideMap[yy, xx] and MARK_BLOCKED) then
+    if xe > d then
     begin
-      _collide := True;
-      g_GFX_Spark(xx-xi, yy-yi, 2+Random(2), 180+a, 0, 0);
-      if g_Game_IsServer and g_Game_IsNet then
-        MH_SEND_Effect(xx-xi, yy-yi, 180+a, NET_GFX_SPARK);
+      xe := xe-d;
+      xx := xx+xi;
     end;
 
-  if not _collide then
-   _collide := GunHit(xx, yy, xi*v, yi*v, SpawnerUID, v <> 0) <> 0;
+    if ye > d then
+    begin
+      ye := ye-d;
+      yy := yy+yi;
+    end;
 
-  if _collide then Break;
- end;
+    if (yy > h) or (yy < 0) then Break;
+    if (xx > w) or (xx < 0) then Break;
 
- if CheckTrigger and g_Game_IsServer then
-   g_Triggers_PressL(X, Y, xx-xi, yy-yi, SpawnerUID, ACTIVATE_SHOT);
+    if t1 then
+      if ByteBool(gCollideMap[yy, xx] and MARK_BLOCKED) then
+      begin
+        _collide := True;
+        g_GFX_Spark(xx-xi, yy-yi, 2+Random(2), 180+a, 0, 0);
+        if g_Game_IsServer and g_Game_IsNet then
+          MH_SEND_Effect(xx-xi, yy-yi, 180+a, NET_GFX_SPARK);
+      end;
+
+    if not _collide then
+    _collide := GunHit(xx, yy, xi*v, yi*v, SpawnerUID, v <> 0) <> 0;
+
+    if _collide then Break;
+  end;
+
+  if CheckTrigger and g_Game_IsServer then
+    g_Triggers_PressL(X, Y, xx-xi, yy-yi, SpawnerUID, ACTIVATE_SHOT);
 end;
 
 procedure g_Weapon_punch(x, y: Integer; d, SpawnerUID: Word);
@@ -818,18 +815,18 @@ function g_Weapon_chainsaw(x, y: Integer; d, SpawnerUID: Word): Integer;
 var
   obj: TObj;
 begin
- obj.X := X;
- obj.Y := Y;
- obj.rect.X := 0;
- obj.rect.Y := 0;
- obj.rect.Width := 32;
- obj.rect.Height := 52;
- obj.Vel.X := 0;
- obj.Vel.Y := 0;
- obj.Accel.X := 0;
- obj.Accel.Y := 0;
+  obj.X := X;
+  obj.Y := Y;
+  obj.rect.X := 0;
+  obj.rect.Y := 0;
+  obj.rect.Width := 32;
+  obj.rect.Height := 52;
+  obj.Vel.X := 0;
+  obj.Vel.Y := 0;
+  obj.Accel.X := 0;
+  obj.Accel.Y := 0;
 
- Result := g_Weapon_Hit(@obj, d, SpawnerUID, HIT_SOME);
+  Result := g_Weapon_Hit(@obj, d, SpawnerUID, HIT_SOME);
 end;
 
 procedure g_Weapon_rocket(x, y, xd, yd: Integer; SpawnerUID: Word; WID: Integer = -1);
@@ -837,35 +834,35 @@ var
   find_id: DWORD;
   dx, dy: Integer;
 begin
- if WID < 0 then
-  find_id := FindShot()
- else
- begin
-   find_id := WID;
-   if (find_id >= High(Shots)) then
-    SetLength(Shots, find_id + 64)
- end;
+  if WID < 0 then
+    find_id := FindShot()
+  else
+  begin
+    find_id := WID;
+    if (find_id >= High(Shots)) then
+      SetLength(Shots, find_id + 64)
+  end;
 
- with Shots[find_id] do
- begin
-  g_Obj_Init(@Obj);
+  with Shots[find_id] do
+  begin
+    g_Obj_Init(@Obj);
 
-  Obj.Rect.Width := SHOT_ROCKETLAUNCHER_WIDTH;
-  Obj.Rect.Height := SHOT_ROCKETLAUNCHER_HEIGHT;
+    Obj.Rect.Width := SHOT_ROCKETLAUNCHER_WIDTH;
+    Obj.Rect.Height := SHOT_ROCKETLAUNCHER_HEIGHT;
 
-  dx := IfThen(xd>x, -Obj.Rect.Width, 0);
-  dy := -(Obj.Rect.Height div 2);
-  throw(find_id, x+dx, y+dy, xd+dx, yd+dy, 12);
+    dx := IfThen(xd>x, -Obj.Rect.Width, 0);
+    dy := -(Obj.Rect.Height div 2);
+    throw(find_id, x+dx, y+dy, xd+dx, yd+dy, 12);
 
-  Animation := nil;
-  triggers := nil;
-  ShotType := WEAPON_ROCKETLAUNCHER;
-  g_Texture_Get('TEXTURE_WEAPON_ROCKET', TextureID);
- end;
+    Animation := nil;
+    triggers := nil;
+    ShotType := WEAPON_ROCKETLAUNCHER;
+    g_Texture_Get('TEXTURE_WEAPON_ROCKET', TextureID);
+  end;
 
- Shots[find_id].SpawnerUID := SpawnerUID;
+  Shots[find_id].SpawnerUID := SpawnerUID;
  
- g_Sound_PlayExAt('SOUND_WEAPON_FIREROCKET', x, y);
+  g_Sound_PlayExAt('SOUND_WEAPON_FIREROCKET', x, y);
 end;
 
 procedure g_Weapon_revf(x, y, xd, yd: Integer; SpawnerUID, TargetUID: Word; WID: Integer = -1);
@@ -873,36 +870,36 @@ var
   find_id, FramesID: DWORD;
   dx, dy: Integer;
 begin
- if WID < 0 then
-  find_id := FindShot()
- else
- begin
-   find_id := WID;
-   if (find_id >= High(Shots)) then
-    SetLength(Shots, find_id + 64)
- end;
+  if WID < 0 then
+    find_id := FindShot()
+  else
+  begin
+    find_id := WID;
+    if (find_id >= High(Shots)) then
+      SetLength(Shots, find_id + 64)
+  end;
 
- with Shots[find_id] do
- begin
-  g_Obj_Init(@Obj);
+  with Shots[find_id] do
+  begin
+    g_Obj_Init(@Obj);
 
-  Obj.Rect.Width := SHOT_SKELFIRE_WIDTH;
-  Obj.Rect.Height := SHOT_SKELFIRE_HEIGHT;
+    Obj.Rect.Width := SHOT_SKELFIRE_WIDTH;
+    Obj.Rect.Height := SHOT_SKELFIRE_HEIGHT;
 
-  dx := IfThen(xd>x, -Obj.Rect.Width, 0);
-  dy := -(Obj.Rect.Height div 2);
-  throw(find_id, x+dx, y+dy, xd+dx, yd+dy, 12);
+    dx := IfThen(xd>x, -Obj.Rect.Width, 0);
+    dy := -(Obj.Rect.Height div 2);
+    throw(find_id, x+dx, y+dy, xd+dx, yd+dy, 12);
 
-  triggers := nil;
-  ShotType := WEAPON_SKEL_FIRE;
-  target := TargetUID;
-  g_Frames_Get(FramesID, 'FRAMES_WEAPON_SKELFIRE');
-  Animation := TAnimation.Create(FramesID, True, 5);
- end;
+    triggers := nil;
+    ShotType := WEAPON_SKEL_FIRE;
+    target := TargetUID;
+    g_Frames_Get(FramesID, 'FRAMES_WEAPON_SKELFIRE');
+    Animation := TAnimation.Create(FramesID, True, 5);
+  end;
 
- Shots[find_id].SpawnerUID := SpawnerUID;
+  Shots[find_id].SpawnerUID := SpawnerUID;
 
- g_Sound_PlayExAt('SOUND_WEAPON_FIREROCKET', x, y);
+  g_Sound_PlayExAt('SOUND_WEAPON_FIREROCKET', x, y);
 end;
 
 procedure g_Weapon_plasma(x, y, xd, yd: Integer; SpawnerUID: Word; WID: Integer = -1);
@@ -910,35 +907,35 @@ var
   find_id, FramesID: DWORD;
   dx, dy: Integer;
 begin
- if WID < 0 then
-  find_id := FindShot()
- else
- begin
-   find_id := WID;
-   if (find_id >= High(Shots)) then
-    SetLength(Shots, find_id + 64);
- end;
+  if WID < 0 then
+    find_id := FindShot()
+  else
+  begin
+    find_id := WID;
+    if (find_id >= High(Shots)) then
+      SetLength(Shots, find_id + 64);
+  end;
 
- with Shots[find_id] do
- begin
-  g_Obj_Init(@Obj);
+  with Shots[find_id] do
+  begin
+    g_Obj_Init(@Obj);
 
-  Obj.Rect.Width := SHOT_PLASMA_WIDTH;
-  Obj.Rect.Height := SHOT_PLASMA_HEIGHT;
+    Obj.Rect.Width := SHOT_PLASMA_WIDTH;
+    Obj.Rect.Height := SHOT_PLASMA_HEIGHT;
 
-  dx := IfThen(xd>x, -Obj.Rect.Width, 0);
-  dy := -(Obj.Rect.Height div 2);
-  throw(find_id, x+dx, y+dy, xd+dx, yd+dy, 16);
+    dx := IfThen(xd>x, -Obj.Rect.Width, 0);
+    dy := -(Obj.Rect.Height div 2);
+    throw(find_id, x+dx, y+dy, xd+dx, yd+dy, 16);
 
-  triggers := nil;
-  ShotType := WEAPON_PLASMA;
-  g_Frames_Get(FramesID, 'FRAMES_WEAPON_PLASMA');
-  Animation := TAnimation.Create(FramesID, True, 5);
- end;
+    triggers := nil;
+    ShotType := WEAPON_PLASMA;
+    g_Frames_Get(FramesID, 'FRAMES_WEAPON_PLASMA');
+    Animation := TAnimation.Create(FramesID, True, 5);
+  end;
 
- Shots[find_id].SpawnerUID := SpawnerUID;
+  Shots[find_id].SpawnerUID := SpawnerUID;
 
- g_Sound_PlayExAt('SOUND_WEAPON_FIREPLASMA', x, y);
+  g_Sound_PlayExAt('SOUND_WEAPON_FIREPLASMA', x, y);
 end;
 
 procedure g_Weapon_ball1(x, y, xd, yd: Integer; SpawnerUID: Word; WID: Integer = -1);
@@ -946,35 +943,35 @@ var
   find_id, FramesID: DWORD;
   dx, dy: Integer;
 begin
- if WID < 0 then
-  find_id := FindShot()
- else
- begin
-   find_id := WID;
-   if (find_id >= High(Shots)) then
-    SetLength(Shots, find_id + 64)
- end;
+  if WID < 0 then
+    find_id := FindShot()
+  else
+  begin
+    find_id := WID;
+    if (find_id >= High(Shots)) then
+      SetLength(Shots, find_id + 64)
+  end;
 
- with Shots[find_id] do
- begin
-  g_Obj_Init(@Obj);
+  with Shots[find_id] do
+  begin
+    g_Obj_Init(@Obj);
 
-  Obj.Rect.Width := 16;
-  Obj.Rect.Height := 16;
+    Obj.Rect.Width := 16;
+    Obj.Rect.Height := 16;
 
-  dx := IfThen(xd>x, -Obj.Rect.Width, 0);
-  dy := -(Obj.Rect.Height div 2);
-  throw(find_id, x+dx, y+dy, xd+dx, yd+dy, 16);
+    dx := IfThen(xd>x, -Obj.Rect.Width, 0);
+    dy := -(Obj.Rect.Height div 2);
+    throw(find_id, x+dx, y+dy, xd+dx, yd+dy, 16);
 
-  triggers := nil;
-  ShotType := WEAPON_IMP_FIRE;
-  g_Frames_Get(FramesID, 'FRAMES_WEAPON_IMPFIRE');
-  Animation := TAnimation.Create(FramesID, True, 4);
- end;
+    triggers := nil;
+    ShotType := WEAPON_IMP_FIRE;
+    g_Frames_Get(FramesID, 'FRAMES_WEAPON_IMPFIRE');
+    Animation := TAnimation.Create(FramesID, True, 4);
+  end;
 
- Shots[find_id].SpawnerUID := SpawnerUID;
+  Shots[find_id].SpawnerUID := SpawnerUID;
 
- g_Sound_PlayExAt('SOUND_WEAPON_FIREBALL', x, y);
+  g_Sound_PlayExAt('SOUND_WEAPON_FIREBALL', x, y);
 end;
 
 procedure g_Weapon_ball2(x, y, xd, yd: Integer; SpawnerUID: Word; WID: Integer = -1);
@@ -982,35 +979,35 @@ var
   find_id, FramesID: DWORD;
   dx, dy: Integer;
 begin
- if WID < 0 then
-  find_id := FindShot()
- else
- begin
-   find_id := WID;
-   if (find_id >= High(Shots)) then
-    SetLength(Shots, find_id + 64)
- end;
+  if WID < 0 then
+    find_id := FindShot()
+  else
+  begin
+    find_id := WID;
+    if (find_id >= High(Shots)) then
+      SetLength(Shots, find_id + 64)
+  end;
 
- with Shots[find_id] do
- begin
-  g_Obj_Init(@Obj);
+  with Shots[find_id] do
+  begin
+    g_Obj_Init(@Obj);
 
-  Obj.Rect.Width := 16;
-  Obj.Rect.Height := 16;
+    Obj.Rect.Width := 16;
+    Obj.Rect.Height := 16;
 
-  dx := IfThen(xd>x, -Obj.Rect.Width, 0);
-  dy := -(Obj.Rect.Height div 2);
-  throw(find_id, x+dx, y+dy, xd+dx, yd+dy, 16);
+    dx := IfThen(xd>x, -Obj.Rect.Width, 0);
+    dy := -(Obj.Rect.Height div 2);
+    throw(find_id, x+dx, y+dy, xd+dx, yd+dy, 16);
 
-  triggers := nil;
-  ShotType := WEAPON_CACO_FIRE;
-  g_Frames_Get(FramesID, 'FRAMES_WEAPON_CACOFIRE');
-  Animation := TAnimation.Create(FramesID, True, 4);
- end;
+    triggers := nil;
+    ShotType := WEAPON_CACO_FIRE;
+    g_Frames_Get(FramesID, 'FRAMES_WEAPON_CACOFIRE');
+    Animation := TAnimation.Create(FramesID, True, 4);
+  end;
 
- Shots[find_id].SpawnerUID := SpawnerUID;
+  Shots[find_id].SpawnerUID := SpawnerUID;
 
- g_Sound_PlayExAt('SOUND_WEAPON_FIREBALL', x, y);
+  g_Sound_PlayExAt('SOUND_WEAPON_FIREBALL', x, y);
 end;
 
 procedure g_Weapon_ball7(x, y, xd, yd: Integer; SpawnerUID: Word; WID: Integer = -1);
@@ -1018,35 +1015,35 @@ var
   find_id, FramesID: DWORD;
   dx, dy: Integer;
 begin
- if WID < 0 then
-  find_id := FindShot()
- else
- begin
-   find_id := WID;
-   if (find_id >= High(Shots)) then
-    SetLength(Shots, find_id + 64)
- end;
+  if WID < 0 then
+    find_id := FindShot()
+  else
+  begin
+    find_id := WID;
+    if (find_id >= High(Shots)) then
+      SetLength(Shots, find_id + 64)
+  end;
 
- with Shots[find_id] do
- begin
-  g_Obj_Init(@Obj);
+  with Shots[find_id] do
+  begin
+    g_Obj_Init(@Obj);
 
-  Obj.Rect.Width := 32;
-  Obj.Rect.Height := 16;
+    Obj.Rect.Width := 32;
+    Obj.Rect.Height := 16;
 
-  dx := IfThen(xd>x, -Obj.Rect.Width, 0);
-  dy := -(Obj.Rect.Height div 2);
-  throw(find_id, x+dx, y+dy, xd+dx, yd+dy, 16);
+    dx := IfThen(xd>x, -Obj.Rect.Width, 0);
+    dy := -(Obj.Rect.Height div 2);
+    throw(find_id, x+dx, y+dy, xd+dx, yd+dy, 16);
 
-  triggers := nil;
-  ShotType := WEAPON_BARON_FIRE;
-  g_Frames_Get(FramesID, 'FRAMES_WEAPON_BARONFIRE');
-  Animation := TAnimation.Create(FramesID, True, 4);
- end;
+    triggers := nil;
+    ShotType := WEAPON_BARON_FIRE;
+    g_Frames_Get(FramesID, 'FRAMES_WEAPON_BARONFIRE');
+    Animation := TAnimation.Create(FramesID, True, 4);
+  end;
 
- Shots[find_id].SpawnerUID := SpawnerUID;
+  Shots[find_id].SpawnerUID := SpawnerUID;
 
- g_Sound_PlayExAt('SOUND_WEAPON_FIREBALL', x, y);
+  g_Sound_PlayExAt('SOUND_WEAPON_FIREBALL', x, y);
 end;
 
 procedure g_Weapon_aplasma(x, y, xd, yd: Integer; SpawnerUID: Word; WID: Integer = -1);
@@ -1054,35 +1051,35 @@ var
   find_id, FramesID: DWORD;
   dx, dy: Integer;
 begin
- if WID < 0 then
-  find_id := FindShot()
- else
- begin
-   find_id := WID;
-   if (find_id >= High(Shots)) then
-    SetLength(Shots, find_id + 64)
- end;
+  if WID < 0 then
+    find_id := FindShot()
+  else
+  begin
+    find_id := WID;
+    if (find_id >= High(Shots)) then
+      SetLength(Shots, find_id + 64)
+  end;
 
- with Shots[find_id] do
- begin
-  g_Obj_Init(@Obj);
+  with Shots[find_id] do
+  begin
+    g_Obj_Init(@Obj);
 
-  Obj.Rect.Width := 16;
-  Obj.Rect.Height := 16;
+    Obj.Rect.Width := 16;
+    Obj.Rect.Height := 16;
 
-  dx := IfThen(xd>x, -Obj.Rect.Width, 0);
-  dy := -(Obj.Rect.Height div 2);
-  throw(find_id, x+dx, y+dy, xd+dx, yd+dy, 16);
+    dx := IfThen(xd>x, -Obj.Rect.Width, 0);
+    dy := -(Obj.Rect.Height div 2);
+    throw(find_id, x+dx, y+dy, xd+dx, yd+dy, 16);
 
-  triggers := nil;
-  ShotType := WEAPON_BSP_FIRE;
-  g_Frames_Get(FramesID, 'FRAMES_WEAPON_BSPFIRE');
-  Animation := TAnimation.Create(FramesID, True, 4);
- end;
+    triggers := nil;
+    ShotType := WEAPON_BSP_FIRE;
+    g_Frames_Get(FramesID, 'FRAMES_WEAPON_BSPFIRE');
+    Animation := TAnimation.Create(FramesID, True, 4);
+  end;
 
- Shots[find_id].SpawnerUID := SpawnerUID;
+  Shots[find_id].SpawnerUID := SpawnerUID;
 
- g_Sound_PlayExAt('SOUND_WEAPON_FIREPLASMA', x, y);
+  g_Sound_PlayExAt('SOUND_WEAPON_FIREPLASMA', x, y);
 end;
 
 procedure g_Weapon_manfire(x, y, xd, yd: Integer; SpawnerUID: Word; WID: Integer = -1);
@@ -1090,35 +1087,35 @@ var
   find_id, FramesID: DWORD;
   dx, dy: Integer;
 begin
- if WID < 0 then
-  find_id := FindShot()
- else
- begin
-   find_id := WID;
-   if (find_id >= High(Shots)) then
-    SetLength(Shots, find_id + 64)
- end;
+  if WID < 0 then
+    find_id := FindShot()
+  else
+  begin
+    find_id := WID;
+    if (find_id >= High(Shots)) then
+      SetLength(Shots, find_id + 64)
+  end;
 
- with Shots[find_id] do
- begin
-  g_Obj_Init(@Obj);
+  with Shots[find_id] do
+  begin
+    g_Obj_Init(@Obj);
 
-  Obj.Rect.Width := 32;
-  Obj.Rect.Height := 32;
+    Obj.Rect.Width := 32;
+    Obj.Rect.Height := 32;
 
-  dx := IfThen(xd>x, -Obj.Rect.Width, 0);
-  dy := -(Obj.Rect.Height div 2);
-  throw(find_id, x+dx, y+dy, xd+dx, yd+dy, 16);
+    dx := IfThen(xd>x, -Obj.Rect.Width, 0);
+    dy := -(Obj.Rect.Height div 2);
+    throw(find_id, x+dx, y+dy, xd+dx, yd+dy, 16);
 
-  triggers := nil;
-  ShotType := WEAPON_MANCUB_FIRE;
-  g_Frames_Get(FramesID, 'FRAMES_WEAPON_MANCUBFIRE'); 
-  Animation := TAnimation.Create(FramesID, True, 4);
- end;
+    triggers := nil;
+    ShotType := WEAPON_MANCUB_FIRE;
+    g_Frames_Get(FramesID, 'FRAMES_WEAPON_MANCUBFIRE'); 
+    Animation := TAnimation.Create(FramesID, True, 4);
+  end;
 
- Shots[find_id].SpawnerUID := SpawnerUID;
+  Shots[find_id].SpawnerUID := SpawnerUID;
 
- g_Sound_PlayExAt('SOUND_WEAPON_FIREBALL', x, y);
+  g_Sound_PlayExAt('SOUND_WEAPON_FIREBALL', x, y);
 end;
 
 procedure g_Weapon_bfgshot(x, y, xd, yd: Integer; SpawnerUID: Word; WID: Integer = -1);
@@ -1126,35 +1123,35 @@ var
   find_id, FramesID: DWORD;
   dx, dy: Integer;
 begin
- if WID < 0 then
-  find_id := FindShot()
- else
- begin
-   find_id := WID;
-   if (find_id >= High(Shots)) then
-    SetLength(Shots, find_id + 64)
- end;
+  if WID < 0 then
+    find_id := FindShot()
+  else
+  begin
+    find_id := WID;
+    if (find_id >= High(Shots)) then
+      SetLength(Shots, find_id + 64)
+  end;
  
- with Shots[find_id] do
- begin
-  g_Obj_Init(@Obj);
+  with Shots[find_id] do
+  begin
+    g_Obj_Init(@Obj);
 
-  Obj.Rect.Width := SHOT_BFG_WIDTH;
-  Obj.Rect.Height := SHOT_BFG_HEIGHT;
+    Obj.Rect.Width := SHOT_BFG_WIDTH;
+    Obj.Rect.Height := SHOT_BFG_HEIGHT;
 
-  dx := IfThen(xd>x, -Obj.Rect.Width, 0);
-  dy := -(Obj.Rect.Height div 2);
-  throw(find_id, x+dx, y+dy, xd+dx, yd+dy, 16);
+    dx := IfThen(xd>x, -Obj.Rect.Width, 0);
+    dy := -(Obj.Rect.Height div 2);
+    throw(find_id, x+dx, y+dy, xd+dx, yd+dy, 16);
 
-  triggers := nil;
-  ShotType := WEAPON_BFG;
-  g_Frames_Get(FramesID, 'FRAMES_WEAPON_BFG');
-  Animation := TAnimation.Create(FramesID, True, 6);
- end;
+    triggers := nil;
+    ShotType := WEAPON_BFG;
+    g_Frames_Get(FramesID, 'FRAMES_WEAPON_BFG');
+    Animation := TAnimation.Create(FramesID, True, 6);
+  end;
 
- Shots[find_id].SpawnerUID := SpawnerUID;
+  Shots[find_id].SpawnerUID := SpawnerUID;
 
- g_Sound_PlayExAt('SOUND_WEAPON_FIREBFG', x, y);
+  g_Sound_PlayExAt('SOUND_WEAPON_FIREBFG', x, y);
 end;
 
 procedure g_Weapon_bfghit(x, y: Integer);
@@ -1162,59 +1159,59 @@ var
   ID: DWORD;
   Anim: TAnimation;
 begin
- if g_Frames_Get(ID, 'FRAMES_BFGHIT') then
- begin
-  Anim := TAnimation.Create(ID, False, 4);
-  g_GFX_OnceAnim(x-32, y-32, Anim);
-  Anim.Free();
- end;
+  if g_Frames_Get(ID, 'FRAMES_BFGHIT') then
+  begin
+    Anim := TAnimation.Create(ID, False, 4);
+    g_GFX_OnceAnim(x-32, y-32, Anim);
+    Anim.Free();
+  end;
 end;
 
 procedure g_Weapon_pistol(x, y, xd, yd: Integer; SpawnerUID: Word);
 begin
- g_Sound_PlayExAt('SOUND_WEAPON_FIREPISTOL', x, y);
- g_Weapon_gun(x, y, xd, yd, 1, SpawnerUID, True);
- if gGameSettings.GameMode in [GM_DM, GM_TDM, GM_CTF] then
- begin
-  g_Weapon_gun(x, y+1, xd, yd+1, 1, SpawnerUID, False);
-  g_Weapon_gun(x, y-1, xd, yd-1, 1, SpawnerUID, False);
+  g_Sound_PlayExAt('SOUND_WEAPON_FIREPISTOL', x, y);
+  g_Weapon_gun(x, y, xd, yd, 1, SpawnerUID, True);
+  if gGameSettings.GameMode in [GM_DM, GM_TDM, GM_CTF] then
+  begin
+    g_Weapon_gun(x, y+1, xd, yd+1, 1, SpawnerUID, False);
+    g_Weapon_gun(x, y-1, xd, yd-1, 1, SpawnerUID, False);
  end;
 end;
 
 procedure g_Weapon_mgun(x, y, xd, yd: Integer; SpawnerUID: Word);
 begin
- g_Sound_PlayExAt('SOUND_WEAPON_FIRECGUN', x, y);
- g_Weapon_gun(x, y, xd, yd, 1, SpawnerUID, True);
+  g_Sound_PlayExAt('SOUND_WEAPON_FIRECGUN', x, y);
+  g_Weapon_gun(x, y, xd, yd, 1, SpawnerUID, True);
 
- if (gGameSettings.GameMode in [GM_DM, GM_TDM, GM_CTF]) and
-    (g_GetUIDType(SpawnerUID) = UID_PLAYER) then
-  g_Weapon_gun(x, y+1, xd, yd+1, 1, SpawnerUID, True);
+  if (gGameSettings.GameMode in [GM_DM, GM_TDM, GM_CTF]) and
+     (g_GetUIDType(SpawnerUID) = UID_PLAYER) then
+    g_Weapon_gun(x, y+1, xd, yd+1, 1, SpawnerUID, True);
 end;
 
 procedure g_Weapon_shotgun(x, y, xd, yd: Integer; SpawnerUID: Word);
 var
   i, j: Integer;
 begin
- g_Sound_PlayExAt('SOUND_WEAPON_FIRESHOTGUN', x, y);
- for i := 0 to 9 do
- begin
-  j := Random(17)-8; // -8 .. 8
-  g_Weapon_gun(x, y+j, xd, yd+j, IfThen(i mod 2 <> 0, 1, 0), SpawnerUID, i=0);
- end;
+  g_Sound_PlayExAt('SOUND_WEAPON_FIRESHOTGUN', x, y);
+  for i := 0 to 9 do
+  begin
+    j := Random(17)-8; // -8 .. 8
+    g_Weapon_gun(x, y+j, xd, yd+j, IfThen(i mod 2 <> 0, 1, 0), SpawnerUID, i=0);
+  end;
 end;
 
 procedure g_Weapon_dshotgun(x, y, xd, yd: Integer; SpawnerUID: Word);
 var
   a, i, j: Integer;
 begin
- g_Sound_PlayExAt('SOUND_WEAPON_FIRESHOTGUN2', x, y);
+  g_Sound_PlayExAt('SOUND_WEAPON_FIRESHOTGUN2', x, y);
 
- if gGameSettings.GameMode in [GM_DM, GM_TDM, GM_CTF] then a := 25 else a := 20;
- for i := 0 to a do
- begin
-  j := Random(41)-20; // -20 .. 20
-  g_Weapon_gun(x, y+j, xd, yd+j, IfThen(i mod 3 <> 0, 0, 1), SpawnerUID, i=0);
- end;
+  if gGameSettings.GameMode in [GM_DM, GM_TDM, GM_CTF] then a := 25 else a := 20;
+  for i := 0 to a do
+  begin
+    j := Random(41)-20; // -20 .. 20
+    g_Weapon_gun(x, y+j, xd, yd+j, IfThen(i mod 3 <> 0, 0, 1), SpawnerUID, i=0);
+  end;
 end;
 
 procedure g_Weapon_Update();
@@ -1229,7 +1226,6 @@ var
   spl: Boolean;
   Loud: Boolean;
   notplasma: Boolean;
-
 begin
   if Shots = nil then
     Exit;
@@ -1526,7 +1522,6 @@ var
   i: Integer;
   a: SmallInt;
   p: TPoint;
-
 begin
   if Shots = nil then
     Exit;
@@ -1592,7 +1587,6 @@ procedure g_Weapon_SaveState(var Mem: TBinMemoryWriter);
 var
   count, i, j: Integer;
   dw: DWORD;
-  
 begin
 // Считаем количество существующих снарядов:
   count := 0;
@@ -1636,7 +1630,6 @@ procedure g_Weapon_LoadState(var Mem: TBinMemoryReader);
 var
   count, i, j: Integer;
   dw: DWORD;
-
 begin
   if Mem = nil then
     Exit;
@@ -1732,110 +1725,110 @@ begin
   
   with Shots[I] do
   begin
-      if ShotType = 0 then Exit;
-      Obj.X := X;
-      Obj.Y := Y;
-      cx := Obj.X + (Obj.Rect.Width div 2);
-      cy := Obj.Y + (Obj.Rect.Height div 2);
+    if ShotType = 0 then Exit;
+    Obj.X := X;
+    Obj.Y := Y;
+    cx := Obj.X + (Obj.Rect.Width div 2);
+    cy := Obj.Y + (Obj.Rect.Height div 2);
 
-      case ShotType of
-        WEAPON_ROCKETLAUNCHER, WEAPON_SKEL_FIRE: // Ракеты и снаряды Скелета
-          begin
-           if Loud then
-           begin
-            if ShotType = WEAPON_SKEL_FIRE then
-            begin // Взрыв снаряда Скелета
-             if g_Frames_Get(TextureID, 'FRAMES_EXPLODE_SKELFIRE') then
-             begin
+    case ShotType of
+      WEAPON_ROCKETLAUNCHER, WEAPON_SKEL_FIRE: // Ракеты и снаряды Скелета
+      begin
+        if Loud then
+        begin
+          if ShotType = WEAPON_SKEL_FIRE then
+          begin // Взрыв снаряда Скелета
+            if g_Frames_Get(TextureID, 'FRAMES_EXPLODE_SKELFIRE') then
+            begin
               Anim := TAnimation.Create(TextureID, False, 8);
               Anim.Blending := False;
               g_GFX_OnceAnim((Obj.X+32)-32, (Obj.Y+8)-32, Anim);
               Anim.Free();
-             end;
-            end
-            else
-            begin // Взрыв Ракеты
-             if g_Frames_Get(TextureID, 'FRAMES_EXPLODE_ROCKET') then
-             begin
+            end;
+          end
+          else
+          begin // Взрыв Ракеты
+            if g_Frames_Get(TextureID, 'FRAMES_EXPLODE_ROCKET') then
+            begin
               Anim := TAnimation.Create(TextureID, False, 6);
               Anim.Blending := False;
               g_GFX_OnceAnim(cx-64, cy-64, Anim);
               Anim.Free();
-             end;
             end;
-            g_Sound_PlayExAt('SOUND_WEAPON_EXPLODEROCKET', Obj.X, Obj.Y);
-           end;
           end;
+          g_Sound_PlayExAt('SOUND_WEAPON_EXPLODEROCKET', Obj.X, Obj.Y);
+        end;
+      end;
 
-        WEAPON_PLASMA, WEAPON_BSP_FIRE: // Плазма, плазма Арахнатрона
-          begin
-           if ShotType = WEAPON_PLASMA then
-            s := 'FRAMES_EXPLODE_PLASMA'
-           else
-            s := 'FRAMES_EXPLODE_BSPFIRE';
-            
-           if g_Frames_Get(TextureID, s) and loud then
-           begin
-            Anim := TAnimation.Create(TextureID, False, 3);
-            Anim.Blending := False;
-            g_GFX_OnceAnim(cx-16, cy-16, Anim);
-            Anim.Free();
+      WEAPON_PLASMA, WEAPON_BSP_FIRE: // Плазма, плазма Арахнатрона
+      begin
+        if ShotType = WEAPON_PLASMA then
+          s := 'FRAMES_EXPLODE_PLASMA'
+        else
+          s := 'FRAMES_EXPLODE_BSPFIRE';
+        
+        if g_Frames_Get(TextureID, s) and loud then
+        begin
+          Anim := TAnimation.Create(TextureID, False, 3);
+          Anim.Blending := False;
+          g_GFX_OnceAnim(cx-16, cy-16, Anim);
+          Anim.Free();
 
-            g_Sound_PlayExAt('SOUND_WEAPON_EXPLODEPLASMA', Obj.X, Obj.Y);
-           end;
-          end;
+          g_Sound_PlayExAt('SOUND_WEAPON_EXPLODEPLASMA', Obj.X, Obj.Y);
+        end;
+      end;
 
-        WEAPON_BFG: // BFG
-          begin
-            // Взрыв BFG:
-           if g_Frames_Get(TextureID, 'FRAMES_EXPLODE_BFG') and Loud then
-           begin
-            Anim := TAnimation.Create(TextureID, False, 6);
-            Anim.Blending := False;
-            g_GFX_OnceAnim(cx-64, cy-64, Anim);
-            Anim.Free();
+      WEAPON_BFG: // BFG
+      begin
+        // Взрыв BFG:
+        if g_Frames_Get(TextureID, 'FRAMES_EXPLODE_BFG') and Loud then
+        begin
+          Anim := TAnimation.Create(TextureID, False, 6);
+          Anim.Blending := False;
+          g_GFX_OnceAnim(cx-64, cy-64, Anim);
+          Anim.Free();
 
-            g_Sound_PlayExAt('SOUND_WEAPON_EXPLODEBFG', Obj.X, Obj.Y);
-           end;
-          end;
+          g_Sound_PlayExAt('SOUND_WEAPON_EXPLODEBFG', Obj.X, Obj.Y);
+        end;
+      end;
 
-        WEAPON_IMP_FIRE, WEAPON_CACO_FIRE, WEAPON_BARON_FIRE: // Выстрелы Беса, Какодемона Рыцаря/Барона ада
-          begin
-           if ShotType = WEAPON_IMP_FIRE then
-            s := 'FRAMES_EXPLODE_IMPFIRE'
-           else
-            if ShotType = WEAPON_CACO_FIRE then
-             s := 'FRAMES_EXPLODE_CACOFIRE'
-            else
-             s := 'FRAMES_EXPLODE_BARONFIRE';
+      WEAPON_IMP_FIRE, WEAPON_CACO_FIRE, WEAPON_BARON_FIRE: // Выстрелы Беса, Какодемона Рыцаря/Барона ада
+      begin
+        if ShotType = WEAPON_IMP_FIRE then
+          s := 'FRAMES_EXPLODE_IMPFIRE'
+        else
+          if ShotType = WEAPON_CACO_FIRE then
+            s := 'FRAMES_EXPLODE_CACOFIRE'
+          else
+            s := 'FRAMES_EXPLODE_BARONFIRE';
 
-           if g_Frames_Get(TextureID, s) and Loud then
-           begin
-            Anim := TAnimation.Create(TextureID, False, 6);
-            Anim.Blending := False;
-            g_GFX_OnceAnim(cx-32, cy-32, Anim);
-            Anim.Free();
+        if g_Frames_Get(TextureID, s) and Loud then
+        begin
+          Anim := TAnimation.Create(TextureID, False, 6);
+          Anim.Blending := False;
+          g_GFX_OnceAnim(cx-32, cy-32, Anim);
+          Anim.Free();
 
-            g_Sound_PlayExAt('SOUND_WEAPON_EXPLODEBALL', Obj.X, Obj.Y);
-           end;
-          end;
+          g_Sound_PlayExAt('SOUND_WEAPON_EXPLODEBALL', Obj.X, Obj.Y);
+        end;
+      end;
 
-        WEAPON_MANCUB_FIRE: // Выстрел Манкубуса
-          begin
-           if g_Frames_Get(TextureID, 'FRAMES_EXPLODE_ROCKET') and Loud then
-           begin
-            Anim := TAnimation.Create(TextureID, False, 6);
-            Anim.Blending := False;
-            g_GFX_OnceAnim(cx-64, cy-64, Anim);
-            Anim.Free();
+      WEAPON_MANCUB_FIRE: // Выстрел Манкубуса
+      begin
+        if g_Frames_Get(TextureID, 'FRAMES_EXPLODE_ROCKET') and Loud then
+        begin
+          Anim := TAnimation.Create(TextureID, False, 6);
+          Anim.Blending := False;
+          g_GFX_OnceAnim(cx-64, cy-64, Anim);
+          Anim.Free();
 
-            g_Sound_PlayExAt('SOUND_WEAPON_EXPLODEBALL', Obj.X, Obj.Y);
-           end;
-          end;
-      end; // case ShotType of...
+          g_Sound_PlayExAt('SOUND_WEAPON_EXPLODEBALL', Obj.X, Obj.Y);
+        end;
+      end;
+    end; // case ShotType of...
 
-      ShotType := 0;
-      Animation.Free();
+    ShotType := 0;
+    Animation.Free();
   end;
 end;
 

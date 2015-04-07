@@ -146,7 +146,6 @@ end;
 procedure AddCommand(Cmd: String; Proc: TCmdProc);
 var
   a: Integer;
-
 begin
   SetLength(Commands, Length(Commands)+1);
   a := High(Commands);
@@ -157,7 +156,6 @@ end;
 procedure g_Console_Init();
 var
   a: Integer;
-  
 begin
   g_Texture_CreateWAD(ID, GameWAD+':TEXTURES\CONSOLE');
   Cons_Y := -(gScreenHeight div 2);
@@ -229,7 +227,6 @@ end;
 procedure g_Console_Update();
 var
   a, b: Integer;
-  
 begin
   if Cons_Shown then
   begin
@@ -286,7 +283,6 @@ var
   CWidth, CHeight: Byte;
   mfW, mfH: Word;
   a, b, c, d: Integer;
-  
 begin
   e_TextureFontGetSize(gStdFont, CWidth, CHeight);
 
@@ -367,7 +363,6 @@ procedure Complete();
 var
   i: Integer;
   t: Array of String;
-
 begin
   if Line = '' then
     Exit;
@@ -475,7 +470,6 @@ end;
 function GetStr(var Str: String): String;
 var
   a, b: Integer;
-
 begin
   if Str[1] = '"' then
   begin
@@ -518,7 +512,6 @@ end;
 procedure g_Console_Add(L: String; Show: Boolean = False);
 var
   a: Integer;
-
 begin
   SetLength(ConsoleHistory, Length(ConsoleHistory)+1);
   ConsoleHistory[High(ConsoleHistory)] := L;
@@ -556,7 +549,6 @@ end;
 procedure AddToHistory(L: String);
 var
   len: Integer;
-
 begin
   len := Length(CommandHistory);
 
@@ -574,7 +566,6 @@ procedure g_Console_Process(L: String);
 var
   Arr: SArray;
   i: Integer;
-
 begin
   Arr := nil;
 

@@ -1,11 +1,11 @@
-Unit g_language;
+unit g_language;
 
-Interface
+interface
 
-Uses
+uses
   MAPDEF;
 
-Type
+type
   TStrings_Locale = (
     I_CONSOLE_DUMPED,  
     I_CONSOLE_ERROR_WRITE,
@@ -411,13 +411,13 @@ Type
     
     I_LAST );
 
-Const
+const
   LANGUAGE_RUSSIAN = 'Russian';
   LANGUAGE_ENGLISH = 'English';
   LANGUAGE_RUSSIAN_N = 3;
   LANGUAGE_ENGLISH_N = 2;
 
-Var
+var
   _lc: Array [TStrings_Locale] of String;
   KilledByMonster: Array [MONSTER_DEMON..MONSTER_MAN] of String;
 
@@ -426,13 +426,12 @@ procedure g_Language_Load(fileName: String);
 procedure g_Language_Set(lang: String);
 procedure g_Language_Dump(fileName: String);
 
+implementation
 
-Implementation
-
-Uses
+uses
   SysUtils, g_gui, g_basic, e_log;
 
-Const
+const
   g_lang_default: Array [TStrings_Locale] of Array [1..3] of String = (
     ('CONSOLE DUMPED',                 'Saved to "%s"',
                                        'Сохранено в "%s"'),
@@ -1244,7 +1243,6 @@ var
   i: TStrings_Locale;
   k: Integer;
   ok: Boolean;
-
 begin
 // Значения по-умолчанию:
   for i := Low(TStrings_Locale) to High(TStrings_Locale) do
@@ -1345,7 +1343,6 @@ procedure g_Language_Set(lang: String);
 var
   i: TStrings_Locale;
   n: Byte;
-
 begin
   if lang = LANGUAGE_RUSSIAN then
     n := LANGUAGE_RUSSIAN_N
@@ -1362,7 +1359,6 @@ procedure g_Language_Dump(fileName: String);
 var
   F: TextFile;
   i: TStrings_Locale;
-
 begin
   AssignFile(F, fileName);
   ReWrite(F);
@@ -1373,4 +1369,4 @@ begin
   CloseFile(F);
 end;
 
-End.
+end.

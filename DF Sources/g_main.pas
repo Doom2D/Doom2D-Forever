@@ -60,35 +60,35 @@ procedure Init();
 var
   a: Integer;
 begin
- Randomize;
+  Randomize;
 
- e_WriteLog('Init DirectInput', MSG_NOTIFY);
- e_InitDirectInput(h_Wnd);
+  e_WriteLog('Init DirectInput', MSG_NOTIFY);
+  e_InitDirectInput(h_Wnd);
 
- e_WriteLog('Init FMOD', MSG_NOTIFY);
- e_InitSoundSystem(48000); 
+  e_WriteLog('Init FMOD', MSG_NOTIFY);
+  e_InitSoundSystem(48000); 
 
- e_WriteLog('Init game', MSG_NOTIFY);
- g_Game_Init();
+  e_WriteLog('Init game', MSG_NOTIFY);
+  g_Game_Init();
 
- for a := 0 to 15 do charbuff[a] := ' ';
+  for a := 0 to 15 do charbuff[a] := ' ';
 end;
 
 procedure Release();
 begin
- e_WriteLog('Releasing engine', MSG_NOTIFY);
- e_ReleaseEngine();
+  e_WriteLog('Releasing engine', MSG_NOTIFY);
+  e_ReleaseEngine();
 
- e_WriteLog('Releasing DirectInput', MSG_NOTIFY);
- e_ReleaseDirectInput();
+  e_WriteLog('Releasing DirectInput', MSG_NOTIFY);
+  e_ReleaseDirectInput();
 
- e_WriteLog('Releasing FMOD', MSG_NOTIFY);
- e_ReleaseSoundSystem();
+  e_WriteLog('Releasing FMOD', MSG_NOTIFY);
+  e_ReleaseSoundSystem();
 end;
 
 procedure Update();
 begin
- g_Game_Update();
+  g_Game_Update();
 end;
 
 procedure Draw();
@@ -113,74 +113,74 @@ const
   c9 = 'BULLFROG';
   c10 = 'FORMULA1';
 begin
- if (not gGameOn) or (not gCheats) or ((gGameSettings.GameType <> GT_SINGLE) and
+  if (not gGameOn) or (not gCheats) or ((gGameSettings.GameType <> GT_SINGLE) and
     (gGameSettings.GameMode <> GM_COOP) and (not gDebugMode))
     or g_Game_IsNet then Exit;
     
- s := 'SOUND_GAME_RADIO';
+  s := 'SOUND_GAME_RADIO';
 
- if Copy(charbuff, 12, 5) = c1 then
- begin
-  if gPlayer1 <> nil then gPlayer1.GodMode := not gPlayer1.GodMode;
-  if gPlayer2 <> nil then gPlayer2.GodMode := not gPlayer2.GodMode;
- end
-  else if Copy(charbuff, 12, 5) = c2 then
- begin
-  if gPlayer1 <> nil then gPlayer1.AllRulez(False);
-  if gPlayer2 <> nil then gPlayer2.AllRulez(False);
- end
-  else if Copy(charbuff, 13, 4) = c3 then
- begin
-  if gPlayer1 <> nil then gPlayer1.AllRulez(True);
-  if gPlayer2 <> nil then gPlayer2.AllRulez(True);
- end
-  else if Copy(charbuff, 12, 5) = c4 then
- begin
-  if gPlayer1 <> nil then gPlayer1.Damage(500, 0, 0, 0, HIT_TRAP);
-  if gPlayer2 <> nil then gPlayer2.Damage(500, 0, 0, 0, HIT_TRAP);
-  s := 'SOUND_MONSTER_HAHA';
- end
-  else if Copy(charbuff, 11, 6) = c5 then
- begin
-  g_Triggers_OpenAll();
- end
-  else if Copy(charbuff, 10, 7) = c6 then
- begin
-  if gTriggers <> nil then
-   for a := 0 to High(gTriggers) do
-    if gTriggers[a].TriggerType = TRIGGER_EXIT then
-    begin
-     g_Game_ExitLevel(gTriggers[a].Data.MapName);
-     Break;
-    end;
- end
-  else if Copy(charbuff, 8, 7) = c7 then
- begin
-  s2 := Copy(charbuff, 15, 2);
-  if g_Map_Exist(gGameSettings.WAD+':\MAP'+s2) then
+  if Copy(charbuff, 12, 5) = c1 then
   begin
-   c := 'MAP00';
-   c[3] := s2[1];
-   c[4] := s2[2];
-   g_Game_ExitLevel(c);
-  end;
- end
+    if gPlayer1 <> nil then gPlayer1.GodMode := not gPlayer1.GodMode;
+    if gPlayer2 <> nil then gPlayer2.GodMode := not gPlayer2.GodMode;
+  end
+  else if Copy(charbuff, 12, 5) = c2 then
+  begin
+    if gPlayer1 <> nil then gPlayer1.AllRulez(False);
+    if gPlayer2 <> nil then gPlayer2.AllRulez(False);
+  end
+  else if Copy(charbuff, 13, 4) = c3 then
+  begin
+    if gPlayer1 <> nil then gPlayer1.AllRulez(True);
+    if gPlayer2 <> nil then gPlayer2.AllRulez(True);
+  end
+  else if Copy(charbuff, 12, 5) = c4 then
+  begin
+    if gPlayer1 <> nil then gPlayer1.Damage(500, 0, 0, 0, HIT_TRAP);
+    if gPlayer2 <> nil then gPlayer2.Damage(500, 0, 0, 0, HIT_TRAP);
+    s := 'SOUND_MONSTER_HAHA';
+  end
+  else if Copy(charbuff, 11, 6) = c5 then
+  begin
+    g_Triggers_OpenAll();
+  end
+  else if Copy(charbuff, 10, 7) = c6 then
+  begin
+    if gTriggers <> nil then
+      for a := 0 to High(gTriggers) do
+        if gTriggers[a].TriggerType = TRIGGER_EXIT then
+        begin
+          g_Game_ExitLevel(gTriggers[a].Data.MapName);
+          Break;
+        end;
+  end
+  else if Copy(charbuff, 8, 7) = c7 then
+  begin
+    s2 := Copy(charbuff, 15, 2);
+    if g_Map_Exist(gGameSettings.WAD+':\MAP'+s2) then
+    begin
+      c := 'MAP00';
+      c[3] := s2[1];
+      c[4] := s2[2];
+      g_Game_ExitLevel(c);
+    end;
+  end
   else if (Copy(charbuff, 9, 8) = c8) and
           (charbuff[7] = Chr(188)) then
- begin
-  gFly := not gFly;
- end
+  begin
+    gFly := not gFly;
+  end
   else if Copy(charbuff, 9, 8) = c9 then
- begin
-  VEL_JUMP := 30-VEL_JUMP;
- end
+  begin
+    VEL_JUMP := 30-VEL_JUMP;
+  end
   else if Copy(charbuff, 9, 8) = c10 then
- begin
-  MAX_RUNVEL := 32-MAX_RUNVEL;
- end
- else Exit;
+  begin
+    MAX_RUNVEL := 32-MAX_RUNVEL;
+  end
+  else Exit;
 
- g_Sound_PlayEx(s);
+  g_Sound_PlayEx(s);
 end;
 
 procedure KeyPress(K: Byte);
@@ -188,7 +188,6 @@ var
   Msg: g_gui.TMessage;
   a: Integer;
   b: Boolean;
-  
 begin
   case K of
     VK_PAUSE: // <Pause/Break>:

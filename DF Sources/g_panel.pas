@@ -1,11 +1,11 @@
-Unit g_panel;
+unit g_panel;
 
-Interface
+interface
 
-Uses
+uses
   MAPSTRUCT, BinEditor, g_textures;
 
-Type
+type
   TAddTextureArray = Array of
     record
       Texture: Cardinal;
@@ -13,7 +13,7 @@ Type
     end;
 
   TPanel = Class (TObject)
-  Private
+  private
     FTextureWidth:    Word;
     FTextureHeight:   Word;
     FAlpha:           Byte;
@@ -25,7 +25,7 @@ Type
                             True:  (AnTex: TAnimation);
                         end;
 
-  Public
+  public
     FCurTexture:      Integer; // Номер текущей текстуры
     FCurFrame:        Integer;
     FCurFrameCount:   Byte;
@@ -58,13 +58,13 @@ Type
 
   TPanelArray = Array of TPanel;
 
-Implementation
+implementation
 
-Uses
+uses
   windows, g_basic, g_map, MAPDEF, g_game, e_graphics,
   g_console, g_language;
 
-Const
+const
   PANEL_SIGNATURE = $4C4E4150; // 'PANL'
 
 { T P a n e l : }
@@ -75,7 +75,6 @@ constructor TPanel.Create(PanelRec: TPanelRec_1;
                           var Textures: TLevelTextureArray);
 var
   i: Integer;
-
 begin
   X := PanelRec.X;
   Y := PanelRec.Y;
@@ -188,7 +187,6 @@ end;
 destructor TPanel.Destroy();
 var
   i: Integer;
-
 begin
   for i := 0 to High(FTextureIDs) do
     if FTextureIDs[i].Anim then
@@ -201,7 +199,6 @@ end;
 procedure TPanel.Draw();
 var
   xx, yy: Integer;
-
 begin
   if Enabled and (FCurTexture >= 0) and
      (Width > 0) and (Height > 0) and (FAlpha < 255) and
@@ -258,9 +255,9 @@ end;
 procedure TPanel.Update();
 begin
   if Enabled and (FCurTexture >= 0) and
-     (FTextureIDs[FCurTexture].Anim) and
-     (FTextureIDs[FCurTexture].AnTex <> nil) and
-     (Width > 0) and (Height > 0) and (FAlpha < 255) then
+    (FTextureIDs[FCurTexture].Anim) and
+    (FTextureIDs[FCurTexture].AnTex <> nil) and
+    (Width > 0) and (Height > 0) and (FAlpha < 255) then
   begin
     FTextureIDs[FCurTexture].AnTex.Update();
     FCurFrame := FTextureIDs[FCurTexture].AnTex.CurrentFrame;
@@ -269,16 +266,18 @@ begin
 end;
 
 procedure TPanel.SetFrame(Frame: Integer; Count: Byte);
- function ClampInt(X, A, B: Integer): Integer;
- begin
-   Result := X;
-   if X < A then Result := A else if X > B then Result := B;
- end;
+
+  function ClampInt(X, A, B: Integer): Integer;
+  begin
+    Result := X;
+    if X < A then Result := A else if X > B then Result := B;
+  end;
+
 begin
   if Enabled and (FCurTexture >= 0) and
-     (FTextureIDs[FCurTexture].Anim) and
-     (FTextureIDs[FCurTexture].AnTex <> nil) and
-     (Width > 0) and (Height > 0) and (FAlpha < 255) then
+    (FTextureIDs[FCurTexture].Anim) and
+    (FTextureIDs[FCurTexture].AnTex <> nil) and
+    (Width > 0) and (Height > 0) and (FAlpha < 255) then
   begin
     FCurFrame := ClampInt(Frame, 0, FTextureIDs[FCurTexture].AnTex.TotalFrames);
     FCurFrameCount := Count;
@@ -401,7 +400,6 @@ procedure TPanel.SaveState(Var Mem: TBinMemoryWriter);
 var
   sig: DWORD;
   anim: Boolean;
-
 begin
   if (not SaveIt) or (Mem = nil) then
     Exit;
@@ -434,7 +432,6 @@ procedure TPanel.LoadState(var Mem: TBinMemoryReader);
 var
   sig: DWORD;
   anim: Boolean;
-
 begin
   if (not SaveIt) or (Mem = nil) then
     Exit;
@@ -464,5 +461,4 @@ begin
   end;
 end;
 
-
-End.
+end.

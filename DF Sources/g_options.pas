@@ -1,11 +1,11 @@
-Unit g_options;
+unit g_options;
 
-Interface
+interface
 
-Uses
+uses
   g_language;
 
-Type
+type
   TPlayerControl = record
     KeyRight:      Byte;
     KeyLeft:       Byte;
@@ -60,11 +60,10 @@ var
   gRevertPlayers: Boolean     = False;
   gLanguage: String           = LANGUAGE_ENGLISH;
   gAskLanguage: Boolean       = True;
-  
 
-Implementation
+implementation
 
-Uses
+uses
   e_log, g_window, g_sound, g_gfx, g_player, Math,
   g_map, g_net, g_netmaster, SysUtils, CONFIG, g_game, g_main, e_textures,
   g_items, dglOpenGL;
@@ -148,7 +147,6 @@ procedure g_Options_Read(FileName: String);
 var
   config: TConfig;
   str: String;
-
 begin
   gAskLanguage := True;
 
@@ -302,10 +300,10 @@ begin
   str := config.ReadStr('Game', 'Language', '');
   if (str = LANGUAGE_RUSSIAN) or
      (str = LANGUAGE_ENGLISH) then
-    begin
-      gLanguage := str;
-      gAskLanguage := False;
-    end
+  begin
+    gLanguage := str;
+    gAskLanguage := False;
+  end
   else
     gLanguage := LANGUAGE_ENGLISH;
 
@@ -317,4 +315,4 @@ begin
     TEXTUREFILTER := GL_NEAREST;
 end;
 
-End.
+end.
