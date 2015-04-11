@@ -2192,9 +2192,9 @@ begin
       if (FHealth < 200) or (FArmor < 200) then
       begin
         if FHealth < 200 then
-          IncMax(FHealth, 200, 200);
+          FHealth := 200;
         if FArmor < 200 then
-          IncMax(FArmor, 200, 200);
+          FArmor := 200;
         Result := True;
         remove := True;
       end;
