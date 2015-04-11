@@ -2191,8 +2191,10 @@ begin
     ITEM_SPHERE_WHITE:
       if (FHealth < 200) or (FArmor < 200) then
       begin
-        IncMax(FHealth, 200, 200);
-        IncMax(FArmor, 200, 200);
+        if FHealth < 200 then
+          IncMax(FHealth, 200, 200);
+        if FArmor < 200 then
+          IncMax(FArmor, 200, 200);
         Result := True;
         remove := True;
       end;
