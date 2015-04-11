@@ -105,17 +105,13 @@ HostApplication=
 Launcher=
 UseLauncher=0
 DebugCWD=
-[Language]
-ActiveLang=
-ProjectLang=
-RootDir=
 [Version Info]
 IncludeVerInfo=1
 AutoIncBuild=0
 MajorVer=0
 MinorVer=6
 Release=6
-Build=6
+Build=7
 Debug=0
 PreRelease=0
 Special=0
@@ -126,13 +122,13 @@ CodePage=1251
 [Version Info Keys]
 CompanyName=www.doom2d.org
 FileDescription=Doom 2D: Forever
-FileVersion=0.6.6.6
+FileVersion=0.6.6.7
 InternalName=Doom 2D: Forever
 LegalCopyright=All rights reserved.
 LegalTrademarks=
 OriginalFilename=Doom2DF.exe
 ProductName=Doom 2D: Forever
-ProductVersion=0.6.6.6
+ProductVersion=0.6.6.7
 [HistoryLists\hlUnitAliases]
 Count=1
 Item0=WinTypes=Windows;WinProcs=Windows;DbiTypes=BDE;DbiProcs=BDE;DbiErrs=BDE;
