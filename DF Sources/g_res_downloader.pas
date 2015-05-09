@@ -2,29 +2,38 @@ unit g_res_downloader;
 
 interface
 
-uses sysutils, Classes, md5asm, g_net, g_netmsg, g_console, g_main;
+uses sysutils, Classes, md5asm, g_net, g_netmsg, g_console, g_main, e_log;
 
-function MapExist(const path, filename: string; resMd5:TMD5Digest):string;
-function g_res_DownloadMapFromServer(FileName: string):string;
+function MapExist(const path, filename: string; const resMd5: TMD5Digest): string;
+function g_res_DownloadMapFromServer(const FileName: string): string;
 
 implementation
 
 const DOWNLOAD_DIR = 'downloads';
 
-procedure findFiles(const dirName, filename:string; var files:TStringList);
+procedure findFiles(const dirName, filename:string; var files: TStringList);
 var
   searchResult: TSearchRec;
 begin
-  if FindFirst(dirName+'\*', faAnyFile, searchResult)=0 then begin
+  if FindFirst(dirName+'\*', faAnyFile, searchResult)=0 then
+  begin
     try
       repeat
-        if (searchResult.Attr and faDirectory)=0 then begin
-          if searchResult.Name = filename then begin
+        if (searchResult.Attr and faDirectory)=0 then
+        begin
+          if searchResult.Name = filename then
+          begin
             files.Add(dirName+'\'+filename);
             Exit;
           end;
+<<<<<<< HEAD
         end else if (searchResult.Name<>'.') and (searchResult.Name<>'..') then begin
           findFiles(IncludeTrailingPathDelimiter(dirName)+searchResult.Name, filename, files);
+=======
+        end else if (searchResult.Name<>'.') and (searchResult.Name<>'..') then
+        begin
+          findFiles(IncludeTrailingBackSlash(dirName)+searchResult.Name, filename, files);
+>>>>>>> origin/Current
         end;
       until (FindNext(searchResult)<>0);
     finally
@@ -33,7 +42,7 @@ begin
   end;
 end;
 
-function compareFile(const filename: string; resMd5:TMD5Digest):Boolean;
+function compareFile(const filename: string; const resMd5:TMD5Digest): Boolean;
 var
   gResHash: TMD5Digest;
 begin
@@ -41,12 +50,12 @@ begin
   Result := MD5Compare(gResHash, resMd5);
 end;
 
-function ResourceExists(const path, filename: string; resMd5:TMD5Digest):Boolean;
+function ResourceExists(const path, filename: string; const resMd5: TMD5Digest): Boolean;
 begin
   Result := FileExists(path + filename) and compareFile(path + filename, resMd5)
 end;
 
-function MapExist(const path, filename: string; resMd5:TMD5Digest):string;
+function MapExist(const path, filename: string; const resMd5: TMD5Digest): string;
 var
   res: string;
   files: TStringList;
@@ -76,7 +85,7 @@ begin
   files.Free;
 end;
 
-function saveMap(const path, filename: string; data: array of Byte):string;
+function saveMap(const path, filename: string; const data: array of Byte): string;
 var
   resFile: TFileStream;
 begin
@@ -94,7 +103,7 @@ begin
   end;
 end;
 
-function g_res_DownloadMapFromServer(FileName: string):string;
+function g_res_DownloadMapFromServer(const FileName: string): string;
 var
   msgStream: TMemoryStream;
   resStream: TFileStream;
@@ -102,7 +111,8 @@ var
   i: Integer;
   resData: TResDataMsg;
 begin
-  g_Console_Add('Map `' + FileName +'` not found. Download from server');
+  g_Console_Add('Map `' + FileName +'` not found. Downloading from server...');
+  e_WriteLog('Download map `' + FileName + '` from server', MSG_NOTIFY);
   MC_SEND_MapRequest();
 
   msgStream := g_net_Wait_Event(NET_MSG_MAP_RESPONSE);
@@ -113,7 +123,8 @@ begin
   begin
     if not ResourceExists(GameDir + '\wads\', mapData.ExternalResources[i].Name, mapData.ExternalResources[i].md5) then
     begin
-      g_Console_Add('Wad `' + mapData.ExternalResources[i].Name +'` not found. Download from server');
+      g_Console_Add('Wad `' + mapData.ExternalResources[i].Name +'` not found. Downloading from server...');
+      e_WriteLog('Download Wad `' + mapData.ExternalResources[i].Name + '` from server', MSG_NOTIFY);
       MC_SEND_ResRequest(mapData.ExternalResources[i].Name);
 
       msgStream := g_net_Wait_Event(NET_MSG_RES_RESPONSE);

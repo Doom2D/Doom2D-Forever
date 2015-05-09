@@ -44,385 +44,384 @@ var
   menu: TGUIMenu;
   config: TConfig;
   BPP: DWORD;
-
 begin
- menu := TGUIMenu(g_GUI_GetWindow('OptionsVideoMenu').GetControl('mOptionsVideoMenu'));
+  menu := TGUIMenu(g_GUI_GetWindow('OptionsVideoMenu').GetControl('mOptionsVideoMenu'));
 
- if TGUISwitch(menu.GetControl('swBPP')).ItemIndex = 0 then
-   BPP := 16
- else
-   BPP := 32;
- gVSync := TGUISwitch(menu.GetControl('swVSync')).ItemIndex = 0;
- gTextureFilter := TGUISwitch(menu.GetControl('swTextureFilter')).ItemIndex = 0;
+  if TGUISwitch(menu.GetControl('swBPP')).ItemIndex = 0 then
+    BPP := 16
+  else
+    BPP := 32;
+  gVSync := TGUISwitch(menu.GetControl('swVSync')).ItemIndex = 0;
+  gTextureFilter := TGUISwitch(menu.GetControl('swTextureFilter')).ItemIndex = 0;
 
- menu := TGUIMenu(g_GUI_GetWindow('OptionsSoundMenu').GetControl('mOptionsSoundMenu'));
+  menu := TGUIMenu(g_GUI_GetWindow('OptionsSoundMenu').GetControl('mOptionsSoundMenu'));
 
- g_Sound_SetupAllVolumes(
-   Min(TGUIScroll(menu.GetControl('scSoundLevel')).Value*16, 255),
-   Min(TGUIScroll(menu.GetControl('scMusicLevel')).Value*16, 255)
- );
+  g_Sound_SetupAllVolumes(
+    Min(TGUIScroll(menu.GetControl('scSoundLevel')).Value*16, 255),
+    Min(TGUIScroll(menu.GetControl('scMusicLevel')).Value*16, 255)
+  );
 
- gMaxSimSounds := Max(Min(TGUIScroll(menu.GetControl('scMaxSimSounds')).Value*4+2, 66), 2);
- gMuteWhenInactive := TGUISwitch(menu.GetControl('swInactiveSounds')).ItemIndex = 1;
+  gMaxSimSounds := Max(Min(TGUIScroll(menu.GetControl('scMaxSimSounds')).Value*4+2, 66), 2);
+  gMuteWhenInactive := TGUISwitch(menu.GetControl('swInactiveSounds')).ItemIndex = 1;
 
- menu := TGUIMenu(g_GUI_GetWindow('OptionsGameMenu').GetControl('mOptionsGameMenu'));
+  menu := TGUIMenu(g_GUI_GetWindow('OptionsGameMenu').GetControl('mOptionsGameMenu'));
 
- g_GFX_SetMax(TGUIScroll(menu.GetControl('scParticlesCount')).Value*1000);
- g_Gibs_SetMax(TGUIScroll(menu.GetControl('scGibsMax')).Value*25);
- g_Corpses_SetMax(TGUIScroll(menu.GetControl('scCorpsesMax')).Value*5);
+  g_GFX_SetMax(TGUIScroll(menu.GetControl('scParticlesCount')).Value*1000);
+  g_Gibs_SetMax(TGUIScroll(menu.GetControl('scGibsMax')).Value*25);
+  g_Corpses_SetMax(TGUIScroll(menu.GetControl('scCorpsesMax')).Value*5);
 
- case TGUISwitch(menu.GetControl('swGibsCount')).ItemIndex of
-  0: gGibsCount := 0;
-  1: gGibsCount := 8;
-  2: gGibsCount := 16;
-  3: gGibsCount := 32;
-  else gGibsCount := 48;
- end;
-
- gBloodCount := TGUISwitch(menu.GetControl('swBloodCount')).ItemIndex;
- gFlash := TGUISwitch(menu.GetControl('swScreenFlash')).ItemIndex = 0;
- gAdvBlood := TGUISwitch(menu.GetControl('swBloodType')).ItemIndex = 1;
- gAdvCorpses := TGUISwitch(menu.GetControl('swCorpseType')).ItemIndex = 1;
- gAdvGibs := TGUISwitch(menu.GetControl('swGibsType')).ItemIndex = 1;
- gDrawBackGround := TGUISwitch(menu.GetControl('swBackGround')).ItemIndex = 0;
- gShowMessages := TGUISwitch(menu.GetControl('swMessages')).ItemIndex = 0;
- gRevertPlayers := TGUISwitch(menu.GetControl('swRevertPlayers')).ItemIndex = 0;
-
- menu := TGUIMenu(g_GUI_GetWindow('OptionsControlsMenu').GetControl('mOptionsControlsMenu'));
-
- with menu, gGameControls.GameControls do
- begin
-  TakeScreenshot := TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_SCREENSHOT])).Key;
-  Stat := TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_STAT])).Key;
-  Chat := TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_CHAT])).Key;
- end;
-
- menu := TGUIMenu(g_GUI_GetWindow('OptionsControlsP1Menu').GetControl('mOptionsControlsP1Menu'));
-
- with menu, gGameControls.P1Control do
- begin
-  KeyRight := TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_RIGHT])).Key;
-  KeyLeft := TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_LEFT])).Key;
-  KeyUp := TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_UP])).Key;
-  KeyDown := TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_DOWN])).Key;
-  KeyFire := TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_FIRE])).Key;
-  KeyJump := TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_JUMP])).Key;
-  KeyNextWeapon := TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_NEXT_WEAPON])).Key;
-  KeyPrevWeapon := TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_PREV_WEAPON])).Key;
-  KeyOpen := TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_USE])).Key;
- end;
-
- menu := TGUIMenu(g_GUI_GetWindow('OptionsControlsP2Menu').GetControl('mOptionsControlsP2Menu'));
-
- with menu, gGameControls.P2Control do
- begin
-  KeyRight := TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_RIGHT])).Key;
-  KeyLeft := TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_LEFT])).Key;
-  KeyUp := TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_UP])).Key;
-  KeyDown := TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_DOWN])).Key;
-  KeyFire := TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_FIRE])).Key;
-  KeyJump := TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_JUMP])).Key;
-  KeyNextWeapon := TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_NEXT_WEAPON])).Key;
-  KeyPrevWeapon := TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_PREV_WEAPON])).Key;
-  KeyOpen := TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_USE])).Key;
- end;
-
- menu := TGUIMenu(g_GUI_GetWindow('OptionsPlayersP1Menu').GetControl('mOptionsPlayersP1Menu'));
-
- gPlayer1Settings.Name := TGUIEdit(menu.GetControl('edP1Name')).Text;
- gPlayer1Settings.Team := IfThen(TGUISwitch(menu.GetControl('swP1Team')).ItemIndex = 0,
-                                 TEAM_RED, TEAM_BLUE);
-
- with TGUIModelView(g_GUI_GetWindow('OptionsPlayersP1Menu').GetControl('mvP1Model')) do
- begin
-  gPlayer1Settings.Model := Model.Name;
-  gPlayer1Settings.Color := Model.Color;
- end;
-
- menu := TGUIMenu(g_GUI_GetWindow('OptionsPlayersP2Menu').GetControl('mOptionsPlayersP2Menu'));
-
- gPlayer2Settings.Name := TGUIEdit(menu.GetControl('edP2Name')).Text;
- gPlayer2Settings.Team := IfThen(TGUISwitch(menu.GetControl('swP2Team')).ItemIndex = 0,
-                                 TEAM_RED, TEAM_BLUE);
- with TGUIModelView(g_GUI_GetWindow('OptionsPlayersP2Menu').GetControl('mvP2Model')) do
- begin
- gPlayer2Settings.Model := Model.Name;
-  gPlayer2Settings.Color := Model.Color;
- end;
-
- if gPlayer1Settings.Name = '' then gPlayer1Settings.Name := 'Player1';
- if gPlayer2Settings.Name = '' then gPlayer2Settings.Name := 'Player2';
-
- if (gGameSettings.GameType in [GT_CUSTOM, GT_SERVER]) then
- begin
-  if gPlayer1 <> nil then
-  begin
-   gPlayer1.SetModel(gPlayer1Settings.Model);
-   gPlayer1.Name := gPlayer1Settings.Name;
-   if (gGameSettings.GameMode <> GM_TDM) and (gGameSettings.GameMode <> GM_CTF) then
-    gPlayer1.SetColor(gPlayer1Settings.Color)
-   else
-    if gPlayer1.Team <> gPlayer1Settings.Team then
-     gPlayer1.ChangeTeam;
-
-   if g_Game_IsNet then MH_SEND_PlayerSettings(gPlayer1.UID);
+  case TGUISwitch(menu.GetControl('swGibsCount')).ItemIndex of
+    0: gGibsCount := 0;
+    1: gGibsCount := 8;
+    2: gGibsCount := 16;
+    3: gGibsCount := 32;
+    else gGibsCount := 48;
   end;
 
-  if gPlayer2 <> nil then
+  gBloodCount := TGUISwitch(menu.GetControl('swBloodCount')).ItemIndex;
+  gFlash := TGUISwitch(menu.GetControl('swScreenFlash')).ItemIndex = 0;
+  gAdvBlood := TGUISwitch(menu.GetControl('swBloodType')).ItemIndex = 1;
+  gAdvCorpses := TGUISwitch(menu.GetControl('swCorpseType')).ItemIndex = 1;
+  gAdvGibs := TGUISwitch(menu.GetControl('swGibsType')).ItemIndex = 1;
+  gDrawBackGround := TGUISwitch(menu.GetControl('swBackGround')).ItemIndex = 0;
+  gShowMessages := TGUISwitch(menu.GetControl('swMessages')).ItemIndex = 0;
+  gRevertPlayers := TGUISwitch(menu.GetControl('swRevertPlayers')).ItemIndex = 0;
+
+  menu := TGUIMenu(g_GUI_GetWindow('OptionsControlsMenu').GetControl('mOptionsControlsMenu'));
+
+  with menu, gGameControls.GameControls do
   begin
-   gPlayer2.SetModel(gPlayer2Settings.Model);
-   gPlayer2.Name := gPlayer2Settings.Name;
-   if (gGameSettings.GameMode <> GM_TDM) and (gGameSettings.GameMode <> GM_CTF) then
-    gPlayer2.SetColor(gPlayer2Settings.Color)
-   else
-    if gPlayer2.Team <> gPlayer2Settings.Team then
-     gPlayer2.ChangeTeam;
+    TakeScreenshot := TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_SCREENSHOT])).Key;
+    Stat := TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_STAT])).Key;
+    Chat := TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_CHAT])).Key;
   end;
- end;
 
- if g_Game_IsClient then MC_SEND_PlayerSettings;
+  menu := TGUIMenu(g_GUI_GetWindow('OptionsControlsP1Menu').GetControl('mOptionsControlsP1Menu'));
 
- e_WriteLog('Writing config', MSG_NOTIFY);
+  with menu, gGameControls.P1Control do
+  begin
+    KeyRight := TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_RIGHT])).Key;
+    KeyLeft := TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_LEFT])).Key;
+    KeyUp := TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_UP])).Key;
+    KeyDown := TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_DOWN])).Key;
+    KeyFire := TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_FIRE])).Key;
+    KeyJump := TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_JUMP])).Key;
+    KeyNextWeapon := TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_NEXT_WEAPON])).Key;
+    KeyPrevWeapon := TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_PREV_WEAPON])).Key;
+    KeyOpen := TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_USE])).Key;
+  end;
+
+  menu := TGUIMenu(g_GUI_GetWindow('OptionsControlsP2Menu').GetControl('mOptionsControlsP2Menu'));
+
+  with menu, gGameControls.P2Control do
+  begin
+    KeyRight := TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_RIGHT])).Key;
+    KeyLeft := TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_LEFT])).Key;
+    KeyUp := TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_UP])).Key;
+    KeyDown := TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_DOWN])).Key;
+    KeyFire := TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_FIRE])).Key;
+    KeyJump := TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_JUMP])).Key;
+    KeyNextWeapon := TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_NEXT_WEAPON])).Key;
+    KeyPrevWeapon := TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_PREV_WEAPON])).Key;
+    KeyOpen := TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_USE])).Key;
+  end;
+
+  menu := TGUIMenu(g_GUI_GetWindow('OptionsPlayersP1Menu').GetControl('mOptionsPlayersP1Menu'));
+
+  gPlayer1Settings.Name := TGUIEdit(menu.GetControl('edP1Name')).Text;
+  gPlayer1Settings.Team := IfThen(TGUISwitch(menu.GetControl('swP1Team')).ItemIndex = 0,
+                                  TEAM_RED, TEAM_BLUE);
+
+  with TGUIModelView(g_GUI_GetWindow('OptionsPlayersP1Menu').GetControl('mvP1Model')) do
+  begin
+    gPlayer1Settings.Model := Model.Name;
+    gPlayer1Settings.Color := Model.Color;
+  end;
+
+  menu := TGUIMenu(g_GUI_GetWindow('OptionsPlayersP2Menu').GetControl('mOptionsPlayersP2Menu'));
+
+  gPlayer2Settings.Name := TGUIEdit(menu.GetControl('edP2Name')).Text;
+  gPlayer2Settings.Team := IfThen(TGUISwitch(menu.GetControl('swP2Team')).ItemIndex = 0,
+                                  TEAM_RED, TEAM_BLUE);
+  with TGUIModelView(g_GUI_GetWindow('OptionsPlayersP2Menu').GetControl('mvP2Model')) do
+  begin
+    gPlayer2Settings.Model := Model.Name;
+    gPlayer2Settings.Color := Model.Color;
+  end;
+
+  if gPlayer1Settings.Name = '' then gPlayer1Settings.Name := 'Player1';
+  if gPlayer2Settings.Name = '' then gPlayer2Settings.Name := 'Player2';
+
+  if (gGameSettings.GameType in [GT_CUSTOM, GT_SERVER]) then
+  begin
+    if gPlayer1 <> nil then
+    begin
+      gPlayer1.SetModel(gPlayer1Settings.Model);
+      gPlayer1.Name := gPlayer1Settings.Name;
+      if (gGameSettings.GameMode <> GM_TDM) and (gGameSettings.GameMode <> GM_CTF) then
+        gPlayer1.SetColor(gPlayer1Settings.Color)
+      else
+        if gPlayer1.Team <> gPlayer1Settings.Team then
+          gPlayer1.ChangeTeam;
+
+      if g_Game_IsNet then MH_SEND_PlayerSettings(gPlayer1.UID);
+    end;
+
+    if gPlayer2 <> nil then
+    begin
+      gPlayer2.SetModel(gPlayer2Settings.Model);
+      gPlayer2.Name := gPlayer2Settings.Name;
+      if (gGameSettings.GameMode <> GM_TDM) and (gGameSettings.GameMode <> GM_CTF) then
+        gPlayer2.SetColor(gPlayer2Settings.Color)
+      else
+        if gPlayer2.Team <> gPlayer2Settings.Team then
+          gPlayer2.ChangeTeam;
+    end;
+  end;
+
+  if g_Game_IsClient then MC_SEND_PlayerSettings;
+
+  e_WriteLog('Writing config', MSG_NOTIFY);
  
- config := TConfig.CreateFile(GameDir+'\'+CONFIG_FILENAME);
+  config := TConfig.CreateFile(GameDir+'\'+CONFIG_FILENAME);
 
- config.WriteInt('Video', 'ScreenWidth', gScreenWidth);
- config.WriteInt('Video', 'ScreenHeight', gScreenHeight);
- config.WriteInt('Video', 'WinPosX', gWinRealPosX);
- config.WriteInt('Video', 'WinPosY', gWinRealPosY);
- config.WriteBool('Video', 'Fullscreen', gFullScreen);
- config.WriteBool('Video', 'Maximized', gWinMaximized);
- config.WriteInt('Video', 'BPP', BPP);
- config.WriteBool('Video', 'VSync', gVSync);
- config.WriteBool('Video', 'TextureFilter', gTextureFilter);
+  config.WriteInt('Video', 'ScreenWidth', gScreenWidth);
+  config.WriteInt('Video', 'ScreenHeight', gScreenHeight);
+  config.WriteInt('Video', 'WinPosX', gWinRealPosX);
+  config.WriteInt('Video', 'WinPosY', gWinRealPosY);
+  config.WriteBool('Video', 'Fullscreen', gFullScreen);
+  config.WriteBool('Video', 'Maximized', gWinMaximized);
+  config.WriteInt('Video', 'BPP', BPP);
+  config.WriteBool('Video', 'VSync', gVSync);
+  config.WriteBool('Video', 'TextureFilter', gTextureFilter);
 
- config.WriteInt('Sound', 'SoundLevel', gSoundLevel);
- config.WriteInt('Sound', 'MusicLevel', gMusicLevel);
- config.WriteInt('Sound', 'MaxSimSounds', gMaxSimSounds);
- config.WriteBool('Sound', 'MuteInactive', gMuteWhenInactive);
+  config.WriteInt('Sound', 'SoundLevel', gSoundLevel);
+  config.WriteInt('Sound', 'MusicLevel', gMusicLevel);
+  config.WriteInt('Sound', 'MaxSimSounds', gMaxSimSounds);
+  config.WriteBool('Sound', 'MuteInactive', gMuteWhenInactive);
 
- with config, gGameControls.GameControls do
- begin
-  WriteInt('GameControls', 'TakeScreenshot', TakeScreenshot);
-  WriteInt('GameControls', 'Stat', Stat);
-  WriteInt('GameControls', 'Chat', Chat);
- end;
-
- with config, gGameControls.P1Control, gPlayer1Settings do
- begin
-  WriteInt('Player1', 'KeyRight', KeyRight);
-  WriteInt('Player1', 'KeyLeft', KeyLeft);
-  WriteInt('Player1', 'KeyUp', KeyUp);
-  WriteInt('Player1', 'KeyDown', KeyDown);
-  WriteInt('Player1', 'KeyFire', KeyFire);
-  WriteInt('Player1', 'KeyJump', KeyJump);
-  WriteInt('Player1', 'KeyNextWeapon', KeyNextWeapon);
-  WriteInt('Player1', 'KeyPrevWeapon', KeyPrevWeapon);
-  WriteInt('Player1', 'KeyOpen', KeyOpen);
-
-  WriteStr('Player1', 'Name', Name);
-  WriteStr('Player1', 'model', Model);
-  WriteInt('Player1', 'red', Color.R);
-  WriteInt('Player1', 'green', Color.G);
-  WriteInt('Player1', 'blue', Color.B);
-  WriteInt('Player1', 'team', Team);
- end;
-
- with config, gGameControls.P2Control, gPlayer2Settings do
- begin
-  WriteInt('Player2', 'KeyRight', KeyRight);
-  WriteInt('Player2', 'KeyLeft', KeyLeft);
-  WriteInt('Player2', 'KeyUp', KeyUp);
-  WriteInt('Player2', 'KeyDown', KeyDown);
-  WriteInt('Player2', 'KeyFire', KeyFire);
-  WriteInt('Player2', 'KeyJump', KeyJump);
-  WriteInt('Player2', 'KeyNextWeapon', KeyNextWeapon);
-  WriteInt('Player2', 'KeyPrevWeapon', KeyPrevWeapon);
-  WriteInt('Player2', 'KeyOpen', KeyOpen);
-
-  WriteStr('Player2', 'Name', Name);
-  WriteStr('Player2', 'model', Model);
-  WriteInt('Player2', 'red', Color.R);
-  WriteInt('Player2', 'green', Color.G);
-  WriteInt('Player2', 'blue', Color.B);
-  WriteInt('Player2', 'team', Team);
- end;
-
- with config do
-  case gGibsCount of
-   0: config.WriteInt('Game', 'GibsCount', 0);
-   8: config.WriteInt('Game', 'GibsCount', 1);
-   16: config.WriteInt('Game', 'GibsCount', 2);
-   32: config.WriteInt('Game', 'GibsCount', 3);
-   else config.WriteInt('Game', 'GibsCount', 4);
+  with config, gGameControls.GameControls do
+  begin
+    WriteInt('GameControls', 'TakeScreenshot', TakeScreenshot);
+    WriteInt('GameControls', 'Stat', Stat);
+    WriteInt('GameControls', 'Chat', Chat);
   end;
 
- config.WriteInt('Game', 'ItemRespawnTime', ITEM_RESPAWNTIME div 36);
- config.WriteInt('Game', 'MaxParticles', g_GFX_GetMax());
- config.WriteInt('Game', 'MaxGibs', g_Gibs_GetMax());
- config.WriteInt('Game', 'MaxCorpses', g_Corpses_GetMax());
- config.WriteInt('Game', 'BloodCount', gBloodCount);
- config.WriteBool('Game', 'AdvancesBlood', gAdvBlood);
- config.WriteBool('Game', 'AdvancesCorpses', gAdvCorpses);
- config.WriteBool('Game', 'AdvancesGibs', gAdvGibs);
- config.WriteBool('Game', 'Flash', gFlash);
- config.WriteBool('Game', 'BackGround', gDrawBackGround);
- config.WriteBool('Game', 'Messages', gShowMessages);
- config.WriteBool('Game', 'RevertPlayers', gRevertPlayers);
+  with config, gGameControls.P1Control, gPlayer1Settings do
+  begin
+    WriteInt('Player1', 'KeyRight', KeyRight);
+    WriteInt('Player1', 'KeyLeft', KeyLeft);
+    WriteInt('Player1', 'KeyUp', KeyUp);
+    WriteInt('Player1', 'KeyDown', KeyDown);
+    WriteInt('Player1', 'KeyFire', KeyFire);
+    WriteInt('Player1', 'KeyJump', KeyJump);
+    WriteInt('Player1', 'KeyNextWeapon', KeyNextWeapon);
+    WriteInt('Player1', 'KeyPrevWeapon', KeyPrevWeapon);
+    WriteInt('Player1', 'KeyOpen', KeyOpen);
 
- config.WriteStr('MasterServer', 'IP', NetSlistIP);
- config.WriteInt('MasterServer', 'Port', NetSlistPort);
+    WriteStr('Player1', 'Name', Name);
+    WriteStr('Player1', 'model', Model);
+    WriteInt('Player1', 'red', Color.R);
+    WriteInt('Player1', 'green', Color.G);
+    WriteInt('Player1', 'blue', Color.B);
+    WriteInt('Player1', 'team', Team);
+  end;
 
- config.WriteBool('Server', 'Dedicated', NetDedicated);
- config.WriteStr ('Server', 'Name', NetServerName);
- config.WriteStr ('Server', 'Password', NetPassword);
- config.WriteInt ('Server', 'Port', NetPort);
- config.WriteInt ('Server', 'MaxClients', NetMaxClients);
- config.WriteBool('Server', 'RCON', NetAllowRCON);
- config.WriteStr ('Server', 'RCONPassword', NetRCONPassword);
- config.WriteBool('Server', 'SyncWithMaster', NetUseMaster);
- config.WriteInt ('Server', 'UpdateInterval', NetUpdateRate);
- config.WriteInt ('Server', 'ReliableUpdateInterval', NetRelupdRate);
- config.WriteInt ('Server', 'MasterSyncInterval', NetMasterRate);
+  with config, gGameControls.P2Control, gPlayer2Settings do
+  begin
+    WriteInt('Player2', 'KeyRight', KeyRight);
+    WriteInt('Player2', 'KeyLeft', KeyLeft);
+    WriteInt('Player2', 'KeyUp', KeyUp);
+    WriteInt('Player2', 'KeyDown', KeyDown);
+    WriteInt('Player2', 'KeyFire', KeyFire);
+    WriteInt('Player2', 'KeyJump', KeyJump);
+    WriteInt('Player2', 'KeyNextWeapon', KeyNextWeapon);
+    WriteInt('Player2', 'KeyPrevWeapon', KeyPrevWeapon);
+    WriteInt('Player2', 'KeyOpen', KeyOpen);
 
- config.WriteInt ('Client', 'InterpolationSteps', NetInterpLevel);
- config.WriteStr ('Client', 'LastIP', NetLastIP);
- config.WriteInt ('Client', 'LastPort', NetLastPort); 
+    WriteStr('Player2', 'Name', Name);
+    WriteStr('Player2', 'model', Model);
+    WriteInt('Player2', 'red', Color.R);
+    WriteInt('Player2', 'green', Color.G);
+    WriteInt('Player2', 'blue', Color.B);
+    WriteInt('Player2', 'team', Team);
+  end;
 
- config.SaveFile(GameDir+'\'+CONFIG_FILENAME);
- config.Free();
+  with config do
+    case gGibsCount of
+      0: config.WriteInt('Game', 'GibsCount', 0);
+      8: config.WriteInt('Game', 'GibsCount', 1);
+      16: config.WriteInt('Game', 'GibsCount', 2);
+      32: config.WriteInt('Game', 'GibsCount', 3);
+      else config.WriteInt('Game', 'GibsCount', 4);
+    end;
+
+  config.WriteInt('Game', 'ItemRespawnTime', ITEM_RESPAWNTIME div 36);
+  config.WriteInt('Game', 'MaxParticles', g_GFX_GetMax());
+  config.WriteInt('Game', 'MaxGibs', g_Gibs_GetMax());
+  config.WriteInt('Game', 'MaxCorpses', g_Corpses_GetMax());
+  config.WriteInt('Game', 'BloodCount', gBloodCount);
+  config.WriteBool('Game', 'AdvancesBlood', gAdvBlood);
+  config.WriteBool('Game', 'AdvancesCorpses', gAdvCorpses);
+  config.WriteBool('Game', 'AdvancesGibs', gAdvGibs);
+  config.WriteBool('Game', 'Flash', gFlash);
+  config.WriteBool('Game', 'BackGround', gDrawBackGround);
+  config.WriteBool('Game', 'Messages', gShowMessages);
+  config.WriteBool('Game', 'RevertPlayers', gRevertPlayers);
+
+  config.WriteStr('MasterServer', 'IP', NetSlistIP);
+  config.WriteInt('MasterServer', 'Port', NetSlistPort);
+
+  config.WriteBool('Server', 'Dedicated', NetDedicated);
+  config.WriteStr ('Server', 'Name', NetServerName);
+  config.WriteStr ('Server', 'Password', NetPassword);
+  config.WriteInt ('Server', 'Port', NetPort);
+  config.WriteInt ('Server', 'MaxClients', NetMaxClients);
+  config.WriteBool('Server', 'RCON', NetAllowRCON);
+  config.WriteStr ('Server', 'RCONPassword', NetRCONPassword);
+  config.WriteBool('Server', 'SyncWithMaster', NetUseMaster);
+  config.WriteInt ('Server', 'UpdateInterval', NetUpdateRate);
+  config.WriteInt ('Server', 'ReliableUpdateInterval', NetRelupdRate);
+  config.WriteInt ('Server', 'MasterSyncInterval', NetMasterRate);
+
+  config.WriteInt ('Client', 'InterpolationSteps', NetInterpLevel);
+  config.WriteStr ('Client', 'LastIP', NetLastIP);
+  config.WriteInt ('Client', 'LastPort', NetLastPort); 
+
+  config.SaveFile(GameDir+'\'+CONFIG_FILENAME);
+  config.Free();
 end;
 
 procedure ReadOptions();
 var
   menu: TGUIMenu;
 begin
- menu := TGUIMenu(g_GUI_GetWindow('OptionsVideoMenu').GetControl('mOptionsVideoMenu'));
+  menu := TGUIMenu(g_GUI_GetWindow('OptionsVideoMenu').GetControl('mOptionsVideoMenu'));
 
- with TGUISwitch(menu.GetControl('swBPP')) do
-   if gBPP = 16 then
-     ItemIndex := 0
-   else
-     ItemIndex := 1;
+  with TGUISwitch(menu.GetControl('swBPP')) do
+    if gBPP = 16 then
+      ItemIndex := 0
+    else
+      ItemIndex := 1;
 
- with TGUISwitch(menu.GetControl('swTextureFilter')) do
-  if gTextureFilter then ItemIndex := 0 else ItemIndex := 1;
+  with TGUISwitch(menu.GetControl('swTextureFilter')) do
+    if gTextureFilter then ItemIndex := 0 else ItemIndex := 1;
 
- with TGUISwitch(menu.GetControl('swVSync')) do
-  if gVSync then ItemIndex := 0 else ItemIndex := 1;
+  with TGUISwitch(menu.GetControl('swVSync')) do
+    if gVSync then ItemIndex := 0 else ItemIndex := 1;
 
- menu := TGUIMenu(g_GUI_GetWindow('OptionsSoundMenu').GetControl('mOptionsSoundMenu'));
+  menu := TGUIMenu(g_GUI_GetWindow('OptionsSoundMenu').GetControl('mOptionsSoundMenu'));
 
- TGUIScroll(menu.GetControl('scSoundLevel')).Value := Round(gSoundLevel/16);
- TGUIScroll(menu.GetControl('scMusicLevel')).Value := Round(gMusicLevel/16);
- TGUIScroll(menu.GetControl('scMaxSimSounds')).Value := Round((gMaxSimSounds-2)/4);
+  TGUIScroll(menu.GetControl('scSoundLevel')).Value := Round(gSoundLevel/16);
+  TGUIScroll(menu.GetControl('scMusicLevel')).Value := Round(gMusicLevel/16);
+  TGUIScroll(menu.GetControl('scMaxSimSounds')).Value := Round((gMaxSimSounds-2)/4);
 
- with TGUISwitch(menu.GetControl('swInactiveSounds')) do
-   if gMuteWhenInactive then
-     ItemIndex := 1
-   else
-     ItemIndex := 0;
+  with TGUISwitch(menu.GetControl('swInactiveSounds')) do
+    if gMuteWhenInactive then
+      ItemIndex := 1
+    else
+      ItemIndex := 0;
 
- menu := TGUIMenu(g_GUI_GetWindow('OptionsControlsP1Menu').GetControl('mOptionsControlsP1Menu'));
+  menu := TGUIMenu(g_GUI_GetWindow('OptionsControlsP1Menu').GetControl('mOptionsControlsP1Menu'));
 
- with menu, gGameControls.P1Control do
- begin
-  TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_RIGHT])).Key := KeyRight;
-  TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_LEFT])).Key := KeyLeft;
-  TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_UP])).Key := KeyUp;
-  TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_DOWN])).Key := KeyDown;
-  TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_FIRE])).Key := KeyFire;
-  TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_JUMP])).Key := KeyJump;
-  TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_NEXT_WEAPON])).Key := KeyNextWeapon;
-  TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_PREV_WEAPON])).Key := KeyPrevWeapon;
-  TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_USE])).Key := KeyOpen;
- end;
+  with menu, gGameControls.P1Control do
+  begin
+    TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_RIGHT])).Key := KeyRight;
+    TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_LEFT])).Key := KeyLeft;
+    TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_UP])).Key := KeyUp;
+    TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_DOWN])).Key := KeyDown;
+    TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_FIRE])).Key := KeyFire;
+    TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_JUMP])).Key := KeyJump;
+    TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_NEXT_WEAPON])).Key := KeyNextWeapon;
+    TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_PREV_WEAPON])).Key := KeyPrevWeapon;
+    TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_USE])).Key := KeyOpen;
+  end;
 
- menu := TGUIMenu(g_GUI_GetWindow('OptionsControlsP2Menu').GetControl('mOptionsControlsP2Menu'));
+  menu := TGUIMenu(g_GUI_GetWindow('OptionsControlsP2Menu').GetControl('mOptionsControlsP2Menu'));
 
- with menu, gGameControls.P2Control do
- begin
-  TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_RIGHT])).Key := KeyRight;
-  TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_LEFT])).Key := KeyLeft;
-  TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_UP])).Key := KeyUp;
-  TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_DOWN])).Key := KeyDown;
-  TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_FIRE])).Key := KeyFire;
-  TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_JUMP])).Key := KeyJump;
-  TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_NEXT_WEAPON])).Key := KeyNextWeapon;
-  TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_PREV_WEAPON])).Key := KeyPrevWeapon;
-  TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_USE])).Key := KeyOpen;
- end;
+  with menu, gGameControls.P2Control do
+  begin
+    TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_RIGHT])).Key := KeyRight;
+    TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_LEFT])).Key := KeyLeft;
+    TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_UP])).Key := KeyUp;
+    TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_DOWN])).Key := KeyDown;
+    TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_FIRE])).Key := KeyFire;
+    TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_JUMP])).Key := KeyJump;
+    TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_NEXT_WEAPON])).Key := KeyNextWeapon;
+    TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_PREV_WEAPON])).Key := KeyPrevWeapon;
+    TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_USE])).Key := KeyOpen;
+  end;
 
- menu := TGUIMenu(g_GUI_GetWindow('OptionsControlsMenu').GetControl('mOptionsControlsMenu'));
- with menu, gGameControls.GameControls do
- begin
-  TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_SCREENSHOT])).Key := TakeScreenshot;
-  TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_STAT])).Key := Stat;
-  TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_CHAT])).Key := Chat;
- end;
+  menu := TGUIMenu(g_GUI_GetWindow('OptionsControlsMenu').GetControl('mOptionsControlsMenu'));
+  with menu, gGameControls.GameControls do
+  begin
+    TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_SCREENSHOT])).Key := TakeScreenshot;
+    TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_STAT])).Key := Stat;
+    TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_CHAT])).Key := Chat;
+  end;
 
- menu := TGUIMenu(g_GUI_GetWindow('OptionsGameMenu').GetControl('mOptionsGameMenu'));
+  menu := TGUIMenu(g_GUI_GetWindow('OptionsGameMenu').GetControl('mOptionsGameMenu'));
 
- TGUIScroll(menu.GetControl('scParticlesCount')).Value := g_GFX_GetMax() div 1000;
- TGUIScroll(menu.GetControl('scGibsMax')).Value := g_Gibs_GetMax() div 25;
- TGUIScroll(menu.GetControl('scCorpsesMax')).Value := g_Corpses_GetMax() div 5;
- TGUISwitch(menu.GetControl('swBloodCount')).ItemIndex := gBloodCount;
+   TGUIScroll(menu.GetControl('scParticlesCount')).Value := g_GFX_GetMax() div 1000;
+   TGUIScroll(menu.GetControl('scGibsMax')).Value := g_Gibs_GetMax() div 25;
+   TGUIScroll(menu.GetControl('scCorpsesMax')).Value := g_Corpses_GetMax() div 5;
+   TGUISwitch(menu.GetControl('swBloodCount')).ItemIndex := gBloodCount;
 
- with TGUISwitch(menu.GetControl('swScreenFlash')) do
-  if gFlash then ItemIndex := 0 else ItemIndex := 1;
+  with TGUISwitch(menu.GetControl('swScreenFlash')) do
+    if gFlash then ItemIndex := 0 else ItemIndex := 1;
 
- with TGUISwitch(menu.GetControl('swBloodType')) do
-  if gAdvBlood then ItemIndex := 1 else ItemIndex := 0;
+  with TGUISwitch(menu.GetControl('swBloodType')) do
+    if gAdvBlood then ItemIndex := 1 else ItemIndex := 0;
 
- with TGUISwitch(menu.GetControl('swCorpseType')) do
-  if gAdvCorpses then ItemIndex := 1 else ItemIndex := 0;
+  with TGUISwitch(menu.GetControl('swCorpseType')) do
+    if gAdvCorpses then ItemIndex := 1 else ItemIndex := 0;
 
- with TGUISwitch(menu.GetControl('swGibsType')) do
-  if gAdvGibs then ItemIndex := 1 else ItemIndex := 0;
+  with TGUISwitch(menu.GetControl('swGibsType')) do
+    if gAdvGibs then ItemIndex := 1 else ItemIndex := 0;
 
- with TGUISwitch(menu.GetControl('swGibsCount')) do
- case gGibsCount of
-  0: ItemIndex := 0;
-  8: ItemIndex := 1;
-  16: ItemIndex := 2;
-  32: ItemIndex := 3;
-  else ItemIndex := 4;
- end;
+  with TGUISwitch(menu.GetControl('swGibsCount')) do
+    case gGibsCount of
+      0: ItemIndex := 0;
+      8: ItemIndex := 1;
+      16: ItemIndex := 2;
+      32: ItemIndex := 3;
+      else ItemIndex := 4;
+    end;
 
- with TGUISwitch(menu.GetControl('swBackGround')) do
-  if gDrawBackGround then ItemIndex := 0 else ItemIndex := 1;
+  with TGUISwitch(menu.GetControl('swBackGround')) do
+    if gDrawBackGround then ItemIndex := 0 else ItemIndex := 1;
 
- with TGUISwitch(menu.GetControl('swMessages')) do
-  if gShowMessages then ItemIndex := 0 else ItemIndex := 1;
+  with TGUISwitch(menu.GetControl('swMessages')) do
+    if gShowMessages then ItemIndex := 0 else ItemIndex := 1;
 
- with TGUISwitch(menu.GetControl('swRevertPlayers')) do
-  if gRevertPlayers then ItemIndex := 0 else ItemIndex := 1;
+  with TGUISwitch(menu.GetControl('swRevertPlayers')) do
+    if gRevertPlayers then ItemIndex := 0 else ItemIndex := 1;
 
- menu := TGUIMenu(g_GUI_GetWindow('OptionsPlayersP1Menu').GetControl('mOptionsPlayersP1Menu'));
+  menu := TGUIMenu(g_GUI_GetWindow('OptionsPlayersP1Menu').GetControl('mOptionsPlayersP1Menu'));
 
- TGUIListBox(menu.GetControl('lsP1Model')).SelectItem(gPlayer1Settings.Model);
- TGUIEdit(menu.GetControl('edP1Name')).Text := gPlayer1Settings.Name;
+  TGUIListBox(menu.GetControl('lsP1Model')).SelectItem(gPlayer1Settings.Model);
+  TGUIEdit(menu.GetControl('edP1Name')).Text := gPlayer1Settings.Name;
 
- TGUISwitch(menu.GetControl('swP1Team')).ItemIndex :=
-  IfThen(gPlayer1Settings.Team = TEAM_BLUE, 1, 0);
+  TGUISwitch(menu.GetControl('swP1Team')).ItemIndex :=
+    IfThen(gPlayer1Settings.Team = TEAM_BLUE, 1, 0);
 
- TGUIScroll(menu.GetControl('scP1Red')).Value := Round(gPlayer1Settings.Color.R/16);
- TGUIScroll(menu.GetControl('scP1Green')).Value := Round(gPlayer1Settings.Color.G/16);
- TGUIScroll(menu.GetControl('scP1Blue')).Value := Round(gPlayer1Settings.Color.B/16);
+  TGUIScroll(menu.GetControl('scP1Red')).Value := Round(gPlayer1Settings.Color.R/16);
+  TGUIScroll(menu.GetControl('scP1Green')).Value := Round(gPlayer1Settings.Color.G/16);
+  TGUIScroll(menu.GetControl('scP1Blue')).Value := Round(gPlayer1Settings.Color.B/16);
 
- menu := TGUIMenu(g_GUI_GetWindow('OptionsPlayersP2Menu').GetControl('mOptionsPlayersP2Menu'));
+  menu := TGUIMenu(g_GUI_GetWindow('OptionsPlayersP2Menu').GetControl('mOptionsPlayersP2Menu'));
 
- TGUIListBox(menu.GetControl('lsP2Model')).SelectItem(gPlayer2Settings.Model);
- TGUIEdit(menu.GetControl('edP2Name')).Text := gPlayer2Settings.Name;
+  TGUIListBox(menu.GetControl('lsP2Model')).SelectItem(gPlayer2Settings.Model);
+  TGUIEdit(menu.GetControl('edP2Name')).Text := gPlayer2Settings.Name;
 
- TGUISwitch(menu.GetControl('swP2Team')).ItemIndex :=
-  IfThen(gPlayer2Settings.Team = TEAM_BLUE, 1, 0);
+  TGUISwitch(menu.GetControl('swP2Team')).ItemIndex :=
+    IfThen(gPlayer2Settings.Team = TEAM_BLUE, 1, 0);
 
- TGUIScroll(menu.GetControl('scP2Red')).Value := Round(gPlayer2Settings.Color.R/16);
- TGUIScroll(menu.GetControl('scP2Green')).Value := Round(gPlayer2Settings.Color.G/16);
- TGUIScroll(menu.GetControl('scP2Blue')).Value := Round(gPlayer2Settings.Color.B/16);
+  TGUIScroll(menu.GetControl('scP2Red')).Value := Round(gPlayer2Settings.Color.R/16);
+  TGUIScroll(menu.GetControl('scP2Green')).Value := Round(gPlayer2Settings.Color.G/16);
+  TGUIScroll(menu.GetControl('scP2Blue')).Value := Round(gPlayer2Settings.Color.B/16);
 
- ProcSelectModel(nil);
+  ProcSelectModel(nil);
 end;
 
 procedure ProcStartCustomGame();
@@ -617,7 +616,6 @@ var
   WAD: String;
   TwoPlayers: Boolean;
   n: Byte;
-
 begin
   with TGUIMenu(g_ActiveWindow.GetControl('mEpisodeMenu')) do
   begin
@@ -637,7 +635,6 @@ var
   win: TGUIWindow;
   a: TMapInfo;
   wad, map, res: String;
-  
 begin
   win := g_GUI_GetWindow('SelectMapMenu');
   with TGUIMenu(win.GetControl('mSelectMapMenu')) do
@@ -675,7 +672,6 @@ procedure ProcSelectWAD(Sender: TGUIControl);
 var
   wad: String;
   list: SArray;
-
 begin
   with TGUIMenu(g_GUI_GetWindow('SelectMapMenu').GetControl('mSelectMapMenu')) do
   begin
@@ -706,7 +702,6 @@ var
   win: TGUIWindow;
   a: TMegaWADInfo;
   wad, fn: String;
-
 begin
   win := g_GUI_GetWindow('EpisodeMenu');
   with TGUIMenu(win.GetControl('mEpisodeMenu')) do
@@ -743,19 +738,19 @@ procedure ProcChangeColor(Sender: TGUIControl);
 var
   window: TGUIWindow;
 begin
- window := g_GUI_GetWindow('OptionsPlayersP1Menu');
- with TGUIMenu(window.GetControl('mOptionsPlayersP1Menu')) do
-  TGUIModelView(window.GetControl('mvP1Model')).SetColor(
-                Min(TGUIScroll(GetControl('scP1Red')).Value*16, 255),
-                Min(TGUIScroll(GetControl('scP1Green')).Value*16, 255),
-                Min(TGUIScroll(GetControl('scP1Blue')).Value*16, 255));
+  window := g_GUI_GetWindow('OptionsPlayersP1Menu');
+  with TGUIMenu(window.GetControl('mOptionsPlayersP1Menu')) do
+    TGUIModelView(window.GetControl('mvP1Model')).SetColor(
+                  Min(TGUIScroll(GetControl('scP1Red')).Value*16, 255),
+                  Min(TGUIScroll(GetControl('scP1Green')).Value*16, 255),
+                  Min(TGUIScroll(GetControl('scP1Blue')).Value*16, 255));
 
- window := g_GUI_GetWindow('OptionsPlayersP2Menu');
- with TGUIMenu(window.GetControl('mOptionsPlayersP2Menu')) do
-  TGUIModelView(window.GetControl('mvP2Model')).SetColor(
-                Min(TGUIScroll(GetControl('scP2Red')).Value*16, 255),
-                Min(TGUIScroll(GetControl('scP2Green')).Value*16, 255),
-                Min(TGUIScroll(GetControl('scP2Blue')).Value*16, 255));
+  window := g_GUI_GetWindow('OptionsPlayersP2Menu');
+  with TGUIMenu(window.GetControl('mOptionsPlayersP2Menu')) do
+    TGUIModelView(window.GetControl('mvP2Model')).SetColor(
+                  Min(TGUIScroll(GetControl('scP2Red')).Value*16, 255),
+                  Min(TGUIScroll(GetControl('scP2Green')).Value*16, 255),
+                  Min(TGUIScroll(GetControl('scP2Blue')).Value*16, 255));
 end;
 
 procedure ProcSelectModel(Sender: TGUIControl);
@@ -763,15 +758,15 @@ var
   a: string;
   window: TGUIWindow;
 begin
- window := g_GUI_GetWindow('OptionsPlayersP1Menu');
- a := TGUIListBox(TGUIMenu(window.GetControl('mOptionsPlayersP1Menu')).GetControl('lsP1Model')).SelectedItem;
- if a <> '' then TGUIModelView(window.GetControl('mvP1Model')).SetModel(a);
+  window := g_GUI_GetWindow('OptionsPlayersP1Menu');
+  a := TGUIListBox(TGUIMenu(window.GetControl('mOptionsPlayersP1Menu')).GetControl('lsP1Model')).SelectedItem;
+  if a <> '' then TGUIModelView(window.GetControl('mvP1Model')).SetModel(a);
 
- window := g_GUI_GetWindow('OptionsPlayersP2Menu');
- a := TGUIListBox(TGUIMenu(window.GetControl('mOptionsPlayersP2Menu')).GetControl('lsP2Model')).SelectedItem;
- if a <> '' then TGUIModelView(window.GetControl('mvP2Model')).SetModel(a);
+  window := g_GUI_GetWindow('OptionsPlayersP2Menu');
+  a := TGUIListBox(TGUIMenu(window.GetControl('mOptionsPlayersP2Menu')).GetControl('lsP2Model')).SelectedItem;
+  if a <> '' then TGUIModelView(window.GetControl('mvP2Model')).SetModel(a);
 
- ProcChangeColor(nil);
+  ProcChangeColor(nil);
 end;
 
 procedure LoadFont(txtres, fntres: string; cwdt, chgt: Byte; spc: ShortInt;
@@ -784,116 +779,115 @@ var
   config: TConfig;
   chrwidth: Integer;
   a: Byte;
-  
 begin
- cfglen := 0;
- fntlen := 0;
+  cfglen := 0;
+  fntlen := 0;
 
- wad := TWADEditor_1.Create;
- if wad.ReadFile(GameWAD) then
- begin
-  wad.GetResource('FONTS', txtres, cfgdata, cfglen);
-  wad.GetResource('FONTS', fntres, fntdata, fntlen);
- end;
- wad.Free();
-
- if cfglen <> 0 then
- begin
-  FontID := e_CharFont_Create(spc);
-
-  config := TConfig.CreateMem(cfgdata, cfglen);
-  for a := 0 to 255 do
+  wad := TWADEditor_1.Create;
+  if wad.ReadFile(GameWAD) then
   begin
-   chrwidth := config.ReadInt(IntToStr(a), 'Width', 0);
-   if chrwidth = 0 then Continue;
+    wad.GetResource('FONTS', txtres, cfgdata, cfglen);
+    wad.GetResource('FONTS', fntres, fntdata, fntlen);
+  end;
+  wad.Free();
 
-   if e_CreateTextureMemEx(fntdata, CharID, cwdt*(a mod 16), chgt*(a div 16),
-                           cwdt, chgt) then
-    e_CharFont_AddChar(FontID, CharID, Chr(a), chrwidth);
+  if cfglen <> 0 then
+  begin
+    FontID := e_CharFont_Create(spc);
+
+    config := TConfig.CreateMem(cfgdata, cfglen);
+    for a := 0 to 255 do
+    begin
+      chrwidth := config.ReadInt(IntToStr(a), 'Width', 0);
+      if chrwidth = 0 then Continue;
+
+      if e_CreateTextureMemEx(fntdata, CharID, cwdt*(a mod 16), chgt*(a div 16),
+                              cwdt, chgt) then
+        e_CharFont_AddChar(FontID, CharID, Chr(a), chrwidth);
+    end;
+
+    config.Free();
   end;
 
-  config.Free();
- end;
-
- if cfglen <> 0 then FreeMem(cfgdata);
- if fntlen <> 0 then FreeMem(fntdata);
+  if cfglen <> 0 then FreeMem(cfgdata);
+  if fntlen <> 0 then FreeMem(fntdata);
 end;
 
 procedure MenuLoadData();
 begin
- e_WriteLog('Loading menu data...', MSG_NOTIFY);
+  e_WriteLog('Loading menu data...', MSG_NOTIFY);
 
- g_Texture_CreateWADEx('MAINMENU_MARKER1', GameWAD+':TEXTURES\MARKER1');
- g_Texture_CreateWADEx('MAINMENU_MARKER2', GameWAD+':TEXTURES\MARKER2');
- g_Texture_CreateWADEx('SCROLL_LEFT', GameWAD+':TEXTURES\SLEFT');
- g_Texture_CreateWADEx('SCROLL_RIGHT', GameWAD+':TEXTURES\SRIGHT');
- g_Texture_CreateWADEx('SCROLL_MIDDLE', GameWAD+':TEXTURES\SMIDDLE');
- g_Texture_CreateWADEx('SCROLL_MARKER', GameWAD+':TEXTURES\SMARKER');
- g_Texture_CreateWADEx('EDIT_LEFT', GameWAD+':TEXTURES\ELEFT');
- g_Texture_CreateWADEx('EDIT_RIGHT', GameWAD+':TEXTURES\ERIGHT');
- g_Texture_CreateWADEx('EDIT_MIDDLE', GameWAD+':TEXTURES\EMIDDLE');
- g_Texture_CreateWADEx('BOX1', GameWAD+':TEXTURES\BOX1');
- g_Texture_CreateWADEx('BOX2', GameWAD+':TEXTURES\BOX2');
- g_Texture_CreateWADEx('BOX3', GameWAD+':TEXTURES\BOX3');
- g_Texture_CreateWADEx('BOX4', GameWAD+':TEXTURES\BOX4');
- g_Texture_CreateWADEx('BOX5', GameWAD+':TEXTURES\BOX5');
- g_Texture_CreateWADEx('BOX6', GameWAD+':TEXTURES\BOX6');
- g_Texture_CreateWADEx('BOX7', GameWAD+':TEXTURES\BOX7');
- g_Texture_CreateWADEx('BOX8', GameWAD+':TEXTURES\BOX8');
- g_Texture_CreateWADEx('BOX9', GameWAD+':TEXTURES\BOX9');
- g_Texture_CreateWADEx('BSCROLL_UP_A', GameWAD+':TEXTURES\SCROLLUPA');
- g_Texture_CreateWADEx('BSCROLL_UP_U', GameWAD+':TEXTURES\SCROLLUPU');
- g_Texture_CreateWADEx('BSCROLL_DOWN_A', GameWAD+':TEXTURES\SCROLLDOWNA');
- g_Texture_CreateWADEx('BSCROLL_DOWN_U', GameWAD+':TEXTURES\SCROLLDOWNU');
- g_Texture_CreateWADEx('BSCROLL_MIDDLE', GameWAD+':TEXTURES\SCROLLMIDDLE');
- g_Texture_CreateWADEx('NOPIC', GameWAD+':TEXTURES\NOPIC');
+  g_Texture_CreateWADEx('MAINMENU_MARKER1', GameWAD+':TEXTURES\MARKER1');
+  g_Texture_CreateWADEx('MAINMENU_MARKER2', GameWAD+':TEXTURES\MARKER2');
+  g_Texture_CreateWADEx('SCROLL_LEFT', GameWAD+':TEXTURES\SLEFT');
+  g_Texture_CreateWADEx('SCROLL_RIGHT', GameWAD+':TEXTURES\SRIGHT');
+  g_Texture_CreateWADEx('SCROLL_MIDDLE', GameWAD+':TEXTURES\SMIDDLE');
+  g_Texture_CreateWADEx('SCROLL_MARKER', GameWAD+':TEXTURES\SMARKER');
+  g_Texture_CreateWADEx('EDIT_LEFT', GameWAD+':TEXTURES\ELEFT');
+  g_Texture_CreateWADEx('EDIT_RIGHT', GameWAD+':TEXTURES\ERIGHT');
+  g_Texture_CreateWADEx('EDIT_MIDDLE', GameWAD+':TEXTURES\EMIDDLE');
+  g_Texture_CreateWADEx('BOX1', GameWAD+':TEXTURES\BOX1');
+  g_Texture_CreateWADEx('BOX2', GameWAD+':TEXTURES\BOX2');
+  g_Texture_CreateWADEx('BOX3', GameWAD+':TEXTURES\BOX3');
+  g_Texture_CreateWADEx('BOX4', GameWAD+':TEXTURES\BOX4');
+  g_Texture_CreateWADEx('BOX5', GameWAD+':TEXTURES\BOX5');
+  g_Texture_CreateWADEx('BOX6', GameWAD+':TEXTURES\BOX6');
+  g_Texture_CreateWADEx('BOX7', GameWAD+':TEXTURES\BOX7');
+  g_Texture_CreateWADEx('BOX8', GameWAD+':TEXTURES\BOX8');
+  g_Texture_CreateWADEx('BOX9', GameWAD+':TEXTURES\BOX9');
+  g_Texture_CreateWADEx('BSCROLL_UP_A', GameWAD+':TEXTURES\SCROLLUPA');
+  g_Texture_CreateWADEx('BSCROLL_UP_U', GameWAD+':TEXTURES\SCROLLUPU');
+  g_Texture_CreateWADEx('BSCROLL_DOWN_A', GameWAD+':TEXTURES\SCROLLDOWNA');
+  g_Texture_CreateWADEx('BSCROLL_DOWN_U', GameWAD+':TEXTURES\SCROLLDOWNU');
+  g_Texture_CreateWADEx('BSCROLL_MIDDLE', GameWAD+':TEXTURES\SCROLLMIDDLE');
+  g_Texture_CreateWADEx('NOPIC', GameWAD+':TEXTURES\NOPIC');
 
- g_Sound_CreateWADEx('MENU_SELECT', GameWAD+':SOUNDS\MENUSELECT');
- g_Sound_CreateWADEx('MENU_OPEN', GameWAD+':SOUNDS\MENUOPEN');
- g_Sound_CreateWADEx('MENU_CLOSE', GameWAD+':SOUNDS\MENUCLOSE');
- g_Sound_CreateWADEx('MENU_CHANGE', GameWAD+':SOUNDS\MENUCHANGE');
- g_Sound_CreateWADEx('SCROLL_ADD', GameWAD+':SOUNDS\SCROLLADD');
- g_Sound_CreateWADEx('SCROLL_SUB', GameWAD+':SOUNDS\SCROLLSUB');
- g_Sound_CreateWADEx('SOUND_PLAYER_FALL', GameWAD+':SOUNDS\FALL');
+  g_Sound_CreateWADEx('MENU_SELECT', GameWAD+':SOUNDS\MENUSELECT');
+  g_Sound_CreateWADEx('MENU_OPEN', GameWAD+':SOUNDS\MENUOPEN');
+  g_Sound_CreateWADEx('MENU_CLOSE', GameWAD+':SOUNDS\MENUCLOSE');
+  g_Sound_CreateWADEx('MENU_CHANGE', GameWAD+':SOUNDS\MENUCHANGE');
+  g_Sound_CreateWADEx('SCROLL_ADD', GameWAD+':SOUNDS\SCROLLADD');
+  g_Sound_CreateWADEx('SCROLL_SUB', GameWAD+':SOUNDS\SCROLLSUB');
+  g_Sound_CreateWADEx('SOUND_PLAYER_FALL', GameWAD+':SOUNDS\FALL');
 end;
 
 procedure MenuFreeData();
 begin
- e_CharFont_Remove(gMenuFont);
- e_CharFont_Remove(gMenuSmallFont);
+  e_CharFont_Remove(gMenuFont);
+  e_CharFont_Remove(gMenuSmallFont);
 
- g_Texture_Delete('MAINMENU_MARKER1');
- g_Texture_Delete('MAINMENU_MARKER2');
- g_Texture_Delete('SCROLL_LEFT');
- g_Texture_Delete('SCROLL_RIGHT');
- g_Texture_Delete('SCROLL_MIDDLE');
- g_Texture_Delete('SCROLL_MARKER');
- g_Texture_Delete('EDIT_LEFT');
- g_Texture_Delete('EDIT_RIGHT');
- g_Texture_Delete('EDIT_MIDDLE');
- g_Texture_Delete('BOX1');
- g_Texture_Delete('BOX2');
- g_Texture_Delete('BOX3');
- g_Texture_Delete('BOX4');
- g_Texture_Delete('BOX5');
- g_Texture_Delete('BOX6');
- g_Texture_Delete('BOX7');
- g_Texture_Delete('BOX8');
- g_Texture_Delete('BOX9');
- g_Texture_Delete('BSCROLL_UP_A');
- g_Texture_Delete('BSCROLL_UP_U');
- g_Texture_Delete('BSCROLL_DOWN_A');
- g_Texture_Delete('BSCROLL_DOWN_U');
- g_Texture_Delete('BSCROLL_MIDDLE');
- g_Texture_Delete('NOPIC');
+  g_Texture_Delete('MAINMENU_MARKER1');
+  g_Texture_Delete('MAINMENU_MARKER2');
+  g_Texture_Delete('SCROLL_LEFT');
+  g_Texture_Delete('SCROLL_RIGHT');
+  g_Texture_Delete('SCROLL_MIDDLE');
+  g_Texture_Delete('SCROLL_MARKER');
+  g_Texture_Delete('EDIT_LEFT');
+  g_Texture_Delete('EDIT_RIGHT');
+  g_Texture_Delete('EDIT_MIDDLE');
+  g_Texture_Delete('BOX1');
+  g_Texture_Delete('BOX2');
+  g_Texture_Delete('BOX3');
+  g_Texture_Delete('BOX4');
+  g_Texture_Delete('BOX5');
+  g_Texture_Delete('BOX6');
+  g_Texture_Delete('BOX7');
+  g_Texture_Delete('BOX8');
+  g_Texture_Delete('BOX9');
+  g_Texture_Delete('BSCROLL_UP_A');
+  g_Texture_Delete('BSCROLL_UP_U');
+  g_Texture_Delete('BSCROLL_DOWN_A');
+  g_Texture_Delete('BSCROLL_DOWN_U');
+  g_Texture_Delete('BSCROLL_MIDDLE');
+  g_Texture_Delete('NOPIC');
 
- g_Sound_Delete('MENU_SELECT');
- g_Sound_Delete('MENU_OPEN');
- g_Sound_Delete('MENU_CLOSE');
- g_Sound_Delete('MENU_CHANGE');
- g_Sound_Delete('SCROLL_ADD');
- g_Sound_Delete('SCROLL_SUB');
- g_Sound_Delete('SOUND_PLAYER_FALL');
+  g_Sound_Delete('MENU_SELECT');
+  g_Sound_Delete('MENU_OPEN');
+  g_Sound_Delete('MENU_CLOSE');
+  g_Sound_Delete('MENU_CHANGE');
+  g_Sound_Delete('SCROLL_ADD');
+  g_Sound_Delete('SCROLL_SUB');
+  g_Sound_Delete('SOUND_PLAYER_FALL');
 end;
 
 procedure ProcAuthorsMenu();
@@ -907,7 +901,6 @@ var
   s: ShortString;
   snd: TPlayableSound;
   res: Boolean;
-
 begin
   if Key = Ord('Y') then
   begin
@@ -929,7 +922,7 @@ begin
       13: s := 'SOUND_MONSTER_CYBER_DIE';
       14: s := 'SOUND_MONSTER_KNIGHT_ALERT';
       15: s := 'SOUND_MONSTER_SPIDER_ALERT';
-     else s := 'SOUND_PLAYER_FALL';
+      else s := 'SOUND_PLAYER_FALL';
     end;
 
     snd := TPlayableSound.Create();
@@ -955,39 +948,38 @@ procedure ProcLoadMenu();
 var
   a: Integer;
 begin
- for a := 1 to 8 do
-  TGUIEdit(TGUIMenu(g_GUI_GetWindow('LoadMenu').GetControl('mmLoadMenu')).GetControl('edSlot'+IntToStr(a))).Text :=
-   g_GetSaveName(a);
+  for a := 1 to 8 do
+    TGUIEdit(TGUIMenu(g_GUI_GetWindow('LoadMenu').GetControl('mmLoadMenu')).GetControl('edSlot'+IntToStr(a))).Text :=
+    g_GetSaveName(a);
 end;
 
 procedure ProcSaveMenu();
 var
   a: Integer;
 begin
- for a := 1 to 8 do
-  TGUIEdit(TGUIMenu(g_GUI_GetWindow('SaveMenu').GetControl('mmSaveMenu')).GetControl('edSlot'+IntToStr(a))).Text :=
-   g_GetSaveName(a);
+  for a := 1 to 8 do
+    TGUIEdit(TGUIMenu(g_GUI_GetWindow('SaveMenu').GetControl('mmSaveMenu')).GetControl('edSlot'+IntToStr(a))).Text :=
+    g_GetSaveName(a);
 end;
 
 procedure ProcSaveGame(Sender: TGUIControl);
 var
   a: Integer;
 begin
- if g_Game_IsNet then Exit;
- a := StrToInt(Copy(Sender.Name, Length(Sender.Name), 1));
- g_Game_PauseAllSounds(True);
- g_SaveGame(a, TGUIEdit(Sender).Text);
+  if g_Game_IsNet then Exit;
+  a := StrToInt(Copy(Sender.Name, Length(Sender.Name), 1));
+  g_Game_PauseAllSounds(True);
+  g_SaveGame(a, TGUIEdit(Sender).Text);
 
- g_ActiveWindow := nil;
- g_Game_Pause(False);
+  g_ActiveWindow := nil;
+  g_Game_Pause(False);
 end;
 
 procedure ProcLoadGame(Sender: TGUIControl);
 var
   a: Integer;
-  
 begin
- if g_Game_IsNet then Exit;
+  if g_Game_IsNet then Exit;
   a := StrToInt(Copy(Sender.Name, Length(Sender.Name), 1));
   if g_LoadGame(a) then
     g_Game_PauseAllSounds(False)
@@ -1011,7 +1003,6 @@ var
   wad_lb: TGUIFileListBox;
   map_lb: TGUIListBox;
   map: String;
-
 begin
   menu := TGUIMenu(g_GUI_GetWindow('SelectMapMenu').GetControl('mSelectMapMenu'));
   wad_lb := TGUIFileListBox(menu.GetControl('lsMapWAD'));
@@ -1041,7 +1032,6 @@ procedure ProcSelectEpisodeMenu();
 var
   menu: TGUIMenu;
   wad_lb: TGUIFileListBox;
-
 begin
   menu := TGUIMenu(g_GUI_GetWindow('EpisodeMenu').GetControl('mEpisodeMenu'));
   wad_lb := TGUIFileListBox(menu.GetControl('lsWAD'));
@@ -1055,7 +1045,6 @@ end;
 procedure ProcSetMap();
 var
   wad, map, res: String;
-
 begin
   with TGUIMenu(g_ActiveWindow.GetControl('mSelectMapMenu')) do
   begin
@@ -1076,12 +1065,12 @@ procedure ProcChangeSoundSettings(Sender: TGUIControl);
 var
   menu: TGUIMenu;
 begin
- menu := TGUIMenu(g_GUI_GetWindow('OptionsSoundMenu').GetControl('mOptionsSoundMenu'));
+  menu := TGUIMenu(g_GUI_GetWindow('OptionsSoundMenu').GetControl('mOptionsSoundMenu'));
 
- g_Sound_SetupAllVolumes(
-   Min(TGUIScroll(menu.GetControl('scSoundLevel')).Value*16, 255),
-   Min(TGUIScroll(menu.GetControl('scMusicLevel')).Value*16, 255)
- );
+  g_Sound_SetupAllVolumes(
+    Min(TGUIScroll(menu.GetControl('scSoundLevel')).Value*16, 255),
+    Min(TGUIScroll(menu.GetControl('scMusicLevel')).Value*16, 255)
+  );
 end;
 
 procedure ProcOptionsPlayersMIMenu();
@@ -1089,33 +1078,32 @@ var
   s, a: string;
   b: TModelInfo;
 begin
- if g_ActiveWindow.Name = 'OptionsPlayersP1Menu' then s := 'P1' else s := 'P2';
+  if g_ActiveWindow.Name = 'OptionsPlayersP1Menu' then s := 'P1' else s := 'P2';
 
- a := TGUIListBox(TGUIMenu(g_ActiveWindow.GetControl('mOptionsPlayers'+s+'Menu')).GetControl('ls'+s+'Model')).SelectedItem;
+  a := TGUIListBox(TGUIMenu(g_ActiveWindow.GetControl('mOptionsPlayers'+s+'Menu')).GetControl('ls'+s+'Model')).SelectedItem;
 
- if a = '' then Exit;
+  if a = '' then Exit;
 
- b := g_PlayerModel_GetInfo(a); 
+  b := g_PlayerModel_GetInfo(a); 
 
- with TGUIMenu(g_GUI_GetWindow('OptionsPlayersMIMenu').GetControl('mOptionsPlayersMIMenu')) do
- begin
-  TGUILabel(GetControl('lbName')).Text := b.Name;
-  TGUILabel(GetControl('lbAuthor')).Text := b.Author;
-  TGUIMemo(GetControl('meComment')).SetText(b.Description);
+  with TGUIMenu(g_GUI_GetWindow('OptionsPlayersMIMenu').GetControl('mOptionsPlayersMIMenu')) do
+  begin
+    TGUILabel(GetControl('lbName')).Text := b.Name;
+    TGUILabel(GetControl('lbAuthor')).Text := b.Author;
+    TGUIMemo(GetControl('meComment')).SetText(b.Description);
 
-  if b.HaveWeapon then
-    TGUILabel(GetControl('lbWeapon')).Text := _lc[I_MENU_YES]
-  else
-    TGUILabel(GetControl('lbWeapon')).Text := _lc[I_MENU_NO];
- end;
+    if b.HaveWeapon then
+      TGUILabel(GetControl('lbWeapon')).Text := _lc[I_MENU_YES]
+    else
+      TGUILabel(GetControl('lbWeapon')).Text := _lc[I_MENU_NO];
+  end;
  
- g_GUI_ShowWindow('OptionsPlayersMIMenu');
+  g_GUI_ShowWindow('OptionsPlayersMIMenu');
 end;
 
 procedure ProcOptionsPlayersAnim();
 var
   s: String;
-
 begin
   if g_ActiveWindow.Name = 'OptionsPlayersP1Menu' then
     s := 'P1'
@@ -1133,7 +1121,6 @@ end;
 procedure ProcOptionsPlayersWeap();
 var
   s: String;
-
 begin
   if g_ActiveWindow.Name = 'OptionsPlayersP1Menu' then
     s := 'P1'
@@ -1148,28 +1135,30 @@ procedure ProcOptionsPlayersRot();
 var
   s: string;
 begin
- if g_ActiveWindow.Name = 'OptionsPlayersP1Menu' then s := 'P1' else s := 'P2';
- with TGUIModelView(g_ActiveWindow.GetControl('mv'+s+'Model')).Model do
-  if Direction = D_LEFT then Direction := D_RIGHT else Direction := D_LEFT;
+  if g_ActiveWindow.Name = 'OptionsPlayersP1Menu' then s := 'P1' else s := 'P2';
+  with TGUIModelView(g_ActiveWindow.GetControl('mv'+s+'Model')).Model do
+    if Direction = D_LEFT then Direction := D_RIGHT else Direction := D_LEFT;
 end;
 
 procedure ProcDefaultMenuKeyDown(Key: Byte);
 begin
- if Key = Ord('Y') then
- begin
-  g_Options_SetDefault();
-  ReadOptions();
-  g_GUI_HideWindow();
- end else if Key = Ord('N') then g_GUI_HideWindow;
+  if Key = Ord('Y') then
+  begin
+    g_Options_SetDefault();
+    ReadOptions();
+    g_GUI_HideWindow();
+  end else
+    if Key = Ord('N') then g_GUI_HideWindow;
 end;
 
 procedure ProcSavedMenuKeyDown(Key: Byte);
 begin
- if Key = Ord('Y') then
- begin
-  ReadOptions();
-  g_GUI_HideWindow();
- end else if Key = Ord('N') then g_GUI_HideWindow;
+  if Key = Ord('Y') then
+  begin
+    ReadOptions();
+    g_GUI_HideWindow();
+  end else
+    if Key = Ord('N') then g_GUI_HideWindow;
 end;
 
 procedure ProcAuthorsClose();
@@ -1181,7 +1170,7 @@ end;
 
 procedure ProcGMClose();
 begin
- g_Game_InGameMenu(False);
+  g_Game_InGameMenu(False);
 end;
 
 procedure ProcGMShow();
@@ -1198,20 +1187,19 @@ end;
 
 procedure ProcRestartMenuKeyDown(Key: Byte);
 begin
- if Key = Ord('Y') then g_Game_Restart()
-  else if Key = Ord('N') then g_GUI_HideWindow;
+  if Key = Ord('Y') then g_Game_Restart()
+    else if Key = Ord('N') then g_GUI_HideWindow;
 end;
 
 procedure ProcEndMenuKeyDown(Key: Byte);
 begin
- if Key = Ord('Y') then gExit := EXIT_SIMPLE
-  else if Key = Ord('N') then g_GUI_HideWindow;
+  if Key = Ord('Y') then gExit := EXIT_SIMPLE
+    else if Key = Ord('N') then g_GUI_HideWindow;
 end;
 
 procedure ProcSetRussianLanguage();
 var
   config: TConfig;
-
 begin
   if gLanguage <> LANGUAGE_RUSSIAN then
   begin
@@ -1232,7 +1220,6 @@ end;
 procedure ProcSetEnglishLanguage();
 var
   config: TConfig;
-
 begin
   if gLanguage <> LANGUAGE_ENGLISH then
   begin
@@ -1253,7 +1240,6 @@ end;
 procedure ReadGameSettings();
 var
   menu: TGUIMenu;
-
 begin
   menu := TGUIMenu(g_GUI_GetWindow('GameSetGameMenu').GetControl('mGameSetGameMenu'));
 
@@ -1312,7 +1298,6 @@ var
   menu: TGUIMenu;
   a, b, n: Integer;
   stat: TPlayerStatArray;
-
 begin
   menu := TGUIMenu(g_GUI_GetWindow('GameSetGameMenu').GetControl('mGameSetGameMenu'));
 
@@ -1399,7 +1384,6 @@ var
                      Width: DWORD;
                      Height: DWORD;
                    end;
-
 begin
   SetLength(Result, 0);
   SetLength(DModes, 0);
@@ -1460,7 +1444,6 @@ var
   menu: TGUIMenu;
   list: SArray;
   SR: DWORD;
-
 begin
   menu := TGUIMenu(g_GUI_GetWindow('OptionsVideoResMenu').GetControl('mOptionsVideoResMenu'));
 
@@ -1495,7 +1478,6 @@ var
   Fullscreen: Boolean;
   SWidth, SHeight: Word;
   str: String;
-
 begin
   menu := TGUIMenu(g_GUI_GetWindow('OptionsVideoResMenu').GetControl('mOptionsVideoResMenu'));
 
@@ -1528,45 +1510,44 @@ var
   h, _x: Word;
   lines: SArray;
 begin
- Result := TGUIWindow.Create(Name);
+  Result := TGUIWindow.Create(Name);
 
- with Result do
- begin
-  OnKeyDown := KeyDownProc;
-
-  lines := GetLines(Text, FontID, MaxLen);
-
-  h := e_CharFont_GetMaxHeight(FontID);
-  _x := (gScreenHeight div 2)-(h*Length(lines) div 2);
-
-  if lines <> nil then
+  with Result do
   begin
-   for a := 0 to High(lines) do
-    with TGUILabel(Result.AddChild(TGUILabel.Create(lines[a], FontID))) do
+    OnKeyDown := KeyDownProc;
+
+    lines := GetLines(Text, FontID, MaxLen);
+
+    h := e_CharFont_GetMaxHeight(FontID);
+    _x := (gScreenHeight div 2)-(h*Length(lines) div 2);
+
+    if lines <> nil then
     begin
-     X := (gScreenWidth div 2)-(GetWidth div 2);
-     Y := _x;
-     Color := _RGB(255, 0, 0);
-     _x := _x+h;
+      for a := 0 to High(lines) do
+        with TGUILabel(Result.AddChild(TGUILabel.Create(lines[a], FontID))) do
+        begin
+          X := (gScreenWidth div 2)-(GetWidth div 2);
+          Y := _x;
+          Color := _RGB(255, 0, 0);
+          _x := _x+h;
+        end;
+
+      with TGUILabel(Result.AddChild(TGUILabel.Create('(Y\N)', FontID))) do
+      begin
+        X := (gScreenWidth div 2)-(GetWidth div 2);
+        Y := _x;
+        Color := _RGB(255, 0, 0);
+      end;
     end;
 
-   with TGUILabel(Result.AddChild(TGUILabel.Create('(Y\N)', FontID))) do
-   begin
-    X := (gScreenWidth div 2)-(GetWidth div 2);
-    Y := _x;
-    Color := _RGB(255, 0, 0);
-   end;
+    DefControl := '';
+    SetActive(nil);
   end;
-
-  DefControl := '';
-  SetActive(nil);
- end;
 end;
 
 procedure ProcSetFirstRussianLanguage();
 var
   config: TConfig;
-
 begin
   gLanguage := LANGUAGE_RUSSIAN;
   gLanguageChange := True;
@@ -1581,7 +1562,6 @@ end;
 procedure ProcSetFirstEnglishLanguage();
 var
   config: TConfig;
-
 begin
   gLanguage := LANGUAGE_ENGLISH;
   gLanguageChange := True;
@@ -1596,7 +1576,6 @@ end;
 procedure CreateFirstLanguageMenu();
 var
   Menu: TGUIWindow;
-  
 begin
   Menu := TGUIWindow.Create('FirstLanguageMenu');
 
@@ -1622,68 +1601,67 @@ procedure CreatePlayerOptionsMenu(s: String);
 var
   Menu: TGUIWindow;
   a: String;
-
 begin
- Menu := TGUIWindow.Create('OptionsPlayers'+s+'Menu');
- if s = 'P1' then
-   a := _lc[I_MENU_PLAYER_1]
- else
-   a := _lc[I_MENU_PLAYER_2];
- with TGUIMenu(Menu.AddChild(TGUIMenu.Create(gMenuFont, gMenuSmallFont, a))) do
- begin
-  Name := 'mOptionsPlayers'+s+'Menu';
-  with AddEdit(_lc[I_MENU_PLAYER_NAME]) do
+  Menu := TGUIWindow.Create('OptionsPlayers'+s+'Menu');
+  if s = 'P1' then
+    a := _lc[I_MENU_PLAYER_1]
+  else
+    a := _lc[I_MENU_PLAYER_2];
+  with TGUIMenu(Menu.AddChild(TGUIMenu.Create(gMenuFont, gMenuSmallFont, a))) do
   begin
-   Name := 'ed'+s+'Name';
-   MaxLength := 12;
-   Width := 12;
-  end;
-  with AddSwitch(_lc[I_MENU_PLAYER_TEAM]) do
-  begin
-   Name := 'sw'+s+'Team';
-   AddItem(_lc[I_MENU_PLAYER_TEAM_RED]);
-   AddItem(_lc[I_MENU_PLAYER_TEAM_BLUE]);
-  end ;
-  with AddList(_lc[I_MENU_PLAYER_MODEL], 12, 6) do
-  begin
-   Name := 'ls'+s+'Model';
-   Sort := True;
-   Items := g_PlayerModel_GetNames();
-   OnChange := ProcSelectModel;
-  end;
-  with AddScroll(_lc[I_MENU_PLAYER_RED]) do
-  begin
-   Name := 'sc'+s+'Red';
-   Max := 16;
-   OnChange := ProcChangeColor;
-  end;
-  with AddScroll(_lc[I_MENU_PLAYER_GREEN]) do
-  begin
-   Name := 'sc'+s+'Green';
-   Max := 16;
-   OnChange := ProcChangeColor;
-  end;
-  with AddScroll(_lc[I_MENU_PLAYER_BLUE]) do
-  begin
-   Name := 'sc'+s+'Blue';
-   Max := 16;
-   OnChange := ProcChangeColor;
-  end;
-  AddSpace();
-  AddButton(@ProcOptionsPlayersMIMenu, _lc[I_MENU_MODEL_INFO]);
-  AddButton(@ProcOptionsPlayersAnim, _lc[I_MENU_MODEL_ANIMATION]);
-  AddButton(@ProcOptionsPlayersWeap, _lc[I_MENU_MODEL_CHANGE_WEAPON]);
-  AddButton(@ProcOptionsPlayersRot, _lc[I_MENU_MODEL_ROTATE]);
+    Name := 'mOptionsPlayers'+s+'Menu';
+    with AddEdit(_lc[I_MENU_PLAYER_NAME]) do
+    begin
+      Name := 'ed'+s+'Name';
+      MaxLength := 12;
+      Width := 12;
+    end;
+    with AddSwitch(_lc[I_MENU_PLAYER_TEAM]) do
+    begin
+      Name := 'sw'+s+'Team';
+      AddItem(_lc[I_MENU_PLAYER_TEAM_RED]);
+      AddItem(_lc[I_MENU_PLAYER_TEAM_BLUE]);
+    end ;
+    with AddList(_lc[I_MENU_PLAYER_MODEL], 12, 6) do
+    begin
+      Name := 'ls'+s+'Model';
+      Sort := True;
+      Items := g_PlayerModel_GetNames();
+      OnChange := ProcSelectModel;
+    end;
+    with AddScroll(_lc[I_MENU_PLAYER_RED]) do
+    begin
+      Name := 'sc'+s+'Red';
+      Max := 16;
+      OnChange := ProcChangeColor;
+    end;
+    with AddScroll(_lc[I_MENU_PLAYER_GREEN]) do
+    begin
+      Name := 'sc'+s+'Green';
+      Max := 16;
+      OnChange := ProcChangeColor;
+    end;
+    with AddScroll(_lc[I_MENU_PLAYER_BLUE]) do
+    begin
+      Name := 'sc'+s+'Blue';
+      Max := 16;
+      OnChange := ProcChangeColor;
+    end;
+    AddSpace();
+    AddButton(@ProcOptionsPlayersMIMenu, _lc[I_MENU_MODEL_INFO]);
+    AddButton(@ProcOptionsPlayersAnim, _lc[I_MENU_MODEL_ANIMATION]);
+    AddButton(@ProcOptionsPlayersWeap, _lc[I_MENU_MODEL_CHANGE_WEAPON]);
+    AddButton(@ProcOptionsPlayersRot, _lc[I_MENU_MODEL_ROTATE]);
   
-  with TGUIModelView(Menu.AddChild(TGUIModelView.Create)) do
-  begin
-   Name := 'mv'+s+'Model';
-   X := GetControl('ls'+s+'Model').X+TGUIListBox(GetControl('ls'+s+'Model')).GetWidth+16;
-   Y := GetControl('ls'+s+'Model').Y;
+    with TGUIModelView(Menu.AddChild(TGUIModelView.Create)) do
+    begin
+      Name := 'mv'+s+'Model';
+      X := GetControl('ls'+s+'Model').X+TGUIListBox(GetControl('ls'+s+'Model')).GetWidth+16;
+      Y := GetControl('ls'+s+'Model').Y;
+    end;
   end;
- end;
- Menu.DefControl := 'mOptionsPlayers'+s+'Menu';
- g_GUI_AddWindow(Menu);
+  Menu.DefControl := 'mOptionsPlayers'+s+'Menu';
+  g_GUI_AddWindow(Menu);
 end;
 
 procedure CreateAllMenus();
@@ -1692,759 +1670,758 @@ var
   SR: TSearchRec;
   a, cx, _y, lsi: Integer;
   list: SArray;
-  
 begin
- Menu := TGUIWindow.Create('MainMenu');
- with TGUIMainMenu(Menu.AddChild(TGUIMainMenu.Create(gMenuFont, _lc[I_MENU_MAIN_MENU]))) do
- begin
-  Name := 'mmMainMenu';
-  AddButton(nil, _lc[I_MENU_NEW_GAME], 'NewGameMenu');
-  AddButton(nil, _lc[I_MENU_MULTIPLAYER], 'NetGameMenu');
-  AddButton(nil, _lc[I_MENU_LOAD_GAME], 'LoadMenu');
-  AddButton(@ReadOptions, _lc[I_MENU_OPTIONS], 'OptionsMenu');
-  AddButton(@ProcAuthorsMenu, _lc[I_MENU_AUTHORS], 'AuthorsMenu');
-  AddButton(nil, _lc[I_MENU_EXIT], 'ExitMenu');
- end;
- with TGUILabel(Menu.AddChild(TGUILabel.Create(Format(_lc[I_VERSION], [GAME_VERSION]), gMenuSmallFont))) do
- begin
-  Color := _RGB(255, 255, 255);
-  X := gScreenWidth-GetWidth-8;
-  Y := gScreenHeight-GetHeight-8;
- end;
- Menu.DefControl := 'mmMainMenu';
- Menu.MainWindow := True;
- g_GUI_AddWindow(Menu);
+  Menu := TGUIWindow.Create('MainMenu');
+  with TGUIMainMenu(Menu.AddChild(TGUIMainMenu.Create(gMenuFont, _lc[I_MENU_MAIN_MENU]))) do
+  begin
+    Name := 'mmMainMenu';
+    AddButton(nil, _lc[I_MENU_NEW_GAME], 'NewGameMenu');
+    AddButton(nil, _lc[I_MENU_MULTIPLAYER], 'NetGameMenu');
+    AddButton(nil, _lc[I_MENU_LOAD_GAME], 'LoadMenu');
+    AddButton(@ReadOptions, _lc[I_MENU_OPTIONS], 'OptionsMenu');
+    AddButton(@ProcAuthorsMenu, _lc[I_MENU_AUTHORS], 'AuthorsMenu');
+    AddButton(nil, _lc[I_MENU_EXIT], 'ExitMenu');
+  end;
+  with TGUILabel(Menu.AddChild(TGUILabel.Create(Format(_lc[I_VERSION], [GAME_VERSION]), gMenuSmallFont))) do
+  begin
+    Color := _RGB(255, 255, 255);
+    X := gScreenWidth-GetWidth-8;
+    Y := gScreenHeight-GetHeight-8;
+  end;
+  Menu.DefControl := 'mmMainMenu';
+  Menu.MainWindow := True;
+  g_GUI_AddWindow(Menu);
 
- Menu := TGUIWindow.Create('NewGameMenu');
- with TGUIMainMenu(Menu.AddChild(TGUIMainMenu.Create(gMenuFont, _lc[I_MENU_NEW_GAME]))) do
- begin
-  Name := 'mmNewGameMenu';
-  AddButton(@ProcSingle1Player, _lc[I_MENU_1_PLAYER]);
-  AddButton(@ProcSingle2Players, _lc[I_MENU_2_PLAYERS]);
-  AddButton(nil, _lc[I_MENU_CUSTOM_GAME], 'CustomGameMenu');
-  AddButton(@ProcSelectEpisodeMenu, _lc[I_MENU_EPISODE], 'EpisodeMenu');
- end;
- Menu.DefControl := 'mmNewGameMenu';
- g_GUI_AddWindow(Menu);
+  Menu := TGUIWindow.Create('NewGameMenu');
+  with TGUIMainMenu(Menu.AddChild(TGUIMainMenu.Create(gMenuFont, _lc[I_MENU_NEW_GAME]))) do
+  begin
+    Name := 'mmNewGameMenu';
+    AddButton(@ProcSingle1Player, _lc[I_MENU_1_PLAYER]);
+    AddButton(@ProcSingle2Players, _lc[I_MENU_2_PLAYERS]);
+    AddButton(nil, _lc[I_MENU_CUSTOM_GAME], 'CustomGameMenu');
+    AddButton(@ProcSelectEpisodeMenu, _lc[I_MENU_EPISODE], 'EpisodeMenu');
+  end;
+  Menu.DefControl := 'mmNewGameMenu';
+  g_GUI_AddWindow(Menu);
 
- Menu := TGUIWindow.Create('NetGameMenu');
- with TGUIMainMenu(Menu.AddChild(TGUIMainMenu.Create(gMenuFont, _lc[I_MENU_MULTIPLAYER]))) do
- begin
-  Name := 'mmNetGameMenu';
-  AddButton(nil, _lc[I_MENU_START_SERVER], 'NetServerMenu');
-  AddButton(nil, _lc[I_MENU_START_CLIENT], 'NetClientMenu');
- end;
- Menu.DefControl := 'mmNetGameMenu';
- g_GUI_AddWindow(Menu);
+  Menu := TGUIWindow.Create('NetGameMenu');
+  with TGUIMainMenu(Menu.AddChild(TGUIMainMenu.Create(gMenuFont, _lc[I_MENU_MULTIPLAYER]))) do
+  begin
+    Name := 'mmNetGameMenu';
+    AddButton(nil, _lc[I_MENU_START_SERVER], 'NetServerMenu');
+    AddButton(nil, _lc[I_MENU_START_CLIENT], 'NetClientMenu');
+  end;
+  Menu.DefControl := 'mmNetGameMenu';
+  g_GUI_AddWindow(Menu);
 
- Menu := TGUIWindow.Create('NetServerMenu');
- with TGUIMenu(Menu.AddChild(TGUIMenu.Create(gMenuFont, gMenuSmallFont, _lc[I_MENU_START_SERVER]))) do
- begin
-  Name := 'mNetServerMenu';
-  with AddEdit(_lc[I_NET_SERVER_NAME]) do
+  Menu := TGUIWindow.Create('NetServerMenu');
+  with TGUIMenu(Menu.AddChild(TGUIMenu.Create(gMenuFont, gMenuSmallFont, _lc[I_MENU_START_SERVER]))) do
   begin
-   Name := 'edSrvName';
-   OnlyDigits := False;
-   Width := 16;
-   MaxLength := 64;
-   Text := NetServerName;
-  end;
-  with AddEdit(_lc[I_NET_SERVER_PASSWORD]) do
-  begin
-   Name := 'edSrvPassword';
-   OnlyDigits := False;
-   Width := 16;
-   MaxLength := 24;
-   Text := NetPassword;
-  end;
-  with AddEdit(_lc[I_NET_PORT]) do
-  begin
-   Name := 'edPort';
-   OnlyDigits := True;
-   Width := 4;
-   MaxLength := 5;
-   Text := IntToStr(NetPort);
-  end;
-  with AddEdit(_lc[I_NET_MAX_CLIENTS]) do
-  begin
-   Name := 'edMaxPlayers';
-   OnlyDigits := True;
-   Width := 4;
-   MaxLength := 2;
-   Text := IntToStr(NetMaxClients);
-  end;
-  AddSpace();
-  with AddLabel(_lc[I_MENU_MAP]) do
-  begin
-   Name := 'lbMap';
-   FixedLength := 16;
-   OnClick := @ProcSelectMapMenu;
-  end;
-  with AddSwitch(_lc[I_MENU_GAME_TYPE]) do
-  begin
-   Name := 'swGameMode';
-   AddItem(_lc[I_MENU_GAME_TYPE_DM]);
-   AddItem(_lc[I_MENU_GAME_TYPE_TDM]);
-   AddItem(_lc[I_MENU_GAME_TYPE_CTF]);
-   AddItem(_lc[I_MENU_GAME_TYPE_COOP]);
-   ItemIndex := 0;
-  end;
-  with AddEdit(_lc[I_MENU_TIME_LIMIT]) do
-  begin
-   Name := 'edTimeLimit';
-   OnlyDigits := True;
-   Width := 3;
-   MaxLength := 3;
-  end;
-  with AddEdit(_lc[I_MENU_GOAL_LIMIT]) do
-  begin
-   Name := 'edGoalLimit';
-   OnlyDigits := True;
-   Width := 3;
-   MaxLength := 3;
-  end;
-  with AddSwitch(_lc[I_MENU_TEAM_DAMAGE]) do
-  begin
-   Name := 'swTeamDamage';
-   AddItem(_lc[I_MENU_YES]);
-   AddItem(_lc[I_MENU_NO]);
-   ItemIndex := 1;
-  end;
-  with AddSwitch(_lc[I_MENU_ENABLE_EXITS]) do
-  begin
-   Name := 'swEnableExits';
-   AddItem(_lc[I_MENU_YES]);
-   AddItem(_lc[I_MENU_NO]);
-   ItemIndex := 0;
-  end;
-  with AddSwitch(_lc[I_MENU_WEAPONS_STAY]) do
-  begin
-   Name := 'swWeaponStay';
-   AddItem(_lc[I_MENU_YES]);
-   AddItem(_lc[I_MENU_NO]);
-   ItemIndex := 1;
-  end;
-  with AddSwitch(_lc[I_MENU_ENABLE_MONSTERS]) do
-  begin
-   Name := 'swMonsterDM';
-   AddItem(_lc[I_MENU_YES]);
-   AddItem(_lc[I_MENU_NO]);
-   ItemIndex := 1;
-  end;
-  with AddSwitch(_lc[I_MENU_BOTS_VS]) do
-  begin
-   Name := 'swBotsVS';
-   AddItem(_lc[I_MENU_BOTS_VS_PLAYERS]);
-   AddItem(_lc[I_MENU_BOTS_VS_MONSTERS]);
-   AddItem(_lc[I_MENU_BOTS_VS_ALL]);
-   ItemIndex := 2;
-  end;
-  AddSpace();
-  AddButton(@ProcStartNetGame, _lc[I_MENU_START_GAME]);
+    Name := 'mNetServerMenu';
+    with AddEdit(_lc[I_NET_SERVER_NAME]) do
+    begin
+      Name := 'edSrvName';
+      OnlyDigits := False;
+      Width := 16;
+      MaxLength := 64;
+      Text := NetServerName;
+    end;
+    with AddEdit(_lc[I_NET_SERVER_PASSWORD]) do
+    begin
+      Name := 'edSrvPassword';
+      OnlyDigits := False;
+      Width := 16;
+      MaxLength := 24;
+      Text := NetPassword;
+    end;
+    with AddEdit(_lc[I_NET_PORT]) do
+    begin
+      Name := 'edPort';
+      OnlyDigits := True;
+      Width := 4;
+      MaxLength := 5;
+      Text := IntToStr(NetPort);
+    end;
+    with AddEdit(_lc[I_NET_MAX_CLIENTS]) do
+    begin
+      Name := 'edMaxPlayers';
+      OnlyDigits := True;
+      Width := 4;
+      MaxLength := 2;
+      Text := IntToStr(NetMaxClients);
+    end;
+    AddSpace();
+    with AddLabel(_lc[I_MENU_MAP]) do
+    begin
+      Name := 'lbMap';
+      FixedLength := 16;
+      OnClick := @ProcSelectMapMenu;
+    end;
+    with AddSwitch(_lc[I_MENU_GAME_TYPE]) do
+    begin
+      Name := 'swGameMode';
+      AddItem(_lc[I_MENU_GAME_TYPE_DM]);
+      AddItem(_lc[I_MENU_GAME_TYPE_TDM]);
+      AddItem(_lc[I_MENU_GAME_TYPE_CTF]);
+      AddItem(_lc[I_MENU_GAME_TYPE_COOP]);
+      ItemIndex := 0;
+    end;
+    with AddEdit(_lc[I_MENU_TIME_LIMIT]) do
+    begin
+      Name := 'edTimeLimit';
+      OnlyDigits := True;
+      Width := 3;
+      MaxLength := 3;
+    end;
+    with AddEdit(_lc[I_MENU_GOAL_LIMIT]) do
+    begin
+      Name := 'edGoalLimit';
+      OnlyDigits := True;
+      Width := 3;
+      MaxLength := 3;
+    end;
+    with AddSwitch(_lc[I_MENU_TEAM_DAMAGE]) do
+    begin
+      Name := 'swTeamDamage';
+      AddItem(_lc[I_MENU_YES]);
+      AddItem(_lc[I_MENU_NO]);
+      ItemIndex := 1;
+    end;
+    with AddSwitch(_lc[I_MENU_ENABLE_EXITS]) do
+    begin
+      Name := 'swEnableExits';
+      AddItem(_lc[I_MENU_YES]);
+      AddItem(_lc[I_MENU_NO]);
+      ItemIndex := 0;
+    end;
+    with AddSwitch(_lc[I_MENU_WEAPONS_STAY]) do
+    begin
+      Name := 'swWeaponStay';
+      AddItem(_lc[I_MENU_YES]);
+      AddItem(_lc[I_MENU_NO]);
+      ItemIndex := 1;
+    end;
+    with AddSwitch(_lc[I_MENU_ENABLE_MONSTERS]) do
+    begin
+      Name := 'swMonsterDM';
+      AddItem(_lc[I_MENU_YES]);
+      AddItem(_lc[I_MENU_NO]);
+      ItemIndex := 1;
+    end;
+    with AddSwitch(_lc[I_MENU_BOTS_VS]) do
+    begin
+      Name := 'swBotsVS';
+      AddItem(_lc[I_MENU_BOTS_VS_PLAYERS]);
+      AddItem(_lc[I_MENU_BOTS_VS_MONSTERS]);
+      AddItem(_lc[I_MENU_BOTS_VS_ALL]);
+      ItemIndex := 2;
+    end;
+    AddSpace();
+    AddButton(@ProcStartNetGame, _lc[I_MENU_START_GAME]);
 
-  ReAlign();
- end;
- Menu.DefControl := 'mNetServerMenu';
- g_GUI_AddWindow(Menu);
+    ReAlign();
+  end;
+  Menu.DefControl := 'mNetServerMenu';
+  g_GUI_AddWindow(Menu);
 
   Menu := TGUIWindow.Create('NetClientMenu');
- with TGUIMenu(Menu.AddChild(TGUIMenu.Create(gMenuFont, gMenuSmallFont, _lc[I_MENU_START_CLIENT]))) do
- begin
-  Name := 'mNetClientMenu';
+  with TGUIMenu(Menu.AddChild(TGUIMenu.Create(gMenuFont, gMenuSmallFont, _lc[I_MENU_START_CLIENT]))) do
+  begin
+    Name := 'mNetClientMenu';
   
-  AddButton(@ProcServerlist, _lc[I_NET_SLIST]);
-  AddSpace();
+    AddButton(@ProcServerlist, _lc[I_NET_SLIST]);
+    AddSpace();
   
-  with AddEdit(_lc[I_NET_ADDRESS]) do
-  begin
-   Name := 'edIP';
-   OnlyDigits :=False;
-   Width := 12;
-   MaxLength := 64;
-   Text := 'localhost';
-  end;
-  with AddEdit(_lc[I_NET_PORT]) do
-  begin
-   Name := 'edPort';
-   OnlyDigits := True;
-   Width := 4;
-   MaxLength := 5;
-   Text := '25666';
-  end;
-  with AddEdit(_lc[I_NET_SERVER_PASSWORD]) do
-  begin
-   Name := 'edPW';
-   OnlyDigits := False;
-   Width := 12;
-   MaxLength := 32;
-   Text := '';
-  end;
+    with AddEdit(_lc[I_NET_ADDRESS]) do
+    begin
+      Name := 'edIP';
+      OnlyDigits :=False;
+      Width := 12;
+      MaxLength := 64;
+      Text := 'localhost';
+    end;
+    with AddEdit(_lc[I_NET_PORT]) do
+    begin
+      Name := 'edPort';
+      OnlyDigits := True;
+      Width := 4;
+      MaxLength := 5;
+      Text := '25666';
+    end;
+    with AddEdit(_lc[I_NET_SERVER_PASSWORD]) do
+    begin
+      Name := 'edPW';
+      OnlyDigits := False;
+      Width := 12;
+      MaxLength := 32;
+      Text := '';
+    end;
 
-  AddSpace();
-  AddButton(@ProcConnectNetGame, _lc[I_MENU_START_GAME]);
+    AddSpace();
+    AddButton(@ProcConnectNetGame, _lc[I_MENU_START_GAME]);
 
-  ReAlign();
- end;
- Menu.DefControl := 'mNetClientMenu';
- g_GUI_AddWindow(Menu);
+    ReAlign();
+  end;
+  Menu.DefControl := 'mNetClientMenu';
+  g_GUI_AddWindow(Menu);
 
- Menu := TGUIWindow.Create('LoadMenu');
- Menu.OnShow := ProcLoadMenu;
- with TGUIMenu(Menu.AddChild(TGUIMenu.Create(gMenuFont, gMenuSmallFont, _lc[I_MENU_LOAD_GAME]))) do
- begin
-  Name := 'mmLoadMenu';
+  Menu := TGUIWindow.Create('LoadMenu');
+  Menu.OnShow := ProcLoadMenu;
+  with TGUIMenu(Menu.AddChild(TGUIMenu.Create(gMenuFont, gMenuSmallFont, _lc[I_MENU_LOAD_GAME]))) do
+  begin
+    Name := 'mmLoadMenu';
 
-  for a := 1 to 8 do
-   with AddEdit('') do
-   begin
-    Name := 'edSlot'+IntToStr(a);
-    Width := 16;
-    MaxLength := 16;
-    OnEnter := ProcLoadGame;
-   end;
- end;
- Menu.DefControl := 'mmLoadMenu';
- g_GUI_AddWindow(Menu);
+    for a := 1 to 8 do
+      with AddEdit('') do
+      begin
+        Name := 'edSlot'+IntToStr(a);
+        Width := 16;
+        MaxLength := 16;
+        OnEnter := ProcLoadGame;
+      end;
+  end;
+  Menu.DefControl := 'mmLoadMenu';
+  g_GUI_AddWindow(Menu);
 
- Menu := TGUIWindow.Create('SaveMenu');
- Menu.OnShow := ProcSaveMenu;
- with TGUIMenu(Menu.AddChild(TGUIMenu.Create(gMenuFont, gMenuSmallFont, _lc[I_MENU_SAVE_GAME]))) do
- begin
-  Name := 'mmSaveMenu';
+  Menu := TGUIWindow.Create('SaveMenu');
+  Menu.OnShow := ProcSaveMenu;
+  with TGUIMenu(Menu.AddChild(TGUIMenu.Create(gMenuFont, gMenuSmallFont, _lc[I_MENU_SAVE_GAME]))) do
+  begin
+    Name := 'mmSaveMenu';
 
-  for a := 1 to 8 do
-   with AddEdit('') do
-   begin
-    Name := 'edSlot'+IntToStr(a);
-    Width := 16;
-    MaxLength := 16;
-    OnChange := ProcSaveGame;
-   end;
- end;
- Menu.DefControl := 'mmSaveMenu';
- g_GUI_AddWindow(Menu);
+    for a := 1 to 8 do
+      with AddEdit('') do
+      begin
+        Name := 'edSlot'+IntToStr(a);
+        Width := 16;
+        MaxLength := 16;
+        OnChange := ProcSaveGame;
+      end;
+  end;
+  Menu.DefControl := 'mmSaveMenu';
+  g_GUI_AddWindow(Menu);
 
- Menu := TGUIWindow.Create('CustomGameMenu');
- with TGUIMenu(Menu.AddChild(TGUIMenu.Create(gMenuFont, gMenuSmallFont, _lc[I_MENU_CUSTOM_GAME]))) do
- begin
-  Name := 'mCustomGameMenu';
-  with AddLabel(_lc[I_MENU_MAP]) do
+  Menu := TGUIWindow.Create('CustomGameMenu');
+  with TGUIMenu(Menu.AddChild(TGUIMenu.Create(gMenuFont, gMenuSmallFont, _lc[I_MENU_CUSTOM_GAME]))) do
   begin
-   Name := 'lbMap';
-   FixedLength := 16;
-   OnClick := @ProcSelectMapMenu;
-  end;
-  with AddSwitch(_lc[I_MENU_GAME_TYPE]) do
-  begin
-   Name := 'swGameMode';
-   AddItem(_lc[I_MENU_GAME_TYPE_DM]);
-   AddItem(_lc[I_MENU_GAME_TYPE_TDM]);
-   AddItem(_lc[I_MENU_GAME_TYPE_CTF]);
-   AddItem(_lc[I_MENU_GAME_TYPE_COOP]);
-   ItemIndex := 0;
-  end;
-  with AddEdit(_lc[I_MENU_TIME_LIMIT]) do
-  begin
-   Name := 'edTimeLimit';
-   OnlyDigits := True;
-   Width := 3;
-   MaxLength := 3;
-  end;
-  with AddEdit(_lc[I_MENU_GOAL_LIMIT]) do
-  begin
-   Name := 'edGoalLimit';
-   OnlyDigits := True;
-   Width := 3;
-   MaxLength := 3;
-  end;
-  with AddSwitch(_lc[I_MENU_PLAYERS]) do
-  begin
-   Name := 'swPlayers';
-   AddItem(_lc[I_MENU_PLAYERS_ONE]);
-   AddItem(_lc[I_MENU_PLAYERS_TWO]);
-   ItemIndex := 0;
-  end;
-  with AddSwitch(_lc[I_MENU_TEAM_DAMAGE]) do
-  begin
-   Name := 'swTeamDamage';
-   AddItem(_lc[I_MENU_YES]);
-   AddItem(_lc[I_MENU_NO]);
-   ItemIndex := 1;
-  end;
-  with AddSwitch(_lc[I_MENU_ENABLE_EXITS]) do
-  begin
-   Name := 'swEnableExits';
-   AddItem(_lc[I_MENU_YES]);
-   AddItem(_lc[I_MENU_NO]);
-   ItemIndex := 0;
-  end;
-  with AddSwitch(_lc[I_MENU_WEAPONS_STAY]) do
-  begin
-   Name := 'swWeaponStay';
-   AddItem(_lc[I_MENU_YES]);
-   AddItem(_lc[I_MENU_NO]);
-   ItemIndex := 1;
-  end;
-  with AddSwitch(_lc[I_MENU_ENABLE_MONSTERS]) do
-  begin
-   Name := 'swMonsterDM';
-   AddItem(_lc[I_MENU_YES]);
-   AddItem(_lc[I_MENU_NO]);
-   ItemIndex := 1;
-  end;
-  with AddSwitch(_lc[I_MENU_BOTS_VS]) do
-  begin
-   Name := 'swBotsVS';
-   AddItem(_lc[I_MENU_BOTS_VS_PLAYERS]);
-   AddItem(_lc[I_MENU_BOTS_VS_MONSTERS]);
-   AddItem(_lc[I_MENU_BOTS_VS_ALL]);
-   ItemIndex := 2;
-  end;
-  AddSpace();
-  AddButton(@ProcStartCustomGame, _lc[I_MENU_START_GAME]);
+    Name := 'mCustomGameMenu';
+    with AddLabel(_lc[I_MENU_MAP]) do
+    begin
+      Name := 'lbMap';
+      FixedLength := 16;
+      OnClick := @ProcSelectMapMenu;
+    end;
+    with AddSwitch(_lc[I_MENU_GAME_TYPE]) do
+    begin
+      Name := 'swGameMode';
+      AddItem(_lc[I_MENU_GAME_TYPE_DM]);
+      AddItem(_lc[I_MENU_GAME_TYPE_TDM]);
+      AddItem(_lc[I_MENU_GAME_TYPE_CTF]);
+      AddItem(_lc[I_MENU_GAME_TYPE_COOP]);
+      ItemIndex := 0;
+    end;
+    with AddEdit(_lc[I_MENU_TIME_LIMIT]) do
+    begin
+      Name := 'edTimeLimit';
+      OnlyDigits := True;
+      Width := 3;
+      MaxLength := 3;
+    end;
+    with AddEdit(_lc[I_MENU_GOAL_LIMIT]) do
+    begin
+      Name := 'edGoalLimit';
+      OnlyDigits := True;
+      Width := 3;
+      MaxLength := 3;
+    end;
+    with AddSwitch(_lc[I_MENU_PLAYERS]) do
+    begin
+      Name := 'swPlayers';
+      AddItem(_lc[I_MENU_PLAYERS_ONE]);
+      AddItem(_lc[I_MENU_PLAYERS_TWO]);
+      ItemIndex := 0;
+    end;
+    with AddSwitch(_lc[I_MENU_TEAM_DAMAGE]) do
+    begin
+      Name := 'swTeamDamage';
+      AddItem(_lc[I_MENU_YES]);
+      AddItem(_lc[I_MENU_NO]);
+      ItemIndex := 1;
+    end;
+    with AddSwitch(_lc[I_MENU_ENABLE_EXITS]) do
+    begin
+      Name := 'swEnableExits';
+      AddItem(_lc[I_MENU_YES]);
+      AddItem(_lc[I_MENU_NO]);
+      ItemIndex := 0;
+    end;
+    with AddSwitch(_lc[I_MENU_WEAPONS_STAY]) do
+    begin
+      Name := 'swWeaponStay';
+      AddItem(_lc[I_MENU_YES]);
+      AddItem(_lc[I_MENU_NO]);
+      ItemIndex := 1;
+    end;
+    with AddSwitch(_lc[I_MENU_ENABLE_MONSTERS]) do
+    begin
+      Name := 'swMonsterDM';
+      AddItem(_lc[I_MENU_YES]);
+      AddItem(_lc[I_MENU_NO]);
+      ItemIndex := 1;
+    end;
+    with AddSwitch(_lc[I_MENU_BOTS_VS]) do
+    begin
+      Name := 'swBotsVS';
+      AddItem(_lc[I_MENU_BOTS_VS_PLAYERS]);
+      AddItem(_lc[I_MENU_BOTS_VS_MONSTERS]);
+      AddItem(_lc[I_MENU_BOTS_VS_ALL]);
+      ItemIndex := 2;
+    end;
+    AddSpace();
+    AddButton(@ProcStartCustomGame, _lc[I_MENU_START_GAME]);
 
-  ReAlign();
- end;
- Menu.DefControl := 'mCustomGameMenu';
- g_GUI_AddWindow(Menu);
+    ReAlign();
+  end;
+  Menu.DefControl := 'mCustomGameMenu';
+  g_GUI_AddWindow(Menu);
 
- Menu := TGUIWindow.Create('EpisodeMenu');
- with TGUIMenu(Menu.AddChild(TGUIMenu.Create(gMenuFont, gMenuSmallFont, _lc[I_MENU_EPISODE]))) do
- begin
-  Name := 'mEpisodeMenu';
+  Menu := TGUIWindow.Create('EpisodeMenu');
+  with TGUIMenu(Menu.AddChild(TGUIMenu.Create(gMenuFont, gMenuSmallFont, _lc[I_MENU_EPISODE]))) do
+  begin
+    Name := 'mEpisodeMenu';
 
-  AddSpace();
-  AddSpace();
-  AddSpace();
-  AddSpace();
-  AddSpace();
-  AddSpace();
+    AddSpace();
+    AddSpace();
+    AddSpace();
+    AddSpace();
+    AddSpace();
+    AddSpace();
 
-  with AddFileList('', 15, 4) do
-  begin
-   Name := 'lsWAD';
-   OnChange := ProcSelectEpisodeWAD;
+    with AddFileList('', 15, 4) do
+    begin
+      Name := 'lsWAD';
+      OnChange := ProcSelectEpisodeWAD;
 
-   Sort := True;
-   Dirs := True;
-   FileMask := '*.wad';
-   SetBase(MapsDir+'megawads\');
-  end;
+      Sort := True;
+      Dirs := True;
+      FileMask := '*.wad';
+      SetBase(MapsDir+'megawads\');
+    end;
 
-  with AddLabel(_lc[I_MENU_MAP_NAME]) do
-  begin
-   Name := 'lbWADName';
-   FixedLength := 8;
-   Enabled := False;
-  end;
-  with AddLabel(_lc[I_MENU_MAP_AUTHOR]) do
-  begin
-   Name := 'lbWADAuthor';
-   FixedLength := 8;
-   Enabled := False;
-  end;
-  AddLine(_lc[I_MENU_MAP_DESCRIPTION]);
-  with AddMemo('', 15, 3) do
-  begin
-   Name := 'meWADDescription';
-   Color := MENU_ITEMSCTRL_COLOR;
-  end;
-  with AddSwitch(_lc[I_MENU_PLAYERS]) do
-  begin
-   Name := 'swPlayers';
-   AddItem(_lc[I_MENU_PLAYERS_ONE]);
-   AddItem(_lc[I_MENU_PLAYERS_TWO]);
-  end;
-  AddSpace();
-  AddButton(@ProcStartEpisode, _lc[I_MENU_START_GAME]);
+    with AddLabel(_lc[I_MENU_MAP_NAME]) do
+    begin
+      Name := 'lbWADName';
+      FixedLength := 8;
+      Enabled := False;
+    end;
+    with AddLabel(_lc[I_MENU_MAP_AUTHOR]) do
+    begin
+      Name := 'lbWADAuthor';
+      FixedLength := 8;
+      Enabled := False;
+    end;
+    AddLine(_lc[I_MENU_MAP_DESCRIPTION]);
+    with AddMemo('', 15, 3) do
+    begin
+      Name := 'meWADDescription';
+      Color := MENU_ITEMSCTRL_COLOR;
+    end;
+    with AddSwitch(_lc[I_MENU_PLAYERS]) do
+    begin
+      Name := 'swPlayers';
+      AddItem(_lc[I_MENU_PLAYERS_ONE]);
+      AddItem(_lc[I_MENU_PLAYERS_TWO]);
+    end;
+    AddSpace();
+    AddButton(@ProcStartEpisode, _lc[I_MENU_START_GAME]);
 
-  ReAlign();
+    ReAlign();
 
-  with TGUIImage(Menu.AddChild(TGUIImage.Create)) do
-  begin
-   Name := 'mpWADImage';
-   DefaultRes := 'NOPIC';
-   X := GetControl('lsWAD').X+4;
-   Y := GetControl('lsWAD').Y-128-MENU_VSPACE;
+    with TGUIImage(Menu.AddChild(TGUIImage.Create)) do
+    begin
+      Name := 'mpWADImage';
+      DefaultRes := 'NOPIC';
+      X := GetControl('lsWAD').X+4;
+      Y := GetControl('lsWAD').Y-128-MENU_VSPACE;
+    end;
   end;
- end;
- Menu.DefControl := 'mEpisodeMenu';
- g_GUI_AddWindow(Menu);
+  Menu.DefControl := 'mEpisodeMenu';
+  g_GUI_AddWindow(Menu);
 
- Menu := TGUIWindow.Create('SelectMapMenu');
- with TGUIMenu(Menu.AddChild(TGUIMenu.Create(gMenuFont, gMenuSmallFont, _lc[I_MENU_SELECT_MAP]))) do
- begin
-  Name := 'mSelectMapMenu';
-  with AddFileList(_lc[I_MENU_MAP_WAD], 12, 4) do
+  Menu := TGUIWindow.Create('SelectMapMenu');
+  with TGUIMenu(Menu.AddChild(TGUIMenu.Create(gMenuFont, gMenuSmallFont, _lc[I_MENU_SELECT_MAP]))) do
   begin
-   Name := 'lsMapWAD';
-   OnChange := ProcSelectWAD;
+    Name := 'mSelectMapMenu';
+    with AddFileList(_lc[I_MENU_MAP_WAD], 12, 4) do
+    begin
+      Name := 'lsMapWAD';
+      OnChange := ProcSelectWAD;
 
-   Sort := True;
-   Dirs := True;
-   FileMask := '*.wad';
-   SetBase(MapsDir);
-  end;
-  with AddList(_lc[I_MENU_MAP_RESOURCE], 12, 4) do
-  begin
-   Name := 'lsMapRes';
-   Sort := True;
-   OnChange := ProcSelectMap;
-  end;
-  AddSpace();
-  with AddLabel(_lc[I_MENU_MAP_NAME]) do
-  begin
-   Name := 'lbMapName';
-   FixedLength := 24;
-   Enabled := False;
-  end;
-  with AddLabel(_lc[I_MENU_MAP_AUTHOR]) do
-  begin
-   Name := 'lbMapAuthor';
-   FixedLength := 16;
-   Enabled := False;
-  end;
-  with AddLabel(_lc[I_MENU_MAP_SIZE]) do
-  begin
-   Name := 'lbMapSize';
-   FixedLength := 10;
-   Enabled := False;
-  end;
-  with AddMemo(_lc[I_MENU_MAP_DESCRIPTION], 12, 4) do
-  begin
-    Name := 'meMapDescription';
-  end;
+      Sort := True;
+      Dirs := True;
+      FileMask := '*.wad';
+      SetBase(MapsDir);
+    end;
+    with AddList(_lc[I_MENU_MAP_RESOURCE], 12, 4) do
+    begin
+      Name := 'lsMapRes';
+      Sort := True;
+      OnChange := ProcSelectMap;
+    end;
+    AddSpace();
+    with AddLabel(_lc[I_MENU_MAP_NAME]) do
+    begin
+      Name := 'lbMapName';
+      FixedLength := 24;
+      Enabled := False;
+    end;
+    with AddLabel(_lc[I_MENU_MAP_AUTHOR]) do
+    begin
+      Name := 'lbMapAuthor';
+      FixedLength := 16;
+      Enabled := False;
+    end;
+    with AddLabel(_lc[I_MENU_MAP_SIZE]) do
+    begin
+      Name := 'lbMapSize';
+      FixedLength := 10;
+      Enabled := False;
+    end;
+    with AddMemo(_lc[I_MENU_MAP_DESCRIPTION], 12, 4) do
+    begin
+      Name := 'meMapDescription';
+    end;
 
-  ReAlign();
+    ReAlign();
 
-  with TGUIMapPreview(Menu.AddChild(TGUIMapPreview.Create)) do
-  begin
-   Name := 'mpMapPreview';
-   X := GetControl('lsMapWAD').X+TGUIListBox(GetControl('lsMapWAD')).GetWidth()+2;
-   Y := GetControl('lsMapWAD').Y;
+    with TGUIMapPreview(Menu.AddChild(TGUIMapPreview.Create)) do
+    begin
+      Name := 'mpMapPreview';
+      X := GetControl('lsMapWAD').X+TGUIListBox(GetControl('lsMapWAD')).GetWidth()+2;
+      Y := GetControl('lsMapWAD').Y;
+    end;
+    with TGUILabel(Menu.AddChild(TGUILabel.Create('', gMenuSmallFont))) do
+    begin
+      Name := 'lbMapScale';
+      FixedLength := 8;
+      Enabled := False;
+      Color := MENU_ITEMSCTRL_COLOR;
+      X := GetControl('lsMapWAD').X +
+        TGUIListBox(GetControl('lsMapWAD')).GetWidth() +
+        2 + MAPPREVIEW_WIDTH*4;
+      Y := GetControl('lsMapWAD').Y + MAPPREVIEW_HEIGHT*16 + 16;
+    end;
   end;
-  with TGUILabel(Menu.AddChild(TGUILabel.Create('', gMenuSmallFont))) do
-  begin
-   Name := 'lbMapScale';
-   FixedLength := 8;
-   Enabled := False;
-   Color := MENU_ITEMSCTRL_COLOR;
-   X := GetControl('lsMapWAD').X +
-          TGUIListBox(GetControl('lsMapWAD')).GetWidth() +
-          2 + MAPPREVIEW_WIDTH*4;
-   Y := GetControl('lsMapWAD').Y + MAPPREVIEW_HEIGHT*16 + 16;
-  end;
- end;
- Menu.OnClose := ProcSetMap;
- Menu.DefControl := 'mSelectMapMenu';
- g_GUI_AddWindow(Menu);
+  Menu.OnClose := ProcSetMap;
+  Menu.DefControl := 'mSelectMapMenu';
+  g_GUI_AddWindow(Menu);
 
- Menu := TGUIWindow.Create('OptionsMenu');
- with TGUIMainMenu(Menu.AddChild(TGUIMainMenu.Create(gMenuFont, _lc[I_MENU_OPTIONS]))) do
- begin
-  Name := 'mmOptionsMenu';
-  AddButton(nil, _lc[I_MENU_VIDEO_OPTIONS], 'OptionsVideoMenu');
-  AddButton(nil, _lc[I_MENU_SOUND_OPTIONS], 'OptionsSoundMenu');
-  AddButton(nil, _lc[I_MENU_GAME_OPTIONS], 'OptionsGameMenu');
-  AddButton(nil, _lc[I_MENU_CONTROLS_OPTIONS], 'OptionsControlsMenu');
-  AddButton(nil, _lc[I_MENU_PLAYER_OPTIONS], 'OptionsPlayersMenu');
-  AddButton(nil, _lc[I_MENU_LANGUAGE_OPTIONS], 'OptionsLanguageMenu');
-  AddSpace();
-  AddButton(nil, _lc[I_MENU_SAVED_OPTIONS], 'SavedOptionsMenu').Color := _RGB(255, 0, 0);
-  AddButton(nil, _lc[I_MENU_DEFAULT_OPTIONS], 'DefaultOptionsMenu').Color := _RGB(255, 0, 0);
- end;
- Menu.OnClose := ProcApplyOptions;
- Menu.DefControl := 'mmOptionsMenu';
- g_GUI_AddWindow(Menu);
+  Menu := TGUIWindow.Create('OptionsMenu');
+  with TGUIMainMenu(Menu.AddChild(TGUIMainMenu.Create(gMenuFont, _lc[I_MENU_OPTIONS]))) do
+  begin
+    Name := 'mmOptionsMenu';
+    AddButton(nil, _lc[I_MENU_VIDEO_OPTIONS], 'OptionsVideoMenu');
+    AddButton(nil, _lc[I_MENU_SOUND_OPTIONS], 'OptionsSoundMenu');
+    AddButton(nil, _lc[I_MENU_GAME_OPTIONS], 'OptionsGameMenu');
+    AddButton(nil, _lc[I_MENU_CONTROLS_OPTIONS], 'OptionsControlsMenu');
+    AddButton(nil, _lc[I_MENU_PLAYER_OPTIONS], 'OptionsPlayersMenu');
+    AddButton(nil, _lc[I_MENU_LANGUAGE_OPTIONS], 'OptionsLanguageMenu');
+    AddSpace();
+    AddButton(nil, _lc[I_MENU_SAVED_OPTIONS], 'SavedOptionsMenu').Color := _RGB(255, 0, 0);
+    AddButton(nil, _lc[I_MENU_DEFAULT_OPTIONS], 'DefaultOptionsMenu').Color := _RGB(255, 0, 0);
+  end;
+  Menu.OnClose := ProcApplyOptions;
+  Menu.DefControl := 'mmOptionsMenu';
+  g_GUI_AddWindow(Menu);
 
- Menu := CreateYNMenu('SavedOptionsMenu', _lc[I_MENU_LOAD_SAVED_PROMT], Round(gScreenWidth*0.6),
-                      gMenuSmallFont, @ProcSavedMenuKeyDown);
- g_GUI_AddWindow(Menu);
+  Menu := CreateYNMenu('SavedOptionsMenu', _lc[I_MENU_LOAD_SAVED_PROMT], Round(gScreenWidth*0.6),
+                       gMenuSmallFont, @ProcSavedMenuKeyDown);
+  g_GUI_AddWindow(Menu);
 
- Menu := TGUIWindow.Create('OptionsVideoMenu');
- with TGUIMenu(Menu.AddChild(TGUIMenu.Create(gMenuFont, gMenuSmallFont, _lc[I_MENU_VIDEO_OPTIONS]))) do
- begin
-  Name := 'mOptionsVideoMenu';
-  AddButton(@ProcVideoOptionsRes, _lc[I_MENU_VIDEO_RESOLUTION], 'OptionsVideoResMenu');
-  with AddSwitch(_lc[I_MENU_VIDEO_BPP]) do
+  Menu := TGUIWindow.Create('OptionsVideoMenu');
+  with TGUIMenu(Menu.AddChild(TGUIMenu.Create(gMenuFont, gMenuSmallFont, _lc[I_MENU_VIDEO_OPTIONS]))) do
   begin
-   Name := 'swBPP';
-   AddItem('16');
-   AddItem('32');
+    Name := 'mOptionsVideoMenu';
+    AddButton(@ProcVideoOptionsRes, _lc[I_MENU_VIDEO_RESOLUTION], 'OptionsVideoResMenu');
+    with AddSwitch(_lc[I_MENU_VIDEO_BPP]) do
+    begin
+      Name := 'swBPP';
+      AddItem('16');
+      AddItem('32');
+    end;
+    with AddSwitch(_lc[I_MENU_VIDEO_VSYNC]) do
+    begin
+      Name := 'swVSync';
+      AddItem(_lc[I_MENU_YES]);
+      AddItem(_lc[I_MENU_NO]);
+    end;
+    with AddSwitch(_lc[I_MENU_VIDEO_FILTER_SKY]) do
+    begin
+      Name := 'swTextureFilter';
+      AddItem(_lc[I_MENU_YES]);
+      AddItem(_lc[I_MENU_NO]);
+    end;
+    AddSpace();
+    AddText(_lc[I_MENU_VIDEO_NEED_RESTART], Round(gScreenWidth*0.6));
+    ReAlign();
   end;
-  with AddSwitch(_lc[I_MENU_VIDEO_VSYNC]) do
-  begin
-   Name := 'swVSync';
-   AddItem(_lc[I_MENU_YES]);
-   AddItem(_lc[I_MENU_NO]);
-  end;
-  with AddSwitch(_lc[I_MENU_VIDEO_FILTER_SKY]) do
-  begin
-   Name := 'swTextureFilter';
-   AddItem(_lc[I_MENU_YES]);
-   AddItem(_lc[I_MENU_NO]);
-  end;
-  AddSpace();
-  AddText(_lc[I_MENU_VIDEO_NEED_RESTART], Round(gScreenWidth*0.6));
-  ReAlign();
- end;
- Menu.DefControl := 'mOptionsVideoMenu';
- g_GUI_AddWindow(Menu);
+  Menu.DefControl := 'mOptionsVideoMenu';
+  g_GUI_AddWindow(Menu);
 
- Menu := TGUIWindow.Create('OptionsVideoResMenu');
- with TGUIMenu(Menu.AddChild(TGUIMenu.Create(gMenuFont, gMenuSmallFont, _lc[I_MENU_RESOLUTION_SELECT]))) do
- begin
-   Name := 'mOptionsVideoResMenu';
-   with AddLabel(_lc[I_MENU_RESOLUTION_CURRENT]) do
-   begin
-     Name := 'lbCurrentRes';
-     FixedLength := 24;
-     Enabled := False;
-   end;
-   with AddList(_lc[I_MENU_RESOLUTION_LIST], 12, 6) do
-   begin
-     Name := 'lsResolution';
-     Sort := False;
-   end;
-   with AddSwitch(_lc[I_MENU_RESOLUTION_FULLSCREEN]) do
-   begin
-     Name := 'swFullScreen';
-     AddItem(_lc[I_MENU_YES]);
-     AddItem(_lc[I_MENU_NO]);
-   end;
-   AddSpace();
-   AddButton(@ProcApplyVideoOptions, _lc[I_MENU_RESOLUTION_APPLY]);
-   UpdateIndex();
- end;
- Menu.DefControl := 'mOptionsVideoResMenu';
- g_GUI_AddWindow(Menu);
+  Menu := TGUIWindow.Create('OptionsVideoResMenu');
+  with TGUIMenu(Menu.AddChild(TGUIMenu.Create(gMenuFont, gMenuSmallFont, _lc[I_MENU_RESOLUTION_SELECT]))) do
+  begin
+    Name := 'mOptionsVideoResMenu';
+    with AddLabel(_lc[I_MENU_RESOLUTION_CURRENT]) do
+    begin
+      Name := 'lbCurrentRes';
+      FixedLength := 24;
+      Enabled := False;
+    end;
+    with AddList(_lc[I_MENU_RESOLUTION_LIST], 12, 6) do
+    begin
+      Name := 'lsResolution';
+      Sort := False;
+    end;
+    with AddSwitch(_lc[I_MENU_RESOLUTION_FULLSCREEN]) do
+    begin
+      Name := 'swFullScreen';
+      AddItem(_lc[I_MENU_YES]);
+      AddItem(_lc[I_MENU_NO]);
+    end;
+    AddSpace();
+    AddButton(@ProcApplyVideoOptions, _lc[I_MENU_RESOLUTION_APPLY]);
+    UpdateIndex();
+  end;
+  Menu.DefControl := 'mOptionsVideoResMenu';
+  g_GUI_AddWindow(Menu);
 
- Menu := TGUIWindow.Create('OptionsSoundMenu');
- with TGUIMenu(Menu.AddChild(TGUIMenu.Create(gMenuFont, gMenuSmallFont, _lc[I_MENU_SOUND_OPTIONS]))) do
- begin
-  Name := 'mOptionsSoundMenu';
-  with AddScroll(_lc[I_MENU_SOUND_MUSIC_LEVEL]) do
+  Menu := TGUIWindow.Create('OptionsSoundMenu');
+  with TGUIMenu(Menu.AddChild(TGUIMenu.Create(gMenuFont, gMenuSmallFont, _lc[I_MENU_SOUND_OPTIONS]))) do
   begin
-   Name := 'scMusicLevel';
-   Max := 16;
-   OnChange := ProcChangeSoundSettings;
+    Name := 'mOptionsSoundMenu';
+    with AddScroll(_lc[I_MENU_SOUND_MUSIC_LEVEL]) do
+    begin
+      Name := 'scMusicLevel';
+      Max := 16;
+      OnChange := ProcChangeSoundSettings;
+    end;
+    with AddScroll(_lc[I_MENU_SOUND_SOUND_LEVEL]) do
+    begin
+      Name := 'scSoundLevel';
+      Max := 16;
+      OnChange := ProcChangeSoundSettings;
+    end;
+    with AddScroll(_lc[I_MENU_SOUND_MAX_SIM_SOUNDS]) do
+    begin
+      Name := 'scMaxSimSounds';
+      Max := 16;
+    end;
+    with AddSwitch(_lc[I_MENU_SOUND_INACTIVE_SOUNDS]) do
+    begin
+      Name := 'swInactiveSounds';
+      AddItem(_lc[I_MENU_SOUND_INACTIVE_SOUNDS_ON]);
+      AddItem(_lc[I_MENU_SOUND_INACTIVE_SOUNDS_OFF]);
+    end;
+    ReAlign();
   end;
-  with AddScroll(_lc[I_MENU_SOUND_SOUND_LEVEL]) do
-  begin
-   Name := 'scSoundLevel';
-   Max := 16;
-   OnChange := ProcChangeSoundSettings;
-  end;
-  with AddScroll(_lc[I_MENU_SOUND_MAX_SIM_SOUNDS]) do
-  begin
-   Name := 'scMaxSimSounds';
-   Max := 16;
-  end;
-  with AddSwitch(_lc[I_MENU_SOUND_INACTIVE_SOUNDS]) do
-  begin
-    Name := 'swInactiveSounds';
-    AddItem(_lc[I_MENU_SOUND_INACTIVE_SOUNDS_ON]);
-    AddItem(_lc[I_MENU_SOUND_INACTIVE_SOUNDS_OFF]);
-  end;
-  ReAlign();
- end;
- Menu.DefControl := 'mOptionsSoundMenu';
- g_GUI_AddWindow(Menu);
+  Menu.DefControl := 'mOptionsSoundMenu';
+  g_GUI_AddWindow(Menu);
 
- Menu := TGUIWindow.Create('OptionsGameMenu');
- with TGUIMenu(Menu.AddChild(TGUIMenu.Create(gMenuFont, gMenuSmallFont, _lc[I_MENU_GAME_OPTIONS]))) do
- begin
-  Name := 'mOptionsGameMenu';
-  with AddScroll(_lc[I_MENU_GAME_PARTICLES_COUNT]) do
+  Menu := TGUIWindow.Create('OptionsGameMenu');
+  with TGUIMenu(Menu.AddChild(TGUIMenu.Create(gMenuFont, gMenuSmallFont, _lc[I_MENU_GAME_OPTIONS]))) do
   begin
-   Name := 'scParticlesCount';
-   Max := 20;
+    Name := 'mOptionsGameMenu';
+    with AddScroll(_lc[I_MENU_GAME_PARTICLES_COUNT]) do
+    begin
+      Name := 'scParticlesCount';
+      Max := 20;
+    end;
+    with AddSwitch(_lc[I_MENU_GAME_BLOOD_COUNT]) do
+    begin
+      Name := 'swBloodCount';
+      AddItem(_lc[I_MENU_COUNT_NONE]);
+      AddItem(_lc[I_MENU_COUNT_SMALL]);
+      AddItem(_lc[I_MENU_COUNT_NORMAL]);
+      AddItem(_lc[I_MENU_COUNT_BIG]);
+      AddItem(_lc[I_MENU_COUNT_VERYBIG]);
+    end;
+    with AddScroll(_lc[I_MENU_GAME_GIBS_COUNT]) do
+    begin
+      Name := 'scGibsMax';
+      Max := 20;
+    end;
+    with AddScroll(_lc[I_MENU_GAME_MAX_CORPSES]) do
+    begin
+      Name := 'scCorpsesMax';
+      Max := 20;
+    end;
+    with AddSwitch(_lc[I_MENU_GAME_MAX_GIBS]) do
+    begin
+      Name := 'swGibsCount';
+      AddItem(_lc[I_MENU_COUNT_NONE]);
+      AddItem(_lc[I_MENU_COUNT_SMALL]);
+      AddItem(_lc[I_MENU_COUNT_NORMAL]);
+      AddItem(_lc[I_MENU_COUNT_BIG]);
+      AddItem(_lc[I_MENU_COUNT_VERYBIG]);
+    end;
+    with AddSwitch(_lc[I_MENU_GAME_CORPSE_TYPE]) do
+    begin
+      Name := 'swCorpseType';
+      AddItem(_lc[I_MENU_GAME_CORPSE_TYPE_SIMPLE]);
+      AddItem(_lc[I_MENU_GAME_CORPSE_TYPE_ADV]);
+    end;
+    with AddSwitch(_lc[I_MENU_GAME_GIBS_TYPE]) do
+    begin
+      Name := 'swGibsType';
+      AddItem(_lc[I_MENU_GAME_GIBS_TYPE_SIMPLE]);
+      AddItem(_lc[I_MENU_GAME_GIBS_TYPE_ADV]);
+    end;
+    with AddSwitch(_lc[I_MENU_GAME_BLOOD_TYPE]) do
+    begin
+      Name := 'swBloodType';
+      AddItem(_lc[I_MENU_GAME_BLOOD_TYPE_SIMPLE]);
+      AddItem(_lc[I_MENU_GAME_BLOOD_TYPE_ADV]);
+    end;
+    with AddSwitch(_lc[I_MENU_GAME_SCREEN_FLASH]) do
+    begin
+      Name := 'swScreenFlash';
+      AddItem(_lc[I_MENU_YES]);
+      AddItem(_lc[I_MENU_NO]);
+    end;
+    with AddSwitch(_lc[I_MENU_GAME_BACKGROUND]) do
+    begin
+      Name := 'swBackground';
+      AddItem(_lc[I_MENU_YES]);
+      AddItem(_lc[I_MENU_NO]);
+    end;
+    with AddSwitch(_lc[I_MENU_GAME_MESSAGES]) do
+    begin
+      Name := 'swMessages';
+      AddItem(_lc[I_MENU_YES]);
+      AddItem(_lc[I_MENU_NO]);
+    end;
+    with AddSwitch(_lc[I_MENU_GAME_REVERT_PLAYERS]) do
+    begin
+      Name := 'swRevertPlayers';
+      AddItem(_lc[I_MENU_YES]);
+      AddItem(_lc[I_MENU_NO]);
+    end;
+    ReAlign();
   end;
-  with AddSwitch(_lc[I_MENU_GAME_BLOOD_COUNT]) do
-  begin
-   Name := 'swBloodCount';
-   AddItem(_lc[I_MENU_COUNT_NONE]);
-   AddItem(_lc[I_MENU_COUNT_SMALL]);
-   AddItem(_lc[I_MENU_COUNT_NORMAL]);
-   AddItem(_lc[I_MENU_COUNT_BIG]);
-   AddItem(_lc[I_MENU_COUNT_VERYBIG]);
-  end;
-  with AddScroll(_lc[I_MENU_GAME_GIBS_COUNT]) do
-  begin
-   Name := 'scGibsMax';
-   Max := 20;
-  end;
-  with AddScroll(_lc[I_MENU_GAME_MAX_CORPSES]) do
-  begin
-   Name := 'scCorpsesMax';
-   Max := 20;
-  end;
-  with AddSwitch(_lc[I_MENU_GAME_MAX_GIBS]) do
-  begin
-   Name := 'swGibsCount';
-   AddItem(_lc[I_MENU_COUNT_NONE]);
-   AddItem(_lc[I_MENU_COUNT_SMALL]);
-   AddItem(_lc[I_MENU_COUNT_NORMAL]);
-   AddItem(_lc[I_MENU_COUNT_BIG]);
-   AddItem(_lc[I_MENU_COUNT_VERYBIG]);
-  end;
-  with AddSwitch(_lc[I_MENU_GAME_CORPSE_TYPE]) do
-  begin
-   Name := 'swCorpseType';
-   AddItem(_lc[I_MENU_GAME_CORPSE_TYPE_SIMPLE]);
-   AddItem(_lc[I_MENU_GAME_CORPSE_TYPE_ADV]);
-  end;
-  with AddSwitch(_lc[I_MENU_GAME_GIBS_TYPE]) do
-  begin
-   Name := 'swGibsType';
-   AddItem(_lc[I_MENU_GAME_GIBS_TYPE_SIMPLE]);
-   AddItem(_lc[I_MENU_GAME_GIBS_TYPE_ADV]);
-  end;
-  with AddSwitch(_lc[I_MENU_GAME_BLOOD_TYPE]) do
-  begin
-   Name := 'swBloodType';
-   AddItem(_lc[I_MENU_GAME_BLOOD_TYPE_SIMPLE]);
-   AddItem(_lc[I_MENU_GAME_BLOOD_TYPE_ADV]);
-  end;
-  with AddSwitch(_lc[I_MENU_GAME_SCREEN_FLASH]) do
-  begin
-   Name := 'swScreenFlash';
-   AddItem(_lc[I_MENU_YES]);
-   AddItem(_lc[I_MENU_NO]);
-  end;
-  with AddSwitch(_lc[I_MENU_GAME_BACKGROUND]) do
-  begin
-   Name := 'swBackground';
-   AddItem(_lc[I_MENU_YES]);
-   AddItem(_lc[I_MENU_NO]);
-  end;
-  with AddSwitch(_lc[I_MENU_GAME_MESSAGES]) do
-  begin
-   Name := 'swMessages';
-   AddItem(_lc[I_MENU_YES]);
-   AddItem(_lc[I_MENU_NO]);
-  end;
-  with AddSwitch(_lc[I_MENU_GAME_REVERT_PLAYERS]) do
-  begin
-   Name := 'swRevertPlayers';
-   AddItem(_lc[I_MENU_YES]);
-   AddItem(_lc[I_MENU_NO]);
-  end;
-  ReAlign();
- end;
- Menu.DefControl := 'mOptionsGameMenu';
- g_GUI_AddWindow(Menu);
+  Menu.DefControl := 'mOptionsGameMenu';
+  g_GUI_AddWindow(Menu);
 
- Menu := TGUIWindow.Create('OptionsControlsMenu');
- with TGUIMenu(Menu.AddChild(TGUIMenu.Create(gMenuFont, gMenuSmallFont, _lc[I_MENU_CONTROLS_OPTIONS]))) do
- begin
-  Name := 'mOptionsControlsMenu';
-  AddLine(_lc[I_MENU_CONTROL_GLOBAL]);
-  AddKeyRead(_lc[I_MENU_CONTROL_SCREENSHOT]).Name := _lc[I_MENU_CONTROL_SCREENSHOT];
-  AddKeyRead(_lc[I_MENU_CONTROL_STAT]).Name := _lc[I_MENU_CONTROL_STAT];
-  AddKeyRead(_lc[I_MENU_CONTROL_CHAT]).Name := _lc[I_MENU_CONTROL_CHAT];
-  AddSpace();
-  AddButton(nil, _lc[I_MENU_PLAYER_1], 'OptionsControlsP1Menu');
-  AddButton(nil, _lc[I_MENU_PLAYER_2], 'OptionsControlsP2Menu');
- end;
- Menu.DefControl := 'mOptionsControlsMenu';
- g_GUI_AddWindow(Menu);
-
- Menu := TGUIWindow.Create('OptionsControlsP1Menu');
- with TGUIMenu(Menu.AddChild(TGUIMenu.Create(gMenuFont, gMenuSmallFont, _lc[I_MENU_PLAYER_1]))) do
- begin
-  Name := 'mOptionsControlsP1Menu';
-  AddKeyRead(_lc[I_MENU_CONTROL_LEFT]).Name := _lc[I_MENU_CONTROL_LEFT];
-  AddKeyRead(_lc[I_MENU_CONTROL_RIGHT]).Name := _lc[I_MENU_CONTROL_RIGHT];
-  AddKeyRead(_lc[I_MENU_CONTROL_UP]).Name := _lc[I_MENU_CONTROL_UP];
-  AddKeyRead(_lc[I_MENU_CONTROL_DOWN]).Name := _lc[I_MENU_CONTROL_DOWN];
-  AddKeyRead(_lc[I_MENU_CONTROL_JUMP]).Name := _lc[I_MENU_CONTROL_JUMP];
-  AddKeyRead(_lc[I_MENU_CONTROL_FIRE]).Name := _lc[I_MENU_CONTROL_FIRE];
-  AddKeyRead(_lc[I_MENU_CONTROL_USE]).Name := _lc[I_MENU_CONTROL_USE];
-  AddKeyRead(_lc[I_MENU_CONTROL_NEXT_WEAPON]).Name := _lc[I_MENU_CONTROL_NEXT_WEAPON];
-  AddKeyRead(_lc[I_MENU_CONTROL_PREV_WEAPON]).Name := _lc[I_MENU_CONTROL_PREV_WEAPON];
- end;
- Menu.DefControl := 'mOptionsControlsP1Menu';
- g_GUI_AddWindow(Menu);
-
- Menu := TGUIWindow.Create('OptionsControlsP2Menu');
- with TGUIMenu(Menu.AddChild(TGUIMenu.Create(gMenuFont, gMenuSmallFont, _lc[I_MENU_PLAYER_2]))) do
- begin
-  Name := 'mOptionsControlsP2Menu';
-  AddKeyRead(_lc[I_MENU_CONTROL_LEFT]).Name := _lc[I_MENU_CONTROL_LEFT];
-  AddKeyRead(_lc[I_MENU_CONTROL_RIGHT]).Name := _lc[I_MENU_CONTROL_RIGHT];
-  AddKeyRead(_lc[I_MENU_CONTROL_UP]).Name := _lc[I_MENU_CONTROL_UP];
-  AddKeyRead(_lc[I_MENU_CONTROL_DOWN]).Name := _lc[I_MENU_CONTROL_DOWN];
-  AddKeyRead(_lc[I_MENU_CONTROL_JUMP]).Name := _lc[I_MENU_CONTROL_JUMP];
-  AddKeyRead(_lc[I_MENU_CONTROL_FIRE]).Name := _lc[I_MENU_CONTROL_FIRE];
-  AddKeyRead(_lc[I_MENU_CONTROL_USE]).Name := _lc[I_MENU_CONTROL_USE];
-  AddKeyRead(_lc[I_MENU_CONTROL_NEXT_WEAPON]).Name := _lc[I_MENU_CONTROL_NEXT_WEAPON];
-  AddKeyRead(_lc[I_MENU_CONTROL_PREV_WEAPON]).Name := _lc[I_MENU_CONTROL_PREV_WEAPON];
- end;
- Menu.DefControl := 'mOptionsControlsP2Menu';
- g_GUI_AddWindow(Menu);
-
- Menu := TGUIWindow.Create('OptionsPlayersMenu');
- with TGUIMenu(Menu.AddChild(TGUIMenu.Create(gMenuFont, gMenuSmallFont, _lc[I_MENU_PLAYER_OPTIONS]))) do
- begin
-  Name := 'mOptionsPlayersMenu';
-  AddButton(nil, _lc[I_MENU_PLAYER_1], 'OptionsPlayersP1Menu');
-  AddButton(nil, _lc[I_MENU_PLAYER_2], 'OptionsPlayersP2Menu');
- end;
- Menu.DefControl := 'mOptionsPlayersMenu';
- g_GUI_AddWindow(Menu);
-
- CreatePlayerOptionsMenu('P1');
- CreatePlayerOptionsMenu('P2'); 
-
- Menu := TGUIWindow.Create('OptionsPlayersMIMenu');
- with TGUIMenu(Menu.AddChild(TGUIMenu.Create(gMenuFont, gMenuSmallFont, _lc[I_MENU_MODEL_INFO]))) do
- begin
-  Name := 'mOptionsPlayersMIMenu';
-  with AddLabel(_lc[I_MENU_MODEL_NAME]) do
+  Menu := TGUIWindow.Create('OptionsControlsMenu');
+  with TGUIMenu(Menu.AddChild(TGUIMenu.Create(gMenuFont, gMenuSmallFont, _lc[I_MENU_CONTROLS_OPTIONS]))) do
   begin
-   Name := 'lbName';
-   FixedLength := 16;
+    Name := 'mOptionsControlsMenu';
+    AddLine(_lc[I_MENU_CONTROL_GLOBAL]);
+    AddKeyRead(_lc[I_MENU_CONTROL_SCREENSHOT]).Name := _lc[I_MENU_CONTROL_SCREENSHOT];
+    AddKeyRead(_lc[I_MENU_CONTROL_STAT]).Name := _lc[I_MENU_CONTROL_STAT];
+    AddKeyRead(_lc[I_MENU_CONTROL_CHAT]).Name := _lc[I_MENU_CONTROL_CHAT];
+    AddSpace();
+    AddButton(nil, _lc[I_MENU_PLAYER_1], 'OptionsControlsP1Menu');
+    AddButton(nil, _lc[I_MENU_PLAYER_2], 'OptionsControlsP2Menu');
   end;
-  with AddLabel(_lc[I_MENU_MODEL_AUTHOR]) do
-  begin
-   Name := 'lbAuthor';
-   FixedLength := 16;
-  end;
-  with AddMemo(_lc[I_MENU_MODEL_COMMENT], 14, 6) do
-  begin
-   Name := 'meComment';
-  end;
-  AddSpace();
-  AddLine(_lc[I_MENU_MODEL_OPTIONS]);
-  with AddLabel(_lc[I_MENU_MODEL_WEAPON]) do
-  begin
-   Name := 'lbWeapon';
-   FixedLength := Max(Length(_lc[I_MENU_YES]), Length(_lc[I_MENU_NO]));
-  end;
-  ReAlign();
- end;
- Menu.DefControl := 'mOptionsPlayersMIMenu';
- g_GUI_AddWindow(Menu);
+  Menu.DefControl := 'mOptionsControlsMenu';
+  g_GUI_AddWindow(Menu);
 
- Menu := TGUIWindow.Create('OptionsLanguageMenu');
- with TGUIMenu(Menu.AddChild(TGUIMenu.Create(gMenuFont, gMenuSmallFont, _lc[I_MENU_LANGUAGE_OPTIONS]))) do
- begin
-  Name := 'mOptionsLanguageMenu';
-  AddButton(@ProcSetRussianLanguage, _lc[I_MENU_LANGUAGE_RUSSIAN]);
-  AddButton(@ProcSetEnglishLanguage, _lc[I_MENU_LANGUAGE_ENGLISH]);
-  ReAlign();
- end;
- Menu.DefControl := 'mOptionsLanguageMenu';
- g_GUI_AddWindow(Menu);
+  Menu := TGUIWindow.Create('OptionsControlsP1Menu');
+  with TGUIMenu(Menu.AddChild(TGUIMenu.Create(gMenuFont, gMenuSmallFont, _lc[I_MENU_PLAYER_1]))) do
+  begin
+    Name := 'mOptionsControlsP1Menu';
+    AddKeyRead(_lc[I_MENU_CONTROL_LEFT]).Name := _lc[I_MENU_CONTROL_LEFT];
+    AddKeyRead(_lc[I_MENU_CONTROL_RIGHT]).Name := _lc[I_MENU_CONTROL_RIGHT];
+    AddKeyRead(_lc[I_MENU_CONTROL_UP]).Name := _lc[I_MENU_CONTROL_UP];
+    AddKeyRead(_lc[I_MENU_CONTROL_DOWN]).Name := _lc[I_MENU_CONTROL_DOWN];
+    AddKeyRead(_lc[I_MENU_CONTROL_JUMP]).Name := _lc[I_MENU_CONTROL_JUMP];
+    AddKeyRead(_lc[I_MENU_CONTROL_FIRE]).Name := _lc[I_MENU_CONTROL_FIRE];
+    AddKeyRead(_lc[I_MENU_CONTROL_USE]).Name := _lc[I_MENU_CONTROL_USE];
+    AddKeyRead(_lc[I_MENU_CONTROL_NEXT_WEAPON]).Name := _lc[I_MENU_CONTROL_NEXT_WEAPON];
+    AddKeyRead(_lc[I_MENU_CONTROL_PREV_WEAPON]).Name := _lc[I_MENU_CONTROL_PREV_WEAPON];
+  end;
+  Menu.DefControl := 'mOptionsControlsP1Menu';
+  g_GUI_AddWindow(Menu);
 
- Menu := CreateYNMenu('DefaultOptionsMenu', _lc[I_MENU_SET_DEFAULT_PROMT], Round(gScreenWidth*0.6),
-                      gMenuSmallFont, @ProcDefaultMenuKeyDown);
- g_GUI_AddWindow(Menu);
+  Menu := TGUIWindow.Create('OptionsControlsP2Menu');
+  with TGUIMenu(Menu.AddChild(TGUIMenu.Create(gMenuFont, gMenuSmallFont, _lc[I_MENU_PLAYER_2]))) do
+  begin
+    Name := 'mOptionsControlsP2Menu';
+    AddKeyRead(_lc[I_MENU_CONTROL_LEFT]).Name := _lc[I_MENU_CONTROL_LEFT];
+    AddKeyRead(_lc[I_MENU_CONTROL_RIGHT]).Name := _lc[I_MENU_CONTROL_RIGHT];
+    AddKeyRead(_lc[I_MENU_CONTROL_UP]).Name := _lc[I_MENU_CONTROL_UP];
+    AddKeyRead(_lc[I_MENU_CONTROL_DOWN]).Name := _lc[I_MENU_CONTROL_DOWN];
+    AddKeyRead(_lc[I_MENU_CONTROL_JUMP]).Name := _lc[I_MENU_CONTROL_JUMP];
+    AddKeyRead(_lc[I_MENU_CONTROL_FIRE]).Name := _lc[I_MENU_CONTROL_FIRE];
+    AddKeyRead(_lc[I_MENU_CONTROL_USE]).Name := _lc[I_MENU_CONTROL_USE];
+    AddKeyRead(_lc[I_MENU_CONTROL_NEXT_WEAPON]).Name := _lc[I_MENU_CONTROL_NEXT_WEAPON];
+    AddKeyRead(_lc[I_MENU_CONTROL_PREV_WEAPON]).Name := _lc[I_MENU_CONTROL_PREV_WEAPON];
+  end;
+  Menu.DefControl := 'mOptionsControlsP2Menu';
+  g_GUI_AddWindow(Menu);
 
- Menu := TGUIWindow.Create('AuthorsMenu');
- Menu.BackTexture := 'INTER';
- Menu.OnClose := ProcAuthorsClose;
+  Menu := TGUIWindow.Create('OptionsPlayersMenu');
+  with TGUIMenu(Menu.AddChild(TGUIMenu.Create(gMenuFont, gMenuSmallFont, _lc[I_MENU_PLAYER_OPTIONS]))) do
+  begin
+    Name := 'mOptionsPlayersMenu';
+    AddButton(nil, _lc[I_MENU_PLAYER_1], 'OptionsPlayersP1Menu');
+    AddButton(nil, _lc[I_MENU_PLAYER_2], 'OptionsPlayersP2Menu');
+  end;
+  Menu.DefControl := 'mOptionsPlayersMenu';
+  g_GUI_AddWindow(Menu);
+
+  CreatePlayerOptionsMenu('P1');
+  CreatePlayerOptionsMenu('P2'); 
+
+  Menu := TGUIWindow.Create('OptionsPlayersMIMenu');
+  with TGUIMenu(Menu.AddChild(TGUIMenu.Create(gMenuFont, gMenuSmallFont, _lc[I_MENU_MODEL_INFO]))) do
+  begin
+    Name := 'mOptionsPlayersMIMenu';
+    with AddLabel(_lc[I_MENU_MODEL_NAME]) do
+    begin
+      Name := 'lbName';
+      FixedLength := 16;
+    end;
+    with AddLabel(_lc[I_MENU_MODEL_AUTHOR]) do
+    begin
+      Name := 'lbAuthor';
+      FixedLength := 16;
+    end;
+    with AddMemo(_lc[I_MENU_MODEL_COMMENT], 14, 6) do
+    begin
+      Name := 'meComment';
+    end;
+    AddSpace();
+    AddLine(_lc[I_MENU_MODEL_OPTIONS]);
+    with AddLabel(_lc[I_MENU_MODEL_WEAPON]) do
+    begin
+      Name := 'lbWeapon';
+      FixedLength := Max(Length(_lc[I_MENU_YES]), Length(_lc[I_MENU_NO]));
+    end;
+    ReAlign();
+  end;
+  Menu.DefControl := 'mOptionsPlayersMIMenu';
+  g_GUI_AddWindow(Menu);
+
+  Menu := TGUIWindow.Create('OptionsLanguageMenu');
+  with TGUIMenu(Menu.AddChild(TGUIMenu.Create(gMenuFont, gMenuSmallFont, _lc[I_MENU_LANGUAGE_OPTIONS]))) do
+  begin
+    Name := 'mOptionsLanguageMenu';
+    AddButton(@ProcSetRussianLanguage, _lc[I_MENU_LANGUAGE_RUSSIAN]);
+    AddButton(@ProcSetEnglishLanguage, _lc[I_MENU_LANGUAGE_ENGLISH]);
+    ReAlign();
+  end;
+  Menu.DefControl := 'mOptionsLanguageMenu';
+  g_GUI_AddWindow(Menu);
+
+  Menu := CreateYNMenu('DefaultOptionsMenu', _lc[I_MENU_SET_DEFAULT_PROMT], Round(gScreenWidth*0.6),
+                       gMenuSmallFont, @ProcDefaultMenuKeyDown);
+  g_GUI_AddWindow(Menu);
+
+  Menu := TGUIWindow.Create('AuthorsMenu');
+  Menu.BackTexture := 'INTER';
+  Menu.OnClose := ProcAuthorsClose;
 
 // Заголовок:
   _y := 16;
@@ -2557,138 +2534,137 @@ begin
   end;
   g_GUI_AddWindow(Menu);
 
- Menu := CreateYNMenu('ExitMenu', _lc[I_MENU_EXIT_PROMT], Round(gScreenWidth*0.6),
-                      gMenuSmallFont, @ProcExitMenuKeyDown);
- g_GUI_AddWindow(Menu);
+  Menu := CreateYNMenu('ExitMenu', _lc[I_MENU_EXIT_PROMT], Round(gScreenWidth*0.6),
+                       gMenuSmallFont, @ProcExitMenuKeyDown);
+  g_GUI_AddWindow(Menu);
 
- Menu := TGUIWindow.Create('GameSingleMenu');
- with TGUIMainMenu(Menu.AddChild(TGUIMainMenu.Create(gMenuFont, _lc[I_MENU_MAIN_MENU]))) do
- begin
-  Name := 'mmGameSingleMenu';
-  AddButton(nil, _lc[I_MENU_LOAD_GAME], 'LoadMenu');
-  AddButton(nil, _lc[I_MENU_SAVE_GAME], 'SaveMenu').Name := 'save';
-  AddButton(@ReadGameSettings, _lc[I_MENU_SET_GAME], 'GameSetGameMenu');
-  AddButton(@ReadOptions, _lc[I_MENU_OPTIONS], 'OptionsMenu');
-  AddButton(nil, _lc[I_MENU_RESTART], 'RestartGameMenu');
-  AddButton(nil, _lc[I_MENU_END_GAME], 'EndGameMenu');
- end;
- Menu.DefControl := 'mmGameSingleMenu';
- Menu.MainWindow := True;
- Menu.OnClose := ProcGMClose;
- Menu.OnShow := ProcGMShow;
- g_GUI_AddWindow(Menu);
-
- Menu := CreateYNMenu('EndGameMenu', _lc[I_MENU_END_GAME_PROMT], Round(gScreenWidth*0.6),
-                      gMenuSmallFont, @ProcEndMenuKeyDown);
- g_GUI_AddWindow(Menu);
-
- Menu := CreateYNMenu('RestartGameMenu', _lc[I_MENU_RESTART_GAME_PROMT], Round(gScreenWidth*0.6),
-                      gMenuSmallFont, @ProcRestartMenuKeyDown);
- g_GUI_AddWindow(Menu);
-
- Menu := TGUIWindow.Create('GameCustomMenu');
- with TGUIMainMenu(Menu.AddChild(TGUIMainMenu.Create(gMenuFont, _lc[I_MENU_MAIN_MENU]))) do
- begin
-  Name := 'mmGameCustomMenu';
-  AddButton(nil, _lc[I_MENU_LOAD_GAME], 'LoadMenu');
-  AddButton(nil, _lc[I_MENU_SAVE_GAME], 'SaveMenu').Name := 'save';
-  AddButton(@ReadGameSettings, _lc[I_MENU_SET_GAME], 'GameSetGameMenu');
-  AddButton(@ReadOptions, _lc[I_MENU_OPTIONS], 'OptionsMenu');
-  AddButton(nil, _lc[I_MENU_RESTART], 'RestartGameMenu');
-  AddButton(nil, _lc[I_MENU_END_GAME], 'EndGameMenu');
- end;
- Menu.DefControl := 'mmGameCustomMenu';
- Menu.MainWindow := True;
- Menu.OnClose := ProcGMClose;
- Menu.OnShow := ProcGMShow;
- g_GUI_AddWindow(Menu);
-
- Menu := TGUIWindow.Create('GameServerMenu');
- with TGUIMainMenu(Menu.AddChild(TGUIMainMenu.Create(gMenuFont, _lc[I_MENU_MAIN_MENU]))) do
- begin
-  Name := 'mmGameServerMenu';
-  AddButton(@ReadGameSettings, _lc[I_MENU_SET_GAME], 'GameSetGameMenu');
-  AddButton(@ReadOptions, _lc[I_MENU_OPTIONS], 'OptionsMenu');
-  AddButton(nil, _lc[I_MENU_RESTART], 'RestartGameMenu');
-  AddButton(nil, _lc[I_MENU_END_GAME], 'EndGameMenu');
- end;
- Menu.DefControl := 'mmGameServerMenu';
- Menu.MainWindow := True;
- Menu.OnClose := ProcGMClose;
- Menu.OnShow := ProcGMShow;
- g_GUI_AddWindow(Menu);
-
- Menu := TGUIWindow.Create('GameClientMenu');
- with TGUIMainMenu(Menu.AddChild(TGUIMainMenu.Create(gMenuFont, _lc[I_MENU_MAIN_MENU]))) do
- begin
-  Name := 'mmGameClientMenu';
-  AddButton(@ReadOptions, _lc[I_MENU_OPTIONS], 'OptionsMenu');
-  AddButton(nil, _lc[I_MENU_END_GAME], 'EndGameMenu');
- end;
- Menu.DefControl := 'mmGameClientMenu';
- Menu.MainWindow := True;
- Menu.OnClose := ProcGMClose;
- Menu.OnShow := ProcGMShow;
- g_GUI_AddWindow(Menu);
- 
- Menu := TGUIWindow.Create('ClientPasswordMenu');
- with TGUIMenu(Menu.AddChild(TGUIMenu.Create(gMenuSmallFont, gMenuSmallFont, _lc[I_MENU_ENTERPASSWORD]))) do
- begin
-  Name := 'mClientPasswordMenu';
-  with AddEdit(_lc[I_NET_SERVER_PASSWORD]) do
+  Menu := TGUIWindow.Create('GameSingleMenu');
+  with TGUIMainMenu(Menu.AddChild(TGUIMainMenu.Create(gMenuFont, _lc[I_MENU_MAIN_MENU]))) do
   begin
-    Name := 'edPW';
-    Width := 12;
-    MaxLength := 32;
+    Name := 'mmGameSingleMenu';
+    AddButton(nil, _lc[I_MENU_LOAD_GAME], 'LoadMenu');
+    AddButton(nil, _lc[I_MENU_SAVE_GAME], 'SaveMenu').Name := 'save';
+    AddButton(@ReadGameSettings, _lc[I_MENU_SET_GAME], 'GameSetGameMenu');
+    AddButton(@ReadOptions, _lc[I_MENU_OPTIONS], 'OptionsMenu');
+    AddButton(nil, _lc[I_MENU_RESTART], 'RestartGameMenu');
+    AddButton(nil, _lc[I_MENU_END_GAME], 'EndGameMenu');
   end;
-  AddSpace;
+  Menu.DefControl := 'mmGameSingleMenu';
+  Menu.MainWindow := True;
+  Menu.OnClose := ProcGMClose;
+  Menu.OnShow := ProcGMShow;
+  g_GUI_AddWindow(Menu);
 
-  AddButton(@ProcEnterPassword, _lc[I_MENU_START_GAME]);
-  ReAlign();
- end;
- Menu.DefControl := 'mClientPasswordMenu';
- g_GUI_AddWindow(Menu);
+  Menu := CreateYNMenu('EndGameMenu', _lc[I_MENU_END_GAME_PROMT], Round(gScreenWidth*0.6),
+                       gMenuSmallFont, @ProcEndMenuKeyDown);
+  g_GUI_AddWindow(Menu);
 
+  Menu := CreateYNMenu('RestartGameMenu', _lc[I_MENU_RESTART_GAME_PROMT], Round(gScreenWidth*0.6),
+                       gMenuSmallFont, @ProcRestartMenuKeyDown);
+  g_GUI_AddWindow(Menu);
 
- Menu := TGUIWindow.Create('GameSetGameMenu');
- with TGUIMenu(Menu.AddChild(TGUIMenu.Create(gMenuFont, gMenuSmallFont, _lc[I_MENU_SET_GAME]))) do
- begin
-   Name := 'mGameSetGameMenu';
-   with AddSwitch(_lc[I_MENU_TEAM_DAMAGE]) do
-   begin
-     Name := 'swTeamDamage';
-     AddItem(_lc[I_MENU_YES]);
-     AddItem(_lc[I_MENU_NO]);
-     ItemIndex := 1;
-   end;
-   with AddEdit(_lc[I_MENU_TIME_LIMIT]) do
-   begin
-     Name := 'edTimeLimit';
-     OnlyDigits := True;
-     Width := 3;
-     MaxLength := 3;
-   end;
-   with AddEdit(_lc[I_MENU_GOAL_LIMIT]) do
-   begin
-     Name := 'edGoalLimit';
-     OnlyDigits := True;
-     Width := 3;
-     MaxLength := 3;
-   end;
-   with AddSwitch(_lc[I_MENU_BOTS_VS]) do
-   begin
-     Name := 'swBotsVS';
-     AddItem(_lc[I_MENU_BOTS_VS_PLAYERS]);
-     AddItem(_lc[I_MENU_BOTS_VS_MONSTERS]);
-     AddItem(_lc[I_MENU_BOTS_VS_ALL]);
-     ItemIndex := 2;
-   end;
+  Menu := TGUIWindow.Create('GameCustomMenu');
+  with TGUIMainMenu(Menu.AddChild(TGUIMainMenu.Create(gMenuFont, _lc[I_MENU_MAIN_MENU]))) do
+  begin
+    Name := 'mmGameCustomMenu';
+    AddButton(nil, _lc[I_MENU_LOAD_GAME], 'LoadMenu');
+    AddButton(nil, _lc[I_MENU_SAVE_GAME], 'SaveMenu').Name := 'save';
+    AddButton(@ReadGameSettings, _lc[I_MENU_SET_GAME], 'GameSetGameMenu');
+    AddButton(@ReadOptions, _lc[I_MENU_OPTIONS], 'OptionsMenu');
+    AddButton(nil, _lc[I_MENU_RESTART], 'RestartGameMenu');
+    AddButton(nil, _lc[I_MENU_END_GAME], 'EndGameMenu');
+  end;
+  Menu.DefControl := 'mmGameCustomMenu';
+  Menu.MainWindow := True;
+  Menu.OnClose := ProcGMClose;
+  Menu.OnShow := ProcGMShow;
+  g_GUI_AddWindow(Menu);
 
-   ReAlign();               
- end;
- Menu.DefControl := 'mGameSetGameMenu';
- Menu.OnClose := ProcApplyGameSet;
- g_GUI_AddWindow(Menu);
+  Menu := TGUIWindow.Create('GameServerMenu');
+  with TGUIMainMenu(Menu.AddChild(TGUIMainMenu.Create(gMenuFont, _lc[I_MENU_MAIN_MENU]))) do
+  begin
+    Name := 'mmGameServerMenu';
+    AddButton(@ReadGameSettings, _lc[I_MENU_SET_GAME], 'GameSetGameMenu');
+    AddButton(@ReadOptions, _lc[I_MENU_OPTIONS], 'OptionsMenu');
+    AddButton(nil, _lc[I_MENU_RESTART], 'RestartGameMenu');
+    AddButton(nil, _lc[I_MENU_END_GAME], 'EndGameMenu');
+  end;
+  Menu.DefControl := 'mmGameServerMenu';
+  Menu.MainWindow := True;
+  Menu.OnClose := ProcGMClose;
+  Menu.OnShow := ProcGMShow;
+  g_GUI_AddWindow(Menu);
+
+  Menu := TGUIWindow.Create('GameClientMenu');
+  with TGUIMainMenu(Menu.AddChild(TGUIMainMenu.Create(gMenuFont, _lc[I_MENU_MAIN_MENU]))) do
+  begin
+    Name := 'mmGameClientMenu';
+    AddButton(@ReadOptions, _lc[I_MENU_OPTIONS], 'OptionsMenu');
+    AddButton(nil, _lc[I_MENU_END_GAME], 'EndGameMenu');
+  end;
+  Menu.DefControl := 'mmGameClientMenu';
+  Menu.MainWindow := True;
+  Menu.OnClose := ProcGMClose;
+  Menu.OnShow := ProcGMShow;
+  g_GUI_AddWindow(Menu);
+ 
+  Menu := TGUIWindow.Create('ClientPasswordMenu');
+  with TGUIMenu(Menu.AddChild(TGUIMenu.Create(gMenuSmallFont, gMenuSmallFont, _lc[I_MENU_ENTERPASSWORD]))) do
+  begin
+    Name := 'mClientPasswordMenu';
+    with AddEdit(_lc[I_NET_SERVER_PASSWORD]) do
+    begin
+      Name := 'edPW';
+      Width := 12;
+      MaxLength := 32;
+    end;
+    AddSpace;
+
+    AddButton(@ProcEnterPassword, _lc[I_MENU_START_GAME]);
+    ReAlign();
+  end;
+  Menu.DefControl := 'mClientPasswordMenu';
+  g_GUI_AddWindow(Menu);
+
+  Menu := TGUIWindow.Create('GameSetGameMenu');
+  with TGUIMenu(Menu.AddChild(TGUIMenu.Create(gMenuFont, gMenuSmallFont, _lc[I_MENU_SET_GAME]))) do
+  begin
+    Name := 'mGameSetGameMenu';
+    with AddSwitch(_lc[I_MENU_TEAM_DAMAGE]) do
+    begin
+      Name := 'swTeamDamage';
+      AddItem(_lc[I_MENU_YES]);
+      AddItem(_lc[I_MENU_NO]);
+      ItemIndex := 1;
+    end;
+    with AddEdit(_lc[I_MENU_TIME_LIMIT]) do
+    begin
+      Name := 'edTimeLimit';
+      OnlyDigits := True;
+      Width := 3;
+      MaxLength := 3;
+    end;
+    with AddEdit(_lc[I_MENU_GOAL_LIMIT]) do
+    begin
+      Name := 'edGoalLimit';
+      OnlyDigits := True;
+      Width := 3;
+      MaxLength := 3;
+    end;
+    with AddSwitch(_lc[I_MENU_BOTS_VS]) do
+    begin
+      Name := 'swBotsVS';
+      AddItem(_lc[I_MENU_BOTS_VS_PLAYERS]);
+      AddItem(_lc[I_MENU_BOTS_VS_MONSTERS]);
+      AddItem(_lc[I_MENU_BOTS_VS_ALL]);
+      ItemIndex := 2;
+    end;
+
+    ReAlign();               
+  end;
+  Menu.DefControl := 'mGameSetGameMenu';
+  Menu.OnClose := ProcApplyGameSet;
+  g_GUI_AddWindow(Menu);
 end;
 
 procedure g_Menu_Show_SaveMenu(custom: Boolean);
@@ -2778,7 +2754,6 @@ end;
 procedure g_Menu_Reset();
 var
   ex: Boolean;
-
 begin
   g_GUI_SaveMenuPos();
   ex := g_GUI_Destroy();

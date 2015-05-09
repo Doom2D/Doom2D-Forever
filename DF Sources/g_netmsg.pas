@@ -162,7 +162,7 @@ procedure MC_SEND_RCONPassword(Password: string = 'ASS');
 procedure MC_SEND_RCONCommand(Cmd: string);
 // DOWNLOAD
 procedure MC_SEND_MapRequest();
-procedure MC_SEND_ResRequest(resName: AnsiString);
+procedure MC_SEND_ResRequest(const resName: AnsiString);
 procedure MH_RECV_MapRequest(C: pTNetClient; P: Pointer);
 procedure MH_RECV_ResRequest(C: pTNetClient; P: Pointer);
 
@@ -190,11 +190,12 @@ function ResDataFromMsgStream(msgStream: TMemoryStream):TResDataMsg;
 
 implementation
 
-uses Windows, Math, ENet, e_input, e_fixedbuffer, e_graphics, e_log,
-     g_textures, g_gfx, g_sound, g_console, g_basic, g_options, g_main,
-     g_game, g_player, g_map, g_panel, g_items, g_weapons, g_phys, g_gui,
-     g_language, g_monsters, g_netmaster,
-     WADEDITOR, MAPDEF;
+uses
+  Windows, Math, ENet, e_input, e_fixedbuffer, e_graphics, e_log,
+  g_textures, g_gfx, g_sound, g_console, g_basic, g_options, g_main,
+  g_game, g_player, g_map, g_panel, g_items, g_weapons, g_phys, g_gui,
+  g_language, g_monsters, g_netmaster,
+  WADEDITOR, MAPDEF;
 
 const
   NET_KEY_LEFT  = 1;
@@ -216,6 +217,7 @@ var
 
 
 // GAME
+
 procedure MH_RECV_Chat(C: pTNetClient; P: Pointer);
 var
   Txt: string;
@@ -231,6 +233,7 @@ begin
   else
     MH_SEND_Chat(Pl.Name + ': ' + Txt);
 end;
+
 procedure MH_RECV_Info(C: pTNetClient; P: Pointer);
 var
   Ver, PName, Model, Pw: string;
@@ -306,6 +309,7 @@ begin
 
   if NetUseMaster then g_Net_Slist_Update;
 end;
+
 procedure MH_RECV_FullStateRequest(C: pTNetClient; P: Pointer);
 begin
   if gGameOn then
@@ -313,7 +317,9 @@ begin
   else
     C^.RequestedFullUpdate := True;
 end;
+
 // PLAYER
+
 function  MH_RECV_PlayerPos(C: pTNetClient; P: Pointer): Word;
 var
   PID: Word;
@@ -352,6 +358,7 @@ begin
 
   // MH_SEND_PlayerPos(False, PID, C^.ID);
 end;
+
 procedure MH_RECV_CheatRequest(C: pTNetClient; P: Pointer);
 var
   CheatKind: Byte;
@@ -374,6 +381,7 @@ begin
     end;
   end;
 end;
+
 procedure MH_RECV_PlayerSettings(C: pTNetClient; P: Pointer);
 var
   TmpName: string;
@@ -437,21 +445,22 @@ begin
 end;
 
 // GAME (SEND)
+
 procedure MH_SEND_Everything(CreatePlayers: Boolean = False; ID: Integer = NET_EVERYONE);
 var
   I: Integer;
 begin
   if gPlayers <> nil then
-   for I := Low(gPlayers) to High(gPlayers) do
-    if gPlayers[I] <> nil then
-    begin
-     if CreatePlayers then MH_SEND_PlayerCreate(gPlayers[I].UID, ID);
-     MH_SEND_PlayerPos(True, gPlayers[I].UID, ID);
-     MH_SEND_PlayerStats(gPlayers[I].UID, ID);
+    for I := Low(gPlayers) to High(gPlayers) do
+      if gPlayers[I] <> nil then
+      begin
+        if CreatePlayers then MH_SEND_PlayerCreate(gPlayers[I].UID, ID);
+        MH_SEND_PlayerPos(True, gPlayers[I].UID, ID);
+        MH_SEND_PlayerStats(gPlayers[I].UID, ID);
 
-     if (gPlayers[I].Flag <> FLAG_NONE) and (gGameSettings.GameMode = GM_CTF) then
-       MH_SEND_FlagEvent(FLAG_STATE_CAPTURED, gPlayers[I].Flag, gPlayers[I].UID, True, ID);
-    end;
+        if (gPlayers[I].Flag <> FLAG_NONE) and (gGameSettings.GameMode = GM_CTF) then
+          MH_SEND_FlagEvent(FLAG_STATE_CAPTURED, gPlayers[I].Flag, gPlayers[I].UID, True, ID);
+      end;
 
   // Отошлем уебе все итемы
   if gItems <> nil then
@@ -470,65 +479,65 @@ begin
   // И все двери
   if gWalls <> nil then
     for I := Low(gWalls) to High(gWalls) do
-     if gWalls[I] <> nil then
-      with gWalls[I] do
-      begin
-        if Door then
-          MH_SEND_PanelState(PanelType, I, ID);
+      if gWalls[I] <> nil then
+        with gWalls[I] do
+        begin
+          if Door then
+            MH_SEND_PanelState(PanelType, I, ID);
 
-        if GetTextureCount > 1 then
-          MH_SEND_PanelTexture(PanelType, I, LastAnimLoop, ID);
-      end;
+          if GetTextureCount > 1 then
+            MH_SEND_PanelTexture(PanelType, I, LastAnimLoop, ID);
+        end;
   // И все лифты
   if gLifts <> nil then
     for I := Low(gLifts) to High(gLifts) do
-     if gLifts[I] <> nil then
-      with gLifts[I] do
-       MH_SEND_PanelState(PanelType, I, ID);
+      if gLifts[I] <> nil then
+        with gLifts[I] do
+          MH_SEND_PanelState(PanelType, I, ID);
 
   // И все остальные панели со сменными текстурами
   if gRenderForegrounds <> nil then
     for I := Low(gRenderForegrounds) to High(gRenderForegrounds) do
-     if gRenderForegrounds[I] <> nil then
-      with gRenderForegrounds[I] do
-        if (GetTextureCount > 1) then
-          MH_SEND_PanelTexture(PanelType, I, LastAnimLoop, ID);
+      if gRenderForegrounds[I] <> nil then
+        with gRenderForegrounds[I] do
+          if (GetTextureCount > 1) then
+            MH_SEND_PanelTexture(PanelType, I, LastAnimLoop, ID);
   if gRenderBackgrounds <> nil then
     for I := Low(gRenderBackgrounds) to High(gRenderBackgrounds) do
-     if gRenderBackgrounds[I] <> nil then
-      with gRenderBackgrounds[I] do
-        if GetTextureCount > 1 then
-          MH_SEND_PanelTexture(PanelType, I, LastAnimLoop, ID);
+      if gRenderBackgrounds[I] <> nil then
+        with gRenderBackgrounds[I] do
+          if GetTextureCount > 1 then
+            MH_SEND_PanelTexture(PanelType, I, LastAnimLoop, ID);
   if gWater <> nil then
     for I := Low(gWater) to High(gWater) do
-     if gWater[I] <> nil then
-      with gWater[I] do
-        if GetTextureCount > 1 then
-          MH_SEND_PanelTexture(PanelType, I, LastAnimLoop, ID);
+      if gWater[I] <> nil then
+        with gWater[I] do
+          if GetTextureCount > 1 then
+            MH_SEND_PanelTexture(PanelType, I, LastAnimLoop, ID);
   if gAcid1 <> nil then
     for I := Low(gAcid1) to High(gAcid1) do
-     if gAcid1[I] <> nil then
-      with gAcid1[I] do
-        if GetTextureCount > 1 then
-          MH_SEND_PanelTexture(PanelType, I, LastAnimLoop, ID);
+      if gAcid1[I] <> nil then
+        with gAcid1[I] do
+          if GetTextureCount > 1 then
+            MH_SEND_PanelTexture(PanelType, I, LastAnimLoop, ID);
   if gAcid2 <> nil then
     for I := Low(gAcid2) to High(gAcid2) do
-     if gAcid2[I] <> nil then
-      with gAcid2[I] do
-        if GetTextureCount > 1 then
-          MH_SEND_PanelTexture(PanelType, I, LastAnimLoop, ID);
+      if gAcid2[I] <> nil then
+        with gAcid2[I] do
+          if GetTextureCount > 1 then
+            MH_SEND_PanelTexture(PanelType, I, LastAnimLoop, ID);
   if gSteps <> nil then
     for I := Low(gSteps) to High(gSteps) do
-     if gSteps[I] <> nil then
-      with gSteps[I] do
-        if GetTextureCount > 1 then
-          MH_SEND_PanelTexture(PanelType, I, LastAnimLoop, ID);
+      if gSteps[I] <> nil then
+        with gSteps[I] do
+          if GetTextureCount > 1 then
+            MH_SEND_PanelTexture(PanelType, I, LastAnimLoop, ID);
 
   // И триггеры "Звук" и "Музыка"
   if gTriggers <> nil then
-   for I := Low(gTriggers) to High(gTriggers) do
-    if gTriggers[I].TriggerType = TRIGGER_SOUND then
-      MH_SEND_TriggerSound(gTriggers[I], ID);
+    for I := Low(gTriggers) to High(gTriggers) do
+      if gTriggers[I].TriggerType = TRIGGER_SOUND then
+        MH_SEND_TriggerSound(gTriggers[I], ID);
 
   MH_SEND_TriggerMusic(ID);
 
@@ -537,14 +546,15 @@ begin
 
   if gGameSettings.GameMode = GM_CTF then
   begin
-   if gFlags[FLAG_RED].State <> FLAG_STATE_CAPTURED then
-    MH_SEND_FlagEvent(gFlags[FLAG_RED].State, FLAG_RED, 0, True, ID);
-   if gFlags[FLAG_BLUE].State <> FLAG_STATE_CAPTURED then
-    MH_SEND_FlagEvent(gFlags[FLAG_BLUE].State, FLAG_BLUE, 0, True, ID);
+    if gFlags[FLAG_RED].State <> FLAG_STATE_CAPTURED then
+      MH_SEND_FlagEvent(gFlags[FLAG_RED].State, FLAG_RED, 0, True, ID);
+    if gFlags[FLAG_BLUE].State <> FLAG_STATE_CAPTURED then
+      MH_SEND_FlagEvent(gFlags[FLAG_BLUE].State, FLAG_BLUE, 0, True, ID);
   end;
 
   if CreatePlayers and (ID >= 0) then NetClients[ID].State := NET_STATE_GAME;
 end;
+
 procedure MH_SEND_Info(ID: Byte);
 var
   Map: string;
@@ -567,6 +577,7 @@ begin
 
   g_Net_Host_Send(ID, True, NET_CHAN_SERVICE);
 end;
+
 procedure MH_SEND_Chat(Txt: string; ID: Integer = NET_EVERYONE);
 var
   P: TPlayer;
@@ -593,6 +604,7 @@ begin
   e_WriteLog('[Chat] ' + Txt, MSG_NOTIFY);
   g_Sound_PlayEx('SOUND_GAME_RADIO');
 end;
+
 procedure MH_SEND_Effect(X, Y: Integer; Ang: SmallInt; Kind: Byte; ID: Integer = NET_EVERYONE);
 begin
   e_Buffer_Write(@NetOut, Byte(NET_MSG_GFX));
@@ -603,6 +615,7 @@ begin
 
   g_Net_Host_Send(ID, False, NET_CHAN_GAME);
 end;
+
 procedure MH_SEND_Sound(X, Y: Integer; Name: string; ID: Integer = NET_EVERYONE);
 begin
   e_Buffer_Write(@NetOut, Byte(NET_MSG_SND));
@@ -612,6 +625,7 @@ begin
 
   g_Net_Host_Send(ID, False, NET_CHAN_GAME);
 end;
+
 procedure MH_Send_DeleteShot(Proj: LongInt; X, Y: LongInt; Loud: Boolean = True; ID: Integer = NET_EVERYONE);
 begin
   e_Buffer_Write(@NetOut, Byte(NET_MSG_SHDEL));
@@ -622,6 +636,7 @@ begin
 
   g_Net_Host_Send(ID, False, NET_CHAN_GAME);
 end;
+
 procedure MH_SEND_GameStats(ID: Integer = NET_EVERYONE);
 begin
   e_Buffer_Write(@NetOut, Byte(NET_MSG_SCORE));
@@ -639,6 +654,7 @@ begin
 
   g_Net_Host_Send(ID, True, NET_CHAN_IMPORTANT);
 end;
+
 procedure MH_SEND_CoopStats(ID: Integer = NET_EVERYONE);
 begin
   e_Buffer_Write(@NetOut, Byte(NET_MSG_COOP));
@@ -649,6 +665,7 @@ begin
   e_Buffer_Write(@NetOut, gCoopTotalMonsters);
   e_Buffer_Write(@NetOut, gCoopTotalSecrets);
 end;
+
 procedure MH_SEND_GameEvent(EvType: Byte; EvParm: string = 'NONE'; ID: Integer = NET_EVERYONE);
 begin
   e_Buffer_Write(@NetOut, Byte(NET_MSG_GEVENT));
@@ -659,6 +676,7 @@ begin
 
   g_Net_Host_Send(ID, True, NET_CHAN_SERVICE); // this is for map change as of now
 end;
+
 procedure MH_SEND_FlagEvent(Evtype: Byte; Flag: Byte; PID: Word; Quiet: Boolean = False; ID: Integer = NET_EVERYONE);
 begin
   e_Buffer_Write(@NetOut, Byte(NET_MSG_FLAG));
@@ -674,6 +692,7 @@ begin
 
   g_Net_Host_Send(ID, True, NET_CHAN_IMPORTANT);
 end;
+
 procedure MH_SEND_GameSettings(ID: Integer = NET_EVERYONE);
 begin
   e_Buffer_Write(@NetOut, Byte(NET_MSG_GSET));
@@ -684,7 +703,9 @@ begin
 
   g_Net_Host_Send(ID, True, NET_CHAN_IMPORTANT);
 end;
+
 // PLAYER (SEND)
+
 procedure MH_SEND_PlayerCreate(PID: Word; ID: Integer = NET_EVERYONE);
 var
   P: TPlayer;
@@ -704,6 +725,7 @@ begin
 
   g_Net_Host_Send(ID, True, NET_CHAN_IMPORTANT)
 end;
+
 procedure MH_SEND_PlayerPos(Reliable: Boolean; PID: Word; ID: Integer = NET_EVERYONE);
 var
   kByte: Word;
@@ -720,14 +742,14 @@ begin
   with Pl do
   begin
     if IsKeyPressed(KEY_CHAT) then
-     kByte := NET_KEY_CHAT
+      kByte := NET_KEY_CHAT
     else
     begin
-     if IsKeyPressed(KEY_LEFT) then kByte := kByte or NET_KEY_LEFT;
-     if IsKeyPressed(KEY_RIGHT) then kByte := kByte or NET_KEY_RIGHT;
-     if IsKeyPressed(KEY_UP) then kByte := kByte or NET_KEY_UP;
-     if IsKeyPressed(KEY_DOWN) then kByte := kByte or NET_KEY_DOWN;
-     if IsKeyPressed(KEY_JUMP) then kByte := kByte or NET_KEY_JUMP;
+      if IsKeyPressed(KEY_LEFT) then kByte := kByte or NET_KEY_LEFT;
+      if IsKeyPressed(KEY_RIGHT) then kByte := kByte or NET_KEY_RIGHT;
+      if IsKeyPressed(KEY_UP) then kByte := kByte or NET_KEY_UP;
+      if IsKeyPressed(KEY_DOWN) then kByte := kByte or NET_KEY_DOWN;
+      if IsKeyPressed(KEY_JUMP) then kByte := kByte or NET_KEY_JUMP;
     end;
 
     e_Buffer_Write(@NetOut, kByte);
@@ -742,6 +764,7 @@ begin
 
   g_Net_Host_Send(ID, Reliable, NET_CHAN_PLAYERPOS);
 end;
+
 procedure MH_SEND_PlayerStats(PID: Word; ID: Integer = NET_EVERYONE);
 var
   P: TPlayer;
@@ -750,7 +773,6 @@ begin
   P := g_Player_Get(PID);
   if P = nil then Exit;
 
-  
   e_Buffer_Write(@NetOut, Byte(NET_MSG_PLRSTA));
   e_Buffer_Write(@NetOut, PID);
 
@@ -792,6 +814,7 @@ begin
 
   g_Net_Host_Send(ID, True, NET_CHAN_PLAYER);
 end;
+
 procedure MH_SEND_PlayerDamage(PID: Word; Kind: Byte; Attacker, Value: Word; VX, VY: Integer; ID: Integer = NET_EVERYONE);
 begin
   e_Buffer_Write(@NetOut, Byte(NET_MSG_PLRDMG));
@@ -804,9 +827,9 @@ begin
 
   g_Net_Host_Send(ID, False, NET_CHAN_PLAYER);
 end;
+
 procedure MH_SEND_PlayerDeath(PID: Word; KillType, DeathType: Byte; Attacker: Word; ID: Integer = NET_EVERYONE);
 begin
-  
   e_Buffer_Write(@NetOut, Byte(NET_MSG_PLRDIE));
   e_Buffer_Write(@NetOut, PID);
   e_Buffer_Write(@NetOut, KillType);
@@ -815,9 +838,9 @@ begin
 
   g_Net_Host_Send(ID, True, NET_CHAN_PLAYER);
 end;
+
 procedure MH_SEND_PlayerFire(PID: Word; Weapon: Byte; X, Y, AX, AY: Integer; ShotID: Integer = -1; ID: Integer = NET_EVERYONE);
 begin
-  
   e_Buffer_Write(@NetOut, Byte(NET_MSG_PLRFIRE));
   e_Buffer_Write(@NetOut, PID);
   e_Buffer_Write(@NetOut, Weapon);
@@ -829,14 +852,15 @@ begin
 
   g_Net_Host_Send(ID, True, NET_CHAN_PLAYER);
 end;
+
 procedure MH_SEND_PlayerDelete(PID: Word; ID: Integer = NET_EVERYONE);
 begin
-  
   e_Buffer_Write(@NetOut, Byte(NET_MSG_PLRDEL));
   e_Buffer_Write(@NetOut, PID);
 
   g_Net_Host_Send(ID, True, NET_CHAN_IMPORTANT);
 end;
+
 procedure MH_SEND_PlayerSettings(PID: Word;  ID: Integer = NET_EVERYONE);
 var
   Pl: TPlayer;
@@ -844,7 +868,6 @@ begin
   Pl := g_Player_Get(PID);
   if Pl = nil then Exit;
 
-  
   e_Buffer_Write(@NetOut, Byte(NET_MSG_PLRSET));
   e_Buffer_Write(@NetOut, PID);
   e_Buffer_Write(@NetOut, Pl.Name);
@@ -853,10 +876,12 @@ begin
   e_Buffer_Write(@NetOut, Pl.Model.Color.G);
   e_Buffer_Write(@NetOut, Pl.Model.Color.B);
   e_Buffer_Write(@NetOut, Pl.Team);
-  
+
   g_Net_Host_Send(ID, True, NET_CHAN_IMPORTANT);
 end;
+
 // ITEM (SEND)
+
 procedure MH_SEND_ItemSpawn(Quiet: Boolean; IID: Word; ID: Integer = NET_EVERYONE);
 begin
   e_Buffer_Write(@NetOut, Byte(NET_MSG_ISPAWN));
@@ -872,6 +897,7 @@ begin
 
   g_Net_Host_Send(ID, True, NET_CHAN_LARGEDATA);
 end;
+
 procedure MH_SEND_ItemDestroy(Quiet: Boolean; IID: Word; ID: Integer = NET_EVERYONE);
 begin
   e_Buffer_Write(@NetOut, Byte(NET_MSG_IDEL));
@@ -880,7 +906,9 @@ begin
 
   g_Net_Host_Send(ID, True, NET_CHAN_LARGEDATA);
 end;
+
 // PANEL
+
 procedure MH_SEND_PanelTexture(PType: Word; PID: LongWord; AnimLoop: Byte; ID: Integer = NET_EVERYONE);
 var
   TP: TPanel;
@@ -917,6 +945,7 @@ begin
   
   g_Net_Host_Send(ID, True, NET_CHAN_LARGEDATA);
 end;
+
 procedure MH_SEND_PanelState(PType: Word; PID: LongWord; ID: Integer = NET_EVERYONE);
 var
   TP: TPanel;
@@ -929,7 +958,7 @@ begin
     else
       Exit;
   end;
-  
+
   e_Buffer_Write(@NetOut, Byte(NET_MSG_PSTATE));
   e_Buffer_Write(@NetOut, PType);
   e_Buffer_Write(@NetOut, PID);
@@ -938,7 +967,9 @@ begin
 
   g_Net_Host_Send(ID, True, NET_CHAN_LARGEDATA);
 end;
+
 // TRIGGER
+
 procedure MH_SEND_TriggerSound(var T: TTrigger; ID: Integer = NET_EVERYONE);
 begin
   if gTriggers = nil then Exit;
@@ -952,6 +983,7 @@ begin
 
   g_Net_Host_Send(ID, True);
 end;
+
 procedure MH_SEND_TriggerMusic(ID: Integer = NET_EVERYONE);
 begin
   e_Buffer_Write(@NetOut, Byte(NET_MSG_TMUSIC));
@@ -962,7 +994,9 @@ begin
 
   g_Net_Host_Send(ID, True);
 end;
+
 // MONSTER
+
 procedure MH_SEND_MonsterSpawn(UID: Word; ID: Integer = NET_EVERYONE);
 var
   M: TMonster;
@@ -991,6 +1025,7 @@ begin
 
   g_Net_Host_Send(ID, True, NET_CHAN_LARGEDATA);
 end;
+
 procedure MH_SEND_MonsterPos(UID: Word; ID: Integer = NET_EVERYONE);
 var
   M: TMonster;
@@ -1012,6 +1047,7 @@ begin
 
   g_Net_Host_Send(ID, False, NET_CHAN_MONSTERPOS);
 end;
+
 procedure MH_SEND_MonsterState(UID: Word; ForcedAnim: Byte = 255; ID: Integer = NET_EVERYONE);
 var
   M: TMonster;
@@ -1037,6 +1073,7 @@ begin
 
   g_Net_Host_Send(ID, True, NET_CHAN_MONSTER);
 end;
+
 procedure MH_SEND_MonsterShot(UID: Word; X, Y, VX, VY: Integer; ID: Integer = NET_EVERYONE);
 var
   M: TMonster;
@@ -1053,6 +1090,7 @@ begin
 
   g_Net_Host_Send(ID, True, NET_CHAN_MONSTER);
 end;
+
 procedure MH_SEND_MonsterDelete(UID: Word; ID: Integer = NET_EVERYONE);
 var
   M: TMonster;
@@ -1069,6 +1107,7 @@ end;
 // CLIENT MESSAGES //
 
 // GAME
+
 procedure MC_RECV_Chat(P: Pointer);
 var
   Txt: string;
@@ -1078,6 +1117,7 @@ begin
   e_WriteLog('[Chat] ' + Txt, MSG_NOTIFY);
   g_Sound_PlayEx('SOUND_GAME_RADIO');
 end;
+
 procedure MC_RECV_Effect(P: Pointer);
 var
   Kind: Byte;
@@ -1125,6 +1165,7 @@ begin
     end;
   end;
 end;
+
 procedure MC_RECV_Sound(P: Pointer);
 var
   Name: string;
@@ -1135,6 +1176,7 @@ begin
   Y := e_Raw_Read_LongInt(P);
   g_Sound_PlayExAt(Name, X, Y);
 end;
+
 procedure MC_RECV_DeleteShot(P: Pointer);
 var
   I, X, Y: Integer;
@@ -1148,6 +1190,7 @@ begin
 
   g_Weapon_DestroyShot(I, X, Y, L);
 end;
+
 procedure MC_RECV_GameStats(P: Pointer);
 begin
   if gGameSettings.GameMode in [GM_TDM, GM_CTF] then
@@ -1162,6 +1205,7 @@ begin
       gCoopSecretsFound := e_Raw_Read_Word(P);
     end;
 end;
+
 procedure MC_RECV_CoopStats(P: Pointer);
 begin
   gTotalMonsters := e_Raw_Read_LongInt(P);
@@ -1171,6 +1215,7 @@ begin
   gCoopTotalMonsters := e_Raw_Read_Word(P);
   gCoopTotalSecrets := e_Raw_Read_Word(P);
 end;
+
 procedure MC_RECV_GameEvent(P: Pointer);
 var
   EvType: Byte;
@@ -1206,6 +1251,7 @@ begin
       gExit := EXIT_ENDLEVELCUSTOM;
   end;
 end;
+
 procedure MC_RECV_FlagEvent(P: Pointer);
 var
   PID: Word;
@@ -1300,6 +1346,7 @@ begin
     end;
   end;
 end;
+
 procedure MC_RECV_GameSettings(P: Pointer);
 begin
   gGameSettings.GameMode := e_Raw_Read_Byte(P);
@@ -1307,7 +1354,9 @@ begin
   gGameSettings.TimeLimit := e_Raw_Read_Word(P);
   gGameSettings.Options := e_Raw_Read_LongWord(P);
 end;
+
 // PLAYER
+
 function MC_RECV_PlayerCreate(P: Pointer): Word;
 var
   PID, DID: Word;
@@ -1349,6 +1398,7 @@ begin
   e_WriteLog('NET: Player ' + PName + ' [' + IntToStr(PID) + '] added.', MSG_NOTIFY);
   Result := PID;
 end;
+
 function MC_RECV_PlayerPos(P: Pointer): Word;
 var
   PID: Word;
@@ -1394,6 +1444,7 @@ begin
     if LongBool(kByte and NET_KEY_JUMP) then PressKey(KEY_JUMP, 10000);
   end;
 end;
+
 function MC_RECV_PlayerStats(P: Pointer): Word;
 var
   PID: Word;
@@ -1449,6 +1500,7 @@ begin
 
   Result := PID;
 end;
+
 function MC_RECV_PlayerDamage(P: Pointer): Word;
 var
   PID: Word;
@@ -1474,6 +1526,7 @@ begin
 
   Result := PID;
 end;
+
 function MC_RECV_PlayerDeath(P: Pointer): Word;
 var
   PID: Word;
@@ -1497,6 +1550,7 @@ begin
     SoftReset;
   end;
 end;
+
 function MC_RECV_PlayerDelete(P: Pointer): Word;
 var
   PID: Word;
@@ -1514,6 +1568,7 @@ begin
 
   Result := PID;
 end;
+
 function  MC_RECV_PlayerFire(P: Pointer): Word;
 var
   PID: Word;
@@ -1538,6 +1593,7 @@ begin
   with Pl do
     if Live then NetFire(Weap, X, Y, AX, AY, SHID);
 end;
+
 procedure MC_RECV_PlayerSettings(P: Pointer);
 var
   TmpName: string;
@@ -1572,7 +1628,9 @@ begin
   if TmpModel <> Pl.Model.Name then
     Pl.SetModel(TmpModel);
 end;
+
 // ITEM
+
 procedure MC_RECV_ItemSpawn(P: Pointer);
 var
   ID: Word;
@@ -1608,6 +1666,7 @@ begin
     end;
   end;
 end;
+
 procedure MC_RECV_ItemDestroy(P: Pointer);
 var
   ID: Word;
@@ -1637,7 +1696,9 @@ begin
 
   g_Items_Remove(ID);
 end;
+
 // PANEL
+
 procedure MC_RECV_PanelTexture(P: Pointer);
 var
   TP: TPanel;
@@ -1688,6 +1749,7 @@ begin
     TP.SetFrame(Fr, Cnt);
   end;
 end;
+
 procedure MC_RECV_PanelState(P: Pointer);
 var
   ID: LongWord;
@@ -1712,7 +1774,9 @@ begin
       g_Map_SetLift(ID, Lift);
   end;
 end;
+
 // TRIGGERS
+
 procedure MC_RECV_TriggerSound(P: Pointer);
 var
   SName: string;
@@ -1745,6 +1809,7 @@ begin
           SoundPlayCount := SCount;
         end;
 end;
+
 procedure MC_RECV_TriggerMusic(P: Pointer);
 var
   MName: string;
@@ -1769,7 +1834,9 @@ begin
   else
     if gMusic.IsPlaying then gMusic.Stop;
 end;
+
 // MONSTERS
+
 procedure MC_RECV_MonsterSpawn(P: Pointer);
 var
   ID: Word;
@@ -1820,6 +1887,7 @@ begin
     SetState(MState);
   end;
 end;
+
 procedure MC_RECV_MonsterPos(P: Pointer);
 var
   M: TMonster;
@@ -1839,6 +1907,7 @@ begin
     GameDirection := TDirection(e_Raw_Read_Byte(P));
   end;
 end;
+
 procedure MC_RECV_MonsterState(P: Pointer);
 var
   ID: Integer;
@@ -1881,6 +1950,7 @@ begin
     end;
   end;
 end;
+
 procedure MC_RECV_MonsterShot(P: Pointer);
 var
   ID: Integer;
@@ -1898,6 +1968,7 @@ begin
   
   M.ClientAttack(X, Y, VX, VY);
 end;
+
 procedure MC_RECV_MonsterDelete(P: Pointer);
 var
   ID: Integer;
@@ -1927,6 +1998,7 @@ begin
 
   g_Net_Client_Send(True, NET_CHAN_SERVICE);
 end;
+
 procedure MC_SEND_Chat(Txt: string);
 begin
   e_Buffer_Write(@NetOut, Byte(NET_MSG_CHAT));
@@ -1934,6 +2006,7 @@ begin
 
   g_Net_Client_Send(True, NET_CHAN_CHAT);
 end;
+
 procedure MC_SEND_PlayerPos();
 var
   kByte: Word;
@@ -1997,7 +2070,7 @@ begin
     if e_KeyBuffer[KeyOpen] = $080 then kByte := kByte or NET_KEY_OPEN;
     if e_KeyBuffer[KeyNextWeapon] = $080 then kByte := kByte or NET_KEY_NW;
     if e_KeyBuffer[KeyPrevWeapon] = $080 then kByte := kByte or NET_KEY_PW;
-   end
+  end
   else
    kByte := NET_KEY_CHAT;
 
@@ -2011,6 +2084,7 @@ begin
   kBytePrev := kByte;
   kDirPrev := gPlayer1.Direction
 end;
+
 procedure MC_SEND_PlayerSettings();
 begin
   e_Buffer_Write(@NetOut, Byte(NET_MSG_PLRSET));
@@ -2023,12 +2097,14 @@ begin
 
   g_Net_Client_Send(True, NET_CHAN_IMPORTANT);
 end;
+
 procedure MC_SEND_FullStateRequest();
 begin
   e_Buffer_Write(@NetOut, Byte(NET_MSG_REQFST));
 
   g_Net_Client_Send(True, NET_CHAN_SERVICE);
 end;
+
 procedure MC_SEND_CheatRequest(Kind: Byte);
 begin
   e_Buffer_Write(@NetOut, Byte(NET_MSG_CHEAT));
@@ -2084,7 +2160,6 @@ begin
     Result.ExternalResources[i].Name := ResList.Strings[i];
     Result.ExternalResources[i].md5 := MD5File(GameDir+'\wads\'+ResList.Strings[i]);
   end;
-
 end;
 
 procedure ResDataMsgToBytes(var bytes: AByte; const ResData: TResDataMsg);
@@ -2151,13 +2226,37 @@ begin
   msgStream.ReadBuffer(Result.ExternalResources[0], resCount * SizeOf(TExternalResourceInfo)); //res data
 end;
 
+// http://stackoverflow.com/questions/960772/how-can-i-sanitize-a-string-for-use-as-a-filename
+function IsValidFilePath(const FileName: String): Boolean;
+var
+  S: String;
+  I: Integer;
+begin
+  Result := False;
+  S := FileName;
+  repeat
+    I := LastDelimiter('\/', S);
+    MoveFile(nil, PChar(S));
+    if (GetLastError = ERROR_ALREADY_EXISTS) or
+       (
+         (GetFileAttributes(PChar(Copy(S, I + 1, MaxInt))) = $FFFFFFFF)
+         and
+         (GetLastError=ERROR_INVALID_NAME)
+       ) then
+      Exit;
+    if I>0 then
+      S := Copy(S,1,I-1);
+  until I = 0;
+  Result := True;
+end;
+
 procedure MC_SEND_MapRequest();
 begin
   e_Buffer_Write(@NetOut, Byte(NET_MSG_MAP_REQUEST));
   g_Net_Client_Send(True, NET_CHAN_IMPORTANT);
 end;
 
-procedure MC_SEND_ResRequest(resName: AnsiString);
+procedure MC_SEND_ResRequest(const resName: AnsiString);
 begin
   e_Buffer_Write(@NetOut, Byte(NET_MSG_RES_REQUEST));
   e_Buffer_Write(@NetOut, resName);
@@ -2170,6 +2269,7 @@ var
   peer: pENetPeer;
   mapDataMsg: TMapDataMsg;
 begin
+  e_WriteLog('Receive map request from ' + DecodeIPV4(C.Peer.address.host), MSG_NOTIFY);
   mapDataMsg := CreateMapDataMsg(gGameSettings.WAD, gExternalResources);
   peer := NetClients[C.ID].Peer;
 
@@ -2188,7 +2288,14 @@ var
   FileName: String;
   resDataMsg: TResDataMsg;
 begin
-  FileName := e_Raw_Read_String(P);
+  FileName := ExtractFileName(e_Raw_Read_String(P));
+  e_WriteLog('Receive resource request: ' + FileName + ' from ' + DecodeIPV4(C.Peer.address.host), MSG_NOTIFY);
+  if not IsValidFilePath(FileName) then
+  begin
+    e_WriteLog('Invalid filename: ' + FileName, MSG_WARNING);
+    exit;
+  end;
+
   peer := NetClients[C.ID].Peer;
 
   if gExternalResources.IndexOf(FileName) > -1 then
@@ -2203,4 +2310,3 @@ begin
 end;
 
 end.
-

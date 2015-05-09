@@ -6,7 +6,7 @@ uses
   Windows, e_sound;
 
 type
-  TPlayableSound = class (TBasicSound)
+  TPlayableSound = class(TBasicSound)
   private
     FName: String;
 
@@ -24,7 +24,7 @@ type
     property Name: String read FName;
   end;
 
-  TMusic = class (TBasicSound)
+  TMusic = class(TBasicSound)
   private
     FName: String;
     FSpecPause: Boolean; // Спец-пауза. "Сильнее" обычной
@@ -61,7 +61,6 @@ function g_Sound_Get(var ID: DWORD; SoundName: ShortString): Boolean;
 
 procedure g_Sound_SetupAllVolumes(SoundVol, MusicVol: Byte);
 
-
 implementation
 
 uses
@@ -84,7 +83,6 @@ var
 function FindSound(): DWORD;
 var
   i: integer;
-
 begin
   if SoundArray <> nil then
     for i := 0 to High(SoundArray) do
@@ -109,7 +107,6 @@ end;
 function g_Sound_PlayEx(SoundName: ShortString): Boolean;
 var
   a: DWORD;
-
 begin
   Result := False;
   if SoundArray = nil then
@@ -122,13 +119,12 @@ begin
       Exit;
     end;
 
-  g_FatalError(Format(_lc[I_GAME_ERROR_SOUND], [SoundName]));
+  e_WriteLog(Format(_lc[I_GAME_ERROR_SOUND], [SoundName]), MSG_WARNING);
 end;
 
 function g_Sound_PlayExPanVolume(SoundName: ShortString; Pan: Single; Volume: Single): Boolean;
 var
   a: DWORD;
-
 begin
   Result := False;
   if SoundArray = nil then
@@ -141,7 +137,7 @@ begin
       Exit;
     end;
 
-  g_FatalError(Format(_lc[I_GAME_ERROR_SOUND], [SoundName]));
+  e_WriteLog(Format(_lc[I_GAME_ERROR_SOUND], [SoundName]), MSG_WARNING);
 end;
 
 function PlaySoundAt(X, Y: Integer; var Pan: Single; var Volume: Single): Boolean;
@@ -149,7 +145,6 @@ var
   l1, l2, a: Integer;
   d1, d2: Single;
   c: Boolean;
-
 begin
   l1 := gMaxDist;
   l2 := gMaxDist;
@@ -237,7 +232,6 @@ end;
 function g_Sound_PlayAt(ID: DWORD; X, Y: Integer): Boolean;
 var
   Pan, Vol: Single;
-
 begin
   if PlaySoundAt(X, Y, Pan, Vol) then
     Result := e_PlaySoundPanVolume(ID, Pan, Vol * (gSoundLevel/255.0))
@@ -249,7 +243,6 @@ function g_Sound_PlayExAt(SoundName: ShortString; X, Y: Integer): Boolean;
 var
   a: DWORD;
   Pan, Vol: Single;
-
 begin
   Result := False;
   
@@ -265,7 +258,7 @@ begin
       Exit;
     end;
 
-  g_FatalError(Format(_lc[I_GAME_ERROR_SOUND], [SoundName]));
+  e_WriteLog(Format(_lc[I_GAME_ERROR_SOUND], [SoundName]), MSG_WARNING);
 end;
 
 function g_Sound_CreateFile(var ID: DWORD; FileName: string; isMusic: Boolean = False): Boolean;
@@ -276,7 +269,6 @@ end;
 function g_Sound_CreateFileEx(SoundName: ShortString; FileName: string; isMusic: Boolean = False): Boolean;
 var
   find_id: DWORD;
-
 begin
   Result := False;
 
@@ -300,7 +292,6 @@ var
   SoundData: Pointer;
   ResLength: Integer;
   ok: Boolean;
-
 begin
   Result := False;
   ok := False;
@@ -343,7 +334,6 @@ var
   ResLength: Integer;
   find_id: DWORD;
   ok: Boolean;
-
 begin
   Result := False;
   ok := False;
@@ -387,7 +377,6 @@ end;
 procedure g_Sound_Delete(SoundName: ShortString);
 var
   a: DWORD;
-  
 begin
   if (SoundArray = nil) or (SoundName = '') then
     Exit;
@@ -405,7 +394,6 @@ end;
 function g_Sound_Exists(SoundName: string): Boolean;
 var
   a: DWORD;
-  
 begin
   Result := False;
 
@@ -424,7 +412,6 @@ end;
 function g_Sound_Get(var ID: DWORD; SoundName: ShortString): Boolean;
 var
   a: DWORD;
-
 begin
   Result := False;
 
@@ -445,7 +432,6 @@ procedure g_Sound_SetupAllVolumes(SoundVol, MusicVol: Byte);
 var
   Svol, Mvol: Single;
   sm: Boolean;
-
 begin
   Mvol := 0; // shut up, compiler
   if (gSoundLevel = SoundVol) and (gMusicLevel = MusicVol) then
@@ -504,7 +490,6 @@ end;
 function TPlayableSound.PlayAt(X, Y: Integer): Boolean;
 var
   Pan, Vol: Single;
-
 begin
   if PlaySoundAt(X, Y, Pan, Vol) then
     begin
@@ -529,7 +514,6 @@ end;
 function TPlayableSound.PlayVolumeAt(X, Y: Integer; Volume: Single): Boolean;
 var
   Pan, Vol: Single;
-
 begin
   if PlaySoundAt(X, Y, Pan, Vol) then
     begin
@@ -543,7 +527,6 @@ end;
 function TPlayableSound.SetCoords(X, Y: Integer; Volume: Single): Boolean;
 var
   Pan, Vol: Single;
-
 begin
   Result := False;
 
@@ -562,7 +545,6 @@ end;
 function TPlayableSound.SetByName(SN: String): Boolean;
 var
   id: DWORD;
-
 begin
   if g_Sound_Get(id, SN) then
     begin
@@ -613,7 +595,6 @@ end;
 function TMusic.SetByName(SN: String): Boolean;
 var
   id: DWORD;
-
 begin
   if SN = '' then
   begin

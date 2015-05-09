@@ -52,13 +52,11 @@ const
   MAX_HANDLED_MESSAGES = 15;
   D2DF_CLASSNAME = 'D2DFRVR';
 
-
 function g_Window_SetDisplay(): Boolean;
 var
   dmScreenSettings: DevMode;
   MaxFreq: LongWord;
   n: Word;
-
 begin
   Result := False;
 
@@ -156,7 +154,6 @@ procedure ReShowCursor();
 var
   pt: TPoint;
   b: Boolean;
-
 begin
   if gFullscreen then
     Exit;
@@ -484,7 +481,6 @@ var
   hIC: Cardinal;
   ps, sz: TPoint;
   dwStyle, dwExStyle: DWORD;
-
 begin
   Result := False;
 
@@ -618,7 +614,6 @@ end;
 function GetTimer(): Int64;
 var
   F, C: Int64;
-
 begin
   QueryPerformanceFrequency(F);
   QueryPerformanceCounter(C);
@@ -646,7 +641,6 @@ var
   msg: TMsg;
   ID: DWORD;
   k: Integer;
-
 begin
   k := 0;
   while PeekMessage(msg, 0, 0, 0, PM_REMOVE) and
@@ -694,7 +688,6 @@ function ProcessMessage(): Boolean;
 var
   i: Integer;
   msg: TMsg;
-  
 begin
   Result := False;
 
@@ -763,7 +756,6 @@ var
   n: Integer;
   dm: DevMode;
   s: String;
-
 begin
   e_WriteLog('List of display modes:', MSG_NOTIFY);
 

@@ -6,7 +6,7 @@ uses
   MAPSTRUCT, e_graphics, Windows, MAPDEF, g_basic, g_sound,
   BinEditor;
 
-Type
+type
   TTrigger = record
     TriggerType:      Byte;
     X, Y:             Integer;
@@ -61,311 +61,311 @@ function FindTrigger(): DWORD;
 var
   i: Integer;
 begin
- if gTriggers <> nil then
- for i := 0 to High(gTriggers) do
-  if gTriggers[i].TriggerType = TRIGGER_NONE then
-  begin
-   Result := i;
-   Exit;
-  end;
+  if gTriggers <> nil then
+    for i := 0 to High(gTriggers) do
+      if gTriggers[i].TriggerType = TRIGGER_NONE then
+      begin
+        Result := i;
+        Exit;
+      end;
 
- if gTriggers = nil then
- begin
-  SetLength(gTriggers, 8);
-  Result := 0;
- end
+  if gTriggers = nil then
+  begin
+    SetLength(gTriggers, 8);
+    Result := 0;
+  end
   else
- begin
-  Result := High(gTriggers) + 1;
-  SetLength(gTriggers, Length(gTriggers) + 8);
- end;
+  begin
+    Result := High(gTriggers) + 1;
+    SetLength(gTriggers, Length(gTriggers) + 8);
+  end;
 end;
 
 function CloseDoor(PanelID: Integer; NoSound: Boolean; d2d: Boolean): Boolean;
 var
   a, b, c: Integer;
 begin
- Result := False;
+  Result := False;
 
- if PanelID = -1 then Exit;
+  if PanelID = -1 then Exit;
 
- if not d2d then
- begin
-  with gWalls[PanelID] do
+  if not d2d then
   begin
-   if g_CollidePlayer(X, Y, Width, Height) or
-      g_CollideMonster(X, Y, Width, Height) then Exit;
-
-   if not Enabled then
-   begin
-    if not NoSound then
+    with gWalls[PanelID] do
     begin
-     g_Sound_PlayExAt('SOUND_GAME_DOORCLOSE', X, Y);
-     if g_Game_IsServer and g_Game_IsNet then
-      MH_SEND_Sound(X, Y, 'SOUND_GAME_DOORCLOSE');
+      if g_CollidePlayer(X, Y, Width, Height) or
+         g_CollideMonster(X, Y, Width, Height) then Exit;
+
+      if not Enabled then
+      begin
+        if not NoSound then
+        begin
+          g_Sound_PlayExAt('SOUND_GAME_DOORCLOSE', X, Y);
+          if g_Game_IsServer and g_Game_IsNet then
+            MH_SEND_Sound(X, Y, 'SOUND_GAME_DOORCLOSE');
+        end;
+        g_Map_EnableWall(PanelID);
+        Result := True;
+      end;
     end;
-    g_Map_EnableWall(PanelID);
-    Result := True;
-   end;
-  end;
- end
+  end
   else
- begin
-  if gDoorMap = nil then Exit;
-
-  c := -1;
-  for a := 0 to High(gDoorMap) do
   begin
-   for b := 0 to High(gDoorMap[a]) do
-    if gDoorMap[a, b] = DWORD(PanelID) then
-    begin
-     c := a;
-     Break;
-    end;
+    if gDoorMap = nil then Exit;
 
-   if c <> -1 then Break;
+    c := -1;
+    for a := 0 to High(gDoorMap) do
+    begin
+      for b := 0 to High(gDoorMap[a]) do
+        if gDoorMap[a, b] = DWORD(PanelID) then
+        begin
+          c := a;
+          Break;
+        end;
+
+      if c <> -1 then Break;
+    end;
+    if c = -1 then Exit;
+
+    for b := 0 to High(gDoorMap[c]) do
+      with gWalls[gDoorMap[c, b]] do
+      begin
+        if g_CollidePlayer(X, Y, Width, Height) or
+          g_CollideMonster(X, Y, Width, Height) then Exit;
+      end;
+
+    if not NoSound then
+      for b := 0 to High(gDoorMap[c]) do
+        if not gWalls[gDoorMap[c, b]].Enabled then
+        begin
+          with gWalls[PanelID] do
+          begin
+            g_Sound_PlayExAt('SOUND_GAME_DOORCLOSE', X, Y);
+            if g_Game_IsServer and g_Game_IsNet then
+              MH_SEND_Sound(X, Y, 'SOUND_GAME_DOORCLOSE');
+          end;
+          Break;
+        end;
+
+    for b := 0 to High(gDoorMap[c]) do
+      if not gWalls[gDoorMap[c, b]].Enabled then
+      begin
+        g_Map_EnableWall(gDoorMap[c, b]);
+        Result := True;
+      end;
   end;
-  if c = -1 then Exit;
-
-  for b := 0 to High(gDoorMap[c]) do
-   with gWalls[gDoorMap[c, b]] do
-   begin
-    if g_CollidePlayer(X, Y, Width, Height) or
-       g_CollideMonster(X, Y, Width, Height) then Exit;
-   end;
-
-  if not NoSound then
-   for b := 0 to High(gDoorMap[c]) do
-    if not gWalls[gDoorMap[c, b]].Enabled then
-    begin
-     with gWalls[PanelID] do
-     begin
-      g_Sound_PlayExAt('SOUND_GAME_DOORCLOSE', X, Y);
-      if g_Game_IsServer and g_Game_IsNet then
-       MH_SEND_Sound(X, Y, 'SOUND_GAME_DOORCLOSE');
-     end;
-     Break;
-    end;
-
-  for b := 0 to High(gDoorMap[c]) do
-   if not gWalls[gDoorMap[c, b]].Enabled then
-   begin
-    g_Map_EnableWall(gDoorMap[c, b]);
-    Result := True;
-   end;
- end;
 end;
 
 procedure CloseTrap(PanelID: Integer; NoSound: Boolean; d2d: Boolean);
 var
   a, b, c: Integer;
 begin
- if PanelID = -1 then Exit;
+  if PanelID = -1 then Exit;
 
- if not d2d then
- begin
-  with gWalls[PanelID] do
-   if (not NoSound) and (not Enabled) then
-   begin
-    g_Sound_PlayExAt('SOUND_GAME_SWITCH1', X, Y);
-    if g_Game_IsServer and g_Game_IsNet then
-     MH_SEND_Sound(X, Y, 'SOUND_GAME_SWITCH1');
-   end;
-
-
-  with gWalls[PanelID] do
+  if not d2d then
   begin
-   if gPlayers <> nil then
-    for a := 0 to High(gPlayers) do
-     if (gPlayers[a] <> nil) and gPlayers[a].Live and
-        gPlayers[a].Collide(X, Y, Width, Height) then
-      gPlayers[a].Damage(1000, 0, 0, 0, HIT_TRAP);
+    with gWalls[PanelID] do
+      if (not NoSound) and (not Enabled) then
+      begin
+        g_Sound_PlayExAt('SOUND_GAME_SWITCH1', X, Y);
+        if g_Game_IsServer and g_Game_IsNet then
+          MH_SEND_Sound(X, Y, 'SOUND_GAME_SWITCH1');
+      end;
 
-   if gMonsters <> nil then
-    for a := 0 to High(gMonsters) do
-     if (gMonsters[a] <> nil) and gMonsters[a].Live and
-        g_Obj_Collide(X, Y, Width, Height, @gMonsters[a].Obj) then
-      gMonsters[a].Damage(1000, 0, 0, 0, HIT_TRAP);
 
-   if not Enabled then g_Map_EnableWall(PanelID);
-  end;
- end
+    with gWalls[PanelID] do
+    begin
+      if gPlayers <> nil then
+        for a := 0 to High(gPlayers) do
+          if (gPlayers[a] <> nil) and gPlayers[a].Live and
+              gPlayers[a].Collide(X, Y, Width, Height) then
+            gPlayers[a].Damage(1000, 0, 0, 0, HIT_TRAP);
+
+      if gMonsters <> nil then
+        for a := 0 to High(gMonsters) do
+          if (gMonsters[a] <> nil) and gMonsters[a].Live and
+          g_Obj_Collide(X, Y, Width, Height, @gMonsters[a].Obj) then
+            gMonsters[a].Damage(1000, 0, 0, 0, HIT_TRAP);
+
+      if not Enabled then g_Map_EnableWall(PanelID);
+    end;
+  end
   else
- begin
-  if gDoorMap = nil then Exit;
-
-  c := -1;
-  for a := 0 to High(gDoorMap) do
   begin
-   for b := 0 to High(gDoorMap[a]) do
-    if gDoorMap[a, b] = DWORD(PanelID) then
-    begin
-     c := a;
-     Break;
-    end;
+    if gDoorMap = nil then Exit;
 
-   if c <> -1 then Break;
+    c := -1;
+    for a := 0 to High(gDoorMap) do
+    begin
+      for b := 0 to High(gDoorMap[a]) do
+        if gDoorMap[a, b] = DWORD(PanelID) then
+        begin
+          c := a;
+          Break;
+        end;
+
+      if c <> -1 then Break;
+    end;
+    if c = -1 then Exit;
+
+    if not NoSound then
+      for b := 0 to High(gDoorMap[c]) do
+        if not gWalls[gDoorMap[c, b]].Enabled then
+        begin
+          with gWalls[PanelID] do
+          begin
+            g_Sound_PlayExAt('SOUND_GAME_SWITCH1', X, Y);
+            if g_Game_IsServer and g_Game_IsNet then
+              MH_SEND_Sound(X, Y, 'SOUND_GAME_SWITCH1');
+          end;
+          Break;
+        end;
+
+    for b := 0 to High(gDoorMap[c]) do
+      with gWalls[gDoorMap[c, b]] do
+      begin
+        if gPlayers <> nil then
+          for a := 0 to High(gPlayers) do
+            if (gPlayers[a] <> nil) and gPlayers[a].Live and
+            gPlayers[a].Collide(X, Y, Width, Height) then
+              gPlayers[a].Damage(1000, 0, 0, 0, HIT_TRAP);
+
+        if gMonsters <> nil then
+          for a := 0 to High(gMonsters) do
+            if (gMonsters[a] <> nil) and gMonsters[a].Live and
+            g_Obj_Collide(X, Y, Width, Height, @gMonsters[a].Obj) then
+              gMonsters[a].Damage(1000, 0, 0, 0, HIT_TRAP);
+
+        if not Enabled then g_Map_EnableWall(gDoorMap[c, b]);
+      end;
   end;
-  if c = -1 then Exit;
-
-  if not NoSound then
-   for b := 0 to High(gDoorMap[c]) do
-    if not gWalls[gDoorMap[c, b]].Enabled then
-    begin
-     with gWalls[PanelID] do
-     begin
-      g_Sound_PlayExAt('SOUND_GAME_SWITCH1', X, Y);
-      if g_Game_IsServer and g_Game_IsNet then
-       MH_SEND_Sound(X, Y, 'SOUND_GAME_SWITCH1');
-     end;
-     Break;
-    end;
-
-  for b := 0 to High(gDoorMap[c]) do
-   with gWalls[gDoorMap[c, b]] do
-   begin
-    if gPlayers <> nil then
-     for a := 0 to High(gPlayers) do
-      if (gPlayers[a] <> nil) and gPlayers[a].Live and
-         gPlayers[a].Collide(X, Y, Width, Height) then
-       gPlayers[a].Damage(1000, 0, 0, 0, HIT_TRAP);
-
-    if gMonsters <> nil then
-     for a := 0 to High(gMonsters) do
-      if (gMonsters[a] <> nil) and gMonsters[a].Live and
-         g_Obj_Collide(X, Y, Width, Height, @gMonsters[a].Obj) then
-       gMonsters[a].Damage(1000, 0, 0, 0, HIT_TRAP);
-
-    if not Enabled then g_Map_EnableWall(gDoorMap[c, b]);
-   end;
- end;
 end;
 
 function OpenDoor(PanelID: Integer; NoSound: Boolean; d2d: Boolean): Boolean;
 var
   a, b, c: Integer;
 begin
- Result := False;
+  Result := False;
 
- if PanelID = -1 then Exit;
+  if PanelID = -1 then Exit;
 
- if not d2d then
- begin
-  with gWalls[PanelID] do
-   if Enabled then
-   begin
-    if not NoSound then
-    begin
-     g_Sound_PlayExAt('SOUND_GAME_DOOROPEN', X, Y);
-     if g_Game_IsServer and g_Game_IsNet then
-      MH_SEND_Sound(X, Y, 'SOUND_GAME_DOOROPEN');
-    end;
-    g_Map_DisableWall(PanelID);
-    Result := True;
-   end;
- end
-  else
- begin
-  if gDoorMap = nil then Exit;
-
-  c := -1;
-  for a := 0 to High(gDoorMap) do
+  if not d2d then
   begin
-   for b := 0 to High(gDoorMap[a]) do
-    if gDoorMap[a, b] = DWORD(PanelID) then
-    begin
-     c := a;
-     Break;
-    end;
+    with gWalls[PanelID] do
+      if Enabled then
+      begin
+        if not NoSound then
+        begin
+          g_Sound_PlayExAt('SOUND_GAME_DOOROPEN', X, Y);
+          if g_Game_IsServer and g_Game_IsNet then
+            MH_SEND_Sound(X, Y, 'SOUND_GAME_DOOROPEN');
+        end;
+        g_Map_DisableWall(PanelID);
+        Result := True;
+      end;
+  end
+  else
+  begin
+    if gDoorMap = nil then Exit;
 
-   if c <> -1 then Break;
+    c := -1;
+    for a := 0 to High(gDoorMap) do
+    begin
+      for b := 0 to High(gDoorMap[a]) do
+        if gDoorMap[a, b] = DWORD(PanelID) then
+        begin
+          c := a;
+          Break;
+        end;
+
+      if c <> -1 then Break;
+    end;
+    if c = -1 then Exit;
+
+    if not NoSound then
+      for b := 0 to High(gDoorMap[c]) do
+        if gWalls[gDoorMap[c, b]].Enabled then
+        begin
+          with gWalls[PanelID] do
+          begin
+            g_Sound_PlayExAt('SOUND_GAME_DOOROPEN', X, Y);
+            if g_Game_IsServer and g_Game_IsNet then
+              MH_SEND_Sound(X, Y, 'SOUND_GAME_DOOROPEN');
+          end;
+          Break;
+        end;
+
+    for b := 0 to High(gDoorMap[c]) do
+      if gWalls[gDoorMap[c, b]].Enabled then
+      begin
+        g_Map_DisableWall(gDoorMap[c, b]);
+        Result := True;
+      end;
   end;
-  if c = -1 then Exit;
-
-  if not NoSound then
-   for b := 0 to High(gDoorMap[c]) do
-    if gWalls[gDoorMap[c, b]].Enabled then
-    begin
-     with gWalls[PanelID] do
-     begin
-      g_Sound_PlayExAt('SOUND_GAME_DOOROPEN', X, Y);
-      if g_Game_IsServer and g_Game_IsNet then
-       MH_SEND_Sound(X, Y, 'SOUND_GAME_DOOROPEN');
-     end;
-     Break;
-    end;
-
-  for b := 0 to High(gDoorMap[c]) do
-   if gWalls[gDoorMap[c, b]].Enabled then
-   begin
-     g_Map_DisableWall(gDoorMap[c, b]);
-     Result := True;
-   end;
- end;
 end;
 
 function SetLift(PanelID: Integer; d: Integer; NoSound: Boolean; d2d: Boolean): Boolean;
 var
   a, b, c, t: Integer;
 begin
- Result := False;
+  Result := False;
 
- if PanelID = -1 then Exit;
+  if PanelID = -1 then Exit;
 
- case d of
-  0: t := 0;
-  1: t := 1;
-  else t := IfThen(gLifts[PanelID].LiftType = 1, 0, 1);
- end;
+  case d of
+    0: t := 0;
+    1: t := 1;
+    else t := IfThen(gLifts[PanelID].LiftType = 1, 0, 1);
+  end;
 
- if not d2d then
- begin
-  with gLifts[PanelID] do
-   if LiftType <> t then
-   begin
-    g_Map_SetLift(PanelID, t);
+  if not d2d then
+  begin
+    with gLifts[PanelID] do
+      if LiftType <> t then
+      begin
+        g_Map_SetLift(PanelID, t);
+
+        {if not NoSound then
+          g_Sound_PlayExAt('SOUND_GAME_SWITCH0', X, Y);}
+        Result := True;
+      end;
+  end
+  else // Как в D2d
+  begin
+    if gLiftMap = nil then Exit;
+
+    c := -1;
+    for a := 0 to High(gLiftMap) do
+    begin
+      for b := 0 to High(gLiftMap[a]) do
+        if gLiftMap[a, b] = DWORD(PanelID) then
+        begin
+          c := a;
+          Break;
+        end;
+
+      if c <> -1 then Break;
+    end;
+    if c = -1 then Exit;
 
     {if not NoSound then
-      g_Sound_PlayExAt('SOUND_GAME_SWITCH0', X, Y);}
-    Result := True;
-   end;
- end
-  else // Как в D2d
- begin
-  if gLiftMap = nil then Exit;
+      for b := 0 to High(gLiftMap[c]) do
+        if gLifts[gLiftMap[c, b]].LiftType <> t then
+        begin
+          with gLifts[PanelID] do
+            g_Sound_PlayExAt('SOUND_GAME_SWITCH0', X, Y);
+          Break;
+        end;}
 
-  c := -1;
-  for a := 0 to High(gLiftMap) do
-  begin
-   for b := 0 to High(gLiftMap[a]) do
-    if gLiftMap[a, b] = DWORD(PanelID) then
-    begin
-     c := a;
-     Break;
-    end;
+    for b := 0 to High(gLiftMap[c]) do
+      with gLifts[gLiftMap[c, b]] do
+        if LiftType <> t then
+        begin
+          g_Map_SetLift(gLiftMap[c, b], t);
 
-   if c <> -1 then Break;
+          Result := True;
+        end;
   end;
-  if c = -1 then Exit;
-
-  {if not NoSound then
-   for b := 0 to High(gLiftMap[c]) do
-    if gLifts[gLiftMap[c, b]].LiftType <> t then
-    begin
-     with gLifts[PanelID] do
-      g_Sound_PlayExAt('SOUND_GAME_SWITCH0', X, Y);
-     Break;
-    end;}
-
-  for b := 0 to High(gLiftMap[c]) do
-   with gLifts[gLiftMap[c, b]] do
-   if LiftType <> t then
-   begin
-    g_Map_SetLift(gLiftMap[c, b], t);
-
-    Result := True;
-   end;
- end;
 end;
 
 function ActivateTrigger(var Trigger: TTrigger; actType: Byte): Boolean;
@@ -376,7 +376,6 @@ var
   i, k: Integer;
   iid: LongWord;
   coolDown: Boolean;
-
 begin
   Result := False;
   if g_Game_IsClient then
@@ -715,7 +714,6 @@ function g_Triggers_Create(Trigger: TTrigger): DWORD;
 var
   find_id: DWORD;
   fn, mapw: String;
-
 begin
 // Не создавать выход, если игра без выхода:
   if (Trigger.TriggerType = TRIGGER_EXIT) and
@@ -962,40 +960,40 @@ var
   k: Byte;
   p: TPlayer;
 begin
- if gTriggers = nil then Exit;
+  if gTriggers = nil then Exit;
 
- case g_GetUIDType(UID) of
-  UID_GAME: k := 255;
-  UID_PLAYER:
-  begin
-    p := g_Player_Get(UID);
-    if p <> nil then
-      k := p.GetKeys
-    else
-      k := 0;
-  end;
-  else k := 0;
- end;
-
- Result := nil;
-
- for a := 0 to High(gTriggers) do
-  if (gTriggers[a].TriggerType <> TRIGGER_NONE) and
-     (gTriggers[a].TimeOut = 0) and
-     (not InDWArray(a, IgnoreList)) and
-     ((gTriggers[a].Keys and k) = gTriggers[a].Keys) and
-     ByteBool(gTriggers[a].ActivateType and ActivateType) then
-   if g_Collide(X, Y, Width, Height,
-                gTriggers[a].X, gTriggers[a].Y,
-                gTriggers[a].Width, gTriggers[a].Height) then
-   begin
-    gTriggers[a].ActivateUID := UID;
-    if ActivateTrigger(gTriggers[a], ActivateType) then
+  case g_GetUIDType(UID) of
+    UID_GAME: k := 255;
+    UID_PLAYER:
     begin
-     SetLength(Result, Length(Result)+1);
-     Result[High(Result)] := a;
+      p := g_Player_Get(UID);
+      if p <> nil then
+        k := p.GetKeys
+      else
+        k := 0;
     end;
-   end;
+    else k := 0;
+  end;
+
+  Result := nil;
+
+  for a := 0 to High(gTriggers) do
+    if (gTriggers[a].TriggerType <> TRIGGER_NONE) and
+       (gTriggers[a].TimeOut = 0) and
+       (not InDWArray(a, IgnoreList)) and
+       ((gTriggers[a].Keys and k) = gTriggers[a].Keys) and
+       ByteBool(gTriggers[a].ActivateType and ActivateType) then
+      if g_Collide(X, Y, Width, Height,
+         gTriggers[a].X, gTriggers[a].Y,
+         gTriggers[a].Width, gTriggers[a].Height) then
+      begin
+        gTriggers[a].ActivateUID := UID;
+        if ActivateTrigger(gTriggers[a], ActivateType) then
+        begin
+          SetLength(Result, Length(Result)+1);
+          Result[High(Result)] := a;
+        end;
+      end;
 end;
 
 procedure g_Triggers_PressL(X1, Y1, X2, Y2: Integer; UID: DWORD; ActivateType: Byte);
@@ -1004,32 +1002,32 @@ var
   k: Byte;
   p: TPlayer;
 begin
- if gTriggers = nil then Exit;
+  if gTriggers = nil then Exit;
 
- case g_GetUIDType(UID) of
-  UID_GAME: k := 255;
-  UID_PLAYER:
-  begin
-    p := g_Player_Get(UID);
-    if p <> nil then
-      k := p.GetKeys
-    else
-      k := 0;
+  case g_GetUIDType(UID) of
+    UID_GAME: k := 255;
+    UID_PLAYER:
+    begin
+      p := g_Player_Get(UID);
+      if p <> nil then
+        k := p.GetKeys
+      else
+        k := 0;
+    end;
+    else k := 0;
   end;
-  else k := 0;
- end;
 
- for a := 0 to High(gTriggers) do
-  if (gTriggers[a].TriggerType <> TRIGGER_NONE) and
-     (gTriggers[a].TimeOut = 0) and
-     ((gTriggers[a].Keys and k) = gTriggers[a].Keys) and
-     ByteBool(gTriggers[a].ActivateType and ActivateType) then
-   if g_CollideLine(x1, y1, x2, y2, gTriggers[a].X, gTriggers[a].Y,
-                    gTriggers[a].Width, gTriggers[a].Height) then
-   begin
-    gTriggers[a].ActivateUID := UID;
-    ActivateTrigger(gTriggers[a], ActivateType);
-   end;
+  for a := 0 to High(gTriggers) do
+    if (gTriggers[a].TriggerType <> TRIGGER_NONE) and
+       (gTriggers[a].TimeOut = 0) and
+       ((gTriggers[a].Keys and k) = gTriggers[a].Keys) and
+       ByteBool(gTriggers[a].ActivateType and ActivateType) then
+      if g_CollideLine(x1, y1, x2, y2, gTriggers[a].X, gTriggers[a].Y,
+         gTriggers[a].Width, gTriggers[a].Height) then
+      begin
+        gTriggers[a].ActivateUID := UID;
+        ActivateTrigger(gTriggers[a], ActivateType);
+      end;
 end;
 
 procedure g_Triggers_PressC(CX, CY: Integer; Radius: Word; UID: Word; ActivateType: Byte);
@@ -1084,39 +1082,39 @@ var
   a: Integer;
   b: Boolean;
 begin
- if gTriggers = nil then Exit;
+  if gTriggers = nil then Exit;
 
- b := False;
- for a := 0 to High(gTriggers) do
-  with gTriggers[a] do
-   if (TriggerType = TRIGGER_OPENDOOR) or
-      (TriggerType = TRIGGER_DOOR5) or
-      (TriggerType = TRIGGER_DOOR) then
-   begin
-    OpenDoor(Data.PanelID, True, Data.d2d_doors);
-    if TriggerType = TRIGGER_DOOR5 then DoorTime := 180;
-    b := True;
-   end;
+  b := False;
+  for a := 0 to High(gTriggers) do
+    with gTriggers[a] do
+      if (TriggerType = TRIGGER_OPENDOOR) or
+         (TriggerType = TRIGGER_DOOR5) or
+         (TriggerType = TRIGGER_DOOR) then
+      begin
+        OpenDoor(Data.PanelID, True, Data.d2d_doors);
+        if TriggerType = TRIGGER_DOOR5 then DoorTime := 180;
+        b := True;
+      end;
 
- if b then g_Sound_PlayEx('SOUND_GAME_DOOROPEN');
+  if b then g_Sound_PlayEx('SOUND_GAME_DOOROPEN');
 end;
 
 procedure g_Triggers_Free();
 var
   a: Integer;
 begin
- if gTriggers <> nil then
-  for a := 0 to High(gTriggers) do
-   if gTriggers[a].TriggerType = TRIGGER_SOUND then
-   begin
-    if g_Sound_Exists(gTriggers[a].Data.SoundName) then
-     g_Sound_Delete(gTriggers[a].Data.SoundName);
+  if gTriggers <> nil then
+    for a := 0 to High(gTriggers) do
+      if gTriggers[a].TriggerType = TRIGGER_SOUND then
+      begin
+        if g_Sound_Exists(gTriggers[a].Data.SoundName) then
+          g_Sound_Delete(gTriggers[a].Data.SoundName);
 
-    gTriggers[a].Sound.Free();
-   end;
+        gTriggers[a].Sound.Free();
+      end;
 
- gTriggers := nil;
- gSecretsCount := 0;
+  gTriggers := nil;
+  gSecretsCount := 0;
 end;
 
 procedure g_Triggers_SaveState(var Mem: TBinMemoryWriter);
@@ -1126,7 +1124,6 @@ var
   sg: Single;
   b: Boolean;
   p: Pointer;
-
 begin
 // Считаем количество существующих триггеров:
   count := 0;
@@ -1212,7 +1209,6 @@ var
   b: Boolean;
   p: Pointer;
   Trig: TTrigger;
-
 begin
   if Mem = nil then
     Exit;

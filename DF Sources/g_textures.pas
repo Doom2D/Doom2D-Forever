@@ -19,8 +19,8 @@ Type
 
   TLevelTextureArray = Array of TLevelTexture;
 
-  TAnimation = Class (TObject)
-  Private
+  TAnimation = class(TObject)
+  private
     ID:            DWORD;
     FAlpha:        Byte;
     FBlending:     Boolean;
@@ -35,7 +35,7 @@ Type
     FMinLength:    Byte;    // Ожидание после проигрывания
     FRevert:       Boolean; // Смена кадров обратная?
     
-  Public
+  public
     constructor Create(FramesID: DWORD; Loop: Boolean; Speed: Byte);
     destructor  Destroy(); override;
     procedure   Draw(X, Y: Integer; Mirror: TMirrorType);
@@ -64,7 +64,7 @@ Type
     property    FramesID: DWORD read ID;
     property    Width: Word read FWidth;
     property    Height: Word read FHeight;
-  End;
+  end;
 
 function g_Texture_CreateWAD(var ID: DWORD; Resource: String): Boolean;
 function g_Texture_CreateFile(var ID: DWORD; FileName: String): Boolean;
@@ -121,24 +121,24 @@ function FindTexture(): DWORD;
 var
   i: integer;
 begin
- if TexturesArray <> nil then
- for i := 0 to High(TexturesArray) do
-  if TexturesArray[i].Name = '' then
-  begin
-   Result := i;
-   Exit;
-  end;
+  if TexturesArray <> nil then
+  for i := 0 to High(TexturesArray) do
+    if TexturesArray[i].Name = '' then
+    begin
+      Result := i;
+      Exit;
+    end;
 
- if TexturesArray = nil then
- begin
-  SetLength(TexturesArray, 8);
-  Result := 0;
- end
+  if TexturesArray = nil then
+  begin
+    SetLength(TexturesArray, 8);
+    Result := 0;
+  end
   else
- begin
-  Result := High(TexturesArray) + 1;
-  SetLength(TexturesArray, Length(TexturesArray) + 8);
- end;
+  begin
+    Result := High(TexturesArray) + 1;
+    SetLength(TexturesArray, Length(TexturesArray) + 8);
+  end;
 end;
 
 function g_Texture_CreateWAD(var ID: DWORD; Resource: String): Boolean;
@@ -149,35 +149,34 @@ var
   ResourceName: String;
   TextureData: Pointer;
   ResourceLength: Integer;
-
 begin
- Result := False;
- g_ProcessResourceStr(Resource, FileName, SectionName, ResourceName);
+  Result := False;
+  g_ProcessResourceStr(Resource, FileName, SectionName, ResourceName);
 
- WAD := TWADEditor_1.Create;
- WAD.ReadFile(FileName);
+  WAD := TWADEditor_1.Create;
+  WAD.ReadFile(FileName);
 
- if WAD.GetResource(SectionName, ResourceName, TextureData, ResourceLength) then
- begin
-  if e_CreateTextureMem(TextureData, ID) then Result := True;
-  FreeMem(TextureData);
- end
+  if WAD.GetResource(SectionName, ResourceName, TextureData, ResourceLength) then
+  begin
+    if e_CreateTextureMem(TextureData, ID) then Result := True;
+    FreeMem(TextureData);
+  end
   else
- begin
-  e_WriteLog(Format('Error loading texture %s', [Resource]), MSG_WARNING);
-  e_WriteLog(Format('WAD Reader error: %s', [WAD.GetLastErrorStr]), MSG_WARNING);
- end;
- WAD.Free();
+  begin
+    e_WriteLog(Format('Error loading texture %s', [Resource]), MSG_WARNING);
+    e_WriteLog(Format('WAD Reader error: %s', [WAD.GetLastErrorStr]), MSG_WARNING);
+  end;
+  WAD.Free();
 end;
 
 function g_Texture_CreateFile(var ID: DWORD; FileName: String): Boolean;
 begin
- Result := True;
- if not e_CreateTexture(FileName, ID) then
- begin
-  e_WriteLog(Format('Error loading texture %s', [FileName]), MSG_WARNING);
-  Result := False;
- end;
+  Result := True;
+  if not e_CreateTexture(FileName, ID) then
+  begin
+    e_WriteLog(Format('Error loading texture %s', [FileName]), MSG_WARNING);
+    Result := False;
+  end;
 end;
 
 function g_Texture_CreateWADEx(TextureName: ShortString; Resource: String): Boolean;
@@ -190,46 +189,46 @@ var
   find_id: DWORD;
   ResourceLength: Integer;
 begin
- g_ProcessResourceStr(Resource, FileName, SectionName, ResourceName);
+  g_ProcessResourceStr(Resource, FileName, SectionName, ResourceName);
 
- find_id := FindTexture();
+  find_id := FindTexture();
 
- WAD := TWADEditor_1.Create;
- WAD.ReadFile(FileName);
+  WAD := TWADEditor_1.Create;
+  WAD.ReadFile(FileName);
 
- if WAD.GetResource(SectionName, ResourceName, TextureData, ResourceLength) then
- begin
-  Result := e_CreateTextureMem(TextureData, TexturesArray[find_id].ID);
-  FreeMem(TextureData);
-  if Result then
+  if WAD.GetResource(SectionName, ResourceName, TextureData, ResourceLength) then
   begin
-   e_GetTextureSize(TexturesArray[find_id].ID, @TexturesArray[find_id].Width,
-                    @TexturesArray[find_id].Height);
-   TexturesArray[find_id].Name := LowerCase(TextureName);
-  end;
- end
+    Result := e_CreateTextureMem(TextureData, TexturesArray[find_id].ID);
+    FreeMem(TextureData);
+    if Result then
+    begin
+      e_GetTextureSize(TexturesArray[find_id].ID, @TexturesArray[find_id].Width,
+                       @TexturesArray[find_id].Height);
+      TexturesArray[find_id].Name := LowerCase(TextureName);
+    end;
+  end
   else
- begin
-  e_WriteLog(Format('Error loading texture %s', [Resource]), MSG_WARNING);
-  e_WriteLog(Format('WAD Reader error: %s', [WAD.GetLastErrorStr]), MSG_WARNING);
-  Result := False;
- end;
- WAD.Free();
+  begin
+    e_WriteLog(Format('Error loading texture %s', [Resource]), MSG_WARNING);
+    e_WriteLog(Format('WAD Reader error: %s', [WAD.GetLastErrorStr]), MSG_WARNING);
+    Result := False;
+  end;
+  WAD.Free();
 end;
 
 function g_Texture_CreateFileEx(TextureName: ShortString; FileName: String): Boolean;
 var
   find_id: DWORD;
 begin
- find_id := FindTexture;
+  find_id := FindTexture;
 
- Result := e_CreateTexture(FileName, TexturesArray[find_id].ID);
- if Result then
- begin
-  TexturesArray[find_id].Name := LowerCase(TextureName);
-  e_GetTextureSize(TexturesArray[find_id].ID, @TexturesArray[find_id].Width,
-                   @TexturesArray[find_id].Height);
- end
+  Result := e_CreateTexture(FileName, TexturesArray[find_id].ID);
+  if Result then
+  begin
+    TexturesArray[find_id].Name := LowerCase(TextureName);
+    e_GetTextureSize(TexturesArray[find_id].ID, @TexturesArray[find_id].Width,
+                     @TexturesArray[find_id].Height);
+  end
   else e_WriteLog(Format('Error loading texture %s', [FileName]), MSG_WARNING);
 end;
 
@@ -237,79 +236,79 @@ function g_Texture_Get(TextureName: ShortString; var ID: DWORD): Boolean;
 var
   a: DWORD;
 begin
- Result := False;
+  Result := False;
  
- if TexturesArray = nil then Exit;
+  if TexturesArray = nil then Exit;
 
- if TextureName = '' then Exit;
+  if TextureName = '' then Exit;
 
- TextureName := LowerCase(TextureName);
+  TextureName := LowerCase(TextureName);
 
- for a := 0 to High(TexturesArray) do
-  if TexturesArray[a].Name = TextureName then
-  begin
-   ID := TexturesArray[a].ID;
-   Result := True;
-   Break;
-  end;
+  for a := 0 to High(TexturesArray) do
+    if TexturesArray[a].Name = TextureName then
+    begin
+      ID := TexturesArray[a].ID;
+      Result := True;
+      Break;
+    end;
 
- //if not Result then g_ConsoleAdd('Texture '+TextureName+' not found');
+  //if not Result then g_ConsoleAdd('Texture '+TextureName+' not found');
 end;
 
 procedure g_Texture_Delete(TextureName: ShortString);
 var
   a: DWORD;
 begin
- if TexturesArray = nil then Exit;
+  if TexturesArray = nil then Exit;
 
- TextureName := LowerCase(TextureName);
+  TextureName := LowerCase(TextureName);
 
- for a := 0 to High(TexturesArray) do
-  if TexturesArray[a].Name = TextureName then
-  begin
-   e_DeleteTexture(TexturesArray[a].ID);
-   TexturesArray[a].Name := '';
-   TexturesArray[a].ID := 0;
-   TexturesArray[a].Width := 0;
-   TexturesArray[a].Height := 0;
-  end;
+  for a := 0 to High(TexturesArray) do
+    if TexturesArray[a].Name = TextureName then
+    begin
+      e_DeleteTexture(TexturesArray[a].ID);
+      TexturesArray[a].Name := '';
+      TexturesArray[a].ID := 0;
+      TexturesArray[a].Width := 0;
+      TexturesArray[a].Height := 0;
+    end;
 end;
 
 procedure g_Texture_DeleteAll();
 var
   a: DWORD;
 begin
- if TexturesArray = nil then Exit;
+  if TexturesArray = nil then Exit;
 
- for a := 0 to High(TexturesArray) do
-  if TexturesArray[a].Name <> '' then
-   e_DeleteTexture(TexturesArray[a].ID);
+  for a := 0 to High(TexturesArray) do
+    if TexturesArray[a].Name <> '' then
+      e_DeleteTexture(TexturesArray[a].ID);
 
- TexturesArray := nil;
+  TexturesArray := nil;
 end;
 
 function FindFrame(): DWORD;
 var
   i: integer;
 begin
- if FramesArray <> nil then
- for i := 0 to High(FramesArray) do
-  if FramesArray[i].TexturesID = nil then
-  begin
-   Result := i;
-   Exit;
-  end;
+  if FramesArray <> nil then
+    for i := 0 to High(FramesArray) do
+      if FramesArray[i].TexturesID = nil then
+      begin
+        Result := i;
+        Exit;
+      end;
 
- if FramesArray = nil then
- begin
-  SetLength(FramesArray, 64);
-  Result := 0;
- end
+  if FramesArray = nil then
+  begin
+    SetLength(FramesArray, 64);
+    Result := 0;
+  end
   else
- begin
-  Result := High(FramesArray) + 1;
-  SetLength(FramesArray, Length(FramesArray) + 64);
- end;
+  begin
+    Result := High(FramesArray) + 1;
+    SetLength(FramesArray, Length(FramesArray) + 64);
+  end;
 end;
 
 function g_Frames_CreateFile(ID: PDWORD; Name: ShortString; FileName: String;
@@ -318,33 +317,33 @@ var
   a: Integer;
   find_id: DWORD;
 begin
- Result := False;
+  Result := False;
 
- find_id := FindFrame;
+  find_id := FindFrame;
 
- if FCount <= 2 then BackAnimation := False;
+  if FCount <= 2 then BackAnimation := False;
 
- if BackAnimation then SetLength(FramesArray[find_id].TexturesID, FCount+FCount-2)
-  else SetLength(FramesArray[find_id].TexturesID, FCount);
+  if BackAnimation then SetLength(FramesArray[find_id].TexturesID, FCount+FCount-2)
+    else SetLength(FramesArray[find_id].TexturesID, FCount);
 
- for a := 0 to FCount-1 do
-  if not e_CreateTextureEx(FileName, FramesArray[find_id].TexturesID[a],
-                           a*FWidth, 0, FWidth, FHeight) then Exit;
+  for a := 0 to FCount-1 do
+    if not e_CreateTextureEx(FileName, FramesArray[find_id].TexturesID[a],
+                             a*FWidth, 0, FWidth, FHeight) then Exit;
 
- if BackAnimation then
-  for a := 1 to FCount-2 do
-   FramesArray[find_id].TexturesID[FCount+FCount-2-a] := FramesArray[find_id].TexturesID[a];
+  if BackAnimation then
+    for a := 1 to FCount-2 do
+      FramesArray[find_id].TexturesID[FCount+FCount-2-a] := FramesArray[find_id].TexturesID[a];
 
- FramesArray[find_id].FrameWidth := FWidth;
- FramesArray[find_id].FrameHeight := FHeight;
- if Name <> '' then
-   FramesArray[find_id].Name := LowerCase(Name)
- else
-   FramesArray[find_id].Name := '<noname>';
+  FramesArray[find_id].FrameWidth := FWidth;
+  FramesArray[find_id].FrameHeight := FHeight;
+  if Name <> '' then
+    FramesArray[find_id].Name := LowerCase(Name)
+  else
+    FramesArray[find_id].Name := '<noname>';
 
- if ID <> nil then ID^ := find_id;
+  if ID <> nil then ID^ := find_id;
 
- Result := True;
+  Result := True;
 end;
 
 function CreateFramesMem(pData: Pointer; ID: PDWORD; Name: ShortString;
@@ -353,81 +352,81 @@ var
   find_id: DWORD;
   a: Integer;
 begin
- Result := False;
+  Result := False;
 
- find_id := FindFrame();
+  find_id := FindFrame();
 
- if FCount <= 2 then BackAnimation := False;
+  if FCount <= 2 then BackAnimation := False;
 
- if BackAnimation then SetLength(FramesArray[find_id].TexturesID, FCount+FCount-2)
-  else SetLength(FramesArray[find_id].TexturesID, FCount);
+  if BackAnimation then SetLength(FramesArray[find_id].TexturesID, FCount+FCount-2)
+    else SetLength(FramesArray[find_id].TexturesID, FCount);
 
- for a := 0 to FCount-1 do
-  if not e_CreateTextureMemEx(pData, FramesArray[find_id].TexturesID[a],
-                              a*FWidth, 0, FWidth, FHeight) then
-  begin
-   FreeMem(pData);
-   Exit;
-  end;
+  for a := 0 to FCount-1 do
+    if not e_CreateTextureMemEx(pData, FramesArray[find_id].TexturesID[a],
+                                a*FWidth, 0, FWidth, FHeight) then
+    begin
+      FreeMem(pData);
+      Exit;
+    end;
 
- if BackAnimation then
-  for a := 1 to FCount-2 do
-   FramesArray[find_id].TexturesID[FCount+FCount-2-a] := FramesArray[find_id].TexturesID[a];
+  if BackAnimation then
+    for a := 1 to FCount-2 do
+      FramesArray[find_id].TexturesID[FCount+FCount-2-a] := FramesArray[find_id].TexturesID[a];
 
- FramesArray[find_id].FrameWidth := FWidth;
- FramesArray[find_id].FrameHeight := FHeight;
- if Name <> '' then
-   FramesArray[find_id].Name := LowerCase(Name)
- else
-   FramesArray[find_id].Name := '<noname>';
+  FramesArray[find_id].FrameWidth := FWidth;
+  FramesArray[find_id].FrameHeight := FHeight;
+  if Name <> '' then
+    FramesArray[find_id].Name := LowerCase(Name)
+  else
+    FramesArray[find_id].Name := '<noname>';
 
- if ID <> nil then ID^ := find_id;
+  if ID <> nil then ID^ := find_id;
 
- FreeMem(pData);
+  FreeMem(pData);
 
- Result := True;
+  Result := True;
 end;
 
 function g_Frames_CreateWAD(ID: PDWORD; Name: ShortString; Resource: string;
                             FWidth, FHeight, FCount: Word; BackAnimation: Boolean = False): Boolean;
 var
- WAD: TWADEditor_1;
- FileName,
- SectionName,
- ResourceName: string;
- TextureData: Pointer;
- ResourceLength: Integer;
+  WAD: TWADEditor_1;
+  FileName,
+  SectionName,
+  ResourceName: string;
+  TextureData: Pointer;
+  ResourceLength: Integer;
 begin
- Result := False;
+  Result := False;
 
- g_ProcessResourceStr(Resource, FileName, SectionName, ResourceName);
+  g_ProcessResourceStr(Resource, FileName, SectionName, ResourceName);
 
- WAD := TWADEditor_1.Create();
- WAD.ReadFile(FileName);
+  WAD := TWADEditor_1.Create();
+  WAD.ReadFile(FileName);
 
- if not WAD.GetResource(SectionName, ResourceName, TextureData, ResourceLength) then
- begin
+  if not WAD.GetResource(SectionName, ResourceName, TextureData, ResourceLength) then
+  begin
+    WAD.Free();
+    e_WriteLog(Format('Error loading texture %s', [Resource]), MSG_WARNING);
+    e_WriteLog(Format('WAD Reader error: %s', [WAD.GetLastErrorStr]), MSG_WARNING);
+    Exit;
+  end;
+
+  if not CreateFramesMem(TextureData, ID, Name, FWidth, FHeight, FCount, BackAnimation) then
+  begin
+    WAD.Free();
+    Exit;
+  end;
+
   WAD.Free();
-  e_WriteLog(Format('Error loading texture %s', [Resource]), MSG_WARNING);
-  e_WriteLog(Format('WAD Reader error: %s', [WAD.GetLastErrorStr]), MSG_WARNING);
-  Exit;
- end;
 
- if not CreateFramesMem(TextureData, ID, Name, FWidth, FHeight, FCount, BackAnimation) then
- begin
-  WAD.Free();
-  Exit;
- end;
-
- WAD.Free();
-
- Result := True;
+  Result := True;
 end;
 
 function g_Frames_CreateMemory(ID: PDWORD; Name: ShortString; pData: Pointer;
-                              FWidth, FHeight, FCount: Word; BackAnimation: Boolean = False): Boolean;
+                               FWidth, FHeight, FCount: Word; BackAnimation: Boolean = False): Boolean;
 begin
- Result := CreateFramesMem(pData, ID, Name, FWidth, FHeight, FCount, BackAnimation);
+  Result := CreateFramesMem(pData, ID, Name, FWidth, FHeight, FCount, BackAnimation);
 end;
 
 {function g_Frames_CreateRevert(ID: PDWORD; Name: ShortString; Frames: string): Boolean;
@@ -458,36 +457,36 @@ var
   a: DWORD;
   b: Integer;
 begin
- if FramesArray = nil then Exit;
+  if FramesArray = nil then Exit;
 
- FramesName := LowerCase(FramesName);
+  FramesName := LowerCase(FramesName);
 
- for a := 0 to High(FramesArray) do
-  if FramesArray[a].Name = FramesName then
-  begin
-   if FramesArray[a].TexturesID <> nil then
-    for b := 0 to High(FramesArray[a].TexturesID) do
-     e_DeleteTexture(FramesArray[a].TexturesID[b]);
-   FramesArray[a].TexturesID := nil;
-   FramesArray[a].Name := '';
-   FramesArray[a].FrameWidth := 0;
-   FramesArray[a].FrameHeight := 0;
-  end;
+  for a := 0 to High(FramesArray) do
+    if FramesArray[a].Name = FramesName then
+    begin
+      if FramesArray[a].TexturesID <> nil then
+        for b := 0 to High(FramesArray[a].TexturesID) do
+          e_DeleteTexture(FramesArray[a].TexturesID[b]);
+      FramesArray[a].TexturesID := nil;
+      FramesArray[a].Name := '';
+      FramesArray[a].FrameWidth := 0;
+      FramesArray[a].FrameHeight := 0;
+    end;
 end;
 
 procedure g_Frames_DeleteByID(ID: DWORD);
 var
   b: Integer;
 begin
- if FramesArray = nil then Exit;
+  if FramesArray = nil then Exit;
 
- if FramesArray[ID].TexturesID <> nil then
-  for b := 0 to High(FramesArray[ID].TexturesID) do
-   e_DeleteTexture(FramesArray[ID].TexturesID[b]);
- FramesArray[ID].TexturesID := nil;
- FramesArray[ID].Name := '';
- FramesArray[ID].FrameWidth := 0;
- FramesArray[ID].FrameHeight := 0;
+  if FramesArray[ID].TexturesID <> nil then
+    for b := 0 to High(FramesArray[ID].TexturesID) do
+      e_DeleteTexture(FramesArray[ID].TexturesID[b]);
+  FramesArray[ID].TexturesID := nil;
+  FramesArray[ID].Name := '';
+  FramesArray[ID].FrameWidth := 0;
+  FramesArray[ID].FrameHeight := 0;
 end;
 
 procedure g_Frames_DeleteAll;
@@ -495,26 +494,25 @@ var
   a: DWORD;
   b: DWORD;
 begin
- if FramesArray = nil then Exit;
+  if FramesArray = nil then Exit;
 
- for a := 0 to High(FramesArray) do
-  if FramesArray[a].TexturesID <> nil then
-  begin
-   for b := 0 to High(FramesArray[a].TexturesID) do
-    e_DeleteTexture(FramesArray[a].TexturesID[b]);
-   FramesArray[a].TexturesID := nil;
-   FramesArray[a].Name := '';
-   FramesArray[a].FrameWidth := 0;
-   FramesArray[a].FrameHeight := 0;
-  end;
+  for a := 0 to High(FramesArray) do
+    if FramesArray[a].TexturesID <> nil then
+    begin
+      for b := 0 to High(FramesArray[a].TexturesID) do
+        e_DeleteTexture(FramesArray[a].TexturesID[b]);
+      FramesArray[a].TexturesID := nil;
+      FramesArray[a].Name := '';
+      FramesArray[a].FrameWidth := 0;
+      FramesArray[a].FrameHeight := 0;
+    end;
 
- FramesArray := nil;
+  FramesArray := nil;
 end;
 
 function g_Frames_Get(var ID: DWORD; FramesName: ShortString): Boolean;
 var
   a: DWORD;
-
 begin
   Result := False;
 
@@ -538,7 +536,6 @@ end;
 function g_Frames_GetTexture(var ID: DWORD; FramesName: ShortString; Frame: Word): Boolean;
 var
   a: DWORD;
-  
 begin
   Result := False;
 
@@ -564,24 +561,23 @@ function g_Frames_Exists(FramesName: string): Boolean;
 var
   a: DWORD;
 begin
- Result := False;
+  Result := False;
 
- if FramesArray = nil then Exit;
+  if FramesArray = nil then Exit;
 
- FramesName := LowerCase(FramesName);
+  FramesName := LowerCase(FramesName);
 
- for a := 0 to High(FramesArray) do
-  if FramesArray[a].Name = FramesName then
-  begin
-   Result := True;
-   Exit;
-  end;
+  for a := 0 to High(FramesArray) do
+    if FramesArray[a].Name = FramesName then
+    begin
+      Result := True;
+      Exit;
+    end;
 end;
 
 procedure DumpTextureNames();
 var
   i: Integer;
-
 begin
   e_WriteLog('BEGIN Textures:', MSG_NOTIFY);
   for i := 0 to High(TexturesArray) do
@@ -613,7 +609,7 @@ end;
 
 destructor TAnimation.Destroy;
 begin
-  Inherited;
+  inherited;
 end;
 
 procedure TAnimation.Draw(X, Y: Integer; Mirror: TMirrorType);
@@ -723,7 +719,6 @@ end;
 procedure TAnimation.SaveState(Var Mem: TBinMemoryWriter);
 var
   sig: DWORD;
-
 begin
   if Mem = nil then
     Exit;
@@ -756,7 +751,6 @@ end;
 procedure TAnimation.LoadState(Var Mem: TBinMemoryReader);
 var
   sig: DWORD;
-
 begin
   if Mem = nil then
     Exit;
@@ -789,4 +783,4 @@ begin
   Mem.ReadBoolean(FRevert);
 end;
 
-End.
+end.

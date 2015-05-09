@@ -1,11 +1,11 @@
-Unit g_phys;
+unit g_phys;
 
-Interface
+interface
 
-Uses
+uses
   e_graphics, windows;
 
-Type
+type
   PObj = ^TObj;
   TObj = record
     X, Y:    Integer;
@@ -46,9 +46,9 @@ function  z_fdec(a, b: Double): Double;
 var
   gMon: Boolean = False;
 
-Implementation
+implementation
 
-Uses
+uses
   g_map, g_basic, Math, g_player, g_console, SysUtils,
   g_sound, g_gfx, MAPDEF, g_monsters, g_game;
 
@@ -87,7 +87,6 @@ end;
 function CollidePlayers(_Obj: PObj; XInc, YInc: Integer): Boolean;
 var
   a: Integer;
-
 begin
   Result := False;
 
@@ -111,7 +110,6 @@ end;
 function CollideMonsters(Obj: PObj; XInc, YInc: Integer): Boolean;
 var
   a: Integer;
-
 begin
   Result := False;
 
@@ -305,10 +303,8 @@ var
   inwater: Boolean;
   c: Boolean;
   wtx: DWORD;
-
 label
   _move;
-  
 begin
 // Вылетел за нижнюю границу карты:
   if Obj^.Y > gMapInfo.Height+128 then
@@ -464,7 +460,6 @@ end;
 procedure g_Obj_SetSpeed(Obj: PObj; s: Integer);
 var
   m, vx, vy: Integer;
-
 begin
   //Obj^.Vel.X := Round(s*(Obj^.Vel.X/Hypot(Obj^.Vel.X, Obj^.Vel.Y)));
   //Obj^.Vel.Y := Round(s*(Obj^.Vel.Y/Hypot(Obj^.Vel.X, Obj^.Vel.Y)));
@@ -515,4 +510,3 @@ begin
 end;
 
 end.
-

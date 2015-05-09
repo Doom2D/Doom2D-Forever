@@ -8,8 +8,8 @@ uses
 function g_GetSaveName(n: Integer): String;
 function g_SaveGame(n: Integer; Name: String): Boolean;
 function g_LoadGame(n: Integer): Boolean;
-procedure Obj_SaveState(o: PObj; Var Mem: TBinMemoryWriter);
-procedure Obj_LoadState(o: PObj; Var Mem: TBinMemoryReader);
+procedure Obj_SaveState(o: PObj; var Mem: TBinMemoryWriter);
+procedure Obj_LoadState(o: PObj; var Mem: TBinMemoryReader);
 
 implementation
 
@@ -25,11 +25,9 @@ const
   END_MARKER_STRING = 'END';
   OBJ_SIGNATURE = $4A424F5F; // '_OBJ'
   
-  
-procedure Obj_SaveState(o: PObj; Var Mem: TBinMemoryWriter);
+procedure Obj_SaveState(o: PObj; var Mem: TBinMemoryWriter);
 var
   sig: DWORD;
-
 begin
   if Mem = nil then
     Exit;
@@ -54,10 +52,9 @@ begin
   Mem.WriteInt(o^.Accel.Y);
 end;
 
-procedure Obj_LoadState(o: PObj; Var Mem: TBinMemoryReader);
+procedure Obj_LoadState(o: PObj; var Mem: TBinMemoryReader);
 var
   sig: DWORD;
-
 begin
   if Mem = nil then
     Exit;
@@ -90,7 +87,6 @@ var
   bFile: TBinFileReader;
   bMem: TBinMemoryReader;
   str: String;
-
 begin
   Result := '';
   str := '';
@@ -133,7 +129,6 @@ var
   str: String;
   nPlayers: Byte;
   i, k: Integer;
-
 begin
   Result := False;
   bMem := nil;
@@ -289,7 +284,6 @@ var
   Game_TimeLimit, Game_GoalLimit: Word;
   Game_Time, Game_Options: Cardinal;
   i: Integer;
-
 begin
   Result := False;
   bMem := nil;

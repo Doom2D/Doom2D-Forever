@@ -703,50 +703,49 @@ begin
   OuterLoop := True;
   while OuterLoop do
   begin
-   while (enet_host_service(NetHost, @downloadEvent, 0) > 0) do
-   begin
-    if (downloadEvent.kind = ENET_EVENT_TYPE_RECEIVE) then
+    while (enet_host_service(NetHost, @downloadEvent, 0) > 0) do
     begin
-      Ptr := downloadEvent.packet^.data;
-
-      MID := Byte(Ptr^);
-
-      if (MID = msgId) then
+      if (downloadEvent.kind = ENET_EVENT_TYPE_RECEIVE) then
       begin
-        msgStream := TMemoryStream.Create;
-        msgStream.SetSize(downloadEvent.packet^.dataLength);
-        msgStream.WriteBuffer(Ptr^, downloadEvent.packet^.dataLength);
-        msgStream.Seek(0, soFromBeginning);
+        Ptr := downloadEvent.packet^.data;
 
-        OuterLoop := False;
-        enet_packet_destroy(downloadEvent.packet);
-        break;
+        MID := Byte(Ptr^);
+
+        if (MID = msgId) then
+        begin
+          msgStream := TMemoryStream.Create;
+          msgStream.SetSize(downloadEvent.packet^.dataLength);
+          msgStream.WriteBuffer(Ptr^, downloadEvent.packet^.dataLength);
+          msgStream.Seek(0, soFromBeginning);
+
+          OuterLoop := False;
+          enet_packet_destroy(downloadEvent.packet);
+          break;
+        end
+        else begin
+          enet_packet_destroy(downloadEvent.packet);
+        end;
       end
-      else begin
-        enet_packet_destroy(downloadEvent.packet);
-      end;
-    end
-    else
-      if (downloadEvent.kind = ENET_EVENT_TYPE_DISCONNECT) then
-      begin
-        if (downloadEvent.data <= 7) then
-          g_Console_Add(_lc[I_NET_MSG_ERROR] + _lc[I_NET_ERR_CONN] + ' ' +
+      else
+        if (downloadEvent.kind = ENET_EVENT_TYPE_DISCONNECT) then
+        begin
+          if (downloadEvent.data <= 7) then
+            g_Console_Add(_lc[I_NET_MSG_ERROR] + _lc[I_NET_ERR_CONN] + ' ' +
             _lc[TStrings_Locale(Cardinal(I_NET_DISC_NONE) + downloadEvent.data)], True);
-        OuterLoop := False;
-        Break;
-      end;
-   end;
+          OuterLoop := False;
+          Break;
+        end;
+    end;
 
-   PreventWindowFromLockUp;
+    PreventWindowFromLockUp;
 
-   e_PollKeyboard();
-   if (e_KeyBuffer[1] = $080) or (e_KeyBuffer[57] = $080) then
-   begin
-    break;
-   end;
+    e_PollKeyboard();
+    if (e_KeyBuffer[1] = $080) or (e_KeyBuffer[57] = $080) then
+    begin
+      break;
+    end;
   end;
   Result := msgStream;
 end;
 
 end.
-
