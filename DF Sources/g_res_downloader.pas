@@ -26,14 +26,9 @@ begin
             files.Add(dirName+'\'+filename);
             Exit;
           end;
-<<<<<<< HEAD
-        end else if (searchResult.Name<>'.') and (searchResult.Name<>'..') then begin
-          findFiles(IncludeTrailingPathDelimiter(dirName)+searchResult.Name, filename, files);
-=======
         end else if (searchResult.Name<>'.') and (searchResult.Name<>'..') then
         begin
-          findFiles(IncludeTrailingBackSlash(dirName)+searchResult.Name, filename, files);
->>>>>>> origin/Current
+          findFiles(IncludeTrailingPathDelimiter(dirName)+searchResult.Name, filename, files);
         end;
       until (FindNext(searchResult)<>0);
     finally

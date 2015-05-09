@@ -834,25 +834,14 @@ var
   find_id: DWORD;
   dx, dy: Integer;
 begin
-<<<<<<< HEAD
- if WID < 0 then
-  find_id := FindShot()
- else
- begin
-   find_id := WID;
-   if Integer(find_id) >= High(Shots) then
-    SetLength(Shots, find_id + 64)
- end;
-=======
   if WID < 0 then
     find_id := FindShot()
   else
   begin
     find_id := WID;
-    if (find_id >= High(Shots)) then
+    if Integer(find_id) >= High(Shots) then
       SetLength(Shots, find_id + 64)
   end;
->>>>>>> origin/Current
 
   with Shots[find_id] do
   begin
@@ -881,25 +870,14 @@ var
   find_id, FramesID: DWORD;
   dx, dy: Integer;
 begin
-<<<<<<< HEAD
- if WID < 0 then
-  find_id := FindShot()
- else
- begin
-   find_id := WID;
-   if Integer(find_id) >= High(Shots) then
-    SetLength(Shots, find_id + 64)
- end;
-=======
   if WID < 0 then
     find_id := FindShot()
   else
   begin
-    find_id := WID;
-    if (find_id >= High(Shots)) then
-      SetLength(Shots, find_id + 64)
+   find_id := WID;
+   if Integer(find_id) >= High(Shots) then
+     SetLength(Shots, find_id + 64)
   end;
->>>>>>> origin/Current
 
   with Shots[find_id] do
   begin
@@ -929,25 +907,14 @@ var
   find_id, FramesID: DWORD;
   dx, dy: Integer;
 begin
-<<<<<<< HEAD
- if WID < 0 then
-  find_id := FindShot()
- else
- begin
-   find_id := WID;
-   if Integer(find_id) >= High(Shots) then
-    SetLength(Shots, find_id + 64);
- end;
-=======
   if WID < 0 then
     find_id := FindShot()
   else
   begin
     find_id := WID;
-    if (find_id >= High(Shots)) then
+    if Integer(find_id) >= High(Shots) then
       SetLength(Shots, find_id + 64);
   end;
->>>>>>> origin/Current
 
   with Shots[find_id] do
   begin
@@ -976,25 +943,14 @@ var
   find_id, FramesID: DWORD;
   dx, dy: Integer;
 begin
-<<<<<<< HEAD
- if WID < 0 then
-  find_id := FindShot()
- else
- begin
-   find_id := WID;
-   if Integer(find_id) >= High(Shots) then
-    SetLength(Shots, find_id + 64)
- end;
-=======
   if WID < 0 then
-    find_id := FindShot()
+   find_id := FindShot()
   else
   begin
-    find_id := WID;
-    if (find_id >= High(Shots)) then
-      SetLength(Shots, find_id + 64)
+   find_id := WID;
+   if Integer(find_id) >= High(Shots) then
+     SetLength(Shots, find_id + 64)
   end;
->>>>>>> origin/Current
 
   with Shots[find_id] do
   begin
@@ -1023,25 +979,14 @@ var
   find_id, FramesID: DWORD;
   dx, dy: Integer;
 begin
-<<<<<<< HEAD
- if WID < 0 then
-  find_id := FindShot()
- else
- begin
-   find_id := WID;
-   if Integer(find_id) >= High(Shots) then
-    SetLength(Shots, find_id + 64)
- end;
-=======
   if WID < 0 then
     find_id := FindShot()
   else
   begin
     find_id := WID;
-    if (find_id >= High(Shots)) then
+    if Integer(find_id) >= High(Shots) then
       SetLength(Shots, find_id + 64)
   end;
->>>>>>> origin/Current
 
   with Shots[find_id] do
   begin
@@ -1070,25 +1015,14 @@ var
   find_id, FramesID: DWORD;
   dx, dy: Integer;
 begin
-<<<<<<< HEAD
- if WID < 0 then
-  find_id := FindShot()
- else
- begin
-   find_id := WID;
-   if Integer(find_id) >= High(Shots) then
-    SetLength(Shots, find_id + 64)
- end;
-=======
   if WID < 0 then
     find_id := FindShot()
   else
   begin
     find_id := WID;
-    if (find_id >= High(Shots)) then
+    if Integer(find_id) >= High(Shots) then
       SetLength(Shots, find_id + 64)
   end;
->>>>>>> origin/Current
 
   with Shots[find_id] do
   begin
@@ -1117,25 +1051,14 @@ var
   find_id, FramesID: DWORD;
   dx, dy: Integer;
 begin
-<<<<<<< HEAD
- if WID < 0 then
-  find_id := FindShot()
- else
- begin
-   find_id := WID;
-   if Integer(find_id) >= High(Shots) then
-    SetLength(Shots, find_id + 64)
- end;
-=======
   if WID < 0 then
     find_id := FindShot()
   else
   begin
     find_id := WID;
-    if (find_id >= High(Shots)) then
+    if Integer(find_id) >= High(Shots) then
       SetLength(Shots, find_id + 64)
   end;
->>>>>>> origin/Current
 
   with Shots[find_id] do
   begin
@@ -1164,25 +1087,14 @@ var
   find_id, FramesID: DWORD;
   dx, dy: Integer;
 begin
-<<<<<<< HEAD
- if WID < 0 then
-  find_id := FindShot()
- else
- begin
-   find_id := WID;
-   if Integer(find_id) >= High(Shots) then
-    SetLength(Shots, find_id + 64)
- end;
-=======
   if WID < 0 then
     find_id := FindShot()
   else
   begin
     find_id := WID;
-    if (find_id >= High(Shots)) then
+    if Integer(find_id) >= High(Shots) then
       SetLength(Shots, find_id + 64)
   end;
->>>>>>> origin/Current
 
   with Shots[find_id] do
   begin
@@ -1211,25 +1123,14 @@ var
   find_id, FramesID: DWORD;
   dx, dy: Integer;
 begin
-<<<<<<< HEAD
- if WID < 0 then
-  find_id := FindShot()
- else
- begin
-   find_id := WID;
-   if Integer(find_id) >= High(Shots) then
-    SetLength(Shots, find_id + 64)
- end;
-=======
   if WID < 0 then
     find_id := FindShot()
   else
   begin
     find_id := WID;
-    if (find_id >= High(Shots)) then
+    if Integer(find_id) >= High(Shots) then
       SetLength(Shots, find_id + 64)
   end;
->>>>>>> origin/Current
  
   with Shots[find_id] do
   begin
