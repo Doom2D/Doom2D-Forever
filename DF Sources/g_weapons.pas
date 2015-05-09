@@ -840,7 +840,7 @@ begin
  else
  begin
    find_id := WID;
-   if find_id >= DWORD(High(Shots)) then
+   if Integer(find_id) >= High(Shots) then
     SetLength(Shots, find_id + 64)
  end;
 =======
@@ -887,7 +887,7 @@ begin
  else
  begin
    find_id := WID;
-   if find_id >= DWORD(High(Shots)) then
+   if Integer(find_id) >= High(Shots) then
     SetLength(Shots, find_id + 64)
  end;
 =======
@@ -935,7 +935,7 @@ begin
  else
  begin
    find_id := WID;
-   if find_id >= DWORD(High(Shots)) then
+   if Integer(find_id) >= High(Shots) then
     SetLength(Shots, find_id + 64);
  end;
 =======
@@ -982,7 +982,7 @@ begin
  else
  begin
    find_id := WID;
-   if find_id >= DWORD(High(Shots)) then
+   if Integer(find_id) >= High(Shots) then
     SetLength(Shots, find_id + 64)
  end;
 =======
@@ -1029,7 +1029,7 @@ begin
  else
  begin
    find_id := WID;
-   if find_id >= DWORD(High(Shots)) then
+   if Integer(find_id) >= High(Shots) then
     SetLength(Shots, find_id + 64)
  end;
 =======
@@ -1076,7 +1076,7 @@ begin
  else
  begin
    find_id := WID;
-   if find_id >= DWORD(High(Shots)) then
+   if Integer(find_id) >= High(Shots) then
     SetLength(Shots, find_id + 64)
  end;
 =======
@@ -1123,7 +1123,7 @@ begin
  else
  begin
    find_id := WID;
-   if find_id >= DWORD(High(Shots)) then
+   if Integer(find_id) >= High(Shots) then
     SetLength(Shots, find_id + 64)
  end;
 =======
@@ -1170,7 +1170,7 @@ begin
  else
  begin
    find_id := WID;
-   if find_id >= DWORD(High(Shots)) then
+   if Integer(find_id) >= High(Shots) then
     SetLength(Shots, find_id + 64)
  end;
 =======
@@ -1217,7 +1217,7 @@ begin
  else
  begin
    find_id := WID;
-   if find_id >= DWORD(High(Shots)) then
+   if Integer(find_id) >= High(Shots) then
     SetLength(Shots, find_id + 64)
  end;
 =======

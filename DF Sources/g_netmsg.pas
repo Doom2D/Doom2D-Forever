@@ -43,10 +43,13 @@ const
   NET_MSG_TSOUND = 151;
   NET_MSG_TMUSIC = 152;
 
-  NET_MSG_MAP_REQUEST = 153;
-  NET_MSG_MAP_RESPONSE = 154;
-  NET_MSG_RES_REQUEST = 155;
-  NET_MSG_RES_RESPONSE = 154;
+  NET_MSG_RCON_AUTH = 161;
+  NET_MSG_RCON_CMD = 162;
+
+  NET_MSG_MAP_REQUEST = 201;
+  NET_MSG_MAP_RESPONSE = 202;
+  NET_MSG_RES_REQUEST = 203;
+  NET_MSG_RES_RESPONSE = 204;
 
   NET_GFX_SPARK   = 1;
   NET_GFX_SPAWN   = 2;
@@ -64,7 +67,6 @@ const
   NET_CHEAT_SUICIDE  = 1;
   NET_CHEAT_SPECTATE = 2;
 
-
 // HOST MESSAGES
 
 procedure MH_RECV_Info(C: pTNetClient; P: Pointer);
@@ -73,6 +75,8 @@ procedure MH_RECV_FullStateRequest(C: pTNetClient; P: Pointer);
 function  MH_RECV_PlayerPos(C: pTNetClient; P: Pointer): Word;
 procedure MH_RECV_PlayerSettings(C: pTNetClient; P: Pointer);
 procedure MH_RECV_CheatRequest(C: pTNetClient; P: Pointer);
+procedure MH_RECV_RCONPassword(C: pTNetClient; P: Pointer);
+procedure MH_RECV_RCONCommand(C: pTNetClient; P: Pointer);
 
 // GAME
 procedure MH_SEND_Everything(CreatePlayers: Boolean = False; ID: Integer = NET_EVERYONE);
@@ -147,14 +151,16 @@ procedure MC_RECV_MonsterDelete(P: Pointer);
 // TRIGGER
 procedure MC_RECV_TriggerSound(P: Pointer);
 procedure MC_RECV_TriggerMusic(P: Pointer);
-
+// SERVICE
 procedure MC_SEND_Info(Password: string = 'ASS');
 procedure MC_SEND_Chat(Txt: string);
 procedure MC_SEND_PlayerPos();
 procedure MC_SEND_FullStateRequest();
 procedure MC_SEND_PlayerSettings();
 procedure MC_SEND_CheatRequest(Kind: Byte);
-
+procedure MC_SEND_RCONPassword(Password: string = 'ASS');
+procedure MC_SEND_RCONCommand(Cmd: string);
+// DOWNLOAD
 procedure MC_SEND_MapRequest();
 procedure MC_SEND_ResRequest(const resName: AnsiString);
 procedure MH_RECV_MapRequest(C: pTNetClient; P: Pointer);
@@ -410,6 +416,33 @@ begin
 
   MH_SEND_PlayerSettings(Pl.UID);
 end;
+procedure MH_RECV_RCONPassword(C: pTNetClient; P: Pointer);
+var
+  Pwd: string;
+begin
+  if not NetAllowRCON then Exit;
+  Pwd := e_Raw_Read_String(P);
+  if Pwd = NetRCONPassword then
+  begin
+    C^.RCONAuth := True;
+    MH_SEND_Chat(_lc[I_NET_RCON_PWD_VALID], C^.ID);
+  end
+  else
+    MH_SEND_Chat(_lc[I_NET_RCON_PWD_INVALID], C^.ID);
+end;
+procedure MH_RECV_RCONCommand(C: pTNetClient; P: Pointer);
+var
+  Cmd: string;
+begin
+  if not NetAllowRCON then Exit;
+  if not C^.RCONAuth then
+  begin
+    MH_SEND_Chat(_lc[I_NET_RCON_NOAUTH], C^.ID);
+    Exit;
+  end;
+  Cmd := e_Raw_Read_String(P);
+  g_Console_Process(Cmd);
+end;
 
 // GAME (SEND)
 
@@ -546,15 +579,29 @@ begin
 end;
 
 procedure MH_SEND_Chat(Txt: string; ID: Integer = NET_EVERYONE);
+var
+  P: TPlayer;
 begin
   e_Buffer_Write(@NetOut, Byte(NET_MSG_CHAT));
   e_Buffer_Write(@NetOut, Txt);
 
   g_Net_Host_Send(ID, True, NET_CHAN_CHAT);
 
+  if ID <> NET_EVERYONE then
+  begin
+    if (ID >= Low(NetClients)) and (ID <= High(NetClients))
+       and NetClients[ID].Used and (NetClients[ID].Player <> 0) then
+    begin
+      P := g_Player_Get(NetClients[ID].Player);
+      if P = nil then Exit;
+      g_Console_Add('-> ' + P.Name + ': ' + Txt, True);
+      e_WriteLog('[-> ' + P.Name + '] ' + Txt, MSG_NOTIFY);
+    end;
+    Exit;
+  end;
+  
   g_Console_Add(Txt, True);
   e_WriteLog('[Chat] ' + Txt, MSG_NOTIFY);
-
   g_Sound_PlayEx('SOUND_GAME_RADIO');
 end;
 
@@ -2065,6 +2112,22 @@ begin
 
   g_Net_Client_Send(True, NET_CHAN_IMPORTANT);
 end;
+procedure MC_SEND_RCONPassword(Password: string = 'ASS');
+begin
+  e_Buffer_Write(@NetOut, Byte(NET_MSG_RCON_AUTH));
+  e_Buffer_Write(@NetOut, Password);
+
+  g_Net_Client_Send(True, NET_CHAN_SERVICE);
+end;
+procedure MC_SEND_RCONCommand(Cmd: string);
+begin
+  e_Buffer_Write(@NetOut, Byte(NET_MSG_RCON_CMD));
+  e_Buffer_Write(@NetOut, Cmd);
+
+  g_Net_Client_Send(True, NET_CHAN_SERVICE);
+end;
+
+// i have no idea why all this stuff is in here
 
 function ReadFile(const FileName: TFileName): AByte;
 var
@@ -2211,7 +2274,7 @@ begin
   peer := NetClients[C.ID].Peer;
 
   MapDataMsgToBytes(payload, mapDataMsg);
-  g_Net_SendData(payload, peer, True, NET_CHAN_IMPORTANT);
+  g_Net_SendData(payload, peer, True, NET_CHAN_DOWNLOAD);
 
   payload := nil;
   mapDataMsg.FileData := nil;
@@ -2242,7 +2305,7 @@ begin
     resDataMsg.FileSize := Length(resDataMsg.FileData);
 
     ResDataMsgToBytes(payload, resDataMsg);
-    g_Net_SendData(payload, peer, True, NET_CHAN_IMPORTANT);
+    g_Net_SendData(payload, peer, True, NET_CHAN_DOWNLOAD);
   end;
 end;
 

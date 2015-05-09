@@ -106,6 +106,10 @@ begin
     NET_MSG_PLRPOS: MH_RECV_PlayerPos(S, B);
     NET_MSG_PLRSET: MH_RECV_PlayerSettings(S, B);
     NET_MSG_CHEAT:  MH_RECV_CheatRequest(S, B);
+
+    NET_MSG_RCON_AUTH: MH_RECV_RCONPassword(S, B);
+    NET_MSG_RCON_CMD:  MH_RECV_RCONCommand(S, B);
+    
     NET_MSG_MAP_REQUEST: MH_RECV_MapRequest(S, B);
     NET_MSG_RES_REQUEST: MH_RECV_ResRequest(S, B);
   end;
