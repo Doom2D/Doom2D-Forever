@@ -874,9 +874,9 @@ begin
     find_id := FindShot()
   else
   begin
-   find_id := WID;
-   if Integer(find_id) >= High(Shots) then
-     SetLength(Shots, find_id + 64)
+    find_id := WID;
+    if Integer(find_id) >= High(Shots) then
+      SetLength(Shots, find_id + 64)
   end;
 
   with Shots[find_id] do
@@ -944,12 +944,12 @@ var
   dx, dy: Integer;
 begin
   if WID < 0 then
-   find_id := FindShot()
+    find_id := FindShot()
   else
   begin
-   find_id := WID;
-   if Integer(find_id) >= High(Shots) then
-     SetLength(Shots, find_id + 64)
+    find_id := WID;
+    if Integer(find_id) >= High(Shots) then
+      SetLength(Shots, find_id + 64)
   end;
 
   with Shots[find_id] do

@@ -2269,7 +2269,9 @@ var
   peer: pENetPeer;
   mapDataMsg: TMapDataMsg;
 begin
-  e_WriteLog('Receive map request from ' + DecodeIPV4(C.Peer.address.host), MSG_NOTIFY);
+  e_WriteLog('NET: Received map request from ' +
+             DecodeIPV4(C.Peer.address.host), MSG_NOTIFY);
+
   mapDataMsg := CreateMapDataMsg(gGameSettings.WAD, gExternalResources);
   peer := NetClients[C.ID].Peer;
 
@@ -2289,7 +2291,9 @@ var
   resDataMsg: TResDataMsg;
 begin
   FileName := ExtractFileName(e_Raw_Read_String(P));
-  e_WriteLog('Receive resource request: ' + FileName + ' from ' + DecodeIPV4(C.Peer.address.host), MSG_NOTIFY);
+  e_WriteLog('NET: Received res request: ' + FileName +
+             ' from ' + DecodeIPV4(C.Peer.address.host), MSG_NOTIFY);
+             
   if not IsValidFilePath(FileName) then
   begin
     e_WriteLog('Invalid filename: ' + FileName, MSG_WARNING);

@@ -4,14 +4,16 @@ interface
 
 uses sysutils, Classes, md5asm, g_net, g_netmsg, g_console, g_main, e_log;
 
-function MapExist(const path, filename: string; const resMd5: TMD5Digest): string;
-function g_res_DownloadMapFromServer(const FileName: string): string;
+function MapExists(const path, filename: string; const resMd5: TMD5Digest): string;
+function g_Res_DownloadMapFromServer(const FileName: string): string;
 
 implementation
 
+uses g_language;
+
 const DOWNLOAD_DIR = 'downloads';
 
-procedure findFiles(const dirName, filename:string; var files: TStringList);
+procedure FindFiles(const dirName, filename:string; var files: TStringList);
 var
   searchResult: TSearchRec;
 begin
@@ -26,10 +28,10 @@ begin
             files.Add(dirName+'\'+filename);
             Exit;
           end;
-        end else if (searchResult.Name<>'.') and (searchResult.Name<>'..') then
-        begin
-          findFiles(IncludeTrailingPathDelimiter(dirName)+searchResult.Name, filename, files);
-        end;
+        end
+        else if (searchResult.Name<>'.') and (searchResult.Name<>'..') then
+          FindFiles(IncludeTrailingPathDelimiter(dirName)+searchResult.Name,
+                    filename, files);
       until (FindNext(searchResult)<>0);
     finally
       FindClose(searchResult);
@@ -37,7 +39,7 @@ begin
   end;
 end;
 
-function compareFile(const filename: string; const resMd5:TMD5Digest): Boolean;
+function CompareFile(const filename: string; const resMd5:TMD5Digest): Boolean;
 var
   gResHash: TMD5Digest;
 begin
@@ -50,7 +52,7 @@ begin
   Result := FileExists(path + filename) and compareFile(path + filename, resMd5)
 end;
 
-function MapExist(const path, filename: string; const resMd5: TMD5Digest): string;
+function MapExists(const path, filename: string; const resMd5: TMD5Digest): string;
 var
   res: string;
   files: TStringList;
@@ -80,7 +82,7 @@ begin
   files.Free;
 end;
 
-function saveMap(const path, filename: string; const data: array of Byte): string;
+function SaveMap(const path, filename: string; const data: array of Byte): string;
 var
   resFile: TFileStream;
 begin
@@ -98,7 +100,7 @@ begin
   end;
 end;
 
-function g_res_DownloadMapFromServer(const FileName: string): string;
+function g_Res_DownloadMapFromServer(const FileName: string): string;
 var
   msgStream: TMemoryStream;
   resStream: TFileStream;
@@ -106,26 +108,32 @@ var
   i: Integer;
   resData: TResDataMsg;
 begin
-  g_Console_Add('Map `' + FileName +'` not found. Downloading from server...');
-  e_WriteLog('Download map `' + FileName + '` from server', MSG_NOTIFY);
+  g_Console_Add(Format(_lc[I_NET_MAP_DL], [FileName]));
+  e_WriteLog('Downloading map `' + FileName + '` from server', MSG_NOTIFY);
   MC_SEND_MapRequest();
 
-  msgStream := g_net_Wait_Event(NET_MSG_MAP_RESPONSE);
+  msgStream := g_Net_Wait_Event(NET_MSG_MAP_RESPONSE);
   mapData := MapDataFromMsgStream(msgStream);
   msgStream.Free;
 
   for i:=0 to High(mapData.ExternalResources) do
   begin
-    if not ResourceExists(GameDir + '\wads\', mapData.ExternalResources[i].Name, mapData.ExternalResources[i].md5) then
+    if not ResourceExists(GameDir + '\wads\',
+                          mapData.ExternalResources[i].Name,
+                          mapData.ExternalResources[i].md5) then
     begin
-      g_Console_Add('Wad `' + mapData.ExternalResources[i].Name +'` not found. Downloading from server...');
-      e_WriteLog('Download Wad `' + mapData.ExternalResources[i].Name + '` from server', MSG_NOTIFY);
+      g_Console_Add(Format(_lc[I_NET_WAD_DL],
+                           [mapData.ExternalResources[i].Name]));
+      e_WriteLog('Downloading Wad `' + mapData.ExternalResources[i].Name +
+                 '` from server', MSG_NOTIFY);
       MC_SEND_ResRequest(mapData.ExternalResources[i].Name);
 
-      msgStream := g_net_Wait_Event(NET_MSG_RES_RESPONSE);
+      msgStream := g_Net_Wait_Event(NET_MSG_RES_RESPONSE);
       resData := ResDataFromMsgStream(msgStream);
 
-      resStream := TFileStream.Create(GameDir+'\wads\'+mapData.ExternalResources[i].Name, fmCreate);
+      resStream := TFileStream.Create(GameDir+'\wads\'+
+                                      mapData.ExternalResources[i].Name,
+                                      fmCreate);
       resStream.WriteBuffer(resData.FileData[0], resData.FileSize);
 
       resData.FileData := nil;
@@ -134,7 +142,7 @@ begin
     end;
   end;
 
-  Result := saveMap(MapsDir, FileName, mapData.FileData);
+  Result := SaveMap(MapsDir, FileName, mapData.FileData);
 end;
 
 end.

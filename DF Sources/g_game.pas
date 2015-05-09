@@ -2470,9 +2470,10 @@ begin
           gGameSettings.Options := e_Raw_Read_LongWord(Ptr);
           T := e_Raw_Read_LongWord(Ptr);
 
-          newResPath := MapExist(MapsDir, WadName, WHash);
+          newResPath := MapExists(MapsDir, WadName, WHash);
           if newResPath = '' then
           begin
+            g_Game_SetLoadingText(_lc[I_LOAD_DL_RES], 0, False);
             newResPath := g_Res_DownloadMapFromServer(WadName);
             if newResPath = '' then
             begin

@@ -9,7 +9,7 @@ const
   NET_PROTOCOL_VER = 142;
 
   NET_MAXCLIENTS = 24;
-  NET_CHANS = 9;
+  NET_CHANS = 10;
 
   NET_CHAN_SERVICE = 0;
   NET_CHAN_IMPORTANT = 1;
@@ -122,8 +122,8 @@ function  g_Net_Client_UpdateWhileLoading(): enet_size_t;
 
 function  g_Net_Client_ByName(Name: string): pTNetClient;
 
-procedure g_Net_SendData(Data:AByte; peer: pENetPeer; Reliable: Boolean; Chan: Byte = NET_CHAN_GAME);
-function  g_Net_Wait_Event(msgId: Word):TMemoryStream;
+procedure g_Net_SendData(Data:AByte; peer: pENetPeer; Reliable: Boolean; Chan: Byte = NET_CHAN_DOWNLOAD);
+function  g_Net_Wait_Event(msgId: Word): TMemoryStream;
 
 function  IpToStr(IP: LongWord): string;
 
@@ -659,7 +659,7 @@ begin
     end;
 end;
 
-procedure g_Net_SendData(Data:AByte; peer: pENetPeer; Reliable: Boolean; Chan: Byte = NET_CHAN_GAME);
+procedure g_Net_SendData(Data:AByte; peer: pENetPeer; Reliable: Boolean; Chan: Byte = NET_CHAN_DOWNLOAD);
 var
   P: pENetPacket;
   F: enet_uint32;
@@ -691,7 +691,7 @@ begin
   enet_host_flush(NetHost);
 end;
 
-function g_Net_Wait_Event(msgId: Word):TMemoryStream;
+function g_Net_Wait_Event(msgId: Word): TMemoryStream;
 var
   downloadEvent: ENetEvent;
   OuterLoop: Boolean;
