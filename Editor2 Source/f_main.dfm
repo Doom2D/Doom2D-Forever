@@ -1,6 +1,6 @@
 object MainForm: TMainForm
-  Left = 149
-  Top = 123
+  Left = 279
+  Top = 407
   AutoScroll = False
   Caption = #1056#1077#1076#1072#1082#1090#1086#1088' '#1082#1072#1088#1090' Doom 2D: Forever'
   ClientHeight = 554

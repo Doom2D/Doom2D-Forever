@@ -75,13 +75,26 @@ begin
                         Obj^.Rect.Width, Obj^.Rect.Height,
                         PANEL_LIFTUP, False) then
     Result := -1
-  else
-    if g_Map_CollidePanel(Obj^.X+Obj^.Rect.X+XInc, Obj^.Y+Obj^.Rect.Y+YInc,
+  else if g_Map_CollidePanel(Obj^.X+Obj^.Rect.X+XInc, Obj^.Y+Obj^.Rect.Y+YInc,
                           Obj^.Rect.Width, Obj^.Rect.Height,
                           PANEL_LIFTDOWN, False) then
-      Result := 1
-    else
-      Result := 0;
+    Result := 1
+  else
+    Result := 0;
+end;
+
+function CollideHorLift(Obj: PObj; XInc, YInc: Integer): Integer;
+begin
+  if g_Map_CollidePanel(Obj^.X+Obj^.Rect.X+XInc, Obj^.Y+Obj^.Rect.Y+YInc,
+                          Obj^.Rect.Width, Obj^.Rect.Height,
+                          PANEL_LIFTLEFT, False) then
+    Result := -1
+  else if g_Map_CollidePanel(Obj^.X+Obj^.Rect.X+XInc, Obj^.Y+Obj^.Rect.Y+YInc,
+                          Obj^.Rect.Width, Obj^.Rect.Height,
+                          PANEL_LIFTRIGHT, False) then
+    Result := 1
+  else
+    Result := 0;
 end;
 
 function CollidePlayers(_Obj: PObj; XInc, YInc: Integer): Boolean;
@@ -341,6 +354,23 @@ begin
         if Obj^.Vel.Y > MAX_YV then
           Obj^.Vel.Y := Obj^.Vel.Y - 1;
       end;
+  end;
+
+  case CollideHorLift(Obj, 0, 0) of
+    -1: //left
+      begin
+        Obj^.Vel.X := Obj^.Vel.X - 3; // Лифт вверх
+        if Obj^.Vel.X < -12 then
+          Obj^.Vel.X := Obj^.Vel.X + 3;
+      end;
+
+    1: //right
+      begin
+        Obj^.Vel.X := Obj^.Vel.X + 3;
+        if Obj^.Vel.X > 12 then
+          Obj^.Vel.X := Obj^.Vel.X - 3;
+      end;
+    // 0 is not needed here
   end;
 
   inwater := CollideLiquid(Obj, 0, 0);

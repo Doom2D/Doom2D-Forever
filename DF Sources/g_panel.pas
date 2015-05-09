@@ -112,6 +112,16 @@ begin
         LiftType := 1;
         SaveIt := True;
       end;
+    PANEL_LIFTLEFT:
+      begin
+        LiftType := 2;
+        SaveIt := True;
+      end;
+    PANEL_LIFTRIGHT:
+      begin
+        LiftType := 3;
+        SaveIt := True;
+      end;
   end;
 
 // Невидимая:

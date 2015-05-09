@@ -139,9 +139,7 @@ var
   len: LongWord;
   textures: TTexturesRec1Array;
   header: TMapHeaderRec_1;
-  a, b: Integer;
-  r: Byte;
-  ok: Boolean;
+  a: Integer;
   res, tsection, ssection, msection, filename, section, resource: String;
 
 begin

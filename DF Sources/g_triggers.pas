@@ -308,15 +308,25 @@ function SetLift(PanelID: Integer; d: Integer; NoSound: Boolean; d2d: Boolean): 
 var
   a, b, c, t: Integer;
 begin
+  t := 0;
   Result := False;
 
   if PanelID = -1 then Exit;
 
-  case d of
-    0: t := 0;
-    1: t := 1;
-    else t := IfThen(gLifts[PanelID].LiftType = 1, 0, 1);
-  end;
+  if (gLifts[PanelID].PanelType = PANEL_LIFTUP) or
+     (gLifts[PanelID].PanelType = PANEL_LIFTDOWN) then
+    case d of
+      0: t := 0;
+      1: t := 1;
+      else t := IfThen(gLifts[PanelID].LiftType = 1, 0, 1);
+    end
+  else if (gLifts[PanelID].PanelType = PANEL_LIFTLEFT) or
+          (gLifts[PanelID].PanelType = PANEL_LIFTRIGHT) then
+    case d of
+      0: t := 2;
+      1: t := 3;
+      else t := IfThen(gLifts[PanelID].LiftType = 2, 3, 2);
+    end;
 
   if not d2d then
   begin

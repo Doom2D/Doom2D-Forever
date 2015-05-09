@@ -2428,6 +2428,8 @@ begin
               PANEL_STEP:      e_DrawFillQuad(aX, aY, aX2, aY2, 128, 128, 128, 0);
               PANEL_LIFTUP:    e_DrawFillQuad(aX, aY, aX2, aY2, 116,  72,  36, 0);
               PANEL_LIFTDOWN:  e_DrawFillQuad(aX, aY, aX2, aY2, 116, 124,  96, 0);
+              PANEL_LIFTLEFT:    e_DrawFillQuad(aX, aY, aX2, aY2, 255-116,  255-72,  36, 0);
+              PANEL_LIFTRIGHT:  e_DrawFillQuad(aX, aY, aX2, aY2, 255-116, 255-124,  96, 0);
               PANEL_OPENDOOR:  e_DrawFillQuad(aX, aY, aX2, aY2, 100, 220,  92, 0);
               PANEL_CLOSEDOOR: e_DrawFillQuad(aX, aY, aX2, aY2, 212, 184,  64, 0);
               PANEL_BLOCKMON:  e_DrawFillQuad(aX, aY, aX2, aY2, 255,   0, 255, 0);
@@ -2500,6 +2502,7 @@ var
   res: Boolean;
 
 begin
+  j_max := 0; // shut up compiler
   case ObjectType of
     OBJECT_PANEL:
       begin
@@ -2567,7 +2570,7 @@ begin
             
     if j < 0 then
       j := j_max;
-    if j = ID then
+    if j = Integer(ID) then
       Break;
 
     case ObjectType of
@@ -2858,7 +2861,9 @@ begin
                   begin
                     for i := 0 to High(IDArray) do
                       if (gPanels[IDArray[i]].PanelType = PANEL_LIFTUP) or
-                         (gPanels[IDArray[i]].PanelType = PANEL_LIFTDOWN) then
+                         (gPanels[IDArray[i]].PanelType = PANEL_LIFTDOWN) or
+                         (gPanels[IDArray[i]].PanelType = PANEL_LIFTLEFT) or
+                         (gPanels[IDArray[i]].PanelType = PANEL_LIFTRIGHT) then
                       begin
                         gTriggers[SelectedObjects[
                           GetFirstSelected() ].ID].Data.PanelID := IDArray[i];
@@ -3010,7 +3015,9 @@ begin
                       8: Panel.PanelType := PANEL_ACID2;
                       9: Panel.PanelType := PANEL_LIFTUP;
                       10: Panel.PanelType := PANEL_LIFTDOWN;
-                      11: Panel.PanelType := PANEL_BLOCKMON;
+                      11: Panel.PanelType := PANEL_LIFTLEFT;
+                      12: Panel.PanelType := PANEL_LIFTRIGHT;
+                      13: Panel.PanelType := PANEL_BLOCKMON;
                     end;
 
                     Panel.X := Min(MousePos.X-MapOffset.X, MouseLDownPos.X-MapOffset.X);
@@ -3019,7 +3026,7 @@ begin
                     Panel.Height := Abs(MousePos.Y-MouseLDownPos.Y);
 
                   // Лифты, блокМон или отсутствие текстуры - пустая текстура:
-                    if (cbPanelType.ItemIndex in [9, 10, 11]) or
+                    if (cbPanelType.ItemIndex in [9, 10, 11, 12, 13]) or
                        (lbTextureList.ItemIndex = -1) then
                       begin
                         Panel.TextureHeight := 1;
@@ -3595,9 +3602,6 @@ end;
 
 procedure TMainForm.vleObjectPropertyGetPickList(Sender: TObject;
   const KeyName: String; Values: TStrings);
-var
-  i: Integer;
-
 begin
   if vleObjectProperty.ItemProps[KeyName].EditStyle = esPickList then
   begin
@@ -3614,6 +3618,8 @@ begin
         Values.Add(GetPanelName(PANEL_ACID2));
         Values.Add(GetPanelName(PANEL_LIFTUP));
         Values.Add(GetPanelName(PANEL_LIFTDOWN));
+        Values.Add(GetPanelName(PANEL_LIFTLEFT));
+        Values.Add(GetPanelName(PANEL_LIFTRIGHT));
         Values.Add(GetPanelName(PANEL_BLOCKMON));
       end
     else if KeyName = _lc[I_PROP_DIRECTION] then
@@ -3697,7 +3703,7 @@ begin
                   gTriggers[a].TexturePanel := -1;
 
         // Сброс ссылки на триггеры лифта:
-          if not WordBool(PanelType and (PANEL_LIFTUP or PANEL_LIFTDOWN)) then
+          if not WordBool(PanelType and (PANEL_LIFTUP or PANEL_LIFTDOWN or PANEL_LIFTLEFT or PANEL_LIFTRIGHT)) then
             if gTriggers <> nil then
               for a := 0 to High(gTriggers) do
                 if (gTriggers[a].TriggerType in [TRIGGER_LIFTUP, TRIGGER_LIFTDOWN, TRIGGER_LIFT]) and
@@ -4127,7 +4133,7 @@ begin
 
             for b := 0 to Length(CopyBuffer)-1 do
               if (CopyBuffer[b].ObjectType = OBJECT_PANEL) and
-                 (CopyBuffer[b].ID = CopyBuffer[a].Trigger.Data.PanelID) then
+                 (Integer(CopyBuffer[b].ID) = CopyBuffer[a].Trigger.Data.PanelID) then
               begin
                 CopyBuffer[a].Trigger.Data.PanelID := b;
                 ok := True;
@@ -4147,7 +4153,7 @@ begin
 
             for b := 0 to Length(CopyBuffer)-1 do
               if (CopyBuffer[b].ObjectType = OBJECT_MONSTER) and
-                 (CopyBuffer[b].ID = CopyBuffer[a].Trigger.Data.MonsterID-1) then
+                 (Integer(CopyBuffer[b].ID) = CopyBuffer[a].Trigger.Data.MonsterID-1) then
               begin
                 CopyBuffer[a].Trigger.Data.MonsterID := b+1;
                 ok := True;
@@ -4166,7 +4172,7 @@ begin
 
         for b := 0 to Length(CopyBuffer)-1 do
           if (CopyBuffer[b].ObjectType = OBJECT_PANEL) and
-             (CopyBuffer[b].ID = CopyBuffer[a].Trigger.TexturePanel) then
+             (Integer(CopyBuffer[b].ID) = CopyBuffer[a].Trigger.TexturePanel) then
           begin
             CopyBuffer[a].Trigger.TexturePanel := b;
             ok := True;
@@ -4194,7 +4200,6 @@ end;
 procedure TMainForm.aPasteObjectExecute(Sender: TObject);
 var
   a, h: Integer;
-  ID: DWORD;
   CopyBuffer: TCopyRecArray;
   res: Boolean;
   swad, ssec, sres: String;
@@ -4226,6 +4231,8 @@ begin
 
             if (Panel^.PanelType = PANEL_LIFTUP) or
                (Panel^.PanelType = PANEL_LIFTDOWN) or
+               (Panel^.PanelType = PANEL_LIFTLEFT) or
+               (Panel^.PanelType = PANEL_LIFTRIGHT) or
                (Panel^.PanelType = PANEL_BLOCKMON) or
                (Panel^.TextureName = '') then
               begin // Нет или не может быть текстуры:

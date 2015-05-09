@@ -61,6 +61,8 @@ var
 begin
   Inherited;
 
+  res := FMOD_OK;
+
   try
     res := FMOD_System_Create(F_System);
     if res <> FMOD_OK then

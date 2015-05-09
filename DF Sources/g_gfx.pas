@@ -33,9 +33,11 @@ const
   MARK_LIFTDOWN = 8;
   MARK_LIFTUP   = 16;
   MARK_DOOR     = 32;
+  MARK_LIFTLEFT  = 64;
+  MARK_LIFTRIGHT = 128;
   MARK_BLOCKED  = MARK_WALL + MARK_DOOR;
   MARK_LIQUID   = MARK_WATER + MARK_ACID;
-  MARK_LIFT     = MARK_LIFTDOWN + MARK_LIFTUP;
+  MARK_LIFT     = MARK_LIFTDOWN + MARK_LIFTUP + MARK_LIFTLEFT + MARK_LIFTRIGHT;
 
 var
   gCollideMap: Array of Array of Byte;
@@ -172,10 +174,14 @@ begin
       begin
         g_Mark(X, Y, Width, Height, MARK_LIFT, False);
 
-        if LiftType = 1 then
+        if LiftType = 0 then
+          g_Mark(X, Y, Width, Height, MARK_LIFTUP, True)
+        else if LiftType = 1 then
           g_Mark(X, Y, Width, Height, MARK_LIFTDOWN, True)
-        else
-          g_Mark(X, Y, Width, Height, MARK_LIFTUP, True);
+        else if LiftType = 2 then
+          g_Mark(X, Y, Width, Height, MARK_LIFTLEFT, True)
+        else if LiftType = 3 then
+          g_Mark(X, Y, Width, Height, MARK_LIFTRIGHT, True)
       end;
   end;
 

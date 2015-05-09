@@ -325,7 +325,7 @@ begin
       panels := @gAcid2;
     PANEL_STEP:
       panels := @gSteps;
-    PANEL_LIFTUP, PANEL_LIFTDOWN:
+    PANEL_LIFTUP, PANEL_LIFTDOWN, PANEL_LIFTLEFT, PANEL_LIFTRIGHT:
       panels := @gLifts;
     PANEL_BLOCKMON:
       panels := @gBlockMon;
@@ -1608,14 +1608,16 @@ begin
         end;
     end;
 
-  if WordBool(PanelType and (PANEL_LIFTUP or PANEL_LIFTDOWN)) then
+  if WordBool(PanelType and (PANEL_LIFTUP or PANEL_LIFTDOWN or PANEL_LIFTLEFT or PANEL_LIFTRIGHT)) then
     if gLifts <> nil then
     begin
       h := High(gLifts);
 
       for a := 0 to h do
         if ((WordBool(PanelType and (PANEL_LIFTUP)) and (gLifts[a].LiftType = 0)) or
-           (WordBool(PanelType and (PANEL_LIFTDOWN)) and (gLifts[a].LiftType = 1))) and
+           (WordBool(PanelType and (PANEL_LIFTDOWN)) and (gLifts[a].LiftType = 1)) or
+           (WordBool(PanelType and (PANEL_LIFTLEFT)) and (gLifts[a].LiftType = 2)) or
+           (WordBool(PanelType and (PANEL_LIFTRIGHT)) and (gLifts[a].LiftType = 3))) and
            g_Collide(X, Y, Width, Height,
            gLifts[a].X, gLifts[a].Y,
            gLifts[a].Width, gLifts[a].Height) then
@@ -1752,10 +1754,14 @@ begin
 
     g_Mark(X, Y, Width, Height, MARK_LIFT, False);
 
-    if LiftType = 1 then
+    if LiftType = 0 then
+      g_Mark(X, Y, Width, Height, MARK_LIFTUP, True)
+    else if LiftType = 1 then
       g_Mark(X, Y, Width, Height, MARK_LIFTDOWN, True)
-    else
-      g_Mark(X, Y, Width, Height, MARK_LIFTUP, True);
+    else if LiftType = 2 then
+      g_Mark(X, Y, Width, Height, MARK_LIFTLEFT, True)
+    else if LiftType = 3 then
+      g_Mark(X, Y, Width, Height, MARK_LIFTRIGHT, True);
 
     if g_Game_IsServer and g_Game_IsNet then MH_SEND_PanelState(PanelType, ID);
   end;

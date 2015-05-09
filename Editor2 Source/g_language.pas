@@ -31,6 +31,8 @@ Type
     I_ARRAY_PANEL_ACID_2,
     I_ARRAY_PANEL_LIFT_UP,
     I_ARRAY_PANEL_LIFT_DOWN,
+    I_ARRAY_PANEL_LIFT_LEFT,
+    I_ARRAY_PANEL_LIFT_RIGHT,
     I_ARRAY_PANEL_BLOCKMON,
 
     I_ARRAY_ITEM_MEDKIT,
@@ -498,7 +500,7 @@ Var
   DirNames: Array [D_LEFT..D_RIGHT] of String;
   DirNamesAdv: Array [0..3] of String;
   DirButtonNames: Array [1..4] of String;
-  PANELNAMES: Array[0..11] of String;
+  PANELNAMES: Array[0..13] of String;
   ItemNames: Array [ITEM_MEDKIT_SMALL..ITEM_HELMET] of String;
   MonsterNames: Array [MONSTER_DEMON..MONSTER_MAN] of String;
   AreaNames: Array [AREA_PLAYERPOINT1..AREA_BLUETEAMPOINT] of String;
@@ -566,6 +568,10 @@ Const
                                        'Лифт вверх'),
     ('ARRAY PANEL LIFT DOWN',          'Lift Down',
                                        'Лифт вниз'),
+    ('ARRAY PANEL LIFT LEFT',          'Lift Left',
+                                       'Поток влево'),
+    ('ARRAY PANEL LIFT RIGHT',         'Lift Right',
+                                       'Поток вправо'),
     ('ARRAY PANEL BLOCKMON',           'Monster Boundary',
                                        'Блокиратор монстров'),
 
@@ -1466,7 +1472,9 @@ begin
   PANELNAMES[8] := _lc[I_ARRAY_PANEL_ACID_2];
   PANELNAMES[9] := _lc[I_ARRAY_PANEL_LIFT_UP];
   PANELNAMES[10] := _lc[I_ARRAY_PANEL_LIFT_DOWN];
-  PANELNAMES[11] := _lc[I_ARRAY_PANEL_BLOCKMON];
+  PANELNAMES[11] := _lc[I_ARRAY_PANEL_LIFT_LEFT];
+  PANELNAMES[12] := _lc[I_ARRAY_PANEL_LIFT_RIGHT];
+  PANELNAMES[13] := _lc[I_ARRAY_PANEL_BLOCKMON];
 
 // Названия предметов:
   ItemNames[ITEM_MEDKIT_SMALL] := _lc[I_ARRAY_ITEM_MEDKIT];
@@ -1563,7 +1571,7 @@ begin
   with MainForm do
   begin
     cbPanelType.Items.Clear();
-    for i := 0 to 11 do
+    for i := 0 to High(PANELNAMES) do
       cbPanelType.Items.Add(PANELNAMES[i]);
     cbPanelType.ItemIndex := 0;
 
@@ -2053,7 +2061,6 @@ begin
                 if g_lang_default[i][1] = key then
                 begin
                   _lc[i] := value;
-                  ok := True;
                   Break;
                 end;
               end;

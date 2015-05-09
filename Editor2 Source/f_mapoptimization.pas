@@ -147,7 +147,7 @@ procedure TMapOptimizationForm.bBeginPanelsOptimizationClick(
 
   // Составляем список переключаемых лифтов:
     list := nil;
-    if WordBool(PanelsType and (PANEL_LIFTUP or PANEL_LIFTDOWN)) then
+    if WordBool(PanelsType and (PANEL_LIFTUP or PANEL_LIFTDOWN or PANEL_LIFTLEFT or PANEL_LIFTRIGHT)) then
     begin
       SetLength(list, 32);
       n := 0;
@@ -321,7 +321,7 @@ begin
   if cbOptimizeLift.Checked then
   begin
     mOptimizationResult.Lines.Add(_lc[I_OPT_LIFTS]);
-    count := OptimizePanels(PANEL_LIFTUP)+OptimizePanels(PANEL_LIFTDOWN);
+    count := OptimizePanels(PANEL_LIFTUP)+OptimizePanels(PANEL_LIFTDOWN)+OptimizePanels(PANEL_LIFTLEFT)+OptimizePanels(PANEL_LIFTRIGHT);
     mOptimizationResult.Lines.Add(_lc[I_OPT_PANELS_OPT]+' '+IntToStr(count)+#13#10);
   end;
 

@@ -557,8 +557,6 @@ end;
 
 function PanelInShownLayer(PanelType: Word): Boolean;
 begin
-  Result := True;
-
   case PanelType of
     PANEL_WALL:
       Result := LayerEnabled[LAYER_WALLS];
@@ -573,7 +571,7 @@ begin
       Result := LayerEnabled[LAYER_STEPS];
 
     PANEL_WATER, PANEL_ACID1, PANEL_ACID2,
-    PANEL_LIFTUP, PANEL_LIFTDOWN,
+    PANEL_LIFTUP, PANEL_LIFTDOWN, PANEL_LIFTLEFT, PANEL_LIFTRIGHT,
     PANEL_OPENDOOR, PANEL_CLOSEDOOR,
     PANEL_BLOCKMON:
       Result := LayerEnabled[LAYER_WATER];
@@ -936,7 +934,9 @@ begin
     PANEL_ACID2: Result := PANELNAMES[8];
     PANEL_LIFTUP: Result := PANELNAMES[9];
     PANEL_LIFTDOWN: Result := PANELNAMES[10];
-    PANEL_BLOCKMON: Result := PANELNAMES[11];
+    PANEL_LIFTLEFT: Result := PANELNAMES[11];
+    PANEL_LIFTRIGHT: Result := PANELNAMES[12];
+    PANEL_BLOCKMON: Result := PANELNAMES[13];
     else Assert(False);
   end;
 end;
@@ -968,6 +968,10 @@ begin
   else if PanelName = PANELNAMES[10] then
     Result := PANEL_LIFTDOWN
   else if PanelName = PANELNAMES[11] then
+    Result := PANEL_LIFTLEFT
+  else if PanelName = PANELNAMES[12] then
+    Result := PANEL_LIFTRIGHT
+  else if PanelName = PANELNAMES[13] then
     Result := PANEL_BLOCKMON;
 
   Assert(Result <> 0);
@@ -1131,7 +1135,7 @@ begin
 
         // Может быть текстура:
           if not WordBool(gPanels[a].PanelType and
-                          (PANEL_LIFTUP or PANEL_LIFTDOWN or PANEL_BLOCKMON)) then
+                          (PANEL_LIFTUP or PANEL_LIFTDOWN or PANEL_LIFTLEFT or PANEL_LIFTRIGHT or PANEL_BLOCKMON)) then
           begin
             if gPanels[a].Blending then
               Flags := Flags or PANEL_FLAG_BLENDING;
@@ -1990,6 +1994,17 @@ begin
                                X+MapOffset.X+Width-1, Y+MapOffset.Y+Height-1,
                                90, 154, 138, 0);
 
+            PANEL_LIFTLEFT:
+              if not PreviewMode then
+                e_DrawFillQuad(X+MapOffset.X, Y+MapOffset.Y,
+                               X+MapOffset.X+Width-1, Y+MapOffset.Y+Height-1,
+                               96, 96, 0, 0);
+
+            PANEL_LIFTRIGHT:
+              if not PreviewMode then
+                e_DrawFillQuad(X+MapOffset.X, Y+MapOffset.Y,
+                               X+MapOffset.X+Width-1, Y+MapOffset.Y+Height-1,
+                               165, 50, 100, 0);
             PANEL_BLOCKMON:
               if not PreviewMode then
                 e_DrawFillQuad(X+MapOffset.X, Y+MapOffset.Y,
@@ -2027,10 +2042,10 @@ begin
   if LayerEnabled[LAYER_BACK] or PreviewMode then
     DrawPanels(PANEL_BACK);
   if PreviewMode then
-    DrawPanels(PANEL_LIFTUP or PANEL_LIFTDOWN)
+    DrawPanels(PANEL_LIFTUP or PANEL_LIFTDOWN or PANEL_LIFTLEFT or PANEL_LIFTRIGHT)
   else
     if LayerEnabled[LAYER_WATER] then
-      DrawPanels(PANEL_LIFTUP or PANEL_LIFTDOWN or
+      DrawPanels(PANEL_LIFTUP or PANEL_LIFTDOWN or PANEL_LIFTLEFT or PANEL_LIFTRIGHT or
                  PANEL_OPENDOOR or PANEL_CLOSEDOOR or PANEL_BLOCKMON);
   if LayerEnabled[LAYER_WALLS] or PreviewMode then
     DrawPanels(PANEL_WALL);
