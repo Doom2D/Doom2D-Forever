@@ -2648,7 +2648,8 @@ end;
 
 procedure TMonster.ClientUpdate();
 var
-  sx, sy: Integer;
+  sx: Integer;
+  sy: Integer;
   st: Word;
   o: TObj;
   fall: Boolean;
@@ -2657,8 +2658,9 @@ label
   _end;
 
 begin
+  sx := 0; // SHUT UP COMPILER
+  sy := 0;
   fall := True;
-
 // Рыбы "летают" только в воде:
   if FMonsterType = MONSTER_FISH then
     if g_Obj_CollidePanel(@FObj, 0, 0, PANEL_WATER or PANEL_ACID1 or PANEL_ACID2) then

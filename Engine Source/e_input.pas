@@ -35,12 +35,12 @@ var
   ms:           TDIMOUSESTATE;
   _h_Wnd:       HWND;
 
+
 procedure e_PollMouse();
 begin
   if (GetForegroundWindow = _h_Wnd) then
     if (lpDImouse.GetDeviceState(SizeOf(TDIMOUSESTATE), @ms) <> 0) then
     begin
-      e_WriteLog('DirectInput mouse acquired', MSG_NOTIFY);
       lpDIMouse.Acquire();
       if FAILED(lpDImouse.GetDeviceState(SizeOf(TDIMOUSESTATE), @ms)) then
         Exit;
@@ -68,7 +68,6 @@ begin
   if (GetForegroundWindow() = _h_Wnd) then
     if (lpDIKeyboard.GetDeviceState(SizeOf(e_KeyBuffer), @e_KeyBuffer) <> 0) then
     begin
-      e_WriteLog('DirectInput keyboard acquired', MSG_NOTIFY);
       lpDIKeyboard.Acquire();
       if FAILED(lpDIKeyboard.GetDeviceState(SizeOf(e_KeyBuffer), @e_KeyBuffer)) then
         Exit;
@@ -100,6 +99,7 @@ begin
   lpDIKeyboard.Acquire();
 
 // Mouse:
+{  Since we don't actually need the mouse in the game, I commented this out.
   if FAILED(lpDI8.CreateDevice(GUID_SysMouse, lpDIMouse, nil)) then
     Exit;
   lpDIMouse._AddRef();
@@ -110,9 +110,9 @@ begin
   if FAILED(lpDIMouse.SetCooperativeLevel(hWnd, DISCL_FOREGROUND or DISCL_NONEXCLUSIVE)) then
     Exit;
   lpDIMouse.Acquire();
+}
 
   e_EnableInput := True;
-
   _h_Wnd := hWnd;
 
   Result := True;
@@ -127,12 +127,12 @@ begin
     lpDIKeyboard := nil;
   end;
 
-  if lpDIMouse <> nil then
+{ if lpDIMouse <> nil then
   begin
     lpDIMouse.Unacquire();
     lpDIMouse._Release();
     lpDIMouse := nil;
-  end;
+  end; }
 
   if lpDI8 <> nil then
   begin

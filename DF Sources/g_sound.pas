@@ -305,6 +305,7 @@ begin
   Result := False;
   ok := False;
 
+  // e_WriteLog('Loading sound: ' + Resource, MSG_NOTIFY);
   g_ProcessResourceStr(Resource, FileName, SectionName, ResourceName);
 
   WAD := TWADEditor_1.Create();
@@ -347,6 +348,7 @@ begin
   Result := False;
   ok := False;
 
+  // e_WriteLog('Loading sound: ' + Resource, MSG_NOTIFY);
   g_ProcessResourceStr(Resource, FileName, SectionName, ResourceName);
 
   find_id := FindSound();
@@ -445,6 +447,7 @@ var
   sm: Boolean;
 
 begin
+  Mvol := 0; // shut up, compiler
   if (gSoundLevel = SoundVol) and (gMusicLevel = MusicVol) then
     Exit;
 

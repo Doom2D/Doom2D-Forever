@@ -97,9 +97,9 @@ var
   NetPlrUID:     Integer = -1;
 
   NetInterpLevel: Integer = 1;
-  NetUpdateRate:  Integer = 27;
-  NetRelupdRate:  Integer = 140;
-  NetMasterRate:  Integer = 60000;
+  NetUpdateRate:  Cardinal = 27;
+  NetRelupdRate:  Cardinal = 140;
+  NetMasterRate:  Cardinal = 60000;
 
   NetGotEverything: Boolean = False;
 
@@ -295,7 +295,7 @@ begin
   NetMode := NET_NONE;
 
   g_Net_Cleanup;
-  e_WriteLog('Server stopped', MSG_NOTIFY);
+  e_WriteLog('NET: Server stopped', MSG_NOTIFY);
 end;
 
 
@@ -416,7 +416,7 @@ begin
         begin
           TP.Kill(K_SIMPLEKILL, 0, 0);
           g_Console_Add(Format(_lc[I_PLAYER_LEAVE], [TP.Name]), True);
-          e_WriteLog('HOST: Client ' + TP.Name + ' [' + IntToStr(ID) + '] disconnected.', MSG_NOTIFY);
+          e_WriteLog('NET: Client ' + TP.Name + ' [' + IntToStr(ID) + '] disconnected.', MSG_NOTIFY);
           g_Player_Remove(TP.UID);
         end;
 
@@ -466,7 +466,7 @@ begin
   end
   else
   begin
-    e_WriteLog('Kicked from server: ' + IntToStr(NetEvent.data), MSG_NOTIFY);
+    e_WriteLog('NET: Kicked from server: ' + IntToStr(NetEvent.data), MSG_NOTIFY);
     if (NetEvent.data <= 7) then
       g_Console_Add(_lc[I_NET_MSG] + _lc[I_NET_MSG_KICK] +
         _lc[TStrings_Locale(Cardinal(I_NET_DISC_NONE) + NetEvent.data)], True);
@@ -476,7 +476,7 @@ begin
   g_Console_Add(_lc[I_NET_MSG] + _lc[I_NET_MSG_CLIENT_DISC]);
 
   g_Net_Cleanup;
-  e_WriteLog('Disconnected', MSG_NOTIFY);
+  e_WriteLog('NET: Disconnected', MSG_NOTIFY);
 end;
 
 procedure g_Net_Client_Send(Reliable: Boolean; Chan: Byte = NET_CHAN_GAME);

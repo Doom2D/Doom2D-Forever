@@ -786,8 +786,9 @@ begin
   gMapInfo.Map := Res;
 
 // Загрузка WAD:
-  g_Game_SetLoadingText(_lc[I_LOAD_WAD_FILE], 0, False);
   g_ProcessResourceStr(Res, FileName, SectionName, ResName);
+  e_WriteLog('Loading map WAD: ' + FileName, MSG_NOTIFY);
+  g_Game_SetLoadingText(_lc[I_LOAD_WAD_FILE], 0, False);
 
   WAD := TWADEditor_1.Create();
   if not WAD.ReadFile(FileName) then
@@ -805,6 +806,7 @@ begin
   WAD.Free();
 
 // Загрузка карты:
+  e_WriteLog('Loading map: ' + ResName, MSG_NOTIFY);
   g_Game_SetLoadingText(_lc[I_LOAD_MAP], 0, False);
   MapReader := TMapReader_1.Create();
 
@@ -825,23 +827,25 @@ begin
 // Добавление текстур в Textures[]:
   if _textures <> nil then
   begin
+    e_WriteLog('  Loading textures:', MSG_NOTIFY);
     g_Game_SetLoadingText(_lc[I_LOAD_TEXTURES], High(_textures), False);
 
     for a := 0 to High(_textures) do
     begin
+      SetLength(s, 64);
+      CopyMemory(@s[1], @_textures[a].Resource[0], 64);
+      e_WriteLog('    Loading texture: ' + s, MSG_NOTIFY);
+      for b := 1 to Length(s) do
+        if s[b] = #0 then
+        begin
+          SetLength(s, b-1);
+          Break;
+        end;
     // Анимированная текстура:
       if ByteBool(_textures[a].Anim) then
         begin
           if not CreateAnimTexture(_textures[a].Resource, FileName, True) then
           begin
-            SetLength(s, 64);
-            CopyMemory(@s[1], @_textures[a].Resource[0], 64);
-            for b := 1 to Length(s) do
-              if s[b] = #0 then
-              begin
-                SetLength(s, b-1);
-                Break;
-              end;
             g_SimpleError(Format(_lc[I_GAME_ERROR_TEXTURE_ANIM], [s]));
             CreateNullTexture(_textures[a].Resource);
           end;
@@ -849,14 +853,6 @@ begin
       else // Обычная текстура:
         if not CreateTexture(_textures[a].Resource, FileName, True) then
         begin
-          SetLength(s, 64);
-          CopyMemory(@s[1], @_textures[a].Resource[0], 64);
-          for b := 1 to Length(s) do
-            if s[b] = #0 then
-            begin
-              SetLength(s, b-1);
-              Break;
-            end;
           g_SimpleError(Format(_lc[I_GAME_ERROR_TEXTURE_SIMPLE], [s]));
           CreateNullTexture(_textures[a].Resource);
         end;
@@ -866,16 +862,19 @@ begin
   end;
 
 // Загрузка триггеров:
+  e_WriteLog('  Loading triggers...', MSG_NOTIFY);
   g_Game_SetLoadingText(_lc[I_LOAD_TRIGGERS], 0, False);
   triggers := MapReader.GetTriggers();
 
 // Загрузка панелей:
+  e_WriteLog('  Loading panels...', MSG_NOTIFY);
   g_Game_SetLoadingText(_lc[I_LOAD_PANELS], 0, False);
   panels := MapReader.GetPanels();
 
 // Создание таблицы триггеров (соответствие панелей триггерам):
   if triggers <> nil then
   begin
+    e_WriteLog('  Setting up trigger table...', MSG_NOTIFY);
     SetLength(TriggersTable, Length(triggers));
     g_Game_SetLoadingText(_lc[I_LOAD_TRIGGERS_TABLE], High(TriggersTable), False);
 
@@ -903,6 +902,7 @@ begin
 // Создаем панели:
   if panels <> nil then
   begin
+    e_WriteLog('  Setting up trigger links...', MSG_NOTIFY);
     g_Game_SetLoadingText(_lc[I_LOAD_LINK_TRIGGERS], High(panels), False);
 
     for a := 0 to High(panels) do
@@ -968,7 +968,6 @@ begin
             if (k = NNF_NAME_BEFORE) or
                (k = NNF_NAME_AFTER) then
               begin
-                ok := False;
               // Пробуем добавить новую текстуру:
                 if ByteBool(texture.Anim) then
                   begin // Начальная - анимированная, ищем анимированную
@@ -1054,6 +1053,7 @@ begin
 // Если не LoadState, то создаем триггеры:
   if (triggers <> nil) and not gLoadGameMode then
   begin
+    e_WriteLog('  Creating triggers...', MSG_NOTIFY);
     g_Game_SetLoadingText(_lc[I_LOAD_CREATE_TRIGGERS], 0, False);
   // Указываем тип панели, если есть:
     for a := 0 to High(triggers) do
@@ -1067,30 +1067,35 @@ begin
   end;
 
 // Загрузка предметов:
+  e_WriteLog('  Loading triggers...', MSG_NOTIFY);
   g_Game_SetLoadingText(_lc[I_LOAD_ITEMS], 0, False);
   items := MapReader.GetItems();
 
 // Если не LoadState, то создаем предметы:
   if (items <> nil) and not gLoadGameMode then
   begin
+    e_WriteLog('  Spawning items...', MSG_NOTIFY);
     g_Game_SetLoadingText(_lc[I_LOAD_CREATE_ITEMS], 0, False);
     for a := 0 to High(items) do
       CreateItem(Items[a]);
   end;
 
 // Загрузка областей:
+  e_WriteLog('  Loading areas...', MSG_NOTIFY);
   g_Game_SetLoadingText(_lc[I_LOAD_AREAS], 0, False);
   areas := MapReader.GetAreas();
 
 // Если не LoadState, то создаем области:
   if areas <> nil then
   begin
+    e_WriteLog('  Creating areas...', MSG_NOTIFY);
     g_Game_SetLoadingText(_lc[I_LOAD_CREATE_AREAS], 0, False);
     for a := 0 to High(areas) do
       CreateArea(areas[a]);
   end;
 
 // Загрузка монстров:
+  e_WriteLog('  Loading monsters...', MSG_NOTIFY);
   g_Game_SetLoadingText(_lc[I_LOAD_MONSTERS], 0, False);
   monsters := MapReader.GetMonsters();
 
@@ -1099,12 +1104,14 @@ begin
 // Если не LoadState, то создаем монстров:
   if (monsters <> nil) and not gLoadGameMode then
   begin
+    e_WriteLog('  Spawning monsters...', MSG_NOTIFY);
     g_Game_SetLoadingText(_lc[I_LOAD_CREATE_MONSTERS], 0, False);
     for a := 0 to High(monsters) do
       CreateMonster(monsters[a]);
   end;
 
 // Загрузка описания карты:
+  e_WriteLog('  Reading map info...', MSG_NOTIFY);
   g_Game_SetLoadingText(_lc[I_LOAD_MAP_HEADER], 0, False);
   Header := MapReader.GetMapHeader();
 
@@ -1124,6 +1131,7 @@ begin
 // Загрузка неба:
   if gMapInfo.SkyName <> '' then
   begin
+    e_WriteLog('  Loading sky: ' + gMapInfo.SkyName, MSG_NOTIFY);
     g_Game_SetLoadingText(_lc[I_LOAD_SKY], 0, False);
     g_ProcessResourceStr(gMapInfo.SkyName, FileName, SectionName, ResName);
   
@@ -1148,6 +1156,7 @@ begin
   ok := False;
   if gMapInfo.MusicName <> '' then
   begin
+    e_WriteLog('  Loading music: ' + gMapInfo.MusicName, MSG_NOTIFY);
     g_Game_SetLoadingText(_lc[I_LOAD_MUSIC], 0, False);
     g_ProcessResourceStr(gMapInfo.MusicName, FileName, SectionName, ResName);
 
@@ -1196,6 +1205,7 @@ begin
   else
     gMusic.SetByName('');
 
+  e_WriteLog('Done loading map.', MSG_NOTIFY);
   Result := True;
 end;
 
@@ -1873,7 +1883,9 @@ var
   // Создаем новый список сохраняемых панелей:
     PAMem := TBinMemoryWriter.Create((Length(panels)+1) * 40);
 
-    for i := 0 to Length(panels)-1 do
+    i := 0;
+    while i < Length(panels) do
+    begin
       if panels[i].SaveIt then
       begin
       // ID панели:
@@ -1881,6 +1893,8 @@ var
       // Сохраняем панель:
         panels[i].SaveState(PAMem);
       end;
+      Inc(i);
+    end;
 
   // Сохраняем этот список панелей:
     PAMem.SaveToMemory(Mem);

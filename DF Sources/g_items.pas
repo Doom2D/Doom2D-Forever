@@ -284,7 +284,7 @@ begin
   begin
     find_id := ForcedID;
 
-    if find_id > High(gItems) then
+    if find_id > DWORD(High(gItems)) then
       SetLength(gItems, find_id + 32);
   end;
 

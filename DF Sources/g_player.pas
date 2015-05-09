@@ -266,7 +266,6 @@ Type
     procedure   SetAIFlag(fName, fValue: String20);
     function    GetAIFlag(fName: String20): String20;
     procedure   RemoveAIFlag(fName: String20);
-    function    PickItem(ItemType: Byte; force: Boolean; var remove: Boolean): Boolean; override;
     function    Healthy(): Byte;
     procedure   UpdateMove();
     procedure   UpdateCombat();
@@ -280,6 +279,7 @@ Type
     constructor Create(); override;
     destructor  Destroy(); override;
     procedure   Draw(); override;
+    function    PickItem(ItemType: Byte; force: Boolean; var remove: Boolean): Boolean; override;
     procedure   Update(); override;
     procedure   SaveState(var Mem: TBinMemoryWriter); override;
     procedure   LoadState(var Mem: TBinMemoryReader); override;
@@ -3116,7 +3116,7 @@ begin
     end;
 
     if FPhysics then
-      st := g_Obj_Move(@FObj, True, True);
+      g_Obj_Move(@FObj, True, True);
 
     Exit;
   end;
@@ -3215,7 +3215,7 @@ begin
   end;
 
   if FPhysics then
-    st := g_Obj_Move(@FObj, True, True)
+    g_Obj_Move(@FObj, True, True)
   else
   begin
     FObj.Vel.X := 0;

@@ -278,7 +278,7 @@ begin
   C^.Player := PID;
 
   g_Console_Add(Format(_lc[I_PLAYER_JOIN], [PName]), True);
-  e_WriteLog('SERVER: Client ' + PName + ' [' + IntToStr(C^.ID) +
+  e_WriteLog('NET: Client ' + PName + ' [' + IntToStr(C^.ID) +
              '] connected. Assigned player #' + IntToStr(PID) + '.', MSG_NOTIFY);
 
   MH_SEND_Info(C^.ID);
@@ -1299,7 +1299,7 @@ begin
   end;
 
   g_Console_Add(Format(_lc[I_PLAYER_JOIN], [PName]), True);
-  e_WriteLog('CLIENT: Player ' + PName + ' [' + IntToStr(PID) + '] added.', MSG_NOTIFY);
+  e_WriteLog('NET: Player ' + PName + ' [' + IntToStr(PID) + '] added.', MSG_NOTIFY);
   Result := PID;
 end;
 function MC_RECV_PlayerPos(P: Pointer): Word;
@@ -1461,7 +1461,7 @@ begin
   if Pl = nil then Exit;
 
   g_Console_Add(Format(_lc[I_PLAYER_LEAVE], [Pl.Name]), True);
-  e_WriteLog('CLIENT: Player ' + Pl.Name + ' [' + IntToStr(PID) + '] removed.', MSG_NOTIFY);
+  e_WriteLog('NET: Player ' + Pl.Name + ' [' + IntToStr(PID) + '] removed.', MSG_NOTIFY);
   
   g_Player_Remove(PID);
 

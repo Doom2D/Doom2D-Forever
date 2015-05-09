@@ -2533,28 +2533,27 @@ begin
     Color := _RGB(255, 255, 255);
     X := cx+32;
     Y := _y;
-     _y := _y+GetHeight();
+    _y := _y+GetHeight();
   end;
   with TGUILabel(Menu.AddChild(TGUILabel.Create(_lc[I_CREDITS_CLO_2], gMenuSmallFont))) do
   begin
     Color := _RGB(255, 255, 255);
     X := cx+32;
     Y := _y;
-     _y := _y+GetHeight();
+    _y := _y+GetHeight();
   end;
   with TGUILabel(Menu.AddChild(TGUILabel.Create(_lc[I_CREDITS_CLO_3], gMenuSmallFont))) do
   begin
     Color := _RGB(255, 255, 255);
     X := cx+32;
     Y := _y;
-     _y := gScreenHeight - 32;
+    _y := gScreenHeight - 32;
   end;
   with TGUILabel(Menu.AddChild(TGUILabel.Create(_lc[I_CREDITS_CLO_4], gMenuSmallFont))) do
   begin
     Color := _RGB(255, 0, 0);
     X := gScreenWidth div 2 - GetWidth() div 2;
     Y := _y;
-     _y := gScreenHeight - 32;
   end;
   g_GUI_AddWindow(Menu);
 

@@ -254,9 +254,6 @@ var
 begin
  Result := False;
 
- e_WriteLog(Format('Loading texture segment (X:%d Y:%d W:%d H:%d) from %s',
-                   [fX, fY, fWidth, fHeight, FileName]), MSG_NOTIFY);
-
  find_id := FindTexture();
 
  if not LoadTextureEx(FileName, e_Textures[find_id].ID, fX, fY, fWidth, fHeight) then Exit;
@@ -275,8 +272,6 @@ var
 begin
  Result := False;
 
- e_WriteLog('Loading texture from $'+IntToHex(Integer(pData), 8), MSG_NOTIFY);
-
  find_id := FindTexture;
 
  if not LoadTextureMem(pData, e_Textures[find_id].ID, e_Textures[find_id].Width,
@@ -292,8 +287,6 @@ var
   find_id: DWORD;
 begin
  Result := False;
-
- e_WriteLog('Loading texture segment from $'+IntToHex(Integer(pData), 8), MSG_NOTIFY);
 
  find_id := FindTexture();
 

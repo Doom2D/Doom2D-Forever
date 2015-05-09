@@ -267,7 +267,7 @@ end;
 
 Procedure TBinMemoryWriter.SaveToFile(Var aFile: File);
 var
-  nw: Integer;
+  nw: Cardinal;
 
 begin
 // Размер блока:
@@ -453,7 +453,7 @@ end;
 
 Procedure TBinMemoryReader.LoadFromFile(Var aFile: File);
 var
-  nr: Integer;
+  nr: Cardinal;
   aSize: Cardinal;
 
 begin

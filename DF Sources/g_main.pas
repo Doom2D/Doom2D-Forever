@@ -49,7 +49,7 @@ begin
   e_WriteLog(gLanguage, MSG_NOTIFY);
   g_Language_Set(gLanguage);
 
-  e_WriteLog('Call WinMain', MSG_NOTIFY);
+  e_WriteLog('Entering WinMain', MSG_NOTIFY);
   
   {$WARNINGS OFF}
   WinMain(hInstance, 0, CmdLine, CmdShow);

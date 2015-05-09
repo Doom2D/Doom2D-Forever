@@ -65,7 +65,7 @@ uses
 begin
   try
     Main();
-    e_WriteLog('Correct completion of the program.', MSG_NOTIFY);
+    e_WriteLog('Shutdown with no errors.', MSG_NOTIFY);
   except
     on E: Exception do
       e_WriteLog(Format(_lc[I_SYSTEM_ERROR_MSG], [E.Message]), MSG_FATALERROR);

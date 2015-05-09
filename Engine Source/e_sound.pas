@@ -108,7 +108,7 @@ begin
       if res = FMOD_OK then
       begin
         id := DWORD(ud^);
-        if id < Length(e_SoundsArray) then
+        if id < DWORD(Length(e_SoundsArray)) then
           if e_SoundsArray[id].nRefs > 0 then
             Dec(e_SoundsArray[id].nRefs);
       end;
@@ -124,7 +124,6 @@ var
   ver: Cardinal;
   output: FMOD_OUTPUTTYPE;
   drv: Integer;
-  str: PAnsiChar;
 
 begin
   Result := False;
@@ -132,7 +131,7 @@ begin
   res := FMOD_System_Create(F_System);
   if res <> FMOD_OK then
   begin
-    e_WriteLog('Error creating FMOD system!', MSG_FATALERROR);
+    e_WriteLog('Error creating FMOD system:', MSG_FATALERROR);
     e_WriteLog(FMOD_ErrorString(res), MSG_FATALERROR);
     Exit;
   end;
@@ -140,14 +139,14 @@ begin
   res := FMOD_System_GetVersion(F_System, ver);
   if res <> FMOD_OK then
   begin
-    e_WriteLog('Error getting FMOD version!', MSG_FATALERROR);
+    e_WriteLog('Error getting FMOD version:', MSG_FATALERROR);
     e_WriteLog(FMOD_ErrorString(res), MSG_FATALERROR);
     Exit;
   end;
 
   if ver < FMOD_VERSION then
   begin
-    e_WriteLog('FMOD version is too old! Need '+IntToStr(FMOD_VERSION), MSG_FATALERROR);
+    e_WriteLog('FMOD DLL version is too old! Need '+IntToStr(FMOD_VERSION), MSG_FATALERROR);
     Exit;
   end;
 
@@ -253,11 +252,11 @@ begin
   if not bLoop then
     res := FMOD_System_CreateSound(F_System, PAnsiChar(FileName),
              bt + FMOD_2D + FMOD_HARDWARE,
-             0, e_SoundsArray[find_id].Sound)
+             nil, e_SoundsArray[find_id].Sound)
   else
     res := FMOD_System_CreateStream(F_System, PAnsiChar(FileName),
              bt + FMOD_2D + FMOD_HARDWARE,
-             0, e_SoundsArray[find_id].Sound);
+             nil, e_SoundsArray[find_id].Sound);
   if res <> FMOD_OK then
   begin
     e_SoundsArray[find_id].Sound := nil;
@@ -293,8 +292,6 @@ var
 
 begin
   Result := False;
-
-  e_WriteLog('Loading sound from $'+IntToHex(Integer(pData), 8), MSG_NOTIFY);
 
   find_id := FindESound();
 

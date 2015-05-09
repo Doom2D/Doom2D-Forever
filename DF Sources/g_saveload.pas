@@ -95,6 +95,7 @@ begin
   Result := '';
   str := '';
   bMem := nil;
+  bFile := nil;
 
   try
   // Открываем файл сохранений:
@@ -136,6 +137,7 @@ var
 begin
   Result := False;
   bMem := nil;
+  bFile := nil;
 
   try
   // Создаем файл сохранения:
@@ -291,6 +293,7 @@ var
 begin
   Result := False;
   bMem := nil;
+  bFile := nil;
 
   try
   // Открываем файл с сохранением:

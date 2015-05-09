@@ -24,7 +24,7 @@ begin
             Exit;
           end;
         end else if (searchResult.Name<>'.') and (searchResult.Name<>'..') then begin
-          findFiles(IncludeTrailingBackSlash(dirName)+searchResult.Name, filename, files);
+          findFiles(IncludeTrailingPathDelimiter(dirName)+searchResult.Name, filename, files);
         end;
       until (FindNext(searchResult)<>0);
     finally

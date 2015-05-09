@@ -1322,7 +1322,6 @@ begin
                 if g_lang_default[i][1] = key then
                 begin
                   _lc[i] := value;
-                  ok := True;
                   Break;
                 end;
               end;

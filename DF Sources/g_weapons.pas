@@ -842,7 +842,7 @@ begin
  else
  begin
    find_id := WID;
-   if (find_id >= High(Shots)) then
+   if find_id >= DWORD(High(Shots)) then
     SetLength(Shots, find_id + 64)
  end;
 
@@ -878,7 +878,7 @@ begin
  else
  begin
    find_id := WID;
-   if (find_id >= High(Shots)) then
+   if find_id >= DWORD(High(Shots)) then
     SetLength(Shots, find_id + 64)
  end;
 
@@ -915,7 +915,7 @@ begin
  else
  begin
    find_id := WID;
-   if (find_id >= High(Shots)) then
+   if find_id >= DWORD(High(Shots)) then
     SetLength(Shots, find_id + 64);
  end;
 
@@ -951,7 +951,7 @@ begin
  else
  begin
    find_id := WID;
-   if (find_id >= High(Shots)) then
+   if find_id >= DWORD(High(Shots)) then
     SetLength(Shots, find_id + 64)
  end;
 
@@ -987,7 +987,7 @@ begin
  else
  begin
    find_id := WID;
-   if (find_id >= High(Shots)) then
+   if find_id >= DWORD(High(Shots)) then
     SetLength(Shots, find_id + 64)
  end;
 
@@ -1023,7 +1023,7 @@ begin
  else
  begin
    find_id := WID;
-   if (find_id >= High(Shots)) then
+   if find_id >= DWORD(High(Shots)) then
     SetLength(Shots, find_id + 64)
  end;
 
@@ -1059,7 +1059,7 @@ begin
  else
  begin
    find_id := WID;
-   if (find_id >= High(Shots)) then
+   if find_id >= DWORD(High(Shots)) then
     SetLength(Shots, find_id + 64)
  end;
 
@@ -1095,7 +1095,7 @@ begin
  else
  begin
    find_id := WID;
-   if (find_id >= High(Shots)) then
+   if find_id >= DWORD(High(Shots)) then
     SetLength(Shots, find_id + 64)
  end;
 
@@ -1131,7 +1131,7 @@ begin
  else
  begin
    find_id := WID;
-   if (find_id >= High(Shots)) then
+   if find_id >= DWORD(High(Shots)) then
     SetLength(Shots, find_id + 64)
  end;
  
@@ -1369,7 +1369,6 @@ begin
               g_Sound_PlayExAt('SOUND_WEAPON_PLASMAWATER', Obj.X, Obj.Y);
               if g_Game_IsServer then CheckTrap(i, 10, HIT_ELECTRO);
               ShotType := 0;
-              Loud := False;
               Continue;
             end;
 
@@ -1416,7 +1415,6 @@ begin
               g_Sound_PlayExAt('SOUND_WEAPON_BFGWATER', Obj.X, Obj.Y);
               if g_Game_IsServer then CheckTrap(i, 1000, HIT_ELECTRO);
               ShotType := 0;
-              Loud := False;
               Continue;
             end;
 

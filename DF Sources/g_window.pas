@@ -112,7 +112,7 @@ begin
     begin
       g_Console_Add(Format('Display settings changed to: %d x %d, %d bpp',
                            [dmPelsWidth, dmPelsHeight, dmBitsPerPel]));
-      e_WriteLog(Format('WinMsgs: Display settings changed to: %d x %d, %d bpp',
+      e_WriteLog(Format('[DEBUG] WinMsgs: Display settings changed to: %d x %d, %d bpp',
                         [dmPelsWidth, dmPelsHeight, dmBitsPerPel]), MSG_NOTIFY);
     end;
 
@@ -215,7 +215,7 @@ begin
               if g_debug_WinMsgs then
               begin
                 g_Console_Add('Active');
-                e_WriteLog('WinMsgs: Active', MSG_NOTIFY);
+                e_WriteLog('[DEBUG] WinMsgs: Active', MSG_NOTIFY);
               end;
 
             // Если окно было неактивным:
@@ -234,7 +234,7 @@ begin
                 if g_debug_WinMsgs then
                 begin
                   g_Console_Add('Active indeed');
-                  e_WriteLog('WinMsgs: Active indeed', MSG_NOTIFY);
+                  e_WriteLog('[DEBUG] WinMsgs: Active indeed', MSG_NOTIFY);
                 end;
 
                 gWinActive := True;
@@ -245,7 +245,7 @@ begin
               if g_debug_WinMsgs then
               begin
                 g_Console_Add('Inactive');
-                e_WriteLog('WinMsgs: Inactive', MSG_NOTIFY);
+                e_WriteLog('[DEBUG] WinMsgs: Inactive', MSG_NOTIFY);
               end;
 
             // Если окно было активным:
@@ -265,7 +265,7 @@ begin
                 if g_debug_WinMsgs then
                 begin
                   g_Console_Add('Inactive indeed');
-                  e_WriteLog('WinMsgs: Inactive indeed', MSG_NOTIFY);
+                  e_WriteLog('[DEBUG] WinMsgs: Inactive indeed', MSG_NOTIFY);
                 end;
 
                 gWinActive := False;
@@ -293,7 +293,7 @@ begin
                 if g_debug_WinMsgs then
                 begin
                   g_Console_Add('Minimized');
-                  e_WriteLog('WinMsgs: Minimized', MSG_NOTIFY);
+                  e_WriteLog('[DEBUG] WinMsgs: Minimized', MSG_NOTIFY);
                 end;
 
                 if gFullscreen then
@@ -314,7 +314,7 @@ begin
                   if g_debug_WinMsgs then
                   begin
                     g_Console_Add('Minimized indeed');
-                    e_WriteLog('WinMsgs: Minimized indeed', MSG_NOTIFY);
+                    e_WriteLog('[DEBUG] WinMsgs: Minimized indeed', MSG_NOTIFY);
                   end;
 
                   wMinimized := True;
@@ -331,7 +331,7 @@ begin
                     if g_debug_WinMsgs then
                     begin
                       g_Console_Add('Maximized');
-                      e_WriteLog('WinMsgs: Maximized', MSG_NOTIFY);
+                      e_WriteLog('[DEBUG] WinMsgs: Maximized', MSG_NOTIFY);
                     end;
 
                     if not gWinMaximized then
@@ -345,7 +345,7 @@ begin
                       if g_debug_WinMsgs then
                       begin
                         g_Console_Add('Maximized indeed');
-                        e_WriteLog('WinMsgs: Maximized indeed', MSG_NOTIFY);
+                        e_WriteLog('[DEBUG] WinMsgs: Maximized indeed', MSG_NOTIFY);
                       end;
 
                       gWinMaximized := True;
@@ -356,7 +356,7 @@ begin
                     if g_debug_WinMsgs then
                     begin
                       g_Console_Add('Restored');
-                      e_WriteLog('WinMsgs: Restored', MSG_NOTIFY);
+                      e_WriteLog('[DEBUG] WinMsgs: Restored', MSG_NOTIFY);
                     end;
 
                     if gWinMaximized then
@@ -364,7 +364,7 @@ begin
                       if g_debug_WinMsgs then
                       begin
                         g_Console_Add('No more Maximized');
-                        e_WriteLog('WinMsgs: No more Maximized', MSG_NOTIFY);
+                        e_WriteLog('[DEBUG] WinMsgs: No more Maximized', MSG_NOTIFY);
                       end;
 
                       gWinMaximized := False;
@@ -388,7 +388,7 @@ begin
                   if g_debug_WinMsgs then
                   begin
                     g_Console_Add('No more Minimized');
-                    e_WriteLog('WinMsgs: No more Minimized', MSG_NOTIFY);
+                    e_WriteLog('[DEBUG] WinMsgs: No more Minimized', MSG_NOTIFY);
                   end;
 
                   wMinimized := False;
@@ -421,7 +421,7 @@ begin
           if g_debug_WinMsgs then
           begin
             g_Console_Add('Moved');
-            e_WriteLog('WinMsgs: Moved', MSG_NOTIFY);
+            e_WriteLog('[DEBUG] WinMsgs: Moved', MSG_NOTIFY);
           end;
 
           Result := 0;

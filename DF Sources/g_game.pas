@@ -1235,7 +1235,7 @@ begin
   // Нужно сменить разрешение:
     if gResolutionChange then
     begin
-      e_WriteLog('Change resolution', MSG_NOTIFY);
+      e_WriteLog('Changing resolution', MSG_NOTIFY);
       g_Game_ChangeResolution(gRC_Width, gRC_Height, gRC_FullScreen, gRC_Maximized);
       gResolutionChange := False;
     end;
@@ -2094,7 +2094,7 @@ var
 begin
   g_Game_Free();
 
-  e_WriteLog('Starting single game...', MSG_NOTIFY);
+  e_WriteLog('Starting singleplayer game...', MSG_NOTIFY);
 
   g_Game_ClearLoading();
   g_Game_LoadData();
@@ -2415,13 +2415,12 @@ var
   State: Byte;
   OuterLoop: Boolean;
   WHash: TMD5Digest;
-  F: file;
   newResPath: string;
 begin
   g_Game_Free();
   State := 0;
 
-  e_WriteLog('Trying to connect to ' + Addr + ':' + IntToStr(Port) + '...', MSG_NOTIFY);
+  e_WriteLog('NET: Trying to connect to ' + Addr + ':' + IntToStr(Port) + '...', MSG_NOTIFY);
 
   g_Game_ClearLoading();
   g_Game_LoadData();
@@ -2568,6 +2567,7 @@ begin
   g_Player_Init();
   NetState := NET_STATE_GAME;
   MC_SEND_FullStateRequest;
+  e_WriteLog('NET: Connection successful.', MSG_NOTIFY);
 end;
 
 
