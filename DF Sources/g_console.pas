@@ -109,12 +109,7 @@ begin
         if P[1] = 'ololo' then
           gCheats := True
         else
-        begin
-          s := '';
-          for a := 1 to High(P) do
-            s := s + P[a] + ' ';
-          g_Console_Add(s);
-        end;
+          g_Console_Add(P[1]);
       end
     else
       g_Console_Add('');
@@ -223,10 +218,6 @@ begin
   AddCommand('connect', GameCommands);
   AddCommand('disconnect', GameCommands);
   AddCommand('reconnect', GameCommands);
-  AddCommand('broadcast', GameCommands);
-  AddCommand('tell', GameCommands);
-  AddCommand('rcon_password', GameCommands);
-  AddCommand('rcon', GameCommands);
   AddCommand('net_interp', GameCommands);
 
   g_Console_Add(Format(_lc[I_CONSOLE_WELCOME], [GAME_VERSION]));

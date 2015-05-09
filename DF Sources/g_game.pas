@@ -2823,7 +2823,7 @@ var
   stat: TPlayerStatArray;
   pt: TPoint;
   chstr: string;
-  pl: pTNetClient;
+  pl: TPlayer;
   prt: Word;
 begin
 // Общие команды:
@@ -2859,9 +2859,16 @@ begin
         g_Console_Add('kick name');
         Exit;
       end;
+      for a := Low(NetClients) to High(NetClients) do
+        if (NetClients[a].Used) and (NetClients[a].State = NET_STATE_GAME) then
+        begin
+          pl := g_Player_Get(NetClients[a].Player);
+          if pl = nil then continue;
+          if LowerCase(pl.Name) <> LowerCase(P[1]) then continue;
 
-      pl := g_Net_Client_ByName(P[1]);
-      if (pl <> nil) then enet_peer_disconnect(pl^.Peer, NET_DISC_KICK);
+          if NetClients[a].Peer <> nil then enet_peer_disconnect(NetClients[a].Peer, NET_DISC_KICK);
+          Break;
+        end;
     end;
 
   if LowerCase(P[0]) = 'connect' then
@@ -3315,93 +3322,6 @@ begin
         NetInterpLevel := StrToIntDef(P[1], NetInterpLevel);
 
       g_Console_Add('net_interp = ' + IntToStr(NetInterpLevel));
-    end;
-
-    if LowerCase(P[0]) = 'broadcast' then
-    begin
-      if g_Game_IsServer then
-      begin
-        if Length(P) > 1 then
-        begin
-          chstr := '';
-          for a := 1 to High(P) do
-            chstr := chstr + P[a] + ' ';
-
-          if Length(chstr) > 200 then SetLength(chstr, 200);
-
-          if Length(chstr) < 1 then
-          begin
-            g_Console_Add('broadcast text');
-            Exit;
-          end;
-
-          MH_SEND_Chat(chstr);
-        end
-        else g_Console_Add('broadcast text');
-      end;
-    end;
-
-    if LowerCase(P[0]) = 'tell' then
-    begin
-      if g_Game_IsServer then
-      begin
-        if (Length(P) > 2) and (P[1] <> '') then
-        begin
-          chstr := '';
-          for a := 2 to High(P) do
-            chstr := chstr + P[a] + ' ';
-
-          if Length(chstr) > 200 then SetLength(chstr, 200);
-
-          if Length(chstr) < 1 then
-          begin
-            g_Console_Add('tell playername text');
-            Exit;
-          end;
-
-          pl := g_Net_Client_ByName(P[1]);
-          if pl <> nil then
-            MH_SEND_Chat(chstr, pl^.ID)
-          else
-            g_Console_Add(Format(_lc[I_NET_ERR_NAME404], [P[1]]));
-        end
-        else g_Console_Add('tell playername text');
-      end;
-    end;
-
-    if (LowerCase(P[0]) = 'rcon_password') and g_Game_IsClient then
-    begin
-      if (Length(P) <= 1) then
-        g_Console_Add('rcon_password password')
-      else
-      begin
-        if P[1] = '' then P[1] := 'ASS';
-        MC_SEND_RCONPassword(P[1]);
-      end;
-    end;
-
-    if LowerCase(P[0]) = 'rcon' then
-    begin
-      if g_Game_IsClient then
-      begin
-        if Length(P) > 1 then
-        begin
-          chstr := '';
-          for a := 1 to High(P) do
-            chstr := chstr + P[a] + ' ';
-
-          if Length(chstr) > 200 then SetLength(chstr, 200);
-
-          if Length(chstr) < 1 then
-          begin
-            g_Console_Add('rcon command');
-            Exit;
-          end;
-
-          MC_SEND_RCONCommand(chstr);
-        end
-        else g_Console_Add('rcon command');
-      end;
     end;
   end;
 end;

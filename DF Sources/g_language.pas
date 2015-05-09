@@ -246,7 +246,6 @@ type
     I_NET_ERR_CONN,
     I_NET_ERR_TIMEOUT,
     I_NET_ERR_HASH,
-    I_NET_ERR_NAME404,
 
     I_NET_DISC_NONE,
     I_NET_DISC_PROTOCOL,
@@ -269,10 +268,6 @@ type
     I_NET_SLIST_DISC,
     I_NET_SLIST_LOST,
     I_NET_SLIST_ERROR,
-
-    I_NET_RCON_PWD_VALID,
-    I_NET_RCON_PWD_INVALID,
-    I_NET_RCON_NOAUTH,
 
     I_PLAYER_KILL,                    
     I_PLAYER_KILL_EXTRAHARD_1,
@@ -895,8 +890,6 @@ const
                                        'Сервер не отвечает!'),
     ('NET ERR HASH',                   'Your WAD is different from server''s!',
                                        'Ваш WAD отличается от серверного!'),
-    ('NET ERR NAME404',                'Client %s not found!',
-                                       'Игрок %s не найден!'),
 
     ('NET DISC NONE',                  'Server is down.',
                                        'Сервер не отвечает.'),
@@ -938,13 +931,6 @@ const
                                        'Соединение с мастерсервером потеряно.'),
     ('NET SLIST ERROR',                'Could not connect to masterserver.',
                                        'Не удалось соединиться с мастерсервером.'),
-
-    ('NET RCON VALID PWD',             'RCON password accepted. You can now use RCON.',
-                                       'Верный пароль. Теперь вы можете использовать RCON.'),
-    ('NET RCON INVALID PWD',           'RCON password invalid.',
-                                       'Неверный RCON-пароль.'),
-    ('NET RCON NOAUTH',                'You are not authorized to use RCON.',
-                                       'Вы не имеете права использовать RCON.'),
 
     ('PLAYER KILL',                    '*** %s was killed by %s',
                                        '*** %s был убит %s'),

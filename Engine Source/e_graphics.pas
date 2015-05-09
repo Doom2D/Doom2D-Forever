@@ -1021,7 +1021,7 @@ var
 begin
  if Text = '' then Exit;
  if e_CharFonts = nil then Exit;
- if Integer(FontID) > High(e_CharFonts) then Exit;
+ if FontID > DWORD(High(e_CharFonts)) then Exit;
 
  with e_CharFonts[FontID] do
  begin
@@ -1043,7 +1043,7 @@ var
 begin
  if Text = '' then Exit;
  if e_CharFonts = nil then Exit;
- if Integer(FontID) > High(e_CharFonts) then Exit;
+ if FontID > DWORD(High(e_CharFonts)) then Exit;
 
  with e_CharFonts[FontID] do
  begin
@@ -1079,7 +1079,7 @@ begin
 
  if Text = '' then Exit;
  if e_CharFonts = nil then Exit;
- if Integer(FontID) > High(e_CharFonts) then Exit;
+ if FontID > DWORD(High(e_CharFonts)) then Exit;
 
  with e_CharFonts[FontID] do
  begin
@@ -1101,7 +1101,7 @@ begin
  Result := 0;
 
  if e_CharFonts = nil then Exit;
- if Integer(FontID) > High(e_CharFonts) then Exit;
+ if FontID > DWORD(High(e_CharFonts)) then Exit;
 
  for a := 0 to High(e_CharFonts[FontID].Chars) do
   Result := Max(Result, e_CharFonts[FontID].Chars[a].Width);
@@ -1115,7 +1115,7 @@ begin
  Result := 0;
 
  if e_CharFonts = nil then Exit;
- if Integer(FontID) > High(e_CharFonts) then Exit;
+ if FontID > DWORD(High(e_CharFonts)) then Exit;
 
  for a := 0 to High(e_CharFonts[FontID].Chars) do
  begin

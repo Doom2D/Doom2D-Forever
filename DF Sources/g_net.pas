@@ -20,7 +20,6 @@ const
   NET_CHAN_MONSTERPOS = 6;
   NET_CHAN_LARGEDATA = 7;
   NET_CHAN_CHAT = 8;
-  NET_CHAN_DOWNLOAD = 9;
 
   NET_NONE = 0;
   NET_SERVER = 1;
@@ -51,7 +50,6 @@ type
     Peer:    pENetPeer;
     Player:  Word;
     RequestedFullUpdate: Boolean;
-    RCONAuth: Boolean;
   end;
   pTNetClient = ^TNetClient;
 
@@ -68,7 +66,7 @@ var
   NetPort:         Word = 25666;
 
   NetAllowRCON:    Boolean = False;
-  NetRCONPassword: string = 'ASS';
+  NetRCONPassword: string = 'default';
 
   NetTimeToUpdate:   Cardinal = 0;
   NetTimeToReliable: Cardinal = 0;
@@ -120,10 +118,8 @@ procedure g_Net_Client_Send(Reliable: Boolean; Chan: Byte = NET_CHAN_GAME);
 function  g_Net_Client_Update(): enet_size_t;
 function  g_Net_Client_UpdateWhileLoading(): enet_size_t;
 
-function  g_Net_Client_ByName(Name: string): pTNetClient;
-
 procedure g_Net_SendData(Data:AByte; peer: pENetPeer; Reliable: Boolean; Chan: Byte = NET_CHAN_GAME);
-function  g_Net_Wait_Event(msgId: Word):TMemoryStream;
+function g_net_Wait_Event(msgId: Word):TMemoryStream;
 
 function  IpToStr(IP: LongWord): string;
 
@@ -172,7 +168,6 @@ begin
     NetClients[N].Used := True;
     NetClients[N].ID := N;
     NetClients[N].RequestedFullUpdate := False;
-    NetClients[N].RCONAuth := False;
     NetClients[N].Player := 0;
   end;
 
@@ -390,7 +385,6 @@ begin
         NetClients[ID].Peer^.data := GetMemory(SizeOf(Byte));
         Byte(NetClients[ID].Peer^.data^) := ID;
         NetClients[ID].State := NET_STATE_AUTH;
-        NetClients[ID].RCONAuth := False;
 
         enet_peer_timeout(NetEvent.peer, ENET_PEER_TIMEOUT_LIMIT * 2, ENET_PEER_TIMEOUT_MINIMUM * 2, ENET_PEER_TIMEOUT_MAXIMUM * 2);
 
@@ -639,26 +633,6 @@ begin
   e_Raw_Seek(0);
 end;
 
-function g_Net_Client_ByName(Name: string): pTNetClient;
-var
-  a: Integer;
-  pl: TPlayer;
-begin
-  Result := nil;
-  for a := Low(NetClients) to High(NetClients) do
-    if (NetClients[a].Used) and (NetClients[a].State = NET_STATE_GAME) then
-    begin
-      pl := g_Player_Get(NetClients[a].Player);
-      if pl = nil then continue;
-      if LowerCase(pl.Name) <> LowerCase(Name) then continue;
-      if NetClients[a].Peer <> nil then
-      begin
-        Result := @NetClients[a];
-        Exit;
-      end;
-    end;
-end;
-
 procedure g_Net_SendData(Data:AByte; peer: pENetPeer; Reliable: Boolean; Chan: Byte = NET_CHAN_GAME);
 var
   P: pENetPacket;
@@ -691,7 +665,7 @@ begin
   enet_host_flush(NetHost);
 end;
 
-function g_Net_Wait_Event(msgId: Word):TMemoryStream;
+function g_net_Wait_Event(msgId: Word):TMemoryStream;
 var
   downloadEvent: ENetEvent;
   OuterLoop: Boolean;
