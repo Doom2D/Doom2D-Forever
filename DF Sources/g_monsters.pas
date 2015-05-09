@@ -1699,6 +1699,8 @@ procedure TMonster.Push(vx, vy: Integer);
 begin
   FObj.Accel.X := FObj.Accel.X + vx;
   FObj.Accel.Y := FObj.Accel.Y + vy;
+  if g_Game_IsServer and g_Game_IsNet then
+    MH_SEND_MonsterPos(FUID);
 end;
 
 procedure TMonster.SetState(State: Byte; ForceAnim: Byte = 255);

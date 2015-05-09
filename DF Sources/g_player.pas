@@ -2512,6 +2512,8 @@ procedure TPlayer.Push(vx, vy: Integer);
 begin
   FObj.Accel.X := FObj.Accel.X + vx;
   FObj.Accel.Y := FObj.Accel.Y + vy;
+  if g_Game_IsNet and g_Game_IsServer then
+    MH_SEND_PlayerPos(True, FUID, NET_EVERYONE);
 end;
 
 procedure TPlayer.Reset(Force: Boolean);

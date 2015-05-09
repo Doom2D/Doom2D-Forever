@@ -119,6 +119,7 @@ Type
     I_ARRAY_TR_SPAWN_MONSTER,
     I_ARRAY_TR_SPAWN_ITEM,
     I_ARRAY_TR_MUSIC,
+    I_ARRAY_TR_PUSH,
     
     I_PROP_ID,
     I_PROP_X,
@@ -171,6 +172,8 @@ Type
     I_PROP_TR_MUSIC_ACT,
     I_PROP_TR_MUSIC_ON,
     I_PROP_TR_MUSIC_OFF,
+    I_PROP_TR_PUSH_ANGLE,
+    I_PROP_TR_PUSH_FORCE,
 
     I_MSG_ERROR,
     I_MSG_WRONG_TEXWIDTH,
@@ -504,7 +507,7 @@ Var
   ItemNames: Array [ITEM_MEDKIT_SMALL..ITEM_HELMET] of String;
   MonsterNames: Array [MONSTER_DEMON..MONSTER_MAN] of String;
   AreaNames: Array [AREA_PLAYERPOINT1..AREA_BLUETEAMPOINT] of String;
-  TriggerNames: Array [TRIGGER_EXIT..TRIGGER_MUSIC] of String;
+  TriggerNames: Array [TRIGGER_EXIT..TRIGGER_PUSH] of String;
 
 
 procedure g_Language_Load(fileName: String);
@@ -740,6 +743,8 @@ Const
                                        'Создать предмет'),
     ('ARRAY TR MUSIC',                 'Play Music',
                                        'Музыка'),
+    ('ARRAY TR PUSH',                  'Push',
+                                       'Ускорение'),
 
     ('PROP ID',                        'ID',
                                        'ID'),
@@ -842,6 +847,10 @@ Const
                                        'Включить'),
     ('PROP TR MUSIC OFF',              'Pause',
                                        'Выключить'),
+    ('PROP TR PUSH ANGLE',             'Angle',
+                                       'Угол'),
+    ('PROP TR PUSH FORCE',             'Force',
+                                       'Сила'),
 
     ('MSG ERROR',                      'Error',
                                        'Ошибка'),
@@ -1566,6 +1575,7 @@ begin
   TriggerNames[TRIGGER_SPAWNMONSTER] := _lc[I_ARRAY_TR_SPAWN_MONSTER];
   TriggerNames[TRIGGER_SPAWNITEM] := _lc[I_ARRAY_TR_SPAWN_ITEM];
   TriggerNames[TRIGGER_MUSIC] := _lc[I_ARRAY_TR_MUSIC];
+  TriggerNames[TRIGGER_PUSH] := _lc[I_ARRAY_TR_PUSH];
 
 // Установка значений в панели выбора объектов:
   with MainForm do
@@ -1590,7 +1600,7 @@ begin
       lbAreasList.Items.Add(AreaNames[i]);
 
     lbTriggersList.Clear();
-    for i := TRIGGER_EXIT to TRIGGER_MUSIC do
+    for i := Low(TriggerNames) to High(TriggerNames) do
       lbTriggersList.Items.Add(TriggerNames[i]);
 
     clbActivationType.Clear();

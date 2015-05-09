@@ -127,6 +127,8 @@ const
   TRIGGER_SPAWNMONSTER    = 19;
   TRIGGER_SPAWNITEM       = 20;
   TRIGGER_MUSIC           = 21;
+  TRIGGER_PUSH            = 22;
+  TRIGGER_SCORE           = 23;
 
   ACTIVATE_PLAYERCOLLIDE  = 1;
   ACTIVATE_MONSTERCOLLIDE = 2;
@@ -200,6 +202,8 @@ Type
                              ItemCount: Integer);
       TRIGGER_MUSIC:        (MusicName: Char64;
                              MusicAction: Byte);
+      TRIGGER_PUSH:         (PushAngle: Word;
+                             PushForce: Byte);
   end;
 
 implementation

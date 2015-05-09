@@ -1187,6 +1187,20 @@ begin
                  ReadOnly := True;
                end;
              end;
+
+            TRIGGER_PUSH:
+              begin
+                with ItemProps[InsertRow(_lc[I_PROP_TR_PUSH_ANGLE], IntToStr(Data.PushAngle), True)-1] do
+                begin
+                  EditStyle := esSimple;
+                  MaxLength := 4;
+                end;
+                with ItemProps[InsertRow(_lc[I_PROP_TR_PUSH_FORCE], IntToStr(Data.PushForce), True)-1] do
+                begin
+                  EditStyle := esSimple;
+                  MaxLength := 4;
+                end;
+              end;
           end; //case TriggerType
         end;
       end; // OBJECT_TRIGGER:
@@ -3167,6 +3181,13 @@ begin
                       trigger.Data.ItemFalls := False;
                       trigger.Data.ItemCount := 1;
                     end;
+
+                // Ускорение:
+                  TRIGGER_PUSH:
+                    begin
+                      trigger.Data.PushAngle := 0;
+                      trigger.Data.PushForce := 10;
+                    end;
                 end;
 
                 Undo_Add(OBJECT_TRIGGER, AddTrigger(trigger));
@@ -3925,6 +3946,14 @@ begin
                   Data.MusicAction := 1
                 else
                   Data.MusicAction := 2;
+              end;
+
+            TRIGGER_PUSH:
+              begin
+                Data.PushAngle := Min(
+                  StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_PUSH_ANGLE]], 0), 360);
+                Data.PushForce := Min(
+                  StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_PUSH_FORCE]], 0), 255);
               end;
           end;
         end;

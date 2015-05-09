@@ -378,6 +378,7 @@ begin
   end;
 end;
 
+
 function ActivateTrigger(var Trigger: TTrigger; actType: Byte): Boolean;
 var
   animonce: Boolean;
@@ -386,6 +387,7 @@ var
   i, k: Integer;
   iid: LongWord;
   coolDown: Boolean;
+  pAngle: Real;
 begin
   Result := False;
   if g_Game_IsClient then
@@ -712,6 +714,39 @@ begin
             TimeOut := 0;
           Result := True;
           if g_Game_IsNet then MH_SEND_TriggerMusic;
+        end;
+
+      TRIGGER_PUSH:
+        begin
+          case g_GetUIDType(ActivateUID) of
+            UID_PLAYER:
+              begin
+                p := g_Player_Get(ActivateUID);
+                if p = nil then
+                  Exit;
+
+                pAngle := -DegToRad(Data.PushAngle);
+                p.Push(Floor(Cos(pAngle)*Data.PushForce),
+                       Floor(Sin(pAngle)*Data.PushForce));
+              end;
+
+            UID_MONSTER:
+              begin
+                m := g_Monsters_Get(ActivateUID);
+                if m = nil then
+                  Exit;
+
+                pAngle := DegToRad(Data.PushAngle);
+                m.Push(Floor(Cos(pAngle)*Data.PushForce),
+                       Floor(Sin(pAngle)*Data.PushForce));
+              end;
+          end;
+
+          if coolDown then
+            TimeOut := 18
+          else
+            TimeOut := 0;
+          Result := True;
         end;
     end;
   end;
