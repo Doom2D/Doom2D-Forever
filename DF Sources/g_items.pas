@@ -13,6 +13,7 @@ Type
     RespawnTime:   Word;
     Live:          Boolean;
     Fall:          Boolean;
+    QuietRespawn:  Boolean;
     Obj:           TObj;
     Animation:     TAnimation;
   end;
@@ -292,6 +293,7 @@ begin
   gItems[find_id].RespawnTime := 0;
   gItems[find_id].Fall := Fall;
   gItems[find_id].Live := True;
+  gItems[find_id].QuietRespawn := False;
 
   g_Obj_Init(@gItems[find_id].Obj);
   gItems[find_id].Obj.X := X;
@@ -439,7 +441,9 @@ begin
             DecMin(RespawnTime, 0);
             if (RespawnTime = 0) and (not Live) then
             begin
-              g_Sound_PlayExAt('SOUND_ITEM_RESPAWNITEM', InitX, InitY);
+              if not QuietRespawn then
+                g_Sound_PlayExAt('SOUND_ITEM_RESPAWNITEM', InitX, InitY);
+              QuietRespawn := False;
 
               if g_Frames_Get(ID, 'FRAMES_ITEM_RESPAWN') then
               begin

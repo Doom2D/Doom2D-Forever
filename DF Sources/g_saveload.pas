@@ -163,8 +163,17 @@ begin
     bMem.WriteWord(gGameSettings.TimeLimit);
   // Лимит очков:
     bMem.WriteWord(gGameSettings.GoalLimit);
+  // Лимит жизней:
+    bMem.WriteByte(gGameSettings.MaxLives);
   // Игровые опции:
     bMem.WriteDWORD(gGameSettings.Options);
+  // Для коопа:
+    bMem.WriteWord(gCoopMonstersKilled);
+    bMem.WriteWord(gCoopSecretsFound);
+    bMem.WriteWord(gCoopTotalMonstersKilled);
+    bMem.WriteWord(gCoopTotalSecretsFound);
+    bMem.WriteWord(gCoopTotalMonsters);
+    bMem.WriteWord(gCoopTotalSecrets);
   // Сохраняем состояние игры:
     bFile.WriteMemory(bMem);
     bMem.Free();
@@ -280,9 +289,15 @@ var
   bFile: TBinFileReader;
   bMem: TBinMemoryReader;
   str, WAD_Path, Map_Name: String;
-  nPlayers, Game_Type, Game_Mode: Byte;
+  nPlayers, Game_Type, Game_Mode, Game_MaxLives: Byte;
   Game_TimeLimit, Game_GoalLimit: Word;
   Game_Time, Game_Options: Cardinal;
+  Game_CoopMonstersKilled,
+  Game_CoopSecretsFound,
+  Game_CoopTotalMonstersKilled,
+  Game_CoopTotalSecretsFound,
+  Game_CoopTotalMonsters,
+  Game_CoopTotalSecrets: Word;
   i: Integer;
 begin
   Result := False;
@@ -324,8 +339,17 @@ begin
     bMem.ReadWord(Game_TimeLimit);
   // Лимит очков:
     bMem.ReadWord(Game_GoalLimit);
+  // Лимит жизней:
+    bMem.ReadByte(Game_MaxLives);
   // Игровые опции:
     bMem.ReadDWORD(Game_Options);
+  // Для коопа:
+    bMem.ReadWord(Game_CoopMonstersKilled);
+    bMem.ReadWord(Game_CoopSecretsFound);
+    bMem.ReadWord(Game_CoopTotalMonstersKilled);
+    bMem.ReadWord(Game_CoopTotalSecretsFound);
+    bMem.ReadWord(Game_CoopTotalMonsters);
+    bMem.ReadWord(Game_CoopTotalSecrets);
   // Cостояние игры загружено:
     bMem.Free();
     bMem := nil;
@@ -339,10 +363,17 @@ begin
     else
       g_Game_StartCustom(MapsDir + WAD_Path + ':\' + Map_Name,
                          Game_Mode, Game_TimeLimit,
-                         Game_GoalLimit, Game_Options,
+                         Game_GoalLimit, Game_MaxLives, Game_Options,
                          nPlayers);
   // Устанавливаем время:
     gTime := Game_Time;
+  // Возвращаем статы:
+    gCoopMonstersKilled := Game_CoopMonstersKilled;
+    gCoopSecretsFound := Game_CoopSecretsFound;
+    gCoopTotalMonstersKilled := Game_CoopTotalMonstersKilled;
+    gCoopTotalSecretsFound := Game_CoopTotalSecretsFound;
+    gCoopTotalMonsters := Game_CoopTotalMonsters;
+    gCoopTotalSecrets := Game_CoopTotalSecrets;
 
   ///// Загружаем состояние карты: /////
     bMem := TBinMemoryReader.Create();

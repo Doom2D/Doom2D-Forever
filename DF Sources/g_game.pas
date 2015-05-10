@@ -12,6 +12,7 @@ type
     GameMode: Byte;
     TimeLimit: Word;
     GoalLimit: Word;
+    MaxLives: Byte;
     Options: LongWord;
     WAD: String;
   end;
@@ -43,10 +44,12 @@ procedure g_Game_Quit();
 procedure g_Game_SetupScreenSize();
 procedure g_Game_ChangeResolution(newWidth, newHeight: Word; nowFull, nowMax: Boolean);
 procedure g_Game_StartSingle(WAD, MAP: String; TwoPlayers: Boolean; nPlayers: Byte);
-procedure g_Game_StartServer(Map: String; GameMode: Byte; TimeLimit, GoalLimit: Word; Options: LongWord; Port: Word);
+procedure g_Game_StartServer(Map: String; GameMode: Byte; TimeLimit, GoalLimit: Word; MaxLives: Byte; Options: LongWord; Port: Word);
 procedure g_Game_StartClient(Addr: String; Port: Word; PW: String = 'ASS');
-procedure g_Game_StartCustom(Map: String; GameMode: Byte; TimeLimit, GoalLimit: Word; Options: LongWord; nPlayers: Byte);
+procedure g_Game_StartCustom(Map: String; GameMode: Byte; TimeLimit, GoalLimit: Word; MaxLives: Byte; Options: LongWord; nPlayers: Byte);
 procedure g_Game_Restart();
+procedure g_Game_RestartLevel();
+procedure g_Game_RestartRound();
 procedure g_Game_SaveOptions();
 function  g_Game_StartMap(Map: String; Force: Boolean = False): Boolean;
 procedure g_Game_ExitLevel(Map: Char16);
@@ -152,6 +155,7 @@ var
   gShowGoals: Boolean = True;
   gShowStat: Boolean = True;
   gShowKillMsg: Boolean = True;
+  gShowLives: Boolean = True;
   gExit: Byte = 0;
   gState: Byte = STATE_NONE;
   sX, sY: Integer;
@@ -183,6 +187,9 @@ var
   gCoopTotalSecrets: Word = 0;
   gStatsOff: Boolean = False;
   gStatsPressed: Boolean = False;
+  gNextMap: String = '';
+  gLMSRespawn: Boolean = False;
+  gLMSRespawnTime: Cardinal = 0;
 
   P1MoveButton: Byte = 0;
   P2MoveButton: Byte = 0;
@@ -250,7 +257,6 @@ var
   EndingGameCounter: Byte = 0;
   MessageText: String;
   MessageTime: Word;
-  NextMap: String = '';
   MapList: SArray = nil;
   MapIndex: Integer = -1;
   MegaWAD: record
@@ -473,7 +479,7 @@ var
   FileName, SectionName, ResName: string;
 begin
   if g_Game_IsNet and g_Game_IsServer then
-    MH_SEND_GameEvent(NET_EV_MAPEND, NextMap);
+    MH_SEND_GameEvent(NET_EV_MAPEND, gNextMap);
 
 // Стоп игра:
   gPause := False;
@@ -570,7 +576,7 @@ begin
         end;
 
       // Есть еще карты:
-        if NextMap <> '' then
+        if gNextMap <> '' then
           begin
             gMusic.SetByName('MUSIC_INTERMUS');
             gMusic.Play();
@@ -898,16 +904,16 @@ begin
           if gMapOnce then // Это был тест
             gExit := EXIT_SIMPLE
           else
-            if NextMap <> '' then
+            if gNextMap <> '' then
               begin // Переходим на следующую карту
                 g_Game_ClearLoading();
                 if g_Game_IsNet and g_Game_IsServer then
-                  MH_SEND_GameEvent(NET_EV_MAPSTART, NextMap);
+                  MH_SEND_GameEvent(NET_EV_MAPSTART, gNextMap);
                   
-                if not g_Game_StartMap(NextMap, (gGameSettings.GameMode in [GM_DM, GM_TDM, GM_CTF])) then
+                if not g_Game_StartMap(gNextMap, (gGameSettings.GameMode in [GM_DM, GM_TDM, GM_CTF])) then
                 begin
                   g_FatalError(Format(_lc[I_GAME_ERROR_MAP_LOAD],
-                                      [ExtractFileName(gGameSettings.WAD) + ':\' + NextMap]));
+                                      [ExtractFileName(gGameSettings.WAD) + ':\' + gNextMap]));
                 end;
               end
             else // Следующей карты нет
@@ -1016,6 +1022,10 @@ begin
           g_Game_NextLevel();
           Exit;
         end;
+
+    // Надо респавнить игроков в LMS:
+      if gLMSRespawn and (gLMSRespawnTime < gTime) then
+        g_Game_RestartRound();
 
     // Был задан лимит побед:
       if (gGameSettings.GoalLimit > 0) then
@@ -2096,6 +2106,7 @@ begin
 // Настройки игры:
   ZeroMemory(@gGameSettings, SizeOf(TGameSettings));
   gGameSettings.GameType := GT_SINGLE;
+  gGameSettings.MaxLives := 0;
   if TwoPlayers then
     gGameSettings.Options := GAME_OPTION_TWOPLAYER;
   gGameSettings.Options := gGameSettings.Options + GAME_OPTION_ALLOWEXIT;
@@ -2160,6 +2171,7 @@ end;
 
 procedure g_Game_StartCustom(Map: String; GameMode: Byte;
                              TimeLimit, GoalLimit: Word;
+                             MaxLives: Byte;
                              Options: LongWord; nPlayers: Byte);
 var
   ResName: String;
@@ -2178,6 +2190,7 @@ begin
   gGameSettings.GameMode := GameMode;
   gGameSettings.TimeLimit := TimeLimit;
   gGameSettings.GoalLimit := GoalLimit;
+  gGameSettings.MaxLives := IfThen(GameMode = GM_CTF, 0, MaxLives);
   gGameSettings.Options := Options;
   g_ProcessResourceStr(Map, @gGameSettings.WAD, nil, @ResName);
 
@@ -2295,7 +2308,7 @@ begin
 end;
 
 procedure g_Game_StartServer(Map: String; GameMode: Byte;
-                             TimeLimit, GoalLimit: Word;
+                             TimeLimit, GoalLimit: Word; MaxLives: Byte;
                              Options: LongWord; Port: Word);
 var
   ResName: String;
@@ -2313,6 +2326,7 @@ begin
   gGameSettings.GameMode := GameMode;
   gGameSettings.TimeLimit := TimeLimit;
   gGameSettings.GoalLimit := GoalLimit;
+  gGameSettings.MaxLives := IfThen(GameMode = GM_CTF, 0, MaxLives);
   gGameSettings.Options := Options;
   g_ProcessResourceStr(Map, @gGameSettings.WAD, nil, @ResName);
 
@@ -2642,7 +2656,7 @@ begin
   NetTimeToUpdate := 1;
   NetTimeToReliable := 0;
   NetTimeToMaster := NetMasterRate;
-  NextMap := '';
+  gNextMap := '';
 
   gCoopMonstersKilled := 0;
   gCoopSecretsFound := 0;
@@ -2685,19 +2699,19 @@ end;
 
 procedure SetFirstLevel();
 begin
-  NextMap := '';
+  gNextMap := '';
 
   MapList := g_Map_GetMapsList(gGameSettings.WAD);
   if MapList = nil then Exit;
 
-  if Length(MapList) > 0 then NextMap := MapList[Low(MapList)];
+  if Length(MapList) > 0 then gNextMap := MapList[Low(MapList)];
   
   MapList := nil;
 end;
 
 procedure g_Game_ExitLevel(Map: Char16);
 begin
-  NextMap := Map;
+  gNextMap := Map;
 
   gCoopTotalMonstersKilled := gCoopTotalMonstersKilled + gCoopMonstersKilled;
   gCoopTotalSecretsFound := gCoopTotalSecretsFound + gCoopSecretsFound;
@@ -2710,14 +2724,14 @@ begin
   else // Вышли в выход в Своей игре
   begin
     gExit := EXIT_ENDLEVELCUSTOM;
-    if not g_Map_Exist(gGameSettings.WAD + ':\' + NextMap) then
+    if not g_Map_Exist(gGameSettings.WAD + ':\' + gNextMap) then
     begin
       gLastMap := True;
       if gGameSettings.GameMode = GM_COOP then gStatsOff := True;
       gStatsPressed := True;
-      NextMap := 'MAP01';
+      gNextMap := 'MAP01';
 
-      if not g_Map_Exist(gGameSettings.WAD + ':\' + NextMap) then
+      if not g_Map_Exist(gGameSettings.WAD + ':\' + gNextMap) then
         g_Game_NextLevel;
 
       if g_Game_IsNet then
@@ -2726,6 +2740,51 @@ begin
         MH_SEND_CoopStats();
       end;
     end;
+  end;
+end;
+
+procedure g_Game_RestartLevel();
+var
+  Map: string;
+begin
+  if gGameSettings.GameMode <> GM_SINGLE then
+    gExit := EXIT_ENDLEVELCUSTOM
+  else
+  begin
+    g_Game_Restart();
+    Exit;
+  end;
+  g_ProcessResourceStr(gMapInfo.Map, nil, nil, @Map);
+  gNextMap := Map;
+end;
+
+procedure g_Game_RestartRound();
+var
+  i: Integer;
+begin
+  if not gLMSRespawn then Exit;
+  gLMSRespawn := False;
+  gLMSRespawnTime := 0;
+  if gGameSettings.GameMode = GM_COOP then
+  begin
+    g_Game_RestartLevel;
+    gExit := EXIT_ENDLEVELCUSTOM;
+    Exit;
+  end;
+
+  for i := 0 to High(gPlayers) do
+  begin
+    // don't touch normal spectators
+    if (not gPlayers[i].FNoRespawn) and gPlayers[i].FSpectator then continue;
+    gPlayers[i].FNoRespawn := False;
+    gPlayers[i].Lives := gGameSettings.MaxLives;
+    gPlayers[i].Respawn(False, True);
+  end;
+
+  for i := 0 to High(gItems) do
+  begin
+    gItems[i].QuietRespawn := True;
+    gItems[i].RespawnTime := 0;
   end;
 end;
 
@@ -2742,8 +2801,8 @@ begin
     Exit;
   end;
 
-  if NextMap <> '' then Exit;
-  NextMap := '';
+  if gNextMap <> '' then Exit;
+  gNextMap := '';
 
   MapList := g_Map_GetMapsList(gGameSettings.WAD);
   if MapList = nil then Exit;
@@ -2761,11 +2820,11 @@ begin
   if MapIndex <> -255 then
   begin
     if MapIndex = High(MapList) then
-      NextMap := MapList[Low(MapList)]
+     gNextMap := MapList[Low(MapList)]
     else
-      NextMap := MapList[MapIndex + 1];
+      gNextMap := MapList[MapIndex + 1];
 
-    if not g_Map_Exist(gGameSettings.WAD + ':\' + NextMap) then NextMap := Map;
+    if not g_Map_Exist(gGameSettings.WAD + ':\' + gNextMap) then gNextMap := Map;
   end;
   
   MapList := nil;
@@ -2977,7 +3036,7 @@ begin
       begin
         s := UpperCase(P[1]);
         if g_Map_Exist(gGameSettings.WAD + ':\' + s) then
-          NextMap := s
+          gNextMap := s
         else
           g_Console_Add(Format(_lc[I_MSG_NO_MAP], [P[1]]));
       end;
@@ -3027,6 +3086,17 @@ begin
         g_Console_Add(_lc[I_MSG_KILL_MSGS_ON])
       else
         g_Console_Add(_lc[I_MSG_KILL_MSGS_OFF]);
+    end
+    else if cmd = 'r_showlives' then
+    begin
+      if (Length(P) > 1) and
+         ((P[1] = '1') or (P[1] = '0')) then
+        gShowLives := (P[1][1] = '1');
+
+      if gShowLives then
+        g_Console_Add(_lc[I_MSG_LIVES_ON])
+      else
+        g_Console_Add(_lc[I_MSG_LIVES_OFF]);
     end
     else if cmd = 'p1_name' then
     begin
@@ -3127,6 +3197,29 @@ begin
                             gGameSettings.TimeLimit mod 60]));
       if g_Game_IsNet then MH_SEND_GameSettings;
     end
+    else if (cmd = 'g_maxlives') and not g_Game_IsClient then
+    begin
+      if Length(P) > 1 then
+      begin
+        if StrToIntDef(P[1], gGameSettings.MaxLives) = 0 then
+          gGameSettings.MaxLives := 0
+        else
+        begin
+          b := 0;
+          stat := g_Player_GetStats();
+          if stat <> nil then
+            for a := 0 to High(stat) do
+              if stat[a].Lives > b then
+                b := stat[a].Lives;
+          gGameSettings.MaxLives :=
+            Max(StrToIntDef(P[1], gGameSettings.MaxLives), b);
+        end;
+      end;
+
+      g_Console_Add(Format(_lc[I_MSG_LIVES],
+                           [gGameSettings.MaxLives]));
+      if g_Game_IsNet then MH_SEND_GameSettings;
+    end
     else if cmd = 'net_interp' then
     begin
       if (Length(P) > 1) then
@@ -3212,7 +3305,7 @@ begin
               else
                 b := 1;
               g_Game_StartCustom(s, GameMode, TimeLimit,
-                                 GoalLimit, Options, b);
+                                 GoalLimit, MaxLives, Options, b);
             end;
           end
         else
@@ -3391,7 +3484,7 @@ begin
         s := UpperCase(P[1]);
         if g_Map_Exist(gGameSettings.WAD + ':\' + s) then
         begin
-          NextMap := s;
+          gNextMap := s;
           gExit := EXIT_ENDLEVELCUSTOM;
         end
         else
@@ -3821,6 +3914,7 @@ var
   GMode, n: Byte;
   LimT, LimS: Integer;
   Opt: LongWord;
+  Lives: Integer;
   s: String;
   Port: Integer;
   ip: String;
@@ -3875,6 +3969,13 @@ begin
     if LimS < 0 then
       LimS := 0;
 
+  // Lives limit:
+    s := Find_Param_Value(pars, '-lives');
+    if (s = '') or (not TryStrToInt(s, Lives)) then
+      Lives := 0;
+    if Lives < 0 then
+      Lives := 0;
+
   // Options:
     s := Find_Param_Value(pars, '-opt');
     if (s = '') then
@@ -3903,9 +4004,9 @@ begin
   // Start:
     s := Find_Param_Value(pars, '-port');
     if (s = '') or not TryStrToInt(s, Port) then
-      g_Game_StartCustom(map, GMode, LimT, LimS, Opt, n)
+      g_Game_StartCustom(map, GMode, LimT, LimS, Lives, Opt, n)
     else
-      g_Game_StartServer(map, GMode, LimT, LimS, Opt, Port);
+      g_Game_StartServer(map, GMode, LimT, LimS, Lives, Opt, Port);
   end;
 
   SetLength(pars, 0);

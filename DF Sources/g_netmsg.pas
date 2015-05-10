@@ -572,6 +572,7 @@ begin
   e_Buffer_Write(@NetOut, gGameSettings.GameMode);
   e_Buffer_Write(@NetOut, gGameSettings.GoalLimit);
   e_Buffer_Write(@NetOut, gGameSettings.TimeLimit);
+  e_Buffer_Write(@NetOut, gGameSettings.MaxLives);
   e_Buffer_Write(@NetOut, gGameSettings.Options);
   e_Buffer_Write(@NetOut, gTime);
 
@@ -699,6 +700,7 @@ begin
   e_Buffer_Write(@NetOut, gGameSettings.GameMode);
   e_Buffer_Write(@NetOut, gGameSettings.GoalLimit);
   e_Buffer_Write(@NetOut, gGameSettings.TimeLimit);
+  e_Buffer_Write(@NetOut, gGameSettings.MaxLives);
   e_Buffer_Write(@NetOut, gGameSettings.Options);
 
   g_Net_Host_Send(ID, True, NET_CHAN_IMPORTANT);
@@ -783,6 +785,7 @@ begin
     e_Buffer_Write(@NetOut, Health);
     e_Buffer_Write(@NetOut, Armor);
     e_Buffer_Write(@NetOut, Air);
+    e_Buffer_Write(@NetOut, Lives);
 
     for I := WEAPON_KASTET to WEAPON_SUPERPULEMET do
       e_Buffer_Write(@NetOut, Byte(FWeapon[I]));
@@ -810,6 +813,7 @@ begin
     e_Buffer_Write(@NetOut, Byte(FSpectator));
     e_Buffer_Write(@NetOut, Byte(FGhost));
     e_Buffer_Write(@NetOut, Byte(FPhysics));
+    e_Buffer_Write(@NetOut, Byte(FNoRespawn));
   end;
 
   g_Net_Host_Send(ID, True, NET_CHAN_PLAYER);
@@ -1352,6 +1356,7 @@ begin
   gGameSettings.GameMode := e_Raw_Read_Byte(P);
   gGameSettings.GoalLimit := e_Raw_Read_Word(P);
   gGameSettings.TimeLimit := e_Raw_Read_Word(P);
+  gGameSettings.MaxLives := e_Raw_Read_Byte(P);
   gGameSettings.Options := e_Raw_Read_LongWord(P);
 end;
 
@@ -1463,6 +1468,7 @@ begin
     Health := e_Raw_Read_LongInt(P);
     Armor := e_Raw_Read_LongInt(P);
     Air := e_Raw_Read_LongInt(P);
+    Lives := e_Raw_Read_Byte(P);
 
     for I := WEAPON_KASTET to WEAPON_SUPERPULEMET do
       FWeapon[I] := (e_Raw_Read_Byte(P) <> 0);
@@ -1496,6 +1502,7 @@ begin
     FSpectator := e_Raw_Read_Byte(P) <> 0;
     FGhost := e_Raw_Read_Byte(P) <> 0;
     FPhysics := e_Raw_Read_Byte(P) <> 0;
+    FNoRespawn := e_Raw_Read_Byte(P) <> 0;
   end;
 
   Result := PID;

@@ -427,7 +427,7 @@ end;
 procedure ProcStartCustomGame();
 var
   Map: String;
-  GameMode, n: Byte;
+  GameMode, n, Lives: Byte;
   TimeLimit, GoalLimit: Word;
   Options: LongWord;
 begin
@@ -439,6 +439,7 @@ begin
     GameMode := TGUISwitch(GetControl('swGameMode')).ItemIndex+1;
     TimeLimit := StrToIntDef(TGUIEdit(GetControl('edTimeLimit')).Text, 0);
     GoalLimit := StrToIntDef(TGUIEdit(GetControl('edGoalLimit')).Text, 0);
+    Lives := StrToIntDef(TGUIEdit(GetControl('edMaxLives')).Text, 0);
 
     Options := 0;
     if TGUISwitch(GetControl('swTeamDamage')).ItemIndex = 0 then
@@ -467,7 +468,7 @@ begin
   end;
 
   g_Game_StartCustom(Map, GameMode, TimeLimit, GoalLimit,
-                     Options, n);
+                     Lives, Options, n);
 end;
 
 
@@ -476,6 +477,7 @@ var
   Map: String;
   GameMode: Byte;
   TimeLimit, GoalLimit: Word;
+  Lives: Byte;
   Options: LongWord;
   config: TConfig;
 begin
@@ -487,6 +489,7 @@ begin
     GameMode := TGUISwitch(GetControl('swGameMode')).ItemIndex+1;
     TimeLimit := StrToIntDef(TGUIEdit(GetControl('edTimeLimit')).Text, 0);
     GoalLimit := StrToIntDef(TGUIEdit(GetControl('edGoalLimit')).Text, 0);
+    Lives := StrToIntDef(TGUIEdit(GetControl('edMaxLives')).Text, 0);
     NetPort := StrToIntDef(TGUIEdit(GetControl('edPort')).Text, 0);
 
     Options := 0;
@@ -529,8 +532,8 @@ begin
 
   config.SaveFile(GameDir+'\'+CONFIG_FILENAME);
   config.Free();
- 
-  g_Game_StartServer(Map, GameMode, TimeLimit, GoalLimit,
+
+  g_Game_StartServer(Map, GameMode, TimeLimit, GoalLimit, Lives,
                      Options, NetPort);
 end;
 
@@ -1253,6 +1256,7 @@ begin
 
     TGUIEdit(menu.GetControl('edTimeLimit')).Text := IntToStr(TimeLimit);
     TGUIEdit(menu.GetControl('edGoalLimit')).Text := IntToStr(GoalLimit);
+    TGUIEdit(menu.GetControl('edMaxLives')).Text := IntToStr(MaxLives);
 
     with TGUISwitch(menu.GetControl('swBotsVS')) do
       if LongBool(Options and GAME_OPTION_BOTVSPLAYER) and
@@ -1271,6 +1275,8 @@ begin
         TGUILabel(menu.GetControlsText('edTimeLimit')).Color := MENU_ITEMSTEXT_COLOR;
         TGUIEdit(menu.GetControl('edGoalLimit')).Enabled := True;
         TGUILabel(menu.GetControlsText('edGoalLimit')).Color := MENU_ITEMSTEXT_COLOR;
+        TGUIEdit(menu.GetControl('edMaxLives')).Enabled := True;
+        TGUILabel(menu.GetControlsText('edMaxLives')).Color := MENU_ITEMSTEXT_COLOR;
         TGUISwitch(menu.GetControl('swBotsVS')).Enabled := True;
       end
     else
@@ -1288,6 +1294,12 @@ begin
           Text := '';
         end;
         TGUILabel(menu.GetControlsText('edGoalLimit')).Color := MENU_UNACTIVEITEMS_COLOR;
+        with TGUIEdit(menu.GetControl('edMaxLives')) do
+        begin
+          Enabled := False;
+          Text := '';
+        end;
+        TGUILabel(menu.GetControlsText('edMaxLives')).Color := MENU_UNACTIVEITEMS_COLOR;
         TGUISwitch(menu.GetControl('swBotsVS')).Enabled := True;
       end;
   end;
@@ -1348,6 +1360,26 @@ begin
             b := Max(gTeamStat[TEAM_RED].Goals, gTeamStat[TEAM_BLUE].Goals);
 
           GoalLimit := Max(n, b);
+        end;
+    end;
+
+    if TGUIEdit(menu.GetControl('edMaxLives')).Enabled then
+    begin
+      n := StrToIntDef(TGUIEdit(menu.GetControl('edMaxLives')).Text, GoalLimit);
+      if n < 0 then n := 0;
+      if n > 255 then n := 255;
+      if n = 0 then
+        MaxLives := 0
+      else
+        begin
+          b := 0;
+          stat := g_Player_GetStats();
+          if stat <> nil then
+            for a := 0 to High(stat) do
+              if stat[a].Lives > b then
+                b := stat[a].Lives;
+
+          MaxLives := Max(n, b);
         end;
     end;
 
@@ -1780,6 +1812,13 @@ begin
       Width := 3;
       MaxLength := 3;
     end;
+    with AddEdit(_lc[I_MENU_MAX_LIVES]) do
+    begin
+      Name := 'edMaxLives';
+      OnlyDigits := True;
+      Width := 3;
+      MaxLength := 3;
+    end;
     with AddSwitch(_lc[I_MENU_TEAM_DAMAGE]) do
     begin
       Name := 'swTeamDamage';
@@ -1930,6 +1969,13 @@ begin
     with AddEdit(_lc[I_MENU_GOAL_LIMIT]) do
     begin
       Name := 'edGoalLimit';
+      OnlyDigits := True;
+      Width := 3;
+      MaxLength := 3;
+    end;
+    with AddEdit(_lc[I_MENU_MAX_LIVES]) do
+    begin
+      Name := 'edMaxLives';
       OnlyDigits := True;
       Width := 3;
       MaxLength := 3;
@@ -2647,6 +2693,13 @@ begin
     with AddEdit(_lc[I_MENU_GOAL_LIMIT]) do
     begin
       Name := 'edGoalLimit';
+      OnlyDigits := True;
+      Width := 3;
+      MaxLength := 3;
+    end;
+    with AddEdit(_lc[I_MENU_MAX_LIVES]) do
+    begin
+      Name := 'edMaxLives';
       OnlyDigits := True;
       Width := 3;
       MaxLength := 3;

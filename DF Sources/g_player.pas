@@ -70,6 +70,7 @@ type
     Team: Byte;
     Frags: SmallInt;
     Deaths: SmallInt;
+    Lives: Byte;
     Kills: Word;
     Color: TRGB;
     Spectator: Boolean;
@@ -91,6 +92,7 @@ type
     FLive:      Boolean;
     FDirection: TDirection;
     FHealth:    Integer;
+    FLives:     Byte;
     FArmor:     Integer;
     FAir:       Integer;
     FPain:      Integer;
@@ -156,13 +158,14 @@ type
     FTime:      Array [T_RESPAWN..T_USE] of DWORD;
     FKeys:      Array [KEY_LEFT..KEY_CHAT] of TKeyState;
     FSpectator: Boolean;
+    FNoRespawn: Boolean;
     FGhost:     Boolean;
     FPhysics:   Boolean;
     FActualModelName: string;
     
     constructor Create(); virtual;
     destructor  Destroy(); override;
-    procedure   Respawn(Silent: Boolean); virtual;
+    procedure   Respawn(Silent: Boolean; Force: Boolean = False); virtual;
     procedure   PressKey(Key: Byte; Time: Word = 0);
     procedure   ReleaseKeys();
     procedure   SetModel(ModelName: String);
@@ -189,7 +192,7 @@ type
     procedure   MakeBloodSimple(Count: Word);
     procedure   Kill(KillType: Byte; SpawnerUID: Word; t: Byte);
     procedure   Reset(Force: Boolean);
-    procedure   Spectate;
+    procedure   Spectate(NoMove: Boolean = False);
     procedure   SoftReset();
     procedure   Draw(); virtual;
     procedure   DrawPain();
@@ -206,6 +209,7 @@ type
     property    Name: String read FName write FName;
     property    Model: TPlayerModel read FModel;
     property    Health: Integer read FHealth write FHealth;
+    property    Lives: Byte read FLives write FLives;
     property    Armor: Integer read FArmor write FArmor;
     property    Air:   Integer read FAir write FAir;
     property    Frags: Integer read FFrags write FFrags;
@@ -274,7 +278,7 @@ type
     procedure   OnDamage(Angle: SmallInt); override;
 
   public
-    procedure   Respawn(Silent: Boolean); override;
+    procedure   Respawn(Silent: Boolean; Force: Boolean = False); override;
     constructor Create(); override;
     destructor  Destroy(); override;
     procedure   Draw(); override;
@@ -948,6 +952,7 @@ begin
         Deaths := gPlayers[a].FDeath;
         Kills := gPlayers[a].FKills;
         Color := gPlayers[a].FModel.Color;
+        Lives := gPlayers[a].FLives;
         Spectator := gPlayers[a].FSpectator;
       end;
     end;
@@ -1245,10 +1250,7 @@ begin
   if not (gGameSettings.GameMode in [GM_TDM, GM_CTF]) then Exit;
   
   if g_Game_IsServer and gGameOn then
-  begin
-    Inc(FFrags);
     Kill(K_SIMPLEKILL, FUID, 0);
-  end;
   
   if FTeam = TEAM_RED then
   begin
@@ -1434,12 +1436,13 @@ end;
 procedure TPlayer.DrawGUI();
 var
   ID: DWORD;
-  X, Y, a, p, m: Integer;
+  X, Y, SY, a, p, m: Integer;
   tw, th: Word;
   s: string;
   stat: TPlayerStatArray;
 begin
    X := gPlayerScreenSize.X;
+   SY := gPlayerScreenSize.Y;
    Y := 0;
 
   if gShowGoals and (gGameSettings.GameMode in [GM_CTF, GM_TDM]) then
@@ -1502,6 +1505,13 @@ begin
 
       e_CharFont_GetSize(gMenuSmallFont, s, tw, th);
       e_CharFont_PrintEx(gMenuSmallFont, X-16-tw, Y+32, s, _RGB(255, 0, 0));
+    end;
+
+    if gShowLives and (gGameSettings.MaxLives > 0) then
+    begin
+      s := IntToStr(Lives);
+      e_CharFont_GetSize(gMenuFont, s, tw, th);
+      e_CharFont_PrintEx(gMenuFont, X-16-tw, SY-32, s, _RGB(0, 255, 0));
     end;
 
     e_CharFont_GetSize(gMenuSmallFont, FName, tw, th);
@@ -1841,12 +1851,12 @@ end;
 
 procedure TPlayer.Kill(KillType: Byte; SpawnerUID: Word; t: Byte);
 var
-  a, i: Byte;
+  a, i, k, ab, ar: Byte;
   s: String;
   mon: TMonster;
   plr: TPlayer;
-  srv: Boolean;
-  netsrv: Boolean;
+  srv, netsrv: Boolean;
+  dofrags: Boolean;
   KP: TPlayer;
 
   procedure PushItem(t: Byte);
@@ -1870,10 +1880,17 @@ var
   end;
 
 begin
+  dofrags := (gGameSettings.MaxLives = 0) or (gGameSettings.GameMode = GM_COOP);
   Srv := g_Game_IsServer;
   Netsrv := g_Game_IsServer and g_Game_IsNet;
   if Srv then FDeath := FDeath + 1;
   FLive := False;
+  
+  if (gGameSettings.MaxLives > 0) and Srv then
+  begin
+    if FLives > 0 then FLives := FLives - 1;
+    if FLives = 0 then FNoRespawn := True;
+  end;
 
 // Номер типа смерти:
   a := 1;
@@ -1923,7 +1940,8 @@ begin
 
   if SpawnerUID = FUID then
     begin // Самоубился
-      if Srv then FFrags := FFrags - 1;
+      if Srv and (DoFrags or (gGameSettings.GameMode = GM_TDM)) then
+        FFrags := FFrags - 1;
       g_Console_Add(Format(_lc[I_PLAYER_KILL_SELF], [FName]), True);
     end
   else
@@ -1932,10 +1950,11 @@ begin
         KP := g_Player_Get(SpawnerUID);
         if (KP <> nil) and Srv then
         begin
-          Inc(KP.FFrags,
-            IfThen(SameTeam(FUID, SpawnerUID), -1, 1));
+          if (DoFrags or (gGameSettings.GameMode = GM_TDM)) then
+            Inc(KP.FFrags,
+              IfThen(SameTeam(FUID, SpawnerUID), -1, 1));
 
-          if (gGameSettings.GameMode = GM_TDM) then
+          if (gGameSettings.GameMode = GM_TDM) and DoFrags then
             Inc(gTeamStat[KP.Team].Goals,
               IfThen(SameTeam(FUID, SpawnerUID), -1, 1));
 
@@ -2054,6 +2073,97 @@ begin
   end;
 
   g_Player_CreateCorpse(Self);
+
+  if Srv and (gGameSettings.MaxLives > 0) and FNoRespawn and (not gLMSRespawn) then
+  begin
+    a := 0;
+    k := 0;
+    ar := 0;
+    ab := 0;
+    for i := 0 to High(gPlayers) do
+      if (not gPlayers[i].FNoRespawn) and not (gPlayers[i].FSpectator) then
+      begin
+        Inc(a);
+        if FTeam = TEAM_RED then Inc(ar)
+        else if FTeam = TEAM_BLUE then Inc(ab);
+        k := i;
+      end;
+    if (gGameSettings.GameMode = GM_COOP) then
+    begin
+      if (a = 0) then
+      begin
+        // everyone is dead, restart the map
+        if netsrv then
+          MH_SEND_Chat('MISSION FAILED, PREPARE FOR RESTART')
+        else
+          g_Console_Add('MISSION FAILED, PREPARE FOR RESTART', True);
+        gLMSRespawn := True;
+        gLMSRespawnTime := gTime + 10000;
+      end;
+    end
+    else if (gGameSettings.GameMode = GM_TDM) then
+    begin
+      if (ab = 0) then
+      begin
+        // blu team ded
+        if netsrv then
+          MH_SEND_Chat('Red Team wins! Next round in 10 sec.')
+        else
+          g_Console_Add('Red Team wins! Next round in 10 sec.', True);
+        Inc(gTeamStat[TEAM_RED].Goals);
+        gLMSRespawn := True;
+        gLMSRespawnTime := gTime + 10000;
+      end
+      else if (ar = 0) then
+      begin
+        // red team ded
+        if netsrv then
+          MH_SEND_Chat('Blue Team wins! Next round in 10 sec.')
+        else
+          g_Console_Add('Blue Team wins! Next round in 10 sec.', True);
+        Inc(gTeamStat[TEAM_BLUE].Goals);
+        gLMSRespawn := True;
+        gLMSRespawnTime := gTime + 10000;
+      end
+      else
+      begin
+        // everyone ded
+        if netsrv then
+          MH_SEND_Chat('Draw!')
+        else
+          g_Console_Add('Draw!', True);
+        gLMSRespawn := True;
+        gLMSRespawnTime := gTime + 10000;
+      end;
+    end
+    else if (gGameSettings.GameMode = GM_DM) then
+    begin
+      if (a = 1) then
+      begin
+        with gPlayers[k] do
+        begin
+          // survivor is the winner
+          if netsrv then
+            MH_SEND_Chat(FName + ' is the winner! Next round in 10 sec.')   //TODO: LC
+          else
+            g_Console_Add(FName + ' is the winner! Next round in 10 sec.', True);
+          Inc(FFrags);
+        end;
+        gLMSRespawn := True;
+        gLMSRespawnTime := gTime + 10000;
+      end
+      else if (a = 0) then
+      begin
+        // everyone is dead, restart the map
+        if netsrv then
+          MH_SEND_Chat('Draw!')
+        else
+          g_Console_Add('Draw!', True);
+        gLMSRespawn := True;
+        gLMSRespawnTime := gTime + 10000;
+      end;
+    end;
+  end;
 
   if Netsrv then
   begin
@@ -2528,6 +2638,15 @@ begin
   FMonsterKills := 0;
   FDeath := 0;
   FSecrets := 0;
+  if FNoRespawn then
+  begin
+    FSpectator := False;
+    FGhost := False;
+    FPhysics := True;
+    FSpectatePlayer := -1;
+  end;
+  FNoRespawn := False;
+  FLives := gGameSettings.MaxLives;
 
   FFlag := 0;
   FModel.SetFlag(FLAG_NONE);
@@ -2548,7 +2667,7 @@ begin
   SetAction(A_STAND, True);
 end;
 
-procedure TPlayer.Respawn(Silent: Boolean);
+procedure TPlayer.Respawn(Silent: Boolean; Force: Boolean = False);
 var
   RespawnPoint: TRespawnPoint;
   a, b, c: Byte;
@@ -2556,11 +2675,26 @@ var
   ID: DWORD;
 begin
   if not g_Game_IsServer then Exit;
+  if Force then
+  begin
+    FTime[T_RESPAWN] := 0;
+    FLive := False;
+  end;
+  // if server changes MaxLives we gotta be ready
+  if gGameSettings.MaxLives = 0 then FNoRespawn := False;
+
   if (gGameSettings.GameType <> GT_SINGLE) and (gGameSettings.GameMode <> GM_COOP) then
     begin // "Своя игра"
     // Еще нельзя возродиться:
       if FTime[T_RESPAWN] > gTime then
         Exit;
+
+    // Просрал все жизни:
+      if FNoRespawn then
+      begin
+        if not FSpectator then Spectate(True);
+        Exit;
+      end;
 
       if gGameSettings.GameMode = GM_DM then
         begin // DM ...
@@ -2653,6 +2787,13 @@ begin
     // Еще нельзя возродиться:
       if FTime[T_RESPAWN] > gTime then
         Exit;
+
+    // Просрал все жизни:
+      if FNoRespawn then
+      begin
+        if not FSpectator then Spectate(True);
+        Exit;
+      end;
 
     // Точка появления игрока:
       if (FPlayerNum = PLAYERNUM_1) and (gGameSettings.GameMode <> GM_COOP) then
@@ -2809,18 +2950,14 @@ begin
   end;
 end;
 
-procedure TPlayer.Spectate;
+procedure TPlayer.Spectate(NoMove: Boolean = False);
 var
   c: Integer;
   RespawnPoint: TRespawnPoint;
 begin
   if FLive then
-  begin
-    Kill(K_EXTRAHARDKILL, FUID, HIT_SOME);
-    FXTo := GameX;
-    FYTo := GameY;
-  end
-  else
+    Kill(K_EXTRAHARDKILL, FUID, HIT_SOME)
+  else if (not NoMove) then
   begin
     // Точка возрождения DM:
     c := RESPAWNPOINT_DM;
@@ -2879,17 +3016,17 @@ begin
         GameX := RespawnPoint.X;
         GameY := RespawnPoint.Y;
       end;
-
-    FXTo := GameX;
-    FYTo := GameY;
   end;
+  FXTo := GameX;
+  FYTo := GameY;
 
   FLive := False;
   FSpectator := True;
   FGhost := True;
   FPhysics := False;
 
-  if g_Game_IsNet then MH_SEND_PlayerStats(UID);
+  if g_Game_IsNet then
+    MH_SEND_PlayerStats(FUID);
 end;
 
 procedure TPlayer.Run(Direction: TDirection);
@@ -3755,6 +3892,8 @@ begin
   Mem.WriteByte(FTeam);
 // Жив ли:
   Mem.WriteBoolean(FLive);
+// Израсходовал ли все жизни:
+  Mem.WriteBoolean(FNoRespawn);
 // Направление:
   if FDirection = D_LEFT then
     b := 1
@@ -3763,6 +3902,8 @@ begin
   Mem.WriteByte(b);
 // Здоровье:
   Mem.WriteInt(FHealth);
+// Жизни:
+  Mem.WriteByte(FLives);
 // Броня:
   Mem.WriteInt(FArmor);
 // Запас воздуха:
@@ -3882,6 +4023,8 @@ begin
   Mem.ReadByte(FTeam);
 // Жив ли:
   Mem.ReadBoolean(FLive);
+// Израсходовал ли все жизни:
+  Mem.ReadBoolean(FNoRespawn);
 // Направление:
   Mem.ReadByte(b);
   if b = 1 then
@@ -3890,6 +4033,8 @@ begin
     FDirection := D_RIGHT;
 // Здоровье:
   Mem.ReadInt(FHealth);
+// Жизни:
+  Mem.ReadByte(FLives);
 // Броня:
   Mem.ReadInt(FArmor);
 // Запас воздуха:
@@ -4273,9 +4418,9 @@ begin
   //                                   g_Player_Get(FTargetUID).FObj.Y, 255, 0, 0);
 end;
 
-procedure TBot.Respawn(Silent: Boolean);
+procedure TBot.Respawn(Silent: Boolean; Force: Boolean = False);
 begin
-  inherited Respawn(Silent);
+  inherited Respawn(Silent, Force);
 
   FAIFlags := nil;
   FSelectedWeapon := FCurrWeap;
