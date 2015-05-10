@@ -2085,7 +2085,9 @@ begin
     k := 0;
     ar := 0;
     ab := 0;
-    for i := 0 to High(gPlayers) do
+    for i := Low(gPlayers) to High(gPlayers) do
+    begin
+      if gPlayers[i] = nil then continue;
       if (not gPlayers[i].FNoRespawn) and (not gPlayers[i].FSpectator) then
       begin
         Inc(a);
@@ -2093,6 +2095,7 @@ begin
         else if gPlayers[i].FTeam = TEAM_BLUE then Inc(ab);
         k := i;
       end;
+    end;
 
     if (gGameSettings.GameMode = GM_COOP) then
     begin
@@ -2138,13 +2141,14 @@ begin
     begin
       if (a = 1) then
       begin
-        with gPlayers[k] do
-        begin
-          // survivor is the winner
-          g_Game_Message(Format(_lc[I_MESSAGE_LMS_WIN], [AnsiUpperCase(FName)]), 144);
-          if Netsrv then MH_SEND_GameEvent(NET_EV_LMS_WIN, FName);
-          Inc(FFrags);
-        end;
+        if gPlayers[k] <> nil then
+          with gPlayers[k] do
+          begin
+            // survivor is the winner
+            g_Game_Message(Format(_lc[I_MESSAGE_LMS_WIN], [AnsiUpperCase(FName)]), 144);
+            if Netsrv then MH_SEND_GameEvent(NET_EV_LMS_WIN, FName);
+            Inc(FFrags);
+          end;
         gLMSRespawn := True;
         gLMSRespawnTime := gTime + 8000;
       end
@@ -2167,6 +2171,8 @@ begin
     MH_SEND_PlayerDeath(FUID, KillType, t, SpawnerUID);
     if gGameSettings.GameMode = GM_TDM then MH_SEND_GameStats;
   end;
+
+  if srv and FNoRespawn then Spectate(True);
 end;
 
 function TPlayer.BodyInLiquid(XInc, YInc: Integer): Boolean;
@@ -3272,7 +3278,7 @@ begin
             else
             begin
               gExit := EXIT_RESTART;
-                Exit;
+              Exit;
             end;
           end;
     end;
