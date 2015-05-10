@@ -443,7 +443,6 @@ begin
             begin
               if not QuietRespawn then
                 g_Sound_PlayExAt('SOUND_ITEM_RESPAWNITEM', InitX, InitY);
-              QuietRespawn := False;
 
               if g_Frames_Get(ID, 'FRAMES_ITEM_RESPAWN') then
               begin
@@ -461,7 +460,8 @@ begin
 
               Live := True;
 
-              if g_Game_IsNet then MH_SEND_ItemSpawn(False, i);
+              if g_Game_IsNet then MH_SEND_ItemSpawn(QuietRespawn, i);
+              QuietRespawn := False;
             end;
           end;
 

@@ -2482,6 +2482,7 @@ begin
           gGameSettings.GameMode := e_Raw_Read_Byte(Ptr);
           gGameSettings.GoalLimit := e_Raw_Read_Word(Ptr);
           gGameSettings.TimeLimit := e_Raw_Read_Word(Ptr);
+          gGameSettings.MaxLives := e_Raw_Read_Byte(Ptr);
           gGameSettings.Options := e_Raw_Read_LongWord(Ptr);
           T := e_Raw_Read_LongWord(Ptr);
 
@@ -2773,9 +2774,12 @@ begin
     gExit := EXIT_ENDLEVELCUSTOM;
     Exit;
   end;
+  
+  if Length(gPlayers) < 2 then Exit;
 
-  for i := 0 to High(gPlayers) do
+  for i := Low(gPlayers) to High(gPlayers) do
   begin
+    if gPlayers[i] = nil then continue;
     // don't touch normal spectators
     if (not gPlayers[i].FNoRespawn) and gPlayers[i].FSpectator then continue;
     gPlayers[i].FNoRespawn := False;
@@ -2783,7 +2787,7 @@ begin
     gPlayers[i].Respawn(False, True);
   end;
 
-  for i := 0 to High(gItems) do
+  for i := Low(gItems) to High(gItems) do
   begin
     gItems[i].QuietRespawn := True;
     gItems[i].RespawnTime := 0;
