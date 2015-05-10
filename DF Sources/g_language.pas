@@ -309,7 +309,11 @@ type
     I_MESSAGE_FLAG_GET,               
     I_MESSAGE_FLAG_RETURN,            
     I_MESSAGE_FLAG_CAPTURE,           
-    I_MESSAGE_FLAG_DROP,              
+    I_MESSAGE_FLAG_DROP,
+
+    I_MESSAGE_LMS_LOSE,
+    I_MESSAGE_LMS_WIN,
+    I_MESSAGE_TLMS_WIN,
 
     I_KEY_UP,                         
     I_KEY_DOWN,                       
@@ -1035,6 +1039,13 @@ const
                                        '%s ткюц гюубювем'),
     ('MESSAGE FLAG DROP',              '%s flag dropped',
                                        '%s ткюц онрепъм'),
+
+    ('MESSAGE LMS LOSE',               'YOU''RE ALL LOSERS',
+                                       'бяе опнхцпюкх'),
+    ('MESSAGE LMS WIN',                '%s WINS',
+                                       '%s онаедхк'),
+    ('MESSAGE TLMS WIN',               '%s TEAM WINS',
+                                       '%s йнлюмдю онаедхкю'),
 
     ('KEY UP',                         'Up',
                                        'бБЕПУ'),

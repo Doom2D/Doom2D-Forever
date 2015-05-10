@@ -58,6 +58,9 @@ const
 
   NET_EV_MAPSTART = 1;
   NET_EV_MAPEND   = 2;
+  NET_EV_LMS_LOSE = 3;
+  NET_EV_LMS_WIN  = 4;
+  NET_EV_TLMS_WIN = 5;
 
   NET_FLAG_GET    = 1;
   NET_FLAG_DROP   = 2;
@@ -377,7 +380,10 @@ begin
       if Pl.FSpectator then
         Pl.Respawn(False)
       else
+      begin
+        if (gGameSettings.MaxLives > 0) then Pl.Lives := Pl.Lives + 1;
         Pl.Spectate;
+      end;
     end;
   end;
 end;
@@ -1253,6 +1259,18 @@ begin
 
     NET_EV_MAPEND:
       gExit := EXIT_ENDLEVELCUSTOM;
+
+    NET_EV_LMS_LOSE:
+      g_Game_Message(_lc[I_MESSAGE_LMS_LOSE], 144);
+    NET_EV_LMS_WIN:
+      g_Game_Message(Format(_lc[I_MESSAGE_LMS_WIN], [AnsiUpperCase(EvParm)]), 144);
+    NET_EV_TLMS_WIN:
+    begin
+      if EvParm = 'r' then
+        g_Game_Message(Format(_lc[I_MESSAGE_TLMS_WIN], [AnsiUpperCase(_lc[I_GAME_TEAM_RED])]), 144)
+      else
+        g_Game_Message(Format(_lc[I_MESSAGE_TLMS_WIN], [AnsiUpperCase(_lc[I_GAME_TEAM_BLUE])]), 144);
+    end;
   end;
 end;
 

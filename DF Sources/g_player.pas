@@ -727,7 +727,12 @@ begin
 
   for a := 0 to High(gPlayers) do
     if gPlayers[a] <> nil then
-      if gPlayers[a] is TBot then g_Player_Remove(gPlayers[a].FUID);
+      if gPlayers[a] is TBot then
+      begin
+        gPlayers[a].Lives := 0;
+        gPlayers[a].Kill(K_SIMPLEKILL, 0, 0);
+        g_Player_Remove(gPlayers[a].FUID);
+      end;
 end;
 
 procedure g_Player_Remove(UID: Word);
@@ -2081,59 +2086,52 @@ begin
     ar := 0;
     ab := 0;
     for i := 0 to High(gPlayers) do
-      if (not gPlayers[i].FNoRespawn) and not (gPlayers[i].FSpectator) then
+      if (not gPlayers[i].FNoRespawn) and (not gPlayers[i].FSpectator) then
       begin
         Inc(a);
-        if FTeam = TEAM_RED then Inc(ar)
-        else if FTeam = TEAM_BLUE then Inc(ab);
+        if gPlayers[i].FTeam = TEAM_RED then Inc(ar)
+        else if gPlayers[i].FTeam = TEAM_BLUE then Inc(ab);
         k := i;
       end;
+
     if (gGameSettings.GameMode = GM_COOP) then
     begin
       if (a = 0) then
       begin
         // everyone is dead, restart the map
-        if netsrv then
-          MH_SEND_Chat('MISSION FAILED, PREPARE FOR RESTART')
-        else
-          g_Console_Add('MISSION FAILED, PREPARE FOR RESTART', True);
+        g_Game_Message(_lc[I_MESSAGE_LMS_LOSE], 144);
+        if Netsrv then MH_SEND_GameEvent(NET_EV_LMS_LOSE, 'N');
         gLMSRespawn := True;
-        gLMSRespawnTime := gTime + 10000;
+        gLMSRespawnTime := gTime + 8000;
       end;
     end
     else if (gGameSettings.GameMode = GM_TDM) then
     begin
-      if (ab = 0) then
+      if (ab = 0) and (ar <> 0) then
       begin
         // blu team ded
-        if netsrv then
-          MH_SEND_Chat('Red Team wins! Next round in 10 sec.')
-        else
-          g_Console_Add('Red Team wins! Next round in 10 sec.', True);
+        g_Game_Message(Format(_lc[I_MESSAGE_TLMS_WIN], [AnsiUpperCase(_lc[I_GAME_TEAM_RED])]), 144);
+        if Netsrv then MH_SEND_GameEvent(NET_EV_TLMS_WIN, 'r');
         Inc(gTeamStat[TEAM_RED].Goals);
         gLMSRespawn := True;
-        gLMSRespawnTime := gTime + 10000;
+        gLMSRespawnTime := gTime + 8000;
       end
-      else if (ar = 0) then
+      else if (ar = 0) and (ab <> 0) then
       begin
         // red team ded
-        if netsrv then
-          MH_SEND_Chat('Blue Team wins! Next round in 10 sec.')
-        else
-          g_Console_Add('Blue Team wins! Next round in 10 sec.', True);
+        g_Game_Message(Format(_lc[I_MESSAGE_TLMS_WIN], [AnsiUpperCase(_lc[I_GAME_TEAM_BLUE])]), 144);
+        if Netsrv then MH_SEND_GameEvent(NET_EV_TLMS_WIN, 'b');
         Inc(gTeamStat[TEAM_BLUE].Goals);
         gLMSRespawn := True;
-        gLMSRespawnTime := gTime + 10000;
+        gLMSRespawnTime := gTime + 8000;
       end
-      else
+      else if (ar = 0) and (ab = 0) then
       begin
         // everyone ded
-        if netsrv then
-          MH_SEND_Chat('Draw!')
-        else
-          g_Console_Add('Draw!', True);
+        g_Game_Message(_lc[I_MESSAGE_LMS_LOSE], 144);
+        if Netsrv then MH_SEND_GameEvent(NET_EV_LMS_LOSE, 'N');
         gLMSRespawn := True;
-        gLMSRespawnTime := gTime + 10000;
+        gLMSRespawnTime := gTime + 8000;
       end;
     end
     else if (gGameSettings.GameMode = GM_DM) then
@@ -2143,14 +2141,12 @@ begin
         with gPlayers[k] do
         begin
           // survivor is the winner
-          if netsrv then
-            MH_SEND_Chat(FName + ' is the winner! Next round in 10 sec.')   //TODO: LC
-          else
-            g_Console_Add(FName + ' is the winner! Next round in 10 sec.', True);
+          g_Game_Message(Format(_lc[I_MESSAGE_LMS_WIN], [AnsiUpperCase(FName)]), 144);
+          if Netsrv then MH_SEND_GameEvent(NET_EV_LMS_WIN, FName);
           Inc(FFrags);
         end;
         gLMSRespawn := True;
-        gLMSRespawnTime := gTime + 10000;
+        gLMSRespawnTime := gTime + 8000;
       end
       else if (a = 0) then
       begin
@@ -2644,8 +2640,8 @@ begin
     FGhost := False;
     FPhysics := True;
     FSpectatePlayer := -1;
+    FNoRespawn := False;
   end;
-  FNoRespawn := False;
   FLives := gGameSettings.MaxLives;
 
   FFlag := 0;

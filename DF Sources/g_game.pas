@@ -493,6 +493,9 @@ begin
   EndingGameCounter := 0;
   g_ActiveWindow := nil;
 
+  gLMSRespawn := False;
+  gLMSRespawnTime := 0;
+
   case gExit of
     EXIT_SIMPLE: // Выход через меню или конец теста
       begin
@@ -911,10 +914,8 @@ begin
                   MH_SEND_GameEvent(NET_EV_MAPSTART, gNextMap);
                   
                 if not g_Game_StartMap(gNextMap, (gGameSettings.GameMode in [GM_DM, GM_TDM, GM_CTF])) then
-                begin
                   g_FatalError(Format(_lc[I_GAME_ERROR_MAP_LOAD],
                                       [ExtractFileName(gGameSettings.WAD) + ':\' + gNextMap]));
-                end;
               end
             else // Следующей карты нет
               begin
@@ -2164,9 +2165,7 @@ begin
 
 // Создаем ботов:
   for i := nPl+1 to nPlayers do
-  begin
     g_Player_Create(STD_PLAYER_MODEL, _RGB(0, 0, 0), 0, True, 0);
-  end;
 end;
 
 procedure g_Game_StartCustom(Map: String; GameMode: Byte;
@@ -2302,9 +2301,7 @@ begin
 
 // Создаем ботов:
   for i := nPl+1 to nPlayers do
-  begin
     g_Player_Create(STD_PLAYER_MODEL, _RGB(0, 0, 0), 0, True, 0);
-  end;
 end;
 
 procedure g_Game_StartServer(Map: String; GameMode: Byte;
@@ -2575,6 +2572,9 @@ begin
     Exit;
   end;
 
+  gLMSRespawn := False;
+  gLMSRespawnTime := 0;
+
   g_Player_Init();
   NetState := NET_STATE_GAME;
   MC_SEND_FullStateRequest;
@@ -2656,6 +2656,8 @@ begin
   NetTimeToUpdate := 1;
   NetTimeToReliable := 0;
   NetTimeToMaster := NetMasterRate;
+  gLMSRespawn := False;
+  gLMSRespawnTime := 0;
   gNextMap := '';
 
   gCoopMonstersKilled := 0;
@@ -3539,7 +3541,10 @@ begin
            if gPlayer1.FSpectator then
             gPlayer1.Respawn(False)
            else
+           begin
+            if (gGameSettings.MaxLives > 0) then gPlayer1.Lives := gPlayer1.Lives + 1; 
             gPlayer1.Spectate;
+           end;
           end;
         end;
       end
