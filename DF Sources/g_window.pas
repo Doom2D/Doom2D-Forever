@@ -680,7 +680,7 @@ begin
   if NetMode = NET_SERVER then
     g_Net_Host_Update
   else
-    if NetMode = NET_CLIENT then
+    if (NetMode = NET_CLIENT) and (NetState <> NET_STATE_AUTH) then
       g_Net_Client_UpdateWhileLoading;
 end;
 

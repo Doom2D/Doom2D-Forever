@@ -81,7 +81,7 @@ uses
   g_window, g_options;
 
 const
-  N_CHANNELS = 64;
+  N_CHANNELS = 512;   
 
 var
   F_System: FMOD_SYSTEM = nil;

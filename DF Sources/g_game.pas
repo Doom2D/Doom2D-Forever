@@ -2303,7 +2303,7 @@ var
 begin
   g_Game_Free();
 
-  e_WriteLog('Starting net game...', MSG_NOTIFY);
+  e_WriteLog('Starting net game (server)...', MSG_NOTIFY);
 
   g_Game_ClearLoading();
   g_Game_LoadData();
@@ -2411,8 +2411,9 @@ var
   newResPath: string;
 begin
   g_Game_Free();
+  
   State := 0;
-
+  e_WriteLog('Starting net game (client)...', MSG_NOTIFY);
   e_WriteLog('NET: Trying to connect to ' + Addr + ':' + IntToStr(Port) + '...', MSG_NOTIFY);
 
   g_Game_ClearLoading();
@@ -2436,12 +2437,13 @@ begin
   if not g_Net_Connect(Addr, Port) then
   begin
     g_FatalError(_lc[I_NET_MSG] + _lc[I_NET_ERR_CONN]);
+    NetState := NET_STATE_NONE;
     Exit;
   end;
 
   g_Game_SetLoadingText(_lc[I_LOAD_SEND_INFO], 0, False);
-  g_Game_SetLoadingText(_lc[I_LOAD_WAIT_INFO], 0, False);
   MC_SEND_Info(PW);
+  g_Game_SetLoadingText(_lc[I_LOAD_WAIT_INFO], 0, False);
 
   OuterLoop := True;
   while OuterLoop do
@@ -2555,6 +2557,7 @@ begin
   if State <> 1 then
   begin
     g_FatalError(_lc[I_NET_MSG] + _lc[I_NET_ERR_CONN]);
+    NetState := NET_STATE_NONE;
     Exit;
   end;
 

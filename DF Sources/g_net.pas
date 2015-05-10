@@ -288,7 +288,9 @@ begin
     if NetClients[I].Used then
     begin
       FreeMemory(NetClients[I].Peer^.data);
+      NetClients[I].Peer^.data := nil;
       enet_peer_reset(NetClients[I].Peer);
+      NetClients[I].Peer := nil;
       NetClients[I].Used := False;
     end;
 
@@ -468,7 +470,11 @@ begin
         enet_packet_destroy(NetEvent.packet);
     end;
 
-    if NetPeer <> nil then enet_peer_reset(NetPeer);
+    if NetPeer <> nil then
+    begin
+      enet_peer_reset(NetPeer);
+      NetPeer := nil;
+    end;
   end
   else
   begin
@@ -478,7 +484,11 @@ begin
         _lc[TStrings_Locale(Cardinal(I_NET_DISC_NONE) + NetEvent.data)], True);
   end;
 
-  if NetHost <> nil then enet_host_destroy(NetHost);
+  if NetHost <> nil then
+  begin
+    enet_host_destroy(NetHost);
+    NetHost := nil;
+  end;
   g_Console_Add(_lc[I_NET_MSG] + _lc[I_NET_MSG_CLIENT_DISC]);
 
   g_Net_Cleanup;
@@ -506,7 +516,7 @@ begin
   e_Buffer_Clear(@NetOut);
 end;
 
-function  g_Net_Client_Update(): enet_size_t;
+function g_Net_Client_Update(): enet_size_t;
 begin
   Result := 0;
   while (enet_host_service(NetHost, @NetEvent, 0) > 0) do
@@ -619,7 +629,11 @@ begin
 
   g_Console_Add(_lc[I_NET_MSG_ERROR] + _lc[I_NET_ERR_TIMEOUT], True);
   if NetPeer <> nil then enet_peer_reset(NetPeer);
-  if NetHost <> nil then enet_host_destroy(NetHost);
+  if NetHost <> nil then
+  begin
+    enet_host_destroy(NetHost);
+    NetHost := nil;
+  end;
   g_Net_Cleanup;
   Result := False;
 end;
@@ -741,9 +755,7 @@ begin
 
     e_PollKeyboard();
     if (e_KeyBuffer[1] = $080) or (e_KeyBuffer[57] = $080) then
-    begin
       break;
-    end;
   end;
   Result := msgStream;
 end;
