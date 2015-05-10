@@ -63,7 +63,9 @@ procedure g_TakeScreenShot();
 procedure g_FatalError(Text: String);
 procedure g_SimpleError(Text: String);
 procedure g_Game_DeleteTestMap();
+procedure GameCVars(P: SArray);
 procedure GameCommands(P: SArray);
+procedure DebugCommands(P: SArray);
 procedure g_Game_Process_Params;
 procedure g_Game_SetLoadingText(Text: String; Max: Integer; reWrite: Boolean);
 procedure g_Game_StepLoading();
@@ -2817,103 +2819,16 @@ begin
   g_SetFileTime(WadName, time);
 end;
 
-procedure GameCommands(P: SArray);
+procedure GameCVars(P: SArray);
 var
   a, b: Integer;
-  s, pw: String;
+  s: string;
   stat: TPlayerStatArray;
-  pt: TPoint;
-  chstr: string;
-  pl: pTNetClient;
-  prt: Word;
+  cmd: string;
 begin
-// Общие команды:
-  chstr := '';
-  if (LowerCase(P[0]) = 'quit') or
-     (LowerCase(P[0]) = 'exit') then
-  begin
-    g_Game_Quit();
-    Exit;
-  end;
-
-  if LowerCase(P[0]) = 'pause' then
-    if (g_ActiveWindow = nil) then
-      g_Game_Pause(not gPause);
-
-  if LowerCase(P[0]) = 'endgame' then
-    gExit := EXIT_SIMPLE;
-
-  if LowerCase(P[0]) = 'restart' then
-    if gGameOn then
-      g_Game_Restart();
-
-  if LowerCase(P[0]) = 'kick' then
-    if g_Game_IsServer and g_Game_IsNet then
-    begin
-      if Length(P) < 2 then
-      begin
-        g_Console_Add('kick name');
-        Exit;
-      end;
-      if P[1] = '' then
-      begin
-        g_Console_Add('kick name');
-        Exit;
-      end;
-
-      pl := g_Net_Client_ByName(P[1]);
-      if (pl <> nil) then enet_peer_disconnect(pl^.Peer, NET_DISC_KICK);
-    end;
-
-  if LowerCase(P[0]) = 'connect' then
-    if (NetMode = NET_NONE) then
-    begin
-      if Length(P) < 2 then
-      begin
-        g_Console_Add('connect IP [port] [password]');
-        Exit;
-      end;
-      if P[1] = '' then
-      begin
-        g_Console_Add('connect IP [port] [password]');
-        Exit;
-      end;
-
-      if Length(P) > 2 then
-        prt := StrToIntDef(P[2], 25666)
-      else
-        prt := 25666;
-
-      if Length(P) > 3 then
-        pw := P[3]
-      else
-        pw := 'ASS';
-
-      if pw = '' then pw := 'ASS';
-
-      g_Game_StartClient(P[1], prt, pw);
-    end;
-
-  if LowerCase(P[0]) = 'disconnect' then
-    if (NetMode = NET_CLIENT) then
-      g_Net_Disconnect();
-
-  if LowerCase(P[0]) = 'reconnect' then
-  begin
-    if (NetMode = NET_SERVER) then
-      Exit;
-
-    if (NetMode = NET_CLIENT) then
-    begin
-      g_Net_Disconnect();
-      gExit := EXIT_SIMPLE;
-      EndGame;
-    end;
-    
-    g_Game_StartClient(NetLastIP, NetLastPort);
-  end;
-  
-  if LowerCase(P[0]) = 'g_showfps' then
+  stat := nil;
+  cmd := LowerCase(P[0]);
+  if cmd = 'r_showfps' then
   begin
     if (Length(P) > 1) and
        ((P[1] = '1') or (P[1] = '0')) then
@@ -2923,9 +2838,9 @@ begin
       g_Console_Add(_lc[I_MSG_SHOW_FPS_ON])
     else
       g_Console_Add(_lc[I_MSG_SHOW_FPS_OFF]);
-  end;
-
-  if (LowerCase(P[0]) = 'ffire') and not g_Game_IsClient then
+  end
+  else if (cmd = 'g_friendlyfire') and not g_Game_IsClient then
+  begin
     with gGameSettings do
     begin
       if (Length(P) > 1) and
@@ -2944,67 +2859,116 @@ begin
 
       if g_Game_IsNet then MH_SEND_GameSettings;
     end;
-
-  if (LowerCase(P[0]) = 'addbot') or
-     (LowerCase(P[0]) = 'bot_add') then
-    if Length(P) > 1 then
-      g_Bot_Add(TEAM_NONE, StrToIntDef(P[1], 2))
-    else
-      g_Bot_Add(TEAM_NONE, 2);
-
-  if LowerCase(P[0]) = 'bot_addlist' then
-    if Length(P) > 1 then
-      if Length(P) = 2 then
-        g_Bot_AddList(TEAM_NONE, P[1], StrToIntDef(P[1], -1))
-      else
-        g_Bot_AddList(IfThen(P[2] = 'red', TEAM_RED, TEAM_BLUE), P[1], StrToIntDef(P[1], -1));
-
-  if LowerCase(P[0]) = 'bot_removeall' then
-    g_Bot_RemoveAll();
-
-  if LowerCase(P[0]) = 'say' then
-    if g_Game_IsNet then
+  end
+  else if (cmd = 'g_weaponstay') and not g_Game_IsClient then
+  begin
+    with gGameSettings do
     begin
-      if Length(P) > 1 then
+      if (Length(P) > 1) and
+         ((P[1] = '1') or (P[1] = '0')) then
       begin
-        for a := 1 to High(P) do
-          chstr := chstr + P[a] + ' ';
-
-        if Length(chstr) > 200 then SetLength(chstr, 200);
-
-        if Length(chstr) < 1 then
-        begin
-          g_Console_Add('say text');
-          Exit;
-        end;
-
-        if g_Game_IsClient then
-          MC_SEND_Chat(chstr)
+        if (P[1][1] = '1') then
+          Options := Options or GAME_OPTION_WEAPONSTAY
         else
-          MH_SEND_Chat(gPlayer1Settings.Name + ': ' + chstr);
-      end
+          Options := Options and (not GAME_OPTION_WEAPONSTAY);
+      end;
+        
+      if (LongBool(Options and GAME_OPTION_WEAPONSTAY)) then
+        g_Console_Add(_lc[I_MSG_WEAPONSTAY_ON])
       else
-        g_Console_Add('say text');
-    end;
+        g_Console_Add(_lc[I_MSG_WEAPONSTAY_OFF]);
 
-  if LowerCase(P[0]) = 'changemap' then
-    if Length(P) > 1 then
-      if g_Game_IsServer and (gGameSettings.GameType <> GT_SINGLE) then
+      if g_Game_IsNet then MH_SEND_GameSettings;
+    end;
+  end
+  else if (cmd = 'g_allow_exit') and not g_Game_IsClient then
+  begin
+    with gGameSettings do
+    begin
+      if (Length(P) > 1) and
+         ((P[1] = '1') or (P[1] = '0')) then
       begin
-        s := UpperCase(P[1]);
-        if g_Map_Exist(gGameSettings.WAD + ':\' + s) then
-        begin
-          NextMap := s;
-          gExit := EXIT_ENDLEVELCUSTOM;
-        end
+        if (P[1][1] = '1') then
+          Options := Options or GAME_OPTION_ALLOWEXIT
         else
-        begin
-          g_Console_Add(Format(_lc[I_MSG_NO_MAP], [P[1]]));
-          Exit;
-        end;
+          Options := Options and (not GAME_OPTION_ALLOWEXIT);
+      end;
+        
+      if (LongBool(Options and GAME_OPTION_ALLOWEXIT)) then
+        g_Console_Add(_lc[I_MSG_ALLOWEXIT_ON])
+      else
+        g_Console_Add(_lc[I_MSG_ALLOWEXIT_OFF]);
+      g_Console_Add(_lc[I_MSG_ONMAPCHANGE]);
+
+      if g_Game_IsNet then MH_SEND_GameSettings;
+    end;
+  end
+  else if (cmd = 'g_allow_monsters') and not g_Game_IsClient then
+  begin
+    with gGameSettings do
+    begin
+      if (Length(P) > 1) and
+         ((P[1] = '1') or (P[1] = '0')) then
+      begin
+        if (P[1][1] = '1') then
+          Options := Options or GAME_OPTION_MONSTERDM
+        else
+          Options := Options and (not GAME_OPTION_MONSTERDM);
+      end;
+        
+      if (LongBool(Options and GAME_OPTION_MONSTERDM)) then
+        g_Console_Add(_lc[I_MSG_ALLOWMON_ON])
+      else
+        g_Console_Add(_lc[I_MSG_ALLOWMON_OFF]);
+      g_Console_Add(_lc[I_MSG_ONMAPCHANGE]);
+
+      if g_Game_IsNet then MH_SEND_GameSettings;
+    end;
+  end
+  else if (cmd = 'g_bot_vsplayers') and not g_Game_IsClient then
+  begin
+    with gGameSettings do
+    begin
+      if (Length(P) > 1) and
+         ((P[1] = '1') or (P[1] = '0')) then
+      begin
+        if (P[1][1] = '1') then
+          Options := Options or GAME_OPTION_BOTVSPLAYER
+        else
+          Options := Options and (not GAME_OPTION_BOTVSPLAYER);
+      end;
+        
+      if (LongBool(Options and GAME_OPTION_BOTVSPLAYER)) then
+        g_Console_Add(_lc[I_MSG_BOTSVSPLAYERS_ON])
+      else
+        g_Console_Add(_lc[I_MSG_BOTSVSPLAYERS_OFF]);
+
+      if g_Game_IsNet then MH_SEND_GameSettings;
+    end;
+  end
+  else if (cmd = 'g_bot_vsmonsters') and not g_Game_IsClient then
+  begin
+    with gGameSettings do
+    begin
+      if (Length(P) > 1) and
+         ((P[1] = '1') or (P[1] = '0')) then
+      begin
+        if (P[1][1] = '1') then
+          Options := Options or GAME_OPTION_BOTVSMONSTER
+        else
+          Options := Options and (not GAME_OPTION_BOTVSMONSTER);
       end;
 
-  if LowerCase(P[0]) = 'nextmap' then
+      if (LongBool(Options and GAME_OPTION_BOTVSMONSTER)) then
+        g_Console_Add(_lc[I_MSG_BOTSVSMONSTERS_ON])
+      else
+        g_Console_Add(_lc[I_MSG_BOTSVSMONSTERS_OFF]);
+
+      if g_Game_IsNet then MH_SEND_GameSettings;
+    end;
+  end
+  else if cmd = 'nextmap' then
+  begin
     if Length(P) > 1 then
       if g_Game_IsServer and (gGameSettings.GameType <> GT_SINGLE) then
       begin
@@ -3014,110 +2978,54 @@ begin
         else
           g_Console_Add(Format(_lc[I_MSG_NO_MAP], [P[1]]));
       end;
-
-// Команды отладочного режима:
-  if gDebugMode then
+  end
+  else if gGameSettings.GameType in [GT_CUSTOM, GT_SERVER, GT_CLIENT] then
   begin
-    if LowerCase(P[0]) = 'd_window' then
-    begin
-      GetCursorPos(pt);
-      g_Console_Add(Format('Cursor at %d : %d', [pt.X-gWinPosX, pt.Y-gWinPosY]));
-      g_Console_Add(Format('gWinPosX = %d, gWinPosY %d', [gWinPosX, gWinPosY]));
-      g_Console_Add(Format('gWinRealPosX = %d, gWinRealPosY %d', [gWinRealPosX, gWinRealPosY]));
-      g_Console_Add(Format('gScreenWidth = %d, gScreenHeight = %d', [gScreenWidth, gScreenHeight]));
-      g_Console_Add(Format('gWinSizeX = %d, gWinSizeY = %d', [gWinSizeX, gWinSizeY]));
-      g_Console_Add(Format('Frame X = %d, Y = %d, Caption Y = %d', [gWinFrameX, gWinFrameY, gWinCaption]));
-    end;
-
-    if LowerCase(P[0]) = 'd_sounds' then
+    if cmd = 'r_showtime' then
     begin
       if (Length(P) > 1) and
          ((P[1] = '1') or (P[1] = '0')) then
-        g_debug_Sounds := (P[1][1] = '1');
+        gShowTime := (P[1][1] = '1');
 
-      g_Console_Add(Format('d_sounds is %d', [Byte(g_debug_Sounds)]));
-    end;
-    
-    if LowerCase(P[0]) = 'd_frames' then
+      if gShowTime then
+        g_Console_Add(_lc[I_MSG_TIME_ON])
+      else
+        g_Console_Add(_lc[I_MSG_TIME_OFF]);
+    end
+    else if cmd = 'r_showscore' then
     begin
       if (Length(P) > 1) and
          ((P[1] = '1') or (P[1] = '0')) then
-        g_debug_Frames := (P[1][1] = '1');
+        gShowGoals := (P[1][1] = '1');
 
-      g_Console_Add(Format('d_frames is %d', [Byte(g_debug_Frames)]));
-    end;
-
-    if LowerCase(P[0]) = 'd_winmsg' then
+      if gShowGoals then
+        g_Console_Add(_lc[I_MSG_SCORE_ON])
+      else
+        g_Console_Add(_lc[I_MSG_SCORE_OFF]);
+    end
+    else if cmd = 'r_showstat' then
     begin
       if (Length(P) > 1) and
          ((P[1] = '1') or (P[1] = '0')) then
-        g_debug_WinMsgs := (P[1][1] = '1');
+        gShowStat := (P[1][1] = '1');
 
-      g_Console_Add(Format('d_winmsg is %d', [Byte(g_debug_WinMsgs)]));
-    end;
-
-    if (LowerCase(P[0]) = 'd_monoff') and not g_Game_IsNet then
+      if gShowStat then
+        g_Console_Add(_lc[I_MSG_STATS_ON])
+      else
+        g_Console_Add(_lc[I_MSG_STATS_OFF]);
+    end
+    else if cmd = 'r_showkillmsg' then
     begin
       if (Length(P) > 1) and
          ((P[1] = '1') or (P[1] = '0')) then
-        g_debug_MonsterOff := (P[1][1] = '1');
+        gShowKillMsg := (P[1][1] = '1');
 
-      g_Console_Add(Format('d_monoff is %d', [Byte(g_debug_MonsterOff)]));
-    end;
-
-    if (LowerCase(P[0]) = 'map') then
-      if (Length(P) > 1) then
-      begin
-        if Pos('.wad', LowerCase(P[1])) = 0 then
-          P[1] := P[1] + '.wad';
-
-        if Length(P) > 2 then
-          s := MapsDir + P[1] + ':\' + UpperCase(P[2])
-        else
-          s := MapsDir + P[1] + ':\MAP01';
-
-        if g_Map_Exist(s) then
-          begin
-            g_Game_Free();
-            with gGameSettings do
-            begin
-              if LongBool(Options and GAME_OPTION_TWOPLAYER) then
-                b := 2
-              else
-                b := 1;
-              g_Game_StartCustom(s, GameMode, TimeLimit,
-                                 GoalLimit, Options, b);
-            end;
-          end
-        else
-          g_Console_Add(Format(_lc[I_MSG_NO_MAP], [s]));
-      end;
-
-    if LowerCase(P[0]) = 'monster' then
-      if (Length(P) > 1) and gGameOn and
-         (gPlayer1 <> nil) and (gPlayer1.Live) and (not g_Game_IsNet) then
-      begin
-        a := StrToIntDef(P[1], 0);
-        if (a < MONSTER_DEMON) or (a > MONSTER_MAN) then
-          a := g_Monsters_GetIDByName(P[1]);
-          
-        if (a < MONSTER_DEMON) or (a > MONSTER_MAN) then
-          g_Console_Add(Format(_lc[I_MSG_NO_MONSTER], [P[1]]))
-        else
-          begin
-            with gPlayer1.Obj do
-              g_Monsters_Create(a,
-                X + Rect.X + (Rect.Width div 2),
-                Y + Rect.Y + Rect.Height,
-                gPlayer1.Direction, True);
-          end;
-      end;
-  end; // gDebugMode
-
-// Команды Своей игры:
-  if gGameSettings.GameType in [GT_CUSTOM, GT_SERVER, GT_CLIENT] then
-  begin
-    if LowerCase(P[0]) = 'p1_name' then
+      if gShowKillMsg then
+        g_Console_Add(_lc[I_MSG_KILL_MSGS_ON])
+      else
+        g_Console_Add(_lc[I_MSG_KILL_MSGS_OFF]);
+    end
+    else if cmd = 'p1_name' then
     begin
       if (Length(P) > 1) and gGameOn and (gPlayer1 <> nil) then
         if not g_Game_IsClient then
@@ -3130,61 +3038,13 @@ begin
           gPlayer1Settings.Name := P[1];
           MC_SEND_PlayerSettings;
         end;
-    end;
-
-    if (LowerCase(P[0]) = 'p2_name') and not g_Game_IsNet then
+    end
+    else if (cmd = 'p2_name') and not g_Game_IsNet then
+    begin
       if (Length(P) > 1) and gGameOn and (gPlayer2 <> nil) then
           gPlayer2.Name := P[1];
-
-    if LowerCase(P[0]) = 'g_showtime' then
-    begin
-      if (Length(P) > 1) and
-         ((P[1] = '1') or (P[1] = '0')) then
-        gShowTime := (P[1][1] = '1');
-
-      if gShowTime then
-        g_Console_Add(_lc[I_MSG_TIME_ON])
-      else
-        g_Console_Add(_lc[I_MSG_TIME_OFF]);
-    end;
-
-    if LowerCase(P[0]) = 'g_showscore' then
-    begin
-      if (Length(P) > 1) and
-         ((P[1] = '1') or (P[1] = '0')) then
-        gShowGoals := (P[1][1] = '1');
-
-      if gShowGoals then
-        g_Console_Add(_lc[I_MSG_SCORE_ON])
-      else
-        g_Console_Add(_lc[I_MSG_SCORE_OFF]);
-    end;
-
-    if LowerCase(P[0]) = 'g_showstat' then
-    begin
-      if (Length(P) > 1) and
-         ((P[1] = '1') or (P[1] = '0')) then
-        gShowStat := (P[1][1] = '1');
-
-      if gShowStat then
-        g_Console_Add(_lc[I_MSG_STATS_ON])
-      else
-        g_Console_Add(_lc[I_MSG_STATS_OFF]);
-    end;
-
-    if LowerCase(P[0]) = 'g_showkillmsg' then
-    begin
-      if (Length(P) > 1) and
-         ((P[1] = '1') or (P[1] = '0')) then
-        gShowKillMsg := (P[1][1] = '1');
-
-      if gShowKillMsg then
-        g_Console_Add(_lc[I_MSG_KILL_MSGS_ON])
-      else
-        g_Console_Add(_lc[I_MSG_KILL_MSGS_OFF]);
-    end;
-
-    if LowerCase(P[0]) = 'p1_color' then
+    end
+    else if cmd = 'p1_color' then
     begin
       if (gPlayer1 <> nil) and (Length(P) > 3) then
         if g_Game_IsClient then
@@ -3201,10 +3061,9 @@ begin
                                   EnsureRange(StrToIntDef(P[3], 0), 0, 255));
           if g_Game_IsNet then MH_SEND_PlayerSettings(gPlayer1.UID);
         end;
-
-    end;
-
-    if (LowerCase(P[0]) = 'p2_color') and not g_Game_IsNet then
+    end
+    else if (cmd = 'p2_color') and not g_Game_IsNet then
+    begin
       if (gPlayer2 <> nil) and (Length(P) > 3) then
         if g_Game_IsClient then
           gPlayer2Settings.Color := _RGB(EnsureRange(StrToIntDef(P[1], 0), 0, 255),
@@ -3214,8 +3073,8 @@ begin
           gPlayer2.Model.SetColor(EnsureRange(StrToIntDef(P[1], 0), 0, 255),
                                   EnsureRange(StrToIntDef(P[2], 0), 0, 255),
                                   EnsureRange(StrToIntDef(P[3], 0), 0, 255));
-
-    if (LowerCase(P[0]) = 'scorelimit') and not g_Game_IsClient then
+    end
+    else if (cmd = 'g_scorelimit') and not g_Game_IsClient then
     begin
       if Length(P) > 1 then
       begin
@@ -3243,9 +3102,8 @@ begin
       end;
 
       g_Console_Add(Format(_lc[I_MSG_SCORE_LIMIT], [gGameSettings.GoalLimit]));
-    end;
-
-    if (LowerCase(P[0]) = 'timelimit') and not g_Game_IsClient then
+    end
+    else if (cmd = 'g_timelimit') and not g_Game_IsClient then
     begin
       if Length(P) > 1 then
       begin
@@ -3265,21 +3123,300 @@ begin
                            (gGameSettings.TimeLimit div 60) mod 60,
                             gGameSettings.TimeLimit mod 60]));
       if g_Game_IsNet then MH_SEND_GameSettings;
-    end;
+    end
+    else if cmd = 'net_interp' then
+    begin
+      if (Length(P) > 1) then
+        NetInterpLevel := StrToIntDef(P[1], NetInterpLevel);
 
-    if LowerCase(P[0]) = 'bot_addred' then
+      g_Console_Add('net_interp = ' + IntToStr(NetInterpLevel));
+    end;
+  end;
+end;
+
+procedure DebugCommands(P: SArray);
+var
+  a, b: Integer;
+  s: string;
+  cmd: string;
+  pt: TPoint;
+begin
+// Команды отладочного режима:
+  if gDebugMode then
+  begin
+    cmd := LowerCase(P[0]);
+    if cmd = 'd_window' then
+    begin
+      GetCursorPos(pt);
+      g_Console_Add(Format('Cursor at %d : %d', [pt.X-gWinPosX, pt.Y-gWinPosY]));
+      g_Console_Add(Format('gWinPosX = %d, gWinPosY %d', [gWinPosX, gWinPosY]));
+      g_Console_Add(Format('gWinRealPosX = %d, gWinRealPosY %d', [gWinRealPosX, gWinRealPosY]));
+      g_Console_Add(Format('gScreenWidth = %d, gScreenHeight = %d', [gScreenWidth, gScreenHeight]));
+      g_Console_Add(Format('gWinSizeX = %d, gWinSizeY = %d', [gWinSizeX, gWinSizeY]));
+      g_Console_Add(Format('Frame X = %d, Y = %d, Caption Y = %d', [gWinFrameX, gWinFrameY, gWinCaption]));
+    end
+    else if cmd = 'd_sounds' then
+    begin
+      if (Length(P) > 1) and
+         ((P[1] = '1') or (P[1] = '0')) then
+        g_Debug_Sounds := (P[1][1] = '1');
+
+      g_Console_Add(Format('d_sounds is %d', [Byte(g_Debug_Sounds)]));
+    end
+    else if cmd = 'd_frames' then
+    begin
+      if (Length(P) > 1) and
+         ((P[1] = '1') or (P[1] = '0')) then
+        g_Debug_Frames := (P[1][1] = '1');
+
+      g_Console_Add(Format('d_frames is %d', [Byte(g_Debug_Frames)]));
+    end
+    else if cmd = 'd_winmsg' then
+    begin
+      if (Length(P) > 1) and
+         ((P[1] = '1') or (P[1] = '0')) then
+        g_Debug_WinMsgs := (P[1][1] = '1');
+
+      g_Console_Add(Format('d_winmsg is %d', [Byte(g_Debug_WinMsgs)]));
+    end
+    else if (cmd = 'd_monoff') and not g_Game_IsNet then
+    begin
+      if (Length(P) > 1) and
+         ((P[1] = '1') or (P[1] = '0')) then
+        g_Debug_MonsterOff := (P[1][1] = '1');
+
+      g_Console_Add(Format('d_monoff is %d', [Byte(g_debug_MonsterOff)]));
+    end
+    else if (cmd = 'map') then
+    begin
+      if (Length(P) > 1) then
+      begin
+        if Pos('.wad', LowerCase(P[1])) = 0 then
+          P[1] := P[1] + '.wad';
+
+        if Length(P) > 2 then
+          s := MapsDir + P[1] + ':\' + UpperCase(P[2])
+        else
+          s := MapsDir + P[1] + ':\MAP01';
+
+        if g_Map_Exist(s) then
+          begin
+            g_Game_Free();
+            with gGameSettings do
+            begin
+              if LongBool(Options and GAME_OPTION_TWOPLAYER) then
+                b := 2
+              else
+                b := 1;
+              g_Game_StartCustom(s, GameMode, TimeLimit,
+                                 GoalLimit, Options, b);
+            end;
+          end
+        else
+          g_Console_Add(Format(_lc[I_MSG_NO_MAP], [s]));
+      end;
+    end
+    else if cmd = 'monster' then
+      if (Length(P) > 1) and gGameOn and
+         (gPlayer1 <> nil) and (gPlayer1.Live) and (not g_Game_IsNet) then
+      begin
+        a := StrToIntDef(P[1], 0);
+        if (a < MONSTER_DEMON) or (a > MONSTER_MAN) then
+          a := g_Monsters_GetIDByName(P[1]);
+          
+        if (a < MONSTER_DEMON) or (a > MONSTER_MAN) then
+          g_Console_Add(Format(_lc[I_MSG_NO_MONSTER], [P[1]]))
+        else
+          begin
+            with gPlayer1.Obj do
+              g_Monsters_Create(a,
+                X + Rect.X + (Rect.Width div 2),
+                Y + Rect.Y + Rect.Height,
+                gPlayer1.Direction, True);
+          end;
+      end;
+  end;
+end;
+
+procedure GameCommands(P: SArray);
+var
+  a: Integer;
+  s, pw: String;
+  chstr: string;
+  cmd: string;
+  pl: pTNetClient;
+  prt: Word;
+begin
+// Общие команды:
+  cmd := LowerCase(P[0]);
+  chstr := '';
+  if (cmd = 'quit') or
+     (cmd = 'exit') then
+  begin
+    g_Game_Quit();
+    Exit;
+  end
+  else if cmd = 'pause' then
+  begin
+    if (g_ActiveWindow = nil) then
+      g_Game_Pause(not gPause);
+  end
+  else if cmd = 'endgame' then
+    gExit := EXIT_SIMPLE
+  else if cmd = 'restart' then
+  begin
+    if gGameOn then
+      g_Game_Restart();
+  end
+  else if cmd = 'kick' then
+  begin
+    if g_Game_IsServer and g_Game_IsNet then
+    begin
+      if Length(P) < 2 then
+      begin
+        g_Console_Add('kick name');
+        Exit;
+      end;
+      if P[1] = '' then
+      begin
+        g_Console_Add('kick name');
+        Exit;
+      end;
+
+      pl := g_Net_Client_ByName(P[1]);
+      if (pl <> nil) then enet_peer_disconnect(pl^.Peer, NET_DISC_KICK);
+    end;
+  end
+  else if cmd = 'connect' then
+  begin
+    if (NetMode = NET_NONE) then
+    begin
+      if Length(P) < 2 then
+      begin
+        g_Console_Add('connect IP [port] [password]');
+        Exit;
+      end;
+      if P[1] = '' then
+      begin
+        g_Console_Add('connect IP [port] [password]');
+        Exit;
+      end;
+
+      if Length(P) > 2 then
+        prt := StrToIntDef(P[2], 25666)
+      else
+        prt := 25666;
+
+      if Length(P) > 3 then
+        pw := P[3]
+      else
+        pw := 'ASS';
+
+      if pw = '' then pw := 'ASS';
+
+      g_Game_StartClient(P[1], prt, pw);
+    end;
+  end
+  else if cmd = 'disconnect' then
+  begin
+    if (NetMode = NET_CLIENT) then
+      g_Net_Disconnect();
+  end
+  else if cmd = 'reconnect' then
+  begin
+    if (NetMode = NET_SERVER) then
+      Exit;
+
+    if (NetMode = NET_CLIENT) then
+    begin
+      g_Net_Disconnect();
+      gExit := EXIT_SIMPLE;
+      EndGame;
+    end;
+    
+    g_Game_StartClient(NetLastIP, NetLastPort);
+  end
+  else if (cmd = 'addbot') or
+     (cmd = 'bot_add') then
+  begin
+    if Length(P) > 1 then
+      g_Bot_Add(TEAM_NONE, StrToIntDef(P[1], 2))
+    else
+      g_Bot_Add(TEAM_NONE, 2);
+  end
+  else if cmd = 'bot_addlist' then
+  begin
+    if Length(P) > 1 then
+      if Length(P) = 2 then
+        g_Bot_AddList(TEAM_NONE, P[1], StrToIntDef(P[1], -1))
+      else
+        g_Bot_AddList(IfThen(P[2] = 'red', TEAM_RED, TEAM_BLUE), P[1], StrToIntDef(P[1], -1));
+  end
+  else if cmd = 'bot_removeall' then
+    g_Bot_RemoveAll()
+  else if cmd = 'say' then
+  begin
+    if g_Game_IsNet then
+    begin
+      if Length(P) > 1 then
+      begin
+        for a := 1 to High(P) do
+          chstr := chstr + P[a] + ' ';
+
+        if Length(chstr) > 200 then SetLength(chstr, 200);
+
+        if Length(chstr) < 1 then
+        begin
+          g_Console_Add('say text');
+          Exit;
+        end;
+
+        if g_Game_IsClient then
+          MC_SEND_Chat(chstr)
+        else
+          MH_SEND_Chat(gPlayer1Settings.Name + ': ' + chstr);
+      end
+      else
+        g_Console_Add('say text');
+    end;
+  end
+  else if cmd = 'changemap' then
+  begin
+    if Length(P) > 1 then
+      if g_Game_IsServer and (gGameSettings.GameType <> GT_SINGLE) then
+      begin
+        s := UpperCase(P[1]);
+        if g_Map_Exist(gGameSettings.WAD + ':\' + s) then
+        begin
+          NextMap := s;
+          gExit := EXIT_ENDLEVELCUSTOM;
+        end
+        else
+        begin
+          g_Console_Add(Format(_lc[I_MSG_NO_MAP], [P[1]]));
+          Exit;
+        end;
+      end;
+  end
+// Команды Своей игры:
+  else if gGameSettings.GameType in [GT_CUSTOM, GT_SERVER, GT_CLIENT] then
+  begin
+    if cmd = 'bot_addred' then
+    begin
       if Length(P) > 1 then
         g_Bot_Add(TEAM_RED, StrToIntDef(P[1], 2))
       else
         g_Bot_Add(TEAM_RED, 2);
-
-    if LowerCase(P[0]) = 'bot_addblue' then
+    end
+    else if cmd = 'bot_addblue' then
+    begin
       if Length(P) > 1 then
         g_Bot_Add(TEAM_BLUE, StrToIntDef(P[1], 2))
       else
         g_Bot_Add(TEAM_BLUE, 2);
-
-    if LowerCase(P[0]) = 'suicide' then
+    end
+    else if cmd = 'suicide' then
+    begin
       if gGameOn then
       begin
         if g_Game_IsClient then
@@ -3292,8 +3429,9 @@ begin
             gPlayer2.Damage(666, gPlayer2.UID, 0, 0, HIT_SOME);
         end;
       end;
-
-    if LowerCase(P[0]) = 'spectate' then
+    end
+    else if cmd = 'spectate' then
+    begin
       if gGameOn then
       begin
         if g_Game_IsClient then
@@ -3308,19 +3446,11 @@ begin
             gPlayer1.Spectate;
           end;
         end;
-      end;
-
-    if LowerCase(P[0]) = 'net_interp' then
+      end
+    end
+    else if cmd = 'broadcast' then
     begin
-      if (Length(P) > 1) then
-        NetInterpLevel := StrToIntDef(P[1], NetInterpLevel);
-
-      g_Console_Add('net_interp = ' + IntToStr(NetInterpLevel));
-    end;
-
-    if LowerCase(P[0]) = 'broadcast' then
-    begin
-      if g_Game_IsServer then
+      if g_Game_IsServer and g_Game_IsNet then
       begin
         if Length(P) > 1 then
         begin
@@ -3340,11 +3470,10 @@ begin
         end
         else g_Console_Add('broadcast text');
       end;
-    end;
-
-    if LowerCase(P[0]) = 'tell' then
+    end
+    else if cmd = 'tell' then
     begin
-      if g_Game_IsServer then
+      if g_Game_IsServer and g_Game_IsNet then
       begin
         if (Length(P) > 2) and (P[1] <> '') then
         begin
@@ -3368,9 +3497,8 @@ begin
         end
         else g_Console_Add('tell playername text');
       end;
-    end;
-
-    if (LowerCase(P[0]) = 'rcon_password') and g_Game_IsClient then
+    end
+    else if (cmd = 'rcon_password') and g_Game_IsClient then
     begin
       if (Length(P) <= 1) then
         g_Console_Add('rcon_password password')
@@ -3379,9 +3507,8 @@ begin
         if P[1] = '' then P[1] := 'ASS';
         MC_SEND_RCONPassword(P[1]);
       end;
-    end;
-
-    if LowerCase(P[0]) = 'rcon' then
+    end
+    else if cmd = 'rcon' then
     begin
       if g_Game_IsClient then
       begin
