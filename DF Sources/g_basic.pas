@@ -494,7 +494,7 @@ begin
   b := abs(vy);
 
   if a = 0 then 
-    c := 90
+    c := 0
   else 
     c := RadToDeg(ArcTan(b/a));
 

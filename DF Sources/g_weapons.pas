@@ -25,6 +25,7 @@ type
     Obj: TObj;
     Animation: TAnimation;
     TextureID: DWORD;
+    Timeout: DWORD;
   end;
 
 var
@@ -412,6 +413,7 @@ begin
   Shots[i].Obj.Vel.Y := (yd*s) div a;
   Shots[i].Obj.Accel.X := 0;
   Shots[i].Obj.Accel.Y := 0;
+  Shots[i].Timeout := 1080; // ~30 sec
 end;
 
 function g_Weapon_Hit(obj: PObj; d: Integer; SpawnerUID: Word; t: Byte): Byte;
@@ -1241,6 +1243,7 @@ begin
 
     with Shots[i] do
     begin
+      Timeout := Timeout - 1;
     // Активировать триггеры по пути (кроме уже активированных):
       if g_Game_IsServer then
         t := g_Triggers_PressR(Obj.X, Obj.Y, Obj.Rect.Width, Obj.Rect.Height,
@@ -1314,7 +1317,8 @@ begin
 
           // Попали в кого-то или в стену:
             if WordBool(st and (MOVE_HITWALL or MOVE_HITLAND or MOVE_HITCEIL)) or
-               (g_Weapon_Hit(@Obj, 10, SpawnerUID, HIT_SOME) <> 0) then
+               (g_Weapon_Hit(@Obj, 10, SpawnerUID, HIT_SOME) <> 0) or
+               (Timeout < 1) then
             begin
               Obj.Vel.X := 0;
               Obj.Vel.Y := 0;
@@ -1380,7 +1384,8 @@ begin
 
           // Попали в кого-то или в стену:
             if WordBool(st and (MOVE_HITWALL or MOVE_HITLAND or MOVE_HITCEIL)) or
-               (g_Weapon_Hit(@Obj, a, SpawnerUID, HIT_SOME) <> 0) then
+               (g_Weapon_Hit(@Obj, a, SpawnerUID, HIT_SOME) <> 0) or
+               (Timeout < 1) then
             begin
               if ShotType = WEAPON_PLASMA then
                 s := 'FRAMES_EXPLODE_PLASMA'
@@ -1416,7 +1421,8 @@ begin
 
           // Попали в кого-то или в стену:
             if WordBool(st and (MOVE_HITWALL or MOVE_HITLAND or MOVE_HITCEIL)) or
-               (g_Weapon_Hit(@Obj, SHOT_BFG_DAMAGE, SpawnerUID, HIT_BFG) <> 0) then
+               (g_Weapon_Hit(@Obj, SHOT_BFG_DAMAGE, SpawnerUID, HIT_BFG) <> 0) or
+               (Timeout < 1) then
             begin
             // Лучи BFG:
               if g_Game_IsServer then BFG9000(cx, cy, SpawnerUID);
@@ -1453,7 +1459,8 @@ begin
 
           // Попали в кого-то или в стену:
             if WordBool(st and (MOVE_HITWALL or MOVE_HITLAND or MOVE_HITCEIL)) or
-               (g_Weapon_Hit(@Obj, a, SpawnerUID, HIT_SOME) <> 0) then
+               (g_Weapon_Hit(@Obj, a, SpawnerUID, HIT_SOME) <> 0) or
+               (Timeout < 1) then
             begin
               if ShotType = WEAPON_IMP_FIRE then
                 s := 'FRAMES_EXPLODE_IMPFIRE'
@@ -1486,7 +1493,8 @@ begin
 
           // Попали в кого-то или в стену:
             if WordBool(st and (MOVE_HITWALL or MOVE_HITLAND or MOVE_HITCEIL)) or
-               (g_Weapon_Hit(@Obj, 40, SpawnerUID, HIT_SOME) <> 0) then
+               (g_Weapon_Hit(@Obj, 40, SpawnerUID, HIT_SOME) <> 0) or
+               (Timeout < 1) then
             begin
             // Взрыв:
               if g_Frames_Get(TextureID, 'FRAMES_EXPLODE_ROCKET') then
@@ -1507,7 +1515,8 @@ begin
     // Если снаряда уже нет, удаляем анимацию:
       if (ShotType = 0) then
       begin
-        if g_Game_IsNet and g_Game_IsServer and notplasma then MH_Send_DeleteShot(i, Obj.X, Obj.Y, Loud);
+        if g_Game_IsNet and g_Game_IsServer and (notplasma or (Timeout < 1)) then
+          MH_SEND_DeleteShot(i, Obj.X, Obj.Y, Loud);
         Animation.Free();
         Animation := nil;
       end;
