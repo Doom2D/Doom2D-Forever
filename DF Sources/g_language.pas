@@ -313,6 +313,7 @@ type
 
     I_MESSAGE_LMS_LOSE,
     I_MESSAGE_LMS_WIN,
+    I_MESSAGE_LMS_START,
     I_MESSAGE_TLMS_WIN,
 
     I_KEY_UP,                         
@@ -1044,6 +1045,8 @@ const
                                        'бяе опнхцпюкх'),
     ('MESSAGE LMS WIN',                '%s WINS',
                                        '%s онаедхк'),
+    ('MESSAGE LMS START',              'FIGHT!',
+                                       'онеуюкх!'),
     ('MESSAGE TLMS WIN',               '%s TEAM WINS',
                                        '%s йнлюмдю онаедхкю'),
 

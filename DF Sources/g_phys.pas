@@ -360,14 +360,14 @@ begin
     -1: //left
       begin
         Obj^.Vel.X := Obj^.Vel.X - 3; // Лифт вверх
-        if Obj^.Vel.X < -12 then
+        if Obj^.Vel.X < -9 then
           Obj^.Vel.X := Obj^.Vel.X + 3;
       end;
 
     1: //right
       begin
         Obj^.Vel.X := Obj^.Vel.X + 3;
-        if Obj^.Vel.X > 12 then
+        if Obj^.Vel.X > 9 then
           Obj^.Vel.X := Obj^.Vel.X - 3;
       end;
     // 0 is not needed here

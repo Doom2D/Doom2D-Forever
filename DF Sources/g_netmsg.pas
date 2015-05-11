@@ -61,6 +61,7 @@ const
   NET_EV_LMS_LOSE = 3;
   NET_EV_LMS_WIN  = 4;
   NET_EV_TLMS_WIN = 5;
+  NET_EV_LMS_START = 6;
 
   NET_FLAG_GET    = 1;
   NET_FLAG_DROP   = 2;
@@ -298,7 +299,19 @@ begin
   with g_Player_Get(PID) do
   begin
     Name := PName;
-    Respawn(True);
+    // round in progress, don't spawn
+    if (gGameSettings.MaxLives > 0) and (not gLMSRespawn) then
+    begin
+      Lives := 0;
+      FNoRespawn := True;
+      Spectate;
+    end
+    else
+    begin
+      Respawn(True);
+      MH_SEND_Chat(IntToStr((gLMSRespawnTime - gTime) div 1000) +
+                   ' sec until round start.', C^.ID);
+    end;
   end;
 
   // Отошлем всем инфу об уебе, кроме самого уебы
@@ -380,10 +393,7 @@ begin
       if Pl.FSpectator then
         Pl.Respawn(False)
       else
-      begin
-        if (gGameSettings.MaxLives > 0) then Pl.Lives := Pl.Lives + 1;
         Pl.Spectate;
-      end;
     end;
   end;
 end;
@@ -1264,6 +1274,8 @@ begin
       g_Game_Message(_lc[I_MESSAGE_LMS_LOSE], 144);
     NET_EV_LMS_WIN:
       g_Game_Message(Format(_lc[I_MESSAGE_LMS_WIN], [AnsiUpperCase(EvParm)]), 144);
+    NET_EV_LMS_START:
+      g_Game_Message(_lc[I_MESSAGE_LMS_START], 144);
     NET_EV_TLMS_WIN:
     begin
       if EvParm = 'r' then

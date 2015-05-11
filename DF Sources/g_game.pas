@@ -12,6 +12,7 @@ type
     GameMode: Byte;
     TimeLimit: Word;
     GoalLimit: Word;
+    WarmupTime: Word;
     MaxLives: Byte;
     Options: LongWord;
     WAD: String;
@@ -49,7 +50,7 @@ procedure g_Game_StartClient(Addr: String; Port: Word; PW: String = 'ASS');
 procedure g_Game_StartCustom(Map: String; GameMode: Byte; TimeLimit, GoalLimit: Word; MaxLives: Byte; Options: LongWord; nPlayers: Byte);
 procedure g_Game_Restart();
 procedure g_Game_RestartLevel();
-procedure g_Game_RestartRound();
+procedure g_Game_RestartRound(NoMapRestart: Boolean = False);
 procedure g_Game_SaveOptions();
 function  g_Game_StartMap(Map: String; Force: Boolean = False): Boolean;
 procedure g_Game_ExitLevel(Map: Char16);
@@ -190,6 +191,7 @@ var
   gNextMap: String = '';
   gLMSRespawn: Boolean = False;
   gLMSRespawnTime: Cardinal = 0;
+  gLMSSoftSpawn: Boolean = False;
 
   P1MoveButton: Byte = 0;
   P2MoveButton: Byte = 0;
@@ -1026,7 +1028,10 @@ begin
 
     // Надо респавнить игроков в LMS:
       if gLMSRespawn and (gLMSRespawnTime < gTime) then
-        g_Game_RestartRound();
+      begin
+        g_Game_RestartRound(gLMSSoftSpawn);
+        gLMSSoftSpawn := False;
+      end;
 
     // Был задан лимит побед:
       if (gGameSettings.GoalLimit > 0) then
@@ -2667,6 +2672,20 @@ begin
   gStatsOff := False;
 
   if not gGameOn then Exit;
+  
+  if (gGameSettings.MaxLives > 0) then
+  begin
+    gGameSettings.WarmupTime := 10000;
+    gLMSRespawn := True;
+    gLMSRespawnTime := gTime + gGameSettings.WarmupTime;
+    gLMSSoftSpawn := True;
+    if NetMode = NET_SERVER then
+      MH_SEND_Chat(IntToStr((gLMSRespawnTime - gTime) div 1000) +
+                   ' sec until round start.')
+    else
+      g_Console_Add(IntToStr((gLMSRespawnTime - gTime) div 1000) +
+                    ' sec until round start.', True);
+  end;
 
   if NetMode = NET_SERVER then
   begin
@@ -2761,29 +2780,41 @@ begin
   gNextMap := Map;
 end;
 
-procedure g_Game_RestartRound();
+procedure g_Game_RestartRound(NoMapRestart: Boolean = False);
 var
   i: Integer;
 begin
   if not gLMSRespawn then Exit;
   gLMSRespawn := False;
   gLMSRespawnTime := 0;
-  if gGameSettings.GameMode = GM_COOP then
+  
+  if (gGameSettings.GameMode = GM_COOP) and not NoMapRestart then
   begin
     g_Game_RestartLevel;
     gExit := EXIT_ENDLEVELCUSTOM;
     Exit;
   end;
-  
-  if Length(gPlayers) < 2 then Exit;
+
+  g_Game_Message(_lc[I_MESSAGE_LMS_START], 144);
+  if gGameSettings.GameType = GT_SERVER then
+    MH_SEND_GameEvent(NET_EV_LMS_START, 'N');
 
   for i := Low(gPlayers) to High(gPlayers) do
   begin
     if gPlayers[i] = nil then continue;
     // don't touch normal spectators
-    if (not gPlayers[i].FNoRespawn) and gPlayers[i].FSpectator then continue;
+    if gPlayers[i] is TBot then gPlayers[i].FWantsInGame := True;
+    if gPlayers[i].FSpectator and not gPlayers[i].FWantsInGame then
+    begin
+      gPlayers[i].FNoRespawn := True;
+      gPlayers[i].Lives := 0;
+      if gGameSettings.GameType = GT_SERVER then
+        MH_SEND_PlayerStats(gPlayers[I].UID);
+      continue;
+    end;
     gPlayers[i].FNoRespawn := False;
     gPlayers[i].Lives := gGameSettings.MaxLives;
+    if (gGameSettings.GameMode = GM_COOP) then gPlayers[i].Frags := 0;
     gPlayers[i].Respawn(False, True);
   end;
 
@@ -2791,6 +2822,12 @@ begin
   begin
     gItems[i].QuietRespawn := True;
     gItems[i].RespawnTime := 0;
+  end;
+
+  for i := Low(gMonsters) to High(gMonsters) do
+  begin
+    if gMonsters[i] <> nil then
+      gMonsters[i].Respawn;
   end;
 end;
 
@@ -3545,10 +3582,7 @@ begin
            if gPlayer1.FSpectator then
             gPlayer1.Respawn(False)
            else
-           begin
-            if (gGameSettings.MaxLives > 0) then gPlayer1.Lives := gPlayer1.Lives + 1; 
             gPlayer1.Spectate;
-           end;
           end;
         end;
       end

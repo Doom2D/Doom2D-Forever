@@ -26,6 +26,8 @@ type
     FMonsterType: Byte;
     FUID: Word;
     FDirection: TDirection;
+    FStartDirection: TDirection;
+    FStartX, FStartY: Integer;
     FRemoved: Boolean;
     FHealth: Integer;
     FState: Byte;
@@ -74,6 +76,7 @@ type
     procedure ActionSound();
     procedure AddTrigger(t: Integer);
     procedure ClearTriggers();
+    procedure Respawn();
     procedure SaveState(var Mem: TBinMemoryWriter);
     procedure LoadState(var Mem: TBinMemoryReader);
     procedure SetState(State: Byte; ForceAnim: Byte = 255);
@@ -961,6 +964,9 @@ begin
       end;
 
     FDirection := Direction;
+    FStartDirection := Direction;
+    FStartX := GameX;
+    FStartY := GameY;
   end;
 
   Result := find_id;
@@ -1346,6 +1352,35 @@ begin
   Y := Y - FObj.Y - FObj.Rect.Y;
   Result := (x >= 0) and (x <= FObj.Rect.Width) and
             (y >= 0) and (y <= FObj.Rect.Height);
+end;
+
+procedure TMonster.Respawn;
+begin
+  FObj.Vel.X := 0;
+  FObj.Vel.Y := 0;
+  FObj.Accel.X := 0;
+  FObj.Accel.Y := 0;
+  FDirection := FStartDirection;
+  GameX := FStartX;
+  GameY := FStartY;
+  FObj.Rect := MONSTERTABLE[FMonsterType].Rect;
+  FHealth := MONSTERTABLE[FMonsterType].Health;
+  FAmmo := 0;
+  FPain := 0;
+  FTargetUID := 0;
+  FTargetTime := 0;
+  FDieTriggers := nil;
+  FWaitAttackAnim := False;
+  FChainFire := False;
+  
+  FState := STATE_SLEEP;
+  FCurAnim := ANIM_SLEEP;
+
+  if g_Game_IsNet and g_Game_IsServer then
+  begin
+    MH_SEND_MonsterPos(FUID);
+    MH_SEND_MonsterState(FUID);
+  end;
 end;
 
 constructor TMonster.Create(MonsterType: Byte; aID: Integer; ForcedUID: Integer = -1);
@@ -1825,11 +1860,11 @@ end;
 
 procedure TMonster.Update();
 var
-  a, sx, sy, wx, wy: Integer;
+  a, sx, sy, wx, wy, oldvelx: Integer;
   st: Word;
   o: TObj;
   s: string;
-  fall: Boolean;
+  fall, inHorLift: Boolean;
 label
   _end;
 begin
@@ -1869,6 +1904,8 @@ begin
     ActivateTriggers();
     Exit;
    end;
+
+   oldvelx := FObj.Vel.X;
 
 // Сопротивление воздуха для трупа:
   if (FState = STATE_DIE) or (FState = STATE_DEAD) then
@@ -2603,6 +2640,10 @@ _end:
         end;
     end;
 
+  if g_Obj_CollidePanel(@FObj, 0, 0, PANEL_LIFTLEFT or PANEL_LIFTRIGHT) and
+     not ((FState = STATE_DEAD) or (FState = STATE_DIE))  then
+    FObj.Vel.X := oldvelx;
+
 // Если есть анимация, то пусть она идет:
   if FAnim[FCurAnim, FDirection] <> nil then
     FAnim[FCurAnim, FDirection].Update();
@@ -2635,6 +2676,7 @@ var
   sy: Integer;
   st: Word;
   o: TObj;
+  oldvelx: Integer;
   fall: Boolean;
 label
   _end;
@@ -2675,6 +2717,8 @@ begin
     FRemoved := True;
     Exit;
    end;
+
+  oldvelx := FObj.Vel.X;
 
 // Сопротивление воздуха для трупа:
   if (FState = STATE_DIE) or (FState = STATE_DEAD) then
@@ -3201,6 +3245,11 @@ _end:
         end;
     end;
 
+// Костыль для потоков
+  if g_Obj_CollidePanel(@FObj, 0, 0, PANEL_LIFTLEFT or PANEL_LIFTRIGHT) and
+     not ((FState = STATE_DEAD) or (FState = STATE_DIE))  then
+    FObj.Vel.X := oldvelx;
+    
 // Если есть анимация, то пусть она идет:
   if FAnim[FCurAnim, FDirection] <> nil then
     FAnim[FCurAnim, FDirection].Update();

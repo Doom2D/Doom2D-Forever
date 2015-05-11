@@ -397,6 +397,8 @@ begin
     Exit;
   if Trigger.TimeOut <> 0 then
     Exit;
+  if gLMSRespawn then
+    Exit;
 
   animonce := False;
 

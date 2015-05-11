@@ -159,6 +159,7 @@ type
     FKeys:      Array [KEY_LEFT..KEY_CHAT] of TKeyState;
     FSpectator: Boolean;
     FNoRespawn: Boolean;
+    FWantsInGame: Boolean;
     FGhost:     Boolean;
     FPhysics:   Boolean;
     FActualModelName: string;
@@ -640,6 +641,8 @@ begin
     end;
 
     if g_Game_IsNet then MH_SEND_PlayerCreate(UID);
+    if g_Game_IsServer and (gGameSettings.MaxLives > 0) then
+      Spectate;
   end;
 end;
 
@@ -978,7 +981,7 @@ begin
         
         if gPlayers[i] is TPlayer then
         begin
-          if not gPlayers[i].FSpectator then
+          if (not gPlayers[i].FSpectator) or gPlayers[i].FWantsInGame then
             gPlayers[i].Respawn(Silent)
           else
             gPlayers[i].Spectate;
@@ -1890,8 +1893,9 @@ begin
   Netsrv := g_Game_IsServer and g_Game_IsNet;
   if Srv then FDeath := FDeath + 1;
   FLive := False;
-  
-  if (gGameSettings.MaxLives > 0) and Srv then
+
+  FWantsInGame := FIAmBot;
+  if (gGameSettings.MaxLives > 0) and Srv and (not gLMSRespawn) then
   begin
     if FLives > 0 then FLives := FLives - 1;
     if FLives = 0 then FNoRespawn := True;
@@ -2677,6 +2681,7 @@ var
   ID: DWORD;
 begin
   if not g_Game_IsServer then Exit;
+  FWantsInGame := True;
   if Force then
   begin
     FTime[T_RESPAWN] := 0;
@@ -2695,6 +2700,7 @@ begin
       if FNoRespawn then
       begin
         if not FSpectator then Spectate(True);
+        FWantsInGame := True;
         Exit;
       end;
 
@@ -2794,6 +2800,7 @@ begin
       if FNoRespawn then
       begin
         if not FSpectator then Spectate(True);
+        FWantsInGame := True;
         Exit;
       end;
 
@@ -2957,6 +2964,7 @@ var
   c: Integer;
   RespawnPoint: TRespawnPoint;
 begin
+  FWantsInGame := False;
   if FLive then
     Kill(K_EXTRAHARDKILL, FUID, HIT_SOME)
   else if (not NoMove) then
