@@ -1405,6 +1405,12 @@ begin
 
   e_CharFont_GetSize(gMenuFont, topstr, ww1, hh1);
   e_CharFont_Print(gMenuFont, (gScreenWidth div 2)-(ww1 div 2), 16, topstr);
+  if g_Game_IsClient then
+    topstr := _lc[I_MENU_INTER8]
+  else
+    topstr := _lc[I_MENU_INTER9];
+  e_TextureFontPrintEx((gScreenWidth div 2)-(Length(topstr)*ww2 div 2),
+                       gScreenHeight-hh2-4,topstr, gStdFont, 255, 255, 255, 1);
 
   x := 32;
   y := 16+hh1+16;
