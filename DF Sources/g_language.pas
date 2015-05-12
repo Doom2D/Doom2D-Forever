@@ -434,6 +434,7 @@ type
     I_MSG_SCORE_LIMIT,
     I_MSG_TIME_LIMIT,
     I_MSG_LIVES,
+    I_MSG_WARMUP,
     I_MSG_ONMAPCHANGE,
 
     I_TEXTURE_ENDPIC,
@@ -1288,7 +1289,9 @@ const
                                        'Лимит времени - %d:%.2d:%.2d'),
     ('MSG LIVES',                      'Max lives: %d',
                                        'Макс. жизней у игроков: %d'),
-    ('MSG ONMAPCHANGE',                '*Changes to this variable will be applied upon next mapchange',
+    ('MSG WARMUP',                     'Warmup time: %d sec*',
+                                       'Время на подготовку к игре: %d сек*'),
+    ('MSG ONMAPCHANGE',                '*Changes to this variable will be applied upon next map change',
                                        '*Изменения вступят в силу после следующей смены карты'),
 
     ('TEXTURE ENDPIC',                 'ENDGAME_EN',

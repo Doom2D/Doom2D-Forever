@@ -210,6 +210,7 @@ begin
   AddCommand('g_scorelimit', GameCVars);
   AddCommand('g_timelimit', GameCVars);
   AddCommand('g_maxlives', GameCVars);
+  AddCommand('g_warmuptime', GameCVars);
   AddCommand('nextmap', GameCVars);
   AddCommand('net_interp', GameCVars);
 

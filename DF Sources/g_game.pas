@@ -843,6 +843,8 @@ begin
   gMusic.SetByName('MUSIC_MENU');
   gMusic.Play();
 
+  gGameSettings.WarmupTime := 30;
+
   gState := STATE_MENU;
 end;
 
@@ -2692,11 +2694,10 @@ begin
 
   if not gGameOn then Exit;
 
-  gGameSettings.WarmupTime := 30000; // TODO
   if (gGameSettings.MaxLives > 0) and (gGameSettings.WarmupTime > 0) then
   begin
     gLMSRespawn := True;
-    gLMSRespawnTime := gTime + gGameSettings.WarmupTime;
+    gLMSRespawnTime := gTime + gGameSettings.WarmupTime*1000;
     gLMSSoftSpawn := True;
     if NetMode = NET_SERVER then
       MH_SEND_Chat(IntToStr((gLMSRespawnTime - gTime) div 1000) +
@@ -2806,6 +2807,7 @@ procedure g_Game_RestartRound(NoMapRestart: Boolean = False);
 var
   i, n: Integer;
 begin
+  if not g_Game_IsServer then Exit;
   if not gLMSRespawn then Exit;
   gLMSRespawn := False;
   gLMSRespawnTime := 0;
@@ -3132,6 +3134,20 @@ begin
         else
           g_Console_Add(Format(_lc[I_MSG_NO_MAP], [P[1]]));
       end;
+  end
+  else if (cmd = 'g_warmuptime') and not g_Game_IsClient then
+  begin
+    if Length(P) > 1 then
+    begin
+      if StrToIntDef(P[1], gGameSettings.WarmupTime) = 0 then
+        gGameSettings.WarmupTime := 30
+      else
+        gGameSettings.WarmupTime := StrToIntDef(P[1], gGameSettings.WarmupTime);
+    end;
+
+    g_Console_Add(Format(_lc[I_MSG_WARMUP],
+                 [gGameSettings.WarmupTime]));
+    g_Console_Add(_lc[I_MSG_ONMAPCHANGE]);
   end
   else if gGameSettings.GameType in [GT_CUSTOM, GT_SERVER, GT_CLIENT] then
   begin
