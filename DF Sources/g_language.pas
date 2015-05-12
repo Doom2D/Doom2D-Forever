@@ -666,9 +666,9 @@ const
     ('MENU PLAYERS TWO',               'Two',
                                        'дБЮ'),
 
-    ('MENU INTER1',                    'Game over',
-                                       'хцпю гюйнмвемю'),
-    ('MENU INTER2',                    'Level Complete',
+    ('MENU INTER1',                    'Round is over',
+                                       'пюсмд нйнмвем'),
+    ('MENU INTER2',                    'Level Completed',
                                        'спнбемэ опнидем'),
     ('MENU INTER3',                    'Time:',
                                        'бпелъ:'),
