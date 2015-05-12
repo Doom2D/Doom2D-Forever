@@ -274,13 +274,13 @@ begin
       Exit;
     end;
 
-  if not (gGameSettings.GameMode in [GM_TDM, GM_CTF]) then T := TEAM_NONE; 
+  if not (gGameSettings.GameMode in [GM_TDM, GM_CTF]) then T := TEAM_NONE;
 
   Color.R := R;
   Color.B := B;
   Color.G := G;
 
-  // Создадим игрока уебе
+  // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ
   PID := g_Player_Create(Model, Color, T, False, 0);
   with g_Player_Get(PID) do
   begin
@@ -313,7 +313,7 @@ begin
       Respawn(True);
   end;
 
-  // Отошлем всем инфу об уебе, кроме самого уебы
+  // пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅ, пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ
   for I := Low(NetClients) to High(NetClients) do
   begin
     if NetClients[I].ID = C^.ID then Continue;
@@ -384,7 +384,7 @@ var
 begin
   Pl := g_Player_Get(C^.Player);
   if Pl = nil then Exit;
-  
+
   CheatKind := e_Raw_Read_Byte(P);
 
   case CheatKind of
@@ -481,7 +481,7 @@ begin
           MH_SEND_FlagEvent(FLAG_STATE_CAPTURED, gPlayers[I].Flag, gPlayers[I].UID, True, ID);
       end;
 
-  // Отошлем уебе все итемы
+  // пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ
   if gItems <> nil then
   begin
     for I := High(gItems) downto Low(gItems) do
@@ -489,13 +489,13 @@ begin
         MH_SEND_ItemSpawn(True, I, ID);
   end;
 
-  // И всех монстров
+  // пїЅ пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
   if gMonsters <> nil then
     for I := 0 to High(gMonsters) do
       if gMonsters[I] <> nil then
         MH_SEND_MonsterSpawn(gMonsters[I].UID, ID);
 
-  // И все двери
+  // пїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ
   if gWalls <> nil then
     for I := Low(gWalls) to High(gWalls) do
       if gWalls[I] <> nil then
@@ -507,14 +507,14 @@ begin
           if GetTextureCount > 1 then
             MH_SEND_PanelTexture(PanelType, I, LastAnimLoop, ID);
         end;
-  // И все лифты
+  // пїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ
   if gLifts <> nil then
     for I := Low(gLifts) to High(gLifts) do
       if gLifts[I] <> nil then
         with gLifts[I] do
           MH_SEND_PanelState(PanelType, I, ID);
 
-  // И все остальные панели со сменными текстурами
+  // пїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
   if gRenderForegrounds <> nil then
     for I := Low(gRenderForegrounds) to High(gRenderForegrounds) do
       if gRenderForegrounds[I] <> nil then
@@ -552,7 +552,7 @@ begin
           if GetTextureCount > 1 then
             MH_SEND_PanelTexture(PanelType, I, LastAnimLoop, ID);
 
-  // И триггеры "Звук" и "Музыка"
+  // пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ "пїЅпїЅпїЅпїЅ" пїЅ "пїЅпїЅпїЅпїЅпїЅпїЅ"
   if gTriggers <> nil then
     for I := Low(gTriggers) to High(gTriggers) do
       if gTriggers[I].TriggerType = TRIGGER_SOUND then
@@ -623,7 +623,7 @@ begin
     end;
     Exit;
   end;
-  
+
   g_Console_Add(Txt, True);
   e_WriteLog('[Chat] ' + Txt, MSG_NOTIFY);
   g_Sound_PlayEx('SOUND_GAME_RADIO');
@@ -805,7 +805,6 @@ begin
   begin
     e_Buffer_Write(@NetOut, Byte(Live));
     e_Buffer_Write(@NetOut, Byte(GodMode));
-    e_Buffer_Write(@NetOut, Byte(FNoRespawn));
     e_Buffer_Write(@NetOut, Health);
     e_Buffer_Write(@NetOut, Armor);
     e_Buffer_Write(@NetOut, Air);
@@ -828,7 +827,7 @@ begin
     e_Buffer_Write(@NetOut, Byte(R_KEY_GREEN in FRulez));
     e_Buffer_Write(@NetOut, Byte(R_KEY_BLUE in FRulez));
     e_Buffer_Write(@NetOut, Byte(R_BERSERK in FRulez));
-    
+
     e_Buffer_Write(@NetOut, Frags);
     e_Buffer_Write(@NetOut, Death);
 
@@ -970,7 +969,7 @@ begin
     e_Buffer_Write(@NetOut, FCurFrameCount);
     e_Buffer_Write(@NetOut, AnimLoop);
   end;
-  
+
   g_Net_Host_Send(ID, True, NET_CHAN_LARGEDATA);
 end;
 
@@ -1417,7 +1416,7 @@ var
 begin
   PID := e_Raw_Read_Word(P);
   Pl := g_Player_Get(PID);
-  
+
   PName := e_Raw_Read_String(P);
   Model := e_Raw_Read_String(P);
   Color.R := e_Raw_Read_Byte(P);
@@ -1505,12 +1504,11 @@ begin
   Pl := g_Player_Get(PID);
   Result := 0;
   if Pl = nil then Exit;
-  
+
   with Pl do
   begin
     Live := (e_Raw_Read_Byte(P) <> 0);
     GodMode := (e_Raw_Read_Byte(P) <> 0);
-    FNoRespawn := (e_Raw_Read_Byte(P) <> 0);
     Health := e_Raw_Read_LongInt(P);
     Armor := e_Raw_Read_LongInt(P);
     Air := e_Raw_Read_LongInt(P);
@@ -1539,7 +1537,7 @@ begin
       FRulez := FRulez + [R_KEY_BLUE];
     if (e_Raw_Read_Byte(P) <> 0) then
       FRulez := FRulez + [R_BERSERK];
-      
+
     Frags := e_Raw_Read_LongInt(P);
     Death := e_Raw_Read_LongInt(P);
 
@@ -1616,7 +1614,7 @@ begin
 
   g_Console_Add(Format(_lc[I_PLAYER_LEAVE], [Pl.Name]), True);
   e_WriteLog('NET: Player ' + Pl.Name + ' [' + IntToStr(PID) + '] removed.', MSG_NOTIFY);
-  
+
   g_Player_Remove(PID);
 
   Result := PID;
@@ -2018,7 +2016,7 @@ begin
   Y := e_Raw_Read_LongInt(P);
   VX := e_Raw_Read_LongInt(P);
   VY := e_Raw_Read_LongInt(P);
-  
+
   M.ClientAttack(X, Y, VX, VY);
 end;
 
@@ -2073,23 +2071,23 @@ begin
    with gGameControls.P1Control do
    begin
     if (e_KeyBuffer[KeyLeft] = $080) and (e_KeyBuffer[KeyRight] <> $080) then
-      P1MoveButton := 1 // Нажата только "Влево"
+      P1MoveButton := 1 // пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ "пїЅпїЅпїЅпїЅпїЅ"
     else
       if (e_KeyBuffer[KeyLeft] <> $080) and (e_KeyBuffer[KeyRight] = $080) then
-        P1MoveButton := 2 // Нажата только "Вправо"
+        P1MoveButton := 2 // пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ "пїЅпїЅпїЅпїЅпїЅпїЅ"
       else
         if (e_KeyBuffer[KeyLeft] <> $080) and (e_KeyBuffer[KeyRight] <> $080) then
-          P1MoveButton := 0; // Не нажаты ни "Влево", ни "Вправо"
+          P1MoveButton := 0; // пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ "пїЅпїЅпїЅпїЅпїЅ", пїЅпїЅ "пїЅпїЅпїЅпїЅпїЅпїЅ"
 
-    // Раньше была нажата "Вправо", а сейчас "Влево" => бежим вправо, смотрим влево:
+    // пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ "пїЅпїЅпїЅпїЅпїЅпїЅ", пїЅ пїЅпїЅпїЅпїЅпїЅпїЅ "пїЅпїЅпїЅпїЅпїЅ" => пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ, пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ:
     if (P1MoveButton = 2) and (e_KeyBuffer[KeyLeft] = $080) then
       gPlayer1.SetDirection(D_LEFT)
     else
-      // Раньше была нажата "Влево", а сейчас "Вправо" => бежим влево, смотрим вправо:
+      // пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ "пїЅпїЅпїЅпїЅпїЅ", пїЅ пїЅпїЅпїЅпїЅпїЅпїЅ "пїЅпїЅпїЅпїЅпїЅпїЅ" => пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ, пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ:
       if (P1MoveButton = 1) and (e_KeyBuffer[KeyRight] = $080) then
         gPlayer1.SetDirection(D_RIGHT)
       else
-      // Что-то было нажато и не изменилось => куда бежим, туда и смотрим:
+      // пїЅпїЅпїЅ-пїЅпїЅ пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ => пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ, пїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ:
         if P1MoveButton <> 0 then
           gPlayer1.SetDirection(TDirection(P1MoveButton-1));
 
@@ -2220,7 +2218,7 @@ var
   ResultStream: TMemoryStream;
 begin
   ResultStream := TMemoryStream.Create;
-  
+
   ResultStream.WriteBuffer(ResData.MsgId, SizeOf(ResData.MsgId)); //msgId
   ResultStream.WriteBuffer(ResData.FileSize, SizeOf(ResData.FileSize));  //file size
   ResultStream.WriteBuffer(ResData.FileData[0], ResData.FileSize);       //file data
@@ -2228,7 +2226,7 @@ begin
   SetLength(bytes, ResultStream.Size);
   ResultStream.Seek(0, soFromBeginning);
   ResultStream.ReadBuffer(bytes[0], ResultStream.Size);
-  
+
   ResultStream.Free;
 end;
 
@@ -2248,7 +2246,7 @@ begin
   resCount := Length(MapDataMsg.ExternalResources);
 
   ResultStream := TMemoryStream.Create;
-  
+
   ResultStream.WriteBuffer(MapDataMsg.MsgId, SizeOf(MapDataMsg.MsgId)); //msgId
   ResultStream.WriteBuffer(MapDataMsg.FileSize, SizeOf(MapDataMsg.FileSize));  //file size
   ResultStream.WriteBuffer(MapDataMsg.FileData[0], MapDataMsg.FileSize);       //file data
@@ -2259,7 +2257,7 @@ begin
   SetLength(bytes, ResultStream.Size);
   ResultStream.Seek(0, soFromBeginning);
   ResultStream.ReadBuffer(bytes[0], ResultStream.Size);
-  
+
   ResultStream.Free;
 end;
 
@@ -2346,7 +2344,7 @@ begin
   FileName := ExtractFileName(e_Raw_Read_String(P));
   e_WriteLog('NET: Received res request: ' + FileName +
              ' from ' + DecodeIPV4(C.Peer.address.host), MSG_NOTIFY);
-             
+
   if not IsValidFilePath(FileName) then
   begin
     e_WriteLog('Invalid filename: ' + FileName, MSG_WARNING);

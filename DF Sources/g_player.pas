@@ -78,6 +78,17 @@ type
 
   TPlayerStatArray = Array of TPlayerStat;
 
+  TPlayerSavedState = record
+    Health:     Integer;
+    Armor:      Integer;
+    CurrWeap:   Byte;
+    Ammo:       Array [A_BULLETS..A_CELLS] of Word;
+    MaxAmmo:    Array [A_BULLETS..A_CELLS] of Word;
+    Weapon:     Array [WEAPON_KASTET..WEAPON_SUPERPULEMET] of Boolean;
+    Rulez:      Set of R_ITEM_BACKPACK..R_BERSERK;
+    WaitRecall: Boolean;
+  end;
+
   TKeyState = record
     Pressed: Boolean;
     Time: Word;
@@ -109,6 +120,8 @@ type
     FObj:       TObj;
     FXTo, FYTo: Integer;
     FSpectatePlayer: Integer;
+
+    FSavedState: TPlayerSavedState;
 
     FPlayerNum: Byte;
     FModel:     TPlayerModel;
@@ -201,6 +214,8 @@ type
     procedure   DrawInv();
     procedure   DrawGUI();
     procedure   Update(); virtual;
+    procedure   RememberState();
+    procedure   RecallState();
     procedure   SaveState(var Mem: TBinMemoryWriter); virtual;
     procedure   LoadState(var Mem: TBinMemoryReader); virtual;
     procedure   PauseSounds(Enable: Boolean);
@@ -353,6 +368,7 @@ function  g_Player_Create(ModelName: String; Color: TRGB; Team: Byte;
 procedure g_Player_Remove(UID: Word);
 procedure g_Player_UpdateAll();
 procedure g_Player_DrawAll();
+procedure g_Player_RememberAll();
 procedure g_Player_ResetAll(Force, Silent: Boolean);
 function  g_Player_Get(UID: Word): TPlayer;
 function  g_Player_GetCount(): Byte;
@@ -967,6 +983,15 @@ begin
     end;
 end;
 
+procedure g_Player_RememberAll;
+var
+  i: Integer;
+begin
+  for i := Low(gPlayers) to High(gPlayers) do
+    if (gPlayers[i] <> nil) and gPlayers[i].Live then
+      gPlayers[i].RememberState;
+end;
+
 procedure g_Player_ResetAll(Force, Silent: Boolean);
 var
   i: Integer;
@@ -979,7 +1004,7 @@ begin
       if gPlayers[i] <> nil then
       begin
         gPlayers[i].Reset(Force);
-        
+
         if gPlayers[i] is TPlayer then
         begin
           if (not gPlayers[i].FSpectator) or gPlayers[i].FWantsInGame then
@@ -1332,6 +1357,7 @@ begin
 
   FSpectatePlayer := -1;
   FClientID := -1;
+  FSavedState.WaitRecall := False;
 
   FActualModelName := 'doomer';
 
@@ -1583,16 +1609,16 @@ begin
   begin
     e_TextureFontPrint(X + 4, Y + 242, _lc[I_PLAYER_SPECT], gStdFont);
     e_TextureFontPrint(X + 4, Y + 258, _lc[I_PLAYER_SPECT2], gStdFont);
+    e_TextureFontPrint(X + 4, Y + 274, _lc[I_PLAYER_SPECT1], gStdFont);
     if FNoRespawn then
     begin
       e_TextureFontGetSize(gStdFont, cw, ch);
       s := _lc[I_PLAYER_SPECT4];
       e_TextureFontPrint(gScreenWidth div 2 - cw*(Length(s) div 2),
                          gScreenHeight-4-ch, s, gStdFont);
-      e_TextureFontPrint(X + 4, Y + 274, _lc[I_PLAYER_SPECT1S], gStdFont);
-    end
-    else
-      e_TextureFontPrint(X + 4, Y + 274, _lc[I_PLAYER_SPECT1], gStdFont);
+      e_TextureFontPrint(X + 4, Y + 290, _lc[I_PLAYER_SPECT1S], gStdFont);
+    end;
+
   end;
 end;
 
@@ -1906,11 +1932,11 @@ begin
   if Srv then FDeath := FDeath + 1;
   FLive := False;
 
-  FWantsInGame := FIAmBot;
   if (gGameSettings.MaxLives > 0) and Srv and (not gLMSRespawn) then
   begin
     if FLives > 0 then FLives := FLives - 1;
     if FLives = 0 then FNoRespawn := True;
+    FWantsInGame := True;
   end;
 
 // Номер типа смерти:
@@ -3892,6 +3918,44 @@ begin
   if FKeys[KEY_UP].Pressed then Result := -42
   else if FKeys[KEY_DOWN].Pressed then Result := 19
   else Result := 0;
+end;
+
+procedure TPlayer.RememberState();
+var
+  i: Integer;
+begin
+  FSavedState.Health := FHealth;
+  FSavedState.Armor := FArmor;
+  FSavedState.CurrWeap := FCurrWeap;
+
+  for i := 0 to 3 do
+    FSavedState.Ammo[i] := FAmmo[i];
+  for i := 0 to 3 do
+    FSavedState.MaxAmmo[i] := FMaxAmmo[i];
+
+  FSavedState.Rulez := FRulez;
+  FSavedState.WaitRecall := True;
+end;
+procedure TPlayer.RecallState();
+var
+  i: Integer;
+begin
+  if not FSavedState.WaitRecall then Exit;
+  
+  FHealth := FSavedState.Health;
+  FArmor := FSavedState.Armor;
+  FCurrWeap := FSavedState.CurrWeap;
+
+  for i := 0 to 3 do
+    FAmmo[i] := FSavedState.Ammo[i];
+  for i := 0 to 3 do
+    FMaxAmmo[i] := FSavedState.MaxAmmo[i];
+
+  FRulez := FSavedState.Rulez;
+  FSavedState.WaitRecall := False;
+
+  if gGameSettings.GameType = GT_SERVER then
+    MH_SEND_PlayerStats(FUID);
 end;
 
 procedure TPlayer.SaveState(var Mem: TBinMemoryWriter);

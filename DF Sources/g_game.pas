@@ -1034,10 +1034,7 @@ begin
 
     // Надо респавнить игроков в LMS:
       if gLMSRespawn and (gLMSRespawnTime < gTime) then
-      begin
         g_Game_RestartRound(gLMSSoftSpawn);
-        gLMSSoftSpawn := False;
-      end;
 
     // Был задан лимит побед:
       if (gGameSettings.GoalLimit > 0) then
@@ -2768,10 +2765,13 @@ begin
   else // Вышли в выход в Своей игре
   begin
     gExit := EXIT_ENDLEVELCUSTOM;
+    if gGameSettings.GameMode = GM_COOP then g_Player_RememberAll;
     if not g_Map_Exist(gGameSettings.WAD + ':\' + gNextMap) then
     begin
       gLastMap := True;
-      if gGameSettings.GameMode = GM_COOP then gStatsOff := True;
+      if gGameSettings.GameMode = GM_COOP then
+        gStatsOff := True;
+
       gStatsPressed := True;
       gNextMap := 'MAP01';
 
@@ -2804,7 +2804,7 @@ end;
 
 procedure g_Game_RestartRound(NoMapRestart: Boolean = False);
 var
-  i: Integer;
+  i, n: Integer;
 begin
   if not gLMSRespawn then Exit;
   gLMSRespawn := False;
@@ -2817,6 +2817,22 @@ begin
     Exit;
   end;
 
+  n := 0;
+  for i := Low(gPlayers) to High(gPlayers) do
+    if (gPlayers[i] <> nil) and
+       ((not gPlayers[i].FSpectator) or gPlayers[i].FWantsInGame or
+        (gPlayers[i] is TBot)) then
+       Inc(n);
+
+  if n = 0 then
+  begin
+    // wait a second until the fuckers finally decide to join
+    gLMSRespawn := True;
+    gLMSRespawnTime := gTime + 1000;
+    gLMSSoftSpawn := NoMapRestart;
+    Exit;
+  end;
+
   g_Game_Message(_lc[I_MESSAGE_LMS_START], 144);
   if gGameSettings.GameType = GT_SERVER then
     MH_SEND_GameEvent(NET_EV_LMS_START, 'N');
@@ -2824,8 +2840,8 @@ begin
   for i := Low(gPlayers) to High(gPlayers) do
   begin
     if gPlayers[i] = nil then continue;
-    // don't touch normal spectators
     if gPlayers[i] is TBot then gPlayers[i].FWantsInGame := True;
+    // don't touch normal spectators
     if gPlayers[i].FSpectator and not gPlayers[i].FWantsInGame then
     begin
       gPlayers[i].FNoRespawn := True;
@@ -2836,8 +2852,12 @@ begin
     end;
     gPlayers[i].FNoRespawn := False;
     gPlayers[i].Lives := gGameSettings.MaxLives;
-    if (gGameSettings.GameMode = GM_COOP) then gPlayers[i].Frags := 0;
     gPlayers[i].Respawn(False, True);
+    if (gGameSettings.GameMode = GM_COOP) then
+    begin
+      gPlayers[i].Frags := 0;
+      gPlayers[i].RecallState;
+    end;
   end;
 
   for i := Low(gItems) to High(gItems) do
@@ -2853,9 +2873,11 @@ begin
 
   for i := Low(gMonsters) to High(gMonsters) do
   begin
-    if gMonsters[i] <> nil then
+    if (gMonsters[i] <> nil) and not gMonsters[i].FNoRespawn then
       gMonsters[i].Respawn;
   end;
+
+  gLMSSoftSpawn := False;
 end;
 
 procedure g_Game_NextLevel();
@@ -3696,6 +3718,11 @@ begin
         end
         else g_Console_Add('rcon command');
       end;
+    end
+    else if cmd = 'ready' then
+    begin
+      if g_Game_IsServer and gLMSRespawn then
+        gLMSRespawnTime := gTime + 100;
     end;
   end;
 end;

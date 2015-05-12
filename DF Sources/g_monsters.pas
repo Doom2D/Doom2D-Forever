@@ -53,6 +53,8 @@ type
     procedure ActivateTriggers();
 
   public
+    FNoRespawn: Boolean;
+
     constructor Create(MonsterType: Byte; aID: Integer; ForcedUID: Integer = -1);
     destructor Destroy(); override;
     function Collide(X, Y: Integer; Width, Height: Word): Boolean; overload;
@@ -1407,6 +1409,7 @@ begin
   FWaitAttackAnim := False;
   FChainFire := False;
   FStartID := aID;
+  FNoRespawn := False;
 
   SetLength(FAnim, Length(ANIMTABLE));
  
@@ -1548,15 +1551,18 @@ begin
         if (g_GetUIDType(SpawnerUID) = UID_PLAYER) then
         begin
           p := g_Player_Get(SpawnerUID);
-          if (p <> nil) then
+          if (p <> nil) and not gLMSRespawn then
           begin
             p.MonsterKills := p.MonsterKills+1;
             if gGameSettings.GameMode = GM_COOP then
               p.Frags := p.Frags + 1;
           end;
         end;
-        Inc(gCoopMonstersKilled);
-        if g_Game_IsNet then MH_SEND_GameStats;
+        if not gLMSRespawn then
+        begin
+          Inc(gCoopMonstersKilled);
+          if g_Game_IsNet then MH_SEND_GameStats;
+        end;
       end;
 
     // Выбираем лут:
@@ -2413,6 +2419,7 @@ _end:
         if sx <> -1 then
         begin
           gMonsters[sx].SetState(STATE_GO);
+          gMonsters[sx].FNoRespawn := True;
           Inc(gTotalMonsters);
           if g_Game_IsNet then MH_SEND_MonsterSpawn(gMonsters[sx].UID);
         end;
@@ -2422,6 +2429,7 @@ _end:
         if sx <> -1 then
         begin
           gMonsters[sx].SetState(STATE_GO);
+          gMonsters[sx].FNoRespawn := True;
           Inc(gTotalMonsters);
           if g_Game_IsNet then MH_SEND_MonsterSpawn(gMonsters[sx].UID);
         end;
@@ -2431,6 +2439,7 @@ _end:
         if sx <> -1 then
         begin
           gMonsters[sx].SetState(STATE_GO);
+          gMonsters[sx].FNoRespawn := True;
           Inc(gTotalMonsters);
           if g_Game_IsNet then MH_SEND_MonsterSpawn(gMonsters[sx].UID);
         end;
@@ -2584,6 +2593,7 @@ _end:
                       gMonsters[sx].FTargetUID := FTargetUID;
                       GetPos(FTargetUID, @o);
                       gMonsters[sx].FTargetTime := 0;
+                      gMonsters[sx].FNoRespawn := True;
                       gMonsters[sx].SetState(STATE_GO);
                       gMonsters[sx].shoot(@o, True);
                       Inc(gTotalMonsters);
@@ -3579,6 +3589,8 @@ begin
   Mem.WriteBoolean(FWaitAttackAnim);
 // Надо ли стрелять на следующем шаге:
   Mem.WriteBoolean(FChainFire);
+// Подлежит ли респавну:
+  Mem.WriteBoolean(FNoRespawn);
 // Координаты цели:
   Mem.WriteInt(tx);
   Mem.WriteInt(ty);
@@ -3658,6 +3670,8 @@ begin
   Mem.ReadBoolean(FWaitAttackAnim);
 // Надо ли стрелять на следующем шаге:
   Mem.ReadBoolean(FChainFire);
+// Подлежит ли респавну
+  Mem.ReadBoolean(FNoRespawn);
 // Координаты цели:
   Mem.ReadInt(tx);
   Mem.ReadInt(ty);

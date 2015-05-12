@@ -535,11 +535,14 @@ begin
       TRIGGER_SECRET:
         if g_GetUIDType(ActivateUID) = UID_PLAYER then
         begin
-          g_Player_Get(ActivateUID).GetSecret();
           Enabled := False;
           Result := True;
-          Inc(gCoopSecretsFound);
-          if g_Game_IsNet then MH_SEND_GameStats();
+          if not gLMSRespawn then
+          begin
+            g_Player_Get(ActivateUID).GetSecret();
+            Inc(gCoopSecretsFound);
+            if g_Game_IsNet then MH_SEND_GameStats();
+          end;
         end;
 
       TRIGGER_LIFTUP:
@@ -648,6 +651,7 @@ begin
           // Идем искать цель, если надо:
             if (Data.MonActive) then
               gMonsters[i].WakeUp();
+            gMonsters[i].FNoRespawn := True;
 
             if Data.MonType <> MONSTER_BARREL then Inc(gTotalMonsters);  
 

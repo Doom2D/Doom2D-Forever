@@ -230,6 +230,7 @@ begin
   AddCommand('changemap', GameCommands);
   AddCommand('suicide', GameCommands);
   AddCommand('spectate', GameCommands);
+  AddCommand('ready', GameCommands);
   AddCommand('kick', GameCommands);
   AddCommand('connect', GameCommands);
   AddCommand('disconnect', GameCommands);
