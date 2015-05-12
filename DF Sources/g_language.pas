@@ -112,6 +112,7 @@ type
     I_MENU_PLAYERS_ONE,               
     I_MENU_PLAYERS_TWO,               
 
+    I_MENU_INTER0,
     I_MENU_INTER1,                    
     I_MENU_INTER2,                    
     I_MENU_INTER3,                    
@@ -666,7 +667,9 @@ const
     ('MENU PLAYERS TWO',               'Two',
                                        'дБЮ'),
 
-    ('MENU INTER1',                    'Round is over',
+    ('MENU INTER0',                    'Mission Failed',
+                                       'лхяяхъ опнбюкемю'),
+    ('MENU INTER1',                    'Round over',
                                        'пюсмд нйнмвем'),
     ('MENU INTER2',                    'Level Completed',
                                        'спнбемэ опнидем'),
