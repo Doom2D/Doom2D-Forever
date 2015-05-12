@@ -2675,7 +2675,7 @@ begin
   
   if (gGameSettings.MaxLives > 0) then
   begin
-    gGameSettings.WarmupTime := 10000;
+    gGameSettings.WarmupTime := 30000;
     gLMSRespawn := True;
     gLMSRespawnTime := gTime + gGameSettings.WarmupTime;
     gLMSSoftSpawn := True;
@@ -2820,8 +2820,13 @@ begin
 
   for i := Low(gItems) to High(gItems) do
   begin
-    gItems[i].QuietRespawn := True;
-    gItems[i].RespawnTime := 0;
+    if gItems[i].Respawnable then
+    begin
+      gItems[i].QuietRespawn := True;
+      gItems[i].RespawnTime := 0;
+    end
+    else
+      g_Items_Remove(i);
   end;
 
   for i := Low(gMonsters) to High(gMonsters) do

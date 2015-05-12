@@ -84,14 +84,18 @@ begin
 end;
 
 function CollideHorLift(Obj: PObj; XInc, YInc: Integer): Integer;
+var
+  left, right: Boolean;
 begin
-  if g_Map_CollidePanel(Obj^.X+Obj^.Rect.X+XInc, Obj^.Y+Obj^.Rect.Y+YInc,
-                          Obj^.Rect.Width, Obj^.Rect.Height,
-                          PANEL_LIFTLEFT, False) then
+  left := g_Map_CollidePanel(Obj^.X+Obj^.Rect.X+XInc, Obj^.Y+Obj^.Rect.Y+YInc,
+                             Obj^.Rect.Width, Obj^.Rect.Height,
+                             PANEL_LIFTLEFT, False);
+  right := g_Map_CollidePanel(Obj^.X+Obj^.Rect.X+XInc, Obj^.Y+Obj^.Rect.Y+YInc,
+                             Obj^.Rect.Width, Obj^.Rect.Height,
+                             PANEL_LIFTRIGHT, False);
+  if left and not right then
     Result := -1
-  else if g_Map_CollidePanel(Obj^.X+Obj^.Rect.X+XInc, Obj^.Y+Obj^.Rect.Y+YInc,
-                          Obj^.Rect.Width, Obj^.Rect.Height,
-                          PANEL_LIFTRIGHT, False) then
+  else if right and not left then
     Result := 1
   else
     Result := 0;
