@@ -1283,7 +1283,7 @@ procedure TPlayer.ChangeTeam;
 begin
   if not (gGameSettings.GameMode in [GM_TDM, GM_CTF]) then Exit;
   
-  if g_Game_IsServer and gGameOn then
+  if g_Game_IsServer and gGameOn and FLive then
     Kill(K_SIMPLEKILL, FUID, 0);
   
   if FTeam = TEAM_RED then

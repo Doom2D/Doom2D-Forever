@@ -2805,7 +2805,7 @@ end;
 
 procedure g_Game_RestartRound(NoMapRestart: Boolean = False);
 var
-  i, n: Integer;
+  i, n, nb, nr: Integer;
 begin
   if not g_Game_IsServer then Exit;
   if not gLMSRespawn then Exit;
@@ -2819,14 +2819,18 @@ begin
     Exit;
   end;
 
-  n := 0;
+  n := 0; nb := 0; nr := 0;
   for i := Low(gPlayers) to High(gPlayers) do
     if (gPlayers[i] <> nil) and
        ((not gPlayers[i].FSpectator) or gPlayers[i].FWantsInGame or
         (gPlayers[i] is TBot)) then
-       Inc(n);
+      begin
+        Inc(n);
+        if gPlayers[i].Team = TEAM_RED then Inc(nr)
+        else if gPlayers[i].Team = TEAM_BLUE then Inc(nb)
+      end;
 
-  if n = 0 then
+  if (n = 0) or ((gGameSettings.GameMode = GM_TDM) and ((nr = 0) or (nb = 0))) then
   begin
     // wait a second until the fuckers finally decide to join
     gLMSRespawn := True;
@@ -2835,8 +2839,9 @@ begin
     Exit;
   end;
 
+  g_Player_RemoveAllCorpses;
   g_Game_Message(_lc[I_MESSAGE_LMS_START], 144);
-  if gGameSettings.GameType = GT_SERVER then
+  if g_Game_IsNet then
     MH_SEND_GameEvent(NET_EV_LMS_START, 'N');
 
   for i := Low(gPlayers) to High(gPlayers) do
@@ -2848,7 +2853,7 @@ begin
     begin
       gPlayers[i].FNoRespawn := True;
       gPlayers[i].Lives := 0;
-      if gGameSettings.GameType = GT_SERVER then
+      if g_Game_IsNet then
         MH_SEND_PlayerStats(gPlayers[I].UID);
       continue;
     end;
@@ -2870,7 +2875,10 @@ begin
       gItems[i].RespawnTime := 0;
     end
     else
+    begin
       g_Items_Remove(i);
+      if g_Game_IsNet then MH_SEND_ItemDestroy(True, i);
+    end;
   end;
 
   for i := Low(gMonsters) to High(gMonsters) do

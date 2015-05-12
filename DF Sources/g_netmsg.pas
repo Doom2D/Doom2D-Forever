@@ -1285,7 +1285,10 @@ begin
     NET_EV_LMS_WIN:
       g_Game_Message(Format(_lc[I_MESSAGE_LMS_WIN], [AnsiUpperCase(EvParm)]), 144);
     NET_EV_LMS_START:
+    begin
+      g_Player_RemoveAllCorpses;
       g_Game_Message(_lc[I_MESSAGE_LMS_START], 144);
+    end;
     NET_EV_LMS_DRAW:
       g_Game_Message(_lc[I_GAME_WIN_DRAW], 144);
     NET_EV_LMS_SURVIVOR:
