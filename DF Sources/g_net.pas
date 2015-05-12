@@ -121,6 +121,7 @@ function  g_Net_Client_Update(): enet_size_t;
 function  g_Net_Client_UpdateWhileLoading(): enet_size_t;
 
 function  g_Net_Client_ByName(Name: string): pTNetClient;
+function  g_Net_Client_ByPlayer(PID: Word): pTNetClient;
 
 procedure g_Net_SendData(Data:AByte; peer: pENetPeer; Reliable: Boolean; Chan: Byte = NET_CHAN_DOWNLOAD);
 function  g_Net_Wait_Event(msgId: Word): TMemoryStream;
@@ -672,6 +673,20 @@ begin
         Exit;
       end;
     end;
+end;
+
+function g_Net_Client_ByPlayer(PID: Word): pTNetClient;
+var
+  a: Integer;
+begin
+  Result := nil;
+  for a := Low(NetClients) to High(NetClients) do
+    if (NetClients[a].Used) and (NetClients[a].State = NET_STATE_GAME) then
+      if NetClients[a].Player = PID then
+      begin
+        Result := @NetClients[a];
+        Exit;
+      end;
 end;
 
 procedure g_Net_SendData(Data:AByte; peer: pENetPeer; Reliable: Boolean; Chan: Byte = NET_CHAN_DOWNLOAD);

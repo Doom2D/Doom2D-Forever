@@ -56,12 +56,14 @@ const
   NET_GFX_TELE    = 3;
   NET_GFX_BFG     = 4;
 
-  NET_EV_MAPSTART = 1;
-  NET_EV_MAPEND   = 2;
-  NET_EV_LMS_LOSE = 3;
-  NET_EV_LMS_WIN  = 4;
-  NET_EV_TLMS_WIN = 5;
-  NET_EV_LMS_START = 6;
+  NET_EV_MAPSTART     = 1;
+  NET_EV_MAPEND       = 2;
+  NET_EV_LMS_LOSE     = 3;
+  NET_EV_LMS_WIN      = 4;
+  NET_EV_TLMS_WIN     = 5;
+  NET_EV_LMS_START    = 6;
+  NET_EV_LMS_DRAW     = 7;
+  NET_EV_LMS_SURVIVOR = 8;
 
   NET_FLAG_GET    = 1;
   NET_FLAG_DROP   = 2;
@@ -299,6 +301,7 @@ begin
   with g_Player_Get(PID) do
   begin
     Name := PName;
+    FClientID := C^.ID;
     // round in progress, don't spawn
     if (gGameSettings.MaxLives > 0) and (not gLMSRespawn) then
     begin
@@ -307,11 +310,7 @@ begin
       Spectate;
     end
     else
-    begin
       Respawn(True);
-      MH_SEND_Chat(IntToStr((gLMSRespawnTime - gTime) div 1000) +
-                   ' sec until round start.', C^.ID);
-    end;
   end;
 
   // Отошлем всем инфу об уебе, кроме самого уебы
@@ -322,6 +321,9 @@ begin
     MH_SEND_PlayerPos(True, PID, NetClients[I].ID);
     MH_SEND_PlayerStats(PID, NetClients[I].ID);
   end;
+
+  if gState in [STATE_INTERCUSTOM, STATE_FOLD] then
+    MH_SEND_GameEvent(NET_EV_MAPEND, 'N', C^.ID);
 
   if NetUseMaster then g_Net_Slist_Update;
 end;
@@ -432,6 +434,7 @@ begin
 
   MH_SEND_PlayerSettings(Pl.UID);
 end;
+
 procedure MH_RECV_RCONPassword(C: pTNetClient; P: Pointer);
 var
   Pwd: string;
@@ -569,6 +572,10 @@ begin
   end;
 
   if CreatePlayers and (ID >= 0) then NetClients[ID].State := NET_STATE_GAME;
+
+  if gLMSRespawn then
+    MH_SEND_Chat(IntToStr((gLMSRespawnTime - gTime) div 1000) +
+                 _lc[I_PLAYER_SPECT5], ID);
 end;
 
 procedure MH_SEND_Info(ID: Byte);
@@ -798,6 +805,7 @@ begin
   begin
     e_Buffer_Write(@NetOut, Byte(Live));
     e_Buffer_Write(@NetOut, Byte(GodMode));
+    e_Buffer_Write(@NetOut, Byte(FNoRespawn));
     e_Buffer_Write(@NetOut, Health);
     e_Buffer_Write(@NetOut, Armor);
     e_Buffer_Write(@NetOut, Air);
@@ -1268,7 +1276,10 @@ begin
     end;
 
     NET_EV_MAPEND:
+    begin
+      gMissionFailed := EvParm = 'MF';
       gExit := EXIT_ENDLEVELCUSTOM;
+    end;
 
     NET_EV_LMS_LOSE:
       g_Game_Message(_lc[I_MESSAGE_LMS_LOSE], 144);
@@ -1276,6 +1287,10 @@ begin
       g_Game_Message(Format(_lc[I_MESSAGE_LMS_WIN], [AnsiUpperCase(EvParm)]), 144);
     NET_EV_LMS_START:
       g_Game_Message(_lc[I_MESSAGE_LMS_START], 144);
+    NET_EV_LMS_DRAW:
+      g_Game_Message(_lc[I_GAME_WIN_DRAW], 144);
+    NET_EV_LMS_SURVIVOR:
+      g_Console_Add('*** ' + _lc[I_MESSAGE_LMS_SURVIVOR] + ' ***', True);
     NET_EV_TLMS_WIN:
     begin
       if EvParm = 'r' then
@@ -1495,6 +1510,7 @@ begin
   begin
     Live := (e_Raw_Read_Byte(P) <> 0);
     GodMode := (e_Raw_Read_Byte(P) <> 0);
+    FNoRespawn := (e_Raw_Read_Byte(P) <> 0);
     Health := e_Raw_Read_LongInt(P);
     Armor := e_Raw_Read_LongInt(P);
     Air := e_Raw_Read_LongInt(P);

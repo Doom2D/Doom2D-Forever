@@ -163,6 +163,7 @@ type
     FGhost:     Boolean;
     FPhysics:   Boolean;
     FActualModelName: string;
+    FClientID: Short;
     
     constructor Create(); virtual;
     destructor  Destroy(); override;
@@ -1330,6 +1331,7 @@ begin
   FSawSoundSelect.SetByName('SOUND_WEAPON_SELECTSAW');
 
   FSpectatePlayer := -1;
+  FClientID := -1;
 
   FActualModelName := 'doomer';
 
@@ -1446,6 +1448,7 @@ var
   ID: DWORD;
   X, Y, SY, a, p, m: Integer;
   tw, th: Word;
+  cw, ch: Byte;
   s: string;
   stat: TPlayerStatArray;
 begin
@@ -1579,8 +1582,17 @@ begin
   if FSpectator then
   begin
     e_TextureFontPrint(X + 4, Y + 242, _lc[I_PLAYER_SPECT], gStdFont);
-    e_TextureFontPrint(X + 4, Y + 258, _lc[I_PLAYER_SPECT1], gStdFont);
-    e_TextureFontPrint(X + 4, Y + 274, _lc[I_PLAYER_SPECT2], gStdFont);
+    e_TextureFontPrint(X + 4, Y + 258, _lc[I_PLAYER_SPECT2], gStdFont);
+    if FNoRespawn then
+    begin
+      e_TextureFontGetSize(gStdFont, cw, ch);
+      s := _lc[I_PLAYER_SPECT4];
+      e_TextureFontPrint(gScreenWidth div 2 - cw*(Length(s) div 2),
+                         gScreenHeight-4-ch, s, gStdFont);
+      e_TextureFontPrint(X + 4, Y + 274, _lc[I_PLAYER_SPECT1S], gStdFont);
+    end
+    else
+      e_TextureFontPrint(X + 4, Y + 274, _lc[I_PLAYER_SPECT1], gStdFont);
   end;
 end;
 
@@ -2110,6 +2122,15 @@ begin
         if Netsrv then MH_SEND_GameEvent(NET_EV_LMS_LOSE, 'N');
         gLMSRespawn := True;
         gLMSRespawnTime := gTime + 8000;
+      end
+      else if (a = 1) then
+      begin
+        if (gPlayers[k] <> nil) and not (gPlayers[k] is TBot) then
+          if (gPlayers[k].FPlayerNum = PLAYERNUM_1) or
+             (gPlayers[k].FPlayerNum = PLAYERNUM_2) then
+             g_Console_Add('*** ' + _lc[I_MESSAGE_LMS_SURVIVOR] + ' ***', True)
+          else if Netsrv and (gPlayers[k].FClientID >= 0) then
+             MH_SEND_GameEvent(NET_EV_LMS_SURVIVOR, 'N', gPlayers[k].FClientID);
       end;
     end
     else if (gGameSettings.GameMode = GM_TDM) then
@@ -2135,8 +2156,8 @@ begin
       else if (ar = 0) and (ab = 0) then
       begin
         // everyone ded
-        g_Game_Message(_lc[I_MESSAGE_LMS_LOSE], 144);
-        if Netsrv then MH_SEND_GameEvent(NET_EV_LMS_LOSE, 'N');
+        g_Game_Message(_lc[I_GAME_WIN_DRAW], 144);
+        if Netsrv then MH_SEND_GameEvent(NET_EV_LMS_DRAW, FName);
         gLMSRespawn := True;
         gLMSRespawnTime := gTime + 8000;
       end;
@@ -2159,10 +2180,8 @@ begin
       else if (a = 0) then
       begin
         // everyone is dead, restart the map
-        if netsrv then
-          MH_SEND_Chat('Draw!')
-        else
-          g_Console_Add('Draw!', True);
+        g_Game_Message(_lc[I_GAME_WIN_DRAW], 144);
+        if Netsrv then MH_SEND_GameEvent(NET_EV_LMS_DRAW, FName);
         gLMSRespawn := True;
         gLMSRespawnTime := gTime + 10000;
       end;

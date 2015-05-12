@@ -482,7 +482,12 @@ var
   FileName, SectionName, ResName: string;
 begin
   if g_Game_IsNet and g_Game_IsServer then
-    MH_SEND_GameEvent(NET_EV_MAPEND, gNextMap);
+  begin
+    if gMissionFailed then
+      MH_SEND_GameEvent(NET_EV_MAPEND, 'MF')
+    else
+      MH_SEND_GameEvent(NET_EV_MAPEND, '!');
+  end;
 
 // Стоп игра:
   gPause := False;
@@ -2807,8 +2812,8 @@ begin
   
   if (gGameSettings.GameMode = GM_COOP) and not NoMapRestart then
   begin
+    gMissionFailed := True;
     g_Game_RestartLevel;
-    gExit := EXIT_ENDLEVELCUSTOM;
     Exit;
   end;
 
