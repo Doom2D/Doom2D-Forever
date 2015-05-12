@@ -192,6 +192,7 @@ var
   gLMSRespawn: Boolean = False;
   gLMSRespawnTime: Cardinal = 0;
   gLMSSoftSpawn: Boolean = False;
+  gMissionFailed: Boolean = False;
 
   P1MoveButton: Byte = 0;
   P2MoveButton: Byte = 0;
@@ -1367,7 +1368,7 @@ var
   t, p, m: Integer;
   ww1, hh1: Word;
   ww2, hh2, r, g, b, rr, gg, bb: Byte;
-  s1, s2: String;
+  s1, s2, topstr: String;
 begin
   e_TextureFontGetSize(gStdFont, ww2, hh2);
 
@@ -1392,9 +1393,18 @@ begin
     e_TextureFontPrint(x, y, s1, gStdFont);
     Exit;
   end;
- 
-  e_CharFont_GetSize(gMenuFont, _lc[I_MENU_INTER1], ww1, hh1);
-  e_CharFont_Print(gMenuFont, (gScreenWidth div 2)-(ww1 div 2), 16, _lc[I_MENU_INTER1]);
+
+  if (gGameSettings.GameMode = GM_COOP) then
+  begin
+    if gMissionFailed then
+      topstr := _lc[I_MENU_INTER0]
+    else
+      topstr := _lc[I_MENU_INTER2];
+  end
+  else topstr := _lc[I_MENU_INTER1];
+
+  e_CharFont_GetSize(gMenuFont, topstr, ww1, hh1);
+  e_CharFont_Print(gMenuFont, (gScreenWidth div 2)-(ww1 div 2), 16, topstr);
 
   x := 32;
   y := 16+hh1+16;
@@ -2664,6 +2674,7 @@ begin
   NetTimeToMaster := NetMasterRate;
   gLMSRespawn := False;
   gLMSRespawnTime := 0;
+  gMissionFailed := False;
   gNextMap := '';
 
   gCoopMonstersKilled := 0;
@@ -2672,10 +2683,10 @@ begin
   gStatsOff := False;
 
   if not gGameOn then Exit;
-  
-  if (gGameSettings.MaxLives > 0) then
+
+  gGameSettings.WarmupTime := 30000; // TODO
+  if (gGameSettings.MaxLives > 0) and (gGameSettings.WarmupTime > 0) then
   begin
-    gGameSettings.WarmupTime := 30000;
     gLMSRespawn := True;
     gLMSRespawnTime := gTime + gGameSettings.WarmupTime;
     gLMSSoftSpawn := True;
