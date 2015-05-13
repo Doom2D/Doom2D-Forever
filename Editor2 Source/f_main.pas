@@ -140,8 +140,6 @@ Type
     bClearTexture: TButton;
   // Панель типов панелей:
     PanelPanelType: TPanel;
-    GroupBox1: TGroupBox;
-    cbPanelType: TComboBox;
   // Вкладка "Предметы":
     tsItems: TTabSheet;
     lbItemList: TListBox;
@@ -175,6 +173,7 @@ Type
     SaveDialog: TSaveDialog;
     selectall1: TMenuItem;
     XPManifest: TXPManifest;
+    lbPanelType: TListBox;
 
     procedure aAboutExecute(Sender: TObject);
     procedure aCheckMapExecute(Sender: TObject);
@@ -2384,7 +2383,7 @@ begin
 // Рисуем текстуры, если чертим панель:
   if (MouseAction = MOUSEACTION_DRAWPANEL) and (DrawTexturePanel) and
      (lbTextureList.ItemIndex <> -1) and (DrawRect <> nil) and
-     (cbPanelType.ItemIndex in [0..8]) and not IsSpecialTextureSel() then
+     (lbPanelType.ItemIndex in [0..8]) and not IsSpecialTextureSel() then
   begin
     g_GetTexture(SelectedTexture(), ID);
     g_GetTextureSizeByID(ID, Width, Height);
@@ -2762,7 +2761,7 @@ begin
               else // Рисуем панель:
                 if pcObjects.ActivePageIndex = 0 then
                   begin
-                    if (cbPanelType.ItemIndex >= 0) then
+                    if (lbPanelType.ItemIndex >= 0) then
                       MouseAction := MOUSEACTION_DRAWPANEL
                   end
                 else // Рисуем триггер:
@@ -3012,12 +3011,12 @@ begin
             MOUSEACTION_DRAWPANEL:
               begin
               // Фон или передний план без текстуры - ошибка:
-                if (cbPanelType.ItemIndex in [1, 2]) and
+                if (lbPanelType.ItemIndex in [1, 2]) and
                    (lbTextureList.ItemIndex = -1) then
                   ErrorMessageBox(_lc[I_MSG_CHOOSE_TEXTURE])
                 else // Назначаем параметры панели:
                   begin
-                    case cbPanelType.ItemIndex of
+                    case lbPanelType.ItemIndex of
                       0: Panel.PanelType := PANEL_WALL;
                       1: Panel.PanelType := PANEL_BACK;
                       2: Panel.PanelType := PANEL_FORE;
@@ -3040,7 +3039,7 @@ begin
                     Panel.Height := Abs(MousePos.Y-MouseLDownPos.Y);
 
                   // Лифты, блокМон или отсутствие текстуры - пустая текстура:
-                    if (cbPanelType.ItemIndex in [9, 10, 11, 12, 13]) or
+                    if (lbPanelType.ItemIndex in [9, 10, 11, 12, 13]) or
                        (lbTextureList.ItemIndex = -1) then
                       begin
                         Panel.TextureHeight := 1;
@@ -3285,7 +3284,7 @@ begin
 
 // Рисуем панель с текстурой, сетка - размеры текстуры:
   if (MouseAction = MOUSEACTION_DRAWPANEL) and
-     (cbPanelType.ItemIndex in [0..8]) and
+     (lbPanelType.ItemIndex in [0..8]) and
      (lbTextureList.ItemIndex <> -1) and
      (not IsSpecialTextureSel()) then
     begin

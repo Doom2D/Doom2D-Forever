@@ -8,6 +8,7 @@ Temp/
 *.dcu
 *.cbk
 *.~pas
+*.ddp
 
 # Commonly used temporary files
 *~
