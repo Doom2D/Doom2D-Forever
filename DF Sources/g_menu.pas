@@ -614,13 +614,13 @@ begin
   if slCurrent = nil then slWaitStr := _lc[I_NET_SLIST_NOSERVERS];
 end;
 
-procedure ProcStartEpisode();
+procedure ProcStartCampaign();
 var
   WAD: String;
   TwoPlayers: Boolean;
   n: Byte;
 begin
-  with TGUIMenu(g_ActiveWindow.GetControl('mEpisodeMenu')) do
+  with TGUIMenu(g_ActiveWindow.GetControl('mCampaignMenu')) do
   begin
     WAD := TGUIFileListBox(GetControl('lsWAD')).SelectedItem();
     TwoPlayers := TGUISwitch(GetControl('swPlayers')).ItemIndex = 1;
@@ -700,14 +700,14 @@ begin
  ProcSelectMap(nil);
 end;
 
-procedure ProcSelectEpisodeWAD(Sender: TGUIControl);
+procedure ProcSelectCampaignWAD(Sender: TGUIControl);
 var
   win: TGUIWindow;
   a: TMegaWADInfo;
   wad, fn: String;
 begin
-  win := g_GUI_GetWindow('EpisodeMenu');
-  with TGUIMenu(win.GetControl('mEpisodeMenu')) do
+  win := g_GUI_GetWindow('CampaignMenu');
+  with TGUIMenu(win.GetControl('mCampaignMenu')) do
   begin
     wad := TGUIFileListBox(GetControl('lsWAD')).SelectedItem();
 
@@ -1031,18 +1031,18 @@ begin
   g_GUI_ShowWindow('SelectMapMenu');
 end;
 
-procedure ProcSelectEpisodeMenu();
+procedure ProcSelectCampaignMenu();
 var
   menu: TGUIMenu;
   wad_lb: TGUIFileListBox;
 begin
-  menu := TGUIMenu(g_GUI_GetWindow('EpisodeMenu').GetControl('mEpisodeMenu'));
+  menu := TGUIMenu(g_GUI_GetWindow('CampaignMenu').GetControl('mCampaignMenu'));
   wad_lb := TGUIFileListBox(menu.GetControl('lsWAD'));
 
   wad_lb.UpdateFileList();
 
   if wad_lb.SelectedItem() <> '' then
-    ProcSelectEpisodeWAD(nil);
+    ProcSelectCampaignWAD(nil);
 end;
 
 procedure ProcSetMap();
@@ -1731,7 +1731,7 @@ begin
     AddButton(@ProcSingle1Player, _lc[I_MENU_1_PLAYER]);
     AddButton(@ProcSingle2Players, _lc[I_MENU_2_PLAYERS]);
     AddButton(nil, _lc[I_MENU_CUSTOM_GAME], 'CustomGameMenu');
-    AddButton(@ProcSelectEpisodeMenu, _lc[I_MENU_EPISODE], 'EpisodeMenu');
+    AddButton(@ProcSelectCampaignMenu, _lc[I_MENU_CAMPAIGN], 'CampaignMenu');
   end;
   Menu.DefControl := 'mmNewGameMenu';
   g_GUI_AddWindow(Menu);
@@ -2031,10 +2031,10 @@ begin
   Menu.DefControl := 'mCustomGameMenu';
   g_GUI_AddWindow(Menu);
 
-  Menu := TGUIWindow.Create('EpisodeMenu');
-  with TGUIMenu(Menu.AddChild(TGUIMenu.Create(gMenuFont, gMenuSmallFont, _lc[I_MENU_EPISODE]))) do
+  Menu := TGUIWindow.Create('CampaignMenu');
+  with TGUIMenu(Menu.AddChild(TGUIMenu.Create(gMenuFont, gMenuSmallFont, _lc[I_MENU_CAMPAIGN]))) do
   begin
-    Name := 'mEpisodeMenu';
+    Name := 'mCampaignMenu';
 
     AddSpace();
     AddSpace();
@@ -2046,7 +2046,7 @@ begin
     with AddFileList('', 15, 4) do
     begin
       Name := 'lsWAD';
-      OnChange := ProcSelectEpisodeWAD;
+      OnChange := ProcSelectCampaignWAD;
 
       Sort := True;
       Dirs := True;
@@ -2079,7 +2079,7 @@ begin
       AddItem(_lc[I_MENU_PLAYERS_TWO]);
     end;
     AddSpace();
-    AddButton(@ProcStartEpisode, _lc[I_MENU_START_GAME]);
+    AddButton(@ProcStartCampaign, _lc[I_MENU_START_GAME]);
 
     ReAlign();
 
@@ -2091,7 +2091,7 @@ begin
       Y := GetControl('lsWAD').Y-128-MENU_VSPACE;
     end;
   end;
-  Menu.DefControl := 'mEpisodeMenu';
+  Menu.DefControl := 'mCampaignMenu';
   g_GUI_AddWindow(Menu);
 
   Menu := TGUIWindow.Create('SelectMapMenu');
