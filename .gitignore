@@ -8,6 +8,7 @@ Temp/
 *.dcu
 *.cbk
 *.~pas
+*.dof
 *.ddp
 
 # Commonly used temporary files
@@ -21,4 +22,3 @@ $RECYCLE.BIN/
 Thumbs.db
 ehthumbs.db
 Desktop.ini
-DF Sources/Doom2DF.dof
