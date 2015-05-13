@@ -1731,7 +1731,7 @@ begin
     AddButton(@ProcSingle1Player, _lc[I_MENU_1_PLAYER]);
     AddButton(@ProcSingle2Players, _lc[I_MENU_2_PLAYERS]);
     AddButton(nil, _lc[I_MENU_CUSTOM_GAME], 'CustomGameMenu');
-    AddButton(@ProcSelectEpisodeMenu, _lc[I_MENU_EPISODE], 'EpisodeMenu');
+    AddButton(@ProcSelectEpisodeMenu, _lc[I_MENU_CAMPAIGN], 'EpisodeMenu');
   end;
   Menu.DefControl := 'mmNewGameMenu';
   g_GUI_AddWindow(Menu);
@@ -2032,7 +2032,7 @@ begin
   g_GUI_AddWindow(Menu);
 
   Menu := TGUIWindow.Create('EpisodeMenu');
-  with TGUIMenu(Menu.AddChild(TGUIMenu.Create(gMenuFont, gMenuSmallFont, _lc[I_MENU_EPISODE]))) do
+  with TGUIMenu(Menu.AddChild(TGUIMenu.Create(gMenuFont, gMenuSmallFont, _lc[I_MENU_CAMPAIGN]))) do
   begin
     Name := 'mEpisodeMenu';
 
