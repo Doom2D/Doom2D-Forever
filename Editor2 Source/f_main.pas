@@ -140,6 +140,7 @@ Type
     bClearTexture: TButton;
   // Панель типов панелей:
     PanelPanelType: TPanel;
+    lbPanelType: TListBox;
   // Вкладка "Предметы":
     tsItems: TTabSheet;
     lbItemList: TListBox;
@@ -173,7 +174,6 @@ Type
     SaveDialog: TSaveDialog;
     selectall1: TMenuItem;
     XPManifest: TXPManifest;
-    lbPanelType: TListBox;
 
     procedure aAboutExecute(Sender: TObject);
     procedure aCheckMapExecute(Sender: TObject);
