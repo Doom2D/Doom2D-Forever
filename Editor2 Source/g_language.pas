@@ -1580,10 +1580,10 @@ begin
 // Установка значений в панели выбора объектов:
   with MainForm do
   begin
-    cbPanelType.Items.Clear();
+    lbPanelType.Items.Clear();
     for i := 0 to High(PANELNAMES) do
-      cbPanelType.Items.Add(PANELNAMES[i]);
-    cbPanelType.ItemIndex := 0;
+      lbPanelType.Items.Add(PANELNAMES[i]);
+    lbPanelType.ItemIndex := 0;
 
     lbItemList.Clear();
     for i := ITEM_MEDKIT_SMALL to ITEM_KEY_BLUE do
