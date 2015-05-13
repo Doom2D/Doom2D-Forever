@@ -2727,10 +2727,10 @@ begin
     gLMSSoftSpawn := True;
     if NetMode = NET_SERVER then
       MH_SEND_Chat(IntToStr((gLMSRespawnTime - gTime) div 1000) +
-                   ' sec until round start.')
+                   _lc[I_PLAYER_SPECT5])
     else
       g_Console_Add(IntToStr((gLMSRespawnTime - gTime) div 1000) +
-                    ' sec until round start.', True);
+                    _lc[I_PLAYER_SPECT5], True);
   end;
 
   if NetMode = NET_SERVER then
@@ -2859,7 +2859,7 @@ begin
         else if gPlayers[i].Team = TEAM_BLUE then Inc(nb)
       end;
 
-  if (n = 0) or ((gGameSettings.GameMode = GM_TDM) and ((nr = 0) or (nb = 0))) then
+  if (n < 2) or ((gGameSettings.GameMode = GM_TDM) and ((nr = 0) or (nb = 0))) then
   begin
     // wait a second until the fuckers finally decide to join
     gLMSRespawn := True;
