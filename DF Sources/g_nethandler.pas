@@ -58,6 +58,8 @@ begin
 
     NET_MSG_TSOUND: MC_RECV_TriggerSound(B);
     NET_MSG_TMUSIC: MC_RECV_TriggerMusic(B);
+
+    NET_MSG_VOTE_EVENT: MC_RECV_VoteEvent(B);
   end;
 
   enet_packet_destroy(P);
@@ -112,6 +114,8 @@ begin
     
     NET_MSG_MAP_REQUEST: MH_RECV_MapRequest(S, B);
     NET_MSG_RES_REQUEST: MH_RECV_ResRequest(S, B);
+
+    NET_MSG_VOTE_EVENT: MH_RECV_Vote(S, B);
   end;
 
   enet_packet_destroy(P);

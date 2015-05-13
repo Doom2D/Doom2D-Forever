@@ -52,6 +52,7 @@ type
     Player:  Word;
     RequestedFullUpdate: Boolean;
     RCONAuth: Boolean;
+    Voted:    Boolean;
   end;
   pTNetClient = ^TNetClient;
 
@@ -174,6 +175,7 @@ begin
     NetClients[N].ID := N;
     NetClients[N].RequestedFullUpdate := False;
     NetClients[N].RCONAuth := False;
+    NetClients[N].Voted := False;
     NetClients[N].Player := 0;
   end;
 

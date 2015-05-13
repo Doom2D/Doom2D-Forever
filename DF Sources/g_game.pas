@@ -63,6 +63,8 @@ procedure g_Game_PauseAllSounds(Enable: Boolean);
 procedure g_Game_StopAllSounds(all: Boolean);
 procedure g_Game_UpdateTriggerSounds();
 function  g_Game_GetMegaWADInfo(WAD: String): TMegaWADInfo;
+procedure g_Game_StartVote(Command, Initiator: string);
+procedure g_Game_CheckVote;
 procedure g_TakeScreenShot();
 procedure g_FatalError(Text: String);
 procedure g_SimpleError(Text: String);
@@ -193,6 +195,15 @@ var
   gLMSRespawnTime: Cardinal = 0;
   gLMSSoftSpawn: Boolean = False;
   gMissionFailed: Boolean = False;
+  gVoteInProgress: Boolean = False;
+  gVotePassed: Boolean = False;
+  gVoteCommand: string = '';
+  gVoteTimer: Cardinal = 0;
+  gVoteCmdTimer: Cardinal = 0;
+  gVoteCount: Integer = 0;
+  gVoteTimeout: Cardinal = 30;
+  gVoted: Boolean = False;
+  gVotesEnabled: Boolean = True;
 
   P1MoveButton: Byte = 0;
   P2MoveButton: Byte = 0;
@@ -1037,6 +1048,16 @@ begin
     // Надо респавнить игроков в LMS:
       if gLMSRespawn and (gLMSRespawnTime < gTime) then
         g_Game_RestartRound(gLMSSoftSpawn);
+
+    // Проверим результат голосования, если время прошло
+      if gVoteInProgress and (gVoteTimer < gTime) then
+        g_Game_CheckVote
+      else if gVotePassed and (gVoteCmdTimer < gTime) then
+      begin
+        g_Console_Process(gVoteCommand);
+        gVoteCommand := '';
+        gVotePassed := False;
+      end;
 
     // Был задан лимит побед:
       if (gGameSettings.GoalLimit > 0) then
@@ -2690,6 +2711,11 @@ begin
   gCoopMonstersKilled := 0;
   gCoopSecretsFound := 0;
 
+  gVoteInProgress := False;
+  gVotePassed := False;
+  gVoteCount := 0;
+  gVoted := False;
+
   gStatsOff := False;
 
   if not gGameOn then Exit;
@@ -2722,11 +2748,14 @@ begin
     if NetClients <> nil then
       for I := 0 to High(NetClients) do
         if NetClients[I].Used then
+        begin
+          NetClients[I].Voted := False;
           if NetClients[I].RequestedFullUpdate then
           begin
             MH_SEND_Everything((NetClients[I].State = NET_STATE_AUTH), I);
             NetClients[I].RequestedFullUpdate := False;
           end;
+        end;
   end;
 
   if gLastMap then
@@ -3747,7 +3776,57 @@ begin
     begin
       if g_Game_IsServer and gLMSRespawn then
         gLMSRespawnTime := gTime + 100;
-    end;
+    end
+    else if (cmd = 'callvote') and g_Game_IsNet then
+    begin
+      if Length(P) > 1 then
+      begin
+        chstr := '';
+        for a := 1 to High(P) do
+          chstr := chstr + P[a] + ' ';
+
+        if Length(chstr) > 200 then SetLength(chstr, 200);
+
+        if Length(chstr) < 1 then
+        begin
+          g_Console_Add('callvote command');
+          Exit;
+        end;
+
+        if g_Game_IsClient then
+          MC_SEND_Vote(True, chstr)
+        else
+          g_Game_StartVote(chstr, gPlayer1Settings.Name);
+      end
+      else g_Console_Add('callvote command');
+    end
+    else if (cmd = 'vote') and g_Game_IsNet then
+    begin
+      if g_Game_IsClient then
+        MC_SEND_Vote(False)
+      else if gVoteInProgress then
+      begin
+        if not NetDedicated then
+          a := Floor((NetClientCount+1)/2.0) + 1
+        else
+          a := Floor(NetClientCount/2.0) + 1;
+        if gVoted then
+        begin
+          Dec(gVoteCount);
+          gVoted := False;
+          g_Console_Add(Format(_lc[I_MESSAGE_VOTE_REVOKED], [gPlayer1Settings.Name, gVoteCount, a]), True);
+          MH_SEND_VoteEvent(NET_VE_REVOKE, gPlayer1Settings.Name, 'a', gVoteCount, a);
+        end
+        else
+        begin
+          Inc(gVoteCount);
+          gVoted := True;
+          g_Console_Add(Format(_lc[I_MESSAGE_VOTE_VOTE], [gPlayer1Settings.Name, gVoteCount, a]), True);
+          MH_SEND_VoteEvent(NET_VE_VOTE, gPlayer1Settings.Name, 'a', gVoteCount, a);
+          g_Game_CheckVote;
+        end;
+      end;
+    end
   end;
 end;
 
@@ -3881,6 +3960,89 @@ procedure g_Game_Message(Msg: string; Time: Word);
 begin
   MessageText := Msg;
   MessageTime := Time;
+end;
+
+procedure g_Game_StartVote(Command, Initiator: string);
+var
+  Need: Integer;
+begin
+  if not gVotesEnabled then Exit;
+  if gGameSettings.GameType <> GT_SERVER then Exit;
+  if gVoteInProgress or gVotePassed then
+  begin
+    g_Console_Add(Format(_lc[I_MESSAGE_VOTE_INPROGRESS], [gVoteCommand]), True);
+    MH_SEND_VoteEvent(NET_VE_INPROGRESS);
+    Exit;
+  end;
+  gVoteInProgress := True;
+  gVotePassed := False;
+  gVoteTimer := gTime + gVoteTimeout * 1000;
+  gVoteCount := 0;
+  gVoted := False;
+  gVoteCommand := Command;
+
+  if not NetDedicated then
+    Need := Floor((NetClientCount+1)/2.0)+1
+  else
+    Need := Floor(NetClientCount/2.0)+1;
+  g_Console_Add(Format(_lc[I_MESSAGE_VOTE_STARTED], [Initiator, Command, Need]), True);
+  MH_SEND_VoteEvent(NET_VE_STARTED, Initiator, Command, Need);
+end;
+
+procedure g_Game_CheckVote;
+var
+  I, Need: Integer;
+begin
+  if gGameSettings.GameType <> GT_SERVER then Exit;
+  if not gVoteInProgress then Exit;
+
+  if (gTime >= gVoteTimer) then
+  begin
+    if not NetDedicated then
+      Need := Floor((NetClientCount+1)/2.0) + 1
+    else
+      Need := Floor(NetClientCount/2.0) + 1;
+    if gVoteCount >= Need then
+    begin
+      g_Console_Add(Format(_lc[I_MESSAGE_VOTE_PASSED], [gVoteCommand]), True);
+      MH_SEND_VoteEvent(NET_VE_PASSED, gVoteCommand);
+      gVotePassed := True;
+      gVoteCmdTimer := gTime + 5000;
+    end
+    else
+    begin
+      g_Console_Add(_lc[I_MESSAGE_VOTE_FAILED], True);
+      MH_SEND_VoteEvent(NET_VE_FAILED);
+    end;
+    if NetClients <> nil then
+      for I := Low(NetClients) to High(NetClients) do
+        if NetClients[i].Used then
+          NetClients[i].Voted := False;
+    gVoteInProgress := False;
+    gVoted := False;
+    gVoteCount := 0;
+  end
+  else
+  begin
+    if not NetDedicated then
+      Need := Floor((NetClientCount+1)/2.0) + 1
+    else
+      Need := Floor(NetClientCount/2.0) + 1;
+    if gVoteCount >= Need then
+    begin
+      g_Console_Add(Format(_lc[I_MESSAGE_VOTE_PASSED], [gVoteCommand]), True);
+      MH_SEND_VoteEvent(NET_VE_PASSED, gVoteCommand);
+      gVoteInProgress := False;
+      gVotePassed := True;
+      gVoteCmdTimer := gTime + 5000;
+      gVoted := False;
+      gVoteCount := 0;
+      if NetClients <> nil then
+        for I := Low(NetClients) to High(NetClients) do
+          if NetClients[i].Used then
+            NetClients[i].Voted := False;
+    end;
+  end;
 end;
 
 procedure g_Game_LoadMapList(FileName: string);

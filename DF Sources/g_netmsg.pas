@@ -43,8 +43,9 @@ const
   NET_MSG_TSOUND = 151;
   NET_MSG_TMUSIC = 152;
 
-  NET_MSG_RCON_AUTH = 161;
-  NET_MSG_RCON_CMD = 162;
+  NET_MSG_RCON_AUTH  = 161;
+  NET_MSG_RCON_CMD   = 162;
+  NET_MSG_VOTE_EVENT = 165;
 
   NET_MSG_MAP_REQUEST = 201;
   NET_MSG_MAP_RESPONSE = 202;
@@ -65,6 +66,13 @@ const
   NET_EV_LMS_DRAW     = 7;
   NET_EV_LMS_SURVIVOR = 8;
 
+  NET_VE_STARTED      = 1;
+  NET_VE_PASSED       = 2;
+  NET_VE_FAILED       = 3;
+  NET_VE_VOTE         = 4;
+  NET_VE_REVOKE       = 5;
+  NET_VE_INPROGRESS   = 6;
+
   NET_FLAG_GET    = 1;
   NET_FLAG_DROP   = 2;
   NET_FLAG_CAP    = 3;
@@ -83,6 +91,9 @@ procedure MH_RECV_PlayerSettings(C: pTNetClient; P: Pointer);
 procedure MH_RECV_CheatRequest(C: pTNetClient; P: Pointer);
 procedure MH_RECV_RCONPassword(C: pTNetClient; P: Pointer);
 procedure MH_RECV_RCONCommand(C: pTNetClient; P: Pointer);
+procedure MH_RECV_MapRequest(C: pTNetClient; P: Pointer);
+procedure MH_RECV_ResRequest(C: pTNetClient; P: Pointer);
+procedure MH_RECV_Vote(C: pTNetClient; P: Pointer);
 
 // GAME
 procedure MH_SEND_Everything(CreatePlayers: Boolean = False; ID: Integer = NET_EVERYONE);
@@ -93,7 +104,7 @@ procedure MH_SEND_Sound(X, Y: Integer; Name: string; ID: Integer = NET_EVERYONE)
 procedure MH_SEND_DeleteShot(Proj: LongInt; X, Y: LongInt; Loud: Boolean = True; ID: Integer = NET_EVERYONE);
 procedure MH_SEND_GameStats(ID: Integer = NET_EVERYONE);
 procedure MH_SEND_CoopStats(ID: Integer = NET_EVERYONE);
-procedure MH_SEND_GameEvent(EvType: Byte; EvParm: string = 'NONE'; ID: Integer = NET_EVERYONE);
+procedure MH_SEND_GameEvent(EvType: Byte; EvParm: string = 'N'; ID: Integer = NET_EVERYONE);
 procedure MH_SEND_FlagEvent(Evtype: Byte; Flag: Byte; PID: Word; Quiet: Boolean = False; ID: Integer = NET_EVERYONE);
 procedure MH_SEND_GameSettings(ID: Integer = NET_EVERYONE);
 // PLAYER
@@ -120,6 +131,11 @@ procedure MH_SEND_MonsterDelete(UID: Word; ID: Integer = NET_EVERYONE);
 // TRIGGER
 procedure MH_SEND_TriggerSound(var T: TTrigger; ID: Integer = NET_EVERYONE);
 procedure MH_SEND_TriggerMusic(ID: Integer = NET_EVERYONE);
+// MISC
+procedure MH_SEND_VoteEvent(EvType: Byte;
+                            StrArg1: string = 'a'; StrArg2: string = 'b';
+                            IntArg1: SmallInt = 0; IntArg2: SmallInt = 0;
+                            ID: Integer = NET_EVERYONE);
 
 // CLIENT MESSAGES //
 
@@ -157,6 +173,8 @@ procedure MC_RECV_MonsterDelete(P: Pointer);
 // TRIGGER
 procedure MC_RECV_TriggerSound(P: Pointer);
 procedure MC_RECV_TriggerMusic(P: Pointer);
+// VOTE
+procedure MC_RECV_VoteEvent(P: Pointer);
 // SERVICE
 procedure MC_SEND_Info(Password: string = 'ASS');
 procedure MC_SEND_Chat(Txt: string);
@@ -166,11 +184,10 @@ procedure MC_SEND_PlayerSettings();
 procedure MC_SEND_CheatRequest(Kind: Byte);
 procedure MC_SEND_RCONPassword(Password: string = 'ASS');
 procedure MC_SEND_RCONCommand(Cmd: string);
+procedure MC_SEND_Vote(Start: Boolean = False; Command: string = 'a');
 // DOWNLOAD
 procedure MC_SEND_MapRequest();
 procedure MC_SEND_ResRequest(const resName: AnsiString);
-procedure MH_RECV_MapRequest(C: pTNetClient; P: Pointer);
-procedure MH_RECV_ResRequest(C: pTNetClient; P: Pointer);
 
 type
   TExternalResourceInfo = record
@@ -435,12 +452,14 @@ begin
   MH_SEND_PlayerSettings(Pl.UID);
 end;
 
+// RCON
+
 procedure MH_RECV_RCONPassword(C: pTNetClient; P: Pointer);
 var
   Pwd: string;
 begin
-  if not NetAllowRCON then Exit;
   Pwd := e_Raw_Read_String(P);
+  if not NetAllowRCON then Exit;
   if Pwd = NetRCONPassword then
   begin
     C^.RCONAuth := True;
@@ -453,14 +472,59 @@ procedure MH_RECV_RCONCommand(C: pTNetClient; P: Pointer);
 var
   Cmd: string;
 begin
+  Cmd := e_Raw_Read_String(P);
   if not NetAllowRCON then Exit;
   if not C^.RCONAuth then
   begin
     MH_SEND_Chat(_lc[I_NET_RCON_NOAUTH], C^.ID);
     Exit;
   end;
-  Cmd := e_Raw_Read_String(P);
   g_Console_Process(Cmd);
+end;
+
+// MISC
+
+procedure MH_RECV_Vote(C: pTNetClient; P: Pointer);
+var
+  Start: Boolean;
+  Name, Command: string;
+  Need: Integer;
+  Pl: TPlayer;
+begin
+  Start := e_Raw_Read_Byte(P) <> 0;
+  Command := e_Raw_Read_String(P);
+
+  Pl := g_Player_Get(C^.Player);
+  if Pl = nil then Exit;
+  Name := Pl.Name;
+    
+  if Start then
+  begin
+    if not g_Console_CommandBlacklisted(Command) then
+      g_Game_StartVote(Command, Name);
+  end
+  else if gVoteInProgress then
+  begin
+    if not NetDedicated then
+      Need := Floor((NetClientCount+1)/2.0) + 1
+    else
+      Need := Floor(NetClientCount/2.0) + 1;
+    if C^.Voted then
+    begin
+      Dec(gVoteCount);
+      C^.Voted := False;
+      g_Console_Add(Format(_lc[I_MESSAGE_VOTE_REVOKED], [Name, gVoteCount, Need]), True);
+      MH_SEND_VoteEvent(NET_VE_REVOKE, Name, 'a', gVoteCount, Need);
+    end
+    else
+    begin
+      Inc(gVoteCount);
+      C^.Voted := True;
+      g_Console_Add(Format(_lc[I_MESSAGE_VOTE_VOTE], [Name, gVoteCount, Need]), True);
+      MH_SEND_VoteEvent(NET_VE_VOTE, Name, 'a', gVoteCount, Need);
+      g_Game_CheckVote;
+    end;
+  end;
 end;
 
 // GAME (SEND)
@@ -481,7 +545,6 @@ begin
           MH_SEND_FlagEvent(FLAG_STATE_CAPTURED, gPlayers[I].Flag, gPlayers[I].UID, True, ID);
       end;
 
-  // ������� ���� ��� �����
   if gItems <> nil then
   begin
     for I := High(gItems) downto Low(gItems) do
@@ -489,13 +552,11 @@ begin
         MH_SEND_ItemSpawn(True, I, ID);
   end;
 
-  // � ���� ��������
   if gMonsters <> nil then
     for I := 0 to High(gMonsters) do
       if gMonsters[I] <> nil then
         MH_SEND_MonsterSpawn(gMonsters[I].UID, ID);
 
-  // � ��� �����
   if gWalls <> nil then
     for I := Low(gWalls) to High(gWalls) do
       if gWalls[I] <> nil then
@@ -507,14 +568,13 @@ begin
           if GetTextureCount > 1 then
             MH_SEND_PanelTexture(PanelType, I, LastAnimLoop, ID);
         end;
-  // � ��� �����
+
   if gLifts <> nil then
     for I := Low(gLifts) to High(gLifts) do
       if gLifts[I] <> nil then
         with gLifts[I] do
           MH_SEND_PanelState(PanelType, I, ID);
 
-  // � ��� ��������� ������ �� �������� ����������
   if gRenderForegrounds <> nil then
     for I := Low(gRenderForegrounds) to High(gRenderForegrounds) do
       if gRenderForegrounds[I] <> nil then
@@ -552,7 +612,6 @@ begin
           if GetTextureCount > 1 then
             MH_SEND_PanelTexture(PanelType, I, LastAnimLoop, ID);
 
-  // � �������� "����" � "������"
   if gTriggers <> nil then
     for I := Low(gTriggers) to High(gTriggers) do
       if gTriggers[I].TriggerType = TRIGGER_SOUND then
@@ -690,7 +749,7 @@ begin
   e_Buffer_Write(@NetOut, gCoopTotalSecrets);
 end;
 
-procedure MH_SEND_GameEvent(EvType: Byte; EvParm: string = 'NONE'; ID: Integer = NET_EVERYONE);
+procedure MH_SEND_GameEvent(EvType: Byte; EvParm: string = 'N'; ID: Integer = NET_EVERYONE);
 begin
   e_Buffer_Write(@NetOut, Byte(NET_MSG_GEVENT));
   e_Buffer_Write(@NetOut, EvType);
@@ -1129,6 +1188,23 @@ begin
   e_Buffer_Write(@NetOut, UID);
 
   g_Net_Host_Send(ID, True, NET_CHAN_LARGEDATA);
+end;
+
+// MISC
+
+procedure MH_SEND_VoteEvent(EvType: Byte;
+                            StrArg1: string = 'a'; StrArg2: string = 'b';
+                            IntArg1: SmallInt = 0; IntArg2: SmallInt = 0;
+                            ID: Integer = NET_EVERYONE);
+begin
+  e_Buffer_Write(@NetOut, Byte(NET_MSG_VOTE_EVENT));
+  e_Buffer_Write(@NetOut, EvType);
+  e_Buffer_Write(@NetOut, IntArg1);
+  e_Buffer_Write(@NetOut, IntArg2);
+  e_Buffer_Write(@NetOut, StrArg1);
+  e_Buffer_Write(@NetOut, StrArg2);
+  
+  g_Net_Host_Send(ID, True, NET_CHAN_IMPORTANT);
 end;
 
 // CLIENT MESSAGES //
@@ -2036,6 +2112,37 @@ begin
   gMonsters[ID].MonsterRemoved := True;
 end;
 
+procedure MC_RECV_VoteEvent(P: Pointer);
+var
+  EvID: Byte;
+  Str1, Str2: string;
+  Int1, Int2: SmallInt;
+begin
+  e_WriteLog('ayy', MSG_NOTIFY);
+  EvID := e_Raw_Read_Byte(P);
+  Int1 := e_Raw_Read_SmallInt(P);
+  Int2 := e_Raw_Read_SmallInt(P);
+  Str1 := e_Raw_Read_String(P);
+  Str2 := e_Raw_Read_String(P);
+
+  e_WriteLog('lmao', MSG_NOTIFY);
+  case EvID of
+    NET_VE_STARTED:
+      g_Console_Add(Format(_lc[I_MESSAGE_VOTE_STARTED], [Str1, Str2, Int1]), True);
+    NET_VE_PASSED:
+      g_Console_Add(Format(_lc[I_MESSAGE_VOTE_PASSED], [Str1]), True);
+    NET_VE_FAILED:
+      g_Console_Add(_lc[I_MESSAGE_VOTE_FAILED], True);
+    NET_VE_VOTE:
+      g_Console_Add(Format(_lc[I_MESSAGE_VOTE_VOTE], [Str1, Int1, Int2]), True);
+    NET_VE_INPROGRESS:
+      g_Console_Add(Format(_lc[I_MESSAGE_VOTE_INPROGRESS], [Str1]), True);
+  end;
+  e_WriteLog('ayy lmao', MSG_NOTIFY);
+end;
+
+// CLIENT SEND
+
 procedure MC_SEND_Info(Password: string = 'ASS');
 begin
   e_Buffer_Clear(@NetOut);
@@ -2074,24 +2181,21 @@ begin
    with gGameControls.P1Control do
    begin
     if (e_KeyBuffer[KeyLeft] = $080) and (e_KeyBuffer[KeyRight] <> $080) then
-      P1MoveButton := 1 // ������ ������ "�����"
+      P1MoveButton := 1
     else
       if (e_KeyBuffer[KeyLeft] <> $080) and (e_KeyBuffer[KeyRight] = $080) then
-        P1MoveButton := 2 // ������ ������ "������"
+        P1MoveButton := 2
       else
         if (e_KeyBuffer[KeyLeft] <> $080) and (e_KeyBuffer[KeyRight] <> $080) then
-          P1MoveButton := 0; // �� ������ �� "�����", �� "������"
+          P1MoveButton := 0;
 
-    // ������ ���� ������ "������", � ������ "�����" => ����� ������, ������� �����:
     if (P1MoveButton = 2) and (e_KeyBuffer[KeyLeft] = $080) then
       gPlayer1.SetDirection(D_LEFT)
     else
-      // ������ ���� ������ "�����", � ������ "������" => ����� �����, ������� ������:
-      if (P1MoveButton = 1) and (e_KeyBuffer[KeyRight] = $080) then
+     if (P1MoveButton = 1) and (e_KeyBuffer[KeyRight] = $080) then
         gPlayer1.SetDirection(D_RIGHT)
       else
-      // ���-�� ���� ������ � �� ���������� => ���� �����, ���� � �������:
-        if P1MoveButton <> 0 then
+      if P1MoveButton <> 0 then
           gPlayer1.SetDirection(TDirection(P1MoveButton-1));
 
     gPlayer1.ReleaseKeys;
@@ -2137,6 +2241,14 @@ begin
 
   kBytePrev := kByte;
   kDirPrev := gPlayer1.Direction
+end;
+
+procedure MC_SEND_Vote(Start: Boolean = False; Command: string = 'a');
+begin
+  e_Buffer_Write(@NetOut, Byte(NET_MSG_VOTE_EVENT));
+  e_Buffer_Write(@NetOut, Byte(Start));
+  e_Buffer_Write(@NetOut, Command);
+  g_Net_Client_Send(True, NET_CHAN_IMPORTANT);
 end;
 
 procedure MC_SEND_PlayerSettings();

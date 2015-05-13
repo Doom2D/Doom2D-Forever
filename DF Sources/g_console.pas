@@ -11,6 +11,7 @@ procedure g_Console_Control(K: Byte);
 procedure g_Console_Process(L: String);
 procedure g_Console_Add(L: String; Show: Boolean = False);
 procedure g_Console_Clear();
+function  g_Console_CommandBlacklisted(C: String): Boolean;
 
 procedure g_Console_Chat_Switch();
 
@@ -50,6 +51,7 @@ var
   CPos: Word;
   ConsoleHistory: SArray;
   CommandHistory: SArray;
+  Whitelist: SArray;
   Commands: Array of TCommand;
   CmdIndex: Word;
   Offset: Word;
@@ -148,6 +150,15 @@ begin
   end;
 end;
 
+procedure WhitelistCommand(Cmd: string);
+var
+  a: Integer;
+begin
+  SetLength(Whitelist, Length(Whitelist)+1);
+  a := High(Whitelist);
+  Whitelist[a] := Cmd;
+end;
+
 procedure AddCommand(Cmd: String; Proc: TCmdProc);
 var
   a: Integer;
@@ -240,6 +251,28 @@ begin
   AddCommand('tell', GameCommands);
   AddCommand('rcon_password', GameCommands);
   AddCommand('rcon', GameCommands);
+  AddCommand('callvote', GameCommands);
+  AddCommand('vote', GameCommands);
+
+  WhitelistCommand('broadcast');
+  WhitelistCommand('tell');
+  WhitelistCommand('ready');
+  WhitelistCommand('changemap');
+  WhitelistCommand('nextmap');
+  WhitelistCommand('kick');
+
+  WhitelistCommand('addbot');
+  WhitelistCommand('bot_add');
+  WhitelistCommand('bot_addred');
+  WhitelistCommand('bot_addblue');
+  WhitelistCommand('bot_removeall');
+
+  WhitelistCommand('g_friendlyfire');
+  WhitelistCommand('g_weaponstay');
+  WhitelistCommand('g_allow_exit');
+  WhitelistCommand('g_allow_monsters');
+  WhitelistCommand('g_scorelimit');
+  WhitelistCommand('g_timelimit');
 
   g_Console_Add(Format(_lc[I_CONSOLE_WELCOME], [GAME_VERSION]));
   g_Console_Add('');
@@ -581,6 +614,27 @@ begin
   end;
 
   CmdIndex := Length(CommandHistory);
+end;
+
+function g_Console_CommandBlacklisted(C: String): Boolean;
+var
+  Arr: SArray;
+  i: Integer;
+begin
+  Result := True;
+
+  Arr := nil;
+
+  if Trim(C) = '' then
+    Exit;
+
+  Arr := ParseString(C);
+  if Arr = nil then
+    Exit;
+
+  for i := 0 to High(Whitelist) do
+    if Whitelist[i] = LowerCase(Arr[0]) then
+      Result := False;
 end;
 
 procedure g_Console_Process(L: String);

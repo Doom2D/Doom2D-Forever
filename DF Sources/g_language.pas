@@ -323,6 +323,13 @@ type
     I_MESSAGE_TLMS_WIN,
     I_MESSAGE_LMS_SURVIVOR,
 
+    I_MESSAGE_VOTE_INPROGRESS,
+    I_MESSAGE_VOTE_STARTED,
+    I_MESSAGE_VOTE_PASSED,
+    I_MESSAGE_VOTE_FAILED,
+    I_MESSAGE_VOTE_VOTE,
+    I_MESSAGE_VOTE_REVOKED,
+
     I_KEY_UP,                         
     I_KEY_DOWN,                       
     I_KEY_LEFT,                       
@@ -1070,6 +1077,19 @@ const
                                        '%s КОМАНДА ПОБЕДИЛА'),
     ('MESSAGE LMS SURVIVOR',           'YOU ARE THE LAST ONE ALIVE!',
                                        'ВЫ - ПОСЛЕДНИЙ ГЕРОЙ!'),
+
+    ('MESSAGE VOTE INPROGRESS',        'A vote is already in progress for "%s".',
+                                       'Уже идет голосование за команду "%s".'),
+    ('MESSAGE VOTE STARTED',           '%s initiated a vote for "%s". %d votes are required for it to pass.',
+                                       '%s начал голосование за команду "%s". %d голосов требуется, чтобы команда прошла.'),
+    ('MESSAGE VOTE PASSED',            'Vote passed. Executing "%s" in 5 seconds.',
+                                       'Голосование прошло успешно. Команда "%s" будет выполнена через 5 сек.'),
+    ('MESSAGE VOTE FAILED',            'Vote failed: not enough supporters.',
+                                       'Голосование провалилось: недостаточно голосов "за".'),
+    ('MESSAGE VOTE VOTE',              '%s votes "yes" (%d/%d votes total).',
+                                       '%s голосует "за" (%d/%d голосов всего).'),
+    ('MESSAGE VOTE REVOKED',           '%s revokes his vote (%d/%d votes total).',
+                                       '%s отозвал свой голос (%d/%d голосов всего).'),
 
     ('KEY UP',                         'Up',
                                        'Вверх'),
