@@ -297,7 +297,6 @@ begin
   Color.B := B;
   Color.G := G;
 
-  // �������� ������ ����
   PID := g_Player_Create(Model, Color, T, False, 0);
   with g_Player_Get(PID) do
   begin
@@ -325,12 +324,12 @@ begin
       Lives := 0;
       FNoRespawn := True;
       Spectate;
+      FWantsInGame := True; // TODO: look into this later
     end
     else
       Respawn(True);
   end;
 
-  // ������� ���� ���� �� ����, ����� ������ ����
   for I := Low(NetClients) to High(NetClients) do
   begin
     if NetClients[I].ID = C^.ID then Continue;

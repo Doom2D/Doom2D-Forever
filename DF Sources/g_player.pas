@@ -1635,7 +1635,7 @@ begin
 
     if dr then
       e_DrawFillQuad(0, 0, gPlayerScreenSize.X-1, gPlayerScreenSize.Y-1,
-                     200, 200, 200, 0, B_INVERT);
+                     191, 191, 191, 0, B_INVERT);
   end;
 
   if FMegaRulez[MR_SUIT] >= gTime then
@@ -1902,7 +1902,7 @@ var
   mon: TMonster;
   plr: TPlayer;
   srv, netsrv: Boolean;
-  dofrags: Boolean;
+  dofrags, OldLR: Boolean;
   KP: TPlayer;
 
   procedure PushItem(t: Byte);
@@ -1936,10 +1936,9 @@ begin
   begin
     if FLives > 0 then FLives := FLives - 1;
     if FLives = 0 then FNoRespawn := True;
-    FWantsInGame := True;
   end;
 
-// Номер типа смерти:
+// Номер типа смерти:     
   a := 1;
   case KillType of
     K_SIMPLEKILL:    a := 1;
@@ -2139,6 +2138,7 @@ begin
       end;
     end;
 
+    OldLR := gLMSRespawn;
     if (gGameSettings.GameMode = GM_COOP) then
     begin
       if (a = 0) then
@@ -2147,7 +2147,7 @@ begin
         g_Game_Message(_lc[I_MESSAGE_LMS_LOSE], 144);
         if Netsrv then MH_SEND_GameEvent(NET_EV_LMS_LOSE, 'N');
         gLMSRespawn := True;
-        gLMSRespawnTime := gTime + 8000;
+        gLMSRespawnTime := gTime + 5000;
       end
       else if (a = 1) then
       begin
@@ -2168,7 +2168,7 @@ begin
         if Netsrv then MH_SEND_GameEvent(NET_EV_TLMS_WIN, 'r');
         Inc(gTeamStat[TEAM_RED].Goals);
         gLMSRespawn := True;
-        gLMSRespawnTime := gTime + 8000;
+        gLMSRespawnTime := gTime + 5000;
       end
       else if (ar = 0) and (ab <> 0) then
       begin
@@ -2177,7 +2177,7 @@ begin
         if Netsrv then MH_SEND_GameEvent(NET_EV_TLMS_WIN, 'b');
         Inc(gTeamStat[TEAM_BLUE].Goals);
         gLMSRespawn := True;
-        gLMSRespawnTime := gTime + 8000;
+        gLMSRespawnTime := gTime + 5000;
       end
       else if (ar = 0) and (ab = 0) then
       begin
@@ -2185,7 +2185,7 @@ begin
         g_Game_Message(_lc[I_GAME_WIN_DRAW], 144);
         if Netsrv then MH_SEND_GameEvent(NET_EV_LMS_DRAW, FName);
         gLMSRespawn := True;
-        gLMSRespawnTime := gTime + 8000;
+        gLMSRespawnTime := gTime + 5000;
       end;
     end
     else if (gGameSettings.GameMode = GM_DM) then
@@ -2201,7 +2201,7 @@ begin
             Inc(FFrags);
           end;
         gLMSRespawn := True;
-        gLMSRespawnTime := gTime + 8000;
+        gLMSRespawnTime := gTime + 5000;
       end
       else if (a = 0) then
       begin
@@ -2209,8 +2209,17 @@ begin
         g_Game_Message(_lc[I_GAME_WIN_DRAW], 144);
         if Netsrv then MH_SEND_GameEvent(NET_EV_LMS_DRAW, FName);
         gLMSRespawn := True;
-        gLMSRespawnTime := gTime + 10000;
+        gLMSRespawnTime := gTime + 5000;
       end;
+    end;
+    if srv and not OldLR and gLMSRespawn then
+    begin
+      if NetMode = NET_SERVER then
+        MH_SEND_Chat(IntToStr((gLMSRespawnTime - gTime) div 1000) +
+                     _lc[I_PLAYER_SPECT5])
+      else
+        g_Console_Add(IntToStr((gLMSRespawnTime - gTime) div 1000) +
+                      _lc[I_PLAYER_SPECT5], True);
     end;
   end;
 
@@ -2222,6 +2231,7 @@ begin
   end;
 
   if srv and FNoRespawn then Spectate(True);
+  FWantsInGame := True;
 end;
 
 function TPlayer.BodyInLiquid(XInc, YInc: Integer): Boolean;
@@ -3009,7 +3019,6 @@ var
   c: Integer;
   RespawnPoint: TRespawnPoint;
 begin
-  FWantsInGame := False;
   if FLive then
     Kill(K_EXTRAHARDKILL, FUID, HIT_SOME)
   else if (not NoMove) then
@@ -3079,6 +3088,7 @@ begin
   FSpectator := True;
   FGhost := True;
   FPhysics := False;
+  FWantsInGame := False;
 
   if g_Game_IsNet then
     MH_SEND_PlayerStats(FUID);
