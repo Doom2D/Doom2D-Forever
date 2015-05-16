@@ -203,7 +203,8 @@ Type
       TRIGGER_MUSIC:        (MusicName: Char64;
                              MusicAction: Byte);
       TRIGGER_PUSH:         (PushAngle: Word;
-                             PushForce: Byte);
+                             PushForce: Byte;
+                             ResetVel: Boolean);
   end;
 
 implementation

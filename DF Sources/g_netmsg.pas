@@ -1549,26 +1549,26 @@ begin
 
     TmpX := e_Raw_Read_LongInt(P);
     TmpY := e_Raw_Read_LongInt(P);
-    SetLerp(TmpX, TmpY);
+
+    ReleaseKeys;
+
+    if (kByte = NET_KEY_CHAT) then
+      PressKey(KEY_CHAT, 10000)
+    else
+    begin
+      if LongBool(kByte and NET_KEY_LEFT) then PressKey(KEY_LEFT, 10000);
+      if LongBool(kByte and NET_KEY_RIGHT) then PressKey(KEY_RIGHT, 10000);
+      if LongBool(kByte and NET_KEY_UP) then PressKey(KEY_UP, 10000);
+      if LongBool(kByte and NET_KEY_DOWN) then PressKey(KEY_DOWN, 10000);
+      if LongBool(kByte and NET_KEY_JUMP) then PressKey(KEY_JUMP, 10000);
+    end;
 
     GameVelX := e_Raw_Read_LongInt(P);
     GameVelY := e_Raw_Read_LongInt(P);
     GameAccelX := e_Raw_Read_LongInt(P);
     GameAccelY := e_Raw_Read_LongInt(P);
-
-    ReleaseKeys;
-
-    if (kByte = NET_KEY_CHAT) then
-    begin
-      PressKey(KEY_CHAT, 10000);
-      Exit;
-    end;
-
-    if LongBool(kByte and NET_KEY_LEFT) then PressKey(KEY_LEFT, 10000);
-    if LongBool(kByte and NET_KEY_RIGHT) then PressKey(KEY_RIGHT, 10000);
-    if LongBool(kByte and NET_KEY_UP) then PressKey(KEY_UP, 10000);
-    if LongBool(kByte and NET_KEY_DOWN) then PressKey(KEY_DOWN, 10000);
-    if LongBool(kByte and NET_KEY_JUMP) then PressKey(KEY_JUMP, 10000);
+    SetLerp(TmpX, TmpY);
+    if NetForcePlayerUpdate then Update();
   end;
 end;
 
@@ -2201,12 +2201,12 @@ begin
     if P1MoveButton = 1 then
     begin
       kByte := kByte or NET_KEY_LEFT;
-      gPlayer1.PressKey(KEY_LEFT, 10000);
+      if NetPredictSelf then gPlayer1.PressKey(KEY_LEFT, 10000);
     end;
     if P1MoveButton = 2 then
     begin
       kByte := kByte or NET_KEY_RIGHT;
-      gPlayer1.PressKey(KEY_RIGHT, 10000);
+      if NetPredictSelf then gPlayer1.PressKey(KEY_RIGHT, 10000);
     end;
     if e_KeyBuffer[KeyUp] = $080 then
     begin

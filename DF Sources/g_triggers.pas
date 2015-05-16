@@ -730,6 +730,13 @@ begin
                 p := g_Player_Get(ActivateUID);
                 if p = nil then
                   Exit;
+                if Data.ResetVel then
+                begin
+                  p.GameVelX := 0;
+                  p.GameVelY := 0;
+                  p.GameAccelX := 0;
+                  p.GameAccelY := 0;
+                end;
 
                 pAngle := -DegToRad(Data.PushAngle);
                 p.Push(Floor(Cos(pAngle)*Data.PushForce),
@@ -741,6 +748,13 @@ begin
                 m := g_Monsters_Get(ActivateUID);
                 if m = nil then
                   Exit;
+                if Data.ResetVel then
+                begin
+                  m.GameVelX := 0;
+                  m.GameVelY := 0;
+                  m.GameAccelX := 0;
+                  m.GameAccelY := 0;
+                end;
 
                 pAngle := DegToRad(Data.PushAngle);
                 m.Push(Floor(Cos(pAngle)*Data.PushForce),
@@ -748,10 +762,7 @@ begin
               end;
           end;
 
-          if coolDown then
-            TimeOut := 18
-          else
-            TimeOut := 0;
+          TimeOut := 0;
           Result := True;
         end;
     end;

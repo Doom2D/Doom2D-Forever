@@ -174,6 +174,7 @@ Type
     I_PROP_TR_MUSIC_OFF,
     I_PROP_TR_PUSH_ANGLE,
     I_PROP_TR_PUSH_FORCE,
+    I_PROP_TR_PUSH_RESET,
 
     I_MSG_ERROR,
     I_MSG_WRONG_TEXWIDTH,
@@ -851,6 +852,8 @@ Const
                                        '”гол'),
     ('PROP TR PUSH FORCE',             'Force',
                                        '—ила'),
+    ('PROP TR PUSH RESET',             'Reset velocity',
+                                       '—брасывать скорость'),
 
     ('MSG ERROR',                      'Error',
                                        'ќшибка'),

@@ -107,6 +107,8 @@ type
     property GameY: Integer read FObj.Y write FObj.Y;
     property GameVelX: Integer read FObj.Vel.X write FObj.Vel.X;
     property GameVelY: Integer read FObj.Vel.Y write FObj.Vel.Y;
+    property GameAccelX: Integer read FObj.Accel.X write FObj.Accel.X;
+    property GameAccelY: Integer read FObj.Accel.Y write FObj.Accel.Y;
     property GameDirection: TDirection read FDirection write FDirection;
 
     property StartID: Integer read FStartID;

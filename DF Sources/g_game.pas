@@ -1193,7 +1193,9 @@ begin
 
     if (NetMode = NET_SERVER) then
     begin
-      if gTime >= NetTimeToReliable then
+      Inc(NetTimeToUpdate);
+      Inc(NetTimeToReliable);
+      if NetTimeToReliable >= NetRelupdRate then
       begin
         for I := 0 to High(gPlayers) do
           if gPlayers[I] <> nil then
@@ -1216,10 +1218,10 @@ begin
                   MH_SEND_MonsterPos(gMonsters[I].UID);
             end;
 
-        NetTimeToReliable := gTime + NetRelupdRate;
-        NetTimeToUpdate := gTime + 1;
+        NetTimeToReliable := 0;
+        NetTimeToUpdate := NetUpdateRate;
       end
-      else if gTime >= NetTimeToUpdate then
+      else if NetTimeToUpdate >= NetUpdateRate then
       begin
         if gPlayers <> nil then 
           for I := 0 to High(gPlayers) do
@@ -1243,7 +1245,7 @@ begin
                   MH_SEND_MonsterPos(gMonsters[I].UID);
             end;
 
-        NetTimeToUpdate := gTime + NetUpdateRate;
+        NetTimeToUpdate := 0;
       end;
 
       if NetUseMaster then
@@ -3018,6 +3020,7 @@ var
   s: string;
   stat: TPlayerStatArray;
   cmd: string;
+  config: TConfig;
 begin
   stat := nil;
   cmd := LowerCase(P[0]);
@@ -3185,6 +3188,47 @@ begin
     g_Console_Add(Format(_lc[I_MSG_WARMUP],
                  [gGameSettings.WarmupTime]));
     g_Console_Add(_lc[I_MSG_ONMAPCHANGE]);
+  end
+  else if cmd = 'net_interp' then
+  begin
+    if (Length(P) > 1) then
+      NetInterpLevel := StrToIntDef(P[1], NetInterpLevel);
+
+    g_Console_Add('net_interp = ' + IntToStr(NetInterpLevel));
+    config := TConfig.CreateFile(GameDir+'\'+CONFIG_FILENAME);
+    config.WriteInt('Client', 'InterpolationSteps', NetInterpLevel);
+    config.SaveFile(GameDir+'\'+CONFIG_FILENAME);
+    config.Free();
+  end
+  else if cmd = 'net_forceplayerupdate' then
+  begin
+    if (Length(P) > 1) and
+       ((P[1] = '1') or (P[1] = '0')) then
+      NetForcePlayerUpdate := (P[1][1] = '1');
+
+    if NetForcePlayerUpdate then
+      g_Console_Add('net_forceplayerupdate = 1')
+    else
+      g_Console_Add('net_forceplayerupdate = 0');
+    config := TConfig.CreateFile(GameDir+'\'+CONFIG_FILENAME);
+    config.WriteBool('Client', 'ForcePlayerUpdate', NetForcePlayerUpdate);
+    config.SaveFile(GameDir+'\'+CONFIG_FILENAME);
+    config.Free();
+  end
+  else if cmd = 'net_predictself' then
+  begin
+    if (Length(P) > 1) and
+       ((P[1] = '1') or (P[1] = '0')) then
+      NetPredictSelf := (P[1][1] = '1');
+
+    if NetPredictSelf then
+      g_Console_Add('net_predictself = 1')
+    else
+      g_Console_Add('net_predictself = 0');
+    config := TConfig.CreateFile(GameDir+'\'+CONFIG_FILENAME);
+    config.WriteBool('Client', 'PredictSelf', NetPredictSelf);
+    config.SaveFile(GameDir+'\'+CONFIG_FILENAME);
+    config.Free();
   end
   else if gGameSettings.GameType in [GT_CUSTOM, GT_SERVER, GT_CLIENT] then
   begin
@@ -3364,13 +3408,6 @@ begin
       g_Console_Add(Format(_lc[I_MSG_LIVES],
                            [gGameSettings.MaxLives]));
       if g_Game_IsNet then MH_SEND_GameSettings;
-    end
-    else if cmd = 'net_interp' then
-    begin
-      if (Length(P) > 1) then
-        NetInterpLevel := StrToIntDef(P[1], NetInterpLevel);
-
-      g_Console_Add('net_interp = ' + IntToStr(NetInterpLevel));
     end;
   end;
 end;
@@ -3595,7 +3632,7 @@ begin
   end
   else if cmd = 'bot_removeall' then
     g_Bot_RemoveAll()
-  else if cmd = 'say' then
+  else if cmd = 'chat' then
   begin
     if g_Game_IsNet then
     begin
@@ -3608,7 +3645,7 @@ begin
 
         if Length(chstr) < 1 then
         begin
-          g_Console_Add('say text');
+          g_Console_Add('chat text');
           Exit;
         end;
 
@@ -3618,7 +3655,7 @@ begin
           MH_SEND_Chat(gPlayer1Settings.Name + ': ' + chstr);
       end
       else
-        g_Console_Add('say text');
+        g_Console_Add('chat text');
     end;
   end
   else if cmd = 'changemap' then
@@ -3689,7 +3726,7 @@ begin
         end;
       end
     end
-    else if cmd = 'broadcast' then
+    else if cmd = 'say' then
     begin
       if g_Game_IsServer and g_Game_IsNet then
       begin
@@ -3703,13 +3740,13 @@ begin
 
           if Length(chstr) < 1 then
           begin
-            g_Console_Add('broadcast text');
+            g_Console_Add('say text');
             Exit;
           end;
 
           MH_SEND_Chat(chstr);
         end
-        else g_Console_Add('broadcast text');
+        else g_Console_Add('say text');
       end;
     end
     else if cmd = 'tell' then

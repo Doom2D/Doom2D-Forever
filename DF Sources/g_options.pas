@@ -287,12 +287,14 @@ begin
   NetAllowRCON := config.ReadBool('Server', 'RCON', False);
   NetRCONPassword := config.ReadStr('Server', 'RCONPassword', 'default');
   NetUseMaster := config.ReadBool('Server', 'SyncWithMaster', True);
-  NetUpdateRate := Max(1, config.ReadInt('Server', 'UpdateInterval', 27));
-  NetRelupdRate := Max(1, config.ReadInt('Server', 'ReliableUpdateInterval', 140));
+  NetUpdateRate := Max(1, config.ReadInt('Server', 'UpdateInterval', 1));
+  NetRelupdRate := Max(1, config.ReadInt('Server', 'ReliableUpdateInterval', 10));
   NetMasterRate := Max(1, config.ReadInt('Server', 'MasterSyncInterval', 60000));
 
 // Клиент
   NetInterpLevel := Max(0, config.ReadInt('Client', 'InterpolationSteps', 2));
+  NetForcePlayerUpdate := config.ReadBool('Client', 'ForcePlayerUpdate', False);
+  NetPredictSelf := config.ReadBool('Client', 'PredictSelf', True);
   NetLastIP := config.ReadStr('Client', 'LastIP', 'localhost');
   NetLastPort := Max(0, config.ReadInt('Client', 'LastPort', 25666));
 

@@ -100,9 +100,12 @@ var
   NetPlrUID:     Integer = -1;
 
   NetInterpLevel: Integer = 1;
-  NetUpdateRate:  Cardinal = 27;
-  NetRelupdRate:  Cardinal = 140;
+  NetUpdateRate:  Cardinal = 1;
+  NetRelupdRate:  Cardinal = 10;
   NetMasterRate:  Cardinal = 60000;
+
+  NetForcePlayerUpdate: Boolean = False;
+  NetPredictSelf:       Boolean = True;
 
   NetGotEverything: Boolean = False;
 

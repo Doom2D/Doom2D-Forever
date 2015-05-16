@@ -224,6 +224,8 @@ begin
   AddCommand('g_warmuptime', GameCVars);
   AddCommand('nextmap', GameCVars);
   AddCommand('net_interp', GameCVars);
+  AddCommand('net_forceplayerupdate', GameCVars);
+  AddCommand('net_predictself', GameCVars);
 
   AddCommand('quit', GameCommands);
   AddCommand('exit', GameCommands);
@@ -238,7 +240,7 @@ begin
   AddCommand('bot_removeall', GameCommands);
   AddCommand('map', GameCommands);
   AddCommand('monster', GameCommands);
-  AddCommand('say', GameCommands);
+  AddCommand('chat', GameCommands);
   AddCommand('changemap', GameCommands);
   AddCommand('suicide', GameCommands);
   AddCommand('spectate', GameCommands);
@@ -247,7 +249,7 @@ begin
   AddCommand('connect', GameCommands);
   AddCommand('disconnect', GameCommands);
   AddCommand('reconnect', GameCommands);
-  AddCommand('broadcast', GameCommands);
+  AddCommand('say', GameCommands);
   AddCommand('tell', GameCommands);
   AddCommand('rcon_password', GameCommands);
   AddCommand('rcon', GameCommands);

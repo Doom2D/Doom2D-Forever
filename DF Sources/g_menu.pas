@@ -284,9 +284,11 @@ begin
   config.WriteInt ('Server', 'ReliableUpdateInterval', NetRelupdRate);
   config.WriteInt ('Server', 'MasterSyncInterval', NetMasterRate);
 
-  config.WriteInt ('Client', 'InterpolationSteps', NetInterpLevel);
-  config.WriteStr ('Client', 'LastIP', NetLastIP);
-  config.WriteInt ('Client', 'LastPort', NetLastPort); 
+  config.WriteInt  ('Client', 'InterpolationSteps', NetInterpLevel);
+  config.WriteBool ('Client', 'ForcePlayerUpdate', NetForcePlayerUpdate);
+  config.WriteBool ('Client', 'PredictSelf', NetPredictSelf);
+  config.WriteStr  ('Client', 'LastIP', NetLastIP);
+  config.WriteInt  ('Client', 'LastPort', NetLastPort);
 
   config.SaveFile(GameDir+'\'+CONFIG_FILENAME);
   config.Free();

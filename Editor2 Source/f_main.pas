@@ -1199,6 +1199,11 @@ begin
                   EditStyle := esSimple;
                   MaxLength := 4;
                 end;
+                with ItemProps[InsertRow(_lc[I_PROP_TR_PUSH_RESET], BoolNames[Data.ResetVel], True)-1] do
+                begin
+                  EditStyle := esPickList;
+                  ReadOnly := True;
+                end;
               end;
           end; //case TriggerType
         end;
@@ -3186,6 +3191,7 @@ begin
                     begin
                       trigger.Data.PushAngle := 0;
                       trigger.Data.PushForce := 10;
+                      trigger.Data.ResetVel := False;
                     end;
                 end;
 
@@ -3670,7 +3676,8 @@ begin
             (KeyName = _lc[I_PROP_TR_TEXTURE_ANIM_ONCE]) or
             (KeyName = _lc[I_PROP_TR_SOUND_LOCAL]) or
             (KeyName = _lc[I_PROP_TR_SOUND_SWITCH]) or
-            (KeyName = _lc[I_PROP_TR_MONSTER_ACTIVE]) then
+            (KeyName = _lc[I_PROP_TR_MONSTER_ACTIVE]) or
+            (KeyName = _lc[I_PROP_TR_PUSH_RESET]) then
       begin
         Values.Add(BoolNames[True]);
         Values.Add(BoolNames[False]);
@@ -3953,6 +3960,7 @@ begin
                   StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_PUSH_ANGLE]], 0), 360);
                 Data.PushForce := Min(
                   StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_PUSH_FORCE]], 0), 255);
+                Data.ResetVel := NameToBool(vleObjectProperty.Values[_lc[I_PROP_TR_PUSH_RESET]]);
               end;
           end;
         end;
