@@ -4925,14 +4925,17 @@ begin
 
   // Если цель видно и она на такой же высоте:
     if Target.Visible and
-        (y1+4 < Target.Y+Target.Rect.Y+Target.Rect.Height) and
-        (y1-4 > Target.Y+Target.Rect.Y) then
+        (y1+8 < Target.Y+Target.Rect.Y+Target.Rect.Height) and
+        (y1-8 > Target.Y+Target.Rect.Y) then
       begin
       // Если идем в сторону цели, то надо стрелять:
         if ((FDirection = D_LEFT) and (Target.X < FObj.X)) or
             ((FDirection = D_RIGHT) and (Target.X > FObj.X)) then
+        begin // то нужно стрелять вперед
           SetAIFlag('NEEDFIRE', '1');
-
+          SetAIFlag('NEEDSEEDOWN', '');
+          SetAIFlag('NEEDSEEUP', '');
+        end;
       // Если цель в пределах "экрана" и сложность позволяет прыжки сближения:
         if Abs(FObj.X-Target.X) < Trunc(gPlayerScreenSize.X*0.75) then
           if GetRnd(FDifficult.CloseJump) then
