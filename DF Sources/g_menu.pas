@@ -1607,6 +1607,15 @@ begin
   config.Free();
 end;
 
+procedure ProcRecallAddress();
+begin
+  with TGUIMenu(g_GUI_GetWindow('NetClientMenu').GetControl('mNetClientMenu')) do
+  begin
+    TGUIEdit(GetControl('edIP')).Text := NetLastIP;
+    TGUIEdit(GetControl('edPort')).Text := IntToStr(NetLastPort);
+  end;
+end;
+
 procedure CreateFirstLanguageMenu();
 var
   Menu: TGUIWindow;
@@ -1743,7 +1752,7 @@ begin
   begin
     Name := 'mmNetGameMenu';
     AddButton(nil, _lc[I_MENU_START_SERVER], 'NetServerMenu');
-    AddButton(nil, _lc[I_MENU_START_CLIENT], 'NetClientMenu');
+    AddButton(@ProcRecallAddress, _lc[I_MENU_START_CLIENT], 'NetClientMenu');
   end;
   Menu.DefControl := 'mmNetGameMenu';
   g_GUI_AddWindow(Menu);
