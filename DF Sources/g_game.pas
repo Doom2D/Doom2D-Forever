@@ -2300,7 +2300,7 @@ begin
           if GameMode = GM_COOP then
             Team := TEAM_COOP
           else
-            Team := gPlayer1Settings.Team;
+            Team := gPlayer2Settings.Team;
 
         gPlayer2 := g_Player_Get(g_Player_Create(gPlayer2Settings.Model,
                                                  gPlayer2Settings.Color,
