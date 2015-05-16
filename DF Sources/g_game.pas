@@ -578,7 +578,7 @@ begin
         EndingGameCounter := 255;
         gState := STATE_FOLD;
         gInterTime := 0;
-        gInterEndTime := IfThen(NetDedicated, 15000, 25000);
+        gInterEndTime := IfThen((gGameSettings.GameType = GT_SERVER) and NetDedicated, 15000, 25000);
       end;
 
     EXIT_ENDLEVELSINGLE: // Закончился уровень в Одиночной игре
@@ -1910,7 +1910,7 @@ begin
                       (gScreenHeight div 2)-(h div 2), MessageText);
     end;
 
-    if IsDrawStat or (g_Game_IsServer and NetDedicated) then DrawStat();
+    if IsDrawStat or ((gGameSettings.GameType = GT_SERVER) and NetDedicated) then DrawStat();
   end;
 
   if gPause and gGameOn and (g_ActiveWindow = nil) then
