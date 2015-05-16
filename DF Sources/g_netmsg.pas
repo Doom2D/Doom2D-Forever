@@ -15,8 +15,7 @@ const
   NET_MSG_COOP   = 106;
   NET_MSG_FLAG   = 107;
   NET_MSG_REQFST = 108;
-  NET_MSG_SHDEL  = 109;
-  NET_MSG_GSET   = 110;
+  NET_MSG_GSET   = 109;
 
   NET_MSG_PLR    = 111;
   NET_MSG_PLRPOS = 112;
@@ -43,9 +42,13 @@ const
   NET_MSG_TSOUND = 151;
   NET_MSG_TMUSIC = 152;
 
-  NET_MSG_RCON_AUTH  = 161;
-  NET_MSG_RCON_CMD   = 162;
-  NET_MSG_VOTE_EVENT = 165;
+  NET_MSG_SHDEL  = 161;
+  NET_MSG_SHADD  = 162;
+  NET_MSG_SHPOS  = 163;
+
+  NET_MSG_RCON_AUTH  = 191;
+  NET_MSG_RCON_CMD   = 192;
+  NET_MSG_VOTE_EVENT = 195;
 
   NET_MSG_MAP_REQUEST = 201;
   NET_MSG_MAP_RESPONSE = 202;
@@ -101,6 +104,8 @@ procedure MH_SEND_Info(ID: Byte);
 procedure MH_SEND_Chat(Txt: string; ID: Integer = NET_EVERYONE);
 procedure MH_SEND_Effect(X, Y: Integer; Ang: SmallInt; Kind: Byte; ID: Integer = NET_EVERYONE);
 procedure MH_SEND_Sound(X, Y: Integer; Name: string; ID: Integer = NET_EVERYONE);
+procedure MH_SEND_CreateShot(Proj: LongInt; ID: Integer = NET_EVERYONE);
+procedure MH_SEND_UpdateShot(Proj: LongInt; ID: Integer = NET_EVERYONE);
 procedure MH_SEND_DeleteShot(Proj: LongInt; X, Y: LongInt; Loud: Boolean = True; ID: Integer = NET_EVERYONE);
 procedure MH_SEND_GameStats(ID: Integer = NET_EVERYONE);
 procedure MH_SEND_CoopStats(ID: Integer = NET_EVERYONE);
@@ -704,6 +709,38 @@ begin
   e_Buffer_Write(@NetOut, Name);
   e_Buffer_Write(@NetOut, X);
   e_Buffer_Write(@NetOut, Y);
+
+  g_Net_Host_Send(ID, False, NET_CHAN_GAME);
+end;
+
+procedure MH_SEND_CreateShot(Proj: LongInt; ID: Integer = NET_EVERYONE);
+begin
+  if (Shots = nil) or (Proj < 0) or (Proj > High(Shots)) then Exit;
+
+  e_Buffer_Write(@NetOut, Byte(NET_MSG_SHADD));
+  e_Buffer_Write(@NetOut, Proj);
+  e_Buffer_Write(@NetOut, Shots[Proj].ShotType);
+  e_Buffer_Write(@NetOut, Shots[Proj].Target);
+  e_Buffer_Write(@NetOut, Shots[Proj].SpawnerUID);
+  e_Buffer_Write(@NetOut, Shots[Proj].Timeout);
+  e_Buffer_Write(@NetOut, Shots[Proj].Obj.X);
+  e_Buffer_Write(@NetOut, Shots[Proj].Obj.Y);
+  e_Buffer_Write(@NetOut, Shots[Proj].Obj.Vel.X);
+  e_Buffer_Write(@NetOut, Shots[Proj].Obj.Vel.Y);
+
+  g_Net_Host_Send(ID, True, NET_CHAN_LARGEDATA);
+end;
+
+procedure MH_SEND_UpdateShot(Proj: LongInt; ID: Integer = NET_EVERYONE);
+begin
+  if (Shots = nil) or (Proj < 0) or (Proj > High(Shots)) then Exit;
+
+  e_Buffer_Write(@NetOut, Byte(NET_MSG_SHPOS));
+  e_Buffer_Write(@NetOut, Proj);
+  e_Buffer_Write(@NetOut, Shots[Proj].Obj.X);
+  e_Buffer_Write(@NetOut, Shots[Proj].Obj.Y);
+  e_Buffer_Write(@NetOut, Shots[Proj].Obj.Vel.X);
+  e_Buffer_Write(@NetOut, Shots[Proj].Obj.Vel.Y);
 
   g_Net_Host_Send(ID, False, NET_CHAN_GAME);
 end;

@@ -3265,8 +3265,8 @@ end;
 procedure TPlayer.Update();
 var
   b: Byte;
-  i, ii, wx, wy, xd, yd: Integer;
-  blockmon, headwater: Boolean;
+  i, ii, wx, wy, xd, yd, k: Integer;
+  blockmon, headwater, dospawn: Boolean;
   st: Word;
   NetServer: Boolean;
   AnyServer: Boolean;
@@ -3336,7 +3336,16 @@ begin
     end
   else // Dead
   begin
-    if (FKeys[KEY_UP].Pressed) then
+    dospawn := False;
+    for k := Low(FKeys) to KEY_CHAT-1 do
+    begin
+      if FKeys[k].Pressed then
+      begin
+        dospawn := True;
+        break;
+      end;
+    end;
+    if (dospawn) then
     begin
       if FGhost then
       begin
