@@ -100,8 +100,8 @@ var
   NetPlrUID:     Integer = -1;
 
   NetInterpLevel: Integer = 1;
-  NetUpdateRate:  Cardinal = 1;
-  NetRelupdRate:  Cardinal = 10;
+  NetUpdateRate:  Cardinal = 0;  // as soon as possible
+  NetRelupdRate:  Cardinal = 18; // around two times a second
   NetMasterRate:  Cardinal = 60000;
 
   NetForcePlayerUpdate: Boolean = False;

@@ -287,8 +287,8 @@ begin
   NetAllowRCON := config.ReadBool('Server', 'RCON', False);
   NetRCONPassword := config.ReadStr('Server', 'RCONPassword', 'default');
   NetUseMaster := config.ReadBool('Server', 'SyncWithMaster', True);
-  NetUpdateRate := Max(1, config.ReadInt('Server', 'UpdateInterval', 1));
-  NetRelupdRate := Max(1, config.ReadInt('Server', 'ReliableUpdateInterval', 10));
+  NetUpdateRate := Max(0, config.ReadInt('Server', 'UpdateInterval', 0));
+  NetRelupdRate := Max(0, config.ReadInt('Server', 'ReliableUpdateInterval', 18));
   NetMasterRate := Max(1, config.ReadInt('Server', 'MasterSyncInterval', 60000));
 
 // Клиент
