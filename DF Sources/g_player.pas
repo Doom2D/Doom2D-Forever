@@ -4295,7 +4295,7 @@ begin
     else
       Exit;
   end;
-  if gGameSettings.GameType = GT_SERVER then MH_SEND_PlayerStats(PLAYER_UID);
+  if gGameSettings.GameType = GT_SERVER then MH_SEND_PlayerStats(FUID);
 end;
 
 procedure TPlayer.SetModel(ModelName: string);
