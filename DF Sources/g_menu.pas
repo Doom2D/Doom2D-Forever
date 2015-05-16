@@ -1813,21 +1813,21 @@ begin
     begin
       Name := 'edTimeLimit';
       OnlyDigits := True;
-      Width := 3;
-      MaxLength := 3;
+      Width := 4;
+      MaxLength := 5;
     end;
     with AddEdit(_lc[I_MENU_GOAL_LIMIT]) do
     begin
       Name := 'edGoalLimit';
       OnlyDigits := True;
-      Width := 3;
-      MaxLength := 3;
+      Width := 4;
+      MaxLength := 5;
     end;
     with AddEdit(_lc[I_MENU_MAX_LIVES]) do
     begin
       Name := 'edMaxLives';
       OnlyDigits := True;
-      Width := 3;
+      Width := 4;
       MaxLength := 3;
     end;
     with AddSwitch(_lc[I_MENU_TEAM_DAMAGE]) do
@@ -1974,22 +1974,22 @@ begin
     begin
       Name := 'edTimeLimit';
       OnlyDigits := True;
-      Width := 3;
-      MaxLength := 3;
+      Width := 4;
+      MaxLength := 5;
     end;
     with AddEdit(_lc[I_MENU_GOAL_LIMIT]) do
     begin
       Name := 'edGoalLimit';
       OnlyDigits := True;
-      Width := 3;
-      MaxLength := 3;
+      Width := 4;
+      MaxLength := 5;
     end;
     with AddEdit(_lc[I_MENU_MAX_LIVES]) do
     begin
       Name := 'edMaxLives';
       OnlyDigits := True;
-      Width := 3;
-      MaxLength := 3;
+      Width := 4;
+      MaxLength := 5;
     end;
     with AddSwitch(_lc[I_MENU_PLAYERS]) do
     begin
@@ -2698,22 +2698,22 @@ begin
     begin
       Name := 'edTimeLimit';
       OnlyDigits := True;
-      Width := 3;
-      MaxLength := 3;
+      Width := 4;
+      MaxLength := 5;
     end;
     with AddEdit(_lc[I_MENU_GOAL_LIMIT]) do
     begin
       Name := 'edGoalLimit';
       OnlyDigits := True;
-      Width := 3;
-      MaxLength := 3;
+      Width := 4;
+      MaxLength := 5;
     end;
     with AddEdit(_lc[I_MENU_MAX_LIVES]) do
     begin
       Name := 'edMaxLives';
       OnlyDigits := True;
-      Width := 3;
-      MaxLength := 3;
+      Width := 4;
+      MaxLength := 5;
     end;
     with AddSwitch(_lc[I_MENU_BOTS_VS]) do
     begin
