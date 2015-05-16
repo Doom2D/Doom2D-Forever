@@ -1061,7 +1061,7 @@ const
     ('MESSAGE FLAG GET',               '%s flag stolen',
                                        '%s ткюц сйпюдем'),
     ('MESSAGE FLAG RETURN',            '%s flag returned',
-                                       '%s ткюц бнгбпюыем'),
+                                       '%s ткюц бнгбпюы╗м'),
     ('MESSAGE FLAG CAPTURE',           '%s flag captured',
                                        '%s ткюц гюубювем'),
     ('MESSAGE FLAG DROP',              '%s flag dropped',
