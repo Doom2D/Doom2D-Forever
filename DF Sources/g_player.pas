@@ -202,6 +202,7 @@ type
     function    GetFlag(Flag: Byte): Boolean;
     procedure   SetFlag(Flag: Byte);
     procedure   AllRulez(Health: Boolean);
+    procedure   GiveItem(ItemType: Byte);
     procedure   Damage(value: Word; SpawnerUID: Word; vx, vy: Integer; t: Byte); virtual;
     procedure   MakeBloodVector(Count: Word; VelX, VelY: Integer);
     procedure   MakeBloodSimple(Count: Word);
@@ -4247,6 +4248,47 @@ begin
   for a := WEAPON_KASTET to WEAPON_SUPERPULEMET do FWeapon[a] := True;
   for a := A_BULLETS to A_CELLS do FAmmo[a] := 30000;
   FRulez := FRulez+[R_KEY_RED, R_KEY_GREEN, R_KEY_BLUE];
+end;
+
+procedure TPlayer.GiveItem(ItemType: Byte);
+begin
+  case ItemType of
+    ITEM_SUIT:
+      if FMegaRulez[MR_SUIT] < gTime+PLAYER_SUIT_TIME then
+      begin
+        FMegaRulez[MR_SUIT] := gTime+PLAYER_SUIT_TIME;
+      end;
+
+    ITEM_OXYGEN:
+      if FAir < AIR_MAX then
+      begin
+        FAir := AIR_MAX;
+      end;
+
+    ITEM_MEDKIT_BLACK:
+      begin
+        if not (R_BERSERK in FRulez) then
+        begin
+          Include(FRulez, R_BERSERK);
+          if FBFGFireCounter < 1 then
+          begin
+            FCurrWeap := WEAPON_KASTET;
+            FModel.SetWeapon(WEAPON_KASTET);
+          end;
+          Inc(FPain, 100);
+        end;
+        if FHealth < 100 then
+        begin
+          FHealth := 100;
+        end;
+      end;
+
+    ITEM_INV:
+      if FMegaRulez[MR_INV] < gTime+PLAYER_INV_TIME then
+      begin
+        FMegaRulez[MR_INV] := gTime+PLAYER_INV_TIME;
+      end;
+  end;
 end;
 
 procedure TPlayer.SetModel(ModelName: string);

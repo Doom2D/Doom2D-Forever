@@ -102,48 +102,59 @@ var
   c: Char16;
   a: Integer;
 const
-  c1 = 'UJHTW';
-  c2 = 'RAMBO';
-  c3 = 'TANK';
-  c4 = 'IDDQD';
-  c5 = 'CBVCBV';
-  c6 = 'GOODBYE';
-  c7 = 'GJITKYF';
-  c8 = 'TKSQJHTK';
-  c9 = 'BULLFROG';
+  c1 =  'UJHTW';     // ГОРЕЦ
+  c2 =  'RAMBO';
+  c3 =  'TANK';
+  c4 =  'IDDQD';
+  c5 =  'CBVCBV';    // СИМСИМ
+  c6 =  'GOODBYE';
+  c7 =  'GJITKYF';   // ПОШЕЛНА
+  c8 =  'TKSQJHTK';  // ЕЛЫЙОРЕЛ
+  c9 =  'BULLFROG';
   c10 = 'FORMULA1';
+  c11 = 'CONDOM';
+  c12 = 'XTHYJVJH';  // ЧЕРНОМОР
+  c13 = 'PURELOVE';
+  c14_1 = 'ZCDJ';    // ЯСВО
+  c14_2 = 'JLTY';    // ОДЕН
 begin
   if (not gGameOn) or (not gCheats) or ((gGameSettings.GameType <> GT_SINGLE) and
     (gGameSettings.GameMode <> GM_COOP) and (not gDebugMode))
     or g_Game_IsNet then Exit;
-    
+
   s := 'SOUND_GAME_RADIO';
 
+  // ГОРЕЦ включает неуязвимость
   if Copy(charbuff, 12, 5) = c1 then
   begin
     if gPlayer1 <> nil then gPlayer1.GodMode := not gPlayer1.GodMode;
     if gPlayer2 <> nil then gPlayer2.GodMode := not gPlayer2.GodMode;
   end
+  // RAMBO даёт всё оружие и ключи
   else if Copy(charbuff, 12, 5) = c2 then
   begin
     if gPlayer1 <> nil then gPlayer1.AllRulez(False);
     if gPlayer2 <> nil then gPlayer2.AllRulez(False);
   end
+  // TANK поднимает здоровье и броню
   else if Copy(charbuff, 13, 4) = c3 then
   begin
     if gPlayer1 <> nil then gPlayer1.AllRulez(True);
     if gPlayer2 <> nil then gPlayer2.AllRulez(True);
   end
+  // IDDQD наказывает нечестного игрока
   else if Copy(charbuff, 12, 5) = c4 then
   begin
     if gPlayer1 <> nil then gPlayer1.Damage(500, 0, 0, 0, HIT_TRAP);
     if gPlayer2 <> nil then gPlayer2.Damage(500, 0, 0, 0, HIT_TRAP);
     s := 'SOUND_MONSTER_HAHA';
   end
+  // СИМСИМ открывает все двери
   else if Copy(charbuff, 11, 6) = c5 then
   begin
     g_Triggers_OpenAll();
   end
+  // GOODBYE нажимает кнопку выхода на уровне
   else if Copy(charbuff, 10, 7) = c6 then
   begin
     if gTriggers <> nil then
@@ -154,6 +165,7 @@ begin
           Break;
         end;
   end
+  // ПОШЕЛНА посылает на нужный уровень
   else if Copy(charbuff, 8, 7) = c7 then
   begin
     s2 := Copy(charbuff, 15, 2);
@@ -165,18 +177,46 @@ begin
       g_Game_ExitLevel(c);
     end;
   end
+  // БЕЛЫЙОРЕЛ позволяет летать
   else if (Copy(charbuff, 9, 8) = c8) and
           (charbuff[7] = Chr(188)) then
   begin
     gFly := not gFly;
   end
+  // BULLFROG даёт высокие прыжки
   else if Copy(charbuff, 9, 8) = c9 then
   begin
     VEL_JUMP := 30-VEL_JUMP;
   end
+  // FORMULA1 ускоряет бег
   else if Copy(charbuff, 9, 8) = c10 then
   begin
     MAX_RUNVEL := 32-MAX_RUNVEL;
+  end
+  // CONDOM даёт защитный костюм
+  else if Copy(charbuff, 11, 6) = c11 then
+  begin
+    if gPlayer1 <> nil then gPlayer1.GiveItem(ITEM_SUIT);
+    if gPlayer2 <> nil then gPlayer2.GiveItem(ITEM_SUIT);
+  end
+  // ЧЕРНОМОР даёт полный запас кислорода
+  else if Copy(charbuff, 9, 8) = c12 then
+  begin
+    if gPlayer1 <> nil then gPlayer1.GiveItem(ITEM_OXYGEN);
+    if gPlayer2 <> nil then gPlayer2.GiveItem(ITEM_OXYGEN);
+  end
+  // PURELOVE даёт силушку богатырскую
+  else if Copy(charbuff, 9, 8) = c13 then
+  begin
+    if gPlayer1 <> nil then gPlayer1.GiveItem(ITEM_MEDKIT_BLACK);
+    if gPlayer2 <> nil then gPlayer2.GiveItem(ITEM_MEDKIT_BLACK);
+  end
+  // ЯСВОБОДЕН даёт реактивный ранец
+  else if (Copy(charbuff, 8, 4) = c14_1)
+  and (charbuff[11] = Chr(188))
+  and (Copy(charbuff, 13, 4) = c14_2) then
+  begin
+    // TODO
   end
   else Exit;
 
