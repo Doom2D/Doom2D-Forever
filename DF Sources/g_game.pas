@@ -3546,6 +3546,7 @@ var
   chstr: string;
   cmd: string;
   pl: pTNetClient;
+  plr: TPlayer;
   prt: Word;
 begin
 // Общие команды:
@@ -3586,7 +3587,55 @@ begin
       end;
 
       pl := g_Net_Client_ByName(P[1]);
-      if (pl <> nil) then enet_peer_disconnect(pl^.Peer, NET_DISC_KICK);
+      if (pl <> nil) then
+        enet_peer_disconnect(pl^.Peer, NET_DISC_KICK)
+      else if gPlayers <> nil then
+        for a := Low(gPlayers) to High(gPlayers) do
+          if gPlayers[a] <> nil then
+            if gPlayers[a] is TBot then
+            begin
+              gPlayers[a].Lives := 0;
+              gPlayers[a].Kill(K_SIMPLEKILL, 0, 0);
+              g_Player_Remove(gPlayers[a].UID);
+            end;
+    end;
+  end
+  else if cmd = 'kick_id' then
+  begin
+    if g_Game_IsServer and g_Game_IsNet then
+    begin
+      if Length(P) < 2 then
+      begin
+        g_Console_Add('kick_id client_id');
+        Exit;
+      end;
+      if P[1] = '' then
+      begin
+        g_Console_Add('kick_id client_id');
+        Exit;
+      end;
+
+      a := StrToIntDef(P[1], 0);
+      if (NetClients <> nil) and (a <= High(NetClients)) then
+      begin
+        if NetClients[a].Used and (NetClients[a].Peer <> nil) then
+          enet_peer_disconnect(NetClients[a].Peer, NET_DISC_KICK);
+      end;
+    end;
+  end
+  else if cmd = 'clientlist' then
+  begin
+    if g_Game_IsServer and g_Game_IsNet and (NetClients <> nil) then
+    begin
+      for a := Low(NetClients) to High(NetClients) do
+        if NetClients[a].Used and (NetClients[a].Peer <> nil) then
+        begin
+          plr := g_Player_Get(NetClients[a].Player);
+          if plr = nil then continue;
+          g_Console_Add('#' + IntToStr(a) + ': ' +
+                        IpToStr(NetClients[a].Peer^.address.host) +
+                        ' | ' + plr.Name);
+        end;
     end;
   end
   else if cmd = 'connect' then

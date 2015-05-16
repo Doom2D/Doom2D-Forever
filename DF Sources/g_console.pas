@@ -246,6 +246,7 @@ begin
   AddCommand('spectate', GameCommands);
   AddCommand('ready', GameCommands);
   AddCommand('kick', GameCommands);
+  AddCommand('kick_id', GameCommands);
   AddCommand('connect', GameCommands);
   AddCommand('disconnect', GameCommands);
   AddCommand('reconnect', GameCommands);
@@ -255,6 +256,7 @@ begin
   AddCommand('rcon', GameCommands);
   AddCommand('callvote', GameCommands);
   AddCommand('vote', GameCommands);
+  AddCommand('clientlist', GameCommands);
 
   WhitelistCommand('broadcast');
   WhitelistCommand('tell');
@@ -452,7 +454,7 @@ procedure g_Console_Control(K: Byte);
 begin
   case K of
     VK_BACK:
-      if Length(Line) > 0 then
+      if (Length(Line) > 0) and (CPos > 1) then
       begin
         Delete(Line, CPos-1, 1);
         CPos := CPos-1;

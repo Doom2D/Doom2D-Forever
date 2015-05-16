@@ -326,6 +326,13 @@ begin
               g_ActiveWindow.OnMessage(Msg);
             end
           else
+          begin
+            if (gState = STATE_MENU) then
+            begin
+              g_GUI_ShowWindow('MainMenu');
+              g_Sound_PlayEx('MENU_OPEN');
+            end
+            else
             begin // Клавиши -> набору кода
               for a := 0 to 14 do
                 charbuff[a] := charbuff[a+1];
@@ -333,6 +340,7 @@ begin
 
               Cheat();
             end;
+          end;
       end;
   end;
 end;

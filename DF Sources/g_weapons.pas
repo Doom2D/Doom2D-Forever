@@ -490,7 +490,7 @@ begin
   if Shots[i].ShotType in [WEAPON_BSP_FIRE, WEAPON_PLASMA] then
     Shots[i].Timeout := 550 // ~15 sec
   else
-    Shots[i].Timeout := 1050 // ~30 sec
+    Shots[i].Timeout := 900 // ~25 sec
 end;
 
 function g_Weapon_Hit(obj: PObj; d: Integer; SpawnerUID: Word; t: Byte): Byte;

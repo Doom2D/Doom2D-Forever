@@ -737,16 +737,12 @@ begin
 
 // Время предыдущего обновления:
   if flag then
-    Time_Old := Time - (Time_Delta mod 27777);
-
-// Не рисуем в неактивном:
-  if (not wMinimized) then
   begin
-    if flag then
+    Time_Old := Time - (Time_Delta mod 27777);
+    if (not wMinimized) then
     begin
       Draw();
       SwapBuffers(h_DC);
-
       ReShowCursor();
     end;
   end
