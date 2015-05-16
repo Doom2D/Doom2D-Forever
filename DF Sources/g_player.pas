@@ -1402,7 +1402,11 @@ begin
   // Кровь (пузырьки, если в воде):
     if gBloodCount > 0 then
     begin
-      c := Min(value, 200)*gBloodCount-(value div 4)+Random(Min(value, 200) div 2);
+      c := Min(value, 200)*gBloodCount + Random(Min(value, 200) div 2);
+      if value div 4 <= c then
+        c := c - (value div 4)
+      else
+        c := 0;
 
       if (t = HIT_SOME) and (vx = 0) and (vy = 0) then
         MakeBloodSimple(c)
