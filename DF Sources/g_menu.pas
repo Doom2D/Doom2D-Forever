@@ -152,7 +152,7 @@ begin
   if gPlayer1Settings.Name = '' then gPlayer1Settings.Name := 'Player1';
   if gPlayer2Settings.Name = '' then gPlayer2Settings.Name := 'Player2';
 
-  if (gGameSettings.GameType in [GT_CUSTOM, GT_SERVER]) then
+  if (gGameSettings.GameType in [GT_CUSTOM, GT_SERVER, GT_SINGLE]) then
   begin
     if (gPlayer1 <> nil) and not (g_Game_IsNet and NetDedicated) then
     begin
