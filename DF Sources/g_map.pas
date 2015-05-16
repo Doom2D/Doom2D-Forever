@@ -828,13 +828,13 @@ begin
     begin
       SetLength(s, 64);
       CopyMemory(@s[1], @_textures[a].Resource[0], 64);
-      e_WriteLog('    Loading texture: ' + s, MSG_NOTIFY);
       for b := 1 to Length(s) do
         if s[b] = #0 then
         begin
           SetLength(s, b-1);
           Break;
         end;
+      e_WriteLog('    Loading texture: ' + s, MSG_NOTIFY);
     // Анимированная текстура:
       if ByteBool(_textures[a].Anim) then
         begin
