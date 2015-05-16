@@ -1625,8 +1625,8 @@ begin
     begin
       e_TextureFontGetSize(gStdFont, cw, ch);
       s := _lc[I_PLAYER_SPECT4];
-      e_TextureFontPrint(gScreenWidth div 2 - cw*(Length(s) div 2),
-                         gScreenHeight-4-ch, s, gStdFont);
+      e_TextureFontPrintEx(gScreenWidth div 2 - cw*(Length(s) div 2),
+                         gScreenHeight-4-ch, s, gStdFont, 255, 255, 255, 1, True);
       e_TextureFontPrint(X + 4, Y + 290, _lc[I_PLAYER_SPECT1S], gStdFont);
     end;
 
