@@ -1469,6 +1469,11 @@ begin
       g_Map_ResetFlag(Fl);
       if Quiet or (Pl = nil) then Exit;
 
+      if Fl = FLAG_RED then
+        s := _lc[I_PLAYER_FLAG_RED]
+      else
+        s := _lc[I_PLAYER_FLAG_BLUE];
+
       g_Game_Message(Format(_lc[I_MESSAGE_FLAG_RETURN], [AnsiUpperCase(s)]), 144);
     end;
   end;
