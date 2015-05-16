@@ -1381,7 +1381,8 @@ begin
   FLastHit := t;
 
 // Неуязвимость не спасает от ловушек:
-  if t = HIT_TRAP then begin
+  if (t = HIT_TRAP) and (not FGodMode) then
+  begin
     // Обнулить действия примочек, чтобы фон пропал
     FMegaRulez[MR_SUIT] := 0;
     FMegaRulez[MR_INV] := 0;
