@@ -28,7 +28,6 @@ begin
     NET_MSG_CHAT:   MC_RECV_Chat(B);
     NET_MSG_GFX:    MC_RECV_Effect(B);
     NET_MSG_SND:    MC_RECV_Sound(B);
-    NET_MSG_SHDEL:  MC_RECV_DeleteShot(B);
     NET_MSG_SCORE:  MC_RECV_GameStats(B);
     NET_MSG_COOP:   MC_RECV_CoopStats(B);
     NET_MSG_GEVENT: MC_RECV_GameEvent(B);
@@ -49,6 +48,10 @@ begin
     NET_MSG_MSTATE: MC_RECV_MonsterState(B);
     NET_MSG_MSHOT:  MC_RECV_MonsterShot(B);
     NET_MSG_MDEL:   MC_RECV_MonsterDelete(B);
+
+    NET_MSG_SHADD:  MC_RECV_CreateShot(B);
+    NET_MSG_SHPOS:  MC_RECV_UpdateShot(P);
+    NET_MSG_SHDEL:  MC_RECV_DeleteShot(B);
 
     NET_MSG_ISPAWN: MC_RECV_ItemSpawn(B);
     NET_MSG_IDEL:   MC_RECV_ItemDestroy(B);

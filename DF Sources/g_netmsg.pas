@@ -148,7 +148,6 @@ procedure MH_SEND_VoteEvent(EvType: Byte;
 procedure MC_RECV_Chat(P: Pointer);
 procedure MC_RECV_Effect(P: Pointer);
 procedure MC_RECV_Sound(P: Pointer);
-procedure MC_RECV_DeleteShot(P: Pointer);
 procedure MC_RECV_GameStats(P: Pointer);
 procedure MC_RECV_CoopStats(P: Pointer);
 procedure MC_RECV_GameEvent(P: Pointer);
@@ -175,6 +174,10 @@ procedure MC_RECV_MonsterPos(P: Pointer);
 procedure MC_RECV_MonsterState(P: Pointer);
 procedure MC_RECV_MonsterShot(P: Pointer);
 procedure MC_RECV_MonsterDelete(P: Pointer);
+// SHOT
+procedure MC_RECV_CreateShot(P: Pointer);
+procedure MC_RECV_UpdateShot(P: Pointer);
+procedure MC_RECV_DeleteShot(P: Pointer);
 // TRIGGER
 procedure MC_RECV_TriggerSound(P: Pointer);
 procedure MC_RECV_TriggerMusic(P: Pointer);
@@ -621,6 +624,11 @@ begin
       if gTriggers[I].TriggerType = TRIGGER_SOUND then
         MH_SEND_TriggerSound(gTriggers[I], ID);
 
+  if Shots <> nil then
+    for I := Low(Shots) to High(Shots) do
+      if Shots[i].ShotType in [6, 7, 8] then
+        MH_SEND_CreateShot(i, ID);
+
   MH_SEND_TriggerMusic(ID);
 
   MH_SEND_GameStats(ID);
@@ -728,7 +736,7 @@ begin
   e_Buffer_Write(@NetOut, Shots[Proj].Obj.Vel.X);
   e_Buffer_Write(@NetOut, Shots[Proj].Obj.Vel.Y);
 
-  g_Net_Host_Send(ID, True, NET_CHAN_LARGEDATA);
+  g_Net_Host_Send(ID, False, NET_CHAN_SHOTS);
 end;
 
 procedure MH_SEND_UpdateShot(Proj: LongInt; ID: Integer = NET_EVERYONE);
@@ -742,7 +750,7 @@ begin
   e_Buffer_Write(@NetOut, Shots[Proj].Obj.Vel.X);
   e_Buffer_Write(@NetOut, Shots[Proj].Obj.Vel.Y);
 
-  g_Net_Host_Send(ID, False, NET_CHAN_GAME);
+  g_Net_Host_Send(ID, False, NET_CHAN_SHOTS);
 end;
 
 procedure MH_Send_DeleteShot(Proj: LongInt; X, Y: LongInt; Loud: Boolean = True; ID: Integer = NET_EVERYONE);
@@ -753,7 +761,7 @@ begin
   e_Buffer_Write(@NetOut, X);
   e_Buffer_Write(@NetOut, Y);
 
-  g_Net_Host_Send(ID, False, NET_CHAN_GAME);
+  g_Net_Host_Send(ID, False, NET_CHAN_SHOTS);
 end;
 
 procedure MH_SEND_GameStats(ID: Integer = NET_EVERYONE);
@@ -973,7 +981,7 @@ begin
   e_Buffer_Write(@NetOut, AY);
   e_Buffer_Write(@NetOut, ShotID);
 
-  g_Net_Host_Send(ID, True, NET_CHAN_PLAYER);
+  g_Net_Host_Send(ID, True, NET_CHAN_SHOTS);
 end;
 
 procedure MH_SEND_PlayerDelete(PID: Word; ID: Integer = NET_EVERYONE);
@@ -1315,6 +1323,51 @@ begin
   X := e_Raw_Read_LongInt(P);
   Y := e_Raw_Read_LongInt(P);
   g_Sound_PlayExAt(Name, X, Y);
+end;
+
+procedure MC_RECV_CreateShot(P: Pointer);
+var
+  I, X, Y, XV, YV: Integer;
+  Timeout: LongWord;
+  Target, Spawner: Word;
+  ShType: Byte;
+begin
+  I := e_Raw_Read_LongInt(P);
+  ShType := e_Raw_Read_Byte(P);
+  Target := e_Raw_Read_Word(P);
+  Spawner := e_Raw_Read_Word(P);
+  Timeout := e_Raw_Read_LongWord(P);
+  X := e_Raw_Read_LongInt(P);
+  Y := e_Raw_Read_LongInt(P);
+  XV := e_Raw_Read_LongInt(P);
+  YV := e_Raw_Read_LongInt(P);
+
+  I := g_Weapon_CreateShot(I, ShType, Spawner, Target, X, Y, XV, YV);
+  if (Shots <> nil) and (I <= High(Shots)) then
+  begin
+    Shots[I].Timeout := Timeout;
+    //Shots[I].Target := Target; // TODO: find a use for Target later
+  end;
+end;
+
+procedure MC_RECV_UpdateShot(P: Pointer);
+var
+  I, TX, TY, TXV, TYV: Integer;
+begin
+  I := e_Raw_Read_LongInt(P);
+  TX := e_Raw_Read_LongInt(P);
+  TY := e_Raw_Read_LongInt(P);
+  TXV := e_Raw_Read_LongInt(P);
+  TYV := e_Raw_Read_LongInt(P);
+
+  if (Shots <> nil) and (I <= High(Shots)) then
+    with (Shots[i]) do
+    begin
+      Obj.X := TX;
+      Obj.Y := TY;
+      Obj.Vel.X := TXV;
+      Obj.Vel.Y := TYV;
+    end;
 end;
 
 procedure MC_RECV_DeleteShot(P: Pointer);

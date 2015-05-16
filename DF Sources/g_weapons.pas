@@ -38,6 +38,7 @@ procedure g_Weapon_Init();
 procedure g_Weapon_Free();
 function g_Weapon_Hit(obj: PObj; d: Integer; SpawnerUID: Word; t: Byte): Byte;
 function g_Weapon_HitUID(UID: Word; d: Integer; SpawnerUID: Word; t: Byte): Boolean;
+function g_Weapon_CreateShot(I: Integer; ShotType: Byte; Spawner, Target: Word; X, Y, XV, YV: Integer): LongWord;
 
 procedure g_Weapon_gun(x, y, xd, yd, v: Integer; SpawnerUID: Word; CheckTrigger: Boolean);
 procedure g_Weapon_punch(x, y: Integer; d, SpawnerUID: Word);
@@ -396,6 +397,79 @@ begin
             if HitMonster(gMonsters[i], 50, 0, 0, SpawnerUID, HIT_SOME) then gMonsters[i].BFGHit();
 end;
 
+function g_Weapon_CreateShot(I: Integer; ShotType: Byte; Spawner, Target: Word; X, Y, XV, YV: Integer): LongWord;
+var
+  find_id, FramesID: DWORD;
+begin
+  if I < 0 then
+    find_id := FindShot()
+  else
+  begin
+    find_id := I;
+    if Integer(find_id) >= High(Shots) then
+      SetLength(Shots, find_id + 64)
+  end;
+  
+  case ShotType of
+    WEAPON_ROCKETLAUNCHER:
+    begin
+      with Shots[find_id] do
+      begin
+        g_Obj_Init(@Obj);
+
+        Obj.Rect.Width := SHOT_ROCKETLAUNCHER_WIDTH;
+        Obj.Rect.Height := SHOT_ROCKETLAUNCHER_HEIGHT;
+
+        Animation := nil;
+        Triggers := nil;
+        ShotType := WEAPON_ROCKETLAUNCHER;
+        g_Texture_Get('TEXTURE_WEAPON_ROCKET', TextureID);
+      end;
+    end;
+
+    WEAPON_PLASMA:
+    begin
+      with Shots[find_id] do
+      begin
+        g_Obj_Init(@Obj);
+
+        Obj.Rect.Width := SHOT_PLASMA_WIDTH;
+        Obj.Rect.Height := SHOT_PLASMA_HEIGHT;
+
+        Triggers := nil;
+        ShotType := WEAPON_PLASMA;
+        g_Frames_Get(FramesID, 'FRAMES_WEAPON_PLASMA');
+        Animation := TAnimation.Create(FramesID, True, 5);
+      end;
+    end;
+
+    WEAPON_BFG:
+    begin
+      with Shots[find_id] do
+      begin
+        g_Obj_Init(@Obj);
+
+        Obj.Rect.Width := SHOT_BFG_WIDTH;
+        Obj.Rect.Height := SHOT_BFG_HEIGHT;
+
+        Triggers := nil;
+        ShotType := WEAPON_BFG;
+        g_Frames_Get(FramesID, 'FRAMES_WEAPON_BFG');
+        Animation := TAnimation.Create(FramesID, True, 6);
+      end;
+    end;
+  end;
+
+  Shots[find_id].Obj.X := X;
+  Shots[find_id].Obj.Y := Y;
+  Shots[find_id].Obj.Vel.X := XV;
+  Shots[find_id].Obj.Vel.Y := YV;
+  Shots[find_id].Obj.Accel.X := 0;
+  Shots[find_id].Obj.Accel.Y := 0;
+  Shots[find_id].SpawnerUID := Spawner;
+  Result := find_id;
+end;
+
 procedure throw(i, x, y, xd, yd, s: Integer);
 var
   a: Integer;
@@ -413,7 +487,10 @@ begin
   Shots[i].Obj.Vel.Y := (yd*s) div a;
   Shots[i].Obj.Accel.X := 0;
   Shots[i].Obj.Accel.Y := 0;
-  Shots[i].Timeout := 1080; // ~30 sec
+  if Shots[i].ShotType in [WEAPON_BSP_FIRE, WEAPON_PLASMA] then
+    Shots[i].Timeout := 550 // ~15 sec
+  else
+    Shots[i].Timeout := 1050 // ~30 sec
 end;
 
 function g_Weapon_Hit(obj: PObj; d: Integer; SpawnerUID: Word; t: Byte): Byte;
@@ -863,7 +940,7 @@ begin
   end;
 
   Shots[find_id].SpawnerUID := SpawnerUID;
- 
+
   g_Sound_PlayExAt('SOUND_WEAPON_FIREROCKET', x, y);
 end;
 
@@ -1218,7 +1295,7 @@ end;
 
 procedure g_Weapon_Update();
 var
-  i, a, h, cx, cy: Integer;
+  i, a, h, cx, cy, oldvx, oldvy: Integer;
   _id: DWORD;
   Anim: TAnimation;
   t: DWArray;
@@ -1227,12 +1304,9 @@ var
   o: TObj;
   spl: Boolean;
   Loud: Boolean;
-  notplasma: Boolean;
 begin
   if Shots = nil then
     Exit;
-
-  notplasma := True;
 
   for i := 0 to High(Shots) do
   begin
@@ -1244,6 +1318,8 @@ begin
     with Shots[i] do
     begin
       Timeout := Timeout - 1;
+      oldvx := Obj.Vel.X;
+      oldvy := Obj.Vel.Y;
     // Активировать триггеры по пути (кроме уже активированных):
       if g_Game_IsServer then
         t := g_Triggers_PressR(Obj.X, Obj.Y, Obj.Rect.Width, Obj.Rect.Height,
@@ -1403,7 +1479,6 @@ begin
 
               g_Sound_PlayExAt('SOUND_WEAPON_EXPLODEPLASMA', Obj.X, Obj.Y);
 
-              notplasma := False;
               ShotType := 0;
             end;
           end;
@@ -1515,11 +1590,14 @@ begin
     // Если снаряда уже нет, удаляем анимацию:
       if (ShotType = 0) then
       begin
-        if g_Game_IsNet and g_Game_IsServer and (notplasma or (Timeout < 1)) then
+        if gGameSettings.GameType = GT_SERVER then
           MH_SEND_DeleteShot(i, Obj.X, Obj.Y, Loud);
         Animation.Free();
         Animation := nil;
-      end;
+      end
+      else if (oldvx <> Obj.Vel.X) or (oldvy <> Obj.Vel.Y) then
+        if gGameSettings.GameType = GT_SERVER then
+          MH_SEND_UpdateShot(i);
     end;
   end;
 end;
