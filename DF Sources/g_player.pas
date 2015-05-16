@@ -1381,8 +1381,11 @@ begin
   FLastHit := t;
 
 // Неуязвимость не спасает от ловушек:
-  if t = HIT_TRAP then
+  if t = HIT_TRAP then begin
+    // Обнулить действия примочек, чтобы фон пропал
+    FMegaRulez[MR_SUIT] := 0;
     FMegaRulez[MR_INV] := 0;
+  end;
 
 // Но от остального спасает:
   if FMegaRulez[MR_INV] > gTime then
@@ -1630,6 +1633,7 @@ procedure TPlayer.DrawInv();
 var
   dr: Boolean;
 begin
+  // При взятии неуязвимости рисуется инверсионный белый фон
   if FMegaRulez[MR_INV] >= gTime then
   begin
     if (FMegaRulez[MR_INV]-gTime) <= 2100 then
@@ -1642,6 +1646,7 @@ begin
                      191, 191, 191, 0, B_INVERT);
   end;
 
+  // При взятии защитного костюма рисуется зеленоватый фон
   if FMegaRulez[MR_SUIT] >= gTime then
   begin
     if (FMegaRulez[MR_SUIT]-gTime) <= 2100 then
@@ -3434,7 +3439,13 @@ begin
   if (FLastHit = HIT_TRAP) and (FPain > 90) then FPain := 90;
   DecMin(FPain, 5, 0);
 
-  if FLive and (FObj.Y > gMapInfo.Height+128) and AnyServer then Kill(K_FALLKILL, 0, HIT_FALL);
+  if FLive and (FObj.Y > gMapInfo.Height+128) and AnyServer then
+  begin
+    // Обнулить действия примочек, чтобы фон пропал
+    FMegaRulez[MR_SUIT] := 0;
+    FMegaRulez[MR_INV] := 0;
+    Kill(K_FALLKILL, 0, HIT_FALL);
+  end;
 
   i := 9;
 
