@@ -578,7 +578,7 @@ begin
         EndingGameCounter := 255;
         gState := STATE_FOLD;
         gInterTime := 0;
-        gInterEndTime := 30000;
+        gInterEndTime := IfThen(NetDedicated, 15000, 25000);
       end;
 
     EXIT_ENDLEVELSINGLE: // Закончился уровень в Одиночной игре
@@ -1717,7 +1717,7 @@ procedure DrawPlayer(p: TPlayer);
 var
   px, py, a, b, c, d: Integer;
 begin
-  if (p = nil) then
+  if (p = nil) or (p.FDummy) then
   begin
     glPushMatrix();
     g_Map_DrawBack(0, 0);
@@ -1910,7 +1910,7 @@ begin
                       (gScreenHeight div 2)-(h div 2), MessageText);
     end;
 
-    if IsDrawStat or (g_Game_IsServer and (gPlayer1 = nil)) then DrawStat();
+    if IsDrawStat or (g_Game_IsServer and NetDedicated) then DrawStat();
   end;
 
   if gPause and gGameOn and (g_ActiveWindow = nil) then
@@ -2411,7 +2411,21 @@ begin
     gPlayer1.Name := gPlayer1Settings.Name;
   end
   else
-    gPlayer1 := nil;
+  begin
+    gPlayer1 := g_Player_Get(g_Player_Create('doomer',
+                                             gPlayer1Settings.Color,
+                                             TEAM_NONE, False,
+                                             PLAYERNUM_1));
+
+    if gPlayer1 = nil then
+    begin
+      g_FatalError(Format(_lc[I_GAME_ERROR_PLAYER_CREATE], [1]));
+      Exit;
+    end;
+
+    gPlayer1.Name := 'Server';
+    gPlayer1.FDummy := True;
+  end;
 
 // Стартуем сервер
   if not g_Net_Host(Port, NetMaxClients) then
@@ -2452,6 +2466,13 @@ begin
 
 // Настройки игроков и ботов:
   g_Player_Init();
+  if NetDedicated then
+  begin
+    gPlayer1.Live := False;
+    gPlayer1.Spectate;
+    gPlayer1.FWantsInGame := False;
+    gPlayer1.Lives := 0;
+  end;
 
   NetState := NET_STATE_GAME;
 end;
@@ -3290,16 +3311,18 @@ begin
     else if cmd = 'p1_name' then
     begin
       if (Length(P) > 1) and gGameOn and (gPlayer1 <> nil) then
+      begin
         if not g_Game_IsClient then
         begin
           gPlayer1.Name := P[1];
           if g_Game_IsNet then MH_SEND_PlayerSettings(gPlayer1.UID);
         end
-        else
+        else if not (g_Game_IsNet and NetDedicated) then
         begin
           gPlayer1Settings.Name := P[1];
           MC_SEND_PlayerSettings;
         end;
+      end;
     end
     else if (cmd = 'p2_name') and not g_Game_IsNet then
     begin
@@ -3316,7 +3339,7 @@ begin
                                          EnsureRange(StrToIntDef(P[3], 0), 0, 255));
           MC_SEND_PlayerSettings;
         end
-        else
+        else if not (g_Game_IsNet and NetDedicated) then
         begin
           gPlayer1.Model.SetColor(EnsureRange(StrToIntDef(P[1], 0), 0, 255),
                                   EnsureRange(StrToIntDef(P[2], 0), 0, 255),
@@ -3508,9 +3531,9 @@ begin
           begin
             with gPlayer1.Obj do
               g_Monsters_Create(a,
-                X + Rect.X + (Rect.Width div 2),
-                Y + Rect.Y + Rect.Height,
-                gPlayer1.Direction, True);
+                  X + Rect.X + (Rect.Width div 2),
+                  Y + Rect.Y + Rect.Height,
+                  gPlayer1.Direction, True);
           end;
       end;
   end;

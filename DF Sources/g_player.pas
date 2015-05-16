@@ -176,7 +176,8 @@ type
     FGhost:     Boolean;
     FPhysics:   Boolean;
     FActualModelName: string;
-    FClientID: Short;
+    FClientID:  Short;
+    FDummy:     Boolean;
     
     constructor Create(); virtual;
     destructor  Destroy(); override;
@@ -1345,6 +1346,7 @@ end;
 constructor TPlayer.Create();
 begin
   FIamBot := False;
+  FDummy := False;
 
   FSawSound := TPlayableSound.Create();
   FSawSoundIdle := TPlayableSound.Create();
@@ -2747,6 +2749,7 @@ var
   ID: DWORD;
 begin
   if not g_Game_IsServer then Exit;
+  if FDummy then Exit;
   FWantsInGame := True;
   if Force then
   begin

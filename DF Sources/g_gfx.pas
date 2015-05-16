@@ -47,7 +47,7 @@ implementation
 uses
   g_map, g_basic, Math, e_graphics, dglOpenGL, windows,
   g_options, g_console, SysUtils, g_triggers, MAPDEF,
-  g_game, g_language;
+  g_game, g_language, g_net;
 
 type
   TParticle = record
@@ -259,6 +259,7 @@ var
   DevY1, DevY2: Word;
   l: Integer;
 begin
+  if (gGameSettings.GameType = GT_SERVER) and NetDedicated then Exit;
   l := Length(Particles);
   if l = 0 then
     Exit;
@@ -321,6 +322,7 @@ var
   DevY1, DevY2: Byte;
   l: Integer;
 begin
+  if (gGameSettings.GameType = GT_SERVER) and NetDedicated then Exit;
   l := Length(Particles);
   if l = 0 then
     Exit;
@@ -380,6 +382,7 @@ var
   DevY1, DevY2: Byte;
   l: Integer;
 begin
+  if (gGameSettings.GameType = GT_SERVER) and NetDedicated then Exit;
   l := Length(Particles);
   if l = 0 then
     Exit;
@@ -462,6 +465,7 @@ var
   DevY1, DevY2: Byte;
   l: Integer;
 begin
+  if (gGameSettings.GameType = GT_SERVER) and NetDedicated then Exit;
   l := Length(Particles);
   if l = 0 then
     Exit;
@@ -556,6 +560,7 @@ procedure g_GFX_OnceAnim(X, Y: Integer; Anim: TAnimation; AnimType: Byte = 0);
 var
   find_id: DWORD;
 begin
+  if (gGameSettings.GameType = GT_SERVER) and NetDedicated then Exit;
   if Anim = nil then
     Exit;
 

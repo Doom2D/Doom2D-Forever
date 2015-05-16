@@ -154,7 +154,7 @@ begin
 
   if (gGameSettings.GameType in [GT_CUSTOM, GT_SERVER]) then
   begin
-    if gPlayer1 <> nil then
+    if (gPlayer1 <> nil) and not (g_Game_IsNet and NetDedicated) then
     begin
       gPlayer1.SetModel(gPlayer1Settings.Model);
       gPlayer1.Name := gPlayer1Settings.Name;

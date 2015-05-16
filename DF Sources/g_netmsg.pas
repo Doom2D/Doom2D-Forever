@@ -816,6 +816,7 @@ var
 begin
   Pl := g_Player_Get(PID);
   if Pl = nil then Exit;
+  if Pl.FDummy then Exit;
 
   e_Buffer_Write(@NetOut, Byte(NET_MSG_PLRPOS));
   e_Buffer_Write(@NetOut, PID);
