@@ -4291,7 +4291,11 @@ begin
       begin
         FMegaRulez[MR_INV] := gTime+PLAYER_INV_TIME;
       end;
+
+    else
+      Exit;
   end;
+  if gGameSettings.GameType = GT_SERVER then MH_SEND_PlayerStats(PLAYER_UID);
 end;
 
 procedure TPlayer.SetModel(ModelName: string);
