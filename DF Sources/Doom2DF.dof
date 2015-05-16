@@ -105,10 +105,6 @@ HostApplication=
 Launcher=
 UseLauncher=0
 DebugCWD=
-[Language]
-ActiveLang=
-ProjectLang=
-RootDir=
 [Version Info]
 IncludeVerInfo=1
 AutoIncBuild=0
@@ -151,12 +147,14 @@ Item1=C:\Users\fgsfds\Desktop\Work\DF\Temp
 Item2=F:\DFv062 Compiled\Delphi dcus\Doom2DF
 Item3=F:\DFv062 Compiled\Delphi dcus
 [HistoryLists\hlOutputDirectorry]
-Count=5
+Count=7
 Item0=..\Bin
-Item1=C:\Users\fgsfds\Desktop\Work\DF\Bin
-Item2=F:\DFv062 Compiled
-Item3=C:\Users\FGSFDS\Desktop\Work\DFS
-Item4=..\..\DoomForever
+Item1=C:\Users\user\Documents\Игры\Doom2DF_0666
+Item2=C:\Users\user\Documents\????\Doom2DF_0666
+Item3=C:\Users\fgsfds\Desktop\Work\DF\Bin
+Item4=F:\DFv062 Compiled
+Item5=C:\Users\FGSFDS\Desktop\Work\DFS
+Item6=..\..\DoomForever
 [HistoryLists\hlBPLOutput]
 Count=4
 Item0=..\Temp

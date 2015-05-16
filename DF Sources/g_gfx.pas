@@ -236,12 +236,16 @@ procedure CorrectOffsets(id: Integer);
 begin
   with Particles[id] do
   begin
-    if (Y > 0) and (ByteBool(gCollideMap[Y-1, X] and MARK_BLOCKED)) then
+    if (X >= 0) and (Y > 0) and
+    (Y < Length(gCollideMap)) and (X < Length(gCollideMap[0])) and
+    (ByteBool(gCollideMap[Y-1, X] and MARK_BLOCKED)) then
       offsetY := 1 // Стена сверху
     else
       offsetY := 0;
-      
-    if (X > 0) and (ByteBool(gCollideMap[Y, X-1] and MARK_BLOCKED)) then
+
+    if (X > 0) and (Y >= 0) and
+    (Y < Length(gCollideMap)) and (X < Length(gCollideMap[0])) and
+    (ByteBool(gCollideMap[Y, X-1] and MARK_BLOCKED)) then
       offsetX := 1 // Стена слева
     else
       offsetX := 0;
@@ -435,12 +439,12 @@ begin
       end;
 
       Alpha := 255;
-      
+
       State := STATE_NORMAL;
       Time := 0;
       LiveTime := 60+Random(60);
       ParticleType := PARTICLE_WATER;
-      
+
       CorrectOffsets(CurrentParticle);
     end;
 
