@@ -3554,6 +3554,7 @@ begin
   if (cmd = 'quit') or
      (cmd = 'exit') then
   begin
+    g_Game_Free();
     g_Game_Quit();
     Exit;
   end

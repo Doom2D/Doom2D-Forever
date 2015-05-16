@@ -46,6 +46,7 @@ var
   wWindowCreated: Boolean = False;
   wCursorShown: Boolean = False;
   wMinimized: Boolean = False;
+  wNeedFree: Boolean = True;
   {wWinPause: Byte = 0;}
 
 const
@@ -277,7 +278,10 @@ begin
     WM_CLOSE:
       begin // Окно закрыто
         if gExit <> EXIT_QUIT then
+        begin
+          g_Game_Free();
           g_Game_Quit();
+        end;
         Result := 0;
       end;
 
@@ -643,6 +647,7 @@ var
   k: Integer;
 begin
   k := 0;
+  wNeedFree := False;
   while PeekMessage(msg, 0, 0, 0, PM_REMOVE) and
         (k < MAX_HANDLED_MESSAGES) do
   begin
@@ -657,6 +662,7 @@ begin
     DispatchMessage(msg);
     Inc(k);
   end;
+  wNeedFree := True;
 
   if (msg.message = WM_QUIT) or (gExit = EXIT_QUIT) then
     Exit;
