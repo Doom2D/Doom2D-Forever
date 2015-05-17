@@ -112,7 +112,6 @@ type
     FMonsterKills: Integer;
     FFrags:     Integer;
     FDeath:     Integer;
-    FJetpack:    Boolean;
     FCanJetpack: Boolean;
     FFlag:      Byte;
     FSecrets:   Integer;
@@ -150,7 +149,7 @@ type
     function    BodyInLiquid(XInc, YInc: Integer): Boolean;
     function    FullInLift(XInc, YInc: Integer): Integer;
     {procedure   CollideItem();}
-    procedure   FlySmoke();
+    procedure   FlySmoke(Times: DWORD = 1);
     function    GetAmmoByWeapon(Weapon: Byte): Word;
     procedure   SetAction(Action: Byte; Force: Boolean = False);
     procedure   OnDamage(Angle: SmallInt); virtual;
@@ -181,6 +180,7 @@ type
     FWantsInGame: Boolean;
     FGhost:     Boolean;
     FPhysics:   Boolean;
+    FJetpack:   Boolean;
     FActualModelName: string;
     FClientID:  Short;
     FDummy:     Boolean;
@@ -230,6 +230,8 @@ type
     procedure   NetFire(Wpn: Byte; X, Y, AX, AY: Integer; WID: Integer = -1);
     procedure   DoLerp(Level: Integer = 2);
     procedure   SetLerp(XTo, YTo: Integer);
+    procedure   JetpackOn;
+    procedure   JetpackOff;
 
     property    Name: String read FName write FName;
     property    Model: TPlayerModel read FModel;
@@ -1919,6 +1921,22 @@ begin
                                PANEL_WATER or PANEL_ACID1 or PANEL_ACID2, True);
 end;
 
+procedure TPlayer.JetpackOn;
+begin
+  FJetSoundFly.Stop;
+  FJetSoundOff.Stop;
+  FJetSoundOn.SetPosition(0);
+  FJetSoundOn.PlayAt(FObj.X, FObj.Y);
+  FlySmoke(8);
+end;
+procedure TPlayer.JetpackOff;
+begin
+  FJetSoundFly.Stop;
+  FJetSoundOn.Stop;
+  FJetSoundOff.SetPosition(0);
+  FJetSoundOff.PlayAt(FObj.X, FObj.Y);
+end;
+
 procedure TPlayer.Jump();
 begin
   if gFly or FJetpack then
@@ -1927,14 +1945,13 @@ begin
     FObj.Vel.Y := -VEL_FLY;
     if FJetpack then
     begin
-      Dec(FMegaRulez[MR_JET]);
-      if FMegaRulez[MR_JET] < 1 then
+      if FMegaRulez[MR_JET] > 0 then Dec(FMegaRulez[MR_JET]);
+      if (FMegaRulez[MR_JET] < 1) and g_Game_IsServer then
       begin
         FJetpack := False;
-        FJetSoundFly.Stop;
-        FJetSoundOn.Stop;
-        FJetSoundOff.SetPosition(0);
-        FJetSoundOff.PlayAt(FObj.X, FObj.Y);
+        JetpackOff;
+        if g_Game_IsNet then
+          MH_SEND_PlayerStats(FUID);
       end;
     end;
     Exit;
@@ -1952,12 +1969,12 @@ begin
   begin
     if BodyInLiquid(0, 0) then
       FObj.Vel.Y := -VEL_SW
-    else if (FMegaRulez[MR_JET] > 0) and FCanJetpack then
+    else if (FMegaRulez[MR_JET] > 0) and FCanJetpack and g_Game_IsServer then
     begin
       FJetpack := True;
-      FJetSoundOff.Stop;
-      FJetSoundOn.SetPosition(0);
-      FJetSoundOn.PlayAt(FObj.X, FObj.Y);
+      JetpackOn;
+      if g_Game_IsNet then
+        MH_SEND_PlayerStats(FUID);
     end;
   end;
 end;
@@ -3399,13 +3416,11 @@ begin
       if FKeys[KEY_JUMP].Pressed then Jump()
       else
       begin
-        if FJetpack then
+        if AnyServer and FJetpack then
         begin
           FJetpack := False;
-          FJetSoundFly.Stop;
-          FJetSoundOn.Stop;
-          FJetSoundOff.SetPosition(0);
-          FJetSoundOff.PlayAt(FObj.X, FObj.Y);
+          JetpackOff;
+          if NetServer then MH_SEND_PlayerStats(FUID);
         end;
         FCanJetpack := True;
       end;
@@ -4430,24 +4445,26 @@ begin
     if FModel <> nil then FModel.Color := Color;
 end;
 
-procedure TPlayer.FlySmoke();
+procedure TPlayer.FlySmoke(Times: DWORD = 1);
 var
-  id: DWORD;
+  id, i: DWORD;
   Anim: TAnimation;
 begin
-  if Random(3) <> 2 then
-    Exit;
+  if (Random(5) = 1) and (Times = 1) then Exit;
 
   if BodyInLiquid(0, 0) then
     Exit;
 
   if g_Frames_Get(id, 'FRAMES_SMOKE') then
   begin
-    Anim := TAnimation.Create(id, False, 3);
-    Anim.Alpha := 150;
-    g_GFX_OnceAnim(Obj.X+Obj.Rect.X+Random(Obj.Rect.Width)-(Anim.Width div 2),
-                   Obj.Y+Obj.Rect.Height-4+Random(5), Anim, ONCEANIM_SMOKE);
-    Anim.Free();
+    for i := 1 to Times do
+    begin
+      Anim := TAnimation.Create(id, False, 3);
+      Anim.Alpha := 150;
+      g_GFX_OnceAnim(Obj.X+Obj.Rect.X+Random(Obj.Rect.Width+Times*2)-(Anim.Width div 2),
+                   Obj.Y+Obj.Rect.Height-4+Random(8+Times*2), Anim, ONCEANIM_SMOKE);
+      Anim.Free();
+    end;
   end;
 end;
 
