@@ -645,6 +645,7 @@ begin
             i := g_Monsters_Create(Data.MonType,
                    Data.MonPos.X, Data.MonPos.Y,
                    TDirection(Data.MonDir), True);
+
           // Çהמנמגüו:
             if (Data.MonHealth > 0) then
               gMonsters[i].SetHealth(Data.MonHealth);
@@ -658,9 +659,13 @@ begin
             if g_Game_IsNet then
             begin
               MH_SEND_MonsterSpawn(gMonsters[i].UID);
-              MH_SEND_GameStats();
-              MH_SEND_CoopStats(gMonsters[sx].UID);
+              MH_SEND_MonsterPos(gMonsters[i].UID);
             end;
+          end;
+          if g_Game_IsNet then
+          begin
+            MH_SEND_GameStats();
+            MH_SEND_CoopStats();
           end;
 
           if coolDown then

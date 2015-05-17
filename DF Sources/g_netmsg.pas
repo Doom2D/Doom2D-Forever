@@ -941,6 +941,7 @@ begin
     e_Buffer_Write(@NetOut, Byte(FGhost));
     e_Buffer_Write(@NetOut, Byte(FPhysics));
     e_Buffer_Write(@NetOut, Byte(FNoRespawn));
+    e_Buffer_Write(@NetOut, Byte(FJetpack));
   end;
 
   g_Net_Host_Send(ID, True, NET_CHAN_PLAYER);
@@ -1133,7 +1134,8 @@ var
   M: TMonster;
 begin
   M := g_Monsters_Get(UID);
-  if M = nil then Exit;
+  if M = nil then
+    Exit;
 
   with M do
   begin
@@ -1673,6 +1675,7 @@ var
   PID: Word;
   Pl: TPlayer;
   I: Integer;
+  OldJet: Boolean;
 begin
   PID := e_Raw_Read_Word(P);
   Pl := g_Player_Get(PID);
@@ -1721,6 +1724,12 @@ begin
     FGhost := e_Raw_Read_Byte(P) <> 0;
     FPhysics := e_Raw_Read_Byte(P) <> 0;
     FNoRespawn := e_Raw_Read_Byte(P) <> 0;
+    OldJet := FJetpack;
+    FJetpack := e_Raw_Read_Byte(P) <> 0;
+    if OldJet and not FJetpack then
+      JetpackOff
+    else if not OldJet and FJetpack then
+      JetpackOn;
   end;
 
   Result := PID;
@@ -2072,7 +2081,8 @@ var
 begin
   ID := e_Raw_Read_Word(P);
   M := g_Monsters_Get(ID);
-  if M <> nil then Exit;
+  if M <> nil then
+    Exit;
 
   MType := e_Raw_Read_Byte(P);
   MState := e_Raw_Read_Byte(P);
@@ -2091,12 +2101,11 @@ begin
 
   g_Monsters_Create(MType, X, Y, TDirection(MDir), False, ID);
   M := g_Monsters_Get(ID);
-  if M = nil then Exit;
+  if M = nil then
+    Exit;
 
   with M do
   begin
-    UID := ID;
-
     GameX := X;
     GameY := Y;
     GameVelX := VX;
