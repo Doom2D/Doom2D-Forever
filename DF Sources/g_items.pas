@@ -33,7 +33,7 @@ procedure g_Items_LoadState(var Mem: TBinMemoryReader);
 
 var
   gItems: Array of TItem = nil;
-  gItemsTexturesID: Array [1..32] of DWORD;
+  gItemsTexturesID: Array [1..35] of DWORD;
   gMaxDist: Integer = 1;
   ITEM_RESPAWNTIME: Integer = 60 * 36;
 
@@ -113,6 +113,7 @@ begin
   g_Texture_Get('ITEM_KEY_BLUE',         gItemsTexturesID[ITEM_KEY_BLUE]);
   g_Texture_Get('ITEM_WEAPON_KASTET',    gItemsTexturesID[ITEM_WEAPON_KASTET]);
   g_Texture_Get('ITEM_WEAPON_PISTOL',    gItemsTexturesID[ITEM_WEAPON_PISTOL]);
+  g_Texture_Get('ITEM_JETPACK',          gItemsTexturesID[ITEM_JETPACK]);
 end;
 
 procedure g_Items_LoadData();
@@ -163,6 +164,7 @@ begin
   g_Texture_CreateWADEx('ITEM_SUIT', GameWAD+':TEXTURES\SUIT');
   g_Texture_CreateWADEx('ITEM_WEAPON_KASTET', GameWAD+':TEXTURES\KASTET');
   g_Texture_CreateWADEx('ITEM_MEDKIT_BLACK', GameWAD+':TEXTURES\BMED');
+  g_Texture_CreateWADEx('ITEM_JETPACK', GameWAD+':TEXTURES\JETPACK');
 
   InitTextures();
 end;
@@ -337,9 +339,6 @@ begin
         if g_Frames_Get(ID, 'FRAMES_ITEM_BOTTLE') then
           Animation := TAnimation.Create(ID, True, 20);
       ITEM_HELMET:
-        if g_Frames_Get(ID, 'FRAMES_ITEM_HELMET') then
-          Animation := TAnimation.Create(ID, True, 20);
-      ITEM_JETPACK:
         if g_Frames_Get(ID, 'FRAMES_ITEM_HELMET') then
           Animation := TAnimation.Create(ID, True, 20);
     end;

@@ -139,6 +139,8 @@ type
     FSawSoundIdle:   TPlayableSound;
     FSawSoundHit:    TPlayableSound;
     FSawSoundSelect: TPlayableSound;
+    FJetSoundOn:     TPlayableSound;
+    FJetSoundOff:    TPlayableSound;
     FJetSoundFly:    TPlayableSound;
     FGodMode:   Boolean;
 
@@ -1358,12 +1360,16 @@ begin
   FSawSoundHit := TPlayableSound.Create();
   FSawSoundSelect := TPlayableSound.Create();
   FJetSoundFly := TPlayableSound.Create();
+  FJetSoundOn := TPlayableSound.Create();
+  FJetSoundOff := TPlayableSound.Create();
 
   FSawSound.SetByName('SOUND_WEAPON_FIRESAW');
   FSawSoundIdle.SetByName('SOUND_WEAPON_IDLESAW');
   FSawSoundHit.SetByName('SOUND_WEAPON_HITSAW');
   FSawSoundSelect.SetByName('SOUND_WEAPON_SELECTSAW');
-  FJetSoundFly.SetByName('SOUND_WEAPON_IDLESAW');
+  FJetSoundFly.SetByName('SOUND_PLAYER_JETFLY');
+  FJetSoundOn.SetByName('SOUND_PLAYER_JETON');
+  FJetSoundOff.SetByName('SOUND_PLAYER_JETOFF');
 
   FSpectatePlayer := -1;
   FClientID := -1;
@@ -1457,6 +1463,8 @@ begin
   FSawSoundIdle.Free();
   FSawSoundHit.Free();
   FJetSoundFly.Free();
+  FJetSoundOn.Free();
+  FJetSoundOff.Free();
   FModel.Free();
 
   inherited;
@@ -1615,10 +1623,23 @@ begin
   if R_KEY_BLUE in FRulez then
     e_Draw(gItemsTexturesID[ITEM_KEY_BLUE], X+112, Y+214, 0, True, False);
 
-  e_DrawLine(4, X+16, Y+129, X+16+Trunc(169*IfThen(FAir > 0, FAir, 0)/AIR_MAX), Y+129, 0, 0, 255);
-  e_DrawLine(2, X+16, Y+128, X+16+Trunc(169*IfThen(FMegaRulez[MR_JET] > 0, FMegaRulez[MR_JET], 0)/JET_MAX), Y+128, 255, 0, 0);
+  if FMegaRulez[MR_JET] > 0 then
+  begin
+    if g_Texture_Get('TEXTURE_PLAYER_HUDAIR', ID) then
+      e_Draw(ID, X+2, Y+116, 0, True, False);
+    if g_Texture_Get('TEXTURE_PLAYER_HUDJET', ID) then
+      e_Draw(ID, X+2, Y+126, 0, True, False);
+    e_DrawLine(4, X+16, Y+122, X+16+Trunc(168*IfThen(FAir > 0, FAir, 0)/AIR_MAX), Y+122, 0, 0, 196);
+    e_DrawLine(4, X+16, Y+132, X+16+Trunc(168*(FMegaRulez[MR_JET]/JET_MAX)), Y+132, 255, 0, 0);
+  end
+  else
+  begin
+    if g_Texture_Get('TEXTURE_PLAYER_HUDAIR', ID) then
+      e_Draw(ID, X+2, Y+124, 0, True, False);
+    e_DrawLine(4, X+16, Y+130, X+16+Trunc(168*IfThen(FAir > 0, FAir, 0)/AIR_MAX), Y+130, 0, 0, 255);
+  end;
 
-  if g_Game_IsClient then
+ if g_Game_IsClient then
   begin
     s := 'Ping: ' + IntToStr(NetPeer.lastRoundTripTime);
     e_TextureFontPrint(X + 4, Y + 242, s, gStdFont);
@@ -1908,7 +1929,13 @@ begin
     begin
       Dec(FMegaRulez[MR_JET]);
       if FMegaRulez[MR_JET] < 1 then
+      begin
         FJetpack := False;
+        FJetSoundFly.Stop;
+        FJetSoundOn.Stop;
+        FJetSoundOff.SetPosition(0);
+        FJetSoundOff.PlayAt(FObj.X, FObj.Y);
+      end;
     end;
     Exit;
   end;
@@ -1926,7 +1953,12 @@ begin
     if BodyInLiquid(0, 0) then
       FObj.Vel.Y := -VEL_SW
     else if (FMegaRulez[MR_JET] > 0) and FCanJetpack then
+    begin
       FJetpack := True;
+      FJetSoundOff.Stop;
+      FJetSoundOn.SetPosition(0);
+      FJetSoundOn.PlayAt(FObj.X, FObj.Y);
+    end;
   end;
 end;
 
@@ -3367,7 +3399,14 @@ begin
       if FKeys[KEY_JUMP].Pressed then Jump()
       else
       begin
-        FJetpack := False;
+        if FJetpack then
+        begin
+          FJetpack := False;
+          FJetSoundFly.Stop;
+          FJetSoundOn.Stop;
+          FJetSoundOff.SetPosition(0);
+          FJetSoundOff.PlayAt(FObj.X, FObj.Y);
+        end;
         FCanJetpack := True;
       end;
     end
@@ -3508,8 +3547,12 @@ begin
         FSawSoundIdle.PlayAt(FObj.X, FObj.Y);
 
     if FJetpack then
-      if not (FJetSoundFly.IsPlaying()) then
+      if (not FJetSoundFly.IsPlaying()) and (not FJetSoundOn.IsPlaying()) and
+         (not FJetSoundOff.IsPlaying()) then
+      begin
+        FJetSoundFly.SetPosition(0);
         FJetSoundFly.PlayAt(FObj.X, FObj.Y);
+      end;
 
     for b := WEAPON_KASTET to WEAPON_SUPERPULEMET do
       if FReloading[b] > 0 then Dec(FReloading[b]);

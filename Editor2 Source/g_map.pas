@@ -2096,7 +2096,7 @@ begin
             ITEM_KEY_BLUE: g_GetTexture('ITEM_KEY_BLUE', ID);
             ITEM_BOTTLE: g_GetTexture('ITEM_BOTTLE', ID);
             ITEM_HELMET: g_GetTexture('ITEM_HELMET', ID);
-            ITEM_JETPACK: g_GetTexture('ITEM_HELMET', ID);
+            ITEM_JETPACK: g_GetTexture('ITEM_JETPACK', ID);
           end;
 
           if ID <> DWORD(-1) then
@@ -2498,6 +2498,7 @@ begin
  g_CreateTextureWADSize('ITEM_INV', EditorDir+'\data\Game.wad:TEXTURES\INV', 0, 0, 32, 32);
  g_CreateTextureWADSize('ITEM_BOTTLE', EditorDir+'\data\Game.wad:TEXTURES\BOTTLE', 0, 0, 16, 32);
  g_CreateTextureWADSize('ITEM_HELMET', EditorDir+'\data\Game.wad:TEXTURES\HELMET', 0, 0, 16, 16);
+ g_CreateTextureWADSize('ITEM_JETPACK', EditorDir+'\data\Game.wad:TEXTURES\JETPACK', 0, 0, 32, 32);
  g_CreateTextureWADSize('AREA_REDFLAG', EditorDir+'\data\Game.wad:TEXTURES\FLAGRED', 0, 0, 64, 64);
  g_CreateTextureWADSize('AREA_BLUEFLAG', EditorDir+'\data\Game.wad:TEXTURES\FLAGBLUE', 0, 0, 64, 64);
  g_CreateTextureWADSize('AREA_DOMFLAG', EditorDir+'\data\Game.wad:TEXTURES\FLAGDOM', 0, 0, 64, 64);
