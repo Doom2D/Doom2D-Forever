@@ -495,10 +495,10 @@ begin
   Shots[i].Obj.Vel.Y := (yd*s) div a;
   Shots[i].Obj.Accel.X := 0;
   Shots[i].Obj.Accel.Y := 0;
-  if Shots[i].ShotType in [WEAPON_BSP_FIRE, WEAPON_PLASMA] then
-    Shots[i].Timeout := 550 // ~15 sec
-  else
+  if Shots[i].ShotType in [WEAPON_ROCKETLAUNCHER, WEAPON_BFG] then
     Shots[i].Timeout := 900 // ~25 sec
+  else
+    Shots[i].Timeout := 550 // ~15 sec
 end;
 
 function g_Weapon_Hit(obj: PObj; d: Integer; SpawnerUID: Word; t: Byte): Byte;

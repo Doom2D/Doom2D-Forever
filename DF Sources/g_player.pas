@@ -1942,7 +1942,7 @@ begin
   if gFly or FJetpack then
   begin
     // Полет (чит-код или джетпак):
-    FObj.Vel.Y := -VEL_FLY;
+    if FObj.Vel.Y > -VEL_FLY then FObj.Vel.Y := FObj.Vel.Y - 2;
     if FJetpack then
     begin
       if FMegaRulez[MR_JET] > 0 then Dec(FMegaRulez[MR_JET]);
