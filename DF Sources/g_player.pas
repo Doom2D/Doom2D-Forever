@@ -4925,8 +4925,8 @@ begin
 
   // ≈сли цель видно и она на такой же высоте:
     if Target.Visible and
-        (y1+8 < Target.Y+Target.Rect.Y+Target.Rect.Height) and
-        (y1-8 > Target.Y+Target.Rect.Y) then
+        (y1+4 < Target.Y+Target.Rect.Y+Target.Rect.Height) and
+        (y1-4 > Target.Y+Target.Rect.Y) then
       begin
       // ≈сли идем в сторону цели, то надо стрел€ть:
         if ((FDirection = D_LEFT) and (Target.X < FObj.X)) or
