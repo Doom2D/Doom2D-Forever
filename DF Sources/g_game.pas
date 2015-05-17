@@ -1187,6 +1187,13 @@ begin
     g_GFX_Update();
     g_Player_UpdateAll();
     g_Player_UpdateCorpse();
+    if gGameSettings.GameType = GT_SERVER then
+      if Length(gMonstersSpawned) > 0 then
+      begin
+        for I := 0 to High(gMonstersSpawned) do
+          MH_SEND_MonsterSpawn(gMonstersSpawned[I]);
+        SetLength(gMonstersSpawned, 0);
+      end;
 
     if (gTime mod (GAME_TICK*9)) = 0 then
       g_Game_UpdateTriggerSounds();

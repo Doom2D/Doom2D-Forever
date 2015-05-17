@@ -50,7 +50,7 @@ begin
     NET_MSG_MDEL:   MC_RECV_MonsterDelete(B);
 
     NET_MSG_SHADD:  MC_RECV_CreateShot(B);
-    NET_MSG_SHPOS:  MC_RECV_UpdateShot(P);
+    NET_MSG_SHPOS:  MC_RECV_UpdateShot(B);
     NET_MSG_SHDEL:  MC_RECV_DeleteShot(B);
 
     NET_MSG_ISPAWN: MC_RECV_ItemSpawn(B);

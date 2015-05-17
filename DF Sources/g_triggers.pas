@@ -44,6 +44,7 @@ procedure g_Triggers_LoadState(var Mem: TBinMemoryReader);
 var
   gTriggers: array of TTrigger;
   gSecretsCount: Integer = 0;
+  gMonstersSpawned: array of LongInt = nil;
 
 implementation
 
@@ -658,8 +659,8 @@ begin
 
             if g_Game_IsNet then
             begin
-              MH_SEND_MonsterSpawn(gMonsters[i].UID);
-              MH_SEND_MonsterPos(gMonsters[i].UID);
+              SetLength(gMonstersSpawned, Length(gMonstersSpawned)+1);
+              gMonstersSpawned[High(gMonstersSpawned)] := gMonsters[i].UID;
             end;
           end;
           if g_Game_IsNet then
@@ -1182,6 +1183,7 @@ begin
 
   gTriggers := nil;
   gSecretsCount := 0;
+  SetLength(gMonstersSpawned, 0);
 end;
 
 procedure g_Triggers_SaveState(var Mem: TBinMemoryWriter);

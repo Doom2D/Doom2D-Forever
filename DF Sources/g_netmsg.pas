@@ -761,7 +761,7 @@ begin
   e_Buffer_Write(@NetOut, X);
   e_Buffer_Write(@NetOut, Y);
 
-  g_Net_Host_Send(ID, False, NET_CHAN_SHOTS);
+  g_Net_Host_Send(ID, True, NET_CHAN_SHOTS);
 end;
 
 procedure MH_SEND_GameStats(ID: Integer = NET_EVERYONE);
