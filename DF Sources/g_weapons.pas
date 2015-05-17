@@ -277,15 +277,23 @@ end;
 function HitMonster(m: TMonster; d: Integer; vx, vy: Integer; SpawnerUID: Word; t: Byte): Boolean;
 var
   tt, mt: Byte;
+  mon: TMonster;
 begin
   Result := False;
 
   tt := g_GetUIDType(SpawnerUID);
   if tt = UID_MONSTER then
-    mt := g_Monsters_Get(SpawnerUID).MonsterType
+  begin
+    mon := g_Monsters_Get(SpawnerUID);
+    if mon <> nil then
+      mt := g_Monsters_Get(SpawnerUID).MonsterType
+    else
+      mt := 0;
+  end
   else
     mt := 0;
 
+  if m = nil then Exit;
   if m.UID = SpawnerUID then
   begin
   // Сам себя может ранить только ракетой и током:
