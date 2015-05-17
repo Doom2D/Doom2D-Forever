@@ -47,7 +47,7 @@ uses
 const
   ITEM_SIGNATURE = $4D455449; // 'ITEM'
 
-  ITEMSIZE: Array [ITEM_MEDKIT_SMALL..ITEM_HELMET] of Array [0..1] of Byte =
+  ITEMSIZE: Array [ITEM_MEDKIT_SMALL..ITEM_JETPACK] of Array [0..1] of Byte =
     (((14), (15)), // MEDKIT_SMALL
      ((28), (19)), // MEDKIT_LARGE
      ((28), (19)), // MEDKIT_BLACK
@@ -81,7 +81,8 @@ const
      (( 1), ( 1)), // WEAPON_KASTET
      ((43), (16)), // WEAPON_PISTOL
      ((14), (18)), // BOTTLE
-     ((16), (15))); // HELMET
+     ((16), (15)), // HELMET
+     ((32), (24))); // JETPACK
 
 procedure InitTextures();
 begin
@@ -336,6 +337,9 @@ begin
         if g_Frames_Get(ID, 'FRAMES_ITEM_BOTTLE') then
           Animation := TAnimation.Create(ID, True, 20);
       ITEM_HELMET:
+        if g_Frames_Get(ID, 'FRAMES_ITEM_HELMET') then
+          Animation := TAnimation.Create(ID, True, 20);
+      ITEM_JETPACK:
         if g_Frames_Get(ID, 'FRAMES_ITEM_HELMET') then
           Animation := TAnimation.Create(ID, True, 20);
     end;

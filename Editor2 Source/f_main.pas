@@ -573,7 +573,7 @@ end;
 
 function ItemToStr(ItemType: Byte): String;
 begin
-  if ItemType in [ITEM_MEDKIT_SMALL..ITEM_HELMET] then
+  if ItemType in [ITEM_MEDKIT_SMALL..ITEM_JETPACK] then
     Result := ItemNames[ItemType]
   else
     Result := ItemNames[ITEM_AMMO_BULLETS];
@@ -585,7 +585,7 @@ var
 
 begin
   Result := ITEM_AMMO_BULLETS;
-  for i := ITEM_MEDKIT_SMALL to ITEM_HELMET do
+  for i := ITEM_MEDKIT_SMALL to ITEM_JETPACK do
     if ItemNames[i] = Str then
       begin
         Result := i;
@@ -4519,6 +4519,7 @@ begin
         lbTypeSelect.Items.Add(ItemToStr(b));
       lbTypeSelect.Items.Add(ItemToStr(ITEM_BOTTLE));
       lbTypeSelect.Items.Add(ItemToStr(ITEM_HELMET));
+      lbTypeSelect.Items.Add(ItemToStr(ITEM_JETPACK));
 
       b := StrToItem(Values[Key]);
       if b >= ITEM_BOTTLE then

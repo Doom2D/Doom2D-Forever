@@ -69,6 +69,7 @@ const
   ITEM_WEAPON_PISTOL         = 32;
   ITEM_BOTTLE                = 33;
   ITEM_HELMET                = 34;
+  ITEM_JETPACK               = 35;
 
   ITEM_OPTION_ONLYDM = 1;
   ITEM_OPTION_FALL   = 2;

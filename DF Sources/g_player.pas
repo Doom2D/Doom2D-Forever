@@ -139,6 +139,7 @@ type
     FSawSoundIdle:   TPlayableSound;
     FSawSoundHit:    TPlayableSound;
     FSawSoundSelect: TPlayableSound;
+    FJetSoundFly:    TPlayableSound;
     FGodMode:   Boolean;
 
     function    CollideLevel(XInc, YInc: Integer): Boolean;
@@ -420,6 +421,7 @@ const
   TIME_RESPAWN3 = 3000;
   AIR_DEF = 360;
   AIR_MAX = 1091;
+  JET_MAX = 540; // ~30 sec
   PLAYER_SUIT_TIME    = 30000;
   PLAYER_INV_TIME     = 30000;
   VEL_SW  = 4;
@@ -1355,11 +1357,13 @@ begin
   FSawSoundIdle := TPlayableSound.Create();
   FSawSoundHit := TPlayableSound.Create();
   FSawSoundSelect := TPlayableSound.Create();
+  FJetSoundFly := TPlayableSound.Create();
 
   FSawSound.SetByName('SOUND_WEAPON_FIRESAW');
   FSawSoundIdle.SetByName('SOUND_WEAPON_IDLESAW');
   FSawSoundHit.SetByName('SOUND_WEAPON_HITSAW');
   FSawSoundSelect.SetByName('SOUND_WEAPON_SELECTSAW');
+  FJetSoundFly.SetByName('SOUND_WEAPON_IDLESAW');
 
   FSpectatePlayer := -1;
   FClientID := -1;
@@ -1452,6 +1456,7 @@ begin
   FSawSound.Free();
   FSawSoundIdle.Free();
   FSawSoundHit.Free();
+  FJetSoundFly.Free();
   FModel.Free();
 
   inherited;
@@ -1611,6 +1616,7 @@ begin
     e_Draw(gItemsTexturesID[ITEM_KEY_BLUE], X+112, Y+214, 0, True, False);
 
   e_DrawLine(4, X+16, Y+129, X+16+Trunc(169*IfThen(FAir > 0, FAir, 0)/AIR_MAX), Y+129, 0, 0, 255);
+  e_DrawLine(2, X+16, Y+128, X+16+Trunc(169*IfThen(FMegaRulez[MR_JET] > 0, FMegaRulez[MR_JET], 0)/JET_MAX), Y+128, 255, 0, 0);
 
   if g_Game_IsClient then
   begin
@@ -1898,6 +1904,12 @@ begin
   begin
     // Полет (чит-код или джетпак):
     FObj.Vel.Y := -VEL_FLY;
+    if FJetpack then
+    begin
+      Dec(FMegaRulez[MR_JET]);
+      if FMegaRulez[MR_JET] < 1 then
+        FJetpack := False;
+    end;
     Exit;
   end;
 
@@ -1907,17 +1919,14 @@ begin
                        PLAYER_RECT.Height-33, PANEL_STEP, False) then
   begin
     FObj.Vel.Y := -VEL_JUMP;
-    FCanJetpack := True;
+    FCanJetpack := False;
   end
   else
   begin
     if BodyInLiquid(0, 0) then
       FObj.Vel.Y := -VEL_SW
-    else if FMegaRulez[MR_JET] > 0 then
-    begin
+    else if (FMegaRulez[MR_JET] > 0) and FCanJetpack then
       FJetpack := True;
-      FCanJetpack := False;
-    end;
   end;
 end;
 
@@ -2660,6 +2669,14 @@ begin
         Result := True;
         remove := True;
       end;
+
+    ITEM_JETPACK:
+      if FMegaRulez[MR_JET] < JET_MAX then
+      begin
+        FMegaRulez[MR_JET] := JET_MAX;
+        Result := True;
+        remove := True;
+      end;
   end;
 end;
 
@@ -3348,7 +3365,11 @@ begin
       if FKeys[KEY_FIRE].Pressed and AnyServer then Fire();
       if FKeys[KEY_OPEN].Pressed and AnyServer then Use();
       if FKeys[KEY_JUMP].Pressed then Jump()
-      else FJetpack := False;
+      else
+      begin
+        FJetpack := False;
+        FCanJetpack := True;
+      end;
     end
   else // Dead
   begin
@@ -3485,6 +3506,10 @@ begin
       if not (FSawSound.IsPlaying() or FSawSoundHit.IsPlaying() or
               FSawSoundSelect.IsPlaying()) then
         FSawSoundIdle.PlayAt(FObj.X, FObj.Y);
+
+    if FJetpack then
+      if not (FJetSoundFly.IsPlaying()) then
+        FJetSoundFly.PlayAt(FObj.X, FObj.Y);
 
     for b := WEAPON_KASTET to WEAPON_SUPERPULEMET do
       if FReloading[b] > 0 then Dec(FReloading[b]);

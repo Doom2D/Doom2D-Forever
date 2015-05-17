@@ -671,7 +671,7 @@ begin
         end;
 
       TRIGGER_SPAWNITEM:
-        if (Data.ItemType in [ITEM_MEDKIT_SMALL..ITEM_HELMET]) then
+        if (Data.ItemType in [ITEM_MEDKIT_SMALL..ITEM_JETPACK]) then
         begin
           if (not Data.ItemOnlyDM) or
              (gGameSettings.GameMode in [GM_DM, GM_TDM, GM_CTF]) then

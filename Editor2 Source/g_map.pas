@@ -87,7 +87,7 @@ const
   TEXTURE_SPECIAL_ACID1 = DWORD(-3);
   TEXTURE_SPECIAL_ACID2 = DWORD(-4);
 
-  ItemSize: Array [ITEM_MEDKIT_SMALL..ITEM_HELMET] of Array [0..1] of Byte =
+  ItemSize: Array [ITEM_MEDKIT_SMALL..ITEM_JETPACK] of Array [0..1] of Byte =
     (((14), (15)), // MEDKIT_SMALL
      ((28), (19)), // MEDKIT_LARGE
      ((28), (19)), // MEDKIT_BLACK
@@ -121,7 +121,8 @@ const
      (( 1), ( 1)), // WEAPON_KASTET
      ((43), (16)), // WEAPON_PISTOL
      ((14), (18)), // BOTTLE
-     ((16), (15))); // HELMET
+     ((16), (15)), // HELMET
+     ((32), (24))); // JETPACK
 
   AreaSize: Array [AREA_PLAYERPOINT1..AREA_BLUETEAMPOINT] of TRectWH =
     ((X:15; Y:12; Width:34; Height:52), // PLAYERPOINT1
@@ -2095,6 +2096,7 @@ begin
             ITEM_KEY_BLUE: g_GetTexture('ITEM_KEY_BLUE', ID);
             ITEM_BOTTLE: g_GetTexture('ITEM_BOTTLE', ID);
             ITEM_HELMET: g_GetTexture('ITEM_HELMET', ID);
+            ITEM_JETPACK: g_GetTexture('ITEM_HELMET', ID);
           end;
 
           if ID <> DWORD(-1) then
