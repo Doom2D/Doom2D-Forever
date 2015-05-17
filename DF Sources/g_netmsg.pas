@@ -736,7 +736,7 @@ begin
   e_Buffer_Write(@NetOut, Shots[Proj].Obj.Vel.X);
   e_Buffer_Write(@NetOut, Shots[Proj].Obj.Vel.Y);
 
-  g_Net_Host_Send(ID, False, NET_CHAN_SHOTS);
+  g_Net_Host_Send(ID, True, NET_CHAN_SHOTS);
 end;
 
 procedure MH_SEND_UpdateShot(Proj: LongInt; ID: Integer = NET_EVERYONE);
