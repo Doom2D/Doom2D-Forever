@@ -27,6 +27,7 @@ const
 
   MR_SUIT           = 0;
   MR_INV            = 1;
+  MR_JET            = 2;
 
   A_BULLETS         = 0;
   A_SHELLS          = 1;
@@ -111,6 +112,8 @@ type
     FMonsterKills: Integer;
     FFrags:     Integer;
     FDeath:     Integer;
+    FJetpack:    Boolean;
+    FCanJetpack: Boolean;
     FFlag:      Byte;
     FSecrets:   Integer;
     FCurrWeap:  Byte;
@@ -166,7 +169,7 @@ type
     FMaxAmmo:   Array [A_BULLETS..A_CELLS] of Word;
     FWeapon:    Array [WEAPON_KASTET..WEAPON_SUPERPULEMET] of Boolean;
     FRulez:     Set of R_ITEM_BACKPACK..R_BERSERK;
-    FMegaRulez: Array [MR_SUIT..MR_INV] of DWORD;
+    FMegaRulez: Array [MR_SUIT..MR_JET] of DWORD;
     FReloading: Array [WEAPON_KASTET..WEAPON_SUPERPULEMET] of Word;
     FTime:      Array [T_RESPAWN..T_USE] of DWORD;
     FKeys:      Array [KEY_LEFT..KEY_CHAT] of TKeyState;
@@ -1891,9 +1894,9 @@ end;
 
 procedure TPlayer.Jump();
 begin
-  if gFly then
+  if gFly or FJetpack then
   begin
-    // Полет (чит-код):
+    // Полет (чит-код или джетпак):
     FObj.Vel.Y := -VEL_FLY;
     Exit;
   end;
@@ -1902,10 +1905,20 @@ begin
   if CollideLevel(0, 1) or
     g_Map_CollidePanel(FObj.X+PLAYER_RECT.X, FObj.Y+PLAYER_RECT.Y+36, PLAYER_RECT.Width,
                        PLAYER_RECT.Height-33, PANEL_STEP, False) then
-    FObj.Vel.Y := -VEL_JUMP
+  begin
+    FObj.Vel.Y := -VEL_JUMP;
+    FCanJetpack := True;
+  end
   else
+  begin
     if BodyInLiquid(0, 0) then
-      FObj.Vel.Y := -VEL_SW;
+      FObj.Vel.Y := -VEL_SW
+    else if FMegaRulez[MR_JET] > 0 then
+    begin
+      FJetpack := True;
+      FCanJetpack := False;
+    end;
+  end;
 end;
 
 procedure TPlayer.Kill(KillType: Byte; SpawnerUID: Word; t: Byte);
@@ -3002,6 +3015,8 @@ begin
     FMegaRulez[a] := 0;
 
   FDamageBuffer := 0;
+  FJetpack := False;
+  FCanJetpack := False;
 
 // Анимация возрождения:
   if (not gLoadGameMode) and (not Silent) then
@@ -3281,7 +3296,7 @@ begin
     if FGhost then
       DoLerp(4);
 
-  if gFly then
+  if gFly or FJetpack then
     FlySmoke();
 
   if FDirection = D_LEFT then
@@ -3332,7 +3347,8 @@ begin
       if FKeys[KEY_PREVWEAPON].Pressed and AnyServer then PrevWeapon();
       if FKeys[KEY_FIRE].Pressed and AnyServer then Fire();
       if FKeys[KEY_OPEN].Pressed and AnyServer then Use();
-      if FKeys[KEY_JUMP].Pressed then Jump();
+      if FKeys[KEY_JUMP].Pressed then Jump()
+      else FJetpack := False;
     end
   else // Dead
   begin
@@ -4109,7 +4125,7 @@ begin
     b := 0;
   Mem.WriteByte(b);
 // Время действия специальных предметов:
-  for i := MR_SUIT to MR_INV do
+  for i := MR_SUIT to MR_JET do
     Mem.WriteDWORD(FMegaRulez[i]);
 // Время до повторного респауна, смены оружия, исользования:
   for i := T_RESPAWN to T_USE do
@@ -4230,7 +4246,7 @@ begin
   if b = 1 then
     Include(FRulez, R_BERSERK);
 // Время действия специальных предметов:
-  for i := MR_SUIT to MR_INV do
+  for i := MR_SUIT to MR_JET do
     Mem.ReadDWORD(FMegaRulez[i]);
 // Время до повторного респауна, смены оружия, исользования:
   for i := T_RESPAWN to T_USE do

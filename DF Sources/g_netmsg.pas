@@ -923,7 +923,7 @@ begin
     for I := A_BULLETS to A_CELLS do
       e_Buffer_Write(@NetOut, FMaxAmmo[I]);
 
-    for I := MR_SUIT to MR_INV do
+    for I := MR_SUIT to MR_JET do
       e_Buffer_Write(@NetOut, LongWord(FMegaRulez[I]));
 
     e_Buffer_Write(@NetOut, Byte(R_ITEM_BACKPACK in FRulez));
@@ -1697,7 +1697,7 @@ begin
     for I := A_BULLETS to A_CELLS do
       FMaxAmmo[I] := e_Raw_Read_Word(P);
 
-    for I := MR_SUIT to MR_INV do
+    for I := MR_SUIT to MR_JET do
       FMegaRulez[I] := e_Raw_Read_LongWord(P);
 
     FRulez := [];
