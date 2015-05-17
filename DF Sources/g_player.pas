@@ -1929,6 +1929,7 @@ begin
   FJetSoundOn.PlayAt(FObj.X, FObj.Y);
   FlySmoke(8);
 end;
+
 procedure TPlayer.JetpackOff;
 begin
   FJetSoundFly.Stop;
@@ -1942,10 +1943,13 @@ begin
   if gFly or FJetpack then
   begin
     // Полет (чит-код или джетпак):
-    if FObj.Vel.Y > -VEL_FLY then FObj.Vel.Y := FObj.Vel.Y - 2;
+    if FObj.Vel.Y > -VEL_FLY then
+      FObj.Vel.Y := FObj.Vel.Y - 2;
+
     if FJetpack then
     begin
-      if FMegaRulez[MR_JET] > 0 then Dec(FMegaRulez[MR_JET]);
+      if FMegaRulez[MR_JET] > 0 then
+        Dec(FMegaRulez[MR_JET]);
       if (FMegaRulez[MR_JET] < 1) and g_Game_IsServer then
       begin
         FJetpack := False;
@@ -4450,7 +4454,8 @@ var
   id, i: DWORD;
   Anim: TAnimation;
 begin
-  if (Random(5) = 1) and (Times = 1) then Exit;
+  if (Random(5) = 1) and (Times = 1) then
+    Exit;
 
   if BodyInLiquid(0, 0) then
     Exit;
