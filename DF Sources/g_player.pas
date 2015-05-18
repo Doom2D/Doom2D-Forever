@@ -1638,7 +1638,7 @@ begin
   begin
     if g_Texture_Get('TEXTURE_PLAYER_HUDAIR', ID) then
       e_Draw(ID, X+2, Y+124, 0, True, False);
-    e_DrawLine(4, X+16, Y+130, X+16+Trunc(168*IfThen(FAir > 0, FAir, 0)/AIR_MAX), Y+130, 0, 0, 255);
+    e_DrawLine(4, X+16, Y+130, X+16+Trunc(168*IfThen(FAir > 0, FAir, 0)/AIR_MAX), Y+130, 0, 0, 196);
   end;
 
  if g_Game_IsClient then
