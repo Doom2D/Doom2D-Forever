@@ -117,6 +117,8 @@ const
   c13 = 'PURELOVE';
   c14_1 = 'ZCDJ';    // я—¬ќ
   c14_2 = 'JLTY';    // ќƒ≈Ќ
+  c15 = 'CASPER';
+  c16 = 'ZCDJQ';     // я—¬ќ…
 begin
   if (not gGameOn) or (not gCheats) or ((gGameSettings.GameType <> GT_SINGLE) and
     (gGameSettings.GameMode <> GM_COOP) and (not gDebugMode))
@@ -218,6 +220,17 @@ begin
   begin
     if gPlayer1 <> nil then gPlayer1.GiveItem(ITEM_JETPACK);
     if gPlayer2 <> nil then gPlayer2.GiveItem(ITEM_JETPACK);
+  end
+  // CASPER позвол€ет ходить сквозь стены
+  else if Copy(charbuff, 11, 6) = c15 then
+  begin
+    // TODO
+  end
+  // я—¬ќ… скрывает от глаз монстров
+  else if Copy(charbuff, 12, 5) = c16 then
+  begin
+    if gPlayer1 <> nil then gPlayer1.NoTarget := not gPlayer1.NoTarget;
+    if gPlayer2 <> nil then gPlayer2.NoTarget := not gPlayer2.NoTarget;
   end
   else Exit;
 

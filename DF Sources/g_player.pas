@@ -142,6 +142,7 @@ type
     FJetSoundOff:    TPlayableSound;
     FJetSoundFly:    TPlayableSound;
     FGodMode:   Boolean;
+    FNoTarget:   Boolean;
 
     function    CollideLevel(XInc, YInc: Integer): Boolean;
     function    StayOnStep(XInc, YInc: Integer): Boolean;
@@ -246,6 +247,7 @@ type
     property    MonsterKills: Integer read FMonsterKills write FMonsterKills;
     property    Secrets: Integer read FSecrets;
     property    GodMode: Boolean read FGodMode write FGodMode;
+    property    NoTarget: Boolean read FNoTarget write FNoTarget;
     property    Live: Boolean read FLive write FLive;
     property    Flag: Byte read FFlag;
     property    Team: Byte read FTeam write FTeam;
@@ -2794,6 +2796,7 @@ begin
 
   FTime[T_RESPAWN] := 0;
   FGodMode := False;
+  FNoTarget := False;
   FFrags := 0;
   FKills := 0;
   FMonsterKills := 0;
