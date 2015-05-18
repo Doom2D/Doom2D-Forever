@@ -26,7 +26,7 @@ const
   R_BERSERK         = 4;
 
   MR_SUIT           = 0;
-  MR_INV            = 1;
+  MR_INVUL          = 1;
   MR_JET            = 2;
 
   A_BULLETS         = 0;
@@ -220,7 +220,7 @@ type
     procedure   SoftReset();
     procedure   Draw(); virtual;
     procedure   DrawPain();
-    procedure   DrawInv();
+    procedure   DrawRulez();
     procedure   DrawGUI();
     procedure   Update(); virtual;
     procedure   RememberState();
@@ -429,7 +429,7 @@ const
   AIR_MAX = 1091;
   JET_MAX = 540; // ~30 sec
   PLAYER_SUIT_TIME    = 30000;
-  PLAYER_INV_TIME     = 30000;
+  PLAYER_INVUL_TIME   = 30000;
   VEL_SW  = 4;
   VEL_FLY = 4;
   ANGLE_RIGHTUP   = 55;
@@ -1331,7 +1331,7 @@ begin
    begin
     if not PickItem(ItemType, gItems[i].Respawnable, r) then Continue;
 
-    if ItemType in [ITEM_SPHERE_BLUE, ITEM_SPHERE_WHITE, ITEM_INV] then
+    if ItemType in [ITEM_SPHERE_BLUE, ITEM_SPHERE_WHITE, ITEM_INVUL] then
      g_Sound_PlayExAt('SOUND_ITEM_GETRULEZ', FObj.X, FObj.Y)
     else if ItemType in [ITEM_MEDKIT_SMALL, ITEM_MEDKIT_LARGE, ITEM_MEDKIT_BLACK] then
      g_Sound_PlayExAt('SOUND_ITEM_GETMED', FObj.X, FObj.Y)
@@ -1405,11 +1405,11 @@ begin
   begin
     // Обнулить действия примочек, чтобы фон пропал
     FMegaRulez[MR_SUIT] := 0;
-    FMegaRulez[MR_INV] := 0;
+    FMegaRulez[MR_INVUL] := 0;
   end;
 
 // Но от остального спасает:
-  if FMegaRulez[MR_INV] > gTime then
+  if FMegaRulez[MR_INVUL] > gTime then
     Exit;
 
 // Чит-код "ГОРЕЦ":
@@ -1667,15 +1667,15 @@ begin
   end;
 end;
 
-procedure TPlayer.DrawInv();
+procedure TPlayer.DrawRulez();
 var
   dr: Boolean;
 begin
   // При взятии неуязвимости рисуется инверсионный белый фон
-  if FMegaRulez[MR_INV] >= gTime then
+  if FMegaRulez[MR_INVUL] >= gTime then
   begin
-    if (FMegaRulez[MR_INV]-gTime) <= 2100 then
-      dr := not Odd((FMegaRulez[MR_INV]-gTime) div 300)
+    if (FMegaRulez[MR_INVUL]-gTime) <= 2100 then
+      dr := not Odd((FMegaRulez[MR_INVUL]-gTime) div 300)
     else
       dr := True;
 
@@ -2705,10 +2705,10 @@ begin
         end;
       end;
 
-    ITEM_INV:
-      if FMegaRulez[MR_INV] < gTime+PLAYER_INV_TIME then
+    ITEM_INVUL:
+      if FMegaRulez[MR_INVUL] < gTime+PLAYER_INVUL_TIME then
       begin
-        FMegaRulez[MR_INV] := gTime+PLAYER_INV_TIME;
+        FMegaRulez[MR_INVUL] := gTime+PLAYER_INVUL_TIME;
         Result := True;
         remove := True;
       end;
@@ -3559,7 +3559,7 @@ begin
   begin
     // Обнулить действия примочек, чтобы фон пропал
     FMegaRulez[MR_SUIT] := 0;
-    FMegaRulez[MR_INV] := 0;
+    FMegaRulez[MR_INVUL] := 0;
     Kill(K_FALLKILL, 0, HIT_FALL);
   end;
 
@@ -4405,10 +4405,10 @@ begin
         end;
       end;
 
-    ITEM_INV:
-      if FMegaRulez[MR_INV] < gTime+PLAYER_INV_TIME then
+    ITEM_INVUL:
+      if FMegaRulez[MR_INVUL] < gTime+PLAYER_INVUL_TIME then
       begin
-        FMegaRulez[MR_INV] := gTime+PLAYER_INV_TIME;
+        FMegaRulez[MR_INVUL] := gTime+PLAYER_INVUL_TIME;
       end;
 
     ITEM_JETPACK:
@@ -5748,7 +5748,7 @@ end;
 
 function TBot.Healthy(): Byte;
 begin
-  if FMegaRulez[MR_INV] > 0 then Result := 3
+  if FMegaRulez[MR_INVUL] > 0 then Result := 3
   else if (FHealth > 80) or ((FHealth > 50) and (FArmor > 20)) then Result := 3
   else if (FHealth > 50) then Result := 2
   else if (FHealth > 20) then Result := 1

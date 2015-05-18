@@ -57,7 +57,7 @@ const
      ((25), (25)), // SPHERE_WHITE
      ((24), (47)), // SUIT
      ((14), (27)), // OXYGEN
-     ((25), (25)), // INV
+     ((25), (25)), // INVUL
      ((62), (24)), // WEAPON_SAW
      ((63), (12)), // WEAPON_SHOTGUN1
      ((54), (13)), // WEAPON_SHOTGUN2
@@ -129,7 +129,7 @@ begin
   g_Frames_CreateWAD(nil, 'FRAMES_ITEM_WHITESPHERE', GameWAD+':TEXTURES\SWHITE', 32, 32, 4, True);
   g_Frames_CreateWAD(nil, 'FRAMES_ITEM_ARMORGREEN', GameWAD+':TEXTURES\ARMORGREEN', 32, 16, 3, True);
   g_Frames_CreateWAD(nil, 'FRAMES_ITEM_ARMORBLUE', GameWAD+':TEXTURES\ARMORBLUE', 32, 16, 3, True);
-  g_Frames_CreateWAD(nil, 'FRAMES_ITEM_INV', GameWAD+':TEXTURES\INV', 32, 32, 4, True);
+  g_Frames_CreateWAD(nil, 'FRAMES_ITEM_INVUL', GameWAD+':TEXTURES\INVUL', 32, 32, 4, True);
   g_Frames_CreateWAD(nil, 'FRAMES_ITEM_RESPAWN', GameWAD+':TEXTURES\ITEMRESPAWN', 32, 32, 5, True);
   g_Frames_CreateWAD(nil, 'FRAMES_ITEM_BOTTLE', GameWAD+':TEXTURES\BOTTLE', 16, 32, 4, True);
   g_Frames_CreateWAD(nil, 'FRAMES_ITEM_HELMET', GameWAD+':TEXTURES\HELMET', 16, 16, 4, True);
@@ -182,7 +182,7 @@ begin
   g_Frames_DeleteByName('FRAMES_ITEM_WHITESPHERE');
   g_Frames_DeleteByName('FRAMES_ITEM_ARMORGREEN');
   g_Frames_DeleteByName('FRAMES_ITEM_ARMORBLUE');
-  g_Frames_DeleteByName('FRAMES_ITEM_INV');
+  g_Frames_DeleteByName('FRAMES_ITEM_INVUL');
   g_Frames_DeleteByName('FRAMES_ITEM_RESPAWN');
   g_Frames_DeleteByName('FRAMES_ITEM_BOTTLE');
   g_Frames_DeleteByName('FRAMES_ITEM_HELMET');
@@ -332,8 +332,8 @@ begin
       ITEM_SPHERE_WHITE:
         if g_Frames_Get(ID, 'FRAMES_ITEM_WHITESPHERE') then
           Animation := TAnimation.Create(ID, True, 20);
-      ITEM_INV:
-        if g_Frames_Get(ID, 'FRAMES_ITEM_INV') then
+      ITEM_INVUL:
+        if g_Frames_Get(ID, 'FRAMES_ITEM_INVUL') then
           Animation := TAnimation.Create(ID, True, 20);
       ITEM_BOTTLE:
         if g_Frames_Get(ID, 'FRAMES_ITEM_BOTTLE') then
@@ -406,7 +406,7 @@ begin
   3. I_STIM,I_MEDI,I_ARM1,I_ARM2,I_AQUA,I_KEYR,I_KEYG,I_KEYB,I_SUIT,I_RTORCH,I_GTORCH,I_BTORCH,I_GOR1,I_FCAN
 }
 
-                  if ItemType in [ITEM_SPHERE_BLUE, ITEM_SPHERE_WHITE, ITEM_INV] then
+                  if ItemType in [ITEM_SPHERE_BLUE, ITEM_SPHERE_WHITE, ITEM_INVUL] then
                     g_Sound_PlayExAt('SOUND_ITEM_GETRULEZ',
                       gPlayers[j].Obj.X, gPlayers[j].Obj.Y)
                   else

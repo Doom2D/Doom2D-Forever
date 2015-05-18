@@ -1851,7 +1851,7 @@ begin
   glPopMatrix();
 
   p.DrawPain();
-  p.DrawInv();
+  p.DrawRulez();
   p.DrawGUI();
 end;
 

@@ -97,7 +97,7 @@ const
      ((25), (25)), // SPHERE_WHITE
      ((24), (47)), // SUIT
      ((14), (27)), // OXYGEN
-     ((25), (25)), // INV
+     ((25), (25)), // INVUL
      ((62), (24)), // WEAPON_SAW
      ((63), (12)), // WEAPON_SHOTGUN1
      ((54), (13)), // WEAPON_SHOTGUN2
@@ -262,9 +262,9 @@ const
   OLD_ITEM_SUIT                  = 27;
   OLD_ITEM_OXYGEN                = 28;
   OLD_ITEM_MEDKIT_BLACK          = 29;
-  OLD_ITEM_INV                   = 30;
+  OLD_ITEM_INVUL                 = 30;
 
-  ITEMSCONVERT: Array [OLD_ITEM_MEDKIT_SMALL..OLD_ITEM_INV] of Integer =
+  ITEMSCONVERT: Array [OLD_ITEM_MEDKIT_SMALL..OLD_ITEM_INVUL] of Integer =
                 ((ITEM_MEDKIT_SMALL),
                  (ITEM_MEDKIT_LARGE),
                  (ITEM_ARMOR_GREEN),
@@ -294,7 +294,7 @@ const
                  (ITEM_SUIT),
                  (ITEM_OXYGEN),
                  (ITEM_MEDKIT_BLACK),
-                 (ITEM_INV));
+                 (ITEM_INVUL));
 
   OldItemSize: Array [ITEM_MEDKIT_SMALL..ITEM_KEY_BLUE] of Array [0..1] of Byte =
     (((14), (15)), // MEDKIT_SMALL
@@ -306,7 +306,7 @@ const
      ((24), (24)), // SPHERE_WHITE
      ((24), (46)), // SUIT
      ((14), (27)), // OXYGEN
-     ((25), (25)), // INV - not in map generator
+     ((25), (25)), // INVUL - not in map generator
      ((61), (23)), // WEAPON_SAW
      ((62), (10)), // WEAPON_SHOTGUN1
      ((52), (12)), // WEAPON_SHOTGUN2
@@ -2073,7 +2073,7 @@ begin
             ITEM_SPHERE_WHITE: g_GetTexture('ITEM_WHITESPHERE', ID);
             ITEM_SUIT: g_GetTexture('ITEM_SUIT', ID);
             ITEM_OXYGEN: g_GetTexture('ITEM_OXYGEN', ID);
-            ITEM_INV: g_GetTexture('ITEM_INV', ID);
+            ITEM_INVUL: g_GetTexture('ITEM_INVUL', ID);
             ITEM_WEAPON_SAW: g_GetTexture('ITEM_WEAPON_SAW', ID);
             ITEM_WEAPON_SHOTGUN1: g_GetTexture('ITEM_WEAPON_SHOTGUN1', ID);
             ITEM_WEAPON_SHOTGUN2: g_GetTexture('ITEM_WEAPON_SHOTGUN2', ID);
@@ -2495,7 +2495,7 @@ begin
  g_CreateTextureWADSize('ITEM_WHITESPHERE', EditorDir+'\data\Game.wad:TEXTURES\SWHITE', 0, 0, 32, 32);
  g_CreateTextureWADSize('ITEM_ARMORGREEN', EditorDir+'\data\Game.wad:TEXTURES\ARMORGREEN', 0, 0, 32, 16);
  g_CreateTextureWADSize('ITEM_ARMORBLUE', EditorDir+'\data\Game.wad:TEXTURES\ARMORBLUE', 0, 0, 32, 16);
- g_CreateTextureWADSize('ITEM_INV', EditorDir+'\data\Game.wad:TEXTURES\INV', 0, 0, 32, 32);
+ g_CreateTextureWADSize('ITEM_INVUL', EditorDir+'\data\Game.wad:TEXTURES\INVUL', 0, 0, 32, 32);
  g_CreateTextureWADSize('ITEM_BOTTLE', EditorDir+'\data\Game.wad:TEXTURES\BOTTLE', 0, 0, 16, 32);
  g_CreateTextureWADSize('ITEM_HELMET', EditorDir+'\data\Game.wad:TEXTURES\HELMET', 0, 0, 16, 16);
  g_CreateTextureWADSize('ITEM_JETPACK', EditorDir+'\data\Game.wad:TEXTURES\JETPACK', 0, 0, 32, 32);
@@ -2564,7 +2564,7 @@ begin
  g_DeleteTexture('ITEM_WHITESPHERE');
  g_DeleteTexture('ITEM_ARMORGREEN');
  g_DeleteTexture('ITEM_ARMORBLUE');
- g_DeleteTexture('ITEM_INV');
+ g_DeleteTexture('ITEM_INVUL');
  g_DeleteTexture('ITEM_BOTTLE');
  g_DeleteTexture('ITEM_HELMET');
  g_DeleteTexture('AREA_REDFLAG');

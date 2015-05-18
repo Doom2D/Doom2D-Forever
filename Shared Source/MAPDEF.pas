@@ -44,7 +44,7 @@ const
   ITEM_SPHERE_WHITE          = 7;
   ITEM_SUIT                  = 8;
   ITEM_OXYGEN                = 9;
-  ITEM_INV                   = 10;
+  ITEM_INVUL                 = 10;
   ITEM_WEAPON_SAW            = 11;
   ITEM_WEAPON_SHOTGUN1       = 12;
   ITEM_WEAPON_SHOTGUN2       = 13;
