@@ -1632,7 +1632,7 @@ begin
     if g_Texture_Get('TEXTURE_PLAYER_HUDJET', ID) then
       e_Draw(ID, X+2, Y+126, 0, True, False);
     e_DrawLine(4, X+16, Y+122, X+16+Trunc(168*IfThen(FAir > 0, FAir, 0)/AIR_MAX), Y+122, 0, 0, 196);
-    e_DrawLine(4, X+16, Y+132, X+16+Trunc(168*(FMegaRulez[MR_JET]/JET_MAX)), Y+132, 255, 0, 0);
+    e_DrawLine(4, X+16, Y+132, X+16+Trunc(168*(FMegaRulez[MR_JET]/JET_MAX)), Y+132, 208, 0, 0);
   end
   else
   begin
@@ -2165,6 +2165,10 @@ begin
 // Выброс рюкзака:
     if R_ITEM_BACKPACK in FRulez then
       PushItem(ITEM_AMMO_BACKPACK);
+
+// Выброс ракетного ранца:
+    if FMegaRulez[MR_JET] > 0 then
+      PushItem(ITEM_JETPACK);
 
 // Выброс ключей:
     if not (gGameSettings.GameMode in [GM_DM, GM_TDM, GM_CTF]) then
