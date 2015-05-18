@@ -485,6 +485,8 @@ begin
 
   if gPlayer1 <> nil then gPlayer1.GodMode := False;
   if gPlayer2 <> nil then gPlayer2.GodMode := False;
+  if gPlayer1 <> nil then gPlayer1.NoTarget := False;
+  if gPlayer2 <> nil then gPlayer2.NoTarget := False;
 end;
 
 procedure EndGame();

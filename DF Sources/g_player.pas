@@ -142,6 +142,7 @@ type
     FJetSoundOff:    TPlayableSound;
     FJetSoundFly:    TPlayableSound;
     FGodMode:   Boolean;
+    FNoTarget:   Boolean;
 
     function    CollideLevel(XInc, YInc: Integer): Boolean;
     function    StayOnStep(XInc, YInc: Integer): Boolean;
@@ -246,6 +247,7 @@ type
     property    MonsterKills: Integer read FMonsterKills write FMonsterKills;
     property    Secrets: Integer read FSecrets;
     property    GodMode: Boolean read FGodMode write FGodMode;
+    property    NoTarget: Boolean read FNoTarget write FNoTarget;
     property    Live: Boolean read FLive write FLive;
     property    Flag: Byte read FFlag;
     property    Team: Byte read FTeam write FTeam;
@@ -1632,13 +1634,13 @@ begin
     if g_Texture_Get('TEXTURE_PLAYER_HUDJET', ID) then
       e_Draw(ID, X+2, Y+126, 0, True, False);
     e_DrawLine(4, X+16, Y+122, X+16+Trunc(168*IfThen(FAir > 0, FAir, 0)/AIR_MAX), Y+122, 0, 0, 196);
-    e_DrawLine(4, X+16, Y+132, X+16+Trunc(168*(FMegaRulez[MR_JET]/JET_MAX)), Y+132, 255, 0, 0);
+    e_DrawLine(4, X+16, Y+132, X+16+Trunc(168*(FMegaRulez[MR_JET]/JET_MAX)), Y+132, 208, 0, 0);
   end
   else
   begin
     if g_Texture_Get('TEXTURE_PLAYER_HUDAIR', ID) then
       e_Draw(ID, X+2, Y+124, 0, True, False);
-    e_DrawLine(4, X+16, Y+130, X+16+Trunc(168*IfThen(FAir > 0, FAir, 0)/AIR_MAX), Y+130, 0, 0, 255);
+    e_DrawLine(4, X+16, Y+130, X+16+Trunc(168*IfThen(FAir > 0, FAir, 0)/AIR_MAX), Y+130, 0, 0, 196);
   end;
 
  if g_Game_IsClient then
@@ -1929,6 +1931,7 @@ begin
   FJetSoundOn.PlayAt(FObj.X, FObj.Y);
   FlySmoke(8);
 end;
+
 procedure TPlayer.JetpackOff;
 begin
   FJetSoundFly.Stop;
@@ -1945,7 +1948,8 @@ begin
     if FObj.Vel.Y > -VEL_FLY then FObj.Vel.Y := FObj.Vel.Y - 3;
     if FJetpack then
     begin
-      if FMegaRulez[MR_JET] > 0 then Dec(FMegaRulez[MR_JET]);
+      if FMegaRulez[MR_JET] > 0 then
+        Dec(FMegaRulez[MR_JET]);
       if (FMegaRulez[MR_JET] < 1) and g_Game_IsServer then
       begin
         FJetpack := False;
@@ -2161,6 +2165,10 @@ begin
 // Выброс рюкзака:
     if R_ITEM_BACKPACK in FRulez then
       PushItem(ITEM_AMMO_BACKPACK);
+
+// Выброс ракетного ранца:
+    if FMegaRulez[MR_JET] > 0 then
+      PushItem(ITEM_JETPACK);
 
 // Выброс ключей:
     if not (gGameSettings.GameMode in [GM_DM, GM_TDM, GM_CTF]) then
@@ -2786,6 +2794,7 @@ begin
 
   FTime[T_RESPAWN] := 0;
   FGodMode := False;
+  FNoTarget := False;
   FFrags := 0;
   FKills := 0;
   FMonsterKills := 0;
@@ -4400,6 +4409,12 @@ begin
         FMegaRulez[MR_INV] := gTime+PLAYER_INV_TIME;
       end;
 
+    ITEM_JETPACK:
+      if FMegaRulez[MR_JET] < JET_MAX then
+      begin
+        FMegaRulez[MR_JET] := JET_MAX;
+      end;
+
     else
       Exit;
   end;
@@ -4450,10 +4465,19 @@ var
   id, i: DWORD;
   Anim: TAnimation;
 begin
-  if (Random(5) = 1) and (Times = 1) then Exit;
+  if (Random(5) = 1) and (Times = 1) then
+    Exit;
 
   if BodyInLiquid(0, 0) then
+  begin
+    g_GFX_Bubbles(Obj.X+Obj.Rect.X+(Obj.Rect.Width div 2)+Random(3)-1,
+                  Obj.Y+Obj.Rect.Height+8, 1, 8, 4);
+    if Random(2) = 0 then
+      g_Sound_PlayExAt('SOUND_GAME_BUBBLE1', FObj.X, FObj.Y)
+    else
+      g_Sound_PlayExAt('SOUND_GAME_BUBBLE2', FObj.X, FObj.Y);
     Exit;
+  end;
 
   if g_Frames_Get(id, 'FRAMES_SMOKE') then
   begin

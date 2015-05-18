@@ -2022,7 +2022,8 @@ begin
       // Если есть игрок рядом, просыпаемся и идем к нему:
         if (gPlayers <> nil) then
           for a := 0 to High(gPlayers) do
-            if (gPlayers[a] <> nil) and (gPlayers[a].Live) then
+            if (gPlayers[a] <> nil) and (gPlayers[a].Live)
+            and (not gPlayers[a].NoTarget) then
               with gPlayers[a] do
                 if g_Look(@FObj, @Obj, FDirection) then
                 begin
@@ -3325,7 +3326,8 @@ begin
 // Ищем ближайшего игрока в качестве цели:
   if gPlayers <> nil then
     for a := 0 to High(gPlayers) do
-      if (gPlayers[a] <> nil) and (gPlayers[a].Live) then
+      if (gPlayers[a] <> nil) and (gPlayers[a].Live)
+      and (not gPlayers[a].NoTarget) then
       begin
         l2 := Abs(gPlayers[a].GameX-FObj.X)+
               Abs(gPlayers[a].GameY-FObj.Y);

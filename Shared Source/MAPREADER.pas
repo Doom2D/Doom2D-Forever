@@ -85,8 +85,8 @@ begin
   NNF_CurrentNum := -1;
 
   for i := Length(name) downto 1 do
-    if (name[i] < '0') or (name[i] > '9') then
-    begin // Не цифра
+    if (name[i] = '_') then // "_" - символ начала номерного постфикса
+    begin
       if i = Length(name) then
         begin // Нет цифр в конце строки
           Exit;
