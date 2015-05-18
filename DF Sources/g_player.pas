@@ -4458,7 +4458,15 @@ begin
     Exit;
 
   if BodyInLiquid(0, 0) then
+  begin
+    g_GFX_Bubbles(Obj.X+Obj.Rect.X+(Obj.Rect.Width div 2)+Random(3)-1,
+                  Obj.Y+Obj.Rect.Height+8, 1, 8, 4);
+    if Random(2) = 0 then
+      g_Sound_PlayExAt('SOUND_GAME_BUBBLE1', FObj.X, FObj.Y)
+    else
+      g_Sound_PlayExAt('SOUND_GAME_BUBBLE2', FObj.X, FObj.Y);
     Exit;
+  end;
 
   if g_Frames_Get(id, 'FRAMES_SMOKE') then
   begin
