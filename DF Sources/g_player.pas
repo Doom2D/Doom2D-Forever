@@ -4404,6 +4404,12 @@ begin
         FMegaRulez[MR_INV] := gTime+PLAYER_INV_TIME;
       end;
 
+    ITEM_JETPACK:
+      if FMegaRulez[MR_JET] < JET_MAX then
+      begin
+        FMegaRulez[MR_JET] := JET_MAX;
+      end;
+
     else
       Exit;
   end;

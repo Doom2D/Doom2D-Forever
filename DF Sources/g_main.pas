@@ -216,7 +216,8 @@ begin
   and (charbuff[11] = Chr(188))
   and (Copy(charbuff, 13, 4) = c14_2) then
   begin
-    // TODO
+    if gPlayer1 <> nil then gPlayer1.GiveItem(ITEM_JETPACK);
+    if gPlayer2 <> nil then gPlayer2.GiveItem(ITEM_JETPACK);
   end
   else Exit;
 
