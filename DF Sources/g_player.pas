@@ -431,7 +431,7 @@ const
   PLAYER_SUIT_TIME    = 30000;
   PLAYER_INVUL_TIME   = 30000;
   VEL_SW  = 4;
-  VEL_FLY = 4;
+  VEL_FLY = 6;
   ANGLE_RIGHTUP   = 55;
   ANGLE_RIGHTDOWN = -35;
   ANGLE_LEFTUP    = 125;      
@@ -1945,9 +1945,7 @@ begin
   if gFly or FJetpack then
   begin
     // Полет (чит-код или джетпак):
-    if FObj.Vel.Y > -VEL_FLY then
-      FObj.Vel.Y := FObj.Vel.Y - 2;
-
+    if FObj.Vel.Y > -VEL_FLY then FObj.Vel.Y := FObj.Vel.Y - 3;
     if FJetpack then
     begin
       if FMegaRulez[MR_JET] > 0 then
