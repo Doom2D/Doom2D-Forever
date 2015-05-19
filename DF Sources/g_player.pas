@@ -1115,30 +1115,32 @@ begin
   with gShells[CurrentShell] do
   begin
     SpriteID := 0;
+    g_Obj_Init(@Obj);
     if T = SHELL_BULLET then
     begin
       if g_Texture_Get('TEXTURE_SHELL_BULLET', SID) then
         SpriteID := SID;
       CX := 2;
       CY := 1;
+      Obj.Rect.Width := 4;
+      Obj.Rect.Height := 2;
     end
-    else if g_Texture_Get('TEXTURE_SHELL_SHELL', SID) then
+    else
     begin
-      SpriteID := SID;
+      if g_Texture_Get('TEXTURE_SHELL_SHELL', SID) then
+        SpriteID := SID;
       CX := 4;
       CY := 2;
+      Obj.Rect.Width := 7;
+      Obj.Rect.Height := 3;
     end;
     SType := T;
     Live := True;
-
-    g_Obj_Init(@Obj);
     Obj.Rect.X := 0;
     Obj.Rect.Y := 0;
-    Obj.Rect.Width := 2;
-    Obj.Rect.Height := 2;
     Obj.X := fX;
     Obj.Y := fY;
-    g_Obj_Push(@Obj, dX + Random(5)-Random(5), dY-Random(5));
+    g_Obj_Push(@Obj, dX + Random(6)-Random(6), dY-Random(6));
     RAngle := 0;
     Timeout := gTime + SHELL_TIMEOUT;
 
@@ -1251,6 +1253,8 @@ begin
           begin
             Obj.Vel.Y := -(vel.Y div 2);
             if Obj.Vel.X <> 0 then Obj.Vel.X := Obj.Vel.X div 2;
+            if (RAngle <> 0) and (RAngle <> 180) and (Obj.Vel.X = 0) and (Obj.Vel.Y = 0) then
+              RAngle := (RAngle div 180) * 180;
           end;
 
           RAngle := RAngle - Abs(Obj.Vel.X)*2 - Abs(Obj.Vel.Y)*2;
@@ -1946,7 +1950,8 @@ begin
         FFireAngle := FAngle;
         f := True;
         DidFire := True;
-        g_Player_CreateShell(GameX+PLAYER_RECT_CX, GameY+PLAYER_RECT_CX, 0, -3, SHELL_BULLET);
+        g_Player_CreateShell(GameX+PLAYER_RECT_CX, GameY+PLAYER_RECT_CX,
+                             GameVelX, GameVelY-3, SHELL_BULLET);
       end;
 
     WEAPON_SHOTGUN1:
@@ -1958,7 +1963,8 @@ begin
         FFireAngle := FAngle;
         f := True;
         DidFire := True;
-        g_Player_CreateShell(GameX+PLAYER_RECT_CX, GameY+PLAYER_RECT_CX, 0, -3, SHELL_SHELL);
+        g_Player_CreateShell(GameX+PLAYER_RECT_CX, GameY+PLAYER_RECT_CX,
+                             GameVelX, GameVelY-3, SHELL_SHELL);
       end;
 
     WEAPON_SHOTGUN2:
@@ -1970,8 +1976,10 @@ begin
         FFireAngle := FAngle;
         f := True;
         DidFire := True;
-        g_Player_CreateShell(GameX+PLAYER_RECT_CX, GameY+PLAYER_RECT_CX, 1, -3, SHELL_SHELL);
-        g_Player_CreateShell(GameX+PLAYER_RECT_CX, GameY+PLAYER_RECT_CX, -1, -3, SHELL_SHELL);
+        g_Player_CreateShell(GameX+PLAYER_RECT_CX, GameY+PLAYER_RECT_CX,
+                             GameVelX, GameVelY-3, SHELL_SHELL);
+        g_Player_CreateShell(GameX+PLAYER_RECT_CX, GameY+PLAYER_RECT_CX,
+                             GameVelX, GameVelY-3, SHELL_SHELL);
       end;
 
     WEAPON_CHAINGUN:
@@ -1983,7 +1991,8 @@ begin
         FFireAngle := FAngle;
         f := True;
         DidFire := True;
-        g_Player_CreateShell(GameX+PLAYER_RECT_CX, GameY+PLAYER_RECT_CX, 0, -3, SHELL_BULLET);
+        g_Player_CreateShell(GameX+PLAYER_RECT_CX, GameY+PLAYER_RECT_CX,
+                             GameVelX, GameVelY-3, SHELL_BULLET);
       end;
 
     WEAPON_ROCKETLAUNCHER:
@@ -2026,7 +2035,8 @@ begin
         FFireAngle := FAngle;
         f := True;
         DidFire := True;
-        g_Player_CreateShell(GameX+PLAYER_RECT_CX, GameY+PLAYER_RECT_CX, 0, -1, SHELL_SHELL);
+        g_Player_CreateShell(GameX+PLAYER_RECT_CX, GameY+PLAYER_RECT_CX,
+                             GameVelX, GameVelY-3, SHELL_SHELL);
       end;
   end;
 

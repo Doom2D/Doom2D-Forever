@@ -1948,7 +1948,7 @@ begin
         else e_Clear(GL_COLOR_BUFFER_BIT, 0, 0, 0);
       end;
       if g_ActiveWindow <> nil then
-        e_DrawFillQuad(0, 0, gScreenWidth-1, gScreenHeight-1, 0, 0, 0, 128);
+        e_DrawFillQuad(0, 0, gScreenWidth-1, gScreenHeight-1, 0, 0, 0, 180);
     end;
 
     if gState = STATE_FOLD then
