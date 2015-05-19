@@ -147,6 +147,7 @@ var
   gPlayer2ScreenCoord: TPoint;
   gPlayer1: TPlayer = nil;
   gPlayer2: TPlayer = nil;
+  gPlayerDrawn: TPlayer = nil;
   gTime: LongWord;            
   gInterEndTime: LongWord = 0;
   gInterTime: LongWord = 0;
@@ -1735,6 +1736,8 @@ begin
     glPopMatrix();
     Exit;
   end;
+
+  gPlayerDrawn := p;
 
   glPushMatrix();
 

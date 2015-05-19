@@ -923,7 +923,7 @@ begin
     for I := A_BULLETS to A_CELLS do
       e_Buffer_Write(@NetOut, FMaxAmmo[I]);
 
-    for I := MR_SUIT to MR_JET do
+    for I := MR_SUIT to MR_MAX do
       e_Buffer_Write(@NetOut, LongWord(FMegaRulez[I]));
 
     e_Buffer_Write(@NetOut, Byte(R_ITEM_BACKPACK in FRulez));
@@ -1700,7 +1700,7 @@ begin
     for I := A_BULLETS to A_CELLS do
       FMaxAmmo[I] := e_Raw_Read_Word(P);
 
-    for I := MR_SUIT to MR_JET do
+    for I := MR_SUIT to MR_MAX do
       FMegaRulez[I] := e_Raw_Read_LongWord(P);
 
     FRulez := [];
@@ -1914,13 +1914,13 @@ begin
 
   if not Quiet then
   begin
-    if gItems[ID].ItemType in [ITEM_SPHERE_BLUE, ITEM_SPHERE_WHITE, ITEM_INVUL] then
+    if gItems[ID].ItemType in [ITEM_SPHERE_BLUE, ITEM_SPHERE_WHITE, ITEM_INVUL, ITEM_INVIS, ITEM_MEDKIT_BLACK] then
       g_Sound_PlayExAt('SOUND_ITEM_GETRULEZ',
         gItems[ID].Obj.X, gItems[ID].Obj.Y)
       else
-        if gItems[ID].ItemType in [ITEM_MEDKIT_SMALL, ITEM_MEDKIT_LARGE,
-                                    ITEM_MEDKIT_BLACK, ITEM_BOTTLE, ITEM_HELMET, ITEM_ARMOR_GREEN,
-                                    ITEM_ARMOR_BLUE, ITEM_KEY_RED, ITEM_KEY_GREEN, ITEM_KEY_BLUE] then
+        if gItems[ID].ItemType in [ITEM_MEDKIT_SMALL, ITEM_MEDKIT_LARGE, ITEM_BOTTLE,
+                                   ITEM_HELMET, ITEM_ARMOR_GREEN,
+                                   ITEM_ARMOR_BLUE, ITEM_KEY_RED, ITEM_KEY_GREEN, ITEM_KEY_BLUE] then
           g_Sound_PlayExAt('SOUND_ITEM_GETMED',
             gItems[ID].Obj.X, gItems[ID].Obj.Y)
           else

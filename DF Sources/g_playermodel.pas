@@ -78,7 +78,7 @@ type
     procedure   SetFire(Fire: Boolean);
     function    PlaySound(SoundType, Level: Byte; X, Y: Integer): Boolean;
     procedure   Update();
-    procedure   Draw(X, Y: Integer);
+    procedure   Draw(X, Y: Integer; Alpha: Byte = 0);
 
     property    Fire: Boolean read FFire;
     property    Direction: TDirection read FDirection write FDirection;
@@ -647,7 +647,7 @@ begin
   inherited;
 end;
 
-procedure TPlayerModel.Draw(X, Y: Integer);
+procedure TPlayerModel.Draw(X, Y: Integer; Alpha: Byte = 0);
 var
   Mirror: TMirrorType;
   pos, act: Byte;
@@ -696,29 +696,42 @@ begin
     else
       act := W_ACT_NORMAL;
 
-    e_Draw(WeaponID[FCurrentWeapon][pos][act],
-           X+FWeaponPoints[FCurrentWeapon, FCurrentAnimation, FDirection,
-                           FAnim[D_RIGHT][FCurrentAnimation].CurrentFrame].X,
-           Y+FWeaponPoints[FCurrentWeapon, FCurrentAnimation, FDirection,
-                           FAnim[D_RIGHT][FCurrentAnimation].CurrentFrame].Y,
-           0, True, False, Mirror);
+    if Alpha < 201 then
+      e_Draw(WeaponID[FCurrentWeapon][pos][act],
+             X+FWeaponPoints[FCurrentWeapon, FCurrentAnimation, FDirection,
+                             FAnim[D_RIGHT][FCurrentAnimation].CurrentFrame].X,
+             Y+FWeaponPoints[FCurrentWeapon, FCurrentAnimation, FDirection,
+                             FAnim[D_RIGHT][FCurrentAnimation].CurrentFrame].Y,
+             0, True, False, Mirror);
   end;
 
 // Модель:
   if (FDirection = D_LEFT) and
      (FAnim[D_LEFT][FCurrentAnimation] <> nil) then
-    FAnim[D_LEFT][FCurrentAnimation].Draw(X, Y, M_NONE)
+  begin
+    FAnim[D_LEFT][FCurrentAnimation].Alpha := Alpha;
+    FAnim[D_LEFT][FCurrentAnimation].Draw(X, Y, M_NONE);
+  end
   else
+  begin
+    FAnim[D_RIGHT][FCurrentAnimation].Alpha := Alpha;
     FAnim[D_RIGHT][FCurrentAnimation].Draw(X, Y, Mirror);
+  end;
 
 // Маска модели:
   e_Colors := FColor;
 
   if (FDirection = D_LEFT) and
      (FMaskAnim[D_LEFT][FCurrentAnimation] <> nil) then
-    FMaskAnim[D_LEFT][FCurrentAnimation].Draw(X, Y, M_NONE)
+  begin
+    FMaskAnim[D_LEFT][FCurrentAnimation].Alpha := Alpha;
+    FMaskAnim[D_LEFT][FCurrentAnimation].Draw(X, Y, M_NONE);
+  end
   else
+  begin
+    FMaskAnim[D_RIGHT][FCurrentAnimation].Alpha := Alpha;
     FMaskAnim[D_RIGHT][FCurrentAnimation].Draw(X, Y, Mirror);
+  end;
 
   e_Colors.R := 255;
   e_Colors.G := 255;

@@ -2023,7 +2023,7 @@ begin
         if (gPlayers <> nil) then
           for a := 0 to High(gPlayers) do
             if (gPlayers[a] <> nil) and (gPlayers[a].Live)
-            and (not gPlayers[a].NoTarget) then
+            and (not gPlayers[a].NoTarget) and (gPlayers[a].FMegaRulez[MR_INVIS] < 1) then
               with gPlayers[a] do
                 if g_Look(@FObj, @Obj, FDirection) then
                 begin
@@ -3327,7 +3327,7 @@ begin
   if gPlayers <> nil then
     for a := 0 to High(gPlayers) do
       if (gPlayers[a] <> nil) and (gPlayers[a].Live)
-      and (not gPlayers[a].NoTarget) then
+      and (not gPlayers[a].NoTarget) and (gPlayers[a].FMegaRulez[MR_INVIS] < 1) then
       begin
         l2 := Abs(gPlayers[a].GameX-FObj.X)+
               Abs(gPlayers[a].GameY-FObj.Y);

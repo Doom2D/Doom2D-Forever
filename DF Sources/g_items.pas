@@ -47,7 +47,7 @@ uses
 const
   ITEM_SIGNATURE = $4D455449; // 'ITEM'
 
-  ITEMSIZE: Array [ITEM_MEDKIT_SMALL..ITEM_JETPACK] of Array [0..1] of Byte =
+  ITEMSIZE: Array [ITEM_MEDKIT_SMALL..ITEM_MAX] of Array [0..1] of Byte =
     (((14), (15)), // MEDKIT_SMALL
      ((28), (19)), // MEDKIT_LARGE
      ((28), (19)), // MEDKIT_BLACK
@@ -82,7 +82,8 @@ const
      ((43), (16)), // WEAPON_PISTOL
      ((14), (18)), // BOTTLE
      ((16), (15)), // HELMET
-     ((32), (24))); // JETPACK
+     ((32), (24)), // JETPACK
+     ((25), (25))); // INVIS
 
 procedure InitTextures();
 begin
@@ -130,6 +131,7 @@ begin
   g_Frames_CreateWAD(nil, 'FRAMES_ITEM_ARMORGREEN', GameWAD+':TEXTURES\ARMORGREEN', 32, 16, 3, True);
   g_Frames_CreateWAD(nil, 'FRAMES_ITEM_ARMORBLUE', GameWAD+':TEXTURES\ARMORBLUE', 32, 16, 3, True);
   g_Frames_CreateWAD(nil, 'FRAMES_ITEM_INVUL', GameWAD+':TEXTURES\INVUL', 32, 32, 4, True);
+  g_Frames_CreateWAD(nil, 'FRAMES_ITEM_INVIS', GameWAD+':TEXTURES\INVIS', 32, 32, 4, True);
   g_Frames_CreateWAD(nil, 'FRAMES_ITEM_RESPAWN', GameWAD+':TEXTURES\ITEMRESPAWN', 32, 32, 5, True);
   g_Frames_CreateWAD(nil, 'FRAMES_ITEM_BOTTLE', GameWAD+':TEXTURES\BOTTLE', 16, 32, 4, True);
   g_Frames_CreateWAD(nil, 'FRAMES_ITEM_HELMET', GameWAD+':TEXTURES\HELMET', 16, 16, 4, True);
@@ -183,6 +185,7 @@ begin
   g_Frames_DeleteByName('FRAMES_ITEM_ARMORGREEN');
   g_Frames_DeleteByName('FRAMES_ITEM_ARMORBLUE');
   g_Frames_DeleteByName('FRAMES_ITEM_INVUL');
+  g_Frames_DeleteByName('FRAMES_ITEM_INVIS');
   g_Frames_DeleteByName('FRAMES_ITEM_RESPAWN');
   g_Frames_DeleteByName('FRAMES_ITEM_BOTTLE');
   g_Frames_DeleteByName('FRAMES_ITEM_HELMET');
@@ -217,6 +220,7 @@ begin
   g_Texture_Delete('ITEM_SUIT');
   g_Texture_Delete('ITEM_WEAPON_KASTET');
   g_Texture_Delete('ITEM_MEDKIT_BLACK');
+  g_Texture_Delete('ITEM_JETPACK');
 end;
 
 function FindItem(): DWORD;
@@ -335,6 +339,9 @@ begin
       ITEM_INVUL:
         if g_Frames_Get(ID, 'FRAMES_ITEM_INVUL') then
           Animation := TAnimation.Create(ID, True, 20);
+      ITEM_INVIS:
+        if g_Frames_Get(ID, 'FRAMES_ITEM_INVIS') then
+          Animation := TAnimation.Create(ID, True, 20);
       ITEM_BOTTLE:
         if g_Frames_Get(ID, 'FRAMES_ITEM_BOTTLE') then
           Animation := TAnimation.Create(ID, True, 20);
@@ -406,12 +413,11 @@ begin
   3. I_STIM,I_MEDI,I_ARM1,I_ARM2,I_AQUA,I_KEYR,I_KEYG,I_KEYB,I_SUIT,I_RTORCH,I_GTORCH,I_BTORCH,I_GOR1,I_FCAN
 }
 
-                  if ItemType in [ITEM_SPHERE_BLUE, ITEM_SPHERE_WHITE, ITEM_INVUL] then
+                  if ItemType in [ITEM_MEDKIT_BLACK, ITEM_SPHERE_BLUE, ITEM_SPHERE_WHITE, ITEM_INVUL, ITEM_INVIS] then
                     g_Sound_PlayExAt('SOUND_ITEM_GETRULEZ',
                       gPlayers[j].Obj.X, gPlayers[j].Obj.Y)
                   else
-                    if ItemType in [ITEM_MEDKIT_SMALL, ITEM_MEDKIT_LARGE,
-                                    ITEM_MEDKIT_BLACK, ITEM_BOTTLE, ITEM_HELMET, ITEM_ARMOR_GREEN,
+                    if ItemType in [ITEM_MEDKIT_SMALL, ITEM_MEDKIT_LARGE, ITEM_BOTTLE, ITEM_HELMET, ITEM_ARMOR_GREEN,
                                     ITEM_ARMOR_BLUE, ITEM_KEY_RED, ITEM_KEY_GREEN, ITEM_KEY_BLUE] then
                       g_Sound_PlayExAt('SOUND_ITEM_GETMED',
                         gPlayers[j].Obj.X, gPlayers[j].Obj.Y)

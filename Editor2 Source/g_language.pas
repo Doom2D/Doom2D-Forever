@@ -68,6 +68,7 @@ Type
     I_ARRAY_ITEM_BOTTLE,
     I_ARRAY_ITEM_HELMET,
     I_ARRAY_ITEM_JETPACK,
+    I_ARRAY_ITEM_INVIS,
 
     I_ARRAY_MON_DEMON,
     I_ARRAY_MON_IMP,
@@ -503,7 +504,7 @@ Var
   DirNamesAdv: Array [0..3] of String;
   DirButtonNames: Array [1..4] of String;
   PANELNAMES: Array[0..13] of String;
-  ItemNames: Array [ITEM_MEDKIT_SMALL..ITEM_JETPACK] of String;
+  ItemNames: Array [ITEM_MEDKIT_SMALL..ITEM_MAX] of String;
   MonsterNames: Array [MONSTER_DEMON..MONSTER_MAN] of String;
   AreaNames: Array [AREA_PLAYERPOINT1..AREA_BLUETEAMPOINT] of String;
   TriggerNames: Array [TRIGGER_EXIT..TRIGGER_PUSH] of String;
@@ -643,6 +644,8 @@ Const
                                        'Бронешлем'),
     ('ARRAY ITEM JETPACK',             'Jetpack',
                                        'Реактивный ранец'),
+    ('ARRAY ITEM INVIS',               'Invisibility',
+                                       'Невидимость'),
 
     ('ARRAY MON DEMON',                'Pinky',
                                        'Демон'),
@@ -1518,6 +1521,7 @@ begin
   ItemNames[ITEM_BOTTLE] := _lc[I_ARRAY_ITEM_BOTTLE];
   ItemNames[ITEM_HELMET] := _lc[I_ARRAY_ITEM_HELMET];
   ItemNames[ITEM_JETPACK] := _lc[I_ARRAY_ITEM_JETPACK];
+  ItemNames[ITEM_INVIS] := _lc[I_ARRAY_ITEM_INVIS];
 
 // Названия монстров:
   MonsterNames[MONSTER_DEMON] := _lc[I_ARRAY_MON_DEMON];
@@ -1589,6 +1593,7 @@ begin
     lbItemList.Items.Add(ItemNames[ITEM_BOTTLE]);
     lbItemList.Items.Add(ItemNames[ITEM_HELMET]);
     lbItemList.Items.Add(ItemNames[ITEM_JETPACK]);
+    lbItemList.Items.Add(ItemNames[ITEM_INVIS]);
 
     lbMonsterList.Clear();
     for i := MONSTER_DEMON to MONSTER_MAN do

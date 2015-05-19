@@ -495,13 +495,6 @@ procedure g_Obj_SetSpeed(Obj: PObj; s: Integer);
 var
   m, vx, vy: Integer;
 begin
-  //Obj^.Vel.X := Round(s*(Obj^.Vel.X/Hypot(Obj^.Vel.X, Obj^.Vel.Y)));
-  //Obj^.Vel.Y := Round(s*(Obj^.Vel.Y/Hypot(Obj^.Vel.X, Obj^.Vel.Y)));
-
-  //if (!(m = max(abs(o->xv), abs(o->yv)))) m = 1;
-  //o->xv = o->xv * s / m;
-  //o->yv = o->yv * s / m;
-
   vx := Obj^.Vel.X;
   vy := Obj^.Vel.Y;
 
