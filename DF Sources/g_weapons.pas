@@ -738,6 +738,9 @@ begin
   g_Frames_CreateWAD(nil, 'FRAMES_EXPLODE_CACOFIRE', GameWAD+':TEXTURES\ECACOFIRE', 64, 64, 3);
   g_Frames_CreateWAD(nil, 'FRAMES_EXPLODE_BARONFIRE', GameWAD+':TEXTURES\EBARONFIRE', 64, 64, 3);
   g_Frames_CreateWAD(nil, 'FRAMES_SMOKE', GameWAD+':TEXTURES\SMOKE', 32, 32, 10, False);
+
+  g_Texture_CreateWADEx('TEXTURE_SHELL_BULLET', GameWAD+':TEXTURES\EBULLET');
+  g_Texture_CreateWADEx('TEXTURE_SHELL_SHELL', GameWAD+':TEXTURES\ESHELL');
 end;
 
 procedure g_Weapon_FreeData();

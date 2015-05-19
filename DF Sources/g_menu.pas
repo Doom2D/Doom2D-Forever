@@ -69,6 +69,7 @@ begin
   g_GFX_SetMax(TGUIScroll(menu.GetControl('scParticlesCount')).Value*1000);
   g_Gibs_SetMax(TGUIScroll(menu.GetControl('scGibsMax')).Value*25);
   g_Corpses_SetMax(TGUIScroll(menu.GetControl('scCorpsesMax')).Value*5);
+  g_Shells_SetMax(256); // TODO !
 
   case TGUISwitch(menu.GetControl('swGibsCount')).ItemIndex of
     0: gGibsCount := 0;

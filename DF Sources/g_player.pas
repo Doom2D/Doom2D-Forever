@@ -50,6 +50,9 @@ const
   TEAM_BLUE         = 2;
   TEAM_COOP         = 3;
 
+  SHELL_BULLET      = 0;
+  SHELL_SHELL       = 1;
+
   PLAYERNUM_1       = 1;
   PLAYERNUM_2       = 2;
 
@@ -328,6 +331,15 @@ type
     Obj:    TObj;
   end;
 
+  TShell = record
+    SpriteID: DWORD;
+    Live:     Boolean;
+    SType:    Byte;
+    RAngle:   Integer;
+    Timeout:  Cardinal;
+    Obj:      TObj;
+  end;
+  
   TCorpse = class (TObject)
   private
     FModelName:     String;
@@ -362,11 +374,13 @@ var
   gPlayers: Array of TPlayer;
   gCorpses: Array of TCorpse;
   gGibs: Array of TGib;
+  gShells: Array of TShell;
   gTeamStat: TTeamStat;
   gFly: Boolean = False;
   gLastSpawnUsed: Byte = 0;
   MAX_RUNVEL: Integer = 8;
   VEL_JUMP: Integer = 10;
+  SHELL_TIMEOUT: Cardinal = 60000;
 
 function  Lerp(X, Y, Factor: Integer): Integer;
 
@@ -374,6 +388,8 @@ procedure g_Gibs_SetMax(Count: Word);
 function  g_Gibs_GetMax(): Word;
 procedure g_Corpses_SetMax(Count: Word);
 function  g_Corpses_GetMax(): Word;
+procedure g_Shells_SetMax(Count: Word);
+function  g_Shells_GetMax(): Word;
 
 procedure g_Player_Init();
 procedure g_Player_Free();
@@ -390,6 +406,7 @@ function  g_Player_GetStats(): TPlayerStatArray;
 function  g_Player_ValidName(Name: String): Boolean;
 procedure g_Player_CreateCorpse(Player: TPlayer);
 procedure g_Player_CreateGibs(fX, fY: Integer; ModelName: String; fColor: TRGB);
+procedure g_Player_CreateShell(fX, fY, dX, dY: Integer; T: Byte);
 procedure g_Player_UpdateCorpse();
 procedure g_Player_DrawCorpses();
 procedure g_Player_RemoveAllCorpses();
@@ -474,7 +491,9 @@ const
 var
   MaxGibs: Word = 150;
   MaxCorpses: Word = 20;
+  MaxShells: Word = 666;
   CurrentGib: Integer = 0;
+  CurrentShell: Integer = 0;
   BotNames: Array of String;
   BotList: Array of TBotProfile;
 
@@ -510,6 +529,20 @@ function g_Gibs_GetMax(): Word;
 begin
   Result := MaxGibs;
 end;
+
+procedure g_Shells_SetMax(Count: Word);
+begin
+  MaxShells := Count;
+  SetLength(gShells, Count);
+
+  if CurrentShell >= Count-1 then CurrentShell := 0;
+end;
+
+function g_Shells_GetMax(): Word;
+begin
+  Result := MaxShells;
+end;
+
 
 procedure g_Corpses_SetMax(Count: Word);
 begin
@@ -1073,6 +1106,40 @@ begin
   end;
 end;
 
+procedure g_Player_CreateShell(fX, fY, dX, dY: Integer; T: Byte);
+var
+  SID: DWORD;
+begin
+  with gShells[CurrentShell] do
+  begin
+    SpriteID := 0;
+    if T = SHELL_BULLET then
+    begin
+      if g_Texture_Get('TEXTURE_SHELL_BULLET', SID) then
+        SpriteID := SID;
+    end
+    else if g_Texture_Get('TEXTURE_SHELL_SHELL', SID) then
+      SpriteID := SID;
+    SType := T;
+    Live := True;
+    g_Obj_Init(@Obj);
+    Obj.Rect.X := 0;
+    Obj.Rect.Y := 0;
+    Obj.Rect.Width := 1;
+    Obj.Rect.Height := 1;
+    Obj.X := fX;
+    Obj.Y := fY;
+    g_Obj_Push(@Obj, dX + Random(5)-Random(5), dY-Random(5));
+    RAngle := 0;
+    Timeout := gTime + SHELL_TIMEOUT;
+
+    if CurrentShell >= High(gShells) then
+      CurrentShell := 0
+    else
+      Inc(CurrentShell);
+  end;
+end;
+
 procedure g_Player_CreateGibs(fX, fY: Integer; ModelName: string; fColor: TRGB);
 var
   a: Integer;
@@ -1153,6 +1220,35 @@ begin
           end
         else
           gCorpses[i].Update();
+
+  if gShells <> nil then
+    for i := 0 to High(gShells) do
+      if gShells[i].Live then
+        with gShells[i] do
+        begin
+          vel := Obj.Vel;
+          mr := g_Obj_Move(@Obj, True, False);
+
+          if WordBool(mr and MOVE_FALLOUT) or (gShells[i].Timeout < gTime) then
+          begin
+            Live := False;
+            Continue;
+          end;
+
+        // Отлетает от удара о стену/потолок/пол:
+          if WordBool(mr and MOVE_HITWALL) then
+            Obj.Vel.X := -(vel.X div 2);
+          if WordBool(mr and (MOVE_HITCEIL or MOVE_HITLAND)) then
+            Obj.Vel.Y := -(vel.Y div 2);
+
+          RAngle := RAngle + Abs(Obj.Vel.X) + Abs(Obj.Vel.Y);
+          if RAngle > 360 then
+            RAngle := RAngle mod 360;
+
+        // Сопротивление воздуха для куска трупа:
+          if gTime mod (GAME_TICK*3) = 0 then
+            Obj.Vel.X := z_dec(Obj.Vel.X, 1);
+        end;
 end;
 
 procedure g_Player_DrawCorpses();
@@ -1180,6 +1276,20 @@ begin
           e_Colors.B := 255;
         end;
 
+  if gShells <> nil then
+    for i := 0 to High(gShells) do
+      if gShells[i].Live then
+        with gShells[i] do
+        begin
+          if not g_Obj_Collide(sX, sY, sWidth, sHeight, @Obj) then
+            Continue;
+
+          a.X := Obj.Rect.X+(Obj.Rect.Width div 2);
+          a.y := Obj.Rect.Y+(Obj.Rect.Height div 2);
+
+          e_DrawAdv(SpriteID, Obj.X, Obj.Y, 0, True, False, RAngle, @a, M_NONE);
+        end;
+
   if gCorpses <> nil then
     for i := 0 to High(gCorpses) do
       if gCorpses[i] <> nil then
@@ -1191,9 +1301,12 @@ var
   i: Integer;
 begin
   gGibs := nil;
+  gShells := nil;
   SetLength(gGibs, MaxGibs);
+  SetLength(gShells, MaxGibs);
   CurrentGib := 0;
-
+  CurrentShell := 0;
+  
   if gCorpses <> nil then
     for i := 0 to High(gCorpses) do
       gCorpses[i].Free();
@@ -1819,6 +1932,7 @@ begin
         FFireAngle := FAngle;
         f := True;
         DidFire := True;
+        g_Player_CreateShell(GameX+PLAYER_RECT_CX, GameY+PLAYER_RECT_CX, 0, -1, SHELL_BULLET);
       end;
 
     WEAPON_SHOTGUN1:
@@ -1830,6 +1944,7 @@ begin
         FFireAngle := FAngle;
         f := True;
         DidFire := True;
+        g_Player_CreateShell(GameX+PLAYER_RECT_CX, GameY+PLAYER_RECT_CX, 0, -1, SHELL_SHELL);
       end;
 
     WEAPON_SHOTGUN2:
@@ -1841,6 +1956,8 @@ begin
         FFireAngle := FAngle;
         f := True;
         DidFire := True;
+        g_Player_CreateShell(GameX+PLAYER_RECT_CX, GameY+PLAYER_RECT_CX, 1, -1, SHELL_SHELL);
+        g_Player_CreateShell(GameX+PLAYER_RECT_CX, GameY+PLAYER_RECT_CX, -1, -1, SHELL_SHELL);
       end;
 
     WEAPON_CHAINGUN:
@@ -1852,6 +1969,7 @@ begin
         FFireAngle := FAngle;
         f := True;
         DidFire := True;
+        g_Player_CreateShell(GameX+PLAYER_RECT_CX, GameY+PLAYER_RECT_CX, 0, -1, SHELL_BULLET);
       end;
 
     WEAPON_ROCKETLAUNCHER:
@@ -1894,6 +2012,7 @@ begin
         FFireAngle := FAngle;
         f := True;
         DidFire := True;
+        g_Player_CreateShell(GameX+PLAYER_RECT_CX, GameY+PLAYER_RECT_CX, 0, -1, SHELL_SHELL);
       end;
   end;
 
