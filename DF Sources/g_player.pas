@@ -2748,9 +2748,9 @@ begin
       end;
 
     ITEM_INVIS:
-      if FMegaRulez[MR_INVIS] < PLAYER_INVIS_TIME then
+      if FMegaRulez[MR_INVIS] < gTime then
       begin
-        FMegaRulez[MR_INVIS] := PLAYER_INVIS_TIME;
+        FMegaRulez[MR_INVIS] := gTime+PLAYER_INVIS_TIME;
         Result := True;
         remove := True;
       end;
@@ -4431,7 +4431,7 @@ begin
       end;
 
     ITEM_INVIS:
-      if FMegaRulez[MR_INVIS] < gTime+PLAYER_INVIS_TIME then
+      if FMegaRulez[MR_INVIS] < gTime then
       begin
         FMegaRulez[MR_INVIS] := gTime+PLAYER_INVIS_TIME;
       end;
