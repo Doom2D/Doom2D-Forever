@@ -1478,17 +1478,14 @@ begin
 end;
 
 procedure TPlayer.Draw();
-var
+var                    
   bubX, bubY: Integer;
 begin
   if FLive then
     if (FMegaRulez[MR_INVIS] > gTime)  then
     begin
-      if ((Self = gPlayer1) or ((gPlayer1 <> nil) and
-         ((FTeam = gPlayer1.Team) and (gGameSettings.GameMode <> GM_DM)))) or
-         ((Self = gPlayer2) or ((gPlayer2 <> nil) and
-         ((FTeam = gPlayer2.Team) and (gGameSettings.GameMode <> GM_DM))))
-         then
+      if (gPlayerDrawn <> nil) and ((Self = gPlayerDrawn) or
+         ((FTeam = gPlayerDrawn.Team) and (gGameSettings.GameMode <> GM_DM))) then
         FModel.Draw(FObj.X, FObj.Y, 200)
       else
         FModel.Draw(FObj.X, FObj.Y, 254);
