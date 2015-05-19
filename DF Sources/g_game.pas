@@ -1939,11 +1939,17 @@ begin
 
   if not gGameOn then
   begin
-    if (gState = STATE_MENU) and
-    ((g_ActiveWindow = nil) or (g_ActiveWindow.BackTexture = '')) then
-      if g_Texture_Get('MENU_BACKGROUND', ID) then
-        e_DrawSize(ID, 0, 0, 0, False, False, gScreenWidth, gScreenHeight)
-      else e_Clear(GL_COLOR_BUFFER_BIT, 0, 0, 0);
+    if (gState = STATE_MENU) then
+    begin
+      if  ((g_ActiveWindow = nil) or (g_ActiveWindow.BackTexture = '')) then
+      begin
+        if g_Texture_Get('MENU_BACKGROUND', ID) then
+          e_DrawSize(ID, 0, 0, 0, False, False, gScreenWidth, gScreenHeight)
+        else e_Clear(GL_COLOR_BUFFER_BIT, 0, 0, 0);
+      end;
+      if g_ActiveWindow <> nil then
+        e_DrawFillQuad(0, 0, gScreenWidth-1, gScreenHeight-1, 0, 0, 0, 180);
+    end;
 
     if gState = STATE_FOLD then
       e_DrawFillQuad(0, 0, gScreenWidth-1, gScreenHeight-1, 0, 0, 0, EndingGameCounter);

@@ -337,6 +337,7 @@ type
     SType:    Byte;
     RAngle:   Integer;
     Timeout:  Cardinal;
+    CX, CY:   Integer;
     Obj:      TObj;
   end;
   
@@ -1118,11 +1119,18 @@ begin
     begin
       if g_Texture_Get('TEXTURE_SHELL_BULLET', SID) then
         SpriteID := SID;
+      CX := 2;
+      CY := 1;
     end
     else if g_Texture_Get('TEXTURE_SHELL_SHELL', SID) then
+    begin
       SpriteID := SID;
+      CX := 4;
+      CY := 2;
+    end;
     SType := T;
     Live := True;
+
     g_Obj_Init(@Obj);
     Obj.Rect.X := 0;
     Obj.Rect.Y := 0;
@@ -1295,8 +1303,8 @@ begin
           if not g_Obj_Collide(sX, sY, sWidth, sHeight, @Obj) then
             Continue;
 
-          a.X := Obj.Rect.X+(Obj.Rect.Width div 2);
-          a.y := Obj.Rect.Y+(Obj.Rect.Height div 2);
+          a.X := CX;
+          a.Y := CY;
 
           e_DrawAdv(SpriteID, Obj.X, Obj.Y, 0, True, False, RAngle, @a, M_NONE);
         end;
