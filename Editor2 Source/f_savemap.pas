@@ -95,16 +95,11 @@ var
 
 begin
   lbMapList.Items.Clear();
+  max_num := 1;
 
   WAD := TWADEditor_1.Create();
-  if not WAD.ReadFile(FileName) then
-  begin
-    WAD.Free();
-    Exit;
-  end;
-
-  ResList := WAD.GetResourcesList('');
-  max_num := 1;
+  WAD.ReadFile(FileName);
+  ResList := WAD.GetResourcesList('');  
 
   if ResList <> nil then
     for a := 0 to High(ResList) do
