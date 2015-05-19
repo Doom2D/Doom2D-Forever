@@ -1457,6 +1457,8 @@ begin
           until (FItems[FIndex].Control <> nil) and
                 (FItems[FIndex].Control.Enabled);
 
+          FCounter := 0;
+
           g_Sound_PlayEx(MENU_CHANGESOUND);
         end;
 
@@ -1475,6 +1477,8 @@ begin
             if FIndex > High(FItems) then FIndex := 0;
           until (FItems[FIndex].Control <> nil) and
                 (FItems[FIndex].Control.Enabled);
+
+          FCounter := 0;
 
           g_Sound_PlayEx(MENU_CHANGESOUND);
         end;
