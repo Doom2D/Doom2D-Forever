@@ -401,14 +401,11 @@ Type
     I_LAB_SETS_MONSTERS,
     I_LAB_SETS_AREAS,
     I_LAB_SETS_TRIGGERS,
-    I_LAB_SETS_FOR,
-    I_LAB_SETS_B_LEFT,
-    I_LAB_SETS_B_RIGHT,
-    I_LAB_SETS_B_TOP,
-    I_LAB_SETS_B_BOTTOM,
     I_LAB_SETS_SIZES,
     I_LAB_SETS_WIDTH,
     I_LAB_SETS_HEIGHT,
+    I_LAB_SETS_MAPMOVE,
+    I_LAB_SETS_SNAPPING,
 
     I_LAB_LAUNCH_TIME,
     I_LAB_LAUNCH_SECS,
@@ -1280,22 +1277,16 @@ Const
                                        'Областей:'),
     ('LAB SETS TRIGGERS',              'Triggers:',
                                        'Триггеров:'),
-    ('LAB SETS FOR',                   'for',
-                                       'на'),
-    ('LAB SETS B LEFT',                'Move the Left Map Border',
-                                       'Сдвинуть левую границу карты'),
-    ('LAB SETS B RIGHT',               'Move the Right Map Border',
-                                       'Сдвинуть правую границу карты'),
-    ('LAB SETS B TOP',                 'Move the Top Map Border',
-                                       'Сдвинуть верхнюю границу карты'),
-    ('LAB SETS B BOTTOM',              'Move the Bottom Map Border',
-                                       'Сдвинуть нижнюю границу карты'),
-    ('LAB SETS SIZES',                 'Map Size:',
-                                       'Общие размеры карты:'),
+    ('LAB SETS SIZES',                 'Current:',
+                                       'Текущий:'),
     ('LAB SETS WIDTH',                 'Width:',
                                        'Ширина:'),
     ('LAB SETS HEIGHT',                'Height:',
                                        'Высота:'),
+    ('LAB SETS MAPMOVE',               'Direction of shifting map objects:',
+                                       'Направление смещения объектов карты:'),
+    ('LAB SETS SNAPPING',              'Preserve snapping',
+                                       'Сохранять привязку'),
 
     ('LAB LAUNCH TIME',                'Time Limit:',
                                        'Лимит времени:'),
@@ -1866,11 +1857,11 @@ begin
     bBeginPanelsOptimization.Caption := _lc[I_BTN_START];
   end;
 
-// Форма "Настройки карты":
+// Форма "Параметры карты":
   with MapOptionsForm do
   begin
     Caption := _lc[I_CAP_SETS];
-  // Настройки карты:
+  // Основные параметры:
     LabelName.Caption := _lc[I_LAB_SETS_NAME];
     LabelDesc.Caption := _lc[I_LAB_SETS_DESC];
     LabelAuthor.Caption := _lc[I_LAB_SETS_AUTHOR];
@@ -1886,17 +1877,11 @@ begin
     LabelTriggers.Caption := _lc[I_LAB_SETS_TRIGGERS];
   // Размеры:
     GBSizes.Caption := _lc[I_CTRL_SETS_SIZES];
-    LabelLeftBorder.Caption := _lc[I_LAB_SETS_B_LEFT];
-    LabelFor1.Caption := _lc[I_LAB_SETS_FOR];
-    LabelRightBorder.Caption := _lc[I_LAB_SETS_B_RIGHT];
-    LabelFor2.Caption := _lc[I_LAB_SETS_FOR];
-    LabelTopBorder.Caption := _lc[I_LAB_SETS_B_TOP];
-    LabelFor3.Caption := _lc[I_LAB_SETS_FOR];
-    LabelBottomBorder.Caption := _lc[I_LAB_SETS_B_BOTTOM];
-    LabelFor4.Caption := _lc[I_LAB_SETS_FOR];
-    LabelMapSize.Caption := _lc[I_LAB_SETS_SIZES];
     LabelWidth.Caption := _lc[I_LAB_SETS_WIDTH];
     LabelHeight.Caption := _lc[I_LAB_SETS_HEIGHT];
+    LabelCurSize.Caption := _lc[I_LAB_SETS_SIZES];
+    LabelMapMove.Caption := _lc[I_LAB_SETS_MAPMOVE];
+    cbSnapping.Caption := _lc[I_LAB_SETS_SNAPPING];
   // Кнопки:
     bOK.Caption := _lc[I_BTN_OK];
     bCancel.Caption := _lc[I_BTN_CANCEL];
@@ -2067,7 +2052,7 @@ begin
               end;
             end;
 
-          // От слудующего за текущим до последнего:
+          // От следующего за текущим до последнего:
             if not ok then
             begin
               i := TStrings_Locale(k);

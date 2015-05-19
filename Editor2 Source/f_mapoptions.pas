@@ -3,9 +3,9 @@ unit f_mapoptions;
 interface
 
 uses
-  Windows, Messages, SysUtils, Variants, Classes,
-  Graphics, Controls, Forms, Dialogs, StdCtrls,
-  ExtCtrls, f_main, ComCtrls;
+  SysUtils, Classes, Forms, Dialogs,
+  Controls, StdCtrls, ComCtrls, Buttons,
+  f_main;
 
 type
   TMapOptionsForm = class (TForm)
@@ -49,36 +49,27 @@ type
 
   // Размеры:
     GBSizes: TGroupBox;
-  // Сдвинуть левую границу:
-    LabelLeftBorder: TLabel;
-    bLeftB: TButton;
-    LabelFor1: TLabel;
-    eLeftB: TEdit;
+    eMapWidth: TEdit;
     UpDown1: TUpDown;
-  // Сдвинуть правую границу:
-    LabelRightBorder: TLabel;
-    bRightB: TButton;
-    LabelFor2: TLabel;
-    eRightB: TEdit;
+    eMapHeight: TEdit;
     UpDown2: TUpDown;
-  // Сдвинуть верхнюю границу:
-    LabelTopBorder: TLabel;
-    bUpB: TButton;
-    LabelFor3: TLabel;
-    eUpB: TEdit;
-    UpDown3: TUpDown;
-  // Сдвинуть нижнюю границу:
-    LabelBottomBorder: TLabel;
-    bDownB: TButton;
-    LabelFor4: TLabel;
-    eDownB: TEdit;
-    UpDown4: TUpDown;
-  // Размеры карты:
-    LabelMapSize: TLabel;
     LabelWidth: TLabel;
-    lMapWidth: TLabel;
     LabelHeight: TLabel;
-    lMapHeight: TLabel;
+    LabelCurSize: TLabel;
+    lCurrentMapSizes: TLabel;
+
+  // Навигатор направления смещения
+    sbMoveCenter: TSpeedButton;
+    sbMoveLeft: TSpeedButton;
+    sbMoveRight: TSpeedButton;
+    sbMoveUp: TSpeedButton;
+    sbMoveUpLeft: TSpeedButton;
+    sbMoveUpRight: TSpeedButton;
+    sbMoveDown: TSpeedButton;
+    sbMoveDownLeft: TSpeedButton;
+    sbMoveDownRight: TSpeedButton;
+    LabelMapMove: TLabel;
+    cbSnapping: TCheckBox;
 
   // Кнопки:
     bOK: TButton;
@@ -87,27 +78,20 @@ type
     procedure FormActivate(Sender: TObject);
     procedure bCancelClick(Sender: TObject);
     procedure bOKClick(Sender: TObject);
+
     procedure eMapNameChange(Sender: TObject);
     procedure eMapDescriptionChange(Sender: TObject);
+    procedure eAuthorChange(Sender: TObject);
+
     procedure bSelectBackClick(Sender: TObject);
     procedure bSelectMusicClick(Sender: TObject);
-    procedure eAuthorChange(Sender: TObject);
     procedure bRemoveBackClick(Sender: TObject);
     procedure bRemoveMusicClick(Sender: TObject);
-    procedure bLeftBClick(Sender: TObject);
-    procedure bRightBClick(Sender: TObject);
-    procedure bUpBClick(Sender: TObject);
-    procedure bDownBClick(Sender: TObject);
-    procedure eLeftBChange(Sender: TObject);
+    procedure eMapSizeKeyPress(Sender: TObject; var Key: Char);
 
   private
-    bpLeft: Boolean;
-    bpRight: Boolean;
-    bpUp: Boolean;
-    bpDown: Boolean;
-
-    procedure RecalcMapSize();
-    procedure ResetDirButtons();
+    function CalcOffsetX(WidthDiff: Integer): Integer;
+    function CalcOffsetY(HeightDiff: Integer): Integer;
 
   public
     { Public declarations }
@@ -119,11 +103,11 @@ var
 implementation
 
 uses
-  g_map, f_addresource_sky, f_addresource_sound, math,
-  g_language;
+  g_map, f_addresource_sky, f_addresource_sound;
 
 {$R *.dfm}
 
+// Callbacks to receive results from resource choosing dialogs
 function SetSky: Boolean;
 begin
   MapOptionsForm.eBack.Text := AddSkyForm.ResourceName;
@@ -136,55 +120,59 @@ begin
   Result := True;
 end;
 
+// Form processing
 procedure TMapOptionsForm.FormActivate(Sender: TObject);
 var
   a, b: Integer;
-
 begin
+  // General map options
   eMapName.Text := gMapInfo.Name;
   eMapDescription.Text := gMapInfo.Description;
   eAuthor.Text := gMapInfo.Author;
-  lTextureCount.Caption := IntToStr(MainForm.lbTextureList.Count);
 
   eBack.Text := gMapInfo.SkyName;
   eMusic.Text := gMapInfo.MusicName;
 
-  b := 0;
+  eMapWidth.Text := IntToStr(gMapInfo.Width);
+  eMapHeight.Text := IntToStr(gMapInfo.Height);
+  lCurrentMapSizes.Caption := eMapWidth.Text + 'x' + eMapHeight.Text;
+
+  sbMoveCenter.Down := True;
+
+  // Map statistics
+  lTextureCount.Caption := IntToStr(MainForm.lbTextureList.Count);
+
+  b := 0; // Panels
   if gPanels <> nil then
     for a := 0 to High(gPanels) do
-      if gPanels[a].PanelType <> 0 then
-        b := b + 1;
+      if gPanels[a].PanelType <> 0 then b := b+1;
   lPanelCount.Caption := IntToStr(b);
 
-  b := 0;
+  b := 0; // Items
   if gItems <> nil then
     for a := 0 to High(gItems) do
-      if gItems[a].ItemType <> 0 then
-        b := b + 1;
+      if gItems[a].ItemType <> 0 then b := b+1;
   lItemCount.Caption := IntToStr(b);
 
-  b := 0;
+  b := 0; // Areas
   if gAreas <> nil then
     for a := 0 to High(gAreas) do
-      if gAreas[a].AreaType <> 0 then
-        b := b + 1;
+      if gAreas[a].AreaType <> 0 then b := b+1;
   lAreaCount.Caption := IntToStr(b);
 
-  b := 0;
+  b := 0; // Monsters
   if gMonsters <> nil then
     for a := 0 to High(gMonsters) do
-      if gMonsters[a].MonsterType <> 0 then
-        b := b + 1;
+      if gMonsters[a].MonsterType <> 0 then b := b+1;
   lMonsterCount.Caption := IntToStr(b);
 
-  b := 0;
+  b := 0; // Triggers
   if gTriggers <> nil then
     for a := 0 to High(gTriggers) do
       if gTriggers[a].TriggerType <> 0 then
         b := b + 1;
   lTriggerCount.Caption := IntToStr(b);
 
-  ResetDirButtons();
 end;
 
 procedure TMapOptionsForm.bCancelClick(Sender: TObject);
@@ -195,20 +183,10 @@ end;
 procedure TMapOptionsForm.bOKClick(Sender: TObject);
 var
   newWidth, newHeight: Integer;
-  newLeft, newUp: Integer;
-
-begin
-  newLeft := StrToIntDef(eLeftB.Text, 0);
-  newUp := StrToIntDef(eUpB.Text, 0);
-
-  if not bpLeft then
-    newLeft := -newLeft;
-  if not bpUp then
-    newUp := -newUp;
-
-  newWidth := StrToIntDef(lMapWidth.Caption, gMapInfo.Width);
-  newHeight := StrToIntDef(lMapHeight.Caption, gMapInfo.Height);
-
+begin  
+  newWidth := StrToInt(eMapWidth.Text);
+  newHeight := StrToInt(eMapHeight.Text);
+              
   with gMapInfo do
   begin
     Name := eMapName.Text;
@@ -221,12 +199,13 @@ begin
       MapOffset.X := 0;
     if Height > newHeight then
       MapOffset.Y := 0;
+
+    ShiftMapObjects( CalcOffsetX(newWidth - Width),
+                     CalcOffsetY(newHeight - Height) );
+
     Width := newWidth;
     Height := newHeight;
   end;
-
-  if (newLeft <> 0) or (newUp <> 0) then
-    ShiftMapObjects(newLeft, newUp);
 
   LoadSky(gMapInfo.SkyName);
 
@@ -234,6 +213,7 @@ begin
   Close();
 end;
 
+// Counters of chars in edit fields
 procedure TMapOptionsForm.eMapNameChange(Sender: TObject);
 begin
   lCharCountName.Caption := Format('%.2d\32', [Length(eMapName.Text)]);
@@ -244,6 +224,12 @@ begin
   lCharCountDescription.Caption := Format('%.3d\256', [Length(eMapDescription.Text)]);
 end;
 
+procedure TMapOptionsForm.eAuthorChange(Sender: TObject);
+begin
+  lCharCountAuthor.Caption := Format('%.2d\32', [Length(eAuthor.Text)]);
+end;
+
+// Buttons processing
 procedure TMapOptionsForm.bSelectBackClick(Sender: TObject);
 begin
   AddSkyForm.OKFunction := SetSky;
@@ -260,11 +246,6 @@ begin
   AddSoundForm.ShowModal();
 end;
 
-procedure TMapOptionsForm.eAuthorChange(Sender: TObject);
-begin
-  lCharCountAuthor.Caption := Format('%.2d\32', [Length(eAuthor.Text)]);
-end;
-
 procedure TMapOptionsForm.bRemoveBackClick(Sender: TObject);
 begin
   eBack.Clear();
@@ -275,117 +256,41 @@ begin
   eMusic.Clear();
 end;
 
-procedure TMapOptionsForm.RecalcMapSize();
-var
-  newWidth, newHeight: Integer;
-  nLeft, nRight, nUp, nDown: Integer;
-
+// Map width/height edit fields input processor: only digits are allowed
+procedure TMapOptionsForm.eMapSizeKeyPress( Sender: TObject;
+  var Key: Char );
 begin
-  nLeft := StrToIntDef(eLeftB.Text, 0);
-  nRight := StrToIntDef(eRightB.Text, 0);
-  nUp := StrToIntDef(eUpB.Text, 0);
-  nDown := StrToIntDef(eDownB.Text, 0);
-
-  if not bpLeft then
-    nLeft := -nLeft;
-  if not bpRight then
-    nRight := -nRight;
-  if not bpUp then
-    nUp := -nUp;
-  if not bpDown then
-    nDown := -nDown;
-
-  newWidth := gMapInfo.Width;
-  newHeight := gMapInfo.Height;
-
-  newWidth := newWidth + nLeft + nRight;
-  newHeight := newHeight + nUp + nDown;
-
-  lMapWidth.Caption := IntToStr(Max(newWidth, 0));
-  lMapHeight.Caption := IntToStr(Max(newHeight, 0));
+  if not ( Key in ['0'..'9'] ) then
+    Key := #0;
 end;
 
-procedure TMapOptionsForm.ResetDirButtons();
+// Offsets calculating for shifting map objects
+function TMapOptionsForm.CalcOffsetX(WidthDiff: Integer): Integer;
 begin
-  bpLeft := False;
-  bpRight := False;
-  bpUp := False;
-  bpDown := False;
-  
-  bLeftBClick(bLeftB);
-  bRightBClick(bRightB);
-  bUpBClick(bUpB);
-  bDownBClick(bDownB);
-
-  eLeftB.Text := '0';
-  eRightB.Text := '0';
-  eUpB.Text := '0';
-  eDownB.Text := '0';
-
-  RecalcMapSize();
-end;
-
-procedure TMapOptionsForm.bLeftBClick(Sender: TObject);
-begin
-  bpLeft := not bpLeft;
-  if bpLeft then
-    (Sender as TButton).Caption := DirButtonNames[1]
+  Result := 0;
+  if (sbMoveCenter.Down or
+      sbMoveUp.Down or
+      sbMoveDown.Down) then Result := WidthDiff div 2
   else
-    (Sender as TButton).Caption := DirButtonNames[2];
-  RecalcMapSize();
+  if (sbMoveRight.Down or
+      sbMoveUpRight.Down or
+      sbMoveDownRight.Down) then Result := WidthDiff;
+
+  if cbSnapping.Checked then Result := Trunc(Result / DotStep) * DotStep;
 end;
 
-procedure TMapOptionsForm.bRightBClick(Sender: TObject);
+function TMapOptionsForm.CalcOffsetY(HeightDiff: Integer): Integer;
 begin
-  bpRight := not bpRight;
-  if bpRight then
-    (Sender as TButton).Caption := DirButtonNames[2]
+  Result := 0;
+  if (sbMoveCenter.Down or
+      sbMoveLeft.Down or
+      sbMoveRight.Down) then Result := HeightDiff div 2
   else
-    (Sender as TButton).Caption := DirButtonNames[1];
-  RecalcMapSize();
-end;
+  if (sbMoveDown.Down or
+      sbMoveDownLeft.Down or
+      sbMoveDownRight.Down) then Result := HeightDiff;
 
-procedure TMapOptionsForm.bUpBClick(Sender: TObject);
-begin
-  bpUp := not bpUp;
-  if bpUp then
-    (Sender as TButton).Caption := DirButtonNames[3]
-  else
-    (Sender as TButton).Caption := DirButtonNames[4];
-  RecalcMapSize();
-end;
-
-procedure TMapOptionsForm.bDownBClick(Sender: TObject);
-begin
-  bpDown := not bpDown;
-  if bpDown then
-    (Sender as TButton).Caption := DirButtonNames[4]
-  else
-    (Sender as TButton).Caption := DirButtonNames[3];
-  RecalcMapSize();
-end;
-
-procedure TMapOptionsForm.eLeftBChange(Sender: TObject);
-var
-  s: String;
-  i, len: Integer;
-
-begin
-  s := (Sender as TEdit).Text;
-
-  i := 1;
-  len := Length(s);
-  while (i <= Len) do
-    if (s[i] < '0') or (s[i] > '9') then
-      begin
-        Delete(s, i, 1);
-        Dec(len);
-      end
-    else
-      Inc(i);
-      
-  (Sender as TEdit).Text := s;
-  RecalcMapSize();
+  if cbSnapping.Checked then Result := Trunc(Result / DotStep) * DotStep;
 end;
 
 end.
