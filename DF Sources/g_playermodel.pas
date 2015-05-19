@@ -78,7 +78,7 @@ type
     procedure   SetFire(Fire: Boolean);
     function    PlaySound(SoundType, Level: Byte; X, Y: Integer): Boolean;
     procedure   Update();
-    procedure   Draw(X, Y: Integer; Alpha: Byte = 255);
+    procedure   Draw(X, Y: Integer; Alpha: Byte = 0);
 
     property    Fire: Boolean read FFire;
     property    Direction: TDirection read FDirection write FDirection;
@@ -647,7 +647,7 @@ begin
   inherited;
 end;
 
-procedure TPlayerModel.Draw(X, Y: Integer; Alpha: Byte = 255);
+procedure TPlayerModel.Draw(X, Y: Integer; Alpha: Byte = 0);
 var
   Mirror: TMirrorType;
   pos, act: Byte;
@@ -696,7 +696,7 @@ begin
     else
       act := W_ACT_NORMAL;
 
-    if Alpha > 2 then
+    if Alpha < 201 then
       e_Draw(WeaponID[FCurrentWeapon][pos][act],
              X+FWeaponPoints[FCurrentWeapon, FCurrentAnimation, FDirection,
                              FAnim[D_RIGHT][FCurrentAnimation].CurrentFrame].X,

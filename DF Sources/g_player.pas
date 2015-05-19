@@ -1482,13 +1482,16 @@ var
   bubX, bubY: Integer;
 begin
   if FLive then
-    if FMegaRulez[MR_INVIS] > 0 then
+    if (FMegaRulez[MR_INVIS] > gTime)  then
     begin
-      if ((gPlayer1 <> nil) and (FTeam = gPlayer1.Team)) or
-         ((gPlayer2 <> nil) and (FTeam = gPlayer2.Team)) then
-        FModel.Draw(FObj.X, FObj.Y, 64)
+      if ((Self = gPlayer1) or ((gPlayer1 <> nil) and
+         ((FTeam = gPlayer1.Team) and (gGameSettings.GameMode <> GM_DM)))) or
+         ((Self = gPlayer2) or ((gPlayer2 <> nil) and
+         ((FTeam = gPlayer2.Team) and (gGameSettings.GameMode <> GM_DM))))
+         then
+        FModel.Draw(FObj.X, FObj.Y, 200)
       else
-        FModel.Draw(FObj.X, FObj.Y, 1);
+        FModel.Draw(FObj.X, FObj.Y, 254);
     end
     else
       FModel.Draw(FObj.X, FObj.Y);
@@ -3578,6 +3581,7 @@ begin
     // Обнулить действия примочек, чтобы фон пропал
     FMegaRulez[MR_SUIT] := 0;
     FMegaRulez[MR_INVUL] := 0;
+    FMegaRulez[MR_INVIS] := 0;
     Kill(K_FALLKILL, 0, HIT_FALL);
   end;
 
@@ -4427,6 +4431,12 @@ begin
       if FMegaRulez[MR_INVUL] < gTime+PLAYER_INVUL_TIME then
       begin
         FMegaRulez[MR_INVUL] := gTime+PLAYER_INVUL_TIME;
+      end;
+
+    ITEM_INVIS:
+      if FMegaRulez[MR_INVIS] < gTime+PLAYER_INVIS_TIME then
+      begin
+        FMegaRulez[MR_INVIS] := gTime+PLAYER_INVIS_TIME;
       end;
 
     ITEM_JETPACK:
