@@ -1116,6 +1116,8 @@ begin
   begin
     SpriteID := 0;
     g_Obj_Init(@Obj);
+    Obj.Rect.X := 0;
+    Obj.Rect.Y := 0;
     if T = SHELL_BULLET then
     begin
       if g_Texture_Get('TEXTURE_SHELL_BULLET', SID) then
@@ -1136,8 +1138,6 @@ begin
     end;
     SType := T;
     Live := True;
-    Obj.Rect.X := 0;
-    Obj.Rect.Y := 0;
     Obj.X := fX;
     Obj.Y := fY;
     g_Obj_Push(@Obj, dX + Random(6)-Random(6), dY-Random(6));
@@ -1212,7 +1212,7 @@ begin
           if WordBool(mr and (MOVE_HITCEIL or MOVE_HITLAND)) then
             Obj.Vel.Y := -(vel.Y div 2);
 
-          RAngle := RAngle + Abs(Obj.Vel.X) + Abs(Obj.Vel.Y);
+          RAngle := RAngle + Obj.Vel.X*6 + Obj.Vel.Y;
           if RAngle > 360 then
             RAngle := RAngle mod 360;
 
@@ -1257,7 +1257,7 @@ begin
               RAngle := (RAngle div 180) * 180;
           end;
 
-          RAngle := RAngle - Abs(Obj.Vel.X)*2 - Abs(Obj.Vel.Y)*2;
+          RAngle := RAngle + Obj.Vel.X*8 + Obj.Vel.Y;
           if RAngle > 360 then
             RAngle := RAngle mod 360;
         end;
