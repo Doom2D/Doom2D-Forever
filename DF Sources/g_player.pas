@@ -409,6 +409,7 @@ procedure g_Player_CreateGibs(fX, fY: Integer; ModelName: String; fColor: TRGB);
 procedure g_Player_CreateShell(fX, fY, dX, dY: Integer; T: Byte);
 procedure g_Player_UpdateCorpse();
 procedure g_Player_DrawCorpses();
+procedure g_Player_DrawShells();
 procedure g_Player_RemoveAllCorpses();
 procedure g_Player_Corpses_SaveState(var Mem: TBinMemoryWriter);
 procedure g_Player_Corpses_LoadState(var Mem: TBinMemoryReader);
@@ -1125,8 +1126,8 @@ begin
     g_Obj_Init(@Obj);
     Obj.Rect.X := 0;
     Obj.Rect.Y := 0;
-    Obj.Rect.Width := 1;
-    Obj.Rect.Height := 1;
+    Obj.Rect.Width := 2;
+    Obj.Rect.Height := 2;
     Obj.X := fX;
     Obj.Y := fY;
     g_Obj_Push(@Obj, dX + Random(5)-Random(5), dY-Random(5));
@@ -1239,15 +1240,14 @@ begin
           if WordBool(mr and MOVE_HITWALL) then
             Obj.Vel.X := -(vel.X div 2);
           if WordBool(mr and (MOVE_HITCEIL or MOVE_HITLAND)) then
+          begin
             Obj.Vel.Y := -(vel.Y div 2);
+            if Obj.Vel.X <> 0 then Obj.Vel.X := Obj.Vel.X div 2;
+          end;
 
-          RAngle := RAngle + Abs(Obj.Vel.X) + Abs(Obj.Vel.Y);
+          RAngle := RAngle - Abs(Obj.Vel.X)*2 - Abs(Obj.Vel.Y)*2;
           if RAngle > 360 then
             RAngle := RAngle mod 360;
-
-        // Сопротивление воздуха для куска трупа:
-          if gTime mod (GAME_TICK*3) = 0 then
-            Obj.Vel.X := z_dec(Obj.Vel.X, 1);
         end;
 end;
 
@@ -1276,6 +1276,17 @@ begin
           e_Colors.B := 255;
         end;
 
+  if gCorpses <> nil then
+    for i := 0 to High(gCorpses) do
+      if gCorpses[i] <> nil then
+        gCorpses[i].Draw();
+end;
+
+procedure g_Player_DrawShells();
+var
+  i: Integer;
+  a: TPoint;
+begin
   if gShells <> nil then
     for i := 0 to High(gShells) do
       if gShells[i].Live then
@@ -1289,11 +1300,6 @@ begin
 
           e_DrawAdv(SpriteID, Obj.X, Obj.Y, 0, True, False, RAngle, @a, M_NONE);
         end;
-
-  if gCorpses <> nil then
-    for i := 0 to High(gCorpses) do
-      if gCorpses[i] <> nil then
-        gCorpses[i].Draw();
 end;
 
 procedure g_Player_RemoveAllCorpses();
@@ -1932,7 +1938,7 @@ begin
         FFireAngle := FAngle;
         f := True;
         DidFire := True;
-        g_Player_CreateShell(GameX+PLAYER_RECT_CX, GameY+PLAYER_RECT_CX, 0, -1, SHELL_BULLET);
+        g_Player_CreateShell(GameX+PLAYER_RECT_CX, GameY+PLAYER_RECT_CX, 0, -3, SHELL_BULLET);
       end;
 
     WEAPON_SHOTGUN1:
@@ -1944,7 +1950,7 @@ begin
         FFireAngle := FAngle;
         f := True;
         DidFire := True;
-        g_Player_CreateShell(GameX+PLAYER_RECT_CX, GameY+PLAYER_RECT_CX, 0, -1, SHELL_SHELL);
+        g_Player_CreateShell(GameX+PLAYER_RECT_CX, GameY+PLAYER_RECT_CX, 0, -3, SHELL_SHELL);
       end;
 
     WEAPON_SHOTGUN2:
@@ -1956,8 +1962,8 @@ begin
         FFireAngle := FAngle;
         f := True;
         DidFire := True;
-        g_Player_CreateShell(GameX+PLAYER_RECT_CX, GameY+PLAYER_RECT_CX, 1, -1, SHELL_SHELL);
-        g_Player_CreateShell(GameX+PLAYER_RECT_CX, GameY+PLAYER_RECT_CX, -1, -1, SHELL_SHELL);
+        g_Player_CreateShell(GameX+PLAYER_RECT_CX, GameY+PLAYER_RECT_CX, 1, -3, SHELL_SHELL);
+        g_Player_CreateShell(GameX+PLAYER_RECT_CX, GameY+PLAYER_RECT_CX, -1, -3, SHELL_SHELL);
       end;
 
     WEAPON_CHAINGUN:
@@ -1969,7 +1975,7 @@ begin
         FFireAngle := FAngle;
         f := True;
         DidFire := True;
-        g_Player_CreateShell(GameX+PLAYER_RECT_CX, GameY+PLAYER_RECT_CX, 0, -1, SHELL_BULLET);
+        g_Player_CreateShell(GameX+PLAYER_RECT_CX, GameY+PLAYER_RECT_CX, 0, -3, SHELL_BULLET);
       end;
 
     WEAPON_ROCKETLAUNCHER:

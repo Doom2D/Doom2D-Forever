@@ -2559,12 +2559,18 @@ _end:
                   begin
                     g_Sound_PlayExAt('SOUND_WEAPON_FIREPISTOL', wx, wy);
                     g_Weapon_gun(wx, wy, tx, ty, 1, FUID, False);
+                    g_Player_CreateShell(wx, wy, 0, -3, SHELL_BULLET);
                   end;
                 MONSTER_SERG:
-                  g_Weapon_shotgun(wx, wy, tx, ty, FUID);
+                  begin
+                    g_Weapon_shotgun(wx, wy, tx, ty, FUID);
+                    g_Player_CreateShell(wx, wy, 0, -3, SHELL_SHELL);
+                  end;
                 MONSTER_MAN:
                   begin
                     g_Weapon_dshotgun(wx, wy, tx, ty, FUID);
+                    g_Player_CreateShell(wx, wy, 1, -3, SHELL_SHELL);
+                    g_Player_CreateShell(wx, wy, -1, -3, SHELL_SHELL);
                     FAmmo := -36;
                   end;
                 MONSTER_CYBER:
@@ -2574,8 +2580,16 @@ _end:
                 end;
                 MONSTER_SKEL:
                   g_Weapon_revf(wx, wy, tx, ty, FUID, FTargetUID);
-                MONSTER_CGUN, MONSTER_SPIDER:
-                  g_Weapon_mgun(wx, wy, tx, ty, FUID);
+                MONSTER_CGUN:
+                  begin
+                    g_Weapon_mgun(wx, wy, tx, ty, FUID);
+                    g_Player_CreateShell(wx, wy, 0, -3, SHELL_BULLET);
+                  end;
+                MONSTER_SPIDER:
+                  begin
+                    g_Weapon_mgun(wx, wy, tx, ty, FUID);
+                    g_Player_CreateShell(wx, wy, 0, -3, SHELL_SHELL);
+                  end;
                 MONSTER_BSP:
                   g_Weapon_aplasma(wx, wy, tx, ty, FUID);
                 MONSTER_ROBO:
