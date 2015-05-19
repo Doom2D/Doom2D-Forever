@@ -1073,6 +1073,7 @@ var
   find_id: DWORD;
   ok: Boolean;
 begin
+  if (gGameSettings.GameType = GT_SERVER) and NetDedicated then Exit;
   if Player.Live then
     Exit;
   if Player.FObj.Y >= gMapInfo.Height+128 then
@@ -1112,6 +1113,7 @@ procedure g_Player_CreateShell(fX, fY, dX, dY: Integer; T: Byte);
 var
   SID: DWORD;
 begin
+  if (gGameSettings.GameType = GT_SERVER) and NetDedicated then Exit;
   with gShells[CurrentShell] do
   begin
     SpriteID := 0;
@@ -1156,6 +1158,7 @@ var
   a: Integer;
   GibsArray: TGibsArray;
 begin
+  if (gGameSettings.GameType = GT_SERVER) and NetDedicated then Exit;
   if gGibs = nil then
     Exit;
   if not g_PlayerModel_GetGibs(ModelName, GibsArray) then
@@ -1192,6 +1195,7 @@ var
   vel: TPoint2i;
   mr: Word;
 begin
+  if (gGameSettings.GameType = GT_SERVER) and NetDedicated then Exit;
   if gGibs <> nil then
     for i := 0 to High(gGibs) do
       if gGibs[i].Live then
@@ -1268,6 +1272,7 @@ var
   i: Integer;
   a: TPoint;
 begin
+  if (gGameSettings.GameType = GT_SERVER) and NetDedicated then Exit;
   if gGibs <> nil then
     for i := 0 to High(gGibs) do
       if gGibs[i].Live then

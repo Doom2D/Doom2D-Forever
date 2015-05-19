@@ -5,25 +5,11 @@ interface
 uses
   g_textures;
 
-procedure g_GFX_Init();
-procedure g_GFX_Free();
-
-procedure g_GFX_Blood(fX, fY: Integer; Count: Word; vx, vy: Integer;{Angle: SmallInt; Vel: Single;}
-                      DevX, DevY: Word);
-procedure g_GFX_Spark(fX, fY: Integer; Count: Word; Angle: SmallInt; DevX, DevY: Byte);
-procedure g_GFX_Water(fX, fY: Integer; Count: Word; fVelX, fVelY: Single; DevX, DevY, Color: Byte);
-procedure g_GFX_Bubbles(fX, fY: Integer; Count: Word; DevX, DevY: Byte);
-procedure g_GFX_SetMax(Count: Integer);
-function  g_GFX_GetMax(): Integer;
-
-procedure g_GFX_OnceAnim(X, Y: Integer; Anim: TAnimation; AnimType: Byte = 0);
-
-procedure g_Mark(x, y, Width, Height: Integer; t: Byte; st: Boolean);
-
-procedure g_GFX_Update();
-procedure g_GFX_Draw();
-
 const
+  BLOOD_SPARKS = 0;
+  BLOOD_RED = 1;
+  BLOOD_GREEN = 2;
+  BLOOD_BLUE = 3;
   ONCEANIM_NONE  = 0;
   ONCEANIM_SMOKE = 1;
   MARK_FREE     = 0;
@@ -38,6 +24,24 @@ const
   MARK_BLOCKED  = MARK_WALL + MARK_DOOR;
   MARK_LIQUID   = MARK_WATER + MARK_ACID;
   MARK_LIFT     = MARK_LIFTDOWN + MARK_LIFTUP + MARK_LIFTLEFT + MARK_LIFTRIGHT;
+
+procedure g_GFX_Init();
+procedure g_GFX_Free();
+
+procedure g_GFX_Blood(fX, fY: Integer; Count: Word; vx, vy: Integer;
+                      DevX, DevY: Word; Kind: Byte = BLOOD_RED);
+procedure g_GFX_Spark(fX, fY: Integer; Count: Word; Angle: SmallInt; DevX, DevY: Byte);
+procedure g_GFX_Water(fX, fY: Integer; Count: Word; fVelX, fVelY: Single; DevX, DevY, Color: Byte);
+procedure g_GFX_Bubbles(fX, fY: Integer; Count: Word; DevX, DevY: Byte);
+procedure g_GFX_SetMax(Count: Integer);
+function  g_GFX_GetMax(): Integer;
+
+procedure g_GFX_OnceAnim(X, Y: Integer; Anim: TAnimation; AnimType: Byte = 0);
+
+procedure g_Mark(x, y, Width, Height: Integer; t: Byte; st: Boolean);
+
+procedure g_GFX_Update();
+procedure g_GFX_Draw();
 
 var
   gCollideMap: Array of Array of Byte;
@@ -252,7 +256,64 @@ begin
   end;
 end;
 
-procedure g_GFX_Blood(fX, fY: Integer; Count: Word; vx, vy: Integer; DevX, DevY: Word);
+procedure g_GFX_SparkVel(fX, fY: Integer; Count: Word; VX, VY: Integer; DevX, DevY: Byte);
+var
+  a: Integer;
+  DevX1, DevX2,
+  DevY1, DevY2: Byte;
+  l: Integer;
+begin
+  l := Length(Particles);
+  if l = 0 then
+    Exit;
+  if Count > l then
+    Count := l;
+
+  DevX1 := DevX div 2;
+  DevX2 := DevX + 1;
+  DevY1 := DevY div 2;
+  DevY2 := DevY + 1;
+
+  for a := 1 to Count do
+  begin
+    with Particles[CurrentParticle] do
+    begin
+      X := fX-DevX1+Random(DevX2);
+      Y := fY-DevY1+Random(DevY2);
+
+      VelX := VX + (Random-Random)*3;
+      VelY := VY + (Random-Random)*3;
+
+      if VelY > -4 then
+        if VelY-4 < -4 then
+          VelY := -4
+        else
+          VelY := VelY-4;
+
+      AccelX := -Sign(VelX)*Random/100;
+      AccelY := 0.8;
+
+      Red := 255;
+      Green := 100+Random(155);
+      Blue := 64;
+      Alpha := 255;
+
+      State := STATE_NORMAL;
+      Time := 0;
+      LiveTime := 30+Random(60);
+      ParticleType := PARTICLE_SPARK;
+
+      CorrectOffsets(CurrentParticle);
+    end;
+
+    if CurrentParticle+2 > MaxParticles then
+      CurrentParticle := 0
+    else
+      CurrentParticle := CurrentParticle+1;
+  end;
+end;
+
+procedure g_GFX_Blood(fX, fY: Integer; Count: Word; vx, vy: Integer; DevX, DevY: Word; Kind: Byte = BLOOD_RED);
 var
   a: Integer;
   DevX1, DevX2,
@@ -260,6 +321,11 @@ var
   l: Integer;
 begin
   if (gGameSettings.GameType = GT_SERVER) and NetDedicated then Exit;
+  if Kind = BLOOD_SPARKS then
+  begin
+    g_GFX_SparkVel(fX, fY, 2 + Random(2), -VX div 2, -VY div 2, DevX, DevY);
+    Exit;
+  end;
   l := Length(Particles);
   if l = 0 then
     Exit;
@@ -294,9 +360,24 @@ begin
       AccelX := -Sign(VelX)*Random/100;
       AccelY := 0.8;
 
-      Red := 100+20*Random(6);
-      Green := 0;
-      Blue := 0;
+      if Kind = BLOOD_RED then
+      begin
+        Red := 100+20*Random(6);
+        Green := 0;
+        Blue := 0;
+      end
+      else if Kind = BLOOD_GREEN then
+      begin
+        Red := 0;
+        Green := 100+20*Random(6);
+        Blue := 0;
+      end
+      else if Kind = BLOOD_BLUE then
+      begin
+        Red := 0;
+        Green := 0;
+        Blue := 100+20*Random(6);
+      end;
       Alpha := 255;
       
       State := STATE_NORMAL;
@@ -320,6 +401,7 @@ var
   b: Single;
   DevX1, DevX2,
   DevY1, DevY2: Byte;
+  BaseVelX, BaseVelY: Single;
   l: Integer;
 begin
   if (gGameSettings.GameType = GT_SERVER) and NetDedicated then Exit;
@@ -336,22 +418,22 @@ begin
   DevY1 := DevY div 2;
   DevY2 := DevY + 1;
 
+  b := DegToRad(Angle);
+  BaseVelX := cos(b);
+  BaseVelY := 1.6*sin(b);
+  if Abs(BaseVelX) < 0.01 then
+    BaseVelX := 0.0;
+  if Abs(BaseVelY) < 0.01 then
+    BaseVelY := 0.0;
   for a := 1 to Count do
   begin
     with Particles[CurrentParticle] do
     begin
       X := fX-DevX1+Random(DevX2);
       Y := fY-DevY1+Random(DevY2);
-      
-      b := DegToRad(Angle);
-      VelX := cos(b);
-      VelY := 1.6*sin(b);
-      if Abs(VelX) < 0.01 then
-        VelX := 0.0;
-      if Abs(VelY) < 0.01 then
-        VelY := 0.0;
-      VelX := VelX*Random;
-      VelY := VelY-Random;
+
+      VelX := BaseVelX*Random;
+      VelY := BaseVelY-Random;
       AccelX := VelX/3.0;
       AccelY := VelY/5.0;
 

@@ -44,6 +44,7 @@ type
     tx, ty: Integer;
     FStartID: Integer;
     FObj: TObj;
+    FBloodKind: Byte;
     vilefire: TAnimation;
 
     FDieTriggers: Array of Integer;
@@ -1413,6 +1414,15 @@ begin
   FStartID := aID;
   FNoRespawn := False;
 
+  if FMonsterType = MONSTER_CACO then
+    FBloodKind := BLOOD_BLUE
+  else if FMonsterType in [MONSTER_BARON, MONSTER_KNIGHT] then
+    FBloodKind := BLOOD_GREEN
+  else if FMonsterType in [MONSTER_SOUL, MONSTER_ROBO, MONSTER_BARREL] then
+    FBloodKind := BLOOD_SPARKS
+  else
+    FBloodKind := BLOOD_RED;
+
   SetLength(FAnim, Length(ANIMTABLE));
  
   for a := 0 to High(FAnim) do
@@ -1523,8 +1533,8 @@ begin
        (FMonsterType <> MONSTER_BARREL) then
          SetState(STATE_PAIN);
 
-// Если разрешена кровь и это не бочка - создаем брызги крови:
-  if (gBloodCount > 0) and (FMonsterType <> MONSTER_BARREL) then
+// Если разрешена кровь - создаем брызги крови:
+  if (gBloodCount > 0) then
   begin
     c := Min(Damage, 200);
     c := c*gBloodCount - (Damage div 4) + Random(c div 2);
@@ -1725,17 +1735,17 @@ procedure TMonster.MakeBloodSimple(Count: Word);
 begin
   g_GFX_Blood(FObj.X+FObj.Rect.X+(FObj.Rect.Width div 2)+8,
               FObj.Y+FObj.Rect.Y+(FObj.Rect.Height div 2),
-              Count div 2, 3, -1, 16, (FObj.Rect.Height*2 div 3));
+              Count div 2, 3, -1, 16, (FObj.Rect.Height*2 div 3), FBloodKind);
   g_GFX_Blood(FObj.X+FObj.Rect.X+(FObj.Rect.Width div 2)-8,
               FObj.Y+FObj.Rect.Y+(FObj.Rect.Height div 2),
-              Count div 2, -3, -1, 16, (FObj.Rect.Height*2) div 3);
+              Count div 2, -3, -1, 16, (FObj.Rect.Height*2) div 3, FBloodKind);
 end;
 
 procedure TMonster.MakeBloodVector(Count: Word; VelX, VelY: Integer);
 begin
   g_GFX_Blood(FObj.X+FObj.Rect.X+(FObj.Rect.Width div 2),
               FObj.Y+FObj.Rect.Y+(FObj.Rect.Height div 2),
-              Count, VelX, VelY, 16, (FObj.Rect.Height*2) div 3);
+              Count, VelX, VelY, 16, (FObj.Rect.Height*2) div 3, FBloodKind);
 end;
 
 procedure TMonster.Push(vx, vy: Integer);
