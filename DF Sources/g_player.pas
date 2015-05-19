@@ -5032,8 +5032,10 @@ begin
     if vsPlayer then
       for a := 0 to High(gPlayers) do
         if (gPlayers[a] <> nil) and (gPlayers[a].Live) and
-            (gPlayers[a].FUID <> FUID) and
-            (not SameTeam(FUID, gPlayers[a].FUID)) then
+           (gPlayers[a].FUID <> FUID) and
+           (not SameTeam(FUID, gPlayers[a].FUID)) and
+           (not gPlayers[a].NoTarget) and
+           (gPlayers[a].FMegaRulez[MR_INVIS] < 1) then
           begin
             if not TargetOnScreen(gPlayers[a].FObj.X + PLAYER_RECT.X,
                                   gPlayers[a].FObj.Y + PLAYER_RECT.Y) then
@@ -5253,7 +5255,8 @@ begin
           if Target.IsPlayer then
             begin // Цель - игрок
               pla := g_Player_Get(Target.UID);
-              if (pla = nil) or (not pla.Live) then
+              if (pla = nil) or (not pla.Live) or pla.NoTarget or
+                 (pla.FMegaRulez[MR_INVIS] > 0) then
                 Target.UID := 0; // то забыть цель
             end
           else
@@ -5315,7 +5318,7 @@ begin
                 SetAIFlag('GOLEFT', '1');
             end;
         end;
-                  
+
 // Если есть возможные цели:
 // (Стреляем по направлению к целям)
   if (targets <> nil) and (GetAIFlag('NEEDFIRE') <> '') then
