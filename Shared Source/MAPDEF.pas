@@ -70,6 +70,10 @@ const
   ITEM_BOTTLE                = 33;
   ITEM_HELMET                = 34;
   ITEM_JETPACK               = 35;
+  ITEM_INVIS                 = 36;
+
+  ITEM_MAX                   = 36; // store the last item's id in here
+                                   // use this in for loops
 
   ITEM_OPTION_ONLYDM = 1;
   ITEM_OPTION_FALL   = 2;

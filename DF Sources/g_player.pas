@@ -28,6 +28,8 @@ const
   MR_SUIT           = 0;
   MR_INVUL          = 1;
   MR_JET            = 2;
+  MR_INVIS          = 3;
+  MR_MAX            = 3;
 
   A_BULLETS         = 0;
   A_SHELLS          = 1;
@@ -172,7 +174,7 @@ type
     FMaxAmmo:   Array [A_BULLETS..A_CELLS] of Word;
     FWeapon:    Array [WEAPON_KASTET..WEAPON_SUPERPULEMET] of Boolean;
     FRulez:     Set of R_ITEM_BACKPACK..R_BERSERK;
-    FMegaRulez: Array [MR_SUIT..MR_JET] of DWORD;
+    FMegaRulez: Array [MR_SUIT..MR_MAX] of DWORD;
     FReloading: Array [WEAPON_KASTET..WEAPON_SUPERPULEMET] of Word;
     FTime:      Array [T_RESPAWN..T_USE] of DWORD;
     FKeys:      Array [KEY_LEFT..KEY_CHAT] of TKeyState;
@@ -430,6 +432,7 @@ const
   JET_MAX = 540; // ~30 sec
   PLAYER_SUIT_TIME    = 30000;
   PLAYER_INVUL_TIME   = 30000;
+  PLAYER_INVIS_TIME   = 30000;
   VEL_SW  = 4;
   VEL_FLY = 6;
   ANGLE_RIGHTUP   = 55;
@@ -1479,8 +1482,17 @@ var
   bubX, bubY: Integer;
 begin
   if FLive then
-    FModel.Draw(FObj.X, FObj.Y);
-
+    if FMegaRulez[MR_INVIS] > 0 then
+    begin
+      if ((gPlayer1 <> nil) and (FTeam = gPlayer1.Team)) or
+         ((gPlayer2 <> nil) and (FTeam = gPlayer2.Team)) then
+        FModel.Draw(FObj.X, FObj.Y, 64)
+      else
+        FModel.Draw(FObj.X, FObj.Y, 1);
+    end
+    else
+      FModel.Draw(FObj.X, FObj.Y);
+      
   if g_debug_Frames then
   begin
     e_DrawQuad(FObj.X+FObj.Rect.X,
@@ -2731,6 +2743,14 @@ begin
       if FMegaRulez[MR_JET] < JET_MAX then
       begin
         FMegaRulez[MR_JET] := JET_MAX;
+        Result := True;
+        remove := True;
+      end;
+
+    ITEM_INVIS:
+      if FMegaRulez[MR_INVIS] < PLAYER_INVIS_TIME then
+      begin
+        FMegaRulez[MR_INVIS] := PLAYER_INVIS_TIME;
         Result := True;
         remove := True;
       end;
@@ -4217,7 +4237,7 @@ begin
     b := 0;
   Mem.WriteByte(b);
 // Время действия специальных предметов:
-  for i := MR_SUIT to MR_JET do
+  for i := MR_SUIT to MR_MAX do
     Mem.WriteDWORD(FMegaRulez[i]);
 // Время до повторного респауна, смены оружия, исользования:
   for i := T_RESPAWN to T_USE do
@@ -4338,7 +4358,7 @@ begin
   if b = 1 then
     Include(FRulez, R_BERSERK);
 // Время действия специальных предметов:
-  for i := MR_SUIT to MR_JET do
+  for i := MR_SUIT to MR_MAX do
     Mem.ReadDWORD(FMegaRulez[i]);
 // Время до повторного респауна, смены оружия, исользования:
   for i := T_RESPAWN to T_USE do
