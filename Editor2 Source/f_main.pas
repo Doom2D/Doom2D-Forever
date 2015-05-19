@@ -3254,8 +3254,8 @@ begin
         begin
           rSelectRect := False;
 
-          rRect.X := MousePos.X-MapOffset.X-1;
-          rRect.Y := MousePos.Y-MapOffset.Y-1;
+          rRect.X := X-MapOffset.X-1;
+          rRect.Y := Y-MapOffset.Y-1;
           rRect.Width := 2;
           rRect.Height := 2;
         end;
