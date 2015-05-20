@@ -6,10 +6,8 @@ uses
   g_textures;
 
 const
-  BLOOD_SPARKS = 0;
-  BLOOD_RED = 1;
-  BLOOD_GREEN = 2;
-  BLOOD_BLUE = 3;
+  BLOOD_NORMAL = 0;
+  BLOOD_SPARKS = 1;
   ONCEANIM_NONE  = 0;
   ONCEANIM_SMOKE = 1;
   MARK_FREE     = 0;
@@ -29,7 +27,7 @@ procedure g_GFX_Init();
 procedure g_GFX_Free();
 
 procedure g_GFX_Blood(fX, fY: Integer; Count: Word; vx, vy: Integer;
-                      DevX, DevY: Word; Kind: Byte = BLOOD_RED);
+                      DevX, DevY: Word; CR, CG, CB: Byte; Kind: Byte = BLOOD_NORMAL);
 procedure g_GFX_Spark(fX, fY: Integer; Count: Word; Angle: SmallInt; DevX, DevY: Byte);
 procedure g_GFX_Water(fX, fY: Integer; Count: Word; fVelX, fVelY: Single; DevX, DevY, Color: Byte);
 procedure g_GFX_Bubbles(fX, fY: Integer; Count: Word; DevX, DevY: Byte);
@@ -313,12 +311,15 @@ begin
   end;
 end;
 
-procedure g_GFX_Blood(fX, fY: Integer; Count: Word; vx, vy: Integer; DevX, DevY: Word; Kind: Byte = BLOOD_RED);
+procedure g_GFX_Blood(fX, fY: Integer; Count: Word; vx, vy: Integer;
+  DevX, DevY: Word; CR, CG, CB: Byte; Kind: Byte = BLOOD_NORMAL);
 var
   a: Integer;
   DevX1, DevX2,
   DevY1, DevY2: Word;
   l: Integer;
+  CRnd: Byte;
+  CC: SmallInt;
 begin
   if (gGameSettings.GameType = GT_SERVER) and NetDedicated then Exit;
   if Kind = BLOOD_SPARKS then
@@ -360,26 +361,34 @@ begin
       AccelX := -Sign(VelX)*Random/100;
       AccelY := 0.8;
 
-      if Kind = BLOOD_RED then
+      CRnd := 20*Random(6);
+      if CR > 0 then
       begin
-        Red := 100+20*Random(6);
-        Green := 0;
-        Blue := 0;
-      end
-      else if Kind = BLOOD_GREEN then
-      begin
+        CC := CR + CRnd - 50;
+        if CC < 0   then CC := 0;
+        if CC > 255 then CC := 255;
+        Red := CC;
+      end else
         Red := 0;
-        Green := 100+20*Random(6);
-        Blue := 0;
-      end
-      else if Kind = BLOOD_BLUE then
+      if CG > 0 then
       begin
-        Red := 0;
+        CC := CG + CRnd - 50;
+        if CC < 0   then CC := 0;
+        if CC > 255 then CC := 255;
+        Green := CC;
+      end else
         Green := 0;
-        Blue := 100+20*Random(6);
-      end;
+      if CB > 0 then
+      begin
+        CC := CB + CRnd - 50;
+        if CC < 0   then CC := 0;
+        if CC > 255 then CC := 255;
+        Blue := CC;
+      end else
+        Blue := 0;
+
       Alpha := 255;
-      
+
       State := STATE_NORMAL;
       Time := 0;
       LiveTime := 120+Random(40);

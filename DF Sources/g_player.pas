@@ -1180,7 +1180,7 @@ begin
 
       if gBloodCount > 0 then
         g_GFX_Blood(fX, fY, 16*gBloodCount+Random(5*gBloodCount), -16+Random(33), -16+Random(33),
-                    Random(48), Random(48));
+                    Random(48), Random(48), 150, 0, 0);
 
       if CurrentGib >= High(gGibs) then
         CurrentGib := 0
@@ -2496,17 +2496,20 @@ procedure TPlayer.MakeBloodSimple(Count: Word);
 begin
   g_GFX_Blood(FObj.X+PLAYER_RECT.X+(PLAYER_RECT.Width div 2)+8,
               FObj.Y+PLAYER_RECT.Y+(PLAYER_RECT.Height div 2),
-              Count div 2, 3, -1, 16, (PLAYER_RECT.Height*2 div 3));
+              Count div 2, 3, -1, 16, (PLAYER_RECT.Height*2 div 3),
+              150, 0, 0);
   g_GFX_Blood(FObj.X+PLAYER_RECT.X+(PLAYER_RECT.Width div 2)-8,
               FObj.Y+PLAYER_RECT.Y+(PLAYER_RECT.Height div 2),
-              Count div 2, -3, -1, 16, (PLAYER_RECT.Height*2) div 3);
+              Count div 2, -3, -1, 16, (PLAYER_RECT.Height*2) div 3,
+              150, 0, 0);
 end;
 
 procedure TPlayer.MakeBloodVector(Count: Word; VelX, VelY: Integer);
 begin
   g_GFX_Blood(FObj.X+PLAYER_RECT.X+(PLAYER_RECT.Width div 2),
               FObj.Y+PLAYER_RECT.Y+(PLAYER_RECT.Height div 2),
-              Count, VelX, VelY, 16, (PLAYER_RECT.Height*2) div 3);
+              Count, VelX, VelY, 16, (PLAYER_RECT.Height*2) div 3,
+              150, 0, 0);
 end;
 
 procedure TPlayer.NextWeapon();

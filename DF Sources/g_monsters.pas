@@ -44,6 +44,9 @@ type
     tx, ty: Integer;
     FStartID: Integer;
     FObj: TObj;
+    FBloodRed: Byte;
+    FBloodGreen: Byte;
+    FBloodBlue: Byte;
     FBloodKind: Byte;
     vilefire: TAnimation;
 
@@ -1414,17 +1417,31 @@ begin
   FStartID := aID;
   FNoRespawn := False;
 
-  if FMonsterType = MONSTER_CACO then
-    FBloodKind := BLOOD_BLUE
-  else if FMonsterType in [MONSTER_BARON, MONSTER_KNIGHT] then
-    FBloodKind := BLOOD_GREEN
-  else if FMonsterType in [MONSTER_SOUL, MONSTER_ROBO, MONSTER_BARREL] then
+  if FMonsterType in [MONSTER_ROBO, MONSTER_BARREL] then
     FBloodKind := BLOOD_SPARKS
   else
-    FBloodKind := BLOOD_RED;
+    FBloodKind := BLOOD_NORMAL;
+  if FMonsterType = MONSTER_CACO then
+  begin
+    FBloodRed := 0;
+    FBloodGreen := 0;
+    FBloodBlue := 150;
+  end
+  else if FMonsterType in [MONSTER_BARON, MONSTER_KNIGHT] then
+  begin
+    FBloodRed := 0;
+    FBloodGreen := 150;
+    FBloodBlue := 0;
+  end
+  else
+  begin
+    FBloodRed := 150;
+    FBloodGreen := 0;
+    FBloodBlue := 0;
+  end;
 
   SetLength(FAnim, Length(ANIMTABLE));
- 
+
   for a := 0 to High(FAnim) do
   begin
     FAnim[a, D_LEFT] := nil;
@@ -1439,7 +1456,7 @@ begin
            '_'+ANIMTABLE[a].name;
 
       res := g_Frames_Exists(s);
-      
+
       if res then
         res := g_Frames_Get(FramesID, s);
 
@@ -1735,17 +1752,20 @@ procedure TMonster.MakeBloodSimple(Count: Word);
 begin
   g_GFX_Blood(FObj.X+FObj.Rect.X+(FObj.Rect.Width div 2)+8,
               FObj.Y+FObj.Rect.Y+(FObj.Rect.Height div 2),
-              Count div 2, 3, -1, 16, (FObj.Rect.Height*2 div 3), FBloodKind);
+              Count div 2, 3, -1, 16, (FObj.Rect.Height*2 div 3),
+              FBloodRed, FBloodGreen, FBloodBlue, FBloodKind);
   g_GFX_Blood(FObj.X+FObj.Rect.X+(FObj.Rect.Width div 2)-8,
               FObj.Y+FObj.Rect.Y+(FObj.Rect.Height div 2),
-              Count div 2, -3, -1, 16, (FObj.Rect.Height*2) div 3, FBloodKind);
+              Count div 2, -3, -1, 16, (FObj.Rect.Height*2) div 3,
+              FBloodRed, FBloodGreen, FBloodBlue, FBloodKind);
 end;
 
 procedure TMonster.MakeBloodVector(Count: Word; VelX, VelY: Integer);
 begin
   g_GFX_Blood(FObj.X+FObj.Rect.X+(FObj.Rect.Width div 2),
               FObj.Y+FObj.Rect.Y+(FObj.Rect.Height div 2),
-              Count, VelX, VelY, 16, (FObj.Rect.Height*2) div 3, FBloodKind);
+              Count, VelX, VelY, 16, (FObj.Rect.Height*2) div 3,
+              FBloodRed, FBloodGreen, FBloodBlue, FBloodKind);
 end;
 
 procedure TMonster.Push(vx, vy: Integer);
