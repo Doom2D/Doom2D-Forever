@@ -1817,12 +1817,12 @@ begin
   g_Map_DrawPanels(PANEL_STEP);
   g_Items_Draw();
   g_Weapon_Draw();
+  g_Player_DrawShells();
   g_Player_DrawAll();
   g_Player_DrawCorpses();
   g_Map_DrawPanels(PANEL_WALL);
   g_Monsters_Draw();
   g_Map_DrawPanels(PANEL_CLOSEDOOR);
-  g_Player_DrawShells();
   g_GFX_Draw();
   g_Map_DrawFlags();
   g_Map_DrawPanels(PANEL_ACID1);
