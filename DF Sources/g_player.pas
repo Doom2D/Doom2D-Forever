@@ -1145,7 +1145,7 @@ begin
     Live := True;
     Obj.X := fX;
     Obj.Y := fY;
-    g_Obj_Push(@Obj, dX + Random(6)-Random(6), dY-Random(6));
+    g_Obj_Push(@Obj, dX + Random(4)-Random(4), dY-Random(4));
     RAngle := 0;
     Timeout := gTime + SHELL_TIMEOUT;
 
@@ -1980,7 +1980,7 @@ begin
         f := True;
         DidFire := True;
         g_Player_CreateShell(GameX+PLAYER_RECT_CX, GameY+PLAYER_RECT_CX,
-                             GameVelX, GameVelY-3, SHELL_BULLET);
+                             GameVelX, GameVelY-2, SHELL_BULLET);
       end;
 
     WEAPON_SHOTGUN1:
@@ -2019,7 +2019,7 @@ begin
         f := True;
         DidFire := True;
         g_Player_CreateShell(GameX+PLAYER_RECT_CX, GameY+PLAYER_RECT_CX,
-                             GameVelX, GameVelY-3, SHELL_BULLET);
+                             GameVelX, GameVelY-2, SHELL_BULLET);
       end;
 
     WEAPON_ROCKETLAUNCHER:
@@ -2063,7 +2063,7 @@ begin
         f := True;
         DidFire := True;
         g_Player_CreateShell(GameX+PLAYER_RECT_CX, GameY+PLAYER_RECT_CX,
-                             GameVelX, GameVelY-3, SHELL_SHELL);
+                             GameVelX, GameVelY-2, SHELL_SHELL);
       end;
   end;
 
@@ -3783,13 +3783,13 @@ begin
       begin
         if FShellType = SHELL_SHELL then
           g_Player_CreateShell(GameX+PLAYER_RECT_CX, GameY+PLAYER_RECT_CX,
-                               GameVelX, GameVelY-3, SHELL_SHELL)
+                               GameVelX, GameVelY-2, SHELL_SHELL)
         else if FShellType = SHELL_DBLSHELL then
         begin
           g_Player_CreateShell(GameX+PLAYER_RECT_CX, GameY+PLAYER_RECT_CX,
-                               GameVelX+1, GameVelY-3, SHELL_SHELL);
+                               GameVelX+1, GameVelY-2, SHELL_SHELL);
           g_Player_CreateShell(GameX+PLAYER_RECT_CX, GameY+PLAYER_RECT_CX,
-                               GameVelX-1, GameVelY-3, SHELL_SHELL);
+                               GameVelX-1, GameVelY-2, SHELL_SHELL);
         end;
         FShellTimer := -1;
       end else Dec(FShellTimer);

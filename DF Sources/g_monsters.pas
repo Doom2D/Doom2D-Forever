@@ -2018,15 +2018,15 @@ begin
       if FShellType = SHELL_SHELL then
         g_Player_CreateShell(FObj.X+FObj.Rect.X+(FObj.Rect.Width div 2),
                              FObj.Y+FObj.Rect.Y+(FObj.Rect.Height div 2),
-                             GameVelX, GameVelY-3, SHELL_SHELL)
+                             GameVelX, GameVelY-2, SHELL_SHELL)
       else if FShellType = SHELL_DBLSHELL then
       begin
         g_Player_CreateShell(FObj.X+FObj.Rect.X+(FObj.Rect.Width div 2),
                              FObj.Y+FObj.Rect.Y+(FObj.Rect.Height div 2),
-                             GameVelX-1, GameVelY-3, SHELL_SHELL);
+                             GameVelX-1, GameVelY-2, SHELL_SHELL);
         g_Player_CreateShell(FObj.X+FObj.Rect.X+(FObj.Rect.Width div 2),
                              FObj.Y+FObj.Rect.Y+(FObj.Rect.Height div 2),
-                             GameVelX+1, GameVelY-3, SHELL_SHELL);
+                             GameVelX+1, GameVelY-2, SHELL_SHELL);
       end;
       FShellTimer := -1;
     end else Dec(FShellTimer);
@@ -2613,7 +2613,7 @@ _end:
                   begin
                     g_Sound_PlayExAt('SOUND_WEAPON_FIREPISTOL', wx, wy);
                     g_Weapon_gun(wx, wy, tx, ty, 1, FUID, False);
-                    g_Player_CreateShell(wx, wy, 0, -3, SHELL_BULLET);
+                    g_Player_CreateShell(wx, wy, 0, -2, SHELL_BULLET);
                   end;
                 MONSTER_SERG:
                   begin
@@ -2638,12 +2638,12 @@ _end:
                 MONSTER_CGUN:
                   begin
                     g_Weapon_mgun(wx, wy, tx, ty, FUID);
-                    g_Player_CreateShell(wx, wy, 0, -3, SHELL_BULLET);
+                    g_Player_CreateShell(wx, wy, 0, -2, SHELL_BULLET);
                   end;
                 MONSTER_SPIDER:
                   begin
                     g_Weapon_mgun(wx, wy, tx, ty, FUID);
-                    g_Player_CreateShell(wx, wy, 0, -3, SHELL_SHELL);
+                    g_Player_CreateShell(wx, wy, 0, -2, SHELL_SHELL);
                   end;
                 MONSTER_BSP:
                   g_Weapon_aplasma(wx, wy, tx, ty, FUID);
