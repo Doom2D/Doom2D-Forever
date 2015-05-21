@@ -1197,6 +1197,18 @@ var
   i: Integer;
   vel: TPoint2i;
   mr: Word;
+
+  procedure ShellSound_Bounce(X, Y: Integer; T: Byte);
+  var
+    k: Integer;
+  begin
+    k := 1 + Random(4);
+    if k <> 0 then
+      if T = SHELL_BULLET then
+        g_Sound_PlayExAt('SOUND_PLAYER_CASING' + IntToStr(k), X, Y)
+      else
+        g_Sound_PlayExAt('SOUND_PLAYER_SHELL' + IntToStr(k), X, Y);
+  end;
 begin
   if (gGameSettings.GameType = GT_SERVER) and NetDedicated then Exit;
   if gGibs <> nil then
@@ -1255,13 +1267,22 @@ begin
 
         // Отлетает от удара о стену/потолок/пол:
           if WordBool(mr and MOVE_HITWALL) then
+          begin
             Obj.Vel.X := -(vel.X div 2);
+            if not WordBool(mr and MOVE_INWATER) then
+              ShellSound_Bounce(Obj.X, Obj.Y, SType);
+          end;
           if WordBool(mr and (MOVE_HITCEIL or MOVE_HITLAND)) then
           begin
             Obj.Vel.Y := -(vel.Y div 2);
             if Obj.Vel.X <> 0 then Obj.Vel.X := Obj.Vel.X div 2;
-            if (Obj.Vel.X = 0) and (Obj.Vel.Y = 0) and (RAngle mod 90 <> 0) then
-              RAngle := (RAngle div 90) * 90;
+            if (Obj.Vel.X = 0) and (Obj.Vel.Y = 0) then
+            begin
+              if RAngle mod 90 <> 0 then
+                RAngle := (RAngle div 90) * 90;
+            end
+            else if not WordBool(mr and MOVE_INWATER) then
+              ShellSound_Bounce(Obj.X, Obj.Y, SType);
           end;
 
           RAngle := RAngle + Obj.Vel.X*8 + Obj.Vel.Y;
