@@ -9,19 +9,22 @@ interface
 uses
   Windows, dglOpenGL, SysUtils, e_log;
 
+const
+  fUseMipmaps = False;
+
 var
   TEXTUREFILTER: Integer = GL_NEAREST;
 
 // Standard set of images loading functions
 function LoadTexture( Filename: String; var Texture: GLuint;
                       var pWidth, pHeight: Word ): Boolean;
-                      
+
 function LoadTextureEx( Filename: String; var Texture: GLuint;
                         fX, fY, fWidth, fHeight: Word ): Boolean;
-                        
+
 function LoadTextureMem( pData: Pointer; var Texture: GLuint;
                          var pWidth, pHeight: Word ): Boolean;
-                         
+
 function LoadTextureMemEx( pData: Pointer; var Texture: GLuint;
                            fX, fY, fWidth, fHeight: Word ): Boolean;
 
@@ -54,10 +57,10 @@ begin
     {Texture does NOT blend with object background}
  // glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL);
 
-  { 
+  {
     Select a filtering type.
     BiLinear filtering produces very good results with little performance impact
- 
+
     GL_NEAREST               - Basic texture (grainy looking texture)
     GL_LINEAR                - BiLinear filtering
     GL_LINEAR_MIPMAP_NEAREST - Basic mipmapped texture
@@ -67,14 +70,25 @@ begin
   // for GL_TEXTURE_MAG_FILTER only first two can be used
   glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, TEXTUREFILTER );
   // for GL_TEXTURE_MIN_FILTER all of the above can be used
-  glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, TEXTUREFILTER ); 
+  glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, TEXTUREFILTER );
 
   if Format = GL_RGBA then
-    glTexImage2D( GL_TEXTURE_2D, 0, 4, Width, Height,
-                  0, GL_RGBA, GL_UNSIGNED_BYTE, pData )
-  else
-    glTexImage2D( GL_TEXTURE_2D, 0, 3, Width, Height,
-                  0, GL_RGB, GL_UNSIGNED_BYTE, pData );
+  begin
+    if fUseMipmaps then
+      gluBuild2DMipmaps( GL_TEXTURE_2D, GL_RGBA, Width, Height, GL_RGBA,
+                         GL_UNSIGNED_BYTE, pData )
+    else
+      glTexImage2D( GL_TEXTURE_2D, 0, 4, Width, Height,
+                    0, GL_RGBA, GL_UNSIGNED_BYTE, pData );
+  end else
+  begin
+    if fUseMipmaps then
+      gluBuild2DMipmaps( GL_TEXTURE_2D, 3, Width, Height, GL_RGB,
+                         GL_UNSIGNED_BYTE, pData )
+    else
+      glTexImage2D( GL_TEXTURE_2D, 0, 3, Width, Height,
+                    0, GL_RGB, GL_UNSIGNED_BYTE, pData );
+  end;
 
   Result := Texture;
 end;
@@ -83,7 +97,7 @@ function LoadTextureMem( pData: Pointer; var Texture: GLuint;
                          var pWidth, pHeight: Word ): Boolean;
 var
   TGAHeader:     TTGAHeader;
-  image:         Pointer;  
+  image:         Pointer;
   Width, Height: Integer;
   ImageSize:     Integer;
   i:             Integer;
