@@ -1930,7 +1930,7 @@ begin
 
   if gPause and gGameOn and (g_ActiveWindow = nil) then
   begin
-    e_DrawFillQuad(0, 0, gScreenWidth-1, gScreenHeight-1, 0, 0, 0, 180);
+    e_DrawFillQuad(0, 0, gScreenWidth-1, gScreenHeight-1, 48, 48, 48, 180);
 
     e_CharFont_GetSize(gMenuFont, _lc[I_MENU_PAUSE], w, h);
     e_CharFont_Print(gMenuFont, (gScreenWidth div 2)-(w div 2),
@@ -1948,7 +1948,7 @@ begin
         else e_Clear(GL_COLOR_BUFFER_BIT, 0, 0, 0);
       end;
       if g_ActiveWindow <> nil then
-        e_DrawFillQuad(0, 0, gScreenWidth-1, gScreenHeight-1, 0, 0, 0, 180);
+        e_DrawFillQuad(0, 0, gScreenWidth-1, gScreenHeight-1, 48, 48, 48, 180);
     end;
 
     if gState = STATE_FOLD then
@@ -2005,7 +2005,10 @@ begin
     if gState = STATE_SLIST then
     begin
       if g_Texture_Get('MENU_BACKGROUND', ID) then
+      begin
         e_DrawSize(ID, 0, 0, 0, False, False, gScreenWidth, gScreenHeight);
+        e_DrawFillQuad(0, 0, gScreenWidth-1, gScreenHeight-1, 48, 48, 48, 180);
+      end;
       g_Serverlist_Draw(slCurrent);
     end;
   end;
@@ -2013,7 +2016,7 @@ begin
   if g_ActiveWindow <> nil then
   begin
     if gGameOn then
-      e_DrawFillQuad(0, 0, gScreenWidth-1, gScreenHeight-1, 0, 0, 0, 180);
+      e_DrawFillQuad(0, 0, gScreenWidth-1, gScreenHeight-1, 48, 48, 48, 180);
     g_ActiveWindow.Draw();
   end;
 
