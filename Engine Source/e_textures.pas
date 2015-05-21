@@ -70,13 +70,11 @@ begin
   glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, TEXTUREFILTER ); 
 
   if Format = GL_RGBA then
-    gluBuild2DMipmaps( GL_TEXTURE_2D, GL_RGBA, Width, Height, GL_RGBA,
-                       GL_UNSIGNED_BYTE, pData )
+    glTexImage2D( GL_TEXTURE_2D, 0, 4, Width, Height,
+                  0, GL_RGBA, GL_UNSIGNED_BYTE, pData )
   else
-    gluBuild2DMipmaps( GL_TEXTURE_2D, 3, Width, Height, GL_RGB,
-                       GL_UNSIGNED_BYTE, pData );
-    // Use this when not wanting mipmaps to be built by OpenGL
-    //glTexImage2D(GL_TEXTURE_2D, 0, 3, Width, Height, 0, GL_RGB, GL_UNSIGNED_BYTE, pData);
+    glTexImage2D( GL_TEXTURE_2D, 0, 3, Width, Height,
+                  0, GL_RGB, GL_UNSIGNED_BYTE, pData );
 
   Result := Texture;
 end;
