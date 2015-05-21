@@ -48,6 +48,8 @@ type
     FBloodGreen: Byte;
     FBloodBlue: Byte;
     FBloodKind: Byte;
+    FShellTimer: Integer;
+    FShellType: Byte;
     vilefire: TAnimation;
 
     FDieTriggers: Array of Integer;
@@ -1380,6 +1382,7 @@ begin
   FDieTriggers := nil;
   FWaitAttackAnim := False;
   FChainFire := False;
+  FShellTimer := -1;
   
   FState := STATE_SLEEP;
   FCurAnim := ANIM_SLEEP;
@@ -1416,6 +1419,7 @@ begin
   FChainFire := False;
   FStartID := aID;
   FNoRespawn := False;
+  FShellTimer := -1;
 
   if FMonsterType in [MONSTER_ROBO, MONSTER_BARREL] then
     FBloodKind := BLOOD_SPARKS
@@ -2007,6 +2011,26 @@ begin
 // Таймер - ждем после потери цели:
   FTargetTime := FTargetTime + 1;
 
+// Гильзы
+  if FShellTimer > -1 then
+    if FShellTimer = 0 then
+    begin
+      if FShellType = SHELL_SHELL then
+        g_Player_CreateShell(FObj.X+FObj.Rect.X+(FObj.Rect.Width div 2),
+                             FObj.Y+FObj.Rect.Y+(FObj.Rect.Height div 2),
+                             GameVelX, GameVelY-3, SHELL_SHELL)
+      else if FShellType = SHELL_DBLSHELL then
+      begin
+        g_Player_CreateShell(FObj.X+FObj.Rect.X+(FObj.Rect.Width div 2),
+                             FObj.Y+FObj.Rect.Y+(FObj.Rect.Height div 2),
+                             GameVelX-1, GameVelY-3, SHELL_SHELL);
+        g_Player_CreateShell(FObj.X+FObj.Rect.X+(FObj.Rect.Width div 2),
+                             FObj.Y+FObj.Rect.Y+(FObj.Rect.Height div 2),
+                             GameVelX+1, GameVelY-3, SHELL_SHELL);
+      end;
+      FShellTimer := -1;
+    end else Dec(FShellTimer);
+
 // Пробуем увернуться от летящей пули:
   if fall then
     if (FState in [STATE_GO, STATE_RUN, STATE_RUNOUT,
@@ -2594,13 +2618,14 @@ _end:
                 MONSTER_SERG:
                   begin
                     g_Weapon_shotgun(wx, wy, tx, ty, FUID);
-                    g_Player_CreateShell(wx, wy, 0, -3, SHELL_SHELL);
+                    FShellTimer := 10;
+                    FShellType := SHELL_SHELL;
                   end;
                 MONSTER_MAN:
                   begin
                     g_Weapon_dshotgun(wx, wy, tx, ty, FUID);
-                    g_Player_CreateShell(wx, wy, 1, -3, SHELL_SHELL);
-                    g_Player_CreateShell(wx, wy, -1, -3, SHELL_SHELL);
+                    FShellTimer := 13;
+                    FShellType := SHELL_DBLSHELL;
                     FAmmo := -36;
                   end;
                 MONSTER_CYBER:

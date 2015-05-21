@@ -52,6 +52,7 @@ const
 
   SHELL_BULLET      = 0;
   SHELL_SHELL       = 1;
+  SHELL_DBLSHELL    = 2;
 
   PLAYERNUM_1       = 1;
   PLAYERNUM_2       = 2;
@@ -139,6 +140,8 @@ type
     FAngle:     SmallInt;
     FFireAngle: SmallInt;
     FIncCam:         Integer;
+    FShellTimer:     Integer;
+    FShellType:      Byte;
     FSawSound:       TPlayableSound;
     FSawSoundIdle:   TPlayableSound;
     FSawSoundHit:    TPlayableSound;
@@ -1257,12 +1260,12 @@ begin
           begin
             Obj.Vel.Y := -(vel.Y div 2);
             if Obj.Vel.X <> 0 then Obj.Vel.X := Obj.Vel.X div 2;
-            if (RAngle <> 0) and (RAngle <> 180) and (Obj.Vel.X = 0) and (Obj.Vel.Y = 0) then
-              RAngle := (RAngle div 180) * 180;
+            if (Obj.Vel.X = 0) and (Obj.Vel.Y = 0) and (RAngle mod 90 <> 0) then
+              RAngle := (RAngle div 90) * 90;
           end;
 
           RAngle := RAngle + Obj.Vel.X*8 + Obj.Vel.Y;
-          if RAngle > 360 then
+          if RAngle >= 360 then
             RAngle := RAngle mod 360;
         end;
 end;
@@ -1517,6 +1520,7 @@ begin
   FSpectatePlayer := -1;
   FClientID := -1;
   FSavedState.WaitRecall := False;
+  FShellTimer := -1;
 
   FActualModelName := 'doomer';
 
@@ -1968,8 +1972,8 @@ begin
         FFireAngle := FAngle;
         f := True;
         DidFire := True;
-        g_Player_CreateShell(GameX+PLAYER_RECT_CX, GameY+PLAYER_RECT_CX,
-                             GameVelX, GameVelY-3, SHELL_SHELL);
+        FShellTimer := 10;
+        FShellType := SHELL_SHELL;
       end;
 
     WEAPON_SHOTGUN2:
@@ -1981,10 +1985,8 @@ begin
         FFireAngle := FAngle;
         f := True;
         DidFire := True;
-        g_Player_CreateShell(GameX+PLAYER_RECT_CX, GameY+PLAYER_RECT_CX,
-                             GameVelX, GameVelY-3, SHELL_SHELL);
-        g_Player_CreateShell(GameX+PLAYER_RECT_CX, GameY+PLAYER_RECT_CX,
-                             GameVelX, GameVelY-3, SHELL_SHELL);
+        FShellTimer := 13;
+        FShellType := SHELL_DBLSHELL;
       end;
 
     WEAPON_CHAINGUN:
@@ -2179,6 +2181,7 @@ begin
   Netsrv := g_Game_IsServer and g_Game_IsNet;
   if Srv then FDeath := FDeath + 1;
   FLive := False;
+  FShellTimer := -1;
 
   if (gGameSettings.MaxLives > 0) and Srv and (not gLMSRespawn) then
   begin
@@ -2849,7 +2852,7 @@ begin
         if not (R_BERSERK in FRulez) then
         begin
           Include(FRulez, R_BERSERK);
-          if FBFGFireCounter < 1 then
+          if FBFGFireCounter = -1 then
           begin
             FCurrWeap := WEAPON_KASTET;
             FModel.SetWeapon(WEAPON_KASTET);
@@ -2994,6 +2997,7 @@ begin
   FDamageBuffer := 0;
   FIncCam := 0;
   FBFGFireCounter := -1;
+  FShellTimer := -1;
   FFlag := 0;
   FPain := 0;
   FLastHit := 0;
@@ -3248,6 +3252,7 @@ begin
 
   FIncCam := 0;
   FBFGFireCounter := -1;
+  FShellTimer := -1;
   FFlag := 0;
   FPain := 0;
   FLastHit := 0;
@@ -3754,16 +3759,31 @@ begin
     for b := WEAPON_KASTET to WEAPON_SUPERPULEMET do
       if FReloading[b] > 0 then Dec(FReloading[b]);
 
+    if FShellTimer > -1 then
+      if FShellTimer = 0 then
+      begin
+        if FShellType = SHELL_SHELL then
+          g_Player_CreateShell(GameX+PLAYER_RECT_CX, GameY+PLAYER_RECT_CX,
+                               GameVelX, GameVelY-3, SHELL_SHELL)
+        else if FShellType = SHELL_DBLSHELL then
+        begin
+          g_Player_CreateShell(GameX+PLAYER_RECT_CX, GameY+PLAYER_RECT_CX,
+                               GameVelX+1, GameVelY-3, SHELL_SHELL);
+          g_Player_CreateShell(GameX+PLAYER_RECT_CX, GameY+PLAYER_RECT_CX,
+                               GameVelX-1, GameVelY-3, SHELL_SHELL);
+        end;
+        FShellTimer := -1;
+      end else Dec(FShellTimer);
+
     if (FBFGFireCounter > -1) then
       if FBFGFireCounter = 0 then
       begin
-        wx := FObj.X+WEAPONPOINT[FDirection].X;
-        wy := FObj.Y+WEAPONPOINT[FDirection].Y;
-        xd := wx+IfThen(FDirection = D_LEFT, -30, 30);
-        yd := wy+firediry();
-
         if AnyServer then
         begin
+          wx := FObj.X+WEAPONPOINT[FDirection].X;
+          wy := FObj.Y+WEAPONPOINT[FDirection].Y;
+          xd := wx+IfThen(FDirection = D_LEFT, -30, 30);
+          yd := wy+firediry();
           g_Weapon_bfgshot(wx, wy, xd, yd, FUID);
           if NetServer then MH_SEND_PlayerFire(FUID, WEAPON_BFG, wx, wy, xd, yd);
           if (FAngle = 0) or (FAngle = 180) then SetAction(A_ATTACK)
