@@ -1202,12 +1202,11 @@ var
   var
     k: Integer;
   begin
-    k := 1 + Random(4);
-    if k <> 0 then
-      if T = SHELL_BULLET then
-        g_Sound_PlayExAt('SOUND_PLAYER_CASING' + IntToStr(k), X, Y)
-      else
-        g_Sound_PlayExAt('SOUND_PLAYER_SHELL' + IntToStr(k), X, Y);
+    k := 1 + Random(2);
+    if T = SHELL_BULLET then
+      g_Sound_PlayExAt('SOUND_PLAYER_CASING' + IntToStr(k), X, Y)
+    else
+      g_Sound_PlayExAt('SOUND_PLAYER_SHELL' + IntToStr(k), X, Y);
   end;
 begin
   if (gGameSettings.GameType = GT_SERVER) and NetDedicated then Exit;
