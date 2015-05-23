@@ -318,8 +318,6 @@ var
   P: pENetPacket;
   F: enet_uint32;
 begin
-  P := nil;
-
   if (Reliable) then
     F := LongWord(ENET_PACKET_FLAG_RELIABLE)
   else
@@ -344,7 +342,6 @@ begin
   end;
   
   enet_host_flush(NetHost);
-
   e_Buffer_Clear(@NetOut);
 end;
 
@@ -508,8 +505,6 @@ var
   P: pENetPacket;
   F: enet_uint32;
 begin
-  P := nil;
-
   if (Reliable) then
     F := LongWord(ENET_PACKET_FLAG_RELIABLE)
   else
@@ -701,8 +696,6 @@ var
   F: enet_uint32;
   dataLength: Cardinal;
 begin
-  P := nil;
-
   dataLength := Length(Data);
 
   if (Reliable) then
@@ -720,7 +713,6 @@ begin
   begin
     P := enet_packet_create(@Data[0], dataLength, F);
     if not Assigned(P) then Exit;
-
     enet_host_widecast(NetHost, Chan, P);
   end;
 
