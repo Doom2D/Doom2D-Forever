@@ -7,12 +7,12 @@ Temp/
 *.obj
 *.dcu
 *.cbk
-*.~pas
 *.dof
 *.ddp
 
 # Commonly used temporary files
-*~
+~*
+*.~*
 *.tmp
 *.bak
 
