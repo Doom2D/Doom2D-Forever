@@ -326,12 +326,12 @@ type
   end;
 
   TGib = record
-    Live:   Boolean;
-    ID:     DWORD;
-    MaskID: DWORD;
-    RAngle: Integer;
-    Color:  TRGB;
-    Obj:    TObj;
+    Live:     Boolean;
+    ID:       DWORD;
+    MaskID:   DWORD;
+    RAngle:   Integer;
+    Color:    TRGB;
+    Obj:      TObj;
   end;
 
   TShell = record
@@ -411,7 +411,7 @@ function  g_Player_ValidName(Name: String): Boolean;
 procedure g_Player_CreateCorpse(Player: TPlayer);
 procedure g_Player_CreateGibs(fX, fY: Integer; ModelName: String; fColor: TRGB);
 procedure g_Player_CreateShell(fX, fY, dX, dY: Integer; T: Byte);
-procedure g_Player_UpdateCorpse();
+procedure g_Player_UpdatePhysicalObjects();
 procedure g_Player_DrawCorpses();
 procedure g_Player_DrawShells();
 procedure g_Player_RemoveAllCorpses();
@@ -496,7 +496,7 @@ const
 var
   MaxGibs: Word = 150;
   MaxCorpses: Word = 20;
-  MaxShells: Word = 666;
+  MaxShells: Word = 300;
   CurrentGib: Integer = 0;
   CurrentShell: Integer = 0;
   BotNames: Array of String;
@@ -527,7 +527,8 @@ begin
   MaxGibs := Count;
   SetLength(gGibs, Count);
 
-  if CurrentGib >= Count-1 then CurrentGib := 0;
+  if CurrentGib >= Count then
+    CurrentGib := 0;
 end;
 
 function g_Gibs_GetMax(): Word;
@@ -540,7 +541,8 @@ begin
   MaxShells := Count;
   SetLength(gShells, Count);
 
-  if CurrentShell >= Count-1 then CurrentShell := 0;
+  if CurrentShell >= Count then
+    CurrentShell := 0;
 end;
 
 function g_Shells_GetMax(): Word;
@@ -1086,7 +1088,7 @@ begin
   begin
     if (FHealth >= -50) or (gGibsCount = 0) then
       begin
-        if gCorpses = nil then
+        if (gCorpses = nil) or (Length(gCorpses) = 0) then
           Exit;
 
         ok := False;
@@ -1117,6 +1119,9 @@ var
   SID: DWORD;
 begin
   if (gGameSettings.GameType = GT_SERVER) and NetDedicated then Exit;
+  if (gShells = nil) or (Length(gShells) = 0) then
+    Exit;
+  
   with gShells[CurrentShell] do
   begin
     SpriteID := 0;
@@ -1146,7 +1151,7 @@ begin
     Obj.X := fX;
     Obj.Y := fY;
     g_Obj_Push(@Obj, dX + Random(4)-Random(4), dY-Random(4));
-    RAngle := 0;
+    RAngle := Random(360);
     Timeout := gTime + SHELL_TIMEOUT;
 
     if CurrentShell >= High(gShells) then
@@ -1162,7 +1167,7 @@ var
   GibsArray: TGibsArray;
 begin
   if (gGameSettings.GameType = GT_SERVER) and NetDedicated then Exit;
-  if gGibs = nil then
+  if (gGibs = nil) or (Length(gGibs) = 0) then
     Exit;
   if not g_PlayerModel_GetGibs(ModelName, GibsArray) then
     Exit;
@@ -1179,7 +1184,7 @@ begin
       Obj.X := fX-GibsArray[a].Rect.X-(GibsArray[a].Rect.Width div 2);
       Obj.Y := fY-GibsArray[a].Rect.Y-(GibsArray[a].Rect.Height div 2);
       g_Obj_PushA(@Obj, 25 + Random(10), Random(361));
-      RAngle := 0;
+      RAngle := Random(360);
 
       if gBloodCount > 0 then
         g_GFX_Blood(fX, fY, 16*gBloodCount+Random(5*gBloodCount), -16+Random(33), -16+Random(33),
@@ -1188,11 +1193,11 @@ begin
       if CurrentGib >= High(gGibs) then
         CurrentGib := 0
       else
-        CurrentGib := CurrentGib + 1;
+        Inc(CurrentGib);
     end;
 end;
 
-procedure g_Player_UpdateCorpse();
+procedure g_Player_UpdatePhysicalObjects();
 var
   i: Integer;
   vel: TPoint2i;
@@ -1208,8 +1213,11 @@ var
     else
       g_Sound_PlayExAt('SOUND_PLAYER_SHELL' + IntToStr(k), X, Y);
   end;
+  
 begin
   if (gGameSettings.GameType = GT_SERVER) and NetDedicated then Exit;
+
+// Куски мяса:
   if gGibs <> nil then
     for i := 0 to High(gGibs) do
       if gGibs[i].Live then
@@ -1229,16 +1237,24 @@ begin
             Obj.Vel.X := -(vel.X div 2);
           if WordBool(mr and (MOVE_HITCEIL or MOVE_HITLAND)) then
             Obj.Vel.Y := -(vel.Y div 2);
-
-          RAngle := RAngle + Obj.Vel.X*6 + Obj.Vel.Y;
-          if RAngle > 360 then
-            RAngle := RAngle mod 360;
+          
+          if (Obj.Vel.X >= 0) then
+          begin // Clockwise
+            RAngle := RAngle + Abs(Obj.Vel.X)*6 + Abs(Obj.Vel.Y);
+            if RAngle >= 360 then
+              RAngle := RAngle mod 360;
+          end else begin // Counter-clockwise
+            RAngle := RAngle - Abs(Obj.Vel.X)*6 - Abs(Obj.Vel.Y);
+            if RAngle < 0 then
+              RAngle := (360 - (Abs(RAngle) mod 360)) mod 360;
+          end;
 
         // Сопротивление воздуха для куска трупа:
           if gTime mod (GAME_TICK*3) = 0 then
             Obj.Vel.X := z_dec(Obj.Vel.X, 1);
         end;
 
+// Трупы:
   if gCorpses <> nil then
     for i := 0 to High(gCorpses) do
       if gCorpses[i] <> nil then
@@ -1250,6 +1266,7 @@ begin
         else
           gCorpses[i].Update();
 
+// Гильзы:
   if gShells <> nil then
     for i := 0 to High(gShells) do
       if gShells[i].Live then
@@ -1284,9 +1301,16 @@ begin
               ShellSound_Bounce(Obj.X, Obj.Y, SType);
           end;
 
-          RAngle := RAngle + Obj.Vel.X*8 + Obj.Vel.Y;
-          if RAngle >= 360 then
-            RAngle := RAngle mod 360;
+          if (Obj.Vel.X >= 0) then
+          begin // Clockwise
+            RAngle := RAngle + Abs(Obj.Vel.X)*8 + Abs(Obj.Vel.Y);
+            if RAngle >= 360 then
+              RAngle := RAngle mod 360;
+          end else begin // Counter-clockwise
+            RAngle := RAngle - Abs(Obj.Vel.X)*8 - Abs(Obj.Vel.Y);
+            if RAngle < 0 then
+              RAngle := (360 - (Abs(RAngle) mod 360)) mod 360;
+          end;
         end;
 end;
 

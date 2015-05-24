@@ -67,9 +67,9 @@ begin
   menu := TGUIMenu(g_GUI_GetWindow('OptionsGameMenu').GetControl('mOptionsGameMenu'));
 
   g_GFX_SetMax(TGUIScroll(menu.GetControl('scParticlesCount')).Value*1000);
+  g_Shells_SetMax(TGUIScroll(menu.GetControl('scShellsMax')).Value*30);
   g_Gibs_SetMax(TGUIScroll(menu.GetControl('scGibsMax')).Value*25);
   g_Corpses_SetMax(TGUIScroll(menu.GetControl('scCorpsesMax')).Value*5);
-  g_Shells_SetMax(256); // TODO !
 
   case TGUISwitch(menu.GetControl('swGibsCount')).ItemIndex of
     0: gGibsCount := 0;
@@ -259,6 +259,7 @@ begin
 
   config.WriteInt('Game', 'ItemRespawnTime', ITEM_RESPAWNTIME div 36);
   config.WriteInt('Game', 'MaxParticles', g_GFX_GetMax());
+  config.WriteInt('Game', 'MaxShells', g_Shells_GetMax());
   config.WriteInt('Game', 'MaxGibs', g_Gibs_GetMax());
   config.WriteInt('Game', 'MaxCorpses', g_Corpses_GetMax());
   config.WriteInt('Game', 'BloodCount', gBloodCount);
@@ -365,10 +366,11 @@ begin
 
   menu := TGUIMenu(g_GUI_GetWindow('OptionsGameMenu').GetControl('mOptionsGameMenu'));
 
-   TGUIScroll(menu.GetControl('scParticlesCount')).Value := g_GFX_GetMax() div 1000;
-   TGUIScroll(menu.GetControl('scGibsMax')).Value := g_Gibs_GetMax() div 25;
-   TGUIScroll(menu.GetControl('scCorpsesMax')).Value := g_Corpses_GetMax() div 5;
-   TGUISwitch(menu.GetControl('swBloodCount')).ItemIndex := gBloodCount;
+  TGUIScroll(menu.GetControl('scParticlesCount')).Value := g_GFX_GetMax() div 1000;
+  TGUIScroll(menu.GetControl('scShellsMax')).Value := g_Shells_GetMax() div 30;
+  TGUIScroll(menu.GetControl('scGibsMax')).Value := g_Gibs_GetMax() div 25;
+  TGUIScroll(menu.GetControl('scCorpsesMax')).Value := g_Corpses_GetMax() div 5;
+  TGUISwitch(menu.GetControl('swBloodCount')).ItemIndex := gBloodCount;
 
   with TGUISwitch(menu.GetControl('swScreenFlash')) do
     if gFlash then ItemIndex := 0 else ItemIndex := 1;
@@ -2303,6 +2305,11 @@ begin
       AddItem(_lc[I_MENU_COUNT_NORMAL]);
       AddItem(_lc[I_MENU_COUNT_BIG]);
       AddItem(_lc[I_MENU_COUNT_VERYBIG]);
+    end;
+    with AddScroll(_lc[I_MENU_GAME_MAX_SHELLS]) do
+    begin
+      Name := 'scShellsMax';
+      Max := 20;
     end;
     with AddScroll(_lc[I_MENU_GAME_GIBS_COUNT]) do
     begin

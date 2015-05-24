@@ -614,7 +614,7 @@ begin
 
   SetLength(Particles, Count);
   MaxParticles := Count;
-  if CurrentParticle+1 > Count then
+  if CurrentParticle >= Count then
     CurrentParticle := 0;
 end;
 

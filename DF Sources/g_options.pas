@@ -76,7 +76,7 @@ begin
   g_GFX_SetMax(2000);
   g_Gibs_SetMax(150);
   g_Corpses_SetMax(20);
-  g_Shells_SetMax(256); // TODO!
+  g_Shells_SetMax(300);
   gGibsCount := 32;
   gBloodCount := 3;
   gAdvBlood := True;
@@ -254,9 +254,9 @@ begin
   end;
 
   g_GFX_SetMax(Min(config.ReadInt('Game', 'MaxParticles', 1000), 50000));
+  g_Shells_SetMax(Min(config.ReadInt('Game', 'MaxShells', 300), 600));
   g_Gibs_SetMax(Min(config.ReadInt('Game', 'MaxGibs', 150), 500));
   g_Corpses_SetMax(Min(config.ReadInt('Game', 'MaxCorpses', 20), 100));
-  g_Shells_SetMax(256); // TODO!
 
   case config.ReadInt('Game', 'GibsCount', 3) of
     0: gGibsCount := 0;

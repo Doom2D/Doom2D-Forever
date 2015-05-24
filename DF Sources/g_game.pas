@@ -1189,7 +1189,7 @@ begin
     g_Monsters_Update();
     g_GFX_Update();
     g_Player_UpdateAll();
-    g_Player_UpdateCorpse();
+    g_Player_UpdatePhysicalObjects();
     if gGameSettings.GameType = GT_SERVER then
       if Length(gMonstersSpawned) > 0 then
       begin
