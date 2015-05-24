@@ -234,7 +234,7 @@ begin
     if gPlayer1 <> nil then gPlayer1.NoTarget := not gPlayer1.NoTarget;
     if gPlayer2 <> nil then gPlayer2.NoTarget := not gPlayer2.NoTarget;
   end
-  // INFERNO
+  // INFERNO отменяет необходимость перезарядки оружий  
   else if Copy(charbuff, 10, 7) = c17 then
   begin
     if gPlayer1 <> nil then gPlayer1.NoReload := not gPlayer1.NoReload;
