@@ -2901,7 +2901,8 @@ begin
             FCurrWeap := WEAPON_KASTET;
             FModel.SetWeapon(WEAPON_KASTET);
           end;
-          Inc(FPain, 100);
+          if gFlash then
+            Inc(FPain, 100);
           Result := True;
           remove := True;
         end;
@@ -3480,7 +3481,7 @@ begin
       FActionChanged := True;
     end;
 
-  if Action in [A_ATTACK, A_ATTACKUP, A_ATTACKDOWN] then FModel.SetFire(True); 
+  if Action in [A_ATTACK, A_ATTACKUP, A_ATTACKDOWN] then FModel.SetFire(True);
 end;
 
 function TPlayer.StayOnStep(XInc, YInc: Integer): Boolean;
@@ -3497,7 +3498,7 @@ var
   ID: DWORD;
 begin
   Result := False;
- 
+
   if g_CollideLevel(X, Y, PLAYER_RECT.Width, PLAYER_RECT.Height) then Exit;
 
   Anim := nil;
@@ -3516,7 +3517,7 @@ begin
                      FObj.Y+PLAYER_RECT.Y+(PLAYER_RECT.Height div 2)-32, 1,
                      NET_GFX_TELE);
   end;
- 
+
   FObj.X := X-PLAYER_RECT.X;
   FObj.Y := Y-PLAYER_RECT.Y;
 
@@ -4631,7 +4632,8 @@ begin
             FCurrWeap := WEAPON_KASTET;
             FModel.SetWeapon(WEAPON_KASTET);
           end;
-          Inc(FPain, 100);
+          if gFlash then
+            Inc(FPain, 100);
         end;
         if FHealth < 100 then
         begin
