@@ -981,7 +981,7 @@ end;
 
 function GetTriggerName(TriggerType: Byte): String;
 begin
-  if TriggerType in [TRIGGER_EXIT..TRIGGER_MUSIC] then
+  if TriggerType in [TRIGGER_EXIT..TRIGGER_PUSH] then
     Result := TriggerNames[TriggerType]
   else
     Assert(False);
@@ -993,7 +993,7 @@ var
 
 begin
   Result := TRIGGER_NONE;
-  for i := TRIGGER_EXIT to TRIGGER_MUSIC do
+  for i := TRIGGER_EXIT to TRIGGER_PUSH do
     if TriggerNames[i] = TriggerName then
       begin
         Result := i;
