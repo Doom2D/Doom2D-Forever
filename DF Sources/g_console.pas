@@ -201,6 +201,8 @@ begin
   AddCommand('d_frames', DebugCommands);
   AddCommand('d_winmsg', DebugCommands);
   AddCommand('d_monoff', DebugCommands);
+  AddCommand('map', DebugCommands);
+  AddCommand('monster', DebugCommands);
 
   AddCommand('p1_name', GameCVars);
   AddCommand('p2_name', GameCVars);
@@ -238,8 +240,6 @@ begin
   AddCommand('bot_addred', GameCommands);
   AddCommand('bot_addblue', GameCommands);
   AddCommand('bot_removeall', GameCommands);
-  AddCommand('map', GameCommands);
-  AddCommand('monster', GameCommands);
   AddCommand('chat', GameCommands);
   AddCommand('changemap', GameCommands);
   AddCommand('suicide', GameCommands);

@@ -3560,7 +3560,9 @@ begin
                   gPlayer1.Direction, True);
           end;
       end;
-  end;
+  end
+    else
+      g_Console_Add(_lc[I_MSG_NOT_DEBUG]);
 end;
 
 procedure GameCommands(P: SArray);

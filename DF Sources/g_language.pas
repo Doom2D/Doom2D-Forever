@@ -444,6 +444,7 @@ type
     I_MSG_LIVES,
     I_MSG_WARMUP,
     I_MSG_ONMAPCHANGE,
+    I_MSG_NOT_DEBUG,
 
     I_TEXTURE_ENDPIC,
 
@@ -1316,6 +1317,8 @@ const
                                        'Время на подготовку к игре: %d сек*'),
     ('MSG ONMAPCHANGE',                '*Changes to this variable will be applied upon next map change',
                                        '*Изменения вступят в силу после следующей смены карты'),
+    ('MSG NOT DEBUG',                  'Command can be accepted only in debug mode.',
+                                       'Команда применима только в режиме отладки.'),
 
     ('TEXTURE ENDPIC',                 'ENDGAME_EN',
                                        'ENDGAME_RU'),
