@@ -3670,8 +3670,9 @@ begin
     begin
       if FGhost then
       begin
-        if (not FSpectator) or (FSpectatePlayer = -1) then
-          FYTo := FObj.Y - 24
+        if ((not FSpectator) or (FSpectatePlayer = -1)) and
+        (FKeys[KEY_UP].Pressed or FKeys[KEY_JUMP].Pressed) then
+          FYTo := FObj.Y - 32
       end
       else
         if gGameSettings.GameType in [GT_CUSTOM, GT_SERVER] then
@@ -3709,12 +3710,12 @@ begin
 
       if (FXTo < 0) then
         FXTo := 0
-      else
-        if (FXTo > gMapInfo.Width) then FXTo := gMapInfo.Width;
+      else if (FXTo > gMapInfo.Width) then
+        FXTo := gMapInfo.Width;
       if (FYTo < 0) then
         FYTo := 0
-      else
-        if (FYTo > gMapInfo.Height) then FYTo := gMapInfo.Height;
+      else if (FYTo > gMapInfo.Height) then
+        FYTo := gMapInfo.Height;
 
       if FKeys[KEY_OPEN].Pressed and AnyServer then Fire();
       if FKeys[KEY_FIRE].Pressed and AnyServer then
