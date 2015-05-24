@@ -491,7 +491,7 @@ const
                                        'Добро пожаловать в Doom 2D: Forever %s'),
 
     ('GAME ERROR GET SPAWN',           'Can''t find a spawn point!',
-                                       'Не удалось получить точку респауна!'),
+                                       'Не удалось получить точку возрождения!'),
     ('GAME ERROR CTF',                 'There is no flags on this map!',
                                        'На карте нет флагов!'),
     ('GAME ERROR MAP WAD',             'Can''t read map WAD "%s"',
@@ -1037,7 +1037,7 @@ const
     ('PLAYER SPECT',                   'Spectating',
                                        'Наблюдение'),
     ('PLAYER SPECT1',                  '[USE] - spawn',
-                                       '[ОТКРЫТЬ] - респаун'),
+                                       '[ОТКРЫТЬ] - возродиться'),
     ('PLAYER SPECT1S',                 '(next round)',
                                        '(в следующем раунде)'),
     ('PLAYER SPECT2',                  '[FIRE] - chase',
@@ -1045,7 +1045,7 @@ const
     ('PLAYER SPECT3',                  '[JUMP] - reset',
                                        '[ПРЫЖОК] - сброс'),
     ('PLAYER SPECT4',                  'You can''t spawn until current round ends.',
-                                       'Вы не можете спауниться до конца раунда.'),
+                                       'Вы не сможете возродиться до конца раунда.'),
     ('PLAYER SPECT5',                  ' sec until round start.',
                                        ' сек до начала раунда.'),
 
