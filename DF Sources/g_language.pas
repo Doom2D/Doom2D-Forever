@@ -1037,7 +1037,7 @@ const
     ('PLAYER SPECT',                   'Spectating',
                                        'Ќаблюдение'),
     ('PLAYER SPECT1',                  '[USE] - spawn',
-                                       '[ќ“ –џ“№] - возродитьс€'),
+                                       '[ќ“ –џ“№] - ожить'),
     ('PLAYER SPECT1S',                 '(next round)',
                                        '(в следующем раунде)'),
     ('PLAYER SPECT2',                  '[FIRE] - chase',
