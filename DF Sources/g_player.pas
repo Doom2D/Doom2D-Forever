@@ -150,7 +150,7 @@ type
     FJetSoundOff:    TPlayableSound;
     FJetSoundFly:    TPlayableSound;
     FGodMode:   Boolean;
-    FNoTarget:   Boolean;
+    FNoTarget:  Boolean;
 
     function    CollideLevel(XInc, YInc: Integer): Boolean;
     function    StayOnStep(XInc, YInc: Integer): Boolean;
@@ -172,10 +172,10 @@ type
     procedure   Fire();
     procedure   Jump();
     procedure   Use();
-    
+
   public
     FDamageBuffer:   Integer;
-    
+
     FAmmo:      Array [A_BULLETS..A_CELLS] of Word;
     FMaxAmmo:   Array [A_BULLETS..A_CELLS] of Word;
     FWeapon:    Array [WEAPON_KASTET..WEAPON_SUPERPULEMET] of Boolean;
@@ -193,7 +193,7 @@ type
     FActualModelName: string;
     FClientID:  Short;
     FDummy:     Boolean;
-    
+
     constructor Create(); virtual;
     destructor  Destroy(); override;
     procedure   Respawn(Silent: Boolean; Force: Boolean = False); virtual;
@@ -225,6 +225,7 @@ type
     procedure   Kill(KillType: Byte; SpawnerUID: Word; t: Byte);
     procedure   Reset(Force: Boolean);
     procedure   Spectate(NoMove: Boolean = False);
+    procedure   SwitchNoClip;
     procedure   SoftReset();
     procedure   Draw(); virtual;
     procedure   DrawPain();
@@ -2224,7 +2225,14 @@ begin
   Srv := g_Game_IsServer;
   Netsrv := g_Game_IsServer and g_Game_IsNet;
   if Srv then FDeath := FDeath + 1;
-  FLive := False;
+  if FLive then
+  begin
+    if FGhost then
+      FGhost := False;
+    if not FPhysics then
+      FPhysics := True;
+    FLive := False;
+  end;
   FShellTimer := -1;
 
   if (gGameSettings.MaxLives > 0) and Srv and (not gLMSRespawn) then
@@ -2233,7 +2241,7 @@ begin
     if FLives = 0 then FNoRespawn := True;
   end;
 
-// Номер типа смерти:     
+// Номер типа смерти:
   a := 1;
   case KillType of
     K_SIMPLEKILL:    a := 1;
@@ -3419,6 +3427,19 @@ begin
     MH_SEND_PlayerStats(FUID);
 end;
 
+procedure TPlayer.SwitchNoClip;
+begin
+  if not FLive then
+    Exit;
+  FGhost := not FGhost;
+  FPhysics := not FGhost;
+  if FGhost then
+  begin
+    FXTo := FObj.X;
+    FYTo := FObj.Y;
+  end;
+end;
+
 procedure TPlayer.Run(Direction: TDirection);
 begin
   if MAX_RUNVEL > 8 then
@@ -3520,6 +3541,11 @@ begin
 
   FObj.X := X-PLAYER_RECT.X;
   FObj.Y := Y-PLAYER_RECT.Y;
+  if FLive and FGhost then
+  begin
+    FXTo := FObj.X;
+    FYTo := FObj.Y;
+  end;
 
   if not g_Game_IsNet then
   begin
@@ -3600,7 +3626,7 @@ begin
   else
     FAngle := 0;
 
-  if FLive then
+  if FLive and (not FGhost) then
   begin
     if FKeys[KEY_UP].Pressed then
       SeeUp();
@@ -3636,25 +3662,26 @@ begin
   FActionChanged := False;
 
   if FLive then
+  begin
+    // Let alive player do some actions
+    if FKeys[KEY_LEFT].Pressed then Run(D_LEFT);
+    if FKeys[KEY_RIGHT].Pressed then Run(D_RIGHT);
+    if FKeys[KEY_NEXTWEAPON].Pressed and AnyServer then NextWeapon();
+    if FKeys[KEY_PREVWEAPON].Pressed and AnyServer then PrevWeapon();
+    if FKeys[KEY_FIRE].Pressed and AnyServer then Fire();
+    if FKeys[KEY_OPEN].Pressed and AnyServer then Use();
+    if FKeys[KEY_JUMP].Pressed then Jump()
+    else
     begin
-      if FKeys[KEY_LEFT].Pressed then Run(D_LEFT);
-      if FKeys[KEY_RIGHT].Pressed then Run(D_RIGHT);
-      if FKeys[KEY_NEXTWEAPON].Pressed and AnyServer then NextWeapon();
-      if FKeys[KEY_PREVWEAPON].Pressed and AnyServer then PrevWeapon();
-      if FKeys[KEY_FIRE].Pressed and AnyServer then Fire();
-      if FKeys[KEY_OPEN].Pressed and AnyServer then Use();
-      if FKeys[KEY_JUMP].Pressed then Jump()
-      else
+      if AnyServer and FJetpack then
       begin
-        if AnyServer and FJetpack then
-        begin
-          FJetpack := False;
-          JetpackOff;
-          if NetServer then MH_SEND_PlayerStats(FUID);
-        end;
-        FCanJetpack := True;
+        FJetpack := False;
+        JetpackOff;
+        if NetServer then MH_SEND_PlayerStats(FUID);
       end;
-    end
+      FCanJetpack := True;
+    end;
+  end
   else // Dead
   begin
     dospawn := False;
@@ -3684,38 +3711,9 @@ begin
           end;
         end;
     end;
+    // Dead spectator actions
     if FGhost then
     begin
-      if FKeys[KEY_UP].Pressed or FKeys[KEY_JUMP].Pressed then
-      begin
-        FYTo := FObj.Y - 32;
-        FSpectatePlayer := -1;
-      end;
-      if FKeys[KEY_DOWN].Pressed then
-      begin
-        FYTo := FObj.Y + 32;
-        FSpectatePlayer := -1;
-      end;
-      if FKeys[KEY_LEFT].Pressed then
-      begin
-        FXTo := FObj.X - 32;
-        FSpectatePlayer := -1;
-      end;
-      if FKeys[KEY_RIGHT].Pressed then
-      begin
-        FXto := FObj.X + 32;
-        FSpectatePlayer := -1;
-      end;
-
-      if (FXTo < 0) then
-        FXTo := 0
-      else if (FXTo > gMapInfo.Width) then
-        FXTo := gMapInfo.Width;
-      if (FYTo < 0) then
-        FYTo := 0
-      else if (FYTo > gMapInfo.Height) then
-        FYTo := gMapInfo.Height;
-
       if FKeys[KEY_OPEN].Pressed and AnyServer then Fire();
       if FKeys[KEY_FIRE].Pressed and AnyServer then
       begin
@@ -3743,6 +3741,39 @@ begin
         end;
       end;
     end;
+  end;
+  // No clipping
+  if FGhost then
+  begin
+    if FKeys[KEY_UP].Pressed or FKeys[KEY_JUMP].Pressed then
+    begin
+      FYTo := FObj.Y - 32;
+      FSpectatePlayer := -1;
+    end;
+    if FKeys[KEY_DOWN].Pressed then
+    begin
+      FYTo := FObj.Y + 32;
+      FSpectatePlayer := -1;
+    end;
+    if FKeys[KEY_LEFT].Pressed then
+    begin
+      FXTo := FObj.X - 32;
+      FSpectatePlayer := -1;
+    end;
+    if FKeys[KEY_RIGHT].Pressed then
+    begin
+      FXTo := FObj.X + 32;
+      FSpectatePlayer := -1;
+    end;
+
+    if (FXTo < 0) then
+      FXTo := 0
+    else if (FXTo > gMapInfo.Width) then
+      FXTo := gMapInfo.Width;
+    if (FYTo < 0) then
+      FYTo := 0
+    else if (FYTo > gMapInfo.Height) then
+      FYTo := gMapInfo.Height;
   end;
 
   if FPhysics then

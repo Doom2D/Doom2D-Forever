@@ -224,7 +224,8 @@ begin
   // CASPER позвол€ет ходить сквозь стены
   else if Copy(charbuff, 11, 6) = c15 then
   begin
-    // TODO
+    if gPlayer1 <> nil then gPlayer1.SwitchNoClip;
+    if gPlayer2 <> nil then gPlayer2.SwitchNoClip;
   end
   // я—¬ќ… скрывает от глаз монстров
   else if Copy(charbuff, 12, 5) = c16 then
