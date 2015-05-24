@@ -3816,9 +3816,9 @@ begin
           if gPlayer1 <> nil then
           begin
            if gPlayer1.FSpectator then
-            gPlayer1.Respawn(False)
+             gPlayer1.Respawn(False)
            else
-            gPlayer1.Spectate;
+             gPlayer1.Spectate;
           end;
         end;
       end
