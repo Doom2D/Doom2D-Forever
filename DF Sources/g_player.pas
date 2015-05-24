@@ -3658,40 +3658,39 @@ begin
   else // Dead
   begin
     dospawn := False;
-    for k := Low(FKeys) to KEY_CHAT-1 do
-    begin
-      if FKeys[k].Pressed then
+    if not FGhost then
+      for k := Low(FKeys) to KEY_CHAT-1 do
       begin
-        dospawn := True;
-        break;
+        if FKeys[k].Pressed then
+        begin
+          dospawn := True;
+          break;
+        end;
       end;
-    end;
-    if (dospawn) then
+    if dospawn then
     begin
-      if FGhost then
-      begin
-        if ((not FSpectator) or (FSpectatePlayer = -1)) and
-        (FKeys[KEY_UP].Pressed or FKeys[KEY_JUMP].Pressed) then
-          FYTo := FObj.Y - 32
-      end
-      else
-        if gGameSettings.GameType in [GT_CUSTOM, GT_SERVER] then
-          Respawn(False)
-        else // Single
-          if (FTime[T_RESPAWN] <= gTime) and
-            gGameOn and (not FLive) then
+      if gGameSettings.GameType in [GT_CUSTOM, GT_SERVER] then
+        Respawn(False)
+      else // Single
+        if (FTime[T_RESPAWN] <= gTime) and
+          gGameOn and (not FLive) then
+        begin
+          if (g_Player_GetCount() > 1) then
+            Respawn(False)
+          else
           begin
-            if (g_Player_GetCount() > 1) then
-              Respawn(False)
-            else
-            begin
-              gExit := EXIT_RESTART;
-              Exit;
-            end;
+            gExit := EXIT_RESTART;
+            Exit;
           end;
+        end;
     end;
     if FGhost then
     begin
+      if FKeys[KEY_UP].Pressed or FKeys[KEY_JUMP].Pressed then
+      begin
+        FYTo := FObj.Y - 32;
+        FSpectatePlayer := -1;
+      end;
       if FKeys[KEY_DOWN].Pressed then
       begin
         FYTo := FObj.Y + 32;
