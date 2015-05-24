@@ -27,9 +27,8 @@ const
 
   MR_SUIT           = 0;
   MR_INVUL          = 1;
-  MR_JET            = 2;
-  MR_INVIS          = 3;
-  MR_MAX            = 3;
+  MR_INVIS          = 2;
+  MR_MAX            = 2;
 
   A_BULLETS         = 0;
   A_SHELLS          = 1;
@@ -40,7 +39,7 @@ const
   K_HARDKILL        = 1;
   K_EXTRAHARDKILL   = 2;
   K_FALLKILL        = 3;
-                                            
+
   T_RESPAWN         = 0;
   T_SWITCH          = 1;
   T_USE             = 2;
@@ -119,6 +118,7 @@ type
     FFrags:     Integer;
     FDeath:     Integer;
     FCanJetpack: Boolean;
+    FJetFuel:   Integer;
     FFlag:      Byte;
     FSecrets:   Integer;
     FCurrWeap:  Byte;
@@ -1670,7 +1670,7 @@ var
   bubX, bubY: Integer;
 begin
   if FLive then
-    if (FMegaRulez[MR_INVIS] > gTime)  then
+    if (FMegaRulez[MR_INVIS] > gTime) then
     begin
       if (gPlayerDrawn <> nil) and ((Self = gPlayerDrawn) or
          ((FTeam = gPlayerDrawn.Team) and (gGameSettings.GameMode <> GM_DM))) then
@@ -1680,7 +1680,7 @@ begin
     end
     else
       FModel.Draw(FObj.X, FObj.Y);
-      
+
   if g_debug_Frames then
   begin
     e_DrawQuad(FObj.X+FObj.Rect.X,
@@ -1827,14 +1827,14 @@ begin
   if R_KEY_BLUE in FRulez then
     e_Draw(gItemsTexturesID[ITEM_KEY_BLUE], X+112, Y+214, 0, True, False);
 
-  if FMegaRulez[MR_JET] > 0 then
+  if FJetFuel > 0 then
   begin
     if g_Texture_Get('TEXTURE_PLAYER_HUDAIR', ID) then
       e_Draw(ID, X+2, Y+116, 0, True, False);
     if g_Texture_Get('TEXTURE_PLAYER_HUDJET', ID) then
       e_Draw(ID, X+2, Y+126, 0, True, False);
     e_DrawLine(4, X+16, Y+122, X+16+Trunc(168*IfThen(FAir > 0, FAir, 0)/AIR_MAX), Y+122, 0, 0, 196);
-    e_DrawLine(4, X+16, Y+132, X+16+Trunc(168*(FMegaRulez[MR_JET]/JET_MAX)), Y+132, 208, 0, 0);
+    e_DrawLine(4, X+16, Y+132, X+16+Trunc(168*IfThen(FJetFuel > 0, FJetFuel, 0)/JET_MAX), Y+132, 208, 0, 0);
   end
   else
   begin
@@ -2160,9 +2160,9 @@ begin
     if FObj.Vel.Y > -VEL_FLY then FObj.Vel.Y := FObj.Vel.Y - 3;
     if FJetpack then
     begin
-      if FMegaRulez[MR_JET] > 0 then
-        Dec(FMegaRulez[MR_JET]);
-      if (FMegaRulez[MR_JET] < 1) and g_Game_IsServer then
+      if FJetFuel > 0 then
+        Dec(FJetFuel);
+      if (FJetFuel < 1) and g_Game_IsServer then
       begin
         FJetpack := False;
         JetpackOff;
@@ -2185,7 +2185,7 @@ begin
   begin
     if BodyInLiquid(0, 0) then
       FObj.Vel.Y := -VEL_SW
-    else if (FMegaRulez[MR_JET] > 0) and FCanJetpack and g_Game_IsServer then
+    else if (FJetFuel > 0) and FCanJetpack and g_Game_IsServer then
     begin
       FJetpack := True;
       JetpackOn;
@@ -2387,7 +2387,7 @@ begin
       PushItem(ITEM_AMMO_BACKPACK);
 
 // Выброс ракетного ранца:
-    if FMegaRulez[MR_JET] > 0 then
+    if FJetFuel > 0 then
       PushItem(ITEM_JETPACK);
 
 // Выброс ключей:
@@ -2952,9 +2952,9 @@ begin
       end;
 
     ITEM_JETPACK:
-      if FMegaRulez[MR_JET] < JET_MAX then
+      if FJetFuel < JET_MAX then
       begin
-        FMegaRulez[MR_JET] := JET_MAX;
+        FJetFuel := JET_MAX;
         Result := True;
         remove := True;
       end;
@@ -3258,6 +3258,7 @@ begin
     FArmor := 0;
     FLive := True;
     FAir := AIR_DEF;
+    FJetFuel := 0;
 
     for a := WEAPON_KASTET to WEAPON_SUPERPULEMET do
     begin
@@ -3908,7 +3909,8 @@ begin
         else
           g_Sound_PlayExAt('SOUND_GAME_BUBBLE2', FObj.X, FObj.Y);
       end;
-    end else if FAir < AIR_DEF then FAir := AIR_DEF;
+    end else if FAir < AIR_DEF then
+      FAir := AIR_DEF;
 
     if FDamageBuffer > 0 then
     begin
@@ -4699,9 +4701,9 @@ begin
       end;
 
     ITEM_JETPACK:
-      if FMegaRulez[MR_JET] < JET_MAX then
+      if FJetFuel < JET_MAX then
       begin
-        FMegaRulez[MR_JET] := JET_MAX;
+        FJetFuel := JET_MAX;
       end;
 
     else
