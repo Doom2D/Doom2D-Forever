@@ -151,6 +151,7 @@ type
     FJetSoundFly:    TPlayableSound;
     FGodMode:   Boolean;
     FNoTarget:  Boolean;
+    FNoReload:  Boolean;
 
     function    CollideLevel(XInc, YInc: Integer): Boolean;
     function    StayOnStep(XInc, YInc: Integer): Boolean;
@@ -257,6 +258,7 @@ type
     property    Secrets: Integer read FSecrets;
     property    GodMode: Boolean read FGodMode write FGodMode;
     property    NoTarget: Boolean read FNoTarget write FNoTarget;
+    property    NoReload: Boolean read FNoReload write FNoReload;
     property    Live: Boolean read FLive write FLive;
     property    Flag: Byte read FFlag;
     property    Team: Byte read FTeam write FTeam;
@@ -2074,7 +2076,8 @@ begin
       if (FAmmo[A_CELLS] >= 40) and (FBFGFireCounter = -1) then
       begin
         FBFGFireCounter := 21;
-        g_Sound_PlayExAt('SOUND_WEAPON_STARTFIREBFG', FObj.X, FObj.Y);
+        if not FNoReload then
+          g_Sound_PlayExAt('SOUND_WEAPON_STARTFIREBFG', FObj.X, FObj.Y);
         Dec(FAmmo[A_CELLS], 40);
         DidFire := True;
       end;
@@ -2100,9 +2103,10 @@ begin
       if FCurrWeap <> WEAPON_BFG then
         MH_SEND_PlayerFire(FUID, FCurrWeap, wx, wy, xd, yd, LastShotID)
       else
-        MH_SEND_Sound(FObj.X, FObj.Y, 'SOUND_WEAPON_STARTFIREBFG');
+        if not FNoReload then
+          MH_SEND_Sound(FObj.X, FObj.Y, 'SOUND_WEAPON_STARTFIREBFG');
     end;
-  
+
     MH_SEND_PlayerStats(FUID);
   end;
 
@@ -3023,6 +3027,7 @@ begin
   FTime[T_RESPAWN] := 0;
   FGodMode := False;
   FNoTarget := False;
+  FNoReload := False;
   FFrags := 0;
   FKills := 0;
   FMonsterKills := 0;
@@ -3833,7 +3838,11 @@ begin
       end;
 
     for b := WEAPON_KASTET to WEAPON_SUPERPULEMET do
-      if FReloading[b] > 0 then Dec(FReloading[b]);
+      if FReloading[b] > 0 then
+        if FNoReload then
+          FReloading[b] := 0
+        else
+          Dec(FReloading[b]);
 
     if FShellTimer > -1 then
       if FShellTimer = 0 then
@@ -3869,7 +3878,11 @@ begin
 
         FReloading[WEAPON_BFG] := 0;
         FBFGFireCounter := -1;
-      end else FBFGFireCounter := FBFGFireCounter-1;
+      end else
+        if FNoReload then
+          FBFGFireCounter := 0
+        else
+          Dec(FBFGFireCounter);
 
     if (FMegaRulez[MR_SUIT] < gTime) and AnyServer then
     begin

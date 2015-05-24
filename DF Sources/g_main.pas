@@ -119,6 +119,7 @@ const
   c14_2 = 'JLTY';    // ндем
   c15 = 'CASPER';
   c16 = 'ZCDJQ';     // ъябни
+  c17 = 'INFERNO';
 begin
   if (not gGameOn) or (not gCheats) or ((gGameSettings.GameType <> GT_SINGLE) and
     (gGameSettings.GameMode <> GM_COOP) and (not gDebugMode))
@@ -232,6 +233,12 @@ begin
   begin
     if gPlayer1 <> nil then gPlayer1.NoTarget := not gPlayer1.NoTarget;
     if gPlayer2 <> nil then gPlayer2.NoTarget := not gPlayer2.NoTarget;
+  end
+  // INFERNO
+  else if Copy(charbuff, 10, 7) = c17 then
+  begin
+    if gPlayer1 <> nil then gPlayer1.NoReload := not gPlayer1.NoReload;
+    if gPlayer2 <> nil then gPlayer2.NoReload := not gPlayer2.NoReload;
   end
   else Exit;
 
