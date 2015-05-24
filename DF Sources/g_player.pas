@@ -1593,10 +1593,11 @@ begin
     // Обнулить действия примочек, чтобы фон пропал
     FMegaRulez[MR_SUIT] := 0;
     FMegaRulez[MR_INVUL] := 0;
+    FMegaRulez[MR_INVIS] := 0;
   end;
 
 // Но от остального спасает:
-  if FMegaRulez[MR_INVUL] > gTime then
+  if FMegaRulez[MR_INVUL] >= gTime then
     Exit;
 
 // Чит-код "ГОРЕЦ":
@@ -5109,7 +5110,7 @@ begin
            (gPlayers[a].FUID <> FUID) and
            (not SameTeam(FUID, gPlayers[a].FUID)) and
            (not gPlayers[a].NoTarget) and
-           (gPlayers[a].FMegaRulez[MR_INVIS] < 1) then
+           (gPlayers[a].FMegaRulez[MR_INVIS] < gTime) then
           begin
             if not TargetOnScreen(gPlayers[a].FObj.X + PLAYER_RECT.X,
                                   gPlayers[a].FObj.Y + PLAYER_RECT.Y) then
@@ -5330,7 +5331,7 @@ begin
             begin // Цель - игрок
               pla := g_Player_Get(Target.UID);
               if (pla = nil) or (not pla.Live) or pla.NoTarget or
-                 (pla.FMegaRulez[MR_INVIS] > 0) then
+                 (pla.FMegaRulez[MR_INVIS] >= gTime) then
                 Target.UID := 0; // то забыть цель
             end
           else
@@ -5993,7 +5994,7 @@ end;
 
 function TBot.Healthy(): Byte;
 begin
-  if FMegaRulez[MR_INVUL] > 0 then Result := 3
+  if FMegaRulez[MR_INVUL] >= gTime then Result := 3
   else if (FHealth > 80) or ((FHealth > 50) and (FArmor > 20)) then Result := 3
   else if (FHealth > 50) then Result := 2
   else if (FHealth > 20) then Result := 1
