@@ -87,6 +87,8 @@ type
   TPlayerSavedState = record
     Health:     Integer;
     Armor:      Integer;
+    Air:        Integer;
+    JetFuel:    Integer;
     CurrWeap:   Byte;
     Ammo:       Array [A_BULLETS..A_CELLS] of Word;
     MaxAmmo:    Array [A_BULLETS..A_CELLS] of Word;
@@ -3894,7 +3896,7 @@ begin
 
     if (headwater or blockmon) then
     begin
-      FAir := FAir-1;
+      Dec(FAir);
 
       if FAir < -9 then
       begin
@@ -4357,6 +4359,8 @@ var
 begin
   FSavedState.Health := FHealth;
   FSavedState.Armor := FArmor;
+  FSavedState.Air := FAir;
+  FSavedState.JetFuel := FJetFuel;
   FSavedState.CurrWeap := FCurrWeap;
 
   for i := 0 to 3 do
@@ -4367,14 +4371,17 @@ begin
   FSavedState.Rulez := FRulez;
   FSavedState.WaitRecall := True;
 end;
+
 procedure TPlayer.RecallState();
 var
   i: Integer;
 begin
   if not FSavedState.WaitRecall then Exit;
-  
+
   FHealth := FSavedState.Health;
   FArmor := FSavedState.Armor;
+  FAir := FSavedState.Air;
+  FJetFuel := FSavedState.JetFuel;
   FCurrWeap := FSavedState.CurrWeap;
 
   for i := 0 to 3 do
@@ -4432,6 +4439,8 @@ begin
   Mem.WriteInt(FArmor);
 // Запас воздуха:
   Mem.WriteInt(FAir);
+// Запас горючего:
+  Mem.WriteInt(FJetFuel);
 // Боль:
   Mem.WriteInt(FPain);
 // Убил:
@@ -4563,6 +4572,8 @@ begin
   Mem.ReadInt(FArmor);
 // Запас воздуха:
   Mem.ReadInt(FAir);
+// Запас горючего:
+  Mem.ReadInt(FJetFuel);
 // Боль:
   Mem.ReadInt(FPain);
 // Убил:
