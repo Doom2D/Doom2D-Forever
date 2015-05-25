@@ -491,6 +491,8 @@ const
   //                              (WEAPON_SUPERPULEMET, WEAPON_BFG, WEAPON_PLASMA,
   //                               WEAPON_SHOTGUN2, WEAPON_CHAINGUN, WEAPON_SHOTGUN1,
   //                               WEAPON_SAW, WEAPON_ROCKETLAUNCHER, WEAPON_PISTOL, WEAPON_KASTET);
+  WEAPON_RELOAD: Array [WEAPON_KASTET..WEAPON_SUPERPULEMET] of Byte =
+                                (5, 2, 6, 18, 36, 2, 12, 2, 16, 2);
 
   PLAYER_SIGNATURE = $52594C50; // 'PLYR'
   CORPSE_SIGNATURE = $50524F43; // 'CORP'
@@ -1922,8 +1924,6 @@ begin
 end;
 
 procedure TPlayer.Fire();
-const
-  ft: array[WEAPON_KASTET..WEAPON_SUPERPULEMET] of Byte = (5, 2, 6, 18, 36, 2, 12, 2, 16, 2);
 var
   f, DidFire: Boolean;
   wx, wy, xd, yd: Integer;
@@ -1977,7 +1977,7 @@ begin
       end else g_Weapon_punch(FObj.X+FObj.Rect.X, FObj.Y+FObj.Rect.Y, 3, FUID);
 
       DidFire := True;
-      FReloading[FCurrWeap] := ft[FCurrWeap];
+      FReloading[FCurrWeap] := WEAPON_RELOAD[FCurrWeap];
     end;
 
     WEAPON_SAW:
@@ -1995,7 +1995,7 @@ begin
         FSawSound.PlayAt(FObj.X, FObj.Y);
       end;
 
-      FReloading[FCurrWeap] := ft[FCurrWeap];
+      FReloading[FCurrWeap] := WEAPON_RELOAD[FCurrWeap];
       DidFire := True;
       f := True;
     end;
@@ -2004,7 +2004,7 @@ begin
       if FAmmo[A_BULLETS] > 0 then
       begin
         g_Weapon_pistol(wx, wy, xd, yd, FUID);
-        FReloading[FCurrWeap] := ft[FCurrWeap];
+        FReloading[FCurrWeap] := WEAPON_RELOAD[FCurrWeap];
         Dec(FAmmo[A_BULLETS]);
         FFireAngle := FAngle;
         f := True;
@@ -2017,7 +2017,7 @@ begin
       if FAmmo[A_SHELLS] > 0 then
       begin
         g_Weapon_shotgun(wx, wy, xd, yd, FUID);
-        FReloading[FCurrWeap] := ft[FCurrWeap];
+        FReloading[FCurrWeap] := WEAPON_RELOAD[FCurrWeap];
         Dec(FAmmo[A_SHELLS]);
         FFireAngle := FAngle;
         f := True;
@@ -2030,7 +2030,7 @@ begin
       if FAmmo[A_SHELLS] >= 2 then
       begin
         g_Weapon_dshotgun(wx, wy, xd, yd, FUID);
-        FReloading[FCurrWeap] := ft[FCurrWeap];
+        FReloading[FCurrWeap] := WEAPON_RELOAD[FCurrWeap];
         Dec(FAmmo[A_SHELLS], 2);
         FFireAngle := FAngle;
         f := True;
@@ -2043,7 +2043,7 @@ begin
       if FAmmo[A_BULLETS] > 0 then
       begin
         g_Weapon_mgun(wx, wy, xd, yd, FUID);
-        FReloading[FCurrWeap] := ft[FCurrWeap];
+        FReloading[FCurrWeap] := WEAPON_RELOAD[FCurrWeap];
         Dec(FAmmo[A_BULLETS]);
         FFireAngle := FAngle;
         f := True;
@@ -2056,7 +2056,7 @@ begin
       if FAmmo[A_ROCKETS] > 0 then
       begin
         g_Weapon_rocket(wx, wy, xd, yd, FUID);
-        FReloading[FCurrWeap] := ft[FCurrWeap];
+        FReloading[FCurrWeap] := WEAPON_RELOAD[FCurrWeap];
         Dec(FAmmo[A_ROCKETS]);
         FFireAngle := FAngle;
         f := True;
@@ -2067,7 +2067,7 @@ begin
       if FAmmo[A_CELLS] > 0 then
       begin
         g_Weapon_plasma(wx, wy, xd, yd, FUID);
-        FReloading[FCurrWeap] := ft[FCurrWeap];
+        FReloading[FCurrWeap] := WEAPON_RELOAD[FCurrWeap];
         Dec(FAmmo[A_CELLS]);
         FFireAngle := FAngle;
         f := True;
@@ -2088,7 +2088,7 @@ begin
       if FAmmo[A_SHELLS] > 0 then
       begin
         g_Weapon_shotgun(wx, wy, xd, yd, FUID);
-        FReloading[FCurrWeap] := ft[FCurrWeap];
+        FReloading[FCurrWeap] := WEAPON_RELOAD[FCurrWeap];
         Dec(FAmmo[A_SHELLS]);
         FFireAngle := FAngle;
         f := True;
@@ -3884,7 +3884,7 @@ begin
               else if (FAngle = ANGLE_LEFTUP) or (FAngle = ANGLE_RIGHTUP) then SetAction(A_ATTACKUP);
         end;
 
-        FReloading[WEAPON_BFG] := 16;
+        FReloading[WEAPON_BFG] := WEAPON_RELOAD[WEAPON_BFG];
         FBFGFireCounter := -1;
       end else
         if FNoReload then
