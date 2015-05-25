@@ -1923,14 +1923,14 @@ end;
 
 procedure TPlayer.Fire();
 const
-  ft: array[WEAPON_KASTET..WEAPON_SUPERPULEMET] of Byte = (5, 2, 6, 18, 36, 2, 12, 2, 0, 2);
+  ft: array[WEAPON_KASTET..WEAPON_SUPERPULEMET] of Byte = (5, 2, 6, 18, 36, 2, 12, 2, 16, 2);
 var
   f, DidFire: Boolean;
   wx, wy, xd, yd: Integer;
   obj: TObj;
 begin
   if g_Game_IsClient then Exit;
-// FBFGCounter - время перед выстрелом (для BFG)
+// FBFGFireCounter - время перед выстрелом (для BFG)
 // FReloading - время после выстрела (для всего)
 
   if FSpectator then
@@ -2077,7 +2077,7 @@ begin
     WEAPON_BFG:
       if (FAmmo[A_CELLS] >= 40) and (FBFGFireCounter = -1) then
       begin
-        FBFGFireCounter := 21;
+        FBFGFireCounter := 17;
         if not FNoReload then
           g_Sound_PlayExAt('SOUND_WEAPON_STARTFIREBFG', FObj.X, FObj.Y);
         Dec(FAmmo[A_CELLS], 40);
@@ -3884,7 +3884,7 @@ begin
               else if (FAngle = ANGLE_LEFTUP) or (FAngle = ANGLE_RIGHTUP) then SetAction(A_ATTACKUP);
         end;
 
-        FReloading[WEAPON_BFG] := 0;
+        FReloading[WEAPON_BFG] := 16;
         FBFGFireCounter := -1;
       end else
         if FNoReload then
