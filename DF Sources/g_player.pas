@@ -1836,7 +1836,7 @@ begin
     if g_Texture_Get('TEXTURE_PLAYER_HUDJET', ID) then
       e_Draw(ID, X+2, Y+126, 0, True, False);
     e_DrawLine(4, X+16, Y+122, X+16+Trunc(168*IfThen(FAir > 0, FAir, 0)/AIR_MAX), Y+122, 0, 0, 196);
-    e_DrawLine(4, X+16, Y+132, X+16+Trunc(168*IfThen(FJetFuel > 0, FJetFuel, 0)/JET_MAX), Y+132, 208, 0, 0);
+    e_DrawLine(4, X+16, Y+132, X+16+Trunc(168*FJetFuel/JET_MAX), Y+132, 208, 0, 0);
   end
   else
   begin
@@ -2159,7 +2159,8 @@ begin
   if gFly or FJetpack then
   begin
     // Полет (чит-код или джетпак):
-    if FObj.Vel.Y > -VEL_FLY then FObj.Vel.Y := FObj.Vel.Y - 3;
+    if FObj.Vel.Y > -VEL_FLY then
+      FObj.Vel.Y := FObj.Vel.Y - 3;
     if FJetpack then
     begin
       if FJetFuel > 0 then
@@ -2174,6 +2175,10 @@ begin
     end;
     Exit;
   end;
+
+// Не включать джетпак в режиме прохождения сквозь стены
+  if FGhost then
+    FCanJetpack := False;
 
 // Прыгаем или всплываем:
   if CollideLevel(0, 1) or
