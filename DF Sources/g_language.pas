@@ -544,7 +544,7 @@ const
                                        'гюубюр ткюцю'),
     ('GAME TDM',                       'Team Deathmatch',
                                        'йнлюмдмши лъянонбюк'),
-    ('GAME COOP',                      'Co-operative',
+    ('GAME COOP',                      'Cooperative',
                                        'йнноепюрхб'),
     ('GAME LMS',                       'Last Man Standing',
                                        'онякедмхи цепни'),
