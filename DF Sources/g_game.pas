@@ -654,14 +654,20 @@ begin
   case gGameSettings.GameMode of
     GM_DM:
     begin
-      s1 := _lc[I_GAME_DM];
+      if gGameSettings.MaxLives = 0 then
+        s1 := _lc[I_GAME_DM]
+      else
+        s1 := _lc[I_GAME_LMS];
       s2 := Format(_lc[I_GAME_FRAG_LIMIT], [gGameSettings.GoalLimit]);
       s3 := Format(_lc[I_GAME_TIME_LIMIT], [gGameSettings.TimeLimit div 3600, (gGameSettings.TimeLimit div 60) mod 60, gGameSettings.TimeLimit mod 60]);
     end;
 
     GM_TDM:
     begin
-      s1 := _lc[I_GAME_TDM];
+      if gGameSettings.MaxLives = 0 then
+        s1 := _lc[I_GAME_TDM]
+      else
+        s1 := _lc[I_GAME_TLMS];
       s2 := Format(_lc[I_GAME_FRAG_LIMIT], [gGameSettings.GoalLimit]);
       s3 := Format(_lc[I_GAME_TIME_LIMIT], [gGameSettings.TimeLimit div 3600, (gGameSettings.TimeLimit div 60) mod 60, gGameSettings.TimeLimit mod 60]);
     end;
@@ -675,7 +681,10 @@ begin
 
     GM_COOP:
     begin
-      s1 := _lc[I_GAME_COOP];
+      if gGameSettings.MaxLives = 0 then
+        s1 := _lc[I_GAME_COOP]
+      else
+        s1 := _lc[I_GAME_SURV];
       s2 := _lc[I_GAME_MONSTERS] + ' ' + IntToStr(gCoopMonstersKilled) + '/' + IntToStr(gTotalMonsters);
       s3 := _lc[I_GAME_SECRETS] + ' ' + IntToStr(gCoopSecretsFound) + '/' + IntToStr(gSecretsCount);
     end;
@@ -1466,10 +1475,28 @@ begin
   m := Max(Length(_lc[I_MENU_MAP])+1, Length(_lc[I_GAME_GAME_TIME])+1)*ww2;
 
   case CustomStat.GameMode of
-    GM_DM: s1 := _lc[I_GAME_DM];
-    GM_TDM: s1 := _lc[I_GAME_TDM];
+    GM_DM:
+    begin
+      if gGameSettings.MaxLives = 0 then
+        s1 := _lc[I_GAME_DM]
+      else
+        s1 := _lc[I_GAME_LMS];
+    end;
+    GM_TDM:
+    begin
+      if gGameSettings.MaxLives = 0 then
+        s1 := _lc[I_GAME_TDM]
+      else
+        s1 := _lc[I_GAME_TLMS];
+    end;
     GM_CTF: s1 := _lc[I_GAME_CTF];
-    GM_COOP: s1 := _lc[I_GAME_COOP];
+    GM_COOP:
+    begin
+      if gGameSettings.MaxLives = 0 then
+        s1 := _lc[I_GAME_COOP]
+      else
+        s1 := _lc[I_GAME_SURV];
+    end;
     else s1 := '';
   end;
 
@@ -1489,7 +1516,7 @@ begin
 
   pc := Length(CustomStat.PlayerStat);
   if pc = 0 then Exit;
- 
+
   if CustomStat.GameMode = GM_COOP then
   begin
     m := Max(Length(_lc[I_GAME_MONSTERS])+1, Length(_lc[I_GAME_SECRETS])+1)*ww2;
