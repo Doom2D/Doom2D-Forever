@@ -201,6 +201,7 @@ begin
   AddCommand('d_frames', DebugCommands);
   AddCommand('d_winmsg', DebugCommands);
   AddCommand('d_monoff', DebugCommands);
+  AddCommand('d_botoff', DebugCommands);
   AddCommand('map', DebugCommands);
   AddCommand('monster', DebugCommands);
 

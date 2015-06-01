@@ -5171,7 +5171,7 @@ begin
           end;
     end;
 
-  if not ok then 
+  if not ok then
     begin // Цели нет - обнуляем
       Target.X := 0;
       Target.Y := 0;
@@ -5557,6 +5557,8 @@ begin
 end;
 
 procedure TBot.Update();
+var
+  EnableAI: Boolean;
 begin
   if not FLive then
   begin // Respawn
@@ -5565,8 +5567,21 @@ begin
   end
   else
   begin
-    UpdateMove();
-    UpdateCombat();
+    EnableAI := True;
+    
+    // Проверяем, отключён ли AI ботов
+    if (g_debug_BotAIOff = 1) and (Team = TEAM_RED) then
+      EnableAI := False;
+    if (g_debug_BotAIOff = 2) and (Team = TEAM_BLUE) then
+      EnableAI := False;
+    if g_debug_BotAIOff = 3 then
+      EnableAI := False;
+
+    if EnableAI then
+    begin
+      UpdateMove();
+      UpdateCombat();
+    end;
   end;
 
   inherited Update();

@@ -183,6 +183,7 @@ var
   g_debug_Frames: Boolean = False;
   g_debug_WinMsgs: Boolean = False;
   g_debug_MonsterOff: Boolean = False;
+  g_debug_BotAIOff: Byte = 0;
   gCoopMonstersKilled: Word = 0;
   gCoopSecretsFound: Word = 0;
   gCoopTotalMonstersKilled: Word = 0;
@@ -3538,6 +3539,18 @@ begin
         g_Debug_MonsterOff := (P[1][1] = '1');
 
       g_Console_Add(Format('d_monoff is %d', [Byte(g_debug_MonsterOff)]));
+    end
+    else if (cmd = 'd_botoff') and not g_Game_IsNet then
+    begin
+      if Length(P) > 1 then
+        case P[1][1] of
+          '0': g_debug_BotAIOff := 0;
+          '1': g_debug_BotAIOff := 1;
+          '2': g_debug_BotAIOff := 2;
+          '3': g_debug_BotAIOff := 3;
+        end;
+
+      g_Console_Add(Format('d_botoff is %d', [g_debug_BotAIOff]));
     end
     else if (cmd = 'map') then
     begin
