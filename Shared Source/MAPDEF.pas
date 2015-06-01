@@ -34,6 +34,11 @@ const
   PANEL_FLAG_HIDE          = 2;
   PANEL_FLAG_WATERTEXTURES = 4;
 
+  EFFECT_NONE     = 0;
+  EFFECT_TELEPORT = 1;
+  EFFECT_RESPAWN  = 2;
+  EFFECT_FIRE     = 3;
+
   ITEM_NONE                  = 0;
   ITEM_MEDKIT_SMALL          = 1;
   ITEM_MEDKIT_LARGE          = 2;

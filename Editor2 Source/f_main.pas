@@ -549,6 +549,27 @@ begin
     Result := Result or KEY_BLUETEAM;
 end;
 
+function EffectToStr(Effect: Byte): String;
+begin
+  if Effect in [EFFECT_TELEPORT..EFFECT_FIRE] then
+    Result := EffectNames[Effect]
+  else
+    Result := EffectNames[EFFECT_NONE];
+end;
+
+function StrToEffect(Str: String): Byte;
+var
+  i: Integer;
+begin
+  Result := EFFECT_NONE;
+  for i := EFFECT_TELEPORT to EFFECT_FIRE do
+    if EffectNames[i] = Str then
+      begin
+        Result := i;
+        Exit;
+      end;
+end;
+
 function MonsterToStr(MonType: Byte): String;
 begin
   if MonType in [MONSTER_DEMON..MONSTER_MAN] then
@@ -1131,6 +1152,12 @@ begin
                   EditStyle := esSimple;
                   MaxLength := 5;
                 end;
+
+                with ItemProps[InsertRow(_lc[I_PROP_TR_FX_TYPE], EffectToStr(Data.MonEffect), True)-1] do
+                begin
+                  EditStyle := esEllipsis;
+                  ReadOnly := True;
+                end;
               end;
 
             TRIGGER_SPAWNITEM:
@@ -1164,6 +1191,12 @@ begin
                 begin
                   EditStyle := esSimple;
                   MaxLength := 5;
+                end;
+
+                with ItemProps[InsertRow(_lc[I_PROP_TR_FX_TYPE], EffectToStr(Data.ItemEffect), True)-1] do
+                begin
+                  EditStyle := esEllipsis;
+                  ReadOnly := True;
                 end;
               end;
 
@@ -3929,6 +3962,7 @@ begin
                 Data.MonCount := Min(StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_MONSTER_COUNT]], 0), 64);
                 if Data.MonCount < 1 then
                   Data.MonCount := 1;
+                Data.MonEffect := StrToEffect(vleObjectProperty.Values[_lc[I_PROP_TR_FX_TYPE]]);
               end;
 
             TRIGGER_SPAWNITEM:
@@ -3939,6 +3973,7 @@ begin
                 Data.ItemCount := Min(StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_ITEM_COUNT]], 0), 64);
                 if Data.ItemCount < 1 then
                   Data.ItemCount := 1;
+                Data.ItemEffect := StrToEffect(vleObjectProperty.Values[_lc[I_PROP_TR_FX_TYPE]]);
               end;
 
             TRIGGER_MUSIC:
@@ -4488,6 +4523,24 @@ begin
           b := b or KEY_BLUETEAM;
 
         Values[Key] := KeyToStr(b);
+        bApplyProperty.Click();
+      end;
+    end
+  else if Key = _lc[I_PROP_TR_FX_TYPE] then
+    with ChooseTypeForm, vleObjectProperty do
+    begin // Выбор типа эффекта:
+      Caption := _lc[I_CAP_FX_TYPE];
+      lbTypeSelect.Items.Clear();
+
+      for b := EFFECT_NONE to EFFECT_FIRE do
+        lbTypeSelect.Items.Add(EffectToStr(b));
+
+      lbTypeSelect.ItemIndex := StrToEffect(Values[Key]);
+
+      if ShowModal() = mrOK then
+      begin
+        b := lbTypeSelect.ItemIndex;
+        Values[Key] := EffectToStr(b);
         bApplyProperty.Click();
       end;
     end

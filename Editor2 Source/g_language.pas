@@ -35,6 +35,11 @@ Type
     I_ARRAY_PANEL_LIFT_RIGHT,
     I_ARRAY_PANEL_BLOCKMON,
 
+    I_ARRAY_FX_NONE,
+    I_ARRAY_FX_TELEPORT,
+    I_ARRAY_FX_RESPAWN,
+    I_ARRAY_FX_FIRE,
+
     I_ARRAY_ITEM_MEDKIT,
     I_ARRAY_ITEM_LARGE_MEDKIT,
     I_ARRAY_ITEM_BLACK_MEDKIT,
@@ -162,6 +167,7 @@ Type
     I_PROP_TR_SOUND_COUNT,
     I_PROP_TR_SOUND_LOCAL,
     I_PROP_TR_SOUND_SWITCH,
+    I_PROP_TR_FX_TYPE,
     I_PROP_TR_MONSTER_TYPE,
     I_PROP_TR_MONSTER_TO,
     I_PROP_TR_MONSTER_HEALTH,
@@ -282,6 +288,7 @@ Type
 
     I_MENU_LAUNCH_SETS,
 
+    I_CAP_FX_TYPE,
     I_CAP_MONSTER_TYPE,
     I_CAP_ITEM_TYPE,
     I_CAP_ABOUT,
@@ -504,6 +511,7 @@ Var
   DirNamesAdv: Array [0..3] of String;
   DirButtonNames: Array [1..4] of String;
   PANELNAMES: Array[0..13] of String;
+  EffectNames: Array [EFFECT_NONE..EFFECT_FIRE] of String;
   ItemNames: Array [ITEM_MEDKIT_SMALL..ITEM_MAX] of String;
   MonsterNames: Array [MONSTER_DEMON..MONSTER_MAN] of String;
   AreaNames: Array [AREA_PLAYERPOINT1..AREA_BLUETEAMPOINT] of String;
@@ -577,6 +585,15 @@ Const
                                        'Поток вправо'),
     ('ARRAY PANEL BLOCKMON',           'Monster Boundary',
                                        'Блокиратор монстров'),
+
+    ('ARRAY FX NONE',                  'None',
+                                       'Нет'),
+    ('ARRAY FX TELEPORT',              'Teleport',
+                                       'Телепортация'),
+    ('ARRAY FX RESPAWN',               'Respawn',
+                                       'Респавн'),
+    ('ARRAY FX FIRE',                  'Archvile Fire',
+                                       'Огонь Арчи'),
 
     ('ARRAY ITEM MEDKIT',              'Stimpack',
                                        'Аптечка'),
@@ -827,6 +844,8 @@ Const
                                        'Локальный'),
     ('PROP TR SOUND SWITCH',           'Switch',
                                        'Переключение'),
+    ('PROP TR FX TYPE',                'Effect',
+                                       'Эффект'),
     ('PROP TR MONSTER TYPE',           'Monster',
                                        'Тип монстра'),
     ('PROP TR MONSTER TO',             'Spawn at',
@@ -1055,6 +1074,8 @@ Const
     ('MENU LAUNCH SETS',               'Settings...',
                                        'Параметры...'),
 
+    ('CAP FX TYPE',                    'Select Effect type',
+                                       'Выберите тип эффекта'),
     ('CAP MONSTER TYPE',               'Select Monster type',
                                        'Выберите тип монстра'),
     ('CAP ITEM TYPE',                  'Select Item type',
@@ -1484,6 +1505,12 @@ begin
   PANELNAMES[11] := _lc[I_ARRAY_PANEL_LIFT_LEFT];
   PANELNAMES[12] := _lc[I_ARRAY_PANEL_LIFT_RIGHT];
   PANELNAMES[13] := _lc[I_ARRAY_PANEL_BLOCKMON];
+
+// Названия эффектов:
+  EffectNames[EFFECT_NONE] := _lc[I_ARRAY_FX_NONE];
+  EffectNames[EFFECT_TELEPORT] := _lc[I_ARRAY_FX_TELEPORT];
+  EffectNames[EFFECT_RESPAWN] := _lc[I_ARRAY_FX_RESPAWN];
+  EffectNames[EFFECT_FIRE] := _lc[I_ARRAY_FX_FIRE];
 
 // Названия предметов:
   ItemNames[ITEM_MEDKIT_SMALL] := _lc[I_ARRAY_ITEM_MEDKIT];

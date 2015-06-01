@@ -59,6 +59,8 @@ const
   NET_GFX_SPAWN   = 2;
   NET_GFX_TELE    = 3;
   NET_GFX_BFG     = 4;
+  NET_GFX_FIRE    = 5;
+  NET_GFX_RESPAWN = 6;
 
   NET_EV_MAPSTART     = 1;
   NET_EV_MAPEND       = 2;
@@ -1312,6 +1314,28 @@ begin
         g_GFX_OnceAnim(X-32, Y-32, Anim);
         Anim.Free();
       end;
+    end;
+    NET_GFX_FIRE:
+    begin
+      if g_Frames_Get(ID, 'FRAMES_FIRE') then
+      begin
+        Anim := TAnimation.Create(ID, False, 3);
+        g_GFX_OnceAnim(X, Y, Anim);
+        Anim.Free();
+      end;
+      if Ang = 1 then
+        g_Sound_PlayExAt('SOUND_FIRE', X, Y);
+    end;
+    NET_GFX_RESPAWN:
+    begin
+      if g_Frames_Get(ID, 'FRAMES_ITEM_RESPAWN') then
+      begin
+        Anim := TAnimation.Create(ID, False, 4);
+        g_GFX_OnceAnim(X, Y, Anim);
+        Anim.Free();
+      end;
+      if Ang = 1 then
+        g_Sound_PlayExAt('SOUND_ITEM_RESPAWNITEM', X, Y);
     end;
   end;
 end;

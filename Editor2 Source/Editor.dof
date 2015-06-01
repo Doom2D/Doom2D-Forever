@@ -105,16 +105,12 @@ HostApplication=
 Launcher=
 UseLauncher=0
 DebugCWD=
-[Language]
-ActiveLang=
-ProjectLang=
-RootDir=
 [Version Info]
 IncludeVerInfo=1
 AutoIncBuild=0
 MajorVer=2
 MinorVer=1
-Release=4
+Release=5
 Build=0
 Debug=0
 PreRelease=0
@@ -132,7 +128,7 @@ LegalCopyright=All rights reserved.
 LegalTrademarks=
 OriginalFilename=Editor.exe
 ProductName=Doom 2D: Forever Map Editor
-ProductVersion=2.1.4.0
+ProductVersion=2.1.5.0
 Comments=
 [HistoryLists\hlUnitAliases]
 Count=1
@@ -142,23 +138,28 @@ Count=2
 Item0=..\
 Item1=F:\DFv062 Compiled
 [HistoryLists\hlUnitOutputDirectory]
-Count=3
-Item0=.\Temp
-Item1=F:\DFv062 Compiled\Delphi dcus\Editor
-Item2=F:\DFv062 Compiled\Delphi dcus
-[HistoryLists\hlOutputDirectorry]
 Count=4
-Item0=.\Bin
-Item1=F:\DFv062 Compiled
-Item2=C:\Users\FGSFDS\Desktop\Work\DFS
-Item3=..\..\DoomForever
+Item0=..\Temp
+Item1=.\Temp
+Item2=F:\DFv062 Compiled\Delphi dcus\Editor
+Item3=F:\DFv062 Compiled\Delphi dcus
+[HistoryLists\hlOutputDirectorry]
+Count=6
+Item0=..\Bin
+Item1=.\Bin
+Item2=C:\Users\user\Documents\Игры\Doom2DF_0666\
+Item3=F:\DFv062 Compiled
+Item4=C:\Users\FGSFDS\Desktop\Work\DFS
+Item5=..\..\DoomForever
 [HistoryLists\hlBPLOutput]
-Count=3
-Item0=.\Temp
-Item1=F:\DFv062 Compiled\Delphi dcus\Editor
-Item2=F:\DFv062 Compiled\Delphi dcus
+Count=4
+Item0=..\Temp
+Item1=.\Temp
+Item2=F:\DFv062 Compiled\Delphi dcus\Editor
+Item3=F:\DFv062 Compiled\Delphi dcus
 [HistoryLists\hlDCPOutput]
-Count=3
-Item0=.\Temp
-Item1=F:\DFv062 Compiled\Delphi dcus\Editor
-Item2=F:\DFv062 Compiled\Delphi dcus
+Count=4
+Item0=..\Temp
+Item1=.\Temp
+Item2=F:\DFv062 Compiled\Delphi dcus\Editor
+Item3=F:\DFv062 Compiled\Delphi dcus
