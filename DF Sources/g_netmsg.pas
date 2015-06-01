@@ -413,7 +413,7 @@ begin
 
   case CheatKind of
     NET_CHEAT_SUICIDE:
-      Pl.Damage(666, Pl.UID, 0, 0, HIT_SOME);
+      Pl.Damage(666, Pl.UID, 0, 0, HIT_SELF);
     NET_CHEAT_SPECTATE:
     begin
       if Pl.FSpectator then

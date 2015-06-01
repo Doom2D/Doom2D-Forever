@@ -348,7 +348,7 @@ type
     CX, CY:   Integer;
     Obj:      TObj;
   end;
-  
+
   TCorpse = class (TObject)
   private
     FModelName:     String;
@@ -1588,9 +1588,15 @@ begin
   if not FLive then
     Exit;
 
-// Нет повторного урона от той же ловушки:
-  if (t = HIT_TRAP) and (t = FLastHit) then
-    Exit;
+// Ловушка убивает сразу:
+  if t = HIT_TRAP then
+  begin
+    FHealth := -100;
+    FArmor := 0;
+  end;
+// Самоубийство:
+  if t = HIT_SELF then
+    FHealth := 0;
 
   FLastHit := t;
 
@@ -1631,7 +1637,7 @@ begin
         MakeBloodSimple(c)
       else
         case t of
-          HIT_TRAP, HIT_ACID, HIT_FLAME: MakeBloodSimple(c);
+          HIT_TRAP, HIT_ACID, HIT_FLAME, HIT_SELF: MakeBloodSimple(c);
           HIT_BFG, HIT_ROCKET, HIT_SOME: MakeBloodVector(c, vx, vy);
         end;
 
@@ -2302,7 +2308,7 @@ begin
   if SpawnerUID = FUID then
     begin // Самоубился
       if Srv and (DoFrags or (gGameSettings.GameMode = GM_TDM)) then
-        FFrags := FFrags - 1;
+        Dec(FFrags);
       g_Console_Add(Format(_lc[I_PLAYER_KILL_SELF], [FName]), True);
     end
   else

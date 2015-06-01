@@ -15,6 +15,7 @@ const
   HIT_ACID    = 6;
   HIT_ELECTRO = 7;
   HIT_FLAME   = 8;
+  HIT_SELF    = 9;
 
 type
   TShot = record

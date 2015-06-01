@@ -3828,9 +3828,9 @@ begin
         else
         begin
           if gPlayer1 <> nil then
-            gPlayer1.Damage(666, gPlayer1.UID, 0, 0, HIT_SOME);
+            gPlayer1.Damage(666, gPlayer1.UID, 0, 0, HIT_SELF);
           if gPlayer2 <> nil then
-            gPlayer2.Damage(666, gPlayer2.UID, 0, 0, HIT_SOME);
+            gPlayer2.Damage(666, gPlayer2.UID, 0, 0, HIT_SELF);
         end;
       end;
     end
