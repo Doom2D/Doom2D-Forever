@@ -700,7 +700,7 @@ const
     ('MENU INTER7',                    'Press [TAB] to view stats',
                                        'Нажмите [TAB] для просмотра статистики'),
     ('MENU INTER8',                    'Please wait until map change',
-                                       'Подождите, пока сменяется карта на сервере'),
+                                       'Подождите, пока сменится карта на сервере'),
     ('MENU INTER9',                    'Press [SPACE] to continue',
                                        'Нажмите [ПРОБЕЛ], чтобы продолжить'),
     ('MENU LOADING',                   'Loading...',
