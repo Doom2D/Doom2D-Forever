@@ -713,13 +713,15 @@ begin
       2: FDifficult := DIFFICULT_MEDIUM;
       else FDifficult := DIFFICULT_HARD;
     end;
-  
+
     for a := WEAPON_KASTET to WEAPON_SUPERPULEMET do
     begin
       FDifficult.WeaponPrior[a] := WEAPON_PRIOR1[a];
       FDifficult.CloseWeaponPrior[a] := WEAPON_PRIOR2[a];
       //FDifficult.SafeWeaponPrior[a] := WEAPON_PRIOR3[a];
     end;
+
+    g_Console_Add(Format(_lc[I_PLAYER_JOIN], [Name]), True);
 
     if g_Game_IsNet then MH_SEND_PlayerCreate(UID);
     if g_Game_IsServer and (gGameSettings.MaxLives > 0) then
@@ -798,6 +800,8 @@ begin
       //FDifficult.SafeWeaponPrior[a] := BotList[num].w_prior3[a];
     end;
 
+    g_Console_Add(Format(_lc[I_PLAYER_JOIN], [Name]), True);
+
     if g_Game_IsNet then MH_SEND_PlayerCreate(UID);
   end;
 end;
@@ -815,6 +819,7 @@ begin
       begin
         gPlayers[a].Lives := 0;
         gPlayers[a].Kill(K_SIMPLEKILL, 0, 0);
+        g_Console_Add(Format(_lc[I_PLAYER_LEAVE], [gPlayers[a].Name]), True);
         g_Player_Remove(gPlayers[a].FUID);
       end;
 

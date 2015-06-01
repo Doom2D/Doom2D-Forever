@@ -3649,6 +3649,7 @@ begin
             begin
               gPlayers[a].Lives := 0;
               gPlayers[a].Kill(K_SIMPLEKILL, 0, 0);
+              g_Console_Add(Format(_lc[I_PLAYER_LEAVE], [gPlayers[a].Name]), True);
               g_Player_Remove(gPlayers[a].UID);
             end;
     end;
