@@ -685,7 +685,7 @@ const
 
     ('MENU INTER0',                    'Mission Failed',
                                        'лхяяхъ опнбюкемю'),
-    ('MENU INTER1',                    'Round over',
+    ('MENU INTER1',                    'Round Over',
                                        'пюсмд нйнмвем'),
     ('MENU INTER2',                    'Level Completed',
                                        'спнбемэ опнидем'),
