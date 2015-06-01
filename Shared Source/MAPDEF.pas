@@ -134,6 +134,8 @@ const
   TRIGGER_MUSIC           = 21;
   TRIGGER_PUSH            = 22;
   TRIGGER_SCORE           = 23;
+  TRIGGER_DAMAGE          = 24;
+  TRIGGER_SHOT            = 25;
 
   ACTIVATE_PLAYERCOLLIDE  = 1;
   ACTIVATE_MONSTERCOLLIDE = 2;
@@ -199,17 +201,32 @@ Type
                              MonHealth: Integer;
                              MonDir: Byte;
                              MonActive: Boolean;
-                             MonCount: Integer);
+                             MonCount: Integer;
+                             MonEffect: Byte);
       TRIGGER_SPAWNITEM:    (ItemPos: TPoint;
                              ItemType: Byte;
                              ItemFalls: Boolean;
                              ItemOnlyDM: Boolean;
-                             ItemCount: Integer);
+                             ItemCount: Integer;
+                             ItemEffect: Byte);
       TRIGGER_MUSIC:        (MusicName: Char64;
                              MusicAction: Byte);
       TRIGGER_PUSH:         (PushAngle: Word;
                              PushForce: Byte;
                              ResetVel: Boolean);
+      TRIGGER_SCORE:        (ScoreAction: Byte;
+                             ScoreCount: Byte;
+                             ScoreTeam: Byte);
+      TRIGGER_DAMAGE:       (DamageValue: SmallInt;
+                             DamageInterval: Word);
+      TRIGGER_SHOT:         (ShotType: Byte;
+                             ShotAngle: Word;
+                             ShotTarget: Byte;
+                             ShotIntPreload: Word;
+                             ShotIntReload: Word;
+                             ShotAmmo: Word;
+                             ShotPos: TPoint;
+                             ShotSound: Boolean);
   end;
 
 implementation
