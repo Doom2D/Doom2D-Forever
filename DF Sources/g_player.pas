@@ -424,6 +424,7 @@ procedure g_Player_Corpses_SaveState(var Mem: TBinMemoryWriter);
 procedure g_Player_Corpses_LoadState(var Mem: TBinMemoryReader);
 procedure g_Bot_Add(Team, Difficult: Byte);
 procedure g_Bot_AddList(Team: Byte; lname: ShortString; num: Integer = -1);
+procedure g_Bot_MixNames();
 procedure g_Bot_RemoveAll();
 
 implementation
@@ -816,6 +817,23 @@ begin
         gPlayers[a].Kill(K_SIMPLEKILL, 0, 0);
         g_Player_Remove(gPlayers[a].FUID);
       end;
+
+  g_Bot_MixNames();
+end;
+
+procedure g_Bot_MixNames();
+var
+  s: String;
+  a, b: Integer;
+begin
+  if BotNames <> nil then
+    for a := 0 to High(BotNames) do
+    begin
+      b := Random(Length(BotNames));
+      s := BotNames[a];
+      Botnames[a] := BotNames[b];
+      BotNames[b] := s;
+    end;
 end;
 
 procedure g_Player_Remove(UID: Word);
@@ -872,14 +890,7 @@ begin
   CloseFile(F);
 
 // Перемешиваем их:
-  if BotNames <> nil then
-    for a := 0 to High(BotNames) do
-    begin
-      b := Random(Length(BotNames));
-      s := BotNames[a];
-      Botnames[a] := BotNames[b];
-      BotNames[b] := s;
-    end;
+  g_Bot_MixNames();
 
 // Читаем файл с параметрами ботов:
   config := TConfig.CreateFile(DataDir + BOTLIST_FILENAME);
@@ -937,7 +948,7 @@ begin
 
     a := a + 1;
   end;
- 
+
   config.Free();
 end;
 
