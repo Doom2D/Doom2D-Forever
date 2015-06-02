@@ -1604,21 +1604,22 @@ begin
   if not FLive then
     Exit;
 
-// Ловушка убивает сразу:
-  if t = HIT_TRAP then
-  begin
-    FHealth := -100;
-    FArmor := 0;
-  end;
-// Самоубийство:
-  if t = HIT_SELF then
-    FHealth := 0;
-
   FLastHit := t;
 
 // Неуязвимость не спасает от ловушек:
-  if (t = HIT_TRAP) and (not FGodMode) then
+  if ((t = HIT_TRAP) or (t = HIT_SELF)) and (not FGodMode) then
   begin
+    if t = HIT_TRAP then
+    begin
+      // Ловушка убивает сразу:
+      FHealth := -100;
+      FArmor := 0;
+    end;
+    if t = HIT_SELF then
+    begin
+      // Самоубийство:
+      FHealth := 0;
+    end;
     // Обнулить действия примочек, чтобы фон пропал
     FMegaRulez[MR_SUIT] := 0;
     FMegaRulez[MR_INVUL] := 0;
