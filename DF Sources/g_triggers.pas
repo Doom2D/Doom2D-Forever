@@ -709,6 +709,10 @@ begin
                                  NET_GFX_FIRE);
               end;
             end;
+
+            // Fix this
+            if g_Game_IsNet then
+              MH_SEND_MonsterSpawn(i);
           end;
           if g_Game_IsNet then
           begin
