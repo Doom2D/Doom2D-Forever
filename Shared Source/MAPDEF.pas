@@ -231,6 +231,7 @@ Type
       TRIGGER_SHOT:         (ShotType: Byte;
                              ShotAngle: Word;
                              ShotTarget: Byte;
+                             ShotWait: Word;
                              ShotIntPreload: Word;
                              ShotIntReload: Word;
                              ShotAmmo: Word;
