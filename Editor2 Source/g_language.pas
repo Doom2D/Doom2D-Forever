@@ -127,7 +127,11 @@ Type
     I_ARRAY_TR_SPAWN_ITEM,
     I_ARRAY_TR_MUSIC,
     I_ARRAY_TR_PUSH,
-    
+    I_ARRAY_TR_SCORE,
+    I_ARRAY_TR_MESSAGE,
+    I_ARRAY_TR_DAMAGE,
+    I_ARRAY_TR_SHOT,
+
     I_PROP_ID,
     I_PROP_X,
     I_PROP_Y,
@@ -515,7 +519,7 @@ Var
   ItemNames: Array [ITEM_MEDKIT_SMALL..ITEM_MAX] of String;
   MonsterNames: Array [MONSTER_DEMON..MONSTER_MAN] of String;
   AreaNames: Array [AREA_PLAYERPOINT1..AREA_BLUETEAMPOINT] of String;
-  TriggerNames: Array [TRIGGER_EXIT..TRIGGER_PUSH] of String;
+  TriggerNames: Array [TRIGGER_EXIT..TRIGGER_SHOT] of String;
 
 
 procedure g_Language_Load(fileName: String);
@@ -766,6 +770,14 @@ Const
                                        'Музыка'),
     ('ARRAY TR PUSH',                  'Push',
                                        'Ускорение'),
+    ('ARRAY TR SCORE',                 'Team Score',
+                                       'Очко команде'),
+    ('ARRAY TR MESSAGE',               'Message',
+                                       'Сообщение'),
+    ('ARRAY TR DAMAGE',                'Damage',
+                                       'Урон'),
+    ('ARRAY TR SHOT',                  'Turret',
+                                       'Турель'),
 
     ('PROP ID',                        'ID',
                                        'ID'),
@@ -1605,6 +1617,10 @@ begin
   TriggerNames[TRIGGER_SPAWNITEM] := _lc[I_ARRAY_TR_SPAWN_ITEM];
   TriggerNames[TRIGGER_MUSIC] := _lc[I_ARRAY_TR_MUSIC];
   TriggerNames[TRIGGER_PUSH] := _lc[I_ARRAY_TR_PUSH];
+  TriggerNames[TRIGGER_SCORE] := _lc[I_ARRAY_TR_SCORE];
+  TriggerNames[TRIGGER_MESSAGE] := _lc[I_ARRAY_TR_MESSAGE];
+  TriggerNames[TRIGGER_DAMAGE] := _lc[I_ARRAY_TR_DAMAGE];
+  TriggerNames[TRIGGER_SHOT] := _lc[I_ARRAY_TR_SHOT];
 
 // Установка значений в панели выбора объектов:
   with MainForm do
