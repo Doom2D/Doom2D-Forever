@@ -692,7 +692,7 @@ begin
                 if g_Game_IsServer and g_Game_IsNet then
                   MH_SEND_Effect(gMonsters[i].Obj.X+gMonsters[i].Obj.Rect.X+(gMonsters[i].Obj.Rect.Width div 2)-16,
                                  gMonsters[i].Obj.Y+gMonsters[i].Obj.Rect.Y+(gMonsters[i].Obj.Rect.Height div 2)-16, 1,
-                                 NET_GFX_SPAWN);
+                                 NET_GFX_RESPAWN);
               end;
               3: begin
                 if g_Frames_Get(FramesID, 'FRAMES_FIRE') then
@@ -760,7 +760,7 @@ begin
                   if g_Game_IsServer and g_Game_IsNet then
                     MH_SEND_Effect(gItems[iid].Obj.X+gItems[iid].Obj.Rect.X+(gItems[iid].Obj.Rect.Width div 2)-16,
                                    gItems[iid].Obj.Y+gItems[iid].Obj.Rect.Y+(gItems[iid].Obj.Rect.Height div 2)-16, 1,
-                                   NET_GFX_SPAWN);
+                                   NET_GFX_RESPAWN);
                 end;
                 3: begin
                   if g_Frames_Get(FramesID, 'FRAMES_FIRE') then
