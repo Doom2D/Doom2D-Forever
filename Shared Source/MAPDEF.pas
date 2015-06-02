@@ -139,8 +139,9 @@ const
   TRIGGER_MUSIC           = 21;
   TRIGGER_PUSH            = 22;
   TRIGGER_SCORE           = 23;
-  TRIGGER_DAMAGE          = 24;
-  TRIGGER_SHOT            = 25;
+  TRIGGER_MESSAGE         = 24;
+  TRIGGER_DAMAGE          = 25;
+  TRIGGER_SHOT            = 26;
 
   ACTIVATE_PLAYERCOLLIDE  = 1;
   ACTIVATE_MONSTERCOLLIDE = 2;
@@ -222,6 +223,9 @@ Type
       TRIGGER_SCORE:        (ScoreAction: Byte;
                              ScoreCount: Byte;
                              ScoreTeam: Byte);
+      TRIGGER_MESSAGE:      (MessageKind: Byte;
+                             MessageSendTo: Byte;
+                             MessageText: Char64);
       TRIGGER_DAMAGE:       (DamageValue: SmallInt;
                              DamageInterval: Word);
       TRIGGER_SHOT:         (ShotType: Byte;
