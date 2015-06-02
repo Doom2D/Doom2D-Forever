@@ -1319,7 +1319,7 @@ begin
     begin
       if g_Frames_Get(ID, 'FRAMES_FIRE') then
       begin
-        Anim := TAnimation.Create(ID, False, 3);
+        Anim := TAnimation.Create(ID, False, 4);
         g_GFX_OnceAnim(X, Y, Anim);
         Anim.Free();
       end;

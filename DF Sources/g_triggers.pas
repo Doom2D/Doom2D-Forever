@@ -697,7 +697,7 @@ begin
               3: begin
                 if g_Frames_Get(FramesID, 'FRAMES_FIRE') then
                 begin
-                  Anim := TAnimation.Create(FramesID, False, 3);
+                  Anim := TAnimation.Create(FramesID, False, 4);
                   g_Sound_PlayExAt('SOUND_FIRE', Data.MonPos.X, Data.MonPos.Y);
                   g_GFX_OnceAnim(gMonsters[i].Obj.X+gMonsters[i].Obj.Rect.X+(gMonsters[i].Obj.Rect.Width div 2)-32,
                                  gMonsters[i].Obj.Y+gMonsters[i].Obj.Rect.Y+gMonsters[i].Obj.Rect.Height-128, Anim);
@@ -769,7 +769,7 @@ begin
                 3: begin
                   if g_Frames_Get(FramesID, 'FRAMES_FIRE') then
                   begin
-                    Anim := TAnimation.Create(FramesID, False, 3);
+                    Anim := TAnimation.Create(FramesID, False, 4);
                     g_Sound_PlayExAt('SOUND_FIRE', Data.ItemPos.X, Data.ItemPos.Y);
                     g_GFX_OnceAnim(gItems[iid].Obj.X+gItems[iid].Obj.Rect.X+(gItems[iid].Obj.Rect.Width div 2)-32,
                                    gItems[iid].Obj.Y+gItems[iid].Obj.Rect.Y+gItems[iid].Obj.Rect.Height-128, Anim);
