@@ -710,9 +710,8 @@ begin
               end;
             end;
 
-            // Fix this
             if g_Game_IsNet then
-              MH_SEND_MonsterSpawn(i);
+              MH_SEND_MonsterSpawn(gMonsters[i].UID);
           end;
           if g_Game_IsNet then
           begin
