@@ -3364,7 +3364,7 @@ begin
     if g_Frames_Get(ID, 'FRAMES_TELEPORT') then
     begin
       Anim := TAnimation.Create(ID, False, 3);
-      g_GFX_OnceAnim(FObj.X+PLAYER_RECT.X+(PLAYER_RECT.Width div 2)-24,
+      g_GFX_OnceAnim(FObj.X+PLAYER_RECT.X+(PLAYER_RECT.Width div 2)-32,
                      FObj.Y+PLAYER_RECT.Y+(PLAYER_RECT.Height div 2)-32, Anim);
       Anim.Free();
     end;
@@ -3568,10 +3568,10 @@ begin
     end;
 
     g_Sound_PlayExAt('SOUND_GAME_TELEPORT', FObj.X, FObj.Y);
-    g_GFX_OnceAnim(FObj.X+PLAYER_RECT.X+(PLAYER_RECT.Width div 2)-24,
+    g_GFX_OnceAnim(FObj.X+PLAYER_RECT.X+(PLAYER_RECT.Width div 2)-32,
                    FObj.Y+PLAYER_RECT.Y+(PLAYER_RECT.Height div 2)-32, Anim);
     if g_Game_IsServer and g_Game_IsNet then
-      MH_SEND_Effect(FObj.X+PLAYER_RECT.X+(PLAYER_RECT.Width div 2)-24,
+      MH_SEND_Effect(FObj.X+PLAYER_RECT.X+(PLAYER_RECT.Width div 2)-32,
                      FObj.Y+PLAYER_RECT.Y+(PLAYER_RECT.Height div 2)-32, 1,
                      NET_GFX_TELE);
   end;
@@ -3615,12 +3615,12 @@ begin
 
   if not silent and (Anim <> nil) then
   begin
-    g_GFX_OnceAnim(FObj.X+PLAYER_RECT.X+(PLAYER_RECT.Width div 2)-24,
+    g_GFX_OnceAnim(FObj.X+PLAYER_RECT.X+(PLAYER_RECT.Width div 2)-32,
                    FObj.Y+PLAYER_RECT.Y+(PLAYER_RECT.Height div 2)-32, Anim);
     Anim.Free();
 
     if g_Game_IsServer and g_Game_IsNet then
-      MH_SEND_Effect(FObj.X+PLAYER_RECT.X+(PLAYER_RECT.Width div 2)-24,
+      MH_SEND_Effect(FObj.X+PLAYER_RECT.X+(PLAYER_RECT.Width div 2)-32,
                      FObj.Y+PLAYER_RECT.Y+(PLAYER_RECT.Height div 2)-32, 0,
                      NET_GFX_TELE);
   end;

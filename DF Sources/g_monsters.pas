@@ -1856,15 +1856,15 @@ begin
     if g_Frames_Get(FramesID, 'FRAMES_TELEPORT') then
       TA := TAnimation.Create(FramesID, False, 6);
     g_Sound_PlayExAt('SOUND_GAME_TELEPORT', Obj.X, Obj.Y);
-    g_GFX_OnceAnim(FObj.X+FObj.Rect.X+(FObj.Rect.Width div 2)-24,
+    g_GFX_OnceAnim(FObj.X+FObj.Rect.X+(FObj.Rect.Width div 2)-32,
                    FObj.Y+FObj.Rect.Y+(FObj.Rect.Height div 2)-32, TA);
 
   if g_Game_IsServer and g_Game_IsNet then
-    MH_SEND_Effect(FObj.X+FObj.Rect.X+(FObj.Rect.Width div 2)-24,
+    MH_SEND_Effect(FObj.X+FObj.Rect.X+(FObj.Rect.Width div 2)-32,
                    FObj.Y+FObj.Rect.Y+(FObj.Rect.Height div 2)-32, 1,
                    NET_GFX_TELE);
   end;
- 
+
   FObj.X := X - FObj.Rect.X;
   FObj.Y := Y - FObj.Rect.Y;
 
@@ -1885,12 +1885,12 @@ begin
 // Ёффект телепорта в точке назначени€:
   if not silent and (TA <> nil) then
   begin
-    g_GFX_OnceAnim(FObj.X+FObj.Rect.X+(FObj.Rect.Width div 2)-24,
+    g_GFX_OnceAnim(FObj.X+FObj.Rect.X+(FObj.Rect.Width div 2)-32,
                    FObj.Y+FObj.Rect.Y+(FObj.Rect.Height div 2)-32, TA);
     TA.Free();
 
     if g_Game_IsServer and g_Game_IsNet then
-     MH_SEND_Effect(FObj.X+FObj.Rect.X+(FObj.Rect.Width div 2)-24,
+     MH_SEND_Effect(FObj.X+FObj.Rect.X+(FObj.Rect.Width div 2)-32,
                     FObj.Y+FObj.Rect.Y+(FObj.Rect.Height div 2)-32, 0,
                     NET_GFX_TELE);
   end;
