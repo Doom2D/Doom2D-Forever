@@ -921,6 +921,13 @@ begin
                       Exit;
                     if Data.DamageValue > 0 then
                       p.Damage(Data.DamageValue, 0, 0, 0, HIT_TRIGGER);
+                    if Data.DamageValue < 0 then
+                      if p.Heal(-Data.DamageValue, False) then
+                      begin
+                        g_Sound_PlayExAt('SOUND_ITEM_GETMED', p.Obj.X, p.Obj.Y);
+                        if g_Game_IsServer and g_Game_IsNet then
+                          MH_SEND_Sound(p.Obj.X, p.Obj.Y, 'SOUND_ITEM_GETMED');
+                      end;
                   end;
 
                 UID_MONSTER:
@@ -930,6 +937,13 @@ begin
                       Exit;
                     if Data.DamageValue > 0 then
                       m.Damage(Data.DamageValue, 0, 0, 0, HIT_TRIGGER);
+                    if Data.DamageValue < 0 then
+                      if m.Heal(-Data.DamageValue) then
+                      begin
+                        g_Sound_PlayExAt('SOUND_ITEM_GETMED', m.Obj.X, m.Obj.Y);
+                        if g_Game_IsServer and g_Game_IsNet then
+                          MH_SEND_Sound(m.Obj.X, m.Obj.Y, 'SOUND_ITEM_GETMED');
+                      end;
                   end;
               end;
               // Назначаем время следующего пинка

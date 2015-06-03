@@ -30,6 +30,7 @@ type
     FStartX, FStartY: Integer;
     FRemoved: Boolean;
     FHealth: Integer;
+    FMaxHealth: Integer;
     FState: Byte;
     FCurAnim: Byte;
     FAnim: Array of Array [D_LEFT..D_RIGHT] of TAnimation;
@@ -71,6 +72,7 @@ type
     procedure SetHealth(aH: Integer);
     procedure Push(vx, vy: Integer);
     function Damage(Damage: Word; VelX, VelY: Integer; SpawnerUID: Word; t: Byte): Boolean;
+    function Heal(Value: Word): Boolean;
     procedure BFGHit();
     procedure Update();
     procedure ClientUpdate();
@@ -119,7 +121,7 @@ type
 
     property StartID: Integer read FStartID;
   end;
-  
+
 procedure g_Monsters_LoadData();
 procedure g_Monsters_FreeData();
 procedure g_Monsters_Init();
@@ -1413,6 +1415,7 @@ begin
   FState := STATE_SLEEP;
   FCurAnim := ANIM_SLEEP;
   FHealth := MONSTERTABLE[MonsterType].Health;
+  FMaxHealth := FHealth;
   FObj.Rect := MONSTERTABLE[MonsterType].Rect;
   FDieTriggers := nil;
   FWaitAttackAnim := False;
@@ -1658,6 +1661,23 @@ begin
 
   if g_Game_IsServer and g_Game_IsNet then MH_SEND_MonsterState(FUID);
   Result := True;
+end;
+
+function TMonster.Heal(Value: Word): Boolean;
+begin
+  Result := False;
+  if g_Game_IsClient then
+    Exit;
+  if not Live then
+    Exit;
+
+  if FHealth < FMaxHealth then
+  begin
+    IncMax(FHealth, Value, FMaxHealth);
+    if g_Game_IsServer and g_Game_IsNet then
+      MH_SEND_MonsterState(FUID);
+    Result := True;
+  end;
 end;
 
 destructor TMonster.Destroy();
@@ -3606,7 +3626,11 @@ end;
 procedure TMonster.SetHealth(aH: Integer);
 begin
   if (aH > 0) and (aH < 1000000) then
+  begin
     FHealth := aH;
+    if FHealth > FMaxHealth then
+      FMaxHealth := FHealth;
+  end;
 end;
 
 procedure TMonster.WakeUp();

@@ -58,8 +58,6 @@ const
 
   ANGLE_NONE        = Low(SmallInt);
 
-  SUICIDE_DAMAGE    = 112;
-
   CORPSE_STATE_REMOVEME = 0;
   CORPSE_STATE_NORMAL   = 1;
   CORPSE_STATE_MESS     = 2;
@@ -68,6 +66,12 @@ const
   PLAYER_RECT_CX       = 15+(34 div 2);
   PLAYER_RECT_CY       = 12+(52 div 2);
   PLAYER_CORPSERECT: TRectWH = (X:15; Y:48; Width:34; Height:16);
+
+  PLAYER_HP_SOFT  = 100;
+  PLAYER_HP_LIMIT = 200;
+  PLAYER_AP_SOFT  = 100;
+  PLAYER_AP_LIMIT = 200;
+  SUICIDE_DAMAGE  = 112;
 
   PLAYER1_DEF_COLOR: TRGB = (R:64; G:175; B:48);
   PLAYER2_DEF_COLOR: TRGB = (R:96; G:96; B:96);
@@ -225,6 +229,7 @@ type
     procedure   AllRulez(Health: Boolean);
     procedure   GiveItem(ItemType: Byte);
     procedure   Damage(value: Word; SpawnerUID: Word; vx, vy: Integer; t: Byte); virtual;
+    function    Heal(value: Word; Soft: Boolean): Boolean; virtual;
     procedure   MakeBloodVector(Count: Word; VelX, VelY: Integer);
     procedure   MakeBloodSimple(Count: Word);
     procedure   Kill(KillType: Byte; SpawnerUID: Word; t: Byte);
@@ -327,6 +332,7 @@ type
     destructor  Destroy(); override;
     procedure   Draw(); override;
     function    PickItem(ItemType: Byte; force: Boolean; var remove: Boolean): Boolean; override;
+    function    Heal(value: Word; Soft: Boolean): Boolean; override;
     procedure   Update(); override;
     procedure   SaveState(var Mem: TBinMemoryWriter); override;
     procedure   LoadState(var Mem: TBinMemoryReader); override;
@@ -1683,6 +1689,29 @@ begin
   end;
 end;
 
+function TPlayer.Heal(value: Word; Soft: Boolean): Boolean;
+begin
+  Result := False;
+  if g_Game_IsClient then
+    Exit;
+  if not FLive then
+    Exit;
+
+  if Soft and (FHealth < PLAYER_HP_SOFT) then
+  begin
+    IncMax(FHealth, value, PLAYER_HP_SOFT);
+    Result := True;
+  end;
+  if (not Soft) and (FHealth < PLAYER_HP_LIMIT) then
+  begin
+    IncMax(FHealth, value, PLAYER_HP_LIMIT);
+    Result := True;
+  end;
+
+  if Result and g_Game_IsServer and g_Game_IsNet then
+    MH_SEND_PlayerStats(FUID);
+end;
+
 destructor TPlayer.Destroy();
 begin
   FSawSound.Free();
@@ -2670,52 +2699,52 @@ begin
 
   case ItemType of
     ITEM_MEDKIT_SMALL:
-      if FHealth < 100 then
+      if FHealth < PLAYER_HP_SOFT then
       begin
-        IncMax(FHealth, 10, 100);
+        IncMax(FHealth, 10, PLAYER_HP_SOFT);
         Result := True;
         remove := True;
       end;
 
     ITEM_MEDKIT_LARGE:
-      if FHealth < 100 then
+      if FHealth < PLAYER_HP_SOFT then
       begin
-        IncMax(FHealth, 25, 100);
+        IncMax(FHealth, 25, PLAYER_HP_SOFT);
         Result := True;
         remove := True;
       end;
 
     ITEM_ARMOR_GREEN:
-      if FArmor < 100 then
+      if FArmor < PLAYER_AP_SOFT then
       begin
-        FArmor := 100;
+        FArmor := PLAYER_AP_SOFT;
         Result := True;
         remove := True;
       end;
 
     ITEM_ARMOR_BLUE:
-      if FArmor < 200 then
+      if FArmor < PLAYER_AP_LIMIT then
       begin
-        FArmor := 200;
+        FArmor := PLAYER_AP_LIMIT;
         Result := True;
         remove := True;
       end;
 
     ITEM_SPHERE_BLUE:
-      if FHealth < 200 then
+      if FHealth < PLAYER_HP_LIMIT then
       begin
-        IncMax(FHealth, 100, 200);
+        IncMax(FHealth, 100, PLAYER_HP_LIMIT);
         Result := True;
         remove := True;
       end;
 
     ITEM_SPHERE_WHITE:
-      if (FHealth < 200) or (FArmor < 200) then
+      if (FHealth < PLAYER_HP_LIMIT) or (FArmor < PLAYER_AP_LIMIT) then
       begin
-        if FHealth < 200 then
-          FHealth := 200;
-        if FArmor < 200 then
-          FArmor := 200;
+        if FHealth < PLAYER_HP_LIMIT then
+          FHealth := PLAYER_HP_LIMIT;
+        if FArmor < PLAYER_AP_LIMIT then
+          FArmor := PLAYER_AP_LIMIT;
         Result := True;
         remove := True;
       end;
@@ -2954,9 +2983,9 @@ begin
           Result := True;
           remove := True;
         end;
-        if FHealth < 100 then
+        if FHealth < PLAYER_HP_SOFT then
         begin
-          FHealth := 100;
+          FHealth := PLAYER_HP_SOFT;
           Result := True;
           remove := True;
         end;
@@ -2971,17 +3000,17 @@ begin
       end;
 
     ITEM_BOTTLE:
-      if FHealth < 200 then
+      if FHealth < PLAYER_HP_LIMIT then
       begin
-        IncMax(FHealth, 4, 200);
+        IncMax(FHealth, 4, PLAYER_HP_LIMIT);
         Result := True;
         remove := True;
       end;
 
     ITEM_HELMET:
-      if FArmor < 200 then
+      if FArmor < PLAYER_AP_LIMIT then
       begin
-        IncMax(FArmor, 5, 200);
+        IncMax(FArmor, 5, PLAYER_AP_LIMIT);
         Result := True;
         remove := True;
       end;
@@ -3289,7 +3318,7 @@ begin
 // Воскрешение без оружия:
   if not FLive then
   begin
-    FHealth := 100;
+    FHealth := PLAYER_HP_SOFT;
     FArmor := 0;
     FLive := True;
     FAir := AIR_DEF;
@@ -4688,8 +4717,8 @@ var
 begin
   if Health then
   begin
-    FHealth := 200;
-    FArmor := 200;
+    FHealth := PLAYER_HP_LIMIT;
+    FArmor := PLAYER_AP_LIMIT;
     Exit;
   end;
 
@@ -4726,9 +4755,9 @@ begin
           if gFlash then
             Inc(FPain, 100);
         end;
-        if FHealth < 100 then
+        if FHealth < PLAYER_HP_SOFT then
         begin
-          FHealth := 100;
+          FHealth := PLAYER_HP_SOFT;
         end;
       end;
 
@@ -6095,6 +6124,11 @@ begin
   Result := inherited PickItem(ItemType, force, remove);
 
   if Result then SetAIFlag('SELECTWEAPON', '1');
+end;
+
+function TBot.Heal(value: Word; Soft: Boolean): Boolean;
+begin
+  Result := inherited Heal(value, Soft);
 end;
 
 function TBot.Healthy(): Byte;
