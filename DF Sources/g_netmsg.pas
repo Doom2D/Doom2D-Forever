@@ -1148,6 +1148,7 @@ begin
     e_Buffer_Write(@NetOut, MonsterAnim);
     e_Buffer_Write(@NetOut, MonsterTargetUID);
     e_Buffer_Write(@NetOut, MonsterTargetTime);
+    e_Buffer_Write(@NetOut, Byte(MonsterInfights));
     e_Buffer_Write(@NetOut, MonsterSleep);
     e_Buffer_Write(@NetOut, MonsterHealth);
     e_Buffer_Write(@NetOut, MonsterAmmo);
@@ -2098,7 +2099,7 @@ end;
 procedure MC_RECV_MonsterSpawn(P: Pointer);
 var
   ID: Word;
-  MType, MState, MDir, MAnim: Byte;
+  MType, MState, MDir, MAnim, MInfights: Byte;
   X, Y, VX, VY, MTargTime, MHealth, MAmmo, MSleep: Integer;
   MTarg: Word;
   M: TMonster;
@@ -2113,6 +2114,7 @@ begin
   MAnim := e_Raw_Read_Byte(P);
   MTarg := e_Raw_Read_Word(P);
   MTargTime := e_Raw_Read_LongInt(P);
+  MInfights := e_Raw_Read_Byte(P);
   MSleep := e_Raw_Read_LongInt(P);
   MHealth := e_Raw_Read_LongInt(P);
   MAmmo := e_Raw_Read_LongInt(P);
@@ -2138,6 +2140,7 @@ begin
     MonsterAnim := MAnim;
     MonsterTargetUID := MTarg;
     MonsterTargetTime := MTargTime;
+    MonsterInfights := MInfights > 0;
     MonsterSleep := MSleep;
     MonsterAmmo := MAmmo;
     SetHealth(MHealth);

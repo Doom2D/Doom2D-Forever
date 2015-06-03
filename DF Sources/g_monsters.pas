@@ -36,6 +36,7 @@ type
     FAnim: Array of Array [D_LEFT..D_RIGHT] of TAnimation;
     FTargetUID: Word;
     FTargetTime: Integer;
+    FCanInfight: Boolean;
     FAmmo: Integer;
     FPain: Integer;
     FSleep: Integer;
@@ -54,6 +55,7 @@ type
     vilefire: TAnimation;
 
     FDieTriggers: Array of Integer;
+    FSpawnTrigger: Integer;
 
     procedure Turn();
     function findNewPrey(): Boolean;
@@ -102,6 +104,7 @@ type
     property MonsterAmmo: Integer read FAmmo write FAmmo;
     property MonsterTargetUID: Word read FTargetUID write FTargetUID;
     property MonsterTargetTime: Integer read FTargetTime write FTargetTime;
+    property MonsterInfights: Boolean read FCanInfight write FCanInfight;
     property MonsterSleep: Integer read FSleep write FSleep;
     property MonsterState: Byte read FState write FState;
     property MonsterRemoved: Boolean read FRemoved write FRemoved;
@@ -110,6 +113,7 @@ type
 
     property Obj: TObj read FObj;
     property UID: Word read FUID write FUID;
+    property SpawnTrigger: Integer read FSpawnTrigger write FSpawnTrigger;
 
     property GameX: Integer read FObj.X write FObj.X;
     property GameY: Integer read FObj.Y write FObj.Y;
@@ -1418,11 +1422,13 @@ begin
   FMaxHealth := FHealth;
   FObj.Rect := MONSTERTABLE[MonsterType].Rect;
   FDieTriggers := nil;
+  FSpawnTrigger := -1;
   FWaitAttackAnim := False;
   FChainFire := False;
   FStartID := aID;
   FNoRespawn := False;
   FShellTimer := -1;
+  FCanInfight := True;
 
   if FMonsterType in [MONSTER_ROBO, MONSTER_BARREL] then
     FBloodKind := BLOOD_SPARKS
@@ -1573,7 +1579,10 @@ begin
   end;
 
 // Теперь цель - ударивший, если только не сам себя:
-  if SpawnerUID <> FUID then begin
+  if (SpawnerUID <> FUID) and
+  // Бьём только игроков, если инфайтинг выключен 
+  (FCanInfight or (g_GetUIDType(SpawnerUID) = UID_PLAYER)) then
+  begin
     FTargetUID := SpawnerUID;
     FTargetTime := 0;
   end;
@@ -3427,13 +3436,13 @@ begin
         end;
       end;
 
-// Игрока нет, ищем ближайшего монстра в качестве цели:
-  if FTargetUID = 0 then
+// Игрока нет, инфайтинг включён, ищем ближайшего монстра в качестве цели:
+  if (FTargetUID = 0) and FCanInfight then
     if gMonsters <> nil then
       for a := 0 to High(gMonsters) do
         if (gMonsters[a] <> nil) and (gMonsters[a].Live) and
            (gMonsters[a].FUID <> FUID) and
-           not IsFriend(gMonsters[a].FMonsterType, FMonsterType) then
+           (not IsFriend(gMonsters[a].FMonsterType, FMonsterType)) then
         begin
           l2 := Abs(gMonsters[a].FObj.X-FObj.X)+
                 Abs(gMonsters[a].FObj.Y-FObj.Y);
@@ -3815,6 +3824,11 @@ begin
   if FDieTriggers <> nil then
     for a := 0 to High(FDieTriggers) do
       g_Triggers_Press(FDieTriggers[a], ACTIVATE_MONSTERPRESS);
+  if (FSpawnTrigger > -1) and (FSpawnTrigger <= High(gTriggers)) then
+  begin
+    Dec(gTriggers[FSpawnTrigger].SpawnedCount);
+    FSpawnTrigger := -1;
+  end;
 end;
 
 procedure TMonster.AddTrigger(t: Integer);

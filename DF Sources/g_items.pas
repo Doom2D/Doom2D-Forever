@@ -16,6 +16,7 @@ Type
     QuietRespawn:  Boolean;
     Obj:           TObj;
     Animation:     TAnimation;
+    SpawnTrigger:  Integer;
   end;
 
 procedure g_Items_LoadData();
@@ -41,8 +42,8 @@ implementation
 
 uses
   g_basic, e_graphics, g_sound, g_main, g_gfx, g_map,
-  Math, g_game, g_console, SysUtils, g_player, g_net, g_netmsg, MAPDEF,
-  e_log;
+  Math, g_game, g_triggers, g_console, SysUtils, g_player, g_net, g_netmsg,
+  MAPDEF, e_log;
 
 const
   ITEM_SIGNATURE = $4D455449; // 'ITEM'
@@ -309,6 +310,7 @@ begin
   gItems[find_id].Obj.Rect.Height := ITEMSIZE[ItemType][1];
 
   gItems[find_id].Animation := nil;
+  gItems[find_id].SpawnTrigger := -1;
 
 // Координаты относительно центра нижнего ребра:
   if AdjCoord then
@@ -374,7 +376,7 @@ begin
             if Fall then
             begin
               m := g_Obj_Move(@Obj, True, True);
-                
+
             // Сопротивление воздуха:
               if gTime mod (GAME_TICK*2) = 0 then
                 Obj.Vel.X := z_dec(Obj.Vel.X, 1);
@@ -382,6 +384,13 @@ begin
               begin
                 g_Items_Pick(i);
                 Continue;
+              end;
+
+            // Если выпал за карту:
+              if Obj.Y > gMapInfo.Height+128 then
+              begin
+                g_Items_Remove(i);
+                if g_Game_IsServer and g_Game_IsNet then MH_SEND_ItemDestroy(True, i);
               end;
             end;
 
@@ -523,6 +532,12 @@ begin
   end;
 
   gItems[ID].Live := False;
+
+  if (gItems[ID].SpawnTrigger > -1) and (gItems[ID].SpawnTrigger <= High(gTriggers)) then
+  begin
+    Dec(gTriggers[gItems[ID].SpawnTrigger].SpawnedCount);
+    gItems[ID].SpawnTrigger := -1;
+  end;
 end;
 
 procedure g_Items_SaveState(var Mem: TBinMemoryWriter);

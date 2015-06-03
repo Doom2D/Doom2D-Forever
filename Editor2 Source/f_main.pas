@@ -1122,7 +1122,7 @@ begin
                   ReadOnly := True;
                 end;
 
-                with ItemProps[InsertRow(_lc[I_PROP_TR_MONSTER_TO],
+                with ItemProps[InsertRow(_lc[I_PROP_TR_SPAWN_TO],
                                  Format('(%d:%d)', [Data.MonPos.X, Data.MonPos.Y]), True)-1] do
                 begin
                   EditStyle := esEllipsis;
@@ -1147,7 +1147,7 @@ begin
                   ReadOnly := True;
                 end;
 
-                with ItemProps[InsertRow(_lc[I_PROP_TR_MONSTER_COUNT], IntToStr(Data.MonCount), True)-1] do
+                with ItemProps[InsertRow(_lc[I_PROP_TR_SPAWN_COUNT], IntToStr(Data.MonCount), True)-1] do
                 begin
                   EditStyle := esSimple;
                   MaxLength := 5;
@@ -1156,6 +1156,24 @@ begin
                 with ItemProps[InsertRow(_lc[I_PROP_TR_FX_TYPE], EffectToStr(Data.MonEffect), True)-1] do
                 begin
                   EditStyle := esEllipsis;
+                  ReadOnly := True;
+                end;
+
+                with ItemProps[InsertRow(_lc[I_PROP_TR_SPAWN_MAX], IntToStr(Data.MonMax), True)-1] do
+                begin
+                  EditStyle := esSimple;
+                  MaxLength := 5;
+                end;
+
+                with ItemProps[InsertRow(_lc[I_PROP_TR_SPAWN_DELAY], IntToStr(Data.MonDelay), True)-1] do
+                begin
+                  EditStyle := esSimple;
+                  MaxLength := 5;
+                end;
+
+                with ItemProps[InsertRow(_lc[I_PROP_TR_MONSTER_INFIGHT], BoolNames[not Data.MonNoInfight], True)-1] do
+                begin
+                  EditStyle := esPickList;
                   ReadOnly := True;
                 end;
               end;
@@ -1168,7 +1186,7 @@ begin
                   ReadOnly := True;
                 end;
 
-                with ItemProps[InsertRow(_lc[I_PROP_TR_ITEM_TO],
+                with ItemProps[InsertRow(_lc[I_PROP_TR_SPAWN_TO],
                                  Format('(%d:%d)', [Data.ItemPos.X, Data.ItemPos.Y]), True)-1] do
                 begin
                   EditStyle := esEllipsis;
@@ -1187,7 +1205,7 @@ begin
                   ReadOnly := True;
                 end;
 
-                with ItemProps[InsertRow(_lc[I_PROP_TR_ITEM_COUNT], IntToStr(Data.ItemCount), True)-1] do
+                with ItemProps[InsertRow(_lc[I_PROP_TR_SPAWN_COUNT], IntToStr(Data.ItemCount), True)-1] do
                 begin
                   EditStyle := esSimple;
                   MaxLength := 5;
@@ -1197,6 +1215,18 @@ begin
                 begin
                   EditStyle := esEllipsis;
                   ReadOnly := True;
+                end;
+
+                with ItemProps[InsertRow(_lc[I_PROP_TR_SPAWN_MAX], IntToStr(Data.ItemMax), True)-1] do
+                begin
+                  EditStyle := esSimple;
+                  MaxLength := 5;
+                end;
+
+                with ItemProps[InsertRow(_lc[I_PROP_TR_SPAWN_DELAY], IntToStr(Data.ItemDelay), True)-1] do
+                begin
+                  EditStyle := esSimple;
+                  MaxLength := 5;
                 end;
               end;
 
@@ -3226,6 +3256,9 @@ begin
                       trigger.Data.MonHealth := 0;
                       trigger.Data.MonActive := False;
                       trigger.Data.MonCount := 1;
+                      trigger.Data.MonMax := 0;
+                      trigger.Data.MonDelay := 0;
+                      trigger.Data.MonNoInfight := False;
                     end;
 
                 // Создание предмета:
@@ -3237,6 +3270,8 @@ begin
                       trigger.Data.ItemOnlyDM := False;
                       trigger.Data.ItemFalls := False;
                       trigger.Data.ItemCount := 1;
+                      trigger.Data.ItemMax := 0;
+                      trigger.Data.ItemDelay := 0;
                     end;
 
                 // Ускорение:
@@ -3742,6 +3777,7 @@ begin
             (KeyName = _lc[I_PROP_TR_SOUND_LOCAL]) or
             (KeyName = _lc[I_PROP_TR_SOUND_SWITCH]) or
             (KeyName = _lc[I_PROP_TR_MONSTER_ACTIVE]) or
+            (KeyName = _lc[I_PROP_TR_MONSTER_INFIGHT]) or
             (KeyName = _lc[I_PROP_TR_PUSH_RESET]) then
       begin
         Values.Add(BoolNames[True]);
@@ -3991,10 +4027,13 @@ begin
                 if Data.MonHealth < 0 then
                   Data.MonHealth := 0;
                 Data.MonActive := NameToBool(vleObjectProperty.Values[_lc[I_PROP_TR_MONSTER_ACTIVE]]);
-                Data.MonCount := Min(StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_MONSTER_COUNT]], 0), 64);
+                Data.MonCount := Min(StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_SPAWN_COUNT]], 0), 64);
                 if Data.MonCount < 1 then
                   Data.MonCount := 1;
                 Data.MonEffect := StrToEffect(vleObjectProperty.Values[_lc[I_PROP_TR_FX_TYPE]]);
+                Data.MonMax := Min(StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_SPAWN_MAX]], 0), 65535);
+                Data.MonDelay := Min(StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_SPAWN_DELAY]], 0), 65535);
+                Data.MonNoInfight := not NameToBool(vleObjectProperty.Values[_lc[I_PROP_TR_MONSTER_INFIGHT]]);
               end;
 
             TRIGGER_SPAWNITEM:
@@ -4002,10 +4041,12 @@ begin
                 Data.ItemType := StrToItem(vleObjectProperty.Values[_lc[I_PROP_TR_ITEM_TYPE]]);
                 Data.ItemOnlyDM := NameToBool(vleObjectProperty.Values[_lc[I_PROP_DM_ONLY]]);
                 Data.ItemFalls := NameToBool(vleObjectProperty.Values[_lc[I_PROP_ITEM_FALLS]]);
-                Data.ItemCount := Min(StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_ITEM_COUNT]], 0), 64);
+                Data.ItemCount := Min(StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_SPAWN_COUNT]], 0), 64);
                 if Data.ItemCount < 1 then
                   Data.ItemCount := 1;
                 Data.ItemEffect := StrToEffect(vleObjectProperty.Values[_lc[I_PROP_TR_FX_TYPE]]);
+                Data.ItemMax := Min(StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_SPAWN_MAX]], 0), 65535);
+                Data.ItemDelay := Min(StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_SPAWN_DELAY]], 0), 65535);
               end;
 
             TRIGGER_MUSIC:
@@ -4477,8 +4518,7 @@ begin
 
   if Key = _lc[I_PROP_TR_TELEPORT_TO] then
     SelectFlag := SELECTFLAG_TELEPORT
-  else if (Key = _lc[I_PROP_TR_MONSTER_TO]) or
-          (Key = _lc[I_PROP_TR_ITEM_TO]) then
+  else if Key = _lc[I_PROP_TR_SPAWN_TO] then
     SelectFlag := SELECTFLAG_SPAWNPOINT
   else if (Key = _lc[I_PROP_TR_DOOR_PANEL]) or
           (Key = _lc[I_PROP_TR_TRAP_PANEL]) then

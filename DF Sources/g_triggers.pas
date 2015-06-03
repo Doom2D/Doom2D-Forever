@@ -12,6 +12,7 @@ type
     TimeOut: Word;
   end;
   TTrigger = record
+    ID:               DWORD;
     TriggerType:      Byte;
     X, Y:             Integer;
     Width, Height:    Word;
@@ -30,6 +31,8 @@ type
     PressCount:       Integer;
     SoundPlayCount:   Integer;
     Sound:            TPlayableSound;
+    SpawnCooldown:    Integer;
+    SpawnedCount:     Integer;
 
     Data:             TTriggerData;
   end;
@@ -651,6 +654,9 @@ begin
         begin
           for k := 1 to Data.MonCount do
           begin
+            if (Data.MonMax > 0) and (SpawnedCount >= Data.MonMax) then
+              Break;
+
             i := g_Monsters_Create(Data.MonType,
                    Data.MonPos.X, Data.MonPos.Y,
                    TDirection(Data.MonDir), True);
@@ -658,8 +664,11 @@ begin
           // Здоровье:
             if (Data.MonHealth > 0) then
               gMonsters[i].SetHealth(Data.MonHealth);
+          // Если инфайтинг выключен:
+            if Data.MonNoInfight then
+              gMonsters[i].MonsterInfights := False;
           // Идем искать цель, если надо:
-            if (Data.MonActive) then
+            if Data.MonActive then
               gMonsters[i].WakeUp();
             gMonsters[i].FNoRespawn := True;
 
@@ -670,6 +679,14 @@ begin
               SetLength(gMonstersSpawned, Length(gMonstersSpawned)+1);
               gMonstersSpawned[High(gMonstersSpawned)] := gMonsters[i].UID;
             end;
+
+            if Data.MonMax > 0 then
+            begin
+              gMonsters[i].SpawnTrigger := ID;
+              Inc(SpawnedCount);
+            end;
+            if (ActivateUID = 0) and (Data.MonDelay > 0) then
+              SpawnCooldown := Data.MonDelay;
 
             case Data.MonEffect of
               1: begin
@@ -739,8 +756,19 @@ begin
              (gGameSettings.GameMode in [GM_DM, GM_TDM, GM_CTF]) then
             for k := 1 to Data.ItemCount do
             begin
+              if (Data.ItemMax > 0) and (SpawnedCount >= Data.ItemMax) then
+                Break;
+
               iid := g_Items_Create(Data.ItemPos.X, Data.ItemPos.Y,
                 Data.ItemType, Data.ItemFalls, False, True);
+
+              if Data.ItemMax > 0 then
+              begin
+                gItems[iid].SpawnTrigger := ID;
+                Inc(SpawnedCount);
+              end;
+              if (ActivateUID = 0) and (Data.ItemDelay > 0) then
+                SpawnCooldown := Data.ItemDelay;
 
               case Data.ItemEffect of
                 1: begin
@@ -990,6 +1018,7 @@ begin
 
   with gTriggers[find_id] do
   begin
+    ID := find_id;
     TimeOut := 0;
     ActivateUID := 0;
     PlayerCollide := False;
@@ -998,6 +1027,8 @@ begin
     PressCount := 0;
     SoundPlayCount := 0;
     Sound := nil;
+    SpawnCooldown := 0;
+    SpawnedCount := 0;
   end;
 
 // Загружаем звук, если это триггер "Звук":
@@ -1089,6 +1120,25 @@ begin
             if (Data.DamageInterval = 0) and (Activators[b].TimeOut < 65530) then
               Activators[b].TimeOut := 0;
           end;
+
+      // Уменьшаем время ожидания спавнеров:
+        if SpawnCooldown > 0 then
+          Dec(SpawnCooldown);
+
+      // Если пришло время, спавним монстра:
+        if (TriggerType = TRIGGER_SPAWNMONSTER) and
+        (Data.MonDelay > 0) and (SpawnCooldown = 0) then
+        begin
+          ActivateUID := 0;
+          ActivateTrigger(gTriggers[a], 0);
+        end;
+      // Если пришло время, спавним предмет:
+        if (TriggerType = TRIGGER_SPAWNITEM) and
+        (Data.ItemDelay > 0) and (SpawnCooldown = 0) then
+        begin
+          ActivateUID := 0;
+          ActivateTrigger(gTriggers[a], 0);
+        end;
 
       // Триггер "Звук" уже отыграл, если нужно еще - перезапускаем:
         if (TriggerType = TRIGGER_SOUND) and (Sound <> nil) then
@@ -1373,6 +1423,7 @@ var
 begin
   if gTriggers <> nil then
     for a := 0 to High(gTriggers) do
+    begin
       if gTriggers[a].TriggerType = TRIGGER_SOUND then
       begin
         if g_Sound_Exists(gTriggers[a].Data.SoundName) then
@@ -1380,6 +1431,10 @@ begin
 
         gTriggers[a].Sound.Free();
       end;
+      if (gTriggers[a].TriggerType = TRIGGER_DAMAGE) and
+      (gTriggers[a].Activators <> nil) then
+        SetLength(gTriggers[a].Activators, 0);
+    end;
 
   gTriggers := nil;
   gSecretsCount := 0;
