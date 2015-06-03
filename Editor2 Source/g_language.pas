@@ -187,6 +187,8 @@ Type
     I_PROP_TR_PUSH_ANGLE,
     I_PROP_TR_PUSH_FORCE,
     I_PROP_TR_PUSH_RESET,
+    I_PROP_TR_DAMAGE_VALUE,
+    I_PROP_TR_DAMAGE_INTERVAL,
 
     I_MSG_ERROR,
     I_MSG_WRONG_TEXWIDTH,
@@ -888,6 +890,10 @@ Const
                                        'Сила'),
     ('PROP TR PUSH RESET',             'Reset velocity',
                                        'Сбрасывать скорость'),
+    ('PROP TR DAMAGE VALUE',           'Damage',
+                                       'Ущерб'),
+    ('PROP TR DAMAGE INTERVAL',        'Interval',
+                                       'Интервал'),
 
     ('MSG ERROR',                      'Error',
                                        'Ошибка'),

@@ -1238,6 +1238,26 @@ begin
                   ReadOnly := True;
                 end;
               end;
+
+            TRIGGER_SCORE: ;
+
+            TRIGGER_MESSAGE: ;
+
+            TRIGGER_DAMAGE:
+              begin
+                with ItemProps[InsertRow(_lc[I_PROP_TR_DAMAGE_VALUE], IntToStr(Data.DamageValue), True)-1] do
+                begin
+                  EditStyle := esSimple;
+                  MaxLength := 6;
+                end;
+                with ItemProps[InsertRow(_lc[I_PROP_TR_DAMAGE_INTERVAL], IntToStr(Data.DamageInterval), True)-1] do
+                begin
+                  EditStyle := esSimple;
+                  MaxLength := 5;
+                end;
+              end;
+
+            TRIGGER_SHOT: ;
           end; //case TriggerType
         end;
       end; // OBJECT_TRIGGER:
@@ -3226,6 +3246,18 @@ begin
                       trigger.Data.PushForce := 10;
                       trigger.Data.ResetVel := False;
                     end;
+
+                  TRIGGER_SCORE: ;
+
+                  TRIGGER_MESSAGE: ;
+
+                  TRIGGER_DAMAGE:
+                    begin
+                      trigger.Data.DamageValue := 5;
+                      trigger.Data.DamageInterval := 18;
+                    end;
+
+                  TRIGGER_SHOT: ;
                 end;
 
                 Undo_Add(OBJECT_TRIGGER, AddTrigger(trigger));
@@ -3997,6 +4029,20 @@ begin
                   StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_PUSH_FORCE]], 0), 255);
                 Data.ResetVel := NameToBool(vleObjectProperty.Values[_lc[I_PROP_TR_PUSH_RESET]]);
               end;
+
+            TRIGGER_SCORE: ;
+
+            TRIGGER_MESSAGE: ;
+
+            TRIGGER_DAMAGE:
+              begin
+                Data.DamageValue := Max(Min(
+                  StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_DAMAGE_VALUE]], 0), 32767), -32768);
+                Data.DamageInterval := Max(Min(
+                  StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_DAMAGE_INTERVAL]], 0), 65535), 0);
+              end;
+
+            TRIGGER_SHOT: ;
           end;
         end;
       end;

@@ -7,6 +7,10 @@ uses
   BinEditor;
 
 type
+  TActivator = record
+    UID:     Word;
+    TimeOut: Word;
+  end;
   TTrigger = record
     TriggerType:      Byte;
     X, Y:             Integer;
@@ -19,6 +23,7 @@ type
 
     TimeOut:          Word;
     ActivateUID:      Word;
+    Activators:       array of TActivator;
     PlayerCollide:    Boolean;
     DoorTime:         Integer;
     PressTime:        Integer;
@@ -610,8 +615,8 @@ begin
           else
             if coolDown then
               TimeOut := 6
-           else
-             TimeOut := 0;
+            else
+              TimeOut := 0;
 
           animonce := Data.AnimOnce;
           Result := True;
@@ -866,9 +871,76 @@ begin
           TimeOut := 0;
           Result := True;
         end;
+
+      TRIGGER_SCORE: ;
+
+      TRIGGER_MESSAGE: ;
+
+      TRIGGER_DAMAGE:
+        begin
+          Result := True;
+          k := -1;
+          if coolDown then
+          begin
+            // Вспоминаем, активировал ли он меня раньше
+            for i := 0 to High(Activators) do
+              if Activators[i].UID = ActivateUID then
+              begin
+                k := i;
+                Break;
+              end;
+            if k = -1 then
+            begin // Видим его впервые
+              // Запоминаем его
+              SetLength(Activators, Length(Activators) + 1);
+              k := High(Activators);
+              Activators[k].UID := ActivateUID;
+            end else
+            begin // Уже видели его
+              // Если интервал отключён, но он всё ещё в зоне поражения, даём ему время
+              if (Data.DamageInterval = 0) and (Activators[k].TimeOut > 0) then
+                Activators[k].TimeOut := 65535;
+              // Таймаут прошёл - в бой
+              Result := Activators[k].TimeOut = 0;
+            end;
+          end;
+
+          if Result then
+          begin
+            // Причиняем боль
+            case g_GetUIDType(ActivateUID) of
+              UID_PLAYER:
+                begin
+                  p := g_Player_Get(ActivateUID);
+                  if p = nil then
+                    Exit;
+                  if Data.DamageValue > 0 then
+                    p.Damage(Data.DamageValue, 0, 0, 0, HIT_SOME);
+                end;
+
+              UID_MONSTER:
+                begin
+                  m := g_Monsters_Get(ActivateUID);
+                  if m = nil then
+                    Exit;
+                  if Data.DamageValue > 0 then
+                    m.Damage(Data.DamageValue, 0, 0, 0, HIT_SOME);
+                end;
+            end;
+            // Назначаем время следующего пинка
+            if coolDown then
+              if Data.DamageInterval > 0 then
+                Activators[k].TimeOut := Data.DamageInterval
+              else
+                Activators[k].TimeOut := 65535;
+          end;
+          TimeOut := 0;
+        end;
+
+      TRIGGER_SHOT: ;
     end;
   end;
- 
+
   if Result and (Trigger.TexturePanel <> -1) then
     g_Map_SwitchTexture(Trigger.TexturePanelType, Trigger.TexturePanel, IfThen(animonce, 2, 1));
 end;
@@ -984,6 +1056,19 @@ begin
       // Уменьшаем время ожидания после нажатия:
         if PressTime > 0 then
           PressTime := PressTime - 1;
+      // Проверяем игроков и монстров, которых ранее запомнили:
+        if TriggerType = TRIGGER_DAMAGE then
+          for b := 0 to High(Activators) do
+          begin
+            // Уменьшаем время до повторного пинка:
+            if Activators[b].TimeOut > 0 then
+              Dec(Activators[b].TimeOut)
+            else
+              Continue;
+            // Считаем, что объект покинул зону действия триггера
+            if (Data.DamageInterval = 0) and (Activators[b].TimeOut < 65530) then
+              Activators[b].TimeOut := 0;
+          end;
 
       // Триггер "Звук" уже отыграл, если нужно еще - перезапускаем:
         if (TriggerType = TRIGGER_SOUND) and (Sound <> nil) then
