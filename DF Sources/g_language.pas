@@ -285,7 +285,8 @@ type
     I_NET_RCON_PWD_INVALID,
     I_NET_RCON_NOAUTH,
 
-    I_PLAYER_KILL,                    
+    I_PLAYER_DIED,
+    I_PLAYER_KILL,
     I_PLAYER_KILL_EXTRAHARD_1,
     I_PLAYER_KILL_EXTRAHARD_2,
     I_PLAYER_KILL_ACID,
@@ -1011,6 +1012,8 @@ const
     ('NET RCON NOAUTH',                'You are not authorized to use RCON.',
                                        '¬ы не имеете права использовать RCON.'),
 
+    ('PLAYER DIED',                    '*** %s died',
+                                       '*** %s погиб'),
     ('PLAYER KILL',                    '*** %s was killed by %s',
                                        '*** %s был убит %s'),
     ('PLAYER KILL EXTRAHARD 1',        '*** %s was fragged by %s',

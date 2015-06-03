@@ -1564,7 +1564,7 @@ begin
       MakeBloodSimple(c)
     else
       case t of
-        HIT_TRAP, HIT_ACID, HIT_ELECTRO, HIT_FLAME: MakeBloodSimple(c);
+        HIT_TRAP, HIT_ACID, HIT_ELECTRO, HIT_FLAME, HIT_TRIGGER: MakeBloodSimple(c);
         HIT_BFG, HIT_ROCKET, HIT_SOME: MakeBloodVector(c, VelX, VelY);
       end;
   end;

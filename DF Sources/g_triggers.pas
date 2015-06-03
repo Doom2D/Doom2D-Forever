@@ -61,7 +61,7 @@ uses
 
 const
   TRIGGER_SIGNATURE = $52475254; // 'TRGR'
-
+  TRAP_DAMAGE = 1000;
 
 function FindTrigger(): DWORD;
 var
@@ -185,13 +185,13 @@ begin
         for a := 0 to High(gPlayers) do
           if (gPlayers[a] <> nil) and gPlayers[a].Live and
               gPlayers[a].Collide(X, Y, Width, Height) then
-            gPlayers[a].Damage(1000, 0, 0, 0, HIT_TRAP);
+            gPlayers[a].Damage(TRAP_DAMAGE, 0, 0, 0, HIT_TRAP);
 
       if gMonsters <> nil then
         for a := 0 to High(gMonsters) do
           if (gMonsters[a] <> nil) and gMonsters[a].Live and
           g_Obj_Collide(X, Y, Width, Height, @gMonsters[a].Obj) then
-            gMonsters[a].Damage(1000, 0, 0, 0, HIT_TRAP);
+            gMonsters[a].Damage(TRAP_DAMAGE, 0, 0, 0, HIT_TRAP);
 
       if not Enabled then g_Map_EnableWall(PanelID);
     end;
@@ -234,13 +234,13 @@ begin
           for a := 0 to High(gPlayers) do
             if (gPlayers[a] <> nil) and gPlayers[a].Live and
             gPlayers[a].Collide(X, Y, Width, Height) then
-              gPlayers[a].Damage(1000, 0, 0, 0, HIT_TRAP);
+              gPlayers[a].Damage(TRAP_DAMAGE, 0, 0, 0, HIT_TRAP);
 
         if gMonsters <> nil then
           for a := 0 to High(gMonsters) do
             if (gMonsters[a] <> nil) and gMonsters[a].Live and
             g_Obj_Collide(X, Y, Width, Height, @gMonsters[a].Obj) then
-              gMonsters[a].Damage(1000, 0, 0, 0, HIT_TRAP);
+              gMonsters[a].Damage(TRAP_DAMAGE, 0, 0, 0, HIT_TRAP);
 
         if not Enabled then g_Map_EnableWall(gDoorMap[c, b]);
       end;
@@ -396,6 +396,7 @@ var
   pAngle: Real;
   FramesID: DWORD;
   Anim: TAnimation;
+  UIDType: Byte;
 begin
   Result := False;
   if g_Game_IsClient then
@@ -878,61 +879,66 @@ begin
 
       TRIGGER_DAMAGE:
         begin
-          Result := True;
-          k := -1;
-          if coolDown then
+          Result := False;
+          UIDType := g_GetUIDType(ActivateUID);
+          if (UIDType = UID_PLAYER) or (UIDType = UID_MONSTER) then
           begin
-            // Вспоминаем, активировал ли он меня раньше
-            for i := 0 to High(Activators) do
-              if Activators[i].UID = ActivateUID then
-              begin
-                k := i;
-                Break;
-              end;
-            if k = -1 then
-            begin // Видим его впервые
-              // Запоминаем его
-              SetLength(Activators, Length(Activators) + 1);
-              k := High(Activators);
-              Activators[k].UID := ActivateUID;
-            end else
-            begin // Уже видели его
-              // Если интервал отключён, но он всё ещё в зоне поражения, даём ему время
-              if (Data.DamageInterval = 0) and (Activators[k].TimeOut > 0) then
-                Activators[k].TimeOut := 65535;
-              // Таймаут прошёл - в бой
-              Result := Activators[k].TimeOut = 0;
-            end;
-          end;
-
-          if Result then
-          begin
-            // Причиняем боль
-            case g_GetUIDType(ActivateUID) of
-              UID_PLAYER:
-                begin
-                  p := g_Player_Get(ActivateUID);
-                  if p = nil then
-                    Exit;
-                  if Data.DamageValue > 0 then
-                    p.Damage(Data.DamageValue, 0, 0, 0, HIT_SOME);
-                end;
-
-              UID_MONSTER:
-                begin
-                  m := g_Monsters_Get(ActivateUID);
-                  if m = nil then
-                    Exit;
-                  if Data.DamageValue > 0 then
-                    m.Damage(Data.DamageValue, 0, 0, 0, HIT_SOME);
-                end;
-            end;
-            // Назначаем время следующего пинка
+            Result := True;
+            k := -1;
             if coolDown then
-              if Data.DamageInterval > 0 then
-                Activators[k].TimeOut := Data.DamageInterval
-              else
-                Activators[k].TimeOut := 65535;
+            begin
+              // Вспоминаем, активировал ли он меня раньше
+              for i := 0 to High(Activators) do
+                if Activators[i].UID = ActivateUID then
+                begin
+                  k := i;
+                  Break;
+                end;
+              if k = -1 then
+              begin // Видим его впервые
+                // Запоминаем его
+                SetLength(Activators, Length(Activators) + 1);
+                k := High(Activators);
+                Activators[k].UID := ActivateUID;
+              end else
+              begin // Уже видели его
+                // Если интервал отключён, но он всё ещё в зоне поражения, даём ему время
+                if (Data.DamageInterval = 0) and (Activators[k].TimeOut > 0) then
+                  Activators[k].TimeOut := 65535;
+                // Таймаут прошёл - в бой
+                Result := Activators[k].TimeOut = 0;
+              end;
+            end;
+
+            if Result then
+            begin
+              // Причиняем боль
+              case UIDType of
+                UID_PLAYER:
+                  begin
+                    p := g_Player_Get(ActivateUID);
+                    if p = nil then
+                      Exit;
+                    if Data.DamageValue > 0 then
+                      p.Damage(Data.DamageValue, 0, 0, 0, HIT_TRIGGER);
+                  end;
+
+                UID_MONSTER:
+                  begin
+                    m := g_Monsters_Get(ActivateUID);
+                    if m = nil then
+                      Exit;
+                    if Data.DamageValue > 0 then
+                      m.Damage(Data.DamageValue, 0, 0, 0, HIT_TRIGGER);
+                  end;
+              end;
+              // Назначаем время следующего пинка
+              if coolDown then
+                if Data.DamageInterval > 0 then
+                  Activators[k].TimeOut := Data.DamageInterval
+                else
+                  Activators[k].TimeOut := 65535;
+            end;
           end;
           TimeOut := 0;
         end;

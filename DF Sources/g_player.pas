@@ -58,6 +58,8 @@ const
 
   ANGLE_NONE        = Low(SmallInt);
 
+  SUICIDE_DAMAGE    = 112;
+
   CORPSE_STATE_REMOVEME = 0;
   CORPSE_STATE_NORMAL   = 1;
   CORPSE_STATE_MESS     = 2;
@@ -1609,16 +1611,18 @@ begin
 // Неуязвимость не спасает от ловушек:
   if ((t = HIT_TRAP) or (t = HIT_SELF)) and (not FGodMode) then
   begin
+    FArmor := 0;
     if t = HIT_TRAP then
     begin
       // Ловушка убивает сразу:
       FHealth := -100;
-      FArmor := 0;
+      Kill(K_EXTRAHARDKILL, SpawnerUID, t);
     end;
     if t = HIT_SELF then
     begin
       // Самоубийство:
       FHealth := 0;
+      Kill(K_SIMPLEKILL, SpawnerUID, t);
     end;
     // Обнулить действия примочек, чтобы фон пропал
     FMegaRulez[MR_SUIT] := 0;
@@ -1654,7 +1658,7 @@ begin
         MakeBloodSimple(c)
       else
         case t of
-          HIT_TRAP, HIT_ACID, HIT_FLAME, HIT_SELF: MakeBloodSimple(c);
+          HIT_TRAP, HIT_ACID, HIT_FLAME, HIT_SELF, HIT_TRIGGER: MakeBloodSimple(c);
           HIT_BFG, HIT_ROCKET, HIT_SOME: MakeBloodVector(c, vx, vy);
         end;
 
@@ -2299,7 +2303,7 @@ begin
       K_HARDKILL:
         FTime[T_RESPAWN] := gTime + TIME_RESPAWN2;
       K_EXTRAHARDKILL, K_FALLKILL:
-        FTime[T_RESPAWN] := gTime+  TIME_RESPAWN3;
+        FTime[T_RESPAWN] := gTime + TIME_RESPAWN3;
     end;
 
 // Переключаем состояние:
@@ -2320,6 +2324,7 @@ begin
     HIT_WATER: g_Console_Add(Format(_lc[I_PLAYER_KILL_WATER], [FName]), True);
     HIT_ACID: g_Console_Add(Format(_lc[I_PLAYER_KILL_ACID], [FName]), True);
     HIT_TRAP: g_Console_Add(Format(_lc[I_PLAYER_KILL_TRAP], [FName]), True);
+    HIT_TRIGGER: g_Console_Add(Format(_lc[I_PLAYER_DIED], [FName]), True);
   end;
 
   if SpawnerUID = FUID then

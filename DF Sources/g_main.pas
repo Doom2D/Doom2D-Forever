@@ -97,6 +97,8 @@ begin
 end;
 
 procedure Cheat();
+const
+  CHEAT_DAMAGE = 500;
 var
   s, s2: string;
   c: Char16;
@@ -148,8 +150,8 @@ begin
   // IDDQD наказывает нечестного игрока
   else if Copy(charbuff, 12, 5) = c4 then
   begin
-    if gPlayer1 <> nil then gPlayer1.Damage(500, 0, 0, 0, HIT_TRAP);
-    if gPlayer2 <> nil then gPlayer2.Damage(500, 0, 0, 0, HIT_TRAP);
+    if gPlayer1 <> nil then gPlayer1.Damage(CHEAT_DAMAGE, 0, 0, 0, HIT_TRAP);
+    if gPlayer2 <> nil then gPlayer2.Damage(CHEAT_DAMAGE, 0, 0, 0, HIT_TRAP);
     s := 'SOUND_MONSTER_HAHA';
   end
   // СИМСИМ открывает все двери
