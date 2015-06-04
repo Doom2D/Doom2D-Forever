@@ -906,7 +906,7 @@ begin
 
       TRIGGER_MESSAGE: ;
 
-      TRIGGER_DAMAGE:
+      TRIGGER_DAMAGE, TRIGGER_HEALTH:
         begin
           Result := False;
           UIDType := g_GetUIDType(ActivateUID);
@@ -934,24 +934,27 @@ begin
                 // Если интервал отключён, но он всё ещё в зоне поражения, даём ему время
                 if (Data.DamageInterval = 0) and (Activators[k].TimeOut > 0) then
                   Activators[k].TimeOut := 65535;
-                // Таймаут прошёл - в бой
+                // Таймаут прошёл - работаем
                 Result := Activators[k].TimeOut = 0;
               end;
             end;
 
             if Result then
             begin
-              // Причиняем боль
               case UIDType of
                 UID_PLAYER:
                   begin
                     p := g_Player_Get(ActivateUID);
                     if p = nil then
                       Exit;
-                    if Data.DamageValue > 0 then
+
+                    // Наносим урон игроку
+                    if (TriggerType = TRIGGER_DAMAGE) and (Data.DamageValue > 0) then
                       p.Damage(Data.DamageValue, 0, 0, 0, HIT_TRIGGER);
-                    if Data.DamageValue < 0 then
-                      if p.Heal(-Data.DamageValue, False) then
+
+                    // Лечим игрока
+                    if (TriggerType = TRIGGER_HEALTH) and (Data.HealValue > 0) then
+                      if p.Heal(Data.HealValue, not Data.HealMax) and (not Data.HealSilent) then
                       begin
                         g_Sound_PlayExAt('SOUND_ITEM_GETMED', p.Obj.X, p.Obj.Y);
                         if g_Game_IsServer and g_Game_IsNet then
@@ -964,10 +967,14 @@ begin
                     m := g_Monsters_Get(ActivateUID);
                     if m = nil then
                       Exit;
-                    if Data.DamageValue > 0 then
+
+                    // Наносим урон монстру
+                    if (TriggerType = TRIGGER_DAMAGE) and (Data.DamageValue > 0) then
                       m.Damage(Data.DamageValue, 0, 0, 0, HIT_TRIGGER);
-                    if Data.DamageValue < 0 then
-                      if m.Heal(-Data.DamageValue) then
+
+                    // Лечим монстра
+                    if (TriggerType = TRIGGER_HEALTH) and (Data.HealValue > 0) then
+                      if m.Heal(Data.HealValue) and (not Data.HealSilent) then
                       begin
                         g_Sound_PlayExAt('SOUND_ITEM_GETMED', m.Obj.X, m.Obj.Y);
                         if g_Game_IsServer and g_Game_IsNet then
@@ -975,10 +982,14 @@ begin
                       end;
                   end;
               end;
-              // Назначаем время следующего пинка
+              // Назначаем время следующего воздействия
+              if TriggerType = TRIGGER_DAMAGE then
+                i := Data.DamageInterval
+              else
+                i := Data.HealInterval;
               if coolDown then
-                if Data.DamageInterval > 0 then
-                  Activators[k].TimeOut := Data.DamageInterval
+                if i > 0 then
+                  Activators[k].TimeOut := i
                 else
                   Activators[k].TimeOut := 65535;
             end;
@@ -1110,10 +1121,10 @@ begin
         if PressTime > 0 then
           PressTime := PressTime - 1;
       // Проверяем игроков и монстров, которых ранее запомнили:
-        if TriggerType = TRIGGER_DAMAGE then
+        if (TriggerType = TRIGGER_DAMAGE) or (TriggerType = TRIGGER_HEALTH) then
           for b := 0 to High(Activators) do
           begin
-            // Уменьшаем время до повторного пинка:
+            // Уменьшаем время до повторного воздействия:
             if Activators[b].TimeOut > 0 then
               Dec(Activators[b].TimeOut)
             else
@@ -1453,8 +1464,7 @@ begin
 
         gTriggers[a].Sound.Free();
       end;
-      if (gTriggers[a].TriggerType = TRIGGER_DAMAGE) and
-      (gTriggers[a].Activators <> nil) then
+      if gTriggers[a].Activators <> nil then
         SetLength(gTriggers[a].Activators, 0);
     end;
 

@@ -233,7 +233,7 @@ Type
       TRIGGER_MESSAGE:      (MessageKind: Byte;
                              MessageSendTo: Byte;
                              MessageName: Char64);
-      TRIGGER_DAMAGE:       (DamageValue: SmallInt;
+      TRIGGER_DAMAGE:       (DamageValue: Word;
                              DamageInterval: Word);
       TRIGGER_HEALTH:       (HealValue: Word;
                              HealInterval: Word;

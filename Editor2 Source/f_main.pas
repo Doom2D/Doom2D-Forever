@@ -1142,7 +1142,7 @@ begin
                   ReadOnly := True;
                 end;
 
-                with ItemProps[InsertRow(_lc[I_PROP_TR_MONSTER_HEALTH], IntToStr(Data.MonHealth), True)-1] do
+                with ItemProps[InsertRow(_lc[I_PROP_TR_HEALTH], IntToStr(Data.MonHealth), True)-1] do
                 begin
                   EditStyle := esSimple;
                   MaxLength := 5;
@@ -1285,12 +1285,36 @@ begin
                 with ItemProps[InsertRow(_lc[I_PROP_TR_DAMAGE_VALUE], IntToStr(Data.DamageValue), True)-1] do
                 begin
                   EditStyle := esSimple;
-                  MaxLength := 6;
+                  MaxLength := 5;
                 end;
-                with ItemProps[InsertRow(_lc[I_PROP_TR_DAMAGE_INTERVAL], IntToStr(Data.DamageInterval), True)-1] do
+                with ItemProps[InsertRow(_lc[I_PROP_TR_INTERVAL], IntToStr(Data.DamageInterval), True)-1] do
                 begin
                   EditStyle := esSimple;
                   MaxLength := 5;
+                end;
+              end;
+
+            TRIGGER_HEALTH:
+              begin
+                with ItemProps[InsertRow(_lc[I_PROP_TR_HEALTH], IntToStr(Data.HealValue), True)-1] do
+                begin
+                  EditStyle := esSimple;
+                  MaxLength := 5;
+                end;
+                with ItemProps[InsertRow(_lc[I_PROP_TR_INTERVAL], IntToStr(Data.HealInterval), True)-1] do
+                begin
+                  EditStyle := esSimple;
+                  MaxLength := 5;
+                end;
+                with ItemProps[InsertRow(_lc[I_PROP_TR_HEALTH_MAX], BoolNames[Data.HealMax], True)-1] do
+                begin
+                  EditStyle := esPickList;
+                  ReadOnly := True;
+                end;
+                with ItemProps[InsertRow(_lc[I_PROP_TR_SILENT], BoolNames[Data.HealSilent], True)-1] do
+                begin
+                  EditStyle := esPickList;
+                  ReadOnly := True;
                 end;
               end;
 
@@ -3296,7 +3320,13 @@ begin
                   TRIGGER_DAMAGE:
                     begin
                       trigger.Data.DamageValue := 5;
-                      trigger.Data.DamageInterval := 18;
+                      trigger.Data.DamageInterval := 12;
+                    end;
+
+                  TRIGGER_HEALTH:
+                    begin
+                      trigger.Data.HealValue := 5;
+                      trigger.Data.HealInterval := 36;
                     end;
 
                   TRIGGER_SHOT: ;
@@ -3786,7 +3816,8 @@ begin
             (KeyName = _lc[I_PROP_TR_SOUND_SWITCH]) or
             (KeyName = _lc[I_PROP_TR_MONSTER_ACTIVE]) or
             (KeyName = _lc[I_PROP_TR_MONSTER_INFIGHT]) or
-            (KeyName = _lc[I_PROP_TR_PUSH_RESET]) then
+            (KeyName = _lc[I_PROP_TR_PUSH_RESET]) or
+            (KeyName = _lc[I_PROP_TR_HEALTH_MAX]) then
       begin
         Values.Add(BoolNames[True]);
         Values.Add(BoolNames[False]);
@@ -4033,7 +4064,7 @@ begin
               begin
                 Data.MonType := StrToMonster(vleObjectProperty.Values[_lc[I_PROP_TR_MONSTER_TYPE]]);
                 Data.MonDir := Byte(NameToDir(vleObjectProperty.Values[_lc[I_PROP_DIRECTION]]));
-                Data.MonHealth := Min(StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_MONSTER_HEALTH]], 0), 1000000);
+                Data.MonHealth := Min(StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_HEALTH]], 0), 1000000);
                 if Data.MonHealth < 0 then
                   Data.MonHealth := 0;
                 Data.MonActive := NameToBool(vleObjectProperty.Values[_lc[I_PROP_TR_MONSTER_ACTIVE]]);
@@ -4088,9 +4119,19 @@ begin
             TRIGGER_DAMAGE:
               begin
                 Data.DamageValue := Max(Min(
-                  StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_DAMAGE_VALUE]], 0), 32767), -32768);
+                  StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_DAMAGE_VALUE]], 0), 65535), 0);
                 Data.DamageInterval := Max(Min(
-                  StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_DAMAGE_INTERVAL]], 0), 65535), 0);
+                  StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_INTERVAL]], 0), 65535), 0);
+              end;
+
+            TRIGGER_HEALTH:
+              begin
+                Data.HealValue := Max(Min(
+                  StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_HEALTH]], 0), 65535), 0);
+                Data.HealInterval := Max(Min(
+                  StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_INTERVAL]], 0), 65535), 0);
+                Data.HealMax := NameToBool(vleObjectProperty.Values[_lc[I_PROP_TR_HEALTH_MAX]]);
+                Data.HealSilent := NameToBool(vleObjectProperty.Values[_lc[I_PROP_TR_SILENT]]);
               end;
 
             TRIGGER_SHOT: ;
