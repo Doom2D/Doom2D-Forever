@@ -409,7 +409,7 @@ begin
 
   if not Trigger.Enabled then
     Exit;
-  if Trigger.TimeOut <> 0 then
+  if (Trigger.TimeOut <> 0) and (actType <> ACTIVATE_CUSTOM) then
     Exit;
   if gLMSRespawn then
     Exit;
@@ -654,14 +654,14 @@ begin
       TRIGGER_SPAWNMONSTER:
         if (Data.MonType in [MONSTER_DEMON..MONSTER_MAN]) then
         begin
-          if (Data.MonDelay > 0) and (ActivateUID > 0) then
+          if (Data.MonDelay > 0) and (actType <> ACTIVATE_CUSTOM) then
           begin
             AutoSpawn := not AutoSpawn;
             SpawnCooldown := 0;
           end;
 
-          if ((Data.MonDelay = 0) and (ActivateUID > 0))
-          or ((Data.MonDelay > 0) and (ActivateUID = 0)) then
+          if ((Data.MonDelay = 0) and (actType <> ACTIVATE_CUSTOM))
+          or ((Data.MonDelay > 0) and (actType = ACTIVATE_CUSTOM)) then
             for k := 1 to Data.MonCount do
             begin
               if (Data.MonMax > 0) and (SpawnedCount >= Data.MonMax) then
@@ -695,7 +695,7 @@ begin
                 gMonsters[i].SpawnTrigger := ID;
                 Inc(SpawnedCount);
               end;
-              if (ActivateUID = 0) and (Data.MonDelay > 0) then
+              if (actType = ACTIVATE_CUSTOM) and (Data.MonDelay > 0) then
                 SpawnCooldown := Data.MonDelay;
 
               case Data.MonEffect of
@@ -762,14 +762,14 @@ begin
       TRIGGER_SPAWNITEM:
         if (Data.ItemType in [ITEM_MEDKIT_SMALL..ITEM_MAX]) then
         begin
-          if (Data.ItemDelay > 0) and (ActivateUID > 0) then
+          if (Data.ItemDelay > 0) and (actType <> ACTIVATE_CUSTOM) then
           begin
             AutoSpawn := not AutoSpawn;
             SpawnCooldown := 0;
           end;
 
-          if ((Data.ItemDelay = 0) and (ActivateUID > 0))
-          or ((Data.ItemDelay > 0) and (ActivateUID = 0)) then
+          if ((Data.ItemDelay = 0) and (actType <> ACTIVATE_CUSTOM))
+          or ((Data.ItemDelay > 0) and (actType = ACTIVATE_CUSTOM)) then
             if (not Data.ItemOnlyDM) or
                (gGameSettings.GameMode in [GM_DM, GM_TDM, GM_CTF]) then
               for k := 1 to Data.ItemCount do
@@ -785,7 +785,7 @@ begin
                   gItems[iid].SpawnTrigger := ID;
                   Inc(SpawnedCount);
                 end;
-                if (ActivateUID = 0) and (Data.ItemDelay > 0) then
+                if (actType = ACTIVATE_CUSTOM) and (Data.ItemDelay > 0) then
                   SpawnCooldown := Data.ItemDelay;
 
                 case Data.ItemEffect of
@@ -1160,13 +1160,13 @@ begin
             if (TriggerType = TRIGGER_SPAWNMONSTER) and (Data.MonDelay > 0)  then
             begin
               ActivateUID := 0;
-              ActivateTrigger(gTriggers[a], 0);
+              ActivateTrigger(gTriggers[a], ACTIVATE_CUSTOM);
             end;
             // Если пришло время, спавним предмет:
             if (TriggerType = TRIGGER_SPAWNITEM) and (Data.ItemDelay > 0) then
             begin
               ActivateUID := 0;
-              ActivateTrigger(gTriggers[a], 0);
+              ActivateTrigger(gTriggers[a], ACTIVATE_CUSTOM);
             end;
           end else // Уменьшаем время ожидания:
             Dec(SpawnCooldown);
@@ -1294,27 +1294,39 @@ begin
 
         { TODO 5 : активация монстрами триггеров с ключами }
 
-      // "Монстр близко":
         if ByteBool(ActivateType and ACTIVATE_MONSTERCOLLIDE) and
-           (TimeOut = 0) and (Keys = 0) then // Ксли не нужны ключи
-          if gMonsters <> nil then
-            for b := 0 to High(gMonsters) do
-              if (gMonsters[b] <> nil) then
-                with gMonsters[b] do
-                  if Collide(X, Y, Width, Height) then
-                  begin
-                    gTriggers[a].ActivateUID := UID;
-                    ActivateTrigger(gTriggers[a], ACTIVATE_MONSTERCOLLIDE);
-                  end;
-
-      // "Монстров нет":
-        if ByteBool(ActivateType and ACTIVATE_NOMONSTER) and
+           ByteBool(ActivateType and ACTIVATE_NOMONSTER) and
            (TimeOut = 0) and (Keys = 0) then
-          if not g_CollideMonster(X, Y, Width, Height) then
-          begin
-            gTriggers[a].ActivateUID := 0;
-            ActivateTrigger(gTriggers[a], ACTIVATE_NOMONSTER);
-          end;
+        begin
+        // Если "Монстр близко" и "Монстров нет",
+        // запускаем триггер на старте карты и снимаем оба флага
+          ActivateType := ActivateType and not (ACTIVATE_MONSTERCOLLIDE or ACTIVATE_NOMONSTER);
+          gTriggers[a].ActivateUID := 0;
+          ActivateTrigger(gTriggers[a], 0);
+        end else
+        begin
+        // "Монстр близко":
+          if ByteBool(ActivateType and ACTIVATE_MONSTERCOLLIDE) and
+             (TimeOut = 0) and (Keys = 0) then // Если не нужны ключи
+            if gMonsters <> nil then
+              for b := 0 to High(gMonsters) do
+                if (gMonsters[b] <> nil) then
+                  with gMonsters[b] do
+                    if Collide(X, Y, Width, Height) then
+                    begin
+                      gTriggers[a].ActivateUID := UID;
+                      ActivateTrigger(gTriggers[a], ACTIVATE_MONSTERCOLLIDE);
+                    end;
+
+        // "Монстров нет":
+          if ByteBool(ActivateType and ACTIVATE_NOMONSTER) and
+             (TimeOut = 0) and (Keys = 0) then
+            if not g_CollideMonster(X, Y, Width, Height) then
+            begin
+              gTriggers[a].ActivateUID := 0;
+              ActivateTrigger(gTriggers[a], ACTIVATE_NOMONSTER);
+            end;
+        end;
 
         PlayerCollide := g_CollidePlayer(X, Y, Width, Height);
       end;

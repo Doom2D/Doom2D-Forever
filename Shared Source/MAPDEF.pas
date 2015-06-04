@@ -150,6 +150,7 @@ const
   ACTIVATE_MONSTERPRESS   = 8;
   ACTIVATE_SHOT           = 16;
   ACTIVATE_NOMONSTER      = 32;
+  ACTIVATE_CUSTOM         = 255;
 
   KEY_RED      = 1;
   KEY_GREEN    = 2;
