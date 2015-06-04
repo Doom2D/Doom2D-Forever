@@ -113,8 +113,8 @@ begin
       'Ø': Result[i] := 'I';
       'Ù': Result[i] := 'O';
       'Ç': Result[i] := 'P';
-      'Õ': Result[i] := '?';
-      'Ú': Result[i] := '?';
+      'Õ': Result[i] := Chr(219);
+      'Ú': Result[i] := Chr(221);
       'Ô': Result[i] := 'A';
       'Û': Result[i] := 'S';
       'Â': Result[i] := 'D';
@@ -124,8 +124,8 @@ begin
       'Î': Result[i] := 'J';
       'Ë': Result[i] := 'K';
       'Ä': Result[i] := 'L';
-      'Æ': Result[i] := '?';
-      'Ý': Result[i] := '?';
+      'Æ': Result[i] := Chr(186);
+      'Ý': Result[i] := Chr(222);
       'ß': Result[i] := 'Z';
       '×': Result[i] := 'X';
       'Ñ': Result[i] := 'C';
@@ -134,7 +134,7 @@ begin
       'Ò': Result[i] := 'N';
       'Ü': Result[i] := 'M';
       'Á': Result[i] := Chr(188);
-      'Þ': Result[i] := '?';
+      'Þ': Result[i] := Chr(190);
     end;
 end;
 
