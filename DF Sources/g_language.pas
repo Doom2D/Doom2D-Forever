@@ -550,7 +550,7 @@ const
     ('GAME LMS',                       'Last Man Standing',
                                        'онякедмхи цепни'),
     ('GAME TLMS',                      'Team LMS',
-                                       'яундйю'),
+                                       'яремйю мю яремйс'),
     ('GAME SURV',                      'Survivor',
                                        'бшфхбюмхе'),
     ('GAME FRAG LIMIT',                'Frag Limit: %d',
