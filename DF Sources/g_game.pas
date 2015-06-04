@@ -112,7 +112,7 @@ const
   GAME_OPTION_TEAMDAMAGE   = 2;
   GAME_OPTION_ALLOWEXIT    = 4;
   GAME_OPTION_WEAPONSTAY   = 8;
-  GAME_OPTION_MONSTERDM    = 16;
+  GAME_OPTION_MONSTERS     = 16;
   GAME_OPTION_BOTVSPLAYER  = 32;
   GAME_OPTION_BOTVSMONSTER = 64;
   //GAME_OPTION_MAPLIST    = 8;
@@ -2211,7 +2211,7 @@ begin
   if TwoPlayers then
     gGameSettings.Options := GAME_OPTION_TWOPLAYER;
   gGameSettings.Options := gGameSettings.Options + GAME_OPTION_ALLOWEXIT;
-  gGameSettings.Options := gGameSettings.Options + GAME_OPTION_MONSTERDM;
+  gGameSettings.Options := gGameSettings.Options + GAME_OPTION_MONSTERS;
   gGameSettings.Options := gGameSettings.Options + GAME_OPTION_BOTVSMONSTER;
   gGameSettings.WAD := WAD;
 
@@ -3180,12 +3180,12 @@ begin
          ((P[1] = '1') or (P[1] = '0')) then
       begin
         if (P[1][1] = '1') then
-          Options := Options or GAME_OPTION_MONSTERDM
+          Options := Options or GAME_OPTION_MONSTERS
         else
-          Options := Options and (not GAME_OPTION_MONSTERDM);
+          Options := Options and (not GAME_OPTION_MONSTERS);
       end;
-        
-      if (LongBool(Options and GAME_OPTION_MONSTERDM)) then
+
+      if (LongBool(Options and GAME_OPTION_MONSTERS)) then
         g_Console_Add(_lc[I_MSG_ALLOWMON_ON])
       else
         g_Console_Add(_lc[I_MSG_ALLOWMON_OFF]);

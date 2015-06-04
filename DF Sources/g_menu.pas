@@ -429,6 +429,24 @@ begin
   ProcSelectModel(nil);
 end;
 
+procedure ProcSwitchMonstersCustom(Sender: TGUIControl);
+begin
+  with TGUIMenu(g_ActiveWindow.GetControl('mCustomGameMenu')) do
+    if TGUISwitch(GetControl('swGameMode')).GetText = _lc[I_MENU_GAME_TYPE_COOP] then
+      TGUISwitch(GetControl('swMonsters')).ItemIndex := 0
+    else
+      TGUISwitch(GetControl('swMonsters')).ItemIndex := 1;
+end;
+
+procedure ProcSwitchMonstersNet(Sender: TGUIControl);
+begin
+  with TGUIMenu(g_ActiveWindow.GetControl('mNetServerMenu')) do
+    if TGUISwitch(GetControl('swGameMode')).GetText = _lc[I_MENU_GAME_TYPE_COOP] then
+      TGUISwitch(GetControl('swMonsters')).ItemIndex := 0
+    else
+      TGUISwitch(GetControl('swMonsters')).ItemIndex := 1;
+end;
+
 procedure ProcStartCustomGame();
 var
   Map: String;
@@ -453,8 +471,8 @@ begin
       Options := Options or GAME_OPTION_ALLOWEXIT;
     if TGUISwitch(GetControl('swWeaponStay')).ItemIndex = 0 then
       Options := Options or GAME_OPTION_WEAPONSTAY;
-    if TGUISwitch(GetControl('swMonsterDM')).ItemIndex = 0 then
-      Options := Options or GAME_OPTION_MONSTERDM;
+    if TGUISwitch(GetControl('swMonsters')).ItemIndex = 0 then
+      Options := Options or GAME_OPTION_MONSTERS;
     if TGUISwitch(GetControl('swPlayers')).ItemIndex = 1 then
       begin
         Options := Options or GAME_OPTION_TWOPLAYER;
@@ -504,8 +522,8 @@ begin
       Options := Options or GAME_OPTION_ALLOWEXIT;
     if TGUISwitch(GetControl('swWeaponStay')).ItemIndex = 0 then
       Options := Options or GAME_OPTION_WEAPONSTAY;
-    if TGUISwitch(GetControl('swMonsterDM')).ItemIndex = 0 then
-      Options := Options or GAME_OPTION_MONSTERDM;
+    if TGUISwitch(GetControl('swMonsters')).ItemIndex = 0 then
+      Options := Options or GAME_OPTION_MONSTERS;
 
     case TGUISwitch(GetControl('swBotsVS')).ItemIndex of
       1: Options := Options or GAME_OPTION_BOTVSMONSTER;
@@ -1811,6 +1829,7 @@ begin
       AddItem(_lc[I_MENU_GAME_TYPE_CTF]);
       AddItem(_lc[I_MENU_GAME_TYPE_COOP]);
       ItemIndex := 0;
+      OnChange := ProcSwitchMonstersNet;
     end;
     with AddEdit(_lc[I_MENU_TIME_LIMIT]) do
     begin
@@ -1856,7 +1875,7 @@ begin
     end;
     with AddSwitch(_lc[I_MENU_ENABLE_MONSTERS]) do
     begin
-      Name := 'swMonsterDM';
+      Name := 'swMonsters';
       AddItem(_lc[I_MENU_YES]);
       AddItem(_lc[I_MENU_NO]);
       ItemIndex := 1;
@@ -1972,6 +1991,7 @@ begin
       AddItem(_lc[I_MENU_GAME_TYPE_CTF]);
       AddItem(_lc[I_MENU_GAME_TYPE_COOP]);
       ItemIndex := 0;
+      OnChange := ProcSwitchMonstersCustom;
     end;
     with AddEdit(_lc[I_MENU_TIME_LIMIT]) do
     begin
@@ -2024,7 +2044,7 @@ begin
     end;
     with AddSwitch(_lc[I_MENU_ENABLE_MONSTERS]) do
     begin
-      Name := 'swMonsterDM';
+      Name := 'swMonsters';
       AddItem(_lc[I_MENU_YES]);
       AddItem(_lc[I_MENU_NO]);
       ItemIndex := 1;

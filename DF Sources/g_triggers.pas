@@ -1048,7 +1048,7 @@ begin
 
 // Если монстры запрещены, отменяем триггер:
   if (Trigger.TriggerType = TRIGGER_SPAWNMONSTER) and
-     (not LongBool(gGameSettings.Options and GAME_OPTION_MONSTERDM)) and
+     (not LongBool(gGameSettings.Options and GAME_OPTION_MONSTERS)) and
      (gGameSettings.GameType <> GT_SINGLE) then
     Trigger.TriggerType := TRIGGER_NONE;
 

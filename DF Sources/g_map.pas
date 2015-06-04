@@ -666,8 +666,8 @@ var
 begin
   if g_Game_IsClient then Exit;
 
-  if (gGameSettings.GameType = GT_SINGLE) or (gGameSettings.GameMode = GM_COOP) or
-     LongBool(gGameSettings.Options and GAME_OPTION_MONSTERDM) then
+  if (gGameSettings.GameType = GT_SINGLE)
+  or LongBool(gGameSettings.Options and GAME_OPTION_MONSTERS) then
   begin
     i := g_Monsters_Create(monster.MonsterType, monster.X, monster.Y,
                            TDirection(monster.Direction));
