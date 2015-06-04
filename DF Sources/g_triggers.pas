@@ -654,22 +654,29 @@ begin
       TRIGGER_SPAWNMONSTER:
         if (Data.MonType in [MONSTER_DEMON..MONSTER_MAN]) then
         begin
+          Result := False;
           if (Data.MonDelay > 0) and (actType <> ACTIVATE_CUSTOM) then
           begin
             AutoSpawn := not AutoSpawn;
             SpawnCooldown := 0;
+            // Автоспавнер переключен - меняем текстуру
+            Result := True;
           end;
 
           if ((Data.MonDelay = 0) and (actType <> ACTIVATE_CUSTOM))
           or ((Data.MonDelay > 0) and (actType = ACTIVATE_CUSTOM)) then
             for k := 1 to Data.MonCount do
             begin
+              if (actType = ACTIVATE_CUSTOM) and (Data.MonDelay > 0) then
+                SpawnCooldown := Data.MonDelay;
               if (Data.MonMax > 0) and (SpawnedCount >= Data.MonMax) then
                 Break;
 
               i := g_Monsters_Create(Data.MonType,
                      Data.MonPos.X, Data.MonPos.Y,
                      TDirection(Data.MonDir), True);
+
+              Result := True;
 
             // Здоровье:
               if (Data.MonHealth > 0) then
@@ -695,8 +702,6 @@ begin
                 gMonsters[i].SpawnTrigger := ID;
                 Inc(SpawnedCount);
               end;
-              if (actType = ACTIVATE_CUSTOM) and (Data.MonDelay > 0) then
-                SpawnCooldown := Data.MonDelay;
 
               case Data.MonEffect of
                 1: begin
@@ -756,16 +761,21 @@ begin
             TimeOut := 18
           else
             TimeOut := 0;
-          Result := True;
+          // Если активирован автоспавнером, не меняем текстуру
+          if actType = ACTIVATE_CUSTOM then
+            Result := False;
         end;
 
       TRIGGER_SPAWNITEM:
         if (Data.ItemType in [ITEM_MEDKIT_SMALL..ITEM_MAX]) then
         begin
+          Result := False;
           if (Data.ItemDelay > 0) and (actType <> ACTIVATE_CUSTOM) then
           begin
             AutoSpawn := not AutoSpawn;
             SpawnCooldown := 0;
+            // Автоспавнер переключен - меняем текстуру
+            Result := True;
           end;
 
           if ((Data.ItemDelay = 0) and (actType <> ACTIVATE_CUSTOM))
@@ -774,19 +784,21 @@ begin
                (gGameSettings.GameMode in [GM_DM, GM_TDM, GM_CTF]) then
               for k := 1 to Data.ItemCount do
               begin
+                if (actType = ACTIVATE_CUSTOM) and (Data.ItemDelay > 0) then
+                  SpawnCooldown := Data.ItemDelay;
                 if (Data.ItemMax > 0) and (SpawnedCount >= Data.ItemMax) then
                   Break;
 
                 iid := g_Items_Create(Data.ItemPos.X, Data.ItemPos.Y,
                   Data.ItemType, Data.ItemFalls, False, True);
 
+                Result := True;
+
                 if Data.ItemMax > 0 then
                 begin
                   gItems[iid].SpawnTrigger := ID;
                   Inc(SpawnedCount);
                 end;
-                if (actType = ACTIVATE_CUSTOM) and (Data.ItemDelay > 0) then
-                  SpawnCooldown := Data.ItemDelay;
 
                 case Data.ItemEffect of
                   1: begin
@@ -841,7 +853,9 @@ begin
             TimeOut := 18
           else
             TimeOut := 0;
-          Result := True;
+          // Если активирован автоспавнером, не меняем текстуру
+          if actType = ACTIVATE_CUSTOM then
+            Result := False;
         end;
 
       TRIGGER_MUSIC:

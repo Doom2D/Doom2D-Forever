@@ -380,17 +380,16 @@ begin
             // Сопротивление воздуха:
               if gTime mod (GAME_TICK*2) = 0 then
                 Obj.Vel.X := z_dec(Obj.Vel.X, 1);
+            // Если выпал за карту:
               if WordBool(m and MOVE_FALLOUT) then
               begin
-                g_Items_Pick(i);
+                if SpawnTrigger = -1 then
+                  g_Items_Pick(i)
+                else begin
+                  g_Items_Remove(i);
+                  if g_Game_IsServer and g_Game_IsNet then MH_SEND_ItemDestroy(True, i);
+                end;
                 Continue;
-              end;
-
-            // Если выпал за карту:
-              if Obj.Y > gMapInfo.Height+128 then
-              begin
-                g_Items_Remove(i);
-                if g_Game_IsServer and g_Game_IsNet then MH_SEND_ItemDestroy(True, i);
               end;
             end;
 
