@@ -876,7 +876,7 @@ Const
     ('PROP TR MONSTER ACTIVE',         'Active',
                                        'Активен'),
     ('PROP TR MONSTER INFIGHT',        'Infighting',
-                                       'Инфайтинг'),
+                                       'Против монстров'),
     ('PROP TR ITEM TYPE',              'Item',
                                        'Тип предмета'),
     ('PROP TR MUSIC NAME',             'Music',
