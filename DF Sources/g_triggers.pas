@@ -31,6 +31,7 @@ type
     PressCount:       Integer;
     SoundPlayCount:   Integer;
     Sound:            TPlayableSound;
+    AutoSpawn:        Boolean;
     SpawnCooldown:    Integer;
     SpawnedCount:     Integer;
 
@@ -653,90 +654,95 @@ begin
       TRIGGER_SPAWNMONSTER:
         if (Data.MonType in [MONSTER_DEMON..MONSTER_MAN]) then
         begin
-          for k := 1 to Data.MonCount do
-          begin
-            if (Data.MonMax > 0) and (SpawnedCount >= Data.MonMax) then
-              Break;
+          if (Data.MonDelay > 0) and (ActivateUID > 0) then
+            AutoSpawn := not AutoSpawn;
 
-            i := g_Monsters_Create(Data.MonType,
-                   Data.MonPos.X, Data.MonPos.Y,
-                   TDirection(Data.MonDir), True);
-
-          // Здоровье:
-            if (Data.MonHealth > 0) then
-              gMonsters[i].SetHealth(Data.MonHealth);
-          // Если инфайтинг выключен:
-            if Data.MonNoInfight then
-              gMonsters[i].MonsterInfights := False;
-          // Идем искать цель, если надо:
-            if Data.MonActive then
-              gMonsters[i].WakeUp();
-            gMonsters[i].FNoRespawn := True;
-
-            if Data.MonType <> MONSTER_BARREL then Inc(gTotalMonsters);
-
-            if g_Game_IsNet then
+          if ((Data.MonDelay = 0) and (ActivateUID > 0))
+          or ((Data.MonDelay > 0) and (ActivateUID = 0)) then
+            for k := 1 to Data.MonCount do
             begin
-              SetLength(gMonstersSpawned, Length(gMonstersSpawned)+1);
-              gMonstersSpawned[High(gMonstersSpawned)] := gMonsters[i].UID;
-            end;
+              if (Data.MonMax > 0) and (SpawnedCount >= Data.MonMax) then
+                Break;
 
-            if Data.MonMax > 0 then
-            begin
-              gMonsters[i].SpawnTrigger := ID;
-              Inc(SpawnedCount);
-            end;
-            if (ActivateUID = 0) and (Data.MonDelay > 0) then
-              SpawnCooldown := Data.MonDelay;
+              i := g_Monsters_Create(Data.MonType,
+                     Data.MonPos.X, Data.MonPos.Y,
+                     TDirection(Data.MonDir), True);
 
-            case Data.MonEffect of
-              1: begin
-                if g_Frames_Get(FramesID, 'FRAMES_TELEPORT') then
-                begin
-                  Anim := TAnimation.Create(FramesID, False, 3);
-                  g_Sound_PlayExAt('SOUND_GAME_TELEPORT', Data.MonPos.X, Data.MonPos.Y);
-                  g_GFX_OnceAnim(gMonsters[i].Obj.X+gMonsters[i].Obj.Rect.X+(gMonsters[i].Obj.Rect.Width div 2)-32,
-                                 gMonsters[i].Obj.Y+gMonsters[i].Obj.Rect.Y+(gMonsters[i].Obj.Rect.Height div 2)-32, Anim);
-                  Anim.Free();
-                end;
-                if g_Game_IsServer and g_Game_IsNet then
-                  MH_SEND_Effect(gMonsters[i].Obj.X+gMonsters[i].Obj.Rect.X+(gMonsters[i].Obj.Rect.Width div 2)-32,
-                                 gMonsters[i].Obj.Y+gMonsters[i].Obj.Rect.Y+(gMonsters[i].Obj.Rect.Height div 2)-32, 1,
-                                 NET_GFX_TELE);
-              end;
-              2: begin
-                if g_Frames_Get(FramesID, 'FRAMES_ITEM_RESPAWN') then
-                begin
-                  Anim := TAnimation.Create(FramesID, False, 4);
-                  g_Sound_PlayExAt('SOUND_ITEM_RESPAWNITEM', Data.MonPos.X, Data.MonPos.Y);
-                  g_GFX_OnceAnim(gMonsters[i].Obj.X+gMonsters[i].Obj.Rect.X+(gMonsters[i].Obj.Rect.Width div 2)-16,
-                                 gMonsters[i].Obj.Y+gMonsters[i].Obj.Rect.Y+(gMonsters[i].Obj.Rect.Height div 2)-16, Anim);
-                  Anim.Free();
-                end;
-                if g_Game_IsServer and g_Game_IsNet then
-                  MH_SEND_Effect(gMonsters[i].Obj.X+gMonsters[i].Obj.Rect.X+(gMonsters[i].Obj.Rect.Width div 2)-16,
-                                 gMonsters[i].Obj.Y+gMonsters[i].Obj.Rect.Y+(gMonsters[i].Obj.Rect.Height div 2)-16, 1,
-                                 NET_GFX_RESPAWN);
-              end;
-              3: begin
-                if g_Frames_Get(FramesID, 'FRAMES_FIRE') then
-                begin
-                  Anim := TAnimation.Create(FramesID, False, 4);
-                  g_Sound_PlayExAt('SOUND_FIRE', Data.MonPos.X, Data.MonPos.Y);
-                  g_GFX_OnceAnim(gMonsters[i].Obj.X+gMonsters[i].Obj.Rect.X+(gMonsters[i].Obj.Rect.Width div 2)-32,
-                                 gMonsters[i].Obj.Y+gMonsters[i].Obj.Rect.Y+gMonsters[i].Obj.Rect.Height-128, Anim);
-                  Anim.Free();
-                end;
-                if g_Game_IsServer and g_Game_IsNet then
-                  MH_SEND_Effect(gMonsters[i].Obj.X+gMonsters[i].Obj.Rect.X+(gMonsters[i].Obj.Rect.Width div 2)-32,
-                                 gMonsters[i].Obj.Y+gMonsters[i].Obj.Rect.Y+gMonsters[i].Obj.Rect.Height-128, 1,
-                                 NET_GFX_FIRE);
-              end;
-            end;
+            // Здоровье:
+              if (Data.MonHealth > 0) then
+                gMonsters[i].SetHealth(Data.MonHealth);
+            // Если инфайтинг выключен:
+              if Data.MonNoInfight then
+                gMonsters[i].MonsterInfights := False;
+            // Идем искать цель, если надо:
+              if Data.MonActive then
+                gMonsters[i].WakeUp();
+              gMonsters[i].FNoRespawn := True;
 
-            if g_Game_IsNet then
-              MH_SEND_MonsterSpawn(gMonsters[i].UID);
-          end;
+              if Data.MonType <> MONSTER_BARREL then Inc(gTotalMonsters);
+
+              if g_Game_IsNet then
+              begin
+                SetLength(gMonstersSpawned, Length(gMonstersSpawned)+1);
+                gMonstersSpawned[High(gMonstersSpawned)] := gMonsters[i].UID;
+              end;
+
+              if Data.MonMax > 0 then
+              begin
+                gMonsters[i].SpawnTrigger := ID;
+                Inc(SpawnedCount);
+              end;
+              if (ActivateUID = 0) and (Data.MonDelay > 0) then
+                SpawnCooldown := Data.MonDelay;
+
+              case Data.MonEffect of
+                1: begin
+                  if g_Frames_Get(FramesID, 'FRAMES_TELEPORT') then
+                  begin
+                    Anim := TAnimation.Create(FramesID, False, 3);
+                    g_Sound_PlayExAt('SOUND_GAME_TELEPORT', Data.MonPos.X, Data.MonPos.Y);
+                    g_GFX_OnceAnim(gMonsters[i].Obj.X+gMonsters[i].Obj.Rect.X+(gMonsters[i].Obj.Rect.Width div 2)-32,
+                                   gMonsters[i].Obj.Y+gMonsters[i].Obj.Rect.Y+(gMonsters[i].Obj.Rect.Height div 2)-32, Anim);
+                    Anim.Free();
+                  end;
+                  if g_Game_IsServer and g_Game_IsNet then
+                    MH_SEND_Effect(gMonsters[i].Obj.X+gMonsters[i].Obj.Rect.X+(gMonsters[i].Obj.Rect.Width div 2)-32,
+                                   gMonsters[i].Obj.Y+gMonsters[i].Obj.Rect.Y+(gMonsters[i].Obj.Rect.Height div 2)-32, 1,
+                                   NET_GFX_TELE);
+                end;
+                2: begin
+                  if g_Frames_Get(FramesID, 'FRAMES_ITEM_RESPAWN') then
+                  begin
+                    Anim := TAnimation.Create(FramesID, False, 4);
+                    g_Sound_PlayExAt('SOUND_ITEM_RESPAWNITEM', Data.MonPos.X, Data.MonPos.Y);
+                    g_GFX_OnceAnim(gMonsters[i].Obj.X+gMonsters[i].Obj.Rect.X+(gMonsters[i].Obj.Rect.Width div 2)-16,
+                                   gMonsters[i].Obj.Y+gMonsters[i].Obj.Rect.Y+(gMonsters[i].Obj.Rect.Height div 2)-16, Anim);
+                    Anim.Free();
+                  end;
+                  if g_Game_IsServer and g_Game_IsNet then
+                    MH_SEND_Effect(gMonsters[i].Obj.X+gMonsters[i].Obj.Rect.X+(gMonsters[i].Obj.Rect.Width div 2)-16,
+                                   gMonsters[i].Obj.Y+gMonsters[i].Obj.Rect.Y+(gMonsters[i].Obj.Rect.Height div 2)-16, 1,
+                                   NET_GFX_RESPAWN);
+                end;
+                3: begin
+                  if g_Frames_Get(FramesID, 'FRAMES_FIRE') then
+                  begin
+                    Anim := TAnimation.Create(FramesID, False, 4);
+                    g_Sound_PlayExAt('SOUND_FIRE', Data.MonPos.X, Data.MonPos.Y);
+                    g_GFX_OnceAnim(gMonsters[i].Obj.X+gMonsters[i].Obj.Rect.X+(gMonsters[i].Obj.Rect.Width div 2)-32,
+                                   gMonsters[i].Obj.Y+gMonsters[i].Obj.Rect.Y+gMonsters[i].Obj.Rect.Height-128, Anim);
+                    Anim.Free();
+                  end;
+                  if g_Game_IsServer and g_Game_IsNet then
+                    MH_SEND_Effect(gMonsters[i].Obj.X+gMonsters[i].Obj.Rect.X+(gMonsters[i].Obj.Rect.Width div 2)-32,
+                                   gMonsters[i].Obj.Y+gMonsters[i].Obj.Rect.Y+gMonsters[i].Obj.Rect.Height-128, 1,
+                                   NET_GFX_FIRE);
+                end;
+              end;
+
+              if g_Game_IsNet then
+                MH_SEND_MonsterSpawn(gMonsters[i].UID);
+            end;
           if g_Game_IsNet then
           begin
             MH_SEND_GameStats();
@@ -753,72 +759,77 @@ begin
       TRIGGER_SPAWNITEM:
         if (Data.ItemType in [ITEM_MEDKIT_SMALL..ITEM_MAX]) then
         begin
-          if (not Data.ItemOnlyDM) or
-             (gGameSettings.GameMode in [GM_DM, GM_TDM, GM_CTF]) then
-            for k := 1 to Data.ItemCount do
-            begin
-              if (Data.ItemMax > 0) and (SpawnedCount >= Data.ItemMax) then
-                Break;
+          if (Data.ItemDelay > 0) and (ActivateUID > 0) then
+            AutoSpawn := not AutoSpawn;
 
-              iid := g_Items_Create(Data.ItemPos.X, Data.ItemPos.Y,
-                Data.ItemType, Data.ItemFalls, False, True);
-
-              if Data.ItemMax > 0 then
+          if ((Data.ItemDelay = 0) and (ActivateUID > 0))
+          or ((Data.ItemDelay > 0) and (ActivateUID = 0)) then
+            if (not Data.ItemOnlyDM) or
+               (gGameSettings.GameMode in [GM_DM, GM_TDM, GM_CTF]) then
+              for k := 1 to Data.ItemCount do
               begin
-                gItems[iid].SpawnTrigger := ID;
-                Inc(SpawnedCount);
-              end;
-              if (ActivateUID = 0) and (Data.ItemDelay > 0) then
-                SpawnCooldown := Data.ItemDelay;
+                if (Data.ItemMax > 0) and (SpawnedCount >= Data.ItemMax) then
+                  Break;
 
-              case Data.ItemEffect of
-                1: begin
-                  if g_Frames_Get(FramesID, 'FRAMES_TELEPORT') then
-                  begin
-                    Anim := TAnimation.Create(FramesID, False, 3);
-                    g_Sound_PlayExAt('SOUND_GAME_TELEPORT', Data.ItemPos.X, Data.ItemPos.Y);
-                    g_GFX_OnceAnim(gItems[iid].Obj.X+gItems[iid].Obj.Rect.X+(gItems[iid].Obj.Rect.Width div 2)-32,
-                                   gItems[iid].Obj.Y+gItems[iid].Obj.Rect.Y+(gItems[iid].Obj.Rect.Height div 2)-32, Anim);
-                    Anim.Free();
-                  end;
-                  if g_Game_IsServer and g_Game_IsNet then
-                    MH_SEND_Effect(gItems[iid].Obj.X+gItems[iid].Obj.Rect.X+(gItems[iid].Obj.Rect.Width div 2)-32,
-                                   gItems[iid].Obj.Y+gItems[iid].Obj.Rect.Y+(gItems[iid].Obj.Rect.Height div 2)-32, 1,
-                                   NET_GFX_TELE);
-                end;
-                2: begin
-                  if g_Frames_Get(FramesID, 'FRAMES_ITEM_RESPAWN') then
-                  begin
-                    Anim := TAnimation.Create(FramesID, False, 4);
-                    g_Sound_PlayExAt('SOUND_ITEM_RESPAWNITEM', Data.ItemPos.X, Data.ItemPos.Y);
-                    g_GFX_OnceAnim(gItems[iid].Obj.X+gItems[iid].Obj.Rect.X+(gItems[iid].Obj.Rect.Width div 2)-16,
-                                   gItems[iid].Obj.Y+gItems[iid].Obj.Rect.Y+(gItems[iid].Obj.Rect.Height div 2)-16, Anim);
-                    Anim.Free();
-                  end;
-                  if g_Game_IsServer and g_Game_IsNet then
-                    MH_SEND_Effect(gItems[iid].Obj.X+gItems[iid].Obj.Rect.X+(gItems[iid].Obj.Rect.Width div 2)-16,
-                                   gItems[iid].Obj.Y+gItems[iid].Obj.Rect.Y+(gItems[iid].Obj.Rect.Height div 2)-16, 1,
-                                   NET_GFX_RESPAWN);
-                end;
-                3: begin
-                  if g_Frames_Get(FramesID, 'FRAMES_FIRE') then
-                  begin
-                    Anim := TAnimation.Create(FramesID, False, 4);
-                    g_Sound_PlayExAt('SOUND_FIRE', Data.ItemPos.X, Data.ItemPos.Y);
-                    g_GFX_OnceAnim(gItems[iid].Obj.X+gItems[iid].Obj.Rect.X+(gItems[iid].Obj.Rect.Width div 2)-32,
-                                   gItems[iid].Obj.Y+gItems[iid].Obj.Rect.Y+gItems[iid].Obj.Rect.Height-128, Anim);
-                    Anim.Free();
-                  end;
-                  if g_Game_IsServer and g_Game_IsNet then
-                    MH_SEND_Effect(gItems[iid].Obj.X+gItems[iid].Obj.Rect.X+(gItems[iid].Obj.Rect.Width div 2)-32,
-                                   gItems[iid].Obj.Y+gItems[iid].Obj.Rect.Y+gItems[iid].Obj.Rect.Height-128, 1,
-                                   NET_GFX_FIRE);
-                end;
-              end;
+                iid := g_Items_Create(Data.ItemPos.X, Data.ItemPos.Y,
+                  Data.ItemType, Data.ItemFalls, False, True);
 
-              if g_Game_IsNet then
-                MH_SEND_ItemSpawn(True, iid);
-            end;
+                if Data.ItemMax > 0 then
+                begin
+                  gItems[iid].SpawnTrigger := ID;
+                  Inc(SpawnedCount);
+                end;
+                if (ActivateUID = 0) and (Data.ItemDelay > 0) then
+                  SpawnCooldown := Data.ItemDelay;
+
+                case Data.ItemEffect of
+                  1: begin
+                    if g_Frames_Get(FramesID, 'FRAMES_TELEPORT') then
+                    begin
+                      Anim := TAnimation.Create(FramesID, False, 3);
+                      g_Sound_PlayExAt('SOUND_GAME_TELEPORT', Data.ItemPos.X, Data.ItemPos.Y);
+                      g_GFX_OnceAnim(gItems[iid].Obj.X+gItems[iid].Obj.Rect.X+(gItems[iid].Obj.Rect.Width div 2)-32,
+                                     gItems[iid].Obj.Y+gItems[iid].Obj.Rect.Y+(gItems[iid].Obj.Rect.Height div 2)-32, Anim);
+                      Anim.Free();
+                    end;
+                    if g_Game_IsServer and g_Game_IsNet then
+                      MH_SEND_Effect(gItems[iid].Obj.X+gItems[iid].Obj.Rect.X+(gItems[iid].Obj.Rect.Width div 2)-32,
+                                     gItems[iid].Obj.Y+gItems[iid].Obj.Rect.Y+(gItems[iid].Obj.Rect.Height div 2)-32, 1,
+                                     NET_GFX_TELE);
+                  end;
+                  2: begin
+                    if g_Frames_Get(FramesID, 'FRAMES_ITEM_RESPAWN') then
+                    begin
+                      Anim := TAnimation.Create(FramesID, False, 4);
+                      g_Sound_PlayExAt('SOUND_ITEM_RESPAWNITEM', Data.ItemPos.X, Data.ItemPos.Y);
+                      g_GFX_OnceAnim(gItems[iid].Obj.X+gItems[iid].Obj.Rect.X+(gItems[iid].Obj.Rect.Width div 2)-16,
+                                     gItems[iid].Obj.Y+gItems[iid].Obj.Rect.Y+(gItems[iid].Obj.Rect.Height div 2)-16, Anim);
+                      Anim.Free();
+                    end;
+                    if g_Game_IsServer and g_Game_IsNet then
+                      MH_SEND_Effect(gItems[iid].Obj.X+gItems[iid].Obj.Rect.X+(gItems[iid].Obj.Rect.Width div 2)-16,
+                                     gItems[iid].Obj.Y+gItems[iid].Obj.Rect.Y+(gItems[iid].Obj.Rect.Height div 2)-16, 1,
+                                     NET_GFX_RESPAWN);
+                  end;
+                  3: begin
+                    if g_Frames_Get(FramesID, 'FRAMES_FIRE') then
+                    begin
+                      Anim := TAnimation.Create(FramesID, False, 4);
+                      g_Sound_PlayExAt('SOUND_FIRE', Data.ItemPos.X, Data.ItemPos.Y);
+                      g_GFX_OnceAnim(gItems[iid].Obj.X+gItems[iid].Obj.Rect.X+(gItems[iid].Obj.Rect.Width div 2)-32,
+                                     gItems[iid].Obj.Y+gItems[iid].Obj.Rect.Y+gItems[iid].Obj.Rect.Height-128, Anim);
+                      Anim.Free();
+                    end;
+                    if g_Game_IsServer and g_Game_IsNet then
+                      MH_SEND_Effect(gItems[iid].Obj.X+gItems[iid].Obj.Rect.X+(gItems[iid].Obj.Rect.Width div 2)-32,
+                                     gItems[iid].Obj.Y+gItems[iid].Obj.Rect.Y+gItems[iid].Obj.Rect.Height-128, 1,
+                                     NET_GFX_FIRE);
+                  end;
+                end;
+
+                if g_Game_IsNet then
+                  MH_SEND_ItemSpawn(True, iid);
+              end;
 
           if coolDown then
             TimeOut := 18
@@ -1039,6 +1050,7 @@ begin
     PressCount := 0;
     SoundPlayCount := 0;
     Sound := nil;
+    AutoSpawn := False;
     SpawnCooldown := 0;
     SpawnedCount := 0;
   end;
@@ -1134,24 +1146,24 @@ begin
               Activators[b].TimeOut := 0;
           end;
 
-      // Уменьшаем время ожидания спавнеров:
-        if SpawnCooldown > 0 then
-          Dec(SpawnCooldown);
-
-      // Если пришло время, спавним монстра:
-        if (TriggerType = TRIGGER_SPAWNMONSTER) and
-        (Data.MonDelay > 0) and (SpawnCooldown = 0) then
-        begin
-          ActivateUID := 0;
-          ActivateTrigger(gTriggers[a], 0);
-        end;
-      // Если пришло время, спавним предмет:
-        if (TriggerType = TRIGGER_SPAWNITEM) and
-        (Data.ItemDelay > 0) and (SpawnCooldown = 0) then
-        begin
-          ActivateUID := 0;
-          ActivateTrigger(gTriggers[a], 0);
-        end;
+      // Обрабатываем спавнеры:
+        if AutoSpawn then
+          if SpawnCooldown = 0 then
+          begin
+            // Если пришло время, спавним монстра:
+            if (TriggerType = TRIGGER_SPAWNMONSTER) and (Data.MonDelay > 0)  then
+            begin
+              ActivateUID := 0;
+              ActivateTrigger(gTriggers[a], 0);
+            end;
+            // Если пришло время, спавним предмет:
+            if (TriggerType = TRIGGER_SPAWNITEM) and (Data.ItemDelay > 0) then
+            begin
+              ActivateUID := 0;
+              ActivateTrigger(gTriggers[a], 0);
+            end;
+          end else // Уменьшаем время ожидания:
+            Dec(SpawnCooldown);
 
       // Триггер "Звук" уже отыграл, если нужно еще - перезапускаем:
         if (TriggerType = TRIGGER_SOUND) and (Sound <> nil) then
@@ -1227,10 +1239,14 @@ begin
                 TRIGGER_OFF:
                   begin
                     gTriggers[b].Enabled := False;
+                    if AutoSpawn then
+                      AutoSpawn := False;
                   end;
                 TRIGGER_ONOFF:
                   begin
                     gTriggers[b].Enabled := not gTriggers[b].Enabled;
+                    if AutoSpawn and (not gTriggers[b].Enabled) then
+                      AutoSpawn := False;
                   end;
               end;
             end;
@@ -1543,9 +1559,11 @@ begin
     Mem.WriteInt(gTriggers[i].PressTime);
   // Счетчик нажатий:
     Mem.WriteInt(gTriggers[i].PressCount);
+  // Спавнер активен:
+    Mem.WriteBoolean(gTriggers[i].AutoSpawn);
   // Задержка спавнера:
     Mem.WriteInt(gTriggers[i].SpawnCooldown);
-  // Счетчик созданий объектов:
+  // Счетчик создания объектов:
     Mem.WriteInt(gTriggers[i].SpawnedCount);
   // Сколько раз проигран звук:
     Mem.WriteInt(gTriggers[i].SoundPlayCount);
@@ -1651,9 +1669,11 @@ begin
     Mem.ReadInt(gTriggers[i].PressTime);
   // Счетчик нажатий:
     Mem.ReadInt(gTriggers[i].PressCount);
+  // Спавнер активен:
+    Mem.ReadBoolean(gTriggers[i].AutoSpawn);
   // Задержка спавнера:
     Mem.ReadInt(gTriggers[i].SpawnCooldown);
-  // Счетчик созданий объектов:
+  // Счетчик создания объектов:
     Mem.ReadInt(gTriggers[i].SpawnedCount);
   // Сколько раз проигран звук:
     Mem.ReadInt(gTriggers[i].SoundPlayCount);
