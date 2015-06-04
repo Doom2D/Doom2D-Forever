@@ -96,32 +96,57 @@ begin
   g_Game_Draw();
 end;
 
+function LocalCheatStr(LocStr: TStrings_Locale): String;
+var
+  i: Integer;
+begin
+  Result := _lc[LocStr];
+  for i := 1 to Length(Result) do
+    case Result[i] of
+      'Й': Result[i] := 'Q';
+      'Ц': Result[i] := 'W';
+      'У': Result[i] := 'E';
+      'К': Result[i] := 'R';
+      'Е': Result[i] := 'T';
+      'Н': Result[i] := 'Y';
+      'Г': Result[i] := 'U';
+      'Ш': Result[i] := 'I';
+      'Щ': Result[i] := 'O';
+      'З': Result[i] := 'P';
+      'Х': Result[i] := '?';
+      'Ъ': Result[i] := '?';
+      'Ф': Result[i] := 'A';
+      'Ы': Result[i] := 'S';
+      'В': Result[i] := 'D';
+      'А': Result[i] := 'F';
+      'П': Result[i] := 'G';
+      'Р': Result[i] := 'H';
+      'О': Result[i] := 'J';
+      'Л': Result[i] := 'K';
+      'Д': Result[i] := 'L';
+      'Ж': Result[i] := '?';
+      'Э': Result[i] := '?';
+      'Я': Result[i] := 'Z';
+      'Ч': Result[i] := 'X';
+      'С': Result[i] := 'C';
+      'М': Result[i] := 'V';
+      'И': Result[i] := 'B';
+      'Т': Result[i] := 'N';
+      'Ь': Result[i] := 'M';
+      'Б': Result[i] := Chr(188);
+      'Ю': Result[i] := '?';
+    end;
+end;
+
 procedure Cheat();
 const
   CHEAT_DAMAGE = 500;
+label
+  Cheated;
 var
-  s, s2: string;
+  s, s2, ls: string;
   c: Char16;
   a: Integer;
-const
-  c1 =  'UJHTW';     // ГОРЕЦ
-  c2 =  'RAMBO';
-  c3 =  'TANK';
-  c4 =  'IDDQD';
-  c5 =  'CBVCBV';    // СИМСИМ
-  c6 =  'GOODBYE';
-  c7 =  'GJITKYF';   // ПОШЕЛНА
-  c8 =  'TKSQJHTK';  // ЕЛЫЙОРЕЛ
-  c9 =  'BULLFROG';
-  c10 = 'FORMULA1';
-  c11 = 'CONDOM';
-  c12 = 'XTHYJVJH';  // ЧЕРНОМОР
-  c13 = 'PURELOVE';
-  c14_1 = 'ZCDJ';    // ЯСВО
-  c14_2 = 'JLTY';    // ОДЕН
-  c15 = 'CASPER';
-  c16 = 'ZCDJQ';     // ЯСВОЙ
-  c17 = 'INFERNO';
 begin
   if (not gGameOn) or (not gCheats) or ((gGameSettings.GameType <> GT_SINGLE) and
     (gGameSettings.GameMode <> GM_COOP) and (not gDebugMode))
@@ -130,37 +155,48 @@ begin
   s := 'SOUND_GAME_RADIO';
 
   // ГОРЕЦ включает неуязвимость
-  if Copy(charbuff, 12, 5) = c1 then
+  ls := LocalCheatStr(I_GAME_CHEAT_GODMODE);
+  if Copy(charbuff, 17 - Length(ls), Length(ls)) = ls then
   begin
     if gPlayer1 <> nil then gPlayer1.GodMode := not gPlayer1.GodMode;
     if gPlayer2 <> nil then gPlayer2.GodMode := not gPlayer2.GodMode;
-  end
+    goto Cheated;
+  end;
   // RAMBO даёт всё оружие и ключи
-  else if Copy(charbuff, 12, 5) = c2 then
+  ls := LocalCheatStr(I_GAME_CHEAT_WEAPONS);
+  if Copy(charbuff, 17 - Length(ls), Length(ls)) = ls then
   begin
     if gPlayer1 <> nil then gPlayer1.AllRulez(False);
     if gPlayer2 <> nil then gPlayer2.AllRulez(False);
-  end
+    goto Cheated;
+  end;
   // TANK поднимает здоровье и броню
-  else if Copy(charbuff, 13, 4) = c3 then
+  ls := LocalCheatStr(I_GAME_CHEAT_HEALTH);
+  if Copy(charbuff, 17 - Length(ls), Length(ls)) = ls then
   begin
     if gPlayer1 <> nil then gPlayer1.AllRulez(True);
     if gPlayer2 <> nil then gPlayer2.AllRulez(True);
-  end
+    goto Cheated;
+  end;
   // IDDQD наказывает нечестного игрока
-  else if Copy(charbuff, 12, 5) = c4 then
+  ls := LocalCheatStr(I_GAME_CHEAT_DEATH);
+  if Copy(charbuff, 17 - Length(ls), Length(ls)) = ls then
   begin
     if gPlayer1 <> nil then gPlayer1.Damage(CHEAT_DAMAGE, 0, 0, 0, HIT_TRAP);
     if gPlayer2 <> nil then gPlayer2.Damage(CHEAT_DAMAGE, 0, 0, 0, HIT_TRAP);
     s := 'SOUND_MONSTER_HAHA';
-  end
+    goto Cheated;
+  end;
   // СИМСИМ открывает все двери
-  else if Copy(charbuff, 11, 6) = c5 then
+  ls := LocalCheatStr(I_GAME_CHEAT_DOORS);
+  if Copy(charbuff, 17 - Length(ls), Length(ls)) = ls then
   begin
     g_Triggers_OpenAll();
-  end
+    goto Cheated;
+  end;
   // GOODBYE нажимает кнопку выхода на уровне
-  else if Copy(charbuff, 10, 7) = c6 then
+  ls := LocalCheatStr(I_GAME_CHEAT_NEXTMAP);
+  if Copy(charbuff, 17 - Length(ls), Length(ls)) = ls then
   begin
     if gTriggers <> nil then
       for a := 0 to High(gTriggers) do
@@ -169,9 +205,11 @@ begin
           g_Game_ExitLevel(gTriggers[a].Data.MapName);
           Break;
         end;
-  end
+    goto Cheated;
+  end;
   // ПОШЕЛНА посылает на нужный уровень
-  else if Copy(charbuff, 8, 7) = c7 then
+  ls := LocalCheatStr(I_GAME_CHEAT_CHANGEMAP);
+  if Copy(charbuff, 17 - Length(ls) - 2, Length(ls)) = ls then
   begin
     s2 := Copy(charbuff, 15, 2);
     if g_Map_Exist(gGameSettings.WAD+':\MAP'+s2) then
@@ -181,69 +219,88 @@ begin
       c[4] := s2[2];
       g_Game_ExitLevel(c);
     end;
-  end
+    goto Cheated;
+  end;
   // БЕЛЫЙОРЕЛ позволяет летать
-  else if (Copy(charbuff, 9, 8) = c8) and
-          (charbuff[7] = Chr(188)) then
+  ls := LocalCheatStr(I_GAME_CHEAT_FLY);
+  if Copy(charbuff, 17 - Length(ls), Length(ls)) = ls then
   begin
     gFly := not gFly;
-  end
+    goto Cheated;
+  end;
   // BULLFROG даёт высокие прыжки
-  else if Copy(charbuff, 9, 8) = c9 then
+  ls := LocalCheatStr(I_GAME_CHEAT_JUMPS);
+  if Copy(charbuff, 17 - Length(ls), Length(ls)) = ls then
   begin
     VEL_JUMP := 30-VEL_JUMP;
-  end
+    goto Cheated;
+  end;
   // FORMULA1 ускоряет бег
-  else if Copy(charbuff, 9, 8) = c10 then
+  ls := LocalCheatStr(I_GAME_CHEAT_SPEED);
+  if Copy(charbuff, 17 - Length(ls), Length(ls)) = ls then
   begin
     MAX_RUNVEL := 32-MAX_RUNVEL;
-  end
+    goto Cheated;
+  end;
   // CONDOM даёт защитный костюм
-  else if Copy(charbuff, 11, 6) = c11 then
+  ls := LocalCheatStr(I_GAME_CHEAT_SUIT);
+  if Copy(charbuff, 17 - Length(ls), Length(ls)) = ls then
   begin
     if gPlayer1 <> nil then gPlayer1.GiveItem(ITEM_SUIT);
     if gPlayer2 <> nil then gPlayer2.GiveItem(ITEM_SUIT);
-  end
+    goto Cheated;
+  end;
   // ЧЕРНОМОР даёт полный запас кислорода
-  else if Copy(charbuff, 9, 8) = c12 then
+  ls := LocalCheatStr(I_GAME_CHEAT_AIR);
+  if Copy(charbuff, 17 - Length(ls), Length(ls)) = ls then
   begin
     if gPlayer1 <> nil then gPlayer1.GiveItem(ITEM_OXYGEN);
     if gPlayer2 <> nil then gPlayer2.GiveItem(ITEM_OXYGEN);
-  end
+    goto Cheated;
+  end;
   // PURELOVE даёт силушку богатырскую
-  else if Copy(charbuff, 9, 8) = c13 then
+  ls := LocalCheatStr(I_GAME_CHEAT_BERSERK);
+  if Copy(charbuff, 17 - Length(ls), Length(ls)) = ls then
   begin
     if gPlayer1 <> nil then gPlayer1.GiveItem(ITEM_MEDKIT_BLACK);
     if gPlayer2 <> nil then gPlayer2.GiveItem(ITEM_MEDKIT_BLACK);
-  end
+    goto Cheated;
+  end;
   // ЯСВОБОДЕН даёт реактивный ранец
-  else if (Copy(charbuff, 8, 4) = c14_1)
-  and (charbuff[11] = Chr(188))
-  and (Copy(charbuff, 13, 4) = c14_2) then
+  ls := LocalCheatStr(I_GAME_CHEAT_JETPACK);
+  if Copy(charbuff, 17 - Length(ls), Length(ls)) = ls then
   begin
     if gPlayer1 <> nil then gPlayer1.GiveItem(ITEM_JETPACK);
     if gPlayer2 <> nil then gPlayer2.GiveItem(ITEM_JETPACK);
-  end
+    goto Cheated;
+  end;
   // CASPER позволяет ходить сквозь стены
-  else if Copy(charbuff, 11, 6) = c15 then
+  ls := LocalCheatStr(I_GAME_CHEAT_NOCLIP);
+  if Copy(charbuff, 17 - Length(ls), Length(ls)) = ls then
   begin
     if gPlayer1 <> nil then gPlayer1.SwitchNoClip;
     if gPlayer2 <> nil then gPlayer2.SwitchNoClip;
-  end
-  // ЯСВОЙ скрывает от глаз монстров
-  else if Copy(charbuff, 12, 5) = c16 then
+    goto Cheated;
+  end;
+  // ШТИРЛИЦ скрывает от глаз монстров
+  ls := LocalCheatStr(I_GAME_CHEAT_NOTARGET);
+  if Copy(charbuff, 17 - Length(ls), Length(ls)) = ls then
   begin
     if gPlayer1 <> nil then gPlayer1.NoTarget := not gPlayer1.NoTarget;
     if gPlayer2 <> nil then gPlayer2.NoTarget := not gPlayer2.NoTarget;
-  end
-  // INFERNO отменяет необходимость перезарядки оружий  
-  else if Copy(charbuff, 10, 7) = c17 then
+    goto Cheated;
+  end;
+  // INFERNO отменяет необходимость перезарядки оружий
+  ls := LocalCheatStr(I_GAME_CHEAT_NORELOAD);
+  if Copy(charbuff, 17 - Length(ls), Length(ls)) = ls then
   begin
     if gPlayer1 <> nil then gPlayer1.NoReload := not gPlayer1.NoReload;
     if gPlayer2 <> nil then gPlayer2.NoReload := not gPlayer2.NoReload;
-  end
-  else Exit;
+    goto Cheated;
+  end;
+  Exit;
 
+Cheated:
   g_Sound_PlayEx(s);
 end;
 
