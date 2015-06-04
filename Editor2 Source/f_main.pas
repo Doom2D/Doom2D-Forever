@@ -1592,7 +1592,7 @@ var
   Data: Pointer;
   Width, Height: Word;
   fn: String;
-  
+
 begin
   if aSection = '..' then
     SectionName := ''
@@ -1641,9 +1641,12 @@ begin
 
   if ok then
   begin
+    a := -1;
     if aWAD = _lc[I_WAD_SPECIAL_TEXS] then
     begin
-      MainForm.lbTextureList.Items.Add(ResourceName);
+      a := MainForm.lbTextureList.Items.Add(ResourceName);
+      if not silent then
+        MainForm.lbTextureList.ItemIndex := a;
       Result := True;
       Exit;
     end;
@@ -1655,13 +1658,15 @@ begin
         GetFrame(FullResourceName, Data, Width, Height);
 
         if g_CreateTextureMemorySize(Data, ResourceName, 0, 0, Width, Height, 1) then
-          MainForm.lbTextureList.Items.Add(ResourceName);
+          a := MainForm.lbTextureList.Items.Add(ResourceName);
       end
     else // Обычная текстура
       begin
         if g_CreateTextureWAD(ResourceName, FullResourceName) then
-          MainForm.lbTextureList.Items.Add(ResourceName);
+          a := MainForm.lbTextureList.Items.Add(ResourceName);
       end;
+    if (a > -1) and (not silent) then
+      MainForm.lbTextureList.ItemIndex := a;
   end;
 
   Result := ok;

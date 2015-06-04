@@ -1785,6 +1785,7 @@ begin
 
   // Вкладка "Панели":
     tsPanels.Caption := _lc[I_CTRL_PANELS];
+    lbPanelType.Hint := _lc[I_PROP_PANEL_TYPE];
     lbTextureList.Hint := _lc[I_CTRL_LIST_TEXTURE];
   // Панель настройки текстур:
     LabelTxW.Caption := _lc[I_LAB_TEX_WIDTH];

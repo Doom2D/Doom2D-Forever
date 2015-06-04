@@ -324,6 +324,7 @@ object MainForm: TMainForm
             Top = 0
             Width = 201
             Height = 78
+            Hint = #1058#1080#1087' '#1087#1072#1085#1077#1083#1080
             Align = alLeft
             ItemHeight = 13
             Items.Strings = (
