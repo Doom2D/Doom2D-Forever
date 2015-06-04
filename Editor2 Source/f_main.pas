@@ -5296,7 +5296,7 @@ begin
   if TestMapOnce then
     cmd := cmd + ' --close';
 
-  cmd := cmd + ' --testdelete';
+  cmd := cmd + ' --debug --testdelete';
 
 // Запускаем:
   ZeroMemory(@si, SizeOf(si));

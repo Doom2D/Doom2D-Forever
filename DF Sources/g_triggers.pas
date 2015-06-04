@@ -655,7 +655,10 @@ begin
         if (Data.MonType in [MONSTER_DEMON..MONSTER_MAN]) then
         begin
           if (Data.MonDelay > 0) and (ActivateUID > 0) then
+          begin
             AutoSpawn := not AutoSpawn;
+            SpawnCooldown := 0;
+          end;
 
           if ((Data.MonDelay = 0) and (ActivateUID > 0))
           or ((Data.MonDelay > 0) and (ActivateUID = 0)) then
@@ -760,7 +763,10 @@ begin
         if (Data.ItemType in [ITEM_MEDKIT_SMALL..ITEM_MAX]) then
         begin
           if (Data.ItemDelay > 0) and (ActivateUID > 0) then
+          begin
             AutoSpawn := not AutoSpawn;
+            SpawnCooldown := 0;
+          end;
 
           if ((Data.ItemDelay = 0) and (ActivateUID > 0))
           or ((Data.ItemDelay > 0) and (ActivateUID = 0)) then
@@ -1240,13 +1246,19 @@ begin
                   begin
                     gTriggers[b].Enabled := False;
                     if AutoSpawn then
+                    begin
                       AutoSpawn := False;
+                      SpawnCooldown := 0;
+                    end;
                   end;
                 TRIGGER_ONOFF:
                   begin
                     gTriggers[b].Enabled := not gTriggers[b].Enabled;
                     if AutoSpawn and (not gTriggers[b].Enabled) then
+                    begin
                       AutoSpawn := False;
+                      SpawnCooldown := 0;
+                    end;
                   end;
               end;
             end;
