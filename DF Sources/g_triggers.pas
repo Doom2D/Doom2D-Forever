@@ -1092,7 +1092,8 @@ end;
 
 procedure g_Triggers_Update();
 var
-  a, b: Integer;
+  a, b, i: Integer;
+  Affected: array of Integer;
 begin
   if gTriggers = nil then
     Exit;
@@ -1183,12 +1184,25 @@ begin
           else
             PressCount := 0;
 
-        // Изменяемые им триггеры:
+        // Определяем изменяемые им триггеры:
           for b := 0 to High(gTriggers) do
             if g_Collide(Data.tX, Data.tY, Data.tWidth, Data.tHeight, gTriggers[b].X, gTriggers[b].Y,
                gTriggers[b].Width, gTriggers[b].Height) and
                ((b <> a) or (Data.Wait > 0)) then
             begin // Can be self-activated, if there is Data.Wait
+              SetLength(Affected, Length(Affected) + 1);
+              Affected[High(Affected)] := b;
+            end;
+        // Выбираем один из триггеров для расширителя, если включен рандом:
+          if (TriggerType = TRIGGER_PRESS) and Data.ExtRandom then
+          begin
+            b := Affected[Random(Length(Affected))];
+            gTriggers[b].ActivateUID := gTriggers[a].ActivateUID;
+            ActivateTrigger(gTriggers[b], 0);
+          end else // В противном случае работаем как обычно:
+            for i := 0 to High(Affected) do
+            begin
+              b := Affected[i];
               case TriggerType of
                 TRIGGER_PRESS:
                   begin
@@ -1209,6 +1223,7 @@ begin
                   end;
               end;
             end;
+          SetLength(Affected, 0);
         end;
 
       // Уменьшаем время до возможности повторной активации:

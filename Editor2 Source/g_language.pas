@@ -130,6 +130,7 @@ Type
     I_ARRAY_TR_SCORE,
     I_ARRAY_TR_MESSAGE,
     I_ARRAY_TR_DAMAGE,
+    I_ARRAY_TR_HEALTH,
     I_ARRAY_TR_SHOT,
 
     I_PROP_ID,
@@ -162,6 +163,7 @@ Type
     I_PROP_TR_EX_DELAY,
     I_PROP_TR_EX_COUNT,
     I_PROP_TR_EX_MONSTER,
+    I_PROP_TR_EX_RANDOM,
     I_PROP_TR_LIFT_PANEL,
     I_PROP_TR_TEXTURE_ONCE,
     I_PROP_TR_TEXTURE_ANIM_ONCE,
@@ -779,6 +781,8 @@ Const
                                        'Сообщение'),
     ('ARRAY TR DAMAGE',                'Damage',
                                        'Урон'),
+    ('ARRAY TR HEALTH',                'Healer',
+                                       'Лечилка'),
     ('ARRAY TR SHOT',                  'Turret',
                                        'Турель'),
 
@@ -841,6 +845,8 @@ Const
                                        'Счётчик'),
     ('PROP TR EX MONSTER',             'Monster ID',
                                        'ID монстра'),
+    ('PROP TR EX RANDOM',              'Random',
+                                       'Рандом'),
     ('PROP TR LIFT PANEL',             'Lift Panel',
                                        'Панель лифта'),
     ('PROP TR TEXTURE ONCE',           'Once',
@@ -1629,6 +1635,7 @@ begin
   TriggerNames[TRIGGER_SCORE] := _lc[I_ARRAY_TR_SCORE];
   TriggerNames[TRIGGER_MESSAGE] := _lc[I_ARRAY_TR_MESSAGE];
   TriggerNames[TRIGGER_DAMAGE] := _lc[I_ARRAY_TR_DAMAGE];
+  TriggerNames[TRIGGER_HEALTH] := _lc[I_ARRAY_TR_HEALTH];
   TriggerNames[TRIGGER_SHOT] := _lc[I_ARRAY_TR_SHOT];
 
 // Установка значений в панели выбора объектов:

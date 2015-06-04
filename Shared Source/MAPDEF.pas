@@ -141,7 +141,8 @@ const
   TRIGGER_SCORE           = 23;
   TRIGGER_MESSAGE         = 24;
   TRIGGER_DAMAGE          = 25;
-  TRIGGER_SHOT            = 26;
+  TRIGGER_HEALTH          = 26;
+  TRIGGER_SHOT            = 27;
 
   ACTIVATE_PLAYERCOLLIDE  = 1;
   ACTIVATE_MONSTERCOLLIDE = 2;
@@ -192,7 +193,8 @@ Type
                              tWidth, tHeight: Word;
                              Wait: Word;
                              Count: Word;
-                             MonsterID: Integer);
+                             MonsterID: Integer;
+                             ExtRandom: Boolean);
       TRIGGER_SECRET:       ();
       TRIGGER_TEXTURE:      (ActivateOnce: Boolean;
                              AnimOnce: Boolean);
@@ -233,6 +235,10 @@ Type
                              MessageName: Char64);
       TRIGGER_DAMAGE:       (DamageValue: SmallInt;
                              DamageInterval: Word);
+      TRIGGER_HEALTH:       (HealValue: Word;
+                             HealInterval: Word;
+                             HealMax: Boolean;
+                             HealSilent: Boolean);
       TRIGGER_SHOT:         (ShotType: Byte;
                              ShotAngle: Word;
                              ShotTarget: Byte;

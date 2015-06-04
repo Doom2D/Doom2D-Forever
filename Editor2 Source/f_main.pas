@@ -1034,6 +1034,13 @@ begin
                   EditStyle := esEllipsis;
                   ReadOnly := True;
                 end;
+
+                if TriggerType = TRIGGER_PRESS then
+                  with ItemProps[InsertRow(_lc[I_PROP_TR_EX_RANDOM], BoolNames[Data.ExtRandom], True)-1] do
+                  begin
+                    EditStyle := esPickList;
+                    ReadOnly := True;
+                  end;
               end;
 
             TRIGGER_SECRET:
@@ -3772,6 +3779,7 @@ begin
             (KeyName = _lc[I_PROP_TR_D2D]) or
             (KeyName = _lc[I_PROP_TR_SILENT]) or
             (KeyName = _lc[I_PROP_TR_TELEPORT_SILENT]) or
+            (KeyName = _lc[I_PROP_TR_EX_RANDOM]) or
             (KeyName = _lc[I_PROP_TR_TEXTURE_ONCE]) or
             (KeyName = _lc[I_PROP_TR_TEXTURE_ANIM_ONCE]) or
             (KeyName = _lc[I_PROP_TR_SOUND_LOCAL]) or
@@ -3988,6 +3996,8 @@ begin
                 Data.Count := Min(StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_EX_COUNT]], 0), 65535);
                 if Data.Count < 1 then
                   Data.Count := 1;
+                if TriggerType = TRIGGER_PRESS then
+                  Data.ExtRandom := NameToBool(vleObjectProperty.Values[_lc[I_PROP_TR_EX_RANDOM]]);
               end;
 
             TRIGGER_OPENDOOR, TRIGGER_CLOSEDOOR, TRIGGER_DOOR, TRIGGER_DOOR5,
@@ -4707,7 +4717,7 @@ begin
     if (Pos('.ini', LowerCase(ExtractFileName(OpenDialog.FileName))) > 0) then
       begin // INI карты:
         FullClear();
-   
+
         pLoadProgress.Left := (RenderPanel.Width div 2)-(pLoadProgress.Width div 2);
         pLoadProgress.Top := (RenderPanel.Height div 2)-(pLoadProgress.Height div 2);
         pLoadProgress.Show();
