@@ -14,9 +14,9 @@ Type
     Live:          Boolean;
     Fall:          Boolean;
     QuietRespawn:  Boolean;
+    SpawnTrigger:  Integer;
     Obj:           TObj;
     Animation:     TAnimation;
-    SpawnTrigger:  Integer;
   end;
 
 procedure g_Items_LoadData();
@@ -533,9 +533,9 @@ begin
 
   gItems[ID].Live := False;
 
-  if (gItems[ID].SpawnTrigger > -1) and (gItems[ID].SpawnTrigger <= High(gTriggers)) then
+  if gItems[ID].SpawnTrigger > -1 then
   begin
-    Dec(gTriggers[gItems[ID].SpawnTrigger].SpawnedCount);
+    g_Triggers_DecreaseSpawner(gItems[ID].SpawnTrigger);
     gItems[ID].SpawnTrigger := -1;
   end;
 end;
@@ -579,6 +579,8 @@ begin
       Mem.WriteBoolean(gItems[i].Live);
     // Может ли он падать:
       Mem.WriteBoolean(gItems[i].Fall);
+    // Индекс триггера, создавшего предмет:
+      Mem.WriteInt(gItems[i].SpawnTrigger);
     // Объект предмета:
       Obj_SaveState(@gItems[i].Obj, Mem);
     end;
@@ -624,6 +626,8 @@ begin
     Mem.ReadBoolean(gItems[i].Live);
   // Может ли он падать:
     Mem.ReadBoolean(gItems[i].Fall);
+  // Индекс триггера, создавшего предмет:
+    Mem.ReadInt(gItems[i].SpawnTrigger);
   // Объект предмета:
     Obj_LoadState(@gItems[i].Obj, Mem);
   end;

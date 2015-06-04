@@ -3683,6 +3683,8 @@ begin
   Mem.WriteWord(FTargetUID);
 // Время после потери цели:
   Mem.WriteInt(FTargetTime);
+// Способность к нападению на других монстров
+  Mem.WriteBoolean(FCanInfight);
 // Готовность к выстрелу:
   Mem.WriteInt(FAmmo);
 // Боль:
@@ -3702,6 +3704,8 @@ begin
   Mem.WriteInt(ty);
 // ID монстра при старте карты:
   Mem.WriteInt(FStartID);
+// Индекс триггера, создавшего монстра:
+  Mem.WriteInt(FSpawnTrigger);
 // Объект монстра:
   Obj_SaveState(@FObj, Mem);
 // Есть ли анимация огня колдуна:
@@ -3764,6 +3768,8 @@ begin
   Mem.ReadWord(FTargetUID);
 // Время после потери цели:
   Mem.ReadInt(FTargetTime);
+// Способность к нападению на других монстров
+  Mem.ReadBoolean(FCanInfight);
 // Готовность к выстрелу:
   Mem.ReadInt(FAmmo);
 // Боль:
@@ -3783,6 +3789,8 @@ begin
   Mem.ReadInt(ty);
 // ID монстра при старте карты:
   Mem.ReadInt(FStartID);
+// Индекс триггера, создавшего монстра:
+  Mem.ReadInt(FSpawnTrigger);
 // Объект монстра:
   Obj_LoadState(@FObj, Mem);
 // Есть ли анимация огня колдуна:
@@ -3824,9 +3832,9 @@ begin
   if FDieTriggers <> nil then
     for a := 0 to High(FDieTriggers) do
       g_Triggers_Press(FDieTriggers[a], ACTIVATE_MONSTERPRESS);
-  if (FSpawnTrigger > -1) and (FSpawnTrigger <= High(gTriggers)) then
+  if FSpawnTrigger > -1 then
   begin
-    Dec(gTriggers[FSpawnTrigger].SpawnedCount);
+    g_Triggers_DecreaseSpawner(FSpawnTrigger);
     FSpawnTrigger := -1;
   end;
 end;

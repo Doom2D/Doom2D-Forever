@@ -45,6 +45,7 @@ function g_Triggers_PressR(X, Y: Integer; Width, Height: Word; UID: Word;
 procedure g_Triggers_PressL(X1, Y1, X2, Y2: Integer; UID: DWORD; ActivateType: Byte);
 procedure g_Triggers_PressC(CX, CY: Integer; Radius: Word; UID: Word; ActivateType: Byte);
 procedure g_Triggers_OpenAll();
+procedure g_Triggers_DecreaseSpawner(ID: DWORD);
 procedure g_Triggers_Free();
 procedure g_Triggers_SaveState(var Mem: TBinMemoryWriter);
 procedure g_Triggers_LoadState(var Mem: TBinMemoryReader);
@@ -1417,6 +1418,12 @@ begin
   if b then g_Sound_PlayEx('SOUND_GAME_DOOROPEN');
 end;
 
+procedure g_Triggers_DecreaseSpawner(ID: DWORD);
+begin
+  if gTriggers[ID].SpawnedCount > 0 then
+    Dec(gTriggers[ID].SpawnedCount);
+end;
+
 procedure g_Triggers_Free();
 var
   a: Integer;
@@ -1443,7 +1450,7 @@ end;
 
 procedure g_Triggers_SaveState(var Mem: TBinMemoryWriter);
 var
-  count, i: Integer;
+  count, act_count, i, j: Integer;
   dw: DWORD;
   sg: Single;
   b: Boolean;
@@ -1493,6 +1500,16 @@ begin
     Mem.WriteWord(gTriggers[i].TimeOut);
   // UID того, кто активировал этот триггер:
     Mem.WriteWord(gTriggers[i].ActivateUID);
+  // Список UID-ов объектов, которые находились под воздействием:
+    act_count := Length(gTriggers[i].Activators);
+    Mem.WriteInt(act_count);
+    for j := 0 to act_count-1 do
+    begin
+      // UID объекта
+      Mem.WriteWord(gTriggers[i].Activators[j].UID);
+      // Время ожидания
+      Mem.WriteWord(gTriggers[i].Activators[j].TimeOut);
+    end;
   // Стоит ли игрок в области триггера:
     Mem.WriteBoolean(gTriggers[i].PlayerCollide);
   // Время до закрытия двери:
@@ -1501,6 +1518,10 @@ begin
     Mem.WriteInt(gTriggers[i].PressTime);
   // Счетчик нажатий:
     Mem.WriteInt(gTriggers[i].PressCount);
+  // Задержка спавнера:
+    Mem.WriteInt(gTriggers[i].SpawnCooldown);
+  // Счетчик созданий объектов:
+    Mem.WriteInt(gTriggers[i].SpawnedCount);
   // Сколько раз проигран звук:
     Mem.WriteInt(gTriggers[i].SoundPlayCount);
   // Проигрывается ли звук?
@@ -1527,7 +1548,7 @@ end;
 
 procedure g_Triggers_LoadState(var Mem: TBinMemoryReader);
 var
-  count, i, a: Integer;
+  count, act_count, i, j, a: Integer;
   dw: DWORD;
   vol, pan: Single;
   b: Boolean;
@@ -1584,6 +1605,19 @@ begin
     Mem.ReadWord(gTriggers[i].TimeOut);
   // UID того, кто активировал этот триггер:
     Mem.ReadWord(gTriggers[i].ActivateUID);
+  // Список UID-ов объектов, которые находились под воздействием:
+    Mem.ReadInt(act_count);
+    if act_count > 0 then
+    begin
+      SetLength(gTriggers[i].Activators, act_count);
+      for j := 0 to act_count-1 do
+      begin
+        // UID объекта
+        Mem.ReadWord(gTriggers[i].Activators[j].UID);
+        // Время ожидания
+        Mem.ReadWord(gTriggers[i].Activators[j].TimeOut);
+      end;
+    end;
   // Стоит ли игрок в области триггера:
     Mem.ReadBoolean(gTriggers[i].PlayerCollide);
   // Время до закрытия двери:
@@ -1592,6 +1626,10 @@ begin
     Mem.ReadInt(gTriggers[i].PressTime);
   // Счетчик нажатий:
     Mem.ReadInt(gTriggers[i].PressCount);
+  // Задержка спавнера:
+    Mem.ReadInt(gTriggers[i].SpawnCooldown);
+  // Счетчик созданий объектов:
+    Mem.ReadInt(gTriggers[i].SpawnedCount);
   // Сколько раз проигран звук:
     Mem.ReadInt(gTriggers[i].SoundPlayCount);
   // Проигрывается ли звук?
