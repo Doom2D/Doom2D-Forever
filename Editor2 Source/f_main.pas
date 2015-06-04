@@ -1728,7 +1728,10 @@ begin
     lbTextureList.Sorted := True;
     lbTextureList.Sorted := False;
 
-    Caption := Format('%s - %s:%s', [FormCaption, ExtractFileName(FileName), MapName]);
+    if gMapInfo.Name = '' then
+      Caption := Format('%s - %s:%s', [FormCaption, ExtractFileName(FileName), MapName])
+    else
+      Caption := Format('%s - %s (%s:%s)', [FormCaption, gMapInfo.Name, ExtractFileName(FileName), MapName]);
   end;
 end;
 
@@ -2752,12 +2755,11 @@ end;
 procedure TMainForm.RenderPanelMouseDown(Sender: TObject;
   Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
 var
-  i, j: Integer;
+  i: Integer;
   Rect: TRectWH;
   c1, c2, c3, c4: Boolean;
   item: TItem;
   area: TArea;
-  panel: TPanel;
   monster: TMonster;
   IDArray: DWArray;
 
@@ -3605,8 +3607,25 @@ begin
 end;
 
 procedure TMainForm.aMapOptionsExecute(Sender: TObject);
+var
+  MapName: String;
 begin
   MapOptionsForm.ShowModal();
+
+  MapName := OpenedMap;
+  while (Pos(':\', MapName) > 0) do
+    Delete(MapName, 1, Pos(':\', MapName) + 1);
+
+  if (OpenedWAD = '') and (MapName = '') and (gMapInfo.Name = '') then
+    Caption := FormCaption
+  else
+    if gMapInfo.Name = '' then
+      Caption := Format('%s - %s:%s', [FormCaption, ExtractFileName(OpenedWAD), MapName])
+    else
+      if (OpenedWAD <> '') and (MapName <> '') then
+        Caption := Format('%s - %s (%s:%s)', [FormCaption, gMapInfo.Name, ExtractFileName(OpenedWAD), MapName])
+      else
+        Caption := Format('%s - %s', [FormCaption, gMapInfo.Name]);
 end;
 
 procedure TMainForm.aAboutExecute(Sender: TObject);
@@ -5041,8 +5060,12 @@ begin
 
   SaveMap(OpenedMap);
 
-  Caption := Format('%s - %s:%s', [FormCaption, ExtractFileName(SaveDialog.FileName),
-                                   SaveMapForm.eMapName.Text]);
+  if gMapInfo.Name = '' then
+    Caption := Format('%s - %s:%s',
+      [FormCaption, ExtractFileName(SaveDialog.FileName), SaveMapForm.eMapName.Text])
+  else
+    Caption := Format('%s - %s (%s:%s)',
+      [FormCaption, gMapInfo.Name, ExtractFileName(SaveDialog.FileName), SaveMapForm.eMapName.Text]);
 end;
 
 procedure TMainForm.aSelectAllExecute(Sender: TObject);
