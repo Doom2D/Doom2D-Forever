@@ -923,7 +923,7 @@ begin
                   m.GameAccelY := 0;
                 end;
 
-                pAngle := DegToRad(Data.PushAngle);
+                pAngle := -DegToRad(Data.PushAngle);
                 m.Push(Floor(Cos(pAngle)*Data.PushForce),
                        Floor(Sin(pAngle)*Data.PushForce));
               end;
