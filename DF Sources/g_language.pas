@@ -353,7 +353,10 @@ type
     I_MESSAGE_VOTE_VOTE,
     I_MESSAGE_VOTE_REVOKED,
 
-    I_KEY_UP,                         
+    I_MESSAGE_CON_SERVERONLY,
+    I_MESSAGE_CON_NOCLIENTS,
+
+    I_KEY_UP,
     I_KEY_DOWN,                       
     I_KEY_LEFT,                       
     I_KEY_RIGHT,
@@ -1159,6 +1162,11 @@ const
                                        '%s голосует "за" (%d/%d голосов всего).'),
     ('MESSAGE VOTE REVOKED',           '%s revokes his vote (%d/%d votes total).',
                                        '%s отозвал свой голос (%d/%d голосов всего).'),
+
+    ('MESSAGE CON SERVERONLY',         'This command is for server only.',
+                                       'Эта команда доступна только в режиме сервера.'),
+    ('MESSAGE CON NOCLIENTS',          'No clients connected.',
+                                       'Нет подключённых клиентов.'),
 
     ('KEY UP',                         'Up',
                                        'Вверх'),

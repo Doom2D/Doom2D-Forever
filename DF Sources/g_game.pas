@@ -3614,7 +3614,7 @@ end;
 
 procedure GameCommands(P: SArray);
 var
-  a: Integer;
+  a, b: Integer;
   s, pw: String;
   chstr: string;
   cmd: string;
@@ -3699,18 +3699,23 @@ begin
   end
   else if cmd = 'clientlist' then
   begin
-    if g_Game_IsServer and g_Game_IsNet and (NetClients <> nil) then
+    if g_Game_IsServer and g_Game_IsNet then
     begin
-      for a := Low(NetClients) to High(NetClients) do
-        if NetClients[a].Used and (NetClients[a].Peer <> nil) then
-        begin
-          plr := g_Player_Get(NetClients[a].Player);
-          if plr = nil then continue;
-          g_Console_Add('#' + IntToStr(a) + ': ' +
-                        IpToStr(NetClients[a].Peer^.address.host) +
-                        ' | ' + plr.Name);
-        end;
-    end;
+      b := 0;
+      if NetClients <> nil then
+        for a := Low(NetClients) to High(NetClients) do
+          if NetClients[a].Used and (NetClients[a].Peer <> nil) then
+          begin
+            plr := g_Player_Get(NetClients[a].Player);
+            if plr = nil then continue;
+            Inc(b);
+            g_Console_Add(Format('#%2d: %-15s | %s', [a,
+                          IpToStr(NetClients[a].Peer^.address.host), plr.Name]));
+          end;
+      if b = 0 then
+        g_Console_Add(_lc[I_MESSAGE_CON_NOCLIENTS]);
+    end else
+      g_Console_Add(_lc[I_MESSAGE_CON_SERVERONLY]);
   end
   else if cmd = 'connect' then
   begin
