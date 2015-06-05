@@ -246,6 +246,18 @@ begin
               e_GetTextureSize(NoTextureID, @NW, @NH);
               e_DrawFill(NoTextureID, X, Y, Width div NW, Height div NH,
                          0, False, False);
+            end else
+            begin
+              xx := X + (Width div 2);
+              yy := Y + (Height div 2);
+              e_DrawFillQuad(X, Y, xx, yy,
+                             255, 0, 255, 0);
+              e_DrawFillQuad(xx, Y, X+Width-1, yy,
+                             255, 255, 0, 0);
+              e_DrawFillQuad(X, yy, xx, Y+Height-1,
+                             255, 255, 0, 0);
+              e_DrawFillQuad(xx, yy, X+Width-1, Y+Height-1,
+                             255, 0, 255, 0);
             end;
 
           else
