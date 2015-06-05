@@ -3582,24 +3582,31 @@ begin
       end;
     end
     else if cmd = 'monster' then
-      if (Length(P) > 1) and gGameOn and
-         (gPlayer1 <> nil) and (gPlayer1.Live) and (not g_Game_IsNet) then
-      begin
-        a := StrToIntDef(P[1], 0);
-        if (a < MONSTER_DEMON) or (a > MONSTER_MAN) then
-          a := g_Monsters_GetIDByName(P[1]);
-          
-        if (a < MONSTER_DEMON) or (a > MONSTER_MAN) then
-          g_Console_Add(Format(_lc[I_MSG_NO_MONSTER], [P[1]]))
-        else
-          begin
-            with gPlayer1.Obj do
-              g_Monsters_Create(a,
-                  X + Rect.X + (Rect.Width div 2),
-                  Y + Rect.Y + Rect.Height,
-                  gPlayer1.Direction, True);
-          end;
-      end;
+    begin
+      if gGameOn and (gPlayer1 <> nil) and (gPlayer1.Live) and (not g_Game_IsNet) then
+        if Length(P) < 2 then
+        begin
+          g_Console_Add('ID | Name');
+          for b := MONSTER_DEMON to MONSTER_MAN do
+            g_Console_Add(Format('%2d | %s', [b, g_Monsters_GetNameByID(b)]));
+        end else
+        begin
+          a := StrToIntDef(P[1], 0);
+          if (a < MONSTER_DEMON) or (a > MONSTER_MAN) then
+            a := g_Monsters_GetIDByName(P[1]);
+
+          if (a < MONSTER_DEMON) or (a > MONSTER_MAN) then
+            g_Console_Add(Format(_lc[I_MSG_NO_MONSTER], [P[1]]))
+          else
+            begin
+              with gPlayer1.Obj do
+                g_Monsters_Create(a,
+                    X + Rect.X + (Rect.Width div 2),
+                    Y + Rect.Y + Rect.Height,
+                    gPlayer1.Direction, True);
+            end;
+        end;
+    end;
   end
     else
       g_Console_Add(_lc[I_MSG_NOT_DEBUG]);

@@ -140,6 +140,7 @@ procedure g_Monsters_goodsnd();
 procedure g_Monsters_SaveState(var Mem: TBinMemoryWriter);
 procedure g_Monsters_LoadState(var Mem: TBinMemoryReader);
 function  g_Monsters_GetIDByName(name: String): Integer;
+function  g_Monsters_GetNameByID(MonsterType: Byte): String;
 function  g_Monsters_GetKilledBy(MonsterType: Byte): String;
 
 var
@@ -1178,6 +1179,12 @@ begin
   end;
 
   Result := -1;
+end;
+
+function g_Monsters_GetNameByID(MonsterType: Byte): String;
+begin
+  if MonsterType in [MONSTER_DEMON..MONSTER_MAN] then
+    Result := MONSTERTABLE[MonsterType].Name;
 end;
 
 function g_Monsters_GetKilledBy(MonsterType: Byte): String;
