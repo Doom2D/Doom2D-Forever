@@ -32,6 +32,13 @@ type
 
 procedure g_Options_SetDefault();
 procedure g_Options_Read(FileName: String);
+procedure g_Options_Write(FileName: String);
+procedure g_Options_Write_Language(FileName: String);
+procedure g_Options_Write_Video(FileName: String);
+procedure g_Options_Write_Gameplay_Custom(FileName: String);
+procedure g_Options_Write_Gameplay_Net(FileName: String);
+procedure g_Options_Write_Net_Server(FileName: String);
+procedure g_Options_Write_Net_Client(FileName: String);
 
 var
   gGameControls: TControls;
@@ -60,6 +67,27 @@ var
   gRevertPlayers: Boolean     = False;
   gLanguage: String           = LANGUAGE_ENGLISH;
   gAskLanguage: Boolean       = True;
+  gcMap: String               = '';
+  gcGameMode: String          = 'DM';
+  gcTimeLimit: Word           = 0;
+  gcGoalLimit: Word           = 0;
+  gcMaxLives: Byte            = 0;
+  gcPlayers: Byte             = 1;
+  gcTeamDamage: Boolean       = False;
+  gcAllowExit: Boolean        = True;
+  gcWeaponStay: Boolean       = False;
+  gcMonsters: Boolean         = False;
+  gcBotsVS: String            = 'Everybody';
+  gnMap: String               = '';
+  gnGameMode: String          = 'DM';
+  gnTimeLimit: Word           = 0;
+  gnGoalLimit: Word           = 0;
+  gnMaxLives: Byte            = 0;
+  gnTeamDamage: Boolean       = False;
+  gnAllowExit: Boolean        = True;
+  gnWeaponStay: Boolean       = False;
+  gnMonsters: Boolean         = False;
+  gnBotsVS: String            = 'Everybody';
 
 implementation
 
@@ -150,6 +178,7 @@ var
   str: String;
 begin
   gAskLanguage := True;
+  e_WriteLog('Reading config', MSG_NOTIFY);
 
   if not FileExists(FileName) then
   begin
@@ -276,6 +305,31 @@ begin
   gShowMessages := config.ReadBool('Game', 'Messages', True);
   gRevertPlayers := config.ReadBool('Game', 'RevertPlayers', False);
 
+// Геймплей в своей игре
+  gcMap := config.ReadStr('GameplayCustom', 'Map', '');
+  gcGameMode := config.ReadStr('GameplayCustom', 'GameMode', _lc[I_MENU_GAME_TYPE_DM]);
+  gcTimeLimit := Min(Max(config.ReadInt('GameplayCustom', 'TimeLimit', 0), 0), 65535);
+  gcGoalLimit := Min(Max(config.ReadInt('GameplayCustom', 'GoalLimit', 0), 0), 65535);
+  gcMaxLives := Min(Max(config.ReadInt('GameplayCustom', 'MaxLives', 0), 0), 255);
+  gcPlayers := Min(Max(config.ReadInt('GameplayCustom', 'Players', 1), 1), 2);
+  gcTeamDamage := config.ReadBool('GameplayCustom', 'TeamDamage', False);
+  gcAllowExit := config.ReadBool('GameplayCustom', 'AllowExit', True);
+  gcWeaponStay := config.ReadBool('GameplayCustom', 'WeaponStay', False);
+  gcMonsters := config.ReadBool('GameplayCustom', 'Monsters', False);
+  gcBotsVS := config.ReadStr('GameplayCustom', 'BotsVS', 'Everybody');
+
+// Геймплей в сетевой игре
+  gnMap := config.ReadStr('GameplayNetwork', 'Map', '');
+  gnGameMode := config.ReadStr('GameplayNetwork', 'GameMode', _lc[I_MENU_GAME_TYPE_DM]);
+  gnTimeLimit := Min(Max(config.ReadInt('GameplayNetwork', 'TimeLimit', 0), 0), 65535);
+  gnGoalLimit := Min(Max(config.ReadInt('GameplayNetwork', 'GoalLimit', 0), 0), 65535);
+  gnMaxLives := Min(Max(config.ReadInt('GameplayNetwork', 'MaxLives', 0), 0), 255);
+  gnTeamDamage := config.ReadBool('GameplayNetwork', 'TeamDamage', False);
+  gnAllowExit := config.ReadBool('GameplayNetwork', 'AllowExit', True);
+  gnWeaponStay := config.ReadBool('GameplayNetwork', 'WeaponStay', False);
+  gnMonsters := config.ReadBool('GameplayNetwork', 'Monsters', False);
+  gnBotsVS := config.ReadStr('GameplayNetwork', 'BotsVS', 'Everybody');
+
 // Общие сетевые
   NetSlistIP := config.ReadStr('MasterServer', 'IP', 'mpms.doom2d.org');
   NetSlistPort := config.ReadInt('MasterServer', 'Port', 25665);
@@ -297,8 +351,8 @@ begin
   NetInterpLevel := Max(0, config.ReadInt('Client', 'InterpolationSteps', 2));
   NetForcePlayerUpdate := config.ReadBool('Client', 'ForcePlayerUpdate', False);
   NetPredictSelf := config.ReadBool('Client', 'PredictSelf', True);
-  NetLastIP := config.ReadStr('Client', 'LastIP', 'localhost');
-  NetLastPort := Max(0, config.ReadInt('Client', 'LastPort', 25666));
+  NetClientIP := config.ReadStr('Client', 'LastIP', '127.0.0.1');
+  NetClientPort := Max(0, config.ReadInt('Client', 'LastPort', 25666));
 
 // Язык:
   str := config.ReadStr('Game', 'Language', '');
@@ -317,6 +371,269 @@ begin
     TEXTUREFILTER := GL_LINEAR
   else
     TEXTUREFILTER := GL_NEAREST;
+end;
+
+procedure g_Options_Write(FileName: String);
+var
+  config: TConfig;
+begin
+  e_WriteLog('Writing config', MSG_NOTIFY);
+
+  config := TConfig.CreateFile(FileName);
+
+  config.WriteInt('Video', 'ScreenWidth', gScreenWidth);
+  config.WriteInt('Video', 'ScreenHeight', gScreenHeight);
+  config.WriteInt('Video', 'WinPosX', gWinRealPosX);
+  config.WriteInt('Video', 'WinPosY', gWinRealPosY);
+  config.WriteBool('Video', 'Fullscreen', gFullScreen);
+  config.WriteBool('Video', 'Maximized', gWinMaximized);
+  config.WriteInt('Video', 'BPP', gBPP);
+  config.WriteBool('Video', 'VSync', gVSync);
+  config.WriteBool('Video', 'TextureFilter', gTextureFilter);
+
+  config.WriteInt('Sound', 'SoundLevel', gSoundLevel);
+  config.WriteInt('Sound', 'MusicLevel', gMusicLevel);
+  config.WriteInt('Sound', 'MaxSimSounds', gMaxSimSounds);
+  config.WriteBool('Sound', 'MuteInactive', gMuteWhenInactive);
+
+  with config, gGameControls.GameControls do
+  begin
+    WriteInt('GameControls', 'TakeScreenshot', TakeScreenshot);
+    WriteInt('GameControls', 'Stat', Stat);
+    WriteInt('GameControls', 'Chat', Chat);
+  end;
+
+  with config, gGameControls.P1Control, gPlayer1Settings do
+  begin
+    WriteInt('Player1', 'KeyRight', KeyRight);
+    WriteInt('Player1', 'KeyLeft', KeyLeft);
+    WriteInt('Player1', 'KeyUp', KeyUp);
+    WriteInt('Player1', 'KeyDown', KeyDown);
+    WriteInt('Player1', 'KeyFire', KeyFire);
+    WriteInt('Player1', 'KeyJump', KeyJump);
+    WriteInt('Player1', 'KeyNextWeapon', KeyNextWeapon);
+    WriteInt('Player1', 'KeyPrevWeapon', KeyPrevWeapon);
+    WriteInt('Player1', 'KeyOpen', KeyOpen);
+
+    WriteStr('Player1', 'Name', Name);
+    WriteStr('Player1', 'model', Model);
+    WriteInt('Player1', 'red', Color.R);
+    WriteInt('Player1', 'green', Color.G);
+    WriteInt('Player1', 'blue', Color.B);
+    WriteInt('Player1', 'team', Team);
+  end;
+
+  with config, gGameControls.P2Control, gPlayer2Settings do
+  begin
+    WriteInt('Player2', 'KeyRight', KeyRight);
+    WriteInt('Player2', 'KeyLeft', KeyLeft);
+    WriteInt('Player2', 'KeyUp', KeyUp);
+    WriteInt('Player2', 'KeyDown', KeyDown);
+    WriteInt('Player2', 'KeyFire', KeyFire);
+    WriteInt('Player2', 'KeyJump', KeyJump);
+    WriteInt('Player2', 'KeyNextWeapon', KeyNextWeapon);
+    WriteInt('Player2', 'KeyPrevWeapon', KeyPrevWeapon);
+    WriteInt('Player2', 'KeyOpen', KeyOpen);
+
+    WriteStr('Player2', 'Name', Name);
+    WriteStr('Player2', 'model', Model);
+    WriteInt('Player2', 'red', Color.R);
+    WriteInt('Player2', 'green', Color.G);
+    WriteInt('Player2', 'blue', Color.B);
+    WriteInt('Player2', 'team', Team);
+  end;
+
+  with config do
+    case gGibsCount of
+      0: config.WriteInt('Game', 'GibsCount', 0);
+      8: config.WriteInt('Game', 'GibsCount', 1);
+      16: config.WriteInt('Game', 'GibsCount', 2);
+      32: config.WriteInt('Game', 'GibsCount', 3);
+      else config.WriteInt('Game', 'GibsCount', 4);
+    end;
+
+  config.WriteInt('Game', 'ItemRespawnTime', ITEM_RESPAWNTIME div 36);
+  config.WriteInt('Game', 'MaxParticles', g_GFX_GetMax());
+  config.WriteInt('Game', 'MaxShells', g_Shells_GetMax());
+  config.WriteInt('Game', 'MaxGibs', g_Gibs_GetMax());
+  config.WriteInt('Game', 'MaxCorpses', g_Corpses_GetMax());
+  config.WriteInt('Game', 'BloodCount', gBloodCount);
+  config.WriteBool('Game', 'AdvancesBlood', gAdvBlood);
+  config.WriteBool('Game', 'AdvancesCorpses', gAdvCorpses);
+  config.WriteBool('Game', 'AdvancesGibs', gAdvGibs);
+  config.WriteBool('Game', 'Flash', gFlash);
+  config.WriteBool('Game', 'BackGround', gDrawBackGround);
+  config.WriteBool('Game', 'Messages', gShowMessages);
+  config.WriteBool('Game', 'RevertPlayers', gRevertPlayers);
+
+  config.WriteStr ('GameplayCustom', 'Map', gcMap);
+  config.WriteStr ('GameplayCustom', 'GameMode', gcGameMode);
+  config.WriteInt ('GameplayCustom', 'TimeLimit', gcTimeLimit);
+  config.WriteInt ('GameplayCustom', 'GoalLimit', gcGoalLimit);
+  config.WriteInt ('GameplayCustom', 'MaxLives', gcMaxLives);
+  config.WriteInt ('GameplayCustom', 'Players', gcPlayers);
+  config.WriteBool('GameplayCustom', 'TeamDamage', gcTeamDamage);
+  config.WriteBool('GameplayCustom', 'AllowExit', gcAllowExit);
+  config.WriteBool('GameplayCustom', 'WeaponStay', gcWeaponStay);
+  config.WriteBool('GameplayCustom', 'Monsters', gcMonsters);
+  config.WriteStr ('GameplayCustom', 'BotsVS', gcBotsVS);
+
+  config.WriteStr ('GameplayNetwork', 'Map', gnMap);
+  config.WriteStr ('GameplayNetwork', 'GameMode', gnGameMode);
+  config.WriteInt ('GameplayNetwork', 'TimeLimit', gnTimeLimit);
+  config.WriteInt ('GameplayNetwork', 'GoalLimit', gnGoalLimit);
+  config.WriteInt ('GameplayNetwork', 'MaxLives', gnMaxLives);
+  config.WriteBool('GameplayNetwork', 'TeamDamage', gnTeamDamage);
+  config.WriteBool('GameplayNetwork', 'AllowExit', gnAllowExit);
+  config.WriteBool('GameplayNetwork', 'WeaponStay', gnWeaponStay);
+  config.WriteBool('GameplayNetwork', 'Monsters', gnMonsters);
+  config.WriteStr ('GameplayNetwork', 'BotsVS', gnBotsVS);
+
+  config.WriteStr('MasterServer', 'IP', NetSlistIP);
+  config.WriteInt('MasterServer', 'Port', NetSlistPort);
+
+  config.WriteBool('Server', 'Dedicated', NetDedicated);
+  config.WriteStr ('Server', 'Name', NetServerName);
+  config.WriteStr ('Server', 'Password', NetPassword);
+  config.WriteInt ('Server', 'Port', NetPort);
+  config.WriteInt ('Server', 'MaxClients', NetMaxClients);
+  config.WriteBool('Server', 'RCON', NetAllowRCON);
+  config.WriteStr ('Server', 'RCONPassword', NetRCONPassword);
+  config.WriteBool('Server', 'SyncWithMaster', NetUseMaster);
+  config.WriteInt ('Server', 'UpdateInterval', NetUpdateRate);
+  config.WriteInt ('Server', 'ReliableUpdateInterval', NetRelupdRate);
+  config.WriteInt ('Server', 'MasterSyncInterval', NetMasterRate);
+
+  config.WriteInt  ('Client', 'InterpolationSteps', NetInterpLevel);
+  config.WriteBool ('Client', 'ForcePlayerUpdate', NetForcePlayerUpdate);
+  config.WriteBool ('Client', 'PredictSelf', NetPredictSelf);
+  config.WriteStr  ('Client', 'LastIP', NetClientIP);
+  config.WriteInt  ('Client', 'LastPort', NetClientPort);
+
+  config.SaveFile(FileName);
+  config.Free();
+end;
+
+procedure g_Options_Write_Language(FileName: String);
+var
+  config: TConfig;
+begin
+  e_WriteLog('Writing language config', MSG_NOTIFY);
+
+  config := TConfig.CreateFile(FileName);
+  config.WriteStr('Game', 'Language', gLanguage);
+  config.SaveFile(FileName);
+  config.Free();
+end;
+
+procedure g_Options_Write_Video(FileName: String);
+var
+  config: TConfig;
+  sW, sH: Integer;
+begin
+  e_WriteLog('Writing resolution to config', MSG_NOTIFY);
+
+  config := TConfig.CreateFile(FileName);
+
+  if gWinMaximized and (not gFullscreen) then
+    begin
+      sW := gWinSizeX;
+      sH := gWinSizeY;
+    end
+  else
+    begin
+      sW := gScreenWidth;
+      sH := gScreenHeight;
+    end;
+
+  config.WriteInt('Video', 'ScreenWidth', sW);
+  config.WriteInt('Video', 'ScreenHeight', sH);
+  config.WriteInt('Video', 'WinPosX', gWinRealPosX);
+  config.WriteInt('Video', 'WinPosY', gWinRealPosY);
+  config.WriteBool('Video', 'Fullscreen', gFullscreen);
+  config.WriteBool('Video', 'Maximized', gWinMaximized);
+
+  config.SaveFile(FileName);
+  config.Free();
+end;
+
+procedure g_Options_Write_Gameplay_Custom(FileName: String);
+var
+  config: TConfig;
+begin
+  e_WriteLog('Writing custom gameplay config', MSG_NOTIFY);
+
+  config := TConfig.CreateFile(FileName);
+
+  config.WriteStr ('GameplayCustom', 'Map', gcMap);
+  config.WriteStr ('GameplayCustom', 'GameMode', gcGameMode);
+  config.WriteInt ('GameplayCustom', 'TimeLimit', gcTimeLimit);
+  config.WriteInt ('GameplayCustom', 'GoalLimit', gcGoalLimit);
+  config.WriteInt ('GameplayCustom', 'MaxLives', gcMaxLives);
+  config.WriteInt ('GameplayCustom', 'Players', gcPlayers);
+  config.WriteBool('GameplayCustom', 'TeamDamage', gcTeamDamage);
+  config.WriteBool('GameplayCustom', 'AllowExit', gcAllowExit);
+  config.WriteBool('GameplayCustom', 'WeaponStay', gcWeaponStay);
+  config.WriteBool('GameplayCustom', 'Monsters', gcMonsters);
+  config.WriteStr ('GameplayCustom', 'BotsVS', gcBotsVS);
+
+  config.SaveFile(FileName);
+  config.Free();
+end;
+
+procedure g_Options_Write_Gameplay_Net(FileName: String);
+var
+  config: TConfig;
+begin
+  e_WriteLog('Writing network gameplay config', MSG_NOTIFY);
+
+  config := TConfig.CreateFile(FileName);
+
+  config.WriteStr ('GameplayNetwork', 'Map', gnMap);
+  config.WriteStr ('GameplayNetwork', 'GameMode', gnGameMode);
+  config.WriteInt ('GameplayNetwork', 'TimeLimit', gnTimeLimit);
+  config.WriteInt ('GameplayNetwork', 'GoalLimit', gnGoalLimit);
+  config.WriteInt ('GameplayNetwork', 'MaxLives', gnMaxLives);
+  config.WriteBool('GameplayNetwork', 'TeamDamage', gnTeamDamage);
+  config.WriteBool('GameplayNetwork', 'AllowExit', gnAllowExit);
+  config.WriteBool('GameplayNetwork', 'WeaponStay', gnWeaponStay);
+  config.WriteBool('GameplayNetwork', 'Monsters', gnMonsters);
+  config.WriteStr ('GameplayNetwork', 'BotsVS', gnBotsVS);
+
+  config.SaveFile(FileName);
+  config.Free();
+end;
+
+procedure g_Options_Write_Net_Server(FileName: String);
+var
+  config: TConfig;
+begin
+  e_WriteLog('Writing server config', MSG_NOTIFY);
+
+  config := TConfig.CreateFile(FileName);
+
+  config.WriteStr ('Server', 'Name', NetServerName);
+  config.WriteStr ('Server', 'Password', NetPassword);
+  config.WriteInt ('Server', 'Port', NetPort);
+  config.WriteInt ('Server', 'MaxClients', NetMaxClients);
+
+  config.SaveFile(FileName);
+  config.Free();
+end;
+
+procedure g_Options_Write_Net_Client(FileName: String);
+var
+  config: TConfig;
+begin
+  e_WriteLog('Writing client config', MSG_NOTIFY);
+
+  config := TConfig.CreateFile(FileName);
+
+  config.WriteStr('Client', 'LastIP', NetClientIP);
+  config.WriteInt('Client', 'LastPort', NetClientPort);
+
+  config.SaveFile(FileName);
+  config.Free();
 end;
 
 end.

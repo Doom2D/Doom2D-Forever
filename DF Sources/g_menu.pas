@@ -42,15 +42,13 @@ procedure ProcSelectModel(Sender: TGUIControl); forward;
 procedure ProcApplyOptions();
 var
   menu: TGUIMenu;
-  config: TConfig;
-  BPP: DWORD;
 begin
   menu := TGUIMenu(g_GUI_GetWindow('OptionsVideoMenu').GetControl('mOptionsVideoMenu'));
 
   if TGUISwitch(menu.GetControl('swBPP')).ItemIndex = 0 then
-    BPP := 16
+    gBPP := 16
   else
-    BPP := 32;
+    gBPP := 32;
   gVSync := TGUISwitch(menu.GetControl('swVSync')).ItemIndex = 0;
   gTextureFilter := TGUISwitch(menu.GetControl('swTextureFilter')).ItemIndex = 0;
 
@@ -182,118 +180,7 @@ begin
 
   if g_Game_IsClient then MC_SEND_PlayerSettings;
 
-  e_WriteLog('Writing config', MSG_NOTIFY);
- 
-  config := TConfig.CreateFile(GameDir+'\'+CONFIG_FILENAME);
-
-  config.WriteInt('Video', 'ScreenWidth', gScreenWidth);
-  config.WriteInt('Video', 'ScreenHeight', gScreenHeight);
-  config.WriteInt('Video', 'WinPosX', gWinRealPosX);
-  config.WriteInt('Video', 'WinPosY', gWinRealPosY);
-  config.WriteBool('Video', 'Fullscreen', gFullScreen);
-  config.WriteBool('Video', 'Maximized', gWinMaximized);
-  config.WriteInt('Video', 'BPP', BPP);
-  config.WriteBool('Video', 'VSync', gVSync);
-  config.WriteBool('Video', 'TextureFilter', gTextureFilter);
-
-  config.WriteInt('Sound', 'SoundLevel', gSoundLevel);
-  config.WriteInt('Sound', 'MusicLevel', gMusicLevel);
-  config.WriteInt('Sound', 'MaxSimSounds', gMaxSimSounds);
-  config.WriteBool('Sound', 'MuteInactive', gMuteWhenInactive);
-
-  with config, gGameControls.GameControls do
-  begin
-    WriteInt('GameControls', 'TakeScreenshot', TakeScreenshot);
-    WriteInt('GameControls', 'Stat', Stat);
-    WriteInt('GameControls', 'Chat', Chat);
-  end;
-
-  with config, gGameControls.P1Control, gPlayer1Settings do
-  begin
-    WriteInt('Player1', 'KeyRight', KeyRight);
-    WriteInt('Player1', 'KeyLeft', KeyLeft);
-    WriteInt('Player1', 'KeyUp', KeyUp);
-    WriteInt('Player1', 'KeyDown', KeyDown);
-    WriteInt('Player1', 'KeyFire', KeyFire);
-    WriteInt('Player1', 'KeyJump', KeyJump);
-    WriteInt('Player1', 'KeyNextWeapon', KeyNextWeapon);
-    WriteInt('Player1', 'KeyPrevWeapon', KeyPrevWeapon);
-    WriteInt('Player1', 'KeyOpen', KeyOpen);
-
-    WriteStr('Player1', 'Name', Name);
-    WriteStr('Player1', 'model', Model);
-    WriteInt('Player1', 'red', Color.R);
-    WriteInt('Player1', 'green', Color.G);
-    WriteInt('Player1', 'blue', Color.B);
-    WriteInt('Player1', 'team', Team);
-  end;
-
-  with config, gGameControls.P2Control, gPlayer2Settings do
-  begin
-    WriteInt('Player2', 'KeyRight', KeyRight);
-    WriteInt('Player2', 'KeyLeft', KeyLeft);
-    WriteInt('Player2', 'KeyUp', KeyUp);
-    WriteInt('Player2', 'KeyDown', KeyDown);
-    WriteInt('Player2', 'KeyFire', KeyFire);
-    WriteInt('Player2', 'KeyJump', KeyJump);
-    WriteInt('Player2', 'KeyNextWeapon', KeyNextWeapon);
-    WriteInt('Player2', 'KeyPrevWeapon', KeyPrevWeapon);
-    WriteInt('Player2', 'KeyOpen', KeyOpen);
-
-    WriteStr('Player2', 'Name', Name);
-    WriteStr('Player2', 'model', Model);
-    WriteInt('Player2', 'red', Color.R);
-    WriteInt('Player2', 'green', Color.G);
-    WriteInt('Player2', 'blue', Color.B);
-    WriteInt('Player2', 'team', Team);
-  end;
-
-  with config do
-    case gGibsCount of
-      0: config.WriteInt('Game', 'GibsCount', 0);
-      8: config.WriteInt('Game', 'GibsCount', 1);
-      16: config.WriteInt('Game', 'GibsCount', 2);
-      32: config.WriteInt('Game', 'GibsCount', 3);
-      else config.WriteInt('Game', 'GibsCount', 4);
-    end;
-
-  config.WriteInt('Game', 'ItemRespawnTime', ITEM_RESPAWNTIME div 36);
-  config.WriteInt('Game', 'MaxParticles', g_GFX_GetMax());
-  config.WriteInt('Game', 'MaxShells', g_Shells_GetMax());
-  config.WriteInt('Game', 'MaxGibs', g_Gibs_GetMax());
-  config.WriteInt('Game', 'MaxCorpses', g_Corpses_GetMax());
-  config.WriteInt('Game', 'BloodCount', gBloodCount);
-  config.WriteBool('Game', 'AdvancesBlood', gAdvBlood);
-  config.WriteBool('Game', 'AdvancesCorpses', gAdvCorpses);
-  config.WriteBool('Game', 'AdvancesGibs', gAdvGibs);
-  config.WriteBool('Game', 'Flash', gFlash);
-  config.WriteBool('Game', 'BackGround', gDrawBackGround);
-  config.WriteBool('Game', 'Messages', gShowMessages);
-  config.WriteBool('Game', 'RevertPlayers', gRevertPlayers);
-
-  config.WriteStr('MasterServer', 'IP', NetSlistIP);
-  config.WriteInt('MasterServer', 'Port', NetSlistPort);
-
-  config.WriteBool('Server', 'Dedicated', NetDedicated);
-  config.WriteStr ('Server', 'Name', NetServerName);
-  config.WriteStr ('Server', 'Password', NetPassword);
-  config.WriteInt ('Server', 'Port', NetPort);
-  config.WriteInt ('Server', 'MaxClients', NetMaxClients);
-  config.WriteBool('Server', 'RCON', NetAllowRCON);
-  config.WriteStr ('Server', 'RCONPassword', NetRCONPassword);
-  config.WriteBool('Server', 'SyncWithMaster', NetUseMaster);
-  config.WriteInt ('Server', 'UpdateInterval', NetUpdateRate);
-  config.WriteInt ('Server', 'ReliableUpdateInterval', NetRelupdRate);
-  config.WriteInt ('Server', 'MasterSyncInterval', NetMasterRate);
-
-  config.WriteInt  ('Client', 'InterpolationSteps', NetInterpLevel);
-  config.WriteBool ('Client', 'ForcePlayerUpdate', NetForcePlayerUpdate);
-  config.WriteBool ('Client', 'PredictSelf', NetPredictSelf);
-  config.WriteStr  ('Client', 'LastIP', NetLastIP);
-  config.WriteInt  ('Client', 'LastPort', NetLastPort);
-
-  config.SaveFile(GameDir+'\'+CONFIG_FILENAME);
-  config.Free();
+  g_Options_Write(GameDir+'\'+CONFIG_FILENAME);
 end;
 
 procedure ReadOptions();
@@ -450,48 +337,67 @@ end;
 procedure ProcStartCustomGame();
 var
   Map: String;
-  GameMode, n, Lives: Byte;
-  TimeLimit, GoalLimit: Word;
+  GameMode: Byte;
   Options: LongWord;
 begin
   with TGUIMenu(g_ActiveWindow.GetControl('mCustomGameMenu')) do
   begin
-    if TGUILabel(GetControl('lbMap')).Text = '' then
+    Map := TGUILabel(GetControl('lbMap')).Text;
+    if Map = '' then
+      Exit;
+    if Pos(':\', Map) = 0 then
       Exit;
 
     GameMode := TGUISwitch(GetControl('swGameMode')).ItemIndex+1;
-    TimeLimit := StrToIntDef(TGUIEdit(GetControl('edTimeLimit')).Text, 0);
-    GoalLimit := StrToIntDef(TGUIEdit(GetControl('edGoalLimit')).Text, 0);
-    Lives := StrToIntDef(TGUIEdit(GetControl('edMaxLives')).Text, 0);
+    gcGameMode := TGUISwitch(GetControl('swGameMode')).GetText;
+    gcTimeLimit := StrToIntDef(TGUIEdit(GetControl('edTimeLimit')).Text, 0);
+    gcGoalLimit := StrToIntDef(TGUIEdit(GetControl('edGoalLimit')).Text, 0);
+    gcMaxLives := StrToIntDef(TGUIEdit(GetControl('edMaxLives')).Text, 0);
 
+    gcTeamDamage := TGUISwitch(GetControl('swTeamDamage')).ItemIndex = 0;
+    gcAllowExit := TGUISwitch(GetControl('swEnableExits')).ItemIndex = 0;
+    gcWeaponStay := TGUISwitch(GetControl('swWeaponStay')).ItemIndex = 0;
+    gcMonsters := TGUISwitch(GetControl('swMonsters')).ItemIndex = 0;
     Options := 0;
-    if TGUISwitch(GetControl('swTeamDamage')).ItemIndex = 0 then
+    if gcTeamDamage then
       Options := Options or GAME_OPTION_TEAMDAMAGE;
-    if TGUISwitch(GetControl('swEnableExits')).ItemIndex = 0 then
+    if gcAllowExit then
       Options := Options or GAME_OPTION_ALLOWEXIT;
-    if TGUISwitch(GetControl('swWeaponStay')).ItemIndex = 0 then
+    if gcWeaponStay then
       Options := Options or GAME_OPTION_WEAPONSTAY;
-    if TGUISwitch(GetControl('swMonsters')).ItemIndex = 0 then
+    if gcMonsters then
       Options := Options or GAME_OPTION_MONSTERS;
     if TGUISwitch(GetControl('swPlayers')).ItemIndex = 1 then
       begin
         Options := Options or GAME_OPTION_TWOPLAYER;
-        n := 2;
+        gcPlayers := 2;
       end
     else
-      n := 1;
+      gcPlayers := 1;
 
     case TGUISwitch(GetControl('swBotsVS')).ItemIndex of
-      1: Options := Options or GAME_OPTION_BOTVSMONSTER;
-      2: Options := Options or GAME_OPTION_BOTVSPLAYER or GAME_OPTION_BOTVSMONSTER;
-      else Options := Options or GAME_OPTION_BOTVSPLAYER;
+      1: begin
+        Options := Options or GAME_OPTION_BOTVSMONSTER;
+        gcBotsVS := 'Monsters';
+      end;
+      2: begin
+        Options := Options or GAME_OPTION_BOTVSPLAYER or GAME_OPTION_BOTVSMONSTER;
+        gcBotsVS := 'Everybody';
+      end;
+      else begin
+        Options := Options or GAME_OPTION_BOTVSPLAYER;
+        gcBotsVS := 'Players';
+      end;
     end;
 
-    Map := MapsDir+TGUILabel(GetControl('lbMap')).Text;
+    gcMap := Map;
+    Map := MapsDir + Map;
   end;
 
-  g_Game_StartCustom(Map, GameMode, TimeLimit, GoalLimit,
-                     Lives, Options, n);
+  g_Options_Write_Gameplay_Custom(GameDir+'\'+CONFIG_FILENAME);
+
+  g_Game_StartCustom(Map, GameMode, gcTimeLimit, gcGoalLimit,
+                     gcMaxLives, Options, gcPlayers);
 end;
 
 
@@ -499,114 +405,99 @@ procedure ProcStartNetGame();
 var
   Map: String;
   GameMode: Byte;
-  TimeLimit, GoalLimit: Word;
-  Lives: Byte;
   Options: LongWord;
-  config: TConfig;
 begin
   with TGUIMenu(g_ActiveWindow.GetControl('mNetServerMenu')) do
   begin
-    if TGUILabel(GetControl('lbMap')).Text = '' then
+    Map := TGUILabel(GetControl('lbMap')).Text;
+    if Map = '' then
+      Exit;
+    if Pos(':\', Map) = 0 then
       Exit;
 
     GameMode := TGUISwitch(GetControl('swGameMode')).ItemIndex+1;
-    TimeLimit := StrToIntDef(TGUIEdit(GetControl('edTimeLimit')).Text, 0);
-    GoalLimit := StrToIntDef(TGUIEdit(GetControl('edGoalLimit')).Text, 0);
-    Lives := StrToIntDef(TGUIEdit(GetControl('edMaxLives')).Text, 0);
+    gnGameMode := TGUISwitch(GetControl('swGameMode')).GetText;
+    gnTimeLimit := StrToIntDef(TGUIEdit(GetControl('edTimeLimit')).Text, 0);
+    gnGoalLimit := StrToIntDef(TGUIEdit(GetControl('edGoalLimit')).Text, 0);
+    gnMaxLives := StrToIntDef(TGUIEdit(GetControl('edMaxLives')).Text, 0);
     NetPort := StrToIntDef(TGUIEdit(GetControl('edPort')).Text, 0);
 
+    gnTeamDamage := TGUISwitch(GetControl('swTeamDamage')).ItemIndex = 0;
+    gnAllowExit := TGUISwitch(GetControl('swEnableExits')).ItemIndex = 0;
+    gnWeaponStay := TGUISwitch(GetControl('swWeaponStay')).ItemIndex = 0;
+    gnMonsters := TGUISwitch(GetControl('swMonsters')).ItemIndex = 0;
     Options := 0;
-    if TGUISwitch(GetControl('swTeamDamage')).ItemIndex = 0 then
+    if gnTeamDamage then
       Options := Options or GAME_OPTION_TEAMDAMAGE;
-    if TGUISwitch(GetControl('swEnableExits')).ItemIndex = 0 then
+    if gnAllowExit then
       Options := Options or GAME_OPTION_ALLOWEXIT;
-    if TGUISwitch(GetControl('swWeaponStay')).ItemIndex = 0 then
+    if gnWeaponStay then
       Options := Options or GAME_OPTION_WEAPONSTAY;
-    if TGUISwitch(GetControl('swMonsters')).ItemIndex = 0 then
+    if gnMonsters then
       Options := Options or GAME_OPTION_MONSTERS;
 
     case TGUISwitch(GetControl('swBotsVS')).ItemIndex of
-      1: Options := Options or GAME_OPTION_BOTVSMONSTER;
-      2: Options := Options or GAME_OPTION_BOTVSPLAYER or GAME_OPTION_BOTVSMONSTER;
-      else Options := Options or GAME_OPTION_BOTVSPLAYER;
+      1: begin
+        Options := Options or GAME_OPTION_BOTVSMONSTER;
+        gnBotsVS := 'Monsters';
+      end;
+      2: begin
+        Options := Options or GAME_OPTION_BOTVSPLAYER or GAME_OPTION_BOTVSMONSTER;
+        gnBotsVS := 'Everybody';
+      end;
+      else begin
+        Options := Options or GAME_OPTION_BOTVSPLAYER;
+        gnBotsVS := 'Players';
+      end;
     end;
 
-    Map := MapsDir+TGUILabel(GetControl('lbMap')).Text;
-    gRelativeMapResStr := TGUILabel(GetControl('lbMap')).Text;
+    gnMap := Map;
+    gRelativeMapResStr := Map;
+    Map := MapsDir + Map;
     NetServerName := TGUIEdit(GetControl('edSrvName')).Text;
     NetMaxClients := Max(1, StrToIntDef(TGUIEdit(GetControl('edMaxPlayers')).Text, 1));
     NetMaxClients := Min(NET_MAXCLIENTS, NetMaxClients);
     NetPassword := TGUIEdit(GetControl('edSrvPassword')).Text;
   end;
 
-  config := TConfig.CreateFile(GameDir+'\'+CONFIG_FILENAME);
+  g_Options_Write_Net_Server(GameDir+'\'+CONFIG_FILENAME);
+  g_Options_Write_Gameplay_Net(GameDir+'\'+CONFIG_FILENAME);
 
-  config.WriteBool('Server', 'Dedicated', NetDedicated);
-  config.WriteStr ('Server', 'Name', NetServerName);
-  config.WriteStr ('Server', 'Password', NetPassword);
-  config.WriteInt ('Server', 'Port', NetPort);
-  config.WriteInt ('Server', 'MaxClients', NetMaxClients);
-  config.WriteBool('Server', 'RCON', NetAllowRCON);
-  config.WriteStr ('Server', 'RCONPassword', NetRCONPassword);
-  config.WriteBool('Server', 'SyncWithMaster', NetUseMaster);
-  config.WriteInt ('Server', 'UpdateInterval', NetUpdateRate);
-  config.WriteInt ('Server', 'ReliableUpdateInterval', NetRelupdRate);
-  config.WriteInt ('Server', 'MasterSyncInterval', NetMasterRate);
-
-  config.SaveFile(GameDir+'\'+CONFIG_FILENAME);
-  config.Free();
-
-  g_Game_StartServer(Map, GameMode, TimeLimit, GoalLimit, Lives,
+  g_Game_StartServer(Map, GameMode, gnTimeLimit, gnGoalLimit, gnMaxLives,
                      Options, NetPort);
 end;
 
 procedure ProcConnectNetGame();
 var
-  IP, PW: String;
-  Port: Word;
-  config: TConfig;
+  PW: String;
 begin
   with TGUIMenu(g_ActiveWindow.GetControl('mNetClientMenu')) do
   begin
-    IP := TGUIEdit(GetControl('edIP')).Text;
-    Port := StrToIntDef(TGUIEdit(GetControl('edPort')).Text, 0);
+    NetClientIP := TGUIEdit(GetControl('edIP')).Text;
+    NetClientPort := StrToIntDef(TGUIEdit(GetControl('edPort')).Text, 0);
     PW := TGUIEdit(GetControl('edPW')).Text;
   end;
 
-  config := TConfig.CreateFile(GameDir+'\'+CONFIG_FILENAME);
-
-  config.WriteStr ('Client', 'LastIP', IP);
-  config.WriteInt ('Client', 'LastPort', Port);
-
-  config.SaveFile(GameDir+'\'+CONFIG_FILENAME);
-  config.Free();
+  g_Options_Write_Net_Client(GameDir+'\'+CONFIG_FILENAME);
 
   if PW = '' then PW := 'ASS';
-  g_Game_StartClient(IP, Port, PW);
+  g_Game_StartClient(NetClientIP, NetClientPort, PW);
 end;
 
 procedure ProcEnterPassword();
 var
-  IP, PW: string;
-  Port: Word;
-  config: TConfig;
+  PW: string;
 begin
   with TGUIMenu(g_ActiveWindow.GetControl('mClientPasswordMenu')) do
   begin
-    IP := PromptIP;
-    Port := PromptPort;
+    NetClientIP := PromptIP;
+    NetClientPort := PromptPort;
     PW := TGUIEdit(GetControl('edPW')).Text;
   end;
-  config := TConfig.CreateFile(GameDir+'\'+CONFIG_FILENAME);
-
-  config.WriteStr ('Client', 'LastIP', IP);
-  config.WriteInt ('Client', 'LastPort', Port);
-
-  config.SaveFile(GameDir+'\'+CONFIG_FILENAME);
-  config.Free();
+  g_Options_Write_Net_Client(GameDir+'\'+CONFIG_FILENAME);
 
   if PW = '' then PW := 'ASS';
-  g_Game_StartClient(IP, Port, PW);
+  g_Game_StartClient(NetClientIP, NetClientPort, PW);
 end;
 
 procedure ProcServerlist();
@@ -1224,8 +1115,6 @@ begin
 end;
 
 procedure ProcSetRussianLanguage();
-var
-  config: TConfig;
 begin
   if gLanguage <> LANGUAGE_RUSSIAN then
   begin
@@ -1233,10 +1122,7 @@ begin
     gLanguageChange := True;
     gAskLanguage := False;
 
-    config := TConfig.CreateFile(GameDir+'\'+CONFIG_FILENAME);
-    config.WriteStr('Game', 'Language', gLanguage);
-    config.SaveFile(GameDir+'\'+CONFIG_FILENAME);
-    config.Free();
+    g_Options_Write_Language(GameDir+'\'+CONFIG_FILENAME);
 
   // Сохраняем изменения всех настроек:
     ProcApplyOptions();
@@ -1244,8 +1130,6 @@ begin
 end;
 
 procedure ProcSetEnglishLanguage();
-var
-  config: TConfig;
 begin
   if gLanguage <> LANGUAGE_ENGLISH then
   begin
@@ -1253,10 +1137,7 @@ begin
     gLanguageChange := True;
     gAskLanguage := False;
 
-    config := TConfig.CreateFile(GameDir+'\'+CONFIG_FILENAME);
-    config.WriteStr('Game', 'Language', gLanguage);
-    config.SaveFile(GameDir+'\'+CONFIG_FILENAME);
-    config.Free();
+    g_Options_Write_Language(GameDir+'\'+CONFIG_FILENAME);
 
   // Сохраняем изменения всех настроек:
     ProcApplyOptions();
@@ -1601,39 +1482,29 @@ begin
 end;
 
 procedure ProcSetFirstRussianLanguage();
-var
-  config: TConfig;
 begin
   gLanguage := LANGUAGE_RUSSIAN;
   gLanguageChange := True;
   gAskLanguage := False;
 
-  config := TConfig.CreateFile(GameDir+'\'+CONFIG_FILENAME);
-  config.WriteStr('Game', 'Language', gLanguage);
-  config.SaveFile(GameDir+'\'+CONFIG_FILENAME);
-  config.Free();
+  g_Options_Write_Language(GameDir+'\'+CONFIG_FILENAME);
 end;
 
 procedure ProcSetFirstEnglishLanguage();
-var
-  config: TConfig;
 begin
   gLanguage := LANGUAGE_ENGLISH;
   gLanguageChange := True;
   gAskLanguage := False;
 
-  config := TConfig.CreateFile(GameDir+'\'+CONFIG_FILENAME);
-  config.WriteStr('Game', 'Language', gLanguage);
-  config.SaveFile(GameDir+'\'+CONFIG_FILENAME);
-  config.Free();
+  g_Options_Write_Language(GameDir+'\'+CONFIG_FILENAME);
 end;
 
 procedure ProcRecallAddress();
 begin
   with TGUIMenu(g_GUI_GetWindow('NetClientMenu').GetControl('mNetClientMenu')) do
   begin
-    TGUIEdit(GetControl('edIP')).Text := NetLastIP;
-    TGUIEdit(GetControl('edPort')).Text := IntToStr(NetLastPort);
+    TGUIEdit(GetControl('edIP')).Text := NetClientIP;
+    TGUIEdit(GetControl('edPort')).Text := IntToStr(NetClientPort);
   end;
 end;
 
@@ -1819,6 +1690,7 @@ begin
     begin
       Name := 'lbMap';
       FixedLength := 16;
+      Text := gnMap;
       OnClick := @ProcSelectMapMenu;
     end;
     with AddSwitch(_lc[I_MENU_GAME_TYPE]) do
@@ -1829,6 +1701,12 @@ begin
       AddItem(_lc[I_MENU_GAME_TYPE_CTF]);
       AddItem(_lc[I_MENU_GAME_TYPE_COOP]);
       ItemIndex := 0;
+      if gnGameMode = _lc[I_MENU_GAME_TYPE_TDM] then
+        ItemIndex := 1;
+      if gnGameMode = _lc[I_MENU_GAME_TYPE_CTF] then
+        ItemIndex := 2;
+      if gnGameMode = _lc[I_MENU_GAME_TYPE_COOP] then
+        ItemIndex := 3;
       OnChange := ProcSwitchMonstersNet;
     end;
     with AddEdit(_lc[I_MENU_TIME_LIMIT]) do
@@ -1837,6 +1715,8 @@ begin
       OnlyDigits := True;
       Width := 4;
       MaxLength := 5;
+      if gnTimeLimit > 0 then
+        Text := IntToStr(gnTimeLimit);
     end;
     with AddEdit(_lc[I_MENU_GOAL_LIMIT]) do
     begin
@@ -1844,6 +1724,8 @@ begin
       OnlyDigits := True;
       Width := 4;
       MaxLength := 5;
+      if gnGoalLimit > 0 then
+        Text := IntToStr(gnGoalLimit);
     end;
     with AddEdit(_lc[I_MENU_MAX_LIVES]) do
     begin
@@ -1851,34 +1733,48 @@ begin
       OnlyDigits := True;
       Width := 4;
       MaxLength := 3;
+      if gnMaxLives > 0 then
+        Text := IntToStr(gnMaxLives);
     end;
     with AddSwitch(_lc[I_MENU_TEAM_DAMAGE]) do
     begin
       Name := 'swTeamDamage';
       AddItem(_lc[I_MENU_YES]);
       AddItem(_lc[I_MENU_NO]);
-      ItemIndex := 1;
+      if gnTeamDamage then
+        ItemIndex := 0
+      else
+        ItemIndex := 1;
     end;
     with AddSwitch(_lc[I_MENU_ENABLE_EXITS]) do
     begin
       Name := 'swEnableExits';
       AddItem(_lc[I_MENU_YES]);
       AddItem(_lc[I_MENU_NO]);
-      ItemIndex := 0;
+      if gnAllowExit then
+        ItemIndex := 0
+      else
+        ItemIndex := 1;
     end;
     with AddSwitch(_lc[I_MENU_WEAPONS_STAY]) do
     begin
       Name := 'swWeaponStay';
       AddItem(_lc[I_MENU_YES]);
       AddItem(_lc[I_MENU_NO]);
-      ItemIndex := 1;
+      if gnWeaponStay then
+        ItemIndex := 0
+      else
+        ItemIndex := 1;
     end;
     with AddSwitch(_lc[I_MENU_ENABLE_MONSTERS]) do
     begin
       Name := 'swMonsters';
       AddItem(_lc[I_MENU_YES]);
       AddItem(_lc[I_MENU_NO]);
-      ItemIndex := 1;
+      if gnMonsters then
+        ItemIndex := 0
+      else
+        ItemIndex := 1;
     end;
     with AddSwitch(_lc[I_MENU_BOTS_VS]) do
     begin
@@ -1887,6 +1783,10 @@ begin
       AddItem(_lc[I_MENU_BOTS_VS_MONSTERS]);
       AddItem(_lc[I_MENU_BOTS_VS_ALL]);
       ItemIndex := 2;
+      if gnBotsVS = 'Players' then
+        ItemIndex := 0;
+      if gnBotsVS = 'Monsters' then
+        ItemIndex := 1;
     end;
     AddSpace();
     AddButton(@ProcStartNetGame, _lc[I_MENU_START_GAME]);
@@ -1900,7 +1800,7 @@ begin
   with TGUIMenu(Menu.AddChild(TGUIMenu.Create(gMenuFont, gMenuSmallFont, _lc[I_MENU_START_CLIENT]))) do
   begin
     Name := 'mNetClientMenu';
-  
+
     AddButton(@ProcServerlist, _lc[I_NET_SLIST]);
     AddSpace();
   
@@ -1981,6 +1881,7 @@ begin
     begin
       Name := 'lbMap';
       FixedLength := 16;
+      Text := gcMap;
       OnClick := @ProcSelectMapMenu;
     end;
     with AddSwitch(_lc[I_MENU_GAME_TYPE]) do
@@ -1991,6 +1892,12 @@ begin
       AddItem(_lc[I_MENU_GAME_TYPE_CTF]);
       AddItem(_lc[I_MENU_GAME_TYPE_COOP]);
       ItemIndex := 0;
+      if gcGameMode = _lc[I_MENU_GAME_TYPE_TDM] then
+        ItemIndex := 1;
+      if gcGameMode = _lc[I_MENU_GAME_TYPE_CTF] then
+        ItemIndex := 2;
+      if gcGameMode = _lc[I_MENU_GAME_TYPE_COOP] then
+        ItemIndex := 3;
       OnChange := ProcSwitchMonstersCustom;
     end;
     with AddEdit(_lc[I_MENU_TIME_LIMIT]) do
@@ -1999,6 +1906,8 @@ begin
       OnlyDigits := True;
       Width := 4;
       MaxLength := 5;
+      if gcTimeLimit > 0 then
+        Text := IntToStr(gcTimeLimit);
     end;
     with AddEdit(_lc[I_MENU_GOAL_LIMIT]) do
     begin
@@ -2006,6 +1915,8 @@ begin
       OnlyDigits := True;
       Width := 4;
       MaxLength := 5;
+      if gcGoalLimit > 0 then
+        Text := IntToStr(gcGoalLimit);
     end;
     with AddEdit(_lc[I_MENU_MAX_LIVES]) do
     begin
@@ -2013,6 +1924,8 @@ begin
       OnlyDigits := True;
       Width := 4;
       MaxLength := 5;
+      if gcMaxLives > 0 then
+        Text := IntToStr(gcMaxLives);
     end;
     with AddSwitch(_lc[I_MENU_PLAYERS]) do
     begin
@@ -2020,34 +1933,48 @@ begin
       AddItem(_lc[I_MENU_PLAYERS_ONE]);
       AddItem(_lc[I_MENU_PLAYERS_TWO]);
       ItemIndex := 0;
+      if gcPlayers = 2 then
+        ItemIndex := 1;
     end;
     with AddSwitch(_lc[I_MENU_TEAM_DAMAGE]) do
     begin
       Name := 'swTeamDamage';
       AddItem(_lc[I_MENU_YES]);
       AddItem(_lc[I_MENU_NO]);
-      ItemIndex := 1;
+      if gcTeamDamage then
+        ItemIndex := 0
+      else
+        ItemIndex := 1;
     end;
     with AddSwitch(_lc[I_MENU_ENABLE_EXITS]) do
     begin
       Name := 'swEnableExits';
       AddItem(_lc[I_MENU_YES]);
       AddItem(_lc[I_MENU_NO]);
-      ItemIndex := 0;
+      if gcAllowExit then
+        ItemIndex := 0
+      else
+        ItemIndex := 1;
     end;
     with AddSwitch(_lc[I_MENU_WEAPONS_STAY]) do
     begin
       Name := 'swWeaponStay';
       AddItem(_lc[I_MENU_YES]);
       AddItem(_lc[I_MENU_NO]);
-      ItemIndex := 1;
+      if gcWeaponStay then
+        ItemIndex := 0
+      else
+        ItemIndex := 1;
     end;
     with AddSwitch(_lc[I_MENU_ENABLE_MONSTERS]) do
     begin
       Name := 'swMonsters';
       AddItem(_lc[I_MENU_YES]);
       AddItem(_lc[I_MENU_NO]);
-      ItemIndex := 1;
+      if gcMonsters then
+        ItemIndex := 0
+      else
+        ItemIndex := 1;
     end;
     with AddSwitch(_lc[I_MENU_BOTS_VS]) do
     begin
@@ -2056,6 +1983,10 @@ begin
       AddItem(_lc[I_MENU_BOTS_VS_MONSTERS]);
       AddItem(_lc[I_MENU_BOTS_VS_ALL]);
       ItemIndex := 2;
+      if gcBotsVS = 'Players' then
+        ItemIndex := 0;
+      if gcBotsVS = 'Monsters' then
+        ItemIndex := 1;
     end;
     AddSpace();
     AddButton(@ProcStartCustomGame, _lc[I_MENU_START_GAME]);

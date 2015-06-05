@@ -86,8 +86,8 @@ var
   NetSlistIP:   string = 'mpms.doom2d.org';
   NetSlistPort: Word = 25665;
   
-  NetLastIP:      string = '127.0.0.1';
-  NetLastPort:    Word   = 25666;
+  NetClientIP:   string = '127.0.0.1';
+  NetClientPort: Word   = 25666;
 
   NetIn, NetOut: TBuffer;
 
@@ -619,8 +619,8 @@ begin
         NetMode := NET_CLIENT;
         e_Buffer_Clear(@NetOut);
         enet_peer_timeout(NetPeer, ENET_PEER_TIMEOUT_LIMIT * 2, ENET_PEER_TIMEOUT_MINIMUM * 2, ENET_PEER_TIMEOUT_MAXIMUM * 2);
-        NetLastIP := IP;
-        NetLastPort := Port;
+        NetClientIP := IP;
+        NetClientPort := Port;
         Exit;
       end;
     end;

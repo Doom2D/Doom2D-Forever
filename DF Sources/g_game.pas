@@ -712,7 +712,7 @@ begin
   else
     if NetMode = NET_CLIENT then
       e_TextureFontPrintEx(x+8, y + 8,
-        NetLastIP + ':' + IntToStr(NetLastPort), gStdFont, 255, 255, 255, 1);
+        NetClientIP + ':' + IntToStr(NetClientPort), gStdFont, 255, 255, 255, 1);
 
   if pc = 0 then Exit;
   stat := g_Player_GetStats();
@@ -2704,33 +2704,8 @@ begin
 end;
 
 procedure g_Game_SaveOptions();
-var
-  config: TConfig;
-  sW, sH: Integer;
 begin
-  e_WriteLog('Writing resolution to config', MSG_NOTIFY);
-  config := TConfig.CreateFile(GameDir+'\'+CONFIG_FILENAME);
-
-  if gWinMaximized and (not gFullscreen) then
-    begin
-      sW := gWinSizeX;
-      sH := gWinSizeY;
-    end
-  else
-    begin
-      sW := gScreenWidth;
-      sH := gScreenHeight;
-    end;
-
-  config.WriteInt('Video', 'ScreenWidth', sW);
-  config.WriteInt('Video', 'ScreenHeight', sH);
-  config.WriteInt('Video', 'WinPosX', gWinRealPosX);
-  config.WriteInt('Video', 'WinPosY', gWinRealPosY);
-  config.WriteBool('Video', 'Fullscreen', gFullscreen);
-  config.WriteBool('Video', 'Maximized', gWinMaximized);
-
-  config.SaveFile(GameDir+'\'+CONFIG_FILENAME);
-  config.Free();
+  g_Options_Write_Video(GameDir+'\'+CONFIG_FILENAME);
 end;
 
 procedure g_Game_Restart();
@@ -3120,7 +3095,7 @@ begin
         else
           Options := Options and (not GAME_OPTION_TEAMDAMAGE);
       end;
-        
+
       if (LongBool(Options and GAME_OPTION_TEAMDAMAGE)) then
         g_Console_Add(_lc[I_MSG_FRIENDLY_FIRE_ON])
       else
@@ -3764,7 +3739,7 @@ begin
       EndGame;
     end;
     
-    g_Game_StartClient(NetLastIP, NetLastPort);
+    g_Game_StartClient(NetClientIP, NetClientPort);
   end
   else if (cmd = 'addbot') or
      (cmd = 'bot_add') then
