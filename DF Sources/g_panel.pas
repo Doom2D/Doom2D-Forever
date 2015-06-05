@@ -209,7 +209,8 @@ end;
 procedure TPanel.Draw();
 var
   xx, yy: Integer;
-  ID: DWORD;
+  NoTextureID: DWORD;
+  NW, NH: Word;
 begin
   if Enabled and (FCurTexture >= 0) and
      (Width > 0) and (Height > 0) and (FAlpha < 255) and
@@ -240,10 +241,11 @@ begin
             e_DrawFillQuad(X, Y, X+Width-1, Y+Height-1,
                            128, 0, 0, 0, B_FILTER);
           TEXTURE_NONE:
+            if g_Texture_Get('NOTEXTURE', NoTextureID) then
             begin
-              if g_Texture_Get('NOTEXTURE', ID) then
-                e_DrawFill(ID, X, Y, Width div 16, Height div 16,
-                           0, False, False);
+              e_GetTextureSize(NoTextureID, @NW, @NH);
+              e_DrawFill(NoTextureID, X, Y, Width div NW, Height div NH,
+                         0, False, False);
             end;
 
           else
