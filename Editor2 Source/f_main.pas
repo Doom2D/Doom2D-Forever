@@ -1672,6 +1672,21 @@ begin
   Result := ok;
 end;
 
+procedure UpdateCaption(sMap, sFile, sRes: String);
+begin
+  with MainForm do
+    if (sFile = '') and (sRes = '') and (sMap = '') then
+      Caption := FormCaption
+    else
+      if sMap = '' then
+        Caption := Format('%s - %s:%s', [FormCaption, sFile, sRes])
+      else
+        if (sFile <> '') and (sRes <> '') then
+          Caption := Format('%s - %s (%s:%s)', [FormCaption, sMap, sFile, sRes])
+        else
+          Caption := Format('%s - %s', [FormCaption, sMap]);
+end;
+
 procedure OpenMap(FileName: String; mapN: String);
 var
   MapName: String;
@@ -1690,7 +1705,7 @@ begin
     idx := SelectMapForm.lbMapList.Items.IndexOf(MapName);
     SelectMapForm.lbMapList.ItemIndex := idx;
   end;
- 
+
   if mapN = '' then
     idx := -1
   else
@@ -1733,10 +1748,7 @@ begin
     lbTextureList.Sorted := True;
     lbTextureList.Sorted := False;
 
-    if gMapInfo.Name = '' then
-      Caption := Format('%s - %s:%s', [FormCaption, ExtractFileName(FileName), MapName])
-    else
-      Caption := Format('%s - %s (%s:%s)', [FormCaption, gMapInfo.Name, ExtractFileName(FileName), MapName]);
+    UpdateCaption(gMapInfo.Name, ExtractFileName(FileName), MapName);
   end;
 end;
 
@@ -3613,24 +3625,15 @@ end;
 
 procedure TMainForm.aMapOptionsExecute(Sender: TObject);
 var
-  MapName: String;
+  ResName: String;
 begin
   MapOptionsForm.ShowModal();
 
-  MapName := OpenedMap;
-  while (Pos(':\', MapName) > 0) do
-    Delete(MapName, 1, Pos(':\', MapName) + 1);
+  ResName := OpenedMap;
+  while (Pos(':\', ResName) > 0) do
+    Delete(ResName, 1, Pos(':\', ResName) + 1);
 
-  if (OpenedWAD = '') and (MapName = '') and (gMapInfo.Name = '') then
-    Caption := FormCaption
-  else
-    if gMapInfo.Name = '' then
-      Caption := Format('%s - %s:%s', [FormCaption, ExtractFileName(OpenedWAD), MapName])
-    else
-      if (OpenedWAD <> '') and (MapName <> '') then
-        Caption := Format('%s - %s (%s:%s)', [FormCaption, gMapInfo.Name, ExtractFileName(OpenedWAD), MapName])
-      else
-        Caption := Format('%s - %s', [FormCaption, gMapInfo.Name]);
+  UpdateCaption(gMapInfo.Name, ExtractFileName(OpenedWAD), ResName);
 end;
 
 procedure TMainForm.aAboutExecute(Sender: TObject);
@@ -5065,12 +5068,7 @@ begin
 
   SaveMap(OpenedMap);
 
-  if gMapInfo.Name = '' then
-    Caption := Format('%s - %s:%s',
-      [FormCaption, ExtractFileName(SaveDialog.FileName), SaveMapForm.eMapName.Text])
-  else
-    Caption := Format('%s - %s (%s:%s)',
-      [FormCaption, gMapInfo.Name, ExtractFileName(SaveDialog.FileName), SaveMapForm.eMapName.Text]);
+  UpdateCaption(gMapInfo.Name, ExtractFileName(SaveDialog.FileName), SaveMapForm.eMapName.Text);
 end;
 
 procedure TMainForm.aSelectAllExecute(Sender: TObject);
