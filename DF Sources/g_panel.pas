@@ -153,7 +153,7 @@ begin
   end;
 
   SetLength(FTextureIDs, Length(AddTextures));
-  
+
   if CurTex < 0 then
     FCurTexture := -1
   else
@@ -209,6 +209,7 @@ end;
 procedure TPanel.Draw();
 var
   xx, yy: Integer;
+  ID: DWORD;
 begin
   if Enabled and (FCurTexture >= 0) and
      (Width > 0) and (Height > 0) and (FAlpha < 255) and
@@ -240,18 +241,11 @@ begin
                            128, 0, 0, 0, B_FILTER);
           TEXTURE_NONE:
             begin
-              xx := X + (Width div 2);
-              yy := Y + (Height div 2);
-              e_DrawFillQuad(X, Y, xx, yy,
-                             255, 0, 255, 0);
-              e_DrawFillQuad(xx, Y, X+Width-1, yy,
-                             255, 255, 0, 0);
-              e_DrawFillQuad(X, yy, xx, Y+Height-1,
-                             255, 255, 0, 0);
-              e_DrawFillQuad(xx, yy, X+Width-1, Y+Height-1,
-                             255, 0, 255, 0);
+              if g_Texture_Get('NOTEXTURE', ID) then
+                e_DrawFill(ID, X, Y, Width div 16, Height div 16,
+                           0, False, False);
             end;
-            
+
           else
             e_DrawFill(FTextureIDs[FCurTexture].Tex, X, Y,
                        Width div FTextureWidth,

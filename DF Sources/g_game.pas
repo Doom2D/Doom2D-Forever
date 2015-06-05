@@ -1359,6 +1359,7 @@ begin
 
   g_Game_SetLoadingText(_lc[I_LOAD_GAME_DATA], 0, False);
 
+  g_Texture_CreateWADEx('NOTEXTURE', GameWAD+':TEXTURES\NOTEXTURE');
   g_Texture_CreateWADEx('TEXTURE_PLAYER_HUD', GameWAD+':TEXTURES\HUD');
   g_Texture_CreateWADEx('TEXTURE_PLAYER_HUDAIR', GameWAD+':TEXTURES\AIRBAR');
   g_Texture_CreateWADEx('TEXTURE_PLAYER_HUDJET', GameWAD+':TEXTURES\JETBAR');
@@ -1391,6 +1392,7 @@ begin
 
   e_WriteLog('Releasing game data...', MSG_NOTIFY);
 
+  g_Texture_Delete('NOTEXTURE');
   g_Texture_Delete('TEXTURE_PLAYER_HUD');
   g_Texture_Delete('TEXTURE_PLAYER_HUDBG');
   g_Texture_Delete('TEXTURE_PLAYER_ARMORHUD');

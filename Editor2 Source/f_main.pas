@@ -1581,6 +1581,12 @@ begin
   Result := True;
 end;
 
+procedure SelectTexture(ID: Integer);
+begin
+  MainForm.lbTextureList.ItemIndex := ID;
+  MainForm.lbTextureListClick(nil);
+end;
+
 function AddTexture(aWAD, aSection, aTex: String; silent: Boolean): Boolean;
 var
   a: Integer;
@@ -1646,7 +1652,7 @@ begin
     begin
       a := MainForm.lbTextureList.Items.Add(ResourceName);
       if not silent then
-        MainForm.lbTextureList.ItemIndex := a;
+        SelectTexture(a);
       Result := True;
       Exit;
     end;
@@ -1666,7 +1672,7 @@ begin
           a := MainForm.lbTextureList.Items.Add(ResourceName);
       end;
     if (a > -1) and (not silent) then
-      MainForm.lbTextureList.ItemIndex := a;
+      SelectTexture(a);
   end;
 
   Result := ok;
@@ -2408,7 +2414,8 @@ begin
   if (lbTextureList.ItemIndex <> -1) and (cbPreview.Checked) and
      (not IsSpecialTextureSel()) and (not PreviewMode) then
   begin
-    g_GetTexture(SelectedTexture(), ID);
+    if not g_GetTexture(SelectedTexture(), ID) then
+      g_GetTexture('NOTEXTURE', ID);
     g_GetTextureSizeByID(ID, Width, Height);
     e_DrawFillQuad(RenderPanel.Width-Width-2, RenderPanel.Height-Height-2,
                    RenderPanel.Width-1, RenderPanel.Height-1,
@@ -3772,16 +3779,23 @@ end;
 
 procedure TMainForm.lbTextureListClick(Sender: TObject);
 var
+  TextureID: DWORD;
   TextureWidth, TextureHeight: Word;
-
 begin
   if (lbTextureList.ItemIndex <> -1) and
      (not IsSpecialTextureSel()) then
     begin
-      g_GetTextureSizeByName(SelectedTexture(), TextureWidth, TextureHeight);
+      if g_GetTexture(SelectedTexture(), TextureID) then
+      begin
+        g_GetTextureSizeByID(TextureID, TextureWidth, TextureHeight);
 
-      lTextureWidth.Caption := IntToStr(TextureWidth);
-      lTextureHeight.Caption := IntToStr(TextureHeight);
+        lTextureWidth.Caption := IntToStr(TextureWidth);
+        lTextureHeight.Caption := IntToStr(TextureHeight);
+      end else
+      begin
+        lTextureWidth.Caption := _lc[I_NOT_ACCESSIBLE];
+        lTextureHeight.Caption := _lc[I_NOT_ACCESSIBLE];
+      end;
     end
   else
     begin
@@ -3857,7 +3871,8 @@ var
   _id, a, r, c: Integer;
   s: String;
   res: Boolean;
-
+  NoTextureID: DWORD;
+  NW, NH: Word;
 begin
   if SelectedObjectCount() <> 1 then
     Exit;
@@ -3936,7 +3951,7 @@ begin
                     begin
                       g_GetTextureSizeByName(TextureName,
                         TextureWidth, TextureHeight);
-                        
+
                     // ѕроверка кратности размеров панели:
                       res := True;
                       if TextureWidth <> 0 then
@@ -3954,8 +3969,23 @@ begin
                           Res := False;
                         end;
 
-                      if Res then 
-                        g_GetTexture(TextureName, TextureID)
+                      if Res then
+                      begin
+                        if not g_GetTexture(TextureName, TextureID) then
+                          // Ќе удалось загрузить текстуру, рисуем NOTEXTURE
+                          if g_GetTexture('NOTEXTURE', NoTextureID) then
+                          begin
+                            TextureID := TEXTURE_SPECIAL_NOTEXTURE;
+                            g_GetTextureSizeByID(NoTextureID, NW, NH);
+                            TextureWidth := NW;
+                            TextureHeight := NH;
+                          end else
+                          begin
+                            TextureID := TEXTURE_SPECIAL_NONE;
+                            TextureWidth := 1;
+                            TextureHeight := 1;
+                          end;
+                      end
                       else
                         begin
                           TextureName := '';

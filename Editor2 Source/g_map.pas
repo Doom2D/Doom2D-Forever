@@ -86,6 +86,7 @@ const
   TEXTURE_SPECIAL_WATER = DWORD(-2);
   TEXTURE_SPECIAL_ACID1 = DWORD(-3);
   TEXTURE_SPECIAL_ACID2 = DWORD(-4);
+  TEXTURE_SPECIAL_NOTEXTURE = DWORD(-8);
 
   ItemSize: Array [ITEM_MEDKIT_SMALL..ITEM_MAX] of Array [0..1] of Byte =
     (((14), (15)), // MEDKIT_SMALL
@@ -1318,7 +1319,6 @@ end;
 procedure AddTexture(res: String);
 var
   a: Integer;
-
 begin
   with MainForm.lbTextureList do
   begin
@@ -1353,7 +1353,8 @@ var
   TextureRes: String;
   pData: Pointer;
   Len: Integer;
-
+  NoTextureID: DWORD;
+  NW, NH: Word;
 begin
   Result := False;
 
@@ -1417,29 +1418,22 @@ begin
       if not ByteBool(textures[a].Anim) then
         begin // Обычная текстура
           if not g_CreateTextureWAD(textures[a].Resource, TextureRes) then
-          begin
             e_WriteLog(Format('g_CreateTextureWAD() error, res=%s',
                               [textures[a].Resource]), MSG_WARNING);
-            Continue;
-          end;
 
           AddTexture(textures[a].Resource);
         end
       else // Anim
         begin // Анимированная текстура
           if not GetFrame(TextureRes, Data, Width, Height) then
-          begin // Кадры
+            // Кадры
             e_WriteLog(Format('GetFrame() error, res=%s',
                               [textures[a].Resource]), MSG_WARNING);
-            Continue;
-          end;
 
           if not g_CreateTextureMemorySize(Data, textures[a].Resource, 0, 0, Width, Height, 1) then
-          begin // Сама текстура
+            // Сама текстура
             e_WriteLog(Format('g_CreateTextureMemorySize() error, res=%s',
                               [textures[a].Resource]), MSG_WARNING);
-            Continue;
-          end;
 
           AddTexture(textures[a].Resource);
         end;
@@ -1487,7 +1481,18 @@ begin
         if not IsSpecialTexture(textures[panels[a].TextureNum].Resource) then
           begin // Текстура
             if g_GetTexture(textures[panels[a].TextureNum].Resource, panel.TextureID) then
-              g_GetTextureSizeByID(panel.TextureID, panel.TextureWidth, panel.TextureHeight);
+              g_GetTextureSizeByID(panel.TextureID, panel.TextureWidth, panel.TextureHeight)
+            else begin
+              panel.TextureWidth := 1;
+              panel.TextureHeight := 1;
+              if g_GetTexture('NOTEXTURE', NoTextureID) then
+              begin
+                panel.TextureID := TEXTURE_SPECIAL_NOTEXTURE;
+                g_GetTextureSizeByID(NoTextureID, NW, NH);
+                panel.TextureWidth := NW;
+                panel.TextureHeight := NH;
+              end;
+            end;
           end
         else // Спец. текстура
           panel.TextureID := SpecialTextureID(textures[panels[a].TextureNum].Resource);
@@ -1920,6 +1925,9 @@ end;
 procedure DrawPanels(fPanelType: Word);
 
   procedure DrawTexture(a: Integer);
+  var
+    NoTextureID: DWORD;
+    NW, NH: Word;
   begin
     with gPanels[a] do
     begin
@@ -1929,6 +1937,14 @@ procedure DrawPanels(fPanelType: Word);
             e_DrawFillQuad(X+MapOffset.X, Y+MapOffset.Y,
                            X+MapOffset.X+Width-1, Y+MapOffset.Y+Height-1,
                            64, 64, 64, 127);
+
+        TEXTURE_SPECIAL_NOTEXTURE:
+          if g_GetTexture('NOTEXTURE', NoTextureID) then
+          begin
+            g_GetTextureSizeByID(NoTextureID, NW, NH);
+            e_DrawFill(NoTextureID, X, Y, Width div NW, Height div NH,
+                       0, False, False);
+          end;
 
         TEXTURE_SPECIAL_WATER:
           if PreviewMode then
@@ -2481,7 +2497,7 @@ begin
               Inc(gTriggers[i].Data.MonPos.X, dx);
               Inc(gTriggers[i].Data.MonPos.Y, dy);
             end;
-            
+
           TRIGGER_SPAWNITEM:
             begin
               Inc(gTriggers[i].Data.ItemPos.X, dx);
@@ -2493,6 +2509,8 @@ end;
 
 procedure LoadData();
 begin
+ g_CreateTextureWAD('NOTEXTURE', EditorDir+'\data\Game.wad:TEXTURES\NOTEXTURE');
+
  g_CreateTextureWADSize('AREA_REDFLAG', EditorDir+'\data\Game.wad:TEXTURES\FLAGRED', 0, 0, 64, 64);
  g_CreateTextureWADSize('AREA_BLUEFLAG', EditorDir+'\data\Game.wad:TEXTURES\FLAGBLUE', 0, 0, 64, 64);
  g_CreateTextureWADSize('AREA_DOMFLAG', EditorDir+'\data\Game.wad:TEXTURES\FLAGDOM', 0, 0, 64, 64);
@@ -2565,6 +2583,8 @@ end;
 
 procedure FreeData();
 begin
+ g_DeleteTexture('NOTEXTURE');
+
  g_DeleteTexture('ITEM_BLUESPHERE');
  g_DeleteTexture('ITEM_WHITESPHERE');
  g_DeleteTexture('ITEM_ARMORGREEN');

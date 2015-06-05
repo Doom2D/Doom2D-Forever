@@ -7,6 +7,8 @@ Uses
 
 Type
   TStrings_Locale = (
+    I_NOT_ACCESSIBLE,
+
     I_ARRAY_BOOL_FALSE,
     I_ARRAY_BOOL_TRUE,
 
@@ -544,6 +546,9 @@ Uses
 
 Const
   g_lang_default: Array [TStrings_Locale] of Array [1..3] of String = (
+    ('NOT ACCESSIBLE',                 'N/A',
+                                       'Н/Д'),
+
     ('ARRAY BOOL FALSE',               'No',
                                        'Нет'),
     ('ARRAY BOOL TRUE',                'Yes',
