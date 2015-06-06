@@ -1316,7 +1316,7 @@ begin
     Result := Data;
 end;
 
-procedure AddTexture(res: String);
+procedure AddTexture(res: String; Error: Boolean);
 var
   a: Integer;
 begin
@@ -1326,6 +1326,8 @@ begin
       if Items[a] = res then
         Exit;
 
+    if Error and (slInvalidTextures.IndexOf(res) = -1) then
+      slInvalidTextures.Add(res);
     Items.Add(res);
   end;
 end;
@@ -1353,6 +1355,7 @@ var
   TextureRes: String;
   pData: Pointer;
   Len: Integer;
+  Error: Boolean;
   NoTextureID: DWORD;
   NW, NH: Word;
 begin
@@ -1404,7 +1407,7 @@ begin
 
       if IsSpecialTexture(textures[a].Resource) then
       begin
-        AddTexture(textures[a].Resource);
+        AddTexture(textures[a].Resource, False);
         Continue;
       end;
 
@@ -1415,27 +1418,36 @@ begin
       else
         TextureRes := EditorDir+'wads\'+textures[a].Resource;
 
+      Error := False;
+
       if not ByteBool(textures[a].Anim) then
         begin // Обычная текстура
           if not g_CreateTextureWAD(textures[a].Resource, TextureRes) then
+          begin
             e_WriteLog(Format('g_CreateTextureWAD() error, res=%s',
                               [textures[a].Resource]), MSG_WARNING);
+            Error := True;
+          end;
 
-          AddTexture(textures[a].Resource);
+          AddTexture(textures[a].Resource, Error);
         end
       else // Anim
         begin // Анимированная текстура
           if not GetFrame(TextureRes, Data, Width, Height) then
-            // Кадры
+          begin // Кадры
             e_WriteLog(Format('GetFrame() error, res=%s',
                               [textures[a].Resource]), MSG_WARNING);
+            Error := True;
+          end;
 
           if not g_CreateTextureMemorySize(Data, textures[a].Resource, 0, 0, Width, Height, 1) then
-            // Сама текстура
+          begin // Сама текстура
             e_WriteLog(Format('g_CreateTextureMemorySize() error, res=%s',
                               [textures[a].Resource]), MSG_WARNING);
+            Error := True;
+          end;
 
-          AddTexture(textures[a].Resource);
+          AddTexture(textures[a].Resource, Error);
         end;
     end;
   end;
@@ -1511,7 +1523,7 @@ begin
         end;
 
         panel.TextureID := SpecialTextureID(panel.TextureName);
-        AddTexture(panel.TextureName);
+        AddTexture(panel.TextureName, False);
       end;
 
       AddPanel(panel);

@@ -228,6 +228,7 @@ object MainForm: TMainForm
           Width = 362
           Height = 78
           Hint = #1057#1087#1080#1089#1086#1082' '#1090#1077#1082#1089#1090#1091#1088
+          Style = lbOwnerDrawFixed
           Align = alClient
           Constraints.MaxHeight = 600
           Constraints.MinHeight = 70
@@ -236,6 +237,7 @@ object MainForm: TMainForm
           ParentCtl3D = False
           TabOrder = 0
           OnClick = lbTextureListClick
+          OnDrawItem = lbTextureListDrawItem
         end
         object PanelTextures: TPanel
           Left = 568

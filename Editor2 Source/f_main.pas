@@ -247,6 +247,8 @@ Type
     procedure vleObjectPropertyExit(Sender: TObject);
     procedure FormKeyUp(Sender: TObject; var Key: Word;
       Shift: TShiftState);
+    procedure lbTextureListDrawItem(Control: TWinControl; Index: Integer;
+      Rect: TRect; State: TOwnerDrawState);
 
   Private
     procedure Draw();
@@ -288,6 +290,7 @@ var
   Scale: Byte;
   RecentCount: Integer;
   RecentFiles: TStringList;
+  slInvalidTextures: TStringList;
 
   TestGameMode: String;
   TestLimTime: String;
@@ -312,7 +315,6 @@ procedure OpenMap(FileName: String; mapN: String);
 function  AddTexture(aWAD, aSection, aTex: String; silent: Boolean): Boolean;
 procedure RemoveSelectFromObjects();
 procedure ChangeShownProperty(Name: String; NewValue: String);
-
 
 Implementation
 
@@ -1508,6 +1510,7 @@ begin
   RemoveSelectFromObjects();
   ClearMap();
   UndoBuffer := nil;
+  slInvalidTextures.Clear();
   MapCheckForm.lbErrorList.Clear();
   MapCheckForm.mErrorDescription.Clear();
 
@@ -1598,7 +1601,6 @@ var
   Data: Pointer;
   Width, Height: Word;
   fn: String;
-
 begin
   if aSection = '..' then
     SectionName := ''
@@ -1697,7 +1699,6 @@ procedure OpenMap(FileName: String; mapN: String);
 var
   MapName: String;
   idx: Integer;
-
 begin
   SelectMapForm.GetMaps(FileName);
 
@@ -2231,7 +2232,6 @@ var
   config: TConfig;
   i: Integer;
   s: String;
-
 begin
   Randomize();
 
@@ -2265,6 +2265,8 @@ begin
   e_InitGL(False);
 
   gEditorFont := e_SimpleFontCreate('Arial Cyr', 12, FW_BOLD, hDC);
+
+  slInvalidTextures := TStringList.Create;
 
   e_WriteLog('Loading data', MSG_NOTIFY);
   LoadData();
@@ -3600,7 +3602,6 @@ procedure TMainForm.FormDestroy(Sender: TObject);
 var
   config: TConfig;
   i: Integer;
-  
 begin
   config := TConfig.CreateFile(EditorDir+'\Editor.cfg');
 
@@ -3620,6 +3621,8 @@ begin
 
   config.SaveFile(EditorDir+'\Editor.cfg');
   config.Free();
+
+  slInvalidTextures.Free;
 
   wglDeleteContext(hRC);
 end;
@@ -4205,10 +4208,10 @@ end;
 
 procedure TMainForm.bbRemoveTextureClick(Sender: TObject);
 var
-  a: Integer;
-
+  a, i: Integer;
 begin
-  if lbTextureList.ItemIndex = -1 then
+  i := lbTextureList.ItemIndex;
+  if i = -1 then
     Exit;
 
   if MessageBox(0, PChar(Format(_lc[I_MSG_DEL_TEXTURE_PROMT],
@@ -4228,6 +4231,9 @@ begin
       end;
 
   g_DeleteTexture(SelectedTexture());
+  i := slInvalidTextures.IndexOf(lbTextureList.Items[i]);
+  if i > -1 then
+    slInvalidTextures.Delete(i);
   lbTextureList.DeleteSelected();
 end;
 
@@ -5460,6 +5466,26 @@ begin
        (Key = VK_NUMPAD5) or
        (Key = Ord('V')) then
       FillProperty();
+  end;
+end;
+
+procedure TMainForm.lbTextureListDrawItem(Control: TWinControl;
+  Index: Integer; Rect: TRect; State: TOwnerDrawState);
+begin
+  with Control as TListBox do
+  begin
+    if odSelected in State then
+    begin
+      Canvas.Brush.Color := clHighlight;
+      Canvas.Font.Color := clHighlightText;
+    end else
+      if slInvalidTextures.IndexOf(Items[Index]) > -1 then
+      begin
+        Canvas.Brush.Color := clRed;
+        Canvas.Font.Color := clWhite;
+      end;
+    Canvas.FillRect(Rect);
+    Canvas.TextRect(Rect, Rect.Left, Rect.Top, Items[Index]);
   end;
 end;
 
