@@ -2533,7 +2533,8 @@ begin
      (lbTextureList.ItemIndex <> -1) and (DrawRect <> nil) and
      (lbPanelType.ItemIndex in [0..8]) and not IsSpecialTextureSel() then
   begin
-    g_GetTexture(SelectedTexture(), ID);
+    if not g_GetTexture(SelectedTexture(), ID) then
+      g_GetTexture('NOTEXTURE', ID);
     g_GetTextureSizeByID(ID, Width, Height);
     with DrawRect^ do
       e_DrawFill(ID, Min(Left, Right), Min(Top, Bottom), Abs(Right-Left) div Width,

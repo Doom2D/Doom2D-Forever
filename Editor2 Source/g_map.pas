@@ -1991,14 +1991,13 @@ procedure DrawPanels(fPanelType: Word);
         else
           e_DrawFill(TextureID, X+MapOffset.X, Y+MapOffset.Y,
                      Width div TextureWidth, Height div TextureHeight,
-                     Alpha, True, Blending)
+                     Alpha, True, Blending);
       end;
     end;
   end;
 
 var
   a: Integer;
-  
 begin
   if gPanels <> nil then
     for a := 0 to High(gPanels) do
@@ -2006,6 +2005,8 @@ begin
          WordBool(gPanels[a].PanelType and fPanelType) then
         with gPanels[a] do
         begin
+          if (TextureWidth = 0) and (TextureWidth = 0) then
+            TextureID := TEXTURE_SPECIAL_NOTEXTURE;
           case PanelType of
             PANEL_WALL, PANEL_BACK, PANEL_FORE,
             PANEL_STEP, PANEL_OPENDOOR, PANEL_CLOSEDOOR,
