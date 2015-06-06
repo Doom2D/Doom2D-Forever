@@ -3090,6 +3090,7 @@ begin
   if Force then
     FLive := False;
 
+  FSpawned := False;
   FTime[T_RESPAWN] := 0;
   FGodMode := False;
   FNoTarget := False;
