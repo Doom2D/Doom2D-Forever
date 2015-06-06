@@ -2493,6 +2493,19 @@ begin
     e_SimpleFontPrint(MousePos.X+8, MousePos.Y+14, PChar(_lc[I_HINT_EXT_AREA]), gEditorFont, 0, 0, 0);
   end;
 
+// Рисуем текстуры, если чертим панель:
+  if (MouseAction = MOUSEACTION_DRAWPANEL) and (DrawTexturePanel) and
+     (lbTextureList.ItemIndex <> -1) and (DrawRect <> nil) and
+     (lbPanelType.ItemIndex in [0..8]) and not IsSpecialTextureSel() then
+  begin
+    if not g_GetTexture(SelectedTexture(), ID) then
+      g_GetTexture('NOTEXTURE', ID);
+    g_GetTextureSizeByID(ID, Width, Height);
+    with DrawRect^ do
+      e_DrawFill(ID, Min(Left, Right), Min(Top, Bottom), Abs(Right-Left) div Width,
+                 Abs(Bottom-Top) div Height, 0, True, False);
+  end;
+
 // Чертим мышью панель/триггер или меняем мышью их размер:
   if (MouseAction in [MOUSEACTION_DRAWPANEL, MOUSEACTION_DRAWTRIGGER, MOUSEACTION_RESIZE]) and
      (DrawPanelSize) then
@@ -2526,19 +2539,6 @@ begin
         e_SimpleFontPrint(MousePos.X+8, MousePos.Y+28, PChar(Format(_lc[I_HINT_HEIGHT], [Height])),
                           gEditorFont, 0, 0, 0);
       end;
-  end;
-
-// Рисуем текстуры, если чертим панель:
-  if (MouseAction = MOUSEACTION_DRAWPANEL) and (DrawTexturePanel) and
-     (lbTextureList.ItemIndex <> -1) and (DrawRect <> nil) and
-     (lbPanelType.ItemIndex in [0..8]) and not IsSpecialTextureSel() then
-  begin
-    if not g_GetTexture(SelectedTexture(), ID) then
-      g_GetTexture('NOTEXTURE', ID);
-    g_GetTextureSizeByID(ID, Width, Height);
-    with DrawRect^ do
-      e_DrawFill(ID, Min(Left, Right), Min(Top, Bottom), Abs(Right-Left) div Width,
-                 Abs(Bottom-Top) div Height, 0, True, False);
   end;
 
 // Прямоугольник выделения:
@@ -2580,7 +2580,7 @@ begin
             aY2 := max(Height div ScaleSz, 1);
           // Правый нижний угол:
             aX2 := aX + aX2 - 1;
-            aY2 := aY + aY2 - 1;  
+            aY2 := aY + aY2 - 1;
 
             case PanelType of
               PANEL_WALL:      e_DrawFillQuad(aX, aY, aX2, aY2, 208, 208, 208, 0);
