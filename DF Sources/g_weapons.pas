@@ -888,9 +888,10 @@ begin
       end;
 
     if not _collide then
-    _collide := GunHit(xx, yy, xi*v, yi*v, SpawnerUID, v <> 0) <> 0;
+      _collide := GunHit(xx, yy, xi*v, yi*v, SpawnerUID, v <> 0) <> 0;
 
-    if _collide then Break;
+    if _collide then
+      Break;
   end;
 
   if CheckTrigger and g_Game_IsServer then
@@ -1282,7 +1283,7 @@ begin
   begin
     g_Weapon_gun(x, y+1, xd, yd+1, 1, SpawnerUID, False);
     g_Weapon_gun(x, y-1, xd, yd-1, 1, SpawnerUID, False);
- end;
+  end;
 end;
 
 procedure g_Weapon_mgun(x, y, xd, yd: Integer; SpawnerUID: Word);
@@ -1292,7 +1293,10 @@ begin
 
   if (gGameSettings.GameMode in [GM_DM, GM_TDM, GM_CTF]) and
      (g_GetUIDType(SpawnerUID) = UID_PLAYER) then
-    g_Weapon_gun(x, y+1, xd, yd+1, 1, SpawnerUID, True);
+  begin
+    g_Weapon_gun(x, y+1, xd, yd+1, 1, SpawnerUID, False);
+    g_Weapon_gun(x, y-1, xd, yd-1, 1, SpawnerUID, False);
+  end;
 end;
 
 procedure g_Weapon_shotgun(x, y, xd, yd: Integer; SpawnerUID: Word);

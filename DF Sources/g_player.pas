@@ -2267,7 +2267,7 @@ var
   mon: TMonster;
   plr: TPlayer;
   srv, netsrv: Boolean;
-  dofrags, OldLR: Boolean;
+  DoFrags, OldLR: Boolean;
   KP: TPlayer;
 
   procedure PushItem(t: Byte);
@@ -2291,7 +2291,7 @@ var
   end;
 
 begin
-  dofrags := (gGameSettings.MaxLives = 0) or (gGameSettings.GameMode = GM_COOP);
+  DoFrags := (gGameSettings.MaxLives = 0) or (gGameSettings.GameMode = GM_COOP);
   Srv := g_Game_IsServer;
   Netsrv := g_Game_IsServer and g_Game_IsNet;
   if Srv then FDeath := FDeath + 1;
