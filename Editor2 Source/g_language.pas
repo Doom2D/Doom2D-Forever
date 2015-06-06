@@ -155,6 +155,7 @@ Type
     I_PROP_TR_KEYS,
     I_PROP_TR_D2D,
     I_PROP_TR_SILENT,
+    I_PROP_TR_COUNT,
     I_PROP_TR_INTERVAL,
     I_PROP_TR_HEALTH,
     I_PROP_TR_NEXT_MAP,
@@ -179,7 +180,6 @@ Type
     I_PROP_TR_SOUND_SWITCH,
     I_PROP_TR_FX_TYPE,
     I_PROP_TR_SPAWN_TO,
-    I_PROP_TR_SPAWN_COUNT,
     I_PROP_TR_SPAWN_MAX,
     I_PROP_TR_SPAWN_DELAY,
     I_PROP_TR_MONSTER_TYPE,
@@ -193,6 +193,15 @@ Type
     I_PROP_TR_PUSH_ANGLE,
     I_PROP_TR_PUSH_FORCE,
     I_PROP_TR_PUSH_RESET,
+    I_PROP_TR_SCORE_ACT,
+    I_PROP_TR_SCORE_ACT_0,
+    I_PROP_TR_SCORE_ACT_1,
+    I_PROP_TR_SCORE_ACT_2,
+    I_PROP_TR_SCORE_TEAM,
+    I_PROP_TR_SCORE_TEAM_0,
+    I_PROP_TR_SCORE_TEAM_1,
+    I_PROP_TR_SCORE_TEAM_2,
+    I_PROP_TR_SCORE_TEAM_3,
     I_PROP_TR_DAMAGE_VALUE,
     I_PROP_TR_HEALTH_MAX,
 
@@ -517,7 +526,7 @@ Const
 
 Var
   _lc: Array [TStrings_Locale] of String;
-  
+
   BoolNames: Array [False..True] of String;
   DirNames: Array [D_LEFT..D_RIGHT] of String;
   DirNamesAdv: Array [0..3] of String;
@@ -533,7 +542,6 @@ Var
 procedure g_Language_Load(fileName: String);
 procedure g_Language_Set(lang: String);
 procedure g_Language_Dump(fileName: String);
-
 
 Implementation
 
@@ -831,6 +839,8 @@ Const
                                        'Как в D2D'),
     ('PROP TR SILENT',                 'Silent',
                                        'Без звука'),
+    ('PROP TR COUNT',                  'Count',
+                                       'Количество'),
     ('PROP TR INTERVAL',               'Interval',
                                        'Интервал'),
     ('PROP TR HEALTH',                 'Health',
@@ -879,8 +889,6 @@ Const
                                        'Эффект'),
     ('PROP TR SPAWN TO',               'Spawn at',
                                        'Точка появления'),
-    ('PROP TR SPAWN COUNT',            'Count',
-                                       'Количество'),
     ('PROP TR SPAWN MAX',              'Maximum',
                                        'Максимум'),
     ('PROP TR SPAWN DELAY',            'Autospawn interval',
@@ -895,8 +903,8 @@ Const
                                        'Тип предмета'),
     ('PROP TR MUSIC NAME',             'Music',
                                        'Музыка'),
-    ('PROP TR MUSIC ACT',              'Action',
-                                       'Действие'),
+    ('PROP TR MUSIC ACT',              'Action                             (m)',
+                                       'Действие                           (m)'),
     ('PROP TR MUSIC ON',               'Play',
                                        'Включить'),
     ('PROP TR MUSIC OFF',              'Pause',
@@ -907,6 +915,24 @@ Const
                                        'Сила'),
     ('PROP TR PUSH RESET',             'Reset velocity',
                                        'Сбрасывать скорость'),
+    ('PROP TR SCORE ACT',              'Action                             (s)',
+                                       'Действие                           (s)'),
+    ('PROP TR SCORE ACT 0',            'Add points',
+                                       'Прибавить очки'),
+    ('PROP TR SCORE ACT 1',            'Subtract points',
+                                       'Отнять очки'),
+    ('PROP TR SCORE ACT 2',            'Team Wins',
+                                       'Выигрыш'),
+    ('PROP TR SCORE TEAM',             'Team',
+                                       'Команда'),
+    ('PROP TR SCORE TEAM 0',           'My',
+                                       'Своя'),
+    ('PROP TR SCORE TEAM 1',           'Enemy',
+                                       'Соперника'),
+    ('PROP TR SCORE TEAM 2',           'Red',
+                                       'Красная'),
+    ('PROP TR SCORE TEAM 3',           'Blue',
+                                       'Синяя'),
     ('PROP TR DAMAGE VALUE',           'Damage',
                                        'Ущерб'),
     ('PROP TR HEALTH MAX',             'To maximum',

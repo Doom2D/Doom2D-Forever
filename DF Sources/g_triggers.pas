@@ -933,7 +933,172 @@ begin
           Result := True;
         end;
 
-      TRIGGER_SCORE: ;
+      TRIGGER_SCORE:
+        begin
+          Result := False;
+          // Прибавить или отнять очко
+          if (Data.ScoreAction in [0..1]) and (Data.ScoreCount > 0) then
+          begin
+            // Своей или чужой команде
+            if (Data.ScoreTeam in [0..1]) and (g_GetUIDType(ActivateUID) = UID_PLAYER) then
+            begin
+              p := g_Player_Get(ActivateUID);
+              if ((Data.ScoreAction = 0) and (Data.ScoreTeam = 0) and (p.Team = TEAM_RED))
+              or ((Data.ScoreAction = 0) and (Data.ScoreTeam = 1) and (p.Team = TEAM_BLUE)) then
+              begin
+                Inc(gTeamStat[TEAM_RED].Goals, Data.ScoreCount); // Red Scores
+
+                if Data.ScoreTeam = 0 then
+                  g_Console_Add(Format(_lc[I_PLAYER_SCORE_ADD_OWN], [p.Name, Data.ScoreCount, _lc[I_PLAYER_SCORE_TO_RED]]), True)
+                else
+                  g_Console_Add(Format(_lc[I_PLAYER_SCORE_ADD_ENEMY], [p.Name, Data.ScoreCount, _lc[I_PLAYER_SCORE_TO_RED]]), True);
+
+                g_Game_Message(Format(_lc[I_MESSAGE_SCORE_ADD], [AnsiUpperCase(_lc[I_GAME_TEAM_RED])]), 108);
+                if g_Game_IsServer and g_Game_IsNet then MH_SEND_GameEvent(NET_EV_SCORE_ADD, 'r');
+              end;
+              if ((Data.ScoreAction = 1) and (Data.ScoreTeam = 0) and (p.Team = TEAM_RED))
+              or ((Data.ScoreAction = 1) and (Data.ScoreTeam = 1) and (p.Team = TEAM_BLUE)) then
+              begin
+                Dec(gTeamStat[TEAM_RED].Goals, Data.ScoreCount); // Red Fouls
+
+                if Data.ScoreTeam = 0 then
+                  g_Console_Add(Format(_lc[I_PLAYER_SCORE_SUB_OWN], [p.Name, Data.ScoreCount, _lc[I_PLAYER_SCORE_TO_RED]]), True)
+                else
+                  g_Console_Add(Format(_lc[I_PLAYER_SCORE_SUB_ENEMY], [p.Name, Data.ScoreCount, _lc[I_PLAYER_SCORE_TO_RED]]), True);
+
+                g_Game_Message(Format(_lc[I_MESSAGE_SCORE_SUB], [AnsiUpperCase(_lc[I_GAME_TEAM_RED])]), 108);
+                if g_Game_IsServer and g_Game_IsNet then MH_SEND_GameEvent(NET_EV_SCORE_SUB, 'r');
+              end;
+              if ((Data.ScoreAction = 0) and (Data.ScoreTeam = 0) and (p.Team = TEAM_BLUE))
+              or ((Data.ScoreAction = 0) and (Data.ScoreTeam = 1) and (p.Team = TEAM_RED)) then
+              begin
+                Inc(gTeamStat[TEAM_BLUE].Goals, Data.ScoreCount); // Blue Scores
+
+                if Data.ScoreTeam = 0 then
+                  g_Console_Add(Format(_lc[I_PLAYER_SCORE_ADD_OWN], [p.Name, Data.ScoreCount, _lc[I_PLAYER_SCORE_TO_BLUE]]), True)
+                else
+                  g_Console_Add(Format(_lc[I_PLAYER_SCORE_ADD_ENEMY], [p.Name, Data.ScoreCount, _lc[I_PLAYER_SCORE_TO_BLUE]]), True);
+
+                g_Game_Message(Format(_lc[I_MESSAGE_SCORE_ADD], [AnsiUpperCase(_lc[I_GAME_TEAM_BLUE])]), 108);
+                if g_Game_IsServer and g_Game_IsNet then MH_SEND_GameEvent(NET_EV_SCORE_ADD, 'b');
+              end;
+              if ((Data.ScoreAction = 1) and (Data.ScoreTeam = 0) and (p.Team = TEAM_BLUE))
+              or ((Data.ScoreAction = 1) and (Data.ScoreTeam = 1) and (p.Team = TEAM_RED)) then
+              begin
+                Dec(gTeamStat[TEAM_BLUE].Goals, Data.ScoreCount); // Blue Fouls
+
+                if Data.ScoreTeam = 0 then
+                  g_Console_Add(Format(_lc[I_PLAYER_SCORE_SUB_OWN], [p.Name, Data.ScoreCount, _lc[I_PLAYER_SCORE_TO_BLUE]]), True)
+                else
+                  g_Console_Add(Format(_lc[I_PLAYER_SCORE_SUB_ENEMY], [p.Name, Data.ScoreCount, _lc[I_PLAYER_SCORE_TO_BLUE]]), True);
+
+                g_Game_Message(Format(_lc[I_MESSAGE_SCORE_SUB], [AnsiUpperCase(_lc[I_GAME_TEAM_BLUE])]), 108);
+                if g_Game_IsServer and g_Game_IsNet then MH_SEND_GameEvent(NET_EV_SCORE_SUB, 'b');
+              end;
+              Result := (p.Team = TEAM_RED) or (p.Team = TEAM_BLUE);
+            end;
+            // Какой-то конкретной команде
+            if Data.ScoreTeam in [2..3] then
+            begin
+              if (Data.ScoreAction = 0) and (Data.ScoreTeam = 2) then
+              begin
+                Inc(gTeamStat[TEAM_RED].Goals, Data.ScoreCount); // Red Scores
+
+                g_Console_Add(Format(_lc[I_PLAYER_SCORE_ADD_TEAM], [_lc[I_PLAYER_SCORE_RED], Data.ScoreCount]), True);
+
+                g_Game_Message(Format(_lc[I_MESSAGE_SCORE_ADD], [AnsiUpperCase(_lc[I_GAME_TEAM_RED])]), 108);
+                if g_Game_IsServer and g_Game_IsNet then MH_SEND_GameEvent(NET_EV_SCORE_ADD, 'r');
+              end;
+              if (Data.ScoreAction = 1) and (Data.ScoreTeam = 2) then
+              begin
+                Dec(gTeamStat[TEAM_RED].Goals, Data.ScoreCount); // Red Fouls
+
+                g_Console_Add(Format(_lc[I_PLAYER_SCORE_SUB_TEAM], [_lc[I_PLAYER_SCORE_RED], Data.ScoreCount]), True);
+
+                g_Game_Message(Format(_lc[I_MESSAGE_SCORE_SUB], [AnsiUpperCase(_lc[I_GAME_TEAM_RED])]), 108);
+                if g_Game_IsServer and g_Game_IsNet then MH_SEND_GameEvent(NET_EV_SCORE_SUB, 'r');
+              end;
+              if (Data.ScoreAction = 0) and (Data.ScoreTeam = 3) then
+              begin
+                Inc(gTeamStat[TEAM_BLUE].Goals, Data.ScoreCount); // Blue Scores
+
+                g_Console_Add(Format(_lc[I_PLAYER_SCORE_ADD_TEAM], [_lc[I_PLAYER_SCORE_BLUE], Data.ScoreCount]), True);
+
+                g_Game_Message(Format(_lc[I_MESSAGE_SCORE_ADD], [AnsiUpperCase(_lc[I_GAME_TEAM_BLUE])]), 108);
+                if g_Game_IsServer and g_Game_IsNet then MH_SEND_GameEvent(NET_EV_SCORE_ADD, 'b');
+              end;
+              if (Data.ScoreAction = 1) and (Data.ScoreTeam = 3) then
+              begin
+                Dec(gTeamStat[TEAM_BLUE].Goals, Data.ScoreCount); // Blue Fouls
+
+                g_Console_Add(Format(_lc[I_PLAYER_SCORE_SUB_TEAM], [_lc[I_PLAYER_SCORE_BLUE], Data.ScoreCount]), True);
+
+                g_Game_Message(Format(_lc[I_MESSAGE_SCORE_SUB], [AnsiUpperCase(_lc[I_GAME_TEAM_BLUE])]), 108);
+                if g_Game_IsServer and g_Game_IsNet then MH_SEND_GameEvent(NET_EV_SCORE_SUB, 'b');
+              end;
+              Result := True;
+            end;
+          end;
+          // Выигрыш
+          if (Data.ScoreAction = 2) and (gGameSettings.GoalLimit > 0) then
+          begin
+            // Своей или чужой команды
+            if (Data.ScoreTeam in [0..1]) and (g_GetUIDType(ActivateUID) = UID_PLAYER) then
+            begin
+              p := g_Player_Get(ActivateUID);
+              if ((Data.ScoreTeam = 0) and (p.Team = TEAM_RED)) // Red Wins
+              or ((Data.ScoreTeam = 1) and (p.Team = TEAM_BLUE)) then
+                if gTeamStat[TEAM_RED].Goals < SmallInt(gGameSettings.GoalLimit) then
+                begin
+                  gTeamStat[TEAM_RED].Goals := gGameSettings.GoalLimit;
+
+                  if Data.ScoreTeam = 0 then
+                    g_Console_Add(Format(_lc[I_PLAYER_SCORE_WIN_OWN], [p.Name, _lc[I_PLAYER_SCORE_TO_RED]]), True)
+                  else
+                    g_Console_Add(Format(_lc[I_PLAYER_SCORE_WIN_ENEMY], [p.Name, _lc[I_PLAYER_SCORE_TO_RED]]), True);
+
+                  Result := True;
+                end;
+              if ((Data.ScoreTeam = 0) and (p.Team = TEAM_BLUE)) // Blue Wins
+              or ((Data.ScoreTeam = 1) and (p.Team = TEAM_RED)) then
+                if gTeamStat[TEAM_BLUE].Goals < SmallInt(gGameSettings.GoalLimit) then
+                begin
+                  gTeamStat[TEAM_BLUE].Goals := gGameSettings.GoalLimit;
+
+                  if Data.ScoreTeam = 0 then
+                    g_Console_Add(Format(_lc[I_PLAYER_SCORE_WIN_OWN], [p.Name, _lc[I_PLAYER_SCORE_TO_BLUE]]), True)
+                  else
+                    g_Console_Add(Format(_lc[I_PLAYER_SCORE_WIN_ENEMY], [p.Name, _lc[I_PLAYER_SCORE_TO_BLUE]]), True);
+
+                  Result := True;
+                end;
+            end;
+            // Какой-то конкретной команды
+            if Data.ScoreTeam in [2..3] then
+            begin
+              if Data.ScoreTeam = 2 then // Red Wins
+                if gTeamStat[TEAM_RED].Goals < SmallInt(gGameSettings.GoalLimit) then
+                begin
+                  gTeamStat[TEAM_RED].Goals := gGameSettings.GoalLimit;
+                  Result := True;
+                end;
+              if Data.ScoreTeam = 3 then // Blue Wins
+                if gTeamStat[TEAM_BLUE].Goals < SmallInt(gGameSettings.GoalLimit) then
+                begin
+                  gTeamStat[TEAM_BLUE].Goals := gGameSettings.GoalLimit;
+                  Result := True;
+                end;
+            end;
+          end;
+          if Result then begin
+            if coolDown then
+              TimeOut := 18
+            else
+              TimeOut := 0;
+            if g_Game_IsServer and g_Game_IsNet then
+              MH_SEND_GameStats;
+          end;
+        end;
 
       TRIGGER_MESSAGE: ;
 

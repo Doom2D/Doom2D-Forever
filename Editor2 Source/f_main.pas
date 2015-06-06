@@ -1156,7 +1156,7 @@ begin
                   ReadOnly := True;
                 end;
 
-                with ItemProps[InsertRow(_lc[I_PROP_TR_SPAWN_COUNT], IntToStr(Data.MonCount), True)-1] do
+                with ItemProps[InsertRow(_lc[I_PROP_TR_COUNT], IntToStr(Data.MonCount), True)-1] do
                 begin
                   EditStyle := esSimple;
                   MaxLength := 5;
@@ -1214,7 +1214,7 @@ begin
                   ReadOnly := True;
                 end;
 
-                with ItemProps[InsertRow(_lc[I_PROP_TR_SPAWN_COUNT], IntToStr(Data.ItemCount), True)-1] do
+                with ItemProps[InsertRow(_lc[I_PROP_TR_COUNT], IntToStr(Data.ItemCount), True)-1] do
                 begin
                   EditStyle := esSimple;
                   MaxLength := 5;
@@ -1278,7 +1278,35 @@ begin
                 end;
               end;
 
-            TRIGGER_SCORE: ;
+            TRIGGER_SCORE:
+              begin
+                case Data.ScoreAction of
+                  1: str := _lc[I_PROP_TR_SCORE_ACT_1];
+                  2: str := _lc[I_PROP_TR_SCORE_ACT_2];
+                  else str := _lc[I_PROP_TR_SCORE_ACT_0];
+                end;
+                with ItemProps[InsertRow(_lc[I_PROP_TR_SCORE_ACT], str, True)-1] do
+                begin
+                  EditStyle := esPickList;
+                  ReadOnly := True;
+                end;
+                with ItemProps[InsertRow(_lc[I_PROP_TR_COUNT], IntToStr(Data.ScoreCount), True)-1] do
+                begin
+                  EditStyle := esSimple;
+                  MaxLength := 3;
+                end;
+                case Data.ScoreTeam of
+                  1: str := _lc[I_PROP_TR_SCORE_TEAM_1];
+                  2: str := _lc[I_PROP_TR_SCORE_TEAM_2];
+                  3: str := _lc[I_PROP_TR_SCORE_TEAM_3];
+                  else str := _lc[I_PROP_TR_SCORE_TEAM_0];
+                end;
+                with ItemProps[InsertRow(_lc[I_PROP_TR_SCORE_TEAM], str, True)-1] do
+                begin
+                  EditStyle := esPickList;
+                  ReadOnly := True;
+                end;
+              end;
 
             TRIGGER_MESSAGE: ;
 
@@ -3342,7 +3370,10 @@ begin
                       trigger.Data.ResetVel := False;
                     end;
 
-                  TRIGGER_SCORE: ;
+                  TRIGGER_SCORE:
+                    begin
+                      trigger.Data.ScoreCount := 1;
+                    end;
 
                   TRIGGER_MESSAGE: ;
 
@@ -3847,6 +3878,19 @@ begin
         Values.Add(_lc[I_PROP_TR_MUSIC_ON]);
         Values.Add(_lc[I_PROP_TR_MUSIC_OFF]);
       end
+    else if KeyName = _lc[I_PROP_TR_SCORE_ACT] then
+      begin
+        Values.Add(_lc[I_PROP_TR_SCORE_ACT_0]);
+        Values.Add(_lc[I_PROP_TR_SCORE_ACT_1]);
+        Values.Add(_lc[I_PROP_TR_SCORE_ACT_2]);
+      end
+    else if KeyName = _lc[I_PROP_TR_SCORE_TEAM] then
+      begin
+        Values.Add(_lc[I_PROP_TR_SCORE_TEAM_0]);
+        Values.Add(_lc[I_PROP_TR_SCORE_TEAM_1]);
+        Values.Add(_lc[I_PROP_TR_SCORE_TEAM_2]);
+        Values.Add(_lc[I_PROP_TR_SCORE_TEAM_3]);
+      end
     else if (KeyName = _lc[I_PROP_PANEL_BLEND]) or
             (KeyName = _lc[I_PROP_DM_ONLY]) or
             (KeyName = _lc[I_PROP_ITEM_FALLS]) or
@@ -4129,7 +4173,7 @@ begin
                 if Data.MonHealth < 0 then
                   Data.MonHealth := 0;
                 Data.MonActive := NameToBool(vleObjectProperty.Values[_lc[I_PROP_TR_MONSTER_ACTIVE]]);
-                Data.MonCount := Min(StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_SPAWN_COUNT]], 0), 64);
+                Data.MonCount := Min(StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_COUNT]], 0), 64);
                 if Data.MonCount < 1 then
                   Data.MonCount := 1;
                 Data.MonEffect := StrToEffect(vleObjectProperty.Values[_lc[I_PROP_TR_FX_TYPE]]);
@@ -4143,7 +4187,7 @@ begin
                 Data.ItemType := StrToItem(vleObjectProperty.Values[_lc[I_PROP_TR_ITEM_TYPE]]);
                 Data.ItemOnlyDM := NameToBool(vleObjectProperty.Values[_lc[I_PROP_DM_ONLY]]);
                 Data.ItemFalls := NameToBool(vleObjectProperty.Values[_lc[I_PROP_ITEM_FALLS]]);
-                Data.ItemCount := Min(StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_SPAWN_COUNT]], 0), 64);
+                Data.ItemCount := Min(StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_COUNT]], 0), 64);
                 if Data.ItemCount < 1 then
                   Data.ItemCount := 1;
                 Data.ItemEffect := StrToEffect(vleObjectProperty.Values[_lc[I_PROP_TR_FX_TYPE]]);
@@ -4173,24 +4217,40 @@ begin
                 Data.ResetVel := NameToBool(vleObjectProperty.Values[_lc[I_PROP_TR_PUSH_RESET]]);
               end;
 
-            TRIGGER_SCORE: ;
+            TRIGGER_SCORE:
+              begin
+                Data.ScoreAction := 0;
+                if vleObjectProperty.Values[_lc[I_PROP_TR_SCORE_ACT]] = _lc[I_PROP_TR_SCORE_ACT_1] then
+                  Data.ScoreAction := 1;
+                if vleObjectProperty.Values[_lc[I_PROP_TR_SCORE_ACT]] = _lc[I_PROP_TR_SCORE_ACT_2] then
+                  Data.ScoreAction := 2;
+                Data.ScoreCount := Min(Max(
+                  StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_COUNT]], 0), 0), 255);
+                Data.ScoreTeam := 0;
+                if vleObjectProperty.Values[_lc[I_PROP_TR_SCORE_TEAM]] = _lc[I_PROP_TR_SCORE_TEAM_1] then
+                  Data.ScoreTeam := 1;
+                if vleObjectProperty.Values[_lc[I_PROP_TR_SCORE_TEAM]] = _lc[I_PROP_TR_SCORE_TEAM_2] then
+                  Data.ScoreTeam := 2;
+                if vleObjectProperty.Values[_lc[I_PROP_TR_SCORE_TEAM]] = _lc[I_PROP_TR_SCORE_TEAM_3] then
+                  Data.ScoreTeam := 3;
+              end;
 
             TRIGGER_MESSAGE: ;
 
             TRIGGER_DAMAGE:
               begin
-                Data.DamageValue := Max(Min(
-                  StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_DAMAGE_VALUE]], 0), 65535), 0);
-                Data.DamageInterval := Max(Min(
-                  StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_INTERVAL]], 0), 65535), 0);
+                Data.DamageValue := Min(Max(
+                  StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_DAMAGE_VALUE]], 0), 0), 65535);
+                Data.DamageInterval := Min(Max(
+                  StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_INTERVAL]], 0), 0), 65535);
               end;
 
             TRIGGER_HEALTH:
               begin
-                Data.HealValue := Max(Min(
-                  StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_HEALTH]], 0), 65535), 0);
-                Data.HealInterval := Max(Min(
-                  StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_INTERVAL]], 0), 65535), 0);
+                Data.HealValue := Min(Max(
+                  StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_HEALTH]], 0), 0), 65535);
+                Data.HealInterval := Min(Max(
+                  StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_INTERVAL]], 0), 0), 65535);
                 Data.HealMax := NameToBool(vleObjectProperty.Values[_lc[I_PROP_TR_HEALTH_MAX]]);
                 Data.HealSilent := NameToBool(vleObjectProperty.Values[_lc[I_PROP_TR_SILENT]]);
               end;

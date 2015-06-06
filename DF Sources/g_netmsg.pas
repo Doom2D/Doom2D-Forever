@@ -70,6 +70,8 @@ const
   NET_EV_LMS_START    = 6;
   NET_EV_LMS_DRAW     = 7;
   NET_EV_LMS_SURVIVOR = 8;
+  NET_EV_SCORE_ADD    = 9;
+  NET_EV_SCORE_SUB    = 10;
 
   NET_VE_STARTED      = 1;
   NET_VE_PASSED       = 2;
@@ -1492,6 +1494,20 @@ begin
         g_Game_Message(Format(_lc[I_MESSAGE_TLMS_WIN], [AnsiUpperCase(_lc[I_GAME_TEAM_RED])]), 144)
       else
         g_Game_Message(Format(_lc[I_MESSAGE_TLMS_WIN], [AnsiUpperCase(_lc[I_GAME_TEAM_BLUE])]), 144);
+    end;
+    NET_EV_SCORE_ADD:
+    begin
+      if Pos('r', EvParm) > 0 then
+        g_Game_Message(Format(_lc[I_MESSAGE_SCORE_ADD], [AnsiUpperCase(_lc[I_GAME_TEAM_RED])]), 108)
+      else
+        g_Game_Message(Format(_lc[I_MESSAGE_SCORE_ADD], [AnsiUpperCase(_lc[I_GAME_TEAM_BLUE])]), 108);
+    end;
+    NET_EV_SCORE_SUB:
+    begin
+      if Pos('r', EvParm) > 0 then
+        g_Game_Message(Format(_lc[I_MESSAGE_SCORE_SUB], [AnsiUpperCase(_lc[I_GAME_TEAM_RED])]), 108)
+      else
+        g_Game_Message(Format(_lc[I_MESSAGE_SCORE_SUB], [AnsiUpperCase(_lc[I_GAME_TEAM_BLUE])]), 108);
     end;
   end;
 end;
