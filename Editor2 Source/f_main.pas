@@ -2506,6 +2506,11 @@ begin
                  Abs(Bottom-Top) div Height, 0, True, False);
   end;
 
+// Прямоугольник выделения:
+  if DrawRect <> nil then
+    with DrawRect^ do
+      e_DrawQuad(Left, Top, Right-1, Bottom-1, 255, 255, 255);
+
 // Чертим мышью панель/триггер или меняем мышью их размер:
   if (MouseAction in [MOUSEACTION_DRAWPANEL, MOUSEACTION_DRAWTRIGGER, MOUSEACTION_RESIZE]) and
      (DrawPanelSize) then
@@ -2541,12 +2546,7 @@ begin
       end;
   end;
 
-// Прямоугольник выделения:
-  if DrawRect <> nil then
-    with DrawRect^ do
-      e_DrawQuad(Left, Top, Right-1, Bottom-1, 255, 255, 255);
-
-// Ближайшая к курсору мыши точка не сетке:
+// Ближайшая к курсору мыши точка на сетке:
   e_DrawPoint(3, MousePos.X, MousePos.Y, 0, 0, 255);
 
 // Мини-карта:
