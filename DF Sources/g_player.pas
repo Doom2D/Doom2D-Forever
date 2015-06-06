@@ -502,7 +502,7 @@ const
   //                               WEAPON_SHOTGUN2, WEAPON_CHAINGUN, WEAPON_SHOTGUN1,
   //                               WEAPON_SAW, WEAPON_ROCKETLAUNCHER, WEAPON_PISTOL, WEAPON_KASTET);
   WEAPON_RELOAD: Array [WEAPON_KASTET..WEAPON_SUPERPULEMET] of Byte =
-                                (5, 2, 6, 18, 36, 2, 12, 2, 15, 2);
+                                (5, 2, 6, 18, 36, 2, 12, 2, 14, 2);
 
   PLAYER_SIGNATURE = $52594C50; // 'PLYR'
   CORPSE_SIGNATURE = $50524F43; // 'CORP'
