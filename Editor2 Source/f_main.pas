@@ -5079,7 +5079,6 @@ end;
 procedure TMainForm.aSaveMapAsExecute(Sender: TObject);
 var
   idx: Integer;
-  
 begin
   SaveDialog.Filter := _lc[I_FILE_FILTER_WAD];
 
@@ -5309,27 +5308,35 @@ end;
 
 procedure TMainForm.miTestMapClick(Sender: TObject);
 var
+  NewMap: Boolean;
   cmd, dir, mapWAD, mapToRun: String;
   opt: LongWord;
   time: Integer;
   si: STARTUPINFO;
   pi: PROCESS_INFORMATION;
   lpMsgBuf: PChar;
-
 begin
 // Новая карта:
-  if OpenedMap = '' then
+  NewMap := OpenedMap = '';
+  if NewMap then
   begin
-    aSaveMapAsExecute(nil);
-    Exit;
+  // Сохраняем временную карту:
+    time := 0;
+    repeat
+      mapWAD := ExtractFilePath(TestD2dExe) + Format('maps\temp%.4d.wad', [time]);
+      Inc(time);
+    until not FileExists(mapWAD);
+    mapToRun := mapWAD + ':\' + TEST_MAP_NAME;
+    SaveMap(mapToRun);
+  end else
+  begin
+  // Сохраняем под тестовым именем:
+    g_ProcessResourceStr(OpenedMap, mapWAD, cmd, dir);
+    mapToRun := mapWAD + ':\' + TEST_MAP_NAME;
+    time := g_GetFileTime(mapWAD);
+    SaveMap(mapToRun);
+    g_SetFileTime(mapWAD, time);
   end;
-
-// Сохраняем под тестовым именем:
-  g_ProcessResourceStr(OpenedMap, mapWAD, cmd, dir);
-  mapToRun := mapWAD + ':\' + TEST_MAP_NAME;
-  time := g_GetFileTime(mapWAD);
-  SaveMap(mapToRun);
-  g_SetFileTime(mapWAD, time);
 
 // Опции игры:
   opt := 32 + 64;
@@ -5358,7 +5365,12 @@ begin
   if TestMapOnce then
     cmd := cmd + ' --close';
 
-  cmd := cmd + ' --debug --testdelete';
+  cmd := cmd + ' --debug';
+
+  if NewMap then
+    cmd := cmd + ' --tempdelete'
+  else
+    cmd := cmd + ' --testdelete';
 
 // Запускаем:
   ZeroMemory(@si, SizeOf(si));
@@ -5369,7 +5381,7 @@ begin
                        nil, nil, False, 0, nil,
                        PChar(dir),
                        si, pi) then
-  begin 
+  begin
     FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER or FORMAT_MESSAGE_FROM_SYSTEM,
                   nil, GetLastError(), LANG_SYSTEM_DEFAULT,
                   @lpMsgBuf, 0, nil);

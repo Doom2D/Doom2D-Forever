@@ -169,6 +169,7 @@ var
   gCheats: Boolean = False;
   gMapOnce: Boolean = False;
   gMapToDelete: String;
+  gTempDelete: Boolean = False;
   gLastMap: Boolean = False;
   gWinPosX, gWinPosY: Integer;
   gWinSizeX, gWinSizeY: Integer;
@@ -819,6 +820,7 @@ var
 begin
   gExit := 0;
   gMapToDelete := '';
+  gTempDelete := False;
 
   g_Texture_CreateWADEx('MENU_BACKGROUND', GameWAD+':TEXTURES\TITLE');
   g_Texture_CreateWADEx('INTER', GameWAD+':TEXTURES\INTER');
@@ -2086,7 +2088,7 @@ begin
 
 // Надо удалить карту после теста:
   if gMapToDelete <> '' then
-    g_Game_DeleteTestMap();     
+    g_Game_DeleteTestMap();
 
   gExit := EXIT_QUIT;
   PostQuitMessage(0);
@@ -3009,7 +3011,7 @@ begin
 
     if not g_Map_Exist(gGameSettings.WAD + ':\' + gNextMap) then gNextMap := Map;
   end;
-  
+
   MapList := nil;
 end;
 
@@ -3036,32 +3038,36 @@ begin
   if MapName <> TEST_MAP_NAME then
     Exit;
 
-  time := g_GetFileTime(WadName);
-  WAD := TWADEditor_1.Create();
+  if not gTempDelete then
+  begin
+    time := g_GetFileTime(WadName);
+    WAD := TWADEditor_1.Create();
 
-// Читаем Wad-файл:
-  if not WAD.ReadFile(WadName) then
-  begin // Нет такого WAD-файла
+  // Читаем Wad-файл:
+    if not WAD.ReadFile(WadName) then
+    begin // Нет такого WAD-файла
+      WAD.Free();
+      Exit;
+    end;
+
+  // Составляем список карт и ищем нужную:
+    WAD.CreateImage();
+    MapList := WAD.GetResourcesList('');
+
+    if MapList <> nil then
+      for a := 0 to High(MapList) do
+        if MapList[a] = MapName then
+        begin
+        // Удаляем и сохраняем:
+          WAD.RemoveResource('', MapName);
+          WAD.SaveTo(WadName);
+          Break;
+        end;
+
     WAD.Free();
-    Exit;
-  end;
-
-// Составляем список карт и ищем нужную:
-  WAD.CreateImage();
-  MapList := WAD.GetResourcesList('');
-
-  if MapList <> nil then
-    for a := 0 to High(MapList) do
-      if MapList[a] = MapName then
-      begin
-      // Удаляем и сохраняем:
-        WAD.RemoveResource('', MapName);
-        WAD.SaveTo(WadName);
-        Break;
-      end;
-
-  WAD.Free();
-  g_SetFileTime(WadName, time);
+    g_SetFileTime(WadName, time);
+  end else
+    DeleteFile(WadName);
 end;
 
 procedure GameCVars(P: SArray);
@@ -4443,6 +4449,14 @@ begin
     s := Find_Param_Value(pars, '--testdelete');
     if (s <> '') then
       gMapToDelete := map;
+
+  // Delete temporary WAD after play:
+    s := Find_Param_Value(pars, '--tempdelete');
+    if (s <> '') then
+    begin
+      gMapToDelete := map;
+      gTempDelete := True;
+    end;
 
   // Number of players:
     if LongBool(Opt and GAME_OPTION_TWOPLAYER) then
