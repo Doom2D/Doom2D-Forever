@@ -115,6 +115,7 @@ type
     FName:        String;
     FTeam:      Byte;
     FLive:      Boolean;
+    FSpawned:   Boolean;
     FDirection: TDirection;
     FHealth:    Integer;
     FLives:     Byte;
@@ -1575,6 +1576,7 @@ constructor TPlayer.Create();
 begin
   FIamBot := False;
   FDummy := False;
+  FSpawned := False;
 
   FSawSound := TPlayableSound.Create();
   FSawSoundIdle := TPlayableSound.Create();
@@ -3161,40 +3163,79 @@ begin
 
       if gGameSettings.GameMode = GM_DM then
         begin // DM ...
-        // Точка возрождения DM:
-          c := RESPAWNPOINT_DM;
-
-          if g_Map_GetPointCount(c) = 0 then
-          begin // Точек возрождения DM нет
-          // Пробуем точку начала одиночной игры:
-            if Random(2) = 0 then
-              c := RESPAWNPOINT_PLAYER1
-            else
+          if not FSpawned then
+          begin // Приходит в первый раз
+            // Точка своего игрока
+            c := RESPAWNPOINT_PLAYER1;
+            if FPlayerNum = PLAYERNUM_2 then
               c := RESPAWNPOINT_PLAYER2;
 
             if g_Map_GetPointCount(c) = 0 then
             begin // Этой точки нет
-            // Пробуем противоположную:
-              if c = RESPAWNPOINT_PLAYER1 then
-                c := RESPAWNPOINT_PLAYER2
+              // Пробуем точку любой из команд
+              if Random(2) = 0 then
+                c := RESPAWNPOINT_RED
               else
-                c := RESPAWNPOINT_PLAYER1;
+                c := RESPAWNPOINT_BLUE;
 
               if g_Map_GetPointCount(c) = 0 then
-              begin // Точек игроков нет
-              // Пробуем командную точку:
+              begin // Точки этой команды нет
+                // Пробуем точку противоположной команды
+                if c = RESPAWNPOINT_RED then
+                  c := RESPAWNPOINT_BLUE
+                else
+                  c := RESPAWNPOINT_RED;
+
+                if g_Map_GetPointCount(c) = 0 then
+                begin // И её тоже нет
+                  // Пробуем точку возрождения DM
+                  c := RESPAWNPOINT_DM;
+
+                  if g_Map_GetPointCount(c) = 0 then
+                  begin // Если и её нет,
+                    // пробуем точку другого игрока
+                    c := RESPAWNPOINT_PLAYER2;
+                    if FPlayerNum = PLAYERNUM_2 then
+                      c := RESPAWNPOINT_PLAYER1;
+                  end;
+                end;
+              end;
+            end;
+          end else
+          begin // Уже играл, возрождается
+            // Точка возрождения DM:
+            c := RESPAWNPOINT_DM;
+
+            if g_Map_GetPointCount(c) = 0 then
+            begin // Точек возрождения DM нет
+              // Пробуем точку своего игрока:
+              c := RESPAWNPOINT_PLAYER1;
+              if FPlayerNum = PLAYERNUM_2 then
+                c := RESPAWNPOINT_PLAYER2;
+
+              if g_Map_GetPointCount(c) = 0 then
+              begin // Этой точки нет
+                // Пробуем командную точку:
                 if Random(2) = 0 then
                   c := RESPAWNPOINT_RED
                 else
                   c := RESPAWNPOINT_BLUE;
 
                 if g_Map_GetPointCount(c) = 0 then
-                begin // Этой точки нет
-                // Пробуем другую команду:
+                begin // Точки этой команды нет
+                  // Пробуем другую команду:
                   if c = RESPAWNPOINT_RED then
                     c := RESPAWNPOINT_BLUE
                   else
                     c := RESPAWNPOINT_RED;
+
+                  if g_Map_GetPointCount(c) = 0 then
+                  begin // И этой точки нет
+                    // Пробуем точку другого игрока:
+                    c := RESPAWNPOINT_PLAYER2;
+                    if FPlayerNum = PLAYERNUM_2 then
+                      c := RESPAWNPOINT_PLAYER1;
+                  end;
                 end;
               end;
             end;
@@ -3202,28 +3243,62 @@ begin
         end // ... DM
       else
         begin // TDM / CTF ...
-        // Командная точка возрождения:
-          if FTeam = TEAM_RED then
-            c := RESPAWNPOINT_RED
-          else
-            c := RESPAWNPOINT_BLUE;
-
-          if g_Map_GetPointCount(c) = 0 then
-          begin // Точки этой команды нет
-          // Пробуем другую команду:
-            if c = RESPAWNPOINT_RED then
-              c := RESPAWNPOINT_BLUE
+          if not FSpawned then
+          begin // Приходит в первый раз
+            // Командная точка возрождения:
+            if FTeam = TEAM_RED then
+              c := RESPAWNPOINT_RED
             else
-              c := RESPAWNPOINT_RED;
+              c := RESPAWNPOINT_BLUE;
 
             if g_Map_GetPointCount(c) = 0 then
-            begin // Командных точек возрождения нет
-            // Пробуем точку возрождения DM:
+            begin // Точки этой команды нет
+              // Пробуем точку начала одиночной игры:
+              if Random(2) = 0 then
+                c := RESPAWNPOINT_PLAYER1
+              else
+                c := RESPAWNPOINT_PLAYER2;
+
+              if g_Map_GetPointCount(c) = 0 then
+              begin // Этой точки нет
+                // Пробуем противоположную:
+                if c = RESPAWNPOINT_PLAYER1 then
+                  c := RESPAWNPOINT_PLAYER2
+                else
+                  c := RESPAWNPOINT_PLAYER1;
+
+                if g_Map_GetPointCount(c) = 0 then
+                begin // Точек одиночной игры нет
+                  // Пробуем точку возрождения DM:
+                  c := RESPAWNPOINT_DM;
+
+                  if g_Map_GetPointCount(c) = 0 then
+                  begin // Точек возрождения DM нет
+                    // Пробуем другую команду:
+                    if FTeam = TEAM_RED then
+                      c := RESPAWNPOINT_BLUE
+                    else
+                      c := RESPAWNPOINT_RED;
+                  end;
+                end;
+              end;
+            end;
+          end else
+          begin // Уже играл, возрождается
+            // Командная точка возрождения:
+            if FTeam = TEAM_RED then
+              c := RESPAWNPOINT_RED
+            else
+              c := RESPAWNPOINT_BLUE;
+
+            if g_Map_GetPointCount(c) = 0 then
+            begin // Точки этой команды нет
+              // Пробуем точку возрождения DM:
               c := RESPAWNPOINT_DM;
 
               if g_Map_GetPointCount(c) = 0 then
               begin // Точек возрождения DM нет
-              // Пробуем точку начала одиночной игры:
+                // Пробуем точку начала одиночной игры:
                 if Random(2) = 0 then
                   c := RESPAWNPOINT_PLAYER1
                 else
@@ -3231,11 +3306,20 @@ begin
 
                 if g_Map_GetPointCount(c) = 0 then
                 begin // Этой точки нет
-                // Пробуем противоположную:
+                  // Пробуем противоположную:
                   if c = RESPAWNPOINT_PLAYER1 then
                     c := RESPAWNPOINT_PLAYER2
                   else
                     c := RESPAWNPOINT_PLAYER1;
+
+                  if g_Map_GetPointCount(c) = 0 then
+                  begin // Точек одиночной игры нет
+                    // Пробуем другую команду:
+                    if FTeam = TEAM_RED then
+                      c := RESPAWNPOINT_BLUE
+                    else
+                      c := RESPAWNPOINT_RED;
+                  end;
                 end;
               end;
             end;
@@ -3275,7 +3359,7 @@ begin
 
       if g_Map_GetPointCount(c) = 0 then
       begin // Правильной точки появления нет
-      // Пробуем противоположную точку:
+        // Пробуем противоположную точку:
         if c = RESPAWNPOINT_PLAYER1 then
           c := RESPAWNPOINT_PLAYER2
         else
@@ -3283,24 +3367,25 @@ begin
 
         if g_Map_GetPointCount(c) = 0 then
         begin // Противоположной точки тоже нет
-        // Остается только точка DM:
-          c := RESPAWNPOINT_DM;
+          // Пробуем командную точку:
+          if Random(2) = 0 then
+            c := RESPAWNPOINT_RED
+          else
+            c := RESPAWNPOINT_BLUE;
 
           if g_Map_GetPointCount(c) = 0 then
-          begin // Точек возрождения DM нет
-          // Пробуем командную точку:
-            if Random(2) = 0 then
-              c := RESPAWNPOINT_RED
+          begin // Этой точки нет
+            // Пробуем другую команду:
+            if c = RESPAWNPOINT_RED then
+              c := RESPAWNPOINT_BLUE
             else
-              c := RESPAWNPOINT_BLUE;
+              c := RESPAWNPOINT_RED;
 
             if g_Map_GetPointCount(c) = 0 then
-            begin // Этой точки нет
-            // Пробуем другую команду:
-              if c = RESPAWNPOINT_RED then
-                c := RESPAWNPOINT_BLUE
-              else
-                c := RESPAWNPOINT_RED;
+            begin // Остается только точка DM:
+              c := RESPAWNPOINT_DM;
+
+              // Если точек возрождения DM нет, то все
             end;
           end;
         end;
@@ -3407,6 +3492,7 @@ begin
   FGhost := False;
   FPhysics := True;
   FSpectatePlayer := -1;
+  FSpawned := True;
 
   if g_Game_IsNet then
   begin
@@ -3493,6 +3579,7 @@ begin
   FGhost := True;
   FPhysics := False;
   FWantsInGame := False;
+  FSpawned := False;
 
   if g_Game_IsNet then
     MH_SEND_PlayerStats(FUID);
