@@ -2736,7 +2736,7 @@ begin
   Result := g_Map_Load(gGameSettings.WAD+':\'+Map);
   if Result then
     begin
-      g_Player_ResetAll(Force or gLastMap, True);
+      g_Player_ResetAll(Force or gLastMap, gGameSettings.GameType = GT_SINGLE);
 
       gState := STATE_NONE;
       g_ActiveWindow := nil;

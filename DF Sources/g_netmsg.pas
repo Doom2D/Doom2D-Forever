@@ -339,7 +339,7 @@ begin
       FWantsInGame := True; // TODO: look into this later
     end
     else
-      Respawn(True);
+      Respawn(gGameSettings.GameType = GT_SINGLE);
   end;
 
   for I := Low(NetClients) to High(NetClients) do
