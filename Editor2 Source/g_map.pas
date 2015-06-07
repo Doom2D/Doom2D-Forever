@@ -2005,7 +2005,7 @@ begin
          WordBool(gPanels[a].PanelType and fPanelType) then
         with gPanels[a] do
         begin
-          if (TextureWidth = 0) and (TextureWidth = 0) then
+          if (TextureID < TEXTURE_SPECIAL_NOTEXTURE) and (TextureWidth = 0) and (TextureWidth = 0) then
             TextureID := TEXTURE_SPECIAL_NOTEXTURE;
           case PanelType of
             PANEL_WALL, PANEL_BACK, PANEL_FORE,
