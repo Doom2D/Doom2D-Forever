@@ -79,6 +79,9 @@ const
   OBJECT_AREA     = 4;
   OBJECT_TRIGGER  = 5;
 
+  COLOR_EDGE: Integer = $000000;
+  ALPHA_EDGE: Byte = 96;
+
   TEXTURE_NAME_WATER = '_water_0';
   TEXTURE_NAME_ACID1 = '_water_1';
   TEXTURE_NAME_ACID2 = '_water_2';
@@ -180,8 +183,10 @@ const
      (X: -2; Y: -26; Width: 128),  // ROBO
      (X:  0; Y:  -6; Width:  64)); // MAN
 
-
 var
+  gColorEdge: Integer;
+  gAlphaEdge: Byte;
+  drEdge: Array[0..3] of Byte;
   gPanels: Array of TPanel;
   gItems: Array of TItem;
   gAreas: Array of TArea;
@@ -2040,7 +2045,7 @@ begin
               if not PreviewMode then
                 e_DrawFillQuad(X+MapOffset.X, Y+MapOffset.Y,
                                X+MapOffset.X+Width-1, Y+MapOffset.Y+Height-1,
-                               255, 0, 255, 0);
+                               252, 0, 252, 0);
           end;
         end;
 end;
@@ -2428,22 +2433,22 @@ begin
                    -32+MapOffset.Y,
                    gMapInfo.Width+31+MapOffset.X,
                    -1+MapOffset.Y,
-                   255, 0, 0, 192, B_NONE); // Top
+                   drEdge[0], drEdge[1], drEdge[2], drEdge[3], B_NONE); // Top
     e_DrawFillQuad(-32+MapOffset.X,
                    gMapInfo.Height+MapOffset.Y,
                    gMapInfo.Width+31+MapOffset.X,
                    gMapInfo.Height+31+MapOffset.Y,
-                   255, 0, 0, 192, B_NONE); // Bottom
+                   drEdge[0], drEdge[1], drEdge[2], drEdge[3], B_NONE); // Bottom
     e_DrawFillQuad(-32+MapOffset.X,
-                   -32+MapOffset.Y,
+                   MapOffset.Y,
                    -1+MapOffset.X,
-                   gMapInfo.Height+31+MapOffset.Y,
-                   255, 0, 0, 192, B_NONE); // Left
+                   gMapInfo.Height+MapOffset.Y-1,
+                   drEdge[0], drEdge[1], drEdge[2], drEdge[3], B_NONE); // Left
     e_DrawFillQuad(gMapInfo.Width+MapOffset.X,
-                   -32+MapOffset.Y,
+                   MapOffset.Y,
                    gMapInfo.Width+31+MapOffset.X,
-                   gMapInfo.Height+31+MapOffset.Y,
-                   255, 0, 0, 192, B_NONE); // Right
+                   gMapInfo.Height+MapOffset.Y-1,
+                   drEdge[0], drEdge[1], drEdge[2], drEdge[3], B_NONE); // Right
   end;
 end;
 

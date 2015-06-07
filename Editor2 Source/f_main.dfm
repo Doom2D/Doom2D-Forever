@@ -2054,6 +2054,10 @@ object MainForm: TMainForm
         ShortCut = 16453
         OnClick = miSwitchGridClick
       end
+      object miShowEdges: TMenuItem
+        Caption = #1043#1088#1072#1085#1080#1094#1072' '#1082#1072#1088#1090#1099
+        OnClick = miShowEdgesClick
+      end
       object miLayers: TMenuItem
         Caption = #1057#1083#1086#1080
         ImageIndex = 25

@@ -42,6 +42,7 @@ Type
     miSnapToGrid: TMenuItem;
     miMiniMap: TMenuItem;
     miSwitchGrid: TMenuItem;
+    miShowEdges: TMenuItem;
     miLayers: TMenuItem;
     miLayer1: TMenuItem;
     miLayer2: TMenuItem;
@@ -223,9 +224,10 @@ Type
     procedure miLayer8Click(Sender: TObject);
     procedure miLayer9Click(Sender: TObject);
     procedure tbShowClick(Sender: TObject);
+    procedure miSnapToGridClick(Sender: TObject);
     procedure miMiniMapClick(Sender: TObject);
     procedure miSwitchGridClick(Sender: TObject);
-    procedure miSnapToGridClick(Sender: TObject);
+    procedure miShowEdgesClick(Sender: TObject);
     procedure minexttabClick(Sender: TObject);
     procedure miSaveMiniMapClick(Sender: TObject);
     procedure bClearTextureClick(Sender: TObject);
@@ -1939,6 +1941,14 @@ begin
   MainForm.tbShowMap.Down := ShowMap;
 end;
 
+procedure ShowEdges();
+begin
+  if drEdge[3] < 255 then
+    drEdge[3] := 255
+  else
+    drEdge[3] := gAlphaEdge;
+end;
+
 function SelectedTexture(): String;
 begin
   if MainForm.lbTextureList.ItemIndex <> -1 then
@@ -2337,6 +2347,17 @@ begin
   DrawPanelSize := config.ReadBool('Editor', 'DrawPanelSize', True);
   BackColor := config.ReadInt('Editor', 'BackColor', $7F6040);
   PreviewColor := config.ReadInt('Editor', 'PreviewColor', $00FF00);
+  gColorEdge := config.ReadInt('Editor', 'EdgeColor', COLOR_EDGE);
+  gAlphaEdge := config.ReadInt('Editor', 'EdgeAlpha', ALPHA_EDGE);
+  if gAlphaEdge = 255 then
+    gAlphaEdge := ALPHA_EDGE;
+  drEdge[0] := GetRValue(gColorEdge);
+  drEdge[1] := GetGValue(gColorEdge);
+  drEdge[2] := GetBValue(gColorEdge);
+  if not config.ReadBool('Editor', 'EdgeShow', True) then
+    drEdge[3] := 255
+  else
+    drEdge[3] := gAlphaEdge;
   if config.ReadInt('Editor', 'Scale', 0) = 1 then
     Scale := 2
   else
@@ -3648,6 +3669,9 @@ begin
   config.WriteInt('Editor', 'DotStep', DotStep);
   config.WriteStr('Editor', 'LastOpenDir', OpenDialog.InitialDir);
   config.WriteStr('Editor', 'LastSaveDir', SaveDialog.InitialDir);
+  config.WriteBool('Editor', 'EdgeShow', drEdge[3] < 255);
+  config.WriteInt('Editor', 'EdgeColor', gColorEdge);
+  config.WriteInt('Editor', 'EdgeAlpha', gAlphaEdge);
 
   for i := 0 to RecentCount-1 do
     if i < RecentFiles.Count then
@@ -5315,7 +5339,6 @@ procedure TMainForm.tbShowClick(Sender: TObject);
 var
   a: Integer;
   b: Boolean;
-  
 begin
   b := True;
   for a := 0 to High(LayerEnabled) do
@@ -5348,6 +5371,11 @@ begin
 
   MousePos.X := (MousePos.X div DotStep) * DotStep;
   MousePos.Y := (MousePos.Y div DotStep) * DotStep;
+end;
+
+procedure TMainForm.miShowEdgesClick(Sender: TObject);
+begin
+  ShowEdges();
 end;
 
 procedure TMainForm.miSnapToGridClick(Sender: TObject);

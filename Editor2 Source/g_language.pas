@@ -277,6 +277,7 @@ Type
     I_MENU_TOOLS_SNAP_GRID,
     I_MENU_TOOLS_MINIMAP,
     I_MENU_TOOLS_STEP_GRID,
+    I_MENU_TOOLS_SHOW_EDGES,
     I_MENU_TOOLS_LAYERS,
 
     I_MENU_SERV,
@@ -1084,6 +1085,8 @@ Const
                                        'Мини-карта'),
     ('MENU TOOLS STEP GRID',           'Switch Grid step',
                                        'Сменить шаг сетки'),
+    ('MENU TOOLS SHOW EDGES',          'Switch Map edges',
+                                       'Границы карты'),
     ('MENU TOOLS LAYERS',              'Layers',
                                        'Слои'),
 
@@ -1778,6 +1781,7 @@ begin
     miSnapToGrid.Caption := _lc[I_MENU_TOOLS_SNAP_GRID];
     miMiniMap.Caption := _lc[I_MENU_TOOLS_MINIMAP];
     miSwitchGrid.Caption := _lc[I_MENU_TOOLS_STEP_GRID];
+    miShowEdges.Caption := _lc[I_MENU_TOOLS_SHOW_EDGES];
     miLayers.Caption := _lc[I_MENU_TOOLS_LAYERS];
     miLayer1.Caption := _lc[I_MENU_LAYER_BACK];
     miLayer2.Caption := _lc[I_MENU_LAYER_WALL];
