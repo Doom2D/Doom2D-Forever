@@ -2170,7 +2170,7 @@ begin
                 (IsFriend(gMonsters[a].FMonsterType, FMonsterType)) then
                   Continue;
                 // Поехавшие также, но могут обозлиться на бочку
-                if (FBehaviour = BH_INSANE) and (FMonsterType <> MONSTER_BARREL) and
+                if (FBehaviour = BH_INSANE) and (gMonsters[a].FMonsterType <> MONSTER_BARREL) and
                 (IsFriend(gMonsters[a].FMonsterType, FMonsterType)) then
                   Continue;
                 // Каннибалы нападают на себе подобных
