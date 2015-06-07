@@ -20,6 +20,13 @@ const
   MONSTATE_REVIVE = 10;
   MONSTATE_RUNOUT = 11;
 
+  BH_NORMAL   = 0;
+  BH_KILLER   = 1;
+  BH_MANIAC   = 2;
+  BH_INSANE   = 3;
+  BH_CANNIBAL = 4;
+  BH_GOOD     = 5;
+
 type
   TMonster = Class (TObject)
   private
@@ -36,7 +43,7 @@ type
     FAnim: Array of Array [D_LEFT..D_RIGHT] of TAnimation;
     FTargetUID: Word;
     FTargetTime: Integer;
-    FCanInfight: Boolean;
+    FBehaviour: Byte;
     FAmmo: Integer;
     FPain: Integer;
     FSleep: Integer;
@@ -104,7 +111,7 @@ type
     property MonsterAmmo: Integer read FAmmo write FAmmo;
     property MonsterTargetUID: Word read FTargetUID write FTargetUID;
     property MonsterTargetTime: Integer read FTargetTime write FTargetTime;
-    property MonsterInfights: Boolean read FCanInfight write FCanInfight;
+    property MonsterBehaviour: Byte read FBehaviour write FBehaviour;
     property MonsterSleep: Integer read FSleep write FSleep;
     property MonsterState: Byte read FState write FState;
     property MonsterRemoved: Boolean read FRemoved write FRemoved;
@@ -411,6 +418,30 @@ begin
 
 // В остальных случаях - будут бить друг друга:
   Result := False;
+end;
+
+function BehaviourDamage(SpawnerUID: Word; BH, SelfType: Byte): Boolean;
+var
+  UIDType, MonsterType: Byte;
+begin
+  Result := False;
+  MonsterType := 0;
+
+  UIDType := g_GetUIDType(SpawnerUID);
+  if UIDType = UID_MONSTER then
+    MonsterType := g_Monsters_Get(SpawnerUID).FMonsterType;
+
+  case BH of
+    BH_NORMAL: Result := (UIDType = UID_PLAYER) or
+      ((UIDType = UID_MONSTER) and (not IsFriend(MonsterType, SelfType)));
+
+    BH_KILLER: Result := UIDType = UID_PLAYER;
+    BH_MANIAC: Result := (UIDType = UID_PLAYER) or
+      ((UIDType = UID_MONSTER) and (not IsFriend(MonsterType, SelfType)));
+
+    BH_INSANE: Result := (UIDType = UID_MONSTER) and (not IsFriend(MonsterType, SelfType));
+    BH_CANNIBAL: Result := (UIDType = UID_MONSTER) and (MonsterType = SelfType);
+  end;
 end;
 
 function canShoot(m: Byte): Boolean;
@@ -1435,7 +1466,7 @@ begin
   FStartID := aID;
   FNoRespawn := False;
   FShellTimer := -1;
-  FCanInfight := True;
+  FBehaviour := BH_NORMAL;
 
   if FMonsterType in [MONSTER_ROBO, MONSTER_BARREL] then
     FBloodKind := BLOOD_SPARKS
@@ -1587,8 +1618,7 @@ begin
 
 // Теперь цель - ударивший, если только не сам себя:
   if (SpawnerUID <> FUID) and
-  // Бьём только игроков, если инфайтинг выключен 
-  (FCanInfight or (g_GetUIDType(SpawnerUID) = UID_PLAYER)) then
+  (BehaviourDamage(SpawnerUID, FBehaviour, FMonsterType)) then
   begin
     FTargetUID := SpawnerUID;
     FTargetTime := 0;
@@ -2109,20 +2139,48 @@ begin
         else // еще спим
           goto _end;
 
-      // Если есть игрок рядом, просыпаемся и идем к нему:
-        if (gPlayers <> nil) then
-          for a := 0 to High(gPlayers) do
-            if (gPlayers[a] <> nil) and (gPlayers[a].Live)
-            and (not gPlayers[a].NoTarget) and (gPlayers[a].FMegaRulez[MR_INVIS] < gTime) then
-              with gPlayers[a] do
-                if g_Look(@FObj, @Obj, FDirection) then
+      // На игроков идут только обычные монстры, киллеры и маньяки
+        if (FBehaviour = BH_NORMAL) or (FBehaviour = BH_KILLER) or (FBehaviour = BH_MANIAC) then
+        // Если есть игрок рядом, просыпаемся и идем к нему:
+          if (gPlayers <> nil) then
+            for a := 0 to High(gPlayers) do
+              if (gPlayers[a] <> nil) and (gPlayers[a].Live)
+              and (not gPlayers[a].NoTarget) and (gPlayers[a].FMegaRulez[MR_INVIS] < gTime) then
+                with gPlayers[a] do
+                  if g_Look(@FObj, @Obj, FDirection) then
+                  begin
+                    FTargetUID := gPlayers[a].UID;
+                    FTargetTime := 0;
+                    WakeUpSound();
+                    SetState(STATE_GO);
+                    Break;
+                  end;
+
+      // На монстров тянет маньяков, поехавших и канибалов
+        if (FTargetUID = 0) and ((FBehaviour = BH_MANIAC)
+        or (FBehaviour = BH_INSANE) or (FBehaviour = BH_CANNIBAL)) then
+        // Если есть подходящий монстр рядом:
+          if gMonsters <> nil then
+            for a := 0 to High(gMonsters) do
+              if (gMonsters[a] <> nil) and (gMonsters[a].Live) and
+                 (gMonsters[a].FUID <> FUID) then
+              begin
+                // Маньяки и поехавшие нападают на всех монстров, кроме друзей
+                if ((FBehaviour = BH_MANIAC) or (FBehaviour = BH_INSANE))
+                and (IsFriend(gMonsters[a].FMonsterType, FMonsterType)) then
+                  Continue;
+                // Канибалы нападают на себе подобных
+                if (FBehaviour = BH_CANNIBAL) and (gMonsters[a].FMonsterType <> FMonsterType) then
+                  Continue;
+                if g_Look(@FObj, @gMonsters[a].Obj, FDirection) then
                 begin
-                  FTargetUID := gPlayers[a].UID;
+                  FTargetUID := gMonsters[a].UID;
                   FTargetTime := 0;
                   WakeUpSound();
                   SetState(STATE_GO);
                   Break;
                 end;
+              end;
       end;
 
     STATE_WAIT: // Состояние - Ожидание
@@ -3422,48 +3480,126 @@ function TMonster.findNewPrey(): Boolean;
 var
   a: DWORD;
   l, l2: Integer;
+  PlayersSee, MonstersSee: Array of DWORD;
+  PlayerNear, MonsterNear: Integer;
 begin
   Result := False;
 
   FTargetUID := 0;
   l := 32000;
+  PlayerNear := -1;
+  MonsterNear := -1;
 
-// Ищем ближайшего игрока в качестве цели:
-  if gPlayers <> nil then
+  // Поехавшие, канибалы, и добрые игроков не трогают
+  if (gPlayers <> nil) and (FBehaviour <> BH_INSANE) and
+  (FBehaviour <> BH_CANNIBAL) and (FBehaviour <> BH_GOOD) then
     for a := 0 to High(gPlayers) do
       if (gPlayers[a] <> nil) and (gPlayers[a].Live)
       and (not gPlayers[a].NoTarget) and (gPlayers[a].FMegaRulez[MR_INVIS] < gTime) then
       begin
+        if g_Look(@FObj, @gPlayers[a].Obj, FDirection) then
+        begin
+          SetLength(PlayersSee, Length(PlayersSee) + 1);
+          PlayersSee[High(PlayersSee)] := a;
+        end;
         l2 := Abs(gPlayers[a].GameX-FObj.X)+
               Abs(gPlayers[a].GameY-FObj.Y);
         if l2 < l then
         begin
           l := l2;
-          FTargetUID := gPlayers[a].UID;
+          PlayerNear := Integer(a);
         end;
       end;
 
-// Игрока нет, инфайтинг включён, ищем ближайшего монстра в качестве цели:
-  if (FTargetUID = 0) and FCanInfight then
-    if gMonsters <> nil then
-      for a := 0 to High(gMonsters) do
-        if (gMonsters[a] <> nil) and (gMonsters[a].Live) and
-           (gMonsters[a].FUID <> FUID) and
-           (not IsFriend(gMonsters[a].FMonsterType, FMonsterType)) then
+  // Киллеры и добрые не трогают монстров
+  if (gMonsters <> nil) and (FBehaviour <> BH_KILLER) and (FBehaviour <> BH_GOOD) then
+    for a := 0 to High(gMonsters) do
+      if (gMonsters[a] <> nil) and (gMonsters[a].Live) and
+         (gMonsters[a].FUID <> FUID) then
+      begin
+        if (FBehaviour = BH_CANNIBAL) and (gMonsters[a].FMonsterType <> FMonsterType) then
+          Continue; // Канибалы атакуют только сородичей
+        if (FBehaviour <> BH_CANNIBAL)
+        and (IsFriend(gMonsters[a].FMonsterType, FMonsterType)) then
+          Continue; // Оставшиеся типы, кроме канибалов, не трогают своих друзей
+
+        if g_Look(@FObj, @gMonsters[a].Obj, FDirection) then
         begin
-          l2 := Abs(gMonsters[a].FObj.X-FObj.X)+
-                Abs(gMonsters[a].FObj.Y-FObj.Y);
-          if l2 < l then
-          begin
-            l := l2;
-            FTargetUID := gMonsters[a].FUID;
-          end;
+          SetLength(MonstersSee, Length(MonstersSee) + 1);
+          MonstersSee[High(MonstersSee)] := a;
         end;
+        l2 := Abs(gMonsters[a].FObj.X-FObj.X)+
+              Abs(gMonsters[a].FObj.Y-FObj.Y);
+        if l2 < l then
+        begin
+          l := l2;
+          MonsterNear := Integer(a);
+        end;
+      end;
+
+  case FBehaviour of
+    BH_NORMAL, BH_KILLER:
+    begin
+      // Обычный и киллер сначала ищут игроков в поле зрения
+      if (FTargetUID = 0) and (Length(PlayersSee) > 0) then
+      begin
+        a := PlayersSee[Random(Length(PlayersSee))];
+        FTargetUID := gPlayers[a].UID;
+      end;
+      // Затем поблизости
+      if (FTargetUID = 0) and (PlayerNear > -1) then
+      begin
+        a := PlayerNear;
+        FTargetUID := gPlayers[a].UID;
+      end;
+      // Потом обычные ищут монстров в поле зрения
+      if (FTargetUID = 0) and (Length(MonstersSee) > 0) then
+      begin
+        a := MonstersSee[Random(Length(MonstersSee))];
+        FTargetUID := gMonsters[a].UID;
+      end;
+      // Затем поблизости
+      if (FTargetUID = 0) and (MonsterNear > -1) then
+      begin
+        a := MonsterNear;
+        FTargetUID := gMonsters[a].UID;
+      end;
+    end;
+    BH_MANIAC, BH_INSANE, BH_CANNIBAL:
+    begin
+      // Маньяки, поехавшие и канибалы сначала истребляют всё в поле зрения
+      if (FTargetUID = 0) and (Length(PlayersSee) > 0) then
+      begin
+        a := PlayersSee[Random(Length(PlayersSee))];
+        FTargetUID := gPlayers[a].UID;
+      end;
+      if (FTargetUID = 0) and (Length(MonstersSee) > 0) then
+      begin
+        a := MonstersSee[Random(Length(MonstersSee))];
+        FTargetUID := gMonsters[a].UID;
+      end;
+      // Затем ищут кого-то поблизости
+      if (FTargetUID = 0) and (PlayerNear > -1) then
+      begin
+        a := PlayerNear;
+        FTargetUID := gPlayers[a].UID;
+      end;
+      if (FTargetUID = 0) and (MonsterNear > -1) then
+      begin
+        a := MonsterNear;
+        FTargetUID := gMonsters[a].UID;
+      end;
+    end;
+  end;
 
 // Если и монстров нет - начинаем ждать цель:
   if FTargetUID = 0 then
     begin
-      FTargetTime := MAX_ATM;
+      // Поехавший пытается самоубиться
+      if FBehaviour = BH_INSANE then
+        FTargetUID := FUID
+      else
+        FTargetTime := MAX_ATM;
     end
   else
     begin // Цель нашли
@@ -3690,8 +3826,8 @@ begin
   Mem.WriteWord(FTargetUID);
 // Время после потери цели:
   Mem.WriteInt(FTargetTime);
-// Способность к нападению на других монстров
-  Mem.WriteBoolean(FCanInfight);
+// Поведение монстра:
+  Mem.WriteByte(FBehaviour);
 // Готовность к выстрелу:
   Mem.WriteInt(FAmmo);
 // Боль:
@@ -3775,8 +3911,8 @@ begin
   Mem.ReadWord(FTargetUID);
 // Время после потери цели:
   Mem.ReadInt(FTargetTime);
-// Способность к нападению на других монстров
-  Mem.ReadBoolean(FCanInfight);
+// Поведение монстра:
+  Mem.ReadByte(FBehaviour);
 // Готовность к выстрелу:
   Mem.ReadInt(FAmmo);
 // Боль:

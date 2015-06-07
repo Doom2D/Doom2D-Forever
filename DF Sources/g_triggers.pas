@@ -681,9 +681,8 @@ begin
             // Здоровье:
               if (Data.MonHealth > 0) then
                 gMonsters[i].SetHealth(Data.MonHealth);
-            // Если инфайтинг выключен:
-              if Data.MonNoInfight then
-                gMonsters[i].MonsterInfights := False;
+            // Устанавливаем поведение:
+              gMonsters[i].MonsterBehaviour := Data.MonBehav;
             // Идем искать цель, если надо:
               if Data.MonActive then
                 gMonsters[i].WakeUp();

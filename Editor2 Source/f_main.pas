@@ -1180,7 +1180,15 @@ begin
                   MaxLength := 5;
                 end;
 
-                with ItemProps[InsertRow(_lc[I_PROP_TR_MONSTER_INFIGHT], BoolNames[not Data.MonNoInfight], True)-1] do
+                case Data.MonBehav of
+                  1: str := _lc[I_PROP_TR_MONSTER_BEHAVIOUR_1];
+                  2: str := _lc[I_PROP_TR_MONSTER_BEHAVIOUR_2];
+                  3: str := _lc[I_PROP_TR_MONSTER_BEHAVIOUR_3];
+                  4: str := _lc[I_PROP_TR_MONSTER_BEHAVIOUR_4];
+                  5: str := _lc[I_PROP_TR_MONSTER_BEHAVIOUR_5];
+                  else str := _lc[I_PROP_TR_MONSTER_BEHAVIOUR_0];
+                end;
+                with ItemProps[InsertRow(_lc[I_PROP_TR_MONSTER_BEHAVIOUR], str, True)-1] do
                 begin
                   EditStyle := esPickList;
                   ReadOnly := True;
@@ -3344,9 +3352,6 @@ begin
                       trigger.Data.MonHealth := 0;
                       trigger.Data.MonActive := False;
                       trigger.Data.MonCount := 1;
-                      trigger.Data.MonMax := 0;
-                      trigger.Data.MonDelay := 0;
-                      trigger.Data.MonNoInfight := False;
                     end;
 
                 // Создание предмета:
@@ -3878,6 +3883,15 @@ begin
         Values.Add(_lc[I_PROP_TR_MUSIC_ON]);
         Values.Add(_lc[I_PROP_TR_MUSIC_OFF]);
       end
+    else if KeyName = _lc[I_PROP_TR_MONSTER_BEHAVIOUR] then
+      begin
+        Values.Add(_lc[I_PROP_TR_MONSTER_BEHAVIOUR_0]);
+        Values.Add(_lc[I_PROP_TR_MONSTER_BEHAVIOUR_1]);
+        Values.Add(_lc[I_PROP_TR_MONSTER_BEHAVIOUR_2]);
+        Values.Add(_lc[I_PROP_TR_MONSTER_BEHAVIOUR_3]);
+        Values.Add(_lc[I_PROP_TR_MONSTER_BEHAVIOUR_4]);
+        Values.Add(_lc[I_PROP_TR_MONSTER_BEHAVIOUR_5]);
+      end
     else if KeyName = _lc[I_PROP_TR_SCORE_ACT] then
       begin
         Values.Add(_lc[I_PROP_TR_SCORE_ACT_0]);
@@ -3904,7 +3918,6 @@ begin
             (KeyName = _lc[I_PROP_TR_SOUND_LOCAL]) or
             (KeyName = _lc[I_PROP_TR_SOUND_SWITCH]) or
             (KeyName = _lc[I_PROP_TR_MONSTER_ACTIVE]) or
-            (KeyName = _lc[I_PROP_TR_MONSTER_INFIGHT]) or
             (KeyName = _lc[I_PROP_TR_PUSH_RESET]) or
             (KeyName = _lc[I_PROP_TR_HEALTH_MAX]) then
       begin
@@ -4179,7 +4192,17 @@ begin
                 Data.MonEffect := StrToEffect(vleObjectProperty.Values[_lc[I_PROP_TR_FX_TYPE]]);
                 Data.MonMax := Min(StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_SPAWN_MAX]], 0), 65535);
                 Data.MonDelay := Min(StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_SPAWN_DELAY]], 0), 65535);
-                Data.MonNoInfight := not NameToBool(vleObjectProperty.Values[_lc[I_PROP_TR_MONSTER_INFIGHT]]);
+                Data.MonBehav := 0;
+                if vleObjectProperty.Values[_lc[I_PROP_TR_MONSTER_BEHAVIOUR]] = _lc[I_PROP_TR_MONSTER_BEHAVIOUR_1] then
+                  Data.MonBehav := 1;
+                if vleObjectProperty.Values[_lc[I_PROP_TR_MONSTER_BEHAVIOUR]] = _lc[I_PROP_TR_MONSTER_BEHAVIOUR_2] then
+                  Data.MonBehav := 2;
+                if vleObjectProperty.Values[_lc[I_PROP_TR_MONSTER_BEHAVIOUR]] = _lc[I_PROP_TR_MONSTER_BEHAVIOUR_3] then
+                  Data.MonBehav := 3;
+                if vleObjectProperty.Values[_lc[I_PROP_TR_MONSTER_BEHAVIOUR]] = _lc[I_PROP_TR_MONSTER_BEHAVIOUR_4] then
+                  Data.MonBehav := 4;
+                if vleObjectProperty.Values[_lc[I_PROP_TR_MONSTER_BEHAVIOUR]] = _lc[I_PROP_TR_MONSTER_BEHAVIOUR_5] then
+                  Data.MonBehav := 5;
               end;
 
             TRIGGER_SPAWNITEM:

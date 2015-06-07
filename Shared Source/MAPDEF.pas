@@ -214,7 +214,7 @@ Type
                              MonEffect: Byte;
                              MonMax: Word;
                              MonDelay: Word;
-                             MonNoInfight: Boolean);
+                             MonBehav: Byte);
       TRIGGER_SPAWNITEM:    (ItemPos: TPoint;
                              ItemType: Byte;
                              ItemFalls: Boolean;

@@ -3569,6 +3569,7 @@ begin
       if gGameOn and (gPlayer1 <> nil) and (gPlayer1.Live) and (not g_Game_IsNet) then
         if Length(P) < 2 then
         begin
+          g_Console_Add('monster [ID | Name] [behaviour]');
           g_Console_Add('ID | Name');
           for b := MONSTER_DEMON to MONSTER_MAN do
             g_Console_Add(Format('%2d | %s', [b, g_Monsters_GetNameByID(b)]));
@@ -3583,10 +3584,12 @@ begin
           else
             begin
               with gPlayer1.Obj do
-                g_Monsters_Create(a,
-                    X + Rect.X + (Rect.Width div 2),
-                    Y + Rect.Y + Rect.Height,
-                    gPlayer1.Direction, True);
+                b := g_Monsters_Create(a,
+                     X + Rect.X + (Rect.Width div 2),
+                     Y + Rect.Y + Rect.Height,
+                     gPlayer1.Direction, True);
+              if (Length(P) > 2) and (b >= 0) then
+                gMonsters[b].MonsterBehaviour := Min(Max(StrToIntDef(P[2], BH_NORMAL), BH_NORMAL), BH_GOOD);
             end;
         end;
     end;
