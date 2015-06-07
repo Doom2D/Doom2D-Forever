@@ -1959,8 +1959,8 @@ procedure DrawPanels(fPanelType: Word);
           if g_GetTexture('NOTEXTURE', NoTextureID) then
           begin
             g_GetTextureSizeByID(NoTextureID, NW, NH);
-            e_DrawFill(NoTextureID, X, Y, Width div NW, Height div NH,
-                       0, False, False);
+            e_DrawFill(NoTextureID, X+MapOffset.X, Y+MapOffset.Y,
+                       Width div NW, Height div NH, 0, False, False);
           end;
 
         TEXTURE_SPECIAL_WATER:
