@@ -2156,7 +2156,7 @@ begin
                     Break;
                   end;
 
-      // Ќа монстров т€нет мань€ков, поехавших и канибалов
+      // Ќа монстров т€нет мань€ков, поехавших и каннибалов
         if (FTargetUID = 0) and ((FBehaviour = BH_MANIAC)
         or (FBehaviour = BH_INSANE) or (FBehaviour = BH_CANNIBAL)) then
         // ≈сли есть подход€щий монстр р€дом:
@@ -2169,7 +2169,7 @@ begin
                 if ((FBehaviour = BH_MANIAC) or (FBehaviour = BH_INSANE))
                 and (IsFriend(gMonsters[a].FMonsterType, FMonsterType)) then
                   Continue;
-                //  анибалы нападают на себе подобных
+                //  аннибалы нападают на себе подобных
                 if (FBehaviour = BH_CANNIBAL) and (gMonsters[a].FMonsterType <> FMonsterType) then
                   Continue;
                 if g_Look(@FObj, @gMonsters[a].Obj, FDirection) then
@@ -3490,7 +3490,7 @@ begin
   PlayerNear := -1;
   MonsterNear := -1;
 
-  // ѕоехавшие, канибалы, и добрые игроков не трогают
+  // ѕоехавшие, каннибалы, и добрые игроков не трогают
   if (gPlayers <> nil) and (FBehaviour <> BH_INSANE) and
   (FBehaviour <> BH_CANNIBAL) and (FBehaviour <> BH_GOOD) then
     for a := 0 to High(gPlayers) do
@@ -3518,10 +3518,10 @@ begin
          (gMonsters[a].FUID <> FUID) then
       begin
         if (FBehaviour = BH_CANNIBAL) and (gMonsters[a].FMonsterType <> FMonsterType) then
-          Continue; //  анибалы атакуют только сородичей
+          Continue; //  аннибалы атакуют только сородичей
         if (FBehaviour <> BH_CANNIBAL)
         and (IsFriend(gMonsters[a].FMonsterType, FMonsterType)) then
-          Continue; // ќставшиес€ типы, кроме канибалов, не трогают своих друзей
+          Continue; // ќставшиес€ типы, кроме каннибалов, не трогают своих друзей
 
         if g_Look(@FObj, @gMonsters[a].Obj, FDirection) then
         begin
@@ -3567,7 +3567,7 @@ begin
     end;
     BH_MANIAC, BH_INSANE, BH_CANNIBAL:
     begin
-      // ћань€ки, поехавшие и канибалы сначала истребл€ют всЄ в поле зрени€
+      // ћань€ки, поехавшие и каннибалы сначала истребл€ют всЄ в поле зрени€
       if (FTargetUID = 0) and (Length(PlayersSee) > 0) then
       begin
         a := PlayersSee[Random(Length(PlayersSee))];

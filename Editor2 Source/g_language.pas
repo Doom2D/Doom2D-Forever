@@ -914,7 +914,7 @@ Const
     ('PROP TR MONSTER BEHAVIOUR 3',    'Insane',
                                        'Поехавший'),
     ('PROP TR MONSTER BEHAVIOUR 4',    'Cannibal',
-                                       'Канибал'),
+                                       'Каннибал'),
     ('PROP TR MONSTER BEHAVIOUR 5',    'Good',
                                        'Добрый'),
     ('PROP TR ITEM TYPE',              'Item',
