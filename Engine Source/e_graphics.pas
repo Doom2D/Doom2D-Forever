@@ -952,6 +952,9 @@ end;
 
 procedure e_SimpleFontPrint(X, Y: SmallInt; Text: PChar; Font: Integer; Red, Green, Blue: Byte);
 begin
+ glPushAttrib(GL_LIST_BIT);
+ glPopAttrib(); // Rendering bug workaround
+
  glColor3ub(Red, Green, Blue);
  glDisable(GL_TEXTURE_2D);     // Turn off textures, don't want our text textured
  glRasterPos2i(X, Y);                                // Position the Text
