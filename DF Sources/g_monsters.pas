@@ -2165,9 +2165,13 @@ begin
               if (gMonsters[a] <> nil) and (gMonsters[a].Live) and
                  (gMonsters[a].FUID <> FUID) then
               begin
-                // ћань€ки и поехавшие нападают на всех монстров, кроме друзей
-                if ((FBehaviour = BH_MANIAC) or (FBehaviour = BH_INSANE))
-                and (IsFriend(gMonsters[a].FMonsterType, FMonsterType)) then
+                // ћань€ки нападают на всех монстров, кроме друзей
+                if (FBehaviour = BH_MANIAC) and
+                (IsFriend(gMonsters[a].FMonsterType, FMonsterType)) then
+                  Continue;
+                // ѕоехавшие также, но могут обозлитьс€ на бочку
+                if (FBehaviour = BH_INSANE) and (FMonsterType <> MONSTER_BARREL) and
+                (IsFriend(gMonsters[a].FMonsterType, FMonsterType)) then
                   Continue;
                 //  аннибалы нападают на себе подобных
                 if (FBehaviour = BH_CANNIBAL) and (gMonsters[a].FMonsterType <> FMonsterType) then
@@ -3519,7 +3523,10 @@ begin
       begin
         if (FBehaviour = BH_CANNIBAL) and (gMonsters[a].FMonsterType <> FMonsterType) then
           Continue; //  аннибалы атакуют только сородичей
-        if (FBehaviour <> BH_CANNIBAL)
+        if (FBehaviour = BH_INSANE) and (gMonsters[a].FMonsterType <> MONSTER_BARREL)
+        and (IsFriend(gMonsters[a].FMonsterType, FMonsterType)) then
+          Continue; // ѕоехавшие не трогают друзей, но им не нрав€тс€ бочки
+        if ((FBehaviour = BH_NORMAL) or (FBehaviour = BH_MANIAC))
         and (IsFriend(gMonsters[a].FMonsterType, FMonsterType)) then
           Continue; // ќставшиес€ типы, кроме каннибалов, не трогают своих друзей
 
