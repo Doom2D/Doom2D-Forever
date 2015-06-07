@@ -2572,8 +2572,8 @@ begin
   if (MouseAction in [MOUSEACTION_DRAWPANEL, MOUSEACTION_DRAWTRIGGER, MOUSEACTION_RESIZE]) and
      (DrawPanelSize) then
   begin
-    e_DrawFillQuad(MousePos.X, MousePos.Y, MousePos.X+88, MousePos.Y+32, 192, 192, 192, 127);
-    e_DrawQuad(MousePos.X, MousePos.Y, MousePos.X+88, MousePos.Y+32, 255, 255, 255);
+    e_DrawFillQuad(MousePos.X, MousePos.Y, MousePos.X+88, MousePos.Y+33, 192, 192, 192, 127);
+    e_DrawQuad(MousePos.X, MousePos.Y, MousePos.X+88, MousePos.Y+33, 255, 255, 255);
 
     if MouseAction in [MOUSEACTION_DRAWPANEL, MOUSEACTION_DRAWTRIGGER] then
       begin // Чертим новый

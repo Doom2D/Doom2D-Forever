@@ -952,7 +952,6 @@ end;
 
 procedure e_SimpleFontPrint(X, Y: SmallInt; Text: PChar; Font: Integer; Red, Green, Blue: Byte);
 begin
- glPushAttrib(GL_LIST_BIT);
  glPopAttrib(); // Rendering bug workaround
 
  glColor3ub(Red, Green, Blue);

@@ -2055,7 +2055,7 @@ object MainForm: TMainForm
         OnClick = miSwitchGridClick
       end
       object miShowEdges: TMenuItem
-        Caption = #1043#1088#1072#1085#1080#1094#1072' '#1082#1072#1088#1090#1099
+        Caption = #1043#1088#1072#1085#1080#1094#1099' '#1082#1072#1088#1090#1099
         OnClick = miShowEdgesClick
       end
       object miLayers: TMenuItem
