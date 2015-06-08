@@ -3744,8 +3744,8 @@ begin
 
         vilefire.Reset();
 
-        g_Sound_PlayExAt('SOUND_FIRE', FObj.X, FObj.Y);
         g_Sound_PlayExAt('SOUND_MONSTER_VILE_ATTACK', FObj.X, FObj.Y);
+        g_Sound_PlayExAt('SOUND_FIRE', o^.X, o^.Y);
       end;
     MONSTER_SOUL:
       begin // Летит в сторону цели:
