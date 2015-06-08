@@ -4,8 +4,8 @@ interface
 
 uses sysutils, Classes, md5asm, g_net, g_netmsg, g_console, g_main, e_log;
 
-function MapExists(const path, filename: string; const resMd5: TMD5Digest): string;
-function g_Res_DownloadMapFromServer(const FileName: string): string;
+function g_Res_SearchSameWAD(const path, filename: string; const resMd5: TMD5Digest): string;
+function g_Res_DownloadWAD(const FileName: string): string;
 
 implementation
 
@@ -13,15 +13,15 @@ uses g_language;
 
 const DOWNLOAD_DIR = 'downloads';
 
-procedure FindFiles(const dirName, filename:string; var files: TStringList);
+procedure FindFiles(const dirName, filename: string; var files: TStringList);
 var
   searchResult: TSearchRec;
 begin
-  if FindFirst(dirName+'\*', faAnyFile, searchResult)=0 then
+  if FindFirst(dirName+'\*', faAnyFile, searchResult) = 0 then
   begin
     try
       repeat
-        if (searchResult.Attr and faDirectory)=0 then
+        if (searchResult.Attr and faDirectory) = 0 then
         begin
           if searchResult.Name = filename then
           begin
@@ -29,17 +29,17 @@ begin
             Exit;
           end;
         end
-        else if (searchResult.Name<>'.') and (searchResult.Name<>'..') then
+        else if (searchResult.Name <> '.') and (searchResult.Name <> '..') then
           FindFiles(IncludeTrailingPathDelimiter(dirName)+searchResult.Name,
                     filename, files);
-      until (FindNext(searchResult)<>0);
+      until FindNext(searchResult) <> 0;
     finally
       FindClose(searchResult);
     end;
   end;
 end;
 
-function CompareFile(const filename: string; const resMd5:TMD5Digest): Boolean;
+function CompareFileHash(const filename: string; const resMd5: TMD5Digest): Boolean;
 var
   gResHash: TMD5Digest;
 begin
@@ -47,12 +47,12 @@ begin
   Result := MD5Compare(gResHash, resMd5);
 end;
 
-function ResourceExists(const path, filename: string; const resMd5: TMD5Digest): Boolean;
+function CheckFileHash(const path, filename: string; const resMd5: TMD5Digest): Boolean;
 begin
-  Result := FileExists(path + filename) and compareFile(path + filename, resMd5)
+  Result := FileExists(path + filename) and CompareFileHash(path + filename, resMd5);
 end;
 
-function MapExists(const path, filename: string; const resMd5: TMD5Digest): string;
+function g_Res_SearchSameWAD(const path, filename: string; const resMd5: TMD5Digest): string;
 var
   res: string;
   files: TStringList;
@@ -60,7 +60,7 @@ var
 begin
   Result := '';
 
-  if ResourceExists(path, filename, resMd5) then
+  if CheckFileHash(path, filename, resMd5) then
   begin
     Result := path + filename;
     Exit;
@@ -68,11 +68,11 @@ begin
 
   files := TStringList.Create;
 
-  findFiles(path, filename, files);
-  for i:=0 to files.Count-1 do
+  FindFiles(path, filename, files);
+  for i := 0 to files.Count - 1 do
   begin
     res := files.Strings[i];
-    if compareFile(res, resMd5) then
+    if CompareFileHash(res, resMd5) then
     begin
       Result := res;
       Break;
@@ -82,7 +82,7 @@ begin
   files.Free;
 end;
 
-function SaveMap(const path, filename: string; const data: array of Byte): string;
+function SaveWAD(const path, filename: string; const data: array of Byte): string;
 var
   resFile: TFileStream;
 begin
@@ -100,7 +100,7 @@ begin
   end;
 end;
 
-function g_Res_DownloadMapFromServer(const FileName: string): string;
+function g_Res_DownloadWAD(const FileName: string): string;
 var
   msgStream: TMemoryStream;
   resStream: TFileStream;
@@ -116,11 +116,11 @@ begin
   mapData := MapDataFromMsgStream(msgStream);
   msgStream.Free;
 
-  for i:=0 to High(mapData.ExternalResources) do
+  for i := 0 to High(mapData.ExternalResources) do
   begin
-    if not ResourceExists(GameDir + '\wads\',
-                          mapData.ExternalResources[i].Name,
-                          mapData.ExternalResources[i].md5) then
+    if not CheckFileHash(GameDir + '\wads\',
+                         mapData.ExternalResources[i].Name,
+                         mapData.ExternalResources[i].md5) then
     begin
       g_Console_Add(Format(_lc[I_NET_WAD_DL],
                            [mapData.ExternalResources[i].Name]));
@@ -142,7 +142,7 @@ begin
     end;
   end;
 
-  Result := SaveMap(MapsDir, FileName, mapData.FileData);
+  Result := SaveWAD(MapsDir, FileName, mapData.FileData);
 end;
 
 end.

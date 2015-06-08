@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, g_basic, g_player, Messages, e_graphics, Classes, g_res_downloader,
-  SysUtils, g_sound, MAPSTRUCT, WADEDITOR;
+  SysUtils, g_sound, MAPSTRUCT, WADEDITOR, md5asm;
 
 type
   TGameSettings = record
@@ -51,7 +51,7 @@ procedure g_Game_StartCustom(Map: String; GameMode: Byte; TimeLimit, GoalLimit: 
 procedure g_Game_Restart();
 procedure g_Game_RestartLevel();
 procedure g_Game_RestartRound(NoMapRestart: Boolean = False);
-procedure g_Game_LoadWAD(NewWAD: String);
+procedure g_Game_LoadWAD(NewWAD: String; WHash: TMD5Digest);
 procedure g_Game_SaveOptions();
 function  g_Game_StartMap(Map: String; Force: Boolean = False): Boolean;
 procedure g_Game_ExitLevel(Map: Char16);
@@ -222,8 +222,7 @@ uses
   g_playermodel, g_gfx, g_options, g_weapons, Math,
   g_triggers, MAPDEF, g_monsters, e_sound, CONFIG,
   DirectInput, BinEditor, g_language, g_net,
-  ENet, e_fixedbuffer, g_netmsg, g_netmaster,
-  md5asm;
+  ENet, e_fixedbuffer, g_netmsg, g_netmaster;
 
 type
   TEndCustomGameStat = record
@@ -950,18 +949,23 @@ begin
             if gNextMap <> '' then
             begin // Переходим на следующую карту
               g_Game_ClearLoading();
-              if g_Game_IsNet and g_Game_IsServer then
-                MH_SEND_GameEvent(NET_EV_MAPSTART, gNextMap);
 
               if Pos(':\', gNextMap) = 0 then
               begin
+                if g_Game_IsNet and g_Game_IsServer then
+                  MH_SEND_GameEvent(NET_EV_MAPSTART, gNextMap);
+
                 if not g_Game_StartMap(gNextMap, (gGameSettings.GameMode in [GM_DM, GM_TDM, GM_CTF])) then
                   g_FatalError(Format(_lc[I_GAME_ERROR_MAP_LOAD],
                                       [ExtractFileName(gGameSettings.WAD) + ':\' + gNextMap]));
               end else
               begin
                 g_ProcessResourceStr(MapsDir + gNextMap, @NewWAD, nil, @ResName);
-                g_Game_LoadWAD(NewWAD);
+                gWADHash := MD5File(NewWAD);
+                g_Game_LoadWAD(NewWAD, gWADHash);
+
+                if g_Game_IsNet and g_Game_IsServer then
+                  MH_SEND_GameEvent(NET_EV_MAPSTART, gNextMap);
 
                 if not g_Game_StartMap(ResName, (gGameSettings.GameMode in [GM_DM, GM_TDM, GM_CTF])) then
                   g_FatalError(Format(_lc[I_GAME_ERROR_MAP_LOAD],
@@ -2625,11 +2629,11 @@ begin
           gGameSettings.Options := e_Raw_Read_LongWord(Ptr);
           T := e_Raw_Read_LongWord(Ptr);
 
-          newResPath := MapExists(MapsDir, WadName, WHash);
+          newResPath := g_Res_SearchSameWAD(MapsDir, WadName, WHash);
           if newResPath = '' then
           begin
             g_Game_SetLoadingText(_lc[I_LOAD_DL_RES], 0, False);
-            newResPath := g_Res_DownloadMapFromServer(WadName);
+            newResPath := g_Res_DownloadWAD(WadName);
             if newResPath = '' then
             begin
               g_FatalError(_lc[I_NET_ERR_HASH]);
@@ -2904,16 +2908,36 @@ begin
   gNextMap := Map;
 end;
 
-procedure g_Game_LoadWAD(NewWAD: String);
+procedure g_Game_LoadWAD(NewWAD: String; WHash: TMD5Digest);
+var
+  gWAD: String;
 begin
-  if LowerCase(NewWAD) <> LowerCase(gGameSettings.WAD) then
-    with gGameSettings do
+  if LowerCase(NewWAD) = LowerCase(gGameSettings.WAD) then
+    Exit;
+  with gGameSettings do
+  begin
+    if g_Game_IsNet and g_Game_IsClient then
     begin
-      WAD := NewWAD;
-
-      if GameMode = GM_COOP then
-        LoadMegaWAD(WAD);
+      gWAD := g_Res_SearchSameWAD(MapsDir, ExtractFileName(NewWAD), WHash);
+      if gWAD = '' then
+      begin
+        g_Game_SetLoadingText(_lc[I_LOAD_DL_RES], 0, False);
+        gWAD := g_Res_DownloadWAD(ExtractFileName(NewWAD));
+        if gWAD = '' then
+        begin
+          g_Game_Free();
+          g_FatalError(Format(_lc[I_GAME_ERROR_MAP_WAD], [ExtractFileName(NewWAD)]));
+          Exit;
+        end;
+      end;
+      NewWAD := gWAD;
     end;
+
+    WAD := NewWAD;
+
+    if GameMode = GM_COOP then
+      LoadMegaWAD(WAD);
+  end;
 end;
 
 procedure g_Game_RestartRound(NoMapRestart: Boolean = False);

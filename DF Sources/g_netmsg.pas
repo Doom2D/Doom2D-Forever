@@ -804,6 +804,12 @@ begin
   e_Buffer_Write(@NetOut, EvParm);
   e_Buffer_Write(@NetOut, Byte(gLastMap));
   e_Buffer_Write(@NetOut, gTime);
+  if EvType = NET_EV_MAPSTART then
+  begin
+    e_Buffer_Write(@NetOut, Byte(1));
+    e_Buffer_Write(@NetOut, gWADHash);
+  end else
+    e_Buffer_Write(@NetOut, Byte(0));
 
   g_Net_Host_Send(ID, True, NET_CHAN_SERVICE); // this is for map change as of now
 end;
@@ -1443,6 +1449,8 @@ var
   EvType: Byte;
   EvParm, NewWAD, ResName: string;
   EvTime: LongWord;
+  BHash: Boolean;
+  EvHash: TMD5Digest;
 begin
   EvType := e_Raw_Read_Byte(P);
   EvParm := e_Raw_Read_String(P);
@@ -1450,6 +1458,9 @@ begin
   if gLastMap and (gGameSettings.GameMode = GM_COOP) then gStatsOff := True;
   gStatsPressed := True;
   EvTime := e_Raw_Read_LongWord(P);
+  BHash := e_Raw_Read_Byte(P) <> 0;
+  if BHash then
+    EvHash := e_Raw_Read_MD5(P);
 
   gTime := EvTime;
 
@@ -1471,7 +1482,7 @@ begin
       end else
       begin
         g_ProcessResourceStr(MapsDir + EvParm, @NewWAD, nil, @ResName);
-        g_Game_LoadWAD(NewWAD);
+        g_Game_LoadWAD(NewWAD, EvHash);
 
         if not g_Game_StartMap(ResName, True) then
         begin
