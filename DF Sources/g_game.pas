@@ -3810,7 +3810,12 @@ begin
   end
   else if cmd = 'map' then
   begin
-    if Length(P) > 1 then
+    if Length(P) = 1 then
+    begin
+      if gGameOn then
+        g_Console_Add(cmd + ' <MAP>');
+      g_Console_Add(cmd + ' <WAD> [MAP]')
+    end else
       if not gGameOn then
       begin
         // Игра ещё не запущена, сначала нам надо загрузить какой-то WAD
@@ -3924,11 +3929,17 @@ begin
   end
   else if cmd = 'nextmap' then
   begin
-    nm := True;
-    if Length(P) > 1 then
-    begin
-      nm := False;
-      if gGameOn then
+    if not gGameOn then
+      g_Console_Add(_lc[I_MSG_NOT_GAME])
+    else begin
+      nm := True;
+      if Length(P) = 1 then
+      begin
+        g_Console_Add(cmd + ' <MAP>');
+        g_Console_Add(cmd + ' <WAD> [MAP]');
+      end else
+      begin
+        nm := False;
         if g_Game_IsServer and (gGameSettings.GameType <> GT_SINGLE) then
         begin
           if Length(P) < 3 then
@@ -3989,16 +4000,19 @@ begin
           end;
         end else
           g_Console_Add(_lc[I_MSG_GM_UNAVAIL]);
+      end;
+      if nm then
+        if gNextMap = '' then
+          g_Console_Add(_lc[I_MSG_NEXTMAP_UNSET])
+        else
+          g_Console_Add(Format(_lc[I_MSG_NEXTMAP_SET], [gNextMap]));
     end;
-    if nm then
-      if gNextMap = '' then
-        g_Console_Add(_lc[I_MSG_NEXTMAP_UNSET])
-      else
-        g_Console_Add(Format(_lc[I_MSG_NEXTMAP_SET], [gNextMap]));
   end
   else if (cmd = 'endmap') or (cmd = 'goodbye') then
   begin
-    if gGameOn then
+    if not gGameOn then
+      g_Console_Add(_lc[I_MSG_NOT_GAME])
+    else
       if g_Game_IsServer and (gGameSettings.GameType <> GT_SINGLE) then
       begin
         // Следующая карта не задана, пробуем найти триггер Выход
