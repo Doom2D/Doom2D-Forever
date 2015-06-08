@@ -369,6 +369,7 @@ type
     I_MESSAGE_VOTE_VOTE,
     I_MESSAGE_VOTE_REVOKED,
 
+    I_MESSAGE_CON_UNAVAIL,
     I_MESSAGE_CON_SERVERONLY,
     I_MESSAGE_CON_NOCLIENTS,
 
@@ -478,6 +479,7 @@ type
     I_MSG_KILL_MSGS_OFF,
     I_MSG_LIVES_ON,
     I_MSG_LIVES_OFF,
+    I_MSG_NO_WAD,
     I_MSG_NO_MAP,
     I_MSG_NO_MONSTER,
     I_MSG_SCORE_LIMIT,
@@ -1209,6 +1211,8 @@ const
     ('MESSAGE VOTE REVOKED',           '%s revokes his vote (%d/%d votes total).',
                                        '%s отозвал свой голос (%d/%d голосов всего).'),
 
+    ('MESSAGE CON UNAVAIL',            'This command is unavailable in current game mode.',
+                                       'Ёта команда недоступна в текущем режиме игры.'),
     ('MESSAGE CON SERVERONLY',         'This command is for server only.',
                                        'Ёта команда доступна только в режиме сервера.'),
     ('MESSAGE CON NOCLIENTS',          'No clients connected.',
@@ -1422,6 +1426,8 @@ const
                                        '∆изни показываютс€'),
     ('MSG LIVES OFF',                  'Lives display off',
                                        '∆изни не показываютс€'),
+    ('MSG NO WAD',                     'WAD "%s" doesn''t exist!',
+                                       'WAD файл "%s" не найден!'),
     ('MSG NO MAP',                     'Map "%s" doesn''t exist!',
                                        ' арта "%s" не найдена!'),
     ('MSG NO MONSTER',                 'Wrong monster type: "%s"!',

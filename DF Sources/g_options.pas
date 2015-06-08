@@ -318,6 +318,38 @@ begin
   gcMonsters := config.ReadBool('GameplayCustom', 'Monsters', False);
   gcBotsVS := config.ReadStr('GameplayCustom', 'BotsVS', 'Everybody');
 
+  with gGameSettings do
+  begin
+    GameMode := GM_DM;
+    if gcGameMode = _lc[I_MENU_GAME_TYPE_TDM] then
+      GameMode := GM_TDM;
+    if gcGameMode = _lc[I_MENU_GAME_TYPE_CTF] then
+      GameMode := GM_CTF;
+    if gcGameMode = _lc[I_MENU_GAME_TYPE_COOP] then
+      GameMode := GM_COOP;
+    TimeLimit := gcTimeLimit;
+    GoalLimit := gcGoalLimit;
+    MaxLives := gcMaxLives;
+
+    Options := 0;
+    if gcTeamDamage then
+      Options := Options or GAME_OPTION_TEAMDAMAGE;
+    if gcAllowExit then
+      Options := Options or GAME_OPTION_ALLOWEXIT;
+    if gcWeaponStay then
+      Options := Options or GAME_OPTION_WEAPONSTAY;
+    if gcMonsters then
+      Options := Options or GAME_OPTION_MONSTERS;
+    if gcPlayers = 2 then
+      Options := Options or GAME_OPTION_TWOPLAYER;
+    if gcBotsVS = 'Everybody' then
+      Options := Options or GAME_OPTION_BOTVSPLAYER or GAME_OPTION_BOTVSMONSTER;
+    if gcBotsVS = 'Players' then
+      Options := Options or GAME_OPTION_BOTVSPLAYER;
+    if gcBotsVS = 'Monsters' then
+      Options := Options or GAME_OPTION_BOTVSMONSTER;
+  end;
+
 // Геймплей в сетевой игре
   gnMap := config.ReadStr('GameplayNetwork', 'Map', '');
   gnGameMode := config.ReadStr('GameplayNetwork', 'GameMode', _lc[I_MENU_GAME_TYPE_DM]);

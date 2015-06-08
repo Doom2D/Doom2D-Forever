@@ -1441,7 +1441,7 @@ end;
 procedure MC_RECV_GameEvent(P: Pointer);
 var
   EvType: Byte;
-  EvParm: string;
+  EvParm, NewWAD, ResName: string;
   EvTime: LongWord;
 begin
   EvType := e_Raw_Read_Byte(P);
@@ -1459,11 +1459,26 @@ begin
       gGameOn := False;
       g_Game_ClearLoading();
       g_Game_StopAllSounds(True);
-      if not g_Game_StartMap(EvParm, True) then
+
+      if Pos(':\', EvParm) = 0 then
       begin
-        g_FatalError(Format(_lc[I_GAME_ERROR_MAP_LOAD],
-                            [ExtractFileName(gGameSettings.WAD) + ':\' + EvParm]));
-        Exit;
+        if not g_Game_StartMap(EvParm, True) then
+        begin
+          g_FatalError(Format(_lc[I_GAME_ERROR_MAP_LOAD],
+                              [ExtractFileName(gGameSettings.WAD) + ':\' + EvParm]));
+          Exit;
+        end;
+      end else
+      begin
+        g_ProcessResourceStr(MapsDir + EvParm, @NewWAD, nil, @ResName);
+        g_Game_LoadWAD(NewWAD);
+
+        if not g_Game_StartMap(ResName, True) then
+        begin
+          g_FatalError(Format(_lc[I_GAME_ERROR_MAP_LOAD],
+                              [ExtractFileName(gGameSettings.WAD) + ':\' + ResName]));
+          Exit;
+        end;
       end;
 
       MC_SEND_FullStateRequest;

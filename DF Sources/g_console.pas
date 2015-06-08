@@ -202,8 +202,7 @@ begin
   AddCommand('d_winmsg', DebugCommands);
   AddCommand('d_monoff', DebugCommands);
   AddCommand('d_botoff', DebugCommands);
-  AddCommand('map', DebugCommands);
-  AddCommand('monster', DebugCommands);
+  AddCommand('d_monster', DebugCommands);
 
   AddCommand('p1_name', GameCVars);
   AddCommand('p2_name', GameCVars);
@@ -225,7 +224,7 @@ begin
   AddCommand('g_timelimit', GameCVars);
   AddCommand('g_maxlives', GameCVars);
   AddCommand('g_warmuptime', GameCVars);
-  AddCommand('nextmap', GameCVars);
+  AddCommand('g_nextmap', GameCVars);
   AddCommand('net_interp', GameCVars);
   AddCommand('net_forceplayerupdate', GameCVars);
   AddCommand('net_predictself', GameCVars);
@@ -242,7 +241,8 @@ begin
   AddCommand('bot_addblue', GameCommands);
   AddCommand('bot_removeall', GameCommands);
   AddCommand('chat', GameCommands);
-  AddCommand('changemap', GameCommands);
+  AddCommand('map', GameCommands);
+  AddCommand('nextmap', GameCommands);
   AddCommand('suicide', GameCommands);
   AddCommand('spectate', GameCommands);
   AddCommand('ready', GameCommands);
@@ -262,8 +262,9 @@ begin
   WhitelistCommand('broadcast');
   WhitelistCommand('tell');
   WhitelistCommand('ready');
-  WhitelistCommand('changemap');
+  WhitelistCommand('map');
   WhitelistCommand('nextmap');
+  WhitelistCommand('restart');
   WhitelistCommand('kick');
 
   WhitelistCommand('addbot');
@@ -272,6 +273,7 @@ begin
   WhitelistCommand('bot_addblue');
   WhitelistCommand('bot_removeall');
 
+  WhitelistCommand('g_nextmap');
   WhitelistCommand('g_friendlyfire');
   WhitelistCommand('g_weaponstay');
   WhitelistCommand('g_allow_exit');
