@@ -671,15 +671,15 @@ procedure e_DrawQuad(X1, Y1, X2, Y2: Integer; Red, Green, Blue: Byte);
 begin
   if X1 > X2 then
   begin
-    X1 := X1 + X2;
-    X2 := X1 - X2;
-    X1 := X1 - X2;
+    X1 := X1 xor X2;
+    X2 := X1 xor X2;
+    X1 := X1 xor X2;
   end;
   if Y1 > Y2 then
   begin
-    Y1 := Y1 + Y2;
-    Y2 := Y1 - Y2;
-    Y1 := Y1 - Y2;
+    Y1 := Y1 xor Y2;
+    Y2 := Y1 xor Y2;
+    Y1 := Y1 xor Y2;
   end;
   glDisable(GL_TEXTURE_2D);
   glColor3ub(Red, Green, Blue);
