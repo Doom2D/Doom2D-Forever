@@ -3919,7 +3919,7 @@ begin
         end else
           g_Console_Add(_lc[I_MESSAGE_CON_UNAVAIL]);
   end
-  else if cmd = 'nextmap' then
+  else if (cmd = 'nextmap') or (cmd = 'goodbye') then
   begin
     if gGameOn then
       if g_Game_IsServer and (gGameSettings.GameType <> GT_SINGLE) then
@@ -3932,7 +3932,9 @@ begin
               gNextMap := gTriggers[a].Data.MapName;
               Break;
             end;
-        // Если триггера нет, ставим карту по умолчанию
+        // Ищем следующую карту в WAD файле
+        // ! TODO
+        // Если следующей карты нет, ставим карту по умолчанию
         if gNextMap = '' then
           gNextMap := 'MAP01';
         // Проверяем, не задан ли WAD файл ресурсной строкой

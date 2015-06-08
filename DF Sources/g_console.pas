@@ -243,6 +243,7 @@ begin
   AddCommand('chat', GameCommands);
   AddCommand('map', GameCommands);
   AddCommand('nextmap', GameCommands);
+  AddCommand('goodbye', GameCommands);
   AddCommand('suicide', GameCommands);
   AddCommand('spectate', GameCommands);
   AddCommand('ready', GameCommands);
