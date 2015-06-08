@@ -224,7 +224,6 @@ begin
   AddCommand('g_timelimit', GameCVars);
   AddCommand('g_maxlives', GameCVars);
   AddCommand('g_warmuptime', GameCVars);
-  AddCommand('g_nextmap', GameCVars);
   AddCommand('net_interp', GameCVars);
   AddCommand('net_forceplayerupdate', GameCVars);
   AddCommand('net_predictself', GameCVars);
@@ -243,6 +242,7 @@ begin
   AddCommand('chat', GameCommands);
   AddCommand('map', GameCommands);
   AddCommand('nextmap', GameCommands);
+  AddCommand('endmap', GameCommands);
   AddCommand('goodbye', GameCommands);
   AddCommand('suicide', GameCommands);
   AddCommand('spectate', GameCommands);
@@ -265,6 +265,7 @@ begin
   WhitelistCommand('ready');
   WhitelistCommand('map');
   WhitelistCommand('nextmap');
+  WhitelistCommand('endmap');
   WhitelistCommand('restart');
   WhitelistCommand('kick');
 
@@ -274,7 +275,6 @@ begin
   WhitelistCommand('bot_addblue');
   WhitelistCommand('bot_removeall');
 
-  WhitelistCommand('g_nextmap');
   WhitelistCommand('g_friendlyfire');
   WhitelistCommand('g_weaponstay');
   WhitelistCommand('g_allow_exit');

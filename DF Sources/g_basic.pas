@@ -70,6 +70,7 @@ function parse(s: string): SArray;
 function parse2(s: string; delim: Char): SArray;
 function g_GetFileTime(fileName: String): Integer;
 function g_SetFileTime(fileName: String; time: Integer): Boolean;
+procedure SortSArray(var S: SArray);
 
 implementation
 
@@ -1053,6 +1054,24 @@ begin
   Reset(F);
   Result := (FileSetDate(TFileRec(F).Handle, time) = 0);
   CloseFile(F);
+end;
+
+procedure SortSArray(var S: SArray);
+var
+  b: Boolean;
+  i: Integer;
+  sw: ShortString;
+begin
+  repeat
+    b := False;
+    for i := Low(S) to High(S) - 1 do
+      if S[i] > S[i + 1] then begin
+        sw := S[i];
+        S[i] := S[i + 1];
+        S[i + 1] := sw;
+        b := True;
+      end;
+  until not b;
 end;
 
 end.
