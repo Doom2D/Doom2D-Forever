@@ -804,7 +804,7 @@ begin
   e_Buffer_Write(@NetOut, EvParm);
   e_Buffer_Write(@NetOut, Byte(gLastMap));
   e_Buffer_Write(@NetOut, gTime);
-  if EvType = NET_EV_MAPSTART then
+  if (EvType = NET_EV_MAPSTART) and (Pos(':\', EvParm) > 0) then
   begin
     e_Buffer_Write(@NetOut, Byte(1));
     e_Buffer_Write(@NetOut, gWADHash);
