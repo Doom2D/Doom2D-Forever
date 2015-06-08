@@ -3812,9 +3812,15 @@ begin
   begin
     if Length(P) = 1 then
     begin
-      if gGameOn then
-        g_Console_Add(cmd + ' <MAP>');
-      g_Console_Add(cmd + ' <WAD> [MAP]')
+      if not gGameOn then
+        g_Console_Add(cmd + ' <WAD> [MAP]')
+      else
+        if g_Game_IsServer and (gGameSettings.GameType <> GT_SINGLE) then
+        begin
+          g_Console_Add(cmd + ' <MAP>');
+          g_Console_Add(cmd + ' <WAD> [MAP]');
+        end else
+          g_Console_Add(_lc[I_MSG_GM_UNAVAIL]);
     end else
       if not gGameOn then
       begin
@@ -3935,8 +3941,14 @@ begin
       nm := True;
       if Length(P) = 1 then
       begin
-        g_Console_Add(cmd + ' <MAP>');
-        g_Console_Add(cmd + ' <WAD> [MAP]');
+        if g_Game_IsServer and (gGameSettings.GameType <> GT_SINGLE) then
+        begin
+          g_Console_Add(cmd + ' <MAP>');
+          g_Console_Add(cmd + ' <WAD> [MAP]');
+        end else begin
+          nm := False;
+          g_Console_Add(_lc[I_MSG_GM_UNAVAIL]);
+        end;
       end else
       begin
         nm := False;
