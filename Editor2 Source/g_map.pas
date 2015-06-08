@@ -2023,29 +2023,26 @@ begin
                 e_DrawFillQuad(X+MapOffset.X, Y+MapOffset.Y,
                                X+MapOffset.X+Width-1, Y+MapOffset.Y+Height-1,
                                128, 64, 0, 0);
-
             PANEL_LIFTDOWN:
               if not PreviewMode then
                 e_DrawFillQuad(X+MapOffset.X, Y+MapOffset.Y,
                                X+MapOffset.X+Width-1, Y+MapOffset.Y+Height-1,
                                90, 154, 138, 0);
-
             PANEL_LIFTLEFT:
               if not PreviewMode then
                 e_DrawFillQuad(X+MapOffset.X, Y+MapOffset.Y,
                                X+MapOffset.X+Width-1, Y+MapOffset.Y+Height-1,
-                               96, 96, 0, 0);
-
+                               200, 80,  4, 0);
             PANEL_LIFTRIGHT:
               if not PreviewMode then
                 e_DrawFillQuad(X+MapOffset.X, Y+MapOffset.Y,
                                X+MapOffset.X+Width-1, Y+MapOffset.Y+Height-1,
-                               165, 50, 100, 0);
+                               252, 140, 56, 0);
             PANEL_BLOCKMON:
               if not PreviewMode then
                 e_DrawFillQuad(X+MapOffset.X, Y+MapOffset.Y,
                                X+MapOffset.X+Width-1, Y+MapOffset.Y+Height-1,
-                               252, 0, 252, 0);
+                               192, 0, 192, 0);
           end;
         end;
 end;

@@ -2641,17 +2641,17 @@ begin
 
             case PanelType of
               PANEL_WALL:      e_DrawFillQuad(aX, aY, aX2, aY2, 208, 208, 208, 0);
-              PANEL_WATER:     e_DrawFillQuad(aX, aY, aX2, aY2,   0,   0, 252, 0);
-              PANEL_ACID1:     e_DrawFillQuad(aX, aY, aX2, aY2,   0, 192,   0, 0);
-              PANEL_ACID2:     e_DrawFillQuad(aX, aY, aX2, aY2, 208,   0,   0, 0);
+              PANEL_WATER:     e_DrawFillQuad(aX, aY, aX2, aY2,   0,   0, 192, 0);
+              PANEL_ACID1:     e_DrawFillQuad(aX, aY, aX2, aY2,   0, 176,   0, 0);
+              PANEL_ACID2:     e_DrawFillQuad(aX, aY, aX2, aY2, 176,   0,   0, 0);
               PANEL_STEP:      e_DrawFillQuad(aX, aY, aX2, aY2, 128, 128, 128, 0);
               PANEL_LIFTUP:    e_DrawFillQuad(aX, aY, aX2, aY2, 116,  72,  36, 0);
               PANEL_LIFTDOWN:  e_DrawFillQuad(aX, aY, aX2, aY2, 116, 124,  96, 0);
-              PANEL_LIFTLEFT:    e_DrawFillQuad(aX, aY, aX2, aY2, 255-116,  255-72,  36, 0);
-              PANEL_LIFTRIGHT:  e_DrawFillQuad(aX, aY, aX2, aY2, 255-116, 255-124,  96, 0);
+              PANEL_LIFTLEFT:    e_DrawFillQuad(aX, aY, aX2, aY2, 200, 80,  4, 0);
+              PANEL_LIFTRIGHT:  e_DrawFillQuad(aX, aY, aX2, aY2, 252, 140, 56, 0);
               PANEL_OPENDOOR:  e_DrawFillQuad(aX, aY, aX2, aY2, 100, 220,  92, 0);
               PANEL_CLOSEDOOR: e_DrawFillQuad(aX, aY, aX2, aY2, 212, 184,  64, 0);
-              PANEL_BLOCKMON:  e_DrawFillQuad(aX, aY, aX2, aY2, 252,   0, 252, 0);
+              PANEL_BLOCKMON:  e_DrawFillQuad(aX, aY, aX2, aY2, 192,   0, 192, 0);
             end;
           end;
 

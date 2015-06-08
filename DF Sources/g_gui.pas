@@ -2395,25 +2395,25 @@ begin
             begin
               r := 0;
               g := 0;
-              b := 252;
+              b := 192;
             end;
           PANEL_ACID1:
             begin
               r := 0;
-              g := 192;
+              g := 176;
               b := 0;
             end;
           PANEL_ACID2:
             begin
-              r := 208;
+              r := 176;
               g := 0;
               b := 0;
             end;
           else
             begin
-              r := 127;
-              g := 127;
-              b := 127;
+              r := 128;
+              g := 128;
+              b := 128;
             end;
         end;
 
