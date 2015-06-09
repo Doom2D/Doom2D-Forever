@@ -1,15 +1,15 @@
-Unit f_main;
+unit f_main;
 
-Interface
+interface
 
-Uses
+uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics,
   Controls, Forms, Dialogs, ImgList, StdCtrls, Buttons,
   ComCtrls, ValEdit, Types, ToolWin, Menus, ExtCtrls,
   CheckLst, Grids, XPMan;
 
-Type
-  TMainForm = Class (TForm)
+type
+  TMainForm = class(TForm)
   // Главное меню:
     MainMenu: TMainMenu;
   // "Файл":
@@ -251,16 +251,14 @@ Type
       Shift: TShiftState);
     procedure lbTextureListDrawItem(Control: TWinControl; Index: Integer;
       Rect: TRect; State: TOwnerDrawState);
-
-  Private
+  private
     procedure Draw();
     procedure OnIdle(Sender: TObject; var Done: Boolean);
-
-  Public
+  public
     procedure RefreshRecentMenu();
   end;
 
-Const
+const
   LAYER_BACK       = 0;
   LAYER_WALLS      = 1;
   LAYER_FOREGROUND = 2;
@@ -311,16 +309,16 @@ var
   gLanguage: String;
 
   FormCaption: String;
-  
+
 
 procedure OpenMap(FileName: String; mapN: String);
 function  AddTexture(aWAD, aSection, aTex: String; silent: Boolean): Boolean;
 procedure RemoveSelectFromObjects();
 procedure ChangeShownProperty(Name: String; NewValue: String);
 
-Implementation
+implementation
 
-Uses
+uses
   f_options, e_graphics, e_log, dglOpenGL, Math,
   f_mapoptions, g_basic, f_about, f_mapoptimization,
   f_mapcheck, f_addresource_texture, g_textures,
@@ -330,7 +328,7 @@ Uses
   f_addresource_sound, f_maptest, f_choosetype,
   g_language, f_selectlang, ClipBrd;
 
-Const
+const
   UNDO_DELETE_PANEL   = 1;
   UNDO_DELETE_ITEM    = 2;
   UNDO_DELETE_AREA    = 3;
@@ -381,7 +379,7 @@ Const
 
   CLIPBOARD_SIG         = 'DF:ED';
 
-Type
+type
   TUndoRec = record
     UndoType: Byte;
     case Byte of
@@ -417,7 +415,7 @@ Type
 
   TCopyRecArray = Array of TCopyRec;
 
-Var
+var
   hDC: THandle;
   hRC: THandle;
   gEditorFont: DWORD;
@@ -585,7 +583,6 @@ end;
 function StrToMonster(Str: String): Byte;
 var
   i: Integer;
-
 begin
   Result := MONSTER_ZOMBY;
   for i := MONSTER_DEMON to MONSTER_MAN do
@@ -607,7 +604,6 @@ end;
 function StrToItem(Str: String): Byte;
 var
   i: Integer;
-
 begin
   Result := ITEM_AMMO_BULLETS;
   for i := ITEM_MEDKIT_SMALL to ITEM_MAX do
@@ -621,7 +617,6 @@ end;
 function SelectedObjectCount(): Word;
 var
   a: Integer;
-
 begin
   Result := 0;
 
@@ -636,7 +631,6 @@ end;
 function GetFirstSelected(): Integer;
 var
   a: Integer;
-
 begin
   Result := -1;
 
@@ -657,9 +651,8 @@ begin
 end;
 
 procedure MoveMap(X, Y: Integer);
-var                                     
+var
   rx, ry, ScaleSz: Integer;
-
 begin
   with MainForm.RenderPanel do
   begin
@@ -710,7 +703,6 @@ procedure FillProperty();
 var
   _id: DWORD;
   str: String;
-  
 begin
   MainForm.vleObjectProperty.Strings.Clear();
 
@@ -1368,7 +1360,6 @@ end;
 procedure ChangeShownProperty(Name: String; NewValue: String);
 var
   row: Integer;
-
 begin
   if SelectedObjectCount() <> 1 then
     Exit;
@@ -1386,7 +1377,6 @@ procedure SelectObject(fObjectType: Byte; fID: DWORD; Multi: Boolean);
 var
   a: Integer;
   b: Boolean;
-
 begin
   if Multi then
     begin
@@ -1460,7 +1450,6 @@ procedure DeleteSelectedObjects();
 var
   i, a, ii: Integer;
   b: Boolean;
-
 begin
   if SelectedObjects = nil then
     Exit;
@@ -1517,7 +1506,6 @@ end;
 procedure Undo_Add(ObjectType: Byte; ID: DWORD; Group: Boolean = False);
 var
   i, ii: Integer;
-
 begin
   if (not Group) or (Length(UndoBuffer) = 0) then
     SetLength(UndoBuffer, Length(UndoBuffer)+1);
@@ -1571,7 +1559,6 @@ end;
 function CheckProperty(): Boolean;
 var
   _id: Integer;
-
 begin
   Result := False;
 
@@ -1801,7 +1788,6 @@ procedure MoveSelectedObjects(Wall, alt: Boolean; dx, dy: Integer);
 var
   okX, okY: Boolean;
   a: Integer;
-
 begin
   if SelectedObjects = nil then
     Exit;
@@ -2209,7 +2195,6 @@ procedure TMainForm.RefreshRecentMenu();
 var
   i: Integer;
   MI: TMenuItem;
-
 begin
 // Лишние запомненные карты:
   while RecentFiles.Count > RecentCount do
@@ -2241,7 +2226,6 @@ procedure TMainForm.aRecentFileExecute(Sender: TObject);
 var
   n, pw: Integer;
   s, fn: String;
-
 begin
   s := LowerCase((Sender as TMenuItem).Caption);
   Delete(s, Pos('&', s), 1);
@@ -2358,6 +2342,12 @@ begin
     drEdge[3] := 255
   else
     drEdge[3] := gAlphaEdge;
+  gAlphaTriggerLine := config.ReadInt('Editor', 'LineAlpha', ALPHA_LINE);
+  if gAlphaTriggerLine = 255 then
+    gAlphaTriggerLine := ALPHA_LINE;
+  gAlphaTriggerArea := config.ReadInt('Editor', 'TriggerAlpha', ALPHA_AREA);
+  if gAlphaTriggerArea = 255 then
+    gAlphaTriggerArea := ALPHA_AREA;
   if config.ReadInt('Editor', 'Scale', 0) = 1 then
     Scale := 2
   else
@@ -2407,7 +2397,6 @@ var
   Rect: TRectWH;
   ObjCount: Word;
   aX, aY, aX2, aY2, XX, ScaleSz: Integer;
-
 begin
   BeginPaint(Handle, ps);
   e_BeginRender();
@@ -2647,8 +2636,8 @@ begin
               PANEL_STEP:      e_DrawFillQuad(aX, aY, aX2, aY2, 128, 128, 128, 0);
               PANEL_LIFTUP:    e_DrawFillQuad(aX, aY, aX2, aY2, 116,  72,  36, 0);
               PANEL_LIFTDOWN:  e_DrawFillQuad(aX, aY, aX2, aY2, 116, 124,  96, 0);
-              PANEL_LIFTLEFT:    e_DrawFillQuad(aX, aY, aX2, aY2, 200, 80,  4, 0);
-              PANEL_LIFTRIGHT:  e_DrawFillQuad(aX, aY, aX2, aY2, 252, 140, 56, 0);
+              PANEL_LIFTLEFT:  e_DrawFillQuad(aX, aY, aX2, aY2, 200,  80,   4, 0);
+              PANEL_LIFTRIGHT: e_DrawFillQuad(aX, aY, aX2, aY2, 252, 140,  56, 0);
               PANEL_OPENDOOR:  e_DrawFillQuad(aX, aY, aX2, aY2, 100, 220,  92, 0);
               PANEL_CLOSEDOOR: e_DrawFillQuad(aX, aY, aX2, aY2, 212, 184,  64, 0);
               PANEL_BLOCKMON:  e_DrawFillQuad(aX, aY, aX2, aY2, 192,   0, 192, 0);
@@ -2719,7 +2708,6 @@ procedure SelectNextObject(X, Y: Integer; ObjectType: Byte; ID: DWORD);
 var
   j, j_max: Integer;
   res: Boolean;
-
 begin
   j_max := 0; // shut up compiler
   case ObjectType of
@@ -2846,7 +2834,6 @@ var
   area: TArea;
   monster: TMonster;
   IDArray: DWArray;
-
 begin
   MainForm.ActiveControl := RenderPanel;
   RenderPanel.SetFocus();
@@ -3194,7 +3181,6 @@ var
   IDArray: DWArray;
   rRect: TRectWH;
   rSelectRect: Boolean;
-
 begin
   if Button = mbLeft then
     MouseLDown := False;
@@ -3507,7 +3493,6 @@ var
   sX, sY: Integer;
   dWidth, dHeight: Integer;
   _id: Integer;
-
 begin
   _id := GetFirstSelected();
 
@@ -3672,6 +3657,8 @@ begin
   config.WriteBool('Editor', 'EdgeShow', drEdge[3] < 255);
   config.WriteInt('Editor', 'EdgeColor', gColorEdge);
   config.WriteInt('Editor', 'EdgeAlpha', gAlphaEdge);
+  config.WriteInt('Editor', 'LineAlpha', gAlphaTriggerLine);
+  config.WriteInt('Editor', 'TriggerAlpha', gAlphaTriggerArea);
 
   for i := 0 to RecentCount-1 do
     if i < RecentFiles.Count then
@@ -3716,7 +3703,6 @@ procedure TMainForm.FormKeyDown(Sender: TObject; var Key: Word;
   Shift: TShiftState);
 var
   dx, dy, i: Integer;
-
 begin
   if (not EditingProperties) then
   begin
@@ -4357,7 +4343,6 @@ end;
 procedure TMainForm.aUndoExecute(Sender: TObject);
 var
   a: Integer;
-
 begin
   if UndoBuffer = nil then
     Exit;
@@ -4412,13 +4397,12 @@ var
   var
     I, J: Integer;
     P, T: TCopyRec;
-
   begin
     repeat
       I := L;
       J := R;
       P := CopyBuffer[(L + R) shr 1];
-      
+
       repeat
         while CB_Compare(CopyBuffer[I], P) < 0 do
           Inc(I);
@@ -4437,11 +4421,11 @@ var
 
       if L < J then
         QuickSortCopyBuffer(L, J);
-        
+
       L := I;
     until I >= R;
   end;
-  
+
 begin
   if SelectedObjects = nil then
     Exit;
@@ -4583,7 +4567,6 @@ var
   CopyBuffer: TCopyRecArray;
   res: Boolean;
   swad, ssec, sres: String;
-  
 begin
   CopyBuffer := nil;
 
@@ -4734,7 +4717,6 @@ procedure TMainForm.vleObjectPropertyEditButtonClick(Sender: TObject);
 var
   Key, FileName: String;
   b: Byte;
-
 begin
   Key := vleObjectProperty.Keys[vleObjectProperty.Row];
 
@@ -4907,7 +4889,6 @@ end;
 procedure TMainForm.aSaveMapExecute(Sender: TObject);
 var
   FileName, Section, Res: String;
-
 begin
   if OpenedMap = '' then
   begin
@@ -4957,7 +4938,6 @@ procedure TMainForm.FormActivate(Sender: TObject);
 var
   lang: Integer;
   config: TConfig;
-  
 begin
   MainForm.ActiveControl := RenderPanel;
 
@@ -4988,7 +4968,6 @@ var
   MapName: Char16;
   a: Integer;
   str: String;
-
 begin
   OpenDialog.Filter := _lc[I_FILE_FILTER_WAD];
 
@@ -5059,7 +5038,6 @@ procedure MovePanel(var ID: DWORD; MoveType: Byte);
 var
   _id, a: Integer;
   tmp: TPanel;
-
 begin
   if (ID = 0) and (MoveType = 0) then
     Exit;
@@ -5147,7 +5125,6 @@ end;
 procedure TMainForm.aMoveToBack(Sender: TObject);
 var
   a: Integer;
-
 begin
   if SelectedObjects = nil then
     Exit;
@@ -5167,7 +5144,6 @@ end;
 procedure TMainForm.aMoveToFore(Sender: TObject);
 var
   a: Integer;
-
 begin
   if SelectedObjects = nil then
     Exit;
@@ -5217,7 +5193,6 @@ end;
 procedure TMainForm.aSelectAllExecute(Sender: TObject);
 var
   a: Integer;
-
 begin
   RemoveSelectFromObjects();
 
@@ -5526,7 +5501,6 @@ end;
 procedure TMainForm.selectall1Click(Sender: TObject);
 var
   a: Integer;
-
 begin
   RemoveSelectFromObjects();
 
@@ -5613,4 +5587,4 @@ begin
   end;
 end;
 
-End.
+end.

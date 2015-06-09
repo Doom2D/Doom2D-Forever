@@ -81,6 +81,8 @@ const
 
   COLOR_EDGE: Integer = $000000;
   ALPHA_EDGE: Byte = 96;
+  ALPHA_LINE: Byte = 208;
+  ALPHA_AREA: Byte = 96;
 
   TEXTURE_NAME_WATER = '_water_0';
   TEXTURE_NAME_ACID1 = '_water_1';
@@ -186,6 +188,8 @@ const
 var
   gColorEdge: Integer;
   gAlphaEdge: Byte;
+  gAlphaTriggerLine: Byte;
+  gAlphaTriggerArea: Byte;
   drEdge: Array[0..3] of Byte;
   gPanels: Array of TPanel;
   gItems: Array of TItem;
@@ -2285,10 +2289,10 @@ begin
 
             e_DrawQuad(MapOffset.X+xx, MapOffset.Y+yy,
                        MapOffset.X+xx+ww-1, MapOffset.Y+yy+hh-1,
-                       255, 255, 255);
+                       255, 255, 255, IfThen(sel, 0, gAlphaTriggerArea));
             e_DrawLine(1, MapOffset.X+X+(Width div 2), MapOffset.Y+Y+(Height div 2),
                        MapOffset.X+xx, MapOffset.Y+yy,
-                       0, IfThen(sel, 0, 255), IfThen(sel, 255, 0));
+                       0, 255, 0, IfThen(sel, 0, gAlphaTriggerArea));
           end;
 
           case TriggerType of
@@ -2302,13 +2306,13 @@ begin
                   e_DrawLine(2, MapOffset.X+Data.TargetPoint.X-16,
                              MapOffset.Y+Data.TargetPoint.Y-1,
                              MapOffset.X+Data.TargetPoint.X+16, MapOffset.Y+Data.TargetPoint.Y-1,
-                             0, 0, 255)
+                             0, 0, 255, IfThen(sel, 0, gAlphaTriggerArea))
                 else
                   e_DrawQuad(MapOffset.X+Data.TargetPoint.X,
                              MapOffset.Y+Data.TargetPoint.Y,
                              MapOffset.X+Data.TargetPoint.X+AreaSize[AREA_DMPOINT].Width-1,
                              MapOffset.Y+Data.TargetPoint.Y+AreaSize[AREA_DMPOINT].Height-1,
-                             255, 255, 255);
+                             255, 255, 255, IfThen(sel, 0, gAlphaTriggerArea));
                 e_DrawPoint(2, MapOffset.X+Data.TargetPoint.X,
                             MapOffset.Y+Data.TargetPoint.Y,
                             255, 0, 0);
@@ -2317,7 +2321,7 @@ begin
                            MapOffset.Y+Y+(Height div 2),
                            MapOffset.X+Data.TargetPoint.X,
                            MapOffset.Y+Data.TargetPoint.Y,
-                           255, IfThen(sel, 0, 255), IfThen(sel, 0, 255));
+                           255, 255, 255, IfThen(sel, 0, gAlphaTriggerLine));
               end;
 
             TRIGGER_OPENDOOR, TRIGGER_CLOSEDOOR,
@@ -2331,7 +2335,7 @@ begin
                            MapOffset.Y+gPanels[Data.PanelID].Y,
                            MapOffset.X+gPanels[Data.PanelID].X+gPanels[Data.PanelID].Width-1,
                            MapOffset.Y+gPanels[Data.PanelID].Y+gPanels[Data.PanelID].Height-1,
-                           255, 255, 255);
+                           255, 255, 255, IfThen(sel, 0, gAlphaTriggerArea));
                 e_DrawPoint(2, MapOffset.X+gPanels[Data.PanelID].X,
                             MapOffset.Y+gPanels[Data.PanelID].Y,
                             255, 0, 0);
@@ -2340,7 +2344,7 @@ begin
                            MapOffset.Y+Y+(Height div 2),
                            MapOffset.X+gPanels[Data.PanelID].X,
                            MapOffset.Y+gPanels[Data.PanelID].Y,
-                           255, IfThen(sel, 0, 255), IfThen(sel, 0, 255));
+                           255, 255, 255, IfThen(sel, 0, gAlphaTriggerLine));
               end;
 
             TRIGGER_PRESS, TRIGGER_ON,
@@ -2356,7 +2360,7 @@ begin
                              MapOffset.Y+Data.tY,
                              MapOffset.X+Data.tX+Data.tWidth-1,
                              MapOffset.Y+Data.tY+Data.tHeight-1,
-                             255, 255, 255);
+                             255, 255, 255, IfThen(sel, 0, gAlphaTriggerArea));
                   e_DrawPoint(2, MapOffset.X+Data.tX,
                               MapOffset.Y+Data.tY,
                               255, 0, 0);
@@ -2365,7 +2369,7 @@ begin
                              MapOffset.Y+Y+(Height div 2),
                              MapOffset.X+Data.tX,
                              MapOffset.Y+Data.tY,
-                             255, IfThen(sel, 0, 255), IfThen(sel, 0, 255));
+                             255, 255, 255, IfThen(sel, 0, gAlphaTriggerLine));
                 end;
 
                 if Data.MonsterID <> 0 then
@@ -2378,13 +2382,13 @@ begin
                                MapOffset.Y+r.Y,
                                MapOffset.X+r.X+r.Width-1,
                                MapOffset.Y+r.Y+r.Height-1,
-                               0, 255, 0);
+                               0, 255, 0, IfThen(sel, 0, gAlphaTriggerArea));
                   // Линия к Монстру - условию активации:
                     e_DrawLine(1, MapOffset.X+X+(Width div 2),
                                MapOffset.Y+Y+(Height div 2),
                                MapOffset.X+r.X,
                                MapOffset.Y+r.Y,
-                               0, 255, 0);
+                               0, 255, 0, IfThen(sel, 0, gAlphaTriggerArea));
 
                   end;
               end;
@@ -2409,7 +2413,7 @@ begin
                            MapOffset.Y+yy-1,
                            MapOffset.X+xx+16,
                            MapOffset.Y+yy-1,
-                           0, 0, 255);
+                           0, 0, 255, IfThen(sel, 0, gAlphaTriggerArea));
                 e_DrawPoint(2, MapOffset.X+xx,
                             MapOffset.Y+yy,
                             255, 0, 0);
@@ -2418,7 +2422,7 @@ begin
                            MapOffset.Y+Y+(Height div 2),
                            MapOffset.X+xx,
                            MapOffset.Y+yy,
-                           255, IfThen(sel, 0, 255), IfThen(sel, 0, 255));
+                           255, 255, 255, IfThen(sel, 0, gAlphaTriggerLine));
               end;
           end;
         end;

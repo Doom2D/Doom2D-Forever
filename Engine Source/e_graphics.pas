@@ -52,8 +52,8 @@ procedure e_DrawSizeMirror(ID: DWORD; X, Y: Integer; Alpha: Byte; AlphaChannel: 
 procedure e_DrawFill(ID: DWORD; X, Y: Integer; XCount, YCount: Word; Alpha: Integer;
                      AlphaChannel: Boolean; Blending: Boolean);
 procedure e_DrawPoint(Size: Byte; X, Y: Integer; Red, Green, Blue: Byte);
-procedure e_DrawLine(Width: Byte; X1, Y1, X2, Y2: Integer; Red, Green, Blue: Byte);
-procedure e_DrawQuad(X1, Y1, X2, Y2: Integer; Red, Green, Blue: Byte);
+procedure e_DrawLine(Width: Byte; X1, Y1, X2, Y2: Integer; Red, Green, Blue: Byte; Alpha: Byte = 0);
+procedure e_DrawQuad(X1, Y1, X2, Y2: Integer; Red, Green, Blue: Byte; Alpha: Byte = 0);
 procedure e_DrawFillQuad(X1, Y1, X2, Y2: Integer; Red, Green, Blue, Alpha: Byte;
                          Blending: TBlending = B_NONE);
 
@@ -659,7 +659,7 @@ begin
   
   if (Size = 2) or (Size = 4) then
     X := X + 1;
-    
+
   glBegin(GL_POINTS);
     glVertex2f(X+0.3, Y+1.0);
   glEnd();
@@ -667,7 +667,7 @@ begin
   glColor4ub(e_Colors.R, e_Colors.G, e_Colors.B, 255);
 end;
 
-procedure e_DrawQuad(X1, Y1, X2, Y2: Integer; Red, Green, Blue: Byte);
+procedure e_DrawQuad(X1, Y1, X2, Y2: Integer; Red, Green, Blue: Byte; Alpha: Byte = 0);
 begin
   if X1 > X2 then
   begin
@@ -681,8 +681,16 @@ begin
     Y2 := Y1 xor Y2;
     Y1 := Y1 xor Y2;
   end;
+
+  if Alpha > 0 then
+  begin
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  end else
+    glDisable(GL_BLEND);
+
   glDisable(GL_TEXTURE_2D);
-  glColor3ub(Red, Green, Blue);
+  glColor4ub(Red, Green, Blue, 255-Alpha);
   glLineWidth(1);
 
   glBegin(GL_LINES);
@@ -700,6 +708,8 @@ begin
   glEnd();
 
   glColor4ub(e_Colors.R, e_Colors.G, e_Colors.B, 255);
+
+  glDisable(GL_BLEND);
 end;
 
 procedure e_DrawFillQuad(X1, Y1, X2, Y2: Integer; Red, Green, Blue, Alpha: Byte;
@@ -740,18 +750,27 @@ begin
   glDisable(GL_BLEND);
 end;
 
-procedure e_DrawLine(Width: Byte; X1, Y1, X2, Y2: Integer; Red, Green, Blue: Byte);
+procedure e_DrawLine(Width: Byte; X1, Y1, X2, Y2: Integer; Red, Green, Blue: Byte; Alpha: Byte = 0);
 begin
+  if Alpha > 0 then
+  begin
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  end else
+    glDisable(GL_BLEND);
+
   glDisable(GL_TEXTURE_2D);
-  glColor3ub(Red, Green, Blue);
+  glColor4ub(Red, Green, Blue, 255-Alpha);
   glLineWidth(Width);
 
   glBegin(GL_LINES);
     glVertex2i(X1, Y1);
     glVertex2i(X2, Y2);
   glEnd();
-  
+
   glColor4ub(e_Colors.R, e_Colors.G, e_Colors.B, 255);
+
+  glDisable(GL_BLEND);
 end;
 
 //------------------------------------------------------------------
