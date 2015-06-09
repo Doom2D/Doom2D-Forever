@@ -3497,7 +3497,7 @@ begin
   FSpectatePlayer := -1;
   FSpawned := True;
 
-  if g_Game_IsNet and g_Game_IsServer then
+  if g_Game_IsNet then
   begin
     MH_SEND_PlayerPos(True, FUID, NET_EVERYONE);
     MH_SEND_PlayerStats(FUID, NET_EVERYONE);
