@@ -3664,7 +3664,15 @@ begin
   else if cmd = 'restart' then
   begin
     if gGameOn then
+    begin
+      if g_Game_IsNet and g_Game_IsClient then
+      begin
+        g_Console_Add(_lc[I_MSG_SERVERONLY]);
+        Exit;
+      end;
       g_Game_Restart();
+    end else
+      g_Console_Add(_lc[I_MSG_NOT_GAME]);
   end
   else if cmd = 'kick' then
   begin

@@ -1710,7 +1710,7 @@ begin
   begin
     kByte := e_Raw_Read_Word(P);
     Dir := e_Raw_Read_Byte(P);
-    if gPlayer1 <> Pl then SetDirection(TDirection(Dir));
+    SetDirection(TDirection(Dir));
 
     TmpX := e_Raw_Read_LongInt(P);
     TmpY := e_Raw_Read_LongInt(P);

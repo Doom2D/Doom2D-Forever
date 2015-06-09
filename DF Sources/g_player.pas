@@ -3137,8 +3137,10 @@ var
   Anim: TAnimation;
   ID: DWORD;
 begin
-  if not g_Game_IsServer then Exit;
-  if FDummy then Exit;
+  if not g_Game_IsServer then
+    Exit;
+  if FDummy then
+    Exit;
   FWantsInGame := True;
   if Force then
   begin
@@ -3495,13 +3497,14 @@ begin
   FSpectatePlayer := -1;
   FSpawned := True;
 
-  if g_Game_IsNet then
+  if g_Game_IsNet and g_Game_IsServer then
   begin
     MH_SEND_PlayerPos(True, FUID, NET_EVERYONE);
     MH_SEND_PlayerStats(FUID, NET_EVERYONE);
-    if not Silent then MH_SEND_Effect(FObj.X+PLAYER_RECT.X+(PLAYER_RECT.Width div 2)-24,
-                                      FObj.Y+PLAYER_RECT.Y+(PLAYER_RECT.Height div 2)-32,
-                                      0, NET_GFX_SPAWN);
+    if not Silent then
+      MH_SEND_Effect(FObj.X+PLAYER_RECT.X+(PLAYER_RECT.Width div 2)-24,
+                     FObj.Y+PLAYER_RECT.Y+(PLAYER_RECT.Height div 2)-32,
+                     0, NET_GFX_SPAWN);
   end;
 end;
 
