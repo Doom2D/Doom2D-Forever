@@ -4264,6 +4264,8 @@ begin
       g_Sound_PlayExAt('SOUND_WEAPON_FIREPISTOL', GameX, Gamey);
       FFireAngle := FAngle;
       f := True;
+      g_Player_CreateShell(GameX+PLAYER_RECT_CX, GameY+PLAYER_RECT_CX,
+                             GameVelX, GameVelY-2, SHELL_BULLET);
     end;
 
     WEAPON_SHOTGUN1:
@@ -4271,6 +4273,8 @@ begin
       g_Sound_PlayExAt('SOUND_WEAPON_FIRESHOTGUN', Gamex, Gamey);
       FFireAngle := FAngle;
       f := True;
+      FShellTimer := 10;
+      FShellType := SHELL_SHELL;
     end;
 
     WEAPON_SHOTGUN2:
@@ -4278,6 +4282,8 @@ begin
       g_Sound_PlayExAt('SOUND_WEAPON_FIRESHOTGUN2', Gamex, Gamey);
       FFireAngle := FAngle;
       f := True;
+      FShellTimer := 13;
+      FShellType := SHELL_DBLSHELL;
     end;
 
     WEAPON_CHAINGUN:
@@ -4285,6 +4291,8 @@ begin
       g_Sound_PlayExAt('SOUND_WEAPON_FIRECGUN', Gamex, Gamey);
       FFireAngle := FAngle;
       f := True;
+      g_Player_CreateShell(GameX+PLAYER_RECT_CX, GameY+PLAYER_RECT_CX,
+                             GameVelX, GameVelY-2, SHELL_BULLET);
     end;
 
     WEAPON_ROCKETLAUNCHER:
@@ -4313,6 +4321,8 @@ begin
       g_Sound_PlayExAt('SOUND_WEAPON_FIRESHOTGUN', Gamex, Gamey);
       FFireAngle := FAngle;
       f := True;
+      g_Player_CreateShell(GameX+PLAYER_RECT_CX, GameY+PLAYER_RECT_CX,
+                             GameVelX, GameVelY-2, SHELL_SHELL);
     end;
   end;
 
