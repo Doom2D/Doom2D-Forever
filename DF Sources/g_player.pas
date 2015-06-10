@@ -1687,7 +1687,8 @@ begin
     end;
 
   // Буфер урона:
-    Inc(FDamageBuffer, value);
+    if not g_Game_IsClient then
+      Inc(FDamageBuffer, value);
 
   // Вспышка боли:
     if gFlash then
