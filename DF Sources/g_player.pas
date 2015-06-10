@@ -1687,7 +1687,7 @@ begin
     end;
 
   // Буфер урона:
-    if not g_Game_IsClient then
+    if FLive then
       Inc(FDamageBuffer, value);
 
   // Вспышка боли:
