@@ -706,7 +706,7 @@ begin
   e_TextureFontPrintEx(x+(w div 2)-(Length(mapstr)*cw div 2), _y, mapstr, gStdFont, 200, 200, 200, 1);
   _y := _y+ch+8;
   e_TextureFontPrintEx(x+16, _y, s2, gStdFont, 200, 200, 200, 1);
- 
+
   e_TextureFontPrintEx(x+w-16-(Length(s3))*cw, _y, s3,
                        gStdFont, 200, 200, 200, 1);
 
@@ -717,7 +717,8 @@ begin
       e_TextureFontPrintEx(x+8, y + 8,
         NetClientIP + ':' + IntToStr(NetClientPort), gStdFont, 255, 255, 255, 1);
 
-  if pc = 0 then Exit;
+  if pc = 0 then
+    Exit;
   stat := g_Player_GetStats();
   SortGameStat(stat);
 
