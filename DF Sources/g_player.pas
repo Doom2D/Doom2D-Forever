@@ -1619,7 +1619,7 @@ procedure TPlayer.Damage(value: Word; SpawnerUID: Word; vx, vy: Integer; t: Byte
 var
   c: Word;
 begin
-  if not FLive then
+  if (not g_Game_IsClient) and (not FLive) then
     Exit;
 
   FLastHit := t;
@@ -1627,18 +1627,21 @@ begin
 // Неуязвимость не спасает от ловушек:
   if ((t = HIT_TRAP) or (t = HIT_SELF)) and (not FGodMode) then
   begin
-    FArmor := 0;
-    if t = HIT_TRAP then
+    if not g_Game_IsClient then
     begin
-      // Ловушка убивает сразу:
-      FHealth := -100;
-      Kill(K_EXTRAHARDKILL, SpawnerUID, t);
-    end;
-    if t = HIT_SELF then
-    begin
-      // Самоубийство:
-      FHealth := 0;
-      Kill(K_SIMPLEKILL, SpawnerUID, t);
+      FArmor := 0;
+      if t = HIT_TRAP then
+      begin
+        // Ловушка убивает сразу:
+        FHealth := -100;
+        Kill(K_EXTRAHARDKILL, SpawnerUID, t);
+      end;
+      if t = HIT_SELF then
+      begin
+        // Самоубийство:
+        FHealth := 0;
+        Kill(K_SIMPLEKILL, SpawnerUID, t);
+      end;
     end;
     // Обнулить действия примочек, чтобы фон пропал
     FMegaRulez[MR_SUIT] := 0;
