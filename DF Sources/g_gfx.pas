@@ -579,7 +579,7 @@ begin
          (Y >= gMapInfo.Height) or (Y <= 0) then
         Continue;
 
-      if not ByteBool(gCollideMap[Y, X] and MARK_WATER) then
+      if not ByteBool(gCollideMap[Y, X] and MARK_LIQUID) then
         Continue;
 
       VelX := 0;
@@ -1089,8 +1089,8 @@ begin
                     Break;
                   end;
 
-                  if not ByteBool(gCollideMap[Y+s, X] and MARK_WATER) then
-                  begin // ”же не вода
+                  if not ByteBool(gCollideMap[Y+s, X] and MARK_LIQUID) then
+                  begin // ”же не жидкость
                     State := STATE_FREE;
                     Break;
                   end;
