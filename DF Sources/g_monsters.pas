@@ -2954,6 +2954,25 @@ begin
 // Таймер - ждем после потери цели:
   FTargetTime := FTargetTime + 1;
 
+  if FShellTimer > -1 then
+    if FShellTimer = 0 then
+    begin
+      if FShellType = SHELL_SHELL then
+        g_Player_CreateShell(FObj.X+FObj.Rect.X+(FObj.Rect.Width div 2),
+                             FObj.Y+FObj.Rect.Y+(FObj.Rect.Height div 2),
+                             GameVelX, GameVelY-2, SHELL_SHELL)
+      else if FShellType = SHELL_DBLSHELL then
+      begin
+        g_Player_CreateShell(FObj.X+FObj.Rect.X+(FObj.Rect.Width div 2),
+                             FObj.Y+FObj.Rect.Y+(FObj.Rect.Height div 2),
+                             GameVelX-1, GameVelY-2, SHELL_SHELL);
+        g_Player_CreateShell(FObj.X+FObj.Rect.X+(FObj.Rect.Width div 2),
+                             FObj.Y+FObj.Rect.Y+(FObj.Rect.Height div 2),
+                             GameVelX+1, GameVelY-2, SHELL_SHELL);
+      end;
+      FShellTimer := -1;
+    end else Dec(FShellTimer);
+
 // Пробуем увернуться от летящей пули:
   if fall then
     if (FState in [STATE_GO, STATE_RUN, STATE_RUNOUT,
@@ -3439,13 +3458,27 @@ procedure TMonster.ClientAttack(wx, wy, tx, ty: Integer);
 begin
   case FMonsterType of
     MONSTER_ZOMBY:
+    begin
       g_Sound_PlayExAt('SOUND_WEAPON_FIREPISTOL', wx, wy);
+      g_Player_CreateShell(wx, wy, 0, -2, SHELL_BULLET);
+    end;
     MONSTER_SERG:
+    begin
       g_Sound_PlayExAt('SOUND_WEAPON_FIRESHOTGUN', wx, wy);
+      FShellTimer := 10;
+      FShellType := SHELL_SHELL;
+    end;
     MONSTER_MAN:
+    begin
       g_Sound_PlayExAt('SOUND_WEAPON_FIRESHOTGUN2', wx, wy);
+      FShellTimer := 13;
+      FShellType := SHELL_DBLSHELL;
+    end;
     MONSTER_CGUN, MONSTER_SPIDER:
+    begin
       g_Sound_PlayExAt('SOUND_WEAPON_FIRECGUN', wx, wy);
+      g_Player_CreateShell(wx, wy, 0, -2, SHELL_BULLET);
+    end;
     MONSTER_IMP:
       g_Weapon_ball1(wx, wy, tx, ty, FUID);
     MONSTER_CYBER:
