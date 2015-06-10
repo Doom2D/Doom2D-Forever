@@ -628,7 +628,7 @@ end;
 procedure DrawStat();
 var
   pc, x, y, w, h: Integer;
-  w1, w2, w3: Integer;
+  w1, w2, w3, w4: Integer;
   a, aa: Integer;
   cw, ch, r, g, b, rr, gg, bb: Byte;
   s1, s2, s3: String;
@@ -722,9 +722,10 @@ begin
   stat := g_Player_GetStats();
   SortGameStat(stat);
 
-  w2 := (w-16) div 6;
-  w3 := w2;
-  w1 := w-16-w2-w3;
+  w2 := (w-16) div 5; // ширина 2 столбца
+  w3 := (w-16) div 6; // ширина 3 и 4 столбцов
+  w4 := w3;
+  w1 := w-16-w2-w3-w4; // оставшееся пространство - для цвета и имени игрока
 
   if gGameSettings.GameMode in [GM_CTF, GM_TDM] then
   begin
@@ -769,9 +770,14 @@ begin
               gg := g;
               bb := b;
             end;
+            // Имя
             e_TextureFontPrintEx(x+16, _y, Name, gStdFont, rr, gg, bb, 1);
-            e_TextureFontPrintEx(x+w1+16, _y, IntToStr(Frags), gStdFont, rr, gg, bb, 1);
-            e_TextureFontPrintEx(x+w1+w2+16, _y, IntToStr(Deaths), gStdFont, rr, gg, bb, 1);
+            // Пинг/потери
+            e_TextureFontPrintEx(x+w1+16, _y, Format(_lc[I_GAME_PING_MS], [Ping, Loss]), gStdFont, rr, gg, bb, 1);
+            // Фраги
+            e_TextureFontPrintEx(x+w1+w2+16, _y, IntToStr(Frags), gStdFont, rr, gg, bb, 1);
+            // Смерти
+            e_TextureFontPrintEx(x+w1+w2+w3+16, _y, IntToStr(Deaths), gStdFont, rr, gg, bb, 1);
             _y := _y+ch;
           end;
 
@@ -782,8 +788,9 @@ begin
   begin
     _y := _y+ch+ch;
     e_TextureFontPrintEx(x+16, _y, _lc[I_GAME_PLAYER_NAME], gStdFont, 255, 127, 0, 1);
-    e_TextureFontPrintEx(x+16+w1, _y, _lc[I_GAME_FRAGS], gStdFont, 255, 127, 0, 1);
-    e_TextureFontPrintEx(x+16+w1+w2, _y, _lc[I_GAME_DEATHS], gStdFont, 255, 127, 0, 1);
+    e_TextureFontPrintEx(x+16+w1, _y, _lc[I_GAME_PING], gStdFont, 255, 127, 0, 1);
+    e_TextureFontPrintEx(x+16+w1+w2, _y, _lc[I_GAME_FRAGS], gStdFont, 255, 127, 0, 1);
+    e_TextureFontPrintEx(x+16+w1+w2+w3, _y, _lc[I_GAME_DEATHS], gStdFont, 255, 127, 0, 1);
 
     _y := _y+ch+8;
     for aa := 0 to High(stat) do
@@ -799,11 +806,17 @@ begin
           r := 255;
           g := 127;
         end;
+        // Цвет игрока
         e_DrawFillQuad(x+16, _y+4, x+32-1, _y+16+4-1, Color.R, Color.G, Color.B, 0);
         e_DrawQuad(x+16, _y+4, x+32-1, _y+16+4-1, 192, 192, 192);
+        // Имя
         e_TextureFontPrintEx(x+16+16+8, _y+4, Name, gStdFont, r, g, 0, 1);
-        e_TextureFontPrintEx(x+w1+16, _y+4, IntToStr(Frags), gStdFont, r, g, 0, 1);
-        e_TextureFontPrintEx(x+w1+w2+16, _y+4, IntToStr(Deaths), gStdFont, r, g, 0, 1);
+        // Пинг/потери
+        e_TextureFontPrintEx(x+w1+16, _y+4, Format(_lc[I_GAME_PING_MS], [Ping, Loss]), gStdFont, r, g, 0, 1);
+        // Фраги
+        e_TextureFontPrintEx(x+w1+w2+16, _y+4, IntToStr(Frags), gStdFont, r, g, 0, 1);
+        // Смерти
+        e_TextureFontPrintEx(x+w1+w2+w3+16, _y+4, IntToStr(Deaths), gStdFont, r, g, 0, 1);
         _y := _y+ch+8;
       end;
   end

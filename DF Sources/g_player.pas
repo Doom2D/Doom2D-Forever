@@ -78,6 +78,8 @@ const
 
 type
   TPlayerStat = record
+    Ping: Word;
+    Loss: Byte;
     Name: String;
     Team: Byte;
     Frags: SmallInt;
@@ -202,6 +204,8 @@ type
     FJetpack:   Boolean;
     FActualModelName: string;
     FClientID:  Short;
+    FPing:      Word;
+    FLoss:      Byte;
     FDummy:     Boolean;
 
     constructor Create(); virtual;
@@ -1059,6 +1063,8 @@ begin
       SetLength(Result, Length(Result)+1);
       with Result[High(Result)] do
       begin
+        Ping := gPlayers[a].FPing;
+        Loss := gPlayers[a].FLoss;
         Name := gPlayers[a].FName;
         Team := gPlayers[a].FTeam;
         Frags := gPlayers[a].FFrags;
@@ -1596,6 +1602,8 @@ begin
 
   FSpectatePlayer := -1;
   FClientID := -1;
+  FPing := 0;
+  FLoss := 0;
   FSavedState.WaitRecall := False;
   FShellTimer := -1;
 
@@ -1903,13 +1911,6 @@ begin
     if g_Texture_Get('TEXTURE_PLAYER_HUDAIR', ID) then
       e_Draw(ID, X+2, Y+124, 0, True, False);
     e_DrawLine(4, X+16, Y+130, X+16+Trunc(168*IfThen(FAir > 0, FAir, 0)/AIR_MAX), Y+130, 0, 0, 196);
-  end;
-
- if g_Game_IsClient then
-  begin
-    s := 'Ping: ' + IntToStr(NetPeer.lastRoundTripTime);
-    e_TextureFontPrint(X + 4, Y + 242, s, gStdFont);
-    Y := Y + 16;
   end;
 
   if FSpectator then
@@ -3780,6 +3781,20 @@ begin
     if FGhost then
       DoLerp(4);
 
+  if NetServer then
+    if FClientID >= 0 then
+    begin
+      FPing := NetClients[FClientID].Peer^.lastRoundTripTime;
+      if NetClients[FClientID].Peer^.packetsSent > 0 then
+        FLoss := Round(100*NetClients[FClientID].Peer^.packetsLost/NetClients[FClientID].Peer^.packetsSent)
+      else
+        FLoss := 0;
+    end else
+    begin
+      FPing := 0;
+      FLoss := 0;
+    end;
+
   if gFly or FJetpack then
     FlySmoke();
 
@@ -4883,7 +4898,8 @@ begin
     else
       Exit;
   end;
-  if gGameSettings.GameType = GT_SERVER then MH_SEND_PlayerStats(FUID);
+  if g_Game_IsNet and g_Game_IsServer then
+    MH_SEND_PlayerStats(FUID);
 end;
 
 procedure TPlayer.SetModel(ModelName: string);

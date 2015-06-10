@@ -880,6 +880,8 @@ begin
 
   with Pl do
   begin
+    e_Buffer_Write(@NetOut, FPing);
+    e_Buffer_Write(@NetOut, FLoss);
     if IsKeyPressed(KEY_CHAT) then
       kByte := NET_KEY_CHAT
     else
@@ -1708,6 +1710,8 @@ begin
 
   with Pl do
   begin
+    FPing := e_Raw_Read_Word(P);
+    FLoss := e_Raw_Read_Byte(P);
     kByte := e_Raw_Read_Word(P);
     Dir := e_Raw_Read_Byte(P);
     SetDirection(TDirection(Dir));
@@ -1747,7 +1751,8 @@ begin
   PID := e_Raw_Read_Word(P);
   Pl := g_Player_Get(PID);
   Result := 0;
-  if Pl = nil then Exit;
+  if Pl = nil then
+    Exit;
 
   with Pl do
   begin
