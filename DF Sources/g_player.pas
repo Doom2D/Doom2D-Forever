@@ -1262,7 +1262,7 @@ begin
         with gGibs[i] do
         begin
           vel := Obj.Vel;
-          mr := g_Obj_Move(@Obj, True, False);
+          mr := g_Obj_Move(@Obj, True, False, True);
 
           if WordBool(mr and MOVE_FALLOUT) then
           begin
@@ -1311,7 +1311,7 @@ begin
         with gShells[i] do
         begin
           vel := Obj.Vel;
-          mr := g_Obj_Move(@Obj, True, False);
+          mr := g_Obj_Move(@Obj, True, False, True);
 
           if WordBool(mr and MOVE_FALLOUT) or (gShells[i].Timeout < gTime) then
           begin
@@ -3835,7 +3835,7 @@ begin
     end;
 
     if FPhysics then
-      g_Obj_Move(@FObj, True, True);
+      g_Obj_Move(@FObj, True, True, True);
 
     Exit;
   end;
@@ -3958,7 +3958,7 @@ begin
   end;
 
   if FPhysics then
-    g_Obj_Move(@FObj, True, True)
+    g_Obj_Move(@FObj, True, True, True)
   else
   begin
     FObj.Vel.X := 0;
@@ -5070,7 +5070,7 @@ begin
 
   if gTime mod (GAME_TICK*2) <> 0 then
   begin
-    g_Obj_Move(@FObj, True, True);
+    g_Obj_Move(@FObj, True, True, True);
     
     Exit;
   end;
@@ -5078,7 +5078,7 @@ begin
 // Сопротивление воздуха для трупа:
   FObj.Vel.X := z_dec(FObj.Vel.X, 1);
 
-  st := g_Obj_Move(@FObj, True, True);
+  st := g_Obj_Move(@FObj, True, True, True);
 
   if WordBool(st and MOVE_FALLOUT) then
   begin

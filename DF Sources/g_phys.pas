@@ -28,7 +28,7 @@ const
   MOVE_BLOCK      = 128;
 
 procedure g_Obj_Init(Obj: PObj);
-function  g_Obj_Move(Obj: PObj; Fallable: Boolean; Splash: Boolean): Word;
+function  g_Obj_Move(Obj: PObj; Fallable: Boolean; Splash: Boolean; ClimbSlopes: Boolean = False): Word;
 function  g_Obj_Collide(Obj1, Obj2: PObj): Boolean; overload;
 function  g_Obj_Collide(X, Y: Integer; Width, Height: Word; Obj: PObj): Boolean; overload;
 function  g_Obj_CollidePoint(X, Y: Integer; Obj: PObj): Boolean;
@@ -198,11 +198,17 @@ begin
               Obj^.Rect.Width, 16, Color);
 end;
 
-function move(Obj: PObj; dx, dy: Integer): Word;
+function move(Obj: PObj; dx, dy: Integer; ClimbSlopes: Boolean): Word;
 var
   i: Integer;
   sx, sy: ShortInt;
   st: Word;
+
+  procedure raiseSlope();
+  begin
+    while g_Obj_CollideLevel(Obj, sx, 0) do
+      Dec(Obj^.Y);
+  end;
 
   function movex(): Boolean;
   begin
@@ -216,7 +222,19 @@ var
   // Если шагнуть в сторону, а там стена => шагать нельзя:
     if g_Obj_CollideLevel(Obj, sx, 0) then
       begin
-        st := st or MOVE_HITWALL;
+        if ClimbSlopes then
+          begin
+            if g_Obj_CollideLevel(Obj, sx, -9) then
+              st := st or MOVE_HITWALL
+            else
+            begin
+              raiseSlope;
+              Obj^.X := Obj^.X + sx;
+              Result := True;
+            end;
+          end
+        else
+          st := st or MOVE_HITWALL;
       end
     else // Там стены нет
       begin
@@ -314,7 +332,7 @@ begin
   ZeroMemory(Obj, SizeOf(TObj));
 end;
 
-function g_Obj_Move(Obj: PObj; Fallable: Boolean; Splash: Boolean): Word;
+function g_Obj_Move(Obj: PObj; Fallable: Boolean; Splash: Boolean; ClimbSlopes: Boolean = False): Word;
 var
   xv, yv, dx, dy: Integer;
   inwater: Boolean;
@@ -409,7 +427,7 @@ _move:
   dx := xv;
   dy := yv;
 
-  Result := move(Obj, dx, dy);
+  Result := move(Obj, dx, dy, ClimbSlopes);
 
 // Брызги (если нужны):
   if Splash then

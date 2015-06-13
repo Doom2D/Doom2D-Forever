@@ -1995,14 +1995,14 @@ begin
 // Меняем скорость только по четным кадрам:
   if gTime mod (GAME_TICK*2) <> 0 then
   begin
-    g_Obj_Move(@FObj, fall, True);
+    g_Obj_Move(@FObj, fall, True, True);
     Exit;
   end;
 
   FPainSound := False;
 
 // Двигаемся:
-  st := g_Obj_Move(@FObj, fall, True);
+  st := g_Obj_Move(@FObj, fall, True, True);
 
 // Вылетел за карту - удаляем и запускаем триггеры:
   if WordBool(st and MOVE_FALLOUT) or (FObj.X < -1000) or
@@ -2881,14 +2881,14 @@ begin
 // Меняем скорость только по четным кадрам:
   if gTime mod (GAME_TICK*2) <> 0 then
   begin
-    g_Obj_Move(@FObj, fall, True);
+    g_Obj_Move(@FObj, fall, True, True);
     Exit;
   end;
 
   FPainSound := False;
 
 // Двигаемся:
-  st := g_Obj_Move(@FObj, fall, True);
+  st := g_Obj_Move(@FObj, fall, True, True);
 
 // Вылетел за карту - удаляем и запускаем триггеры:
   if WordBool(st and MOVE_FALLOUT) or (FObj.X < -1000) or
