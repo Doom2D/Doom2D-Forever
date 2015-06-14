@@ -2296,8 +2296,7 @@ begin
           end;
 
           case TriggerType of
-            TRIGGER_EXIT:
-              ;
+            TRIGGER_EXIT: ;
 
             TRIGGER_TELEPORT:
               begin
@@ -2393,8 +2392,7 @@ begin
                   end;
               end;
 
-            TRIGGER_SECRET:
-              ;
+            TRIGGER_SECRET: ;
 
             TRIGGER_SPAWNMONSTER, TRIGGER_SPAWNITEM:
               begin
@@ -2418,6 +2416,18 @@ begin
                             MapOffset.Y+yy,
                             255, 0, 0);
               // Линия к точке появления Монстра/Предмета:
+                e_DrawLine(1, MapOffset.X+X+(Width div 2),
+                           MapOffset.Y+Y+(Height div 2),
+                           MapOffset.X+xx,
+                           MapOffset.Y+yy,
+                           255, 255, 255, IfThen(sel, 0, gAlphaTriggerLine));
+              end;
+
+            TRIGGER_PUSH:
+              begin
+              // Линия направления и силы ускорения:
+                xx := Round(Cos(-DegToRad(Data.PushAngle)) * Data.PushForce) + X+(Width div 2);
+                yy := Round(Sin(-DegToRad(Data.PushAngle)) * Data.PushForce) + Y+(Height div 2);
                 e_DrawLine(1, MapOffset.X+X+(Width div 2),
                            MapOffset.Y+Y+(Height div 2),
                            MapOffset.X+xx,

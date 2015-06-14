@@ -3379,7 +3379,7 @@ begin
                     begin
                       trigger.Data.PushAngle := 0;
                       trigger.Data.PushForce := 10;
-                      trigger.Data.ResetVel := False;
+                      trigger.Data.ResetVel := True;
                     end;
 
                   TRIGGER_SCORE:
