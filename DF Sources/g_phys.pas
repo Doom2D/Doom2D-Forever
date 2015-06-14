@@ -234,8 +234,6 @@ var
             Result := True;
             if not g_Obj_CollideLevel(Obj, sx, -15) then
               slope(-1)
-            else if not g_Obj_CollideLevel(Obj, sx, 15) then
-              slope(1)
             else
               begin
                 Result := False;
