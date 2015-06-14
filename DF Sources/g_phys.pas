@@ -204,10 +204,10 @@ var
   sx, sy: ShortInt;
   st: Word;
 
-  procedure raiseSlope();
+  procedure slope(s: Integer);
   begin
-    while g_Obj_CollideLevel(Obj, sx, 0) do
-      Dec(Obj^.Y);
+    while g_Obj_CollideLevel(Obj, dx, 0) do
+      Obj^.Y := Obj^.Y + s;
   end;
 
   function movex(): Boolean;
@@ -221,21 +221,7 @@ var
 
   // Если шагнуть в сторону, а там стена => шагать нельзя:
     if g_Obj_CollideLevel(Obj, sx, 0) then
-      begin
-        if ClimbSlopes then
-          begin
-            if g_Obj_CollideLevel(Obj, sx, -9) then
-              st := st or MOVE_HITWALL
-            else
-            begin
-              raiseSlope;
-              Obj^.X := Obj^.X + sx;
-              Result := True;
-            end;
-          end
-        else
-          st := st or MOVE_HITWALL;
-      end
+      st := st or MOVE_HITWALL
     else // Там стены нет
       begin
         if CollideLiquid(Obj, sx, 0) then
@@ -249,7 +235,6 @@ var
 
       // Шаг:
         Obj^.X := Obj^.X + sx;
-
         Result := True;
       end;
   end;
@@ -310,9 +295,17 @@ begin
     Exit;
   end;
 
+  if ClimbSlopes then
+    if g_Obj_CollideLevel(Obj, dx, 0) then
+    begin
+      if not g_Obj_CollideLevel(Obj, dx, -9) then
+        slope(-1)
+      else if not g_Obj_CollideLevel(Obj, dx, 9) then
+        slope(1);
+    end;
+
   sx := g_basic.Sign(dx);
   sy := g_basic.Sign(dy);
-
   dx := Abs(dx);
   dy := Abs(dy);
 
