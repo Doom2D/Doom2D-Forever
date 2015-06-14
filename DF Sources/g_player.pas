@@ -264,6 +264,7 @@ type
     property    Lives: Byte read FLives write FLives;
     property    Armor: Integer read FArmor write FArmor;
     property    Air:   Integer read FAir write FAir;
+    property    JetFuel: Integer read FJetFuel write FJetFuel;
     property    Frags: Integer read FFrags write FFrags;
     property    Death: Integer read FDeath write FDeath;
     property    Kills: Integer read FKills write FKills;

@@ -924,6 +924,7 @@ begin
     e_Buffer_Write(@NetOut, Health);
     e_Buffer_Write(@NetOut, Armor);
     e_Buffer_Write(@NetOut, Air);
+    e_Buffer_Write(@NetOut, JetFuel);
     e_Buffer_Write(@NetOut, Lives);
 
     for I := WEAPON_KASTET to WEAPON_SUPERPULEMET do
@@ -1761,6 +1762,7 @@ begin
     Health := e_Raw_Read_LongInt(P);
     Armor := e_Raw_Read_LongInt(P);
     Air := e_Raw_Read_LongInt(P);
+    JetFuel := e_Raw_Read_LongInt(P);
     Lives := e_Raw_Read_Byte(P);
 
     for I := WEAPON_KASTET to WEAPON_SUPERPULEMET do
