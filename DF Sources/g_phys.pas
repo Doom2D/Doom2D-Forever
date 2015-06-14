@@ -232,7 +232,7 @@ var
         if ClimbSlopes and (Abs(dy) < 2) then
           begin
             Result := True;
-            if not g_Obj_CollideLevel(Obj, sx, -15) then
+            if not g_Obj_CollideLevel(Obj, sx, -12) then
               slope(-1)
             else
               begin
