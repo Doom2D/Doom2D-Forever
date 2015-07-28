@@ -260,7 +260,7 @@ end;
 procedure TMapOptionsForm.eMapSizeKeyPress( Sender: TObject;
   var Key: Char );
 begin
-  if not ( Key in ['0'..'9'] ) then
+  if not ( Key in ['0'..'9', #8, #127] ) then // #8 - bs, #127 - del
     Key := #0;
 end;
 
