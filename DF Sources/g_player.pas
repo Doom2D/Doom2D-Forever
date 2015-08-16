@@ -3772,7 +3772,6 @@ var
   b: Byte;
   i, ii, wx, wy, xd, yd, k: Integer;
   blockmon, headwater, dospawn: Boolean;
-  st: Word;
   NetServer: Boolean;
   AnyServer: Boolean;
   SetSpect: Boolean;

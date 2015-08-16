@@ -4416,7 +4416,14 @@ begin
            (Data.Local) and
            Sound.IsPlaying() then
         begin
-          Sound.SetCoords(X+(Width div 2), Y+(Height div 2), Data.Volume/255.0);
+          if ((gPlayer1 <> nil) and g_CollidePoint(gPlayer1.GameX, gPlayer1.GameY, X, Y, Width, Height)) or
+             ((gPlayer2 <> nil) and g_CollidePoint(gPlayer2.GameX, gPlayer2.GameY, X, Y, Width, Height)) then
+          begin
+            Sound.SetPan(0.5 - Data.Pan/255.0);
+            Sound.SetVolume(Data.Volume/255.0);
+          end
+          else
+            Sound.SetCoords(X+(Width div 2), Y+(Height div 2), Data.Volume/255.0);
         end;
 end;
 

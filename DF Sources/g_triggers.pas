@@ -1359,6 +1359,8 @@ begin
               Sound.PlayVolumeAt(X+(Width div 2), Y+(Height div 2), Data.Volume/255.0)
             else
               Sound.PlayPanVolume((Data.Pan-127.0)/128.0, Data.Volume/255.0);
+            if Sound.IsPlaying() and g_Game_IsNet and g_Game_IsServer then
+              MH_SEND_TriggerSound(gTriggers[a]);
           end;
 
       // Триггер "Ловушка" - пора открывать:

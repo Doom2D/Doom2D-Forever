@@ -1971,8 +1971,7 @@ var
   a, sx, sy, wx, wy, oldvelx: Integer;
   st: Word;
   o: TObj;
-  s: string;
-  fall, inHorLift: Boolean;
+  fall: Boolean;
 label
   _end;
 begin

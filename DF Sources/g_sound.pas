@@ -5,6 +5,10 @@ interface
 uses
   Windows, e_sound;
 
+const
+  SOUND_MINDIST = 400;
+  SOUND_MAXDIST = 1000;
+
 type
   TPlayableSound = class(TBasicSound)
   private
@@ -142,17 +146,17 @@ end;
 
 function PlaySoundAt(X, Y: Integer; var Pan: Single; var Volume: Single; InVolume: Single = 1.0): Boolean;
 var
-  l1, l2, a: Integer;
+  l1, l2, lx, rx: Integer;
   d1, d2, sMaxDist: Single;
   c: Boolean;
 begin
   l1 := gMaxDist;
   l2 := gMaxDist;
-  sMaxDist := 900 * InVolume;
+  sMaxDist := SOUND_MAXDIST * InVolume;
 
   d1 := 0.0;
 
-  c := gPlayerScreenSize.X >= gMapInfo.Width;
+  c := SOUND_MINDIST >= sMaxDist;
 
   if X > gMapInfo.Width then
     X := gMapInfo.Width
@@ -168,53 +172,42 @@ begin
 
   if gPlayer1 <> nil then
   begin
-    l1 := PointToRect(X, Y, gPlayer1ScreenCoord.X, gPlayer1ScreenCoord.Y,
-                      gPlayerScreenSize.X, gPlayerScreenSize.Y);
+    l1 := Round(Hypot(X - gPlayer1.GameX, Y - gPlayer1.GameY));
 
+    lx := gPlayer1.GameX-SOUND_MINDIST;
+    rx := gPlayer1.GameX+SOUND_MINDIST;
     if c then
       d1 := 0.0
+    else if (X >= lx) and (X <= rx) then
+      d1 := 0.0
+    else if X < lx then
+      d1 := (X-lx)/sMaxDist
     else
-      if (X >= gPlayer1ScreenCoord.X) and
-         (X <= gPlayer1ScreenCoord.X+gPlayerScreenSize.X) then
-        d1 := 0.0
-      else
-        if X < gPlayer1ScreenCoord.X then
-          d1 := (X-gPlayer1ScreenCoord.X)/sMaxDist
-        else
-          begin
-            a := gPlayer1ScreenCoord.X+gPlayerScreenSize.X;
-            d1 := (X-a)/sMaxDist;
-          end;
+      d1 := (X-rx)/sMaxDist;
   end;
 
   d2 := d1;
 
   if gPlayer2 <> nil then
   begin
-    l2 := PointToRect(X, Y, gPlayer2ScreenCoord.X, gPlayer2ScreenCoord.Y,
-                      gPlayerScreenSize.X, gPlayerScreenSize.Y);
+    l1 := Round(Hypot(X - gPlayer2.GameX, Y - gPlayer2.GameY));
 
+    lx := gPlayer2.GameX-SOUND_MINDIST;
+    rx := gPlayer2.GameX+SOUND_MINDIST;
     if c then
       d2 := 0.0
+    else if (X >= lx) and (X <= rx) then
+      d2 := 0.0
+    else if X < lx then
+      d2 := (X-lx)/sMaxDist
     else
-      if (X >= gPlayer2ScreenCoord.X) and
-         (X <= gPlayer2ScreenCoord.X+gPlayerScreenSize.X) then
-        d2 := 0.0
-      else
-        if X < gPlayer2ScreenCoord.X then
-          d2 := (X-gPlayer1ScreenCoord.X)/sMaxDist
-        else
-          begin
-            a := gPlayer2ScreenCoord.X+gPlayerScreenSize.X;
-            d2 := (X-a)/sMaxDist;
-          end;
+      d2 := (X-rx)/sMaxDist;
   end;
 
   d1 := (d1 + d2) / 2.0;
 
   if l2 < l1 then
     l1 := l2;
-  l1 := l1 + l1 div 4;
 
   if l1 >= sMaxDist then
     begin
