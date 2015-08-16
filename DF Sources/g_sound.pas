@@ -140,14 +140,15 @@ begin
   e_WriteLog(Format(_lc[I_GAME_ERROR_SOUND], [SoundName]), MSG_WARNING);
 end;
 
-function PlaySoundAt(X, Y: Integer; var Pan: Single; var Volume: Single): Boolean;
+function PlaySoundAt(X, Y: Integer; var Pan: Single; var Volume: Single; InVolume: Single = 1.0): Boolean;
 var
   l1, l2, a: Integer;
-  d1, d2: Single;
+  d1, d2, sMaxDist: Single;
   c: Boolean;
 begin
   l1 := gMaxDist;
   l2 := gMaxDist;
+  sMaxDist := 900 * InVolume;
 
   d1 := 0.0;
 
@@ -178,11 +179,11 @@ begin
         d1 := 0.0
       else
         if X < gPlayer1ScreenCoord.X then
-          d1 := -1.0 + X/gPlayer1ScreenCoord.X
+          d1 := (X-gPlayer1ScreenCoord.X)/sMaxDist
         else
           begin
             a := gPlayer1ScreenCoord.X+gPlayerScreenSize.X;
-            d1 := (X-a)/(gMapInfo.Width-a);
+            d1 := (X-a)/sMaxDist;
           end;
   end;
 
@@ -201,11 +202,11 @@ begin
         d2 := 0.0
       else
         if X < gPlayer2ScreenCoord.X then
-          d2 := -1.0 + X/gPlayer2ScreenCoord.X
+          d2 := (X-gPlayer1ScreenCoord.X)/sMaxDist
         else
           begin
             a := gPlayer2ScreenCoord.X+gPlayerScreenSize.X;
-            d2 := (X-a)/(gMapInfo.Width-a);
+            d2 := (X-a)/sMaxDist;
           end;
   end;
 
@@ -213,9 +214,9 @@ begin
 
   if l2 < l1 then
     l1 := l2;
-  l1 := l1 * 2;
+  l1 := l1 + l1 div 4;
 
-  if l1 >= gMaxDist then 
+  if l1 >= sMaxDist then
     begin
       Pan := 0.0;
       Volume := 0.0;
@@ -224,7 +225,7 @@ begin
   else
     begin
       Pan := d1;
-      Volume := 1.0 - l1/gMaxDist;
+      Volume := 1.0 - l1/sMaxDist;
       Result := True;
     end;
 end;
@@ -515,7 +516,7 @@ function TPlayableSound.PlayVolumeAt(X, Y: Integer; Volume: Single): Boolean;
 var
   Pan, Vol: Single;
 begin
-  if PlaySoundAt(X, Y, Pan, Vol) then
+  if PlaySoundAt(X, Y, Pan, Vol, Volume) then
     begin
       Stop();
       Result := RawPlay(Pan, Volume * Vol * (gSoundLevel/255.0), FPosition);
@@ -528,17 +529,17 @@ function TPlayableSound.SetCoords(X, Y: Integer; Volume: Single): Boolean;
 var
   Pan, Vol: Single;
 begin
-  Result := False;
-
-  if IsPlaying() then
+  if PlaySoundAt(X, Y, Pan, Vol, Volume) then
   begin
-    if PlaySoundAt(X, Y, Pan, Vol) then
-    begin
-      SetVolume(Volume * Vol * (gSoundLevel/255.0));
-      SetPan(Pan);
-
-      Result := True;
-    end;
+    SetVolume(Volume * Vol * (gSoundLevel/255.0));
+    SetPan(Pan);
+    Result := True;
+  end
+  else
+  begin
+    SetVolume(0.0);
+    SetPan(0.0);
+    Result := False;
   end;
 end;
 

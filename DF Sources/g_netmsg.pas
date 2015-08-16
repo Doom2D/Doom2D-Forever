@@ -2108,7 +2108,10 @@ begin
         begin
           if SPlaying then
           begin
-            Sound.Play(True);
+            if Data.Local then
+              Sound.PlayVolumeAt(X+(Width div 2), Y+(Height div 2), Data.Volume/255.0)
+            else
+              Sound.PlayPanVolume((Data.Pan-127.0)/128.0, Data.Volume/255.0);
             Sound.SetPosition(SPos);
           end
           else
@@ -2298,14 +2301,12 @@ var
   Str1, Str2: string;
   Int1, Int2: SmallInt;
 begin
-  e_WriteLog('ayy', MSG_NOTIFY);
   EvID := e_Raw_Read_Byte(P);
   Int1 := e_Raw_Read_SmallInt(P);
   Int2 := e_Raw_Read_SmallInt(P);
   Str1 := e_Raw_Read_String(P);
   Str2 := e_Raw_Read_String(P);
 
-  e_WriteLog('lmao', MSG_NOTIFY);
   case EvID of
     NET_VE_STARTED:
       g_Console_Add(Format(_lc[I_MESSAGE_VOTE_STARTED], [Str1, Str2, Int1]), True);
@@ -2318,7 +2319,6 @@ begin
     NET_VE_INPROGRESS:
       g_Console_Add(Format(_lc[I_MESSAGE_VOTE_INPROGRESS], [Str1]), True);
   end;
-  e_WriteLog('ayy lmao', MSG_NOTIFY);
 end;
 
 // CLIENT SEND

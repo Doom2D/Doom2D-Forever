@@ -151,7 +151,8 @@ var
   gPlayer1: TPlayer = nil;
   gPlayer2: TPlayer = nil;
   gPlayerDrawn: TPlayer = nil;
-  gTime: LongWord;            
+  gTime: LongWord;
+  gSoundTriggerTime: Word = 0;
   gInterEndTime: LongWord = 0;
   gInterTime: LongWord = 0;
   gGameStartTime: LongWord = 0;
@@ -1242,8 +1243,13 @@ begin
         SetLength(gMonstersSpawned, 0);
       end;
 
-    if (gTime mod (GAME_TICK*9)) = 0 then
+    if (gSoundTriggerTime > 8) then
+    begin
       g_Game_UpdateTriggerSounds();
+      gSoundTriggerTime := 0;
+    end
+    else
+      Inc(gSoundTriggerTime); 
 
     if (NetMode = NET_SERVER) then
     begin
