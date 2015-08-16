@@ -1664,8 +1664,9 @@ end;
 
 procedure g_Triggers_DecreaseSpawner(ID: DWORD);
 begin
-  if gTriggers[ID].SpawnedCount > 0 then
-    Dec(gTriggers[ID].SpawnedCount);
+  if (gTriggers <> nil) then
+    if gTriggers[ID].SpawnedCount > 0 then
+      Dec(gTriggers[ID].SpawnedCount);
 end;
 
 procedure g_Triggers_Free();
