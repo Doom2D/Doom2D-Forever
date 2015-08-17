@@ -1089,6 +1089,57 @@ begin
                 end;
             end;
           end;
+          // Проигрыш
+          if (Data.ScoreAction = 3) and (gGameSettings.GoalLimit > 0) then
+          begin
+            // Своей или чужой команды
+            if (Data.ScoreTeam in [0..1]) and (g_GetUIDType(ActivateUID) = UID_PLAYER) then
+            begin
+              p := g_Player_Get(ActivateUID);
+              if ((Data.ScoreTeam = 0) and (p.Team = TEAM_BLUE)) // Red Wins
+              or ((Data.ScoreTeam = 1) and (p.Team = TEAM_RED)) then
+                if gTeamStat[TEAM_RED].Goals < SmallInt(gGameSettings.GoalLimit) then
+                begin
+                  gTeamStat[TEAM_RED].Goals := gGameSettings.GoalLimit;
+
+                  if Data.ScoreTeam = 0 then
+                    g_Console_Add(Format(_lc[I_PLAYER_SCORE_WIN_ENEMY], [p.Name, _lc[I_PLAYER_SCORE_TO_RED]]), True)
+                  else
+                    g_Console_Add(Format(_lc[I_PLAYER_SCORE_WIN_OWN], [p.Name, _lc[I_PLAYER_SCORE_TO_RED]]), True);
+
+                  Result := True;
+                end;
+              if ((Data.ScoreTeam = 0) and (p.Team = TEAM_RED)) // Blue Wins
+              or ((Data.ScoreTeam = 1) and (p.Team = TEAM_BLUE)) then
+                if gTeamStat[TEAM_BLUE].Goals < SmallInt(gGameSettings.GoalLimit) then
+                begin
+                  gTeamStat[TEAM_BLUE].Goals := gGameSettings.GoalLimit;
+
+                  if Data.ScoreTeam = 0 then
+                    g_Console_Add(Format(_lc[I_PLAYER_SCORE_WIN_ENEMY], [p.Name, _lc[I_PLAYER_SCORE_TO_BLUE]]), True)
+                  else
+                    g_Console_Add(Format(_lc[I_PLAYER_SCORE_WIN_OWN], [p.Name, _lc[I_PLAYER_SCORE_TO_BLUE]]), True);
+
+                  Result := True;
+                end;
+            end;
+            // Какой-то конкретной команды
+            if Data.ScoreTeam in [2..3] then
+            begin
+              if Data.ScoreTeam = 3 then // Red Wins
+                if gTeamStat[TEAM_RED].Goals < SmallInt(gGameSettings.GoalLimit) then
+                begin
+                  gTeamStat[TEAM_RED].Goals := gGameSettings.GoalLimit;
+                  Result := True;
+                end;
+              if Data.ScoreTeam = 2 then // Blue Wins
+                if gTeamStat[TEAM_BLUE].Goals < SmallInt(gGameSettings.GoalLimit) then
+                begin
+                  gTeamStat[TEAM_BLUE].Goals := gGameSettings.GoalLimit;
+                  Result := True;
+                end;
+            end;
+          end;
           if Result then begin
             if coolDown then
               TimeOut := 18

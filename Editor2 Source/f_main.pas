@@ -1285,6 +1285,7 @@ begin
                 case Data.ScoreAction of
                   1: str := _lc[I_PROP_TR_SCORE_ACT_1];
                   2: str := _lc[I_PROP_TR_SCORE_ACT_2];
+                  3: str := _lc[I_PROP_TR_SCORE_ACT_3];
                   else str := _lc[I_PROP_TR_SCORE_ACT_0];
                 end;
                 with ItemProps[InsertRow(_lc[I_PROP_TR_SCORE_ACT], str, True)-1] do
@@ -3907,6 +3908,7 @@ begin
         Values.Add(_lc[I_PROP_TR_SCORE_ACT_0]);
         Values.Add(_lc[I_PROP_TR_SCORE_ACT_1]);
         Values.Add(_lc[I_PROP_TR_SCORE_ACT_2]);
+        Values.Add(_lc[I_PROP_TR_SCORE_ACT_3]);
       end
     else if KeyName = _lc[I_PROP_TR_SCORE_TEAM] then
       begin
@@ -4254,17 +4256,19 @@ begin
               begin
                 Data.ScoreAction := 0;
                 if vleObjectProperty.Values[_lc[I_PROP_TR_SCORE_ACT]] = _lc[I_PROP_TR_SCORE_ACT_1] then
-                  Data.ScoreAction := 1;
-                if vleObjectProperty.Values[_lc[I_PROP_TR_SCORE_ACT]] = _lc[I_PROP_TR_SCORE_ACT_2] then
-                  Data.ScoreAction := 2;
+                  Data.ScoreAction := 1
+                else if vleObjectProperty.Values[_lc[I_PROP_TR_SCORE_ACT]] = _lc[I_PROP_TR_SCORE_ACT_2] then
+                  Data.ScoreAction := 2
+                else if vleObjectProperty.Values[_lc[I_PROP_TR_SCORE_ACT]] = _lc[I_PROP_TR_SCORE_ACT_3] then
+                  Data.ScoreAction := 3;
                 Data.ScoreCount := Min(Max(
                   StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_COUNT]], 0), 0), 255);
                 Data.ScoreTeam := 0;
                 if vleObjectProperty.Values[_lc[I_PROP_TR_SCORE_TEAM]] = _lc[I_PROP_TR_SCORE_TEAM_1] then
-                  Data.ScoreTeam := 1;
-                if vleObjectProperty.Values[_lc[I_PROP_TR_SCORE_TEAM]] = _lc[I_PROP_TR_SCORE_TEAM_2] then
-                  Data.ScoreTeam := 2;
-                if vleObjectProperty.Values[_lc[I_PROP_TR_SCORE_TEAM]] = _lc[I_PROP_TR_SCORE_TEAM_3] then
+                  Data.ScoreTeam := 1
+                else if vleObjectProperty.Values[_lc[I_PROP_TR_SCORE_TEAM]] = _lc[I_PROP_TR_SCORE_TEAM_2] then
+                  Data.ScoreTeam := 2
+                else if vleObjectProperty.Values[_lc[I_PROP_TR_SCORE_TEAM]] = _lc[I_PROP_TR_SCORE_TEAM_3] then
                   Data.ScoreTeam := 3;
               end;
 
