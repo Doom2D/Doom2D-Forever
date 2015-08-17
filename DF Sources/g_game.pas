@@ -749,7 +749,9 @@ begin
         b := 255;
       end;
 
-      e_TextureFontPrintEx(x+16, _y, Format(s1, [gTeamStat[a].Goals]), gStdFont, r, g, b, 1);
+      e_TextureFontPrintEx(x+16, _y, s1, gStdFont, r, g, b, 1);
+      e_TextureFontPrintEx(x+w1+16, _y, IntToStr(gTeamStat[a].Goals),
+                           gStdFont, r, g, b, 1);
 
       _y := _y+ch+(ch div 4);
       e_DrawLine(1, x+16, _y, x+w-16, _y, r, g, b);
@@ -1601,7 +1603,9 @@ begin
     begin
       if t = TEAM_RED then
       begin
-        e_TextureFontPrintEx(x+8, _y, Format(_lc[I_GAME_TEAM_RED], [CustomStat.TeamStat[TEAM_RED].Goals]),
+        e_TextureFontPrintEx(x+8, _y, _lc[I_GAME_TEAM_RED],
+                             gStdFont, 255, 0, 0, 1);
+        e_TextureFontPrintEx(x+w1+8, _y, IntToStr(CustomStat.TeamStat[TEAM_RED].Goals),
                              gStdFont, 255, 0, 0, 1);
         r := 255;
         g := 0;
@@ -1609,7 +1613,9 @@ begin
       end
       else
       begin
-        e_TextureFontPrintEx(x+8, _y, Format(_lc[I_GAME_TEAM_BLUE], [CustomStat.TeamStat[TEAM_BLUE].Goals]),
+        e_TextureFontPrintEx(x+8, _y, _lc[I_GAME_TEAM_BLUE],
+                             gStdFont, 0, 0, 255, 1);
+        e_TextureFontPrintEx(x+w1+8, _y, IntToStr(CustomStat.TeamStat[TEAM_BLUE].Goals),
                              gStdFont, 0, 0, 255, 1);
         r := 0;
         g := 0;
