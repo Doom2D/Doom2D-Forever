@@ -3947,14 +3947,14 @@ begin
       FSpectatePlayer := -1;
     end;
 
-    if (FXTo < 0) then
-      FXTo := 0
-    else if (FXTo > gMapInfo.Width) then
-      FXTo := gMapInfo.Width;
-    if (FYTo < 0) then
-      FYTo := 0
-    else if (FYTo > gMapInfo.Height) then
-      FYTo := gMapInfo.Height;
+    if (FXTo < -64) then
+      FXTo := -64
+    else if (FXTo > gMapInfo.Width + 32) then
+      FXTo := gMapInfo.Width + 32;
+    if (FYTo < -72) then
+      FYTo := -72
+    else if (FYTo > gMapInfo.Height + 32) then
+      FYTo := gMapInfo.Height + 32;
   end;
 
   if FPhysics then
