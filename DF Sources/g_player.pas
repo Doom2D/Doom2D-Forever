@@ -421,6 +421,7 @@ function  g_Player_Create(ModelName: String; Color: TRGB; Team: Byte;
 procedure g_Player_Remove(UID: Word);
 procedure g_Player_UpdateAll();
 procedure g_Player_DrawAll();
+procedure g_Player_DrawDebug();
 procedure g_Player_RememberAll();
 procedure g_Player_ResetAll(Force, Silent: Boolean);
 function  g_Player_Get(UID: Word): TPlayer;
@@ -1016,6 +1017,26 @@ begin
     if gPlayers[i] <> nil then
       if gPlayers[i] is TPlayer then gPlayers[i].Draw()
       else TBot(gPlayers[i]).Draw();
+end;
+
+procedure g_Player_DrawDebug();
+var
+  i: Integer;
+  fW, fH: Byte;
+begin
+  if gPlayers = nil then Exit;
+  e_TextureFontGetSize(gStdFont, fW, fH);
+
+  for i := 0 to High(gPlayers) do
+    if gPlayers[i] <> nil then
+    begin
+      e_TextureFontPrint(gPlayers[i].FObj.X + gPlayers[i].FObj.Rect.X,
+      gPlayers[i].FObj.Y + gPlayers[i].FObj.Rect.Y + gPlayers[i].FObj.Rect.Height - fH * 2,
+      IntToStr(gPlayers[i].FHealth), gStdFont);
+      e_TextureFontPrint(gPlayers[i].FObj.X + gPlayers[i].FObj.Rect.X,
+      gPlayers[i].FObj.Y + gPlayers[i].FObj.Rect.Y + gPlayers[i].FObj.Rect.Height - fH,
+      IntToStr(gPlayers[i].FArmor), gStdFont);
+    end;
 end;
 
 function g_Player_Get(UID: Word): TPlayer;
@@ -1741,7 +1762,7 @@ begin
 end;
 
 procedure TPlayer.Draw();
-var                    
+var
   bubX, bubY: Integer;
 begin
   if FLive then

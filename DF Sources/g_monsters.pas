@@ -141,6 +141,7 @@ function  g_Monsters_Create(MonsterType: Byte; X, Y: Integer;
             Direction: TDirection; AdjCoord: Boolean = False; ForcedUID: Integer = -1): Integer;
 procedure g_Monsters_Update();
 procedure g_Monsters_Draw();
+procedure g_Monsters_DrawDebug();
 function  g_Monsters_Get(UID: Word): TMonster;
 procedure g_Monsters_killedp();
 procedure g_Monsters_goodsnd();
@@ -1097,6 +1098,23 @@ begin
     for a := 0 to High(gMonsters) do
       if gMonsters[a] <> nil then
         gMonsters[a].Draw();
+end;
+
+procedure g_Monsters_DrawDebug();
+var
+  a: Integer;
+  fW, fH: Byte;
+begin
+  if gMonsters = nil then Exit;
+  e_TextureFontGetSize(gStdFont, fW, fH);
+
+  for a := 0 to High(gMonsters) do
+    if gMonsters[a] <> nil then
+    begin
+      e_TextureFontPrint(gMonsters[a].FObj.X + gMonsters[a].FObj.Rect.X,
+      gMonsters[a].FObj.Y + gMonsters[a].FObj.Rect.Y + gMonsters[a].FObj.Rect.Height - fH,
+      IntToStr(gMonsters[a].FHealth), gStdFont);
+    end;
 end;
 
 function g_Monsters_Get(UID: Word): TMonster;

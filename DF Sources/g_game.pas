@@ -189,6 +189,7 @@ var
   g_debug_WinMsgs: Boolean = False;
   g_debug_MonsterOff: Boolean = False;
   g_debug_BotAIOff: Byte = 0;
+  g_debug_HealthBar: Boolean = False;
   gCoopMonstersKilled: Word = 0;
   gCoopSecretsFound: Word = 0;
   gCoopTotalMonstersKilled: Word = 0;
@@ -1905,6 +1906,11 @@ begin
   g_Map_DrawPanels(PANEL_ACID2);
   g_Map_DrawPanels(PANEL_WATER);
   g_Map_DrawPanels(PANEL_FORE);
+  if g_debug_HealthBar then
+  begin
+    g_Monsters_DrawDebug();
+    g_Player_DrawDebug();
+  end;
 
   if p.FSpectator then
     e_TextureFontPrintEx(p.GameX + PLAYER_RECT_CX - 4,
@@ -1970,7 +1976,7 @@ begin
       gPlayer1ScreenCoord.X := sX;
       gPlayer1ScreenCoord.Y := sY;
     end;
-  
+
     if LongBool(gGameSettings.Options and GAME_OPTION_TWOPLAYER) then
     begin
       e_SetViewPort(0, 0, gPlayerScreenSize.X+196, gPlayerScreenSize.Y);
@@ -3653,6 +3659,14 @@ begin
                 gMonsters[b].MonsterBehaviour := Min(Max(StrToIntDef(P[2], BH_NORMAL), BH_NORMAL), BH_GOOD);
             end;
         end;
+    end
+    else if (cmd = 'd_health') then
+    begin
+      if (Length(P) > 1) and
+         ((P[1] = '1') or (P[1] = '0')) then
+        g_debug_HealthBar := (P[1][1] = '1');
+
+      g_Console_Add(Format('d_health is %d', [Byte(g_debug_HealthBar)]));
     end;
   end
     else
