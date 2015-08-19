@@ -78,6 +78,7 @@ type
     I_GAME_CHEAT_NOTARGET,
     I_GAME_CHEAT_NORELOAD,
     I_GAME_CHEAT_AIMLINE,
+    I_GAME_CHEAT_AUTOMAP,
 
     I_MENU_START_GAME,
     I_MENU_MAIN_MENU,                 
@@ -667,6 +668,8 @@ const
                                        'INFERNO'),
     ('GAME CHEAT AIMLINE',             'SNIPER',
                                        '—Õ¿…œ≈–'),
+    ('GAME CHEAT AUTOMAP',             'ID2DT',
+                                       'ID2DT'),
 
     ('MENU START GAME',                'Start Game',
                                        'Õ¿◊¿“‹ »√–”'),

@@ -305,6 +305,13 @@ begin
     gAimLine := not gAimLine;
     goto Cheated;
   end;
+  // ID2DT показывает карту уровня
+  ls := LocalCheatStr(I_GAME_CHEAT_AUTOMAP);
+  if Copy(charbuff, 17 - Length(ls), Length(ls)) = ls then
+  begin
+    gShowMap := not gShowMap;
+    goto Cheated;
+  end;
   Exit;
 
 Cheated:

@@ -164,6 +164,7 @@ var
   gShowStat: Boolean = True;
   gShowKillMsg: Boolean = True;
   gShowLives: Boolean = True;
+  gShowMap: Boolean = False;
   gExit: Byte = 0;
   gState: Byte = STATE_NONE;
   sX, sY: Integer;
@@ -1802,6 +1803,199 @@ begin
       end;
 end;
 
+procedure DrawMinimap(p: TPlayer; RenderRect: TRect);
+var
+  a, aX, aY, aX2, aY2, Scale, ScaleSz: Integer;
+begin
+  if (gMapInfo.Width > RenderRect.Right - RenderRect.Left) or
+     (gMapInfo.Height > RenderRect.Bottom - RenderRect.Top) then
+  begin
+    Scale := 1;
+  // Сколько пикселов карты в 1 пикселе мини-карты:
+    ScaleSz := 16 div Scale;
+  // Размеры мини-карты:
+    aX := max(gMapInfo.Width div ScaleSz, 1);
+    aY := max(gMapInfo.Height div ScaleSz, 1);
+  // Рамка карты:
+    e_DrawFillQuad(0, 0, aX-1, aY-1, 0, 0, 0, 0);
+
+    if gWalls <> nil then
+    begin
+    // Рисуем стены:
+      for a := 0 to High(gWalls) do
+        with gWalls[a] do
+          if PanelType <> 0 then
+          begin
+          // Левый верхний угол:
+            aX := X div ScaleSz;
+            aY := Y div ScaleSz;
+          // Размеры:
+            aX2 := max(Width div ScaleSz, 1);
+            aY2 := max(Height div ScaleSz, 1);
+          // Правый нижний угол:
+            aX2 := aX + aX2 - 1;
+            aY2 := aY + aY2 - 1;
+
+            case PanelType of
+              PANEL_WALL:      e_DrawFillQuad(aX, aY, aX2, aY2, 208, 208, 208, 0);
+              PANEL_OPENDOOR, PANEL_CLOSEDOOR:
+                if Enabled then e_DrawFillQuad(aX, aY, aX2, aY2, 160, 160, 160, 0);
+            end;
+          end;
+    end;
+    if gSteps <> nil then
+    begin
+    // Рисуем ступени:
+      for a := 0 to High(gSteps) do
+        with gSteps[a] do
+          if PanelType <> 0 then
+          begin
+          // Левый верхний угол:
+            aX := X div ScaleSz;
+            aY := Y div ScaleSz;
+          // Размеры:
+            aX2 := max(Width div ScaleSz, 1);
+            aY2 := max(Height div ScaleSz, 1);
+          // Правый нижний угол:
+            aX2 := aX + aX2 - 1;
+            aY2 := aY + aY2 - 1;
+
+            e_DrawFillQuad(aX, aY, aX2, aY2, 128, 128, 128, 0);
+          end;
+    end;
+    if gLifts <> nil then
+    begin
+    // Рисуем лифты:
+      for a := 0 to High(gLifts) do
+        with gLifts[a] do
+          if PanelType <> 0 then
+          begin
+          // Левый верхний угол:
+            aX := X div ScaleSz;
+            aY := Y div ScaleSz;
+          // Размеры:
+            aX2 := max(Width div ScaleSz, 1);
+            aY2 := max(Height div ScaleSz, 1);
+          // Правый нижний угол:
+            aX2 := aX + aX2 - 1;
+            aY2 := aY + aY2 - 1;
+
+            case LiftType of
+              0: e_DrawFillQuad(aX, aY, aX2, aY2, 116,  72,  36, 0);
+              1: e_DrawFillQuad(aX, aY, aX2, aY2, 116, 124,  96, 0);
+              2: e_DrawFillQuad(aX, aY, aX2, aY2, 200,  80,   4, 0);
+              3: e_DrawFillQuad(aX, aY, aX2, aY2, 252, 140,  56, 0);
+            end;
+          end;
+    end;
+    if gWater <> nil then
+    begin
+    // Рисуем воду:
+      for a := 0 to High(gWater) do
+        with gWater[a] do
+          if PanelType <> 0 then
+          begin
+          // Левый верхний угол:
+            aX := X div ScaleSz;
+            aY := Y div ScaleSz;
+          // Размеры:
+            aX2 := max(Width div ScaleSz, 1);
+            aY2 := max(Height div ScaleSz, 1);
+          // Правый нижний угол:
+            aX2 := aX + aX2 - 1;
+            aY2 := aY + aY2 - 1;
+
+            e_DrawFillQuad(aX, aY, aX2, aY2, 0, 0, 192, 0);
+          end;
+    end;
+    if gAcid1 <> nil then
+    begin
+    // Рисуем кислоту 1:
+      for a := 0 to High(gAcid1) do
+        with gAcid1[a] do
+          if PanelType <> 0 then
+          begin
+          // Левый верхний угол:
+            aX := X div ScaleSz;
+            aY := Y div ScaleSz;
+          // Размеры:
+            aX2 := max(Width div ScaleSz, 1);
+            aY2 := max(Height div ScaleSz, 1);
+          // Правый нижний угол:
+            aX2 := aX + aX2 - 1;
+            aY2 := aY + aY2 - 1;
+
+            e_DrawFillQuad(aX, aY, aX2, aY2, 0, 176, 0, 0);
+          end;
+    end;
+    if gAcid2 <> nil then
+    begin
+    // Рисуем кислоту 2:
+      for a := 0 to High(gAcid2) do
+        with gAcid2[a] do
+          if PanelType <> 0 then
+          begin
+          // Левый верхний угол:
+            aX := X div ScaleSz;
+            aY := Y div ScaleSz;
+          // Размеры:
+            aX2 := max(Width div ScaleSz, 1);
+            aY2 := max(Height div ScaleSz, 1);
+          // Правый нижний угол:
+            aX2 := aX + aX2 - 1;
+            aY2 := aY + aY2 - 1;
+
+            e_DrawFillQuad(aX, aY, aX2, aY2, 176, 0, 0, 0);
+          end;
+    end;
+    if gPlayers <> nil then
+    begin
+    // Рисуем игроков:
+      for a := 0 to High(gPlayers) do
+        if gPlayers[a] <> nil then with gPlayers[a] do
+          if Live then begin
+          // Левый верхний угол:
+            aX := Obj.X div ScaleSz + 1;
+            aY := Obj.Y div ScaleSz + 1;
+          // Размеры:
+            aX2 := max(Obj.Rect.Width div ScaleSz, 1);
+            aY2 := max(Obj.Rect.Height div ScaleSz, 1);
+          // Правый нижний угол:
+            aX2 := aX + aX2 - 1;
+            aY2 := aY + aY2 - 1;
+
+            if gPlayers[a] = p then
+              e_DrawFillQuad(aX, aY, aX2, aY2, 0, 255, 0, 0)
+            else
+              case Team of
+                TEAM_RED:  e_DrawFillQuad(aX, aY, aX2, aY2, 255,   0,   0, 0);
+                TEAM_BLUE: e_DrawFillQuad(aX, aY, aX2, aY2, 0,     0, 255, 0);
+                else       e_DrawFillQuad(aX, aY, aX2, aY2, 255, 128,   0, 0);
+              end;
+          end;
+    end;
+    if gMonsters <> nil then
+    begin
+    // Рисуем монстров:
+      for a := 0 to High(gMonsters) do
+        if gMonsters[a] <> nil then with gMonsters[a] do
+          if Live then begin
+          // Левый верхний угол:
+            aX := Obj.X div ScaleSz + 1;
+            aY := Obj.Y div ScaleSz + 1;
+          // Размеры:
+            aX2 := max(Obj.Rect.Width div ScaleSz, 1);
+            aY2 := max(Obj.Rect.Height div ScaleSz, 1);
+          // Правый нижний угол:
+            aX2 := aX + aX2 - 1;
+            aY2 := aY + aY2 - 1;
+
+            e_DrawFillQuad(aX, aY, aX2, aY2, 255, 255, 0, 0);
+          end;
+    end;
+  end;
+end;
+
 procedure DrawPlayer(p: TPlayer);
 var
   px, py, a, b, c, d: Integer;
@@ -1938,6 +2132,8 @@ begin
 
   p.DrawPain();
   p.DrawRulez();
+  if gShowMap then
+    DrawMinimap(p, Rect(0, 0, 128, 128));
   p.DrawGUI();
 end;
 
@@ -2260,6 +2456,8 @@ begin
 
 // Настройки игры:
   ZeroMemory(@gGameSettings, SizeOf(TGameSettings));
+  gAimLine := False;
+  gShowMap := False;
   gGameSettings.GameType := GT_SINGLE;
   gGameSettings.MaxLives := 0;
   if TwoPlayers then
@@ -2351,6 +2549,8 @@ begin
   gCoopTotalSecretsFound := 0;
   gCoopTotalMonsters := 0;
   gCoopTotalSecrets := 0;
+  gAimLine := False;
+  gShowMap := False;
 
 // Установка размеров окон игроков:
   g_Game_SetupScreenSize();
@@ -2485,6 +2685,8 @@ begin
   gCoopTotalSecretsFound := 0;
   gCoopTotalMonsters := 0;
   gCoopTotalSecrets := 0;
+  gAimLine := False;
+  gShowMap := False;
 
   if GameMode = GM_COOP then
     LoadMegaWAD(gGameSettings.WAD);
@@ -2612,6 +2814,8 @@ begin
   gCoopTotalSecretsFound := 0;
   gCoopTotalMonsters := 0;
   gCoopTotalSecrets := 0;
+  gAimLine := False;
+  gShowMap := False;
 
 // Установка размеров окон игроков:
   g_Game_SetupScreenSize();

@@ -1796,7 +1796,8 @@ begin
       e_TextureFontPrint(bubX, bubY, '[...]', gStdFont);
     end;
  // e_DrawPoint(5, 335, 288, 255, 0, 0); // DL, UR, DL, UR
-  if gAimLine and ((Self = gPlayer1) or (Self = gPlayer2)) then
+  if gAimLine and Live and
+  ((Self = gPlayer1) or (Self = gPlayer2)) then
     DrawAim();
 end;
 
