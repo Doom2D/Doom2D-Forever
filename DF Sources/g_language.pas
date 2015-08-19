@@ -77,6 +77,7 @@ type
     I_GAME_CHEAT_NOCLIP,
     I_GAME_CHEAT_NOTARGET,
     I_GAME_CHEAT_NORELOAD,
+    I_GAME_CHEAT_AIMLINE,
 
     I_MENU_START_GAME,
     I_MENU_MAIN_MENU,                 
@@ -664,6 +665,8 @@ const
                                        'ÿ“»–À»÷'),
     ('GAME CHEAT NORELOAD',            'INFERNO',
                                        'INFERNO'),
+    ('GAME CHEAT AIMLINE',             'SNIPER',
+                                       '—Õ¿…œ≈–'),
 
     ('MENU START GAME',                'Start Game',
                                        'Õ¿◊¿“‹ »√–”'),

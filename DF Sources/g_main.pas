@@ -298,6 +298,13 @@ begin
     if gPlayer2 <> nil then gPlayer2.NoReload := not gPlayer2.NoReload;
     goto Cheated;
   end;
+  // СНАЙПЕР включает прицел
+  ls := LocalCheatStr(I_GAME_CHEAT_AIMLINE);
+  if Copy(charbuff, 17 - Length(ls), Length(ls)) = ls then
+  begin
+    gAimLine := not gAimLine;
+    goto Cheated;
+  end;
   Exit;
 
 Cheated:

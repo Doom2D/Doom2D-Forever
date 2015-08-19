@@ -245,6 +245,7 @@ type
     procedure   Draw(); virtual;
     procedure   DrawPain();
     procedure   DrawRulez();
+    procedure   DrawAim();
     procedure   DrawGUI();
     procedure   Update(); virtual;
     procedure   RememberState();
@@ -373,7 +374,7 @@ type
     FObj:           TObj;
     FAnimation:     TAnimation;
     FAnimationMask: TAnimation;
-    
+
   public
     constructor Create(X, Y: Integer; ModelName: String; aMess: Boolean);
     destructor  Destroy(); override;
@@ -400,6 +401,7 @@ var
   gShells: Array of TShell;
   gTeamStat: TTeamStat;
   gFly: Boolean = False;
+  gAimLine: Boolean = False;
   gLastSpawnUsed: Byte = 0;
   MAX_RUNVEL: Integer = 8;
   VEL_JUMP: Integer = 10;
@@ -480,7 +482,7 @@ const
   VEL_FLY = 6;
   ANGLE_RIGHTUP   = 55;
   ANGLE_RIGHTDOWN = -35;
-  ANGLE_LEFTUP    = 125;      
+  ANGLE_LEFTUP    = 125;
   ANGLE_LEFTDOWN  = -145;
   PLAYER_HEADRECT: TRectWH = (X:24; Y:12; Width:20; Height:12);
   WEAPONPOINT: Array [TDirection] of TPoint = ((X:16; Y:32), (X:47; Y:32));
@@ -1794,6 +1796,98 @@ begin
       e_TextureFontPrint(bubX, bubY, '[...]', gStdFont);
     end;
  // e_DrawPoint(5, 335, 288, 255, 0, 0); // DL, UR, DL, UR
+  if gAimLine and ((Self = gPlayer1) or (Self = gPlayer2)) then
+    DrawAim();
+end;
+
+procedure TPlayer.DrawAim();
+var
+  wx, wy, xx, yy: Integer;
+  angle: SmallInt;
+  sz, len: Word;
+begin
+  wx := FObj.X + WEAPONPOINT[FDirection].X + IfThen(FDirection = D_LEFT, 7, -7);
+  wy := FObj.Y + WEAPONPOINT[FDirection].Y;
+  angle := FAngle;
+  len := 1024;
+  sz := 2;
+  case FCurrWeap of
+    0: begin // Punch
+      len := 12;
+      sz := 4;
+    end;
+    1: begin // Chainsaw
+      len := 24;
+      sz := 6;
+    end;
+    2: begin // Pistol
+      len := 1024;
+      sz := 2;
+      if angle = ANGLE_RIGHTUP then Dec(angle, 2);
+      if angle = ANGLE_RIGHTDOWN then Inc(angle, 4);
+      if angle = ANGLE_LEFTUP then Inc(angle, 2);
+      if angle = ANGLE_LEFTDOWN then Dec(angle, 4);
+    end;
+    3: begin // Shotgun
+      len := 1024;
+      sz := 3;
+      if angle = ANGLE_RIGHTUP then Dec(angle, 2);
+      if angle = ANGLE_RIGHTDOWN then Inc(angle, 4);
+      if angle = ANGLE_LEFTUP then Inc(angle, 2);
+      if angle = ANGLE_LEFTDOWN then Dec(angle, 4);
+    end;
+    4: begin // Double Shotgun
+      len := 1024;
+      sz := 4;
+      if angle = ANGLE_RIGHTUP then Dec(angle, 2);
+      if angle = ANGLE_RIGHTDOWN then Inc(angle, 4);
+      if angle = ANGLE_LEFTUP then Inc(angle, 2);
+      if angle = ANGLE_LEFTDOWN then Dec(angle, 4);
+    end;
+    5: begin // Chaingun
+      len := 1024;
+      sz := 3;
+      if angle = ANGLE_RIGHTUP then Dec(angle, 2);
+      if angle = ANGLE_RIGHTDOWN then Inc(angle, 4);
+      if angle = ANGLE_LEFTUP then Inc(angle, 2);
+      if angle = ANGLE_LEFTDOWN then Dec(angle, 4);
+    end;
+    6: begin // Rocket Launcher
+      len := 1024;
+      sz := 7;
+      if angle = ANGLE_RIGHTUP then Inc(angle, 2);
+      if angle = ANGLE_RIGHTDOWN then Inc(angle, 4);
+      if angle = ANGLE_LEFTUP then Dec(angle, 2);
+      if angle = ANGLE_LEFTDOWN then Dec(angle, 4);
+    end;
+    7: begin // Plasmagun
+      len := 1024;
+      sz := 5;
+      if angle = ANGLE_RIGHTUP then Inc(angle);
+      if angle = ANGLE_RIGHTDOWN then Inc(angle, 3);
+      if angle = ANGLE_LEFTUP then Dec(angle);
+      if angle = ANGLE_LEFTDOWN then Dec(angle, 3);
+    end;
+    8: begin // BFG
+      len := 1024;
+      sz := 12;
+      if angle = ANGLE_RIGHTUP then Inc(angle, 1);
+      if angle = ANGLE_RIGHTDOWN then Inc(angle, 2);
+      if angle = ANGLE_LEFTUP then Dec(angle, 1);
+      if angle = ANGLE_LEFTDOWN then Dec(angle, 2);
+    end;
+    9: begin // Super Chaingun
+      len := 1024;
+      sz := 4;
+      if angle = ANGLE_RIGHTUP then Dec(angle, 2);
+      if angle = ANGLE_RIGHTDOWN then Inc(angle, 4);
+      if angle = ANGLE_LEFTUP then Inc(angle, 2);
+      if angle = ANGLE_LEFTDOWN then Dec(angle, 4);
+    end;
+  end;
+  xx := Trunc(Cos(-DegToRad(angle)) * len) + wx;
+  yy := Trunc(Sin(-DegToRad(angle)) * len) + wy;
+  e_DrawLine(sz, wx, wy, xx, yy, 255, 0, 0, 96);
 end;
 
 procedure TPlayer.DrawGUI();
