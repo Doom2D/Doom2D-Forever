@@ -715,15 +715,29 @@ begin
                         Continue;
                       end;
 
-                  if ByteBool(gCollideMap[Y, X] and MARK_LIFTUP) and
-                     (not ByteBool(gCollideMap[Y, X] and MARK_BLOCKED)) then
-                  begin // Лифт вверх
-                    if VelY > -4-Random(3) then
-                      VelY := VelY - 0.8;
-                    if Abs(VelX) > 0.1 then
-                      VelX := VelX - VelX/10.0;
-                    VelX := VelX + (Random-Random)*0.2;
-                    AccelY := 0.15;
+                  if not ByteBool(gCollideMap[Y, X] and MARK_BLOCKED) then
+                  begin
+                    if ByteBool(gCollideMap[Y, X] and MARK_LIFTUP) then
+                    begin // Лифт вверх
+                      if VelY > -4-Random(3) then
+                        VelY := VelY - 0.8;
+                      if Abs(VelX) > 0.1 then
+                        VelX := VelX - VelX/10.0;
+                      VelX := VelX + (Random-Random)*0.2;
+                      AccelY := 0.15;
+                    end;
+                    if ByteBool(gCollideMap[Y, X] and MARK_LIFTLEFT) then
+                    begin // Поток влево
+                      if VelX > -8-Random(3) then
+                        VelX := VelX - 0.8;
+                      AccelY := 0.15;
+                    end;
+                    if ByteBool(gCollideMap[Y, X] and MARK_LIFTRIGHT) then
+                    begin // Поток вправо
+                      if VelX < 8+Random(3) then
+                        VelX := VelX + 0.8;
+                      AccelY := 0.15;
+                    end;
                   end;
 
                   dX := Round(VelX);
@@ -962,15 +976,29 @@ begin
                 Continue;
               end;
 
-              if ByteBool(gCollideMap[Y, X] and MARK_LIFTUP) and
-                 (not ByteBool(gCollideMap[Y, X] and MARK_BLOCKED)) then
-              begin // Лифт вверх
-                if VelY > -4-Random(3) then
-                  VelY := VelY - 0.8;
-                if Abs(VelX) > 0.1 then
-                  VelX := VelX - VelX/10.0;
-                VelX := VelX + (Random-Random)*0.2;
-                AccelY := 0.15;
+              if not ByteBool(gCollideMap[Y, X] and MARK_BLOCKED) then
+              begin
+                if ByteBool(gCollideMap[Y, X] and MARK_LIFTUP) then
+                begin // Лифт вверх
+                  if VelY > -4-Random(3) then
+                    VelY := VelY - 0.8;
+                  if Abs(VelX) > 0.1 then
+                    VelX := VelX - VelX/10.0;
+                  VelX := VelX + (Random-Random)*0.2;
+                  AccelY := 0.15;
+                end;
+                if ByteBool(gCollideMap[Y, X] and MARK_LIFTLEFT) then
+                begin // Поток влево
+                  if VelX > -8-Random(3) then
+                    VelX := VelX - 0.8;
+                  AccelY := 0.15;
+                end;
+                if ByteBool(gCollideMap[Y, X] and MARK_LIFTRIGHT) then
+                begin // Поток вправо
+                  if VelX < 8+Random(3) then
+                    VelX := VelX + 0.8;
+                  AccelY := 0.15;
+                end;
               end;
 
               dX := Round(VelX);
