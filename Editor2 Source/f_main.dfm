@@ -1,6 +1,6 @@
 object MainForm: TMainForm
-  Left = 279
-  Top = 407
+  Left = 434
+  Top = 255
   AutoScroll = False
   Caption = #1056#1077#1076#1072#1082#1090#1086#1088' '#1082#1072#1088#1090' Doom 2D: Forever'
   ClientHeight = 554
@@ -703,7 +703,7 @@ object MainForm: TMainForm
     Filter = 
       #1050#1072#1088#1090#1099' Doom 2D: Forever (*.wad)|*.wad|'#1057#1090#1072#1088#1099#1077' '#1082#1072#1088#1090#1099' Doom 2D: Forev' +
       'er (*.ini)|*.ini|'#1042#1089#1077' '#1092#1072#1081#1083#1099' (*.*)|*.*'
-    Options = [ofHideReadOnly, ofNoChangeDir, ofEnableSizing]
+    Options = [ofHideReadOnly, ofNoChangeDir, ofPathMustExist, ofFileMustExist, ofEnableSizing, ofDontAddToRecent]
     Left = 32
     Top = 64
   end
@@ -1909,7 +1909,7 @@ object MainForm: TMainForm
   object SaveDialog: TSaveDialog
     DefaultExt = 'wad'
     Filter = #1050#1072#1088#1090#1099' Doom 2D: Forever (*.wad)|*.wad|'#1042#1089#1077' '#1092#1072#1081#1083#1099' (*.*)|*.*'
-    Options = [ofHideReadOnly, ofNoChangeDir, ofPathMustExist, ofEnableSizing, ofDontAddToRecent]
+    Options = [ofHideReadOnly, ofNoChangeDir, ofPathMustExist, ofNoReadOnlyReturn, ofEnableSizing, ofDontAddToRecent]
     Left = 64
     Top = 64
   end
