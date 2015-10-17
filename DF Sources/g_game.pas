@@ -1315,6 +1315,10 @@ begin
       if NetUseMaster then
         if gTime >= NetTimeToMaster then
         begin
+          if (NetMHost = nil) or (NetMPeer = nil) then
+            if not g_Net_Slist_Connect then
+              g_Console_Add(_lc[I_NET_MSG_ERROR] + _lc[I_NET_SLIST_ERROR]);
+
           g_Net_Slist_Update;
           NetTimeToMaster := gTime + NetMasterRate;
         end;
