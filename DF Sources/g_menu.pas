@@ -519,13 +519,18 @@ begin
   g_ActiveWindow := nil;
 
   slWaitStr := _lc[I_NET_SLIST_WAIT];
-  
+
   g_Game_Draw;
   ReDrawWindow;
 
   slReturnPressed := True;
-  slCurrent := g_Net_Slist_Fetch;
-  if slCurrent = nil then slWaitStr := _lc[I_NET_SLIST_NOSERVERS];
+  if g_Net_Slist_Fetch(slCurrent) then
+  begin
+    if slCurrent = nil then
+      slWaitStr := _lc[I_NET_SLIST_NOSERVERS];
+  end
+  else
+    slWaitStr := _lc[I_NET_SLIST_ERROR];
 end;
 
 procedure ProcStartCampaign();

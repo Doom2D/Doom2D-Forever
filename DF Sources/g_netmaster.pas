@@ -40,7 +40,7 @@ var
   slReturnPressed: Boolean = True;
 
 procedure g_Net_Slist_Set(IP: string; Port: Word);
-function  g_Net_Slist_Fetch: TNetServerList;
+function  g_Net_Slist_Fetch(var SL: TNetServerList): Boolean;
 procedure g_Net_Slist_Update;
 procedure g_Net_Slist_Remove;
 function  g_Net_Slist_Connect: Boolean;
@@ -62,14 +62,15 @@ var
   slFetched:      Boolean = False;
   slDirPressed:   Boolean = False;
 
-function g_Net_Slist_Fetch: TNetServerList;
+function g_Net_Slist_Fetch(var SL: TNetServerList): Boolean;
 var
   Cnt: Byte;
   P: pENetPacket;
   MID: Byte;
   I: Integer;
 begin
-  Result := nil;
+  Result := False;
+  SL := nil;
 
   if (NetMHost <> nil) or (NetMPeer <> nil) then
     Exit;
@@ -102,23 +103,24 @@ begin
 
       if Cnt > 0 then
       begin
-        SetLength(Result, Cnt);
+        SetLength(SL, Cnt);
 
         for I := 0 to Cnt - 1 do
         begin
-          Result[I].Number := I;
-          Result[I].IP := e_Raw_Read_String(NetMEvent.packet^.data);
-          Result[I].Port := e_Raw_Read_Word(NetMEvent.packet^.data);
-          Result[I].Name := e_Raw_Read_String(NetMEvent.packet^.data);
-          Result[I].Map := e_Raw_Read_String(NetMEvent.packet^.data);
-          Result[I].GameMode := e_Raw_Read_Byte(NetMEvent.packet^.data);
-          Result[I].Players := e_Raw_Read_Byte(NetMEvent.packet^.data);
-          Result[I].MaxPlayers := e_Raw_Read_Byte(NetMEvent.packet^.data);
-          Result[I].Protocol := e_Raw_Read_Byte(NetMEvent.packet^.data);
-          Result[I].Password := e_Raw_Read_Byte(NetMEvent.packet^.data) = 1;
+          SL[I].Number := I;
+          SL[I].IP := e_Raw_Read_String(NetMEvent.packet^.data);
+          SL[I].Port := e_Raw_Read_Word(NetMEvent.packet^.data);
+          SL[I].Name := e_Raw_Read_String(NetMEvent.packet^.data);
+          SL[I].Map := e_Raw_Read_String(NetMEvent.packet^.data);
+          SL[I].GameMode := e_Raw_Read_Byte(NetMEvent.packet^.data);
+          SL[I].Players := e_Raw_Read_Byte(NetMEvent.packet^.data);
+          SL[I].MaxPlayers := e_Raw_Read_Byte(NetMEvent.packet^.data);
+          SL[I].Protocol := e_Raw_Read_Byte(NetMEvent.packet^.data);
+          SL[I].Password := e_Raw_Read_Byte(NetMEvent.packet^.data) = 1;
         end;
       end;
 
+      Result := True;
       break;
     end;
   end;
@@ -181,12 +183,12 @@ end;
 function g_Net_Slist_Connect: Boolean;
 begin
   Result := False;
-  
+
   NetMHost := enet_host_create(nil, 1, NET_MCHANS, 0, 0);
   if (NetMHost = nil) then
   begin
     g_Console_Add(_lc[I_NET_MSG_ERROR] + _lc[I_NET_ERR_CLIENT], True);
-    Exit;  
+    Exit;
   end;
 
   NetMPeer := enet_host_connect(NetMHost, @NetSlistAddr, NET_MCHANS, 0);
@@ -292,8 +294,8 @@ begin
     e_DrawFillQuad(16, 64, gScreenWidth-16, gScreenHeight-64, 64, 64, 64, 128);
     e_DrawQuad(16, 64, gScreenWidth-16, gScreenHeight-64, 255, 127, 0);
     e_DrawFillQuad(16, 64, gScreenWidth-16, gScreenHeight-64, 64, 64, 64, 128);
-    e_DrawQuad(gScreenWidth div 2 - 128, gScreenHeight div 2 - 10,
-      gScreenWidth div 2 + 128, gScreenHeight div 2 + 11, 255, 127, 0);
+    e_DrawQuad(gScreenWidth div 2 - 192, gScreenHeight div 2 - 10,
+      gScreenWidth div 2 + 192, gScreenHeight div 2 + 11, 255, 127, 0);
     e_TextureFontPrint(gScreenWidth div 2 - cw * l, gScreenHeight div 2 - ch div 2,
       slWaitStr, gStdFont);
     Exit;
@@ -397,9 +399,14 @@ begin
 
       g_Game_Draw;
       ReDrawWindow;
-            
-      SL := g_Net_Slist_Fetch;
-      if SL = nil then slWaitStr := _lc[I_NET_SLIST_NOSERVERS];
+
+      if g_Net_Slist_Fetch(SL) then
+      begin
+        if SL = nil then
+          slWaitStr := _lc[I_NET_SLIST_NOSERVERS];
+      end
+      else
+        slWaitStr := _lc[I_NET_SLIST_ERROR];
       slFetched := True;
       slSelection := 0;
     end;
