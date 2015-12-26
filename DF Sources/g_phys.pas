@@ -232,7 +232,8 @@ var
         if ClimbSlopes and (Abs(dy) < 2) then
           begin
             Result := True;
-            if not g_Obj_CollideLevel(Obj, sx, -12) then
+            if (not g_Obj_CollideLevel(Obj, sx, -12)) // забираемся на 12 пикселей влево/вправо
+            and g_Obj_CollideLevel(Obj, 0, 1) then    // только если есть земля под ногами
               slope(-1)
             else
               begin
