@@ -7,9 +7,11 @@ uses
 
 type
   TStrings_Locale = (
-    I_CONSOLE_DUMPED,  
+    I_CONSOLE_EXEC,
+    I_CONSOLE_DUMPED,
+    I_CONSOLE_ERROR_READ,
     I_CONSOLE_ERROR_WRITE,
-    I_CONSOLE_SCREENSHOT,             
+    I_CONSOLE_SCREENSHOT,
     I_CONSOLE_UNKNOWN,                
     I_CONSOLE_WELCOME,
 
@@ -529,8 +531,12 @@ uses
 
 const
   g_lang_default: Array [TStrings_Locale] of Array [1..3] of String = (
+    ('CONSOLE EXEC',                   'Executing script: "%s"',
+                                       'Выполняется скрипт: "%s"'),
     ('CONSOLE DUMPED',                 'Saved to "%s"',
                                        'Сохранено в "%s"'),
+    ('CONSOLE ERROR READ',             'Error reading file "%s"',
+                                       'Ошибка при чтении файла "%s"'),
     ('CONSOLE ERROR WRITE',            'Error writing file "%s"',
                                        'Ошибка при записи в файл "%s"'),
     ('CONSOLE SCREENSHOT',             'Screenshot saved to "%s"',

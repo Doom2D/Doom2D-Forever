@@ -8,7 +8,7 @@ procedure g_Console_Draw();
 procedure g_Console_Switch();
 procedure g_Console_Char(C: Char);
 procedure g_Console_Control(K: Byte);
-procedure g_Console_Process(L: String);
+procedure g_Console_Process(L: String; Quiet: Boolean = False);
 procedure g_Console_Add(L: String; Show: Boolean = False);
 procedure g_Console_Clear();
 function  g_Console_CommandBlacklisted(C: String): Boolean;
@@ -36,6 +36,11 @@ type
     Proc: TCmdProc;
   end;
 
+  TAlias = record
+    Name: String;
+    Commands: SArray;
+  end;
+
 const
   Step = 32;
   Alpha = 25;
@@ -53,6 +58,7 @@ var
   CommandHistory: SArray;
   Whitelist: SArray;
   Commands: Array of TCommand;
+  Aliases: Array of TAlias;
   CmdIndex: Word;
   Offset: Word;
   MsgArray: Array [0..4] of record
@@ -60,10 +66,40 @@ var
                               Time: Word;
                             end;
 
+function GetStrACmd(var Str: String): String;
+var
+  a: Integer;
+begin
+  for a := 1 to Length(Str) do
+    if (a = Length(Str)) or (Str[a+1] = ';') then
+    begin
+      Result := Copy(Str, 1, a);
+      Delete(Str, 1, a+1);
+      Str := Trim(Str);
+      Exit;
+    end;
+end;
+
+function ParseAlias(Str: String): SArray;
+begin
+  Result := nil;
+
+  Str := Trim(Str);
+
+  if Str = '' then
+    Exit;
+
+  while Str <> '' do
+  begin
+    SetLength(Result, Length(Result)+1);
+    Result[High(Result)] := GetStrACmd(Str);
+  end;
+end;
+
 procedure ConsoleCommands(P: SArray);
 var
   Cmd, s: String;
-  a: Integer;
+  a, b: Integer;
   F: TextFile;
 begin
   Cmd := LowerCase(P[0]);
@@ -79,7 +115,7 @@ begin
         Time := 0;
       end;
   end;
- 
+
   if Cmd = 'clearhistory' then
     CommandHistory := nil;
 
@@ -148,6 +184,94 @@ begin
       {$I+}
     end;
   end;
+
+  if Cmd = 'exec' then
+  begin
+    // exec <filename>
+    if Length(P) > 1 then
+    begin
+      s := GameDir+'\'+P[1];
+
+      {$I-}
+      AssignFile(F, s);
+      Reset(F);
+      if IOResult <> 0 then
+      begin
+        g_Console_Add(Format(_lc[I_CONSOLE_ERROR_READ], [s]));
+        CloseFile(F);
+        Exit;
+      end;
+      g_Console_Add(Format(_lc[I_CONSOLE_EXEC], [s]));
+
+      while not EOF(F) do
+      begin
+        ReadLn(F, s);
+        if IOResult <> 0 then
+        begin
+          g_Console_Add(Format(_lc[I_CONSOLE_ERROR_READ], [s]));
+          CloseFile(F);
+          Exit;
+        end;
+        g_Console_Process(s, True);
+      end;
+
+      CloseFile(F);
+      {$I+}
+    end;
+  end;
+
+  if Cmd = 'aliases' then
+  begin
+    if Aliases = nil then
+      Exit;
+    for a := 0 to High(Aliases) do
+      if Aliases[a].Commands <> nil then
+        g_Console_Add(Aliases[a].Name);
+  end;
+
+  if Cmd = 'alias' then
+  begin
+    // alias <alias_name> [commands]
+    if Length(P) > 1 then
+    begin
+      for a := 0 to High(Aliases) do
+        if Aliases[a].Name = P[1] then
+        begin
+          if Length(P) > 2 then
+            Aliases[a].Commands := ParseAlias(P[2])
+          else
+            for b := 0 to High(Aliases[a].Commands) do
+              g_Console_Add(Aliases[a].Commands[b]);
+          Exit;
+        end;
+      SetLength(Aliases, Length(Aliases)+1);
+      a := High(Aliases);
+      Aliases[a].Name := P[1];
+      if Length(P) > 2 then
+        Aliases[a].Commands := ParseAlias(P[2])
+      else
+        for b := 0 to High(Aliases[a].Commands) do
+          g_Console_Add(Aliases[a].Commands[b]);
+    end;
+  end;
+
+  if Cmd = 'call' then
+  begin
+    // call <alias_name>
+    if Length(P) > 1 then
+    begin
+      if Aliases = nil then
+        Exit;
+      for a := 0 to High(Aliases) do
+        if Aliases[a].Name = P[1] then
+        begin
+          if Aliases[a].Commands <> nil then
+            for b := 0 to High(Aliases[a].Commands) do
+              g_Console_Process(Aliases[a].Commands[b], True);
+          Exit;
+        end;
+    end;
+  end;
 end;
 
 procedure WhitelistCommand(Cmd: string);
@@ -195,6 +319,10 @@ begin
   AddCommand('date', ConsoleCommands);
   AddCommand('echo', ConsoleCommands);
   AddCommand('dump', ConsoleCommands);
+  AddCommand('exec', ConsoleCommands);
+  AddCommand('aliases', ConsoleCommands);
+  AddCommand('alias', ConsoleCommands);
+  AddCommand('call', ConsoleCommands);
 
   AddCommand('d_window', DebugCommands);
   AddCommand('d_sounds', DebugCommands);
@@ -646,7 +774,7 @@ begin
       Result := False;
 end;
 
-procedure g_Console_Process(L: String);
+procedure g_Console_Process(L: String; Quiet: Boolean = False);
 var
   Arr: SArray;
   i: Integer;
@@ -656,20 +784,22 @@ begin
   if Trim(L) = '' then
     Exit;
 
-  g_Console_Add('> '+L);
+  if not Quiet then
+  begin
+    g_Console_Add('> '+L);
+    Line := '';
+    CPos := 1;
+  end;
 
   Arr := ParseString(L);
-
-  Line := '';
-  CPos := 1;
-
   if Arr = nil then
     Exit;
 
   if Commands = nil then
     Exit;
 
-  AddToHistory(L);
+  if not Quiet then
+    AddToHistory(L);
 
   for i := 0 to High(Commands) do
     if Commands[i].Cmd = LowerCase(Arr[0]) then
