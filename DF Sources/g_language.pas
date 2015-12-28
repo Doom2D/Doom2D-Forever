@@ -9,6 +9,7 @@ type
   TStrings_Locale = (
     I_CONSOLE_EXEC,
     I_CONSOLE_DUMPED,
+    I_CONSOLE_ERROR_CALL,
     I_CONSOLE_ERROR_READ,
     I_CONSOLE_ERROR_WRITE,
     I_CONSOLE_SCREENSHOT,
@@ -535,6 +536,8 @@ const
                                        'Выполняется скрипт: "%s"'),
     ('CONSOLE DUMPED',                 'Saved to "%s"',
                                        'Сохранено в "%s"'),
+    ('CONSOLE ERROR CALL',             'Alias loop detected. Terminating',
+                                       'Обнаружен бесконечный цикл. Скрипт остановлен'),
     ('CONSOLE ERROR READ',             'Error reading file "%s"',
                                        'Ошибка при чтении файла "%s"'),
     ('CONSOLE ERROR WRITE',            'Error writing file "%s"',

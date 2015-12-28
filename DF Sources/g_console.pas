@@ -45,11 +45,13 @@ const
   Step = 32;
   Alpha = 25;
   MsgTime = 144;
+  MaxScriptRecursion = 16;
 
   DEBUG_STRING = 'DEBUG MODE';
 
 var
   ID: DWORD;
+  RecursionDepth: Word = 0;
   Cons_Y: SmallInt;
   Cons_Shown: Boolean; // Рисовать ли консоль?
   Line: String;
@@ -261,8 +263,21 @@ begin
         if Aliases[a].Name = P[1] then
         begin
           if Aliases[a].Commands <> nil then
+          begin
+            // with this system proper endless loop detection seems either impossible
+            // or very dirty to implement, so let's have this instead
+            // prevents simple endless loops
+            Inc(RecursionDepth);
+            if RecursionDepth > MaxScriptRecursion then
+            begin
+              g_Console_Add(Format(_lc[I_CONSOLE_ERROR_CALL], [s]));
+              RecursionDepth := 0;
+              Exit;
+            end;
             for b := 0 to High(Aliases[a].Commands) do
               g_Console_Process(Aliases[a].Commands[b], True);
+            RecursionDepth := 0;
+          end;
           Exit;
         end;
     end;
