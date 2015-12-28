@@ -896,6 +896,7 @@ begin
                 p := g_Player_Get(ActivateUID);
                 if p = nil then
                   Exit;
+                  
                 if Data.ResetVel then
                 begin
                   p.GameVelX := 0;

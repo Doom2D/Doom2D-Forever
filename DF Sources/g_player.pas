@@ -3915,7 +3915,7 @@ begin
       FLoss := 0;
     end;
 
-  if gFly or FJetpack then
+  if FLive and (gFly or FJetpack) then
     FlySmoke();
 
   if FDirection = D_LEFT then
