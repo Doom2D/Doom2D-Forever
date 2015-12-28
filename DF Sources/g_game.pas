@@ -4984,6 +4984,7 @@ var
   s: String;
   Port: Integer;
   ip: String;
+  F: TextFile;
 begin
   Parse_Params(pars);
 
@@ -5081,6 +5082,42 @@ begin
       g_Game_StartCustom(map, GMode, LimT, LimS, Lives, Opt, n)
     else
       g_Game_StartServer(map, GMode, LimT, LimS, Lives, Opt, Port);
+  end;
+// Execute script when game loads:
+  s := Find_Param_Value(pars, '-exec');
+  if s <> '' then
+  begin
+    if Pos(':\', s) = 0 then
+      s := GameDir + '\' + s;
+
+    {$I-}
+    AssignFile(F, s);
+    Reset(F);
+    if IOResult <> 0 then
+    begin
+      e_WriteLog(Format(_lc[I_SIMPLE_ERROR], ['Failed to read file: ' + s]), MSG_WARNING);
+      g_Console_Add(Format(_lc[I_CONSOLE_ERROR_READ], [s]));
+      CloseFile(F);
+      Exit;
+    end;
+    e_WriteLog('Executing script: ' + s, MSG_NOTIFY);
+    g_Console_Add(Format(_lc[I_CONSOLE_EXEC], [s]));
+
+    while not EOF(F) do
+    begin
+      ReadLn(F, s);
+      if IOResult <> 0 then
+      begin
+        e_WriteLog(Format(_lc[I_SIMPLE_ERROR], ['Failed to read file: ' + s]), MSG_WARNING);
+        g_Console_Add(Format(_lc[I_CONSOLE_ERROR_READ], [s]));
+        CloseFile(F);
+        Exit;
+      end;
+      g_Console_Process(s, True);
+    end;
+
+    CloseFile(F);
+    {$I+}
   end;
 
   SetLength(pars, 0);
