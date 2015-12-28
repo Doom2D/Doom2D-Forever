@@ -3378,7 +3378,7 @@ begin
                 // Ускорение:
                   TRIGGER_PUSH:
                     begin
-                      trigger.Data.PushAngle := 0;
+                      trigger.Data.PushAngle := 90;
                       trigger.Data.PushForce := 10;
                       trigger.Data.ResetVel := True;
                     end;
