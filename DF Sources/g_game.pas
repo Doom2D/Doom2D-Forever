@@ -5113,7 +5113,8 @@ begin
         CloseFile(F);
         Exit;
       end;
-      g_Console_Process(s, True);
+      if Pos('#', s) <> 1 then // script comment
+        g_Console_Process(s, True);
     end;
 
     CloseFile(F);
