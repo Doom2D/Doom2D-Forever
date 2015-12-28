@@ -1450,16 +1450,23 @@ begin
                gTriggers[b].Width, gTriggers[b].Height) and
                ((b <> a) or (Data.Wait > 0)) then
             begin // Can be self-activated, if there is Data.Wait
-              SetLength(Affected, Length(Affected) + 1);
-              Affected[High(Affected)] := b;
+              if (not Data.ExtRandom) or gTriggers[b].Enabled then
+              begin
+                SetLength(Affected, Length(Affected) + 1);
+                Affected[High(Affected)] := b;
+              end;
             end;
         // Выбираем один из триггеров для расширителя, если включен рандом:
           if (TriggerType = TRIGGER_PRESS) and Data.ExtRandom then
           begin
-            b := Affected[Random(Length(Affected))];
-            gTriggers[b].ActivateUID := gTriggers[a].ActivateUID;
-            ActivateTrigger(gTriggers[b], 0);
-          end else // В противном случае работаем как обычно:
+            if (Length(Affected) > 0) then
+            begin
+              b := Affected[Random(Length(Affected))];
+              gTriggers[b].ActivateUID := gTriggers[a].ActivateUID;
+              ActivateTrigger(gTriggers[b], 0);
+            end;
+          end
+          else // В противном случае работаем как обычно:
             for i := 0 to High(Affected) do
             begin
               b := Affected[i];
