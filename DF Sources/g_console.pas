@@ -136,10 +136,10 @@ begin
   end;
 
   if Cmd = 'time' then
-    g_Console_Add(TimeToStr(Now));
+    g_Console_Add(TimeToStr(Now), True);
 
   if Cmd = 'date' then
-    g_Console_Add(DateToStr(Now));
+    g_Console_Add(DateToStr(Now), True);
 
   if Cmd = 'echo' then
     if Length(P) > 1 then
@@ -151,7 +151,7 @@ begin
           s := '';
           for a := 1 to High(P) do
             s := s + P[a] + ' ';
-          g_Console_Add(s);
+          g_Console_Add(s, True);
         end;
       end
     else
@@ -220,18 +220,9 @@ begin
     end;
   end;
 
-  if Cmd = 'aliases' then
-  begin
-    if Aliases = nil then
-      Exit;
-    for a := 0 to High(Aliases) do
-      if Aliases[a].Commands <> nil then
-        g_Console_Add(Aliases[a].Name);
-  end;
-
   if Cmd = 'alias' then
   begin
-    // alias <alias_name> [commands]
+    // alias [alias_name] [commands]
     if Length(P) > 1 then
     begin
       for a := 0 to High(Aliases) do
@@ -252,7 +243,10 @@ begin
       else
         for b := 0 to High(Aliases[a].Commands) do
           g_Console_Add(Aliases[a].Commands[b]);
-    end;
+    end else
+      for a := 0 to High(Aliases) do
+        if Aliases[a].Commands <> nil then
+          g_Console_Add(Aliases[a].Name);
   end;
 
   if Cmd = 'call' then
@@ -320,7 +314,6 @@ begin
   AddCommand('echo', ConsoleCommands);
   AddCommand('dump', ConsoleCommands);
   AddCommand('exec', ConsoleCommands);
-  AddCommand('aliases', ConsoleCommands);
   AddCommand('alias', ConsoleCommands);
   AddCommand('call', ConsoleCommands);
 

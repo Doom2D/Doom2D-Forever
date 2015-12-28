@@ -639,6 +639,8 @@ begin
             gMusic.SetByName('MUSIC_INTERMUS');
             gMusic.Play();
             gState := STATE_INTERSINGLE;
+
+            ExecuteGameEvent('oninter');
           end
         else // Больше нет карт
           begin
@@ -1035,19 +1037,17 @@ begin
                 gMusic.SetByName('MUSIC_MENU');
                 gMusic.Play();
                 gState := STATE_MENU;
-
-                ExecuteGameEvent('ongameend');
               end else
               begin
               // Финальная картинка:
+                ExecuteGameEvent('onwadend');
                 g_Game_Free();
                 if not gMusic.SetByName('MUSIC_endmus') then
                   gMusic.SetByName('MUSIC_STDENDMUS');
                 gMusic.Play();
                 gState := STATE_ENDPIC;
-
-                ExecuteGameEvent('onwadend');
               end;
+              ExecuteGameEvent('ongameend');
             end;
 
           Exit;
@@ -1067,6 +1067,7 @@ begin
               begin
                 if gLastMap and (gGameSettings.GameMode = GM_COOP) then
                 begin
+                  ExecuteGameEvent('onwadend');
                   if not gMusic.SetByName('MUSIC_endmus') then
                     gMusic.SetByName('MUSIC_STDENDMUS');
                 end
@@ -1082,6 +1083,7 @@ begin
                 gMusic.Play();
                 gState := STATE_INTERSINGLE;
               end;
+            ExecuteGameEvent('oninter');
           end
         else
           DecMin(EndingGameCounter, 6, 0);
@@ -3126,6 +3128,8 @@ begin
     gCoopTotalSecrets := 0;
     gLastMap := False;
   end;
+
+  ExecuteGameEvent('onmapstart');
 end;
 
 procedure SetFirstLevel();
