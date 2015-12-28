@@ -18,6 +18,11 @@ type
     WAD: String;
   end;
 
+  TGameEvent = record
+    Name: String;
+    Command: String;
+  end;
+
   TPlayerSettings = record
     Name: String;
     Model: String;
@@ -118,9 +123,6 @@ const
   GAME_OPTION_MONSTERS     = 16;
   GAME_OPTION_BOTVSPLAYER  = 32;
   GAME_OPTION_BOTVSMONSTER = 64;
-  //GAME_OPTION_MAPLIST    = 8;
-  //GAME_OPTION_MAPCYCLE   = 16;
-  //GAME_OPTION_MAPCHANGE  = 32;
 
   STATE_NONE        = 0;
   STATE_MENU        = 1;
@@ -213,6 +215,7 @@ var
   gVoteTimeout: Cardinal = 30;
   gVoted: Boolean = False;
   gVotesEnabled: Boolean = True;
+  gEvents: Array of TGameEvent;
 
   P1MoveButton: Byte = 0;
   P2MoveButton: Byte = 0;
@@ -497,6 +500,23 @@ begin
   if gPlayer2 <> nil then gPlayer2.NoTarget := False;
 end;
 
+procedure ExecuteGameEvent(Name: String);
+var
+  a: Integer;
+begin
+  if Name = '' then
+    Exit;
+  if gEvents = nil then
+    Exit;
+  for a := 0 to High(gEvents) do
+    if gEvents[a].Name = Name then
+    begin
+      if gEvents[a].Command <> '' then
+        g_Console_Process(gEvents[a].Command, True);
+      break;
+    end;
+end;
+
 procedure EndGame();
 var
   a: Integer;
@@ -540,6 +560,8 @@ begin
             gMusic.SetByName('MUSIC_MENU');
             gMusic.Play();
             gState := STATE_MENU;
+
+            ExecuteGameEvent('ongameend');
           end;
       end;
 
@@ -584,6 +606,8 @@ begin
           SortGameStat(CustomStat.PlayerStat);
         end;
 
+        ExecuteGameEvent('onmapend');
+
       // Затухающий экран:
         EndingGameCounter := 255;
         gState := STATE_FOLD;
@@ -606,6 +630,8 @@ begin
           SingleStat.PlayerStat[1].Kills := gPlayer2.MonsterKills;
           SingleStat.PlayerStat[1].Secrets := gPlayer2.Secrets;
         end;
+
+        ExecuteGameEvent('onmapend');
 
       // Есть еще карты:
         if gNextMap <> '' then
@@ -863,7 +889,7 @@ begin
 
   g_Game_SetLoadingText(_lc[I_LOAD_MODELS], 0, False);
   g_PlayerModel_LoadData();
- 
+
   if FindFirst(ModelsDir+'*.wad', faAnyFile, SR) = 0 then
     repeat
       if not g_PlayerModel_Load(ModelsDir+SR.Name) then
@@ -893,6 +919,14 @@ begin
   gGameSettings.WarmupTime := 30;
 
   gState := STATE_MENU;
+
+  SetLength(gEvents, 6);
+  gEvents[0].Name := 'ongamestart';
+  gEvents[1].Name := 'ongameend';
+  gEvents[2].Name := 'onmapstart';
+  gEvents[3].Name := 'onmapend';
+  gEvents[4].Name := 'oninter';
+  gEvents[5].Name := 'onwadend';
 end;
 
 procedure g_Game_Free();
@@ -1001,6 +1035,8 @@ begin
                 gMusic.SetByName('MUSIC_MENU');
                 gMusic.Play();
                 gState := STATE_MENU;
+
+                ExecuteGameEvent('ongameend');
               end else
               begin
               // Финальная картинка:
@@ -1009,6 +1045,8 @@ begin
                   gMusic.SetByName('MUSIC_STDENDMUS');
                 gMusic.Play();
                 gState := STATE_ENDPIC;
+
+                ExecuteGameEvent('onwadend');
               end;
             end;
 
@@ -2471,6 +2509,8 @@ begin
   gGameSettings.Options := gGameSettings.Options + GAME_OPTION_BOTVSMONSTER;
   gGameSettings.WAD := WAD;
 
+  ExecuteGameEvent('ongamestart');
+
 // Загружаем МегаВАД:
   LoadMegaWAD(WAD);
 
@@ -2555,6 +2595,8 @@ begin
   gCoopTotalSecrets := 0;
   gAimLine := False;
   gShowMap := False;
+
+  ExecuteGameEvent('ongamestart');
 
 // Установка размеров окон игроков:
   g_Game_SetupScreenSize();
@@ -2692,6 +2734,8 @@ begin
   gAimLine := False;
   gShowMap := False;
 
+  ExecuteGameEvent('ongamestart');
+
   if GameMode = GM_COOP then
     LoadMegaWAD(gGameSettings.WAD);
 
@@ -2803,7 +2847,7 @@ var
   newResPath: string;
 begin
   g_Game_Free();
-  
+
   State := 0;
   e_WriteLog('Starting net game (client)...', MSG_NOTIFY);
   e_WriteLog('NET: Trying to connect to ' + Addr + ':' + IntToStr(Port) + '...', MSG_NOTIFY);
@@ -2820,6 +2864,8 @@ begin
   gCoopTotalSecrets := 0;
   gAimLine := False;
   gShowMap := False;
+
+  ExecuteGameEvent('ongamestart');
 
 // Установка размеров окон игроков:
   g_Game_SetupScreenSize();
@@ -4330,6 +4376,40 @@ begin
           g_Console_Add(Format(_lc[I_MSG_NO_MAP], [gNextMap]));
       end else
         g_Console_Add(_lc[I_MSG_GM_UNAVAIL]);
+  end
+  else if (cmd = 'event') then
+  begin
+    if (Length(P) <= 1) then
+    begin
+      for a := 0 to High(gEvents) do
+        if gEvents[a].Command = '' then
+          g_Console_Add(gEvents[a].Name + ' <none>')
+        else
+          g_Console_Add(gEvents[a].Name + ' "' + gEvents[a].Command + '"');
+      Exit;
+    end;
+    if (Length(P) = 2) then
+    begin
+      for a := 0 to High(gEvents) do
+        if gEvents[a].Name = P[1] then
+          if gEvents[a].Command = '' then
+            g_Console_Add(gEvents[a].Name + ' <none>')
+          else
+            g_Console_Add(gEvents[a].Name + ' "' + gEvents[a].Command + '"');
+      Exit;
+    end;
+    for a := 0 to High(gEvents) do
+      if gEvents[a].Name = P[1] then
+      begin
+        gEvents[a].Command := '';
+        for b := 2 to High(P) do
+          if Pos(' ', P[b]) = 0 then
+            gEvents[a].Command := gEvents[a].Command + ' ' + P[b]
+          else
+            gEvents[a].Command := gEvents[a].Command + ' "' + P[b] + '"';
+        gEvents[a].Command := Trim(gEvents[a].Command);
+        Exit;
+      end;
   end
 // Команды Своей игры:
   else if gGameSettings.GameType in [GT_CUSTOM, GT_SERVER, GT_CLIENT] then

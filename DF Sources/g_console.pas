@@ -388,6 +388,7 @@ begin
   AddCommand('callvote', GameCommands);
   AddCommand('vote', GameCommands);
   AddCommand('clientlist', GameCommands);
+  AddCommand('event', GameCommands);
 
   WhitelistCommand('broadcast');
   WhitelistCommand('tell');
