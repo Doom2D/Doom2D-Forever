@@ -52,6 +52,7 @@ const
 var
   ID: DWORD;
   RecursionDepth: Word = 0;
+  RecursionLimitHit: Boolean = False;
   Cons_Y: SmallInt;
   Cons_Shown: Boolean; // Рисовать ли консоль?
   Line: String;
@@ -215,12 +216,26 @@ begin
           Exit;
         end;
         if Pos('#', s) <> 1 then // script comment
-          g_Console_Process(s, True);
+        begin
+          // prevents endless loops
+          Inc(RecursionDepth);
+          RecursionLimitHit := RecursionDepth > MaxScriptRecursion;
+          if not RecursionLimitHit then
+            g_Console_Process(s, True);
+          Dec(RecursionDepth);
+        end;
+      end;
+      if (RecursionDepth = 0) and RecursionLimitHit then
+      begin
+        g_Console_Add(Format(_lc[I_CONSOLE_ERROR_CALL], [s]));
+        RecursionLimitHit := False;
       end;
 
       CloseFile(F);
       {$I+}
-    end;
+    end
+    else
+      g_Console_Add('exec <script file>');
   end;
 
   if Cmd = 'alias' then
@@ -266,21 +281,26 @@ begin
           begin
             // with this system proper endless loop detection seems either impossible
             // or very dirty to implement, so let's have this instead
-            // prevents simple endless loops
-            Inc(RecursionDepth);
-            if RecursionDepth > MaxScriptRecursion then
+            // prevents endless loops
+            for b := 0 to High(Aliases[a].Commands) do
+            begin
+              Inc(RecursionDepth);
+              RecursionLimitHit := RecursionDepth > MaxScriptRecursion;
+              if not RecursionLimitHit then
+                g_Console_Process(Aliases[a].Commands[b], True);
+              Dec(RecursionDepth);
+            end;
+            if (RecursionDepth = 0) and RecursionLimitHit then
             begin
               g_Console_Add(Format(_lc[I_CONSOLE_ERROR_CALL], [s]));
-              RecursionDepth := 0;
-              Exit;
+              RecursionLimitHit := False;
             end;
-            for b := 0 to High(Aliases[a].Commands) do
-              g_Console_Process(Aliases[a].Commands[b], True);
-            RecursionDepth := 0;
           end;
           Exit;
         end;
-    end;
+    end
+    else
+      g_Console_Add('call <alias name>');
   end;
 end;
 
