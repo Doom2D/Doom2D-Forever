@@ -2471,15 +2471,6 @@ begin
   if (KillType <> K_FALLKILL) and (Srv) then
     g_Monsters_killedp();
 
-// Особые типы смерти:
-  case t of
-    HIT_FALL: g_Console_Add(Format(_lc[I_PLAYER_KILL_FALL], [FName]), True);
-    HIT_WATER: g_Console_Add(Format(_lc[I_PLAYER_KILL_WATER], [FName]), True);
-    HIT_ACID: g_Console_Add(Format(_lc[I_PLAYER_KILL_ACID], [FName]), True);
-    HIT_TRAP: g_Console_Add(Format(_lc[I_PLAYER_KILL_TRAP], [FName]), True);
-    HIT_TRIGGER: g_Console_Add(Format(_lc[I_PLAYER_DIED], [FName]), True);
-  end;
-
   if SpawnerUID = FUID then
     begin // Самоубился
       if Srv and (DoFrags or (gGameSettings.GameMode = GM_TDM)) then
@@ -2545,11 +2536,15 @@ begin
                                [FName, s]),
                         gShowKillMsg);
       end
-    else // Убит триггерои
-      begin
-        g_Console_Add(Format(_lc[I_PLAYER_DIED], [FName]), True);
+    else // Особые типы смерти
+      case t of
+        HIT_FALL: g_Console_Add(Format(_lc[I_PLAYER_KILL_FALL], [FName]), True);
+        HIT_WATER: g_Console_Add(Format(_lc[I_PLAYER_KILL_WATER], [FName]), True);
+        HIT_ACID: g_Console_Add(Format(_lc[I_PLAYER_KILL_ACID], [FName]), True);
+        HIT_TRAP: g_Console_Add(Format(_lc[I_PLAYER_KILL_TRAP], [FName]), True);
+        HIT_TRIGGER: g_Console_Add(Format(_lc[I_PLAYER_DIED], [FName]), True);
+        else g_Console_Add(Format(_lc[I_PLAYER_DIED], [FName]), True);
       end;
-
 
   if Srv then
   begin
