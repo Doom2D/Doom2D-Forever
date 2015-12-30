@@ -1096,15 +1096,18 @@ begin
 end;
 
 procedure ProcGMShow();
+var
+  Enabled: Boolean;
 begin
+  Enabled := True;
   if (gGameSettings.GameType = GT_SINGLE) and
      ((gPlayer1 = nil) or (not gPlayer1.Live)) and
      ((gPlayer2 = nil) or (not gPlayer2.Live)) then
-    TGUIMainMenu(g_ActiveWindow.GetControl(
-      g_ActiveWindow.DefControl )).EnableButton('save', False)
-  else
-    TGUIMainMenu(g_ActiveWindow.GetControl(
-      g_ActiveWindow.DefControl )).EnableButton('save', True);
+    Enabled := False; // Один из игроков погиб в сингле
+  if not gGameOn then
+    Enabled := False; // Запретить сохранение в интермиссии (не реализовано)
+  TGUIMainMenu(g_ActiveWindow.GetControl(
+    g_ActiveWindow.DefControl )).EnableButton('save', Enabled);
 end;
 
 procedure ProcRestartMenuKeyDown(Key: Byte);
