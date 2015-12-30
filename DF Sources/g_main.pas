@@ -330,7 +330,7 @@ begin
         if (g_ActiveWindow = nil) then
           g_Game_Pause(not gPause);
       end;
-                          
+
     192: // <`/~/ё/Ё>:
       begin
         g_Console_Switch();
@@ -343,7 +343,7 @@ begin
           g_Console_Chat_Switch();
           Exit;
         end;
-          
+
         if gConsoleShow then // Убрать консоль
           g_Console_Switch()
         else
@@ -354,23 +354,27 @@ begin
               g_ActiveWindow.OnMessage(Msg);
             end
           else
-            if gGameOn then // Войти во внутриигровое меню
-              g_Game_InGameMenu(True)
-            else
-              if (gExit = 0) then
-                begin // Войти в главное меню
-                  if gState <> STATE_MENU then
-                    if NetMode <> NET_NONE then
-                    begin
-                      g_Game_StopAllSounds(True);
-                      g_Game_Free;
-                      gState := STATE_MENU;
-                      Exit;
-                    end;
+            if gState <> STATE_FOLD then // Не выходить в меню при затухании
+              if gGameOn
+              or (gState = STATE_INTERSINGLE)
+              or (gState = STATE_INTERCUSTOM)
+              then // Войти во внутриигровое меню
+                g_Game_InGameMenu(True)
+              else
+                if (gExit = 0) then
+                  begin // Войти в главное меню
+                    if gState <> STATE_MENU then
+                      if NetMode <> NET_NONE then
+                      begin
+                        g_Game_StopAllSounds(True);
+                        g_Game_Free;
+                        gState := STATE_MENU;
+                        Exit;
+                      end;
 
-                  g_GUI_ShowWindow('MainMenu');
-                  g_Sound_PlayEx('MENU_OPEN');
-                end;
+                    g_GUI_ShowWindow('MainMenu');
+                    g_Sound_PlayEx('MENU_OPEN');
+                  end;
       end;
 
     VK_F2, VK_F3, VK_F4, VK_F5, VK_F6, VK_F7, VK_F10:

@@ -2293,6 +2293,9 @@ begin
         e_Clear(GL_COLOR_BUFFER_BIT, 0, 0, 0);
 
       DrawCustomStat();
+
+      if g_ActiveWindow <> nil then
+        e_DrawFillQuad(0, 0, gScreenWidth-1, gScreenHeight-1, 48, 48, 48, 180);
     end;
 
     if gState = STATE_INTERSINGLE then
@@ -2309,6 +2312,9 @@ begin
           e_Clear(GL_COLOR_BUFFER_BIT, 0, 0, 0);
 
         DrawSingleStat();
+
+        if g_ActiveWindow <> nil then
+          e_DrawFillQuad(0, 0, gScreenWidth-1, gScreenHeight-1, 48, 48, 48, 180);
       end;
     end;
 
@@ -2322,6 +2328,9 @@ begin
         e_DrawSize(ID, 0, 0, 0, False, False, gScreenWidth, gScreenHeight)
       else
         e_Clear(GL_COLOR_BUFFER_BIT, 0, 0, 0);
+
+      if g_ActiveWindow <> nil then
+        e_DrawFillQuad(0, 0, gScreenWidth-1, gScreenHeight-1, 48, 48, 48, 180);
     end;
 
     if gState = STATE_SLIST then
@@ -4625,9 +4634,6 @@ end;
 
 procedure g_Game_InGameMenu(Show: Boolean);
 begin
-  if not gGameOn then
-    Exit;
-
   if (g_ActiveWindow = nil) and Show then
     begin
       if gGameSettings.GameType = GT_SINGLE then
