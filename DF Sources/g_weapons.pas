@@ -40,7 +40,7 @@ procedure g_Weapon_Init();
 procedure g_Weapon_Free();
 function g_Weapon_Hit(obj: PObj; d: Integer; SpawnerUID: Word; t: Byte): Byte;
 function g_Weapon_HitUID(UID: Word; d: Integer; SpawnerUID: Word; t: Byte): Boolean;
-function g_Weapon_CreateShot(I: Integer; ShotType: Byte; Spawner, Target: Word; X, Y, XV, YV: Integer): LongWord;
+function g_Weapon_CreateShot(I: Integer; ShotType: Byte; Spawner, TargetUID: Word; X, Y, XV, YV: Integer): LongWord;
 
 procedure g_Weapon_gun(x, y, xd, yd, v: Integer; SpawnerUID: Word; CheckTrigger: Boolean);
 procedure g_Weapon_punch(x, y: Integer; d, SpawnerUID: Word);
@@ -407,7 +407,7 @@ begin
             if HitMonster(gMonsters[i], 50, 0, 0, SpawnerUID, HIT_SOME) then gMonsters[i].BFGHit();
 end;
 
-function g_Weapon_CreateShot(I: Integer; ShotType: Byte; Spawner, Target: Word; X, Y, XV, YV: Integer): LongWord;
+function g_Weapon_CreateShot(I: Integer; ShotType: Byte; Spawner, TargetUID: Word; X, Y, XV, YV: Integer): LongWord;
 var
   find_id, FramesID: DWORD;
 begin
@@ -466,6 +466,103 @@ begin
         ShotType := WEAPON_BFG;
         g_Frames_Get(FramesID, 'FRAMES_WEAPON_BFG');
         Animation := TAnimation.Create(FramesID, True, 6);
+      end;
+    end;
+
+    WEAPON_IMP_FIRE:
+    begin
+      with Shots[find_id] do
+      begin
+        g_Obj_Init(@Obj);
+
+        Obj.Rect.Width := 16;
+        Obj.Rect.Height := 16;
+
+        Triggers := nil;
+        ShotType := WEAPON_IMP_FIRE;
+        g_Frames_Get(FramesID, 'FRAMES_WEAPON_IMPFIRE');
+        Animation := TAnimation.Create(FramesID, True, 4);
+      end;
+    end;
+
+    WEAPON_CACO_FIRE:
+    begin
+      with Shots[find_id] do
+      begin
+        g_Obj_Init(@Obj);
+
+        Obj.Rect.Width := 16;
+        Obj.Rect.Height := 16;
+
+        Triggers := nil;
+        ShotType := WEAPON_CACO_FIRE;
+        g_Frames_Get(FramesID, 'FRAMES_WEAPON_CACOFIRE');
+        Animation := TAnimation.Create(FramesID, True, 4);
+      end;
+    end;
+
+    WEAPON_MANCUB_FIRE:
+    begin
+      with Shots[find_id] do
+      begin
+        g_Obj_Init(@Obj);
+
+        Obj.Rect.Width := 32;
+        Obj.Rect.Height := 32;
+
+        Triggers := nil;
+        ShotType := WEAPON_MANCUB_FIRE;
+        g_Frames_Get(FramesID, 'FRAMES_WEAPON_MANCUBFIRE');
+        Animation := TAnimation.Create(FramesID, True, 4);
+      end;
+    end;
+
+    WEAPON_BARON_FIRE:
+    begin
+      with Shots[find_id] do
+      begin
+        g_Obj_Init(@Obj);
+
+        Obj.Rect.Width := 32;
+        Obj.Rect.Height := 16;
+
+        Triggers := nil;
+        ShotType := WEAPON_BARON_FIRE;
+        g_Frames_Get(FramesID, 'FRAMES_WEAPON_BARONFIRE');
+        Animation := TAnimation.Create(FramesID, True, 4);
+      end;
+    end;
+
+    WEAPON_BSP_FIRE:
+    begin
+      with Shots[find_id] do
+      begin
+        g_Obj_Init(@Obj);
+
+        Obj.Rect.Width := 16;
+        Obj.Rect.Height := 16;
+
+        Triggers := nil;
+        ShotType := WEAPON_BSP_FIRE;
+        g_Frames_Get(FramesID, 'FRAMES_WEAPON_BSPFIRE');
+        Animation := TAnimation.Create(FramesID, True, 4);
+      end;
+    end;
+
+    WEAPON_SKEL_FIRE:
+    begin
+      with Shots[find_id] do
+      begin
+        g_Obj_Init(@Obj);
+
+        Obj.Rect.Width := SHOT_SKELFIRE_WIDTH;
+        Obj.Rect.Height := SHOT_SKELFIRE_HEIGHT;
+
+        Triggers := nil;
+        ShotType := WEAPON_SKEL_FIRE;
+        target := TargetUID;
+        g_Frames_Get(FramesID, 'FRAMES_WEAPON_SKELFIRE');
+        Animation := TAnimation.Create(FramesID, True, 5);
       end;
     end;
   end;

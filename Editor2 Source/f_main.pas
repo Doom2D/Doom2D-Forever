@@ -614,6 +614,27 @@ begin
       end;
 end;
 
+function ShotToStr(ShotType: Byte): String;
+begin
+  if ShotType in [TRIGGER_SHOT_BULLET..TRIGGER_SHOT_REV] then
+    Result := ShotNames[ShotType]
+  else
+    Result := ShotNames[TRIGGER_SHOT_BULLET];
+end;
+
+function StrToShot(Str: String): Byte;
+var
+  i: Integer;
+begin
+  Result := TRIGGER_SHOT_BULLET;
+  for i := TRIGGER_SHOT_BULLET to TRIGGER_SHOT_REV do
+    if ShotNames[i] = Str then
+      begin
+        Result := i;
+        Exit;
+      end;
+end;
+
 function SelectedObjectCount(): Word;
 var
   a: Integer;
@@ -1351,7 +1372,33 @@ begin
                 end;
               end;
 
-            TRIGGER_SHOT: ;
+            TRIGGER_SHOT:
+              begin
+                with ItemProps[InsertRow(_lc[I_PROP_TR_SHOT_TYPE], ShotToStr(Data.ShotType), True)-1] do
+                begin
+                  EditStyle := esEllipsis;
+                  ReadOnly := True;
+                end;
+
+                with ItemProps[InsertRow(_lc[I_PROP_TR_SPAWN_TO],
+                                 Format('(%d:%d)', [Data.ShotPos.X, Data.ShotPos.Y]), True)-1] do
+                begin
+                  EditStyle := esEllipsis;
+                  ReadOnly := True;
+                end;
+
+                with ItemProps[InsertRow(_lc[I_PROP_TR_SHOT_ANGLE], IntToStr(Data.ShotAngle), True)-1] do
+                begin
+                  EditStyle := esSimple;
+                  MaxLength := 4;
+                end;
+
+                with ItemProps[InsertRow(_lc[I_PROP_TR_SHOT_SOUND], BoolNames[Data.ShotSound], True)-1] do
+                begin
+                  EditStyle := esPickList;
+                  ReadOnly := True;
+                end;
+              end;
           end; //case TriggerType
         end;
       end; // OBJECT_TRIGGER:
@@ -1854,6 +1901,14 @@ begin
               gTriggers[SelectedObjects[a].ID].Data.ItemPos.X := gTriggers[SelectedObjects[a].ID].Data.ItemPos.X+dx;
             if okY then
               gTriggers[SelectedObjects[a].ID].Data.ItemPos.Y := gTriggers[SelectedObjects[a].ID].Data.ItemPos.Y+dy;
+          end;
+
+          if gTriggers[SelectedObjects[a].ID].TriggerType in [TRIGGER_SHOT] then
+          begin // Двигаем точку создания выстрела
+            if okX then
+              gTriggers[SelectedObjects[a].ID].Data.ShotPos.X := gTriggers[SelectedObjects[a].ID].Data.ShotPos.X+dx;
+            if okY then
+              gTriggers[SelectedObjects[a].ID].Data.ShotPos.Y := gTriggers[SelectedObjects[a].ID].Data.ShotPos.Y+dy;
           end;
         end;
       end;
@@ -3001,11 +3056,15 @@ begin
                     Data.MonPos.X := MousePos.X-MapOffset.X;
                     Data.MonPos.Y := MousePos.Y-MapOffset.Y;
                   end
-                else // Точка создания предмета:
-                  if TriggerType = TRIGGER_SPAWNITEM then
-                  begin
+                else if TriggerType = TRIGGER_SPAWNITEM then
+                  begin // Точка создания предмета:
                     Data.ItemPos.X := MousePos.X-MapOffset.X;
                     Data.ItemPos.Y := MousePos.Y-MapOffset.Y;
+                  end
+                else if TriggerType = TRIGGER_SHOT then
+                  begin // Точка создания выстрела:
+                    Data.ShotPos.X := MousePos.X-MapOffset.X;
+                    Data.ShotPos.Y := MousePos.Y-MapOffset.Y;
                   end;
 
             SELECTFLAG_DOOR:
@@ -3402,7 +3461,19 @@ begin
                       trigger.Data.HealInterval := 36;
                     end;
 
-                  TRIGGER_SHOT: ;
+                  TRIGGER_SHOT:
+                    begin
+                      trigger.Data.ShotType := TRIGGER_SHOT_BULLET;
+                      trigger.Data.ShotAngle := 0;
+                      trigger.Data.ShotTarget := TRIGGER_SHOT_TARGET_NIL;
+                      trigger.Data.ShotPos.X := trigger.X-64;
+                      trigger.Data.ShotPos.Y := trigger.Y-64;
+                      trigger.Data.ShotAmmo := 0;
+                      trigger.Data.ShotSound := True;
+                      trigger.Data.ShotWait := 18;
+                      trigger.Data.ShotIntPreload := 0;
+                      trigger.Data.ShotIntReload := 36;
+                    end;
                 end;
 
                 Undo_Add(OBJECT_TRIGGER, AddTrigger(trigger));
@@ -4292,7 +4363,13 @@ begin
                 Data.HealSilent := NameToBool(vleObjectProperty.Values[_lc[I_PROP_TR_SILENT]]);
               end;
 
-            TRIGGER_SHOT: ;
+            TRIGGER_SHOT:
+              begin
+                Data.ShotType := StrToShot(vleObjectProperty.Values[_lc[I_PROP_TR_SHOT_TYPE]]);
+                Data.ShotAngle := Min(
+                  StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_SHOT_ANGLE]], 0), 360);
+                Data.ShotSound := NameToBool(vleObjectProperty.Values[_lc[I_PROP_TR_SHOT_SOUND]]);
+              end;
           end;
         end;
       end;
@@ -4880,6 +4957,24 @@ begin
         if b >= ITEM_WEAPON_KASTET then
           b := b + 2;
         Values[Key] := ItemToStr(b);
+        bApplyProperty.Click();
+      end;
+    end
+  else if Key = _lc[I_PROP_TR_SHOT_TYPE] then
+    with ChooseTypeForm, vleObjectProperty do
+    begin // Выбор типа предмета:
+      Caption := _lc[I_PROP_TR_SHOT_TYPE];
+      lbTypeSelect.Items.Clear();
+
+      for b := TRIGGER_SHOT_BULLET to TRIGGER_SHOT_REV do
+        lbTypeSelect.Items.Add(ShotToStr(b));
+
+      lbTypeSelect.ItemIndex := StrToShot(Values[Key]) - TRIGGER_SHOT_BULLET;
+
+      if ShowModal() = mrOK then
+      begin
+        b := lbTypeSelect.ItemIndex + TRIGGER_SHOT_BULLET;
+        Values[Key] := ShotToStr(b);
         bApplyProperty.Click();
       end;
     end

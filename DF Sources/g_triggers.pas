@@ -395,13 +395,14 @@ var
   animonce: Boolean;
   p: TPlayer;
   m: TMonster;
-  i, k: Integer;
+  i, k, wx, wy, xd, yd: Integer;
   iid: LongWord;
-  coolDown: Boolean;
+  coolDown, Projectile: Boolean;
   pAngle: Real;
   FramesID: DWORD;
   Anim: TAnimation;
   UIDType: Byte;
+  snd: string;
 begin
   Result := False;
   if g_Game_IsClient then
@@ -1244,7 +1245,107 @@ begin
           TimeOut := 0;
         end;
 
-      TRIGGER_SHOT: ;
+      TRIGGER_SHOT:
+        begin
+          wx := Data.ShotPos.X;
+          wy := Data.ShotPos.Y;
+          pAngle := -DegToRad(Data.ShotAngle);
+          xd := wx + Round(Cos(pAngle) * 32.0);
+          yd := wy + Round(Sin(pAngle) * 32.0);
+          Projectile := True;
+          snd := 'SOUND_WEAPON_FIREROCKET';
+
+          case Data.ShotType of
+            TRIGGER_SHOT_BULLET:
+              begin
+                g_Weapon_Pistol(wx, wy, xd, yd, 0);
+                Projectile := False;
+                snd := 'SOUND_WEAPON_FIREPISTOL';
+              end;
+
+            TRIGGER_SHOT_SHOTGUN:
+              begin
+                g_Weapon_Shotgun(wx, wy, xd, yd, 0);
+                Projectile := False;
+                snd := 'SOUND_WEAPON_FIRESHOTGUN';
+              end;
+
+            TRIGGER_SHOT_SSG:
+              begin
+                g_Weapon_DShotgun(wx, wy, xd, yd, 0);
+                Projectile := False;
+                snd := 'SOUND_WEAPON_FIRESHOTGUN2';
+              end;
+
+            TRIGGER_SHOT_ROCKET:
+              begin
+                g_Weapon_Rocket(wx, wy, xd, yd, 0);
+                snd := 'SOUND_WEAPON_FIREROCKET';
+              end;
+
+            TRIGGER_SHOT_PLASMA:
+              begin
+                g_Weapon_Plasma(wx, wy, xd, yd, 0);
+                snd := 'SOUND_WEAPON_FIREPLASMA';
+              end;
+
+            TRIGGER_SHOT_BFG:
+              begin
+                g_Weapon_BFGShot(wx, wy, xd, yd, 0);
+                snd := 'SOUND_WEAPON_FIREBFG';
+              end;
+
+            TRIGGER_SHOT_IMP:
+              begin
+                g_Weapon_ball1(wx, wy, xd, yd, 0);
+                snd := 'SOUND_WEAPON_FIREBALL';
+              end;
+
+            TRIGGER_SHOT_MANCUB:
+              begin
+                g_Weapon_manfire(wx, wy, xd, yd, 0);
+                snd := 'SOUND_WEAPON_FIREBALL';
+              end;
+
+            TRIGGER_SHOT_BARON:
+              begin
+                g_Weapon_ball7(wx, wy, xd, yd, 0);
+                snd := 'SOUND_WEAPON_FIREBALL';
+              end;
+
+            TRIGGER_SHOT_CACO:
+              begin
+                g_Weapon_ball2(wx, wy, xd, yd, 0);
+                snd := 'SOUND_WEAPON_FIREBALL';
+              end;
+
+            TRIGGER_SHOT_SPIDER:
+              begin
+                g_Weapon_aplasma(wx, wy, xd, yd, 0);
+                snd := 'SOUND_WEAPON_FIREPLASMA';
+              end;
+
+            TRIGGER_SHOT_REV:
+              begin
+                g_Weapon_revf(wx, wy, xd, yd, 0, ActivateUID);
+                snd := 'SOUND_WEAPON_FIREROCKET';
+              end;
+          end;
+
+          if g_Game_IsNet and g_Game_IsServer then
+            begin
+              if Projectile then
+                  MH_SEND_CreateShot(LastShotID);
+              if Data.ShotSound then
+                begin
+                  if not Projectile then
+                    g_Sound_PlayExAt(snd, wx, wy);
+                  MH_SEND_Sound(wx, wy, snd);
+                end;
+            end;
+
+          TimeOut := Data.ShotWait;
+        end;
     end;
   end;
 

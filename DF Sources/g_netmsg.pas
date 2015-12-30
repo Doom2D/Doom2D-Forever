@@ -1222,12 +1222,7 @@ begin
 end;
 
 procedure MH_SEND_MonsterShot(UID: Word; X, Y, VX, VY: Integer; ID: Integer = NET_EVERYONE);
-var
-  M: TMonster;
 begin
-  M := g_Monsters_Get(UID);
-  if M = nil then Exit;
-
   e_Buffer_Write(@NetOut, Byte(NET_MSG_MSHOT));
   e_Buffer_Write(@NetOut, UID);
   e_Buffer_Write(@NetOut, X);
@@ -1877,7 +1872,7 @@ begin
   Result := PID;
 end;
 
-function  MC_RECV_PlayerFire(P: Pointer): Word;
+function MC_RECV_PlayerFire(P: Pointer): Word;
 var
   PID: Word;
   Weap: Byte;
@@ -2271,6 +2266,7 @@ var
   X, Y, VX, VY: Integer;
 begin
   ID := e_Raw_Read_Word(P);
+
   M := g_Monsters_Get(ID);
   if M = nil then Exit;
 

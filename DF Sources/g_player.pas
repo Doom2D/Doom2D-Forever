@@ -2523,8 +2523,7 @@ begin
                                [FName, s]),
                         gShowKillMsg);
       end
-    else
-      if g_GetUIDType(SpawnerUID) = UID_MONSTER then
+    else if g_GetUIDType(SpawnerUID) = UID_MONSTER then
       begin // Убит монстром
         mon := g_Monsters_Get(SpawnerUID);
         if mon = nil then
@@ -2545,6 +2544,10 @@ begin
           g_Console_Add(Format(_lc[I_PLAYER_KILL],
                                [FName, s]),
                         gShowKillMsg);
+      end
+    else // Убит триггерои
+      begin
+        g_Console_Add(Format(_lc[I_PLAYER_DIED], [FName]), True);
       end;
 
 

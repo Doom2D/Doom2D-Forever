@@ -77,6 +77,19 @@ Type
     I_ARRAY_ITEM_JETPACK,
     I_ARRAY_ITEM_INVIS,
 
+    I_ARRAY_SHOT_BULLET,
+    I_ARRAY_SHOT_SHOTGUN,
+    I_ARRAY_SHOT_SSG,
+    I_ARRAY_SHOT_ROCKET,
+    I_ARRAY_SHOT_PLASMA,
+    I_ARRAY_SHOT_BFG,
+    I_ARRAY_SHOT_IMP,
+    I_ARRAY_SHOT_MANCUB,
+    I_ARRAY_SHOT_BARON,
+    I_ARRAY_SHOT_CACO,
+    I_ARRAY_SHOT_SPIDER,
+    I_ARRAY_SHOT_REV,
+
     I_ARRAY_MON_DEMON,
     I_ARRAY_MON_IMP,
     I_ARRAY_MON_ZOMBIE,
@@ -211,6 +224,9 @@ Type
     I_PROP_TR_SCORE_TEAM_3,
     I_PROP_TR_DAMAGE_VALUE,
     I_PROP_TR_HEALTH_MAX,
+    I_PROP_TR_SHOT_TYPE,
+    I_PROP_TR_SHOT_SOUND,
+    I_PROP_TR_SHOT_ANGLE,
 
     I_MSG_ERROR,
     I_MSG_WRONG_TEXWIDTH,
@@ -542,6 +558,7 @@ Var
   PANELNAMES: Array[0..13] of String;
   EffectNames: Array [EFFECT_NONE..EFFECT_FIRE] of String;
   ItemNames: Array [ITEM_MEDKIT_SMALL..ITEM_MAX] of String;
+  ShotNames: Array [TRIGGER_SHOT_BULLET..TRIGGER_SHOT_REV] of String;
   MonsterNames: Array [MONSTER_DEMON..MONSTER_MAN] of String;
   AreaNames: Array [AREA_PLAYERPOINT1..AREA_BLUETEAMPOINT] of String;
   TriggerNames: Array [TRIGGER_EXIT..TRIGGER_SHOT] of String;
@@ -694,6 +711,31 @@ Const
                                        'Реактивный ранец'),
     ('ARRAY ITEM INVIS',               'Invisibility',
                                        'Невидимость'),
+
+    ('ARRAY SHOT BULLET',              'Bullet',
+                                       'Пуля'),
+    ('ARRAY SHOT SHOTGUN',             'Buckshot',
+                                       'Дробь'),
+    ('ARRAY SHOT SSG',                 '2x Buckshot',
+                                       'Больше дроби'),
+    ('ARRAY SHOT ROCKET',              'Rocket',
+                                       'Ракета'),
+    ('ARRAY SHOT PLASMA',              'Blue plasma',
+                                       'Синяя плазма'),
+    ('ARRAY SHOT BFG',                 'BFG ball',
+                                       'Шарик BFG'),
+    ('ARRAY SHOT IMP',                 'Imp fireball',
+                                       'Файербол импа'),
+    ('ARRAY SHOT MANCUB',              'Mancubus fireball',
+                                       'Файербол манкубуса'),
+    ('ARRAY SHOT BARON',               'Baron fireball',
+                                       'Файербол барона'),
+    ('ARRAY SHOT CACO',                'Cacodemon fireball',
+                                       'Файербол какодемона'),
+    ('ARRAY SHOT SPIDER',              'Green plasma',
+                                       'Зеленая плазма'),
+    ('ARRAY SHOT REV',                 'Revenant rocket',
+                                       'Ракета ревенанта'),
 
     ('ARRAY MON DEMON',                'Pinky',
                                        'Демон'),
@@ -959,6 +1001,12 @@ Const
                                        'Ущерб'),
     ('PROP TR HEALTH MAX',             'To maximum',
                                        'До максимума'),
+    ('PROP TR SHOT TYPE',              'Projectile',
+                                       'Снаряд'),
+    ('PROP TR SHOT SOUND',             'Sound',
+                                       'Звук'),
+    ('PROP TR SHOT ANGLE',             'Angle',
+                                       'Угол'),
 
     ('MSG ERROR',                      'Error',
                                        'Ошибка'),
@@ -1634,6 +1682,20 @@ begin
   ItemNames[ITEM_HELMET] := _lc[I_ARRAY_ITEM_HELMET];
   ItemNames[ITEM_JETPACK] := _lc[I_ARRAY_ITEM_JETPACK];
   ItemNames[ITEM_INVIS] := _lc[I_ARRAY_ITEM_INVIS];
+
+// Названия снарядов:
+  ShotNames[TRIGGER_SHOT_BULLET] := _lc[I_ARRAY_SHOT_BULLET];
+  ShotNames[TRIGGER_SHOT_SHOTGUN] := _lc[I_ARRAY_SHOT_SHOTGUN];
+  ShotNames[TRIGGER_SHOT_SSG] := _lc[I_ARRAY_SHOT_SSG];
+  ShotNames[TRIGGER_SHOT_ROCKET] := _lc[I_ARRAY_SHOT_ROCKET];
+  ShotNames[TRIGGER_SHOT_PLASMA] := _lc[I_ARRAY_SHOT_PLASMA];
+  ShotNames[TRIGGER_SHOT_BFG] := _lc[I_ARRAY_SHOT_BFG];
+  ShotNames[TRIGGER_SHOT_IMP] := _lc[I_ARRAY_SHOT_IMP];
+  ShotNames[TRIGGER_SHOT_MANCUB] := _lc[I_ARRAY_SHOT_MANCUB];
+  ShotNames[TRIGGER_SHOT_BARON] := _lc[I_ARRAY_SHOT_BARON];
+  ShotNames[TRIGGER_SHOT_CACO] := _lc[I_ARRAY_SHOT_CACO];
+  ShotNames[TRIGGER_SHOT_SPIDER] := _lc[I_ARRAY_SHOT_SPIDER];
+  ShotNames[TRIGGER_SHOT_REV] := _lc[I_ARRAY_SHOT_REV];
 
 // Названия монстров:
   MonsterNames[MONSTER_DEMON] := _lc[I_ARRAY_MON_DEMON];

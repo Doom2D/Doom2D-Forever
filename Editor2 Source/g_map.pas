@@ -2055,7 +2055,7 @@ procedure DrawMap();
 var
   a, w, h: Integer;
   ID: DWORD;
-  xx, yy: Integer;
+  xx, yy, dx, dy: Integer;
   ww, hh: Word;
   sel: Boolean;
   r: TRectWH;
@@ -2432,6 +2432,30 @@ begin
                            MapOffset.Y+Y+(Height div 2),
                            MapOffset.X+xx,
                            MapOffset.Y+yy,
+                           255, 255, 255, IfThen(sel, 0, gAlphaTriggerLine));
+              end;
+
+            TRIGGER_SHOT:
+              begin;
+                xx := Data.ShotPos.X;
+                yy := Data.ShotPos.Y;
+              // Точка появления снаряда:
+                e_DrawPoint(2, MapOffset.X+xx,
+                            MapOffset.Y+yy,
+                            255, 0, 0);
+              // Линия к точке появления снаряда:
+                e_DrawLine(1, MapOffset.X+X+(Width div 2),
+                           MapOffset.Y+Y+(Height div 2),
+                           MapOffset.X+xx,
+                           MapOffset.Y+yy,
+                           255, 255, 255, IfThen(sel, 0, gAlphaTriggerLine));
+              // Линия направления выстрела:
+                dx := Round(Cos(-DegToRad(Data.ShotAngle)) * 24);
+                dy := Round(Sin(-DegToRad(Data.ShotAngle)) * 24);
+                e_DrawLine(1, MapOffset.X+xx,
+                           MapOffset.Y+yy,
+                           MapOffset.X+xx+dx,
+                           MapOffset.Y+yy+dy,
                            255, 255, 255, IfThen(sel, 0, gAlphaTriggerLine));
               end;
           end;
