@@ -3981,7 +3981,7 @@ begin
   end
   else if cmd = 'kick' then
   begin
-    if g_Game_IsServer and g_Game_IsNet then
+    if g_Game_IsServer and (gGameSettings.GameType <> GT_SINGLE) then
     begin
       if Length(P) < 2 then
       begin
@@ -3994,20 +3994,22 @@ begin
         Exit;
       end;
 
-      pl := g_Net_Client_ByName(P[1]);
+      if g_Game_IsNet then
+        pl := g_Net_Client_ByName(P[1]);
       if (pl <> nil) then
         enet_peer_disconnect(pl^.Peer, NET_DISC_KICK)
       else if gPlayers <> nil then
         for a := Low(gPlayers) to High(gPlayers) do
           if gPlayers[a] <> nil then
-            if gPlayers[a] is TBot then
+            if (gPlayers[a] is TBot) and (gPlayers[a].Name = P[1]) then
             begin
               gPlayers[a].Lives := 0;
               gPlayers[a].Kill(K_SIMPLEKILL, 0, 0);
               g_Console_Add(Format(_lc[I_PLAYER_LEAVE], [gPlayers[a].Name]), True);
               g_Player_Remove(gPlayers[a].UID);
             end;
-    end;
+    end else
+      g_Console_Add(_lc[I_MSG_GM_UNAVAIL]);
   end
   else if cmd = 'kick_id' then
   begin
@@ -4030,7 +4032,8 @@ begin
         if NetClients[a].Used and (NetClients[a].Peer <> nil) then
           enet_peer_disconnect(NetClients[a].Peer, NET_DISC_KICK);
       end;
-    end;
+    end else
+      g_Console_Add(_lc[I_MSG_SERVERONLY]);
   end
   else if cmd = 'clientlist' then
   begin
@@ -4098,7 +4101,7 @@ begin
       gExit := EXIT_SIMPLE;
       EndGame;
     end;
-    
+
     g_Game_StartClient(NetClientIP, NetClientPort);
   end
   else if (cmd = 'addbot') or

@@ -5411,8 +5411,11 @@ begin
         begin // Игрок
           with g_Player_Get(Target.UID) do
             begin
-              Target.X := FObj.X;
-              Target.Y := FObj.Y;
+              if not IsBadReadPtr(@FObj, SizeOf(TObj)) then
+              begin
+                Target.X := FObj.X;
+                Target.Y := FObj.Y;
+              end;
             end;
 
           Target.cX := Target.X + PLAYER_RECT_CX;
