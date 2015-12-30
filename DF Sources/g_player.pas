@@ -211,7 +211,7 @@ type
     constructor Create(); virtual;
     destructor  Destroy(); override;
     procedure   Respawn(Silent: Boolean; Force: Boolean = False); virtual;
-    procedure   PressKey(Key: Byte; Time: Word = 0);
+    procedure   PressKey(Key: Byte; Time: Word = 1);
     procedure   ReleaseKeys();
     procedure   SetModel(ModelName: String);
     procedure   SetColor(Color: TRGB);
@@ -4616,7 +4616,7 @@ begin
   Inc(FSecrets);
 end;
 
-procedure TPlayer.PressKey(Key: Byte; Time: Word = 0);
+procedure TPlayer.PressKey(Key: Byte; Time: Word = 1);
 begin
   Assert(Key <= High(FKeys));
 
