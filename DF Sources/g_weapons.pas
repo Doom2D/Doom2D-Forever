@@ -1104,7 +1104,7 @@ begin
 
   Shots[find_id].SpawnerUID := SpawnerUID;
 
-  g_Sound_PlayExAt('SOUND_WEAPON_FIREROCKET', x, y);
+  g_Sound_PlayExAt('SOUND_WEAPON_FIREREV', x, y);
 end;
 
 procedure g_Weapon_plasma(x, y, xd, yd: Integer; SpawnerUID: Word; WID: Integer = -1);

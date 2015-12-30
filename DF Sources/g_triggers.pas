@@ -1328,7 +1328,7 @@ begin
             TRIGGER_SHOT_REV:
               begin
                 g_Weapon_revf(wx, wy, xd, yd, 0, ActivateUID);
-                snd := 'SOUND_WEAPON_FIREROCKET';
+                snd := 'SOUND_WEAPON_FIREREV';
               end;
           end;
 
