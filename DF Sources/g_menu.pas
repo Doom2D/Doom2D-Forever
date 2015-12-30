@@ -12,13 +12,13 @@ procedure LoadFont(txtres, fntres: string; cwdt, chgt: Byte; spc: ShortInt;
                    var FontID: DWORD);
 procedure g_Menu_AskLanguage();
 
-procedure g_Menu_Show_SaveMenu(custom: Boolean);
-procedure g_Menu_Show_LoadMenu(custom: Boolean);
-procedure g_Menu_Show_GameSetGame(custom: Boolean);
-procedure g_Menu_Show_OptionsVideo(custom: Boolean);
-procedure g_Menu_Show_OptionsSound(custom: Boolean);
-procedure g_Menu_Show_EndGameMenu(custom: Boolean);
-procedure g_Menu_Show_QuitGameMenu(custom: Boolean);
+procedure g_Menu_Show_SaveMenu();
+procedure g_Menu_Show_LoadMenu();
+procedure g_Menu_Show_GameSetGame();
+procedure g_Menu_Show_OptionsVideo();
+procedure g_Menu_Show_OptionsSound();
+procedure g_Menu_Show_EndGameMenu();
+procedure g_Menu_Show_QuitGameMenu();
 
 var
   gMenuFont: DWORD;
@@ -2695,72 +2695,111 @@ begin
   g_GUI_AddWindow(Menu);
 end;
 
-procedure g_Menu_Show_SaveMenu(custom: Boolean);
+procedure g_Menu_Show_SaveMenu();
 begin
-  if custom then
-    g_GUI_ShowWindow('GameCustomMenu')
+  if gGameSettings.GameType = GT_SINGLE then
+    g_GUI_ShowWindow('GameSingleMenu')
   else
-    g_GUI_ShowWindow('GameSingleMenu');
+  begin
+    if g_Game_IsClient then
+      Exit
+    else
+      if g_Game_IsNet then
+        Exit
+      else
+        g_GUI_ShowWindow('GameCustomMenu');
+  end;
   g_GUI_ShowWindow('SaveMenu');
+  g_Sound_PlayEx('MENU_OPEN');
 end;
 
-procedure g_Menu_Show_LoadMenu(custom: Boolean);
+procedure g_Menu_Show_LoadMenu();
 begin
-  if custom then
-    g_GUI_ShowWindow('GameCustomMenu')
+  if gGameSettings.GameType = GT_SINGLE then
+    g_GUI_ShowWindow('GameSingleMenu')
   else
-    g_GUI_ShowWindow('GameSingleMenu');
+  begin
+    if g_Game_IsClient then
+      Exit
+    else
+      if g_Game_IsNet then
+        Exit
+      else
+        g_GUI_ShowWindow('GameCustomMenu');
+  end;
   g_GUI_ShowWindow('LoadMenu');
+  g_Sound_PlayEx('MENU_OPEN');
 end;
 
-procedure g_Menu_Show_GameSetGame(custom: Boolean);
+procedure g_Menu_Show_GameSetGame();
 begin
-  if custom then
-    g_GUI_ShowWindow('GameCustomMenu')
+  if gGameSettings.GameType = GT_SINGLE then
+    g_GUI_ShowWindow('GameSingleMenu')
   else
-    g_GUI_ShowWindow('GameSingleMenu');
+  begin
+    if g_Game_IsClient then
+      Exit
+    else
+      if g_Game_IsNet then
+        g_GUI_ShowWindow('GameServerMenu')
+      else
+        g_GUI_ShowWindow('GameCustomMenu');
+  end;
   ReadGameSettings();
   g_GUI_ShowWindow('GameSetGameMenu');
+  g_Sound_PlayEx('MENU_OPEN');
 end;
 
-procedure g_Menu_Show_OptionsVideo(custom: Boolean);
+procedure g_Menu_Show_OptionsVideo();
 begin
-  if custom then
-    g_GUI_ShowWindow('GameCustomMenu')
+  if gGameSettings.GameType = GT_SINGLE then
+    g_GUI_ShowWindow('GameSingleMenu')
   else
-    g_GUI_ShowWindow('GameSingleMenu');
+  begin
+    if g_Game_IsClient then
+      g_GUI_ShowWindow('GameClientMenu')
+    else
+      if g_Game_IsNet then
+        g_GUI_ShowWindow('GameServerMenu')
+      else
+        g_GUI_ShowWindow('GameCustomMenu');
+  end;
   ReadOptions();
   g_GUI_ShowWindow('OptionsMenu');
   g_GUI_ShowWindow('OptionsVideoMenu');
+  g_Sound_PlayEx('MENU_OPEN');
 end;
 
-procedure g_Menu_Show_OptionsSound(custom: Boolean);
+procedure g_Menu_Show_OptionsSound();
 begin
-  if custom then
-    g_GUI_ShowWindow('GameCustomMenu')
+  if gGameSettings.GameType = GT_SINGLE then
+    g_GUI_ShowWindow('GameSingleMenu')
   else
-    g_GUI_ShowWindow('GameSingleMenu');
+  begin
+    if g_Game_IsClient then
+      g_GUI_ShowWindow('GameClientMenu')
+    else
+      if g_Game_IsNet then
+        g_GUI_ShowWindow('GameServerMenu')
+      else
+        g_GUI_ShowWindow('GameCustomMenu');
+  end;
   ReadOptions();
   g_GUI_ShowWindow('OptionsMenu');
   g_GUI_ShowWindow('OptionsSoundMenu');
+  g_Sound_PlayEx('MENU_OPEN');
 end;
 
-procedure g_Menu_Show_EndGameMenu(custom: Boolean);
+procedure g_Menu_Show_EndGameMenu();
 begin
-  if custom then
-    g_GUI_ShowWindow('GameCustomMenu')
-  else
-    g_GUI_ShowWindow('GameSingleMenu');
   g_GUI_ShowWindow('EndGameMenu');
+  g_Sound_PlayEx('MENU_OPEN');
 end;
 
-procedure g_Menu_Show_QuitGameMenu(custom: Boolean);
+procedure g_Menu_Show_QuitGameMenu();
 begin
-  if custom then
-    g_GUI_ShowWindow('GameCustomMenu')
-  else
-    g_GUI_ShowWindow('GameSingleMenu');
   g_GUI_ShowWindow('ExitMenu');
+  g_Sound_PlayEx('MENU_OPEN');
 end;
 
 procedure g_Menu_Init();

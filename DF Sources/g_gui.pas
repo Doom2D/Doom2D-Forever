@@ -219,7 +219,7 @@ type
     property Color: TRGB read FColor write FColor;
     property Font: TFont read FFont write FFont;
     property OnChange: TOnChangeEvent read FOnChangeEvent write FOnChangeEvent;
- end;
+  end;
 
   TGUIEdit = class(TGUIControl)
   private
@@ -338,7 +338,7 @@ type
 
     procedure FSetItems(Items: SArray);
     procedure FSetIndex(aIndex: Integer);
-   
+
   public
     constructor Create(FontID: DWORD; Width, Height: Word);
     procedure OnMessage(var Msg: TMessage); override;
@@ -665,7 +665,7 @@ begin
   for k := len-1 downto 1 do
   begin
     ok := False;
-    
+
     for i := 0 to Length(g_ActiveWindow.Childs)-1 do
     begin
       if g_ActiveWindow.Childs[i] is TGUIMainMenu then

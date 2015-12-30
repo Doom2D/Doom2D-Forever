@@ -322,7 +322,6 @@ procedure KeyPress(K: Byte);
 var
   Msg: g_gui.TMessage;
   a: Integer;
-  b: Boolean;
 begin
   case K of
     VK_PAUSE: // <Pause/Break>:
@@ -387,23 +386,21 @@ begin
           if (not g_Game_IsNet) then
             g_Game_Pause(True);
 
-          b := (gGameSettings.GameType = GT_CUSTOM);
-
           case K of
             VK_F2:
-              g_Menu_Show_SaveMenu(b);
+              g_Menu_Show_SaveMenu();
             VK_F3:
-              g_Menu_Show_LoadMenu(b);
+              g_Menu_Show_LoadMenu();
             VK_F4:
-              g_Menu_Show_GameSetGame(b);
+              g_Menu_Show_GameSetGame();
             VK_F5:
-              g_Menu_Show_OptionsVideo(b);
+              g_Menu_Show_OptionsVideo();
             VK_F6:
-              g_Menu_Show_OptionsSound(b);
+              g_Menu_Show_OptionsSound();
             VK_F7:
-              g_Menu_Show_EndGameMenu(b);
+              g_Menu_Show_EndGameMenu();
             VK_F10:
-              g_Menu_Show_QuitGameMenu(b);
+              g_Menu_Show_QuitGameMenu();
           end;
         end;
       end;
