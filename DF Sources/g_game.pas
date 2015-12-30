@@ -59,6 +59,7 @@ procedure g_Game_RestartRound(NoMapRestart: Boolean = False);
 procedure g_Game_LoadWAD(NewWAD: String; WHash: TMD5Digest);
 procedure g_Game_SaveOptions();
 function  g_Game_StartMap(Map: String; Force: Boolean = False): Boolean;
+procedure g_Game_ChangeMap(MapPath: String);
 procedure g_Game_ExitLevel(Map: Char16);
 function  g_Game_GetFirstMap(WAD: String): String;
 function  g_Game_GetNextMap(): String;
@@ -951,7 +952,6 @@ var
   Time: Int64;
   a: Byte;
   i, b: Integer;
-  NewWAD, ResName: String;
 begin
 // Пора выключать игру:
   if gExit = EXIT_QUIT then
@@ -1001,32 +1001,8 @@ begin
           if gMapOnce then // Это был тест
             gExit := EXIT_SIMPLE
           else
-            if gNextMap <> '' then
-            begin // Переходим на следующую карту
-              g_Game_ClearLoading();
-
-              if Pos(':\', gNextMap) = 0 then
-              begin
-                if g_Game_IsNet and g_Game_IsServer then
-                  MH_SEND_GameEvent(NET_EV_MAPSTART, gNextMap);
-
-                if not g_Game_StartMap(gNextMap, (gGameSettings.GameMode in [GM_DM, GM_TDM, GM_CTF])) then
-                  g_FatalError(Format(_lc[I_GAME_ERROR_MAP_LOAD],
-                                      [ExtractFileName(gGameSettings.WAD) + ':\' + gNextMap]));
-              end else
-              begin
-                g_ProcessResourceStr(MapsDir + gNextMap, @NewWAD, nil, @ResName);
-                gWADHash := MD5File(NewWAD);
-                g_Game_LoadWAD(NewWAD, gWADHash);
-
-                if g_Game_IsNet and g_Game_IsServer then
-                  MH_SEND_GameEvent(NET_EV_MAPSTART, gNextMap);
-
-                if not g_Game_StartMap(ResName, (gGameSettings.GameMode in [GM_DM, GM_TDM, GM_CTF])) then
-                  g_FatalError(Format(_lc[I_GAME_ERROR_MAP_LOAD],
-                                      [ExtractFileName(gGameSettings.WAD) + ':\' + ResName]));
-              end;
-            end
+            if gNextMap <> '' then // Переходим на следующую карту
+              g_Game_ChangeMap(gNextMap)
             else // Следующей карты нет
             begin
               if gGameSettings.GameType in [GT_CUSTOM, GT_SERVER] then
@@ -3027,6 +3003,28 @@ begin
   g_Options_Write_Video(GameDir+'\'+CONFIG_FILENAME);
 end;
 
+procedure g_Game_ChangeMap(MapPath: String);
+var
+  NewWAD, ResName: String;
+begin
+  g_Game_ClearLoading();
+
+  if Pos(':\', MapPath) > 0 then
+  begin
+    g_ProcessResourceStr(MapsDir + MapPath, @NewWAD, nil, @ResName);
+    gWADHash := MD5File(NewWAD);
+    g_Game_LoadWAD(NewWAD, gWADHash);
+  end else
+    ResName := MapPath;
+
+  if g_Game_IsNet and g_Game_IsServer then
+    MH_SEND_GameEvent(NET_EV_MAPSTART, MapPath);
+
+  if not g_Game_StartMap(ResName, (gGameSettings.GameMode in [GM_DM, GM_TDM, GM_CTF])) then
+    g_FatalError(Format(_lc[I_GAME_ERROR_MAP_LOAD],
+                        [ExtractFileName(gGameSettings.WAD) + ':\' + ResName]));
+end;
+
 procedure g_Game_Restart();
 var
   Map: string;
@@ -3038,7 +3036,7 @@ begin
   gGameOn := False;
   g_Game_ClearLoading();
   g_Game_StartMap(Map, True);
- 
+
   if g_Game_IsNet then
     MH_SEND_GameEvent(NET_EV_MAPSTART, Map);
 end;
@@ -3970,9 +3968,9 @@ begin
     gExit := EXIT_SIMPLE
   else if cmd = 'restart' then
   begin
-    if gGameOn then
+    if gGameOn or (gState in [STATE_INTERSINGLE, STATE_INTERCUSTOM]) then
     begin
-      if g_Game_IsNet and g_Game_IsClient then
+      if g_Game_IsClient then
       begin
         g_Console_Add(_lc[I_MSG_SERVERONLY]);
         Exit;
@@ -4151,7 +4149,7 @@ begin
   begin
     if Length(P) = 1 then
     begin
-      if not gGameOn then
+      if not(gGameOn or (gState = STATE_INTERCUSTOM)) then
         g_Console_Add(cmd + ' <WAD> [MAP]')
       else
         if g_Game_IsServer and (gGameSettings.GameType <> GT_SINGLE) then
@@ -4161,7 +4159,7 @@ begin
         end else
           g_Console_Add(_lc[I_MSG_GM_UNAVAIL]);
     end else
-      if not gGameOn then
+      if not(gGameOn or (gState = STATE_INTERCUSTOM)) then
       begin
         // Игра ещё не запущена, сначала нам надо загрузить какой-то WAD
         if Pos('.wad', LowerCase(P[1])) = 0 then
@@ -4216,9 +4214,14 @@ begin
             s := UpperCase(P[1]);
             if g_Map_Exist(gGameSettings.WAD + ':\' + s) then
             begin
-              // Карта нашлась, завершаем уровень
-              gNextMap := s;
-              gExit := EXIT_ENDLEVELCUSTOM;
+              // Карта нашлась
+              if gGameOn then
+              begin // Идёт игра - завершаем уровень
+                gNextMap := s;
+                gExit := EXIT_ENDLEVELCUSTOM;
+              end
+              else // Интермиссия - сразу загружаем карту
+                g_Game_ChangeMap(s);
             end else
             begin
               g_Console_Add(Format(_lc[I_MSG_NO_MAP], [s]));
@@ -4236,9 +4239,13 @@ begin
 
                 if g_Map_Exist(MapsDir + s) then
                 begin
-                  // Завершаем уровень
-                  gNextMap := s;
-                  gExit := EXIT_ENDLEVELCUSTOM;
+                  if gGameOn then
+                  begin // Идёт игра - завершаем уровень
+                    gNextMap := s;
+                    gExit := EXIT_ENDLEVELCUSTOM;
+                  end
+                  else // Интермиссия - сразу загружаем карту
+                    g_Game_ChangeMap(s);
                 end else
                   if P[2] = '' then
                     g_Console_Add(Format(_lc[I_MSG_NO_MAPS], [P[1]]))
@@ -4261,9 +4268,14 @@ begin
 
               if g_Map_Exist(MapsDir + s) then
               begin
-                // Нашли карту, завершаем уровень
-                gNextMap := s;
-                gExit := EXIT_ENDLEVELCUSTOM;
+                // Нашли карту
+                if gGameOn then
+                begin // Идёт игра - завершаем уровень
+                  gNextMap := s;
+                  gExit := EXIT_ENDLEVELCUSTOM;
+                end
+                else // Интермиссия - сразу загружаем карту
+                  g_Game_ChangeMap(s);
               end else
                 g_Console_Add(Format(_lc[I_MSG_NO_MAP], [P[2]]));
             end else
@@ -4274,7 +4286,7 @@ begin
   end
   else if cmd = 'nextmap' then
   begin
-    if not gGameOn then
+    if not(gGameOn or (gState = STATE_INTERCUSTOM)) then
       g_Console_Add(_lc[I_MSG_NOT_GAME])
     else begin
       nm := True;
