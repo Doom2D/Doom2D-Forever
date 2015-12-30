@@ -219,7 +219,7 @@ begin
         begin
           // prevents endless loops
           Inc(RecursionDepth);
-          RecursionLimitHit := RecursionDepth > MaxScriptRecursion;
+          RecursionLimitHit := (RecursionDepth > MaxScriptRecursion) or RecursionLimitHit;
           if not RecursionLimitHit then
             g_Console_Process(s, True);
           Dec(RecursionDepth);
@@ -285,7 +285,7 @@ begin
             for b := 0 to High(Aliases[a].Commands) do
             begin
               Inc(RecursionDepth);
-              RecursionLimitHit := RecursionDepth > MaxScriptRecursion;
+              RecursionLimitHit := (RecursionDepth > MaxScriptRecursion) or RecursionLimitHit;
               if not RecursionLimitHit then
                 g_Console_Process(Aliases[a].Commands[b], True);
               Dec(RecursionDepth);
