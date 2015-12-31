@@ -4582,8 +4582,10 @@ begin
       if Length(P) > 1 then
       begin
         chstr := '';
-        for a := 1 to High(P) do
-          chstr := chstr + P[a] + ' ';
+        for a := 1 to High(P) do begin
+          if a > 1 then chstr := chstr + ' ';
+          chstr := chstr + P[a];
+        end;
 
         if Length(chstr) > 200 then SetLength(chstr, 200);
 
