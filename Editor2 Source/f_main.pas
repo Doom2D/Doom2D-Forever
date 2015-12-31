@@ -4002,7 +4002,8 @@ begin
             (KeyName = _lc[I_PROP_TR_SOUND_SWITCH]) or
             (KeyName = _lc[I_PROP_TR_MONSTER_ACTIVE]) or
             (KeyName = _lc[I_PROP_TR_PUSH_RESET]) or
-            (KeyName = _lc[I_PROP_TR_HEALTH_MAX]) then
+            (KeyName = _lc[I_PROP_TR_HEALTH_MAX]) or
+            (KeyName = _lc[I_PROP_TR_SHOT_SOUND]) then
       begin
         Values.Add(BoolNames[True]);
         Values.Add(BoolNames[False]);
