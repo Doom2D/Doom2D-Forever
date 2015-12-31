@@ -117,11 +117,13 @@ procedure g_Net_Free();
 function  g_Net_Host(Port: enet_uint16; MaxClients: Cardinal = 16): Boolean;
 procedure g_Net_Host_Die();
 procedure g_Net_Host_Send(ID: Integer; Reliable: Boolean; Chan: Byte = NET_CHAN_GAME);
+procedure g_Net_Host_Flush();
 function  g_Net_Host_Update(): enet_size_t;
 
 function  g_Net_Connect(IP: string; Port: enet_uint16): Boolean;
 procedure g_Net_Disconnect(Forced: Boolean = False);
 procedure g_Net_Client_Send(Reliable: Boolean; Chan: Byte = NET_CHAN_GAME);
+procedure g_Net_Client_Flush();
 function  g_Net_Client_Update(): enet_size_t;
 function  g_Net_Client_UpdateWhileLoading(): enet_size_t;
 
@@ -340,9 +342,13 @@ begin
 
     enet_host_widecast(NetHost, Chan, P);
   end;
-  
-  enet_host_flush(NetHost);
+
   e_Buffer_Clear(@NetOut);
+end;
+
+procedure g_Net_Host_Flush();
+begin
+  enet_host_flush(NetHost);
 end;
 
 function g_Net_Host_Update(): enet_size_t;
@@ -514,9 +520,12 @@ begin
   if not Assigned(P) then Exit;
 
   enet_peer_send(NetPeer, Chan, P);
-
-  enet_host_flush(NetHost);
   e_Buffer_Clear(@NetOut);
+end;
+
+procedure g_Net_Client_Flush();
+begin
+  enet_host_flush(NetHost);
 end;
 
 function g_Net_Client_Update(): enet_size_t;
@@ -554,7 +563,8 @@ begin
         Exit;
       end;
     end;
-  end
+  end;
+  g_Net_Client_Flush();
 end;
 
 function g_Net_Connect(IP: string; Port: enet_uint16): Boolean;
