@@ -5028,11 +5028,11 @@ begin
   m := g_PlayerModel_Get(ModelName);
   if m = nil then
   begin
-    g_SimpleError('Could not find model: ' + ModelName + '. Using doomer instead.');
+    g_SimpleError(Format(_lc[I_GAME_ERROR_MODEL_FALLBACK], [ModelName]));
     m := g_PlayerModel_Get('doomer');
     if m = nil then
     begin
-      g_FatalError('Could not find model: doomer.');
+      g_FatalError(Format(_lc[I_GAME_ERROR_MODEL], ['doomer']));
       Exit;
     end;
   end;

@@ -734,6 +734,13 @@ procedure g_Console_Add(L: String; Show: Boolean = False);
 var
   a: Integer;
 begin
+  // Вывод строк с переносами по очереди
+  while Pos(#10, L) > 0 do
+  begin
+    g_Console_Add(Copy(L, 1, Pos(#10, L) - 1), Show);
+    Delete(L, 1, Pos(#10, L));
+  end;
+
   SetLength(ConsoleHistory, Length(ConsoleHistory)+1);
   ConsoleHistory[High(ConsoleHistory)] := L;
 
