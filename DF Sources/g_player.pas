@@ -246,6 +246,7 @@ type
     procedure   DrawPain();
     procedure   DrawRulez();
     procedure   DrawAim();
+    procedure   DrawBubble();
     procedure   DrawGUI();
     procedure   Update(); virtual;
     procedure   RememberState();
@@ -1763,9 +1764,63 @@ begin
   inherited;
 end;
 
-procedure TPlayer.Draw();
+procedure TPlayer.DrawBubble();
 var
   bubX, bubY: Integer;
+  Rb, Gb, Bb,
+  Rw, Gw, Bw: Word;
+  Dot: Byte;
+begin
+  bubX := FObj.X+FObj.Rect.X + IfThen(FDirection = D_LEFT, -2, 19);
+  bubY := FObj.Y+FObj.Rect.Y - 17;
+  Rb := FModel.Color.R;
+  Gb := FModel.Color.G;
+  Bb := FModel.Color.B;
+  Rw := Min(Rb * 2, 255);
+  Gw := Min(Gb * 2, 255);
+  Bw := Min(Bb * 2, 255);
+  if (Abs(Rw - Rb) < 24)
+  or (Abs(Gw - Bb) < 24)
+  or (Abs(Gw - Bb) < 24) then
+  begin
+    Rb := Rw div 2;
+    Gb := Gw div 2;
+    Bb := Bw div 2;
+  end;
+
+  e_DrawLine(1, bubX + 2, bubY, bubX + 15, bubY, Rb, Gb, Bb);
+  e_DrawLine(1, bubX + 2, bubY + 13, bubX + 15, bubY + 13, Rb, Gb, Bb);
+  e_DrawLine(1, bubX, bubY + 2, bubX, bubY + 10, Rb, Gb, Bb);
+  e_DrawLine(1, bubX + 18, bubY + 2, bubX + 18, bubY + 10, Rb, Gb, Bb);
+
+  e_DrawFillQuad(bubX + 1, bubY + 1, bubX + 15, bubY + 10, Rw, Gw, Bw, 0);
+  e_DrawLine(1, bubX + 2, bubY + 1, bubX + 15, bubY + 1, Rw, Gw, Bw);
+  e_DrawLine(1, bubX + 2, bubY + 12, bubX + 15, bubY + 12, Rw, Gw, Bw);
+  e_DrawLine(1, bubX + 1, bubY + 2, bubX + 1, bubY + 10, Rw, Gw, Bw);
+  e_DrawLine(1, bubX + 17, bubY + 2, bubX + 17, bubY + 10, Rw, Gw, Bw);
+
+  e_DrawLine(1, bubX + 2, bubY, bubX, bubY + 2, Rb, Gb, Bb);
+  e_DrawLine(1, bubX + 15, bubY, bubX + 18, bubY + 3, Rb, Gb, Bb);
+  e_DrawLine(1, bubX, bubY + 10, bubX + 3, bubY + 13, Rb, Gb, Bb);
+  e_DrawLine(1, bubX + 18, bubY + 9, bubX + 14, bubY + 13, Rb, Gb, Bb);
+
+  Dot := IfThen(FDirection = D_LEFT, 13, 5);
+  e_DrawLine(1, bubX + Dot, bubY + 13, bubX + Dot, bubY + 16, Rb, Gb, Bb);
+  e_DrawLine(1, bubX + IfThen(FDirection = D_LEFT, Dot - 1, Dot + 1), bubY + 12, bubX + IfThen(FDirection = D_LEFT, Dot - 1, Dot + 1), bubY + 15, Rw, Gw, Bw);
+  e_DrawLine(1, bubX + IfThen(FDirection = D_LEFT, Dot - 2, Dot + 2), bubY + 12, bubX + IfThen(FDirection = D_LEFT, Dot - 2, Dot + 2), bubY + 14, Rw, Gw, Bw);
+  e_DrawLine(1, bubX + IfThen(FDirection = D_LEFT, Dot - 3, Dot + 3), bubY + 12, bubX + IfThen(FDirection = D_LEFT, Dot - 3, Dot + 3), bubY + 13, Rw, Gw, Bw);
+  if FDirection = D_LEFT then
+    e_DrawLine(1, bubX + 9, bubY + 13, bubX + 12, bubY + 16, Rb, Gb, Bb)
+  else
+    e_DrawLine(1, bubX + 8, bubY + 13, bubX + 5, bubY + 16, Rb, Gb, Bb);
+
+  Dot := IfThen(FDirection = D_LEFT, 4, 5);
+  e_DrawFillQuad(bubX + Dot,     bubY + 6, bubX + Dot + 1, bubY + 7, Rb, Gb, Bb, 0);
+  e_DrawFillQuad(bubX + Dot + 3, bubY + 6, bubX + Dot + 4, bubY + 7, Rb, Gb, Bb, 0);
+  e_DrawFillQuad(bubX + Dot + 6, bubY + 6, bubX + Dot + 7, bubY + 7, Rb, Gb, Bb, 0);
+end;
+
+procedure TPlayer.Draw();
 begin
   if FLive then
     if (FMegaRulez[MR_INVIS] > gTime) then
@@ -1790,11 +1845,7 @@ begin
 
   if (FKeys[KEY_CHAT].Pressed) and not FGhost then
     if (gPlayer1 <> nil) then
-    begin
-      bubX := FObj.X+FObj.Rect.X - 11;
-      bubY := FObj.Y+FObj.Rect.Y - 17;
-      e_TextureFontPrint(bubX, bubY, '[...]', gStdFont);
-    end;
+      DrawBubble();
  // e_DrawPoint(5, 335, 288, 255, 0, 0); // DL, UR, DL, UR
   if gAimLine and Live and
   ((Self = gPlayer1) or (Self = gPlayer2)) then
