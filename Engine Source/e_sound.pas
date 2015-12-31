@@ -150,21 +150,6 @@ begin
     Exit;
   end;
 
-  res := FMOD_System_SetOutput(F_System, FMOD_OUTPUTTYPE_DSOUND);
-  if res <> FMOD_OK then
-  begin
-    e_WriteLog('Error setting FMOD output to DSOUND!', MSG_WARNING);
-    e_WriteLog(FMOD_ErrorString(res), MSG_WARNING);
-    e_WriteLog('Falling back to NOSOUND...', MSG_WARNING);
-    res := FMOD_System_SetOutput(F_System, FMOD_OUTPUTTYPE_NOSOUND);
-    if res <> FMOD_OK then
-    begin
-      e_WriteLog('Error setting FMOD output to NOSOUND!', MSG_FATALERROR);
-      e_WriteLog(FMOD_ErrorString(res), MSG_FATALERROR);
-      Exit;
-    end;
-  end;
-
   res := FMOD_System_SetSoftwareFormat(F_System, Freq,
            FMOD_SOUND_FORMAT_PCM16, 0, 0, FMOD_DSP_RESAMPLER_LINEAR);
   if res <> FMOD_OK then
@@ -177,9 +162,23 @@ begin
   res := FMOD_System_Init(F_System, N_CHANNELS, FMOD_INIT_NORMAL, nil);
   if res <> FMOD_OK then
   begin
-    e_WriteLog('Error initializing FMOD system!', MSG_FATALERROR);
-    e_WriteLog(FMOD_ErrorString(res), MSG_FATALERROR);
-    Exit;
+    e_WriteLog('Error initializing FMOD system!', MSG_WARNING);
+    e_WriteLog(FMOD_ErrorString(res), MSG_WARNING);
+    e_WriteLog('Trying with OUTPUTTYPE_NOSOUND...', MSG_WARNING);
+    res := FMOD_System_SetOutput(F_System, FMOD_OUTPUTTYPE_NOSOUND);
+    if res <> FMOD_OK then
+    begin
+      e_WriteLog('Error setting FMOD output to NOSOUND!', MSG_FATALERROR);
+      e_WriteLog(FMOD_ErrorString(res), MSG_FATALERROR);
+      Exit;
+    end;
+    res := FMOD_System_Init(F_System, N_CHANNELS, FMOD_INIT_NORMAL, nil);
+    if res <> FMOD_OK then
+    begin
+      e_WriteLog('Error initializing FMOD system!', MSG_FATALERROR);
+      e_WriteLog(FMOD_ErrorString(res), MSG_FATALERROR);
+      Exit;
+    end;
   end;
 
   res := FMOD_System_GetOutput(F_System, output);
