@@ -153,9 +153,16 @@ begin
   res := FMOD_System_SetOutput(F_System, FMOD_OUTPUTTYPE_DSOUND);
   if res <> FMOD_OK then
   begin
-    e_WriteLog('Error setting FMOD output type!', MSG_FATALERROR);
-    e_WriteLog(FMOD_ErrorString(res), MSG_FATALERROR);
-    Exit;
+    e_WriteLog('Error setting FMOD output to DSOUND!', MSG_WARNING);
+    e_WriteLog(FMOD_ErrorString(res), MSG_WARNING);
+    e_WriteLog('Falling back to NOSOUND...', MSG_WARNING);
+    res := FMOD_System_SetOutput(F_System, FMOD_OUTPUTTYPE_NOSOUND);
+    if res <> FMOD_OK then
+    begin
+      e_WriteLog('Error setting FMOD output to NOSOUND!', MSG_FATALERROR);
+      e_WriteLog(FMOD_ErrorString(res), MSG_FATALERROR);
+      Exit;
+    end;
   end;
 
   res := FMOD_System_SetSoftwareFormat(F_System, Freq,
