@@ -119,7 +119,22 @@ var
   Scale, w, h: Integer;
 
 begin
-  SaveDialog.FileName := ChangeFileExt(ExtractFileName(gMapInfo.FileName), '');
+  SaveDialog.FileName := ChangeFileExt(ExtractFileName(gMapInfo.FileName), '')
+  + '_' + LowerCase(gMapInfo.MapName);
+
+  // Filter out special characters
+  SaveDialog.FileName := StringReplace(SaveDialog.FileName, '/', '', [rfReplaceAll]);
+  SaveDialog.FileName := StringReplace(SaveDialog.FileName, '\', '', [rfReplaceAll]);
+  SaveDialog.FileName := StringReplace(SaveDialog.FileName, ':', '', [rfReplaceAll]);
+  SaveDialog.FileName := StringReplace(SaveDialog.FileName, '*', '', [rfReplaceAll]);
+  SaveDialog.FileName := StringReplace(SaveDialog.FileName, '?', '', [rfReplaceAll]);
+  SaveDialog.FileName := StringReplace(SaveDialog.FileName, '"', '', [rfReplaceAll]);
+  SaveDialog.FileName := StringReplace(SaveDialog.FileName, '<', '', [rfReplaceAll]);
+  SaveDialog.FileName := StringReplace(SaveDialog.FileName, '>', '', [rfReplaceAll]);
+  SaveDialog.FileName := StringReplace(SaveDialog.FileName, '|', '', [rfReplaceAll]);
+
+  if SaveDialog.FileName = '_' then
+    SaveDialog.FileName := '';
 
   if SaveDialog.Execute() then
   begin

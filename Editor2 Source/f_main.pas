@@ -5287,7 +5287,9 @@ begin
 
   SaveMap(OpenedMap);
 
-  UpdateCaption(gMapInfo.Name, ExtractFileName(SaveDialog.FileName), SaveMapForm.eMapName.Text);
+  gMapInfo.FileName := SaveDialog.FileName;
+  gMapInfo.MapName := SaveMapForm.eMapName.Text;
+  UpdateCaption(gMapInfo.Name, ExtractFileName(gMapInfo.FileName), gMapInfo.MapName);
 end;
 
 procedure TMainForm.aSelectAllExecute(Sender: TObject);

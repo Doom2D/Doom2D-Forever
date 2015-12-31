@@ -61,11 +61,11 @@ object SaveMiniMapForm: TSaveMiniMapForm
       ItemHeight = 13
       ItemIndex = 0
       TabOrder = 0
-      Text = '1x'
+      Text = '1/16'
       OnChange = cbScaleChange
       Items.Strings = (
-        '1x'
-        '2x')
+        '1/16'
+        '1/8')
     end
     object bClose: TButton
       Left = 4
