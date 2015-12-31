@@ -124,7 +124,7 @@ procedure MH_SEND_PlayerDelete(PID: Word; ID: Integer = NET_EVERYONE);
 procedure MH_SEND_PlayerDamage(PID: Word; Kind: Byte; Attacker, Value: Word; VX, VY: Integer; ID: Integer = NET_EVERYONE);
 procedure MH_SEND_PlayerFire(PID: Word; Weapon: Byte; X, Y, AX, AY: Integer; ShotID: Integer = -1; ID: Integer = NET_EVERYONE);
 procedure MH_SEND_PlayerDeath(PID: Word; KillType, DeathType: Byte; Attacker: Word; ID: Integer = NET_EVERYONE);
-procedure MH_SEND_PlayerSettings(PID: Word;  ID: Integer = NET_EVERYONE);
+procedure MH_SEND_PlayerSettings(PID: Word; Mdl: string = ''; ID: Integer = NET_EVERYONE);
 // ITEM
 procedure MH_SEND_ItemSpawn(Quiet: Boolean; IID: Word; ID: Integer = NET_EVERYONE);
 procedure MH_SEND_ItemDestroy(Quiet: Boolean; IID: Word; ID: Integer = NET_EVERYONE);
@@ -460,7 +460,7 @@ begin
   if TmpModel <> Pl.Model.Name then
     Pl.SetModel(TmpModel);
 
-  MH_SEND_PlayerSettings(Pl.UID);
+  MH_SEND_PlayerSettings(Pl.UID, TmpModel);
 end;
 
 // RCON
@@ -1006,7 +1006,7 @@ begin
   g_Net_Host_Send(ID, True, NET_CHAN_IMPORTANT);
 end;
 
-procedure MH_SEND_PlayerSettings(PID: Word;  ID: Integer = NET_EVERYONE);
+procedure MH_SEND_PlayerSettings(PID: Word; Mdl: string = ''; ID: Integer = NET_EVERYONE);
 var
   Pl: TPlayer;
 begin
@@ -1016,7 +1016,10 @@ begin
   e_Buffer_Write(@NetOut, Byte(NET_MSG_PLRSET));
   e_Buffer_Write(@NetOut, PID);
   e_Buffer_Write(@NetOut, Pl.Name);
-  e_Buffer_Write(@NetOut, Pl.Model.Name);
+  if Mdl = '' then
+    e_Buffer_Write(@NetOut, Pl.Model.Name)
+  else
+    e_Buffer_Write(@NetOut, Mdl);
   e_Buffer_Write(@NetOut, Pl.Model.Color.R);
   e_Buffer_Write(@NetOut, Pl.Model.Color.G);
   e_Buffer_Write(@NetOut, Pl.Model.Color.B);
