@@ -1154,26 +1154,27 @@ begin
 
       TRIGGER_MESSAGE:
         begin
+          snd := Data.MessageText;
           case Data.MessageSendTo of
             0: // activator
               begin
                 if g_GetUIDType(ActivateUID) = UID_PLAYER then
                 begin
-                  if (ActivateUID = gPlayer1.UID) or (ActivateUID = gPlayer2.UID) then
+                  if (ActivateUID = gPlayer1.UID) or ((gPlayer2 <> nil) and (ActivateUID = gPlayer2.UID)) then
                   begin
                     if Data.MessageKind = 0 then
-                      g_Console_Add(Data.MessageText, True)
+                      g_Console_Add(snd, True)
                     else if Data.MessageKind = 1 then
-                      g_Game_Message(Data.MessageText, 144);
+                      g_Game_Message(snd, 144);
                   end
                   else
                   begin
                     p := g_Player_Get(ActivateUID);
                     if g_Game_IsNet and (p.FClientID >= 0) then
                       if Data.MessageKind = 0 then
-                        MH_SEND_Chat(Data.MessageText, p.FClientID)
+                        MH_SEND_Chat(snd, p.FClientID)
                       else if Data.MessageKind = 1 then
-                        MH_SEND_GameEvent(NET_EV_BIGTEXT, Data.MessageText, p.FClientID);
+                        MH_SEND_GameEvent(NET_EV_BIGTEXT, snd, p.FClientID);
                   end;
                 end;
               end;
@@ -1183,20 +1184,20 @@ begin
                 if g_GetUIDType(ActivateUID) = UID_PLAYER then
                 begin
                   p := g_Player_Get(ActivateUID);
-                  if (p.Team = gPlayer1.Team) or (p.Team = gPlayer2.Team) then
+                  if (p.Team = gPlayer1.Team) or ((gPlayer2 <> nil) and (p.Team = gPlayer2.Team)) then
                     if Data.MessageKind = 0 then
-                      g_Console_Add(Data.MessageText, True)
+                      g_Console_Add(snd, True)
                     else if Data.MessageKind = 1 then
-                      g_Game_Message(Data.MessageText, 144);
+                      g_Game_Message(snd, 144);
 
                   if g_Game_IsNet then
                   begin
                     for i := Low(gPlayers) to High(gPlayers) do
                       if (gPlayers[i].Team = p.Team) and (gPlayers[i].FClientID >= 0) then
                         if Data.MessageKind = 0 then
-                          MH_SEND_Chat(Data.MessageText, gPlayers[i].FClientID)
+                          MH_SEND_Chat(snd, gPlayers[i].FClientID)
                         else if Data.MessageKind = 1 then
-                          MH_SEND_GameEvent(NET_EV_BIGTEXT, Data.MessageText, gPlayers[i].FClientID);
+                          MH_SEND_GameEvent(NET_EV_BIGTEXT, snd, gPlayers[i].FClientID);
                   end;
                 end;
               end;
@@ -1206,40 +1207,40 @@ begin
                 if g_GetUIDType(ActivateUID) = UID_PLAYER then
                 begin
                   p := g_Player_Get(ActivateUID);
-                  if (p.Team <> gPlayer1.Team) or (p.Team <> gPlayer2.Team) then
+                  if (p.Team <> gPlayer1.Team) or ((gPlayer2 <> nil) and (p.Team <> gPlayer2.Team)) then
                     if Data.MessageKind = 0 then
-                      g_Console_Add(Data.MessageText, True)
+                      g_Console_Add(snd, True)
                     else if Data.MessageKind = 1 then
-                      g_Game_Message(Data.MessageText, 144);
+                      g_Game_Message(snd, 144);
 
                   if g_Game_IsNet then
                   begin
                     for i := Low(gPlayers) to High(gPlayers) do
                       if (gPlayers[i].Team <> p.Team) and (gPlayers[i].FClientID >= 0) then
                         if Data.MessageKind = 0 then
-                          MH_SEND_Chat(Data.MessageText, gPlayers[i].FClientID)
+                          MH_SEND_Chat(snd, gPlayers[i].FClientID)
                         else if Data.MessageKind = 1 then
-                          MH_SEND_GameEvent(NET_EV_BIGTEXT, Data.MessageText, gPlayers[i].FClientID);
+                          MH_SEND_GameEvent(NET_EV_BIGTEXT, snd, gPlayers[i].FClientID);
                   end;
                 end;
               end;
 
             3: // red team
               begin
-                if (TEAM_RED = gPlayer1.Team) or (TEAM_RED = gPlayer2.Team) then
+                if (TEAM_RED = gPlayer1.Team) or ((gPlayer2 <> nil) and (TEAM_RED = gPlayer2.Team)) then
                   if Data.MessageKind = 0 then
-                    g_Console_Add(Data.MessageText, True)
+                    g_Console_Add(snd, True)
                   else if Data.MessageKind = 1 then
-                    g_Game_Message(Data.MessageText, 144);
+                    g_Game_Message(snd, 144);
 
                 if g_Game_IsNet then
                 begin
                   for i := Low(gPlayers) to High(gPlayers) do
                     if (gPlayers[i].Team = TEAM_RED) and (gPlayers[i].FClientID >= 0) then
                       if Data.MessageKind = 0 then
-                        MH_SEND_Chat(Data.MessageText, gPlayers[i].FClientID)
+                        MH_SEND_Chat(snd, gPlayers[i].FClientID)
                       else if Data.MessageKind = 1 then
-                        MH_SEND_GameEvent(NET_EV_BIGTEXT, Data.MessageText, gPlayers[i].FClientID);
+                        MH_SEND_GameEvent(NET_EV_BIGTEXT, snd, gPlayers[i].FClientID);
                 end;
               end;
 
@@ -1247,18 +1248,18 @@ begin
               begin
                 if (TEAM_BLUE = gPlayer1.Team) or ((gPlayer2 <> nil) and (TEAM_BLUE = gPlayer2.Team)) then
                   if Data.MessageKind = 0 then
-                    g_Console_Add(Data.MessageText, True)
+                    g_Console_Add(snd, True)
                   else if Data.MessageKind = 1 then
-                    g_Game_Message(Data.MessageText, 144);
+                    g_Game_Message(snd, 144);
 
                 if g_Game_IsNet then
                 begin
                   for i := Low(gPlayers) to High(gPlayers) do
                     if (gPlayers[i].Team = TEAM_BLUE) and (gPlayers[i].FClientID >= 0) then
                       if Data.MessageKind = 0 then
-                        MH_SEND_Chat(Data.MessageText, gPlayers[i].FClientID)
+                        MH_SEND_Chat(snd, gPlayers[i].FClientID)
                       else if Data.MessageKind = 1 then
-                        MH_SEND_GameEvent(NET_EV_BIGTEXT, Data.MessageText, gPlayers[i].FClientID);
+                        MH_SEND_GameEvent(NET_EV_BIGTEXT, snd, gPlayers[i].FClientID);
                 end;
               end;
 
@@ -1271,11 +1272,13 @@ begin
 
                 if g_Game_IsNet then
                 begin
-                  NetNotChat := True;
                   if Data.MessageKind = 0 then
-                    MH_SEND_Chat(Data.MessageText)
+                  begin
+                    NetNotChat := True;
+                    MH_SEND_Chat(snd);
+                  end
                   else if Data.MessageKind = 1 then
-                    MH_SEND_GameEvent(NET_EV_BIGTEXT, Data.MessageText);
+                    MH_SEND_GameEvent(NET_EV_BIGTEXT, snd);
                 end;
               end;
           end;

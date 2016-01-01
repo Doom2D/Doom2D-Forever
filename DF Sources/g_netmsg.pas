@@ -682,7 +682,10 @@ procedure MH_SEND_Chat(Txt: string; ID: Integer = NET_EVERYONE);
 begin
   e_Buffer_Write(@NetOut, Byte(NET_MSG_CHAT));
   e_Buffer_Write(@NetOut, Txt);
-
+  if (ID <> NET_EVERYONE) or NetNotChat then
+    e_Buffer_Write(@NetOut, Byte(1))
+  else
+    e_Buffer_Write(@NetOut, Byte(0));
   g_Net_Host_Send(ID, True, NET_CHAN_CHAT);
 
   if ID <> NET_EVERYONE then
@@ -1268,11 +1271,16 @@ end;
 procedure MC_RECV_Chat(P: Pointer);
 var
   Txt: string;
+  Quiet: Boolean;
 begin
   Txt := e_Raw_Read_String(P);
+  Quiet := e_Raw_Read_Byte(P) <> 0;
   g_Console_Add(Txt, True);
-  e_WriteLog('[Chat] ' + Txt, MSG_NOTIFY);
-  g_Sound_PlayEx('SOUND_GAME_RADIO');
+  if not Quiet then
+  begin
+    e_WriteLog('[Chat] ' + Txt, MSG_NOTIFY);
+    g_Sound_PlayEx('SOUND_GAME_RADIO');
+  end;
 end;
 
 procedure MC_RECV_Effect(P: Pointer);
@@ -1499,17 +1507,22 @@ begin
 
     NET_EV_LMS_LOSE:
       g_Game_Message(_lc[I_MESSAGE_LMS_LOSE], 144);
+
     NET_EV_LMS_WIN:
       g_Game_Message(Format(_lc[I_MESSAGE_LMS_WIN], [AnsiUpperCase(EvParm)]), 144);
+
     NET_EV_LMS_START:
     begin
       g_Player_RemoveAllCorpses;
       g_Game_Message(_lc[I_MESSAGE_LMS_START], 144);
     end;
+
     NET_EV_LMS_DRAW:
       g_Game_Message(_lc[I_GAME_WIN_DRAW], 144);
+
     NET_EV_LMS_SURVIVOR:
       g_Console_Add('*** ' + _lc[I_MESSAGE_LMS_SURVIVOR] + ' ***', True);
+
     NET_EV_TLMS_WIN:
     begin
       if EvParm = 'r' then
@@ -1517,6 +1530,7 @@ begin
       else
         g_Game_Message(Format(_lc[I_MESSAGE_TLMS_WIN], [AnsiUpperCase(_lc[I_GAME_TEAM_BLUE])]), 144);
     end;
+
     NET_EV_SCORE_ADD:
     begin
       if Pos('r', EvParm) > 0 then
@@ -1524,6 +1538,7 @@ begin
       else
         g_Game_Message(Format(_lc[I_MESSAGE_SCORE_ADD], [AnsiUpperCase(_lc[I_GAME_TEAM_BLUE])]), 108);
     end;
+
     NET_EV_SCORE_SUB:
     begin
       if Pos('r', EvParm) > 0 then
@@ -1531,6 +1546,7 @@ begin
       else
         g_Game_Message(Format(_lc[I_MESSAGE_SCORE_SUB], [AnsiUpperCase(_lc[I_GAME_TEAM_BLUE])]), 108);
     end;
+
     NET_EV_BIGTEXT:
       g_Game_Message(AnsiUpperCase(EvParm), 144);
   end;

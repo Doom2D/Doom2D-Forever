@@ -1332,7 +1332,36 @@ begin
                 end;
               end;
 
-            TRIGGER_MESSAGE: ;
+            TRIGGER_MESSAGE:
+              begin
+                case Data.MessageKind of
+                  1: str := _lc[I_PROP_TR_MESSAGE_KIND_1];
+                  else str := _lc[I_PROP_TR_MESSAGE_KIND_0];
+                end;
+                with ItemProps[InsertRow(_lc[I_PROP_TR_MESSAGE_KIND], str, True)-1] do
+                begin
+                  EditStyle := esPickList;
+                  ReadOnly := True;
+                end;
+                case Data.MessageSendTo of
+                  1: str := _lc[I_PROP_TR_MESSAGE_TO_1];
+                  2: str := _lc[I_PROP_TR_MESSAGE_TO_2];
+                  3: str := _lc[I_PROP_TR_MESSAGE_TO_3];
+                  4: str := _lc[I_PROP_TR_MESSAGE_TO_4];
+                  5: str := _lc[I_PROP_TR_MESSAGE_TO_5];
+                  else str := _lc[I_PROP_TR_MESSAGE_TO_0];
+                end;
+                with ItemProps[InsertRow(_lc[I_PROP_TR_MESSAGE_TO], str, True)-1] do
+                begin
+                  EditStyle := esPickList;
+                  ReadOnly := True;
+                end;
+                with ItemProps[InsertRow(_lc[I_PROP_TR_MESSAGE_TEXT], Data.MessageText, True)-1] do
+                begin
+                  EditStyle := esSimple;
+                  MaxLength := 100;
+                end;
+              end;
 
             TRIGGER_DAMAGE:
               begin
@@ -3447,7 +3476,12 @@ begin
                       trigger.Data.ScoreCount := 1;
                     end;
 
-                  TRIGGER_MESSAGE: ;
+                  TRIGGER_MESSAGE:
+                    begin
+                      trigger.Data.MessageKind := 0;
+                      trigger.Data.MessageText := '';
+                      trigger.Data.MessageSendTo := 0;
+                    end;
 
                   TRIGGER_DAMAGE:
                     begin
@@ -3988,6 +4022,20 @@ begin
         Values.Add(_lc[I_PROP_TR_SCORE_TEAM_2]);
         Values.Add(_lc[I_PROP_TR_SCORE_TEAM_3]);
       end
+    else if KeyName = _lc[I_PROP_TR_MESSAGE_KIND] then
+      begin
+        Values.Add(_lc[I_PROP_TR_MESSAGE_KIND_0]);
+        Values.Add(_lc[I_PROP_TR_MESSAGE_KIND_1]);
+      end
+    else if KeyName = _lc[I_PROP_TR_MESSAGE_TO] then
+      begin
+        Values.Add(_lc[I_PROP_TR_MESSAGE_TO_0]);
+        Values.Add(_lc[I_PROP_TR_MESSAGE_TO_1]);
+        Values.Add(_lc[I_PROP_TR_MESSAGE_TO_2]);
+        Values.Add(_lc[I_PROP_TR_MESSAGE_TO_3]);
+        Values.Add(_lc[I_PROP_TR_MESSAGE_TO_4]);
+        Values.Add(_lc[I_PROP_TR_MESSAGE_TO_5]);
+      end
     else if (KeyName = _lc[I_PROP_PANEL_BLEND]) or
             (KeyName = _lc[I_PROP_DM_ONLY]) or
             (KeyName = _lc[I_PROP_ITEM_FALLS]) or
@@ -4344,7 +4392,29 @@ begin
                   Data.ScoreTeam := 3;
               end;
 
-            TRIGGER_MESSAGE: ;
+            TRIGGER_MESSAGE:
+              begin
+                Data.MessageKind := 0;
+                if vleObjectProperty.Values[_lc[I_PROP_TR_MESSAGE_KIND]] = _lc[I_PROP_TR_MESSAGE_KIND_1] then
+                  Data.MessageKind := 1;
+
+                Data.MessageSendTo := 0;
+                if vleObjectProperty.Values[_lc[I_PROP_TR_MESSAGE_TO]] = _lc[I_PROP_TR_MESSAGE_TO_1] then
+                  Data.MessageSendTo := 1
+                else if vleObjectProperty.Values[_lc[I_PROP_TR_MESSAGE_TO]] = _lc[I_PROP_TR_MESSAGE_TO_2] then
+                  Data.MessageSendTo := 2
+                else if vleObjectProperty.Values[_lc[I_PROP_TR_MESSAGE_TO]] = _lc[I_PROP_TR_MESSAGE_TO_3] then
+                  Data.MessageSendTo := 3
+                else if vleObjectProperty.Values[_lc[I_PROP_TR_MESSAGE_TO]] = _lc[I_PROP_TR_MESSAGE_TO_4] then
+                  Data.MessageSendTo := 4
+                else if vleObjectProperty.Values[_lc[I_PROP_TR_MESSAGE_TO]] = _lc[I_PROP_TR_MESSAGE_TO_5] then
+                  Data.MessageSendTo := 5;
+
+                s := vleObjectProperty.Values[_lc[I_PROP_TR_MESSAGE_TEXT]];
+                ZeroMemory(@Data.MessageText[0], 100);
+                if s <> '' then
+                  CopyMemory(@Data.MessageText[0], @s[1], Min(Length(s), 100));
+              end;
 
             TRIGGER_DAMAGE:
               begin
