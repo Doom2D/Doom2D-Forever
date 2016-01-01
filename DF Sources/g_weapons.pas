@@ -42,7 +42,7 @@ function g_Weapon_Hit(obj: PObj; d: Integer; SpawnerUID: Word; t: Byte): Byte;
 function g_Weapon_HitUID(UID: Word; d: Integer; SpawnerUID: Word; t: Byte): Boolean;
 function g_Weapon_CreateShot(I: Integer; ShotType: Byte; Spawner, TargetUID: Word; X, Y, XV, YV: Integer): LongWord;
 
-procedure g_Weapon_gun(x, y, xd, yd, v: Integer; SpawnerUID: Word; CheckTrigger: Boolean);
+procedure g_Weapon_gun(x, y, xd, yd, v, dmg: Integer; SpawnerUID: Word; CheckTrigger: Boolean);
 procedure g_Weapon_punch(x, y: Integer; d, SpawnerUID: Word);
 function g_Weapon_chainsaw(x, y: Integer; d, SpawnerUID: Word): Integer;
 procedure g_Weapon_rocket(x, y, xd, yd: Integer; SpawnerUID: Word; WID: Integer = -1);
@@ -344,7 +344,8 @@ begin
   Result := True;
 end;
 
-function GunHit(X, Y: Integer; vx, vy: Integer; SpawnerUID: Word; AllowPush: Boolean): Byte;
+function GunHit(X, Y: Integer; vx, vy: Integer; dmg: Integer;
+  SpawnerUID: Word; AllowPush: Boolean): Byte;
 var
   i, h: Integer;
 begin
@@ -355,7 +356,7 @@ begin
   if h <> -1 then
     for i := 0 to h do
       if (gPlayers[i] <> nil) and gPlayers[i].Live and gPlayers[i].Collide(X, Y) then
-        if HitPlayer(gPlayers[i], 3, vx*10, vy*10-3, SpawnerUID, HIT_SOME) then
+        if HitPlayer(gPlayers[i], dmg, vx*10, vy*10-3, SpawnerUID, HIT_SOME) then
         begin
           if AllowPush then gPlayers[i].Push(vx, vy);
           Result := 1;
@@ -368,7 +369,7 @@ begin
   if h <> -1 then
     for i := 0 to h do
       if (gMonsters[i] <> nil) and gMonsters[i].Live and gMonsters[i].Collide(X, Y) then
-        if HitMonster(gMonsters[i], 3, vx*10, vy*10-3, SpawnerUID, HIT_SOME) then
+        if HitMonster(gMonsters[i], dmg, vx*10, vy*10-3, SpawnerUID, HIT_SOME) then
         begin
           if AllowPush then gMonsters[i].Push(vx, vy);
           Result := 2;
@@ -903,7 +904,7 @@ begin
   g_Frames_DeleteByName('FRAMES_EXPLODE_BARONFIRE');
 end;
 
-procedure g_Weapon_gun(x, y, xd, yd, v: Integer; SpawnerUID: Word; CheckTrigger: Boolean);
+procedure g_Weapon_gun(x, y, xd, yd, v, dmg: Integer; SpawnerUID: Word; CheckTrigger: Boolean);
 var
   a: Integer;
   x2, y2: Integer;
@@ -985,7 +986,7 @@ begin
       end;
 
     if not _collide then
-      _collide := GunHit(xx, yy, xi*v, yi*v, SpawnerUID, v <> 0) <> 0;
+      _collide := GunHit(xx, yy, xi*v, yi*v, dmg, SpawnerUID, v <> 0) <> 0;
 
     if _collide then
       Break;
@@ -1375,24 +1376,24 @@ end;
 procedure g_Weapon_pistol(x, y, xd, yd: Integer; SpawnerUID: Word);
 begin
   g_Sound_PlayExAt('SOUND_WEAPON_FIREPISTOL', x, y);
-  g_Weapon_gun(x, y, xd, yd, 1, SpawnerUID, True);
+  g_Weapon_gun(x, y, xd, yd, 1, 3, SpawnerUID, True);
   if gGameSettings.GameMode in [GM_DM, GM_TDM, GM_CTF] then
   begin
-    g_Weapon_gun(x, y+1, xd, yd+1, 1, SpawnerUID, False);
-    g_Weapon_gun(x, y-1, xd, yd-1, 1, SpawnerUID, False);
+    g_Weapon_gun(x, y+1, xd, yd+1, 1, 3, SpawnerUID, False);
+    g_Weapon_gun(x, y-1, xd, yd-1, 1, 2, SpawnerUID, False);
   end;
 end;
 
 procedure g_Weapon_mgun(x, y, xd, yd: Integer; SpawnerUID: Word);
 begin
   g_Sound_PlayExAt('SOUND_WEAPON_FIRECGUN', x, y);
-  g_Weapon_gun(x, y, xd, yd, 1, SpawnerUID, True);
+  g_Weapon_gun(x, y, xd, yd, 1, 3, SpawnerUID, True);
 
   if (gGameSettings.GameMode in [GM_DM, GM_TDM, GM_CTF]) and
      (g_GetUIDType(SpawnerUID) = UID_PLAYER) then
   begin
-    g_Weapon_gun(x, y+1, xd, yd+1, 1, SpawnerUID, False);
-    g_Weapon_gun(x, y-1, xd, yd-1, 1, SpawnerUID, False);
+    g_Weapon_gun(x, y+1, xd, yd+1, 1, 2, SpawnerUID, False);
+    g_Weapon_gun(x, y-1, xd, yd-1, 1, 2, SpawnerUID, False);
   end;
 end;
 
@@ -1404,7 +1405,7 @@ begin
   for i := 0 to 9 do
   begin
     j := Random(17)-8; // -8 .. 8
-    g_Weapon_gun(x, y+j, xd, yd+j, IfThen(i mod 2 <> 0, 1, 0), SpawnerUID, i=0);
+    g_Weapon_gun(x, y+j, xd, yd+j, IfThen(i mod 2 <> 0, 1, 0), 3, SpawnerUID, i=0);
   end;
 end;
 
@@ -1418,7 +1419,7 @@ begin
   for i := 0 to a do
   begin
     j := Random(41)-20; // -20 .. 20
-    g_Weapon_gun(x, y+j, xd, yd+j, IfThen(i mod 3 <> 0, 0, 1), SpawnerUID, i=0);
+    g_Weapon_gun(x, y+j, xd, yd+j, IfThen(i mod 3 <> 0, 0, 1), 3, SpawnerUID, i=0);
   end;
 end;
 
