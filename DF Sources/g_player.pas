@@ -4744,6 +4744,7 @@ procedure TPlayer.SaveState(var Mem: TBinMemoryWriter);
 var
   i: Integer;
   sig: DWORD;
+  str: String;
   b: Byte;
 begin
   if FIamBot then
@@ -4858,6 +4859,16 @@ begin
 // Время до повторного респауна, смены оружия, исользования:
   for i := T_RESPAWN to T_USE do
     Mem.WriteDWORD(FTime[i]);
+// Название модели:
+  str := FModel.Name;
+  Mem.WriteString(str);
+// Цвет модели:
+  b := FModel.Color.R;
+  Mem.WriteByte(b);
+  b := FModel.Color.G;
+  Mem.WriteByte(b);
+  b := FModel.Color.B;
+  Mem.WriteByte(b);
 end;
 
 procedure TPlayer.LoadState(var Mem: TBinMemoryReader);
@@ -4866,6 +4877,7 @@ var
   sig: DWORD;
   str: String;
   b: Byte;
+  col: TRGB;
 begin
   if Mem = nil then
     Exit;
@@ -4970,6 +4982,18 @@ begin
 // Время до повторного респауна, смены оружия, исользования:
   for i := T_RESPAWN to T_USE do
     Mem.ReadDWORD(FTime[i]);
+// Название модели:
+  Mem.ReadString(str);
+// Цвет модели:
+  Mem.ReadByte(col.R);
+  Mem.ReadByte(col.G);
+  Mem.ReadByte(col.B);
+// Обновляем модель игрока (только для ботов):
+  if (FPlayerNum <> 1) and (FPlayerNum <> 2) then
+  begin
+    SetModel(str);
+    FModel.Color := col;
+  end;
 end;
 
 procedure TPlayer.AllRulez(Health: Boolean);
