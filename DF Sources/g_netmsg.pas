@@ -72,6 +72,7 @@ const
   NET_EV_LMS_SURVIVOR = 8;
   NET_EV_SCORE_ADD    = 9;
   NET_EV_SCORE_SUB    = 10;
+  NET_EV_BIGTEXT      = 11;
 
   NET_VE_STARTED      = 1;
   NET_VE_PASSED       = 2;
@@ -678,8 +679,6 @@ begin
 end;
 
 procedure MH_SEND_Chat(Txt: string; ID: Integer = NET_EVERYONE);
-var
-  P: TPlayer;
 begin
   e_Buffer_Write(@NetOut, Byte(NET_MSG_CHAT));
   e_Buffer_Write(@NetOut, Txt);
@@ -687,15 +686,11 @@ begin
   g_Net_Host_Send(ID, True, NET_CHAN_CHAT);
 
   if ID <> NET_EVERYONE then
+    Exit;
+
+  if NetNotChat then
   begin
-    if (ID >= Low(NetClients)) and (ID <= High(NetClients))
-       and NetClients[ID].Used and (NetClients[ID].Player <> 0) then
-    begin
-      P := g_Player_Get(NetClients[ID].Player);
-      if P = nil then Exit;
-      g_Console_Add('-> ' + P.Name + ': ' + Txt, True);
-      e_WriteLog('[-> ' + P.Name + '] ' + Txt, MSG_NOTIFY);
-    end;
+    NetNotChat := False;
     Exit;
   end;
 
@@ -811,7 +806,7 @@ begin
   end else
     e_Buffer_Write(@NetOut, Byte(0));
 
-  g_Net_Host_Send(ID, True, NET_CHAN_SERVICE); // this is for map change as of now
+  g_Net_Host_Send(ID, True, NET_CHAN_SERVICE);
 end;
 
 procedure MH_SEND_FlagEvent(Evtype: Byte; Flag: Byte; PID: Word; Quiet: Boolean = False; ID: Integer = NET_EVERYONE);
@@ -1536,6 +1531,8 @@ begin
       else
         g_Game_Message(Format(_lc[I_MESSAGE_SCORE_SUB], [AnsiUpperCase(_lc[I_GAME_TEAM_BLUE])]), 108);
     end;
+    NET_EV_BIGTEXT:
+      g_Game_Message(AnsiUpperCase(EvParm), 144);
   end;
 end;
 

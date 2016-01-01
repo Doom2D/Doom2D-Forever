@@ -252,9 +252,7 @@ Type
                              ScoreTeam: Byte);
       TRIGGER_MESSAGE:      (MessageKind: Byte;
                              MessageSendTo: Byte;
-                             MessageName: Char64;
-                             MessageList: Boolean;
-                             MessageIndex: Integer);
+                             MessageText: Char100);
       TRIGGER_DAMAGE:       (DamageValue: Word;
                              DamageInterval: Word);
       TRIGGER_HEALTH:       (HealValue: Word;

@@ -62,7 +62,7 @@ uses
   g_player, g_map, Math, g_gfx, g_game, g_textures,
   g_console, g_monsters, g_items, g_phys, g_weapons,
   WADEDITOR, g_main, SysUtils, e_log, g_language,
-  g_options, g_netmsg;
+  g_options, g_net, g_netmsg;
 
 const
   TRIGGER_SIGNATURE = $52475254; // 'TRGR'
@@ -388,7 +388,6 @@ begin
         end;
   end;
 end;
-
 
 function ActivateTrigger(var Trigger: TTrigger; actType: Byte): Boolean;
 var
@@ -1153,7 +1152,135 @@ begin
           end;
         end;
 
-      TRIGGER_MESSAGE: ;
+      TRIGGER_MESSAGE:
+        begin
+          case Data.MessageSendTo of
+            0: // activator
+              begin
+                if g_GetUIDType(ActivateUID) = UID_PLAYER then
+                begin
+                  if (ActivateUID = gPlayer1.UID) or (ActivateUID = gPlayer2.UID) then
+                  begin
+                    if Data.MessageKind = 0 then
+                      g_Console_Add(Data.MessageText, True)
+                    else if Data.MessageKind = 1 then
+                      g_Game_Message(Data.MessageText, 144);
+                  end
+                  else
+                  begin
+                    p := g_Player_Get(ActivateUID);
+                    if g_Game_IsNet and (p.FClientID >= 0) then
+                      if Data.MessageKind = 0 then
+                        MH_SEND_Chat(Data.MessageText, p.FClientID)
+                      else if Data.MessageKind = 1 then
+                        MH_SEND_GameEvent(NET_EV_BIGTEXT, Data.MessageText, p.FClientID);
+                  end;
+                end;
+              end;
+
+            1: // activator's team
+              begin
+                if g_GetUIDType(ActivateUID) = UID_PLAYER then
+                begin
+                  p := g_Player_Get(ActivateUID);
+                  if (p.Team = gPlayer1.Team) or (p.Team = gPlayer2.Team) then
+                    if Data.MessageKind = 0 then
+                      g_Console_Add(Data.MessageText, True)
+                    else if Data.MessageKind = 1 then
+                      g_Game_Message(Data.MessageText, 144);
+
+                  if g_Game_IsNet then
+                  begin
+                    for i := Low(gPlayers) to High(gPlayers) do
+                      if (gPlayers[i].Team = p.Team) and (gPlayers[i].FClientID >= 0) then
+                        if Data.MessageKind = 0 then
+                          MH_SEND_Chat(Data.MessageText, gPlayers[i].FClientID)
+                        else if Data.MessageKind = 1 then
+                          MH_SEND_GameEvent(NET_EV_BIGTEXT, Data.MessageText, gPlayers[i].FClientID);
+                  end;
+                end;
+              end;
+
+            2: // activator's enemy team
+              begin
+                if g_GetUIDType(ActivateUID) = UID_PLAYER then
+                begin
+                  p := g_Player_Get(ActivateUID);
+                  if (p.Team <> gPlayer1.Team) or (p.Team <> gPlayer2.Team) then
+                    if Data.MessageKind = 0 then
+                      g_Console_Add(Data.MessageText, True)
+                    else if Data.MessageKind = 1 then
+                      g_Game_Message(Data.MessageText, 144);
+
+                  if g_Game_IsNet then
+                  begin
+                    for i := Low(gPlayers) to High(gPlayers) do
+                      if (gPlayers[i].Team <> p.Team) and (gPlayers[i].FClientID >= 0) then
+                        if Data.MessageKind = 0 then
+                          MH_SEND_Chat(Data.MessageText, gPlayers[i].FClientID)
+                        else if Data.MessageKind = 1 then
+                          MH_SEND_GameEvent(NET_EV_BIGTEXT, Data.MessageText, gPlayers[i].FClientID);
+                  end;
+                end;
+              end;
+
+            3: // red team
+              begin
+                if (TEAM_RED = gPlayer1.Team) or (TEAM_RED = gPlayer2.Team) then
+                  if Data.MessageKind = 0 then
+                    g_Console_Add(Data.MessageText, True)
+                  else if Data.MessageKind = 1 then
+                    g_Game_Message(Data.MessageText, 144);
+
+                if g_Game_IsNet then
+                begin
+                  for i := Low(gPlayers) to High(gPlayers) do
+                    if (gPlayers[i].Team = TEAM_RED) and (gPlayers[i].FClientID >= 0) then
+                      if Data.MessageKind = 0 then
+                        MH_SEND_Chat(Data.MessageText, gPlayers[i].FClientID)
+                      else if Data.MessageKind = 1 then
+                        MH_SEND_GameEvent(NET_EV_BIGTEXT, Data.MessageText, gPlayers[i].FClientID);
+                end;
+              end;
+
+            4: // blue team
+              begin
+                if (TEAM_BLUE = gPlayer1.Team) or ((gPlayer2 <> nil) and (TEAM_BLUE = gPlayer2.Team)) then
+                  if Data.MessageKind = 0 then
+                    g_Console_Add(Data.MessageText, True)
+                  else if Data.MessageKind = 1 then
+                    g_Game_Message(Data.MessageText, 144);
+
+                if g_Game_IsNet then
+                begin
+                  for i := Low(gPlayers) to High(gPlayers) do
+                    if (gPlayers[i].Team = TEAM_BLUE) and (gPlayers[i].FClientID >= 0) then
+                      if Data.MessageKind = 0 then
+                        MH_SEND_Chat(Data.MessageText, gPlayers[i].FClientID)
+                      else if Data.MessageKind = 1 then
+                        MH_SEND_GameEvent(NET_EV_BIGTEXT, Data.MessageText, gPlayers[i].FClientID);
+                end;
+              end;
+
+            5: // everyone
+              begin
+                if Data.MessageKind = 0 then
+                  g_Console_Add(Data.MessageText, True)
+                else if Data.MessageKind = 1 then
+                  g_Game_Message(Data.MessageText, 144);
+
+                if g_Game_IsNet then
+                begin
+                  NetNotChat := True;
+                  if Data.MessageKind = 0 then
+                    MH_SEND_Chat(Data.MessageText)
+                  else if Data.MessageKind = 1 then
+                    MH_SEND_GameEvent(NET_EV_BIGTEXT, Data.MessageText);
+                end;
+              end;
+          end;
+          TimeOut := 18;
+        end;
 
       TRIGGER_DAMAGE, TRIGGER_HEALTH:
         begin

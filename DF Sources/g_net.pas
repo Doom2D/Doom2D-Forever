@@ -109,6 +109,7 @@ var
   NetPredictSelf:       Boolean = True;
 
   NetGotEverything: Boolean = False;
+  NetNotChat: Boolean = False;
 
 function  g_Net_Init(): Boolean;
 procedure g_Net_Cleanup();
