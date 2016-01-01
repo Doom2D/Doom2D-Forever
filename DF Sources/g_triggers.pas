@@ -426,6 +426,7 @@ begin
         begin
           g_Sound_PlayEx('SOUND_GAME_SWITCH0');
           if g_Game_IsNet then MH_SEND_Sound(X, Y, 'SOUND_GAME_SWITCH0');
+          gExitByTrigger := True;
           g_Game_ExitLevel(Data.MapName);
           TimeOut := 18;
           Result := True;

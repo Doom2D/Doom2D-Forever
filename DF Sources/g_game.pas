@@ -202,6 +202,7 @@ var
   gCoopTotalSecrets: Word = 0;
   gStatsOff: Boolean = False;
   gStatsPressed: Boolean = False;
+  gExitByTrigger: Boolean = False;
   gNextMap: String = '';
   gLMSRespawn: Boolean = False;
   gLMSRespawnTime: Cardinal = 0;
@@ -944,6 +945,7 @@ begin
   gGameSettings.GameType := GT_NONE;
 
   gChatShow := False;
+  gExitByTrigger := False;
 end;
 
 procedure g_Game_Update();
@@ -3006,6 +3008,7 @@ end;
 procedure g_Game_ChangeMap(MapPath: String);
 var
   NewWAD, ResName: String;
+  Force: Boolean;
 begin
   g_Game_ClearLoading();
 
@@ -3020,7 +3023,14 @@ begin
   if g_Game_IsNet and g_Game_IsServer then
     MH_SEND_GameEvent(NET_EV_MAPSTART, MapPath);
 
-  if not g_Game_StartMap(ResName, (gGameSettings.GameMode in [GM_DM, GM_TDM, GM_CTF])) then
+  Force := gGameSettings.GameMode in [GM_DM, GM_TDM, GM_CTF];
+  // Если уровень завершился по триггеру Выход, не очищать инвентарь
+  if gExitByTrigger then
+  begin
+    Force := False;
+    gExitByTrigger := False;
+  end;
+  if not g_Game_StartMap(ResName, Force) then
     g_FatalError(Format(_lc[I_GAME_ERROR_MAP_LOAD],
                         [ExtractFileName(gGameSettings.WAD) + ':\' + ResName]));
 end;
@@ -3168,7 +3178,9 @@ begin
   else // Вышли в выход в Своей игре
   begin
     gExit := EXIT_ENDLEVELCUSTOM;
-    if gGameSettings.GameMode = GM_COOP then g_Player_RememberAll;
+    if gGameSettings.GameMode = GM_COOP then
+      g_Player_RememberAll;
+
     if not g_Map_Exist(gGameSettings.WAD + ':\' + gNextMap) then
     begin
       gLastMap := True;
@@ -3294,7 +3306,7 @@ begin
     gPlayers[i].FNoRespawn := False;
     gPlayers[i].Lives := gGameSettings.MaxLives;
     gPlayers[i].Respawn(False, True);
-    if (gGameSettings.GameMode = GM_COOP) then
+    if gGameSettings.GameMode = GM_COOP then
     begin
       gPlayers[i].Frags := 0;
       gPlayers[i].RecallState;
@@ -4216,8 +4228,8 @@ begin
             // Первый параметр - либо карта, либо имя WAD файла
             s := UpperCase(P[1]);
             if g_Map_Exist(gGameSettings.WAD + ':\' + s) then
-            begin
-              // Карта нашлась
+            begin // Карта нашлась
+              gExitByTrigger := False;
               if gGameOn then
               begin // Идёт игра - завершаем уровень
                 gNextMap := s;
@@ -4242,6 +4254,7 @@ begin
 
                 if g_Map_Exist(MapsDir + s) then
                 begin
+                  gExitByTrigger := False;
                   if gGameOn then
                   begin // Идёт игра - завершаем уровень
                     gNextMap := s;
@@ -4270,8 +4283,8 @@ begin
               s := P[1] + ':\' + P[2];
 
               if g_Map_Exist(MapsDir + s) then
-              begin
-                // Нашли карту
+              begin // Нашли карту
+                gExitByTrigger := False;
                 if gGameOn then
                 begin // Идёт игра - завершаем уровень
                   gNextMap := s;
@@ -4313,8 +4326,9 @@ begin
             // Первый параметр - либо карта, либо имя WAD файла
             s := UpperCase(P[1]);
             if g_Map_Exist(gGameSettings.WAD + ':\' + s) then
-            begin
-              gNextMap := s; // Карта нашлась
+            begin // Карта нашлась
+              gExitByTrigger := False;
+              gNextMap := s;
               nm := True;
             end else
             begin
@@ -4332,8 +4346,9 @@ begin
                 s := P[1] + ':\' + P[2];
 
                 if g_Map_Exist(MapsDir + s) then
-                begin
-                  gNextMap := s; // Устанавливаем карту
+                begin // Устанавливаем карту
+                  gExitByTrigger := False;
+                  gNextMap := s;
                   nm := True;
                 end else
                   if P[2] = '' then
@@ -4356,8 +4371,9 @@ begin
               s := P[1] + ':\' + P[2];
 
               if g_Map_Exist(MapsDir + s) then
-              begin
-                gNextMap := s; // Нашли карту
+              begin // Нашли карту
+                gExitByTrigger := False;
+                gNextMap := s;
                 nm := True;
               end else
                 g_Console_Add(Format(_lc[I_MSG_NO_MAP], [P[2]]));
@@ -4381,11 +4397,13 @@ begin
     else
       if g_Game_IsServer and (gGameSettings.GameType <> GT_SINGLE) then
       begin
+        gExitByTrigger := False;
         // Следующая карта не задана, пробуем найти триггер Выход
         if (gNextMap = '') and (gTriggers <> nil) then
           for a := 0 to High(gTriggers) do
             if gTriggers[a].TriggerType = TRIGGER_EXIT then
             begin
+              gExitByTrigger := True;
               gNextMap := gTriggers[a].Data.MapName;
               Break;
             end;

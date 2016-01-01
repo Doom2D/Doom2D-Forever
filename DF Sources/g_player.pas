@@ -2137,21 +2137,21 @@ procedure TPlayer.DrawPain();
 var
   a, h: Integer;
 begin
- if FPain = 0 then Exit;
+  if FPain = 0 then Exit;
 
- a := FPain;
+  a := FPain;
 
- if a < 15 then h := 0
- else if a < 35 then h := 1
- else if a < 55 then h := 2
- else if a < 75 then h := 3
- else if a < 95 then h := 4
- else h := 5;
+  if a < 15 then h := 0
+  else if a < 35 then h := 1
+  else if a < 55 then h := 2
+  else if a < 75 then h := 3
+  else if a < 95 then h := 4
+  else h := 5;
 
- //if a > 255 then a := 255;
+  //if a > 255 then a := 255;
 
- e_DrawFillQuad(0, 0, gPlayerScreenSize.X-1, gPlayerScreenSize.Y-1, 255, 0, 0, 255-h*50);
- //e_DrawFillQuad(0, 0, gPlayerScreenSize.X-1, gPlayerScreenSize.Y-1, 255-min(128, a), 255-a, 255-a, 0, B_FILTER);
+  e_DrawFillQuad(0, 0, gPlayerScreenSize.X-1, gPlayerScreenSize.Y-1, 255, 0, 0, 255-h*50);
+  //e_DrawFillQuad(0, 0, gPlayerScreenSize.X-1, gPlayerScreenSize.Y-1, 255-min(128, a), 255-a, 255-a, 0, B_FILTER);
 end;
 
 procedure TPlayer.Fire();

@@ -202,6 +202,7 @@ begin
       for a := 0 to High(gTriggers) do
         if gTriggers[a].TriggerType = TRIGGER_EXIT then
         begin
+          gExitByTrigger := True;
           g_Game_ExitLevel(gTriggers[a].Data.MapName);
           Break;
         end;
