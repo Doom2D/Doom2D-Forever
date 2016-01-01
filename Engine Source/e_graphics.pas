@@ -667,8 +667,33 @@ begin
   glColor4ub(e_Colors.R, e_Colors.G, e_Colors.B, 255);
 end;
 
-procedure e_DrawQuad(X1, Y1, X2, Y2: Integer; Red, Green, Blue: Byte; Alpha: Byte = 0);
+procedure e_LineCorrection(var X1, Y1, X2, Y2: Integer);
 begin
+  // Make lines only top-left/bottom-right and top-right/bottom-left
+  if Y2 < Y1 then
+  begin
+    X1 := X1 xor X2;
+    X2 := X1 xor X2;
+    X1 := X1 xor X2;
+
+    Y1 := Y1 xor Y2;
+    Y2 := Y1 xor Y2;
+    Y1 := Y1 xor Y2;
+  end;
+
+  // Pixel-perfect hack
+  if X1 < X2 then
+    Inc(X2)
+  else
+    Inc(X1);
+  Inc(Y2);
+end;
+
+procedure e_DrawQuad(X1, Y1, X2, Y2: Integer; Red, Green, Blue: Byte; Alpha: Byte = 0);
+var
+  nX1, nY1, nX2, nY2: Integer;
+begin
+  // Only top-left/bottom-right quad
   if X1 > X2 then
   begin
     X1 := X1 xor X2;
@@ -694,17 +719,29 @@ begin
   glLineWidth(1);
 
   glBegin(GL_LINES);
-    glVertex2f(X1+0.5, Y1+0.5);
-    glVertex2f(X2+0.5, Y1+0.5);
+    nX1 := X1; nY1 := Y1;
+    nX2 := X2; nY2 := Y1;
+    e_LineCorrection(nX1, nY1, nX2, nY2); // Pixel-perfect lines
+    glVertex2i(nX1, nY1);
+    glVertex2i(nX2, nY2);
 
-    glVertex2f(X2+0.5, Y1+0.5);
-    glVertex2f(X2+0.5, Y2+0.6);
+    nX1 := X2; nY1 := Y1;
+    nX2 := X2; nY2 := Y2;
+    e_LineCorrection(nX1, nY1, nX2, nY2);
+    glVertex2i(nX1, nY1);
+    glVertex2i(nX2, nY2);
 
-    glVertex2f(X2+0.5, Y2+0.5);
-    glVertex2f(X1+0.5, Y2+0.5);
+    nX1 := X2; nY1 := Y2;
+    nX2 := X1; nY2 := Y2;
+    e_LineCorrection(nX1, nY1, nX2, nY2);
+    glVertex2i(nX1, nY1);
+    glVertex2i(nX2, nY2);
 
-    glVertex2f(X1+0.5, Y2+0.5);
-    glVertex2f(X1+0.5, Y1+0.5);
+    nX1 := X1; nY1 := Y2;
+    nX2 := X1; nY2 := Y1;
+    e_LineCorrection(nX1, nY1, nX2, nY2);
+    glVertex2i(nX1, nY1);
+    glVertex2i(nX2, nY2);
   glEnd();
 
   glColor4ub(e_Colors.R, e_Colors.G, e_Colors.B, 255);
@@ -752,6 +789,10 @@ end;
 
 procedure e_DrawLine(Width: Byte; X1, Y1, X2, Y2: Integer; Red, Green, Blue: Byte; Alpha: Byte = 0);
 begin
+  // Pixel-perfect lines
+  if Width = 1 then
+    e_LineCorrection(X1, Y1, X2, Y2);
+
   if Alpha > 0 then
   begin
     glEnable(GL_BLEND);
