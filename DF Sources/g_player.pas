@@ -1789,21 +1789,13 @@ begin
   end;
 
   // Outer borders
-  e_DrawQuad(bubX + 3, bubY    , bubX + 15, bubY + 13, Rb, Gb, Bb);
-  e_DrawQuad(bubX    , bubY + 3, bubX + 18, bubY + 10, Rb, Gb, Bb);
+  e_DrawQuad(bubX + 1, bubY    , bubX + 18, bubY + 13, Rb, Gb, Bb);
+  e_DrawQuad(bubX    , bubY + 1, bubX + 19, bubY + 12, Rb, Gb, Bb);
   // Inner box
-  e_DrawFillQuad(bubX + 2, bubY + 2, bubX + 16, bubY + 11, Rw, Gw, Bw, 0);
-  e_DrawQuad(bubX + 3, bubY + 1, bubX + 15, bubY + 12, Rw, Gw, Bw);
-  e_DrawQuad(bubX + 1, bubY + 3, bubX + 17, bubY + 10, Rw, Gw, Bw);
-
-  // Diagonal borders
-  e_DrawLine(1, bubX + 2 , bubY + 1 , bubX + 1 , bubY + 2 , Rb, Gb, Bb);
-  e_DrawLine(1, bubX + 16, bubY + 1 , bubX + 17, bubY + 2 , Rb, Gb, Bb);
-  e_DrawLine(1, bubX + 1 , bubY + 11, bubX + 2 , bubY + 12, Rb, Gb, Bb);
-  e_DrawLine(1, bubX + 17, bubY + 11, bubX + 16, bubY + 12, Rb, Gb, Bb);
+  e_DrawFillQuad(bubX + 1, bubY + 1, bubX + 18, bubY + 12, Rw, Gw, Bw, 0);
 
   // Tail
-  Dot := IfThen(FDirection = D_LEFT, 13, 5);
+  Dot := IfThen(FDirection = D_LEFT, 14, 5);
   e_DrawLine(1, bubX + Dot, bubY + 14, bubX + Dot, bubY + 16, Rb, Gb, Bb);
   e_DrawLine(1, bubX + IfThen(FDirection = D_LEFT, Dot - 1, Dot + 1), bubY + 13, bubX + IfThen(FDirection = D_LEFT, Dot - 1, Dot + 1), bubY + 15, Rw, Gw, Bw);
   e_DrawLine(1, bubX + IfThen(FDirection = D_LEFT, Dot - 2, Dot + 2), bubY + 13, bubX + IfThen(FDirection = D_LEFT, Dot - 2, Dot + 2), bubY + 14, Rw, Gw, Bw);
@@ -1811,10 +1803,10 @@ begin
   e_DrawLine(1, bubX + IfThen(FDirection = D_LEFT, Dot - 3, Dot + 3), bubY + 14, bubX + IfThen(FDirection = D_LEFT, Dot - 1, Dot + 1), bubY + 16, Rb, Gb, Bb);
 
   // Dots
-  Dot := IfThen(FDirection = D_LEFT, 5, 6);
-  e_DrawFillQuad(bubX + Dot,     bubY + 7, bubX + Dot + 1, bubY + 8, Rb, Gb, Bb, 0);
-  e_DrawFillQuad(bubX + Dot + 3, bubY + 7, bubX + Dot + 4, bubY + 8, Rb, Gb, Bb, 0);
-  e_DrawFillQuad(bubX + Dot + 6, bubY + 7, bubX + Dot + 7, bubY + 8, Rb, Gb, Bb, 0);
+  Dot := 6;
+  e_DrawFillQuad(bubX + Dot,     bubY + 8, bubX + Dot + 1, bubY + 9, Rb, Gb, Bb, 0);
+  e_DrawFillQuad(bubX + Dot + 3, bubY + 8, bubX + Dot + 4, bubY + 9, Rb, Gb, Bb, 0);
+  e_DrawFillQuad(bubX + Dot + 6, bubY + 8, bubX + Dot + 7, bubY + 9, Rb, Gb, Bb, 0);
 end;
 
 procedure TPlayer.Draw();
