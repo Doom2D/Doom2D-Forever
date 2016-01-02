@@ -54,7 +54,7 @@ implementation
 
 uses
   SysUtils, e_fixedbuffer, e_input, e_graphics, e_log, g_window, g_net, g_console,
-  g_map, g_game, g_textures, g_gui, g_menu, g_options, g_language, WADEDITOR;
+  g_map, g_game, g_sound, g_textures, g_gui, g_menu, g_options, g_language, WADEDITOR;
 
 var
   NetMEvent:      ENetEvent;
@@ -383,7 +383,10 @@ begin
   begin
     SL := nil;
     gState := STATE_MENU;
+    g_GUI_ShowWindow('MainMenu');
+    g_GUI_ShowWindow('NetGameMenu');
     g_GUI_ShowWindow('NetClientMenu');
+    g_Sound_PlayEx(WINDOW_CLOSESOUND);
     Exit;
   end;
 

@@ -362,7 +362,7 @@ begin
               then // Войти во внутриигровое меню
                 g_Game_InGameMenu(True)
               else
-                if (gExit = 0) then
+                if (gExit = 0) and (gState <> STATE_SLIST) then
                   begin // Войти в главное меню
                     if gState <> STATE_MENU then
                       if NetMode <> NET_NONE then
