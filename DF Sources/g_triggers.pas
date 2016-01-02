@@ -1386,8 +1386,6 @@ begin
           yd := wy + Round(Sin(pAngle) * 32.0);
           TargetUID := 0;
 
-          g_Console_Add(IntToStr(data.ShotTarget));
-
           case Data.ShotTarget of
             1: // monsters
               if gMonsters <> nil then
@@ -1404,7 +1402,7 @@ begin
             2: // players
               if gPlayers <> nil then
                 for i := Low(gPlayers) to High(gPlayers) do
-                  if (gMonsters[i] <> nil) and gPlayers[i].Live and
+                  if (gPlayers[i] <> nil) and gPlayers[i].Live and
                      g_Obj_Collide(X, Y, Width, Height, @(gPlayers[i].Obj))then
                   begin
                     xd := gPlayers[i].GameX;
