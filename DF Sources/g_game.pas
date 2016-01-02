@@ -558,10 +558,24 @@ begin
           end
         else
           begin // Выход в главное меню
-            g_GUI_ShowWindow('MainMenu');
             gMusic.SetByName('MUSIC_MENU');
             gMusic.Play();
-            gState := STATE_MENU;
+            if gState <> STATE_SLIST then
+            begin
+              g_GUI_ShowWindow('MainMenu');
+              gState := STATE_MENU;
+            end else
+            begin
+              // Обновляем список серверов
+              slReturnPressed := True;
+              if g_Net_Slist_Fetch(slCurrent) then
+              begin
+                if slCurrent = nil then
+                  slWaitStr := _lc[I_NET_SLIST_NOSERVERS];
+              end
+              else
+                slWaitStr := _lc[I_NET_SLIST_ERROR];
+            end;
 
             ExecuteGameEvent('ongameend');
           end;
