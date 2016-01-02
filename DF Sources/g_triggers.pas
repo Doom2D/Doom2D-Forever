@@ -1390,46 +1390,54 @@ begin
 
           case Data.ShotTarget of
             1: // monsters
-              for i := Low(gMonsters) to High(gMonsters) do
-                if gMonsters[i].Live and g_Obj_Collide(X, Y, Width, Height, @gMonsters[i].Obj) then
-                begin
-                  xd := gMonsters[i].GameX;
-                  yd := gMonsters[i].GameY;
-                  TargetUID := gMonsters[i].UID;
-                  break;
-                end;
+              if gMonsters <> nil then
+                for i := Low(gMonsters) to High(gMonsters) do
+                  if (gMonsters[i] <> nil) and gMonsters[i].Live and
+                     g_Obj_Collide(X, Y, Width, Height, @(gMonsters[i].Obj)) then
+                  begin
+                    xd := gMonsters[i].GameX;
+                    yd := gMonsters[i].GameY;
+                    TargetUID := gMonsters[i].UID;
+                    break;
+                  end;
 
             2: // players
-              for i := Low(gPlayers) to High(gPlayers) do
-                if gPlayers[i].Live and g_Obj_Collide(X, Y, Width, Height, @gPlayers[i].Obj) then
-                begin
-                  xd := gPlayers[i].GameX;
-                  yd := gPlayers[i].GameY;
-                  TargetUID := gPlayers[i].UID;
-                  break;
-                end;
+              if gPlayers <> nil then
+                for i := Low(gPlayers) to High(gPlayers) do
+                  if (gMonsters[i] <> nil) and gPlayers[i].Live and
+                     g_Obj_Collide(X, Y, Width, Height, @(gPlayers[i].Obj))then
+                  begin
+                    xd := gPlayers[i].GameX;
+                    yd := gPlayers[i].GameY;
+                    TargetUID := gPlayers[i].UID;
+                    break;
+                  end;
 
             3: // red team
-              for i := Low(gPlayers) to High(gPlayers) do
-                if gPlayers[i].Live and g_Obj_Collide(X, Y, Width, Height, @gPlayers[i].Obj) and
-                   (gPlayers[i].Team = TEAM_RED) then
-                begin
-                  xd := gPlayers[i].GameX;
-                  yd := gPlayers[i].GameY;
-                  TargetUID := gPlayers[i].UID;
-                  break;
-                end;
+              if gPlayers <> nil then
+                for i := Low(gPlayers) to High(gPlayers) do
+                  if (gPlayers[i] <> nil) and gPlayers[i].Live and
+                     (gPlayers[i].Team = TEAM_RED) and
+                     g_Obj_Collide(X, Y, Width, Height, @(gPlayers[i].Obj)) then
+                  begin
+                    xd := gPlayers[i].GameX;
+                    yd := gPlayers[i].GameY;
+                    TargetUID := gPlayers[i].UID;
+                    break;
+                  end;
 
             4: // blue team
-              for i := Low(gPlayers) to High(gPlayers) do
-                if gPlayers[i].Live and g_Obj_Collide(X, Y, Width, Height, @gPlayers[i].Obj) and
-                   (gPlayers[i].Team = TEAM_BLUE) then
-                begin
-                  xd := gPlayers[i].GameX;
-                  yd := gPlayers[i].GameY;
-                  TargetUID := gPlayers[i].UID;
-                  break;
-                end;
+              if gPlayers <> nil then
+                for i := Low(gPlayers) to High(gPlayers) do
+                  if (gPlayers[i] <> nil) and gPlayers[i].Live and
+                     (gPlayers[i].Team = TEAM_BLUE) and
+                     g_Obj_Collide(X, Y, Width, Height, @(gPlayers[i].Obj)) then
+                  begin
+                    xd := gPlayers[i].GameX;
+                    yd := gPlayers[i].GameY;
+                    TargetUID := gPlayers[i].UID;
+                    break;
+                  end;
 
             else TargetUID := ActivateUID;
           end;
