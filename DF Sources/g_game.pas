@@ -2237,8 +2237,12 @@ begin
       w := 0;
       h := 0;
       e_CharFont_GetSizeFmt(gMenuFont, MessageText, w, h);
-      e_CharFont_PrintFmt(gMenuFont, (gScreenWidth div 2)-(w div 2),
-                      (gScreenHeight div 2)-(h div 2), MessageText);
+      if LongBool(gGameSettings.Options and GAME_OPTION_TWOPLAYER) then
+        e_CharFont_PrintFmt(gMenuFont, (gScreenWidth div 2)-(w div 2),
+                        (gScreenHeight div 2)-(h div 2), MessageText)
+      else
+        e_CharFont_PrintFmt(gMenuFont, (gScreenWidth div 2)-(w div 2),
+                  Round(gScreenHeight / 2.75)-(h div 2), MessageText);
     end;
 
     if IsDrawStat or ((gGameSettings.GameType = GT_SERVER) and NetDedicated) then DrawStat();
