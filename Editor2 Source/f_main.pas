@@ -1429,6 +1429,12 @@ begin
                   ReadOnly := True;
                 end;
 
+                with ItemProps[InsertRow(_lc[I_PROP_TR_EX_DELAY], IntToStr(Data.ShotWait), True)-1] do
+                begin
+                  EditStyle := esSimple;
+                  MaxLength := 5;
+                end;
+
                 with ItemProps[InsertRow(_lc[I_PROP_TR_SHOT_ANGLE], IntToStr(Data.ShotAngle), True)-1] do
                 begin
                   EditStyle := esSimple;
@@ -4470,6 +4476,8 @@ begin
                   Data.ShotTarget := 3
                 else if vleObjectProperty.Values[_lc[I_PROP_TR_SHOT_TO]] = _lc[I_PROP_TR_SHOT_TO_4] then
                   Data.ShotTarget := 4;
+                Data.ShotWait := Min(Max(
+                  StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_EX_DELAY]], 0), 0), 65535);
               end;
           end;
         end;
