@@ -1521,7 +1521,7 @@ begin
 
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   glEnable(GL_BLEND);
-  
+
   for a := 1 to len do
   begin
    if b then

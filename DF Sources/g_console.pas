@@ -728,8 +728,6 @@ begin
     SetLength(Result, Length(Result)+1);
     Result[High(Result)] := GetStr(Str);
   end;
-  if Length(Result) > 0 then
-    Result[0] := Unformat(Result[0]);
 end;
 
 procedure g_Console_Add(L: String; Show: Boolean = False);
@@ -817,6 +815,7 @@ procedure g_Console_Process(L: String; Quiet: Boolean = False);
 var
   Arr: SArray;
   i: Integer;
+  LS: String;
 begin
   Arr := nil;
 
@@ -825,7 +824,13 @@ begin
 
   if not Quiet then
   begin
-    g_Console_Add('> '+Unformat(L));
+    i := Pos(' ', L);
+    if i = 0 then
+      i := Length(L);
+    Inc(i);
+    LS := L;
+    Insert('\1', LS, i);
+    g_Console_Add('> '+LS);
     Line := '';
     CPos := 1;
   end;
@@ -848,7 +853,7 @@ begin
         Exit;
       end;
 
-  g_Console_Add(Format(_lc[I_CONSOLE_UNKNOWN], [Arr[0]]));
+  g_Console_Add(Format(_lc[I_CONSOLE_UNKNOWN], [Arr[0] + '\1']));
 end;
 
 end.
