@@ -1395,8 +1395,8 @@ const
                                        '- id Software, без кого ничего бы не было'),
     ('CREDITS CLO 3',                  '- Everyone who helped our project',
                                        '- Всех, кто помогал нашему проекту'),
-    ('CREDITS CLO 4',                  'www.doom2d.org, 2003-2015',
-                                       'www.doom2d.org, 2003-2015'),
+    ('CREDITS CLO 4',                  'www.doom2d.org, 2003-2016',
+                                       'www.doom2d.org, 2003-2016'),
 
     ('MSG SHOW FPS ON',                'FPS counter enabled',
                                        'FPS показываются'),
