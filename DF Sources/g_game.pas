@@ -2234,8 +2234,10 @@ begin
 
     if MessageText <> '' then
     begin
-      e_CharFont_GetSize(gMenuFont, MessageText, w, h);
-      e_CharFont_Print(gMenuFont, (gScreenWidth div 2)-(w div 2),
+      w := 0;
+      h := 0;
+      e_CharFont_GetSizeFmt(gMenuFont, MessageText, w, h);
+      e_CharFont_PrintFmt(gMenuFont, (gScreenWidth div 2)-(w div 2),
                       (gScreenHeight div 2)-(h div 2), MessageText);
     end;
 
