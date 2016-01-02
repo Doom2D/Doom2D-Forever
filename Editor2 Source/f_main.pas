@@ -1409,6 +1409,19 @@ begin
                   ReadOnly := True;
                 end;
 
+                case Data.ShotTarget of
+                  1: str := _lc[I_PROP_TR_SHOT_TO_1];
+                  2: str := _lc[I_PROP_TR_SHOT_TO_2];
+                  3: str := _lc[I_PROP_TR_SHOT_TO_3];
+                  4: str := _lc[I_PROP_TR_SHOT_TO_4];
+                  else str := _lc[I_PROP_TR_SHOT_TO_0];
+                end;
+                with ItemProps[InsertRow(_lc[I_PROP_TR_SHOT_TO], str, True)-1] do
+                begin
+                  EditStyle := esPickList;
+                  ReadOnly := True;
+                end;
+
                 with ItemProps[InsertRow(_lc[I_PROP_TR_SPAWN_TO],
                                  Format('(%d:%d)', [Data.ShotPos.X, Data.ShotPos.Y]), True)-1] do
                 begin
@@ -3499,7 +3512,7 @@ begin
                     begin
                       trigger.Data.ShotType := TRIGGER_SHOT_BULLET;
                       trigger.Data.ShotAngle := 0;
-                      trigger.Data.ShotTarget := TRIGGER_SHOT_TARGET_NIL;
+                      trigger.Data.ShotTarget := 0;
                       trigger.Data.ShotPos.X := trigger.X-64;
                       trigger.Data.ShotPos.Y := trigger.Y-64;
                       trigger.Data.ShotAmmo := 0;
@@ -4036,6 +4049,14 @@ begin
         Values.Add(_lc[I_PROP_TR_MESSAGE_TO_4]);
         Values.Add(_lc[I_PROP_TR_MESSAGE_TO_5]);
       end
+    else if KeyName = _lc[I_PROP_TR_SHOT_TO] then
+      begin
+        Values.Add(_lc[I_PROP_TR_SHOT_TO_0]);
+        Values.Add(_lc[I_PROP_TR_SHOT_TO_1]);
+        Values.Add(_lc[I_PROP_TR_SHOT_TO_2]);
+        Values.Add(_lc[I_PROP_TR_SHOT_TO_3]);
+        Values.Add(_lc[I_PROP_TR_SHOT_TO_4]);
+      end
     else if (KeyName = _lc[I_PROP_PANEL_BLEND]) or
             (KeyName = _lc[I_PROP_DM_ONLY]) or
             (KeyName = _lc[I_PROP_ITEM_FALLS]) or
@@ -4440,6 +4461,15 @@ begin
                 Data.ShotAngle := Min(
                   StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_SHOT_ANGLE]], 0), 360);
                 Data.ShotSound := NameToBool(vleObjectProperty.Values[_lc[I_PROP_TR_SHOT_SOUND]]);
+                Data.ShotTarget := 0;
+                if vleObjectProperty.Values[_lc[I_PROP_TR_SHOT_TO]] = _lc[I_PROP_TR_SHOT_TO_1] then
+                  Data.ShotTarget := 1
+                else if vleObjectProperty.Values[_lc[I_PROP_TR_SHOT_TO]] = _lc[I_PROP_TR_SHOT_TO_2] then
+                  Data.ShotTarget := 2
+                else if vleObjectProperty.Values[_lc[I_PROP_TR_SHOT_TO]] = _lc[I_PROP_TR_SHOT_TO_3] then
+                  Data.ShotTarget := 3
+                else if vleObjectProperty.Values[_lc[I_PROP_TR_SHOT_TO]] = _lc[I_PROP_TR_SHOT_TO_4] then
+                  Data.ShotTarget := 4;
               end;
           end;
         end;
