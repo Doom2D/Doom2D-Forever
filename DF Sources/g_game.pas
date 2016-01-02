@@ -4567,7 +4567,11 @@ begin
 
           pl := g_Net_Client_ByName(P[1]);
           if pl <> nil then
+          begin
+            g_Console_Add('-> ' + P[1] + ': ' + chstr, True);
+            e_WriteLog('[Tell ' + P[1] + '] ' + chstr, MSG_NOTIFY);
             MH_SEND_Chat(chstr, pl^.ID)
+          end
           else
             g_Console_Add(Format(_lc[I_NET_ERR_NAME404], [P[1]]));
         end
