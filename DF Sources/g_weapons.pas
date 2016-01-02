@@ -16,7 +16,7 @@ const
   HIT_ELECTRO = 7;
   HIT_FLAME   = 8;
   HIT_SELF    = 9;
-  HIT_TRIGGER = 10;
+  HIT_DISCON  = 10;
 
 type
   TShot = record

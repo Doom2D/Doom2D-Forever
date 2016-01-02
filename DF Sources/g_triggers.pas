@@ -1330,7 +1330,7 @@ begin
 
                     // Наносим урон игроку
                     if (TriggerType = TRIGGER_DAMAGE) and (Data.DamageValue > 0) then
-                      p.Damage(Data.DamageValue, 0, 0, 0, HIT_TRIGGER);
+                      p.Damage(Data.DamageValue, 0, 0, 0, HIT_SOME);
 
                     // Лечим игрока
                     if (TriggerType = TRIGGER_HEALTH) and (Data.HealValue > 0) then
@@ -1350,7 +1350,7 @@ begin
 
                     // Наносим урон монстру
                     if (TriggerType = TRIGGER_DAMAGE) and (Data.DamageValue > 0) then
-                      m.Damage(Data.DamageValue, 0, 0, 0, HIT_TRIGGER);
+                      m.Damage(Data.DamageValue, 0, 0, 0, HIT_SOME);
 
                     // Лечим монстра
                     if (TriggerType = TRIGGER_HEALTH) and (Data.HealValue > 0) then

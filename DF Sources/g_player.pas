@@ -836,7 +836,7 @@ begin
       if gPlayers[a] is TBot then
       begin
         gPlayers[a].Lives := 0;
-        gPlayers[a].Kill(K_SIMPLEKILL, 0, HIT_SOME);
+        gPlayers[a].Kill(K_SIMPLEKILL, 0, HIT_DISCON);
         g_Console_Add(Format(_lc[I_PLAYER_LEAVE], [gPlayers[a].Name]), True);
         g_Player_Remove(gPlayers[a].FUID);
       end;
@@ -1702,7 +1702,7 @@ begin
         MakeBloodSimple(c)
       else
         case t of
-          HIT_TRAP, HIT_ACID, HIT_FLAME, HIT_SELF, HIT_TRIGGER: MakeBloodSimple(c);
+          HIT_TRAP, HIT_ACID, HIT_FLAME, HIT_SELF: MakeBloodSimple(c);
           HIT_BFG, HIT_ROCKET, HIT_SOME: MakeBloodVector(c, vx, vy);
         end;
 
@@ -2575,13 +2575,12 @@ begin
       end
     else // Особые типы смерти
       case t of
-        HIT_SOME: ;
+        HIT_DISCON: ;
         HIT_SELF: g_Console_Add(Format(_lc[I_PLAYER_KILL_SELF], [FName]), True);
         HIT_FALL: g_Console_Add(Format(_lc[I_PLAYER_KILL_FALL], [FName]), True);
         HIT_WATER: g_Console_Add(Format(_lc[I_PLAYER_KILL_WATER], [FName]), True);
         HIT_ACID: g_Console_Add(Format(_lc[I_PLAYER_KILL_ACID], [FName]), True);
         HIT_TRAP: g_Console_Add(Format(_lc[I_PLAYER_KILL_TRAP], [FName]), True);
-        HIT_TRIGGER: g_Console_Add(Format(_lc[I_PLAYER_DIED], [FName]), True);
         else g_Console_Add(Format(_lc[I_PLAYER_DIED], [FName]), True);
       end;
 
