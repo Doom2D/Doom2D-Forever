@@ -147,7 +147,7 @@ begin
   e_Buffer_Write(@NetOut, Wad + ':\' + Map);
   e_Buffer_Write(@NetOut, gGameSettings.GameMode);
 
-  if NetDedicated then
+  if gPlayer1 = nil then
     e_Buffer_Write(@NetOut, Byte(NetClientCount))
   else
     e_Buffer_Write(@NetOut, Byte(1 + NetClientCount));

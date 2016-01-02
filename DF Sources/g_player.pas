@@ -1753,6 +1753,11 @@ end;
 
 destructor TPlayer.Destroy();
 begin
+  if (gPlayer1 <> nil) and (gPlayer1.FUID = FUID) then
+    gPlayer1 := nil;
+  if (gPlayer2 <> nil) and (gPlayer2.FUID = FUID) then
+    gPlayer2 := nil;
+
   FSawSound.Free();
   FSawSoundIdle.Free();
   FSawSoundHit.Free();

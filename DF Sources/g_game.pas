@@ -2774,23 +2774,8 @@ begin
     end;
 
     gPlayer1.Name := gPlayer1Settings.Name;
-  end
-  else
-  begin
-    gPlayer1 := g_Player_Get(g_Player_Create(STD_PLAYER_MODEL,
-                                             gPlayer1Settings.Color,
-                                             TEAM_NONE, False,
-                                             PLAYERNUM_1));
-
-    if gPlayer1 = nil then
-    begin
-      g_FatalError(Format(_lc[I_GAME_ERROR_PLAYER_CREATE], [1]));
-      Exit;
-    end;
-
-    gPlayer1.Name := 'Server';
-    gPlayer1.FDummy := True;
-  end;
+  end else
+    gPlayer1 := nil;
 
 // Стартуем сервер
   if not g_Net_Host(Port, NetMaxClients) then
@@ -2831,13 +2816,6 @@ begin
 
 // Настройки игроков и ботов:
   g_Player_Init();
-  if NetDedicated then
-  begin
-    gPlayer1.Live := False;
-    gPlayer1.Spectate;
-    gPlayer1.FWantsInGame := False;
-    gPlayer1.Lives := 0;
-  end;
 
   NetState := NET_STATE_GAME;
 end;
@@ -4033,8 +4011,7 @@ begin
       else if gPlayers <> nil then
         for a := Low(gPlayers) to High(gPlayers) do
           if gPlayers[a] <> nil then
-            if (gPlayers[a] is TBot) and
-               (Copy(LowerCase(gPlayers[a].Name), 1, Length(P[1])) = LowerCase(P[1])) then
+            if Copy(LowerCase(gPlayers[a].Name), 1, Length(P[1])) = LowerCase(P[1]) then
             begin
               gPlayers[a].Lives := 0;
               gPlayers[a].Kill(K_SIMPLEKILL, 0, HIT_DISCON);
