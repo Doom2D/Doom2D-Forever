@@ -1771,22 +1771,19 @@ var
   Rw, Gw, Bw: SmallInt;
   Dot: Byte;
 begin
-  bubX := FObj.X+FObj.Rect.X + IfThen(FDirection = D_LEFT, -3, 18);
+  bubX := FObj.X+FObj.Rect.X + IfThen(FDirection = D_LEFT, -4, 18);
   bubY := FObj.Y+FObj.Rect.Y - 18;
-  Rb := FModel.Color.R;
-  Gb := FModel.Color.G;
-  Bb := FModel.Color.B;
-  Rw := Min(Rb * 2 + 64, 255);
-  Gw := Min(Gb * 2 + 64, 255);
-  Bw := Min(Bb * 2 + 64, 255);
-  if (Abs(Rw - Rb) < 32)
-  or (Abs(Gw - Bb) < 32)
-  or (Abs(Gw - Bb) < 32) then
-  begin
-    Rb := Max(Rw div 2 - 16, 0);
-    Gb := Max(Gw div 2 - 16, 0);
-    Bb := Max(Bw div 2 - 16, 0);
-  end;
+  Rb := 64;
+  Gb := 64;
+  Bb := 64;
+  Rw := 240;
+  Gw := 240;
+  Bw := 240;
+  if FTeam = TEAM_RED then
+    Rb := 255
+  else
+    if FTeam = TEAM_BLUE then
+      Bb := 255;
 
   // Outer borders
   e_DrawQuad(bubX + 1, bubY    , bubX + 18, bubY + 13, Rb, Gb, Bb);
