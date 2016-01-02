@@ -1393,8 +1393,8 @@ begin
                   if (gMonsters[i] <> nil) and gMonsters[i].Live and
                      g_Obj_Collide(X, Y, Width, Height, @(gMonsters[i].Obj)) then
                   begin
-                    xd := gMonsters[i].GameX;
-                    yd := gMonsters[i].GameY;
+                    xd := gMonsters[i].GameX + gMonsters[i].Obj.Rect.Width div 2;
+                    yd := gMonsters[i].GameY + gMonsters[i].Obj.Rect.Height div 2;
                     TargetUID := gMonsters[i].UID;
                     break;
                   end;
@@ -1405,8 +1405,8 @@ begin
                   if (gPlayers[i] <> nil) and gPlayers[i].Live and
                      g_Obj_Collide(X, Y, Width, Height, @(gPlayers[i].Obj))then
                   begin
-                    xd := gPlayers[i].GameX;
-                    yd := gPlayers[i].GameY;
+                    xd := gPlayers[i].GameX + PLAYER_RECT_CX;
+                    yd := gPlayers[i].GameY + PLAYER_RECT_CY;
                     TargetUID := gPlayers[i].UID;
                     break;
                   end;
@@ -1418,8 +1418,8 @@ begin
                      (gPlayers[i].Team = TEAM_RED) and
                      g_Obj_Collide(X, Y, Width, Height, @(gPlayers[i].Obj)) then
                   begin
-                    xd := gPlayers[i].GameX;
-                    yd := gPlayers[i].GameY;
+                    xd := gPlayers[i].GameX + PLAYER_RECT_CX;
+                    yd := gPlayers[i].GameY + PLAYER_RECT_CY;
                     TargetUID := gPlayers[i].UID;
                     break;
                   end;
@@ -1431,8 +1431,8 @@ begin
                      (gPlayers[i].Team = TEAM_BLUE) and
                      g_Obj_Collide(X, Y, Width, Height, @(gPlayers[i].Obj)) then
                   begin
-                    xd := gPlayers[i].GameX;
-                    yd := gPlayers[i].GameY;
+                    xd := gPlayers[i].GameX + PLAYER_RECT_CX;
+                    yd := gPlayers[i].GameY + PLAYER_RECT_CY;
                     TargetUID := gPlayers[i].UID;
                     break;
                   end;
@@ -1446,7 +1446,7 @@ begin
           case Data.ShotType of
             TRIGGER_SHOT_BULLET:
               begin
-                g_Weapon_Pistol(wx, wy, xd, yd, 0);
+                g_Weapon_mgun(wx, wy, xd, yd, 0);
                 Projectile := False;
                 snd := 'SOUND_WEAPON_FIREPISTOL';
               end;
