@@ -267,7 +267,8 @@ Type
                              ShotIntReload: Word;
                              ShotAmmo: Word;
                              ShotPos: TPoint;
-                             ShotSound: Boolean);
+                             ShotSound: Boolean;
+                             ShotAllMap: Boolean);
   end;
 
 implementation

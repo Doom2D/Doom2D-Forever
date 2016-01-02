@@ -1424,6 +1424,12 @@ begin
                   ReadOnly := True;
                 end;
 
+                with ItemProps[InsertRow(_lc[I_PROP_TR_SHOT_ALLMAP], BoolNames[Data.ShotAllMap], True)-1] do
+                begin
+                  EditStyle := esPickList;
+                  ReadOnly := True;
+                end;
+
                 with ItemProps[InsertRow(_lc[I_PROP_TR_SPAWN_TO],
                                  Format('(%d:%d)', [Data.ShotPos.X, Data.ShotPos.Y]), True)-1] do
                 begin
@@ -3534,6 +3540,7 @@ begin
                       trigger.Data.ShotAccuracy := 0;
                       trigger.Data.ShotIntReload := 36;
                       trigger.Data.ShotAmmo := 0;
+                      trigger.Data.ShotAllMap := False;
                     end;
                 end;
 
@@ -4088,6 +4095,7 @@ begin
             (KeyName = _lc[I_PROP_TR_MONSTER_ACTIVE]) or
             (KeyName = _lc[I_PROP_TR_PUSH_RESET]) or
             (KeyName = _lc[I_PROP_TR_HEALTH_MAX]) or
+            (KeyName = _lc[I_PROP_TR_SHOT_ALLMAP]) or
             (KeyName = _lc[I_PROP_TR_SHOT_SOUND]) then
       begin
         Values.Add(BoolNames[True]);
@@ -4490,6 +4498,7 @@ begin
                   Data.ShotTarget := 5
                 else if vleObjectProperty.Values[_lc[I_PROP_TR_SHOT_TO]] = _lc[I_PROP_TR_SHOT_TO_6] then
                   Data.ShotTarget := 6;
+                Data.ShotAllMap := NameToBool(vleObjectProperty.Values[_lc[I_PROP_TR_SHOT_ALLMAP]]);
                 Data.ShotWait := Min(Max(
                   StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_EX_DELAY]], 0), 0), 65535);
                 Data.ShotAccuracy := Min(Max(

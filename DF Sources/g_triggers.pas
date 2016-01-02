@@ -1392,7 +1392,7 @@ begin
               if gMonsters <> nil then
                 for i := Low(gMonsters) to High(gMonsters) do
                   if (gMonsters[i] <> nil) and gMonsters[i].Live and
-                     g_Obj_Collide(X, Y, Width, Height, @(gMonsters[i].Obj)) then
+                     (Data.ShotAllMap or g_Obj_Collide(X, Y, Width, Height, @(gMonsters[i].Obj))) then
                   begin
                     xd := gMonsters[i].GameX + gMonsters[i].Obj.Rect.Width div 2;
                     yd := gMonsters[i].GameY + gMonsters[i].Obj.Rect.Height div 2;
@@ -1402,7 +1402,7 @@ begin
               if (TargetUID = 0) and (gPlayers <> nil) then
                 for i := Low(gPlayers) to High(gPlayers) do
                   if (gPlayers[i] <> nil) and gPlayers[i].Live and
-                     g_Obj_Collide(X, Y, Width, Height, @(gPlayers[i].Obj))then
+                     (Data.ShotAllMap or g_Obj_Collide(X, Y, Width, Height, @(gPlayers[i].Obj))) then
                   begin
                     xd := gPlayers[i].GameX + PLAYER_RECT_CX;
                     yd := gPlayers[i].GameY + PLAYER_RECT_CY;
@@ -1416,7 +1416,7 @@ begin
               if gPlayers <> nil then
                 for i := Low(gPlayers) to High(gPlayers) do
                   if (gPlayers[i] <> nil) and gPlayers[i].Live and
-                     g_Obj_Collide(X, Y, Width, Height, @(gPlayers[i].Obj))then
+                     (Data.ShotAllMap or g_Obj_Collide(X, Y, Width, Height, @(gPlayers[i].Obj))) then
                   begin
                     xd := gPlayers[i].GameX + PLAYER_RECT_CX;
                     yd := gPlayers[i].GameY + PLAYER_RECT_CY;
@@ -1426,7 +1426,7 @@ begin
               if (TargetUID = 0) and (gMonsters <> nil) then
                 for i := Low(gMonsters) to High(gMonsters) do
                   if (gMonsters[i] <> nil) and gMonsters[i].Live and
-                     g_Obj_Collide(X, Y, Width, Height, @(gMonsters[i].Obj)) then
+                     (Data.ShotAllMap or g_Obj_Collide(X, Y, Width, Height, @(gMonsters[i].Obj))) then
                   begin
                     xd := gMonsters[i].GameX + gMonsters[i].Obj.Rect.Width div 2;
                     yd := gMonsters[i].GameY + gMonsters[i].Obj.Rect.Height div 2;
@@ -1439,7 +1439,7 @@ begin
               if gMonsters <> nil then
                 for i := Low(gMonsters) to High(gMonsters) do
                   if (gMonsters[i] <> nil) and gMonsters[i].Live and
-                     g_Obj_Collide(X, Y, Width, Height, @(gMonsters[i].Obj)) then
+                     (Data.ShotAllMap or g_Obj_Collide(X, Y, Width, Height, @(gMonsters[i].Obj))) then
                   begin
                     xd := gMonsters[i].GameX + gMonsters[i].Obj.Rect.Width div 2;
                     yd := gMonsters[i].GameY + gMonsters[i].Obj.Rect.Height div 2;
@@ -1451,7 +1451,7 @@ begin
               if gPlayers <> nil then
                 for i := Low(gPlayers) to High(gPlayers) do
                   if (gPlayers[i] <> nil) and gPlayers[i].Live and
-                     g_Obj_Collide(X, Y, Width, Height, @(gPlayers[i].Obj))then
+                     (Data.ShotAllMap or g_Obj_Collide(X, Y, Width, Height, @(gPlayers[i].Obj))) then
                   begin
                     xd := gPlayers[i].GameX + PLAYER_RECT_CX;
                     yd := gPlayers[i].GameY + PLAYER_RECT_CY;
@@ -1464,7 +1464,7 @@ begin
                 for i := Low(gPlayers) to High(gPlayers) do
                   if (gPlayers[i] <> nil) and gPlayers[i].Live and
                      (gPlayers[i].Team = TEAM_RED) and
-                     g_Obj_Collide(X, Y, Width, Height, @(gPlayers[i].Obj)) then
+                     (Data.ShotAllMap or g_Obj_Collide(X, Y, Width, Height, @(gPlayers[i].Obj))) then
                   begin
                     xd := gPlayers[i].GameX + PLAYER_RECT_CX;
                     yd := gPlayers[i].GameY + PLAYER_RECT_CY;
@@ -1477,7 +1477,7 @@ begin
                 for i := Low(gPlayers) to High(gPlayers) do
                   if (gPlayers[i] <> nil) and gPlayers[i].Live and
                      (gPlayers[i].Team = TEAM_BLUE) and
-                     g_Obj_Collide(X, Y, Width, Height, @(gPlayers[i].Obj)) then
+                     (Data.ShotAllMap or g_Obj_Collide(X, Y, Width, Height, @(gPlayers[i].Obj))) then
                   begin
                     xd := gPlayers[i].GameX + PLAYER_RECT_CX;
                     yd := gPlayers[i].GameY + PLAYER_RECT_CY;
