@@ -4030,7 +4030,7 @@ begin
             if (gPlayers[a] is TBot) and (gPlayers[a].Name = P[1]) then
             begin
               gPlayers[a].Lives := 0;
-              gPlayers[a].Kill(K_SIMPLEKILL, 0, 0);
+              gPlayers[a].Kill(K_SIMPLEKILL, 0, HIT_SOME);
               g_Console_Add(Format(_lc[I_PLAYER_LEAVE], [gPlayers[a].Name]), True);
               g_Player_Remove(gPlayers[a].UID);
               // Если не перемешать, при добавлении новых ботов появятся старые

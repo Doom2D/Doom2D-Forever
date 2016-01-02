@@ -140,7 +140,7 @@ implementation
 uses
   SysUtils,
   e_input, g_nethandler, g_netmsg, g_netmaster, g_player, g_window, g_console,
-  g_game, g_language;
+  g_game, g_language, g_weapons;
 
 
 { /// SERVICE FUNCTIONS /// }
@@ -434,7 +434,7 @@ begin
         if TP <> nil then
         begin
           TP.Lives := 0;
-          TP.Kill(K_SIMPLEKILL, 0, 0);
+          TP.Kill(K_SIMPLEKILL, 0, HIT_SOME);
           g_Console_Add(Format(_lc[I_PLAYER_LEAVE], [TP.Name]), True);
           e_WriteLog('NET: Client ' + TP.Name + ' [' + IntToStr(ID) + '] disconnected.', MSG_NOTIFY);
           g_Player_Remove(TP.UID);

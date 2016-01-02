@@ -836,7 +836,7 @@ begin
       if gPlayers[a] is TBot then
       begin
         gPlayers[a].Lives := 0;
-        gPlayers[a].Kill(K_SIMPLEKILL, 0, 0);
+        gPlayers[a].Kill(K_SIMPLEKILL, 0, HIT_SOME);
         g_Console_Add(Format(_lc[I_PLAYER_LEAVE], [gPlayers[a].Name]), True);
         g_Player_Remove(gPlayers[a].FUID);
       end;
@@ -1546,8 +1546,8 @@ begin
   if not (gGameSettings.GameMode in [GM_TDM, GM_CTF]) then Exit;
   
   if g_Game_IsServer and gGameOn and FLive then
-    Kill(K_SIMPLEKILL, FUID, 0);
-  
+    Kill(K_SIMPLEKILL, FUID, HIT_SELF);
+
   if FTeam = TEAM_RED then
   begin
     FTeam := TEAM_BLUE;
@@ -2578,6 +2578,8 @@ begin
       end
     else // Особые типы смерти
       case t of
+        HIT_SOME: ;
+        HIT_SELF: g_Console_Add(Format(_lc[I_PLAYER_KILL_SELF], [FName]), True);
         HIT_FALL: g_Console_Add(Format(_lc[I_PLAYER_KILL_FALL], [FName]), True);
         HIT_WATER: g_Console_Add(Format(_lc[I_PLAYER_KILL_WATER], [FName]), True);
         HIT_ACID: g_Console_Add(Format(_lc[I_PLAYER_KILL_ACID], [FName]), True);
