@@ -4171,7 +4171,7 @@ begin
         if g_Game_IsClient then
           MC_SEND_Chat(chstr)
         else
-          MH_SEND_Chat(gPlayer1Settings.Name + ': ' + chstr);
+          MH_SEND_Chat(gPlayer1Settings.Name + '\1: ' + chstr);
       end
       else
         g_Console_Add('chat text');

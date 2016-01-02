@@ -267,7 +267,7 @@ begin
   if Pl = nil then
     MH_SEND_Chat(Txt)
   else
-    MH_SEND_Chat(Pl.Name + ': ' + Txt);
+    MH_SEND_Chat(Pl.Name + '\1: ' + Txt);
 end;
 
 procedure MH_RECV_Info(C: pTNetClient; P: Pointer);
