@@ -4013,16 +4013,16 @@ begin
   end
   else if cmd = 'kick' then
   begin
-    if g_Game_IsServer and (gGameSettings.GameType <> GT_SINGLE) then
+    if g_Game_IsServer then
     begin
       if Length(P) < 2 then
       begin
-        g_Console_Add('kick name');
+        g_Console_Add('kick <name>');
         Exit;
       end;
       if P[1] = '' then
       begin
-        g_Console_Add('kick name');
+        g_Console_Add('kick <name>');
         Exit;
       end;
 
