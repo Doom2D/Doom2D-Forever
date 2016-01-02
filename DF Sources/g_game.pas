@@ -4033,7 +4033,8 @@ begin
       else if gPlayers <> nil then
         for a := Low(gPlayers) to High(gPlayers) do
           if gPlayers[a] <> nil then
-            if (gPlayers[a] is TBot) and (gPlayers[a].Name = P[1]) then
+            if (gPlayers[a] is TBot) and
+               (Copy(LowerCase(gPlayers[a].Name), 1, Length(P[1])) = LowerCase(P[1])) then
             begin
               gPlayers[a].Lives := 0;
               gPlayers[a].Kill(K_SIMPLEKILL, 0, HIT_DISCON);

@@ -674,7 +674,7 @@ begin
     begin
       pl := g_Player_Get(NetClients[a].Player);
       if pl = nil then continue;
-      if Copy(pl.Name, 1, Length(Name)) <> LowerCase(Name) then continue;
+      if Copy(LowerCase(pl.Name), 1, Length(Name)) <> LowerCase(Name) then continue;
       if NetClients[a].Peer <> nil then
       begin
         Result := @NetClients[a];
