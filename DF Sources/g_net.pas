@@ -70,7 +70,7 @@ var
   NetPort:         Word = 25666;
 
   NetAllowRCON:    Boolean = False;
-  NetRCONPassword: string = 'ASS';
+  NetRCONPassword: string = '';
 
   NetTimeToUpdate:   Cardinal = 0;
   NetTimeToReliable: Cardinal = 0;

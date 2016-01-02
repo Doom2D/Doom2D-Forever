@@ -509,8 +509,8 @@ begin
 
   for a := 0 to High(MsgArray) do
     if MsgArray[a].Time > 0 then
-      e_TextureFontPrintEx(0, CHeight*a, MsgArray[a].Msg,
-        gStdFont, 255, 255, 255, 1, True);
+      e_TextureFontPrintFmt(0, CHeight*a, MsgArray[a].Msg,
+        gStdFont, True);
 
   if not Cons_Shown then
   begin
@@ -549,8 +549,8 @@ begin
     c := 2;
     for a := d downto b do
     begin
-      e_TextureFontPrintEx(0, (gScreenHeight div 2)-4-c*CHeight-Abs(Cons_Y), ConsoleHistory[a],
-                           gStdFont, 240, 240, 240, 1, True);
+      e_TextureFontPrintFmt(0, (gScreenHeight div 2)-4-c*CHeight-Abs(Cons_Y), ConsoleHistory[a],
+                           gStdFont, True);
       c := c + 1;
     end;
   end;

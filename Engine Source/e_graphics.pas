@@ -79,7 +79,9 @@ procedure e_CharFont_AddChar(FontID: DWORD; Texture: Integer; c: Char; w: Byte);
 procedure e_CharFont_Print(FontID: DWORD; X, Y: Integer; Text: string);
 procedure e_CharFont_PrintEx(FontID: DWORD; X, Y: Integer; Text: string;
                              Color: TRGB; Scale: Single = 1.0);
+procedure e_CharFont_PrintFmt(FontID: DWORD; X, Y: Integer; Text: string);
 procedure e_CharFont_GetSize(FontID: DWORD; Text: string; var w, h: Word);
+procedure e_CharFont_GetSizeFmt(FontID: DWORD; Text: string; var w, h: Word);
 function e_CharFont_GetMaxWidth(FontID: DWORD): Word;
 function e_CharFont_GetMaxHeight(FontID: DWORD): Word;
 procedure e_CharFont_Remove(FontID: DWORD);
@@ -90,9 +92,9 @@ procedure e_TextureFontBuild(Texture: DWORD; var FontID: DWORD; XCount, YCount: 
                              Space: ShortInt=0);
 procedure e_TextureFontKill(FontID: DWORD);
 procedure e_TextureFontPrint(X, Y: GLint; Text: string; FontID: DWORD);
-procedure e_TextureFontPrintFmt(X, Y: GLint; Text: string; FontID: DWORD);
 procedure e_TextureFontPrintEx(X, Y: GLint; Text: string; FontID: DWORD; Red, Green,
                                Blue: Byte; Scale: Single; Shadow: Boolean = False);
+procedure e_TextureFontPrintFmt(X, Y: GLint; Text: string; FontID: DWORD; Shadow: Boolean = False);
 procedure e_TextureFontGetSize(ID: DWORD; var CharWidth, CharHeight: Byte);
 procedure e_RemoveAllTextureFont();
 
@@ -137,6 +139,7 @@ type
      Width: Byte;
     end;
    Space: ShortInt;
+   Height: ShortInt;
    Live: Boolean;
   end;
 
@@ -1110,7 +1113,7 @@ begin
 end;
 
 procedure e_CharFont_PrintEx(FontID: DWORD; X, Y: Integer; Text: string;
-                             Color: TRGB; Scale: SIngle = 1.0);
+                             Color: TRGB; Scale: Single = 1.0);
 var
   a: Integer;
   c: TRGB;
@@ -1143,6 +1146,109 @@ begin
  end;
 end;
 
+procedure e_CharFont_PrintFmt(FontID: DWORD; X, Y: Integer; Text: string);
+var
+  a, TX, TY, len: Integer;
+  tc, c: TRGB;
+  b: Boolean;
+  w, h: Word;
+begin
+ if Text = '' then Exit;
+ if e_CharFonts = nil then Exit;
+ if Integer(FontID) > High(e_CharFonts) then Exit;
+
+ c.R := 255;
+ c.G := 255;
+ c.B := 255;
+
+ TX := X;
+ TY := Y;
+ len := Length(Text);
+
+ e_CharFont_GetSize(FontID, 'A', w, h);
+
+ b := False;
+ with e_CharFonts[FontID] do
+ begin
+  for a := 1 to len do
+  begin
+   if b then
+   begin
+    b := False;
+    continue;
+   end;
+
+   if (Text[a] = '\') and (a < len) then
+   begin
+    b := True;
+
+    case Text[a+1] of
+     'n':
+      begin
+       TX := X;
+       TY := TY + h;
+      end;
+
+     'r':
+      begin
+        c.R := 255; c.G := 0; c.B := 0;
+      end;
+
+     'g':
+      begin
+        c.R := 0; c.G := 255; c.B := 0;
+      end;
+
+     'b':
+      begin
+        c.R := 0; c.G := 0; c.B := 255;
+      end;
+
+     'y':
+      begin
+        c.R := 255; c.G := 255; c.B := 0;
+      end;
+
+     '0':
+      begin
+        c.R := 0; c.G := 0; c.B := 0;
+      end;
+
+     '1':
+      begin
+        c.R := 255; c.G := 255; c.B := 255;
+      end;
+
+     'd':
+      begin
+        c.R := c.R div 2; c.G := c.G div 2; c.B := c.B  div 2;
+      end;
+
+     'l':
+      begin
+        c.R := c.R * 2; c.G := c.G * 2; c.B := c.B * 2;
+      end;
+
+     else b := False;
+    end;
+
+    if b then Continue;
+   end;
+
+   with Chars[Ord(Text[a])] do
+   if TextureID <> -1 then
+   begin
+    tc := e_Colors;
+    e_Colors := c;
+    e_Draw(TextureID, TX, TY, 0, True, False);
+    e_Colors := tc;
+
+    TX := TX+Width+IfThen(a = Length(Text), 0, Space);
+   end;
+  end;
+ end;
+end;
+
 procedure e_CharFont_GetSize(FontID: DWORD; Text: string; var w, h: Word);
 var
   a: Integer;
@@ -1166,6 +1272,60 @@ begin
     if h2 > h then h := h2;
    end;
  end;
+end;
+
+procedure e_CharFont_GetSizeFmt(FontID: DWORD; Text: string; var w, h: Word);
+var
+  a, lines, len: Integer;
+  h2: Word;
+  b: Boolean;
+begin
+ w := 0;
+ h := 0;
+
+ if Text = '' then Exit;
+ if e_CharFonts = nil then Exit;
+ if Integer(FontID) > High(e_CharFonts) then Exit;
+
+ lines := 1;
+ len := Length(Text);
+ b := False;
+
+ with e_CharFonts[FontID] do
+ begin
+  for a := 1 to len do
+  begin
+   if b then
+   begin
+     b := False;
+     continue;
+   end;
+
+   if Text[a] = '\' then
+   begin
+    if (a < len) then
+    begin
+      if Text[a+1] = 'n' then
+        Inc(lines);
+      if Text[a+1] in ['r', 'g', 'b', 'y', 'd', 'l', '1', '0', 'n'] then
+      begin
+        b := True;
+        continue;
+      end;
+    end;
+   end;
+
+   with Chars[Ord(Text[a])] do
+   if TextureID <> -1 then
+   begin
+    w := w+Width+IfThen(a = len, 0, Space);
+    e_GetTextureSize(TextureID, nil, @h2);
+    if h2 > h then h := h2;
+   end;
+  end;
+ end;
+
+ h := h * lines;
 end;
 
 function e_CharFont_GetMaxWidth(FontID: DWORD): Word;
@@ -1310,6 +1470,130 @@ begin
   glDisable(GL_BLEND);
 end;
 
+// god forgive me for this, but i cannot figure out how to do it without lists
+procedure e_TextureFontPrintChar(X, Y: Integer; Ch: Char; FontID: DWORD; Shadow: Boolean = False);
+begin
+  glPushMatrix;
+
+  if Shadow then
+  begin
+   glColor4ub(0, 0, 0, 128);
+   glTranslated(X+1, Y+1, 0);
+   glCallLists(1, GL_UNSIGNED_BYTE, @Ch);
+   glPopMatrix;
+   glPushMatrix;
+  end;
+
+  glColor4ub(e_Colors.R, e_Colors.G, e_Colors.B, 255);
+  glTranslated(X, Y, 0);
+  glCallLists(1, GL_UNSIGNED_BYTE, @Ch);
+
+  glPopMatrix;
+end;
+
+procedure e_TextureFontPrintFmt(X, Y: Integer; Text: string; FontID: DWORD; Shadow: Boolean = False);
+var
+  a, TX, TY, len: Integer;
+  tc, c: TRGB;
+  b: Boolean;
+  w, h: Word;
+begin
+ if Text = '' then Exit;
+ if e_TextureFonts = nil then Exit;
+ if Integer(FontID) > High(e_TextureFonts) then Exit;
+
+ c.R := 255;
+ c.G := 255;
+ c.B := 255;
+
+ TX := X;
+ TY := Y;
+ len := Length(Text);
+
+ w := e_TextureFonts[FontID].CharWidth;
+ h := e_TextureFonts[FontID].CharHeight;
+
+ b := False;
+ with e_TextureFonts[FontID] do
+ begin
+  glBindTexture(GL_TEXTURE_2D, e_TextureFonts[FontID].TextureID);
+  glEnable(GL_TEXTURE_2D);
+  glListBase(DWORD(Integer(e_TextureFonts[FontID].Base)-32));
+
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  glEnable(GL_BLEND);
+  
+  for a := 1 to len do
+  begin
+   if b then
+   begin
+    b := False;
+    continue;
+   end;
+
+   if (Text[a] = '\') and (a < len) then
+   begin
+    b := True;
+
+    case Text[a+1] of
+     'r':
+      begin
+        c.R := 255; c.G := 0; c.B := 0;
+      end;
+
+     'g':
+      begin
+        c.R := 0; c.G := 255; c.B := 0;
+      end;
+
+     'b':
+      begin
+        c.R := 0; c.G := 0; c.B := 255;
+      end;
+
+     'y':
+      begin
+        c.R := 255; c.G := 255; c.B := 0;
+      end;
+
+     '0':
+      begin
+        c.R := 0; c.G := 0; c.B := 0;
+      end;
+
+     '1':
+      begin
+        c.R := 255; c.G := 255; c.B := 255;
+      end;
+
+     'd':
+      begin
+        c.R := c.R div 2; c.G := c.G div 2; c.B := c.B  div 2;
+      end;
+
+     'l':
+      begin
+        c.R := c.R * 2; c.G := c.G * 2; c.B := c.B * 2;
+      end;
+
+     else b := False;
+    end;
+
+    if b then Continue;
+   end;
+
+   tc := e_Colors;
+   e_Colors := c;
+   e_TextureFontPrintChar(TX, TY, Text[a], FontID, Shadow);
+   e_Colors := tc;
+
+   TX := TX+w;
+  end;
+  glDisable(GL_TEXTURE_2D);
+  glDisable(GL_BLEND);
+ end;
+end;
+
 procedure e_TextureFontPrintEx(X, Y: GLint; Text: string; FontID: DWORD; Red, Green,
                     Blue: Byte; Scale: Single; Shadow: Boolean = False);
 begin
@@ -1342,100 +1626,6 @@ begin
   glPopMatrix;
   glColor3ub(e_Colors.R, e_Colors.G, e_Colors.B);
   glDisable(GL_BLEND);
-end;
-
-procedure e_TextureFontPrintFmt(X, Y: GLint; Text: string; FontID: DWORD);
-var
-  R, G, B: Byte;
-  L, P, EP: Integer;
-  cw, ch: Byte;
-begin
-  if Text = '' then Exit;
-  R := 255;
-  G := 255;
-  B := 255;
-
-  e_TextureFontGetSize(FontID, cw, ch);
-
-  L := Length(Text);
-  P := AnsiPos('^', Text);
-  EP := L;
-
-  if (P > 0) and (P < L) then
-  begin
-    EP := P + 2;
-    case Text[P + 1] of
-      'r':
-      begin
-        B := 0;
-        G := 0;
-      end;
-      'g':
-      begin
-        R := 0;
-        B := 0;
-      end;
-      'b':
-      begin
-        R := 0;
-        G := 0;
-      end;
-      'y':
-      begin
-        R := 255;
-        G := 255;
-        B := 0;
-      end;
-      'd':
-      begin
-        R := 127;
-        G := 127;
-        B := 127;
-      end;
-      'l':
-      begin
-        R := 200;
-        G := 200;
-        B := 200;
-      end;
-      '0':
-      begin
-        R := 0;
-        G := 0;
-        B := 0;
-      end;
-      's':
-      begin
-        if (P + 10 > L) then
-          P := 0
-        else
-        begin
-          R := StrToIntDef(Copy(Text, P + 2, 3), 0);
-          G := StrToIntDef(Copy(Text, P + 5, 3), 0);
-          B := StrToIntDef(Copy(Text, P + 8, 3), 0);
-          EP := P + 11;
-        end;
-      end;
-      'w':
-      begin
-        R := 255;
-        G := 255;
-        B := 255;               
-      end;
-      else P := 0;
-    end;
-  end
-  else
-    P := 0;
-
-  if P > 0 then
-  begin
-    e_TextureFontPrintEx(X, Y, Copy(Text, 1, P - 1), FontID, R, G, B, 1, True);
-    if EP < L then
-      e_TextureFontPrintFmt(X + cw * (P - 1), Y, Copy(Text, EP, L - EP + 1), FontID);
-  end
-  else
-    e_TextureFontPrintEx(X, Y, Text, FontID, R, G, B, 1, True);
 end;
 
 procedure e_TextureFontGetSize(ID: DWORD; var CharWidth, CharHeight: Byte);
