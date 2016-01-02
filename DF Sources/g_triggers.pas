@@ -1387,7 +1387,55 @@ begin
           TargetUID := 0;
 
           case Data.ShotTarget of
-            1: // monsters
+            1: // monsters then players
+            begin
+              if gMonsters <> nil then
+                for i := Low(gMonsters) to High(gMonsters) do
+                  if (gMonsters[i] <> nil) and gMonsters[i].Live and
+                     g_Obj_Collide(X, Y, Width, Height, @(gMonsters[i].Obj)) then
+                  begin
+                    xd := gMonsters[i].GameX + gMonsters[i].Obj.Rect.Width div 2;
+                    yd := gMonsters[i].GameY + gMonsters[i].Obj.Rect.Height div 2;
+                    TargetUID := gMonsters[i].UID;
+                    break;
+                  end;
+              if (TargetUID = 0) and (gPlayers <> nil) then
+                for i := Low(gPlayers) to High(gPlayers) do
+                  if (gPlayers[i] <> nil) and gPlayers[i].Live and
+                     g_Obj_Collide(X, Y, Width, Height, @(gPlayers[i].Obj))then
+                  begin
+                    xd := gPlayers[i].GameX + PLAYER_RECT_CX;
+                    yd := gPlayers[i].GameY + PLAYER_RECT_CY;
+                    TargetUID := gPlayers[i].UID;
+                    break;
+                  end;
+            end;
+
+            2: // players then monsters
+            begin
+              if gPlayers <> nil then
+                for i := Low(gPlayers) to High(gPlayers) do
+                  if (gPlayers[i] <> nil) and gPlayers[i].Live and
+                     g_Obj_Collide(X, Y, Width, Height, @(gPlayers[i].Obj))then
+                  begin
+                    xd := gPlayers[i].GameX + PLAYER_RECT_CX;
+                    yd := gPlayers[i].GameY + PLAYER_RECT_CY;
+                    TargetUID := gPlayers[i].UID;
+                    break;
+                  end;
+              if (TargetUID = 0) and (gMonsters <> nil) then
+                for i := Low(gMonsters) to High(gMonsters) do
+                  if (gMonsters[i] <> nil) and gMonsters[i].Live and
+                     g_Obj_Collide(X, Y, Width, Height, @(gMonsters[i].Obj)) then
+                  begin
+                    xd := gMonsters[i].GameX + gMonsters[i].Obj.Rect.Width div 2;
+                    yd := gMonsters[i].GameY + gMonsters[i].Obj.Rect.Height div 2;
+                    TargetUID := gMonsters[i].UID;
+                    break;
+                  end;
+            end;
+
+            3: // monsters
               if gMonsters <> nil then
                 for i := Low(gMonsters) to High(gMonsters) do
                   if (gMonsters[i] <> nil) and gMonsters[i].Live and
@@ -1399,7 +1447,7 @@ begin
                     break;
                   end;
 
-            2: // players
+            4: // players
               if gPlayers <> nil then
                 for i := Low(gPlayers) to High(gPlayers) do
                   if (gPlayers[i] <> nil) and gPlayers[i].Live and
@@ -1411,7 +1459,7 @@ begin
                     break;
                   end;
 
-            3: // red team
+            5: // red team
               if gPlayers <> nil then
                 for i := Low(gPlayers) to High(gPlayers) do
                   if (gPlayers[i] <> nil) and gPlayers[i].Live and
@@ -1424,7 +1472,7 @@ begin
                     break;
                   end;
 
-            4: // blue team
+            6: // blue team
               if gPlayers <> nil then
                 for i := Low(gPlayers) to High(gPlayers) do
                   if (gPlayers[i] <> nil) and gPlayers[i].Live and

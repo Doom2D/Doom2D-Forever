@@ -1414,6 +1414,8 @@ begin
                   2: str := _lc[I_PROP_TR_SHOT_TO_2];
                   3: str := _lc[I_PROP_TR_SHOT_TO_3];
                   4: str := _lc[I_PROP_TR_SHOT_TO_4];
+                  5: str := _lc[I_PROP_TR_SHOT_TO_5];
+                  6: str := _lc[I_PROP_TR_SHOT_TO_6];
                   else str := _lc[I_PROP_TR_SHOT_TO_0];
                 end;
                 with ItemProps[InsertRow(_lc[I_PROP_TR_SHOT_TO], str, True)-1] do
@@ -4068,6 +4070,8 @@ begin
         Values.Add(_lc[I_PROP_TR_SHOT_TO_2]);
         Values.Add(_lc[I_PROP_TR_SHOT_TO_3]);
         Values.Add(_lc[I_PROP_TR_SHOT_TO_4]);
+        Values.Add(_lc[I_PROP_TR_SHOT_TO_5]);
+        Values.Add(_lc[I_PROP_TR_SHOT_TO_6]);
       end
     else if (KeyName = _lc[I_PROP_PANEL_BLEND]) or
             (KeyName = _lc[I_PROP_DM_ONLY]) or
@@ -4481,7 +4485,11 @@ begin
                 else if vleObjectProperty.Values[_lc[I_PROP_TR_SHOT_TO]] = _lc[I_PROP_TR_SHOT_TO_3] then
                   Data.ShotTarget := 3
                 else if vleObjectProperty.Values[_lc[I_PROP_TR_SHOT_TO]] = _lc[I_PROP_TR_SHOT_TO_4] then
-                  Data.ShotTarget := 4;
+                  Data.ShotTarget := 4
+                else if vleObjectProperty.Values[_lc[I_PROP_TR_SHOT_TO]] = _lc[I_PROP_TR_SHOT_TO_5] then
+                  Data.ShotTarget := 5
+                else if vleObjectProperty.Values[_lc[I_PROP_TR_SHOT_TO]] = _lc[I_PROP_TR_SHOT_TO_6] then
+                  Data.ShotTarget := 6;
                 Data.ShotWait := Min(Max(
                   StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_EX_DELAY]], 0), 0), 65535);
                 Data.ShotAccuracy := Min(Max(
