@@ -4033,6 +4033,8 @@ begin
               gPlayers[a].Kill(K_SIMPLEKILL, 0, 0);
               g_Console_Add(Format(_lc[I_PLAYER_LEAVE], [gPlayers[a].Name]), True);
               g_Player_Remove(gPlayers[a].UID);
+              // Если не перемешать, при добавлении новых ботов появятся старые
+              g_Bot_MixNames();
             end;
     end else
       g_Console_Add(_lc[I_MSG_GM_UNAVAIL]);
