@@ -1496,7 +1496,7 @@ var
   a, TX, TY, len: Integer;
   tc, c: TRGB;
   b: Boolean;
-  w, h: Word;
+  w: Word;
 begin
  if Text = '' then Exit;
  if e_TextureFonts = nil then Exit;
@@ -1511,7 +1511,6 @@ begin
  len := Length(Text);
 
  w := e_TextureFonts[FontID].CharWidth;
- h := e_TextureFonts[FontID].CharHeight;
 
  b := False;
  with e_TextureFonts[FontID] do

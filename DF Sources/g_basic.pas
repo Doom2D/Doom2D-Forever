@@ -71,6 +71,7 @@ function parse2(s: string; delim: Char): SArray;
 function g_GetFileTime(fileName: String): Integer;
 function g_SetFileTime(fileName: String; time: Integer): Boolean;
 procedure SortSArray(var S: SArray);
+function Unformat(S: string): string;
 
 implementation
 
@@ -1072,6 +1073,19 @@ begin
         b := True;
       end;
   until not b;
+end;
+
+function Unformat(S: string): string;
+var
+  P: Integer;
+begin
+  P := Pos('\', S);
+  while P > 0 do
+  begin
+    Delete(S, P, 1);
+    P := Pos('\', S);
+  end;
+  Result := S;
 end;
 
 end.

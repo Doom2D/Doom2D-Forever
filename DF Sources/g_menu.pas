@@ -127,7 +127,7 @@ begin
 
   menu := TGUIMenu(g_GUI_GetWindow('OptionsPlayersP1Menu').GetControl('mOptionsPlayersP1Menu'));
 
-  gPlayer1Settings.Name := TGUIEdit(menu.GetControl('edP1Name')).Text;
+  gPlayer1Settings.Name := Unformat(TGUIEdit(menu.GetControl('edP1Name')).Text);
   gPlayer1Settings.Team := IfThen(TGUISwitch(menu.GetControl('swP1Team')).ItemIndex = 0,
                                   TEAM_RED, TEAM_BLUE);
 
@@ -139,7 +139,7 @@ begin
 
   menu := TGUIMenu(g_GUI_GetWindow('OptionsPlayersP2Menu').GetControl('mOptionsPlayersP2Menu'));
 
-  gPlayer2Settings.Name := TGUIEdit(menu.GetControl('edP2Name')).Text;
+  gPlayer2Settings.Name := Unformat(TGUIEdit(menu.GetControl('edP2Name')).Text);
   gPlayer2Settings.Team := IfThen(TGUISwitch(menu.GetControl('swP2Team')).ItemIndex = 0,
                                   TEAM_RED, TEAM_BLUE);
   with TGUIModelView(g_GUI_GetWindow('OptionsPlayersP2Menu').GetControl('mvP2Model')) do

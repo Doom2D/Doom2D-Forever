@@ -3682,12 +3682,12 @@ begin
     begin
       if not g_Game_IsClient then
       begin
-        gPlayer1.Name := P[1];
+        gPlayer1.Name := Unformat(P[1]);
         if g_Game_IsNet then MH_SEND_PlayerSettings(gPlayer1.UID);
       end
       else if not (g_Game_IsNet and NetDedicated) then
       begin
-        gPlayer1Settings.Name := P[1];
+        gPlayer1Settings.Name := Unformat(P[1]);
         MC_SEND_PlayerSettings;
       end;
     end;
@@ -3695,7 +3695,7 @@ begin
   else if (cmd = 'p2_name') and not g_Game_IsNet then
   begin
     if (Length(P) > 1) and gGameOn and (gPlayer2 <> nil) then
-      gPlayer2.Name := P[1];
+      gPlayer2.Name := Unformat(P[1]);
   end
   else if cmd = 'p1_color' then
   begin
