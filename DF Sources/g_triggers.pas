@@ -1335,9 +1335,9 @@ begin
                     if (TriggerType = TRIGGER_HEALTH) and (Data.HealValue > 0) then
                       if p.Heal(Data.HealValue, not Data.HealMax) and (not Data.HealSilent) then
                       begin
-                        g_Sound_PlayExAt('SOUND_ITEM_GETMED', p.Obj.X, p.Obj.Y);
+                        g_Sound_PlayExAt('SOUND_ITEM_GETITEM', p.Obj.X, p.Obj.Y);
                         if g_Game_IsServer and g_Game_IsNet then
-                          MH_SEND_Sound(p.Obj.X, p.Obj.Y, 'SOUND_ITEM_GETMED');
+                          MH_SEND_Sound(p.Obj.X, p.Obj.Y, 'SOUND_ITEM_GETITEM');
                       end;
                   end;
 
@@ -1355,9 +1355,9 @@ begin
                     if (TriggerType = TRIGGER_HEALTH) and (Data.HealValue > 0) then
                       if m.Heal(Data.HealValue) and (not Data.HealSilent) then
                       begin
-                        g_Sound_PlayExAt('SOUND_ITEM_GETMED', m.Obj.X, m.Obj.Y);
+                        g_Sound_PlayExAt('SOUND_ITEM_GETITEM', m.Obj.X, m.Obj.Y);
                         if g_Game_IsServer and g_Game_IsNet then
-                          MH_SEND_Sound(m.Obj.X, m.Obj.Y, 'SOUND_ITEM_GETMED');
+                          MH_SEND_Sound(m.Obj.X, m.Obj.Y, 'SOUND_ITEM_GETITEM');
                       end;
                   end;
               end;

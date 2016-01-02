@@ -2915,7 +2915,7 @@ begin
       begin
         FWeapon[WEAPON_SAW] := True;
         Result := True;
-        if a and g_Game_IsNet then MH_SEND_Sound(GameX, GameY, 'SOUND_ITEM_GETITEM');
+        if a and g_Game_IsNet then MH_SEND_Sound(GameX, GameY, 'SOUND_ITEM_GETWEAPON');
       end;
 
     ITEM_WEAPON_SHOTGUN1:
@@ -2927,7 +2927,7 @@ begin
         IncMax(FAmmo[A_SHELLS], 4, FMaxAmmo[A_SHELLS]);
         FWeapon[WEAPON_SHOTGUN1] := True;
         Result := True;
-        if a and g_Game_IsNet then MH_SEND_Sound(GameX, GameY, 'SOUND_ITEM_GETITEM');
+        if a and g_Game_IsNet then MH_SEND_Sound(GameX, GameY, 'SOUND_ITEM_GETWEAPON');
       end;
 
     ITEM_WEAPON_SHOTGUN2:
@@ -2938,7 +2938,7 @@ begin
         IncMax(FAmmo[A_SHELLS], 4, FMaxAmmo[A_SHELLS]);
         FWeapon[WEAPON_SHOTGUN2] := True;
         Result := True;
-        if a and g_Game_IsNet then MH_SEND_Sound(GameX, GameY, 'SOUND_ITEM_GETITEM');
+        if a and g_Game_IsNet then MH_SEND_Sound(GameX, GameY, 'SOUND_ITEM_GETWEAPON');
       end;
 
     ITEM_WEAPON_CHAINGUN:
@@ -2949,7 +2949,7 @@ begin
         IncMax(FAmmo[A_BULLETS], 50, FMaxAmmo[A_BULLETS]);
         FWeapon[WEAPON_CHAINGUN] := True;
         Result := True;
-        if a and g_Game_IsNet then MH_SEND_Sound(GameX, GameY, 'SOUND_ITEM_GETITEM');
+        if a and g_Game_IsNet then MH_SEND_Sound(GameX, GameY, 'SOUND_ITEM_GETWEAPON');
       end;
 
     ITEM_WEAPON_ROCKETLAUNCHER:
@@ -2960,7 +2960,7 @@ begin
         IncMax(FAmmo[A_ROCKETS], 2, FMaxAmmo[A_ROCKETS]);
         FWeapon[WEAPON_ROCKETLAUNCHER] := True;
         Result := True;
-        if a and g_Game_IsNet then MH_SEND_Sound(GameX, GameY, 'SOUND_ITEM_GETITEM');
+        if a and g_Game_IsNet then MH_SEND_Sound(GameX, GameY, 'SOUND_ITEM_GETWEAPON');
       end;
 
     ITEM_WEAPON_PLASMA:
@@ -2971,7 +2971,7 @@ begin
         IncMax(FAmmo[A_CELLS], 40, FMaxAmmo[A_CELLS]);
         FWeapon[WEAPON_PLASMA] := True;
         Result := True;
-        if a and g_Game_IsNet then MH_SEND_Sound(GameX, GameY, 'SOUND_ITEM_GETITEM');
+        if a and g_Game_IsNet then MH_SEND_Sound(GameX, GameY, 'SOUND_ITEM_GETWEAPON');
       end;
 
     ITEM_WEAPON_BFG:
@@ -2982,7 +2982,7 @@ begin
         IncMax(FAmmo[A_CELLS], 40, FMaxAmmo[A_CELLS]);
         FWeapon[WEAPON_BFG] := True;
         Result := True;
-        if a and g_Game_IsNet then MH_SEND_Sound(GameX, GameY, 'SOUND_ITEM_GETITEM');
+        if a and g_Game_IsNet then MH_SEND_Sound(GameX, GameY, 'SOUND_ITEM_GETWEAPON');
       end;
 
     ITEM_WEAPON_SUPERPULEMET:
@@ -2993,7 +2993,7 @@ begin
         IncMax(FAmmo[A_SHELLS], 4, FMaxAmmo[A_SHELLS]);
         FWeapon[WEAPON_SUPERPULEMET] := True;
         Result := True;
-        if a and g_Game_IsNet then MH_SEND_Sound(GameX, GameY, 'SOUND_ITEM_GETITEM');
+        if a and g_Game_IsNet then MH_SEND_Sound(GameX, GameY, 'SOUND_ITEM_GETWEAPON');
       end;
 
     ITEM_AMMO_BULLETS:
@@ -3092,7 +3092,7 @@ begin
         Include(FRulez, R_KEY_RED);
         Result := True;
         remove := (gGameSettings.GameMode <> GM_COOP) and (g_Player_GetCount() < 2);
-        if (not remove) and g_Game_IsNet then MH_SEND_Sound(GameX, GameY, 'SOUND_ITEM_GETMED');
+        if (not remove) and g_Game_IsNet then MH_SEND_Sound(GameX, GameY, 'SOUND_ITEM_GETITEM');
       end;
 
     ITEM_KEY_GREEN:
@@ -3101,7 +3101,7 @@ begin
         Include(FRulez, R_KEY_GREEN);
         Result := True;
         remove := (gGameSettings.GameMode <> GM_COOP) and (g_Player_GetCount() < 2);
-        if (not remove) and g_Game_IsNet then MH_SEND_Sound(GameX, GameY, 'SOUND_ITEM_GETMED');
+        if (not remove) and g_Game_IsNet then MH_SEND_Sound(GameX, GameY, 'SOUND_ITEM_GETITEM');
       end;
 
     ITEM_KEY_BLUE:
@@ -3110,7 +3110,7 @@ begin
         Include(FRulez, R_KEY_BLUE);
         Result := True;
         remove := (gGameSettings.GameMode <> GM_COOP) and (g_Player_GetCount() < 2);
-        if (not remove) and g_Game_IsNet then MH_SEND_Sound(GameX, GameY, 'SOUND_ITEM_GETMED');
+        if (not remove) and g_Game_IsNet then MH_SEND_Sound(GameX, GameY, 'SOUND_ITEM_GETITEM');
       end;
 
     ITEM_SUIT:

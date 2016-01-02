@@ -2003,10 +2003,10 @@ begin
       g_Sound_PlayExAt('SOUND_ITEM_GETRULEZ',
         gItems[ID].Obj.X, gItems[ID].Obj.Y)
       else
-        if gItems[ID].ItemType in [ITEM_MEDKIT_SMALL, ITEM_MEDKIT_LARGE, ITEM_BOTTLE,
-                                   ITEM_HELMET, ITEM_ARMOR_GREEN,
-                                   ITEM_ARMOR_BLUE, ITEM_KEY_RED, ITEM_KEY_GREEN, ITEM_KEY_BLUE] then
-          g_Sound_PlayExAt('SOUND_ITEM_GETMED',
+        if gItems[ID].ItemType in [ITEM_WEAPON_SAW, ITEM_WEAPON_PISTOL, ITEM_WEAPON_SHOTGUN1, ITEM_WEAPON_SHOTGUN2,
+                                   ITEM_WEAPON_CHAINGUN, ITEM_WEAPON_ROCKETLAUNCHER, ITEM_WEAPON_PLASMA,
+                                   ITEM_WEAPON_BFG, ITEM_WEAPON_SUPERPULEMET] then
+          g_Sound_PlayExAt('SOUND_ITEM_GETWEAPON',
             gItems[ID].Obj.X, gItems[ID].Obj.Y)
           else
             g_Sound_PlayExAt('SOUND_ITEM_GETITEM',
