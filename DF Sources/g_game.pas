@@ -51,7 +51,7 @@ procedure g_Game_SetupScreenSize();
 procedure g_Game_ChangeResolution(newWidth, newHeight: Word; nowFull, nowMax: Boolean);
 procedure g_Game_StartSingle(WAD, MAP: String; TwoPlayers: Boolean; nPlayers: Byte);
 procedure g_Game_StartServer(Map: String; GameMode: Byte; TimeLimit, GoalLimit: Word; MaxLives: Byte; Options: LongWord; Port: Word);
-procedure g_Game_StartClient(Addr: String; Port: Word; PW: String = 'ASS');
+procedure g_Game_StartClient(Addr: String; Port: Word; PW: String);
 procedure g_Game_StartCustom(Map: String; GameMode: Byte; TimeLimit, GoalLimit: Word; MaxLives: Byte; Options: LongWord; nPlayers: Byte);
 procedure g_Game_Restart();
 procedure g_Game_RestartLevel();
@@ -2836,7 +2836,7 @@ begin
   NetState := NET_STATE_GAME;
 end;
 
-procedure g_Game_StartClient(Addr: String; Port: Word; PW: String = 'ASS');
+procedure g_Game_StartClient(Addr: String; Port: Word; PW: String);
 var
   ResName: String;
   Map: String;
@@ -4106,9 +4106,7 @@ begin
       if Length(P) > 3 then
         pw := P[3]
       else
-        pw := 'ASS';
-
-      if pw = '' then pw := 'ASS';
+        pw := '';
 
       g_Game_StartClient(P[1], prt, pw);
     end;
@@ -4130,7 +4128,8 @@ begin
       EndGame;
     end;
 
-    g_Game_StartClient(NetClientIP, NetClientPort);
+    //TODO: Use last successful password to reconnect, instead of ''
+    g_Game_StartClient(NetClientIP, NetClientPort, '');
   end
   else if (cmd = 'addbot') or
      (cmd = 'bot_add') then
@@ -4578,10 +4577,7 @@ begin
       if (Length(P) <= 1) then
         g_Console_Add('rcon_password password')
       else
-      begin
-        if P[1] = '' then P[1] := 'ASS';
         MC_SEND_RCONPassword(P[1]);
-      end;
     end
     else if cmd = 'rcon' then
     begin
@@ -5060,8 +5056,7 @@ begin
       Port := 25666;
 
     s := Find_Param_Value(pars, '-pw');
-    if (s = '') then s := 'ASS';
-
+    
     g_Game_StartClient(ip, Port, s);
     Exit;
   end;

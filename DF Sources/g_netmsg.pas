@@ -189,13 +189,13 @@ procedure MC_RECV_TriggerMusic(P: Pointer);
 // VOTE
 procedure MC_RECV_VoteEvent(P: Pointer);
 // SERVICE
-procedure MC_SEND_Info(Password: string = 'ASS');
+procedure MC_SEND_Info(Password: string);
 procedure MC_SEND_Chat(Txt: string);
 procedure MC_SEND_PlayerPos();
 procedure MC_SEND_FullStateRequest();
 procedure MC_SEND_PlayerSettings();
 procedure MC_SEND_CheatRequest(Kind: Byte);
-procedure MC_SEND_RCONPassword(Password: string = 'ASS');
+procedure MC_SEND_RCONPassword(Password: string);
 procedure MC_SEND_RCONCommand(Cmd: string);
 procedure MC_SEND_Vote(Start: Boolean = False; Command: string = 'a');
 // DOWNLOAD
@@ -2335,7 +2335,7 @@ end;
 
 // CLIENT SEND
 
-procedure MC_SEND_Info(Password: string = 'ASS');
+procedure MC_SEND_Info(Password: string);
 begin
   e_Buffer_Clear(@NetOut);
 
@@ -2470,7 +2470,7 @@ begin
 
   g_Net_Client_Send(True, NET_CHAN_IMPORTANT);
 end;
-procedure MC_SEND_RCONPassword(Password: string = 'ASS');
+procedure MC_SEND_RCONPassword(Password: string);
 begin
   e_Buffer_Write(@NetOut, Byte(NET_MSG_RCON_AUTH));
   e_Buffer_Write(@NetOut, Password);

@@ -427,7 +427,7 @@ begin
         Exit;
       end
       else
-        g_Game_StartClient(SL[slSelection].IP, SL[slSelection].Port);
+        g_Game_StartClient(SL[slSelection].IP, SL[slSelection].Port, '');
       SL := nil;
       slReturnPressed := True;
       Exit;

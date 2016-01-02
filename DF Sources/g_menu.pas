@@ -479,8 +479,6 @@ begin
   end;
 
   g_Options_Write_Net_Client(GameDir+'\'+CONFIG_FILENAME);
-
-  if PW = '' then PW := 'ASS';
   g_Game_StartClient(NetClientIP, NetClientPort, PW);
 end;
 
@@ -494,9 +492,8 @@ begin
     NetClientPort := PromptPort;
     PW := TGUIEdit(GetControl('edPW')).Text;
   end;
-  g_Options_Write_Net_Client(GameDir+'\'+CONFIG_FILENAME);
 
-  if PW = '' then PW := 'ASS';
+  g_Options_Write_Net_Client(GameDir+'\'+CONFIG_FILENAME);
   g_Game_StartClient(NetClientIP, NetClientPort, PW);
 end;
 

@@ -153,11 +153,10 @@ begin
   if (Len = 0) then Exit;
 
   P := B^.WritePos + Len;
-
   if (P >= BUF_SIZE) then
   begin
-    Len := P - BUF_SIZE;
-    P := B^.WritePos + Len;
+    Len := BUF_SIZE - B^.WritePos;
+    P := BUF_SIZE;
   end;
 
   if (P > B^.Len) then B^.Len := P;
@@ -165,7 +164,7 @@ begin
   CopyMemory(Pointer(Cardinal(Addr(B^.Data)) + B^.WritePos),
              @V[1], Len);
 
-  B^.WritePos := B^.WritePos + Len;
+  B^.WritePos := P;
 end;
 
 procedure e_Buffer_Write(B: pTBuffer; V: TMD5Digest); overload;
@@ -177,44 +176,47 @@ begin
 end;
 
 
-function  e_Buffer_Read_Char(B: pTBuffer): Char;
+function e_Buffer_Read_Char(B: pTBuffer): Char;
 begin
   e_Buffer_Read_Generic(B, Result, 1);
 end;
 
-function  e_Buffer_Read_Byte(B: pTBuffer): Byte;
+function e_Buffer_Read_Byte(B: pTBuffer): Byte;
 begin
   e_Buffer_Read_Generic(B, Result, 1);
 end;
-function  e_Buffer_Read_Word(B: pTBuffer): Word;
+function e_Buffer_Read_Word(B: pTBuffer): Word;
 begin
   e_Buffer_Read_Generic(B, Result, 2);
 end;
-function  e_Buffer_Read_LongWord(B: pTBuffer): LongWord;
+function e_Buffer_Read_LongWord(B: pTBuffer): LongWord;
 begin
   e_Buffer_Read_Generic(B, Result, 4);
 end;
 
-function  e_Buffer_Read_ShortInt(B: pTBuffer): ShortInt;
+function e_Buffer_Read_ShortInt(B: pTBuffer): ShortInt;
 begin
   e_Buffer_Read_Generic(B, Result, 1);
 end;
-function  e_Buffer_Read_SmallInt(B: pTBuffer): SmallInt;
+function e_Buffer_Read_SmallInt(B: pTBuffer): SmallInt;
 begin
   e_Buffer_Read_Generic(B, Result, 2);
 end;
-function  e_Buffer_Read_LongInt(B: pTBuffer): LongInt;
+function e_Buffer_Read_LongInt(B: pTBuffer): LongInt;
 begin
   e_Buffer_Read_Generic(B, Result, 4);
 end;
 
-function  e_Buffer_Read_String(B: pTBuffer): string;
+function e_Buffer_Read_String(B: pTBuffer): string;
 var
   Len: Byte;
 begin
   Len := e_Buffer_Read_Byte(B);
   Result := '';
   if Len = 0 then Exit;
+
+  if B^.ReadPos + Len > B^.Len then
+    Len := B^.Len - B^.ReadPos;
 
   SetLength(Result, Len);
   MoveMemory(@Result[1], Pointer(Cardinal(Addr(B^.Data)) + B^.ReadPos), Len);
@@ -237,38 +239,38 @@ begin
   RawPos := RawPos + N;
 end;
 
-function  e_Raw_Read_Char(P: Pointer): Char;
+function e_Raw_Read_Char(P: Pointer): Char;
 begin
   e_Raw_Read_Generic(P, Result, 1);
 end;
 
-function  e_Raw_Read_Byte(P: Pointer): Byte;
+function e_Raw_Read_Byte(P: Pointer): Byte;
 begin
   e_Raw_Read_Generic(P, Result, 1);
 end;
-function  e_Raw_Read_Word(P: Pointer): Word;
+function e_Raw_Read_Word(P: Pointer): Word;
 begin
   e_Raw_Read_Generic(P, Result, 2);
 end;
-function  e_Raw_Read_LongWord(P: Pointer): LongWord;
+function e_Raw_Read_LongWord(P: Pointer): LongWord;
 begin
   e_Raw_Read_Generic(P, Result, 4);
 end;
 
-function  e_Raw_Read_ShortInt(P: Pointer): ShortInt;
+function e_Raw_Read_ShortInt(P: Pointer): ShortInt;
 begin
   e_Raw_Read_Generic(P, Result, 1);
 end;
-function  e_Raw_Read_SmallInt(P: Pointer): SmallInt;
+function e_Raw_Read_SmallInt(P: Pointer): SmallInt;
 begin
   e_Raw_Read_Generic(P, Result, 2);
 end;
-function  e_Raw_Read_LongInt(P: Pointer): LongInt;
+function e_Raw_Read_LongInt(P: Pointer): LongInt;
 begin
   e_Raw_Read_Generic(P, Result, 4);
 end;
 
-function  e_Raw_Read_String(P: Pointer): string;
+function e_Raw_Read_String(P: Pointer): string;
 var
   Len: Byte;
 begin
