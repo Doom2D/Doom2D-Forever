@@ -286,14 +286,15 @@ begin
   ip := _lc[I_NET_SLIST_HELP];
   mw := (Length(ip) * cw) div 2;
 
+  e_DrawFillQuad(16, 64, gScreenWidth-16, gScreenHeight-44, 64, 64, 64, 110);
+  e_DrawQuad(16, 64, gScreenWidth-16, gScreenHeight-44, 255, 127, 0);
+
   e_TextureFontPrintEx(gScreenWidth div 2 - mw, gScreenHeight-24, ip, gStdFont, 225, 225, 225, 1);
 
   if SL = nil then
   begin
     l := Length(slWaitStr) div 2;
-    e_DrawFillQuad(16, 64, gScreenWidth-16, gScreenHeight-64, 64, 64, 64, 128);
-    e_DrawQuad(16, 64, gScreenWidth-16, gScreenHeight-64, 255, 127, 0);
-    e_DrawFillQuad(16, 64, gScreenWidth-16, gScreenHeight-64, 64, 64, 64, 128);
+    e_DrawFillQuad(16, 64, gScreenWidth-16, gScreenHeight-44, 64, 64, 64, 128);
     e_DrawQuad(gScreenWidth div 2 - 192, gScreenHeight div 2 - 10,
       gScreenWidth div 2 + 192, gScreenHeight div 2 + 11, 255, 127, 0);
     e_TextureFontPrint(gScreenWidth div 2 - cw * l, gScreenHeight div 2 - ch div 2,
@@ -306,11 +307,11 @@ begin
   begin
     I := slSelection;
     sy := y + 42 * I - 4;
-    ip := 'IP: ' + SL[I].IP + ':' + IntToStr(SL[I].Port);
+    ip := _lc[I_NET_ADDRESS] + ' ' + SL[I].IP + ':' + IntToStr(SL[I].Port);
     if SL[I].Password then
-      ip := ip + '  ' + _lc[I_NET_SERVER_PASSWORD] + ' Y'
+      ip := ip + '  ' + _lc[I_NET_SERVER_PASSWORD] + ' ' + _lc[I_MENU_YES]
     else
-      ip := ip + '  ' + _lc[I_NET_SERVER_PASSWORD] + ' N';
+      ip := ip + '  ' + _lc[I_NET_SERVER_PASSWORD] + ' ' + _lc[I_MENU_NO];
   end else
     if Length(SL) > 0 then
       slSelection := 0;
@@ -318,18 +319,16 @@ begin
   mw := (gScreenWidth - 188);
   mx := 16 + mw;
 
-  e_DrawFillQuad(16, 64, gScreenWidth-16, gScreenHeight-44, 64, 64, 64, 110);
+  e_DrawFillQuad(16 + 1, sy, gScreenWidth - 16 - 1, sy + 40, 64, 64, 64, 0);
+  e_DrawLine(1, 16 + 1, sy, gScreenWidth - 16 - 1, sy, 205, 205, 205);
+  e_DrawLine(1, 16 + 1, sy + 41, gScreenWidth - 16 - 1, sy + 41, 255, 255, 255);
 
-  e_DrawFillQuad(16, sy, gScreenWidth - 16, sy + 40, 64, 64, 64, 0);
-  e_DrawLine(1, 16, sy, gScreenWidth - 16, sy, 205, 205, 205);
-  e_DrawLine(1, 16, sy + 41, gScreenWidth - 16, sy + 41, 255, 255, 255);
+  e_DrawLine(1, 16, 85, gScreenWidth - 16, 85, 255, 127, 0);
+  e_DrawLine(1, 16, gScreenHeight-64, gScreenWidth-16, gScreenHeight-64, 255, 127, 0);
 
-  e_DrawQuad(16, 64, gScreenWidth-16, gScreenHeight-64, 255, 127, 0);
-  e_DrawQuad(16, 64, mx, gScreenHeight-64, 255, 127, 0);
-  e_DrawQuad(mx, 64, mx + 52, gScreenHeight-64, 255, 127, 0);
-  e_DrawQuad(mx + 52, 64, mx + 104, gScreenHeight-64, 255, 127, 0);
-  e_DrawQuad(mx + 104, 64,  gScreenWidth - 16, gScreenHeight-64, 255, 127, 0);
-  e_DrawQuad(16, gScreenHeight-64, gScreenWidth - 16, gScreenHeight-44, 255, 127, 0);
+  e_DrawLine(1, mx, 64, mx, gScreenHeight-44, 255, 127, 0);
+  e_DrawLine(1, mx + 52, 64, mx + 52, gScreenHeight-64, 255, 127, 0);
+  e_DrawLine(1, mx + 104, 64, mx + 104, gScreenHeight-64, 255, 127, 0);
 
   e_TextureFontPrintEx(18, 68, 'NAME/MAP', gStdFont, 255, 127, 0, 1);
 
@@ -368,9 +367,6 @@ begin
 
     y := y + 42;
   end;
-
-  e_DrawLine(1, 16, 85, gScreenWidth - 16, 85, 255, 127, 0);
-  e_DrawLine(1, mx + 1, gScreenHeight-64, mx, gScreenHeight-44, 255, 127, 0);
 
   e_TextureFontPrintEx(20, gScreenHeight-61, ip, gStdFont, 205, 205, 205, 1);
   ip := IntToStr(Length(SL)) + _lc[I_NET_SLIST_SERVERS];
