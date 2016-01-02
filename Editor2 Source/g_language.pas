@@ -1026,7 +1026,7 @@ Const
                                        'Угол'),
     ('PROP TR SHOT TO',                'Target',
                                        'Автонаведение'),
-    ('PROP TR SHOT TO 0',              'Noone',
+    ('PROP TR SHOT TO 0',              'None',
                                        'Нет'),
     ('PROP TR SHOT TO 1',              'Monsters',
                                        'Монстры'),
