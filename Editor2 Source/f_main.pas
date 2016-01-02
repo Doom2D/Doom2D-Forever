@@ -1429,16 +1429,22 @@ begin
                   ReadOnly := True;
                 end;
 
+                with ItemProps[InsertRow(_lc[I_PROP_TR_SHOT_ANGLE], IntToStr(Data.ShotAngle), True)-1] do
+                begin
+                  EditStyle := esSimple;
+                  MaxLength := 4;
+                end;
+
                 with ItemProps[InsertRow(_lc[I_PROP_TR_EX_DELAY], IntToStr(Data.ShotWait), True)-1] do
                 begin
                   EditStyle := esSimple;
                   MaxLength := 5;
                 end;
 
-                with ItemProps[InsertRow(_lc[I_PROP_TR_SHOT_ANGLE], IntToStr(Data.ShotAngle), True)-1] do
+                with ItemProps[InsertRow(_lc[I_PROP_TR_SHOT_ACC], IntToStr(Data.ShotAccuracy), True)-1] do
                 begin
                   EditStyle := esSimple;
-                  MaxLength := 4;
+                  MaxLength := 5;
                 end;
 
                 with ItemProps[InsertRow(_lc[I_PROP_TR_SHOT_SOUND], BoolNames[Data.ShotSound], True)-1] do
@@ -3521,11 +3527,11 @@ begin
                       trigger.Data.ShotTarget := 0;
                       trigger.Data.ShotPos.X := trigger.X-64;
                       trigger.Data.ShotPos.Y := trigger.Y-64;
-                      trigger.Data.ShotAmmo := 0;
                       trigger.Data.ShotSound := True;
                       trigger.Data.ShotWait := 18;
-                      trigger.Data.ShotIntPreload := 0;
+                      trigger.Data.ShotAccuracy := 0;
                       trigger.Data.ShotIntReload := 36;
+                      trigger.Data.ShotAmmo := 0;
                     end;
                 end;
 
@@ -4478,6 +4484,8 @@ begin
                   Data.ShotTarget := 4;
                 Data.ShotWait := Min(Max(
                   StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_EX_DELAY]], 0), 0), 65535);
+                Data.ShotAccuracy := Min(Max(
+                  StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_SHOT_ACC]], 0), 0), 65535);
               end;
           end;
         end;

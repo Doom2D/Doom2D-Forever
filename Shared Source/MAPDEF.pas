@@ -263,7 +263,7 @@ Type
                              ShotAngle: Word;
                              ShotTarget: Byte;
                              ShotWait: Word;
-                             ShotIntPreload: Word;
+                             ShotAccuracy: Word;
                              ShotIntReload: Word;
                              ShotAmmo: Word;
                              ShotPos: TPoint;

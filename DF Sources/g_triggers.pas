@@ -1443,6 +1443,9 @@ begin
           Projectile := True;
           snd := 'SOUND_WEAPON_FIREROCKET';
 
+          xd := xd + Random(Data.ShotAccuracy) - Random(Data.ShotAccuracy);
+          yd := yd + Random(Data.ShotAccuracy) - Random(Data.ShotAccuracy);
+
           case Data.ShotType of
             TRIGGER_SHOT_BULLET:
               begin
