@@ -1572,7 +1572,7 @@ begin
 
      'l':
       begin
-        c.R := c.R * 2; c.G := c.G * 2; c.B := c.B * 2;
+        c.R := (c.R * 2) and 255; c.G := (c.G * 2) and 255; c.B := (c.B * 2) and 255;
       end;
 
      else b := False;

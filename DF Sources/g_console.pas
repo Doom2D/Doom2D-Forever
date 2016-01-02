@@ -728,6 +728,8 @@ begin
     SetLength(Result, Length(Result)+1);
     Result[High(Result)] := GetStr(Str);
   end;
+  if Length(Result) > 0 then
+    Result[0] := Unformat(Result[0]);
 end;
 
 procedure g_Console_Add(L: String; Show: Boolean = False);
@@ -823,7 +825,7 @@ begin
 
   if not Quiet then
   begin
-    g_Console_Add('> '+L);
+    g_Console_Add('> '+Unformat(L));
     Line := '';
     CPos := 1;
   end;
