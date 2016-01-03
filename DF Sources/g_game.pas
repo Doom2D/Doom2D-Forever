@@ -4710,6 +4710,7 @@ begin
           MC_SEND_Vote(True, chstr)
         else
           g_Game_StartVote(chstr, gPlayer1Settings.Name);
+        g_Console_Process('vote', True);
       end
       else
         g_Console_Add('callvote <command>');
