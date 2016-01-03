@@ -44,6 +44,8 @@ const
   NET_STATE_AUTH = 1;
   NET_STATE_GAME = 2;
 
+  BANLIST_FILENAME = 'banlist.txt';
+
 type
   TNetClient = record
     ID:      Byte;
@@ -85,7 +87,7 @@ var
   NetSlistAddr: ENetAddress;
   NetSlistIP:   string = 'mpms.doom2d.org';
   NetSlistPort: Word = 25665;
-  
+
   NetClientIP:   string = '127.0.0.1';
   NetClientPort: Word   = 25666;
 
@@ -94,6 +96,7 @@ var
   NetClients:     array of TNetClient;
   NetClientCount: Byte = 0;
   NetMaxClients:  Byte = 255;
+  NetBannedHosts: array of LongWord;
 
   NetState:      Integer = NET_STATE_NONE;
 
@@ -134,13 +137,19 @@ procedure g_Net_SendData(Data:AByte; peer: pENetPeer; Reliable: Boolean; Chan: B
 function  g_Net_Wait_Event(msgId: Word): TMemoryStream;
 
 function  IpToStr(IP: LongWord): string;
+function  StrToIp(IPstr: string; var IP: LongWord): Boolean;
+function  g_Net_IsHostBanned(IP: LongWord): Boolean;
+procedure g_Net_BanHost(IP: LongWord);
+function  g_Net_UnbanHost(IP: string): Boolean; overload;
+function  g_Net_UnbanHost(IP: LongWord): Boolean; overload;
+procedure g_Net_SaveBanList();
 
 implementation
 
 uses
   SysUtils,
   e_input, g_nethandler, g_netmsg, g_netmaster, g_player, g_window, g_console,
-  g_game, g_language, g_weapons;
+  g_main, g_game, g_language, g_weapons;
 
 
 { /// SERVICE FUNCTIONS /// }
@@ -189,6 +198,10 @@ begin
 end;
 
 function g_Net_Init(): Boolean;
+var
+  F: TextFile;
+  IPstr: string;
+  IP: LongWord;
 begin
   e_Buffer_Clear(@NetIn);
   e_Buffer_Clear(@NetOut);
@@ -198,7 +211,21 @@ begin
   NetMyID := -1;
   NetPlrUID := -1;
   NetAddr.port := 25666;
-  
+  SetLength(NetBannedHosts, 0);
+  if FileExists(DataDir + BANLIST_FILENAME) then
+  begin
+    Assign(F, DataDir + BANLIST_FILENAME);
+    Reset(F);
+    while not EOF(F) do
+    begin
+      Readln(F, IPstr);
+      if StrToIp(IPstr, IP) then
+        g_Net_BanHost(IP);
+    end;
+    CloseFile(F);
+    g_Net_SaveBanList();
+  end;
+
   Result := (enet_initialize() = 0);
 end;
 
@@ -600,7 +627,7 @@ begin
     Result := False;
     Exit;
   end;
-  
+
   enet_address_set_host(@NetAddr, PChar(Addr(IP[1])));
   NetAddr.port := Port;
 
@@ -661,6 +688,14 @@ begin
   Result := Result + IntToStr(e_Raw_Read_Byte(Ptr)) + '.';
   Result := Result + IntToStr(e_Raw_Read_Byte(Ptr));
   e_Raw_Seek(0);
+end;
+
+function StrToIp(IPstr: string; var IP: LongWord): Boolean;
+var
+  EAddr: ENetAddress;
+begin
+  Result := enet_address_set_host(@EAddr, PChar(@IPstr[1])) = 0;
+  IP := EAddr.host;
 end;
 
 function g_Net_Client_ByName(Name: string): pTNetClient;
@@ -796,6 +831,72 @@ begin
       break;
   end;
   Result := msgStream;
+end;
+
+function g_Net_IsHostBanned(IP: LongWord): Boolean;
+var
+  I: Integer;
+begin
+  Result := False;
+  if NetBannedHosts = nil then
+    Exit;
+  for I := 0 to High(NetBannedHosts) do
+    if NetBannedHosts[I] = IP then
+    begin
+      Result := True;
+      break;
+    end;
+end;
+
+procedure g_Net_BanHost(IP: LongWord);
+begin
+  if g_Net_IsHostBanned(IP) then
+    Exit;
+  if IP = 0 then
+    Exit;
+  SetLength(NetBannedHosts, Length(NetBannedHosts) + 1);
+  NetBannedHosts[High(NetBannedHosts)] := IP;
+end;
+
+function g_Net_UnbanHost(IP: string): Boolean; overload;
+var
+  a: LongWord;
+begin
+  Result := StrToIp(IP, a);
+  if Result then
+    Result := g_Net_UnbanHost(a);
+end;
+
+function g_Net_UnbanHost(IP: LongWord): Boolean; overload;
+var
+  I: Integer;
+begin
+  Result := False;
+  if IP = 0 then
+    Exit;
+  if NetBannedHosts = nil then
+    Exit;
+  for I := 0 to High(NetBannedHosts) do
+    if NetBannedHosts[I] = IP then
+    begin
+      NetBannedHosts[I] := 0;
+      Result := True;
+      break;
+    end;
+end;
+
+procedure g_Net_SaveBanList();
+var
+  F: TextFile;
+  I: Integer;
+begin
+  Assign(F, DataDir + BANLIST_FILENAME);
+  Rewrite(F);
+  if NetBannedHosts <> nil then
+    for I := 0 to High(NetBannedHosts) do
+      if NetBannedHosts[I] > 0 then
+        Writeln(F, IpToStr(NetBannedHosts[I]));
+  CloseFile(F);
 end;
 
 end.

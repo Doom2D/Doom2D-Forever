@@ -499,6 +499,8 @@ type
     I_MSG_GM_UNAVAIL,
     I_MSG_SERVERONLY,
     I_MSG_NOCLIENTS,
+    I_MSG_UNBAN_OK,
+    I_MSG_UNBAN_FAIL,
 
     I_TEXTURE_ENDPIC,
 
@@ -1478,6 +1480,10 @@ const
                                        'Эта команда доступна только в режиме сервера.'),
     ('MSG NOCLIENTS',                  'No clients connected.',
                                        'Нет подключённых клиентов.'),
+    ('MSG UNBAN OK',                   'Client %s was unbanned.',
+                                       'Был снят бан с клиента %s.'),
+    ('MSG UNBAN FAIL',                 'Client %s not in ban list.',
+                                       'Клиент %s не числится в списке забаненых.'),
 
     ('TEXTURE ENDPIC',                 'ENDGAME_EN',
                                        'ENDGAME_RU'),

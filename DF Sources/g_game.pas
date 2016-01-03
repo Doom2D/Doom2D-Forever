@@ -4008,8 +4008,12 @@ begin
       if g_Game_IsNet then
         pl := g_Net_Client_ByName(P[1]);
       if (pl <> nil) then
-        enet_peer_disconnect(pl^.Peer, NET_DISC_KICK)
-      else if gPlayers <> nil then
+      begin
+        s := g_Net_ClientName_ByID(pl^.ID);
+        enet_peer_disconnect(pl^.Peer, NET_DISC_KICK);
+        g_Console_Add(Format(_lc[I_PLAYER_KICK], [s]));
+        MH_SEND_Chat(Format(_lc[I_PLAYER_KICK], [s]), True);
+      end else if gPlayers <> nil then
         for a := Low(gPlayers) to High(gPlayers) do
           if gPlayers[a] <> nil then
             if Copy(LowerCase(gPlayers[a].Name), 1, Length(P[1])) = LowerCase(P[1]) then
@@ -4030,12 +4034,12 @@ begin
     begin
       if Length(P) < 2 then
       begin
-        g_Console_Add('kick_id client_id');
+        g_Console_Add('kick_id <client ID>');
         Exit;
       end;
       if P[1] = '' then
       begin
-        g_Console_Add('kick_id client_id');
+        g_Console_Add('kick_id <client ID>');
         Exit;
       end;
 
@@ -4043,8 +4047,95 @@ begin
       if (NetClients <> nil) and (a <= High(NetClients)) then
       begin
         if NetClients[a].Used and (NetClients[a].Peer <> nil) then
+        begin
+          s := g_Net_ClientName_ByID(NetClients[a].ID);
           enet_peer_disconnect(NetClients[a].Peer, NET_DISC_KICK);
+          g_Console_Add(Format(_lc[I_PLAYER_KICK], [s]));
+          MH_SEND_Chat(Format(_lc[I_PLAYER_KICK], [s]), True);
+        end;
       end;
+    end else
+      g_Console_Add(_lc[I_MSG_SERVERONLY]);
+  end
+  else if cmd = 'ban' then
+  begin
+    if g_Game_IsServer and g_Game_IsNet then
+    begin
+      if Length(P) < 2 then
+      begin
+        g_Console_Add('ban <name>');
+        Exit;
+      end;
+      if P[1] = '' then
+      begin
+        g_Console_Add('ban <name>');
+        Exit;
+      end;
+
+      pl := g_Net_Client_ByName(P[1]);
+      if (pl <> nil) then
+      begin
+        s := g_Net_ClientName_ByID(pl^.ID);
+        g_Net_BanHost(pl^.Peer^.address.host);
+        enet_peer_disconnect(pl^.Peer, NET_DISC_BAN);
+        g_Net_SaveBanList();
+        g_Console_Add(Format(_lc[I_PLAYER_BAN], [s]));
+        MH_SEND_Chat(Format(_lc[I_PLAYER_BAN], [s]), True);
+      end else
+        g_Console_Add(Format(_lc[I_NET_ERR_NAME404], [P[1]]));
+    end else
+      g_Console_Add(_lc[I_MSG_SERVERONLY]);
+  end
+  else if cmd = 'ban_id' then
+  begin
+    if g_Game_IsServer and g_Game_IsNet then
+    begin
+      if Length(P) < 2 then
+      begin
+        g_Console_Add('ban_id <client ID>');
+        Exit;
+      end;
+      if P[1] = '' then
+      begin
+        g_Console_Add('ban_id <client ID>');
+        Exit;
+      end;
+
+      a := StrToIntDef(P[1], 0);
+      if (NetClients <> nil) and (a <= High(NetClients)) then
+        if NetClients[a].Used and (NetClients[a].Peer <> nil) then
+        begin
+          s := g_Net_ClientName_ByID(NetClients[a].ID);
+          g_Net_BanHost(NetClients[a].Peer^.address.host);
+          enet_peer_disconnect(NetClients[a].Peer, NET_DISC_BAN);
+          g_Net_SaveBanList();
+          g_Console_Add(Format(_lc[I_PLAYER_BAN], [s]));
+          MH_SEND_Chat(Format(_lc[I_PLAYER_BAN], [s]), True);
+        end;
+    end else
+      g_Console_Add(_lc[I_MSG_SERVERONLY]);
+  end
+  else if cmd = 'unban' then
+  begin
+    if g_Game_IsServer and g_Game_IsNet then
+    begin
+      if Length(P) < 2 then
+      begin
+        g_Console_Add('unban <IP Address>');
+        Exit;
+      end;
+      if P[1] = '' then
+      begin
+        g_Console_Add('unban <IP Address>');
+        Exit;
+      end;
+
+      if g_Net_UnbanHost(P[1]) then
+      begin
+        g_Console_Add(Format(_lc[I_MSG_UNBAN_OK], [P[1]]));
+        g_Net_SaveBanList();
+      end else
+        g_Console_Add(Format(_lc[I_MSG_UNBAN_FAIL], [P[1]]));
     end else
       g_Console_Add(_lc[I_MSG_SERVERONLY]);
   end

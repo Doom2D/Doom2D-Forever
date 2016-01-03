@@ -407,6 +407,9 @@ begin
   AddCommand('ready', GameCommands);
   AddCommand('kick', GameCommands);
   AddCommand('kick_id', GameCommands);
+  AddCommand('ban', GameCommands);
+  AddCommand('ban_id', GameCommands);
+  AddCommand('unban', GameCommands);
   AddCommand('connect', GameCommands);
   AddCommand('disconnect', GameCommands);
   AddCommand('reconnect', GameCommands);
@@ -427,6 +430,7 @@ begin
   WhitelistCommand('endmap');
   WhitelistCommand('restart');
   WhitelistCommand('kick');
+  WhitelistCommand('ban');
 
   WhitelistCommand('addbot');
   WhitelistCommand('bot_add');

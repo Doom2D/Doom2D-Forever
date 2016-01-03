@@ -295,6 +295,14 @@ begin
     Exit;
   end;
 
+  if g_Net_IsHostBanned(C^.Peer^.address.host) then
+  begin
+    g_Console_Add(_lc[I_NET_MSG] + _lc[I_NET_MSG_HOST_REJECT] +
+      _lc[I_NET_DISC_BAN]);
+    enet_peer_disconnect(C^.Peer, NET_DISC_BAN);
+    Exit;
+  end;
+
   if NetPassword <> '' then
     if AnsiLowerCase(NetPassword) <> AnsiLowerCase(Pw) then
     begin
