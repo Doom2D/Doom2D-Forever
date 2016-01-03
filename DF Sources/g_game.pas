@@ -4889,7 +4889,7 @@ begin
   if gVoteInProgress or gVotePassed then
   begin
     g_Console_Add(Format(_lc[I_MESSAGE_VOTE_INPROGRESS], [gVoteCommand]), True);
-    MH_SEND_VoteEvent(NET_VE_INPROGRESS);
+    MH_SEND_VoteEvent(NET_VE_INPROGRESS, gVoteCommand);
     Exit;
   end;
   gVoteInProgress := True;
