@@ -1172,49 +1172,50 @@ begin
     // Обрабатываем клавиши игроков:
       if gPlayer1 <> nil then gPlayer1.ReleaseKeys();
       if gPlayer2 <> nil then gPlayer2.ReleaseKeys();
-      if (not gConsoleShow) and (not gChatShow) and (g_ActiveWindow = nil) and (gPlayer1 <> nil) then
+      if (not gConsoleShow) and (not gChatShow) and (g_ActiveWindow = nil) then
       begin
-        with gGameControls.P1Control do
-        begin
-          if (e_KeyBuffer[KeyLeft] = $080) and (e_KeyBuffer[KeyRight] <> $080) then
-            P1MoveButton := 1 // Нажата только "Влево"
-          else
-            if (e_KeyBuffer[KeyLeft] <> $080) and (e_KeyBuffer[KeyRight] = $080) then
-              P1MoveButton := 2 // Нажата только "Вправо"
+      // Первый игрок:
+        if gPlayer1 <> nil then
+          with gGameControls.P1Control do
+          begin
+            if (e_KeyBuffer[KeyLeft] = $080) and (e_KeyBuffer[KeyRight] <> $080) then
+              P1MoveButton := 1 // Нажата только "Влево"
             else
-              if (e_KeyBuffer[KeyLeft] <> $080) and (e_KeyBuffer[KeyRight] <> $080) then
-                P1MoveButton := 0; // Не нажаты ни "Влево", ни "Вправо"
+              if (e_KeyBuffer[KeyLeft] <> $080) and (e_KeyBuffer[KeyRight] = $080) then
+                P1MoveButton := 2 // Нажата только "Вправо"
+              else
+                if (e_KeyBuffer[KeyLeft] <> $080) and (e_KeyBuffer[KeyRight] <> $080) then
+                  P1MoveButton := 0; // Не нажаты ни "Влево", ни "Вправо"
 
-        // Сейчас или раньше были нажаты "Влево"/"Вправо" => передаем игроку:
-          if P1MoveButton = 1 then
-            gPlayer1.PressKey(KEY_LEFT)
-          else
-          if P1MoveButton = 2 then
-            gPlayer1.PressKey(KEY_RIGHT);
-
-        // Раньше была нажата "Вправо", а сейчас "Влево" => бежим вправо, смотрим влево:
-          if (P1MoveButton = 2) and (e_KeyBuffer[KeyLeft] = $080) then
-            gPlayer1.SetDirection(D_LEFT)
-          else
-          // Раньше была нажата "Влево", а сейчас "Вправо" => бежим влево, смотрим вправо:
-            if (P1MoveButton = 1) and (e_KeyBuffer[KeyRight] = $080) then
-              gPlayer1.SetDirection(D_RIGHT)
+          // Сейчас или раньше были нажаты "Влево"/"Вправо" => передаем игроку:
+            if P1MoveButton = 1 then
+              gPlayer1.PressKey(KEY_LEFT)
             else
-            // Что-то было нажато и не изменилось => куда бежим, туда и смотрим:
-              if P1MoveButton <> 0 then
-                gPlayer1.SetDirection(TDirection(P1MoveButton-1));
+            if P1MoveButton = 2 then
+              gPlayer1.PressKey(KEY_RIGHT);
 
-        // Остальные клавиши:
-          if e_KeyBuffer[KeyJump] = $080 then gPlayer1.PressKey(KEY_JUMP);
-          if e_KeyBuffer[KeyUp] = $080 then gPlayer1.PressKey(KEY_UP);
-          if e_KeyBuffer[KeyDown] = $080 then gPlayer1.PressKey(KEY_DOWN);
-          if e_KeyBuffer[KeyFire] = $080 then gPlayer1.PressKey(KEY_FIRE);
-          if e_KeyBuffer[KeyNextWeapon] = $080 then gPlayer1.PressKey(KEY_NEXTWEAPON);
-          if e_KeyBuffer[KeyPrevWeapon] = $080 then gPlayer1.PressKey(KEY_PREVWEAPON);
-          if e_KeyBuffer[KeyOpen] = $080 then gPlayer1.PressKey(KEY_OPEN);
-        end;
+          // Раньше была нажата "Вправо", а сейчас "Влево" => бежим вправо, смотрим влево:
+            if (P1MoveButton = 2) and (e_KeyBuffer[KeyLeft] = $080) then
+              gPlayer1.SetDirection(D_LEFT)
+            else
+            // Раньше была нажата "Влево", а сейчас "Вправо" => бежим влево, смотрим вправо:
+              if (P1MoveButton = 1) and (e_KeyBuffer[KeyRight] = $080) then
+                gPlayer1.SetDirection(D_RIGHT)
+              else
+              // Что-то было нажато и не изменилось => куда бежим, туда и смотрим:
+                if P1MoveButton <> 0 then
+                  gPlayer1.SetDirection(TDirection(P1MoveButton-1));
 
-      // Второй игрок (если есть):
+          // Остальные клавиши:
+            if e_KeyBuffer[KeyJump] = $080 then gPlayer1.PressKey(KEY_JUMP);
+            if e_KeyBuffer[KeyUp] = $080 then gPlayer1.PressKey(KEY_UP);
+            if e_KeyBuffer[KeyDown] = $080 then gPlayer1.PressKey(KEY_DOWN);
+            if e_KeyBuffer[KeyFire] = $080 then gPlayer1.PressKey(KEY_FIRE);
+            if e_KeyBuffer[KeyNextWeapon] = $080 then gPlayer1.PressKey(KEY_NEXTWEAPON);
+            if e_KeyBuffer[KeyPrevWeapon] = $080 then gPlayer1.PressKey(KEY_PREVWEAPON);
+            if e_KeyBuffer[KeyOpen] = $080 then gPlayer1.PressKey(KEY_OPEN);
+          end;
+      // Второй игрок:
         if gPlayer2 <> nil then
           with gGameControls.P2Control do
           begin
