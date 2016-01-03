@@ -154,7 +154,7 @@ begin
           s := '';
           for a := 1 to High(P) do
             s := s + P[a] + ' ';
-          g_Console_Add(s, True);
+          g_Console_Add(b_Text_Format(s), True);
         end;
       end
     else
@@ -419,7 +419,7 @@ begin
   AddCommand('clientlist', GameCommands);
   AddCommand('event', GameCommands);
 
-  WhitelistCommand('broadcast');
+  WhitelistCommand('say');
   WhitelistCommand('tell');
   WhitelistCommand('ready');
   WhitelistCommand('map');
@@ -734,8 +734,6 @@ procedure g_Console_Add(L: String; Show: Boolean = False);
 var
   a: Integer;
 begin
-  L := e_Text_Format(L);
-
   // Вывод строк с переносами по очереди
   while Pos(#10, L) > 0 do
   begin

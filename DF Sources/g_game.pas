@@ -3665,12 +3665,12 @@ begin
     begin
       if not g_Game_IsClient then
       begin
-        gPlayer1.Name := Unformat(P[1]);
+        gPlayer1.Name := b_Text_Unformat(P[1]);
         if g_Game_IsNet then MH_SEND_PlayerSettings(gPlayer1.UID);
       end
       else if not (g_Game_IsNet and NetDedicated) then
       begin
-        gPlayer1Settings.Name := Unformat(P[1]);
+        gPlayer1Settings.Name := b_Text_Unformat(P[1]);
         MC_SEND_PlayerSettings;
       end;
     end;
@@ -3678,7 +3678,7 @@ begin
   else if (cmd = 'p2_name') and not g_Game_IsNet then
   begin
     if (Length(P) > 1) and gGameOn and (gPlayer2 <> nil) then
-      gPlayer2.Name := Unformat(P[1]);
+      gPlayer2.Name := b_Text_Unformat(P[1]);
   end
   else if cmd = 'p1_color' then
   begin
@@ -4147,7 +4147,7 @@ begin
 
         if Length(chstr) < 1 then
         begin
-          g_Console_Add('chat text');
+          g_Console_Add('chat <text>');
           Exit;
         end;
 
@@ -4157,8 +4157,9 @@ begin
           MH_SEND_Chat(gPlayer1Settings.Name + '\1: ' + chstr);
       end
       else
-        g_Console_Add('chat text');
-    end;
+        g_Console_Add('chat <text>');
+    end else
+      g_Console_Add(_lc[I_MSG_GM_UNAVAIL]);
   end
   else if cmd = 'map' then
   begin
@@ -4521,14 +4522,15 @@ begin
 
           if Length(chstr) < 1 then
           begin
-            g_Console_Add('say text');
+            g_Console_Add('say <text>');
             Exit;
           end;
 
           MH_SEND_Chat(chstr);
         end
-        else g_Console_Add('say text');
-      end;
+        else g_Console_Add('say <text>');
+      end else
+        g_Console_Add(_lc[I_MSG_SERVERONLY]);
     end
     else if cmd = 'tell' then
     begin
@@ -4544,7 +4546,7 @@ begin
 
           if Length(chstr) < 1 then
           begin
-            g_Console_Add('tell playername text');
+            g_Console_Add('tell <playername> <text>');
             Exit;
           end;
 
@@ -4558,8 +4560,9 @@ begin
           else
             g_Console_Add(Format(_lc[I_NET_ERR_NAME404], [P[1]]));
         end
-        else g_Console_Add('tell playername text');
-      end;
+        else g_Console_Add('tell <playername> <text>');
+      end else
+        g_Console_Add(_lc[I_MSG_SERVERONLY]);
     end
     else if (cmd = 'rcon_password') and g_Game_IsClient then
     begin
@@ -4783,7 +4786,7 @@ end;
 
 procedure g_Game_Message(Msg: string; Time: Word);
 begin
-  MessageText := e_Text_Format(Msg);
+  MessageText := b_Text_Format(Msg);
   MessageTime := Time;
 end;
 

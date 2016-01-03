@@ -74,7 +74,6 @@ procedure e_SimpleFontPrintEx(X, Y: SmallInt; Text: PChar; Font: DWORD; Red, Gre
                       sRed, sGreen, sBlue, sWidth: Byte);
 
 // CharFont
-function e_Text_Format(Text: string): string;
 function e_CharFont_Create(sp: ShortInt=0): DWORD;
 procedure e_CharFont_AddChar(FontID: DWORD; Texture: Integer; c: Char; w: Byte);
 procedure e_CharFont_Print(FontID: DWORD; X, Y: Integer; Text: string);
@@ -1044,52 +1043,6 @@ procedure e_SimpleFontPrintEx(X, Y: SmallInt; Text: PChar; Font: DWORD; Red, Gre
 begin
  e_SimpleFontPrint(X, Y, Text, Font, Red, Green, Blue);
  e_SimpleFontPrint(X+sWidth, Y+sWidth, Text, Font, sRed, sGreen, sBlue);
-end;
-
-function e_Text_Format(Text: string): string;
-var
-  Spec: Boolean;
-  I: Integer;
-begin
-  Result := '';
-  Spec := False;
-  for I := 1 to Length(Text) do
-  begin
-    if (Text[I] = '\') and (I + 1 <= Length(Text)) then
-    begin
-      Spec := True;
-      continue;
-    end;
-    if Spec then
-    begin
-      case Text[I] of
-        'n': // line feed
-          Result := Result + #10;
-        '0': // black
-          Result := Result + #1;
-        '1': // white
-          Result := Result + #2;
-        'd': // darker
-          Result := Result + #3;
-        'l': // lighter
-          Result := Result + #4;
-        'r': // red
-          Result := Result + #18;
-        'g': // green
-          Result := Result + #19;
-        'b': // blue
-          Result := Result + #20;
-        'y': // yellow
-          Result := Result + #21;
-        '\': // escape
-          Result := Result + '\';
-        else
-          Result := Result + '\' + Text[I];
-      end;
-      Spec := False;
-    end else
-      Result := Result + Text[I];
-  end;
 end;
 
 function e_CharFont_Create(sp: ShortInt=0): DWORD;
