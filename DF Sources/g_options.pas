@@ -22,6 +22,7 @@ type
     TakeScreenshot: Byte;
     Stat: Byte;
     Chat: Byte;
+    TeamChat: Byte;
   end;
 
   TControls = record
@@ -120,6 +121,7 @@ begin
     TakeScreenshot := 183;
     Stat := 15;
     Chat := 20; // [T]
+    TeamChat := 21; // [Y]
   end;
 
   with gGameControls.P1Control do
@@ -230,6 +232,7 @@ begin
     TakeScreenshot := config.ReadInt('GameControls', 'TakeScreenshot', 183);
     Stat := config.ReadInt('GameControls', 'Stat', 15);
     Chat := config.ReadInt('GameControls', 'Chat', 20);
+    TeamChat := config.ReadInt('GameControls', 'TeamChat', 21);
   end;
 
   with gGameControls.P1Control, config do
@@ -433,6 +436,7 @@ begin
     WriteInt('GameControls', 'TakeScreenshot', TakeScreenshot);
     WriteInt('GameControls', 'Stat', Stat);
     WriteInt('GameControls', 'Chat', Chat);
+    WriteInt('GameControls', 'TeamChat', TeamChat);
   end;
 
   with config, gGameControls.P1Control, gPlayer1Settings do

@@ -13,11 +13,12 @@ procedure g_Console_Add(L: String; Show: Boolean = False);
 procedure g_Console_Clear();
 function  g_Console_CommandBlacklisted(C: String): Boolean;
 
-procedure g_Console_Chat_Switch();
+procedure g_Console_Chat_Switch(Team: Boolean = False);
 
 var
   gConsoleShow: Boolean; // True - консоль открыта или открывается
   gChatShow: Boolean;
+  gChatTeam: Boolean = False;
   gAllowConsoleMessages: Boolean = True;
   gJustChatted: Boolean = False; // чтобы админ в интере чатясь не проматывал статистику
 
@@ -399,6 +400,7 @@ begin
   AddCommand('bot_addblue', GameCommands);
   AddCommand('bot_removeall', GameCommands);
   AddCommand('chat', GameCommands);
+  AddCommand('teamchat', GameCommands);
   AddCommand('map', GameCommands);
   AddCommand('nextmap', GameCommands);
   AddCommand('endmap', GameCommands);
@@ -521,10 +523,20 @@ begin
   begin
     if gChatShow then
     begin
-      e_TextureFontPrintEx(0, gScreenHeight - 16, 'say> ' + Line,
-        gStdFont, 255, 255, 255, 1, True);
-      e_TextureFontPrintEx((CPos + 4)*CWidth, gScreenHeight - 16, '_',
-        gStdFont, 255, 255, 255, 1, True);
+      if gChatTeam then
+      begin
+        e_TextureFontPrintEx(0, gScreenHeight - 16, 'team say> ' + Line,
+          gStdFont, 255, 255, 255, 1, True);
+        e_TextureFontPrintEx((CPos + 9)*CWidth, gScreenHeight - 16, '_',
+          gStdFont, 255, 255, 255, 1, True);
+      end
+      else
+      begin
+        e_TextureFontPrintEx(0, gScreenHeight - 16, 'say> ' + Line,
+          gStdFont, 255, 255, 255, 1, True);
+        e_TextureFontPrintEx((CPos + 4)*CWidth, gScreenHeight - 16, '_',
+          gStdFont, 255, 255, 255, 1, True);
+      end;
     end;
     Exit;
   end;
@@ -570,11 +582,12 @@ begin
   Cons_Shown := True;
 end;
 
-procedure g_Console_Chat_Switch();
+procedure g_Console_Chat_Switch(Team: Boolean = False);
 begin
   if gConsoleShow then Exit;
   if not g_Game_IsNet then Exit;
   gChatShow := not gChatShow;
+  gChatTeam := Team;
   Line := '';
   CPos := 1;
 end;
@@ -645,10 +658,21 @@ begin
         begin
           if (Length(Line) > 0) and g_Game_IsNet then
           begin
-            if g_Game_IsClient then
-              MC_SEND_Chat(b_Text_Format(Line), NET_CHAT_PLAYER)
+            if gChatTeam then
+            begin
+              if g_Game_IsClient then
+                MC_SEND_Chat(b_Text_Format(Line), NET_CHAT_TEAM)
+              else
+                MH_SEND_Chat('[' + gPlayer1Settings.Name + ']: ' + Line, NET_CHAT_TEAM,
+                  gPlayer1Settings.Team);
+            end
             else
-              MH_SEND_Chat('[' + gPlayer1Settings.Name + ']: ' + Line, NET_CHAT_PLAYER);
+            begin
+              if g_Game_IsClient then
+                MC_SEND_Chat(b_Text_Format(Line), NET_CHAT_PLAYER)
+              else
+                MH_SEND_Chat('[' + gPlayer1Settings.Name + ']: ' + Line, NET_CHAT_PLAYER);
+            end;
           end;
 
           Line := '';
