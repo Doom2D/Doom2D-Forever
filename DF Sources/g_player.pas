@@ -4034,7 +4034,7 @@ begin
       end;
     if dospawn then
     begin
-      if gGameSettings.GameType in [GT_CUSTOM, GT_SERVER] then
+      if gGameSettings.GameType in [GT_CUSTOM, GT_SERVER, GT_CLIENT] then
         Respawn(False)
       else // Single
         if (FTime[T_RESPAWN] <= gTime) and
