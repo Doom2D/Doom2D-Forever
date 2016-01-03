@@ -423,6 +423,7 @@ end;
 
 function BehaviourDamage(SpawnerUID: Word; BH, SelfType: Byte): Boolean;
 var
+  m: TMonster;
   UIDType, MonsterType: Byte;
 begin
   Result := False;
@@ -430,7 +431,11 @@ begin
 
   UIDType := g_GetUIDType(SpawnerUID);
   if UIDType = UID_MONSTER then
-    MonsterType := g_Monsters_Get(SpawnerUID).FMonsterType;
+  begin
+    m := g_Monsters_Get(SpawnerUID);
+    if m = nil then Exit;
+    MonsterType := m.FMonsterType;
+  end;
 
   case BH of
     BH_NORMAL: Result := (UIDType = UID_PLAYER) or
