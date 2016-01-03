@@ -16,6 +16,8 @@ type
 
 const
   MAX_YV = 30;
+  LIMIT_VEL   = 16384;
+  LIMIT_ACCEL = 1024;
 
   MOVE_NONE       = 0;
   MOVE_HITWALL    = 1;
@@ -348,6 +350,16 @@ var
 label
   _move;
 begin
+// Лимиты на скорость и ускорение
+  if      Obj^.Vel.X < -LIMIT_VEL then Obj^.Vel.X := -LIMIT_VEL
+  else if Obj^.Vel.X >  LIMIT_VEL then Obj^.Vel.X :=  LIMIT_VEL;
+  if      Obj^.Vel.Y < -LIMIT_VEL then Obj^.Vel.Y := -LIMIT_VEL
+  else if Obj^.Vel.Y >  LIMIT_VEL then Obj^.Vel.Y :=  LIMIT_VEL;
+  if      Obj^.Accel.X < -LIMIT_ACCEL then Obj^.Accel.X := -LIMIT_ACCEL
+  else if Obj^.Accel.X >  LIMIT_ACCEL then Obj^.Accel.X :=  LIMIT_ACCEL;
+  if      Obj^.Accel.Y < -LIMIT_ACCEL then Obj^.Accel.Y := -LIMIT_ACCEL
+  else if Obj^.Accel.Y >  LIMIT_ACCEL then Obj^.Accel.Y :=  LIMIT_ACCEL;
+
 // Вылетел за нижнюю границу карты:
   if Obj^.Y > gMapInfo.Height+128 then
   begin
