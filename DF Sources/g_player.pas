@@ -424,7 +424,8 @@ function  g_Player_Create(ModelName: String; Color: TRGB; Team: Byte;
 procedure g_Player_Remove(UID: Word);
 procedure g_Player_UpdateAll();
 procedure g_Player_DrawAll();
-procedure g_Player_DrawDebug();
+procedure g_Player_DrawDebug(p: TPlayer);
+procedure g_Player_DrawHealth();
 procedure g_Player_RememberAll();
 procedure g_Player_ResetAll(Force, Silent: Boolean);
 function  g_Player_Get(UID: Word): TPlayer;
@@ -1022,7 +1023,24 @@ begin
       else TBot(gPlayers[i]).Draw();
 end;
 
-procedure g_Player_DrawDebug();
+procedure g_Player_DrawDebug(p: TPlayer);
+var
+  fW, fH: Byte;
+begin
+  if p = nil then Exit;
+  if IsBadReadPtr(@p.FObj, SizeOf(TObj)) then Exit;
+
+  e_TextureFontGetSize(gStdFont, fW, fH);
+
+  e_TextureFontPrint(0, 0     , 'Pos X: ' + IntToStr(p.FObj.X), gStdFont);
+  e_TextureFontPrint(0, fH    , 'Pos Y: ' + IntToStr(p.FObj.Y), gStdFont);
+  e_TextureFontPrint(0, fH * 2, 'Vel X: ' + IntToStr(p.FObj.Vel.X), gStdFont);
+  e_TextureFontPrint(0, fH * 3, 'Vel Y: ' + IntToStr(p.FObj.Vel.Y), gStdFont);
+  e_TextureFontPrint(0, fH * 4, 'Acc X: ' + IntToStr(p.FObj.Accel.X), gStdFont);
+  e_TextureFontPrint(0, fH * 5, 'Acc Y: ' + IntToStr(p.FObj.Accel.Y), gStdFont);
+end;
+
+procedure g_Player_DrawHealth();
 var
   i: Integer;
   fW, fH: Byte;
@@ -1942,9 +1960,9 @@ var
   s: string;
   stat: TPlayerStatArray;
 begin
-   X := gPlayerScreenSize.X;
-   SY := gPlayerScreenSize.Y;
-   Y := 0;
+  X := gPlayerScreenSize.X;
+  SY := gPlayerScreenSize.Y;
+  Y := 0;
 
   if gShowGoals and (gGameSettings.GameMode in [GM_CTF, GM_TDM]) then
   begin

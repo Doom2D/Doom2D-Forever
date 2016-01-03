@@ -194,6 +194,7 @@ var
   g_debug_MonsterOff: Boolean = False;
   g_debug_BotAIOff: Byte = 0;
   g_debug_HealthBar: Boolean = False;
+  g_Debug_Player: Boolean = False;
   gCoopMonstersKilled: Word = 0;
   gCoopSecretsFound: Word = 0;
   gCoopTotalMonstersKilled: Word = 0;
@@ -1286,7 +1287,7 @@ begin
       gSoundTriggerTime := 0;
     end
     else
-      Inc(gSoundTriggerTime); 
+      Inc(gSoundTriggerTime);
 
     if (NetMode = NET_SERVER) then
     begin
@@ -1320,7 +1321,7 @@ begin
       end
       else if NetTimeToUpdate >= NetUpdateRate then
       begin
-        if gPlayers <> nil then 
+        if gPlayers <> nil then
           for I := 0 to High(gPlayers) do
             if gPlayers[I] <> nil then
               MH_SEND_PlayerPos(False, gPlayers[I].UID);
@@ -2139,8 +2140,8 @@ begin
   g_Map_DrawPanels(PANEL_FORE);
   if g_debug_HealthBar then
   begin
-    g_Monsters_DrawDebug();
-    g_Player_DrawDebug();
+    g_Monsters_DrawHealth();
+    g_Player_DrawHealth();
   end;
 
   if p.FSpectator then
@@ -2171,6 +2172,8 @@ begin
   p.DrawRulez();
   if gShowMap then
     DrawMinimap(p, Rect(0, 0, 128, 128));
+  if g_Debug_Player then
+    g_Player_DrawDebug(p);
   p.DrawGUI();
 end;
 
@@ -3943,6 +3946,14 @@ begin
         g_debug_HealthBar := (P[1][1] = '1');
 
       g_Console_Add(Format('d_health is %d', [Byte(g_debug_HealthBar)]));
+    end
+    else if (cmd = 'd_player') then
+    begin
+      if (Length(P) > 1) and
+         ((P[1] = '1') or (P[1] = '0')) then
+        g_debug_Player := (P[1][1] = '1');
+
+      g_Console_Add(Format(cmd + ' is %d', [Byte(g_Debug_Player)]));
     end;
   end
     else

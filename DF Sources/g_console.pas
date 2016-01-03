@@ -361,6 +361,7 @@ begin
   AddCommand('d_botoff', DebugCommands);
   AddCommand('d_monster', DebugCommands);
   AddCommand('d_health', DebugCommands);
+  AddCommand('d_player', DebugCommands);
 
   AddCommand('p1_name', GameCVars);
   AddCommand('p2_name', GameCVars);

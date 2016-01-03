@@ -141,7 +141,7 @@ function  g_Monsters_Create(MonsterType: Byte; X, Y: Integer;
             Direction: TDirection; AdjCoord: Boolean = False; ForcedUID: Integer = -1): Integer;
 procedure g_Monsters_Update();
 procedure g_Monsters_Draw();
-procedure g_Monsters_DrawDebug();
+procedure g_Monsters_DrawHealth();
 function  g_Monsters_Get(UID: Word): TMonster;
 procedure g_Monsters_killedp();
 procedure g_Monsters_goodsnd();
@@ -1100,7 +1100,7 @@ begin
         gMonsters[a].Draw();
 end;
 
-procedure g_Monsters_DrawDebug();
+procedure g_Monsters_DrawHealth();
 var
   a: Integer;
   fW, fH: Byte;
