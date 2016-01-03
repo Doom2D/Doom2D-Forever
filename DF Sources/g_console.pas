@@ -641,9 +641,9 @@ begin
           if (Length(Line) > 0) and g_Game_IsNet then
           begin
             if g_Game_IsClient then
-              MC_SEND_Chat(Line)
+              MC_SEND_Chat(b_Text_Format(Line))
             else
-              MH_SEND_Chat('[' + gPlayer1Settings.Name + '\1]: ' + Line);
+              MH_SEND_Chat('[' + gPlayer1Settings.Name + ']: ' + Line);
           end;
 
           Line := '';
@@ -653,34 +653,34 @@ begin
         end;
     end;
     VK_TAB:
-     if not gChatShow then
-      Complete();
+      if not gChatShow then
+        Complete();
     VK_DOWN:
-     if not gChatShow then
-      if (CommandHistory <> nil) and
-         (CmdIndex < Length(CommandHistory)) then
-      begin
-        if CmdIndex < Length(CommandHistory)-1 then
-          CmdIndex := CmdIndex + 1;
-        Line := CommandHistory[CmdIndex];
-        CPos := Length(Line) + 1;
-      end;
+      if not gChatShow then
+        if (CommandHistory <> nil) and
+           (CmdIndex < Length(CommandHistory)) then
+        begin
+          if CmdIndex < Length(CommandHistory)-1 then
+            CmdIndex := CmdIndex + 1;
+          Line := CommandHistory[CmdIndex];
+          CPos := Length(Line) + 1;
+        end;
     VK_UP:
-     if not gChatShow then
-      if (CommandHistory <> nil) and
-         (CmdIndex <= Length(CommandHistory)) then
-      begin
-        if CmdIndex > 0 then
-          CmdIndex := CmdIndex - 1;
-        Line := CommandHistory[CmdIndex];
-        Cpos := Length(Line) + 1;
-      end;
+      if not gChatShow then
+        if (CommandHistory <> nil) and
+           (CmdIndex <= Length(CommandHistory)) then
+        begin
+          if CmdIndex > 0 then
+            CmdIndex := CmdIndex - 1;
+          Line := CommandHistory[CmdIndex];
+          Cpos := Length(Line) + 1;
+        end;
     VK_PRIOR: // PgUp
-     if not gChatShow then
-      IncMax(OffSet, Length(ConsoleHistory)-1);
+      if not gChatShow then
+        IncMax(OffSet, Length(ConsoleHistory)-1);
     VK_NEXT: // PgDown
-     if not gChatShow then
-      DecMin(OffSet, 0);
+      if not gChatShow then
+        DecMin(OffSet, 0);
     VK_HOME:
       CPos := 1;
     VK_END:
@@ -815,7 +815,6 @@ procedure g_Console_Process(L: String; Quiet: Boolean = False);
 var
   Arr: SArray;
   i: Integer;
-  LS: String;
 begin
   Arr := nil;
 
@@ -824,13 +823,7 @@ begin
 
   if not Quiet then
   begin
-    i := Pos(' ', L);
-    if i = 0 then
-      i := Length(L);
-    Inc(i);
-    LS := L;
-    Insert('\1', LS, i);
-    g_Console_Add('> '+LS);
+    g_Console_Add('> '+L);
     Line := '';
     CPos := 1;
   end;
@@ -853,7 +846,7 @@ begin
         Exit;
       end;
 
-  g_Console_Add(Format(_lc[I_CONSOLE_UNKNOWN], [Arr[0] + '\1']));
+  g_Console_Add(Format(_lc[I_CONSOLE_UNKNOWN], [Arr[0]]));
 end;
 
 end.

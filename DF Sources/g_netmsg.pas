@@ -267,7 +267,7 @@ begin
   if Pl = nil then
     MH_SEND_Chat(Txt)
   else
-    MH_SEND_Chat(Pl.Name + '\1: ' + Txt);
+    MH_SEND_Chat(Pl.Name + ': ' + Txt);
 end;
 
 procedure MH_RECV_Info(C: pTNetClient; P: Pointer);
@@ -480,6 +480,7 @@ begin
   else
     MH_SEND_Chat(_lc[I_NET_RCON_PWD_INVALID], C^.ID);
 end;
+
 procedure MH_RECV_RCONCommand(C: pTNetClient; P: Pointer);
 var
   Cmd: string;
@@ -698,7 +699,7 @@ begin
   end;
 
   g_Console_Add(Txt, True);
-  e_WriteLog('[Chat] ' + Txt, MSG_NOTIFY);
+  e_WriteLog('[Chat] ' + b_Text_Unformat(Txt), MSG_NOTIFY);
   g_Sound_PlayEx('SOUND_GAME_RADIO');
 end;
 
@@ -1278,7 +1279,7 @@ begin
   g_Console_Add(Txt, True);
   if not Quiet then
   begin
-    e_WriteLog('[Chat] ' + Txt, MSG_NOTIFY);
+    e_WriteLog('[Chat] ' + b_Text_Unformat(Txt), MSG_NOTIFY);
     g_Sound_PlayEx('SOUND_GAME_RADIO');
   end;
 end;

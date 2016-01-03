@@ -4151,10 +4151,11 @@ begin
           Exit;
         end;
 
+        chstr := b_Text_Format(chstr);
         if g_Game_IsClient then
           MC_SEND_Chat(chstr)
         else
-          MH_SEND_Chat(gPlayer1Settings.Name + '\1: ' + chstr);
+          MH_SEND_Chat(gPlayer1Settings.Name + ': ' + chstr);
       end
       else
         g_Console_Add('chat <text>');
@@ -4526,6 +4527,7 @@ begin
             Exit;
           end;
 
+          chstr := b_Text_Format(chstr);
           MH_SEND_Chat(chstr);
         end
         else g_Console_Add('say <text>');
@@ -4553,8 +4555,9 @@ begin
           pl := g_Net_Client_ByName(P[1]);
           if pl <> nil then
           begin
+            chstr := b_Text_Format(chstr);
             g_Console_Add('-> ' + P[1] + ': ' + chstr, True);
-            e_WriteLog('[Tell ' + P[1] + '] ' + chstr, MSG_NOTIFY);
+            e_WriteLog('[Tell ' + P[1] + '] ' + b_Text_Unformat(chstr), MSG_NOTIFY);
             MH_SEND_Chat(chstr, pl^.ID)
           end
           else

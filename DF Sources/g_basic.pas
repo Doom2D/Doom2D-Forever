@@ -1078,16 +1078,18 @@ end;
 
 function b_Text_Format(S: string): string;
 var
-  Spec: Boolean;
+  Spec, Rst: Boolean;
   I: Integer;
 begin
   Result := '';
   Spec := False;
+  Rst := False;
   for I := 1 to Length(S) do
   begin
     if (not Spec) and (S[I] = '\') and (I + 1 <= Length(S)) then
     begin
       Spec := True;
+      Rst := True;
       continue;
     end;
     if Spec then
@@ -1120,6 +1122,8 @@ begin
     end else
       Result := Result + S[I];
   end;
+  // reset to white at end
+  if Rst then Result := Result + #2;
 end;
 
 function b_Text_Unformat(S: string): string;
