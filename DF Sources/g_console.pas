@@ -645,9 +645,9 @@ begin
           if (Length(Line) > 0) and g_Game_IsNet then
           begin
             if g_Game_IsClient then
-              MC_SEND_Chat(b_Text_Format(Line))
+              MC_SEND_Chat(b_Text_Format(Line), NET_CHAT_PLAYER)
             else
-              MH_SEND_Chat('[' + gPlayer1Settings.Name + ']: ' + Line, False);
+              MH_SEND_Chat('[' + gPlayer1Settings.Name + ']: ' + Line, NET_CHAT_PLAYER);
           end;
 
           Line := '';

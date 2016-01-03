@@ -55,6 +55,10 @@ const
   NET_MSG_RES_REQUEST = 203;
   NET_MSG_RES_RESPONSE = 204;
 
+  NET_CHAT_SYSTEM = 0;
+  NET_CHAT_PLAYER = 1;
+  NET_CHAT_TEAM   = 2;
+
   NET_GFX_SPARK   = 1;
   NET_GFX_SPAWN   = 2;
   NET_GFX_TELE    = 3;
@@ -106,7 +110,7 @@ procedure MH_RECV_Vote(C: pTNetClient; P: Pointer);
 // GAME
 procedure MH_SEND_Everything(CreatePlayers: Boolean = False; ID: Integer = NET_EVERYONE);
 procedure MH_SEND_Info(ID: Byte);
-procedure MH_SEND_Chat(Txt: string; NotChat: Boolean; ID: Integer = NET_EVERYONE);
+procedure MH_SEND_Chat(Txt: string; Mode: Byte; ID: Integer = NET_EVERYONE);
 procedure MH_SEND_Effect(X, Y: Integer; Ang: SmallInt; Kind: Byte; ID: Integer = NET_EVERYONE);
 procedure MH_SEND_Sound(X, Y: Integer; Name: string; ID: Integer = NET_EVERYONE);
 procedure MH_SEND_CreateShot(Proj: LongInt; ID: Integer = NET_EVERYONE);
@@ -190,7 +194,7 @@ procedure MC_RECV_TriggerMusic(P: Pointer);
 procedure MC_RECV_VoteEvent(P: Pointer);
 // SERVICE
 procedure MC_SEND_Info(Password: string);
-procedure MC_SEND_Chat(Txt: string);
+procedure MC_SEND_Chat(Txt: string; Mode: Byte);
 procedure MC_SEND_PlayerPos();
 procedure MC_SEND_FullStateRequest();
 procedure MC_SEND_PlayerSettings();
@@ -257,6 +261,7 @@ var
 procedure MH_RECV_Chat(C: pTNetClient; P: Pointer);
 var
   Txt: string;
+  Mode: Byte;
   PID: Word;
   Pl: TPlayer;
 begin
@@ -264,10 +269,16 @@ begin
   Pl := g_Player_Get(PID);
 
   Txt := e_Raw_Read_String(P);
+  Mode := e_Raw_Read_Byte(P);
+  if (Mode = NET_CHAT_SYSTEM) then
+    Mode := NET_CHAT_PLAYER; // prevent sending system messages from clients
+  if (Mode = NET_CHAT_TEAM) and (not gGameSettings.GameMode in [GM_TDM, GM_CTF]) then
+    Mode := NET_CHAT_PLAYER; // revert to player chat in non-team game
+
   if Pl = nil then
-    MH_SEND_Chat(Txt, False)
+    MH_SEND_Chat(Txt, Mode)
   else
-    MH_SEND_Chat(Pl.Name + ': ' + Txt, False);
+    MH_SEND_Chat(Pl.Name + ': ' + Txt, Mode);
 end;
 
 procedure MH_RECV_Info(C: pTNetClient; P: Pointer);
@@ -483,10 +494,10 @@ begin
   if Pwd = NetRCONPassword then
   begin
     C^.RCONAuth := True;
-    MH_SEND_Chat(_lc[I_NET_RCON_PWD_VALID], True, C^.ID);
+    MH_SEND_Chat(_lc[I_NET_RCON_PWD_VALID], NET_CHAT_SYSTEM, C^.ID);
   end
   else
-    MH_SEND_Chat(_lc[I_NET_RCON_PWD_INVALID], True, C^.ID);
+    MH_SEND_Chat(_lc[I_NET_RCON_PWD_INVALID], NET_CHAT_SYSTEM, C^.ID);
 end;
 
 procedure MH_RECV_RCONCommand(C: pTNetClient; P: Pointer);
@@ -497,7 +508,7 @@ begin
   if not NetAllowRCON then Exit;
   if not C^.RCONAuth then
   begin
-    MH_SEND_Chat(_lc[I_NET_RCON_NOAUTH], True, C^.ID);
+    MH_SEND_Chat(_lc[I_NET_RCON_NOAUTH], NET_CHAT_SYSTEM, C^.ID);
     Exit;
   end;
   g_Console_Process(Cmd);
@@ -660,7 +671,7 @@ begin
 
   if gLMSRespawn then
     MH_SEND_Chat(IntToStr((gLMSRespawnTime - gTime) div 1000) +
-                 _lc[I_PLAYER_SPECT5], True, ID);
+                 _lc[I_PLAYER_SPECT5], NET_CHAT_SYSTEM, ID);
 end;
 
 procedure MH_SEND_Info(ID: Byte);
@@ -687,32 +698,58 @@ begin
   g_Net_Host_Send(ID, True, NET_CHAN_SERVICE);
 end;
 
-procedure MH_SEND_Chat(Txt: string; NotChat: Boolean; ID: Integer = NET_EVERYONE);
+procedure MH_SEND_Chat(Txt: string; Mode: Byte; ID: Integer = NET_EVERYONE);
 var
   Name: string;
 begin
-  e_Buffer_Write(@NetOut, Byte(NET_MSG_CHAT));
-  e_Buffer_Write(@NetOut, Txt);
-  if NotChat then
-    e_Buffer_Write(@NetOut, Byte(1))
-  else
-    e_Buffer_Write(@NetOut, Byte(0));
-  g_Net_Host_Send(ID, True, NET_CHAN_CHAT);
+  if (Mode = NET_CHAT_TEAM) and (not gGameSettings.GameMode in [GM_TDM, GM_CTF]) then
+    Mode := NET_CHAT_PLAYER;
 
-  if NotChat then
+  if Mode = NET_CHAT_TEAM then
+  begin
+    // TODO
+  end else
+  begin
+    e_Buffer_Write(@NetOut, Byte(NET_MSG_CHAT));
+    e_Buffer_Write(@NetOut, Txt);
+    e_Buffer_Write(@NetOut, Mode);
+    g_Net_Host_Send(ID, True, NET_CHAN_CHAT);
+  end;
+
+  if Mode = NET_CHAT_SYSTEM then
     Exit;
 
   if ID = NET_EVERYONE then
   begin
-    g_Console_Add(Txt, True);
-    e_WriteLog('[Chat] ' + b_Text_Unformat(Txt), MSG_NOTIFY);
+    if Mode = NET_CHAT_PLAYER then
+    begin
+      g_Console_Add(Txt, True);
+      e_WriteLog('[Chat] ' + b_Text_Unformat(Txt), MSG_NOTIFY);
+      g_Sound_PlayEx('SOUND_GAME_RADIO');
+    end else
+    if Mode = NET_CHAT_TEAM then
+      if gPlayer1 <> nil then
+      begin
+        if (gPlayer1.Team = TEAM_RED) and (True) then
+        begin
+          g_Console_Add(b_Text_Format('\r[Team] ') + Txt, True);
+          e_WriteLog('[Team Chat] ' + b_Text_Unformat(Txt), MSG_NOTIFY);
+          g_Sound_PlayEx('SOUND_GAME_RADIO');
+        end else
+        if (gPlayer1.Team = TEAM_BLUE) and (True) then
+        begin
+          g_Console_Add(b_Text_Format('\b[Team] ') + Txt, True);
+          e_WriteLog('[Team Chat] ' + b_Text_Unformat(Txt), MSG_NOTIFY);
+          g_Sound_PlayEx('SOUND_GAME_RADIO');
+        end;
+      end;
   end else
   begin
     Name := g_Net_ClientName_ByID(ID);
     g_Console_Add('-> ' + Name + ': ' + Txt, True);
     e_WriteLog('[Tell ' + Name + '] ' + b_Text_Unformat(Txt), MSG_NOTIFY);
+    g_Sound_PlayEx('SOUND_GAME_RADIO');
   end;
-  g_Sound_PlayEx('SOUND_GAME_RADIO');
 end;
 
 procedure MH_SEND_Effect(X, Y: Integer; Ang: SmallInt; Kind: Byte; ID: Integer = NET_EVERYONE);
@@ -1284,16 +1321,30 @@ end;
 procedure MC_RECV_Chat(P: Pointer);
 var
   Txt: string;
-  Quiet: Boolean;
+  Mode: Byte;
 begin
   Txt := e_Raw_Read_String(P);
-  Quiet := e_Raw_Read_Byte(P) <> 0;
-  g_Console_Add(Txt, True);
-  if not Quiet then
+  Mode := e_Raw_Read_Byte(P);
+
+  if Mode <> NET_CHAT_SYSTEM then
   begin
-    e_WriteLog('[Chat] ' + b_Text_Unformat(Txt), MSG_NOTIFY);
-    g_Sound_PlayEx('SOUND_GAME_RADIO');
-  end;
+    if Mode = NET_CHAT_PLAYER then
+    begin
+      g_Console_Add(Txt, True);
+      e_WriteLog('[Chat] ' + b_Text_Unformat(Txt), MSG_NOTIFY);
+      g_Sound_PlayEx('SOUND_GAME_RADIO');
+    end else
+    if (Mode = NET_CHAT_TEAM) and (gPlayer1 <> nil) then
+    begin
+      if gPlayer1.Team = TEAM_RED then
+        g_Console_Add(b_Text_Format('\r[Team] ') + Txt, True);
+      if gPlayer1.Team = TEAM_BLUE then
+        g_Console_Add(b_Text_Format('\b[Team] ') + Txt, True);
+      e_WriteLog('[Team Chat] ' + b_Text_Unformat(Txt), MSG_NOTIFY);
+      g_Sound_PlayEx('SOUND_GAME_RADIO');
+    end;
+  end else
+    g_Console_Add(Txt, True);
 end;
 
 procedure MC_RECV_Effect(P: Pointer);
@@ -2365,10 +2416,11 @@ begin
   g_Net_Client_Send(True, NET_CHAN_SERVICE);
 end;
 
-procedure MC_SEND_Chat(Txt: string);
+procedure MC_SEND_Chat(Txt: string; Mode: Byte);
 begin
   e_Buffer_Write(@NetOut, Byte(NET_MSG_CHAT));
   e_Buffer_Write(@NetOut, Txt);
+  e_Buffer_Write(@NetOut, Mode);
 
   g_Net_Client_Send(True, NET_CHAN_CHAT);
 end;

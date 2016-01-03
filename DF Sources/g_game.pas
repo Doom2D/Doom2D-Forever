@@ -3105,7 +3105,7 @@ begin
     gLMSSoftSpawn := True;
     if NetMode = NET_SERVER then
       MH_SEND_Chat(IntToStr((gLMSRespawnTime - gTime) div 1000) +
-                   _lc[I_PLAYER_SPECT5], True)
+                   _lc[I_PLAYER_SPECT5], NET_CHAT_SYSTEM)
     else
       g_Console_Add(IntToStr((gLMSRespawnTime - gTime) div 1000) +
                     _lc[I_PLAYER_SPECT5], True);
@@ -4012,7 +4012,7 @@ begin
         s := g_Net_ClientName_ByID(pl^.ID);
         enet_peer_disconnect(pl^.Peer, NET_DISC_KICK);
         g_Console_Add(Format(_lc[I_PLAYER_KICK], [s]));
-        MH_SEND_Chat(Format(_lc[I_PLAYER_KICK], [s]), True);
+        MH_SEND_Chat(Format(_lc[I_PLAYER_KICK], [s]), NET_CHAT_SYSTEM);
       end else if gPlayers <> nil then
         for a := Low(gPlayers) to High(gPlayers) do
           if gPlayers[a] <> nil then
@@ -4051,7 +4051,7 @@ begin
           s := g_Net_ClientName_ByID(NetClients[a].ID);
           enet_peer_disconnect(NetClients[a].Peer, NET_DISC_KICK);
           g_Console_Add(Format(_lc[I_PLAYER_KICK], [s]));
-          MH_SEND_Chat(Format(_lc[I_PLAYER_KICK], [s]), True);
+          MH_SEND_Chat(Format(_lc[I_PLAYER_KICK], [s]), NET_CHAT_SYSTEM);
         end;
       end;
     end else
@@ -4080,7 +4080,7 @@ begin
         enet_peer_disconnect(pl^.Peer, NET_DISC_BAN);
         g_Net_SaveBanList();
         g_Console_Add(Format(_lc[I_PLAYER_BAN], [s]));
-        MH_SEND_Chat(Format(_lc[I_PLAYER_BAN], [s]), True);
+        MH_SEND_Chat(Format(_lc[I_PLAYER_BAN], [s]), NET_CHAT_SYSTEM);
       end else
         g_Console_Add(Format(_lc[I_NET_ERR_NAME404], [P[1]]));
     end else
@@ -4110,7 +4110,7 @@ begin
           enet_peer_disconnect(NetClients[a].Peer, NET_DISC_BAN);
           g_Net_SaveBanList();
           g_Console_Add(Format(_lc[I_PLAYER_BAN], [s]));
-          MH_SEND_Chat(Format(_lc[I_PLAYER_BAN], [s]), True);
+          MH_SEND_Chat(Format(_lc[I_PLAYER_BAN], [s]), NET_CHAT_SYSTEM);
         end;
     end else
       g_Console_Add(_lc[I_MSG_SERVERONLY]);
@@ -4165,12 +4165,12 @@ begin
     begin
       if Length(P) < 2 then
       begin
-        g_Console_Add('connect IP [port] [password]');
+        g_Console_Add('connect <IP> [port] [password]');
         Exit;
       end;
       if P[1] = '' then
       begin
-        g_Console_Add('connect IP [port] [password]');
+        g_Console_Add('connect <IP> [port] [password]');
         Exit;
       end;
 
@@ -4244,9 +4244,9 @@ begin
 
         chstr := b_Text_Format(chstr);
         if g_Game_IsClient then
-          MC_SEND_Chat(chstr)
+          MC_SEND_Chat(chstr, NET_CHAT_PLAYER)
         else
-          MH_SEND_Chat(gPlayer1Settings.Name + ': ' + chstr, False);
+          MH_SEND_Chat(gPlayer1Settings.Name + ': ' + chstr, NET_CHAT_PLAYER);
       end
       else
         g_Console_Add('chat <text>');
@@ -4619,7 +4619,7 @@ begin
           end;
 
           chstr := b_Text_Format(chstr);
-          MH_SEND_Chat(chstr, False);
+          MH_SEND_Chat(chstr, NET_CHAT_PLAYER);
         end
         else g_Console_Add('say <text>');
       end else
@@ -4645,7 +4645,7 @@ begin
 
           pl := g_Net_Client_ByName(P[1]);
           if pl <> nil then
-            MH_SEND_Chat(b_Text_Format(chstr), False, pl^.ID)
+            MH_SEND_Chat(b_Text_Format(chstr), NET_CHAT_PLAYER, pl^.ID)
           else
             g_Console_Add(Format(_lc[I_NET_ERR_NAME404], [P[1]]));
         end
@@ -4656,7 +4656,7 @@ begin
     else if (cmd = 'rcon_password') and g_Game_IsClient then
     begin
       if (Length(P) <= 1) then
-        g_Console_Add('rcon_password password')
+        g_Console_Add('rcon_password <password>')
       else
         MC_SEND_RCONPassword(P[1]);
     end
@@ -4674,13 +4674,13 @@ begin
 
           if Length(chstr) < 1 then
           begin
-            g_Console_Add('rcon command');
+            g_Console_Add('rcon <command>');
             Exit;
           end;
 
           MC_SEND_RCONCommand(chstr);
         end
-        else g_Console_Add('rcon command');
+        else g_Console_Add('rcon <command>');
       end;
     end
     else if cmd = 'ready' then
@@ -4702,7 +4702,7 @@ begin
 
         if Length(chstr) < 1 then
         begin
-          g_Console_Add('callvote command');
+          g_Console_Add('callvote <command>');
           Exit;
         end;
 
@@ -4711,7 +4711,8 @@ begin
         else
           g_Game_StartVote(chstr, gPlayer1Settings.Name);
       end
-      else g_Console_Add('callvote command');
+      else
+        g_Console_Add('callvote <command>');
     end
     else if (cmd = 'vote') and g_Game_IsNet then
     begin
