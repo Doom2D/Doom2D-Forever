@@ -734,6 +734,8 @@ procedure g_Console_Add(L: String; Show: Boolean = False);
 var
   a: Integer;
 begin
+  L := e_Text_Format(L);
+
   // Вывод строк с переносами по очереди
   while Pos(#10, L) > 0 do
   begin

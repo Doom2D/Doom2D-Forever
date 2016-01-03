@@ -74,6 +74,7 @@ procedure e_SimpleFontPrintEx(X, Y: SmallInt; Text: PChar; Font: DWORD; Red, Gre
                       sRed, sGreen, sBlue, sWidth: Byte);
 
 // CharFont
+function e_Text_Format(Text: string): string;
 function e_CharFont_Create(sp: ShortInt=0): DWORD;
 procedure e_CharFont_AddChar(FontID: DWORD; Texture: Integer; c: Char; w: Byte);
 procedure e_CharFont_Print(FontID: DWORD; X, Y: Integer; Text: string);
@@ -1045,6 +1046,52 @@ begin
  e_SimpleFontPrint(X+sWidth, Y+sWidth, Text, Font, sRed, sGreen, sBlue);
 end;
 
+function e_Text_Format(Text: string): string;
+var
+  Spec: Boolean;
+  I: Integer;
+begin
+  Result := '';
+  Spec := False;
+  for I := 1 to Length(Text) do
+  begin
+    if (Text[I] = '\') and (I + 1 <= Length(Text)) then
+    begin
+      Spec := True;
+      continue;
+    end;
+    if Spec then
+    begin
+      case Text[I] of
+        'n': // line feed
+          Result := Result + #10;
+        '0': // black
+          Result := Result + #1;
+        '1': // white
+          Result := Result + #2;
+        'd': // darker
+          Result := Result + #3;
+        'l': // lighter
+          Result := Result + #4;
+        'r': // red
+          Result := Result + #18;
+        'g': // green
+          Result := Result + #19;
+        'b': // blue
+          Result := Result + #20;
+        'y': // yellow
+          Result := Result + #21;
+        '\': // escape
+          Result := Result + '\';
+        else
+          Result := Result + '\' + Text[I];
+      end;
+      Spec := False;
+    end else
+      Result := Result + Text[I];
+  end;
+end;
+
 function e_CharFont_Create(sp: ShortInt=0): DWORD;
 var
   i, id: DWORD;
@@ -1150,103 +1197,87 @@ procedure e_CharFont_PrintFmt(FontID: DWORD; X, Y: Integer; Text: string);
 var
   a, TX, TY, len: Integer;
   tc, c: TRGB;
-  b: Boolean;
   w, h: Word;
 begin
- if Text = '' then Exit;
- if e_CharFonts = nil then Exit;
- if Integer(FontID) > High(e_CharFonts) then Exit;
+  if Text = '' then Exit;
+  if e_CharFonts = nil then Exit;
+  if Integer(FontID) > High(e_CharFonts) then Exit;
 
- c.R := 255;
- c.G := 255;
- c.B := 255;
+  c.R := 255;
+  c.G := 255;
+  c.B := 255;
 
- TX := X;
- TY := Y;
- len := Length(Text);
+  TX := X;
+  TY := Y;
+  len := Length(Text);
 
- e_CharFont_GetSize(FontID, 'A', w, h);
+  e_CharFont_GetSize(FontID, 'A', w, h);
 
- b := False;
- with e_CharFonts[FontID] do
- begin
-  for a := 1 to len do
+  with e_CharFonts[FontID] do
   begin
-   if b then
-   begin
-    b := False;
-    continue;
-   end;
-
-   if (Text[a] = '\') and (a < len) then
-   begin
-    b := True;
-
-    case Text[a+1] of
-     'n':
-      begin
-       TX := X;
-       TY := TY + h;
+    for a := 1 to len do
+    begin
+      case Text[a] of
+        #10: // line feed
+        begin
+          TX := X;
+          TY := TY + h;
+          continue;
+        end;
+        #1: // black
+        begin
+          c.R := 0; c.G := 0; c.B := 0;
+          continue;
+        end;
+        #2: // white
+        begin
+          c.R := 255; c.G := 255; c.B := 255;
+          continue;
+        end;
+        #3: // darker
+        begin
+          c.R := c.R div 2; c.G := c.G div 2; c.B := c.B  div 2;
+          continue;
+        end;
+        #4: // lighter
+        begin
+          c.R := c.R * 2; c.G := c.G * 2; c.B := c.B * 2;
+          continue;
+        end;
+        #18: // red
+        begin
+          c.R := 255; c.G := 0; c.B := 0;
+          continue;
+        end;
+        #19: // green
+        begin
+          c.R := 0; c.G := 255; c.B := 0;
+          continue;
+        end;
+        #20: // blue
+        begin
+          c.R := 0; c.G := 0; c.B := 255;
+          continue;
+        end;
+        #21: // yellow
+        begin
+          c.R := 255; c.G := 255; c.B := 0;
+          continue;
+        end;
       end;
 
-     'r':
+      with Chars[Ord(Text[a])] do
+      if TextureID <> -1 then
       begin
-        c.R := 255; c.G := 0; c.B := 0;
-      end;
+        tc := e_Colors;
+        e_Colors := c;
+        e_Draw(TextureID, TX, TY, 0, True, False);
+        e_Colors := tc;
 
-     'g':
-      begin
-        c.R := 0; c.G := 255; c.B := 0;
+        TX := TX+Width+IfThen(a = Length(Text), 0, Space);
       end;
-
-     'b':
-      begin
-        c.R := 0; c.G := 0; c.B := 255;
-      end;
-
-     'y':
-      begin
-        c.R := 255; c.G := 255; c.B := 0;
-      end;
-
-     '0':
-      begin
-        c.R := 0; c.G := 0; c.B := 0;
-      end;
-
-     '1':
-      begin
-        c.R := 255; c.G := 255; c.B := 255;
-      end;
-
-     'd':
-      begin
-        c.R := c.R div 2; c.G := c.G div 2; c.B := c.B  div 2;
-      end;
-
-     'l':
-      begin
-        c.R := c.R * 2; c.G := c.G * 2; c.B := c.B * 2;
-      end;
-
-     else b := False;
     end;
-
-    if b then Continue;
-   end;
-
-   with Chars[Ord(Text[a])] do
-   if TextureID <> -1 then
-   begin
-    tc := e_Colors;
-    e_Colors := c;
-    e_Draw(TextureID, TX, TY, 0, True, False);
-    e_Colors := tc;
-
-    TX := TX+Width+IfThen(a = Length(Text), 0, Space);
-   end;
   end;
- end;
 end;
 
 procedure e_CharFont_GetSize(FontID: DWORD; Text: string; var w, h: Word);
@@ -1278,54 +1309,40 @@ procedure e_CharFont_GetSizeFmt(FontID: DWORD; Text: string; var w, h: Word);
 var
   a, lines, len: Integer;
   h2: Word;
-  b: Boolean;
 begin
- w := 0;
- h := 0;
+  w := 0;
+  h := 0;
 
- if Text = '' then Exit;
- if e_CharFonts = nil then Exit;
- if Integer(FontID) > High(e_CharFonts) then Exit;
+  if Text = '' then Exit;
+  if e_CharFonts = nil then Exit;
+  if Integer(FontID) > High(e_CharFonts) then Exit;
 
- lines := 1;
- len := Length(Text);
- b := False;
+  lines := 1;
+  len := Length(Text);
 
- with e_CharFonts[FontID] do
- begin
-  for a := 1 to len do
+  with e_CharFonts[FontID] do
   begin
-   if b then
-   begin
-     b := False;
-     continue;
-   end;
-
-   if Text[a] = '\' then
-   begin
-    if (a < len) then
+    for a := 1 to len do
     begin
-      if Text[a+1] = 'n' then
-        Inc(lines);
-      if Text[a+1] in ['r', 'g', 'b', 'y', 'd', 'l', '1', '0', 'n'] then
+      if Text[a] = #10 then
       begin
-        b := True;
+        Inc(lines);
         continue;
+      end else
+        if Text[a] in [#1, #2, #3, #4, #18, #19, #20, #21] then
+          continue;
+
+      with Chars[Ord(Text[a])] do
+      if TextureID <> -1 then
+      begin
+        w := w + Width + IfThen(a = len, 0, Space);
+        e_GetTextureSize(TextureID, nil, @h2);
+        if h2 > h then h := h2;
       end;
     end;
-   end;
-
-   with Chars[Ord(Text[a])] do
-   if TextureID <> -1 then
-   begin
-    w := w+Width+IfThen(a = len, 0, Space);
-    e_GetTextureSize(TextureID, nil, @h2);
-    if h2 > h then h := h2;
-   end;
   end;
- end;
 
- h := h * lines;
+  h := h * lines;
 end;
 
 function e_CharFont_GetMaxWidth(FontID: DWORD): Word;
@@ -1495,102 +1512,92 @@ procedure e_TextureFontPrintFmt(X, Y: Integer; Text: string; FontID: DWORD; Shad
 var
   a, TX, TY, len: Integer;
   tc, c: TRGB;
-  b: Boolean;
   w: Word;
 begin
- if Text = '' then Exit;
- if e_TextureFonts = nil then Exit;
- if Integer(FontID) > High(e_TextureFonts) then Exit;
+  if Text = '' then Exit;
+  if e_TextureFonts = nil then Exit;
+  if Integer(FontID) > High(e_TextureFonts) then Exit;
 
- c.R := 255;
- c.G := 255;
- c.B := 255;
+  c.R := 255;
+  c.G := 255;
+  c.B := 255;
 
- TX := X;
- TY := Y;
- len := Length(Text);
+  TX := X;
+  TY := Y;
+  len := Length(Text);
 
- w := e_TextureFonts[FontID].CharWidth;
+  w := e_TextureFonts[FontID].CharWidth;
 
- b := False;
- with e_TextureFonts[FontID] do
- begin
-  glBindTexture(GL_TEXTURE_2D, e_TextureFonts[FontID].TextureID);
-  glEnable(GL_TEXTURE_2D);
-  glListBase(DWORD(Integer(e_TextureFonts[FontID].Base)-32));
-
-  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-  glEnable(GL_BLEND);
-
-  for a := 1 to len do
+  with e_TextureFonts[FontID] do
   begin
-   if b then
-   begin
-    b := False;
-    continue;
-   end;
+    glBindTexture(GL_TEXTURE_2D, e_TextureFonts[FontID].TextureID);
+    glEnable(GL_TEXTURE_2D);
+    glListBase(DWORD(Integer(e_TextureFonts[FontID].Base)-32));
 
-   if (Text[a] = '\') and (a < len) then
-   begin
-    b := True;
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glEnable(GL_BLEND);
 
-    case Text[a+1] of
-     'r':
-      begin
-        c.R := 255; c.G := 0; c.B := 0;
+    for a := 1 to len do
+    begin
+      case Text[a] of
+        {#10: // line feed
+        begin
+          TX := X;
+          TY := TY + h;
+          continue;
+        end;}
+        #1: // black
+        begin
+          c.R := 0; c.G := 0; c.B := 0;
+          continue;
+        end;
+        #2: // white
+        begin
+          c.R := 255; c.G := 255; c.B := 255;
+          continue;
+        end;
+        #3: // darker
+        begin
+          c.R := c.R div 2; c.G := c.G div 2; c.B := c.B  div 2;
+          continue;
+        end;
+        #4: // lighter
+        begin
+          c.R := c.R * 2; c.G := c.G * 2; c.B := c.B * 2;
+          continue;
+        end;
+        #18: // red
+        begin
+          c.R := 255; c.G := 0; c.B := 0;
+          continue;
+        end;
+        #19: // green
+        begin
+          c.R := 0; c.G := 255; c.B := 0;
+          continue;
+        end;
+        #20: // blue
+        begin
+          c.R := 0; c.G := 0; c.B := 255;
+          continue;
+        end;
+        #21: // yellow
+        begin
+          c.R := 255; c.G := 255; c.B := 0;
+          continue;
+        end;
       end;
 
-     'g':
-      begin
-        c.R := 0; c.G := 255; c.B := 0;
-      end;
+      tc := e_Colors;
+      e_Colors := c;
+      e_TextureFontPrintChar(TX, TY, Text[a], FontID, Shadow);
+      e_Colors := tc;
 
-     'b':
-      begin
-        c.R := 0; c.G := 0; c.B := 255;
-      end;
-
-     'y':
-      begin
-        c.R := 255; c.G := 255; c.B := 0;
-      end;
-
-     '0':
-      begin
-        c.R := 0; c.G := 0; c.B := 0;
-      end;
-
-     '1':
-      begin
-        c.R := 255; c.G := 255; c.B := 255;
-      end;
-
-     'd':
-      begin
-        c.R := c.R div 2; c.G := c.G div 2; c.B := c.B  div 2;
-      end;
-
-     'l':
-      begin
-        c.R := (c.R * 2) and 255; c.G := (c.G * 2) and 255; c.B := (c.B * 2) and 255;
-      end;
-
-     else b := False;
+      TX := TX+w;
     end;
-
-    if b then Continue;
-   end;
-
-   tc := e_Colors;
-   e_Colors := c;
-   e_TextureFontPrintChar(TX, TY, Text[a], FontID, Shadow);
-   e_Colors := tc;
-
-   TX := TX+w;
+    glDisable(GL_TEXTURE_2D);
+    glDisable(GL_BLEND);
   end;
-  glDisable(GL_TEXTURE_2D);
-  glDisable(GL_BLEND);
- end;
 end;
 
 procedure e_TextureFontPrintEx(X, Y: GLint; Text: string; FontID: DWORD; Red, Green,

@@ -4783,7 +4783,7 @@ end;
 
 procedure g_Game_Message(Msg: string; Time: Word);
 begin
-  MessageText := Msg;
+  MessageText := e_Text_Format(Msg);
   MessageTime := Time;
 end;
 
