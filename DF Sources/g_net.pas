@@ -62,7 +62,7 @@ type
 var
   NetInitDone:     Boolean = False;
   NetMode:         Byte = NET_NONE;
-  
+
   NetDedicated:    Boolean = False;
 
   NetServerName:   string = 'Unnamed Server';
@@ -109,7 +109,6 @@ var
   NetPredictSelf:       Boolean = True;
 
   NetGotEverything: Boolean = False;
-  NetNotChat: Boolean = False;
 
 function  g_Net_Init(): Boolean;
 procedure g_Net_Cleanup();
@@ -129,6 +128,7 @@ function  g_Net_Client_UpdateWhileLoading(): enet_size_t;
 
 function  g_Net_Client_ByName(Name: string): pTNetClient;
 function  g_Net_Client_ByPlayer(PID: Word): pTNetClient;
+function  g_Net_ClientName_ByID(ID: Integer): string;
 
 procedure g_Net_SendData(Data:AByte; peer: pENetPeer; Reliable: Boolean; Chan: Byte = NET_CHAN_DOWNLOAD);
 function  g_Net_Wait_Event(msgId: Word): TMemoryStream;
@@ -695,6 +695,23 @@ begin
         Result := @NetClients[a];
         Exit;
       end;
+end;
+
+function g_Net_ClientName_ByID(ID: Integer): string;
+var
+  a: Integer;
+  pl: TPlayer;
+begin
+  Result := '';
+  if ID = NET_EVERYONE then
+    Exit;
+  for a := Low(NetClients) to High(NetClients) do
+    if (NetClients[a].ID = ID) and (NetClients[a].Used) and (NetClients[a].State = NET_STATE_GAME) then
+    begin
+      pl := g_Player_Get(NetClients[a].Player);
+      if pl = nil then Exit;
+      Result := pl.Name;
+    end;
 end;
 
 procedure g_Net_SendData(Data:AByte; peer: pENetPeer; Reliable: Boolean; Chan: Byte = NET_CHAN_DOWNLOAD);

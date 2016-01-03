@@ -3105,7 +3105,7 @@ begin
     gLMSSoftSpawn := True;
     if NetMode = NET_SERVER then
       MH_SEND_Chat(IntToStr((gLMSRespawnTime - gTime) div 1000) +
-                   _lc[I_PLAYER_SPECT5])
+                   _lc[I_PLAYER_SPECT5], True)
     else
       g_Console_Add(IntToStr((gLMSRespawnTime - gTime) div 1000) +
                     _lc[I_PLAYER_SPECT5], True);
@@ -4155,7 +4155,7 @@ begin
         if g_Game_IsClient then
           MC_SEND_Chat(chstr)
         else
-          MH_SEND_Chat(gPlayer1Settings.Name + ': ' + chstr);
+          MH_SEND_Chat(gPlayer1Settings.Name + ': ' + chstr, False);
       end
       else
         g_Console_Add('chat <text>');
@@ -4528,7 +4528,7 @@ begin
           end;
 
           chstr := b_Text_Format(chstr);
-          MH_SEND_Chat(chstr);
+          MH_SEND_Chat(chstr, False);
         end
         else g_Console_Add('say <text>');
       end else
@@ -4554,12 +4554,7 @@ begin
 
           pl := g_Net_Client_ByName(P[1]);
           if pl <> nil then
-          begin
-            chstr := b_Text_Format(chstr);
-            g_Console_Add('-> ' + P[1] + ': ' + chstr, True);
-            e_WriteLog('[Tell ' + P[1] + '] ' + b_Text_Unformat(chstr), MSG_NOTIFY);
-            MH_SEND_Chat(chstr, pl^.ID)
-          end
+            MH_SEND_Chat(b_Text_Format(chstr), False, pl^.ID)
           else
             g_Console_Add(Format(_lc[I_NET_ERR_NAME404], [P[1]]));
         end

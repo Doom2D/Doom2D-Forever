@@ -643,7 +643,7 @@ begin
             if g_Game_IsClient then
               MC_SEND_Chat(b_Text_Format(Line))
             else
-              MH_SEND_Chat('[' + gPlayer1Settings.Name + ']: ' + Line);
+              MH_SEND_Chat('[' + gPlayer1Settings.Name + ']: ' + Line, False);
           end;
 
           Line := '';

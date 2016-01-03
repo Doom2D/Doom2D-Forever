@@ -1173,7 +1173,7 @@ begin
                     p := g_Player_Get(ActivateUID);
                     if g_Game_IsNet and (p.FClientID >= 0) then
                       if Data.MessageKind = 0 then
-                        MH_SEND_Chat(snd, p.FClientID)
+                        MH_SEND_Chat(snd, True, p.FClientID)
                       else if Data.MessageKind = 1 then
                         MH_SEND_GameEvent(NET_EV_BIGTEXT, snd, p.FClientID);
                   end;
@@ -1196,7 +1196,7 @@ begin
                     for i := Low(gPlayers) to High(gPlayers) do
                       if (gPlayers[i].Team = p.Team) and (gPlayers[i].FClientID >= 0) then
                         if Data.MessageKind = 0 then
-                          MH_SEND_Chat(snd, gPlayers[i].FClientID)
+                          MH_SEND_Chat(snd, True, gPlayers[i].FClientID)
                         else if Data.MessageKind = 1 then
                           MH_SEND_GameEvent(NET_EV_BIGTEXT, snd, gPlayers[i].FClientID);
                   end;
@@ -1219,7 +1219,7 @@ begin
                     for i := Low(gPlayers) to High(gPlayers) do
                       if (gPlayers[i].Team <> p.Team) and (gPlayers[i].FClientID >= 0) then
                         if Data.MessageKind = 0 then
-                          MH_SEND_Chat(snd, gPlayers[i].FClientID)
+                          MH_SEND_Chat(snd, True, gPlayers[i].FClientID)
                         else if Data.MessageKind = 1 then
                           MH_SEND_GameEvent(NET_EV_BIGTEXT, snd, gPlayers[i].FClientID);
                   end;
@@ -1239,7 +1239,7 @@ begin
                   for i := Low(gPlayers) to High(gPlayers) do
                     if (gPlayers[i].Team = TEAM_RED) and (gPlayers[i].FClientID >= 0) then
                       if Data.MessageKind = 0 then
-                        MH_SEND_Chat(snd, gPlayers[i].FClientID)
+                        MH_SEND_Chat(snd, True, gPlayers[i].FClientID)
                       else if Data.MessageKind = 1 then
                         MH_SEND_GameEvent(NET_EV_BIGTEXT, snd, gPlayers[i].FClientID);
                 end;
@@ -1258,7 +1258,7 @@ begin
                   for i := Low(gPlayers) to High(gPlayers) do
                     if (gPlayers[i].Team = TEAM_BLUE) and (gPlayers[i].FClientID >= 0) then
                       if Data.MessageKind = 0 then
-                        MH_SEND_Chat(snd, gPlayers[i].FClientID)
+                        MH_SEND_Chat(snd, True, gPlayers[i].FClientID)
                       else if Data.MessageKind = 1 then
                         MH_SEND_GameEvent(NET_EV_BIGTEXT, snd, gPlayers[i].FClientID);
                 end;
@@ -1274,10 +1274,7 @@ begin
                 if g_Game_IsNet then
                 begin
                   if Data.MessageKind = 0 then
-                  begin
-                    NetNotChat := True;
-                    MH_SEND_Chat(snd);
-                  end
+                    MH_SEND_Chat(snd, True)
                   else if Data.MessageKind = 1 then
                     MH_SEND_GameEvent(NET_EV_BIGTEXT, snd);
                 end;

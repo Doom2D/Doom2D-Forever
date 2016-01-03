@@ -2757,7 +2757,7 @@ begin
     begin
       if NetMode = NET_SERVER then
         MH_SEND_Chat(IntToStr((gLMSRespawnTime - gTime) div 1000) +
-                     _lc[I_PLAYER_SPECT5])
+                     _lc[I_PLAYER_SPECT5], True)
       else
         g_Console_Add(IntToStr((gLMSRespawnTime - gTime) div 1000) +
                       _lc[I_PLAYER_SPECT5], True);

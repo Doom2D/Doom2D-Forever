@@ -106,7 +106,7 @@ procedure MH_RECV_Vote(C: pTNetClient; P: Pointer);
 // GAME
 procedure MH_SEND_Everything(CreatePlayers: Boolean = False; ID: Integer = NET_EVERYONE);
 procedure MH_SEND_Info(ID: Byte);
-procedure MH_SEND_Chat(Txt: string; ID: Integer = NET_EVERYONE);
+procedure MH_SEND_Chat(Txt: string; NotChat: Boolean; ID: Integer = NET_EVERYONE);
 procedure MH_SEND_Effect(X, Y: Integer; Ang: SmallInt; Kind: Byte; ID: Integer = NET_EVERYONE);
 procedure MH_SEND_Sound(X, Y: Integer; Name: string; ID: Integer = NET_EVERYONE);
 procedure MH_SEND_CreateShot(Proj: LongInt; ID: Integer = NET_EVERYONE);
@@ -265,9 +265,9 @@ begin
 
   Txt := e_Raw_Read_String(P);
   if Pl = nil then
-    MH_SEND_Chat(Txt)
+    MH_SEND_Chat(Txt, False)
   else
-    MH_SEND_Chat(Pl.Name + ': ' + Txt);
+    MH_SEND_Chat(Pl.Name + ': ' + Txt, False);
 end;
 
 procedure MH_RECV_Info(C: pTNetClient; P: Pointer);
@@ -475,10 +475,10 @@ begin
   if Pwd = NetRCONPassword then
   begin
     C^.RCONAuth := True;
-    MH_SEND_Chat(_lc[I_NET_RCON_PWD_VALID], C^.ID);
+    MH_SEND_Chat(_lc[I_NET_RCON_PWD_VALID], True, C^.ID);
   end
   else
-    MH_SEND_Chat(_lc[I_NET_RCON_PWD_INVALID], C^.ID);
+    MH_SEND_Chat(_lc[I_NET_RCON_PWD_INVALID], True, C^.ID);
 end;
 
 procedure MH_RECV_RCONCommand(C: pTNetClient; P: Pointer);
@@ -489,7 +489,7 @@ begin
   if not NetAllowRCON then Exit;
   if not C^.RCONAuth then
   begin
-    MH_SEND_Chat(_lc[I_NET_RCON_NOAUTH], C^.ID);
+    MH_SEND_Chat(_lc[I_NET_RCON_NOAUTH], True, C^.ID);
     Exit;
   end;
   g_Console_Process(Cmd);
@@ -652,7 +652,7 @@ begin
 
   if gLMSRespawn then
     MH_SEND_Chat(IntToStr((gLMSRespawnTime - gTime) div 1000) +
-                 _lc[I_PLAYER_SPECT5], ID);
+                 _lc[I_PLAYER_SPECT5], True, ID);
 end;
 
 procedure MH_SEND_Info(ID: Byte);
@@ -679,27 +679,31 @@ begin
   g_Net_Host_Send(ID, True, NET_CHAN_SERVICE);
 end;
 
-procedure MH_SEND_Chat(Txt: string; ID: Integer = NET_EVERYONE);
+procedure MH_SEND_Chat(Txt: string; NotChat: Boolean; ID: Integer = NET_EVERYONE);
+var
+  Name: string;
 begin
   e_Buffer_Write(@NetOut, Byte(NET_MSG_CHAT));
   e_Buffer_Write(@NetOut, Txt);
-  if (ID <> NET_EVERYONE) or NetNotChat then
+  if NotChat then
     e_Buffer_Write(@NetOut, Byte(1))
   else
     e_Buffer_Write(@NetOut, Byte(0));
   g_Net_Host_Send(ID, True, NET_CHAN_CHAT);
 
-  if ID <> NET_EVERYONE then
+  if NotChat then
     Exit;
 
-  if NetNotChat then
+  if ID = NET_EVERYONE then
   begin
-    NetNotChat := False;
-    Exit;
+    g_Console_Add(Txt, True);
+    e_WriteLog('[Chat] ' + b_Text_Unformat(Txt), MSG_NOTIFY);
+  end else
+  begin
+    Name := g_Net_ClientName_ByID(ID);
+    g_Console_Add('-> ' + Name + ': ' + Txt, True);
+    e_WriteLog('[Tell ' + Name + '] ' + b_Text_Unformat(Txt), MSG_NOTIFY);
   end;
-
-  g_Console_Add(Txt, True);
-  e_WriteLog('[Chat] ' + b_Text_Unformat(Txt), MSG_NOTIFY);
   g_Sound_PlayEx('SOUND_GAME_RADIO');
 end;
 
