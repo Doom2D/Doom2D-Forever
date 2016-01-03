@@ -4018,6 +4018,9 @@ begin
           if gPlayers[a] <> nil then
             if Copy(LowerCase(gPlayers[a].Name), 1, Length(P[1])) = LowerCase(P[1]) then
             begin
+              // Не отключать основных игроков в сингле
+              if not(gPlayers[a] is TBot) and (gGameSettings.GameType = GT_SINGLE) then
+                continue;
               gPlayers[a].Lives := 0;
               gPlayers[a].Kill(K_SIMPLEKILL, 0, HIT_DISCON);
               g_Console_Add(Format(_lc[I_PLAYER_LEAVE], [gPlayers[a].Name]), True);
