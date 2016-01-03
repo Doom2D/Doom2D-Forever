@@ -3260,6 +3260,8 @@ end;
 
 procedure TPlayer.Push(vx, vy: Integer);
 begin
+  if (not FPhysics) and FGhost then
+    Exit;
   FObj.Accel.X := FObj.Accel.X + vx;
   FObj.Accel.Y := FObj.Accel.Y + vy;
   if g_Game_IsNet and g_Game_IsServer then
@@ -3780,6 +3782,10 @@ begin
   begin
     FXTo := FObj.X;
     FYTo := FObj.Y;
+  end else
+  begin
+    FObj.Accel.X := 0;
+    FObj.Accel.Y := 0;
   end;
 end;
 
