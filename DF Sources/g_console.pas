@@ -398,6 +398,7 @@ begin
   AddCommand('bot_addblue', GameCommands);
   AddCommand('bot_removeall', GameCommands);
   AddCommand('chat', GameCommands);
+  AddCommand('teamchat', GameCommands);
   AddCommand('map', GameCommands);
   AddCommand('nextmap', GameCommands);
   AddCommand('endmap', GameCommands);

@@ -278,7 +278,7 @@ begin
   if Pl = nil then
     MH_SEND_Chat(Txt, Mode)
   else
-    MH_SEND_Chat(Pl.Name + ': ' + Txt, Mode);
+    MH_SEND_Chat(Pl.Name + ': ' + Txt, Mode, IfThen(Mode = NET_CHAT_TEAM, Pl.Team, NET_EVERYONE));
 end;
 
 procedure MH_RECV_Info(C: pTNetClient; P: Pointer);
@@ -701,14 +701,28 @@ end;
 procedure MH_SEND_Chat(Txt: string; Mode: Byte; ID: Integer = NET_EVERYONE);
 var
   Name: string;
+  i: Integer;
+  Team: Byte;
 begin
   if (Mode = NET_CHAT_TEAM) and (not gGameSettings.GameMode in [GM_TDM, GM_CTF]) then
     Mode := NET_CHAT_PLAYER;
 
-  if Mode = NET_CHAT_TEAM then
+  Team := 0;
+  if (Mode = NET_CHAT_TEAM) then
   begin
-    // TODO
-  end else
+    for i := Low(gPlayers) to High(gPlayers) do
+      if (gPlayers[i] <> nil) and (gPlayers[i].FClientID >= 0) and
+         (gPlayers[i].Team = ID) then
+      begin
+        e_Buffer_Write(@NetOut, Byte(NET_MSG_CHAT));
+        e_Buffer_Write(@NetOut, Txt);
+        e_Buffer_Write(@NetOut, Mode);
+        g_Net_Host_Send(gPlayers[i].FClientID, True, NET_CHAN_CHAT);
+      end;
+    Team := ID;
+    ID := NET_EVERYONE;
+  end
+  else
   begin
     e_Buffer_Write(@NetOut, Byte(NET_MSG_CHAT));
     e_Buffer_Write(@NetOut, Txt);
@@ -726,24 +740,26 @@ begin
       g_Console_Add(Txt, True);
       e_WriteLog('[Chat] ' + b_Text_Unformat(Txt), MSG_NOTIFY);
       g_Sound_PlayEx('SOUND_GAME_RADIO');
-    end else
+    end
+    else
     if Mode = NET_CHAT_TEAM then
       if gPlayer1 <> nil then
       begin
-        if (gPlayer1.Team = TEAM_RED) and (True) then
+        if (gPlayer1.Team = TEAM_RED) and (Team = TEAM_RED) then
         begin
-          g_Console_Add(b_Text_Format('\r[Team] ') + Txt, True);
+          g_Console_Add(#18'[Team] '#2 + Txt, True);
           e_WriteLog('[Team Chat] ' + b_Text_Unformat(Txt), MSG_NOTIFY);
           g_Sound_PlayEx('SOUND_GAME_RADIO');
-        end else
-        if (gPlayer1.Team = TEAM_BLUE) and (True) then
+        end
+        else if (gPlayer1.Team = TEAM_BLUE) and (Team = TEAM_BLUE) then
         begin
-          g_Console_Add(b_Text_Format('\b[Team] ') + Txt, True);
+          g_Console_Add(#20'[Team] '#2 + Txt, True);
           e_WriteLog('[Team Chat] ' + b_Text_Unformat(Txt), MSG_NOTIFY);
           g_Sound_PlayEx('SOUND_GAME_RADIO');
         end;
       end;
-  end else
+  end
+  else
   begin
     Name := g_Net_ClientName_ByID(ID);
     g_Console_Add('-> ' + Name + ': ' + Txt, True);
