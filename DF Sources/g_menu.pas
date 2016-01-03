@@ -93,6 +93,7 @@ begin
     TakeScreenshot := TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_SCREENSHOT])).Key;
     Stat := TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_STAT])).Key;
     Chat := TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_CHAT])).Key;
+    TeamChat := TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_TEAMCHAT])).Key;
   end;
 
   menu := TGUIMenu(g_GUI_GetWindow('OptionsControlsP1Menu').GetControl('mOptionsControlsP1Menu'));
@@ -249,6 +250,7 @@ begin
     TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_SCREENSHOT])).Key := TakeScreenshot;
     TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_STAT])).Key := Stat;
     TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_CHAT])).Key := Chat;
+    TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_TEAMCHAT])).Key := TeamChat;
   end;
 
   menu := TGUIMenu(g_GUI_GetWindow('OptionsGameMenu').GetControl('mOptionsGameMenu'));
@@ -2341,6 +2343,7 @@ begin
     AddKeyRead(_lc[I_MENU_CONTROL_SCREENSHOT]).Name := _lc[I_MENU_CONTROL_SCREENSHOT];
     AddKeyRead(_lc[I_MENU_CONTROL_STAT]).Name := _lc[I_MENU_CONTROL_STAT];
     AddKeyRead(_lc[I_MENU_CONTROL_CHAT]).Name := _lc[I_MENU_CONTROL_CHAT];
+    AddKeyRead(_lc[I_MENU_CONTROL_TEAMCHAT]).Name := _lc[I_MENU_CONTROL_TEAMCHAT];
     AddSpace();
     AddButton(nil, _lc[I_MENU_PLAYER_1], 'OptionsControlsP1Menu');
     AddButton(nil, _lc[I_MENU_PLAYER_2], 'OptionsControlsP2Menu');

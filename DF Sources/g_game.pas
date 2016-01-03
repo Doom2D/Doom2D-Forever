@@ -16,7 +16,7 @@ type
     MaxLives: Byte;
     Options: LongWord;
     WAD: String;
-  end;
+  end;                                          
 
   TGameEvent = record
     Name: String;
@@ -1098,8 +1098,12 @@ begin
     if not gConsoleShow then
       if not gChatShow then
         if g_ActiveWindow = nil then
+        begin
           if e_KeyBuffer[gGameControls.GameControls.Chat] = $080 then
-            g_Console_Chat_Switch();
+            g_Console_Chat_Switch(False)
+          else if e_KeyBuffer[gGameControls.GameControls.TeamChat] = $080 then
+            g_Console_Chat_Switch(True);
+        end;
 
 // Статистика по Tab:
   if gGameOn then
@@ -4280,7 +4284,7 @@ begin
           MH_SEND_Chat(gPlayer1Settings.Name + ': ' + chstr, NET_CHAT_TEAM,
             gPlayer1Settings.Team);
       end
-      else
+      else                                                                        
         g_Console_Add('teamchat <text>');
     end else
       g_Console_Add(_lc[I_MSG_GM_UNAVAIL]);
