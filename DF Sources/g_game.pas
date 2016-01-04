@@ -172,6 +172,7 @@ var
   gState: Byte = STATE_NONE;
   sX, sY: Integer;
   sWidth, sHeight: Word;
+  gSpectMode: Byte = 0;
   gMusic: TMusic = nil;
   gLoadGameMode: Boolean;
   gCheats: Boolean = False;
@@ -636,7 +637,7 @@ begin
       begin
       // Статистика Одиночной игры:
         SingleStat.GameTime := gTime;
-        SingleStat.TwoPlayers := LongBool(gGameSettings.Options and GAME_OPTION_TWOPLAYER);
+        SingleStat.TwoPlayers := gPlayer2 <> nil;
         SingleStat.TotalSecrets := gSecretsCount;
       // Статистика первого игрока:
         SingleStat.PlayerStat[0].Kills := gPlayer1.MonsterKills;
@@ -1267,6 +1268,17 @@ begin
             if e_KeyBuffer[KeyPrevWeapon] = $080 then gPlayer2.PressKey(KEY_PREVWEAPON);
             if e_KeyBuffer[KeyOpen] = $080 then gPlayer2.PressKey(KEY_OPEN);
           end;
+      // Наблюдатель
+        if (gPlayer1 = nil) and (gPlayer2 = nil) then
+        begin
+          // TODO: use key press time
+          if e_KeyBuffer[gGameControls.P1Control.KeyJump] = $080 then
+            case gSpectMode of
+              0: ; // not spectator
+              1: Inc(gSpectMode); // inc to mode 2
+              else gSpectMode := 1; // reset to 1
+            end;
+        end;
       end  // if not console
       else
         if g_Game_IsNet and (gPlayer1 <> nil) then
@@ -2193,6 +2205,9 @@ var
   w, h: Word;
   Time: Int64;
   back: string;
+  plView1, plView2: TPlayer;
+  Split: Boolean;
+  a: Integer;
 begin
   if gExit = EXIT_QUIT then Exit;
 
@@ -2204,46 +2219,83 @@ begin
     FPSCounter := 0;
     FPSTime := Time;
   end;
- 
-  if gGameOn or (gState = STATE_FOLD) then
-  begin
-    if LongBool(gGameSettings.Options and GAME_OPTION_TWOPLAYER) then
-      e_SetViewPort(0, gPlayerScreenSize.Y+1, gPlayerScreenSize.X+196, gPlayerScreenSize.Y);
 
-    if LongBool(gGameSettings.Options and GAME_OPTION_TWOPLAYER) and gRevertPlayers then
+  if (gPlayer1 <> nil) and (gPlayer2 <> nil) then
+  begin
+    gSpectMode := 0;
+    if not gRevertPlayers then
     begin
-      DrawPlayer(gPlayer2);
-      gPlayer2ScreenCoord.X := sX;
-      gPlayer2ScreenCoord.Y := sY;
+      plView1 := gPlayer1;
+      plView2 := gPlayer2;
     end
     else
     begin
-      DrawPlayer(gPlayer1);
-      gPlayer1ScreenCoord.X := sX;
-      gPlayer1ScreenCoord.Y := sY;
+      plView1 := gPlayer2;
+      plView2 := gPlayer1;
     end;
+  end
+  else
+    if (gPlayer1 <> nil) or (gPlayer2 <> nil) then
+    begin
+      gSpectMode := 0;
+      if gPlayer2 = nil then
+        plView1 := gPlayer1
+      else
+        plView1 := gPlayer2;
+      plView2 := nil;
+    end
+    else
+    begin
+      plView1 := nil;
+      plView2 := nil;
+      if (gSpectMode = 2) and (gPlayers <> nil) then
+        for a := 0 to High(gPlayers) do
+          if (gPlayers[a] <> nil) and (not gPlayers[a].FDummy) then
+          begin
+            if plView1 = nil then
+            begin
+              plView1 := gPlayers[a];
+              continue;
+            end;
+            if plView2 = nil then
+            begin
+              plView2 := gPlayers[a];
+              break;
+            end;
+          end;
+    end;
+  Split := (plView1 <> nil) and (plView2 <> nil);
+  if (plView1 = nil) and (plView2 = nil) and (gSpectMode = 0) then
+    gSpectMode := 1;
 
-    if LongBool(gGameSettings.Options and GAME_OPTION_TWOPLAYER) then
+  if gGameOn or (gState = STATE_FOLD) then
+  begin
+  // Размер экранов игроков:
+    gPlayerScreenSize.X := gScreenWidth-196;
+    if Split then
+      gPlayerScreenSize.Y := gScreenHeight div 2
+    else
+      gPlayerScreenSize.Y := gScreenHeight;
+
+    if Split then
+      e_SetViewPort(0, gPlayerScreenSize.Y+1, gPlayerScreenSize.X+196, gPlayerScreenSize.Y);
+
+    DrawPlayer(plView1);
+    gPlayer1ScreenCoord.X := sX;
+    gPlayer1ScreenCoord.Y := sY;
+
+    if Split then
     begin
       e_SetViewPort(0, 0, gPlayerScreenSize.X+196, gPlayerScreenSize.Y);
 
-      if gRevertPlayers then
-      begin
-        DrawPlayer(gPlayer1);
-        gPlayer1ScreenCoord.X := sX;
-        gPlayer1ScreenCoord.Y := sY;
-      end
-      else
-      begin
-        DrawPlayer(gPlayer2);
-        gPlayer2ScreenCoord.X := sX;
-        gPlayer2ScreenCoord.Y := sY;
-      end;
+      DrawPlayer(plView2);
+      gPlayer2ScreenCoord.X := sX;
+      gPlayer2ScreenCoord.Y := sY;
     end;
 
     e_SetViewPort(0, 0, gScreenWidth, gScreenHeight);
 
-    if LongBool(gGameSettings.Options and GAME_OPTION_TWOPLAYER) then
+    if Split then
       e_DrawLine(2, 0, gScreenHeight div 2, gScreenWidth, gScreenHeight div 2, 0, 0, 0);
 
     if MessageText <> '' then
@@ -2251,7 +2303,7 @@ begin
       w := 0;
       h := 0;
       e_CharFont_GetSizeFmt(gMenuFont, MessageText, w, h);
-      if LongBool(gGameSettings.Options and GAME_OPTION_TWOPLAYER) then
+      if Split then
         e_CharFont_PrintFmt(gMenuFont, (gScreenWidth div 2)-(w div 2),
                         (gScreenHeight div 2)-(h div 2), MessageText)
       else
@@ -2259,7 +2311,7 @@ begin
                   Round(gScreenHeight / 2.75)-(h div 2), MessageText);
     end;
 
-    if IsDrawStat or ((gGameSettings.GameType = GT_SERVER) and NetDedicated) then DrawStat();
+    if IsDrawStat or (gSpectMode = 1) then DrawStat();
   end;
 
   if gPause and gGameOn and (g_ActiveWindow = nil) then
@@ -2425,11 +2477,11 @@ var
 begin
 // Размер экранов игроков:
   gPlayerScreenSize.X := gScreenWidth-196;
-  if LongBool(gGameSettings.Options and GAME_OPTION_TWOPLAYER) then
+  if (gPlayer1 <> nil) and (gPlayer2 <> nil) then
     gPlayerScreenSize.Y := gScreenHeight div 2
   else
     gPlayerScreenSize.Y := gScreenHeight;
-    
+
 // Размер заднего плана:
   if BackID <> DWORD(-1) then
   begin
