@@ -2638,8 +2638,6 @@ begin
     gPlayer2.Lives := 0;
     gPlayer2.Kill(K_SIMPLEKILL, 0, HIT_DISCON);
     g_Console_Add(Format(_lc[I_PLAYER_LEAVE], [gPlayer2.Name]), True);
-    if g_Game_IsServer and g_Game_IsNet then
-      MH_SEND_PlayerDelete(gPlayer2.UID);
     g_Player_Remove(gPlayer2.UID);
     Exit;
   end;
@@ -2648,8 +2646,6 @@ begin
     gPlayer1.Lives := 0;
     gPlayer1.Kill(K_SIMPLEKILL, 0, HIT_DISCON);
     g_Console_Add(Format(_lc[I_PLAYER_LEAVE], [gPlayer1.Name]), True);
-    if g_Game_IsServer and g_Game_IsNet then
-      MH_SEND_PlayerDelete(gPlayer1.UID);
     g_Player_Remove(gPlayer1.UID);
     Exit;
   end;
