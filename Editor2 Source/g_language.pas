@@ -77,6 +77,7 @@ Type
     I_ARRAY_ITEM_JETPACK,
     I_ARRAY_ITEM_INVIS,
 
+    I_ARRAY_SHOT_PISTOL,
     I_ARRAY_SHOT_BULLET,
     I_ARRAY_SHOT_SHOTGUN,
     I_ARRAY_SHOT_SSG,
@@ -579,7 +580,7 @@ Var
   PANELNAMES: Array[0..13] of String;
   EffectNames: Array [EFFECT_NONE..EFFECT_FIRE] of String;
   ItemNames: Array [ITEM_MEDKIT_SMALL..ITEM_MAX] of String;
-  ShotNames: Array [TRIGGER_SHOT_BULLET..TRIGGER_SHOT_BFG] of String;
+  ShotNames: Array [TRIGGER_SHOT_PISTOL..TRIGGER_SHOT_BFG] of String;
   MonsterNames: Array [MONSTER_DEMON..MONSTER_MAN] of String;
   AreaNames: Array [AREA_PLAYERPOINT1..AREA_BLUETEAMPOINT] of String;
   TriggerNames: Array [TRIGGER_EXIT..TRIGGER_SHOT] of String;
@@ -733,6 +734,8 @@ Const
     ('ARRAY ITEM INVIS',               'Invisibility',
                                        'Невидимость'),
 
+    ('ARRAY SHOT PISTOL',              'Pistol shot',
+                                       'Выстрел пистолета'),
     ('ARRAY SHOT BULLET',              'Chaingun shot',
                                        'Выстрел пулемета'),
     ('ARRAY SHOT SHOTGUN',             'Shotgun shot',
@@ -1747,6 +1750,7 @@ begin
   ItemNames[ITEM_INVIS] := _lc[I_ARRAY_ITEM_INVIS];
 
 // Названия снарядов:
+  ShotNames[TRIGGER_SHOT_PISTOL] := _lc[I_ARRAY_SHOT_PISTOL];
   ShotNames[TRIGGER_SHOT_BULLET] := _lc[I_ARRAY_SHOT_BULLET];
   ShotNames[TRIGGER_SHOT_SHOTGUN] := _lc[I_ARRAY_SHOT_SHOTGUN];
   ShotNames[TRIGGER_SHOT_SSG] := _lc[I_ARRAY_SHOT_SSG];

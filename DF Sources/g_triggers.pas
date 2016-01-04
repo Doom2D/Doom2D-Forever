@@ -1495,6 +1495,13 @@ begin
             yd := yd + Random(Data.ShotAccuracy) - Random(Data.ShotAccuracy);
 
             case Data.ShotType of
+              TRIGGER_SHOT_PISTOL:
+                begin
+                  g_Weapon_pistol(wx, wy, xd, yd, 0, True);
+                  Projectile := False;
+                  snd := 'SOUND_WEAPON_FIREPISTOL';
+                end;
+
               TRIGGER_SHOT_BULLET:
                 begin
                   g_Weapon_mgun(wx, wy, xd, yd, 0, True);
