@@ -3055,6 +3055,7 @@ begin
     Exit;
   g_ProcessResourceStr(gMapInfo.Map, nil, nil, @Map);
 
+  MessageTime := 0;
   gGameOn := False;
   g_Game_ClearLoading();
   g_Game_StartMap(Map, True);
@@ -3218,13 +3219,12 @@ procedure g_Game_RestartLevel();
 var
   Map: string;
 begin
-  if gGameSettings.GameMode <> GM_SINGLE then
-    gExit := EXIT_ENDLEVELCUSTOM
-  else
+  if gGameSettings.GameMode = GM_SINGLE then
   begin
     g_Game_Restart();
     Exit;
   end;
+  gExit := EXIT_ENDLEVELCUSTOM;
   g_ProcessResourceStr(gMapInfo.Map, nil, nil, @Map);
   gNextMap := Map;
 end;
@@ -3269,7 +3269,8 @@ begin
   if not gLMSRespawn then Exit;
   gLMSRespawn := False;
   gLMSRespawnTime := 0;
-  
+  MessageTime := 0;
+
   if (gGameSettings.GameMode = GM_COOP) and not NoMapRestart then
   begin
     gMissionFailed := True;
