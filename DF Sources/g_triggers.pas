@@ -13,6 +13,7 @@ type
   end;
   TTrigger = record
     ID:               DWORD;
+    ClientID:         DWORD;
     TriggerType:      Byte;
     X, Y:             Integer;
     Width, Height:    Word;
@@ -52,6 +53,7 @@ procedure g_Triggers_SaveState(var Mem: TBinMemoryWriter);
 procedure g_Triggers_LoadState(var Mem: TBinMemoryReader);
 
 var
+  gTriggerClientID: Integer = 0;
   gTriggers: array of TTrigger;
   gSecretsCount: Integer = 0;
   gMonstersSpawned: array of LongInt = nil;
@@ -1625,6 +1627,15 @@ begin
   with gTriggers[find_id] do
   begin
     ID := find_id;
+    // if this type of trigger exists both on the client and on the server
+    // use an uniform numeration
+    if Trigger.TriggerType = TRIGGER_SOUND then
+    begin
+      Inc(gTriggerClientID);
+      ClientID := gTriggerClientID;
+    end
+    else
+      ClientID := 0;
     TimeOut := 0;
     ActivateUID := 0;
     PlayerCollide := False;

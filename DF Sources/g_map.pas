@@ -856,6 +856,7 @@ begin
   end;
 
 // Загрузка триггеров:
+  gTriggerClientID := 0;
   e_WriteLog('  Loading triggers...', MSG_NOTIFY);
   g_Game_SetLoadingText(_lc[I_LOAD_TRIGGERS], 0, False);
   triggers := MapReader.GetTriggers();

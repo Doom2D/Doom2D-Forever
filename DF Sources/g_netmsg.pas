@@ -1197,7 +1197,7 @@ begin
   if T.Sound = nil then Exit;
 
   e_Buffer_Write(@NetOut, Byte(NET_MSG_TSOUND));
-  e_Buffer_Write(@NetOut, T.Sound.Name);
+  e_Buffer_Write(@NetOut, T.ClientID);
   e_Buffer_Write(@NetOut, Byte(T.Sound.IsPlaying));
   e_Buffer_Write(@NetOut, LongWord(T.Sound.GetPosition));
   e_Buffer_Write(@NetOut, T.SoundPlayCount);
@@ -2187,23 +2187,22 @@ end;
 
 procedure MC_RECV_TriggerSound(P: Pointer);
 var
-  SName: string;
   SPlaying: Boolean;
-  SPos: LongWord;
+  SPos, SID: LongWord;
   SCount: LongInt;
   I: Integer;
 begin
   if not gGameOn then Exit;
   if gTriggers = nil then Exit;
 
-  SName := e_Raw_Read_String(P);
+  SID := e_Raw_Read_LongWord(P);
   SPlaying := e_Raw_Read_Byte(P) <> 0;
   SPos := e_Raw_Read_LongWord(P);
   SCount := e_Raw_Read_LongInt(P);
 
   for I := Low(gTriggers) to High(gTriggers) do
     if gTriggers[I].TriggerType = TRIGGER_SOUND then
-      if gTriggers[I].Sound.Name = SName then
+      if gTriggers[I].ClientID = SID then
         with gTriggers[I] do
         begin
           if SPlaying then
