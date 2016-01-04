@@ -1384,7 +1384,57 @@ begin
           TargetUID := 0;
 
           case Data.ShotTarget of
-            1: // monsters then players
+            TRIGGER_SHOT_TARGET_MON: // monsters
+              if gMonsters <> nil then
+                for i := Low(gMonsters) to High(gMonsters) do
+                  if (gMonsters[i] <> nil) and gMonsters[i].Live and
+                     (Data.ShotAllMap or g_Obj_Collide(X, Y, Width, Height, @(gMonsters[i].Obj))) then
+                  begin
+                    xd := gMonsters[i].GameX + gMonsters[i].Obj.Rect.Width div 2;
+                    yd := gMonsters[i].GameY + gMonsters[i].Obj.Rect.Height div 2;
+                    TargetUID := gMonsters[i].UID;
+                    break;
+                  end;
+
+            TRIGGER_SHOT_TARGET_PLR: // players
+              if gPlayers <> nil then
+                for i := Low(gPlayers) to High(gPlayers) do
+                  if (gPlayers[i] <> nil) and gPlayers[i].Live and
+                     (Data.ShotAllMap or g_Obj_Collide(X, Y, Width, Height, @(gPlayers[i].Obj))) then
+                  begin
+                    xd := gPlayers[i].GameX + PLAYER_RECT_CX;
+                    yd := gPlayers[i].GameY + PLAYER_RECT_CY;
+                    TargetUID := gPlayers[i].UID;
+                    break;
+                  end;
+
+            TRIGGER_SHOT_TARGET_RED: // red team
+              if gPlayers <> nil then
+                for i := Low(gPlayers) to High(gPlayers) do
+                  if (gPlayers[i] <> nil) and gPlayers[i].Live and
+                     (gPlayers[i].Team = TEAM_RED) and
+                     (Data.ShotAllMap or g_Obj_Collide(X, Y, Width, Height, @(gPlayers[i].Obj))) then
+                  begin
+                    xd := gPlayers[i].GameX + PLAYER_RECT_CX;
+                    yd := gPlayers[i].GameY + PLAYER_RECT_CY;
+                    TargetUID := gPlayers[i].UID;
+                    break;
+                  end;
+
+            TRIGGER_SHOT_TARGET_BLUE: // blue team
+              if gPlayers <> nil then
+                for i := Low(gPlayers) to High(gPlayers) do
+                  if (gPlayers[i] <> nil) and gPlayers[i].Live and
+                     (gPlayers[i].Team = TEAM_BLUE) and
+                     (Data.ShotAllMap or g_Obj_Collide(X, Y, Width, Height, @(gPlayers[i].Obj))) then
+                  begin
+                    xd := gPlayers[i].GameX + PLAYER_RECT_CX;
+                    yd := gPlayers[i].GameY + PLAYER_RECT_CY;
+                    TargetUID := gPlayers[i].UID;
+                    break;
+                  end;
+
+            TRIGGER_SHOT_TARGET_MONPLR: // monsters then players
             begin
               if gMonsters <> nil then
                 for i := Low(gMonsters) to High(gMonsters) do
@@ -1408,7 +1458,7 @@ begin
                   end;
             end;
 
-            2: // players then monsters
+            TRIGGER_SHOT_TARGET_PLRMON: // players then monsters
             begin
               if gPlayers <> nil then
                 for i := Low(gPlayers) to High(gPlayers) do
@@ -1431,56 +1481,6 @@ begin
                     break;
                   end;
             end;
-
-            3: // monsters
-              if gMonsters <> nil then
-                for i := Low(gMonsters) to High(gMonsters) do
-                  if (gMonsters[i] <> nil) and gMonsters[i].Live and
-                     (Data.ShotAllMap or g_Obj_Collide(X, Y, Width, Height, @(gMonsters[i].Obj))) then
-                  begin
-                    xd := gMonsters[i].GameX + gMonsters[i].Obj.Rect.Width div 2;
-                    yd := gMonsters[i].GameY + gMonsters[i].Obj.Rect.Height div 2;
-                    TargetUID := gMonsters[i].UID;
-                    break;
-                  end;
-
-            4: // players
-              if gPlayers <> nil then
-                for i := Low(gPlayers) to High(gPlayers) do
-                  if (gPlayers[i] <> nil) and gPlayers[i].Live and
-                     (Data.ShotAllMap or g_Obj_Collide(X, Y, Width, Height, @(gPlayers[i].Obj))) then
-                  begin
-                    xd := gPlayers[i].GameX + PLAYER_RECT_CX;
-                    yd := gPlayers[i].GameY + PLAYER_RECT_CY;
-                    TargetUID := gPlayers[i].UID;
-                    break;
-                  end;
-
-            5: // red team
-              if gPlayers <> nil then
-                for i := Low(gPlayers) to High(gPlayers) do
-                  if (gPlayers[i] <> nil) and gPlayers[i].Live and
-                     (gPlayers[i].Team = TEAM_RED) and
-                     (Data.ShotAllMap or g_Obj_Collide(X, Y, Width, Height, @(gPlayers[i].Obj))) then
-                  begin
-                    xd := gPlayers[i].GameX + PLAYER_RECT_CX;
-                    yd := gPlayers[i].GameY + PLAYER_RECT_CY;
-                    TargetUID := gPlayers[i].UID;
-                    break;
-                  end;
-
-            6: // blue team
-              if gPlayers <> nil then
-                for i := Low(gPlayers) to High(gPlayers) do
-                  if (gPlayers[i] <> nil) and gPlayers[i].Live and
-                     (gPlayers[i].Team = TEAM_BLUE) and
-                     (Data.ShotAllMap or g_Obj_Collide(X, Y, Width, Height, @(gPlayers[i].Obj))) then
-                  begin
-                    xd := gPlayers[i].GameX + PLAYER_RECT_CX;
-                    yd := gPlayers[i].GameY + PLAYER_RECT_CY;
-                    TargetUID := gPlayers[i].UID;
-                    break;
-                  end;
 
             else TargetUID := ActivateUID;
           end;
