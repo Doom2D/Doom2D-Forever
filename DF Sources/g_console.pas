@@ -668,15 +668,16 @@ begin
               if g_Game_IsClient then
                 MC_SEND_Chat(b_Text_Format(Line), NET_CHAT_TEAM)
               else
-                MH_SEND_Chat('[' + gPlayer1Settings.Name + ']: ' + Line, NET_CHAT_TEAM,
-                  gPlayer1Settings.Team);
+                MH_SEND_Chat('[' + gPlayer1Settings.Name + ']: ' + b_Text_Format(Line),
+                  NET_CHAT_TEAM, gPlayer1Settings.Team);
             end
             else
             begin
               if g_Game_IsClient then
                 MC_SEND_Chat(b_Text_Format(Line), NET_CHAT_PLAYER)
               else
-                MH_SEND_Chat('[' + gPlayer1Settings.Name + ']: ' + Line, NET_CHAT_PLAYER);
+                MH_SEND_Chat('[' + gPlayer1Settings.Name + ']: ' + b_Text_Format(Line),
+                NET_CHAT_PLAYER);
             end;
           end;
 

@@ -1189,12 +1189,12 @@ begin
         end;
         #3: // darker
         begin
-          c.R := c.R div 2; c.G := c.G div 2; c.B := c.B  div 2;
+          c.R := c.R div 2; c.G := c.G div 2; c.B := c.B div 2;
           continue;
         end;
         #4: // lighter
         begin
-          c.R := c.R * 2; c.G := c.G * 2; c.B := c.B * 2;
+          c.R := Min(c.R * 2, 255); c.G := Min(c.G * 2, 255); c.B := Min(c.B * 2, 255);
           continue;
         end;
         #18: // red
@@ -1516,7 +1516,7 @@ begin
         end;
         #4: // lighter
         begin
-          c.R := c.R * 2; c.G := c.G * 2; c.B := c.B * 2;
+          c.R := Min(c.R * 2, 255); c.G := Min(c.G * 2, 255); c.B := Min(c.B * 2, 255);
           continue;
         end;
         #18: // red
