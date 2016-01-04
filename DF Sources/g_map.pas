@@ -1741,7 +1741,8 @@ begin
   end;
 
   tp.NextTexture(AnimLoop);
-  if g_Game_IsServer and g_Game_IsNet then MH_SEND_PanelTexture(PanelType, ID, AnimLoop);
+  if g_Game_IsServer and g_Game_IsNet then
+    MH_SEND_PanelTexture(PanelType, ID, AnimLoop);
 end;
 
 procedure g_Map_SetLift(ID: DWORD; t: Integer);

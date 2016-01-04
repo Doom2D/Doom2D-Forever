@@ -2152,10 +2152,12 @@ begin
   end;
 
   if TP <> nil then
-  begin
-    TP.SetTexture(Tex, Loop);
-    TP.SetFrame(Fr, Cnt);
-  end;
+    if Loop = 0 then
+    begin    // switch texture
+      TP.SetTexture(Tex, Loop);
+      TP.SetFrame(Fr, Cnt);
+    end else // looped or non-looped animation
+      TP.NextTexture(Loop);
 end;
 
 procedure MC_RECV_PanelState(P: Pointer);
