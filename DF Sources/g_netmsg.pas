@@ -2500,12 +2500,12 @@ begin
     if e_KeyBuffer[KeyUp] = $080 then
     begin
       kByte := kByte or NET_KEY_UP;
-      if not NetGotKeys then gPlayer1.PressKey(KEY_UP, 10000);
+      gPlayer1.PressKey(KEY_UP, 10000);
     end;
     if e_KeyBuffer[KeyDown] = $080 then
     begin
       kByte := kByte or NET_KEY_DOWN;
-      if not NetGotKeys then gPlayer1.PressKey(KEY_DOWN, 10000);
+      gPlayer1.PressKey(KEY_DOWN, 10000);
     end;
     if e_KeyBuffer[KeyJump] = $080 then
     begin
