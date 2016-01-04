@@ -38,7 +38,9 @@ const
   NET_DISC_KICK: enet_uint32 = 4;
   NET_DISC_DOWN: enet_uint32 = 5;
   NET_DISC_PASSWORD: enet_uint32 = 6;
-  NET_DISC_BAN: enet_uint32 = 7;
+  NET_DISC_TEMPBAN: enet_uint32 = 7;
+  NET_DISC_BAN: enet_uint32 = 8;
+  NET_DISC_MAX: enet_uint32 = 8;
 
   NET_STATE_NONE = 0;
   NET_STATE_AUTH = 1;
@@ -525,7 +527,7 @@ begin
   else
   begin
     e_WriteLog('NET: Kicked from server: ' + IntToStr(NetEvent.data), MSG_NOTIFY);
-    if (NetEvent.data <= 7) then
+    if (NetEvent.data <= NET_DISC_MAX) then
       g_Console_Add(_lc[I_NET_MSG] + _lc[I_NET_MSG_KICK] +
         _lc[TStrings_Locale(Cardinal(I_NET_DISC_NONE) + NetEvent.data)], True);
   end;
@@ -823,7 +825,7 @@ begin
       else
         if (downloadEvent.kind = ENET_EVENT_TYPE_DISCONNECT) then
         begin
-          if (downloadEvent.data <= 7) then
+          if (downloadEvent.data <= NET_DISC_MAX) then
             g_Console_Add(_lc[I_NET_MSG_ERROR] + _lc[I_NET_ERR_CONN] + ' ' +
             _lc[TStrings_Locale(Cardinal(I_NET_DISC_NONE) + downloadEvent.data)], True);
           OuterLoop := False;
@@ -861,7 +863,9 @@ var
 begin
   if IP = 0 then
     Exit;
-    
+  if g_Net_IsHostBanned(IP, Perm) then
+    Exit;
+
   P := -1;
   for I := Low(NetBannedHosts) to High(NetBannedHosts) do
     if NetBannedHosts[I].IP = 0 then

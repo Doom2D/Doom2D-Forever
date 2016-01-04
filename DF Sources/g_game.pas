@@ -3146,7 +3146,7 @@ begin
         if (NetEvent.kind = ENET_EVENT_TYPE_DISCONNECT) then
         begin
           State := 0;
-          if (NetEvent.data <= 7) then
+          if (NetEvent.data <= NET_DISC_MAX) then
             g_Console_Add(_lc[I_NET_MSG_ERROR] + _lc[I_NET_ERR_CONN] + ' ' +
             _lc[TStrings_Locale(Cardinal(I_NET_DISC_NONE) + NetEvent.data)], True);
           OuterLoop := False;
@@ -4278,7 +4278,7 @@ begin
       begin
         s := g_Net_ClientName_ByID(pl^.ID);
         g_Net_BanHost(pl^.Peer^.address.host, False);
-        enet_peer_disconnect(pl^.Peer, NET_DISC_BAN);
+        enet_peer_disconnect(pl^.Peer, NET_DISC_TEMPBAN);
         g_Console_Add(Format(_lc[I_PLAYER_BAN], [s]));
         MH_SEND_Chat(Format(_lc[I_PLAYER_BAN], [s]), NET_CHAT_SYSTEM);
         if NetUseMaster then
@@ -4309,7 +4309,7 @@ begin
         begin
           s := g_Net_ClientName_ByID(NetClients[a].ID);
           g_Net_BanHost(NetClients[a].Peer^.address.host, False);
-          enet_peer_disconnect(NetClients[a].Peer, NET_DISC_BAN);
+          enet_peer_disconnect(NetClients[a].Peer, NET_DISC_TEMPBAN);
           g_Console_Add(Format(_lc[I_PLAYER_BAN], [s]));
           MH_SEND_Chat(Format(_lc[I_PLAYER_BAN], [s]), NET_CHAT_SYSTEM);
           if NetUseMaster then

@@ -308,9 +308,18 @@ begin
 
   if g_Net_IsHostBanned(C^.Peer^.address.host) then
   begin
-    g_Console_Add(_lc[I_NET_MSG] + _lc[I_NET_MSG_HOST_REJECT] +
-      _lc[I_NET_DISC_BAN]);
-    enet_peer_disconnect(C^.Peer, NET_DISC_BAN);
+    if g_Net_IsHostBanned(C^.Peer^.address.host, True) then
+    begin
+      g_Console_Add(_lc[I_NET_MSG] + _lc[I_NET_MSG_HOST_REJECT] +
+        _lc[I_NET_DISC_BAN]);
+      enet_peer_disconnect(C^.Peer, NET_DISC_BAN);
+    end
+    else
+    begin
+      g_Console_Add(_lc[I_NET_MSG] + _lc[I_NET_MSG_HOST_REJECT] +
+        _lc[I_NET_DISC_BAN]);
+      enet_peer_disconnect(C^.Peer, NET_DISC_TEMPBAN);
+    end;
     Exit;
   end;
 

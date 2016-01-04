@@ -301,6 +301,7 @@ type
     I_NET_DISC_KICK,
     I_NET_DISC_DOWN,
     I_NET_DISC_PASSWORD,
+    I_NET_DISC_TEMPBAN,
     I_NET_DISC_BAN,
 
     I_NET_SLIST,
@@ -1090,8 +1091,8 @@ const
                                        'Сервер не отвечает!'),
     ('NET ERR HASH',                   'Your WAD is different from server''s!',
                                        'Ваш WAD отличается от серверного!'),
-    ('NET ERR NAME404',                'Client %s not found!',
-                                       'Игрок %s не найден!'),
+    ('NET ERR NAME404',                'Player or client %s not found!',
+                                       'Игрок или клиент %s не найден!'),
 
     ('NET DISC NONE',                  'Server is down.',
                                        'Сервер не отвечает.'),
@@ -1107,8 +1108,10 @@ const
                                        'Сервер выключается.'),
     ('NET DISC PASSWORD',              'Invalid password.',
                                        'Неверный пароль.'),
-    ('NET DISC BAN',                   'You are banned on this server.',
-                                       'Вы забанены на этом сервере.'),
+    ('NET DISC TEMPBAN',               'You are banned until the round end.',
+                                       'Вы забанены до конца раунда.'),
+    ('NET DISC BAN',                   'You are banned. Contact the server administrator.',
+                                       'Вы забанены. Свяжитесь с администратором сервера.'),
 
     ('NET SLIST',                      'Server list',
                                        'Список серверов'),
