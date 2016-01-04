@@ -2594,6 +2594,9 @@ begin
       if g_Game_IsServer and g_Game_IsNet then
         MH_SEND_PlayerCreate(gPlayer1.UID);
       gPlayer1.Respawn(False, True);
+
+      if g_Game_IsNet and NetUseMaster then
+        g_Net_Slist_Update;
     end;
 
     Exit;
@@ -2622,6 +2625,9 @@ begin
       if g_Game_IsServer and g_Game_IsNet then
         MH_SEND_PlayerCreate(gPlayer2.UID);
       gPlayer2.Respawn(False, True);
+
+      if g_Game_IsNet and NetUseMaster then
+        g_Net_Slist_Update;
     end;
 
     Exit;
@@ -2639,6 +2645,9 @@ begin
     gPlayer2.Kill(K_SIMPLEKILL, 0, HIT_DISCON);
     g_Console_Add(Format(_lc[I_PLAYER_LEAVE], [gPlayer2.Name]), True);
     g_Player_Remove(gPlayer2.UID);
+
+    if g_Game_IsNet and NetUseMaster then
+      g_Net_Slist_Update;
     Exit;
   end;
   if gPlayer1 <> nil then
@@ -2647,6 +2656,9 @@ begin
     gPlayer1.Kill(K_SIMPLEKILL, 0, HIT_DISCON);
     g_Console_Add(Format(_lc[I_PLAYER_LEAVE], [gPlayer1.Name]), True);
     g_Player_Remove(gPlayer1.UID);
+
+    if g_Game_IsNet and NetUseMaster then
+      g_Net_Slist_Update;
     Exit;
   end;
 end;
@@ -4191,6 +4203,8 @@ begin
         enet_peer_disconnect(pl^.Peer, NET_DISC_KICK);
         g_Console_Add(Format(_lc[I_PLAYER_KICK], [s]));
         MH_SEND_Chat(Format(_lc[I_PLAYER_KICK], [s]), NET_CHAT_SYSTEM);
+        if NetUseMaster then
+          g_Net_Slist_Update;
       end else if gPlayers <> nil then
         for a := Low(gPlayers) to High(gPlayers) do
           if gPlayers[a] <> nil then
@@ -4203,6 +4217,8 @@ begin
               gPlayers[a].Kill(K_SIMPLEKILL, 0, HIT_DISCON);
               g_Console_Add(Format(_lc[I_PLAYER_LEAVE], [gPlayers[a].Name]), True);
               g_Player_Remove(gPlayers[a].UID);
+              if NetUseMaster then
+                g_Net_Slist_Update;
               // Если не перемешать, при добавлении новых ботов появятся старые
               g_Bot_MixNames();
             end;
@@ -4233,6 +4249,8 @@ begin
           enet_peer_disconnect(NetClients[a].Peer, NET_DISC_KICK);
           g_Console_Add(Format(_lc[I_PLAYER_KICK], [s]));
           MH_SEND_Chat(Format(_lc[I_PLAYER_KICK], [s]), NET_CHAT_SYSTEM);
+          if NetUseMaster then
+            g_Net_Slist_Update;
         end;
       end;
     end else
@@ -4262,6 +4280,8 @@ begin
         g_Net_SaveBanList();
         g_Console_Add(Format(_lc[I_PLAYER_BAN], [s]));
         MH_SEND_Chat(Format(_lc[I_PLAYER_BAN], [s]), NET_CHAT_SYSTEM);
+        if NetUseMaster then
+          g_Net_Slist_Update;
       end else
         g_Console_Add(Format(_lc[I_NET_ERR_NAME404], [P[1]]));
     end else
@@ -4292,6 +4312,8 @@ begin
           g_Net_SaveBanList();
           g_Console_Add(Format(_lc[I_PLAYER_BAN], [s]));
           MH_SEND_Chat(Format(_lc[I_PLAYER_BAN], [s]), NET_CHAT_SYSTEM);
+          if NetUseMaster then
+            g_Net_Slist_Update;
         end;
     end else
       g_Console_Add(_lc[I_MSG_SERVERONLY]);

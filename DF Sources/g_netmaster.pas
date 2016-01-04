@@ -133,6 +133,7 @@ procedure g_Net_Slist_Update;
 var
   Wad, Map: string;
   P: pENetPacket;
+  Cli: Byte;
 begin
   if (NetMHost = nil) or (NetMPeer = nil) then Exit;
   g_ProcessResourceStr(gMapInfo.Map, @Wad, nil, @Map);
@@ -147,10 +148,12 @@ begin
   e_Buffer_Write(@NetOut, Wad + ':\' + Map);
   e_Buffer_Write(@NetOut, gGameSettings.GameMode);
 
-  if gPlayer1 = nil then
-    e_Buffer_Write(@NetOut, Byte(NetClientCount))
-  else
-    e_Buffer_Write(@NetOut, Byte(1 + NetClientCount));
+  Cli := NetClientCount;
+  if gPlayer1 <> nil then
+    Inc(Cli);
+  if gPlayer2 <> nil then
+    Inc(Cli);
+  e_Buffer_Write(@NetOut, Cli);
 
   e_Buffer_Write(@NetOut, NetMaxClients);
 
