@@ -1018,7 +1018,7 @@ begin
     else
       TGUILabel(GetControl('lbWeapon')).Text := _lc[I_MENU_NO];
   end;
- 
+
   g_GUI_ShowWindow('OptionsPlayersMIMenu');
 end;
 
@@ -1107,6 +1107,85 @@ begin
     Enabled := False; // Запретить сохранение в интермиссии (не реализовано)
   TGUIMainMenu(g_ActiveWindow.GetControl(
     g_ActiveWindow.DefControl )).EnableButton('save', Enabled);
+end;
+
+procedure ProcChangePlayers();
+var
+  TeamGame, Spectator, AddTwo: Boolean;
+  bP2: TGUITextButton;
+begin
+  TeamGame := gGameSettings.GameMode in [GM_TDM, GM_CTF];
+  Spectator := (gPlayer1 = nil) and (gPlayer2 = nil);
+  AddTwo := gGameSettings.GameType in [GT_CUSTOM, GT_SERVER];
+
+  TGUIMainMenu(g_ActiveWindow.GetControl(
+    g_ActiveWindow.DefControl )).EnableButton('tmJoinRed', TeamGame);
+  TGUIMainMenu(g_ActiveWindow.GetControl(
+    g_ActiveWindow.DefControl )).EnableButton('tmJoinBlue', TeamGame);
+  TGUIMainMenu(g_ActiveWindow.GetControl(
+    g_ActiveWindow.DefControl )).EnableButton('tmJoinGame', Spectator and not TeamGame);
+
+  bP2 := TGUIMainMenu(g_ActiveWindow.GetControl(
+    g_ActiveWindow.DefControl )).GetButton('tmPlayer2');
+  bP2.Enabled := AddTwo and not Spectator;
+  if bP2.Enabled then
+    bP2.Color := MAINMENU_ITEMS_COLOR
+  else
+    bP2.Color := MAINMENU_UNACTIVEITEMS_COLOR;
+  if gPlayer2 = nil then
+    bP2.Caption := _lc[I_MENU_ADD_PLAYER_2]
+  else
+    bP2.Caption := _lc[I_MENU_REM_PLAYER_2];
+
+  TGUIMainMenu(g_ActiveWindow.GetControl(
+    g_ActiveWindow.DefControl )).EnableButton('tmSpectate', not Spectator);
+end;
+
+procedure ProcJoinRed();
+begin
+  // TODO
+  g_ActiveWindow := nil;
+  g_Game_Pause(False);
+end;
+
+procedure ProcJoinBlue();
+begin
+  // TODO
+  g_ActiveWindow := nil;
+  g_Game_Pause(False);
+end;
+
+procedure ProcJoinGame();
+begin
+  if not (gGameSettings.GameType in [GT_CUSTOM, GT_SERVER]) then
+    Exit;
+  if gPlayer1 = nil then
+    g_Game_AddPlayer();
+  g_ActiveWindow := nil;
+  g_Game_Pause(False);
+end;
+
+procedure ProcSwitchP2();
+begin
+  if not (gGameSettings.GameType in [GT_CUSTOM, GT_SERVER]) then
+    Exit;
+  if gPlayer1 = nil then
+    Exit;
+  if gPlayer2 = nil then
+    g_Game_AddPlayer()
+  else
+    g_Game_RemovePlayer();
+  g_ActiveWindow := nil;
+  g_Game_Pause(False);
+end;
+
+procedure ProcSpectate();
+begin
+  if not (gGameSettings.GameType in [GT_CUSTOM, GT_SERVER, GT_CLIENT]) then
+    Exit;
+  g_Game_Spectate();
+  g_ActiveWindow := nil;
+  g_Game_Pause(False);
 end;
 
 procedure ProcRestartMenuKeyDown(Key: Byte);
@@ -2591,6 +2670,7 @@ begin
   with TGUIMainMenu(Menu.AddChild(TGUIMainMenu.Create(gMenuFont, _lc[I_MENU_MAIN_MENU]))) do
   begin
     Name := 'mmGameCustomMenu';
+    AddButton(nil, _lc[I_MENU_CHANGE_PLAYERS], 'TeamMenu');
     AddButton(nil, _lc[I_MENU_LOAD_GAME], 'LoadMenu');
     AddButton(nil, _lc[I_MENU_SAVE_GAME], 'SaveMenu').Name := 'save';
     AddButton(@ReadGameSettings, _lc[I_MENU_SET_GAME], 'GameSetGameMenu');
@@ -2608,6 +2688,7 @@ begin
   with TGUIMainMenu(Menu.AddChild(TGUIMainMenu.Create(gMenuFont, _lc[I_MENU_MAIN_MENU]))) do
   begin
     Name := 'mmGameServerMenu';
+    AddButton(nil, _lc[I_MENU_CHANGE_PLAYERS], 'TeamMenu');
     AddButton(@ReadGameSettings, _lc[I_MENU_SET_GAME], 'GameSetGameMenu');
     AddButton(@ReadOptions, _lc[I_MENU_OPTIONS], 'OptionsMenu');
     AddButton(nil, _lc[I_MENU_RESTART], 'RestartGameMenu');
@@ -2623,6 +2704,7 @@ begin
   with TGUIMainMenu(Menu.AddChild(TGUIMainMenu.Create(gMenuFont, _lc[I_MENU_MAIN_MENU]))) do
   begin
     Name := 'mmGameClientMenu';
+    AddButton(nil, _lc[I_MENU_CHANGE_PLAYERS], 'TeamMenu');
     AddButton(@ReadOptions, _lc[I_MENU_OPTIONS], 'OptionsMenu');
     AddButton(nil, _lc[I_MENU_END_GAME], 'EndGameMenu');
   end;
@@ -2631,7 +2713,7 @@ begin
   Menu.OnClose := ProcGMClose;
   Menu.OnShow := ProcGMShow;
   g_GUI_AddWindow(Menu);
- 
+
   Menu := TGUIWindow.Create('ClientPasswordMenu');
   with TGUIMenu(Menu.AddChild(TGUIMenu.Create(gMenuSmallFont, gMenuSmallFont, _lc[I_MENU_ENTERPASSWORD]))) do
   begin
@@ -2691,10 +2773,24 @@ begin
       ItemIndex := 2;
     end;
 
-    ReAlign();               
+    ReAlign();
   end;
   Menu.DefControl := 'mGameSetGameMenu';
   Menu.OnClose := ProcApplyGameSet;
+  g_GUI_AddWindow(Menu);
+
+  Menu := TGUIWindow.Create('TeamMenu');
+  with TGUIMainMenu(Menu.AddChild(TGUIMainMenu.Create(gMenuFont, _lc[I_MENU_CHANGE_PLAYERS]))) do
+  begin
+    Name := 'mmTeamMenu';
+    AddButton(@ProcJoinRed, _lc[I_MENU_JOIN_RED], '').Name := 'tmJoinRed';
+    AddButton(@ProcJoinBlue, _lc[I_MENU_JOIN_BLUE], '').Name := 'tmJoinBlue';
+    AddButton(@ProcJoinGame, _lc[I_MENU_JOIN_GAME], '').Name := 'tmJoinGame';
+    AddButton(@ProcSwitchP2, _lc[I_MENU_ADD_PLAYER_2], '').Name := 'tmPlayer2';
+    AddButton(@ProcSpectate, _lc[I_MENU_SPECTATE], '').Name := 'tmSpectate';
+  end;
+  Menu.DefControl := 'mmTeamMenu';
+  Menu.OnShow := ProcChangePlayers;
   g_GUI_AddWindow(Menu);
 end;
 

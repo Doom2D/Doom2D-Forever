@@ -49,6 +49,9 @@ procedure g_Game_Draw();
 procedure g_Game_Quit();
 procedure g_Game_SetupScreenSize();
 procedure g_Game_ChangeResolution(newWidth, newHeight: Word; nowFull, nowMax: Boolean);
+procedure g_Game_AddPlayer();
+procedure g_Game_RemovePlayer();
+procedure g_Game_Spectate();
 procedure g_Game_StartSingle(WAD, MAP: String; TwoPlayers: Boolean; nPlayers: Byte);
 procedure g_Game_StartServer(Map: String; GameMode: Byte; TimeLimit, GoalLimit: Word; MaxLives: Byte; Options: LongWord; Port: Word);
 procedure g_Game_StartClient(Addr: String; Port: Word; PW: String);
@@ -2550,7 +2553,7 @@ begin
       sz.Y := newHeight + 2*gWinFrameY + gWinCaption;
 
       gWinMaximized := nowMax;
-      
+
       SetWindowPos(h_Wnd, HWND_TOP,
                    gWinRealPosX, gWinRealPosY, sz.X, sz.Y,
                    SWP_SHOWWINDOW);
@@ -2559,6 +2562,111 @@ begin
         ShowWindow(h_Wnd, SW_SHOWMAXIMIZED);
     end;
 end;
+
+procedure g_Game_AddPlayer();
+var
+  Team: Byte;
+begin
+  if ((not gGameOn) and (gState <> STATE_INTERCUSTOM))
+  or (not (gGameSettings.GameType in [GT_CUSTOM, GT_SERVER])) then
+    Exit;
+  if gPlayer1 = nil then
+  begin
+    // Создание первого игрока:
+    if gGameSettings.GameMode = GM_DM then
+      Team := TEAM_NONE
+    else
+      if gGameSettings.GameMode in [GM_SINGLE, GM_COOP] then
+        Team := TEAM_COOP
+      else
+        Team := gPlayer1Settings.Team;
+
+    gPlayer1 := g_Player_Get(g_Player_Create(gPlayer1Settings.Model,
+                                             gPlayer1Settings.Color,
+                                             Team, False,
+                                             PLAYERNUM_1));
+    if gPlayer1 = nil then
+      g_FatalError(Format(_lc[I_GAME_ERROR_PLAYER_CREATE], [1]))
+    else
+    begin
+      gPlayer1.Name := gPlayer1Settings.Name;
+      g_Console_Add(Format(_lc[I_PLAYER_JOIN], [gPlayer1.Name]), True);
+      if g_Game_IsServer and g_Game_IsNet then
+        MH_SEND_PlayerCreate(gPlayer1.UID);
+      gPlayer1.Respawn(False, True);
+    end;
+
+    Exit;
+  end;
+  if gPlayer2 = nil then
+  begin
+    // Создание второго игрока:
+    if gGameSettings.GameMode = GM_DM then
+      Team := TEAM_NONE
+    else
+      if gGameSettings.GameMode in [GM_SINGLE, GM_COOP] then
+        Team := TEAM_COOP
+      else
+        Team := gPlayer2Settings.Team;
+
+    gPlayer2 := g_Player_Get(g_Player_Create(gPlayer2Settings.Model,
+                                             gPlayer2Settings.Color,
+                                             Team, False,
+                                             PLAYERNUM_2));
+    if gPlayer2 = nil then
+      g_FatalError(Format(_lc[I_GAME_ERROR_PLAYER_CREATE], [2]))
+    else
+    begin
+      gPlayer2.Name := gPlayer2Settings.Name;
+      g_Console_Add(Format(_lc[I_PLAYER_JOIN], [gPlayer2.Name]), True);
+      if g_Game_IsServer and g_Game_IsNet then
+        MH_SEND_PlayerCreate(gPlayer2.UID);
+      gPlayer2.Respawn(False, True);
+    end;
+
+    Exit;
+  end;
+end;
+
+procedure g_Game_RemovePlayer();
+begin
+  if ((not gGameOn) and (gState <> STATE_INTERCUSTOM))
+  or (not (gGameSettings.GameType in [GT_CUSTOM, GT_SERVER])) then
+    Exit;
+  if gPlayer2 <> nil then
+  begin
+    gPlayer2.Lives := 0;
+    gPlayer2.Kill(K_SIMPLEKILL, 0, HIT_DISCON);
+    g_Console_Add(Format(_lc[I_PLAYER_LEAVE], [gPlayer2.Name]), True);
+    if g_Game_IsServer and g_Game_IsNet then
+      MH_SEND_PlayerDelete(gPlayer2.UID);
+    g_Player_Remove(gPlayer2.UID);
+    Exit;
+  end;
+  if gPlayer1 <> nil then
+  begin
+    gPlayer1.Lives := 0;
+    gPlayer1.Kill(K_SIMPLEKILL, 0, HIT_DISCON);
+    g_Console_Add(Format(_lc[I_PLAYER_LEAVE], [gPlayer1.Name]), True);
+    if g_Game_IsServer and g_Game_IsNet then
+      MH_SEND_PlayerDelete(gPlayer1.UID);
+    g_Player_Remove(gPlayer1.UID);
+    Exit;
+  end;
+end;
+
+procedure g_Game_Spectate();
+begin
+  if g_Game_IsClient then
+  begin
+    g_Console_Process('spectate', True);
+    Exit;
+  end;
+  g_Game_RemovePlayer();
+  if gPlayer1 <> nil then
+    g_Game_RemovePlayer();
+end;
+
 
 procedure g_Game_StartSingle(WAD, MAP: String; TwoPlayers: Boolean; nPlayers: Byte);
 var

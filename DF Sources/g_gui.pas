@@ -154,6 +154,7 @@ type
     function GetWidth(): Integer;
     function GetHeight(): Integer;
     procedure Click(Silent: Boolean = False);
+    property Caption: string read FText write FText;
     property Color: TRGB read FColor write FColor;
     property Font: TFont read FFont write FFont;
     property ShowWindow: string read FShowWindow write FShowWindow;
