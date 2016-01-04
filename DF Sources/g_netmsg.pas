@@ -1811,6 +1811,9 @@ begin
 
   with Pl do
   begin
+    if (Pl = gPlayer1) or (Pl = gPlayer2) then
+      NetGotKeys := True;
+      
     FPing := e_Raw_Read_Word(P);
     FLoss := e_Raw_Read_Byte(P);
     kByte := e_Raw_Read_Word(P);
@@ -2454,11 +2457,13 @@ end;
 procedure MC_SEND_PlayerPos();
 var
   kByte: Word;
+  Predict: Boolean;
 begin
   if not gGameOn then Exit;
   if gPlayers = nil then Exit;
 
   kByte := 0;
+  Predict := NetPredictSelf and (not NetGotKeys);
 
   if (not gConsoleShow) and (not gChatShow) and (g_ActiveWindow = nil) then
    with gGameControls.P1Control do
@@ -2485,22 +2490,22 @@ begin
     if P1MoveButton = 1 then
     begin
       kByte := kByte or NET_KEY_LEFT;
-      if NetPredictSelf then gPlayer1.PressKey(KEY_LEFT, 10000);
+      if Predict then gPlayer1.PressKey(KEY_LEFT, 10000);
     end;
     if P1MoveButton = 2 then
     begin
       kByte := kByte or NET_KEY_RIGHT;
-      if NetPredictSelf then gPlayer1.PressKey(KEY_RIGHT, 10000);
+      if Predict then gPlayer1.PressKey(KEY_RIGHT, 10000);
     end;
     if e_KeyBuffer[KeyUp] = $080 then
     begin
       kByte := kByte or NET_KEY_UP;
-      gPlayer1.PressKey(KEY_UP, 10000);
+      if not NetGotKeys then gPlayer1.PressKey(KEY_UP, 10000);
     end;
     if e_KeyBuffer[KeyDown] = $080 then
     begin
       kByte := kByte or NET_KEY_DOWN;
-      gPlayer1.PressKey(KEY_DOWN, 10000);
+      if not NetGotKeys then gPlayer1.PressKey(KEY_DOWN, 10000);
     end;
     if e_KeyBuffer[KeyJump] = $080 then
     begin
@@ -2514,6 +2519,8 @@ begin
   end
   else
    kByte := NET_KEY_CHAT;
+
+  NetGotKeys := False;
 
   if (kBytePrev = kByte) and (kDirPrev = gPlayer1.Direction) then Exit;
 

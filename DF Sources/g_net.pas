@@ -116,6 +116,7 @@ var
 
   NetForcePlayerUpdate: Boolean = False;
   NetPredictSelf:       Boolean = True;
+  NetGotKeys:           Boolean = False;
 
   NetGotEverything: Boolean = False;
 

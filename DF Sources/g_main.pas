@@ -89,8 +89,6 @@ end;
 procedure Update();
 begin
   g_Game_Update();
-  if NetMode = NET_CLIENT then g_Net_Client_Update();
-  if NetMode = NET_SERVER then g_Net_Host_Update();
 end;
 
 procedure Draw();
