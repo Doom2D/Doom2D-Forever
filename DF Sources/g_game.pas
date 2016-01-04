@@ -3316,6 +3316,8 @@ begin
             NetClients[I].RequestedFullUpdate := False;
           end;
         end;
+
+    g_Net_UnbanNonPermHosts();
   end;
 
   if gLastMap then
@@ -4275,9 +4277,8 @@ begin
       if (pl <> nil) then
       begin
         s := g_Net_ClientName_ByID(pl^.ID);
-        g_Net_BanHost(pl^.Peer^.address.host);
+        g_Net_BanHost(pl^.Peer^.address.host, False);
         enet_peer_disconnect(pl^.Peer, NET_DISC_BAN);
-        g_Net_SaveBanList();
         g_Console_Add(Format(_lc[I_PLAYER_BAN], [s]));
         MH_SEND_Chat(Format(_lc[I_PLAYER_BAN], [s]), NET_CHAT_SYSTEM);
         if NetUseMaster then
@@ -4299,6 +4300,67 @@ begin
       if P[1] = '' then
       begin
         g_Console_Add('ban_id <client ID>');
+        Exit;
+      end;
+
+      a := StrToIntDef(P[1], 0);
+      if (NetClients <> nil) and (a <= High(NetClients)) then
+        if NetClients[a].Used and (NetClients[a].Peer <> nil) then
+        begin
+          s := g_Net_ClientName_ByID(NetClients[a].ID);
+          g_Net_BanHost(NetClients[a].Peer^.address.host, False);
+          enet_peer_disconnect(NetClients[a].Peer, NET_DISC_BAN);
+          g_Console_Add(Format(_lc[I_PLAYER_BAN], [s]));
+          MH_SEND_Chat(Format(_lc[I_PLAYER_BAN], [s]), NET_CHAT_SYSTEM);
+          if NetUseMaster then
+            g_Net_Slist_Update;
+        end;
+    end else
+      g_Console_Add(_lc[I_MSG_SERVERONLY]);
+  end
+  else if cmd = 'permban' then
+  begin
+    if g_Game_IsServer and g_Game_IsNet then
+    begin
+      if Length(P) < 2 then
+      begin
+        g_Console_Add('permban <name>');
+        Exit;
+      end;
+      if P[1] = '' then
+      begin
+        g_Console_Add('permban <name>');
+        Exit;
+      end;
+
+      pl := g_Net_Client_ByName(P[1]);
+      if (pl <> nil) then
+      begin
+        s := g_Net_ClientName_ByID(pl^.ID);
+        g_Net_BanHost(pl^.Peer^.address.host);
+        enet_peer_disconnect(pl^.Peer, NET_DISC_BAN);
+        g_Net_SaveBanList();
+        g_Console_Add(Format(_lc[I_PLAYER_BAN], [s]));
+        MH_SEND_Chat(Format(_lc[I_PLAYER_BAN], [s]), NET_CHAT_SYSTEM);
+        if NetUseMaster then
+          g_Net_Slist_Update;
+      end else
+        g_Console_Add(Format(_lc[I_NET_ERR_NAME404], [P[1]]));
+    end else
+      g_Console_Add(_lc[I_MSG_SERVERONLY]);
+  end
+  else if cmd = 'permban_id' then
+  begin
+    if g_Game_IsServer and g_Game_IsNet then
+    begin
+      if Length(P) < 2 then
+      begin
+        g_Console_Add('permban_id <client ID>');
+        Exit;
+      end;
+      if P[1] = '' then
+      begin
+        g_Console_Add('permban_id <client ID>');
         Exit;
       end;
 

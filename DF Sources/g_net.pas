@@ -57,6 +57,10 @@ type
     RCONAuth: Boolean;
     Voted:    Boolean;
   end;
+  TBanRecord = record
+    IP: LongWord;
+    Perm: Boolean;
+  end;
   pTNetClient = ^TNetClient;
 
   AByte = array of Byte;
@@ -96,7 +100,7 @@ var
   NetClients:     array of TNetClient;
   NetClientCount: Byte = 0;
   NetMaxClients:  Byte = 255;
-  NetBannedHosts: array of LongWord;
+  NetBannedHosts: array of TBanRecord;
 
   NetState:      Integer = NET_STATE_NONE;
 
@@ -138,10 +142,13 @@ function  g_Net_Wait_Event(msgId: Word): TMemoryStream;
 
 function  IpToStr(IP: LongWord): string;
 function  StrToIp(IPstr: string; var IP: LongWord): Boolean;
-function  g_Net_IsHostBanned(IP: LongWord): Boolean;
-procedure g_Net_BanHost(IP: LongWord);
+
+function  g_Net_IsHostBanned(IP: LongWord; Perm: Boolean = False): Boolean;
+procedure g_Net_BanHost(IP: LongWord; Perm: Boolean = True); overload;
+procedure g_Net_BanHost(IP: string; Perm: Boolean = True); overload;
 function  g_Net_UnbanHost(IP: string): Boolean; overload;
 function  g_Net_UnbanHost(IP: LongWord): Boolean; overload;
+procedure g_Net_UnbanNonPermHosts();
 procedure g_Net_SaveBanList();
 
 implementation
@@ -833,7 +840,7 @@ begin
   Result := msgStream;
 end;
 
-function g_Net_IsHostBanned(IP: LongWord): Boolean;
+function g_Net_IsHostBanned(IP: LongWord; Perm: Boolean = False): Boolean;
 var
   I: Integer;
 begin
@@ -841,21 +848,60 @@ begin
   if NetBannedHosts = nil then
     Exit;
   for I := 0 to High(NetBannedHosts) do
-    if NetBannedHosts[I] = IP then
+    if (NetBannedHosts[I].IP = IP) and ((not Perm) or (NetBannedHosts[I].Perm)) then
     begin
       Result := True;
       break;
     end;
 end;
 
-procedure g_Net_BanHost(IP: LongWord);
+procedure g_Net_BanHost(IP: LongWord; Perm: Boolean = True); overload;
+var
+  I, P: Integer;
 begin
-  if g_Net_IsHostBanned(IP) then
-    Exit;
   if IP = 0 then
     Exit;
-  SetLength(NetBannedHosts, Length(NetBannedHosts) + 1);
-  NetBannedHosts[High(NetBannedHosts)] := IP;
+    
+  P := -1;
+  for I := Low(NetBannedHosts) to High(NetBannedHosts) do
+    if NetBannedHosts[I].IP = 0 then
+    begin
+      P := I;
+      break;
+    end;
+
+  if P < 0 then
+  begin
+    SetLength(NetBannedHosts, Length(NetBannedHosts) + 1);
+    P := High(NetBannedHosts);
+  end;
+
+  NetBannedHosts[P].IP := IP;
+  NetBannedHosts[P].Perm := Perm;
+end;
+
+procedure g_Net_BanHost(IP: string; Perm: Boolean = True); overload;
+var
+  a: LongWord;
+  b: Boolean;
+begin
+  b := StrToIp(IP, a);
+  if b then
+    g_Net_BanHost(a, Perm);
+end;
+
+procedure g_Net_UnbanNonPermHosts();
+var
+  I: Integer;
+begin
+  if NetBannedHosts = nil then
+    Exit;
+  for I := Low(NetBannedHosts) to High(NetBannedHosts) do
+    if (NetBannedHosts[I].IP > 0) and not NetBannedHosts[I].Perm then
+    begin
+      NetBannedHosts[I].IP := 0;
+      NetBannedHosts[I].Perm := True;
+    end;
 end;
 
 function g_Net_UnbanHost(IP: string): Boolean; overload;
@@ -877,11 +923,12 @@ begin
   if NetBannedHosts = nil then
     Exit;
   for I := 0 to High(NetBannedHosts) do
-    if NetBannedHosts[I] = IP then
+    if NetBannedHosts[I].IP = IP then
     begin
-      NetBannedHosts[I] := 0;
+      NetBannedHosts[I].IP := 0;
+      NetBannedHosts[I].Perm := True;
       Result := True;
-      break;
+      // no break here to clear all bans of this host, perm and non-perm
     end;
 end;
 
@@ -894,8 +941,8 @@ begin
   Rewrite(F);
   if NetBannedHosts <> nil then
     for I := 0 to High(NetBannedHosts) do
-      if NetBannedHosts[I] > 0 then
-        Writeln(F, IpToStr(NetBannedHosts[I]));
+      if NetBannedHosts[I].Perm and (NetBannedHosts[I].IP > 0) then
+        Writeln(F, IpToStr(NetBannedHosts[I].IP));
   CloseFile(F);
 end;
 

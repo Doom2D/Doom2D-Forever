@@ -412,7 +412,9 @@ begin
   AddCommand('kick', GameCommands);
   AddCommand('kick_id', GameCommands);
   AddCommand('ban', GameCommands);
+  AddCommand('permban', GameCommands);    
   AddCommand('ban_id', GameCommands);
+  AddCommand('permban_id', GameCommands);
   AddCommand('unban', GameCommands);
   AddCommand('connect', GameCommands);
   AddCommand('disconnect', GameCommands);
