@@ -525,16 +525,16 @@ begin
     begin
       if gChatTeam then
       begin
-        e_TextureFontPrintEx(0, gScreenHeight - 16, 'team say> ' + Line,
+        e_TextureFontPrintEx(0, gScreenHeight - CHeight - 1, 'say team> ' + Line,
           gStdFont, 255, 255, 255, 1, True);
-        e_TextureFontPrintEx((CPos + 9)*CWidth, gScreenHeight - 16, '_',
+        e_TextureFontPrintEx((CPos + 9)*CWidth, gScreenHeight - CHeight - 1, '_',
           gStdFont, 255, 255, 255, 1, True);
       end
       else
       begin
-        e_TextureFontPrintEx(0, gScreenHeight - 16, 'say> ' + Line,
+        e_TextureFontPrintEx(0, gScreenHeight - CHeight - 1, 'say> ' + Line,
           gStdFont, 255, 255, 255, 1, True);
-        e_TextureFontPrintEx((CPos + 4)*CWidth, gScreenHeight - 16, '_',
+        e_TextureFontPrintEx((CPos + 4)*CWidth, gScreenHeight - CHeight - 1, '_',
           gStdFont, 255, 255, 255, 1, True);
       end;
     end;
