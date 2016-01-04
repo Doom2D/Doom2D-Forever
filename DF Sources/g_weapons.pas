@@ -45,20 +45,20 @@ function g_Weapon_CreateShot(I: Integer; ShotType: Byte; Spawner, TargetUID: Wor
 procedure g_Weapon_gun(x, y, xd, yd, v, dmg: Integer; SpawnerUID: Word; CheckTrigger: Boolean);
 procedure g_Weapon_punch(x, y: Integer; d, SpawnerUID: Word);
 function g_Weapon_chainsaw(x, y: Integer; d, SpawnerUID: Word): Integer;
-procedure g_Weapon_rocket(x, y, xd, yd: Integer; SpawnerUID: Word; WID: Integer = -1);
-procedure g_Weapon_revf(x, y, xd, yd: Integer; SpawnerUID, TargetUID: Word; WID: Integer = -1);
-procedure g_Weapon_plasma(x, y, xd, yd: Integer; SpawnerUID: Word; WID: Integer = -1);
-procedure g_Weapon_ball1(x, y, xd, yd: Integer; SpawnerUID: Word; WID: Integer = -1);
-procedure g_Weapon_ball2(x, y, xd, yd: Integer; SpawnerUID: Word; WID: Integer = -1);
-procedure g_Weapon_ball7(x, y, xd, yd: Integer; SpawnerUID: Word; WID: Integer = -1);
-procedure g_Weapon_aplasma(x, y, xd, yd: Integer; SpawnerUID: Word; WID: Integer = -1);
-procedure g_Weapon_manfire(x, y, xd, yd: Integer; SpawnerUID: Word; WID: Integer = -1);
-procedure g_Weapon_bfgshot(x, y, xd, yd: Integer; SpawnerUID: Word; WID: Integer = -1);
+procedure g_Weapon_rocket(x, y, xd, yd: Integer; SpawnerUID: Word; WID: Integer = -1; Silent: Boolean = False);
+procedure g_Weapon_revf(x, y, xd, yd: Integer; SpawnerUID, TargetUID: Word; WID: Integer = -1; Silent: Boolean = False);
+procedure g_Weapon_plasma(x, y, xd, yd: Integer; SpawnerUID: Word; WID: Integer = -1; Silent: Boolean = False);
+procedure g_Weapon_ball1(x, y, xd, yd: Integer; SpawnerUID: Word; WID: Integer = -1; Silent: Boolean = False);
+procedure g_Weapon_ball2(x, y, xd, yd: Integer; SpawnerUID: Word; WID: Integer = -1; Silent: Boolean = False);
+procedure g_Weapon_ball7(x, y, xd, yd: Integer; SpawnerUID: Word; WID: Integer = -1; Silent: Boolean = False);
+procedure g_Weapon_aplasma(x, y, xd, yd: Integer; SpawnerUID: Word; WID: Integer = -1; Silent: Boolean = False);
+procedure g_Weapon_manfire(x, y, xd, yd: Integer; SpawnerUID: Word; WID: Integer = -1; Silent: Boolean = False);
+procedure g_Weapon_bfgshot(x, y, xd, yd: Integer; SpawnerUID: Word; WID: Integer = -1; Silent: Boolean = False);
 procedure g_Weapon_bfghit(x, y: Integer);
-procedure g_Weapon_pistol(x, y, xd, yd: Integer; SpawnerUID: Word);
-procedure g_Weapon_mgun(x, y, xd, yd: Integer; SpawnerUID: Word);
-procedure g_Weapon_shotgun(x, y, xd, yd: Integer; SpawnerUID: Word);
-procedure g_Weapon_dshotgun(x, y, xd, yd: Integer; SpawnerUID: Word);
+procedure g_Weapon_pistol(x, y, xd, yd: Integer; SpawnerUID: Word; Silent: Boolean = False);
+procedure g_Weapon_mgun(x, y, xd, yd: Integer; SpawnerUID: Word; Silent: Boolean = False);
+procedure g_Weapon_shotgun(x, y, xd, yd: Integer; SpawnerUID: Word; Silent: Boolean = False);
+procedure g_Weapon_dshotgun(x, y, xd, yd: Integer; SpawnerUID: Word; Silent: Boolean = False);
 
 function g_Weapon_Explode(X, Y: Integer; rad: Integer; SpawnerUID: Word): Boolean;
 procedure g_Weapon_Update();
@@ -420,7 +420,7 @@ begin
     if Integer(find_id) >= High(Shots) then
       SetLength(Shots, find_id + 64)
   end;
-  
+
   case ShotType of
     WEAPON_ROCKETLAUNCHER:
     begin
@@ -1035,7 +1035,8 @@ begin
   Result := g_Weapon_Hit(@obj, d, SpawnerUID, HIT_SOME);
 end;
 
-procedure g_Weapon_rocket(x, y, xd, yd: Integer; SpawnerUID: Word; WID: Integer = -1);
+procedure g_Weapon_rocket(x, y, xd, yd: Integer; SpawnerUID: Word; WID: Integer = -1;
+  Silent: Boolean = False);
 var
   find_id: DWORD;
   dx, dy: Integer;
@@ -1068,10 +1069,12 @@ begin
 
   Shots[find_id].SpawnerUID := SpawnerUID;
 
-  g_Sound_PlayExAt('SOUND_WEAPON_FIREROCKET', x, y);
+  if not Silent then
+    g_Sound_PlayExAt('SOUND_WEAPON_FIREROCKET', x, y);
 end;
 
-procedure g_Weapon_revf(x, y, xd, yd: Integer; SpawnerUID, TargetUID: Word; WID: Integer = -1);
+procedure g_Weapon_revf(x, y, xd, yd: Integer; SpawnerUID, TargetUID: Word;
+  WID: Integer = -1; Silent: Boolean = False);
 var
   find_id, FramesID: DWORD;
   dx, dy: Integer;
@@ -1105,10 +1108,12 @@ begin
 
   Shots[find_id].SpawnerUID := SpawnerUID;
 
-  g_Sound_PlayExAt('SOUND_WEAPON_FIREREV', x, y);
+  if not Silent then
+    g_Sound_PlayExAt('SOUND_WEAPON_FIREREV', x, y);
 end;
 
-procedure g_Weapon_plasma(x, y, xd, yd: Integer; SpawnerUID: Word; WID: Integer = -1);
+procedure g_Weapon_plasma(x, y, xd, yd: Integer; SpawnerUID: Word; WID: Integer = -1;
+  Silent: Boolean = False);
 var
   find_id, FramesID: DWORD;
   dx, dy: Integer;
@@ -1141,10 +1146,12 @@ begin
 
   Shots[find_id].SpawnerUID := SpawnerUID;
 
-  g_Sound_PlayExAt('SOUND_WEAPON_FIREPLASMA', x, y);
+  if not Silent then
+    g_Sound_PlayExAt('SOUND_WEAPON_FIREPLASMA', x, y);
 end;
 
-procedure g_Weapon_ball1(x, y, xd, yd: Integer; SpawnerUID: Word; WID: Integer = -1);
+procedure g_Weapon_ball1(x, y, xd, yd: Integer; SpawnerUID: Word; WID: Integer = -1;
+  Silent: Boolean = False);
 var
   find_id, FramesID: DWORD;
   dx, dy: Integer;
@@ -1177,10 +1184,12 @@ begin
 
   Shots[find_id].SpawnerUID := SpawnerUID;
 
-  g_Sound_PlayExAt('SOUND_WEAPON_FIREBALL', x, y);
+  if not Silent then
+    g_Sound_PlayExAt('SOUND_WEAPON_FIREBALL', x, y);
 end;
 
-procedure g_Weapon_ball2(x, y, xd, yd: Integer; SpawnerUID: Word; WID: Integer = -1);
+procedure g_Weapon_ball2(x, y, xd, yd: Integer; SpawnerUID: Word; WID: Integer = -1;
+  Silent: Boolean = False);
 var
   find_id, FramesID: DWORD;
   dx, dy: Integer;
@@ -1213,10 +1222,12 @@ begin
 
   Shots[find_id].SpawnerUID := SpawnerUID;
 
-  g_Sound_PlayExAt('SOUND_WEAPON_FIREBALL', x, y);
+  if not Silent then
+    g_Sound_PlayExAt('SOUND_WEAPON_FIREBALL', x, y);
 end;
 
-procedure g_Weapon_ball7(x, y, xd, yd: Integer; SpawnerUID: Word; WID: Integer = -1);
+procedure g_Weapon_ball7(x, y, xd, yd: Integer; SpawnerUID: Word; WID: Integer = -1;
+  Silent: Boolean = False);
 var
   find_id, FramesID: DWORD;
   dx, dy: Integer;
@@ -1249,10 +1260,12 @@ begin
 
   Shots[find_id].SpawnerUID := SpawnerUID;
 
-  g_Sound_PlayExAt('SOUND_WEAPON_FIREBALL', x, y);
+  if not Silent then
+    g_Sound_PlayExAt('SOUND_WEAPON_FIREBALL', x, y);
 end;
 
-procedure g_Weapon_aplasma(x, y, xd, yd: Integer; SpawnerUID: Word; WID: Integer = -1);
+procedure g_Weapon_aplasma(x, y, xd, yd: Integer; SpawnerUID: Word; WID: Integer = -1;
+  Silent: Boolean = False);
 var
   find_id, FramesID: DWORD;
   dx, dy: Integer;
@@ -1285,10 +1298,12 @@ begin
 
   Shots[find_id].SpawnerUID := SpawnerUID;
 
-  g_Sound_PlayExAt('SOUND_WEAPON_FIREPLASMA', x, y);
+  if not Silent then
+    g_Sound_PlayExAt('SOUND_WEAPON_FIREPLASMA', x, y);
 end;
 
-procedure g_Weapon_manfire(x, y, xd, yd: Integer; SpawnerUID: Word; WID: Integer = -1);
+procedure g_Weapon_manfire(x, y, xd, yd: Integer; SpawnerUID: Word; WID: Integer = -1;
+  Silent: Boolean = False);
 var
   find_id, FramesID: DWORD;
   dx, dy: Integer;
@@ -1321,10 +1336,12 @@ begin
 
   Shots[find_id].SpawnerUID := SpawnerUID;
 
-  g_Sound_PlayExAt('SOUND_WEAPON_FIREBALL', x, y);
+  if not Silent then
+    g_Sound_PlayExAt('SOUND_WEAPON_FIREBALL', x, y);
 end;
 
-procedure g_Weapon_bfgshot(x, y, xd, yd: Integer; SpawnerUID: Word; WID: Integer = -1);
+procedure g_Weapon_bfgshot(x, y, xd, yd: Integer; SpawnerUID: Word; WID: Integer = -1;
+  Silent: Boolean = False);
 var
   find_id, FramesID: DWORD;
   dx, dy: Integer;
@@ -1357,7 +1374,8 @@ begin
 
   Shots[find_id].SpawnerUID := SpawnerUID;
 
-  g_Sound_PlayExAt('SOUND_WEAPON_FIREBFG', x, y);
+  if not Silent then
+    g_Sound_PlayExAt('SOUND_WEAPON_FIREBFG', x, y);
 end;
 
 procedure g_Weapon_bfghit(x, y: Integer);
@@ -1373,9 +1391,12 @@ begin
   end;
 end;
 
-procedure g_Weapon_pistol(x, y, xd, yd: Integer; SpawnerUID: Word);
+procedure g_Weapon_pistol(x, y, xd, yd: Integer; SpawnerUID: Word;
+  Silent: Boolean = False);
 begin
-  g_Sound_PlayExAt('SOUND_WEAPON_FIREPISTOL', x, y);
+  if not Silent then
+    g_Sound_PlayExAt('SOUND_WEAPON_FIREPISTOL', x, y);
+
   g_Weapon_gun(x, y, xd, yd, 1, 3, SpawnerUID, True);
   if gGameSettings.GameMode in [GM_DM, GM_TDM, GM_CTF] then
   begin
@@ -1384,11 +1405,13 @@ begin
   end;
 end;
 
-procedure g_Weapon_mgun(x, y, xd, yd: Integer; SpawnerUID: Word);
+procedure g_Weapon_mgun(x, y, xd, yd: Integer; SpawnerUID: Word;
+  Silent: Boolean = False);
 begin
-  g_Sound_PlayExAt('SOUND_WEAPON_FIRECGUN', x, y);
-  g_Weapon_gun(x, y, xd, yd, 1, 3, SpawnerUID, True);
+  if not Silent then
+    g_Sound_PlayExAt('SOUND_WEAPON_FIRECGUN', x, y);
 
+  g_Weapon_gun(x, y, xd, yd, 1, 3, SpawnerUID, True);
   if (gGameSettings.GameMode in [GM_DM, GM_TDM, GM_CTF]) and
      (g_GetUIDType(SpawnerUID) = UID_PLAYER) then
   begin
@@ -1397,11 +1420,14 @@ begin
   end;
 end;
 
-procedure g_Weapon_shotgun(x, y, xd, yd: Integer; SpawnerUID: Word);
+procedure g_Weapon_shotgun(x, y, xd, yd: Integer; SpawnerUID: Word;
+  Silent: Boolean = False);
 var
   i, j: Integer;
 begin
-  g_Sound_PlayExAt('SOUND_WEAPON_FIRESHOTGUN', x, y);
+  if not Silent then
+    g_Sound_PlayExAt('SOUND_WEAPON_FIRESHOTGUN', x, y);
+
   for i := 0 to 9 do
   begin
     j := Random(17)-8; // -8 .. 8
@@ -1409,11 +1435,13 @@ begin
   end;
 end;
 
-procedure g_Weapon_dshotgun(x, y, xd, yd: Integer; SpawnerUID: Word);
+procedure g_Weapon_dshotgun(x, y, xd, yd: Integer; SpawnerUID: Word;
+  Silent: Boolean = False);
 var
   a, i, j: Integer;
 begin
-  g_Sound_PlayExAt('SOUND_WEAPON_FIRESHOTGUN2', x, y);
+  if not Silent then
+    g_Sound_PlayExAt('SOUND_WEAPON_FIRESHOTGUN2', x, y);
 
   if gGameSettings.GameMode in [GM_DM, GM_TDM, GM_CTF] then a := 25 else a := 20;
   for i := 0 to a do

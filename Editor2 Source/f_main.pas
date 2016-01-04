@@ -616,7 +616,7 @@ end;
 
 function ShotToStr(ShotType: Byte): String;
 begin
-  if ShotType in [TRIGGER_SHOT_BULLET..TRIGGER_SHOT_REV] then
+  if ShotType in [TRIGGER_SHOT_BULLET..TRIGGER_SHOT_BFG] then
     Result := ShotNames[ShotType]
   else
     Result := ShotNames[TRIGGER_SHOT_BULLET];
@@ -627,7 +627,7 @@ var
   i: Integer;
 begin
   Result := TRIGGER_SHOT_BULLET;
-  for i := TRIGGER_SHOT_BULLET to TRIGGER_SHOT_REV do
+  for i := TRIGGER_SHOT_BULLET to TRIGGER_SHOT_BFG do
     if ShotNames[i] = Str then
       begin
         Result := i;
@@ -5100,7 +5100,7 @@ begin
       Caption := _lc[I_PROP_TR_SHOT_TYPE];
       lbTypeSelect.Items.Clear();
 
-      for b := TRIGGER_SHOT_BULLET to TRIGGER_SHOT_REV do
+      for b := TRIGGER_SHOT_BULLET to TRIGGER_SHOT_BFG do
         lbTypeSelect.Items.Add(ShotToStr(b));
 
       lbTypeSelect.ItemIndex := StrToShot(Values[Key]) - TRIGGER_SHOT_BULLET;
