@@ -1098,6 +1098,7 @@ begin
   if g_Game_IsNet then
     if not gConsoleShow then
       if not gChatShow then
+      begin
         if g_ActiveWindow = nil then
         begin
           if e_KeyBuffer[gGameControls.GameControls.Chat] = $080 then
@@ -1105,6 +1106,11 @@ begin
           else if e_KeyBuffer[gGameControls.GameControls.TeamChat] = $080 then
             g_Console_Chat_Switch(True);
         end;
+      end else
+        if not gChatEnter then
+          if (e_KeyBuffer[gGameControls.GameControls.Chat] <> $080)
+          and (e_KeyBuffer[gGameControls.GameControls.TeamChat] <> $080) then
+            gChatEnter := True;
 
 // Статистика по Tab:
   if gGameOn then

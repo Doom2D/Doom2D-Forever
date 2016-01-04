@@ -20,6 +20,7 @@ var
   gChatShow: Boolean;
   gChatTeam: Boolean = False;
   gAllowConsoleMessages: Boolean = True;
+  gChatEnter: Boolean = True;
   gJustChatted: Boolean = False; // чтобы админ в интере чатясь не проматывал статистику
 
 implementation
@@ -588,12 +589,16 @@ begin
   if not g_Game_IsNet then Exit;
   gChatShow := not gChatShow;
   gChatTeam := Team;
+  if gChatShow then
+    gChatEnter := False;
   Line := '';
   CPos := 1;
 end;
 
 procedure g_Console_Char(C: Char);
 begin
+  if gChatShow and (not gChatEnter) then
+    Exit;
   Insert(C, Line, CPos);
   CPos := CPos + 1;
 end;
