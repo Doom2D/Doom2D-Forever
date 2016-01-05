@@ -459,6 +459,7 @@ begin
     NetMaxClients := Max(1, StrToIntDef(TGUIEdit(GetControl('edMaxPlayers')).Text, 1));
     NetMaxClients := Min(NET_MAXCLIENTS, NetMaxClients);
     NetPassword := TGUIEdit(GetControl('edSrvPassword')).Text;
+    NetUseMaster := TGUISwitch(GetControl('swUseMaster')).ItemIndex = 0;
   end;
 
   g_Options_Write_Net_Server(GameDir+'\'+CONFIG_FILENAME);
@@ -1770,6 +1771,16 @@ begin
       MaxLength := 2;
       Text := IntToStr(NetMaxClients);
     end;
+    with AddSwitch(_lc[I_NET_USE_MASTER]) do
+    begin
+      Name := 'swUseMaster';
+      AddItem(_lc[I_MENU_YES]);
+      AddItem(_lc[I_MENU_NO]);
+      if NetUseMaster then
+        ItemIndex := 0
+      else
+        ItemIndex := 1;
+    end;
     AddSpace();
     with AddLabel(_lc[I_MENU_MAP]) do
     begin
@@ -1821,7 +1832,7 @@ begin
       if gnMaxLives > 0 then
         Text := IntToStr(gnMaxLives);
     end;
-    with AddSwitch(_lc[I_MENU_PLAYERS]) do
+    with AddSwitch(_lc[I_MENU_SERVER_PLAYERS]) do
     begin
       Name := 'swPlayers';
       AddItem(_lc[I_MENU_COUNT_NONE]);

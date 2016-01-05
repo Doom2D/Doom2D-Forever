@@ -145,9 +145,10 @@ type
     I_MENU_MAP_AUTHOR,                
     I_MENU_MAP_DESCRIPTION,           
     I_MENU_MAP_SIZE,
-    I_MENU_PLAYERS,                   
-    I_MENU_PLAYERS_ONE,               
-    I_MENU_PLAYERS_TWO,               
+    I_MENU_PLAYERS,
+    I_MENU_PLAYERS_ONE,
+    I_MENU_PLAYERS_TWO,
+    I_MENU_SERVER_PLAYERS,
 
     I_MENU_INTER0,
     I_MENU_INTER1,
@@ -265,6 +266,7 @@ type
     I_NET_SERVER_NAME,
     I_NET_SERVER_PASSWORD,
     I_NET_MAX_CLIENTS,
+    I_NET_USE_MASTER,
 
     I_NET_MSG,
     I_NET_MSG_ERROR,
@@ -820,6 +822,8 @@ const
                                        'Один'),
     ('MENU PLAYERS TWO',               'Two',
                                        'Два'),
+    ('MENU SERVER PLAYERS',            'Local Players:',
+                                       'Локальные игроки:'),
 
     ('MENU INTER0',                    'Mission Failed',
                                        'МИССИЯ ПРОВАЛЕНА'),
@@ -1041,6 +1045,8 @@ const
                                        'Пароль:'),
     ('NET MAX CLIENTS',                'Player limit:',
                                        'Лимит игроков:'),
+    ('NET USE MASTER',                 'Public server:',
+                                       'Публичный сервер:'),
 
     ('NET MSG',                        'NET: ',
                                        'NET: '),

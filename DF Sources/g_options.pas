@@ -654,6 +654,7 @@ begin
   config.WriteStr ('Server', 'Password', NetPassword);
   config.WriteInt ('Server', 'Port', NetPort);
   config.WriteInt ('Server', 'MaxClients', NetMaxClients);
+  config.WriteBool('Server', 'SyncWithMaster', NetUseMaster);
 
   config.SaveFile(FileName);
   config.Free();
