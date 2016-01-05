@@ -1460,7 +1460,8 @@ begin
               s := _lc[I_PLAYER_FLAG_BLUE];
             g_Game_Message(Format(_lc[I_MESSAGE_FLAG_RETURN], [AnsiUpperCase(s)]), 144);
 
-            if g_Game_IsNet then MH_SEND_FlagEvent(FLAG_STATE_RETURNED, a, 0);
+            if g_Game_IsNet then
+              MH_SEND_FlagEvent(FLAG_STATE_RETURNED, a, 0);
             Continue;
           end;
 

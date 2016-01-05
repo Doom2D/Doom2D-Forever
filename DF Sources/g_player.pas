@@ -2676,6 +2676,7 @@ begin
 
         if Netsrv then MH_SEND_FlagEvent(FLAG_STATE_DROPPED, Flag, FUID, False);
       end;
+      FFlag := FLAG_NONE;
     end;
 
   end;

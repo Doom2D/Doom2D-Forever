@@ -1671,7 +1671,11 @@ begin
   gFlags[Fl].Obj.Vel.Y := e_Raw_Read_LongInt(P);
 
   Pl := g_Player_Get(PID);
-  if (Pl = nil) and (EvType <> FLAG_STATE_NORMAL) and (EvType <> FLAG_STATE_DROPPED) then Exit;
+  if (Pl = nil) and
+     (EvType <> FLAG_STATE_NORMAL) and
+     (EvType <> FLAG_STATE_DROPPED) and
+     (EvType <> FLAG_STATE_RETURNED) then
+    Exit;
 
   case EvType of
     FLAG_STATE_NORMAL:
@@ -1735,7 +1739,7 @@ begin
     FLAG_STATE_RETURNED:
     begin
       g_Map_ResetFlag(Fl);
-      if Quiet or (Pl = nil) then Exit;
+      if Quiet then Exit;
 
       if Fl = FLAG_RED then
         s := _lc[I_PLAYER_FLAG_RED]
