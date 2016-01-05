@@ -4577,7 +4577,7 @@ end;
 
 function TPlayer.GetFlag(Flag: Byte): Boolean;
 var
-  s: String;
+  s, ts: String;
   evtype: Byte;
 begin
   Result := False;
@@ -4599,22 +4599,24 @@ begin
 
     evtype := FLAG_STATE_SCORED;
 
-    g_Console_Add(Format(_lc[I_PLAYER_FLAG_CAPTURE], [FName, s]), True);
+    ts := Format('%.4d', [gFlags[FFlag].CaptureTime]);
+    Insert('.', ts, Length(ts) + 1 - 3);
+    g_Console_Add(Format(_lc[I_PLAYER_FLAG_CAPTURE], [FName, s, ts]), True);
 
     g_Map_ResetFlag(FFlag);
     g_Game_Message(Format(_lc[I_MESSAGE_FLAG_CAPTURE], [AnsiUpperCase(s)]), 144);
 
     gTeamStat[FTeam].Goals := gTeamStat[FTeam].Goals + 1;
 
-    FFlag := FLAG_NONE;
-    FModel.SetFlag(FLAG_NONE);
-
     Result := True;
     if g_Game_IsNet then
     begin
-      MH_SEND_FlagEvent(evtype, Flag, FUID, False);
+      MH_SEND_FlagEvent(evtype, FFlag, FUID, False);
       MH_SEND_GameStats;
     end;
+
+    FFlag := FLAG_NONE;
+    FModel.SetFlag(FLAG_NONE);
     Exit;
   end;
 
@@ -4661,6 +4663,7 @@ begin
     g_Game_Message(Format(_lc[I_MESSAGE_FLAG_GET], [AnsiUpperCase(s)]), 144);
 
     gFlags[Flag].State := FLAG_STATE_CAPTURED;
+    gFlags[Flag].CaptureTime := 0;
 
     Result := True;
     if g_Game_IsNet then

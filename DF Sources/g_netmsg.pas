@@ -903,6 +903,7 @@ begin
   e_Buffer_Write(@NetOut, Byte(Quiet));
   e_Buffer_Write(@NetOut, PID);
   e_Buffer_Write(@NetOut, gFlags[Flag].State);
+  e_Buffer_Write(@NetOut, gFlags[Flag].CaptureTime);
   e_Buffer_Write(@NetOut, gFlags[Flag].Obj.X);
   e_Buffer_Write(@NetOut, gFlags[Flag].Obj.Y);
   e_Buffer_Write(@NetOut, gFlags[Flag].Obj.Vel.X);
@@ -1665,7 +1666,7 @@ var
   EvType: Byte;
   Fl: Byte;
   Quiet: Boolean;
-  s: string;
+  s, ts: string;
 begin
   EvType := e_Raw_Read_Byte(P);
   Fl := e_Raw_Read_Byte(P);
@@ -1676,6 +1677,7 @@ begin
   PID := e_Raw_Read_Word(P);
 
   gFlags[Fl].State := e_Raw_Read_Byte(P);
+  gFlags[Fl].CaptureTime := e_Raw_Read_LongWord(P);
   gFlags[Fl].Obj.X := e_Raw_Read_LongInt(P);
   gFlags[Fl].Obj.Y := e_Raw_Read_LongInt(P);
   gFlags[Fl].Obj.Vel.X := e_Raw_Read_LongInt(P);
@@ -1739,11 +1741,13 @@ begin
       Pl.SetFlag(FLAG_NONE);
 
       if Fl = FLAG_RED then
-        s := _lc[I_PLAYER_FLAG_BLUE]
+        s := _lc[I_PLAYER_FLAG_RED]
       else
-        s := _lc[I_PLAYER_FLAG_RED];
+        s := _lc[I_PLAYER_FLAG_BLUE];
 
-      g_Console_Add(Format(_lc[I_PLAYER_FLAG_CAPTURE], [Pl.Name, s]), True);
+      ts := Format('%.4d', [gFlags[Fl].CaptureTime]);
+      Insert('.', ts, Length(ts) + 1 - 3);
+      g_Console_Add(Format(_lc[I_PLAYER_FLAG_CAPTURE], [Pl.Name, s, ts]), True);
       g_Game_Message(Format(_lc[I_MESSAGE_FLAG_CAPTURE], [AnsiUpperCase(s)]), 144);
     end;
 

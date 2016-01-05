@@ -1171,6 +1171,12 @@ begin
         gVotePassed := False;
       end;
 
+    // Замеряем время захвата флагов
+      if gFlags[FLAG_RED].State = FLAG_STATE_CAPTURED then
+        gFlags[FLAG_RED].CaptureTime := gFlags[FLAG_RED].CaptureTime + GAME_TICK;
+      if gFlags[FLAG_BLUE].State = FLAG_STATE_CAPTURED then
+        gFlags[FLAG_BLUE].CaptureTime := gFlags[FLAG_BLUE].CaptureTime + GAME_TICK;
+
     // Был задан лимит побед:
       if (gGameSettings.GoalLimit > 0) then
       begin

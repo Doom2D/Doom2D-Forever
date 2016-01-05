@@ -34,6 +34,7 @@ type
     RespawnType: Byte;
     State:       Byte;
     Count:       Integer;
+    CaptureTime: LongWord;
     Animation:   TAnimation;
     Direction:   TDirection;
   end;
