@@ -105,7 +105,8 @@ var
   NetState:      Integer = NET_STATE_NONE;
 
   NetMyID:       Integer = -1;
-  NetPlrUID:     Integer = -1;
+  NetPlrUID1:    Integer = -1;
+  NetPlrUID2:    Integer = -1;
 
   NetInterpLevel: Integer = 1;
   NetUpdateRate:  Cardinal = 0;  // as soon as possible
@@ -217,7 +218,8 @@ begin
   NetPeer := nil;
   NetHost := nil;
   NetMyID := -1;
-  NetPlrUID := -1;
+  NetPlrUID1 := -1;
+  NetPlrUID2 := -1;
   NetAddr.port := 25666;
   SetLength(NetBannedHosts, 0);
   if FileExists(DataDir + BANLIST_FILENAME) then
@@ -255,7 +257,8 @@ begin
   NetMPeer := nil;
   NetMHost := nil;
   NetMyID := -1;
-  NetPlrUID := -1;
+  NetPlrUID1 := -1;
+  NetPlrUID2 := -1;
   NetState := NET_STATE_NONE;
 
   NetTimeToMaster := 0;

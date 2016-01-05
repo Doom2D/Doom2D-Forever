@@ -1112,16 +1112,21 @@ end;
 procedure ProcChangePlayers();
 var
   TeamGame, Spectator, AddTwo: Boolean;
+  P1Team, P2Team: Byte;
   bP2: TGUITextButton;
 begin
   TeamGame := gGameSettings.GameMode in [GM_TDM, GM_CTF];
   Spectator := (gPlayer1 = nil) and (gPlayer2 = nil);
   AddTwo := gGameSettings.GameType in [GT_CUSTOM, GT_SERVER];
+  P1Team := TEAM_NONE;
+  if gPlayer1 <> nil then P1Team := gPlayer1.Team;
+  P2Team := TEAM_NONE;
+  if gPlayer2 <> nil then P2Team := gPlayer2.Team;
 
   TGUIMainMenu(g_ActiveWindow.GetControl(
-    g_ActiveWindow.DefControl )).EnableButton('tmJoinRed', TeamGame);
+    g_ActiveWindow.DefControl )).EnableButton('tmJoinRed', TeamGame and (P1Team <> TEAM_RED));
   TGUIMainMenu(g_ActiveWindow.GetControl(
-    g_ActiveWindow.DefControl )).EnableButton('tmJoinBlue', TeamGame);
+    g_ActiveWindow.DefControl )).EnableButton('tmJoinBlue', TeamGame and (P1Team <> TEAM_BLUE));
   TGUIMainMenu(g_ActiveWindow.GetControl(
     g_ActiveWindow.DefControl )).EnableButton('tmJoinGame', Spectator and not TeamGame);
 
@@ -1143,21 +1148,61 @@ end;
 
 procedure ProcJoinRed();
 begin
-  // TODO
+  if not (gGameSettings.GameType in [GT_CUSTOM, GT_SERVER, GT_CLIENT]) then
+    Exit;
+  if g_Game_IsServer then
+  begin
+    if gPlayer1 = nil then
+      g_Game_AddPlayer(TEAM_RED)
+    else
+    begin
+      if gPlayer1.Team <> TEAM_RED then
+        gPlayer1.ChangeTeam;
+
+      if g_Game_IsNet then MH_SEND_PlayerSettings(gPlayer1.UID);
+    end;
+  end
+  else
+  begin
+    gPlayer1Settings.Team := TEAM_RED;
+    MC_SEND_PlayerSettings;
+    if gPlayer1 = nil then
+      g_Game_AddPlayer(TEAM_RED);
+  end;
   g_ActiveWindow := nil;
   g_Game_Pause(False);
 end;
 
 procedure ProcJoinBlue();
 begin
-  // TODO
+  if not (gGameSettings.GameType in [GT_CUSTOM, GT_SERVER, GT_CLIENT]) then
+    Exit;
+  if g_Game_IsServer then
+  begin
+    if gPlayer1 = nil then
+      g_Game_AddPlayer(TEAM_BLUE)
+    else
+    begin
+      if gPlayer1.Team <> TEAM_BLUE then
+        gPlayer1.ChangeTeam;
+
+      if g_Game_IsNet then MH_SEND_PlayerSettings(gPlayer1.UID);
+    end;
+  end
+  else
+  begin
+    gPlayer1Settings.Team := TEAM_BLUE;
+    MC_SEND_PlayerSettings;
+    if gPlayer1 = nil then
+      g_Game_AddPlayer(TEAM_BLUE);
+  end;
   g_ActiveWindow := nil;
   g_Game_Pause(False);
 end;
 
 procedure ProcJoinGame();
 begin
-  if not (gGameSettings.GameType in [GT_CUSTOM, GT_SERVER]) then
+  if not (gGameSettings.GameType in [GT_CUSTOM, GT_SERVER, GT_CLIENT]) then
     Exit;
   if gPlayer1 = nil then
     g_Game_AddPlayer();

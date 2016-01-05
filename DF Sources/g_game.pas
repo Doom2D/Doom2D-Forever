@@ -49,7 +49,7 @@ procedure g_Game_Draw();
 procedure g_Game_Quit();
 procedure g_Game_SetupScreenSize();
 procedure g_Game_ChangeResolution(newWidth, newHeight: Word; nowFull, nowMax: Boolean);
-procedure g_Game_AddPlayer();
+procedure g_Game_AddPlayer(Team: Byte = TEAM_NONE);
 procedure g_Game_RemovePlayer();
 procedure g_Game_Spectate();
 procedure g_Game_StartSingle(WAD, MAP: String; TwoPlayers: Boolean; nPlayers: Byte);
@@ -1290,23 +1290,24 @@ begin
             if e_KeyBuffer[KeyPrevWeapon] = $080 then gPlayer2.PressKey(KEY_PREVWEAPON);
             if e_KeyBuffer[KeyOpen] = $080 then gPlayer2.PressKey(KEY_OPEN);
           end;
-      // Наблюдатель
-        if (gPlayer1 = nil) and (gPlayer2 = nil) then
-        begin
-          // TODO: use key press time
-          if e_KeyBuffer[gGameControls.P1Control.KeyJump] = $080 then
-            case gSpectMode of
-              0: ; // not spectator
-              1: Inc(gSpectMode); // inc to mode 2
-              else gSpectMode := 1; // reset to 1
-            end;
-        end;
       end  // if not console
       else
         if g_Game_IsNet and (gPlayer1 <> nil) then
           gPlayer1.PressKey(KEY_CHAT, 10000);
 
     end; // if server
+
+  // Наблюдатель
+    if (gPlayer1 = nil) and (gPlayer2 = nil) then
+    begin
+      // TODO: use key press time
+      if e_KeyBuffer[gGameControls.P1Control.KeyJump] = $080 then
+        case gSpectMode of
+          0: ; // not spectator
+          1: Inc(gSpectMode); // inc to mode 2
+          else gSpectMode := 1; // reset to 1
+        end;
+    end;
 
   // Обновляем все остальное:
     g_Map_Update();
@@ -2590,15 +2591,20 @@ begin
     end;
 end;
 
-procedure g_Game_AddPlayer();
-var
-  Team: Byte;
+procedure g_Game_AddPlayer(Team: Byte = TEAM_NONE);
 begin
   if ((not gGameOn) and (gState <> STATE_INTERCUSTOM))
-  or (not (gGameSettings.GameType in [GT_CUSTOM, GT_SERVER])) then
+  or (not (gGameSettings.GameType in [GT_CUSTOM, GT_SERVER, GT_CLIENT])) then
     Exit;
   if gPlayer1 = nil then
   begin
+    if g_Game_IsClient then
+    begin
+      if NetPlrUID1 > -1 then
+        gPlayer1 := g_Player_Get(NetPlrUID1);
+      Exit;
+    end;
+
     // Создание первого игрока:
     if gGameSettings.GameMode = GM_DM then
       Team := TEAM_NONE
@@ -2606,7 +2612,8 @@ begin
       if gGameSettings.GameMode in [GM_SINGLE, GM_COOP] then
         Team := TEAM_COOP
       else
-        Team := gPlayer1Settings.Team;
+        if not (Team in [TEAM_RED, TEAM_BLUE]) then
+          Team := gPlayer1Settings.Team;
 
     gPlayer1 := g_Player_Get(g_Player_Create(gPlayer1Settings.Model,
                                              gPlayer1Settings.Color,
@@ -2630,6 +2637,13 @@ begin
   end;
   if gPlayer2 = nil then
   begin
+    if g_Game_IsClient then
+    begin
+      if NetPlrUID2 > -1 then
+        gPlayer2 := g_Player_Get(NetPlrUID2);
+      Exit;
+    end;
+
     // Создание второго игрока:
     if gGameSettings.GameMode = GM_DM then
       Team := TEAM_NONE
@@ -2637,7 +2651,8 @@ begin
       if gGameSettings.GameMode in [GM_SINGLE, GM_COOP] then
         Team := TEAM_COOP
       else
-        Team := gPlayer2Settings.Team;
+        if not (Team in [TEAM_RED, TEAM_BLUE]) then
+          Team := gPlayer2Settings.Team;
 
     gPlayer2 := g_Player_Get(g_Player_Create(gPlayer2Settings.Model,
                                              gPlayer2Settings.Color,
@@ -2664,39 +2679,42 @@ end;
 procedure g_Game_RemovePlayer();
 begin
   if ((not gGameOn) and (gState <> STATE_INTERCUSTOM))
-  or (not (gGameSettings.GameType in [GT_CUSTOM, GT_SERVER])) then
+  or (not (gGameSettings.GameType in [GT_CUSTOM, GT_SERVER, GT_CLIENT])) then
     Exit;
   if gPlayer2 <> nil then
   begin
-    gPlayer2.Lives := 0;
-    gPlayer2.Kill(K_SIMPLEKILL, 0, HIT_DISCON);
-    g_Console_Add(Format(_lc[I_PLAYER_LEAVE], [gPlayer2.Name]), True);
-    g_Player_Remove(gPlayer2.UID);
+    if g_Game_IsServer then
+    begin
+      gPlayer2.Lives := 0;
+      gPlayer2.Kill(K_SIMPLEKILL, 0, HIT_DISCON);
+      g_Console_Add(Format(_lc[I_PLAYER_LEAVE], [gPlayer2.Name]), True);
+      g_Player_Remove(gPlayer2.UID);
 
-    if g_Game_IsNet and NetUseMaster then
-      g_Net_Slist_Update;
+      if g_Game_IsNet and NetUseMaster then
+        g_Net_Slist_Update;
+    end else
+      gPlayer2 := nil;
     Exit;
   end;
   if gPlayer1 <> nil then
   begin
-    gPlayer1.Lives := 0;
-    gPlayer1.Kill(K_SIMPLEKILL, 0, HIT_DISCON);
-    g_Console_Add(Format(_lc[I_PLAYER_LEAVE], [gPlayer1.Name]), True);
-    g_Player_Remove(gPlayer1.UID);
+    if g_Game_IsServer then
+    begin
+      gPlayer1.Lives := 0;
+      gPlayer1.Kill(K_SIMPLEKILL, 0, HIT_DISCON);
+      g_Console_Add(Format(_lc[I_PLAYER_LEAVE], [gPlayer1.Name]), True);
+      g_Player_Remove(gPlayer1.UID);
 
-    if g_Game_IsNet and NetUseMaster then
-      g_Net_Slist_Update;
+      if g_Game_IsNet and NetUseMaster then
+        g_Net_Slist_Update;
+    end else
+      gPlayer1 := nil;
     Exit;
   end;
 end;
 
 procedure g_Game_Spectate();
 begin
-  if g_Game_IsClient then
-  begin
-    g_Console_Process('spectate', True);
-    Exit;
-  end;
   g_Game_RemovePlayer();
   if gPlayer1 <> nil then
     g_Game_RemovePlayer();
@@ -3116,7 +3134,7 @@ begin
         if (MID = NET_MSG_INFO) and (State = 0) then
         begin
           NetMyID := e_Raw_Read_Byte(Ptr);
-          NetPlrUID := e_Raw_Read_Word(Ptr);
+          NetPlrUID1 := e_Raw_Read_Word(Ptr);
 
           WadName := e_Raw_Read_String(Ptr);
           gGameSettings.WAD := MapsDir + WadName;
@@ -3163,7 +3181,7 @@ begin
           end;
 
           gPlayer1.Name := gPlayer1Settings.Name;
-          gPlayer1.UID := NetPlrUID;
+          gPlayer1.UID := NetPlrUID1;
           gPlayer1.Reset(True);
 
           if gGameSettings.GameMode = GM_COOP then

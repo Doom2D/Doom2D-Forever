@@ -1796,7 +1796,7 @@ begin
   T := e_Raw_Read_Byte(P);
 
   Result := 0;
-  if PID <> NetPlrUID then
+  if (PID <> NetPlrUID1) and (PID <> NetPlrUID2) then
   begin
     if (Pl <> nil) then Exit;
     DID := g_Player_Create(Model, Color, T, False, 0);
@@ -1809,9 +1809,16 @@ begin
   end
   else
   begin
-    gPlayer1.UID := PID;
-    gPlayer1.Model.SetColor(Color.R, Color.G, Color.B);
-    gPlayer1.Team := T;
+    if (PID = NetPlrUID1) and (gPlayer1 <> nil) then begin
+      gPlayer1.UID := PID;
+      gPlayer1.Model.SetColor(Color.R, Color.G, Color.B);
+      gPlayer1.Team := T;
+    end;
+    if (PID = NetPlrUID2) and (gPlayer2 <> nil) then begin
+      gPlayer2.UID := PID;
+      gPlayer2.Model.SetColor(Color.R, Color.G, Color.B);
+      gPlayer2.Team := T;
+    end;
   end;
 
   g_Console_Add(Format(_lc[I_PLAYER_JOIN], [PName]), True);
@@ -2495,62 +2502,63 @@ var
 begin
   if not gGameOn then Exit;
   if gPlayers = nil then Exit;
+  if gPlayer1 = nil then Exit;
 
   kByte := 0;
   Predict := NetPredictSelf; // and (not NetGotKeys);
 
   if (not gConsoleShow) and (not gChatShow) and (g_ActiveWindow = nil) then
-   with gGameControls.P1Control do
-   begin
-    if (e_KeyBuffer[KeyLeft] = $080) and (e_KeyBuffer[KeyRight] <> $080) then
-      P1MoveButton := 1
-    else
-      if (e_KeyBuffer[KeyLeft] <> $080) and (e_KeyBuffer[KeyRight] = $080) then
-        P1MoveButton := 2
+    with gGameControls.P1Control do
+    begin
+      if (e_KeyBuffer[KeyLeft] = $080) and (e_KeyBuffer[KeyRight] <> $080) then
+        P1MoveButton := 1
       else
-        if (e_KeyBuffer[KeyLeft] <> $080) and (e_KeyBuffer[KeyRight] <> $080) then
-          P1MoveButton := 0;
+        if (e_KeyBuffer[KeyLeft] <> $080) and (e_KeyBuffer[KeyRight] = $080) then
+          P1MoveButton := 2
+        else
+          if (e_KeyBuffer[KeyLeft] <> $080) and (e_KeyBuffer[KeyRight] <> $080) then
+            P1MoveButton := 0;
 
-    if (P1MoveButton = 2) and (e_KeyBuffer[KeyLeft] = $080) then
-      gPlayer1.SetDirection(D_LEFT)
-    else
-     if (P1MoveButton = 1) and (e_KeyBuffer[KeyRight] = $080) then
-        gPlayer1.SetDirection(D_RIGHT)
+      if (P1MoveButton = 2) and (e_KeyBuffer[KeyLeft] = $080) then
+        gPlayer1.SetDirection(D_LEFT)
       else
-      if P1MoveButton <> 0 then
-          gPlayer1.SetDirection(TDirection(P1MoveButton-1));
+       if (P1MoveButton = 1) and (e_KeyBuffer[KeyRight] = $080) then
+          gPlayer1.SetDirection(D_RIGHT)
+        else
+          if P1MoveButton <> 0 then
+            gPlayer1.SetDirection(TDirection(P1MoveButton-1));
 
-    gPlayer1.ReleaseKeys;
-    if P1MoveButton = 1 then
-    begin
-      kByte := kByte or NET_KEY_LEFT;
-      if Predict then gPlayer1.PressKey(KEY_LEFT, 10000);
-    end;
-    if P1MoveButton = 2 then
-    begin
-      kByte := kByte or NET_KEY_RIGHT;
-      if Predict then gPlayer1.PressKey(KEY_RIGHT, 10000);
-    end;
-    if e_KeyBuffer[KeyUp] = $080 then
-    begin
-      kByte := kByte or NET_KEY_UP;
-      gPlayer1.PressKey(KEY_UP, 10000);
-    end;
-    if e_KeyBuffer[KeyDown] = $080 then
-    begin
-      kByte := kByte or NET_KEY_DOWN;
-      gPlayer1.PressKey(KEY_DOWN, 10000);
-    end;
-    if e_KeyBuffer[KeyJump] = $080 then
-    begin
-      kByte := kByte or NET_KEY_JUMP;
-      // gPlayer1.PressKey(KEY_JUMP, 10000); // TODO: Make a prediction option
-    end;
-    if e_KeyBuffer[KeyFire] = $080 then kByte := kByte or NET_KEY_FIRE;
-    if e_KeyBuffer[KeyOpen] = $080 then kByte := kByte or NET_KEY_OPEN;
-    if e_KeyBuffer[KeyNextWeapon] = $080 then kByte := kByte or NET_KEY_NW;
-    if e_KeyBuffer[KeyPrevWeapon] = $080 then kByte := kByte or NET_KEY_PW;
-  end
+      gPlayer1.ReleaseKeys;
+      if P1MoveButton = 1 then
+      begin
+        kByte := kByte or NET_KEY_LEFT;
+        if Predict then gPlayer1.PressKey(KEY_LEFT, 10000);
+      end;
+      if P1MoveButton = 2 then
+      begin
+        kByte := kByte or NET_KEY_RIGHT;
+        if Predict then gPlayer1.PressKey(KEY_RIGHT, 10000);
+      end;
+      if e_KeyBuffer[KeyUp] = $080 then
+      begin
+        kByte := kByte or NET_KEY_UP;
+        gPlayer1.PressKey(KEY_UP, 10000);
+      end;
+      if e_KeyBuffer[KeyDown] = $080 then
+      begin
+        kByte := kByte or NET_KEY_DOWN;
+        gPlayer1.PressKey(KEY_DOWN, 10000);
+      end;
+      if e_KeyBuffer[KeyJump] = $080 then
+      begin
+        kByte := kByte or NET_KEY_JUMP;
+        // gPlayer1.PressKey(KEY_JUMP, 10000); // TODO: Make a prediction option
+      end;
+      if e_KeyBuffer[KeyFire] = $080 then kByte := kByte or NET_KEY_FIRE;
+      if e_KeyBuffer[KeyOpen] = $080 then kByte := kByte or NET_KEY_OPEN;
+      if e_KeyBuffer[KeyNextWeapon] = $080 then kByte := kByte or NET_KEY_NW;
+      if e_KeyBuffer[KeyPrevWeapon] = $080 then kByte := kByte or NET_KEY_PW;
+    end
   else
    kByte := NET_KEY_CHAT;
 
@@ -2560,7 +2568,7 @@ begin
   g_Net_Client_Send(True, NET_CHAN_PLAYERPOS);
 
   kBytePrev := kByte;
-  kDirPrev := gPlayer1.Direction
+  kDirPrev := gPlayer1.Direction;
 end;
 
 procedure MC_SEND_Vote(Start: Boolean = False; Command: string = 'a');
