@@ -71,8 +71,6 @@ var
   NetInitDone:     Boolean = False;
   NetMode:         Byte = NET_NONE;
 
-  NetDedicated:    Boolean = False;
-
   NetServerName:   string = 'Unnamed Server';
   NetPassword:     string = '';
   NetPort:         Word = 25666;

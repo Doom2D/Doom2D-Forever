@@ -154,7 +154,7 @@ begin
 
   if (gGameSettings.GameType in [GT_CUSTOM, GT_SERVER, GT_SINGLE]) then
   begin
-    if (gPlayer1 <> nil) and not (g_Game_IsNet and NetDedicated) then
+    if gPlayer1 <> nil then
     begin
       gPlayer1.SetModel(gPlayer1Settings.Model);
       gPlayer1.Name := gPlayer1Settings.Name;
@@ -369,13 +369,9 @@ begin
       Options := Options or GAME_OPTION_WEAPONSTAY;
     if gcMonsters then
       Options := Options or GAME_OPTION_MONSTERS;
-    if TGUISwitch(GetControl('swPlayers')).ItemIndex = 1 then
-      begin
-        Options := Options or GAME_OPTION_TWOPLAYER;
-        gcPlayers := 2;
-      end
-    else
-      gcPlayers := 1;
+    gcPlayers := TGUISwitch(GetControl('swPlayers')).ItemIndex;
+    if gcPlayers = 2 then
+      Options := Options or GAME_OPTION_TWOPLAYER;
 
     case TGUISwitch(GetControl('swBotsVS')).ItemIndex of
       1: begin
@@ -437,6 +433,9 @@ begin
       Options := Options or GAME_OPTION_WEAPONSTAY;
     if gnMonsters then
       Options := Options or GAME_OPTION_MONSTERS;
+    gnPlayers := TGUISwitch(GetControl('swPlayers')).ItemIndex;
+    if gnPlayers = 2 then
+      Options := Options or GAME_OPTION_TWOPLAYER;
 
     case TGUISwitch(GetControl('swBotsVS')).ItemIndex of
       1: begin
@@ -466,7 +465,7 @@ begin
   g_Options_Write_Gameplay_Net(GameDir+'\'+CONFIG_FILENAME);
 
   g_Game_StartServer(Map, GameMode, gnTimeLimit, gnGoalLimit, gnMaxLives,
-                     Options, NetPort);
+                     Options, gnPlayers, NetPort);
 end;
 
 procedure ProcConnectNetGame();
@@ -1822,6 +1821,14 @@ begin
       if gnMaxLives > 0 then
         Text := IntToStr(gnMaxLives);
     end;
+    with AddSwitch(_lc[I_MENU_PLAYERS]) do
+    begin
+      Name := 'swPlayers';
+      AddItem(_lc[I_MENU_COUNT_NONE]);
+      AddItem(_lc[I_MENU_PLAYERS_ONE]);
+      AddItem(_lc[I_MENU_PLAYERS_TWO]);
+      ItemIndex := gnPlayers;
+    end;
     with AddSwitch(_lc[I_MENU_TEAM_DAMAGE]) do
     begin
       Name := 'swTeamDamage';
@@ -1889,7 +1896,7 @@ begin
 
     AddButton(@ProcServerlist, _lc[I_NET_SLIST]);
     AddSpace();
-  
+
     with AddEdit(_lc[I_NET_ADDRESS]) do
     begin
       Name := 'edIP';
@@ -2016,11 +2023,10 @@ begin
     with AddSwitch(_lc[I_MENU_PLAYERS]) do
     begin
       Name := 'swPlayers';
+      AddItem(_lc[I_MENU_COUNT_NONE]);
       AddItem(_lc[I_MENU_PLAYERS_ONE]);
       AddItem(_lc[I_MENU_PLAYERS_TWO]);
-      ItemIndex := 0;
-      if gcPlayers = 2 then
-        ItemIndex := 1;
+      ItemIndex := gcPlayers;
     end;
     with AddSwitch(_lc[I_MENU_TEAM_DAMAGE]) do
     begin

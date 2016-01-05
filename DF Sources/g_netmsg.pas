@@ -551,7 +551,7 @@ begin
   end
   else if gVoteInProgress then
   begin
-    if not NetDedicated then
+    if (gPlayer1 <> nil) or (gPlayer2 <> nil) then
       Need := Floor((NetClientCount+1)/2.0) + 1
     else
       Need := Floor(NetClientCount/2.0) + 1;

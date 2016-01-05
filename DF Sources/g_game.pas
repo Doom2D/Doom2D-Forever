@@ -53,7 +53,7 @@ procedure g_Game_AddPlayer();
 procedure g_Game_RemovePlayer();
 procedure g_Game_Spectate();
 procedure g_Game_StartSingle(WAD, MAP: String; TwoPlayers: Boolean; nPlayers: Byte);
-procedure g_Game_StartServer(Map: String; GameMode: Byte; TimeLimit, GoalLimit: Word; MaxLives: Byte; Options: LongWord; Port: Word);
+procedure g_Game_StartServer(Map: String; GameMode: Byte; TimeLimit, GoalLimit: Word; MaxLives: Byte; Options: LongWord; nPlayers: Byte; Port: Word);
 procedure g_Game_StartClient(Addr: String; Port: Word; PW: String);
 procedure g_Game_StartCustom(Map: String; GameMode: Byte; TimeLimit, GoalLimit: Word; MaxLives: Byte; Options: LongWord; nPlayers: Byte);
 procedure g_Game_Restart();
@@ -633,7 +633,7 @@ begin
         EndingGameCounter := 255;
         gState := STATE_FOLD;
         gInterTime := 0;
-        gInterEndTime := IfThen((gGameSettings.GameType = GT_SERVER) and NetDedicated, 15000, 25000);
+        gInterEndTime := IfThen((gGameSettings.GameType = GT_SERVER) and (gPlayer1 = nil), 15000, 25000);
       end;
 
     EXIT_ENDLEVELSINGLE: // Закончился уровень в Одиночной игре
@@ -2792,71 +2792,61 @@ begin
 // Установка размеров окон игроков:
   g_Game_SetupScreenSize();
 
-// Создание первого игрока:
-  if (gGameSettings.GameType = GT_SINGLE) then
-    begin
-      gPlayer1 := g_Player_Get(g_Player_Create(STD_PLAYER_MODEL,
-                                               PLAYER1_DEF_COLOR,
-                                               TEAM_COOP, False,
-                                               PLAYERNUM_1));
-    end
-  else
-    begin
-      if GameMode = GM_DM then
-        Team := TEAM_NONE
-      else
-        if GameMode = GM_COOP then
-          Team := TEAM_COOP
-        else
-          Team := gPlayer1Settings.Team;
-
-      gPlayer1 := g_Player_Get(g_Player_Create(gPlayer1Settings.Model,
-                                               gPlayer1Settings.Color,
-                                               Team, False,
-                                               PLAYERNUM_1));
-    end;
-
-  if gPlayer1 = nil then
+// Режим наблюдателя:
+  if nPlayers = 0 then
   begin
-    g_FatalError(Format(_lc[I_GAME_ERROR_PLAYER_CREATE], [1]));
-    Exit;
+    gPlayer1 := nil;
+    gPlayer2 := nil;
   end;
 
-  gPlayer1.Name := gPlayer1Settings.Name;
-  nPl := 1;
-
-// Создание второго игрока, если есть:
-  if LongBool(gGameSettings.Options and GAME_OPTION_TWOPLAYER) then
+  nPl := 0;
+  if nPlayers >= 1 then
   begin
-    if (gGameSettings.GameType = GT_SINGLE) then
-      begin
-        gPlayer2 := g_Player_Get(g_Player_Create(STD_PLAYER_MODEL,
-                                                 PLAYER2_DEF_COLOR,
-                                                 TEAM_COOP, False,
-                                                 PLAYERNUM_2));
-      end
+  // Создание первого игрока:
+    if GameMode = GM_DM then
+      Team := TEAM_NONE
     else
-      begin
-        if GameMode = GM_DM then
-          Team := TEAM_NONE
-        else
-          if GameMode = GM_COOP then
-            Team := TEAM_COOP
-          else
-            Team := gPlayer2Settings.Team;
+      if GameMode = GM_COOP then
+        Team := TEAM_COOP
+      else
+        Team := gPlayer1Settings.Team;
 
-        gPlayer2 := g_Player_Get(g_Player_Create(gPlayer2Settings.Model,
-                                                 gPlayer2Settings.Color,
-                                                 Team, False,
-                                                 PLAYERNUM_2));
-      end;
+    gPlayer1 := g_Player_Get(g_Player_Create(gPlayer1Settings.Model,
+                                             gPlayer1Settings.Color,
+                                             Team, False,
+                                             PLAYERNUM_1));
+    if gPlayer1 = nil then
+    begin
+      g_FatalError(Format(_lc[I_GAME_ERROR_PLAYER_CREATE], [1]));
+      Exit;
+    end;
 
+    gPlayer1.Name := gPlayer1Settings.Name;
+    Inc(nPl);
+  end;
+
+  if nPlayers >= 2 then
+  begin
+  // Создание второго игрока:
+    if GameMode = GM_DM then
+      Team := TEAM_NONE
+    else
+      if GameMode = GM_COOP then
+        Team := TEAM_COOP
+      else
+        Team := gPlayer2Settings.Team;
+
+    gPlayer2 := g_Player_Get(g_Player_Create(gPlayer2Settings.Model,
+                                             gPlayer2Settings.Color,
+                                             Team, False,
+                                             PLAYERNUM_2));
     if gPlayer2 = nil then
     begin
       g_FatalError(Format(_lc[I_GAME_ERROR_PLAYER_CREATE], [2]));
       Exit;
     end;
 
+    gGameSettings.Options := gGameSettings.Options or GAME_OPTION_TWOPLAYER;
     gPlayer2.Name := gPlayer2Settings.Name;
     Inc(nPl);
   end;
@@ -2897,7 +2887,7 @@ end;
 
 procedure g_Game_StartServer(Map: String; GameMode: Byte;
                              TimeLimit, GoalLimit: Word; MaxLives: Byte;
-                             Options: LongWord; Port: Word);
+                             Options: LongWord; nPlayers: Byte; Port: Word);
 var
   ResName: String;
   Team: Byte;
@@ -2933,9 +2923,16 @@ begin
 // Установка размеров окна игрока
   g_Game_SetupScreenSize();
 
-// Создание нашего игрока:
-  if not NetDedicated then
+// Режим наблюдателя:
+  if nPlayers = 0 then
   begin
+    gPlayer1 := nil;
+    gPlayer2 := nil;
+  end;
+
+  if nPlayers >= 1 then
+  begin
+  // Создание первого игрока:
     if GameMode = GM_DM then
       Team := TEAM_NONE
     else
@@ -2948,7 +2945,6 @@ begin
                                              gPlayer1Settings.Color,
                                              Team, False,
                                              PLAYERNUM_1));
-
     if gPlayer1 = nil then
     begin
       g_FatalError(Format(_lc[I_GAME_ERROR_PLAYER_CREATE], [1]));
@@ -2956,8 +2952,32 @@ begin
     end;
 
     gPlayer1.Name := gPlayer1Settings.Name;
-  end else
-    gPlayer1 := nil;
+  end;
+
+  if nPlayers >= 2 then
+  begin
+  // Создание второго игрока:
+    if GameMode = GM_DM then
+      Team := TEAM_NONE
+    else
+      if GameMode = GM_COOP then
+        Team := TEAM_COOP
+      else
+        Team := gPlayer2Settings.Team;
+
+    gPlayer2 := g_Player_Get(g_Player_Create(gPlayer2Settings.Model,
+                                             gPlayer2Settings.Color,
+                                             Team, False,
+                                             PLAYERNUM_2));
+    if gPlayer2 = nil then
+    begin
+      g_FatalError(Format(_lc[I_GAME_ERROR_PLAYER_CREATE], [2]));
+      Exit;
+    end;
+
+    gGameSettings.Options := gGameSettings.Options or GAME_OPTION_TWOPLAYER;
+    gPlayer2.Name := gPlayer2Settings.Name;
+  end;
 
 // Стартуем сервер
   if not g_Net_Host(Port, NetMaxClients) then
@@ -3845,28 +3865,45 @@ begin
   end
   else if cmd = 'p1_name' then
   begin
-    if (Length(P) > 1) and gGameOn and (gPlayer1 <> nil) then
+    if (Length(P) > 1) and gGameOn then
     begin
-      if not g_Game_IsClient then
-      begin
-        gPlayer1.Name := b_Text_Unformat(P[1]);
-        if g_Game_IsNet then MH_SEND_PlayerSettings(gPlayer1.UID);
-      end
-      else if not (g_Game_IsNet and NetDedicated) then
+      if g_Game_IsClient then
       begin
         gPlayer1Settings.Name := b_Text_Unformat(P[1]);
         MC_SEND_PlayerSettings;
-      end;
+      end
+      else
+        if gPlayer1 <> nil then
+        begin
+          gPlayer1.Name := b_Text_Unformat(P[1]);
+          if g_Game_IsNet then MH_SEND_PlayerSettings(gPlayer1.UID);
+        end
+        else
+          gPlayer1Settings.Name := b_Text_Unformat(P[1]);
     end;
   end
-  else if (cmd = 'p2_name') and not g_Game_IsNet then
+  else if cmd = 'p2_name' then
   begin
-    if (Length(P) > 1) and gGameOn and (gPlayer2 <> nil) then
-      gPlayer2.Name := b_Text_Unformat(P[1]);
+    if (Length(P) > 1) and gGameOn then
+    begin
+      if g_Game_IsClient then
+      begin
+        gPlayer2Settings.Name := b_Text_Unformat(P[1]);
+        MC_SEND_PlayerSettings;
+      end
+      else
+        if gPlayer2 <> nil then
+        begin
+          gPlayer2.Name := b_Text_Unformat(P[1]);
+          if g_Game_IsNet then MH_SEND_PlayerSettings(gPlayer2.UID);
+        end
+        else
+          gPlayer2Settings.Name := b_Text_Unformat(P[1]);
+    end;
   end
   else if cmd = 'p1_color' then
   begin
-    if (gPlayer1 <> nil) and (Length(P) > 3) then
+    if Length(P) > 3 then
       if g_Game_IsClient then
       begin
         gPlayer1Settings.Color := _RGB(EnsureRange(StrToIntDef(P[1], 0), 0, 255),
@@ -3874,25 +3911,41 @@ begin
                                        EnsureRange(StrToIntDef(P[3], 0), 0, 255));
         MC_SEND_PlayerSettings;
       end
-      else if not (g_Game_IsNet and NetDedicated) then
-      begin
-        gPlayer1.Model.SetColor(EnsureRange(StrToIntDef(P[1], 0), 0, 255),
-                                EnsureRange(StrToIntDef(P[2], 0), 0, 255),
-                                EnsureRange(StrToIntDef(P[3], 0), 0, 255));
-        if g_Game_IsNet then MH_SEND_PlayerSettings(gPlayer1.UID);
-      end;
+      else
+        if gPlayer1 <> nil then
+        begin
+          gPlayer1.Model.SetColor(EnsureRange(StrToIntDef(P[1], 0), 0, 255),
+                                  EnsureRange(StrToIntDef(P[2], 0), 0, 255),
+                                  EnsureRange(StrToIntDef(P[3], 0), 0, 255));
+          if g_Game_IsNet then MH_SEND_PlayerSettings(gPlayer1.UID);
+        end
+        else
+          gPlayer1Settings.Color := _RGB(EnsureRange(StrToIntDef(P[1], 0), 0, 255),
+                                         EnsureRange(StrToIntDef(P[2], 0), 0, 255),
+                                         EnsureRange(StrToIntDef(P[3], 0), 0, 255));
   end
   else if (cmd = 'p2_color') and not g_Game_IsNet then
   begin
-    if (gPlayer2 <> nil) and (Length(P) > 3) then
+    if Length(P) > 3 then
       if g_Game_IsClient then
+      begin
         gPlayer2Settings.Color := _RGB(EnsureRange(StrToIntDef(P[1], 0), 0, 255),
                                        EnsureRange(StrToIntDef(P[2], 0), 0, 255),
-                                       EnsureRange(StrToIntDef(P[3], 0), 0, 255))
+                                       EnsureRange(StrToIntDef(P[3], 0), 0, 255));
+        MC_SEND_PlayerSettings;
+      end
       else
-        gPlayer2.Model.SetColor(EnsureRange(StrToIntDef(P[1], 0), 0, 255),
-                                EnsureRange(StrToIntDef(P[2], 0), 0, 255),
-                                EnsureRange(StrToIntDef(P[3], 0), 0, 255));
+        if gPlayer2 <> nil then
+        begin
+          gPlayer2.Model.SetColor(EnsureRange(StrToIntDef(P[1], 0), 0, 255),
+                                  EnsureRange(StrToIntDef(P[2], 0), 0, 255),
+                                  EnsureRange(StrToIntDef(P[3], 0), 0, 255));
+          if g_Game_IsNet then MH_SEND_PlayerSettings(gPlayer2.UID);
+        end
+        else
+          gPlayer2Settings.Color := _RGB(EnsureRange(StrToIntDef(P[1], 0), 0, 255),
+                                         EnsureRange(StrToIntDef(P[2], 0), 0, 255),
+                                         EnsureRange(StrToIntDef(P[3], 0), 0, 255));
   end
   else if gGameSettings.GameType in [GT_CUSTOM, GT_SERVER, GT_CLIENT] then
   begin
@@ -4542,7 +4595,7 @@ begin
           MH_SEND_Chat(gPlayer1Settings.Name + ': ' + chstr, NET_CHAT_TEAM,
             gPlayer1Settings.Team);
       end
-      else                                                                        
+      else
         g_Console_Add('teamchat <text>');
     end else
       g_Console_Add(_lc[I_MSG_GM_UNAVAIL]);
@@ -5015,7 +5068,7 @@ begin
         MC_SEND_Vote(False)
       else if gVoteInProgress then
       begin
-        if not NetDedicated then
+        if (gPlayer1 <> nil) or (gPlayer2 <> nil) then
           a := Floor((NetClientCount+1)/2.0) + 1
         else
           a := Floor(NetClientCount/2.0) + 1;
@@ -5194,7 +5247,7 @@ begin
   gVoted := False;
   gVoteCommand := Command;
 
-  if not NetDedicated then
+  if (gPlayer1 <> nil) or (gPlayer2 <> nil) then
     Need := Floor((NetClientCount+1)/2.0)+1
   else
     Need := Floor(NetClientCount/2.0)+1;
@@ -5211,7 +5264,7 @@ begin
 
   if (gTime >= gVoteTimer) then
   begin
-    if not NetDedicated then
+    if (gPlayer1 <> nil) or (gPlayer2 <> nil) then
       Need := Floor((NetClientCount+1)/2.0) + 1
     else
       Need := Floor(NetClientCount/2.0) + 1;
@@ -5237,7 +5290,7 @@ begin
   end
   else
   begin
-    if not NetDedicated then
+    if (gPlayer1 <> nil) or (gPlayer2 <> nil) then
       Need := Floor((NetClientCount+1)/2.0) + 1
     else
       Need := Floor(NetClientCount/2.0) + 1;
@@ -5433,7 +5486,7 @@ begin
       Port := 25666;
 
     s := Find_Param_Value(pars, '-pw');
-    
+
     g_Game_StartClient(ip, Port, s);
     Exit;
   end;
@@ -5500,18 +5553,22 @@ begin
     end;
 
   // Number of players:
-    if LongBool(Opt and GAME_OPTION_TWOPLAYER) then
-      n := 2
+    s := Find_Param_Value(pars, '-pl');
+    if (s = '') then
+      n := 1
     else
-      n := 1;
+      n := StrToIntDef(s, 1);
+    if n >= 2 then
+      gGameSettings.Options := gGameSettings.Options or GAME_OPTION_TWOPLAYER;
 
   // Start:
     s := Find_Param_Value(pars, '-port');
     if (s = '') or not TryStrToInt(s, Port) then
       g_Game_StartCustom(map, GMode, LimT, LimS, Lives, Opt, n)
     else
-      g_Game_StartServer(map, GMode, LimT, LimS, Lives, Opt, Port);
+      g_Game_StartServer(map, GMode, LimT, LimS, Lives, Opt, n, Port);
   end;
+
 // Execute script when game loads:
   s := Find_Param_Value(pars, '-exec');
   if s <> '' then

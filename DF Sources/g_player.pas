@@ -1161,7 +1161,6 @@ var
   find_id: DWORD;
   ok: Boolean;
 begin
-  if (gGameSettings.GameType = GT_SERVER) and NetDedicated then Exit;
   if Player.Live then
     Exit;
   if Player.FObj.Y >= gMapInfo.Height+128 then
@@ -1201,7 +1200,6 @@ procedure g_Player_CreateShell(fX, fY, dX, dY: Integer; T: Byte);
 var
   SID: DWORD;
 begin
-  if (gGameSettings.GameType = GT_SERVER) and NetDedicated then Exit;
   if (gShells = nil) or (Length(gShells) = 0) then
     Exit;
   
@@ -1249,7 +1247,6 @@ var
   a: Integer;
   GibsArray: TGibsArray;
 begin
-  if (gGameSettings.GameType = GT_SERVER) and NetDedicated then Exit;
   if (gGibs = nil) or (Length(gGibs) = 0) then
     Exit;
   if not g_PlayerModel_GetGibs(ModelName, GibsArray) then
@@ -1298,8 +1295,6 @@ var
   end;
   
 begin
-  if (gGameSettings.GameType = GT_SERVER) and NetDedicated then Exit;
-
 // Куски мяса:
   if gGibs <> nil then
     for i := 0 to High(gGibs) do
@@ -1402,7 +1397,6 @@ var
   i: Integer;
   a: TPoint;
 begin
-  if (gGameSettings.GameType = GT_SERVER) and NetDedicated then Exit;
   if gGibs <> nil then
     for i := 0 to High(gGibs) do
       if gGibs[i].Live then

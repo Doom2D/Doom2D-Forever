@@ -84,6 +84,7 @@ var
   gnTimeLimit: Word           = 0;
   gnGoalLimit: Word           = 0;
   gnMaxLives: Byte            = 0;
+  gnPlayers: Byte             = 1;
   gnTeamDamage: Boolean       = False;
   gnAllowExit: Boolean        = True;
   gnWeaponStay: Boolean       = False;
@@ -314,7 +315,7 @@ begin
   gcTimeLimit := Min(Max(config.ReadInt('GameplayCustom', 'TimeLimit', 0), 0), 65535);
   gcGoalLimit := Min(Max(config.ReadInt('GameplayCustom', 'GoalLimit', 0), 0), 65535);
   gcMaxLives := Min(Max(config.ReadInt('GameplayCustom', 'MaxLives', 0), 0), 255);
-  gcPlayers := Min(Max(config.ReadInt('GameplayCustom', 'Players', 1), 1), 2);
+  gcPlayers := Min(Max(config.ReadInt('GameplayCustom', 'Players', 1), 0), 2);
   gcTeamDamage := config.ReadBool('GameplayCustom', 'TeamDamage', False);
   gcAllowExit := config.ReadBool('GameplayCustom', 'AllowExit', True);
   gcWeaponStay := config.ReadBool('GameplayCustom', 'WeaponStay', False);
@@ -359,6 +360,7 @@ begin
   gnTimeLimit := Min(Max(config.ReadInt('GameplayNetwork', 'TimeLimit', 0), 0), 65535);
   gnGoalLimit := Min(Max(config.ReadInt('GameplayNetwork', 'GoalLimit', 0), 0), 65535);
   gnMaxLives := Min(Max(config.ReadInt('GameplayNetwork', 'MaxLives', 0), 0), 255);
+  gnPlayers := Min(Max(config.ReadInt('GameplayNetwork', 'Players', 1), 0), 2);
   gnTeamDamage := config.ReadBool('GameplayNetwork', 'TeamDamage', False);
   gnAllowExit := config.ReadBool('GameplayNetwork', 'AllowExit', True);
   gnWeaponStay := config.ReadBool('GameplayNetwork', 'WeaponStay', False);
@@ -370,7 +372,6 @@ begin
   NetSlistPort := config.ReadInt('MasterServer', 'Port', 25665);
 
 // Сервер
-  NetDedicated :=  config.ReadBool('Server', 'Dedicated', False);
   NetServerName := config.ReadStr('Server', 'Name', 'Unnamed Server');
   NetPassword :=  config.ReadStr('Server', 'Password', '');
   NetPort := Min(Max(0, config.ReadInt('Server', 'Port', 25666)), 65535);
@@ -519,6 +520,7 @@ begin
   config.WriteInt ('GameplayNetwork', 'TimeLimit', gnTimeLimit);
   config.WriteInt ('GameplayNetwork', 'GoalLimit', gnGoalLimit);
   config.WriteInt ('GameplayNetwork', 'MaxLives', gnMaxLives);
+  config.WriteInt ('GameplayNetwork', 'Players', gnPlayers);
   config.WriteBool('GameplayNetwork', 'TeamDamage', gnTeamDamage);
   config.WriteBool('GameplayNetwork', 'AllowExit', gnAllowExit);
   config.WriteBool('GameplayNetwork', 'WeaponStay', gnWeaponStay);
@@ -528,7 +530,6 @@ begin
   config.WriteStr('MasterServer', 'IP', NetSlistIP);
   config.WriteInt('MasterServer', 'Port', NetSlistPort);
 
-  config.WriteBool('Server', 'Dedicated', NetDedicated);
   config.WriteStr ('Server', 'Name', NetServerName);
   config.WriteStr ('Server', 'Password', NetPassword);
   config.WriteInt ('Server', 'Port', NetPort);
@@ -630,6 +631,7 @@ begin
   config.WriteInt ('GameplayNetwork', 'TimeLimit', gnTimeLimit);
   config.WriteInt ('GameplayNetwork', 'GoalLimit', gnGoalLimit);
   config.WriteInt ('GameplayNetwork', 'MaxLives', gnMaxLives);
+  config.WriteInt ('GameplayNetwork', 'Players', gnPlayers);
   config.WriteBool('GameplayNetwork', 'TeamDamage', gnTeamDamage);
   config.WriteBool('GameplayNetwork', 'AllowExit', gnAllowExit);
   config.WriteBool('GameplayNetwork', 'WeaponStay', gnWeaponStay);
