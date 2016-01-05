@@ -238,16 +238,17 @@ uses
   WADEDITOR, MAPDEF;
 
 const
-  NET_KEY_LEFT  = 1;
-  NET_KEY_RIGHT = 2;
-  NET_KEY_UP    = 4;
-  NET_KEY_DOWN  = 8;
-  NET_KEY_JUMP  = 16;
-  NET_KEY_FIRE  = 32;
-  NET_KEY_OPEN  = 64;
-  NET_KEY_NW    = 256;
-  NET_KEY_PW    = 512;
-  NET_KEY_CHAT  = 2048;
+  NET_KEY_LEFT     = 1;
+  NET_KEY_RIGHT    = 2;
+  NET_KEY_UP       = 4;
+  NET_KEY_DOWN     = 8;
+  NET_KEY_JUMP     = 16;
+  NET_KEY_FIRE     = 32;
+  NET_KEY_OPEN     = 64;
+  NET_KEY_NW       = 256;
+  NET_KEY_PW       = 512;
+  NET_KEY_CHAT     = 2048;
+  NET_KEY_FORCEDIR = 4096;
 
 var
   kBytePrev: Word = 0;
@@ -964,6 +965,8 @@ begin
       if IsKeyPressed(KEY_UP) then kByte := kByte or NET_KEY_UP;
       if IsKeyPressed(KEY_DOWN) then kByte := kByte or NET_KEY_DOWN;
       if IsKeyPressed(KEY_JUMP) then kByte := kByte or NET_KEY_JUMP;
+      if JustTeleported then kByte := kByte or NET_KEY_FORCEDIR;
+      JustTeleported := False;
     end;
 
     e_Buffer_Write(@NetOut, kByte);
@@ -1811,14 +1814,10 @@ begin
 
   with Pl do
   begin
-    if (Pl = gPlayer1) or (Pl = gPlayer2) then
-      NetGotKeys := True;
-      
     FPing := e_Raw_Read_Word(P);
     FLoss := e_Raw_Read_Byte(P);
     kByte := e_Raw_Read_Word(P);
     Dir := e_Raw_Read_Byte(P);
-    SetDirection(TDirection(Dir));
 
     TmpX := e_Raw_Read_LongInt(P);
     TmpY := e_Raw_Read_LongInt(P);
@@ -1835,6 +1834,9 @@ begin
       if LongBool(kByte and NET_KEY_DOWN) then PressKey(KEY_DOWN, 10000);
       if LongBool(kByte and NET_KEY_JUMP) then PressKey(KEY_JUMP, 10000);
     end;
+
+    if ((Pl <> gPlayer1) and (Pl <> gPlayer2)) or LongBool(kByte and NET_KEY_FORCEDIR) then
+      SetDirection(TDirection(Dir));
 
     GameVelX := e_Raw_Read_LongInt(P);
     GameVelY := e_Raw_Read_LongInt(P);
@@ -2463,7 +2465,7 @@ begin
   if gPlayers = nil then Exit;
 
   kByte := 0;
-  Predict := NetPredictSelf and (not NetGotKeys);
+  Predict := NetPredictSelf; // and (not NetGotKeys);
 
   if (not gConsoleShow) and (not gChatShow) and (g_ActiveWindow = nil) then
    with gGameControls.P1Control do
@@ -2519,10 +2521,6 @@ begin
   end
   else
    kByte := NET_KEY_CHAT;
-
-  NetGotKeys := False;
-
-  if (kBytePrev = kByte) and (kDirPrev = gPlayer1.Direction) then Exit;
 
   e_Buffer_Write(@NetOut, Byte(NET_MSG_PLRPOS));
   e_Buffer_Write(@NetOut, kByte);

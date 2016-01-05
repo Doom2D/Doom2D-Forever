@@ -163,6 +163,7 @@ type
     FGodMode:   Boolean;
     FNoTarget:  Boolean;
     FNoReload:  Boolean;
+    FJustTeleported: Boolean;
 
     function    CollideLevel(XInc, YInc: Integer): Boolean;
     function    StayOnStep(XInc, YInc: Integer): Boolean;
@@ -290,6 +291,7 @@ type
     property    IncCam: Integer read FIncCam write FIncCam;
     property    UID: Word read FUID write FUID;
     property    Direction: TDirection read FDirection;
+    property    JustTeleported: Boolean read FJustTeleported write FJustTeleported;
   end;
 
   TDifficult = record
@@ -1656,6 +1658,7 @@ begin
   FObj.Rect := PLAYER_RECT;
 
   FBFGFireCounter := -1;
+  FJustTeleported := False;
 end;
 
 procedure TPlayer.Damage(value: Word; SpawnerUID: Word; vx, vy: Integer; t: Byte);
@@ -3325,6 +3328,7 @@ begin
   if FDummy then
     Exit;
   FWantsInGame := True;
+  FJustTeleported := True;
   if Force then
   begin
     FTime[T_RESPAWN] := 0;
@@ -3870,6 +3874,8 @@ begin
   Result := False;
 
   if g_CollideLevel(X, Y, PLAYER_RECT.Width, PLAYER_RECT.Height) then Exit;
+
+  FJustTeleported := True;
 
   Anim := nil;
   if not silent then
