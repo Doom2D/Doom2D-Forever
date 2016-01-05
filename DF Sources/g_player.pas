@@ -4623,6 +4623,7 @@ begin
       MH_SEND_GameStats;
     end;
 
+    gFlags[FFlag].CaptureTime := 0;
     FFlag := FLAG_NONE;
     FModel.SetFlag(FLAG_NONE);
     Exit;
@@ -4671,7 +4672,6 @@ begin
     g_Game_Message(Format(_lc[I_MESSAGE_FLAG_GET], [AnsiUpperCase(s)]), 144);
 
     gFlags[Flag].State := FLAG_STATE_CAPTURED;
-    gFlags[Flag].CaptureTime := 0;
 
     Result := True;
     if g_Game_IsNet then
