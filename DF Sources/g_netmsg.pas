@@ -48,6 +48,7 @@ const
 
   NET_MSG_RCON_AUTH  = 191;
   NET_MSG_RCON_CMD   = 192;
+  NET_MSG_TIME_SYNC  = 194;
   NET_MSG_VOTE_EVENT = 195;
 
   NET_MSG_MAP_REQUEST = 201;
@@ -146,6 +147,7 @@ procedure MH_SEND_MonsterDelete(UID: Word; ID: Integer = NET_EVERYONE);
 procedure MH_SEND_TriggerSound(var T: TTrigger; ID: Integer = NET_EVERYONE);
 procedure MH_SEND_TriggerMusic(ID: Integer = NET_EVERYONE);
 // MISC
+procedure MH_SEND_TimeSync(Time: LongWord; ID: Integer = NET_EVERYONE);
 procedure MH_SEND_VoteEvent(EvType: Byte;
                             StrArg1: string = 'a'; StrArg2: string = 'b';
                             IntArg1: SmallInt = 0; IntArg2: SmallInt = 0;
@@ -190,7 +192,8 @@ procedure MC_RECV_DeleteShot(P: Pointer);
 // TRIGGER
 procedure MC_RECV_TriggerSound(P: Pointer);
 procedure MC_RECV_TriggerMusic(P: Pointer);
-// VOTE
+// MISC
+procedure MC_RECV_TimeSync(P: Pointer);
 procedure MC_RECV_VoteEvent(P: Pointer);
 // SERVICE
 procedure MC_SEND_Info(Password: string);
@@ -1330,6 +1333,14 @@ end;
 
 // MISC
 
+procedure MH_SEND_TimeSync(Time: LongWord; ID: Integer = NET_EVERYONE);
+begin
+  e_Buffer_Write(@NetOut, Byte(NET_MSG_TIME_SYNC));
+  e_Buffer_Write(@NetOut, Time);
+
+  g_Net_Host_Send(ID, False, NET_CHAN_SERVICE);
+end;
+
 procedure MH_SEND_VoteEvent(EvType: Byte;
                             StrArg1: string = 'a'; StrArg2: string = 'b';
                             IntArg1: SmallInt = 0; IntArg2: SmallInt = 0;
@@ -1341,7 +1352,7 @@ begin
   e_Buffer_Write(@NetOut, IntArg2);
   e_Buffer_Write(@NetOut, StrArg1);
   e_Buffer_Write(@NetOut, StrArg2);
-  
+
   g_Net_Host_Send(ID, True, NET_CHAN_IMPORTANT);
 end;
 
@@ -2407,6 +2418,16 @@ begin
 
   gMonsters[ID].SetState(5);
   gMonsters[ID].MonsterRemoved := True;
+end;
+
+procedure MC_RECV_TimeSync(P: Pointer);
+var
+  Time: LongWord;
+begin
+  Time := e_Raw_Read_LongWord(P);
+
+  if gState = STATE_INTERCUSTOM then
+    gServInterTime := Min(Time, 255);
 end;
 
 procedure MC_RECV_VoteEvent(P: Pointer);

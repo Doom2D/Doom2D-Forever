@@ -161,6 +161,7 @@ var
   gSoundTriggerTime: Word = 0;
   gInterEndTime: LongWord = 0;
   gInterTime: LongWord = 0;
+  gServInterTime: Byte = 0;
   gGameStartTime: LongWord = 0;
   gTotalMonsters: Integer = 0;
   gPause: Boolean;
@@ -1004,7 +1005,15 @@ begin
     STATE_INTERPIC: // Картинка между уровнями
       begin
         if g_Game_IsNet and g_Game_IsServer then
+        begin
           gInterTime := gInterTime + GAME_TICK;
+          a := Min((gInterEndTime - gInterTime) div 1000 + 1, 255);
+          if a <> gServInterTime then
+          begin
+            gServInterTime := a;
+            MH_SEND_TimeSync(gServInterTime);
+          end;
+        end;
 
         if (not g_Game_IsClient) and
         (
@@ -1563,12 +1572,20 @@ begin
 
   e_CharFont_GetSize(gMenuFont, topstr, ww1, hh1);
   e_CharFont_Print(gMenuFont, (gScreenWidth div 2)-(ww1 div 2), 16, topstr);
+
+  if g_Game_IsNet then
+  begin
+    topstr := Format(_lc[I_MENU_INTER_TIME], [gServInterTime]);
+    e_TextureFontPrintEx((gScreenWidth div 2)-(Length(topstr)*ww2 div 2),
+                         gScreenHeight-(hh2+4)*2,topstr, gStdFont, 255, 255, 255, 1);
+  end;
+
   if g_Game_IsClient then
     topstr := _lc[I_MENU_INTER8]
   else
     topstr := _lc[I_MENU_INTER9];
   e_TextureFontPrintEx((gScreenWidth div 2)-(Length(topstr)*ww2 div 2),
-                       gScreenHeight-hh2-4,topstr, gStdFont, 255, 255, 255, 1);
+                       gScreenHeight-(hh2+4),topstr, gStdFont, 255, 255, 255, 1);
 
   x := 32;
   y := 16+hh1+16;
@@ -1732,7 +1749,7 @@ begin
           r := 127
         else
           r := 255;
-      
+
         e_TextureFontPrintEx(x+8+16+8, _y+4, Name, gStdFont, r, r, r, 1, True);
         e_TextureFontPrintEx(x+w1+8+16+8, _y+4, IntToStr(Frags), gStdFont, r, r, r, 1, True);
         e_TextureFontPrintEx(x+w1+w2+8+16+8, _y+4, IntToStr(Deaths), gStdFont, r, r, r, 1, True);
