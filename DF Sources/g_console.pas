@@ -388,6 +388,7 @@ begin
   AddCommand('net_interp', GameCVars);
   AddCommand('net_forceplayerupdate', GameCVars);
   AddCommand('net_predictself', GameCVars);
+  AddCommand('sv_intertime', GameCVars);
 
   AddCommand('quit', GameCommands);
   AddCommand('exit', GameCommands);

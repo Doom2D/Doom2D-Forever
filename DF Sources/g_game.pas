@@ -159,6 +159,7 @@ var
   gPlayerDrawn: TPlayer = nil;
   gTime: LongWord;
   gSoundTriggerTime: Word = 0;
+  gDefInterTime: ShortInt = -1;
   gInterEndTime: LongWord = 0;
   gInterTime: LongWord = 0;
   gServInterTime: Byte = 0;
@@ -634,7 +635,10 @@ begin
         EndingGameCounter := 255;
         gState := STATE_FOLD;
         gInterTime := 0;
-        gInterEndTime := IfThen((gGameSettings.GameType = GT_SERVER) and (gPlayer1 = nil), 15000, 25000);
+        if gDefInterTime < 0 then
+          gInterEndTime := IfThen((gGameSettings.GameType = GT_SERVER) and (gPlayer1 = nil), 15000, 25000)
+        else
+          gInterEndTime := gDefInterTime * 1000;
       end;
 
     EXIT_ENDLEVELSINGLE: // Закончился уровень в Одиночной игре
@@ -3879,6 +3883,13 @@ begin
     config.WriteBool('Client', 'PredictSelf', NetPredictSelf);
     config.SaveFile(GameDir+'\'+CONFIG_FILENAME);
     config.Free();
+  end
+  else if cmd = 'sv_intertime' then
+  begin
+    if (Length(P) > 1) then
+      gDefInterTime := Min(Max(StrToIntDef(P[1], gDefInterTime), -1), 120);
+
+    g_Console_Add(cmd + ' = ' + IntToStr(gDefInterTime));
   end
   else if cmd = 'p1_name' then
   begin
