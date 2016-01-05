@@ -398,6 +398,7 @@ end;
 
 function  MH_RECV_PlayerPos(C: pTNetClient; P: Pointer): Word;
 var
+  Dir: Byte;
   PID: Word;
   kByte: Word;
   Pl: TPlayer;
@@ -412,7 +413,10 @@ begin
   with Pl do
   begin
     kByte := e_Raw_Read_Word(P);
-    SetDirection(TDirection(e_Raw_Read_Byte(P)));
+    Dir := e_Raw_Read_Byte(P);
+    if Direction <> TDirection(Dir) then
+      JustTeleported := False;
+    SetDirection(TDirection(Dir));
     ReleaseKeys;
 
     if kByte = NET_KEY_CHAT then
@@ -966,7 +970,6 @@ begin
       if IsKeyPressed(KEY_DOWN) then kByte := kByte or NET_KEY_DOWN;
       if IsKeyPressed(KEY_JUMP) then kByte := kByte or NET_KEY_JUMP;
       if JustTeleported then kByte := kByte or NET_KEY_FORCEDIR;
-      JustTeleported := False;
     end;
 
     e_Buffer_Write(@NetOut, kByte);

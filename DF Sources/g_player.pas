@@ -280,6 +280,7 @@ type
     property    Live: Boolean read FLive write FLive;
     property    Flag: Byte read FFlag;
     property    Team: Byte read FTeam write FTeam;
+    property    Direction: TDirection read FDirection;
     property    GameX: Integer read FObj.X write FObj.X;
     property    GameY: Integer read FObj.Y write FObj.Y;
     property    GameVelX: Integer read FObj.Vel.X write FObj.Vel.X;
@@ -290,7 +291,6 @@ type
     property    Obj: TObj read FObj;
     property    IncCam: Integer read FIncCam write FIncCam;
     property    UID: Word read FUID write FUID;
-    property    Direction: TDirection read FDirection;
     property    JustTeleported: Boolean read FJustTeleported write FJustTeleported;
   end;
 
