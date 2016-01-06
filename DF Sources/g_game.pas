@@ -138,6 +138,11 @@ const
   STATE_ENDPIC      = 7;
   STATE_SLIST       = 8;
 
+  SPECT_NONE    = 0;
+  SPECT_STATS   = 1;
+  SPECT_MAPVIEW = 2;
+  SPECT_PLAYERS = 3;
+
   CONFIG_FILENAME = 'Doom2DF.cfg';
   LOG_FILENAME = 'Doom2DF.log';
 
@@ -177,7 +182,14 @@ var
   gState: Byte = STATE_NONE;
   sX, sY: Integer;
   sWidth, sHeight: Word;
-  gSpectMode: Byte = 0;
+  gSpectMode: Byte = SPECT_NONE;
+  gSpectKeyPress: Boolean = False;
+  gSpectX: Integer = 0;
+  gSpectY: Integer = 0;
+  gSpectStep: Byte = 8;
+  gSpectViewTwo: Boolean = False;
+  gSpectPID1: Integer = -1;
+  gSpectPID2: Integer = -1;
   gMusic: TMusic = nil;
   gLoadGameMode: Boolean;
   gCheats: Boolean = False;
@@ -972,6 +984,85 @@ begin
   gExitByTrigger := False;
 end;
 
+function IsActivePlayer(p: TPlayer): Boolean;
+begin
+  Result := False;
+  if p = nil then
+    Exit;
+  Result := (not p.FDummy) and (not p.FSpectator);
+end;
+
+function GetActivePlayer_ByID(ID: Integer): TPlayer;
+var
+  a: Integer;
+begin
+  Result := nil;
+  if ID < 0 then
+    Exit;
+  if gPlayers = nil then
+    Exit;
+  for a := Low(gPlayers) to High(gPlayers) do
+    if IsActivePlayer(gPlayers[a]) then
+    begin
+      if gPlayers[a].UID <> ID then
+        continue;
+      Result := gPlayers[a];
+      break;
+    end;
+end;
+
+function GetActivePlayerID_Next(Skip: Integer = -1): Integer;
+var
+  a, idx: Integer;
+  ids: Array of Word;
+begin
+  Result := -1;
+  if gPlayers = nil then
+    Exit;
+  SetLength(ids, 0);
+  idx := -1;
+  for a := Low(gPlayers) to High(gPlayers) do
+    if IsActivePlayer(gPlayers[a]) then
+    begin
+      SetLength(ids, Length(ids) + 1);
+      ids[High(ids)] := gPlayers[a].UID;
+      if gPlayers[a].UID = Skip then
+        idx := High(ids);
+    end;
+  if Length(ids) = 0 then
+    Exit;
+  if idx = -1 then
+    Result := ids[0]
+  else
+    Result := ids[(idx + 1) mod Length(ids)];
+end;
+
+function GetActivePlayerID_Prev(Skip: Integer = -1): Integer;
+var
+  a, idx: Integer;
+  ids: Array of Word;
+begin
+  Result := -1;
+  if gPlayers = nil then
+    Exit;
+  SetLength(ids, 0);
+  idx := -1;
+  for a := Low(gPlayers) to High(gPlayers) do
+    if IsActivePlayer(gPlayers[a]) then
+    begin
+      SetLength(ids, Length(ids) + 1);
+      ids[High(ids)] := gPlayers[a].UID;
+      if gPlayers[a].UID = Skip then
+        idx := High(ids);
+    end;
+  if Length(ids) = 0 then
+    Exit;
+  if idx = -1 then
+    Result := ids[Length(ids) - 1]
+  else
+    Result := ids[(Length(ids) - 1 + idx) mod Length(ids)];
+end;
+
 procedure g_Game_Update();
 var
   Msg: g_gui.TMessage;
@@ -1298,15 +1389,94 @@ begin
     end; // if server
 
   // Наблюдатель
-    if (gPlayer1 = nil) and (gPlayer2 = nil) then
+    if (gPlayer1 = nil) and (gPlayer2 = nil) and
+       (not gConsoleShow) and (not gChatShow) and (g_ActiveWindow = nil) then
     begin
-      // TODO: use key press time
-      if e_KeyBuffer[gGameControls.P1Control.KeyJump] = $080 then
-        case gSpectMode of
-          0: ; // not spectator
-          1: Inc(gSpectMode); // inc to mode 2
-          else gSpectMode := 1; // reset to 1
+      if not gSpectKeyPress then
+      begin
+        if e_KeyBuffer[gGameControls.P1Control.KeyJump] = $080 then
+        begin
+          // switch spect mode
+          case gSpectMode of
+            SPECT_NONE: ; // not spectator
+            SPECT_STATS,
+            SPECT_MAPVIEW: Inc(gSpectMode);
+            SPECT_PLAYERS: gSpectMode := SPECT_STATS; // reset to 1
+          end;
+          gSpectKeyPress := True;
         end;
+        if gSpectMode = SPECT_MAPVIEW then
+        begin
+          if e_KeyBuffer[gGameControls.P1Control.KeyLeft] = $080 then
+            gSpectX := Max(gSpectX - gSpectStep, 0);
+          if e_KeyBuffer[gGameControls.P1Control.KeyRight] = $080 then
+            gSpectX := Min(gSpectX + gSpectStep, gMapInfo.Width - gScreenWidth);
+          if e_KeyBuffer[gGameControls.P1Control.KeyUp] = $080 then
+            gSpectY := Max(gSpectY - gSpectStep, 0);
+          if e_KeyBuffer[gGameControls.P1Control.KeyDown] = $080 then
+            gSpectY := Min(gSpectY + gSpectStep, gMapInfo.Height - gScreenHeight);
+          if e_KeyBuffer[gGameControls.P1Control.KeyPrevWeapon] = $080 then
+          begin
+            // decrease step
+            if gSpectStep > 4 then gSpectStep := gSpectStep shr 1;
+            gSpectKeyPress := True;
+          end;
+          if e_KeyBuffer[gGameControls.P1Control.KeyNextWeapon] = $080 then
+          begin
+            // increase step
+            if gSpectStep < 64 then gSpectStep := gSpectStep shl 1;
+            gSpectKeyPress := True;
+          end;
+        end;
+        if gSpectMode = SPECT_PLAYERS then
+        begin
+          if e_KeyBuffer[gGameControls.P1Control.KeyUp] = $080 then
+          begin
+            // add second view
+            gSpectViewTwo := True;
+            gSpectKeyPress := True;
+          end;
+          if e_KeyBuffer[gGameControls.P1Control.KeyDown] = $080 then
+          begin
+            // remove second view
+            gSpectViewTwo := False;
+            gSpectKeyPress := True;
+          end;
+          if e_KeyBuffer[gGameControls.P1Control.KeyLeft] = $080 then
+          begin
+            // prev player (view 1)
+            gSpectPID1 := GetActivePlayerID_Prev(gSpectPID1);
+            gSpectKeyPress := True;
+          end;
+          if e_KeyBuffer[gGameControls.P1Control.KeyRight] = $080 then
+          begin
+            // next player (view 1)
+            gSpectPID1 := GetActivePlayerID_Next(gSpectPID1);
+            gSpectKeyPress := True;
+          end;
+          if e_KeyBuffer[gGameControls.P1Control.KeyPrevWeapon] = $080 then
+          begin
+            // prev player (view 2)
+            gSpectPID2 := GetActivePlayerID_Prev(gSpectPID2);
+            gSpectKeyPress := True;
+          end;
+          if e_KeyBuffer[gGameControls.P1Control.KeyNextWeapon] = $080 then
+          begin
+            // next player (view 2)
+            gSpectPID2 := GetActivePlayerID_Next(gSpectPID2);
+            gSpectKeyPress := True;
+          end;
+        end;
+      end
+      else
+        if (e_KeyBuffer[gGameControls.P1Control.KeyJump] <> $080) and
+           (e_KeyBuffer[gGameControls.P1Control.KeyLeft] <> $080) and
+           (e_KeyBuffer[gGameControls.P1Control.KeyRight] <> $080) and
+           (e_KeyBuffer[gGameControls.P1Control.KeyUp] <> $080) and
+           (e_KeyBuffer[gGameControls.P1Control.KeyDown] <> $080) and
+           (e_KeyBuffer[gGameControls.P1Control.KeyPrevWeapon] <> $080) and
+           (e_KeyBuffer[gGameControls.P1Control.KeyNextWeapon] <> $080) then
+          gSpectKeyPress := False;
     end;
 
   // Обновляем все остальное:
@@ -2095,6 +2265,48 @@ begin
   end;
 end;
 
+procedure DrawMapView(x, y, w, h: Integer);
+var
+  bx, by: Integer;
+begin
+  glPushMatrix();
+
+  bx := Round(x/(gMapInfo.Width - w)*(gBackSize.X - w));
+  by := Round(y/(gMapInfo.Height - h)*(gBackSize.Y - h));
+  g_Map_DrawBack(-bx, -by);
+
+  sX := x;
+  sY := y;
+  sWidth := w;
+  sHeight := h;
+
+  glTranslatef(-x, -y, 0);
+
+  g_Map_DrawPanels(PANEL_BACK);
+  g_Map_DrawPanels(PANEL_STEP);
+  g_Items_Draw();
+  g_Weapon_Draw();
+  g_Player_DrawShells();
+  g_Player_DrawAll();
+  g_Player_DrawCorpses();
+  g_Map_DrawPanels(PANEL_WALL);
+  g_Monsters_Draw();
+  g_Map_DrawPanels(PANEL_CLOSEDOOR);
+  g_GFX_Draw();
+  g_Map_DrawFlags();
+  g_Map_DrawPanels(PANEL_ACID1);
+  g_Map_DrawPanels(PANEL_ACID2);
+  g_Map_DrawPanels(PANEL_WATER);
+  g_Map_DrawPanels(PANEL_FORE);
+  if g_debug_HealthBar then
+  begin
+    g_Monsters_DrawHealth();
+    g_Player_DrawHealth();
+  end;
+
+  glPopMatrix();
+end;
+
 procedure DrawPlayer(p: TPlayer);
 var
   px, py, a, b, c, d: Integer;
@@ -2242,11 +2454,11 @@ procedure g_Game_Draw();
 var
   ID: DWORD;
   w, h: Word;
+  ww, hh: Byte;
   Time: Int64;
   back: string;
   plView1, plView2: TPlayer;
   Split: Boolean;
-  a: Integer;
 begin
   if gExit = EXIT_QUIT then Exit;
 
@@ -2259,83 +2471,100 @@ begin
     FPSTime := Time;
   end;
 
-  if (gPlayer1 <> nil) and (gPlayer2 <> nil) then
-  begin
-    gSpectMode := 0;
-    if not gRevertPlayers then
-    begin
-      plView1 := gPlayer1;
-      plView2 := gPlayer2;
-    end
-    else
-    begin
-      plView1 := gPlayer2;
-      plView2 := gPlayer1;
-    end;
-  end
-  else
-    if (gPlayer1 <> nil) or (gPlayer2 <> nil) then
-    begin
-      gSpectMode := 0;
-      if gPlayer2 = nil then
-        plView1 := gPlayer1
-      else
-        plView1 := gPlayer2;
-      plView2 := nil;
-    end
-    else
-    begin
-      plView1 := nil;
-      plView2 := nil;
-      if (gSpectMode = 2) and (gPlayers <> nil) then
-        for a := 0 to High(gPlayers) do
-          if (gPlayers[a] <> nil) and (not gPlayers[a].FDummy) then
-          begin
-            if plView1 = nil then
-            begin
-              plView1 := gPlayers[a];
-              continue;
-            end;
-            if plView2 = nil then
-            begin
-              plView2 := gPlayers[a];
-              break;
-            end;
-          end;
-    end;
-  Split := (plView1 <> nil) and (plView2 <> nil);
-  if (plView1 = nil) and (plView2 = nil) and (gSpectMode = 0) then
-    gSpectMode := 1;
-
   if gGameOn or (gState = STATE_FOLD) then
   begin
-  // Размер экранов игроков:
-    gPlayerScreenSize.X := gScreenWidth-196;
-    if Split then
-      gPlayerScreenSize.Y := gScreenHeight div 2
-    else
-      gPlayerScreenSize.Y := gScreenHeight;
-
-    if Split then
-      e_SetViewPort(0, gPlayerScreenSize.Y+1, gPlayerScreenSize.X+196, gPlayerScreenSize.Y);
-
-    DrawPlayer(plView1);
-    gPlayer1ScreenCoord.X := sX;
-    gPlayer1ScreenCoord.Y := sY;
-
-    if Split then
+    if (gPlayer1 <> nil) and (gPlayer2 <> nil) then
     begin
-      e_SetViewPort(0, 0, gPlayerScreenSize.X+196, gPlayerScreenSize.Y);
+      gSpectMode := SPECT_NONE;
+      if not gRevertPlayers then
+      begin
+        plView1 := gPlayer1;
+        plView2 := gPlayer2;
+      end
+      else
+      begin
+        plView1 := gPlayer2;
+        plView2 := gPlayer1;
+      end;
+    end
+    else
+      if (gPlayer1 <> nil) or (gPlayer2 <> nil) then
+      begin
+        gSpectMode := SPECT_NONE;
+        if gPlayer2 = nil then
+          plView1 := gPlayer1
+        else
+          plView1 := gPlayer2;
+        plView2 := nil;
+      end
+      else
+      begin
+        plView1 := nil;
+        plView2 := nil;
+      end;
 
-      DrawPlayer(plView2);
-      gPlayer2ScreenCoord.X := sX;
-      gPlayer2ScreenCoord.Y := sY;
+    if (plView1 = nil) and (plView2 = nil) and (gSpectMode = SPECT_NONE) then
+      gSpectMode := SPECT_STATS;
+
+    if gSpectMode = SPECT_PLAYERS then
+      if gPlayers <> nil then
+      begin
+        plView1 := GetActivePlayer_ByID(gSpectPID1);
+        if plView1 = nil then
+        begin
+          gSpectPID1 := GetActivePlayerID_Next();
+          plView1 := GetActivePlayer_ByID(gSpectPID1);
+        end;
+        if gSpectViewTwo then
+        begin
+          plView2 := GetActivePlayer_ByID(gSpectPID2);
+          if plView2 = nil then
+          begin
+            gSpectPID2 := GetActivePlayerID_Next();
+            plView2 := GetActivePlayer_ByID(gSpectPID2);
+          end;
+        end;
+      end;
+
+    if gSpectMode = SPECT_MAPVIEW then
+    begin
+    // Режим просмотра карты
+      Split := False;
+      e_SetViewPort(0, 0, gScreenWidth, gScreenHeight);
+      DrawMapView(gSpectX, gSpectY, gScreenWidth, gScreenHeight);
+    end
+    else
+    begin
+      Split := (plView1 <> nil) and (plView2 <> nil);
+
+    // Размер экранов игроков:
+      gPlayerScreenSize.X := gScreenWidth-196;
+      if Split then
+        gPlayerScreenSize.Y := gScreenHeight div 2
+      else
+        gPlayerScreenSize.Y := gScreenHeight;
+
+      if Split then
+        e_SetViewPort(0, gPlayerScreenSize.Y+1, gPlayerScreenSize.X+196, gPlayerScreenSize.Y);
+
+      DrawPlayer(plView1);
+      gPlayer1ScreenCoord.X := sX;
+      gPlayer1ScreenCoord.Y := sY;
+
+      if Split then
+      begin
+        e_SetViewPort(0, 0, gPlayerScreenSize.X+196, gPlayerScreenSize.Y);
+
+        DrawPlayer(plView2);
+        gPlayer2ScreenCoord.X := sX;
+        gPlayer2ScreenCoord.Y := sY;
+      end;
+
+      e_SetViewPort(0, 0, gScreenWidth, gScreenHeight);
+
+      if Split then
+        e_DrawLine(2, 0, gScreenHeight div 2, gScreenWidth, gScreenHeight div 2, 0, 0, 0);
     end;
-
-    e_SetViewPort(0, 0, gScreenWidth, gScreenHeight);
-
-    if Split then
-      e_DrawLine(2, 0, gScreenHeight div 2, gScreenWidth, gScreenHeight div 2, 0, 0, 0);
 
     if MessageText <> '' then
     begin
@@ -2351,6 +2580,48 @@ begin
     end;
 
     if IsDrawStat or (gSpectMode = 1) then DrawStat();
+
+    if gSpectMode <> SPECT_NONE then
+    begin
+    // Draw spectator GUI
+      ww := 0;
+      hh := 0;
+      e_TextureFontGetSize(gStdFont, ww, hh);
+      case gSpectMode of
+        SPECT_STATS:
+          e_TextureFontPrintEx(0, gScreenHeight - (hh+2)*2, 'MODE: Stats', gStdFont, 255, 255, 255, 1);
+        SPECT_MAPVIEW:
+          e_TextureFontPrintEx(0, gScreenHeight - (hh+2)*2, 'MODE: Observe Map', gStdFont, 255, 255, 255, 1);
+        SPECT_PLAYERS:
+          e_TextureFontPrintEx(0, gScreenHeight - (hh+2)*2, 'MODE: Watch Players', gStdFont, 255, 255, 255, 1);
+      end;
+      e_TextureFontPrintEx(2*ww, gScreenHeight - (hh+2), '< jump >', gStdFont, 255, 255, 255, 1);
+      if gSpectMode = SPECT_MAPVIEW then
+      begin
+        e_TextureFontPrintEx(22*ww, gScreenHeight - (hh+2)*2, '[-]', gStdFont, 255, 255, 255, 1);
+        e_TextureFontPrintEx(26*ww, gScreenHeight - (hh+2)*2, 'Step ' + IntToStr(gSpectStep), gStdFont, 255, 255, 255, 1);
+        e_TextureFontPrintEx(34*ww, gScreenHeight - (hh+2)*2, '[+]', gStdFont, 255, 255, 255, 1);
+        e_TextureFontPrintEx(18*ww, gScreenHeight - (hh+2), '<prev weap>', gStdFont, 255, 255, 255, 1);
+        e_TextureFontPrintEx(30*ww, gScreenHeight - (hh+2), '<next weap>', gStdFont, 255, 255, 255, 1);
+      end;
+      if gSpectMode = SPECT_PLAYERS then
+      begin
+        e_TextureFontPrintEx(22*ww, gScreenHeight - (hh+2)*2, 'Player 1', gStdFont, 255, 255, 255, 1);
+        e_TextureFontPrintEx(20*ww, gScreenHeight - (hh+2), '<left/right>', gStdFont, 255, 255, 255, 1);
+        if gSpectViewTwo then
+        begin
+          e_TextureFontPrintEx(37*ww, gScreenHeight - (hh+2)*2, 'Player 2', gStdFont, 255, 255, 255, 1);
+          e_TextureFontPrintEx(34*ww, gScreenHeight - (hh+2), '<prev w/next w>', gStdFont, 255, 255, 255, 1);
+          e_TextureFontPrintEx(52*ww, gScreenHeight - (hh+2)*2, '2x View', gStdFont, 255, 255, 255, 1);
+          e_TextureFontPrintEx(51*ww, gScreenHeight - (hh+2), '<up/down>', gStdFont, 255, 255, 255, 1);
+        end
+        else
+        begin
+          e_TextureFontPrintEx(35*ww, gScreenHeight - (hh+2)*2, '2x View', gStdFont, 255, 255, 255, 1);
+          e_TextureFontPrintEx(34*ww, gScreenHeight - (hh+2), '<up/down>', gStdFont, 255, 255, 255, 1);
+        end;
+      end;
+    end;
   end;
 
   if gPause and gGameOn and (g_ActiveWindow = nil) then
