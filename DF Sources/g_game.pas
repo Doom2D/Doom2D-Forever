@@ -1213,7 +1213,8 @@ begin
         begin
           if e_KeyBuffer[gGameControls.GameControls.Chat] = $080 then
             g_Console_Chat_Switch(False)
-          else if e_KeyBuffer[gGameControls.GameControls.TeamChat] = $080 then
+          else if (e_KeyBuffer[gGameControls.GameControls.TeamChat] = $080) and
+                  (gGameSettings.GameMode in [GM_TDM, GM_CTF]) then
             g_Console_Chat_Switch(True);
         end;
       end else
@@ -4937,7 +4938,7 @@ begin
   end
   else if cmd = 'teamchat' then
   begin
-    if g_Game_IsNet then
+    if g_Game_IsNet and (gGameSettings.GameMode in [GM_TDM, GM_CTF]) then
     begin
       if Length(P) > 1 then
       begin
