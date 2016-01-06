@@ -1963,10 +1963,6 @@ begin
 
   if gShowGoals and (gGameSettings.GameMode in [GM_CTF, GM_TDM]) then
   begin
-    s := IntToStr(gTeamStat[TEAM_RED].Goals);
-    e_CharFont_GetSize(gMenuFont, s, tw, th);
-    e_CharFont_PrintEx(gMenuFont, X-16-tw, 240-72, s, _RGB(255, 0, 0));
-
     if gGameSettings.GameMode = GM_CTF then
     begin
       s := 'TEXTURE_PLAYER_REDFLAG';
@@ -1975,12 +1971,12 @@ begin
       if gFlags[FLAG_RED].State = FLAG_STATE_DROPPED then
         s := 'TEXTURE_PLAYER_REDFLAG_D';
       if g_Texture_Get(s, ID) then
-        e_Draw(ID, X-16-tw-40, 240-72-4, 0, True, False);
+        e_Draw(ID, X-16-32, 240-72-4, 0, True, False);
     end;
 
-    s := IntToStr(gTeamStat[TEAM_BLUE].Goals);
+    s := IntToStr(gTeamStat[TEAM_RED].Goals);
     e_CharFont_GetSize(gMenuFont, s, tw, th);
-    e_CharFont_PrintEx(gMenuFont, X-16-tw, 240-32, s, _RGB(0, 0, 255));
+    e_CharFont_PrintEx(gMenuFont, X-16-32-8-tw, 240-72-4, s, _RGB(255, 0, 0));
 
     if gGameSettings.GameMode = GM_CTF then
     begin
@@ -1990,8 +1986,12 @@ begin
       if gFlags[FLAG_BLUE].State = FLAG_STATE_DROPPED then
         s := 'TEXTURE_PLAYER_BLUEFLAG_D';
       if g_Texture_Get(s, ID) then
-        e_Draw(ID,  X-16-tw-40, 240-32-4, 0, True, False);
+        e_Draw(ID,  X-16-32, 240-32-4, 0, True, False);
     end;
+
+    s := IntToStr(gTeamStat[TEAM_BLUE].Goals);
+    e_CharFont_GetSize(gMenuFont, s, tw, th);
+    e_CharFont_PrintEx(gMenuFont, X-16-32-8-tw, 240-32-4, s, _RGB(0, 0, 255));
   end;
 
   if g_Texture_Get('TEXTURE_PLAYER_HUDBG', ID) then
