@@ -2542,12 +2542,19 @@ begin
     // Размер экранов игроков:
       gPlayerScreenSize.X := gScreenWidth-196;
       if Split then
-        gPlayerScreenSize.Y := gScreenHeight div 2
+      begin
+        gPlayerScreenSize.Y := gScreenHeight div 2;
+        if gScreenHeight mod 2 = 0 then
+          Dec(gPlayerScreenSize.Y);
+      end
       else
         gPlayerScreenSize.Y := gScreenHeight;
 
       if Split then
-        e_SetViewPort(0, gPlayerScreenSize.Y+1, gPlayerScreenSize.X+196, gPlayerScreenSize.Y);
+        if gScreenHeight mod 2 = 0 then
+          e_SetViewPort(0, gPlayerScreenSize.Y+2, gPlayerScreenSize.X+196, gPlayerScreenSize.Y)
+        else
+          e_SetViewPort(0, gPlayerScreenSize.Y+1, gPlayerScreenSize.X+196, gPlayerScreenSize.Y);
 
       DrawPlayer(plView1);
       gPlayer1ScreenCoord.X := sX;
