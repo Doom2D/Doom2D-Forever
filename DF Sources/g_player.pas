@@ -2858,12 +2858,55 @@ begin
         Break;
       end;
 
-  FTime[T_SWITCH] := gTime+72;
+  FTime[T_SWITCH] := gTime+156;
 
   if FCurrWeap = WEAPON_SAW then
     FSawSoundSelect.PlayAt(FObj.X, FObj.Y);
 
   FModel.SetWeapon(FCurrWeap);
+
+  if g_Game_IsNet then MH_SEND_PlayerStats(FUID);
+end;
+
+procedure TPlayer.PrevWeapon();
+var
+  i: Byte;
+  ok: Boolean;
+begin
+  if g_Game_IsClient then Exit;
+  if FBFGFireCounter <> -1 then Exit;
+
+  if FTime[T_SWITCH] > gTime then Exit;
+
+  for i := WEAPON_KASTET to WEAPON_SUPERPULEMET do
+    if FReloading[i] > 0 then Exit;
+
+  ok := False;
+
+  if FCurrWeap > 0 then
+    for i := FCurrWeap-1 downto WEAPON_KASTET do
+      if FWeapon[i] then
+      begin
+        FCurrWeap := i;
+        ok := True;
+        Break;
+      end;
+
+  if not ok then
+    for i := WEAPON_SUPERPULEMET downto FCurrWeap+1 do
+      if FWeapon[i] then
+      begin
+        FCurrWeap := i;
+        Break;
+      end;
+
+  FTime[T_SWITCH] := gTime+156;
+
+  if FCurrWeap = WEAPON_SAW then
+    FSawSoundSelect.PlayAt(FObj.X, FObj.Y);
+
+  FModel.SetWeapon(FCurrWeap);
+
   if g_Game_IsNet then MH_SEND_PlayerStats(FUID);
 end;
 
@@ -3222,48 +3265,6 @@ begin
         remove := True;
       end;
   end;
-end;
-
-procedure TPlayer.PrevWeapon();
-var
-  i: Byte;
-  ok: Boolean;
-begin
-  if g_Game_IsClient then Exit;
-  if FBFGFireCounter <> -1 then Exit;
-
-  if FTime[T_SWITCH] > gTime then Exit;
-
-  for i := WEAPON_KASTET to WEAPON_SUPERPULEMET do
-    if FReloading[i] > 0 then Exit;
- 
-  ok := False;
-
-  if FCurrWeap > 0 then
-    for i := FCurrWeap-1 downto WEAPON_KASTET do
-      if FWeapon[i] then
-      begin
-        FCurrWeap := i;
-        ok := True;
-        Break;
-      end;
-
-  if not ok then
-    for i := WEAPON_SUPERPULEMET downto FCurrWeap+1 do
-      if FWeapon[i] then
-      begin
-        FCurrWeap := i;
-        Break;
-      end;
-
-  FTime[T_SWITCH] := gTime+72;
-
-  if FCurrWeap = WEAPON_SAW then
-    FSawSoundSelect.PlayAt(FObj.X, FObj.Y);
-
-  FModel.SetWeapon(FCurrWeap);
-
-  if g_Game_IsNet then MH_SEND_PlayerStats(FUID);
 end;
 
 procedure TPlayer.Push(vx, vy: Integer);
