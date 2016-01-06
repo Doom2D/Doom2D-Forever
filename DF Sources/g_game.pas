@@ -183,6 +183,7 @@ var
   sX, sY: Integer;
   sWidth, sHeight: Word;
   gSpectMode: Byte = SPECT_NONE;
+  gSpectHUD: Boolean = True;
   gSpectKeyPress: Boolean = False;
   gSpectX: Integer = 0;
   gSpectY: Integer = 0;
@@ -2581,7 +2582,7 @@ begin
 
     if IsDrawStat or (gSpectMode = 1) then DrawStat();
 
-    if gSpectMode <> SPECT_NONE then
+    if gSpectHUD and (gSpectMode <> SPECT_NONE) then
     begin
     // Draw spectator GUI
       ww := 0;
@@ -4334,6 +4335,17 @@ begin
         g_Console_Add(_lc[I_MSG_LIVES_ON])
       else
         g_Console_Add(_lc[I_MSG_LIVES_OFF]);
+    end
+    else if cmd = 'r_showspect' then
+    begin
+      if (Length(P) > 1) and
+         ((P[1] = '1') or (P[1] = '0')) then
+        gSpectHUD := (P[1][1] = '1');
+
+      if gSpectHUD then
+        g_Console_Add(_lc[I_MSG_SPECT_HUD_ON])
+      else
+        g_Console_Add(_lc[I_MSG_SPECT_HUD_OFF]);
     end
     else if (cmd = 'g_scorelimit') and not g_Game_IsClient then
     begin

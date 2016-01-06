@@ -375,6 +375,7 @@ begin
   AddCommand('r_showlives', GameCVars);
   AddCommand('r_showstat', GameCVars);
   AddCommand('r_showkillmsg', GameCVars);
+  AddCommand('r_showspect', GameCVars);
   AddCommand('g_friendlyfire', GameCVars);
   AddCommand('g_weaponstay', GameCVars);
   AddCommand('g_allow_exit', GameCVars);
