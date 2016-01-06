@@ -4641,6 +4641,7 @@ begin
       s := _lc[I_PLAYER_FLAG_BLUE];
 
     evtype := FLAG_STATE_RETURNED;
+    gFlags[Flag].CaptureTime := 0;
 
     g_Console_Add(Format(_lc[I_PLAYER_FLAG_RETURN], [FName, s]), True);
 

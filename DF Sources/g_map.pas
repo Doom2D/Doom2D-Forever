@@ -1452,9 +1452,11 @@ begin
         // Сопротивление воздуха:
           Obj.Vel.X := z_dec(Obj.Vel.X, 1);
 
+        // Таймаут потерянного флага, либо он выпал за карту:
           if ((Count = 0) or ByteBool(m and MOVE_FALLOUT)) and g_Game_IsServer then
           begin
             g_Map_ResetFlag(a);
+            gFlags[a].CaptureTime := 0;
             if a = FLAG_RED then
               s := _lc[I_PLAYER_FLAG_RED]
             else
