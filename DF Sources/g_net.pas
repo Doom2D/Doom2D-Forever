@@ -124,7 +124,7 @@ procedure g_Net_Cleanup();
 procedure g_Net_Free();
 procedure g_Net_Flush();
 
-function  g_Net_Host(Port: enet_uint16; MaxClients: Cardinal = 16): Boolean;
+function  g_Net_Host(IPAddr: LongWord; Port: enet_uint16; MaxClients: Cardinal = 16): Boolean;
 procedure g_Net_Host_Die();
 procedure g_Net_Host_Send(ID: Integer; Reliable: Boolean; Chan: Byte = NET_CHAN_GAME);
 function  g_Net_Host_Update(): enet_size_t;
@@ -280,7 +280,7 @@ end;
 { /// SERVER FUNCTIONS /// }
 
 
-function g_Net_Host(Port: enet_uint16; MaxClients: Cardinal = 16): Boolean;
+function g_Net_Host(IPAddr: LongWord; Port: enet_uint16; MaxClients: Cardinal = 16): Boolean;
 begin
   if NetMode <> NET_NONE then
   begin
@@ -304,7 +304,7 @@ begin
       NetInitDone := True;
   end;
 
-  NetAddr.host := ENET_HOST_ANY;
+  NetAddr.host := IPAddr;
   NetAddr.port := Port;
 
   NetHost := enet_host_create(@NetAddr, NET_MAXCLIENTS, NET_CHANS, 0, 0);

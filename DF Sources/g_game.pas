@@ -54,7 +54,7 @@ procedure g_Game_RemovePlayer();
 procedure g_Game_Spectate();
 procedure g_Game_SpectateCenterView();
 procedure g_Game_StartSingle(WAD, MAP: String; TwoPlayers: Boolean; nPlayers: Byte);
-procedure g_Game_StartServer(Map: String; GameMode: Byte; TimeLimit, GoalLimit: Word; MaxLives: Byte; Options: LongWord; nPlayers: Byte; Port: Word);
+procedure g_Game_StartServer(Map: String; GameMode: Byte; TimeLimit, GoalLimit: Word; MaxLives: Byte; Options: LongWord; nPlayers: Byte; IPAddr: LongWord; Port: Word);
 procedure g_Game_StartClient(Addr: String; Port: Word; PW: String);
 procedure g_Game_StartCustom(Map: String; GameMode: Byte; TimeLimit, GoalLimit: Word; MaxLives: Byte; Options: LongWord; nPlayers: Byte);
 procedure g_Game_Restart();
@@ -3232,7 +3232,8 @@ end;
 
 procedure g_Game_StartServer(Map: String; GameMode: Byte;
                              TimeLimit, GoalLimit: Word; MaxLives: Byte;
-                             Options: LongWord; nPlayers: Byte; Port: Word);
+                             Options: LongWord; nPlayers: Byte;
+                             IPAddr: LongWord; Port: Word);
 var
   ResName: String;
   Team: Byte;
@@ -3325,7 +3326,7 @@ begin
   end;
 
 // Стартуем сервер
-  if not g_Net_Host(Port, NetMaxClients) then
+  if not g_Net_Host(IPAddr, Port, NetMaxClients) then
   begin
     g_FatalError(_lc[I_NET_MSG] + _lc[I_NET_ERR_HOST]);
     Exit;
@@ -5931,7 +5932,7 @@ begin
     if (s = '') or not TryStrToInt(s, Port) then
       g_Game_StartCustom(map, GMode, LimT, LimS, Lives, Opt, n)
     else
-      g_Game_StartServer(map, GMode, LimT, LimS, Lives, Opt, n, Port);
+      g_Game_StartServer(map, GMode, LimT, LimS, Lives, Opt, n, 0, Port);
   end;
 
 // Execute script when game loads:

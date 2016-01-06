@@ -466,7 +466,7 @@ begin
   g_Options_Write_Gameplay_Net(GameDir+'\'+CONFIG_FILENAME);
 
   g_Game_StartServer(Map, GameMode, gnTimeLimit, gnGoalLimit, gnMaxLives,
-                     Options, gnPlayers, NetPort);
+                     Options, gnPlayers, 0, NetPort);
 end;
 
 procedure ProcConnectNetGame();
