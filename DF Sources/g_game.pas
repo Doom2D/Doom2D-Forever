@@ -52,6 +52,7 @@ procedure g_Game_ChangeResolution(newWidth, newHeight: Word; nowFull, nowMax: Bo
 procedure g_Game_AddPlayer(Team: Byte = TEAM_NONE);
 procedure g_Game_RemovePlayer();
 procedure g_Game_Spectate();
+procedure g_Game_SpectateCenterView();
 procedure g_Game_StartSingle(WAD, MAP: String; TwoPlayers: Boolean; nPlayers: Byte);
 procedure g_Game_StartServer(Map: String; GameMode: Byte; TimeLimit, GoalLimit: Word; MaxLives: Byte; Options: LongWord; nPlayers: Byte; Port: Word);
 procedure g_Game_StartClient(Addr: String; Port: Word; PW: String);
@@ -2881,7 +2882,10 @@ begin
     if g_Game_IsClient then
     begin
       if NetPlrUID1 > -1 then
+      begin
+        MC_SEND_CheatRequest(NET_CHEAT_SPECTATE);
         gPlayer1 := g_Player_Get(NetPlrUID1);
+      end;
       Exit;
     end;
 
@@ -2988,7 +2992,10 @@ begin
       if g_Game_IsNet and NetUseMaster then
         g_Net_Slist_Update;
     end else
+    begin
       gPlayer1 := nil;
+      MC_SEND_CheatRequest(NET_CHEAT_SPECTATE);
+    end;
     Exit;
   end;
 end;
@@ -3000,6 +3007,11 @@ begin
     g_Game_RemovePlayer();
 end;
 
+procedure g_Game_SpectateCenterView();
+begin
+  gSpectX := Max(gMapInfo.Width div 2 - gScreenWidth div 2, 0);
+  gSpectY := Max(gMapInfo.Height div 2 - gScreenHeight div 2, 0);
+end;
 
 procedure g_Game_StartSingle(WAD, MAP: String; TwoPlayers: Boolean; nPlayers: Byte);
 var
@@ -3624,6 +3636,8 @@ begin
   gStatsOff := False;
 
   if not gGameOn then Exit;
+
+  g_Game_SpectateCenterView();
 
   if (gGameSettings.MaxLives > 0) and (gGameSettings.WarmupTime > 0) then
   begin

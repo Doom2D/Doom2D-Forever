@@ -403,6 +403,7 @@ begin
             else
               Result := DefWindowProc(hWnd, message, wParam, lParam);
           end;
+          g_Game_SpectateCenterView();
         end
       else
         Result := DefWindowProc(hWnd, message, wParam, lParam);
