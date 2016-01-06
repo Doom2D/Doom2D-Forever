@@ -621,7 +621,7 @@ var
 begin
   QueryPerformanceFrequency(F);
   QueryPerformanceCounter(C);
-  Result := Round(C*1000000/F);
+  Result := Round(C/F*1000000);
 end;
 
 procedure ResetTimer();
