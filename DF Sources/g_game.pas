@@ -3674,10 +3674,13 @@ begin
           gPlayers[I].ChangeTeam(TEAM_NONE);
         GM_TDM, GM_CTF:
           if not (gPlayers[I].Team in [TEAM_RED, TEAM_BLUE]) then
-            if I mod 2 = 0 then
-              gPlayers[I].ChangeTeam(TEAM_RED)
+            if gPlayers[I].FPreferredTeam in [TEAM_RED, TEAM_BLUE] then
+              gPlayers[I].ChangeTeam(gPlayers[I].FPreferredTeam)
             else
-              gPlayers[I].ChangeTeam(TEAM_BLUE);
+              if I mod 2 = 0 then
+                gPlayers[I].ChangeTeam(TEAM_RED)
+              else
+                gPlayers[I].ChangeTeam(TEAM_BLUE);
         GM_COOP:
           gPlayers[I].ChangeTeam(TEAM_COOP);
       end;

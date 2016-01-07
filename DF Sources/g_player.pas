@@ -114,7 +114,7 @@ type
   private
     FIamBot:    Boolean;
     FUID:       Word;
-    FName:        String;
+    FName:      String;
     FTeam:      Byte;
     FLive:      Boolean;
     FSpawned:   Boolean;
@@ -197,6 +197,8 @@ type
     FReloading: Array [WEAPON_KASTET..WEAPON_SUPERPULEMET] of Word;
     FTime:      Array [T_RESPAWN..T_USE] of DWORD;
     FKeys:      Array [KEY_LEFT..KEY_CHAT] of TKeyState;
+    FColor:     TRGB;
+    FPreferredTeam: Byte;
     FSpectator: Boolean;
     FNoRespawn: Boolean;
     FWantsInGame: Boolean;
@@ -639,6 +641,7 @@ begin
   end;
 
 // Если командная игра - красим модель в цвет команды:
+  gPlayers[a].FColor := Color;
   if ((gGameSettings.GameMode = GM_CTF) or
       (gGameSettings.GameMode = GM_TDM)) and
      ((Team = TEAM_RED) or (Team = TEAM_BLUE)) then
@@ -647,6 +650,7 @@ begin
     gPlayers[a].FModel.Color := Color;
 
   gPlayers[a].FTeam := Team;
+  gPlayers[a].FPreferredTeam := Team;
   gPlayers[a].FUID := g_CreateUID(UID_PLAYER);
   gPlayers[a].FPlayerNum := PlayerNum;
   gPlayers[a].FLive := False;
@@ -1566,37 +1570,24 @@ begin
   if FTeam = TEAM_RED then
   begin
     FTeam := TEAM_BLUE;
-    FModel.Color := _RGB(0, 0, 255);
     g_Console_Add(Format(_lc[I_PLAYER_CHTEAM_BLUE], [FName]), True);
   end
   else
   begin
     FTeam := TEAM_RED;
-    FModel.Color := _RGB(255, 0, 0);
     g_Console_Add(Format(_lc[I_PLAYER_CHTEAM_RED], [FName]), True);
   end;
+  FModel.Color := TEAMCOLOR[FTeam];
 end;
 
 procedure TPlayer.ChangeTeam(Team: Byte);
 begin
+  FTeam := Team;
   case Team of
-    TEAM_RED:
-    begin
-      FTeam := TEAM_RED;
-      FModel.Color := _RGB(255, 0, 0);
-    end;
-    TEAM_BLUE:
-    begin
-      FTeam := TEAM_BLUE;
-      FModel.Color := _RGB(0, 0, 255);
-    end;
-    else begin
-      FTeam := Team;
-      if (Self = gPlayer1) then
-        FModel.Color := gPlayer1Settings.Color;
-      if (Self = gPlayer2) then
-        FModel.Color := gPlayer2Settings.Color;
-    end;
+    TEAM_RED, TEAM_BLUE:
+      FModel.Color := TEAMCOLOR[Team];
+    else
+      FModel.Color := FColor;
   end;
 end;
 
@@ -2004,7 +1995,7 @@ begin
 
     s := IntToStr(gTeamStat[TEAM_RED].Goals);
     e_CharFont_GetSize(gMenuFont, s, tw, th);
-    e_CharFont_PrintEx(gMenuFont, X-16-a-tw, 240-72-4, s, _RGB(255, 0, 0));
+    e_CharFont_PrintEx(gMenuFont, X-16-a-tw, 240-72-4, s, TEAMCOLOR[TEAM_RED]);
 
     if gGameSettings.GameMode = GM_CTF then
     begin
@@ -2019,7 +2010,7 @@ begin
 
     s := IntToStr(gTeamStat[TEAM_BLUE].Goals);
     e_CharFont_GetSize(gMenuFont, s, tw, th);
-    e_CharFont_PrintEx(gMenuFont, X-16-a-tw, 240-32-4, s, _RGB(0, 0, 255));
+    e_CharFont_PrintEx(gMenuFont, X-16-a-tw, 240-32-4, s, TEAMCOLOR[TEAM_BLUE]);
   end;
 
   if g_Texture_Get('TEXTURE_PLAYER_HUDBG', ID) then
@@ -4926,11 +4917,11 @@ begin
   str := FModel.Name;
   Mem.WriteString(str);
 // Цвет модели:
-  b := FModel.Color.R;
+  b := FColor.R;
   Mem.WriteByte(b);
-  b := FModel.Color.G;
+  b := FColor.G;
   Mem.WriteByte(b);
-  b := FModel.Color.B;
+  b := FColor.B;
   Mem.WriteByte(b);
 end;
 
@@ -5055,7 +5046,10 @@ begin
   if (FPlayerNum <> 1) and (FPlayerNum <> 2) then
   begin
     SetModel(str);
-    FModel.Color := col;
+    if gGameSettings.GameMode in [GM_TDM, GM_CTF] then
+      FModel.Color := TEAMCOLOR[FTeam]
+    else
+      FModel.Color := col;
   end;
 end;
 
@@ -5137,7 +5131,6 @@ end;
 procedure TPlayer.SetModel(ModelName: string);
 var
   m: TPlayerModel;
-  old_color: TRGB;
 begin
   m := g_PlayerModel_Get(ModelName);
   if m = nil then
@@ -5151,17 +5144,12 @@ begin
     end;
   end;
 
-  old_color := _RGB(0, 0, 0);
-
   if FModel <> nil then
-  begin
-    old_color := FModel.Color;
     FModel.Free();
-  end;
 
   FModel := m;
 
-  FModel.Color := old_color;
+  FModel.Color := FColor;
   FModel.SetWeapon(FCurrWeap);
   FModel.SetFlag(FFlag);
   SetDirection(FDirection);
@@ -5169,6 +5157,7 @@ end;
 
 procedure TPlayer.SetColor(Color: TRGB);
 begin
+  FColor := Color;
   if (gGameSettings.GameMode <> GM_CTF) and (gGameSettings.GameMode <> GM_TDM) then
     if FModel <> nil then FModel.Color := Color;
 end;
