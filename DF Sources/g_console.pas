@@ -376,6 +376,7 @@ begin
   AddCommand('r_showstat', GameCVars);
   AddCommand('r_showkillmsg', GameCVars);
   AddCommand('r_showspect', GameCVars);
+  AddCommand('g_gamemode', GameCVars);
   AddCommand('g_friendlyfire', GameCVars);
   AddCommand('g_weaponstay', GameCVars);
   AddCommand('g_allow_exit', GameCVars);
@@ -446,6 +447,7 @@ begin
   WhitelistCommand('bot_addblue');
   WhitelistCommand('bot_removeall');
 
+  WhitelistCommand('g_gamemode');
   WhitelistCommand('g_friendlyfire');
   WhitelistCommand('g_weaponstay');
   WhitelistCommand('g_allow_exit');

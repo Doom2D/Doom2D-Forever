@@ -162,7 +162,7 @@ begin
         gPlayer1.SetColor(gPlayer1Settings.Color)
       else
         if gPlayer1.Team <> gPlayer1Settings.Team then
-          gPlayer1.ChangeTeam;
+          gPlayer1.SwitchTeam;
 
       if g_Game_IsNet then MH_SEND_PlayerSettings(gPlayer1.UID);
     end;
@@ -175,7 +175,7 @@ begin
         gPlayer2.SetColor(gPlayer2Settings.Color)
       else
         if gPlayer2.Team <> gPlayer2Settings.Team then
-          gPlayer2.ChangeTeam;
+          gPlayer2.SwitchTeam;
     end;
   end;
 
@@ -1157,7 +1157,7 @@ begin
     else
     begin
       if gPlayer1.Team <> TEAM_RED then
-        gPlayer1.ChangeTeam;
+        gPlayer1.SwitchTeam;
 
       if g_Game_IsNet then MH_SEND_PlayerSettings(gPlayer1.UID);
     end;
@@ -1184,7 +1184,7 @@ begin
     else
     begin
       if gPlayer1.Team <> TEAM_BLUE then
-        gPlayer1.ChangeTeam;
+        gPlayer1.SwitchTeam;
 
       if g_Game_IsNet then MH_SEND_PlayerSettings(gPlayer1.UID);
     end;

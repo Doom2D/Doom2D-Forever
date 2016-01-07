@@ -228,7 +228,8 @@ type
     function    TeleportTo(X, Y: Integer; silent: Boolean; dir: Byte): Boolean;
     procedure   Push(vx, vy: Integer);
     procedure   ChangeModel(ModelName: String);
-    procedure   ChangeTeam;
+    procedure   SwitchTeam;
+    procedure   ChangeTeam(Team: Byte);
     procedure   BFGHit();
     function    GetFlag(Flag: Byte): Boolean;
     procedure   SetFlag(Flag: Byte);
@@ -1555,10 +1556,10 @@ begin
   FModel := Model;
 end;
 
-procedure TPlayer.ChangeTeam;
+procedure TPlayer.SwitchTeam;
 begin
   if not (gGameSettings.GameMode in [GM_TDM, GM_CTF]) then Exit;
-  
+
   if g_Game_IsServer and gGameOn and FLive then
     Kill(K_SIMPLEKILL, FUID, HIT_SELF);
 
@@ -1573,6 +1574,29 @@ begin
     FTeam := TEAM_RED;
     FModel.Color := _RGB(255, 0, 0);
     g_Console_Add(Format(_lc[I_PLAYER_CHTEAM_RED], [FName]), True);
+  end;
+end;
+
+procedure TPlayer.ChangeTeam(Team: Byte);
+begin
+  case Team of
+    TEAM_RED:
+    begin
+      FTeam := TEAM_RED;
+      FModel.Color := _RGB(255, 0, 0);
+    end;
+    TEAM_BLUE:
+    begin
+      FTeam := TEAM_BLUE;
+      FModel.Color := _RGB(0, 0, 255);
+    end;
+    else begin
+      FTeam := Team;
+      if (Self = gPlayer1) then
+        FModel.Color := gPlayer1Settings.Color;
+      if (Self = gPlayer2) then
+        FModel.Color := gPlayer2Settings.Color;
+    end;
   end;
 end;
 
@@ -1964,6 +1988,10 @@ begin
   if gShowGoals and (gGameSettings.GameMode in [GM_CTF, GM_TDM]) then
   begin
     if gGameSettings.GameMode = GM_CTF then
+      a := 32 + 8
+    else
+      a := 0;
+    if gGameSettings.GameMode = GM_CTF then
     begin
       s := 'TEXTURE_PLAYER_REDFLAG';
       if gFlags[FLAG_RED].State = FLAG_STATE_CAPTURED then
@@ -1976,7 +2004,7 @@ begin
 
     s := IntToStr(gTeamStat[TEAM_RED].Goals);
     e_CharFont_GetSize(gMenuFont, s, tw, th);
-    e_CharFont_PrintEx(gMenuFont, X-16-32-8-tw, 240-72-4, s, _RGB(255, 0, 0));
+    e_CharFont_PrintEx(gMenuFont, X-16-a-tw, 240-72-4, s, _RGB(255, 0, 0));
 
     if gGameSettings.GameMode = GM_CTF then
     begin
@@ -1991,7 +2019,7 @@ begin
 
     s := IntToStr(gTeamStat[TEAM_BLUE].Goals);
     e_CharFont_GetSize(gMenuFont, s, tw, th);
-    e_CharFont_PrintEx(gMenuFont, X-16-32-8-tw, 240-32-4, s, _RGB(0, 0, 255));
+    e_CharFont_PrintEx(gMenuFont, X-16-a-tw, 240-32-4, s, _RGB(0, 0, 255));
   end;
 
   if g_Texture_Get('TEXTURE_PLAYER_HUDBG', ID) then

@@ -166,6 +166,7 @@ var
   gPlayer2: TPlayer = nil;
   gPlayerDrawn: TPlayer = nil;
   gTime: LongWord;
+  gSwitchGameMode: Byte = GM_DM;
   gSoundTriggerTime: Word = 0;
   gDefInterTime: ShortInt = -1;
   gInterEndTime: LongWord = 0;
@@ -3089,6 +3090,7 @@ begin
   gGameSettings.Options := gGameSettings.Options + GAME_OPTION_MONSTERS;
   gGameSettings.Options := gGameSettings.Options + GAME_OPTION_BOTVSMONSTER;
   gGameSettings.WAD := WAD;
+  gSwitchGameMode := GM_SINGLE;
 
   ExecuteGameEvent('ongamestart');
 
@@ -3164,6 +3166,7 @@ begin
 // Настройки игры:
   gGameSettings.GameType := GT_CUSTOM;
   gGameSettings.GameMode := GameMode;
+  gSwitchGameMode := GameMode;
   gGameSettings.TimeLimit := TimeLimit;
   gGameSettings.GoalLimit := GoalLimit;
   gGameSettings.MaxLives := IfThen(GameMode = GM_CTF, 0, MaxLives);
@@ -3293,6 +3296,7 @@ begin
 // Настройки игры:
   gGameSettings.GameType := GT_SERVER;
   gGameSettings.GameMode := GameMode;
+  gSwitchGameMode := GameMode;
   gGameSettings.TimeLimit := TimeLimit;
   gGameSettings.GoalLimit := GoalLimit;
   gGameSettings.MaxLives := IfThen(GameMode = GM_CTF, 0, MaxLives);
@@ -3489,6 +3493,7 @@ begin
           WHash := e_Raw_Read_MD5(Ptr);
 
           gGameSettings.GameMode := e_Raw_Read_Byte(Ptr);
+          gSwitchGameMode := gGameSettings.GameMode;
           gGameSettings.GoalLimit := e_Raw_Read_Word(Ptr);
           gGameSettings.TimeLimit := e_Raw_Read_Word(Ptr);
           gGameSettings.MaxLives := e_Raw_Read_Byte(Ptr);
@@ -3649,6 +3654,33 @@ var
 begin
   g_Map_Free();
   g_Player_RemoveAllCorpses();
+
+  if (not g_Game_IsClient) and
+     (gSwitchGameMode <> gGameSettings.GameMode) and
+     (gGameSettings.GameMode <> GM_SINGLE) then
+  begin
+    if gSwitchGameMode = GM_CTF then
+      gGameSettings.MaxLives := 0;
+    gGameSettings.GameMode := gSwitchGameMode;
+    if g_Game_IsNet and NetUseMaster then
+      g_Net_Slist_Update;
+  end else
+    gSwitchGameMode := gGameSettings.GameMode;
+
+  if gPlayers <> nil then
+    for I := Low(gPlayers) to High(gPlayers) do
+      case gGameSettings.GameMode of
+        GM_DM:
+          gPlayers[I].ChangeTeam(TEAM_NONE);
+        GM_TDM, GM_CTF:
+          if not (gPlayers[I].Team in [TEAM_RED, TEAM_BLUE]) then
+            if I mod 2 = 0 then
+              gPlayers[I].ChangeTeam(TEAM_RED)
+            else
+              gPlayers[I].ChangeTeam(TEAM_BLUE);
+        GM_COOP:
+          gPlayers[I].ChangeTeam(TEAM_COOP);
+      end;
 
   Result := g_Map_Load(gGameSettings.WAD+':\'+Map);
   if Result then
@@ -4057,7 +4089,7 @@ procedure GameCVars(P: SArray);
 var
   a, b: Integer;
   stat: TPlayerStatArray;
-  cmd: string;
+  cmd, s: string;
   config: TConfig;
 begin
   stat := nil;
@@ -4106,7 +4138,7 @@ begin
         else
           Options := Options and (not GAME_OPTION_WEAPONSTAY);
       end;
-        
+
       if (LongBool(Options and GAME_OPTION_WEAPONSTAY)) then
         g_Console_Add(_lc[I_MSG_WEAPONSTAY_ON])
       else
@@ -4114,6 +4146,24 @@ begin
 
       if g_Game_IsNet then MH_SEND_GameSettings;
     end;
+  end
+  else if cmd = 'g_gamemode' then
+  begin
+    a := g_Game_TextToMode(P[1]);
+    if a = GM_SINGLE then a := GM_COOP;
+    if (Length(P) > 1) and (a <> GM_NONE) and (not g_Game_IsClient) then
+    begin
+      gSwitchGameMode := a;
+      if (gGameOn and (gGameSettings.GameMode = GM_SINGLE)) or
+         (gState = STATE_INTERSINGLE) then
+        gSwitchGameMode := GM_SINGLE;
+      if not gGameOn then
+        gGameSettings.GameMode := gSwitchGameMode;
+    end;
+    s := 'Game mode: ' + g_Game_ModeToText(gGameSettings.GameMode);
+    if gSwitchGameMode <> gGameSettings.GameMode then
+      s := s + ' (switch to ' + g_Game_ModeToText(gSwitchGameMode) + ')';
+    g_Console_Add(s);
   end
   else if (cmd = 'g_allow_exit') and not g_Game_IsClient then
   begin
@@ -5049,6 +5099,8 @@ begin
             with gGameSettings do
             begin
               GameMode := g_Game_TextToMode(gcGameMode);
+              if gSwitchGameMode <> GM_NONE then
+                GameMode := gSwitchGameMode;
               if GameMode = GM_NONE then GameMode := GM_DM;
               if GameMode = GM_SINGLE then GameMode := GM_COOP;
               if LongBool(Options and GAME_OPTION_TWOPLAYER) then

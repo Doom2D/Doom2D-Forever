@@ -484,7 +484,7 @@ begin
   if Pl = nil then Exit;
 
   if (gGameSettings.GameMode in [GM_TDM, GM_CTF]) and (Pl.Team <> TmpTeam) then
-    Pl.ChangeTeam
+    Pl.SwitchTeam
   else
     Pl.SetColor(TmpColor);
 
@@ -2057,7 +2057,7 @@ begin
   TmpTeam := e_Raw_Read_Byte(P);
 
   if (gGameSettings.GameMode in [GM_TDM, GM_CTF]) and (Pl.Team <> TmpTeam) then
-    Pl.ChangeTeam
+    Pl.SwitchTeam
   else
     Pl.SetColor(TmpColor);
 
