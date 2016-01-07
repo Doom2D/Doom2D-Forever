@@ -879,6 +879,7 @@ begin
   e_Buffer_Write(@NetOut, Byte(NET_MSG_GEVENT));
   e_Buffer_Write(@NetOut, EvType);
   e_Buffer_Write(@NetOut, EvParm);
+  e_Buffer_Write(@NetOut, gGameSettings.GameMode);
   e_Buffer_Write(@NetOut, Byte(gLastMap));
   e_Buffer_Write(@NetOut, gTime);
   if (EvType = NET_EV_MAPSTART) and (Pos(':\', EvParm) > 0) then
@@ -934,9 +935,9 @@ begin
   e_Buffer_Write(@NetOut, P.Name);
 
   e_Buffer_Write(@NetOut, P.FActualModelName);
-  e_Buffer_Write(@NetOut, P.Model.Color.R);
-  e_Buffer_Write(@NetOut, P.Model.Color.G);
-  e_Buffer_Write(@NetOut, P.Model.Color.B);
+  e_Buffer_Write(@NetOut, P.FColor.R);
+  e_Buffer_Write(@NetOut, P.FColor.G);
+  e_Buffer_Write(@NetOut, P.FColor.B);
   e_Buffer_Write(@NetOut, P.Team);
 
   g_Net_Host_Send(ID, True, NET_CHAN_IMPORTANT)
@@ -1005,6 +1006,7 @@ begin
     e_Buffer_Write(@NetOut, Air);
     e_Buffer_Write(@NetOut, JetFuel);
     e_Buffer_Write(@NetOut, Lives);
+    e_Buffer_Write(@NetOut, Team);
 
     for I := WEAPON_KASTET to WEAPON_SUPERPULEMET do
       e_Buffer_Write(@NetOut, Byte(FWeapon[I]));
@@ -1561,6 +1563,8 @@ var
 begin
   EvType := e_Raw_Read_Byte(P);
   EvParm := e_Raw_Read_String(P);
+  gSwitchGameMode := e_Raw_Read_Byte(P);
+  gGameSettings.GameMode := gSwitchGameMode;
   gLastMap := e_Raw_Read_Byte(P) <> 0;
   if gLastMap and (gGameSettings.GameMode = GM_COOP) then gStatsOff := True;
   gStatsPressed := True;
@@ -1796,12 +1800,12 @@ begin
     if (PID = NetPlrUID1) and (gPlayer1 <> nil) then begin
       gPlayer1.UID := PID;
       gPlayer1.Model.SetColor(Color.R, Color.G, Color.B);
-      gPlayer1.Team := T;
+      gPlayer1.ChangeTeam(T);
     end;
     if (PID = NetPlrUID2) and (gPlayer2 <> nil) then begin
       gPlayer2.UID := PID;
       gPlayer2.Model.SetColor(Color.R, Color.G, Color.B);
-      gPlayer2.Team := T;
+      gPlayer2.ChangeTeam(T);
     end;
   end;
 
@@ -1866,6 +1870,7 @@ var
   Pl: TPlayer;
   I: Integer;
   OldJet: Boolean;
+  NewTeam: Byte;
 begin
   PID := e_Raw_Read_Word(P);
   Pl := g_Player_Get(PID);
@@ -1882,6 +1887,7 @@ begin
     Air := e_Raw_Read_LongInt(P);
     JetFuel := e_Raw_Read_LongInt(P);
     Lives := e_Raw_Read_Byte(P);
+    NewTeam := e_Raw_Read_Byte(P);
 
     for I := WEAPON_KASTET to WEAPON_SUPERPULEMET do
       FWeapon[I] := (e_Raw_Read_Byte(P) <> 0);
@@ -1922,6 +1928,8 @@ begin
       JetpackOff
     else if not OldJet and FJetpack then
       JetpackOn;
+    if Team <> NewTeam then
+      Pl.ChangeTeam(NewTeam);
   end;
 
   Result := PID;

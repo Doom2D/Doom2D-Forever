@@ -674,6 +674,8 @@ procedure g_Player_ResetTeams();
 var
   a: Integer;
 begin
+  if g_Game_IsClient then
+    Exit;
   if gPlayers = nil then
     Exit;
   for a := Low(gPlayers) to High(gPlayers) do
@@ -1620,7 +1622,10 @@ begin
 end;
 
 procedure TPlayer.ChangeTeam(Team: Byte);
+var
+  OldTeam: Byte;
 begin
+  OldTeam := FTeam;
   FTeam := Team;
   case Team of
     TEAM_RED, TEAM_BLUE:
@@ -1628,6 +1633,8 @@ begin
     else
       FModel.Color := FColor;
   end;
+  if (FTeam <> OldTeam) and g_Game_IsNet and g_Game_IsServer then
+    MH_SEND_PlayerStats(FUID);
 end;
 
 {

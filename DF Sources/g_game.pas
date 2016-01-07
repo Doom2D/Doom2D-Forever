@@ -56,9 +56,9 @@ procedure g_Game_RemovePlayer();
 procedure g_Game_Spectate();
 procedure g_Game_SpectateCenterView();
 procedure g_Game_StartSingle(Map: String; TwoPlayers: Boolean; nPlayers: Byte);
+procedure g_Game_StartCustom(Map: String; GameMode: Byte; TimeLimit, GoalLimit: Word; MaxLives: Byte; Options: LongWord; nPlayers: Byte);
 procedure g_Game_StartServer(Map: String; GameMode: Byte; TimeLimit, GoalLimit: Word; MaxLives: Byte; Options: LongWord; nPlayers: Byte; IPAddr: LongWord; Port: Word);
 procedure g_Game_StartClient(Addr: String; Port: Word; PW: String);
-procedure g_Game_StartCustom(Map: String; GameMode: Byte; TimeLimit, GoalLimit: Word; MaxLives: Byte; Options: LongWord; nPlayers: Byte);
 procedure g_Game_Restart();
 procedure g_Game_RestartLevel();
 procedure g_Game_RestartRound(NoMapRestart: Boolean = False);
@@ -1034,6 +1034,9 @@ begin
   g_Player_RemoveAllCorpses();
 
   gGameSettings.GameType := GT_NONE;
+  if gGameSettings.GameMode = GM_SINGLE then
+    gGameSettings.GameMode := GM_DM;
+  gSwitchGameMode := gGameSettings.GameMode;
 
   gChatShow := False;
   gExitByTrigger := False;
@@ -3445,7 +3448,7 @@ begin
 
           gPlayer1 := g_Player_Get(g_Player_Create(gPlayer1Settings.Model,
                                                    gPlayer1Settings.Color,
-                                                   TEAM_NONE, False,
+                                                   gPlayer1Settings.Team, False,
                                                    0));
 
           if gPlayer1 = nil then
@@ -3569,6 +3572,7 @@ begin
     if gSwitchGameMode = GM_CTF then
       gGameSettings.MaxLives := 0;
     gGameSettings.GameMode := gSwitchGameMode;
+    Force := True;
   end else
     gSwitchGameMode := gGameSettings.GameMode;
 
@@ -3995,7 +3999,7 @@ procedure GameCVars(P: SArray);
 var
   a, b: Integer;
   stat: TPlayerStatArray;
-  cmd, s: string;
+  cmd: string;
   config: TConfig;
 begin
   stat := nil;
@@ -4066,10 +4070,13 @@ begin
       if not gGameOn then
         gGameSettings.GameMode := gSwitchGameMode;
     end;
-    s := 'Game mode: ' + g_Game_ModeToText(gGameSettings.GameMode);
-    if gSwitchGameMode <> gGameSettings.GameMode then
-      s := s + ' (switch to ' + g_Game_ModeToText(gSwitchGameMode) + ')';
-    g_Console_Add(s);
+    if gSwitchGameMode = gGameSettings.GameMode then
+      g_Console_Add(Format(_lc[I_MSG_GAMEMODE_CURRENT],
+                          [g_Game_ModeToText(gGameSettings.GameMode)]))
+    else
+      g_Console_Add(Format(_lc[I_MSG_GAMEMODE_CHANGE],
+                          [g_Game_ModeToText(gGameSettings.GameMode),
+                           g_Game_ModeToText(gSwitchGameMode)]));
   end
   else if (cmd = 'g_allow_exit') and not g_Game_IsClient then
   begin
