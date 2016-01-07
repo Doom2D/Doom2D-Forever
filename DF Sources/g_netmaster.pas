@@ -270,8 +270,6 @@ begin
 end;
 
 procedure g_Serverlist_Draw(var SL: TNetServerList);
-const
-  GMSTR: array [0..5] of string = ('FUCK', 'DM', 'TDM', 'CTF', 'COOP', 'MOD');
 var
   sy, i, y, mw, mx, l: Integer;
   cw, ch: Byte;
@@ -348,7 +346,7 @@ begin
   y := 90;
   for I := 0 to High(SL) do
   begin
-    e_TextureFontPrintEx(mx + 2, y, GMSTR[SL[I].GameMode], gStdFont, 255, 255, 255, 1);
+    e_TextureFontPrintEx(mx + 2, y, g_Game_ModeToText(SL[I].GameMode), gStdFont, 255, 255, 255, 1);
 
     y := y + 42;
   end;

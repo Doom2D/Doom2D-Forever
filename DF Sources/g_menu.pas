@@ -1841,13 +1841,14 @@ begin
       AddItem(_lc[I_MENU_GAME_TYPE_TDM]);
       AddItem(_lc[I_MENU_GAME_TYPE_CTF]);
       AddItem(_lc[I_MENU_GAME_TYPE_COOP]);
-      ItemIndex := 0;
-      if gnGameMode = _lc[I_MENU_GAME_TYPE_TDM] then
-        ItemIndex := 1;
-      if gnGameMode = _lc[I_MENU_GAME_TYPE_CTF] then
-        ItemIndex := 2;
-      if gnGameMode = _lc[I_MENU_GAME_TYPE_COOP] then
-        ItemIndex := 3;
+      case g_Game_TextToMode(gnGameMode) of
+        GM_NONE,
+        GM_DM:   ItemIndex := 0;
+        GM_TDM:  ItemIndex := 1;
+        GM_CTF:  ItemIndex := 2;
+        GM_SINGLE,
+        GM_COOP: ItemIndex := 3;
+      end;
       OnChange := ProcSwitchMonstersNet;
     end;
     with AddEdit(_lc[I_MENU_TIME_LIMIT]) do
@@ -2040,13 +2041,14 @@ begin
       AddItem(_lc[I_MENU_GAME_TYPE_TDM]);
       AddItem(_lc[I_MENU_GAME_TYPE_CTF]);
       AddItem(_lc[I_MENU_GAME_TYPE_COOP]);
-      ItemIndex := 0;
-      if gcGameMode = _lc[I_MENU_GAME_TYPE_TDM] then
-        ItemIndex := 1;
-      if gcGameMode = _lc[I_MENU_GAME_TYPE_CTF] then
-        ItemIndex := 2;
-      if gcGameMode = _lc[I_MENU_GAME_TYPE_COOP] then
-        ItemIndex := 3;
+      case g_Game_TextToMode(gcGameMode) of
+        GM_NONE,
+        GM_DM:   ItemIndex := 0;
+        GM_TDM:  ItemIndex := 1;
+        GM_CTF:  ItemIndex := 2;
+        GM_SINGLE,
+        GM_COOP: ItemIndex := 3;
+      end;
       OnChange := ProcSwitchMonstersCustom;
     end;
     with AddEdit(_lc[I_MENU_TIME_LIMIT]) do

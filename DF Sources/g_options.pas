@@ -69,7 +69,7 @@ var
   gLanguage: String           = LANGUAGE_ENGLISH;
   gAskLanguage: Boolean       = True;
   gcMap: String               = '';
-  gcGameMode: String          = 'DM';
+  gcGameMode: String          = '';
   gcTimeLimit: Word           = 0;
   gcGoalLimit: Word           = 0;
   gcMaxLives: Byte            = 0;
@@ -80,7 +80,7 @@ var
   gcMonsters: Boolean         = False;
   gcBotsVS: String            = 'Everybody';
   gnMap: String               = '';
-  gnGameMode: String          = 'DM';
+  gnGameMode: String          = '';
   gnTimeLimit: Word           = 0;
   gnGoalLimit: Word           = 0;
   gnMaxLives: Byte            = 0;
@@ -324,12 +324,10 @@ begin
 
   with gGameSettings do
   begin
-    GameMode := GM_DM;
-    if gcGameMode = _lc[I_MENU_GAME_TYPE_TDM] then
-      GameMode := GM_TDM;
-    if gcGameMode = _lc[I_MENU_GAME_TYPE_CTF] then
-      GameMode := GM_CTF;
-    if gcGameMode = _lc[I_MENU_GAME_TYPE_COOP] then
+    GameMode := g_Game_TextToMode(gcGameMode);
+    if GameMode = GM_NONE then
+      GameMode := GM_DM;
+    if GameMode = GM_SINGLE then
       GameMode := GM_COOP;
     TimeLimit := gcTimeLimit;
     GoalLimit := gcGoalLimit;

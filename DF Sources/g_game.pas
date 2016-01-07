@@ -49,6 +49,8 @@ procedure g_Game_Draw();
 procedure g_Game_Quit();
 procedure g_Game_SetupScreenSize();
 procedure g_Game_ChangeResolution(newWidth, newHeight: Word; nowFull, nowMax: Boolean);
+function  g_Game_ModeToText(Mode: Byte): string;
+function  g_Game_TextToMode(Mode: string): Byte;
 procedure g_Game_AddPlayer(Team: Byte = TEAM_NONE);
 procedure g_Game_RemovePlayer();
 procedure g_Game_Spectate();
@@ -105,7 +107,7 @@ const
   GT_CUSTOM = 2;
   GT_SERVER = 3;
   GT_CLIENT = 4;
-  
+
   GM_NONE = 0;
   GM_DM   = 1;
   GM_TDM  = 2;
@@ -363,6 +365,49 @@ begin
         stat[J] := stat[J + 1];
         stat[J + 1] := T;
       end;
+end;
+
+function g_Game_ModeToText(Mode: Byte): string;
+begin
+  Result := '';
+  case Mode of
+    GM_DM:   Result := _lc[I_MENU_GAME_TYPE_DM];
+    GM_TDM:  Result := _lc[I_MENU_GAME_TYPE_TDM];
+    GM_CTF:  Result := _lc[I_MENU_GAME_TYPE_CTF];
+    GM_COOP: Result := _lc[I_MENU_GAME_TYPE_COOP];
+    GM_SINGLE: Result := _lc[I_MENU_GAME_TYPE_SINGLE];
+  end;
+end;
+
+function g_Game_TextToMode(Mode: string): Byte;
+begin
+  Result := GM_NONE;
+  Mode := UpperCase(Mode);
+  if Mode = _lc[I_MENU_GAME_TYPE_DM] then
+  begin
+    Result := GM_DM;
+    Exit;
+  end;
+  if Mode = _lc[I_MENU_GAME_TYPE_TDM] then
+  begin
+    Result := GM_TDM;
+    Exit;
+  end;
+  if Mode = _lc[I_MENU_GAME_TYPE_CTF] then
+  begin
+    Result := GM_CTF;
+    Exit;
+  end;
+  if Mode = _lc[I_MENU_GAME_TYPE_COOP] then
+  begin
+    Result := GM_COOP;
+    Exit;
+  end;
+  if Mode = _lc[I_MENU_GAME_TYPE_SINGLE] then
+  begin
+    Result := GM_SINGLE;
+    Exit;
+  end;
 end;
 
 function g_Game_IsNet(): Boolean;
@@ -5003,13 +5048,9 @@ begin
             g_Game_Free();
             with gGameSettings do
             begin
-              GameMode := GM_DM;
-              if gcGameMode = _lc[I_MENU_GAME_TYPE_TDM] then
-                GameMode := GM_TDM;
-              if gcGameMode = _lc[I_MENU_GAME_TYPE_CTF] then
-                GameMode := GM_CTF;
-              if gcGameMode = _lc[I_MENU_GAME_TYPE_COOP] then
-                GameMode := GM_COOP;
+              GameMode := g_Game_TextToMode(gcGameMode);
+              if GameMode = GM_NONE then GameMode := GM_DM;
+              if GameMode = GM_SINGLE then GameMode := GM_COOP;
               if LongBool(Options and GAME_OPTION_TWOPLAYER) then
                 b := 2
               else
@@ -5865,10 +5906,9 @@ begin
   begin
   // Game mode:
     s := Find_Param_Value(pars, '-gm');
-    if s = 'tdm' then GMode := GM_TDM
-    else if s = 'ctf' then GMode := GM_CTF
-    else if s = 'coop' then GMode := GM_COOP
-    else GMode := GM_DM;
+    GMode := g_Game_TextToMode(s);
+    if GMode = GM_NONE then GMode := GM_DM;
+    if GMode = GM_SINGLE then GMode := GM_COOP;
 
   // Time limit:
     s := Find_Param_Value(pars, '-limt');
