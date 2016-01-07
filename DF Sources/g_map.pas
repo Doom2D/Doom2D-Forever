@@ -81,11 +81,12 @@ const
   FLAG_BLUE = 2;
   FLAG_DOM  = 3;
 
-  FLAG_STATE_NORMAL   = 0;
-  FLAG_STATE_DROPPED  = 1;
-  FLAG_STATE_CAPTURED = 2;
-  FLAG_STATE_SCORED   = 3; // Для эвентов через сетку.
-  FLAG_STATE_RETURNED = 4; // Для эвентов через сетку.
+  FLAG_STATE_NONE     = 0;
+  FLAG_STATE_NORMAL   = 1;
+  FLAG_STATE_DROPPED  = 2;
+  FLAG_STATE_CAPTURED = 3;
+  FLAG_STATE_SCORED   = 4; // Для эвентов через сетку.
+  FLAG_STATE_RETURNED = 5; // Для эвентов через сетку.
 
   FLAG_TIME = 720; // 20 seconds
 
@@ -1438,7 +1439,7 @@ begin
   if gGameSettings.GameMode = GM_CTF then
   begin
     for a := FLAG_RED to FLAG_BLUE do
-      if gFlags[a].State <> FLAG_STATE_CAPTURED then
+      if not (gFlags[a].State in [FLAG_STATE_NONE, FLAG_STATE_CAPTURED]) then
         with gFlags[a] do
         begin
           if gFlags[a].Animation <> nil then
@@ -1820,12 +1821,19 @@ procedure g_Map_ResetFlag(Flag: Byte);
 begin
   with gFlags[Flag] do
   begin
-    Obj.X := FlagPoints[Flag]^.X;
-    Obj.Y := FlagPoints[Flag]^.Y;
+    Obj.X := -1000;
+    Obj.Y := -1000;
     Obj.Vel.X := 0;
     Obj.Vel.Y := 0;
-    Direction := FlagPoints[Flag]^.Direction;
-    State := FLAG_STATE_NORMAL;
+    Direction := D_LEFT;
+    State := FLAG_STATE_NONE;
+    if FlagPoints[Flag] <> nil then
+    begin
+      Obj.X := FlagPoints[Flag]^.X;
+      Obj.Y := FlagPoints[Flag]^.Y;
+      Direction := FlagPoints[Flag]^.Direction;
+      State := FLAG_STATE_NORMAL;
+    end;
     Count := -1;
   end;
 end;
@@ -1842,6 +1850,9 @@ begin
     with gFlags[i] do
       if State <> FLAG_STATE_CAPTURED then
       begin
+        if State = FLAG_STATE_NONE then
+          continue;
+
         if Direction = D_LEFT then
           begin
             Mirror := M_HORIZONTAL;
@@ -1852,7 +1863,7 @@ begin
             Mirror := M_NONE;
             dx := 1;
           end;
-          
+
         Animation.Draw(Obj.X+dx, Obj.Y+1, Mirror);
 
         if g_debug_Frames then

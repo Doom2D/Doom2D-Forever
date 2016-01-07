@@ -3223,13 +3223,6 @@ begin
     Exit;
   end;
 
-// CTF, а флагов нет:
-  if (GameMode = GM_CTF) and not g_Map_HaveFlagPoints() then
-  begin
-    g_FatalError(_lc[I_GAME_ERROR_CTF]);
-    Exit;
-  end;
-
 // Нет точек появления:
   if (g_Map_GetPointCount(RESPAWNPOINT_PLAYER1) +
       g_Map_GetPointCount(RESPAWNPOINT_PLAYER2) +
@@ -3346,13 +3339,6 @@ begin
   end;
 
   gWADHash := MD5File(gGameSettings.WAD);
-
-// CTF, а флагов нет:
-  if (GameMode = GM_CTF) and not g_Map_HaveFlagPoints() then
-  begin
-    g_FatalError(_lc[I_GAME_ERROR_CTF]);
-    Exit;
-  end;
 
 // Нет точек появления:
   if (g_Map_GetPointCount(RESPAWNPOINT_PLAYER1) +
@@ -3634,6 +3620,15 @@ begin
 
       DisableCheats();
       ResetTimer();
+
+      if gGameSettings.GameMode = GM_CTF then
+      begin
+        g_Map_ResetFlag(FLAG_RED);
+        g_Map_ResetFlag(FLAG_BLUE);
+        // CTF, а флагов нет:
+        if not g_Map_HaveFlagPoints() then
+          g_SimpleError(_lc[I_GAME_ERROR_CTF]);
+      end;
     end
   else
     begin
