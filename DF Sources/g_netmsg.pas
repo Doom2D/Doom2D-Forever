@@ -336,8 +336,6 @@ begin
       Exit;
     end;
 
-  if not (gGameSettings.GameMode in [GM_TDM, GM_CTF]) then T := TEAM_NONE;
-
   Color.R := R;
   Color.B := B;
   Color.G := G;
@@ -347,8 +345,6 @@ begin
   begin
     Name := PName;
     Reset(True);
-    if gGameSettings.GameMode = GM_COOP then
-      Team := TEAM_COOP;
   end;
 
   C^.Player := PID;

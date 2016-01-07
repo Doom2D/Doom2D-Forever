@@ -2943,16 +2943,10 @@ begin
       Exit;
     end;
 
-    // Создание первого игрока:
-    if gGameSettings.GameMode = GM_DM then
-      Team := TEAM_NONE
-    else
-      if gGameSettings.GameMode in [GM_SINGLE, GM_COOP] then
-        Team := TEAM_COOP
-      else
-        if not (Team in [TEAM_RED, TEAM_BLUE]) then
-          Team := gPlayer1Settings.Team;
+    if not (Team in [TEAM_RED, TEAM_BLUE]) then
+      Team := gPlayer1Settings.Team;
 
+    // Создание первого игрока:
     gPlayer1 := g_Player_Get(g_Player_Create(gPlayer1Settings.Model,
                                              gPlayer1Settings.Color,
                                              Team, False,
@@ -2982,16 +2976,10 @@ begin
       Exit;
     end;
 
-    // Создание второго игрока:
-    if gGameSettings.GameMode = GM_DM then
-      Team := TEAM_NONE
-    else
-      if gGameSettings.GameMode in [GM_SINGLE, GM_COOP] then
-        Team := TEAM_COOP
-      else
-        if not (Team in [TEAM_RED, TEAM_BLUE]) then
-          Team := gPlayer2Settings.Team;
+    if not (Team in [TEAM_RED, TEAM_BLUE]) then
+      Team := gPlayer2Settings.Team;
 
+    // Создание второго игрока:
     gPlayer2 := g_Player_Get(g_Player_Create(gPlayer2Settings.Model,
                                              gPlayer2Settings.Color,
                                              Team, False,
@@ -3103,7 +3091,7 @@ begin
 // Создание первого игрока:
   gPlayer1 := g_Player_Get(g_Player_Create(gPlayer1Settings.Model,
                                            gPlayer1Settings.Color,
-                                           TEAM_COOP, False,
+                                           gPlayer1Settings.Team, False,
                                            PLAYERNUM_1));
   if gPlayer1 = nil then
   begin
@@ -3119,7 +3107,7 @@ begin
   begin
     gPlayer2 := g_Player_Get(g_Player_Create(gPlayer2Settings.Model,
                                              gPlayer2Settings.Color,
-                                             TEAM_COOP, False,
+                                             gPlayer2Settings.Team, False,
                                              PLAYERNUM_2));
     if gPlayer2 = nil then
     begin
@@ -3153,7 +3141,6 @@ procedure g_Game_StartCustom(Map: String; GameMode: Byte;
                              Options: LongWord; nPlayers: Byte);
 var
   ResName: String;
-  Team: Byte;
   i, nPl: Integer;
 begin
   g_Game_Free();
@@ -3196,17 +3183,9 @@ begin
   if nPlayers >= 1 then
   begin
   // Создание первого игрока:
-    if GameMode = GM_DM then
-      Team := TEAM_NONE
-    else
-      if GameMode = GM_COOP then
-        Team := TEAM_COOP
-      else
-        Team := gPlayer1Settings.Team;
-
     gPlayer1 := g_Player_Get(g_Player_Create(gPlayer1Settings.Model,
                                              gPlayer1Settings.Color,
-                                             Team, False,
+                                             gPlayer1Settings.Team, False,
                                              PLAYERNUM_1));
     if gPlayer1 = nil then
     begin
@@ -3221,17 +3200,9 @@ begin
   if nPlayers >= 2 then
   begin
   // Создание второго игрока:
-    if GameMode = GM_DM then
-      Team := TEAM_NONE
-    else
-      if GameMode = GM_COOP then
-        Team := TEAM_COOP
-      else
-        Team := gPlayer2Settings.Team;
-
     gPlayer2 := g_Player_Get(g_Player_Create(gPlayer2Settings.Model,
                                              gPlayer2Settings.Color,
-                                             Team, False,
+                                             gPlayer2Settings.Team, False,
                                              PLAYERNUM_2));
     if gPlayer2 = nil then
     begin
@@ -3284,7 +3255,6 @@ procedure g_Game_StartServer(Map: String; GameMode: Byte;
                              IPAddr: LongWord; Port: Word);
 var
   ResName: String;
-  Team: Byte;
 begin
   g_Game_Free();
 
@@ -3328,17 +3298,9 @@ begin
   if nPlayers >= 1 then
   begin
   // Создание первого игрока:
-    if GameMode = GM_DM then
-      Team := TEAM_NONE
-    else
-      if GameMode = GM_COOP then
-        Team := TEAM_COOP
-      else
-        Team := gPlayer1Settings.Team;
-
     gPlayer1 := g_Player_Get(g_Player_Create(gPlayer1Settings.Model,
                                              gPlayer1Settings.Color,
-                                             Team, False,
+                                             gPlayer1Settings.Team, False,
                                              PLAYERNUM_1));
     if gPlayer1 = nil then
     begin
@@ -3352,17 +3314,9 @@ begin
   if nPlayers >= 2 then
   begin
   // Создание второго игрока:
-    if GameMode = GM_DM then
-      Team := TEAM_NONE
-    else
-      if GameMode = GM_COOP then
-        Team := TEAM_COOP
-      else
-        Team := gPlayer2Settings.Team;
-
     gPlayer2 := g_Player_Get(g_Player_Create(gPlayer2Settings.Model,
                                              gPlayer2Settings.Color,
-                                             Team, False,
+                                             gPlayer2Settings.Team, False,
                                              PLAYERNUM_2));
     if gPlayer2 = nil then
     begin
@@ -3667,23 +3621,7 @@ begin
   end else
     gSwitchGameMode := gGameSettings.GameMode;
 
-  if gPlayers <> nil then
-    for I := Low(gPlayers) to High(gPlayers) do
-      case gGameSettings.GameMode of
-        GM_DM:
-          gPlayers[I].ChangeTeam(TEAM_NONE);
-        GM_TDM, GM_CTF:
-          if not (gPlayers[I].Team in [TEAM_RED, TEAM_BLUE]) then
-            if gPlayers[I].FPreferredTeam in [TEAM_RED, TEAM_BLUE] then
-              gPlayers[I].ChangeTeam(gPlayers[I].FPreferredTeam)
-            else
-              if I mod 2 = 0 then
-                gPlayers[I].ChangeTeam(TEAM_RED)
-              else
-                gPlayers[I].ChangeTeam(TEAM_BLUE);
-        GM_COOP:
-          gPlayers[I].ChangeTeam(TEAM_COOP);
-      end;
+  g_Player_ResetTeams();
 
   Result := g_Map_Load(gGameSettings.WAD+':\'+Map);
   if Result then

@@ -427,6 +427,7 @@ procedure g_Player_Free();
 function  g_Player_Create(ModelName: String; Color: TRGB; Team: Byte;
                           Bot: Boolean; PlayerNum: Byte): Word;
 procedure g_Player_Remove(UID: Word);
+procedure g_Player_ResetTeams();
 procedure g_Player_UpdateAll();
 procedure g_Player_DrawAll();
 procedure g_Player_DrawDebug(p: TPlayer);
@@ -640,22 +641,59 @@ begin
     Exit;
   end;
 
+  if not (Team in [TEAM_RED, TEAM_BLUE]) then
+    if Random(2) = 0 then
+      Team := TEAM_RED
+    else
+      Team := TEAM_BLUE;
+  gPlayers[a].FPreferredTeam := Team;
+
+  case gGameSettings.GameMode of
+    GM_DM: gPlayers[a].FTeam := TEAM_NONE;
+    GM_TDM,
+    GM_CTF: gPlayers[a].FTeam := gPlayers[a].FPreferredTeam;
+    GM_SINGLE,
+    GM_COOP: gPlayers[a].FTeam := TEAM_COOP;
+  end;
+
 // Если командная игра - красим модель в цвет команды:
   gPlayers[a].FColor := Color;
-  if ((gGameSettings.GameMode = GM_CTF) or
-      (gGameSettings.GameMode = GM_TDM)) and
-     ((Team = TEAM_RED) or (Team = TEAM_BLUE)) then
-    gPlayers[a].FModel.Color := TEAMCOLOR[Team]
+  if gPlayers[a].FTeam in [TEAM_RED, TEAM_BLUE] then
+    gPlayers[a].FModel.Color := TEAMCOLOR[gPlayers[a].FTeam]
   else
     gPlayers[a].FModel.Color := Color;
 
-  gPlayers[a].FTeam := Team;
-  gPlayers[a].FPreferredTeam := Team;
   gPlayers[a].FUID := g_CreateUID(UID_PLAYER);
   gPlayers[a].FPlayerNum := PlayerNum;
   gPlayers[a].FLive := False;
 
   Result := gPlayers[a].FUID;
+end;
+
+procedure g_Player_ResetTeams();
+var
+  a: Integer;
+begin
+  if gPlayers = nil then
+    Exit;
+  for a := Low(gPlayers) to High(gPlayers) do
+    if gPlayers[a] <> nil then
+      case gGameSettings.GameMode of
+        GM_DM:
+          gPlayers[a].ChangeTeam(TEAM_NONE);
+        GM_TDM, GM_CTF:
+          if not (gPlayers[a].Team in [TEAM_RED, TEAM_BLUE]) then
+            if gPlayers[a].FPreferredTeam in [TEAM_RED, TEAM_BLUE] then
+              gPlayers[a].ChangeTeam(gPlayers[a].FPreferredTeam)
+            else
+              if a mod 2 = 0 then
+                gPlayers[a].ChangeTeam(TEAM_RED)
+              else
+                gPlayers[a].ChangeTeam(TEAM_BLUE);
+        GM_SINGLE,
+        GM_COOP:
+          gPlayers[a].ChangeTeam(TEAM_COOP);
+      end;
 end;
 
 procedure g_Bot_Add(Team, Difficult: Byte);
@@ -1577,6 +1615,7 @@ begin
     FTeam := TEAM_RED;
     g_Console_Add(Format(_lc[I_PLAYER_CHTEAM_RED], [FName]), True);
   end;
+  FPreferredTeam := FTeam;
   FModel.Color := TEAMCOLOR[FTeam];
 end;
 
