@@ -698,7 +698,7 @@ begin
   e_Buffer_Write(@NetOut, Byte(NET_MSG_INFO));
   e_Buffer_Write(@NetOut, ID);
   e_Buffer_Write(@NetOut, NetClients[ID].Player);
-  e_Buffer_Write(@NetOut, ExtractFileName(gGameSettings.WAD));
+  e_Buffer_Write(@NetOut, gGameSettings.WAD);
   e_Buffer_Write(@NetOut, Map);
   e_Buffer_Write(@NetOut, gWADHash);
   e_Buffer_Write(@NetOut, gGameSettings.GameMode);
@@ -1554,7 +1554,7 @@ end;
 procedure MC_RECV_GameEvent(P: Pointer);
 var
   EvType: Byte;
-  EvParm, NewWAD, ResName: string;
+  EvParm: string;
   EvTime: LongWord;
   BHash: Boolean;
   EvHash: TMD5Digest;
@@ -1578,25 +1578,13 @@ begin
       g_Game_ClearLoading();
       g_Game_StopAllSounds(True);
 
-      if Pos(':\', EvParm) = 0 then
+      if not g_Game_StartMap(EvParm, True) then
       begin
-        if not g_Game_StartMap(EvParm, True) then
-        begin
-          g_FatalError(Format(_lc[I_GAME_ERROR_MAP_LOAD],
-                              [ExtractFileName(gGameSettings.WAD) + ':\' + EvParm]));
-          Exit;
-        end;
-      end else
-      begin
-        g_ProcessResourceStr(MapsDir + EvParm, @NewWAD, nil, @ResName);
-        g_Game_LoadWAD(NewWAD, EvHash);
-
-        if not g_Game_StartMap(ResName, True) then
-        begin
-          g_FatalError(Format(_lc[I_GAME_ERROR_MAP_LOAD],
-                              [ExtractFileName(gGameSettings.WAD) + ':\' + ResName]));
-          Exit;
-        end;
+        if Pos(':\', EvParm) = 0 then
+          g_FatalError(Format(_lc[I_GAME_ERROR_MAP_LOAD], [gGameSettings.WAD + ':\' + EvParm]))
+        else
+          g_FatalError(Format(_lc[I_GAME_ERROR_MAP_LOAD], [EvParm]));
+        Exit;
       end;
 
       MC_SEND_FullStateRequest;
@@ -2762,7 +2750,7 @@ begin
   e_WriteLog('NET: Received map request from ' +
              DecodeIPV4(C.Peer.address.host), MSG_NOTIFY);
 
-  mapDataMsg := CreateMapDataMsg(gGameSettings.WAD, gExternalResources);
+  mapDataMsg := CreateMapDataMsg(MapsDir + gGameSettings.WAD, gExternalResources);
   peer := NetClients[C.ID].Peer;
 
   MapDataMsgToBytes(payload, mapDataMsg);

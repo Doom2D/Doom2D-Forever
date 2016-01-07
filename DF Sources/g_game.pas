@@ -55,14 +55,14 @@ procedure g_Game_AddPlayer(Team: Byte = TEAM_NONE);
 procedure g_Game_RemovePlayer();
 procedure g_Game_Spectate();
 procedure g_Game_SpectateCenterView();
-procedure g_Game_StartSingle(WAD, MAP: String; TwoPlayers: Boolean; nPlayers: Byte);
+procedure g_Game_StartSingle(Map: String; TwoPlayers: Boolean; nPlayers: Byte);
 procedure g_Game_StartServer(Map: String; GameMode: Byte; TimeLimit, GoalLimit: Word; MaxLives: Byte; Options: LongWord; nPlayers: Byte; IPAddr: LongWord; Port: Word);
 procedure g_Game_StartClient(Addr: String; Port: Word; PW: String);
 procedure g_Game_StartCustom(Map: String; GameMode: Byte; TimeLimit, GoalLimit: Word; MaxLives: Byte; Options: LongWord; nPlayers: Byte);
 procedure g_Game_Restart();
 procedure g_Game_RestartLevel();
 procedure g_Game_RestartRound(NoMapRestart: Boolean = False);
-procedure g_Game_LoadWAD(NewWAD: String; WHash: TMD5Digest);
+procedure g_Game_ClientWAD(NewWAD: String; WHash: TMD5Digest);
 procedure g_Game_SaveOptions();
 function  g_Game_StartMap(Map: String; Force: Boolean = False): Boolean;
 procedure g_Game_ChangeMap(MapPath: String);
@@ -456,7 +456,7 @@ begin
   FreeMem(p);
 end;
 
-procedure FreeMegaWAD();
+procedure g_Game_FreeWAD();
 var
   a: Integer;
 begin
@@ -478,9 +478,10 @@ begin
   g_Sound_Delete('MUSIC_endmus');
 
   ZeroMemory(@MegaWAD, SizeOf(MegaWAD));
+  gGameSettings.WAD := '';
 end;
 
-procedure LoadMegaWAD(WAD: string);
+procedure g_Game_LoadWAD(WAD: string);
 var
   w: TWADEditor_1;
   cfg: TConfig;
@@ -488,12 +489,17 @@ var
   {b, }len: Integer;
   s: string;
 begin
-  FreeMegaWAD();
+  g_Game_FreeWAD();
+  if not (gGameSettings.GameMode in [GM_SINGLE, GM_COOP]) then
+  begin
+    gGameSettings.WAD := WAD;
+    Exit;
+  end;
 
-  MegaWAD.info := g_Game_GetMegaWADInfo(WAD);
+  MegaWAD.info := g_Game_GetMegaWADInfo(MapsDir + WAD);
 
   w := TWADEditor_1.Create();
-  w.ReadFile(WAD);
+  w.ReadFile(MapsDir + WAD);
 
   if not w.GetResource('', 'INTERSCRIPT', p, len) then
   begin
@@ -533,17 +539,18 @@ begin
   if MegaWAD.endpic <> '' then
   begin
     g_ProcessResourceStr(MegaWAD.endpic, @s, nil, nil);
-    if s = '' then s := WAD else s := GameDir+'\wads\';
+    if s = '' then s := MapsDir+WAD else s := GameDir+'\wads\';
     g_Texture_CreateWADEx('TEXTURE_endpic', s+MegaWAD.endpic);
   end;
   MegaWAD.endmus := cfg.ReadStr('megawad', 'endmus', 'Standart.wad:D2DMUS\КОНЕЦ');
   if MegaWAD.endmus <> '' then
   begin
     g_ProcessResourceStr(MegaWAD.endmus, @s, nil, nil);
-    if s = '' then s := WAD else s := GameDir+'\wads\';
+    if s = '' then s := MapsDir+WAD else s := GameDir+'\wads\';
     g_Sound_CreateWADEx('MUSIC_endmus', s+MegaWAD.endmus, True);
   end;
 
+  gGameSettings.WAD := WAD;
   cfg.Free();
   FreeMem(p);
   w.Free();
@@ -3055,7 +3062,7 @@ begin
   gSpectY := Max(gMapInfo.Height div 2 - gScreenHeight div 2, 0);
 end;
 
-procedure g_Game_StartSingle(WAD, MAP: String; TwoPlayers: Boolean; nPlayers: Byte);
+procedure g_Game_StartSingle(Map: String; TwoPlayers: Boolean; nPlayers: Byte);
 var
   i, nPl: Integer;
 begin
@@ -3077,13 +3084,9 @@ begin
   gGameSettings.Options := gGameSettings.Options + GAME_OPTION_ALLOWEXIT;
   gGameSettings.Options := gGameSettings.Options + GAME_OPTION_MONSTERS;
   gGameSettings.Options := gGameSettings.Options + GAME_OPTION_BOTVSMONSTER;
-  gGameSettings.WAD := WAD;
   gSwitchGameMode := GM_SINGLE;
 
   ExecuteGameEvent('ongamestart');
-
-// Загружаем МегаВАД:
-  LoadMegaWAD(WAD);
 
 // Установка размеров окон игроков:
   g_Game_SetupScreenSize();
@@ -3122,8 +3125,7 @@ begin
 // Загрузка и запуск карты:
   if not g_Game_StartMap(MAP, True) then
   begin
-    g_FatalError(Format(_lc[I_GAME_ERROR_MAP_LOAD],
-                        [ExtractFileName(gGameSettings.WAD) + ':\' + MAP]));
+    g_FatalError(Format(_lc[I_GAME_ERROR_MAP_LOAD], [gGameSettings.WAD + ':\' + MAP]));
     Exit;
   end;
 
@@ -3140,7 +3142,6 @@ procedure g_Game_StartCustom(Map: String; GameMode: Byte;
                              MaxLives: Byte;
                              Options: LongWord; nPlayers: Byte);
 var
-  ResName: String;
   i, nPl: Integer;
 begin
   g_Game_Free();
@@ -3158,7 +3159,6 @@ begin
   gGameSettings.GoalLimit := GoalLimit;
   gGameSettings.MaxLives := IfThen(GameMode = GM_CTF, 0, MaxLives);
   gGameSettings.Options := Options;
-  g_ProcessResourceStr(Map, @gGameSettings.WAD, nil, @ResName);
 
   gCoopTotalMonstersKilled := 0;
   gCoopTotalSecretsFound := 0;
@@ -3216,10 +3216,9 @@ begin
   end;
 
 // Загрузка и запуск карты:
-  if not g_Game_StartMap(ResName, True) then
+  if not g_Game_StartMap(Map, True) then
   begin
-    g_FatalError(Format(_lc[I_GAME_ERROR_MAP_LOAD],
-                        [ExtractFileName(gGameSettings.WAD)+':\'+ResName]));
+    g_FatalError(Format(_lc[I_GAME_ERROR_MAP_LOAD], [Map]));
     Exit;
   end;
 
@@ -3246,8 +3245,6 @@ procedure g_Game_StartServer(Map: String; GameMode: Byte;
                              TimeLimit, GoalLimit: Word; MaxLives: Byte;
                              Options: LongWord; nPlayers: Byte;
                              IPAddr: LongWord; Port: Word);
-var
-  ResName: String;
 begin
   g_Game_Free();
 
@@ -3264,7 +3261,6 @@ begin
   gGameSettings.GoalLimit := GoalLimit;
   gGameSettings.MaxLives := IfThen(GameMode = GM_CTF, 0, MaxLives);
   gGameSettings.Options := Options;
-  g_ProcessResourceStr(Map, @gGameSettings.WAD, nil, @ResName);
 
   gCoopTotalMonstersKilled := 0;
   gCoopTotalSecretsFound := 0;
@@ -3274,9 +3270,6 @@ begin
   gShowMap := False;
 
   ExecuteGameEvent('ongamestart');
-
-  if GameMode = GM_COOP then
-    LoadMegaWAD(gGameSettings.WAD);
 
 // Установка размеров окна игрока
   g_Game_SetupScreenSize();
@@ -3331,14 +3324,11 @@ begin
   g_Net_Slist_Set(NetSlistIP, NetSlistPort);
 
 // Загрузка и запуск карты:
-  if not g_Game_StartMap(ResName, True) then
+  if not g_Game_StartMap(Map, True) then
   begin
-    g_FatalError(Format(_lc[I_GAME_ERROR_MAP_LOAD],
-                        [ExtractFileName(gGameSettings.WAD)+':\'+ResName]));
+    g_FatalError(Format(_lc[I_GAME_ERROR_MAP_LOAD], [Map]));
     Exit;
   end;
-
-  gWADHash := MD5File(gGameSettings.WAD);
 
 // Нет точек появления:
   if (g_Map_GetPointCount(RESPAWNPOINT_PLAYER1) +
@@ -3359,7 +3349,6 @@ end;
 
 procedure g_Game_StartClient(Addr: String; Port: Word; PW: String);
 var
-  ResName: String;
   Map: String;
   WadName: string;
   Ptr: Pointer;
@@ -3427,7 +3416,6 @@ begin
           NetPlrUID1 := e_Raw_Read_Word(Ptr);
 
           WadName := e_Raw_Read_String(Ptr);
-          gGameSettings.WAD := MapsDir + WadName;
           Map := e_Raw_Read_String(Ptr);
 
           WHash := e_Raw_Read_MD5(Ptr);
@@ -3453,9 +3441,7 @@ begin
               Exit;
             end;
           end;
-
-          gGameSettings.WAD := newResPath;
-          ResName := Map;
+          newResPath := ExtractRelativePath(MapsDir, newResPath);
 
           gPlayer1 := g_Player_Get(g_Player_Create(gPlayer1Settings.Model,
                                                    gPlayer1Settings.Color,
@@ -3475,13 +3461,9 @@ begin
           gPlayer1.UID := NetPlrUID1;
           gPlayer1.Reset(True);
 
-          if gGameSettings.GameMode = GM_COOP then
-            LoadMegaWAD(gGameSettings.WAD);
-
-          if not g_Game_StartMap(ResName, True) then
+          if not g_Game_StartMap(newResPath + ':\' + Map, True) then
           begin
-            g_FatalError(Format(_lc[I_GAME_ERROR_MAP_LOAD],
-                        [ExtractFileName(gGameSettings.WAD)+':\'+ResName]));
+            g_FatalError(Format(_lc[I_GAME_ERROR_MAP_LOAD], [WadName + ':\' + Map]));
 
             enet_packet_destroy(NetEvent.packet);
             NetState := NET_STATE_NONE;
@@ -3543,21 +3525,9 @@ end;
 
 procedure g_Game_ChangeMap(MapPath: String);
 var
-  NewWAD, ResName: String;
   Force: Boolean;
 begin
   g_Game_ClearLoading();
-
-  if Pos(':\', MapPath) > 0 then
-  begin
-    g_ProcessResourceStr(MapsDir + MapPath, @NewWAD, nil, @ResName);
-    gWADHash := MD5File(NewWAD);
-    g_Game_LoadWAD(NewWAD, gWADHash);
-  end else
-    ResName := MapPath;
-
-  if g_Game_IsNet and g_Game_IsServer then
-    MH_SEND_GameEvent(NET_EV_MAPSTART, MapPath);
 
   Force := gGameSettings.GameMode in [GM_DM, GM_TDM, GM_CTF];
   // Если уровень завершился по триггеру Выход, не очищать инвентарь
@@ -3566,9 +3536,8 @@ begin
     Force := False;
     gExitByTrigger := False;
   end;
-  if not g_Game_StartMap(ResName, Force) then
-    g_FatalError(Format(_lc[I_GAME_ERROR_MAP_LOAD],
-                        [ExtractFileName(gGameSettings.WAD) + ':\' + ResName]));
+  if not g_Game_StartMap(MapPath, Force) then
+    g_FatalError(Format(_lc[I_GAME_ERROR_MAP_LOAD], [MapPath]));
 end;
 
 procedure g_Game_Restart();
@@ -3583,13 +3552,11 @@ begin
   gGameOn := False;
   g_Game_ClearLoading();
   g_Game_StartMap(Map, True);
-
-  if g_Game_IsNet then
-    MH_SEND_GameEvent(NET_EV_MAPSTART, Map);
 end;
 
 function g_Game_StartMap(Map: String; Force: Boolean = False): Boolean;
 var
+  NewWAD, ResName: String;
   I: Integer;
 begin
   g_Map_Free();
@@ -3602,14 +3569,23 @@ begin
     if gSwitchGameMode = GM_CTF then
       gGameSettings.MaxLives := 0;
     gGameSettings.GameMode := gSwitchGameMode;
-    if g_Game_IsNet and NetUseMaster then
-      g_Net_Slist_Update;
   end else
     gSwitchGameMode := gGameSettings.GameMode;
 
   g_Player_ResetTeams();
 
-  Result := g_Map_Load(gGameSettings.WAD+':\'+Map);
+  if Pos(':\', Map) > 0 then
+  begin
+    g_ProcessResourceStr(Map, @NewWAD, nil, @ResName);
+    gWADHash := MD5File(MapsDir + NewWAD);
+    if g_Game_IsServer then
+      g_Game_LoadWAD(NewWAD)
+    else
+      g_Game_ClientWAD(NewWAD, gWADHash);
+  end else
+    ResName := Map;
+
+  Result := g_Map_Load(MapsDir + gGameSettings.WAD + ':\' + ResName);
   if Result then
     begin
       g_Player_ResetAll(Force or gLastMap, gGameSettings.GameType = GT_SINGLE);
@@ -3676,6 +3652,8 @@ begin
 
   if NetMode = NET_SERVER then
   begin
+    MH_SEND_GameEvent(NET_EV_MAPSTART, Map);
+
   // Мастерсервер
     if NetUseMaster then
     begin
@@ -3717,7 +3695,7 @@ procedure SetFirstLevel();
 begin
   gNextMap := '';
 
-  MapList := g_Map_GetMapsList(gGameSettings.WAD);
+  MapList := g_Map_GetMapsList(MapsDir + gGameSettings.WAD);
   if MapList = nil then
     Exit;
 
@@ -3745,7 +3723,7 @@ begin
     if gGameSettings.GameMode = GM_COOP then
       g_Player_RememberAll;
 
-    if not g_Map_Exist(gGameSettings.WAD + ':\' + gNextMap) then
+    if not g_Map_Exist(MapsDir + gGameSettings.WAD + ':\' + gNextMap) then
     begin
       gLastMap := True;
       if gGameSettings.GameMode = GM_COOP then
@@ -3754,7 +3732,7 @@ begin
       gStatsPressed := True;
       gNextMap := 'MAP01';
 
-      if not g_Map_Exist(gGameSettings.WAD + ':\' + gNextMap) then
+      if not g_Map_Exist(MapsDir + gGameSettings.WAD + ':\' + gNextMap) then
         g_Game_NextLevel;
 
       if g_Game_IsNet then
@@ -3780,36 +3758,28 @@ begin
   gNextMap := Map;
 end;
 
-procedure g_Game_LoadWAD(NewWAD: String; WHash: TMD5Digest);
+procedure g_Game_ClientWAD(NewWAD: String; WHash: TMD5Digest);
 var
   gWAD: String;
 begin
   if LowerCase(NewWAD) = LowerCase(gGameSettings.WAD) then
     Exit;
-  with gGameSettings do
+  if not g_Game_IsClient then
+    Exit;
+  gWAD := g_Res_SearchSameWAD(MapsDir, ExtractFileName(NewWAD), WHash);
+  if gWAD = '' then
   begin
-    if g_Game_IsNet and g_Game_IsClient then
+    g_Game_SetLoadingText(_lc[I_LOAD_DL_RES], 0, False);
+    gWAD := g_Res_DownloadWAD(ExtractFileName(NewWAD));
+    if gWAD = '' then
     begin
-      gWAD := g_Res_SearchSameWAD(MapsDir, ExtractFileName(NewWAD), WHash);
-      if gWAD = '' then
-      begin
-        g_Game_SetLoadingText(_lc[I_LOAD_DL_RES], 0, False);
-        gWAD := g_Res_DownloadWAD(ExtractFileName(NewWAD));
-        if gWAD = '' then
-        begin
-          g_Game_Free();
-          g_FatalError(Format(_lc[I_GAME_ERROR_MAP_WAD], [ExtractFileName(NewWAD)]));
-          Exit;
-        end;
-      end;
-      NewWAD := gWAD;
+      g_Game_Free();
+      g_FatalError(Format(_lc[I_GAME_ERROR_MAP_WAD], [ExtractFileName(NewWAD)]));
+      Exit;
     end;
-
-    WAD := NewWAD;
-
-    if GameMode = GM_COOP then
-      LoadMegaWAD(WAD);
   end;
+  NewWAD := ExtractRelativePath(MapsDir, gWAD);
+  g_Game_LoadWAD(NewWAD);
 end;
 
 procedure g_Game_RestartRound(NoMapRestart: Boolean = False);
@@ -3924,7 +3894,7 @@ var
 begin
   Result := '';
 
-  MapList := g_Map_GetMapsList(gGameSettings.WAD);
+  MapList := g_Map_GetMapsList(MapsDir + gGameSettings.WAD);
   if MapList = nil then
     Exit;
 
@@ -3946,7 +3916,7 @@ begin
     else
       Result := MapList[MapIndex + 1];
 
-    if not g_Map_Exist(gGameSettings.WAD + ':\' + Result) then Result := Map;
+    if not g_Map_Exist(MapsDir + gGameSettings.WAD + ':\' + Result) then Result := Map;
   end;
 
   MapList := nil;
@@ -5026,9 +4996,9 @@ begin
             P[2] := g_Game_GetFirstMap(MapsDir + P[1]);
           end;
 
-          s := MapsDir + P[1] + ':\' + UpperCase(P[2]);
+          s := P[1] + ':\' + UpperCase(P[2]);
 
-          if g_Map_Exist(s) then
+          if g_Map_Exist(MapsDir + s) then
           begin
             // Запускаем свою игру
             g_Game_Free();
@@ -5062,7 +5032,7 @@ begin
           begin
             // Первый параметр - либо карта, либо имя WAD файла
             s := UpperCase(P[1]);
-            if g_Map_Exist(gGameSettings.WAD + ':\' + s) then
+            if g_Map_Exist(MapsDir + gGameSettings.WAD + ':\' + s) then
             begin // Карта нашлась
               gExitByTrigger := False;
               if gGameOn then
@@ -5160,7 +5130,7 @@ begin
           begin
             // Первый параметр - либо карта, либо имя WAD файла
             s := UpperCase(P[1]);
-            if g_Map_Exist(gGameSettings.WAD + ':\' + s) then
+            if g_Map_Exist(MapsDir + gGameSettings.WAD + ':\' + s) then
             begin // Карта нашлась
               gExitByTrigger := False;
               gNextMap := s;
@@ -5249,9 +5219,9 @@ begin
         if Pos(':\', gNextMap) = 0 then
           s := gGameSettings.WAD + ':\' + gNextMap
         else
-          s := MapsDir + gNextMap;
+          s := gNextMap;
         // Если карта найдена, выходим с уровня
-        if g_Map_Exist(s) then
+        if g_Map_Exist(MapsDir + s) then
           gExit := EXIT_ENDLEVELCUSTOM
         else
           g_Console_Add(Format(_lc[I_MSG_NO_MAP], [gNextMap]));

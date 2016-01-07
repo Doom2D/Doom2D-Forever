@@ -213,7 +213,7 @@ begin
   if Copy(charbuff, 17 - Length(ls) - 2, Length(ls)) = ls then
   begin
     s2 := Copy(charbuff, 15, 2);
-    if g_Map_Exist(gGameSettings.WAD+':\MAP'+s2) then
+    if g_Map_Exist(MapsDir+gGameSettings.WAD+':\MAP'+s2) then
     begin
       c := 'MAP00';
       c[3] := s2[1];

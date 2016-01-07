@@ -106,7 +106,6 @@ var
   gBackSize: TPoint;
   gDoorMap: array of array of DWORD;
   gLiftMap: array of array of DWORD;
-  gRelativeMapResStr: string = '';
   gWADHash: TMD5Digest;
   BackID:  DWORD = DWORD(-1);
   gExternalResources: TStringList;

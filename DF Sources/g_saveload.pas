@@ -145,7 +145,7 @@ begin
   // Имя игры:
     bMem.WriteString(Name, 32);
   // Путь к карте:
-    str := ExtractRelativePath(MapsDir, gGameSettings.WAD);
+    str := gGameSettings.WAD;
     bMem.WriteString(str, 128);
   // Имя карты:
     g_ProcessResourceStr(gMapInfo.Map, nil, nil, @str);
@@ -357,11 +357,11 @@ begin
   
   // Загружаем карту:
     if (Game_Type = GT_NONE) or (Game_Type = GT_SINGLE) then
-      g_Game_StartSingle(MapsDir + WAD_Path, Map_Name,
+      g_Game_StartSingle(WAD_Path + ':\' + Map_Name,
                          LongBool(Game_Options and GAME_OPTION_TWOPLAYER),
                          nPlayers)
     else
-      g_Game_StartCustom(MapsDir + WAD_Path + ':\' + Map_Name,
+      g_Game_StartCustom(WAD_Path + ':\' + Map_Name,
                          Game_Mode, Game_TimeLimit,
                          Game_GoalLimit, Game_MaxLives, Game_Options,
                          nPlayers);

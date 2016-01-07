@@ -389,7 +389,6 @@ begin
     end;
 
     gcMap := Map;
-    Map := MapsDir + Map;
   end;
 
   g_Options_Write_Gameplay_Custom(GameDir+'\'+CONFIG_FILENAME);
@@ -453,8 +452,6 @@ begin
     end;
 
     gnMap := Map;
-    gRelativeMapResStr := Map;
-    Map := MapsDir + Map;
     NetServerName := TGUIEdit(GetControl('edSrvName')).Text;
     NetMaxClients := Max(1, StrToIntDef(TGUIEdit(GetControl('edMaxPlayers')).Text, 1));
     NetMaxClients := Min(NET_MAXCLIENTS, NetMaxClients);
@@ -548,7 +545,7 @@ begin
     n := 2
   else
     n := 1;
-  g_Game_StartSingle(WAD, 'MAP01', TwoPlayers, n);
+  g_Game_StartSingle(WAD + ':\MAP01', TwoPlayers, n);
 end;
 
 procedure ProcSelectMap(Sender: TGUIControl);
@@ -910,12 +907,12 @@ end;
 
 procedure ProcSingle1Player();
 begin
-  g_Game_StartSingle(MapsDir+'megawads\DOOM2D.WAD', 'MAP01', False, 1);
+  g_Game_StartSingle('megawads\DOOM2D.WAD:\MAP01', False, 1);
 end;
 
 procedure ProcSingle2Players();
 begin
-  g_Game_StartSingle(MapsDir+'megawads\DOOM2D.WAD', 'MAP01', True, 2);
+  g_Game_StartSingle('megawads\DOOM2D.WAD:\MAP01', True, 2);
 end;
 
 procedure ProcSelectMapMenu();
@@ -1112,7 +1109,7 @@ end;
 procedure ProcChangePlayers();
 var
   TeamGame, Spectator, AddTwo: Boolean;
-  P1Team, P2Team: Byte;
+  P1Team{, P2Team}: Byte;
   bP2: TGUITextButton;
 begin
   TeamGame := gGameSettings.GameMode in [GM_TDM, GM_CTF];
@@ -1120,8 +1117,9 @@ begin
   AddTwo := gGameSettings.GameType in [GT_CUSTOM, GT_SERVER];
   P1Team := TEAM_NONE;
   if gPlayer1 <> nil then P1Team := gPlayer1.Team;
-  P2Team := TEAM_NONE;
-  if gPlayer2 <> nil then P2Team := gPlayer2.Team;
+  // TODO
+  //P2Team := TEAM_NONE;
+  //if gPlayer2 <> nil then P2Team := gPlayer2.Team;
 
   TGUIMainMenu(g_ActiveWindow.GetControl(
     g_ActiveWindow.DefControl )).EnableButton('tmJoinRed', TeamGame and (P1Team <> TEAM_RED));
