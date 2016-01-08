@@ -164,6 +164,7 @@ type
     FNoTarget:  Boolean;
     FNoReload:  Boolean;
     FJustTeleported: Boolean;
+    FNetTime: LongWord;
 
     function    CollideLevel(XInc, YInc: Integer): Boolean;
     function    StayOnStep(XInc, YInc: Integer): Boolean;
@@ -295,6 +296,7 @@ type
     property    IncCam: Integer read FIncCam write FIncCam;
     property    UID: Word read FUID write FUID;
     property    JustTeleported: Boolean read FJustTeleported write FJustTeleported;
+    property    NetTime: LongWord read FNetTime write FNetTime;
   end;
 
   TDifficult = record
@@ -1756,6 +1758,7 @@ begin
 
   FBFGFireCounter := -1;
   FJustTeleported := False;
+  FNetTime := 0;
 end;
 
 procedure TPlayer.Damage(value: Word; SpawnerUID: Word; vx, vy: Integer; t: Byte);
@@ -3447,6 +3450,7 @@ begin
     FTime[T_RESPAWN] := 0;
     FLive := False;
   end;
+  FNetTime := 0;
   // if server changes MaxLives we gotta be ready
   if gGameSettings.MaxLives = 0 then FNoRespawn := False;
 

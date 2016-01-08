@@ -96,6 +96,8 @@ const
   NET_CHEAT_SUICIDE  = 1;
   NET_CHEAT_SPECTATE = 2;
 
+  NET_MAX_DIFFTIME = 5000 div 36;
+
 // HOST MESSAGES
 
 procedure MH_RECV_Info(C: pTNetClient; P: Pointer);
@@ -258,6 +260,7 @@ const
 var
   kBytePrev: Word = 0;
   kDirPrev: TDirection = D_LEFT;
+  HostGameTime: Word = 0;
 
 // HOST MESSAGES //
 
@@ -403,16 +406,22 @@ var
   PID: Word;
   kByte: Word;
   Pl: TPlayer;
+  GT: LongWord;
 begin
   Result := 0;
   if not gGameOn then Exit;
+  
+  GT := e_Raw_Read_LongWord(P);
   PID := C^.Player;
   Pl := g_Player_Get(PID);
   if Pl = nil then
     Exit;
 
+  if (GT > gTime + NET_MAX_DIFFTIME) or (GT < Pl.NetTime) then Exit;
+
   with Pl do
   begin
+    NetTime := GT;
     kByte := e_Raw_Read_Word(P);
     Dir := e_Raw_Read_Byte(P);
     if Direction <> TDirection(Dir) then
@@ -955,6 +964,7 @@ begin
   if Pl.FDummy then Exit;
 
   e_Buffer_Write(@NetOut, Byte(NET_MSG_PLRPOS));
+  e_Buffer_Write(@NetOut, gTime);
   e_Buffer_Write(@NetOut, PID);
 
   kByte := 0;
@@ -1824,15 +1834,26 @@ end;
 
 function MC_RECV_PlayerPos(P: Pointer): Word;
 var
+  GT: LongWord;
   PID: Word;
   kByte: Word;
   Pl: TPlayer;
   Dir: Byte;
   TmpX, TmpY: Integer;
 begin
+  Result := 0;
+
+  GT := e_Raw_Read_LongWord(P);
+  if GT < gTime - NET_MAX_DIFFTIME then
+  begin
+    gTime := GT;
+    Exit;
+  end;
+  gTime := GT;
+
   PID := e_Raw_Read_Word(P);
   Pl := g_Player_Get(PID);
-  Result := 0;
+
   if Pl = nil then Exit;
 
   Result := PID;
@@ -2568,6 +2589,7 @@ begin
    kByte := NET_KEY_CHAT;
 
   e_Buffer_Write(@NetOut, Byte(NET_MSG_PLRPOS));
+  e_Buffer_Write(@NetOut, gTime);
   e_Buffer_Write(@NetOut, kByte);
   e_Buffer_Write(@NetOut, Byte(gPlayer1.Direction));
   g_Net_Client_Send(True, NET_CHAN_PLAYERPOS);
