@@ -1594,6 +1594,7 @@ begin
       g_Game_ClearLoading();
       g_Game_StopAllSounds(True);
 
+      gWADHash := EvHash;
       if not g_Game_StartMap(EvParm, True) then
       begin
         if Pos(':\', EvParm) = 0 then

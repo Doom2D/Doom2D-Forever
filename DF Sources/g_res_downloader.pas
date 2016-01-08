@@ -113,8 +113,11 @@ begin
   MC_SEND_MapRequest();
 
   msgStream := g_Net_Wait_Event(NET_MSG_MAP_RESPONSE);
-  mapData := MapDataFromMsgStream(msgStream);
-  msgStream.Free;
+  if msgStream <> nil then
+  begin
+    mapData := MapDataFromMsgStream(msgStream);
+    msgStream.Free;
+  end;
 
   for i := 0 to High(mapData.ExternalResources) do
   begin

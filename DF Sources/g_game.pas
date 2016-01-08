@@ -3578,10 +3578,12 @@ begin
   if Pos(':\', Map) > 0 then
   begin
     g_ProcessResourceStr(Map, @NewWAD, nil, @ResName);
-    gWADHash := MD5File(MapsDir + NewWAD);
     if g_Game_IsServer then
-      g_Game_LoadWAD(NewWAD)
-    else
+    begin
+      gWADHash := MD5File(MapsDir + NewWAD);
+      g_Game_LoadWAD(NewWAD);
+    end else
+      // hash recieved in MC_RECV_GameEvent -> NET_EV_MAPSTART 
       g_Game_ClientWAD(NewWAD, gWADHash);
   end else
     ResName := Map;
