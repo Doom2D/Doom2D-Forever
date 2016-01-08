@@ -5659,6 +5659,7 @@ begin
     SaveMap(mapToRun);
     g_SetFileTime(mapWAD, time);
   end;
+  mapToRun := ExtractRelativePath(ExtractFilePath(TestD2dExe) + 'maps\', mapToRun);
 
 // Опции игры:
   opt := 32 + 64;

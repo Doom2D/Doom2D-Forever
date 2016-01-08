@@ -490,11 +490,9 @@ var
   s: string;
 begin
   g_Game_FreeWAD();
+  gGameSettings.WAD := WAD;
   if not (gGameSettings.GameMode in [GM_COOP, GM_SINGLE]) then
-  begin
-    gGameSettings.WAD := WAD;
     Exit;
-  end;
 
   MegaWAD.info := g_Game_GetMegaWADInfo(MapsDir + WAD);
 
@@ -550,7 +548,6 @@ begin
     g_Sound_CreateWADEx('MUSIC_endmus', s+MegaWAD.endmus, True);
   end;
 
-  gGameSettings.WAD := WAD;
   cfg.Free();
   FreeMem(p);
   w.Free();
@@ -5916,8 +5913,6 @@ begin
 
 // Start map when game loads:
   map := LowerCase(Find_Param_Value(pars, '-map'));
-  if Pos(LowerCase(MapsDir), map) = 0 then
-    map := MapsDir + '\' + Map; // fixme
   if (map <> '') and (Pos('.wad:\', map) > 0) then
   begin
   // Game mode:
