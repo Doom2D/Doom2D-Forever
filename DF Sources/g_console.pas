@@ -405,6 +405,8 @@ begin
   AddCommand('bot_removeall', GameCommands);
   AddCommand('chat', GameCommands);
   AddCommand('teamchat', GameCommands);
+  AddCommand('game', GameCommands);
+  AddCommand('serve', GameCommands);
   AddCommand('map', GameCommands);
   AddCommand('nextmap', GameCommands);
   AddCommand('endmap', GameCommands);
@@ -415,7 +417,7 @@ begin
   AddCommand('kick', GameCommands);
   AddCommand('kick_id', GameCommands);
   AddCommand('ban', GameCommands);
-  AddCommand('permban', GameCommands);    
+  AddCommand('permban', GameCommands);
   AddCommand('ban_id', GameCommands);
   AddCommand('permban_id', GameCommands);
   AddCommand('unban', GameCommands);
