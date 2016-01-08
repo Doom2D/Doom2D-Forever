@@ -5303,21 +5303,9 @@ begin
     end
     else if cmd = 'spectate' then
     begin
-      if gGameOn then
-      begin
-        if g_Game_IsClient then
-          MC_SEND_CheatRequest(NET_CHEAT_SPECTATE)
-        else
-        begin
-          if gPlayer1 <> nil then
-          begin
-           if gPlayer1.FSpectator then
-             gPlayer1.Respawn(False)
-           else
-             gPlayer1.Spectate;
-          end;
-        end;
-      end
+      if not gGameOn then
+        Exit;
+      g_Game_Spectate();
     end
     else if cmd = 'say' then
     begin
