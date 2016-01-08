@@ -5959,13 +5959,13 @@ begin
   // Delete test map after play:
     s := Find_Param_Value(pars, '--testdelete');
     if (s <> '') then
-      gMapToDelete := map;
+      gMapToDelete := MapsDir + map;
 
   // Delete temporary WAD after play:
     s := Find_Param_Value(pars, '--tempdelete');
     if (s <> '') then
     begin
-      gMapToDelete := map;
+      gMapToDelete := MapsDir + map;
       gTempDelete := True;
     end;
 
