@@ -5028,7 +5028,7 @@ begin
     end else
       g_Console_Add(Format(_lc[I_MSG_NO_WAD], [P[1]]));
   end
-  else if cmd = 'serve' then
+  else if cmd = 'host' then
   begin
     if gGameSettings.GameType <> GT_NONE then
     begin

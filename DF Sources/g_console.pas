@@ -406,7 +406,7 @@ begin
   AddCommand('chat', GameCommands);
   AddCommand('teamchat', GameCommands);
   AddCommand('game', GameCommands);
-  AddCommand('serve', GameCommands);
+  AddCommand('host', GameCommands);
   AddCommand('map', GameCommands);
   AddCommand('nextmap', GameCommands);
   AddCommand('endmap', GameCommands);
