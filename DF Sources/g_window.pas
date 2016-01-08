@@ -13,7 +13,6 @@ function  CreateGLWindow(Title: PChar): Bool; StdCall;
 procedure KillGLWindow();
 function  ProcessMessage: Boolean;
 procedure ProcessLoading;
-procedure PreventWindowFromLockUp;
 procedure ReDrawWindow;
 function  g_Window_SetDisplay(): Boolean;
 
@@ -628,17 +627,6 @@ end;
 procedure ResetTimer();
 begin
   wNeedTimeReset := True;
-end;
-
-procedure PreventWindowFromLockUp;
-var
-  msg: TMsg;
-begin
-  if PeekMessage(msg, 0, 0, 0, PM_REMOVE) then
-  begin
-    TranslateMessage(msg);
-    DispatchMessage(msg);
-  end;
 end;
 
 procedure ProcessLoading();

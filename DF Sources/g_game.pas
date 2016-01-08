@@ -3495,7 +3495,7 @@ begin
         end;
     end;
 
-    PreventWindowFromLockUp;
+    ProcessLoading();
 
     e_PollKeyboard();
     if (e_KeyBuffer[1] = $080) or (e_KeyBuffer[57] = $080) then
