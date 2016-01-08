@@ -418,7 +418,7 @@ end;
 
 function g_Game_IsServer(): Boolean;
 begin
-  Result := (gGameSettings.GameType in [GT_SERVER, GT_SINGLE, GT_CUSTOM]);
+  Result := (gGameSettings.GameType in [GT_SINGLE, GT_CUSTOM, GT_SERVER]);
 end;
 
 function g_Game_IsClient(): Boolean;
@@ -490,7 +490,7 @@ var
   s: string;
 begin
   g_Game_FreeWAD();
-  if not (gGameSettings.GameMode in [GM_SINGLE, GM_COOP]) then
+  if not (gGameSettings.GameMode in [GM_COOP, GM_SINGLE]) then
   begin
     gGameSettings.WAD := WAD;
     Exit;
@@ -669,7 +669,7 @@ begin
         CustomStat.Map := ExtractFileName(FileName)+':'+ResName;
         CustomStat.MapName := gMapInfo.Name;
         CustomStat.GameMode := gGameSettings.GameMode;
-        if gGameSettings.GameMode in [GM_CTF, GM_TDM] then
+        if gGameSettings.GameMode in [GM_TDM, GM_CTF] then
           CustomStat.TeamStat := gTeamStat;
 
         CustomStat.PlayerStat := nil;
@@ -765,7 +765,7 @@ begin
   e_TextureFontGetSize(gStdFont, cw, ch);
 
   w := gScreenWidth-(gScreenWidth div 5);
-  if gGameSettings.GameMode in [GM_CTF, GM_TDM] then
+  if gGameSettings.GameMode in [GM_TDM, GM_CTF] then
     h := 32+ch*(11+pc)
   else
     h := 40+ch*5+(ch+8)*pc;
@@ -851,7 +851,7 @@ begin
   w4 := w3;
   w1 := w-16-w2-w3-w4; // оставшеес€ пространство - дл€ цвета и имени игрока
 
-  if gGameSettings.GameMode in [GM_CTF, GM_TDM] then
+  if gGameSettings.GameMode in [GM_TDM, GM_CTF] then
   begin
     _y := _y+ch+ch;
 
@@ -1340,7 +1340,7 @@ begin
                   b := gPlayers[i].Frags;
           end
         else
-          if gGameSettings.GameMode in [GM_CTF, GM_TDM] then
+          if gGameSettings.GameMode in [GM_TDM, GM_CTF] then
           begin // ¬ CTF/TDM выбираем команду с наибольшим счетом
             b := Max(gTeamStat[TEAM_RED].Goals, gTeamStat[TEAM_BLUE].Goals);
           end;
@@ -1917,7 +1917,7 @@ begin
     end;
   end;
 
-  if CustomStat.GameMode in [GM_CTF, GM_TDM] then
+  if CustomStat.GameMode in [GM_TDM, GM_CTF] then
   begin
     _y := _y+16+16;
 

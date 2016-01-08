@@ -152,13 +152,13 @@ begin
   if gPlayer1Settings.Name = '' then gPlayer1Settings.Name := 'Player1';
   if gPlayer2Settings.Name = '' then gPlayer2Settings.Name := 'Player2';
 
-  if (gGameSettings.GameType in [GT_CUSTOM, GT_SERVER, GT_SINGLE]) then
+  if g_Game_IsServer then
   begin
     if gPlayer1 <> nil then
     begin
       gPlayer1.SetModel(gPlayer1Settings.Model);
       gPlayer1.Name := gPlayer1Settings.Name;
-      if (gGameSettings.GameMode <> GM_TDM) and (gGameSettings.GameMode <> GM_CTF) then
+      if not (gGameSettings.GameMode in [GM_TDM, GM_CTF]) then
         gPlayer1.SetColor(gPlayer1Settings.Color)
       else
         if gPlayer1.Team <> gPlayer1Settings.Team then
@@ -1155,7 +1155,10 @@ begin
     else
     begin
       if gPlayer1.Team <> TEAM_RED then
+      begin
         gPlayer1.SwitchTeam;
+        gPlayer1Settings.Team := gPlayer1.Team;
+      end;
 
       if g_Game_IsNet then MH_SEND_PlayerSettings(gPlayer1.UID);
     end;
@@ -1182,7 +1185,10 @@ begin
     else
     begin
       if gPlayer1.Team <> TEAM_BLUE then
+      begin
         gPlayer1.SwitchTeam;
+        gPlayer1Settings.Team := gPlayer1.Team;
+      end;
 
       if g_Game_IsNet then MH_SEND_PlayerSettings(gPlayer1.UID);
     end;

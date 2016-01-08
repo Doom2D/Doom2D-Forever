@@ -78,6 +78,8 @@ const
   NET_EV_SCORE_ADD    = 9;
   NET_EV_SCORE_SUB    = 10;
   NET_EV_BIGTEXT      = 11;
+  NET_EV_CHTEAM_RED   = 12;
+  NET_EV_CHTEAM_BLUE  = 13;
 
   NET_VE_STARTED      = 1;
   NET_VE_PASSED       = 2;
@@ -1101,9 +1103,9 @@ begin
     e_Buffer_Write(@NetOut, Pl.Model.Name)
   else
     e_Buffer_Write(@NetOut, Mdl);
-  e_Buffer_Write(@NetOut, Pl.Model.Color.R);
-  e_Buffer_Write(@NetOut, Pl.Model.Color.G);
-  e_Buffer_Write(@NetOut, Pl.Model.Color.B);
+  e_Buffer_Write(@NetOut, Pl.FColor.R);
+  e_Buffer_Write(@NetOut, Pl.FColor.G);
+  e_Buffer_Write(@NetOut, Pl.FColor.B);
   e_Buffer_Write(@NetOut, Pl.Team);
 
   g_Net_Host_Send(ID, True, NET_CHAN_IMPORTANT);
@@ -1644,6 +1646,12 @@ begin
 
     NET_EV_BIGTEXT:
       g_Game_Message(AnsiUpperCase(EvParm), 144);
+
+    NET_EV_CHTEAM_RED:
+      g_Console_Add(Format(_lc[I_PLAYER_CHTEAM_RED], [EvParm]), True);
+
+    NET_EV_CHTEAM_BLUE:
+      g_Console_Add(Format(_lc[I_PLAYER_CHTEAM_BLUE], [EvParm]), True);
   end;
 end;
 
@@ -2049,8 +2057,13 @@ begin
   TmpTeam := e_Raw_Read_Byte(P);
 
   if (gGameSettings.GameMode in [GM_TDM, GM_CTF]) and (Pl.Team <> TmpTeam) then
-    Pl.SwitchTeam
-  else
+  begin
+    Pl.ChangeTeam(TmpTeam);
+    if gPlayer1 = Pl then
+      gPlayer1Settings.Team := TmpTeam;
+    if gPlayer2 = Pl then
+      gPlayer2Settings.Team := TmpTeam;
+  end else
     Pl.SetColor(TmpColor);
 
   if Pl.Name <> TmpName then

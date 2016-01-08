@@ -1600,25 +1600,67 @@ begin
   FModel := Model;
 end;
 
+procedure TPlayer.SetModel(ModelName: string);
+var
+  m: TPlayerModel;
+begin
+  m := g_PlayerModel_Get(ModelName);
+  if m = nil then
+  begin
+    g_SimpleError(Format(_lc[I_GAME_ERROR_MODEL_FALLBACK], [ModelName]));
+    m := g_PlayerModel_Get('doomer');
+    if m = nil then
+    begin
+      g_FatalError(Format(_lc[I_GAME_ERROR_MODEL], ['doomer']));
+      Exit;
+    end;
+  end;
+
+  if FModel <> nil then
+    FModel.Free();
+
+  FModel := m;
+
+  if not (gGameSettings.GameMode in [GM_TDM, GM_CTF]) then
+    FModel.Color := FColor
+  else
+    FModel.Color := TEAMCOLOR[FTeam];
+  FModel.SetWeapon(FCurrWeap);
+  FModel.SetFlag(FFlag);
+  SetDirection(FDirection);
+end;
+
+procedure TPlayer.SetColor(Color: TRGB);
+begin
+  FColor := Color;
+  if not (gGameSettings.GameMode in [GM_TDM, GM_CTF]) then
+    if FModel <> nil then FModel.Color := Color;
+end;
+
 procedure TPlayer.SwitchTeam;
 begin
+  if g_Game_IsClient then
+    Exit;
   if not (gGameSettings.GameMode in [GM_TDM, GM_CTF]) then Exit;
 
-  if g_Game_IsServer and gGameOn and FLive then
+  if gGameOn and FLive then
     Kill(K_SIMPLEKILL, FUID, HIT_SELF);
 
   if FTeam = TEAM_RED then
   begin
-    FTeam := TEAM_BLUE;
+    ChangeTeam(TEAM_BLUE);
     g_Console_Add(Format(_lc[I_PLAYER_CHTEAM_BLUE], [FName]), True);
+    if g_Game_IsNet then
+      MH_SEND_GameEvent(NET_EV_CHTEAM_BLUE, FName);
   end
   else
   begin
-    FTeam := TEAM_RED;
+    ChangeTeam(TEAM_RED);
     g_Console_Add(Format(_lc[I_PLAYER_CHTEAM_RED], [FName]), True);
+    if g_Game_IsNet then
+      MH_SEND_GameEvent(NET_EV_CHTEAM_RED, FName);
   end;
   FPreferredTeam := FTeam;
-  FModel.Color := TEAMCOLOR[FTeam];
 end;
 
 procedure TPlayer.ChangeTeam(Team: Byte);
@@ -2022,7 +2064,7 @@ begin
   SY := gPlayerScreenSize.Y;
   Y := 0;
 
-  if gShowGoals and (gGameSettings.GameMode in [GM_CTF, GM_TDM]) then
+  if gShowGoals and (gGameSettings.GameMode in [GM_TDM, GM_CTF]) then
   begin
     if gGameSettings.GameMode = GM_CTF then
       a := 32 + 8
@@ -5172,40 +5214,6 @@ begin
   end;
   if g_Game_IsNet and g_Game_IsServer then
     MH_SEND_PlayerStats(FUID);
-end;
-
-procedure TPlayer.SetModel(ModelName: string);
-var
-  m: TPlayerModel;
-begin
-  m := g_PlayerModel_Get(ModelName);
-  if m = nil then
-  begin
-    g_SimpleError(Format(_lc[I_GAME_ERROR_MODEL_FALLBACK], [ModelName]));
-    m := g_PlayerModel_Get('doomer');
-    if m = nil then
-    begin
-      g_FatalError(Format(_lc[I_GAME_ERROR_MODEL], ['doomer']));
-      Exit;
-    end;
-  end;
-
-  if FModel <> nil then
-    FModel.Free();
-
-  FModel := m;
-
-  FModel.Color := FColor;
-  FModel.SetWeapon(FCurrWeap);
-  FModel.SetFlag(FFlag);
-  SetDirection(FDirection);
-end;
-
-procedure TPlayer.SetColor(Color: TRGB);
-begin
-  FColor := Color;
-  if (gGameSettings.GameMode <> GM_CTF) and (gGameSettings.GameMode <> GM_TDM) then
-    if FModel <> nil then FModel.Color := Color;
 end;
 
 procedure TPlayer.FlySmoke(Times: DWORD = 1);
