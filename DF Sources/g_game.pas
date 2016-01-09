@@ -2644,7 +2644,7 @@ begin
 
     if IsDrawStat or (gSpectMode = 1) then DrawStat();
 
-    if gSpectHUD and (gSpectMode <> SPECT_NONE) then
+    if gSpectHUD and (not gChatShow) and (gSpectMode <> SPECT_NONE) then
     begin
     // Draw spectator GUI
       ww := 0;

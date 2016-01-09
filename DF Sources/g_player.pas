@@ -1956,8 +1956,7 @@ begin
   end;
 
   if (FKeys[KEY_CHAT].Pressed) and not FGhost then
-    if (gPlayer1 <> nil) then
-      DrawBubble();
+    DrawBubble();
  // e_DrawPoint(5, 335, 288, 255, 0, 0); // DL, UR, DL, UR
   if gAimLine and Live and
   ((Self = gPlayer1) or (Self = gPlayer2)) then
