@@ -411,6 +411,7 @@ var
   gFly: Boolean = False;
   gAimLine: Boolean = False;
   gLastSpawnUsed: Byte = 0;
+  gNumBots: Word = 0;
   MAX_RUNVEL: Integer = 8;
   VEL_JUMP: Integer = 10;
   SHELL_TIMEOUT: Cardinal = 60000;
@@ -5464,6 +5465,8 @@ begin
 
   FIamBot := True;
 
+  Inc(gNumBots);
+
   for a := WEAPON_KASTET to WEAPON_SUPERPULEMET do
   begin
     FDifficult.WeaponPrior[a] := WEAPON_PRIOR1[a];
@@ -5474,7 +5477,7 @@ end;
 
 destructor TBot.Destroy();
 begin
-
+  Dec(gNumBots);
   inherited Destroy();
 end;
 
