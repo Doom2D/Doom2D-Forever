@@ -3,10 +3,10 @@ unit g_net;
 interface
 
 uses
-  e_log, e_fixedbuffer, ENet, ENet_Types, Classes;
+  e_log, e_fixedbuffer, ENet, ENet_Types, ENet_Win32, Classes;
 
 const
-  NET_PROTOCOL_VER = 155;
+  NET_PROTOCOL_VER = 156;
 
   NET_MAXCLIENTS = 24;
   NET_CHANS = 11;
@@ -86,6 +86,9 @@ var
   NetPeer:       pENetPeer = nil;
   NetEvent:      ENetEvent;
   NetAddr:       ENetAddress;
+
+  NetPongAddr:   ENetAddress;
+  NetPongSock:   ENetSocket = ENET_SOCKET_NULL;
 
   NetUseMaster: Boolean = True;
   NetSlistAddr: ENetAddress;
@@ -261,6 +264,8 @@ begin
   NetPlrUID2 := -1;
   NetState := NET_STATE_NONE;
 
+  NetPongSock := ENET_SOCKET_NULL;
+
   NetTimeToMaster := 0;
   NetTimeToUpdate := 0;
   NetTimeToReliable := 0;
@@ -317,6 +322,20 @@ begin
     Exit;
   end;
 
+  NetPongSock := enet_socket_create(ENET_SOCKET_TYPE_DATAGRAM);
+  if NetPongSock <> ENET_SOCKET_NULL then
+  begin
+    NetPongAddr.host := IPAddr;
+    NetPongAddr.port := Port + 1;
+    if enet_socket_bind(NetPongSock, @NetPongAddr) < 0 then
+    begin
+      enet_socket_destroy(NetPongSock);
+      NetPongSock := ENET_SOCKET_NULL;
+    end
+    else
+      enet_socket_set_option(NetPongSock, ENET_SOCKOPT_NONBLOCK, 1);
+  end;
+
   NetMode := NET_SERVER;
   e_Buffer_Clear(@NetOut);
 end;
@@ -347,6 +366,8 @@ begin
     end;
 
   if (NetMPeer <> nil) and (NetMHost <> nil) then g_Net_Slist_Disconnect;
+  if NetPongSock <> ENET_SOCKET_NULL then
+    enet_socket_destroy(NetPongSock);
 
   g_Console_Add(_lc[I_NET_MSG] + _lc[I_NET_MSG_HOST_DIE]);
   enet_host_destroy(NetHost);
@@ -390,6 +411,42 @@ begin
   e_Buffer_Clear(@NetOut);
 end;
 
+procedure g_Net_Host_CheckPings();
+var
+  ClAddr: ENetAddress;
+  Buf: ENetBuffer;
+  Len, ClTime: Integer;
+  Ping: array [0..5] of Byte;
+begin
+  if NetPongSock = ENET_SOCKET_NULL then Exit;
+
+  Buf.data := Addr(Ping[0]);
+  Buf.dataLength := 6;
+
+  Ping[0] := 0;
+
+  Len := enet_socket_receive(NetPongSock, @ClAddr, @Buf, 1);
+  if Len < 0 then Exit;
+
+  if (Ping[0] = Ord('D')) and (Ping[1] = Ord('F')) then
+  begin
+    ClTime := Integer(Addr(Ping[2])^);
+
+    e_Buffer_Clear(@NetOut);
+    e_Buffer_Write(@NetOut, Byte(Ord('D')));
+    e_Buffer_Write(@NetOut, Byte(Ord('F')));
+    g_Net_Slist_WriteInfo();
+    e_Buffer_Write(@NetOut, gNumBots);
+    e_Buffer_Write(@NetOut, ClTime);
+
+    Buf.data := Addr(NetOut.Data[0]);
+    Buf.dataLength := NetOut.WritePos;
+    enet_socket_send(NetPongSock, @ClAddr, @Buf, 1);
+
+    e_Buffer_Clear(@NetOut);
+  end;
+end;
+
 function g_Net_Host_Update(): enet_size_t;
 var
   IP: string;
@@ -401,7 +458,11 @@ begin
   IP := '';
   Result := 0;
 
-  if NetUseMaster then g_Net_Slist_Check;
+  if NetUseMaster then
+  begin
+    g_Net_Slist_Check;
+    g_Net_Host_CheckPings;
+  end;
 
   while (enet_host_service(NetHost, @NetEvent, 0) > 0) do
   begin
