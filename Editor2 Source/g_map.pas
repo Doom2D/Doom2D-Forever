@@ -2490,7 +2490,6 @@ end;
 procedure ShiftMapObjects(dx, dy: Integer);
 var
   i: Integer;
-
 begin
   if gPanels <> nil then
     for i := 0 to High(gPanels) do
@@ -2555,6 +2554,12 @@ begin
             begin
               Inc(gTriggers[i].Data.ItemPos.X, dx);
               Inc(gTriggers[i].Data.ItemPos.Y, dy);
+            end;
+
+          TRIGGER_SHOT:
+            begin
+              Inc(gTriggers[i].Data.ShotPos.X, dx);
+              Inc(gTriggers[i].Data.ShotPos.Y, dy);
             end;
         end;
       end;
