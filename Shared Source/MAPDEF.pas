@@ -144,24 +144,27 @@ const
   TRIGGER_HEALTH          = 26;
   TRIGGER_SHOT            = 27;
 
-  TRIGGER_SHOT_NONE    = 0;
+  TRIGGER_SHOT_PISTOL  = 0;
   TRIGGER_SHOT_BULLET  = 1;
   TRIGGER_SHOT_SHOTGUN = 2;
   TRIGGER_SHOT_SSG     = 3;
-  TRIGGER_SHOT_ROCKET  = 4;
+  TRIGGER_SHOT_IMP     = 4;
   TRIGGER_SHOT_PLASMA  = 5;
-  TRIGGER_SHOT_BFG     = 6;
-  TRIGGER_SHOT_IMP     = 7;
-  TRIGGER_SHOT_MANCUB  = 8;
-  TRIGGER_SHOT_BARON   = 9;
-  TRIGGER_SHOT_CACO    = 10;
-  TRIGGER_SHOT_SPIDER  = 11;
-  TRIGGER_SHOT_REV     = 12;
+  TRIGGER_SHOT_SPIDER  = 6;
+  TRIGGER_SHOT_CACO    = 7;
+  TRIGGER_SHOT_BARON   = 8;
+  TRIGGER_SHOT_MANCUB  = 9;
+  TRIGGER_SHOT_REV     = 10;
+  TRIGGER_SHOT_ROCKET  = 11;
+  TRIGGER_SHOT_BFG     = 12;
 
-  TRIGGER_SHOT_TARGET_NIL = 0;
-  TRIGGER_SHOT_TARGET_PLR = 1;
-  TRIGGER_SHOT_TARGET_MON = 2;
-  TRIGGER_SHOT_TARGET_ALL = 3;
+  TRIGGER_SHOT_TARGET_NONE   = 0;
+  TRIGGER_SHOT_TARGET_MON    = 1;
+  TRIGGER_SHOT_TARGET_PLR    = 2;
+  TRIGGER_SHOT_TARGET_RED    = 3;
+  TRIGGER_SHOT_TARGET_BLUE   = 4;
+  TRIGGER_SHOT_TARGET_MONPLR = 5;
+  TRIGGER_SHOT_TARGET_PLRMON = 6;
 
   ACTIVATE_PLAYERCOLLIDE  = 1;
   ACTIVATE_MONSTERCOLLIDE = 2;
@@ -252,9 +255,7 @@ Type
                              ScoreTeam: Byte);
       TRIGGER_MESSAGE:      (MessageKind: Byte;
                              MessageSendTo: Byte;
-                             MessageName: Char64;
-                             MessageList: Boolean;
-                             MessageIndex: Integer);
+                             MessageText: Char100);
       TRIGGER_DAMAGE:       (DamageValue: Word;
                              DamageInterval: Word);
       TRIGGER_HEALTH:       (HealValue: Word;
@@ -262,14 +263,17 @@ Type
                              HealMax: Boolean;
                              HealSilent: Boolean);
       TRIGGER_SHOT:         (ShotType: Byte;
-                             ShotAngle: Word;
+                             ShotSound: Boolean;
+                             ShotPanelID: Integer;
                              ShotTarget: Byte;
-                             ShotWait: Word;
-                             ShotIntPreload: Word;
-                             ShotIntReload: Word;
-                             ShotAmmo: Word;
+                             ShotIntSight: Word;
+                             ShotAllMap: Boolean;
                              ShotPos: TPoint;
-                             ShotSound: Boolean);
+                             ShotAngle: Word;
+                             ShotWait: Word;
+                             ShotAccuracy: Word;
+                             ShotAmmo: Word;
+                             ShotIntReload: Word);
   end;
 
 implementation

@@ -93,6 +93,7 @@ begin
     TakeScreenshot := TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_SCREENSHOT])).Key;
     Stat := TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_STAT])).Key;
     Chat := TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_CHAT])).Key;
+    TeamChat := TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_TEAMCHAT])).Key;
   end;
 
   menu := TGUIMenu(g_GUI_GetWindow('OptionsControlsP1Menu').GetControl('mOptionsControlsP1Menu'));
@@ -127,7 +128,7 @@ begin
 
   menu := TGUIMenu(g_GUI_GetWindow('OptionsPlayersP1Menu').GetControl('mOptionsPlayersP1Menu'));
 
-  gPlayer1Settings.Name := TGUIEdit(menu.GetControl('edP1Name')).Text;
+  gPlayer1Settings.Name := b_Text_Unformat(TGUIEdit(menu.GetControl('edP1Name')).Text);
   gPlayer1Settings.Team := IfThen(TGUISwitch(menu.GetControl('swP1Team')).ItemIndex = 0,
                                   TEAM_RED, TEAM_BLUE);
 
@@ -139,7 +140,7 @@ begin
 
   menu := TGUIMenu(g_GUI_GetWindow('OptionsPlayersP2Menu').GetControl('mOptionsPlayersP2Menu'));
 
-  gPlayer2Settings.Name := TGUIEdit(menu.GetControl('edP2Name')).Text;
+  gPlayer2Settings.Name := b_Text_Unformat(TGUIEdit(menu.GetControl('edP2Name')).Text);
   gPlayer2Settings.Team := IfThen(TGUISwitch(menu.GetControl('swP2Team')).ItemIndex = 0,
                                   TEAM_RED, TEAM_BLUE);
   with TGUIModelView(g_GUI_GetWindow('OptionsPlayersP2Menu').GetControl('mvP2Model')) do
@@ -151,17 +152,17 @@ begin
   if gPlayer1Settings.Name = '' then gPlayer1Settings.Name := 'Player1';
   if gPlayer2Settings.Name = '' then gPlayer2Settings.Name := 'Player2';
 
-  if (gGameSettings.GameType in [GT_CUSTOM, GT_SERVER, GT_SINGLE]) then
+  if g_Game_IsServer then
   begin
-    if (gPlayer1 <> nil) and not (g_Game_IsNet and NetDedicated) then
+    if gPlayer1 <> nil then
     begin
       gPlayer1.SetModel(gPlayer1Settings.Model);
       gPlayer1.Name := gPlayer1Settings.Name;
-      if (gGameSettings.GameMode <> GM_TDM) and (gGameSettings.GameMode <> GM_CTF) then
+      if not (gGameSettings.GameMode in [GM_TDM, GM_CTF]) then
         gPlayer1.SetColor(gPlayer1Settings.Color)
       else
         if gPlayer1.Team <> gPlayer1Settings.Team then
-          gPlayer1.ChangeTeam;
+          gPlayer1.SwitchTeam;
 
       if g_Game_IsNet then MH_SEND_PlayerSettings(gPlayer1.UID);
     end;
@@ -174,7 +175,7 @@ begin
         gPlayer2.SetColor(gPlayer2Settings.Color)
       else
         if gPlayer2.Team <> gPlayer2Settings.Team then
-          gPlayer2.ChangeTeam;
+          gPlayer2.SwitchTeam;
     end;
   end;
 
@@ -249,6 +250,7 @@ begin
     TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_SCREENSHOT])).Key := TakeScreenshot;
     TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_STAT])).Key := Stat;
     TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_CHAT])).Key := Chat;
+    TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_TEAMCHAT])).Key := TeamChat;
   end;
 
   menu := TGUIMenu(g_GUI_GetWindow('OptionsGameMenu').GetControl('mOptionsGameMenu'));
@@ -367,13 +369,9 @@ begin
       Options := Options or GAME_OPTION_WEAPONSTAY;
     if gcMonsters then
       Options := Options or GAME_OPTION_MONSTERS;
-    if TGUISwitch(GetControl('swPlayers')).ItemIndex = 1 then
-      begin
-        Options := Options or GAME_OPTION_TWOPLAYER;
-        gcPlayers := 2;
-      end
-    else
-      gcPlayers := 1;
+    gcPlayers := TGUISwitch(GetControl('swPlayers')).ItemIndex;
+    if gcPlayers = 2 then
+      Options := Options or GAME_OPTION_TWOPLAYER;
 
     case TGUISwitch(GetControl('swBotsVS')).ItemIndex of
       1: begin
@@ -391,7 +389,6 @@ begin
     end;
 
     gcMap := Map;
-    Map := MapsDir + Map;
   end;
 
   g_Options_Write_Gameplay_Custom(GameDir+'\'+CONFIG_FILENAME);
@@ -435,6 +432,9 @@ begin
       Options := Options or GAME_OPTION_WEAPONSTAY;
     if gnMonsters then
       Options := Options or GAME_OPTION_MONSTERS;
+    gnPlayers := TGUISwitch(GetControl('swPlayers')).ItemIndex;
+    if gnPlayers = 2 then
+      Options := Options or GAME_OPTION_TWOPLAYER;
 
     case TGUISwitch(GetControl('swBotsVS')).ItemIndex of
       1: begin
@@ -452,19 +452,18 @@ begin
     end;
 
     gnMap := Map;
-    gRelativeMapResStr := Map;
-    Map := MapsDir + Map;
     NetServerName := TGUIEdit(GetControl('edSrvName')).Text;
     NetMaxClients := Max(1, StrToIntDef(TGUIEdit(GetControl('edMaxPlayers')).Text, 1));
     NetMaxClients := Min(NET_MAXCLIENTS, NetMaxClients);
     NetPassword := TGUIEdit(GetControl('edSrvPassword')).Text;
+    NetUseMaster := TGUISwitch(GetControl('swUseMaster')).ItemIndex = 0;
   end;
 
   g_Options_Write_Net_Server(GameDir+'\'+CONFIG_FILENAME);
   g_Options_Write_Gameplay_Net(GameDir+'\'+CONFIG_FILENAME);
 
   g_Game_StartServer(Map, GameMode, gnTimeLimit, gnGoalLimit, gnMaxLives,
-                     Options, NetPort);
+                     Options, gnPlayers, 0, NetPort);
 end;
 
 procedure ProcConnectNetGame();
@@ -479,8 +478,6 @@ begin
   end;
 
   g_Options_Write_Net_Client(GameDir+'\'+CONFIG_FILENAME);
-
-  if PW = '' then PW := 'ASS';
   g_Game_StartClient(NetClientIP, NetClientPort, PW);
 end;
 
@@ -494,9 +491,8 @@ begin
     NetClientPort := PromptPort;
     PW := TGUIEdit(GetControl('edPW')).Text;
   end;
-  g_Options_Write_Net_Client(GameDir+'\'+CONFIG_FILENAME);
 
-  if PW = '' then PW := 'ASS';
+  g_Options_Write_Net_Client(GameDir+'\'+CONFIG_FILENAME);
   g_Game_StartClient(NetClientIP, NetClientPort, PW);
 end;
 
@@ -549,7 +545,7 @@ begin
     n := 2
   else
     n := 1;
-  g_Game_StartSingle(WAD, 'MAP01', TwoPlayers, n);
+  g_Game_StartSingle(WAD + ':\MAP01', TwoPlayers, n);
 end;
 
 procedure ProcSelectMap(Sender: TGUIControl);
@@ -911,12 +907,12 @@ end;
 
 procedure ProcSingle1Player();
 begin
-  g_Game_StartSingle(MapsDir+'megawads\DOOM2D.WAD', 'MAP01', False, 1);
+  g_Game_StartSingle('megawads\DOOM2D.WAD:\MAP01', False, 1);
 end;
 
 procedure ProcSingle2Players();
 begin
-  g_Game_StartSingle(MapsDir+'megawads\DOOM2D.WAD', 'MAP01', True, 2);
+  g_Game_StartSingle('megawads\DOOM2D.WAD:\MAP01', True, 2);
 end;
 
 procedure ProcSelectMapMenu();
@@ -1019,7 +1015,7 @@ begin
     else
       TGUILabel(GetControl('lbWeapon')).Text := _lc[I_MENU_NO];
   end;
- 
+
   g_GUI_ShowWindow('OptionsPlayersMIMenu');
 end;
 
@@ -1108,6 +1104,137 @@ begin
     Enabled := False; // Запретить сохранение в интермиссии (не реализовано)
   TGUIMainMenu(g_ActiveWindow.GetControl(
     g_ActiveWindow.DefControl )).EnableButton('save', Enabled);
+end;
+
+procedure ProcChangePlayers();
+var
+  TeamGame, Spectator, AddTwo: Boolean;
+  P1Team{, P2Team}: Byte;
+  bP2: TGUITextButton;
+begin
+  TeamGame := gGameSettings.GameMode in [GM_TDM, GM_CTF];
+  Spectator := (gPlayer1 = nil) and (gPlayer2 = nil);
+  AddTwo := gGameSettings.GameType in [GT_CUSTOM, GT_SERVER];
+  P1Team := TEAM_NONE;
+  if gPlayer1 <> nil then P1Team := gPlayer1.Team;
+  // TODO
+  //P2Team := TEAM_NONE;
+  //if gPlayer2 <> nil then P2Team := gPlayer2.Team;
+
+  TGUIMainMenu(g_ActiveWindow.GetControl(
+    g_ActiveWindow.DefControl )).EnableButton('tmJoinRed', TeamGame and (P1Team <> TEAM_RED));
+  TGUIMainMenu(g_ActiveWindow.GetControl(
+    g_ActiveWindow.DefControl )).EnableButton('tmJoinBlue', TeamGame and (P1Team <> TEAM_BLUE));
+  TGUIMainMenu(g_ActiveWindow.GetControl(
+    g_ActiveWindow.DefControl )).EnableButton('tmJoinGame', Spectator and not TeamGame);
+
+  bP2 := TGUIMainMenu(g_ActiveWindow.GetControl(
+    g_ActiveWindow.DefControl )).GetButton('tmPlayer2');
+  bP2.Enabled := AddTwo and not Spectator;
+  if bP2.Enabled then
+    bP2.Color := MAINMENU_ITEMS_COLOR
+  else
+    bP2.Color := MAINMENU_UNACTIVEITEMS_COLOR;
+  if gPlayer2 = nil then
+    bP2.Caption := _lc[I_MENU_ADD_PLAYER_2]
+  else
+    bP2.Caption := _lc[I_MENU_REM_PLAYER_2];
+
+  TGUIMainMenu(g_ActiveWindow.GetControl(
+    g_ActiveWindow.DefControl )).EnableButton('tmSpectate', not Spectator);
+end;
+
+procedure ProcJoinRed();
+begin
+  if not (gGameSettings.GameType in [GT_CUSTOM, GT_SERVER, GT_CLIENT]) then
+    Exit;
+  if g_Game_IsServer then
+  begin
+    if gPlayer1 = nil then
+      g_Game_AddPlayer(TEAM_RED)
+    else
+    begin
+      if gPlayer1.Team <> TEAM_RED then
+      begin
+        gPlayer1.SwitchTeam;
+        gPlayer1Settings.Team := gPlayer1.Team;
+      end;
+
+      if g_Game_IsNet then MH_SEND_PlayerSettings(gPlayer1.UID);
+    end;
+  end
+  else
+  begin
+    gPlayer1Settings.Team := TEAM_RED;
+    MC_SEND_PlayerSettings;
+    if gPlayer1 = nil then
+      g_Game_AddPlayer(TEAM_RED);
+  end;
+  g_ActiveWindow := nil;
+  g_Game_Pause(False);
+end;
+
+procedure ProcJoinBlue();
+begin
+  if not (gGameSettings.GameType in [GT_CUSTOM, GT_SERVER, GT_CLIENT]) then
+    Exit;
+  if g_Game_IsServer then
+  begin
+    if gPlayer1 = nil then
+      g_Game_AddPlayer(TEAM_BLUE)
+    else
+    begin
+      if gPlayer1.Team <> TEAM_BLUE then
+      begin
+        gPlayer1.SwitchTeam;
+        gPlayer1Settings.Team := gPlayer1.Team;
+      end;
+
+      if g_Game_IsNet then MH_SEND_PlayerSettings(gPlayer1.UID);
+    end;
+  end
+  else
+  begin
+    gPlayer1Settings.Team := TEAM_BLUE;
+    MC_SEND_PlayerSettings;
+    if gPlayer1 = nil then
+      g_Game_AddPlayer(TEAM_BLUE);
+  end;
+  g_ActiveWindow := nil;
+  g_Game_Pause(False);
+end;
+
+procedure ProcJoinGame();
+begin
+  if not (gGameSettings.GameType in [GT_CUSTOM, GT_SERVER, GT_CLIENT]) then
+    Exit;
+  if gPlayer1 = nil then
+    g_Game_AddPlayer();
+  g_ActiveWindow := nil;
+  g_Game_Pause(False);
+end;
+
+procedure ProcSwitchP2();
+begin
+  if not (gGameSettings.GameType in [GT_CUSTOM, GT_SERVER]) then
+    Exit;
+  if gPlayer1 = nil then
+    Exit;
+  if gPlayer2 = nil then
+    g_Game_AddPlayer()
+  else
+    g_Game_RemovePlayer();
+  g_ActiveWindow := nil;
+  g_Game_Pause(False);
+end;
+
+procedure ProcSpectate();
+begin
+  if not (gGameSettings.GameType in [GT_CUSTOM, GT_SERVER, GT_CLIENT]) then
+    Exit;
+  g_Game_Spectate();
+  g_ActiveWindow := nil;
+  g_Game_Pause(False);
 end;
 
 procedure ProcRestartMenuKeyDown(Key: Byte);
@@ -1693,6 +1820,16 @@ begin
       MaxLength := 2;
       Text := IntToStr(NetMaxClients);
     end;
+    with AddSwitch(_lc[I_NET_USE_MASTER]) do
+    begin
+      Name := 'swUseMaster';
+      AddItem(_lc[I_MENU_YES]);
+      AddItem(_lc[I_MENU_NO]);
+      if NetUseMaster then
+        ItemIndex := 0
+      else
+        ItemIndex := 1;
+    end;
     AddSpace();
     with AddLabel(_lc[I_MENU_MAP]) do
     begin
@@ -1708,13 +1845,14 @@ begin
       AddItem(_lc[I_MENU_GAME_TYPE_TDM]);
       AddItem(_lc[I_MENU_GAME_TYPE_CTF]);
       AddItem(_lc[I_MENU_GAME_TYPE_COOP]);
-      ItemIndex := 0;
-      if gnGameMode = _lc[I_MENU_GAME_TYPE_TDM] then
-        ItemIndex := 1;
-      if gnGameMode = _lc[I_MENU_GAME_TYPE_CTF] then
-        ItemIndex := 2;
-      if gnGameMode = _lc[I_MENU_GAME_TYPE_COOP] then
-        ItemIndex := 3;
+      case g_Game_TextToMode(gnGameMode) of
+        GM_NONE,
+        GM_DM:   ItemIndex := 0;
+        GM_TDM:  ItemIndex := 1;
+        GM_CTF:  ItemIndex := 2;
+        GM_SINGLE,
+        GM_COOP: ItemIndex := 3;
+      end;
       OnChange := ProcSwitchMonstersNet;
     end;
     with AddEdit(_lc[I_MENU_TIME_LIMIT]) do
@@ -1743,6 +1881,14 @@ begin
       MaxLength := 3;
       if gnMaxLives > 0 then
         Text := IntToStr(gnMaxLives);
+    end;
+    with AddSwitch(_lc[I_MENU_SERVER_PLAYERS]) do
+    begin
+      Name := 'swPlayers';
+      AddItem(_lc[I_MENU_COUNT_NONE]);
+      AddItem(_lc[I_MENU_PLAYERS_ONE]);
+      AddItem(_lc[I_MENU_PLAYERS_TWO]);
+      ItemIndex := gnPlayers;
     end;
     with AddSwitch(_lc[I_MENU_TEAM_DAMAGE]) do
     begin
@@ -1811,7 +1957,7 @@ begin
 
     AddButton(@ProcServerlist, _lc[I_NET_SLIST]);
     AddSpace();
-  
+
     with AddEdit(_lc[I_NET_ADDRESS]) do
     begin
       Name := 'edIP';
@@ -1899,13 +2045,14 @@ begin
       AddItem(_lc[I_MENU_GAME_TYPE_TDM]);
       AddItem(_lc[I_MENU_GAME_TYPE_CTF]);
       AddItem(_lc[I_MENU_GAME_TYPE_COOP]);
-      ItemIndex := 0;
-      if gcGameMode = _lc[I_MENU_GAME_TYPE_TDM] then
-        ItemIndex := 1;
-      if gcGameMode = _lc[I_MENU_GAME_TYPE_CTF] then
-        ItemIndex := 2;
-      if gcGameMode = _lc[I_MENU_GAME_TYPE_COOP] then
-        ItemIndex := 3;
+      case g_Game_TextToMode(gcGameMode) of
+        GM_NONE,
+        GM_DM:   ItemIndex := 0;
+        GM_TDM:  ItemIndex := 1;
+        GM_CTF:  ItemIndex := 2;
+        GM_SINGLE,
+        GM_COOP: ItemIndex := 3;
+      end;
       OnChange := ProcSwitchMonstersCustom;
     end;
     with AddEdit(_lc[I_MENU_TIME_LIMIT]) do
@@ -1938,11 +2085,10 @@ begin
     with AddSwitch(_lc[I_MENU_PLAYERS]) do
     begin
       Name := 'swPlayers';
+      AddItem(_lc[I_MENU_COUNT_NONE]);
       AddItem(_lc[I_MENU_PLAYERS_ONE]);
       AddItem(_lc[I_MENU_PLAYERS_TWO]);
-      ItemIndex := 0;
-      if gcPlayers = 2 then
-        ItemIndex := 1;
+      ItemIndex := gcPlayers;
     end;
     with AddSwitch(_lc[I_MENU_TEAM_DAMAGE]) do
     begin
@@ -2344,6 +2490,7 @@ begin
     AddKeyRead(_lc[I_MENU_CONTROL_SCREENSHOT]).Name := _lc[I_MENU_CONTROL_SCREENSHOT];
     AddKeyRead(_lc[I_MENU_CONTROL_STAT]).Name := _lc[I_MENU_CONTROL_STAT];
     AddKeyRead(_lc[I_MENU_CONTROL_CHAT]).Name := _lc[I_MENU_CONTROL_CHAT];
+    AddKeyRead(_lc[I_MENU_CONTROL_TEAMCHAT]).Name := _lc[I_MENU_CONTROL_TEAMCHAT];
     AddSpace();
     AddButton(nil, _lc[I_MENU_PLAYER_1], 'OptionsControlsP1Menu');
     AddButton(nil, _lc[I_MENU_PLAYER_2], 'OptionsControlsP2Menu');
@@ -2591,6 +2738,7 @@ begin
   with TGUIMainMenu(Menu.AddChild(TGUIMainMenu.Create(gMenuFont, _lc[I_MENU_MAIN_MENU]))) do
   begin
     Name := 'mmGameCustomMenu';
+    AddButton(nil, _lc[I_MENU_CHANGE_PLAYERS], 'TeamMenu');
     AddButton(nil, _lc[I_MENU_LOAD_GAME], 'LoadMenu');
     AddButton(nil, _lc[I_MENU_SAVE_GAME], 'SaveMenu').Name := 'save';
     AddButton(@ReadGameSettings, _lc[I_MENU_SET_GAME], 'GameSetGameMenu');
@@ -2608,6 +2756,7 @@ begin
   with TGUIMainMenu(Menu.AddChild(TGUIMainMenu.Create(gMenuFont, _lc[I_MENU_MAIN_MENU]))) do
   begin
     Name := 'mmGameServerMenu';
+    AddButton(nil, _lc[I_MENU_CHANGE_PLAYERS], 'TeamMenu');
     AddButton(@ReadGameSettings, _lc[I_MENU_SET_GAME], 'GameSetGameMenu');
     AddButton(@ReadOptions, _lc[I_MENU_OPTIONS], 'OptionsMenu');
     AddButton(nil, _lc[I_MENU_RESTART], 'RestartGameMenu');
@@ -2623,6 +2772,7 @@ begin
   with TGUIMainMenu(Menu.AddChild(TGUIMainMenu.Create(gMenuFont, _lc[I_MENU_MAIN_MENU]))) do
   begin
     Name := 'mmGameClientMenu';
+    AddButton(nil, _lc[I_MENU_CHANGE_PLAYERS], 'TeamMenu');
     AddButton(@ReadOptions, _lc[I_MENU_OPTIONS], 'OptionsMenu');
     AddButton(nil, _lc[I_MENU_END_GAME], 'EndGameMenu');
   end;
@@ -2631,7 +2781,7 @@ begin
   Menu.OnClose := ProcGMClose;
   Menu.OnShow := ProcGMShow;
   g_GUI_AddWindow(Menu);
- 
+
   Menu := TGUIWindow.Create('ClientPasswordMenu');
   with TGUIMenu(Menu.AddChild(TGUIMenu.Create(gMenuSmallFont, gMenuSmallFont, _lc[I_MENU_ENTERPASSWORD]))) do
   begin
@@ -2691,10 +2841,24 @@ begin
       ItemIndex := 2;
     end;
 
-    ReAlign();               
+    ReAlign();
   end;
   Menu.DefControl := 'mGameSetGameMenu';
   Menu.OnClose := ProcApplyGameSet;
+  g_GUI_AddWindow(Menu);
+
+  Menu := TGUIWindow.Create('TeamMenu');
+  with TGUIMainMenu(Menu.AddChild(TGUIMainMenu.Create(gMenuFont, _lc[I_MENU_CHANGE_PLAYERS]))) do
+  begin
+    Name := 'mmTeamMenu';
+    AddButton(@ProcJoinRed, _lc[I_MENU_JOIN_RED], '').Name := 'tmJoinRed';
+    AddButton(@ProcJoinBlue, _lc[I_MENU_JOIN_BLUE], '').Name := 'tmJoinBlue';
+    AddButton(@ProcJoinGame, _lc[I_MENU_JOIN_GAME], '').Name := 'tmJoinGame';
+    AddButton(@ProcSwitchP2, _lc[I_MENU_ADD_PLAYER_2], '').Name := 'tmPlayer2';
+    AddButton(@ProcSpectate, _lc[I_MENU_SPECTATE], '').Name := 'tmSpectate';
+  end;
+  Menu.DefControl := 'mmTeamMenu';
+  Menu.OnShow := ProcChangePlayers;
   g_GUI_AddWindow(Menu);
 end;
 

@@ -16,7 +16,7 @@ type
     MaxLives: Byte;
     Options: LongWord;
     WAD: String;
-  end;
+  end;                                          
 
   TGameEvent = record
     Name: String;
@@ -49,14 +49,20 @@ procedure g_Game_Draw();
 procedure g_Game_Quit();
 procedure g_Game_SetupScreenSize();
 procedure g_Game_ChangeResolution(newWidth, newHeight: Word; nowFull, nowMax: Boolean);
-procedure g_Game_StartSingle(WAD, MAP: String; TwoPlayers: Boolean; nPlayers: Byte);
-procedure g_Game_StartServer(Map: String; GameMode: Byte; TimeLimit, GoalLimit: Word; MaxLives: Byte; Options: LongWord; Port: Word);
-procedure g_Game_StartClient(Addr: String; Port: Word; PW: String = 'ASS');
+function  g_Game_ModeToText(Mode: Byte): string;
+function  g_Game_TextToMode(Mode: string): Byte;
+procedure g_Game_AddPlayer(Team: Byte = TEAM_NONE);
+procedure g_Game_RemovePlayer();
+procedure g_Game_Spectate();
+procedure g_Game_SpectateCenterView();
+procedure g_Game_StartSingle(Map: String; TwoPlayers: Boolean; nPlayers: Byte);
 procedure g_Game_StartCustom(Map: String; GameMode: Byte; TimeLimit, GoalLimit: Word; MaxLives: Byte; Options: LongWord; nPlayers: Byte);
+procedure g_Game_StartServer(Map: String; GameMode: Byte; TimeLimit, GoalLimit: Word; MaxLives: Byte; Options: LongWord; nPlayers: Byte; IPAddr: LongWord; Port: Word);
+procedure g_Game_StartClient(Addr: String; Port: Word; PW: String);
 procedure g_Game_Restart();
 procedure g_Game_RestartLevel();
 procedure g_Game_RestartRound(NoMapRestart: Boolean = False);
-procedure g_Game_LoadWAD(NewWAD: String; WHash: TMD5Digest);
+procedure g_Game_ClientWAD(NewWAD: String; WHash: TMD5Digest);
 procedure g_Game_SaveOptions();
 function  g_Game_StartMap(Map: String; Force: Boolean = False): Boolean;
 procedure g_Game_ChangeMap(MapPath: String);
@@ -101,7 +107,7 @@ const
   GT_CUSTOM = 2;
   GT_SERVER = 3;
   GT_CLIENT = 4;
-  
+
   GM_NONE = 0;
   GM_DM   = 1;
   GM_TDM  = 2;
@@ -135,6 +141,11 @@ const
   STATE_ENDPIC      = 7;
   STATE_SLIST       = 8;
 
+  SPECT_NONE    = 0;
+  SPECT_STATS   = 1;
+  SPECT_MAPVIEW = 2;
+  SPECT_PLAYERS = 3;
+
   CONFIG_FILENAME = 'Doom2DF.cfg';
   LOG_FILENAME = 'Doom2DF.log';
 
@@ -155,9 +166,12 @@ var
   gPlayer2: TPlayer = nil;
   gPlayerDrawn: TPlayer = nil;
   gTime: LongWord;
+  gSwitchGameMode: Byte = GM_DM;
   gSoundTriggerTime: Word = 0;
+  gDefInterTime: ShortInt = -1;
   gInterEndTime: LongWord = 0;
   gInterTime: LongWord = 0;
+  gServInterTime: Byte = 0;
   gGameStartTime: LongWord = 0;
   gTotalMonsters: Integer = 0;
   gPause: Boolean;
@@ -172,6 +186,15 @@ var
   gState: Byte = STATE_NONE;
   sX, sY: Integer;
   sWidth, sHeight: Word;
+  gSpectMode: Byte = SPECT_NONE;
+  gSpectHUD: Boolean = True;
+  gSpectKeyPress: Boolean = False;
+  gSpectX: Integer = 0;
+  gSpectY: Integer = 0;
+  gSpectStep: Byte = 8;
+  gSpectViewTwo: Boolean = False;
+  gSpectPID1: Integer = -1;
+  gSpectPID2: Integer = -1;
   gMusic: TMusic = nil;
   gLoadGameMode: Boolean;
   gCheats: Boolean = False;
@@ -194,6 +217,7 @@ var
   g_debug_MonsterOff: Boolean = False;
   g_debug_BotAIOff: Byte = 0;
   g_debug_HealthBar: Boolean = False;
+  g_Debug_Player: Boolean = False;
   gCoopMonstersKilled: Word = 0;
   gCoopSecretsFound: Word = 0;
   gCoopTotalMonstersKilled: Word = 0;
@@ -202,6 +226,7 @@ var
   gCoopTotalSecrets: Word = 0;
   gStatsOff: Boolean = False;
   gStatsPressed: Boolean = False;
+  gExitByTrigger: Boolean = False;
   gNextMap: String = '';
   gLMSRespawn: Boolean = False;
   gLMSRespawnTime: Cardinal = 0;
@@ -343,6 +368,49 @@ begin
       end;
 end;
 
+function g_Game_ModeToText(Mode: Byte): string;
+begin
+  Result := '';
+  case Mode of
+    GM_DM:   Result := _lc[I_MENU_GAME_TYPE_DM];
+    GM_TDM:  Result := _lc[I_MENU_GAME_TYPE_TDM];
+    GM_CTF:  Result := _lc[I_MENU_GAME_TYPE_CTF];
+    GM_COOP: Result := _lc[I_MENU_GAME_TYPE_COOP];
+    GM_SINGLE: Result := _lc[I_MENU_GAME_TYPE_SINGLE];
+  end;
+end;
+
+function g_Game_TextToMode(Mode: string): Byte;
+begin
+  Result := GM_NONE;
+  Mode := UpperCase(Mode);
+  if Mode = _lc[I_MENU_GAME_TYPE_DM] then
+  begin
+    Result := GM_DM;
+    Exit;
+  end;
+  if Mode = _lc[I_MENU_GAME_TYPE_TDM] then
+  begin
+    Result := GM_TDM;
+    Exit;
+  end;
+  if Mode = _lc[I_MENU_GAME_TYPE_CTF] then
+  begin
+    Result := GM_CTF;
+    Exit;
+  end;
+  if Mode = _lc[I_MENU_GAME_TYPE_COOP] then
+  begin
+    Result := GM_COOP;
+    Exit;
+  end;
+  if Mode = _lc[I_MENU_GAME_TYPE_SINGLE] then
+  begin
+    Result := GM_SINGLE;
+    Exit;
+  end;
+end;
+
 function g_Game_IsNet(): Boolean;
 begin
   Result := (gGameSettings.GameType in [GT_SERVER, GT_CLIENT]);
@@ -350,7 +418,7 @@ end;
 
 function g_Game_IsServer(): Boolean;
 begin
-  Result := (gGameSettings.GameType in [GT_SERVER, GT_SINGLE, GT_CUSTOM]);
+  Result := (gGameSettings.GameType in [GT_SINGLE, GT_CUSTOM, GT_SERVER]);
 end;
 
 function g_Game_IsClient(): Boolean;
@@ -388,7 +456,7 @@ begin
   FreeMem(p);
 end;
 
-procedure FreeMegaWAD();
+procedure g_Game_FreeWAD();
 var
   a: Integer;
 begin
@@ -410,9 +478,10 @@ begin
   g_Sound_Delete('MUSIC_endmus');
 
   ZeroMemory(@MegaWAD, SizeOf(MegaWAD));
+  gGameSettings.WAD := '';
 end;
 
-procedure LoadMegaWAD(WAD: string);
+procedure g_Game_LoadWAD(WAD: string);
 var
   w: TWADEditor_1;
   cfg: TConfig;
@@ -420,12 +489,15 @@ var
   {b, }len: Integer;
   s: string;
 begin
-  FreeMegaWAD();
+  g_Game_FreeWAD();
+  gGameSettings.WAD := WAD;
+  if not (gGameSettings.GameMode in [GM_COOP, GM_SINGLE]) then
+    Exit;
 
-  MegaWAD.info := g_Game_GetMegaWADInfo(WAD);
+  MegaWAD.info := g_Game_GetMegaWADInfo(MapsDir + WAD);
 
   w := TWADEditor_1.Create();
-  w.ReadFile(WAD);
+  w.ReadFile(MapsDir + WAD);
 
   if not w.GetResource('', 'INTERSCRIPT', p, len) then
   begin
@@ -465,14 +537,14 @@ begin
   if MegaWAD.endpic <> '' then
   begin
     g_ProcessResourceStr(MegaWAD.endpic, @s, nil, nil);
-    if s = '' then s := WAD else s := GameDir+'\wads\';
+    if s = '' then s := MapsDir+WAD else s := GameDir+'\wads\';
     g_Texture_CreateWADEx('TEXTURE_endpic', s+MegaWAD.endpic);
   end;
   MegaWAD.endmus := cfg.ReadStr('megawad', 'endmus', 'Standart.wad:D2DMUS\КОНЕЦ');
   if MegaWAD.endmus <> '' then
   begin
     g_ProcessResourceStr(MegaWAD.endmus, @s, nil, nil);
-    if s = '' then s := WAD else s := GameDir+'\wads\';
+    if s = '' then s := MapsDir+WAD else s := GameDir+'\wads\';
     g_Sound_CreateWADEx('MUSIC_endmus', s+MegaWAD.endmus, True);
   end;
 
@@ -557,10 +629,24 @@ begin
           end
         else
           begin // Выход в главное меню
-            g_GUI_ShowWindow('MainMenu');
             gMusic.SetByName('MUSIC_MENU');
             gMusic.Play();
-            gState := STATE_MENU;
+            if gState <> STATE_SLIST then
+            begin
+              g_GUI_ShowWindow('MainMenu');
+              gState := STATE_MENU;
+            end else
+            begin
+              // Обновляем список серверов
+              slReturnPressed := True;
+              if g_Net_Slist_Fetch(slCurrent) then
+              begin
+                if slCurrent = nil then
+                  slWaitStr := _lc[I_NET_SLIST_NOSERVERS];
+              end
+              else
+                slWaitStr := _lc[I_NET_SLIST_ERROR];
+            end;
 
             ExecuteGameEvent('ongameend');
           end;
@@ -580,7 +666,7 @@ begin
         CustomStat.Map := ExtractFileName(FileName)+':'+ResName;
         CustomStat.MapName := gMapInfo.Name;
         CustomStat.GameMode := gGameSettings.GameMode;
-        if gGameSettings.GameMode in [GM_CTF, GM_TDM] then
+        if gGameSettings.GameMode in [GM_TDM, GM_CTF] then
           CustomStat.TeamStat := gTeamStat;
 
         CustomStat.PlayerStat := nil;
@@ -613,14 +699,17 @@ begin
         EndingGameCounter := 255;
         gState := STATE_FOLD;
         gInterTime := 0;
-        gInterEndTime := IfThen((gGameSettings.GameType = GT_SERVER) and NetDedicated, 15000, 25000);
+        if gDefInterTime < 0 then
+          gInterEndTime := IfThen((gGameSettings.GameType = GT_SERVER) and (gPlayer1 = nil), 15000, 25000)
+        else
+          gInterEndTime := gDefInterTime * 1000;
       end;
 
     EXIT_ENDLEVELSINGLE: // Закончился уровень в Одиночной игре
       begin
       // Статистика Одиночной игры:
         SingleStat.GameTime := gTime;
-        SingleStat.TwoPlayers := LongBool(gGameSettings.Options and GAME_OPTION_TWOPLAYER);
+        SingleStat.TwoPlayers := gPlayer2 <> nil;
         SingleStat.TotalSecrets := gSecretsCount;
       // Статистика первого игрока:
         SingleStat.PlayerStat[0].Kills := gPlayer1.MonsterKills;
@@ -673,7 +762,7 @@ begin
   e_TextureFontGetSize(gStdFont, cw, ch);
 
   w := gScreenWidth-(gScreenWidth div 5);
-  if gGameSettings.GameMode in [GM_CTF, GM_TDM] then
+  if gGameSettings.GameMode in [GM_TDM, GM_CTF] then
     h := 32+ch*(11+pc)
   else
     h := 40+ch*5+(ch+8)*pc;
@@ -759,7 +848,7 @@ begin
   w4 := w3;
   w1 := w-16-w2-w3-w4; // оставшееся пространство - для цвета и имени игрока
 
-  if gGameSettings.GameMode in [GM_CTF, GM_TDM] then
+  if gGameSettings.GameMode in [GM_TDM, GM_CTF] then
   begin
     _y := _y+ch+ch;
 
@@ -942,8 +1031,91 @@ begin
   g_Player_RemoveAllCorpses();
 
   gGameSettings.GameType := GT_NONE;
+  if gGameSettings.GameMode = GM_SINGLE then
+    gGameSettings.GameMode := GM_DM;
+  gSwitchGameMode := gGameSettings.GameMode;
 
   gChatShow := False;
+  gExitByTrigger := False;
+end;
+
+function IsActivePlayer(p: TPlayer): Boolean;
+begin
+  Result := False;
+  if p = nil then
+    Exit;
+  Result := (not p.FDummy) and (not p.FSpectator);
+end;
+
+function GetActivePlayer_ByID(ID: Integer): TPlayer;
+var
+  a: Integer;
+begin
+  Result := nil;
+  if ID < 0 then
+    Exit;
+  if gPlayers = nil then
+    Exit;
+  for a := Low(gPlayers) to High(gPlayers) do
+    if IsActivePlayer(gPlayers[a]) then
+    begin
+      if gPlayers[a].UID <> ID then
+        continue;
+      Result := gPlayers[a];
+      break;
+    end;
+end;
+
+function GetActivePlayerID_Next(Skip: Integer = -1): Integer;
+var
+  a, idx: Integer;
+  ids: Array of Word;
+begin
+  Result := -1;
+  if gPlayers = nil then
+    Exit;
+  SetLength(ids, 0);
+  idx := -1;
+  for a := Low(gPlayers) to High(gPlayers) do
+    if IsActivePlayer(gPlayers[a]) then
+    begin
+      SetLength(ids, Length(ids) + 1);
+      ids[High(ids)] := gPlayers[a].UID;
+      if gPlayers[a].UID = Skip then
+        idx := High(ids);
+    end;
+  if Length(ids) = 0 then
+    Exit;
+  if idx = -1 then
+    Result := ids[0]
+  else
+    Result := ids[(idx + 1) mod Length(ids)];
+end;
+
+function GetActivePlayerID_Prev(Skip: Integer = -1): Integer;
+var
+  a, idx: Integer;
+  ids: Array of Word;
+begin
+  Result := -1;
+  if gPlayers = nil then
+    Exit;
+  SetLength(ids, 0);
+  idx := -1;
+  for a := Low(gPlayers) to High(gPlayers) do
+    if IsActivePlayer(gPlayers[a]) then
+    begin
+      SetLength(ids, Length(ids) + 1);
+      ids[High(ids)] := gPlayers[a].UID;
+      if gPlayers[a].UID = Skip then
+        idx := High(ids);
+    end;
+  if Length(ids) = 0 then
+    Exit;
+  if idx = -1 then
+    Result := ids[Length(ids) - 1]
+  else
+    Result := ids[(Length(ids) - 1 + idx) mod Length(ids)];
 end;
 
 procedure g_Game_Update();
@@ -983,7 +1155,15 @@ begin
     STATE_INTERPIC: // Картинка между уровнями
       begin
         if g_Game_IsNet and g_Game_IsServer then
+        begin
           gInterTime := gInterTime + GAME_TICK;
+          a := Min((gInterEndTime - gInterTime) div 1000 + 1, 255);
+          if a <> gServInterTime then
+          begin
+            gServInterTime := a;
+            MH_SEND_TimeSync(gServInterTime);
+          end;
+        end;
 
         if (not g_Game_IsClient) and
         (
@@ -1081,9 +1261,20 @@ begin
   if g_Game_IsNet then
     if not gConsoleShow then
       if not gChatShow then
+      begin
         if g_ActiveWindow = nil then
+        begin
           if e_KeyBuffer[gGameControls.GameControls.Chat] = $080 then
-            g_Console_Chat_Switch();
+            g_Console_Chat_Switch(False)
+          else if (e_KeyBuffer[gGameControls.GameControls.TeamChat] = $080) and
+                  (gGameSettings.GameMode in [GM_TDM, GM_CTF]) then
+            g_Console_Chat_Switch(True);
+        end;
+      end else
+        if not gChatEnter then
+          if (e_KeyBuffer[gGameControls.GameControls.Chat] <> $080)
+          and (e_KeyBuffer[gGameControls.GameControls.TeamChat] <> $080) then
+            gChatEnter := True;
 
 // Статистика по Tab:
   if gGameOn then
@@ -1127,6 +1318,12 @@ begin
         gVotePassed := False;
       end;
 
+    // Замеряем время захвата флагов
+      if gFlags[FLAG_RED].State = FLAG_STATE_CAPTURED then
+        gFlags[FLAG_RED].CaptureTime := gFlags[FLAG_RED].CaptureTime + GAME_TICK;
+      if gFlags[FLAG_BLUE].State = FLAG_STATE_CAPTURED then
+        gFlags[FLAG_BLUE].CaptureTime := gFlags[FLAG_BLUE].CaptureTime + GAME_TICK;
+
     // Был задан лимит побед:
       if (gGameSettings.GoalLimit > 0) then
       begin
@@ -1140,7 +1337,7 @@ begin
                   b := gPlayers[i].Frags;
           end
         else
-          if gGameSettings.GameMode in [GM_CTF, GM_TDM] then
+          if gGameSettings.GameMode in [GM_TDM, GM_CTF] then
           begin // В CTF/TDM выбираем команду с наибольшим счетом
             b := Max(gTeamStat[TEAM_RED].Goals, gTeamStat[TEAM_BLUE].Goals);
           end;
@@ -1156,49 +1353,50 @@ begin
     // Обрабатываем клавиши игроков:
       if gPlayer1 <> nil then gPlayer1.ReleaseKeys();
       if gPlayer2 <> nil then gPlayer2.ReleaseKeys();
-      if (not gConsoleShow) and (not gChatShow) and (g_ActiveWindow = nil) and (gPlayer1 <> nil) then
+      if (not gConsoleShow) and (not gChatShow) and (g_ActiveWindow = nil) then
       begin
-        with gGameControls.P1Control do
-        begin
-          if (e_KeyBuffer[KeyLeft] = $080) and (e_KeyBuffer[KeyRight] <> $080) then
-            P1MoveButton := 1 // Нажата только "Влево"
-          else
-            if (e_KeyBuffer[KeyLeft] <> $080) and (e_KeyBuffer[KeyRight] = $080) then
-              P1MoveButton := 2 // Нажата только "Вправо"
+      // Первый игрок:
+        if gPlayer1 <> nil then
+          with gGameControls.P1Control do
+          begin
+            if (e_KeyBuffer[KeyLeft] = $080) and (e_KeyBuffer[KeyRight] <> $080) then
+              P1MoveButton := 1 // Нажата только "Влево"
             else
-              if (e_KeyBuffer[KeyLeft] <> $080) and (e_KeyBuffer[KeyRight] <> $080) then
-                P1MoveButton := 0; // Не нажаты ни "Влево", ни "Вправо"
+              if (e_KeyBuffer[KeyLeft] <> $080) and (e_KeyBuffer[KeyRight] = $080) then
+                P1MoveButton := 2 // Нажата только "Вправо"
+              else
+                if (e_KeyBuffer[KeyLeft] <> $080) and (e_KeyBuffer[KeyRight] <> $080) then
+                  P1MoveButton := 0; // Не нажаты ни "Влево", ни "Вправо"
 
-        // Сейчас или раньше были нажаты "Влево"/"Вправо" => передаем игроку:
-          if P1MoveButton = 1 then
-            gPlayer1.PressKey(KEY_LEFT)
-          else
-          if P1MoveButton = 2 then
-            gPlayer1.PressKey(KEY_RIGHT);
-
-        // Раньше была нажата "Вправо", а сейчас "Влево" => бежим вправо, смотрим влево:
-          if (P1MoveButton = 2) and (e_KeyBuffer[KeyLeft] = $080) then
-            gPlayer1.SetDirection(D_LEFT)
-          else
-          // Раньше была нажата "Влево", а сейчас "Вправо" => бежим влево, смотрим вправо:
-            if (P1MoveButton = 1) and (e_KeyBuffer[KeyRight] = $080) then
-              gPlayer1.SetDirection(D_RIGHT)
+          // Сейчас или раньше были нажаты "Влево"/"Вправо" => передаем игроку:
+            if P1MoveButton = 1 then
+              gPlayer1.PressKey(KEY_LEFT)
             else
-            // Что-то было нажато и не изменилось => куда бежим, туда и смотрим:
-              if P1MoveButton <> 0 then
-                gPlayer1.SetDirection(TDirection(P1MoveButton-1));
+            if P1MoveButton = 2 then
+              gPlayer1.PressKey(KEY_RIGHT);
 
-        // Остальные клавиши:
-          if e_KeyBuffer[KeyJump] = $080 then gPlayer1.PressKey(KEY_JUMP);
-          if e_KeyBuffer[KeyUp] = $080 then gPlayer1.PressKey(KEY_UP);
-          if e_KeyBuffer[KeyDown] = $080 then gPlayer1.PressKey(KEY_DOWN);
-          if e_KeyBuffer[KeyFire] = $080 then gPlayer1.PressKey(KEY_FIRE);
-          if e_KeyBuffer[KeyNextWeapon] = $080 then gPlayer1.PressKey(KEY_NEXTWEAPON);
-          if e_KeyBuffer[KeyPrevWeapon] = $080 then gPlayer1.PressKey(KEY_PREVWEAPON);
-          if e_KeyBuffer[KeyOpen] = $080 then gPlayer1.PressKey(KEY_OPEN);
-        end;
+          // Раньше была нажата "Вправо", а сейчас "Влево" => бежим вправо, смотрим влево:
+            if (P1MoveButton = 2) and (e_KeyBuffer[KeyLeft] = $080) then
+              gPlayer1.SetDirection(D_LEFT)
+            else
+            // Раньше была нажата "Влево", а сейчас "Вправо" => бежим влево, смотрим вправо:
+              if (P1MoveButton = 1) and (e_KeyBuffer[KeyRight] = $080) then
+                gPlayer1.SetDirection(D_RIGHT)
+              else
+              // Что-то было нажато и не изменилось => куда бежим, туда и смотрим:
+                if P1MoveButton <> 0 then
+                  gPlayer1.SetDirection(TDirection(P1MoveButton-1));
 
-      // Второй игрок (если есть):
+          // Остальные клавиши:
+            if e_KeyBuffer[KeyJump] = $080 then gPlayer1.PressKey(KEY_JUMP);
+            if e_KeyBuffer[KeyUp] = $080 then gPlayer1.PressKey(KEY_UP);
+            if e_KeyBuffer[KeyDown] = $080 then gPlayer1.PressKey(KEY_DOWN);
+            if e_KeyBuffer[KeyFire] = $080 then gPlayer1.PressKey(KEY_FIRE);
+            if e_KeyBuffer[KeyNextWeapon] = $080 then gPlayer1.PressKey(KEY_NEXTWEAPON);
+            if e_KeyBuffer[KeyPrevWeapon] = $080 then gPlayer1.PressKey(KEY_PREVWEAPON);
+            if e_KeyBuffer[KeyOpen] = $080 then gPlayer1.PressKey(KEY_OPEN);
+          end;
+      // Второй игрок:
         if gPlayer2 <> nil then
           with gGameControls.P2Control do
           begin
@@ -1246,6 +1444,97 @@ begin
 
     end; // if server
 
+  // Наблюдатель
+    if (gPlayer1 = nil) and (gPlayer2 = nil) and
+       (not gConsoleShow) and (not gChatShow) and (g_ActiveWindow = nil) then
+    begin
+      if not gSpectKeyPress then
+      begin
+        if e_KeyBuffer[gGameControls.P1Control.KeyJump] = $080 then
+        begin
+          // switch spect mode
+          case gSpectMode of
+            SPECT_NONE: ; // not spectator
+            SPECT_STATS,
+            SPECT_MAPVIEW: Inc(gSpectMode);
+            SPECT_PLAYERS: gSpectMode := SPECT_STATS; // reset to 1
+          end;
+          gSpectKeyPress := True;
+        end;
+        if gSpectMode = SPECT_MAPVIEW then
+        begin
+          if e_KeyBuffer[gGameControls.P1Control.KeyLeft] = $080 then
+            gSpectX := Max(gSpectX - gSpectStep, 0);
+          if e_KeyBuffer[gGameControls.P1Control.KeyRight] = $080 then
+            gSpectX := Min(gSpectX + gSpectStep, gMapInfo.Width - gScreenWidth);
+          if e_KeyBuffer[gGameControls.P1Control.KeyUp] = $080 then
+            gSpectY := Max(gSpectY - gSpectStep, 0);
+          if e_KeyBuffer[gGameControls.P1Control.KeyDown] = $080 then
+            gSpectY := Min(gSpectY + gSpectStep, gMapInfo.Height - gScreenHeight);
+          if e_KeyBuffer[gGameControls.P1Control.KeyPrevWeapon] = $080 then
+          begin
+            // decrease step
+            if gSpectStep > 4 then gSpectStep := gSpectStep shr 1;
+            gSpectKeyPress := True;
+          end;
+          if e_KeyBuffer[gGameControls.P1Control.KeyNextWeapon] = $080 then
+          begin
+            // increase step
+            if gSpectStep < 64 then gSpectStep := gSpectStep shl 1;
+            gSpectKeyPress := True;
+          end;
+        end;
+        if gSpectMode = SPECT_PLAYERS then
+        begin
+          if e_KeyBuffer[gGameControls.P1Control.KeyUp] = $080 then
+          begin
+            // add second view
+            gSpectViewTwo := True;
+            gSpectKeyPress := True;
+          end;
+          if e_KeyBuffer[gGameControls.P1Control.KeyDown] = $080 then
+          begin
+            // remove second view
+            gSpectViewTwo := False;
+            gSpectKeyPress := True;
+          end;
+          if e_KeyBuffer[gGameControls.P1Control.KeyLeft] = $080 then
+          begin
+            // prev player (view 1)
+            gSpectPID1 := GetActivePlayerID_Prev(gSpectPID1);
+            gSpectKeyPress := True;
+          end;
+          if e_KeyBuffer[gGameControls.P1Control.KeyRight] = $080 then
+          begin
+            // next player (view 1)
+            gSpectPID1 := GetActivePlayerID_Next(gSpectPID1);
+            gSpectKeyPress := True;
+          end;
+          if e_KeyBuffer[gGameControls.P1Control.KeyPrevWeapon] = $080 then
+          begin
+            // prev player (view 2)
+            gSpectPID2 := GetActivePlayerID_Prev(gSpectPID2);
+            gSpectKeyPress := True;
+          end;
+          if e_KeyBuffer[gGameControls.P1Control.KeyNextWeapon] = $080 then
+          begin
+            // next player (view 2)
+            gSpectPID2 := GetActivePlayerID_Next(gSpectPID2);
+            gSpectKeyPress := True;
+          end;
+        end;
+      end
+      else
+        if (e_KeyBuffer[gGameControls.P1Control.KeyJump] <> $080) and
+           (e_KeyBuffer[gGameControls.P1Control.KeyLeft] <> $080) and
+           (e_KeyBuffer[gGameControls.P1Control.KeyRight] <> $080) and
+           (e_KeyBuffer[gGameControls.P1Control.KeyUp] <> $080) and
+           (e_KeyBuffer[gGameControls.P1Control.KeyDown] <> $080) and
+           (e_KeyBuffer[gGameControls.P1Control.KeyPrevWeapon] <> $080) and
+           (e_KeyBuffer[gGameControls.P1Control.KeyNextWeapon] <> $080) then
+          gSpectKeyPress := False;
+    end;
+
   // Обновляем все остальное:
     g_Map_Update();
     g_Items_Update();
@@ -1269,7 +1558,7 @@ begin
       gSoundTriggerTime := 0;
     end
     else
-      Inc(gSoundTriggerTime); 
+      Inc(gSoundTriggerTime);
 
     if (NetMode = NET_SERVER) then
     begin
@@ -1303,7 +1592,7 @@ begin
       end
       else if NetTimeToUpdate >= NetUpdateRate then
       begin
-        if gPlayers <> nil then 
+        if gPlayers <> nil then
           for I := 0 to High(gPlayers) do
             if gPlayers[I] <> nil then
               MH_SEND_PlayerPos(False, gPlayers[I].UID);
@@ -1429,8 +1718,12 @@ begin
   g_Texture_CreateWADEx('TEXTURE_PLAYER_HUDJET', GameWAD+':TEXTURES\JETBAR');
   g_Texture_CreateWADEx('TEXTURE_PLAYER_HUDBG', GameWAD+':TEXTURES\HUDBG');
   g_Texture_CreateWADEx('TEXTURE_PLAYER_ARMORHUD', GameWAD+':TEXTURES\ARMORHUD');
-  g_Texture_CreateWADEx('TEXTURE_PLAYER_REDFLAG', GameWAD+':TEXTURES\FLAGREDS');
-  g_Texture_CreateWADEx('TEXTURE_PLAYER_BLUEFLAG', GameWAD+':TEXTURES\FLAGBLUES');
+  g_Texture_CreateWADEx('TEXTURE_PLAYER_REDFLAG', GameWAD+':TEXTURES\FLAGHUD_RB');
+  g_Texture_CreateWADEx('TEXTURE_PLAYER_REDFLAG_S', GameWAD+':TEXTURES\FLAGHUD_RS');
+  g_Texture_CreateWADEx('TEXTURE_PLAYER_REDFLAG_D', GameWAD+':TEXTURES\FLAGHUD_RD');
+  g_Texture_CreateWADEx('TEXTURE_PLAYER_BLUEFLAG', GameWAD+':TEXTURES\FLAGHUD_BB');
+  g_Texture_CreateWADEx('TEXTURE_PLAYER_BLUEFLAG_S', GameWAD+':TEXTURES\FLAGHUD_BS');
+  g_Texture_CreateWADEx('TEXTURE_PLAYER_BLUEFLAG_D', GameWAD+':TEXTURES\FLAGHUD_BD');
   g_Frames_CreateWAD(nil, 'FRAMES_TELEPORT', GameWAD+':TEXTURES\TELEPORT', 64, 64, 10, False);
   g_Sound_CreateWADEx('SOUND_GAME_TELEPORT', GameWAD+':SOUNDS\TELEPORT');
   g_Sound_CreateWADEx('SOUND_GAME_DOOROPEN', GameWAD+':SOUNDS\DOOROPEN');
@@ -1461,7 +1754,11 @@ begin
   g_Texture_Delete('TEXTURE_PLAYER_HUDBG');
   g_Texture_Delete('TEXTURE_PLAYER_ARMORHUD');
   g_Texture_Delete('TEXTURE_PLAYER_REDFLAG');
+  g_Texture_Delete('TEXTURE_PLAYER_REDFLAG_S');
+  g_Texture_Delete('TEXTURE_PLAYER_REDFLAG_D');
   g_Texture_Delete('TEXTURE_PLAYER_BLUEFLAG');
+  g_Texture_Delete('TEXTURE_PLAYER_BLUEFLAG_S');
+  g_Texture_Delete('TEXTURE_PLAYER_BLUEFLAG_D');
   g_Frames_DeleteByName('FRAMES_TELEPORT');
   g_Sound_Delete('SOUND_GAME_TELEPORT');
   g_Sound_Delete('SOUND_GAME_DOOROPEN');
@@ -1520,12 +1817,22 @@ begin
 
   e_CharFont_GetSize(gMenuFont, topstr, ww1, hh1);
   e_CharFont_Print(gMenuFont, (gScreenWidth div 2)-(ww1 div 2), 16, topstr);
+
+  if g_Game_IsNet then
+  begin
+    topstr := Format(_lc[I_MENU_INTER_TIME], [gServInterTime]);
+    if not gChatShow then
+      e_TextureFontPrintEx((gScreenWidth div 2)-(Length(topstr)*ww2 div 2),
+                           gScreenHeight-(hh2+4)*2, topstr, gStdFont, 255, 255, 255, 1);
+  end;
+
   if g_Game_IsClient then
     topstr := _lc[I_MENU_INTER8]
   else
     topstr := _lc[I_MENU_INTER9];
-  e_TextureFontPrintEx((gScreenWidth div 2)-(Length(topstr)*ww2 div 2),
-                       gScreenHeight-hh2-4,topstr, gStdFont, 255, 255, 255, 1);
+  if not gChatShow then
+    e_TextureFontPrintEx((gScreenWidth div 2)-(Length(topstr)*ww2 div 2),
+                         gScreenHeight-(hh2+4), topstr, gStdFont, 255, 255, 255, 1);
 
   x := 32;
   y := 16+hh1+16;
@@ -1609,7 +1916,7 @@ begin
     end;
   end;
 
-  if CustomStat.GameMode in [GM_CTF, GM_TDM] then
+  if CustomStat.GameMode in [GM_TDM, GM_CTF] then
   begin
     _y := _y+16+16;
 
@@ -1689,7 +1996,7 @@ begin
           r := 127
         else
           r := 255;
-      
+
         e_TextureFontPrintEx(x+8+16+8, _y+4, Name, gStdFont, r, r, r, 1, True);
         e_TextureFontPrintEx(x+w1+8+16+8, _y+4, IntToStr(Frags), gStdFont, r, r, r, 1, True);
         e_TextureFontPrintEx(x+w1+w2+8+16+8, _y+4, IntToStr(Deaths), gStdFont, r, r, r, 1, True);
@@ -2016,6 +2323,48 @@ begin
   end;
 end;
 
+procedure DrawMapView(x, y, w, h: Integer);
+var
+  bx, by: Integer;
+begin
+  glPushMatrix();
+
+  bx := Round(x/(gMapInfo.Width - w)*(gBackSize.X - w));
+  by := Round(y/(gMapInfo.Height - h)*(gBackSize.Y - h));
+  g_Map_DrawBack(-bx, -by);
+
+  sX := x;
+  sY := y;
+  sWidth := w;
+  sHeight := h;
+
+  glTranslatef(-x, -y, 0);
+
+  g_Map_DrawPanels(PANEL_BACK);
+  g_Map_DrawPanels(PANEL_STEP);
+  g_Items_Draw();
+  g_Weapon_Draw();
+  g_Player_DrawShells();
+  g_Player_DrawAll();
+  g_Player_DrawCorpses();
+  g_Map_DrawPanels(PANEL_WALL);
+  g_Monsters_Draw();
+  g_Map_DrawPanels(PANEL_CLOSEDOOR);
+  g_GFX_Draw();
+  g_Map_DrawFlags();
+  g_Map_DrawPanels(PANEL_ACID1);
+  g_Map_DrawPanels(PANEL_ACID2);
+  g_Map_DrawPanels(PANEL_WATER);
+  g_Map_DrawPanels(PANEL_FORE);
+  if g_debug_HealthBar then
+  begin
+    g_Monsters_DrawHealth();
+    g_Player_DrawHealth();
+  end;
+
+  glPopMatrix();
+end;
+
 procedure DrawPlayer(p: TPlayer);
 var
   px, py, a, b, c, d: Integer;
@@ -2122,8 +2471,8 @@ begin
   g_Map_DrawPanels(PANEL_FORE);
   if g_debug_HealthBar then
   begin
-    g_Monsters_DrawDebug();
-    g_Player_DrawDebug();
+    g_Monsters_DrawHealth();
+    g_Player_DrawHealth();
   end;
 
   if p.FSpectator then
@@ -2154,6 +2503,8 @@ begin
   p.DrawRulez();
   if gShowMap then
     DrawMinimap(p, Rect(0, 0, 128, 128));
+  if g_Debug_Player then
+    g_Player_DrawDebug(p);
   p.DrawGUI();
 end;
 
@@ -2161,8 +2512,11 @@ procedure g_Game_Draw();
 var
   ID: DWORD;
   w, h: Word;
+  ww, hh: Byte;
   Time: Int64;
   back: string;
+  plView1, plView2: TPlayer;
+  Split: Boolean;
 begin
   if gExit = EXIT_QUIT then Exit;
 
@@ -2174,56 +2528,165 @@ begin
     FPSCounter := 0;
     FPSTime := Time;
   end;
- 
+
   if gGameOn or (gState = STATE_FOLD) then
   begin
-    if LongBool(gGameSettings.Options and GAME_OPTION_TWOPLAYER) then
-      e_SetViewPort(0, gPlayerScreenSize.Y+1, gPlayerScreenSize.X+196, gPlayerScreenSize.Y);
-
-    if LongBool(gGameSettings.Options and GAME_OPTION_TWOPLAYER) and gRevertPlayers then
+    if (gPlayer1 <> nil) and (gPlayer2 <> nil) then
     begin
-      DrawPlayer(gPlayer2);
-      gPlayer2ScreenCoord.X := sX;
-      gPlayer2ScreenCoord.Y := sY;
-    end
-    else
-    begin
-      DrawPlayer(gPlayer1);
-      gPlayer1ScreenCoord.X := sX;
-      gPlayer1ScreenCoord.Y := sY;
-    end;
-
-    if LongBool(gGameSettings.Options and GAME_OPTION_TWOPLAYER) then
-    begin
-      e_SetViewPort(0, 0, gPlayerScreenSize.X+196, gPlayerScreenSize.Y);
-
-      if gRevertPlayers then
+      gSpectMode := SPECT_NONE;
+      if not gRevertPlayers then
       begin
-        DrawPlayer(gPlayer1);
-        gPlayer1ScreenCoord.X := sX;
-        gPlayer1ScreenCoord.Y := sY;
+        plView1 := gPlayer1;
+        plView2 := gPlayer2;
       end
       else
       begin
-        DrawPlayer(gPlayer2);
+        plView1 := gPlayer2;
+        plView2 := gPlayer1;
+      end;
+    end
+    else
+      if (gPlayer1 <> nil) or (gPlayer2 <> nil) then
+      begin
+        gSpectMode := SPECT_NONE;
+        if gPlayer2 = nil then
+          plView1 := gPlayer1
+        else
+          plView1 := gPlayer2;
+        plView2 := nil;
+      end
+      else
+      begin
+        plView1 := nil;
+        plView2 := nil;
+      end;
+
+    if (plView1 = nil) and (plView2 = nil) and (gSpectMode = SPECT_NONE) then
+      gSpectMode := SPECT_STATS;
+
+    if gSpectMode = SPECT_PLAYERS then
+      if gPlayers <> nil then
+      begin
+        plView1 := GetActivePlayer_ByID(gSpectPID1);
+        if plView1 = nil then
+        begin
+          gSpectPID1 := GetActivePlayerID_Next();
+          plView1 := GetActivePlayer_ByID(gSpectPID1);
+        end;
+        if gSpectViewTwo then
+        begin
+          plView2 := GetActivePlayer_ByID(gSpectPID2);
+          if plView2 = nil then
+          begin
+            gSpectPID2 := GetActivePlayerID_Next();
+            plView2 := GetActivePlayer_ByID(gSpectPID2);
+          end;
+        end;
+      end;
+
+    if gSpectMode = SPECT_MAPVIEW then
+    begin
+    // Режим просмотра карты
+      Split := False;
+      e_SetViewPort(0, 0, gScreenWidth, gScreenHeight);
+      DrawMapView(gSpectX, gSpectY, gScreenWidth, gScreenHeight);
+    end
+    else
+    begin
+      Split := (plView1 <> nil) and (plView2 <> nil);
+
+    // Размер экранов игроков:
+      gPlayerScreenSize.X := gScreenWidth-196;
+      if Split then
+      begin
+        gPlayerScreenSize.Y := gScreenHeight div 2;
+        if gScreenHeight mod 2 = 0 then
+          Dec(gPlayerScreenSize.Y);
+      end
+      else
+        gPlayerScreenSize.Y := gScreenHeight;
+
+      if Split then
+        if gScreenHeight mod 2 = 0 then
+          e_SetViewPort(0, gPlayerScreenSize.Y+2, gPlayerScreenSize.X+196, gPlayerScreenSize.Y)
+        else
+          e_SetViewPort(0, gPlayerScreenSize.Y+1, gPlayerScreenSize.X+196, gPlayerScreenSize.Y);
+
+      DrawPlayer(plView1);
+      gPlayer1ScreenCoord.X := sX;
+      gPlayer1ScreenCoord.Y := sY;
+
+      if Split then
+      begin
+        e_SetViewPort(0, 0, gPlayerScreenSize.X+196, gPlayerScreenSize.Y);
+
+        DrawPlayer(plView2);
         gPlayer2ScreenCoord.X := sX;
         gPlayer2ScreenCoord.Y := sY;
       end;
+
+      e_SetViewPort(0, 0, gScreenWidth, gScreenHeight);
+
+      if Split then
+        e_DrawLine(2, 0, gScreenHeight div 2, gScreenWidth, gScreenHeight div 2, 0, 0, 0);
     end;
-
-    e_SetViewPort(0, 0, gScreenWidth, gScreenHeight);
-
-    if LongBool(gGameSettings.Options and GAME_OPTION_TWOPLAYER) then
-      e_DrawLine(2, 0, gScreenHeight div 2, gScreenWidth, gScreenHeight div 2, 0, 0, 0);
 
     if MessageText <> '' then
     begin
-      e_CharFont_GetSize(gMenuFont, MessageText, w, h);
-      e_CharFont_Print(gMenuFont, (gScreenWidth div 2)-(w div 2),
-                      (gScreenHeight div 2)-(h div 2), MessageText);
+      w := 0;
+      h := 0;
+      e_CharFont_GetSizeFmt(gMenuFont, MessageText, w, h);
+      if Split then
+        e_CharFont_PrintFmt(gMenuFont, (gScreenWidth div 2)-(w div 2),
+                        (gScreenHeight div 2)-(h div 2), MessageText)
+      else
+        e_CharFont_PrintFmt(gMenuFont, (gScreenWidth div 2)-(w div 2),
+                  Round(gScreenHeight / 2.75)-(h div 2), MessageText);
     end;
 
-    if IsDrawStat or ((gGameSettings.GameType = GT_SERVER) and NetDedicated) then DrawStat();
+    if IsDrawStat or (gSpectMode = 1) then DrawStat();
+
+    if gSpectHUD and (not gChatShow) and (gSpectMode <> SPECT_NONE) then
+    begin
+    // Draw spectator GUI
+      ww := 0;
+      hh := 0;
+      e_TextureFontGetSize(gStdFont, ww, hh);
+      case gSpectMode of
+        SPECT_STATS:
+          e_TextureFontPrintEx(0, gScreenHeight - (hh+2)*2, 'MODE: Stats', gStdFont, 255, 255, 255, 1);
+        SPECT_MAPVIEW:
+          e_TextureFontPrintEx(0, gScreenHeight - (hh+2)*2, 'MODE: Observe Map', gStdFont, 255, 255, 255, 1);
+        SPECT_PLAYERS:
+          e_TextureFontPrintEx(0, gScreenHeight - (hh+2)*2, 'MODE: Watch Players', gStdFont, 255, 255, 255, 1);
+      end;
+      e_TextureFontPrintEx(2*ww, gScreenHeight - (hh+2), '< jump >', gStdFont, 255, 255, 255, 1);
+      if gSpectMode = SPECT_MAPVIEW then
+      begin
+        e_TextureFontPrintEx(22*ww, gScreenHeight - (hh+2)*2, '[-]', gStdFont, 255, 255, 255, 1);
+        e_TextureFontPrintEx(26*ww, gScreenHeight - (hh+2)*2, 'Step ' + IntToStr(gSpectStep), gStdFont, 255, 255, 255, 1);
+        e_TextureFontPrintEx(34*ww, gScreenHeight - (hh+2)*2, '[+]', gStdFont, 255, 255, 255, 1);
+        e_TextureFontPrintEx(18*ww, gScreenHeight - (hh+2), '<prev weap>', gStdFont, 255, 255, 255, 1);
+        e_TextureFontPrintEx(30*ww, gScreenHeight - (hh+2), '<next weap>', gStdFont, 255, 255, 255, 1);
+      end;
+      if gSpectMode = SPECT_PLAYERS then
+      begin
+        e_TextureFontPrintEx(22*ww, gScreenHeight - (hh+2)*2, 'Player 1', gStdFont, 255, 255, 255, 1);
+        e_TextureFontPrintEx(20*ww, gScreenHeight - (hh+2), '<left/right>', gStdFont, 255, 255, 255, 1);
+        if gSpectViewTwo then
+        begin
+          e_TextureFontPrintEx(37*ww, gScreenHeight - (hh+2)*2, 'Player 2', gStdFont, 255, 255, 255, 1);
+          e_TextureFontPrintEx(34*ww, gScreenHeight - (hh+2), '<prev w/next w>', gStdFont, 255, 255, 255, 1);
+          e_TextureFontPrintEx(52*ww, gScreenHeight - (hh+2)*2, '2x View', gStdFont, 255, 255, 255, 1);
+          e_TextureFontPrintEx(51*ww, gScreenHeight - (hh+2), '<up/down>', gStdFont, 255, 255, 255, 1);
+        end
+        else
+        begin
+          e_TextureFontPrintEx(35*ww, gScreenHeight - (hh+2)*2, '2x View', gStdFont, 255, 255, 255, 1);
+          e_TextureFontPrintEx(34*ww, gScreenHeight - (hh+2), '<up/down>', gStdFont, 255, 255, 255, 1);
+        end;
+      end;
+    end;
   end;
 
   if gPause and gGameOn and (g_ActiveWindow = nil) then
@@ -2389,11 +2852,11 @@ var
 begin
 // Размер экранов игроков:
   gPlayerScreenSize.X := gScreenWidth-196;
-  if LongBool(gGameSettings.Options and GAME_OPTION_TWOPLAYER) then
+  if (gPlayer1 <> nil) and (gPlayer2 <> nil) then
     gPlayerScreenSize.Y := gScreenHeight div 2
   else
     gPlayerScreenSize.Y := gScreenHeight;
-    
+
 // Размер заднего плана:
   if BackID <> DWORD(-1) then
   begin
@@ -2462,7 +2925,7 @@ begin
       sz.Y := newHeight + 2*gWinFrameY + gWinCaption;
 
       gWinMaximized := nowMax;
-      
+
       SetWindowPos(h_Wnd, HWND_TOP,
                    gWinRealPosX, gWinRealPosY, sz.X, sz.Y,
                    SWP_SHOWWINDOW);
@@ -2472,7 +2935,136 @@ begin
     end;
 end;
 
-procedure g_Game_StartSingle(WAD, MAP: String; TwoPlayers: Boolean; nPlayers: Byte);
+procedure g_Game_AddPlayer(Team: Byte = TEAM_NONE);
+begin
+  if ((not gGameOn) and (gState <> STATE_INTERCUSTOM))
+  or (not (gGameSettings.GameType in [GT_CUSTOM, GT_SERVER, GT_CLIENT])) then
+    Exit;
+  if gPlayer1 = nil then
+  begin
+    if g_Game_IsClient then
+    begin
+      if NetPlrUID1 > -1 then
+      begin
+        MC_SEND_CheatRequest(NET_CHEAT_SPECTATE);
+        gPlayer1 := g_Player_Get(NetPlrUID1);
+      end;
+      Exit;
+    end;
+
+    if not (Team in [TEAM_RED, TEAM_BLUE]) then
+      Team := gPlayer1Settings.Team;
+
+    // Создание первого игрока:
+    gPlayer1 := g_Player_Get(g_Player_Create(gPlayer1Settings.Model,
+                                             gPlayer1Settings.Color,
+                                             Team, False,
+                                             PLAYERNUM_1));
+    if gPlayer1 = nil then
+      g_FatalError(Format(_lc[I_GAME_ERROR_PLAYER_CREATE], [1]))
+    else
+    begin
+      gPlayer1.Name := gPlayer1Settings.Name;
+      g_Console_Add(Format(_lc[I_PLAYER_JOIN], [gPlayer1.Name]), True);
+      if g_Game_IsServer and g_Game_IsNet then
+        MH_SEND_PlayerCreate(gPlayer1.UID);
+      gPlayer1.Respawn(False, True);
+
+      if g_Game_IsNet and NetUseMaster then
+        g_Net_Slist_Update;
+    end;
+
+    Exit;
+  end;
+  if gPlayer2 = nil then
+  begin
+    if g_Game_IsClient then
+    begin
+      if NetPlrUID2 > -1 then
+        gPlayer2 := g_Player_Get(NetPlrUID2);
+      Exit;
+    end;
+
+    if not (Team in [TEAM_RED, TEAM_BLUE]) then
+      Team := gPlayer2Settings.Team;
+
+    // Создание второго игрока:
+    gPlayer2 := g_Player_Get(g_Player_Create(gPlayer2Settings.Model,
+                                             gPlayer2Settings.Color,
+                                             Team, False,
+                                             PLAYERNUM_2));
+    if gPlayer2 = nil then
+      g_FatalError(Format(_lc[I_GAME_ERROR_PLAYER_CREATE], [2]))
+    else
+    begin
+      gPlayer2.Name := gPlayer2Settings.Name;
+      g_Console_Add(Format(_lc[I_PLAYER_JOIN], [gPlayer2.Name]), True);
+      if g_Game_IsServer and g_Game_IsNet then
+        MH_SEND_PlayerCreate(gPlayer2.UID);
+      gPlayer2.Respawn(False, True);
+
+      if g_Game_IsNet and NetUseMaster then
+        g_Net_Slist_Update;
+    end;
+
+    Exit;
+  end;
+end;
+
+procedure g_Game_RemovePlayer();
+begin
+  if ((not gGameOn) and (gState <> STATE_INTERCUSTOM))
+  or (not (gGameSettings.GameType in [GT_CUSTOM, GT_SERVER, GT_CLIENT])) then
+    Exit;
+  if gPlayer2 <> nil then
+  begin
+    if g_Game_IsServer then
+    begin
+      gPlayer2.Lives := 0;
+      gPlayer2.Kill(K_SIMPLEKILL, 0, HIT_DISCON);
+      g_Console_Add(Format(_lc[I_PLAYER_LEAVE], [gPlayer2.Name]), True);
+      g_Player_Remove(gPlayer2.UID);
+
+      if g_Game_IsNet and NetUseMaster then
+        g_Net_Slist_Update;
+    end else
+      gPlayer2 := nil;
+    Exit;
+  end;
+  if gPlayer1 <> nil then
+  begin
+    if g_Game_IsServer then
+    begin
+      gPlayer1.Lives := 0;
+      gPlayer1.Kill(K_SIMPLEKILL, 0, HIT_DISCON);
+      g_Console_Add(Format(_lc[I_PLAYER_LEAVE], [gPlayer1.Name]), True);
+      g_Player_Remove(gPlayer1.UID);
+
+      if g_Game_IsNet and NetUseMaster then
+        g_Net_Slist_Update;
+    end else
+    begin
+      gPlayer1 := nil;
+      MC_SEND_CheatRequest(NET_CHEAT_SPECTATE);
+    end;
+    Exit;
+  end;
+end;
+
+procedure g_Game_Spectate();
+begin
+  g_Game_RemovePlayer();
+  if gPlayer1 <> nil then
+    g_Game_RemovePlayer();
+end;
+
+procedure g_Game_SpectateCenterView();
+begin
+  gSpectX := Max(gMapInfo.Width div 2 - gScreenWidth div 2, 0);
+  gSpectY := Max(gMapInfo.Height div 2 - gScreenHeight div 2, 0);
+end;
+
+procedure g_Game_StartSingle(Map: String; TwoPlayers: Boolean; nPlayers: Byte);
 var
   i, nPl: Integer;
 begin
@@ -2494,12 +3086,9 @@ begin
   gGameSettings.Options := gGameSettings.Options + GAME_OPTION_ALLOWEXIT;
   gGameSettings.Options := gGameSettings.Options + GAME_OPTION_MONSTERS;
   gGameSettings.Options := gGameSettings.Options + GAME_OPTION_BOTVSMONSTER;
-  gGameSettings.WAD := WAD;
+  gSwitchGameMode := GM_SINGLE;
 
   ExecuteGameEvent('ongamestart');
-
-// Загружаем МегаВАД:
-  LoadMegaWAD(WAD);
 
 // Установка размеров окон игроков:
   g_Game_SetupScreenSize();
@@ -2507,7 +3096,7 @@ begin
 // Создание первого игрока:
   gPlayer1 := g_Player_Get(g_Player_Create(gPlayer1Settings.Model,
                                            gPlayer1Settings.Color,
-                                           TEAM_COOP, False,
+                                           gPlayer1Settings.Team, False,
                                            PLAYERNUM_1));
   if gPlayer1 = nil then
   begin
@@ -2523,7 +3112,7 @@ begin
   begin
     gPlayer2 := g_Player_Get(g_Player_Create(gPlayer2Settings.Model,
                                              gPlayer2Settings.Color,
-                                             TEAM_COOP, False,
+                                             gPlayer2Settings.Team, False,
                                              PLAYERNUM_2));
     if gPlayer2 = nil then
     begin
@@ -2538,8 +3127,7 @@ begin
 // Загрузка и запуск карты:
   if not g_Game_StartMap(MAP, True) then
   begin
-    g_FatalError(Format(_lc[I_GAME_ERROR_MAP_LOAD],
-                        [ExtractFileName(gGameSettings.WAD) + ':\' + MAP]));
+    g_FatalError(Format(_lc[I_GAME_ERROR_MAP_LOAD], [gGameSettings.WAD + ':\' + MAP]));
     Exit;
   end;
 
@@ -2556,8 +3144,6 @@ procedure g_Game_StartCustom(Map: String; GameMode: Byte;
                              MaxLives: Byte;
                              Options: LongWord; nPlayers: Byte);
 var
-  ResName: String;
-  Team: Byte;
   i, nPl: Integer;
 begin
   g_Game_Free();
@@ -2570,11 +3156,11 @@ begin
 // Настройки игры:
   gGameSettings.GameType := GT_CUSTOM;
   gGameSettings.GameMode := GameMode;
+  gSwitchGameMode := GameMode;
   gGameSettings.TimeLimit := TimeLimit;
   gGameSettings.GoalLimit := GoalLimit;
   gGameSettings.MaxLives := IfThen(GameMode = GM_CTF, 0, MaxLives);
   gGameSettings.Options := Options;
-  g_ProcessResourceStr(Map, @gGameSettings.WAD, nil, @ResName);
 
   gCoopTotalMonstersKilled := 0;
   gCoopTotalSecretsFound := 0;
@@ -2588,87 +3174,53 @@ begin
 // Установка размеров окон игроков:
   g_Game_SetupScreenSize();
 
-// Создание первого игрока:
-  if (gGameSettings.GameType = GT_SINGLE) then
-    begin
-      gPlayer1 := g_Player_Get(g_Player_Create(STD_PLAYER_MODEL,
-                                               PLAYER1_DEF_COLOR,
-                                               TEAM_COOP, False,
-                                               PLAYERNUM_1));
-    end
-  else
-    begin
-      if GameMode = GM_DM then
-        Team := TEAM_NONE
-      else
-        if GameMode = GM_COOP then
-          Team := TEAM_COOP
-        else
-          Team := gPlayer1Settings.Team;
-
-      gPlayer1 := g_Player_Get(g_Player_Create(gPlayer1Settings.Model,
-                                               gPlayer1Settings.Color,
-                                               Team, False,
-                                               PLAYERNUM_1));
-    end;
-
-  if gPlayer1 = nil then
+// Режим наблюдателя:
+  if nPlayers = 0 then
   begin
-    g_FatalError(Format(_lc[I_GAME_ERROR_PLAYER_CREATE], [1]));
-    Exit;
+    gPlayer1 := nil;
+    gPlayer2 := nil;
   end;
 
-  gPlayer1.Name := gPlayer1Settings.Name;
-  nPl := 1;
-
-// Создание второго игрока, если есть:
-  if LongBool(gGameSettings.Options and GAME_OPTION_TWOPLAYER) then
+  nPl := 0;
+  if nPlayers >= 1 then
   begin
-    if (gGameSettings.GameType = GT_SINGLE) then
-      begin
-        gPlayer2 := g_Player_Get(g_Player_Create(STD_PLAYER_MODEL,
-                                                 PLAYER2_DEF_COLOR,
-                                                 TEAM_COOP, False,
-                                                 PLAYERNUM_2));
-      end
-    else
-      begin
-        if GameMode = GM_DM then
-          Team := TEAM_NONE
-        else
-          if GameMode = GM_COOP then
-            Team := TEAM_COOP
-          else
-            Team := gPlayer2Settings.Team;
+  // Создание первого игрока:
+    gPlayer1 := g_Player_Get(g_Player_Create(gPlayer1Settings.Model,
+                                             gPlayer1Settings.Color,
+                                             gPlayer1Settings.Team, False,
+                                             PLAYERNUM_1));
+    if gPlayer1 = nil then
+    begin
+      g_FatalError(Format(_lc[I_GAME_ERROR_PLAYER_CREATE], [1]));
+      Exit;
+    end;
 
-        gPlayer2 := g_Player_Get(g_Player_Create(gPlayer2Settings.Model,
-                                                 gPlayer2Settings.Color,
-                                                 Team, False,
-                                                 PLAYERNUM_2));
-      end;
+    gPlayer1.Name := gPlayer1Settings.Name;
+    Inc(nPl);
+  end;
 
+  if nPlayers >= 2 then
+  begin
+  // Создание второго игрока:
+    gPlayer2 := g_Player_Get(g_Player_Create(gPlayer2Settings.Model,
+                                             gPlayer2Settings.Color,
+                                             gPlayer2Settings.Team, False,
+                                             PLAYERNUM_2));
     if gPlayer2 = nil then
     begin
       g_FatalError(Format(_lc[I_GAME_ERROR_PLAYER_CREATE], [2]));
       Exit;
     end;
 
+    gGameSettings.Options := gGameSettings.Options or GAME_OPTION_TWOPLAYER;
     gPlayer2.Name := gPlayer2Settings.Name;
     Inc(nPl);
   end;
 
 // Загрузка и запуск карты:
-  if not g_Game_StartMap(ResName, True) then
+  if not g_Game_StartMap(Map, True) then
   begin
-    g_FatalError(Format(_lc[I_GAME_ERROR_MAP_LOAD],
-                        [ExtractFileName(gGameSettings.WAD)+':\'+ResName]));
-    Exit;
-  end;
-
-// CTF, а флагов нет:
-  if (GameMode = GM_CTF) and not g_Map_HaveFlagPoints() then
-  begin
-    g_FatalError(_lc[I_GAME_ERROR_CTF]);
+    g_FatalError(Format(_lc[I_GAME_ERROR_MAP_LOAD], [Map]));
     Exit;
   end;
 
@@ -2693,10 +3245,8 @@ end;
 
 procedure g_Game_StartServer(Map: String; GameMode: Byte;
                              TimeLimit, GoalLimit: Word; MaxLives: Byte;
-                             Options: LongWord; Port: Word);
-var
-  ResName: String;
-  Team: Byte;
+                             Options: LongWord; nPlayers: Byte;
+                             IPAddr: LongWord; Port: Word);
 begin
   g_Game_Free();
 
@@ -2708,11 +3258,11 @@ begin
 // Настройки игры:
   gGameSettings.GameType := GT_SERVER;
   gGameSettings.GameMode := GameMode;
+  gSwitchGameMode := GameMode;
   gGameSettings.TimeLimit := TimeLimit;
   gGameSettings.GoalLimit := GoalLimit;
   gGameSettings.MaxLives := IfThen(GameMode = GM_CTF, 0, MaxLives);
   gGameSettings.Options := Options;
-  g_ProcessResourceStr(Map, @gGameSettings.WAD, nil, @ResName);
 
   gCoopTotalMonstersKilled := 0;
   gCoopTotalSecretsFound := 0;
@@ -2723,28 +3273,23 @@ begin
 
   ExecuteGameEvent('ongamestart');
 
-  if GameMode = GM_COOP then
-    LoadMegaWAD(gGameSettings.WAD);
-
 // Установка размеров окна игрока
   g_Game_SetupScreenSize();
 
-// Создание нашего игрока:
-  if not NetDedicated then
+// Режим наблюдателя:
+  if nPlayers = 0 then
   begin
-    if GameMode = GM_DM then
-      Team := TEAM_NONE
-    else
-      if GameMode = GM_COOP then
-        Team := TEAM_COOP
-      else
-        Team := gPlayer1Settings.Team;
+    gPlayer1 := nil;
+    gPlayer2 := nil;
+  end;
 
+  if nPlayers >= 1 then
+  begin
+  // Создание первого игрока:
     gPlayer1 := g_Player_Get(g_Player_Create(gPlayer1Settings.Model,
                                              gPlayer1Settings.Color,
-                                             Team, False,
+                                             gPlayer1Settings.Team, False,
                                              PLAYERNUM_1));
-
     if gPlayer1 = nil then
     begin
       g_FatalError(Format(_lc[I_GAME_ERROR_PLAYER_CREATE], [1]));
@@ -2752,26 +3297,27 @@ begin
     end;
 
     gPlayer1.Name := gPlayer1Settings.Name;
-  end
-  else
-  begin
-    gPlayer1 := g_Player_Get(g_Player_Create(STD_PLAYER_MODEL,
-                                             gPlayer1Settings.Color,
-                                             TEAM_NONE, False,
-                                             PLAYERNUM_1));
+  end;
 
-    if gPlayer1 = nil then
+  if nPlayers >= 2 then
+  begin
+  // Создание второго игрока:
+    gPlayer2 := g_Player_Get(g_Player_Create(gPlayer2Settings.Model,
+                                             gPlayer2Settings.Color,
+                                             gPlayer2Settings.Team, False,
+                                             PLAYERNUM_2));
+    if gPlayer2 = nil then
     begin
-      g_FatalError(Format(_lc[I_GAME_ERROR_PLAYER_CREATE], [1]));
+      g_FatalError(Format(_lc[I_GAME_ERROR_PLAYER_CREATE], [2]));
       Exit;
     end;
 
-    gPlayer1.Name := 'Server';
-    gPlayer1.FDummy := True;
+    gGameSettings.Options := gGameSettings.Options or GAME_OPTION_TWOPLAYER;
+    gPlayer2.Name := gPlayer2Settings.Name;
   end;
 
 // Стартуем сервер
-  if not g_Net_Host(Port, NetMaxClients) then
+  if not g_Net_Host(IPAddr, Port, NetMaxClients) then
   begin
     g_FatalError(_lc[I_NET_MSG] + _lc[I_NET_ERR_HOST]);
     Exit;
@@ -2780,19 +3326,9 @@ begin
   g_Net_Slist_Set(NetSlistIP, NetSlistPort);
 
 // Загрузка и запуск карты:
-  if not g_Game_StartMap(ResName, True) then
+  if not g_Game_StartMap(Map, True) then
   begin
-    g_FatalError(Format(_lc[I_GAME_ERROR_MAP_LOAD],
-                        [ExtractFileName(gGameSettings.WAD)+':\'+ResName]));
-    Exit;
-  end;
-
-  gWADHash := MD5File(gGameSettings.WAD);
-
-// CTF, а флагов нет:
-  if (GameMode = GM_CTF) and not g_Map_HaveFlagPoints() then
-  begin
-    g_FatalError(_lc[I_GAME_ERROR_CTF]);
+    g_FatalError(Format(_lc[I_GAME_ERROR_MAP_LOAD], [Map]));
     Exit;
   end;
 
@@ -2809,20 +3345,12 @@ begin
 
 // Настройки игроков и ботов:
   g_Player_Init();
-  if NetDedicated then
-  begin
-    gPlayer1.Live := False;
-    gPlayer1.Spectate;
-    gPlayer1.FWantsInGame := False;
-    gPlayer1.Lives := 0;
-  end;
 
   NetState := NET_STATE_GAME;
 end;
 
-procedure g_Game_StartClient(Addr: String; Port: Word; PW: String = 'ASS');
+procedure g_Game_StartClient(Addr: String; Port: Word; PW: String);
 var
-  ResName: String;
   Map: String;
   WadName: string;
   Ptr: Pointer;
@@ -2887,15 +3415,15 @@ begin
         if (MID = NET_MSG_INFO) and (State = 0) then
         begin
           NetMyID := e_Raw_Read_Byte(Ptr);
-          NetPlrUID := e_Raw_Read_Word(Ptr);
+          NetPlrUID1 := e_Raw_Read_Word(Ptr);
 
           WadName := e_Raw_Read_String(Ptr);
-          gGameSettings.WAD := MapsDir + WadName;
           Map := e_Raw_Read_String(Ptr);
 
           WHash := e_Raw_Read_MD5(Ptr);
 
           gGameSettings.GameMode := e_Raw_Read_Byte(Ptr);
+          gSwitchGameMode := gGameSettings.GameMode;
           gGameSettings.GoalLimit := e_Raw_Read_Word(Ptr);
           gGameSettings.TimeLimit := e_Raw_Read_Word(Ptr);
           gGameSettings.MaxLives := e_Raw_Read_Byte(Ptr);
@@ -2915,13 +3443,11 @@ begin
               Exit;
             end;
           end;
-
-          gGameSettings.WAD := newResPath;
-          ResName := Map;
+          newResPath := ExtractRelativePath(MapsDir, newResPath);
 
           gPlayer1 := g_Player_Get(g_Player_Create(gPlayer1Settings.Model,
                                                    gPlayer1Settings.Color,
-                                                   TEAM_NONE, False,
+                                                   gPlayer1Settings.Team, False,
                                                    0));
 
           if gPlayer1 = nil then
@@ -2934,16 +3460,12 @@ begin
           end;
 
           gPlayer1.Name := gPlayer1Settings.Name;
-          gPlayer1.UID := NetPlrUID;
+          gPlayer1.UID := NetPlrUID1;
           gPlayer1.Reset(True);
 
-          if gGameSettings.GameMode = GM_COOP then
-            LoadMegaWAD(gGameSettings.WAD);
-
-          if not g_Game_StartMap(ResName, True) then
+          if not g_Game_StartMap(newResPath + ':\' + Map, True) then
           begin
-            g_FatalError(Format(_lc[I_GAME_ERROR_MAP_LOAD],
-                        [ExtractFileName(gGameSettings.WAD)+':\'+ResName]));
+            g_FatalError(Format(_lc[I_GAME_ERROR_MAP_LOAD], [WadName + ':\' + Map]));
 
             enet_packet_destroy(NetEvent.packet);
             NetState := NET_STATE_NONE;
@@ -2964,7 +3486,7 @@ begin
         if (NetEvent.kind = ENET_EVENT_TYPE_DISCONNECT) then
         begin
           State := 0;
-          if (NetEvent.data <= 7) then
+          if (NetEvent.data <= NET_DISC_MAX) then
             g_Console_Add(_lc[I_NET_MSG_ERROR] + _lc[I_NET_ERR_CONN] + ' ' +
             _lc[TStrings_Locale(Cardinal(I_NET_DISC_NONE) + NetEvent.data)], True);
           OuterLoop := False;
@@ -2972,7 +3494,7 @@ begin
         end;
     end;
 
-    PreventWindowFromLockUp;
+    ProcessLoading();
 
     e_PollKeyboard();
     if (e_KeyBuffer[1] = $080) or (e_KeyBuffer[57] = $080) then
@@ -3005,24 +3527,19 @@ end;
 
 procedure g_Game_ChangeMap(MapPath: String);
 var
-  NewWAD, ResName: String;
+  Force: Boolean;
 begin
   g_Game_ClearLoading();
 
-  if Pos(':\', MapPath) > 0 then
+  Force := gGameSettings.GameMode in [GM_DM, GM_TDM, GM_CTF];
+  // Если уровень завершился по триггеру Выход, не очищать инвентарь
+  if gExitByTrigger then
   begin
-    g_ProcessResourceStr(MapsDir + MapPath, @NewWAD, nil, @ResName);
-    gWADHash := MD5File(NewWAD);
-    g_Game_LoadWAD(NewWAD, gWADHash);
-  end else
-    ResName := MapPath;
-
-  if g_Game_IsNet and g_Game_IsServer then
-    MH_SEND_GameEvent(NET_EV_MAPSTART, MapPath);
-
-  if not g_Game_StartMap(ResName, (gGameSettings.GameMode in [GM_DM, GM_TDM, GM_CTF])) then
-    g_FatalError(Format(_lc[I_GAME_ERROR_MAP_LOAD],
-                        [ExtractFileName(gGameSettings.WAD) + ':\' + ResName]));
+    Force := False;
+    gExitByTrigger := False;
+  end;
+  if not g_Game_StartMap(MapPath, Force) then
+    g_FatalError(Format(_lc[I_GAME_ERROR_MAP_LOAD], [MapPath]));
 end;
 
 procedure g_Game_Restart();
@@ -3033,22 +3550,47 @@ begin
     Exit;
   g_ProcessResourceStr(gMapInfo.Map, nil, nil, @Map);
 
+  MessageTime := 0;
   gGameOn := False;
   g_Game_ClearLoading();
   g_Game_StartMap(Map, True);
-
-  if g_Game_IsNet then
-    MH_SEND_GameEvent(NET_EV_MAPSTART, Map);
 end;
 
 function g_Game_StartMap(Map: String; Force: Boolean = False): Boolean;
 var
+  NewWAD, ResName: String;
   I: Integer;
 begin
   g_Map_Free();
   g_Player_RemoveAllCorpses();
 
-  Result := g_Map_Load(gGameSettings.WAD+':\'+Map);
+  if (not g_Game_IsClient) and
+     (gSwitchGameMode <> gGameSettings.GameMode) and
+     (gGameSettings.GameMode <> GM_SINGLE) then
+  begin
+    if gSwitchGameMode = GM_CTF then
+      gGameSettings.MaxLives := 0;
+    gGameSettings.GameMode := gSwitchGameMode;
+    Force := True;
+  end else
+    gSwitchGameMode := gGameSettings.GameMode;
+
+  g_Player_ResetTeams();
+
+  if Pos(':\', Map) > 0 then
+  begin
+    g_ProcessResourceStr(Map, @NewWAD, nil, @ResName);
+    if g_Game_IsServer then
+    begin
+      gWADHash := MD5File(MapsDir + NewWAD);
+      g_Game_LoadWAD(NewWAD);
+    end else
+      // hash recieved in MC_RECV_GameEvent -> NET_EV_MAPSTART 
+      g_Game_ClientWAD(NewWAD, gWADHash);
+  end else
+    ResName := Map;
+
+  Result := g_Map_Load(MapsDir + gGameSettings.WAD + ':\' + ResName);
   if Result then
     begin
       g_Player_ResetAll(Force or gLastMap, gGameSettings.GameType = GT_SINGLE);
@@ -3059,6 +3601,15 @@ begin
 
       DisableCheats();
       ResetTimer();
+
+      if gGameSettings.GameMode = GM_CTF then
+      begin
+        g_Map_ResetFlag(FLAG_RED);
+        g_Map_ResetFlag(FLAG_BLUE);
+        // CTF, а флагов нет:
+        if not g_Map_HaveFlagPoints() then
+          g_SimpleError(_lc[I_GAME_ERROR_CTF]);
+      end;
     end
   else
     begin
@@ -3089,6 +3640,8 @@ begin
 
   if not gGameOn then Exit;
 
+  g_Game_SpectateCenterView();
+
   if (gGameSettings.MaxLives > 0) and (gGameSettings.WarmupTime > 0) then
   begin
     gLMSRespawn := True;
@@ -3096,7 +3649,7 @@ begin
     gLMSSoftSpawn := True;
     if NetMode = NET_SERVER then
       MH_SEND_Chat(IntToStr((gLMSRespawnTime - gTime) div 1000) +
-                   _lc[I_PLAYER_SPECT5])
+                   _lc[I_PLAYER_SPECT5], NET_CHAT_SYSTEM)
     else
       g_Console_Add(IntToStr((gLMSRespawnTime - gTime) div 1000) +
                     _lc[I_PLAYER_SPECT5], True);
@@ -3104,6 +3657,8 @@ begin
 
   if NetMode = NET_SERVER then
   begin
+    MH_SEND_GameEvent(NET_EV_MAPSTART, Map);
+
   // Мастерсервер
     if NetUseMaster then
     begin
@@ -3125,6 +3680,8 @@ begin
             NetClients[I].RequestedFullUpdate := False;
           end;
         end;
+
+    g_Net_UnbanNonPermHosts();
   end;
 
   if gLastMap then
@@ -3143,7 +3700,7 @@ procedure SetFirstLevel();
 begin
   gNextMap := '';
 
-  MapList := g_Map_GetMapsList(gGameSettings.WAD);
+  MapList := g_Map_GetMapsList(MapsDir + gGameSettings.WAD);
   if MapList = nil then
     Exit;
 
@@ -3168,8 +3725,10 @@ begin
   else // Вышли в выход в Своей игре
   begin
     gExit := EXIT_ENDLEVELCUSTOM;
-    if gGameSettings.GameMode = GM_COOP then g_Player_RememberAll;
-    if not g_Map_Exist(gGameSettings.WAD + ':\' + gNextMap) then
+    if gGameSettings.GameMode = GM_COOP then
+      g_Player_RememberAll;
+
+    if not g_Map_Exist(MapsDir + gGameSettings.WAD + ':\' + gNextMap) then
     begin
       gLastMap := True;
       if gGameSettings.GameMode = GM_COOP then
@@ -3178,7 +3737,7 @@ begin
       gStatsPressed := True;
       gNextMap := 'MAP01';
 
-      if not g_Map_Exist(gGameSettings.WAD + ':\' + gNextMap) then
+      if not g_Map_Exist(MapsDir + gGameSettings.WAD + ':\' + gNextMap) then
         g_Game_NextLevel;
 
       if g_Game_IsNet then
@@ -3194,47 +3753,38 @@ procedure g_Game_RestartLevel();
 var
   Map: string;
 begin
-  if gGameSettings.GameMode <> GM_SINGLE then
-    gExit := EXIT_ENDLEVELCUSTOM
-  else
+  if gGameSettings.GameMode = GM_SINGLE then
   begin
     g_Game_Restart();
     Exit;
   end;
+  gExit := EXIT_ENDLEVELCUSTOM;
   g_ProcessResourceStr(gMapInfo.Map, nil, nil, @Map);
   gNextMap := Map;
 end;
 
-procedure g_Game_LoadWAD(NewWAD: String; WHash: TMD5Digest);
+procedure g_Game_ClientWAD(NewWAD: String; WHash: TMD5Digest);
 var
   gWAD: String;
 begin
   if LowerCase(NewWAD) = LowerCase(gGameSettings.WAD) then
     Exit;
-  with gGameSettings do
+  if not g_Game_IsClient then
+    Exit;
+  gWAD := g_Res_SearchSameWAD(MapsDir, ExtractFileName(NewWAD), WHash);
+  if gWAD = '' then
   begin
-    if g_Game_IsNet and g_Game_IsClient then
+    g_Game_SetLoadingText(_lc[I_LOAD_DL_RES], 0, False);
+    gWAD := g_Res_DownloadWAD(ExtractFileName(NewWAD));
+    if gWAD = '' then
     begin
-      gWAD := g_Res_SearchSameWAD(MapsDir, ExtractFileName(NewWAD), WHash);
-      if gWAD = '' then
-      begin
-        g_Game_SetLoadingText(_lc[I_LOAD_DL_RES], 0, False);
-        gWAD := g_Res_DownloadWAD(ExtractFileName(NewWAD));
-        if gWAD = '' then
-        begin
-          g_Game_Free();
-          g_FatalError(Format(_lc[I_GAME_ERROR_MAP_WAD], [ExtractFileName(NewWAD)]));
-          Exit;
-        end;
-      end;
-      NewWAD := gWAD;
+      g_Game_Free();
+      g_FatalError(Format(_lc[I_GAME_ERROR_MAP_WAD], [ExtractFileName(NewWAD)]));
+      Exit;
     end;
-
-    WAD := NewWAD;
-
-    if GameMode = GM_COOP then
-      LoadMegaWAD(WAD);
   end;
+  NewWAD := ExtractRelativePath(MapsDir, gWAD);
+  g_Game_LoadWAD(NewWAD);
 end;
 
 procedure g_Game_RestartRound(NoMapRestart: Boolean = False);
@@ -3245,7 +3795,8 @@ begin
   if not gLMSRespawn then Exit;
   gLMSRespawn := False;
   gLMSRespawnTime := 0;
-  
+  MessageTime := 0;
+
   if (gGameSettings.GameMode = GM_COOP) and not NoMapRestart then
   begin
     gMissionFailed := True;
@@ -3294,7 +3845,7 @@ begin
     gPlayers[i].FNoRespawn := False;
     gPlayers[i].Lives := gGameSettings.MaxLives;
     gPlayers[i].Respawn(False, True);
-    if (gGameSettings.GameMode = GM_COOP) then
+    if gGameSettings.GameMode = GM_COOP then
     begin
       gPlayers[i].Frags := 0;
       gPlayers[i].RecallState;
@@ -3348,7 +3899,7 @@ var
 begin
   Result := '';
 
-  MapList := g_Map_GetMapsList(gGameSettings.WAD);
+  MapList := g_Map_GetMapsList(MapsDir + gGameSettings.WAD);
   if MapList = nil then
     Exit;
 
@@ -3370,7 +3921,7 @@ begin
     else
       Result := MapList[MapIndex + 1];
 
-    if not g_Map_Exist(gGameSettings.WAD + ':\' + Result) then Result := Map;
+    if not g_Map_Exist(MapsDir + gGameSettings.WAD + ':\' + Result) then Result := Map;
   end;
 
   MapList := nil;
@@ -3498,7 +4049,7 @@ begin
         else
           Options := Options and (not GAME_OPTION_WEAPONSTAY);
       end;
-        
+
       if (LongBool(Options and GAME_OPTION_WEAPONSTAY)) then
         g_Console_Add(_lc[I_MSG_WEAPONSTAY_ON])
       else
@@ -3506,6 +4057,27 @@ begin
 
       if g_Game_IsNet then MH_SEND_GameSettings;
     end;
+  end
+  else if cmd = 'g_gamemode' then
+  begin
+    a := g_Game_TextToMode(P[1]);
+    if a = GM_SINGLE then a := GM_COOP;
+    if (Length(P) > 1) and (a <> GM_NONE) and (not g_Game_IsClient) then
+    begin
+      gSwitchGameMode := a;
+      if (gGameOn and (gGameSettings.GameMode = GM_SINGLE)) or
+         (gState = STATE_INTERSINGLE) then
+        gSwitchGameMode := GM_SINGLE;
+      if not gGameOn then
+        gGameSettings.GameMode := gSwitchGameMode;
+    end;
+    if gSwitchGameMode = gGameSettings.GameMode then
+      g_Console_Add(Format(_lc[I_MSG_GAMEMODE_CURRENT],
+                          [g_Game_ModeToText(gGameSettings.GameMode)]))
+    else
+      g_Console_Add(Format(_lc[I_MSG_GAMEMODE_CHANGE],
+                          [g_Game_ModeToText(gGameSettings.GameMode),
+                           g_Game_ModeToText(gSwitchGameMode)]));
   end
   else if (cmd = 'g_allow_exit') and not g_Game_IsClient then
   begin
@@ -3648,30 +4220,54 @@ begin
     config.SaveFile(GameDir+'\'+CONFIG_FILENAME);
     config.Free();
   end
+  else if cmd = 'sv_intertime' then
+  begin
+    if (Length(P) > 1) then
+      gDefInterTime := Min(Max(StrToIntDef(P[1], gDefInterTime), -1), 120);
+
+    g_Console_Add(cmd + ' = ' + IntToStr(gDefInterTime));
+  end
   else if cmd = 'p1_name' then
   begin
-    if (Length(P) > 1) and gGameOn and (gPlayer1 <> nil) then
+    if (Length(P) > 1) and gGameOn then
     begin
-      if not g_Game_IsClient then
+      if g_Game_IsClient then
       begin
-        gPlayer1.Name := P[1];
-        if g_Game_IsNet then MH_SEND_PlayerSettings(gPlayer1.UID);
-      end
-      else if not (g_Game_IsNet and NetDedicated) then
-      begin
-        gPlayer1Settings.Name := P[1];
+        gPlayer1Settings.Name := b_Text_Unformat(P[1]);
         MC_SEND_PlayerSettings;
-      end;
+      end
+      else
+        if gPlayer1 <> nil then
+        begin
+          gPlayer1.Name := b_Text_Unformat(P[1]);
+          if g_Game_IsNet then MH_SEND_PlayerSettings(gPlayer1.UID);
+        end
+        else
+          gPlayer1Settings.Name := b_Text_Unformat(P[1]);
     end;
   end
-  else if (cmd = 'p2_name') and not g_Game_IsNet then
+  else if cmd = 'p2_name' then
   begin
-    if (Length(P) > 1) and gGameOn and (gPlayer2 <> nil) then
-      gPlayer2.Name := P[1];
+    if (Length(P) > 1) and gGameOn then
+    begin
+      if g_Game_IsClient then
+      begin
+        gPlayer2Settings.Name := b_Text_Unformat(P[1]);
+        MC_SEND_PlayerSettings;
+      end
+      else
+        if gPlayer2 <> nil then
+        begin
+          gPlayer2.Name := b_Text_Unformat(P[1]);
+          if g_Game_IsNet then MH_SEND_PlayerSettings(gPlayer2.UID);
+        end
+        else
+          gPlayer2Settings.Name := b_Text_Unformat(P[1]);
+    end;
   end
   else if cmd = 'p1_color' then
   begin
-    if (gPlayer1 <> nil) and (Length(P) > 3) then
+    if Length(P) > 3 then
       if g_Game_IsClient then
       begin
         gPlayer1Settings.Color := _RGB(EnsureRange(StrToIntDef(P[1], 0), 0, 255),
@@ -3679,25 +4275,41 @@ begin
                                        EnsureRange(StrToIntDef(P[3], 0), 0, 255));
         MC_SEND_PlayerSettings;
       end
-      else if not (g_Game_IsNet and NetDedicated) then
-      begin
-        gPlayer1.Model.SetColor(EnsureRange(StrToIntDef(P[1], 0), 0, 255),
-                                EnsureRange(StrToIntDef(P[2], 0), 0, 255),
-                                EnsureRange(StrToIntDef(P[3], 0), 0, 255));
-        if g_Game_IsNet then MH_SEND_PlayerSettings(gPlayer1.UID);
-      end;
+      else
+        if gPlayer1 <> nil then
+        begin
+          gPlayer1.Model.SetColor(EnsureRange(StrToIntDef(P[1], 0), 0, 255),
+                                  EnsureRange(StrToIntDef(P[2], 0), 0, 255),
+                                  EnsureRange(StrToIntDef(P[3], 0), 0, 255));
+          if g_Game_IsNet then MH_SEND_PlayerSettings(gPlayer1.UID);
+        end
+        else
+          gPlayer1Settings.Color := _RGB(EnsureRange(StrToIntDef(P[1], 0), 0, 255),
+                                         EnsureRange(StrToIntDef(P[2], 0), 0, 255),
+                                         EnsureRange(StrToIntDef(P[3], 0), 0, 255));
   end
   else if (cmd = 'p2_color') and not g_Game_IsNet then
   begin
-    if (gPlayer2 <> nil) and (Length(P) > 3) then
+    if Length(P) > 3 then
       if g_Game_IsClient then
+      begin
         gPlayer2Settings.Color := _RGB(EnsureRange(StrToIntDef(P[1], 0), 0, 255),
                                        EnsureRange(StrToIntDef(P[2], 0), 0, 255),
-                                       EnsureRange(StrToIntDef(P[3], 0), 0, 255))
+                                       EnsureRange(StrToIntDef(P[3], 0), 0, 255));
+        MC_SEND_PlayerSettings;
+      end
       else
-        gPlayer2.Model.SetColor(EnsureRange(StrToIntDef(P[1], 0), 0, 255),
-                                EnsureRange(StrToIntDef(P[2], 0), 0, 255),
-                                EnsureRange(StrToIntDef(P[3], 0), 0, 255));
+        if gPlayer2 <> nil then
+        begin
+          gPlayer2.Model.SetColor(EnsureRange(StrToIntDef(P[1], 0), 0, 255),
+                                  EnsureRange(StrToIntDef(P[2], 0), 0, 255),
+                                  EnsureRange(StrToIntDef(P[3], 0), 0, 255));
+          if g_Game_IsNet then MH_SEND_PlayerSettings(gPlayer2.UID);
+        end
+        else
+          gPlayer2Settings.Color := _RGB(EnsureRange(StrToIntDef(P[1], 0), 0, 255),
+                                         EnsureRange(StrToIntDef(P[2], 0), 0, 255),
+                                         EnsureRange(StrToIntDef(P[3], 0), 0, 255));
   end
   else if gGameSettings.GameType in [GT_CUSTOM, GT_SERVER, GT_CLIENT] then
   begin
@@ -3756,6 +4368,17 @@ begin
       else
         g_Console_Add(_lc[I_MSG_LIVES_OFF]);
     end
+    else if cmd = 'r_showspect' then
+    begin
+      if (Length(P) > 1) and
+         ((P[1] = '1') or (P[1] = '0')) then
+        gSpectHUD := (P[1][1] = '1');
+
+      if gSpectHUD then
+        g_Console_Add(_lc[I_MSG_SPECT_HUD_ON])
+      else
+        g_Console_Add(_lc[I_MSG_SPECT_HUD_OFF]);
+    end
     else if (cmd = 'g_scorelimit') and not g_Game_IsClient then
     begin
       if Length(P) > 1 then
@@ -3787,18 +4410,8 @@ begin
     end
     else if (cmd = 'g_timelimit') and not g_Game_IsClient then
     begin
-      if Length(P) > 1 then
-      begin
-        if StrToIntDef(P[1], gGameSettings.TimeLimit) = 0 then
-          gGameSettings.TimeLimit := 0
-        else
-          begin
-          // 10 секунд на смену:
-            b := (gTime - gGameStartTime) div 1000 + 10;
-
-            gGameSettings.TimeLimit := Max(StrToIntDef(P[1], gGameSettings.TimeLimit), b);
-          end;
-      end;
+      if (Length(P) > 1) and (StrToIntDef(P[1], -1) >= 0) then
+        gGameSettings.TimeLimit := StrToIntDef(P[1], -1);
 
       g_Console_Add(Format(_lc[I_MSG_TIME_LIMIT],
                            [gGameSettings.TimeLimit div 3600,
@@ -3932,6 +4545,14 @@ begin
         g_debug_HealthBar := (P[1][1] = '1');
 
       g_Console_Add(Format('d_health is %d', [Byte(g_debug_HealthBar)]));
+    end
+    else if (cmd = 'd_player') then
+    begin
+      if (Length(P) > 1) and
+         ((P[1] = '1') or (P[1] = '0')) then
+        g_debug_Player := (P[1][1] = '1');
+
+      g_Console_Add(Format(cmd + ' is %d', [Byte(g_Debug_Player)]));
     end;
   end
     else
@@ -3948,6 +4569,7 @@ var
   plr: TPlayer;
   prt: Word;
   nm: Boolean;
+  listen: LongWord;
 begin
 // Общие команды:
   cmd := LowerCase(P[0]);
@@ -3981,32 +4603,45 @@ begin
   end
   else if cmd = 'kick' then
   begin
-    if g_Game_IsServer and (gGameSettings.GameType <> GT_SINGLE) then
+    if g_Game_IsServer then
     begin
       if Length(P) < 2 then
       begin
-        g_Console_Add('kick name');
+        g_Console_Add('kick <name>');
         Exit;
       end;
       if P[1] = '' then
       begin
-        g_Console_Add('kick name');
+        g_Console_Add('kick <name>');
         Exit;
       end;
 
       if g_Game_IsNet then
         pl := g_Net_Client_ByName(P[1]);
       if (pl <> nil) then
-        enet_peer_disconnect(pl^.Peer, NET_DISC_KICK)
-      else if gPlayers <> nil then
+      begin
+        s := g_Net_ClientName_ByID(pl^.ID);
+        enet_peer_disconnect(pl^.Peer, NET_DISC_KICK);
+        g_Console_Add(Format(_lc[I_PLAYER_KICK], [s]));
+        MH_SEND_Chat(Format(_lc[I_PLAYER_KICK], [s]), NET_CHAT_SYSTEM);
+        if NetUseMaster then
+          g_Net_Slist_Update;
+      end else if gPlayers <> nil then
         for a := Low(gPlayers) to High(gPlayers) do
           if gPlayers[a] <> nil then
-            if (gPlayers[a] is TBot) and (gPlayers[a].Name = P[1]) then
+            if Copy(LowerCase(gPlayers[a].Name), 1, Length(P[1])) = LowerCase(P[1]) then
             begin
+              // Не отключать основных игроков в сингле
+              if not(gPlayers[a] is TBot) and (gGameSettings.GameType = GT_SINGLE) then
+                continue;
               gPlayers[a].Lives := 0;
-              gPlayers[a].Kill(K_SIMPLEKILL, 0, 0);
+              gPlayers[a].Kill(K_SIMPLEKILL, 0, HIT_DISCON);
               g_Console_Add(Format(_lc[I_PLAYER_LEAVE], [gPlayers[a].Name]), True);
               g_Player_Remove(gPlayers[a].UID);
+              if NetUseMaster then
+                g_Net_Slist_Update;
+              // Если не перемешать, при добавлении новых ботов появятся старые
+              g_Bot_MixNames();
             end;
     end else
       g_Console_Add(_lc[I_MSG_GM_UNAVAIL]);
@@ -4017,12 +4652,12 @@ begin
     begin
       if Length(P) < 2 then
       begin
-        g_Console_Add('kick_id client_id');
+        g_Console_Add('kick_id <client ID>');
         Exit;
       end;
       if P[1] = '' then
       begin
-        g_Console_Add('kick_id client_id');
+        g_Console_Add('kick_id <client ID>');
         Exit;
       end;
 
@@ -4030,8 +4665,161 @@ begin
       if (NetClients <> nil) and (a <= High(NetClients)) then
       begin
         if NetClients[a].Used and (NetClients[a].Peer <> nil) then
+        begin
+          s := g_Net_ClientName_ByID(NetClients[a].ID);
           enet_peer_disconnect(NetClients[a].Peer, NET_DISC_KICK);
+          g_Console_Add(Format(_lc[I_PLAYER_KICK], [s]));
+          MH_SEND_Chat(Format(_lc[I_PLAYER_KICK], [s]), NET_CHAT_SYSTEM);
+          if NetUseMaster then
+            g_Net_Slist_Update;
+        end;
       end;
+    end else
+      g_Console_Add(_lc[I_MSG_SERVERONLY]);
+  end
+  else if cmd = 'ban' then
+  begin
+    if g_Game_IsServer and g_Game_IsNet then
+    begin
+      if Length(P) < 2 then
+      begin
+        g_Console_Add('ban <name>');
+        Exit;
+      end;
+      if P[1] = '' then
+      begin
+        g_Console_Add('ban <name>');
+        Exit;
+      end;
+
+      pl := g_Net_Client_ByName(P[1]);
+      if (pl <> nil) then
+      begin
+        s := g_Net_ClientName_ByID(pl^.ID);
+        g_Net_BanHost(pl^.Peer^.address.host, False);
+        enet_peer_disconnect(pl^.Peer, NET_DISC_TEMPBAN);
+        g_Console_Add(Format(_lc[I_PLAYER_BAN], [s]));
+        MH_SEND_Chat(Format(_lc[I_PLAYER_BAN], [s]), NET_CHAT_SYSTEM);
+        if NetUseMaster then
+          g_Net_Slist_Update;
+      end else
+        g_Console_Add(Format(_lc[I_NET_ERR_NAME404], [P[1]]));
+    end else
+      g_Console_Add(_lc[I_MSG_SERVERONLY]);
+  end
+  else if cmd = 'ban_id' then
+  begin
+    if g_Game_IsServer and g_Game_IsNet then
+    begin
+      if Length(P) < 2 then
+      begin
+        g_Console_Add('ban_id <client ID>');
+        Exit;
+      end;
+      if P[1] = '' then
+      begin
+        g_Console_Add('ban_id <client ID>');
+        Exit;
+      end;
+
+      a := StrToIntDef(P[1], 0);
+      if (NetClients <> nil) and (a <= High(NetClients)) then
+        if NetClients[a].Used and (NetClients[a].Peer <> nil) then
+        begin
+          s := g_Net_ClientName_ByID(NetClients[a].ID);
+          g_Net_BanHost(NetClients[a].Peer^.address.host, False);
+          enet_peer_disconnect(NetClients[a].Peer, NET_DISC_TEMPBAN);
+          g_Console_Add(Format(_lc[I_PLAYER_BAN], [s]));
+          MH_SEND_Chat(Format(_lc[I_PLAYER_BAN], [s]), NET_CHAT_SYSTEM);
+          if NetUseMaster then
+            g_Net_Slist_Update;
+        end;
+    end else
+      g_Console_Add(_lc[I_MSG_SERVERONLY]);
+  end
+  else if cmd = 'permban' then
+  begin
+    if g_Game_IsServer and g_Game_IsNet then
+    begin
+      if Length(P) < 2 then
+      begin
+        g_Console_Add('permban <name>');
+        Exit;
+      end;
+      if P[1] = '' then
+      begin
+        g_Console_Add('permban <name>');
+        Exit;
+      end;
+
+      pl := g_Net_Client_ByName(P[1]);
+      if (pl <> nil) then
+      begin
+        s := g_Net_ClientName_ByID(pl^.ID);
+        g_Net_BanHost(pl^.Peer^.address.host);
+        enet_peer_disconnect(pl^.Peer, NET_DISC_BAN);
+        g_Net_SaveBanList();
+        g_Console_Add(Format(_lc[I_PLAYER_BAN], [s]));
+        MH_SEND_Chat(Format(_lc[I_PLAYER_BAN], [s]), NET_CHAT_SYSTEM);
+        if NetUseMaster then
+          g_Net_Slist_Update;
+      end else
+        g_Console_Add(Format(_lc[I_NET_ERR_NAME404], [P[1]]));
+    end else
+      g_Console_Add(_lc[I_MSG_SERVERONLY]);
+  end
+  else if cmd = 'permban_id' then
+  begin
+    if g_Game_IsServer and g_Game_IsNet then
+    begin
+      if Length(P) < 2 then
+      begin
+        g_Console_Add('permban_id <client ID>');
+        Exit;
+      end;
+      if P[1] = '' then
+      begin
+        g_Console_Add('permban_id <client ID>');
+        Exit;
+      end;
+
+      a := StrToIntDef(P[1], 0);
+      if (NetClients <> nil) and (a <= High(NetClients)) then
+        if NetClients[a].Used and (NetClients[a].Peer <> nil) then
+        begin
+          s := g_Net_ClientName_ByID(NetClients[a].ID);
+          g_Net_BanHost(NetClients[a].Peer^.address.host);
+          enet_peer_disconnect(NetClients[a].Peer, NET_DISC_BAN);
+          g_Net_SaveBanList();
+          g_Console_Add(Format(_lc[I_PLAYER_BAN], [s]));
+          MH_SEND_Chat(Format(_lc[I_PLAYER_BAN], [s]), NET_CHAT_SYSTEM);
+          if NetUseMaster then
+            g_Net_Slist_Update;
+        end;
+    end else
+      g_Console_Add(_lc[I_MSG_SERVERONLY]);
+  end
+  else if cmd = 'unban' then
+  begin
+    if g_Game_IsServer and g_Game_IsNet then
+    begin
+      if Length(P) < 2 then
+      begin
+        g_Console_Add('unban <IP Address>');
+        Exit;
+      end;
+      if P[1] = '' then
+      begin
+        g_Console_Add('unban <IP Address>');
+        Exit;
+      end;
+
+      if g_Net_UnbanHost(P[1]) then
+      begin
+        g_Console_Add(Format(_lc[I_MSG_UNBAN_OK], [P[1]]));
+        g_Net_SaveBanList();
+      end else
+        g_Console_Add(Format(_lc[I_MSG_UNBAN_FAIL], [P[1]]));
     end else
       g_Console_Add(_lc[I_MSG_SERVERONLY]);
   end
@@ -4061,12 +4849,12 @@ begin
     begin
       if Length(P) < 2 then
       begin
-        g_Console_Add('connect IP [port] [password]');
+        g_Console_Add('connect <IP> [port] [password]');
         Exit;
       end;
       if P[1] = '' then
       begin
-        g_Console_Add('connect IP [port] [password]');
+        g_Console_Add('connect <IP> [port] [password]');
         Exit;
       end;
 
@@ -4078,9 +4866,7 @@ begin
       if Length(P) > 3 then
         pw := P[3]
       else
-        pw := 'ASS';
-
-      if pw = '' then pw := 'ASS';
+        pw := '';
 
       g_Game_StartClient(P[1], prt, pw);
     end;
@@ -4102,7 +4888,8 @@ begin
       EndGame;
     end;
 
-    g_Game_StartClient(NetClientIP, NetClientPort);
+    //TODO: Use last successful password to reconnect, instead of ''
+    g_Game_StartClient(NetClientIP, NetClientPort, '');
   end
   else if (cmd = 'addbot') or
      (cmd = 'bot_add') then
@@ -4135,143 +4922,205 @@ begin
 
         if Length(chstr) < 1 then
         begin
-          g_Console_Add('chat text');
+          g_Console_Add('chat <text>');
           Exit;
         end;
 
+        chstr := b_Text_Format(chstr);
         if g_Game_IsClient then
-          MC_SEND_Chat(chstr)
+          MC_SEND_Chat(chstr, NET_CHAT_PLAYER)
         else
-          MH_SEND_Chat(gPlayer1Settings.Name + ': ' + chstr);
+          MH_SEND_Chat(gPlayer1Settings.Name + ': ' + chstr, NET_CHAT_PLAYER);
       end
       else
-        g_Console_Add('chat text');
+        g_Console_Add('chat <text>');
+    end else
+      g_Console_Add(_lc[I_MSG_GM_UNAVAIL]);
+  end
+  else if cmd = 'teamchat' then
+  begin
+    if g_Game_IsNet and (gGameSettings.GameMode in [GM_TDM, GM_CTF]) then
+    begin
+      if Length(P) > 1 then
+      begin
+        for a := 1 to High(P) do
+          chstr := chstr + P[a] + ' ';
+
+        if Length(chstr) > 200 then SetLength(chstr, 200);
+
+        if Length(chstr) < 1 then
+        begin
+          g_Console_Add('teamchat <text>');
+          Exit;
+        end;
+
+        chstr := b_Text_Format(chstr);
+        if g_Game_IsClient then
+          MC_SEND_Chat(chstr, NET_CHAT_TEAM)
+        else
+          MH_SEND_Chat(gPlayer1Settings.Name + ': ' + chstr, NET_CHAT_TEAM,
+            gPlayer1Settings.Team);
+      end
+      else
+        g_Console_Add('teamchat <text>');
+    end else
+      g_Console_Add(_lc[I_MSG_GM_UNAVAIL]);
+  end
+  else if cmd = 'game' then
+  begin
+    if gGameSettings.GameType <> GT_NONE then
+    begin
+      g_Console_Add(_lc[I_MSG_GM_UNAVAIL]);
+      Exit;
     end;
+    if Length(P) = 1 then
+    begin
+      g_Console_Add(cmd + ' <WAD> [MAP] [# players]');
+      Exit;
+    end;
+    // Игра ещё не запущена, сначала нам надо загрузить какой-то WAD
+    if Pos('.wad', LowerCase(P[1])) = 0 then
+      P[1] := P[1] + '.wad';
+
+    if FileExists(MapsDir + P[1]) then
+    begin
+      // Если карта не указана, берём первую карту в файле
+      if Length(P) < 3 then
+      begin
+        SetLength(P, 3);
+        P[2] := g_Game_GetFirstMap(MapsDir + P[1]);
+      end;
+
+      s := P[1] + ':\' + UpperCase(P[2]);
+
+      if g_Map_Exist(MapsDir + s) then
+      begin
+        // Запускаем свою игру
+        g_Game_Free();
+        with gGameSettings do
+        begin
+          GameMode := g_Game_TextToMode(gcGameMode);
+          if gSwitchGameMode <> GM_NONE then
+            GameMode := gSwitchGameMode;
+          if GameMode = GM_NONE then GameMode := GM_DM;
+          if GameMode = GM_SINGLE then GameMode := GM_COOP;
+          b := 1;
+          if Length(P) >= 4 then
+            b := StrToIntDef(P[3], 1);
+          g_Game_StartCustom(s, GameMode, TimeLimit,
+                             GoalLimit, MaxLives, Options, b);
+        end;
+      end
+      else
+        if P[2] = '' then
+          g_Console_Add(Format(_lc[I_MSG_NO_MAPS], [P[1]]))
+        else
+          g_Console_Add(Format(_lc[I_MSG_NO_MAP], [UpperCase(P[2])]));
+    end else
+      g_Console_Add(Format(_lc[I_MSG_NO_WAD], [P[1]]));
+  end
+  else if cmd = 'host' then
+  begin
+    if gGameSettings.GameType <> GT_NONE then
+    begin
+      g_Console_Add(_lc[I_MSG_GM_UNAVAIL]);
+      Exit;
+    end;
+    if Length(P) < 4 then
+    begin
+      g_Console_Add(cmd + ' <listen IP> <port> <WAD> [MAP] [# players]');
+      Exit;
+    end;
+    if not StrToIp(P[1], listen) then
+      Exit;
+    prt := StrToIntDef(P[2], 25666);
+
+    if Pos('.wad', LowerCase(P[3])) = 0 then
+      P[3] := P[3] + '.wad';
+
+    if FileExists(MapsDir + P[3]) then
+    begin
+      // Если карта не указана, берём первую карту в файле
+      if Length(P) < 5 then
+      begin
+        SetLength(P, 5);
+        P[4] := g_Game_GetFirstMap(MapsDir + P[1]);
+      end;
+
+      s := P[3] + ':\' + UpperCase(P[4]);
+
+      if g_Map_Exist(MapsDir + s) then
+      begin
+        // Запускаем свою игру
+        g_Game_Free();
+        with gGameSettings do
+        begin
+          GameMode := g_Game_TextToMode(gcGameMode);
+          if gSwitchGameMode <> GM_NONE then
+            GameMode := gSwitchGameMode;
+          if GameMode = GM_NONE then GameMode := GM_DM;
+          if GameMode = GM_SINGLE then GameMode := GM_COOP;
+          b := 0;
+          if Length(P) >= 6 then
+            b := StrToIntDef(P[5], 0);
+          g_Game_StartServer(s, GameMode, TimeLimit,
+                             GoalLimit, MaxLives, Options, b, listen, prt);
+        end;
+      end
+      else
+        if P[4] = '' then
+          g_Console_Add(Format(_lc[I_MSG_NO_MAPS], [P[3]]))
+        else
+          g_Console_Add(Format(_lc[I_MSG_NO_MAP], [UpperCase(P[4])]));
+    end else
+      g_Console_Add(Format(_lc[I_MSG_NO_WAD], [P[3]]));
   end
   else if cmd = 'map' then
   begin
     if Length(P) = 1 then
     begin
-      if not(gGameOn or (gState = STATE_INTERCUSTOM)) then
-        g_Console_Add(cmd + ' <WAD> [MAP]')
-      else
-        if g_Game_IsServer and (gGameSettings.GameType <> GT_SINGLE) then
-        begin
-          g_Console_Add(cmd + ' <MAP>');
-          g_Console_Add(cmd + ' <WAD> [MAP]');
-        end else
-          g_Console_Add(_lc[I_MSG_GM_UNAVAIL]);
-    end else
-      if not(gGameOn or (gState = STATE_INTERCUSTOM)) then
+      if g_Game_IsServer and (gGameSettings.GameType <> GT_SINGLE) then
       begin
-        // Игра ещё не запущена, сначала нам надо загрузить какой-то WAD
-        if Pos('.wad', LowerCase(P[1])) = 0 then
-          P[1] := P[1] + '.wad';
-
-        if FileExists(MapsDir + P[1]) then
-        begin
-          // Если карта не указана, берём первую карту в файле
-          if Length(P) < 3 then
-          begin
-            SetLength(P, 3);
-            P[2] := g_Game_GetFirstMap(MapsDir + P[1]);
-          end;
-
-          s := MapsDir + P[1] + ':\' + UpperCase(P[2]);
-
-          if g_Map_Exist(s) then
-          begin
-            // Запускаем свою игру
-            g_Game_Free();
-            with gGameSettings do
-            begin
-              GameMode := GM_DM;
-              if gcGameMode = _lc[I_MENU_GAME_TYPE_TDM] then
-                GameMode := GM_TDM;
-              if gcGameMode = _lc[I_MENU_GAME_TYPE_CTF] then
-                GameMode := GM_CTF;
-              if gcGameMode = _lc[I_MENU_GAME_TYPE_COOP] then
-                GameMode := GM_COOP;
-              if LongBool(Options and GAME_OPTION_TWOPLAYER) then
-                b := 2
-              else
-                b := 1;
-              g_Game_StartCustom(s, GameMode, TimeLimit,
-                                 GoalLimit, MaxLives, Options, b);
-            end;
-          end
-          else
-            if P[2] = '' then
-              g_Console_Add(Format(_lc[I_MSG_NO_MAPS], [P[1]]))
-            else
-              g_Console_Add(Format(_lc[I_MSG_NO_MAP], [UpperCase(P[2])]));
-        end else
-          g_Console_Add(Format(_lc[I_MSG_NO_WAD], [P[1]]));
+        g_Console_Add(cmd + ' <MAP>');
+        g_Console_Add(cmd + ' <WAD> [MAP]');
       end else
-        if g_Game_IsServer and (gGameSettings.GameType <> GT_SINGLE) then
+        g_Console_Add(_lc[I_MSG_GM_UNAVAIL]);
+    end else
+      if g_Game_IsServer and (gGameSettings.GameType <> GT_SINGLE) then
+      begin
+        // Идёт своя игра или сервер
+        if Length(P) < 3 then
         begin
-          // Идёт своя игра или сервер
-          if Length(P) < 3 then
-          begin
-            // Первый параметр - либо карта, либо имя WAD файла
-            s := UpperCase(P[1]);
-            if g_Map_Exist(gGameSettings.WAD + ':\' + s) then
-            begin
-              // Карта нашлась
-              if gGameOn then
-              begin // Идёт игра - завершаем уровень
-                gNextMap := s;
-                gExit := EXIT_ENDLEVELCUSTOM;
-              end
-              else // Интермиссия - сразу загружаем карту
-                g_Game_ChangeMap(s);
-            end else
-            begin
-              g_Console_Add(Format(_lc[I_MSG_NO_MAP], [s]));
-              // Такой карты нет, ищем WAD файл
-              if Pos('.wad', LowerCase(P[1])) = 0 then
-                P[1] := P[1] + '.wad';
-
-              if FileExists(MapsDir + P[1]) then
-              begin
-                // Параметра карты нет, поэтому ставим первую из файла
-                SetLength(P, 3);
-                P[2] := g_Game_GetFirstMap(MapsDir + P[1]);
-
-                s := P[1] + ':\' + P[2];
-
-                if g_Map_Exist(MapsDir + s) then
-                begin
-                  if gGameOn then
-                  begin // Идёт игра - завершаем уровень
-                    gNextMap := s;
-                    gExit := EXIT_ENDLEVELCUSTOM;
-                  end
-                  else // Интермиссия - сразу загружаем карту
-                    g_Game_ChangeMap(s);
-                end else
-                  if P[2] = '' then
-                    g_Console_Add(Format(_lc[I_MSG_NO_MAPS], [P[1]]))
-                  else
-                    g_Console_Add(Format(_lc[I_MSG_NO_MAP], [P[2]]));
-              end else
-                g_Console_Add(Format(_lc[I_MSG_NO_WAD], [P[1]]));
-            end;
+          // Первый параметр - либо карта, либо имя WAD файла
+          s := UpperCase(P[1]);
+          if g_Map_Exist(MapsDir + gGameSettings.WAD + ':\' + s) then
+          begin // Карта нашлась
+            gExitByTrigger := False;
+            if gGameOn then
+            begin // Идёт игра - завершаем уровень
+              gNextMap := s;
+              gExit := EXIT_ENDLEVELCUSTOM;
+            end
+            else // Интермиссия - сразу загружаем карту
+              g_Game_ChangeMap(s);
           end else
           begin
-            // Указано два параметра, значит первый - WAD файл, а второй - карта
+            g_Console_Add(Format(_lc[I_MSG_NO_MAP], [s]));
+            // Такой карты нет, ищем WAD файл
             if Pos('.wad', LowerCase(P[1])) = 0 then
               P[1] := P[1] + '.wad';
 
             if FileExists(MapsDir + P[1]) then
             begin
-              // Нашли WAD файл
-              P[2] := UpperCase(P[2]);
+              // Параметра карты нет, поэтому ставим первую из файла
+              SetLength(P, 3);
+              P[2] := g_Game_GetFirstMap(MapsDir + P[1]);
+
               s := P[1] + ':\' + P[2];
 
               if g_Map_Exist(MapsDir + s) then
               begin
-                // Нашли карту
+                gExitByTrigger := False;
                 if gGameOn then
                 begin // Идёт игра - завершаем уровень
                   gNextMap := s;
@@ -4280,12 +5129,42 @@ begin
                 else // Интермиссия - сразу загружаем карту
                   g_Game_ChangeMap(s);
               end else
-                g_Console_Add(Format(_lc[I_MSG_NO_MAP], [P[2]]));
+                if P[2] = '' then
+                  g_Console_Add(Format(_lc[I_MSG_NO_MAPS], [P[1]]))
+                else
+                  g_Console_Add(Format(_lc[I_MSG_NO_MAP], [P[2]]));
             end else
               g_Console_Add(Format(_lc[I_MSG_NO_WAD], [P[1]]));
           end;
         end else
-          g_Console_Add(_lc[I_MSG_GM_UNAVAIL]);
+        begin
+          // Указано два параметра, значит первый - WAD файл, а второй - карта
+          if Pos('.wad', LowerCase(P[1])) = 0 then
+            P[1] := P[1] + '.wad';
+
+          if FileExists(MapsDir + P[1]) then
+          begin
+            // Нашли WAD файл
+            P[2] := UpperCase(P[2]);
+            s := P[1] + ':\' + P[2];
+
+            if g_Map_Exist(MapsDir + s) then
+            begin // Нашли карту
+              gExitByTrigger := False;
+              if gGameOn then
+              begin // Идёт игра - завершаем уровень
+                gNextMap := s;
+                gExit := EXIT_ENDLEVELCUSTOM;
+              end
+              else // Интермиссия - сразу загружаем карту
+                g_Game_ChangeMap(s);
+            end else
+              g_Console_Add(Format(_lc[I_MSG_NO_MAP], [P[2]]));
+          end else
+            g_Console_Add(Format(_lc[I_MSG_NO_WAD], [P[1]]));
+        end;
+      end else
+        g_Console_Add(_lc[I_MSG_GM_UNAVAIL]);
   end
   else if cmd = 'nextmap' then
   begin
@@ -4312,9 +5191,10 @@ begin
           begin
             // Первый параметр - либо карта, либо имя WAD файла
             s := UpperCase(P[1]);
-            if g_Map_Exist(gGameSettings.WAD + ':\' + s) then
-            begin
-              gNextMap := s; // Карта нашлась
+            if g_Map_Exist(MapsDir + gGameSettings.WAD + ':\' + s) then
+            begin // Карта нашлась
+              gExitByTrigger := False;
+              gNextMap := s;
               nm := True;
             end else
             begin
@@ -4332,8 +5212,9 @@ begin
                 s := P[1] + ':\' + P[2];
 
                 if g_Map_Exist(MapsDir + s) then
-                begin
-                  gNextMap := s; // Устанавливаем карту
+                begin // Устанавливаем карту
+                  gExitByTrigger := False;
+                  gNextMap := s;
                   nm := True;
                 end else
                   if P[2] = '' then
@@ -4356,8 +5237,9 @@ begin
               s := P[1] + ':\' + P[2];
 
               if g_Map_Exist(MapsDir + s) then
-              begin
-                gNextMap := s; // Нашли карту
+              begin // Нашли карту
+                gExitByTrigger := False;
+                gNextMap := s;
                 nm := True;
               end else
                 g_Console_Add(Format(_lc[I_MSG_NO_MAP], [P[2]]));
@@ -4381,11 +5263,13 @@ begin
     else
       if g_Game_IsServer and (gGameSettings.GameType <> GT_SINGLE) then
       begin
+        gExitByTrigger := False;
         // Следующая карта не задана, пробуем найти триггер Выход
         if (gNextMap = '') and (gTriggers <> nil) then
           for a := 0 to High(gTriggers) do
             if gTriggers[a].TriggerType = TRIGGER_EXIT then
             begin
+              gExitByTrigger := True;
               gNextMap := gTriggers[a].Data.MapName;
               Break;
             end;
@@ -4396,9 +5280,9 @@ begin
         if Pos(':\', gNextMap) = 0 then
           s := gGameSettings.WAD + ':\' + gNextMap
         else
-          s := MapsDir + gNextMap;
+          s := gNextMap;
         // Если карта найдена, выходим с уровня
-        if g_Map_Exist(s) then
+        if g_Map_Exist(MapsDir + s) then
           gExit := EXIT_ENDLEVELCUSTOM
         else
           g_Console_Add(Format(_lc[I_MSG_NO_MAP], [gNextMap]));
@@ -4473,21 +5357,9 @@ begin
     end
     else if cmd = 'spectate' then
     begin
-      if gGameOn then
-      begin
-        if g_Game_IsClient then
-          MC_SEND_CheatRequest(NET_CHEAT_SPECTATE)
-        else
-        begin
-          if gPlayer1 <> nil then
-          begin
-           if gPlayer1.FSpectator then
-             gPlayer1.Respawn(False)
-           else
-             gPlayer1.Spectate;
-          end;
-        end;
-      end
+      if not gGameOn then
+        Exit;
+      g_Game_Spectate();
     end
     else if cmd = 'say' then
     begin
@@ -4503,14 +5375,16 @@ begin
 
           if Length(chstr) < 1 then
           begin
-            g_Console_Add('say text');
+            g_Console_Add('say <text>');
             Exit;
           end;
 
-          MH_SEND_Chat(chstr);
+          chstr := b_Text_Format(chstr);
+          MH_SEND_Chat(chstr, NET_CHAT_PLAYER);
         end
-        else g_Console_Add('say text');
-      end;
+        else g_Console_Add('say <text>');
+      end else
+        g_Console_Add(_lc[I_MSG_SERVERONLY]);
     end
     else if cmd = 'tell' then
     begin
@@ -4526,28 +5400,39 @@ begin
 
           if Length(chstr) < 1 then
           begin
-            g_Console_Add('tell playername text');
+            g_Console_Add('tell <playername> <text>');
             Exit;
           end;
 
           pl := g_Net_Client_ByName(P[1]);
           if pl <> nil then
-            MH_SEND_Chat(chstr, pl^.ID)
+            MH_SEND_Chat(b_Text_Format(chstr), NET_CHAT_PLAYER, pl^.ID)
           else
             g_Console_Add(Format(_lc[I_NET_ERR_NAME404], [P[1]]));
         end
-        else g_Console_Add('tell playername text');
-      end;
+        else g_Console_Add('tell <playername> <text>');
+      end else
+        g_Console_Add(_lc[I_MSG_SERVERONLY]);
+    end
+    else if (cmd = 'overtime') and not g_Game_IsClient then
+    begin
+      if (Length(P) = 1) or (StrToIntDef(P[1], -1) <= 0) then
+        Exit;
+      // Дополнительное время:
+      gGameSettings.TimeLimit := (gTime - gGameStartTime) div 1000 + Word(StrToIntDef(P[1], 0));
+
+      g_Console_Add(Format(_lc[I_MSG_TIME_LIMIT],
+                           [gGameSettings.TimeLimit div 3600,
+                           (gGameSettings.TimeLimit div 60) mod 60,
+                            gGameSettings.TimeLimit mod 60]));
+      if g_Game_IsNet then MH_SEND_GameSettings;
     end
     else if (cmd = 'rcon_password') and g_Game_IsClient then
     begin
       if (Length(P) <= 1) then
-        g_Console_Add('rcon_password password')
+        g_Console_Add('rcon_password <password>')
       else
-      begin
-        if P[1] = '' then P[1] := 'ASS';
         MC_SEND_RCONPassword(P[1]);
-      end;
     end
     else if cmd = 'rcon' then
     begin
@@ -4563,13 +5448,13 @@ begin
 
           if Length(chstr) < 1 then
           begin
-            g_Console_Add('rcon command');
+            g_Console_Add('rcon <command>');
             Exit;
           end;
 
           MC_SEND_RCONCommand(chstr);
         end
-        else g_Console_Add('rcon command');
+        else g_Console_Add('rcon <command>');
       end;
     end
     else if cmd = 'ready' then
@@ -4591,7 +5476,7 @@ begin
 
         if Length(chstr) < 1 then
         begin
-          g_Console_Add('callvote command');
+          g_Console_Add('callvote <command>');
           Exit;
         end;
 
@@ -4599,8 +5484,10 @@ begin
           MC_SEND_Vote(True, chstr)
         else
           g_Game_StartVote(chstr, gPlayer1Settings.Name);
+        g_Console_Process('vote', True);
       end
-      else g_Console_Add('callvote command');
+      else
+        g_Console_Add('callvote <command>');
     end
     else if (cmd = 'vote') and g_Game_IsNet then
     begin
@@ -4608,7 +5495,7 @@ begin
         MC_SEND_Vote(False)
       else if gVoteInProgress then
       begin
-        if not NetDedicated then
+        if (gPlayer1 <> nil) or (gPlayer2 <> nil) then
           a := Floor((NetClientCount+1)/2.0) + 1
         else
           a := Floor(NetClientCount/2.0) + 1;
@@ -4764,7 +5651,7 @@ end;
 
 procedure g_Game_Message(Msg: string; Time: Word);
 begin
-  MessageText := Msg;
+  MessageText := b_Text_Format(Msg);
   MessageTime := Time;
 end;
 
@@ -4777,7 +5664,7 @@ begin
   if gVoteInProgress or gVotePassed then
   begin
     g_Console_Add(Format(_lc[I_MESSAGE_VOTE_INPROGRESS], [gVoteCommand]), True);
-    MH_SEND_VoteEvent(NET_VE_INPROGRESS);
+    MH_SEND_VoteEvent(NET_VE_INPROGRESS, gVoteCommand);
     Exit;
   end;
   gVoteInProgress := True;
@@ -4787,7 +5674,7 @@ begin
   gVoted := False;
   gVoteCommand := Command;
 
-  if not NetDedicated then
+  if (gPlayer1 <> nil) or (gPlayer2 <> nil) then
     Need := Floor((NetClientCount+1)/2.0)+1
   else
     Need := Floor(NetClientCount/2.0)+1;
@@ -4804,7 +5691,7 @@ begin
 
   if (gTime >= gVoteTimer) then
   begin
-    if not NetDedicated then
+    if (gPlayer1 <> nil) or (gPlayer2 <> nil) then
       Need := Floor((NetClientCount+1)/2.0) + 1
     else
       Need := Floor(NetClientCount/2.0) + 1;
@@ -4830,7 +5717,7 @@ begin
   end
   else
   begin
-    if not NetDedicated then
+    if (gPlayer1 <> nil) or (gPlayer2 <> nil) then
       Need := Floor((NetClientCount+1)/2.0) + 1
     else
       Need := Floor(NetClientCount/2.0) + 1;
@@ -5026,7 +5913,6 @@ begin
       Port := 25666;
 
     s := Find_Param_Value(pars, '-pw');
-    if (s = '') then s := 'ASS';
 
     g_Game_StartClient(ip, Port, s);
     Exit;
@@ -5034,16 +5920,13 @@ begin
 
 // Start map when game loads:
   map := LowerCase(Find_Param_Value(pars, '-map'));
-  if Pos(LowerCase(MapsDir), map) = 0 then
-    map := MapsDir + '\' + Map; // fixme
   if (map <> '') and (Pos('.wad:\', map) > 0) then
   begin
   // Game mode:
     s := Find_Param_Value(pars, '-gm');
-    if s = 'tdm' then GMode := GM_TDM
-    else if s = 'ctf' then GMode := GM_CTF
-    else if s = 'coop' then GMode := GM_COOP
-    else GMode := GM_DM;
+    GMode := g_Game_TextToMode(s);
+    if GMode = GM_NONE then GMode := GM_DM;
+    if GMode = GM_SINGLE then GMode := GM_COOP;
 
   // Time limit:
     s := Find_Param_Value(pars, '-limt');
@@ -5083,29 +5966,33 @@ begin
   // Delete test map after play:
     s := Find_Param_Value(pars, '--testdelete');
     if (s <> '') then
-      gMapToDelete := map;
+      gMapToDelete := MapsDir + map;
 
   // Delete temporary WAD after play:
     s := Find_Param_Value(pars, '--tempdelete');
     if (s <> '') then
     begin
-      gMapToDelete := map;
+      gMapToDelete := MapsDir + map;
       gTempDelete := True;
     end;
 
   // Number of players:
-    if LongBool(Opt and GAME_OPTION_TWOPLAYER) then
-      n := 2
+    s := Find_Param_Value(pars, '-pl');
+    if (s = '') then
+      n := 1
     else
-      n := 1;
+      n := StrToIntDef(s, 1);
+    if n >= 2 then
+      gGameSettings.Options := gGameSettings.Options or GAME_OPTION_TWOPLAYER;
 
   // Start:
     s := Find_Param_Value(pars, '-port');
     if (s = '') or not TryStrToInt(s, Port) then
       g_Game_StartCustom(map, GMode, LimT, LimS, Lives, Opt, n)
     else
-      g_Game_StartServer(map, GMode, LimT, LimS, Lives, Opt, Port);
+      g_Game_StartServer(map, GMode, LimT, LimS, Lives, Opt, n, 0, Port);
   end;
+
 // Execute script when game loads:
   s := Find_Param_Value(pars, '-exec');
   if s <> '' then

@@ -33,26 +33,28 @@ var
   LogFile: TextFile;
   Prefix: ShortString;
 begin
- if FileName = '' then Exit;
+  if FileName = '' then Exit;
 
- Assign(LogFile, FileName);
- if FileExists(FileName) then
-  Append(LogFile)
-   else Rewrite(LogFile);
- if FirstRecord then
- begin
-  Writeln(LogFile, '--- Log started at '+TimeToStr(GetTime)+' ---');
-  FirstRecord := False;
- end;
- case RecordCategory of
-  MSG_FATALERROR: Prefix := '!!!';
-  MSG_WARNING:    Prefix := '!  ';
-  MSG_NOTIFY:     Prefix := '***';
- end;
- if WriteTime then
-  Writeln(LogFile, '['+TimeToStr(GetTime)+'] '+Prefix+' '+TextLine) else
-   Writeln(LogFile, Prefix+' '+TextLine);
- Close(LogFile);
+  Assign(LogFile, FileName);
+  if FileExists(FileName) then
+    Append(LogFile)
+  else
+    Rewrite(LogFile);
+  if FirstRecord then
+  begin
+    Writeln(LogFile, '--- Log started at '+TimeToStr(GetTime)+' ---');
+    FirstRecord := False;
+  end;
+  case RecordCategory of
+    MSG_FATALERROR: Prefix := '!!!';
+    MSG_WARNING:    Prefix := '!  ';
+    MSG_NOTIFY:     Prefix := '***';
+  end;
+  if WriteTime then
+    Writeln(LogFile, '['+TimeToStr(GetTime)+'] '+Prefix+' '+TextLine)
+  else
+    Writeln(LogFile, Prefix+' '+TextLine);
+  Close(LogFile);
 end;
 
 procedure e_InitLog(fFileName: String; fWriteMode: TWriteMode);

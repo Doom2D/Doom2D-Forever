@@ -22,9 +22,11 @@ type
     IP: string;
     Port: Word;
     Map: string;
-    Players, MaxPlayers: Byte;
+    Players, MaxPlayers, Bots: Byte;
+    Ping: Integer;
     GameMode: Byte;
     Password: Boolean;
+    PingAddr: ENetAddress;
   end;
   pTNetServer = ^TNetServer;
 
@@ -41,11 +43,12 @@ var
 
 procedure g_Net_Slist_Set(IP: string; Port: Word);
 function  g_Net_Slist_Fetch(var SL: TNetServerList): Boolean;
-procedure g_Net_Slist_Update;
-procedure g_Net_Slist_Remove;
-function  g_Net_Slist_Connect: Boolean;
-procedure g_Net_Slist_Check;
-procedure g_Net_Slist_Disconnect;
+procedure g_Net_Slist_Update();
+procedure g_Net_Slist_Remove();
+function  g_Net_Slist_Connect(): Boolean;
+procedure g_Net_Slist_Check();
+procedure g_Net_Slist_Disconnect();
+procedure g_Net_Slist_WriteInfo();
 
 procedure g_Serverlist_Draw(var SL: TNetServerList);
 procedure g_Serverlist_Control(var SL: TNetServerList);
@@ -54,7 +57,8 @@ implementation
 
 uses
   SysUtils, e_fixedbuffer, e_input, e_graphics, e_log, g_window, g_net, g_console,
-  g_map, g_game, g_textures, g_gui, g_menu, g_options, g_language, WADEDITOR;
+  g_map, g_game, g_sound, g_textures, g_gui, g_menu, g_options, g_language, WADEDITOR,
+  Windows, ENet_Win32;
 
 var
   NetMEvent:      ENetEvent;
@@ -62,12 +66,33 @@ var
   slFetched:      Boolean = False;
   slDirPressed:   Boolean = False;
 
+procedure PingServer(var S: TNetServer; Sock: ENetSocket);
+var
+  Buf: ENetBuffer;
+  Ping: array [0..5] of Byte;
+  ClTime: Integer;
+begin
+  ClTime := GetCurrentTime();
+
+  Buf.data := Addr(Ping[0]);
+  Buf.dataLength := 6;
+
+  Ping[0] := Ord('D');
+  Ping[1] := Ord('F');
+  LongInt(Addr(Ping[2])^) := ClTime;
+
+  enet_socket_send(Sock, Addr(S.PingAddr), @Buf, 1);
+end;
+
 function g_Net_Slist_Fetch(var SL: TNetServerList): Boolean;
 var
   Cnt: Byte;
   P: pENetPacket;
   MID: Byte;
-  I: Integer;
+  I, T, RX: Integer;
+  Sock: ENetSocket;
+  Buf: ENetBuffer;
+  SvAddr: ENetAddress;
 begin
   Result := False;
   SL := nil;
@@ -117,6 +142,8 @@ begin
           SL[I].MaxPlayers := e_Raw_Read_Byte(NetMEvent.packet^.data);
           SL[I].Protocol := e_Raw_Read_Byte(NetMEvent.packet^.data);
           SL[I].Password := e_Raw_Read_Byte(NetMEvent.packet^.data) = 1;
+          enet_address_set_host(Addr(SL[I].PingAddr), PChar(Addr(SL[I].IP[1])));
+          SL[I].PingAddr.port := SL[I].Port + 1;
         end;
       end;
 
@@ -127,35 +154,100 @@ begin
 
   g_Net_Slist_Disconnect;
   e_Buffer_Clear(@NetOut);
+
+  if Length(SL) = 0 then Exit;
+
+  Sock := enet_socket_create(ENET_SOCKET_TYPE_DATAGRAM);
+  if Sock < 0 then Exit;
+  enet_socket_set_option(Sock, ENET_SOCKOPT_NONBLOCK, 1);
+
+  for I := Low(SL) to High(SL) do
+    PingServer(SL[I], Sock);
+
+  T := GetCurrentTime();
+
+  e_Buffer_Clear(@NetIn);
+  Buf.data := Addr(NetIn.Data);
+  Buf.dataLength := Length(NetIn.Data);
+  Cnt := 0;
+  while Cnt < Length(SL) do
+  begin
+    if GetCurrentTime() - T > 500 then break;
+
+    e_Buffer_Clear(@NetIn);
+
+    RX := enet_socket_receive(Sock, @SvAddr, @Buf, 1);
+    if RX <= 0 then continue;
+    NetIn.Len := RX + 1;
+    NetIn.ReadPos := 0;
+
+    if e_Buffer_Read_Char(@NetIn) <> 'D' then continue;
+    if e_Buffer_Read_Char(@NetIn) <> 'F' then continue;
+
+    for I := Low(SL) to High(SL) do
+      if (SL[I].PingAddr.host = SvAddr.host) and
+         (SL[I].PingAddr.port = SvAddr.port) then
+      begin
+        with SL[I] do
+        begin
+          Name := e_Buffer_Read_String(@NetIn);
+          Map := e_Buffer_Read_String(@NetIn);
+          GameMode := e_Buffer_Read_Byte(@NetIn);
+          Players := e_Buffer_Read_Byte(@NetIn);
+          MaxPlayers := e_Buffer_Read_Byte(@NetIn);
+          Protocol := e_Buffer_Read_Byte(@NetIn);
+          Password := e_Buffer_Read_Byte(@NetIn) = 1;
+          Bots := e_Buffer_Read_Word(@NetIn);
+          Ping := e_Buffer_Read_LongInt(@NetIn);
+          Ping := 1 + GetCurrentTime() - Ping;
+        end;
+        Inc(Cnt);
+        break;
+      end;
+  end;
+  
+  enet_socket_destroy(Sock);
 end;
 
-procedure g_Net_Slist_Update;
+procedure g_Net_Slist_WriteInfo();
 var
   Wad, Map: string;
-  P: pENetPacket;
+  Cli: Byte;
 begin
-  if (NetMHost = nil) or (NetMPeer = nil) then Exit;
   g_ProcessResourceStr(gMapInfo.Map, @Wad, nil, @Map);
   Wad := ExtractFileName(Wad);
 
-  e_Buffer_Clear(@NetOut);
-  e_Buffer_Write(@NetOut, Byte(NET_MMSG_UPD));
-
-  e_Buffer_Write(@NetOut, NetAddr.port);
   e_Buffer_Write(@NetOut, NetServerName);
 
   e_Buffer_Write(@NetOut, Wad + ':\' + Map);
   e_Buffer_Write(@NetOut, gGameSettings.GameMode);
 
-  if NetDedicated then
-    e_Buffer_Write(@NetOut, Byte(NetClientCount))
-  else
-    e_Buffer_Write(@NetOut, Byte(1 + NetClientCount));
+  Cli := NetClientCount;
+  if gPlayer1 <> nil then
+    Inc(Cli);
+  if gPlayer2 <> nil then
+    Inc(Cli);
+  e_Buffer_Write(@NetOut, Cli);
 
   e_Buffer_Write(@NetOut, NetMaxClients);
 
   e_Buffer_Write(@NetOut, Byte(NET_PROTOCOL_VER));
   e_Buffer_Write(@NetOut, Byte(NetPassword <> ''));
+end;
+
+procedure g_Net_Slist_Update;
+var
+
+  P: pENetPacket;
+
+begin
+  if (NetMHost = nil) or (NetMPeer = nil) then Exit;
+
+  e_Buffer_Clear(@NetOut);
+  e_Buffer_Write(@NetOut, Byte(NET_MMSG_UPD));
+  e_Buffer_Write(@NetOut, NetAddr.port);
+
+  g_Net_Slist_WriteInfo();
 
   P := enet_packet_create(Addr(NetOut.Data), NetOut.Len, Cardinal(ENET_PACKET_FLAG_RELIABLE));
   enet_peer_send(NetMPeer, NET_MCHAN_UPD, P);
@@ -267,8 +359,6 @@ begin
 end;
 
 procedure g_Serverlist_Draw(var SL: TNetServerList);
-const
-  GMSTR: array [0..5] of string = ('FUCK', 'DM', 'TDM', 'CTF', 'COOP', 'MOD');
 var
   sy, i, y, mw, mx, l: Integer;
   cw, ch: Byte;
@@ -286,14 +376,15 @@ begin
   ip := _lc[I_NET_SLIST_HELP];
   mw := (Length(ip) * cw) div 2;
 
+  e_DrawFillQuad(16, 64, gScreenWidth-16, gScreenHeight-44, 64, 64, 64, 110);
+  e_DrawQuad(16, 64, gScreenWidth-16, gScreenHeight-44, 255, 127, 0);
+
   e_TextureFontPrintEx(gScreenWidth div 2 - mw, gScreenHeight-24, ip, gStdFont, 225, 225, 225, 1);
 
   if SL = nil then
   begin
     l := Length(slWaitStr) div 2;
-    e_DrawFillQuad(16, 64, gScreenWidth-16, gScreenHeight-64, 64, 64, 64, 128);
-    e_DrawQuad(16, 64, gScreenWidth-16, gScreenHeight-64, 255, 127, 0);
-    e_DrawFillQuad(16, 64, gScreenWidth-16, gScreenHeight-64, 64, 64, 64, 128);
+    e_DrawFillQuad(16, 64, gScreenWidth-16, gScreenHeight-44, 64, 64, 64, 128);
     e_DrawQuad(gScreenWidth div 2 - 192, gScreenHeight div 2 - 10,
       gScreenWidth div 2 + 192, gScreenHeight div 2 + 11, 255, 127, 0);
     e_TextureFontPrint(gScreenWidth div 2 - cw * l, gScreenHeight div 2 - ch div 2,
@@ -306,11 +397,11 @@ begin
   begin
     I := slSelection;
     sy := y + 42 * I - 4;
-    ip := 'IP: ' + SL[I].IP + ':' + IntToStr(SL[I].Port);
+    ip := _lc[I_NET_ADDRESS] + ' ' + SL[I].IP + ':' + IntToStr(SL[I].Port);
     if SL[I].Password then
-      ip := ip + '  ' + _lc[I_NET_SERVER_PASSWORD] + ' Y'
+      ip := ip + '  ' + _lc[I_NET_SERVER_PASSWORD] + ' ' + _lc[I_MENU_YES]
     else
-      ip := ip + '  ' + _lc[I_NET_SERVER_PASSWORD] + ' N';
+      ip := ip + '  ' + _lc[I_NET_SERVER_PASSWORD] + ' ' + _lc[I_MENU_NO];
   end else
     if Length(SL) > 0 then
       slSelection := 0;
@@ -318,18 +409,17 @@ begin
   mw := (gScreenWidth - 188);
   mx := 16 + mw;
 
-  e_DrawFillQuad(16, 64, gScreenWidth-16, gScreenHeight-44, 64, 64, 64, 110);
+  e_DrawFillQuad(16 + 1, sy, gScreenWidth - 16 - 1, sy + 40, 64, 64, 64, 0);
+  e_DrawLine(1, 16 + 1, sy, gScreenWidth - 16 - 1, sy, 205, 205, 205);
+  e_DrawLine(1, 16 + 1, sy + 41, gScreenWidth - 16 - 1, sy + 41, 255, 255, 255);
 
-  e_DrawFillQuad(16, sy, gScreenWidth - 16, sy + 40, 64, 64, 64, 0);
-  e_DrawLine(1, 16, sy, gScreenWidth - 16, sy, 205, 205, 205);
-  e_DrawLine(1, 16, sy + 41, gScreenWidth - 16, sy + 41, 255, 255, 255);
+  e_DrawLine(1, 16, 85, gScreenWidth - 16, 85, 255, 127, 0);
+  e_DrawLine(1, 16, gScreenHeight-64, gScreenWidth-16, gScreenHeight-64, 255, 127, 0);
 
-  e_DrawQuad(16, 64, gScreenWidth-16, gScreenHeight-64, 255, 127, 0);
-  e_DrawQuad(16, 64, mx, gScreenHeight-64, 255, 127, 0);
-  e_DrawQuad(mx, 64, mx + 52, gScreenHeight-64, 255, 127, 0);
-  e_DrawQuad(mx + 52, 64, mx + 104, gScreenHeight-64, 255, 127, 0);
-  e_DrawQuad(mx + 104, 64,  gScreenWidth - 16, gScreenHeight-64, 255, 127, 0);
-  e_DrawQuad(16, gScreenHeight-64, gScreenWidth - 16, gScreenHeight-44, 255, 127, 0);
+  e_DrawLine(1, mx - 52, 64, mx - 52, gScreenHeight-44, 255, 127, 0);
+  e_DrawLine(1, mx, 64, mx, gScreenHeight-44, 255, 127, 0);
+  e_DrawLine(1, mx + 52, 64, mx + 52, gScreenHeight-64, 255, 127, 0);
+  e_DrawLine(1, mx + 104, 64, mx + 104, gScreenHeight-64, 255, 127, 0);
 
   e_TextureFontPrintEx(18, 68, 'NAME/MAP', gStdFont, 255, 127, 0, 1);
 
@@ -342,11 +432,26 @@ begin
     y := y + 42;
   end;
 
+  e_TextureFontPrintEx(mx - 50, 68, 'PING', gStdFont, 255, 127, 0, 1);
+  y := 90;
+  for I := 0 to High(SL) do
+  begin
+    if (SL[I].Ping = 0) or (SL[I].Ping > 9999) then
+    begin
+      e_TextureFontPrintEx(mx - 50, y, 'TIME', gStdFont, 255, 0, 0, 1);
+      e_TextureFontPrintEx(mx - 50, y + 16, 'OUT', gStdFont, 255, 0, 0, 1);
+    end
+    else
+      e_TextureFontPrintEx(mx - 50, y, IntToStr(SL[I].Ping), gStdFont, 255, 255, 255, 1);
+
+    y := y + 42;
+  end;
+
   e_TextureFontPrintEx(mx + 2, 68, 'MODE', gStdFont, 255, 127, 0, 1);
   y := 90;
   for I := 0 to High(SL) do
   begin
-    e_TextureFontPrintEx(mx + 2, y, GMSTR[SL[I].GameMode], gStdFont, 255, 255, 255, 1);
+    e_TextureFontPrintEx(mx + 2, y, g_Game_ModeToText(SL[I].GameMode), gStdFont, 255, 255, 255, 1);
 
     y := y + 42;
   end;
@@ -356,7 +461,8 @@ begin
   for I := 0 to High(SL) do
   begin
     e_TextureFontPrintEx(mx + 54, y, IntToStr(SL[I].Players) + '/' + IntToStr(SL[I].MaxPlayers), gStdFont, 255, 255, 255, 1);
-
+    if SL[I].Bots > 0 then
+      e_TextureFontPrintEx(mx + 54, y + 16, IntToStr(SL[I].Bots), gStdFont, 210, 210, 210, 1);
     y := y + 42;
   end;
 
@@ -368,9 +474,6 @@ begin
 
     y := y + 42;
   end;
-
-  e_DrawLine(1, 16, 85, gScreenWidth - 16, 85, 255, 127, 0);
-  e_DrawLine(1, mx + 1, gScreenHeight-64, mx, gScreenHeight-44, 255, 127, 0);
 
   e_TextureFontPrintEx(20, gScreenHeight-61, ip, gStdFont, 205, 205, 205, 1);
   ip := IntToStr(Length(SL)) + _lc[I_NET_SLIST_SERVERS];
@@ -387,7 +490,10 @@ begin
   begin
     SL := nil;
     gState := STATE_MENU;
+    g_GUI_ShowWindow('MainMenu');
+    g_GUI_ShowWindow('NetGameMenu');
     g_GUI_ShowWindow('NetClientMenu');
+    g_Sound_PlayEx(WINDOW_CLOSESOUND);
     Exit;
   end;
 
@@ -398,7 +504,7 @@ begin
       slWaitStr := _lc[I_NET_SLIST_WAIT];
 
       g_Game_Draw;
-      ReDrawWindow;
+      g_window.ReDrawWindow;
 
       if g_Net_Slist_Fetch(SL) then
       begin
@@ -431,7 +537,7 @@ begin
         Exit;
       end
       else
-        g_Game_StartClient(SL[slSelection].IP, SL[slSelection].Port);
+        g_Game_StartClient(SL[slSelection].IP, SL[slSelection].Port, '');
       SL := nil;
       slReturnPressed := True;
       Exit;

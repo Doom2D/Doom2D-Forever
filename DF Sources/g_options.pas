@@ -22,6 +22,7 @@ type
     TakeScreenshot: Byte;
     Stat: Byte;
     Chat: Byte;
+    TeamChat: Byte;
   end;
 
   TControls = record
@@ -68,7 +69,7 @@ var
   gLanguage: String           = LANGUAGE_ENGLISH;
   gAskLanguage: Boolean       = True;
   gcMap: String               = '';
-  gcGameMode: String          = 'DM';
+  gcGameMode: String          = '';
   gcTimeLimit: Word           = 0;
   gcGoalLimit: Word           = 0;
   gcMaxLives: Byte            = 0;
@@ -79,10 +80,11 @@ var
   gcMonsters: Boolean         = False;
   gcBotsVS: String            = 'Everybody';
   gnMap: String               = '';
-  gnGameMode: String          = 'DM';
+  gnGameMode: String          = '';
   gnTimeLimit: Word           = 0;
   gnGoalLimit: Word           = 0;
   gnMaxLives: Byte            = 0;
+  gnPlayers: Byte             = 1;
   gnTeamDamage: Boolean       = False;
   gnAllowExit: Boolean        = True;
   gnWeaponStay: Boolean       = False;
@@ -120,6 +122,7 @@ begin
     TakeScreenshot := 183;
     Stat := 15;
     Chat := 20; // [T]
+    TeamChat := 21; // [Y]
   end;
 
   with gGameControls.P1Control do
@@ -230,6 +233,7 @@ begin
     TakeScreenshot := config.ReadInt('GameControls', 'TakeScreenshot', 183);
     Stat := config.ReadInt('GameControls', 'Stat', 15);
     Chat := config.ReadInt('GameControls', 'Chat', 20);
+    TeamChat := config.ReadInt('GameControls', 'TeamChat', 21);
   end;
 
   with gGameControls.P1Control, config do
@@ -311,7 +315,7 @@ begin
   gcTimeLimit := Min(Max(config.ReadInt('GameplayCustom', 'TimeLimit', 0), 0), 65535);
   gcGoalLimit := Min(Max(config.ReadInt('GameplayCustom', 'GoalLimit', 0), 0), 65535);
   gcMaxLives := Min(Max(config.ReadInt('GameplayCustom', 'MaxLives', 0), 0), 255);
-  gcPlayers := Min(Max(config.ReadInt('GameplayCustom', 'Players', 1), 1), 2);
+  gcPlayers := Min(Max(config.ReadInt('GameplayCustom', 'Players', 1), 0), 2);
   gcTeamDamage := config.ReadBool('GameplayCustom', 'TeamDamage', False);
   gcAllowExit := config.ReadBool('GameplayCustom', 'AllowExit', True);
   gcWeaponStay := config.ReadBool('GameplayCustom', 'WeaponStay', False);
@@ -320,12 +324,10 @@ begin
 
   with gGameSettings do
   begin
-    GameMode := GM_DM;
-    if gcGameMode = _lc[I_MENU_GAME_TYPE_TDM] then
-      GameMode := GM_TDM;
-    if gcGameMode = _lc[I_MENU_GAME_TYPE_CTF] then
-      GameMode := GM_CTF;
-    if gcGameMode = _lc[I_MENU_GAME_TYPE_COOP] then
+    GameMode := g_Game_TextToMode(gcGameMode);
+    if GameMode = GM_NONE then
+      GameMode := GM_DM;
+    if GameMode = GM_SINGLE then
       GameMode := GM_COOP;
     TimeLimit := gcTimeLimit;
     GoalLimit := gcGoalLimit;
@@ -356,6 +358,7 @@ begin
   gnTimeLimit := Min(Max(config.ReadInt('GameplayNetwork', 'TimeLimit', 0), 0), 65535);
   gnGoalLimit := Min(Max(config.ReadInt('GameplayNetwork', 'GoalLimit', 0), 0), 65535);
   gnMaxLives := Min(Max(config.ReadInt('GameplayNetwork', 'MaxLives', 0), 0), 255);
+  gnPlayers := Min(Max(config.ReadInt('GameplayNetwork', 'Players', 1), 0), 2);
   gnTeamDamage := config.ReadBool('GameplayNetwork', 'TeamDamage', False);
   gnAllowExit := config.ReadBool('GameplayNetwork', 'AllowExit', True);
   gnWeaponStay := config.ReadBool('GameplayNetwork', 'WeaponStay', False);
@@ -367,7 +370,6 @@ begin
   NetSlistPort := config.ReadInt('MasterServer', 'Port', 25665);
 
 // Сервер
-  NetDedicated :=  config.ReadBool('Server', 'Dedicated', False);
   NetServerName := config.ReadStr('Server', 'Name', 'Unnamed Server');
   NetPassword :=  config.ReadStr('Server', 'Password', '');
   NetPort := Min(Max(0, config.ReadInt('Server', 'Port', 25666)), 65535);
@@ -433,6 +435,7 @@ begin
     WriteInt('GameControls', 'TakeScreenshot', TakeScreenshot);
     WriteInt('GameControls', 'Stat', Stat);
     WriteInt('GameControls', 'Chat', Chat);
+    WriteInt('GameControls', 'TeamChat', TeamChat);
   end;
 
   with config, gGameControls.P1Control, gPlayer1Settings do
@@ -515,6 +518,7 @@ begin
   config.WriteInt ('GameplayNetwork', 'TimeLimit', gnTimeLimit);
   config.WriteInt ('GameplayNetwork', 'GoalLimit', gnGoalLimit);
   config.WriteInt ('GameplayNetwork', 'MaxLives', gnMaxLives);
+  config.WriteInt ('GameplayNetwork', 'Players', gnPlayers);
   config.WriteBool('GameplayNetwork', 'TeamDamage', gnTeamDamage);
   config.WriteBool('GameplayNetwork', 'AllowExit', gnAllowExit);
   config.WriteBool('GameplayNetwork', 'WeaponStay', gnWeaponStay);
@@ -524,7 +528,6 @@ begin
   config.WriteStr('MasterServer', 'IP', NetSlistIP);
   config.WriteInt('MasterServer', 'Port', NetSlistPort);
 
-  config.WriteBool('Server', 'Dedicated', NetDedicated);
   config.WriteStr ('Server', 'Name', NetServerName);
   config.WriteStr ('Server', 'Password', NetPassword);
   config.WriteInt ('Server', 'Port', NetPort);
@@ -626,6 +629,7 @@ begin
   config.WriteInt ('GameplayNetwork', 'TimeLimit', gnTimeLimit);
   config.WriteInt ('GameplayNetwork', 'GoalLimit', gnGoalLimit);
   config.WriteInt ('GameplayNetwork', 'MaxLives', gnMaxLives);
+  config.WriteInt ('GameplayNetwork', 'Players', gnPlayers);
   config.WriteBool('GameplayNetwork', 'TeamDamage', gnTeamDamage);
   config.WriteBool('GameplayNetwork', 'AllowExit', gnAllowExit);
   config.WriteBool('GameplayNetwork', 'WeaponStay', gnWeaponStay);
@@ -648,6 +652,7 @@ begin
   config.WriteStr ('Server', 'Password', NetPassword);
   config.WriteInt ('Server', 'Port', NetPort);
   config.WriteInt ('Server', 'MaxClients', NetMaxClients);
+  config.WriteBool('Server', 'SyncWithMaster', NetUseMaster);
 
   config.SaveFile(FileName);
   config.Free();

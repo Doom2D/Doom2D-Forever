@@ -202,6 +202,7 @@ begin
       for a := 0 to High(gTriggers) do
         if gTriggers[a].TriggerType = TRIGGER_EXIT then
         begin
+          gExitByTrigger := True;
           g_Game_ExitLevel(gTriggers[a].Data.MapName);
           Break;
         end;
@@ -212,7 +213,7 @@ begin
   if Copy(charbuff, 17 - Length(ls) - 2, Length(ls)) = ls then
   begin
     s2 := Copy(charbuff, 15, 2);
-    if g_Map_Exist(gGameSettings.WAD+':\MAP'+s2) then
+    if g_Map_Exist(MapsDir+gGameSettings.WAD+':\MAP'+s2) then
     begin
       c := 'MAP00';
       c[3] := s2[1];
@@ -361,7 +362,7 @@ begin
               then // Войти во внутриигровое меню
                 g_Game_InGameMenu(True)
               else
-                if (gExit = 0) then
+                if (gExit = 0) and (gState <> STATE_SLIST) then
                   begin // Войти в главное меню
                     if gState <> STATE_MENU then
                       if NetMode <> NET_NONE then

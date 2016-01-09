@@ -77,18 +77,19 @@ Type
     I_ARRAY_ITEM_JETPACK,
     I_ARRAY_ITEM_INVIS,
 
+    I_ARRAY_SHOT_PISTOL,
     I_ARRAY_SHOT_BULLET,
     I_ARRAY_SHOT_SHOTGUN,
     I_ARRAY_SHOT_SSG,
-    I_ARRAY_SHOT_ROCKET,
-    I_ARRAY_SHOT_PLASMA,
-    I_ARRAY_SHOT_BFG,
     I_ARRAY_SHOT_IMP,
-    I_ARRAY_SHOT_MANCUB,
-    I_ARRAY_SHOT_BARON,
-    I_ARRAY_SHOT_CACO,
+    I_ARRAY_SHOT_PLASMA,
     I_ARRAY_SHOT_SPIDER,
+    I_ARRAY_SHOT_CACO,
+    I_ARRAY_SHOT_BARON,
+    I_ARRAY_SHOT_MANCUB,
     I_ARRAY_SHOT_REV,
+    I_ARRAY_SHOT_ROCKET,
+    I_ARRAY_SHOT_BFG,
 
     I_ARRAY_MON_DEMON,
     I_ARRAY_MON_IMP,
@@ -227,6 +228,31 @@ Type
     I_PROP_TR_SHOT_TYPE,
     I_PROP_TR_SHOT_SOUND,
     I_PROP_TR_SHOT_ANGLE,
+    I_PROP_TR_SHOT_ACC,
+    I_PROP_TR_SHOT_TO,
+    I_PROP_TR_SHOT_TO_0,
+    I_PROP_TR_SHOT_TO_1,
+    I_PROP_TR_SHOT_TO_2,
+    I_PROP_TR_SHOT_TO_3,
+    I_PROP_TR_SHOT_TO_4,
+    I_PROP_TR_SHOT_TO_5,
+    I_PROP_TR_SHOT_TO_6,
+    I_PROP_TR_SHOT_ALLMAP,
+    I_PROP_TR_SHOT_AMMO,
+    I_PROP_TR_SHOT_RELOAD,
+    I_PROP_TR_SHOT_SIGHT,
+    I_PROP_TR_SHOT_PANEL,
+    I_PROP_TR_MESSAGE_KIND,
+    I_PROP_TR_MESSAGE_KIND_0,
+    I_PROP_TR_MESSAGE_KIND_1,
+    I_PROP_TR_MESSAGE_TO,
+    I_PROP_TR_MESSAGE_TO_0,
+    I_PROP_TR_MESSAGE_TO_1,
+    I_PROP_TR_MESSAGE_TO_2,
+    I_PROP_TR_MESSAGE_TO_3,
+    I_PROP_TR_MESSAGE_TO_4,
+    I_PROP_TR_MESSAGE_TO_5,
+    I_PROP_TR_MESSAGE_TEXT,
 
     I_MSG_ERROR,
     I_MSG_WRONG_TEXWIDTH,
@@ -264,6 +290,7 @@ Type
     I_HINT_SPAWN,
     I_HINT_PANEL_DOOR,
     I_HINT_PANEL_TEXTURE,
+    I_HINT_PANEL_SHOT,
     I_HINT_PANEL_LIFT,
     I_HINT_MONSTER,
     I_HINT_EXT_AREA,
@@ -558,7 +585,7 @@ Var
   PANELNAMES: Array[0..13] of String;
   EffectNames: Array [EFFECT_NONE..EFFECT_FIRE] of String;
   ItemNames: Array [ITEM_MEDKIT_SMALL..ITEM_MAX] of String;
-  ShotNames: Array [TRIGGER_SHOT_BULLET..TRIGGER_SHOT_REV] of String;
+  ShotNames: Array [TRIGGER_SHOT_PISTOL..TRIGGER_SHOT_BFG] of String;
   MonsterNames: Array [MONSTER_DEMON..MONSTER_MAN] of String;
   AreaNames: Array [AREA_PLAYERPOINT1..AREA_BLUETEAMPOINT] of String;
   TriggerNames: Array [TRIGGER_EXIT..TRIGGER_SHOT] of String;
@@ -712,30 +739,32 @@ Const
     ('ARRAY ITEM INVIS',               'Invisibility',
                                        'Невидимость'),
 
-    ('ARRAY SHOT BULLET',              'Bullet',
-                                       'Пуля'),
-    ('ARRAY SHOT SHOTGUN',             'Buckshot',
-                                       'Дробь'),
-    ('ARRAY SHOT SSG',                 '2x Buckshot',
-                                       'Больше дроби'),
-    ('ARRAY SHOT ROCKET',              'Rocket',
-                                       'Ракета'),
+    ('ARRAY SHOT PISTOL',              'Pistol shot',
+                                       'Выстрел пистолета'),
+    ('ARRAY SHOT BULLET',              'Chaingun shot',
+                                       'Выстрел пулемета'),
+    ('ARRAY SHOT SHOTGUN',             'Shotgun shot',
+                                       'Выстрел ружья'),
+    ('ARRAY SHOT SSG',                 'Super Shotgun shot',
+                                       'Выстрел двустволки'),
+    ('ARRAY SHOT IMP',                 'Imp fireball',
+                                       'Шар беса'),
     ('ARRAY SHOT PLASMA',              'Blue plasma',
                                        'Синяя плазма'),
-    ('ARRAY SHOT BFG',                 'BFG ball',
-                                       'Шар BFG'),
-    ('ARRAY SHOT IMP',                 'Imp fireball',
-                                       'Фаербол импа'),
-    ('ARRAY SHOT MANCUB',              'Mancubus gunshot',
-                                       'Снаряд манкубуса'),
-    ('ARRAY SHOT BARON',               'Baron fireball',
-                                       'Фаербол барона'),
-    ('ARRAY SHOT CACO',                'Cacodemon fireball',
-                                       'Фаербол какодемона'),
     ('ARRAY SHOT SPIDER',              'Arachnotron plasma',
                                        'Плазма арахнотрона'),
-    ('ARRAY SHOT REV',                 'Revenant rocket',
-                                       'Ракета ревенанта'),
+    ('ARRAY SHOT CACO',                'Cacodemon fireball',
+                                       'Шар какодемона'),
+    ('ARRAY SHOT BARON',               'Hell Baron projectile',
+                                       'Выстрел барона ада'),
+    ('ARRAY SHOT MANCUB',              'Mancubus gunshot',
+                                       'Снаряд манкубуса'),
+    ('ARRAY SHOT REV',                 'Revenant projectile',
+                                       'Снаряд скелета'),
+    ('ARRAY SHOT ROCKET',              'Rocket',
+                                       'Ракета'),
+    ('ARRAY SHOT BFG',                 'BFG ball',
+                                       'Шар BFG'),
 
     ('ARRAY MON DEMON',                'Pinky',
                                        'Демон'),
@@ -1003,10 +1032,60 @@ Const
                                        'До максимума'),
     ('PROP TR SHOT TYPE',              'Projectile',
                                        'Снаряд'),
-    ('PROP TR SHOT SOUND',             'Sound                              (sh)',
-                                       'Звук                               (sh)'),
+    ('PROP TR SHOT SOUND',             'Shot sound',
+                                       'Звук выстрела'),
     ('PROP TR SHOT ANGLE',             'Angle',
                                        'Угол'),
+    ('PROP TR SHOT ACC',               'Spread',
+                                       'Разброс'),
+    ('PROP TR SHOT TO',                'Auto targeting',
+                                       'Автонаведение'),
+    ('PROP TR SHOT TO 0',              'None',
+                                       'Нет'),
+    ('PROP TR SHOT TO 1',              'Monsters',
+                                       'Монстры'),
+    ('PROP TR SHOT TO 2',              'Players',
+                                       'Игроки'),
+    ('PROP TR SHOT TO 3',              'Red team',
+                                       'Красная команда'),
+    ('PROP TR SHOT TO 4',              'Blue team',
+                                       'Синяя команда'),
+    ('PROP TR SHOT TO 5',              'Monsters, players',
+                                       'Монстры, игроки'),
+    ('PROP TR SHOT TO 6',              'Players, monsters',
+                                       'Игроки, монстры'),
+    ('PROP TR SHOT ALLMAP',            'On entire map',
+                                       'По всей карте'),
+    ('PROP TR SHOT AMMO',              'Ammo limit',
+                                       'Кол-во патронов'),
+    ('PROP TR SHOT RELOAD',            'Reload interval (in ticks)',
+                                       'Перезарядка (в тиках)'),
+    ('PROP TR SHOT SIGHT',             'Sight interval (in ticks)',
+                                       'Реакция (в тиках)'),
+    ('PROP TR SHOT PANEL',             'Indicator panel',
+                                       'Панель индикации'),
+    ('PROP TR MESSAGE KIND',           'Message kind',
+                                       'Тип сообщения'),
+    ('PROP TR MESSAGE KIND 0',         'Console message',
+                                       'Текст в консоли'),
+    ('PROP TR MESSAGE KIND 1',         'Event message',
+                                       'Крупный текст по центру'),
+    ('PROP TR MESSAGE TO',             'Send to',
+                                       'Получатель'),
+    ('PROP TR MESSAGE TO 0',           'Me',
+                                       'Я'),
+    ('PROP TR MESSAGE TO 1',           'My team',
+                                       'Моя команда'),
+    ('PROP TR MESSAGE TO 2',           'Enemy team',
+                                       'Вражеская команда'),
+    ('PROP TR MESSAGE TO 3',           'Red team',
+                                       'Красная команда'),
+    ('PROP TR MESSAGE TO 4',           'Blue team',
+                                       'Синяя команда'),
+    ('PROP TR MESSAGE TO 5',           'Everyone',
+                                       'Все игроки'),
+    ('PROP TR MESSAGE TEXT',           'Message text',
+                                       'Текст сообщения'),
 
     ('MSG ERROR',                      'Error',
                                        'Ошибка'),
@@ -1079,6 +1158,8 @@ Const
                                        'Выберите панель двери'),
     ('HINT PANEL TEXTURE',             'Choose textured Panel',
                                        'Выберите панель с текстурой'),
+    ('HINT PANEL SHOT',                'Choose textured shot indicator Panel',
+                                       'Выберите панель индикации выстрела с текстурой'),
     ('HINT PANEL LIFT',                'Choose Lift Panel',
                                        'Выберите панель лифта'),
     ('HINT MONSTER',                   'Choose Monster',
@@ -1684,18 +1765,19 @@ begin
   ItemNames[ITEM_INVIS] := _lc[I_ARRAY_ITEM_INVIS];
 
 // Названия снарядов:
+  ShotNames[TRIGGER_SHOT_PISTOL] := _lc[I_ARRAY_SHOT_PISTOL];
   ShotNames[TRIGGER_SHOT_BULLET] := _lc[I_ARRAY_SHOT_BULLET];
   ShotNames[TRIGGER_SHOT_SHOTGUN] := _lc[I_ARRAY_SHOT_SHOTGUN];
   ShotNames[TRIGGER_SHOT_SSG] := _lc[I_ARRAY_SHOT_SSG];
-  ShotNames[TRIGGER_SHOT_ROCKET] := _lc[I_ARRAY_SHOT_ROCKET];
-  ShotNames[TRIGGER_SHOT_PLASMA] := _lc[I_ARRAY_SHOT_PLASMA];
-  ShotNames[TRIGGER_SHOT_BFG] := _lc[I_ARRAY_SHOT_BFG];
   ShotNames[TRIGGER_SHOT_IMP] := _lc[I_ARRAY_SHOT_IMP];
-  ShotNames[TRIGGER_SHOT_MANCUB] := _lc[I_ARRAY_SHOT_MANCUB];
-  ShotNames[TRIGGER_SHOT_BARON] := _lc[I_ARRAY_SHOT_BARON];
-  ShotNames[TRIGGER_SHOT_CACO] := _lc[I_ARRAY_SHOT_CACO];
+  ShotNames[TRIGGER_SHOT_PLASMA] := _lc[I_ARRAY_SHOT_PLASMA];
   ShotNames[TRIGGER_SHOT_SPIDER] := _lc[I_ARRAY_SHOT_SPIDER];
+  ShotNames[TRIGGER_SHOT_CACO] := _lc[I_ARRAY_SHOT_CACO];
+  ShotNames[TRIGGER_SHOT_BARON] := _lc[I_ARRAY_SHOT_BARON];
+  ShotNames[TRIGGER_SHOT_MANCUB] := _lc[I_ARRAY_SHOT_MANCUB];
   ShotNames[TRIGGER_SHOT_REV] := _lc[I_ARRAY_SHOT_REV];
+  ShotNames[TRIGGER_SHOT_ROCKET] := _lc[I_ARRAY_SHOT_ROCKET];
+  ShotNames[TRIGGER_SHOT_BFG] := _lc[I_ARRAY_SHOT_BFG];
 
 // Названия монстров:
   MonsterNames[MONSTER_DEMON] := _lc[I_ARRAY_MON_DEMON];

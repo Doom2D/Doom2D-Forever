@@ -131,6 +131,18 @@ begin
     FCurTexture := -1;
     Exit;
   end;
+// Панели, не использующие текстуры:
+  if ByteBool(PanelType and
+    (PANEL_LIFTUP or
+     PANEL_LIFTDOWN or
+     PANEL_LIFTLEFT or
+     PANEL_LIFTRIGHT or
+     PANEL_BLOCKMON)) then
+  begin
+    SetLength(FTextureIDs, 0);
+    FCurTexture := -1;
+    Exit;
+  end;
 
 // Если это жидкость без текстуры - спецтекстуру:
   if WordBool(PanelType and (PANEL_WATER or PANEL_ACID1 or PANEL_ACID2)) and

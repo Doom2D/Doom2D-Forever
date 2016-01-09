@@ -124,8 +124,8 @@ begin
 
   g_Sound_CreateWADEx('SOUND_ITEM_RESPAWNITEM', GameWAD+':SOUNDS\RESPAWNITEM');
   g_Sound_CreateWADEx('SOUND_ITEM_GETRULEZ', GameWAD+':SOUNDS\GETRULEZ');
+  g_Sound_CreateWADEx('SOUND_ITEM_GETWEAPON', GameWAD+':SOUNDS\GETWEAPON');
   g_Sound_CreateWADEx('SOUND_ITEM_GETITEM', GameWAD+':SOUNDS\GETITEM');
-  g_Sound_CreateWADEx('SOUND_ITEM_GETMED', GameWAD+':SOUNDS\GETMED');
 
   g_Frames_CreateWAD(nil, 'FRAMES_ITEM_BLUESPHERE', GameWAD+':TEXTURES\SBLUE', 32, 32, 4, True);
   g_Frames_CreateWAD(nil, 'FRAMES_ITEM_WHITESPHERE', GameWAD+':TEXTURES\SWHITE', 32, 32, 4, True);
@@ -178,8 +178,8 @@ begin
 
   g_Sound_Delete('SOUND_ITEM_RESPAWNITEM');
   g_Sound_Delete('SOUND_ITEM_GETRULEZ');
+  g_Sound_Delete('SOUND_ITEM_GETWEAPON');
   g_Sound_Delete('SOUND_ITEM_GETITEM');
-  g_Sound_Delete('SOUND_ITEM_GETMED');
 
   g_Frames_DeleteByName('FRAMES_ITEM_BLUESPHERE');
   g_Frames_DeleteByName('FRAMES_ITEM_WHITESPHERE');
@@ -425,9 +425,10 @@ begin
                     g_Sound_PlayExAt('SOUND_ITEM_GETRULEZ',
                       gPlayers[j].Obj.X, gPlayers[j].Obj.Y)
                   else
-                    if ItemType in [ITEM_MEDKIT_SMALL, ITEM_MEDKIT_LARGE, ITEM_BOTTLE, ITEM_HELMET, ITEM_ARMOR_GREEN,
-                                    ITEM_ARMOR_BLUE, ITEM_KEY_RED, ITEM_KEY_GREEN, ITEM_KEY_BLUE] then
-                      g_Sound_PlayExAt('SOUND_ITEM_GETMED',
+                    if ItemType in [ITEM_WEAPON_SAW, ITEM_WEAPON_PISTOL, ITEM_WEAPON_SHOTGUN1, ITEM_WEAPON_SHOTGUN2,
+                                    ITEM_WEAPON_CHAINGUN, ITEM_WEAPON_ROCKETLAUNCHER, ITEM_WEAPON_PLASMA,
+                                    ITEM_WEAPON_BFG, ITEM_WEAPON_SUPERPULEMET] then
+                      g_Sound_PlayExAt('SOUND_ITEM_GETWEAPON',
                         gPlayers[j].Obj.X, gPlayers[j].Obj.Y)
                     else
                       g_Sound_PlayExAt('SOUND_ITEM_GETITEM',

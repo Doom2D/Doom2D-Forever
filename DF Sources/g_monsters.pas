@@ -141,7 +141,7 @@ function  g_Monsters_Create(MonsterType: Byte; X, Y: Integer;
             Direction: TDirection; AdjCoord: Boolean = False; ForcedUID: Integer = -1): Integer;
 procedure g_Monsters_Update();
 procedure g_Monsters_Draw();
-procedure g_Monsters_DrawDebug();
+procedure g_Monsters_DrawHealth();
 function  g_Monsters_Get(UID: Word): TMonster;
 procedure g_Monsters_killedp();
 procedure g_Monsters_goodsnd();
@@ -423,6 +423,7 @@ end;
 
 function BehaviourDamage(SpawnerUID: Word; BH, SelfType: Byte): Boolean;
 var
+  m: TMonster;
   UIDType, MonsterType: Byte;
 begin
   Result := False;
@@ -430,7 +431,11 @@ begin
 
   UIDType := g_GetUIDType(SpawnerUID);
   if UIDType = UID_MONSTER then
-    MonsterType := g_Monsters_Get(SpawnerUID).FMonsterType;
+  begin
+    m := g_Monsters_Get(SpawnerUID);
+    if m = nil then Exit;
+    MonsterType := m.FMonsterType;
+  end;
 
   case BH of
     BH_NORMAL: Result := (UIDType = UID_PLAYER) or
@@ -1100,7 +1105,7 @@ begin
         gMonsters[a].Draw();
 end;
 
-procedure g_Monsters_DrawDebug();
+procedure g_Monsters_DrawHealth();
 var
   a: Integer;
   fW, fH: Byte;
@@ -1629,7 +1634,7 @@ begin
       MakeBloodSimple(c)
     else
       case t of
-        HIT_TRAP, HIT_ACID, HIT_ELECTRO, HIT_FLAME, HIT_TRIGGER: MakeBloodSimple(c);
+        HIT_TRAP, HIT_ACID, HIT_ELECTRO, HIT_FLAME: MakeBloodSimple(c);
         HIT_BFG, HIT_ROCKET, HIT_SOME: MakeBloodVector(c, VelX, VelY);
       end;
   end;
@@ -2120,7 +2125,8 @@ begin
                    STATE_ATTACK, STATE_SHOOT]) then
       if g_Weapon_Danger(FUID, FObj.X+FObj.Rect.X, FObj.Y+FObj.Rect.Y,
                          FObj.Rect.Width, FObj.Rect.Height, 50) then
-        if g_Obj_CollideLevel(@FObj, 0, 1) or g_Obj_StayOnStep(@FObj) then
+        if (g_Obj_CollideLevel(@FObj, 0, 1) or g_Obj_StayOnStep(@FObj)) and
+           (FObj.Accel.Y = 0) then
           FObj.Vel.Y := -MONSTERTABLE[FMonsterType].Jump;
 
   case FState of
@@ -2305,7 +2311,8 @@ begin
           case FMonsterType of
             MONSTER_CACO, MONSTER_SOUL, MONSTER_PAIN, MONSTER_FISH: ;
             else // Не летают:
-              if g_Obj_CollideLevel(@FObj, 0, 1) or g_Obj_StayOnStep(@FObj) then
+              if (g_Obj_CollideLevel(@FObj, 0, 1) or g_Obj_StayOnStep(@FObj)) and
+                 (FObj.Accel.Y = 0) then
               begin // Стоим на твердом полу или ступени
               // Прыжок через стену:
                 FObj.Vel.Y := -MONSTERTABLE[FMonsterType].Jump;
@@ -2327,7 +2334,8 @@ begin
                     if g_Obj_CollideLevel(@FObj, 0, 1) or g_Obj_StayOnStep(@FObj) then
                     begin // "Стоит" твердо
                     // Рыба трепыхается на поверхности:
-                      FObj.Vel.Y := -6;
+                      if FObj.Accel.Y = 0 then
+                        FObj.Vel.Y := -6;
                       FObj.Accel.X := FObj.Accel.X - 8 + Random(17);
                     end;
 
@@ -2374,7 +2382,7 @@ begin
             if sy < -40 then
               if g_Obj_CollideLevel(@FObj, 0, 1) or g_Obj_StayOnStep(@FObj) then
               // стоит твердо
-                if Random(4) = 0 then
+                if (Random(4) = 0) and (FObj.Accel.Y = 0) then
                   FObj.Vel.Y := -MONSTERTABLE[FMonsterType].Jump;
           end;
 
@@ -2727,7 +2735,7 @@ _end:
                 MONSTER_ZOMBY:
                   begin
                     g_Sound_PlayExAt('SOUND_WEAPON_FIREPISTOL', wx, wy);
-                    g_Weapon_gun(wx, wy, tx, ty, 1, FUID, False);
+                    g_Weapon_gun(wx, wy, tx, ty, 1, 3, FUID, False);
                     g_Player_CreateShell(wx, wy, 0, -2, SHELL_BULLET);
                   end;
                 MONSTER_SERG:
@@ -2996,7 +3004,8 @@ begin
                    STATE_ATTACK, STATE_SHOOT]) then
       if g_Weapon_Danger(FUID, FObj.X+FObj.Rect.X, FObj.Y+FObj.Rect.Y,
                          FObj.Rect.Width, FObj.Rect.Height, 50) then
-        if g_Obj_CollideLevel(@FObj, 0, 1) or g_Obj_StayOnStep(@FObj) then
+        if (g_Obj_CollideLevel(@FObj, 0, 1) or g_Obj_StayOnStep(@FObj)) and
+           (FObj.Accel.Y = 0) then
           FObj.Vel.Y := -MONSTERTABLE[FMonsterType].Jump;
 
   case FState of
@@ -3076,7 +3085,8 @@ begin
           case FMonsterType of
             MONSTER_CACO, MONSTER_SOUL, MONSTER_PAIN, MONSTER_FISH: ;
             else // Не летают:
-              if g_Obj_CollideLevel(@FObj, 0, 1) or g_Obj_StayOnStep(@FObj) then
+              if (g_Obj_CollideLevel(@FObj, 0, 1) or g_Obj_StayOnStep(@FObj)) and
+                 (FObj.Accel.Y = 0) then
               begin // Стоим на твердом полу или ступени
               // Прыжок через стену:
                 FObj.Vel.Y := -MONSTERTABLE[FMonsterType].Jump;
@@ -3098,7 +3108,8 @@ begin
                     if g_Obj_CollideLevel(@FObj, 0, 1) or g_Obj_StayOnStep(@FObj) then
                     begin // "Стоит" твердо
                     // Рыба трепыхается на поверхности:
-                      FObj.Vel.Y := -6;
+                      if FObj.Accel.Y = 0 then
+                        FObj.Vel.Y := -6;
                       FObj.Accel.X := FObj.Accel.X - 8 + Random(17);
                     end;
 

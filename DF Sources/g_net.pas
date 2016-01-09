@@ -3,10 +3,10 @@ unit g_net;
 interface
 
 uses
-  e_log, e_fixedbuffer, ENet, ENet_Types, Classes;
+  e_log, e_fixedbuffer, ENet, ENet_Types, ENet_Win32, Classes;
 
 const
-  NET_PROTOCOL_VER = 147;
+  NET_PROTOCOL_VER = 156;
 
   NET_MAXCLIENTS = 24;
   NET_CHANS = 11;
@@ -38,11 +38,15 @@ const
   NET_DISC_KICK: enet_uint32 = 4;
   NET_DISC_DOWN: enet_uint32 = 5;
   NET_DISC_PASSWORD: enet_uint32 = 6;
-  NET_DISC_BAN: enet_uint32 = 7;
+  NET_DISC_TEMPBAN: enet_uint32 = 7;
+  NET_DISC_BAN: enet_uint32 = 8;
+  NET_DISC_MAX: enet_uint32 = 8;
 
   NET_STATE_NONE = 0;
   NET_STATE_AUTH = 1;
   NET_STATE_GAME = 2;
+
+  BANLIST_FILENAME = 'banlist.txt';
 
 type
   TNetClient = record
@@ -55,6 +59,10 @@ type
     RCONAuth: Boolean;
     Voted:    Boolean;
   end;
+  TBanRecord = record
+    IP: LongWord;
+    Perm: Boolean;
+  end;
   pTNetClient = ^TNetClient;
 
   AByte = array of Byte;
@@ -62,15 +70,13 @@ type
 var
   NetInitDone:     Boolean = False;
   NetMode:         Byte = NET_NONE;
-  
-  NetDedicated:    Boolean = False;
 
   NetServerName:   string = 'Unnamed Server';
   NetPassword:     string = '';
   NetPort:         Word = 25666;
 
   NetAllowRCON:    Boolean = False;
-  NetRCONPassword: string = 'ASS';
+  NetRCONPassword: string = '';
 
   NetTimeToUpdate:   Cardinal = 0;
   NetTimeToReliable: Cardinal = 0;
@@ -81,11 +87,14 @@ var
   NetEvent:      ENetEvent;
   NetAddr:       ENetAddress;
 
+  NetPongAddr:   ENetAddress;
+  NetPongSock:   ENetSocket = ENET_SOCKET_NULL;
+
   NetUseMaster: Boolean = True;
   NetSlistAddr: ENetAddress;
   NetSlistIP:   string = 'mpms.doom2d.org';
   NetSlistPort: Word = 25665;
-  
+
   NetClientIP:   string = '127.0.0.1';
   NetClientPort: Word   = 25666;
 
@@ -94,11 +103,13 @@ var
   NetClients:     array of TNetClient;
   NetClientCount: Byte = 0;
   NetMaxClients:  Byte = 255;
+  NetBannedHosts: array of TBanRecord;
 
   NetState:      Integer = NET_STATE_NONE;
 
   NetMyID:       Integer = -1;
-  NetPlrUID:     Integer = -1;
+  NetPlrUID1:    Integer = -1;
+  NetPlrUID2:    Integer = -1;
 
   NetInterpLevel: Integer = 1;
   NetUpdateRate:  Cardinal = 0;  // as soon as possible
@@ -107,6 +118,7 @@ var
 
   NetForcePlayerUpdate: Boolean = False;
   NetPredictSelf:       Boolean = True;
+  NetGotKeys:           Boolean = False;
 
   NetGotEverything: Boolean = False;
 
@@ -115,7 +127,7 @@ procedure g_Net_Cleanup();
 procedure g_Net_Free();
 procedure g_Net_Flush();
 
-function  g_Net_Host(Port: enet_uint16; MaxClients: Cardinal = 16): Boolean;
+function  g_Net_Host(IPAddr: LongWord; Port: enet_uint16; MaxClients: Cardinal = 16): Boolean;
 procedure g_Net_Host_Die();
 procedure g_Net_Host_Send(ID: Integer; Reliable: Boolean; Chan: Byte = NET_CHAN_GAME);
 function  g_Net_Host_Update(): enet_size_t;
@@ -128,18 +140,28 @@ function  g_Net_Client_UpdateWhileLoading(): enet_size_t;
 
 function  g_Net_Client_ByName(Name: string): pTNetClient;
 function  g_Net_Client_ByPlayer(PID: Word): pTNetClient;
+function  g_Net_ClientName_ByID(ID: Integer): string;
 
 procedure g_Net_SendData(Data:AByte; peer: pENetPeer; Reliable: Boolean; Chan: Byte = NET_CHAN_DOWNLOAD);
 function  g_Net_Wait_Event(msgId: Word): TMemoryStream;
 
 function  IpToStr(IP: LongWord): string;
+function  StrToIp(IPstr: string; var IP: LongWord): Boolean;
+
+function  g_Net_IsHostBanned(IP: LongWord; Perm: Boolean = False): Boolean;
+procedure g_Net_BanHost(IP: LongWord; Perm: Boolean = True); overload;
+procedure g_Net_BanHost(IP: string; Perm: Boolean = True); overload;
+function  g_Net_UnbanHost(IP: string): Boolean; overload;
+function  g_Net_UnbanHost(IP: LongWord): Boolean; overload;
+procedure g_Net_UnbanNonPermHosts();
+procedure g_Net_SaveBanList();
 
 implementation
 
 uses
   SysUtils,
   e_input, g_nethandler, g_netmsg, g_netmaster, g_player, g_window, g_console,
-  g_game, g_language;
+  g_main, g_game, g_language, g_weapons;
 
 
 { /// SERVICE FUNCTIONS /// }
@@ -188,6 +210,10 @@ begin
 end;
 
 function g_Net_Init(): Boolean;
+var
+  F: TextFile;
+  IPstr: string;
+  IP: LongWord;
 begin
   e_Buffer_Clear(@NetIn);
   e_Buffer_Clear(@NetOut);
@@ -195,9 +221,24 @@ begin
   NetPeer := nil;
   NetHost := nil;
   NetMyID := -1;
-  NetPlrUID := -1;
+  NetPlrUID1 := -1;
+  NetPlrUID2 := -1;
   NetAddr.port := 25666;
-  
+  SetLength(NetBannedHosts, 0);
+  if FileExists(DataDir + BANLIST_FILENAME) then
+  begin
+    Assign(F, DataDir + BANLIST_FILENAME);
+    Reset(F);
+    while not EOF(F) do
+    begin
+      Readln(F, IPstr);
+      if StrToIp(IPstr, IP) then
+        g_Net_BanHost(IP);
+    end;
+    CloseFile(F);
+    g_Net_SaveBanList();
+  end;
+
   Result := (enet_initialize() = 0);
 end;
 
@@ -219,8 +260,11 @@ begin
   NetMPeer := nil;
   NetMHost := nil;
   NetMyID := -1;
-  NetPlrUID := -1;
+  NetPlrUID1 := -1;
+  NetPlrUID2 := -1;
   NetState := NET_STATE_NONE;
+
+  NetPongSock := ENET_SOCKET_NULL;
 
   NetTimeToMaster := 0;
   NetTimeToUpdate := 0;
@@ -241,7 +285,7 @@ end;
 { /// SERVER FUNCTIONS /// }
 
 
-function g_Net_Host(Port: enet_uint16; MaxClients: Cardinal = 16): Boolean;
+function g_Net_Host(IPAddr: LongWord; Port: enet_uint16; MaxClients: Cardinal = 16): Boolean;
 begin
   if NetMode <> NET_NONE then
   begin
@@ -265,7 +309,7 @@ begin
       NetInitDone := True;
   end;
 
-  NetAddr.host := ENET_HOST_ANY;
+  NetAddr.host := IPAddr;
   NetAddr.port := Port;
 
   NetHost := enet_host_create(@NetAddr, NET_MAXCLIENTS, NET_CHANS, 0, 0);
@@ -276,6 +320,20 @@ begin
     Result := False;
     g_Net_Cleanup;
     Exit;
+  end;
+
+  NetPongSock := enet_socket_create(ENET_SOCKET_TYPE_DATAGRAM);
+  if NetPongSock <> ENET_SOCKET_NULL then
+  begin
+    NetPongAddr.host := IPAddr;
+    NetPongAddr.port := Port + 1;
+    if enet_socket_bind(NetPongSock, @NetPongAddr) < 0 then
+    begin
+      enet_socket_destroy(NetPongSock);
+      NetPongSock := ENET_SOCKET_NULL;
+    end
+    else
+      enet_socket_set_option(NetPongSock, ENET_SOCKOPT_NONBLOCK, 1);
   end;
 
   NetMode := NET_SERVER;
@@ -308,6 +366,8 @@ begin
     end;
 
   if (NetMPeer <> nil) and (NetMHost <> nil) then g_Net_Slist_Disconnect;
+  if NetPongSock <> ENET_SOCKET_NULL then
+    enet_socket_destroy(NetPongSock);
 
   g_Console_Add(_lc[I_NET_MSG] + _lc[I_NET_MSG_HOST_DIE]);
   enet_host_destroy(NetHost);
@@ -351,6 +411,42 @@ begin
   e_Buffer_Clear(@NetOut);
 end;
 
+procedure g_Net_Host_CheckPings();
+var
+  ClAddr: ENetAddress;
+  Buf: ENetBuffer;
+  Len, ClTime: Integer;
+  Ping: array [0..5] of Byte;
+begin
+  if NetPongSock = ENET_SOCKET_NULL then Exit;
+
+  Buf.data := Addr(Ping[0]);
+  Buf.dataLength := 6;
+
+  Ping[0] := 0;
+
+  Len := enet_socket_receive(NetPongSock, @ClAddr, @Buf, 1);
+  if Len < 0 then Exit;
+
+  if (Ping[0] = Ord('D')) and (Ping[1] = Ord('F')) then
+  begin
+    ClTime := Integer(Addr(Ping[2])^);
+
+    e_Buffer_Clear(@NetOut);
+    e_Buffer_Write(@NetOut, Byte(Ord('D')));
+    e_Buffer_Write(@NetOut, Byte(Ord('F')));
+    g_Net_Slist_WriteInfo();
+    e_Buffer_Write(@NetOut, gNumBots);
+    e_Buffer_Write(@NetOut, ClTime);
+
+    Buf.data := Addr(NetOut.Data[0]);
+    Buf.dataLength := NetOut.WritePos;
+    enet_socket_send(NetPongSock, @ClAddr, @Buf, 1);
+
+    e_Buffer_Clear(@NetOut);
+  end;
+end;
+
 function g_Net_Host_Update(): enet_size_t;
 var
   IP: string;
@@ -362,7 +458,11 @@ begin
   IP := '';
   Result := 0;
 
-  if NetUseMaster then g_Net_Slist_Check;
+  if NetUseMaster then
+  begin
+    g_Net_Slist_Check;
+    g_Net_Host_CheckPings;
+  end;
 
   while (enet_host_service(NetHost, @NetEvent, 0) > 0) do
   begin
@@ -433,7 +533,7 @@ begin
         if TP <> nil then
         begin
           TP.Lives := 0;
-          TP.Kill(K_SIMPLEKILL, 0, 0);
+          TP.Kill(K_SIMPLEKILL, 0, HIT_DISCON);
           g_Console_Add(Format(_lc[I_PLAYER_LEAVE], [TP.Name]), True);
           e_WriteLog('NET: Client ' + TP.Name + ' [' + IntToStr(ID) + '] disconnected.', MSG_NOTIFY);
           g_Player_Remove(TP.UID);
@@ -490,7 +590,7 @@ begin
   else
   begin
     e_WriteLog('NET: Kicked from server: ' + IntToStr(NetEvent.data), MSG_NOTIFY);
-    if (NetEvent.data <= 7) then
+    if (NetEvent.data <= NET_DISC_MAX) then
       g_Console_Add(_lc[I_NET_MSG] + _lc[I_NET_MSG_KICK] +
         _lc[TStrings_Locale(Cardinal(I_NET_DISC_NONE) + NetEvent.data)], True);
   end;
@@ -599,7 +699,7 @@ begin
     Result := False;
     Exit;
   end;
-  
+
   enet_address_set_host(@NetAddr, PChar(Addr(IP[1])));
   NetAddr.port := Port;
 
@@ -630,7 +730,7 @@ begin
         Exit;
       end;
     end;
-    PreventWindowFromLockUp;
+    ProcessLoading();
     e_PollKeyboard();
     if (e_KeyBuffer[1] = $080) or (e_KeyBuffer[57] = $080) then
       OuterLoop := False;
@@ -662,6 +762,14 @@ begin
   e_Raw_Seek(0);
 end;
 
+function StrToIp(IPstr: string; var IP: LongWord): Boolean;
+var
+  EAddr: ENetAddress;
+begin
+  Result := enet_address_set_host(@EAddr, PChar(@IPstr[1])) = 0;
+  IP := EAddr.host;
+end;
+
 function g_Net_Client_ByName(Name: string): pTNetClient;
 var
   a: Integer;
@@ -673,7 +781,7 @@ begin
     begin
       pl := g_Player_Get(NetClients[a].Player);
       if pl = nil then continue;
-      if Copy(pl.Name, 1, Length(Name)) <> LowerCase(Name) then continue;
+      if Copy(LowerCase(pl.Name), 1, Length(Name)) <> LowerCase(Name) then continue;
       if NetClients[a].Peer <> nil then
       begin
         Result := @NetClients[a];
@@ -694,6 +802,23 @@ begin
         Result := @NetClients[a];
         Exit;
       end;
+end;
+
+function g_Net_ClientName_ByID(ID: Integer): string;
+var
+  a: Integer;
+  pl: TPlayer;
+begin
+  Result := '';
+  if ID = NET_EVERYONE then
+    Exit;
+  for a := Low(NetClients) to High(NetClients) do
+    if (NetClients[a].ID = ID) and (NetClients[a].Used) and (NetClients[a].State = NET_STATE_GAME) then
+    begin
+      pl := g_Player_Get(NetClients[a].Player);
+      if pl = nil then Exit;
+      Result := pl.Name;
+    end;
 end;
 
 procedure g_Net_SendData(Data:AByte; peer: pENetPeer; Reliable: Boolean; Chan: Byte = NET_CHAN_DOWNLOAD);
@@ -763,7 +888,7 @@ begin
       else
         if (downloadEvent.kind = ENET_EVENT_TYPE_DISCONNECT) then
         begin
-          if (downloadEvent.data <= 7) then
+          if (downloadEvent.data <= NET_DISC_MAX) then
             g_Console_Add(_lc[I_NET_MSG_ERROR] + _lc[I_NET_ERR_CONN] + ' ' +
             _lc[TStrings_Locale(Cardinal(I_NET_DISC_NONE) + downloadEvent.data)], True);
           OuterLoop := False;
@@ -771,13 +896,121 @@ begin
         end;
     end;
 
-    PreventWindowFromLockUp;
+    ProcessLoading();
 
     e_PollKeyboard();
     if (e_KeyBuffer[1] = $080) or (e_KeyBuffer[57] = $080) then
       break;
   end;
   Result := msgStream;
+end;
+
+function g_Net_IsHostBanned(IP: LongWord; Perm: Boolean = False): Boolean;
+var
+  I: Integer;
+begin
+  Result := False;
+  if NetBannedHosts = nil then
+    Exit;
+  for I := 0 to High(NetBannedHosts) do
+    if (NetBannedHosts[I].IP = IP) and ((not Perm) or (NetBannedHosts[I].Perm)) then
+    begin
+      Result := True;
+      break;
+    end;
+end;
+
+procedure g_Net_BanHost(IP: LongWord; Perm: Boolean = True); overload;
+var
+  I, P: Integer;
+begin
+  if IP = 0 then
+    Exit;
+  if g_Net_IsHostBanned(IP, Perm) then
+    Exit;
+
+  P := -1;
+  for I := Low(NetBannedHosts) to High(NetBannedHosts) do
+    if NetBannedHosts[I].IP = 0 then
+    begin
+      P := I;
+      break;
+    end;
+
+  if P < 0 then
+  begin
+    SetLength(NetBannedHosts, Length(NetBannedHosts) + 1);
+    P := High(NetBannedHosts);
+  end;
+
+  NetBannedHosts[P].IP := IP;
+  NetBannedHosts[P].Perm := Perm;
+end;
+
+procedure g_Net_BanHost(IP: string; Perm: Boolean = True); overload;
+var
+  a: LongWord;
+  b: Boolean;
+begin
+  b := StrToIp(IP, a);
+  if b then
+    g_Net_BanHost(a, Perm);
+end;
+
+procedure g_Net_UnbanNonPermHosts();
+var
+  I: Integer;
+begin
+  if NetBannedHosts = nil then
+    Exit;
+  for I := Low(NetBannedHosts) to High(NetBannedHosts) do
+    if (NetBannedHosts[I].IP > 0) and not NetBannedHosts[I].Perm then
+    begin
+      NetBannedHosts[I].IP := 0;
+      NetBannedHosts[I].Perm := True;
+    end;
+end;
+
+function g_Net_UnbanHost(IP: string): Boolean; overload;
+var
+  a: LongWord;
+begin
+  Result := StrToIp(IP, a);
+  if Result then
+    Result := g_Net_UnbanHost(a);
+end;
+
+function g_Net_UnbanHost(IP: LongWord): Boolean; overload;
+var
+  I: Integer;
+begin
+  Result := False;
+  if IP = 0 then
+    Exit;
+  if NetBannedHosts = nil then
+    Exit;
+  for I := 0 to High(NetBannedHosts) do
+    if NetBannedHosts[I].IP = IP then
+    begin
+      NetBannedHosts[I].IP := 0;
+      NetBannedHosts[I].Perm := True;
+      Result := True;
+      // no break here to clear all bans of this host, perm and non-perm
+    end;
+end;
+
+procedure g_Net_SaveBanList();
+var
+  F: TextFile;
+  I: Integer;
+begin
+  Assign(F, DataDir + BANLIST_FILENAME);
+  Rewrite(F);
+  if NetBannedHosts <> nil then
+    for I := 0 to High(NetBannedHosts) do
+      if NetBannedHosts[I].Perm and (NetBannedHosts[I].IP > 0) then
+        Writeln(F, IpToStr(NetBannedHosts[I].IP));
+  CloseFile(F);
 end;
 
 end.

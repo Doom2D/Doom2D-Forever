@@ -71,6 +71,8 @@ function parse2(s: string; delim: Char): SArray;
 function g_GetFileTime(fileName: String): Integer;
 function g_SetFileTime(fileName: String; time: Integer): Boolean;
 procedure SortSArray(var S: SArray);
+function b_Text_Format(S: string): string;
+function b_Text_Unformat(S: string): string;
 
 implementation
 
@@ -1072,6 +1074,97 @@ begin
         b := True;
       end;
   until not b;
+end;
+
+function b_Text_Format(S: string): string;
+var
+  Spec, Rst: Boolean;
+  I: Integer;
+begin
+  Result := '';
+  Spec := False;
+  Rst := False;
+  for I := 1 to Length(S) do
+  begin
+    if (not Spec) and (S[I] = '\') and (I + 1 <= Length(S)) then
+    begin
+      Spec := True;
+      Rst := True;
+      continue;
+    end;
+    if Spec then
+    begin
+      case S[I] of
+        'n': // line feed
+          Result := Result + #10;
+        '0': // black
+          Result := Result + #1;
+        '1': // white
+          Result := Result + #2;
+        'd': // darker
+          Result := Result + #3;
+        'l': // lighter
+          Result := Result + #4;
+        'r': // red
+          Result := Result + #18;
+        'g': // green
+          Result := Result + #19;
+        'b': // blue
+          Result := Result + #20;
+        'y': // yellow
+          Result := Result + #21;
+        '\': // escape
+          Result := Result + '\';
+        else
+          Result := Result + '\' + S[I];
+      end;
+      Spec := False;
+    end else
+      Result := Result + S[I];
+  end;
+  // reset to white at end
+  if Rst then Result := Result + #2;
+end;
+
+function b_Text_Unformat(S: string): string;
+var
+  Spec: Boolean;
+  I: Integer;
+begin
+  Result := '';
+  Spec := False;
+  for I := 1 to Length(S) do
+  begin
+    if S[I] in [#1, #2, #3, #4, #10, #18, #19, #20, #21] then
+    begin
+      Spec := False;
+      continue;
+    end;
+    if (not Spec) and (S[I] = '\') and (I + 1 <= Length(S)) then
+    begin
+      Spec := True;
+      continue;
+    end;
+    if Spec then
+    begin
+      case S[I] of
+        'n': ;
+        '0': ;
+        '1': ;
+        'd': ;
+        'l': ;
+        'r': ;
+        'g': ;
+        'b': ;
+        'y': ;
+        '\': Result := Result + '\';
+        else
+          Result := Result + '\' + S[I];
+      end;
+      Spec := False;
+    end else
+      Result := Result + S[I];
+  end;
 end;
 
 end.

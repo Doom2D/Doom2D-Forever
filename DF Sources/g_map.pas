@@ -34,6 +34,7 @@ type
     RespawnType: Byte;
     State:       Byte;
     Count:       Integer;
+    CaptureTime: LongWord;
     Animation:   TAnimation;
     Direction:   TDirection;
   end;
@@ -80,11 +81,12 @@ const
   FLAG_BLUE = 2;
   FLAG_DOM  = 3;
 
-  FLAG_STATE_NORMAL   = 0;
-  FLAG_STATE_DROPPED  = 1;
-  FLAG_STATE_CAPTURED = 2;
-  FLAG_STATE_SCORED   = 3; // Для эвентов через сетку.
-  FLAG_STATE_RETURNED = 4; // Для эвентов через сетку.
+  FLAG_STATE_NONE     = 0;
+  FLAG_STATE_NORMAL   = 1;
+  FLAG_STATE_DROPPED  = 2;
+  FLAG_STATE_CAPTURED = 3;
+  FLAG_STATE_SCORED   = 4; // Для эвентов через сетку.
+  FLAG_STATE_RETURNED = 5; // Для эвентов через сетку.
 
   FLAG_TIME = 720; // 20 seconds
 
@@ -104,7 +106,6 @@ var
   gBackSize: TPoint;
   gDoorMap: array of array of DWORD;
   gLiftMap: array of array of DWORD;
-  gRelativeMapResStr: string = '';
   gWADHash: TMD5Digest;
   BackID:  DWORD = DWORD(-1);
   gExternalResources: TStringList;
@@ -636,7 +637,7 @@ begin
   end;
 end;
 
-procedure CreateTrigger(Trigger: TTriggerRec_1; fTexturePanelType: Word);
+procedure CreateTrigger(Trigger: TTriggerRec_1; fTexturePanel1Type, fTexturePanel2Type: Word);
 var
   _trigger: TTrigger;
 begin
@@ -650,7 +651,8 @@ begin
     Height := Trigger.Height;
     Enabled := ByteBool(Trigger.Enabled);
     TexturePanel := Trigger.TexturePanel;
-    TexturePanelType := fTexturePanelType;
+    TexturePanelType := fTexturePanel1Type;
+    ShotPanelType := fTexturePanel2Type;
     TriggerType := Trigger.TriggerType;
     ActivateType := Trigger.ActivateType;
     Keys := Trigger.Keys;
@@ -856,6 +858,7 @@ begin
   end;
 
 // Загрузка триггеров:
+  gTriggerClientID := 0;
   e_WriteLog('  Loading triggers...', MSG_NOTIFY);
   g_Game_SetLoadingText(_lc[I_LOAD_TRIGGERS], 0, False);
   triggers := MapReader.GetTriggers();
@@ -1056,7 +1059,12 @@ begin
         b := panels[TriggersTable[a].TexturePanel].PanelType
       else
         b := 0;
-      CreateTrigger(triggers[a], b);
+      if (triggers[a].TriggerType = TRIGGER_SHOT) and
+         (TTriggerData(triggers[a].DATA).ShotPanelID <> -1) then
+        c := panels[TTriggerData(triggers[a].DATA).ShotPanelID].PanelType
+      else
+        c := 0;
+      CreateTrigger(triggers[a], b, c);
     end;
   end;
 
@@ -1436,7 +1444,7 @@ begin
   if gGameSettings.GameMode = GM_CTF then
   begin
     for a := FLAG_RED to FLAG_BLUE do
-      if gFlags[a].State <> FLAG_STATE_CAPTURED then
+      if not (gFlags[a].State in [FLAG_STATE_NONE, FLAG_STATE_CAPTURED]) then
         with gFlags[a] do
         begin
           if gFlags[a].Animation <> nil then
@@ -1450,16 +1458,19 @@ begin
         // Сопротивление воздуха:
           Obj.Vel.X := z_dec(Obj.Vel.X, 1);
 
+        // Таймаут потерянного флага, либо он выпал за карту:
           if ((Count = 0) or ByteBool(m and MOVE_FALLOUT)) and g_Game_IsServer then
           begin
             g_Map_ResetFlag(a);
+            gFlags[a].CaptureTime := 0;
             if a = FLAG_RED then
               s := _lc[I_PLAYER_FLAG_RED]
             else
               s := _lc[I_PLAYER_FLAG_BLUE];
             g_Game_Message(Format(_lc[I_MESSAGE_FLAG_RETURN], [AnsiUpperCase(s)]), 144);
 
-            if g_Game_IsNet then MH_SEND_FlagEvent(FLAG_STATE_RETURNED, a, 0);
+            if g_Game_IsNet then
+              MH_SEND_FlagEvent(FLAG_STATE_RETURNED, a, 0);
             Continue;
           end;
 
@@ -1740,7 +1751,8 @@ begin
   end;
 
   tp.NextTexture(AnimLoop);
-  if g_Game_IsServer and g_Game_IsNet then MH_SEND_PanelTexture(PanelType, ID, AnimLoop);
+  if g_Game_IsServer and g_Game_IsNet then
+    MH_SEND_PanelTexture(PanelType, ID, AnimLoop);
 end;
 
 procedure g_Map_SetLift(ID: DWORD; t: Integer);
@@ -1814,12 +1826,19 @@ procedure g_Map_ResetFlag(Flag: Byte);
 begin
   with gFlags[Flag] do
   begin
-    Obj.X := FlagPoints[Flag]^.X;
-    Obj.Y := FlagPoints[Flag]^.Y;
+    Obj.X := -1000;
+    Obj.Y := -1000;
     Obj.Vel.X := 0;
     Obj.Vel.Y := 0;
-    Direction := FlagPoints[Flag]^.Direction;
-    State := FLAG_STATE_NORMAL;
+    Direction := D_LEFT;
+    State := FLAG_STATE_NONE;
+    if FlagPoints[Flag] <> nil then
+    begin
+      Obj.X := FlagPoints[Flag]^.X;
+      Obj.Y := FlagPoints[Flag]^.Y;
+      Direction := FlagPoints[Flag]^.Direction;
+      State := FLAG_STATE_NORMAL;
+    end;
     Count := -1;
   end;
 end;
@@ -1836,6 +1855,9 @@ begin
     with gFlags[i] do
       if State <> FLAG_STATE_CAPTURED then
       begin
+        if State = FLAG_STATE_NONE then
+          continue;
+
         if Direction = D_LEFT then
           begin
             Mirror := M_HORIZONTAL;
@@ -1846,7 +1868,7 @@ begin
             Mirror := M_NONE;
             dx := 1;
           end;
-          
+
         Animation.Draw(Obj.X+dx, Obj.Y+1, Mirror);
 
         if g_debug_Frames then

@@ -13,12 +13,14 @@ procedure g_Console_Add(L: String; Show: Boolean = False);
 procedure g_Console_Clear();
 function  g_Console_CommandBlacklisted(C: String): Boolean;
 
-procedure g_Console_Chat_Switch();
+procedure g_Console_Chat_Switch(Team: Boolean = False);
 
 var
   gConsoleShow: Boolean; // True - консоль открыта или открывается
   gChatShow: Boolean;
+  gChatTeam: Boolean = False;
   gAllowConsoleMessages: Boolean = True;
+  gChatEnter: Boolean = True;
   gJustChatted: Boolean = False; // чтобы админ в интере чатясь не проматывал статистику
 
 implementation
@@ -154,7 +156,7 @@ begin
           s := '';
           for a := 1 to High(P) do
             s := s + P[a] + ' ';
-          g_Console_Add(s, True);
+          g_Console_Add(b_Text_Format(s), True);
         end;
       end
     else
@@ -361,6 +363,7 @@ begin
   AddCommand('d_botoff', DebugCommands);
   AddCommand('d_monster', DebugCommands);
   AddCommand('d_health', DebugCommands);
+  AddCommand('d_player', DebugCommands);
 
   AddCommand('p1_name', GameCVars);
   AddCommand('p2_name', GameCVars);
@@ -372,6 +375,8 @@ begin
   AddCommand('r_showlives', GameCVars);
   AddCommand('r_showstat', GameCVars);
   AddCommand('r_showkillmsg', GameCVars);
+  AddCommand('r_showspect', GameCVars);
+  AddCommand('g_gamemode', GameCVars);
   AddCommand('g_friendlyfire', GameCVars);
   AddCommand('g_weaponstay', GameCVars);
   AddCommand('g_allow_exit', GameCVars);
@@ -385,6 +390,7 @@ begin
   AddCommand('net_interp', GameCVars);
   AddCommand('net_forceplayerupdate', GameCVars);
   AddCommand('net_predictself', GameCVars);
+  AddCommand('sv_intertime', GameCVars);
 
   AddCommand('quit', GameCommands);
   AddCommand('exit', GameCommands);
@@ -398,6 +404,9 @@ begin
   AddCommand('bot_addblue', GameCommands);
   AddCommand('bot_removeall', GameCommands);
   AddCommand('chat', GameCommands);
+  AddCommand('teamchat', GameCommands);
+  AddCommand('game', GameCommands);
+  AddCommand('host', GameCommands);
   AddCommand('map', GameCommands);
   AddCommand('nextmap', GameCommands);
   AddCommand('endmap', GameCommands);
@@ -407,11 +416,17 @@ begin
   AddCommand('ready', GameCommands);
   AddCommand('kick', GameCommands);
   AddCommand('kick_id', GameCommands);
+  AddCommand('ban', GameCommands);
+  AddCommand('permban', GameCommands);
+  AddCommand('ban_id', GameCommands);
+  AddCommand('permban_id', GameCommands);
+  AddCommand('unban', GameCommands);
   AddCommand('connect', GameCommands);
   AddCommand('disconnect', GameCommands);
   AddCommand('reconnect', GameCommands);
   AddCommand('say', GameCommands);
   AddCommand('tell', GameCommands);
+  AddCommand('overtime', GameCommands);
   AddCommand('rcon_password', GameCommands);
   AddCommand('rcon', GameCommands);
   AddCommand('callvote', GameCommands);
@@ -419,14 +434,16 @@ begin
   AddCommand('clientlist', GameCommands);
   AddCommand('event', GameCommands);
 
-  WhitelistCommand('broadcast');
+  WhitelistCommand('say');
   WhitelistCommand('tell');
+  WhitelistCommand('overtime');
   WhitelistCommand('ready');
   WhitelistCommand('map');
   WhitelistCommand('nextmap');
   WhitelistCommand('endmap');
   WhitelistCommand('restart');
   WhitelistCommand('kick');
+  WhitelistCommand('ban');
 
   WhitelistCommand('addbot');
   WhitelistCommand('bot_add');
@@ -434,6 +451,7 @@ begin
   WhitelistCommand('bot_addblue');
   WhitelistCommand('bot_removeall');
 
+  WhitelistCommand('g_gamemode');
   WhitelistCommand('g_friendlyfire');
   WhitelistCommand('g_weaponstay');
   WhitelistCommand('g_allow_exit');
@@ -509,17 +527,27 @@ begin
 
   for a := 0 to High(MsgArray) do
     if MsgArray[a].Time > 0 then
-      e_TextureFontPrintEx(0, CHeight*a, MsgArray[a].Msg,
-        gStdFont, 255, 255, 255, 1, True);
+      e_TextureFontPrintFmt(0, CHeight*a, MsgArray[a].Msg,
+        gStdFont, True);
 
   if not Cons_Shown then
   begin
     if gChatShow then
     begin
-      e_TextureFontPrintEx(0, gScreenHeight - 16, 'say> ' + Line,
-        gStdFont, 255, 255, 255, 1, True);
-      e_TextureFontPrintEx((CPos + 4)*CWidth, gScreenHeight - 16, '_',
-        gStdFont, 255, 255, 255, 1, True);
+      if gChatTeam then
+      begin
+        e_TextureFontPrintEx(0, gScreenHeight - CHeight - 1, 'say team> ' + Line,
+          gStdFont, 255, 255, 255, 1, True);
+        e_TextureFontPrintEx((CPos + 9)*CWidth, gScreenHeight - CHeight - 1, '_',
+          gStdFont, 255, 255, 255, 1, True);
+      end
+      else
+      begin
+        e_TextureFontPrintEx(0, gScreenHeight - CHeight - 1, 'say> ' + Line,
+          gStdFont, 255, 255, 255, 1, True);
+        e_TextureFontPrintEx((CPos + 4)*CWidth, gScreenHeight - CHeight - 1, '_',
+          gStdFont, 255, 255, 255, 1, True);
+      end;
     end;
     Exit;
   end;
@@ -549,8 +577,8 @@ begin
     c := 2;
     for a := d downto b do
     begin
-      e_TextureFontPrintEx(0, (gScreenHeight div 2)-4-c*CHeight-Abs(Cons_Y), ConsoleHistory[a],
-                           gStdFont, 240, 240, 240, 1, True);
+      e_TextureFontPrintFmt(0, (gScreenHeight div 2)-4-c*CHeight-Abs(Cons_Y), ConsoleHistory[a],
+                           gStdFont, True);
       c := c + 1;
     end;
   end;
@@ -565,17 +593,22 @@ begin
   Cons_Shown := True;
 end;
 
-procedure g_Console_Chat_Switch();
+procedure g_Console_Chat_Switch(Team: Boolean = False);
 begin
   if gConsoleShow then Exit;
   if not g_Game_IsNet then Exit;
   gChatShow := not gChatShow;
+  gChatTeam := Team;
+  if gChatShow then
+    gChatEnter := False;
   Line := '';
   CPos := 1;
 end;
 
 procedure g_Console_Char(C: Char);
 begin
+  if gChatShow and (not gChatEnter) then
+    Exit;
   Insert(C, Line, CPos);
   CPos := CPos + 1;
 end;
@@ -640,10 +673,22 @@ begin
         begin
           if (Length(Line) > 0) and g_Game_IsNet then
           begin
-            if g_Game_IsClient then
-              MC_SEND_Chat(Line)
+            if gChatTeam then
+            begin
+              if g_Game_IsClient then
+                MC_SEND_Chat(b_Text_Format(Line), NET_CHAT_TEAM)
+              else
+                MH_SEND_Chat('[' + gPlayer1Settings.Name + ']: ' + b_Text_Format(Line),
+                  NET_CHAT_TEAM, gPlayer1Settings.Team);
+            end
             else
-              MH_SEND_Chat('[' + gPlayer1Settings.Name + ']: ' + Line);
+            begin
+              if g_Game_IsClient then
+                MC_SEND_Chat(b_Text_Format(Line), NET_CHAT_PLAYER)
+              else
+                MH_SEND_Chat('[' + gPlayer1Settings.Name + ']: ' + b_Text_Format(Line),
+                NET_CHAT_PLAYER);
+            end;
           end;
 
           Line := '';
@@ -653,34 +698,34 @@ begin
         end;
     end;
     VK_TAB:
-     if not gChatShow then
-      Complete();
+      if not gChatShow then
+        Complete();
     VK_DOWN:
-     if not gChatShow then
-      if (CommandHistory <> nil) and
-         (CmdIndex < Length(CommandHistory)) then
-      begin
-        if CmdIndex < Length(CommandHistory)-1 then
-          CmdIndex := CmdIndex + 1;
-        Line := CommandHistory[CmdIndex];
-        CPos := Length(Line) + 1;
-      end;
+      if not gChatShow then
+        if (CommandHistory <> nil) and
+           (CmdIndex < Length(CommandHistory)) then
+        begin
+          if CmdIndex < Length(CommandHistory)-1 then
+            CmdIndex := CmdIndex + 1;
+          Line := CommandHistory[CmdIndex];
+          CPos := Length(Line) + 1;
+        end;
     VK_UP:
-     if not gChatShow then
-      if (CommandHistory <> nil) and
-         (CmdIndex <= Length(CommandHistory)) then
-      begin
-        if CmdIndex > 0 then
-          CmdIndex := CmdIndex - 1;
-        Line := CommandHistory[CmdIndex];
-        Cpos := Length(Line) + 1;
-      end;
+      if not gChatShow then
+        if (CommandHistory <> nil) and
+           (CmdIndex <= Length(CommandHistory)) then
+        begin
+          if CmdIndex > 0 then
+            CmdIndex := CmdIndex - 1;
+          Line := CommandHistory[CmdIndex];
+          Cpos := Length(Line) + 1;
+        end;
     VK_PRIOR: // PgUp
-     if not gChatShow then
-      IncMax(OffSet, Length(ConsoleHistory)-1);
+      if not gChatShow then
+        IncMax(OffSet, Length(ConsoleHistory)-1);
     VK_NEXT: // PgDown
-     if not gChatShow then
-      DecMin(OffSet, 0);
+      if not gChatShow then
+        DecMin(OffSet, 0);
     VK_HOME:
       CPos := 1;
     VK_END:

@@ -62,6 +62,7 @@ begin
     NET_MSG_TSOUND: MC_RECV_TriggerSound(B);
     NET_MSG_TMUSIC: MC_RECV_TriggerMusic(B);
 
+    NET_MSG_TIME_SYNC:  MC_RECV_TimeSync(B);
     NET_MSG_VOTE_EVENT: MC_RECV_VoteEvent(B);
   end;
 
@@ -114,7 +115,7 @@ begin
 
     NET_MSG_RCON_AUTH: MH_RECV_RCONPassword(S, B);
     NET_MSG_RCON_CMD:  MH_RECV_RCONCommand(S, B);
-    
+
     NET_MSG_MAP_REQUEST: MH_RECV_MapRequest(S, B);
     NET_MSG_RES_REQUEST: MH_RECV_ResRequest(S, B);
 

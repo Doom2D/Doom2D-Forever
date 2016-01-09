@@ -48,12 +48,17 @@ const
 
   NET_MSG_RCON_AUTH  = 191;
   NET_MSG_RCON_CMD   = 192;
+  NET_MSG_TIME_SYNC  = 194;
   NET_MSG_VOTE_EVENT = 195;
 
   NET_MSG_MAP_REQUEST = 201;
   NET_MSG_MAP_RESPONSE = 202;
   NET_MSG_RES_REQUEST = 203;
   NET_MSG_RES_RESPONSE = 204;
+
+  NET_CHAT_SYSTEM = 0;
+  NET_CHAT_PLAYER = 1;
+  NET_CHAT_TEAM   = 2;
 
   NET_GFX_SPARK   = 1;
   NET_GFX_SPAWN   = 2;
@@ -72,6 +77,9 @@ const
   NET_EV_LMS_SURVIVOR = 8;
   NET_EV_SCORE_ADD    = 9;
   NET_EV_SCORE_SUB    = 10;
+  NET_EV_BIGTEXT      = 11;
+  NET_EV_CHTEAM_RED   = 12;
+  NET_EV_CHTEAM_BLUE  = 13;
 
   NET_VE_STARTED      = 1;
   NET_VE_PASSED       = 2;
@@ -87,6 +95,8 @@ const
 
   NET_CHEAT_SUICIDE  = 1;
   NET_CHEAT_SPECTATE = 2;
+
+  NET_MAX_DIFFTIME = 5000 div 36;
 
 // HOST MESSAGES
 
@@ -105,7 +115,7 @@ procedure MH_RECV_Vote(C: pTNetClient; P: Pointer);
 // GAME
 procedure MH_SEND_Everything(CreatePlayers: Boolean = False; ID: Integer = NET_EVERYONE);
 procedure MH_SEND_Info(ID: Byte);
-procedure MH_SEND_Chat(Txt: string; ID: Integer = NET_EVERYONE);
+procedure MH_SEND_Chat(Txt: string; Mode: Byte; ID: Integer = NET_EVERYONE);
 procedure MH_SEND_Effect(X, Y: Integer; Ang: SmallInt; Kind: Byte; ID: Integer = NET_EVERYONE);
 procedure MH_SEND_Sound(X, Y: Integer; Name: string; ID: Integer = NET_EVERYONE);
 procedure MH_SEND_CreateShot(Proj: LongInt; ID: Integer = NET_EVERYONE);
@@ -141,6 +151,7 @@ procedure MH_SEND_MonsterDelete(UID: Word; ID: Integer = NET_EVERYONE);
 procedure MH_SEND_TriggerSound(var T: TTrigger; ID: Integer = NET_EVERYONE);
 procedure MH_SEND_TriggerMusic(ID: Integer = NET_EVERYONE);
 // MISC
+procedure MH_SEND_TimeSync(Time: LongWord; ID: Integer = NET_EVERYONE);
 procedure MH_SEND_VoteEvent(EvType: Byte;
                             StrArg1: string = 'a'; StrArg2: string = 'b';
                             IntArg1: SmallInt = 0; IntArg2: SmallInt = 0;
@@ -185,16 +196,17 @@ procedure MC_RECV_DeleteShot(P: Pointer);
 // TRIGGER
 procedure MC_RECV_TriggerSound(P: Pointer);
 procedure MC_RECV_TriggerMusic(P: Pointer);
-// VOTE
+// MISC
+procedure MC_RECV_TimeSync(P: Pointer);
 procedure MC_RECV_VoteEvent(P: Pointer);
 // SERVICE
-procedure MC_SEND_Info(Password: string = 'ASS');
-procedure MC_SEND_Chat(Txt: string);
+procedure MC_SEND_Info(Password: string);
+procedure MC_SEND_Chat(Txt: string; Mode: Byte);
 procedure MC_SEND_PlayerPos();
 procedure MC_SEND_FullStateRequest();
 procedure MC_SEND_PlayerSettings();
 procedure MC_SEND_CheatRequest(Kind: Byte);
-procedure MC_SEND_RCONPassword(Password: string = 'ASS');
+procedure MC_SEND_RCONPassword(Password: string);
 procedure MC_SEND_RCONCommand(Cmd: string);
 procedure MC_SEND_Vote(Start: Boolean = False; Command: string = 'a');
 // DOWNLOAD
@@ -233,20 +245,22 @@ uses
   WADEDITOR, MAPDEF;
 
 const
-  NET_KEY_LEFT  = 1;
-  NET_KEY_RIGHT = 2;
-  NET_KEY_UP    = 4;
-  NET_KEY_DOWN  = 8;
-  NET_KEY_JUMP  = 16;
-  NET_KEY_FIRE  = 32;
-  NET_KEY_OPEN  = 64;
-  NET_KEY_NW    = 256;
-  NET_KEY_PW    = 512;
-  NET_KEY_CHAT  = 2048;
+  NET_KEY_LEFT     = 1;
+  NET_KEY_RIGHT    = 2;
+  NET_KEY_UP       = 4;
+  NET_KEY_DOWN     = 8;
+  NET_KEY_JUMP     = 16;
+  NET_KEY_FIRE     = 32;
+  NET_KEY_OPEN     = 64;
+  NET_KEY_NW       = 256;
+  NET_KEY_PW       = 512;
+  NET_KEY_CHAT     = 2048;
+  NET_KEY_FORCEDIR = 4096;
 
 var
   kBytePrev: Word = 0;
   kDirPrev: TDirection = D_LEFT;
+  HostGameTime: Word = 0;
 
 // HOST MESSAGES //
 
@@ -256,6 +270,7 @@ var
 procedure MH_RECV_Chat(C: pTNetClient; P: Pointer);
 var
   Txt: string;
+  Mode: Byte;
   PID: Word;
   Pl: TPlayer;
 begin
@@ -263,10 +278,16 @@ begin
   Pl := g_Player_Get(PID);
 
   Txt := e_Raw_Read_String(P);
+  Mode := e_Raw_Read_Byte(P);
+  if (Mode = NET_CHAT_SYSTEM) then
+    Mode := NET_CHAT_PLAYER; // prevent sending system messages from clients
+  if (Mode = NET_CHAT_TEAM) and (not gGameSettings.GameMode in [GM_TDM, GM_CTF]) then
+    Mode := NET_CHAT_PLAYER; // revert to player chat in non-team game
+
   if Pl = nil then
-    MH_SEND_Chat(Txt)
+    MH_SEND_Chat(Txt, Mode)
   else
-    MH_SEND_Chat(Pl.Name + ': ' + Txt);
+    MH_SEND_Chat(Pl.Name + ': ' + Txt, Mode, IfThen(Mode = NET_CHAT_TEAM, Pl.Team, NET_EVERYONE));
 end;
 
 procedure MH_RECV_Info(C: pTNetClient; P: Pointer);
@@ -294,6 +315,23 @@ begin
     Exit;
   end;
 
+  if g_Net_IsHostBanned(C^.Peer^.address.host) then
+  begin
+    if g_Net_IsHostBanned(C^.Peer^.address.host, True) then
+    begin
+      g_Console_Add(_lc[I_NET_MSG] + _lc[I_NET_MSG_HOST_REJECT] +
+        _lc[I_NET_DISC_BAN]);
+      enet_peer_disconnect(C^.Peer, NET_DISC_BAN);
+    end
+    else
+    begin
+      g_Console_Add(_lc[I_NET_MSG] + _lc[I_NET_MSG_HOST_REJECT] +
+        _lc[I_NET_DISC_BAN]);
+      enet_peer_disconnect(C^.Peer, NET_DISC_TEMPBAN);
+    end;
+    Exit;
+  end;
+
   if NetPassword <> '' then
     if AnsiLowerCase(NetPassword) <> AnsiLowerCase(Pw) then
     begin
@@ -302,8 +340,6 @@ begin
       enet_peer_disconnect(C^.Peer, NET_DISC_PASSWORD);
       Exit;
     end;
-
-  if not (gGameSettings.GameMode in [GM_TDM, GM_CTF]) then T := TEAM_NONE;
 
   Color.R := R;
   Color.B := B;
@@ -314,8 +350,6 @@ begin
   begin
     Name := PName;
     Reset(True);
-    if gGameSettings.GameMode = GM_COOP then
-      Team := TEAM_COOP;
   end;
 
   C^.Player := PID;
@@ -368,21 +402,31 @@ end;
 
 function  MH_RECV_PlayerPos(C: pTNetClient; P: Pointer): Word;
 var
+  Dir: Byte;
   PID: Word;
   kByte: Word;
   Pl: TPlayer;
+  GT: LongWord;
 begin
   Result := 0;
   if not gGameOn then Exit;
+  
+  GT := e_Raw_Read_LongWord(P);
   PID := C^.Player;
   Pl := g_Player_Get(PID);
   if Pl = nil then
     Exit;
 
+  if (GT > gTime + NET_MAX_DIFFTIME) or (GT < Pl.NetTime) then Exit;
+
   with Pl do
   begin
+    NetTime := GT;
     kByte := e_Raw_Read_Word(P);
-    SetDirection(TDirection(e_Raw_Read_Byte(P)));
+    Dir := e_Raw_Read_Byte(P);
+    if Direction <> TDirection(Dir) then
+      JustTeleported := False;
+    SetDirection(TDirection(Dir));
     ReleaseKeys;
 
     if kByte = NET_KEY_CHAT then
@@ -447,7 +491,7 @@ begin
   if Pl = nil then Exit;
 
   if (gGameSettings.GameMode in [GM_TDM, GM_CTF]) and (Pl.Team <> TmpTeam) then
-    Pl.ChangeTeam
+    Pl.SwitchTeam
   else
     Pl.SetColor(TmpColor);
 
@@ -474,11 +518,12 @@ begin
   if Pwd = NetRCONPassword then
   begin
     C^.RCONAuth := True;
-    MH_SEND_Chat(_lc[I_NET_RCON_PWD_VALID], C^.ID);
+    MH_SEND_Chat(_lc[I_NET_RCON_PWD_VALID], NET_CHAT_SYSTEM, C^.ID);
   end
   else
-    MH_SEND_Chat(_lc[I_NET_RCON_PWD_INVALID], C^.ID);
+    MH_SEND_Chat(_lc[I_NET_RCON_PWD_INVALID], NET_CHAT_SYSTEM, C^.ID);
 end;
+
 procedure MH_RECV_RCONCommand(C: pTNetClient; P: Pointer);
 var
   Cmd: string;
@@ -487,7 +532,7 @@ begin
   if not NetAllowRCON then Exit;
   if not C^.RCONAuth then
   begin
-    MH_SEND_Chat(_lc[I_NET_RCON_NOAUTH], C^.ID);
+    MH_SEND_Chat(_lc[I_NET_RCON_NOAUTH], NET_CHAT_SYSTEM, C^.ID);
     Exit;
   end;
   g_Console_Process(Cmd);
@@ -516,7 +561,7 @@ begin
   end
   else if gVoteInProgress then
   begin
-    if not NetDedicated then
+    if (gPlayer1 <> nil) or (gPlayer2 <> nil) then
       Need := Floor((NetClientCount+1)/2.0) + 1
     else
       Need := Floor(NetClientCount/2.0) + 1;
@@ -650,7 +695,7 @@ begin
 
   if gLMSRespawn then
     MH_SEND_Chat(IntToStr((gLMSRespawnTime - gTime) div 1000) +
-                 _lc[I_PLAYER_SPECT5], ID);
+                 _lc[I_PLAYER_SPECT5], NET_CHAT_SYSTEM, ID);
 end;
 
 procedure MH_SEND_Info(ID: Byte);
@@ -664,7 +709,7 @@ begin
   e_Buffer_Write(@NetOut, Byte(NET_MSG_INFO));
   e_Buffer_Write(@NetOut, ID);
   e_Buffer_Write(@NetOut, NetClients[ID].Player);
-  e_Buffer_Write(@NetOut, ExtractFileName(gGameSettings.WAD));
+  e_Buffer_Write(@NetOut, gGameSettings.WAD);
   e_Buffer_Write(@NetOut, Map);
   e_Buffer_Write(@NetOut, gWADHash);
   e_Buffer_Write(@NetOut, gGameSettings.GameMode);
@@ -677,31 +722,74 @@ begin
   g_Net_Host_Send(ID, True, NET_CHAN_SERVICE);
 end;
 
-procedure MH_SEND_Chat(Txt: string; ID: Integer = NET_EVERYONE);
+procedure MH_SEND_Chat(Txt: string; Mode: Byte; ID: Integer = NET_EVERYONE);
 var
-  P: TPlayer;
+  Name: string;
+  i: Integer;
+  Team: Byte;
 begin
-  e_Buffer_Write(@NetOut, Byte(NET_MSG_CHAT));
-  e_Buffer_Write(@NetOut, Txt);
+  if (Mode = NET_CHAT_TEAM) and (not gGameSettings.GameMode in [GM_TDM, GM_CTF]) then
+    Mode := NET_CHAT_PLAYER;
 
-  g_Net_Host_Send(ID, True, NET_CHAN_CHAT);
-
-  if ID <> NET_EVERYONE then
+  Team := 0;
+  if (Mode = NET_CHAT_TEAM) then
   begin
-    if (ID >= Low(NetClients)) and (ID <= High(NetClients))
-       and NetClients[ID].Used and (NetClients[ID].Player <> 0) then
-    begin
-      P := g_Player_Get(NetClients[ID].Player);
-      if P = nil then Exit;
-      g_Console_Add('-> ' + P.Name + ': ' + Txt, True);
-      e_WriteLog('[-> ' + P.Name + '] ' + Txt, MSG_NOTIFY);
-    end;
-    Exit;
+    for i := Low(gPlayers) to High(gPlayers) do
+      if (gPlayers[i] <> nil) and (gPlayers[i].FClientID >= 0) and
+         (gPlayers[i].Team = ID) then
+      begin
+        e_Buffer_Write(@NetOut, Byte(NET_MSG_CHAT));
+        e_Buffer_Write(@NetOut, Txt);
+        e_Buffer_Write(@NetOut, Mode);
+        g_Net_Host_Send(gPlayers[i].FClientID, True, NET_CHAN_CHAT);
+      end;
+    Team := ID;
+    ID := NET_EVERYONE;
+  end
+  else
+  begin
+    e_Buffer_Write(@NetOut, Byte(NET_MSG_CHAT));
+    e_Buffer_Write(@NetOut, Txt);
+    e_Buffer_Write(@NetOut, Mode);
+    g_Net_Host_Send(ID, True, NET_CHAN_CHAT);
   end;
 
-  g_Console_Add(Txt, True);
-  e_WriteLog('[Chat] ' + Txt, MSG_NOTIFY);
-  g_Sound_PlayEx('SOUND_GAME_RADIO');
+  if Mode = NET_CHAT_SYSTEM then
+    Exit;
+
+  if ID = NET_EVERYONE then
+  begin
+    if Mode = NET_CHAT_PLAYER then
+    begin
+      g_Console_Add(Txt, True);
+      e_WriteLog('[Chat] ' + b_Text_Unformat(Txt), MSG_NOTIFY);
+      g_Sound_PlayEx('SOUND_GAME_RADIO');
+    end
+    else
+    if Mode = NET_CHAT_TEAM then
+      if gPlayer1 <> nil then
+      begin
+        if (gPlayer1.Team = TEAM_RED) and (Team = TEAM_RED) then
+        begin
+          g_Console_Add(#18'[Team] '#2 + Txt, True);
+          e_WriteLog('[Team Chat] ' + b_Text_Unformat(Txt), MSG_NOTIFY);
+          g_Sound_PlayEx('SOUND_GAME_RADIO');
+        end
+        else if (gPlayer1.Team = TEAM_BLUE) and (Team = TEAM_BLUE) then
+        begin
+          g_Console_Add(#20'[Team] '#2 + Txt, True);
+          e_WriteLog('[Team Chat] ' + b_Text_Unformat(Txt), MSG_NOTIFY);
+          g_Sound_PlayEx('SOUND_GAME_RADIO');
+        end;
+      end;
+  end
+  else
+  begin
+    Name := g_Net_ClientName_ByID(ID);
+    g_Console_Add('-> ' + Name + ': ' + Txt, True);
+    e_WriteLog('[Tell ' + Name + '] ' + b_Text_Unformat(Txt), MSG_NOTIFY);
+    g_Sound_PlayEx('SOUND_GAME_RADIO');
+  end;
 end;
 
 procedure MH_SEND_Effect(X, Y: Integer; Ang: SmallInt; Kind: Byte; ID: Integer = NET_EVERYONE);
@@ -802,6 +890,7 @@ begin
   e_Buffer_Write(@NetOut, Byte(NET_MSG_GEVENT));
   e_Buffer_Write(@NetOut, EvType);
   e_Buffer_Write(@NetOut, EvParm);
+  e_Buffer_Write(@NetOut, gGameSettings.GameMode);
   e_Buffer_Write(@NetOut, Byte(gLastMap));
   e_Buffer_Write(@NetOut, gTime);
   if (EvType = NET_EV_MAPSTART) and (Pos(':\', EvParm) > 0) then
@@ -811,7 +900,7 @@ begin
   end else
     e_Buffer_Write(@NetOut, Byte(0));
 
-  g_Net_Host_Send(ID, True, NET_CHAN_SERVICE); // this is for map change as of now
+  g_Net_Host_Send(ID, True, NET_CHAN_SERVICE);
 end;
 
 procedure MH_SEND_FlagEvent(Evtype: Byte; Flag: Byte; PID: Word; Quiet: Boolean = False; ID: Integer = NET_EVERYONE);
@@ -822,6 +911,7 @@ begin
   e_Buffer_Write(@NetOut, Byte(Quiet));
   e_Buffer_Write(@NetOut, PID);
   e_Buffer_Write(@NetOut, gFlags[Flag].State);
+  e_Buffer_Write(@NetOut, gFlags[Flag].CaptureTime);
   e_Buffer_Write(@NetOut, gFlags[Flag].Obj.X);
   e_Buffer_Write(@NetOut, gFlags[Flag].Obj.Y);
   e_Buffer_Write(@NetOut, gFlags[Flag].Obj.Vel.X);
@@ -856,9 +946,9 @@ begin
   e_Buffer_Write(@NetOut, P.Name);
 
   e_Buffer_Write(@NetOut, P.FActualModelName);
-  e_Buffer_Write(@NetOut, P.Model.Color.R);
-  e_Buffer_Write(@NetOut, P.Model.Color.G);
-  e_Buffer_Write(@NetOut, P.Model.Color.B);
+  e_Buffer_Write(@NetOut, P.FColor.R);
+  e_Buffer_Write(@NetOut, P.FColor.G);
+  e_Buffer_Write(@NetOut, P.FColor.B);
   e_Buffer_Write(@NetOut, P.Team);
 
   g_Net_Host_Send(ID, True, NET_CHAN_IMPORTANT)
@@ -874,6 +964,7 @@ begin
   if Pl.FDummy then Exit;
 
   e_Buffer_Write(@NetOut, Byte(NET_MSG_PLRPOS));
+  e_Buffer_Write(@NetOut, gTime);
   e_Buffer_Write(@NetOut, PID);
 
   kByte := 0;
@@ -891,6 +982,7 @@ begin
       if IsKeyPressed(KEY_UP) then kByte := kByte or NET_KEY_UP;
       if IsKeyPressed(KEY_DOWN) then kByte := kByte or NET_KEY_DOWN;
       if IsKeyPressed(KEY_JUMP) then kByte := kByte or NET_KEY_JUMP;
+      if JustTeleported then kByte := kByte or NET_KEY_FORCEDIR;
     end;
 
     e_Buffer_Write(@NetOut, kByte);
@@ -926,6 +1018,7 @@ begin
     e_Buffer_Write(@NetOut, Air);
     e_Buffer_Write(@NetOut, JetFuel);
     e_Buffer_Write(@NetOut, Lives);
+    e_Buffer_Write(@NetOut, Team);
 
     for I := WEAPON_KASTET to WEAPON_SUPERPULEMET do
       e_Buffer_Write(@NetOut, Byte(FWeapon[I]));
@@ -1020,9 +1113,9 @@ begin
     e_Buffer_Write(@NetOut, Pl.Model.Name)
   else
     e_Buffer_Write(@NetOut, Mdl);
-  e_Buffer_Write(@NetOut, Pl.Model.Color.R);
-  e_Buffer_Write(@NetOut, Pl.Model.Color.G);
-  e_Buffer_Write(@NetOut, Pl.Model.Color.B);
+  e_Buffer_Write(@NetOut, Pl.FColor.R);
+  e_Buffer_Write(@NetOut, Pl.FColor.G);
+  e_Buffer_Write(@NetOut, Pl.FColor.B);
   e_Buffer_Write(@NetOut, Pl.Team);
 
   g_Net_Host_Send(ID, True, NET_CHAN_IMPORTANT);
@@ -1124,7 +1217,7 @@ begin
   if T.Sound = nil then Exit;
 
   e_Buffer_Write(@NetOut, Byte(NET_MSG_TSOUND));
-  e_Buffer_Write(@NetOut, T.Sound.Name);
+  e_Buffer_Write(@NetOut, T.ClientID);
   e_Buffer_Write(@NetOut, Byte(T.Sound.IsPlaying));
   e_Buffer_Write(@NetOut, LongWord(T.Sound.GetPosition));
   e_Buffer_Write(@NetOut, T.SoundPlayCount);
@@ -1251,6 +1344,14 @@ end;
 
 // MISC
 
+procedure MH_SEND_TimeSync(Time: LongWord; ID: Integer = NET_EVERYONE);
+begin
+  e_Buffer_Write(@NetOut, Byte(NET_MSG_TIME_SYNC));
+  e_Buffer_Write(@NetOut, Time);
+
+  g_Net_Host_Send(ID, False, NET_CHAN_SERVICE);
+end;
+
 procedure MH_SEND_VoteEvent(EvType: Byte;
                             StrArg1: string = 'a'; StrArg2: string = 'b';
                             IntArg1: SmallInt = 0; IntArg2: SmallInt = 0;
@@ -1262,7 +1363,7 @@ begin
   e_Buffer_Write(@NetOut, IntArg2);
   e_Buffer_Write(@NetOut, StrArg1);
   e_Buffer_Write(@NetOut, StrArg2);
-  
+
   g_Net_Host_Send(ID, True, NET_CHAN_IMPORTANT);
 end;
 
@@ -1273,11 +1374,30 @@ end;
 procedure MC_RECV_Chat(P: Pointer);
 var
   Txt: string;
+  Mode: Byte;
 begin
   Txt := e_Raw_Read_String(P);
-  g_Console_Add(Txt, True);
-  e_WriteLog('[Chat] ' + Txt, MSG_NOTIFY);
-  g_Sound_PlayEx('SOUND_GAME_RADIO');
+  Mode := e_Raw_Read_Byte(P);
+
+  if Mode <> NET_CHAT_SYSTEM then
+  begin
+    if Mode = NET_CHAT_PLAYER then
+    begin
+      g_Console_Add(Txt, True);
+      e_WriteLog('[Chat] ' + b_Text_Unformat(Txt), MSG_NOTIFY);
+      g_Sound_PlayEx('SOUND_GAME_RADIO');
+    end else
+    if (Mode = NET_CHAT_TEAM) and (gPlayer1 <> nil) then
+    begin
+      if gPlayer1.Team = TEAM_RED then
+        g_Console_Add(b_Text_Format('\r[Team] ') + Txt, True);
+      if gPlayer1.Team = TEAM_BLUE then
+        g_Console_Add(b_Text_Format('\b[Team] ') + Txt, True);
+      e_WriteLog('[Team Chat] ' + b_Text_Unformat(Txt), MSG_NOTIFY);
+      g_Sound_PlayEx('SOUND_GAME_RADIO');
+    end;
+  end else
+    g_Console_Add(Txt, True);
 end;
 
 procedure MC_RECV_Effect(P: Pointer);
@@ -1448,13 +1568,15 @@ end;
 procedure MC_RECV_GameEvent(P: Pointer);
 var
   EvType: Byte;
-  EvParm, NewWAD, ResName: string;
+  EvParm: string;
   EvTime: LongWord;
   BHash: Boolean;
   EvHash: TMD5Digest;
 begin
   EvType := e_Raw_Read_Byte(P);
   EvParm := e_Raw_Read_String(P);
+  gSwitchGameMode := e_Raw_Read_Byte(P);
+  gGameSettings.GameMode := gSwitchGameMode;
   gLastMap := e_Raw_Read_Byte(P) <> 0;
   if gLastMap and (gGameSettings.GameMode = GM_COOP) then gStatsOff := True;
   gStatsPressed := True;
@@ -1472,25 +1594,14 @@ begin
       g_Game_ClearLoading();
       g_Game_StopAllSounds(True);
 
-      if Pos(':\', EvParm) = 0 then
+      gWADHash := EvHash;
+      if not g_Game_StartMap(EvParm, True) then
       begin
-        if not g_Game_StartMap(EvParm, True) then
-        begin
-          g_FatalError(Format(_lc[I_GAME_ERROR_MAP_LOAD],
-                              [ExtractFileName(gGameSettings.WAD) + ':\' + EvParm]));
-          Exit;
-        end;
-      end else
-      begin
-        g_ProcessResourceStr(MapsDir + EvParm, @NewWAD, nil, @ResName);
-        g_Game_LoadWAD(NewWAD, EvHash);
-
-        if not g_Game_StartMap(ResName, True) then
-        begin
-          g_FatalError(Format(_lc[I_GAME_ERROR_MAP_LOAD],
-                              [ExtractFileName(gGameSettings.WAD) + ':\' + ResName]));
-          Exit;
-        end;
+        if Pos(':\', EvParm) = 0 then
+          g_FatalError(Format(_lc[I_GAME_ERROR_MAP_LOAD], [gGameSettings.WAD + ':\' + EvParm]))
+        else
+          g_FatalError(Format(_lc[I_GAME_ERROR_MAP_LOAD], [EvParm]));
+        Exit;
       end;
 
       MC_SEND_FullStateRequest;
@@ -1504,17 +1615,22 @@ begin
 
     NET_EV_LMS_LOSE:
       g_Game_Message(_lc[I_MESSAGE_LMS_LOSE], 144);
+
     NET_EV_LMS_WIN:
       g_Game_Message(Format(_lc[I_MESSAGE_LMS_WIN], [AnsiUpperCase(EvParm)]), 144);
+
     NET_EV_LMS_START:
     begin
       g_Player_RemoveAllCorpses;
       g_Game_Message(_lc[I_MESSAGE_LMS_START], 144);
     end;
+
     NET_EV_LMS_DRAW:
       g_Game_Message(_lc[I_GAME_WIN_DRAW], 144);
+
     NET_EV_LMS_SURVIVOR:
       g_Console_Add('*** ' + _lc[I_MESSAGE_LMS_SURVIVOR] + ' ***', True);
+
     NET_EV_TLMS_WIN:
     begin
       if EvParm = 'r' then
@@ -1522,6 +1638,7 @@ begin
       else
         g_Game_Message(Format(_lc[I_MESSAGE_TLMS_WIN], [AnsiUpperCase(_lc[I_GAME_TEAM_BLUE])]), 144);
     end;
+
     NET_EV_SCORE_ADD:
     begin
       if Pos('r', EvParm) > 0 then
@@ -1529,6 +1646,7 @@ begin
       else
         g_Game_Message(Format(_lc[I_MESSAGE_SCORE_ADD], [AnsiUpperCase(_lc[I_GAME_TEAM_BLUE])]), 108);
     end;
+
     NET_EV_SCORE_SUB:
     begin
       if Pos('r', EvParm) > 0 then
@@ -1536,6 +1654,15 @@ begin
       else
         g_Game_Message(Format(_lc[I_MESSAGE_SCORE_SUB], [AnsiUpperCase(_lc[I_GAME_TEAM_BLUE])]), 108);
     end;
+
+    NET_EV_BIGTEXT:
+      g_Game_Message(AnsiUpperCase(EvParm), 144);
+
+    NET_EV_CHTEAM_RED:
+      g_Console_Add(Format(_lc[I_PLAYER_CHTEAM_RED], [EvParm]), True);
+
+    NET_EV_CHTEAM_BLUE:
+      g_Console_Add(Format(_lc[I_PLAYER_CHTEAM_BLUE], [EvParm]), True);
   end;
 end;
 
@@ -1546,7 +1673,7 @@ var
   EvType: Byte;
   Fl: Byte;
   Quiet: Boolean;
-  s: string;
+  s, ts: string;
 begin
   EvType := e_Raw_Read_Byte(P);
   Fl := e_Raw_Read_Byte(P);
@@ -1557,13 +1684,18 @@ begin
   PID := e_Raw_Read_Word(P);
 
   gFlags[Fl].State := e_Raw_Read_Byte(P);
+  gFlags[Fl].CaptureTime := e_Raw_Read_LongWord(P);
   gFlags[Fl].Obj.X := e_Raw_Read_LongInt(P);
   gFlags[Fl].Obj.Y := e_Raw_Read_LongInt(P);
   gFlags[Fl].Obj.Vel.X := e_Raw_Read_LongInt(P);
   gFlags[Fl].Obj.Vel.Y := e_Raw_Read_LongInt(P);
 
   Pl := g_Player_Get(PID);
-  if (Pl = nil) and (EvType <> FLAG_STATE_NORMAL) and (EvType <> FLAG_STATE_DROPPED) then Exit;
+  if (Pl = nil) and
+     (EvType <> FLAG_STATE_NORMAL) and
+     (EvType <> FLAG_STATE_DROPPED) and
+     (EvType <> FLAG_STATE_RETURNED) then
+    Exit;
 
   case EvType of
     FLAG_STATE_NORMAL:
@@ -1616,18 +1748,20 @@ begin
       Pl.SetFlag(FLAG_NONE);
 
       if Fl = FLAG_RED then
-        s := _lc[I_PLAYER_FLAG_BLUE]
+        s := _lc[I_PLAYER_FLAG_RED]
       else
-        s := _lc[I_PLAYER_FLAG_RED];
+        s := _lc[I_PLAYER_FLAG_BLUE];
 
-      g_Console_Add(Format(_lc[I_PLAYER_FLAG_CAPTURE], [Pl.Name, s]), True);
+      ts := Format('%.4d', [gFlags[Fl].CaptureTime]);
+      Insert('.', ts, Length(ts) + 1 - 3);
+      g_Console_Add(Format(_lc[I_PLAYER_FLAG_CAPTURE], [Pl.Name, s, ts]), True);
       g_Game_Message(Format(_lc[I_MESSAGE_FLAG_CAPTURE], [AnsiUpperCase(s)]), 144);
     end;
 
     FLAG_STATE_RETURNED:
     begin
       g_Map_ResetFlag(Fl);
-      if Quiet or (Pl = nil) then Exit;
+      if Quiet then Exit;
 
       if Fl = FLAG_RED then
         s := _lc[I_PLAYER_FLAG_RED]
@@ -1669,7 +1803,7 @@ begin
   T := e_Raw_Read_Byte(P);
 
   Result := 0;
-  if PID <> NetPlrUID then
+  if (PID <> NetPlrUID1) and (PID <> NetPlrUID2) then
   begin
     if (Pl <> nil) then Exit;
     DID := g_Player_Create(Model, Color, T, False, 0);
@@ -1682,9 +1816,16 @@ begin
   end
   else
   begin
-    gPlayer1.UID := PID;
-    gPlayer1.Model.SetColor(Color.R, Color.G, Color.B);
-    gPlayer1.Team := T;
+    if (PID = NetPlrUID1) and (gPlayer1 <> nil) then begin
+      gPlayer1.UID := PID;
+      gPlayer1.Model.SetColor(Color.R, Color.G, Color.B);
+      gPlayer1.ChangeTeam(T);
+    end;
+    if (PID = NetPlrUID2) and (gPlayer2 <> nil) then begin
+      gPlayer2.UID := PID;
+      gPlayer2.Model.SetColor(Color.R, Color.G, Color.B);
+      gPlayer2.ChangeTeam(T);
+    end;
   end;
 
   g_Console_Add(Format(_lc[I_PLAYER_JOIN], [PName]), True);
@@ -1694,15 +1835,26 @@ end;
 
 function MC_RECV_PlayerPos(P: Pointer): Word;
 var
+  GT: LongWord;
   PID: Word;
   kByte: Word;
   Pl: TPlayer;
   Dir: Byte;
   TmpX, TmpY: Integer;
 begin
+  Result := 0;
+
+  GT := e_Raw_Read_LongWord(P);
+  if GT < gTime - NET_MAX_DIFFTIME then
+  begin
+    gTime := GT;
+    Exit;
+  end;
+  gTime := GT;
+
   PID := e_Raw_Read_Word(P);
   Pl := g_Player_Get(PID);
-  Result := 0;
+
   if Pl = nil then Exit;
 
   Result := PID;
@@ -1713,7 +1865,6 @@ begin
     FLoss := e_Raw_Read_Byte(P);
     kByte := e_Raw_Read_Word(P);
     Dir := e_Raw_Read_Byte(P);
-    SetDirection(TDirection(Dir));
 
     TmpX := e_Raw_Read_LongInt(P);
     TmpY := e_Raw_Read_LongInt(P);
@@ -1731,6 +1882,9 @@ begin
       if LongBool(kByte and NET_KEY_JUMP) then PressKey(KEY_JUMP, 10000);
     end;
 
+    if ((Pl <> gPlayer1) and (Pl <> gPlayer2)) or LongBool(kByte and NET_KEY_FORCEDIR) then
+      SetDirection(TDirection(Dir));
+
     GameVelX := e_Raw_Read_LongInt(P);
     GameVelY := e_Raw_Read_LongInt(P);
     GameAccelX := e_Raw_Read_LongInt(P);
@@ -1746,6 +1900,7 @@ var
   Pl: TPlayer;
   I: Integer;
   OldJet: Boolean;
+  NewTeam: Byte;
 begin
   PID := e_Raw_Read_Word(P);
   Pl := g_Player_Get(PID);
@@ -1762,6 +1917,7 @@ begin
     Air := e_Raw_Read_LongInt(P);
     JetFuel := e_Raw_Read_LongInt(P);
     Lives := e_Raw_Read_Byte(P);
+    NewTeam := e_Raw_Read_Byte(P);
 
     for I := WEAPON_KASTET to WEAPON_SUPERPULEMET do
       FWeapon[I] := (e_Raw_Read_Byte(P) <> 0);
@@ -1802,6 +1958,8 @@ begin
       JetpackOff
     else if not OldJet and FJetpack then
       JetpackOn;
+    if Team <> NewTeam then
+      Pl.ChangeTeam(NewTeam);
   end;
 
   Result := PID;
@@ -1921,8 +2079,13 @@ begin
   TmpTeam := e_Raw_Read_Byte(P);
 
   if (gGameSettings.GameMode in [GM_TDM, GM_CTF]) and (Pl.Team <> TmpTeam) then
-    Pl.ChangeTeam
-  else
+  begin
+    Pl.ChangeTeam(TmpTeam);
+    if gPlayer1 = Pl then
+      gPlayer1Settings.Team := TmpTeam;
+    if gPlayer2 = Pl then
+      gPlayer2Settings.Team := TmpTeam;
+  end else
     Pl.SetColor(TmpColor);
 
   if Pl.Name <> TmpName then
@@ -1990,10 +2153,10 @@ begin
       g_Sound_PlayExAt('SOUND_ITEM_GETRULEZ',
         gItems[ID].Obj.X, gItems[ID].Obj.Y)
       else
-        if gItems[ID].ItemType in [ITEM_MEDKIT_SMALL, ITEM_MEDKIT_LARGE, ITEM_BOTTLE,
-                                   ITEM_HELMET, ITEM_ARMOR_GREEN,
-                                   ITEM_ARMOR_BLUE, ITEM_KEY_RED, ITEM_KEY_GREEN, ITEM_KEY_BLUE] then
-          g_Sound_PlayExAt('SOUND_ITEM_GETMED',
+        if gItems[ID].ItemType in [ITEM_WEAPON_SAW, ITEM_WEAPON_PISTOL, ITEM_WEAPON_SHOTGUN1, ITEM_WEAPON_SHOTGUN2,
+                                   ITEM_WEAPON_CHAINGUN, ITEM_WEAPON_ROCKETLAUNCHER, ITEM_WEAPON_PLASMA,
+                                   ITEM_WEAPON_BFG, ITEM_WEAPON_SUPERPULEMET] then
+          g_Sound_PlayExAt('SOUND_ITEM_GETWEAPON',
             gItems[ID].Obj.X, gItems[ID].Obj.Y)
           else
             g_Sound_PlayExAt('SOUND_ITEM_GETITEM',
@@ -2050,10 +2213,12 @@ begin
   end;
 
   if TP <> nil then
-  begin
-    TP.SetTexture(Tex, Loop);
-    TP.SetFrame(Fr, Cnt);
-  end;
+    if Loop = 0 then
+    begin    // switch texture
+      TP.SetTexture(Tex, Loop);
+      TP.SetFrame(Fr, Cnt);
+    end else // looped or non-looped animation
+      TP.NextTexture(Loop);
 end;
 
 procedure MC_RECV_PanelState(P: Pointer);
@@ -2085,23 +2250,22 @@ end;
 
 procedure MC_RECV_TriggerSound(P: Pointer);
 var
-  SName: string;
   SPlaying: Boolean;
-  SPos: LongWord;
+  SPos, SID: LongWord;
   SCount: LongInt;
   I: Integer;
 begin
   if not gGameOn then Exit;
   if gTriggers = nil then Exit;
 
-  SName := e_Raw_Read_String(P);
+  SID := e_Raw_Read_LongWord(P);
   SPlaying := e_Raw_Read_Byte(P) <> 0;
   SPos := e_Raw_Read_LongWord(P);
   SCount := e_Raw_Read_LongInt(P);
 
   for I := Low(gTriggers) to High(gTriggers) do
     if gTriggers[I].TriggerType = TRIGGER_SOUND then
-      if gTriggers[I].Sound.Name = SName then
+      if gTriggers[I].ClientID = SID then
         with gTriggers[I] do
         begin
           if SPlaying then
@@ -2294,6 +2458,16 @@ begin
   gMonsters[ID].MonsterRemoved := True;
 end;
 
+procedure MC_RECV_TimeSync(P: Pointer);
+var
+  Time: LongWord;
+begin
+  Time := e_Raw_Read_LongWord(P);
+
+  if gState = STATE_INTERCUSTOM then
+    gServInterTime := Min(Time, 255);
+end;
+
 procedure MC_RECV_VoteEvent(P: Pointer);
 var
   EvID: Byte;
@@ -2322,7 +2496,7 @@ end;
 
 // CLIENT SEND
 
-procedure MC_SEND_Info(Password: string = 'ASS');
+procedure MC_SEND_Info(Password: string);
 begin
   e_Buffer_Clear(@NetOut);
 
@@ -2339,10 +2513,11 @@ begin
   g_Net_Client_Send(True, NET_CHAN_SERVICE);
 end;
 
-procedure MC_SEND_Chat(Txt: string);
+procedure MC_SEND_Chat(Txt: string; Mode: Byte);
 begin
   e_Buffer_Write(@NetOut, Byte(NET_MSG_CHAT));
   e_Buffer_Write(@NetOut, Txt);
+  e_Buffer_Write(@NetOut, Mode);
 
   g_Net_Client_Send(True, NET_CHAN_CHAT);
 end;
@@ -2350,76 +2525,78 @@ end;
 procedure MC_SEND_PlayerPos();
 var
   kByte: Word;
+  Predict: Boolean;
 begin
   if not gGameOn then Exit;
   if gPlayers = nil then Exit;
+  if gPlayer1 = nil then Exit;
 
   kByte := 0;
+  Predict := NetPredictSelf; // and (not NetGotKeys);
 
   if (not gConsoleShow) and (not gChatShow) and (g_ActiveWindow = nil) then
-   with gGameControls.P1Control do
-   begin
-    if (e_KeyBuffer[KeyLeft] = $080) and (e_KeyBuffer[KeyRight] <> $080) then
-      P1MoveButton := 1
-    else
-      if (e_KeyBuffer[KeyLeft] <> $080) and (e_KeyBuffer[KeyRight] = $080) then
-        P1MoveButton := 2
+    with gGameControls.P1Control do
+    begin
+      if (e_KeyBuffer[KeyLeft] = $080) and (e_KeyBuffer[KeyRight] <> $080) then
+        P1MoveButton := 1
       else
-        if (e_KeyBuffer[KeyLeft] <> $080) and (e_KeyBuffer[KeyRight] <> $080) then
-          P1MoveButton := 0;
+        if (e_KeyBuffer[KeyLeft] <> $080) and (e_KeyBuffer[KeyRight] = $080) then
+          P1MoveButton := 2
+        else
+          if (e_KeyBuffer[KeyLeft] <> $080) and (e_KeyBuffer[KeyRight] <> $080) then
+            P1MoveButton := 0;
 
-    if (P1MoveButton = 2) and (e_KeyBuffer[KeyLeft] = $080) then
-      gPlayer1.SetDirection(D_LEFT)
-    else
-     if (P1MoveButton = 1) and (e_KeyBuffer[KeyRight] = $080) then
-        gPlayer1.SetDirection(D_RIGHT)
+      if (P1MoveButton = 2) and (e_KeyBuffer[KeyLeft] = $080) then
+        gPlayer1.SetDirection(D_LEFT)
       else
-      if P1MoveButton <> 0 then
-          gPlayer1.SetDirection(TDirection(P1MoveButton-1));
+       if (P1MoveButton = 1) and (e_KeyBuffer[KeyRight] = $080) then
+          gPlayer1.SetDirection(D_RIGHT)
+        else
+          if P1MoveButton <> 0 then
+            gPlayer1.SetDirection(TDirection(P1MoveButton-1));
 
-    gPlayer1.ReleaseKeys;
-    if P1MoveButton = 1 then
-    begin
-      kByte := kByte or NET_KEY_LEFT;
-      if NetPredictSelf then gPlayer1.PressKey(KEY_LEFT, 10000);
-    end;
-    if P1MoveButton = 2 then
-    begin
-      kByte := kByte or NET_KEY_RIGHT;
-      if NetPredictSelf then gPlayer1.PressKey(KEY_RIGHT, 10000);
-    end;
-    if e_KeyBuffer[KeyUp] = $080 then
-    begin
-      kByte := kByte or NET_KEY_UP;
-      gPlayer1.PressKey(KEY_UP, 10000);
-    end;
-    if e_KeyBuffer[KeyDown] = $080 then
-    begin
-      kByte := kByte or NET_KEY_DOWN;
-      gPlayer1.PressKey(KEY_DOWN, 10000);
-    end;
-    if e_KeyBuffer[KeyJump] = $080 then
-    begin
-      kByte := kByte or NET_KEY_JUMP;
-      // gPlayer1.PressKey(KEY_JUMP, 10000); // TODO: Make a prediction option
-    end;
-    if e_KeyBuffer[KeyFire] = $080 then kByte := kByte or NET_KEY_FIRE;
-    if e_KeyBuffer[KeyOpen] = $080 then kByte := kByte or NET_KEY_OPEN;
-    if e_KeyBuffer[KeyNextWeapon] = $080 then kByte := kByte or NET_KEY_NW;
-    if e_KeyBuffer[KeyPrevWeapon] = $080 then kByte := kByte or NET_KEY_PW;
-  end
+      gPlayer1.ReleaseKeys;
+      if P1MoveButton = 1 then
+      begin
+        kByte := kByte or NET_KEY_LEFT;
+        if Predict then gPlayer1.PressKey(KEY_LEFT, 10000);
+      end;
+      if P1MoveButton = 2 then
+      begin
+        kByte := kByte or NET_KEY_RIGHT;
+        if Predict then gPlayer1.PressKey(KEY_RIGHT, 10000);
+      end;
+      if e_KeyBuffer[KeyUp] = $080 then
+      begin
+        kByte := kByte or NET_KEY_UP;
+        gPlayer1.PressKey(KEY_UP, 10000);
+      end;
+      if e_KeyBuffer[KeyDown] = $080 then
+      begin
+        kByte := kByte or NET_KEY_DOWN;
+        gPlayer1.PressKey(KEY_DOWN, 10000);
+      end;
+      if e_KeyBuffer[KeyJump] = $080 then
+      begin
+        kByte := kByte or NET_KEY_JUMP;
+        // gPlayer1.PressKey(KEY_JUMP, 10000); // TODO: Make a prediction option
+      end;
+      if e_KeyBuffer[KeyFire] = $080 then kByte := kByte or NET_KEY_FIRE;
+      if e_KeyBuffer[KeyOpen] = $080 then kByte := kByte or NET_KEY_OPEN;
+      if e_KeyBuffer[KeyNextWeapon] = $080 then kByte := kByte or NET_KEY_NW;
+      if e_KeyBuffer[KeyPrevWeapon] = $080 then kByte := kByte or NET_KEY_PW;
+    end
   else
    kByte := NET_KEY_CHAT;
 
-  if (kBytePrev = kByte) and (kDirPrev = gPlayer1.Direction) then Exit;
-
   e_Buffer_Write(@NetOut, Byte(NET_MSG_PLRPOS));
+  e_Buffer_Write(@NetOut, gTime);
   e_Buffer_Write(@NetOut, kByte);
   e_Buffer_Write(@NetOut, Byte(gPlayer1.Direction));
   g_Net_Client_Send(True, NET_CHAN_PLAYERPOS);
 
   kBytePrev := kByte;
-  kDirPrev := gPlayer1.Direction
+  kDirPrev := gPlayer1.Direction;
 end;
 
 procedure MC_SEND_Vote(Start: Boolean = False; Command: string = 'a');
@@ -2457,7 +2634,7 @@ begin
 
   g_Net_Client_Send(True, NET_CHAN_IMPORTANT);
 end;
-procedure MC_SEND_RCONPassword(Password: string = 'ASS');
+procedure MC_SEND_RCONPassword(Password: string);
 begin
   e_Buffer_Write(@NetOut, Byte(NET_MSG_RCON_AUTH));
   e_Buffer_Write(@NetOut, Password);
@@ -2617,7 +2794,7 @@ begin
   e_WriteLog('NET: Received map request from ' +
              DecodeIPV4(C.Peer.address.host), MSG_NOTIFY);
 
-  mapDataMsg := CreateMapDataMsg(gGameSettings.WAD, gExternalResources);
+  mapDataMsg := CreateMapDataMsg(MapsDir + gGameSettings.WAD, gExternalResources);
   peer := NetClients[C.ID].Peer;
 
   MapDataMsgToBytes(payload, mapDataMsg);

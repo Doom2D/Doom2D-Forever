@@ -50,6 +50,7 @@ type
   Char16     = packed array[0..15] of Char;
   Char32     = packed array[0..31] of Char;
   Char64     = packed array[0..63] of Char;
+  Char100    = packed array[0..99] of Char;
   Char256    = packed array[0..255] of Char;
   Byte128    = packed array[0..127] of Byte;
 
