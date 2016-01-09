@@ -1821,16 +1821,18 @@ begin
   if g_Game_IsNet then
   begin
     topstr := Format(_lc[I_MENU_INTER_TIME], [gServInterTime]);
-    e_TextureFontPrintEx((gScreenWidth div 2)-(Length(topstr)*ww2 div 2),
-                         gScreenHeight-(hh2+4)*2,topstr, gStdFont, 255, 255, 255, 1);
+    if not gChatShow then
+      e_TextureFontPrintEx((gScreenWidth div 2)-(Length(topstr)*ww2 div 2),
+                           gScreenHeight-(hh2+4)*2, topstr, gStdFont, 255, 255, 255, 1);
   end;
 
   if g_Game_IsClient then
     topstr := _lc[I_MENU_INTER8]
   else
     topstr := _lc[I_MENU_INTER9];
-  e_TextureFontPrintEx((gScreenWidth div 2)-(Length(topstr)*ww2 div 2),
-                       gScreenHeight-(hh2+4),topstr, gStdFont, 255, 255, 255, 1);
+  if not gChatShow then
+    e_TextureFontPrintEx((gScreenWidth div 2)-(Length(topstr)*ww2 div 2),
+                         gScreenHeight-(hh2+4), topstr, gStdFont, 255, 255, 255, 1);
 
   x := 32;
   y := 16+hh1+16;
