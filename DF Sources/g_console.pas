@@ -436,6 +436,7 @@ begin
 
   WhitelistCommand('say');
   WhitelistCommand('tell');
+  WhitelistCommand('overtime');
   WhitelistCommand('ready');
   WhitelistCommand('map');
   WhitelistCommand('nextmap');
