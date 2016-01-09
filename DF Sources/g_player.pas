@@ -5134,15 +5134,22 @@ begin
   Mem.ReadByte(col.R);
   Mem.ReadByte(col.G);
   Mem.ReadByte(col.B);
-// Обновляем модель игрока (только для ботов):
-  if (FPlayerNum <> 1) and (FPlayerNum <> 2) then
+  if FPlayerNum = 1 then
   begin
-    SetModel(str);
-    if gGameSettings.GameMode in [GM_TDM, GM_CTF] then
-      FModel.Color := TEAMCOLOR[FTeam]
-    else
-      FModel.Color := col;
+    str := gPlayer1Settings.Model;
+    col := gPlayer1Settings.Color;
   end;
+  if FPlayerNum = 2 then
+  begin
+    str := gPlayer2Settings.Model;
+    col := gPlayer2Settings.Color;
+  end;
+// Обновляем модель игрока:
+  SetModel(str);
+  if gGameSettings.GameMode in [GM_TDM, GM_CTF] then
+    FModel.Color := TEAMCOLOR[FTeam]
+  else
+    FModel.Color := col;
 end;
 
 procedure TPlayer.AllRulez(Health: Boolean);
