@@ -774,7 +774,7 @@ begin
 
           with ItemProps[InsertRow(_lc[I_PROP_PANEL_TYPE], GetPanelName(PanelType), True)-1] do
           begin
-            EditStyle := esPickList;
+            EditStyle := esEllipsis;
             ReadOnly := True;
           end;
 
@@ -3999,24 +3999,7 @@ procedure TMainForm.vleObjectPropertyGetPickList(Sender: TObject;
 begin
   if vleObjectProperty.ItemProps[KeyName].EditStyle = esPickList then
   begin
-    if KeyName = _lc[I_PROP_PANEL_TYPE] then
-      begin
-        Values.Add(GetPanelName(PANEL_WALL));
-        Values.Add(GetPanelName(PANEL_BACK));
-        Values.Add(GetPanelName(PANEL_FORE));
-        Values.Add(GetPanelName(PANEL_CLOSEDOOR));
-        Values.Add(GetPanelName(PANEL_OPENDOOR));
-        Values.Add(GetPanelName(PANEL_STEP));
-        Values.Add(GetPanelName(PANEL_WATER));
-        Values.Add(GetPanelName(PANEL_ACID1));
-        Values.Add(GetPanelName(PANEL_ACID2));
-        Values.Add(GetPanelName(PANEL_LIFTUP));
-        Values.Add(GetPanelName(PANEL_LIFTDOWN));
-        Values.Add(GetPanelName(PANEL_LIFTLEFT));
-        Values.Add(GetPanelName(PANEL_LIFTRIGHT));
-        Values.Add(GetPanelName(PANEL_BLOCKMON));
-      end
-    else if KeyName = _lc[I_PROP_DIRECTION] then
+    if KeyName = _lc[I_PROP_DIRECTION] then
       begin
         Values.Add(DirNames[D_LEFT]);
         Values.Add(DirNames[D_RIGHT]);
@@ -4935,7 +4918,29 @@ var
 begin
   Key := vleObjectProperty.Keys[vleObjectProperty.Row];
 
-  if Key = _lc[I_PROP_TR_TELEPORT_TO] then
+  if Key = _lc[I_PROP_PANEL_TYPE] then
+    begin
+      with ChooseTypeForm, vleObjectProperty do
+      begin // Выбор типа панели:
+        Caption := _lc[I_PROP_PANEL_TYPE];
+        lbTypeSelect.Items.Clear();
+
+        for b := 0 to High(PANELNAMES) do
+        begin
+          lbTypeSelect.Items.Add(PANELNAMES[b]);
+          if Values[Key] = PANELNAMES[b] then
+            lbTypeSelect.ItemIndex := b;
+        end;
+
+        if ShowModal() = mrOK then
+        begin
+          b := lbTypeSelect.ItemIndex;
+          Values[Key] := PANELNAMES[b];
+          bApplyProperty.Click();
+        end;
+      end
+    end
+  else if Key = _lc[I_PROP_TR_TELEPORT_TO] then
     SelectFlag := SELECTFLAG_TELEPORT
   else if Key = _lc[I_PROP_TR_SPAWN_TO] then
     SelectFlag := SELECTFLAG_SPAWNPOINT
