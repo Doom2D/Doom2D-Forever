@@ -263,15 +263,17 @@ Type
                              HealMax: Boolean;
                              HealSilent: Boolean);
       TRIGGER_SHOT:         (ShotType: Byte;
-                             ShotAngle: Word;
+                             ShotSound: Boolean;
+                             ShotPanelID: Integer;
                              ShotTarget: Byte;
+                             ShotIntSight: Word;
+                             ShotAllMap: Boolean;
+                             ShotPos: TPoint;
+                             ShotAngle: Word;
                              ShotWait: Word;
                              ShotAccuracy: Word;
-                             ShotIntReload: Word;
                              ShotAmmo: Word;
-                             ShotPos: TPoint;
-                             ShotSound: Boolean;
-                             ShotAllMap: Boolean);
+                             ShotIntReload: Word);
   end;
 
 implementation

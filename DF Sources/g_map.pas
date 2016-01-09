@@ -637,7 +637,7 @@ begin
   end;
 end;
 
-procedure CreateTrigger(Trigger: TTriggerRec_1; fTexturePanelType: Word);
+procedure CreateTrigger(Trigger: TTriggerRec_1; fTexturePanel1Type, fTexturePanel2Type: Word);
 var
   _trigger: TTrigger;
 begin
@@ -651,7 +651,8 @@ begin
     Height := Trigger.Height;
     Enabled := ByteBool(Trigger.Enabled);
     TexturePanel := Trigger.TexturePanel;
-    TexturePanelType := fTexturePanelType;
+    TexturePanelType := fTexturePanel1Type;
+    ShotPanelType := fTexturePanel2Type;
     TriggerType := Trigger.TriggerType;
     ActivateType := Trigger.ActivateType;
     Keys := Trigger.Keys;
@@ -1058,7 +1059,12 @@ begin
         b := panels[TriggersTable[a].TexturePanel].PanelType
       else
         b := 0;
-      CreateTrigger(triggers[a], b);
+      if (triggers[a].TriggerType = TRIGGER_SHOT) and
+         (TTriggerData(triggers[a].DATA).ShotPanelID <> -1) then
+        c := panels[TTriggerData(triggers[a].DATA).ShotPanelID].PanelType
+      else
+        c := 0;
+      CreateTrigger(triggers[a], b, c);
     end;
   end;
 

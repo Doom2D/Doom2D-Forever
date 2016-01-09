@@ -373,7 +373,8 @@ const
   SELECTFLAG_LIFT       = 4;
   SELECTFLAG_MONSTER    = 5;
   SELECTFLAG_SPAWNPOINT = 6;
-  SELECTFLAG_SELECTED   = 7;
+  SELECTFLAG_SHOTPANEL  = 7;
+  SELECTFLAG_SELECTED   = 8;
 
   RECENT_FILES_MENU_START = 11;
 
@@ -1409,6 +1410,18 @@ begin
                   ReadOnly := True;
                 end;
 
+                with ItemProps[InsertRow(_lc[I_PROP_TR_SHOT_SOUND], BoolNames[Data.ShotSound], True)-1] do
+                begin
+                  EditStyle := esPickList;
+                  ReadOnly := True;
+                end;
+
+                with ItemProps[InsertRow(_lc[I_PROP_TR_SHOT_PANEL], IntToStr(Data.ShotPanelID), True)-1] do
+                begin
+                  EditStyle := esEllipsis;
+                  ReadOnly := True;
+                end;
+
                 case Data.ShotTarget of
                   1: str := _lc[I_PROP_TR_SHOT_TO_1];
                   2: str := _lc[I_PROP_TR_SHOT_TO_2];
@@ -1422,6 +1435,12 @@ begin
                 begin
                   EditStyle := esPickList;
                   ReadOnly := True;
+                end;
+
+                with ItemProps[InsertRow(_lc[I_PROP_TR_SHOT_SIGHT], IntToStr(Data.ShotIntSight), True)-1] do
+                begin
+                  EditStyle := esSimple;
+                  MaxLength := 3;
                 end;
 
                 with ItemProps[InsertRow(_lc[I_PROP_TR_SHOT_ALLMAP], BoolNames[Data.ShotAllMap], True)-1] do
@@ -1455,10 +1474,16 @@ begin
                   MaxLength := 5;
                 end;
 
-                with ItemProps[InsertRow(_lc[I_PROP_TR_SHOT_SOUND], BoolNames[Data.ShotSound], True)-1] do
+                with ItemProps[InsertRow(_lc[I_PROP_TR_SHOT_AMMO], IntToStr(Data.ShotAmmo), True)-1] do
                 begin
-                  EditStyle := esPickList;
-                  ReadOnly := True;
+                  EditStyle := esSimple;
+                  MaxLength := 5;
+                end;
+
+                with ItemProps[InsertRow(_lc[I_PROP_TR_SHOT_RELOAD], IntToStr(Data.ShotIntReload), True)-1] do
+                begin
+                  EditStyle := esSimple;
+                  MaxLength := 4;
                 end;
               end;
           end; //case TriggerType
@@ -2633,6 +2658,14 @@ begin
     e_SimpleFontPrint(MousePos.X+8, MousePos.Y+14, PChar(_lc[I_HINT_PANEL_TEXTURE]), gEditorFont, 0, 0, 0);
   end;
 
+// Подсказка при выборе панели индикации выстрела:
+  if SelectFlag = SELECTFLAG_SHOTPANEL then
+  begin
+    e_DrawFillQuad(MousePos.X, MousePos.Y, MousePos.X+316, MousePos.Y+18, 192, 192, 192, 127);
+    e_DrawQuad(MousePos.X, MousePos.Y, MousePos.X+316, MousePos.Y+18, 255, 255, 255);
+    e_SimpleFontPrint(MousePos.X+8, MousePos.Y+14, PChar(_lc[I_HINT_PANEL_SHOT]), gEditorFont, 0, 0, 0);
+  end;
+
 // Подсказка при выборе панели лифта:
   if SelectFlag = SELECTFLAG_LIFT then
   begin
@@ -3215,6 +3248,35 @@ begin
                   gTriggers[SelectedObjects[
                     GetFirstSelected() ].ID].Data.MonsterID := 0;
               end;
+
+            SELECTFLAG_SHOTPANEL:
+            // Панель индикации выстрела:
+              with gTriggers[SelectedObjects[GetFirstSelected()].ID] do
+                if TriggerType = TRIGGER_SHOT then
+                  begin
+                    IDArray := ObjectInRect(MousePos.X-MapOffset.X,
+                                            MousePos.Y-MapOffset.Y,
+                                            2, 2, OBJECT_PANEL, True);
+                    if IDArray <> nil then
+                      begin
+                        for i := 0 to High(IDArray) do
+                          if ((gPanels[IDArray[i]].PanelType in
+                               [PANEL_WALL, PANEL_BACK, PANEL_FORE,
+                                PANEL_WATER, PANEL_ACID1, PANEL_ACID2,
+                                PANEL_STEP]) or
+                              (gPanels[IDArray[i]].PanelType = PANEL_OPENDOOR) or
+                              (gPanels[IDArray[i]].PanelType = PANEL_CLOSEDOOR)) and
+                             (gPanels[IDArray[i]].TextureName <> '') then
+                          begin
+                            gTriggers[SelectedObjects[
+                              GetFirstSelected() ].ID].Data.ShotPanelID := IDArray[i];
+                            Break;
+                          end;
+                      end
+                    else
+                      gTriggers[SelectedObjects[
+                        GetFirstSelected() ].ID].Data.ShotPanelID := -1;
+                  end;
           end;
 
           SelectFlag := SELECTFLAG_SELECTED;
@@ -3531,16 +3593,18 @@ begin
                   TRIGGER_SHOT:
                     begin
                       trigger.Data.ShotType := TRIGGER_SHOT_BULLET;
-                      trigger.Data.ShotAngle := 0;
+                      trigger.Data.ShotSound := True;
+                      trigger.Data.ShotPanelID := -1;
                       trigger.Data.ShotTarget := 0;
+                      trigger.Data.ShotIntSight := 0;
+                      trigger.Data.ShotAllMap := False;
                       trigger.Data.ShotPos.X := trigger.X-64;
                       trigger.Data.ShotPos.Y := trigger.Y-64;
-                      trigger.Data.ShotSound := True;
+                      trigger.Data.ShotAngle := 0;
                       trigger.Data.ShotWait := 18;
                       trigger.Data.ShotAccuracy := 0;
-                      trigger.Data.ShotIntReload := 36;
                       trigger.Data.ShotAmmo := 0;
-                      trigger.Data.ShotAllMap := False;
+                      trigger.Data.ShotIntReload := 0;
                     end;
                 end;
 
@@ -4128,9 +4192,14 @@ begin
           if not WordBool(PanelType and (PANEL_WALL or PANEL_FORE or PANEL_BACK)) then
             if gTriggers <> nil then
               for a := 0 to High(gTriggers) do
+              begin
                 if (gTriggers[a].TriggerType <> 0) and
                    (gTriggers[a].TexturePanel = Integer(SelectedObjects[_id].ID)) then
                   gTriggers[a].TexturePanel := -1;
+                if (gTriggers[a].TriggerType = TRIGGER_SHOT) and
+                   (gTriggers[a].Data.ShotPanelID = Integer(SelectedObjects[_id].ID)) then
+                  gTriggers[a].Data.ShotPanelID := -1;
+              end;
 
         // Сброс ссылки на триггеры лифта:
           if not WordBool(PanelType and (PANEL_LIFTUP or PANEL_LIFTDOWN or PANEL_LIFTLEFT or PANEL_LIFTRIGHT)) then
@@ -4465,8 +4534,6 @@ begin
             TRIGGER_SHOT:
               begin
                 Data.ShotType := StrToShot(vleObjectProperty.Values[_lc[I_PROP_TR_SHOT_TYPE]]);
-                Data.ShotAngle := Min(
-                  StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_SHOT_ANGLE]], 0), 360);
                 Data.ShotSound := NameToBool(vleObjectProperty.Values[_lc[I_PROP_TR_SHOT_SOUND]]);
                 Data.ShotTarget := 0;
                 if vleObjectProperty.Values[_lc[I_PROP_TR_SHOT_TO]] = _lc[I_PROP_TR_SHOT_TO_1] then
@@ -4481,11 +4548,19 @@ begin
                   Data.ShotTarget := 5
                 else if vleObjectProperty.Values[_lc[I_PROP_TR_SHOT_TO]] = _lc[I_PROP_TR_SHOT_TO_6] then
                   Data.ShotTarget := 6;
+                Data.ShotIntSight := Min(Max(
+                  StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_SHOT_SIGHT]], 0), 0), 65535);
                 Data.ShotAllMap := NameToBool(vleObjectProperty.Values[_lc[I_PROP_TR_SHOT_ALLMAP]]);
+                Data.ShotAngle := Min(
+                  StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_SHOT_ANGLE]], 0), 360);
                 Data.ShotWait := Min(Max(
                   StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_EX_DELAY]], 0), 0), 65535);
                 Data.ShotAccuracy := Min(Max(
                   StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_SHOT_ACC]], 0), 0), 65535);
+                Data.ShotAmmo := Min(Max(
+                  StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_SHOT_AMMO]], 0), 0), 65535);
+                Data.ShotIntReload := Min(Max(
+                  StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_SHOT_RELOAD]], 0), 0), 65535);
               end;
           end;
         end;
@@ -4726,6 +4801,25 @@ begin
             if not ok then
               CopyBuffer[a].Trigger.Data.MonsterID := 0;
           end;
+
+        TRIGGER_SHOT:
+          if CopyBuffer[a].Trigger.Data.ShotPanelID <> -1 then
+          begin
+            ok := False;
+
+            for b := 0 to Length(CopyBuffer)-1 do
+              if (CopyBuffer[b].ObjectType = OBJECT_PANEL) and
+                 (Integer(CopyBuffer[b].ID) = CopyBuffer[a].Trigger.Data.ShotPanelID) then
+              begin
+                CopyBuffer[a].Trigger.Data.ShotPanelID := b;
+                ok := True;
+                Break;
+              end;
+
+          // Этих панелей нет среди копируемых:
+            if not ok then
+              CopyBuffer[a].Trigger.Data.ShotPanelID := -1;
+          end;
       end;
 
       if CopyBuffer[a].Trigger.TexturePanel <> -1 then
@@ -4892,6 +4986,11 @@ begin
           if CopyBuffer[a].Trigger.Data.MonsterID <> 0 then
             gTriggers[CopyBuffer[a].ID].Data.MonsterID :=
               CopyBuffer[CopyBuffer[a].Trigger.Data.MonsterID-1].ID+1;
+
+        TRIGGER_SHOT:
+          if CopyBuffer[a].Trigger.Data.ShotPanelID <> -1 then
+            gTriggers[CopyBuffer[a].ID].Data.ShotPanelID :=
+              CopyBuffer[CopyBuffer[a].Trigger.Data.ShotPanelID].ID;
       end;
 
       if CopyBuffer[a].Trigger.TexturePanel <> -1 then
@@ -4949,6 +5048,8 @@ begin
     SelectFlag := SELECTFLAG_DOOR
   else if Key = _lc[I_PROP_TR_TEXTURE_PANEL] then
     SelectFlag := SELECTFLAG_TEXTURE
+  else if Key = _lc[I_PROP_TR_SHOT_PANEL] then
+    SelectFlag := SELECTFLAG_SHOTPANEL
   else if Key = _lc[I_PROP_TR_LIFT_PANEL] then
     SelectFlag := SELECTFLAG_LIFT
   else if key = _lc[I_PROP_TR_EX_MONSTER] then
@@ -5310,6 +5411,13 @@ begin
                 else
                   if (Data.PanelID >= 0) and (Data.PanelID < _id) then
                     Inc(Data.PanelID);
+
+              TRIGGER_SHOT:
+                if Data.ShotPanelID = _id then
+                  Data.ShotPanelID := 0
+                else
+                  if (Data.ShotPanelID >= 0) and (Data.ShotPanelID < _id) then
+                    Inc(Data.ShotPanelID);
             end;
           end;
 
@@ -5346,6 +5454,13 @@ begin
                 else
                   if Data.PanelID > _id then
                     Dec(Data.PanelID);
+
+              TRIGGER_SHOT:
+                if Data.ShotPanelID = _id then
+                  Data.ShotPanelID := High(gPanels)
+                else
+                  if Data.ShotPanelID > _id then
+                    Dec(Data.ShotPanelID);
             end;
           end;
 

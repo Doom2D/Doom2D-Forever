@@ -535,6 +535,10 @@ begin
                    TRIGGER_LIFT] then
                 if gTriggers[a].Data.PanelID = Integer(ID) then
                   gTriggers[a].Data.PanelID := -1;
+
+              if (gTriggers[a].TriggerType = TRIGGER_SHOT) and
+                 (gTriggers[a].Data.ShotPanelID = Integer(ID)) then
+                gTriggers[a].Data.ShotPanelID := -1;
             end;
 
         gPanels[ID].PanelType := 0;
@@ -1282,6 +1286,15 @@ begin
                     TTriggerData(DATA).PanelID := PanelTable[c][1];
                     Break;
                   end;
+
+          // Ищем номер панели индикации, которой этот триггер меняет текстуру:
+            if (gTriggers[a].TriggerType = TRIGGER_SHOT) and
+               (TTriggerData(DATA).ShotPanelID <> -1) then
+            begin
+              for c := 0 to High(PanelTable) do
+                if PanelTable[c][0] = TTriggerData(DATA).ShotPanelID then
+                  TTriggerData(DATA).ShotPanelID := PanelTable[c][1];
+            end;
           end;
 
           if MonsterTable <> nil then
@@ -2457,6 +2470,25 @@ begin
                            MapOffset.X+xx+dx,
                            MapOffset.Y+yy+dy,
                            255, 255, 255, IfThen(sel, 0, gAlphaTriggerLine));
+
+                if Data.ShotPanelID <> -1 then
+                begin
+                // Линия к панели индикации выстрела
+                  with gPanels[Data.ShotPanelID] do
+                  begin
+                    xx := X;
+                    yy := Y;
+                    ww := Width;
+                    hh := Height;
+                  end;
+
+                  e_DrawQuad(MapOffset.X+xx, MapOffset.Y+yy,
+                             MapOffset.X+xx+ww-1, MapOffset.Y+yy+hh-1,
+                             255, 255, 255, IfThen(sel, 0, gAlphaTriggerArea));
+                  e_DrawLine(1, MapOffset.X+X+(Width div 2), MapOffset.Y+Y+(Height div 2),
+                             MapOffset.X+xx, MapOffset.Y+yy,
+                             255, 255, 0, IfThen(sel, 0, gAlphaTriggerArea));
+                end;
               end;
           end;
         end;
