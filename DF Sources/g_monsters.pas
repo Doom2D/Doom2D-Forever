@@ -2125,7 +2125,8 @@ begin
                    STATE_ATTACK, STATE_SHOOT]) then
       if g_Weapon_Danger(FUID, FObj.X+FObj.Rect.X, FObj.Y+FObj.Rect.Y,
                          FObj.Rect.Width, FObj.Rect.Height, 50) then
-        if g_Obj_CollideLevel(@FObj, 0, 1) or g_Obj_StayOnStep(@FObj) then
+        if (g_Obj_CollideLevel(@FObj, 0, 1) or g_Obj_StayOnStep(@FObj)) and
+           (FObj.Accel.Y = 0) then
           FObj.Vel.Y := -MONSTERTABLE[FMonsterType].Jump;
 
   case FState of
@@ -2310,7 +2311,8 @@ begin
           case FMonsterType of
             MONSTER_CACO, MONSTER_SOUL, MONSTER_PAIN, MONSTER_FISH: ;
             else // Не летают:
-              if g_Obj_CollideLevel(@FObj, 0, 1) or g_Obj_StayOnStep(@FObj) then
+              if (g_Obj_CollideLevel(@FObj, 0, 1) or g_Obj_StayOnStep(@FObj)) and
+                 (FObj.Accel.Y = 0) then
               begin // Стоим на твердом полу или ступени
               // Прыжок через стену:
                 FObj.Vel.Y := -MONSTERTABLE[FMonsterType].Jump;
@@ -2332,7 +2334,8 @@ begin
                     if g_Obj_CollideLevel(@FObj, 0, 1) or g_Obj_StayOnStep(@FObj) then
                     begin // "Стоит" твердо
                     // Рыба трепыхается на поверхности:
-                      FObj.Vel.Y := -6;
+                      if FObj.Accel.Y = 0 then
+                        FObj.Vel.Y := -6;
                       FObj.Accel.X := FObj.Accel.X - 8 + Random(17);
                     end;
 
@@ -2379,7 +2382,7 @@ begin
             if sy < -40 then
               if g_Obj_CollideLevel(@FObj, 0, 1) or g_Obj_StayOnStep(@FObj) then
               // стоит твердо
-                if Random(4) = 0 then
+                if (Random(4) = 0) and (FObj.Accel.Y = 0) then
                   FObj.Vel.Y := -MONSTERTABLE[FMonsterType].Jump;
           end;
 
@@ -3001,7 +3004,8 @@ begin
                    STATE_ATTACK, STATE_SHOOT]) then
       if g_Weapon_Danger(FUID, FObj.X+FObj.Rect.X, FObj.Y+FObj.Rect.Y,
                          FObj.Rect.Width, FObj.Rect.Height, 50) then
-        if g_Obj_CollideLevel(@FObj, 0, 1) or g_Obj_StayOnStep(@FObj) then
+        if (g_Obj_CollideLevel(@FObj, 0, 1) or g_Obj_StayOnStep(@FObj)) and
+           (FObj.Accel.Y = 0) then
           FObj.Vel.Y := -MONSTERTABLE[FMonsterType].Jump;
 
   case FState of
@@ -3081,7 +3085,8 @@ begin
           case FMonsterType of
             MONSTER_CACO, MONSTER_SOUL, MONSTER_PAIN, MONSTER_FISH: ;
             else // Не летают:
-              if g_Obj_CollideLevel(@FObj, 0, 1) or g_Obj_StayOnStep(@FObj) then
+              if (g_Obj_CollideLevel(@FObj, 0, 1) or g_Obj_StayOnStep(@FObj)) and
+                 (FObj.Accel.Y = 0) then
               begin // Стоим на твердом полу или ступени
               // Прыжок через стену:
                 FObj.Vel.Y := -MONSTERTABLE[FMonsterType].Jump;
@@ -3103,7 +3108,8 @@ begin
                     if g_Obj_CollideLevel(@FObj, 0, 1) or g_Obj_StayOnStep(@FObj) then
                     begin // "Стоит" твердо
                     // Рыба трепыхается на поверхности:
-                      FObj.Vel.Y := -6;
+                      if FObj.Accel.Y = 0 then
+                        FObj.Vel.Y := -6;
                       FObj.Accel.X := FObj.Accel.X - 8 + Random(17);
                     end;
 
