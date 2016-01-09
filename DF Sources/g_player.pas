@@ -2537,9 +2537,10 @@ begin
     FCanJetpack := False;
 
 // Прыгаем или всплываем:
-  if CollideLevel(0, 1) or
-    g_Map_CollidePanel(FObj.X+PLAYER_RECT.X, FObj.Y+PLAYER_RECT.Y+36, PLAYER_RECT.Width,
-                       PLAYER_RECT.Height-33, PANEL_STEP, False) then
+  if (CollideLevel(0, 1) or
+      g_Map_CollidePanel(FObj.X+PLAYER_RECT.X, FObj.Y+PLAYER_RECT.Y+36, PLAYER_RECT.Width,
+                       PLAYER_RECT.Height-33, PANEL_STEP, False)
+     ) and (FObj.Accel.Y = 0) then // Не прыгать, если есть вертикальное ускорение
   begin
     FObj.Vel.Y := -VEL_JUMP;
     FCanJetpack := False;
