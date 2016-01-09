@@ -1157,7 +1157,7 @@ begin
 
       TRIGGER_MESSAGE:
         begin
-          snd := Data.MessageText;
+          snd := b_Text_Format(Data.MessageText);
           case Data.MessageSendTo of
             0: // activator
               begin
@@ -1269,9 +1269,9 @@ begin
             5: // everyone
               begin
                 if Data.MessageKind = 0 then
-                  g_Console_Add(Data.MessageText, True)
+                  g_Console_Add(snd, True)
                 else if Data.MessageKind = 1 then
-                  g_Game_Message(Data.MessageText, 144);
+                  g_Game_Message(snd, 144);
 
                 if g_Game_IsNet then
                 begin
