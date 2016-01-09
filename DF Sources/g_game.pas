@@ -4410,18 +4410,8 @@ begin
     end
     else if (cmd = 'g_timelimit') and not g_Game_IsClient then
     begin
-      if Length(P) > 1 then
-      begin
-        if StrToIntDef(P[1], gGameSettings.TimeLimit) = 0 then
-          gGameSettings.TimeLimit := 0
-        else
-          begin
-          // 10 секунд на смену:
-            b := (gTime - gGameStartTime) div 1000 + 10;
-
-            gGameSettings.TimeLimit := Max(StrToIntDef(P[1], gGameSettings.TimeLimit), b);
-          end;
-      end;
+      if (Length(P) > 1) and (StrToIntDef(P[1], -1) >= 0) then
+        gGameSettings.TimeLimit := StrToIntDef(P[1], -1);
 
       g_Console_Add(Format(_lc[I_MSG_TIME_LIMIT],
                            [gGameSettings.TimeLimit div 3600,
@@ -5423,6 +5413,19 @@ begin
         else g_Console_Add('tell <playername> <text>');
       end else
         g_Console_Add(_lc[I_MSG_SERVERONLY]);
+    end
+    else if (cmd = 'overtime') and not g_Game_IsClient then
+    begin
+      if (Length(P) = 1) or (StrToIntDef(P[1], -1) <= 0) then
+        Exit;
+      // ƒополнительное врем€:
+      gGameSettings.TimeLimit := (gTime - gGameStartTime) div 1000 + Word(StrToIntDef(P[1], 0));
+
+      g_Console_Add(Format(_lc[I_MSG_TIME_LIMIT],
+                           [gGameSettings.TimeLimit div 3600,
+                           (gGameSettings.TimeLimit div 60) mod 60,
+                            gGameSettings.TimeLimit mod 60]));
+      if g_Game_IsNet then MH_SEND_GameSettings;
     end
     else if (cmd = 'rcon_password') and g_Game_IsClient then
     begin

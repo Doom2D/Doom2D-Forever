@@ -426,6 +426,7 @@ begin
   AddCommand('reconnect', GameCommands);
   AddCommand('say', GameCommands);
   AddCommand('tell', GameCommands);
+  AddCommand('overtime', GameCommands);
   AddCommand('rcon_password', GameCommands);
   AddCommand('rcon', GameCommands);
   AddCommand('callvote', GameCommands);
