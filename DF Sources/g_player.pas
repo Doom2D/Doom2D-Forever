@@ -5023,7 +5023,6 @@ var
   sig: DWORD;
   str: String;
   b: Byte;
-  col: TRGB;
 begin
   if Mem = nil then
     Exit;
@@ -5131,25 +5130,25 @@ begin
 // Название модели:
   Mem.ReadString(str);
 // Цвет модели:
-  Mem.ReadByte(col.R);
-  Mem.ReadByte(col.G);
-  Mem.ReadByte(col.B);
+  Mem.ReadByte(FColor.R);
+  Mem.ReadByte(FColor.G);
+  Mem.ReadByte(FColor.B);
   if FPlayerNum = 1 then
   begin
     str := gPlayer1Settings.Model;
-    col := gPlayer1Settings.Color;
+    FColor := gPlayer1Settings.Color;
   end;
   if FPlayerNum = 2 then
   begin
     str := gPlayer2Settings.Model;
-    col := gPlayer2Settings.Color;
+    FColor := gPlayer2Settings.Color;
   end;
 // Обновляем модель игрока:
   SetModel(str);
   if gGameSettings.GameMode in [GM_TDM, GM_CTF] then
     FModel.Color := TEAMCOLOR[FTeam]
   else
-    FModel.Color := col;
+    FModel.Color := FColor;
 end;
 
 procedure TPlayer.AllRulez(Health: Boolean);
