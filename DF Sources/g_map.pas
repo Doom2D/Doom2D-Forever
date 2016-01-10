@@ -770,6 +770,7 @@ var
                            TexturePanel: Integer;
                            LiftPanel: Integer;
                            DoorPanel: Integer;
+                           ShotPanel: Integer;
                           end;
   FileName, SectionName, ResName,
   FileName2, s, TexName: String;
@@ -891,6 +892,11 @@ begin
         TriggersTable[a].DoorPanel := TTriggerData(triggers[a].DATA).PanelID
       else
         TriggersTable[a].DoorPanel := -1;
+    // Турель:
+      if triggers[a].TriggerType = TRIGGER_SHOT then
+        TriggersTable[a].ShotPanel := TTriggerData(triggers[a].DATA).ShotPanelID
+      else
+        TriggersTable[a].ShotPanel := -1;
 
       g_Game_StepLoading();
     end;
@@ -922,7 +928,8 @@ begin
         ok := False;
         if (TriggersTable <> nil) and (_textures <> nil) then
           for b := 0 to High(TriggersTable) do
-            if TriggersTable[b].TexturePanel = a then
+            if (TriggersTable[b].TexturePanel = a)
+            or (TriggersTable[b].ShotPanel = a) then
             begin
               trigRef := True;
               ok := True;
@@ -1013,7 +1020,7 @@ begin
               else // NNF_NO_NAME
                 ok := False;
           end; // while ok...
-          
+
           ok := True;
         end; // if ok - есть смежные текстуры
       end; // if ok - ссылаются триггеры
@@ -1041,6 +1048,9 @@ begin
         // Триггер смены текстуры:
           if TriggersTable[b].TexturePanel = a then
             triggers[b].TexturePanel := PanelID;
+        // Триггер "Турель":
+          if TriggersTable[b].ShotPanel = a then
+            TTriggerData(triggers[b].DATA).ShotPanelID := PanelID;
         end;
 
       g_Game_StepLoading();
@@ -1061,7 +1071,7 @@ begin
         b := 0;
       if (triggers[a].TriggerType = TRIGGER_SHOT) and
          (TTriggerData(triggers[a].DATA).ShotPanelID <> -1) then
-        c := panels[TTriggerData(triggers[a].DATA).ShotPanelID].PanelType
+        c := panels[TriggersTable[a].ShotPanel].PanelType
       else
         c := 0;
       CreateTrigger(triggers[a], b, c);
