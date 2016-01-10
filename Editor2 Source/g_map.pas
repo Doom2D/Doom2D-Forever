@@ -2471,7 +2471,8 @@ begin
                            MapOffset.Y+yy+dy,
                            255, 255, 255, IfThen(sel, 0, gAlphaTriggerLine));
 
-                if Data.ShotPanelID <> -1 then
+                if (Data.ShotPanelID <> -1) and
+                   (Data.ShotPanelID <= High(gPanels)) then
                 begin
                 // Линия к панели индикации выстрела
                   with gPanels[Data.ShotPanelID] do
