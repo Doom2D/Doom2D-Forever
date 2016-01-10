@@ -427,42 +427,54 @@ begin
         TRIGGER_SHOT_PISTOL:
           begin
             g_Weapon_pistol(wx, wy, dx, dy, 0, True);
-            g_Player_CreateShell(wx, wy, 0, -2, SHELL_BULLET);
             Projectile := False;
             snd := 'SOUND_WEAPON_FIREPISTOL';
-            if g_Game_IsNet then
-              MH_SEND_Effect(wx, wy, 0, NET_GFX_SHELL1);
+            if Data.ShotSound then
+            begin
+              g_Player_CreateShell(wx, wy, 0, -2, SHELL_BULLET);
+              if g_Game_IsNet then
+                MH_SEND_Effect(wx, wy, 0, NET_GFX_SHELL1);
+            end;
           end;
 
         TRIGGER_SHOT_BULLET:
           begin
             g_Weapon_mgun(wx, wy, dx, dy, 0, True);
-            g_Player_CreateShell(wx, wy, 0, -2, SHELL_BULLET);
             Projectile := False;
             snd := 'SOUND_WEAPON_FIRECGUN';
-            if g_Game_IsNet then
-              MH_SEND_Effect(wx, wy, 0, NET_GFX_SHELL1);
+            if Data.ShotSound then
+            begin
+              g_Player_CreateShell(wx, wy, 0, -2, SHELL_BULLET);
+              if g_Game_IsNet then
+                MH_SEND_Effect(wx, wy, 0, NET_GFX_SHELL1);
+            end;
           end;
 
         TRIGGER_SHOT_SHOTGUN:
           begin
             g_Weapon_Shotgun(wx, wy, dx, dy, 0, True);
-            g_Player_CreateShell(wx, wy, 0, -2, SHELL_SHELL);
             Projectile := False;
             snd := 'SOUND_WEAPON_FIRESHOTGUN';
-            if g_Game_IsNet then
-              MH_SEND_Effect(wx, wy, 0, NET_GFX_SHELL2);
+            if Data.ShotSound then
+            begin
+              g_Player_CreateShell(wx, wy, 0, -2, SHELL_SHELL);
+              if g_Game_IsNet then
+                MH_SEND_Effect(wx, wy, 0, NET_GFX_SHELL2);
+            end;
           end;
 
         TRIGGER_SHOT_SSG:
           begin
             g_Weapon_DShotgun(wx, wy, dx, dy, 0, True);
-            g_Player_CreateShell(wx, wy, 0, -2, SHELL_SHELL);
-            g_Player_CreateShell(wx, wy, 0, -2, SHELL_SHELL);
             Projectile := False;
             snd := 'SOUND_WEAPON_FIRESHOTGUN2';
-            if g_Game_IsNet then
-              MH_SEND_Effect(wx, wy, 0, NET_GFX_SHELL3);
+            if Data.ShotSound then
+            begin
+              g_Player_CreateShell(wx, wy, 0, -2, SHELL_SHELL);
+              g_Player_CreateShell(wx, wy, 0, -2, SHELL_SHELL);
+              if g_Game_IsNet then
+                MH_SEND_Effect(wx, wy, 0, NET_GFX_SHELL3);
+            end;
           end;
 
         TRIGGER_SHOT_IMP:
