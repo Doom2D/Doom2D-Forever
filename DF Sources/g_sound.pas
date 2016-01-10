@@ -170,12 +170,12 @@ begin
     if Y < 0 then
       Y := 0;
 
-  if gPlayer1 <> nil then
+  if gHearPoint1.Active then
   begin
-    l1 := Round(Hypot(X - gPlayer1.GameX, Y - gPlayer1.GameY));
+    l1 := Round(Hypot(X - gHearPoint1.Coords.X, Y - gHearPoint1.Coords.Y));
 
-    lx := gPlayer1.GameX-SOUND_MINDIST;
-    rx := gPlayer1.GameX+SOUND_MINDIST;
+    lx := gHearPoint1.Coords.X - SOUND_MINDIST;
+    rx := gHearPoint1.Coords.X + SOUND_MINDIST;
     if c then
       d1 := 0.0
     else if (X >= lx) and (X <= rx) then
@@ -188,12 +188,12 @@ begin
 
   d2 := d1;
 
-  if gPlayer2 <> nil then
+  if gHearPoint2.Active then
   begin
-    l2 := Round(Hypot(X - gPlayer2.GameX, Y - gPlayer2.GameY));
+    l2 := Round(Hypot(X - gHearPoint2.Coords.X, Y - gHearPoint2.Coords.Y));
 
-    lx := gPlayer2.GameX-SOUND_MINDIST;
-    rx := gPlayer2.GameX+SOUND_MINDIST;
+    lx := gHearPoint2.Coords.X - SOUND_MINDIST;
+    rx := gHearPoint2.Coords.X + SOUND_MINDIST;
     if c then
       d2 := 0.0
     else if (X >= lx) and (X <= rx) then

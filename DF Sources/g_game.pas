@@ -37,6 +37,11 @@ type
     Pic: String;
   end;
 
+  THearPoint = record
+    Active: Boolean;
+    Coords: TPoint;
+  end;
+
 function  g_Game_IsNet(): Boolean;
 function  g_Game_IsServer(): Boolean;
 function  g_Game_IsClient(): Boolean;
@@ -167,6 +172,7 @@ var
   gPlayerDrawn: TPlayer = nil;
   gTime: LongWord;
   gSwitchGameMode: Byte = GM_DM;
+  gHearPoint1, gHearPoint2: THearPoint;
   gSoundTriggerTime: Word = 0;
   gDefInterTime: ShortInt = -1;
   gInterEndTime: LongWord = 0;
@@ -2590,10 +2596,30 @@ begin
       Split := False;
       e_SetViewPort(0, 0, gScreenWidth, gScreenHeight);
       DrawMapView(gSpectX, gSpectY, gScreenWidth, gScreenHeight);
+      gHearPoint1.Active := True;
+      gHearPoint1.Coords.X := gScreenWidth div 2 + gSpectX;
+      gHearPoint1.Coords.Y := gScreenHeight div 2 + gSpectY;
+      gHearPoint2.Active := False;
     end
     else
     begin
       Split := (plView1 <> nil) and (plView2 <> nil);
+
+    // Точки слуха игроков
+      if plView1 <> nil then
+      begin
+        gHearPoint1.Active := True;
+        gHearPoint1.Coords.X := plView1.GameX;
+        gHearPoint1.Coords.Y := plView1.GameY;
+      end else
+        gHearPoint1.Active := False;
+      if plView2 <> nil then
+      begin
+        gHearPoint2.Active := True;
+        gHearPoint2.Coords.X := plView2.GameX;
+        gHearPoint2.Coords.Y := plView2.GameY;
+      end else
+        gHearPoint2.Active := False;
 
     // Размер экранов игроков:
       gPlayerScreenSize.X := gScreenWidth-196;
