@@ -190,7 +190,7 @@ begin
 
   if gPlayer2 <> nil then
   begin
-    l1 := Round(Hypot(X - gPlayer2.GameX, Y - gPlayer2.GameY));
+    l2 := Round(Hypot(X - gPlayer2.GameX, Y - gPlayer2.GameY));
 
     lx := gPlayer2.GameX-SOUND_MINDIST;
     rx := gPlayer2.GameX+SOUND_MINDIST;
