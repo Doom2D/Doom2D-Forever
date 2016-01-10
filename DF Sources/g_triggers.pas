@@ -38,11 +38,8 @@ type
     ShotPanelType:    Word;
     ShotPanelTime:    Integer;
     ShotSightTime:    Integer;
-    ShotSightWX:      Integer;
-    ShotSightWY:      Integer;
-    ShotSightDX:      Integer;
-    ShotSightDY:      Integer;
     ShotSightTarget:  Word;
+    ShotSightTargetN: Word;
     ShotAmmoCount:    Word;
     ShotReloadTime:   Integer;
 
@@ -1650,16 +1647,13 @@ begin
           if (Data.ShotTarget = TRIGGER_SHOT_TARGET_NONE) or (TargetUID > 0) then
           begin
             Result := True;
-            if Data.ShotIntSight = 0 then
+            if (Data.ShotTarget = TRIGGER_SHOT_TARGET_NONE) or
+               (TargetUID = ShotSightTarget) then
               MakeShot(Trigger, wx, wy, xd, yd, TargetUID)
             else
             begin
               ShotSightTime := Data.ShotIntSight;
-              ShotSightWX := wx;
-              ShotSightWY := wy;
-              ShotSightDX := xd;
-              ShotSightDY := yd;
-              ShotSightTarget := TargetUID;
+              ShotSightTargetN := TargetUID;
               if Data.ShotType = TRIGGER_SHOT_BFG then
               begin
                 g_Sound_PlayExAt('SOUND_WEAPON_STARTFIREBFG', wx, wy);
@@ -1669,7 +1663,7 @@ begin
             end;
           end;
 
-          TimeOut := Data.ShotIntSight + Data.ShotWait + 1;
+          TimeOut := Data.ShotWait + 1;
         end;
     end;
   end;
@@ -1787,6 +1781,8 @@ begin
     begin
       ShotPanelTime := 0;
       ShotSightTime := 0;
+      ShotSightTarget := 0;
+      ShotSightTargetN := 0;
       ShotAmmoCount := Trigger.Data.ShotAmmo;
       ShotReloadTime := 0;
     end;
@@ -1859,8 +1855,7 @@ begin
           begin
             Dec(ShotSightTime);
             if ShotSightTime = 0 then
-              MakeShot(gTriggers[a], ShotSightWX, ShotSightWY,
-                       ShotSightDX, ShotSightDY, ShotSightTarget);
+              ShotSightTarget := ShotSightTargetN;
           end;
           if ShotReloadTime > 0 then
           begin
