@@ -3907,6 +3907,7 @@ procedure TMainForm.FormKeyDown(Sender: TObject; var Key: Word;
   Shift: TShiftState);
 var
   dx, dy, i: Integer;
+  FileName: String;
 begin
   if (not EditingProperties) then
   begin
@@ -4030,7 +4031,7 @@ begin
       if i > 0 then
         SelectFlag := SELECTFLAG_TEXTURE;
     end;
-  // Выбор области воздействия, в зависимости от типа триггера
+
     if Key = Ord('D') then
     begin
       if DrawPressRect then
@@ -4044,19 +4045,16 @@ begin
         Exit;
       end;
 
+    // Выбор области воздействия, в зависимости от типа триггера
       vleObjectProperty.FindRow(_lc[I_PROP_TR_EX_AREA], i);
       if i > 0 then
       begin
         DrawPressRect := True;
         Exit;
       end;
-      vleObjectProperty.FindRow(_lc[I_PROP_TR_TRAP_PANEL], i);
-      if i > 0 then
-      begin
-        SelectFlag := SELECTFLAG_DOOR;
-        Exit;
-      end;
       vleObjectProperty.FindRow(_lc[I_PROP_TR_DOOR_PANEL], i);
+      if i <= 0 then
+        vleObjectProperty.FindRow(_lc[I_PROP_TR_TRAP_PANEL], i);
       if i > 0 then
       begin
         SelectFlag := SELECTFLAG_DOOR;
@@ -4078,6 +4076,37 @@ begin
       if i > 0 then
       begin
         SelectFlag := SELECTFLAG_SPAWNPOINT;
+        Exit;
+      end;
+
+    // Выбор основного параметра, в зависимости от типа триггера
+      vleObjectProperty.FindRow(_lc[I_PROP_TR_NEXT_MAP], i);
+      if i > 0 then
+      begin
+        g_ProcessResourceStr(OpenedMap, @FileName, nil, nil);
+        SelectMapForm.GetMaps(FileName);
+
+        if SelectMapForm.ShowModal() = mrOK then
+        begin
+          vleObjectProperty.Cells[1, i] := SelectMapForm.lbMapList.Items[SelectMapForm.lbMapList.ItemIndex];
+          bApplyProperty.Click();
+        end;
+        Exit;
+      end;
+      vleObjectProperty.FindRow(_lc[I_PROP_TR_SOUND_NAME], i);
+      if i <= 0 then
+        vleObjectProperty.FindRow(_lc[I_PROP_TR_MUSIC_NAME], i);
+      if i > 0 then
+      begin
+        AddSoundForm.OKFunction := nil;
+        AddSoundForm.lbResourcesList.MultiSelect := False;
+        AddSoundForm.SetResource := vleObjectProperty.Cells[1, i];
+
+        if (AddSoundForm.ShowModal() = mrOk) then
+        begin
+          vleObjectProperty.Cells[1, i] := AddSoundForm.ResourceName;
+          bApplyProperty.Click();
+        end;
         Exit;
       end;
     end;
