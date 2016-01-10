@@ -2465,6 +2465,11 @@ begin
   if config.ReadBool('Editor', 'Maximize', False) then
     WindowState := wsMaximized;
   ShowMap := config.ReadBool('Editor', 'Minimap', False);
+  PanelProps.Width := config.ReadInt('Editor', 'PanelProps', PanelProps.ClientWidth);
+  Splitter1.Left := PanelProps.Left;
+  PanelObjs.Height := config.ReadInt('Editor', 'PanelObjs', PanelObjs.ClientHeight);
+  Splitter2.Top := PanelObjs.Top;
+  StatusBar.Top := PanelObjs.BoundsRect.Bottom;
   DotEnable := config.ReadBool('Editor', 'DotEnable', True);
   DotColor := config.ReadInt('Editor', 'DotColor', $FFFFFF);
   DotStepOne := config.ReadInt('Editor', 'DotStepOne', 16);
@@ -3854,6 +3859,8 @@ begin
 
   config.WriteBool('Editor', 'Maximize', WindowState = wsMaximized);
   config.WriteBool('Editor', 'Minimap', ShowMap);
+  config.WriteInt('Editor', 'PanelProps', PanelProps.ClientWidth);
+  config.WriteInt('Editor', 'PanelObjs', PanelObjs.ClientHeight);
   config.WriteBool('Editor', 'DotEnable', DotEnable);
   config.WriteInt('Editor', 'DotStep', DotStep);
   config.WriteStr('Editor', 'LastOpenDir', OpenDialog.InitialDir);
