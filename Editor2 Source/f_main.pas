@@ -3983,44 +3983,6 @@ begin
         end;
       end;
     end;
-
-    if Key = Ord('I') then
-    begin
-      // начать выбор монстра
-      vleObjectProperty.FindRow( _lc[I_PROP_TR_EX_MONSTER] , i);
-      if i > 0 then SelectFlag := SELECTFLAG_MONSTER;
-
-    end;
-
-    if Key = Ord('O') then
-    begin
-      // начать выбор области воздействия
-      vleObjectProperty.FindRow( _lc[I_PROP_TR_EX_AREA] , i);
-      if i > 0 then DrawPressRect := True
-        else
-      begin
-        vleObjectProperty.FindRow( _lc[I_PROP_TR_TRAP_PANEL] , i);
-        if i > 0 then SelectFlag := SELECTFLAG_DOOR;
-        vleObjectProperty.FindRow( _lc[I_PROP_TR_DOOR_PANEL] , i);
-        if i > 0 then SelectFlag := SELECTFLAG_DOOR;
-        vleObjectProperty.FindRow( _lc[I_PROP_TR_LIFT_PANEL] , i);
-        if i > 0 then SelectFlag := SELECTFLAG_LIFT;
-        vleObjectProperty.FindRow( _lc[I_PROP_TR_TELEPORT_TO] , i);
-        if i > 0 then SelectFlag := SELECTFLAG_TELEPORT;
-        vleObjectProperty.FindRow( _lc[I_PROP_TR_MONSTER_TO] , i);
-        if i > 0 then SelectFlag := SELECTFLAG_SPAWNPOINT;
-        vleObjectProperty.FindRow( _lc[I_PROP_TR_ITEM_TO] , i);
-        if i > 0 then SelectFlag := SELECTFLAG_SPAWNPOINT;
-      end;
-
-    end;
-
-    if Key = Ord('P') then
-    begin
-      // начать выбор панели текстуры
-      vleObjectProperty.FindRow( _lc[I_PROP_TR_TEXTURE_PANEL] , i);
-      if i > 0 then SelectFlag := SELECTFLAG_TEXTURE;
-    end;
   end;
 
 // Удалить выделенные объекты:
@@ -4051,6 +4013,73 @@ begin
     begin
       MoveSelectedObjects(ssShift in Shift, ssCtrl in Shift, dx, dy);
       Key := 0;
+    end;
+  end;
+
+  if ssCtrl in Shift then
+  begin
+  // Выбор панели с текстурой для триггера
+    if Key = Ord('T') then
+    begin
+      if SelectFlag = SELECTFLAG_TEXTURE then
+      begin
+        SelectFlag := SELECTFLAG_NONE;
+        Exit;
+      end;
+      vleObjectProperty.FindRow(_lc[I_PROP_TR_TEXTURE_PANEL], i);
+      if i > 0 then
+        SelectFlag := SELECTFLAG_TEXTURE;
+    end;
+  // Выбор области воздействия, в зависимости от типа триггера
+    if Key = Ord('D') then
+    begin
+      if DrawPressRect then
+      begin
+        DrawPressRect := False;
+        Exit;
+      end;
+      if SelectFlag <> SELECTFLAG_NONE then
+      begin
+        SelectFlag := SELECTFLAG_NONE;
+        Exit;
+      end;
+
+      vleObjectProperty.FindRow(_lc[I_PROP_TR_EX_AREA], i);
+      if i > 0 then
+      begin
+        DrawPressRect := True;
+        Exit;
+      end;
+      vleObjectProperty.FindRow(_lc[I_PROP_TR_TRAP_PANEL], i);
+      if i > 0 then
+      begin
+        SelectFlag := SELECTFLAG_DOOR;
+        Exit;
+      end;
+      vleObjectProperty.FindRow(_lc[I_PROP_TR_DOOR_PANEL], i);
+      if i > 0 then
+      begin
+        SelectFlag := SELECTFLAG_DOOR;
+        Exit;
+      end;
+      vleObjectProperty.FindRow(_lc[I_PROP_TR_LIFT_PANEL], i);
+      if i > 0 then
+      begin
+        SelectFlag := SELECTFLAG_LIFT;
+        Exit;
+      end;
+      vleObjectProperty.FindRow(_lc[I_PROP_TR_TELEPORT_TO], i);
+      if i > 0 then
+      begin
+        SelectFlag := SELECTFLAG_TELEPORT;
+        Exit;
+      end;
+      vleObjectProperty.FindRow(_lc[I_PROP_TR_SPAWN_TO], i);
+      if i > 0 then
+      begin
+        SelectFlag := SELECTFLAG_SPAWNPOINT;
+        Exit;
+      end;
     end;
   end;
 end;
