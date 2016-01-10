@@ -204,10 +204,11 @@ begin
       d2 := (X-rx)/sMaxDist;
   end;
 
-  d1 := (d1 + d2) / 2.0;
-
   if l2 < l1 then
+  begin
     l1 := l2;
+    d1 := d2;
+  end;
 
   if l1 >= sMaxDist then
     begin
