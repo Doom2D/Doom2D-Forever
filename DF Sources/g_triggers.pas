@@ -430,6 +430,8 @@ begin
             g_Player_CreateShell(wx, wy, 0, -2, SHELL_BULLET);
             Projectile := False;
             snd := 'SOUND_WEAPON_FIREPISTOL';
+            if g_Game_IsNet then
+              MH_SEND_Effect(wx, wy, 0, NET_GFX_SHELL1);
           end;
 
         TRIGGER_SHOT_BULLET:
@@ -438,6 +440,8 @@ begin
             g_Player_CreateShell(wx, wy, 0, -2, SHELL_BULLET);
             Projectile := False;
             snd := 'SOUND_WEAPON_FIRECGUN';
+            if g_Game_IsNet then
+              MH_SEND_Effect(wx, wy, 0, NET_GFX_SHELL1);
           end;
 
         TRIGGER_SHOT_SHOTGUN:
@@ -446,6 +450,8 @@ begin
             g_Player_CreateShell(wx, wy, 0, -2, SHELL_SHELL);
             Projectile := False;
             snd := 'SOUND_WEAPON_FIRESHOTGUN';
+            if g_Game_IsNet then
+              MH_SEND_Effect(wx, wy, 0, NET_GFX_SHELL2);
           end;
 
         TRIGGER_SHOT_SSG:
@@ -455,6 +461,8 @@ begin
             g_Player_CreateShell(wx, wy, 0, -2, SHELL_SHELL);
             Projectile := False;
             snd := 'SOUND_WEAPON_FIRESHOTGUN2';
+            if g_Game_IsNet then
+              MH_SEND_Effect(wx, wy, 0, NET_GFX_SHELL3);
           end;
 
         TRIGGER_SHOT_IMP:

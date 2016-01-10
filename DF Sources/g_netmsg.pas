@@ -66,6 +66,9 @@ const
   NET_GFX_BFG     = 4;
   NET_GFX_FIRE    = 5;
   NET_GFX_RESPAWN = 6;
+  NET_GFX_SHELL1  = 7;
+  NET_GFX_SHELL2  = 8;
+  NET_GFX_SHELL3  = 9;
 
   NET_EV_MAPSTART     = 1;
   NET_EV_MAPEND       = 2;
@@ -1425,6 +1428,7 @@ begin
         g_GFX_OnceAnim(X, Y, Anim);
         Anim.Free();
       end;
+
     NET_GFX_TELE:
     begin
       if g_Frames_Get(ID, 'FRAMES_TELEPORT') then
@@ -1436,6 +1440,7 @@ begin
       if Ang = 1 then
         g_Sound_PlayExAt('SOUND_GAME_TELEPORT', X, Y);
     end;
+
     NET_GFX_BFG:
     begin
       if g_Frames_Get(ID, 'FRAMES_BFGHIT') then
@@ -1445,6 +1450,7 @@ begin
         Anim.Free();
       end;
     end;
+
     NET_GFX_FIRE:
     begin
       if g_Frames_Get(ID, 'FRAMES_FIRE') then
@@ -1456,6 +1462,7 @@ begin
       if Ang = 1 then
         g_Sound_PlayExAt('SOUND_FIRE', X, Y);
     end;
+
     NET_GFX_RESPAWN:
     begin
       if g_Frames_Get(ID, 'FRAMES_ITEM_RESPAWN') then
@@ -1466,6 +1473,18 @@ begin
       end;
       if Ang = 1 then
         g_Sound_PlayExAt('SOUND_ITEM_RESPAWNITEM', X, Y);
+    end;
+
+    NET_GFX_SHELL1:
+      g_Player_CreateShell(X, Y, 0, -2, SHELL_BULLET);
+
+    NET_GFX_SHELL2:
+      g_Player_CreateShell(X, Y, 0, -2, SHELL_SHELL);
+
+    NET_GFX_SHELL3:
+    begin
+      g_Player_CreateShell(X, Y, 0, -2, SHELL_SHELL);
+      g_Player_CreateShell(X, Y, 0, -2, SHELL_SHELL);
     end;
   end;
 end;
