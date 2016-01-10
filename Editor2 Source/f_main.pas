@@ -3949,35 +3949,38 @@ begin
           end;
     end;
 
-  // Вертикальный скролл карты:
-    with sbVertical do
+    if not (ssCtrl in Shift) then
     begin
-      if Key = Ord('W') then
+    // Вертикальный скролл карты:
+      with sbVertical do
       begin
-        Position := IfThen(Position > DotStep, Position-DotStep, 0);
-        MapOffset.Y := -Round(Position/16) * 16;
+        if Key = Ord('W') then
+        begin
+          Position := IfThen(Position > DotStep, Position-DotStep, 0);
+          MapOffset.Y := -Round(Position/16) * 16;
+        end;
+
+        if Key = Ord('S') then
+        begin
+          Position := IfThen(Position+DotStep < Max, Position+DotStep, Max);
+          MapOffset.Y := -Round(Position/16) * 16;
+        end;
       end;
 
-      if Key = Ord('S') then
+    // Горизонтальный скролл карты:
+      with sbHorizontal do
       begin
-        Position := IfThen(Position+DotStep < Max, Position+DotStep, Max);
-        MapOffset.Y := -Round(Position/16) * 16;
-      end;
-    end;
+        if Key = Ord('A') then
+        begin
+          Position := IfThen(Position > DotStep, Position-DotStep, 0);
+          MapOffset.X := -Round(Position/16) * 16;
+        end;
 
-  // Горизонтальный скролл карты:
-    with sbHorizontal do
-    begin
-      if Key = Ord('A') then
-      begin
-        Position := IfThen(Position > DotStep, Position-DotStep, 0);
-        MapOffset.X := -Round(Position/16) * 16;
-      end;
-
-      if Key = Ord('D') then
-      begin
-        Position := IfThen(Position+DotStep < Max, Position+DotStep, Max);
-        MapOffset.X := -Round(Position/16) * 16;
+        if Key = Ord('D') then
+        begin
+          Position := IfThen(Position+DotStep < Max, Position+DotStep, Max);
+          MapOffset.X := -Round(Position/16) * 16;
+        end;
       end;
     end;
   end;
