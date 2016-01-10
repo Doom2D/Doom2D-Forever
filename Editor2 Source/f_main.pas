@@ -3930,7 +3930,7 @@ begin
       SwitchLayer(LAYER_TRIGGERS);
     if Key = Ord('0') then
       tbShowClick(tbShow);
-      
+
     if Key = Ord('V') then
     begin // Поворот монстров и областей:
       if (SelectedObjects <> nil) then
@@ -3947,6 +3947,38 @@ begin
                 g_ChangeDir(gAreas[SelectedObjects[i].ID].Direction);
               end;
           end;
+    end;
+
+  // Вертикальный скролл карты:
+    with sbVertical do
+    begin
+      if Key = Ord('W') then
+      begin
+        Position := IfThen(Position > DotStep, Position-DotStep, 0);
+        MapOffset.Y := -Round(Position/16) * 16;
+      end;
+
+      if Key = Ord('S') then
+      begin
+        Position := IfThen(Position+DotStep < Max, Position+DotStep, Max);
+        MapOffset.Y := -Round(Position/16) * 16;
+      end;
+    end;
+
+  // Горизонтальный скролл карты:
+    with sbHorizontal do
+    begin
+      if Key = Ord('A') then
+      begin
+        Position := IfThen(Position > DotStep, Position-DotStep, 0);
+        MapOffset.X := -Round(Position/16) * 16;
+      end;
+
+      if Key = Ord('D') then
+      begin
+        Position := IfThen(Position+DotStep < Max, Position+DotStep, Max);
+        MapOffset.X := -Round(Position/16) * 16;
+      end;
     end;
   end;
 
@@ -3978,38 +4010,6 @@ begin
     begin
       MoveSelectedObjects(ssShift in Shift, ssCtrl in Shift, dx, dy);
       Key := 0;
-    end;
-  end;
-
-// Вертикальный скролл карты:
-  with sbVertical do
-  begin
-    if Key = Ord('W') then
-    begin
-      Position := IfThen(Position > DotStep, Position-DotStep, 0);
-      MapOffset.Y := -Round(Position/16) * 16;
-    end;
-
-    if Key = Ord('S') then
-    begin
-      Position := IfThen(Position+DotStep < Max, Position+DotStep, Max);
-      MapOffset.Y := -Round(Position/16) * 16;
-    end;
-  end;
-
-// Горизонтальный скролл карты:
-  with sbHorizontal do
-  begin
-    if Key = Ord('A') then
-    begin
-      Position := IfThen(Position > DotStep, Position-DotStep, 0);
-      MapOffset.X := -Round(Position/16) * 16;
-    end;
-
-    if Key = Ord('D') then
-    begin
-      Position := IfThen(Position+DotStep < Max, Position+DotStep, Max);
-      MapOffset.X := -Round(Position/16) * 16;
     end;
   end;
 end;

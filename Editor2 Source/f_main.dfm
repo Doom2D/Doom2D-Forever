@@ -656,7 +656,7 @@ object MainForm: TMainForm
       OnClick = tbShowClick
     end
     object tbLine3: TToolButton
-      Left = 217
+      Left = 215
       Top = 0
       Width = 8
       Caption = 'tbLine3'
@@ -664,7 +664,7 @@ object MainForm: TMainForm
       Style = tbsSeparator
     end
     object tbGridOn: TToolButton
-      Left = 225
+      Left = 223
       Top = 0
       Hint = #1042#1082#1083#1102#1095#1080#1090#1100'/'#1054#1090#1082#1083#1102#1095#1080#1090#1100' '#1086#1090#1086#1073#1088#1072#1078#1077#1085#1080#1077' '#1089#1077#1090#1082#1080
       Caption = 'tbGridOn'
@@ -672,7 +672,7 @@ object MainForm: TMainForm
       OnClick = tbGridOnClick
     end
     object tbGrid: TToolButton
-      Left = 256
+      Left = 254
       Top = 0
       Hint = #1048#1079#1084#1077#1085#1080#1090#1100' '#1096#1072#1075' '#1089#1077#1090#1082#1080
       Caption = 'tbGrid'
@@ -680,7 +680,7 @@ object MainForm: TMainForm
       OnClick = miSwitchGridClick
     end
     object tbLine4: TToolButton
-      Left = 287
+      Left = 285
       Top = 0
       Width = 8
       Caption = 'tbLine4'
@@ -688,7 +688,7 @@ object MainForm: TMainForm
       Style = tbsSeparator
     end
     object tbTestMap: TToolButton
-      Left = 295
+      Left = 293
       Top = 0
       Hint = #1058#1077#1089#1090' '#1082#1072#1088#1090#1099' '#1074' '#1080#1075#1088#1077
       Caption = 'tbTestMap'
