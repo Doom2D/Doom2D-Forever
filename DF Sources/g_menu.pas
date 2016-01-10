@@ -537,7 +537,7 @@ var
 begin
   with TGUIMenu(g_ActiveWindow.GetControl('mCampaignMenu')) do
   begin
-    WAD := TGUIFileListBox(GetControl('lsWAD')).SelectedItem();
+    WAD := ExtractRelativePath(MapsDir, TGUIFileListBox(GetControl('lsWAD')).SelectedItem());
     TwoPlayers := TGUISwitch(GetControl('swPlayers')).ItemIndex = 1;
   end;
 
