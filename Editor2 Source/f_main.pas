@@ -3175,8 +3175,8 @@ begin
             SELECTFLAG_DOOR:
             // Дверь:
               begin
-                IDArray := ObjectInRect(MousePos.X-MapOffset.X,
-                                        MousePos.Y-MapOffset.Y,
+                IDArray := ObjectInRect(X-MapOffset.X,
+                                        Y-MapOffset.Y,
                                         2, 2, OBJECT_PANEL, True);
                 if IDArray <> nil then
                   begin
@@ -3197,8 +3197,8 @@ begin
             SELECTFLAG_TEXTURE:
             // Панель с текстурой:
               begin
-                IDArray := ObjectInRect(MousePos.X-MapOffset.X,
-                             MousePos.Y-MapOffset.Y,
+                IDArray := ObjectInRect(X-MapOffset.X,
+                                        Y-MapOffset.Y,
                              2, 2, OBJECT_PANEL, True);
                 if IDArray <> nil then
                   begin
@@ -3224,8 +3224,8 @@ begin
             SELECTFLAG_LIFT:
             // Лифт:
               begin
-                IDArray := ObjectInRect(MousePos.X-MapOffset.X,
-                                        MousePos.Y-MapOffset.Y,
+                IDArray := ObjectInRect(X-MapOffset.X,
+                                        Y-MapOffset.Y,
                                         2, 2, OBJECT_PANEL, True);
                 if IDArray <> nil then
                   begin
@@ -3248,8 +3248,8 @@ begin
             SELECTFLAG_MONSTER:
             // Монстра:
               begin
-                IDArray := ObjectInRect(MousePos.X-MapOffset.X,
-                                        MousePos.Y-MapOffset.Y,
+                IDArray := ObjectInRect(X-MapOffset.X,
+                                        Y-MapOffset.Y,
                                         2, 2, OBJECT_MONSTER, False);
                 if IDArray <> nil then
                   gTriggers[SelectedObjects[
@@ -3264,8 +3264,8 @@ begin
               with gTriggers[SelectedObjects[GetFirstSelected()].ID] do
                 if TriggerType = TRIGGER_SHOT then
                   begin
-                    IDArray := ObjectInRect(MousePos.X-MapOffset.X,
-                                            MousePos.Y-MapOffset.Y,
+                    IDArray := ObjectInRect(X-MapOffset.X,
+                                            Y-MapOffset.Y,
                                             2, 2, OBJECT_PANEL, True);
                     if IDArray <> nil then
                       begin
@@ -3345,8 +3345,8 @@ begin
 
                 // Перемещаем панель или триггер:
                   if ObjectCollide(ObjectType, ID,
-                       MousePos.X-MapOffset.X-1,
-                       MousePos.Y-MapOffset.Y-1, 2, 2) then
+                       X-MapOffset.X-1,
+                       Y-MapOffset.Y-1, 2, 2) then
                   begin
                     MouseAction := MOUSEACTION_MOVEOBJ;
                     LastMovePoint := MousePos;
