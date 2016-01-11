@@ -2895,11 +2895,9 @@ begin
     if srv and (OldLR = LMS_RESPAWN_NONE) and (gLMSRespawn > LMS_RESPAWN_NONE) then
     begin
       if NetMode = NET_SERVER then
-        MH_SEND_Chat(IntToStr((gLMSRespawnTime - gTime) div 1000) +
-                     _lc[I_PLAYER_SPECT5], NET_CHAT_SYSTEM)
+        MH_SEND_Chat(Format(_lc[I_MSG_WARMUP_START], [(gLMSRespawnTime - gTime) div 1000]), NET_CHAT_SYSTEM)
       else
-        g_Console_Add(IntToStr((gLMSRespawnTime - gTime) div 1000) +
-                      _lc[I_PLAYER_SPECT5], True);
+        g_Console_Add(Format(_lc[I_MSG_WARMUP_START], [(gLMSRespawnTime - gTime) div 1000]), True);
     end;
   end;
 

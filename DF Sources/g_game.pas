@@ -1808,7 +1808,7 @@ begin
 
   if gStatsOff then
   begin
-    s1 := _lc[I_MENU_INTER7];
+    s1 := _lc[I_MENU_INTER_NOTICE_TAB];
     w := (Length(s1) * ww2) div 2;
     x := gScreenWidth div 2 - w;
     y := 8;
@@ -1819,27 +1819,28 @@ begin
   if (gGameSettings.GameMode = GM_COOP) then
   begin
     if gMissionFailed then
-      topstr := _lc[I_MENU_INTER0]
+      topstr := _lc[I_MENU_INTER_MISSION_FAIL]
     else
-      topstr := _lc[I_MENU_INTER2];
+      topstr := _lc[I_MENU_INTER_LEVEL_COMPLETE];
   end
-  else topstr := _lc[I_MENU_INTER1];
+  else
+    topstr := _lc[I_MENU_INTER_ROUND_OVER];
 
   e_CharFont_GetSize(gMenuFont, topstr, ww1, hh1);
   e_CharFont_Print(gMenuFont, (gScreenWidth div 2)-(ww1 div 2), 16, topstr);
 
   if g_Game_IsNet then
   begin
-    topstr := Format(_lc[I_MENU_INTER_TIME], [gServInterTime]);
+    topstr := Format(_lc[I_MENU_INTER_NOTICE_TIME], [gServInterTime]);
     if not gChatShow then
       e_TextureFontPrintEx((gScreenWidth div 2)-(Length(topstr)*ww2 div 2),
                            gScreenHeight-(hh2+4)*2, topstr, gStdFont, 255, 255, 255, 1);
   end;
 
   if g_Game_IsClient then
-    topstr := _lc[I_MENU_INTER8]
+    topstr := _lc[I_MENU_INTER_NOTICE_MAP]
   else
-    topstr := _lc[I_MENU_INTER9];
+    topstr := _lc[I_MENU_INTER_NOTICE_SPACE];
   if not gChatShow then
     e_TextureFontPrintEx((gScreenWidth div 2)-(Length(topstr)*ww2 div 2),
                          gScreenHeight-(hh2+4), topstr, gStdFont, 255, 255, 255, 1);
@@ -2030,7 +2031,7 @@ var
     s1 := Format(' %d ', [SingleStat.PlayerStat[n].Kills]);
     s2 := Format(' %d', [gTotalMonsters]);
 
-    e_CharFont_Print(gMenuFont, key_x, y, _lc[I_MENU_INTER4]);
+    e_CharFont_Print(gMenuFont, key_x, y, _lc[I_MENU_INTER_KILLS]);
     e_CharFont_PrintEx(gMenuFont, val_x, y, s1, _RGB(255, 0, 0));
     e_CharFont_GetSize(gMenuFont, s1, w1, h);
     e_CharFont_Print(gMenuFont, val_x+w1, y, '/');
@@ -2039,7 +2040,7 @@ var
     e_CharFont_PrintEx(gMenuFont, val_x+w1, y, s2, _RGB(255, 0, 0));
 
   // "Kills-per-minute: ##.#":
-    s1 := _lc[I_MENU_INTER5];
+    s1 := _lc[I_MENU_INTER_KPM];
     if tm > 0 then
       kpm := (SingleStat.PlayerStat[n].Kills / tm) * 60
     else
@@ -2053,7 +2054,7 @@ var
     s1 := Format(' %d ', [SingleStat.PlayerStat[n].Secrets]);
     s2 := Format(' %d', [SingleStat.TotalSecrets]);
 
-    e_CharFont_Print(gMenuFont, key_x, y+64, _lc[I_MENU_INTER6]);
+    e_CharFont_Print(gMenuFont, key_x, y+64, _lc[I_MENU_INTER_SECRETS]);
     e_CharFont_PrintEx(gMenuFont, val_x, y+64, s1, _RGB(255, 0, 0));
     e_CharFont_GetSize(gMenuFont, s1, w1, h);
     e_CharFont_Print(gMenuFont, val_x+w1, y+64, '/');
@@ -2064,11 +2065,11 @@ var
 
 begin
 // "Level Complete":
-  e_CharFont_GetSize(gMenuFont, _lc[I_MENU_INTER2], w1, h);
-  e_CharFont_Print(gMenuFont, (gScreenWidth-w1) div 2, 32, _lc[I_MENU_INTER2]);
+  e_CharFont_GetSize(gMenuFont, _lc[I_MENU_INTER_LEVEL_COMPLETE], w1, h);
+  e_CharFont_Print(gMenuFont, (gScreenWidth-w1) div 2, 32, _lc[I_MENU_INTER_LEVEL_COMPLETE]);
 
 // Определяем координаты выравнивания по самой длинной строке:
-  s1 := _lc[I_MENU_INTER5];
+  s1 := _lc[I_MENU_INTER_KPM];
   e_CharFont_GetSize(gMenuFont, s1, w1, h);
   Inc(w1, 16);
   s1 := ' 9999.9';
@@ -2079,7 +2080,7 @@ begin
 
 // "Time: #:##:##":
   tm := SingleStat.GameTime div 1000;
-  s1 := _lc[I_MENU_INTER3];
+  s1 := _lc[I_MENU_INTER_TIME];
   s2 := Format(' %d:%.2d:%.2d', [tm div (60*60), (tm mod (60*60)) div 60, tm mod 60]);
 
   e_CharFont_Print(gMenuFont, key_x, 80, s1);
@@ -3678,11 +3679,9 @@ begin
     gLMSRespawnTime := gTime + gGameSettings.WarmupTime*1000;
     gLMSSoftSpawn := True;
     if NetMode = NET_SERVER then
-      MH_SEND_Chat(IntToStr((gLMSRespawnTime - gTime) div 1000) +
-                   _lc[I_PLAYER_SPECT5], NET_CHAT_SYSTEM)
+      MH_SEND_Chat(Format(_lc[I_MSG_WARMUP_START], [(gLMSRespawnTime - gTime) div 1000]), NET_CHAT_SYSTEM)
     else
-      g_Console_Add(IntToStr((gLMSRespawnTime - gTime) div 1000) +
-                    _lc[I_PLAYER_SPECT5], True);
+      g_Console_Add(Format(_lc[I_MSG_WARMUP_START], [(gLMSRespawnTime - gTime) div 1000]), True);
   end;
 
   if NetMode = NET_SERVER then

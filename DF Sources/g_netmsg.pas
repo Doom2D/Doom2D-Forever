@@ -697,8 +697,7 @@ begin
   if CreatePlayers and (ID >= 0) then NetClients[ID].State := NET_STATE_GAME;
 
   if gLMSRespawn > LMS_RESPAWN_NONE then
-    MH_SEND_Chat(IntToStr((gLMSRespawnTime - gTime) div 1000) +
-                 _lc[I_PLAYER_SPECT5], NET_CHAT_SYSTEM, ID);
+    MH_SEND_Chat(Format(_lc[I_MSG_WARMUP_START], [(gLMSRespawnTime - gTime) div 1000]), NET_CHAT_SYSTEM, ID);
 end;
 
 procedure MH_SEND_Info(ID: Byte);
