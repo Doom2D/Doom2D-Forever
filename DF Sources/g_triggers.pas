@@ -572,7 +572,7 @@ begin
     Exit;
   if (Trigger.TimeOut <> 0) and (actType <> ACTIVATE_CUSTOM) then
     Exit;
-  if gLMSRespawn then
+  if gLMSRespawn = LMS_RESPAWN_WARMUP then
     Exit;
 
   animonce := False;
@@ -713,7 +713,7 @@ begin
         begin
           Enabled := False;
           Result := True;
-          if not gLMSRespawn then
+          if gLMSRespawn = LMS_RESPAWN_NONE then
           begin
             g_Player_Get(ActivateUID).GetSecret();
             Inc(gCoopSecretsFound);

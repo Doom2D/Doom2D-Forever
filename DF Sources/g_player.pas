@@ -2567,7 +2567,8 @@ var
   mon: TMonster;
   plr: TPlayer;
   srv, netsrv: Boolean;
-  DoFrags, OldLR: Boolean;
+  DoFrags: Boolean;
+  OldLR: Byte;
   KP: TPlayer;
 
   procedure PushItem(t: Byte);
@@ -2605,7 +2606,7 @@ begin
   end;
   FShellTimer := -1;
 
-  if (gGameSettings.MaxLives > 0) and Srv and (not gLMSRespawn) then
+  if (gGameSettings.MaxLives > 0) and Srv and (gLMSRespawn = LMS_RESPAWN_NONE) then
   begin
     if FLives > 0 then FLives := FLives - 1;
     if FLives = 0 then FNoRespawn := True;
@@ -2798,7 +2799,8 @@ begin
 
   g_Player_CreateCorpse(Self);
 
-  if Srv and (gGameSettings.MaxLives > 0) and FNoRespawn and (not gLMSRespawn) then
+  if Srv and (gGameSettings.MaxLives > 0) and FNoRespawn and
+     (gLMSRespawn = LMS_RESPAWN_NONE) then
   begin
     a := 0;
     k := 0;
@@ -2824,7 +2826,7 @@ begin
         // everyone is dead, restart the map
         g_Game_Message(_lc[I_MESSAGE_LMS_LOSE], 144);
         if Netsrv then MH_SEND_GameEvent(NET_EV_LMS_LOSE, 'N');
-        gLMSRespawn := True;
+        gLMSRespawn := LMS_RESPAWN_FINAL;
         gLMSRespawnTime := gTime + 5000;
       end
       else if (a = 1) then
@@ -2845,7 +2847,7 @@ begin
         g_Game_Message(Format(_lc[I_MESSAGE_TLMS_WIN], [AnsiUpperCase(_lc[I_GAME_TEAM_RED])]), 144);
         if Netsrv then MH_SEND_GameEvent(NET_EV_TLMS_WIN, 'r');
         Inc(gTeamStat[TEAM_RED].Goals);
-        gLMSRespawn := True;
+        gLMSRespawn := LMS_RESPAWN_FINAL;
         gLMSRespawnTime := gTime + 5000;
       end
       else if (ar = 0) and (ab <> 0) then
@@ -2854,7 +2856,7 @@ begin
         g_Game_Message(Format(_lc[I_MESSAGE_TLMS_WIN], [AnsiUpperCase(_lc[I_GAME_TEAM_BLUE])]), 144);
         if Netsrv then MH_SEND_GameEvent(NET_EV_TLMS_WIN, 'b');
         Inc(gTeamStat[TEAM_BLUE].Goals);
-        gLMSRespawn := True;
+        gLMSRespawn := LMS_RESPAWN_FINAL;
         gLMSRespawnTime := gTime + 5000;
       end
       else if (ar = 0) and (ab = 0) then
@@ -2862,7 +2864,7 @@ begin
         // everyone ded
         g_Game_Message(_lc[I_GAME_WIN_DRAW], 144);
         if Netsrv then MH_SEND_GameEvent(NET_EV_LMS_DRAW, FName);
-        gLMSRespawn := True;
+        gLMSRespawn := LMS_RESPAWN_FINAL;
         gLMSRespawnTime := gTime + 5000;
       end;
     end
@@ -2878,7 +2880,7 @@ begin
             if Netsrv then MH_SEND_GameEvent(NET_EV_LMS_WIN, FName);
             Inc(FFrags);
           end;
-        gLMSRespawn := True;
+        gLMSRespawn := LMS_RESPAWN_FINAL;
         gLMSRespawnTime := gTime + 5000;
       end
       else if (a = 0) then
@@ -2886,11 +2888,11 @@ begin
         // everyone is dead, restart the map
         g_Game_Message(_lc[I_GAME_WIN_DRAW], 144);
         if Netsrv then MH_SEND_GameEvent(NET_EV_LMS_DRAW, FName);
-        gLMSRespawn := True;
+        gLMSRespawn := LMS_RESPAWN_FINAL;
         gLMSRespawnTime := gTime + 5000;
       end;
     end;
-    if srv and not OldLR and gLMSRespawn then
+    if srv and (OldLR = LMS_RESPAWN_NONE) and (gLMSRespawn > LMS_RESPAWN_NONE) then
     begin
       if NetMode = NET_SERVER then
         MH_SEND_Chat(IntToStr((gLMSRespawnTime - gTime) div 1000) +

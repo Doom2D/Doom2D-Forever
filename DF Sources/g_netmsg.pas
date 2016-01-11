@@ -368,7 +368,7 @@ begin
     Name := PName;
     FClientID := C^.ID;
     // round in progress, don't spawn
-    if (gGameSettings.MaxLives > 0) and (not gLMSRespawn) then
+    if (gGameSettings.MaxLives > 0) and (gLMSRespawn = LMS_RESPAWN_NONE) then
     begin
       Lives := 0;
       FNoRespawn := True;
@@ -696,7 +696,7 @@ begin
 
   if CreatePlayers and (ID >= 0) then NetClients[ID].State := NET_STATE_GAME;
 
-  if gLMSRespawn then
+  if gLMSRespawn > LMS_RESPAWN_NONE then
     MH_SEND_Chat(IntToStr((gLMSRespawnTime - gTime) div 1000) +
                  _lc[I_PLAYER_SPECT5], NET_CHAT_SYSTEM, ID);
 end;

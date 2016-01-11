@@ -1656,14 +1656,14 @@ begin
         if (g_GetUIDType(SpawnerUID) = UID_PLAYER) then
         begin
           p := g_Player_Get(SpawnerUID);
-          if (p <> nil) and not gLMSRespawn then
+          if (p <> nil) and (gLMSRespawn = LMS_RESPAWN_NONE) then
           begin
             p.MonsterKills := p.MonsterKills+1;
             if gGameSettings.GameMode = GM_COOP then
               p.Frags := p.Frags + 1;
           end;
         end;
-        if not gLMSRespawn then
+        if gLMSRespawn = LMS_RESPAWN_NONE then
         begin
           Inc(gCoopMonstersKilled);
           if g_Game_IsNet then MH_SEND_GameStats;

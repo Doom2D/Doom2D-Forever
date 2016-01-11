@@ -146,6 +146,10 @@ const
   STATE_ENDPIC      = 7;
   STATE_SLIST       = 8;
 
+  LMS_RESPAWN_NONE   = 0;
+  LMS_RESPAWN_WARMUP = 1;
+  LMS_RESPAWN_FINAL  = 2;
+
   SPECT_NONE    = 0;
   SPECT_STATS   = 1;
   SPECT_MAPVIEW = 2;
@@ -234,7 +238,7 @@ var
   gStatsPressed: Boolean = False;
   gExitByTrigger: Boolean = False;
   gNextMap: String = '';
-  gLMSRespawn: Boolean = False;
+  gLMSRespawn: Byte = LMS_RESPAWN_NONE;
   gLMSRespawnTime: Cardinal = 0;
   gLMSSoftSpawn: Boolean = False;
   gMissionFailed: Boolean = False;
@@ -621,7 +625,7 @@ begin
   EndingGameCounter := 0;
   g_ActiveWindow := nil;
 
-  gLMSRespawn := False;
+  gLMSRespawn := LMS_RESPAWN_NONE;
   gLMSRespawnTime := 0;
 
   case gExit of
@@ -1311,7 +1315,7 @@ begin
         end;
 
     // Надо респавнить игроков в LMS:
-      if gLMSRespawn and (gLMSRespawnTime < gTime) then
+      if (gLMSRespawn > LMS_RESPAWN_NONE) and (gLMSRespawnTime < gTime) then
         g_Game_RestartRound(gLMSSoftSpawn);
 
     // Проверим результат голосования, если время прошло
@@ -3537,7 +3541,7 @@ begin
     Exit;
   end;
 
-  gLMSRespawn := False;
+  gLMSRespawn := LMS_RESPAWN_NONE;
   gLMSRespawnTime := 0;
 
   g_Player_Init();
@@ -3649,7 +3653,7 @@ begin
   NetTimeToUpdate := 1;
   NetTimeToReliable := 0;
   NetTimeToMaster := NetMasterRate;
-  gLMSRespawn := False;
+  gLMSRespawn := LMS_RESPAWN_NONE;
   gLMSRespawnTime := 0;
   gMissionFailed := False;
   gNextMap := '';
@@ -3670,7 +3674,7 @@ begin
 
   if (gGameSettings.MaxLives > 0) and (gGameSettings.WarmupTime > 0) then
   begin
-    gLMSRespawn := True;
+    gLMSRespawn := LMS_RESPAWN_WARMUP;
     gLMSRespawnTime := gTime + gGameSettings.WarmupTime*1000;
     gLMSSoftSpawn := True;
     if NetMode = NET_SERVER then
@@ -3818,8 +3822,8 @@ var
   i, n, nb, nr: Integer;
 begin
   if not g_Game_IsServer then Exit;
-  if not gLMSRespawn then Exit;
-  gLMSRespawn := False;
+  if gLMSRespawn = LMS_RESPAWN_NONE then Exit;
+  gLMSRespawn := LMS_RESPAWN_NONE;
   gLMSRespawnTime := 0;
   MessageTime := 0;
 
@@ -3844,7 +3848,7 @@ begin
   if (n < 2) or ((gGameSettings.GameMode = GM_TDM) and ((nr = 0) or (nb = 0))) then
   begin
     // wait a second until the fuckers finally decide to join
-    gLMSRespawn := True;
+    gLMSRespawn := LMS_RESPAWN_WARMUP;
     gLMSRespawnTime := gTime + 1000;
     gLMSSoftSpawn := NoMapRestart;
     Exit;
@@ -5485,7 +5489,7 @@ begin
     end
     else if cmd = 'ready' then
     begin
-      if g_Game_IsServer and gLMSRespawn then
+      if g_Game_IsServer and (gLMSRespawn = LMS_RESPAWN_WARMUP) then
         gLMSRespawnTime := gTime + 100;
     end
     else if (cmd = 'callvote') and g_Game_IsNet then
