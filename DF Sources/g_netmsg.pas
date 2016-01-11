@@ -900,7 +900,6 @@ begin
   e_Buffer_Write(@NetOut, EvType);
   e_Buffer_Write(@NetOut, EvNum);
   e_Buffer_Write(@NetOut, EvStr);
-  e_Buffer_Write(@NetOut, gGameSettings.GameMode);
   e_Buffer_Write(@NetOut, Byte(gLastMap));
   e_Buffer_Write(@NetOut, gTime);
   if (EvType = NET_EV_MAPSTART) and (Pos(':\', EvStr) > 0) then
@@ -1603,8 +1602,6 @@ begin
   EvType := e_Raw_Read_Byte(P);
   EvNum := e_Raw_Read_LongInt(P);
   EvStr := e_Raw_Read_String(P);
-  gSwitchGameMode := e_Raw_Read_Byte(P);
-  gGameSettings.GameMode := gSwitchGameMode;
   gLastMap := e_Raw_Read_Byte(P) <> 0;
   if gLastMap and (gGameSettings.GameMode = GM_COOP) then gStatsOff := True;
   gStatsPressed := True;
@@ -1621,6 +1618,9 @@ begin
       gGameOn := False;
       g_Game_ClearLoading();
       g_Game_StopAllSounds(True);
+
+      gSwitchGameMode := Byte(EvNum);
+      gGameSettings.GameMode := gSwitchGameMode;
 
       gWADHash := EvHash;
       if not g_Game_StartMap(EvStr, True) then

@@ -3681,7 +3681,7 @@ begin
 
   if NetMode = NET_SERVER then
   begin
-    MH_SEND_GameEvent(NET_EV_MAPSTART, 0, Map);
+    MH_SEND_GameEvent(NET_EV_MAPSTART, gGameSettings.GameMode, Map);
 
   // Мастерсервер
     if NetUseMaster then
