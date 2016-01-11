@@ -1362,6 +1362,11 @@ begin
                   EditStyle := esSimple;
                   MaxLength := 100;
                 end;
+                with ItemProps[InsertRow(_lc[I_PROP_TR_MESSAGE_TIME], IntToStr(Data.MessageTime), True)-1] do
+                begin
+                  EditStyle := esSimple;
+                  MaxLength := 5;
+                end;
               end;
 
             TRIGGER_DAMAGE:
@@ -3579,8 +3584,9 @@ begin
                   TRIGGER_MESSAGE:
                     begin
                       trigger.Data.MessageKind := 0;
-                      trigger.Data.MessageText := '';
                       trigger.Data.MessageSendTo := 0;
+                      trigger.Data.MessageText := '';
+                      trigger.Data.MessageTime := 144;
                     end;
 
                   TRIGGER_DAMAGE:
@@ -4617,6 +4623,9 @@ begin
                 ZeroMemory(@Data.MessageText[0], 100);
                 if s <> '' then
                   CopyMemory(@Data.MessageText[0], @s[1], Min(Length(s), 100));
+
+                Data.MessageTime := Min(Max(
+                  StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_MESSAGE_TIME]], 0), 0), 65535);
               end;
 
             TRIGGER_DAMAGE:

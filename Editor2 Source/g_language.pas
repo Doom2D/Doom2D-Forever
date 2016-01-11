@@ -253,6 +253,7 @@ Type
     I_PROP_TR_MESSAGE_TO_4,
     I_PROP_TR_MESSAGE_TO_5,
     I_PROP_TR_MESSAGE_TEXT,
+    I_PROP_TR_MESSAGE_TIME,
 
     I_MSG_ERROR,
     I_MSG_WRONG_TEXWIDTH,
@@ -1086,6 +1087,8 @@ Const
                                        'Все игроки'),
     ('PROP TR MESSAGE TEXT',           'Message text',
                                        'Текст сообщения'),
+    ('PROP TR MESSAGE TIME',           'Time (in ticks)',
+                                       'Время показа (в тиках)'),
 
     ('MSG ERROR',                      'Error',
                                        'Ошибка'),
