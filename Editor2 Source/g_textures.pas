@@ -96,24 +96,26 @@ function g_CreateTextureMemorySize(pData: Pointer; Name: ShortString; X, Y,
 var
   find_id: DWORD;
 begin
- Result := False;
+  Result := False;
+  if pData = nil then
+    Exit;
 
- find_id := FindTexture;
+  find_id := FindTexture;
 
- if not e_CreateTextureMemEx(pData, TexturesArray[find_id].ID, X, Y, Width, Height) then
- begin
+  if not e_CreateTextureMemEx(pData, TexturesArray[find_id].ID, X, Y, Width, Height) then
+  begin
+    FreeMem(pData);
+    Exit;
+  end;
+
+  TexturesArray[find_id].Width := Width;
+  TexturesArray[find_id].Height := Height;
+  TexturesArray[find_id].Name := Name;
+  TexturesArray[find_id].flag := flag;
+
   FreeMem(pData);
-  Exit;
- end;
 
- TexturesArray[find_id].Width := Width;
- TexturesArray[find_id].Height := Height;
- TexturesArray[find_id].Name := Name;
- TexturesArray[find_id].flag := flag;
-
- FreeMem(pData);
-
- Result := True;
+  Result := True;
 end;
 
 function g_CreateTextureWAD(TextureName: ShortString; Resource: string; flag: Byte = 0): Boolean;
