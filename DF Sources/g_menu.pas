@@ -370,8 +370,6 @@ begin
     if gcMonsters then
       Options := Options or GAME_OPTION_MONSTERS;
     gcPlayers := TGUISwitch(GetControl('swPlayers')).ItemIndex;
-    if gcPlayers = 2 then
-      Options := Options or GAME_OPTION_TWOPLAYER;
 
     case TGUISwitch(GetControl('swBotsVS')).ItemIndex of
       1: begin
@@ -433,8 +431,6 @@ begin
     if gnMonsters then
       Options := Options or GAME_OPTION_MONSTERS;
     gnPlayers := TGUISwitch(GetControl('swPlayers')).ItemIndex;
-    if gnPlayers = 2 then
-      Options := Options or GAME_OPTION_TWOPLAYER;
 
     case TGUISwitch(GetControl('swBotsVS')).ItemIndex of
       1: begin

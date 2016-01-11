@@ -23,8 +23,9 @@ const
   SAVE_SIGNATURE = $56534644; // 'DFSV'
   SAVE_VERSION = $02;
   END_MARKER_STRING = 'END';
+  PLAYER_VIEW_SIGNATURE = $57564C50; // 'PLVW'
   OBJ_SIGNATURE = $4A424F5F; // '_OBJ'
-  
+
 procedure Obj_SaveState(o: PObj; var Mem: TBinMemoryWriter);
 var
   sig: DWORD;
@@ -126,9 +127,11 @@ function g_SaveGame(n: Integer; Name: String): Boolean;
 var
   bFile: TBinFileWriter;
   bMem: TBinMemoryWriter;
+  sig: DWORD;
   str: String;
   nPlayers: Byte;
   i, k: Integer;
+  PID1, PID2: Word;
 begin
   Result := False;
   bMem := nil;
@@ -180,6 +183,23 @@ begin
     bMem := nil;
   ///// /////
 
+  ///// Сохраняем состояние областей просмотра: /////
+    bMem := TBinMemoryWriter.Create(8);
+    sig := PLAYER_VIEW_SIGNATURE;
+    bMem.WriteDWORD(sig); // 'PLVW'
+    PID1 := 0;
+    PID2 := 0;
+    if gPlayer1 <> nil then
+      PID1 := gPlayer1.UID;
+    if gPlayer2 <> nil then
+      PID2 := gPlayer2.UID;
+    bMem.WriteWord(PID1);
+    bMem.WriteWord(PID2);
+    bFile.WriteMemory(bMem);
+    bMem.Free();
+    bMem := nil;
+  ///// /////
+
   ///// Получаем состояние карты: /////
     g_Map_SaveState(bMem);
   // Сохраняем состояние карты:
@@ -203,7 +223,7 @@ begin
     bMem.Free();
     bMem := nil;
   ///// /////
-  
+
   ///// Получаем состояние оружия: /////
     g_Weapon_SaveState(bMem);
   // Сохраняем состояние оружия:
@@ -243,7 +263,7 @@ begin
           bMem := nil;
           Inc(k);
         end;
-        
+
     // Все ли игроки на месте:
       if k <> nPlayers then
       begin
@@ -288,6 +308,7 @@ function g_LoadGame(n: Integer): Boolean;
 var
   bFile: TBinFileReader;
   bMem: TBinMemoryReader;
+  sig: DWORD;
   str, WAD_Path, Map_Name: String;
   nPlayers, Game_Type, Game_Mode, Game_MaxLives: Byte;
   Game_TimeLimit, Game_GoalLimit: Word;
@@ -297,7 +318,8 @@ var
   Game_CoopTotalMonstersKilled,
   Game_CoopTotalSecretsFound,
   Game_CoopTotalMonsters,
-  Game_CoopTotalSecrets: Word;
+  Game_CoopTotalSecrets,
+  PID1, PID2: Word;
   i: Integer;
 begin
   Result := False;
@@ -354,11 +376,25 @@ begin
     bMem.Free();
     bMem := nil;
   ///// /////
-  
+
+  ///// Загружаем состояние областей просмотра: /////
+    bMem := TBinMemoryReader.Create();
+    bFile.ReadMemory(bMem);
+    bMem.ReadDWORD(sig);
+    if sig <> PLAYER_VIEW_SIGNATURE then // 'PLVW'
+    begin
+      raise EInOutError.Create('g_LoadGame: Wrong Player View Signature');
+    end;
+    bMem.ReadWord(PID1);
+    bMem.ReadWord(PID2);
+    bMem.Free();
+    bMem := nil;
+  ///// /////
+
   // Загружаем карту:
     if (Game_Type = GT_NONE) or (Game_Type = GT_SINGLE) then
       g_Game_StartSingle(WAD_Path + ':\' + Map_Name,
-                         LongBool(Game_Options and GAME_OPTION_TWOPLAYER),
+                         (PID1 > 0) and (PID2 > 0),
                          nPlayers)
     else
       g_Game_StartCustom(WAD_Path + ':\' + Map_Name,
@@ -437,7 +473,7 @@ begin
       begin
         raise EInOutError.Create('g_LoadGame: No Players');
       end;
-      
+
     // Загружаем:
       for i := 0 to nPlayers-1 do
       begin
@@ -450,6 +486,11 @@ begin
           raise EInOutError.Create('g_LoadGame: Nil Player');
         end;
         gPlayers[i].LoadState(bMem);
+      // Привязываем игроков к областям просмотра:
+        if gPlayers[i].UID = PID1 then
+          gPlayer1 := gPlayers[i]
+        else if gPlayers[i].UID = PID2 then
+          gPlayer2 := gPlayers[i];
         bMem.Free();
         bMem := nil;
       end;

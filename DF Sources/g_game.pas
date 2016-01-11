@@ -128,7 +128,7 @@ const
   EXIT_ENDLEVELSINGLE  = 4;
   EXIT_ENDLEVELCUSTOM  = 5;
 
-  GAME_OPTION_TWOPLAYER    = 1;
+  GAME_OPTION_RESERVED     = 1;
   GAME_OPTION_TEAMDAMAGE   = 2;
   GAME_OPTION_ALLOWEXIT    = 4;
   GAME_OPTION_WEAPONSTAY   = 8;
@@ -3107,8 +3107,6 @@ begin
   gShowMap := False;
   gGameSettings.GameType := GT_SINGLE;
   gGameSettings.MaxLives := 0;
-  if TwoPlayers then
-    gGameSettings.Options := GAME_OPTION_TWOPLAYER;
   gGameSettings.Options := gGameSettings.Options + GAME_OPTION_ALLOWEXIT;
   gGameSettings.Options := gGameSettings.Options + GAME_OPTION_MONSTERS;
   gGameSettings.Options := gGameSettings.Options + GAME_OPTION_BOTVSMONSTER;
@@ -3238,7 +3236,6 @@ begin
       Exit;
     end;
 
-    gGameSettings.Options := gGameSettings.Options or GAME_OPTION_TWOPLAYER;
     gPlayer2.Name := gPlayer2Settings.Name;
     Inc(nPl);
   end;
@@ -3338,7 +3335,6 @@ begin
       Exit;
     end;
 
-    gGameSettings.Options := gGameSettings.Options or GAME_OPTION_TWOPLAYER;
     gPlayer2.Name := gPlayer2Settings.Name;
   end;
 
@@ -6005,8 +6001,6 @@ begin
       n := 1
     else
       n := StrToIntDef(s, 1);
-    if n >= 2 then
-      gGameSettings.Options := gGameSettings.Options or GAME_OPTION_TWOPLAYER;
 
   // Start:
     s := Find_Param_Value(pars, '-port');

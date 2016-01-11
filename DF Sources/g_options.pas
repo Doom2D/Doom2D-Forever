@@ -342,8 +342,6 @@ begin
       Options := Options or GAME_OPTION_WEAPONSTAY;
     if gcMonsters then
       Options := Options or GAME_OPTION_MONSTERS;
-    if gcPlayers = 2 then
-      Options := Options or GAME_OPTION_TWOPLAYER;
     if gcBotsVS = 'Everybody' then
       Options := Options or GAME_OPTION_BOTVSPLAYER or GAME_OPTION_BOTVSMONSTER;
     if gcBotsVS = 'Players' then
