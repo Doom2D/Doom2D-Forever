@@ -2901,7 +2901,7 @@ begin
     if srv and (OldLR = LMS_RESPAWN_NONE) and (gLMSRespawn > LMS_RESPAWN_NONE) then
     begin
       if NetMode = NET_SERVER then
-        MH_SEND_GameEvent(NET_EV_PLAYER_KICK, (gLMSRespawnTime - gTime) div 1000)
+        MH_SEND_GameEvent(NET_EV_LMS_WARMUP, (gLMSRespawnTime - gTime) div 1000)
       else
         g_Console_Add(Format(_lc[I_MSG_WARMUP_START], [(gLMSRespawnTime - gTime) div 1000]), True);
     end;
