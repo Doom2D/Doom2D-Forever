@@ -38,6 +38,7 @@ type
     ShotPanelType:    Word;
     ShotPanelTime:    Integer;
     ShotSightTime:    Integer;
+    ShotSightTimeout: Integer;
     ShotSightTarget:  Word;
     ShotSightTargetN: Word;
     ShotAmmoCount:    Word;
@@ -412,6 +413,9 @@ begin
         g_Map_SwitchTexture(ShotPanelType, Data.ShotPanelID);
         ShotPanelTime := 4; // тиков на вспышку выстрела
       end;
+
+      if Data.ShotIntSight > 0 then
+        ShotSightTimeout := 180; // ~= 5 секунд
 
       if ShotAmmoCount > 0 then Dec(ShotAmmoCount);
       Projectile := True;
@@ -1781,6 +1785,7 @@ begin
     begin
       ShotPanelTime := 0;
       ShotSightTime := 0;
+      ShotSightTimeout := 0;
       ShotSightTarget := 0;
       ShotSightTargetN := 0;
       ShotAmmoCount := Trigger.Data.ShotAmmo;
@@ -1856,6 +1861,12 @@ begin
             Dec(ShotSightTime);
             if ShotSightTime = 0 then
               ShotSightTarget := ShotSightTargetN;
+          end;
+          if ShotSightTimeout > 0 then
+          begin
+            Dec(ShotSightTimeout);
+            if ShotSightTimeout = 0 then
+              ShotSightTarget := 0;
           end;
           if ShotReloadTime > 0 then
           begin
