@@ -606,12 +606,7 @@ var
   FileName, SectionName, ResName: string;
 begin
   if g_Game_IsNet and g_Game_IsServer then
-  begin
-    if gMissionFailed then
-      MH_SEND_GameEvent(NET_EV_MAPEND, 'MF')
-    else
-      MH_SEND_GameEvent(NET_EV_MAPEND, '!');
-  end;
+    MH_SEND_GameEvent(NET_EV_MAPEND, Byte(gMissionFailed));
 
 // Стоп игра:
   gPause := False;
@@ -3679,14 +3674,14 @@ begin
     gLMSRespawnTime := gTime + gGameSettings.WarmupTime*1000;
     gLMSSoftSpawn := True;
     if NetMode = NET_SERVER then
-      MH_SEND_Chat(Format(_lc[I_MSG_WARMUP_START], [(gLMSRespawnTime - gTime) div 1000]), NET_CHAT_SYSTEM)
+      MH_SEND_GameEvent(NET_EV_LMS_WARMUP, (gLMSRespawnTime - gTime) div 1000)
     else
       g_Console_Add(Format(_lc[I_MSG_WARMUP_START], [(gLMSRespawnTime - gTime) div 1000]), True);
   end;
 
   if NetMode = NET_SERVER then
   begin
-    MH_SEND_GameEvent(NET_EV_MAPSTART, Map);
+    MH_SEND_GameEvent(NET_EV_MAPSTART, 0, Map);
 
   // Мастерсервер
     if NetUseMaster then
@@ -3856,7 +3851,7 @@ begin
   g_Player_RemoveAllCorpses;
   g_Game_Message(_lc[I_MESSAGE_LMS_START], 144);
   if g_Game_IsNet then
-    MH_SEND_GameEvent(NET_EV_LMS_START, 'N');
+    MH_SEND_GameEvent(NET_EV_LMS_START);
 
   for i := Low(gPlayers) to High(gPlayers) do
   begin
@@ -4652,7 +4647,7 @@ begin
         s := g_Net_ClientName_ByID(pl^.ID);
         enet_peer_disconnect(pl^.Peer, NET_DISC_KICK);
         g_Console_Add(Format(_lc[I_PLAYER_KICK], [s]));
-        MH_SEND_Chat(Format(_lc[I_PLAYER_KICK], [s]), NET_CHAT_SYSTEM);
+        MH_SEND_GameEvent(NET_EV_PLAYER_KICK, 0, s);
         if NetUseMaster then
           g_Net_Slist_Update;
       end else if gPlayers <> nil then
@@ -4698,7 +4693,7 @@ begin
           s := g_Net_ClientName_ByID(NetClients[a].ID);
           enet_peer_disconnect(NetClients[a].Peer, NET_DISC_KICK);
           g_Console_Add(Format(_lc[I_PLAYER_KICK], [s]));
-          MH_SEND_Chat(Format(_lc[I_PLAYER_KICK], [s]), NET_CHAT_SYSTEM);
+          MH_SEND_GameEvent(NET_EV_PLAYER_KICK, 0, s);
           if NetUseMaster then
             g_Net_Slist_Update;
         end;
@@ -4728,7 +4723,7 @@ begin
         g_Net_BanHost(pl^.Peer^.address.host, False);
         enet_peer_disconnect(pl^.Peer, NET_DISC_TEMPBAN);
         g_Console_Add(Format(_lc[I_PLAYER_BAN], [s]));
-        MH_SEND_Chat(Format(_lc[I_PLAYER_BAN], [s]), NET_CHAT_SYSTEM);
+        MH_SEND_GameEvent(NET_EV_PLAYER_BAN, 0, s);
         if NetUseMaster then
           g_Net_Slist_Update;
       end else
@@ -4759,7 +4754,7 @@ begin
           g_Net_BanHost(NetClients[a].Peer^.address.host, False);
           enet_peer_disconnect(NetClients[a].Peer, NET_DISC_TEMPBAN);
           g_Console_Add(Format(_lc[I_PLAYER_BAN], [s]));
-          MH_SEND_Chat(Format(_lc[I_PLAYER_BAN], [s]), NET_CHAT_SYSTEM);
+          MH_SEND_GameEvent(NET_EV_PLAYER_BAN, 0, s);
           if NetUseMaster then
             g_Net_Slist_Update;
         end;
@@ -4789,7 +4784,7 @@ begin
         enet_peer_disconnect(pl^.Peer, NET_DISC_BAN);
         g_Net_SaveBanList();
         g_Console_Add(Format(_lc[I_PLAYER_BAN], [s]));
-        MH_SEND_Chat(Format(_lc[I_PLAYER_BAN], [s]), NET_CHAT_SYSTEM);
+        MH_SEND_GameEvent(NET_EV_PLAYER_BAN, 0, s);
         if NetUseMaster then
           g_Net_Slist_Update;
       end else
@@ -4821,7 +4816,7 @@ begin
           enet_peer_disconnect(NetClients[a].Peer, NET_DISC_BAN);
           g_Net_SaveBanList();
           g_Console_Add(Format(_lc[I_PLAYER_BAN], [s]));
-          MH_SEND_Chat(Format(_lc[I_PLAYER_BAN], [s]), NET_CHAT_SYSTEM);
+          MH_SEND_GameEvent(NET_EV_PLAYER_BAN, 0, s);
           if NetUseMaster then
             g_Net_Slist_Update;
         end;

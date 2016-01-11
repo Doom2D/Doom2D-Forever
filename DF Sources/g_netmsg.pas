@@ -60,6 +60,10 @@ const
   NET_CHAT_PLAYER = 1;
   NET_CHAT_TEAM   = 2;
 
+  NET_RCON_NOAUTH = 0;
+  NET_RCON_PWGOOD = 1;
+  NET_RCON_PWBAD  = 2;
+
   NET_GFX_SPARK   = 1;
   NET_GFX_SPAWN   = 2;
   NET_GFX_TELE    = 3;
@@ -72,17 +76,20 @@ const
 
   NET_EV_MAPSTART     = 1;
   NET_EV_MAPEND       = 2;
-  NET_EV_LMS_LOSE     = 3;
-  NET_EV_LMS_WIN      = 4;
-  NET_EV_TLMS_WIN     = 5;
-  NET_EV_LMS_START    = 6;
-  NET_EV_LMS_DRAW     = 7;
-  NET_EV_LMS_SURVIVOR = 8;
-  NET_EV_SCORE_ADD    = 9;
-  NET_EV_SCORE_SUB    = 10;
-  NET_EV_BIGTEXT      = 11;
-  NET_EV_CHTEAM_RED   = 12;
-  NET_EV_CHTEAM_BLUE  = 13;
+  NET_EV_CHANGE_TEAM  = 3;
+  NET_EV_PLAYER_KICK  = 4;
+  NET_EV_PLAYER_BAN   = 5;
+  NET_EV_LMS_WARMUP   = 6;
+  NET_EV_LMS_SURVIVOR = 7;
+  NET_EV_RCON         = 8;
+  NET_EV_BIGTEXT      = 9;
+  NET_EV_SCORE_ADD    = 10;
+  NET_EV_SCORE_SUB    = 11;
+  NET_EV_LMS_START    = 12;
+  NET_EV_LMS_WIN      = 13;
+  NET_EV_TLMS_WIN     = 14;
+  NET_EV_LMS_LOSE     = 15;
+  NET_EV_LMS_DRAW     = 16;
 
   NET_VE_STARTED      = 1;
   NET_VE_PASSED       = 2;
@@ -126,8 +133,8 @@ procedure MH_SEND_UpdateShot(Proj: LongInt; ID: Integer = NET_EVERYONE);
 procedure MH_SEND_DeleteShot(Proj: LongInt; X, Y: LongInt; Loud: Boolean = True; ID: Integer = NET_EVERYONE);
 procedure MH_SEND_GameStats(ID: Integer = NET_EVERYONE);
 procedure MH_SEND_CoopStats(ID: Integer = NET_EVERYONE);
-procedure MH_SEND_GameEvent(EvType: Byte; EvParm: string = 'N'; ID: Integer = NET_EVERYONE);
-procedure MH_SEND_FlagEvent(Evtype: Byte; Flag: Byte; PID: Word; Quiet: Boolean = False; ID: Integer = NET_EVERYONE);
+procedure MH_SEND_GameEvent(EvType: Byte; EvNum: Integer = 0; EvStr: string = 'N'; ID: Integer = NET_EVERYONE);
+procedure MH_SEND_FlagEvent(EvType: Byte; Flag: Byte; PID: Word; Quiet: Boolean = False; ID: Integer = NET_EVERYONE);
 procedure MH_SEND_GameSettings(ID: Integer = NET_EVERYONE);
 // PLAYER
 procedure MH_SEND_PlayerCreate(PID: Word; ID: Integer = NET_EVERYONE);
@@ -388,7 +395,7 @@ begin
   end;
 
   if gState in [STATE_INTERCUSTOM, STATE_FOLD] then
-    MH_SEND_GameEvent(NET_EV_MAPEND, 'N', C^.ID);
+    MH_SEND_GameEvent(NET_EV_MAPEND, 0, 'N', C^.ID);
 
   if NetUseMaster then g_Net_Slist_Update;
 end;
@@ -521,10 +528,10 @@ begin
   if Pwd = NetRCONPassword then
   begin
     C^.RCONAuth := True;
-    MH_SEND_Chat(_lc[I_NET_RCON_PWD_VALID], NET_CHAT_SYSTEM, C^.ID);
+    MH_SEND_GameEvent(NET_EV_RCON, NET_RCON_PWGOOD, 'N', C^.ID);
   end
   else
-    MH_SEND_Chat(_lc[I_NET_RCON_PWD_INVALID], NET_CHAT_SYSTEM, C^.ID);
+    MH_SEND_GameEvent(NET_EV_RCON, NET_RCON_PWBAD, 'N', C^.ID);
 end;
 
 procedure MH_RECV_RCONCommand(C: pTNetClient; P: Pointer);
@@ -535,7 +542,7 @@ begin
   if not NetAllowRCON then Exit;
   if not C^.RCONAuth then
   begin
-    MH_SEND_Chat(_lc[I_NET_RCON_NOAUTH], NET_CHAT_SYSTEM, C^.ID);
+    MH_SEND_GameEvent(NET_EV_RCON, NET_RCON_NOAUTH, 'N', C^.ID);
     Exit;
   end;
   g_Console_Process(Cmd);
@@ -697,7 +704,7 @@ begin
   if CreatePlayers and (ID >= 0) then NetClients[ID].State := NET_STATE_GAME;
 
   if gLMSRespawn > LMS_RESPAWN_NONE then
-    MH_SEND_Chat(Format(_lc[I_MSG_WARMUP_START], [(gLMSRespawnTime - gTime) div 1000]), NET_CHAT_SYSTEM, ID);
+    MH_SEND_GameEvent(NET_EV_LMS_WARMUP, (gLMSRespawnTime - gTime) div 1000, 'N', ID);
 end;
 
 procedure MH_SEND_Info(ID: Byte);
@@ -887,15 +894,16 @@ begin
   e_Buffer_Write(@NetOut, gCoopTotalSecrets);
 end;
 
-procedure MH_SEND_GameEvent(EvType: Byte; EvParm: string = 'N'; ID: Integer = NET_EVERYONE);
+procedure MH_SEND_GameEvent(EvType: Byte; EvNum: Integer = 0; EvStr: string = 'N'; ID: Integer = NET_EVERYONE);
 begin
   e_Buffer_Write(@NetOut, Byte(NET_MSG_GEVENT));
   e_Buffer_Write(@NetOut, EvType);
-  e_Buffer_Write(@NetOut, EvParm);
+  e_Buffer_Write(@NetOut, EvNum);
+  e_Buffer_Write(@NetOut, EvStr);
   e_Buffer_Write(@NetOut, gGameSettings.GameMode);
   e_Buffer_Write(@NetOut, Byte(gLastMap));
   e_Buffer_Write(@NetOut, gTime);
-  if (EvType = NET_EV_MAPSTART) and (Pos(':\', EvParm) > 0) then
+  if (EvType = NET_EV_MAPSTART) and (Pos(':\', EvStr) > 0) then
   begin
     e_Buffer_Write(@NetOut, Byte(1));
     e_Buffer_Write(@NetOut, gWADHash);
@@ -905,7 +913,7 @@ begin
   g_Net_Host_Send(ID, True, NET_CHAN_SERVICE);
 end;
 
-procedure MH_SEND_FlagEvent(Evtype: Byte; Flag: Byte; PID: Word; Quiet: Boolean = False; ID: Integer = NET_EVERYONE);
+procedure MH_SEND_FlagEvent(EvType: Byte; Flag: Byte; PID: Word; Quiet: Boolean = False; ID: Integer = NET_EVERYONE);
 begin
   e_Buffer_Write(@NetOut, Byte(NET_MSG_FLAG));
   e_Buffer_Write(@NetOut, EvType);
@@ -1586,13 +1594,15 @@ end;
 procedure MC_RECV_GameEvent(P: Pointer);
 var
   EvType: Byte;
-  EvParm: string;
+  EvNum: Integer;
+  EvStr: string;
   EvTime: LongWord;
   BHash: Boolean;
   EvHash: TMD5Digest;
 begin
   EvType := e_Raw_Read_Byte(P);
-  EvParm := e_Raw_Read_String(P);
+  EvNum := e_Raw_Read_LongInt(P);
+  EvStr := e_Raw_Read_String(P);
   gSwitchGameMode := e_Raw_Read_Byte(P);
   gGameSettings.GameMode := gSwitchGameMode;
   gLastMap := e_Raw_Read_Byte(P) <> 0;
@@ -1613,12 +1623,12 @@ begin
       g_Game_StopAllSounds(True);
 
       gWADHash := EvHash;
-      if not g_Game_StartMap(EvParm, True) then
+      if not g_Game_StartMap(EvStr, True) then
       begin
-        if Pos(':\', EvParm) = 0 then
-          g_FatalError(Format(_lc[I_GAME_ERROR_MAP_LOAD], [gGameSettings.WAD + ':\' + EvParm]))
+        if Pos(':\', EvStr) = 0 then
+          g_FatalError(Format(_lc[I_GAME_ERROR_MAP_LOAD], [gGameSettings.WAD + ':\' + EvStr]))
         else
-          g_FatalError(Format(_lc[I_GAME_ERROR_MAP_LOAD], [EvParm]));
+          g_FatalError(Format(_lc[I_GAME_ERROR_MAP_LOAD], [EvStr]));
         Exit;
       end;
 
@@ -1627,15 +1637,60 @@ begin
 
     NET_EV_MAPEND:
     begin
-      gMissionFailed := EvParm = 'MF';
+      gMissionFailed := EvNum <> 0;
       gExit := EXIT_ENDLEVELCUSTOM;
     end;
 
-    NET_EV_LMS_LOSE:
-      g_Game_Message(_lc[I_MESSAGE_LMS_LOSE], 144);
+    NET_EV_RCON:
+    begin
+      case EvNum of
+        NET_RCON_NOAUTH:
+          g_Console_Add(_lc[I_NET_RCON_NOAUTH], True);
+        NET_RCON_PWGOOD:
+          g_Console_Add(_lc[I_NET_RCON_PWD_VALID], True);
+        NET_RCON_PWBAD:
+          g_Console_Add(_lc[I_NET_RCON_PWD_INVALID], True);
+      end;
+    end;
 
-    NET_EV_LMS_WIN:
-      g_Game_Message(Format(_lc[I_MESSAGE_LMS_WIN], [AnsiUpperCase(EvParm)]), 144);
+    NET_EV_CHANGE_TEAM:
+    begin
+      if EvNum = TEAM_RED then
+        g_Console_Add(Format(_lc[I_PLAYER_CHTEAM_RED], [EvStr]), True);
+      if EvNum = TEAM_BLUE then
+        g_Console_Add(Format(_lc[I_PLAYER_CHTEAM_BLUE], [EvStr]), True);
+    end;
+
+    NET_EV_PLAYER_KICK:
+      g_Console_Add(Format(_lc[I_PLAYER_KICK], [EvStr]), True);
+
+    NET_EV_PLAYER_BAN:
+      g_Console_Add(Format(_lc[I_PLAYER_BAN], [EvStr]), True);
+
+    NET_EV_LMS_WARMUP:
+      g_Console_Add(Format(_lc[I_MSG_WARMUP_START], [EvNum]), True);
+
+    NET_EV_LMS_SURVIVOR:
+      g_Console_Add('*** ' + _lc[I_MESSAGE_LMS_SURVIVOR] + ' ***', True);
+
+    NET_EV_BIGTEXT:
+      g_Game_Message(AnsiUpperCase(EvStr), Word(EvNum));
+
+    NET_EV_SCORE_ADD:
+    begin
+      if EvNum = TEAM_RED then
+        g_Game_Message(Format(_lc[I_MESSAGE_SCORE_ADD], [AnsiUpperCase(_lc[I_GAME_TEAM_RED])]), 108);
+      if EvNum = TEAM_BLUE then
+        g_Game_Message(Format(_lc[I_MESSAGE_SCORE_ADD], [AnsiUpperCase(_lc[I_GAME_TEAM_BLUE])]), 108);
+    end;
+
+    NET_EV_SCORE_SUB:
+    begin
+      if EvNum = TEAM_RED then
+        g_Game_Message(Format(_lc[I_MESSAGE_SCORE_SUB], [AnsiUpperCase(_lc[I_GAME_TEAM_RED])]), 108);
+      if EvNum = TEAM_BLUE then
+        g_Game_Message(Format(_lc[I_MESSAGE_SCORE_SUB], [AnsiUpperCase(_lc[I_GAME_TEAM_BLUE])]), 108);
+    end;
 
     NET_EV_LMS_START:
     begin
@@ -1643,44 +1698,23 @@ begin
       g_Game_Message(_lc[I_MESSAGE_LMS_START], 144);
     end;
 
-    NET_EV_LMS_DRAW:
-      g_Game_Message(_lc[I_GAME_WIN_DRAW], 144);
-
-    NET_EV_LMS_SURVIVOR:
-      g_Console_Add('*** ' + _lc[I_MESSAGE_LMS_SURVIVOR] + ' ***', True);
+    NET_EV_LMS_WIN:
+      g_Game_Message(Format(_lc[I_MESSAGE_LMS_WIN], [AnsiUpperCase(EvStr)]), 144);
 
     NET_EV_TLMS_WIN:
     begin
-      if EvParm = 'r' then
-        g_Game_Message(Format(_lc[I_MESSAGE_TLMS_WIN], [AnsiUpperCase(_lc[I_GAME_TEAM_RED])]), 144)
-      else
+      if EvNum = TEAM_RED then
+        g_Game_Message(Format(_lc[I_MESSAGE_TLMS_WIN], [AnsiUpperCase(_lc[I_GAME_TEAM_RED])]), 144);
+      if EvNum = TEAM_BLUE then
         g_Game_Message(Format(_lc[I_MESSAGE_TLMS_WIN], [AnsiUpperCase(_lc[I_GAME_TEAM_BLUE])]), 144);
     end;
 
-    NET_EV_SCORE_ADD:
-    begin
-      if Pos('r', EvParm) > 0 then
-        g_Game_Message(Format(_lc[I_MESSAGE_SCORE_ADD], [AnsiUpperCase(_lc[I_GAME_TEAM_RED])]), 108)
-      else
-        g_Game_Message(Format(_lc[I_MESSAGE_SCORE_ADD], [AnsiUpperCase(_lc[I_GAME_TEAM_BLUE])]), 108);
-    end;
+    NET_EV_LMS_LOSE:
+      g_Game_Message(_lc[I_MESSAGE_LMS_LOSE], 144);
 
-    NET_EV_SCORE_SUB:
-    begin
-      if Pos('r', EvParm) > 0 then
-        g_Game_Message(Format(_lc[I_MESSAGE_SCORE_SUB], [AnsiUpperCase(_lc[I_GAME_TEAM_RED])]), 108)
-      else
-        g_Game_Message(Format(_lc[I_MESSAGE_SCORE_SUB], [AnsiUpperCase(_lc[I_GAME_TEAM_BLUE])]), 108);
-    end;
+    NET_EV_LMS_DRAW:
+      g_Game_Message(_lc[I_GAME_WIN_DRAW], 144);
 
-    NET_EV_BIGTEXT:
-      g_Game_Message(AnsiUpperCase(EvParm), 144);
-
-    NET_EV_CHTEAM_RED:
-      g_Console_Add(Format(_lc[I_PLAYER_CHTEAM_RED], [EvParm]), True);
-
-    NET_EV_CHTEAM_BLUE:
-      g_Console_Add(Format(_lc[I_PLAYER_CHTEAM_BLUE], [EvParm]), True);
   end;
 end;
 

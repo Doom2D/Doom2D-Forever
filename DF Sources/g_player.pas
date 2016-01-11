@@ -1654,14 +1654,14 @@ begin
     ChangeTeam(TEAM_BLUE);
     g_Console_Add(Format(_lc[I_PLAYER_CHTEAM_BLUE], [FName]), True);
     if g_Game_IsNet then
-      MH_SEND_GameEvent(NET_EV_CHTEAM_BLUE, FName);
+      MH_SEND_GameEvent(NET_EV_CHANGE_TEAM, TEAM_BLUE, FName);
   end
   else
   begin
     ChangeTeam(TEAM_RED);
     g_Console_Add(Format(_lc[I_PLAYER_CHTEAM_RED], [FName]), True);
     if g_Game_IsNet then
-      MH_SEND_GameEvent(NET_EV_CHTEAM_RED, FName);
+      MH_SEND_GameEvent(NET_EV_CHANGE_TEAM, TEAM_RED, FName);
   end;
   FPreferredTeam := FTeam;
 end;
@@ -2825,7 +2825,8 @@ begin
       begin
         // everyone is dead, restart the map
         g_Game_Message(_lc[I_MESSAGE_LMS_LOSE], 144);
-        if Netsrv then MH_SEND_GameEvent(NET_EV_LMS_LOSE, 'N');
+        if Netsrv then
+          MH_SEND_GameEvent(NET_EV_LMS_LOSE);
         gLMSRespawn := LMS_RESPAWN_FINAL;
         gLMSRespawnTime := gTime + 5000;
       end
@@ -2834,9 +2835,9 @@ begin
         if (gPlayers[k] <> nil) and not (gPlayers[k] is TBot) then
           if (gPlayers[k].FPlayerNum = PLAYERNUM_1) or
              (gPlayers[k].FPlayerNum = PLAYERNUM_2) then
-             g_Console_Add('*** ' + _lc[I_MESSAGE_LMS_SURVIVOR] + ' ***', True)
+            g_Console_Add('*** ' + _lc[I_MESSAGE_LMS_SURVIVOR] + ' ***', True)
           else if Netsrv and (gPlayers[k].FClientID >= 0) then
-             MH_SEND_GameEvent(NET_EV_LMS_SURVIVOR, 'N', gPlayers[k].FClientID);
+            MH_SEND_GameEvent(NET_EV_LMS_SURVIVOR, 0, 'N', gPlayers[k].FClientID);
       end;
     end
     else if (gGameSettings.GameMode = GM_TDM) then
@@ -2845,7 +2846,8 @@ begin
       begin
         // blu team ded
         g_Game_Message(Format(_lc[I_MESSAGE_TLMS_WIN], [AnsiUpperCase(_lc[I_GAME_TEAM_RED])]), 144);
-        if Netsrv then MH_SEND_GameEvent(NET_EV_TLMS_WIN, 'r');
+        if Netsrv then
+          MH_SEND_GameEvent(NET_EV_TLMS_WIN, TEAM_RED);
         Inc(gTeamStat[TEAM_RED].Goals);
         gLMSRespawn := LMS_RESPAWN_FINAL;
         gLMSRespawnTime := gTime + 5000;
@@ -2854,7 +2856,8 @@ begin
       begin
         // red team ded
         g_Game_Message(Format(_lc[I_MESSAGE_TLMS_WIN], [AnsiUpperCase(_lc[I_GAME_TEAM_BLUE])]), 144);
-        if Netsrv then MH_SEND_GameEvent(NET_EV_TLMS_WIN, 'b');
+        if Netsrv then
+          MH_SEND_GameEvent(NET_EV_TLMS_WIN, TEAM_BLUE);
         Inc(gTeamStat[TEAM_BLUE].Goals);
         gLMSRespawn := LMS_RESPAWN_FINAL;
         gLMSRespawnTime := gTime + 5000;
@@ -2863,7 +2866,8 @@ begin
       begin
         // everyone ded
         g_Game_Message(_lc[I_GAME_WIN_DRAW], 144);
-        if Netsrv then MH_SEND_GameEvent(NET_EV_LMS_DRAW, FName);
+        if Netsrv then
+          MH_SEND_GameEvent(NET_EV_LMS_DRAW, 0, FName);
         gLMSRespawn := LMS_RESPAWN_FINAL;
         gLMSRespawnTime := gTime + 5000;
       end;
@@ -2877,7 +2881,8 @@ begin
           begin
             // survivor is the winner
             g_Game_Message(Format(_lc[I_MESSAGE_LMS_WIN], [AnsiUpperCase(FName)]), 144);
-            if Netsrv then MH_SEND_GameEvent(NET_EV_LMS_WIN, FName);
+            if Netsrv then
+              MH_SEND_GameEvent(NET_EV_LMS_WIN, 0, FName);
             Inc(FFrags);
           end;
         gLMSRespawn := LMS_RESPAWN_FINAL;
@@ -2887,7 +2892,8 @@ begin
       begin
         // everyone is dead, restart the map
         g_Game_Message(_lc[I_GAME_WIN_DRAW], 144);
-        if Netsrv then MH_SEND_GameEvent(NET_EV_LMS_DRAW, FName);
+        if Netsrv then
+          MH_SEND_GameEvent(NET_EV_LMS_DRAW, 0, FName);
         gLMSRespawn := LMS_RESPAWN_FINAL;
         gLMSRespawnTime := gTime + 5000;
       end;
@@ -2895,7 +2901,7 @@ begin
     if srv and (OldLR = LMS_RESPAWN_NONE) and (gLMSRespawn > LMS_RESPAWN_NONE) then
     begin
       if NetMode = NET_SERVER then
-        MH_SEND_Chat(Format(_lc[I_MSG_WARMUP_START], [(gLMSRespawnTime - gTime) div 1000]), NET_CHAT_SYSTEM)
+        MH_SEND_GameEvent(NET_EV_PLAYER_KICK, (gLMSRespawnTime - gTime) div 1000)
       else
         g_Console_Add(Format(_lc[I_MSG_WARMUP_START], [(gLMSRespawnTime - gTime) div 1000]), True);
     end;

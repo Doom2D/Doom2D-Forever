@@ -1116,7 +1116,8 @@ begin
                   g_Console_Add(Format(_lc[I_PLAYER_SCORE_ADD_ENEMY], [p.Name, Data.ScoreCount, _lc[I_PLAYER_SCORE_TO_RED]]), True);
 
                 g_Game_Message(Format(_lc[I_MESSAGE_SCORE_ADD], [AnsiUpperCase(_lc[I_GAME_TEAM_RED])]), 108);
-                if g_Game_IsServer and g_Game_IsNet then MH_SEND_GameEvent(NET_EV_SCORE_ADD, 'r');
+                if g_Game_IsServer and g_Game_IsNet then
+                  MH_SEND_GameEvent(NET_EV_SCORE_ADD, TEAM_RED);
               end;
               if ((Data.ScoreAction = 1) and (Data.ScoreTeam = 0) and (p.Team = TEAM_RED))
               or ((Data.ScoreAction = 1) and (Data.ScoreTeam = 1) and (p.Team = TEAM_BLUE)) then
@@ -1129,7 +1130,8 @@ begin
                   g_Console_Add(Format(_lc[I_PLAYER_SCORE_SUB_ENEMY], [p.Name, Data.ScoreCount, _lc[I_PLAYER_SCORE_TO_RED]]), True);
 
                 g_Game_Message(Format(_lc[I_MESSAGE_SCORE_SUB], [AnsiUpperCase(_lc[I_GAME_TEAM_RED])]), 108);
-                if g_Game_IsServer and g_Game_IsNet then MH_SEND_GameEvent(NET_EV_SCORE_SUB, 'r');
+                if g_Game_IsServer and g_Game_IsNet then
+                  MH_SEND_GameEvent(NET_EV_SCORE_SUB, TEAM_RED);
               end;
               if ((Data.ScoreAction = 0) and (Data.ScoreTeam = 0) and (p.Team = TEAM_BLUE))
               or ((Data.ScoreAction = 0) and (Data.ScoreTeam = 1) and (p.Team = TEAM_RED)) then
@@ -1142,7 +1144,8 @@ begin
                   g_Console_Add(Format(_lc[I_PLAYER_SCORE_ADD_ENEMY], [p.Name, Data.ScoreCount, _lc[I_PLAYER_SCORE_TO_BLUE]]), True);
 
                 g_Game_Message(Format(_lc[I_MESSAGE_SCORE_ADD], [AnsiUpperCase(_lc[I_GAME_TEAM_BLUE])]), 108);
-                if g_Game_IsServer and g_Game_IsNet then MH_SEND_GameEvent(NET_EV_SCORE_ADD, 'b');
+                if g_Game_IsServer and g_Game_IsNet then
+                  MH_SEND_GameEvent(NET_EV_SCORE_ADD, TEAM_BLUE);
               end;
               if ((Data.ScoreAction = 1) and (Data.ScoreTeam = 0) and (p.Team = TEAM_BLUE))
               or ((Data.ScoreAction = 1) and (Data.ScoreTeam = 1) and (p.Team = TEAM_RED)) then
@@ -1155,7 +1158,8 @@ begin
                   g_Console_Add(Format(_lc[I_PLAYER_SCORE_SUB_ENEMY], [p.Name, Data.ScoreCount, _lc[I_PLAYER_SCORE_TO_BLUE]]), True);
 
                 g_Game_Message(Format(_lc[I_MESSAGE_SCORE_SUB], [AnsiUpperCase(_lc[I_GAME_TEAM_BLUE])]), 108);
-                if g_Game_IsServer and g_Game_IsNet then MH_SEND_GameEvent(NET_EV_SCORE_SUB, 'b');
+                if g_Game_IsServer and g_Game_IsNet then
+                  MH_SEND_GameEvent(NET_EV_SCORE_SUB, TEAM_BLUE);
               end;
               Result := (p.Team = TEAM_RED) or (p.Team = TEAM_BLUE);
             end;
@@ -1169,7 +1173,8 @@ begin
                 g_Console_Add(Format(_lc[I_PLAYER_SCORE_ADD_TEAM], [_lc[I_PLAYER_SCORE_RED], Data.ScoreCount]), True);
 
                 g_Game_Message(Format(_lc[I_MESSAGE_SCORE_ADD], [AnsiUpperCase(_lc[I_GAME_TEAM_RED])]), 108);
-                if g_Game_IsServer and g_Game_IsNet then MH_SEND_GameEvent(NET_EV_SCORE_ADD, 'r');
+                if g_Game_IsServer and g_Game_IsNet then
+                  MH_SEND_GameEvent(NET_EV_SCORE_ADD, TEAM_RED);
               end;
               if (Data.ScoreAction = 1) and (Data.ScoreTeam = 2) then
               begin
@@ -1178,7 +1183,8 @@ begin
                 g_Console_Add(Format(_lc[I_PLAYER_SCORE_SUB_TEAM], [_lc[I_PLAYER_SCORE_RED], Data.ScoreCount]), True);
 
                 g_Game_Message(Format(_lc[I_MESSAGE_SCORE_SUB], [AnsiUpperCase(_lc[I_GAME_TEAM_RED])]), 108);
-                if g_Game_IsServer and g_Game_IsNet then MH_SEND_GameEvent(NET_EV_SCORE_SUB, 'r');
+                if g_Game_IsServer and g_Game_IsNet then
+                  MH_SEND_GameEvent(NET_EV_SCORE_SUB, TEAM_RED);
               end;
               if (Data.ScoreAction = 0) and (Data.ScoreTeam = 3) then
               begin
@@ -1187,7 +1193,8 @@ begin
                 g_Console_Add(Format(_lc[I_PLAYER_SCORE_ADD_TEAM], [_lc[I_PLAYER_SCORE_BLUE], Data.ScoreCount]), True);
 
                 g_Game_Message(Format(_lc[I_MESSAGE_SCORE_ADD], [AnsiUpperCase(_lc[I_GAME_TEAM_BLUE])]), 108);
-                if g_Game_IsServer and g_Game_IsNet then MH_SEND_GameEvent(NET_EV_SCORE_ADD, 'b');
+                if g_Game_IsServer and g_Game_IsNet then
+                  MH_SEND_GameEvent(NET_EV_SCORE_ADD, TEAM_BLUE);
               end;
               if (Data.ScoreAction = 1) and (Data.ScoreTeam = 3) then
               begin
@@ -1196,7 +1203,8 @@ begin
                 g_Console_Add(Format(_lc[I_PLAYER_SCORE_SUB_TEAM], [_lc[I_PLAYER_SCORE_BLUE], Data.ScoreCount]), True);
 
                 g_Game_Message(Format(_lc[I_MESSAGE_SCORE_SUB], [AnsiUpperCase(_lc[I_GAME_TEAM_BLUE])]), 108);
-                if g_Game_IsServer and g_Game_IsNet then MH_SEND_GameEvent(NET_EV_SCORE_SUB, 'b');
+                if g_Game_IsServer and g_Game_IsNet then
+                  MH_SEND_GameEvent(NET_EV_SCORE_SUB, TEAM_BLUE);
               end;
               Result := True;
             end;
@@ -1326,7 +1334,7 @@ begin
                     if Data.MessageKind = 0 then
                       g_Console_Add(msg, True)
                     else if Data.MessageKind = 1 then
-                      g_Game_Message(msg, 144);
+                      g_Game_Message(msg, Data.MessageTime);
                   end
                   else
                   begin
@@ -1335,7 +1343,7 @@ begin
                       if Data.MessageKind = 0 then
                         MH_SEND_Chat(msg, NET_CHAT_SYSTEM, p.FClientID)
                       else if Data.MessageKind = 1 then
-                        MH_SEND_GameEvent(NET_EV_BIGTEXT, msg, p.FClientID);
+                        MH_SEND_GameEvent(NET_EV_BIGTEXT, Data.MessageTime, msg, p.FClientID);
                   end;
                 end;
               end;
@@ -1349,7 +1357,7 @@ begin
                     if Data.MessageKind = 0 then
                       g_Console_Add(msg, True)
                     else if Data.MessageKind = 1 then
-                      g_Game_Message(msg, 144);
+                      g_Game_Message(msg, Data.MessageTime);
 
                   if g_Game_IsNet then
                   begin
@@ -1358,7 +1366,7 @@ begin
                         if Data.MessageKind = 0 then
                           MH_SEND_Chat(msg, NET_CHAT_SYSTEM, gPlayers[i].FClientID)
                         else if Data.MessageKind = 1 then
-                          MH_SEND_GameEvent(NET_EV_BIGTEXT, msg, gPlayers[i].FClientID);
+                          MH_SEND_GameEvent(NET_EV_BIGTEXT, Data.MessageTime, msg, gPlayers[i].FClientID);
                   end;
                 end;
               end;
@@ -1372,7 +1380,7 @@ begin
                     if Data.MessageKind = 0 then
                       g_Console_Add(msg, True)
                     else if Data.MessageKind = 1 then
-                      g_Game_Message(msg, 144);
+                      g_Game_Message(msg, Data.MessageTime);
 
                   if g_Game_IsNet then
                   begin
@@ -1381,7 +1389,7 @@ begin
                         if Data.MessageKind = 0 then
                           MH_SEND_Chat(msg, NET_CHAT_SYSTEM, gPlayers[i].FClientID)
                         else if Data.MessageKind = 1 then
-                          MH_SEND_GameEvent(NET_EV_BIGTEXT, msg, gPlayers[i].FClientID);
+                          MH_SEND_GameEvent(NET_EV_BIGTEXT, Data.MessageTime, msg, gPlayers[i].FClientID);
                   end;
                 end;
               end;
@@ -1392,7 +1400,7 @@ begin
                   if Data.MessageKind = 0 then
                     g_Console_Add(msg, True)
                   else if Data.MessageKind = 1 then
-                    g_Game_Message(msg, 144);
+                    g_Game_Message(msg, Data.MessageTime);
 
                 if g_Game_IsNet then
                 begin
@@ -1401,7 +1409,7 @@ begin
                       if Data.MessageKind = 0 then
                         MH_SEND_Chat(msg, NET_CHAT_SYSTEM, gPlayers[i].FClientID)
                       else if Data.MessageKind = 1 then
-                        MH_SEND_GameEvent(NET_EV_BIGTEXT, msg, gPlayers[i].FClientID);
+                        MH_SEND_GameEvent(NET_EV_BIGTEXT, Data.MessageTime, msg, gPlayers[i].FClientID);
                 end;
               end;
 
@@ -1411,7 +1419,7 @@ begin
                   if Data.MessageKind = 0 then
                     g_Console_Add(msg, True)
                   else if Data.MessageKind = 1 then
-                    g_Game_Message(msg, 144);
+                    g_Game_Message(msg, Data.MessageTime);
 
                 if g_Game_IsNet then
                 begin
@@ -1420,7 +1428,7 @@ begin
                       if Data.MessageKind = 0 then
                         MH_SEND_Chat(msg, NET_CHAT_SYSTEM, gPlayers[i].FClientID)
                       else if Data.MessageKind = 1 then
-                        MH_SEND_GameEvent(NET_EV_BIGTEXT, msg, gPlayers[i].FClientID);
+                        MH_SEND_GameEvent(NET_EV_BIGTEXT, Data.MessageTime, msg, gPlayers[i].FClientID);
                 end;
               end;
 
@@ -1429,14 +1437,14 @@ begin
                 if Data.MessageKind = 0 then
                   g_Console_Add(msg, True)
                 else if Data.MessageKind = 1 then
-                  g_Game_Message(msg, 144);
+                  g_Game_Message(msg, Data.MessageTime);
 
                 if g_Game_IsNet then
                 begin
                   if Data.MessageKind = 0 then
                     MH_SEND_Chat(msg, NET_CHAT_SYSTEM)
                   else if Data.MessageKind = 1 then
-                    MH_SEND_GameEvent(NET_EV_BIGTEXT, msg);
+                    MH_SEND_GameEvent(NET_EV_BIGTEXT, Data.MessageTime, msg);
                 end;
               end;
           end;
