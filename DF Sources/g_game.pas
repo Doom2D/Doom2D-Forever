@@ -3384,7 +3384,6 @@ var
   MID: Byte;
   State: Byte;
   OuterLoop: Boolean;
-  WHash: TMD5Digest;
   newResPath: string;
 begin
   g_Game_Free();
@@ -3446,7 +3445,7 @@ begin
           WadName := e_Raw_Read_String(Ptr);
           Map := e_Raw_Read_String(Ptr);
 
-          WHash := e_Raw_Read_MD5(Ptr);
+          gWADHash := e_Raw_Read_MD5(Ptr);
 
           gGameSettings.GameMode := e_Raw_Read_Byte(Ptr);
           gSwitchGameMode := gGameSettings.GameMode;
@@ -3456,7 +3455,7 @@ begin
           gGameSettings.Options := e_Raw_Read_LongWord(Ptr);
           T := e_Raw_Read_LongWord(Ptr);
 
-          newResPath := g_Res_SearchSameWAD(MapsDir, WadName, WHash);
+          newResPath := g_Res_SearchSameWAD(MapsDir, WadName, gWADHash);
           if newResPath = '' then
           begin
             g_Game_SetLoadingText(_lc[I_LOAD_DL_RES], 0, False);
