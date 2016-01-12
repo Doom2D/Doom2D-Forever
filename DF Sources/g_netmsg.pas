@@ -2201,13 +2201,14 @@ begin
 
   if not Quiet then
   begin
-    if gItems[ID].ItemType in [ITEM_SPHERE_BLUE, ITEM_SPHERE_WHITE, ITEM_INVUL, ITEM_INVIS, ITEM_MEDKIT_BLACK] then
+    if gItems[ID].ItemType in [ITEM_ARMOR_BLUE, ITEM_SPHERE_BLUE, ITEM_SPHERE_WHITE,
+                               ITEM_MEDKIT_BLACK, ITEM_INVUL, ITEM_INVIS, ITEM_JETPACK] then
       g_Sound_PlayExAt('SOUND_ITEM_GETRULEZ',
         gItems[ID].Obj.X, gItems[ID].Obj.Y)
       else
         if gItems[ID].ItemType in [ITEM_WEAPON_SAW, ITEM_WEAPON_PISTOL, ITEM_WEAPON_SHOTGUN1, ITEM_WEAPON_SHOTGUN2,
                                    ITEM_WEAPON_CHAINGUN, ITEM_WEAPON_ROCKETLAUNCHER, ITEM_WEAPON_PLASMA,
-                                   ITEM_WEAPON_BFG, ITEM_WEAPON_SUPERPULEMET] then
+                                   ITEM_WEAPON_BFG, ITEM_WEAPON_SUPERPULEMET, ITEM_AMMO_BACKPACK] then
           g_Sound_PlayExAt('SOUND_ITEM_GETWEAPON',
             gItems[ID].Obj.X, gItems[ID].Obj.Y)
           else

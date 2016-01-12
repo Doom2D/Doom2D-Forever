@@ -421,13 +421,14 @@ begin
   3. I_STIM,I_MEDI,I_ARM1,I_ARM2,I_AQUA,I_KEYR,I_KEYG,I_KEYB,I_SUIT,I_RTORCH,I_GTORCH,I_BTORCH,I_GOR1,I_FCAN
 }
 
-                  if ItemType in [ITEM_MEDKIT_BLACK, ITEM_SPHERE_BLUE, ITEM_SPHERE_WHITE, ITEM_INVUL, ITEM_INVIS] then
+                  if ItemType in [ITEM_ARMOR_BLUE, ITEM_SPHERE_BLUE, ITEM_SPHERE_WHITE,
+                                  ITEM_MEDKIT_BLACK, ITEM_INVUL, ITEM_INVIS, ITEM_JETPACK] then
                     g_Sound_PlayExAt('SOUND_ITEM_GETRULEZ',
                       gPlayers[j].Obj.X, gPlayers[j].Obj.Y)
                   else
                     if ItemType in [ITEM_WEAPON_SAW, ITEM_WEAPON_PISTOL, ITEM_WEAPON_SHOTGUN1, ITEM_WEAPON_SHOTGUN2,
                                     ITEM_WEAPON_CHAINGUN, ITEM_WEAPON_ROCKETLAUNCHER, ITEM_WEAPON_PLASMA,
-                                    ITEM_WEAPON_BFG, ITEM_WEAPON_SUPERPULEMET] then
+                                    ITEM_WEAPON_BFG, ITEM_WEAPON_SUPERPULEMET, ITEM_AMMO_BACKPACK] then
                       g_Sound_PlayExAt('SOUND_ITEM_GETWEAPON',
                         gPlayers[j].Obj.X, gPlayers[j].Obj.Y)
                     else
