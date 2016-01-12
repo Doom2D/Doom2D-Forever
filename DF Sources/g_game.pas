@@ -56,6 +56,7 @@ procedure g_Game_SetupScreenSize();
 procedure g_Game_ChangeResolution(newWidth, newHeight: Word; nowFull, nowMax: Boolean);
 function  g_Game_ModeToText(Mode: Byte): string;
 function  g_Game_TextToMode(Mode: string): Byte;
+procedure g_Game_ExecuteEvent(Name: String);
 procedure g_Game_AddPlayer(Team: Byte = TEAM_NONE);
 procedure g_Game_RemovePlayer();
 procedure g_Game_Spectate();
@@ -583,7 +584,7 @@ begin
   if gPlayer2 <> nil then gPlayer2.NoTarget := False;
 end;
 
-procedure ExecuteGameEvent(Name: String);
+procedure g_Game_ExecuteEvent(Name: String);
 var
   a: Integer;
 begin
@@ -653,7 +654,7 @@ begin
                 slWaitStr := _lc[I_NET_SLIST_ERROR];
             end;
 
-            ExecuteGameEvent('ongameend');
+            g_Game_ExecuteEvent('ongameend');
           end;
       end;
 
@@ -698,7 +699,7 @@ begin
           SortGameStat(CustomStat.PlayerStat);
         end;
 
-        ExecuteGameEvent('onmapend');
+        g_Game_ExecuteEvent('onmapend');
 
       // Затухающий экран:
         EndingGameCounter := 255;
@@ -726,7 +727,7 @@ begin
           SingleStat.PlayerStat[1].Secrets := gPlayer2.Secrets;
         end;
 
-        ExecuteGameEvent('onmapend');
+        g_Game_ExecuteEvent('onmapend');
 
       // Есть еще карты:
         if gNextMap <> '' then
@@ -735,7 +736,7 @@ begin
             gMusic.Play();
             gState := STATE_INTERSINGLE;
 
-            ExecuteGameEvent('oninter');
+            g_Game_ExecuteEvent('oninter');
           end
         else // Больше нет карт
           begin
@@ -1201,14 +1202,14 @@ begin
               end else
               begin
               // Финальная картинка:
-                ExecuteGameEvent('onwadend');
+                g_Game_ExecuteEvent('onwadend');
                 g_Game_Free();
                 if not gMusic.SetByName('MUSIC_endmus') then
                   gMusic.SetByName('MUSIC_STDENDMUS');
                 gMusic.Play();
                 gState := STATE_ENDPIC;
               end;
-              ExecuteGameEvent('ongameend');
+              g_Game_ExecuteEvent('ongameend');
             end;
 
           Exit;
@@ -1228,7 +1229,7 @@ begin
               begin
                 if gLastMap and (gGameSettings.GameMode = GM_COOP) then
                 begin
-                  ExecuteGameEvent('onwadend');
+                  g_Game_ExecuteEvent('onwadend');
                   if not gMusic.SetByName('MUSIC_endmus') then
                     gMusic.SetByName('MUSIC_STDENDMUS');
                 end
@@ -1244,7 +1245,7 @@ begin
                 gMusic.Play();
                 gState := STATE_INTERSINGLE;
               end;
-            ExecuteGameEvent('oninter');
+            g_Game_ExecuteEvent('oninter');
           end
         else
           DecMin(EndingGameCounter, 6, 0);
@@ -2984,8 +2985,7 @@ begin
     // Создание первого игрока:
     gPlayer1 := g_Player_Get(g_Player_Create(gPlayer1Settings.Model,
                                              gPlayer1Settings.Color,
-                                             Team, False,
-                                             PLAYERNUM_1));
+                                             Team, False));
     if gPlayer1 = nil then
       g_FatalError(Format(_lc[I_GAME_ERROR_PLAYER_CREATE], [1]))
     else
@@ -3017,8 +3017,7 @@ begin
     // Создание второго игрока:
     gPlayer2 := g_Player_Get(g_Player_Create(gPlayer2Settings.Model,
                                              gPlayer2Settings.Color,
-                                             Team, False,
-                                             PLAYERNUM_2));
+                                             Team, False));
     if gPlayer2 = nil then
       g_FatalError(Format(_lc[I_GAME_ERROR_PLAYER_CREATE], [2]))
     else
@@ -3112,7 +3111,7 @@ begin
   gGameSettings.Options := gGameSettings.Options + GAME_OPTION_BOTVSMONSTER;
   gSwitchGameMode := GM_SINGLE;
 
-  ExecuteGameEvent('ongamestart');
+  g_Game_ExecuteEvent('ongamestart');
 
 // Установка размеров окон игроков:
   g_Game_SetupScreenSize();
@@ -3120,8 +3119,7 @@ begin
 // Создание первого игрока:
   gPlayer1 := g_Player_Get(g_Player_Create(gPlayer1Settings.Model,
                                            gPlayer1Settings.Color,
-                                           gPlayer1Settings.Team, False,
-                                           PLAYERNUM_1));
+                                           gPlayer1Settings.Team, False));
   if gPlayer1 = nil then
   begin
     g_FatalError(Format(_lc[I_GAME_ERROR_PLAYER_CREATE], [1]));
@@ -3136,8 +3134,7 @@ begin
   begin
     gPlayer2 := g_Player_Get(g_Player_Create(gPlayer2Settings.Model,
                                              gPlayer2Settings.Color,
-                                             gPlayer2Settings.Team, False,
-                                             PLAYERNUM_2));
+                                             gPlayer2Settings.Team, False));
     if gPlayer2 = nil then
     begin
       g_FatalError(Format(_lc[I_GAME_ERROR_PLAYER_CREATE], [2]));
@@ -3160,7 +3157,7 @@ begin
 
 // Создаем ботов:
   for i := nPl+1 to nPlayers do
-    g_Player_Create(STD_PLAYER_MODEL, _RGB(0, 0, 0), 0, True, 0);
+    g_Player_Create(STD_PLAYER_MODEL, _RGB(0, 0, 0), 0, True);
 end;
 
 procedure g_Game_StartCustom(Map: String; GameMode: Byte;
@@ -3193,7 +3190,7 @@ begin
   gAimLine := False;
   gShowMap := False;
 
-  ExecuteGameEvent('ongamestart');
+  g_Game_ExecuteEvent('ongamestart');
 
 // Установка размеров окон игроков:
   g_Game_SetupScreenSize();
@@ -3211,8 +3208,7 @@ begin
   // Создание первого игрока:
     gPlayer1 := g_Player_Get(g_Player_Create(gPlayer1Settings.Model,
                                              gPlayer1Settings.Color,
-                                             gPlayer1Settings.Team, False,
-                                             PLAYERNUM_1));
+                                             gPlayer1Settings.Team, False));
     if gPlayer1 = nil then
     begin
       g_FatalError(Format(_lc[I_GAME_ERROR_PLAYER_CREATE], [1]));
@@ -3228,8 +3224,7 @@ begin
   // Создание второго игрока:
     gPlayer2 := g_Player_Get(g_Player_Create(gPlayer2Settings.Model,
                                              gPlayer2Settings.Color,
-                                             gPlayer2Settings.Team, False,
-                                             PLAYERNUM_2));
+                                             gPlayer2Settings.Team, False));
     if gPlayer2 = nil then
     begin
       g_FatalError(Format(_lc[I_GAME_ERROR_PLAYER_CREATE], [2]));
@@ -3263,7 +3258,7 @@ begin
 
 // Создаем ботов:
   for i := nPl+1 to nPlayers do
-    g_Player_Create(STD_PLAYER_MODEL, _RGB(0, 0, 0), 0, True, 0);
+    g_Player_Create(STD_PLAYER_MODEL, _RGB(0, 0, 0), 0, True);
 end;
 
 procedure g_Game_StartServer(Map: String; GameMode: Byte;
@@ -3294,7 +3289,7 @@ begin
   gAimLine := False;
   gShowMap := False;
 
-  ExecuteGameEvent('ongamestart');
+  g_Game_ExecuteEvent('ongamestart');
 
 // Установка размеров окна игрока
   g_Game_SetupScreenSize();
@@ -3311,8 +3306,7 @@ begin
   // Создание первого игрока:
     gPlayer1 := g_Player_Get(g_Player_Create(gPlayer1Settings.Model,
                                              gPlayer1Settings.Color,
-                                             gPlayer1Settings.Team, False,
-                                             PLAYERNUM_1));
+                                             gPlayer1Settings.Team, False));
     if gPlayer1 = nil then
     begin
       g_FatalError(Format(_lc[I_GAME_ERROR_PLAYER_CREATE], [1]));
@@ -3327,8 +3321,7 @@ begin
   // Создание второго игрока:
     gPlayer2 := g_Player_Get(g_Player_Create(gPlayer2Settings.Model,
                                              gPlayer2Settings.Color,
-                                             gPlayer2Settings.Team, False,
-                                             PLAYERNUM_2));
+                                             gPlayer2Settings.Team, False));
     if gPlayer2 = nil then
     begin
       g_FatalError(Format(_lc[I_GAME_ERROR_PLAYER_CREATE], [2]));
@@ -3401,7 +3394,7 @@ begin
   gAimLine := False;
   gShowMap := False;
 
-  ExecuteGameEvent('ongamestart');
+  g_Game_ExecuteEvent('ongamestart');
 
 // Установка размеров окон игроков:
   g_Game_SetupScreenSize();
@@ -3468,8 +3461,7 @@ begin
 
           gPlayer1 := g_Player_Get(g_Player_Create(gPlayer1Settings.Model,
                                                    gPlayer1Settings.Color,
-                                                   gPlayer1Settings.Team, False,
-                                                   0));
+                                                   gPlayer1Settings.Team, False));
 
           if gPlayer1 = nil then
           begin
@@ -3712,7 +3704,7 @@ begin
     gLastMap := False;
   end;
 
-  ExecuteGameEvent('onmapstart');
+  g_Game_ExecuteEvent('onmapstart');
 end;
 
 procedure SetFirstLevel();

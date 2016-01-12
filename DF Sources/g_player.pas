@@ -53,9 +53,6 @@ const
   SHELL_SHELL       = 1;
   SHELL_DBLSHELL    = 2;
 
-  PLAYERNUM_1       = 1;
-  PLAYERNUM_2       = 2;
-
   ANGLE_NONE        = Low(SmallInt);
 
   CORPSE_STATE_REMOVEME = 0;
@@ -142,7 +139,6 @@ type
 
     FSavedState: TPlayerSavedState;
 
-    FPlayerNum: Byte;
     FModel:     TPlayerModel;
     FActionPrior:    Byte;
     FActionAnim:     Byte;
@@ -427,8 +423,8 @@ function  g_Shells_GetMax(): Word;
 
 procedure g_Player_Init();
 procedure g_Player_Free();
-function  g_Player_Create(ModelName: String; Color: TRGB; Team: Byte;
-                          Bot: Boolean; PlayerNum: Byte): Word;
+function  g_Player_Create(ModelName: String; Color: TRGB; Team: Byte; Bot: Boolean): Word;
+function  g_Player_CreateFromState(var Mem: TBinMemoryReader): Word;
 procedure g_Player_Remove(UID: Word);
 procedure g_Player_ResetTeams();
 procedure g_Player_UpdateAll();
@@ -598,8 +594,7 @@ begin
   Result := MaxCorpses;
 end;
 
-function g_Player_Create(ModelName: String; Color: TRGB; Team: Byte;
-                         Bot: Boolean; PlayerNum: Byte): Word;
+function g_Player_Create(ModelName: String; Color: TRGB; Team: Byte; Bot: Boolean): Word;
 var
   a: Integer;
   ok: Boolean;
@@ -667,8 +662,174 @@ begin
     gPlayers[a].FModel.Color := Color;
 
   gPlayers[a].FUID := g_CreateUID(UID_PLAYER);
-  gPlayers[a].FPlayerNum := PlayerNum;
   gPlayers[a].FLive := False;
+
+  Result := gPlayers[a].FUID;
+end;
+
+function g_Player_CreateFromState(var Mem: TBinMemoryReader): Word;
+var
+  a, i: Integer;
+  ok, Bot: Boolean;
+  sig: DWORD;
+  b: Byte;
+begin
+  Result := 0;
+  if Mem = nil then
+    Exit;
+
+// Сигнатура игрока:
+  Mem.ReadDWORD(sig);
+  if sig <> PLAYER_SIGNATURE then // 'PLYR'
+  begin
+    raise EBinSizeError.Create('g_Player_CreateFromState: Wrong Player Signature');
+  end;
+
+// Бот или человек:
+  Mem.ReadBoolean(Bot);
+
+  ok := False;
+  a := 0;
+
+// Есть ли место в gPlayers:
+  if gPlayers <> nil then
+    for a := 0 to High(gPlayers) do
+      if gPlayers[a] = nil then
+      begin
+        ok := True;
+        Break;
+      end;
+
+// Нет места - расширяем gPlayers:
+  if not ok then
+  begin
+    SetLength(gPlayers, Length(gPlayers)+1);
+    a := High(gPlayers);
+  end;
+
+// Создаем объект игрока:
+  if Bot then
+    gPlayers[a] := TBot.Create()
+  else
+    gPlayers[a] := TPlayer.Create();
+  gPlayers[a].FIamBot := Bot;
+  gPlayers[a].FPhysics := True;
+
+// UID игрока:
+  Mem.ReadWord(gPlayers[a].FUID);
+// Имя игрока:
+  Mem.ReadString(gPlayers[a].FName);
+// Команда:
+  Mem.ReadByte(gPlayers[a].FTeam);
+  gPlayers[a].FPreferredTeam := gPlayers[a].FTeam;
+// Жив ли:
+  Mem.ReadBoolean(gPlayers[a].FLive);
+// Израсходовал ли все жизни:
+  Mem.ReadBoolean(gPlayers[a].FNoRespawn);
+// Направление:
+  Mem.ReadByte(b);
+  if b = 1 then
+    gPlayers[a].FDirection := D_LEFT
+  else // b = 2
+    gPlayers[a].FDirection := D_RIGHT;
+// Здоровье:
+  Mem.ReadInt(gPlayers[a].FHealth);
+// Жизни:
+  Mem.ReadByte(gPlayers[a].FLives);
+// Броня:
+  Mem.ReadInt(gPlayers[a].FArmor);
+// Запас воздуха:
+  Mem.ReadInt(gPlayers[a].FAir);
+// Запас горючего:
+  Mem.ReadInt(gPlayers[a].FJetFuel);
+// Боль:
+  Mem.ReadInt(gPlayers[a].FPain);
+// Убил:
+  Mem.ReadInt(gPlayers[a].FKills);
+// Убил монстров:
+  Mem.ReadInt(gPlayers[a].FMonsterKills);
+// Фрагов:
+  Mem.ReadInt(gPlayers[a].FFrags);
+// Смертей:
+  Mem.ReadInt(gPlayers[a].FDeath);
+// Какой флаг несет:
+  Mem.ReadByte(gPlayers[a].FFlag);
+// Нашел секретов:
+  Mem.ReadInt(gPlayers[a].FSecrets);
+// Текущее оружие:
+  Mem.ReadByte(gPlayers[a].FCurrWeap);
+// Время зарядки BFG:
+  Mem.ReadSmallInt(gPlayers[a].FBFGFireCounter);
+// Буфер урона:
+  Mem.ReadInt(gPlayers[a].FDamageBuffer);
+// Последний ударивший:
+  Mem.ReadWord(gPlayers[a].FLastSpawnerUID);
+// Тип последнего полученного урона:
+  Mem.ReadByte(gPlayers[a].FLastHit);
+// Объект игрока:
+  Obj_LoadState(@gPlayers[a].FObj, Mem);
+// Текущее количество патронов:
+  for i := A_BULLETS to A_CELLS do
+    Mem.ReadWord(gPlayers[a].FAmmo[i]);
+// Максимальное количество патронов:
+  for i := A_BULLETS to A_CELLS do
+    Mem.ReadWord(gPlayers[a].FMaxAmmo[i]);
+// Наличие оружия:
+  for i := WEAPON_KASTET to WEAPON_SUPERPULEMET do
+    Mem.ReadBoolean(gPlayers[a].FWeapon[i]);
+// Время перезарядки оружия:
+  for i := WEAPON_KASTET to WEAPON_SUPERPULEMET do
+    Mem.ReadWord(gPlayers[a].FReloading[i]);
+// Наличие рюкзака:
+  Mem.ReadByte(b);
+  if b = 1 then
+    Include(gPlayers[a].FRulez, R_ITEM_BACKPACK);
+// Наличие красного ключа:
+  Mem.ReadByte(b);
+  if b = 1 then
+    Include(gPlayers[a].FRulez, R_KEY_RED);
+// Наличие зеленого ключа:
+  Mem.ReadByte(b);
+  if b = 1 then
+    Include(gPlayers[a].FRulez, R_KEY_GREEN);
+// Наличие синего ключа:
+  Mem.ReadByte(b);
+  if b = 1 then
+    Include(gPlayers[a].FRulez, R_KEY_BLUE);
+// Наличие берсерка:
+  Mem.ReadByte(b);
+  if b = 1 then
+    Include(gPlayers[a].FRulez, R_BERSERK);
+// Время действия специальных предметов:
+  for i := MR_SUIT to MR_MAX do
+    Mem.ReadDWORD(gPlayers[a].FMegaRulez[i]);
+// Время до повторного респауна, смены оружия, исользования:
+  for i := T_RESPAWN to T_USE do
+    Mem.ReadDWORD(gPlayers[a].FTime[i]);
+
+// Название модели:
+  Mem.ReadString(gPlayers[a].FActualModelName);
+// Цвет модели:
+  Mem.ReadByte(gPlayers[a].FColor.R);
+  Mem.ReadByte(gPlayers[a].FColor.G);
+  Mem.ReadByte(gPlayers[a].FColor.B);
+// Обновляем модель игрока:
+  gPlayers[a].SetModel(gPlayers[a].FActualModelName);
+
+// Нет модели - создание не возможно:
+  if gPlayers[a].FModel = nil then
+  begin
+    gPlayers[a].Free();
+    gPlayers[a] := nil;
+    g_FatalError(Format(_lc[I_GAME_ERROR_MODEL], [gPlayers[a].FActualModelName]));
+    Exit;
+  end;
+
+// Если командная игра - красим модель в цвет команды:
+  if gGameSettings.GameMode in [GM_TDM, GM_CTF] then
+    gPlayers[a].FModel.Color := TEAMCOLOR[gPlayers[a].FTeam]
+  else
+    gPlayers[a].FModel.Color := gPlayers[a].FColor;
 
   Result := gPlayers[a].FUID;
 end;
@@ -773,7 +934,7 @@ begin
                                     _RGB(Min(Random(9)*32, 255),
                                          Min(Random(9)*32, 255),
                                          Min(Random(9)*32, 255)),
-                                    Team, True, 0)) as TBot do
+                                    Team, True)) as TBot do
   begin
     Name := _name;
 
@@ -850,8 +1011,7 @@ begin
     _model := m[Random(Length(m))];
 
 // Создаем бота:
-  with g_Player_Get(g_Player_Create(_model, BotList[num].color,
-                                    Team, True, 0)) as TBot do
+  with g_Player_Get(g_Player_Create(_model, BotList[num].color, Team, True)) as TBot do
   begin
     Name := _name;
 
@@ -2833,8 +2993,8 @@ begin
       else if (a = 1) then
       begin
         if (gPlayers[k] <> nil) and not (gPlayers[k] is TBot) then
-          if (gPlayers[k].FPlayerNum = PLAYERNUM_1) or
-             (gPlayers[k].FPlayerNum = PLAYERNUM_2) then
+          if (gPlayers[k] = gPlayer1) or
+             (gPlayers[k] = gPlayer2) then
             g_Console_Add('*** ' + _lc[I_MESSAGE_LMS_SURVIVOR] + ' ***', True)
           else if Netsrv and (gPlayers[k].FClientID >= 0) then
             MH_SEND_GameEvent(NET_EV_LMS_SURVIVOR, 0, 'N', gPlayers[k].FClientID);
@@ -3481,7 +3641,7 @@ begin
           begin // Приходит в первый раз
             // Точка своего игрока
             c := RESPAWNPOINT_PLAYER1;
-            if FPlayerNum = PLAYERNUM_2 then
+            if Self = gPlayer2 then
               c := RESPAWNPOINT_PLAYER2;
 
             if g_Map_GetPointCount(c) = 0 then
@@ -3509,7 +3669,7 @@ begin
                   begin // Если и её нет,
                     // пробуем точку другого игрока
                     c := RESPAWNPOINT_PLAYER2;
-                    if FPlayerNum = PLAYERNUM_2 then
+                    if Self = gPlayer2 then
                       c := RESPAWNPOINT_PLAYER1;
                   end;
                 end;
@@ -3524,7 +3684,7 @@ begin
             begin // Точек возрождения DM нет
               // Пробуем точку своего игрока:
               c := RESPAWNPOINT_PLAYER1;
-              if FPlayerNum = PLAYERNUM_2 then
+              if Self = gPlayer2 then
                 c := RESPAWNPOINT_PLAYER2;
 
               if g_Map_GetPointCount(c) = 0 then
@@ -3547,7 +3707,7 @@ begin
                   begin // И этой точки нет
                     // Пробуем точку другого игрока:
                     c := RESPAWNPOINT_PLAYER2;
-                    if FPlayerNum = PLAYERNUM_2 then
+                    if Self = gPlayer2 then
                       c := RESPAWNPOINT_PLAYER1;
                   end;
                 end;
@@ -3658,10 +3818,10 @@ begin
       end;
 
     // Точка появления игрока:
-      if (FPlayerNum = PLAYERNUM_1) and (gGameSettings.GameMode <> GM_COOP) then
+      if (Self = gPlayer1) and (gGameSettings.GameMode <> GM_COOP) then
         c := RESPAWNPOINT_PLAYER1
       else
-        if (FPlayerNum = PLAYERNUM_2) and (gGameSettings.GameMode <> GM_COOP) then
+        if (Self = gPlayer2) and (gGameSettings.GameMode <> GM_COOP) then
           c := RESPAWNPOINT_PLAYER2
         else
         begin
@@ -5046,7 +5206,7 @@ begin
   Mem.ReadWord(FUID);
 // Имя игрока:
   Mem.ReadString(str);
-  if (FPlayerNum <> 1) and (FPlayerNum <> 2) then
+  if (Self <> gPlayer1) and (Self <> gPlayer2) then
     FName := str;
 // Команда:
   Mem.ReadByte(FTeam);
@@ -5140,12 +5300,12 @@ begin
   Mem.ReadByte(FColor.R);
   Mem.ReadByte(FColor.G);
   Mem.ReadByte(FColor.B);
-  if FPlayerNum = 1 then
+  if Self = gPlayer1 then
   begin
     str := gPlayer1Settings.Model;
     FColor := gPlayer1Settings.Color;
   end;
-  if FPlayerNum = 2 then
+  if Self = gPlayer2 then
   begin
     str := gPlayer2Settings.Model;
     FColor := gPlayer2Settings.Color;

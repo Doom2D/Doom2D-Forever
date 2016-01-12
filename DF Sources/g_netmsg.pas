@@ -355,7 +355,7 @@ begin
   Color.B := B;
   Color.G := G;
 
-  PID := g_Player_Create(Model, Color, T, False, 0);
+  PID := g_Player_Create(Model, Color, T, False);
   with g_Player_Get(PID) do
   begin
     Name := PName;
@@ -1858,7 +1858,7 @@ begin
   if (PID <> NetPlrUID1) and (PID <> NetPlrUID2) then
   begin
     if (Pl <> nil) then Exit;
-    DID := g_Player_Create(Model, Color, T, False, 0);
+    DID := g_Player_Create(Model, Color, T, False);
     with g_Player_Get(DID) do
     begin
       UID := PID;

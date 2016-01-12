@@ -336,7 +336,11 @@ begin
       Exit;
     end;
 
+    e_WriteLog('Loading saved game...', MSG_NOTIFY);
+    g_Game_Free();
+
     g_Game_ClearLoading();
+    g_Game_LoadData();
     g_Game_SetLoadingText(_lc[I_LOAD_SAVE_FILE], 0, False);
     gLoadGameMode := True;
 
@@ -392,15 +396,45 @@ begin
   ///// /////
 
   // Загружаем карту:
+    ZeroMemory(@gGameSettings, SizeOf(TGameSettings));
+    gAimLine := False;
+    gShowMap := False;
     if (Game_Type = GT_NONE) or (Game_Type = GT_SINGLE) then
-      g_Game_StartSingle(WAD_Path + ':\' + Map_Name,
-                         (PID1 > 0) and (PID2 > 0),
-                         nPlayers)
+    begin
+    // Настройки игры:
+      gGameSettings.GameType := GT_SINGLE;
+      gGameSettings.MaxLives := 0;
+      gGameSettings.Options := gGameSettings.Options + GAME_OPTION_ALLOWEXIT;
+      gGameSettings.Options := gGameSettings.Options + GAME_OPTION_MONSTERS;
+      gGameSettings.Options := gGameSettings.Options + GAME_OPTION_BOTVSMONSTER;
+      gSwitchGameMode := GM_SINGLE;
+    end
     else
-      g_Game_StartCustom(WAD_Path + ':\' + Map_Name,
-                         Game_Mode, Game_TimeLimit,
-                         Game_GoalLimit, Game_MaxLives, Game_Options,
-                         nPlayers);
+    begin
+    // Настройки игры:
+      gGameSettings.GameType := GT_CUSTOM;
+      gGameSettings.GameMode := Game_Mode;
+      gSwitchGameMode := Game_Mode;
+      gGameSettings.TimeLimit := Game_TimeLimit;
+      gGameSettings.GoalLimit := Game_GoalLimit;
+      gGameSettings.MaxLives := IfThen(Game_Mode = GM_CTF, 0, Game_MaxLives);
+      gGameSettings.Options := Game_Options;
+    end;
+    g_Game_ExecuteEvent('ongamestart');
+
+  // Установка размеров окон игроков:
+    g_Game_SetupScreenSize();
+
+  // Загрузка и запуск карты:
+    if not g_Game_StartMap(WAD_Path + ':\' + Map_Name, True) then
+    begin
+      g_FatalError(Format(_lc[I_GAME_ERROR_MAP_LOAD], [WAD_Path + ':\' + Map_Name]));
+      Exit;
+    end;
+
+  // Настройки игроков и ботов:
+    g_Player_Init();
+
   // Устанавливаем время:
     gTime := Game_Time;
   // Возвращаем статы:
@@ -468,12 +502,6 @@ begin
   ///// Загружаем игроков (в том числе ботов): /////
     if nPlayers > 0 then
     begin
-    // Есть ли вообще игроки:
-      if gPlayers = nil then
-      begin
-        raise EInOutError.Create('g_LoadGame: No Players');
-      end;
-
     // Загружаем:
       for i := 0 to nPlayers-1 do
       begin
@@ -481,19 +509,29 @@ begin
         bMem := TBinMemoryReader.Create();
         bFile.ReadMemory(bMem);
       // Состояние игрока/бота:
-        if gPlayers[i] = nil then
-        begin
-          raise EInOutError.Create('g_LoadGame: Nil Player');
-        end;
-        gPlayers[i].LoadState(bMem);
-      // Привязываем игроков к областям просмотра:
-        if gPlayers[i].UID = PID1 then
-          gPlayer1 := gPlayers[i]
-        else if gPlayers[i].UID = PID2 then
-          gPlayer2 := gPlayers[i];
+        g_Player_CreateFromState(bMem);
         bMem.Free();
         bMem := nil;
       end;
+    end;
+  // Привязываем основных игроков к областям просмотра:
+    gPlayer1 := g_Player_Get(PID1);
+    gPlayer2 := g_Player_Get(PID2);
+    if gPlayer1 <> nil then
+    begin
+      gPlayer1.Name := gPlayer1Settings.Name;
+      gPlayer1.FPreferredTeam := gPlayer1Settings.Team;
+      gPlayer1.FActualModelName := gPlayer1Settings.Model;
+      gPlayer1.SetModel(gPlayer1.FActualModelName);
+      gPlayer1.SetColor(gPlayer1Settings.Color);
+    end;
+    if gPlayer2 <> nil then
+    begin
+      gPlayer2.Name := gPlayer2Settings.Name;
+      gPlayer2.FPreferredTeam := gPlayer2Settings.Team;
+      gPlayer2.FActualModelName := gPlayer2Settings.Model;
+      gPlayer2.SetModel(gPlayer2.FActualModelName);
+      gPlayer2.SetColor(gPlayer2Settings.Color);
     end;
   ///// /////
 
