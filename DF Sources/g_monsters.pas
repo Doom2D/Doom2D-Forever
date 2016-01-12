@@ -1666,7 +1666,8 @@ begin
         if gLMSRespawn = LMS_RESPAWN_NONE then
         begin
           Inc(gCoopMonstersKilled);
-          if g_Game_IsNet then MH_SEND_GameStats;
+          if g_Game_IsNet then
+            MH_SEND_GameStats;
         end;
       end;
 
@@ -2029,13 +2030,19 @@ begin
 // Вылетел за карту - удаляем и запускаем триггеры:
   if WordBool(st and MOVE_FALLOUT) or (FObj.X < -1000) or
      (FObj.X > gMapInfo.Width+1000) or (FObj.Y < -1000) then
-   begin
+  begin
     FRemoved := True;
+    if gLMSRespawn = LMS_RESPAWN_NONE then
+    begin
+      Inc(gCoopMonstersKilled);
+      if g_Game_IsNet then
+        MH_SEND_GameStats;
+    end;
     ActivateTriggers();
     Exit;
-   end;
+  end;
 
-   oldvelx := FObj.Vel.X;
+  oldvelx := FObj.Vel.X;
 
 // Сопротивление воздуха для трупа:
   if (FState = STATE_DIE) or (FState = STATE_DEAD) then
@@ -2918,10 +2925,10 @@ begin
 // Вылетел за карту - удаляем и запускаем триггеры:
   if WordBool(st and MOVE_FALLOUT) or (FObj.X < -1000) or
      (FObj.X > gMapInfo.Width+1000) or (FObj.Y < -1000) then
-   begin
+  begin
     FRemoved := True;
     Exit;
-   end;
+  end;
 
   oldvelx := FObj.Vel.X;
 
