@@ -89,6 +89,7 @@ procedure g_Game_CheckVote;
 procedure g_TakeScreenShot();
 procedure g_FatalError(Text: String);
 procedure g_SimpleError(Text: String);
+function  g_Game_IsTestMap(): Boolean;
 procedure g_Game_DeleteTestMap();
 procedure GameCVars(P: SArray);
 procedure GameCommands(P: SArray);
@@ -3952,6 +3953,14 @@ begin
 
   if gNextMap <> '' then Exit;
   gNextMap := g_Game_GetNextMap();
+end;
+
+function g_Game_IsTestMap(): Boolean;
+var
+  FName, Sect, Res: String;
+begin
+  g_ProcessResourceStr(gMapInfo.Map, FName, Sect, Res);
+  Result := UpperCase(Res) = TEST_MAP_NAME;
 end;
 
 procedure g_Game_DeleteTestMap();

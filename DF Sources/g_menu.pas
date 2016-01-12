@@ -881,6 +881,7 @@ var
   a: Integer;
 begin
   if g_Game_IsNet then Exit;
+  if g_Game_IsTestMap then Exit;
   a := StrToInt(Copy(Sender.Name, Length(Sender.Name), 1));
   g_Game_PauseAllSounds(True);
   g_SaveGame(a, TGUIEdit(Sender).Text);
@@ -998,7 +999,7 @@ begin
 
   if a = '' then Exit;
 
-  b := g_PlayerModel_GetInfo(a); 
+  b := g_PlayerModel_GetInfo(a);
 
   with TGUIMenu(g_GUI_GetWindow('OptionsPlayersMIMenu').GetControl('mOptionsPlayersMIMenu')) do
   begin
@@ -1098,6 +1099,8 @@ begin
     Enabled := False; // Один из игроков погиб в сингле
   if not gGameOn then
     Enabled := False; // Запретить сохранение в интермиссии (не реализовано)
+  if g_Game_IsTestMap then
+    Enabled := False; // Если играем на тестовой или временной карте
   TGUIMainMenu(g_ActiveWindow.GetControl(
     g_ActiveWindow.DefControl )).EnableButton('save', Enabled);
 end;
@@ -2860,6 +2863,8 @@ end;
 
 procedure g_Menu_Show_SaveMenu();
 begin
+  if g_Game_IsTestMap then
+    Exit;
   if gGameSettings.GameType = GT_SINGLE then
     g_GUI_ShowWindow('GameSingleMenu')
   else
