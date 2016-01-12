@@ -4157,7 +4157,13 @@ var
 begin
   Result := False;
 
-  if g_CollideLevel(X, Y, PLAYER_RECT.Width, PLAYER_RECT.Height) then Exit;
+  if g_CollideLevel(X, Y, PLAYER_RECT.Width, PLAYER_RECT.Height) then
+  begin
+    g_Sound_PlayExAt('SOUND_GAME_NOTELEPORT', FObj.X, FObj.Y);
+    if g_Game_IsServer and g_Game_IsNet then
+      MH_SEND_Sound(FObj.X, FObj.Y, 'SOUND_GAME_NOTELEPORT');
+    Exit;
+  end;
 
   FJustTeleported := True;
 

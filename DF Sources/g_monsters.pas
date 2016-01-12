@@ -1936,7 +1936,12 @@ begin
 
 // В точке назначения стена:
   if g_CollideLevel(X, Y, FObj.Rect.Width, FObj.Rect.Height) then
+  begin
+    g_Sound_PlayExAt('SOUND_GAME_NOTELEPORT', FObj.X, FObj.Y);
+    if g_Game_IsServer and g_Game_IsNet then
+      MH_SEND_Sound(FObj.X, FObj.Y, 'SOUND_GAME_NOTELEPORT');
     Exit;
+  end;
 
   TA := nil;
 
@@ -1949,10 +1954,10 @@ begin
     g_GFX_OnceAnim(FObj.X+FObj.Rect.X+(FObj.Rect.Width div 2)-32,
                    FObj.Y+FObj.Rect.Y+(FObj.Rect.Height div 2)-32, TA);
 
-  if g_Game_IsServer and g_Game_IsNet then
-    MH_SEND_Effect(FObj.X+FObj.Rect.X+(FObj.Rect.Width div 2)-32,
-                   FObj.Y+FObj.Rect.Y+(FObj.Rect.Height div 2)-32, 1,
-                   NET_GFX_TELE);
+    if g_Game_IsServer and g_Game_IsNet then
+      MH_SEND_Effect(FObj.X+FObj.Rect.X+(FObj.Rect.Width div 2)-32,
+                     FObj.Y+FObj.Rect.Y+(FObj.Rect.Height div 2)-32, 1,
+                     NET_GFX_TELE);
   end;
 
   FObj.X := X - FObj.Rect.X;

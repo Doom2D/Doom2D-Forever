@@ -1732,6 +1732,7 @@ begin
   g_Texture_CreateWADEx('TEXTURE_PLAYER_BLUEFLAG_D', GameWAD+':TEXTURES\FLAGHUD_BD');
   g_Frames_CreateWAD(nil, 'FRAMES_TELEPORT', GameWAD+':TEXTURES\TELEPORT', 64, 64, 10, False);
   g_Sound_CreateWADEx('SOUND_GAME_TELEPORT', GameWAD+':SOUNDS\TELEPORT');
+  g_Sound_CreateWADEx('SOUND_GAME_NOTELEPORT', GameWAD+':SOUNDS\NOTELEPORT');
   g_Sound_CreateWADEx('SOUND_GAME_DOOROPEN', GameWAD+':SOUNDS\DOOROPEN');
   g_Sound_CreateWADEx('SOUND_GAME_DOORCLOSE', GameWAD+':SOUNDS\DOORCLOSE');
   g_Sound_CreateWADEx('SOUND_GAME_BULK1', GameWAD+':SOUNDS\BULK1');
@@ -1767,6 +1768,7 @@ begin
   g_Texture_Delete('TEXTURE_PLAYER_BLUEFLAG_D');
   g_Frames_DeleteByName('FRAMES_TELEPORT');
   g_Sound_Delete('SOUND_GAME_TELEPORT');
+  g_Sound_Delete('SOUND_GAME_NOTELEPORT');
   g_Sound_Delete('SOUND_GAME_DOOROPEN');
   g_Sound_Delete('SOUND_GAME_DOORCLOSE');
   g_Sound_Delete('SOUND_GAME_BULK1');
