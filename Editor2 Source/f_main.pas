@@ -2757,16 +2757,14 @@ begin
   e_DrawPoint(3, MousePos.X, MousePos.Y, 0, 0, 255);
 
 // Мини-карта:
-  if ShowMap and
-     ((gMapInfo.Width > RenderPanel.Width) or
-      (gMapInfo.Height > RenderPanel.Height)) then
+  if ShowMap then
   begin
   // Сколько пикселов карты в 1 пикселе мини-карты:
     ScaleSz := 16 div Scale;
   // Размеры мини-карты:
     aX := max(gMapInfo.Width div ScaleSz, 1);
     aY := max(gMapInfo.Height div ScaleSz, 1);
-  // X-координата на RenderPanel нулевой x-координаты карты: 
+  // X-координата на RenderPanel нулевой x-координаты карты:
     XX := RenderPanel.Width - aX - 1;
   // Рамка карты:
     e_DrawFillQuad(XX-1, 0, RenderPanel.Width-1, aY+1, 0, 0, 0, 0);
@@ -2827,19 +2825,23 @@ begin
                 end;
     end;
 
-  // Окно, показывающее текущее положение экрана на карте:
-  // Размеры окна:
-    x := max(min(RenderPanel.Width, gMapInfo.Width) div ScaleSz, 1);
-    y := max(min(RenderPanel.Height, gMapInfo.Height) div ScaleSz, 1);
-  // Левый верхний угол:
-    aX := XX + ((-MapOffset.X) div ScaleSz);
-    aY := 1 + ((-MapOffset.Y) div ScaleSz);
-  // Правый нижний угол:
-    aX2 := aX + x - 1;
-    aY2 := aY + y - 1;
-    
-    e_DrawFillQuad(aX, aY, aX2, aY2, 127, 192, 127, 127, B_BLEND);
-    e_DrawQuad(aX, aY, aX2, aY2, 255, 0, 0);
+    if (gMapInfo.Width > RenderPanel.Width) or
+       (gMapInfo.Height > RenderPanel.Height) then
+    begin
+    // Окно, показывающее текущее положение экрана на карте:
+    // Размеры окна:
+      x := max(min(RenderPanel.Width, gMapInfo.Width) div ScaleSz, 1);
+      y := max(min(RenderPanel.Height, gMapInfo.Height) div ScaleSz, 1);
+    // Левый верхний угол:
+      aX := XX + ((-MapOffset.X) div ScaleSz);
+      aY := 1 + ((-MapOffset.Y) div ScaleSz);
+    // Правый нижний угол:
+      aX2 := aX + x - 1;
+      aY2 := aY + y - 1;
+
+      e_DrawFillQuad(aX, aY, aX2, aY2, 127, 192, 127, 127, B_BLEND);
+      e_DrawQuad(aX, aY, aX2, aY2, 255, 0, 0);
+    end;
   end; // Мини-карта
 
   e_EndRender();
@@ -3005,8 +3007,6 @@ begin
   begin
   // Двигаем карту с помощью мыши и мини-карты:
     if ShowMap and
-       ((gMapInfo.Width > RenderPanel.Width) or
-        (gMapInfo.Height > RenderPanel.Height)) and
        g_CollidePoint(X, Y,
                       RenderPanel.Width-max(gMapInfo.Width div (16 div Scale), 1)-1,
                       1,
@@ -3130,8 +3130,6 @@ begin
   begin
   // Клик по мини-карте:
     if ShowMap and
-       ((gMapInfo.Width > RenderPanel.Width) or
-        (gMapInfo.Height > RenderPanel.Height)) and
        g_CollidePoint(X, Y,
                       RenderPanel.Width-max(gMapInfo.Width div (16 div Scale), 1)-1,
                       1,
