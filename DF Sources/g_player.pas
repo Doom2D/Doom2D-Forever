@@ -2710,7 +2710,8 @@ begin
   begin
     if BodyInLiquid(0, 0) then
       FObj.Vel.Y := -VEL_SW
-    else if (FJetFuel > 0) and FCanJetpack and g_Game_IsServer then
+    else if (FJetFuel > 0) and FCanJetpack and
+            g_Game_IsServer and (not g_Obj_CollideLiquid(@FObj, 0, 0)) then
     begin
       FJetpack := True;
       JetpackOn;
@@ -5730,7 +5731,7 @@ begin
       case FCurrWeap of
         WEAPON_PLASMA, WEAPON_SUPERPULEMET, WEAPON_CHAINGUN: PressKey(KEY_FIRE, 20);
         WEAPON_SAW, WEAPON_KASTET, WEAPON_MEGAKASTET: PressKey(KEY_FIRE, 40);
-        else PressKey(KEY_FIRE, 0);
+        else PressKey(KEY_FIRE);
       end;
     end;
 
@@ -6514,7 +6515,7 @@ procedure TBot.UpdateMove;
 begin
 // Возможно, нажимаем кнопку:
   if Rnd(16) then
-    PressKey(KEY_OPEN, 0);
+    PressKey(KEY_OPEN);
 
 // Если под лифтом или ступеньками, то, возможно, прыгаем:
   if OnLadder() or ((BelowLadder() or BelowLiftUp()) and Rnd(8)) then
@@ -6631,7 +6632,7 @@ begin
         Jump()
       else // иначе попытаемся в другую сторону
         if Random(2) = 0 then
-          PressKey(KEY_OPEN, 0)
+          PressKey(KEY_OPEN)
         else
           Turn();
     end;

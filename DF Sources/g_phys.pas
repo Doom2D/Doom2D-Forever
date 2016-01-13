@@ -37,6 +37,7 @@ function  g_Obj_CollidePoint(X, Y: Integer; Obj: PObj): Boolean;
 function  g_Obj_CollideLevel(Obj: PObj; XInc, YInc: Integer): Boolean;
 function  g_Obj_CollideStep(Obj: PObj; XInc, YInc: Integer): Boolean;
 function  g_Obj_CollideWater(Obj: PObj; XInc, YInc: Integer): Boolean;
+function  g_Obj_CollideLiquid(Obj: PObj; XInc, YInc: Integer): Boolean;
 function  g_Obj_CollidePanel(Obj: PObj; XInc, YInc: Integer; PanelType: Word): Boolean;
 function  g_Obj_StayOnStep(Obj: PObj): Boolean;
 procedure g_Obj_Push(Obj: PObj; VelX, VelY: Integer);
@@ -172,6 +173,13 @@ begin
   Result := g_Map_CollidePanel(Obj^.X+Obj^.Rect.X+XInc, Obj^.Y+Obj.Rect.Y+YInc,
                                Obj^.Rect.Width, Obj^.Rect.Height,
                                PANEL_WATER, False);
+end;
+
+function g_Obj_CollideLiquid(Obj: PObj; XInc, YInc: Integer): Boolean;
+begin
+  Result := g_Map_CollidePanel(Obj^.X+Obj^.Rect.X+XInc, Obj^.Y+Obj.Rect.Y+YInc,
+                               Obj^.Rect.Width, Obj^.Rect.Height,
+                               PANEL_WATER or PANEL_ACID1 or PANEL_ACID2, False);
 end;
 
 function g_Obj_CollidePanel(Obj: PObj; XInc, YInc: Integer; PanelType: Word): Boolean;
