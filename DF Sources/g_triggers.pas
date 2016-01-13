@@ -1813,7 +1813,7 @@ begin
 
   for a := 0 to High(gTriggers) do
     with gTriggers[a] do
-    // Есть триггер и он включен:
+    // Есть триггер:
       if TriggerType <> TRIGGER_NONE then
       begin
       // Уменьшаем время до закрытия двери (открытия ловушки):
