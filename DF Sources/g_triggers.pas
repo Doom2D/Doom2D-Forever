@@ -1967,19 +1967,24 @@ begin
                 TRIGGER_OFF:
                   begin
                     gTriggers[b].Enabled := False;
-                    if AutoSpawn then
+                    gTriggers[b].TimeOut := 0;
+                    if gTriggers[b].AutoSpawn then
                     begin
-                      AutoSpawn := False;
-                      SpawnCooldown := 0;
+                      gTriggers[b].AutoSpawn := False;
+                      gTriggers[b].SpawnCooldown := 0;
                     end;
                   end;
                 TRIGGER_ONOFF:
                   begin
                     gTriggers[b].Enabled := not gTriggers[b].Enabled;
-                    if AutoSpawn and (not gTriggers[b].Enabled) then
+                    if not gTriggers[b].Enabled then
                     begin
-                      AutoSpawn := False;
-                      SpawnCooldown := 0;
+                      gTriggers[b].TimeOut := 0;
+                      if gTriggers[b].AutoSpawn then
+                      begin
+                        gTriggers[b].AutoSpawn := False;
+                        gTriggers[b].SpawnCooldown := 0;
+                      end;
                     end;
                   end;
               end;
