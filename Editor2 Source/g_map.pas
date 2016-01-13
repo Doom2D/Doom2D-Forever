@@ -2362,10 +2362,8 @@ begin
             TRIGGER_PRESS, TRIGGER_ON,
             TRIGGER_OFF, TRIGGER_ONOFF:
               begin
-                if (Data.tX <> 0) or
-                   (Data.tY <> 0) or
-                   (Data.tWidth <> 0) or
-                   (Data.tHeight <> 0) then
+                if (Data.tWidth > 0) and
+                   (Data.tHeight > 0) then
                 begin
                 // Область Расширителя:
                   e_DrawQuad(MapOffset.X+Data.tX,
