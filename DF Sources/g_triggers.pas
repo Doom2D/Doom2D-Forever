@@ -1814,7 +1814,7 @@ begin
   for a := 0 to High(gTriggers) do
     with gTriggers[a] do
     // Есть триггер и он включен:
-      if (TriggerType <> TRIGGER_NONE) and Enabled then
+      if TriggerType <> TRIGGER_NONE then
       begin
       // Уменьшаем время до закрытия двери (открытия ловушки):
         if DoorTime > 0 then
@@ -1837,7 +1837,7 @@ begin
           end;
 
       // Обрабатываем спавнеры:
-        if AutoSpawn then
+        if Enabled and AutoSpawn then
           if SpawnCooldown = 0 then
           begin
             // Если пришло время, спавним монстра:
@@ -1885,7 +1885,7 @@ begin
         end;
 
       // Триггер "Звук" уже отыграл, если нужно еще - перезапускаем:
-        if (TriggerType = TRIGGER_SOUND) and (Sound <> nil) then
+        if Enabled and (TriggerType = TRIGGER_SOUND) and (Sound <> nil) then
           if (SoundPlayCount > 0) and (not Sound.IsPlaying()) then
           begin
             if Data.PlayCount > 0 then // Если 0 - играем звук бесконечно
@@ -1998,6 +1998,10 @@ begin
           TimeOut := TimeOut - 1;
           Continue; // Чтобы не потерять 1 единицу задержки
         end;
+
+      // Ниже идут типы активации, если триггер отключён - идём дальше
+        if not Enabled then
+          Continue;
 
       // "Игрок близко":
         if ByteBool(ActivateType and ACTIVATE_PLAYERCOLLIDE) and
