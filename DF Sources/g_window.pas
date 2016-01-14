@@ -46,6 +46,8 @@ var
   wCursorShown: Boolean = False;
   wMinimized: Boolean = False;
   wNeedFree: Boolean = True;
+  wLoadingProgress: Boolean = False;
+  wLoadingQuit: Boolean = False;
   {wWinPause: Byte = 0;}
 
 const
@@ -277,10 +279,13 @@ begin
     WM_CLOSE:
       begin // Окно закрыто
         if gExit <> EXIT_QUIT then
-        begin
-          g_Game_Free();
-          g_Game_Quit();
-        end;
+          if not wLoadingProgress then
+          begin
+            g_Game_Free();
+            g_Game_Quit();
+          end
+          else
+            wLoadingQuit := True;
         Result := 0;
       end;
 
@@ -637,6 +642,7 @@ var
 begin
   k := 0;
   wNeedFree := False;
+  wLoadingProgress := True;
   while PeekMessage(msg, 0, 0, 0, PM_REMOVE) and
         (k < MAX_HANDLED_MESSAGES) do
   begin
@@ -654,7 +660,10 @@ begin
   wNeedFree := True;
 
   if (msg.message = WM_QUIT) or (gExit = EXIT_QUIT) then
+  begin
+    wLoadingProgress := False;
     Exit;
+  end;
 
   if not wMinimized then
   begin
@@ -677,6 +686,7 @@ begin
   else
     if (NetMode = NET_CLIENT) and (NetState <> NET_STATE_AUTH) then
       g_Net_Client_UpdateWhileLoading;
+  wLoadingProgress := False;
 end;
 
 function ProcessMessage(): Boolean;
@@ -697,7 +707,7 @@ begin
     Result := True;
     Exit;
   end;
-    
+
   Time := GetTimer();
   Time_Delta := Time - Time_Old;
 
@@ -708,7 +718,7 @@ begin
     Time_Delta := 27777;
     wNeedTimeReset := False;
   end;
-  
+
   t := Time_Delta div 27777;
   if t > 0 then
   begin
@@ -724,6 +734,12 @@ begin
   begin
     if NetMode = NET_SERVER then g_Net_Host_Update()
     else if NetMode = NET_CLIENT then g_Net_Client_Update();
+  end;
+
+  if wLoadingQuit then
+  begin
+    g_Game_Free();
+    g_Game_Quit();
   end;
 
   if gExit = EXIT_QUIT then
