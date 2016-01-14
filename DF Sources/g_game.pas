@@ -311,7 +311,7 @@ var
   FPS, UPS: Word;
   FPSCounter, UPSCounter: Word;
   FPSTime, UPSTime: LongWord;
-  DataLoaded: Boolean;
+  DataLoaded: Boolean = False;
   LastScreenShot: Int64;
   IsDrawStat: Boolean = False;
   CustomStat: TEndCustomGameStat;
@@ -980,11 +980,11 @@ begin
   LoadFont('SMALLTXT', 'SMALLFONT', CHRWDT2, CHRHGT2, FNTSPC2, gMenuSmallFont);
 
   g_Game_ClearLoading();
-  g_Game_SetLoadingText(_lc[I_LOAD_MUSIC], 0, False);
-  g_Sound_CreateWADEx('MUSIC_INTERMUS', GameWAD+':MUSIC\INTERMUS', True);
-  g_Sound_CreateWADEx('MUSIC_MENU', GameWAD+':MUSIC\MENU', True);
-  g_Sound_CreateWADEx('MUSIC_ROUNDMUS', GameWAD+':MUSIC\ROUNDMUS');
-  g_Sound_CreateWADEx('MUSIC_STDENDMUS', GameWAD+':MUSIC\ENDMUS', True);
+  g_Game_SetLoadingText(Format('Doom 2D: Forever %s', [GAME_VERSION]), 0, False);
+  g_Game_SetLoadingText('', 0, False);
+
+  g_Game_SetLoadingText(_lc[I_LOAD_CONSOLE], 0, False);
+  g_Console_Init();
 
   g_Game_SetLoadingText(_lc[I_LOAD_MODELS], 0, False);
   g_PlayerModel_LoadData();
@@ -996,20 +996,24 @@ begin
     until FindNext(SR) <> 0;
   FindClose(SR);
 
-  g_Game_SetLoadingText(_lc[I_LOAD_MENUS], 0, False);
-  g_Menu_Init();
-
-  g_Game_SetLoadingText(_lc[I_LOAD_CONSOLE], 0, False);
-  g_Console_Init();
-
-  DataLoaded := False;
-
   gGameOn := False;
   gPause := False;
   gTime := 0;
   LastScreenShot := 0;
 
   e_MouseInfo.Accel := 1.0;
+
+  g_Game_SetLoadingText(_lc[I_LOAD_GAME_DATA], 0, False);
+  g_Game_LoadData();
+
+  g_Game_SetLoadingText(_lc[I_LOAD_MUSIC], 0, False);
+  g_Sound_CreateWADEx('MUSIC_INTERMUS', GameWAD+':MUSIC\INTERMUS', True);
+  g_Sound_CreateWADEx('MUSIC_MENU', GameWAD+':MUSIC\MENU', True);
+  g_Sound_CreateWADEx('MUSIC_ROUNDMUS', GameWAD+':MUSIC\ROUNDMUS');
+  g_Sound_CreateWADEx('MUSIC_STDENDMUS', GameWAD+':MUSIC\ENDMUS', True);
+
+  g_Game_SetLoadingText(_lc[I_LOAD_MENUS], 0, False);
+  g_Menu_Init();
 
   gMusic := TMusic.Create();
   gMusic.SetByName('MUSIC_MENU');
@@ -1707,17 +1711,7 @@ procedure g_Game_LoadData();
 begin
   if DataLoaded then Exit;
 
-  g_Game_SetLoadingText(_lc[I_LOAD_ITEMS_DATA], 0, False);
-  g_Items_LoadData();
-
-  g_Game_SetLoadingText(_lc[I_LOAD_WEAPONS_DATA], 0, False);
-  g_Weapon_LoadData();
-
-  g_Monsters_LoadData();
-
   e_WriteLog('Loading game data...', MSG_NOTIFY);
-
-  g_Game_SetLoadingText(_lc[I_LOAD_GAME_DATA], 0, False);
 
   g_Texture_CreateWADEx('NOTEXTURE', GameWAD+':TEXTURES\NOTEXTURE');
   g_Texture_CreateWADEx('TEXTURE_PLAYER_HUD', GameWAD+':TEXTURES\HUD');
@@ -1743,6 +1737,14 @@ begin
   g_Sound_CreateWADEx('SOUND_GAME_SWITCH1', GameWAD+':SOUNDS\SWITCH1');
   g_Sound_CreateWADEx('SOUND_GAME_SWITCH0', GameWAD+':SOUNDS\SWITCH0');
   g_Sound_CreateWADEx('SOUND_GAME_RADIO', GameWAD+':SOUNDS\RADIO');
+
+  g_Game_SetLoadingText(_lc[I_LOAD_ITEMS_DATA], 0, False);
+  g_Items_LoadData();
+
+  g_Game_SetLoadingText(_lc[I_LOAD_WEAPONS_DATA], 0, False);
+  g_Weapon_LoadData();
+
+  g_Monsters_LoadData();
 
   DataLoaded := True;
 end;
@@ -3101,7 +3103,6 @@ begin
   e_WriteLog('Starting singleplayer game...', MSG_NOTIFY);
 
   g_Game_ClearLoading();
-  g_Game_LoadData();
 
 // Настройки игры:
   ZeroMemory(@gGameSettings, SizeOf(TGameSettings));
@@ -3175,7 +3176,6 @@ begin
   e_WriteLog('Starting custom game...', MSG_NOTIFY);
 
   g_Game_ClearLoading();
-  g_Game_LoadData();
 
 // Настройки игры:
   gGameSettings.GameType := GT_CUSTOM;
@@ -3274,7 +3274,6 @@ begin
   e_WriteLog('Starting net game (server)...', MSG_NOTIFY);
 
   g_Game_ClearLoading();
-  g_Game_LoadData();
 
 // Настройки игры:
   gGameSettings.GameType := GT_SERVER;
@@ -3385,7 +3384,6 @@ begin
   e_WriteLog('NET: Trying to connect to ' + Addr + ':' + IntToStr(Port) + '...', MSG_NOTIFY);
 
   g_Game_ClearLoading();
-  g_Game_LoadData();
 
 // Настройки игры:
   gGameSettings.GameType := GT_CLIENT;

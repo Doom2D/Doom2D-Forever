@@ -340,7 +340,6 @@ begin
     g_Game_Free();
 
     g_Game_ClearLoading();
-    g_Game_LoadData();
     g_Game_SetLoadingText(_lc[I_LOAD_SAVE_FILE], 0, False);
     gLoadGameMode := True;
 
