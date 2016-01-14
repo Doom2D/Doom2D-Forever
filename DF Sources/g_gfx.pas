@@ -345,7 +345,8 @@ begin
       Y := fY - DevY1 + Random(DevY2);
 
       if (X < 0) or (X > gMapInfo.Width-1) or
-         (Y < 0) or (Y > gMapInfo.Height-1) then
+         (Y < 0) or (Y > gMapInfo.Height-1) or
+         ByteBool(gCollideMap[Y, X] and MARK_WALL) then
         Continue;
 
       VelX := vx + (Random-Random)*3;
