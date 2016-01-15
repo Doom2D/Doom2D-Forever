@@ -2309,10 +2309,10 @@ begin
       e_CharFont_GetSize(gMenuFont, s, tw, th);
       e_CharFont_PrintEx(gMenuFont, X-16-tw, SY-32, s, _RGB(0, 255, 0));
     end;
-
-    e_CharFont_GetSize(gMenuSmallFont, FName, tw, th);
-    e_CharFont_PrintEx(gMenuSmallFont, X+98-(tw div 2), Y+8, FName, _RGB(255, 0, 0));
   end;
+
+  e_CharFont_GetSize(gMenuSmallFont, FName, tw, th);
+  e_CharFont_PrintEx(gMenuSmallFont, X+98-(tw div 2), Y+8, FName, _RGB(255, 0, 0));
 
   e_Draw(gItemsTexturesID[ITEM_MEDKIT_LARGE], X+37, Y+45, 0, True, False);
 
