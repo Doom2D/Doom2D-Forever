@@ -13,15 +13,15 @@ type
     I_CONSOLE_ERROR_READ,
     I_CONSOLE_ERROR_WRITE,
     I_CONSOLE_SCREENSHOT,
-    I_CONSOLE_UNKNOWN,                
+    I_CONSOLE_UNKNOWN,
     I_CONSOLE_WELCOME,
 
-    I_GAME_ERROR_GET_SPAWN,              
+    I_GAME_ERROR_GET_SPAWN,
     I_GAME_ERROR_CTF,
     I_GAME_ERROR_MAP_WAD,
     I_GAME_ERROR_MAP_RES,
     I_GAME_ERROR_MAP_LOAD,
-    I_GAME_ERROR_MAP_SELECT,          
+    I_GAME_ERROR_MAP_SELECT,
     I_GAME_ERROR_PLAYER_CREATE,
     I_GAME_ERROR_TEXTURE_ANIM,
     I_GAME_ERROR_TEXTURE_SIMPLE,
@@ -85,14 +85,14 @@ type
     I_GAME_CHEAT_AUTOMAP,
 
     I_MENU_START_GAME,
-    I_MENU_MAIN_MENU,                 
+    I_MENU_MAIN_MENU,
     I_MENU_NEW_GAME,                  
     I_MENU_MULTIPLAYER,               
     I_MENU_OPTIONS,
     I_MENU_AUTHORS,                   
     I_MENU_EXIT,                      
     I_MENU_1_PLAYER,                  
-    I_MENU_2_PLAYERS,                 
+    I_MENU_2_PLAYERS,
     I_MENU_CUSTOM_GAME,
     I_MENU_CAMPAIGN,
     I_MENU_START_SERVER,
@@ -101,7 +101,7 @@ type
     I_MENU_VIDEO_OPTIONS,             
     I_MENU_SOUND_OPTIONS,             
     I_MENU_SAVED_OPTIONS,             
-    I_MENU_DEFAULT_OPTIONS,           
+    I_MENU_DEFAULT_OPTIONS,
     I_MENU_GAME_OPTIONS,              
     I_MENU_CONTROLS_OPTIONS,          
     I_MENU_PLAYER_OPTIONS,
@@ -124,7 +124,7 @@ type
     I_MENU_MAP,                       
     I_MENU_GAME_TYPE,                 
     I_MENU_GAME_TYPE_DM,              
-    I_MENU_GAME_TYPE_CTF,             
+    I_MENU_GAME_TYPE_CTF,
     I_MENU_GAME_TYPE_TDM,             
     I_MENU_GAME_TYPE_COOP,
     I_MENU_GAME_TYPE_SINGLE,
@@ -140,11 +140,11 @@ type
     I_MENU_BOTS_VS_MONSTERS,          
     I_MENU_BOTS_VS_ALL,               
 
-    I_MENU_MAP_WAD,                   
+    I_MENU_MAP_WAD,
     I_MENU_MAP_RESOURCE,              
     I_MENU_MAP_NAME,                  
     I_MENU_MAP_AUTHOR,                
-    I_MENU_MAP_DESCRIPTION,           
+    I_MENU_MAP_DESCRIPTION,
     I_MENU_MAP_SIZE,
     I_MENU_PLAYERS,
     I_MENU_PLAYERS_ONE,
@@ -176,35 +176,35 @@ type
     I_MENU_CONTROL_UP,                
     I_MENU_CONTROL_DOWN,
     I_MENU_CONTROL_JUMP,              
-    I_MENU_CONTROL_FIRE,              
+    I_MENU_CONTROL_FIRE,
     I_MENU_CONTROL_USE,               
     I_MENU_CONTROL_NEXT_WEAPON,
     I_MENU_CONTROL_PREV_WEAPON,
 
-    I_MENU_COUNT_NONE,                
+    I_MENU_COUNT_NONE,
     I_MENU_COUNT_SMALL,               
     I_MENU_COUNT_NORMAL,              
     I_MENU_COUNT_BIG,                 
     I_MENU_COUNT_VERYBIG,             
 
     I_MENU_GAME_BLOOD_COUNT,
-    I_MENU_GAME_MAX_GIBS,             
+    I_MENU_GAME_MAX_GIBS,
     I_MENU_GAME_MAX_CORPSES,          
     I_MENU_GAME_GIBS_COUNT,
     I_MENU_GAME_MAX_SHELLS,
-    I_MENU_GAME_BLOOD_TYPE,           
+    I_MENU_GAME_BLOOD_TYPE,
     I_MENU_GAME_BLOOD_TYPE_SIMPLE,    
     I_MENU_GAME_BLOOD_TYPE_ADV,       
     I_MENU_GAME_CORPSE_TYPE,          
     I_MENU_GAME_CORPSE_TYPE_SIMPLE,   
-    I_MENU_GAME_CORPSE_TYPE_ADV,      
+    I_MENU_GAME_CORPSE_TYPE_ADV,
     I_MENU_GAME_GIBS_TYPE,            
     I_MENU_GAME_GIBS_TYPE_SIMPLE,     
     I_MENU_GAME_GIBS_TYPE_ADV,
     I_MENU_GAME_PARTICLES_COUNT,
     I_MENU_GAME_SCREEN_FLASH,     
     I_MENU_GAME_BACKGROUND,           
-    I_MENU_GAME_MESSAGES,             
+    I_MENU_GAME_MESSAGES,
     I_MENU_GAME_REVERT_PLAYERS,       
 
     I_MENU_VIDEO_RESOLUTION,          
@@ -220,7 +220,7 @@ type
     I_MENU_RESOLUTION_APPLY,
 
     I_MENU_SOUND_MUSIC_LEVEL,         
-    I_MENU_SOUND_SOUND_LEVEL,         
+    I_MENU_SOUND_SOUND_LEVEL,
     I_MENU_SOUND_MAX_SIM_SOUNDS,      
     I_MENU_SOUND_INACTIVE_SOUNDS,     
     I_MENU_SOUND_INACTIVE_SOUNDS_ON,  
@@ -229,18 +229,18 @@ type
     I_MENU_PLAYER_NAME,
     I_MENU_PLAYER_TEAM,               
     I_MENU_PLAYER_TEAM_RED,           
-    I_MENU_PLAYER_TEAM_BLUE,          
+    I_MENU_PLAYER_TEAM_BLUE,
     I_MENU_PLAYER_MODEL,              
     I_MENU_PLAYER_RED,                
     I_MENU_PLAYER_GREEN,              
     I_MENU_PLAYER_BLUE,
                
     I_MENU_MODEL_INFO,                
-    I_MENU_MODEL_ANIMATION,           
+    I_MENU_MODEL_ANIMATION,
     I_MENU_MODEL_CHANGE_WEAPON,       
     I_MENU_MODEL_ROTATE,              
     I_MENU_MODEL_NAME,
-    I_MENU_MODEL_AUTHOR,              
+    I_MENU_MODEL_AUTHOR,
     I_MENU_MODEL_COMMENT,             
     I_MENU_MODEL_OPTIONS,             
     I_MENU_MODEL_WEAPON,
@@ -256,7 +256,7 @@ type
 
     I_MENU_END_GAME_PROMT,            
     I_MENU_RESTART_GAME_PROMT,        
-    I_MENU_EXIT_PROMT,                
+    I_MENU_EXIT_PROMT,
     I_MENU_SET_DEFAULT_PROMT,         
     I_MENU_LOAD_SAVED_PROMT,
     I_MENU_ENTERPASSWORD,
@@ -352,7 +352,7 @@ type
     I_PLAYER_FLAG_GET,
     I_PLAYER_FLAG_RETURN,             
     I_PLAYER_FLAG_CAPTURE,            
-    I_PLAYER_FLAG_DROP,               
+    I_PLAYER_FLAG_DROP,
     I_PLAYER_FLAG_RED,                
     I_PLAYER_FLAG_BLUE,
 
@@ -416,39 +416,39 @@ type
     I_MONSTER_ROBOT,
     I_MONSTER_PRIKOLIST,
 
-    I_LOAD_MUSIC,                     
+    I_LOAD_MUSIC,
     I_LOAD_MODELS,                    
     I_LOAD_MENUS,                     
     I_LOAD_CONSOLE,                   
     I_LOAD_ITEMS_DATA,                
-    I_LOAD_WEAPONS_DATA,              
+    I_LOAD_WEAPONS_DATA,
     I_LOAD_GAME_DATA,                 
     I_LOAD_COLLIDE_MAP,               
     I_LOAD_DOOR_MAP,
     I_LOAD_LIFT_MAP,
     I_LOAD_WATER_MAP,                 
     I_LOAD_WAD_FILE,                  
-    I_LOAD_MAP,                       
+    I_LOAD_MAP,
     I_LOAD_TEXTURES,                  
     I_LOAD_TRIGGERS,                  
     I_LOAD_PANELS,                    
-    I_LOAD_TRIGGERS_TABLE,            
+    I_LOAD_TRIGGERS_TABLE,
     I_LOAD_LINK_TRIGGERS,             
     I_LOAD_CREATE_TRIGGERS,           
     I_LOAD_ITEMS,                     
     I_LOAD_CREATE_ITEMS,              
-    I_LOAD_AREAS,                     
+    I_LOAD_AREAS,
     I_LOAD_CREATE_AREAS,              
     I_LOAD_MONSTERS,                  
     I_LOAD_CREATE_MONSTERS,           
     I_LOAD_MAP_HEADER,                
     I_LOAD_SKY,
     I_LOAD_MONSTER_TEXTURES,
-    I_LOAD_MONSTER_SOUNDS,            
+    I_LOAD_MONSTER_SOUNDS,
     I_LOAD_SAVE_FILE,                 
     I_LOAD_MAP_STATE,                 
     I_LOAD_ITEMS_STATE,               
-    I_LOAD_TRIGGERS_STATE,            
+    I_LOAD_TRIGGERS_STATE,
     I_LOAD_WEAPONS_STATE,             
     I_LOAD_MONSTERS_STATE,
     I_LOAD_CONNECT,
@@ -528,7 +528,7 @@ type
     I_SIMPLE_ERROR,
     I_SYSTEM_ERROR_UNKNOWN,
     I_SYSTEM_ERROR_MSG,
-    
+
     I_LAST );
 
 const
@@ -540,8 +540,9 @@ const
 var
   _lc: Array [TStrings_Locale] of String;
   KilledByMonster: Array [MONSTER_DEMON..MONSTER_MAN] of String;
+  CheatEng: Array [I_GAME_CHEAT_GODMODE..I_GAME_CHEAT_AUTOMAP] of String;
+  CheatRus: Array [I_GAME_CHEAT_GODMODE..I_GAME_CHEAT_AUTOMAP] of String;
 
-  
 procedure g_Language_Load(fileName: String);
 procedure g_Language_Set(lang: String);
 procedure g_Language_Dump(fileName: String);
@@ -1557,6 +1558,8 @@ const
 
 
 procedure SetupArrays();
+var
+  i: LongWord;
 begin
 // Названия клавиш перемещения курсора:
   KEYTABLE[200] := _lc[I_KEY_UP] + ' ' + Chr(30);
@@ -1585,6 +1588,13 @@ begin
   KilledByMonster[MONSTER_BARREL] := _lc[I_MONSTER_BARREL];
   KilledByMonster[MONSTER_ROBO] := _lc[I_MONSTER_ROBOT];
   KilledByMonster[MONSTER_MAN] := _lc[I_MONSTER_PRIKOLIST];
+
+// Чит-коды:
+  for i := LongWord(Low(CheatEng)) to LongWord(High(CheatEng)) do
+  begin
+    CheatEng[TStrings_Locale(i)] := g_lang_default[TStrings_Locale(i)][LANGUAGE_ENGLISH_N];
+    CheatRus[TStrings_Locale(i)] := g_lang_default[TStrings_Locale(i)][LANGUAGE_RUSSIAN_N];
+  end;
 end;
 
 procedure g_Language_Load(fileName: String);
