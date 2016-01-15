@@ -2328,12 +2328,18 @@ begin
   e_CharFont_PrintEx(gMenuFont, X+178-tw, Y+68, s, _RGB(255, 0, 0));
 
   s := IntToStr(GetAmmoByWeapon(FCurrWeap));
-  e_CharFont_GetSize(gMenuFont, s, tw, th);
-  e_CharFont_PrintEx(gMenuFont, X+178-tw, Y+158, s,  _RGB(255, 0, 0));
 
   case FCurrWeap of
-    WEAPON_KASTET: ID := gItemsTexturesID[ITEM_WEAPON_KASTET];
-    WEAPON_SAW: ID := gItemsTexturesID[ITEM_WEAPON_SAW];
+    WEAPON_KASTET:
+    begin
+      s := '--';
+      ID := gItemsTexturesID[ITEM_WEAPON_KASTET];
+    end;
+    WEAPON_SAW:
+    begin
+      s := '--';
+      ID := gItemsTexturesID[ITEM_WEAPON_SAW];
+    end;
     WEAPON_PISTOL: ID := gItemsTexturesID[ITEM_WEAPON_PISTOL];
     WEAPON_CHAINGUN: ID := gItemsTexturesID[ITEM_WEAPON_CHAINGUN];
     WEAPON_SHOTGUN1: ID := gItemsTexturesID[ITEM_WEAPON_SHOTGUN1];
@@ -2344,6 +2350,8 @@ begin
     WEAPON_BFG: ID := gItemsTexturesID[ITEM_WEAPON_BFG];
   end;
 
+  e_CharFont_GetSize(gMenuFont, s, tw, th);
+  e_CharFont_PrintEx(gMenuFont, X+178-tw, Y+158, s, _RGB(255, 0, 0));
   e_Draw(ID, X+20, Y+160, 0, True, False);
 
   if R_KEY_RED in FRulez then
