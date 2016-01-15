@@ -2834,7 +2834,7 @@ begin
                 SetActive(Self)
               else
                 begin
-                  if FItems[FIndex][1] = #127 then // Папка
+                  if FItems[FIndex][1] = #29 then // Папка
                   begin
                     OpenDir(FPath+Copy(FItems[FIndex], 2, 255));
                     FIndex := 0;
@@ -2854,7 +2854,7 @@ begin
           if ( (Length(FItems[a]) > 0) and
                (LowerCase(FItems[a][1]) = LowerCase(Chr(wParam))) ) or
              ( (Length(FItems[a]) > 1) and
-               (FItems[a][1] = #127) and // Папка
+               (FItems[a][1] = #29) and // Папка
                (LowerCase(FItems[a][2]) = LowerCase(Chr(wParam))) ) then
           begin
             FIndex := a;
@@ -2898,12 +2898,12 @@ begin
     repeat
       AddItem(SR.Name);
     until FindNext(SR) <> 0;
-    
+
   FindClose(SR);
 
   for i := 0 to High(FItems) do
     if FItems[i][1] = #1 then
-      FItems[i][1] := #127;
+      FItems[i][1] := #29;
 
   FPath := path;
 end;
