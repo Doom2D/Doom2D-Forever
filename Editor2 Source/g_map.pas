@@ -2432,6 +2432,122 @@ begin
                            MapOffset.X+xx,
                            MapOffset.Y+yy,
                            255, 255, 255, IfThen(sel, 0, gAlphaTriggerLine));
+              // Предпросмотр создаваемого объекта:
+                if sel then
+                begin
+                // Монстр:
+                  if TriggerType = TRIGGER_SPAWNMONSTER then
+                  begin
+                    if Data.MonType <> MONSTER_NONE then
+                      with MonsterSize[Data.MonType] do
+                      begin
+                        ID := DWORD(-1);
+                        case Data.MonType of
+                          MONSTER_DEMON: g_GetTexture('MONSTER_DEMON', ID);
+                          MONSTER_IMP: g_GetTexture('MONSTER_IMP', ID);
+                          MONSTER_ZOMBY: g_GetTexture('MONSTER_ZOMBY', ID);
+                          MONSTER_SERG: g_GetTexture('MONSTER_SERG', ID);
+                          MONSTER_CYBER: g_GetTexture('MONSTER_CYBER', ID);
+                          MONSTER_CGUN: g_GetTexture('MONSTER_CGUN', ID);
+                          MONSTER_BARON: g_GetTexture('MONSTER_BARON', ID);
+                          MONSTER_KNIGHT: g_GetTexture('MONSTER_KNIGHT', ID);
+                          MONSTER_CACO: g_GetTexture('MONSTER_CACO', ID);
+                          MONSTER_SOUL: g_GetTexture('MONSTER_SOUL', ID);
+                          MONSTER_PAIN: g_GetTexture('MONSTER_PAIN', ID);
+                          MONSTER_SPIDER: g_GetTexture('MONSTER_SPIDER', ID);
+                          MONSTER_BSP: g_GetTexture('MONSTER_BSP', ID);
+                          MONSTER_MANCUB: g_GetTexture('MONSTER_MANCUB', ID);
+                          MONSTER_SKEL: g_GetTexture('MONSTER_SKEL', ID);
+                          MONSTER_VILE: g_GetTexture('MONSTER_VILE', ID);
+                          MONSTER_FISH: g_GetTexture('MONSTER_FISH', ID);
+                          MONSTER_BARREL: g_GetTexture('MONSTER_BARREL', ID);
+                          MONSTER_ROBO: g_GetTexture('MONSTER_ROBO', ID);
+                          MONSTER_MAN: g_GetTexture('MONSTER_MAN', ID);
+                        end;
+                        if ID <> DWORD(-1) then
+                        begin
+                          if Data.MonDir = Byte(D_LEFT) then
+                          begin
+                            xx := X - MonsterSizeDelta[Data.MonType].X + Width;
+                            xx := MonsterSizeDelta[Data.MonType].Width - xx - X;
+                            xx := Data.TargetPoint.X - X - xx - (Width div 2);
+
+                            yy := Data.TargetPoint.Y - Y +
+                                  MonsterSizeDelta[Data.MonType].Y-Height;
+
+                            e_Draw(ID, MapOffset.X + xx, MapOffset.Y + yy,
+                                   128, True, False, M_HORIZONTAL);
+                          end
+                          else
+                          begin
+                            xx := Data.TargetPoint.X - X +
+                                  MonsterSizeDelta[Data.MonType].X-(Width div 2);
+                            yy := Data.TargetPoint.Y - Y +
+                                  MonsterSizeDelta[Data.MonType].Y-Height;
+
+                            e_Draw(ID, MapOffset.X + xx, MapOffset.Y + yy,
+                                   128, True, False);
+                          end;
+                        // Рамка:
+                          e_DrawQuad(MapOffset.X+Data.TargetPoint.X-(Width div 2), MapOffset.Y+Data.TargetPoint.Y-Height,
+                                     MapOffset.X+Data.TargetPoint.X+(Width div 2)-1, MapOffset.Y+Data.TargetPoint.Y-1,
+                                     255, 255, 0, 128);
+                        end;
+                      end;
+                  end
+                  else
+                // Предмет:
+                  begin
+                    if Data.ItemType <> ITEM_NONE then
+                    begin
+                      ID := DWORD(-1);
+                      case Data.ItemType of
+                        ITEM_MEDKIT_SMALL: g_GetTexture('ITEM_MEDKIT_SMALL', ID);
+                        ITEM_MEDKIT_LARGE: g_GetTexture('ITEM_MEDKIT_LARGE', ID);
+                        ITEM_MEDKIT_BLACK: g_GetTexture('ITEM_MEDKIT_BLACK', ID);
+                        ITEM_ARMOR_GREEN: g_GetTexture('ITEM_ARMORGREEN', ID);
+                        ITEM_ARMOR_BLUE: g_GetTexture('ITEM_ARMORBLUE', ID);
+                        ITEM_SPHERE_BLUE: g_GetTexture('ITEM_BLUESPHERE', ID);
+                        ITEM_SPHERE_WHITE: g_GetTexture('ITEM_WHITESPHERE', ID);
+                        ITEM_SUIT: g_GetTexture('ITEM_SUIT', ID);
+                        ITEM_OXYGEN: g_GetTexture('ITEM_OXYGEN', ID);
+                        ITEM_INVUL: g_GetTexture('ITEM_INVUL', ID);
+                        ITEM_WEAPON_SAW: g_GetTexture('ITEM_WEAPON_SAW', ID);
+                        ITEM_WEAPON_SHOTGUN1: g_GetTexture('ITEM_WEAPON_SHOTGUN1', ID);
+                        ITEM_WEAPON_SHOTGUN2: g_GetTexture('ITEM_WEAPON_SHOTGUN2', ID);
+                        ITEM_WEAPON_CHAINGUN: g_GetTexture('ITEM_WEAPON_CHAINGUN', ID);
+                        ITEM_WEAPON_ROCKETLAUNCHER: g_GetTexture('ITEM_WEAPON_ROCKETLAUNCHER', ID);
+                        ITEM_WEAPON_PLASMA: g_GetTexture('ITEM_WEAPON_PLASMA', ID);
+                        ITEM_WEAPON_BFG: g_GetTexture('ITEM_WEAPON_BFG', ID);
+                        ITEM_WEAPON_SUPERPULEMET: g_GetTexture('ITEM_WEAPON_SUPERPULEMET', ID);
+                        ITEM_AMMO_BULLETS: g_GetTexture('ITEM_AMMO_BULLETS', ID);
+                        ITEM_AMMO_BULLETS_BOX: g_GetTexture('ITEM_AMMO_BULLETS_BOX', ID);
+                        ITEM_AMMO_SHELLS: g_GetTexture('ITEM_AMMO_SHELLS', ID);
+                        ITEM_AMMO_SHELLS_BOX: g_GetTexture('ITEM_AMMO_SHELLS_BOX', ID);
+                        ITEM_AMMO_ROCKET: g_GetTexture('ITEM_AMMO_ROCKET', ID);
+                        ITEM_AMMO_ROCKET_BOX: g_GetTexture('ITEM_AMMO_ROCKET_BOX', ID);
+                        ITEM_AMMO_CELL: g_GetTexture('ITEM_AMMO_CELL', ID);
+                        ITEM_AMMO_CELL_BIG: g_GetTexture('ITEM_AMMO_CELL_BIG', ID);
+                        ITEM_AMMO_BACKPACK: g_GetTexture('ITEM_AMMO_BACKPACK', ID);
+                        ITEM_KEY_RED: g_GetTexture('ITEM_KEY_RED', ID);
+                        ITEM_KEY_GREEN: g_GetTexture('ITEM_KEY_GREEN', ID);
+                        ITEM_KEY_BLUE: g_GetTexture('ITEM_KEY_BLUE', ID);
+                        ITEM_BOTTLE: g_GetTexture('ITEM_BOTTLE', ID);
+                        ITEM_HELMET: g_GetTexture('ITEM_HELMET', ID);
+                        ITEM_JETPACK: g_GetTexture('ITEM_JETPACK', ID);
+                        ITEM_INVIS: g_GetTexture('ITEM_INVIS', ID);
+                      end;
+                      if ID <> DWORD(-1) then
+                        e_Draw(ID, MapOffset.X+Data.ItemPos.X-(ItemSize[Data.ItemType][0] div 2),
+                               MapOffset.Y+Data.ItemPos.Y-ItemSize[Data.ItemType][1],
+                               128, True, False);
+                      // Рамка:
+                        e_DrawQuad(MapOffset.X+Data.ItemPos.X-(ItemSize[Data.ItemType][0] div 2), MapOffset.Y+Data.ItemPos.Y-ItemSize[Data.ItemType][1],
+                                   MapOffset.X+Data.ItemPos.X+(ItemSize[Data.ItemType][0] div 2)-1, MapOffset.Y+Data.ItemPos.Y-1,
+                                   255, 255, 0, 128);
+                    end;
+                  end;
+                end;
               end;
 
             TRIGGER_PUSH:

@@ -870,7 +870,7 @@ Const
     ('ARRAY TR PUSH',                  'Push',
                                        'Ускорение'),
     ('ARRAY TR SCORE',                 'Team Score',
-                                       'Очко команде'),
+                                       'Начисление очков'),
     ('ARRAY TR MESSAGE',               'Message',
                                        'Сообщение'),
     ('ARRAY TR DAMAGE',                'Damage',
