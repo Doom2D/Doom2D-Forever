@@ -4033,6 +4033,7 @@ begin
   // Выбор панели с текстурой для триггера
     if Key = Ord('T') then
     begin
+      DrawPressRect := False;
       if SelectFlag = SELECTFLAG_TEXTURE then
       begin
         SelectFlag := SELECTFLAG_NONE;
@@ -4045,14 +4046,10 @@ begin
 
     if Key = Ord('D') then
     begin
+      SelectFlag := SELECTFLAG_NONE;
       if DrawPressRect then
       begin
         DrawPressRect := False;
-        Exit;
-      end;
-      if SelectFlag <> SELECTFLAG_NONE then
-      begin
-        SelectFlag := SELECTFLAG_NONE;
         Exit;
       end;
 
@@ -5160,7 +5157,10 @@ begin
           (Key = _lc[I_PROP_TR_TRAP_PANEL]) then
     SelectFlag := SELECTFLAG_DOOR
   else if Key = _lc[I_PROP_TR_TEXTURE_PANEL] then
-    SelectFlag := SELECTFLAG_TEXTURE
+  begin
+    DrawPressRect := False;
+    SelectFlag := SELECTFLAG_TEXTURE;
+  end
   else if Key = _lc[I_PROP_TR_SHOT_PANEL] then
     SelectFlag := SELECTFLAG_SHOTPANEL
   else if Key = _lc[I_PROP_TR_LIFT_PANEL] then
@@ -5168,7 +5168,10 @@ begin
   else if key = _lc[I_PROP_TR_EX_MONSTER] then
     SelectFlag := SELECTFLAG_MONSTER
   else if Key = _lc[I_PROP_TR_EX_AREA] then
-    DrawPressRect := True
+  begin
+    SelectFlag := SELECTFLAG_NONE;
+    DrawPressRect := True;
+  end
   else if Key = _lc[I_PROP_TR_NEXT_MAP] then
     begin // Выбор следующей карты:
       g_ProcessResourceStr(OpenedMap, @FileName, nil, nil);
