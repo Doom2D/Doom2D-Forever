@@ -3946,6 +3946,7 @@ begin
     if Key = Ord('V') then
     begin // Поворот монстров и областей:
       if (SelectedObjects <> nil) then
+      begin
         for i := 0 to High(SelectedObjects) do
           if (SelectedObjects[i].Live) then
           begin
@@ -3959,6 +3960,24 @@ begin
                 g_ChangeDir(gAreas[SelectedObjects[i].ID].Direction);
               end;
           end;
+      end
+      else
+      begin
+        if pcObjects.ActivePage = tsMonsters then
+        begin
+          if rbMonsterLeft.Checked then
+            rbMonsterRight.Checked := True
+          else
+            rbMonsterLeft.Checked := True;
+        end;
+        if pcObjects.ActivePage = tsAreas then
+        begin
+          if rbAreaLeft.Checked then
+            rbAreaRight.Checked := True
+          else
+            rbAreaLeft.Checked := True;
+        end;
+      end;
     end;
 
     if not (ssCtrl in Shift) then
