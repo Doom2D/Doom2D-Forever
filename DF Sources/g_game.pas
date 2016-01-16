@@ -3862,6 +3862,10 @@ begin
       gPlayers[i].Frags := 0;
       gPlayers[i].RecallState;
     end;
+    if (gPlayer1 = nil) and (gLMSPID1 > 0) then
+      gPlayer1 := g_Player_Get(gLMSPID1);
+    if (gPlayer2 = nil) and (gLMSPID2 > 0) then
+      gPlayer2 := g_Player_Get(gLMSPID2);
   end;
 
   for i := Low(gItems) to High(gItems) do

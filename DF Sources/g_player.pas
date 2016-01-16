@@ -408,6 +408,8 @@ var
   gAimLine: Boolean = False;
   gLastSpawnUsed: Byte = 0;
   gNumBots: Word = 0;
+  gLMSPID1: Word = 0;
+  gLMSPID2: Word = 0;
   MAX_RUNVEL: Integer = 8;
   VEL_JUMP: Integer = 10;
   SHELL_TIMEOUT: Cardinal = 60000;
@@ -955,7 +957,7 @@ begin
 
     if g_Game_IsNet then MH_SEND_PlayerCreate(UID);
     if g_Game_IsServer and (gGameSettings.MaxLives > 0) then
-      Spectate;
+      Spectate();
   end;
 end;
 
@@ -1357,7 +1359,7 @@ begin
           if (not gPlayers[i].FSpectator) or gPlayers[i].FWantsInGame then
             gPlayers[i].Respawn(Silent)
           else
-            gPlayers[i].Spectate;
+            gPlayers[i].Spectate();
         end
         else
           TBot(gPlayers[i]).Respawn(Silent);
@@ -4064,6 +4066,20 @@ begin
   FPhysics := False;
   FWantsInGame := False;
   FSpawned := False;
+
+  if FNoRespawn then
+  begin
+    if Self = gPlayer1 then
+    begin
+      gLMSPID1 := FUID;
+      gPlayer1 := nil;
+    end;
+    if Self = gPlayer2 then
+    begin
+      gLMSPID2 := FUID;
+      gPlayer2 := nil;
+    end;
+  end;
 
   if g_Game_IsNet then
     MH_SEND_PlayerStats(FUID);

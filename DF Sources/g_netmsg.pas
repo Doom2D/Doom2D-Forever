@@ -2001,6 +2001,26 @@ begin
     SetWeapon(e_Raw_Read_Byte(P));
 
     FSpectator := e_Raw_Read_Byte(P) <> 0;
+    if FSpectator then
+    begin
+      if Pl = gPlayer1 then
+      begin
+        gLMSPID1 := UID;
+        gPlayer1 := nil;
+      end;
+      if Pl = gPlayer2 then
+      begin
+        gLMSPID2 := UID;
+        gPlayer2 := nil;
+      end;
+    end
+    else
+    begin
+      if (gPlayer1 = nil) and (gLMSPID1 > 0) then
+        gPlayer1 := g_Player_Get(gLMSPID1);
+      if (gPlayer2 = nil) and (gLMSPID2 > 0) then
+        gPlayer2 := g_Player_Get(gLMSPID2);
+    end;
     FGhost := e_Raw_Read_Byte(P) <> 0;
     FPhysics := e_Raw_Read_Byte(P) <> 0;
     FNoRespawn := e_Raw_Read_Byte(P) <> 0;
