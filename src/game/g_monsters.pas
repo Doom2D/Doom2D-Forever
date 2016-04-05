@@ -1202,7 +1202,9 @@ end;
 function g_Monsters_GetNameByID(MonsterType: Byte): String;
 begin
   if MonsterType in [MONSTER_DEMON..MONSTER_MAN] then
-    Result := MONSTERTABLE[MonsterType].Name;
+    Result := MONSTERTABLE[MonsterType].Name
+  else
+    Result := '?';
 end;
 
 function g_Monsters_GetKilledBy(MonsterType: Byte): String;

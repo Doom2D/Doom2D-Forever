@@ -75,6 +75,7 @@ function GetStrACmd(var Str: String): String;
 var
   a: Integer;
 begin
+  Result := '';
   for a := 1 to Length(Str) do
     if (a = Length(Str)) or (Str[a+1] = ';') then
     begin
@@ -108,6 +109,7 @@ var
   F: TextFile;
 begin
   Cmd := LowerCase(P[0]);
+  s := '';
 
   if Cmd = 'clear' then
   begin
@@ -743,6 +745,7 @@ function GetStr(var Str: String): String;
 var
   a, b: Integer;
 begin
+  Result := '';
   if Str[1] = '"' then
   begin
     for b := 1 to Length(Str) do

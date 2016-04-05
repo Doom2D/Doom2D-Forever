@@ -821,6 +821,9 @@ var
   wad, map: string;
   mapstr: string;
 begin
+  s1 := '';
+  s2 := '';
+  s3 := '';
   pc := g_Player_GetCount;
   e_TextureFontGetSize(gStdFont, cw, ch);
 
@@ -4751,7 +4754,7 @@ var
   s, pw: String;
   chstr: string;
   cmd: string;
-  pl: pTNetClient;
+  pl: pTNetClient = nil;
   plr: TPlayer;
   prt: Word;
   nm: Boolean;

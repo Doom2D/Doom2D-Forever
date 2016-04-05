@@ -781,6 +781,8 @@ var
 begin
   Result := False;
   gMapInfo.Map := Res;
+  TriggersTable := nil;
+  FillChar(texture, SizeOf(texture), 0);
 
 // Загрузка WAD:
   g_ProcessResourceStr(Res, FileName, SectionName, ResName);
@@ -1230,6 +1232,7 @@ var
   Data: Pointer;
   Len: Integer;
 begin
+  FillChar(Result, SizeOf(Result), 0);
   g_ProcessResourceStr(Res, FileName, SectionName, ResName);
 
   WAD := TWADEditor_1.Create();

@@ -1624,6 +1624,7 @@ var
   pln: String;
   cnt: Byte;
 begin
+  FillChar(EvHash, Sizeof(EvHash), 0);
   EvType := e_Raw_Read_Byte(P);
   EvNum := e_Raw_Read_LongInt(P);
   EvStr := e_Raw_Read_String(P);

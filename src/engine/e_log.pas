@@ -31,7 +31,7 @@ procedure e_WriteLog(TextLine: String; RecordCategory: TRecordCategory;
                      WriteTime: Boolean = True);
 var
   LogFile: TextFile;
-  Prefix: ShortString;
+  Prefix: ShortString = '';
 begin
   if FileName = '' then Exit;
 

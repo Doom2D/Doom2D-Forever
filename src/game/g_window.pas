@@ -56,10 +56,12 @@ const
 
 // TODO: make a transition table or something
 function WCharToCP1251(wc: Word): Word;
+var
+  n: Word;
 begin
-  for Result := 0 to 127 do
-    if CP1251[Result] = wc then
-      break;
+  Result := 0;
+  for n := 0 to 127 do
+    if CP1251[n] = wc then begin Result := n; break end;
   Result := Result + 128;
 end;
 
@@ -354,6 +356,7 @@ var
   ev: TSDL_Event;
   ID: DWORD;
 begin
+  FillChar(ev, SizeOf(ev), 0);
   //wNeedFree := False;
   wLoadingProgress := True;
   while SDL_PollEvent(@ev) > 0 do
@@ -398,6 +401,7 @@ var
   ev: TSDL_Event;
 begin
   Result := False;
+  FillChar(ev, SizeOf(ev), 0);
 
   while SDL_PollEvent(@ev) > 0 do
   begin

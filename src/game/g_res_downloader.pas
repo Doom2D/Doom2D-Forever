@@ -108,6 +108,7 @@ var
   i: Integer;
   resData: TResDataMsg;
 begin
+  SetLength(mapData.ExternalResources, 0);
   g_Console_Add(Format(_lc[I_NET_MAP_DL], [FileName]));
   e_WriteLog('Downloading map `' + FileName + '` from server', MSG_NOTIFY);
   MC_SEND_MapRequest();

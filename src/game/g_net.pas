@@ -874,6 +874,7 @@ var
   Ptr: Pointer;
   msgStream: TMemoryStream;
 begin
+  FillChar(downloadEvent, SizeOf(downloadEvent), 0);
   msgStream := nil;
   OuterLoop := True;
   while OuterLoop do

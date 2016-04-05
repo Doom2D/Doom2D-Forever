@@ -674,6 +674,7 @@ begin
   DFWAD_ERROR_WADNOTLOADED: Result := 'DFWAD file is not loaded';
   DFWAD_ERROR_READRESOURCE: Result := 'Read resource error';
   DFWAD_ERROR_READWAD: Result := 'Read DFWAD error';
+  else Result := 'Unknown DFWAD error';
  end;
 end;
 

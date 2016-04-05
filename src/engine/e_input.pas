@@ -175,9 +175,10 @@ end;
   
 function PollJoysticks(): Boolean;
 var
-  i, j, d: Word;
+  i, j: Word;
   hat: Byte;
 begin
+  Result := False;
   if (Joysticks = nil) or (e_JoysticksAvailable = 0) then Exit;
   SDL_JoystickUpdate();
   for j := Low(Joysticks) to High(Joysticks) do
@@ -191,13 +192,12 @@ begin
       begin
         hat := SDL_JoystickGetHat(Handle, i);
         HatBuf[i, HAT_UP] := LongBool(hat and SDL_HAT_UP);
-        HatBuf[i, HAT_DOWN] := LongBool(hat and SDL_HAT_DOWN);  
-        HatBuf[i, HAT_LEFT] := LongBool(hat and SDL_HAT_LEFT);  
-        HatBuf[i, HAT_RIGHT] := LongBool(hat and SDL_HAT_RIGHT);  
+        HatBuf[i, HAT_DOWN] := LongBool(hat and SDL_HAT_DOWN);
+        HatBuf[i, HAT_LEFT] := LongBool(hat and SDL_HAT_LEFT);
+        HatBuf[i, HAT_RIGHT] := LongBool(hat and SDL_HAT_RIGHT);
       end;
     end;
-  Result := False;
-end;    
+end;
 
 procedure GenerateKeyNames();
 var

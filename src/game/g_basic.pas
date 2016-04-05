@@ -614,6 +614,7 @@ function GetStr(var Str: string): string;
 var
   a: Integer;
 begin
+  Result := '';
   for a := 1 to Length(Str) do
     if (a = Length(Str)) or (Str[a+1] = ' ') then
     begin
@@ -852,6 +853,7 @@ begin
   n := 1;
   m := 1;
   Result := 0;
+  s1 := '';
 
   for i := 0 to High(Pointers) do
   begin

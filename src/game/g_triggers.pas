@@ -2330,6 +2330,8 @@ var
   k: Byte;
   p: TPlayer;
 begin
+  Result := nil;
+
   if gTriggers = nil then Exit;
 
   case g_GetUIDType(UID) of
@@ -2344,8 +2346,6 @@ begin
     end;
     else k := 0;
   end;
-
-  Result := nil;
 
   for a := 0 to High(gTriggers) do
     if (gTriggers[a].TriggerType <> TRIGGER_NONE) and

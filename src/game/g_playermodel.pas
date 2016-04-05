@@ -165,6 +165,8 @@ var
   s: String;
 begin
   Result := False;
+  x := 0;
+  y := 0;
 
   str := Trim(str);
   if Length(str) < 3 then
@@ -561,6 +563,7 @@ function g_PlayerModel_GetInfo(ModelName: string): TModelInfo;
 var
   a: Integer;
 begin
+  FillChar(Result, SizeOf(Result), 0);
   if PlayerModelsArray = nil then Exit;
 
   for a := 0 to High(PlayerModelsArray) do
