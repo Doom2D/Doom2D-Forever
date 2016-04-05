@@ -1,0 +1,24 @@
+APPVERINFO VERSIONINFO
+FILEVERSION 0,6,6,7
+PRODUCTVERSION 0,6,6,7
+FILETYPE VFT_APP
+{
+ BLOCK "StringFileInfo"
+ {
+  BLOCK "040904E4"
+  {
+   VALUE "CompanyName",      "www.doom2d.org\0"
+   VALUE "FileDescription",  "Doom 2D: Forever\0"
+   VALUE "FileVersion",      "0.6.6.7\0"
+   VALUE "InternalName",     "Doom 2D: Forever\0"
+   VALUE "LegalCopyright",   "All rights reserved.\0"
+   VALUE "OriginalFilename", "Doom2DF.exe\0"
+   VALUE "ProductName",      "Doom 2D: Forever\0"
+   VALUE "ProductVersion",   "0.6.6.7\0"
+  }
+ }
+ BLOCK "VarFileInfo"
+ {
+  VALUE "Translation", LANG_RUSSIAN, 1251
+ }
+}
