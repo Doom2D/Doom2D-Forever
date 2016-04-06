@@ -35,7 +35,7 @@ var
   flag: Boolean;
   wTitle: PChar = nil;
   wNeedTimeReset: Boolean = False;
-  wWindowCreated: Boolean = False;
+  //wWindowCreated: Boolean = False;
   //wCursorShown: Boolean = False;
   wMinimized: Boolean = False;
   //wNeedFree: Boolean = True;
@@ -376,7 +376,7 @@ begin
   if h_GL <> nil then SDL_GL_DeleteContext(h_GL);
   h_Wnd := nil;
   h_GL := nil;
-  wWindowCreated := False;
+  //wWindowCreated := False;
 end;
 
 function CreateGLWindow(Title: PChar): Boolean;
@@ -400,8 +400,8 @@ begin
 
   h_Gl := SDL_GL_CreateContext(h_Wnd);
   if h_Gl = nil then Exit;
-  
-  wWindowCreated := True;
+
+  //wWindowCreated := True;
 
   e_ResizeWindow(gScreenWidth, gScreenHeight);
   e_InitGL();

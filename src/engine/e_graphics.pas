@@ -583,7 +583,7 @@ end;
 procedure e_DrawFill(ID: DWORD; X, Y: Integer; XCount, YCount: Word; Alpha: Integer;
                      AlphaChannel: Boolean; Blending: Boolean);
 var
-  X2, Y2, dx, dy, w, h: Integer;
+  X2, Y2, dx, w, h: Integer;
   u, v: Single;
 begin
   glColor4ub(e_Colors.R, e_Colors.G, e_Colors.B, 255);
@@ -1743,7 +1743,7 @@ end;
 
 procedure e_RestoreGLContext();
 var
-  GLID: GLuint;
+  //GLID: GLuint;
   i: Integer;
 begin
   e_WriteLog('Restoring GL context:', MSG_NOTIFY);

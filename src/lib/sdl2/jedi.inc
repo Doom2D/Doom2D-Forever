@@ -52,7 +52,7 @@
     {$F+,Q-,R-,S-,I-,A+}
   {$ENDIF}
 {$ELSE}
-  {$MODE DELPHI}
+  {.$MODE DELPHI} //k8: not here
 {$ENDIF}
 
 {$IFDEF LINUX}
