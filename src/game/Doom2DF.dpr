@@ -1,5 +1,7 @@
 program Doom2DF;
-{$APPTYPE GUI}
+{$IFDEF WIN32}
+  {$APPTYPE GUI}
+{$ENDIF}
 {$HINTS OFF}
 
 uses
@@ -58,8 +60,10 @@ uses
   g_panel in 'g_panel.pas',
   g_language in 'g_language.pas';
 
-{$R *.res}
-{$R CustomRes.res}
+{$IFDEF WIN32}
+  {$R *.res}
+  {$R CustomRes.res}
+{$ENDIF}
 
 begin
   try
