@@ -82,8 +82,8 @@ begin
 
   if not gNoSound then
   begin
-    e_WriteLog('Init FMOD', MSG_NOTIFY);
-    if not e_InitSoundSystem(44100, False) then e_InitSoundSystem(48000, True);
+    e_WriteLog('Initializing SDL2 mixer', MSG_NOTIFY);
+    e_InitSoundSystem();
   end;
 
   e_WriteLog('Init game', MSG_NOTIFY);

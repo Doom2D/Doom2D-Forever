@@ -69,7 +69,7 @@ implementation
 
 uses
   e_log, SysUtils, g_console, g_options, WADEDITOR,
-  g_game, g_basic, g_items, g_map, fmod, fmodtypes, Math,
+  g_game, g_basic, g_items, g_map, Math,
   g_language;
 
 type
@@ -119,7 +119,7 @@ begin
   for a := 0 to High(SoundArray) do
     if SoundArray[a].Name = SoundName then
     begin
-      Result := e_PlaySoundVolume(SoundArray[a].ID, gSoundLevel/255.0);
+      Result := (e_PlaySoundVolume(SoundArray[a].ID, gSoundLevel/255.0) >= 0);
       Exit;
     end;
 
@@ -137,7 +137,7 @@ begin
   for a := 0 to High(SoundArray) do
     if SoundArray[a].Name = SoundName then
     begin
-      Result := e_PlaySoundPanVolume(SoundArray[a].ID, Pan, Volume * (gSoundLevel/255.0));
+      Result := (e_PlaySoundPanVolume(SoundArray[a].ID, Pan, Volume * (gSoundLevel/255.0)) >= 0);
       Exit;
     end;
 
@@ -229,7 +229,7 @@ var
   Pan, Vol: Single;
 begin
   if PlaySoundAt(X, Y, Pan, Vol) then
-    Result := e_PlaySoundPanVolume(ID, Pan, Vol * (gSoundLevel/255.0))
+    Result := (e_PlaySoundPanVolume(ID, Pan, Vol * (gSoundLevel/255.0)) >= 0)
   else
     Result := False;
 end;
@@ -248,8 +248,7 @@ begin
     if SoundArray[a].Name = SoundName then
     begin
       if PlaySoundAt(X, Y, Pan, Vol) then
-        Result := e_PlaySoundPanVolume(SoundArray[a].ID,
-                    Pan, Vol * (gSoundLevel/255.0));
+        Result := (e_PlaySoundPanVolume(SoundArray[a].ID, Pan, Vol * (gSoundLevel/255.0)) >= 0);
       Exit;
     end;
 
