@@ -24,7 +24,7 @@ type
     function SetByName(SN: String): Boolean;
     function SetCoords(X, Y: Integer; Volume: Single): Boolean;
 
-    property Loop: Boolean read FLoop write FLoop;
+    property Loop: Boolean read FMusic write FMusic;
     property Name: String read FName;
   end;
 
