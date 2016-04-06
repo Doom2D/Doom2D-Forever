@@ -123,7 +123,8 @@ implementation
 
 type
   TTexture = record
-   ID:     DWORD;
+   //ID:     DWORD;
+   tx:     GLTexture;
    Width:  Word;
    Height: Word;
    Fmt:    Word;
@@ -253,7 +254,7 @@ begin
 
  find_id := FindTexture();
 
- if not LoadTexture(FileName, e_Textures[find_id].ID, e_Textures[find_id].Width,
+ if not LoadTexture(FileName, e_Textures[find_id].tx, e_Textures[find_id].Width,
                     e_Textures[find_id].Height, @fmt) then Exit;
 
  ID := find_id;
@@ -271,7 +272,7 @@ begin
 
  find_id := FindTexture();
 
- if not LoadTextureEx(FileName, e_Textures[find_id].ID, fX, fY, fWidth, fHeight, @fmt) then exit;
+ if not LoadTextureEx(FileName, e_Textures[find_id].tx, fX, fY, fWidth, fHeight, @fmt) then exit;
 
  e_Textures[find_id].Width := fWidth;
  e_Textures[find_id].Height := fHeight;
@@ -291,7 +292,7 @@ begin
 
  find_id := FindTexture;
 
- if not LoadTextureMem(pData, e_Textures[find_id].ID, e_Textures[find_id].Width,
+ if not LoadTextureMem(pData, e_Textures[find_id].tx, e_Textures[find_id].Width,
                    e_Textures[find_id].Height, @fmt) then exit;
 
  id := find_id;
@@ -309,7 +310,7 @@ begin
 
  find_id := FindTexture();
 
- if not LoadTextureMemEx(pData, e_Textures[find_id].ID, fX, fY, fWidth, fHeight, @fmt) then exit;
+ if not LoadTextureMemEx(pData, e_Textures[find_id].tx, fX, fY, fWidth, fHeight, @fmt) then exit;
 
  e_Textures[find_id].Width := fWidth;
  e_Textures[find_id].Height := fHeight;
@@ -338,7 +339,7 @@ begin
  h := e_Textures[ID].Height;
  data := GetMemory(w*h*4);
  glEnable(GL_TEXTURE_2D);
- glBindTexture(GL_TEXTURE_2D, e_Textures[ID].ID);
+ glBindTexture(GL_TEXTURE_2D, e_Textures[ID].tx.id);
  glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
 
  Result.Y := 0;
@@ -430,6 +431,8 @@ end;
 
 procedure e_Draw(ID: DWORD; X, Y: Integer; Alpha: Byte; AlphaChannel: Boolean;
                  Blending: Boolean; Mirror: TMirrorType = M_NONE);
+var
+  u, v: Single;
 begin
   glColor4ub(e_Colors.R, e_Colors.G, e_Colors.B, 255);
 
@@ -448,31 +451,34 @@ begin
     glBlendFunc(GL_SRC_ALPHA, GL_ONE);
 
   glEnable(GL_TEXTURE_2D);
-  glBindTexture(GL_TEXTURE_2D, e_Textures[ID].ID);
+  glBindTexture(GL_TEXTURE_2D, e_Textures[ID].tx.id);
   glBegin(GL_QUADS);
+
+  u := e_Textures[ID].tx.u;
+  v := e_Textures[ID].tx.v;
 
   if Mirror = M_NONE then
     begin
-      glTexCoord2i(1,  0); glVertex2i(X + e_Textures[id].Width, Y);
-      glTexCoord2i(0,  0); glVertex2i(X,                        Y);
-      glTexCoord2i(0, -1); glVertex2i(X,                        Y + e_Textures[id].Height);
-      glTexCoord2i(1, -1); glVertex2i(X + e_Textures[id].Width, Y + e_Textures[id].Height);
+      glTexCoord2f(u,  0); glVertex2i(X + e_Textures[id].Width, Y);
+      glTexCoord2f(0,  0); glVertex2i(X,                        Y);
+      glTexCoord2f(0, -v); glVertex2i(X,                        Y + e_Textures[id].Height);
+      glTexCoord2f(u, -v); glVertex2i(X + e_Textures[id].Width, Y + e_Textures[id].Height);
     end
   else
     if Mirror = M_HORIZONTAL then
       begin
-        glTexCoord2i(1,  0); glVertex2i(X,                        Y);
-        glTexCoord2i(0,  0); glVertex2i(X + e_Textures[id].Width, Y);
-        glTexCoord2i(0, -1); glVertex2i(X + e_Textures[id].Width, Y + e_Textures[id].Height);
-        glTexCoord2i(1, -1); glVertex2i(X,                        Y + e_Textures[id].Height);
+        glTexCoord2f(u,  0); glVertex2i(X,                        Y);
+        glTexCoord2f(0,  0); glVertex2i(X + e_Textures[id].Width, Y);
+        glTexCoord2f(0, -v); glVertex2i(X + e_Textures[id].Width, Y + e_Textures[id].Height);
+        glTexCoord2f(u, -v); glVertex2i(X,                        Y + e_Textures[id].Height);
       end
     else
       if Mirror = M_VERTICAL then
       begin
-        glTexCoord2i(1, -1); glVertex2i(X + e_Textures[id].Width, Y);
-        glTexCoord2i(0, -1); glVertex2i(X,                        Y);
-        glTexCoord2i(0,  0); glVertex2i(X,                        Y + e_Textures[id].Height);
-        glTexCoord2i(1,  0); glVertex2i(X + e_Textures[id].Width, Y + e_Textures[id].Height);
+        glTexCoord2f(u, -v); glVertex2i(X + e_Textures[id].Width, Y);
+        glTexCoord2f(0, -v); glVertex2i(X,                        Y);
+        glTexCoord2f(0,  0); glVertex2i(X,                        Y + e_Textures[id].Height);
+        glTexCoord2f(u,  0); glVertex2i(X + e_Textures[id].Width, Y + e_Textures[id].Height);
       end;
 
   glEnd();
@@ -482,6 +488,8 @@ end;
 
 procedure e_DrawSize(ID: DWORD; X, Y: Integer; Alpha: Byte; AlphaChannel: Boolean;
                      Blending: Boolean; Width, Height: Word; Mirror: TMirrorType = M_NONE);
+var
+  u, v: Single;
 begin
   glColor4ub(e_Colors.R, e_Colors.G, e_Colors.B, 255);
 
@@ -500,13 +508,16 @@ begin
     glBlendFunc(GL_SRC_ALPHA, GL_ONE);
 
   glEnable(GL_TEXTURE_2D);
-  glBindTexture(GL_TEXTURE_2D, e_Textures[ID].ID);
+  glBindTexture(GL_TEXTURE_2D, e_Textures[ID].tx.id);
+
+  u := e_Textures[ID].tx.u;
+  v := e_Textures[ID].tx.v;
 
   glBegin(GL_QUADS);
-    glTexCoord2i(0, 1); glVertex2i(X,         Y);
-    glTexCoord2i(1, 1); glVertex2i(X + Width, Y);
-    glTexCoord2i(1, 0); glVertex2i(X + Width, Y + Height);
-    glTexCoord2i(0, 0); glVertex2i(X,         Y + Height);
+    glTexCoord2f(0, v); glVertex2i(X,         Y);
+    glTexCoord2f(u, v); glVertex2i(X + Width, Y);
+    glTexCoord2f(u, 0); glVertex2i(X + Width, Y + Height);
+    glTexCoord2f(0, 0); glVertex2i(X,         Y + Height);
   glEnd();
 
   glDisable(GL_BLEND);
@@ -514,6 +525,8 @@ end;
 
 procedure e_DrawSizeMirror(ID: DWORD; X, Y: Integer; Alpha: Byte; AlphaChannel: Boolean;
                            Blending: Boolean; Width, Height: Word; Mirror: TMirrorType = M_NONE);
+var
+  u, v: Single;
 begin
   glColor4ub(e_Colors.R, e_Colors.G, e_Colors.B, 255);
 
@@ -532,31 +545,34 @@ begin
     glBlendFunc(GL_SRC_ALPHA, GL_ONE);
 
   glEnable(GL_TEXTURE_2D);
-  glBindTexture(GL_TEXTURE_2D, e_Textures[ID].ID);
+  glBindTexture(GL_TEXTURE_2D, e_Textures[ID].tx.id);
   glBegin(GL_QUADS);
+
+  u := e_Textures[ID].tx.u;
+  v := e_Textures[ID].tx.v;
 
   if Mirror = M_NONE then
     begin
-      glTexCoord2i(1,  0); glVertex2i(X + Width, Y);
-      glTexCoord2i(0,  0); glVertex2i(X,         Y);
-      glTexCoord2i(0, -1); glVertex2i(X,         Y + Height);
-      glTexCoord2i(1, -1); glVertex2i(X + Width, Y + Height);
+      glTexCoord2f(u,  0); glVertex2i(X + Width, Y);
+      glTexCoord2f(0,  0); glVertex2i(X,         Y);
+      glTexCoord2f(0, -v); glVertex2i(X,         Y + Height);
+      glTexCoord2f(u, -v); glVertex2i(X + Width, Y + Height);
     end
   else
     if Mirror = M_HORIZONTAL then
       begin
-        glTexCoord2i(1,  0); glVertex2i(X,         Y);
-        glTexCoord2i(0,  0); glVertex2i(X + Width, Y);
-        glTexCoord2i(0, -1); glVertex2i(X + Width, Y + Height);
-        glTexCoord2i(1, -1); glVertex2i(X,         Y + Height);
+        glTexCoord2f(u,  0); glVertex2i(X,         Y);
+        glTexCoord2f(0,  0); glVertex2i(X + Width, Y);
+        glTexCoord2f(0, -v); glVertex2i(X + Width, Y + Height);
+        glTexCoord2f(u, -v); glVertex2i(X,         Y + Height);
       end
     else
       if Mirror = M_VERTICAL then
       begin
-        glTexCoord2i(1, -1); glVertex2i(X + Width, Y);
-        glTexCoord2i(0, -1); glVertex2i(X,         Y);
-        glTexCoord2i(0,  0); glVertex2i(X,         Y + Height);
-        glTexCoord2i(1,  0); glVertex2i(X + Width, Y + Height);
+        glTexCoord2f(u, -v); glVertex2i(X + Width, Y);
+        glTexCoord2f(0, -v); glVertex2i(X,         Y);
+        glTexCoord2f(0,  0); glVertex2i(X,         Y + Height);
+        glTexCoord2f(u,  0); glVertex2i(X + Width, Y + Height);
       end;
 
   glEnd();
@@ -567,8 +583,8 @@ end;
 procedure e_DrawFill(ID: DWORD; X, Y: Integer; XCount, YCount: Word; Alpha: Integer;
                      AlphaChannel: Boolean; Blending: Boolean);
 var
-  X2, Y2: Integer;
-
+  X2, Y2, dx, dy, w, h: Integer;
+  u, v: Single;
 begin
   glColor4ub(e_Colors.R, e_Colors.G, e_Colors.B, 255);
 
@@ -593,23 +609,56 @@ begin
     YCount := 1;
 
   glEnable(GL_TEXTURE_2D);
-  glBindTexture(GL_TEXTURE_2D, e_Textures[ID].ID);
+  glBindTexture(GL_TEXTURE_2D, e_Textures[ID].tx.id);
 
   X2 := X + e_Textures[ID].Width * XCount;
   Y2 := Y + e_Textures[ID].Height * YCount;
 
-  glBegin(GL_QUADS);
-    glTexCoord2i(0,      YCount); glVertex2i(X,  Y);
-    glTexCoord2i(XCount, YCount); glVertex2i(X2, Y);
-    glTexCoord2i(XCount, 0);      glVertex2i(X2, Y2);
-    glTexCoord2i(0,      0);      glVertex2i(X,  Y2);
-  glEnd();
+  //k8: this SHOULD work... i hope
+  if (e_Textures[ID].tx.width = e_Textures[ID].tx.glwidth) and (e_Textures[ID].tx.height = e_Textures[ID].tx.glheight) then
+  begin
+    glBegin(GL_QUADS);
+      glTexCoord2i(0,      YCount); glVertex2i(X,  Y);
+      glTexCoord2i(XCount, YCount); glVertex2i(X2, Y);
+      glTexCoord2i(XCount, 0);      glVertex2i(X2, Y2);
+      glTexCoord2i(0,      0);      glVertex2i(X,  Y2);
+    glEnd();
+  end
+  else
+  begin
+    glBegin(GL_QUADS);
+    // hard day's night
+    u := e_Textures[ID].tx.u;
+    v := e_Textures[ID].tx.v;
+    w := e_Textures[ID].tx.width;
+    h := e_Textures[ID].tx.height;
+    while YCount > 0 do
+    begin
+      dx := XCount;
+      x2 := X;
+      while dx > 0 do
+      begin
+        glTexCoord2f(0, v); glVertex2i(X,  Y);
+        glTexCoord2f(u, v); glVertex2i(X+w, Y);
+        glTexCoord2f(u, 0); glVertex2i(X+w, Y+h);
+        glTexCoord2f(0, 0); glVertex2i(X,  Y+h);
+        Inc(X, w);
+        Dec(dx);
+      end;
+      X := x2;
+      Inc(Y, h);
+      Dec(YCount);
+    end;
+    glEnd();
+  end;
 
   glDisable(GL_BLEND);
 end;
 
 procedure e_DrawAdv(ID: DWORD; X, Y: Integer; Alpha: Byte; AlphaChannel: Boolean;
                     Blending: Boolean; Angle: Single; RC: PPoint; Mirror: TMirrorType = M_NONE);
+var
+  u, v: Single;
 begin
   glColor4ub(e_Colors.R, e_Colors.G, e_Colors.B, 255);
 
@@ -636,31 +685,35 @@ begin
   end;
 
   glEnable(GL_TEXTURE_2D);
-  glBindTexture(GL_TEXTURE_2D, e_Textures[id].ID);
+  glBindTexture(GL_TEXTURE_2D, e_Textures[id].tx.id);
   glBegin(GL_QUADS);                           //0-1        1-1
                                                //00         10
+
+  u := e_Textures[ID].tx.u;
+  v := e_Textures[ID].tx.v;
+
   if Mirror = M_NONE then
     begin
-      glTexCoord2i(1,  0); glVertex2i(X + e_Textures[id].Width, Y);
-      glTexCoord2i(0,  0); glVertex2i(X,                        Y);
-      glTexCoord2i(0, -1); glVertex2i(X,                        Y + e_Textures[id].Height);
-      glTexCoord2i(1, -1); glVertex2i(X + e_Textures[id].Width, Y + e_Textures[id].Height);
+      glTexCoord2f(u,  0); glVertex2i(X + e_Textures[id].Width, Y);
+      glTexCoord2f(0,  0); glVertex2i(X,                        Y);
+      glTexCoord2f(0, -v); glVertex2i(X,                        Y + e_Textures[id].Height);
+      glTexCoord2f(u, -v); glVertex2i(X + e_Textures[id].Width, Y + e_Textures[id].Height);
     end
   else
     if Mirror = M_HORIZONTAL then
       begin
-        glTexCoord2i(1,  0); glVertex2i(X,                        Y);
-        glTexCoord2i(0,  0); glVertex2i(X + e_Textures[id].Width, Y);
-        glTexCoord2i(0, -1); glVertex2i(X + e_Textures[id].Width, Y + e_Textures[id].Height);
-        glTexCoord2i(1, -1); glVertex2i(X,                        Y + e_Textures[id].Height);
+        glTexCoord2f(u,  0); glVertex2i(X,                        Y);
+        glTexCoord2f(0,  0); glVertex2i(X + e_Textures[id].Width, Y);
+        glTexCoord2f(0, -v); glVertex2i(X + e_Textures[id].Width, Y + e_Textures[id].Height);
+        glTexCoord2f(u, -v); glVertex2i(X,                        Y + e_Textures[id].Height);
       end
     else
       if Mirror = M_VERTICAL then
       begin
-        glTexCoord2i(1, -1); glVertex2i(X + e_Textures[id].Width, Y);
-        glTexCoord2i(0, -1); glVertex2i(X,                        Y);
-        glTexCoord2i(0,  0); glVertex2i(X,                        Y + e_Textures[id].Height);
-        glTexCoord2i(1,  0); glVertex2i(X + e_Textures[id].Width, Y + e_Textures[id].Height);
+        glTexCoord2f(u, -v); glVertex2i(X + e_Textures[id].Width, Y);
+        glTexCoord2f(0, -v); glVertex2i(X,                        Y);
+        glTexCoord2f(0,  0); glVertex2i(X,                        Y + e_Textures[id].Height);
+        glTexCoord2f(u,  0); glVertex2i(X + e_Textures[id].Width, Y + e_Textures[id].Height);
       end;
 
   glEnd();
@@ -839,8 +892,8 @@ end;
 //------------------------------------------------------------------
 procedure e_DeleteTexture(ID: DWORD);
 begin
-  glDeleteTextures(1, @e_Textures[ID].ID);
-  e_Textures[ID].ID := 0;
+  glDeleteTextures(1, @e_Textures[ID].tx.id);
+  e_Textures[ID].tx.id := 0;
   e_Textures[ID].Width := 0;
   e_Textures[ID].Height := 0;
 end;
@@ -1365,7 +1418,7 @@ begin
  with e_TextureFonts[id] do
  begin
   Base := glGenLists(XCount*YCount);
-  TextureID := e_Textures[Tex].ID;
+  TextureID := e_Textures[Tex].tx.id;
   CharWidth := (e_Textures[Tex].Width div XCount)+Space;
   CharHeight := e_Textures[Tex].Height div YCount;
   XC := XCount;
@@ -1374,7 +1427,7 @@ begin
   SPC := Space;
  end;
 
- glBindTexture(GL_TEXTURE_2D, e_Textures[Tex].ID);
+ glBindTexture(GL_TEXTURE_2D, e_Textures[Tex].tx.id);
  for loop1 := 0 to XCount*YCount-1 do
  begin
   cx := (loop1 mod XCount)/XCount;
@@ -1411,14 +1464,14 @@ begin
  with e_TextureFonts[id] do
  begin
   Base := glGenLists(XC*YC);
-  TextureID := e_Textures[Texture].ID;
+  TextureID := e_Textures[Texture].tx.id;
   XCount := XC;
   YCount := YC;
   Space := SPC;
   Tex := Texture;
  end;
 
- glBindTexture(GL_TEXTURE_2D, e_Textures[Tex].ID);
+ glBindTexture(GL_TEXTURE_2D, e_Textures[Tex].tx.id);
  for loop1 := 0 to XCount*YCount-1 do
  begin
   cx := (loop1 mod XCount)/XCount;
@@ -1666,10 +1719,10 @@ begin
           PxLen := 3;
           if e_Textures[i].Fmt = GL_RGBA then Inc(PxLen);
           Pixels := GetMem(PxLen * e_Textures[i].Width * e_Textures[i].Height);
-          glBindTexture(GL_TEXTURE_2D, e_Textures[i].ID);
+          glBindTexture(GL_TEXTURE_2D, e_Textures[i].tx.id);
           glGetTexImage(GL_TEXTURE_2D, 0, e_Textures[i].Fmt, GL_UNSIGNED_BYTE, Pixels);
           glBindTexture(GL_TEXTURE_2D, 0);
-          OldID := e_Textures[i].ID;
+          OldID := e_Textures[i].tx.id;
           TexId := i;
         end;
       end;
@@ -1706,9 +1759,9 @@ begin
       if e_SavedTextures[i].Pixels <> nil then
         with e_SavedTextures[i] do
         begin
-          GLID := CreateTexture(e_Textures[TexID].Width, e_Textures[TexID].Height,
-                                e_Textures[TexID].Fmt, Pixels);
-          e_Textures[TexID].ID := GLID;
+          CreateTexture(e_Textures[TexID].tx, e_Textures[TexID].Width, e_Textures[TexID].Height, e_Textures[TexID].Fmt, Pixels);
+          //GLID := CreateTexture(e_Textures[TexID].Width, e_Textures[TexID].Height, e_Textures[TexID].Fmt, Pixels);
+          //e_Textures[TexID].tx := GLID;
           FreeMem(Pixels);
         end;
     end;
@@ -1720,7 +1773,7 @@ begin
     for i := Low(e_TextureFonts) to High(e_TextureFonts) do
       with e_TextureFonts[i] do
       begin
-        TextureID := e_Textures[Texture].ID;
+        TextureID := e_Textures[Texture].tx.id;
         Base := 0;
         e_TextureFontBuildInPlace(i);
       end;

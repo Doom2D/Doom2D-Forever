@@ -9,28 +9,50 @@ interface
 uses
   GL, GLExt, SysUtils, e_log;
 
+type
+  GLTexture = record
+    id: GLuint;
+    width, height: Word; // real
+    glwidth, glheight: Word; // powerof2
+    u, v: Single; // usually 1.0
+  end;
+
 var
   fUseMipmaps: Boolean = False;
   TEXTUREFILTER: Integer = GL_NEAREST;
 
-function CreateTexture( Width, Height, Format: Word; pData: Pointer ): Integer;
+function CreateTexture(var tex: GLTexture; Width, Height, Format: Word; pData: Pointer ): Boolean;
 
 // Standard set of images loading functions
-function LoadTexture( Filename: String; var Texture: GLuint;
+function LoadTexture( Filename: String; var Texture: GLTexture;
                       var pWidth, pHeight: Word; Fmt: PWord = nil ): Boolean;
 
-function LoadTextureEx( Filename: String; var Texture: GLuint;
+function LoadTextureEx( Filename: String; var Texture: GLTexture;
                         fX, fY, fWidth, fHeight: Word; Fmt: PWord = nil ): Boolean;
 
-function LoadTextureMem( pData: Pointer; var Texture: GLuint;
+function LoadTextureMem( pData: Pointer; var Texture: GLTexture;
                          var pWidth, pHeight: Word; Fmt: PWord = nil ): Boolean;
 
-function LoadTextureMemEx( pData: Pointer; var Texture: GLuint;
+function LoadTextureMemEx( pData: Pointer; var Texture: GLTexture;
                            fX, fY, fWidth, fHeight: Word; Fmt: PWord = nil ): Boolean;
 
 implementation
 
 uses BinEditor;
+
+
+function AlignP2 (n: Word): Word;
+begin
+  Dec(n);
+  n := n or (n shr 1);
+  n := n or (n shr 2);
+  n := n or (n shr 4);
+  n := n or (n shr 8);
+  n := n or (n shr 16);
+  Inc(n);
+  Result := n;
+end;
+
 
 type
   TTGAHeader = packed record
@@ -47,17 +69,33 @@ type
   end;
 
 // This is auxiliary function that creates OpenGL texture from raw image data
-function CreateTexture( Width, Height, Format: Word; pData: Pointer ): Integer;
+function CreateTexture (var tex: GLTexture; Width, Height, Format: Word; pData: Pointer): Boolean;
 var
   Texture: GLuint;
 begin
-  glGenTextures( 1, @Texture );
-  glBindTexture( GL_TEXTURE_2D, Texture );
+  tex.width := Width;
+  tex.height := Height;
+  tex.glwidth := AlignP2(Width);
+  tex.glheight := AlignP2(Height);
+  if (tex.glwidth = tex.glwidth) and (tex.glheight = tex.height) then
+  begin
+    tex.u := 1;
+    tex.v := 1;
+  end
+  else
+  begin
+    tex.u := (tex.width+0.0)/(tex.glwidth+0.0);
+    tex.v := (tex.height+0.0)/(tex.height+0.0);
+  end;
 
-    {Texture blends with object background}
-  glTexEnvi( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE );
-    {Texture does NOT blend with object background}
- // glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL);
+  glGenTextures(1, @Texture);
+  tex.id := Texture;
+  glBindTexture(GL_TEXTURE_2D, Texture);
+
+  // texture blends with object background
+  glTexEnvi( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+  // texture does NOT blend with object background
+  //glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL);
 
   {
     Select a filtering type.
@@ -70,26 +108,46 @@ begin
   }
 
   // for GL_TEXTURE_MAG_FILTER only first two can be used
-  glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, TEXTUREFILTER );
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, TEXTUREFILTER);
   // for GL_TEXTURE_MIN_FILTER all of the above can be used
-  glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, TEXTUREFILTER );
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, TEXTUREFILTER);
 
+  // create empty texture
   if Format = GL_RGBA then
   begin
-    glTexImage2D( GL_TEXTURE_2D, 0, 4, Width, Height,
-                  0, GL_RGBA, GL_UNSIGNED_BYTE, pData );
-  end else
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, tex.glwidth, tex.glheight, 0, GL_RGBA, GL_UNSIGNED_BYTE, nil);
+    glTexSubImage2D(GL_TEXTURE_2D, 0,  0, 0, Width, Height, GL_RGBA, GL_UNSIGNED_BYTE, pData);
+  end
+  else
   begin
-    glTexImage2D( GL_TEXTURE_2D, 0, 3, Width, Height,
-                  0, GL_RGB, GL_UNSIGNED_BYTE, pData );
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, tex.glwidth, tex.glheight, 0, GL_RGB, GL_UNSIGNED_BYTE, nil);
+    glTexSubImage2D(GL_TEXTURE_2D, 0,  0, 0, Width, Height, GL_RGB, GL_UNSIGNED_BYTE, pData);
   end;
+
+  // the following is ok too
+  //bindTexture(0);
+  //glTextureSubImage2D(tid, 0,  0, 0, img.width, img.height, GL_RGBA, GL_UNSIGNED_BYTE, img.imageData.bytes.ptr);
+
+  {
+  if (tex.glwidth = tex.glwidth) and (tex.glheight = tex.height) then
+    // easy case
+    if Format = GL_RGBA then
+    begin
+      glTexImage2D(GL_TEXTURE_2D, 0, 4, Width, Height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pData);
+    end
+    else
+    begin
+      glTexImage2D(GL_TEXTURE_2D, 0, 3, Width, Height, 0, GL_RGB, GL_UNSIGNED_BYTE, pData);
+    end;
+  end
+  }
 
   glBindTexture(GL_TEXTURE_2D, 0);
 
-  Result := Texture;
+  Result := true;
 end;
 
-function LoadTextureMem( pData: Pointer; var Texture: GLuint;
+function LoadTextureMem( pData: Pointer; var Texture: GLTexture;
                          var pWidth, pHeight: Word; Fmt: PWord = nil ): Boolean;
 var
   TGAHeader:     TTGAHeader;
@@ -151,7 +209,7 @@ begin
   else
     TFmt := GL_RGBA;
 
-  Texture := CreateTexture( Width, Height, TFmt, Image );
+  CreateTexture(Texture, Width, Height, TFmt, Image );
 
   FreeMem( Image );
 
@@ -163,7 +221,7 @@ begin
   Result := True;
 end;
 
-function LoadTextureMemEx( pData: Pointer; var Texture: GLuint;
+function LoadTextureMemEx( pData: Pointer; var Texture: GLTexture;
                            fX, fY, fWidth, fHeight: Word; Fmt: PWord = nil ): Boolean;
 var
   TGAHeader:     TTGAHeader;
@@ -242,7 +300,7 @@ begin
   else
     TFmt := GL_RGBA;
 
-  Texture := CreateTexture( fWidth, fHeight, TFmt, Image );
+  CreateTexture(Texture, fWidth, fHeight, TFmt, Image );
 
   FreeMem( Image );
   FreeMem( Image2 );
@@ -252,7 +310,7 @@ begin
   Result := True;
 end;
 
-function LoadTexture( Filename: String; var Texture: GLuint;
+function LoadTexture( Filename: String; var Texture: GLTexture;
                       var pWidth, pHeight: Word; Fmt: PWord = nil ): Boolean;
 var
   TGAHeader:     TTGAHeader;
@@ -335,7 +393,7 @@ begin
   else
     TFmt := GL_RGBA;
 
-  Texture := CreateTexture( Width, Height, TFmt, Image );
+  CreateTexture(Texture, Width, Height, TFmt, Image );
 
   FreeMem( Image );
 
@@ -347,7 +405,7 @@ begin
   Result := True;
 end;
 
-function LoadTextureEx( Filename: String; var Texture: GLuint;
+function LoadTextureEx( Filename: String; var Texture: GLTexture;
                         fX, fY, fWidth, fHeight: Word; Fmt: PWord = nil ): Boolean;
 var
   TGAHeader:     TTGAHeader;
@@ -439,7 +497,7 @@ begin
   else
     TFmt := GL_RGBA;
 
-  Texture := CreateTexture( fWidth, fHeight, TFmt, Image );
+  CreateTexture(Texture, fWidth, fHeight, TFmt, Image );
 
   FreeMem( Image );
   FreeMem( Image2 );
