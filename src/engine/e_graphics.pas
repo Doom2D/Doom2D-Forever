@@ -3,7 +3,7 @@ unit e_graphics;
 interface
 
 uses
-  SysUtils, Math, e_log, e_textures, SDL, GL, GLExt, MAPDEF;
+  SysUtils, Math, e_log, e_textures, SDL2, GL, GLExt, MAPDEF;
 
 type
   TMirrorType=(M_NONE, M_HORIZONTAL, M_VERTICAL);
@@ -105,8 +105,8 @@ procedure e_EndRender();
 procedure e_SaveGLContext();
 procedure e_RestoreGLContext();
 
-function e_GetGamma(): Byte;
-procedure e_SetGamma(Gamma: Byte);
+function e_GetGamma(win: PSDL_Window): Byte;
+procedure e_SetGamma(win: PSDL_Window;Gamma: Byte);
 
 procedure e_MakeScreenshot(FileName: string; Width, Height: Word);
 
@@ -961,7 +961,7 @@ begin
   FreeMem(pixels);
 end;}
 
-function e_GetGamma(): Byte;
+function e_GetGamma(win: PSDL_Window): Byte;
 var
   ramp: array [0..256*3-1] of Word;
   rgb: array [0..2] of Double;
@@ -976,7 +976,7 @@ begin
  rgb[1] := 1.0;
  rgb[2] := 1.0;
 
- SDL_GetGammaRamp(@ramp[0], @ramp[256], @ramp[512]);
+ SDL_GetWindowGammaRamp(win, @ramp[0], @ramp[256], @ramp[512]);
 
  for i := 0 to 2 do
  begin
@@ -999,7 +999,7 @@ begin
  Result := 100 - Trunc(((rgb[0] + rgb[1] + rgb[2])/3 - 0.23) * 100/(2.7 - 0.23));
 end;
 
-procedure e_SetGamma(Gamma: Byte);
+procedure e_SetGamma(win: PSDL_Window; Gamma: Byte);
 var
   ramp: array [0..256*3-1] of Word;
   i: integer;
@@ -1018,7 +1018,7 @@ begin
   ramp[i + 512] := trunc(r);
  end;
 
- SDL_SetGammaRamp(@ramp[0], @ramp[256], @ramp[512]);
+ SDL_SetWindowGammaRamp(win, @ramp[0], @ramp[256], @ramp[512]);
 end;
 
 function e_CharFont_Create(sp: ShortInt=0): DWORD;

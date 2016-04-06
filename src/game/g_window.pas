@@ -23,15 +23,17 @@ function  g_Window_SetSize(W, H: Word; FScreen: Boolean): Boolean;
 implementation
 
 uses
-  SDL, GL, GLExt, e_graphics, e_log, g_main,
+  SDL2, GL, GLExt, e_graphics, e_log, g_main,
   g_console, SysUtils, e_input, g_options, g_game,
   g_basic, g_textures, e_sound, g_sound, g_menu, ENet, g_net;
 
 var
-  h_Wnd: PSDL_Surface;
+  h_Wnd: PSDL_Window;
+  h_GL: TSDL_GLContext;
   wFlags: LongWord = 0;
   Time, Time_Delta, Time_Old: Int64;
   flag: Boolean;
+  wTitle: PChar = nil;
   wNeedTimeReset: Boolean = False;
   wWindowCreated: Boolean = False;
   //wCursorShown: Boolean = False;
@@ -71,21 +73,29 @@ begin
 
   e_WriteLog('Setting display mode...', MSG_NOTIFY);
 
-  if wWindowCreated and PreserveGL then
-    e_SaveGLContext(); // we need this and restore because of a bug in SDL1.2, apparently
+  // if wWindowCreated and PreserveGL then
+  //   e_SaveGLContext(); // we need this and restore because of a bug in SDL1.2, apparently
 
-  wFlags := SDL_RESIZABLE or SDL_OPENGL;
-  if gFullscreen then wFlags := wFlags or SDL_FULLSCREEN;
+  wFlags := SDL_WINDOW_OPENGL or SDL_WINDOW_RESIZABLE;
+  if gFullscreen then wFlags := wFlags or SDL_WINDOW_FULLSCREEN;
+  if gWinMaximized then wFlags := wFlags or SDL_WINDOW_MAXIMIZED;
+  
+  if h_Wnd <> nil then
+  begin
+    SDL_DestroyWindow(h_Wnd);
+    h_Wnd := nil;
+  end;
 
-  h_Wnd := SDL_SetVideoMode(gScreenWidth, gScreenHeight, gBPP, wFlags);
-  SDL_EnableUNICODE(SDL_ENABLE);
-  SDL_EnableKeyRepeat(SDL_DEFAULT_REPEAT_DELAY, SDL_DEFAULT_REPEAT_INTERVAL);
+  h_Wnd := SDL_CreateWindow(PChar(wTitle), gWinRealPosX, gWinRealPosY, gScreenWidth, gScreenHeight, wFlags);
+  if h_Wnd = nil then Exit;
+  
+  SDL_GL_MakeCurrent(h_Wnd, h_GL);
   SDL_ShowCursor(SDL_DISABLE);
 
-  if wWindowCreated and PreserveGL then
-    e_RestoreGLContext();
+  // if wWindowCreated and PreserveGL then
+  //  e_RestoreGLContext();
 
-  Result := h_Wnd <> nil;
+  Result := True;
 end;
 
 procedure ReShowCursor();
@@ -95,32 +105,24 @@ end;
 
 function GetDisplayModes(dBPP: DWORD; var SelRes: DWORD): SArray;
 var
-  modesp: PPSDL_Rect;
-  tmpp: PSDL_Rect;
-  tmpr: SDL_Rect;
-  i: Integer;
+  mode: TSDL_DisplayMode;
+  res, i, k: Integer;
 begin
   SetLength(Result, 0);
-  modesp := SDL_ListModes(nil, SDL_FULLSCREEN or SDL_HWSURFACE);
-  if modesp = nil then exit;
-  if Pointer(-1) = modesp then exit;
 
-  tmpp := modesp^;
-  i := 0;
-  while tmpp <> nil do
+  k := 0;
+  for i := 0 to SDL_GetNumDisplayModes(0) do
   begin
-    tmpr := tmpp^;
-    if (tmpr.w = gScreenWidth) and (tmpr.h = gScreenHeight) then
-      SelRes := i;
-    SetLength(Result, Length(Result) + 1);
-    Result[i] := IntToStr(tmpr.w) + 'x' + IntToStr(tmpr.h);
-
-    modesp := Pointer(Cardinal(modesp) + SizeOf(PSDL_Rect));
-    tmpp := modesp^;
-    Inc(i);
+    res := SDL_GetDisplayMode(0, i, @mode);
+    if res < 0 then continue;
+    if (mode.w = gScreenWidth) and (mode.h = gScreenHeight) then
+      SelRes := k;
+    Inc(k);
+    SetLength(Result, k);
+    Result[k-1] := IntToStr(mode.w) + 'x' + IntToStr(mode.h);
   end;
 
-  e_WriteLog('SDL: Got ' + IntToStr(Length(Result)) + ' resolutions.', MSG_NOTIFY);
+  e_WriteLog('SDL: Got ' + IntToStr(k) + ' resolutions.', MSG_NOTIFY);
 end;
 
 procedure Sleep(ms: LongWord);
@@ -166,103 +168,148 @@ begin
   end;
 end;
 
+function WindowEventHandler(ev: TSDL_WindowEvent): Boolean;
+var
+  wActivate, wDeactivate: Boolean;
+begin
+  Result := False;
+  wActivate := False;
+  wDeactivate := False;
+  
+  case ev.event of
+    SDL_WINDOWEVENT_MOVED:
+    begin
+      if not (gFullscreen or gWinMaximized) then
+      begin
+        gWinRealPosX := ev.data1;
+        gWinRealPosY := ev.data2;
+      end;
+    end;
+    
+    SDL_WINDOWEVENT_MINIMIZED:
+    begin
+      if not wMinimized then
+      begin
+        e_ResizeWindow(0, 0);
+        wMinimized := True;
+
+        if g_debug_WinMsgs then
+        begin
+          g_Console_Add('Now minimized');
+          e_WriteLog('[DEBUG] WinMsgs: Now minimized', MSG_NOTIFY);
+        end;
+        wDeactivate := True;
+      end;
+    end;
+    
+    SDL_WINDOWEVENT_RESIZED:
+    begin
+      gScreenWidth := ev.data1;
+      gScreenHeight := ev.data2;
+      ChangeWindowSize();
+      SwapBuffers();
+      if g_debug_WinMsgs then
+      begin
+        g_Console_Add('Resized to ' + IntToStr(ev.data1) + 'x' + IntToStr(ev.data2));
+        e_WriteLog('[DEBUG] WinMsgs: Resized to ' + IntToStr(ev.data1) + 'x' + IntToStr(ev.data2), MSG_NOTIFY);
+      end;
+    end;
+    
+    SDL_WINDOWEVENT_EXPOSED:
+      SwapBuffers();
+    
+    SDL_WINDOWEVENT_MAXIMIZED:
+    begin
+      if wMinimized then
+      begin
+        e_ResizeWindow(gScreenWidth, gScreenHeight);
+        wMinimized := False;
+        wActivate := True;
+      end;
+      if not gWinMaximized then
+      begin
+        gWinMaximized := True;
+        if g_debug_WinMsgs then
+        begin
+          g_Console_Add('Now maximized');
+          e_WriteLog('[DEBUG] WinMsgs: Now maximized', MSG_NOTIFY);
+        end;
+      end;
+    end;
+    
+    SDL_WINDOWEVENT_RESTORED:
+    begin
+      if wMinimized then
+      begin
+        e_ResizeWindow(gScreenWidth, gScreenHeight);
+        wMinimized := False;
+        wActivate := True;
+      end;
+      if gWinMaximized then
+        gWinMaximized := False;
+      if g_debug_WinMsgs then
+      begin
+        g_Console_Add('Now restored');
+        e_WriteLog('[DEBUG] WinMsgs: Now restored', MSG_NOTIFY);
+      end;
+    end;
+    
+    SDL_WINDOWEVENT_FOCUS_GAINED:
+      wActivate := True;
+    
+    SDL_WINDOWEVENT_FOCUS_LOST:
+      wDeactivate := True;
+  end;
+  
+  if wDeactivate then
+  begin
+    if gWinActive then
+    begin
+      e_EnableInput := False;
+      e_ClearInputBuffer();
+
+      if gMuteWhenInactive then
+        e_MuteChannels(True);
+
+      if g_debug_WinMsgs then
+      begin
+        g_Console_Add('Now inactive');
+        e_WriteLog('[DEBUG] WinMsgs: Now inactive', MSG_NOTIFY);
+      end;
+
+      gWinActive := False;
+    end;
+  end
+  else if wActivate then
+  begin
+    if not gWinActive then
+    begin
+      e_EnableInput := True;
+
+      if gMuteWhenInactive then
+        e_MuteChannels(False);
+
+      if g_debug_WinMsgs then
+      begin
+        g_Console_Add('Now active');
+        e_WriteLog('[DEBUG] WinMsgs: Now active', MSG_NOTIFY);
+      end;
+
+      gWinActive := True;
+    end;
+  end;
+end;
+
 function EventHandler(ev: TSDL_Event): Boolean;
 var
   key, keychr: Word;
+  uc: UnicodeChar;
   //joy: Integer;
 begin
   Result := False;
   case ev.type_ of
-    SDL_VIDEORESIZE:
-    begin
-      g_Window_SetSize(ev.resize.w, ev.resize.h, gFullscreen);
-      e_Clear();
-    end;
-
-    SDL_ACTIVEEVENT:
-    begin
-      if (ev.active.gain = 0) then
-      begin
-        if g_debug_WinMsgs then
-        begin
-          g_Console_Add('Inactive');
-          e_WriteLog('[DEBUG] WinMsgs: Inactive', MSG_NOTIFY);
-        end;
-
-        if LongBool(ev.active.state and SDL_APPINPUTFOCUS) and gWinActive then
-        begin
-          e_EnableInput := False;
-          e_ClearInputBuffer();
-
-          if gMuteWhenInactive then
-            e_MuteChannels(True);
-
-          if g_debug_WinMsgs then
-          begin
-            g_Console_Add('Inactive indeed');
-            e_WriteLog('[DEBUG] WinMsgs: Inactive indeed', MSG_NOTIFY);
-          end;
-
-          gWinActive := False;
-        end;
-
-        if LongBool(ev.active.state and SDL_APPACTIVE) and (not wMinimized) then
-        begin
-          e_ResizeWindow(0, 0);
-          wMinimized := True;
-
-          if g_debug_WinMsgs then
-          begin
-            g_Console_Add('Minimized indeed');
-            e_WriteLog('[DEBUG] WinMsgs: Minimized indeed', MSG_NOTIFY);
-          end;
-        end;
-      end
-      else
-      begin
-        if g_debug_WinMsgs then
-        begin
-          g_Console_Add('Active');
-          e_WriteLog('[DEBUG] WinMsgs: Active', MSG_NOTIFY);
-        end;
-
-        // Если окно было неактивным:
-        if LongBool(ev.active.state and SDL_APPINPUTFOCUS) and (not gWinActive) then
-        begin
-          e_EnableInput := True;
-
-          if gMuteWhenInactive then
-            e_MuteChannels(False);
-
-          if g_debug_WinMsgs then
-          begin
-            g_Console_Add('Active indeed');
-            e_WriteLog('[DEBUG] WinMsgs: Active indeed', MSG_NOTIFY);
-          end;
-
-          gWinActive := True;
-        end;
-
-        if LongBool(ev.active.state and SDL_APPACTIVE) and wMinimized then
-        begin
-          e_ResizeWindow(gScreenWidth, gScreenHeight);
-
-          wMinimized := False;
-
-          if g_debug_WinMsgs then
-          begin
-            g_Console_Add('Restored indeed');
-            e_WriteLog('[DEBUG] WinMsgs: Restored indeed', MSG_NOTIFY);
-          end;
-        end;
-      end;
-    end;
-
-    SDL_VIDEOEXPOSE:
-    begin
-      // TODO: the fuck is this event?
-      // Draw();
-    end;
+    SDL_WINDOWEVENT:
+      Result := WindowEventHandler(ev.window);
 
     SDL_QUITEV:
     begin
@@ -281,28 +328,34 @@ begin
 
     SDL_KEYDOWN:
     begin
-      key := ev.key.keysym.sym;
-      keychr := ev.key.keysym.unicode;
+      key := ev.key.keysym.scancode;
       KeyPress(key);
-      if (keychr > 7) and (key <> IK_BACKSPACE) then
-      begin
-        if (keychr >= 128) then
-          keychr := WCharToCP1251(keychr);
-        CharPress(Chr(keychr));
-      end;
+    end;
+    
+    SDL_TEXTINPUT:
+    begin
+      Utf8ToUnicode(@uc, PChar(ev.text.text), 1);
+      keychr := Word(uc);
+      if (keychr > 127) then
+        keychr := WCharToCP1251(keychr);
+      CharPress(Chr(keychr));
     end;
 
-    // key presses and joysticks are handled in e_input
+    // other key presses and joysticks are handled in e_input
   end;
 end;
 
 procedure SwapBuffers();
 begin
-  SDL_GL_SwapBuffers();
+  SDL_GL_SwapWindow(h_Wnd);
 end;
 
 procedure KillGLWindow();
 begin
+  if h_Wnd <> nil then SDL_DestroyWindow(h_Wnd);
+  if h_GL <> nil then SDL_GL_DeleteContext(h_GL);
+  h_Wnd := nil;
+  h_GL := nil;
   wWindowCreated := False;
 end;
 
@@ -315,6 +368,7 @@ begin
   gWinSizeX := gScreenWidth;
   gWinSizeY := gScreenHeight;
 
+  wTitle := Title;
   e_WriteLog('Creating window', MSG_NOTIFY);
 
   if not g_Window_SetDisplay() then
@@ -324,7 +378,9 @@ begin
     exit;
   end;
 
-  SDL_WM_SetCaption(Title, Title);
+  h_Gl := SDL_GL_CreateContext(h_Wnd);
+  if h_Gl = nil then Exit;
+  
   wWindowCreated := True;
 
   e_ResizeWindow(gScreenWidth, gScreenHeight);
@@ -477,12 +533,14 @@ var
   v: Byte;
 begin
   if VSync then v := 1 else v := 0;
+  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
+  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
   SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 8);
   SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 8);
   SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 8);
   SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 16);
   SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
-  SDL_GL_SetAttribute(SDL_GL_SWAP_CONTROL, v);
+  SDL_GL_SetSwapInterval(v);
 end;
 
 function SDLMain(): Integer;

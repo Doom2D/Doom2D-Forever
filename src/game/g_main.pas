@@ -20,7 +20,7 @@ var
 implementation
 
 uses
-  SDL, GL, GLExt, WADEDITOR, e_log, g_window,
+  SDL2, GL, GLExt, WADEDITOR, e_log, g_window,
   e_graphics, e_input, g_game, g_console, g_gui,
   e_sound, g_options, g_sound, g_player,
   g_weapons, SysUtils, g_triggers, MAPDEF, g_map,
@@ -49,8 +49,10 @@ begin
   e_WriteLog(gLanguage, MSG_NOTIFY);
   g_Language_Set(gLanguage);
 
-  if SDL_Init(SDL_INIT_JOYSTICK or SDL_INIT_TIMER or SDL_INIT_AUDIO) < 0 then
+  if SDL_Init(SDL_INIT_JOYSTICK or SDL_INIT_TIMER or SDL_INIT_VIDEO) < 0 then
     raise Exception.Create('SDL: Init failed: ' + SDL_GetError());
+    
+  SDL_StartTextInput();
 
   e_WriteLog('Entering SDLMain', MSG_NOTIFY);
 
@@ -58,6 +60,8 @@ begin
   SDLMain();
   {$WARNINGS ON}
 
+  SDL_StopTextInput();
+  
   e_WriteLog('Releasing SDL', MSG_NOTIFY);
   SDL_Quit();
 end;

@@ -7,6 +7,7 @@ program Doom2DF;
 uses
   GL,
   GLExt,
+  SDL2 in '../lib/sdl2/sdl2.pas',
   ENet in '../lib/enet/enet.pp',
   ENetTypes in '../lib/enet/enettypes.pp',
   ENetList in '../lib/enet/enetlist.pp',

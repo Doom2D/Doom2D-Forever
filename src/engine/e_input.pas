@@ -5,10 +5,10 @@ interface
 uses
   SysUtils,
   e_log,
-  SDL;
+  SDL2;
 
 const
-  e_MaxKbdKeys  = 321;
+  e_MaxKbdKeys  = SDL_NUM_SCANCODES;
   e_MaxJoys     = 4;
   e_MaxJoyBtns  = 32;
   e_MaxJoyAxes  = 4;
@@ -23,39 +23,39 @@ const
   // $$$..$$$ -  4*4 Joystick hats (L U R D)
 
   // these are apparently used in g_gui and g_game and elsewhere
-  IK_UNKNOWN = SDLK_UNKNOWN;
   IK_INVALID = 65535;
-  IK_ESCAPE  = SDLK_ESCAPE;
-  IK_RETURN  = SDLK_RETURN;
-  IK_ENTER   = SDLK_RETURN;
-  IK_UP      = SDLK_UP;
-  IK_DOWN    = SDLK_DOWN;
-  IK_LEFT    = SDLK_LEFT;
-  IK_RIGHT   = SDLK_RIGHT;
-  IK_DELETE  = SDLK_DELETE;
-  IK_HOME    = SDLK_HOME;
-  IK_INSERT  = SDLK_INSERT;
-  IK_SPACE   = SDLK_SPACE;
-  IK_CONTROL = SDLK_LCTRL;
-  IK_SHIFT   = SDLK_LSHIFT;
-  IK_TAB     = SDLK_TAB;
-  IK_PAGEUP  = SDLK_PAGEUP;
-  IK_PAGEDN  = SDLK_PAGEDOWN;
-  IK_F2      = SDLK_F2;
-  IK_F3      = SDLK_F3;
-  IK_F4      = SDLK_F4;
-  IK_F5      = SDLK_F5;
-  IK_F6      = SDLK_F6;
-  IK_F7      = SDLK_F7;
-  IK_F8      = SDLK_F8;
-  IK_F9      = SDLK_F9;
-  IK_F10     = SDLK_F10;
-  IK_END     = SDLK_END;
-  IK_BACKSPACE = SDLK_BACKSPACE;
-  IK_BACKQUOTE = SDLK_BACKQUOTE;
-  IK_PAUSE   = SDLK_PAUSE;
+  IK_ESCAPE  = SDL_SCANCODE_ESCAPE;
+  IK_RETURN  = SDL_SCANCODE_RETURN;
+  IK_ENTER   = SDL_SCANCODE_RETURN;
+  IK_UP      = SDL_SCANCODE_UP;
+  IK_DOWN    = SDL_SCANCODE_DOWN;
+  IK_LEFT    = SDL_SCANCODE_LEFT;
+  IK_RIGHT   = SDL_SCANCODE_RIGHT;
+  IK_DELETE  = SDL_SCANCODE_DELETE;
+  IK_HOME    = SDL_SCANCODE_HOME;
+  IK_INSERT  = SDL_SCANCODE_INSERT;
+  IK_SPACE   = SDL_SCANCODE_SPACE;
+  IK_CONTROL = SDL_SCANCODE_LCTRL;
+  IK_SHIFT   = SDL_SCANCODE_LSHIFT;
+  IK_TAB     = SDL_SCANCODE_TAB;
+  IK_PAGEUP  = SDL_SCANCODE_PAGEUP;
+  IK_PAGEDN  = SDL_SCANCODE_PAGEDOWN;
+  IK_F2      = SDL_SCANCODE_F2;
+  IK_F3      = SDL_SCANCODE_F3;
+  IK_F4      = SDL_SCANCODE_F4;
+  IK_F5      = SDL_SCANCODE_F5;
+  IK_F6      = SDL_SCANCODE_F6;
+  IK_F7      = SDL_SCANCODE_F7;
+  IK_F8      = SDL_SCANCODE_F8;
+  IK_F9      = SDL_SCANCODE_F9;
+  IK_F10     = SDL_SCANCODE_F10;
+  IK_END     = SDL_SCANCODE_END;
+  IK_BACKSPACE = SDL_SCANCODE_BACKSPACE;
+  IK_BACKQUOTE = SDL_SCANCODE_GRAVE;
+  IK_GRAVE     = SDL_SCANCODE_GRAVE;
+  IK_PAUSE   = SDL_SCANCODE_PAUSE;
   // TODO: think of something better than this shit
-  IK_LASTKEY = 320;
+  IK_LASTKEY = SDL_NUM_SCANCODES-1;
 
   AX_MINUS  = 0;
   AX_PLUS   = 1;
@@ -164,7 +164,7 @@ var
   i: Cardinal;
 begin
   Result := False;
-  Keys := SDL_GetKeyState(@NKeys);
+  Keys := SDL_GetKeyboardState(@NKeys);
   if (Keys = nil) or (NKeys < 1) then
     Exit;
   for i := 0 to NKeys do
@@ -205,11 +205,7 @@ var
 begin
   // keyboard key names
   for i := 0 to IK_LASTKEY do
-  begin
-    e_KeyNames[i] := SDL_GetKeyName(i);
-    if e_KeyNames[i] = 'unknown key' then
-      e_KeyNames[i] := '';
-  end;
+    e_KeyNames[i] := SDL_GetScancodeName(i);
 
   // joysticks
   for j := 0 to e_MaxJoys-1 do
@@ -240,7 +236,7 @@ end;
 function e_InitInput(): Boolean;
 begin
   Result := False;
-
+  
   e_JoysticksAvailable := OpenJoysticks();
   e_EnableInput := True;
   GenerateKeyNames();
