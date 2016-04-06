@@ -1933,7 +1933,7 @@ begin
               e_Draw(TextureID, Obj.X, Obj.Y, 0, True, False);
           end;
 
-	  if g_debug_Frames then
+          if g_debug_Frames then
           begin
             e_DrawQuad(Obj.X+Obj.Rect.X,
                        Obj.Y+Obj.Rect.Y,
