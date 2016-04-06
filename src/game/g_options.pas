@@ -121,7 +121,7 @@ begin
   gDrawBackGround := True;
   gShowMessages := True;
   gRevertPlayers := False;
-  
+
   for i := 0 to e_MaxJoys-1 do
     e_JoystickDeadzones[i] := 8192;
 
@@ -299,7 +299,7 @@ begin
     if (Team < TEAM_RED) or (Team > TEAM_BLUE) then
       Team := TEAM_RED;
   end;
-  
+
   for i := 0 to e_MaxJoys-1 do
     e_JoystickDeadzones[i] := config.ReadInt('Joysticks', 'Deadzone' + IntToStr(i), 8192);
 
@@ -498,7 +498,7 @@ begin
     WriteInt('Player2', 'blue', Color.B);
     WriteInt('Player2', 'team', Team);
   end;
-  
+
   for i := 0 to e_MaxJoys-1 do
     config.WriteInt('Joysticks', 'Deadzone' + IntToStr(i), e_JoystickDeadzones[i]);
 

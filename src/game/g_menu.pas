@@ -126,7 +126,7 @@ begin
     KeyPrevWeapon := TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_PREV_WEAPON])).Key;
     KeyOpen := TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_USE])).Key;
   end;
-  
+
   if e_JoysticksAvailable > 0 then
   begin
     menu := TGUIMenu(g_GUI_GetWindow('OptionsControlsJoystickMenu').GetControl('mOptionsControlsJoystickMenu'));
@@ -263,7 +263,7 @@ begin
     TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_PREV_WEAPON])).Key := KeyPrevWeapon;
     TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_USE])).Key := KeyOpen;
   end;
-  
+
   if e_JoysticksAvailable > 0 then
   begin
     menu := TGUIMenu(g_GUI_GetWindow('OptionsControlsJoystickMenu').GetControl('mOptionsControlsJoystickMenu'));
@@ -640,7 +640,7 @@ begin
       end;
     end;
  end;
- 
+
  ProcSelectMap(nil);
 end;
 
@@ -1729,7 +1729,7 @@ begin
     AddButton(@ProcOptionsPlayersAnim, _lc[I_MENU_MODEL_ANIMATION]);
     AddButton(@ProcOptionsPlayersWeap, _lc[I_MENU_MODEL_CHANGE_WEAPON]);
     AddButton(@ProcOptionsPlayersRot, _lc[I_MENU_MODEL_ROTATE]);
-  
+
     with TGUIModelView(Menu.AddChild(TGUIModelView.Create)) do
     begin
       Name := 'mv'+s+'Model';
@@ -2566,7 +2566,7 @@ begin
   end;
   Menu.DefControl := 'mOptionsControlsP2Menu';
   g_GUI_AddWindow(Menu);
-  
+
   Menu := TGUIWindow.Create('OptionsControlsJoystickMenu');
   with TGUIMenu(Menu.AddChild(TGUIMenu.Create(gMenuFont, gMenuSmallFont, _lc[I_MENU_CONTROL_JOYSTICKS]))) do
   begin

@@ -245,7 +245,7 @@ end;
 
 procedure TConfig.WriteBool(Section, Param: string; Value: Boolean);
 begin
- WriteParam(Section, Param, BoolToStr(Value)); 
+ WriteParam(Section, Param, BoolToStr(Value));
 end;
 
 procedure TConfig.WriteInt(Section, Param: string; Value: Integer);

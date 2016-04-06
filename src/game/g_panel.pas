@@ -233,7 +233,7 @@ begin
       begin // Анимированная текстура
         if FTextureIDs[FCurTexture].AnTex = nil then
           Exit;
-  
+
         for xx := 0 to (Width div FTextureWidth)-1 do
           for yy := 0 to (Height div FTextureHeight)-1 do
             FTextureIDs[FCurTexture].AnTex.Draw(
@@ -356,7 +356,7 @@ begin
     else
       if AnimLoop = 2 then
         FTextureIDs[FCurTexture].AnTex.Loop := False;
-        
+
     FTextureIDs[FCurTexture].AnTex.Reset();
   end;
 
@@ -396,7 +396,7 @@ begin
     else
       if AnimLoop = 2 then
         FTextureIDs[FCurTexture].AnTex.Loop := False;
-        
+
     FTextureIDs[FCurTexture].AnTex.Reset();
   end;
 

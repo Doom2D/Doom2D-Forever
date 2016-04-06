@@ -102,7 +102,7 @@ Const
   ENET_PACKET_FLAG_UNSEQUENCED         = 2;
   ENET_PACKET_FLAG_NO_ALLOCATE         = 4;
   ENET_PACKET_FLAG_UNRELIABLE_FRAGMENT = 8;
-  ENET_PACKET_FLAG_SENT                = 256; 
+  ENET_PACKET_FLAG_SENT                = 256;
 
 Type
   ENetPeerState       = ( ENET_PEER_STATE_DISCONNECTED,
@@ -404,4 +404,3 @@ function ENET_VERSION(): ENetVersion; inline;
      end;
 
 end.
-

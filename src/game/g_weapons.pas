@@ -1462,7 +1462,7 @@ begin
 
     triggers := nil;
     ShotType := WEAPON_MANCUB_FIRE;
-    g_Frames_Get(FramesID, 'FRAMES_WEAPON_MANCUBFIRE'); 
+    g_Frames_Get(FramesID, 'FRAMES_WEAPON_MANCUBFIRE');
     Animation := TAnimation.Create(FramesID, True, 4);
   end;
 
@@ -1486,7 +1486,7 @@ begin
     if Integer(find_id) >= High(Shots) then
       SetLength(Shots, find_id + 64)
   end;
- 
+
   with Shots[find_id] do
   begin
     g_Obj_Init(@Obj);
@@ -2097,7 +2097,7 @@ begin
   if Shots = nil then
     Exit;
   if (I > High(Shots)) or (I < 0) then Exit;
-  
+
   with Shots[I] do
   begin
     if ShotType = 0 then Exit;
@@ -2141,7 +2141,7 @@ begin
           s := 'FRAMES_EXPLODE_PLASMA'
         else
           s := 'FRAMES_EXPLODE_BSPFIRE';
-        
+
         if g_Frames_Get(TextureID, s) and loud then
         begin
           Anim := TAnimation.Create(TextureID, False, 3);

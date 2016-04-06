@@ -65,7 +65,7 @@ type
     wParam: LongInt;
     lParam: LongInt;
   end;
- 
+
   TFontType = (FONT_TEXTURE, FONT_CHAR);
 
   TFont = class(TObject)
@@ -102,7 +102,7 @@ type
     constructor Create;
     procedure OnMessage(var Msg: TMessage); virtual;
     procedure Update; virtual;
-    procedure Draw; virtual;    
+    procedure Draw; virtual;
     property X: Integer read FX write FX;
     property Y: Integer read FY write FY;
     property Enabled: Boolean read FEnabled write FEnabled;
@@ -912,7 +912,7 @@ end;
 procedure TFont.Draw(X, Y: Integer; Text: string; R, G, B: Byte);
 begin
   if FFontType = FONT_CHAR then e_CharFont_PrintEx(ID, X, Y, Text, _RGB(R, G, B), FScale)
-  else e_TextureFontPrintEx(X, Y, Text, ID, R, G, B, FScale); 
+  else e_TextureFontPrintEx(X, Y, Text, ID, R, G, B, FScale);
 end;
 
 procedure TFont.GetTextSize(Text: string; var w, h: Word);
@@ -999,7 +999,7 @@ begin
   FCounter := MAINMENU_MARKERDELAY;
 
   g_Texture_Get(MAINMENU_MARKER1, FMarkerID1);
-  g_Texture_Get(MAINMENU_MARKER2, FMarkerID2); 
+  g_Texture_Get(MAINMENU_MARKER2, FMarkerID2);
 
   FHeader := TGUILabel.Create(Header, FFontID);
   with FHeader do
@@ -1037,7 +1037,7 @@ begin
       if FButtons[a] <> nil then FButtons[a].Draw;
 
     if FIndex <> -1 then
-      e_Draw(FMarkerID1, FButtons[FIndex].FX-48, FButtons[FIndex].FY, 0, True, False); 
+      e_Draw(FMarkerID1, FButtons[FIndex].FX-48, FButtons[FIndex].FY, 0, True, False);
   end;
 end;
 
@@ -1142,7 +1142,7 @@ constructor TGUILabel.Create(Text: string; FontID: DWORD);
 begin
   inherited Create();
 
-  FFont := TFont.Create(FontID, FONT_CHAR); 
+  FFont := TFont.Create(FontID, FONT_CHAR);
 
   FText := Text;
   FFixedLen := 0;
@@ -1169,8 +1169,8 @@ begin
   if FFixedLen = 0 then
     FFont.GetTextSize(FText, w, h)
   else
-    w := e_CharFont_GetMaxWidth(FFont.ID)*FFixedLen; 
-  Result := w; 
+    w := e_CharFont_GetMaxWidth(FFont.ID)*FFixedLen;
+  Result := w;
 end;
 
 procedure TGUILabel.OnMessage(var Msg: TMessage);
@@ -1343,9 +1343,9 @@ begin
       y := FItems[FIndex].Control.FY;
     end;
 
-    x := x-e_CharFont_GetMaxWidth(FFontID); 
+    x := x-e_CharFont_GetMaxWidth(FFontID);
 
-    e_CharFont_PrintEx(FFontID, x, y, #16, _RGB(255, 0, 0)); 
+    e_CharFont_PrintEx(FFontID, x, y, #16, _RGB(255, 0, 0));
   end;
 end;
 
@@ -2155,7 +2155,7 @@ var
   w, h: Word;
 begin
   Result := 0;
- 
+
   for a := 0 to 255 do
   begin
     FFont.GetTextSize(e_KeyNames[a], w, h);
@@ -2205,13 +2205,13 @@ begin
                 begin
                   FKey := IK_ENTER; // <Enter>
                   FIsQuery := False;
-                  
+
                   with FWindow do
                     if FDefControl <> '' then
                       SetActive(GetControl(FDefControl))
                     else
                       SetActive(nil);
-                end;   
+                end;
             end;
         end;
 
@@ -2253,7 +2253,7 @@ begin
 
   DrawBox(FX, FY, 4, 4);
 
-  if FModel <> nil then FModel.Draw(FX+4, FY+4); 
+  if FModel <> nil then FModel.Draw(FX+4, FY+4);
 end;
 
 procedure TGUIModelView.NextAnim();
@@ -2286,7 +2286,7 @@ end;
 
 procedure TGUIModelView.SetColor(Red, Green, Blue: Byte);
 begin
-  if FModel <> nil then FModel.SetColor(Red, Green, Blue); 
+  if FModel <> nil then FModel.SetColor(Red, Green, Blue);
 end;
 
 procedure TGUIModelView.SetModel(ModelName: string);
@@ -2302,7 +2302,7 @@ begin
 
   a := not a;
   if a then Exit;
- 
+
   if FModel <> nil then FModel.Update;
 end;
 
@@ -2335,7 +2335,7 @@ begin
   e_DrawFillQuad(FX+4, FY+4,
     FX+4 + Trunc(FMapSize.X / FScale) - 1,
     FY+4 + Trunc(FMapSize.Y / FScale) - 1,
-    32, 32, 32, 0);     
+    32, 32, 32, 0);
 
   if FMapData <> nil then
     for a := 0 to High(FMapData) do
@@ -2346,7 +2346,7 @@ begin
 
         if X2 < 0 then Continue;
         if Y2 < 0 then Continue;
-     
+
         if X2 > MAPPREVIEW_WIDTH*16 then X2 := MAPPREVIEW_WIDTH*16;
         if Y2 > MAPPREVIEW_HEIGHT*16 then Y2 := MAPPREVIEW_HEIGHT*16;
 
@@ -2593,12 +2593,12 @@ end;
 
 function TGUIListBox.GetHeight: Word;
 begin
-  Result := 8+FHeight*16; 
+  Result := 8+FHeight*16;
 end;
 
 function TGUIListBox.GetWidth: Word;
 begin
-  Result := 8+(FWidth+1)*16; 
+  Result := 8+(FWidth+1)*16;
 end;
 
 procedure TGUIListBox.OnMessage(var Msg: TMessage);
@@ -2675,7 +2675,7 @@ procedure TGUIListBox.FSetItems(Items: SArray);
 begin
   if FItems <> nil then
     FItems := nil;
-   
+
   FItems := Items;
 
   FStartLine := 0;
@@ -2907,7 +2907,7 @@ var
 begin
   if (FIndex = -1) or (FItems = nil) or
      (FIndex > High(FItems)) or
-     (FItems[FIndex][1] = '/') or 
+     (FItems[FIndex][1] = '/') or
      (FItems[FIndex][1] = '\') then
     fn := ''
   else
@@ -3034,7 +3034,7 @@ begin
   inherited;
 
   if FImageRes = '' then
-  begin   
+  begin
     if g_Texture_Get(FDefaultRes, ID) then e_Draw(ID, FX, FY, 0, True, False);
   end
   else

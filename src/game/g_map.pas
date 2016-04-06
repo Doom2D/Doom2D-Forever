@@ -1148,7 +1148,7 @@ begin
     e_WriteLog('  Loading sky: ' + gMapInfo.SkyName, MSG_NOTIFY);
     g_Game_SetLoadingText(_lc[I_LOAD_SKY], 0, False);
     g_ProcessResourceStr(gMapInfo.SkyName, FileName, SectionName, ResName);
-  
+
     if FileName <> '' then
       FileName := GameDir+'/wads/'+FileName
     else
@@ -1301,13 +1301,13 @@ begin
       if not WAD.GetResource('', ResList[a], Data, Len) then Continue;
       CopyMemory(@Sign[0], Data, 3);
       FreeMem(Data);
-   
+
       if Sign = MAP_SIGNATURE then
       begin
         SetLength(Result, Length(Result)+1);
         Result[High(Result)] := ResList[a];
       end;
-   
+
       Sign := '';
     end;
 
@@ -1336,7 +1336,7 @@ begin
 
   ResList := WAD.GetResourcesList('');
   WAD.Free();
- 
+
   if ResList <> nil then
     for a := 0 to High(ResList) do if ResList[a] = ResName then
     begin
@@ -1527,7 +1527,7 @@ procedure g_Map_DrawPanels(PanelType: Word);
         if not (drawDoors xor panels[a].Door) then
           panels[a].Draw();
   end;
-          
+
 begin
   case PanelType of
     PANEL_WALL:       DrawPanels(gWalls);
@@ -1658,7 +1658,7 @@ begin
 
       for a := 0 to h do
         if ( (not b1x3) or
-             ((gBlockMon[a].Width + gBlockMon[a].Height) >= 64) ) and 
+             ((gBlockMon[a].Width + gBlockMon[a].Height) >= 64) ) and
            g_Collide(X, Y, Width, Height,
            gBlockMon[a].X, gBlockMon[a].Y,
            gBlockMon[a].Width, gBlockMon[a].Height) then
@@ -1743,7 +1743,7 @@ end;
 procedure g_Map_SwitchTexture(PanelType: Word; ID: DWORD; AnimLoop: Byte = 0);
 var
   tp: TPanel;
-begin            
+begin
   case PanelType of
     PANEL_WALL, PANEL_OPENDOOR, PANEL_CLOSEDOOR:
       tp := gWalls[ID];

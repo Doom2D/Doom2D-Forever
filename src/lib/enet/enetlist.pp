@@ -32,7 +32,7 @@ unit enetlist;
 }
 
 interface
-                                  
+
 type
 
 {$PACKRECORDS C}
@@ -92,4 +92,3 @@ function enet_list_back( list: pENetList ): Pointer; inline;
      end;
 
 end.
-

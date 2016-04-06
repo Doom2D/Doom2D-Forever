@@ -535,7 +535,7 @@ begin
       ENET_EVENT_TYPE_DISCONNECT:
       begin
         ID := Byte(NetEvent.peer^.data^);
-        if ID > High(NetClients) then Exit;     
+        if ID > High(NetClients) then Exit;
         TC := @NetClients[ID];
         if TC = nil then Exit;
 
@@ -745,7 +745,7 @@ begin
     end;
 
     ProcessLoading();
-    
+
     e_PollInput();
 
     if e_KeyPressed(IK_ESCAPE) or e_KeyPressed(IK_SPACE) then

@@ -34,7 +34,7 @@ Type
     FWidth:        Word;
     FMinLength:    Byte;    // Ожидание после проигрывания
     FRevert:       Boolean; // Смена кадров обратная?
-    
+
   public
     constructor Create(FramesID: DWORD; Loop: Boolean; Speed: Byte);
     destructor  Destroy(); override;
@@ -158,7 +158,7 @@ begin
 
   if WAD.GetResource(SectionName, ResourceName, TextureData, ResourceLength) then
   begin
-    if e_CreateTextureMem(TextureData, ID) then 
+    if e_CreateTextureMem(TextureData, ID) then
       Result := True
     else
       FreeMem(TextureData);
@@ -240,7 +240,7 @@ var
   a: DWORD;
 begin
   Result := False;
- 
+
   if TexturesArray = nil then Exit;
 
   if TextureName = '' then Exit;

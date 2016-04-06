@@ -66,4 +66,3 @@ function ENET_TIME_DIFFERENCE( const a, b: LongInt ): LongInt; inline;
      end;
 
 end.
-

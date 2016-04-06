@@ -154,7 +154,7 @@ type
     OldID:  DWORD;
     Pixels: Pointer;
   end;
-  
+
 var
   e_Textures: array of TTexture = nil;
   e_TextureFonts: array of TTextureFont = nil;
@@ -1675,7 +1675,7 @@ begin
       end;
     end;
   end;
-  
+
   if e_TextureFonts <> nil then
   begin
     e_WriteLog('  Releasing texturefonts...', MSG_NOTIFY);
@@ -1725,7 +1725,7 @@ begin
         e_TextureFontBuildInPlace(i);
       end;
   end;
-  
+
   SetLength(e_SavedTextures, 0);
 end;
 

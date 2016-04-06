@@ -98,7 +98,7 @@ begin
 
   if Width < 0 then
     Exit;
- 
+
   if y < 0 then
   begin
     Height := Height + y;
@@ -674,12 +674,12 @@ begin
       Green := 255;
       Blue := 255;
       Alpha := 255;
-      
+
       State := STATE_NORMAL;
       Time := 0;
       LiveTime := 65535;
       ParticleType := PARTICLE_BUBBLES;
-      
+
       CorrectOffsets(CurrentParticle);
     end;
 
@@ -1254,7 +1254,7 @@ begin
   begin
     glDisable(GL_TEXTURE_2D);
     glPointSize(2);
-    
+
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 

@@ -30,9 +30,9 @@ type
   FMOD_CHANNELGROUP = Pointer;
   FMOD_DSP          = Pointer;
   FMOD_BOOL         = LongBool;
-  FMOD_POLYGON		= Pointer;
+  FMOD_POLYGON    = Pointer;
   FMOD_GEOMETRY     = Pointer;
-  FMOD_SYNCPOINT	= Pointer;
+  FMOD_SYNCPOINT  = Pointer;
   FMOD_TIMEUNIT     = Cardinal;
             fmod_mode=cardinal;
 
@@ -69,7 +69,7 @@ type
 *)
 type PFMOD_VECTOR = ^FMOD_VECTOR;
   FMOD_VECTOR = record
-	  x, y, z: Single;
+    x, y, z: Single;
   end;
 
 
@@ -253,7 +253,7 @@ type
     FMOD_OUTPUTTYPE_GC,              (* GameCube    - Native hardware output. (Default on GameCube) *)
     FMOD_OUTPUTTYPE_XBOX360,         (* Xbox 360    - Native hardware output. (Default on Xbox 360) *)
     FMOD_OUTPUTTYPE_PSP,             (* PSP         - Native hardware output. (Default on PSP) *)
-    FMOD_OUTPUTTYPE_WII,			 (* Wii			- Native hardware output. (Default on Wii) *)
+    FMOD_OUTPUTTYPE_WII,       (* Wii     - Native hardware output. (Default on Wii) *)
 
     FMOD_OUTPUTTYPE_MAX              (* Maximum number of output types supported. *)
   );
@@ -287,7 +287,7 @@ const
     FMOD_CAPS_REVERB_EAX2             = $00000100;    (* Device supports EAX2 reverb. *)
     FMOD_CAPS_REVERB_EAX3             = $00000200;    (* Device supports EAX3 reverb. *)
     FMOD_CAPS_REVERB_EAX4             = $00000400;    (* Device supports EAX4 reverb  *)
-    FMOD_CAPS_REVERB_EAX5			  = $00000800;    (* Device supports EAX5 reverb  *)
+    FMOD_CAPS_REVERB_EAX5       = $00000800;    (* Device supports EAX5 reverb  *)
     FMOD_CAPS_REVERB_I3DL2            = $00001000;    (* Device supports I3DL2 reverb. *)
     FMOD_CAPS_REVERB_LIMITED          = $00002000;    (* Device supports some form of limited hardware reverb, maybe parameterless and only selectable by environment. *)
 
@@ -707,9 +707,9 @@ type
 type
   FMOD_CHANNEL_CALLBACKTYPE =
   (
-    FMOD_CHANNEL_CALLBACKTYPE_END,				    (* Called when a sound ends. *)
-    FMOD_CHANNEL_CALLBACKTYPE_VIRTUALVOICE,	  (* Called when a voice is swapped out or swapped in. *)
-    FMOD_CHANNEL_CALLBACKTYPE_SYNCPOINT,			(* Called when a syncpoint is encountered.  Can be from wav file markers. *)
+    FMOD_CHANNEL_CALLBACKTYPE_END,            (* Called when a sound ends. *)
+    FMOD_CHANNEL_CALLBACKTYPE_VIRTUALVOICE,   (* Called when a voice is swapped out or swapped in. *)
+    FMOD_CHANNEL_CALLBACKTYPE_SYNCPOINT,      (* Called when a syncpoint is encountered.  Can be from wav file markers. *)
     FMOD_CHANNEL_CALLBACKTYPE_OCCLUSION,      (* Called when the channel has its geometry occlusion value calculated.  Can be used to clamp or change the value. *)
 
     FMOD_CHANNEL_CALLBACKTYPE_MAX ,           (* Maximum number of callback types supported. *)

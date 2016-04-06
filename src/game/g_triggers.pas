@@ -805,7 +805,7 @@ begin
       TRIGGER_PRESS, TRIGGER_ON, TRIGGER_OFF, TRIGGER_ONOFF:
         begin
           PressCount := PressCount + 1;
-          
+
           if PressTime = -1 then
             PressTime := Data.Wait;
 
@@ -1166,7 +1166,7 @@ begin
                 p := g_Player_Get(ActivateUID);
                 if p = nil then
                   Exit;
-                  
+
                 if Data.ResetVel then
                 begin
                   p.GameVelX := 0;

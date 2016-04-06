@@ -23,7 +23,7 @@ interface
 
 type
   Char16 = packed array[0..15] of Char;
-    
+
   TWADHeaderRec_1 = packed record
    RecordsCount: Word;
   end;

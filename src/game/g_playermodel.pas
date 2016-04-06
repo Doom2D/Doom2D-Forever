@@ -20,7 +20,7 @@ const
 
   MODELSOUND_PAIN = 0;
   MODELSOUND_DIE  = 1;
-  
+
 type
   TModelInfo = record
     Name:        String;
@@ -258,7 +258,7 @@ begin
     WAD.Free();
     Exit;
   end;
- 
+
   config := TConfig.CreateMem(pData, len);
   FreeMem(pData);
 
@@ -268,7 +268,7 @@ begin
     config.Free();
     WAD.Free();
     Exit;
-  end; 
+  end;
 
   SetLength(PlayerModelsArray, Length(PlayerModelsArray)+1);
   ID := High(PlayerModelsArray);
@@ -582,7 +582,7 @@ begin
   for a := WEAPON_SAW to WEAPON_SUPERPULEMET do
     for b := W_POS_NORMAL to W_POS_DOWN do
       for c := W_ACT_NORMAL to W_ACT_FIRE do
-        e_DeleteTexture(WeaponID[a][b][c]); 
+        e_DeleteTexture(WeaponID[a][b][c]);
 
   e_WriteLog('Releasing models...', MSG_NOTIFY);
 
@@ -611,7 +611,7 @@ begin
         for b := 0 to High(Gibs) do
         begin
           e_DeleteTexture(Gibs[b].ID);
-          e_DeleteTexture(Gibs[b].MaskID); 
+          e_DeleteTexture(Gibs[b].MaskID);
         end;
     end;
 

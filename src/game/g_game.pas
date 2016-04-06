@@ -2985,7 +2985,7 @@ begin
   g_Texture_DeleteAll();
   g_Frames_DeleteAll();
   g_Menu_Free();
-  
+
   if NetInitDone then g_Net_Free;
 
 // Надо удалить карту после теста:
@@ -3588,7 +3588,7 @@ begin
     ProcessLoading();
 
     e_PollInput();
-    
+
     if e_KeyPressed(IK_ESCAPE) or e_KeyPressed(IK_SPACE) then
     begin
       State := 0;
@@ -3677,7 +3677,7 @@ begin
       gWADHash := MD5File(MapsDir + NewWAD);
       g_Game_LoadWAD(NewWAD);
     end else
-      // hash recieved in MC_RECV_GameEvent -> NET_EV_MAPSTART 
+      // hash recieved in MC_RECV_GameEvent -> NET_EV_MAPSTART
       g_Game_ClientWAD(NewWAD, gWADHash);
   end else
     ResName := Map;
@@ -3782,7 +3782,7 @@ begin
     gCoopTotalSecrets := 0;
     gLastMap := False;
   end;
-  
+
   g_Game_ExecuteEvent('onmapstart');
 end;
 
@@ -4193,7 +4193,7 @@ begin
         else
           Options := Options and (not GAME_OPTION_ALLOWEXIT);
       end;
-        
+
       if (LongBool(Options and GAME_OPTION_ALLOWEXIT)) then
         g_Console_Add(_lc[I_MSG_ALLOWEXIT_ON])
       else
@@ -4237,7 +4237,7 @@ begin
         else
           Options := Options and (not GAME_OPTION_BOTVSPLAYER);
       end;
-        
+
       if (LongBool(Options and GAME_OPTION_BOTVSPLAYER)) then
         g_Console_Add(_lc[I_MSG_BOTSVSPLAYERS_ON])
       else
@@ -6068,7 +6068,7 @@ begin
   MapList := nil;
   MapIndex := -1;
 
-  if not FileExists(FileName) then Exit; 
+  if not FileExists(FileName) then Exit;
 
   AssignFile(ListFile, FileName);
   Reset(ListFile);

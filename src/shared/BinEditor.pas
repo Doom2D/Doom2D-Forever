@@ -118,7 +118,7 @@ procedure ZeroMemory(Dest: Pointer; Len: Cardinal);
 begin
   FillChar(Dest^, Len, 0);
 end;
-  
+
 { T B i n M e m o r y W r i t e r : }
 
 Constructor TBinMemoryWriter.Create(aSize: Cardinal);
@@ -141,7 +141,7 @@ begin
     FreeMem(FData);
     FData := nil;
   end;
-  
+
   Inherited;
 end;
 
@@ -405,7 +405,7 @@ begin
       CopyMemory(@len,
                  Pointer(Cardinal(FData) + FPosition),
                  SizeOf(Byte));
-         
+
       if (FPosition + SizeOf(Byte) + len) <= FSize then
         begin
           FPosition := FPosition + SizeOf(Byte);

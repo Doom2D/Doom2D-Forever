@@ -13,8 +13,8 @@ var
   fUseMipmaps: Boolean = False;
   TEXTUREFILTER: Integer = GL_NEAREST;
 
-function CreateTexture( Width, Height, Format: Word; pData: Pointer ): Integer;  
-  
+function CreateTexture( Width, Height, Format: Word; pData: Pointer ): Integer;
+
 // Standard set of images loading functions
 function LoadTexture( Filename: String; var Texture: GLuint;
                       var pWidth, pHeight: Word; Fmt: PWord = nil ): Boolean;
@@ -83,7 +83,7 @@ begin
     glTexImage2D( GL_TEXTURE_2D, 0, 3, Width, Height,
                   0, GL_RGB, GL_UNSIGNED_BYTE, pData );
   end;
-  
+
   glBindTexture(GL_TEXTURE_2D, 0);
 
   Result := Texture;
@@ -150,11 +150,11 @@ begin
     TFmt := GL_RGB
   else
     TFmt := GL_RGBA;
-    
+
   Texture := CreateTexture( Width, Height, TFmt, Image );
 
   FreeMem( Image );
-  
+
   if Fmt <> nil then Fmt^ := TFmt;
 
   pWidth := Width;
@@ -241,12 +241,12 @@ begin
     TFmt := GL_RGB
   else
     TFmt := GL_RGBA;
-    
+
   Texture := CreateTexture( fWidth, fHeight, TFmt, Image );
 
   FreeMem( Image );
   FreeMem( Image2 );
-  
+
   if Fmt <> nil then Fmt^ := TFmt;
 
   Result := True;
@@ -334,11 +334,11 @@ begin
     TFmt := GL_RGB
   else
     TFmt := GL_RGBA;
-    
+
   Texture := CreateTexture( Width, Height, TFmt, Image );
 
   FreeMem( Image );
-  
+
   if Fmt <> nil then Fmt^ := TFmt;
 
   pWidth := Width;
@@ -362,7 +362,7 @@ var
   BPP:           Byte;
   Base:          PByte;
   TFmt:          Word;
-  
+
 begin
   Result := False;
 
@@ -450,4 +450,3 @@ begin
 end;
 
 end.
-

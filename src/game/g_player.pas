@@ -399,7 +399,7 @@ type
     procedure   Draw();
     procedure   SaveState(var Mem: TBinMemoryWriter);
     procedure   LoadState(var Mem: TBinMemoryReader);
-    
+
     property    Obj: TObj read FObj;
     property    State: Byte read FState;
     property    Mess: Boolean read FMess;
@@ -1429,7 +1429,7 @@ var
 begin
   if (gShells = nil) or (Length(gShells) = 0) then
     Exit;
-  
+
   with gShells[CurrentShell] do
   begin
     SpriteID := 0;
@@ -1520,7 +1520,7 @@ var
     else
       g_Sound_PlayExAt('SOUND_PLAYER_SHELL' + IntToStr(k), X, Y);
   end;
-  
+
 begin
 // Куски мяса:
   if gGibs <> nil then
@@ -1542,7 +1542,7 @@ begin
             Obj.Vel.X := -(vel.X div 2);
           if WordBool(mr and (MOVE_HITCEIL or MOVE_HITLAND)) then
             Obj.Vel.Y := -(vel.Y div 2);
-          
+
           if (Obj.Vel.X >= 0) then
           begin // Clockwise
             RAngle := RAngle + Abs(Obj.Vel.X)*6 + Abs(Obj.Vel.Y);
@@ -1680,7 +1680,7 @@ begin
   SetLength(gShells, MaxGibs);
   CurrentGib := 0;
   CurrentShell := 0;
-  
+
   if gCorpses <> nil then
     for i := 0 to High(gCorpses) do
       gCorpses[i].Free();
@@ -5686,7 +5686,7 @@ begin
   if gTime mod (GAME_TICK*2) <> 0 then
   begin
     g_Obj_Move(@FObj, True, True, True);
-    
+
     Exit;
   end;
 
@@ -6344,7 +6344,7 @@ begin
   else
   begin
     EnableAI := True;
-    
+
     // Проверяем, отключён ли AI ботов
     if (g_debug_BotAIOff = 1) and (Team = TEAM_RED) then
       EnableAI := False;
@@ -6843,7 +6843,7 @@ end;}
 procedure TBot.SelectWeapon(Dist: Integer);
 var
   a: Integer;
-  
+
   function HaveAmmo(weapon: Byte): Boolean;
   begin
     case weapon of

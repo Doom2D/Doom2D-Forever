@@ -559,7 +559,7 @@ begin
       slDirPressed := True;
     end;
   end;
-  
+
   if e_KeyPressed(IK_UP) then
   begin
     if not slDirPressed then

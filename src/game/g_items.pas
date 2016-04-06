@@ -370,7 +370,7 @@ begin
         with gItems[i] do
         begin
           nxt := False;
-          
+
           if Live then
           begin
             if Fall then

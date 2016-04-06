@@ -496,14 +496,14 @@ begin
   a := abs(vx);
   b := abs(vy);
 
-  if a = 0 then 
+  if a = 0 then
     c := 0
-  else 
+  else
     c := RadToDeg(ArcTan(b/a));
 
-  if vy < 0 then 
+  if vy < 0 then
     c := -c;
-  if vx > 0 then 
+  if vx > 0 then
     c := 180 - c;
 
   c := c + 180;
@@ -828,7 +828,7 @@ var
     begin
       while (fmt[m] = ' ') and (m < Length(fmt)) do
         Inc(m);
-      if (m >= Length(fmt)) then 
+      if (m >= Length(fmt)) then
         Break;
 
       if (fmt[m] = '%') then
@@ -894,7 +894,7 @@ begin
         else
           Break;
       end;
-      
+
       else {case}
         Break;
     end; {case}
@@ -967,7 +967,7 @@ begin
 
       o^ := p.Obj;
     end;
-  
+
     UID_MONSTER:
     begin
       m := g_Monsters_Get(UID);

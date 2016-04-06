@@ -105,7 +105,7 @@ type
    TexturePanel: Integer;
    TriggerType:  Byte;
    ActivateType: Byte;
-   Keys:         Byte; 
+   Keys:         Byte;
    DATA:         Byte128;
   end;
 

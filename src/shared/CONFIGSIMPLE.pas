@@ -38,7 +38,7 @@ begin
  if cfg_data = nil then Exit;
 
  d_len := Length(cfg_data);
- 
+
  for a := 0 to d_len do
  begin
   len := Length(cfg_data[a]);

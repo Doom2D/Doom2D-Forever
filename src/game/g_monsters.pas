@@ -220,7 +220,7 @@ const
 
     (Name:'SERG'; Rect:(X:15; Y:8; Width:34; Height:52); Health:20;
      RunVel: 3; MinPain: 0; Pain: 10; Jump: 10),
-                                          
+
     (Name:'CYBER'; Rect:(X:24; Y:9; Width:80; Height:110); Health:500;
      RunVel: 5; MinPain: 50; Pain: 70; Jump: 10),
 
@@ -1051,7 +1051,7 @@ begin
             gMonsters[a].Update();
         end
         else
-          begin 
+          begin
             gMonsters[a].Free();
             gMonsters[a] := nil;
           end;
@@ -1416,7 +1416,7 @@ begin
   FWaitAttackAnim := False;
   FChainFire := False;
   FShellTimer := -1;
-  
+
   FState := STATE_SLEEP;
   FCurAnim := ANIM_SLEEP;
 
@@ -1790,7 +1790,7 @@ begin
         // Это значит: dX := -frameWidth - animDeltaX + hitX + hitWidth + hitX
         end;
       end
-    else // Правая анимация                    
+    else // Правая анимация
       begin
         dx := MONSTER_ANIMTABLE[FMonsterType].AnimDeltaRight[FCurAnim].X;
         dy := MONSTER_ANIMTABLE[FMonsterType].AnimDeltaRight[FCurAnim].Y;
@@ -1876,7 +1876,7 @@ begin
 
         FObj.Rect := MONSTERTABLE[FMonsterType].Rect;
         FHealth := MONSTERTABLE[FMonsterType].Health;
-        FAmmo := 0; 
+        FAmmo := 0;
         FPain := 0;
       end;
     else Exit;
@@ -1886,7 +1886,7 @@ begin
   if ForceAnim <> 255 then
     Anim := ForceAnim;
 
-// Если анимация новая - перезапускаем её: 
+// Если анимация новая - перезапускаем её:
   if FCurAnim <> Anim then
     if FAnim[Anim, FDirection] <> nil then
     begin
@@ -2272,7 +2272,7 @@ begin
               FDirection := D_LEFT
             else
               FDirection := D_RIGHT;
-              
+
             goto _end;
           end;
 
@@ -2675,7 +2675,7 @@ _end:
 
           FWaitAttackAnim := False;
         end
-        
+
       else // Анимация атаки еще идет (исключение - Lost_Soul):
         if (FMonsterType = MONSTER_SOUL) or
            ( (not FWaitAttackAnim) and
@@ -3430,7 +3430,7 @@ _end:
 
           FWaitAttackAnim := False;
         end
-        
+
       else // Анимация атаки еще идет (исключение - Lost_Soul):
         if (FMonsterType = MONSTER_SOUL) or
            ( (not FWaitAttackAnim) and
@@ -3451,7 +3451,7 @@ _end:
                   // Lost_Soul укусил кого-то => переходит на шаг:
                     if FMonsterType = MONSTER_SOUL then
                       SetState(STATE_GO);
-                          
+
                 MONSTER_FISH:
                   g_Weapon_Hit(@FObj, 10, FUID, HIT_SOME);
 
@@ -3528,7 +3528,7 @@ _end:
   if g_Obj_CollidePanel(@FObj, 0, 0, PANEL_LIFTLEFT or PANEL_LIFTRIGHT) and
      not ((FState = STATE_DEAD) or (FState = STATE_DIE))  then
     FObj.Vel.X := oldvelx;
-    
+
 // Если есть анимация, то пусть она идет:
   if FAnim[FCurAnim, FDirection] <> nil then
     FAnim[FCurAnim, FDirection].Update();

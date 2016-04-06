@@ -105,4 +105,3 @@ function ENET_SOCKETSET_CHECK( var sockset: ENetSocketSet; socket: ENetSocket ):
      end;
 
 end.
-

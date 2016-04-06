@@ -144,7 +144,7 @@ begin
   for a := 0 to High(Areas) do
    CopyMemory(Pointer(LongWord(Data)+a*Size), @Areas[a], size);
  end;
- 
+
  Result := True;
 end;
 
@@ -173,7 +173,7 @@ begin
   for a := 0 to High(Items) do
    CopyMemory(Pointer(LongWord(Data)+a*size), @Items[a], size);
  end;
- 
+
  Result := True;
 end;
 
@@ -202,7 +202,7 @@ begin
   for a := 0 to High(Monsters) do
    CopyMemory(Pointer(LongWord(Data)+a*Size), @Monsters[a], size);
  end;
- 
+
  Result := True;
 end;
 
@@ -231,7 +231,7 @@ begin
   for a := 0 to High(Panels) do
    CopyMemory(Pointer(LongWord(Data)+a*size), @Panels[a], size);
  end;
- 
+
  Result := True;
 end;
 
@@ -311,7 +311,7 @@ begin
 
   CopyMemory(Pointer(LongWord(Data)), @MapHeader, size);
  end;
- 
+
  Result := True;
 end;
 

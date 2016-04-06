@@ -33,7 +33,7 @@ type
     function LoadMap(Data: Pointer): Boolean;
     procedure FreeMap();
     function HandledVersion(): Byte; virtual;
-    
+
     property GetError: Byte read FError;
     property GetVersion: Byte read FVersion;
   end;

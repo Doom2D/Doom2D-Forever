@@ -16,15 +16,15 @@ uses
   fmodtypes;
 
 (*
-[DEFINE] 
+[DEFINE]
 [
-    [NAME] 
+    [NAME]
     FMOD_REVERB_PRESETS
 
-    [DESCRIPTION]   
+    [DESCRIPTION]
     A set of predefined environment PARAMETERS, created by Creative Labs
     These are used to initialize an FMOD_REVERB_PROPERTIES structure statically.
-    ie 
+    ie
     FMOD_REVERB_PROPERTIES prop = FMOD_PRESET_GENERIC;
 
     [PLATFORMS]

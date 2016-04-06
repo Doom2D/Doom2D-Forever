@@ -423,7 +423,7 @@ var
 begin
   Result := 0;
   if not gGameOn then Exit;
-  
+
   GT := e_Raw_Read_LongWord(P);
   PID := C^.Player;
   Pl := g_Player_Get(PID);
@@ -566,7 +566,7 @@ begin
   Pl := g_Player_Get(C^.Player);
   if Pl = nil then Exit;
   Name := Pl.Name;
-    
+
   if Start then
   begin
     if not g_Console_CommandBlacklisted(Command) then
