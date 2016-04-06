@@ -3,8 +3,8 @@ unit e_sound;
 interface
 
 uses
-  sdl2 in '../lib/sdl2/sdl2.pas',
-  SDL2_mixer in '../lib/sdl2/SDL2_mixer.pas',
+  sdl2,
+  SDL2_mixer,
   e_log,
   SysUtils;
 
