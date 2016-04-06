@@ -1610,7 +1610,7 @@ begin
           _x := _x+h;
         end;
 
-      with TGUILabel(Result.AddChild(TGUILabel.Create('(Y\N)', FontID))) do
+      with TGUILabel(Result.AddChild(TGUILabel.Create('(Y/N)', FontID))) do
       begin
         X := (gScreenWidth div 2)-(GetWidth div 2);
         Y := _x;
