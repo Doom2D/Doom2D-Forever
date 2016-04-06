@@ -666,13 +666,13 @@ begin
     IK_DELETE:
       if (Length(Line) > 0) and (CPos <= Length(Line)) then
         Delete(Line, CPos, 1);
-    IK_LEFT:
+    IK_LEFT, IK_KPLEFT:
       if CPos > 1 then
         CPos := CPos - 1;
-    IK_RIGHT:
+    IK_RIGHT, IK_KPRIGHT:
       if CPos <= Length(Line) then
         CPos := CPos + 1;
-    IK_RETURN:
+    IK_RETURN, IK_KPRETURN:
     begin
       if Cons_Shown then
         g_Console_Process(Line)
@@ -708,7 +708,7 @@ begin
     IK_TAB:
       if not gChatShow then
         Complete();
-    IK_DOWN:
+    IK_DOWN, IK_KPDOWN:
       if not gChatShow then
         if (CommandHistory <> nil) and
            (CmdIndex < Length(CommandHistory)) then
@@ -718,7 +718,7 @@ begin
           Line := CommandHistory[CmdIndex];
           CPos := Length(Line) + 1;
         end;
-    IK_UP:
+    IK_UP, IK_KPUP:
       if not gChatShow then
         if (CommandHistory <> nil) and
            (CmdIndex <= Length(CommandHistory)) then
@@ -728,15 +728,15 @@ begin
           Line := CommandHistory[CmdIndex];
           Cpos := Length(Line) + 1;
         end;
-    IK_PAGEUP: // PgUp
+    IK_PAGEUP, IK_KPPAGEUP: // PgUp
       if not gChatShow then
         IncMax(OffSet, Length(ConsoleHistory)-1);
-    IK_PAGEDN: // PgDown
+    IK_PAGEDN, IK_KPPAGEDN: // PgDown
       if not gChatShow then
         DecMin(OffSet, 0);
-    IK_HOME:
+    IK_HOME, IK_KPHOME:
       CPos := 1;
-    IK_END:
+    IK_END, IK_KPEND:
       CPos := Length(Line) + 1;
   end;
 end;

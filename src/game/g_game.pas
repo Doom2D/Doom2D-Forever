@@ -1230,7 +1230,7 @@ begin
         if (not g_Game_IsClient) and
         (
           (
-            (e_KeyPressed(IK_RETURN) or e_KeyPressed(IK_SPACE))
+            (e_KeyPressed(IK_RETURN) or e_KeyPressed(IK_KPRETURN) or e_KeyPressed(IK_SPACE))
             and (not gJustChatted) and (not gConsoleShow) and (not gChatShow)
             and (g_ActiveWindow = nil)
           )

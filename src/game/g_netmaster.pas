@@ -526,7 +526,7 @@ begin
 
   if SL = nil then Exit;
 
-  if e_KeyPressed(IK_RETURN) then
+  if e_KeyPressed(IK_RETURN) or e_KeyPressed(IK_KPRETURN) then
   begin
     if not slReturnPressed then
     begin
@@ -550,7 +550,7 @@ begin
   else
     slReturnPressed := False;
 
-  if e_KeyPressed(IK_DOWN) then
+  if e_KeyPressed(IK_DOWN) or e_KeyPressed(IK_KPDOWN) then
   begin
     if not slDirPressed then
     begin
@@ -560,7 +560,7 @@ begin
     end;
   end;
 
-  if e_KeyPressed(IK_UP) then
+  if e_KeyPressed(IK_UP) or e_KeyPressed(IK_KPUP) then
   begin
     if not slDirPressed then
     begin
@@ -571,7 +571,7 @@ begin
     end;
   end;
 
-  if (not e_KeyPressed(IK_DOWN)) and (not e_KeyPressed(IK_UP)) then
+  if (not e_KeyPressed(IK_DOWN)) and (not e_KeyPressed(IK_UP)) and (not e_KeyPressed(IK_KPDOWN)) and (not e_KeyPressed(IK_KPUP)) then
     slDirPressed := False;
 end;
 
