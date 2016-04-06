@@ -72,11 +72,11 @@ function SDL_DEFINE_PIXELFOURCC(A,B,C,D: Variant): Variant;
      ((bits) << 8) | ((bytes) << 0))
        }
 
-function SDL_PIXELFLAG(X: Cardinal): Boolean;
-function SDL_PIXELTYPE(X: Cardinal): Boolean;
-function SDL_PIXELORDER(X: Cardinal): Boolean;
-function SDL_PIXELLAYOUT(X: Cardinal): Boolean;
-function SDL_BITSPERPIXEL(X: Cardinal): Boolean;
+function SDL_PIXELFLAG(X: Cardinal): Cardinal;
+function SDL_PIXELTYPE(X: Cardinal): Cardinal;
+function SDL_PIXELORDER(X: Cardinal): Cardinal;
+function SDL_PIXELLAYOUT(X: Cardinal): Cardinal;
+function SDL_BITSPERPIXEL(X: Cardinal): Cardinal;
      {
 #define SDL_BYTESPERPIXEL(X) \
     (SDL_ISPIXELFORMAT_FOURCC(X) ? \

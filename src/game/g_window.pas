@@ -68,13 +68,12 @@ begin
 end;
 
 function g_Window_SetDisplay(PreserveGL: Boolean = False): Boolean;
+var
+  mode, cmode: TSDL_DisplayMode;
 begin
   Result := False;
 
   e_WriteLog('Setting display mode...', MSG_NOTIFY);
-
-  // if wWindowCreated and PreserveGL then
-  //   e_SaveGLContext(); // we need this and restore because of a bug in SDL1.2, apparently
 
   wFlags := SDL_WINDOW_OPENGL or SDL_WINDOW_RESIZABLE;
   if gFullscreen then wFlags := wFlags or SDL_WINDOW_FULLSCREEN;
@@ -85,15 +84,31 @@ begin
     SDL_DestroyWindow(h_Wnd);
     h_Wnd := nil;
   end;
+  
+  if gFullscreen then
+  begin
+    mode.w := gScreenWidth;
+    mode.h := gScreenHeight;
+    mode.format := 0;
+    mode.refresh_rate := 0;
+    mode.driverdata := nil;
+    if SDL_GetClosestDisplayMode(0, @mode, @cmode) = nil then
+    begin
+      gScreenWidth := 800;
+      gScreenHeight := 600;
+    end
+    else
+    begin
+      gScreenWidth := cmode.w;
+      gScreenHeight := cmode.h;
+    end;
+  end;
 
   h_Wnd := SDL_CreateWindow(PChar(wTitle), gWinRealPosX, gWinRealPosY, gScreenWidth, gScreenHeight, wFlags);
   if h_Wnd = nil then Exit;
   
   SDL_GL_MakeCurrent(h_Wnd, h_GL);
   SDL_ShowCursor(SDL_DISABLE);
-
-  // if wWindowCreated and PreserveGL then
-  //  e_RestoreGLContext();
 
   Result := True;
 end;
@@ -106,20 +121,25 @@ end;
 function GetDisplayModes(dBPP: DWORD; var SelRes: DWORD): SArray;
 var
   mode: TSDL_DisplayMode;
-  res, i, k: Integer;
+  res, i, k, n, pw, ph: Integer;
 begin
   SetLength(Result, 0);
 
-  k := 0;
-  for i := 0 to SDL_GetNumDisplayModes(0) do
+  k := 0; SelRes := 0;
+  n := SDL_GetNumDisplayModes(0);
+  pw := 0; ph := 0;
+  for i := 0 to n do
   begin
     res := SDL_GetDisplayMode(0, i, @mode);
     if res < 0 then continue;
+    if SDL_BITSPERPIXEL(mode.format) = gBPP then continue;
+    if (mode.w = pw) and (mode.h = ph) then continue;
     if (mode.w = gScreenWidth) and (mode.h = gScreenHeight) then
       SelRes := k;
     Inc(k);
     SetLength(Result, k);
     Result[k-1] := IntToStr(mode.w) + 'x' + IntToStr(mode.h);
+    pw := mode.w; ph := mode.h
   end;
 
   e_WriteLog('SDL: Got ' + IntToStr(k) + ' resolutions.', MSG_NOTIFY);
