@@ -381,7 +381,6 @@ end;
 procedure KeyPress(K: Word);
 var
   Msg: g_gui.TMessage;
-  a: Integer;
 begin
   case K of
     IK_PAUSE: // <Pause/Break>:
@@ -483,13 +482,6 @@ begin
             begin
               g_GUI_ShowWindow('MainMenu');
               g_Sound_PlayEx('MENU_OPEN');
-            end
-            else
-            begin
-              for a := 0 to 14 do
-                charbuff[a] := charbuff[a+1];
-              charbuff[15] := UpCase(Chr(K));
-              Cheat();
             end;
           end;
       end;
@@ -499,6 +491,7 @@ end;
 procedure CharPress(C: Char);
 var
   Msg: g_gui.TMessage;
+  a: Integer;
 begin
   if (not gChatShow) and ((C = '`') or (C = '~') or (C = '¸') or (C = '¨')) then
     Exit;
@@ -511,6 +504,13 @@ begin
       Msg.Msg := WM_CHAR;
       Msg.WParam := Ord(C);
       g_ActiveWindow.OnMessage(Msg);
+    end
+    else
+    begin
+      for a := 0 to 14 do
+        charbuff[a] := charbuff[a+1];
+      charbuff[15] := UpCase(C);
+      Cheat();
     end;
 end;
 

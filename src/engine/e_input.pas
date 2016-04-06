@@ -54,6 +54,8 @@ const
   IK_BACKQUOTE = SDL_SCANCODE_GRAVE;
   IK_GRAVE     = SDL_SCANCODE_GRAVE;
   IK_PAUSE   = SDL_SCANCODE_PAUSE;
+  IK_Y       = SDL_SCANCODE_Y;
+  IK_N       = SDL_SCANCODE_N;
   // TODO: think of something better than this shit
   IK_LASTKEY = SDL_NUM_SCANCODES-1;
 

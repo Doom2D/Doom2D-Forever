@@ -889,7 +889,7 @@ var
   snd: TPlayableSound;
   res: Boolean;
 begin
-  if Key = Ord('y') then
+  if Key = IK_Y then
   begin
     g_Game_StopAllSounds(True);
     case (Random(18)) of
@@ -927,7 +927,7 @@ begin
     g_Game_Quit();
   end
     else
-      if Key = Ord('n') then
+      if Key = IK_N then
         g_GUI_HideWindow();
 end;
 
