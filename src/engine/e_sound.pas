@@ -302,7 +302,7 @@ function e_LoadSoundMem(pData: Pointer; Length: Integer; var ID: DWORD; isMusic:
 var
   find_id: DWORD;
   rw: PSDL_RWops;
-  pc: PChar;
+  //pc: PChar;
   isid3: Boolean;
 begin
   ID := NO_SOUND_ID;
