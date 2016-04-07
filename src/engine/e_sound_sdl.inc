@@ -155,6 +155,9 @@ end;
 function e_InitSoundSystem(): Boolean;
 var
   res, i: Integer;
+  rfreq: Integer;
+  rformat: UInt16;
+  rchans: Integer;
 begin
   if SoundInitialized then begin Result := true; Exit end;
 
@@ -179,6 +182,11 @@ begin
     e_WriteLog('Error initializing SDL mixer:', MSG_FATALERROR);
     e_WriteLog(Mix_GetError(), MSG_FATALERROR);
     Exit;
+  end;
+
+  if Mix_QuerySpec(@rfreq, @rformat, @rchans) > 0 then
+  begin
+    e_WriteLog(Format('SDL: frequency=%d; format=%u; channels=%d', [rfreq, rformat, rchans]), MSG_NOTIFY);
   end;
 
   Mix_AllocateChannels(N_CHANNELS);
