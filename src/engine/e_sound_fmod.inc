@@ -720,16 +720,14 @@ var
   res: FMOD_RESULT;
 
 begin
+  Result := False;
+  if FID = NO_SOUND_ID then Exit;
+
   if e_SoundsArray[FID].nRefs >= gMaxSimSounds then
   begin
     Result := True;
     Exit;
   end;
-
-  Result := False;
-
-  if FID = NO_SOUND_ID then
-    Exit;
 
   res := FMOD_System_PlaySound(F_System, FMOD_CHANNEL_FREE,
            e_SoundsArray[FID].Sound, False, FChannel);
