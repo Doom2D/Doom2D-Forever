@@ -2956,14 +2956,12 @@ begin
 
   g_Console_Draw();
 
-  {FIXME
   if g_debug_Sounds and gGameOn then
   begin
     for w := 0 to High(e_SoundsArray) do
       for h := 0 to e_SoundsArray[w].nRefs do
         e_DrawPoint(1, w+100, h+100, 255, 0, 0);
   end;
-  }
 
   if gShowFPS then
   begin

@@ -257,7 +257,7 @@ function Mix_GetMusicHookData: Pointer cdecl; external MIX_LibName {$IFDEF DELPH
    *  before calling your callback.
    *}
 type
-  TMix_Channel_Finished = procedure(channel: Integer);
+  TMix_Channel_Finished = procedure(channel: Integer); cdecl;
 procedure Mix_ChannelFinished(channel_finished: TMix_Channel_Finished) cdecl; external MIX_LibName {$IFDEF DELPHI} {$IFDEF MACOS} name '_MIX_ChannelFinished' {$ENDIF} {$ENDIF};
 
   {* Special Effects API by ryan c. gordon. (icculus@icculus.org) *}

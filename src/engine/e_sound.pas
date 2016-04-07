@@ -14,11 +14,12 @@ type
     Sound: PMix_Chunk;
     Music: PMix_Music;
     isMusic: Boolean;
+    nRefs: Integer;
   end;
 
   TBasicSound = class (TObject)
   private
-    FChannel: Integer; // <0: no channel allocated
+    FChanNum: Integer; // <0: no channel allocated
 
   protected
     FID: DWORD;
@@ -27,6 +28,9 @@ type
     FPriority: Integer;
 
     function RawPlay(Pan: Single; Volume: Single; aPos: DWORD): Boolean;
+    function GetChan (): Integer;
+
+    property Channel: Integer read GetChan;
 
   public
     constructor Create();
@@ -83,14 +87,37 @@ const
   N_CHANNELS = 512;
   N_MUSCHAN = N_CHANNELS+42;
 
+type
+  TChanInfo = record
+    id: DWORD; // sound id
+    muted: Boolean;
+    oldvol: Integer; // for muted
+    pan: Single;
+  end;
+
 var
   SoundMuted: Boolean = False;
   SoundInitialized: Boolean = False;
+  ChanSIds: array[0..N_CHANNELS] of TChanInfo;
+  MusVolume: Integer = MIX_MAX_VOLUME;
+
+
+procedure chanFinished (chan: Integer); cdecl;
+begin
+  if (chan >= 0) and (chan < N_CHANNELS) then
+  begin
+    if ChanSIds[chan].id <> NO_SOUND_ID then
+    begin
+      Dec(e_SoundsArray[ChanSIds[chan].id].nRefs);
+      ChanSIds[chan].id := NO_SOUND_ID;
+    end;
+  end;
+end;
 
 
 function e_InitSoundSystem(): Boolean;
 var
-  res: Integer;
+  res, i: Integer;
 begin
   if SoundInitialized then begin Result := true; Exit end;
 
@@ -116,6 +143,16 @@ begin
   end;
 
   Mix_AllocateChannels(N_CHANNELS);
+  Mix_ChannelFinished(chanFinished);
+
+  for i := 0 to N_CHANNELS-1 do
+  begin
+    ChanSIds[i].id := NO_SOUND_ID;
+    ChanSIds[i].muted := SoundMuted;
+    ChanSIds[i].oldvol := MIX_MAX_VOLUME;
+    ChanSIds[i].pan := 1.0;
+  end;
+  MusVolume := MIX_MAX_VOLUME;
 
   SoundInitialized := True;
   Result := True;
@@ -144,23 +181,24 @@ var
   i: Integer;
 begin
   if e_SoundsArray <> nil then
+  begin
     for i := 0 to High(e_SoundsArray) do
       if (e_SoundsArray[i].Sound = nil) and (e_SoundsArray[i].Music = nil) then
       begin
         Result := i;
         Exit;
       end;
-
+  end;
   if e_SoundsArray = nil then
-    begin
-      SetLength(e_SoundsArray, 16);
-      Result := 0;
-    end
+  begin
+    SetLength(e_SoundsArray, 16);
+    Result := 0;
+  end
   else
-    begin
-      Result := High(e_SoundsArray) + 1;
-      SetLength(e_SoundsArray, Length(e_SoundsArray) + 16);
-    end;
+  begin
+    Result := High(e_SoundsArray) + 1;
+    SetLength(e_SoundsArray, Length(e_SoundsArray) + 16);
+  end;
 end;
 
 function e_LoadSound(FileName: String; var ID: DWORD; isMusic: Boolean): Boolean;
@@ -177,6 +215,7 @@ begin
 
   e_SoundsArray[find_id].Data := nil;
   e_SoundsArray[find_id].isMusic := isMusic;
+  e_SoundsArray[find_id].nRefs := 0;
 
   if isMusic then
   begin
@@ -209,6 +248,7 @@ begin
 
   e_SoundsArray[find_id].Data := pData;
   e_SoundsArray[find_id].isMusic := isMusic;
+  e_SoundsArray[find_id].nRefs := 0;
 
   if isMusic then
   begin
@@ -233,45 +273,90 @@ begin
   Result := -1;
   if not SoundInitialized then Exit;
 
-  if {(e_SoundsArray[ID].nRefs >= gMaxSimSounds) or} (e_SoundsArray[ID].Sound = nil) and (e_SoundsArray[ID].Music = nil) then Exit;
-
-  if e_SoundsArray[ID].Music <> nil then
+  if e_isSound(ID) then
   begin
+    if e_SoundsArray[ID].nRefs >= gMaxSimSounds then Exit;
+    Inc(e_SoundsArray[ID].nRefs);
+    res := Mix_PlayChannel(-1, e_SoundsArray[ID].Sound, 0);
+    if res >= 0 then
+    begin
+      ChanSIds[res].id := ID;
+      ChanSIds[res].muted := SoundMuted;
+      if SoundMuted then Mix_Volume(res, 0) else Mix_Volume(res, ChanSIds[res].oldvol);
+      {
+      if e_SoundsArray[ID].isMusic then
+        res := Mix_PlayChannel(-1, e_SoundsArray[ID].Sound, -1)
+      else
+        res := Mix_PlayChannel(-1, e_SoundsArray[ID].Sound, 0);
+      }
+    end;
+  end
+  else
+  begin
+    if not e_isMusic(ID) then Exit;
     res := Mix_PlayMusic(e_SoundsArray[ID].Music, -1);
     if res >= 0 then res := N_MUSCHAN;
+    if SoundMuted then Mix_VolumeMusic(0) else Mix_VolumeMusic(MusVolume);
     Result := res;
-    Exit;
   end;
-
-  if e_SoundsArray[ID].Sound <> nil then
-    res := Mix_PlayChannel(-1, e_SoundsArray[ID].Sound, 0);
-  {
-  if e_SoundsArray[ID].isMusic then
-    res := Mix_PlayChannel(-1, e_SoundsArray[ID].Sound, -1)
-  else
-    res := Mix_PlayChannel(-1, e_SoundsArray[ID].Sound, 0);
-  }
-
-  if SoundMuted and (res >= 0) then Mix_Volume(res, 0);
 
   Result := res;
 end;
 
-function e_PlaySoundPan(ID: DWORD; Pan: Single): Integer;
+function e_chanSetPan (chan: Integer; Pan: Single): Boolean;
 var
-  chan: Integer;
   l, r: UInt8;
 begin
-  Result := -1;
-  chan := e_PlaySound(ID);
-  if (chan >= 0) and (chan <> N_MUSCHAN) then
+  Result := True;
+  if chan = N_MUSCHAN then
+  begin
+    // no panning for music
+  end
+  else if chan >= 0 then
   begin
     if Pan < -1.0 then Pan := -1.0 else if Pan > 1.0 then Pan := 1.0;
     Pan := Pan+1.0; // 0..2
     l := trunc(127.0*(2.0-Pan));
     r := trunc(127.0*Pan);
     Mix_SetPanning(chan, l, r);
+    ChanSIds[chan].pan := Pan;
+  end
+  else
+  begin
+    Result := False;
   end;
+end;
+
+function e_chanSetVol (chan: Integer; Volume: Single): Boolean;
+var
+  vol: Integer;
+begin
+  Result := True;
+  if Volume < 0 then Volume := 0 else if Volume > 1 then Volume := 1;
+  vol := trunc(Volume*MIX_MAX_VOLUME);
+  if chan = N_MUSCHAN then
+  begin
+    MusVolume := vol;
+    if SoundMuted then Mix_VolumeMusic(0) else Mix_VolumeMusic(vol);
+  end
+  else if chan >= 0 then
+  begin
+    ChanSIds[chan].oldvol := vol;
+    if ChanSIds[chan].muted then Mix_Volume(chan, 0) else Mix_Volume(chan, vol);
+  end
+  else
+  begin
+    Result := False;
+  end;
+end;
+
+function e_PlaySoundPan(ID: DWORD; Pan: Single): Integer;
+var
+  chan: Integer;
+begin
+  Result := -1;
+  chan := e_PlaySound(ID);
+  e_chanSetPan(chan, Pan);
   Result := chan;
 end;
 
@@ -281,121 +366,113 @@ var
 begin
   Result := -1;
   chan := e_PlaySound(ID);
-  if (chan >= 0) and (chan <> N_MUSCHAN) then
-  begin
-    if Volume < 0 then Volume := 0 else if Volume > 1 then Volume := 1;
-    if not SoundMuted then Mix_Volume(chan, trunc(Volume*MIX_MAX_VOLUME));
-  end;
+  e_chanSetVol(chan, Volume);
   Result := chan;
 end;
 
 function e_PlaySoundPanVolume(ID: DWORD; Pan, Volume: Single): Integer;
 var
   chan: Integer;
-  l, r: UInt8;
 begin
   Result := -1;
   chan := e_PlaySound(ID);
-  if (chan >= 0) and (chan <> N_MUSCHAN) then
-  begin
-    if Pan < -1.0 then Pan := -1.0 else if Pan > 1.0 then Pan := 1.0;
-    Pan := Pan+1.0; // 0..2
-    l := trunc(127.0*(2.0-Pan));
-    r := trunc(127.0*Pan);
-    Mix_SetPanning(chan, l, r);
-    if Volume < 0 then Volume := 0 else if Volume > 1 then Volume := 1;
-    if not SoundMuted then Mix_Volume(chan, trunc(Volume*MIX_MAX_VOLUME));
-  end;
+  e_chanSetPan(chan, Pan);
+  e_chanSetVol(chan, Volume);
   Result := chan;
 end;
 
 procedure e_DeleteSound(ID: DWORD);
+var
+  i: Integer;
 begin
   if (e_SoundsArray[ID].Sound = nil) and (e_SoundsArray[ID].Music = nil) then Exit;
-  if e_SoundsArray[ID].Data <> nil then FreeMem(e_SoundsArray[ID].Data);
 
+  for i := 0 to N_CHANNELS-1 do
+  begin
+    if ChanSIds[i].id = ID then
+    begin
+      ChanSIds[i].id := NO_SOUND_ID;
+      Mix_HaltChannel(i);
+    end;
+  end;
+
+  if e_SoundsArray[ID].Data <> nil then FreeMem(e_SoundsArray[ID].Data);
   if e_SoundsArray[ID].Sound <> nil then Mix_FreeChunk(e_SoundsArray[ID].Sound);
   if e_SoundsArray[ID].Music <> nil then Mix_FreeMusic(e_SoundsArray[ID].Music);
 
   e_SoundsArray[ID].Sound := nil;
   e_SoundsArray[ID].Music := nil;
   e_SoundsArray[ID].Data := nil;
+  e_SoundsArray[ID].nRefs := 0;
 end;
 
-//TODO
 procedure e_ModifyChannelsVolumes(SoundMod: Single; setMode: Boolean);
-{
 var
   i: Integer;
-  Chan: FMOD_CHANNEL;
   vol: Single;
-}
+  ovol: Integer;
 begin
-  // Mix_Volume(-1, volm);
-{
   for i := 0 to N_CHANNELS-1 do
   begin
-    Chan := nil;
-    res := FMOD_System_GetChannel(F_System, i, Chan);
-
-    if (res = FMOD_OK) and (Chan <> nil) then
+    ovol := ChanSIds[i].oldvol;
+    if setMode then
     begin
-      res := FMOD_Channel_GetVolume(Chan, vol);
-
-      if res = FMOD_OK then
-      begin
-        if setMode then
-          vol := SoundMod
-        else
-          vol := vol * SoundMod;
-
-        res := FMOD_Channel_SetVolume(Chan, vol);
-
-        if res <> FMOD_OK then
-        begin
-        end;
-      end;
+      vol := SoundMod;
+    end
+    else
+    begin
+      vol := (MIX_MAX_VOLUME+0.0)/ovol;
+      vol := vol*SoundMod;
     end;
+    if vol < 0 then vol := 0 else if vol > 1 then vol := 1;
+    ChanSIds[i].oldvol := trunc(vol*MIX_MAX_VOLUME);
+    //if i = 0 then e_WriteLog(Format('modifying volumes: vol=%f; newvol=%d', [vol, ChanSIds[i].oldvol]), MSG_WARNING);
+    if ChanSIds[i].muted then Mix_Volume(i, 0) else Mix_Volume(i, ChanSIds[i].oldvol);
   end;
-}
+  ovol := Mix_VolumeMusic(-1);
+  if ovol >= 0 then
+  begin
+    if setMode then
+    begin
+      vol := SoundMod;
+    end
+    else
+    begin
+      vol := (MIX_MAX_VOLUME+0.0)/ovol;
+      vol := vol * SoundMod;
+    end;
+    if vol < 0 then vol := 0 else if vol > 1 then vol := 1;
+    MusVolume := trunc(vol*MIX_MAX_VOLUME);
+    if SoundMuted then Mix_VolumeMusic(0) else Mix_VolumeMusic(MusVolume);
+  end;
 end;
 
-//TODO
 procedure e_MuteChannels(Enable: Boolean);
-{
 var
-  res: FMOD_RESULT;
   i: Integer;
-  Chan: FMOD_CHANNEL;
-}
 begin
-{
-  if Enable = SoundMuted then
-    Exit;
-
+  //if Enable = SoundMuted then Exit;
   SoundMuted := Enable;
-
   for i := 0 to N_CHANNELS-1 do
   begin
-    Chan := nil;
-    res := FMOD_System_GetChannel(F_System, i, Chan);
-
-    if (res = FMOD_OK) and (Chan <> nil) then
+    if ChanSIds[i].muted <> SoundMuted then
     begin
-      res := FMOD_Channel_SetMute(Chan, Enable);
-
-      if res <> FMOD_OK then
-      begin
-      end;
+      ChanSIds[i].muted := SoundMuted;
+      //e_WriteLog(Format('gmuting sound for channel %d', [i]), MSG_WARNING);
+      if ChanSIds[i].muted then Mix_Volume(i, 0) else Mix_Volume(i, ChanSIds[i].oldvol);
     end;
   end;
-}
+  if SoundMuted then Mix_VolumeMusic(0) else Mix_VolumeMusic(MusVolume);
 end;
 
 procedure e_StopChannels();
+var
+  i: Integer;
 begin
   Mix_HaltChannel(-1);
   Mix_HaltMusic();
+  for i := 0 to High(e_SoundsArray) do e_SoundsArray[i].nRefs := 0;
+  for i := 0 to N_CHANNELS-1 do ChanSIds[i].id := NO_SOUND_ID;
 end;
 
 procedure e_RemoveAllSounds();
@@ -403,11 +480,7 @@ var
   i: Integer;
 begin
   if SoundInitialized then e_StopChannels();
-
-  for i := 0 to High(e_SoundsArray) do
-    if e_SoundsArray[i].Sound <> nil then
-      e_DeleteSound(i);
-
+  for i := 0 to High(e_SoundsArray) do e_DeleteSound(i);
   SetLength(e_SoundsArray, 0);
   e_SoundsArray := nil;
 end;
@@ -415,7 +488,6 @@ end;
 procedure e_ReleaseSoundSystem();
 begin
   e_RemoveAllSounds();
-
   if SoundInitialized then
   begin
     Mix_CloseAudio();
@@ -428,13 +500,14 @@ begin
   //FMOD_System_Update(F_System);
 end;
 
+
 { TBasicSound: }
 
 constructor TBasicSound.Create();
 begin
   FID := NO_SOUND_ID;
   FMusic := False;
-  FChannel := -1;
+  FChanNum := -1;
   FPosition := 0;
   FPriority := 128;
 end;
@@ -445,6 +518,19 @@ begin
   inherited;
 end;
 
+function TBasicSound.GetChan (): Integer;
+begin
+  if (FID <> NO_SOUND_ID) and (FChanNum >= 0) and (FChanNum < N_CHANNELS) then
+  begin
+    if ChanSIds[FChanNum].id <> FID then FChanNum := -1;
+  end
+  else if e_isMusic(FID) then
+  begin
+    FChanNum := N_MUSCHAN;
+  end;
+  Result := FChanNum;
+end;
+
 procedure TBasicSound.FreeSound();
 begin
   if FID = NO_SOUND_ID then Exit;
@@ -452,6 +538,7 @@ begin
   FID := NO_SOUND_ID;
   FMusic := False;
   FPosition := 0;
+  FChanNum := -1;
 end;
 
 // aPos: msecs
@@ -459,7 +546,8 @@ function TBasicSound.RawPlay(Pan: Single; Volume: Single; aPos: DWORD): Boolean;
 begin
   Result := False;
   if (FID = NO_SOUND_ID) or not SoundInitialized then Exit;
-  Result := (e_PlaySoundPanVolume(FID, Pan, Volume) >= 0);
+  FChanNum := e_PlaySoundPanVolume(FID, Pan, Volume);
+  Result := (FChanNum >= 0);
   //TODO: aPos
 end;
 
@@ -468,53 +556,97 @@ begin
   FreeSound();
   FID := ID;
   FMusic := e_SoundsArray[ID].isMusic;
+  FChanNum := -1;
 end;
 
 function TBasicSound.IsPlaying(): Boolean;
+var
+  chan: Integer;
 begin
   Result := False;
-  if FChannel < 0 then Exit;
-  if e_isSound(FID) then Result := (Mix_Playing(FChannel) > 0)
-  else Result := (Mix_PlayingMusic() > 0);
+  if e_isSound(FID) then
+  begin
+    //e_WriteLog(Format('IsPlaying: FID=%u; FChanNum=%d', [FID, FChanNum]), MSG_WARNING);
+    chan := Channel;
+    if chan < 0 then
+    begin
+      //e_WriteLog(Format('IsPlaying: FID=%u; ONA', [FID]), MSG_WARNING);
+      Exit;
+    end;
+    //Result := (Mix_Playing(chan) > 0)
+    //e_WriteLog(Format('IsPlaying: FID=%u; TAN', [FID]), MSG_WARNING);
+    Result := True;
+  end
+  else if e_isMusic(FID) then
+  begin
+    Result := (Mix_PlayingMusic() > 0);
+  end;
 end;
 
 procedure TBasicSound.Stop();
-
+var
+  chan: Integer;
 begin
-  if FChannel < 0 then Exit;
-  //GetPosition();
-  if e_isSound(FID) then Mix_HaltChannel(FChannel) else Mix_HaltMusic();
-  FChannel := -1;
+  if e_isSound(FID) then
+  begin
+    chan := Channel;
+    if chan >= 0 then
+    begin
+      //GetPosition();
+      Mix_HaltChannel(chan);
+    end;
+  end
+  else if e_isMusic(FID) then
+  begin
+    Mix_HaltMusic();
+  end;
+  FChanNum := -1;
 end;
 
 function TBasicSound.IsPaused(): Boolean;
+var
+  chan: Integer;
 begin
   Result := False;
-  if FChannel < 0 then Exit;
-  if e_isSound(FID) then Result := (Mix_Paused(FChannel) > 0) else Result := (Mix_PausedMusic() > 0);
+  if e_isSound(FID) then
+  begin
+    chan := Channel;
+    if chan < 0 then Exit;
+    Result := (Mix_Paused(chan) > 0);
+  end
+  else if e_isMusic(FID) then
+  begin
+    Result := (Mix_PausedMusic() > 0);
+  end;
 end;
 
 procedure TBasicSound.Pause(Enable: Boolean);
+var
+  chan: Integer;
+  pl: Boolean;
 begin
-  if FChannel < 0 then Exit;
-  if IsPaused() then
+  if e_isSound(FID) then
   begin
-    if Enable then
+    chan := Channel;
+    if chan < 0 then Exit;
+    pl := not (Mix_Paused(chan) > 0);
+    if pl <> Enable then
     begin
-      if e_isSound(FID) then Mix_Resume(FChannel) else Mix_ResumeMusic();
+      if Enable then Mix_Resume(chan) else Mix_Pause(chan);
     end;
   end
-  else
+  else if e_isMusic(FID) then
   begin
-    if not Enable then
+    pl := not (Mix_PausedMusic() > 0);
+    if pl <> Enable then
     begin
-      if e_isSound(FID) then Mix_Pause(FChannel) else Mix_PauseMusic();
+      if Enable then Mix_ResumeMusic() else Mix_PauseMusic();
     end;
   end;
   {
   if Enable then
   begin
-    res := FMOD_Channel_GetPosition(FChannel, FPosition, FMOD_TIMEUNIT_MS);
+    res := FMOD_Channel_GetPosition(FChanNum, FPosition, FMOD_TIMEUNIT_MS);
     if res <> FMOD_OK then
     begin
     end;
@@ -522,91 +654,111 @@ begin
   }
 end;
 
-//TODO
 function TBasicSound.GetVolume(): Single;
+var
+  chan: Integer;
 begin
   Result := 0.0;
-  if FChannel < 0 then Exit;
-{
-  res := FMOD_Channel_GetVolume(FChannel, vol);
-  if res <> FMOD_OK then
+  if e_isSound(FID) then
   begin
-    Exit;
+    chan := Channel;
+    if chan < 0 then Exit;
+    Result := (ChanSIds[chan].oldvol+0.0)/(MIX_MAX_VOLUME+0.0);
+  end
+  else if e_isMusic(FID) then
+  begin
+    Result := (MusVolume+0.0)/(MIX_MAX_VOLUME+0.0);
   end;
-  Result := vol;
-}
 end;
 
 procedure TBasicSound.SetVolume(Volume: Single);
+var
+  chan: Integer;
 begin
-  if FChannel < 0 then Exit;
-  if Volume < 0 then Volume := 0 else if Volume > 1 then Volume := 1;
-  if e_isSound(FID) then Mix_Volume(FChannel, trunc(Volume*MIX_MAX_VOLUME))
-  else Mix_VolumeMusic(trunc(Volume*MIX_MAX_VOLUME))
+  if e_isSound(FID) then
+  begin
+    chan := Channel;
+    if chan < 0 then Exit;
+    //e_WriteLog(Format('SetVolume: chan=%d; Volume=%f', [chan, Volume]), MSG_WARNING);
+    e_chanSetVol(chan, Volume);
+  end
+  else if e_isMusic(FID) then
+  begin
+    //e_WriteLog(Format('SetVolume: chan=MUSIC; Volume=%f', [Volume]), MSG_WARNING);
+    e_chanSetVol(N_MUSCHAN, Volume);
+  end;
 end;
 
-//TODO
 function TBasicSound.GetPan(): Single;
+var
+  chan: Integer;
 begin
-  Result := 0.0;
-  if FChannel < 0 then Exit;
-{
-  res := FMOD_Channel_GetPan(FChannel, pan);
-  if res <> FMOD_OK then
+  Result := 1.0;
+  if e_isSound(FID) then
   begin
-    Exit;
+    chan := Channel;
+    if chan < 0 then Exit;
+    Result := ChanSIds[chan].pan;
   end;
-  Result := pan;
-}
 end;
 
 procedure TBasicSound.SetPan(Pan: Single);
 var
-  l, r: UInt8;
+  chan: Integer;
 begin
-  if FChannel < 0 then Exit;
-  if not e_isSound(FID) then Exit;
-  if Pan < -1.0 then Pan := -1.0 else if Pan > 1.0 then Pan := 1.0;
-  Pan := Pan+1.0; // 0..2
-  l := trunc(127.0*(2.0-Pan));
-  r := trunc(127.0*Pan);
-  Mix_SetPanning(FChannel, l, r);
+  if e_isSound(FID) then
+  begin
+    chan := Channel;
+    if chan < 0 then Exit;
+    e_chanSetPan(chan, Pan);
+  end;
 end;
 
-//TODO
 function TBasicSound.IsMuted(): Boolean;
+var
+  chan: Integer;
 begin
   Result := False;
-  if FChannel < 0 then Exit;
-{
-  res := FMOD_Channel_GetMute(FChannel, b);
-  if res <> FMOD_OK then
+  if e_isSound(FID) then
   begin
-    Exit;
+    chan := Channel;
+    if chan < 0 then Exit;
+    Result := ChanSIds[chan].muted;
+  end
+  else if e_isMusic(FID) then
+  begin
+    Result := SoundMuted;
   end;
-  Result := b;
-}
 end;
 
-//TODO
 procedure TBasicSound.Mute(Enable: Boolean);
+var
+  chan: Integer;
 begin
-  if FChannel < 0 then Exit;
-{
-  res := FMOD_Channel_SetMute(FChannel, Enable);
-  if res <> FMOD_OK then
+  if e_isSound(FID) then
   begin
+    chan := Channel;
+    if chan < 0 then Exit;
+    if ChanSIds[chan].muted <> Enable then
+    begin
+      //e_WriteLog(Format('muting sound for channel %d', [cnan]), MSG_WARNING);
+      ChanSIds[chan].muted := Enable;
+      if ChanSIds[chan].muted then Mix_Volume(chan, 0) else Mix_Volume(chan, ChanSIds[chan].oldvol);
+    end;
+  end
+  else if e_isMusic(FID) then
+  begin
+    if Enable then Mix_VolumeMusic(0) else Mix_VolumeMusic(MusVolume);
   end;
-}
 end;
 
 //TODO
 function TBasicSound.GetPosition(): DWORD;
 begin
   Result := 0;
-  if FChannel < 0 then Exit;
 {
-  res := FMOD_Channel_GetPosition(FChannel, FPosition, FMOD_TIMEUNIT_MS);
+  if FChanNum < 0 then Exit;
+  res := FMOD_Channel_GetPosition(FChanNum, FPosition, FMOD_TIMEUNIT_MS);
   if res <> FMOD_OK then
   begin
     Exit;
@@ -619,9 +771,9 @@ end;
 procedure TBasicSound.SetPosition(aPos: DWORD);
 begin
   FPosition := aPos;
-  if FChannel < 0 then Exit;
 {
-  res := FMOD_Channel_SetPosition(FChannel, FPosition, FMOD_TIMEUNIT_MS);
+  if FChanNum < 0 then Exit;
+  res := FMOD_Channel_SetPosition(FChanNum, FPosition, FMOD_TIMEUNIT_MS);
   if res <> FMOD_OK then
   begin
   end;
@@ -632,11 +784,11 @@ end;
 procedure TBasicSound.SetPriority(priority: Integer);
 begin
 {
-  if (FChannel <> nil) and (FPriority <> priority) and
+  if (FChanNum <> nil) and (FPriority <> priority) and
      (priority >= 0) and (priority <= 256) then
   begin
     FPriority := priority;
-    res := FMOD_Channel_SetPriority(FChannel, priority);
+    res := FMOD_Channel_SetPriority(FChanNum, priority);
     if res <> FMOD_OK then
     begin
     end;
