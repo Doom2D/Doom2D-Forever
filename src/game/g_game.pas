@@ -4045,11 +4045,14 @@ end;
 
 procedure g_Game_DeleteTestMap();
 var
-  WAD: TWADEditor_1;
+  a: Integer;
   MapName: Char16;
-  MapList: SArray;
-  a, time: Integer;
   WadName: string;
+{
+  WAD: TWADEditor_1;
+  MapList: SArray;
+  time: Integer;
+}
 begin
   a := Pos('.wad:\', gMapToDelete);
   if a = 0 then
@@ -4062,6 +4065,7 @@ begin
   MapName := '';
   CopyMemory(@MapName[0], @gMapToDelete[1], Min(16, Length(gMapToDelete)));
 
+{
 // Имя карты не стандартное тестовое:
   if MapName <> TEST_MAP_NAME then
     Exit;
@@ -4095,7 +4099,8 @@ begin
     WAD.Free();
     g_SetFileTime(WadName, time);
   end else
-    DeleteFile(WadName);
+}
+  if gTempDelete then DeleteFile(WadName);
 end;
 
 procedure GameCVars(P: SArray);
@@ -6291,7 +6296,11 @@ begin
   // Delete test map after play:
     s := Find_Param_Value(pars, '--testdelete');
     if (s <> '') then
+    begin
       gMapToDelete := MapsDir + map;
+      e_WriteLog('"--testdelete" argument doesn''t supported anymore!', MSG_FATALERROR);
+      Halt(1);
+    end;
 
   // Delete temporary WAD after play:
     s := Find_Param_Value(pars, '--tempdelete');

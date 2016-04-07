@@ -1,4 +1,4 @@
-unit WADEDITOR;
+unit WADEDITOR_full;
 
 {
 -----------------------------------
@@ -34,6 +34,14 @@ type
     procedure FreeWAD();
     function  ReadFile(FileName: string): Boolean;
     function  ReadMemory(Data: Pointer; Len: LongWord): Boolean;
+    procedure CreateImage();
+    function AddResource(Data: Pointer; Len: LongWord; Name: string;
+                         Section: string): Boolean; overload;
+    function AddResource(FileName, Name, Section: string): Boolean; overload;
+    function AddAlias(Res, Alias: string): Boolean;
+    procedure AddSection(Name: string);
+    procedure RemoveResource(Section, Resource: string);
+    procedure SaveTo(FileName: string);
     function HaveResource(Section, Resource: string): Boolean;
     function HaveSection(Section: string): Boolean;
     function GetResource(Section, Resource: string; var pData: Pointer;
@@ -166,8 +174,223 @@ begin
     SectionName^ := Copy(ResourceStr, i+1, Length(ResourceStr)-l2-l1-2);
 end;
 
-
 { TWADEditor_1 }
+
+function TWADEditor_1.AddResource(Data: Pointer; Len: LongWord; Name: string;
+                                  Section: string): Boolean;
+var
+  ResCompressed: Pointer;
+  ResCompressedSize: Integer;
+  a, b: Integer;
+begin
+ Result := False;
+
+ SetLength(FResTable, Length(FResTable)+1);
+
+ if Section = '' then
+ begin
+  if Length(FResTable) > 1 then
+   for a := High(FResTable) downto 1 do
+    FResTable[a] := FResTable[a-1];
+
+  a := 0;
+ end
+  else
+ begin
+  Section := AnsiUpperCase(Section);
+  b := -1;
+
+  for a := 0 to High(FResTable) do
+   if (FResTable[a].Length = 0) and (FResTable[a].ResourceName = Section) then
+   begin
+    for b := High(FResTable) downto a+2 do
+     FResTable[b] := FResTable[b-1];
+
+    b := a+1;
+    Break;
+   end;
+
+  if b = -1 then
+  begin
+   SetLength(FResTable, Length(FResTable)-1);
+   Exit;
+  end;
+  a := b;
+ end;
+
+ ResCompressed := nil;
+ ResCompressedSize := 0;
+ Compress(Data, @Len, ResCompressed, ResCompressedSize);
+ if ResCompressed = nil then Exit;
+
+ if FResData = nil then FResData := AllocMem(ResCompressedSize)
+  else ReallocMem(FResData, FDataSize+Cardinal(ResCompressedSize));
+
+ FDataSize := FDataSize+LongWord(ResCompressedSize);
+
+ CopyMemory(Pointer(PChar(FResData)+FDataSize-PChar(ResCompressedSize)),
+            ResCompressed, ResCompressedSize);
+ FreeMemory(ResCompressed);
+
+ Inc(FHeader.RecordsCount);
+
+ with FResTable[a] do
+ begin
+  ResourceName := GetResName(Name);
+  Address := FOffset;
+  Length := ResCompressedSize;
+ end;
+
+ FOffset := FOffset+Cardinal(ResCompressedSize);
+
+ Result := True;
+end;
+
+function TWADEditor_1.AddAlias(Res, Alias: string): Boolean;
+var
+  a, b: Integer;
+  ares: Char16;
+begin
+ Result := False;
+
+ if FResTable = nil then Exit;
+
+ b := -1;
+ ares := GetResName(Alias);
+ for a := 0 to High(FResTable) do
+  if FResTable[a].ResourceName = Res then
+  begin
+   b := a;
+   Break;
+  end;
+
+ if b = -1 then Exit;
+
+ Inc(FHeader.RecordsCount);
+
+ SetLength(FResTable, Length(FResTable)+1);
+
+ with FResTable[High(FResTable)] do
+ begin
+  ResourceName := ares;
+  Address := FResTable[b].Address;
+  Length := FResTable[b].Length;
+ end;
+
+ Result := True;
+end;
+
+function TWADEditor_1.AddResource(FileName, Name, Section: string): Boolean;
+var
+  ResCompressed: Pointer;
+  ResCompressedSize: Integer;
+  ResourceFile: File;
+  TempResource: Pointer;
+  OriginalSize: Integer;
+  a, b: Integer;
+begin
+ Result := False;
+
+ AssignFile(ResourceFile, FileName);
+
+ try
+  Reset(ResourceFile, 1);
+ except
+  FLastError := DFWAD_ERROR_CANTOPENWAD;
+  Exit;
+ end;
+
+ OriginalSize := FileSize(ResourceFile);
+ GetMem(TempResource, OriginalSize);
+
+ try
+  BlockRead(ResourceFile, TempResource^, OriginalSize);
+ except
+  FLastError := DFWAD_ERROR_READWAD;
+  FreeMemory(TempResource);
+  CloseFile(ResourceFile);
+  Exit;
+ end;
+
+ CloseFile(ResourceFile);
+
+ ResCompressed := nil;
+ ResCompressedSize := 0;
+ Compress(TempResource, @OriginalSize, ResCompressed, ResCompressedSize);
+ FreeMemory(TempResource);
+ if ResCompressed = nil then Exit;
+
+ SetLength(FResTable, Length(FResTable)+1);
+
+ if Section = '' then
+ begin
+  if Length(FResTable) > 1 then
+   for a := High(FResTable) downto 1 do
+    FResTable[a] := FResTable[a-1];
+
+  a := 0;
+ end
+  else
+ begin
+  Section := AnsiUpperCase(Section);
+  b := -1;
+
+  for a := 0 to High(FResTable) do
+   if (FResTable[a].Length = 0) and (FResTable[a].ResourceName = Section) then
+   begin
+    for b := High(FResTable) downto a+2 do
+     FResTable[b] := FResTable[b-1];
+
+    b := a+1;
+    Break;
+   end;
+
+  if b = -1 then
+  begin
+   FreeMemory(ResCompressed);
+   SetLength(FResTable, Length(FResTable)-1);
+   Exit;
+  end;
+
+  a := b;
+ end;
+
+ if FResData = nil then FResData := AllocMem(ResCompressedSize)
+  else ReallocMem(FResData, FDataSize+Cardinal(ResCompressedSize));
+
+ FDataSize := FDataSize+LongWord(ResCompressedSize);
+ CopyMemory(Pointer(PChar(FResData)+FDataSize-PChar(ResCompressedSize)),
+            ResCompressed, ResCompressedSize);
+ FreeMemory(ResCompressed);
+
+ Inc(FHeader.RecordsCount);
+
+ with FResTable[a] do
+ begin
+  ResourceName := GetResName(Name);
+  Address := FOffset;
+  Length := ResCompressedSize;
+ end;
+
+ FOffset := FOffset+Cardinal(ResCompressedSize);
+
+ Result := True;
+end;
+
+procedure TWADEditor_1.AddSection(Name: string);
+begin
+ if Name = '' then Exit;
+
+ Inc(FHeader.RecordsCount);
+
+ SetLength(FResTable, Length(FResTable)+1);
+ with FResTable[High(FResTable)] do
+ begin
+  ResourceName := GetResName(Name);
+  Address := $00000000;
+  Length := $00000000;
+ end;
+end;
 
 constructor TWADEditor_1.Create();
 begin
@@ -180,6 +403,46 @@ begin
  FWADOpened := DFWAD_OPENED_NONE;
  FLastError := DFWAD_NOERROR;
  FVersion := DFWAD_VERSION;
+end;
+
+procedure TWADEditor_1.CreateImage();
+var
+  WADFile: File;
+  b: LongWord;
+begin
+ if FWADOpened = DFWAD_OPENED_NONE then
+ begin
+  FLastError := DFWAD_ERROR_WADNOTLOADED;
+  Exit;
+ end;
+
+ if FWADOpened = DFWAD_OPENED_MEMORY then Exit;
+
+ if FResData <> nil then FreeMem(FResData);
+
+ try
+  AssignFile(WADFile, FFileName);
+  Reset(WADFile, 1);
+
+  b := 6+SizeOf(TWADHeaderRec_1)+SizeOf(TResourceTableRec_1)*Length(FResTable);
+
+  FDataSize := LongWord(FileSize(WADFile))-b;
+
+  GetMem(FResData, FDataSize);
+
+  Seek(WADFile, b);
+  BlockRead(WADFile, FResData^, FDataSize);
+
+  CloseFile(WADFile);
+
+  FOffset := FDataSize;
+ except
+  FLastError := DFWAD_ERROR_CANTOPENWAD;
+  CloseFile(WADFile);
+  Exit;
+ end;
+
+ FLastError := DFWAD_NOERROR;
 end;
 
 destructor TWADEditor_1.Destroy();
@@ -527,6 +790,91 @@ begin
  FLastError := DFWAD_NOERROR;
 
  Result := True;
+end;
+
+procedure TWADEditor_1.RemoveResource(Section, Resource: string);
+var
+  a, i: Integer;
+  CurrentSection: Char16;
+  b, c, d: LongWord;
+begin
+ if FResTable = nil then Exit;
+
+ i := -1;
+ b := 0;
+ c := 0;
+ CurrentSection := '';
+
+ for a := 0 to High(FResTable) do
+ begin
+  if FResTable[a].Length = 0 then
+  begin
+   CurrentSection := FResTable[a].ResourceName;
+   Continue;
+  end;
+
+  if (FResTable[a].ResourceName = Resource) and
+     (CurrentSection = Section) then
+  begin
+   i := a;
+   b := FResTable[a].Length;
+   c := FResTable[a].Address;
+   Break;
+  end;
+ end;
+
+ if i = -1 then Exit;
+
+ for a := i to High(FResTable)-1 do
+  FResTable[a] := FResTable[a+1];
+
+ SetLength(FResTable, Length(FResTable)-1);
+
+ d := 0;
+ for a := 0 to High(FResTable) do
+  if (FResTable[a].Length <> 0) and (FResTable[a].Address > c) then
+  begin
+   FResTable[a].Address := FResTable[a].Address-b;
+   d := d+FResTable[a].Length;
+  end;
+
+ CopyMemory(Pointer(LongWord(FResData)+c), Pointer(LongWord(FResData)+c+b), d);
+
+ FDataSize := FDataSize-b;
+ FOffset := FOffset-b;
+ ReallocMem(FResData, FDataSize);
+
+ FHeader.RecordsCount := FHeader.RecordsCount-1;
+end;
+
+procedure TWADEditor_1.SaveTo(FileName: string);
+var
+  WADFile: File;
+  sign: string;
+  ver: Byte;
+  Header: TWADHeaderRec_1;
+  i: Integer;
+begin
+ sign := DFWAD_SIGNATURE;
+ ver := DFWAD_VERSION;
+
+ Header.RecordsCount := Length(FResTable);
+
+ if FResTable <> nil then
+  for i := 0 to High(FResTable) do
+   if FResTable[i].Length <> 0 then
+    FResTable[i].Address := FResTable[i].Address+6+SizeOf(TWADHeaderRec_1)+
+                            SizeOf(TResourceTableRec_1)*Header.RecordsCount;
+
+ AssignFile(WADFile, FileName);
+ Rewrite(WADFile, 1);
+  BlockWrite(WADFile, sign[1], 5);
+  BlockWrite(WADFile, ver, 1);
+  BlockWrite(WADFile, Header, SizeOf(TWADHeaderRec_1));
+  if FResTable <> nil then BlockWrite(WADFile, FResTable[0],
+                                      SizeOf(TResourceTableRec_1)*Header.RecordsCount);
+  if FResData <> nil then BlockWrite(WADFile, FResData^, FDataSize);
+ CloseFile(WADFile);
 end;
 
 end.
