@@ -37,6 +37,7 @@ type
   // том НЕ ДОЛЖЕН убиваться никак иначе, чем при помощи фабрики!
   TSFSVolume = class
   protected
+    fRC: Integer; // refcounter for other objects
     fFileName: TSFSString;// обычно имя оригинального файла
     fFileStream: TStream; // обычно поток для чтения оригинального файла
     fFiles: TObjectList;  // TSFSFileInfo или наследники
@@ -64,9 +65,6 @@ type
     // если файл не найден, вернуть -1.
     function FindFile (const fPath, fName: TSFSString): Integer; virtual;
 
-    // при ошибках кидаться исключениями.
-    function OpenFileByIndex (const index: Integer): TStream; virtual; abstract;
-
     // возвращает количество файлов в fFiles
     function GetFileCount (): Integer; virtual;
 
@@ -86,6 +84,9 @@ type
     // конец имён-дубликатов подчёркивание и десятичный номер.
     // также она нормализует вид имён.
     procedure DoDirectoryRead ();
+
+    // при ошибках кидаться исключениями.
+    function OpenFileByIndex (const index: Integer): TStream; virtual; abstract;
 
     // если не смогло откупорить файло (или ещё где ошиблось), зашвырнёт исключение.
     function OpenFileEx (const fName: TSFSString): TStream; virtual;
@@ -134,6 +135,7 @@ type
     constructor Create (const pVolume: TSFSVolume);
     destructor Destroy (); override;
 
+    property Volume: TSFSVolume read fVolume;
     property Count: Integer read GetCount;
     // при неправильном индексе молча вернёт NIL.
     // при правильном тоже может вернуть NIL!
@@ -588,22 +590,29 @@ var
   used: Boolean; // флажок заюзаности потока кем-то ещё
 begin
   if fFactory <> nil then fFactory.Recycle(fVolume);
-  fVolume := nil; fFactory := nil; fPackName := '';
+  if fVolume <> nil then used := (fVolume.fRC <> 0) else used := false;
+  fVolume := nil;
+  fFactory := nil;
+  fPackName := '';
 
-  // типа мусоросборник: если наш поток более никем не юзается,
-  // то угробить его нафиг.
-  me := volumes.IndexOf(self);
-  used := false;
-  f := volumes.Count-1;
-  while not used and (f >= 0) do
+  // типа мусоросборник: если наш поток более никем не юзается, то угробить его нафиг
+  if not used then
   begin
-    if (f <> me) and (volumes[f] <> nil) then
+    me := volumes.IndexOf(self);
+    f := volumes.Count-1;
+    while not used and (f >= 0) do
     begin
-      used := (TVolumeInfo(volumes[f]).fStream = fStream);
-      if not used then
-        used := (TVolumeInfo(volumes[f]).fVolume.fFileStream = fStream);
+      if (f <> me) and (volumes[f] <> nil) then
+      begin
+        used := (TVolumeInfo(volumes[f]).fStream = fStream);
+        if not used then
+        begin
+          used := (TVolumeInfo(volumes[f]).fVolume.fFileStream = fStream);
+        end;
+        if used then break;
+      end;
+      Dec(f);
     end;
-    Dec(f);
   end;
   if not used then FreeAndNil(fStream); // если больше никем не юзано, пришибём
   inherited Destroy();
@@ -641,8 +650,10 @@ constructor TSFSFileInfo.Create (pOwner: TSFSVolume);
 begin
   inherited Create();
   fOwner := pOwner;
-  fPath := ''; fName := '';
-  fSize := 0; fOfs := 0;
+  fPath := '';
+  fName := '';
+  fSize := 0;
+  fOfs := 0;
   if pOwner <> nil then pOwner.fFiles.Add(self);
 end;
 
@@ -657,6 +668,7 @@ end;
 constructor TSFSVolume.Create (const pFileName: TSFSString; pSt: TStream);
 begin
   inherited Create();
+  fRC := 0;
   fFileStream := pSt;
   fFileName := pFileName;
   fFiles := TObjectList.Create(true);
@@ -728,6 +740,7 @@ end;
 
 procedure TSFSVolume.Clear ();
 begin
+  fRC := 0; //FIXME
   fFiles.Clear();
 end;
 
@@ -807,6 +820,7 @@ var
 begin
   f := FindVolumeInfoByVolumeInstance(fVolume);
   ASSERT(f <> -1);
+  if fVolume <> nil then Dec(fVolume.fRC);
   Dec(TVolumeInfo(volumes[f]).fOpenedFilesCount);
   // убьём запись, если она временная, и в ней нет больше ничего открытого
   if not TVolumeInfo(volumes[f]).fPermanent and
@@ -854,8 +868,7 @@ begin
 end;
 
 
-function SFSAddDataFileEx (dataFileName: TSFSString; ds: TStream;
-  top, permanent: Integer): Integer;
+function SFSAddDataFileEx (dataFileName: TSFSString; ds: TStream; top, permanent: Integer): Integer;
 // dataFileName может иметь префикс типа "zip:" (см. выше: IsMyPrefix).
 // может выкинуть исключение!
 // top:
@@ -1171,6 +1184,7 @@ begin
 
   try
     result := TSFSFileList.Create(vi.fVolume);
+    Inc(vi.fVolume.fRC);
   except
     if not vi.fPermanent and (vi.fOpenedFilesCount < 1) then volumes[f] := nil;
   end;

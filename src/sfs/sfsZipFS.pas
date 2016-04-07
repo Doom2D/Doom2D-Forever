@@ -33,6 +33,8 @@ type
     procedure DFWADReadDirectory ();
 
     procedure ReadDirectory (); override;
+
+  public
     function OpenFileByIndex (const index: Integer): TStream; override;
   end;
 
@@ -408,12 +410,15 @@ begin
   if (index < 0) or (index >= fFiles.Count) or (fFiles[index] = nil) then exit;
   kill := false;
   try
+    {
     try
       fs := TFileStream.Create(fFileName, fmOpenRead or fmShareDenyWrite);
       kill := true;
     except
       fs := fFileStream;
     end;
+    }
+    fs := fFileStream;
     if TSFSZipFileInfo(fFiles[index]).fMethod = 0 then
     begin
       result := TSFSPartialStream.Create(fs,
@@ -435,7 +440,7 @@ begin
       if TSFSZipFileInfo(fFiles[index]).fSize = -1 then
       begin
         TSFSZipFileInfo(fFiles[index]).fSize := 0;
-        //writeln('trying to determine file size...');
+        //writeln('trying to determine file size for [', TSFSZipFileInfo(fFiles[index]).fPath, TSFSZipFileInfo(fFiles[index]).fName, ']');
         try
           while true do
           begin
@@ -450,6 +455,7 @@ begin
           fs.Seek(TSFSZipFileInfo(fFiles[index]).fOfs, soBeginning);
           zs := TZDecompressionStream.Create(fs)
         except
+          //writeln('*** CAN''T determine file size for [', TSFSZipFileInfo(fFiles[index]).fPath, TSFSZipFileInfo(fFiles[index]).fName, ']');
           FreeAndNil(zs);
           if kill then FreeAndNil(fs);
           result := nil;

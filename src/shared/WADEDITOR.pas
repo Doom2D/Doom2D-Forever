@@ -1,12 +1,6 @@
 unit WADEDITOR;
 
-{
------------------------------------
-WADEDITOR.PAS ВЕРСИЯ ОТ 26.08.08
-
-Поддержка вадов версии 1
------------------------------------
-}
+{.$DEFINE SFS_DWFAD_DEBUG}
 
 interface
 
@@ -139,7 +133,7 @@ end;
 procedure TWADEditor_1.FreeWAD();
 begin
   if fIter <> nil then FreeAndNil(fIter);
-  if fFileName <> '' then e_WriteLog(Format('TWADEditor_1.ReadFile: [%s] closed', [fFileName]), MSG_NOTIFY);
+  //if fFileName <> '' then e_WriteLog(Format('TWADEditor_1.ReadFile: [%s] closed', [fFileName]), MSG_NOTIFY);
   fFileName := '';
 end;
 
@@ -149,7 +143,7 @@ var
   f: Integer;
   fi: TSFSFileInfo;
   fs: TStream;
-  fn: string;
+  //fn: string;
 begin
   Result := False;
   if not isOpen or (fIter = nil) then Exit;
@@ -162,11 +156,16 @@ begin
     if (SFSStrComp(fi.path, Section) = 0) and (SFSStrComp(fi.name, Resource) = 0) then
     begin
       // i found her!
-      fn := fFileName+'::'+fi.path+fi.name;
-      fs := SFSFileOpen(fn);
+      //fn := fFileName+'::'+fi.path+fi.name;
+      //fs := SFSFileOpen(fn);
+      try
+        fs := fIter.volume.OpenFileByIndex(f);
+      except
+        fs := nil;
+      end;
       if fs = nil then
       begin
-        e_WriteLog(Format('DFWAD: can''t open file [%s]', [fn]), MSG_NOTIFY);
+        e_WriteLog(Format('DFWAD: can''t open file [%s%s] in [%s]', [Section, Resource, fFileName]), MSG_WARNING);
         break;
       end;
       Len := Integer(fs.size);
@@ -174,7 +173,9 @@ begin
       fs.ReadBuffer(pData^, Len);
       fs.Free;
       result := true;
-      e_WriteLog(Format('DFWAD: file [%s%s] FOUND in [%s]; size is %d bytes', [Section, Resource, fFileName, Len]), MSG_NOTIFY);
+      {$IFDEF SFS_DWFAD_DEBUG}
+        e_WriteLog(Format('DFWAD: file [%s%s] FOUND in [%s]; size is %d bytes', [Section, Resource, fFileName, Len]), MSG_NOTIFY);
+      {$ENDIF}
       exit;
     end;
   end;
@@ -204,15 +205,39 @@ end;
 
 
 function TWADEditor_1.ReadFile (FileName: string): Boolean;
+var
+  rfn: string;
 begin
   Result := False;
-  e_WriteLog(Format('TWADEditor_1.ReadFile: [%s]', [FileName]), MSG_NOTIFY);
+  //e_WriteLog(Format('TWADEditor_1.ReadFile: [%s]', [FileName]), MSG_NOTIFY);
   FreeWAD();
-  if not FileExists(FileName) then Exit;
-  fIter := SFSFileList(FileName);
+  rfn := FileName;
+  if not FileExists(rfn) then
+  begin
+    //if length(rfn) >= 4 then e_WriteLog(Format('XXXX TWADEditor_1.ReadFile: [%s] [%s]', [Copy(rfn, length(rfn)-3, 4), Copy(rfn, 1, length(rfn)-4)]), MSG_NOTIFY);
+    if (length(rfn) >= 4) and (SFSStrComp(Copy(rfn, length(rfn)-3, 4), '.wad') = 0) then
+    begin
+      rfn := Copy(rfn, 1, length(rfn)-4);
+           if FileExists(rfn+'.pk3') then rfn := rfn+'.pk3'
+      else if FileExists(rfn+'.zip') then rfn := rfn+'.zip'
+      else rfn := FileName;
+      {.$IFDEF SFS_DWFAD_DEBUG}
+        if FileExists(rfn) then e_WriteLog(Format('TWADEditor_1.ReadFile: FOUND [%s]', [rfn]), MSG_NOTIFY);
+      {.$ENDIF}
+    end;
+  end;
+  if not FileExists(rfn) then exit;
+  {$IFDEF SFS_DWFAD_DEBUG}
+    e_WriteLog(Format('TWADEditor_1.ReadFile: FOUND [%s]', [rfn]), MSG_NOTIFY);
+  {$ENDIF}
+  // cache this wad
+  SFSAddDataFile(rfn);
+  fIter := SFSFileList(rfn);
   if fIter = nil then Exit;
-  fFileName := FileName;
-  e_WriteLog(Format('TWADEditor_1.ReadFile: [%s] opened', [fFileName]), MSG_NOTIFY);
+  fFileName := rfn;
+  {$IFDEF SFS_DWFAD_DEBUG}
+    e_WriteLog(Format('TWADEditor_1.ReadFile: [%s] opened', [fFileName]), MSG_NOTIFY);
+  {$ENDIF}
   Result := True;
 end;
 
@@ -223,17 +248,24 @@ var
 function TWADEditor_1.ReadMemory (Data: Pointer; Len: LongWord): Boolean;
 var
   Signature: array[0..4] of Char;
-  a: Integer;
   fn: string;
   st: TStream = nil;
+  //f: Integer;
+  //fi: TSFSFileInfo;
 begin
   Result := False;
   FreeWAD();
-  if (Data = nil) or (Len = 0) then Exit;
+  if (Data = nil) or (Len = 0) then
+  begin
+    e_WriteLog('TWADEditor_1.ReadMemory: EMPTY SUBWAD!', MSG_WARNING);
+    Exit;
+  end;
 
   fn := Format(' -- memwad %d -- ', [uniqueCounter]);
   Inc(uniqueCounter);
-  e_WriteLog(Format('TWADEditor_1.ReadMemory: [%s]', [fn]), MSG_NOTIFY);
+  {$IFDEF SFS_DWFAD_DEBUG}
+    e_WriteLog(Format('TWADEditor_1.ReadMemory: [%s]', [fn]), MSG_NOTIFY);
+  {$ENDIF}
 
   try
     st := TSFSMemoryStreamRO.Create(Data, Len);
@@ -251,7 +283,28 @@ begin
   if fIter = nil then Exit;
 
   fFileName := fn;
-  e_WriteLog(Format('TWADEditor_1.ReadMemory: [%s] opened', [fFileName]), MSG_NOTIFY);
+  {$IFDEF SFS_DWFAD_DEBUG}
+    e_WriteLog(Format('TWADEditor_1.ReadMemory: [%s] opened', [fFileName]), MSG_NOTIFY);
+  {$ENDIF}
+
+  {
+  for f := 0 to fIter.Count-1 do
+  begin
+    fi := fIter.Files[f];
+    if fi = nil then continue;
+    st := fIter.volume.OpenFileByIndex(f);
+    if st = nil then
+    begin
+      e_WriteLog(Format('[%s]: [%s : %s] CAN''T OPEN', [fFileName, fi.path, fi.name]), MSG_NOTIFY);
+    end
+    else
+    begin
+      e_WriteLog(Format('[%s]: [%s : %s] %u', [fFileName, fi.path, fi.name, st.size]), MSG_NOTIFY);
+      st.Free;
+    end;
+  end;
+  //fIter.volume.OpenFileByIndex(0);
+  }
 
   Result := True;
 end;

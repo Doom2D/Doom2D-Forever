@@ -33,6 +33,8 @@ type
     procedure SLHRead ();
 
     procedure ReadDirectory (); override;
+
+  public
     function OpenFileByIndex (const index: Integer): TStream; override;
   end;
 

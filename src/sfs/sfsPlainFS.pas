@@ -49,6 +49,8 @@ type
     procedure SINReadDirectory ();
 
     procedure ReadDirectory (); override;
+
+  public
     function OpenFileByIndex (const index: Integer): TStream; override;
   end;
 
