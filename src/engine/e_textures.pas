@@ -192,6 +192,12 @@ begin
     Exit;
   end;
 
+  if (TGAHeader.ImageInfo and $c0) <> 0 then
+  begin
+    e_WriteLog('Error loading texture: interleaved TGA', MSG_WARNING);
+    Exit;
+  end;
+
   Width  := TGAHeader.Width[0]  + TGAHeader.Width[1]  * 256;
   Height := TGAHeader.Height[0] + TGAHeader.Height[1] * 256;
   BPP := TGAHeader.BPP;
@@ -209,6 +215,8 @@ begin
     Front^ := Back^;
     Back^  := Temp;
   end;
+
+  //if (TGAHeader.ImageInfo and $20) <> 0 then UpsideDown(Image, Width, Height);
 
   if ( BPP = 24 ) then
     TFmt := GL_RGB
@@ -265,6 +273,12 @@ begin
     Exit;
   end;
 
+  if (TGAHeader.ImageInfo and $c0) <> 0 then
+  begin
+    e_WriteLog('Error loading texture: interleaved TGA', MSG_WARNING);
+    Exit;
+  end;
+
   Width  := TGAHeader.Width[0]  + TGAHeader.Width[1]  * 256;
   Height := TGAHeader.Height[0] + TGAHeader.Height[1] * 256;
   BPP := TGAHeader.BPP;
@@ -300,6 +314,8 @@ begin
 
   for i := 0 to fHeight-1 do
     CopyMemory( PByte(image) + a*i, Base + b*i, a );
+
+  //if (TGAHeader.ImageInfo and $20) <> 0 then UpsideDown(Image, Width, Height);
 
   if ( BPP = 24 ) then
     TFmt := GL_RGB
