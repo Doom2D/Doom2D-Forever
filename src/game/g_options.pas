@@ -92,6 +92,8 @@ var
   gnWeaponStay: Boolean       = False;
   gnMonsters: Boolean         = False;
   gnBotsVS: String            = 'Everybody';
+  gsSDLSampleRate: Integer    = 44100;
+  gsSDLBufferSize: Integer    = 2048;
 
 implementation
 
@@ -242,6 +244,8 @@ begin
   gMuteWhenInactive := config.ReadBool('Sound', 'MuteInactive', False);
   gAnnouncer := Min(Max(config.ReadInt('Sound', 'Announcer', ANNOUNCE_MEPLUS), ANNOUNCE_NONE), ANNOUNCE_ALL);
   gSoundEffectsDF := config.ReadBool('Sound', 'SoundEffectsDF', True);
+  gsSDLSampleRate := Min(Max(config.ReadInt('Sound', 'SDLSampleRate', 44100), 11025), 96000);
+  gsSDLBufferSize := Min(Max(config.ReadInt('Sound', 'SDLBufferSize', 2048), 64), 16384);
 
   with gGameControls.GameControls do
   begin
@@ -451,6 +455,8 @@ begin
   config.WriteBool('Sound', 'MuteInactive', gMuteWhenInactive);
   config.WriteInt('Sound', 'Announcer', gAnnouncer);
   config.WriteBool('Sound', 'SoundEffectsDF', gSoundEffectsDF);
+  config.WriteInt('Sound', 'SDLSampleRate', gsSDLSampleRate);
+  config.WriteInt('Sound', 'SDLBufferSize', gsSDLBufferSize);
 
   with config, gGameControls.GameControls do
   begin

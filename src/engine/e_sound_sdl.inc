@@ -175,7 +175,8 @@ begin
   if (res and MIX_INIT_OGG) <> 0 then e_WriteLog('SDL: OGG playback is active', MSG_NOTIFY);
   if (res and MIX_INIT_FLUIDSYNTH) <> 0 then e_WriteLog('SDL: FLUIDSYNTH playback is active', MSG_NOTIFY);
 
-  res := Mix_OpenAudio(44100, AUDIO_S16LSB, 2, 2048);
+  e_WriteLog(Format('SDL: initializing mixer at %d with buffer %d', [gsSDLSampleRate, gsSDLBufferSize]), MSG_NOTIFY);
+  res := Mix_OpenAudio(gsSDLSampleRate, AUDIO_S16LSB, 2, gsSDLBufferSize);
   if res = -1 then
   begin
     e_WriteLog('Error initializing SDL mixer:', MSG_FATALERROR);
