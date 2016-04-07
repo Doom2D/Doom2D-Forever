@@ -4,11 +4,29 @@ program Doom2DF;
 {$ENDIF}
 {$HINTS OFF}
 
+{$UNDEF XXX}
+{$IFDEF USE_SDLMIXER}
+ {$DEFINE XXX}
+{$ENDIF}
+{$IFDEF USE_FMOD}
+ {$IFDEF XXX}
+  {$ERROR define one of USE_SDLMIXER or USE_FMOD}
+ {$ELSE}
+  {$DEFINE XXX}
+ {$ENDIF}
+{$ENDIF}
+
+{$IFNDEF XXX}
+  {$ERROR define USE_SDLMIXER or USE_FMOD}
+{$ENDIF}
+
 uses
   GL,
   GLExt,
   SDL2 in '../lib/sdl2/sdl2.pas',
+{$IFDEF USE_SDLMIXER}
   SDL2_mixer in '../lib/sdl2/SDL2_mixer.pas',
+{$ENDIF}
   ENet in '../lib/enet/enet.pp',
   ENetTypes in '../lib/enet/enettypes.pp',
   ENetList in '../lib/enet/enetlist.pp',
@@ -54,6 +72,12 @@ uses
   g_weapons in 'g_weapons.pas',
   g_window in 'g_window.pas',
   sysutils,
+{$IFDEF USE_FMOD}
+  fmod in '../lib/FMOD/fmod.pas',
+  fmoderrors in '../lib/FMOD/fmoderrors.pas',
+  fmodpresets in '../lib/FMOD/fmodpresets.pas',
+  fmodtypes in '../lib/FMOD/fmodtypes.pas',
+{$ENDIF}
   BinEditor in '../shared/BinEditor.pas',
   g_panel in 'g_panel.pas',
   g_language in 'g_language.pas';

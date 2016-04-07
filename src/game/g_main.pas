@@ -49,7 +49,11 @@ begin
   e_WriteLog(gLanguage, MSG_NOTIFY);
   g_Language_Set(gLanguage);
 
+{$IFDEF USE_SDLMIXER}
+  if SDL_Init({SDL_INIT_JOYSTICK or SDL_INIT_TIMER or SDL_INIT_VIDEO or SDL_INIT_AUDIO}SDL_INIT_EVERYTHING) < 0 then
+{$ELSE}
   if SDL_Init(SDL_INIT_JOYSTICK or SDL_INIT_TIMER or SDL_INIT_VIDEO) < 0 then
+{$ENDIF}
     raise Exception.Create('SDL: Init failed: ' + SDL_GetError());
     
   SDL_StartTextInput();
@@ -82,7 +86,7 @@ begin
 
   if not gNoSound then
   begin
-    e_WriteLog('Initializing SDL2 mixer', MSG_NOTIFY);
+    e_WriteLog('Initializing sound system', MSG_NOTIFY);
     e_InitSoundSystem();
   end;
 
