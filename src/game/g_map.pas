@@ -435,7 +435,7 @@ begin
     if log then
       begin
         e_WriteLog(Format('Error loading texture %s', [RecName]), MSG_WARNING);
-        e_WriteLog(Format('WAD Reader error: %s', [WAD.GetLastErrorStr]), MSG_WARNING);
+        //e_WriteLog(Format('WAD Reader error: %s', [WAD.GetLastErrorStr]), MSG_WARNING);
       end;
 
   WAD.Free();
@@ -475,7 +475,7 @@ begin
     if log then
     begin
       e_WriteLog(Format('Error loading animation texture %s', [RecName]), MSG_WARNING);
-      e_WriteLog(Format('WAD Reader error: %s', [WAD.GetLastErrorStr]), MSG_WARNING);
+      //e_WriteLog(Format('WAD Reader error: %s', [WAD.GetLastErrorStr]), MSG_WARNING);
     end;
     WAD.Free();
     Exit;

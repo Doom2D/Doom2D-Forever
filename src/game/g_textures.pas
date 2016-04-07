@@ -166,7 +166,7 @@ begin
   else
   begin
     e_WriteLog(Format('Error loading texture %s', [Resource]), MSG_WARNING);
-    e_WriteLog(Format('WAD Reader error: %s', [WAD.GetLastErrorStr]), MSG_WARNING);
+    //e_WriteLog(Format('WAD Reader error: %s', [WAD.GetLastErrorStr]), MSG_WARNING);
   end;
   WAD.Free();
 end;
@@ -213,7 +213,7 @@ begin
   else
   begin
     e_WriteLog(Format('Error loading texture %s', [Resource]), MSG_WARNING);
-    e_WriteLog(Format('WAD Reader error: %s', [WAD.GetLastErrorStr]), MSG_WARNING);
+    //e_WriteLog(Format('WAD Reader error: %s', [WAD.GetLastErrorStr]), MSG_WARNING);
     Result := False;
   end;
   WAD.Free();
@@ -409,7 +409,7 @@ begin
   begin
     WAD.Free();
     e_WriteLog(Format('Error loading texture %s', [Resource]), MSG_WARNING);
-    e_WriteLog(Format('WAD Reader error: %s', [WAD.GetLastErrorStr]), MSG_WARNING);
+    //e_WriteLog(Format('WAD Reader error: %s', [WAD.GetLastErrorStr]), MSG_WARNING);
     Exit;
   end;
 

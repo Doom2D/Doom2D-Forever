@@ -247,7 +247,7 @@ begin
   WAD := TWADEditor_1.Create;
   WAD.ReadFile(FileName);
 
-  if WAD.GetLastError <> DFWAD_NOERROR then
+  if {WAD.GetLastError <> DFWAD_NOERROR} not WAD.isOpen then
   begin
     WAD.Free();
     Exit;

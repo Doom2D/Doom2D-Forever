@@ -304,7 +304,9 @@ begin
         FreeMem(SoundData);
     end
   else
-    e_WriteLog(Format('WAD Reader error: %s', [WAD.GetLastErrorStr]), MSG_WARNING);
+  begin
+    //e_WriteLog(Format('WAD Reader error: %s', [WAD.GetLastErrorStr]), MSG_WARNING);
+  end;
 
   WAD.Free();
 
@@ -352,7 +354,9 @@ begin
         FreeMem(SoundData);
     end
   else
-    e_WriteLog(Format('WAD Reader error: %s', [WAD.GetLastErrorStr]), MSG_WARNING);
+  begin
+    //e_WriteLog(Format('WAD Reader error: %s', [WAD.GetLastErrorStr]), MSG_WARNING);
+  end;
 
   WAD.Free();
 
