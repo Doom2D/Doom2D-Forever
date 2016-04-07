@@ -49,6 +49,7 @@ begin
     gBPP := 32;
   gVSync := TGUISwitch(menu.GetControl('swVSync')).ItemIndex = 0;
   gTextureFilter := TGUISwitch(menu.GetControl('swTextureFilter')).ItemIndex = 0;
+  glLegacyNPOT := not (TGUISwitch(menu.GetControl('swLegacyNPOT')).ItemIndex = 0);
 
   menu := TGUIMenu(g_GUI_GetWindow('OptionsSoundMenu').GetControl('mOptionsSoundMenu'));
 
@@ -213,6 +214,9 @@ begin
 
   with TGUISwitch(menu.GetControl('swVSync')) do
     if gVSync then ItemIndex := 0 else ItemIndex := 1;
+
+  with TGUISwitch(menu.GetControl('swLegacyNPOT')) do
+    if not glLegacyNPOT then ItemIndex := 0 else ItemIndex := 1;
 
   menu := TGUIMenu(g_GUI_GetWindow('OptionsSoundMenu').GetControl('mOptionsSoundMenu'));
 
@@ -2332,6 +2336,12 @@ begin
       Name := 'swTextureFilter';
       AddItem(_lc[I_MENU_YES]);
       AddItem(_lc[I_MENU_NO]);
+    end;
+    with AddSwitch(_lc[I_MENU_VIDEO_LEGACY_COMPATIBLE]) do
+    begin
+      Name := 'swLegacyNPOT';
+      AddItem(_lc[I_MENU_NO]);
+      AddItem(_lc[I_MENU_YES]);
     end;
     AddSpace();
     AddText(_lc[I_MENU_VIDEO_NEED_RESTART], Round(gScreenWidth*0.6));

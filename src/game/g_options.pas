@@ -52,6 +52,7 @@ var
   gFullscreen: Boolean        = False;
   gWinMaximized: Boolean      = False;
   gVSync: Boolean             = False;
+  glLegacyNPOT: Boolean       = False;
   gTextureFilter: Boolean     = True;
   gNoSound: Boolean           = False;
   gSoundLevel: Byte           = 75;
@@ -207,7 +208,7 @@ begin
     gBPP := 32;
     gVSync := False;
     gTextureFilter := True;
-    fUseMipmaps := False;
+    glLegacyNPOT := False;
 
     Exit;
   end;
@@ -232,7 +233,7 @@ begin
   gFreq := config.ReadInt('Video', 'Freq', 0);
   gVSync := config.ReadBool('Video', 'VSync', True);
   gTextureFilter := config.ReadBool('Video', 'TextureFilter', True);
-  fUseMipmaps := config.ReadBool('Video', 'LegacyCompatible', False);
+  glLegacyNPOT := config.ReadBool('Video', 'LegacyCompatible', False);
 
   gNoSound := config.ReadBool('Sound', 'NoSound', False);
   gSoundLevel := Min(config.ReadInt('Sound', 'SoundLevel', 75), 255);
@@ -441,7 +442,7 @@ begin
   config.WriteInt('Video', 'BPP', gBPP);
   config.WriteBool('Video', 'VSync', gVSync);
   config.WriteBool('Video', 'TextureFilter', gTextureFilter);
-  config.WriteBool('Video', 'LegacyCompatible', fUseMipmaps);
+  config.WriteBool('Video', 'LegacyCompatible', glLegacyNPOT);
 
   config.WriteBool('Sound', 'NoSound', gNoSound);
   config.WriteInt('Sound', 'SoundLevel', gSoundLevel);

@@ -18,10 +18,9 @@ type
   end;
 
 var
-  fUseMipmaps: Boolean = False;
   TEXTUREFILTER: Integer = GL_NEAREST;
 
-function CreateTexture(var tex: GLTexture; Width, Height, Format: Word; pData: Pointer ): Boolean;
+function CreateTexture(var tex: GLTexture; Width, Height, aFormat: Word; pData: Pointer ): Boolean;
 
 // Standard set of images loading functions
 function LoadTexture( Filename: String; var Texture: GLTexture;
@@ -38,7 +37,7 @@ function LoadTextureMemEx( pData: Pointer; var Texture: GLTexture;
 
 implementation
 
-uses BinEditor;
+uses BinEditor, g_options;
 
 
 function AlignP2 (n: Word): Word;
@@ -69,23 +68,30 @@ type
   end;
 
 // This is auxiliary function that creates OpenGL texture from raw image data
-function CreateTexture (var tex: GLTexture; Width, Height, Format: Word; pData: Pointer): Boolean;
+function CreateTexture (var tex: GLTexture; Width, Height, aFormat: Word; pData: Pointer): Boolean;
 var
   Texture: GLuint;
 begin
   tex.width := Width;
   tex.height := Height;
-  tex.glwidth := AlignP2(Width);
-  tex.glheight := AlignP2(Height);
-  if (tex.glwidth = tex.glwidth) and (tex.glheight = tex.height) then
+  if glLegacyNPOT then
   begin
-    tex.u := 1;
-    tex.v := 1;
+    tex.glwidth := AlignP2(Width);
+    tex.glheight := AlignP2(Height);
   end
   else
   begin
-    tex.u := (tex.width+0.0)/(tex.glwidth+0.0);
-    tex.v := (tex.height+0.0)/(tex.height+0.0);
+    tex.glwidth := Width;
+    tex.glheight := Height;
+  end;
+  tex.u := 1;
+  tex.v := 1;
+  if tex.glwidth <> tex.width then tex.u := (tex.width+0.0)/(tex.glwidth+0.0);
+  if tex.glheight <> tex.height then tex.v := (tex.height+0.0)/(tex.glheight+0.0);
+
+  if (tex.glwidth <> tex.width) or (tex.glheight <> tex.height) then
+  begin
+    e_WriteLog(Format('NPOT: orig is %ux%u; gl is %ux%u; u=%f; v=%f', [Width, Height, tex.glwidth, tex.glheight, tex.u, tex.v]), MSG_NOTIFY);
   end;
 
   glGenTextures(1, @Texture);
@@ -113,15 +119,15 @@ begin
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, TEXTUREFILTER);
 
   // create empty texture
-  if Format = GL_RGBA then
+  if aFormat = GL_RGBA then
   begin
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, tex.glwidth, tex.glheight, 0, GL_RGBA, GL_UNSIGNED_BYTE, nil);
-    glTexSubImage2D(GL_TEXTURE_2D, 0,  0, tex.glheight-Height, Width, Height, GL_RGBA, GL_UNSIGNED_BYTE, pData);
+    glTexSubImage2D(GL_TEXTURE_2D, 0,  0, 0, Width, Height, GL_RGBA, GL_UNSIGNED_BYTE, pData);
   end
   else
   begin
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, tex.glwidth, tex.glheight, 0, GL_RGB, GL_UNSIGNED_BYTE, nil);
-    glTexSubImage2D(GL_TEXTURE_2D, 0,  0, tex.glheight-Height, Width, Height, GL_RGB, GL_UNSIGNED_BYTE, pData);
+    glTexSubImage2D(GL_TEXTURE_2D, 0,  0, 0, Width, Height, GL_RGB, GL_UNSIGNED_BYTE, pData);
   end;
 
   // the following is ok too
@@ -131,7 +137,7 @@ begin
   {
   if (tex.glwidth = tex.glwidth) and (tex.glheight = tex.height) then
     // easy case
-    if Format = GL_RGBA then
+    if aFormat = GL_RGBA then
     begin
       glTexImage2D(GL_TEXTURE_2D, 0, 4, Width, Height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pData);
     end

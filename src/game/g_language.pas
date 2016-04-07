@@ -222,6 +222,7 @@ type
     I_MENU_VIDEO_BPP,
     I_MENU_VIDEO_VSYNC,
     I_MENU_VIDEO_FILTER_SKY,
+    I_MENU_VIDEO_LEGACY_COMPATIBLE,
     I_MENU_VIDEO_NEED_RESTART,
 
     I_MENU_RESOLUTION_SELECT,
@@ -1000,6 +1001,8 @@ const
                                        'Верт. синхронизация:'),
     ('MENU VIDEO FILTER SKY',          'Anisotropic sky',
                                        'Фильтрация неба:'),
+    ('MENU VIDEO LEGACY COMPATIBLE',   'Compatibility with NPOT textures:',
+                                       'Совместимость с NPOT-текстурами:'),
     ('MENU VIDEO NEED RESTART',        'Video settings will be changed after game restart.',
                                        'Данные настройки видео вступят в силу после перезапуска игры.'),
 
