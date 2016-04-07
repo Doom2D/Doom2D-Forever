@@ -578,6 +578,7 @@ begin
       if ChanSIds[i].muted then Mix_Volume(i, 0) else Mix_Volume(i, ChanSIds[i].oldvol);
     end;
   end;
+  //if SoundMuted then e_WriteLog('muting music', MSG_NOTIFY) else e_WriteLog(Format('unmuting music (%d)', [MusVolume]), MSG_NOTIFY);
   if SoundMuted then Mix_VolumeMusic(0) else Mix_VolumeMusic(MusVolume);
 end;
 
@@ -664,6 +665,7 @@ begin
   if (FID = NO_SOUND_ID) or not SoundInitialized then Exit;
   FChanNum := e_PlaySoundPanVolume(FID, Pan, Volume);
   Result := (FChanNum >= 0);
+  //if e_isMusic(FID) then e_WriteLog(Format('playing music (%u)', [FID]), MSG_NOTIFY);
   //TODO: aPos
 end;
 
@@ -744,6 +746,7 @@ var
   chan: Integer;
   pl: Boolean;
 begin
+  Enable := not Enable; // fuckin' double negation
   if e_isSound(FID) then
   begin
     chan := Channel;
