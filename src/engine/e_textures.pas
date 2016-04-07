@@ -116,12 +116,12 @@ begin
   if Format = GL_RGBA then
   begin
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, tex.glwidth, tex.glheight, 0, GL_RGBA, GL_UNSIGNED_BYTE, nil);
-    glTexSubImage2D(GL_TEXTURE_2D, 0,  0, 0, Width, Height, GL_RGBA, GL_UNSIGNED_BYTE, pData);
+    glTexSubImage2D(GL_TEXTURE_2D, 0,  0, tex.glheight-Height, Width, Height, GL_RGBA, GL_UNSIGNED_BYTE, pData);
   end
   else
   begin
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, tex.glwidth, tex.glheight, 0, GL_RGB, GL_UNSIGNED_BYTE, nil);
-    glTexSubImage2D(GL_TEXTURE_2D, 0,  0, 0, Width, Height, GL_RGB, GL_UNSIGNED_BYTE, pData);
+    glTexSubImage2D(GL_TEXTURE_2D, 0,  0, tex.glheight-Height, Width, Height, GL_RGB, GL_UNSIGNED_BYTE, pData);
   end;
 
   // the following is ok too
