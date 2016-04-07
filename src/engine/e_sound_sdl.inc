@@ -188,6 +188,11 @@ begin
     e_WriteLog(Format('SDL: frequency=%d; format=%u; channels=%d', [rfreq, rformat, rchans]), MSG_NOTIFY);
   end;
 
+  for i := 0 to Mix_GetNumChunkDecoders()-1 do
+  begin
+    e_WriteLog(Format('SDL: chunk decoder %s is avalable', [Mix_GetChunkDecoder(i)]), MSG_NOTIFY);
+  end;
+
   Mix_AllocateChannels(N_CHANNELS);
   Mix_ChannelFinished(chanFinished);
 
