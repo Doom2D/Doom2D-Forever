@@ -124,17 +124,16 @@ begin
   Result := False;
   SoundInitialized := False;
 
-{ // wow, this is actually MIDI player!
+  // wow, this is actually MIDI player!
   // we need module player
-  if (Mix_Init(MIX_INIT_MOD) and MIX_INIT_MOD) <> MIX_INIT_MOD then
-  begin
-    e_WriteLog('Error initializing SDL module player:', MSG_FATALERROR);
-    e_WriteLog(Mix_GetError(), MSG_FATALERROR);
-    //Exit;
-  end;
-}
+  res := Mix_Init(MIX_INIT_MOD or MIX_INIT_MP3 or MIX_INIT_OGG or MIX_INIT_FLAC);
+  if (res and MIX_INIT_FLAC) <> 0 then e_WriteLog('SDL: FLAC playback is active', MSG_NOTIFY);
+  if (res and MIX_INIT_MOD) <> 0 then e_WriteLog('SDL: MOD/MIDI playback is active', MSG_NOTIFY);
+  if (res and MIX_INIT_MP3) <> 0 then e_WriteLog('SDL: MP3 playback is active', MSG_NOTIFY);
+  if (res and MIX_INIT_OGG) <> 0 then e_WriteLog('SDL: OGG playback is active', MSG_NOTIFY);
 
-  res := Mix_OpenAudio(44100, AUDIO_S16LSB, 2, 2048);
+  res := Mix_OpenAudio(48000, AUDIO_S16LSB, 2, 2048);
+  if res = -1 then res := Mix_OpenAudio(44100, AUDIO_S16LSB, 2, 2048);
   if res = -1 then
   begin
     e_WriteLog('Error initializing SDL mixer:', MSG_FATALERROR);
