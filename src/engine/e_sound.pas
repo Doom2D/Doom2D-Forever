@@ -134,7 +134,7 @@ begin
   end;
 }
 
-  res := Mix_OpenAudio(44100, AUDIO_S16LSB, 2, 512);
+  res := Mix_OpenAudio(44100, AUDIO_S16LSB, 2, 2048);
   if res = -1 then
   begin
     e_WriteLog('Error initializing SDL mixer:', MSG_FATALERROR);
