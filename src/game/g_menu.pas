@@ -2697,6 +2697,13 @@ begin
     Color := _RGB(255, 255, 255);
     X := cx+32;
     Y := _y;
+    _y := _y+22;
+  end;
+  with TGUILabel(Menu.AddChild(TGUILabel.Create(_lc[I_CREDITS_A_2_2], gMenuSmallFont))) do
+  begin
+    Color := _RGB(255, 255, 255);
+    X := cx+32;
+    Y := _y;
     _y := _y+36;
   end;
   with TGUILabel(Menu.AddChild(TGUILabel.Create(_lc[I_CREDITS_A_3], gMenuSmallFont))) do
