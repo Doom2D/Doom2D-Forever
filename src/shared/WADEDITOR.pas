@@ -163,7 +163,8 @@ begin
   if not isOpen or (fIter = nil) then Exit;
   if length(Resource) = 0 then Exit; // just in case
   if (length(Section) <> 0) and (Section[length(Section)] <> '/') then Section := Section+'/';
-  for f := 0 to fIter.Count-1 do
+  // backwards, due to possible similar names and such
+  for f := fIter.Count-1 downto 0 do
   begin
     fi := fIter.Files[f];
     if fi = nil then continue;
