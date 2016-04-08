@@ -514,11 +514,14 @@ const
   TEAMCOLOR: Array [TEAM_RED..TEAM_BLUE] of TRGB = ((R:255; G:0; B:0),
                                                    (R:0; G:0; B:255));
   DIFFICULT_EASY: TDifficult = (DiagFire: 32; InvisFire: 32; DiagPrecision: 32;
-                                FlyPrecision: 32; Cover: 32; CloseJump: 32);
+                                FlyPrecision: 32; Cover: 32; CloseJump: 32;
+                                WeaponPrior:(0,0,0,0,0,0,0,0,0,0); CloseWeaponPrior:(0,0,0,0,0,0,0,0,0,0));
   DIFFICULT_MEDIUM: TDifficult = (DiagFire: 127; InvisFire: 127; DiagPrecision: 127;
-                                  FlyPrecision: 127; Cover: 127; CloseJump: 127);
+                                  FlyPrecision: 127; Cover: 127; CloseJump: 127;
+                                WeaponPrior:(0,0,0,0,0,0,0,0,0,0); CloseWeaponPrior:(0,0,0,0,0,0,0,0,0,0));
   DIFFICULT_HARD: TDifficult = (DiagFire: 255; InvisFire: 255; DiagPrecision: 255;
-                                FlyPrecision: 255; Cover: 255; CloseJump: 255);
+                                FlyPrecision: 255; Cover: 255; CloseJump: 255;
+                                WeaponPrior:(0,0,0,0,0,0,0,0,0,0); CloseWeaponPrior:(0,0,0,0,0,0,0,0,0,0));
   WEAPON_PRIOR1: Array [WEAPON_KASTET..WEAPON_SUPERPULEMET] of Byte =
                                 (WEAPON_SUPERPULEMET, WEAPON_SHOTGUN2, WEAPON_SHOTGUN1,
                                  WEAPON_CHAINGUN, WEAPON_PLASMA, WEAPON_ROCKETLAUNCHER,
