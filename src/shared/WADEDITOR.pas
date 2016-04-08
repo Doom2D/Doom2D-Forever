@@ -1,6 +1,6 @@
 unit WADEDITOR;
 
-{.$DEFINE SFS_DWFAD_DEBUG}
+{$DEFINE SFS_DWFAD_DEBUG}
 
 interface
 
@@ -53,7 +53,7 @@ procedure g_ProcessResourceStr (ResourceStr: String; FileName, SectionName, Reso
 implementation
 
 uses
-  SysUtils, Classes, BinEditor, e_log;
+  SysUtils, Classes, BinEditor, e_log, g_options;
 
 
 procedure g_ProcessResourceStr (ResourceStr: String; var FileName, SectionName, ResourceName: String);
@@ -147,13 +147,14 @@ var
 begin
   Result := False;
   if not isOpen or (fIter = nil) then Exit;
+  if length(Resource) = 0 then Exit; // just in case
   if (length(Section) <> 0) and (Section[length(Section)] <> '/') then Section := Section+'/';
   for f := 0 to fIter.Count-1 do
   begin
     fi := fIter.Files[f];
     if fi = nil then continue;
     //e_WriteLog(Format('DFWAD: searching for [%s : %s] in [%s]; current is [%s : %s] (%d, %d)', [Section, Resource, fFileName, fi.path, fi.name, SFSStrEqu(fi.path, Section), SFSStrEqu(fi.name, Resource)]), MSG_NOTIFY);
-    if SFSStrEqu(fi.path, Section) and SFSStrEqu(fi.name, Resource) then
+    if {SFSStrEqu}SFSDFPathEqu(fi.path, Section) and SFSStrEqu(fi.name, Resource) then
     begin
       // i found her!
       //fn := fFileName+'::'+fi.path+fi.name;
@@ -174,6 +175,7 @@ begin
       fs.Free;
       result := true;
       {$IFDEF SFS_DWFAD_DEBUG}
+      if gSFSDebug then
         e_WriteLog(Format('DFWAD: file [%s%s] FOUND in [%s]; size is %d bytes', [Section, Resource, fFileName, Len]), MSG_NOTIFY);
       {$ENDIF}
       exit;
@@ -195,7 +197,8 @@ begin
   begin
     fi := fIter.Files[f];
     if fi = nil then continue;
-    if SFSStrEqu(fi.path, Section) then
+    if length(fi.name) = 0 then continue;
+    if {SFSStrEqu}SFSDFPathEqu(fi.path, Section) then
     begin
       SetLength(result, Length(result)+1);
       result[high(result)] := fi.name;
@@ -207,6 +210,8 @@ end;
 function TWADEditor_1.ReadFile (FileName: string): Boolean;
 var
   rfn: string;
+  //f: Integer;
+  //fi: TSFSFileInfo;
 begin
   Result := False;
   //e_WriteLog(Format('TWADEditor_1.ReadFile: [%s]', [FileName]), MSG_NOTIFY);
@@ -222,12 +227,14 @@ begin
       else if FileExists(rfn+'.zip') then rfn := rfn+'.zip'
       else rfn := FileName;
       {.$IFDEF SFS_DWFAD_DEBUG}
+      if gSFSDebug then
         if FileExists(rfn) then e_WriteLog(Format('TWADEditor_1.ReadFile: FOUND [%s]', [rfn]), MSG_NOTIFY);
       {.$ENDIF}
     end;
   end;
   if not FileExists(rfn) then exit;
   {$IFDEF SFS_DWFAD_DEBUG}
+  if gSFSDebug then
     e_WriteLog(Format('TWADEditor_1.ReadFile: FOUND [%s]', [rfn]), MSG_NOTIFY);
   {$ENDIF}
   // cache this wad
@@ -236,8 +243,17 @@ begin
   if fIter = nil then Exit;
   fFileName := rfn;
   {$IFDEF SFS_DWFAD_DEBUG}
+  if gSFSDebug then
     e_WriteLog(Format('TWADEditor_1.ReadFile: [%s] opened', [fFileName]), MSG_NOTIFY);
   {$ENDIF}
+  {
+    for f := 0 to fIter.Count-1 do
+    begin
+      fi := fIter.Files[f];
+      if fi = nil then continue;
+      e_WriteLog(Format('[%s]: [%s : %s] %u', [fFileName, fi.path, fi.name, fi.size]), MSG_NOTIFY);
+    end;
+  }
   Result := True;
 end;
 
@@ -247,7 +263,6 @@ var
 
 function TWADEditor_1.ReadMemory (Data: Pointer; Len: LongWord): Boolean;
 var
-  Signature: array[0..4] of Char;
   fn: string;
   st: TStream = nil;
   //f: Integer;

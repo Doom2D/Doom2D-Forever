@@ -1045,6 +1045,13 @@ begin
     until FindNext(SR) <> 0;
   FindClose(SR);
 
+  if FindFirst(ModelsDir+'*.pk3', faAnyFile, SR) = 0 then
+    repeat
+      if not g_PlayerModel_Load(ModelsDir+SR.Name) then
+        e_WriteLog(Format('Error loading model %s', [SR.Name]), MSG_WARNING);
+    until FindNext(SR) <> 0;
+  FindClose(SR);
+
   gGameOn := False;
   gPause := False;
   gTime := 0;

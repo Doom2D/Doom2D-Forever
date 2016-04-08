@@ -73,6 +73,8 @@ type
     // никаких падений на неправильные индексы!
     function GetFiles (index: Integer): TSFSFileInfo; virtual;
 
+    procedure removeCommonPath (); virtual;
+
   public
     // pSt не обязательно запоминать, если он не нужен.
     constructor Create (const pFileName: TSFSString; pSt: TStream); virtual;
@@ -223,6 +225,11 @@ function Int64ToStrComma (i: Int64): string;
 function WildMatch (pattern, text: TSFSString): Boolean;
 function WildListMatch (wildList, text: TSFSString; delimChar: AnsiChar=':'): Integer;
 function HasWildcards (const pattern: TSFSString): Boolean;
+
+// this will compare only last path element from sfspath
+function SFSDFPathEqu (sfspath: string; path: string): Boolean;
+
+function SFSUpCase (ch: Char): Char;
 
 
 var
@@ -543,7 +550,7 @@ begin
   end;
 end;
 
-function le2upper (ch: Char): Char;
+function SFSUpCase (ch: Char): Char;
 begin
   if ch < #128 then
   begin
@@ -575,9 +582,30 @@ begin
   if length(s0) <> length(s1) then exit;
   for i := 1 to length(s0) do
   begin
-    if le2upper(s0[i]) <> le2upper(s1[i]) then exit;
+    if SFSUpCase(s0[i]) <> SFSUpCase(s1[i]) then exit;
   end;
   result := true;
+end;
+
+// this will compare only last path element from sfspath
+function SFSDFPathEqu (sfspath: string; path: string): Boolean;
+{var
+  i: Integer;}
+begin
+  result := SFSStrEqu(sfspath, path);
+(*
+  if not result and (length(sfspath) > 1) then
+  begin
+    i := length(sfspath);
+    while i > 1 do
+    begin
+      while (i > 1) and (sfspath[i-1] <> '/') do Dec(i);
+      if i <= 1 then exit;
+      writeln('{', sfspath, '} [', Copy(sfspath, i, length(sfspath)), '] : [', path, ']');
+      result := SFSStrEqu(Copy(sfspath, i, length(sfspath)), path);
+    end;
+  end;
+*)
 end;
 
 function SFSReplacePathDelims (const s: TSFSString; newDelim: TSFSChar): TSFSString;
@@ -700,6 +728,10 @@ begin
   fFiles := TObjectList.Create(true);
 end;
 
+procedure TSFSVolume.removeCommonPath ();
+begin
+end;
+
 procedure TSFSVolume.DoDirectoryRead ();
 var
   fl: TStringList; //!!!FIXME! change to list of wide TSFSStrings or so!
@@ -755,6 +787,7 @@ begin
     fl.Free();
     raise;
   end;
+  removeCommonPath();
 end;
 
 destructor TSFSVolume.Destroy ();

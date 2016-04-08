@@ -2872,8 +2872,17 @@ begin
     repeat
       AddItem(SR.Name);
     until FindNext(SR) <> 0;
-
   FindClose(SR);
+
+  //FIXME: HACK!
+  if FFileMask = '*.wad' then
+  begin
+    if FindFirst(path+'*.pk3', faAnyFile, SR) = 0 then
+      repeat
+        AddItem(SR.Name);
+      until FindNext(SR) <> 0;
+    FindClose(SR);
+  end;
 
   for i := 0 to High(FItems) do
     if FItems[i][1] = #1 then
