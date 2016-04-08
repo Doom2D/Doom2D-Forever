@@ -2844,13 +2844,14 @@ procedure TGUIFileListBox.OpenDir(path: String);
 var
   SR: TSearchRec;
   i: Integer;
+  sm, sc: string;
 begin
   Clear();
 
   path := IncludeTrailingPathDelimiter(path);
   path := ExpandFileName(path);
 
-// Каталоги:
+  // Каталоги:
   if FDirs then
   begin
     if FindFirst(path+'*', faDirectory, SR) = 0 then
@@ -2867,20 +2868,15 @@ begin
     FindClose(SR);
   end;
 
-// Файлы:
-  if FindFirst(path+FFileMask, faAnyFile, SR) = 0 then
-    repeat
-      AddItem(SR.Name);
-    until FindNext(SR) <> 0;
-  FindClose(SR);
-
-  //FIXME: HACK!
-  if FFileMask = '*.wad' then
+  // Файлы:
+  sm := FFileMask;
+  while sm <> '' do
   begin
-    if FindFirst(path+'*.pk3', faAnyFile, SR) = 0 then
-      repeat
-        AddItem(SR.Name);
-      until FindNext(SR) <> 0;
+    i := Pos('|', sm);
+    if i = 0 then i := length(sm);
+    sc := Copy(sm, 1, i-1);
+    Delete(sm, 1, i);;
+    if FindFirst(path+sc, faAnyFile, SR) = 0 then repeat AddItem(SR.Name); until FindNext(SR) <> 0;
     FindClose(SR);
   end;
 
