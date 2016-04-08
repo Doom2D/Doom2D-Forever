@@ -2873,9 +2873,9 @@ begin
   while sm <> '' do
   begin
     i := Pos('|', sm);
-    if i = 0 then i := length(sm);
+    if i = 0 then i := length(sm)+1;
     sc := Copy(sm, 1, i-1);
-    Delete(sm, 1, i);;
+    Delete(sm, 1, i);
     if FindFirst(path+sc, faAnyFile, SR) = 0 then repeat AddItem(SR.Name); until FindNext(SR) <> 0;
     FindClose(SR);
   end;
