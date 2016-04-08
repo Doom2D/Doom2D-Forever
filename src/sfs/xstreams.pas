@@ -85,8 +85,13 @@ type
   end;
 
   TSFSMemoryStreamRO = class(TCustomMemoryStream)
+  private
+    fFreeMem: Boolean;
+    fMem: Pointer;
+
   public
-    constructor Create (pMem: Pointer; pSize: Integer);
+    constructor Create (pMem: Pointer; pSize: Integer; aFreeMem: Boolean=false);
+    destructor Destroy (); override;
 
     function Write (const buffer; count: LongInt): LongInt; override;
   end;
@@ -286,11 +291,18 @@ end;
 
 
 { TSFSMemoryStreamRO }
-constructor TSFSMemoryStreamRO.Create (pMem: Pointer; pSize: Integer);
+constructor TSFSMemoryStreamRO.Create (pMem: Pointer; pSize: Integer; aFreeMem: Boolean=false);
 begin
+  fFreeMem := aFreeMem;
+  fMem := pMem;
   inherited Create();
   SetPointer(pMem, pSize);
   Position := 0;
+end;
+
+destructor TSFSMemoryStreamRO.Destroy ();
+begin
+  if fFreeMem and (fMem <> nil) then FreeMem(fMem);
 end;
 
 function TSFSMemoryStreamRO.Write (const buffer; count: LongInt): LongInt;
