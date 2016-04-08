@@ -5180,7 +5180,7 @@ begin
       Exit;
     end;
     // Игра ещё не запущена, сначала нам надо загрузить какой-то WAD
-    if Pos('.wad', LowerCase(P[1])) = 0 then
+    if (Pos('.wad', LowerCase(P[1])) = 0) and (Pos('.pk3', LowerCase(P[1])) = 0) then
       P[1] := P[1] + '.wad';
 
     if FileExists(MapsDir + P[1]) then
@@ -5236,7 +5236,7 @@ begin
       Exit;
     prt := StrToIntDef(P[2], 25666);
 
-    if Pos('.wad', LowerCase(P[3])) = 0 then
+    if (Pos('.wad', LowerCase(P[3])) = 0) and (Pos('.pk3', LowerCase(P[3])) = 0) then
       P[3] := P[3] + '.wad';
 
     if FileExists(MapsDir + P[3]) then
@@ -5308,7 +5308,7 @@ begin
           begin
             g_Console_Add(Format(_lc[I_MSG_NO_MAP], [s]));
             // Такой карты нет, ищем WAD файл
-            if Pos('.wad', LowerCase(P[1])) = 0 then
+            if (Pos('.wad', LowerCase(P[1])) = 0) and (Pos('.pk3', LowerCase(P[1])) = 0) then
               P[1] := P[1] + '.wad';
 
             if FileExists(MapsDir + P[1]) then
@@ -5340,7 +5340,7 @@ begin
         end else
         begin
           // Указано два параметра, значит первый - WAD файл, а второй - карта
-          if Pos('.wad', LowerCase(P[1])) = 0 then
+          if (Pos('.wad', LowerCase(P[1])) = 0) and (Pos('.pk3', LowerCase(P[1])) = 0) then
             P[1] := P[1] + '.wad';
 
           if FileExists(MapsDir + P[1]) then
@@ -5401,7 +5401,7 @@ begin
             begin
               g_Console_Add(Format(_lc[I_MSG_NO_MAP], [s]));
               // Такой карты нет, ищем WAD файл
-              if Pos('.wad', LowerCase(P[1])) = 0 then
+              if (Pos('.wad', LowerCase(P[1])) = 0) and (Pos('.pk3', LowerCase(P[1])) = 0) then
                 P[1] := P[1] + '.wad';
 
               if FileExists(MapsDir + P[1]) then
@@ -5428,7 +5428,7 @@ begin
           end else
           begin
             // Указано два параметра, значит первый - WAD файл, а второй - карта
-            if Pos('.wad', LowerCase(P[1])) = 0 then
+            if (Pos('.wad', LowerCase(P[1])) = 0) and (Pos('.pk3', LowerCase(P[1])) = 0) then
               P[1] := P[1] + '.wad';
 
             if FileExists(MapsDir + P[1]) then
@@ -6257,7 +6257,7 @@ begin
 
 // Start map when game loads:
   map := LowerCase(Find_Param_Value(pars, '-map'));
-  if (map <> '') and (Pos('.wad:\', map) > 0) then
+  if (map <> '') and ((Pos('.wad:\', map) > 0) or (Pos('.pk3:\', map) > 0)) then
   begin
   // Game mode:
     s := Find_Param_Value(pars, '-gm');

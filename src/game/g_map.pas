@@ -1325,7 +1325,7 @@ begin
 
   g_ProcessResourceStr(Res, FileName, SectionName, ResName);
 
-  if Pos('.wad', LowerCase(FileName)) = 0 then FileName := FileName+'.wad';
+  if (Pos('.wad', LowerCase(FileName)) = 0) and (Pos('.pk3', LowerCase(FileName)) = 0) then FileName := FileName+'.wad';
 
   WAD := TWADEditor_1.Create;
   if not WAD.ReadFile(FileName) then

@@ -224,7 +224,7 @@ begin
     begin
       rfn := Copy(rfn, 1, length(rfn)-4);
            if FileExists(rfn+'.pk3') then rfn := rfn+'.pk3'
-      else if FileExists(rfn+'.zip') then rfn := rfn+'.zip'
+      //else if FileExists(rfn+'.zip') then rfn := rfn+'.zip'
       else rfn := FileName;
       {.$IFDEF SFS_DWFAD_DEBUG}
       if gSFSDebug then
