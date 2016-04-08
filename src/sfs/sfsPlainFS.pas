@@ -386,7 +386,7 @@ begin
         if c <> f then
         begin
           // link can't be linked to itself
-          if SFSStrComp(TSFSExtFileInfo(fFiles[c]).fName, fi.fLink) = 0 then break;
+          if SFSStrEqu(TSFSExtFileInfo(fFiles[c]).fName, fi.fLink) then break;
         end;
         Inc(c);
       end;
@@ -667,20 +667,20 @@ end;
 function TSFSPlainVolumeFactory.IsMyVolumePrefix (const prefix: TSFSString): Boolean;
 begin
   result :=
-    (SFSStrComp(prefix, 'pak') = 0) or
-    //(SFSStrComp(prefix, 'wad') = 0) or // sorry
-    (SFSStrComp(prefix, 'wad2') = 0) or
-    (SFSStrComp(prefix, 'grp') = 0) or
-    (SFSStrComp(prefix, 'spe') = 0) or
-    (SFSStrComp(prefix, 'spec') = 0) or
-    (SFSStrComp(prefix, 'quake') = 0) or
-    (SFSStrComp(prefix, 'doom') = 0) or
-    (SFSStrComp(prefix, 'duke3d') = 0) or
-    (SFSStrComp(prefix, 'abuse') = 0) or
-    (SFSStrComp(prefix, 'allegro') = 0) or
-    (SFSStrComp(prefix, 'dune2') = 0) or
-    (SFSStrComp(prefix, 'max') = 0) or
-    (SFSStrComp(prefix, 'sin') = 0);
+    SFSStrEqu(prefix, 'pak') or
+    //SFSStrEqu(prefix, 'wad') or // sorry
+    SFSStrEqu(prefix, 'wad2') or
+    SFSStrEqu(prefix, 'grp') or
+    SFSStrEqu(prefix, 'spe') or
+    SFSStrEqu(prefix, 'spec') or
+    SFSStrEqu(prefix, 'quake') or
+    SFSStrEqu(prefix, 'doom') or
+    SFSStrEqu(prefix, 'duke3d') or
+    SFSStrEqu(prefix, 'abuse') or
+    SFSStrEqu(prefix, 'allegro') or
+    SFSStrEqu(prefix, 'dune2') or
+    SFSStrEqu(prefix, 'max') or
+    SFSStrEqu(prefix, 'sin');
 end;
 
 procedure TSFSPlainVolumeFactory.Recycle (vol: TSFSVolume);

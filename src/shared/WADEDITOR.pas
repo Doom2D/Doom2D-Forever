@@ -152,8 +152,8 @@ begin
   begin
     fi := fIter.Files[f];
     if fi = nil then continue;
-    //e_WriteLog(Format('DFWAD: searching for [%s : %s] in [%s]; current is [%s : %s] (%d, %d)', [Section, Resource, fFileName, fi.path, fi.name, SFSStrComp(fi.path, Section), SFSStrComp(fi.name, Resource)]), MSG_NOTIFY);
-    if (SFSStrComp(fi.path, Section) = 0) and (SFSStrComp(fi.name, Resource) = 0) then
+    //e_WriteLog(Format('DFWAD: searching for [%s : %s] in [%s]; current is [%s : %s] (%d, %d)', [Section, Resource, fFileName, fi.path, fi.name, SFSStrEqu(fi.path, Section), SFSStrEqu(fi.name, Resource)]), MSG_NOTIFY);
+    if SFSStrEqu(fi.path, Section) and SFSStrEqu(fi.name, Resource) then
     begin
       // i found her!
       //fn := fFileName+'::'+fi.path+fi.name;
@@ -195,7 +195,7 @@ begin
   begin
     fi := fIter.Files[f];
     if fi = nil then continue;
-    if SFSStrComp(fi.path, Section) = 0 then
+    if SFSStrEqu(fi.path, Section) then
     begin
       SetLength(result, Length(result)+1);
       result[high(result)] := fi.name;
@@ -215,7 +215,7 @@ begin
   if not FileExists(rfn) then
   begin
     //if length(rfn) >= 4 then e_WriteLog(Format('XXXX TWADEditor_1.ReadFile: [%s] [%s]', [Copy(rfn, length(rfn)-3, 4), Copy(rfn, 1, length(rfn)-4)]), MSG_NOTIFY);
-    if (length(rfn) >= 4) and (SFSStrComp(Copy(rfn, length(rfn)-3, 4), '.wad') = 0) then
+    if (length(rfn) >= 4) and SFSStrEqu(Copy(rfn, length(rfn)-3, 4), '.wad') then
     begin
       rfn := Copy(rfn, 1, length(rfn)-4);
            if FileExists(rfn+'.pk3') then rfn := rfn+'.pk3'

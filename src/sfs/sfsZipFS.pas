@@ -481,12 +481,12 @@ end;
 function TSFSZipVolumeFactory.IsMyVolumePrefix (const prefix: TSFSString): Boolean;
 begin
   result :=
-    (SFSStrComp(prefix, 'zip') = 0) or
-    (SFSStrComp(prefix, 'jar') = 0) or
-    (SFSStrComp(prefix, 'fout2') = 0) or
-    (SFSStrComp(prefix, 'vtdb') = 0) or
-    (SFSStrComp(prefix, 'wad') = 0) or
-    (SFSStrComp(prefix, 'dfwad') = 0);
+    SFSStrEqu(prefix, 'zip') or
+    SFSStrEqu(prefix, 'jar') or
+    SFSStrEqu(prefix, 'fout2') or
+    SFSStrEqu(prefix, 'vtdb') or
+    SFSStrEqu(prefix, 'wad') or
+    SFSStrEqu(prefix, 'dfwad');
 end;
 
 procedure TSFSZipVolumeFactory.Recycle (vol: TSFSVolume);

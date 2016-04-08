@@ -195,10 +195,7 @@ function SFSFileList (const dataFileName: TSFSString): TSFSFileList;
 
 function SFSReplacePathDelims (const s: TSFSString; newDelim: TSFSChar): TSFSString;
 // игнорирует регистр символов
-// <0: s0 < s1
-// =0: s0 = s1
-// >0: s0 > s1
-function SFSStrComp (const s0, s1: TSFSString): Integer;
+function SFSStrEqu (const s0, s1: TSFSString): Boolean;
 
 // разобрать толстое имя файла, вернуть виртуальное имя последнего списка
 // или пустую стороку, если списков не было.
@@ -519,7 +516,7 @@ begin
       vi := TVolumeInfo(volumes[f]);
       if not onlyPerm or vi.fPermanent then
       begin
-        if SFSStrComp(vi.fPackName, dataFileName) = 0 then
+        if SFSStrEqu(vi.fPackName, dataFileName) then
         begin
           result := f;
           exit;
@@ -546,12 +543,41 @@ begin
   end;
 end;
 
-// <0: s0 < s1
-// =0: s0 = s1
-// >0: s0 > s1
-function SFSStrComp (const s0, s1: TSFSString): Integer;
+function le2upper (ch: Char): Char;
 begin
-  result := AnsiCompareText(s0, s1);
+  if ch < #128 then
+  begin
+    if (ch >= 'a') and (ch <= 'z') then Dec(ch, 32);
+  end
+  else
+  begin
+    if (ch >= #224) and (ch <= #255) then
+    begin
+      Dec(ch, 32);
+    end
+    else
+    begin
+      case ch of
+        #184, #186, #191: Dec(ch, 16);
+        #162, #179: Dec(ch);
+      end;
+    end;
+  end;
+  result := ch;
+end;
+
+function SFSStrEqu (const s0, s1: TSFSString): Boolean;
+var
+  i: Integer;
+begin
+  //result := (AnsiCompareText(s0, s1) == 0);
+  result := false;
+  if length(s0) <> length(s1) then exit;
+  for i := 1 to length(s0) do
+  begin
+    if le2upper(s0[i]) <> le2upper(s1[i]) then exit;
+  end;
+  result := true;
 end;
 
 function SFSReplacePathDelims (const s: TSFSString; newDelim: TSFSChar): TSFSString;
@@ -755,8 +781,8 @@ begin
       Dec(result);
       if fFiles[result] <> nil then
       begin
-        if (SFSStrComp(fPath, TSFSFileInfo(fFiles[result]).fPath) = 0) and
-           (SFSStrComp(fName, TSFSFileInfo(fFiles[result]).fName) = 0) then exit;
+        if SFSStrEqu(fPath, TSFSFileInfo(fFiles[result]).fPath) and
+           SFSStrEqu(fName, TSFSFileInfo(fFiles[result]).fName) then exit;
       end;
     end;
     result := -1;

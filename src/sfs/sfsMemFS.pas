@@ -205,8 +205,8 @@ end;
 function TSFSMemoryVolumeFactory.IsMyVolumePrefix (const prefix: TSFSString): Boolean;
 begin
   result :=
-    (SFSStrComp(prefix, 'mem') = 0) or
-    (SFSStrComp(prefix, 'slh!') = 0);
+    SFSStrEqu(prefix, 'mem') or
+    SFSStrEqu(prefix, 'slh!');
 end;
 
 procedure TSFSMemoryVolumeFactory.Recycle (vol: TSFSVolume);
