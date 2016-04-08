@@ -618,6 +618,6 @@ var
 initialization
   zipf := TSFSZipVolumeFactory.Create();
   SFSRegisterVolumeFactory(zipf);
-finalization
-  SFSUnregisterVolumeFactory(zipf);
+//finalization
+//  SFSUnregisterVolumeFactory(zipf);
 end.

@@ -241,7 +241,7 @@ var
 initialization
   memf := TSFSMemoryVolumeFactory.Create();
   SFSRegisterVolumeFactory(memf);
-finalization
-  SFSUnregisterVolumeFactory(memf);
+//finalization
+//  SFSUnregisterVolumeFactory(memf);
 {$ENDIF}
 end.

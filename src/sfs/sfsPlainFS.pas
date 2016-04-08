@@ -754,6 +754,6 @@ var
 initialization
   pakf := TSFSPlainVolumeFactory.Create();
   SFSRegisterVolumeFactory(pakf);
-finalization
-  SFSUnregisterVolumeFactory(pakf);
+//finalization
+//  SFSUnregisterVolumeFactory(pakf);
 end.
