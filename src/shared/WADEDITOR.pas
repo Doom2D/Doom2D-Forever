@@ -157,6 +157,7 @@ var
   f: Integer;
   fi: TSFSFileInfo;
   fs: TStream;
+  fpp: Pointer;
   //fn: string;
 begin
   Result := False;
@@ -186,8 +187,19 @@ begin
       end;
       Len := Integer(fs.size);
       GetMem(pData, Len);
-      fs.ReadBuffer(pData^, Len);
-      fs.Free;
+      fpp := pData;
+      try
+        fs.ReadBuffer(pData^, Len);
+        fpp := nil;
+      finally
+        if fpp <> nil then
+        begin
+          FreeMem(fpp);
+          pData := nil;
+          Len := 0;
+        end;
+        fs.Free;
+      end;
       result := true;
       {$IFDEF SFS_DWFAD_DEBUG}
       if gSFSDebug then
