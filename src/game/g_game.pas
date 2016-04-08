@@ -294,7 +294,8 @@ uses
   g_playermodel, g_gfx, g_options, g_weapons, Math,
   g_triggers, MAPDEF, g_monsters, e_sound, CONFIG,
   BinEditor, g_language, g_net, SDL,
-  ENet, e_fixedbuffer, g_netmsg, g_netmaster, GL, GLExt;
+  ENet, e_fixedbuffer, g_netmsg, g_netmaster, GL, GLExt,
+  utils;
 
 type
   TEndCustomGameStat = record
@@ -1046,6 +1047,13 @@ begin
   FindClose(SR);
 
   if FindFirst(ModelsDir+'*.pk3', faAnyFile, SR) = 0 then
+    repeat
+      if not g_PlayerModel_Load(ModelsDir+SR.Name) then
+        e_WriteLog(Format('Error loading model %s', [SR.Name]), MSG_WARNING);
+    until FindNext(SR) <> 0;
+  FindClose(SR);
+
+  if FindFirst(ModelsDir+'*.zip', faAnyFile, SR) = 0 then
     repeat
       if not g_PlayerModel_Load(ModelsDir+SR.Name) then
         e_WriteLog(Format('Error loading model %s', [SR.Name]), MSG_WARNING);
@@ -5180,9 +5188,7 @@ begin
       Exit;
     end;
     // Игра ещё не запущена, сначала нам надо загрузить какой-то WAD
-    if (Pos('.wad', LowerCase(P[1])) = 0) and (Pos('.pk3', LowerCase(P[1])) = 0) then
-      P[1] := P[1] + '.wad';
-
+    P[1] := addWadExtension(P[1]);
     if FileExists(MapsDir + P[1]) then
     begin
       // Если карта не указана, берём первую карту в файле
@@ -5236,9 +5242,7 @@ begin
       Exit;
     prt := StrToIntDef(P[2], 25666);
 
-    if (Pos('.wad', LowerCase(P[3])) = 0) and (Pos('.pk3', LowerCase(P[3])) = 0) then
-      P[3] := P[3] + '.wad';
-
+    P[3] := addWadExtension(P[3]);
     if FileExists(MapsDir + P[3]) then
     begin
       // Если карта не указана, берём первую карту в файле
@@ -5308,9 +5312,7 @@ begin
           begin
             g_Console_Add(Format(_lc[I_MSG_NO_MAP], [s]));
             // Такой карты нет, ищем WAD файл
-            if (Pos('.wad', LowerCase(P[1])) = 0) and (Pos('.pk3', LowerCase(P[1])) = 0) then
-              P[1] := P[1] + '.wad';
-
+            P[1] := addWadExtension(P[1]);
             if FileExists(MapsDir + P[1]) then
             begin
               // Параметра карты нет, поэтому ставим первую из файла
@@ -5340,9 +5342,7 @@ begin
         end else
         begin
           // Указано два параметра, значит первый - WAD файл, а второй - карта
-          if (Pos('.wad', LowerCase(P[1])) = 0) and (Pos('.pk3', LowerCase(P[1])) = 0) then
-            P[1] := P[1] + '.wad';
-
+          P[1] := addWadExtension(P[1]);
           if FileExists(MapsDir + P[1]) then
           begin
             // Нашли WAD файл
@@ -5401,9 +5401,7 @@ begin
             begin
               g_Console_Add(Format(_lc[I_MSG_NO_MAP], [s]));
               // Такой карты нет, ищем WAD файл
-              if (Pos('.wad', LowerCase(P[1])) = 0) and (Pos('.pk3', LowerCase(P[1])) = 0) then
-                P[1] := P[1] + '.wad';
-
+              P[1] := addWadExtension(P[1]);
               if FileExists(MapsDir + P[1]) then
               begin
                 // Параметра карты нет, поэтому ставим первую из файла
@@ -5428,9 +5426,7 @@ begin
           end else
           begin
             // Указано два параметра, значит первый - WAD файл, а второй - карта
-            if (Pos('.wad', LowerCase(P[1])) = 0) and (Pos('.pk3', LowerCase(P[1])) = 0) then
-              P[1] := P[1] + '.wad';
-
+            P[1] := addWadExtension(P[1]);
             if FileExists(MapsDir + P[1]) then
             begin
               // Нашли WAD файл
@@ -6257,7 +6253,7 @@ begin
 
 // Start map when game loads:
   map := LowerCase(Find_Param_Value(pars, '-map'));
-  if (map <> '') and ((Pos('.wad:\', map) > 0) or (Pos('.pk3:\', map) > 0)) then
+  if isWadPath(map) then
   begin
   // Game mode:
     s := Find_Param_Value(pars, '-gm');

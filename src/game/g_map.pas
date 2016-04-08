@@ -116,7 +116,8 @@ uses
   g_main, e_log, SysUtils, g_items, g_gfx, g_console,
   GL, GLExt, g_weapons, g_game, g_sound, e_sound, CONFIG,
   g_options, MAPREADER, g_triggers, g_player, MAPDEF,
-  Math, g_monsters, g_saveload, g_language, g_netmsg;
+  Math, g_monsters, g_saveload, g_language, g_netmsg,
+  utils;
 
 const
   FLAGRECT: TRectWH = (X:15; Y:12; Width:33; Height:52);
@@ -1325,7 +1326,7 @@ begin
 
   g_ProcessResourceStr(Res, FileName, SectionName, ResName);
 
-  if (Pos('.wad', LowerCase(FileName)) = 0) and (Pos('.pk3', LowerCase(FileName)) = 0) then FileName := FileName+'.wad';
+  FileName := addWadExtension(FileName);
 
   WAD := TWADEditor_1.Create;
   if not WAD.ReadFile(FileName) then

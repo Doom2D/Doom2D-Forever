@@ -45,6 +45,7 @@ uses
   sfsZipFS in '../sfs/sfsZipFS.pas',
   sfsMemFS in '../sfs/sfsMemFS.pas',
   xstreams in '../sfs/xstreams.pas',
+  utils in '../shared/utils.pas',
   WADEDITOR in '../shared/WADEDITOR.pas',
   WADSTRUCT in '../shared/WADSTRUCT.pas',
   MAPSTRUCT in '../shared/MAPSTRUCT.pas',
