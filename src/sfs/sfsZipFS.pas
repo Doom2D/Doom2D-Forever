@@ -9,6 +9,7 @@
 //   dfwad   : D2D:F wad archives
 //
 {.$DEFINE SFS_DEBUG_ZIPFS}
+{.$DEFINE SFS_ZIPFS_FULL}
 {$MODE DELPHI}
 {.$R-}
 unit sfsZipFS;
@@ -19,18 +20,27 @@ uses
   SysUtils, Classes, Contnrs, sfs;
 
 
-
 type
-  TSFSZipVolumeType = (sfszvNone, sfszvZIP, sfszvF2DAT, sfszvVTDB, sfszvDFWAD);
+  TSFSZipVolumeType = (
+    sfszvNone,
+    sfszvZIP,
+    {$IFDEF SFS_ZIPFS_FULL}
+    sfszvF2DAT,
+    sfszvVTDB,
+    {$ENDIF}
+    sfszvDFWAD
+  );
 
   TSFSZipVolume = class(TSFSVolume)
   protected
     fType: TSFSZipVolumeType;
 
     procedure ZIPReadDirectory ();
+    procedure DFWADReadDirectory ();
+    {$IFDEF SFS_ZIPFS_FULL}
     procedure F2DATReadDirectory ();
     procedure VTDBReadDirectory ();
-    procedure DFWADReadDirectory ();
+    {$ENDIF}
 
     procedure ReadDirectory (); override;
     procedure removeCommonPath (); override;
@@ -89,6 +99,7 @@ begin
   result := true;
 end;
 
+{$IFDEF SFS_ZIPFS_FULL}
 function F2DATCheckMagic (st: TStream): Boolean;
 var
   dsize, fiSz: Integer;
@@ -115,6 +126,7 @@ begin
   if (fcnt < 0) or (dofs < 32) or (dofs+fcnt*8 > st.Size) then exit;
   result := true;
 end;
+{$ENDIF}
 
 function DFWADCheckMagic (st: TStream): Boolean;
 var
@@ -190,6 +202,7 @@ begin
     end;
   end;
 end;
+
 
 { TSFSZipVolume }
 procedure TSFSZipVolume.ZIPReadDirectory ();
@@ -319,6 +332,7 @@ begin
   end;
 end;
 
+{$IFDEF SFS_ZIPFS_FULL}
 procedure TSFSZipVolume.F2DATReadDirectory ();
 var
   dsize: Integer;
@@ -392,6 +406,7 @@ begin
     fi.fMethod := 255;
   end;
 end;
+{$ENDIF}
 
 procedure TSFSZipVolume.DFWADReadDirectory ();
 // idiotic format
@@ -445,8 +460,10 @@ procedure TSFSZipVolume.ReadDirectory ();
 begin
   case fType of
     sfszvZIP: ZIPReadDirectory();
+    {$IFDEF SFS_ZIPFS_FULL}
     sfszvF2DAT: F2DATReadDirectory();
     sfszvVTDB: VTDBReadDirectory();
+    {$ENDIF}
     sfszvDFWAD: DFWADReadDirectory();
     else raise ESFSError.Create('invalid zipped SFS');
   end;
@@ -541,11 +558,14 @@ function TSFSZipVolumeFactory.IsMyVolumePrefix (const prefix: TSFSString): Boole
 begin
   result :=
     SFSStrEqu(prefix, 'zip') or
-    SFSStrEqu(prefix, 'jar') or
+    SFSStrEqu(prefix, 'dfwad')
+    {$IFDEF SFS_ZIPFS_FULL}
+    or SFSStrEqu(prefix, 'jar') or
     SFSStrEqu(prefix, 'fout2') or
     SFSStrEqu(prefix, 'vtdb') or
-    SFSStrEqu(prefix, 'wad') or
-    SFSStrEqu(prefix, 'dfwad');
+    SFSStrEqu(prefix, 'wad')
+    {$ENDIF}
+    ;
 end;
 
 procedure TSFSZipVolumeFactory.Recycle (vol: TSFSVolume);
@@ -558,10 +578,13 @@ var
   vt: TSFSZipVolumeType;
 begin
   vt := sfszvNone;
-  if ZIPCheckMagic(st) then vt := sfszvZIP
+       if ZIPCheckMagic(st) then vt := sfszvZIP
   else if DFWADCheckMagic(st) then vt := sfszvDFWAD
+  {$IFDEF SFS_ZIPFS_FULL}
   else if F2DATCheckMagic(st) then vt := sfszvF2DAT
-  else if VTDBCheckMagic(st) then vt := sfszvVTDB;
+  else if VTDBCheckMagic(st) then vt := sfszvVTDB
+  {$ENDIF}
+  ;
 
   if vt <> sfszvNone then
   begin

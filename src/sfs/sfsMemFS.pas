@@ -11,12 +11,14 @@
 //     as a side effect this gives us an opportunity to read enclosed packs
 //     from the packs which aren't supporting backseeking (such as zips).
 //
+{.$DEFINE SFS_MSMFS}
 {$MODE DELPHI}
 {.$R-}
 unit sfsMemFS;
 
 interface
 
+{$IFDEF SFS_MSMFS}
 uses
   SysUtils, Classes, Contnrs, sfs;
 
@@ -44,11 +46,12 @@ type
     function Produce (const prefix, fileName: TSFSString; st: TStream): TSFSVolume; override;
     procedure Recycle (vol: TSFSVolume); override;
   end;
-
+{$ENDIF}
 
 
 implementation
 
+{$IFDEF SFS_MSMFS}
 uses
   xstreams;
 
@@ -240,4 +243,5 @@ initialization
   SFSRegisterVolumeFactory(memf);
 finalization
   SFSUnregisterVolumeFactory(memf);
+{$ENDIF}
 end.

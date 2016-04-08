@@ -18,6 +18,7 @@
   // file type.
   // undefine this and file type will be directory name.
 {.$DEFINE SFS_PLAIN_FS_DEBUG_ALLEGRO}
+{.$DEFINE SFS_PLAINFS_FULL}
 {$MODE DELPHI}
 {.$R-}
 unit sfsPlainFS;
@@ -28,17 +29,29 @@ uses
   SysUtils, Classes, Contnrs, sfs;
 
 
-
 type
   TSFSPlainVolumeType =
-    (sfspvNone, sfspvWAD, sfspvPAK, sfspvGRP, sfspvSPE, sfspvWAD2, sfspvALL,
-     sfspvDune2, sfspvMAX, sfspvSIN);
+    (sfspvNone,
+     sfspvPAK,
+     sfspvSIN
+     {$IFDEF SFS_PLAINFS_FULL}
+     ,sfspvWAD,
+     sfspvGRP,
+     sfspvSPE,
+     sfspvWAD2,
+     sfspvALL,
+     sfspvDune2,
+     sfspvMAX
+     {$ENDIF}
+     );
 
   TSFSPlainVolume = class (TSFSVolume)
   protected
     fType: TSFSPlainVolumeType;
 
     procedure PAKReadDirectory ();
+    procedure SINReadDirectory ();
+    {$IFDEF SFS_PLAINFS_FULL}
     procedure WADReadDirectory ();
     procedure GRPReadDirectory ();
     procedure SPEReadDirectory ();
@@ -46,7 +59,7 @@ type
     procedure ALLReadDirectory ();
     procedure Dune2ReadDirectory ();
     procedure MAXReadDirectory ();
-    procedure SINReadDirectory ();
+    {$ENDIF}
 
     procedure ReadDirectory (); override;
 
@@ -76,11 +89,13 @@ type
     fLink: TSFSString;
   end;
 
+{$IFDEF SFS_PLAINFS_FULL}
   TAllegroProperty = class
     name: TSFSString;
     ofs: Int64;
     size: Integer;
   end;
+{$ENDIF}
 
 
 function ReadMD (st: TStream): Integer;
@@ -92,6 +107,7 @@ begin
   result := (buf[0] shl 24) or (buf[1] shl 16) or (buf[2] shl 8) or buf[3];
 end;
 
+{$IFDEF SFS_PLAINFS_FULL}
 function WADCheckMagic (st: TStream): Boolean;
 var
   sign: packed array [0..3] of Char;
@@ -106,6 +122,7 @@ begin
      (dofs+fcnt*16 > st.Size) then exit;
   result := true;
 end;
+{$ENDIF}
 
 function PAKCheckMagic (st: TStream): Boolean;
 var
@@ -137,6 +154,7 @@ begin
   result := true;
 end;
 
+{$IFDEF SFS_PLAINFS_FULL}
 function GRPCheckMagic (st: TStream): Boolean;
 var
   sign: packed array [0..11] of Char;
@@ -221,9 +239,11 @@ begin
      (dofs+fcnt > st.Size) then exit;
   result := true;
 end;
+{$ENDIF}
 
 
 { TSFSPlainVolume }
+{$IFDEF SFS_PLAINFS_FULL}
 procedure TSFSPlainVolume.WADReadDirectory ();
 var
   fcnt: LongWord;
@@ -246,6 +266,7 @@ begin
     Dec(fcnt);
   end;
 end;
+{$ENDIF}
 
 procedure TSFSPlainVolume.PAKReadDirectory ();
 var
@@ -291,6 +312,7 @@ begin
   end;
 end;
 
+{$IFDEF SFS_PLAINFS_FULL}
 procedure TSFSPlainVolume.GRPReadDirectory ();
 var
   fcnt: LongWord;
@@ -594,20 +616,22 @@ begin
     Dec(fcnt, 16);
   end;
 end;
-
+{$ENDIF}
 
 procedure TSFSPlainVolume.ReadDirectory ();
 begin
   case fType of
-    sfspvWAD: WADReadDirectory();
     sfspvPAK: PAKReadDirectory();
+    sfspvSIN: SINReadDirectory();
+    {$IFDEF SFS_PLAINFS_FULL}
+    sfspvWAD: WADReadDirectory();
     sfspvGRP: GRPReadDirectory();
     sfspvSPE: SPEReadDirectory();
     sfspvWAD2: WAD2ReadDirectory();
     sfspvALL: ALLReadDirectory();
     sfspvDune2: Dune2ReadDirectory();
     sfspvMAX: MAXReadDirectory();
-    sfspvSIN: SINReadDirectory();
+    {$ENDIF}
     else raise ESFSError.Create('invalid plain SFS');
   end;
 end;
@@ -668,19 +692,23 @@ function TSFSPlainVolumeFactory.IsMyVolumePrefix (const prefix: TSFSString): Boo
 begin
   result :=
     SFSStrEqu(prefix, 'pak') or
-    //SFSStrEqu(prefix, 'wad') or // sorry
+    SFSStrEqu(prefix, 'sin') or
+    SFSStrEqu(prefix, 'quake')
+    {$IFDEF SFS_PLAINFS_FULL}
+    or
+    SFSStrEqu(prefix, 'wad') or // sorry
     SFSStrEqu(prefix, 'wad2') or
     SFSStrEqu(prefix, 'grp') or
     SFSStrEqu(prefix, 'spe') or
     SFSStrEqu(prefix, 'spec') or
-    SFSStrEqu(prefix, 'quake') or
     SFSStrEqu(prefix, 'doom') or
     SFSStrEqu(prefix, 'duke3d') or
     SFSStrEqu(prefix, 'abuse') or
     SFSStrEqu(prefix, 'allegro') or
     SFSStrEqu(prefix, 'dune2') or
-    SFSStrEqu(prefix, 'max') or
-    SFSStrEqu(prefix, 'sin');
+    SFSStrEqu(prefix, 'max')
+    {$ENDIF}
+    ;
 end;
 
 procedure TSFSPlainVolumeFactory.Recycle (vol: TSFSVolume);
@@ -693,15 +721,18 @@ var
   vt: TSFSPlainVolumeType;
 begin
   vt := sfspvNone;
-  if WADCheckMagic(st) then vt := sfspvWAD
-  else if PAKCheckMagic(st) then vt := sfspvPAK
+  if PAKCheckMagic(st) then vt := sfspvPAK
+  else if SINCheckMagic(st) then vt := sfspvSIN
+  {$IFDEF SFS_PLAINFS_FULL}
+  else if WADCheckMagic(st) then vt := sfspvWAD
   else if GRPCheckMagic(st) then vt := sfspvGRP
   else if SPECheckMagic(st) then vt := sfspvSPE
   else if WAD2CheckMagic(st) then vt := sfspvWAD2
   //else if ALLCheckMagic(st) then vt := sfspvALL
   else if MAXCheckMagic(st) then vt := sfspvMAX
-  else if SINCheckMagic(st) then vt := sfspvSIN;
-  //else if Dune2CheckMagic(st) then vt := sfspvDune2; // this must be the last!
+  //else if Dune2CheckMagic(st) then vt := sfspvDune2 // this must be the last!
+  {$ENDIF}
+  ;
 
   if vt <> sfspvNone then
   begin
