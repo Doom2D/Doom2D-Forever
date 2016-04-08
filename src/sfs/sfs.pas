@@ -608,6 +608,33 @@ begin
 *)
 end;
 
+// adds '/' too
+function normalizePath (fn: string): string;
+var
+  i: Integer;
+begin
+  result := '';
+  i := 1;
+  while i <= length(fn) do
+  begin
+    if (fn[i] = '.') and ((length(fn)-i = 0) or (fn[i+1] = '/') or (fn[i+1] = '\')) then
+    begin
+      i := i+2;
+      continue;
+    end;
+    if (fn[i] = '/') or (fn[i] = '\') then
+    begin
+      if (length(result) > 0) and (result[length(result)] <> '/') then result := result+'/';
+    end
+    else
+    begin
+      result := result+fn[i];
+    end;
+    Inc(i);
+  end;
+  if (length(result) > 0) and (result[length(result)] <> '/') then result := result+'/';
+end;
+
 function SFSReplacePathDelims (const s: TSFSString; newDelim: TSFSChar): TSFSString;
 var
   f: Integer;
@@ -734,58 +761,32 @@ end;
 
 procedure TSFSVolume.DoDirectoryRead ();
 var
-  fl: TStringList; //!!!FIXME! change to list of wide TSFSStrings or so!
-  f, c, n: Integer;
+  f, c: Integer;
   sfi: TSFSFileInfo;
-  tmp, fn, ext: TSFSString;
+  tmp: TSFSString;
 begin
-  fl := nil;
   fFileName := ExpandFileName(SFSReplacePathDelims(fFileName, '/'));
-  try
-    ReadDirectory();
-    fFiles.Pack();
+  ReadDirectory();
+  fFiles.Pack();
 
-    // check for duplicate file names
-    fl := TStringList.Create(); fl.Sorted := true;
-    for f := 0 to fFiles.Count-1 do
+  for f := 0 to fFiles.Count-1 do
+  begin
+    sfi := TSFSFileInfo(fFiles[f]);
+    // normalize name & path
+    sfi.fPath := SFSReplacePathDelims(sfi.fPath, '/');
+    if (sfi.fPath <> '') and (sfi.fPath[1] = '/') then Delete(sfi.fPath, 1, 1);
+    if (sfi.fPath <> '') and (sfi.fPath[Length(sfi.fPath)] <> '/') then sfi.fPath := sfi.fPath+'/';
+    tmp := SFSReplacePathDelims(sfi.fName, '/');
+    c := Length(tmp); while (c > 0) and (tmp[c] <> '/') do Dec(c);
+    if c > 0 then
     begin
-      sfi := TSFSFileInfo(fFiles[f]);
-
-      // normalize name & path
-      sfi.fPath := SFSReplacePathDelims(sfi.fPath, '/');
-      if (sfi.fPath <> '') and (sfi.fPath[1] = '/') then Delete(sfi.fPath, 1, 1);
-      if (sfi.fPath <> '') and (sfi.fPath[Length(sfi.fPath)] <> '/') then sfi.fPath := sfi.fPath+'/';
-      tmp := SFSReplacePathDelims(sfi.fName, '/');
-      c := Length(tmp); while (c > 0) and (tmp[c] <> '/') do Dec(c);
-      if c > 0 then
-      begin
-        // split path and name
-        Delete(sfi.fName, 1, c); // cut name
-        tmp := Copy(tmp, 1, c);  // get path
-        if tmp = '/' then tmp := ''; // just delimiter; ignore it
-        sfi.fPath := sfi.fPath+tmp;
-      end;
-
-      // check for duplicates
-      if fl.Find(sfi.fPath+sfi.fName, c) then
-      begin
-        n := 0; tmp := sfi.fName;
-        c := Length(tmp); while (c > 0) and (tmp[c] <> '.') do Dec(c);
-        if c < 1 then c := Length(tmp)+1;
-        fn := Copy(tmp, 1, c-1); ext := Copy(tmp, c, Length(tmp));
-        repeat
-          tmp := fn+'_'+IntToStr(n)+ext;
-          if not fl.Find(sfi.fPath+tmp, c) then break;
-          Inc(n);
-        until false;
-        sfi.fName := tmp;
-      end;
-      fl.Add(sfi.fName);
+      // split path and name
+      Delete(sfi.fName, 1, c); // cut name
+      tmp := Copy(tmp, 1, c);  // get path
+      if tmp = '/' then tmp := ''; // just delimiter; ignore it
+      sfi.fPath := sfi.fPath+tmp;
     end;
-    fl.Free();
-  except
-    fl.Free();
-    raise;
+    sfi.fPath := normalizePath(sfi.fPath);
   end;
   removeCommonPath();
 end;
@@ -1253,7 +1254,7 @@ end;
 initialization
   factories := TObjectList.Create(true);
   volumes := TObjectList.Create(true);
-finalization
+//finalization
   //volumes.Free(); // it fails for some reason... Runtime 217 (^C hit). wtf?!
   //factories.Free(); // not need to be done actually...
 end.
