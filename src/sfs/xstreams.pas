@@ -174,8 +174,15 @@ end;
 
 procedure TSFSPartialStream.CheckPos ();
 begin
+  {
   if fSource.Position <> fStartPos+fCurrentPos-Length(fPreBuf) then
   begin
+    fSource.Position := fStartPos+fCurrentPos-Length(fPreBuf);
+  end;
+  }
+  if fCurrentPos >= length(fPreBuf) then
+  begin
+    //writeln('seeking at ', fCurrentPos, ' (real: ', fStartPos+fCurrentPos-Length(fPreBuf), ')');
     fSource.Position := fStartPos+fCurrentPos-Length(fPreBuf);
   end;
   fLastReadPos := fCurrentPos;

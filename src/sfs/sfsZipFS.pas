@@ -472,7 +472,7 @@ end;
 function TSFSZipVolume.OpenFileByIndex (const index: Integer): TStream;
 var
   zs: TZDecompressionStream;
-  fs: TStream;
+  fs, rs: TStream;
   gs: TSFSGuardStream;
   kill: Boolean;
   buf: packed array [0..1023] of Char;
@@ -482,6 +482,7 @@ begin
   zs := nil;
   fs := nil;
   gs := nil;
+  rs := nil;
   if fFiles = nil then exit;
   if (index < 0) or (index >= fFiles.Count) or (fFiles[index] = nil) then exit;
   kill := false;
@@ -506,37 +507,41 @@ begin
       fs.Seek(TSFSZipFileInfo(fFiles[index]).fOfs, soBeginning);
       if TSFSZipFileInfo(fFiles[index]).fMethod = 255 then
       begin
-        zs := TZDecompressionStream.Create(fs)
+        // sorry, pals, DFWAD is completely broken, so users of it should SUFFER
+        if TSFSZipFileInfo(fFiles[index]).fSize = -1 then
+        begin
+          TSFSZipFileInfo(fFiles[index]).fSize := 0;
+          //writeln('trying to determine file size for [', TSFSZipFileInfo(fFiles[index]).fPath, TSFSZipFileInfo(fFiles[index]).fName, ']');
+          zs := TZDecompressionStream.Create(fs);
+          try
+            while true do
+            begin
+              rd := zs.read(buf, 1024);
+              //writeln('  got ', rd, ' bytes');
+              if rd > 0 then Inc(TSFSZipFileInfo(fFiles[index]).fSize, rd);
+              if rd < 1024 then break;
+            end;
+            //writeln('  resulting size: ', TSFSZipFileInfo(fFiles[index]).fSize, ' bytes');
+            // recreate stream
+            FreeAndNil(zs);
+            fs.Seek(TSFSZipFileInfo(fFiles[index]).fOfs, soBeginning);
+          except
+            //writeln('*** CAN''T determine file size for [', TSFSZipFileInfo(fFiles[index]).fPath, TSFSZipFileInfo(fFiles[index]).fName, ']');
+            FreeAndNil(zs);
+            if kill then FreeAndNil(fs);
+            result := nil;
+            exit;
+          end;
+        end;
+        rs := TSFSPartialStream.Create(fs, TSFSZipFileInfo(fFiles[index]).fOfs, TSFSZipFileInfo(fFiles[index]).fPackSz, true);
+        zs := TZDecompressionStream.Create(rs);
+        rs := nil;
       end
       else
       begin
-        zs := TZDecompressionStream.Create(fs, true {-15}{MAX_WBITS});
-      end;
-      // sorry, pals, DFWAD is completely broken, so users of it should SUFFER
-      if TSFSZipFileInfo(fFiles[index]).fSize = -1 then
-      begin
-        TSFSZipFileInfo(fFiles[index]).fSize := 0;
-        //writeln('trying to determine file size for [', TSFSZipFileInfo(fFiles[index]).fPath, TSFSZipFileInfo(fFiles[index]).fName, ']');
-        try
-          while true do
-          begin
-            rd := zs.read(buf, 1024);
-            //writeln('  got ', rd, ' bytes');
-            if rd > 0 then Inc(TSFSZipFileInfo(fFiles[index]).fSize, rd);
-            if rd < 1024 then break;
-          end;
-          //writeln('  resulting size: ', TSFSZipFileInfo(fFiles[index]).fSize, ' bytes');
-          // recreate stream
-          FreeAndNil(zs);
-          fs.Seek(TSFSZipFileInfo(fFiles[index]).fOfs, soBeginning);
-          zs := TZDecompressionStream.Create(fs)
-        except
-          //writeln('*** CAN''T determine file size for [', TSFSZipFileInfo(fFiles[index]).fPath, TSFSZipFileInfo(fFiles[index]).fName, ']');
-          FreeAndNil(zs);
-          if kill then FreeAndNil(fs);
-          result := nil;
-          exit;
-        end;
+        rs := TSFSPartialStream.Create(fs, TSFSZipFileInfo(fFiles[index]).fOfs, TSFSZipFileInfo(fFiles[index]).fPackSz, true);
+        zs := TZDecompressionStream.Create(rs, true {-15}{MAX_WBITS});
+        rs := nil;
       end;
       gs := TSFSGuardStream.Create(zs, fs, true, kill, false);
       zs := nil;
@@ -544,6 +549,7 @@ begin
       result := TSFSPartialStream.Create(gs, 0, TSFSZipFileInfo(fFiles[index]).fSize, true);
     end;
   except
+    FreeAndNil(rs);
     FreeAndNil(gs);
     FreeAndNil(zs);
     if kill then FreeAndNil(fs);
