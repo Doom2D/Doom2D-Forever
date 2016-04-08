@@ -138,6 +138,20 @@ begin
 end;
 
 
+function removeExt (s: string): string;
+var
+  i: Integer;
+begin
+  i := length(s)+1;
+  while (i > 1) and (s[i-1] <> '.') and (s[i-1] <> '/') do Dec(i);
+  if (i > 1) and (s[i-1] = '.') then
+  begin
+    //writeln('[', s, '] -> [', Copy(s, 1, i-2), ']');
+    s := Copy(s, 1, i-2);
+  end;
+  result := s;
+end;
+
 function TWADEditor_1.GetResource (Section, Resource: string; var pData: Pointer; var Len: Integer): Boolean;
 var
   f: Integer;
@@ -154,7 +168,7 @@ begin
     fi := fIter.Files[f];
     if fi = nil then continue;
     //e_WriteLog(Format('DFWAD: searching for [%s : %s] in [%s]; current is [%s : %s] (%d, %d)', [Section, Resource, fFileName, fi.path, fi.name, SFSStrEqu(fi.path, Section), SFSStrEqu(fi.name, Resource)]), MSG_NOTIFY);
-    if {SFSStrEqu}SFSDFPathEqu(fi.path, Section) and SFSStrEqu(fi.name, Resource) then
+    if {SFSStrEqu}SFSDFPathEqu(fi.path, Section) and SFSStrEqu(removeExt(fi.name), Resource) then
     begin
       // i found her!
       //fn := fFileName+'::'+fi.path+fi.name;
@@ -201,7 +215,7 @@ begin
     if {SFSStrEqu}SFSDFPathEqu(fi.path, Section) then
     begin
       SetLength(result, Length(result)+1);
-      result[high(result)] := fi.name;
+      result[high(result)] := removeExt(fi.name);
     end;
   end;
 end;
