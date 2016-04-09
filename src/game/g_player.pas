@@ -243,6 +243,7 @@ type
     procedure   SetFlag(Flag: Byte);
     function    DropFlag(): Boolean;
     procedure   AllRulez(Health: Boolean);
+    procedure   RestoreHealthArmor();
     procedure   FragCombo();
     procedure   GiveItem(ItemType: Byte);
     procedure   Damage(value: Word; SpawnerUID: Word; vx, vy: Integer; t: Byte); virtual;
@@ -5462,6 +5463,12 @@ begin
   for a := WEAPON_KASTET to WEAPON_SUPERPULEMET do FWeapon[a] := True;
   for a := A_BULLETS to A_CELLS do FAmmo[a] := 30000;
   FRulez := FRulez+[R_KEY_RED, R_KEY_GREEN, R_KEY_BLUE];
+end;
+
+procedure TPlayer.RestoreHealthArmor();
+begin
+  FHealth := PLAYER_HP_LIMIT;
+  FArmor := PLAYER_AP_LIMIT;
 end;
 
 procedure TPlayer.FragCombo();

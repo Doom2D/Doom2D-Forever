@@ -442,6 +442,18 @@ begin
   AddCommand('clientlist', GameCommands);
   AddCommand('event', GameCommands);
 
+  AddCommand('god', GameCheats);
+  AddCommand('notarget', GameCheats);
+  AddCommand('give', GameCheats); // "exit" too ;-)
+  AddCommand('open', GameCheats);
+  AddCommand('fly', GameCheats);
+  AddCommand('noclip', GameCheats);
+  AddCommand('speedy', GameCheats);
+  AddCommand('jumpy', GameCheats);
+  AddCommand('noreload', GameCheats);
+  AddCommand('aimline', GameCheats);
+  AddCommand('automap', GameCheats);
+
   WhitelistCommand('say');
   WhitelistCommand('tell');
   WhitelistCommand('overtime');

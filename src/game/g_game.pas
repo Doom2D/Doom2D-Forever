@@ -106,6 +106,7 @@ function  g_Game_IsTestMap(): Boolean;
 procedure g_Game_DeleteTestMap();
 procedure GameCVars(P: SArray);
 procedure GameCommands(P: SArray);
+procedure GameCheats(P: SArray);
 procedure DebugCommands(P: SArray);
 procedure g_Game_Process_Params;
 procedure g_Game_SetLoadingText(Text: String; Max: Integer; reWrite: Boolean);
@@ -4771,6 +4772,132 @@ begin
   end
     else
       g_Console_Add(_lc[I_MSG_NOT_DEBUG]);
+end;
+
+
+procedure GameCheats(P: SArray);
+var
+  cmd: string;
+  f, a: Integer;
+  plr: TPlayer;
+begin
+  if (not gGameOn) or (not gCheats) or ((gGameSettings.GameType <> GT_SINGLE) and
+     (gGameSettings.GameMode <> GM_COOP) and (not gDebugMode)) or g_Game_IsNet then
+  begin
+    g_Console_Add('not available');
+    exit;
+  end;
+  plr := gPlayer1;
+  if plr = nil then
+  begin
+    g_Console_Add('where is the player?!');
+    exit;
+  end;
+  cmd := LowerCase(P[0]);
+  // god
+  if cmd = 'god' then
+  begin
+    plr.GodMode := not plr.GodMode;
+    if plr.GodMode then g_Console_Add('player is godlike now') else g_Console_Add('player is mortal now');
+    exit;
+  end;
+  // give <health|exit|weapons|air|suit|jetpack|berserk|all>
+  if cmd = 'give' then
+  begin
+    if length(P) < 2 then begin g_Console_Add('give what?!'); exit; end;
+    for f := 1 to High(P) do
+    begin
+      cmd := LowerCase(P[f]);
+      if cmd = 'health' then begin plr.RestoreHealthArmor(); g_Console_Add('player feels himself better'); continue; end;
+      if (cmd = 'all') or (cmd = 'weapons') then begin plr.AllRulez(False); g_Console_Add('player got the gifts'); continue; end;
+      if cmd = 'exit' then
+      begin
+        if gTriggers <> nil then
+        begin
+          for a := 0 to High(gTriggers) do
+          begin
+            if gTriggers[a].TriggerType = TRIGGER_EXIT then
+            begin
+              g_Console_Add('player left the map');
+              gExitByTrigger := True;
+              g_Game_ExitLevel(gTriggers[a].Data.MapName);
+              break;
+            end;
+          end;
+        end;
+        continue;
+      end;
+      if cmd = 'air' then begin plr.GiveItem(ITEM_OXYGEN); g_Console_Add('player got some air'); continue; end;
+      if cmd = 'jetpack' then begin plr.GiveItem(ITEM_JETPACK); g_Console_Add('player got jetpack'); continue; end;
+      if cmd = 'suit' then begin plr.GiveItem(ITEM_SUIT); g_Console_Add('player got envirosuit'); continue; end;
+      if cmd = 'berserk' then begin plr.GiveItem(ITEM_MEDKIT_BLACK); g_Console_Add('player got berserk pack'); continue; end;
+      g_Console_Add('i don''t know how to give '''+cmd+'''!');
+    end;
+    exit;
+  end;
+  // open
+  if cmd = 'open' then
+  begin
+    g_Console_Add('player activated sesame');
+    g_Triggers_OpenAll();
+    exit;
+  end;
+  // fly
+  if cmd = 'fly' then
+  begin
+    gFly := not gFly;
+    if gFly then g_Console_Add('player feels himself lighter') else g_Console_Add('player lost his wings');
+    exit;
+  end;
+  // noclip
+  if cmd = 'noclip' then
+  begin
+    plr.SwitchNoClip;
+    g_Console_Add('wall hardeness adjusted');
+    exit;
+  end;
+  // notarget
+  if cmd = 'notarget' then
+  begin
+    plr.NoTarget := not plr.NoTarget;
+    if plr.NoTarget then g_Console_Add('player hides in shadows') else g_Console_Add('player is brave again');
+    exit;
+  end;
+  // noreload
+  if cmd = 'noreload' then
+  begin
+    plr.NoReload := not plr.NoReload;
+    if plr.NoReload then g_Console_Add('player is action hero now') else g_Console_Add('player is ordinary man now');
+    exit;
+  end;
+  // speedy
+  if cmd = 'speedy' then
+  begin
+    MAX_RUNVEL := 32-MAX_RUNVEL;
+    g_Console_Add('speed adjusted');
+    exit;
+  end;
+  // jumpy
+  if cmd = 'jumpy' then
+  begin
+    VEL_JUMP := 30-VEL_JUMP;
+    g_Console_Add('jump height adjusted');
+    exit;
+  end;
+  // automap
+  if cmd = 'automap' then
+  begin
+    gShowMap := not gShowMap;
+    if gShowMap then g_Console_Add('player gains second sight') else g_Console_Add('player lost second sight');
+    exit;
+  end;
+  // aimline
+  if cmd = 'aimline' then
+  begin
+    gAimLine := not gAimLine;
+    if gAimLine then g_Console_Add('player gains laser sight') else g_Console_Add('player lost laser sight');
+    exit;
+  end;
 end;
 
 procedure GameCommands(P: SArray);
