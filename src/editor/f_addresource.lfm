@@ -1,0 +1,86 @@
+object AddResourceForm: TAddResourceForm
+  Left = 271
+  Top = 208
+  BorderIcons = [biSystemMenu]
+  BorderStyle = bsSingle
+  ClientHeight = 268
+  ClientWidth = 204
+  Color = clBtnFace
+  Font.Charset = DEFAULT_CHARSET
+  Font.Color = clWindowText
+  Font.Height = -11
+  Font.Name = 'MS Sans Serif'
+  Font.Style = []
+  Position = poScreenCenter
+  ShowHint = True
+  OnActivate = FormActivate
+  PixelsPerInch = 96
+  object LabelWADs: TLabel
+    Left = 4
+    Top = 4
+    Width = 110
+    Height = 13
+    Caption = 'Список WAD-файлов:'
+  end
+  object LabelSections: TLabel
+    Left = 4
+    Top = 44
+    Width = 143
+    Height = 13
+    Caption = 'Список секций WAD-файла:'
+  end
+  object bOK: TButton
+    Left = 36
+    Top = 236
+    Width = 75
+    Height = 25
+    Caption = 'ОК'
+    Default = True
+    ModalResult = 1
+    TabOrder = 0
+    OnClick = bOKClick
+  end
+  object bCancel: TButton
+    Left = 124
+    Top = 236
+    Width = 75
+    Height = 25
+    Cancel = True
+    Caption = 'Отмена'
+    ModalResult = 2
+    TabOrder = 1
+  end
+  object cbWADList: TComboBox
+    Left = 4
+    Top = 20
+    Width = 193
+    Height = 21
+    AutoComplete = False
+    Style = csDropDownList
+    ItemHeight = 13
+    TabOrder = 2
+    OnChange = cbWADListChange
+  end
+  object lbResourcesList: TListBox
+    Left = 4
+    Top = 84
+    Width = 193
+    Height = 145
+    ItemHeight = 13
+    MultiSelect = True
+    TabOrder = 3
+    OnClick = lbResourcesListClick
+  end
+  object cbSectionsList: TComboBox
+    Left = 4
+    Top = 60
+    Width = 193
+    Height = 21
+    AutoComplete = False
+    Style = csDropDownList
+    ItemHeight = 13
+    Sorted = True
+    TabOrder = 4
+    OnChange = cbSectionsListChange
+  end
+end

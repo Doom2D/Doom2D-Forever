@@ -1,0 +1,58 @@
+object SelectMapForm: TSelectMapForm
+  Left = 488
+  Top = 205
+  Width = 169
+  Height = 266
+  BorderIcons = []
+  Caption = 'Выберите карту'
+  Color = clBtnFace
+  Font.Charset = DEFAULT_CHARSET
+  Font.Color = clWindowText
+  Font.Height = -11
+  Font.Name = 'MS Sans Serif'
+  Font.Style = []
+  Position = poScreenCenter
+  OnActivate = FormActivate
+  PixelsPerInch = 96
+  object lbMapList: TListBox
+    Left = 0
+    Top = 0
+    Width = 153
+    Height = 200
+    Align = alClient
+    ItemHeight = 13
+    Sorted = True
+    TabOrder = 0
+    OnClick = lbMapListClick
+  end
+  object Panel1: TPanel
+    Left = 0
+    Top = 200
+    Width = 153
+    Height = 28
+    Align = alBottom
+    BevelOuter = bvNone
+    TabOrder = 1
+    object bOK: TButton
+      Left = 0
+      Top = 0
+      Width = 72
+      Height = 25
+      Caption = 'OK'
+      Default = True
+      ModalResult = 1
+      TabOrder = 0
+    end
+    object bCancel: TButton
+      Left = 77
+      Top = 0
+      Width = 72
+      Height = 25
+      Cancel = True
+      Caption = 'Отмена'
+      ModalResult = 2
+      TabOrder = 1
+      OnClick = bCancelClick
+    end
+  end
+end

@@ -1,0 +1,280 @@
+object OptionsForm: TOptionsForm
+  Left = 202
+  Top = 174
+  BorderIcons = [biSystemMenu]
+  BorderStyle = bsSingle
+  Caption = 'Настройки редактора'
+  ClientHeight = 262
+  ClientWidth = 415
+  Color = clBtnFace
+  Font.Charset = DEFAULT_CHARSET
+  Font.Color = clWindowText
+  Font.Height = -11
+  Font.Name = 'MS Sans Serif'
+  Font.Style = []
+  Position = poScreenCenter
+  OnActivate = FormActivate
+  PixelsPerInch = 96
+  object GroupBox1: TGroupBox
+    Left = 8
+    Top = 0
+    Width = 401
+    Height = 225
+    TabOrder = 0
+    object sDotColor: TShape
+      Left = 318
+      Top = 2
+      Width = 57
+      Height = 25
+    end
+    object LabelGrid: TLabel
+      Left = 6
+      Top = 74
+      Width = 61
+      Height = 13
+      Caption = 'Шаги сетки:'
+    end
+    object LabelGridCol: TLabel
+      Left = 190
+      Top = 2
+      Width = 60
+      Height = 13
+      Caption = 'Цвет сетки:'
+    end
+    object LabelBack: TLabel
+      Left = 190
+      Top = 43
+      Width = 57
+      Height = 13
+      Caption = 'Цвет фона:'
+    end
+    object sBackColor: TShape
+      Left = 318
+      Top = 43
+      Width = 57
+      Height = 25
+      Brush.Color = clBlack
+    end
+    object LabelPreview: TLabel
+      Left = 190
+      Top = 73
+      Width = 84
+      Height = 39
+      Caption = 'Цвет фона поля предпросмотра текстуры:'
+      WordWrap = True
+    end
+    object sPreviewColor: TShape
+      Left = 318
+      Top = 83
+      Width = 57
+      Height = 25
+      Brush.Color = clBlack
+    end
+    object LabelMinimap: TLabel
+      Left = 190
+      Top = 131
+      Width = 112
+      Height = 13
+      Caption = 'Масштаб мини-карты:'
+    end
+    object LabelRecent: TLabel
+      Left = 190
+      Top = 162
+      Width = 121
+      Height = 26
+      Caption = 'Запоминать последних открытых карт:'
+      WordWrap = True
+    end
+    object LabelLanguage: TLabel
+      Left = 6
+      Top = 162
+      Width = 31
+      Height = 13
+      Caption = 'Язык:'
+    end
+    object LabelGridSize: TLabel
+      Left = 6
+      Top = 122
+      Width = 73
+      Height = 26
+      Caption = 'Размер точек сетки:'
+      WordWrap = True
+    end
+    object cbShowDots: TCheckBox
+      Left = 6
+      Top = 2
+      Width = 121
+      Height = 17
+      Caption = 'Показывать сетку'
+      TabOrder = 0
+    end
+    object UpDown1: TUpDown
+      Left = 143
+      Top = 74
+      Width = 12
+      Height = 21
+      Associate = eDotStepOne
+      Min = 2
+      Max = 255
+      Position = 16
+      TabOrder = 6
+    end
+    object eDotStepOne: TEdit
+      Left = 86
+      Top = 74
+      Width = 57
+      Height = 21
+      TabOrder = 1
+      Text = '16'
+    end
+    object bGrid: TButton
+      Left = 376
+      Top = 2
+      Width = 11
+      Height = 25
+      Caption = '..'
+      TabOrder = 2
+      OnClick = bGridClick
+    end
+    object bBack: TButton
+      Left = 376
+      Top = 43
+      Width = 11
+      Height = 25
+      Caption = '..'
+      TabOrder = 3
+      OnClick = bBackClick
+    end
+    object bPreview: TButton
+      Left = 376
+      Top = 83
+      Width = 11
+      Height = 25
+      Caption = '..'
+      TabOrder = 4
+      OnClick = bPreviewClick
+    end
+    object cbScale: TComboBox
+      Left = 318
+      Top = 131
+      Width = 70
+      Height = 21
+      Style = csDropDownList
+      ItemHeight = 13
+      ItemIndex = 0
+      TabOrder = 5
+      Text = '1x'
+      Items.Strings = (
+        '1x'
+        '2x')
+    end
+    object cbShowTexture: TCheckBox
+      Left = 6
+      Top = 18
+      Width = 169
+      Height = 17
+      Caption = 'Показывать текстуру панели'
+      TabOrder = 7
+    end
+    object cbShowSize: TCheckBox
+      Left = 6
+      Top = 34
+      Width = 169
+      Height = 17
+      Caption = 'Показывать размеры панели'
+      TabOrder = 8
+    end
+    object eRecent: TEdit
+      Left = 318
+      Top = 166
+      Width = 57
+      Height = 21
+      TabOrder = 9
+      Text = '5'
+    end
+    object UpDown3: TUpDown
+      Left = 375
+      Top = 166
+      Width = 12
+      Height = 21
+      Associate = eRecent
+      Min = 2
+      Max = 10
+      Position = 5
+      TabOrder = 10
+    end
+    object eDotStepTwo: TEdit
+      Left = 86
+      Top = 98
+      Width = 57
+      Height = 21
+      TabOrder = 11
+      Text = '8'
+    end
+    object UpDown2: TUpDown
+      Left = 143
+      Top = 98
+      Width = 12
+      Height = 21
+      Associate = eDotStepTwo
+      Min = 2
+      Max = 255
+      Position = 8
+      TabOrder = 12
+    end
+    object rbRussian: TRadioButton
+      Left = 86
+      Top = 162
+      Width = 81
+      Height = 17
+      Caption = 'Русский'
+      Checked = True
+      TabOrder = 13
+      TabStop = True
+    end
+    object rbEnglish: TRadioButton
+      Left = 86
+      Top = 186
+      Width = 81
+      Height = 17
+      Caption = 'English'
+      TabOrder = 14
+    end
+    object cbDotSize: TComboBox
+      Left = 86
+      Top = 126
+      Width = 73
+      Height = 21
+      ItemHeight = 13
+      TabOrder = 15
+      Text = '1'
+      Items.Strings = (
+        '1'
+        '2')
+    end
+  end
+  object bOK: TButton
+    Left = 240
+    Top = 232
+    Width = 75
+    Height = 25
+    Caption = 'ОК'
+    Default = True
+    TabOrder = 1
+    OnClick = bOKClick
+  end
+  object bCancel: TButton
+    Left = 336
+    Top = 232
+    Width = 75
+    Height = 25
+    Cancel = True
+    Caption = 'Отмена'
+    TabOrder = 2
+    OnClick = bCancelClick
+  end
+  object ColorDialog: TColorDialog
+    Left = 200
+    Top = 232
+  end
+end

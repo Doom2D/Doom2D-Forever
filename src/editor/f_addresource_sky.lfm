@@ -1,0 +1,31 @@
+inherited AddSkyForm: TAddSkyForm
+  Left = 225
+  Top = 145
+  Caption = 'Выберите текстуру для неба'
+  ClientHeight = 250
+  ClientWidth = 529
+  PixelsPerInch = 96
+  inherited bOK: TButton
+    Top = 220
+  end
+  inherited bCancel: TButton
+    Top = 220
+  end
+  inherited lbResourcesList: TListBox
+    Height = 127
+  end
+  object PanelTexPreview: TPanel
+    Left = 204
+    Top = 4
+    Width = 322
+    Height = 242
+    BevelOuter = bvLowered
+    TabOrder = 5
+    object iPreview: TImage
+      Left = 0
+      Top = 0
+      Width = 320
+      Height = 240
+    end
+  end
+end

@@ -1,0 +1,84 @@
+object SaveMiniMapForm: TSaveMiniMapForm
+  Left = 362
+  Top = 299
+  Width = 431
+  Height = 225
+  Caption = 'Сохранить мини-карту'
+  Color = clBtnFace
+  Font.Charset = DEFAULT_CHARSET
+  Font.Color = clWindowText
+  Font.Height = -11
+  Font.Name = 'MS Sans Serif'
+  Font.Style = []
+  Position = poScreenCenter
+  OnActivate = FormActivate
+  PixelsPerInch = 96
+  object pbMiniMap: TPaintBox
+    Left = 185
+    Top = 0
+    Width = 230
+    Height = 187
+    Align = alClient
+    OnPaint = pbMiniMapPaint
+  end
+  object Panel1: TPanel
+    Left = 0
+    Top = 0
+    Width = 185
+    Height = 187
+    Align = alLeft
+    BevelOuter = bvNone
+    TabOrder = 0
+    object LabelScale: TLabel
+      Left = 4
+      Top = 10
+      Width = 49
+      Height = 13
+      Caption = 'Масштаб:'
+    end
+    object bSave: TButton
+      Left = 2
+      Top = 128
+      Width = 173
+      Height = 25
+      Anchors = [akLeft, akBottom]
+      Caption = 'Сохранить'
+      Default = True
+      TabOrder = 1
+      OnClick = bSaveClick
+    end
+    object cbScale: TComboBox
+      Left = 98
+      Top = 6
+      Width = 73
+      Height = 21
+      Style = csDropDownList
+      ItemHeight = 13
+      ItemIndex = 0
+      TabOrder = 0
+      Text = '1/16'
+      OnChange = cbScaleChange
+      Items.Strings = (
+        '1/16'
+        '1/8')
+    end
+    object bClose: TButton
+      Left = 2
+      Top = 158
+      Width = 173
+      Height = 25
+      Anchors = [akLeft, akBottom]
+      Cancel = True
+      Caption = 'Закрыть'
+      TabOrder = 2
+      OnClick = bCloseClick
+    end
+  end
+  object SaveDialog: TSaveDialog
+    DefaultExt = '.bmp'
+    Filter = 'BMP files (*.bmp)|*.bmp|All files (*.*)|*.*'
+    Options = [ofOverwritePrompt, ofHideReadOnly, ofPathMustExist, ofEnableSizing]
+    Left = 8
+    Top = 48
+  end
+end

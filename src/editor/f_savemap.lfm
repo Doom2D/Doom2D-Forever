@@ -1,0 +1,77 @@
+object SaveMapForm: TSaveMapForm
+  Left = 368
+  Top = 298
+  BorderIcons = []
+  BorderStyle = bsSingle
+  Caption = 'Сохранить карту'
+  ClientHeight = 239
+  ClientWidth = 152
+  Color = clBtnFace
+  Font.Charset = DEFAULT_CHARSET
+  Font.Color = clWindowText
+  Font.Height = -11
+  Font.Name = 'MS Sans Serif'
+  Font.Style = []
+  Position = poScreenCenter
+  OnActivate = FormActivate
+  PixelsPerInch = 96
+  object lbMapList: TListBox
+    Left = 0
+    Top = 25
+    Width = 152
+    Height = 186
+    Align = alClient
+    ItemHeight = 13
+    Sorted = True
+    TabOrder = 0
+    OnClick = lbMapListClick
+  end
+  object Panel2: TPanel
+    Left = 0
+    Top = 0
+    Width = 152
+    Height = 25
+    Align = alTop
+    BevelOuter = bvNone
+    TabOrder = 1
+    object eMapName: TEdit
+      Left = 0
+      Top = 0
+      Width = 153
+      Height = 21
+      CharCase = ecUpperCase
+      MaxLength = 16
+      TabOrder = 0
+      OnChange = eMapNameChange
+    end
+  end
+  object Panel1: TPanel
+    Left = 0
+    Top = 211
+    Width = 152
+    Height = 28
+    Align = alBottom
+    BevelOuter = bvNone
+    TabOrder = 2
+    object bOK: TButton
+      Left = 0
+      Top = 0
+      Width = 72
+      Height = 25
+      Caption = 'OK'
+      Default = True
+      TabOrder = 0
+      OnClick = bOKClick
+    end
+    object bCancel: TButton
+      Left = 77
+      Top = 0
+      Width = 72
+      Height = 25
+      Cancel = True
+      Caption = 'Отмена'
+      ModalResult = 2
+      TabOrder = 1
+    end
+  end
+end

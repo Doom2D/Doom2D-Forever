@@ -1,0 +1,70 @@
+object MapCheckForm: TMapCheckForm
+  Left = 238
+  Top = 224
+  Width = 525
+  Height = 199
+  BorderIcons = [biSystemMenu]
+  BorderStyle = bsSizeToolWin
+  Caption = 'Проверка карты'
+  Color = clBtnFace
+  Font.Charset = DEFAULT_CHARSET
+  Font.Color = clWindowText
+  Font.Height = -11
+  Font.Name = 'MS Sans Serif'
+  Font.Style = []
+  FormStyle = fsStayOnTop
+  Position = poScreenCenter
+  PixelsPerInch = 96
+  object PanelResults: TPanel
+    Left = 0
+    Top = 85
+    Width = 509
+    Height = 76
+    Align = alBottom
+    BevelOuter = bvNone
+    TabOrder = 0
+    object bClose: TButton
+      Left = 439
+      Top = 48
+      Width = 75
+      Height = 25
+      Anchors = [akRight, akBottom]
+      Cancel = True
+      Caption = 'Закрыть'
+      TabOrder = 1
+      OnClick = bCloseClick
+    end
+    object bCheckMap: TButton
+      Left = 327
+      Top = 48
+      Width = 105
+      Height = 25
+      Anchors = [akRight, akBottom]
+      Caption = 'Проверить заново'
+      Default = True
+      TabOrder = 0
+      OnClick = bCheckMapClick
+    end
+    object mErrorDescription: TMemo
+      Left = 0
+      Top = 0
+      Width = 509
+      Height = 41
+      Align = alTop
+      Color = clBtnFace
+      ReadOnly = True
+      TabOrder = 2
+      WantReturns = False
+    end
+  end
+  object lbErrorList: TListBox
+    Left = 0
+    Top = 0
+    Width = 509
+    Height = 85
+    Align = alClient
+    ItemHeight = 13
+    TabOrder = 1
+    OnClick = lbErrorListClick
+  end
+end
