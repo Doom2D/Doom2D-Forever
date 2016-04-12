@@ -53,7 +53,7 @@ type
 const
   NO_SOUND_ID = DWORD(-1);
 
-function e_InitSoundSystem(): Boolean;
+function e_InitSoundSystem(NoOutput: Boolean = False): Boolean;
 
 function e_LoadSound(FileName: string; var ID: DWORD; isMusic: Boolean): Boolean;
 function e_LoadSoundMem(pData: Pointer; Length: Integer; var ID: DWORD; isMusic: Boolean): Boolean;
@@ -152,7 +152,7 @@ begin
   end;
 end;
 
-function e_InitSoundSystem(): Boolean;
+function e_InitSoundSystem(NoOutput: Boolean = False): Boolean;
 var
   res, i: Integer;
   rfreq: Integer;
@@ -163,6 +163,8 @@ begin
 
   Result := False;
   SoundInitialized := False;
+  
+  if NoOutput then begin Result := true; Exit end;
 
   // wow, this is actually MIDI player!
   // we need module player

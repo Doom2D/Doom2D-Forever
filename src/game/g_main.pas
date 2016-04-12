@@ -30,6 +30,8 @@ var
   charbuff: Array [0..15] of Char;
 
 procedure Main();
+var
+  sdlflags: LongWord;
 begin
   GetDir(0, GameDir);
   MapsDir := GameDir + '/maps/';
@@ -41,6 +43,8 @@ begin
 
   e_WriteLog('Read config file', MSG_NOTIFY);
   g_Options_Read(GameDir + '/' + CONFIG_FILENAME);
+  
+  e_WriteToStdOut := {$IFDEF HEADLESS}True;{$ELSE}False;{$ENDIF}
 
   //GetSystemDefaultLCID()
 
@@ -48,23 +52,32 @@ begin
   //g_Language_Load(DataDir + gLanguage + '.txt');
   e_WriteLog(gLanguage, MSG_NOTIFY);
   g_Language_Set(gLanguage);
-
-{$IFDEF USE_SDLMIXER}
-  if SDL_Init({SDL_INIT_JOYSTICK or SDL_INIT_TIMER or SDL_INIT_VIDEO or SDL_INIT_AUDIO}SDL_INIT_EVERYTHING) < 0 then
+  
+{$IFDEF HEADLESS}
+  sdlflags := SDL_INIT_TIMER or $00004000;
 {$ELSE}
-  if SDL_Init(SDL_INIT_JOYSTICK or SDL_INIT_TIMER or SDL_INIT_VIDEO) < 0 then
+ {$IFDEF USE_SDLMIXER}
+  sdlflags := SDL_INIT_EVERYTHING;
+ {$ELSE}
+  sdlflags := SDL_INIT_JOYSTICK or SDL_INIT_TIMER or SDL_INIT_VIDEO;
+ {$ENDIF}
 {$ENDIF}
+  if SDL_Init(sdlflags) < 0 then
     raise Exception.Create('SDL: Init failed: ' + SDL_GetError());
-
+    
+{$IFDEF HEADLESS}
   SDL_StartTextInput();
+{$ENDIF}
 
   e_WriteLog('Entering SDLMain', MSG_NOTIFY);
 
-  {$WARNINGS OFF}
+{$WARNINGS OFF}
   SDLMain();
-  {$WARNINGS ON}
+{$WARNINGS ON}
 
+{$IFDEF HEADLESS}
   SDL_StopTextInput();
+{$ENDIF}
 
   e_WriteLog('Releasing SDL', MSG_NOTIFY);
   SDL_Quit();
@@ -84,10 +97,10 @@ begin
   else
     e_WriteLog('Input: No Joysticks.', MSG_NOTIFY);
 
-  if not gNoSound then
+  if (not gNoSound) then
   begin
     e_WriteLog('Initializing sound system', MSG_NOTIFY);
-    e_InitSoundSystem();
+    e_InitSoundSystem({$IFDEF HEADLESS}True{$ELSE}False{$ENDIF});
   end;
 
   e_WriteLog('Init game', MSG_NOTIFY);

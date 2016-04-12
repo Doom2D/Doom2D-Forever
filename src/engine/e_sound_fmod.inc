@@ -50,7 +50,7 @@ type
 const
   NO_SOUND_ID = DWORD(-1);
 
-function e_InitSoundSystem(): Boolean;
+function e_InitSoundSystem(NoOutput: Boolean = False): Boolean;
 
 function e_LoadSound(FileName: string; var ID: DWORD; bLoop: Boolean): Boolean;
 function e_LoadSoundMem(pData: Pointer; Length: Integer; var ID: DWORD; bLoop: Boolean): Boolean;
@@ -134,7 +134,7 @@ begin
   end;
 end;
 
-function e_TrySS (Freq: Integer; forceNoSound: Boolean): Boolean;
+function e_TrySS (Freq: Integer; forceNoSound: Integer): Boolean;
 var
   res: FMOD_RESULT;
   ver: Cardinal;
@@ -175,24 +175,36 @@ begin
     Exit;
   end;
 
-  res := FMOD_System_Init(F_System, N_CHANNELS, FMOD_INIT_NORMAL, nil);
-  if res <> FMOD_OK then
+  if forceNoSound = 2 then
   begin
-    e_WriteLog('Error initializing FMOD system!', MSG_WARNING);
-    e_WriteLog(FMOD_ErrorString(res), MSG_WARNING);
-
-    {$IFDEF LINUX}
-    res := TryInitWithOutput(FMOD_OUTPUTTYPE_ALSA, 'OUTPUTTYPE_ALSA');
-    if res <> FMOD_OK then
-      res := TryInitWithOutput(FMOD_OUTPUTTYPE_OSS, 'OUTPUTTYPE_OSS');
-    {$ENDIF}
-    if (res <> FMOD_OK) and not forceNoSound then Exit;
-    if res <> FMOD_OK then
-      res := TryInitWithOutput(FMOD_OUTPUTTYPE_NOSOUND, 'OUTPUTTYPE_NOSOUND');
+    res := TryInitWithOutput(FMOD_OUTPUTTYPE_NOSOUND, 'OUTPUTTYPE_NOSOUND');
     if res <> FMOD_OK then
     begin
-      e_WriteLog('FMOD: Giving up, can''t init any output.', MSG_FATALERROR);
+      e_WriteLog('FMOD: Giving up, can''t init with NOSOUND.', MSG_FATALERROR);
       Exit;
+    end;
+  end
+  else
+  begin
+    res := FMOD_System_Init(F_System, N_CHANNELS, FMOD_INIT_NORMAL, nil);
+    if res <> FMOD_OK then
+    begin
+      e_WriteLog('Error initializing FMOD system!', MSG_WARNING);
+      e_WriteLog(FMOD_ErrorString(res), MSG_WARNING);
+
+      {$IFDEF LINUX}
+      res := TryInitWithOutput(FMOD_OUTPUTTYPE_ALSA, 'OUTPUTTYPE_ALSA');
+      if res <> FMOD_OK then
+        res := TryInitWithOutput(FMOD_OUTPUTTYPE_OSS, 'OUTPUTTYPE_OSS');
+      {$ENDIF}
+      if (res <> FMOD_OK) and (forceNoSound <> 1) then Exit;
+      if res <> FMOD_OK then
+        res := TryInitWithOutput(FMOD_OUTPUTTYPE_NOSOUND, 'OUTPUTTYPE_NOSOUND');
+      if res <> FMOD_OK then
+      begin
+        e_WriteLog('FMOD: Giving up, can''t init any output.', MSG_FATALERROR);
+        Exit;
+      end;
     end;
   end;
 
@@ -222,10 +234,15 @@ begin
   Result := True;
 end;
 
-function e_InitSoundSystem(): Boolean;
+function e_InitSoundSystem(NoOutput: Boolean = False): Boolean;
 begin
-  Result := e_TrySS(48000, False);
-  if not Result then Result := e_TrySS(44100, True);
+  if NoOutput then
+  begin
+    Result := e_TrySS(48000, 2);
+    Exit;
+  end;
+  Result := e_TrySS(48000, 0);
+  if not Result then Result := e_TrySS(44100, 1);
 end;
 
 function FindESound(): DWORD;

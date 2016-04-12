@@ -28,7 +28,7 @@ implementation
 uses
   g_textures, g_main, e_graphics, e_input, g_game,
   SysUtils, g_basic, g_options, WADEDITOR, Math,
-  g_menu, g_language, g_net, g_netmsg;
+  g_menu, g_language, g_net, g_netmsg, e_log;
 
 type
   TCmdProc = procedure (P: SArray);
@@ -820,6 +820,10 @@ begin
       Time := MsgTime;
     end;
   end;
+  
+{$IFDEF HEADLESS}
+  e_WriteLog('CON: ' + L, MSG_NOTIFY);
+{$ENDIF}
 end;
 
 procedure g_Console_Clear();

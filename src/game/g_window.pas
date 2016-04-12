@@ -73,6 +73,11 @@ function g_Window_SetDisplay(PreserveGL: Boolean = False): Boolean;
 var
   mode, cmode: TSDL_DisplayMode;
 begin
+{$IFDEF HEADLESS}
+  Result := True;
+  Exit;
+{$ENDIF}
+  
   Result := False;
 
   e_WriteLog('Setting display mode...', MSG_NOTIFY);
@@ -126,7 +131,7 @@ var
   res, i, k, n, pw, ph: Integer;
 begin
   SetLength(Result, 0);
-
+  {$IFDEF HEADLESS}Exit;{$ENDIF}
   k := 0; SelRes := 0;
   n := SDL_GetNumDisplayModes(0);
   pw := 0; ph := 0;
@@ -156,6 +161,7 @@ procedure ChangeWindowSize();
 begin
   gWinSizeX := gScreenWidth;
   gWinSizeY := gScreenHeight;
+  {$IFDEF HEADLESS}Exit;{$ENDIF}
   e_ResizeWindow(gScreenWidth, gScreenHeight);
   g_Game_SetupScreenSize();
   g_Menu_Reset();
@@ -167,6 +173,7 @@ var
   Preserve: Boolean;
 begin
   Result := False;
+  {$IFDEF HEADLESS}Exit;{$ENDIF}
   Preserve := False;
 
   if (gScreenWidth <> W) or (gScreenHeight <> H) then
@@ -383,6 +390,7 @@ end;
 
 procedure SwapBuffers();
 begin
+  {$IFDEF HEADLESS}Exit;{$ENDIF}
   SDL_GL_SwapWindow(h_Wnd);
 end;
 
@@ -414,9 +422,10 @@ begin
     exit;
   end;
 
+{$IFNDEF HEADLESS}
   h_Gl := SDL_GL_CreateContext(h_Wnd);
   if h_Gl = nil then Exit;
-
+{$ENDIF}
   //wWindowCreated := True;
 
   e_ResizeWindow(gScreenWidth, gScreenHeight);
@@ -588,6 +597,7 @@ procedure InitOpenGL(VSync: Boolean);
 var
   v: Byte;
 begin
+  {$IFDEF HEADLESS}Exit;{$ENDIF}
   if VSync then v := 1 else v := 0;
   SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
   SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
@@ -601,6 +611,10 @@ end;
 
 function SDLMain(): Integer;
 begin
+{$IFDEF HEADLESS}
+  e_NoGraphics := True;
+{$ENDIF}
+
   e_WriteLog('Creating GL window', MSG_NOTIFY);
   if not CreateGLWindow(PChar(Format('Doom 2D: Forever %s', [GAME_VERSION]))) then
   begin

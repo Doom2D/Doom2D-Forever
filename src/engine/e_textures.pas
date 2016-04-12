@@ -18,6 +18,7 @@ type
   end;
 
 var
+  e_DummyTextures: Boolean = False;
   TEXTUREFILTER: Integer = GL_NEAREST;
 
 function CreateTexture(var tex: GLTexture; Width, Height, aFormat: Word; pData: Pointer ): Boolean;
@@ -94,6 +95,13 @@ begin
     e_WriteLog(Format('NPOT: orig is %ux%u; gl is %ux%u; u=%f; v=%f', [Width, Height, tex.glwidth, tex.glheight, tex.u, tex.v]), MSG_NOTIFY);
   end;
 
+  if e_DummyTextures then
+  begin
+    tex.id := GLuint(-1);
+    Result := True;
+    Exit;
+  end;
+  
   glGenTextures(1, @Texture);
   tex.id := Texture;
   glBindTexture(GL_TEXTURE_2D, Texture);

@@ -15,6 +15,9 @@ procedure e_WriteLog(TextLine: String; RecordCategory: TRecordCategory;
                      WriteTime: Boolean = True);
 function DecodeIPV4(ip: LongWord): string;
 
+var
+  e_WriteToStdOut: Boolean = False;
+
 implementation
 
 var
@@ -33,6 +36,7 @@ procedure e_WriteLog(TextLine: String; RecordCategory: TRecordCategory;
 var
   LogFile: TextFile;
   Prefix: ShortString = '';
+  OutStr: String;
 begin
   if FileName = '' then Exit;
 
@@ -54,9 +58,12 @@ begin
         MSG_NOTIFY:     Prefix := '***';
       end;
       if WriteTime then
-        Writeln(LogFile, '['+TimeToStr(Time)+'] '+Prefix+' '+TextLine)
+        OutStr := '['+TimeToStr(Time)+'] '+Prefix+' '+TextLine
       else
-        Writeln(LogFile, Prefix+' '+TextLine);
+        OutStr := Prefix+' '+TextLine;  
+      Writeln(LogFile, OutStr);
+      if e_WriteToStdOut then
+        Writeln(OutStr);
     finally
       Close(LogFile);
     end;

@@ -6306,7 +6306,7 @@ begin
     if (s <> '') then
     begin
       gMapToDelete := MapsDir + map;
-      e_WriteLog('"--testdelete" argument doesn''t supported anymore!', MSG_FATALERROR);
+      e_WriteLog('"--testdelete" is deprecated, use --tempdelete.', MSG_FATALERROR);
       Halt(1);
     end;
 

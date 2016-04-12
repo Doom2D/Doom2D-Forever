@@ -309,8 +309,8 @@ begin
   end;
 
   WAD.Free();
-
-  if not ok then
+{$IFNDEF HEADLESS}
+  if (not ok) then
   begin
     if isMusic then
       e_WriteLog(Format('Error loading music %s', [Resource]), MSG_WARNING)
@@ -318,7 +318,7 @@ begin
       e_WriteLog(Format('Error loading sound %s', [Resource]), MSG_WARNING);
     Exit;
   end;
-
+{$ENDIF}
   Result := True;
 end;
 
@@ -359,8 +359,8 @@ begin
   end;
 
   WAD.Free();
-
-  if not ok then
+{$IFNDEF HEADLESS}
+  if (not ok) then
   begin
     if isMusic then
       e_WriteLog(Format('Error loading music %s', [Resource]), MSG_WARNING)
@@ -368,7 +368,7 @@ begin
       e_WriteLog(Format('Error loading sound %s', [Resource]), MSG_WARNING);
     Exit;
   end;
-
+{$ENDIF}
   Result := True;
 end;
 

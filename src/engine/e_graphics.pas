@@ -102,9 +102,6 @@ procedure e_Clear(Mask: TGLbitfield; Red, Green, Blue: Single); overload;
 procedure e_Clear(); overload;
 procedure e_EndRender();
 
-procedure e_SaveGLContext();
-procedure e_RestoreGLContext();
-
 function e_GetGamma(win: PSDL_Window): Byte;
 procedure e_SetGamma(win: PSDL_Window;Gamma: Byte);
 
@@ -118,6 +115,7 @@ function _TRect(L, T, R, B: LongInt): TRect;
 
 var
   e_Colors: TRGB;
+  e_NoGraphics: Boolean = False;
 
 implementation
 
@@ -167,11 +165,16 @@ var
 //------------------------------------------------------------------
 procedure e_InitGL();
 begin
-  glDisable(GL_DEPTH_TEST);
-  glEnable(GL_SCISSOR_TEST);
+  if e_NoGraphics then
+  begin
+    e_DummyTextures := True;
+    Exit;
+  end;
   e_Colors.R := 255;
   e_Colors.G := 255;
   e_Colors.B := 255;
+  glDisable(GL_DEPTH_TEST);
+  glEnable(GL_SCISSOR_TEST);
   glClearColor(0, 0, 0, 0);
 end;
 
@@ -180,6 +183,7 @@ var
   mat: Array [0..15] of GLDouble;
 
 begin
+  if e_NoGraphics then Exit;
   glLoadIdentity();
   glScissor(X, Y, Width, Height);
   glViewport(X, Y, Width, Height);
@@ -337,15 +341,18 @@ var
 begin
  w := e_Textures[ID].Width;
  h := e_Textures[ID].Height;
- data := GetMemory(w*h*4);
- glEnable(GL_TEXTURE_2D);
- glBindTexture(GL_TEXTURE_2D, e_Textures[ID].tx.id);
- glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
 
  Result.Y := 0;
  Result.X := 0;
  Result.Width := w;
  Result.Height := h;
+ 
+ if e_NoGraphics then Exit;
+ 
+ data := GetMemory(w*h*4);
+ glEnable(GL_TEXTURE_2D);
+ glBindTexture(GL_TEXTURE_2D, e_Textures[ID].tx.id);
+ glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
 
  for y := h-1 downto 0 do
  begin
@@ -434,6 +441,7 @@ procedure e_Draw(ID: DWORD; X, Y: Integer; Alpha: Byte; AlphaChannel: Boolean;
 var
   u, v: Single;
 begin
+  if e_NoGraphics then Exit;
   glColor4ub(e_Colors.R, e_Colors.G, e_Colors.B, 255);
 
   if (Alpha > 0) or (AlphaChannel) or (Blending) then
@@ -491,6 +499,7 @@ procedure e_DrawSize(ID: DWORD; X, Y: Integer; Alpha: Byte; AlphaChannel: Boolea
 var
   u, v: Single;
 begin
+  if e_NoGraphics then Exit;
   glColor4ub(e_Colors.R, e_Colors.G, e_Colors.B, 255);
 
   if (Alpha > 0) or (AlphaChannel) or (Blending) then
@@ -528,6 +537,7 @@ procedure e_DrawSizeMirror(ID: DWORD; X, Y: Integer; Alpha: Byte; AlphaChannel: 
 var
   u, v: Single;
 begin
+  if e_NoGraphics then Exit;
   glColor4ub(e_Colors.R, e_Colors.G, e_Colors.B, 255);
 
   if (Alpha > 0) or (AlphaChannel) or (Blending) then
@@ -586,6 +596,7 @@ var
   X2, Y2, dx, w, h: Integer;
   u, v: Single;
 begin
+  if e_NoGraphics then Exit;
   glColor4ub(e_Colors.R, e_Colors.G, e_Colors.B, 255);
 
   if (Alpha > 0) or (AlphaChannel) or (Blending) then
@@ -660,6 +671,7 @@ procedure e_DrawAdv(ID: DWORD; X, Y: Integer; Alpha: Byte; AlphaChannel: Boolean
 var
   u, v: Single;
 begin
+  if e_NoGraphics then Exit;
   glColor4ub(e_Colors.R, e_Colors.G, e_Colors.B, 255);
 
   if (Alpha > 0) or (AlphaChannel) or (Blending) then
@@ -726,6 +738,7 @@ end;
 
 procedure e_DrawPoint(Size: Byte; X, Y: Integer; Red, Green, Blue: Byte);
 begin
+  if e_NoGraphics then Exit;
   glDisable(GL_TEXTURE_2D);
   glColor3ub(Red, Green, Blue);
   glPointSize(Size);
@@ -766,6 +779,7 @@ procedure e_DrawQuad(X1, Y1, X2, Y2: Integer; Red, Green, Blue: Byte; Alpha: Byt
 var
   nX1, nY1, nX2, nY2: Integer;
 begin
+  if e_NoGraphics then Exit;
   // Only top-left/bottom-right quad
   if X1 > X2 then
   begin
@@ -825,6 +839,7 @@ end;
 procedure e_DrawFillQuad(X1, Y1, X2, Y2: Integer; Red, Green, Blue, Alpha: Byte;
                          Blending: TBlending = B_NONE);
 begin
+  if e_NoGraphics then Exit;
   if (Alpha > 0) or (Blending <> B_NONE) then
     glEnable(GL_BLEND)
   else
@@ -862,6 +877,7 @@ end;
 
 procedure e_DrawLine(Width: Byte; X1, Y1, X2, Y2: Integer; Red, Green, Blue: Byte; Alpha: Byte = 0);
 begin
+  if e_NoGraphics then Exit;
   // Pixel-perfect lines
   if Width = 1 then
     e_LineCorrection(X1, Y1, X2, Y2);
@@ -892,7 +908,8 @@ end;
 //------------------------------------------------------------------
 procedure e_DeleteTexture(ID: DWORD);
 begin
-  glDeleteTextures(1, @e_Textures[ID].tx.id);
+  if not e_NoGraphics then
+    glDeleteTextures(1, @e_Textures[ID].tx.id);
   e_Textures[ID].tx.id := 0;
   e_Textures[ID].Width := 0;
   e_Textures[ID].Height := 0;
@@ -923,29 +940,34 @@ end;
 
 procedure e_BeginRender();
 begin
+  if e_NoGraphics then Exit;
   glEnable(GL_ALPHA_TEST);
   glAlphaFunc(GL_GREATER, 0.0);
 end;
 
 procedure e_Clear(Mask: TGLbitfield; Red, Green, Blue: Single); overload;
 begin
- glClearColor(Red, Green, Blue, 0);
- glClear(Mask);
+  if e_NoGraphics then Exit;
+  glClearColor(Red, Green, Blue, 0);
+  glClear(Mask);
 end;
 
 procedure e_Clear(); overload;
 begin
- glClearColor(0, 0, 0, 0);
- glClear(GL_COLOR_BUFFER_BIT);
+  if e_NoGraphics then Exit;
+  glClearColor(0, 0, 0, 0);
+  glClear(GL_COLOR_BUFFER_BIT);
 end;
 
 procedure e_EndRender();
 begin
+  if e_NoGraphics then Exit;
   glPopMatrix();
 end;
 
 procedure e_MakeScreenshot(FileName: String; Width, Height: Word);
 begin
+  if e_NoGraphics then Exit;
 end;
 
 {type
@@ -1025,6 +1047,8 @@ var
   A, B: double;
   i, j: integer;
 begin
+ Result := 0;
+ if e_NoGraphics then Exit;
  rgb[0] := 1.0;
  rgb[1] := 1.0;
  rgb[2] := 1.0;
@@ -1059,6 +1083,7 @@ var
   r: double;
   g: double;
 begin
+ if e_NoGraphics then Exit;
  g := (100 - Gamma)*(2.7 - 0.23)/100 + 0.23;
 
  for i := 0 to 255 do
@@ -1125,6 +1150,7 @@ procedure e_CharFont_Print(FontID: DWORD; X, Y: Integer; Text: string);
 var
   a: Integer;
 begin
+ if e_NoGraphics then Exit;
  if Text = '' then Exit;
  if e_CharFonts = nil then Exit;
  if Integer(FontID) > High(e_CharFonts) then Exit;
@@ -1147,6 +1173,7 @@ var
   a: Integer;
   c: TRGB;
 begin
+ if e_NoGraphics then Exit;
  if Text = '' then Exit;
  if e_CharFonts = nil then Exit;
  if Integer(FontID) > High(e_CharFonts) then Exit;
@@ -1181,6 +1208,7 @@ var
   tc, c: TRGB;
   w, h: Word;
 begin
+  if e_NoGraphics then Exit;
   if Text = '' then Exit;
   if e_CharFonts = nil then Exit;
   if Integer(FontID) > High(e_CharFonts) then Exit;
@@ -1397,6 +1425,7 @@ var
   cx, cy : real;
   i, id: DWORD;
 begin
+ if e_NoGraphics then Exit;
  e_WriteLog('Creating texture font...', MSG_NOTIFY);
 
  id := DWORD(-1);
@@ -1454,56 +1483,16 @@ begin
  FontID := id;
 end;
 
-procedure e_TextureFontBuildInPlace(id: DWORD);
-var
-  loop1 : GLuint;
-  cx, cy : real;
-  XCount, YCount, Space: Integer;
-  {i,} Tex: DWORD;
-begin
- with e_TextureFonts[id] do
- begin
-  Base := glGenLists(XC*YC);
-  TextureID := e_Textures[Texture].tx.id;
-  XCount := XC;
-  YCount := YC;
-  Space := SPC;
-  Tex := Texture;
- end;
-
- glBindTexture(GL_TEXTURE_2D, e_Textures[Tex].tx.id);
- for loop1 := 0 to XCount*YCount-1 do
- begin
-  cx := (loop1 mod XCount)/XCount;
-  cy := (loop1 div YCount)/YCount;
-
-  glNewList(e_TextureFonts[id].Base+loop1, GL_COMPILE);
-   glBegin(GL_QUADS);
-    glTexCoord2f(cx, 1.0-cy-1/YCount);
-    glVertex2d(0, e_Textures[Tex].Height div YCount);
-
-    glTexCoord2f(cx+1/XCount, 1.0-cy-1/YCount);
-    glVertex2i(e_Textures[Tex].Width div XCount, e_Textures[Tex].Height div YCount);
-
-    glTexCoord2f(cx+1/XCount, 1.0-cy);
-    glVertex2i(e_Textures[Tex].Width div XCount, 0);
-
-    glTexCoord2f(cx, 1.0-cy);
-    glVertex2i(0, 0);
-   glEnd();
-   glTranslated((e_Textures[Tex].Width div XCount)+Space, 0, 0);
-  glEndList();
- end;
-end;
-
 procedure e_TextureFontKill(FontID: DWORD);
 begin
+  if e_NoGraphics then Exit;
   glDeleteLists(e_TextureFonts[FontID].Base, 256);
   e_TextureFonts[FontID].Base := 0;
 end;
 
 procedure e_TextureFontPrint(X, Y: GLint; Text: string; FontID: DWORD);
 begin
+  if e_NoGraphics then Exit;
   if Integer(FontID) > High(e_TextureFonts) then Exit;
   if Text = '' then Exit;
 
@@ -1527,6 +1516,7 @@ end;
 // god forgive me for this, but i cannot figure out how to do it without lists
 procedure e_TextureFontPrintChar(X, Y: Integer; Ch: Char; FontID: DWORD; Shadow: Boolean = False);
 begin
+  if e_NoGraphics then Exit;
   glPushMatrix;
 
   if Shadow then
@@ -1551,6 +1541,7 @@ var
   tc, c: TRGB;
   w: Word;
 begin
+  if e_NoGraphics then Exit;
   if Text = '' then Exit;
   if e_TextureFonts = nil then Exit;
   if Integer(FontID) > High(e_TextureFonts) then Exit;
@@ -1640,6 +1631,7 @@ end;
 procedure e_TextureFontPrintEx(X, Y: GLint; Text: string; FontID: DWORD; Red, Green,
                     Blue: Byte; Scale: Single; Shadow: Boolean = False);
 begin
+  if e_NoGraphics then Exit;
   if Text = '' then Exit;
 
   glPushMatrix;
@@ -1673,6 +1665,9 @@ end;
 
 procedure e_TextureFontGetSize(ID: DWORD; var CharWidth, CharHeight: Byte);
 begin
+  CharWidth := 16;
+  CharHeight := 16;
+  if e_NoGraphics then Exit;
   if Integer(ID) > High(e_TextureFonts) then
     Exit;
   CharWidth := e_TextureFonts[ID].CharWidth;
@@ -1683,6 +1678,7 @@ procedure e_RemoveAllTextureFont();
 var
  i: integer;
 begin
+ if e_NoGraphics then Exit;
  if e_TextureFonts = nil then Exit;
 
  for i := 0 to High(e_TextureFonts) do
@@ -1694,94 +1690,6 @@ begin
 
  e_TextureFonts := nil;
 end;
-
-procedure e_SaveGLContext();
-var
-  PxLen: Cardinal;
-  i: Integer;
-begin
-  e_WriteLog('Backing up GL context:', MSG_NOTIFY);
-
-  glPushAttrib(GL_ALL_ATTRIB_BITS);
-  glPushClientAttrib(GL_CLIENT_ALL_ATTRIB_BITS);
-
-  if e_Textures <> nil then
-  begin
-    e_WriteLog('  Backing up textures...', MSG_NOTIFY);
-    SetLength(e_SavedTextures, Length(e_Textures));
-    for i := Low(e_Textures) to High(e_Textures) do
-    begin
-      e_SavedTextures[i].Pixels := nil;
-      if e_Textures[i].Width > 0 then
-      begin
-        with e_SavedTextures[i] do
-        begin
-          PxLen := 3;
-          if e_Textures[i].Fmt = GL_RGBA then Inc(PxLen);
-          Pixels := GetMem(PxLen * e_Textures[i].Width * e_Textures[i].Height);
-          glBindTexture(GL_TEXTURE_2D, e_Textures[i].tx.id);
-          glGetTexImage(GL_TEXTURE_2D, 0, e_Textures[i].Fmt, GL_UNSIGNED_BYTE, Pixels);
-          glBindTexture(GL_TEXTURE_2D, 0);
-          OldID := e_Textures[i].tx.id;
-          TexId := i;
-        end;
-      end;
-    end;
-  end;
-
-  if e_TextureFonts <> nil then
-  begin
-    e_WriteLog('  Releasing texturefonts...', MSG_NOTIFY);
-    for i := 0 to High(e_TextureFonts) do
-      if e_TextureFonts[i].Base <> 0 then
-      begin
-       glDeleteLists(e_TextureFonts[i].Base, 256);
-       e_TextureFonts[i].Base := 0;
-      end;
-  end;
-end;
-
-procedure e_RestoreGLContext();
-var
-  //GLID: GLuint;
-  i: Integer;
-begin
-  e_WriteLog('Restoring GL context:', MSG_NOTIFY);
-
-  glPopClientAttrib();
-  glPopAttrib();
-
-  if e_SavedTextures <> nil then
-  begin
-    e_WriteLog('  Regenerating textures...', MSG_NOTIFY);
-    for i := Low(e_SavedTextures) to High(e_SavedTextures) do
-    begin
-      if e_SavedTextures[i].Pixels <> nil then
-        with e_SavedTextures[i] do
-        begin
-          CreateTexture(e_Textures[TexID].tx, e_Textures[TexID].Width, e_Textures[TexID].Height, e_Textures[TexID].Fmt, Pixels);
-          //GLID := CreateTexture(e_Textures[TexID].Width, e_Textures[TexID].Height, e_Textures[TexID].Fmt, Pixels);
-          //e_Textures[TexID].tx := GLID;
-          FreeMem(Pixels);
-        end;
-    end;
-  end;
-
-  if e_TextureFonts <> nil then
-  begin
-    e_WriteLog('  Regenerating texturefonts...', MSG_NOTIFY);
-    for i := Low(e_TextureFonts) to High(e_TextureFonts) do
-      with e_TextureFonts[i] do
-      begin
-        TextureID := e_Textures[Texture].tx.id;
-        Base := 0;
-        e_TextureFontBuildInPlace(i);
-      end;
-  end;
-
-  SetLength(e_SavedTextures, 0);
-end;
-
 
 function _RGB(Red, Green, Blue: Byte): TRGB;
 begin

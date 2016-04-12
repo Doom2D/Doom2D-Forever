@@ -1,6 +1,8 @@
 program Doom2DF;
-{$IFDEF WIN32}
-  {$APPTYPE GUI}
+{$IFNDEF HEADLESS}
+  {$IFDEF WIN32}
+    {$APPTYPE GUI}
+  {$ENDIF}
 {$ENDIF}
 {$HINTS OFF}
 
