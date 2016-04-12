@@ -236,36 +236,49 @@ end;
 
 function TWADEditor_1.ReadFile (FileName: string): Boolean;
 var
-  rfn: string;
+  rfn, path: string;
   //f: Integer;
   //fi: TSFSFileInfo;
 begin
   Result := False;
   //e_WriteLog(Format('TWADEditor_1.ReadFile: [%s]', [FileName]), MSG_NOTIFY);
   FreeWAD();
-  rfn := FileName;
-  if not FileExists(rfn) then
+  path := ExtractFilePath(FileName);
+  rfn := ExtractFileName(FileName);
+  if not sfsFindFileCI(path, rfn) then
   begin
-    //if length(rfn) >= 4 then e_WriteLog(Format('XXXX TWADEditor_1.ReadFile: [%s] [%s]', [Copy(rfn, length(rfn)-3, 4), Copy(rfn, 1, length(rfn)-4)]), MSG_NOTIFY);
-    if (length(rfn) >= 4) and SFSStrEqu(Copy(rfn, length(rfn)-3, 4), '.wad') then
+    //{if gSFSDebug then} e_WriteLog(Format('TWADEditor_1.ReadFile: error looking for [%s] [%s]', [path, ExtractFileName(FileName)]), MSG_NOTIFY);
+    if SFSStrEqu(ExtractFileExt(FileName), '.wad') then
     begin
-      rfn := Copy(rfn, 1, length(rfn)-4);
-           if FileExists(rfn+'.pk3') then rfn := rfn+'.pk3'
-      else if FileExists(rfn+'.zip') then rfn := rfn+'.zip'
-      else rfn := FileName;
-      {.$IFDEF SFS_DWFAD_DEBUG}
-      if gSFSDebug then
-        if FileExists(rfn) then e_WriteLog(Format('TWADEditor_1.ReadFile: FOUND [%s]', [rfn]), MSG_NOTIFY);
-      {.$ENDIF}
+      rfn := ChangeFileExt(ExtractFileName(FileName), '.pk3');
+      //{if gSFSDebug then} e_WriteLog(Format('  looking for [%s] [%s]', [path, rfn]), MSG_NOTIFY);
+      if not sfsFindFileCI(path, rfn) then
+      begin
+        //{if gSFSDebug then} e_WriteLog(Format('  looking for [%s] [%s]', [path, rfn]), MSG_NOTIFY);
+        rfn := ChangeFileExt(ExtractFileName(FileName), '.zip');
+        if not sfsFindFileCI(path, rfn) then exit;
+      end;
+    end
+    else
+    begin
+      exit;
     end;
+    //{if gSFSDebug then} e_WriteLog(Format('TWADEditor_1.ReadFile: FOUND [%s]', [rfn]), MSG_NOTIFY);
+  end
+  else
+  begin
+    //if rfn <> ExtractFileName(FileName) then e_WriteLog(Format('TWADEditor_1.ReadFile: FOUND [%s]', [rfn]), MSG_NOTIFY);
   end;
-  if not FileExists(rfn) then exit;
   {$IFDEF SFS_DWFAD_DEBUG}
-  if gSFSDebug then
-    e_WriteLog(Format('TWADEditor_1.ReadFile: FOUND [%s]', [rfn]), MSG_NOTIFY);
+  if gSFSDebug then e_WriteLog(Format('TWADEditor_1.ReadFile: FOUND [%s]', [rfn]), MSG_NOTIFY);
   {$ENDIF}
   // cache this wad
-  SFSAddDataFile(rfn);
+  rfn := path+rfn;
+  try
+    if not SFSAddDataFile(rfn) then exit;
+  except
+    exit;
+  end;
   fIter := SFSFileList(rfn);
   if fIter = nil then Exit;
   fFileName := rfn;

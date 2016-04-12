@@ -206,6 +206,10 @@ function SFSGetLastVirtualName (const fn: TSFSString): string;
 // преобразовать число в строку, красиво разбавляя запятыми
 function Int64ToStrComma (i: Int64): string;
 
+// `name` will be modified
+// return `true` if file was found
+function sfsFindFileCI (path: string; var name: string): Boolean;
+
 // Wildcard matching
 // this code is meant to allow wildcard pattern matches. tt is VERY useful
 // for matching filename wildcard patterns. tt allows unix grep-like pattern
@@ -264,6 +268,33 @@ begin
   begin
     Dec(f, 3); Insert(',', result, f);
   end;
+end;
+
+
+// `name` will be modified
+function sfsFindFileCI (path: string; var name: string): Boolean;
+var
+  sr: TSearchRec;
+  bestname: string = '';
+begin
+  if length(path) = 0 then path := '.';
+  while (length(path) > 0) and (path[length(path)] = '/') do Delete(path, length(path), 1);
+  if (length(path) = 0) or (path[length(path)] <> '/') then path := path+'/';
+  if FileExists(path+name) then begin result := true; exit; end;
+  if FindFirst(path+'*', faAnyFile, sr) = 0 then
+  repeat
+    if (sr.name = '.') or (sr.name = '..') then continue;
+    if (sr.attr and faDirectory) <> 0 then continue;
+    if sr.name = name then
+    begin
+      FindClose(sr);
+      result := true;
+      exit;
+    end;
+    if (length(bestname) = 0) and SFSStrEqu(sr.name, name) then bestname := sr.name;
+  until FindNext(sr) <> 0;
+  FindClose(sr);
+  if length(bestname) > 0 then begin result := true; name := bestname; end else result := false;
 end;
 
 
