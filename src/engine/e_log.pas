@@ -68,8 +68,12 @@ procedure e_InitLog(fFileName: String; fWriteMode: TWriteMode);
 begin
  FileName := fFileName;
  if fWriteMode = WM_NEWFILE then
-  if FileExists(FileName) then
-   DeleteFile(FileName);
+ begin
+   try
+     if FileExists(FileName) then DeleteFile(FileName);
+   except // sorry
+   end;
+ end;
  FirstRecord := True;
 end;
 
