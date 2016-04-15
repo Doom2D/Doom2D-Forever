@@ -215,6 +215,9 @@ var
   crc, psz, usz: LongWord;
   buf: packed array of Byte;
   bufPos, bufUsed: Integer;
+  efid, efsz: Word;
+  izver: Byte;
+  izcrc: LongWord;
 begin
   SetLength(buf, 0);
   // read local directory
@@ -230,12 +233,54 @@ begin
     fi.fPackSz := 0;
     fi.fMethod := 0;
 
+    //fi.fOfs := fFileStream.Position;
+
     fFileStream.ReadBuffer(lhdr, SizeOf(lhdr));
     if lhdr.fnameSz > 255 then name[0] := #255 else name[0] := chr(lhdr.fnameSz);
     fFileStream.ReadBuffer(name[1], Length(name));
     fFileStream.Seek(lhdr.fnameSz-Length(name), soCurrent); // rest of the name (if any)
-    fi.fName := name;
-    fFileStream.Seek(lhdr.localExtraSz, soCurrent);
+    fi.fName := utf8to1251(name);
+    //writeln(Format('0x%08x : %s', [Integer(fi.fOfs), name]));
+
+    // here we should process extra field: it may contain utf8 filename
+    //fFileStream.Seek(lhdr.localExtraSz, soCurrent);
+    while lhdr.localExtraSz >= 4 do
+    begin
+      efid := 0;
+      efsz := 0;
+      fFileStream.ReadBuffer(efid, 2);
+      fFileStream.ReadBuffer(efsz, 2);
+      Dec(lhdr.localExtraSz, 4);
+      if efsz > lhdr.localExtraSz then break;
+      // Info-ZIP Unicode Path Extra Field?
+      if (efid = $7075) and (efsz <= 255+5) and (efsz > 5) then
+      begin
+        fFileStream.ReadBuffer(izver, 1);
+        if izver <> 1 then
+        begin
+          // skip it
+          Dec(efsz, 1);
+        end
+        else
+        begin
+          Dec(lhdr.localExtraSz, efsz);
+          fFileStream.ReadBuffer(izcrc, 4); // name crc, ignore it
+          Dec(efsz, 5);
+          name[0] := chr(efsz);
+          fFileStream.ReadBuffer(name[1], Length(name));
+          fi.fName := utf8to1251(name);
+          break;
+        end;
+      end;
+      // skip it
+      if efsz > 0 then
+      begin
+        fFileStream.Seek(efsz, soCurrent);
+        Dec(lhdr.localExtraSz, efsz);
+      end;
+    end;
+    // skip the rest
+    if lhdr.localExtraSz > 0 then fFileStream.Seek(lhdr.localExtraSz, soCurrent);
 
     if (lhdr.flags and 1) <> 0 then
     begin
@@ -284,8 +329,7 @@ begin
           begin
             bufPos := 0;
             // int64!
-            if fFileStream.Size-fFileStream.Position > Length(buf) then
-              bufUsed := Length(buf)
+            if fFileStream.Size-fFileStream.Position > Length(buf) then bufUsed := Length(buf)
             else bufUsed := fFileStream.Size-fFileStream.Position;
             if bufUsed = 0 then raise ESFSError.Create('invalid ZIP file');
             fFileStream.ReadBuffer(buf[0], bufUsed);

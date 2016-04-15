@@ -169,7 +169,7 @@ begin
   begin
     fi := fIter.Files[f];
     if fi = nil then continue;
-    //e_WriteLog(Format('DFWAD: searching for [%s : %s] in [%s]; current is [%s : %s] (%d, %d)', [Section, Resource, fFileName, fi.path, fi.name, SFSStrEqu(fi.path, Section), SFSStrEqu(fi.name, Resource)]), MSG_NOTIFY);
+    //e_WriteLog(Format('DFWAD: searching for [%s : %s] in [%s]; current is [%s : %s]', [Section, Resource, fFileName, fi.path, fi.name]), MSG_NOTIFY);
     if {SFSStrEqu}SFSDFPathEqu(fi.path, Section) and SFSStrEqu(removeExt(fi.name), Resource) then
     begin
       // i found her!
