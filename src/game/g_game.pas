@@ -2293,7 +2293,7 @@ begin
       end;
 end;
 
-procedure DrawMinimap(p: TPlayer; RenderRect: TRect);
+procedure DrawMinimap(p: TPlayer; RenderRect: e_graphics.TRect);
 var
   a, aX, aY, aX2, aY2, Scale, ScaleSz: Integer;
 begin
@@ -2666,8 +2666,7 @@ begin
   p.DrawPain();
   p.DrawPickup();
   p.DrawRulez();
-  //if gShowMap then
-    //DrawMinimap(p, _TRect(0, 0, 128, 128));
+  if gShowMap then DrawMinimap(p, _TRect(0, 0, 128, 128));
   if g_Debug_Player then
     g_Player_DrawDebug(p);
   p.DrawGUI();

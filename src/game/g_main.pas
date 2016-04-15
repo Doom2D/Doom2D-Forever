@@ -24,7 +24,7 @@ uses
   e_graphics, e_input, g_game, g_console, g_gui,
   e_sound, g_options, g_sound, g_player,
   g_weapons, SysUtils, g_triggers, MAPDEF, g_map,
-  MAPSTRUCT, g_menu, g_language, g_net;
+  MAPSTRUCT, g_menu, g_language, g_net, sfs;
 
 var
   charbuff: Array [0..15] of Char;
@@ -163,13 +163,29 @@ begin
     end;
 end;
 
+
+function CheckCheat (ct: TStrings_Locale; eofs: Integer=0): Boolean;
+var
+  ls1, ls2: string;
+begin
+  ls1 :=          CheatEng[ct];
+  ls2 := Translit(CheatRus[ct]);
+  if length(ls1) = 0 then ls1 := '~';
+  if length(ls2) = 0 then ls2 := '~';
+  result :=
+    (Copy(charbuff, 17-Length(ls1)-eofs, Length(ls1)) = ls1) or
+    (Copy(charbuff, 17-Length(ls2)-eofs, Length(ls2)) = ls2) or
+    (Translit(Copy(charbuff, 17-Length(ls2)-eofs, Length(ls2))) = ls2);
+end;
+
+
 procedure Cheat();
 const
   CHEAT_DAMAGE = 500;
 label
   Cheated;
 var
-  s, s2, ls1, ls2: string;
+  s, s2: string;
   c: Char16;
   a: Integer;
 begin
@@ -180,40 +196,28 @@ begin
   s := 'SOUND_GAME_RADIO';
 
   //
-  ls1 :=          CheatEng[I_GAME_CHEAT_GODMODE];
-  ls2 := Translit(CheatRus[I_GAME_CHEAT_GODMODE]);
-  if (Copy(charbuff, 17 - Length(ls1), Length(ls1)) = ls1) or
-     (Copy(charbuff, 17 - Length(ls2), Length(ls2)) = ls2) then
+  if CheckCheat(I_GAME_CHEAT_GODMODE) then
   begin
     if gPlayer1 <> nil then gPlayer1.GodMode := not gPlayer1.GodMode;
     if gPlayer2 <> nil then gPlayer2.GodMode := not gPlayer2.GodMode;
     goto Cheated;
   end;
   // RAMBO
-  ls1 :=          CheatEng[I_GAME_CHEAT_WEAPONS];
-  ls2 := Translit(CheatRus[I_GAME_CHEAT_WEAPONS]);
-  if (Copy(charbuff, 17 - Length(ls1), Length(ls1)) = ls1) or
-     (Copy(charbuff, 17 - Length(ls2), Length(ls2)) = ls2) then
+  if CheckCheat(I_GAME_CHEAT_WEAPONS) then
   begin
     if gPlayer1 <> nil then gPlayer1.AllRulez(False);
     if gPlayer2 <> nil then gPlayer2.AllRulez(False);
     goto Cheated;
   end;
   // TANK
-  ls1 :=          CheatEng[I_GAME_CHEAT_HEALTH];
-  ls2 := Translit(CheatRus[I_GAME_CHEAT_HEALTH]);
-  if (Copy(charbuff, 17 - Length(ls1), Length(ls1)) = ls1) or
-     (Copy(charbuff, 17 - Length(ls2), Length(ls2)) = ls2) then
+  if CheckCheat(I_GAME_CHEAT_HEALTH) then
   begin
     if gPlayer1 <> nil then gPlayer1.AllRulez(True);
     if gPlayer2 <> nil then gPlayer2.AllRulez(True);
     goto Cheated;
   end;
   // IDDQD
-  ls1 :=          CheatEng[I_GAME_CHEAT_DEATH];
-  ls2 := Translit(CheatRus[I_GAME_CHEAT_DEATH]);
-  if (Copy(charbuff, 17 - Length(ls1), Length(ls1)) = ls1) or
-     (Copy(charbuff, 17 - Length(ls2), Length(ls2)) = ls2) then
+  if CheckCheat(I_GAME_CHEAT_DEATH) then
   begin
     if gPlayer1 <> nil then gPlayer1.Damage(CHEAT_DAMAGE, 0, 0, 0, HIT_TRAP);
     if gPlayer2 <> nil then gPlayer2.Damage(CHEAT_DAMAGE, 0, 0, 0, HIT_TRAP);
@@ -221,19 +225,13 @@ begin
     goto Cheated;
   end;
   //
-  ls1 :=          CheatEng[I_GAME_CHEAT_DOORS];
-  ls2 := Translit(CheatRus[I_GAME_CHEAT_DOORS]);
-  if (Copy(charbuff, 17 - Length(ls1), Length(ls1)) = ls1) or
-     (Copy(charbuff, 17 - Length(ls2), Length(ls2)) = ls2) then
+  if CheckCheat(I_GAME_CHEAT_DOORS) then
   begin
     g_Triggers_OpenAll();
     goto Cheated;
   end;
   // GOODBYE
-  ls1 :=          CheatEng[I_GAME_CHEAT_NEXTMAP];
-  ls2 := Translit(CheatRus[I_GAME_CHEAT_NEXTMAP]);
-  if (Copy(charbuff, 17 - Length(ls1), Length(ls1)) = ls1) or
-     (Copy(charbuff, 17 - Length(ls2), Length(ls2)) = ls2) then
+  if CheckCheat(I_GAME_CHEAT_NEXTMAP) then
   begin
     if gTriggers <> nil then
       for a := 0 to High(gTriggers) do
@@ -246,13 +244,8 @@ begin
     goto Cheated;
   end;
   //
-  ls1 :=          CheatEng[I_GAME_CHEAT_CHANGEMAP];
-  ls2 := Translit(CheatRus[I_GAME_CHEAT_CHANGEMAP]);
   s2 := Copy(charbuff, 15, 2);
-  if ((Copy(charbuff, 15 - Length(ls1), Length(ls1)) = ls1) or
-      (Copy(charbuff, 15 - Length(ls2), Length(ls2)) = ls2))
-     and (s2[1] >= '0') and (s2[1] <= '9')
-     and (s2[2] >= '0') and (s2[2] <= '9') then
+  if CheckCheat(I_GAME_CHEAT_CHANGEMAP, 2) and (s2[1] >= '0') and (s2[1] <= '9') and (s2[2] >= '0') and (s2[2] <= '9') then
   begin
     if g_Map_Exist(MapsDir+gGameSettings.WAD+':\MAP'+s2) then
     begin
@@ -264,114 +257,78 @@ begin
     goto Cheated;
   end;
   //
-  ls1 :=          CheatEng[I_GAME_CHEAT_FLY];
-  ls2 := Translit(CheatRus[I_GAME_CHEAT_FLY]);
-  if (Copy(charbuff, 17 - Length(ls1), Length(ls1)) = ls1) or
-     (Copy(charbuff, 17 - Length(ls2), Length(ls2)) = ls2) then
+  if CheckCheat(I_GAME_CHEAT_FLY) then
   begin
     gFly := not gFly;
     goto Cheated;
   end;
   // BULLFROG
-  ls1 :=          CheatEng[I_GAME_CHEAT_JUMPS];
-  ls2 := Translit(CheatRus[I_GAME_CHEAT_JUMPS]);
-  if (Copy(charbuff, 17 - Length(ls1), Length(ls1)) = ls1) or
-     (Copy(charbuff, 17 - Length(ls2), Length(ls2)) = ls2) then
+  if CheckCheat(I_GAME_CHEAT_JUMPS) then
   begin
     VEL_JUMP := 30-VEL_JUMP;
     goto Cheated;
   end;
   // FORMULA1
-  ls1 :=          CheatEng[I_GAME_CHEAT_SPEED];
-  ls2 := Translit(CheatRus[I_GAME_CHEAT_SPEED]);
-  if (Copy(charbuff, 17 - Length(ls1), Length(ls1)) = ls1) or
-     (Copy(charbuff, 17 - Length(ls2), Length(ls2)) = ls2) then
+  if CheckCheat(I_GAME_CHEAT_SPEED) then
   begin
     MAX_RUNVEL := 32-MAX_RUNVEL;
     goto Cheated;
   end;
   // CONDOM
-  ls1 :=          CheatEng[I_GAME_CHEAT_SUIT];
-  ls2 := Translit(CheatRus[I_GAME_CHEAT_SUIT]);
-  if (Copy(charbuff, 17 - Length(ls1), Length(ls1)) = ls1) or
-     (Copy(charbuff, 17 - Length(ls2), Length(ls2)) = ls2) then
+  if CheckCheat(I_GAME_CHEAT_SUIT) then
   begin
     if gPlayer1 <> nil then gPlayer1.GiveItem(ITEM_SUIT);
     if gPlayer2 <> nil then gPlayer2.GiveItem(ITEM_SUIT);
     goto Cheated;
   end;
   //
-  ls1 :=          CheatEng[I_GAME_CHEAT_AIR];
-  ls2 := Translit(CheatRus[I_GAME_CHEAT_AIR]);
-  if (Copy(charbuff, 17 - Length(ls1), Length(ls1)) = ls1) or
-     (Copy(charbuff, 17 - Length(ls2), Length(ls2)) = ls2) then
+  if CheckCheat(I_GAME_CHEAT_AIR) then
   begin
     if gPlayer1 <> nil then gPlayer1.GiveItem(ITEM_OXYGEN);
     if gPlayer2 <> nil then gPlayer2.GiveItem(ITEM_OXYGEN);
     goto Cheated;
   end;
   // PURELOVE
-  ls1 :=          CheatEng[I_GAME_CHEAT_BERSERK];
-  ls2 := Translit(CheatRus[I_GAME_CHEAT_BERSERK]);
-  if (Copy(charbuff, 17 - Length(ls1), Length(ls1)) = ls1) or
-     (Copy(charbuff, 17 - Length(ls2), Length(ls2)) = ls2) then
+  if CheckCheat(I_GAME_CHEAT_BERSERK) then
   begin
     if gPlayer1 <> nil then gPlayer1.GiveItem(ITEM_MEDKIT_BLACK);
     if gPlayer2 <> nil then gPlayer2.GiveItem(ITEM_MEDKIT_BLACK);
     goto Cheated;
   end;
   //
-  ls1 :=          CheatEng[I_GAME_CHEAT_JETPACK];
-  ls2 := Translit(CheatRus[I_GAME_CHEAT_JETPACK]);
-  if (Copy(charbuff, 17 - Length(ls1), Length(ls1)) = ls1) or
-     (Copy(charbuff, 17 - Length(ls2), Length(ls2)) = ls2) then
+  if CheckCheat(I_GAME_CHEAT_JETPACK) then
   begin
     if gPlayer1 <> nil then gPlayer1.GiveItem(ITEM_JETPACK);
     if gPlayer2 <> nil then gPlayer2.GiveItem(ITEM_JETPACK);
     goto Cheated;
   end;
   // CASPER
-  ls1 :=          CheatEng[I_GAME_CHEAT_NOCLIP];
-  ls2 := Translit(CheatRus[I_GAME_CHEAT_NOCLIP]);
-  if (Copy(charbuff, 17 - Length(ls1), Length(ls1)) = ls1) or
-     (Copy(charbuff, 17 - Length(ls2), Length(ls2)) = ls2) then
+  if CheckCheat(I_GAME_CHEAT_NOCLIP) then
   begin
     if gPlayer1 <> nil then gPlayer1.SwitchNoClip;
     if gPlayer2 <> nil then gPlayer2.SwitchNoClip;
     goto Cheated;
   end;
   //
-  ls1 :=          CheatEng[I_GAME_CHEAT_NOTARGET];
-  ls2 := Translit(CheatRus[I_GAME_CHEAT_NOTARGET]);
-  if (Copy(charbuff, 17 - Length(ls1), Length(ls1)) = ls1) or
-     (Copy(charbuff, 17 - Length(ls2), Length(ls2)) = ls2) then
+  if CheckCheat(I_GAME_CHEAT_NOTARGET) then
   begin
     if gPlayer1 <> nil then gPlayer1.NoTarget := not gPlayer1.NoTarget;
     if gPlayer2 <> nil then gPlayer2.NoTarget := not gPlayer2.NoTarget;
     goto Cheated;
   end;
   // INFERNO
-  ls1 :=          CheatEng[I_GAME_CHEAT_NORELOAD];
-  ls2 := Translit(CheatRus[I_GAME_CHEAT_NORELOAD]);
-  if (Copy(charbuff, 17 - Length(ls1), Length(ls1)) = ls1) or
-     (Copy(charbuff, 17 - Length(ls2), Length(ls2)) = ls2) then
+  if CheckCheat(I_GAME_CHEAT_NORELOAD) then
   begin
     if gPlayer1 <> nil then gPlayer1.NoReload := not gPlayer1.NoReload;
     if gPlayer2 <> nil then gPlayer2.NoReload := not gPlayer2.NoReload;
     goto Cheated;
   end;
-  ls1 :=          CheatEng[I_GAME_CHEAT_AIMLINE];
-  ls2 := Translit(CheatRus[I_GAME_CHEAT_AIMLINE]);
-  if (Copy(charbuff, 17 - Length(ls1), Length(ls1)) = ls1) or
-     (Copy(charbuff, 17 - Length(ls2), Length(ls2)) = ls2) then
+  if CheckCheat(I_GAME_CHEAT_AIMLINE) then
   begin
     gAimLine := not gAimLine;
     goto Cheated;
   end;
-  ls1 :=          CheatEng[I_GAME_CHEAT_AUTOMAP];
-  ls2 := Translit(CheatRus[I_GAME_CHEAT_AUTOMAP]);
-  if (Copy(charbuff, 17 - Length(ls1), Length(ls1)) = ls1) or
-     (Copy(charbuff, 17 - Length(ls2), Length(ls2)) = ls2) then
+  if CheckCheat(I_GAME_CHEAT_AUTOMAP) then
   begin
     gShowMap := not gShowMap;
     goto Cheated;
@@ -511,9 +468,8 @@ begin
     end
     else
     begin
-      for a := 0 to 14 do
-        charbuff[a] := charbuff[a+1];
-      charbuff[15] := UpCase(C);
+      for a := 0 to 14 do charbuff[a] := charbuff[a+1];
+      charbuff[15] := SFSUpCase(C);
       Cheat();
     end;
 end;
