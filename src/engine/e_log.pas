@@ -1,3 +1,4 @@
+{$R-}
 unit e_log;
 
 interface
@@ -36,25 +37,31 @@ begin
   if FileName = '' then Exit;
 
   Assign(LogFile, FileName);
-  if FileExists(FileName) then
-    Append(LogFile)
-  else
-    Rewrite(LogFile);
-  if FirstRecord then
-  begin
-    Writeln(LogFile, '--- Log started at '+TimeToStr(Time)+' ---');
-    FirstRecord := False;
+  try
+    if FileExists(FileName) then
+      Append(LogFile)
+    else
+      Rewrite(LogFile);
+    try
+      if FirstRecord then
+      begin
+        Writeln(LogFile, '--- Log started at '+TimeToStr(Time)+' ---');
+        FirstRecord := False;
+      end;
+      case RecordCategory of
+        MSG_FATALERROR: Prefix := '!!!';
+        MSG_WARNING:    Prefix := '!  ';
+        MSG_NOTIFY:     Prefix := '***';
+      end;
+      if WriteTime then
+        Writeln(LogFile, '['+TimeToStr(Time)+'] '+Prefix+' '+TextLine)
+      else
+        Writeln(LogFile, Prefix+' '+TextLine);
+    finally
+      Close(LogFile);
+    end;
+  except // sorry
   end;
-  case RecordCategory of
-    MSG_FATALERROR: Prefix := '!!!';
-    MSG_WARNING:    Prefix := '!  ';
-    MSG_NOTIFY:     Prefix := '***';
-  end;
-  if WriteTime then
-    Writeln(LogFile, '['+TimeToStr(Time)+'] '+Prefix+' '+TextLine)
-  else
-    Writeln(LogFile, Prefix+' '+TextLine);
-  Close(LogFile);
 end;
 
 procedure e_InitLog(fFileName: String; fWriteMode: TWriteMode);
