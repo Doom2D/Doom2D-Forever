@@ -138,8 +138,8 @@ begin
       'Ø': Result[i] := 'I';
       'Ù': Result[i] := 'O';
       'Ç': Result[i] := 'P';
-      'Õ': Result[i] := Chr(219);
-      'Ú': Result[i] := Chr(221);
+      'Õ': Result[i] := '['; //Chr(219);
+      'Ú': Result[i] := ']'; //Chr(221);
       'Ô': Result[i] := 'A';
       'Û': Result[i] := 'S';
       'Â': Result[i] := 'D';
@@ -149,8 +149,8 @@ begin
       'Î': Result[i] := 'J';
       'Ë': Result[i] := 'K';
       'Ä': Result[i] := 'L';
-      'Æ': Result[i] := Chr(186);
-      'Ý': Result[i] := Chr(222);
+      'Æ': Result[i] := ';'; //Chr(186);
+      'Ý': Result[i] := #39; //Chr(222);
       'ß': Result[i] := 'Z';
       '×': Result[i] := 'X';
       'Ñ': Result[i] := 'C';
@@ -158,8 +158,8 @@ begin
       'È': Result[i] := 'B';
       'Ò': Result[i] := 'N';
       'Ü': Result[i] := 'M';
-      'Á': Result[i] := Chr(188);
-      'Þ': Result[i] := Chr(190);
+      'Á': Result[i] := ','; //Chr(188);
+      'Þ': Result[i] := '.'; //Chr(190);
     end;
 end;
 
@@ -174,8 +174,20 @@ begin
   if length(ls2) = 0 then ls2 := '~';
   result :=
     (Copy(charbuff, 17-Length(ls1)-eofs, Length(ls1)) = ls1) or
+    (Translit(Copy(charbuff, 17-Length(ls1)-eofs, Length(ls1))) = ls1) or
     (Copy(charbuff, 17-Length(ls2)-eofs, Length(ls2)) = ls2) or
     (Translit(Copy(charbuff, 17-Length(ls2)-eofs, Length(ls2))) = ls2);
+  {
+  if ct = I_GAME_CHEAT_JETPACK then
+  begin
+    e_WriteLog('ls1: ['+ls1+']', MSG_NOTIFY);
+    e_WriteLog('ls2: ['+ls2+']', MSG_NOTIFY);
+    e_WriteLog('bf0: ['+Copy(charbuff, 17-Length(ls1)-eofs, Length(ls1))+']', MSG_NOTIFY);
+    e_WriteLog('bf1: ['+Translit(Copy(charbuff, 17-Length(ls1)-eofs, Length(ls1)))+']', MSG_NOTIFY);
+    e_WriteLog('bf2: ['+Copy(charbuff, 17-Length(ls2)-eofs, Length(ls2))+']', MSG_NOTIFY);
+    e_WriteLog('bf3: ['+Translit(Copy(charbuff, 17-Length(ls2)-eofs, Length(ls2)))+']', MSG_NOTIFY);
+  end;
+  }
 end;
 
 
