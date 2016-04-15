@@ -295,7 +295,7 @@ uses
   g_triggers, MAPDEF, g_monsters, e_sound, CONFIG,
   BinEditor, g_language, g_net, SDL,
   ENet, e_fixedbuffer, g_netmsg, g_netmaster, GL, GLExt,
-  utils;
+  utils, sfs;
 
 type
   TEndCustomGameStat = record
@@ -1020,80 +1020,86 @@ begin
   gMapToDelete := '';
   gTempDelete := False;
 
-  g_Texture_CreateWADEx('MENU_BACKGROUND', GameWAD+':TEXTURES\TITLE');
-  g_Texture_CreateWADEx('INTER', GameWAD+':TEXTURES\INTER');
-  g_Texture_CreateWADEx('ENDGAME_EN', GameWAD+':TEXTURES\ENDGAME_EN');
-  g_Texture_CreateWADEx('ENDGAME_RU', GameWAD+':TEXTURES\ENDGAME_RU');
+  sfsGCDisable(); // temporary disable removing of temporary volumes
 
-  LoadStdFont('STDTXT', 'STDFONT', gStdFont);
-  LoadFont('MENUTXT', 'MENUFONT', gMenuFont);
-  LoadFont('SMALLTXT', 'SMALLFONT', gMenuSmallFont);
+  try
+    g_Texture_CreateWADEx('MENU_BACKGROUND', GameWAD+':TEXTURES\TITLE');
+    g_Texture_CreateWADEx('INTER', GameWAD+':TEXTURES\INTER');
+    g_Texture_CreateWADEx('ENDGAME_EN', GameWAD+':TEXTURES\ENDGAME_EN');
+    g_Texture_CreateWADEx('ENDGAME_RU', GameWAD+':TEXTURES\ENDGAME_RU');
 
-  g_Game_ClearLoading();
-  g_Game_SetLoadingText(Format('Doom 2D: Forever %s', [GAME_VERSION]), 0, False);
-  g_Game_SetLoadingText('', 0, False);
+    LoadStdFont('STDTXT', 'STDFONT', gStdFont);
+    LoadFont('MENUTXT', 'MENUFONT', gMenuFont);
+    LoadFont('SMALLTXT', 'SMALLFONT', gMenuSmallFont);
 
-  g_Game_SetLoadingText(_lc[I_LOAD_CONSOLE], 0, False);
-  g_Console_Init();
+    g_Game_ClearLoading();
+    g_Game_SetLoadingText(Format('Doom 2D: Forever %s', [GAME_VERSION]), 0, False);
+    g_Game_SetLoadingText('', 0, False);
 
-  g_Game_SetLoadingText(_lc[I_LOAD_MODELS], 0, False);
-  g_PlayerModel_LoadData();
+    g_Game_SetLoadingText(_lc[I_LOAD_CONSOLE], 0, False);
+    g_Console_Init();
 
-  if FindFirst(ModelsDir+'*.wad', faAnyFile, SR) = 0 then
-    repeat
-      if not g_PlayerModel_Load(ModelsDir+SR.Name) then
-        e_WriteLog(Format('Error loading model %s', [SR.Name]), MSG_WARNING);
-    until FindNext(SR) <> 0;
-  FindClose(SR);
+    g_Game_SetLoadingText(_lc[I_LOAD_MODELS], 0, False);
+    g_PlayerModel_LoadData();
 
-  if FindFirst(ModelsDir+'*.pk3', faAnyFile, SR) = 0 then
-    repeat
-      if not g_PlayerModel_Load(ModelsDir+SR.Name) then
-        e_WriteLog(Format('Error loading model %s', [SR.Name]), MSG_WARNING);
-    until FindNext(SR) <> 0;
-  FindClose(SR);
+    if FindFirst(ModelsDir+'*.wad', faAnyFile, SR) = 0 then
+      repeat
+        if not g_PlayerModel_Load(ModelsDir+SR.Name) then
+          e_WriteLog(Format('Error loading model %s', [SR.Name]), MSG_WARNING);
+      until FindNext(SR) <> 0;
+    FindClose(SR);
 
-  if FindFirst(ModelsDir+'*.zip', faAnyFile, SR) = 0 then
-    repeat
-      if not g_PlayerModel_Load(ModelsDir+SR.Name) then
-        e_WriteLog(Format('Error loading model %s', [SR.Name]), MSG_WARNING);
-    until FindNext(SR) <> 0;
-  FindClose(SR);
+    if FindFirst(ModelsDir+'*.pk3', faAnyFile, SR) = 0 then
+      repeat
+        if not g_PlayerModel_Load(ModelsDir+SR.Name) then
+          e_WriteLog(Format('Error loading model %s', [SR.Name]), MSG_WARNING);
+      until FindNext(SR) <> 0;
+    FindClose(SR);
 
-  gGameOn := False;
-  gPause := False;
-  gTime := 0;
-  LastScreenShot := 0;
+    if FindFirst(ModelsDir+'*.zip', faAnyFile, SR) = 0 then
+      repeat
+        if not g_PlayerModel_Load(ModelsDir+SR.Name) then
+          e_WriteLog(Format('Error loading model %s', [SR.Name]), MSG_WARNING);
+      until FindNext(SR) <> 0;
+    FindClose(SR);
 
-  {e_MouseInfo.Accel := 1.0;}
+    gGameOn := False;
+    gPause := False;
+    gTime := 0;
+    LastScreenShot := 0;
 
-  g_Game_SetLoadingText(_lc[I_LOAD_GAME_DATA], 0, False);
-  g_Game_LoadData();
+    {e_MouseInfo.Accel := 1.0;}
 
-  g_Game_SetLoadingText(_lc[I_LOAD_MUSIC], 0, False);
-  g_Sound_CreateWADEx('MUSIC_INTERMUS', GameWAD+':MUSIC\INTERMUS', True);
-  g_Sound_CreateWADEx('MUSIC_MENU', GameWAD+':MUSIC\MENU', True);
-  g_Sound_CreateWADEx('MUSIC_ROUNDMUS', GameWAD+':MUSIC\ROUNDMUS', True);
-  g_Sound_CreateWADEx('MUSIC_STDENDMUS', GameWAD+':MUSIC\ENDMUS', True);
+    g_Game_SetLoadingText(_lc[I_LOAD_GAME_DATA], 0, False);
+    g_Game_LoadData();
 
-  g_Game_SetLoadingText(_lc[I_LOAD_MENUS], 0, False);
-  g_Menu_Init();
+    g_Game_SetLoadingText(_lc[I_LOAD_MUSIC], 0, False);
+    g_Sound_CreateWADEx('MUSIC_INTERMUS', GameWAD+':MUSIC\INTERMUS', True);
+    g_Sound_CreateWADEx('MUSIC_MENU', GameWAD+':MUSIC\MENU', True);
+    g_Sound_CreateWADEx('MUSIC_ROUNDMUS', GameWAD+':MUSIC\ROUNDMUS', True);
+    g_Sound_CreateWADEx('MUSIC_STDENDMUS', GameWAD+':MUSIC\ENDMUS', True);
 
-  gMusic := TMusic.Create();
-  gMusic.SetByName('MUSIC_MENU');
-  gMusic.Play();
+    g_Game_SetLoadingText(_lc[I_LOAD_MENUS], 0, False);
+    g_Menu_Init();
 
-  gGameSettings.WarmupTime := 30;
+    gMusic := TMusic.Create();
+    gMusic.SetByName('MUSIC_MENU');
+    gMusic.Play();
 
-  gState := STATE_MENU;
+    gGameSettings.WarmupTime := 30;
 
-  SetLength(gEvents, 6);
-  gEvents[0].Name := 'ongamestart';
-  gEvents[1].Name := 'ongameend';
-  gEvents[2].Name := 'onmapstart';
-  gEvents[3].Name := 'onmapend';
-  gEvents[4].Name := 'oninter';
-  gEvents[5].Name := 'onwadend';
+    gState := STATE_MENU;
+
+    SetLength(gEvents, 6);
+    gEvents[0].Name := 'ongamestart';
+    gEvents[1].Name := 'ongameend';
+    gEvents[2].Name := 'onmapstart';
+    gEvents[3].Name := 'onmapend';
+    gEvents[4].Name := 'oninter';
+    gEvents[5].Name := 'onwadend';
+  finally
+    sfsGCEnable(); // enable releasing unused volumes
+  end;
 end;
 
 procedure g_Game_Free();

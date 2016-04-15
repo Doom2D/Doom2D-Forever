@@ -117,7 +117,7 @@ uses
   GL, GLExt, g_weapons, g_game, g_sound, e_sound, CONFIG,
   g_options, MAPREADER, g_triggers, g_player, MAPDEF,
   Math, g_monsters, g_saveload, g_language, g_netmsg,
-  utils;
+  utils, sfs;
 
 const
   FLAGRECT: TRectWH = (X:15; Y:12; Width:33; Height:52);
@@ -785,440 +785,445 @@ begin
   TriggersTable := nil;
   FillChar(texture, SizeOf(texture), 0);
 
-// Загрузка WAD:
-  g_ProcessResourceStr(Res, FileName, SectionName, ResName);
-  e_WriteLog('Loading map WAD: ' + FileName, MSG_NOTIFY);
-  g_Game_SetLoadingText(_lc[I_LOAD_WAD_FILE], 0, False);
+  sfsGCDisable(); // temporary disable removing of temporary volumes
+  try
+  // Загрузка WAD:
+    g_ProcessResourceStr(Res, FileName, SectionName, ResName);
+    e_WriteLog('Loading map WAD: ' + FileName, MSG_NOTIFY);
+    g_Game_SetLoadingText(_lc[I_LOAD_WAD_FILE], 0, False);
 
-  WAD := TWADEditor_1.Create();
-  if not WAD.ReadFile(FileName) then
-  begin
-    g_FatalError(Format(_lc[I_GAME_ERROR_MAP_WAD], [FileName]));
+    WAD := TWADEditor_1.Create();
+    if not WAD.ReadFile(FileName) then
+    begin
+      g_FatalError(Format(_lc[I_GAME_ERROR_MAP_WAD], [FileName]));
+      WAD.Free();
+      Exit;
+    end;
+    if not WAD.GetResource('', ResName, Data, Len) then
+    begin
+      g_FatalError(Format(_lc[I_GAME_ERROR_MAP_RES], [ResName]));
+      WAD.Free();
+      Exit;
+    end;
     WAD.Free();
-    Exit;
-  end;
-  if not WAD.GetResource('', ResName, Data, Len) then
-  begin
-    g_FatalError(Format(_lc[I_GAME_ERROR_MAP_RES], [ResName]));
-    WAD.Free();
-    Exit;
-  end;
-  WAD.Free();
 
-// Загрузка карты:
-  e_WriteLog('Loading map: ' + ResName, MSG_NOTIFY);
-  g_Game_SetLoadingText(_lc[I_LOAD_MAP], 0, False);
-  MapReader := TMapReader_1.Create();
+  // Загрузка карты:
+    e_WriteLog('Loading map: ' + ResName, MSG_NOTIFY);
+    g_Game_SetLoadingText(_lc[I_LOAD_MAP], 0, False);
+    MapReader := TMapReader_1.Create();
 
-  if not MapReader.LoadMap(Data) then
-  begin
-    g_FatalError(Format(_lc[I_GAME_ERROR_MAP_LOAD], [Res]));
+    if not MapReader.LoadMap(Data) then
+    begin
+      g_FatalError(Format(_lc[I_GAME_ERROR_MAP_LOAD], [Res]));
+      FreeMem(Data);
+      MapReader.Free();
+      Exit;
+    end;
+
     FreeMem(Data);
-    MapReader.Free();
-    Exit;
-  end;
+    generateExternalResourcesList(MapReader);
+  // Загрузка текстур:
+    g_Game_SetLoadingText(_lc[I_LOAD_TEXTURES], 0, False);
+    _textures := MapReader.GetTextures();
 
-  FreeMem(Data);
-  generateExternalResourcesList(MapReader);
-// Загрузка текстур:
-  g_Game_SetLoadingText(_lc[I_LOAD_TEXTURES], 0, False);
-  _textures := MapReader.GetTextures();
-
-// Добавление текстур в Textures[]:
-  if _textures <> nil then
-  begin
-    e_WriteLog('  Loading textures:', MSG_NOTIFY);
-    g_Game_SetLoadingText(_lc[I_LOAD_TEXTURES], High(_textures), False);
-
-    for a := 0 to High(_textures) do
+  // Добавление текстур в Textures[]:
+    if _textures <> nil then
     begin
-      SetLength(s, 64);
-      CopyMemory(@s[1], @_textures[a].Resource[0], 64);
-      for b := 1 to Length(s) do
-        if s[b] = #0 then
-        begin
-          SetLength(s, b-1);
-          Break;
-        end;
-      e_WriteLog('    Loading texture: ' + s, MSG_NOTIFY);
-    // Анимированная текстура:
-      if ByteBool(_textures[a].Anim) then
-        begin
-          if not CreateAnimTexture(_textures[a].Resource, FileName, True) then
-          begin
-            g_SimpleError(Format(_lc[I_GAME_ERROR_TEXTURE_ANIM], [s]));
-            CreateNullTexture(_textures[a].Resource);
-          end;
-        end
-      else // Обычная текстура:
-        if not CreateTexture(_textures[a].Resource, FileName, True) then
-        begin
-          g_SimpleError(Format(_lc[I_GAME_ERROR_TEXTURE_SIMPLE], [s]));
-          CreateNullTexture(_textures[a].Resource);
-        end;
+      e_WriteLog('  Loading textures:', MSG_NOTIFY);
+      g_Game_SetLoadingText(_lc[I_LOAD_TEXTURES], High(_textures), False);
 
-      g_Game_StepLoading();
-    end;
-  end;
-
-// Загрузка триггеров:
-  gTriggerClientID := 0;
-  e_WriteLog('  Loading triggers...', MSG_NOTIFY);
-  g_Game_SetLoadingText(_lc[I_LOAD_TRIGGERS], 0, False);
-  triggers := MapReader.GetTriggers();
-
-// Загрузка панелей:
-  e_WriteLog('  Loading panels...', MSG_NOTIFY);
-  g_Game_SetLoadingText(_lc[I_LOAD_PANELS], 0, False);
-  panels := MapReader.GetPanels();
-
-// Создание таблицы триггеров (соответствие панелей триггерам):
-  if triggers <> nil then
-  begin
-    e_WriteLog('  Setting up trigger table...', MSG_NOTIFY);
-    SetLength(TriggersTable, Length(triggers));
-    g_Game_SetLoadingText(_lc[I_LOAD_TRIGGERS_TABLE], High(TriggersTable), False);
-
-    for a := 0 to High(TriggersTable) do
-    begin
-    // Смена текстуры (возможно, кнопки):
-      TriggersTable[a].TexturePanel := triggers[a].TexturePanel;
-    // Лифты:
-      if triggers[a].TriggerType in [TRIGGER_LIFTUP, TRIGGER_LIFTDOWN, TRIGGER_LIFT] then
-        TriggersTable[a].LiftPanel := TTriggerData(triggers[a].DATA).PanelID
-      else
-        TriggersTable[a].LiftPanel := -1;
-    // Двери:
-      if triggers[a].TriggerType in [TRIGGER_OPENDOOR,
-          TRIGGER_CLOSEDOOR, TRIGGER_DOOR, TRIGGER_DOOR5,
-          TRIGGER_CLOSETRAP, TRIGGER_TRAP] then
-        TriggersTable[a].DoorPanel := TTriggerData(triggers[a].DATA).PanelID
-      else
-        TriggersTable[a].DoorPanel := -1;
-    // Турель:
-      if triggers[a].TriggerType = TRIGGER_SHOT then
-        TriggersTable[a].ShotPanel := TTriggerData(triggers[a].DATA).ShotPanelID
-      else
-        TriggersTable[a].ShotPanel := -1;
-
-      g_Game_StepLoading();
-    end;
-  end;
-
-// Создаем панели:
-  if panels <> nil then
-  begin
-    e_WriteLog('  Setting up trigger links...', MSG_NOTIFY);
-    g_Game_SetLoadingText(_lc[I_LOAD_LINK_TRIGGERS], High(panels), False);
-
-    for a := 0 to High(panels) do
-    begin
-      SetLength(AddTextures, 0);
-      trigRef := False;
-      CurTex := -1;
-      if _textures <> nil then
-        begin
-          texture := _textures[panels[a].TextureNum];
-          ok := True;
-        end
-      else
-        ok := False;
-
-      if ok then
+      for a := 0 to High(_textures) do
       begin
-      // Смотрим, ссылаются ли на эту панель триггеры.
-      // Если да - то надо создать еще текстур:
-        ok := False;
-        if (TriggersTable <> nil) and (_textures <> nil) then
-          for b := 0 to High(TriggersTable) do
-            if (TriggersTable[b].TexturePanel = a)
-            or (TriggersTable[b].ShotPanel = a) then
-            begin
-              trigRef := True;
-              ok := True;
-              Break;
-            end;
-      end;
-
-      if ok then
-      begin // Есть ссылки триггеров на эту панель
         SetLength(s, 64);
-        CopyMemory(@s[1], @texture.Resource[0], 64);
-      // Измеряем длину:
-        Len := Length(s);
-        for c := Len downto 1 do
-          if s[c] <> #0 then
+        CopyMemory(@s[1], @_textures[a].Resource[0], 64);
+        for b := 1 to Length(s) do
+          if s[b] = #0 then
           begin
-            Len := c;
+            SetLength(s, b-1);
             Break;
           end;
-        SetLength(s, Len);
+        e_WriteLog('    Loading texture: ' + s, MSG_NOTIFY);
+      // Анимированная текстура:
+        if ByteBool(_textures[a].Anim) then
+          begin
+            if not CreateAnimTexture(_textures[a].Resource, FileName, True) then
+            begin
+              g_SimpleError(Format(_lc[I_GAME_ERROR_TEXTURE_ANIM], [s]));
+              CreateNullTexture(_textures[a].Resource);
+            end;
+          end
+        else // Обычная текстура:
+          if not CreateTexture(_textures[a].Resource, FileName, True) then
+          begin
+            g_SimpleError(Format(_lc[I_GAME_ERROR_TEXTURE_SIMPLE], [s]));
+            CreateNullTexture(_textures[a].Resource);
+          end;
 
-      // Спец-текстуры запрещены:
-        if g_Map_IsSpecialTexture(s) then
-          ok := False
+        g_Game_StepLoading();
+      end;
+    end;
+
+  // Загрузка триггеров:
+    gTriggerClientID := 0;
+    e_WriteLog('  Loading triggers...', MSG_NOTIFY);
+    g_Game_SetLoadingText(_lc[I_LOAD_TRIGGERS], 0, False);
+    triggers := MapReader.GetTriggers();
+
+  // Загрузка панелей:
+    e_WriteLog('  Loading panels...', MSG_NOTIFY);
+    g_Game_SetLoadingText(_lc[I_LOAD_PANELS], 0, False);
+    panels := MapReader.GetPanels();
+
+  // Создание таблицы триггеров (соответствие панелей триггерам):
+    if triggers <> nil then
+    begin
+      e_WriteLog('  Setting up trigger table...', MSG_NOTIFY);
+      SetLength(TriggersTable, Length(triggers));
+      g_Game_SetLoadingText(_lc[I_LOAD_TRIGGERS_TABLE], High(TriggersTable), False);
+
+      for a := 0 to High(TriggersTable) do
+      begin
+      // Смена текстуры (возможно, кнопки):
+        TriggersTable[a].TexturePanel := triggers[a].TexturePanel;
+      // Лифты:
+        if triggers[a].TriggerType in [TRIGGER_LIFTUP, TRIGGER_LIFTDOWN, TRIGGER_LIFT] then
+          TriggersTable[a].LiftPanel := TTriggerData(triggers[a].DATA).PanelID
         else
-      // Определяем наличие и положение цифр в конце строки:
-          ok := g_Texture_NumNameFindStart(s);
+          TriggersTable[a].LiftPanel := -1;
+      // Двери:
+        if triggers[a].TriggerType in [TRIGGER_OPENDOOR,
+            TRIGGER_CLOSEDOOR, TRIGGER_DOOR, TRIGGER_DOOR5,
+            TRIGGER_CLOSETRAP, TRIGGER_TRAP] then
+          TriggersTable[a].DoorPanel := TTriggerData(triggers[a].DATA).PanelID
+        else
+          TriggersTable[a].DoorPanel := -1;
+      // Турель:
+        if triggers[a].TriggerType = TRIGGER_SHOT then
+          TriggersTable[a].ShotPanel := TTriggerData(triggers[a].DATA).ShotPanelID
+        else
+          TriggersTable[a].ShotPanel := -1;
 
-      // Если ok, значит есть цифры в конце.
-      // Загружаем текстуры с остальными #:
+        g_Game_StepLoading();
+      end;
+    end;
+
+  // Создаем панели:
+    if panels <> nil then
+    begin
+      e_WriteLog('  Setting up trigger links...', MSG_NOTIFY);
+      g_Game_SetLoadingText(_lc[I_LOAD_LINK_TRIGGERS], High(panels), False);
+
+      for a := 0 to High(panels) do
+      begin
+        SetLength(AddTextures, 0);
+        trigRef := False;
+        CurTex := -1;
+        if _textures <> nil then
+          begin
+            texture := _textures[panels[a].TextureNum];
+            ok := True;
+          end
+        else
+          ok := False;
+
         if ok then
         begin
-          k := NNF_NAME_BEFORE;
-        // Цикл по изменению имени текстуры:
-          while ok or (k = NNF_NAME_BEFORE) or
-                (k = NNF_NAME_EQUALS) do
-          begin
-            k := g_Texture_NumNameFindNext(TexName);
-
-            if (k = NNF_NAME_BEFORE) or
-               (k = NNF_NAME_AFTER) then
+        // Смотрим, ссылаются ли на эту панель триггеры.
+        // Если да - то надо создать еще текстур:
+          ok := False;
+          if (TriggersTable <> nil) and (_textures <> nil) then
+            for b := 0 to High(TriggersTable) do
+              if (TriggersTable[b].TexturePanel = a)
+              or (TriggersTable[b].ShotPanel = a) then
               begin
-              // Пробуем добавить новую текстуру:
-                if ByteBool(texture.Anim) then
-                  begin // Начальная - анимированная, ищем анимированную
-                    isAnim := True;
-                    ok := CreateAnimTexture(TexName, FileName, False);
-                    if not ok then
-                    begin // Нет анимированной, ищем обычную
-                      isAnim := False;
-                      ok := CreateTexture(TexName, FileName, False);
-                    end;
-                  end
-                else
-                  begin // Начальная - обычная, ищем обычную
-                    isAnim := False;
-                    ok := CreateTexture(TexName, FileName, False);
-                    if not ok then
-                    begin // Нет обычной, ищем анимированную
-                      isAnim := True;
-                      ok := CreateAnimTexture(TexName, FileName, False);
-                    end;
-                  end;
-
-              // Она существует. Заносим ее ID в список панели:
-                if ok then
-                begin
-                  for c := 0 to High(Textures) do
-                    if Textures[c].TextureName = TexName then
-                    begin
-                      SetLength(AddTextures, Length(AddTextures)+1);
-                      AddTextures[High(AddTextures)].Texture := c;
-                      AddTextures[High(AddTextures)].Anim := isAnim;
-                      Break;
-                    end;
-                end;
-              end
-            else
-              if k = NNF_NAME_EQUALS then
-                begin
-                // Заносим текущую текстуру на свое место:
-                  SetLength(AddTextures, Length(AddTextures)+1);
-                  AddTextures[High(AddTextures)].Texture := panels[a].TextureNum;
-                  AddTextures[High(AddTextures)].Anim := ByteBool(texture.Anim);
-                  CurTex := High(AddTextures);
-                  ok := True;
-                end
-              else // NNF_NO_NAME
-                ok := False;
-          end; // while ok...
-
-          ok := True;
-        end; // if ok - есть смежные текстуры
-      end; // if ok - ссылаются триггеры
-
-      if not ok then
-      begin
-      // Заносим только текущую текстуру:
-        SetLength(AddTextures, 1);
-        AddTextures[0].Texture := panels[a].TextureNum;
-        AddTextures[0].Anim := ByteBool(texture.Anim);
-        CurTex := 0;
-      end;
-
-    // Создаем панель и запоминаем ее номер:
-      PanelID := CreatePanel(panels[a], AddTextures, CurTex, trigRef);
-
-    // Если используется в триггерах, то ставим точный ID:
-      if TriggersTable <> nil then
-        for b := 0 to High(TriggersTable) do
-        begin
-        // Триггер двери/лифта:
-          if (TriggersTable[b].LiftPanel = a) or
-             (TriggersTable[b].DoorPanel = a) then
-            TTriggerData(triggers[b].DATA).PanelID := PanelID;
-        // Триггер смены текстуры:
-          if TriggersTable[b].TexturePanel = a then
-            triggers[b].TexturePanel := PanelID;
-        // Триггер "Турель":
-          if TriggersTable[b].ShotPanel = a then
-            TTriggerData(triggers[b].DATA).ShotPanelID := PanelID;
+                trigRef := True;
+                ok := True;
+                Break;
+              end;
         end;
 
-      g_Game_StepLoading();
-    end;
-  end;
+        if ok then
+        begin // Есть ссылки триггеров на эту панель
+          SetLength(s, 64);
+          CopyMemory(@s[1], @texture.Resource[0], 64);
+        // Измеряем длину:
+          Len := Length(s);
+          for c := Len downto 1 do
+            if s[c] <> #0 then
+            begin
+              Len := c;
+              Break;
+            end;
+          SetLength(s, Len);
 
-// Если не LoadState, то создаем триггеры:
-  if (triggers <> nil) and not gLoadGameMode then
-  begin
-    e_WriteLog('  Creating triggers...', MSG_NOTIFY);
-    g_Game_SetLoadingText(_lc[I_LOAD_CREATE_TRIGGERS], 0, False);
-  // Указываем тип панели, если есть:
-    for a := 0 to High(triggers) do
-    begin
-      if triggers[a].TexturePanel <> -1 then
-        b := panels[TriggersTable[a].TexturePanel].PanelType
-      else
-        b := 0;
-      if (triggers[a].TriggerType = TRIGGER_SHOT) and
-         (TTriggerData(triggers[a].DATA).ShotPanelID <> -1) then
-        c := panels[TriggersTable[a].ShotPanel].PanelType
-      else
-        c := 0;
-      CreateTrigger(triggers[a], b, c);
-    end;
-  end;
+        // Спец-текстуры запрещены:
+          if g_Map_IsSpecialTexture(s) then
+            ok := False
+          else
+        // Определяем наличие и положение цифр в конце строки:
+            ok := g_Texture_NumNameFindStart(s);
 
-// Загрузка предметов:
-  e_WriteLog('  Loading triggers...', MSG_NOTIFY);
-  g_Game_SetLoadingText(_lc[I_LOAD_ITEMS], 0, False);
-  items := MapReader.GetItems();
+        // Если ok, значит есть цифры в конце.
+        // Загружаем текстуры с остальными #:
+          if ok then
+          begin
+            k := NNF_NAME_BEFORE;
+          // Цикл по изменению имени текстуры:
+            while ok or (k = NNF_NAME_BEFORE) or
+                  (k = NNF_NAME_EQUALS) do
+            begin
+              k := g_Texture_NumNameFindNext(TexName);
 
-// Если не LoadState, то создаем предметы:
-  if (items <> nil) and not gLoadGameMode then
-  begin
-    e_WriteLog('  Spawning items...', MSG_NOTIFY);
-    g_Game_SetLoadingText(_lc[I_LOAD_CREATE_ITEMS], 0, False);
-    for a := 0 to High(items) do
-      CreateItem(Items[a]);
-  end;
+              if (k = NNF_NAME_BEFORE) or
+                 (k = NNF_NAME_AFTER) then
+                begin
+                // Пробуем добавить новую текстуру:
+                  if ByteBool(texture.Anim) then
+                    begin // Начальная - анимированная, ищем анимированную
+                      isAnim := True;
+                      ok := CreateAnimTexture(TexName, FileName, False);
+                      if not ok then
+                      begin // Нет анимированной, ищем обычную
+                        isAnim := False;
+                        ok := CreateTexture(TexName, FileName, False);
+                      end;
+                    end
+                  else
+                    begin // Начальная - обычная, ищем обычную
+                      isAnim := False;
+                      ok := CreateTexture(TexName, FileName, False);
+                      if not ok then
+                      begin // Нет обычной, ищем анимированную
+                        isAnim := True;
+                        ok := CreateAnimTexture(TexName, FileName, False);
+                      end;
+                    end;
 
-// Загрузка областей:
-  e_WriteLog('  Loading areas...', MSG_NOTIFY);
-  g_Game_SetLoadingText(_lc[I_LOAD_AREAS], 0, False);
-  areas := MapReader.GetAreas();
+                // Она существует. Заносим ее ID в список панели:
+                  if ok then
+                  begin
+                    for c := 0 to High(Textures) do
+                      if Textures[c].TextureName = TexName then
+                      begin
+                        SetLength(AddTextures, Length(AddTextures)+1);
+                        AddTextures[High(AddTextures)].Texture := c;
+                        AddTextures[High(AddTextures)].Anim := isAnim;
+                        Break;
+                      end;
+                  end;
+                end
+              else
+                if k = NNF_NAME_EQUALS then
+                  begin
+                  // Заносим текущую текстуру на свое место:
+                    SetLength(AddTextures, Length(AddTextures)+1);
+                    AddTextures[High(AddTextures)].Texture := panels[a].TextureNum;
+                    AddTextures[High(AddTextures)].Anim := ByteBool(texture.Anim);
+                    CurTex := High(AddTextures);
+                    ok := True;
+                  end
+                else // NNF_NO_NAME
+                  ok := False;
+            end; // while ok...
 
-// Если не LoadState, то создаем области:
-  if areas <> nil then
-  begin
-    e_WriteLog('  Creating areas...', MSG_NOTIFY);
-    g_Game_SetLoadingText(_lc[I_LOAD_CREATE_AREAS], 0, False);
-    for a := 0 to High(areas) do
-      CreateArea(areas[a]);
-  end;
+            ok := True;
+          end; // if ok - есть смежные текстуры
+        end; // if ok - ссылаются триггеры
 
-// Загрузка монстров:
-  e_WriteLog('  Loading monsters...', MSG_NOTIFY);
-  g_Game_SetLoadingText(_lc[I_LOAD_MONSTERS], 0, False);
-  monsters := MapReader.GetMonsters();
+        if not ok then
+        begin
+        // Заносим только текущую текстуру:
+          SetLength(AddTextures, 1);
+          AddTextures[0].Texture := panels[a].TextureNum;
+          AddTextures[0].Anim := ByteBool(texture.Anim);
+          CurTex := 0;
+        end;
 
-  gTotalMonsters := 0;
+      // Создаем панель и запоминаем ее номер:
+        PanelID := CreatePanel(panels[a], AddTextures, CurTex, trigRef);
 
-// Если не LoadState, то создаем монстров:
-  if (monsters <> nil) and not gLoadGameMode then
-  begin
-    e_WriteLog('  Spawning monsters...', MSG_NOTIFY);
-    g_Game_SetLoadingText(_lc[I_LOAD_CREATE_MONSTERS], 0, False);
-    for a := 0 to High(monsters) do
-      CreateMonster(monsters[a]);
-  end;
+      // Если используется в триггерах, то ставим точный ID:
+        if TriggersTable <> nil then
+          for b := 0 to High(TriggersTable) do
+          begin
+          // Триггер двери/лифта:
+            if (TriggersTable[b].LiftPanel = a) or
+               (TriggersTable[b].DoorPanel = a) then
+              TTriggerData(triggers[b].DATA).PanelID := PanelID;
+          // Триггер смены текстуры:
+            if TriggersTable[b].TexturePanel = a then
+              triggers[b].TexturePanel := PanelID;
+          // Триггер "Турель":
+            if TriggersTable[b].ShotPanel = a then
+              TTriggerData(triggers[b].DATA).ShotPanelID := PanelID;
+          end;
 
-// Загрузка описания карты:
-  e_WriteLog('  Reading map info...', MSG_NOTIFY);
-  g_Game_SetLoadingText(_lc[I_LOAD_MAP_HEADER], 0, False);
-  Header := MapReader.GetMapHeader();
-
-  MapReader.Free();
-
-  with gMapInfo do
-  begin
-    Name := Header.MapName;
-    Description := Header.MapDescription;
-    Author := Header.MapAuthor;
-    MusicName := Header.MusicName;
-    SkyName := Header.SkyName;
-    Height := Header.Height;
-    Width := Header.Width;
-  end;
-
-// Загрузка неба:
-  if gMapInfo.SkyName <> '' then
-  begin
-    e_WriteLog('  Loading sky: ' + gMapInfo.SkyName, MSG_NOTIFY);
-    g_Game_SetLoadingText(_lc[I_LOAD_SKY], 0, False);
-    g_ProcessResourceStr(gMapInfo.SkyName, FileName, SectionName, ResName);
-
-    if FileName <> '' then
-      FileName := GameDir+'/wads/'+FileName
-    else
-      begin
-        g_ProcessResourceStr(Res, @FileName2, nil, nil);
-        FileName := FileName2;
+        g_Game_StepLoading();
       end;
+    end;
 
-    s := FileName+':'+SectionName+'/'+ResName;
-    if g_Texture_CreateWAD(BackID, s) then
+  // Если не LoadState, то создаем триггеры:
+    if (triggers <> nil) and not gLoadGameMode then
+    begin
+      e_WriteLog('  Creating triggers...', MSG_NOTIFY);
+      g_Game_SetLoadingText(_lc[I_LOAD_CREATE_TRIGGERS], 0, False);
+    // Указываем тип панели, если есть:
+      for a := 0 to High(triggers) do
       begin
-        g_Game_SetupScreenSize();
+        if triggers[a].TexturePanel <> -1 then
+          b := panels[TriggersTable[a].TexturePanel].PanelType
+        else
+          b := 0;
+        if (triggers[a].TriggerType = TRIGGER_SHOT) and
+           (TTriggerData(triggers[a].DATA).ShotPanelID <> -1) then
+          c := panels[TriggersTable[a].ShotPanel].PanelType
+        else
+          c := 0;
+        CreateTrigger(triggers[a], b, c);
+      end;
+    end;
+
+  // Загрузка предметов:
+    e_WriteLog('  Loading triggers...', MSG_NOTIFY);
+    g_Game_SetLoadingText(_lc[I_LOAD_ITEMS], 0, False);
+    items := MapReader.GetItems();
+
+  // Если не LoadState, то создаем предметы:
+    if (items <> nil) and not gLoadGameMode then
+    begin
+      e_WriteLog('  Spawning items...', MSG_NOTIFY);
+      g_Game_SetLoadingText(_lc[I_LOAD_CREATE_ITEMS], 0, False);
+      for a := 0 to High(items) do
+        CreateItem(Items[a]);
+    end;
+
+  // Загрузка областей:
+    e_WriteLog('  Loading areas...', MSG_NOTIFY);
+    g_Game_SetLoadingText(_lc[I_LOAD_AREAS], 0, False);
+    areas := MapReader.GetAreas();
+
+  // Если не LoadState, то создаем области:
+    if areas <> nil then
+    begin
+      e_WriteLog('  Creating areas...', MSG_NOTIFY);
+      g_Game_SetLoadingText(_lc[I_LOAD_CREATE_AREAS], 0, False);
+      for a := 0 to High(areas) do
+        CreateArea(areas[a]);
+    end;
+
+  // Загрузка монстров:
+    e_WriteLog('  Loading monsters...', MSG_NOTIFY);
+    g_Game_SetLoadingText(_lc[I_LOAD_MONSTERS], 0, False);
+    monsters := MapReader.GetMonsters();
+
+    gTotalMonsters := 0;
+
+  // Если не LoadState, то создаем монстров:
+    if (monsters <> nil) and not gLoadGameMode then
+    begin
+      e_WriteLog('  Spawning monsters...', MSG_NOTIFY);
+      g_Game_SetLoadingText(_lc[I_LOAD_CREATE_MONSTERS], 0, False);
+      for a := 0 to High(monsters) do
+        CreateMonster(monsters[a]);
+    end;
+
+  // Загрузка описания карты:
+    e_WriteLog('  Reading map info...', MSG_NOTIFY);
+    g_Game_SetLoadingText(_lc[I_LOAD_MAP_HEADER], 0, False);
+    Header := MapReader.GetMapHeader();
+
+    MapReader.Free();
+
+    with gMapInfo do
+    begin
+      Name := Header.MapName;
+      Description := Header.MapDescription;
+      Author := Header.MapAuthor;
+      MusicName := Header.MusicName;
+      SkyName := Header.SkyName;
+      Height := Header.Height;
+      Width := Header.Width;
+    end;
+
+  // Загрузка неба:
+    if gMapInfo.SkyName <> '' then
+    begin
+      e_WriteLog('  Loading sky: ' + gMapInfo.SkyName, MSG_NOTIFY);
+      g_Game_SetLoadingText(_lc[I_LOAD_SKY], 0, False);
+      g_ProcessResourceStr(gMapInfo.SkyName, FileName, SectionName, ResName);
+
+      if FileName <> '' then
+        FileName := GameDir+'/wads/'+FileName
+      else
+        begin
+          g_ProcessResourceStr(Res, @FileName2, nil, nil);
+          FileName := FileName2;
+        end;
+
+      s := FileName+':'+SectionName+'/'+ResName;
+      if g_Texture_CreateWAD(BackID, s) then
+        begin
+          g_Game_SetupScreenSize();
+        end
+      else
+        g_FatalError(Format(_lc[I_GAME_ERROR_SKY], [s]));
+    end;
+
+  // Загрузка музыки:
+    ok := False;
+    if gMapInfo.MusicName <> '' then
+    begin
+      e_WriteLog('  Loading music: ' + gMapInfo.MusicName, MSG_NOTIFY);
+      g_Game_SetLoadingText(_lc[I_LOAD_MUSIC], 0, False);
+      g_ProcessResourceStr(gMapInfo.MusicName, FileName, SectionName, ResName);
+
+      if FileName <> '' then
+        FileName := GameDir+'/wads/'+FileName
+      else
+        begin
+          g_ProcessResourceStr(Res, @FileName2, nil, nil);
+          FileName := FileName2;
+        end;
+
+      s := FileName+':'+SectionName+'/'+ResName;
+      if g_Sound_CreateWADEx(gMapInfo.MusicName, s, True) then
+        ok := True
+      else
+        g_FatalError(Format(_lc[I_GAME_ERROR_MUSIC], [s]));
+    end;
+
+  // Остальные устанвки:
+    CreateDoorMap();
+    CreateLiftMap();
+
+    g_Items_Init();
+    g_Weapon_Init();
+    g_Monsters_Init();
+
+  // Если не LoadState, то создаем карту столкновений:
+    if not gLoadGameMode then
+      g_GFX_Init();
+
+  // Сброс локальных массивов:
+    _textures := nil;
+    panels := nil;
+    items := nil;
+    areas := nil;
+    triggers := nil;
+    TriggersTable := nil;
+    AddTextures := nil;
+
+  // Включаем музыку, если это не загрузка:
+    if ok and (not gLoadGameMode) then
+      begin
+        gMusic.SetByName(gMapInfo.MusicName);
+        gMusic.Play();
       end
     else
-      g_FatalError(Format(_lc[I_GAME_ERROR_SKY], [s]));
+      gMusic.SetByName('');
+  finally
+    sfsGCEnable(); // enable releasing unused volumes
   end;
-
-// Загрузка музыки:
-  ok := False;
-  if gMapInfo.MusicName <> '' then
-  begin
-    e_WriteLog('  Loading music: ' + gMapInfo.MusicName, MSG_NOTIFY);
-    g_Game_SetLoadingText(_lc[I_LOAD_MUSIC], 0, False);
-    g_ProcessResourceStr(gMapInfo.MusicName, FileName, SectionName, ResName);
-
-    if FileName <> '' then
-      FileName := GameDir+'/wads/'+FileName
-    else
-      begin
-        g_ProcessResourceStr(Res, @FileName2, nil, nil);
-        FileName := FileName2;
-      end;
-
-    s := FileName+':'+SectionName+'/'+ResName;
-    if g_Sound_CreateWADEx(gMapInfo.MusicName, s, True) then
-      ok := True
-    else
-      g_FatalError(Format(_lc[I_GAME_ERROR_MUSIC], [s]));
-  end;
-
-// Остальные устанвки:
-  CreateDoorMap();
-  CreateLiftMap();
-
-  g_Items_Init();
-  g_Weapon_Init();
-  g_Monsters_Init();
-
-// Если не LoadState, то создаем карту столкновений:
-  if not gLoadGameMode then
-    g_GFX_Init();
-
-// Сброс локальных массивов:
-  _textures := nil;
-  panels := nil;
-  items := nil;
-  areas := nil;
-  triggers := nil;
-  TriggersTable := nil;
-  AddTextures := nil;
-
-// Включаем музыку, если это не загрузка:
-  if ok and (not gLoadGameMode) then
-    begin
-      gMusic.SetByName(gMapInfo.MusicName);
-      gMusic.Play();
-    end
-  else
-    gMusic.SetByName('');
 
   e_WriteLog('Done loading map.', MSG_NOTIFY);
   Result := True;

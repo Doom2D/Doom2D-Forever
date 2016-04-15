@@ -55,7 +55,7 @@ begin
   if SDL_Init(SDL_INIT_JOYSTICK or SDL_INIT_TIMER or SDL_INIT_VIDEO) < 0 then
 {$ENDIF}
     raise Exception.Create('SDL: Init failed: ' + SDL_GetError());
-    
+
   SDL_StartTextInput();
 
   e_WriteLog('Entering SDLMain', MSG_NOTIFY);
@@ -65,7 +65,7 @@ begin
   {$WARNINGS ON}
 
   SDL_StopTextInput();
-  
+
   e_WriteLog('Releasing SDL', MSG_NOTIFY);
   SDL_Quit();
 end;
