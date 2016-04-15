@@ -5,6 +5,8 @@ interface
 uses g_net, g_triggers, Classes, SysUtils, md5;
 
 const
+  NET_PROTO_VERSION = 1;
+
   NET_MSG_INFO   = 100;
 
   NET_MSG_CHAT   = 101;
@@ -310,7 +312,10 @@ var
   PID: Word;
   Color: TRGB;
   I: Integer;
+  ProtoVer, Zero: Byte;
 begin
+  Zero := e_Raw_Read_Byte(P);
+  ProtoVer := e_Raw_Read_Byte(P);
   Ver := e_Raw_Read_String(P);
   Pw := e_Raw_Read_String(P);
   PName := e_Raw_Read_String(P);
@@ -320,7 +325,7 @@ begin
   B := e_Raw_Read_Byte(P);
   T := e_Raw_Read_Byte(P);
 
-  if Ver <> GAME_VERSION then
+  if (Ver <> GAME_VERSION) or (ProtoVer <> NET_PROTO_VERSION) or (Zero <> 0) then
   begin
     g_Console_Add(_lc[I_NET_MSG] + _lc[I_NET_MSG_HOST_REJECT] +
       _lc[I_NET_DISC_VERSION]);
@@ -2686,6 +2691,8 @@ begin
   e_Buffer_Clear(@NetOut);
 
   e_Buffer_Write(@NetOut, Byte(NET_MSG_INFO));
+  e_Buffer_Write(@NetOut, Byte(0)); // to kill old clients
+  e_Buffer_Write(@NetOut, Byte(NET_PROTO_VERSION));
   e_Buffer_Write(@NetOut, GAME_VERSION);
   e_Buffer_Write(@NetOut, Password);
   e_Buffer_Write(@NetOut, gPlayer1Settings.Name);

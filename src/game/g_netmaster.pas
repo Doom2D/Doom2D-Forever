@@ -23,7 +23,7 @@ type
     Port: Word;
     Map: string;
     Players, MaxPlayers, LocalPl, Bots: Byte;
-    Ping: Integer;
+    Ping: Int64;
     GameMode: Byte;
     Password: Boolean;
     PingAddr: ENetAddress;
@@ -66,7 +66,7 @@ var
   slFetched:      Boolean = False;
   slDirPressed:   Boolean = False;
 
-function GetTimerMS(): Integer;
+function GetTimerMS(): Int64;
 begin
   Result := GetTimer() {div 1000};
 end;
@@ -74,17 +74,17 @@ end;
 procedure PingServer(var S: TNetServer; Sock: ENetSocket);
 var
   Buf: ENetBuffer;
-  Ping: array [0..5] of Byte;
-  ClTime: Integer;
+  Ping: array [0..9] of Byte;
+  ClTime: Int64;
 begin
   ClTime := GetTimerMS();
 
   Buf.data := Addr(Ping[0]);
-  Buf.dataLength := 6;
+  Buf.dataLength := 2+8;
 
   Ping[0] := Ord('D');
   Ping[1] := Ord('F');
-  LongInt(Addr(Ping[2])^) := ClTime;
+  Int64(Addr(Ping[2])^) := ClTime;
 
   enet_socket_send(Sock, Addr(S.PingAddr), @Buf, 1);
 end;
@@ -94,7 +94,8 @@ var
   Cnt: Byte;
   P: pENetPacket;
   MID: Byte;
-  I, T, RX: Integer;
+  I, RX: Integer;
+  T: Int64;
   Sock: ENetSocket;
   Buf: ENetBuffer;
   SvAddr: ENetAddress;
@@ -196,7 +197,7 @@ begin
       begin
         with SL[I] do
         begin
-          Ping := e_Buffer_Read_LongInt(@NetIn);
+          Ping := e_Buffer_Read_Int64(@NetIn);
           Ping := GetTimerMS() - Ping;
           Name := e_Buffer_Read_String(@NetIn);
           Map := e_Buffer_Read_String(@NetIn);

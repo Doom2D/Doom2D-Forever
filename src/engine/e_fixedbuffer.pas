@@ -50,6 +50,7 @@ function  e_Buffer_Read_LongWord(B: pTBuffer): LongWord;
 function  e_Buffer_Read_ShortInt(B: pTBuffer): ShortInt;
 function  e_Buffer_Read_SmallInt(B: pTBuffer): SmallInt;
 function  e_Buffer_Read_LongInt(B: pTBuffer): LongInt;
+function  e_Buffer_Read_Int64(B: pTBuffer): Int64;
 
 function  e_Buffer_Read_String(B: pTBuffer): string;
 
@@ -201,6 +202,10 @@ end;
 function e_Buffer_Read_LongInt(B: pTBuffer): LongInt;
 begin
   e_Buffer_Read_Generic(B, Result, 4);
+end;
+function e_Buffer_Read_Int64(B: pTBuffer): Int64;
+begin
+  e_Buffer_Read_Generic(B, Result, 8);
 end;
 
 function e_Buffer_Read_String(B: pTBuffer): string;
