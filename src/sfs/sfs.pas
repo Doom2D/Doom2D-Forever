@@ -1,6 +1,7 @@
 // streaming file system (virtual)
 {$MODE DELPHI}
 {.$R-}
+{.$DEFINE SFS_VOLDEBUG}
 unit sfs;
 
 interface
@@ -167,6 +168,9 @@ procedure SFSUnregisterVolumeFactory (factory: TSFSVolumeFactory);
 // "||" преобразуются в простой "|" и разделителем не считаются.
 // принимается во внимание только последняя труба.
 function SFSAddDataFile (const dataFileName: TSFSString; top: Boolean=false): Boolean;
+
+// добавить сборник временно
+function SFSAddDataFileTemp (const dataFileName: TSFSString; top: Boolean=false): Boolean;
 
 // добавить в постоянный список сборник из потока ds.
 // если возвращает истину, то SFS становится влядельцем потока ds и сама
@@ -753,7 +757,11 @@ begin
     if not fOwner.fPermanent and (fOwner.fOpenedFilesCount < 1) then
     begin
       f := volumes.IndexOf(fOwner);
-      if f <> -1 then volumes[f] := nil; // this will destroy the volume
+      if f <> -1 then
+      begin
+        {$IFDEF SFS_VOLDEBUG}writeln('destroying volume "', TVolumeInfo(volumes[f]).fPackName, '"');{$ENDIF}
+        volumes[f] := nil; // this will destroy the volume
+      end;
     end;
   end;
 end;
@@ -918,8 +926,11 @@ begin
   if fVolume <> nil then Dec(fVolume.fRC);
   Dec(TVolumeInfo(volumes[f]).fOpenedFilesCount);
   // убьём запись, если она временная, и в ней нет больше ничего открытого
-  if not TVolumeInfo(volumes[f]).fPermanent and
-     (TVolumeInfo(volumes[f]).fOpenedFilesCount < 1) then volumes[f] := nil;
+  if not TVolumeInfo(volumes[f]).fPermanent and (TVolumeInfo(volumes[f]).fOpenedFilesCount < 1) then
+  begin
+    {$IFDEF SFS_VOLDEBUG}writeln('destroying volume "', TVolumeInfo(volumes[f]).fPackName, '"');{$ENDIF}
+    volumes[f] := nil;
+  end;
   inherited Destroy();
 end;
 
@@ -1094,8 +1105,7 @@ begin
   vi.fOpenedFilesCount := 0;
 end;
 
-function SFSAddSubDataFile (const virtualName: TSFSString; ds: TStream;
-  top: Boolean = false): Boolean;
+function SFSAddSubDataFile (const virtualName: TSFSString; ds: TStream; top: Boolean=false): Boolean;
 var
   tv: Integer;
 begin
@@ -1109,7 +1119,7 @@ begin
   end;
 end;
 
-function SFSAddDataFile (const dataFileName: TSFSString; top: Boolean = false): Boolean;
+function SFSAddDataFile (const dataFileName: TSFSString; top: Boolean=false): Boolean;
 var
   tv: Integer;
 begin
@@ -1121,6 +1131,20 @@ begin
     result := false;
   end;
 end;
+
+function SFSAddDataFileTemp (const dataFileName: TSFSString; top: Boolean=false): Boolean;
+var
+  tv: Integer;
+begin
+  try
+    if top then tv := -1 else tv := 1;
+    SFSAddDataFileEx(dataFileName, nil, tv, 0);
+    result := true;
+  except
+    result := false;
+  end;
+end;
+
 
 
 function SFSExpandDirName (const s: TSFSString): TSFSString;
