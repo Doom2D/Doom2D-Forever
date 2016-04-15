@@ -95,6 +95,7 @@ var
   gsSDLSampleRate: Integer    = 44100;
   gsSDLBufferSize: Integer    = 2048;
   gSFSDebug: Boolean          = False;
+  gSFSFastMode: Boolean       = True;
 
 implementation
 
@@ -332,7 +333,8 @@ begin
   gShowMessages := config.ReadBool('Game', 'Messages', True);
   gRevertPlayers := config.ReadBool('Game', 'RevertPlayers', False);
   gChatBubble := Min(Max(config.ReadInt('Game', 'ChatBubble', 4), 0), 4);
-  gSFSDebug := config.ReadBool('Game', 'gSFSDebug', False);
+  gSFSDebug := config.ReadBool('Game', 'SFSDebug', False);
+  gSFSFastMode := config.ReadBool('Game', 'SFSFastMode', True);
 
 // Геймплей в своей игре
   gcMap := config.ReadStr('GameplayCustom', 'Map', '');
@@ -535,6 +537,7 @@ begin
   config.WriteBool('Game', 'RevertPlayers', gRevertPlayers);
   config.WriteInt('Game', 'ChatBubble', gChatBubble);
   config.WriteBool('Game', 'SFSDebug', gSFSDebug);
+  config.WriteBool('Game', 'SFSFastMode', gSFSFastMode);
 
   config.WriteStr ('GameplayCustom', 'Map', gcMap);
   config.WriteStr ('GameplayCustom', 'GameMode', gcGameMode);

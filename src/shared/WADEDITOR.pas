@@ -275,7 +275,14 @@ begin
   // cache this wad
   rfn := path+rfn;
   try
-    if not SFSAddDataFile(rfn) then exit;
+    if gSFSFastMode then
+    begin
+      if not SFSAddDataFile(rfn, true) then exit;
+    end
+    else
+    begin
+      if not SFSAddDataFileTemp(rfn, true) then exit;
+    end;
   except
     exit;
   end;
@@ -324,7 +331,7 @@ begin
 
   try
     st := TSFSMemoryStreamRO.Create(Data, Len);
-    if not SFSAddSubDataFile(fn, st) then
+    if not SFSAddSubDataFile(fn, st, true) then
     begin
       st.Free;
       Exit;
