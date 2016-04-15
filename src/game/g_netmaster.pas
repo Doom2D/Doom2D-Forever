@@ -68,7 +68,7 @@ var
 
 function GetTimerMS(): Integer;
 begin
-  Result := GetTimer() div 1000;
+  Result := GetTimer() {div 1000};
 end;
 
 procedure PingServer(var S: TNetServer; Sock: ENetSocket);

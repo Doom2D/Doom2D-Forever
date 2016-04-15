@@ -425,7 +425,7 @@ end;
 
 function GetTimer(): Int64;
 begin
-  Result := SDL_GetTicks() * 1000; // TODO: do we really need microseconds here?
+  Result := SDL_GetTicks() {* 1000}; // TODO: do we really need microseconds here? k8: NOPE!
 end;
 
 procedure ResetTimer();
@@ -506,11 +506,11 @@ begin
 
   if wNeedTimeReset then
   begin
-    Time_Delta := 27777;
+    Time_Delta := (27777 div 1000);
     wNeedTimeReset := False;
   end;
 
-  t := Time_Delta div 27777;
+  t := Time_Delta div (27777 div 1000);
   if t > 0 then
   begin
     flag := True;
@@ -542,7 +542,7 @@ begin
 // Время предыдущего обновления:
   if flag then
   begin
-    Time_Old := Time - (Time_Delta mod 27777);
+    Time_Old := Time - (Time_Delta mod (27777 div 1000));
     if (not wMinimized) then
     begin
       Draw();

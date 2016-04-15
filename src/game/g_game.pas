@@ -653,7 +653,7 @@ begin
   gDelayedEvents[n].DENum := Num;
   gDelayedEvents[n].DEStr := Str;
   if DEType = DE_GLOBEVENT then
-    gDelayedEvents[n].Time := (GetTimer() div 1000) + Time
+    gDelayedEvents[n].Time := (GetTimer() {div 1000}) + Time
   else
     gDelayedEvents[n].Time := gTime + Time;
   Result := n;
@@ -1753,7 +1753,7 @@ begin
 
 // Делаем скриншот (не чаще 200 миллисекунд):
   if e_KeyPressed(gGameControls.GameControls.TakeScreenshot) then
-    if (GetTimer()-LastScreenShot) > 200000 then
+    if (GetTimer()-LastScreenShot) > 200000 div 1000 then
     begin
       g_TakeScreenShot();
       LastScreenShot := GetTimer();
@@ -1768,7 +1768,7 @@ begin
     KeyPress(IK_F10);
   end;
 
-  Time := GetTimer() div 1000;
+  Time := GetTimer() {div 1000};
 
 // Обработка отложенных событий:
   if gDelayedEvents <> nil then
@@ -2684,7 +2684,7 @@ var
 begin
   if gExit = EXIT_QUIT then Exit;
 
-  Time := GetTimer() div 1000;
+  Time := GetTimer() {div 1000};
   FPSCounter := FPSCounter+1;
   if Time - FPSTime >= 1000 then
   begin
