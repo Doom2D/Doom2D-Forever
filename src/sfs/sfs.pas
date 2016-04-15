@@ -199,6 +199,16 @@ function SFSFileOpen (const fName: TSFSString): TStream;
 // после использования, натурально, итератор надо грохнуть %-)
 function SFSFileList (const dataFileName: TSFSString): TSFSFileList;
 
+// запретить освобождение временных томов (можно вызывать рекурсивно)
+procedure sfsGCDisable ();
+
+// разрешить освобождение временных томов (можно вызывать рекурсивно)
+procedure sfsGCEnable ();
+
+// for completeness sake
+procedure sfsGCCollect ();
+
+
 function SFSReplacePathDelims (const s: TSFSString; newDelim: TSFSChar): TSFSString;
 // игнорирует регистр символов
 function SFSStrEqu (const s0, s1: TSFSString): Boolean;
@@ -478,6 +488,63 @@ type
 var
   factories: TObjectList; // TSFSVolumeFactory
   volumes: TObjectList;   // TVolumeInfo
+  gcdisabled: Integer = 0; // >0: disabled
+
+
+procedure sfsGCCollect ();
+var
+  f, c: Integer;
+  vi: TVolumeInfo;
+  used: Boolean;
+begin
+  // collect garbage
+  f := 0;
+  while f < volumes.Count do
+  begin
+    vi := TVolumeInfo(volumes[f]);
+    if vi = nil then continue;
+    if (not vi.fPermanent) and (vi.fVolume.fRC = 0) and (vi.fOpenedFilesCount = 0) then
+    begin
+      // this volume probably can be removed
+      used := false;
+      c := volumes.Count-1;
+      while not used and (c >= 0) do
+      begin
+        if (c <> f) and (volumes[c] <> nil) then
+        begin
+          used := (TVolumeInfo(volumes[c]).fStream = vi.fStream);
+          if not used then used := (TVolumeInfo(volumes[c]).fVolume.fFileStream = vi.fStream);
+          if used then break;
+        end;
+        Dec(c);
+      end;
+      if not used then
+      begin
+        {$IFDEF SFS_VOLDEBUG}writeln('000: destroying volume "', TVolumeInfo(volumes[f]).fPackName, '"');{$ENDIF}
+        volumes.extract(vi); // remove from list
+        vi.Free; // and kill
+        f := 0;
+        continue;
+      end;
+    end;
+    Inc(f); // next volume
+  end;
+end;
+
+procedure sfsGCDisable ();
+begin
+  Inc(gcdisabled);
+end;
+
+procedure sfsGCEnable ();
+begin
+  Dec(gcdisabled);
+  if gcdisabled <= 0 then
+  begin
+    gcdisabled := 0;
+    sfsGCCollect();
+  end;
+end;
 
 
 // разбить имя файла на части: префикс файловой системы, имя файла данных,
@@ -754,12 +821,12 @@ begin
   if fOwner <> nil then
   begin
     Dec(fOwner.fOpenedFilesCount);
-    if not fOwner.fPermanent and (fOwner.fOpenedFilesCount < 1) then
+    if (gcdisabled = 0) and not fOwner.fPermanent and (fOwner.fOpenedFilesCount < 1) then
     begin
       f := volumes.IndexOf(fOwner);
       if f <> -1 then
       begin
-        {$IFDEF SFS_VOLDEBUG}writeln('destroying volume "', TVolumeInfo(volumes[f]).fPackName, '"');{$ENDIF}
+        {$IFDEF SFS_VOLDEBUG}writeln('001: destroying volume "', TVolumeInfo(volumes[f]).fPackName, '"');{$ENDIF}
         volumes[f] := nil; // this will destroy the volume
       end;
     end;
@@ -926,9 +993,9 @@ begin
   if fVolume <> nil then Dec(fVolume.fRC);
   Dec(TVolumeInfo(volumes[f]).fOpenedFilesCount);
   // убьём запись, если она временная, и в ней нет больше ничего открытого
-  if not TVolumeInfo(volumes[f]).fPermanent and (TVolumeInfo(volumes[f]).fOpenedFilesCount < 1) then
+  if (gcdisabled = 0) and not TVolumeInfo(volumes[f]).fPermanent and (TVolumeInfo(volumes[f]).fOpenedFilesCount < 1) then
   begin
-    {$IFDEF SFS_VOLDEBUG}writeln('destroying volume "', TVolumeInfo(volumes[f]).fPackName, '"');{$ENDIF}
+    {$IFDEF SFS_VOLDEBUG}writeln('002: destroying volume "', TVolumeInfo(volumes[f]).fPackName, '"');{$ENDIF}
     volumes[f] := nil;
   end;
   inherited Destroy();
@@ -1023,7 +1090,7 @@ begin
     except
       FreeAndNil(st);
       // удалим неиспользуемый временный том.
-      if not vi.fPermanent and (vi.fOpenedFilesCount < 1) then volumes[result] := nil;
+      if (gcdisabled = 0) and not vi.fPermanent and (vi.fOpenedFilesCount < 1) then volumes[result] := nil;
       raise;
     end;
     // ура. открыли файл. кидаем в воздух чепчики, продолжаем развлечение.
@@ -1232,7 +1299,7 @@ begin
       ps := TOwnedPartialStream.Create(vi, result, 0, result.Size, true);
     except
       result.Free();
-      if not vi.fPermanent and (vi.fOpenedFilesCount < 1) then volumes[f] := nil;
+      if (gcdisabled = 0) and not vi.fPermanent and (vi.fOpenedFilesCount < 1) then volumes[f] := nil;
       result := CheckDisk(); // облом с datafile, проверим диск
       if result = nil then raise ESFSError.Create('file not found: "'+fName+'"');
       exit;
@@ -1305,7 +1372,7 @@ begin
     result := TSFSFileList.Create(vi.fVolume);
     Inc(vi.fVolume.fRC);
   except
-    if not vi.fPermanent and (vi.fOpenedFilesCount < 1) then volumes[f] := nil;
+    if (gcdisabled = 0) and not vi.fPermanent and (vi.fOpenedFilesCount < 1) then volumes[f] := nil;
   end;
 end;
 
