@@ -42,6 +42,8 @@ var
   wLoadingProgress: Boolean = False;
   wLoadingQuit: Boolean = False;
   {wWinPause: Byte = 0;}
+  ticksOverflow: Int64 = -1;
+  lastTicks: Uint32 = 0; // to detect overflow
 
 const
   // TODO: move this to a separate file
@@ -424,8 +426,28 @@ begin
 end;
 
 function GetTimer(): Int64;
+var
+  t: Uint32;
+  tt: Int64;
 begin
-  Result := SDL_GetTicks() {* 1000}; // TODO: do we really need microseconds here? k8: NOPE!
+  t := SDL_GetTicks() {* 1000}; // TODO: do we really need microseconds here? k8: NOPE!
+  if ticksOverflow = -1 then
+  begin
+    ticksOverflow := 0;
+    lastTicks := t;
+  end
+  else
+  begin
+    if lastTicks > t then
+    begin
+      // overflow, increment overflow ;-)
+      ticksOverflow := ticksOverflow+(Int64($ffffffff)+Int64(1));
+      tt := (Int64($ffffffff)+Int64(1))+Int64(t);
+      t := Uint32(tt-lastTicks);
+    end;
+  end;
+  lastTicks := t;
+  result := ticksOverflow+Int64(t);
 end;
 
 procedure ResetTimer();
