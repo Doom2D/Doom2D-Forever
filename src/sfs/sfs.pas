@@ -1121,7 +1121,7 @@ begin
   end;
 
   if ds <> nil then st := ds
-  else st := TFileStream.Create(fn, fmOpenRead or fmShareDenyWrite);
+  else st := TFileStream.Create(fn, fmOpenRead or {fmShareDenyWrite}fmShareDenyNone);
   st.Position := 0;
 
   volumes.Pack();
@@ -1269,7 +1269,7 @@ var
       cdir := SFSReplacePathDelims(SFSExpandDirName(cdir), '/');
       if cdir[Length(cdir)] <> '/' then cdir := cdir+'/';
       try
-        result := TFileStream.Create(cdir+dfn, fmOpenRead or fmShareDenyWrite);
+        result := TFileStream.Create(cdir+dfn, fmOpenRead or {fmShareDenyWrite}fmShareDenyNone);
         exit;
       except
       end;

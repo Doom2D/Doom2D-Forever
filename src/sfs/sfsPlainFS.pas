@@ -650,7 +650,7 @@ begin
     kill := false;
     try
       try
-        fs := TFileStream.Create(fFileName, fmOpenRead or fmShareDenyWrite);
+        fs := TFileStream.Create(fFileName, fmOpenRead or {fmShareDenyWrite}fmShareDenyNone);
         kill := true;
       except
         fs := fFileStream;
@@ -668,7 +668,7 @@ begin
     kill := false;
     try
       try
-        fs := TFileStream.Create(fFileName, fmOpenRead or fmShareDenyWrite);
+        fs := TFileStream.Create(fFileName, fmOpenRead or {fmShareDenyWrite}fmShareDenyNone);
         kill := true;
       except
         fs := fFileStream;
