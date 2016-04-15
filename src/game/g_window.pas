@@ -273,23 +273,33 @@ begin
         e_WriteLog('[DEBUG] WinMsgs: Now restored', MSG_NOTIFY);
       end;
     end;
-    
+
     SDL_WINDOWEVENT_FOCUS_GAINED:
+    begin
       wActivate := True;
-    
+      //e_WriteLog('window gained focus!', MSG_NOTIFY);
+    end;
+
     SDL_WINDOWEVENT_FOCUS_LOST:
+    begin
       wDeactivate := True;
+      //e_WriteLog('window lost focus!', MSG_NOTIFY);
+    end;
   end;
-  
+
   if wDeactivate then
   begin
     if gWinActive then
     begin
+      e_WriteLog('deactivating window', MSG_NOTIFY);
       e_EnableInput := False;
       e_ClearInputBuffer();
 
       if gMuteWhenInactive then
+      begin
+        //e_WriteLog('deactivating sounds', MSG_NOTIFY);
         e_MuteChannels(True);
+      end;
 
       if g_debug_WinMsgs then
       begin
@@ -304,10 +314,14 @@ begin
   begin
     if not gWinActive then
     begin
+      //e_WriteLog('activating window', MSG_NOTIFY);
       e_EnableInput := True;
 
       if gMuteWhenInactive then
+      begin
+        //e_WriteLog('activating sounds', MSG_NOTIFY);
         e_MuteChannels(False);
+      end;
 
       if g_debug_WinMsgs then
       begin

@@ -244,7 +244,7 @@ var
   gWinPosX, gWinPosY: Integer;
   gWinSizeX, gWinSizeY: Integer;
   gWinFrameX, gWinFrameY, gWinCaption: Integer;
-  gWinActive: Boolean = False;
+  gWinActive: Boolean = True; // by default window is active, lol
   gResolutionChange: Boolean = False;
   gRC_Width, gRC_Height: Word;
   gRC_FullScreen, gRC_Maximized: Boolean;
