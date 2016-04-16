@@ -200,6 +200,10 @@ begin
   if PanelRec.TextureNum > High(Textures) then
   begin
     e_WriteLog(Format('WTF?! PanelRec.TextureNum is out of limits! (%d : %d)', [PanelRec.TextureNum, High(Textures)]), MSG_FATALERROR);
+    FTextureWidth := 2;
+    FTextureHeight := 2;
+    FAlpha := 0;
+    FBlending := ByteBool(0);
   end
   else if not g_Map_IsSpecialTexture(Textures[PanelRec.TextureNum].TextureName) then
   begin
