@@ -95,14 +95,21 @@ uses
   {$R CustomRes.res}
 {$ENDIF}
 
+var
+  f: Integer;
+  noct: Boolean = false;
 begin
-  try
-    Main();
-    e_WriteLog('Shutdown with no errors.', MSG_NOTIFY);
-  except
-    on E: Exception do
-      e_WriteLog(Format(_lc[I_SYSTEM_ERROR_MSG], [E.Message]), MSG_FATALERROR);
-    else
-      e_WriteLog(Format(_lc[I_SYSTEM_ERROR_UNKNOWN], [LongWord(ExceptAddr())]), MSG_FATALERROR);
-  end;
+  for f := 1 to ParamCount do if ParamStr(f) = '--gdb' then noct := true;
+  if noct then
+    Main()
+  else
+    try
+      Main();
+      e_WriteLog('Shutdown with no errors.', MSG_NOTIFY);
+    except
+      on E: Exception do
+        e_WriteLog(Format(_lc[I_SYSTEM_ERROR_MSG], [E.Message]), MSG_FATALERROR);
+      else
+        e_WriteLog(Format(_lc[I_SYSTEM_ERROR_UNKNOWN], [LongWord(ExceptAddr())]), MSG_FATALERROR);
+    end;
 end.
