@@ -61,8 +61,8 @@ type
 implementation
 
 uses
-  g_basic, g_map, MAPDEF, g_game, e_graphics,
-  g_console, g_language;
+  SysUtils, g_basic, g_map, MAPDEF, g_game, e_graphics,
+  g_console, g_language, e_log;
 
 const
   PANEL_SIGNATURE = $4C4E4150; // 'PANL'
@@ -197,7 +197,11 @@ begin
     SaveIt := True;
 
 // Если не спецтекстура, то задаем размеры:
-  if not g_Map_IsSpecialTexture(Textures[PanelRec.TextureNum].TextureName) then
+  if PanelRec.TextureNum > High(Textures) then
+  begin
+    e_WriteLog(Format('WTF?! PanelRec.TextureNum is out of limits! (%d : %d)', [PanelRec.TextureNum, High(Textures)]), MSG_FATALERROR);
+  end
+  else if not g_Map_IsSpecialTexture(Textures[PanelRec.TextureNum].TextureName) then
   begin
     FTextureWidth := Textures[PanelRec.TextureNum].Width;
     FTextureHeight := Textures[PanelRec.TextureNum].Height;
