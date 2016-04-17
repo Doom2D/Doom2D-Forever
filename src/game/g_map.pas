@@ -346,9 +346,10 @@ begin
   Result := len;
 end;
 
-procedure CreateNullTexture(RecName: String);
+function CreateNullTexture(RecName: String): Integer;
 begin
   SetLength(Textures, Length(Textures)+1);
+  result := High(Textures);
 
   with Textures[High(Textures)] do
   begin
@@ -360,7 +361,7 @@ begin
   end;
 end;
 
-function CreateTexture(RecName: String; Map: string; log: Boolean): Boolean;
+function CreateTexture(RecName: String; Map: string; log: Boolean): Integer;
 var
   WAD: TWADEditor_1;
   TextureData: Pointer;
@@ -369,13 +370,13 @@ var
   TextureName: String;
   a, ResLength: Integer;
 begin
-  Result := False;
+  Result := -1;
 
   if Textures <> nil then
     for a := 0 to High(Textures) do
       if Textures[a].TextureName = RecName then
       begin // Текстура с таким именем уже есть
-        Result := True;
+        Result := a;
         Exit;
       end;
 
@@ -402,7 +403,7 @@ begin
       Anim := False;
     end;
 
-    Result := True;
+    result := High(Textures);
     Exit;
   end;
 
@@ -430,7 +431,7 @@ begin
       Textures[High(Textures)].TextureName := RecName;
       Textures[High(Textures)].Anim := False;
 
-      Result := True;
+      result := High(Textures);
     end
   else // Нет такого реусрса в WAD'е
     if log then
@@ -442,7 +443,7 @@ begin
   WAD.Free();
 end;
 
-function CreateAnimTexture(RecName: String; Map: string; log: Boolean): Boolean;
+function CreateAnimTexture(RecName: String; Map: string; log: Boolean): Integer;
 var
   WAD: TWADEditor_1;
   TextureWAD: Pointer;
@@ -457,7 +458,7 @@ var
   _width, _height, _framecount, _speed: Integer;
   _backanimation: Boolean;
 begin
-  Result := False;
+  Result := -1;
 
 // Читаем WAD-ресурс аним.текстуры из WAD'а в память:
   g_ProcessResourceStr(RecName, WADName, SectionName, TextureName);
@@ -545,7 +546,7 @@ begin
         FramesCount := _framecount;
         Speed := _speed;
 
-        Result := True;
+        result := High(Textures);
       end
     else
       if log then
@@ -758,6 +759,7 @@ var
   MapReader: TMapReader_1;
   Header: TMapHeaderRec_1;
   _textures: TTexturesRec1Array;
+  _texnummap: array of Integer; // `_textures` -> `Textures`
   panels: TPanelsRec1Array;
   items: TItemsRec1Array;
   monsters: TMonsterRec1Array;
@@ -778,7 +780,7 @@ var
   Data: Pointer;
   Len: Integer;
   ok, isAnim, trigRef: Boolean;
-  CurTex: Integer;
+  CurTex, ntn: Integer;
 begin
   Result := False;
   gMapInfo.Map := Res;
@@ -825,12 +827,14 @@ begin
   // Загрузка текстур:
     g_Game_SetLoadingText(_lc[I_LOAD_TEXTURES], 0, False);
     _textures := MapReader.GetTextures();
+    _texnummap := nil;
 
   // Добавление текстур в Textures[]:
     if _textures <> nil then
     begin
       e_WriteLog('  Loading textures:', MSG_NOTIFY);
       g_Game_SetLoadingText(_lc[I_LOAD_TEXTURES], High(_textures), False);
+      SetLength(_texnummap, length(_textures));
 
       for a := 0 to High(_textures) do
       begin
@@ -842,23 +846,27 @@ begin
             SetLength(s, b-1);
             Break;
           end;
-        e_WriteLog('    Loading texture: ' + s, MSG_NOTIFY);
+        e_WriteLog(Format('    Loading texture #%d: %s', [a, s]), MSG_NOTIFY);
+        //if g_Map_IsSpecialTexture(s) then e_WriteLog('      SPECIAL!', MSG_NOTIFY);
       // Анимированная текстура:
         if ByteBool(_textures[a].Anim) then
           begin
-            if not CreateAnimTexture(_textures[a].Resource, FileName, True) then
+            ntn := CreateAnimTexture(_textures[a].Resource, FileName, True);
+            if ntn < 0 then
             begin
               g_SimpleError(Format(_lc[I_GAME_ERROR_TEXTURE_ANIM], [s]));
-              CreateNullTexture(_textures[a].Resource);
+              ntn := CreateNullTexture(_textures[a].Resource);
             end;
           end
         else // Обычная текстура:
-          if not CreateTexture(_textures[a].Resource, FileName, True) then
+          ntn := CreateTexture(_textures[a].Resource, FileName, True);
+          if ntn < 0 then
           begin
             g_SimpleError(Format(_lc[I_GAME_ERROR_TEXTURE_SIMPLE], [s]));
-            CreateNullTexture(_textures[a].Resource);
+            ntn := CreateNullTexture(_textures[a].Resource);
           end;
 
+        _texnummap[a] := ntn; // fix texture number
         g_Game_StepLoading();
       end;
     end;
@@ -873,6 +881,18 @@ begin
     e_WriteLog('  Loading panels...', MSG_NOTIFY);
     g_Game_SetLoadingText(_lc[I_LOAD_PANELS], 0, False);
     panels := MapReader.GetPanels();
+
+    // check texture numbers for panels
+    for a := 0 to High(panels) do
+    begin
+      if panels[a].TextureNum > High(_textures) then
+      begin
+        e_WriteLog('error loading map: invalid texture index for panel', MSG_FATALERROR);
+        result := false;
+        exit;
+      end;
+      panels[a].TextureNum := _texnummap[panels[a].TextureNum];
+    end;
 
   // Создание таблицы триггеров (соответствие панелей триггерам):
     if triggers <> nil then
@@ -981,21 +1001,21 @@ begin
                   if ByteBool(texture.Anim) then
                     begin // Начальная - анимированная, ищем анимированную
                       isAnim := True;
-                      ok := CreateAnimTexture(TexName, FileName, False);
+                      ok := CreateAnimTexture(TexName, FileName, False) >= 0;
                       if not ok then
                       begin // Нет анимированной, ищем обычную
                         isAnim := False;
-                        ok := CreateTexture(TexName, FileName, False);
+                        ok := CreateTexture(TexName, FileName, False) >= 0;
                       end;
                     end
                   else
                     begin // Начальная - обычная, ищем обычную
                       isAnim := False;
-                      ok := CreateTexture(TexName, FileName, False);
+                      ok := CreateTexture(TexName, FileName, False) >= 0;
                       if not ok then
                       begin // Нет обычной, ищем анимированную
                         isAnim := True;
-                        ok := CreateAnimTexture(TexName, FileName, False);
+                        ok := CreateAnimTexture(TexName, FileName, False) >= 0;
                       end;
                     end;
 
@@ -1038,6 +1058,8 @@ begin
           AddTextures[0].Anim := ByteBool(texture.Anim);
           CurTex := 0;
         end;
+
+        //e_WriteLog(Format('panel #%d: TextureNum=%d; ht=%d; ht1=%d; atl=%d', [a, panels[a].TextureNum, High(_textures), High(Textures), High(AddTextures)]), MSG_NOTIFY);
 
       // Создаем панель и запоминаем ее номер:
         PanelID := CreatePanel(panels[a], AddTextures, CurTex, trigRef);
