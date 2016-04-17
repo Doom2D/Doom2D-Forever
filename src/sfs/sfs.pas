@@ -244,9 +244,6 @@ function WildMatch (pattern, text: TSFSString): Boolean;
 function WildListMatch (wildList, text: TSFSString; delimChar: AnsiChar=':'): Integer;
 function HasWildcards (const pattern: TSFSString): Boolean;
 
-// this will compare only last path element from sfspath
-function SFSDFPathEqu (sfspath: string; path: string): Boolean;
-
 function SFSUpCase (ch: Char): Char;
 
 function utf8to1251 (s: TSFSString): TSFSString;
@@ -689,27 +686,6 @@ begin
     if SFSUpCase(s0[i]) <> SFSUpCase(s1[i]) then exit;
   end;
   result := true;
-end;
-
-// this will compare only last path element from sfspath
-function SFSDFPathEqu (sfspath: string; path: string): Boolean;
-{var
-  i: Integer;}
-begin
-  result := SFSStrEqu(sfspath, path);
-(*
-  if not result and (length(sfspath) > 1) then
-  begin
-    i := length(sfspath);
-    while i > 1 do
-    begin
-      while (i > 1) and (sfspath[i-1] <> '/') do Dec(i);
-      if i <= 1 then exit;
-      writeln('{', sfspath, '} [', Copy(sfspath, i, length(sfspath)), '] : [', path, ']');
-      result := SFSStrEqu(Copy(sfspath, i, length(sfspath)), path);
-    end;
-  end;
-*)
 end;
 
 // adds '/' too

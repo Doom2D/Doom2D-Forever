@@ -9,7 +9,7 @@ function g_Res_DownloadWAD(const FileName: string): string;
 
 implementation
 
-uses g_language;
+uses g_language, sfs, WADEDITOR;
 
 const DOWNLOAD_DIR = 'downloads';
 
@@ -23,15 +23,14 @@ begin
       repeat
         if (searchResult.Attr and faDirectory) = 0 then
         begin
-          if searchResult.Name = filename then
+          if SFSStrEqu(searchResult.Name, filename) then
           begin
             files.Add(dirName+'/'+filename);
             Exit;
           end;
         end
         else if (searchResult.Name <> '.') and (searchResult.Name <> '..') then
-          FindFiles(IncludeTrailingPathDelimiter(dirName)+searchResult.Name,
-                    filename, files);
+          FindFiles(IncludeTrailingPathDelimiter(dirName)+searchResult.Name, filename, files);
       until FindNext(searchResult) <> 0;
     finally
       FindClose(searchResult);
@@ -42,14 +41,21 @@ end;
 function CompareFileHash(const filename: string; const resMd5: TMD5Digest): Boolean;
 var
   gResHash: TMD5Digest;
+  fname: string;
 begin
-  gResHash := MD5File(filename);
+  fname := findDiskWad(filename);
+  if length(fname) = 0 then begin result := false; exit; end;
+  gResHash := MD5File(fname);
   Result := MD5Match(gResHash, resMd5);
 end;
 
 function CheckFileHash(const path, filename: string; const resMd5: TMD5Digest): Boolean;
+var
+  fname: string;
 begin
-  Result := FileExists(path + filename) and CompareFileHash(path + filename, resMd5);
+  fname := findDiskWad(path+filename);
+  if length(fname) = 0 then begin result := false; exit; end;
+  Result := FileExists(fname) and CompareFileHash(fname, resMd5);
 end;
 
 function g_Res_SearchSameWAD(const path, filename: string; const resMd5: TMD5Digest): string;

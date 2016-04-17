@@ -208,7 +208,7 @@ begin
     fi := fIter.Files[f];
     if fi = nil then continue;
     //e_WriteLog(Format('DFWAD: searching for [%s : %s] in [%s]; current is [%s : %s]', [Section, Resource, fFileName, fi.path, fi.name]), MSG_NOTIFY);
-    if {SFSStrEqu}SFSDFPathEqu(fi.path, Section) and SFSStrEqu(removeExt(fi.name), Resource) then
+    if SFSStrEqu(fi.path, Section) and SFSStrEqu(removeExt(fi.name), Resource) then
     begin
       // i found her!
       //fn := fFileName+'::'+fi.path+fi.name;
@@ -263,7 +263,7 @@ begin
     fi := fIter.Files[f];
     if fi = nil then continue;
     if length(fi.name) = 0 then continue;
-    if {SFSStrEqu}SFSDFPathEqu(fi.path, Section) then
+    if SFSStrEqu(fi.path, Section) then
     begin
       SetLength(result, Length(result)+1);
       result[high(result)] := removeExt(fi.name);
