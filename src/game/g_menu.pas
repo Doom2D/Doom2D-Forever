@@ -33,6 +33,56 @@ uses
   e_textures, GL, GLExt, g_language,
   g_net, g_netmsg, g_netmaster, g_items, e_input;
 
+
+type TYNCallback = procedure (yes:Boolean);
+
+procedure YNKeyDownProc (win: TGUIWindow; Key: Byte);
+begin
+  if win.UserData = nil then exit;
+  //writeln('YNEX; key=', Key, '; ', (Key = ord('y')));
+       if Key = ord('y') then TYNCallback(win.UserData)(true)
+  else if Key = ord('n') then TYNCallback(win.UserData)(false);
+end;
+
+function CreateYNMenu (Name, Text: String; MaxLen: Word; FontID: DWORD; ActionProc: TYNCallback): TGUIWindow;
+var
+  a: Integer;
+  h, _x: Word;
+  lines: SArray;
+begin
+  Result := TGUIWindow.Create(Name);
+  with Result do
+  begin
+    OnKeyDownEx := @YNKeyDownProc;
+    UserData := @ActionProc;
+    lines := GetLines(Text, FontID, MaxLen);
+    h := e_CharFont_GetMaxHeight(FontID);
+    _x := (gScreenHeight div 2)-(h*Length(lines) div 2);
+    if lines <> nil then
+    begin
+      for a := 0 to High(lines) do
+      begin
+        with TGUILabel(Result.AddChild(TGUILabel.Create(lines[a], FontID))) do
+        begin
+          X := (gScreenWidth div 2)-(GetWidth div 2);
+          Y := _x;
+          Color := _RGB(255, 0, 0);
+          _x := _x+h;
+        end;
+      end;
+      with TGUILabel(Result.AddChild(TGUILabel.Create('(Y/N)', FontID))) do
+      begin
+        X := (gScreenWidth div 2)-(GetWidth div 2);
+        Y := _x;
+        Color := _RGB(255, 0, 0);
+      end;
+    end;
+    DefControl := '';
+    SetActive(nil);
+  end;
+end;
+
+
 procedure ProcChangeColor(Sender: TGUIControl); forward;
 procedure ProcSelectModel(Sender: TGUIControl); forward;
 
@@ -887,13 +937,13 @@ begin
   gMusic.Play();
 end;
 
-procedure ProcExitMenuKeyDown(Key: Byte);
+procedure ProcExitMenuKeyDown (yes: Boolean);
 var
   s: ShortString;
   snd: TPlayableSound;
   res: Boolean;
 begin
-  if Key = IK_Y then
+  if yes then
   begin
     g_Game_StopAllSounds(True);
     case (Random(18)) of
@@ -915,24 +965,18 @@ begin
       15: s := 'SOUND_MONSTER_SPIDER_ALERT';
       else s := 'SOUND_PLAYER_FALL';
     end;
-
     snd := TPlayableSound.Create();
     res := snd.SetByName(s);
-    if not res then
-      res := snd.SetByName('SOUND_PLAYER_FALL');
-
+    if not res then res := snd.SetByName('SOUND_PLAYER_FALL');
     if res then
     begin
       snd.Play(True);
-      while snd.IsPlaying() do
-        ;
+      while snd.IsPlaying() do begin end;
     end;
-
     g_Game_Quit();
-  end
-    else
-      if Key = IK_N then
-        g_GUI_HideWindow();
+    exit;
+  end;
+  g_GUI_HideWindow();
 end;
 
 procedure ProcLoadMenu();
@@ -1132,25 +1176,20 @@ begin
     if Direction = D_LEFT then Direction := D_RIGHT else Direction := D_LEFT;
 end;
 
-procedure ProcDefaultMenuKeyDown(Key: Byte);
+procedure ProcDefaultMenuKeyDown (yes: Boolean);
 begin
-  if Key = Ord('y') then
+  if yes then
   begin
     g_Options_SetDefault();
     ReadOptions();
-    g_GUI_HideWindow();
-  end else
-    if Key = Ord('n') then g_GUI_HideWindow;
+  end;
+  g_GUI_HideWindow();
 end;
 
-procedure ProcSavedMenuKeyDown(Key: Byte);
+procedure ProcSavedMenuKeyDown (yes: Boolean);
 begin
-  if Key = Ord('y') then
-  begin
-    ReadOptions();
-    g_GUI_HideWindow();
-  end else
-    if Key = Ord('n') then g_GUI_HideWindow;
+  if yes then ReadOptions();
+  g_GUI_HideWindow();
 end;
 
 procedure ProcAuthorsClose();
@@ -1313,16 +1352,14 @@ begin
   g_Game_Pause(False);
 end;
 
-procedure ProcRestartMenuKeyDown(Key: Byte);
+procedure ProcRestartMenuKeyDown (yes: Boolean);
 begin
-  if Key = Ord('y') then g_Game_Restart()
-    else if Key = Ord('n') then g_GUI_HideWindow;
+  if yes then g_Game_Restart() else g_GUI_HideWindow;
 end;
 
-procedure ProcEndMenuKeyDown(Key: Byte);
+procedure ProcEndMenuKeyDown (yes: Boolean);
 begin
-  if Key = Ord('y') then gExit := EXIT_SIMPLE
-    else if Key = Ord('n') then g_GUI_HideWindow;
+  if yes then gExit := EXIT_SIMPLE else g_GUI_HideWindow;
 end;
 
 procedure ProcSetRussianLanguage();
@@ -1583,48 +1620,6 @@ begin
 
 // Сохраняем изменения всех настроек:
   ProcApplyOptions();
-end;
-
-function CreateYNMenu(Name, Text: String; MaxLen: Word; FontID: DWORD;
-                      KeyDownProc: Pointer): TGUIWindow;
-var
-  a: Integer;
-  h, _x: Word;
-  lines: SArray;
-begin
-  Result := TGUIWindow.Create(Name);
-
-  with Result do
-  begin
-    OnKeyDown := KeyDownProc;
-
-    lines := GetLines(Text, FontID, MaxLen);
-
-    h := e_CharFont_GetMaxHeight(FontID);
-    _x := (gScreenHeight div 2)-(h*Length(lines) div 2);
-
-    if lines <> nil then
-    begin
-      for a := 0 to High(lines) do
-        with TGUILabel(Result.AddChild(TGUILabel.Create(lines[a], FontID))) do
-        begin
-          X := (gScreenWidth div 2)-(GetWidth div 2);
-          Y := _x;
-          Color := _RGB(255, 0, 0);
-          _x := _x+h;
-        end;
-
-      with TGUILabel(Result.AddChild(TGUILabel.Create('(Y/N)', FontID))) do
-      begin
-        X := (gScreenWidth div 2)-(GetWidth div 2);
-        Y := _x;
-        Color := _RGB(255, 0, 0);
-      end;
-    end;
-
-    DefControl := '';
-    SetActive(nil);
-  end;
 end;
 
 procedure ProcSetFirstRussianLanguage();

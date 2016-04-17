@@ -82,15 +82,15 @@ type
   end;
 
   TGUIControl = class;
+  TGUIWindow = class;
 
   TOnKeyDownEvent = procedure(Key: Byte);
+  TOnKeyDownEventEx = procedure(win: TGUIWindow; Key: Byte);
   TOnCloseEvent = procedure;
   TOnShowEvent = procedure;
   TOnClickEvent = procedure;
   TOnChangeEvent = procedure(Sender: TGUIControl);
   TOnEnterEvent = procedure(Sender: TGUIControl);
-
-  TGUIWindow = class;
 
   TGUIControl = class
   private
@@ -118,8 +118,10 @@ type
     FBackTexture: string;
     FMainWindow: Boolean;
     FOnKeyDown: TOnKeyDownEvent;
+    FOnKeyDownEx: TOnKeyDownEventEx;
     FOnCloseEvent: TOnCloseEvent;
     FOnShowEvent: TOnShowEvent;
+    FUserData: Pointer;
   public
     Childs: array of TGUIControl;
     constructor Create(Name: string);
@@ -131,12 +133,14 @@ type
     procedure SetActive(Control: TGUIControl);
     function GetControl(Name: string): TGUIControl;
     property OnKeyDown: TOnKeyDownEvent read FOnKeyDown write FOnKeyDown;
+    property OnKeyDownEx: TOnKeyDownEventEx read FOnKeyDownEx write FOnKeyDownEx;
     property OnClose: TOnCloseEvent read FOnCloseEvent write FOnCloseEvent;
     property OnShow: TOnShowEvent read FOnShowEvent write FOnShowEvent;
     property Name: string read FName;
     property DefControl: string read FDefControl write FDefControl;
     property BackTexture: string read FBackTexture write FBackTexture;
     property MainWindow: Boolean read FMainWindow write FMainWindow;
+    property UserData: Pointer read FUserData write FUserData;
   end;
 
   TGUITextButton = class(TGUIControl)
@@ -713,6 +717,7 @@ begin
   FActiveControl := nil;
   FName := Name;
   FOnKeyDown := nil;
+  FOnKeyDownEx := nil;
   FOnCloseEvent := nil;
   FOnShowEvent := nil;
 end;
@@ -765,6 +770,7 @@ procedure TGUIWindow.OnMessage(var Msg: TMessage);
 begin
   if FActiveControl <> nil then FActiveControl.OnMessage(Msg);
   if @FOnKeyDown <> nil then FOnKeyDown(Msg.wParam);
+  if @FOnKeyDownEx <> nil then FOnKeyDownEx(self, Msg.wParam);
 
   if Msg.Msg = WM_KEYDOWN then
     if Msg.wParam = IK_ESCAPE then
