@@ -23,6 +23,7 @@ function  g_Window_SetSize(W, H: Word; FScreen: Boolean): Boolean;
 implementation
 
 uses
+{$IFDEF WIN32}Windows,{$ENDIF}
   SDL2, GL, GLExt, e_graphics, e_log, g_main,
   g_console, SysUtils, e_input, g_options, g_game,
   g_basic, g_textures, e_sound, g_sound, g_menu, ENet, g_net;
@@ -434,6 +435,17 @@ begin
   Result := True;
 end;
 
+{$IFDEF WIN32}
+// windoze sux; in headless mode `GetTickCount()` (and SDL) returns shit
+function GetTimer(): Int64;
+var
+  F, C: Int64;
+begin
+  QueryPerformanceFrequency(F);
+  QueryPerformanceCounter(C);
+  Result := Round(C/F*1000{000});
+end;
+{$ELSE}
 function GetTimer(): Int64;
 var
   t: Uint32;
@@ -458,6 +470,7 @@ begin
   lastTicks := t;
   result := ticksOverflow+Int64(t);
 end;
+{$ENDIF}
 
 procedure ResetTimer();
 begin
