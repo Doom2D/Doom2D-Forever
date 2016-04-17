@@ -256,7 +256,7 @@ uses
   Math, ENet, e_input, e_fixedbuffer, e_graphics, e_log,
   g_textures, g_gfx, g_sound, g_console, g_basic, g_options, g_main,
   g_game, g_player, g_map, g_panel, g_items, g_weapons, g_phys, g_gui,
-  g_language, g_monsters, g_netmaster,
+  g_language, g_monsters, g_netmaster, sfs,
   WADEDITOR, MAPDEF;
 
 const
@@ -2846,11 +2846,21 @@ end;
 function ReadFile(const FileName: TFileName): AByte;
 var
   FileStream : TFileStream;
+  fname: string;
 begin
+  e_WriteLog(Format('NETWORK: looking for file "%s"', [FileName]), MSG_NOTIFY);
+  fname := findDiskWad(FileName);
+  if length(fname) = 0 then
+  begin
+    e_WriteLog(Format('NETWORK: file "%s" not found!', [FileName]), MSG_FATALERROR);
+    SetLength(Result, 0);
+    exit;
+  end;
+  e_WriteLog(Format('NETWORK: found file "%s"', [fname]), MSG_NOTIFY);
   Result := nil;
-  FileStream:= TFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
+  FileStream:= TFileStream.Create(fname, fmOpenRead or {fmShareDenyWrite}fmShareDenyNone);
   try
-    if FileStream.Size>0 then
+    if FileStream.Size > 0 then
     begin
       SetLength(Result, FileStream.Size);
       FileStream.Read(Result[0], FileStream.Size);

@@ -49,11 +49,49 @@ const
 procedure g_ProcessResourceStr (ResourceStr: String; var FileName, SectionName, ResourceName: String); overload;
 procedure g_ProcessResourceStr (ResourceStr: String; FileName, SectionName, ResourceName: PString); overload;
 
+// return fixed string or empty string
+function findDiskWad (fname: string): string;
+
 
 implementation
 
 uses
   SysUtils, Classes, BinEditor, e_log, g_options;
+
+
+function findDiskWad (fname: string): string;
+var
+  path, rfn: string;
+begin
+  result := '';
+  path := ExtractFilePath(fname);
+  rfn := ExtractFileName(fname);
+  if not sfsFindFileCI(path, rfn) then
+  begin
+    //e_WriteLog(Format('TWADEditor_1.ReadFile: error looking for [%s] [%s]', [path, ExtractFileName(fname)]), MSG_NOTIFY);
+    if SFSStrEqu(ExtractFileExt(fname), '.wad') then
+    begin
+      rfn := ChangeFileExt(ExtractFileName(fname), '.pk3');
+      //e_WriteLog(Format('  looking for [%s] [%s]', [path, rfn]), MSG_NOTIFY);
+      if not sfsFindFileCI(path, rfn) then
+      begin
+        //e_WriteLog(Format('  looking for [%s] [%s]', [path, rfn]), MSG_NOTIFY);
+        rfn := ChangeFileExt(ExtractFileName(fname), '.zip');
+        if not sfsFindFileCI(path, rfn) then exit;
+      end;
+    end
+    else
+    begin
+      exit;
+    end;
+    //e_WriteLog(Format('TWADEditor_1.ReadFile: FOUND [%s]', [rfn]), MSG_NOTIFY);
+  end
+  else
+  begin
+    //if rfn <> ExtractFileName(FileName) then e_WriteLog(Format('TWADEditor_1.ReadFile: FOUND [%s]', [rfn]), MSG_NOTIFY);
+  end;
+  result := path+rfn;
+end;
 
 
 procedure g_ProcessResourceStr (ResourceStr: String; var FileName, SectionName, ResourceName: String);
@@ -243,37 +281,16 @@ begin
   Result := False;
   //e_WriteLog(Format('TWADEditor_1.ReadFile: [%s]', [FileName]), MSG_NOTIFY);
   FreeWAD();
-  path := ExtractFilePath(FileName);
-  rfn := ExtractFileName(FileName);
-  if not sfsFindFileCI(path, rfn) then
+  rfn := findDiskWad(FileName);
+  if length(rfn) = 0 then
   begin
-    //{if gSFSDebug then} e_WriteLog(Format('TWADEditor_1.ReadFile: error looking for [%s] [%s]', [path, ExtractFileName(FileName)]), MSG_NOTIFY);
-    if SFSStrEqu(ExtractFileExt(FileName), '.wad') then
-    begin
-      rfn := ChangeFileExt(ExtractFileName(FileName), '.pk3');
-      //{if gSFSDebug then} e_WriteLog(Format('  looking for [%s] [%s]', [path, rfn]), MSG_NOTIFY);
-      if not sfsFindFileCI(path, rfn) then
-      begin
-        //{if gSFSDebug then} e_WriteLog(Format('  looking for [%s] [%s]', [path, rfn]), MSG_NOTIFY);
-        rfn := ChangeFileExt(ExtractFileName(FileName), '.zip');
-        if not sfsFindFileCI(path, rfn) then exit;
-      end;
-    end
-    else
-    begin
-      exit;
-    end;
-    //{if gSFSDebug then} e_WriteLog(Format('TWADEditor_1.ReadFile: FOUND [%s]', [rfn]), MSG_NOTIFY);
-  end
-  else
-  begin
-    //if rfn <> ExtractFileName(FileName) then e_WriteLog(Format('TWADEditor_1.ReadFile: FOUND [%s]', [rfn]), MSG_NOTIFY);
+    e_WriteLog(Format('TWADEditor_1.ReadFile: error looking for [%s]', [FileName]), MSG_NOTIFY);
+    exit;
   end;
   {$IFDEF SFS_DWFAD_DEBUG}
   if gSFSDebug then e_WriteLog(Format('TWADEditor_1.ReadFile: FOUND [%s]', [rfn]), MSG_NOTIFY);
   {$ENDIF}
   // cache this wad
-  rfn := path+rfn;
   try
     if gSFSFastMode then
     begin
@@ -290,17 +307,8 @@ begin
   if fIter = nil then Exit;
   fFileName := rfn;
   {$IFDEF SFS_DWFAD_DEBUG}
-  if gSFSDebug then
-    e_WriteLog(Format('TWADEditor_1.ReadFile: [%s] opened', [fFileName]), MSG_NOTIFY);
+  if gSFSDebug then e_WriteLog(Format('TWADEditor_1.ReadFile: [%s] opened', [fFileName]), MSG_NOTIFY);
   {$ENDIF}
-  {
-    for f := 0 to fIter.Count-1 do
-    begin
-      fi := fIter.Files[f];
-      if fi = nil then continue;
-      e_WriteLog(Format('[%s]: [%s : %s] %u', [fFileName, fi.path, fi.name, fi.size]), MSG_NOTIFY);
-    end;
-  }
   Result := True;
 end;
 
