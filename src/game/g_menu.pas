@@ -73,8 +73,8 @@ begin
       Name := '__temp_yes_no_menu:'+WinName;
       YesNo := true;
       AddText(Text, MaxLen);
-      with AddButton(nil, 'Yes') do begin ProcEx := @YesButtonCB; UserData := @ActionProc; end;
-      with AddButton(nil, 'No') do begin ProcEx := @NoButtonCB; UserData := @ActionProc; end;
+      with AddButton(nil, _lc[I_MENU_YES]) do begin ProcEx := @YesButtonCB; UserData := @ActionProc; end;
+      with AddButton(nil, _lc[I_MENU_NO]) do begin ProcEx := @NoButtonCB; UserData := @ActionProc; end;
     end;
     DefControl := '__temp_yes_no_menu:'+WinName;
     SetActive(nil);
