@@ -158,7 +158,7 @@ var
   e_Textures: array of TTexture = nil;
   e_TextureFonts: array of TTextureFont = nil;
   e_CharFonts: array of TCharFont;
-  e_SavedTextures: array of TSavedTexture;
+  //e_SavedTextures: array of TSavedTexture;
 
 //------------------------------------------------------------------
 // Инициализирует OpenGL
