@@ -274,7 +274,7 @@ end;
 
 function TWADEditor_1.ReadFile (FileName: string): Boolean;
 var
-  rfn, path: string;
+  rfn: string;
   //f: Integer;
   //fi: TSFSFileInfo;
 begin
