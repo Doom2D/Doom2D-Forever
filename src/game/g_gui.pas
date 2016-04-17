@@ -98,6 +98,7 @@ type
     FEnabled: Boolean;
     FWindow : TGUIWindow;
     FName: string;
+    FUserData: Pointer;
   public
     constructor Create;
     procedure OnMessage(var Msg: TMessage); virtual;
@@ -107,6 +108,7 @@ type
     property Y: Integer read FY write FY;
     property Enabled: Boolean read FEnabled write FEnabled;
     property Name: string read FName write FName;
+    property UserData: Pointer read FUserData write FUserData;
   end;
 
   TGUIWindow = class
@@ -152,6 +154,7 @@ type
     FShowWindow: string;
   public
     Proc: procedure;
+    ProcEx: procedure (sender: TGUITextButton);
     constructor Create(Proc: Pointer; FontID: DWORD; Text: string);
     destructor Destroy(); override;
     procedure OnMessage(var Msg: TMessage); override;
@@ -451,6 +454,7 @@ type
     FCounter: Byte;
     FAlign: Boolean;
     FLeft: Integer;
+    FYesNo: Boolean;
     function NewItem(): Integer;
   public
     constructor Create(HeaderFont, ItemsFont: DWORD; Header: string);
@@ -476,6 +480,7 @@ type
     procedure UpdateIndex();
     property Align: Boolean read FAlign write FAlign;
     property Left: Integer read FLeft write FLeft;
+    property YesNo: Boolean read FYesNo write FYesNo;
   end;
 
 var
@@ -833,13 +838,12 @@ end;
 
 procedure TGUITextButton.Click(Silent: Boolean = False);
 begin
-  if (FSound <> '') and (not Silent) then
-    g_Sound_PlayEx(FSound);
+  if (FSound <> '') and (not Silent) then g_Sound_PlayEx(FSound);
 
-  if @Proc <> nil then
-    Proc();
-  if FShowWindow <> '' then
-    g_GUI_ShowWindow(FShowWindow);
+  if @Proc <> nil then Proc();
+  if @ProcEx <> nil then ProcEx(self);
+
+  if FShowWindow <> '' then g_GUI_ShowWindow(FShowWindow);
 end;
 
 constructor TGUITextButton.Create(Proc: Pointer; FontID: DWORD; Text: string);
@@ -847,6 +851,7 @@ begin
   inherited Create();
 
   Self.Proc := Proc;
+  ProcEx := nil;
 
   FFont := TFont.Create(FontID, FONT_CHAR);
 
@@ -1254,9 +1259,13 @@ begin
     with FItems[i] do
     begin
       Text := TGUILabel.Create(l[a], FFontID);
-      with Text do
+      if FYesNo then
       begin
-        FColor := MENU_ITEMSTEXT_COLOR;
+        with Text do begin FColor := _RGB(255, 0, 0); end;
+      end
+      else
+      begin
+        with Text do begin FColor := MENU_ITEMSTEXT_COLOR; end;
       end;
 
       Control := nil;
@@ -1289,6 +1298,7 @@ begin
   FFontID := ItemsFont;
   FCounter := MENU_MARKERDELAY;
   FAlign := True;
+  FYesNo := false;
 
   FHeader := TGUILabel.Create(Header, HeaderFont);
   with FHeader do
@@ -1473,11 +1483,26 @@ begin
         IK_RETURN, IK_KPRETURN:
         begin
           if FIndex <> -1 then
-            if FItems[FIndex].Control <> nil then
-              FItems[FIndex].Control.OnMessage(Msg);
-
+          begin
+            if FItems[FIndex].Control <> nil then FItems[FIndex].Control.OnMessage(Msg);
+          end;
           g_Sound_PlayEx(MENU_CLICKSOUND);
         end;
+        // dirty hacks
+        IK_Y:
+          if FYesNo and (length(FItems) > 1) then
+          begin
+            Msg.wParam := IK_RETURN; // to register keypress
+            FIndex := High(FItems)-1;
+            if FItems[FIndex].Control <> nil then FItems[FIndex].Control.OnMessage(Msg);
+          end;
+        IK_N:
+          if FYesNo and (length(FItems) > 1) then
+          begin
+            Msg.wParam := IK_RETURN; // to register keypress
+            FIndex := High(FItems);
+            if FItems[FIndex].Control <> nil then FItems[FIndex].Control.OnMessage(Msg);
+          end;
       end;
     end;
   end;
@@ -1526,21 +1551,22 @@ begin
 
   cx := 0;
   for a := 0 to High(FItems) do
+  begin
     with FItems[a] do
     begin
       if (Text <> nil) and (Control = nil) then Continue;
-
       w := 0;
       if Text <> nil then w := tx+Text.GetWidth;
-
       if w > cx then cx := w;
     end;
+  end;
 
   cx := cx+MENU_HSPACE;
 
   h := FHeader.GetHeight*2+MENU_VSPACE*(Length(FItems)-1);
 
   for a := 0 to High(FItems) do
+  begin
     with FItems[a] do
     begin
       if (ControlType = TGUIListBox) or (ControlType = TGUIFileListBox) then
@@ -1548,6 +1574,7 @@ begin
       else
         h := h+e_CharFont_GetMaxHeight(FFontID);
     end;
+  end;
 
   h := (gScreenHeight div 2)-(h div 2);
 
@@ -1589,6 +1616,30 @@ begin
         else
           Inc(h, e_CharFont_GetMaxHeight(FFontID)+MENU_VSPACE);
     end;
+
+  // another ugly hack
+  if FYesNo and (length(FItems) > 1) then
+  begin
+    w := -1;
+    for a := High(FItems)-1 to High(FItems) do
+    begin
+      if (FItems[a].Control <> nil) and (FItems[a].ControlType = TGUITextButton) then
+      begin
+        cx := (FItems[a].Control as TGUITextButton).GetWidth;
+        if cx > w then w := cx;
+      end;
+    end;
+    if w > 0 then
+    begin
+      for a := High(FItems)-1 to High(FItems) do
+      begin
+        if (FItems[a].Control <> nil) and (FItems[a].ControlType = TGUITextButton) then
+        begin
+          FItems[a].Control.FX := (gScreenWidth-w) div 2;
+        end;
+      end;
+    end;
+  end;
 end;
 
 function TGUIMenu.AddScroll(fText: string): TGUIScroll;

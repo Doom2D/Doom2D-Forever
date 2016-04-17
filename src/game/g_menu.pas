@@ -45,40 +45,38 @@ begin
   end;
 end;
 
-function CreateYNMenu (Name, Text: String; MaxLen: Word; FontID: DWORD; ActionProc: TYNCallback): TGUIWindow;
-var
-  a: Integer;
-  h, _x: Word;
-  lines: SArray;
+procedure YesButtonCB (ctl: TGUITextButton);
 begin
-  Result := TGUIWindow.Create(Name);
+  if ctl.UserData = nil then exit;
+  TYNCallback(ctl.UserData)(true);
+end;
+
+procedure NoButtonCB (ctl: TGUITextButton);
+begin
+  if ctl.UserData = nil then exit;
+  TYNCallback(ctl.UserData)(false);
+end;
+
+function CreateYNMenu (WinName, Text: String; MaxLen: Word; FontID: DWORD; ActionProc: TYNCallback): TGUIWindow;
+var
+  menu: TGUIMenu;
+begin
+  //if length(Text) = 0 then exit;
+  Result := TGUIWindow.Create(WinName);
   with Result do
   begin
-    OnKeyDownEx := @YNKeyDownProc;
-    UserData := @ActionProc;
-    lines := GetLines(Text, FontID, MaxLen);
-    h := e_CharFont_GetMaxHeight(FontID);
-    _x := (gScreenHeight div 2)-(h*Length(lines) div 2);
-    if lines <> nil then
+    //OnKeyDownEx := @YNKeyDownProc;
+    //UserData := @ActionProc;
+    menu := TGUIMenu(Result.AddChild(TGUIMenu.Create(gMenuSmallFont, gMenuSmallFont, '')));
+    with menu do
     begin
-      for a := 0 to High(lines) do
-      begin
-        with TGUILabel(Result.AddChild(TGUILabel.Create(lines[a], FontID))) do
-        begin
-          X := (gScreenWidth div 2)-(GetWidth div 2);
-          Y := _x;
-          Color := _RGB(255, 0, 0);
-          _x := _x+h;
-        end;
-      end;
-      with TGUILabel(Result.AddChild(TGUILabel.Create('(Y/N)', FontID))) do
-      begin
-        X := (gScreenWidth div 2)-(GetWidth div 2);
-        Y := _x;
-        Color := _RGB(255, 0, 0);
-      end;
+      Name := '__temp_yes_no_menu:'+WinName;
+      YesNo := true;
+      AddText(Text, MaxLen);
+      with AddButton(nil, 'Yes') do begin ProcEx := @YesButtonCB; UserData := @ActionProc; end;
+      with AddButton(nil, 'No') do begin ProcEx := @NoButtonCB; UserData := @ActionProc; end;
     end;
-    DefControl := '';
+    DefControl := '__temp_yes_no_menu:'+WinName;
     SetActive(nil);
   end;
 end;
