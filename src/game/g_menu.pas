@@ -39,9 +39,10 @@ type TYNCallback = procedure (yes:Boolean);
 procedure YNKeyDownProc (win: TGUIWindow; Key: Byte);
 begin
   if win.UserData = nil then exit;
-  //writeln('YNEX; key=', Key, '; ', (Key = ord('y')));
-       if Key = ord('y') then TYNCallback(win.UserData)(true)
-  else if Key = ord('n') then TYNCallback(win.UserData)(false);
+  case Key of
+    IK_Y, IK_SPACE: TYNCallback(win.UserData)(true);
+    IK_N: TYNCallback(win.UserData)(false);
+  end;
 end;
 
 function CreateYNMenu (Name, Text: String; MaxLen: Word; FontID: DWORD; ActionProc: TYNCallback): TGUIWindow;
