@@ -120,6 +120,52 @@ var
 implementation
 
 type
+  LONG = LongInt;
+  BITMAPINFOHEADER = record
+       biSize : DWORD;
+       biWidth : LONG;
+       biHeight : LONG;
+       biPlanes : WORD;
+       biBitCount : WORD;
+       biCompression : DWORD;
+       biSizeImage : DWORD;
+       biXPelsPerMeter : LONG;
+       biYPelsPerMeter : LONG;
+       biClrUsed : DWORD;
+       biClrImportant : DWORD;
+    end;
+  LPBITMAPINFOHEADER = ^BITMAPINFOHEADER;
+  TBITMAPINFOHEADER = BITMAPINFOHEADER;
+  PBITMAPINFOHEADER = ^BITMAPINFOHEADER;
+
+  RGBQUAD = record
+       rgbBlue : BYTE;
+       rgbGreen : BYTE;
+       rgbRed : BYTE;
+       rgbReserved : BYTE;
+    end;
+  tagRGBQUAD = RGBQUAD;
+  TRGBQUAD = RGBQUAD;
+  PRGBQUAD = ^RGBQUAD;
+
+  BITMAPINFO = record
+       bmiHeader : BITMAPINFOHEADER;
+       bmiColors : array[0..0] of RGBQUAD;
+    end;
+  LPBITMAPINFO = ^BITMAPINFO;
+  PBITMAPINFO = ^BITMAPINFO;
+  TBITMAPINFO = BITMAPINFO;
+
+  BITMAPFILEHEADER = packed record
+    bfType : Word;
+    bfSize : DWord;
+    bfReserved1 : Word;
+    bfReserved2 : Word;
+    bfOffBits : DWord;
+  end;
+  tagBITMAPFILEHEADER = BITMAPFILEHEADER;
+
+type
   TTexture = record
    //ID:     DWORD;
    tx:     GLTexture;
@@ -966,17 +1012,11 @@ begin
 end;
 
 procedure e_MakeScreenshot(FileName: String; Width, Height: Word);
-begin
-  if e_NoGraphics then Exit;
-end;
-
-{type
+type
   aRGB  = Array [0..1] of TRGB;
   PaRGB = ^aRGB;
-
   TByteArray = Array [0..1] of Byte;
   PByteArray = ^TByteArray;
-
 var
   FILEHEADER: BITMAPFILEHEADER;
   INFOHEADER: BITMAPINFOHEADER;
@@ -984,8 +1024,9 @@ var
   tmp:    Byte;
   i:      Integer;
   F:      File of Byte;
-
 begin
+  if e_NoGraphics then Exit;
+
   if (Width mod 4) > 0 then
     Width := Width + 4 - (Width mod 4);
 
@@ -1024,6 +1065,7 @@ begin
     biClrImportant := 0;
   end;
 
+  //writeln('shot: ', FileName);
   AssignFile(F, FileName);
   Rewrite(F);
 
@@ -1034,7 +1076,7 @@ begin
   CloseFile(F);
 
   FreeMem(pixels);
-end;}
+end;
 
 function e_GetGamma(win: PSDL_Window): Byte;
 var

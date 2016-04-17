@@ -5855,7 +5855,7 @@ var
 begin
   for a := 1 to High(Word) do
   begin
-    FileName := Format(GameDir+'/Screenshots/Screenshot%.3d.bmp', [a]);
+    FileName := Format(GameDir+'/screenshots/screenshot%.3d.bmp', [a]);
     if not FileExists(FileName) then
     begin
       e_MakeScreenshot(FileName, gScreenWidth, gScreenHeight);
