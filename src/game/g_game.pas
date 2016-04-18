@@ -5854,7 +5854,10 @@ var
   a: Word;
   FileName: string;
   ssdir, t: string;
+  st: TStream;
+  ok: Boolean;
 begin
+  if e_NoGraphics then Exit;
   ssdir := GameDir+'/screenshots';
   if not findFileCI(ssdir, true) then
   begin
@@ -5868,14 +5871,21 @@ begin
   try
     for a := 1 to High(Word) do
     begin
-      FileName := Format(ssdir+'screenshot%.3d.bmp', [a]);
+      FileName := Format(ssdir+'screenshot%.3d.png', [a]);
       t := FileName;
       if findFileCI(t, true) then continue;
       if not findFileCI(FileName) then
       begin
-        e_MakeScreenshot(FileName, gScreenWidth, gScreenHeight);
-        g_Console_Add(Format(_lc[I_CONSOLE_SCREENSHOT], [ExtractFileName(FileName)]));
-        Break;
+        ok := false;
+        st := createDiskFile(FileName);
+        try
+          e_MakeScreenshot(st, gScreenWidth, gScreenHeight);
+          ok := true;
+        finally
+          st.Free();
+        end;
+        if not ok then try DeleteFile(FileName); except end else g_Console_Add(Format(_lc[I_CONSOLE_SCREENSHOT], [ExtractFileName(FileName)]));
+        break;
       end;
     end;
   except

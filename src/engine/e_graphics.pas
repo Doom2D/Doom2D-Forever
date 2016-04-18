@@ -4,7 +4,7 @@ unit e_graphics;
 interface
 
 uses
-  SysUtils, Math, e_log, e_textures, SDL2, GL, GLExt, MAPDEF;
+  SysUtils, Classes, Math, e_log, e_textures, SDL2, GL, GLExt, MAPDEF;
 
 type
   TMirrorType=(M_NONE, M_HORIZONTAL, M_VERTICAL);
@@ -106,7 +106,7 @@ procedure e_EndRender();
 function e_GetGamma(win: PSDL_Window): Byte;
 procedure e_SetGamma(win: PSDL_Window;Gamma: Byte);
 
-procedure e_MakeScreenshot(FileName: string; Width, Height: Word);
+procedure e_MakeScreenshot(st: TStream; Width, Height: Word);
 
 function _RGB(Red, Green, Blue: Byte): TRGB;
 function _Point(X, Y: Integer): TPoint2i;
@@ -120,51 +120,9 @@ var
 
 implementation
 
-type
-  LONG = LongInt;
-  BITMAPINFOHEADER = record
-       biSize : DWORD;
-       biWidth : LONG;
-       biHeight : LONG;
-       biPlanes : WORD;
-       biBitCount : WORD;
-       biCompression : DWORD;
-       biSizeImage : DWORD;
-       biXPelsPerMeter : LONG;
-       biYPelsPerMeter : LONG;
-       biClrUsed : DWORD;
-       biClrImportant : DWORD;
-    end;
-  LPBITMAPINFOHEADER = ^BITMAPINFOHEADER;
-  TBITMAPINFOHEADER = BITMAPINFOHEADER;
-  PBITMAPINFOHEADER = ^BITMAPINFOHEADER;
+uses
+  paszlib, crc, utils;
 
-  RGBQUAD = record
-       rgbBlue : BYTE;
-       rgbGreen : BYTE;
-       rgbRed : BYTE;
-       rgbReserved : BYTE;
-    end;
-  tagRGBQUAD = RGBQUAD;
-  TRGBQUAD = RGBQUAD;
-  PRGBQUAD = ^RGBQUAD;
-
-  BITMAPINFO = record
-       bmiHeader : BITMAPINFOHEADER;
-       bmiColors : array[0..0] of RGBQUAD;
-    end;
-  LPBITMAPINFO = ^BITMAPINFO;
-  PBITMAPINFO = ^BITMAPINFO;
-  TBITMAPINFO = BITMAPINFO;
-
-  BITMAPFILEHEADER = packed record
-    bfType : Word;
-    bfSize : DWord;
-    bfReserved1 : Word;
-    bfReserved2 : Word;
-    bfOffBits : DWord;
-  end;
-  tagBITMAPFILEHEADER = BITMAPFILEHEADER;
 
 type
   TTexture = record
@@ -1012,73 +970,6 @@ begin
   glPopMatrix();
 end;
 
-procedure e_MakeScreenshot(FileName: String; Width, Height: Word);
-type
-  aRGB  = Array [0..1] of TRGB;
-  PaRGB = ^aRGB;
-  TByteArray = Array [0..1] of Byte;
-  PByteArray = ^TByteArray;
-var
-  FILEHEADER: BITMAPFILEHEADER;
-  INFOHEADER: BITMAPINFOHEADER;
-  pixels: PByteArray;
-  tmp:    Byte;
-  i:      Integer;
-  F:      File of Byte;
-begin
-  if e_NoGraphics then Exit;
-
-  if (Width mod 4) > 0 then
-    Width := Width + 4 - (Width mod 4);
-
-  GetMem(pixels, Width*Height*3);
-  glReadPixels(0, 0, Width, Height, GL_RGB, GL_UNSIGNED_BYTE, pixels);
-
-  for i := 0 to Width * Height - 1 do
-    with PaRGB(pixels)[i] do
-    begin
-      tmp := R;
-      R := B;
-      B := tmp;
-    end;
-
-  with FILEHEADER do
-  begin
-    bfType := $4D42; // "BM"
-    bfSize := Width*Height*3 + SizeOf(BITMAPFILEHEADER) + SizeOf(BITMAPINFOHEADER);
-    bfReserved1 := 0;
-    bfReserved2 := 0;
-    bfOffBits := SizeOf(BITMAPFILEHEADER) + SizeOf(BITMAPINFOHEADER);
-  end;
-
-  with INFOHEADER do
-  begin
-    biSize := SizeOf(BITMAPINFOHEADER);
-    biWidth := Width;
-    biHeight := Height;
-    biPlanes := 1;
-    biBitCount := 24;
-    biCompression := 0;
-    biSizeImage := Width*Height*3;
-    biXPelsPerMeter := 0;
-    biYPelsPerMeter := 0;
-    biClrUsed := 0;
-    biClrImportant := 0;
-  end;
-
-  //writeln('shot: ', FileName);
-  AssignFile(F, FileName);
-  Rewrite(F);
-
-  BlockWrite(F, FILEHEADER, SizeOf(FILEHEADER));
-  BlockWrite(F, INFOHEADER, SizeOf(INFOHEADER));
-  BlockWrite(F, pixels[0], Width*Height*3);
-
-  CloseFile(F);
-
-  FreeMem(pixels);
-end;
-
 function e_GetGamma(win: PSDL_Window): Byte;
 var
   ramp: array [0..256*3-1] of Word;
@@ -1762,5 +1653,139 @@ begin
  Result.Right := R;
  Result.Bottom := B;
 end;
+
+
+procedure e_MakeScreenshot (st: TStream; Width, Height: Word);
+var
+  pixels, obuf, scln, ps, pd: PByte;
+  obufsize: Integer;
+  dlen: Cardinal;
+  tmp: Byte;
+  i, res: Integer;
+  sign: array [0..7] of Byte;
+  hbuf: array [0..12] of Byte;
+  crc: LongWord;
+begin
+  if e_NoGraphics then Exit;
+  obuf := nil;
+
+  // first, extract and pack graphics data
+
+  if (Width mod 4) > 0 then Width := Width + 4 - (Width mod 4);
+
+  GetMem(pixels, Width*Height*3);
+  try
+    FillChar(pixels^, Width*Height*3, 0);
+    glReadPixels(0, 0, Width, Height, GL_RGB, GL_UNSIGNED_BYTE, pixels);
+    //e_WriteLog('PNG: pixels read', MSG_NOTIFY);
+
+    // create scanlines
+    GetMem(scln, (Width*3+1)*Height);
+    try
+      ps := pixels;
+      pd := scln;
+      Inc(ps, (Width*3)*(Height-1));
+      for i := 0 to Height-1 do
+      begin
+        pd^ := 0; // filter
+        Inc(pd);
+        Move(ps^, pd^, Width*3);
+        Dec(ps, Width*3);
+        Inc(pd, Width*3);
+      end;
+    except
+      raise;
+    end;
+    FreeMem(pixels);
+    pixels := scln;
+
+    // pack it
+    obufsize := (Width*3+1)*Height*2;
+    GetMem(obuf, obufsize);
+    try
+      while true do
+      begin
+        dlen := obufsize;
+        res := compress2(Pointer(obuf), dlen, Pointer(pixels), (Width*3+1)*Height, 9);
+        if res = Z_OK then break;
+        if res <> Z_BUF_ERROR then raise Exception.Create('can''t pack data for PNG');
+        obufsize := obufsize*2;
+        FreeMem(obuf);
+        obuf := nil;
+        GetMem(obuf, obufsize);
+      end;
+      //e_WriteLog(Format('PNG: pixels compressed from %d to %d', [Integer(Width*Height*3), Integer(dlen)]), MSG_NOTIFY);
+
+      // now write PNG
+
+      // signature
+      sign[0] := 137;
+      sign[1] := 80;
+      sign[2] := 78;
+      sign[3] := 71;
+      sign[4] := 13;
+      sign[5] := 10;
+      sign[6] := 26;
+      sign[7] := 10;
+      st.writeBuffer(sign, 8);
+      //e_WriteLog('PNG: signature written', MSG_NOTIFY);
+
+      // header
+      writeIntBE(st, LongWord(13));
+      sign[0] := 73;
+      sign[1] := 72;
+      sign[2] := 68;
+      sign[3] := 82;
+      st.writeBuffer(sign, 4);
+      crc := crc32(0, @sign, 4);
+      hbuf[0] := 0;
+      hbuf[1] := 0;
+      hbuf[2] := (Width shr 8) and $ff;
+      hbuf[3] := Width and $ff;
+      hbuf[4] := 0;
+      hbuf[5] := 0;
+      hbuf[6] := (Height shr 8) and $ff;
+      hbuf[7] := Height and $ff;
+      hbuf[8] := 8; // bit depth
+      hbuf[9] := 2; // RGB
+      hbuf[10] := 0; // compression method
+      hbuf[11] := 0; // filter method
+      hbuf[12] := 0; // no interlace
+      crc := crc32(crc, @hbuf, 13);
+      st.writeBuffer(hbuf, 13);
+      writeIntBE(st, crc);
+      //e_WriteLog('PNG: header written', MSG_NOTIFY);
+
+      // image data
+      writeIntBE(st, LongWord(dlen));
+      sign[0] := 73;
+      sign[1] := 68;
+      sign[2] := 65;
+      sign[3] := 84;
+      st.writeBuffer(sign, 4);
+      crc := crc32(0, @sign, 4);
+      crc := crc32(crc, obuf, dlen);
+      st.writeBuffer(obuf^, dlen);
+      writeIntBE(st, crc);
+      //e_WriteLog('PNG: image data written', MSG_NOTIFY);
+
+      // image data end
+      writeIntBE(st, LongWord(0));
+      sign[0] := 73;
+      sign[1] := 69;
+      sign[2] := 78;
+      sign[3] := 68;
+      st.writeBuffer(sign, 4);
+      crc := crc32(0, @sign, 4);
+      writeIntBE(st, crc);
+      //e_WriteLog('PNG: end marker written', MSG_NOTIFY);
+    finally
+      if obuf <> nil then FreeMem(obuf);
+    end;
+  finally
+    FreeMem(pixels);
+  end;
+end;
+
 
 end.
