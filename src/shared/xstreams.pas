@@ -319,29 +319,30 @@ end;
 function TUnZStream.readBuf (var buffer; count: LongInt): LongInt;
 var
   err: Integer;
-  lastavail: LongInt;
+  sz: LongInt;
 begin
-  fZlibSt.next_out := @buffer;
-  fZlibSt.avail_out := count;
-  lastavail := count;
-  while fZlibSt.avail_out <> 0 do
+  result := 0;
+  if count > 0 then
   begin
-    if fZlibSt.avail_in = 0 then
+    fZlibSt.next_out := @buffer;
+    fZlibSt.avail_out := count;
+    sz := fZlibSt.avail_out;
+    while fZlibSt.avail_out > 0 do
     begin
-      // refill the buffer
-      fZlibSt.next_in := fBuffer;
-      fZlibSt.avail_in := fSrcSt.read(Fbuffer^, ZBufSize);
-      //Inc(compressed_read, fZlibSt.avail_in);
-      Inc(fPos, lastavail-fZlibSt.avail_out);
-      lastavail := fZlibSt.avail_out;
+      if fZlibSt.avail_in = 0 then
+      begin
+        // refill the buffer
+        fZlibSt.next_in := fBuffer;
+        fZlibSt.avail_in := fSrcSt.read(Fbuffer^, ZBufSize);
+      end;
+      err := inflate(fZlibSt, Z_NO_FLUSH);
+      if (err <> Z_OK) and (err <> Z_STREAM_END) then raise XStreamError.Create(zerror(err));
+      Inc(result, sz-fZlibSt.avail_out);
+      Inc(fPos, sz-fZlibSt.avail_out);
+      sz := fZlibSt.avail_out;
+      if err = Z_STREAM_END then begin fSize := fPos; break; end;
     end;
-    err := inflate(fZlibSt, Z_NO_FLUSH);
-    if err = Z_STREAM_END then fSize := fPos; break;
-    if err <> Z_OK then raise XStreamError.Create(zerror(err));
   end;
-  //if err = Z_STREAM_END then Dec(compressed_read, fZlibSt.avail_in);
-  Inc(fPos, lastavail-fZlibSt.avail_out);
-  result := count-fZlibSt.avail_out;
 end;
 
 
