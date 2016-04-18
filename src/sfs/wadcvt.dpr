@@ -68,7 +68,7 @@ begin
         if (err <> Z_OK) and (err <> Z_STREAM_END) then raise Exception.Create(zerror(err));
         if zst.avail_out < OBSize then
         begin
-          writeln('  written ', OBSize-zst.avail_out, ' bytes');
+          //writeln('  written ', OBSize-zst.avail_out, ' bytes');
           ds.writeBuffer(ob^, OBSize-zst.avail_out);
           zst.next_out := ob;
           zst.avail_out := OBSize;
@@ -277,20 +277,92 @@ begin
 end;
 
 
+const
+  uni2wint: array [128..255] of Word = (
+    $0402,$0403,$201A,$0453,$201E,$2026,$2020,$2021,$20AC,$2030,$0409,$2039,$040A,$040C,$040B,$040F,
+    $0452,$2018,$2019,$201C,$201D,$2022,$2013,$2014,$003F,$2122,$0459,$203A,$045A,$045C,$045B,$045F,
+    $00A0,$040E,$045E,$0408,$00A4,$0490,$00A6,$00A7,$0401,$00A9,$0404,$00AB,$00AC,$00AD,$00AE,$0407,
+    $00B0,$00B1,$0406,$0456,$0491,$00B5,$00B6,$00B7,$0451,$2116,$0454,$00BB,$0458,$0405,$0455,$0457,
+    $0410,$0411,$0412,$0413,$0414,$0415,$0416,$0417,$0418,$0419,$041A,$041B,$041C,$041D,$041E,$041F,
+    $0420,$0421,$0422,$0423,$0424,$0425,$0426,$0427,$0428,$0429,$042A,$042B,$042C,$042D,$042E,$042F,
+    $0430,$0431,$0432,$0433,$0434,$0435,$0436,$0437,$0438,$0439,$043A,$043B,$043C,$043D,$043E,$043F,
+    $0440,$0441,$0442,$0443,$0444,$0445,$0446,$0447,$0448,$0449,$044A,$044B,$044C,$044D,$044E,$044F
+  );
+
+
+// this will write "extra field length" and extra field itself
+type
+  TByteArray = array of Byte;
+
+function buildUtfExtra (fname: string): TByteArray;
+var
+  crc: LongWord;
+  fu: string;
+  sz: Word;
+  uc: PUnicodeChar;
+  xdc: PChar;
+  pos, f: Integer;
+begin
+  GetMem(uc, length(fname)*8);
+  GetMem(xdc, length(fname)*8);
+  try
+    FillChar(uc^, length(fname)*8, 0);
+    FillChar(xdc^, length(fname)*8, 0);
+    pos := 0;
+    for f := 1 to length(fname) do
+    begin
+      if ord(fname[f]) < 128 then
+        uc[pos] := UnicodeChar(ord(fname[f]))
+      else
+        uc[pos] := UnicodeChar(uni2wint[ord(fname[f])]);
+      Inc(pos);
+    end;
+    FillChar(xdc^, length(fname)*8, 0);
+    f := UnicodeToUtf8(xdc, length(fname)*8, uc, pos);
+    while (f > 0) and (xdc[f-1] = #0) do Dec(f);
+    SetLength(fu, f);
+    Move(xdc^, fu[1], f);
+    //writeln('[', fu, ']');
+  finally
+    FreeMem(xdc);
+    FreeMem(uc);
+  end;
+
+  crc := crc32(0, @fname[1], length(fname));
+  sz := 2+2+1+4+length(fu);
+  SetLength(result, sz);
+  result[0] := ord('u');
+  result[1] := ord('p');
+  Dec(sz, 4);
+  result[2] := sz and $ff;
+  result[3] := (sz shr 8) and $ff;
+  result[4] := 1;
+  result[5] := crc and $ff;
+  result[6] := (crc shr 8) and $ff;
+  result[7] := (crc shr 16) and $ff;
+  result[8] := (crc shr 24) and $ff;
+  Move(fu[1], result[9], length(fu));
+  //result := nil;
+end;
+
+
 function ZipOne (ds: TStream; fname: string; st: TStream): TFileInfo;
 var
   oldofs, nfoofs, pkdpos: Int64;
   sign: packed array [0..3] of Char;
+  ef: TByteArray;
 begin
   result := TFileInfo.Create();
   result.pkofs := ds.position;
   result.size := st.size;
   result.name := fname;
   if result.size > 0 then result.method := 8 else result.method := 0;
+  ef := buildUtfExtra(result.name);
   // write local header
   sign := 'PK'#3#4;
   ds.writeBuffer(sign, 4);
-  writeInt(ds, Word($10)); // version to extract
+  writeInt(ds, Word($0A10)); // version to extract
+  //writeInt(ds, Word(1 shl 11)); // flags: utf-8 name
   writeInt(ds, Word(0)); // flags
   writeInt(ds, Word(result.method)); // compression method
   writeInt(ds, Word(0)); // file time
@@ -300,8 +372,9 @@ begin
   writeInt(ds, LongWord(result.pksize)); // packed size
   writeInt(ds, LongWord(result.size)); // unpacked size
   writeInt(ds, Word(length(fname))); // name length
-  writeInt(ds, Word(0)); // extra field length
+  writeInt(ds, Word(length(ef))); // extra field length
   ds.writeBuffer(fname[1], length(fname));
+  if length(ef) > 0 then ds.writeBuffer(ef[0], length(ef));
   // now write packed data
   if result.size > 0 then
   begin
@@ -324,14 +397,17 @@ var
   cdofs, cdend: Int64;
   sign: packed array [0..3] of Char;
   f: Integer;
+  ef: TByteArray;
 begin
   cdofs := ds.position;
   for f := 0 to high(files) do
   begin
+    ef := buildUtfExtra(files[f].name);
     sign := 'PK'#1#2;
     ds.writeBuffer(sign, 4);
-    writeInt(ds, Word($10)); // version made by
-    writeInt(ds, Word($10)); // version to extract
+    writeInt(ds, Word($0A10)); // version made by
+    writeInt(ds, Word($0010)); // version to extract
+    //writeInt(ds, Word(1 shl 11)); // flags: utf-8 name
     writeInt(ds, Word(0)); // flags
     writeInt(ds, Word(files[f].method)); // compression method
     writeInt(ds, Word(0)); // file time
@@ -340,13 +416,14 @@ begin
     writeInt(ds, LongWord(files[f].pksize));
     writeInt(ds, LongWord(files[f].size));
     writeInt(ds, Word(length(files[f].name))); // name length
-    writeInt(ds, Word(0)); // extra field length
+    writeInt(ds, Word(length(ef))); // extra field length
     writeInt(ds, Word(0)); // comment length
     writeInt(ds, Word(0)); // disk start
     writeInt(ds, Word(0)); // internal attributes
     writeInt(ds, LongWord(0)); // external attributes
     writeInt(ds, LongWord(files[f].pkofs)); // header offset
     ds.writeBuffer(files[f].name[1], length(files[f].name));
+    if length(ef) > 0 then ds.writeBuffer(ef[0], length(ef));
   end;
   cdend := ds.position;
   // write end of central dir
@@ -415,9 +492,8 @@ begin
       fs := SFSFileOpen(dvfn+'::'+fl[f].fPath+fl[f].fName);
       newname := detectExt(fl[f].fPath, fl[f].fName, fs);
       fs.position := 0;
-      writeln('[', f+1, '/', fl.Count, ']: ', fl[f].fPath+newname, '  ', fs.size);
-      //ZEntries.AddFileEntry(fs, fl[f].fPath+newname);
-      nfo := ZipOne(fo, fl[f].fPath+fl[f].fName, fs);
+      writeln('[', f+1, '/', fl.Count, ']: ', fl[f].fPath, newname, '  ', fs.size);
+      nfo := ZipOne(fo, fl[f].fPath+newname, fs);
       SetLength(files, length(files)+1);
       files[high(files)] := nfo;
     end;
