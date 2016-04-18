@@ -1660,7 +1660,6 @@ var
   pixels, obuf, scln, ps, pd: PByte;
   obufsize: Integer;
   dlen: Cardinal;
-  tmp: Byte;
   i, res: Integer;
   sign: array [0..7] of Byte;
   hbuf: array [0..12] of Byte;

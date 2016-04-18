@@ -6,7 +6,7 @@ interface
 uses g_net, g_triggers, Classes, SysUtils, md5;
 
 const
-  NET_PROTO_VERSION = 1;
+  NET_PROTO_VERSION = 2;
 
   NET_MSG_INFO   = 100;
 

@@ -36,6 +36,7 @@ procedure e_Buffer_Write(B: pTBuffer; V: LongWord); overload;
 procedure e_Buffer_Write(B: pTBuffer; V: ShortInt); overload;
 procedure e_Buffer_Write(B: pTBuffer; V: SmallInt); overload;
 procedure e_Buffer_Write(B: pTBuffer; V: LongInt); overload;
+procedure e_Buffer_Write(B: pTBuffer; V: Int64); overload;
 
 procedure e_Buffer_Write(B: pTBuffer; V: string); overload;
 
@@ -138,6 +139,10 @@ end;
 procedure e_Buffer_Write(B: pTBuffer; V: LongInt); overload;
 begin
   e_Buffer_Write_Generic(B, V, 4);
+end;
+procedure e_Buffer_Write(B: pTBuffer; V: Int64); overload;
+begin
+  e_Buffer_Write_Generic(B, V, 8);
 end;
 
 procedure e_Buffer_Write(B: pTBuffer; V: string); overload;

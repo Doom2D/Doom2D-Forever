@@ -7,7 +7,7 @@ uses
   e_log, e_fixedbuffer, ENet, ENetTypes, ENetPlatform, Classes;
 
 const
-  NET_PROTOCOL_VER = 164;
+  NET_PROTOCOL_VER = 165;
 
   NET_MAXCLIENTS = 24;
   NET_CHANS = 11;
@@ -424,14 +424,15 @@ procedure g_Net_Host_CheckPings();
 var
   ClAddr: ENetAddress;
   Buf: ENetBuffer;
-  Len, ClTime: Integer;
-  Ping: array [0..5] of Byte;
+  Len: Integer;
+  ClTime: Int64;
+  Ping: array [0..9] of Byte;
   NPl: Byte;
 begin
   if NetPongSock = ENET_SOCKET_NULL then Exit;
 
   Buf.data := Addr(Ping[0]);
-  Buf.dataLength := 6;
+  Buf.dataLength := 2+8;
 
   Ping[0] := 0;
 
@@ -440,7 +441,7 @@ begin
 
   if (Ping[0] = Ord('D')) and (Ping[1] = Ord('F')) then
   begin
-    ClTime := Integer(Addr(Ping[2])^);
+    ClTime := Int64(Addr(Ping[2])^);
 
     e_Buffer_Clear(@NetOut);
     e_Buffer_Write(@NetOut, Byte(Ord('D')));
