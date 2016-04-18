@@ -44,8 +44,10 @@ var
   wLoadingProgress: Boolean = False;
   wLoadingQuit: Boolean = False;
   {wWinPause: Byte = 0;}
+{$IFNDEF WINDOWS}
   ticksOverflow: Int64 = -1;
   lastTicks: Uint32 = 0; // to detect overflow
+{$ENDIF}
 
 const
   // TODO: move this to a separate file
