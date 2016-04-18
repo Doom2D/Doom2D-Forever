@@ -7,12 +7,11 @@ program __wadcvt__;
 uses
   SysUtils,
   Classes,
-  SDL2 in '../lib/sdl2/sdl2.pas',
-  utils in  '../shared/utils.pas',
+  utils in '../shared/utils.pas',
+  xstreams in '../shared/xstreams.pas',
   sfs,
   sfsPlainFS,
   sfsZipFS,
-  sfsMemFS,
   zipper;
 
 

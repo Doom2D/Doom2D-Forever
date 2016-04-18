@@ -1,6 +1,6 @@
 // streaming file system (virtual)
-{$MODE DELPHI}
-{.$R-}
+{$MODE OBJFPC}
+{$R+}
 {.$DEFINE SFS_VOLDEBUG}
 unit sfs;
 
@@ -13,33 +13,29 @@ uses
 type
   ESFSError = class(Exception);
 
-  TSFSChar = AnsiChar;
-  TSFSString = AnsiString;
-
   TSFSVolume = class;
 
   TSFSFileInfo = class
   public
     fOwner: TSFSVolume; // так, на всякий случай
-    fPath: TSFSString;  // разделители каталогов -- "/"; корень никак не обозначен, если не пустое, обязано завершается "/"
-    fName: TSFSString;  // только имя
+    fPath: AnsiString;  // разделители каталогов -- "/"; корень никак не обозначен, если не пустое, обязано завершаться "/"
+    fName: AnsiString;  // только имя
     fSize: Int64;       // unpacked
     fOfs: Int64;        // in VFS (many of 'em need this %-)
 
     constructor Create (pOwner: TSFSVolume);
     destructor Destroy (); override;
 
-    property path: TSFSString read fPath;
-    property name: TSFSString read fName;
-    property size: Int64 read fSize;
+    property path: AnsiString read fPath;
+    property name: AnsiString read fName;
+    property size: Int64 read fSize; // can be -1 if size is unknown
   end;
 
   // виртуальная файловая система. ТОЛЬКО ДЛЯ ЧТЕНИЯ!
   // том НЕ ДОЛЖЕН убиваться никак иначе, чем при помощи фабрики!
   TSFSVolume = class
   protected
-    fRC: Integer; // refcounter for other objects
-    fFileName: TSFSString;// обычно имя оригинального файла
+    fFileName: AnsiString;// обычно имя оригинального файла
     fFileStream: TStream; // обычно поток для чтения оригинального файла
     fFiles: TObjectList;  // TSFSFileInfo или наследники
 
@@ -64,7 +60,7 @@ type
     // эта процедура может менять fFiles!
     // fPath -- в правильной форме, с "/", корневой "/" убит, финальный добавлен.
     // если файл не найден, вернуть -1.
-    function FindFile (const fPath, fName: TSFSString): Integer; virtual;
+    function FindFile (const fPath, fName: AnsiString): Integer; virtual;
 
     // возвращает количество файлов в fFiles
     function GetFileCount (): Integer; virtual;
@@ -78,7 +74,7 @@ type
 
   public
     // pSt не обязательно запоминать, если он не нужен.
-    constructor Create (const pFileName: TSFSString; pSt: TStream); virtual;
+    constructor Create (const pFileName: AnsiString; pSt: TStream); virtual;
     // fFileStream уничтожать нельзя, если он равен параметру pSt конструктора.
     destructor Destroy (); override;
 
@@ -92,7 +88,7 @@ type
     function OpenFileByIndex (const index: Integer): TStream; virtual; abstract;
 
     // если не смогло откупорить файло (или ещё где ошиблось), зашвырнёт исключение.
-    function OpenFileEx (const fName: TSFSString): TStream; virtual;
+    function OpenFileEx (const fName: AnsiString): TStream; virtual;
 
     property FileCount: Integer read GetFileCount; // может вернуть ноль
     // может возвращать NIL.
@@ -114,13 +110,13 @@ type
     // файла. если ни одна фабрика префикс не признает, то файл не откроют.
     // используется для скипания автодетекта.
     // SFS НЕ СЧИТАЕТ ПРЕФИКСОМ СТРОКУ КОРОЧЕ ТРЁХ СИМВОЛОВ!
-    function IsMyVolumePrefix (const prefix: TSFSString): Boolean; virtual; abstract;
+    function IsMyVolumePrefix (const prefix: AnsiString): Boolean; virtual; abstract;
     // проверяет, может ли фабрика сделать том для данного файла.
     // st -- открытый для чтения файловй поток. указатель чтения стоит в начале.
     // этот поток нельзя закрывать!
     // prefix: то, что было передано в IsMyVolumePrefix() или ''.
     // исключение считается ошибкой, возврат NIL считается ошибкой.
-    function Produce (const prefix, fileName: TSFSString; st: TStream): TSFSVolume; virtual; abstract;
+    function Produce (const prefix, fileName: AnsiString; st: TStream): TSFSVolume; virtual; abstract;
     // когда том больше не нужен, он будет отдан фабрике на переработку.
     // далее движок не будет юзать сей том.
     procedure Recycle (vol: TSFSVolume); virtual; abstract;
@@ -167,10 +163,10 @@ procedure SFSUnregisterVolumeFactory (factory: TSFSVolumeFactory);
 // и обращаться как "datafile::xxx".
 // "||" преобразуются в простой "|" и разделителем не считаются.
 // принимается во внимание только последняя труба.
-function SFSAddDataFile (const dataFileName: TSFSString; top: Boolean=false): Boolean;
+function SFSAddDataFile (const dataFileName: AnsiString; top: Boolean=false): Boolean;
 
 // добавить сборник временно
-function SFSAddDataFileTemp (const dataFileName: TSFSString; top: Boolean=false): Boolean;
+function SFSAddDataFileTemp (const dataFileName: AnsiString; top: Boolean=false): Boolean;
 
 // добавить в постоянный список сборник из потока ds.
 // если возвращает истину, то SFS становится влядельцем потока ds и сама
@@ -183,21 +179,21 @@ function SFSAddDataFileTemp (const dataFileName: TSFSString; top: Boolean=false)
 // вернёт ложь при ошибке.
 // открывает сборник из потока. dataFileName -- ВИРТУАЛЬНОЕ имя.
 // т.е. на самом деле такого файла может и не быть на диске.
-function SFSAddSubDataFile (const virtualName: TSFSString; ds: TStream; top: Boolean=false): Boolean;
+function SFSAddSubDataFile (const virtualName: AnsiString; ds: TStream; top: Boolean=false): Boolean;
 
 // швыряется исключениями.
 // если fName не имеет указания на файл данных (это то, что отделено от
 // остального имени двоеточием), то ищем сначала по всем зарегистрированным
 // файлам данных, потом в текущем каталоге, потом в каталоге, откуда стартовали.
 // если ничего не нашли, кидаем исключение.
-function SFSFileOpenEx (const fName: TSFSString): TStream;
+function SFSFileOpenEx (const fName: AnsiString): TStream;
 
 // при ошибке -- NIL, и никаких исключений.
-function SFSFileOpen (const fName: TSFSString): TStream;
+function SFSFileOpen (const fName: AnsiString): TStream;
 
 // возвращает NIL при ошибке.
 // после использования, натурально, итератор надо грохнуть %-)
-function SFSFileList (const dataFileName: TSFSString): TSFSFileList;
+function SFSFileList (const dataFileName: AnsiString): TSFSFileList;
 
 // запретить освобождение временных томов (можно вызывать рекурсивно)
 procedure sfsGCDisable ();
@@ -208,11 +204,11 @@ procedure sfsGCEnable ();
 // for completeness sake
 procedure sfsGCCollect ();
 
-function SFSReplacePathDelims (const s: TSFSString; newDelim: TSFSChar): TSFSString;
+function SFSReplacePathDelims (const s: AnsiString; newDelim: Char): AnsiString;
 
 // разобрать толстое имя файла, вернуть виртуальное имя последнего списка
 // или пустую стороку, если списков не было.
-function SFSGetLastVirtualName (const fn: TSFSString): string;
+function SFSGetLastVirtualName (const fn: AnsiString): AnsiString;
 
 // Wildcard matching
 // this code is meant to allow wildcard pattern matches. tt is VERY useful
@@ -230,9 +226,9 @@ function SFSGetLastVirtualName (const fn: TSFSString): string;
 //       'this [e-n]s a [!zy]est' -Would match 'this is a test', but would
 //                                 not match 'this as a yest'
 //
-function WildMatch (pattern, text: TSFSString): Boolean;
-function WildListMatch (wildList, text: TSFSString; delimChar: AnsiChar=':'): Integer;
-function HasWildcards (const pattern: TSFSString): Boolean;
+function WildMatch (pattern, text: AnsiString): Boolean;
+function WildListMatch (wildList, text: AnsiString; delimChar: AnsiChar=':'): Integer;
+function HasWildcards (const pattern: AnsiString): Boolean;
 
 
 var
@@ -248,7 +244,7 @@ var
   // текущем. каталоги разделяются трубой ("|").
   // <currentdir> заменяется на текущий каталог (с завершающим "/"),
   // <exedir> заменяется на каталог, где сидит .EXE (с завершающим "/").
-  sfsDiskDirs: TSFSString = '<currentdir>|<exedir>';
+  sfsDiskDirs: AnsiString = '<currentdir>|<exedir>';
 
 
 implementation
@@ -269,7 +265,7 @@ const
   WILD_CHAR_RANGE_NOT      = '!';
 
 
-function HasWildcards (const pattern: TSFSString): Boolean;
+function HasWildcards (const pattern: AnsiString): Boolean;
 begin
   result :=
     (Pos(WILD_CHAR_ESCAPE, pattern) <> 0) or
@@ -279,7 +275,7 @@ begin
     (Pos(WILD_CHAR_RANGE_OPEN, pattern) <> 0);
 end;
 
-function MatchMask (const pattern: TSFSString; p, pend: Integer; const text: TSFSString; t, tend: Integer): Boolean;
+function MatchMask (const pattern: AnsiString; p, pend: Integer; const text: AnsiString; t, tend: Integer): Boolean;
 var
   rangeStart, rangeEnd: AnsiChar;
   rangeNot, rangeMatched: Boolean;
@@ -367,14 +363,14 @@ begin
 end;
 
 
-function WildMatch (pattern, text: TSFSString): Boolean;
+function WildMatch (pattern, text: AnsiString): Boolean;
 begin
   if pattern <> '' then pattern := AnsiLowerCase(pattern);
   if text <> '' then text := AnsiLowerCase(text);
   result := MatchMask(pattern, 1, -1, text, 1, -1);
 end;
 
-function WildListMatch (wildList, text: TSFSString; delimChar: AnsiChar=':'): Integer;
+function WildListMatch (wildList, text: AnsiString; delimChar: AnsiChar=':'): Integer;
 var
   s, e: Integer;
 begin
@@ -408,7 +404,7 @@ type
   TVolumeInfo = class
     fFactory: TSFSVolumeFactory;
     fVolume: TSFSVolume;
-    fPackName: TSFSString; // для одного и того же файла будет только один том!
+    fPackName: AnsiString; // для одного и того же файла будет только один том!
     fStream: TStream; // файловый поток для сборника
     fPermanent: Boolean; // истина -- не будет угроблена, если не останется ни одного открытого тома
     // истина -- этот том был создан из потока и не имеет дискового файла, потому фабрике будет передано не имя сборника, а пустая строка
@@ -446,7 +442,7 @@ begin
   begin
     vi := TVolumeInfo(volumes[f]);
     if vi = nil then continue;
-    if (not vi.fPermanent) and (vi.fVolume.fRC = 0) and (vi.fOpenedFilesCount = 0) then
+    if (not vi.fPermanent) and (vi.fOpenedFilesCount = 0) then
     begin
       // this volume probably can be removed
       used := false;
@@ -494,7 +490,7 @@ end;
 // собственно имя файла
 // имя выглядит как:
 // (("sfspfx:")?"datafile::")*"filename"
-procedure SplitFName (const fn: string; out dataFile, fileName: string);
+procedure SplitFName (const fn: AnsiString; out dataFile, fileName: AnsiString);
 var
   f: Integer;
 begin
@@ -513,7 +509,7 @@ begin
 end;
 
 // сайдэффект: вырезает виртуальное имя из dataFile.
-function ExtractVirtName (var dataFile: string): string;
+function ExtractVirtName (var dataFile: AnsiString): AnsiString;
 var
   f: Integer;
 begin
@@ -541,7 +537,7 @@ end;
 // [sfspfx:]datafile[|virtname]
 // если перед двоеточием меньше трёх букв, то это считается не префиксом,
 // а именем диска.
-procedure SplitDataName (const fn: string; out pfx, dataFile, virtName: string);
+procedure SplitDataName (const fn: AnsiString; out pfx, dataFile, virtName: AnsiString);
 var
   f: Integer;
 begin
@@ -557,7 +553,7 @@ end;
 
 // найти производителя для этого файла (если файл уже открыт).
 // onlyPerm: только "постоянные" производители.
-function FindVolumeInfo (const dataFileName: TSFSString; onlyPerm: Boolean=false): Integer;
+function FindVolumeInfo (const dataFileName: AnsiString; onlyPerm: Boolean=false): Integer;
 var
   f: Integer;
   vi: TVolumeInfo;
@@ -599,7 +595,7 @@ end;
 
 
 // adds '/' too
-function normalizePath (fn: string): string;
+function normalizePath (fn: AnsiString): AnsiString;
 var
   i: Integer;
 begin
@@ -625,7 +621,7 @@ begin
   if (length(result) > 0) and (result[length(result)] <> '/') then result := result+'/';
 end;
 
-function SFSReplacePathDelims (const s: TSFSString; newDelim: TSFSChar): TSFSString;
+function SFSReplacePathDelims (const s: AnsiString; newDelim: Char): AnsiString;
 var
   f: Integer;
 begin
@@ -640,9 +636,9 @@ begin
   end;
 end;
 
-function SFSGetLastVirtualName (const fn: TSFSString): string;
+function SFSGetLastVirtualName (const fn: AnsiString): AnsiString;
 var
-  rest, tmp: string;
+  rest, tmp: AnsiString;
   f: Integer;
 begin
   rest := fn;
@@ -661,7 +657,7 @@ var
   used: Boolean; // флажок заюзаности потока кем-то ещё
 begin
   if fFactory <> nil then fFactory.Recycle(fVolume);
-  if fVolume <> nil then used := (fVolume.fRC <> 0) else used := false;
+  used := false;
   fVolume := nil;
   fFactory := nil;
   fPackName := '';
@@ -740,10 +736,9 @@ end;
 
 
 { TSFSVolume }
-constructor TSFSVolume.Create (const pFileName: TSFSString; pSt: TStream);
+constructor TSFSVolume.Create (const pFileName: AnsiString; pSt: TStream);
 begin
   inherited Create();
-  fRC := 0;
   fFileStream := pSt;
   fFileName := pFileName;
   fFiles := TObjectList.Create(true);
@@ -757,7 +752,7 @@ procedure TSFSVolume.DoDirectoryRead ();
 var
   f, c: Integer;
   sfi: TSFSFileInfo;
-  tmp: TSFSString;
+  tmp: AnsiString;
 begin
   fFileName := ExpandFileName(SFSReplacePathDelims(fFileName, '/'));
   ReadDirectory();
@@ -796,11 +791,10 @@ end;
 
 procedure TSFSVolume.Clear ();
 begin
-  fRC := 0; //FIXME
   fFiles.Clear();
 end;
 
-function TSFSVolume.FindFile (const fPath, fName: TSFSString): Integer;
+function TSFSVolume.FindFile (const fPath, fName: AnsiString): Integer;
 begin
   if fFiles = nil then result := -1
   else
@@ -834,9 +828,9 @@ begin
   end;
 end;
 
-function TSFSVolume.OpenFileEx (const fName: TSFSString): TStream;
+function TSFSVolume.OpenFileEx (const fName: AnsiString): TStream;
 var
-  fp, fn: TSFSString;
+  fp, fn: AnsiString;
   f, ls: Integer;
 begin
   fp := fName;
@@ -876,7 +870,6 @@ var
 begin
   f := FindVolumeInfoByVolumeInstance(fVolume);
   ASSERT(f <> -1);
-  if fVolume <> nil then Dec(fVolume.fRC);
   Dec(TVolumeInfo(volumes[f]).fOpenedFilesCount);
   // убьём запись, если она временная, и в ней нет больше ничего открытого
   if (gcdisabled = 0) and not TVolumeInfo(volumes[f]).fPermanent and (TVolumeInfo(volumes[f]).fOpenedFilesCount < 1) then
@@ -927,7 +920,7 @@ begin
 end;
 
 
-function SFSAddDataFileEx (dataFileName: TSFSString; ds: TStream; top, permanent: Integer): Integer;
+function SFSAddDataFileEx (dataFileName: AnsiString; ds: TStream; top, permanent: Integer): Integer;
 // dataFileName может иметь префикс типа "zip:" (см. выше: IsMyPrefix).
 // может выкинуть исключение!
 // top:
@@ -948,8 +941,8 @@ var
   vi: TVolumeInfo;
   f: Integer;
   st, st1: TStream;
-  pfx: TSFSString;
-  fn, vfn, tmp: TSFSString;
+  pfx: AnsiString;
+  fn, vfn, tmp: AnsiString;
 begin
   f := Pos('::', dataFileName);
   if f <> 0 then
@@ -1058,7 +1051,7 @@ begin
   vi.fOpenedFilesCount := 0;
 end;
 
-function SFSAddSubDataFile (const virtualName: TSFSString; ds: TStream; top: Boolean=false): Boolean;
+function SFSAddSubDataFile (const virtualName: AnsiString; ds: TStream; top: Boolean=false): Boolean;
 var
   tv: Integer;
 begin
@@ -1072,7 +1065,7 @@ begin
   end;
 end;
 
-function SFSAddDataFile (const dataFileName: TSFSString; top: Boolean=false): Boolean;
+function SFSAddDataFile (const dataFileName: AnsiString; top: Boolean=false): Boolean;
 var
   tv: Integer;
 begin
@@ -1085,7 +1078,7 @@ begin
   end;
 end;
 
-function SFSAddDataFileTemp (const dataFileName: TSFSString; top: Boolean=false): Boolean;
+function SFSAddDataFileTemp (const dataFileName: AnsiString; top: Boolean=false): Boolean;
 var
   tv: Integer;
 begin
@@ -1100,10 +1093,10 @@ end;
 
 
 
-function SFSExpandDirName (const s: TSFSString): TSFSString;
+function SFSExpandDirName (const s: AnsiString): AnsiString;
 var
   f, e: Integer;
-  es: TSFSString;
+  es: AnsiString;
 begin
   f := 1; result := s;
   while f < Length(result) do
@@ -1128,9 +1121,9 @@ begin
   end;
 end;
 
-function SFSFileOpenEx (const fName: TSFSString): TStream;
+function SFSFileOpenEx (const fName: AnsiString): TStream;
 var
-  dataFileName, fn: TSFSString;
+  dataFileName, fn: AnsiString;
   f: Integer;
   vi: TVolumeInfo;
   diskChecked: Boolean;
@@ -1139,7 +1132,7 @@ var
   function CheckDisk (): TStream;
   // проверим, есть ли фало fn где-то на дисках.
   var
-    dfn, dirs, cdir: TSFSString;
+    dfn, dirs, cdir: AnsiString;
     f: Integer;
   begin
     result := nil;
@@ -1230,7 +1223,7 @@ begin
   if result = nil then raise ESFSError.Create('file not found: "'+fName+'"');
 end;
 
-function SFSFileOpen (const fName: TSFSString): TStream;
+function SFSFileOpen (const fName: AnsiString): TStream;
 begin
   try
     result := SFSFileOpenEx(fName);
@@ -1239,7 +1232,7 @@ begin
   end;
 end;
 
-function SFSFileList (const dataFileName: TSFSString): TSFSFileList;
+function SFSFileList (const dataFileName: AnsiString): TSFSFileList;
 var
   f: Integer;
   vi: TVolumeInfo;
@@ -1256,7 +1249,6 @@ begin
 
   try
     result := TSFSFileList.Create(vi.fVolume);
-    Inc(vi.fVolume.fRC);
   except
     if (gcdisabled = 0) and not vi.fPermanent and (vi.fOpenedFilesCount < 1) then volumes[f] := nil;
   end;

@@ -3,6 +3,10 @@ unit utils;
 
 interface
 
+uses
+  SysUtils, Classes;
+
+
 // does filename have one of ".wad", ".pk3", ".zip" extensions?
 function hasWadExtension (fn: AnsiString): Boolean;
 
@@ -29,12 +33,12 @@ function utf8to1251 (s: AnsiString): AnsiString;
 // nobody cares about shitdoze, so i'll use the same code path for it
 function findFileCI (var pathname: AnsiString; lastIsDir: Boolean=false): Boolean;
 
+// they throws
+function openDiskFileRO (pathname: AnsiString): TStream;
+function createDiskFile (pathname: AnsiString): TStream;
+
 
 implementation
-
-uses
-  SysUtils;
-
 
 function hasWadExtension (fn: AnsiString): Boolean;
 begin
@@ -305,6 +309,25 @@ begin
     if not foundher then begin newname := ''; result := false; break; end;
   end;
   if result then pathname := newname;
+end;
+
+
+function openDiskFileRO (pathname: AnsiString): TStream;
+begin
+  if not findFileCI(pathname) then raise Exception.Create('can''t open file "'+pathname+'"');
+  result := TFileStream.Create(pathname, fmOpenRead or {fmShareDenyWrite}fmShareDenyNone);
+end;
+
+function createDiskFile (pathname: AnsiString): TStream;
+var
+  path: AnsiString;
+begin
+  path := ExtractFilePath(pathname);
+  if length(path) > 0 then
+  begin
+    if not findFileCI(path, true) then raise Exception.Create('can''t create file "'+pathname+'"');
+  end;
+  result := TFileStream.Create(path+ExtractFileName(pathname), fmCreate);
 end;
 
 

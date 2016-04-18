@@ -13,7 +13,7 @@ type
 
   TWADFile = class(TObject)
   private
-    fFileName: string; // empty: not opened
+    fFileName: AnsiString; // empty: not opened
     fIter: TSFSFileList;
 
     function getIsOpen (): Boolean;
@@ -24,20 +24,20 @@ type
 
     procedure FreeWAD();
 
-    function ReadFile (FileName: string): Boolean;
+    function ReadFile (FileName: AnsiString): Boolean;
     function ReadMemory (Data: Pointer; Len: LongWord): Boolean;
-    function GetResource (Section, Resource: string; var pData: Pointer; var Len: Integer): Boolean;
-    function GetResourcesList (Section: string): SArray;
+    function GetResource (Section, Resource: AnsiString; var pData: Pointer; var Len: Integer): Boolean;
+    function GetResourcesList (Section: AnsiString): SArray;
 
     property isOpen: Boolean read getIsOpen;
   end;
 
 
-procedure g_ProcessResourceStr (ResourceStr: String; var FileName, SectionName, ResourceName: String); overload;
-procedure g_ProcessResourceStr (ResourceStr: String; FileName, SectionName, ResourceName: PString); overload;
+procedure g_ProcessResourceStr (ResourceStr: AnsiString; var FileName, SectionName, ResourceName: AnsiString); overload;
+procedure g_ProcessResourceStr (ResourceStr: AnsiString; FileName, SectionName, ResourceName: PString); overload;
 
-// return fixed string or empty string
-function findDiskWad (fname: string): string;
+// return fixed AnsiString or empty AnsiString
+function findDiskWad (fname: AnsiString): AnsiString;
 
 
 implementation
@@ -46,7 +46,7 @@ uses
   SysUtils, Classes, BinEditor, e_log, g_options, utils;
 
 
-function findDiskWad (fname: string): string;
+function findDiskWad (fname: AnsiString): AnsiString;
 begin
   result := '';
   if not findFileCI(fname) then
@@ -77,20 +77,14 @@ begin
 end;
 
 
-procedure g_ProcessResourceStr (ResourceStr: String; var FileName, SectionName, ResourceName: String);
+procedure g_ProcessResourceStr (ResourceStr: AnsiString; var FileName, SectionName, ResourceName: AnsiString);
 var
   a, i: Integer;
 begin
   //e_WriteLog(Format('g_ProcessResourceStr0: [%s]', [ResourceStr]), MSG_NOTIFY);
-  for i := Length(ResourceStr) downto 1 do
-    if ResourceStr[i] = ':' then
-      Break;
-
+  for i := Length(ResourceStr) downto 1 do if ResourceStr[i] = ':' then break;
   FileName := Copy(ResourceStr, 1, i-1);
-
-  for a := i+1 to Length(ResourceStr) do
-    if (ResourceStr[a] = '\') or (ResourceStr[a] = '/') then Break;
-
+  for a := i+1 to Length(ResourceStr) do if (ResourceStr[a] = '\') or (ResourceStr[a] = '/') then Break;
   ResourceName := Copy(ResourceStr, a+1, Length(ResourceStr)-Abs(a));
   SectionName := Copy(ResourceStr, i+1, Length(ResourceStr)-Length(ResourceName)-Length(FileName)-2);
 end;
@@ -99,34 +93,29 @@ end;
 procedure g_ProcessResourceStr (ResourceStr: AnsiString; FileName, SectionName, ResourceName: PAnsiString);
 var
   a, i, l1, l2: Integer;
-
 begin
   //e_WriteLog(Format('g_ProcessResourceStr1: [%s]', [ResourceStr]), MSG_NOTIFY);
-  for i := Length(ResourceStr) downto 1 do
-    if ResourceStr[i] = ':' then
-      Break;
-
+  for i := Length(ResourceStr) downto 1 do if ResourceStr[i] = ':' then break;
   if FileName <> nil then
-    begin
-      FileName^ := Copy(ResourceStr, 1, i-1);
-      l1 := Length(FileName^);
-    end
+  begin
+    FileName^ := Copy(ResourceStr, 1, i-1);
+    l1 := Length(FileName^);
+  end
   else
+  begin
     l1 := 0;
-
-  for a := i+1 to Length(ResourceStr) do
-    if (ResourceStr[a] = '\') or (ResourceStr[a] = '/') then Break;
-
+  end;
+  for a := i+1 to Length(ResourceStr) do if (ResourceStr[a] = '\') or (ResourceStr[a] = '/') then break;
   if ResourceName <> nil then
-    begin
-      ResourceName^ := Copy(ResourceStr, a+1, Length(ResourceStr)-Abs(a));
-      l2 := Length(ResourceName^);
-    end
+  begin
+    ResourceName^ := Copy(ResourceStr, a+1, Length(ResourceStr)-Abs(a));
+    l2 := Length(ResourceName^);
+  end
   else
+  begin
     l2 := 0;
-
-  if SectionName <> nil then
-    SectionName^ := Copy(ResourceStr, i+1, Length(ResourceStr)-l2-l1-2);
+  end;
+  if SectionName <> nil then SectionName^ := Copy(ResourceStr, i+1, Length(ResourceStr)-l2-l1-2);
 end;
 
 
@@ -158,7 +147,7 @@ begin
 end;
 
 
-function removeExt (s: string): string;
+function removeExt (s: AnsiString): AnsiString;
 var
   i: Integer;
 begin
@@ -172,13 +161,13 @@ begin
   result := s;
 end;
 
-function TWADFile.GetResource (Section, Resource: string; var pData: Pointer; var Len: Integer): Boolean;
+function TWADFile.GetResource (Section, Resource: AnsiString; var pData: Pointer; var Len: Integer): Boolean;
 var
   f: Integer;
   fi: TSFSFileInfo;
   fs: TStream;
   fpp: Pointer;
-  //fn: string;
+  //fn: AnsiString;
 begin
   Result := False;
   if not isOpen or (fIter = nil) then Exit;
@@ -232,7 +221,7 @@ begin
 end;
 
 
-function TWADFile.GetResourcesList (Section: string): SArray;
+function TWADFile.GetResourcesList (Section: AnsiString): SArray;
 var
   f: Integer;
   fi: TSFSFileInfo;
@@ -254,9 +243,9 @@ begin
 end;
 
 
-function TWADFile.ReadFile (FileName: string): Boolean;
+function TWADFile.ReadFile (FileName: AnsiString): Boolean;
 var
-  rfn: string;
+  rfn: AnsiString;
   //f: Integer;
   //fi: TSFSFileInfo;
 begin
@@ -300,7 +289,7 @@ var
 
 function TWADFile.ReadMemory (Data: Pointer; Len: LongWord): Boolean;
 var
-  fn: string;
+  fn: AnsiString;
   st: TStream = nil;
   //f: Integer;
   //fi: TSFSFileInfo;

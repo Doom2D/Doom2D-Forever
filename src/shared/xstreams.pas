@@ -1,29 +1,17 @@
 // special stream classes
-{$MODE DELPHI}
-{.$R-}
+{$MODE OBJFPC}
+{$R+}
 unit xstreams;
 
 interface
 
 uses
-  SysUtils, Classes, SDL2;
+  SysUtils, Classes,
+  zbase{z_stream};
 
 
 type
-  // поток-обёртка для SDL_RWops
-  TSFSSDLStream = class(TStream)
-  protected
-    fRW: PSDL_RWops;      // SDL-ная прокладка
-    fFreeSource: Boolean; // убивать исходник при помирании?
-
-  public
-    constructor Create (aSrc: PSDL_RWops; aFreeSource: Boolean=true);
-    destructor Destroy (); override;
-
-    function Read (var buffer; count: LongInt): LongInt; override;
-    function Write (const buffer; count: LongInt): LongInt; override;
-    function Seek (const offset: Int64; origin: TSeekOrigin): Int64; override;
-  end;
+  XStreamError = class(Exception);
 
   // read-only поток для извлечения из исходного только кусочка
   TSFSPartialStream = class(TStream)
@@ -62,6 +50,7 @@ type
     function Seek (const offset: Int64; origin: TSeekOrigin): Int64; override;
   end;
 
+  // this stream can kill both `proxied` and `guarded` streams on closing
   TSFSGuardStream = class(TStream)
   protected
     fSource: TStream;        // исходный поток
@@ -96,54 +85,36 @@ type
     function Write (const buffer; count: LongInt): LongInt; override;
   end;
 
+  TUnZStream = class(TStream)
+  protected
+    fSrcSt: TStream;
+    fZlibSt: z_stream;
+    fBuffer: PByte;
+    fPos: Int64;
+    fSkipHeader: Boolean;
+    fSize: Int64; // can be -1
+    fSrcStPos: Int64;
+    fSkipToPos: Int64; // >0: skip to this position
+
+    procedure reset ();
+    function readBuf (var buffer; count: LongInt): LongInt;
+    procedure fixPos ();
+    procedure determineSize ();
+
+  public
+    // `aSize` can be -1 if stream size is unknown
+    constructor create (asrc: TStream; aSize: Int64; aSkipHeader: boolean=false);
+    destructor destroy (); override;
+    function read (var buffer; count: LongInt): LongInt; override;
+    function write (const buffer; count: LongInt): LongInt; override;
+    function seek (const offset: Int64; origin: TSeekOrigin): Int64; override;
+  end;
+
 
 implementation
 
 uses
-  sfs; // for ESFSError
-
-{ TSFSSDLStream }
-constructor TSFSSDLStream.Create (aSrc: PSDL_RWops; aFreeSource: Boolean=true);
-begin
-  inherited Create();
-  //ASSERT(aSrc <> nil);
-  fRW := aSrc;
-  fFreeSource := aFreeSource;
-end;
-
-destructor TSFSSDLStream.Destroy ();
-begin
-  if fFreeSource and (fRW <> nil) then SDL_FreeRW(fRW);
-  inherited Destroy();
-end;
-
-function TSFSSDLStream.Read (var buffer; count: LongInt): LongInt;
-begin
-  if (fRW = nil) or (count <= 0) then begin result := 0; exit; end;
-  result := SDL_RWread(fRW, @buffer, 1, count);
-end;
-
-function TSFSSDLStream.Write (const buffer; count: LongInt): LongInt;
-begin
-  if (fRW = nil) or (count <= 0) then begin result := 0; exit; end;
-  result := SDL_RWwrite(fRW, @buffer, 1, count);
-end;
-
-function TSFSSDLStream.Seek (const offset: Int64; origin: TSeekOrigin): Int64;
-var
-  ss: Integer;
-begin
-  if fRW = nil then begin result := 0; exit; end;
-  case origin of
-    soBeginning: ss := RW_SEEK_SET;
-    soCurrent: ss := RW_SEEK_CUR;
-    soEnd: ss := RW_SEEK_END;
-    else raise ESFSError.Create('invalid Seek() call');
-    // других не бывает. а у кого бывает, тому я не доктор.
-  end;
-  result := SDL_RWseek(fRW, offset, ss);
-  if result = -1 then raise ESFSError.Create('Seek() error');
-end;
+  zinflate;
 
 
 { TSFSPartialStream }
@@ -196,7 +167,7 @@ end;
 function TSFSPartialStream.Write (const buffer; count: LongInt): LongInt;
 begin
   result := 0;
-  raise ESFSError.Create('can''t write to read-only stream');
+  raise XStreamError.Create('can''t write to read-only stream');
   // а не ходи, нехороший, в наш садик гулять!
 end;
 
@@ -206,7 +177,7 @@ var
   pc: Pointer;
   rd: LongInt;
 begin
-  if count < 0 then raise ESFSError.Create('invalid Read() call'); // сказочный долбоёб...
+  if count < 0 then raise XStreamError.Create('invalid Read() call'); // сказочный долбоёб...
   if count = 0 then begin result := 0; exit; end;
   pc := @buffer;
   result := 0;
@@ -248,7 +219,7 @@ begin
     soBeginning: result := offset;
     soCurrent: result := offset+fCurrentPos;
     soEnd: result := fSize+offset;
-    else raise ESFSError.Create('invalid Seek() call');
+    else raise XStreamError.Create('invalid Seek() call');
     // других не бывает. а у кого бывает, тому я не доктор.
   end;
   if result < 0 then result := 0
@@ -308,8 +279,130 @@ end;
 function TSFSMemoryStreamRO.Write (const buffer; count: LongInt): LongInt;
 begin
   result := 0;
-  raise ESFSError.Create('can''t write to read-only stream');
+  raise XStreamError.Create('can''t write to read-only stream');
   // совсем сбрендил...
+end;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
+{ TUnZStream }
+const ZBufSize = 32768; // size of the buffer used for temporarily storing data from the child stream
+
+constructor TUnZStream.create (asrc: TStream; aSize: Int64; aSkipHeader: boolean=false);
+var
+  err: Integer;
+begin
+  fPos := 0;
+  fSkipToPos := -1;
+  fSrcSt := asrc;
+  fSize := aSize;
+  GetMem(fBuffer, ZBufSize);
+  fSkipHeader := aSkipHeader;
+  if fSkipHeader then err := inflateInit2(fZlibSt, -MAX_WBITS) else err := inflateInit(fZlibSt);
+  if err <> Z_OK then raise XStreamError.Create(zerror(err));
+  fSrcStPos := fSrcSt.position;
+end;
+
+destructor TUnZStream.destroy ();
+begin
+  inflateEnd(fZlibSt);
+  FreeMem(fBuffer);
+  fSrcSt.Free;
+  inherited destroy;
+end;
+
+function TUnZStream.readBuf (var buffer; count: LongInt): LongInt;
+var
+  err: Integer;
+  lastavail: LongInt;
+begin
+  fZlibSt.next_out := @buffer;
+  fZlibSt.avail_out := count;
+  lastavail := count;
+  while fZlibSt.avail_out <> 0 do
+  begin
+    if fZlibSt.avail_in = 0 then
+    begin
+      // refill the buffer
+      fZlibSt.next_in := fBuffer;
+      fZlibSt.avail_in := fSrcSt.read(Fbuffer^, ZBufSize);
+      //Inc(compressed_read, fZlibSt.avail_in);
+      Inc(fPos, lastavail-fZlibSt.avail_out);
+      lastavail := fZlibSt.avail_out;
+    end;
+    err := inflate(fZlibSt, Z_NO_FLUSH);
+    if err = Z_STREAM_END then fSize := fPos; break;
+    if err <> Z_OK then raise XStreamError.Create(zerror(err));
+  end;
+  //if err = Z_STREAM_END then Dec(compressed_read, fZlibSt.avail_in);
+  Inc(fPos, lastavail-fZlibSt.avail_out);
+  result := count-fZlibSt.avail_out;
+end;
+
+procedure TUnZStream.fixPos ();
+var
+  buf: array [0..4095] of Byte;
+  rd, rr: LongInt;
+begin
+  if fSkipToPos < 0 then exit;
+  if fSkipToPos > fPos then reset();
+  while fPos < fSkipToPos do
+  begin
+    if fSkipToPos-fPos > 4096 then rd := 4096 else rd := LongInt(fSkipToPos-fPos);
+    rr := readBuf(buf, rd);
+    if rd <> rr then raise XStreamError.Create('seek error');
+  end;
+  fSkipToPos := -1;
+end;
+
+procedure TUnZStream.determineSize ();
+var
+  buf: array [0..4095] of Byte;
+  rd: LongInt;
+begin
+  if fSize >= 0 then exit;
+  while true do
+  begin
+    rd := readBuf(buf, 4096);
+    if rd <> 4096 then break;
+  end;
+  fSize := fPos;
+end;
+
+function TUnZStream.read (var buffer; count: LongInt): LongInt;
+begin
+  if fSkipToPos >= 0 then fixPos();
+  result := readBuf(buffer, count);
+end;
+
+function TUnZStream.write (const buffer; count: LongInt): LongInt;
+begin
+  result := 0;
+  raise XStreamError.Create('can''t write to read-only stream');
+end;
+
+procedure TUnZStream.reset ();
+var
+  err: Integer;
+begin
+  fSrcSt.position := fSrcStPos;
+  fPos := 0;
+  inflateEnd(fZlibSt);
+  if fSkipHeader then err := inflateInit2(fZlibSt, -MAX_WBITS) else err := inflateInit(fZlibSt);
+  if err <> Z_OK then raise XStreamError.Create(zerror(err));
+end;
+
+function TUnZStream.Seek (const offset: Int64; origin: TSeekOrigin): Int64;
+begin
+  case origin of
+    soBeginning: result := offset;
+    soCurrent: result := offset+fPos;
+    soEnd: begin if fSize = -1 then determineSize(); result := fSize+offset; end;
+    else raise XStreamError.Create('invalid Seek() call');
+    // других не бывает. а у кого бывает, тому я не доктор.
+  end;
+  if result < 0 then result := 0;
+  fSkipToPos := result;
 end;
 
 

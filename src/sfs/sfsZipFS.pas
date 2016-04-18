@@ -10,8 +10,8 @@
 //
 {.$DEFINE SFS_DEBUG_ZIPFS}
 {.$DEFINE SFS_ZIPFS_FULL}
-{$MODE DELPHI}
-{.$R-}
+{$MODE OBJFPC}
+{$R+}
 unit sfsZipFS;
 
 interface
@@ -51,8 +51,8 @@ type
 
   TSFSZipVolumeFactory = class (TSFSVolumeFactory)
   public
-    function IsMyVolumePrefix (const prefix: TSFSString): Boolean; override;
-    function Produce (const prefix, fileName: TSFSString; st: TStream): TSFSVolume; override;
+    function IsMyVolumePrefix (const prefix: AnsiString): Boolean; override;
+    function Produce (const prefix, fileName: AnsiString; st: TStream): TSFSVolume; override;
     procedure Recycle (vol: TSFSVolume); override;
   end;
 
@@ -604,7 +604,7 @@ end;
 
 
 { TSFSZipVolumeFactory }
-function TSFSZipVolumeFactory.IsMyVolumePrefix (const prefix: TSFSString): Boolean;
+function TSFSZipVolumeFactory.IsMyVolumePrefix (const prefix: AnsiString): Boolean;
 begin
   result :=
     StrEquCI1251(prefix, 'zip') or
@@ -623,7 +623,7 @@ begin
   vol.Free();
 end;
 
-function TSFSZipVolumeFactory.Produce (const prefix, fileName: TSFSString; st: TStream): TSFSVolume;
+function TSFSZipVolumeFactory.Produce (const prefix, fileName: AnsiString; st: TStream): TSFSVolume;
 var
   vt: TSFSZipVolumeType;
 begin
