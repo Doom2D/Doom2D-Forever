@@ -2,6 +2,7 @@
 {$IFDEF WINDOWS}
   {$APPTYPE CONSOLE}
 {$ENDIF}
+{$DEFINE UTFEXTRA}
 program __wadcvt__;
 
 uses
@@ -126,7 +127,7 @@ end;
 
 
 {
-procedure TProg.putStr (const s: string; newline: Boolean=false);
+procedure TProg.putStr (const s: AnsiString; newline: Boolean=false);
 begin
   write(#13, s);
   while lastlen > length(s) do
@@ -153,7 +154,7 @@ begin
   putStr(Format('compressing %-33s  %3d%%', [lastname, prc]));
 end;
 
-procedure TProg.onFileStart (sender: TObject; const fileName: string);
+procedure TProg.onFileStart (sender: TObject; const fileName: AnsiString);
 begin
   lastname := fileName;
   putStr(Format('compressing %-33s  %3d%%', [lastname, 0]));
@@ -167,7 +168,7 @@ end;
 
 
 // returns new file name
-function detectExt (fpath, fname: string; fs: TStream): string;
+function detectExt (fpath, fname: AnsiString; fs: TStream): AnsiString;
 var
   buf: PChar;
   buflen: Integer;
@@ -290,44 +291,51 @@ const
   );
 
 
-// this will write "extra field length" and extra field itself
-type
-  TByteArray = array of Byte;
-
-function buildUtfExtra (fname: string): TByteArray;
+function toUtf8 (const s: AnsiString): AnsiString;
 var
-  crc: LongWord;
-  fu: string;
-  sz: Word;
   uc: PUnicodeChar;
   xdc: PChar;
   pos, f: Integer;
 begin
-  GetMem(uc, length(fname)*8);
-  GetMem(xdc, length(fname)*8);
+  GetMem(uc, length(s)*8);
+  GetMem(xdc, length(s)*8);
   try
-    FillChar(uc^, length(fname)*8, 0);
-    FillChar(xdc^, length(fname)*8, 0);
+    FillChar(uc^, length(s)*8, 0);
+    FillChar(xdc^, length(s)*8, 0);
     pos := 0;
-    for f := 1 to length(fname) do
+    for f := 1 to length(s) do
     begin
-      if ord(fname[f]) < 128 then
-        uc[pos] := UnicodeChar(ord(fname[f]))
+      if ord(s[f]) < 128 then
+        uc[pos] := UnicodeChar(ord(s[f]))
       else
-        uc[pos] := UnicodeChar(uni2wint[ord(fname[f])]);
+        uc[pos] := UnicodeChar(uni2wint[ord(s[f])]);
       Inc(pos);
     end;
-    FillChar(xdc^, length(fname)*8, 0);
-    f := UnicodeToUtf8(xdc, length(fname)*8, uc, pos);
+    FillChar(xdc^, length(s)*8, 0);
+    f := UnicodeToUtf8(xdc, length(s)*8, uc, pos);
     while (f > 0) and (xdc[f-1] = #0) do Dec(f);
-    SetLength(fu, f);
-    Move(xdc^, fu[1], f);
-    //writeln('[', fu, ']');
+    SetLength(result, f);
+    Move(xdc^, result[1], f);
   finally
     FreeMem(xdc);
     FreeMem(uc);
   end;
+end;
 
+// this will write "extra field length" and extra field itself
+{$IFDEF UTFEXTRA}
+const UtfFlags = 0;
+
+type
+  TByteArray = array of Byte;
+
+function buildUtfExtra (fname: AnsiString): TByteArray;
+var
+  crc: LongWord;
+  fu: AnsiString;
+  sz: Word;
+begin
+  fu := toUtf8(fname);
   crc := crc32(0, @fname[1], length(fname));
   sz := 2+2+1+4+length(fu);
   SetLength(result, sz);
@@ -342,28 +350,34 @@ begin
   result[7] := (crc shr 16) and $ff;
   result[8] := (crc shr 24) and $ff;
   Move(fu[1], result[9], length(fu));
-  //result := nil;
 end;
+{$ELSE}
+const UtfFlags = (1 shl 10); // bit 11
+{$ENDIF}
 
-
-function ZipOne (ds: TStream; fname: string; st: TStream): TFileInfo;
+function ZipOne (ds: TStream; fname: AnsiString; st: TStream): TFileInfo;
 var
   oldofs, nfoofs, pkdpos: Int64;
   sign: packed array [0..3] of Char;
+{$IFDEF UTFEXTRA}
   ef: TByteArray;
+{$ENDIF}
 begin
   result := TFileInfo.Create();
   result.pkofs := ds.position;
   result.size := st.size;
-  result.name := fname;
   if result.size > 0 then result.method := 8 else result.method := 0;
+{$IFDEF UTFEXTRA}
+  result.name := fname;
   ef := buildUtfExtra(result.name);
+{$ELSE}
+  result.name := toUtf8(fname);
+{$ENDIF}
   // write local header
   sign := 'PK'#3#4;
   ds.writeBuffer(sign, 4);
   writeInt(ds, Word($0A10)); // version to extract
-  //writeInt(ds, Word(1 shl 11)); // flags: utf-8 name
-  writeInt(ds, Word(0)); // flags
+  writeInt(ds, Word(UtfFlags)); // flags
   writeInt(ds, Word(result.method)); // compression method
   writeInt(ds, Word(0)); // file time
   writeInt(ds, Word(0)); // file date
@@ -372,9 +386,15 @@ begin
   writeInt(ds, LongWord(result.pksize)); // packed size
   writeInt(ds, LongWord(result.size)); // unpacked size
   writeInt(ds, Word(length(fname))); // name length
+{$IFDEF UTFEXTRA}
   writeInt(ds, Word(length(ef))); // extra field length
+{$ELSE}
+  writeInt(ds, Word(0)); // extra field length
+{$ENDIF}
   ds.writeBuffer(fname[1], length(fname));
+{$IFDEF UTFEXTRA}
   if length(ef) > 0 then ds.writeBuffer(ef[0], length(ef));
+{$ENDIF}
   // now write packed data
   if result.size > 0 then
   begin
@@ -397,18 +417,21 @@ var
   cdofs, cdend: Int64;
   sign: packed array [0..3] of Char;
   f: Integer;
+{$IFDEF UTFEXTRA}
   ef: TByteArray;
+{$ENDIF}
 begin
   cdofs := ds.position;
   for f := 0 to high(files) do
   begin
+{$IFDEF UTFEXTRA}
     ef := buildUtfExtra(files[f].name);
+{$ENDIF}
     sign := 'PK'#1#2;
     ds.writeBuffer(sign, 4);
     writeInt(ds, Word($0A10)); // version made by
     writeInt(ds, Word($0010)); // version to extract
-    //writeInt(ds, Word(1 shl 11)); // flags: utf-8 name
-    writeInt(ds, Word(0)); // flags
+    writeInt(ds, Word(UtfFlags)); // flags
     writeInt(ds, Word(files[f].method)); // compression method
     writeInt(ds, Word(0)); // file time
     writeInt(ds, Word(0)); // file date
@@ -416,14 +439,20 @@ begin
     writeInt(ds, LongWord(files[f].pksize));
     writeInt(ds, LongWord(files[f].size));
     writeInt(ds, Word(length(files[f].name))); // name length
+{$IFDEF UTFEXTRA}
     writeInt(ds, Word(length(ef))); // extra field length
+{$ELSE}
+    writeInt(ds, Word(0)); // extra field length
+{$ENDIF}
     writeInt(ds, Word(0)); // comment length
     writeInt(ds, Word(0)); // disk start
     writeInt(ds, Word(0)); // internal attributes
     writeInt(ds, LongWord(0)); // external attributes
     writeInt(ds, LongWord(files[f].pkofs)); // header offset
     ds.writeBuffer(files[f].name[1], length(files[f].name));
+{$IFDEF UTFEXTRA}
     if length(ef) > 0 then ds.writeBuffer(ef[0], length(ef));
+{$ENDIF}
   end;
   cdend := ds.position;
   // write end of central dir
@@ -443,10 +472,10 @@ var
   fs, fo: TStream;
   fl: TSFSFileList;
   f: Integer;
-  infname: string;
-  outfname: string;
-  dvfn: string;
-  newname: string;
+  infname: AnsiString;
+  outfname: AnsiString;
+  dvfn: AnsiString;
+  newname: AnsiString;
   files: array of TFileInfo;
   nfo: TFileInfo;
 begin
