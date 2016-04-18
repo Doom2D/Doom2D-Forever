@@ -9,25 +9,123 @@ uses
   Classes,
   utils in '../shared/utils.pas',
   xstreams in '../shared/xstreams.pas',
+  crc,
   sfs,
   sfsPlainFS,
   sfsZipFS,
-  zipper;
+  paszlib;
 
 
-type
-  TProg = class(TObject)
-    lastname: string;
-    lastlen: Integer;
+procedure processed (count: Cardinal);
+begin
+  //writeln('  read ', count, ' bytes');
+end;
 
-    procedure putStr (const s: string; newline: Boolean=false);
 
-    procedure onProgress (sender: TObject; const percent: double);
-    procedure onFileStart (sender: TObject; const fileName: string);
-    procedure onFileEnd (sender: TObject; const ratio: double);
+// returs crc
+function zpack (ds: TStream; ss: TStream): LongWord;
+const
+  IBSize = 65536;
+  OBSize = 65536;
+var
+  zst: TZStream;
+  ib, ob: PByte;
+  ibpos: Cardinal;
+  err: Integer;
+  rd, f: Integer;
+  eof: Boolean;
+  crc: LongWord;
+begin
+  result := 0;
+  crc := crc32(0, nil, 0);
+  GetMem(ib, IBSize);
+  GetMem(ob, OBSize);
+  try
+    zst.next_out := ob;
+    zst.avail_out := OBSize;
+    err := deflateInit2(zst, Z_BEST_COMPRESSION, Z_DEFLATED, -15, 9, 0);
+    if err <> Z_OK then raise Exception.Create(zerror(err));
+    try
+      ibpos := 0;
+      zst.next_out := ob;
+      zst.avail_out := OBSize;
+      eof := false;
+      while true do
+      begin
+        while not eof and (ibpos < IBSize) do
+        begin
+          rd := ss.read((ib+ibpos)^, IBSize-ibpos);
+          if rd < 0 then raise Exception.Create('reading error');
+          eof := (rd <> IBSize-ibpos);
+          if rd <> 0 then begin crc := crc32(crc, Pointer(ib+ibpos), rd); result := crc; end;
+          Inc(ibpos, rd);
+          if rd <> 0 then processed(rd);
+        end;
+        zst.next_in := ib;
+        zst.avail_in := ibpos;
+        if eof then break;
+        err := deflate(zst, Z_NO_FLUSH);
+        if (err <> Z_OK) and (err <> Z_STREAM_END) then raise Exception.Create(zerror(err));
+        if zst.avail_out < OBSize then
+        begin
+          writeln('  written ', OBSize-zst.avail_out, ' bytes');
+          ds.writeBuffer(ob^, OBSize-zst.avail_out);
+          zst.next_out := ob;
+          zst.avail_out := OBSize;
+        end;
+        // shift input buffer
+        if zst.avail_in < ibpos then
+        begin
+          rd := 0;
+          for f := ibpos-zst.avail_in to ibpos-1 do
+          begin
+            ib[rd] := ib[f];
+            Inc(rd);
+          end;
+          ibpos := rd;
+          //writeln(' rd: ', zst.avail_in);
+        end;
+      end;
+      // pack leftovers
+      while zst.avail_in > 0 do
+      begin
+        err := deflate(zst, Z_NO_FLUSH);
+        if (err <> Z_OK) and (err <> Z_STREAM_END) then raise Exception.Create(zerror(err));
+        if zst.avail_out < OBSize then
+        begin
+          //writeln('  written ', OBSize-zst.avail_out, ' bytes');
+          ds.writeBuffer(ob^, OBSize-zst.avail_out);
+          zst.next_out := ob;
+          zst.avail_out := OBSize;
+        end;
+      end;
+      // stream compressed, flush zstream
+      while true do
+      begin
+        zst.avail_in := 0;
+        zst.next_out := ob;
+        zst.avail_out := OBSize;
+        err := deflate(zst, Z_FINISH);
+        if zst.avail_out < OBSize then
+        begin
+          //writeln('  written ', OBSize-zst.avail_out, ' bytes');
+          ds.writeBuffer(ob^, OBSize-zst.avail_out);
+        end;
+        if err <> Z_OK then break;
+      end;
+      // succesfully flushed?
+      if (err <> Z_STREAM_END) then raise Exception.Create(zerror(err));
+    finally
+      deflateEnd(zst);
+    end;
+  finally
+    FreeMem(ob);
+    FreeMem(ib);
   end;
+end;
 
 
+{
 procedure TProg.putStr (const s: string; newline: Boolean=false);
 begin
   write(#13, s);
@@ -65,6 +163,7 @@ procedure TProg.onFileEnd (sender: TObject; const ratio: double);
 begin
   putStr(Format('compressed  %-33s  %f', [lastname, ratio]), true);
 end;
+}
 
 
 // returns new file name
@@ -154,17 +253,125 @@ begin
 end;
 
 
+type
+  TFileInfo = class
+  public
+    name: AnsiString;
+    pkofs: Int64; // offset of file header
+    size: Int64;
+    pksize: Int64;
+    crc: LongWord;
+    method: Word;
+
+    constructor Create ();
+  end;
+
+constructor TFileInfo.Create ();
+begin
+  name := '';
+  pkofs := 0;
+  size := 0;
+  pksize := 0;
+  crc := crc32(0, nil, 0);
+  method := 0;
+end;
+
+
+function ZipOne (ds: TStream; fname: string; st: TStream): TFileInfo;
 var
-  fs: TStream;
+  oldofs, nfoofs, pkdpos: Int64;
+  sign: packed array [0..3] of Char;
+begin
+  result := TFileInfo.Create();
+  result.pkofs := ds.position;
+  result.size := st.size;
+  result.name := fname;
+  if result.size > 0 then result.method := 8 else result.method := 0;
+  // write local header
+  sign := 'PK'#3#4;
+  ds.writeBuffer(sign, 4);
+  writeInt(ds, Word($10)); // version to extract
+  writeInt(ds, Word(0)); // flags
+  writeInt(ds, Word(result.method)); // compression method
+  writeInt(ds, Word(0)); // file time
+  writeInt(ds, Word(0)); // file date
+  nfoofs := ds.position;
+  writeInt(ds, LongWord(result.crc)); // crc32
+  writeInt(ds, LongWord(result.pksize)); // packed size
+  writeInt(ds, LongWord(result.size)); // unpacked size
+  writeInt(ds, Word(length(fname))); // name length
+  writeInt(ds, Word(0)); // extra field length
+  ds.writeBuffer(fname[1], length(fname));
+  // now write packed data
+  if result.size > 0 then
+  begin
+    pkdpos := ds.position;
+    st.position := 0;
+    result.crc := zpack(ds, st);
+    result.pksize := ds.position-pkdpos;
+    // fix header
+    oldofs := ds.position;
+    ds.position := nfoofs;
+    writeInt(ds, LongWord(result.crc)); // crc32
+    writeInt(ds, LongWord(result.pksize)); // crc32
+    ds.position := oldofs;
+  end;
+end;
+
+
+procedure writeCentralDir (ds: TStream; files: array of TFileInfo);
+var
+  cdofs, cdend: Int64;
+  sign: packed array [0..3] of Char;
+  f: Integer;
+begin
+  cdofs := ds.position;
+  for f := 0 to high(files) do
+  begin
+    sign := 'PK'#1#2;
+    ds.writeBuffer(sign, 4);
+    writeInt(ds, Word($10)); // version made by
+    writeInt(ds, Word($10)); // version to extract
+    writeInt(ds, Word(0)); // flags
+    writeInt(ds, Word(files[f].method)); // compression method
+    writeInt(ds, Word(0)); // file time
+    writeInt(ds, Word(0)); // file date
+    writeInt(ds, LongWord(files[f].crc));
+    writeInt(ds, LongWord(files[f].pksize));
+    writeInt(ds, LongWord(files[f].size));
+    writeInt(ds, Word(length(files[f].name))); // name length
+    writeInt(ds, Word(0)); // extra field length
+    writeInt(ds, Word(0)); // comment length
+    writeInt(ds, Word(0)); // disk start
+    writeInt(ds, Word(0)); // internal attributes
+    writeInt(ds, LongWord(0)); // external attributes
+    writeInt(ds, LongWord(files[f].pkofs)); // header offset
+    ds.writeBuffer(files[f].name[1], length(files[f].name));
+  end;
+  cdend := ds.position;
+  // write end of central dir
+  sign := 'PK'#5#6;
+  ds.writeBuffer(sign, 4);
+  writeInt(ds, Word(0)); // disk number
+  writeInt(ds, Word(0)); // disk with central dir
+  writeInt(ds, Word(length(files))); // number of files on this dist
+  writeInt(ds, Word(length(files))); // number of files total
+  writeInt(ds, LongWord(cdend-cdofs)); // size of central directory
+  writeInt(ds, LongWord(cdofs)); // central directory offset
+  writeInt(ds, Word(0)); // archive comment length
+end;
+
+
+var
+  fs, fo: TStream;
   fl: TSFSFileList;
   f: Integer;
   infname: string;
   outfname: string;
-  zip: TZipper;
   dvfn: string;
-  ZEntries: TZipFileEntries;
   newname: string;
-  prg: TProg;
+  files: array of TFileInfo;
+  nfo: TFileInfo;
 begin
   if ParamCount() < 1 then
   begin
@@ -191,56 +398,34 @@ begin
   if not SFSAddDataFile(infname) then begin WriteLn('shit!'); Halt(1); end;
   dvfn := SFSGetLastVirtualName(infname);
 
-  {
-  tot := 0;
-  fl := SFSFileList(ParamStr(1));
-  if fl <> nil then
-  begin
-    for f := 0 to fl.Count-1 do
-    begin
-      WriteLn(f:4, ': ', fl[f].fSize:10, ' "', fl[f].fPath, fl[f].fName, '"');
-      Inc(tot, fl[f].fSize);
-    end;
-    WriteLn('===================================================');
-    WriteLn(fl.Count, ' files; ', Int64ToStrComma(tot), ' bytes.');
-    fl.Free();
-  end;
-  }
-
-  zip := TZipper.Create;
-  zip.Filename := outfname;
+  files := nil;
 
   fl := SFSFileList(dvfn);
-  if fl <> nil then
+  if fl = nil then
   begin
-    ZEntries := TZipFileEntries.Create(TZipFileEntry);
+    writeln('wtf?!');
+    Halt(1);
+  end;
+
+  fo := TFileStream.Create(outfname, fmCreate);
+  try
     for f := 0 to fl.Count-1 do
     begin
       if length(fl[f].fName) = 0 then continue;
       fs := SFSFileOpen(dvfn+'::'+fl[f].fPath+fl[f].fName);
       newname := detectExt(fl[f].fPath, fl[f].fName, fs);
-      fs.Free;
-      fs := SFSFileOpen(dvfn+'::'+fl[f].fPath+fl[f].fName);
+      fs.position := 0;
       writeln('[', f+1, '/', fl.Count, ']: ', fl[f].fPath+newname, '  ', fs.size);
-      ZEntries.AddFileEntry(fs, fl[f].fPath+newname);
+      //ZEntries.AddFileEntry(fs, fl[f].fPath+newname);
+      nfo := ZipOne(fo, fl[f].fPath+fl[f].fName, fs);
+      SetLength(files, length(files)+1);
+      files[high(files)] := nfo;
     end;
-    try
-      if ZEntries.Count > 0 then
-      begin
-        writeln('creating ''', outfname, '''');
-        prg := TProg.Create();
-        zip.OnProgress := prg.onProgress;
-        zip.OnStartFile := prg.onFileStart;
-        zip.OnEndFile := prg.onFileEnd;
-        zip.ZipFiles(ZEntries);
-        prg.Free;
-      end;
-    except
-      on E: EZipError do E.CreateFmt('Zipfile could not be created%sReason: %s', [LineEnding, E.Message])
-    end;
-  end
-  else
-  begin
-    writeln('SFSFileList(): faled!');
+    writeCentralDir(fo, files);
+  except
+    fo.Free();
+    fo := nil;
+    DeleteFile(outfname);
   end;
+  if fo <> nil then fo.Free();
 end.
