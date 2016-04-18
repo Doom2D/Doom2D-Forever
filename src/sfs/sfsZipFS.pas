@@ -3,13 +3,10 @@
 // See the file aplicense.txt for conditions of use.
 //
 // grouping files with packing:
-//   zip, jar: PKZIP-compatible archives (store, deflate)
-//   fout2   : Fallout II .DAT
-//   vtdb    : Asphyre's VTDb
+//   zip, pk3: PKZIP-compatible archives (store, deflate)
 //   dfwad   : D2D:F wad archives
 //
 {.$DEFINE SFS_DEBUG_ZIPFS}
-{.$DEFINE SFS_ZIPFS_FULL}
 {$MODE OBJFPC}
 {$R+}
 unit sfsZipFS;
@@ -21,15 +18,7 @@ uses
 
 
 type
-  TSFSZipVolumeType = (
-    sfszvNone,
-    sfszvZIP,
-    {$IFDEF SFS_ZIPFS_FULL}
-    sfszvF2DAT,
-    sfszvVTDB,
-    {$ENDIF}
-    sfszvDFWAD
-  );
+  TSFSZipVolumeType = (sfszvNone, sfszvZIP, sfszvDFWAD);
 
   TSFSZipVolume = class(TSFSVolume)
   protected
@@ -37,10 +26,6 @@ type
 
     procedure ZIPReadDirectory ();
     procedure DFWADReadDirectory ();
-    {$IFDEF SFS_ZIPFS_FULL}
-    procedure F2DATReadDirectory ();
-    procedure VTDBReadDirectory ();
-    {$ENDIF}
 
     procedure ReadDirectory (); override;
     procedure removeCommonPath (); override;
@@ -49,7 +34,7 @@ type
     function OpenFileByIndex (const index: Integer): TStream; override;
   end;
 
-  TSFSZipVolumeFactory = class (TSFSVolumeFactory)
+  TSFSZipVolumeFactory = class(TSFSVolumeFactory)
   public
     function IsMyVolumePrefix (const prefix: AnsiString): Boolean; override;
     function Produce (const prefix, fileName: AnsiString; st: TStream): TSFSVolume; override;
@@ -57,21 +42,17 @@ type
   end;
 
 
-
 implementation
 
 uses
-  zstream, xstreams, utils;
+  xstreams, utils;
 
 
 type
-  TZDecompressionStream = TDecompressionStream;
-
-type
-  TSFSZipFileInfo = class (TSFSFileInfo)
+  TSFSZipFileInfo = class(TSFSFileInfo)
   public
     fMethod: Byte; // 0: store; 8: deflate; 255: other
-    fPackSz: Int64;
+    fPackSz: Int64; // can be -1
   end;
 
   TZLocalFileHeader = packed record
@@ -99,34 +80,6 @@ begin
   result := true;
 end;
 
-{$IFDEF SFS_ZIPFS_FULL}
-function F2DATCheckMagic (st: TStream): Boolean;
-var
-  dsize, fiSz: Integer;
-begin
-  result := false;
-  st.Position := st.Size-8;
-  st.ReadBuffer(dsize, 4); st.ReadBuffer(fiSz, 4);
-  st.Position := 0;
-  if (fiSz <> st.Size) or (dsize < 5+13) or (dsize > fiSz-4) then exit;
-  result := true;
-end;
-
-function VTDBCheckMagic (st: TStream): Boolean;
-var
-  sign: packed array [0..3] of Char;
-  fcnt, dofs: Integer;
-begin
-  result := false;
-  if st.Size < 32 then exit;
-  st.ReadBuffer(sign[0], 4);
-  st.ReadBuffer(fcnt, 4); st.ReadBuffer(dofs, 4);
-  st.Seek(-12, soCurrent);
-  if sign <> 'vtdm' then exit;
-  if (fcnt < 0) or (dofs < 32) or (dofs+fcnt*8 > st.Size) then exit;
-  result := true;
-end;
-{$ENDIF}
 
 function DFWADCheckMagic (st: TStream): Boolean;
 var
@@ -146,6 +99,7 @@ begin
   result := true;
 end;
 
+
 function maxPrefix (s0: string; s1: string): Integer;
 var
   f: Integer;
@@ -157,6 +111,7 @@ begin
   end;
   result := length(s0);
 end;
+
 
 procedure TSFSZipVolume.removeCommonPath ();
 var
@@ -376,81 +331,6 @@ begin
   end;
 end;
 
-{$IFDEF SFS_ZIPFS_FULL}
-procedure TSFSZipVolume.F2DATReadDirectory ();
-var
-  dsize: Integer;
-  fi: TSFSZipFileInfo;
-  name: ShortString;
-  f: Integer;
-  b: Byte;
-begin
-  fFileStream.Position := fFileStream.Size-8;
-  fFileStream.ReadBuffer(dsize, 4);
-  fFileStream.Seek(-dsize, soCurrent); Dec(dsize, 4);
-  while dsize > 0 do
-  begin
-    fi := TSFSZipFileInfo.Create(self);
-    fFileStream.ReadBuffer(f, 4);
-    if (f < 1) or (f > 255) then raise ESFSError.Create('invalid Fallout II .DAT file');
-    Dec(dsize, 4+f+13);
-    if dsize < 0 then raise ESFSError.Create('invalid Fallout II .DAT file');
-    name[0] := chr(f); if f > 0 then fFileStream.ReadBuffer(name[1], f);
-    f := 1; while (f <= ord(name[0])) and (name[f] <> #0) do Inc(f); name[0] := chr(f-1);
-    fi.fName := name;
-    fFileStream.ReadBuffer(b, 1); // packed?
-    if b = 0 then fi.fMethod := 0 else fi.fMethod := 255;
-    fFileStream.ReadBuffer(fi.fSize, 4);
-    fFileStream.ReadBuffer(fi.fPackSz, 4);
-    fFileStream.ReadBuffer(fi.fOfs, 4);
-  end;
-end;
-
-procedure TSFSZipVolume.VTDBReadDirectory ();
-// idiotic format
-var
-  fcnt, dofs: Integer;
-  keys: array of record name: string; ofs: Integer; end;
-  fi: TSFSZipFileInfo;
-  f, c: Integer;
-  rtype: Word;
-begin
-  fFileStream.Seek(4, soCurrent); // skip signature
-  fFileStream.ReadBuffer(fcnt, 4);
-  fFileStream.ReadBuffer(dofs, 4);
-  fFileStream.Seek(dofs, soBeginning);
-
-  // read keys
-  SetLength(keys, fcnt);
-  for f := 0 to fcnt-1 do
-  begin
-    fFileStream.ReadBuffer(c, 4);
-    if (c < 0) or (c > 1023) then raise ESFSError.Create('invalid VTDB file');
-    SetLength(keys[f].name, c);
-    if c > 0 then
-    begin
-      fFileStream.ReadBuffer(keys[f].name[1], c);
-      keys[f].name := SFSReplacePathDelims(keys[f].name, '/');
-      if keys[f].name[1] = '/' then Delete(keys[f].name, 1, 1);
-    end;
-    fFileStream.ReadBuffer(keys[f].ofs, 4);
-  end;
-
-  // read records (record type will be converted to directory name)
-  for f := 0 to fcnt-1 do
-  begin
-    fFileStream.Position := keys[f].ofs;
-    fi := TSFSZipFileInfo.Create(self);
-    fFileStream.ReadBuffer(rtype, 2);
-    fFileStream.ReadBuffer(fi.fSize, 4);
-    fFileStream.ReadBuffer(fi.fPackSz, 4);
-    fi.fOfs := fFileStream.Position+12;
-    fi.fName := keys[f].name;
-    fi.fPath := IntToHex(rtype, 4)+'/';
-    fi.fMethod := 255;
-  end;
-end;
-{$ENDIF}
 
 procedure TSFSZipVolume.DFWADReadDirectory ();
 // idiotic format
@@ -504,99 +384,31 @@ procedure TSFSZipVolume.ReadDirectory ();
 begin
   case fType of
     sfszvZIP: ZIPReadDirectory();
-    {$IFDEF SFS_ZIPFS_FULL}
-    sfszvF2DAT: F2DATReadDirectory();
-    sfszvVTDB: VTDBReadDirectory();
-    {$ENDIF}
     sfszvDFWAD: DFWADReadDirectory();
-    else raise ESFSError.Create('invalid zipped SFS');
+    else raise ESFSError.Create('invalid archive');
   end;
 end;
 
 function TSFSZipVolume.OpenFileByIndex (const index: Integer): TStream;
 var
-  zs: TZDecompressionStream;
-  fs, rs: TStream;
-  gs: TSFSGuardStream;
-  kill: Boolean;
-  buf: packed array [0..1023] of Char;
-  rd: LongInt;
+  rs: TStream;
 begin
   result := nil;
-  zs := nil;
-  fs := nil;
-  gs := nil;
   rs := nil;
   if fFiles = nil then exit;
   if (index < 0) or (index >= fFiles.Count) or (fFiles[index] = nil) then exit;
-  kill := false;
   try
-    {
-    try
-      fs := TFileStream.Create(fFileName, fmOpenRead or fmShareDenyWrite);
-      kill := true;
-    except
-      fs := fFileStream;
-    end;
-    }
-    fs := fFileStream;
     if TSFSZipFileInfo(fFiles[index]).fMethod = 0 then
     begin
-      result := TSFSPartialStream.Create(fs,
-        TSFSZipFileInfo(fFiles[index]).fOfs,
-        TSFSZipFileInfo(fFiles[index]).fSize, kill);
+      result := TSFSPartialStream.Create(fFileStream, TSFSZipFileInfo(fFiles[index]).fOfs, TSFSZipFileInfo(fFiles[index]).fSize, false);
     end
     else
     begin
-      fs.Seek(TSFSZipFileInfo(fFiles[index]).fOfs, soBeginning);
-      if TSFSZipFileInfo(fFiles[index]).fMethod = 255 then
-      begin
-        // sorry, pals, DFWAD is completely broken, so users of it should SUFFER
-        if TSFSZipFileInfo(fFiles[index]).fSize = -1 then
-        begin
-          TSFSZipFileInfo(fFiles[index]).fSize := 0;
-          //writeln('trying to determine file size for [', TSFSZipFileInfo(fFiles[index]).fPath, TSFSZipFileInfo(fFiles[index]).fName, ']');
-          zs := TZDecompressionStream.Create(fs);
-          try
-            while true do
-            begin
-              rd := zs.read(buf, 1024);
-              //writeln('  got ', rd, ' bytes');
-              if rd > 0 then Inc(TSFSZipFileInfo(fFiles[index]).fSize, rd);
-              if rd < 1024 then break;
-            end;
-            //writeln('  resulting size: ', TSFSZipFileInfo(fFiles[index]).fSize, ' bytes');
-            // recreate stream
-            FreeAndNil(zs);
-            fs.Seek(TSFSZipFileInfo(fFiles[index]).fOfs, soBeginning);
-          except
-            //writeln('*** CAN''T determine file size for [', TSFSZipFileInfo(fFiles[index]).fPath, TSFSZipFileInfo(fFiles[index]).fName, ']');
-            FreeAndNil(zs);
-            if kill then FreeAndNil(fs);
-            result := nil;
-            exit;
-          end;
-        end;
-        rs := TSFSPartialStream.Create(fs, TSFSZipFileInfo(fFiles[index]).fOfs, TSFSZipFileInfo(fFiles[index]).fPackSz, true);
-        zs := TZDecompressionStream.Create(rs);
-        rs := nil;
-      end
-      else
-      begin
-        rs := TSFSPartialStream.Create(fs, TSFSZipFileInfo(fFiles[index]).fOfs, TSFSZipFileInfo(fFiles[index]).fPackSz, true);
-        zs := TZDecompressionStream.Create(rs, true {-15}{MAX_WBITS});
-        rs := nil;
-      end;
-      gs := TSFSGuardStream.Create(zs, fs, true, kill, false);
-      zs := nil;
-      fs := nil;
-      result := TSFSPartialStream.Create(gs, 0, TSFSZipFileInfo(fFiles[index]).fSize, true);
+      rs := TSFSPartialStream.Create(fFileStream, TSFSZipFileInfo(fFiles[index]).fOfs, TSFSZipFileInfo(fFiles[index]).fPackSz, false);
+      result := TUnZStream.Create(rs, TSFSZipFileInfo(fFiles[index]).fSize, true, (TSFSZipFileInfo(fFiles[index]).fMethod <> 255));
     end;
   except
     FreeAndNil(rs);
-    FreeAndNil(gs);
-    FreeAndNil(zs);
-    if kill then FreeAndNil(fs);
     result := nil;
     exit;
   end;
@@ -608,14 +420,8 @@ function TSFSZipVolumeFactory.IsMyVolumePrefix (const prefix: AnsiString): Boole
 begin
   result :=
     StrEquCI1251(prefix, 'zip') or
-    StrEquCI1251(prefix, 'dfwad')
-    {$IFDEF SFS_ZIPFS_FULL}
-    or StrEquCI1251(prefix, 'jar') or
-    StrEquCI1251(prefix, 'fout2') or
-    StrEquCI1251(prefix, 'vtdb') or
-    StrEquCI1251(prefix, 'wad')
-    {$ENDIF}
-    ;
+    StrEquCI1251(prefix, 'pk3') or
+    StrEquCI1251(prefix, 'dfwad');
 end;
 
 procedure TSFSZipVolumeFactory.Recycle (vol: TSFSVolume);
@@ -629,12 +435,7 @@ var
 begin
   vt := sfszvNone;
        if ZIPCheckMagic(st) then vt := sfszvZIP
-  else if DFWADCheckMagic(st) then vt := sfszvDFWAD
-  {$IFDEF SFS_ZIPFS_FULL}
-  else if F2DATCheckMagic(st) then vt := sfszvF2DAT
-  else if VTDBCheckMagic(st) then vt := sfszvVTDB
-  {$ENDIF}
-  ;
+  else if DFWADCheckMagic(st) then vt := sfszvDFWAD;
 
   if vt <> sfszvNone then
   begin

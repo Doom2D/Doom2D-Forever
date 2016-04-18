@@ -95,6 +95,7 @@ type
     fSize: Int64; // can be -1
     fSrcStPos: Int64;
     fSkipToPos: Int64; // >0: skip to this position
+    fKillSrc: Boolean;
 
     procedure reset ();
     function readBuf (var buffer; count: LongInt): LongInt;
@@ -103,7 +104,7 @@ type
 
   public
     // `aSize` can be -1 if stream size is unknown
-    constructor create (asrc: TStream; aSize: Int64; aSkipHeader: boolean=false);
+    constructor create (asrc: TStream; aSize: Int64; aKillSrc: Boolean; aSkipHeader: boolean=false);
     destructor destroy (); override;
     function read (var buffer; count: LongInt): LongInt; override;
     function write (const buffer; count: LongInt): LongInt; override;
@@ -288,10 +289,12 @@ end;
 { TUnZStream }
 const ZBufSize = 32768; // size of the buffer used for temporarily storing data from the child stream
 
-constructor TUnZStream.create (asrc: TStream; aSize: Int64; aSkipHeader: boolean=false);
+
+constructor TUnZStream.create (asrc: TStream; aSize: Int64; aKillSrc: Boolean; aSkipHeader: boolean=false);
 var
   err: Integer;
 begin
+  fKillSrc := aKillSrc;
   fPos := 0;
   fSkipToPos := -1;
   fSrcSt := asrc;
@@ -303,13 +306,15 @@ begin
   fSrcStPos := fSrcSt.position;
 end;
 
+
 destructor TUnZStream.destroy ();
 begin
   inflateEnd(fZlibSt);
   FreeMem(fBuffer);
-  fSrcSt.Free;
-  inherited destroy;
+  if fKillSrc then fSrcSt.Free();
+  inherited Destroy();
 end;
+
 
 function TUnZStream.readBuf (var buffer; count: LongInt): LongInt;
 var
@@ -339,35 +344,50 @@ begin
   result := count-fZlibSt.avail_out;
 end;
 
+
 procedure TUnZStream.fixPos ();
 var
   buf: array [0..4095] of Byte;
   rd, rr: LongInt;
 begin
   if fSkipToPos < 0 then exit;
-  if fSkipToPos > fPos then reset();
+  //writeln('fixing pos: fPos=', fPos, '; fSkipToPos=', fSkipToPos);
+  if fSkipToPos < fPos then reset();
   while fPos < fSkipToPos do
   begin
     if fSkipToPos-fPos > 4096 then rd := 4096 else rd := LongInt(fSkipToPos-fPos);
+    //writeln('  reading ', rd, ' bytes...');
     rr := readBuf(buf, rd);
+    //writeln('  got ', rr, ' bytes; fPos=', fPos, '; fSkipToPos=', fSkipToPos);
     if rd <> rr then raise XStreamError.Create('seek error');
   end;
+  //writeln('  pos: fPos=', fPos, '; fSkipToPos=', fSkipToPos);
   fSkipToPos := -1;
 end;
+
 
 procedure TUnZStream.determineSize ();
 var
   buf: array [0..4095] of Byte;
   rd: LongInt;
+  opos: Int64;
 begin
   if fSize >= 0 then exit;
-  while true do
-  begin
-    rd := readBuf(buf, 4096);
-    if rd <> 4096 then break;
+  opos := fPos;
+  try
+    //writeln('determining unzstream size...');
+    while true do
+    begin
+      rd := readBuf(buf, 4096);
+      if rd <> 4096 then break;
+    end;
+    fSize := fPos;
+    //writeln('  unzstream size is ', fSize);
+  finally
+    fSkipToPos := opos;
   end;
-  fSize := fPos;
 end;
+
 
 function TUnZStream.read (var buffer; count: LongInt): LongInt;
 begin
@@ -375,11 +395,13 @@ begin
   result := readBuf(buffer, count);
 end;
 
+
 function TUnZStream.write (const buffer; count: LongInt): LongInt;
 begin
   result := 0;
   raise XStreamError.Create('can''t write to read-only stream');
 end;
+
 
 procedure TUnZStream.reset ();
 var
@@ -392,17 +414,23 @@ begin
   if err <> Z_OK then raise XStreamError.Create(zerror(err));
 end;
 
+
 function TUnZStream.Seek (const offset: Int64; origin: TSeekOrigin): Int64;
+var
+  cpos: Int64;
 begin
+  cpos := fPos;
+  if fSkipToPos >= 0 then cpos := fSkipToPos;
   case origin of
     soBeginning: result := offset;
-    soCurrent: result := offset+fPos;
-    soEnd: begin if fSize = -1 then determineSize(); result := fSize+offset; end;
+    soCurrent: result := offset+cpos;
+    soEnd: begin determineSize(); result := fSize+offset; end;
     else raise XStreamError.Create('invalid Seek() call');
     // других не бывает. а у кого бывает, тому я не доктор.
   end;
   if result < 0 then result := 0;
   fSkipToPos := result;
+  //writeln('seek: ofs=', offset, '; origin=', origin, '; result=', result);
 end;
 
 
