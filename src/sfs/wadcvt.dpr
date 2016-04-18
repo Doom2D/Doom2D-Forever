@@ -31,9 +31,8 @@ const
 var
   zst: TZStream;
   ib, ob: PByte;
-  ibpos: Cardinal;
   err: Integer;
-  rd, f: Integer;
+  rd: Integer;
   eof: Boolean;
   crc: LongWord;
 begin
@@ -41,76 +40,54 @@ begin
   crc := crc32(0, nil, 0);
   GetMem(ib, IBSize);
   GetMem(ob, OBSize);
+  ss.position := 0;
   try
     zst.next_out := ob;
     zst.avail_out := OBSize;
+    zst.next_in := ib;
+    zst.avail_in := 0;
     err := deflateInit2(zst, Z_BEST_COMPRESSION, Z_DEFLATED, -15, 9, 0);
     if err <> Z_OK then raise Exception.Create(zerror(err));
     try
-      ibpos := 0;
-      zst.next_out := ob;
-      zst.avail_out := OBSize;
       eof := false;
-      while true do
-      begin
-        while not eof and (ibpos < IBSize) do
+      repeat
+        if zst.avail_in = 0 then
         begin
-          rd := ss.read((ib+ibpos)^, IBSize-ibpos);
+          // read input buffer part
+          rd := ss.read(ib^, IBSize);
           if rd < 0 then raise Exception.Create('reading error');
-          eof := (rd <> IBSize-ibpos);
-          if rd <> 0 then begin crc := crc32(crc, Pointer(ib+ibpos), rd); result := crc; end;
-          Inc(ibpos, rd);
-          if rd <> 0 then processed(rd);
+          //writeln('  read ', rd, ' bytes');
+          eof := (rd = 0);
+          if rd <> 0 then begin crc := crc32(crc, Pointer(ib), rd); result := crc; end;
+          zst.next_in := ib;
+          zst.avail_in := rd;
         end;
-        zst.next_in := ib;
-        zst.avail_in := ibpos;
-        if eof then break;
-        err := deflate(zst, Z_NO_FLUSH);
-        if (err <> Z_OK) and (err <> Z_STREAM_END) then raise Exception.Create(zerror(err));
-        if zst.avail_out < OBSize then
+        // now process the whole input
+        while zst.avail_in > 0 do
         begin
-          //writeln('  written ', OBSize-zst.avail_out, ' bytes');
-          ds.writeBuffer(ob^, OBSize-zst.avail_out);
-          zst.next_out := ob;
-          zst.avail_out := OBSize;
-        end;
-        // shift input buffer
-        if zst.avail_in < ibpos then
-        begin
-          rd := 0;
-          for f := ibpos-zst.avail_in to ibpos-1 do
+          err := deflate(zst, Z_NO_FLUSH);
+          if err <> Z_OK then raise Exception.Create(zerror(err));
+          if zst.avail_out < OBSize then
           begin
-            ib[rd] := ib[f];
-            Inc(rd);
+            //writeln('  written ', OBSize-zst.avail_out, ' bytes');
+            ds.writeBuffer(ob^, OBSize-zst.avail_out);
+            zst.next_out := ob;
+            zst.avail_out := OBSize;
           end;
-          ibpos := rd;
-          //writeln(' rd: ', zst.avail_in);
         end;
-      end;
-      // pack leftovers
-      while zst.avail_in > 0 do
-      begin
-        err := deflate(zst, Z_NO_FLUSH);
-        if (err <> Z_OK) and (err <> Z_STREAM_END) then raise Exception.Create(zerror(err));
-        if zst.avail_out < OBSize then
-        begin
-          //writeln('  written ', OBSize-zst.avail_out, ' bytes');
-          ds.writeBuffer(ob^, OBSize-zst.avail_out);
-          zst.next_out := ob;
-          zst.avail_out := OBSize;
-        end;
-      end;
-      // stream compressed, flush zstream
+      until eof;
+      // do leftovers
       while true do
       begin
         zst.avail_in := 0;
-        zst.next_out := ob;
-        zst.avail_out := OBSize;
         err := deflate(zst, Z_FINISH);
+        if (err <> Z_OK) and (err <> Z_STREAM_END) then raise Exception.Create(zerror(err));
         if zst.avail_out < OBSize then
         begin
-          //writeln('  written ', OBSize-zst.avail_out, ' bytes');
+          //writeln('  .written ', OBSize-zst.avail_out, ' bytes');
           ds.writeBuffer(ob^, OBSize-zst.avail_out);
+          zst.next_out := ob;
+          zst.avail_out := OBSize;
         end;
         if err <> Z_OK then break;
       end;
@@ -520,6 +497,8 @@ begin
       if length(fl[f].fName) = 0 then continue;
       fs := SFSFileOpen(dvfn+'::'+fl[f].fPath+fl[f].fName);
       newname := detectExt(fl[f].fPath, fl[f].fName, fs);
+      //fs.Free();
+      //fs := SFSFileOpen(dvfn+'::'+fl[f].fPath+fl[f].fName);
       fs.position := 0;
       writeln('[', f+1, '/', fl.Count, ']: ', fl[f].fPath, newname, '  ', fs.size);
       nfo := ZipOne(fo, fl[f].fPath+newname, fs);
