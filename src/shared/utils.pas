@@ -37,8 +37,47 @@ function findFileCI (var pathname: AnsiString; lastIsDir: Boolean=false): Boolea
 function openDiskFileRO (pathname: AnsiString): TStream;
 function createDiskFile (pathname: AnsiString): TStream;
 
+// little endian
+procedure writeInt (st: TStream; v: Byte); overload;
+procedure writeInt (st: TStream; v: ShortInt); overload;
+procedure writeInt (st: TStream; v: Word); overload;
+procedure writeInt (st: TStream; v: SmallInt); overload;
+procedure writeInt (st: TStream; v: LongWord); overload;
+procedure writeInt (st: TStream; v: LongInt); overload;
+procedure writeInt (st: TStream; v: Int64); overload;
+procedure writeInt (st: TStream; v: UInt64); overload;
+
+function readByte (st: TStream): Byte;
+function readShortInt (st: TStream): ShortInt;
+function readWord (st: TStream): Word;
+function readSmallInt (st: TStream): SmallInt;
+function readLongWord (st: TStream): LongWord;
+function readLongInt (st: TStream): LongInt;
+function readInt64 (st: TStream): Int64;
+function readUInt64 (st: TStream): UInt64;
+
+// big endian
+procedure writeIntBE (st: TStream; v: Byte); overload;
+procedure writeIntBE (st: TStream; v: ShortInt); overload;
+procedure writeIntBE (st: TStream; v: Word); overload;
+procedure writeIntBE (st: TStream; v: SmallInt); overload;
+procedure writeIntBE (st: TStream; v: LongWord); overload;
+procedure writeIntBE (st: TStream; v: LongInt); overload;
+procedure writeIntBE (st: TStream; v: Int64); overload;
+procedure writeIntBE (st: TStream; v: UInt64); overload;
+
+function readByteBE (st: TStream): Byte;
+function readShortIntBE (st: TStream): ShortInt;
+function readWordBE (st: TStream): Word;
+function readSmallIntBE (st: TStream): SmallInt;
+function readLongWordBE (st: TStream): LongWord;
+function readLongIntBE (st: TStream): LongInt;
+function readInt64BE (st: TStream): Int64;
+function readUInt64BE (st: TStream): UInt64;
+
 
 implementation
+
 
 function hasWadExtension (fn: AnsiString): Boolean;
 begin
@@ -329,6 +368,120 @@ begin
   end;
   result := TFileStream.Create(path+ExtractFileName(pathname), fmCreate);
 end;
+
+
+procedure writeIntegerLE (st: TStream; vp: Pointer; size: Integer);
+{$IFDEF ENDIAN_LITTLE}
+begin
+  st.writeBuffer(vp^, size);
+end;
+{$ELSE}
+var
+  p: PByte;
+begin
+  p := PByte(vp)+size-1;
+  while size > 0 do
+  begin
+    st.writeBuffer(p^, 1);
+    Dec(size);
+    Dec(p);
+  end;
+end;
+{$ENDIF}
+
+procedure writeIntegerBE (st: TStream; vp: Pointer; size: Integer);
+{$IFDEF ENDIAN_LITTLE}
+var
+  p: PByte;
+begin
+  p := PByte(vp)+size-1;
+  while size > 0 do
+  begin
+    st.writeBuffer(p^, 1);
+    Dec(size);
+    Dec(p);
+  end;
+end;
+{$ELSE}
+begin
+  st.writeBuffer(vp^, size);
+end;
+{$ENDIF}
+
+procedure writeInt (st: TStream; v: Byte); overload; begin writeIntegerLE(st, @v, 1); end;
+procedure writeInt (st: TStream; v: ShortInt); overload; begin writeIntegerLE(st, @v, 1); end;
+procedure writeInt (st: TStream; v: Word); overload; begin writeIntegerLE(st, @v, 2); end;
+procedure writeInt (st: TStream; v: SmallInt); overload; begin writeIntegerLE(st, @v, 2); end;
+procedure writeInt (st: TStream; v: LongWord); overload; begin writeIntegerLE(st, @v, 4); end;
+procedure writeInt (st: TStream; v: LongInt); overload; begin writeIntegerLE(st, @v, 4); end;
+procedure writeInt (st: TStream; v: Int64); overload; begin writeIntegerLE(st, @v, 8); end;
+procedure writeInt (st: TStream; v: UInt64); overload; begin writeIntegerLE(st, @v, 8); end;
+
+procedure writeIntBE (st: TStream; v: Byte); overload; begin writeIntegerBE(st, @v, 1); end;
+procedure writeIntBE (st: TStream; v: ShortInt); overload; begin writeIntegerBE(st, @v, 1); end;
+procedure writeIntBE (st: TStream; v: Word); overload; begin writeIntegerBE(st, @v, 2); end;
+procedure writeIntBE (st: TStream; v: SmallInt); overload; begin writeIntegerBE(st, @v, 2); end;
+procedure writeIntBE (st: TStream; v: LongWord); overload; begin writeIntegerBE(st, @v, 4); end;
+procedure writeIntBE (st: TStream; v: LongInt); overload; begin writeIntegerBE(st, @v, 4); end;
+procedure writeIntBE (st: TStream; v: Int64); overload; begin writeIntegerBE(st, @v, 8); end;
+procedure writeIntBE (st: TStream; v: UInt64); overload; begin writeIntegerBE(st, @v, 8); end;
+
+
+procedure readIntegerLE (st: TStream; vp: Pointer; size: Integer);
+{$IFDEF ENDIAN_LITTLE}
+begin
+  st.readBuffer(vp^, size);
+end;
+{$ELSE}
+var
+  p: PByte;
+begin
+  p := PByte(vp)+size-1;
+  while size > 0 do
+  begin
+    st.readBuffer(p^, 1);
+    Dec(size);
+    Dec(p);
+  end;
+end;
+{$ENDIF}
+
+procedure readIntegerBE (st: TStream; vp: Pointer; size: Integer);
+{$IFDEF ENDIAN_LITTLE}
+var
+  p: PByte;
+begin
+  p := PByte(vp)+size-1;
+  while size > 0 do
+  begin
+    st.readBuffer(p^, 1);
+    Dec(size);
+    Dec(p);
+  end;
+end;
+{$ELSE}
+begin
+  st.readBuffer(vp^, size);
+end;
+{$ENDIF}
+
+function readByte (st: TStream): Byte; begin readIntegerLE(st, @result, 1); end;
+function readShortInt (st: TStream): ShortInt; begin readIntegerLE(st, @result, 1); end;
+function readWord (st: TStream): Word; begin readIntegerLE(st, @result, 2); end;
+function readSmallInt (st: TStream): SmallInt; begin readIntegerLE(st, @result, 2); end;
+function readLongWord (st: TStream): LongWord; begin readIntegerLE(st, @result, 4); end;
+function readLongInt (st: TStream): LongInt; begin readIntegerLE(st, @result, 4); end;
+function readInt64 (st: TStream): Int64; begin readIntegerLE(st, @result, 8); end;
+function readUInt64 (st: TStream): UInt64; begin readIntegerLE(st, @result, 8); end;
+
+function readByteBE (st: TStream): Byte; begin readIntegerBE(st, @result, 1); end;
+function readShortIntBE (st: TStream): ShortInt; begin readIntegerBE(st, @result, 1); end;
+function readWordBE (st: TStream): Word; begin readIntegerBE(st, @result, 2); end;
+function readSmallIntBE (st: TStream): SmallInt; begin readIntegerBE(st, @result, 2); end;
+function readLongWordBE (st: TStream): LongWord; begin readIntegerBE(st, @result, 4); end;
+function readLongIntBE (st: TStream): LongInt; begin readIntegerBE(st, @result, 4); end;
+function readInt64BE (st: TStream): Int64; begin readIntegerBE(st, @result, 8); end;
+function readUInt64BE (st: TStream): UInt64; begin readIntegerBE(st, @result, 8); end;
 
 
 end.
