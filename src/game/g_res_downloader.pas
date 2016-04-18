@@ -90,15 +90,14 @@ end;
 
 function SaveWAD(const path, filename: string; const data: array of Byte): string;
 var
-  resFile: TFileStream;
+  resFile: TStream;
+  dpt: string;
 begin
   try
-    Result := path + DOWNLOAD_DIR + '/' + filename;
-    if not DirectoryExists(path + DOWNLOAD_DIR) then
-    begin
-      CreateDir(path + DOWNLOAD_DIR);
-    end;
-    resFile := TFileStream.Create(Result, fmCreate);
+    result := path+DOWNLOAD_DIR+'/'+filename;
+    dpt := path+DOWNLOAD_DIR;
+    if not findFileCI(dpt, true) then CreateDir(dpt);
+    resFile := createDiskFile(result);
     resFile.WriteBuffer(data[0], Length(data));
     resFile.Free
   except
@@ -109,7 +108,7 @@ end;
 function g_Res_DownloadWAD(const FileName: string): string;
 var
   msgStream: TMemoryStream;
-  resStream: TFileStream;
+  resStream: TStream;
   mapData: TMapDataMsg;
   i: Integer;
   resData: TResDataMsg;
@@ -141,9 +140,7 @@ begin
       msgStream := g_Net_Wait_Event(NET_MSG_RES_RESPONSE);
       resData := ResDataFromMsgStream(msgStream);
 
-      resStream := TFileStream.Create(GameDir+'/wads/'+
-                                      mapData.ExternalResources[i].Name,
-                                      fmCreate);
+      resStream := createDiskFile(GameDir+'/wads/'+mapData.ExternalResources[i].Name);
       resStream.WriteBuffer(resData.FileData[0], resData.FileSize);
 
       resData.FileData := nil;
