@@ -6,7 +6,7 @@
 //   Quake I/II .PAK (PACK)
 //   SiN .SIN (SPAK)
 //
-{$MODE OBJFPC}
+{$MODE DELPHI}
 {$R+}
 unit sfsPlainFS;
 

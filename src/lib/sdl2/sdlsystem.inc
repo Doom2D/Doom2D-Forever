@@ -1,7 +1,7 @@
 // from "SDL_system.h"
 
 (* Platform specific functions for Windows *)
-{$IF DEFINED(WIN32) OR DEFINED(WIN64)} 
+{$IF DEFINED(WIN32) OR DEFINED(WIN64)}
 
   {* Returns the D3D9 adapter index that matches the specified display index.
    * This adapter index can be passed to IDirect3D9::CreateDevice and controls
@@ -17,7 +17,7 @@ Type PIDirect3DDevice9 = Pointer;
 Function SDL_RenderGetD3D9Device(renderer:PSDL_Renderer):PIDirect3DDevice9;
    cdecl; external SDL_LibName;
 
-{* Returns the DXGI Adapter and Output indices for the specified display index. 
+{* Returns the DXGI Adapter and Output indices for the specified display index.
  * These can be passed to EnumAdapters and EnumOutputs respectively to get the objects
  *  required to create a DX10 or DX11 device and swap chain.
  *}

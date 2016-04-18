@@ -1154,4 +1154,3 @@ function SDL_HapticRumblePlay(haptic: PSDL_Haptic; strength: Float; length: UInt
    *   SDL_HapticRumblePlay
    *}
 function SDL_HapticRumbleStop(haptic: PSDL_Haptic): Integer cdecl; external SDL_LibName {$IFDEF DELPHI} {$IFDEF MACOS} name '_SDL_HapticRumbleStop' {$ENDIF} {$ENDIF};
-

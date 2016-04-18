@@ -1,3 +1,4 @@
+{$MODE DELPHI}
 unit SDL2;
 
 {
@@ -141,7 +142,7 @@ interface
       X,
       XLib;
   {$ENDIF}
-  
+
   {$IFDEF DARWIN}
     uses
       X,
@@ -241,7 +242,7 @@ end;
 //from "sdl_mouse.h"
 function SDL_Button(button: SInt32): SInt32;
 begin
-  Result := 1 shl (button - 1); 
+  Result := 1 shl (button - 1);
 end;
 
 {$IFDEF WINDOWS}
@@ -303,7 +304,7 @@ function SDL_LoadWAV(_file: PAnsiChar; spec: PSDL_AudioSpec; audio_buf: PPUInt8;
 begin
   Result := SDL_LoadWAV_RW(SDL_RWFromFile(_file, 'rb'), 1, spec, audio_buf, audio_len);
 end;
-  
+
 function SDL_AUDIO_BITSIZE(x: Cardinal): Cardinal;
 begin
   Result := x and SDL_AUDIO_MASK_BITSIZE;

@@ -1,6 +1,7 @@
+{$MODE DELPHI}
 program Doom2DF;
 {$IFNDEF HEADLESS}
-  {$IFDEF WIN32}
+  {$IFDEF WINDOWS}
     {$APPTYPE GUI}
   {$ENDIF}
 {$ENDIF}
@@ -42,11 +43,11 @@ uses
   e_sound in '../engine/e_sound.pas',
   e_textures in '../engine/e_textures.pas',
   e_fixedbuffer in '../engine/e_fixedbuffer.pas',
+  utils in '../shared/utils.pas',
+  xstreams in '../shared/xstreams.pas',
   sfs in '../sfs/sfs.pas',
   sfsPlainFS in '../sfs/sfsPlainFS.pas',
   sfsZipFS in '../sfs/sfsZipFS.pas',
-  xstreams in '../shared/xstreams.pas',
-  utils in '../shared/utils.pas',
   wadreader in '../shared/wadreader.pas',
   MAPSTRUCT in '../shared/MAPSTRUCT.pas',
   MAPREADER in '../shared/MAPREADER.pas',
@@ -77,7 +78,7 @@ uses
   g_triggers in 'g_triggers.pas',
   g_weapons in 'g_weapons.pas',
   g_window in 'g_window.pas',
-  sysutils,
+  SysUtils,
 {$IFDEF USE_FMOD}
   fmod in '../lib/FMOD/fmod.pas',
   fmoderrors in '../lib/FMOD/fmoderrors.pas',
@@ -88,7 +89,7 @@ uses
   g_panel in 'g_panel.pas',
   g_language in 'g_language.pas';
 
-{$IFDEF WIN32}
+{$IFDEF WINDOWS}
   {$R *.res}
   {$R CustomRes.res}
 {$ENDIF}

@@ -17,11 +17,11 @@ const
   SDL_INIT_NOPARACHUTE    = $00100000;  //Don't catch fatal signals
   {$EXTERNALSYM SDL_INIT_NOPARACHUTE}
   SDL_INIT_EVERYTHING     = SDL_INIT_TIMER    or
-							SDL_INIT_AUDIO    or
-							SDL_INIT_VIDEO    or
-							SDL_INIT_JOYSTICK or
-							SDL_INIT_HAPTIC   or
-							SDL_INIT_GAMECONTROLLER;
+              SDL_INIT_AUDIO    or
+              SDL_INIT_VIDEO    or
+              SDL_INIT_JOYSTICK or
+              SDL_INIT_HAPTIC   or
+              SDL_INIT_GAMECONTROLLER;
   {$EXTERNALSYM SDL_INIT_EVERYTHING}
 
 {**
@@ -41,22 +41,21 @@ function SDL_InitSubSystem(flags: UInt32): SInt32 cdecl; external SDL_LibName {$
 {**
  *  This function cleans up specific SDL subsystems
  *}
- 
+
 procedure SDL_QuitSubSystem(flags: UInt32) cdecl; external SDL_LibName {$IFDEF DELPHI} {$IFDEF MACOS} name '_SDL_QuitSubSystem' {$ENDIF} {$ENDIF};
 
 {**
  *  This function returns a mask of the specified subsystems which have
  *  previously been initialized.
- *  
+ *
  *  If flags is 0, it returns a mask of all initialized subsystems.
  *}
- 
+
 function SDL_WasInit(flags: UInt32): UInt32 cdecl; external SDL_LibName {$IFDEF DELPHI} {$IFDEF MACOS} name '_SDL_WasInit' {$ENDIF} {$ENDIF};
 
 {**
  *  This function cleans up all initialized subsystems. You should
  *  call it upon all exit conditions.
  *}
- 
-procedure SDL_Quit() cdecl; external SDL_LibName {$IFDEF DELPHI} {$IFDEF MACOS} name '_SDL_Quit' {$ENDIF} {$ENDIF};
 
+procedure SDL_Quit() cdecl; external SDL_LibName {$IFDEF DELPHI} {$IFDEF MACOS} name '_SDL_Quit' {$ENDIF} {$ENDIF};

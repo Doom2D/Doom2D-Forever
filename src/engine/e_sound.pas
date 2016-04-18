@@ -1,3 +1,4 @@
+{$MODE DELPHI}
 unit e_sound;
 
 {$IFDEF USE_SDLMIXER}

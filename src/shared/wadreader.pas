@@ -1,3 +1,4 @@
+{$MODE DELPHI}
 unit wadreader;
 
 {$DEFINE SFS_DWFAD_DEBUG}

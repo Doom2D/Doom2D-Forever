@@ -432,7 +432,7 @@ procedure SDL_FreeFormat(format: PSDL_PixelFormat) cdecl; external SDL_LibName {
    *  A new palette, or nil if there wasn't enough memory.
    *
    *  The palette entries are initialized to white.
-   *  
+   *
    *  SDL_FreePalette()
    *}
 

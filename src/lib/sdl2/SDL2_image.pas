@@ -1,3 +1,4 @@
+{$MODE DELPHI}
 unit sdl2_image;
 
 {*
@@ -27,7 +28,7 @@ unit sdl2_image;
   ChangeLog (Header-Translation):
   -------------------------------
 
-  v.1.72-stable; 29.09.2013: fixed bug with procedure without parameters 
+  v.1.72-stable; 29.09.2013: fixed bug with procedure without parameters
                              (they must have brackets)
   v.1.70-stable; 11.09.2013: MacOS compatibility (with Delphi)
   v.1.33-Alpha; 31.07.2013: Initial Commit
@@ -79,10 +80,10 @@ const
 procedure SDL_IMAGE_VERSION(Out X: TSDL_Version);
 
   {* This function gets the version of the dynamically linked SDL_image library.
-   * 
+   *
    * Note that this function does NOT allocate a new TSDL_Version and fill it with info,
    * but returns a pointer to a TSDL_Version residing inside dynlinked file.
-   * 
+   *
    * As such, attempting to Dispose() of this memory will result in access violation.
    *}
 function IMG_Linked_Version: PSDL_Version cdecl; external IMG_LibName {$IFDEF DELPHI} {$IFDEF MACOS} name '_IMG_Linked_Version' {$ENDIF} {$ENDIF};

@@ -7,7 +7,7 @@
 //   dfwad   : D2D:F wad archives
 //
 {.$DEFINE SFS_DEBUG_ZIPFS}
-{$MODE OBJFPC}
+{$MODE DELPHI}
 {$R+}
 unit sfsZipFS;
 

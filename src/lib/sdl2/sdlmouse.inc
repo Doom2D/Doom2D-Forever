@@ -37,7 +37,7 @@ type
 
   {**
    *  Retrieve the current state of the mouse.
-   *  
+   *
    *  The current button state is returned as a button bitmask, which can
    *  be tested using the SDL_BUTTON(X) macros, and x and y are set to the
    *  mouse cursor position relative to the focus window for the currently
@@ -83,7 +83,7 @@ type
    *  will not change.
    *
    *  This function will flush any pending mouse motion.
-   *  
+   *
    *  SDL_GetRelativeMouseMode()
    *}
 
@@ -91,7 +91,7 @@ type
 
   {**
    *  Query whether relative mouse mode is enabled.
-   *  
+   *
    *  SDL_SetRelativeMouseMode()
    *}
 
@@ -109,10 +109,10 @@ type
    *  <tr><td>  0   </td><td>  1   </td><td> White </td></tr>
    *  <tr><td>  1   </td><td>  1   </td><td> Black </td></tr>
    *  <tr><td>  0   </td><td>  0   </td><td> Transparent </td></tr>
-   *  <tr><td>  1   </td><td>  0   </td><td> Inverted color if possible, black 
+   *  <tr><td>  1   </td><td>  0   </td><td> Inverted color if possible, black
    *                                         if not. </td></tr>
    *  </table>
-   *  
+   *
    *  SDL_FreeCursor()
    *}
 
@@ -159,7 +159,7 @@ type
    *
    *  toggle 1 to show the cursor, 0 to hide it, -1 to query the current
    *                state.
-   *  
+   *
    *  1 if the cursor is shown, or 0 if the cursor is hidden.
    *}
 
@@ -175,11 +175,11 @@ const
    *   - Button 3:  Right mouse button
    *}
 
-  SDL_BUTTON_LEFT	= 1;
-  SDL_BUTTON_MIDDLE	= 2;
-  SDL_BUTTON_RIGHT	= 3;
-  SDL_BUTTON_X1	    = 4;
-  SDL_BUTTON_X2	    = 5;
+  SDL_BUTTON_LEFT = 1;
+  SDL_BUTTON_MIDDLE = 2;
+  SDL_BUTTON_RIGHT  = 3;
+  SDL_BUTTON_X1     = 4;
+  SDL_BUTTON_X2     = 5;
   SDL_BUTTON_LMASK  = 1 shl ((SDL_BUTTON_LEFT) - 1);
   SDL_BUTTON_MMASK  = 1 shl ((SDL_BUTTON_MIDDLE) - 1);
   SDL_BUTTON_RMASK  = 1 shl ((SDL_BUTTON_RIGHT) - 1);

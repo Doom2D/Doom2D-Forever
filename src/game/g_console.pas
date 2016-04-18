@@ -1,3 +1,4 @@
+{$MODE DELPHI}
 unit g_console;
 
 interface
@@ -832,7 +833,7 @@ begin
       Time := MsgTime;
     end;
   end;
-  
+
 {$IFDEF HEADLESS}
   e_WriteLog('CON: ' + L, MSG_NOTIFY);
 {$ENDIF}

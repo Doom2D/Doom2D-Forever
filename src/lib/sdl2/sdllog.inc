@@ -20,29 +20,29 @@ const
  *}
 type
   TSDL_LogCategory = (SDL_LOG_CATEGORY_APPLICATION,
-					  SDL_LOG_CATEGORY_ERROR,
-					  SDL_LOG_CATEGORY_ASSERT,
-					  SDL_LOG_CATEGORY_SYSTEM,
-					  SDL_LOG_CATEGORY_AUDIO,
-				      SDL_LOG_CATEGORY_VIDEO,
-					  SDL_LOG_CATEGORY_RENDER,
-					  SDL_LOG_CATEGORY_INPUT,
-					  SDL_LOG_CATEGORY_TEST,
-					
-					  {* Reserved for future SDL library use *}
-					  SDL_LOG_CATEGORY_RESERVED1,
-					  SDL_LOG_CATEGORY_RESERVED2,
-					  SDL_LOG_CATEGORY_RESERVED3,
-					  SDL_LOG_CATEGORY_RESERVED4,
-					  SDL_LOG_CATEGORY_RESERVED5,
-					  SDL_LOG_CATEGORY_RESERVED6,
-					  SDL_LOG_CATEGORY_RESERVED7,
-					  SDL_LOG_CATEGORY_RESERVED8,
-					  SDL_LOG_CATEGORY_RESERVED9,
-					  SDL_LOG_CATEGORY_RESERVED10,
-					
-					  {* Beyond this point is reserved for application use *}
-					  SDL_LOG_CATEGORY_CUSTOM);
+            SDL_LOG_CATEGORY_ERROR,
+            SDL_LOG_CATEGORY_ASSERT,
+            SDL_LOG_CATEGORY_SYSTEM,
+            SDL_LOG_CATEGORY_AUDIO,
+              SDL_LOG_CATEGORY_VIDEO,
+            SDL_LOG_CATEGORY_RENDER,
+            SDL_LOG_CATEGORY_INPUT,
+            SDL_LOG_CATEGORY_TEST,
+
+            {* Reserved for future SDL library use *}
+            SDL_LOG_CATEGORY_RESERVED1,
+            SDL_LOG_CATEGORY_RESERVED2,
+            SDL_LOG_CATEGORY_RESERVED3,
+            SDL_LOG_CATEGORY_RESERVED4,
+            SDL_LOG_CATEGORY_RESERVED5,
+            SDL_LOG_CATEGORY_RESERVED6,
+            SDL_LOG_CATEGORY_RESERVED7,
+            SDL_LOG_CATEGORY_RESERVED8,
+            SDL_LOG_CATEGORY_RESERVED9,
+            SDL_LOG_CATEGORY_RESERVED10,
+
+            {* Beyond this point is reserved for application use *}
+            SDL_LOG_CATEGORY_CUSTOM);
 
 {**
  *  \brief The predefined log priorities
@@ -55,7 +55,7 @@ const
   SDL_LOG_PRIORITY_ERROR = 5;
   SDL_LOG_PRIORITY_CRITICAL = 6;
   SDL_NUM_LOG_PRIORITIES = 7;
-type 
+type
   TSDL_LogPriority = Integer;
 
 
@@ -132,7 +132,7 @@ procedure SDL_LogMessageV(category: Integer; priority: TSDL_LogPriority; const f
 type
   TSDL_LogOutputFunction = procedure(userdata: Pointer; category: Integer; priority: TSDL_LogPriority; const msg: PAnsiChar);
   PSDL_LogOutputFunction = ^TSDL_LogOutputFunction;
-  
+
 {**
  *  \brief Get the current log output function.
  *}

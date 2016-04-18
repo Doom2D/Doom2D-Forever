@@ -1,3 +1,4 @@
+{$MODE DELPHI}
 unit e_input;
 
 interface
@@ -247,7 +248,7 @@ end;
 function e_InitInput(): Boolean;
 begin
   Result := False;
-  
+
   e_JoysticksAvailable := OpenJoysticks();
   e_EnableInput := True;
   GenerateKeyNames();

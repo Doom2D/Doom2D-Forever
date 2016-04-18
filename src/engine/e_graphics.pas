@@ -1,3 +1,4 @@
+{$MODE DELPHI}
 unit e_graphics;
 
 interface
@@ -392,9 +393,9 @@ begin
  Result.X := 0;
  Result.Width := w;
  Result.Height := h;
- 
+
  if e_NoGraphics then Exit;
- 
+
  data := GetMemory(w*h*4);
  glEnable(GL_TEXTURE_2D);
  glBindTexture(GL_TEXTURE_2D, e_Textures[ID].tx.id);

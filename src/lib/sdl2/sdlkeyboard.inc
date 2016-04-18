@@ -25,7 +25,7 @@ type
    *  Get a snapshot of the current state of the keyboard.
    *
    *  numkeys if non-nil, receives the length of the returned array.
-   *  
+   *
    *  An array of key states. Indexes into this array are obtained by using SDL_Scancode values.
    *
    *}
@@ -40,7 +40,7 @@ type
 
   {**
    *  Set the current key modifier state for the keyboard.
-   *  
+   *
    *  This does not change the keyboard state, only the key modifier flags.
    *}
 
@@ -51,7 +51,7 @@ type
    *         to the current keyboard layout.
    *
    *  See SDL_Keycode for details.
-   *  
+   *
    *  SDL_GetKeyName()
    *}
 
@@ -97,7 +97,7 @@ type
    *  call to this function. If you need it around any longer, you must
    *  copy it.  If the key doesn't have a name, this function returns an
    *  empty string ("").
-   *  
+   *
    *  SDL_Key
    *}
 
@@ -116,7 +116,7 @@ type
   {**
    *  Start accepting Unicode text input events.
    *  This function will show the on-screen keyboard if supported.
-   *  
+   *
    *  SDL_StopTextInput()
    *  SDL_SetTextInputRect()
    *  SDL_HasScreenKeyboardSupport()
@@ -136,7 +136,7 @@ type
   {**
    *  Stop receiving any text input events.
    *  This function will hide the on-screen keyboard if supported.
-   *  
+   *
    *  SDL_StartTextInput()
    *  SDL_HasScreenKeyboardSupport()
    *}
@@ -146,7 +146,7 @@ type
   {**
    *  Set the rectangle used to type Unicode text inputs.
    *  This is used as a hint for IME and on-screen keyboard placement.
-   *  
+   *
    *  SDL_StartTextInput()
    *}
 
@@ -154,7 +154,7 @@ type
 
   {**
    *  Returns whether the platform has some screen keyboard support.
-   *  
+   *
    *  SDL_TRUE if some keyboard support is available else SDL_FALSE.
    *
    *  Not all screen keyboard functions are supported on all platforms.

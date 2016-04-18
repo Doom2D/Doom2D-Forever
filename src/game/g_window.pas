@@ -1,3 +1,4 @@
+{$MODE DELPHI}
 unit g_window;
 
 interface
@@ -78,7 +79,7 @@ begin
   Result := True;
   Exit;
 {$ENDIF}
-  
+
   Result := False;
 
   e_WriteLog('Setting display mode...', MSG_NOTIFY);
@@ -86,13 +87,13 @@ begin
   wFlags := SDL_WINDOW_OPENGL or SDL_WINDOW_RESIZABLE;
   if gFullscreen then wFlags := wFlags or SDL_WINDOW_FULLSCREEN;
   if gWinMaximized then wFlags := wFlags or SDL_WINDOW_MAXIMIZED;
-  
+
   if h_Wnd <> nil then
   begin
     SDL_DestroyWindow(h_Wnd);
     h_Wnd := nil;
   end;
-  
+
   if gFullscreen then
   begin
     mode.w := gScreenWidth;
@@ -114,7 +115,7 @@ begin
 
   h_Wnd := SDL_CreateWindow(PChar(wTitle), gWinRealPosX, gWinRealPosY, gScreenWidth, gScreenHeight, wFlags);
   if h_Wnd = nil then Exit;
-  
+
   SDL_GL_MakeCurrent(h_Wnd, h_GL);
   SDL_ShowCursor(SDL_DISABLE);
 
@@ -205,7 +206,7 @@ begin
   Result := False;
   wActivate := False;
   wDeactivate := False;
-  
+
   case ev.event of
     SDL_WINDOWEVENT_MOVED:
     begin
@@ -215,7 +216,7 @@ begin
         gWinRealPosY := ev.data2;
       end;
     end;
-    
+
     SDL_WINDOWEVENT_MINIMIZED:
     begin
       if not wMinimized then
@@ -231,7 +232,7 @@ begin
         wDeactivate := True;
       end;
     end;
-    
+
     SDL_WINDOWEVENT_RESIZED:
     begin
       gScreenWidth := ev.data1;
@@ -244,10 +245,10 @@ begin
         e_WriteLog('[DEBUG] WinMsgs: Resized to ' + IntToStr(ev.data1) + 'x' + IntToStr(ev.data2), MSG_NOTIFY);
       end;
     end;
-    
+
     SDL_WINDOWEVENT_EXPOSED:
       SwapBuffers();
-    
+
     SDL_WINDOWEVENT_MAXIMIZED:
     begin
       if wMinimized then
@@ -266,7 +267,7 @@ begin
         end;
       end;
     end;
-    
+
     SDL_WINDOWEVENT_RESTORED:
     begin
       if wMinimized then
@@ -375,7 +376,7 @@ begin
       key := ev.key.keysym.scancode;
       KeyPress(key);
     end;
-    
+
     SDL_TEXTINPUT:
     begin
       Utf8ToUnicode(@uc, PChar(ev.text.text), 1);

@@ -76,7 +76,7 @@ function SDL_GameControllerAddMapping( mappingString: PAnsiChar ): Integer cdecl
    *  A community sourced database of controllers is available at https://raw.github.com/gabomdq/SDL_GameControllerDB/master/gamecontrollerdb.txt
    *
    *  If freerw is non-zero, the stream will be closed after being read.
-   * 
+   *
    *  Returns number of mappings added, -1 on error
    *}
 function SDL_GameControllerAddMappingsFromRW(rw: PSDL_RWops; freerw: SInt32):SInt32;

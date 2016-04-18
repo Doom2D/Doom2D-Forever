@@ -8,9 +8,9 @@
   sdl.inc is based on the files:
     "begin_code.h",
     "close_code.h",
-	  "sdl_config.h",
-	  "sdl_config_windows.h",
-   	...
+    "sdl_config.h",
+    "sdl_config_windows.h",
+    ...
   it defines some variables for several Pascal-Compilers and OS-versions.
 
   It is based on mine updated version of jedi-sdl.inc from the SDL 1.2 Headers,
@@ -419,10 +419,10 @@
     {$DEFINE DELPHI32}
   {$ELSE}
     {$IFDEF 64Bit}
-	  {$DEFINE DELPHI64}
-	{$ELSE}
-	  {$DEFINE DELPHI16}
-	{$ENDIF}
+    {$DEFINE DELPHI64}
+  {$ELSE}
+    {$DEFINE DELPHI16}
+  {$ENDIF}
   {$ENDIF}
   //{$ALIGN ON}
 {$ENDIF Delphi}

@@ -246,7 +246,7 @@ type
   {**
    *  OpenGL configuration attributes
    *}
-   
+
 const
   SDL_GL_RED_SIZE = 0;
   SDL_GL_GREEN_SIZE = 1;
@@ -335,7 +335,7 @@ function SDL_VideoInit(const driver_name: PAnsiChar): SInt32 cdecl; external SDL
    *  Shuts down the video subsystem.
    *
    *  function closes all windows, and restores the original video mode.
-   *  
+   *
    *  SDL_VideoInit()
    *}
 procedure SDL_VideoQuit cdecl; external SDL_LibName {$IFDEF DELPHI} {$IFDEF MACOS} name '_SDL_VideoQuit' {$ENDIF} {$ENDIF};
@@ -354,7 +354,7 @@ function SDL_GetCurrentVideoDriver: PAnsiChar cdecl; external SDL_LibName {$IFDE
 
   {**
    *  Returns the number of available video displays.
-   *  
+   *
    *  SDL_GetDisplayBounds()
    *}
 
@@ -364,7 +364,7 @@ function SDL_GetNumVideoDisplays: SInt32 cdecl; external SDL_LibName {$IFDEF DEL
    *  Get the name of a display in UTF-8 encoding
    *
    *  The name of a display, or nil for an invalid display index.
-   *  
+   *
    *  SDL_GetNumVideoDisplays()
    *}
 
@@ -424,11 +424,11 @@ function SDL_GetCurrentDisplayMode(displayIndex: SInt32; mode: PSDL_DisplayMode)
    *
    *  The passed in value closest, or nil if no matching video mode
    *  was available.
-   *  
+   *
    *  The available display modes are scanned, and closest is filled in with the
-   *  closest mode matching the requested mode and returned.  The mode format and 
+   *  closest mode matching the requested mode and returned.  The mode format and
    *  refresh_rate default to the desktop mode if they are 0.  The modes are
-   *  scanned with size being first priority, format being second priority, and 
+   *  scanned with size being first priority, format being second priority, and
    *  finally checking the refresh_rate.  If all the available modes are too
    *  small, then nil is returned.
    *
@@ -440,7 +440,7 @@ function SDL_GetClosestDisplayMode(displayIndex: SInt32; const mode: PSDL_Displa
 
   {**
    *  Get the display index associated with a window.
-   *  
+   *
    *  the display index of the display containing the center of the
    *  window, or -1 on error.
    *}
@@ -452,11 +452,11 @@ function SDL_GetWindowDisplayIndex(window: PSDL_Window): SInt32 cdecl; external 
    *
    *  By default the window's dimensions and the desktop format and refresh rate
    *  are used.
-   *  
+   *
    *  mode The mode to use, or nil for the default mode.
-   *  
+   *
    *  0 on success, or -1 if setting the display mode failed.
-   *  
+   *
    *  SDL_GetWindowDisplayMode()
    *  SDL_SetWindowFullscreen()
    *}
@@ -490,9 +490,9 @@ function SDL_GetWindowPixelFormat(window: PSDL_Window): UInt32 cdecl; external S
    *  w     The width of the window.
    *  h     The height of the window.
    *  flags The flags for the window, a mask of any of the following:
-   *               ::SDL_WINDOW_FULLSCREEN, ::SDL_WINDOW_OPENGL, 
+   *               ::SDL_WINDOW_FULLSCREEN, ::SDL_WINDOW_OPENGL,
    *               ::SDL_WINDOW_SHOWN,      ::SDL_WINDOW_BORDERLESS,
-   *               ::SDL_WINDOW_RESIZABLE,  ::SDL_WINDOW_MAXIMIZED, 
+   *               ::SDL_WINDOW_RESIZABLE,  ::SDL_WINDOW_MAXIMIZED,
    *               ::SDL_WINDOW_MINIMIZED,  ::SDL_WINDOW_INPUT_GRABBED.
    *
    *  The id of the window created, or zero if window creation failed.
@@ -504,9 +504,9 @@ function SDL_CreateWindow(const title: PAnsiChar; x: SInt32; y: SInt32; w: SInt3
 
   {**
    *  Create an SDL window from an existing native window.
-   *  
+   *
    *  data A pointer to driver-dependent window creation data
-   *  
+   *
    *  The id of the window created, or zero if window creation failed.
    *
    *  SDL_DestroyWindow()
@@ -534,7 +534,7 @@ function SDL_GetWindowFlags(window: PSDL_Window): UInt32 cdecl; external SDL_Lib
 
   {**
    *  Set the title of a window, in UTF-8 format.
-   *  
+   *
    *  SDL_GetWindowTitle()
    *}
 
@@ -558,7 +558,7 @@ procedure SDL_SetWindowIcon(window: PSDL_Window; icon: PSDL_Surface) cdecl; exte
 
   {**
    *  Associate an arbitrary named pointer with a window.
-   *  
+   *
    *  window   The window to associate with the pointer.
    *  name     The name of the pointer.
    *  userdata The associated pointer.
@@ -620,7 +620,7 @@ procedure SDL_GetWindowPosition(window: PSDL_Window; x: PInt; y: PInt) cdecl; ex
    *
    *  You can't change the size of a fullscreen window, it automatically
    *  matches the size of the display mode.
-   *  
+   *
    *  SDL_GetWindowSize()
    *}
 
@@ -628,18 +628,18 @@ procedure SDL_SetWindowSize(window: PSDL_Window; w: SInt32; h: SInt32) cdecl; ex
 
   {**
    *  Get the size of a window's client area.
-   *  
+   *
    *  w        Pointer to variable for storing the width, may be nil
    *  h        Pointer to variable for storing the height, may be nil
-   *  
+   *
    *  SDL_SetWindowSize()
    *}
 
 procedure SDL_GetWindowSize(window: PSDL_Window; w: PInt; h: PInt) cdecl; external SDL_LibName {$IFDEF DELPHI} {$IFDEF MACOS} name '_SDL_GetWindowSize' {$ENDIF} {$ENDIF};
-    
+
   {**
    *  Set the minimum size of a window's client area.
-   *  
+   *
    *  min_w     The minimum width of the window, must be >0
    *  min_h     The minimum height of the window, must be >0
    *
@@ -651,10 +651,10 @@ procedure SDL_GetWindowSize(window: PSDL_Window; w: PInt; h: PInt) cdecl; extern
    *}
 
 procedure SDL_SetWindowMinimumSize(window: PSDL_Window; min_w: SInt32; min_h: SInt32) cdecl; external SDL_LibName {$IFDEF DELPHI} {$IFDEF MACOS} name '_SDL_SetWindowMinimumSize' {$ENDIF} {$ENDIF};
-    
+
   {**
    *  Get the minimum size of a window's client area.
-   *  
+   *
    *  w        Pointer to variable for storing the minimum width, may be nil
    *  h        Pointer to variable for storing the minimum height, may be nil
    *
@@ -681,7 +681,7 @@ procedure SDL_SetWindowMaximumSize(window: PSDL_Window; max_w: SInt32; max_h: SI
 
   {**
    *  Get the maximum size of a window's client area.
-   *  
+   *
    *  w        Pointer to variable for storing the maximum width, may be nil
    *  h        Pointer to variable for storing the maximum height, may be nil
    *
@@ -702,7 +702,7 @@ procedure SDL_GetWindowMaximumSize(window: PSDL_Window; w: PInt; h: PInt) cdecl;
    *  bordered SDL_FALSE to remove border, SDL_TRUE to add border.
    *
    *  You can't change the border state of a fullscreen window.
-   *  
+   *
    *  SDL_GetWindowFlags()
    *}
 
@@ -710,7 +710,7 @@ procedure SDL_SetWindowBordered(window: PSDL_Window; bordered: TSDL_Bool) cdecl;
 
   {**
    *  Show a window.
-   *  
+   *
    *  SDL_HideWindow()
    *}
 
@@ -718,7 +718,7 @@ procedure SDL_ShowWindow(window: PSDL_Window) cdecl; external SDL_LibName {$IFDE
 
   {**
    *  Hide a window.
-   *  
+   *
    *  SDL_ShowWindow()
    *}
 
@@ -732,7 +732,7 @@ procedure SDL_RaiseWindow(window: PSDL_Window) cdecl; external SDL_LibName {$IFD
 
   {**
    *  Make a window as large as possible.
-   *  
+   *
    *  SDL_RestoreWindow()
    *}
 
@@ -748,7 +748,7 @@ procedure SDL_MinimizeWindow(window: PSDL_Window) cdecl; external SDL_LibName {$
 
   {**
    *  Restore the size and position of a minimized or maximized window.
-   *  
+   *
    *  SDL_MaximizeWindow()
    *  SDL_MinimizeWindow()
    *}
@@ -757,9 +757,9 @@ procedure SDL_RestoreWindow(window: PSDL_Window) cdecl; external SDL_LibName {$I
 
   {**
    *  Set a window's fullscreen state.
-   *  
+   *
    *  0 on success, or -1 if setting the display mode failed.
-   *  
+   *
    *  SDL_SetWindowDisplayMode()
    *  SDL_GetWindowDisplayMode()
    *}
@@ -806,9 +806,9 @@ function SDL_UpdateWindowSurfaceRects(window: PSDL_Window; rects: PSDL_Rect; num
 
   {**
    *  Set a window's input grab mode.
-   *  
+   *
    *  grabbed This is SDL_TRUE to grab input, and SDL_FALSE to release input.
-   *  
+   *
    *  SDL_GetWindowGrab()
    *}
 
@@ -816,7 +816,7 @@ procedure SDL_SetWindowGrab(window: PSDL_Window; grabbed: TSDL_Bool) cdecl; exte
 
   {**
    *  Get a window's input grab mode.
-   *  
+   *
    *  This returns SDL_TRUE if input is grabbed, and SDL_FALSE otherwise.
    *
    *  SDL_SetWindowGrab()
@@ -837,7 +837,7 @@ function SDL_SetWindowBrightness(window: PSDL_Window; brightness: Float): SInt32
 
   {**
    *  Get the brightness (gamma correction) for a window.
-   *  
+   *
    *  The last brightness value passed to SDL_SetWindowBrightness()
    *
    *  SDL_SetWindowBrightness()
@@ -847,13 +847,13 @@ function SDL_GetWindowBrightness(window: PSDL_Window): Float cdecl; external SDL
 
   {**
    *  Set the gamma ramp for a window.
-   *  
+   *
    *  red The translation table for the red channel, or nil.
    *  green The translation table for the green channel, or nil.
    *  blue The translation table for the blue channel, or nil.
    *
    *  0 on success, or -1 if gamma ramps are unsupported.
-   *  
+   *
    *  Set the gamma translation table for the red, green, and blue channels
    *  of the video hardware.  Each table is an array of 256 16-bit quantities,
    *  representing a mapping between the input and output for that channel.
@@ -874,7 +874,7 @@ function SDL_SetWindowGammaRamp(window: PSDL_Window; const red: PUInt16; const g
    *        the translation table for the green channel, or nil.
    *  blue  A pointer to a 256 element array of 16-bit quantities to hold
    *        the translation table for the blue channel, or nil.
-   *   
+   *
    *  0 on success, or -1 if gamma ramps are unsupported.
    *
    *  SDL_SetWindowGammaRamp()
@@ -890,7 +890,7 @@ procedure SDL_DestroyWindow(window: PSDL_Window) cdecl; external SDL_LibName {$I
 
   {**
    *  Returns whether the screensaver is currently enabled (default on).
-   *  
+   *
    *  SDL_EnableScreenSaver()
    *  SDL_DisableScreenSaver()
    *}
@@ -1007,7 +1007,7 @@ function SDL_GL_GetCurrentContext: TSDL_GLContext cdecl; external SDL_LibName {$
 
   {**
    *  Set the swap interval for the current OpenGL context.
-   *  
+   *
    *  interval 0 for immediate updates, 1 for updates synchronized with the
    *  vertical retrace. If the system supports it, you may
    *  specify -1 to allow late swaps to happen immediately
@@ -1028,7 +1028,7 @@ function SDL_GL_SetSwapInterval(interval: SInt32): SInt32 cdecl; external SDL_Li
    *  swaps happen immediately instead of waiting for the next retrace.
    *  If the system can't determine the swap interval, or there isn't a
    *  valid current context, this will return 0 as a safe default.
-   *  
+   *
    *  SDL_GL_SetSwapInterval()
    *}
 
@@ -1043,7 +1043,7 @@ procedure SDL_GL_SwapWindow(window: PSDL_Window) cdecl; external SDL_LibName {$I
 
   {**
    *  Delete an OpenGL context.
-   *  
+   *
    *  SDL_GL_CreateContext()
    *}
 

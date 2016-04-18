@@ -1,3 +1,4 @@
+{$MODE DELPHI}
 {$R-}
 unit e_log;
 
@@ -60,7 +61,7 @@ begin
       if WriteTime then
         OutStr := '['+TimeToStr(Time)+'] '+Prefix+' '+TextLine
       else
-        OutStr := Prefix+' '+TextLine;  
+        OutStr := Prefix+' '+TextLine;
       Writeln(LogFile, OutStr);
       if e_WriteToStdOut then
         Writeln(OutStr);

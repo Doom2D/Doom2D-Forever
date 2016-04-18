@@ -1,3 +1,4 @@
+{$MODE DELPHI}
 unit sdl2_ttf;
 
 {*
@@ -303,4 +304,3 @@ begin
 end;
 
 end.
-

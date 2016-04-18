@@ -1,3 +1,4 @@
+{$MODE DELPHI}
 unit g_main;
 
 interface
@@ -43,7 +44,7 @@ begin
 
   e_WriteLog('Read config file', MSG_NOTIFY);
   g_Options_Read(GameDir + '/' + CONFIG_FILENAME);
-  
+
   e_WriteToStdOut := {$IFDEF HEADLESS}True;{$ELSE}False;{$ENDIF}
 
   //GetSystemDefaultLCID()
@@ -52,7 +53,7 @@ begin
   //g_Language_Load(DataDir + gLanguage + '.txt');
   e_WriteLog(gLanguage, MSG_NOTIFY);
   g_Language_Set(gLanguage);
-  
+
 {$IFDEF HEADLESS}
   sdlflags := SDL_INIT_TIMER or $00004000;
 {$ELSE}
@@ -64,7 +65,7 @@ begin
 {$ENDIF}
   if SDL_Init(sdlflags) < 0 then
     raise Exception.Create('SDL: Init failed: ' + SDL_GetError());
-    
+
 {$IFDEF HEADLESS}
   SDL_StartTextInput();
 {$ENDIF}

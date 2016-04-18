@@ -1,3 +1,4 @@
+{$MODE DELPHI}
 unit SDL2_mixer;
 
 {*
@@ -25,7 +26,7 @@ unit SDL2_mixer;
    ----------
 
    v.1.72-stable; 29.09.2013: fixed bug with procedures without parameters
-                              (they must have brackets)  
+                              (they must have brackets)
    v.1.70-stable; 16.09.2013: Initial Commit
 
 *}

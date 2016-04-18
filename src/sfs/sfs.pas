@@ -1,5 +1,5 @@
 // streaming file system (virtual)
-{$MODE OBJFPC}
+{$MODE DELPHI}
 {$R+}
 {.$DEFINE SFS_VOLDEBUG}
 unit sfs;

@@ -3,7 +3,7 @@
   {**
    *  SDL_MessageBox flags. If supported will display warning icon, etc.
    *}
- 
+
 const
   SDL_MESSAGEBOX_ERROR        = $00000010;   {**< error dialog *}
   SDL_MESSAGEBOX_WARNING      = $00000020;   {**< warning dialog *}
@@ -105,4 +105,3 @@ function SDL_ShowMessageBox(messageboxdata: PSDL_MessageBoxData; buttonid: PInt)
    *   SDL_ShowMessageBox
    *}
 function SDL_ShowSimpleMessageBox(flags: UInt32; title: PAnsiChar; _message: PAnsiChar; window: PSDL_Window): Integer cdecl; external SDL_LibName {$IFDEF DELPHI} {$IFDEF MACOS} name '_SDL_ShowSimpleMessageBox' {$ENDIF} {$ENDIF};
-

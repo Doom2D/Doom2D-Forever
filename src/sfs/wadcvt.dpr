@@ -1,7 +1,7 @@
-{$IFDEF WIN32}
+{$MODE OBJFPC}
+{$IFDEF WINDOWS}
   {$APPTYPE CONSOLE}
 {$ENDIF}
-{$MODE DELPHI}
 program __wadcvt__;
 
 uses

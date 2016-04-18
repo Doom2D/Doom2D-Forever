@@ -174,7 +174,7 @@ function SDL_GetAudioDriver(index: Integer): PAnsiChar cdecl; external SDL_LibNa
    *  you have a specific need to specify the audio driver you want to
    *  use.  You should normally use SDL_Init() or SDL_InitSubSystem().
    *}
- 
+
 function SDL_AudioInit(driver_name: PAnsiChar): Integer cdecl; external SDL_LibName {$IFDEF DELPHI} {$IFDEF MACOS} name '_SDL_AudioInit' {$ENDIF} {$ENDIF};
 procedure SDL_AudioQuit cdecl; external SDL_LibName {$IFDEF DELPHI} {$IFDEF MACOS} name '_SDL_AudioQuit' {$ENDIF} {$ENDIF};
 
@@ -422,4 +422,3 @@ procedure SDL_CloseAudioDevice(dev: TSDL_AudioDeviceID) cdecl; external SDL_LibN
    *  1 if audio device is still functioning, zero if not, -1 on error.
    *}
 function SDL_AudioDeviceConnected(dev: TSDL_AudioDeviceID): Integer cdecl; external SDL_LibName {$IFDEF DELPHI} {$IFDEF MACOS} name '_SDL_AudioDeviceConnected' {$ENDIF} {$ENDIF};
-

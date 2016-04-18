@@ -163,7 +163,7 @@ begin
 
   Result := False;
   SoundInitialized := False;
-  
+
   if NoOutput then begin Result := true; Exit end;
 
   // wow, this is actually MIDI player!

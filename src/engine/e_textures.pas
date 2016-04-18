@@ -1,3 +1,4 @@
+{$MODE DELPHI}
 unit e_textures;
 
 { This unit provides interface to load 24-bit and 32-bit uncompressed images
@@ -101,7 +102,7 @@ begin
     Result := True;
     Exit;
   end;
-  
+
   glGenTextures(1, @Texture);
   tex.id := Texture;
   glBindTexture(GL_TEXTURE_2D, Texture);

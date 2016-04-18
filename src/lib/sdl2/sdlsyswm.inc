@@ -76,10 +76,10 @@ Type
          {$IFDEF SDL_VIDEO_DRIVER_X11}
             SDL_SYSWM_X11: (x11: __SYSWM_X11);
          {$ENDIF}
-         {$IFDEF SDL_VIDEO_DRIVER_DIRECTFB}  
-            SDL_SYSWM_DIRECTFB: (dfb: __SYSWM_DIRECTFB); 
+         {$IFDEF SDL_VIDEO_DRIVER_DIRECTFB}
+            SDL_SYSWM_DIRECTFB: (dfb: __SYSWM_DIRECTFB);
          {$ENDIF}
-         {$IFDEF SDL_VIDEO_DRIVER_COCOA}  
+         {$IFDEF SDL_VIDEO_DRIVER_COCOA}
             SDL_SYSWM_COCOA: (cocoa: __SYSWM_COCOA);
          {$ENDIF}
          {$IFDEF SDL_VIDEO_DRIVER_UIKIT}

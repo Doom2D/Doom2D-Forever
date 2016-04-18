@@ -40,4 +40,3 @@ function SDL_GetNumTouchFingers(touchID: TSDL_TouchID): SInt32 cdecl; external S
    *  Get the finger object of the given touch, with the given index.
    *}
 function SDL_GetTouchFinger(touchID: TSDL_TouchID; index: SInt32): PSDL_Finger cdecl; external SDL_LibName {$IFDEF DELPHI} {$IFDEF MACOS} name '_SDL_GetTouchFinger' {$ENDIF} {$ENDIF};
-

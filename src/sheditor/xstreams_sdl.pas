@@ -1,5 +1,5 @@
 // special stream classes
-{$MODE OBJFPC}
+{$MODE DELPHI}
 {$R+}
 unit xstreams_sdl;
 

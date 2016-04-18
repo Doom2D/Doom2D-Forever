@@ -74,4 +74,3 @@ function SDL_HasAVX(): TSDL_Bool cdecl; external SDL_LibName {$IFDEF DELPHI} {$I
  *  This function returns the amount of RAM configured in the system, in MB.
  *}
 function SDL_GetSystemRAM(): Integer cdecl; external SDL_LibName {$IFDEF DELPHI} {$IFDEF MACOS} name '_SDL_GetSystemRAM' {$ENDIF} {$ENDIF};
-

@@ -6,7 +6,7 @@ type
   DWord = LongWord;
 
   PUInt8Array = ^TUInt8Array;
-  PUInt8 = ^UInt8;    
+  PUInt8 = ^UInt8;
   PPUInt8 = ^PUInt8;
   UInt8 = Byte;
   {$EXTERNALSYM UInt8}

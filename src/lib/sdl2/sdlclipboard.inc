@@ -21,4 +21,3 @@ function SDL_GetClipboardText(): PAnsiChar cdecl; external SDL_LibName {$IFDEF D
  * \sa SDL_GetClipboardText()
  *}
 function SDL_HasClipboardText(): TSDL_Bool cdecl; external SDL_LibName {$IFDEF DELPHI} {$IFDEF MACOS} name '_SDL_HasClipboardText' {$ENDIF} {$ENDIF};
-

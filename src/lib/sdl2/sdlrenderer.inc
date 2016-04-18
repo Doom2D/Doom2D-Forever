@@ -20,7 +20,7 @@ type
    *  Information on the capabilities of a render driver or context.
    *}
   PSDL_RendererInfo = ^TSDL_RendererInfo;
-  TSDL_RendererInfo = record  
+  TSDL_RendererInfo = record
     name: PAnsiChar;                         {**< The name of the renderer *}
     flags: UInt32;                           {**< Supported ::SDL_RendererFlags *}
     num_texture_formats: UInt32;             {**< The number of available texture formats *}

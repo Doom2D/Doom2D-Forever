@@ -2,12 +2,12 @@
 
 const
   {* RWops Types *}
-  SDL_RWOPS_UNKNOWN	  = 0;	{* Unknown stream type *}
-  SDL_RWOPS_WINFILE	  = 1;	{* Win32 file *}
-  SDL_RWOPS_STDFILE	  = 2;	{* Stdio file *}
-  SDL_RWOPS_JNIFILE	  = 3;	{* Android asset *}
-  SDL_RWOPS_MEMORY    =	4;	{* Memory stream *}
-  SDL_RWOPS_MEMORY_RO =	5;	{* Read-Only memory stream *}
+  SDL_RWOPS_UNKNOWN   = 0;  {* Unknown stream type *}
+  SDL_RWOPS_WINFILE   = 1;  {* Win32 file *}
+  SDL_RWOPS_STDFILE   = 2;  {* Stdio file *}
+  SDL_RWOPS_JNIFILE   = 3;  {* Android asset *}
+  SDL_RWOPS_MEMORY    = 4;  {* Memory stream *}
+  SDL_RWOPS_MEMORY_RO = 5;  {* Read-Only memory stream *}
 
 type
   PSDL_RWops = ^TSDL_RWops;
@@ -28,7 +28,7 @@ type
    *  the final offset in the data stream, or -1 on error.
    *}
   TSeek = function(context: PSDL_RWops; offset: SInt64; whence: SInt32): SInt64; {$IFNDEF GPC} cdecl; {$ENDIF}
-                   
+
   {**
    *  Read up to maxnum objects each of size size from the data
    *  stream to the area pointed at by ptr.
@@ -41,15 +41,15 @@ type
   {**
    *  Write exactly num objects each of size size from the area
    *  pointed at by ptr to data stream.
-   *  
+   *
    *  the number of objects written, or 0 at error or end of file.
    *}
-	
+
    TWrite = function(context: PSDL_RWops; const ptr: Pointer; size: size_t; num: size_t): size_t; {$IFNDEF GPC} cdecl; {$ENDIF}
-	
+
   {**
    *  Close and free an allocated SDL_RWops structure.
-   *  
+   *
    *  0 if successful or -1 on write error when flushing data.
    *}
 
@@ -57,15 +57,15 @@ type
 
   TStdio = record
     autoclose: TSDL_Bool;
-	fp: file;
+  fp: file;
   end;
-  
+
   TMem = record
     base: PUInt8;
-	here: PUInt8;
-	stop: PUInt8;
+  here: PUInt8;
+  stop: PUInt8;
   end;
-  
+
   TUnknown = record
     data1: Pointer;
   end;
@@ -84,8 +84,8 @@ type
 
   TWindowsIOBuffer = record
     data: Pointer;
-	size: size_t;
-	left: size_t;
+  size: size_t;
+  left: size_t;
   end;
 
   TWindowsIO = record
@@ -103,16 +103,16 @@ type
 
     _type: UInt32;
 
-	case Integer of
-	  0: (stdio: TStdio);
-	  1: (mem: TMem);
-	  2: (unknown: TUnknown);
-	  {$IFDEF ANDROID}
-	  3: (androidio: TAndroidIO);
-	  {$ENDIF}
-	  {$IFDEF WINDOWS}
-	  3: (windowsio: TWindowsIO);
-	  {$ENDIF}
+  case Integer of
+    0: (stdio: TStdio);
+    1: (mem: TMem);
+    2: (unknown: TUnknown);
+    {$IFDEF ANDROID}
+    3: (androidio: TAndroidIO);
+    {$ENDIF}
+    {$IFDEF WINDOWS}
+    3: (windowsio: TWindowsIO);
+    {$ENDIF}
   end;
 
   {**

@@ -72,21 +72,21 @@ const
                                 *   key on ISO keyboards and at the right end
                                 *   of the QWERTY row on ANSI keyboards.
                                 *   Produces REVERSE SOLIDUS (backslash) and
-                                *   VERTICAL LINE in a US layout; REVERSE 
+                                *   VERTICAL LINE in a US layout; REVERSE
                                 *   SOLIDUS and VERTICAL LINE in a UK Mac
-                                *   layout; NUMBER SIGN and TILDE in a UK 
+                                *   layout; NUMBER SIGN and TILDE in a UK
                                 *   Windows layout; DOLLAR SIGN and POUND SIGN
                                 *   in a Swiss German layout; NUMBER SIGN and
                                 *   APOSTROPHE in a German layout; GRAVE
-                                *   ACCENT and POUND SIGN in a French Mac 
+                                *   ACCENT and POUND SIGN in a French Mac
                                 *   layout; and ASTERISK and MICRO SIGN in a
                                 *   French Windows layout.
                                 *}
   SDL_SCANCODE_NONUSHASH = 50; {**< ISO USB keyboards actually use this code
                                 *   instead of 49 for the same key; but all
-                                *   OSes I've seen treat the two codes 
+                                *   OSes I've seen treat the two codes
                                 *   identically. So; as an implementor; unless
-                                *   your keyboard generates both of those 
+                                *   your keyboard generates both of those
                                 *   codes and your OS treats them differently;
                                 *   you should generate SDL_SCANCODE_BACKSLASH
                                 *   instead of this code. As a user; you
@@ -167,12 +167,12 @@ const
   SDL_SCANCODE_KP_PERIOD = 99;
 
   SDL_SCANCODE_NONUSBACKSLASH = 100; {**< This is the additional key that ISO
-                                      *   keyboards have over ANSI ones; 
-                                      *   located between left shift and Y. 
+                                      *   keyboards have over ANSI ones;
+                                      *   located between left shift and Y.
                                       *   Produces GRAVE ACCENT and TILDE in a
                                       *   US or UK Mac layout; REVERSE SOLIDUS
-                                      *   (backslash) and VERTICAL LINE in a 
-                                      *   US or UK Windows layout; and 
+                                      *   (backslash) and VERTICAL LINE in a
+                                      *   US or UK Windows layout; and
                                       *   LESS-THAN SIGN and GREATER-THAN SIGN
                                       *   in a Swiss German; German; or French
                                       *   layout. *}
@@ -302,11 +302,11 @@ const
   SDL_SCANCODE_RALT = 230; {**< alt gr; option *}
   SDL_SCANCODE_RGUI = 231; {**< windows; command (apple); meta *}
 
-  SDL_SCANCODE_MODE = 257;    {**< I'm not sure if this is really not covered 
-                               *   by any of the above; but since there's a 
+  SDL_SCANCODE_MODE = 257;    {**< I'm not sure if this is really not covered
+                               *   by any of the above; but since there's a
                                *   special KMOD_MODE for it I'm adding it here
                                *}
-    
+
   {*Usage page $07*}
 
   {**

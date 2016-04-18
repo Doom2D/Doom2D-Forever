@@ -1,3 +1,4 @@
+{$MODE DELPHI}
 unit CONFIG;
 
 {

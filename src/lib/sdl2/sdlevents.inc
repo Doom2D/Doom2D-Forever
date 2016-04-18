@@ -64,17 +64,17 @@ const
   SDL_JOYHATMOTION     = $602;  // Joystick hat position change
   SDL_JOYBUTTONDOWN    = $603;  // Joystick button pressed
   SDL_JOYBUTTONUP      = $604;  // Joystick button released
-  SDL_JOYDEVICEADDED   = $605;  // A new joystick has been inserted into the system 
-  SDL_JOYDEVICEREMOVED = $606;  // An opened joystick has been removed 
+  SDL_JOYDEVICEADDED   = $605;  // A new joystick has been inserted into the system
+  SDL_JOYDEVICEREMOVED = $606;  // An opened joystick has been removed
 
   { Game controller events }
   SDL_CONTROLLERAXISMOTION     = $650;  // Game controller axis motion
-  SDL_CONTROLLERBUTTONDOWN     = $651;  // Game controller button pressed 
+  SDL_CONTROLLERBUTTONDOWN     = $651;  // Game controller button pressed
   SDL_CONTROLLERBUTTONUP       = $652;  // Game controller button released
-  SDL_CONTROLLERDEVICEADDED    = $653;  // A new Game controller has been inserted into the system 
-  SDL_CONTROLLERDEVICEREMOVED  = $654;  // An opened Game controller has been removed 
-  SDL_CONTROLLERDEVICEREMAPPED = $655;  // The controller mapping was updated 
-   
+  SDL_CONTROLLERDEVICEADDED    = $653;  // A new Game controller has been inserted into the system
+  SDL_CONTROLLERDEVICEREMOVED  = $654;  // An opened Game controller has been removed
+  SDL_CONTROLLERDEVICEREMAPPED = $655;  // The controller mapping was updated
+
   { Touch events }
   SDL_FINGERDOWN      = $700;
   SDL_FINGERUP        = $701;
@@ -98,7 +98,7 @@ const
   { Render events }
   SDL_RENDER_TARGETS_RESET = $2000; // The render targets have been reset
   SDL_RENDER_DEVICE_RESET  = $2001; // The device has been reset and all textures need to be recreated
-  
+
   {** Events SDL_USEREVENT through SDL_LASTEVENT are for your use,
    *  and should be allocated with SDL_RegisterEvents()
    *}
@@ -135,7 +135,7 @@ type
     padding2: UInt8;
     padding3: UInt8;
     data1: SInt32;       // event dependent data
-    data2: SInt32;       // event dependent data 
+    data2: SInt32;       // event dependent data
   end;
 
   {**
@@ -145,7 +145,7 @@ type
     type_: UInt32;        // SDL_KEYDOWN or SDL_KEYUP
     timestamp: UInt32;
     windowID: UInt32;     // The window with keyboard focus, if any
-    state: UInt8;         // SDL_PRESSED or SDL_RELEASED 
+    state: UInt8;         // SDL_PRESSED or SDL_RELEASED
     _repeat: UInt8;       // Non-zero if this is a key repeat
     padding2: UInt8;
     padding3: UInt8;
@@ -156,16 +156,16 @@ const
   SDL_TEXTEDITINGEVENT_TEXT_SIZE = 32;
 
 type
- 
+
   {**
    *  Keyboard text editing event structure (event.edit.*)
    *}
 
   TSDL_TextEditingEvent = record
-    type_: UInt32;                               // SDL_TEXTEDITING 
+    type_: UInt32;                               // SDL_TEXTEDITING
     timestamp: UInt32;
     windowID: UInt32;                            // The window with keyboard focus, if any
-    text: array[0..SDL_TEXTEDITINGEVENT_TEXT_SIZE] of Char;  // The editing text 
+    text: array[0..SDL_TEXTEDITINGEVENT_TEXT_SIZE] of Char;  // The editing text
     start: SInt32;                               // The start cursor of selected editing text
     length: SInt32;                              // The length of selected editing text
   end;
@@ -180,28 +180,28 @@ type
    *}
 
   TSDL_TextInputEvent = record
-    type_: UInt32;                                          // SDL_TEXTINPUT 
+    type_: UInt32;                                          // SDL_TEXTINPUT
     timestamp: UInt32;
     windowID: UInt32;                                       // The window with keyboard focus, if any
-    text: array[0..SDL_TEXTINPUTEVENT_TEXT_SIZE] of Char;   // The input text 
+    text: array[0..SDL_TEXTINPUTEVENT_TEXT_SIZE] of Char;   // The input text
   end;
 
   {**
    *  Mouse motion event structure (event.motion.*)
    *}
- 
+
   TSDL_MouseMotionEvent = record
     type_: UInt32;       // SDL_MOUSEMOTION
     timestamp: UInt32;
     windowID: UInt32;    // The window with mouse focus, if any
     which: UInt32;       // The mouse instance id, or SDL_TOUCH_MOUSEID
-    state: UInt8;        // The current button state 
+    state: UInt8;        // The current button state
     padding1: UInt8;
     padding2: UInt8;
     padding3: UInt8;
     x: SInt32;           // X coordinate, relative to window
     y: SInt32;           // Y coordinate, relative to window
-    xrel: SInt32;        // The relative motion in the X direction 
+    xrel: SInt32;        // The relative motion in the X direction
     yrel: SInt32;        // The relative motion in the Y direction
   end;
 
@@ -210,28 +210,28 @@ type
    *}
 
   TSDL_MouseButtonEvent = record
-    type_: UInt32;       // SDL_MOUSEBUTTONDOWN or SDL_MOUSEBUTTONUP 
+    type_: UInt32;       // SDL_MOUSEBUTTONDOWN or SDL_MOUSEBUTTONUP
     timestamp: UInt32;
     windowID: UInt32;    // The window with mouse focus, if any
-    which: UInt32;       // The mouse instance id, or SDL_TOUCH_MOUSEID 
+    which: UInt32;       // The mouse instance id, or SDL_TOUCH_MOUSEID
     button: UInt8;       // The mouse button index
     state: UInt8;        // SDL_PRESSED or SDL_RELEASED
     clicks: UInt8;       // 1 for single-click, 2 for double-click, etc.
     padding1: UInt8;
     x: SInt32;           // X coordinate, relative to window
-    y: SInt32;           // Y coordinate, relative to window 
+    y: SInt32;           // Y coordinate, relative to window
   end;
 
   {**
    *  Mouse wheel event structure (event.wheel.*)
    *}
- 
+
   TSDL_MouseWheelEvent = record
     type_: UInt32;        // SDL_MOUSEWHEEL
     timestamp: UInt32;
     windowID: UInt32;    // The window with mouse focus, if any
     which: UInt32;       // The mouse instance id, or SDL_TOUCH_MOUSEID
-    x: SInt32;           // The amount scrolled horizontally 
+    x: SInt32;           // The amount scrolled horizontally
     y: SInt32;           // The amount scrolled vertically
     direction: UInt32;   // Set to one of the SDL_MOUSEWHEEL_* defines. When FLIPPED the values in X and Y will be opposite. Multiply by -1 to change them back
   end;
@@ -241,10 +241,10 @@ type
    *}
 
   TSDL_JoyAxisEvent = record
-    type_: UInt32;         // SDL_JOYAXISMOTION 
+    type_: UInt32;         // SDL_JOYAXISMOTION
     timestamp: UInt32;
     which: TSDL_JoystickID; // The joystick instance id
-    axis: UInt8;           // The joystick axis index 
+    axis: UInt8;           // The joystick axis index
     padding1: UInt8;
     padding2: UInt8;
     padding3: UInt8;
@@ -295,7 +295,7 @@ type
   TSDL_JoyButtonEvent = record
     type_: UInt32;        // SDL_JOYBUTTONDOWN or SDL_JOYBUTTONUP
     timestamp: UInt32;
-    which: TSDL_JoystickID; // The joystick instance id 
+    which: TSDL_JoystickID; // The joystick instance id
     button: UInt8;         // The joystick button index
     state: UInt8;          // SDL_PRESSED or SDL_RELEASED
     padding1: UInt8;
@@ -482,7 +482,7 @@ type
       SDL_MOUSEBUTTONUP,
       SDL_MOUSEBUTTONDOWN:  (button: TSDL_MouseButtonEvent);
       SDL_MOUSEWHEEL:  (wheel: TSDL_MouseWheelEvent);
-     
+
       SDL_JOYAXISMOTION:  (jaxis: TSDL_JoyAxisEvent);
       SDL_JOYBALLMOTION: (jball: TSDL_JoyBallEvent);
       SDL_JOYHATMOTION: (jhat: TSDL_JoyHatEvent);
@@ -520,9 +520,9 @@ type
 
   {**
    *  Pumps the event loop, gathering events from the input devices.
-   *  
+   *
    *  This function updates the event queue and internal input device state.
-   *  
+   *
    *  This should only be run in the thread that sets the video mode.
    *}
   procedure SDL_PumpEvents cdecl; external SDL_LibName {$IFDEF DELPHI} {$IFDEF MACOS} name '_SDL_PumpEvents' {$ENDIF} {$ENDIF};
@@ -583,10 +583,10 @@ type
 
   {**
    *  Waits indefinitely for the next available event.
-   *  
+   *
    *  1, or 0 if there was an error while waiting for events.
-   *   
-   *  event - If not nil, the next event is removed from the queue and 
+   *
+   *  event - If not nil, the next event is removed from the queue and
    *  stored in that area.
    *}
 
@@ -595,18 +595,18 @@ type
   {**
    *  Waits until the specified timeout (in milliseconds) for the next
    *  available event.
-   *  
+   *
    *  1, or 0 if there was an error while waiting for events.
-   *  
+   *
    *  event - If not nil, the next event is removed from the queue and
    *  stored in that area.
    *}
- 
+
   function SDL_WaitEventTimeout(event: PSDL_Event; timeout: SInt32): SInt32 cdecl; external SDL_LibName {$IFDEF DELPHI} {$IFDEF MACOS} name '_SDL_WaitEventTimeout' {$ENDIF} {$ENDIF};
 
   {**
    *  Add an event to the event queue.
-   *  
+   *
    *  1 on success, 0 if the event was filtered, or -1 if the event queue
    *  was full or there was some other error.
    *}
@@ -626,13 +626,13 @@ type
    *  are posted to the internal event queue.
    *
    *  If the filter returns 1, then the event will be added to the internal queue.
-   *  If it returns 0, then the event will be dropped from the queue, but the 
+   *  If it returns 0, then the event will be dropped from the queue, but the
    *  internal state will still be updated.  This allows selective filtering of
    *  dynamically arriving events.
    *
-   *  Be very careful of what you do in the event filter function, as 
+   *  Be very careful of what you do in the event filter function, as
    *  it may run in a different thread!
-   *  
+   *
    *  There is one caveat when dealing with the SDL_QUITEVENT event type.  The
    *  event filter is only called when the window manager desires to close the
    *  application window.  If the event filter returns 1, then the window will
@@ -641,7 +641,7 @@ type
    *  If the quit event is generated by an interrupt signal, it will bypass the
    *  internal queue and be delivered to the application at the next event poll.
    *}
- 
+
   procedure SDL_SetEventFilter(filter: TSDL_EventFilter; userdata: Pointer) cdecl; external SDL_LibName {$IFDEF DELPHI} {$IFDEF MACOS} name '_SDL_SetEventFilter' {$ENDIF} {$ENDIF};
 
   {**
@@ -654,13 +654,13 @@ type
   {**
    *  Add a function which is called when an event is added to the queue.
    *}
- 
+
   procedure SDL_AddEventWatch(filter: TSDL_EventFilter; userdata: Pointer) cdecl; external SDL_LibName {$IFDEF DELPHI} {$IFDEF MACOS} name '_SDL_AddEventWatch' {$ENDIF} {$ENDIF};
 
   {**
    *  Remove an event watch function added with SDL_AddEventWatch()
    *}
- 
+
   procedure SDL_DelEventWatch(filter: TSDL_EventFilter; userdata: Pointer) cdecl; external SDL_LibName {$IFDEF DELPHI} {$IFDEF MACOS} name '_SDL_DelEventWatch' {$ENDIF} {$ENDIF};
 
   {**
