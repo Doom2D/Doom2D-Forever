@@ -9,7 +9,7 @@ function g_Res_DownloadWAD(const FileName: string): string;
 
 implementation
 
-uses g_language, sfs, WADEDITOR;
+uses g_language, sfs, utils, wadreader;
 
 const DOWNLOAD_DIR = 'downloads';
 
@@ -23,7 +23,7 @@ begin
       repeat
         if (searchResult.Attr and faDirectory) = 0 then
         begin
-          if SFSStrEqu(searchResult.Name, filename) then
+          if StrEquCI1251(searchResult.Name, filename) then
           begin
             files.Add(dirName+'/'+filename);
             Exit;

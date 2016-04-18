@@ -1,4 +1,4 @@
-unit WADEDITOR;
+unit wadreader;
 
 {$DEFINE SFS_DWFAD_DEBUG}
 
@@ -11,7 +11,7 @@ uses
 type
   SArray = array of ShortString;
 
-  TWADEditor_1 = class(TObject)
+  TWADFile = class(TObject)
   private
     fFileName: string; // empty: not opened
     fIter: TSFSFileList;
@@ -32,19 +32,6 @@ type
     property isOpen: Boolean read getIsOpen;
   end;
 
-{
-const
-  DFWAD_NOERROR                = 0;
-  DFWAD_ERROR_WADNOTFOUND      = -1;
-  DFWAD_ERROR_CANTOPENWAD      = -2;
-  DFWAD_ERROR_RESOURCENOTFOUND = -3;
-  DFWAD_ERROR_FILENOTWAD       = -4;
-  DFWAD_ERROR_WADNOTLOADED     = -5;
-  DFWAD_ERROR_READRESOURCE     = -6;
-  DFWAD_ERROR_READWAD          = -7;
-  DFWAD_ERROR_WRONGVERSION     = -8;
-}
-
 
 procedure g_ProcessResourceStr (ResourceStr: String; var FileName, SectionName, ResourceName: String); overload;
 procedure g_ProcessResourceStr (ResourceStr: String; FileName, SectionName, ResourceName: PString); overload;
@@ -56,48 +43,43 @@ function findDiskWad (fname: string): string;
 implementation
 
 uses
-  SysUtils, Classes, BinEditor, e_log, g_options;
+  SysUtils, Classes, BinEditor, e_log, g_options, utils;
 
 
 function findDiskWad (fname: string): string;
-var
-  path, rfn: string;
 begin
   result := '';
-  path := ExtractFilePath(fname);
-  rfn := ExtractFileName(fname);
-  if not sfsFindFileCI(path, rfn) then
+  if not findFileCI(fname) then
   begin
-    //e_WriteLog(Format('TWADEditor_1.ReadFile: error looking for [%s] [%s]', [path, ExtractFileName(fname)]), MSG_NOTIFY);
-    if SFSStrEqu(ExtractFileExt(fname), '.wad') then
+    //e_WriteLog(Format('TWADFile.ReadFile: error looking for [%s] [%s]', [path, ExtractFileName(fname)]), MSG_NOTIFY);
+    if StrEquCI1251(ExtractFileExt(fname), '.wad') then
     begin
-      rfn := ChangeFileExt(ExtractFileName(fname), '.pk3');
+      fname := ChangeFileExt(ExtractFileName(fname), '.pk3');
       //e_WriteLog(Format('  looking for [%s] [%s]', [path, rfn]), MSG_NOTIFY);
-      if not sfsFindFileCI(path, rfn) then
+      if not findFileCI(fname) then
       begin
         //e_WriteLog(Format('  looking for [%s] [%s]', [path, rfn]), MSG_NOTIFY);
-        rfn := ChangeFileExt(ExtractFileName(fname), '.zip');
-        if not sfsFindFileCI(path, rfn) then exit;
+        fname := ChangeFileExt(ExtractFileName(fname), '.zip');
+        if not findFileCI(fname) then exit;
       end;
     end
     else
     begin
       exit;
     end;
-    //e_WriteLog(Format('TWADEditor_1.ReadFile: FOUND [%s]', [rfn]), MSG_NOTIFY);
+    //e_WriteLog(Format('TWADFile.ReadFile: FOUND [%s]', [rfn]), MSG_NOTIFY);
   end
   else
   begin
-    //if rfn <> ExtractFileName(FileName) then e_WriteLog(Format('TWADEditor_1.ReadFile: FOUND [%s]', [rfn]), MSG_NOTIFY);
+    //if rfn <> ExtractFileName(FileName) then e_WriteLog(Format('TWADFile.ReadFile: FOUND [%s]', [rfn]), MSG_NOTIFY);
   end;
-  result := path+rfn;
+  result := fname;
 end;
 
 
 procedure g_ProcessResourceStr (ResourceStr: String; var FileName, SectionName, ResourceName: String);
 var
   a, i: Integer;
-
 begin
   //e_WriteLog(Format('g_ProcessResourceStr0: [%s]', [ResourceStr]), MSG_NOTIFY);
   for i := Length(ResourceStr) downto 1 do
@@ -148,30 +130,30 @@ begin
 end;
 
 
-{ TWADEditor_1 }
-constructor TWADEditor_1.Create();
+{ TWADFile }
+constructor TWADFile.Create();
 begin
   fFileName := '';
 end;
 
 
-destructor TWADEditor_1.Destroy();
+destructor TWADFile.Destroy();
 begin
   FreeWAD();
   inherited;
 end;
 
 
-function TWADEditor_1.getIsOpen (): Boolean;
+function TWADFile.getIsOpen (): Boolean;
 begin
   result := (fFileName <> '');
 end;
 
 
-procedure TWADEditor_1.FreeWAD();
+procedure TWADFile.FreeWAD();
 begin
   if fIter <> nil then FreeAndNil(fIter);
-  //if fFileName <> '' then e_WriteLog(Format('TWADEditor_1.ReadFile: [%s] closed', [fFileName]), MSG_NOTIFY);
+  //if fFileName <> '' then e_WriteLog(Format('TWADFile.ReadFile: [%s] closed', [fFileName]), MSG_NOTIFY);
   fFileName := '';
 end;
 
@@ -190,7 +172,7 @@ begin
   result := s;
 end;
 
-function TWADEditor_1.GetResource (Section, Resource: string; var pData: Pointer; var Len: Integer): Boolean;
+function TWADFile.GetResource (Section, Resource: string; var pData: Pointer; var Len: Integer): Boolean;
 var
   f: Integer;
   fi: TSFSFileInfo;
@@ -208,7 +190,7 @@ begin
     fi := fIter.Files[f];
     if fi = nil then continue;
     //e_WriteLog(Format('DFWAD: searching for [%s : %s] in [%s]; current is [%s : %s]', [Section, Resource, fFileName, fi.path, fi.name]), MSG_NOTIFY);
-    if SFSStrEqu(fi.path, Section) and SFSStrEqu(removeExt(fi.name), Resource) then
+    if StrEquCI1251(fi.path, Section) and StrEquCI1251(removeExt(fi.name), Resource) then
     begin
       // i found her!
       //fn := fFileName+'::'+fi.path+fi.name;
@@ -250,7 +232,7 @@ begin
 end;
 
 
-function TWADEditor_1.GetResourcesList (Section: string): SArray;
+function TWADFile.GetResourcesList (Section: string): SArray;
 var
   f: Integer;
   fi: TSFSFileInfo;
@@ -263,7 +245,7 @@ begin
     fi := fIter.Files[f];
     if fi = nil then continue;
     if length(fi.name) = 0 then continue;
-    if SFSStrEqu(fi.path, Section) then
+    if StrEquCI1251(fi.path, Section) then
     begin
       SetLength(result, Length(result)+1);
       result[high(result)] := removeExt(fi.name);
@@ -272,23 +254,23 @@ begin
 end;
 
 
-function TWADEditor_1.ReadFile (FileName: string): Boolean;
+function TWADFile.ReadFile (FileName: string): Boolean;
 var
   rfn: string;
   //f: Integer;
   //fi: TSFSFileInfo;
 begin
   Result := False;
-  //e_WriteLog(Format('TWADEditor_1.ReadFile: [%s]', [FileName]), MSG_NOTIFY);
+  //e_WriteLog(Format('TWADFile.ReadFile: [%s]', [FileName]), MSG_NOTIFY);
   FreeWAD();
   rfn := findDiskWad(FileName);
   if length(rfn) = 0 then
   begin
-    e_WriteLog(Format('TWADEditor_1.ReadFile: error looking for [%s]', [FileName]), MSG_NOTIFY);
+    e_WriteLog(Format('TWADFile.ReadFile: error looking for [%s]', [FileName]), MSG_NOTIFY);
     exit;
   end;
   {$IFDEF SFS_DWFAD_DEBUG}
-  if gSFSDebug then e_WriteLog(Format('TWADEditor_1.ReadFile: FOUND [%s]', [rfn]), MSG_NOTIFY);
+  if gSFSDebug then e_WriteLog(Format('TWADFile.ReadFile: FOUND [%s]', [rfn]), MSG_NOTIFY);
   {$ENDIF}
   // cache this wad
   try
@@ -307,7 +289,7 @@ begin
   if fIter = nil then Exit;
   fFileName := rfn;
   {$IFDEF SFS_DWFAD_DEBUG}
-  if gSFSDebug then e_WriteLog(Format('TWADEditor_1.ReadFile: [%s] opened', [fFileName]), MSG_NOTIFY);
+  if gSFSDebug then e_WriteLog(Format('TWADFile.ReadFile: [%s] opened', [fFileName]), MSG_NOTIFY);
   {$ENDIF}
   Result := True;
 end;
@@ -316,7 +298,7 @@ end;
 var
   uniqueCounter: Integer = 0;
 
-function TWADEditor_1.ReadMemory (Data: Pointer; Len: LongWord): Boolean;
+function TWADFile.ReadMemory (Data: Pointer; Len: LongWord): Boolean;
 var
   fn: string;
   st: TStream = nil;
@@ -327,14 +309,14 @@ begin
   FreeWAD();
   if (Data = nil) or (Len = 0) then
   begin
-    e_WriteLog('TWADEditor_1.ReadMemory: EMPTY SUBWAD!', MSG_WARNING);
+    e_WriteLog('TWADFile.ReadMemory: EMPTY SUBWAD!', MSG_WARNING);
     Exit;
   end;
 
   fn := Format(' -- memwad %d -- ', [uniqueCounter]);
   Inc(uniqueCounter);
   {$IFDEF SFS_DWFAD_DEBUG}
-    e_WriteLog(Format('TWADEditor_1.ReadMemory: [%s]', [fn]), MSG_NOTIFY);
+    e_WriteLog(Format('TWADFile.ReadMemory: [%s]', [fn]), MSG_NOTIFY);
   {$ENDIF}
 
   try
@@ -354,7 +336,7 @@ begin
 
   fFileName := fn;
   {$IFDEF SFS_DWFAD_DEBUG}
-    e_WriteLog(Format('TWADEditor_1.ReadMemory: [%s] opened', [fFileName]), MSG_NOTIFY);
+    e_WriteLog(Format('TWADFile.ReadMemory: [%s] opened', [fFileName]), MSG_NOTIFY);
   {$ENDIF}
 
   {

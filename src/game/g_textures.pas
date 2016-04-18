@@ -93,7 +93,7 @@ procedure DumpTextureNames();
 implementation
 
 uses
-  g_game, e_log, g_basic, SysUtils, g_console, WADEDITOR,
+  g_game, e_log, g_basic, SysUtils, g_console, wadreader,
   g_language;
 
 type
@@ -143,7 +143,7 @@ end;
 
 function g_Texture_CreateWAD(var ID: DWORD; Resource: String): Boolean;
 var
-  WAD: TWADEditor_1;
+  WAD: TWADFile;
   FileName,
   SectionName,
   ResourceName: String;
@@ -153,7 +153,7 @@ begin
   Result := False;
   g_ProcessResourceStr(Resource, FileName, SectionName, ResourceName);
 
-  WAD := TWADEditor_1.Create;
+  WAD := TWADFile.Create;
   WAD.ReadFile(FileName);
 
   if WAD.GetResource(SectionName, ResourceName, TextureData, ResourceLength) then
@@ -183,7 +183,7 @@ end;
 
 function g_Texture_CreateWADEx(TextureName: ShortString; Resource: String): Boolean;
 var
-  WAD: TWADEditor_1;
+  WAD: TWADFile;
   FileName,
   SectionName,
   ResourceName: String;
@@ -195,7 +195,7 @@ begin
 
   find_id := FindTexture();
 
-  WAD := TWADEditor_1.Create;
+  WAD := TWADFile.Create;
   WAD.ReadFile(FileName);
 
   if WAD.GetResource(SectionName, ResourceName, TextureData, ResourceLength) then
@@ -391,7 +391,7 @@ end;
 function g_Frames_CreateWAD(ID: PDWORD; Name: ShortString; Resource: string;
                             FWidth, FHeight, FCount: Word; BackAnimation: Boolean = False): Boolean;
 var
-  WAD: TWADEditor_1;
+  WAD: TWADFile;
   FileName,
   SectionName,
   ResourceName: string;
@@ -402,7 +402,7 @@ begin
 
   g_ProcessResourceStr(Resource, FileName, SectionName, ResourceName);
 
-  WAD := TWADEditor_1.Create();
+  WAD := TWADFile.Create();
   WAD.ReadFile(FileName);
 
   if not WAD.GetResource(SectionName, ResourceName, TextureData, ResourceLength) then

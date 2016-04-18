@@ -257,7 +257,7 @@ uses
   g_textures, g_gfx, g_sound, g_console, g_basic, g_options, g_main,
   g_game, g_player, g_map, g_panel, g_items, g_weapons, g_phys, g_gui,
   g_language, g_monsters, g_netmaster, sfs,
-  WADEDITOR, MAPDEF;
+  wadreader, MAPDEF;
 
 const
   NET_KEY_LEFT     = 1;

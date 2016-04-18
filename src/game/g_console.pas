@@ -27,7 +27,7 @@ implementation
 
 uses
   g_textures, g_main, e_graphics, e_input, g_game,
-  SysUtils, g_basic, g_options, WADEDITOR, Math,
+  SysUtils, g_basic, g_options, wadreader, Math,
   g_menu, g_language, g_net, g_netmsg, e_log;
 
 type

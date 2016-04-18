@@ -53,7 +53,7 @@ implementation
 
 {$IFDEF SFS_MSMFS}
 uses
-  xstreams;
+  xstreams, utils;
 
 
 function SLHCheckMagic (st: TStream): Boolean;
@@ -208,8 +208,8 @@ end;
 function TSFSMemoryVolumeFactory.IsMyVolumePrefix (const prefix: TSFSString): Boolean;
 begin
   result :=
-    SFSStrEqu(prefix, 'mem') or
-    SFSStrEqu(prefix, 'slh!');
+    StrEquCI1251(prefix, 'mem') or
+    StrEquCI1251(prefix, 'slh!');
 end;
 
 procedure TSFSMemoryVolumeFactory.Recycle (vol: TSFSVolume);

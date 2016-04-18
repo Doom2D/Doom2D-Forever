@@ -4,7 +4,7 @@ interface
 
 uses
   e_graphics, g_basic, MAPSTRUCT, g_textures, Classes,
-  g_phys, WADEDITOR, BinEditor, g_panel, md5;
+  g_phys, wadreader, BinEditor, g_panel, md5;
 
 type
   TMapInfo = record
@@ -363,7 +363,7 @@ end;
 
 function CreateTexture(RecName: String; Map: string; log: Boolean): Integer;
 var
-  WAD: TWADEditor_1;
+  WAD: TWADFile;
   TextureData: Pointer;
   WADName: String;
   SectionName: String;
@@ -410,7 +410,7 @@ begin
 // «агружаем ресурс текстуры в пам€ть из WAD'а:
   g_ProcessResourceStr(RecName, WADName, SectionName, TextureName);
 
-  WAD := TWADEditor_1.Create();
+  WAD := TWADFile.Create();
 
   if WADName <> '' then
     WADName := GameDir+'/wads/'+WADName
@@ -445,7 +445,7 @@ end;
 
 function CreateAnimTexture(RecName: String; Map: string; log: Boolean): Integer;
 var
-  WAD: TWADEditor_1;
+  WAD: TWADFile;
   TextureWAD: Pointer;
   TextData: Pointer;
   TextureData: Pointer;
@@ -463,7 +463,7 @@ begin
 // „итаем WAD-ресурс аним.текстуры из WAD'а в пам€ть:
   g_ProcessResourceStr(RecName, WADName, SectionName, TextureName);
 
-  WAD := TWADEditor_1.Create();
+  WAD := TWADFile.Create();
 
   if WADName <> '' then
     WADName := GameDir+'/wads/'+WADName
@@ -755,7 +755,7 @@ const
   DefaultMusRes = 'Standart.wad:STDMUS\MUS1';
   DefaultSkyRes = 'Standart.wad:STDSKY\SKY0';
 var
-  WAD: TWADEditor_1;
+  WAD: TWADFile;
   MapReader: TMapReader_1;
   Header: TMapHeaderRec_1;
   _textures: TTexturesRec1Array;
@@ -794,7 +794,7 @@ begin
     e_WriteLog('Loading map WAD: ' + FileName, MSG_NOTIFY);
     g_Game_SetLoadingText(_lc[I_LOAD_WAD_FILE], 0, False);
 
-    WAD := TWADEditor_1.Create();
+    WAD := TWADFile.Create();
     if not WAD.ReadFile(FileName) then
     begin
       g_FatalError(Format(_lc[I_GAME_ERROR_MAP_WAD], [FileName]));
@@ -1253,7 +1253,7 @@ end;
 
 function g_Map_GetMapInfo(Res: String): TMapInfo;
 var
-  WAD: TWADEditor_1;
+  WAD: TWADFile;
   MapReader: TMapReader_1;
   Header: TMapHeaderRec_1;
   FileName, SectionName, ResName: String;
@@ -1263,7 +1263,7 @@ begin
   FillChar(Result, SizeOf(Result), 0);
   g_ProcessResourceStr(Res, FileName, SectionName, ResName);
 
-  WAD := TWADEditor_1.Create();
+  WAD := TWADFile.Create();
   if not WAD.ReadFile(FileName) then
   begin
     WAD.Free();
@@ -1305,7 +1305,7 @@ end;
 
 function g_Map_GetMapsList(WADName: string): SArray;
 var
-  WAD: TWADEditor_1;
+  WAD: TWADFile;
   a: Integer;
   ResList: SArray;
   Data: Pointer;
@@ -1314,7 +1314,7 @@ var
 begin
   Result := nil;
 
-  WAD := TWADEditor_1.Create();
+  WAD := TWADFile.Create();
   if not WAD.ReadFile(WADName) then
   begin
     WAD.Free();
@@ -1344,7 +1344,7 @@ end;
 
 function g_Map_Exist(Res: string): Boolean;
 var
-  WAD: TWADEditor_1;
+  WAD: TWADFile;
   FileName, SectionName, ResName: string;
   ResList: SArray;
   a: Integer;
@@ -1355,7 +1355,7 @@ begin
 
   FileName := addWadExtension(FileName);
 
-  WAD := TWADEditor_1.Create;
+  WAD := TWADFile.Create;
   if not WAD.ReadFile(FileName) then
   begin
     WAD.Free();

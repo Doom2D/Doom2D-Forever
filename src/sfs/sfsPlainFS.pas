@@ -79,7 +79,7 @@ type
 implementation
 
 uses
-  xstreams;
+  xstreams, utils;
 
 
 type
@@ -408,7 +408,7 @@ begin
         if c <> f then
         begin
           // link can't be linked to itself
-          if SFSStrEqu(TSFSExtFileInfo(fFiles[c]).fName, fi.fLink) then break;
+          if StrEquCI1251(TSFSExtFileInfo(fFiles[c]).fName, fi.fLink) then break;
         end;
         Inc(c);
       end;
@@ -691,22 +691,22 @@ end;
 function TSFSPlainVolumeFactory.IsMyVolumePrefix (const prefix: TSFSString): Boolean;
 begin
   result :=
-    SFSStrEqu(prefix, 'pak') or
-    SFSStrEqu(prefix, 'sin') or
-    SFSStrEqu(prefix, 'quake')
+    StrEquCI1251(prefix, 'pak') or
+    StrEquCI1251(prefix, 'sin') or
+    StrEquCI1251(prefix, 'quake')
     {$IFDEF SFS_PLAINFS_FULL}
     or
-    SFSStrEqu(prefix, 'wad') or // sorry
-    SFSStrEqu(prefix, 'wad2') or
-    SFSStrEqu(prefix, 'grp') or
-    SFSStrEqu(prefix, 'spe') or
-    SFSStrEqu(prefix, 'spec') or
-    SFSStrEqu(prefix, 'doom') or
-    SFSStrEqu(prefix, 'duke3d') or
-    SFSStrEqu(prefix, 'abuse') or
-    SFSStrEqu(prefix, 'allegro') or
-    SFSStrEqu(prefix, 'dune2') or
-    SFSStrEqu(prefix, 'max')
+    StrEquCI1251(prefix, 'wad') or // sorry
+    StrEquCI1251(prefix, 'wad2') or
+    StrEquCI1251(prefix, 'grp') or
+    StrEquCI1251(prefix, 'spe') or
+    StrEquCI1251(prefix, 'spec') or
+    StrEquCI1251(prefix, 'doom') or
+    StrEquCI1251(prefix, 'duke3d') or
+    StrEquCI1251(prefix, 'abuse') or
+    StrEquCI1251(prefix, 'allegro') or
+    StrEquCI1251(prefix, 'dune2') or
+    StrEquCI1251(prefix, 'max')
     {$ENDIF}
     ;
 end;

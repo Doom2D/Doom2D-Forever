@@ -3,8 +3,7 @@ unit g_playermodel;
 interface
 
 uses
-  g_textures, g_basic, e_graphics, WADEDITOR,
-  WADSTRUCT, g_weapons;
+  g_textures, g_basic, g_weapons, e_graphics, wadreader;
 
 const
   A_STAND      = 0;
@@ -235,7 +234,7 @@ var
   cc: TDirection;
   config: TConfig;
   pData, pData2: Pointer;
-  WAD: TWADEditor_1;
+  WAD: TWADFile;
   s: string;
   prefix: string;
   ok: Boolean;
@@ -244,7 +243,7 @@ begin
 
   Result := False;
 
-  WAD := TWADEditor_1.Create;
+  WAD := TWADFile.Create;
   WAD.ReadFile(FileName);
 
   if {WAD.GetLastError <> DFWAD_NOERROR} not WAD.isOpen then

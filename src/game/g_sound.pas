@@ -68,7 +68,7 @@ procedure g_Sound_SetupAllVolumes(SoundVol, MusicVol: Byte);
 implementation
 
 uses
-  e_log, SysUtils, g_console, g_options, WADEDITOR,
+  e_log, SysUtils, g_console, g_options, wadreader,
   g_game, g_basic, g_items, g_map, Math,
   g_language;
 
@@ -279,7 +279,7 @@ end;
 
 function g_Sound_CreateWAD(var ID: DWORD; Resource: string; isMusic: Boolean = False): Boolean;
 var
-  WAD: TWADEditor_1;
+  WAD: TWADFile;
   FileName,
   SectionName,
   ResourceName: string;
@@ -293,7 +293,7 @@ begin
   // e_WriteLog('Loading sound: ' + Resource, MSG_NOTIFY);
   g_ProcessResourceStr(Resource, FileName, SectionName, ResourceName);
 
-  WAD := TWADEditor_1.Create();
+  WAD := TWADFile.Create();
   WAD.ReadFile(FileName);
 
   if WAD.GetResource(SectionName, ResourceName, SoundData, ResLength) then
@@ -324,7 +324,7 @@ end;
 
 function g_Sound_CreateWADEx(SoundName: ShortString; Resource: string; isMusic: Boolean = False): Boolean;
 var
-  WAD: TWADEditor_1;
+  WAD: TWADFile;
   FileName, SectionName, ResourceName: string;
   SoundData: Pointer;
   ResLength: Integer;
@@ -339,7 +339,7 @@ begin
 
   find_id := FindSound();
 
-  WAD := TWADEditor_1.Create();
+  WAD := TWADFile.Create();
   WAD.ReadFile(FileName);
 
   if WAD.GetResource(SectionName, ResourceName, SoundData, ResLength) then

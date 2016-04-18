@@ -61,7 +61,7 @@ type
 implementation
 
 uses
-  zstream, xstreams;
+  zstream, xstreams, utils;
 
 
 type
@@ -153,7 +153,7 @@ begin
   for f := 1 to length(s0) do
   begin
     if f > length(s1) then begin result := f; exit; end;
-    if SFSUpCase(s0[f]) <> SFSUpCase(s1[f]) then begin result := f; exit; end;
+    if UpCase1251(s0[f]) <> UpCase1251(s1[f]) then begin result := f; exit; end;
   end;
   result := length(s0);
 end;
@@ -607,13 +607,13 @@ end;
 function TSFSZipVolumeFactory.IsMyVolumePrefix (const prefix: TSFSString): Boolean;
 begin
   result :=
-    SFSStrEqu(prefix, 'zip') or
-    SFSStrEqu(prefix, 'dfwad')
+    StrEquCI1251(prefix, 'zip') or
+    StrEquCI1251(prefix, 'dfwad')
     {$IFDEF SFS_ZIPFS_FULL}
-    or SFSStrEqu(prefix, 'jar') or
-    SFSStrEqu(prefix, 'fout2') or
-    SFSStrEqu(prefix, 'vtdb') or
-    SFSStrEqu(prefix, 'wad')
+    or StrEquCI1251(prefix, 'jar') or
+    StrEquCI1251(prefix, 'fout2') or
+    StrEquCI1251(prefix, 'vtdb') or
+    StrEquCI1251(prefix, 'wad')
     {$ENDIF}
     ;
 end;

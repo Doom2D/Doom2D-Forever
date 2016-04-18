@@ -29,7 +29,7 @@ uses
   g_gui, g_textures, e_graphics, g_main, g_window, g_game, g_map,
   g_basic, g_console, g_sound, g_gfx, g_player, g_options,
   e_log, SysUtils, CONFIG, g_playermodel, DateUtils,
-  MAPSTRUCT, WADEDITOR, Math, WADSTRUCT, g_saveload,
+  MAPSTRUCT, wadreader, Math, g_saveload,
   e_textures, GL, GLExt, g_language,
   g_net, g_netmsg, g_netmaster, g_items, e_input;
 
@@ -774,14 +774,14 @@ var
   cwdt, chgt: Byte;
   spc: ShortInt;
   ID: DWORD;
-  wad: TWADEditor_1;
+  wad: TWADFile;
   cfgdata: Pointer;
   cfglen: Integer;
   config: TConfig;
 begin
   cfglen := 0;
 
-  wad := TWADEditor_1.Create;
+  wad := TWADFile.Create;
   if wad.ReadFile(GameWAD) then
     wad.GetResource('FONTS', cfgres, cfgdata, cfglen);
   wad.Free();
@@ -809,7 +809,7 @@ var
   cwdt, chgt: Byte;
   spc: ShortInt;
   CharID: DWORD;
-  wad: TWADEditor_1;
+  wad: TWADFile;
   cfgdata, fntdata: Pointer;
   cfglen, fntlen: Integer;
   config: TConfig;
@@ -819,7 +819,7 @@ begin
   cfglen := 0;
   fntlen := 0;
 
-  wad := TWADEditor_1.Create;
+  wad := TWADFile.Create;
   if wad.ReadFile(GameWAD) then
   begin
     wad.GetResource('FONTS', txtres, cfgdata, cfglen);

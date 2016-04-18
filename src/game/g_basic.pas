@@ -3,7 +3,7 @@ unit g_basic;
 interface
 
 uses
-  WADEDITOR, g_phys;
+  wadreader, g_phys;
 
 const
   GAME_VERSION  = '0.667';

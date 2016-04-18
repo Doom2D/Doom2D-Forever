@@ -20,11 +20,11 @@ var
 implementation
 
 uses
-  SDL2, GL, GLExt, WADEDITOR, e_log, g_window,
+  SDL2, GL, GLExt, wadreader, e_log, g_window,
   e_graphics, e_input, g_game, g_console, g_gui,
   e_sound, g_options, g_sound, g_player,
   g_weapons, SysUtils, g_triggers, MAPDEF, g_map,
-  MAPSTRUCT, g_menu, g_language, g_net, sfs;
+  MAPSTRUCT, g_menu, g_language, g_net, utils;
 
 var
   charbuff: Array [0..15] of Char;
@@ -494,7 +494,7 @@ begin
     else
     begin
       for a := 0 to 14 do charbuff[a] := charbuff[a+1];
-      charbuff[15] := SFSUpCase(C);
+      charbuff[15] := UpCase1251(C);
       Cheat();
     end;
 end;

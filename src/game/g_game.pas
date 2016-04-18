@@ -4,7 +4,7 @@ interface
 
 uses
   g_basic, g_player, e_graphics, Classes, g_res_downloader,
-  SysUtils, g_sound, g_gui, MAPSTRUCT, WADEDITOR, md5;
+  SysUtils, g_sound, g_gui, MAPSTRUCT, wadreader, md5;
 
 type
   TGameSettings = record
@@ -470,7 +470,7 @@ end;
 
 function g_Game_GetMegaWADInfo(WAD: String): TMegaWADInfo;
 var
-  w: TWADEditor_1;
+  w: TWADFile;
   cfg: TConfig;
   p: Pointer;
   len: Integer;
@@ -479,7 +479,7 @@ begin
   Result.description := '';
   Result.author := '';
 
-  w := TWADEditor_1.Create();
+  w := TWADFile.Create();
   w.ReadFile(WAD);
 
   if not w.GetResource('', 'INTERSCRIPT', p, len) then
@@ -525,7 +525,7 @@ end;
 
 procedure g_Game_LoadWAD(WAD: string);
 var
-  w: TWADEditor_1;
+  w: TWADFile;
   cfg: TConfig;
   p: Pointer;
   {b, }len: Integer;
@@ -538,7 +538,7 @@ begin
 
   MegaWAD.info := g_Game_GetMegaWADInfo(MapsDir + WAD);
 
-  w := TWADEditor_1.Create();
+  w := TWADFile.Create();
   w.ReadFile(MapsDir + WAD);
 
   if not w.GetResource('', 'INTERSCRIPT', p, len) then
@@ -4070,7 +4070,7 @@ var
   MapName: Char16;
   WadName: string;
 {
-  WAD: TWADEditor_1;
+  WAD: TWADFile;
   MapList: SArray;
   time: Integer;
 }
@@ -4094,7 +4094,7 @@ begin
   if not gTempDelete then
   begin
     time := g_GetFileTime(WadName);
-    WAD := TWADEditor_1.Create();
+    WAD := TWADFile.Create();
 
   // Читаем Wad-файл:
     if not WAD.ReadFile(WadName) then
@@ -5851,17 +5851,33 @@ end;
 procedure g_TakeScreenShot();
 var
   a: Word;
-  FileName: String;
+  FileName: string;
+  ssdir, t: string;
 begin
-  for a := 1 to High(Word) do
+  ssdir := GameDir+'/screenshots';
+  if not findFileCI(ssdir, true) then
   begin
-    FileName := Format(GameDir+'/screenshots/screenshot%.3d.bmp', [a]);
-    if not FileExists(FileName) then
-    begin
-      e_MakeScreenshot(FileName, gScreenWidth, gScreenHeight);
-      g_Console_Add(Format(_lc[I_CONSOLE_SCREENSHOT], [ExtractFileName(FileName)]));
-      Break;
+    // try to create dir
+    try
+      CreateDir(ssdir);
+    except
     end;
+    if not findFileCI(ssdir, true) then exit; // alas
+  end;
+  try
+    for a := 1 to High(Word) do
+    begin
+      FileName := Format(ssdir+'screenshot%.3d.bmp', [a]);
+      t := FileName;
+      if findFileCI(t, true) then continue;
+      if not findFileCI(FileName) then
+      begin
+        e_MakeScreenshot(FileName, gScreenWidth, gScreenHeight);
+        g_Console_Add(Format(_lc[I_CONSOLE_SCREENSHOT], [ExtractFileName(FileName)]));
+        Break;
+      end;
+    end;
+  except
   end;
 end;
 

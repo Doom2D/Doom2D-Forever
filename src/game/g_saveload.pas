@@ -15,7 +15,7 @@ implementation
 
 uses
   g_game, g_items, g_map, g_monsters, g_triggers,
-  g_basic, g_main, SysUtils, Math, WADEDITOR,
+  g_basic, g_main, SysUtils, Math, wadreader,
   MAPSTRUCT, MAPDEF, g_weapons, g_player, g_console,
   e_log, g_language;
 

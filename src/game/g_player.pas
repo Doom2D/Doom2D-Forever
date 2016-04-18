@@ -471,7 +471,7 @@ implementation
 uses
   e_log, g_map, g_items, g_console, SysUtils, g_gfx, Math,
   g_options, g_triggers, g_menu, MAPDEF, g_game,
-  WADEDITOR, g_main, g_monsters, CONFIG, g_language, g_net, g_netmsg;
+  wadreader, g_main, g_monsters, CONFIG, g_language, g_net, g_netmsg;
 
 type
   TBotProfile = record

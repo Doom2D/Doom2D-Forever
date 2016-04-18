@@ -8,6 +8,7 @@ uses
   SysUtils,
   Classes,
   SDL2 in '../lib/sdl2/sdl2.pas',
+  utils in  '../shared/utils.pas',
   sfs,
   sfsPlainFS,
   sfsZipFS,
@@ -173,7 +174,7 @@ begin
   end;
 
   infname := ParamStr(1);
-  if not SFSStrEqu(ExtractFileExt(infname), '.wad') and not SFSStrEqu(ExtractFileExt(infname), '.dfwad') then
+  if not StrEquCI1251(ExtractFileExt(infname), '.wad') and not StrEquCI1251(ExtractFileExt(infname), '.dfwad') then
   begin
     writeln('wtf?!');
     Halt(1);

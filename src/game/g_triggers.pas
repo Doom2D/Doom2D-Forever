@@ -71,7 +71,7 @@ implementation
 uses
   g_player, g_map, Math, g_gfx, g_game, g_textures,
   g_console, g_monsters, g_items, g_phys, g_weapons,
-  WADEDITOR, g_main, SysUtils, e_log, g_language,
+  wadreader, g_main, SysUtils, e_log, g_language,
   g_options, g_net, g_netmsg;
 
 const

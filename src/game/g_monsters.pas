@@ -158,7 +158,7 @@ implementation
 uses
   e_log, g_main, g_sound, g_gfx, g_player, g_game,
   g_weapons, g_triggers, MAPDEF, g_items, g_options,
-  g_console, g_map, Math, SysUtils, g_menu, WADEDITOR,
+  g_console, g_map, Math, SysUtils, g_menu, wadreader,
   g_language, g_netmsg;
 
 const

@@ -3,7 +3,7 @@ unit g_gui;
 interface
 
 uses
-  e_graphics, e_input, g_playermodel, g_basic, MAPSTRUCT, WADEDITOR;
+  e_graphics, e_input, g_playermodel, g_basic, MAPSTRUCT, wadreader;
 
 const
   MAINMENU_HEADER_COLOR: TRGB = (R:255; G:255; B:255);
@@ -2463,7 +2463,7 @@ end;
 
 procedure TGUIMapPreview.SetMap(Res: string);
 var
-  WAD: TWADEditor_1;
+  WAD: TWADFile;
   MapReader: TMapReader_1;
   panels: TPanelsRec1Array;
   header: TMapHeaderRec_1;
@@ -2475,7 +2475,7 @@ var
 begin
   g_ProcessResourceStr(Res, FileName, SectionName, ResName);
 
-  WAD := TWADEditor_1.Create();
+  WAD := TWADFile.Create();
   if not WAD.ReadFile(FileName) then
   begin
     WAD.Free();
