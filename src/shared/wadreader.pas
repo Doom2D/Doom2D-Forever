@@ -51,15 +51,15 @@ begin
   result := '';
   if not findFileCI(fname) then
   begin
-    //e_WriteLog(Format('TWADFile.ReadFile: error looking for [%s] [%s]', [path, ExtractFileName(fname)]), MSG_NOTIFY);
+    //e_WriteLog(Format('findDiskWad: error looking for [%s]', [fname]), MSG_NOTIFY);
     if StrEquCI1251(ExtractFileExt(fname), '.wad') then
     begin
-      fname := ChangeFileExt(ExtractFileName(fname), '.pk3');
-      //e_WriteLog(Format('  looking for [%s] [%s]', [path, rfn]), MSG_NOTIFY);
+      fname := ChangeFileExt(fname, '.pk3');
+      //e_WriteLog(Format('  looking for [%s]', [fname]), MSG_NOTIFY);
       if not findFileCI(fname) then
       begin
-        //e_WriteLog(Format('  looking for [%s] [%s]', [path, rfn]), MSG_NOTIFY);
-        fname := ChangeFileExt(ExtractFileName(fname), '.zip');
+        fname := ChangeFileExt(fname, '.zip');
+        //e_WriteLog(Format('  looking for [%s]', [fname]), MSG_NOTIFY);
         if not findFileCI(fname) then exit;
       end;
     end
@@ -67,12 +67,8 @@ begin
     begin
       exit;
     end;
-    //e_WriteLog(Format('TWADFile.ReadFile: FOUND [%s]', [rfn]), MSG_NOTIFY);
-  end
-  else
-  begin
-    //if rfn <> ExtractFileName(FileName) then e_WriteLog(Format('TWADFile.ReadFile: FOUND [%s]', [rfn]), MSG_NOTIFY);
   end;
+  //e_WriteLog(Format('findDiskWad: FOUND [%s]', [fname]), MSG_NOTIFY);
   result := fname;
 end;
 
