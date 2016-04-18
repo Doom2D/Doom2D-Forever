@@ -313,6 +313,7 @@ var
   sz: Word;
 begin
   fu := toUtf8(fname);
+  if fu = fname then begin result := nil; exit; end; // no need to write anything
   crc := crc32(0, @fname[1], length(fname));
   sz := 2+2+1+4+length(fu);
   SetLength(result, sz);
