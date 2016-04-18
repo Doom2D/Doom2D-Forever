@@ -68,6 +68,21 @@ type
     localExtraSz: Word;
   end;
 
+procedure readLFH (st: TStream; var hdr: TZLocalFileHeader);
+{.$IFDEF ENDIAN_LITTLE}
+begin
+  hdr.version := readByte(st);
+  hdr.hostOS := readByte(st);
+  hdr.flags := readWord(st);
+  hdr.method := readWord(st);
+  hdr.time := readLongWord(st);
+  hdr.crc := readLongWord(st);
+  hdr.packSz := readLongWord(st);
+  hdr.unpackSz := readLongWord(st);
+  hdr.fnameSz := readWord(st);
+  hdr.localExtraSz := readWord(st);
+end;
+
 
 function ZIPCheckMagic (st: TStream): Boolean;
 var
@@ -84,12 +99,11 @@ end;
 function DFWADCheckMagic (st: TStream): Boolean;
 var
   sign: packed array [0..5] of Char;
-  fcnt: Word;
 begin
   result := false;
   if st.Size < 10 then exit;
   st.ReadBuffer(sign[0], 6);
-  st.ReadBuffer(fcnt, 2);
+  {fcnt :=} readWord(st);
   st.Seek(-8, soCurrent);
   //writeln('trying DFWAD... [', sign, ']');
   if (sign[0] <> 'D') and (sign[1] <> 'F') and (sign[2] <> 'W') and
@@ -164,47 +178,44 @@ procedure TSFSZipVolume.ZIPReadDirectory ();
 var
   fi: TSFSZipFileInfo;
   name: ShortString;
-  sign, dSign: packed array [0..3] of Char;
+  sign: packed array [0..3] of Char;
   lhdr: TZLocalFileHeader;
-  ignoreFile, skipped: Boolean;
-  crc, psz, usz: LongWord;
-  buf: packed array of Byte;
-  bufPos, bufUsed: Integer;
+  ignoreFile: Boolean;
   efid, efsz: Word;
   izver: Byte;
   izcrc: LongWord;
 begin
-  SetLength(buf, 0);
   // read local directory
   repeat
     fFileStream.ReadBuffer(sign[0], Length(sign));
 
+    // skip data descriptor
+    if sign = 'PK'#7#8 then
+    begin
+      fFileStream.seek(3*4, soCurrent);
+      continue;
+    end;
+
     if sign <> 'PK'#3#4 then break;
 
     ignoreFile := false;
-    skipped := false;
+
+    readLFH(fFileStream, lhdr);
 
     fi := TSFSZipFileInfo.Create(self);
     fi.fPackSz := 0;
     fi.fMethod := 0;
 
-    //fi.fOfs := fFileStream.Position;
-
-    fFileStream.ReadBuffer(lhdr, SizeOf(lhdr));
     if lhdr.fnameSz > 255 then name[0] := #255 else name[0] := chr(lhdr.fnameSz);
     fFileStream.ReadBuffer(name[1], Length(name));
     fFileStream.Seek(lhdr.fnameSz-Length(name), soCurrent); // rest of the name (if any)
     fi.fName := utf8to1251(name);
-    //writeln(Format('0x%08x : %s', [Integer(fi.fOfs), name]));
 
     // here we should process extra field: it may contain utf8 filename
-    //fFileStream.Seek(lhdr.localExtraSz, soCurrent);
     while lhdr.localExtraSz >= 4 do
     begin
-      efid := 0;
-      efsz := 0;
-      fFileStream.ReadBuffer(efid, 2);
-      fFileStream.ReadBuffer(efsz, 2);
+      efid := readWord(fFileStream);
+      efsz := readWord(fFileStream);
       Dec(lhdr.localExtraSz, 4);
       if efsz > lhdr.localExtraSz then break;
       // Info-ZIP Unicode Path Extra Field?
@@ -254,73 +265,11 @@ begin
     fi.fPackSz := lhdr.packSz;
     fi.fMethod := lhdr.method;
 
-    if (lhdr.flags and (1 shl 3)) <> 0 then
-    begin
-      // it has a descriptor. stupid thing at all...
-      {$IFDEF SFS_DEBUG_ZIPFS}
-      WriteLn(ErrOutput, 'descr: $', IntToHex(fFileStream.Position, 8));
-      WriteLn(ErrOutput, 'size: ', lhdr.unpackSz);
-      WriteLn(ErrOutput, 'psize: ', lhdr.packSz);
-      {$ENDIF}
-      skipped := true;
-
-      if lhdr.packSz <> 0 then
-      begin
-        // some kind of idiot already did our work (maybe paritally)
-        // trust him (her? %-)
-        fFileStream.Seek(lhdr.packSz, soCurrent);
-      end;
-
-      // scan for descriptor
-      if Length(buf) = 0 then SetLength(buf, 65536);
-      bufPos := 0; bufUsed := 0;
-      fFileStream.ReadBuffer(dSign[0], 4);
-      repeat
-        if dSign <> 'PK'#7#8 then
-        begin
-          // skip one byte
-          Move(dSign[1], dSign[0], 3);
-          if bufPos >= bufUsed then
-          begin
-            bufPos := 0;
-            // int64!
-            if fFileStream.Size-fFileStream.Position > Length(buf) then bufUsed := Length(buf)
-            else bufUsed := fFileStream.Size-fFileStream.Position;
-            if bufUsed = 0 then raise ESFSError.Create('invalid ZIP file');
-            fFileStream.ReadBuffer(buf[0], bufUsed);
-          end;
-          dSign[3] := chr(buf[bufPos]); Inc(bufPos);
-          Inc(lhdr.packSz);
-          continue;
-        end;
-        // signature found: check if it is a real one
-        // ???: make stronger check (for the correct following signature)?
-        // sign, crc, packsize, unpacksize
-        fFileStream.Seek(-bufUsed+bufPos, soCurrent); bufPos := 0; bufUsed := 0;
-        fFileStream.ReadBuffer(crc, 4); // crc
-        fFileStream.ReadBuffer(psz, 4); // packed size
-        // is size correct?
-        if psz = lhdr.packSz then
-        begin
-          // this is a real description. fuck it off
-          fFileStream.ReadBuffer(usz, 4); // unpacked size
-          break;
-        end;
-        // this is just a sequence of bytes
-        fFileStream.Seek(-8, soCurrent);
-        fFileStream.ReadBuffer(dSign[0], 4);
-        Inc(lhdr.packSz, 4);
-      until false;
-      // store correct values
-      fi.fSize := usz;
-      fi.fPackSz := psz;
-    end;
-
     // skip packed data
-    if not skipped then fFileStream.Seek(lhdr.packSz, soCurrent);
+    fFileStream.Seek(lhdr.packSz, soCurrent);
     if ignoreFile then fi.Free();
   until false;
-
+  (*
   if (sign <> 'PK'#1#2) and (sign <> 'PK'#5#6) then
   begin
     {$IFDEF SFS_DEBUG_ZIPFS}
@@ -329,6 +278,7 @@ begin
     {$ENDIF}
     raise ESFSError.Create('invalid .ZIP archive (no central dir)');
   end;
+  *)
 end;
 
 
@@ -337,20 +287,21 @@ procedure TSFSZipVolume.DFWADReadDirectory ();
 var
   fcnt: Word;
   fi: TSFSZipFileInfo;
-  f, c, fofs, fpksize: Integer;
+  f, c: Integer;
+  fofs, fpksize: LongWord;
   curpath, fname: string;
   name: packed array [0..15] of Char;
 begin
   curpath := '';
   fFileStream.Seek(6, soCurrent); // skip signature
-  fFileStream.ReadBuffer(fcnt, 2);
+  fcnt := readWord(fFileStream);
   if fcnt = 0 then exit;
   // read files
   for f := 0 to fcnt-1 do
   begin
     fFileStream.ReadBuffer(name[0], 16);
-    fFileStream.ReadBuffer(fofs, 4);
-    fFileStream.ReadBuffer(fpksize, 4);
+    fofs := readLongWord(fFileStream);
+    fpksize := readLongWord(fFileStream);
     c := 0;
     fname := '';
     while (c < 16) and (name[c] <> #0) do

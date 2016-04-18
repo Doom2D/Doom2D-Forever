@@ -52,8 +52,8 @@ var
 begin
   if (fType <> sfspvPAK) and (fType <> sfspvSIN) then raise ESFSError.Create('invalid archive');
   fFileStream.Seek(4, soCurrent); // skip signature
-  fFileStream.ReadBuffer(dofs, 4);
-  fFileStream.ReadBuffer(dsize, 4);
+  dofs := readLongWord(fFileStream);
+  dsize := readLongWord(fFileStream);
   fFileStream.Position := dofs;
   if fType = sfspvPAK then esz := 64 else esz := 128;
   while dsize >= esz do
@@ -62,8 +62,8 @@ begin
     FillChar(name[0], length(name), 0);
     fFileStream.ReadBuffer(name[0], esz-8);
     fi.fName := PChar(@name[0]);
-    fFileStream.ReadBuffer(fi.fOfs, 4);
-    fFileStream.ReadBuffer(fi.fSize, 4);
+    fi.fOfs := readLongWord(fFileStream);
+    fi.fSize := readLongWord(fFileStream);
     Dec(dsize, esz);
   end;
 end;
@@ -100,8 +100,8 @@ begin
   vt := sfspvNone;
 
   st.ReadBuffer(sign[0], 4);
-  st.ReadBuffer(dofs, 4);
-  st.ReadBuffer(dsize, 4);
+  dofs := readLongWord(st);
+  dsize := readLongWord(st);
   st.Seek(-12, soCurrent);
   if sign = 'PACK' then
   begin
