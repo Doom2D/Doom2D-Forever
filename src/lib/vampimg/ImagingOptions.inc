@@ -27,7 +27,7 @@
   Example: If you want to disable JPEG support just uncomment //{$DEFINE DONT_LINK_JPEG} line
 *)
 
-{$DEFINE DONT_LINK_JPEG}        // link support for Jpeg images
+//{$DEFINE DONT_LINK_JPEG}        // link support for Jpeg images
 //{$DEFINE DONT_LINK_PNG}         // link support for PNG images
 //{$DEFINE DONT_LINK_TARGA}       // link support for Targa images
 //{$DEFINE DONT_LINK_BITMAP}      // link support for Windows Bitmap images
