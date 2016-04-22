@@ -87,7 +87,10 @@ uses
 {$ENDIF}
   BinEditor in '../shared/BinEditor.pas',
   g_panel in 'g_panel.pas',
-  g_language in 'g_language.pas';
+  g_language in 'g_language.pas',
+  ImagingTypes,
+  Imaging,
+  ImagingUtility;
 
 {$IFDEF WINDOWS}
   {$R *.res}

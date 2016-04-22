@@ -842,7 +842,7 @@ begin
       chrwidth := config.ReadInt(IntToStr(a), 'Width', 0);
       if chrwidth = 0 then Continue;
 
-      if e_CreateTextureMemEx(fntdata, CharID, cwdt*(a mod 16), chgt*(a div 16),
+      if e_CreateTextureMemEx(fntdata, fntlen, CharID, cwdt*(a mod 16), chgt*(a div 16),
                               cwdt, chgt) then
         e_CharFont_AddChar(FontID, CharID, Chr(a), chrwidth);
     end;

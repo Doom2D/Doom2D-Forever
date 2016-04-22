@@ -423,7 +423,7 @@ begin
   if WAD.GetResource(SectionName, TextureName, TextureData, ResLength) then
     begin
       SetLength(Textures, Length(Textures)+1);
-      if not e_CreateTextureMem(TextureData, Textures[High(Textures)].TextureID) then
+      if not e_CreateTextureMem(TextureData, ResLength, Textures[High(Textures)].TextureID) then
         Exit;
       e_GetTextureSize(Textures[High(Textures)].TextureID,
                        @Textures[High(Textures)].Width,
@@ -537,7 +537,7 @@ begin
   with Textures[High(Textures)] do
   begin
   // Создаем кадры аним. текстуры из памяти:
-    if g_Frames_CreateMemory(@FramesID, '', TextureData,
+    if g_Frames_CreateMemory(@FramesID, '', TextureData, ResLength,
          _width, _height, _framecount, _backanimation) then
       begin
         TextureName := RecName;

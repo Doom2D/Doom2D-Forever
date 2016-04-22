@@ -65,8 +65,8 @@ procedure e_DrawFillQuad(X1, Y1, X2, Y2: Integer; Red, Green, Blue, Alpha: Byte;
 
 function e_CreateTexture(FileName: string; var ID: DWORD): Boolean;
 function e_CreateTextureEx(FileName: string; var ID: DWORD; fX, fY, fWidth, fHeight: Word): Boolean;
-function e_CreateTextureMem(pData: Pointer; var ID: DWORD): Boolean;
-function e_CreateTextureMemEx(pData: Pointer; var ID: DWORD; fX, fY, fWidth, fHeight: Word): Boolean;
+function e_CreateTextureMem(pData: Pointer; dataSize: LongInt; var ID: DWORD): Boolean;
+function e_CreateTextureMemEx(pData: Pointer; dataSize: LongInt; var ID: DWORD; fX, fY, fWidth, fHeight: Word): Boolean;
 procedure e_GetTextureSize(ID: DWORD; Width, Height: PWord);
 function e_GetTextureSize2(ID: DWORD): TRectWH;
 procedure e_DeleteTexture(ID: DWORD);
@@ -292,7 +292,7 @@ begin
  Result := True;
 end;
 
-function e_CreateTextureMem(pData: Pointer; var ID: DWORD): Boolean;
+function e_CreateTextureMem(pData: Pointer; dataSize: LongInt; var ID: DWORD): Boolean;
 var
   find_id: DWORD;
   fmt:     Word;
@@ -301,8 +301,7 @@ begin
 
  find_id := FindTexture;
 
- if not LoadTextureMem(pData, e_Textures[find_id].tx, e_Textures[find_id].Width,
-                   e_Textures[find_id].Height, @fmt) then exit;
+ if not LoadTextureMem(pData, dataSize, e_Textures[find_id].tx, e_Textures[find_id].Width, e_Textures[find_id].Height, @fmt) then exit;
 
  id := find_id;
  e_Textures[id].Fmt := fmt;
@@ -310,7 +309,7 @@ begin
  Result := True;
 end;
 
-function e_CreateTextureMemEx(pData: Pointer; var ID: DWORD; fX, fY, fWidth, fHeight: Word): Boolean;
+function e_CreateTextureMemEx(pData: Pointer; dataSize: LongInt; var ID: DWORD; fX, fY, fWidth, fHeight: Word): Boolean;
 var
   find_id: DWORD;
   fmt:     Word;
@@ -319,7 +318,7 @@ begin
 
  find_id := FindTexture();
 
- if not LoadTextureMemEx(pData, e_Textures[find_id].tx, fX, fY, fWidth, fHeight, @fmt) then exit;
+ if not LoadTextureMemEx(pData, dataSize, e_Textures[find_id].tx, fX, fY, fWidth, fHeight, @fmt) then exit;
 
  e_Textures[find_id].Width := fWidth;
  e_Textures[find_id].Height := fHeight;

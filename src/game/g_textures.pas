@@ -79,7 +79,7 @@ function g_Frames_CreateWAD(ID: PDWORD; Name: ShortString; Resource: String;
                             FWidth, FHeight, FCount: Word; BackAnimation: Boolean = False): Boolean;
 function g_Frames_CreateFile(ID: PDWORD; Name: ShortString; FileName: String;
                              FWidth, FHeight, FCount: Word; BackAnimation: Boolean = False): Boolean;
-function g_Frames_CreateMemory(ID: PDWORD; Name: ShortString; pData: Pointer;
+function g_Frames_CreateMemory(ID: PDWORD; Name: ShortString; pData: Pointer; dataSize: LongInt;
                                FWidth, FHeight, FCount: Word; BackAnimation: Boolean = False): Boolean;
 //function g_Frames_CreateRevert(ID: PDWORD; Name: ShortString; Frames: string): Boolean;
 function g_Frames_Get(var ID: DWORD; FramesName: ShortString): Boolean;
@@ -159,7 +159,7 @@ begin
 
   if WAD.GetResource(SectionName, ResourceName, TextureData, ResourceLength) then
   begin
-    if e_CreateTextureMem(TextureData, ID) then
+    if e_CreateTextureMem(TextureData, ResourceLength, ID) then
       Result := True
     else
       FreeMem(TextureData);
@@ -201,7 +201,7 @@ begin
 
   if WAD.GetResource(SectionName, ResourceName, TextureData, ResourceLength) then
   begin
-    Result := e_CreateTextureMem(TextureData, TexturesArray[find_id].ID);
+    Result := e_CreateTextureMem(TextureData, ResourceLength, TexturesArray[find_id].ID);
     if Result then
     begin
       e_GetTextureSize(TexturesArray[find_id].ID, @TexturesArray[find_id].Width,
@@ -350,7 +350,7 @@ begin
   Result := True;
 end;
 
-function CreateFramesMem(pData: Pointer; ID: PDWORD; Name: ShortString;
+function CreateFramesMem(pData: Pointer; dataSize: LongInt; ID: PDWORD; Name: ShortString;
                          FWidth, FHeight, FCount: Word; BackAnimation: Boolean = False): Boolean;
 var
   find_id: DWORD;
@@ -366,7 +366,7 @@ begin
     else SetLength(FramesArray[find_id].TexturesID, FCount);
 
   for a := 0 to FCount-1 do
-    if not e_CreateTextureMemEx(pData, FramesArray[find_id].TexturesID[a],
+    if not e_CreateTextureMemEx(pData, dataSize, FramesArray[find_id].TexturesID[a],
                                 a*FWidth, 0, FWidth, FHeight) then
     begin
       FreeMem(pData);
@@ -414,7 +414,7 @@ begin
     Exit;
   end;
 
-  if not CreateFramesMem(TextureData, ID, Name, FWidth, FHeight, FCount, BackAnimation) then
+  if not CreateFramesMem(TextureData, ResourceLength, ID, Name, FWidth, FHeight, FCount, BackAnimation) then
   begin
     WAD.Free();
     Exit;
@@ -425,10 +425,10 @@ begin
   Result := True;
 end;
 
-function g_Frames_CreateMemory(ID: PDWORD; Name: ShortString; pData: Pointer;
+function g_Frames_CreateMemory(ID: PDWORD; Name: ShortString; pData: Pointer; dataSize: LongInt;
                                FWidth, FHeight, FCount: Word; BackAnimation: Boolean = False): Boolean;
 begin
-  Result := CreateFramesMem(pData, ID, Name, FWidth, FHeight, FCount, BackAnimation);
+  Result := CreateFramesMem(pData, dataSize, ID, Name, FWidth, FHeight, FCount, BackAnimation);
 end;
 
 {function g_Frames_CreateRevert(ID: PDWORD; Name: ShortString; Frames: string): Boolean;

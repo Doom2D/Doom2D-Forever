@@ -231,7 +231,7 @@ end;
 function g_PlayerModel_Load(FileName: string): Boolean;
 var
   ID: DWORD;
-  a, b, len, aa, bb, f: Integer;
+  a, b, len, lenpd, lenpd2, aa, bb, f: Integer;
   cc: TDirection;
   config: TConfig;
   pData, pData2: Pointer;
@@ -358,12 +358,12 @@ begin
     SetLength(Gibs, ReadInt('Gibs', 'count', 0));
 
     if (Gibs <> nil) and
-       (WAD.GetResource('TEXTURES', config.ReadStr('Gibs', 'resource', 'GIBS'), pData, len)) and
-       (WAD.GetResource('TEXTURES', config.ReadStr('Gibs', 'mask', 'GIBSMASK'), pData2, len)) then
+       (WAD.GetResource('TEXTURES', config.ReadStr('Gibs', 'resource', 'GIBS'), pData, lenpd)) and
+       (WAD.GetResource('TEXTURES', config.ReadStr('Gibs', 'mask', 'GIBSMASK'), pData2, lenpd2)) then
     begin
       for a := 0 to High(Gibs) do
-        if e_CreateTextureMemEx(pData, Gibs[a].ID, a*32, 0, 32, 32) and
-          e_CreateTextureMemEx(pData2, Gibs[a].MaskID, a*32, 0, 32, 32) then
+        if e_CreateTextureMemEx(pData, lenpd, Gibs[a].ID, a*32, 0, 32, 32) and
+          e_CreateTextureMemEx(pData2, lenpd2, Gibs[a].MaskID, a*32, 0, 32, 32) then
         begin
           Gibs[a].Rect := e_GetTextureSize2(Gibs[a].ID);
           with Gibs[a].Rect do
