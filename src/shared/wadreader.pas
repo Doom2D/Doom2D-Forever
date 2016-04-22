@@ -304,19 +304,21 @@ begin
       if wantMap then
       begin
         goodMap := false;
-        e_WriteLog(Format('DFWAD: checking for good map in wad [%s], file [%s] (#%d)', [fFileName, fi.fname, f]), MSG_NOTIFY);
+        //e_WriteLog(Format('DFWAD: checking for good map in wad [%s], file [%s] (#%d)', [fFileName, fi.fname, f]), MSG_NOTIFY);
         try
           fs.readBuffer(sign, 3);
           goodMap := (sign = MAP_SIGNATURE);
+          {
           if goodMap then
             e_WriteLog(Format('  GOOD map in wad [%s], file [%s] (#%d)', [fFileName, fi.fname, f]), MSG_NOTIFY)
           else
             e_WriteLog(Format('  BAD map in wad [%s], file [%s] (#%d)', [fFileName, fi.fname, f]), MSG_NOTIFY);
+          }
         except
         end;
         if not goodMap then
         begin
-          e_WriteLog(Format('  not a map in wad [%s], file [%s] (#%d)', [fFileName, fi.fname, f]), MSG_NOTIFY);
+          //e_WriteLog(Format('  not a map in wad [%s], file [%s] (#%d)', [fFileName, fi.fname, f]), MSG_NOTIFY);
           fs.Free();
           continue;
         end;
@@ -349,7 +351,7 @@ begin
         end;
         if not goodMap then
         begin
-          e_WriteLog(Format('  not a map in wad [%s], file [%s] (#%d)', [fFileName, fi.fname, f]), MSG_NOTIFY);
+          //e_WriteLog(Format('  not a map in wad [%s], file [%s] (#%d)', [fFileName, fi.fname, f]), MSG_NOTIFY);
           FreeMem(pData);
           pData := nil;
           Len := 0;
@@ -391,7 +393,7 @@ begin
     fi := fIter.Files[f];
     if fi = nil then continue;
     if length(fi.name) = 0 then continue;
-    e_WriteLog(Format('DFWAD: checking for map in wad [%s], file [%s] (#%d)', [fFileName, fi.fname, f]), MSG_NOTIFY);
+    //e_WriteLog(Format('DFWAD: checking for map in wad [%s], file [%s] (#%d)', [fFileName, fi.fname, f]), MSG_NOTIFY);
     if isMapResource(f) then
     begin
       s := removeExt(fi.name);
