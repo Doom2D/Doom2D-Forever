@@ -362,7 +362,7 @@ begin
     //writeln('  reading ', rd, ' bytes...');
     rr := readBuf(buf, rd);
     //writeln('  got ', rr, ' bytes; fPos=', fPos, '; fSkipToPos=', fSkipToPos);
-    if rd <= 0 then raise XStreamError.Create('seek error');
+    if rr <= 0 then raise XStreamError.Create('seek error');
   end;
   //writeln('  pos: fPos=', fPos, '; fSkipToPos=', fSkipToPos);
   fSkipToPos := -1;
