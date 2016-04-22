@@ -892,6 +892,15 @@ begin
   if Trim(L) = '' then
     Exit;
 
+  if L = 'goobers' then
+  begin
+    Line := '';
+    CPos := 1;
+    gCheats := true;
+    g_Console_Add('Your memory serves you well.');
+    exit;
+  end;
+
   if not Quiet then
   begin
     g_Console_Add('> '+L);
