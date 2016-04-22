@@ -2484,7 +2484,7 @@ begin
   end;
 
   //k8: ignores path again
-  if not WAD.GetResource(g_ExtractFileName(Res), Data, Len) then
+  if not WAD.GetMapResource(g_ExtractFileName(Res), Data, Len) then
   begin
     WAD.Free();
     Exit;

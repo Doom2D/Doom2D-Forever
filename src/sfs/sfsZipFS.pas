@@ -28,7 +28,6 @@ type
     procedure DFWADReadDirectory ();
 
     procedure ReadDirectory (); override;
-    procedure removeCommonPath (); override;
 
   public
     function OpenFileByIndex (const index: Integer): TStream; override;
@@ -111,65 +110,6 @@ begin
   //writeln('DFWAD FOUND, with ', fcnt, ' files');
   //if (fcnt < 0) then exit;
   result := true;
-end;
-
-
-function maxPrefix (s0: string; s1: string): Integer;
-var
-  f: Integer;
-begin
-  for f := 1 to length(s0) do
-  begin
-    if f > length(s1) then begin result := f; exit; end;
-    if UpCase1251(s0[f]) <> UpCase1251(s1[f]) then begin result := f; exit; end;
-  end;
-  result := length(s0);
-end;
-
-
-procedure TSFSZipVolume.removeCommonPath ();
-var
-  f, pl, maxsc, sc, c: integer;
-  cp, s: string;
-  fi: TSFSZipFileInfo;
-begin
-  if fType <> sfszvZIP then exit;
-  maxsc := 0;
-  if fFiles.Count = 0 then exit;
-  cp := '';
-  for f := 0 to fFiles.Count-1 do
-  begin
-    fi := TSFSZipFileInfo(fFiles[f]);
-    s := fi.fPath;
-    if length(s) > 0 then begin cp := s; break; end;
-  end;
-  if length(cp) = 0 then exit;
-  for f := 0 to fFiles.Count-1 do
-  begin
-    fi := TSFSZipFileInfo(fFiles[f]);
-    s := fi.fPath;
-    if length(s) = 0 then continue;
-    pl := maxPrefix(cp, s);
-    //writeln('s=[', s, ']; cp=[', cp, ']; pl=', pl);
-    if pl = 0 then exit; // no common prefix at all
-    cp := Copy(cp, 1, pl);
-    sc := 0;
-    for c := 1 to length(s) do if s[c] = '/' then Inc(sc);
-    if sc > maxsc then maxsc := sc;
-  end;
-  if maxsc < 2 then exit; // alas
-  while (length(cp) > 0) and (cp[length(cp)] <> '/') do cp := Copy(cp, 1, length(cp)-1);
-  if length(cp) < 2 then exit; // nothing to do
-  for f := 0 to fFiles.Count-1 do
-  begin
-    fi := TSFSZipFileInfo(fFiles[f]);
-    if length(fi.fPath) >= length(cp) then
-    begin
-      s := fi.fPath;
-      fi.fPath := Copy(fi.fPath, length(cp)+1, length(fi.fPath));
-      //writeln('FIXED [', s, '] -> [', fi.fPath, ']');
-    end;
-  end;
 end;
 
 

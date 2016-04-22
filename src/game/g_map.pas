@@ -799,7 +799,7 @@ begin
     end;
     //k8: why loader ignores path here?
     mapResName := g_ExtractFileName(Res);
-    if not WAD.GetResource(mapResName, Data, Len) then
+    if not WAD.GetMapResource(mapResName, Data, Len) then
     begin
       g_FatalError(Format(_lc[I_GAME_ERROR_MAP_RES], [mapResName]));
       WAD.Free();
@@ -1267,7 +1267,7 @@ begin
   end;
 
   //k8: it ignores path again
-  if not WAD.GetResource(g_ExtractFileName(Res), Data, Len) then
+  if not WAD.GetMapResource(g_ExtractFileName(Res), Data, Len) then
   begin
     WAD.Free();
     Exit;
@@ -1305,37 +1305,23 @@ var
   WAD: TWADFile;
   a: Integer;
   ResList: SArray;
-  Data: Pointer;
-  Len: Integer;
-  Sign: Array [0..2] of Char;
 begin
   Result := nil;
-
   WAD := TWADFile.Create();
   if not WAD.ReadFile(WADName) then
   begin
     WAD.Free();
     Exit;
   end;
-
-  ResList := WAD.GetRootResources();
-
+  ResList := WAD.GetMapResources();
   if ResList <> nil then
+  begin
     for a := 0 to High(ResList) do
     begin
-      if not WAD.GetResource(ResList[a], Data, Len) then Continue;
-      CopyMemory(@Sign[0], Data, 3);
-      FreeMem(Data);
-
-      if Sign = MAP_SIGNATURE then
-      begin
-        SetLength(Result, Length(Result)+1);
-        Result[High(Result)] := ResList[a];
-      end;
-
-      Sign := '';
+      SetLength(Result, Length(Result)+1);
+      Result[High(Result)] := ResList[a];
     end;
-
+  end;
   WAD.Free();
 end;
 
@@ -1357,7 +1343,7 @@ begin
     Exit;
   end;
 
-  ResList := WAD.GetRootResources();
+  ResList := WAD.GetMapResources();
   WAD.Free();
 
   mnn := g_ExtractFileName(Res);

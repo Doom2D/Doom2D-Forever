@@ -2,6 +2,7 @@
 unit wadreader;
 
 {$DEFINE SFS_DWFAD_DEBUG}
+{$DEFINE SFS_MAPDETECT_FX}
 
 interface
 
@@ -18,6 +19,9 @@ type
     fIter: TSFSFileList;
 
     function getIsOpen (): Boolean;
+    function isMapResource (idx: Integer): Boolean;
+
+    function GetResourceEx (name: AnsiString; wantMap: Boolean; var pData: Pointer; var Len: Integer): Boolean;
 
    public
     constructor Create();
@@ -29,7 +33,8 @@ type
     function ReadMemory (Data: Pointer; Len: LongWord): Boolean;
 
     function GetResource (name: AnsiString; var pData: Pointer; var Len: Integer): Boolean;
-    function GetRootResources (): SArray;
+    function GetMapResource (name: AnsiString; var pData: Pointer; var Len: Integer): Boolean;
+    function GetMapResources (): SArray;
 
     property isOpen: Boolean read getIsOpen;
   end;
@@ -48,7 +53,7 @@ function findDiskWad (fname: AnsiString): AnsiString;
 implementation
 
 uses
-  SysUtils, Classes, BinEditor, e_log, g_options, utils;
+  SysUtils, Classes, BinEditor, e_log, g_options, utils, MAPSTRUCT;
 
 
 function findDiskWad (fname: AnsiString): AnsiString;
@@ -199,6 +204,25 @@ begin
   fFileName := '';
 end;
 
+function TWADFile.isMapResource (idx: Integer): Boolean;
+var
+  sign: packed array [0..2] of Char;
+  fs: TStream;
+begin
+  result := false;
+  if not isOpen or (fIter = nil) then exit;
+  if (idx < 0) or (idx >= fIter.Count) then exit;
+  fs := nil;
+  try
+    fs := fIter.volume.OpenFileByIndex(idx);
+    fs.readBuffer(sign, 3);
+    result := (sign = MAP_SIGNATURE);
+  except
+    if fs <> nil then fs.Free();
+    exit;
+  end;
+  fs.Free();
+end;
 
 function removeExt (s: AnsiString): AnsiString;
 var
@@ -214,14 +238,15 @@ begin
   result := s;
 end;
 
-function TWADFile.GetResource (name: AnsiString; var pData: Pointer; var Len: Integer): Boolean;
+function TWADFile.GetResourceEx (name: AnsiString; wantMap: Boolean; var pData: Pointer; var Len: Integer): Boolean;
 var
   f, lastSlash: Integer;
   fi: TSFSFileInfo;
   fs: TStream;
   fpp: Pointer;
   rpath, rname: AnsiString;
-  //fn: AnsiString;
+  sign: array [0..2] of Char;
+  goodMap: Boolean;
 begin
   Result := False;
   if not isOpen or (fIter = nil) then Exit;
@@ -247,12 +272,22 @@ begin
   begin
     fi := fIter.Files[f];
     if fi = nil then continue;
-    //e_WriteLog(Format('DFWAD: searching for [%s : %s] in [%s]; current is [%s : %s]', [Section, Resource, fFileName, fi.path, fi.name]), MSG_NOTIFY);
-    if StrEquCI1251(fi.path, rpath) and StrEquCI1251(removeExt(fi.name), rname) then
+    if StrEquCI1251(removeExt(fi.name), rname) then
     begin
-      // i found her!
-      //fn := fFileName+'::'+fi.path+fi.name;
-      //fs := SFSFileOpen(fn);
+      // i found her (maybe)
+      if not wantMap then
+      begin
+        if length(fi.path) < length(rpath) then continue; // alas
+        if length(fi.path) = length(rpath) then
+        begin
+          if not StrEquCI1251(fi.path, rpath) then continue; // alas
+        end
+        else
+        begin
+          if fi.path[length(fi.path)-length(rpath)] <> '/' then continue; // alas
+          if not StrEquCI1251(Copy(fi.path, length(fi.path)+1-length(rpath), length(fi.path)), rpath) then continue; // alas
+        end;
+      end;
       try
         fs := fIter.volume.OpenFileByIndex(f);
       except
@@ -260,9 +295,34 @@ begin
       end;
       if fs = nil then
       begin
+        if wantMap then continue;
         e_WriteLog(Format('DFWAD: can''t open file [%s] in [%s]', [name, fFileName]), MSG_WARNING);
         break;
       end;
+      // if we want only maps, check if this is map
+{$IFDEF SFS_MAPDETECT_FX}
+      if wantMap then
+      begin
+        goodMap := false;
+        e_WriteLog(Format('DFWAD: checking for good map in wad [%s], file [%s] (#%d)', [fFileName, fi.fname, f]), MSG_NOTIFY);
+        try
+          fs.readBuffer(sign, 3);
+          goodMap := (sign = MAP_SIGNATURE);
+          if goodMap then
+            e_WriteLog(Format('  GOOD map in wad [%s], file [%s] (#%d)', [fFileName, fi.fname, f]), MSG_NOTIFY)
+          else
+            e_WriteLog(Format('  BAD map in wad [%s], file [%s] (#%d)', [fFileName, fi.fname, f]), MSG_NOTIFY);
+        except
+        end;
+        if not goodMap then
+        begin
+          e_WriteLog(Format('  not a map in wad [%s], file [%s] (#%d)', [fFileName, fi.fname, f]), MSG_NOTIFY);
+          fs.Free();
+          continue;
+        end;
+        fs.position := 0;
+      end;
+{$ENDIF}
       Len := Integer(fs.size);
       GetMem(pData, Len);
       fpp := pData;
@@ -278,6 +338,25 @@ begin
         end;
         fs.Free;
       end;
+{$IFNDEF SFS_MAPDETECT_FX}
+      if wantMap then
+      begin
+        goodMap := false;
+        if Len >= 3 then
+        begin
+          Move(pData^, sign, 3);
+          goodMap := (sign = MAP_SIGNATURE);
+        end;
+        if not goodMap then
+        begin
+          e_WriteLog(Format('  not a map in wad [%s], file [%s] (#%d)', [fFileName, fi.fname, f]), MSG_NOTIFY);
+          FreeMem(pData);
+          pData := nil;
+          Len := 0;
+          continue;
+        end;
+      end;
+{$ENDIF}
       result := true;
       {$IFDEF SFS_DWFAD_DEBUG}
       if gSFSDebug then
@@ -289,23 +368,44 @@ begin
   e_WriteLog(Format('DFWAD: file [%s] not found in [%s]', [name, fFileName]), MSG_WARNING);
 end;
 
+function TWADFile.GetResource (name: AnsiString; var pData: Pointer; var Len: Integer): Boolean;
+begin
+  result := GetResourceEx(name, false, pData, Len);
+end;
 
-function TWADFile.GetRootResources (): SArray;
+function TWADFile.GetMapResource (name: AnsiString; var pData: Pointer; var Len: Integer): Boolean;
+begin
+  result := GetResourceEx(name, true, pData, Len);
+end;
+
+function TWADFile.GetMapResources (): SArray;
 var
-  f: Integer;
+  f, c: Integer;
   fi: TSFSFileInfo;
+  s: AnsiString;
 begin
   Result := nil;
   if not isOpen or (fIter = nil) then Exit;
-  for f := 0 to fIter.Count-1 do
+  for f := fIter.Count-1 downto 0 do
   begin
     fi := fIter.Files[f];
     if fi = nil then continue;
     if length(fi.name) = 0 then continue;
-    if length(fi.path) = 0 then
+    e_WriteLog(Format('DFWAD: checking for map in wad [%s], file [%s] (#%d)', [fFileName, fi.fname, f]), MSG_NOTIFY);
+    if isMapResource(f) then
     begin
-      SetLength(result, Length(result)+1);
-      result[high(result)] := removeExt(fi.name);
+      s := removeExt(fi.name);
+      c := High(result);
+      while c >= 0 do
+      begin
+        if StrEquCI1251(result[c], s) then break;
+        Dec(c);
+      end;
+      if c < 0 then
+      begin
+        SetLength(result, Length(result)+1);
+        result[high(result)] := removeExt(fi.name);
+      end;
     end;
   end;
 end;

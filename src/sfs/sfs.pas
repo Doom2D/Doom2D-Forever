@@ -70,8 +70,6 @@ type
     // никаких падений на неправильные индексы!
     function GetFiles (index: Integer): TSFSFileInfo; virtual;
 
-    procedure removeCommonPath (); virtual;
-
   public
     // pSt не обязательно запоминать, если он не нужен.
     constructor Create (const pFileName: AnsiString; pSt: TStream); virtual;
@@ -744,10 +742,6 @@ begin
   fFiles := TObjectList.Create(true);
 end;
 
-procedure TSFSVolume.removeCommonPath ();
-begin
-end;
-
 procedure TSFSVolume.DoDirectoryRead ();
 var
   f, c: Integer;
@@ -779,7 +773,6 @@ begin
     sfi.fPath := normalizePath(sfi.fPath);
     if (length(sfi.fPath) = 0) and (length(sfi.fName) = 0) then sfi.Free else Inc(f);
   end;
-  removeCommonPath();
 end;
 
 destructor TSFSVolume.Destroy ();
