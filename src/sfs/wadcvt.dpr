@@ -14,7 +14,8 @@ uses
   sfs,
   sfsPlainFS,
   sfsZipFS,
-  paszlib;
+  paszlib,
+  ImagingTypes, Imaging, ImagingUtility;
 
 
 procedure processed (count: Cardinal);
@@ -168,6 +169,7 @@ var
   buflen: Integer;
   f: Integer;
   st: string[24];
+  img: string;
 begin
   result := fname;
   if length(ExtractFileExt(fname)) <> 0 then exit;
@@ -232,6 +234,7 @@ begin
       end;
     end;
     // targa (stupid hack; this "signature" is not required by specs)
+    {
     if buflen >= 18 then
     begin
       Move((buf+buflen-18)^, (PChar(@st[1]))^, 16);
@@ -241,6 +244,27 @@ begin
         result := result+'.tga';
         exit;
       end;
+    end;
+    }
+    // detect image format
+    img := DetermineMemoryFormat(buf, buflen);
+    if length(img) > 0 then
+    begin
+      result := result+'.'+img;
+      exit;
+    end;
+    // check if this is text file
+    if buflen > 16 then
+    begin
+      for f := 0 to buflen-1 do
+      begin
+        if buf[f] = #127 then exit;
+        if buf[f] < #32 then
+        begin
+          if (buf[f] <> #9) and (buf[f] <> #10) and (buf[f] <> #13) then exit;
+        end;
+      end;
+      result := result+'.txt';
     end;
   finally
     FreeMem(buf);
