@@ -569,12 +569,22 @@ begin
       //fs.Free();
       //fs := SFSFileOpen(dvfn+'::'+fl[f].fPath+fl[f].fName);
       fs.position := 0;
+{$IFNDEF WINDOWS}
+      write(#13'[', f+1, '/', fl.Count, ']: ', fl[f].fPath, newname, '  ', fs.size, ' ... '#27'[K');
+{$ELSE}
       write('[', f+1, '/', fl.Count, ']: ', fl[f].fPath, newname, '  ', fs.size, ' ... ');
+{$ENDIF}
       nfo := ZipOne(fo, fl[f].fPath+newname, fs);
-      writeln('DONE');
+      write('DONE');
+{$IFDEF WINDOWS}
+      writeln;
+{$ENDIF}
       SetLength(files, length(files)+1);
       files[high(files)] := nfo;
     end;
+{$IFNDEF WINDOWS}
+    writeln(#13, fl.Count, ' files processed'#27'[K');
+{$ENDIF}
     writeCentralDir(fo, files);
   except
     fo.Free();
