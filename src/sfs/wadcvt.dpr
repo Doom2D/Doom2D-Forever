@@ -24,7 +24,7 @@ end;
 
 
 // returs crc
-function zpack (ds: TStream; ss: TStream): LongWord;
+function zpack (ds: TStream; ss: TStream; var aborted: Boolean): LongWord;
 const
   IBSize = 65536;
   OBSize = 65536;
@@ -35,12 +35,17 @@ var
   rd: Integer;
   eof: Boolean;
   crc: LongWord;
+  dstp, srcsize: Int64;
 begin
   result := 0;
+  //aborted := true; exit;
+  aborted := false;
   crc := crc32(0, nil, 0);
   GetMem(ib, IBSize);
   GetMem(ob, OBSize);
   ss.position := 0;
+  dstp := ds.position;
+  srcsize := ss.size;
   try
     zst.next_out := ob;
     zst.avail_out := OBSize;
@@ -70,6 +75,12 @@ begin
           if zst.avail_out < OBSize then
           begin
             //writeln('  written ', OBSize-zst.avail_out, ' bytes');
+            if ds.position+(OBSize-zst.avail_out)-dstp >= srcsize then
+            begin
+              // this will be overwritten anyway
+              aborted := true;
+              exit;
+            end;
             ds.writeBuffer(ob^, OBSize-zst.avail_out);
             zst.next_out := ob;
             zst.avail_out := OBSize;
@@ -85,6 +96,12 @@ begin
         if zst.avail_out < OBSize then
         begin
           //writeln('  .written ', OBSize-zst.avail_out, ' bytes');
+          if ds.position+(OBSize-zst.avail_out)-dstp >= srcsize then
+          begin
+            // this will be overwritten anyway
+            aborted := true;
+            exit;
+          end;
           ds.writeBuffer(ob^, OBSize-zst.avail_out);
           zst.next_out := ob;
           zst.avail_out := OBSize;
@@ -333,10 +350,13 @@ end;
 const UtfFlags = (1 shl 10); // bit 11
 {$ENDIF}
 
-function ZipOne (ds: TStream; fname: AnsiString; st: TStream): TFileInfo;
+function ZipOne (ds: TStream; fname: AnsiString; st: TStream; dopack: Boolean=true): TFileInfo;
 var
-  oldofs, nfoofs, pkdpos: Int64;
+  oldofs, nfoofs, pkdpos, rd: Int64;
   sign: packed array [0..3] of Char;
+  buf: PChar;
+  bufsz: Integer;
+  aborted: Boolean = false;
 {$IFDEF UTFEXTRA}
   ef: TByteArray;
 {$ENDIF}
@@ -345,6 +365,11 @@ begin
   result.pkofs := ds.position;
   result.size := st.size;
   if result.size > 0 then result.method := 8 else result.method := 0;
+  if not dopack then
+  begin
+    result.method := 0;
+    result.pksize := result.size;
+  end;
 {$IFDEF UTFEXTRA}
   result.name := fname;
   ef := buildUtfExtra(result.name);
@@ -373,19 +398,62 @@ begin
 {$IFDEF UTFEXTRA}
   if length(ef) > 0 then ds.writeBuffer(ef[0], length(ef));
 {$ENDIF}
-  // now write packed data
-  if result.size > 0 then
+  if dopack then
   begin
-    pkdpos := ds.position;
-    st.position := 0;
-    result.crc := zpack(ds, st);
-    result.pksize := ds.position-pkdpos;
+    // now write packed data
+    if result.size > 0 then
+    begin
+      pkdpos := ds.position;
+      st.position := 0;
+      result.crc := zpack(ds, st, aborted);
+      result.pksize := ds.position-pkdpos;
+      if {result.pksize >= result.size} aborted then
+      begin
+        // there's no sence to pack this file, so just store it
+        st.position := 0;
+        ds.position := result.pkofs;
+        result.Free();
+        // store it
+        result := ZipOne(ds, fname, st, false);
+        exit;
+      end
+      else
+      begin
+        // fix header
+        oldofs := ds.position;
+        ds.position := nfoofs;
+        writeInt(ds, LongWord(result.crc)); // crc32
+        writeInt(ds, LongWord(result.pksize)); // crc32
+        ds.position := oldofs;
+      end;
+    end;
+  end
+  else
+  begin
+    bufsz := 1024*1024;
+    GetMem(buf, bufsz);
+    try
+      st.position := 0;
+      result.crc := crc32(0, nil, 0);
+      result.pksize := 0;
+      while result.pksize < result.size do
+      begin
+        rd := result.size-result.pksize;
+        if rd > bufsz then rd := bufsz;
+        st.readBuffer(buf^, rd);
+        ds.writeBuffer(buf^, rd);
+        Inc(result.pksize, rd);
+        result.crc := crc32(result.crc, buf, rd);
+      end;
+    finally
+      FreeMem(buf);
+    end;
     // fix header
     oldofs := ds.position;
     ds.position := nfoofs;
     writeInt(ds, LongWord(result.crc)); // crc32
-    writeInt(ds, LongWord(result.pksize)); // crc32
     ds.position := oldofs;
+    write('(S) ');
   end;
 end;
 
@@ -501,8 +569,9 @@ begin
       //fs.Free();
       //fs := SFSFileOpen(dvfn+'::'+fl[f].fPath+fl[f].fName);
       fs.position := 0;
-      writeln('[', f+1, '/', fl.Count, ']: ', fl[f].fPath, newname, '  ', fs.size);
+      write('[', f+1, '/', fl.Count, ']: ', fl[f].fPath, newname, '  ', fs.size, ' ... ');
       nfo := ZipOne(fo, fl[f].fPath+newname, fs);
+      writeln('DONE');
       SetLength(files, length(files)+1);
       files[high(files)] := nfo;
     end;
