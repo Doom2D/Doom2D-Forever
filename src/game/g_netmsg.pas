@@ -714,7 +714,7 @@ procedure MH_SEND_Info(ID: Byte);
 var
   Map: string;
 begin
-  g_ProcessResourceStr(gMapInfo.Map, nil, nil, @Map);
+  Map := g_ExtractFileName(gMapInfo.Map);
 
   e_Buffer_Clear(@NetOut);
 

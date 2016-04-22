@@ -367,8 +367,6 @@ var
   WAD: TWADFile;
   TextureData: Pointer;
   WADName: String;
-  SectionName: String;
-  TextureName: String;
   a, ResLength: Integer;
 begin
   Result := -1;
@@ -409,7 +407,7 @@ begin
   end;
 
 // Загружаем ресурс текстуры в память из WAD'а:
-  g_ProcessResourceStr(RecName, WADName, SectionName, TextureName);
+  WADName := g_ExtractWadName(RecName);
 
   WAD := TWADFile.Create();
 
@@ -420,7 +418,7 @@ begin
 
   WAD.ReadFile(WADName);
 
-  if WAD.GetResource(SectionName, TextureName, TextureData, ResLength) then
+  if WAD.GetResource(g_ExtractFilePathName(RecName), TextureData, ResLength) then
     begin
       SetLength(Textures, Length(Textures)+1);
       if not e_CreateTextureMem(TextureData, ResLength, Textures[High(Textures)].TextureID) then
@@ -452,8 +450,6 @@ var
   TextureData: Pointer;
   cfg: TConfig;
   WADName: String;
-  SectionName: String;
-  TextureName: String;
   ResLength: Integer;
   TextureResource: String;
   _width, _height, _framecount, _speed: Integer;
@@ -462,7 +458,7 @@ begin
   Result := -1;
 
 // Читаем WAD-ресурс аним.текстуры из WAD'а в память:
-  g_ProcessResourceStr(RecName, WADName, SectionName, TextureName);
+  WADName := g_ExtractWadName(RecName);
 
   WAD := TWADFile.Create();
 
@@ -473,7 +469,7 @@ begin
 
   WAD.ReadFile(WADName);
 
-  if not WAD.GetResource(SectionName, TextureName, TextureWAD, ResLength) then
+  if not WAD.GetResource(g_ExtractFilePathName(RecName), TextureWAD, ResLength) then
   begin
     if log then
     begin
@@ -494,7 +490,7 @@ begin
   end;
 
 // Читаем INI-ресурс аним. текстуры и запоминаем его установки:
-  if not WAD.GetResource('TEXT', 'ANIM', TextData, ResLength) then
+  if not WAD.GetResource('TEXT/ANIM', TextData, ResLength) then
   begin
     FreeMem(TextureWAD);
     WAD.Free();
@@ -523,7 +519,7 @@ begin
   cfg.Free();
 
 // Читаем ресурс текстур (кадров) аним. текстуры в память:
-  if not WAD.GetResource('TEXTURES', TextureResource, TextureData, ResLength) then
+  if not WAD.GetResource('TEXTURES/'+TextureResource, TextureData, ResLength) then
   begin
     FreeMem(TextureWAD);
     FreeMem(TextData);
@@ -776,8 +772,7 @@ var
                            DoorPanel: Integer;
                            ShotPanel: Integer;
                           end;
-  FileName, SectionName, ResName,
-  FileName2, s, TexName: String;
+  FileName, mapResName, s, TexName: String;
   Data: Pointer;
   Len: Integer;
   ok, isAnim, trigRef: Boolean;
@@ -791,8 +786,8 @@ begin
   sfsGCDisable(); // temporary disable removing of temporary volumes
   try
   // Загрузка WAD:
-    g_ProcessResourceStr(Res, FileName, SectionName, ResName);
-    e_WriteLog('Loading map WAD: ' + FileName, MSG_NOTIFY);
+    FileName := g_ExtractWadName(Res);
+    e_WriteLog('Loading map WAD: '+FileName, MSG_NOTIFY);
     g_Game_SetLoadingText(_lc[I_LOAD_WAD_FILE], 0, False);
 
     WAD := TWADFile.Create();
@@ -802,16 +797,18 @@ begin
       WAD.Free();
       Exit;
     end;
-    if not WAD.GetResource('', ResName, Data, Len) then
+    //k8: why loader ignores path here?
+    mapResName := g_ExtractFileName(Res);
+    if not WAD.GetResource(mapResName, Data, Len) then
     begin
-      g_FatalError(Format(_lc[I_GAME_ERROR_MAP_RES], [ResName]));
+      g_FatalError(Format(_lc[I_GAME_ERROR_MAP_RES], [mapResName]));
       WAD.Free();
       Exit;
     end;
     WAD.Free();
 
   // Загрузка карты:
-    e_WriteLog('Loading map: ' + ResName, MSG_NOTIFY);
+    e_WriteLog('Loading map: '+mapResName, MSG_NOTIFY);
     g_Game_SetLoadingText(_lc[I_LOAD_MAP], 0, False);
     MapReader := TMapReader_1.Create();
 
@@ -1173,17 +1170,16 @@ begin
     begin
       e_WriteLog('  Loading sky: ' + gMapInfo.SkyName, MSG_NOTIFY);
       g_Game_SetLoadingText(_lc[I_LOAD_SKY], 0, False);
-      g_ProcessResourceStr(gMapInfo.SkyName, FileName, SectionName, ResName);
+      FileName := g_ExtractWadName(gMapInfo.SkyName);
 
       if FileName <> '' then
         FileName := GameDir+'/wads/'+FileName
       else
         begin
-          g_ProcessResourceStr(Res, @FileName2, nil, nil);
-          FileName := FileName2;
+          FileName := g_ExtractWadName(Res);
         end;
 
-      s := FileName+':'+SectionName+'/'+ResName;
+      s := FileName+':'+g_ExtractFilePathName(gMapInfo.SkyName);
       if g_Texture_CreateWAD(BackID, s) then
         begin
           g_Game_SetupScreenSize();
@@ -1198,17 +1194,16 @@ begin
     begin
       e_WriteLog('  Loading music: ' + gMapInfo.MusicName, MSG_NOTIFY);
       g_Game_SetLoadingText(_lc[I_LOAD_MUSIC], 0, False);
-      g_ProcessResourceStr(gMapInfo.MusicName, FileName, SectionName, ResName);
+      FileName := g_ExtractWadName(gMapInfo.MusicName);
 
       if FileName <> '' then
         FileName := GameDir+'/wads/'+FileName
       else
         begin
-          g_ProcessResourceStr(Res, @FileName2, nil, nil);
-          FileName := FileName2;
+          FileName := g_ExtractWadName(Res);
         end;
 
-      s := FileName+':'+SectionName+'/'+ResName;
+      s := FileName+':'+g_ExtractFilePathName(gMapInfo.MusicName);
       if g_Sound_CreateWADEx(gMapInfo.MusicName, s, True) then
         ok := True
       else
@@ -1257,12 +1252,12 @@ var
   WAD: TWADFile;
   MapReader: TMapReader_1;
   Header: TMapHeaderRec_1;
-  FileName, SectionName, ResName: String;
+  FileName: String;
   Data: Pointer;
   Len: Integer;
 begin
   FillChar(Result, SizeOf(Result), 0);
-  g_ProcessResourceStr(Res, FileName, SectionName, ResName);
+  FileName := g_ExtractWadName(Res);
 
   WAD := TWADFile.Create();
   if not WAD.ReadFile(FileName) then
@@ -1271,7 +1266,8 @@ begin
     Exit;
   end;
 
-  if not WAD.GetResource('', ResName, Data, Len) then
+  //k8: it ignores path again
+  if not WAD.GetResource(g_ExtractFileName(Res), Data, Len) then
   begin
     WAD.Free();
     Exit;
@@ -1322,12 +1318,12 @@ begin
     Exit;
   end;
 
-  ResList := WAD.GetResourcesList('');
+  ResList := WAD.GetRootResources();
 
   if ResList <> nil then
     for a := 0 to High(ResList) do
     begin
-      if not WAD.GetResource('', ResList[a], Data, Len) then Continue;
+      if not WAD.GetResource(ResList[a], Data, Len) then Continue;
       CopyMemory(@Sign[0], Data, 3);
       FreeMem(Data);
 
@@ -1346,15 +1342,13 @@ end;
 function g_Map_Exist(Res: string): Boolean;
 var
   WAD: TWADFile;
-  FileName, SectionName, ResName: string;
+  FileName, mnn: string;
   ResList: SArray;
   a: Integer;
 begin
   Result := False;
 
-  g_ProcessResourceStr(Res, FileName, SectionName, ResName);
-
-  FileName := addWadExtension(FileName);
+  FileName := addWadExtension(g_ExtractWadName(Res));
 
   WAD := TWADFile.Create;
   if not WAD.ReadFile(FileName) then
@@ -1363,11 +1357,12 @@ begin
     Exit;
   end;
 
-  ResList := WAD.GetResourcesList('');
+  ResList := WAD.GetRootResources();
   WAD.Free();
 
+  mnn := g_ExtractFileName(Res);
   if ResList <> nil then
-    for a := 0 to High(ResList) do if ResList[a] = ResName then
+    for a := 0 to High(ResList) do if StrEquCI1251(ResList[a], mnn) then
     begin
       Result := True;
       Exit;

@@ -145,19 +145,17 @@ end;
 function g_Texture_CreateWAD(var ID: DWORD; Resource: String): Boolean;
 var
   WAD: TWADFile;
-  FileName,
-  SectionName,
-  ResourceName: String;
+  FileName: String;
   TextureData: Pointer;
   ResourceLength: Integer;
 begin
   Result := False;
-  g_ProcessResourceStr(Resource, FileName, SectionName, ResourceName);
+  FileName := g_ExtractWadName(Resource);
 
   WAD := TWADFile.Create;
   WAD.ReadFile(FileName);
 
-  if WAD.GetResource(SectionName, ResourceName, TextureData, ResourceLength) then
+  if WAD.GetResource(g_ExtractFilePathName(Resource), TextureData, ResourceLength) then
   begin
     if e_CreateTextureMem(TextureData, ResourceLength, ID) then
       Result := True
@@ -185,21 +183,19 @@ end;
 function g_Texture_CreateWADEx(TextureName: ShortString; Resource: String): Boolean;
 var
   WAD: TWADFile;
-  FileName,
-  SectionName,
-  ResourceName: String;
+  FileName: String;
   TextureData: Pointer;
   find_id: DWORD;
   ResourceLength: Integer;
 begin
-  g_ProcessResourceStr(Resource, FileName, SectionName, ResourceName);
+  FileName := g_ExtractWadName(Resource);
 
   find_id := FindTexture();
 
   WAD := TWADFile.Create;
   WAD.ReadFile(FileName);
 
-  if WAD.GetResource(SectionName, ResourceName, TextureData, ResourceLength) then
+  if WAD.GetResource(g_ExtractFilePathName(Resource), TextureData, ResourceLength) then
   begin
     Result := e_CreateTextureMem(TextureData, ResourceLength, TexturesArray[find_id].ID);
     if Result then
@@ -393,20 +389,18 @@ function g_Frames_CreateWAD(ID: PDWORD; Name: ShortString; Resource: string;
                             FWidth, FHeight, FCount: Word; BackAnimation: Boolean = False): Boolean;
 var
   WAD: TWADFile;
-  FileName,
-  SectionName,
-  ResourceName: string;
+  FileName: string;
   TextureData: Pointer;
   ResourceLength: Integer;
 begin
   Result := False;
 
-  g_ProcessResourceStr(Resource, FileName, SectionName, ResourceName);
+  FileName := g_ExtractWadName(Resource);
 
   WAD := TWADFile.Create();
   WAD.ReadFile(FileName);
 
-  if not WAD.GetResource(SectionName, ResourceName, TextureData, ResourceLength) then
+  if not WAD.GetResource(g_ExtractFilePathName(Resource), TextureData, ResourceLength) then
   begin
     WAD.Free();
     e_WriteLog(Format('Error loading texture %s', [Resource]), MSG_WARNING);

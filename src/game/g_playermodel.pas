@@ -253,7 +253,7 @@ begin
     Exit;
   end;
 
-  if not WAD.GetResource('TEXT', 'MODEL', pData, len) then
+  if not WAD.GetResource('TEXT/MODEL', pData, len) then
   begin
     WAD.Free();
     Exit;
@@ -358,8 +358,8 @@ begin
     SetLength(Gibs, ReadInt('Gibs', 'count', 0));
 
     if (Gibs <> nil) and
-       (WAD.GetResource('TEXTURES', config.ReadStr('Gibs', 'resource', 'GIBS'), pData, lenpd)) and
-       (WAD.GetResource('TEXTURES', config.ReadStr('Gibs', 'mask', 'GIBSMASK'), pData2, lenpd2)) then
+       (WAD.GetResource('TEXTURES/'+config.ReadStr('Gibs', 'resource', 'GIBS'), pData, lenpd)) and
+       (WAD.GetResource('TEXTURES/'+config.ReadStr('Gibs', 'mask', 'GIBSMASK'), pData2, lenpd2)) then
     begin
       for a := 0 to High(Gibs) do
         if e_CreateTextureMemEx(pData, lenpd, Gibs[a].ID, a*32, 0, 32, 32) and

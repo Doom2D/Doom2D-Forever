@@ -27,15 +27,19 @@ type
 
     function ReadFile (FileName: AnsiString): Boolean;
     function ReadMemory (Data: Pointer; Len: LongWord): Boolean;
-    function GetResource (Section, Resource: AnsiString; var pData: Pointer; var Len: Integer): Boolean;
-    function GetResourcesList (Section: AnsiString): SArray;
+
+    function GetResource (name: AnsiString; var pData: Pointer; var Len: Integer): Boolean;
+    function GetRootResources (): SArray;
 
     property isOpen: Boolean read getIsOpen;
   end;
 
 
-procedure g_ProcessResourceStr (ResourceStr: AnsiString; var FileName, SectionName, ResourceName: AnsiString); overload;
-procedure g_ProcessResourceStr (ResourceStr: AnsiString; FileName, SectionName, ResourceName: PString); overload;
+function g_ExtractWadName (resourceStr: AnsiString): AnsiString;
+function g_ExtractWadNameNoPath (resourceStr: AnsiString): AnsiString;
+function g_ExtractFilePath (resourceStr: AnsiString): AnsiString;
+function g_ExtractFileName (resourceStr: AnsiString): AnsiString; // without path
+function g_ExtractFilePathName (resourceStr: AnsiString): AnsiString;
 
 // return fixed AnsiString or empty AnsiString
 function findDiskWad (fname: AnsiString): AnsiString;
@@ -74,46 +78,98 @@ begin
 end;
 
 
-procedure g_ProcessResourceStr (ResourceStr: AnsiString; var FileName, SectionName, ResourceName: AnsiString);
+function normSlashes (s: AnsiString): AnsiString;
 var
-  a, i: Integer;
+  f: Integer;
 begin
-  //e_WriteLog(Format('g_ProcessResourceStr0: [%s]', [ResourceStr]), MSG_NOTIFY);
-  for i := Length(ResourceStr) downto 1 do if ResourceStr[i] = ':' then break;
-  FileName := Copy(ResourceStr, 1, i-1);
-  for a := i+1 to Length(ResourceStr) do if (ResourceStr[a] = '\') or (ResourceStr[a] = '/') then Break;
-  ResourceName := Copy(ResourceStr, a+1, Length(ResourceStr)-Abs(a));
-  SectionName := Copy(ResourceStr, i+1, Length(ResourceStr)-Length(ResourceName)-Length(FileName)-2);
+  for f := 1 to length(s) do if s[f] = '\' then s[f] := '/';
+  result := s;
 end;
 
-
-procedure g_ProcessResourceStr (ResourceStr: AnsiString; FileName, SectionName, ResourceName: PAnsiString);
+function g_ExtractWadNameNoPath (resourceStr: AnsiString): AnsiString;
 var
-  a, i, l1, l2: Integer;
+  f, c: Integer;
 begin
-  //e_WriteLog(Format('g_ProcessResourceStr1: [%s]', [ResourceStr]), MSG_NOTIFY);
-  for i := Length(ResourceStr) downto 1 do if ResourceStr[i] = ':' then break;
-  if FileName <> nil then
+  for f := length(resourceStr) downto 1 do
   begin
-    FileName^ := Copy(ResourceStr, 1, i-1);
-    l1 := Length(FileName^);
-  end
-  else
-  begin
-    l1 := 0;
+    if resourceStr[f] = ':' then
+    begin
+      result := normSlashes(Copy(resourceStr, 1, f-1));
+      c := length(result);
+      while (c > 0) and (result[c] <> '/') do Dec(c);
+      if c > 0 then result := Copy(result, c+1, length(result));
+      exit;
+    end;
   end;
-  for a := i+1 to Length(ResourceStr) do if (ResourceStr[a] = '\') or (ResourceStr[a] = '/') then break;
-  if ResourceName <> nil then
-  begin
-    ResourceName^ := Copy(ResourceStr, a+1, Length(ResourceStr)-Abs(a));
-    l2 := Length(ResourceName^);
-  end
-  else
-  begin
-    l2 := 0;
-  end;
-  if SectionName <> nil then SectionName^ := Copy(ResourceStr, i+1, Length(ResourceStr)-l2-l1-2);
+  result := '';
 end;
+
+function g_ExtractWadName (resourceStr: AnsiString): AnsiString;
+var
+  f: Integer;
+begin
+  for f := length(resourceStr) downto 1 do
+  begin
+    if resourceStr[f] = ':' then
+    begin
+      result := normSlashes(Copy(resourceStr, 1, f-1));
+      exit;
+    end;
+  end;
+  result := '';
+end;
+
+function g_ExtractFilePath (resourceStr: AnsiString): AnsiString;
+var
+  f, lastSlash: Integer;
+begin
+  result := '';
+  lastSlash := -1;
+  for f := length(resourceStr) downto 1 do
+  begin
+    if (lastSlash < 0) and (resourceStr[f] = '\') or (resourceStr[f] = '/') then lastSlash := f;
+    if resourceStr[f] = ':' then
+    begin
+      if lastSlash > 0 then result := normSlashes(Copy(resourceStr, f, lastSlash-f));
+      exit;
+    end;
+  end;
+  if lastSlash > 0 then result := normSlashes(Copy(resourceStr, 1, lastSlash-1));
+end;
+
+function g_ExtractFileName (resourceStr: AnsiString): AnsiString; // without path
+var
+  f, lastSlash: Integer;
+begin
+  result := '';
+  lastSlash := -1;
+  for f := length(resourceStr) downto 1 do
+  begin
+    if (lastSlash < 0) and (resourceStr[f] = '\') or (resourceStr[f] = '/') then lastSlash := f;
+    if resourceStr[f] = ':' then
+    begin
+      if lastSlash > 0 then result := Copy(resourceStr, lastSlash+1, length(resourceStr));
+      exit;
+    end;
+  end;
+  if lastSlash > 0 then result := Copy(resourceStr, lastSlash+1, length(resourceStr));
+end;
+
+function g_ExtractFilePathName (resourceStr: AnsiString): AnsiString;
+var
+  f: Integer;
+begin
+  result := '';
+  for f := length(resourceStr) downto 1 do
+  begin
+    if resourceStr[f] = ':' then
+    begin
+      result := normSlashes(Copy(resourceStr, f+1, length(resourceStr)));
+      exit;
+    end;
+  end;
+end;
+
 
 
 { TWADFile }
@@ -158,25 +214,41 @@ begin
   result := s;
 end;
 
-function TWADFile.GetResource (Section, Resource: AnsiString; var pData: Pointer; var Len: Integer): Boolean;
+function TWADFile.GetResource (name: AnsiString; var pData: Pointer; var Len: Integer): Boolean;
 var
-  f: Integer;
+  f, lastSlash: Integer;
   fi: TSFSFileInfo;
   fs: TStream;
   fpp: Pointer;
+  rpath, rname: AnsiString;
   //fn: AnsiString;
 begin
   Result := False;
   if not isOpen or (fIter = nil) then Exit;
-  if length(Resource) = 0 then Exit; // just in case
-  if (length(Section) <> 0) and (Section[length(Section)] <> '/') then Section := Section+'/';
+  rname := removeExt(name);
+  if length(rname) = 0 then Exit; // just in case
+  lastSlash := -1;
+  for f := 1 to length(rname) do
+  begin
+    if rname[f] = '\' then rname[f] := '/';
+    if rname[f] = '/' then lastSlash := f;
+  end;
+  if lastSlash > 0 then
+  begin
+    rpath := Copy(rname, 1, lastSlash);
+    Delete(rname, 1, lastSlash);
+  end
+  else
+  begin
+    rpath := '';
+  end;
   // backwards, due to possible similar names and such
   for f := fIter.Count-1 downto 0 do
   begin
     fi := fIter.Files[f];
     if fi = nil then continue;
     //e_WriteLog(Format('DFWAD: searching for [%s : %s] in [%s]; current is [%s : %s]', [Section, Resource, fFileName, fi.path, fi.name]), MSG_NOTIFY);
-    if StrEquCI1251(fi.path, Section) and StrEquCI1251(removeExt(fi.name), Resource) then
+    if StrEquCI1251(fi.path, rpath) and StrEquCI1251(removeExt(fi.name), rname) then
     begin
       // i found her!
       //fn := fFileName+'::'+fi.path+fi.name;
@@ -188,7 +260,7 @@ begin
       end;
       if fs = nil then
       begin
-        e_WriteLog(Format('DFWAD: can''t open file [%s%s] in [%s]', [Section, Resource, fFileName]), MSG_WARNING);
+        e_WriteLog(Format('DFWAD: can''t open file [%s] in [%s]', [name, fFileName]), MSG_WARNING);
         break;
       end;
       Len := Integer(fs.size);
@@ -209,29 +281,28 @@ begin
       result := true;
       {$IFDEF SFS_DWFAD_DEBUG}
       if gSFSDebug then
-        e_WriteLog(Format('DFWAD: file [%s%s] FOUND in [%s]; size is %d bytes', [Section, Resource, fFileName, Len]), MSG_NOTIFY);
+        e_WriteLog(Format('DFWAD: file [%s] FOUND in [%s]; size is %d bytes', [name, fFileName, Len]), MSG_NOTIFY);
       {$ENDIF}
       exit;
     end;
   end;
-  e_WriteLog(Format('DFWAD: file [%s%s] not found in [%s]', [Section, Resource, fFileName]), MSG_WARNING);
+  e_WriteLog(Format('DFWAD: file [%s] not found in [%s]', [name, fFileName]), MSG_WARNING);
 end;
 
 
-function TWADFile.GetResourcesList (Section: AnsiString): SArray;
+function TWADFile.GetRootResources (): SArray;
 var
   f: Integer;
   fi: TSFSFileInfo;
 begin
   Result := nil;
   if not isOpen or (fIter = nil) then Exit;
-  if (length(Section) <> 0) and (Section[length(Section)] <> '/') then Section := Section+'/';
   for f := 0 to fIter.Count-1 do
   begin
     fi := fIter.Files[f];
     if fi = nil then continue;
     if length(fi.name) = 0 then continue;
-    if StrEquCI1251(fi.path, Section) then
+    if length(fi.path) = 0 then
     begin
       SetLength(result, Length(result)+1);
       result[high(result)] := removeExt(fi.name);

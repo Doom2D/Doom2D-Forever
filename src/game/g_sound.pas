@@ -281,9 +281,7 @@ end;
 function g_Sound_CreateWAD(var ID: DWORD; Resource: string; isMusic: Boolean = False): Boolean;
 var
   WAD: TWADFile;
-  FileName,
-  SectionName,
-  ResourceName: string;
+  FileName: string;
   SoundData: Pointer;
   ResLength: Integer;
   ok: Boolean;
@@ -292,12 +290,12 @@ begin
   ok := False;
 
   // e_WriteLog('Loading sound: ' + Resource, MSG_NOTIFY);
-  g_ProcessResourceStr(Resource, FileName, SectionName, ResourceName);
+  FileName := g_ExtractWadName(Resource);
 
   WAD := TWADFile.Create();
   WAD.ReadFile(FileName);
 
-  if WAD.GetResource(SectionName, ResourceName, SoundData, ResLength) then
+  if WAD.GetResource(g_ExtractFilePathName(Resource), SoundData, ResLength) then
     begin
       if e_LoadSoundMem(SoundData, ResLength, ID, isMusic) then
         ok := True
@@ -326,7 +324,7 @@ end;
 function g_Sound_CreateWADEx(SoundName: ShortString; Resource: string; isMusic: Boolean = False): Boolean;
 var
   WAD: TWADFile;
-  FileName, SectionName, ResourceName: string;
+  FileName: string;
   SoundData: Pointer;
   ResLength: Integer;
   find_id: DWORD;
@@ -336,14 +334,14 @@ begin
   ok := False;
 
   // e_WriteLog('Loading sound: ' + Resource, MSG_NOTIFY);
-  g_ProcessResourceStr(Resource, FileName, SectionName, ResourceName);
+  FileName := g_ExtractWadName(Resource);
 
   find_id := FindSound();
 
   WAD := TWADFile.Create();
   WAD.ReadFile(FileName);
 
-  if WAD.GetResource(SectionName, ResourceName, SoundData, ResLength) then
+  if WAD.GetResource(g_ExtractFilePathName(Resource), SoundData, ResLength) then
     begin
       if e_LoadSoundMem(SoundData, ResLength, SoundArray[find_id].ID, isMusic) then
         begin

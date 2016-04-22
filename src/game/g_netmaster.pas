@@ -223,8 +223,8 @@ var
   Wad, Map: string;
   Cli: Byte;
 begin
-  g_ProcessResourceStr(gMapInfo.Map, @Wad, nil, @Map);
-  Wad := ExtractFileName(Wad);
+  Wad := g_ExtractWadNameNoPath(gMapInfo.Map);
+  Map := g_ExtractFileName(gMapInfo.Map);
 
   e_Buffer_Write(@NetOut, NetServerName);
 

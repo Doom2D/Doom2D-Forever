@@ -483,7 +483,7 @@ begin
   w := TWADFile.Create();
   w.ReadFile(WAD);
 
-  if not w.GetResource('', 'INTERSCRIPT', p, len) then
+  if not w.GetResource('INTERSCRIPT', p, len) then
   begin
     w.Free();
     Exit;
@@ -542,7 +542,7 @@ begin
   w := TWADFile.Create();
   w.ReadFile(MapsDir + WAD);
 
-  if not w.GetResource('', 'INTERSCRIPT', p, len) then
+  if not w.GetResource('INTERSCRIPT', p, len) then
   begin
     w.Free();
     Exit;
@@ -579,14 +579,14 @@ begin
   MegaWAD.endpic := cfg.ReadStr('megawad', 'endpic', '');
   if MegaWAD.endpic <> '' then
   begin
-    g_ProcessResourceStr(MegaWAD.endpic, @s, nil, nil);
+    s := g_ExtractWadName(MegaWAD.endpic);
     if s = '' then s := MapsDir+WAD else s := GameDir+'/wads/';
     g_Texture_CreateWADEx('TEXTURE_endpic', s+MegaWAD.endpic);
   end;
   MegaWAD.endmus := cfg.ReadStr('megawad', 'endmus', 'Standart.wad:D2DMUS\КОНЕЦ');
   if MegaWAD.endmus <> '' then
   begin
-    g_ProcessResourceStr(MegaWAD.endmus, @s, nil, nil);
+    s := g_ExtractWadName(MegaWAD.endmus);
     if s = '' then s := MapsDir+WAD else s := GameDir+'/wads/';
     g_Sound_CreateWADEx('MUSIC_endmus', s+MegaWAD.endmus, True);
   end;
@@ -664,7 +664,7 @@ end;
 procedure EndGame();
 var
   a: Integer;
-  FileName, SectionName, ResName: string;
+  FileName: string;
 begin
   if g_Game_IsNet and g_Game_IsServer then
     MH_SEND_GameEvent(NET_EV_MAPEND, Byte(gMissionFailed));
@@ -726,10 +726,10 @@ begin
     EXIT_ENDLEVELCUSTOM: // Закончился уровень в Своей игре
       begin
       // Статистика Своей игры:
-        g_ProcessResourceStr(gMapInfo.Map, FileName, SectionName, ResName);
+        FileName := g_ExtractWadName(gMapInfo.Map);
 
         CustomStat.GameTime := gTime;
-        CustomStat.Map := ExtractFileName(FileName)+':'+ResName;
+        CustomStat.Map := ExtractFileName(FileName)+':'+g_ExtractFileName(gMapInfo.Map); //ResName;
         CustomStat.MapName := gMapInfo.Name;
         CustomStat.GameMode := gGameSettings.GameMode;
         if gGameSettings.GameMode in [GM_TDM, GM_CTF] then
@@ -841,8 +841,8 @@ begin
   e_DrawFillQuad(x, y, x+w-1, y+h-1, 64, 64, 64, 32);
   e_DrawQuad(x, y, x+w-1, y+h-1, 255, 127, 0);
 
-  g_ProcessResourceStr(gMapInfo.Map, @wad, nil, @map);
-  wad := ExtractFileName(wad);
+  wad := g_ExtractWadNameNoPath(gMapInfo.Map);
+  map := g_ExtractFileName(gMapInfo.Map);
   mapstr := wad + ':\' + map + ' - ' + gMapInfo.Name;
 
   case gGameSettings.GameMode of
@@ -3662,7 +3662,7 @@ var
 begin
   if g_Game_IsClient then
     Exit;
-  g_ProcessResourceStr(gMapInfo.Map, nil, nil, @Map);
+  map := g_ExtractFileName(gMapInfo.Map);
 
   MessageTime := 0;
   gGameOn := False;
@@ -3693,7 +3693,8 @@ begin
 
   if Pos(':\', Map) > 0 then
   begin
-    g_ProcessResourceStr(Map, @NewWAD, nil, @ResName);
+    NewWAD := g_ExtractWadName(Map);
+    ResName := g_ExtractFileName(Map);
     if g_Game_IsServer then
     begin
       gWADHash := MD5File(MapsDir + NewWAD);
@@ -3871,7 +3872,7 @@ begin
     Exit;
   end;
   gExit := EXIT_ENDLEVELCUSTOM;
-  g_ProcessResourceStr(gMapInfo.Map, nil, nil, @Map);
+  Map := g_ExtractFileName(gMapInfo.Map);
   gNextMap := Map;
 end;
 
@@ -4019,7 +4020,7 @@ begin
   if MapList = nil then
     Exit;
 
-  g_ProcessResourceStr(gMapInfo.Map, nil, nil, @Map);
+  Map := g_ExtractFileName(gMapInfo.Map);
 
   SortSArray(MapList);
   MapIndex := -255;
@@ -4058,11 +4059,8 @@ begin
 end;
 
 function g_Game_IsTestMap(): Boolean;
-var
-  FName, Sect, Res: String;
 begin
-  g_ProcessResourceStr(gMapInfo.Map, FName, Sect, Res);
-  Result := UpperCase(Res) = TEST_MAP_NAME;
+  result := StrEquCI1251(TEST_MAP_NAME, g_ExtractFileName(gMapInfo.Map));
 end;
 
 procedure g_Game_DeleteTestMap();

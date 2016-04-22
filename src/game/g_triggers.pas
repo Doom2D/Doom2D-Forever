@@ -1993,12 +1993,12 @@ begin
   // Еще нет такого звука:
     if not g_Sound_Exists(Trigger.Data.SoundName) then
     begin
-      g_ProcessResourceStr(Trigger.Data.SoundName, @fn, nil, nil);
+      fn := g_ExtractWadName(Trigger.Data.SoundName);
 
       if fn = '' then
         begin // Звук в файле с картой
-          g_ProcessResourceStr(gMapInfo.Map, @mapw, nil, nil);
-          fn := mapw + Trigger.Data.SoundName;
+          mapw := g_ExtractWadName(gMapInfo.Map);
+          fn := mapw+':'+g_ExtractFilePathName(Trigger.Data.SoundName);
         end
       else // Звук в отдельном файле
         fn := GameDir + '/wads/' + Trigger.Data.SoundName;
@@ -2026,12 +2026,12 @@ begin
   // Еще нет такой музыки:
     if not g_Sound_Exists(Trigger.Data.MusicName) then
     begin
-      g_ProcessResourceStr(Trigger.Data.MusicName, @fn, nil, nil);
+      fn := g_ExtractWadName(Trigger.Data.MusicName);
 
       if fn = '' then
         begin // Музыка в файле с картой
-          g_ProcessResourceStr(gMapInfo.Map, @mapw, nil, nil);
-          fn := mapw + Trigger.Data.MusicName;
+          mapw := g_ExtractWadName(gMapInfo.Map);
+          fn := mapw+':'+g_ExtractFilePathName(Trigger.Data.MusicName);
         end
       else // Музыка в файле с картой
         fn := GameDir+'/wads/'+Trigger.Data.MusicName;

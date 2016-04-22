@@ -2469,12 +2469,12 @@ var
   panels: TPanelsRec1Array;
   header: TMapHeaderRec_1;
   a: Integer;
-  FileName, SectionName, ResName: string;
+  FileName: string;
   Data: Pointer;
   Len: Integer;
   rX, rY: Single;
 begin
-  g_ProcessResourceStr(Res, FileName, SectionName, ResName);
+  FileName := g_ExtractWadName(Res);
 
   WAD := TWADFile.Create();
   if not WAD.ReadFile(FileName) then
@@ -2483,7 +2483,8 @@ begin
     Exit;
   end;
 
-  if not WAD.GetResource('', ResName, Data, Len) then
+  //k8: ignores path again
+  if not WAD.GetResource(g_ExtractFileName(Res), Data, Len) then
   begin
     WAD.Free();
     Exit;

@@ -726,7 +726,7 @@ begin
 
     if a.pic <> '' then
     begin
-      g_ProcessResourceStr(a.pic, @fn, nil, nil);
+      fn := g_ExtractWadName(a.pic);
       if fn = '' then
         TGUIImage(win.GetControl('mpWADImage')).SetImage(wad+a.pic)
       else
@@ -784,7 +784,7 @@ begin
 
   wad := TWADFile.Create;
   if wad.ReadFile(GameWAD) then
-    wad.GetResource('FONTS', cfgres, cfgdata, cfglen);
+    wad.GetResource('FONTS/'+cfgres, cfgdata, cfglen);
   wad.Free();
 
   if cfglen <> 0 then
@@ -823,8 +823,8 @@ begin
   wad := TWADFile.Create;
   if wad.ReadFile(GameWAD) then
   begin
-    wad.GetResource('FONTS', txtres, cfgdata, cfglen);
-    wad.GetResource('FONTS', fntres, fntdata, fntlen);
+    wad.GetResource('FONTS/'+txtres, cfgdata, cfglen);
+    wad.GetResource('FONTS/'+fntres, fntdata, fntlen);
   end;
   wad.Free();
 

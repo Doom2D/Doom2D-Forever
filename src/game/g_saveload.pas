@@ -152,7 +152,7 @@ begin
     str := gGameSettings.WAD;
     bMem.WriteString(str, 128);
   // Имя карты:
-    g_ProcessResourceStr(gMapInfo.Map, nil, nil, @str);
+    str := g_ExtractFileName(gMapInfo.Map);
     bMem.WriteString(str, 32);
   // Количество игроков:
     nPlayers := g_Player_GetCount();
