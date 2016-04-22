@@ -301,9 +301,10 @@ begin
   fSize := aSize;
   GetMem(fBuffer, ZBufSize);
   fSkipHeader := aSkipHeader;
+  fSrcStPos := fSrcSt.position;
+  FillChar(fZlibSt, sizeof(fZlibSt), 0);
   if fSkipHeader then err := inflateInit2(fZlibSt, -MAX_WBITS) else err := inflateInit(fZlibSt);
   if err <> Z_OK then raise XStreamError.Create(zerror(err));
-  fSrcStPos := fSrcSt.position;
 end;
 
 
@@ -322,6 +323,7 @@ var
   sz: LongInt;
 begin
   result := 0;
+  if (fSize >= 0) and (fPos >= fSize) then exit;
   if count > 0 then
   begin
     fZlibSt.next_out := @buffer;
@@ -360,7 +362,7 @@ begin
     //writeln('  reading ', rd, ' bytes...');
     rr := readBuf(buf, rd);
     //writeln('  got ', rr, ' bytes; fPos=', fPos, '; fSkipToPos=', fSkipToPos);
-    if rd <> rr then raise XStreamError.Create('seek error');
+    if rd <= 0 then raise XStreamError.Create('seek error');
   end;
   //writeln('  pos: fPos=', fPos, '; fSkipToPos=', fSkipToPos);
   fSkipToPos := -1;
@@ -380,12 +382,12 @@ begin
     while true do
     begin
       rd := readBuf(buf, 4096);
-      if rd <> 4096 then break;
+      if rd = 0 then break;
     end;
     fSize := fPos;
     //writeln('  unzstream size is ', fSize);
   finally
-    fSkipToPos := opos;
+    if fSkipToPos < 0 then fSkipToPos := opos;
   end;
 end;
 
@@ -408,9 +410,11 @@ procedure TUnZStream.reset ();
 var
   err: Integer;
 begin
+  //writeln('doing RESET');
   fSrcSt.position := fSrcStPos;
   fPos := 0;
   inflateEnd(fZlibSt);
+  FillChar(fZlibSt, sizeof(fZlibSt), 0);
   if fSkipHeader then err := inflateInit2(fZlibSt, -MAX_WBITS) else err := inflateInit(fZlibSt);
   if err <> Z_OK then raise XStreamError.Create(zerror(err));
 end;
