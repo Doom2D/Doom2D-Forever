@@ -961,6 +961,8 @@ begin
   if Trim(L) = '' then
     Exit;
 
+  conSkipLines := 0; // "unscroll"
+
   if L = 'goobers' then
   begin
     Line := '';
