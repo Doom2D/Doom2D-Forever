@@ -136,11 +136,6 @@ begin
   wcr := (tf.userData[udWasCR] <> 0);
   while count > 0 do
   begin
-    if wcr then
-    begin
-      wcr := false;
-      if buf^ = #10 then continue;
-    end;
     // look for some special char
     ep := buf;
     f := 0;
@@ -156,6 +151,7 @@ begin
     end;
     if f > 0 then
     begin
+      wcr := false;
       cbufPutChars(buf, f);
       Inc(buf, f);
       Dec(count, f);
@@ -184,9 +180,12 @@ begin
 {$IFDEF CBLOG}
       writeln(stderr);
 {$ENDIF}
-      wcr := (ch = #13);
-      x := 0;
-      cbufPut(#10);
+      if not wcr or (ch <> #10) then
+      begin
+        wcr := (ch = #13);
+        x := 0;
+        cbufPut(#10);
+      end;
       continue;
     end;
   end;
