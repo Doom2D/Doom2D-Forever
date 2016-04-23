@@ -121,3 +121,5 @@
 {!CHANGE: Added this}
 {$define Delphi_Stream}
 {$Q-}
+{$MINENUMSIZE 4}
+{$ALIGN 8}
