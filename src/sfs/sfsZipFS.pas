@@ -104,11 +104,8 @@ begin
   st.ReadBuffer(sign[0], 6);
   {fcnt :=} readWord(st);
   st.Seek(-8, soCurrent);
-  //writeln('trying DFWAD... [', sign, ']');
   if (sign[0] <> 'D') and (sign[1] <> 'F') and (sign[2] <> 'W') and
      (sign[3] <> 'A') and (sign[4] <> 'D') and (sign[5] <> #$01) then exit;
-  //writeln('DFWAD FOUND, with ', fcnt, ' files');
-  //if (fcnt < 0) then exit;
   result := true;
 end;
 
@@ -117,25 +114,110 @@ end;
 procedure TSFSZipVolume.ZIPReadDirectory ();
 var
   fi: TSFSZipFileInfo;
-  name: ShortString;
+  fname: AnsiString = '';
   sign: packed array [0..3] of Char;
   lhdr: TZLocalFileHeader;
   ignoreFile: Boolean;
   efid, efsz: Word;
   izver: Byte;
   izcrc: LongWord;
+  buf: PByte;
+  bufsz, f: Integer;
+  cdofs, hdrofs: Int64;
+  cdsize: LongWord;
+  fileOffsets: array of Int64 = nil;
+  nameLen, extraLen, commentLen: Word;
+  fileIdx: Integer = -1;
 begin
+  // search for central dir pointer
+  if fFileStream.size > 65636 then bufsz := 65636 else bufsz := fFileStream.size;
+  fFileStream.position := fFileStream.size-bufsz;
+  GetMem(buf, bufsz);
+  cdofs := -1;
+  cdsize := 0;
+  try
+    fFileStream.readBuffer(buf^, bufsz);
+    for f := bufsz-16 downto 4 do
+    begin
+      if (buf[f-4] = ord('P')) and (buf[f-3] = ord('K')) and (buf[f-2] = 5) and (buf[f-1] = 6) then
+      begin
+        cdsize := LongWord(buf[f+8])+(LongWord(buf[f+9])<<8)+(LongWord(buf[f+10])<<16)+(LongWord(buf[f+11])<<24);
+        cdofs := Int64(buf[f+12])+(Int64(buf[f+13])<<8)+(Int64(buf[f+14])<<16)+(Int64(buf[f+15])<<24);
+        break;
+      end;
+    end;
+  finally
+    FreeMem(buf);
+  end;
+
+  if (cdofs >= 0) and (cdsize > 0) then
+  begin
+    // wow, we got central directory! process it
+    fFileStream.position := cdofs;
+    while cdsize >= 4 do
+    begin
+      Dec(cdsize, 4);
+      fFileStream.readBuffer(sign, 4);
+      if sign = 'PK'#1#2 then
+      begin
+        if cdsize < 42 then break;
+        Dec(cdsize, 42);
+        // skip uninteresting fields
+        fFileStream.seek(2+2+2+2+2+2+4+4+4, soCurrent);
+        nameLen := readWord(fFileStream);
+        extraLen := readWord(fFileStream);
+        commentLen := readWord(fFileStream);
+        // skip uninteresting fields
+        fFileStream.seek(2+2+4, soCurrent);
+        hdrofs := readLongWord(fFileStream);
+        // now skip name, extra and comment
+        if cdsize < nameLen+extraLen+commentLen then break;
+        Dec(cdsize, nameLen+extraLen+commentLen);
+        fFileStream.seek(nameLen+extraLen+commentLen, soCurrent);
+        SetLength(fileOffsets, length(fileOffsets)+1);
+        fileOffsets[high(fileOffsets)] := hdrofs;
+        //writeln('file #', high(fileOffsets), ' found at ', hdrofs);
+      end
+      else if sign = 'PK'#7#8 then
+      begin
+        if cdsize < 3*4 then break;
+        Dec(cdsize, 3*4);
+        fFileStream.seek(3*4, soCurrent);
+      end
+      else
+      begin
+        break;
+      end;
+    end;
+    if length(fileOffsets) = 0 then exit; // no files at all
+    fileIdx := 0;
+  end
+  else
+  begin
+    fFileStream.position := 0;
+  end;
+
   // read local directory
   repeat
-    fFileStream.ReadBuffer(sign[0], Length(sign));
-
-    // skip data descriptor
-    if sign = 'PK'#7#8 then
+    if fileIdx >= 0 then
     begin
-      fFileStream.seek(3*4, soCurrent);
-      continue;
+      if fileIdx > High(fileOffsets) then break;
+      //writeln('reading file #', fileIdx, ' at ', fileOffsets[fileIdx]);
+      fFileStream.position := fileOffsets[fileIdx];
+      Inc(fileIdx);
     end;
 
+    while true do
+    begin
+      fFileStream.ReadBuffer(sign[0], Length(sign));
+      // skip data descriptor
+      if sign = 'PK'#7#8 then
+      begin
+        fFileStream.seek(3*4, soCurrent);
+        continue;
+      end;
+      break;
+    end;
     if sign <> 'PK'#3#4 then break;
 
     ignoreFile := false;
@@ -146,10 +228,12 @@ begin
     fi.fPackSz := 0;
     fi.fMethod := 0;
 
-    if lhdr.fnameSz > 255 then name[0] := #255 else name[0] := chr(lhdr.fnameSz);
-    fFileStream.ReadBuffer(name[1], Length(name));
-    fFileStream.Seek(lhdr.fnameSz-Length(name), soCurrent); // rest of the name (if any)
-    fi.fName := utf8to1251(name);
+    SetLength(fname, lhdr.fnameSz);
+    if lhdr.fnameSz > 0 then
+    begin
+      fFileStream.ReadBuffer(fname[1], length(fname));
+      fi.fName := utf8to1251(fname);
+    end;
 
     // here we should process extra field: it may contain utf8 filename
     while lhdr.localExtraSz >= 4 do
@@ -159,23 +243,22 @@ begin
       Dec(lhdr.localExtraSz, 4);
       if efsz > lhdr.localExtraSz then break;
       // Info-ZIP Unicode Path Extra Field?
-      if (efid = $7075) and (efsz <= 255+5) and (efsz > 5) then
+      if (efid = $7075) and (efsz > 5) then
       begin
         fFileStream.ReadBuffer(izver, 1);
-        if izver <> 1 then
+        Dec(efsz, 1);
+        Dec(lhdr.localExtraSz, 1);
+        if izver = 1 then
         begin
-          // skip it
-          Dec(efsz, 1);
-        end
-        else
-        begin
+          //writeln('!!!!!!!!!!!!');
           Dec(lhdr.localExtraSz, efsz);
-          fFileStream.ReadBuffer(izcrc, 4); // name crc, ignore it
-          Dec(efsz, 5);
-          name[0] := chr(efsz);
-          fFileStream.ReadBuffer(name[1], Length(name));
-          fi.fName := utf8to1251(name);
-          break;
+          fFileStream.ReadBuffer(izcrc, 4); // name crc, ignore it for now
+          Dec(efsz, 4);
+          SetLength(fname, efsz);
+          if length(fname) > 0 then fFileStream.readBuffer(fname[1], length(fname));
+          fi.fName := utf8to1251(fname);
+          //writeln('++++++ [', fi.fName, ']');
+          efsz := 0;
         end;
       end;
       // skip it
@@ -200,13 +283,23 @@ begin
       ignoreFile := true;
     end;
 
+    if (length(fi.fName) = 0) or (fname[length(fi.fName)] = '/') or (fname[length(fi.fName)] = '\') then
+    begin
+      ignoreFile := true;
+    end
+    else
+    begin
+      for f := 1 to length(fi.fName) do if fi.fName[f] = '\' then fi.fName[f] := '/';
+    end;
+
     fi.fOfs := fFileStream.Position;
     fi.fSize := lhdr.unpackSz;
     fi.fPackSz := lhdr.packSz;
     fi.fMethod := lhdr.method;
+    if fi.fMethod = 0 then fi.fPackSz := fi.fSize;
 
     // skip packed data
-    fFileStream.Seek(lhdr.packSz, soCurrent);
+    if fileIdx < 0 then fFileStream.Seek(lhdr.packSz, soCurrent);
     if ignoreFile then fi.Free();
   until false;
   (*
