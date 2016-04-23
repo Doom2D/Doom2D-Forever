@@ -24,6 +24,7 @@ program Doom2DF;
 {$ENDIF}
 
 uses
+  conbuf in '../shared/conbuf.pas',
   GL,
   GLExt,
   SDL2 in '../lib/sdl2/sdl2.pas',

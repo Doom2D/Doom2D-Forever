@@ -29,7 +29,7 @@ implementation
 uses
   g_textures, g_main, e_graphics, e_input, g_game,
   SysUtils, g_basic, g_options, wadreader, Math,
-  g_menu, g_language, g_net, g_netmsg, e_log;
+  g_menu, g_language, g_net, g_netmsg, e_log, conbuf;
 
 type
   TCmdProc = procedure (P: SArray);
@@ -60,13 +60,13 @@ var
   Cons_Shown: Boolean; // Рисовать ли консоль?
   Line: String;
   CPos: Word;
-  ConsoleHistory: SArray;
+  //ConsoleHistory: SArray;
   CommandHistory: SArray;
   Whitelist: SArray;
   Commands: Array of TCommand;
   Aliases: Array of TAlias;
   CmdIndex: Word;
-  Offset: Word;
+  conSkipLines: Integer = 0;
   MsgArray: Array [0..4] of record
                               Msg: String;
                               Time: Word;
@@ -114,7 +114,9 @@ begin
 
   if Cmd = 'clear' then
   begin
-    ConsoleHistory := nil;
+    //ConsoleHistory := nil;
+    cbufClear();
+    conSkipLines := 0;
 
     for a := 0 to High(MsgArray) do
       with MsgArray[a] do
@@ -167,6 +169,7 @@ begin
 
   if Cmd = 'dump' then
   begin
+    (*
     if ConsoleHistory <> nil then
     begin
       if Length(P) > 1 then
@@ -191,6 +194,7 @@ begin
       g_Console_Add(Format(_lc[I_CONSOLE_DUMPED], [s]));
       {$I+}
     end;
+    *)
   end;
 
   if Cmd = 'exec' then
@@ -538,11 +542,67 @@ begin
   end;
 end;
 
+
+procedure drawConsoleText ();
+var
+  CWidth, CHeight: Byte;
+  ty: Integer;
+  sp, ep: LongWord;
+  skip: Integer;
+
+  procedure putLine (sp, ep: LongWord);
+  var
+    p: LongWord;
+    wdt, cw: Integer;
+  begin
+    p := sp;
+    wdt := 0;
+    while p <> ep do
+    begin
+      cw := e_TextureFontCharWidth(cbufAt(p), gStdFont);
+      if wdt+cw > gScreenWidth-8 then break;
+      //e_TextureFontPrintChar(X, Y: Integer; Ch: Char; FontID: DWORD; Shadow: Boolean = False);
+      Inc(wdt, cw);
+      cbufNext(p);
+    end;
+    if p <> ep then putLine(p, ep); // do rest of the line first
+    // now print our part
+    if skip = 0 then
+    begin
+      ep := p;
+      p := sp;
+      wdt := 2;
+      while p <> ep do
+      begin
+        cw := e_TextureFontCharWidth(cbufAt(p), gStdFont);
+        e_TextureFontPrintCharEx(wdt, ty, cbufAt(p), gStdFont);
+        Inc(wdt, cw);
+        cbufNext(p);
+      end;
+      Dec(ty, CHeight);
+    end
+    else
+    begin
+      Dec(skip);
+    end;
+  end;
+
+begin
+  e_TextureFontGetSize(gStdFont, CWidth, CHeight);
+  ty := (gScreenHeight div 2)-4-2*CHeight-Abs(Cons_Y);
+  skip := conSkipLines;
+  cbufLastLine(sp, ep);
+  repeat
+    putLine(sp, ep);
+    if ty+CHeight <= 0 then break;
+  until not cbufLineUp(sp, ep);
+end;
+
 procedure g_Console_Draw();
 var
   CWidth, CHeight: Byte;
   mfW, mfH: Word;
-  a, b, c, d: Integer;
+  a, b: Integer;
 begin
   e_TextureFontGetSize(gStdFont, CWidth, CHeight);
 
@@ -585,6 +645,8 @@ begin
   e_DrawSize(ID, 0, Cons_Y, Alpha, False, False, gScreenWidth, gScreenHeight div 2);
   e_TextureFontPrint(0, Cons_Y+(gScreenHeight div 2)-CHeight-4, '> '+Line, gStdFont);
 
+  drawConsoleText();
+  (*
   if ConsoleHistory <> nil then
   begin
     b := 0;
@@ -603,6 +665,7 @@ begin
       c := c + 1;
     end;
   end;
+  *)
 
   e_TextureFontPrint((CPos+1)*CWidth, Cons_Y+(gScreenHeight div 2)-21, '_', gStdFont);
 end;
@@ -742,11 +805,9 @@ begin
           Cpos := Length(Line) + 1;
         end;
     IK_PAGEUP, IK_KPPAGEUP: // PgUp
-      if not gChatShow then
-        IncMax(OffSet, Length(ConsoleHistory)-1);
+      if not gChatShow then Inc(conSkipLines);
     IK_PAGEDN, IK_KPPAGEDN: // PgDown
-      if not gChatShow then
-        DecMin(OffSet, 0);
+      if not gChatShow and (conSkipLines > 0) then Dec(conSkipLines);
     IK_HOME, IK_KPHOME:
       CPos := 1;
     IK_END, IK_KPEND:
@@ -798,19 +859,25 @@ begin
 end;
 
 procedure g_Console_Add(L: String; Show: Boolean = False);
-var
-  a: Integer;
+{var
+  a: Integer;}
 begin
   // Вывод строк с переносами по очереди
+  {
   while Pos(#10, L) > 0 do
   begin
     g_Console_Add(Copy(L, 1, Pos(#10, L) - 1), Show);
     Delete(L, 1, Pos(#10, L));
   end;
+  }
 
-  SetLength(ConsoleHistory, Length(ConsoleHistory)+1);
-  ConsoleHistory[High(ConsoleHistory)] := L;
+  //SetLength(ConsoleHistory, Length(ConsoleHistory)+1);
+  //ConsoleHistory[High(ConsoleHistory)] := L;
 
+  cbufPut(L);
+  if (length(L) = 0) or ((L[length(L)] <> #10) and (L[length(L)] <> #13)) then cbufPut(#10);
+
+  (*
   Show := Show and gAllowConsoleMessages;
 
   if Show and gShowMessages then
@@ -837,12 +904,14 @@ begin
 {$IFDEF HEADLESS}
   e_WriteLog('CON: ' + L, MSG_NOTIFY);
 {$ENDIF}
+  *)
 end;
 
 procedure g_Console_Clear();
 begin
-  ConsoleHistory := nil;
-  Offset := 0;
+  //ConsoleHistory := nil;
+  cbufClear();
+  conSkipLines := 0;
 end;
 
 procedure AddToHistory(L: String);

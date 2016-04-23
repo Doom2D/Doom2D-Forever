@@ -97,6 +97,9 @@ procedure e_TextureFontPrintFmt(X, Y: GLint; Text: string; FontID: DWORD; Shadow
 procedure e_TextureFontGetSize(ID: DWORD; var CharWidth, CharHeight: Byte);
 procedure e_RemoveAllTextureFont();
 
+function e_TextureFontCharWidth (ch: Char; FontID: DWORD): Integer;
+procedure e_TextureFontPrintCharEx (X, Y: Integer; Ch: Char; FontID: DWORD; Shadow: Boolean = False);
+
 procedure e_ReleaseEngine();
 procedure e_BeginRender();
 procedure e_Clear(Mask: TGLbitfield; Red, Green, Blue: Single); overload;
@@ -1466,6 +1469,24 @@ begin
   glCallLists(1, GL_UNSIGNED_BYTE, @Ch);
 
   glPopMatrix;
+end;
+
+procedure e_TextureFontPrintCharEx (X, Y: Integer; Ch: Char; FontID: DWORD; Shadow: Boolean = False);
+begin
+  glBindTexture(GL_TEXTURE_2D, e_TextureFonts[FontID].TextureID);
+  glEnable(GL_TEXTURE_2D);
+  //glListBase(DWORD(Integer(e_TextureFonts[FontID].Base)-32));
+
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  glEnable(GL_BLEND);
+  e_TextureFontPrintChar(X, Y, Ch, FontID, Shadow);
+  glDisable(GL_TEXTURE_2D);
+  glDisable(GL_BLEND);
+end;
+
+function e_TextureFontCharWidth (ch: Char; FontID: DWORD): Integer;
+begin
+  result := e_TextureFonts[FontID].CharWidth;
 end;
 
 procedure e_TextureFontPrintFmt(X, Y: Integer; Text: string; FontID: DWORD; Shadow: Boolean = False);
