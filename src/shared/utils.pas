@@ -20,6 +20,7 @@ function addWadExtension (fn: AnsiString): AnsiString;
 function Int64ToStrComma (i: Int64): AnsiString;
 
 function UpCase1251 (ch: Char): Char;
+function LoCase1251 (ch: Char): Char;
 
 // `true` if strings are equal; ignoring case for cp1251
 function StrEquCI1251 (const s0, s1: AnsiString): Boolean;
@@ -147,6 +148,30 @@ begin
       case ch of
         #184, #186, #191: Dec(ch, 16);
         #162, #179: Dec(ch);
+      end;
+    end;
+  end;
+  result := ch;
+end;
+
+
+function LoCase1251 (ch: Char): Char;
+begin
+  if ch < #128 then
+  begin
+    if (ch >= 'A') and (ch <= 'Z') then Inc(ch, 32);
+  end
+  else
+  begin
+    if (ch >= #192) and (ch <= #223) then
+    begin
+      Inc(ch, 32);
+    end
+    else
+    begin
+      case ch of
+        #168, #170, #175: Inc(ch, 16);
+        #161, #178: Inc(ch);
       end;
     end;
   end;

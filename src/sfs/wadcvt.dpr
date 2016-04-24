@@ -3,6 +3,11 @@
   {$APPTYPE CONSOLE}
 {$ENDIF}
 {$DEFINE UTFEXTRA}
+{.$DEFINE ONELINELOG}
+
+{$IFDEF WINDOWS}
+  {$UNDEF ONELINELOG}
+{$ENDIF}
 program __wadcvt__;
 
 uses
@@ -31,9 +36,11 @@ uses
 
 var
   optConvertATX: Boolean = false;
+  optConvertTGA: Boolean = false;
+  optLoCaseNames: Boolean = false;
 
 
-function LoadAnimTexture (wadSt: TStream; wadName: AnsiString): TMemoryStream;
+function convertAnimTexture (wadSt: TStream; wadName: AnsiString): TMemoryStream;
 var
   WAD: TWADFile = nil;
   TextureWAD: PChar = nil;
@@ -198,12 +205,31 @@ begin
 end;
 
 
-{
-procedure processed (count: Cardinal);
+function recompressImageToPng (ist: TStream): TStream;
+var
+  ia: TDynImageDataArray = nil;
+  sto: TMemoryStream = nil;
+  f: Integer;
 begin
-  //writeln('  read ', count, ' bytes');
+  result := nil;
+  ist.position := 0;
+  GlobalMetadata.ClearMetaItems();
+  GlobalMetadata.ClearMetaItemsForSaving();
+  if not LoadMultiImageFromStream(ist, ia) then exit;
+  try
+    GlobalMetadata.CopyLoadedMetaItemsForSaving;
+    sto := TMemoryStream.Create();
+    if SaveMultiImageToStream('png', sto, ia) then
+    begin
+      sto.position := 0;
+      result := sto;
+      sto := nil;
+    end;
+  finally
+    sto.Free();
+    for f := 0 to High(ia) do FreeImage(ia[f]);
+  end;
 end;
-}
 
 
 // returs crc
@@ -723,13 +749,15 @@ end;
 var
   fs, fo, ast: TStream;
   fl: TSFSFileList;
-  f: Integer;
+  f, c: Integer;
   infname: AnsiString = '';
   outfname: AnsiString = '';
   dvfn: AnsiString;
   newname: AnsiString;
   files: array of TFileInfo;
   nfo: TFileInfo;
+  nomoreopts: Boolean;
+  arg: AnsiString;
 begin
   if ParamCount() < 1 then
   begin
@@ -739,11 +767,36 @@ begin
 
   for f := 1 to ParamCount() do
   begin
-    if ParamStr(f) = '--apng' then optConvertATX := true
+    arg := ParamStr(f);
+    if length(arg) = 0 then continue;
+    if not nomoreopts and (arg[1] = '-') then
+    begin
+           if arg = '--apng' then optConvertATX := true
+      else if arg = '--tga' then optConvertTGA := true
+      else if arg = '--locase' then optLoCaseNames := true
+      else if arg = '--nocase' then optLoCaseNames := false
+      else if (arg = '--help') or (arg = '-h') then
+      begin
+        writeln('usage: wadcvt [options] file.wad');
+        writeln('options:');
+        writeln('  --apng    convert animated textures to APNG format');
+        writeln('  --tga     convert Targa images to PNG format');
+{$IFNDEF WINDOWS}
+        writeln('  --locase  convert file names to lower case');
+{$ENDIF}
+        Halt(1);
+      end
+      else if arg = '--' then nomoreopts := true
+      else
+      begin
+        writeln('unknown option: "', arg, '"');
+        Halt(1);
+      end;
+    end
     else
     begin
-           if length(infname) = 0 then infname := ParamStr(f)
-      else if length(outfname) = 0 then outfname := ParamStr(f)
+           if length(infname) = 0 then infname := arg
+      else if length(outfname) = 0 then outfname := arg
       else
       begin
         writeln('FATAL: too many arguments!');
@@ -776,6 +829,10 @@ begin
   Imaging.SetOption(ImagingPNGLoadAnimated, 1);
   Imaging.SetOption(ImagingGIFLoadAnimated, 1);
 
+{$IFNDEF WINDOWS}
+  optLoCaseNames := true;
+{$ENDIF}
+
   fo := TFileStream.Create(outfname, fmCreate);
   try
     for f := 0 to fl.Count-1 do
@@ -786,7 +843,7 @@ begin
       //fs.Free();
       //fs := SFSFileOpen(dvfn+'::'+fl[f].fPath+fl[f].fName);
       fs.position := 0;
-{$IFNDEF WINDOWS}
+{$IFNDEF ONELINELOG}
       write(#13'[', f+1, '/', fl.Count, ']: ', fl[f].fPath, newname, '  ', fs.size, ' ... '#27'[K');
 {$ELSE}
       write('[', f+1, '/', fl.Count, ']: ', fl[f].fPath, newname, '  ', fs.size, ' ... ');
@@ -795,25 +852,45 @@ begin
       if optConvertATX and (StrEquCI1251(ExtractFileExt(newname), '.dfwad') or StrEquCI1251(ExtractFileExt(newname), '.wad')) then
       begin
         //writeln('  ANIMTEXT!');
-        ast := LoadAnimTexture(fs, newname);
+        ast := convertAnimTexture(fs, newname);
         if ast <> nil then
         begin
           fs.Free();
           fs := ast;
           newname := ChangeFileExt(newname, '.png');
-          //writeln('  ANIMTEXT! [', newname, ']');
+{$IFNDEF ONELINELOG}
+          write('APNG ');
+{$ENDIF}
         end;
+      end
+      else if optConvertTGA and (StrEquCI1251(ExtractFileExt(newname), '.tga') or StrEquCI1251(ExtractFileExt(newname), '.bmp')) then
+      begin
+        ast := recompressImageToPng(fs);
+        if ast <> nil then
+        begin
+          fs.Free();
+          fs := ast;
+          newname := ChangeFileExt(newname, '.png');
+{$IFNDEF ONELINELOG}
+          write('PNG ');
+{$ENDIF}
+        end;
+        fs.position := 0;
       end;
-      nfo := ZipOne(fo, fl[f].fPath+newname, fs);
+      newname := fl[f].fPath+newname;
+      if optLoCaseNames then for c := 1 to length(newname) do newname[c] := LoCase1251(newname[c]);
+      nfo := ZipOne(fo, newname, fs);
       write('DONE');
-{$IFDEF WINDOWS}
+{$IFNDEF ONELINELOG}
       writeln;
 {$ENDIF}
       SetLength(files, length(files)+1);
       files[high(files)] := nfo;
     end;
-{$IFNDEF WINDOWS}
-    writeln(#13, fl.Count, ' files processed'#27'[K');
+{$IFNDEF ONELINELOG}
+    writeln(fl.Count, ' files processed.');
+{$ELSE}
+    writeln(#13, fl.Count, ' files processed.'#27'[K');
 {$ENDIF}
     writeCentralDir(fo, files);
   except
