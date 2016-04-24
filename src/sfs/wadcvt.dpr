@@ -25,6 +25,10 @@ uses
   ImagingTypes, Imaging, ImagingUtility;
 
 
+{.$WARNINGS ON}
+{.$NOTES ON}
+{.$HINTS ON}
+
 var
   optConvertATX: Boolean = false;
 
@@ -33,18 +37,15 @@ function LoadAnimTexture (wadSt: TStream; wadName: AnsiString): TMemoryStream;
 var
   WAD: TWADFile = nil;
   TextureWAD: PChar = nil;
-  ttw: PChar = nil;
   TextData: Pointer = nil;
   TextureData: Pointer = nil;
   cfg: TConfig = nil;
-  ResLength, rrl: Integer;
+  ResLength: Integer;
   TextureResource: String;
   _width, _height, _framecount, _speed: Integer;
   _backanimation: Boolean;
-  imgfmt: string;
   ia: TDynImageDataArray = nil;
-  il: TImageFileFormat = nil;
-  f, c, frdelay, frloop: Integer;
+  f: Integer;
   img: TImageData;
   x, y, ofsx, ofsy, nx, ny: Integer;
   clr: TColor32Rec;
@@ -134,6 +135,12 @@ begin
       //writeln('creating ', length(ia), ' animation frames...');
       for f := 0 to high(ia) do
       begin
+        GlobalMetadata.SetMetaItem(SMetaFrameDelay, _speed*28, f);
+        if _backanimation then
+          GlobalMetadata.SetMetaItem(SMetaAnimationLoops, 1, f)
+        else
+          GlobalMetadata.SetMetaItem(SMetaAnimationLoops, 0, f);
+
         InitImage(ia[f]);
         NewImage(_width, _height, TImageFormat.ifA8R8G8B8, ia[f]);
         ofsx := f*_width;
@@ -191,10 +198,12 @@ begin
 end;
 
 
+{
 procedure processed (count: Cardinal);
 begin
   //writeln('  read ', count, ' bytes');
 end;
+}
 
 
 // returs crc
