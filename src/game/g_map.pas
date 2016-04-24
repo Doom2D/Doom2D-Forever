@@ -473,7 +473,7 @@ var
   ia: TDynImageDataArray = nil;
   il: TImageFileFormat = nil;
   meta: TMetadata = nil;
-  f: Integer;
+  f, c: Integer;
   gf: TGIFFileFormat;
   pf: TPNGFileFormat;
 begin
@@ -650,7 +650,11 @@ begin
           //writeln(' frame delay: ', meta.MetaItems[SMetaFrameDelay]);
           try
             f := meta.MetaItems[SMetaFrameDelay];
-            f := f div 27;
+            if f < 0 then f := 0;
+            // rounding ;-)
+            c := f mod 27;
+            if c < 13 then c := 0 else c := 1;
+            f := (f div 27)+c;
             if f < 1 then f := 1 else if f > 255 then f := 255;
             _speed := f;
           except
