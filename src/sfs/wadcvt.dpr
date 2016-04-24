@@ -38,6 +38,8 @@ var
   optConvertATX: Boolean = false;
   optConvertTGA: Boolean = false;
   optLoCaseNames: Boolean = false;
+  optAggressivePng: Boolean = false;
+  optRecompress: Boolean = false;
 
 
 function convertAnimTexture (wadSt: TStream; wadName: AnsiString): TMemoryStream;
@@ -179,6 +181,8 @@ begin
 
       sto := TMemoryStream.Create();
       //writeln(' ... [', ChangeFileExt(wadName, '.png'), '] (', length(ia), ') ');
+      Imaging.SetOption(ImagingPNGCompressLevel, 9);
+      if optAggressivePng then Imaging.SetOption(ImagingPNGPreFilter, 6);
       if SaveMultiImageToStream('png', sto, ia) then
       begin
         sto.position := 0;
@@ -219,6 +223,8 @@ begin
   try
     GlobalMetadata.CopyLoadedMetaItemsForSaving;
     sto := TMemoryStream.Create();
+    Imaging.SetOption(ImagingPNGCompressLevel, 9);
+    if optAggressivePng then Imaging.SetOption(ImagingPNGPreFilter, 6);
     if SaveMultiImageToStream('png', sto, ia) then
     begin
       sto.position := 0;
@@ -765,6 +771,10 @@ begin
     Halt(1);
   end;
 
+  Imaging.SetOption(ImagingPNGCompressLevel, 9);
+  Imaging.SetOption(ImagingPNGLoadAnimated, 1);
+  Imaging.SetOption(ImagingGIFLoadAnimated, 1);
+
   for f := 1 to ParamCount() do
   begin
     arg := ParamStr(f);
@@ -775,6 +785,8 @@ begin
       else if arg = '--tga' then optConvertTGA := true
       else if arg = '--locase' then optLoCaseNames := true
       else if arg = '--nocase' then optLoCaseNames := false
+      else if arg = '--aggressive' then begin optAggressivePng := true; Imaging.SetOption(ImagingPNGPreFilter, 6); end
+      else if arg = '--recompress' then optRecompress := true
       else if (arg = '--help') or (arg = '-h') then
       begin
         writeln('usage: wadcvt [options] file.wad');
@@ -825,10 +837,6 @@ begin
     Halt(1);
   end;
 
-  Imaging.SetOption(ImagingPNGCompressLevel, 9);
-  Imaging.SetOption(ImagingPNGLoadAnimated, 1);
-  Imaging.SetOption(ImagingGIFLoadAnimated, 1);
-
 {$IFNDEF WINDOWS}
   optLoCaseNames := true;
 {$ENDIF}
@@ -863,7 +871,7 @@ begin
 {$ENDIF}
         end;
       end
-      else if optConvertTGA and (StrEquCI1251(ExtractFileExt(newname), '.tga') or StrEquCI1251(ExtractFileExt(newname), '.bmp')) then
+      else if optRecompress or (optConvertTGA and (StrEquCI1251(ExtractFileExt(newname), '.tga') or StrEquCI1251(ExtractFileExt(newname), '.bmp'))) then
       begin
         ast := recompressImageToPng(fs);
         if ast <> nil then
@@ -880,7 +888,7 @@ begin
       newname := fl[f].fPath+newname;
       if optLoCaseNames then for c := 1 to length(newname) do newname[c] := LoCase1251(newname[c]);
       nfo := ZipOne(fo, newname, fs);
-      write('DONE');
+      write(nfo.pksize, ' DONE');
 {$IFNDEF ONELINELOG}
       writeln;
 {$ENDIF}
