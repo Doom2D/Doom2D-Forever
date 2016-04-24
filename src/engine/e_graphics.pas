@@ -1841,7 +1841,7 @@ begin
             clr.r := ps^; Inc(ps);
             clr.g := ps^; Inc(ps);
             clr.b := ps^; Inc(ps);
-            clr.a := 0;
+            clr.a := 255;
             SetPixel32(img, x, y, clr);
           end;
         end;
