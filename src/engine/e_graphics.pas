@@ -121,6 +121,8 @@ function _TRect(L, T, R, B: LongInt): TRect;
 var
   e_Colors: TRGB;
   e_NoGraphics: Boolean = False;
+  e_FastScreenshots: Boolean = true; // it's REALLY SLOW with `false`
+
 
 implementation
 
@@ -1697,17 +1699,18 @@ var
   pixels, obuf, scln, ps, pd: PByte;
   obufsize: Integer;
   dlen: Cardinal;
-  i, res: Integer;
+  i, x, y, res: Integer;
   sign: array [0..7] of Byte;
   hbuf: array [0..12] of Byte;
   crc: LongWord;
+  img: TImageData;
+  clr: TColor32Rec;
 begin
   if e_NoGraphics then Exit;
   obuf := nil;
 
   // first, extract and pack graphics data
-
-  if (Width mod 4) > 0 then Width := Width + 4 - (Width mod 4);
+  if (Width mod 4) > 0 then Width := Width+4-(Width mod 4);
 
   GetMem(pixels, Width*Height*3);
   try
@@ -1715,108 +1718,141 @@ begin
     glReadPixels(0, 0, Width, Height, GL_RGB, GL_UNSIGNED_BYTE, pixels);
     //e_WriteLog('PNG: pixels read', MSG_NOTIFY);
 
-    // create scanlines
-    GetMem(scln, (Width*3+1)*Height);
-    try
-      ps := pixels;
-      pd := scln;
-      Inc(ps, (Width*3)*(Height-1));
-      for i := 0 to Height-1 do
-      begin
-        pd^ := 0; // filter
-        Inc(pd);
-        Move(ps^, pd^, Width*3);
-        Dec(ps, Width*3);
-        Inc(pd, Width*3);
+    if e_FastScreenshots then
+    begin
+      // create scanlines
+      GetMem(scln, (Width*3+1)*Height);
+      try
+        ps := pixels;
+        pd := scln;
+        Inc(ps, (Width*3)*(Height-1));
+        for i := 0 to Height-1 do
+        begin
+          pd^ := 0; // filter
+          Inc(pd);
+          Move(ps^, pd^, Width*3);
+          Dec(ps, Width*3);
+          Inc(pd, Width*3);
+        end;
+      except
+        FreeMem(scln);
+        raise;
       end;
-    except
-      raise;
-    end;
-    FreeMem(pixels);
-    pixels := scln;
+      FreeMem(pixels);
+      pixels := scln;
 
-    // pack it
-    obufsize := (Width*3+1)*Height*2;
-    GetMem(obuf, obufsize);
-    try
-      while true do
-      begin
-        dlen := obufsize;
-        res := compress2(Pointer(obuf), dlen, Pointer(pixels), (Width*3+1)*Height, 9);
-        if res = Z_OK then break;
-        if res <> Z_BUF_ERROR then raise Exception.Create('can''t pack data for PNG');
-        obufsize := obufsize*2;
-        FreeMem(obuf);
-        obuf := nil;
-        GetMem(obuf, obufsize);
+      // pack it
+      obufsize := (Width*3+1)*Height*2;
+      GetMem(obuf, obufsize);
+      try
+        while true do
+        begin
+          dlen := obufsize;
+          res := compress2(Pointer(obuf), dlen, Pointer(pixels), (Width*3+1)*Height, 9);
+          if res = Z_OK then break;
+          if res <> Z_BUF_ERROR then raise Exception.Create('can''t pack data for PNG');
+          obufsize := obufsize*2;
+          FreeMem(obuf);
+          obuf := nil;
+          GetMem(obuf, obufsize);
+        end;
+        //e_WriteLog(Format('PNG: pixels compressed from %d to %d', [Integer(Width*Height*3), Integer(dlen)]), MSG_NOTIFY);
+
+        // now write PNG
+
+        // signature
+        sign[0] := 137;
+        sign[1] := 80;
+        sign[2] := 78;
+        sign[3] := 71;
+        sign[4] := 13;
+        sign[5] := 10;
+        sign[6] := 26;
+        sign[7] := 10;
+        st.writeBuffer(sign, 8);
+        //e_WriteLog('PNG: signature written', MSG_NOTIFY);
+
+        // header
+        writeIntBE(st, LongWord(13));
+        sign[0] := 73;
+        sign[1] := 72;
+        sign[2] := 68;
+        sign[3] := 82;
+        st.writeBuffer(sign, 4);
+        crc := crc32(0, @sign, 4);
+        hbuf[0] := 0;
+        hbuf[1] := 0;
+        hbuf[2] := (Width shr 8) and $ff;
+        hbuf[3] := Width and $ff;
+        hbuf[4] := 0;
+        hbuf[5] := 0;
+        hbuf[6] := (Height shr 8) and $ff;
+        hbuf[7] := Height and $ff;
+        hbuf[8] := 8; // bit depth
+        hbuf[9] := 2; // RGB
+        hbuf[10] := 0; // compression method
+        hbuf[11] := 0; // filter method
+        hbuf[12] := 0; // no interlace
+        crc := crc32(crc, @hbuf, 13);
+        st.writeBuffer(hbuf, 13);
+        writeIntBE(st, crc);
+        //e_WriteLog('PNG: header written', MSG_NOTIFY);
+
+        // image data
+        writeIntBE(st, LongWord(dlen));
+        sign[0] := 73;
+        sign[1] := 68;
+        sign[2] := 65;
+        sign[3] := 84;
+        st.writeBuffer(sign, 4);
+        crc := crc32(0, @sign, 4);
+        crc := crc32(crc, obuf, dlen);
+        st.writeBuffer(obuf^, dlen);
+        writeIntBE(st, crc);
+        //e_WriteLog('PNG: image data written', MSG_NOTIFY);
+
+        // image data end
+        writeIntBE(st, LongWord(0));
+        sign[0] := 73;
+        sign[1] := 69;
+        sign[2] := 78;
+        sign[3] := 68;
+        st.writeBuffer(sign, 4);
+        crc := crc32(0, @sign, 4);
+        writeIntBE(st, crc);
+        //e_WriteLog('PNG: end marker written', MSG_NOTIFY);
+      finally
+        if obuf <> nil then FreeMem(obuf);
       end;
-      //e_WriteLog(Format('PNG: pixels compressed from %d to %d', [Integer(Width*Height*3), Integer(dlen)]), MSG_NOTIFY);
-
-      // now write PNG
-
-      // signature
-      sign[0] := 137;
-      sign[1] := 80;
-      sign[2] := 78;
-      sign[3] := 71;
-      sign[4] := 13;
-      sign[5] := 10;
-      sign[6] := 26;
-      sign[7] := 10;
-      st.writeBuffer(sign, 8);
-      //e_WriteLog('PNG: signature written', MSG_NOTIFY);
-
-      // header
-      writeIntBE(st, LongWord(13));
-      sign[0] := 73;
-      sign[1] := 72;
-      sign[2] := 68;
-      sign[3] := 82;
-      st.writeBuffer(sign, 4);
-      crc := crc32(0, @sign, 4);
-      hbuf[0] := 0;
-      hbuf[1] := 0;
-      hbuf[2] := (Width shr 8) and $ff;
-      hbuf[3] := Width and $ff;
-      hbuf[4] := 0;
-      hbuf[5] := 0;
-      hbuf[6] := (Height shr 8) and $ff;
-      hbuf[7] := Height and $ff;
-      hbuf[8] := 8; // bit depth
-      hbuf[9] := 2; // RGB
-      hbuf[10] := 0; // compression method
-      hbuf[11] := 0; // filter method
-      hbuf[12] := 0; // no interlace
-      crc := crc32(crc, @hbuf, 13);
-      st.writeBuffer(hbuf, 13);
-      writeIntBE(st, crc);
-      //e_WriteLog('PNG: header written', MSG_NOTIFY);
-
-      // image data
-      writeIntBE(st, LongWord(dlen));
-      sign[0] := 73;
-      sign[1] := 68;
-      sign[2] := 65;
-      sign[3] := 84;
-      st.writeBuffer(sign, 4);
-      crc := crc32(0, @sign, 4);
-      crc := crc32(crc, obuf, dlen);
-      st.writeBuffer(obuf^, dlen);
-      writeIntBE(st, crc);
-      //e_WriteLog('PNG: image data written', MSG_NOTIFY);
-
-      // image data end
-      writeIntBE(st, LongWord(0));
-      sign[0] := 73;
-      sign[1] := 69;
-      sign[2] := 78;
-      sign[3] := 68;
-      st.writeBuffer(sign, 4);
-      crc := crc32(0, @sign, 4);
-      writeIntBE(st, crc);
-      //e_WriteLog('PNG: end marker written', MSG_NOTIFY);
-    finally
-      if obuf <> nil then FreeMem(obuf);
+    end
+    else
+    begin
+      Imaging.SetOption(ImagingPNGCompressLevel, 9);
+      Imaging.SetOption(ImagingPNGPreFilter, 6);
+      InitImage(img);
+      try
+        NewImage(Width, Height, TImageFormat.ifR8G8B8, img);
+        ps := pixels;
+        //writeln(stderr, 'moving pixels...');
+        for y := Height-1 downto 0 do
+        begin
+          for x := 0 to Width-1 do
+          begin
+            clr.r := ps^; Inc(ps);
+            clr.g := ps^; Inc(ps);
+            clr.b := ps^; Inc(ps);
+            clr.a := 0;
+            SetPixel32(img, x, y, clr);
+          end;
+        end;
+        GlobalMetadata.ClearMetaItems();
+        GlobalMetadata.ClearMetaItemsForSaving();
+        //writeln(stderr, 'compressing image...');
+        if not SaveImageToStream('png', st, img) then raise Exception.Create('screenshot writing error');
+        //writeln(stderr, 'done!');
+      finally
+        FreeImage(img);
+      end;
     end;
   finally
     FreeMem(pixels);

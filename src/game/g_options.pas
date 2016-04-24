@@ -103,7 +103,7 @@ implementation
 uses
   e_log, e_input, g_window, g_sound, g_gfx, g_player, Math,
   g_map, g_net, g_netmaster, SysUtils, CONFIG, g_game, g_main, e_textures,
-  g_items, GL, GLExt, wadreader;
+  g_items, GL, GLExt, wadreader, e_graphics;
 
 procedure g_Options_SetDefault();
 var
@@ -338,6 +338,7 @@ begin
   wadoptDebug := gSFSDebug;
   gSFSFastMode := config.ReadBool('Game', 'SFSFastMode', False);
   wadoptFast := gSFSFastMode;
+  e_FastScreenshots := config.ReadBool('Game', 'FastScreenshots', True);
 
 // Геймплей в своей игре
   gcMap := config.ReadStr('GameplayCustom', 'Map', '');
@@ -541,6 +542,7 @@ begin
   config.WriteInt('Game', 'ChatBubble', gChatBubble);
   config.WriteBool('Game', 'SFSDebug', gSFSDebug);
   config.WriteBool('Game', 'SFSFastMode', gSFSFastMode);
+  config.WriteBool('Game', 'FastScreenshots', e_FastScreenshots);
 
   config.WriteStr ('GameplayCustom', 'Map', gcMap);
   config.WriteStr ('GameplayCustom', 'GameMode', gcGameMode);
