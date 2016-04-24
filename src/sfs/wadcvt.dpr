@@ -15,7 +15,180 @@ uses
   sfsPlainFS,
   sfsZipFS,
   paszlib,
+  wadreader in '../shared/wadreader.pas',
+  conbuf in '../shared/conbuf.pas',
+  BinEditor in '../shared/BinEditor.pas',
+  MAPSTRUCT in '../shared/MAPSTRUCT.pas',
+  MAPDEF in '../shared/MAPDEF.pas',
+  CONFIG in '../shared/CONFIG.pas',
+  e_log in '../engine/e_log.pas',
   ImagingTypes, Imaging, ImagingUtility;
+
+
+var
+  optConvertATX: Boolean = false;
+
+
+function LoadAnimTexture (wadSt: TStream; wadName: AnsiString): TMemoryStream;
+var
+  WAD: TWADFile = nil;
+  TextureWAD: PChar = nil;
+  ttw: PChar = nil;
+  TextData: Pointer = nil;
+  TextureData: Pointer = nil;
+  cfg: TConfig = nil;
+  ResLength, rrl: Integer;
+  TextureResource: String;
+  _width, _height, _framecount, _speed: Integer;
+  _backanimation: Boolean;
+  imgfmt: string;
+  ia: TDynImageDataArray = nil;
+  il: TImageFileFormat = nil;
+  f, c, frdelay, frloop: Integer;
+  img: TImageData;
+  x, y, ofsx, ofsy, nx, ny: Integer;
+  clr: TColor32Rec;
+  sto: TMemoryStream = nil;
+  buf: PChar;
+  buflen: Integer;
+begin
+  result := nil;
+
+  wadSt.position := 0;
+  buflen := Integer(wadSt.size);
+  GetMem(buf, buflen);
+  try
+    wadSt.ReadBuffer(buf^, buflen);
+
+    WAD := TWADFile.Create();
+    //WAD.ReadFile(wadName);
+    WAD.ReadMemory(buf, buflen);
+
+    // Читаем INI-ресурс аним. текстуры и запоминаем его установки:
+    if not WAD.GetResource('TEXT/ANIM', TextData, ResLength) then
+    begin
+      writeln(Format('Animated texture file "%s" has invalid INI', [wadName]));
+      exit;
+    end;
+
+    try
+      cfg := TConfig.CreateMem(TextData, ResLength);
+
+      TextureResource := cfg.ReadStr('', 'resource', '');
+      if TextureResource = '' then
+      begin
+        writeln(Format('Animated texture WAD file "%s" has no "resource"', [wadName]));
+        exit;
+      end;
+
+      _width := cfg.ReadInt('', 'framewidth', 0);
+      _height := cfg.ReadInt('', 'frameheight', 0);
+      _framecount := cfg.ReadInt('', 'framecount', 0);
+      _speed := cfg.ReadInt('', 'waitcount', 0);
+      _backanimation := cfg.ReadBool('', 'backanimation', False);
+      if _speed < 0 then _speed := 0;
+
+      if (_width < 1) or (_width > 16383) or (_height < 1) or (_height > 16383) then
+      begin
+        writeln('invalid animation dimensions: ', _width, 'x', _height);
+        exit;
+      end;
+
+      if (_framecount < 1) or (_framecount > 1024) then
+      begin
+        writeln('invalid frame count: ', _framecount);
+        exit;
+      end;
+
+      cfg.Free();
+      cfg := nil;
+
+      // Читаем ресурс текстур (кадров) аним. текстуры в память:
+      if not WAD.GetResource('TEXTURES/'+TextureResource, TextureData, ResLength) then
+      begin
+        writeln(Format('Animated texture WAD file "%s" has no texture "%s"', [wadName, 'TEXTURES/'+TextureResource]));
+        exit;
+      end;
+
+      if not LoadImageFromMemory(TextureData, ResLength, img) then
+      begin
+        writeln(Format('Animated texture file "%s" has invalid texture image', [wadName]));
+        exit;
+      end;
+      //writeln('texture image: ', img.width, 'x', img.height, ' (', img.width div _width, ' frames)');
+
+      WAD.Free();
+      WAD := nil;
+
+      // now create animation frames
+      GlobalMetadata.ClearMetaItems();
+      GlobalMetadata.ClearMetaItemsForSaving();
+
+      GlobalMetadata.SetMetaItem(SMetaFrameDelay, _speed*28);
+      if _backanimation then
+        GlobalMetadata.SetMetaItem(SMetaAnimationLoops, 1)
+      else
+        GlobalMetadata.SetMetaItem(SMetaAnimationLoops, 0);
+
+      SetLength(ia, _framecount);
+      //writeln('creating ', length(ia), ' animation frames...');
+      for f := 0 to high(ia) do
+      begin
+        InitImage(ia[f]);
+        NewImage(_width, _height, TImageFormat.ifA8R8G8B8, ia[f]);
+        ofsx := f*_width;
+        ofsy := 0;
+        for y := 0 to _height-1 do
+        begin
+          for x := 0 to _width-1 do
+          begin
+            nx := ofsx+x;
+            ny := ofsy+y;
+            if (nx >= 0) and (ny >= 0) and (nx < img.width) and (ny < img.height) then
+            begin
+              clr := GetPixel32(img, nx, ny);
+            end
+            else
+            begin
+              clr.r := 0;
+              clr.g := 0;
+              clr.b := 0;
+              clr.a := 0;
+            end;
+            SetPixel32(ia[f], x, y, clr);
+          end;
+        end;
+        //writeln('resizing image...');
+        //ResizeImage(ia[f], 320, 200, TResizeFilter.rfNearest);
+      end;
+      GlobalMetadata.CopyLoadedMetaItemsForSaving;
+
+      sto := TMemoryStream.Create();
+      //writeln(' ... [', ChangeFileExt(wadName, '.png'), '] (', length(ia), ') ');
+      if SaveMultiImageToStream('png', sto, ia) then
+      begin
+        sto.position := 0;
+        result := sto;
+        sto := nil;
+      end
+      else
+      begin
+        //writeln(' ...WTF?!');
+      end;
+    finally
+      FreeImage(img);
+    end;
+  finally
+    for f := 0 to High(ia) do FreeImage(ia[f]);
+    WAD.Free();
+    cfg.Free();
+    if TextureWAD <> nil then FreeMem(TextureWAD);
+    if TextData <> nil then FreeMem(TextData);
+    if TextureData <> nil then FreeMem(TextureData);
+    sto.Free();
+    FreeMem(buf);
+  end;
+end;
 
 
 procedure processed (count: Cardinal);
@@ -539,11 +712,11 @@ end;
 
 
 var
-  fs, fo: TStream;
+  fs, fo, ast: TStream;
   fl: TSFSFileList;
   f: Integer;
-  infname: AnsiString;
-  outfname: AnsiString;
+  infname: AnsiString = '';
+  outfname: AnsiString = '';
   dvfn: AnsiString;
   newname: AnsiString;
   files: array of TFileInfo;
@@ -555,21 +728,28 @@ begin
     Halt(1);
   end;
 
-  infname := ParamStr(1);
+  for f := 1 to ParamCount() do
+  begin
+    if ParamStr(f) = '--apng' then optConvertATX := true
+    else
+    begin
+           if length(infname) = 0 then infname := ParamStr(f)
+      else if length(outfname) = 0 then outfname := ParamStr(f)
+      else
+      begin
+        writeln('FATAL: too many arguments!');
+        Halt(1);
+      end;
+    end;
+  end;
+
   if not StrEquCI1251(ExtractFileExt(infname), '.wad') and not StrEquCI1251(ExtractFileExt(infname), '.dfwad') then
   begin
     writeln('wtf?!');
     Halt(1);
   end;
 
-  if ParamCount() > 1 then
-  begin
-    outfname := ParamStr(2);
-  end
-  else
-  begin
-    outfname := ChangeFileExt(infname, '.pk3');
-  end;
+  if length(outfname) = 0 then outfname := ChangeFileExt(infname, '.pk3');
 
   if not SFSAddDataFile(infname) then begin WriteLn('shit!'); Halt(1); end;
   dvfn := SFSGetLastVirtualName(infname);
@@ -582,6 +762,10 @@ begin
     writeln('wtf?!');
     Halt(1);
   end;
+
+  Imaging.SetOption(ImagingPNGCompressLevel, 9);
+  Imaging.SetOption(ImagingPNGLoadAnimated, 1);
+  Imaging.SetOption(ImagingGIFLoadAnimated, 1);
 
   fo := TFileStream.Create(outfname, fmCreate);
   try
@@ -598,6 +782,19 @@ begin
 {$ELSE}
       write('[', f+1, '/', fl.Count, ']: ', fl[f].fPath, newname, '  ', fs.size, ' ... ');
 {$ENDIF}
+      //writeln(' : ', newname, ' : [', ExtractFileExt(newname), ']');
+      if optConvertATX and (StrEquCI1251(ExtractFileExt(newname), '.dfwad') or StrEquCI1251(ExtractFileExt(newname), '.wad')) then
+      begin
+        //writeln('  ANIMTEXT!');
+        ast := LoadAnimTexture(fs, newname);
+        if ast <> nil then
+        begin
+          fs.Free();
+          fs := ast;
+          newname := ChangeFileExt(newname, '.png');
+          //writeln('  ANIMTEXT! [', newname, ']');
+        end;
+      end;
       nfo := ZipOne(fo, fl[f].fPath+newname, fs);
       write('DONE');
 {$IFDEF WINDOWS}
