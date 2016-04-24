@@ -103,7 +103,7 @@ implementation
 uses
   e_log, e_input, g_window, g_sound, g_gfx, g_player, Math,
   g_map, g_net, g_netmaster, SysUtils, CONFIG, g_game, g_main, e_textures,
-  g_items, GL, GLExt;
+  g_items, GL, GLExt, wadreader;
 
 procedure g_Options_SetDefault();
 var
@@ -335,7 +335,9 @@ begin
   gRevertPlayers := config.ReadBool('Game', 'RevertPlayers', False);
   gChatBubble := Min(Max(config.ReadInt('Game', 'ChatBubble', 4), 0), 4);
   gSFSDebug := config.ReadBool('Game', 'SFSDebug', False);
+  wadoptDebug := gSFSDebug;
   gSFSFastMode := config.ReadBool('Game', 'SFSFastMode', False);
+  wadoptFast := gSFSFastMode;
 
 // Геймплей в своей игре
   gcMap := config.ReadStr('GameplayCustom', 'Map', '');

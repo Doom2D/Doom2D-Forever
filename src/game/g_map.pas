@@ -469,13 +469,9 @@ var
   TextureResource: String;
   _width, _height, _framecount, _speed: Integer;
   _backanimation: Boolean;
-  imgfmt: string;
+  //imgfmt: string;
   ia: TDynImageDataArray = nil;
-  il: TImageFileFormat = nil;
-  meta: TMetadata = nil;
-  f, c: Integer;
-  gf: TGIFFileFormat;
-  pf: TPNGFileFormat;
+  f, c, frdelay, frloop: Integer;
 begin
   result := -1;
 
@@ -588,43 +584,17 @@ begin
     else
     begin
       // try animated image
+      {
       imgfmt := DetermineMemoryFormat(TextureWAD, ResLength);
       if length(imgfmt) = 0 then
       begin
         e_WriteLog(Format('Animated texture file "%s" has unknown format', [RecName]), MSG_WARNING);
         exit;
       end;
-      if imgfmt = 'gif' then
-      begin
-        meta := TMetadata.Create();
-        gf := TGIFFileFormat.Create(meta);
-        gf.LoadAnimated := true;
-        il := gf;
-      end
-      else if imgfmt = 'png' then
-      begin
-        meta := TMetadata.Create();
-        pf := TPNGFileFormat.Create(meta);
-        pf.LoadAnimated := true;
-        il := pf;
-      end;
-      if il <> nil then
-      begin
-        if not il.LoadFromMemory(TextureWAD, ResLength, ia) then
-        begin
-          e_WriteLog(Format('Animated texture file "%s" cannot be loaded', [RecName]), MSG_WARNING);
-          exit;
-        end;
-      end
-      else if LoadMultiImageFromMemory(TextureWAD, ResLength, ia) then
-      begin
-        if length(ia) > 1 then
-        begin
-          for f := 1 to High(ia) do FreeImage(ia[f]);
-          SetLength(ia, 1);
-        end;
-      end
-      else
+      }
+      GlobalMetadata.ClearMetaItems();
+      GlobalMetadata.ClearMetaItemsForSaving();
+      if not LoadMultiImageFromMemory(TextureWAD, ResLength, ia) then
       begin
         e_WriteLog(Format('Animated texture file "%s" cannot be loaded', [RecName]), MSG_WARNING);
         exit;
@@ -643,36 +613,38 @@ begin
       _framecount := length(ia);
       _speed := 1;
       _backanimation := false;
-      if meta <> nil then
+      frdelay := -1;
+      frloop := -666;
+      if GlobalMetadata.HasMetaItem(SMetaFrameDelay) then
       begin
-        if meta.HasMetaItem(SMetaFrameDelay) then
-        begin
-          //writeln(' frame delay: ', meta.MetaItems[SMetaFrameDelay]);
-          try
-            f := meta.MetaItems[SMetaFrameDelay];
-            if f < 0 then f := 0;
-            // rounding ;-)
-            c := f mod 28;
-            if c < 13 then c := 0 else c := 1;
-            f := (f div 28)+c;
-            if f < 1 then f := 1 else if f > 255 then f := 255;
-            _speed := f;
-          except
-          end;
+        //writeln(' frame delay: ', GlobalMetadata.MetaItems[SMetaFrameDelay]);
+        try
+          f := GlobalMetadata.MetaItems[SMetaFrameDelay];
+          frdelay := f;
+          if f < 0 then f := 0;
+          // rounding ;-)
+          c := f mod 28;
+          if c < 13 then c := 0 else c := 1;
+          f := (f div 28)+c;
+          if f < 1 then f := 1 else if f > 255 then f := 255;
+          _speed := f;
+        except
         end;
-        if meta.HasMetaItem(SMetaAnimationLoops) then
-        begin
-          //writeln(' frame loop : ', meta.MetaItems[SMetaAnimationLoops]);
-          try
-            f := meta.MetaItems[SMetaAnimationLoops];
-            if f <> 0 then _backanimation := true;
-          except
-          end;
+      end;
+      if GlobalMetadata.HasMetaItem(SMetaAnimationLoops) then
+      begin
+        //writeln(' frame loop : ', GlobalMetadata.MetaItems[SMetaAnimationLoops]);
+        try
+          f := GlobalMetadata.MetaItems[SMetaAnimationLoops];
+          frloop := f;
+          if f <> 0 then _backanimation := true; // non-infinite looping == forth-and-back
+        except
         end;
       end;
       //writeln(' creating animated texture with ', length(ia), ' frames (delay:', _speed, '; backloop:', _backanimation, ') from "', RecName, '"...');
       //for f := 0 to high(ia) do writeln('  frame #', f, ': ', ia[f].width, 'x', ia[f].height);
-      //e_WriteLog(Format('Animated texture file "%s": %d frames (delay:%d), %dx%d', [RecName, length(ia), _speed, _width, _height]), MSG_NOTIFY);
+      f := ord(_backanimation);
+      e_WriteLog(Format('Animated texture file "%s": %d frames (delay:%d; back:%d; frdelay:%d; frloop:%d), %dx%d', [RecName, length(ia), _speed, f, frdelay, frloop, _width, _height]), MSG_NOTIFY);
 
       SetLength(Textures, Length(Textures)+1);
       // cоздаем кадры аним. текстуры из картинок
@@ -694,8 +666,6 @@ begin
     end;
   finally
     for f := 0 to High(ia) do FreeImage(ia[f]);
-    il.Free();
-    //???meta.Free();
     WAD.Free();
     cfg.Free();
     if TextureWAD <> nil then FreeMem(TextureWAD);

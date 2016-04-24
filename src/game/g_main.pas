@@ -34,6 +34,8 @@ procedure Main();
 var
   sdlflags: LongWord;
 begin
+  e_InitWritelnDriver();
+
   GetDir(0, GameDir);
   MapsDir := GameDir + '/maps/';
   DataDir := GameDir + '/data/';

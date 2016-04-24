@@ -50,10 +50,15 @@ function g_ExtractFilePathName (resourceStr: AnsiString): AnsiString;
 function findDiskWad (fname: AnsiString): AnsiString;
 
 
+var
+  wadoptDebug: Boolean = false;
+  wadoptFast: Boolean = false;
+
+
 implementation
 
 uses
-  SysUtils, Classes, BinEditor, e_log, g_options, utils, MAPSTRUCT;
+  SysUtils, Classes{, BinEditor}, e_log{, g_options}, utils, MAPSTRUCT;
 
 
 function findDiskWad (fname: AnsiString): AnsiString;
@@ -368,7 +373,7 @@ begin
 {$ENDIF}
       result := true;
       {$IFDEF SFS_DWFAD_DEBUG}
-      if gSFSDebug then
+      if wadoptDebug then
         e_WriteLog(Format('DFWAD: file [%s] FOUND in [%s]; size is %d bytes', [name, fFileName, Len]), MSG_NOTIFY);
       {$ENDIF}
       exit;
@@ -436,11 +441,11 @@ begin
     exit;
   end;
   {$IFDEF SFS_DWFAD_DEBUG}
-  if gSFSDebug then e_WriteLog(Format('TWADFile.ReadFile: FOUND [%s]', [rfn]), MSG_NOTIFY);
+  if wadoptDebug then e_WriteLog(Format('TWADFile.ReadFile: FOUND [%s]', [rfn]), MSG_NOTIFY);
   {$ENDIF}
   // cache this wad
   try
-    if gSFSFastMode then
+    if wadoptFast then
     begin
       if not SFSAddDataFile(rfn, true) then exit;
     end
@@ -455,7 +460,7 @@ begin
   if fIter = nil then Exit;
   fFileName := rfn;
   {$IFDEF SFS_DWFAD_DEBUG}
-  if gSFSDebug then e_WriteLog(Format('TWADFile.ReadFile: [%s] opened', [fFileName]), MSG_NOTIFY);
+  if wadoptDebug then e_WriteLog(Format('TWADFile.ReadFile: [%s] opened', [fFileName]), MSG_NOTIFY);
   {$ENDIF}
   Result := True;
 end;

@@ -252,5 +252,5 @@ end;
 
 
 begin
-  e_InitWritelnDriver();
+  //e_InitWritelnDriver();
 end.
