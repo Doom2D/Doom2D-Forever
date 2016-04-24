@@ -4,7 +4,7 @@ unit e_graphics;
 interface
 
 uses
-  SysUtils, Classes, Math, e_log, e_textures, SDL2, GL, GLExt, MAPDEF;
+  SysUtils, Classes, Math, e_log, e_textures, SDL2, GL, GLExt, MAPDEF, ImagingTypes, Imaging, ImagingUtility;
 
 type
   TMirrorType=(M_NONE, M_HORIZONTAL, M_VERTICAL);
@@ -63,6 +63,7 @@ procedure e_DrawQuad(X1, Y1, X2, Y2: Integer; Red, Green, Blue: Byte; Alpha: Byt
 procedure e_DrawFillQuad(X1, Y1, X2, Y2: Integer; Red, Green, Blue, Alpha: Byte;
                          Blending: TBlending = B_NONE);
 
+function e_CreateTextureImg (var img: TImageData; var ID: DWORD): Boolean;
 function e_CreateTexture(FileName: string; var ID: DWORD): Boolean;
 function e_CreateTextureEx(FileName: string; var ID: DWORD; fX, fY, fWidth, fHeight: Word): Boolean;
 function e_CreateTextureMem(pData: Pointer; dataSize: LongInt; var ID: DWORD): Boolean;
@@ -330,6 +331,22 @@ begin
  ID := find_id;
 
  Result := True;
+end;
+
+function e_CreateTextureImg (var img: TImageData; var ID: DWORD): Boolean;
+var
+  find_id: DWORD;
+  fmt, tw, th: Word;
+begin
+  result := false;
+  find_id := FindTexture();
+  if not LoadTextureImg(img, e_Textures[find_id].tx, tw, th, @fmt) then exit;
+  //writeln(' tw=', tw, '; th=', th);
+  e_Textures[find_id].Width := tw;
+  e_Textures[find_id].Height := th;
+  e_Textures[find_id].Fmt := fmt;
+  ID := find_id;
+  result := True;
 end;
 
 procedure e_GetTextureSize(ID: DWORD; Width, Height: PWord);

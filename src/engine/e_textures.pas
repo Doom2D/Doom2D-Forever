@@ -8,7 +8,8 @@ unit e_textures;
 interface
 
 uses
-  GL, GLExt, SysUtils, e_log;
+  GL, GLExt, SysUtils, e_log,
+  ImagingTypes, Imaging, ImagingUtility;
 
 type
   GLTexture = record
@@ -30,11 +31,14 @@ function LoadTextureEx (Filename: String; var Texture: GLTexture; fX, fY, fWidth
 function LoadTextureMem (pData: Pointer; dataSize: LongInt; var Texture: GLTexture; var pWidth, pHeight: Word; Fmt: PWord=nil): Boolean;
 function LoadTextureMemEx (pData: Pointer; dataSize: LongInt; var Texture: GLTexture; fX, fY, fWidth, fHeight: Word; Fmt: PWord=nil): Boolean;
 
+// `img` must be valid!
+function LoadTextureImg (var img: TImageData; var Texture: GLTexture; var pWidth, pHeight: Word; Fmt: PWord=nil): Boolean;
+
+
 implementation
 
 uses
-  Classes, BinEditor, g_options, utils,
-  ImagingTypes, Imaging, ImagingUtility;
+  Classes, BinEditor, g_options, utils;
 
 
 function AlignP2 (n: Word): Word;
@@ -160,6 +164,54 @@ begin
   Result := true;
 end;
 
+// `img` must be valid!
+function LoadTextureImg (var img: TImageData; var Texture: GLTexture; var pWidth, pHeight: Word; Fmt: PWord=nil): Boolean;
+var
+  image, ii: PByte;
+  width, height: Integer;
+  imageSize: Integer;
+  x, y: Integer;
+  clr: TColor32Rec;
+begin
+  result := false;
+  pWidth := 0;
+  pHeight := 0;
+  if Fmt <> nil then Fmt^ := GL_RGBA; // anyway
+
+  if (img.width < 1) or (img.width > 32768) or (img.height < 1) or (img.height > 32768) then
+  begin
+    e_WriteLog('Error loading texture: invalid image dimensions', MSG_WARNING);
+    exit;
+  end;
+  //ConvertImage(img, ifA8R8G8B8);
+  width := img.width;
+  height := img.height;
+  pWidth := width;
+  pHeight := height;
+  imageSize := Width*Height*4;
+  GetMem(image, imageSize);
+  try
+    // it's slow, but i don't care for now
+    ii := image;
+    for y := height-1 downto 0 do
+    begin
+      for x := 0 to width-1 do
+      begin
+        clr := GetPixel32(img, x, y);
+        ii^ := clr.r; Inc(ii);
+        ii^ := clr.g; Inc(ii);
+        ii^ := clr.b; Inc(ii);
+        ii^ := clr.a; Inc(ii);
+      end;
+    end;
+    CreateTexture(Texture, width, height, GL_RGBA, image);
+    result := true;
+  finally
+    FreeMem(image);
+  end;
+end;
+
+
 function LoadTextureMem (pData: Pointer; dataSize: LongInt; var Texture: GLTexture; var pWidth, pHeight: Word; Fmt: PWord=nil): Boolean;
 var
   image, ii: PByte;
@@ -181,37 +233,7 @@ begin
     exit;
   end;
   try
-    if (img.width < 1) or (img.width > 32768) or (img.height < 1) or (img.height > 32768) then
-    begin
-      e_WriteLog('Error loading texture: invalid image dimensions', MSG_WARNING);
-      exit;
-    end;
-    //ConvertImage(img, ifA8R8G8B8);
-    width := img.width;
-    height := img.height;
-    pWidth := width;
-    pHeight := height;
-    imageSize := Width*Height*32;
-    GetMem(image, imageSize);
-    try
-      // it's slow, but i don't care for now
-      ii := image;
-      for y := height-1 downto 0 do
-      begin
-        for x := 0 to width-1 do
-        begin
-          clr := GetPixel32(img, x, y);
-          ii^ := clr.r; Inc(ii);
-          ii^ := clr.g; Inc(ii);
-          ii^ := clr.b; Inc(ii);
-          ii^ := clr.a; Inc(ii);
-        end;
-      end;
-      CreateTexture(Texture, width, height, GL_RGBA, image);
-      result := true;
-    finally
-      FreeMem(image);
-    end;
+    result := LoadTextureImg(img, Texture, pWidth, pHeight, Fmt);
   finally
     FreeImage(img);
   end;
@@ -247,7 +269,7 @@ begin
     if fY > img.height then exit;
     if fX+fWidth > img.width then exit;
     if fY+fHeight > img.height then exit;
-    imageSize := img.width*img.height*32;
+    imageSize := img.width*img.height*4;
     GetMem(image, imageSize);
     try
       // it's slow, but i don't care for now

@@ -4,7 +4,7 @@ unit g_textures;
 interface
 
 uses
-  e_graphics, BinEditor;
+  e_graphics, BinEditor, ImagingTypes, Imaging, ImagingUtility;
 
 Type
   TLevelTexture = record
@@ -74,6 +74,8 @@ function g_Texture_CreateFileEx(TextureName: ShortString; FileName: String): Boo
 function g_Texture_Get(TextureName: ShortString; var ID: DWORD): Boolean;
 procedure g_Texture_Delete(TextureName: ShortString);
 procedure g_Texture_DeleteAll();
+
+function g_CreateFramesImg (ia: TDynImageDataArray; ID: PDWORD; Name: ShortString; BackAnimation: Boolean = False): Boolean;
 
 function g_Frames_CreateWAD(ID: PDWORD; Name: ShortString; Resource: String;
                             FWidth, FHeight, FCount: Word; BackAnimation: Boolean = False): Boolean;
@@ -383,6 +385,53 @@ begin
   if ID <> nil then ID^ := find_id;
 
   Result := True;
+end;
+
+function g_CreateFramesImg (ia: TDynImageDataArray; ID: PDWORD; Name: ShortString; BackAnimation: Boolean = False): Boolean;
+var
+  find_id: DWORD;
+  a, FCount: Integer;
+begin
+  result := false;
+  find_id := FindFrame();
+
+  FCount := length(ia);
+
+  //e_WriteLog(Format('+++ creating %d frames [%s]', [FCount, Name]), MSG_NOTIFY);
+
+  if FCount < 1 then exit;
+  if FCount <= 2 then BackAnimation := False;
+  if BackAnimation then
+    SetLength(FramesArray[find_id].TexturesID, FCount+FCount-2)
+  else
+    SetLength(FramesArray[find_id].TexturesID, FCount);
+
+  //e_WriteLog(Format('+++ creating %d frames, %dx%d', [FCount, ia[0].width, ia[0].height]), MSG_NOTIFY);
+
+  for a := 0 to FCount-1 do
+  begin
+    if not e_CreateTextureImg(ia[a], FramesArray[find_id].TexturesID[a]) then exit;
+    //e_WriteLog(Format('+++   frame %d, %dx%d', [a, ia[a].width, ia[a].height]), MSG_NOTIFY);
+  end;
+
+  if BackAnimation then
+  begin
+    for a := 1 to FCount-2 do
+    begin
+      FramesArray[find_id].TexturesID[FCount+FCount-2-a] := FramesArray[find_id].TexturesID[a];
+    end;
+  end;
+
+  FramesArray[find_id].FrameWidth := ia[0].width;
+  FramesArray[find_id].FrameHeight := ia[0].height;
+  if Name <> '' then
+    FramesArray[find_id].Name := LowerCase(Name)
+  else
+    FramesArray[find_id].Name := '<noname>';
+
+  if ID <> nil then ID^ := find_id;
+
+  result := true;
 end;
 
 function g_Frames_CreateWAD(ID: PDWORD; Name: ShortString; Resource: string;
