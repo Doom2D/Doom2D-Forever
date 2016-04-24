@@ -652,9 +652,9 @@ begin
             f := meta.MetaItems[SMetaFrameDelay];
             if f < 0 then f := 0;
             // rounding ;-)
-            c := f mod 27;
+            c := f mod 28;
             if c < 13 then c := 0 else c := 1;
-            f := (f div 27)+c;
+            f := (f div 28)+c;
             if f < 1 then f := 1 else if f > 255 then f := 255;
             _speed := f;
           except
