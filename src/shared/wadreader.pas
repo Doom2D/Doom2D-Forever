@@ -135,7 +135,11 @@ begin
     if (lastSlash < 0) and (resourceStr[f] = '\') or (resourceStr[f] = '/') then lastSlash := f;
     if resourceStr[f] = ':' then
     begin
-      if lastSlash > 0 then result := normSlashes(Copy(resourceStr, f, lastSlash-f));
+      if lastSlash > 0 then
+      begin
+        result := normSlashes(Copy(resourceStr, f, lastSlash-f));
+        while (length(result) > 0) and (result[1] = '/') do Delete(result, 1, 1);
+      end;
       exit;
     end;
   end;
@@ -170,9 +174,12 @@ begin
     if resourceStr[f] = ':' then
     begin
       result := normSlashes(Copy(resourceStr, f+1, length(resourceStr)));
+      while (length(result) > 0) and (result[1] = '/') do Delete(result, 1, 1);
       exit;
     end;
   end;
+  result := normSlashes(resourceStr);
+  while (length(result) > 0) and (result[1] = '/') do Delete(result, 1, 1);
 end;
 
 
