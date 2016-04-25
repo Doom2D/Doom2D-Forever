@@ -382,7 +382,7 @@ begin
     if not e_CreateTextureMemEx(pData, dataSize, FramesArray[find_id].TexturesID[a],
                                 a*FWidth, 0, FWidth, FHeight) then
     begin
-      FreeMem(pData);
+      //!!!FreeMem(pData);
       Exit;
     end;
 

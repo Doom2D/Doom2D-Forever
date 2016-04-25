@@ -32,6 +32,7 @@ type
     width, height: Word; // real
     glwidth, glheight: Word; // powerof2
     u, v: Single; // usually 1.0
+    fmt: GLuint;
   end;
 
 var
@@ -69,49 +70,31 @@ begin
 end;
 
 
-{
-type
-  TTGAHeader = packed record
-    FileType:     Byte;
-    ColorMapType: Byte;
-    ImageType:    Byte;
-    ColorMapSpec: array[0..4] of Byte;
-    OrigX:        array[0..1] of Byte;
-    OrigY:        array[0..1] of Byte;
-    Width:        array[0..1] of Byte;
-    Height:       array[0..1] of Byte;
-    BPP:          Byte;
-    ImageInfo:    Byte;
-  end;
-}
-
-
 // This is auxiliary function that creates OpenGL texture from raw image data
 function CreateTexture (var tex: GLTexture; Width, Height, aFormat: Word; pData: Pointer): Boolean;
 var
   Texture: GLuint;
+  fmt: GLenum;
+  buf: PByte;
+  f, c: Integer;
 begin
   tex.width := Width;
   tex.height := Height;
+  tex.glwidth := Width;
+  tex.glheight := Height;
+  tex.u := 1;
+  tex.v := 1;
+
   if glLegacyNPOT then
   begin
     tex.glwidth := AlignP2(Width);
     tex.glheight := AlignP2(Height);
-  end
-  else
-  begin
-    tex.glwidth := Width;
-    tex.glheight := Height;
+    if tex.glwidth <> tex.width then tex.u := (tex.width+0.0)/(tex.glwidth+0.0);
+    if tex.glheight <> tex.height then tex.v := (tex.height+0.0)/(tex.glheight+0.0);
   end;
-  tex.u := 1;
-  tex.v := 1;
-  if tex.glwidth <> tex.width then tex.u := (tex.width+0.0)/(tex.glwidth+0.0);
-  if tex.glheight <> tex.height then tex.v := (tex.height+0.0)/(tex.glheight+0.0);
 
-  if (tex.glwidth <> tex.width) or (tex.glheight <> tex.height) then
-  begin
-    e_WriteLog(Format('NPOT: orig is %ux%u; gl is %ux%u; u=%f; v=%f', [Width, Height, tex.glwidth, tex.glheight, tex.u, tex.v]), MSG_NOTIFY);
-  end;
+  //if (tex.glwidth <> tex.width) or (tex.glheight <> tex.height) then
+  //  e_WriteLog(Format('NPOT: orig is %ux%u; gl is %ux%u; u=%f; v=%f', [Width, Height, tex.glwidth, tex.glheight, tex.u, tex.v]), MSG_NOTIFY);
 
   if e_DummyTextures then
   begin
@@ -123,6 +106,9 @@ begin
   glGenTextures(1, @Texture);
   tex.id := Texture;
   glBindTexture(GL_TEXTURE_2D, Texture);
+
+  if (tex.glwidth <> tex.width) or (tex.glheight <> tex.height) then
+    e_WriteLog(Format('NPOT: %u is %ux%u; gl is %ux%u; u=%f; v=%f', [tex.id, Width, Height, tex.glwidth, tex.glheight, tex.u, tex.v]), MSG_NOTIFY);
 
   // texture blends with object background
   glTexEnvi( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
@@ -145,34 +131,34 @@ begin
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, TEXTUREFILTER);
 
   // create empty texture
-  if aFormat = GL_RGBA then
-  begin
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, tex.glwidth, tex.glheight, 0, GL_RGBA, GL_UNSIGNED_BYTE, nil);
-    glTexSubImage2D(GL_TEXTURE_2D, 0,  0, 0, Width, Height, GL_RGBA, GL_UNSIGNED_BYTE, pData);
-  end
-  else
-  begin
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, tex.glwidth, tex.glheight, 0, GL_RGB, GL_UNSIGNED_BYTE, nil);
-    glTexSubImage2D(GL_TEXTURE_2D, 0,  0, 0, Width, Height, GL_RGB, GL_UNSIGNED_BYTE, pData);
-  end;
+  if aFormat = GL_RGBA then fmt := GL_RGBA else fmt := GL_RGB; // silly, yeah?
+  glTexImage2D(GL_TEXTURE_2D, 0, fmt, tex.glwidth, tex.glheight, 0, GL_RGBA, GL_UNSIGNED_BYTE, nil);
 
-  // the following is ok too
-  //bindTexture(0);
-  //glTextureSubImage2D(tid, 0,  0, 0, img.width, img.height, GL_RGBA, GL_UNSIGNED_BYTE, img.imageData.bytes.ptr);
-
-  {
-  if (tex.glwidth = tex.glwidth) and (tex.glheight = tex.height) then
-    // easy case
-    if aFormat = GL_RGBA then
+  (*
+  GetMem(buf, tex.glwidth*4*tex.glheight);
+  try
+    FillChar(buf^, tex.glwidth*4*tex.glheight, 255);
+    glTexSubImage2D(GL_TEXTURE_2D, 0,  0, 0, tex.glwidth, tex.glheight, fmt, GL_UNSIGNED_BYTE, buf);
+    if (tex.glheight = 128) and (tex.height = 80) then
     begin
-      glTexImage2D(GL_TEXTURE_2D, 0, 4, Width, Height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pData);
-    end
-    else
-    begin
-      glTexImage2D(GL_TEXTURE_2D, 0, 3, Width, Height, 0, GL_RGB, GL_UNSIGNED_BYTE, pData);
+      for f := 0 to tex.glheight-1 do
+      begin
+        for c := 0 to tex.glwidth-1 do
+        begin
+          buf[f*(tex.glwidth*4)+c*4+0] := 255;
+          buf[f*(tex.glwidth*4)+c*4+1] := 127;
+          buf[f*(tex.glwidth*4)+c*4+2] := 0;
+        end;
+      end;
+      glTexSubImage2D(GL_TEXTURE_2D, 0,  0, 82, tex.glwidth, {tex.glheight}1, fmt, GL_UNSIGNED_BYTE, buf);
     end;
-  end
-  }
+  finally
+    FreeMem(buf);
+  end;
+  *)
+
+  glTexSubImage2D(GL_TEXTURE_2D, 0,  0, 0, Width, Height, fmt, GL_UNSIGNED_BYTE, pData);
+  //glTexSubImage2D(GL_TEXTURE_2D, 0,  0, tex.glheight-tex.height, Width, Height, fmt, GL_UNSIGNED_BYTE, pData);
 
   glBindTexture(GL_TEXTURE_2D, 0);
 
@@ -284,12 +270,13 @@ begin
     if fY > img.height then exit;
     if fX+fWidth > img.width then exit;
     if fY+fHeight > img.height then exit;
+    //writeln('fX=', fX, '; fY=', fY, '; fWidth=', fWidth, '; fHeight=', fHeight);
     imageSize := img.width*img.height*4;
     GetMem(image, imageSize);
     try
       // it's slow, but i don't care for now
       ii := image;
-      for y := fY+fHeight-1 downto 0 do
+      for y := fY+fHeight-1 downto fY do
       begin
         for x := fX to fX+fWidth-1 do
         begin
