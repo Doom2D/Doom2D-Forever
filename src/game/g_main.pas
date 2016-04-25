@@ -62,7 +62,7 @@ begin
   e_WriteLog('Read config file', MSG_NOTIFY);
   g_Options_Read(GameDir + '/' + CONFIG_FILENAME);
 
-  e_WriteToStdOut := {$IFDEF HEADLESS}True;{$ELSE}False;{$ENDIF}
+  e_WriteToStdOut := False; //{$IFDEF HEADLESS}True;{$ELSE}False;{$ENDIF}
 
   //GetSystemDefaultLCID()
 
