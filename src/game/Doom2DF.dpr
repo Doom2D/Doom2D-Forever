@@ -117,7 +117,11 @@ var
   f: Integer;
   noct: Boolean = false;
 begin
-  for f := 1 to ParamCount do if ParamStr(f) = '--gdb' then noct := true;
+  for f := 1 to ParamCount do
+  begin
+         if ParamStr(f) = '--gdb' then noct := true
+    else if ParamStr(f) = '--log' then conbufDumpToStdOut := true;
+  end;
   if noct then
     Main()
   else

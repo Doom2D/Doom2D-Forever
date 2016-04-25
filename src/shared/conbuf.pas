@@ -38,6 +38,9 @@ function cbufLineUp (var sp: LongWord; var ep: LongWord): Boolean;
 
 procedure cbufClear ();
 
+var
+  conbufDumpToStdOut: Boolean = false;
+
 
 implementation
 
@@ -60,10 +63,9 @@ function cbufLastChange (): LongWord; begin result := changeCount; end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-{$IFDEF HEADLESS}
 var
   needCon: Boolean = true;
-{$ENDIF}
+
 procedure cbufPutChars (buf: PChar; count: Integer);
 var
   np: LongWord;
@@ -71,15 +73,15 @@ var
 begin
   if count > 0 then
   begin
-{$IFDEF HEADLESS}
-    //write(stderr, 'CON: ');
-    for np := 0 to count-1 do
+    if conbufDumpToStdOut then
     begin
-      if needCon then begin write(stdout, 'CON: '); needCon := false; end;
-      write(stdout, buf[np]);
-      needCon := (buf[np] = #10);
+      for np := 0 to count-1 do
+      begin
+        if needCon then begin write(stdout, 'CON: '); needCon := false; end;
+        write(stdout, buf[np]);
+        needCon := (buf[np] = #10);
+      end;
     end;
-{$ENDIF}
     Inc(changeCount);
     if changeCount = 0 then changeCount := 1;
     while count > 0 do

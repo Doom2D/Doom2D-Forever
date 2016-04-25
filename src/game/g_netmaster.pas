@@ -147,6 +147,7 @@ begin
       Cnt := e_Raw_Read_Byte(NetMEvent.packet^.data);
       e_WriteLog('Retrieved ' + IntToStr(Cnt) + ' server(s).', MSG_NOTIFY);
       g_Console_Add(_lc[I_NET_MSG] + Format(_lc[I_NET_SLIST_RETRIEVED], [Cnt]), True);
+      //writeln('BOO!');
 
       if Cnt > 0 then
       begin

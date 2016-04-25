@@ -915,7 +915,7 @@ begin
     while length(L) > 0 do
     begin
       f := Pos(#10, L);
-      if f < 0 then f := length(L)+1;
+      if f <= 0 then f := length(L)+1;
       conmsg(Copy(L, 1, f-1));
       Delete(L, 1, f);
     end;
