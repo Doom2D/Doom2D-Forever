@@ -873,42 +873,26 @@ begin
   end;
 end;
 
-procedure g_Console_Add(L: String; Show: Boolean = False);
-{var
-  a: Integer;}
-begin
-  // Вывод строк с переносами по очереди
-  {
-  while Pos(#10, L) > 0 do
+procedure g_Console_Add (L: string; Show: Boolean=false);
+
+  procedure conmsg (s: AnsiString);
+  var
+    a: Integer;
   begin
-    g_Console_Add(Copy(L, 1, Pos(#10, L) - 1), Show);
-    Delete(L, 1, Pos(#10, L));
-  end;
-  }
-
-  //SetLength(ConsoleHistory, Length(ConsoleHistory)+1);
-  //ConsoleHistory[High(ConsoleHistory)] := L;
-
-  cbufPut(L);
-  if (length(L) = 0) or ((L[length(L)] <> #10) and (L[length(L)] <> #13)) then cbufPut(#10);
-
-  (*
-  Show := Show and gAllowConsoleMessages;
-
-  if Show and gShowMessages then
-  begin
+    if length(s) = 0 then exit;
     for a := 0 to High(MsgArray) do
+    begin
       with MsgArray[a] do
+      begin
         if Time = 0 then
         begin
-          Msg := L;
+          Msg := s;
           Time := MsgTime;
-          Exit;
+          exit;
         end;
-
-    for a := 0 to High(MsgArray)-1 do
-      MsgArray[a] := MsgArray[a+1];
-
+      end;
+    end;
+    for a := 0 to High(MsgArray)-1 do MsgArray[a] := MsgArray[a+1];
     with MsgArray[High(MsgArray)] do
     begin
       Msg := L;
@@ -916,6 +900,31 @@ begin
     end;
   end;
 
+var
+  f: Integer;
+begin
+  // put it to console
+  cbufPut(L);
+  if (length(L) = 0) or ((L[length(L)] <> #10) and (L[length(L)] <> #13)) then cbufPut(#10);
+
+  // now show 'em out of console too
+  Show := Show and gAllowConsoleMessages;
+  if Show and gShowMessages then
+  begin
+    // Вывод строк с переносами по очереди
+    while length(L) > 0 do
+    begin
+      f := Pos(#10, L);
+      if f < 0 then f := length(L)+1;
+      conmsg(Copy(L, 1, f-1));
+      Delete(L, 1, f);
+    end;
+  end;
+
+  //SetLength(ConsoleHistory, Length(ConsoleHistory)+1);
+  //ConsoleHistory[High(ConsoleHistory)] := L;
+
+  (*
 {$IFDEF HEADLESS}
   e_WriteLog('CON: ' + L, MSG_NOTIFY);
 {$ENDIF}
