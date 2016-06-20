@@ -290,13 +290,13 @@ Type
                              HealInterval: Word;
                              HealMax: Boolean;
                              HealSilent: Boolean);
-      TRIGGER_SHOT:         (ShotType: Byte;
-                             ShotSound: Boolean;
-                             ShotPanelID: Integer;
+      TRIGGER_SHOT:         (ShotPos: TPoint;
+                             ShotType: Byte;
                              ShotTarget: Byte;
-                             ShotIntSight: Word;
+                             ShotSound: Boolean;
                              ShotAllMap: Boolean;
-                             ShotPos: TPoint;
+                             ShotPanelID: Integer;
+                             ShotIntSight: Word;
                              ShotAngle: Word;
                              ShotWait: Word;
                              ShotAccuracy: Word;
