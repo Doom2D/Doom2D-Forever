@@ -224,7 +224,7 @@ const
   TEXTURE_SPECIAL_ACID2 = DWORD(-3);
   TEXTURE_NONE = DWORD(-4);
 
-Type
+type
   TPoint = packed record
     X, Y: LongInt;
   end;
@@ -304,13 +304,13 @@ Type
                              HealInterval: Word;
                              HealMax: Boolean;
                              HealSilent: Boolean);
-      TRIGGER_SHOT:         (ShotType: Byte;
-                             ShotSound: Boolean;
-                             ShotPanelID: Integer;
+      TRIGGER_SHOT:         (ShotPos: TPoint;
+                             ShotType: Byte;
                              ShotTarget: Byte;
-                             ShotIntSight: Word;
+                             ShotSound: Boolean;
                              ShotAllMap: Boolean;
-                             ShotPos: TPoint;
+                             ShotPanelID: Integer;
+                             ShotIntSight: Word;
                              ShotAngle: Word;
                              ShotWait: Word;
                              ShotAccuracy: Word;
