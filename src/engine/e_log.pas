@@ -69,7 +69,7 @@ begin
   begin
     case RecordCategory of
       MSG_FATALERROR: write('FATAL: ');
-      MSG_WARNING: write('WARNINIG: ');
+      MSG_WARNING: write('WARNING: ');
     end;
     writeln(TextLine);
   end;
