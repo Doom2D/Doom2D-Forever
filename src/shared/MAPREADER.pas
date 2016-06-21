@@ -83,7 +83,7 @@ function g_Texture_NumNameFindNext(var newName: String): Byte;
 implementation
 
 uses
-  SysUtils, BinEditor;
+  SysUtils, BinEditor, MAPDEF;
 
 var
   NNF_PureName: String; // Имя текстуры без цифр в конце
@@ -160,13 +160,14 @@ begin
 
  if TempDataBlocks = nil then Exit;
 
- size := SizeOf(TAreaRec_1);
+ size := SizeOf_TAreaRec_1;
 
  for a := 0 to High(TempDataBlocks) do
   for b := 0 to (TempDataBlocks[a].Block.BlockSize div size)-1 do
   begin
    SetLength(Result, Length(Result)+1);
-   CopyMemory(@Result[High(Result)], Pointer(LongWord(TempDataBlocks[a].Data)+b*size), size);
+   //CopyMemory(@Result[High(Result)], Pointer(LongWord(TempDataBlocks[a].Data)+b*size), size);
+   mb_Read_TAreaRec_1(Result[High(Result)], Pointer(LongWord(TempDataBlocks[a].Data)+b*size)^, size);
   end;
 
  TempDataBlocks := nil;
@@ -184,13 +185,14 @@ begin
 
  if TempDataBlocks = nil then Exit;
 
- size := SizeOf(TItemRec_1);
+ size := SizeOf_TItemRec_1;
 
  for a := 0 to High(TempDataBlocks) do
   for b := 0 to (TempDataBlocks[a].Block.BlockSize div size)-1 do
   begin
    SetLength(Result, Length(Result)+1);
-   CopyMemory(@Result[High(Result)], Pointer(LongWord(TempDataBlocks[a].Data)+b*size), size);
+   //CopyMemory(@Result[High(Result)], Pointer(LongWord(TempDataBlocks[a].Data)+b*size), size);
+   mb_Read_TItemRec_1(Result[High(Result)], Pointer(LongWord(TempDataBlocks[a].Data)+b*size)^, size);
   end;
 
  TempDataBlocks := nil;
@@ -206,7 +208,8 @@ begin
 
  if TempDataBlocks = nil then Exit;
 
- CopyMemory(@Result, TempDataBlocks[0].Data, SizeOf(TMapHeaderRec_1));
+ //CopyMemory(@Result, TempDataBlocks[0].Data, SizeOf(TMapHeaderRec_1));
+ mb_Read_TMapHeaderRec_1(Result, TempDataBlocks[0].Data^, SizeOf_TMapHeaderRec_1);
 
  TempDataBlocks := nil;
 end;
@@ -223,13 +226,14 @@ begin
 
  if TempDataBlocks = nil then Exit;
 
- size := SizeOf(TMonsterRec_1);
+ size := SizeOf_TMonsterRec_1;
 
  for a := 0 to High(TempDataBlocks) do
   for b := 0 to (TempDataBlocks[a].Block.BlockSize div size)-1 do
   begin
    SetLength(Result, Length(Result)+1);
-   CopyMemory(@Result[High(Result)], Pointer(LongWord(TempDataBlocks[a].Data)+b*size), size);
+   //CopyMemory(@Result[High(Result)], Pointer(LongWord(TempDataBlocks[a].Data)+b*size), size);
+   mb_Read_TMonsterRec_1(Result[High(Result)], Pointer(LongWord(TempDataBlocks[a].Data)+b*size)^, size);
   end;
 
  TempDataBlocks := nil;
@@ -247,13 +251,14 @@ begin
 
  if TempDataBlocks = nil then Exit;
 
- size := SizeOf(TPanelRec_1);
+ size := SizeOf_TPanelRec_1;
 
  for a := 0 to High(TempDataBlocks) do
   for b := 0 to (TempDataBlocks[a].Block.BlockSize div size)-1 do
   begin
    SetLength(Result, Length(Result)+1);
-   CopyMemory(@Result[High(Result)], Pointer(LongWord(TempDataBlocks[a].Data)+b*size), size);
+   //CopyMemory(@Result[High(Result)], Pointer(LongWord(TempDataBlocks[a].Data)+b*size), size);
+   mb_Read_TPanelRec_1(Result[High(Result)], Pointer(LongWord(TempDataBlocks[a].Data)+b*size)^, size);
   end;
 
  TempDataBlocks := nil;
@@ -271,13 +276,14 @@ begin
 
  if TempDataBlocks = nil then Exit;
 
- size := SizeOf(TTextureRec_1);
+ size := SizeOf_TTextureRec_1;
 
  for a := 0 to High(TempDataBlocks) do
   for b := 0 to (TempDataBlocks[a].Block.BlockSize div size)-1 do
   begin
    SetLength(Result, Length(Result)+1);
-   CopyMemory(@Result[High(Result)], Pointer(LongWord(TempDataBlocks[a].Data)+b*size), size);
+   //CopyMemory(@Result[High(Result)], Pointer(LongWord(TempDataBlocks[a].Data)+b*size), size);
+   mb_Read_TTextureRec_1(Result[High(Result)], Pointer(LongWord(TempDataBlocks[a].Data)+b*size)^, size);
   end;
 
  TempDataBlocks := nil;
@@ -288,6 +294,7 @@ var
   TempDataBlocks: TDataBlocksArray;
   a: Integer;
   b, Size: LongWord;
+  trdata: TTriggerData;
 begin
  Result := nil;
 
@@ -295,13 +302,21 @@ begin
 
  if TempDataBlocks = nil then Exit;
 
- size := SizeOf(TTriggerRec_1);
+ size := SizeOf_TTriggerRec_1;
 
  for a := 0 to High(TempDataBlocks) do
   for b := 0 to (TempDataBlocks[a].Block.BlockSize div size)-1 do
   begin
    SetLength(Result, Length(Result)+1);
-   CopyMemory(@Result[High(Result)], Pointer(LongWord(TempDataBlocks[a].Data)+b*size), size);
+   //CopyMemory(@Result[High(Result)], Pointer(LongWord(TempDataBlocks[a].Data)+b*size), size);
+   mb_Read_TTriggerRec_1(Result[High(Result)], Pointer(LongWord(TempDataBlocks[a].Data)+b*size)^, size);
+   if (Result[High(Result)].TriggerType <> 0) then
+   begin
+     // preprocess trigger data
+     ZeroMemory(@trdata, SizeOf(trdata));
+     mb_Read_TriggerData(trdata, Result[High(Result)].TriggerType, Result[High(Result)].DATA, sizeof(trdata));
+     Result[High(Result)].DATA := trdata.Default;
+   end;
   end;
 
  TempDataBlocks := nil;

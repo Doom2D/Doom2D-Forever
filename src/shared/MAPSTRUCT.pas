@@ -122,7 +122,7 @@ type
    TriggerType:  Byte;
    ActivateType: Byte;
    Keys:         Byte;
-   DATA:         Byte128;
+   DATA:         Byte128; //WARNING! should be exactly equal to sizeof(TTriggerData)
   end;
 
   TBlock = packed record
