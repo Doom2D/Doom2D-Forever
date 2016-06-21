@@ -332,6 +332,12 @@ Type
                              FXSpreadD: Byte);
   end;
 
+{$INCLUDE mapstructsizes.inc}
+
 implementation
+
+uses SysUtils;
+
+{$INCLUDE mapstructio.inc}
 
 end.
