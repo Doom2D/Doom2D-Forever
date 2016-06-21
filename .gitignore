@@ -1,0 +1,18 @@
+# Project-specific
+bin/
+tmp/
+
+# Precompiled and Delphi-specific files
+# without *.res
+*.obj
+*.dcu
+*.cbk
+*.dof
+*.ddp
+
+# Commonly used temporary files
+~*
+*.~*
+*.tmp
+*.bak
+*.lps
