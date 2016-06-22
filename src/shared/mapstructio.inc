@@ -229,6 +229,12 @@ procedure mb_Read_TriggerData (var tr: TTriggerData; ttype: Integer; const buf; 
     getBytesAt(tr.FXSpreadD, buf, 15, 1);
   end;
 
+  procedure xreadScript ();
+  begin
+    getBytesAt(tr.SCRProc, buf, 0, 64);
+    getIntAt(tr.SCRArg, buf, 64);
+  end;
+
 begin
   if (bufsize < 104) then raise Exception.Create('invalid buffer size in mb_Read_TriggerData');
   if (ttype = TRIGGER_EXIT) then begin xreadExit(); exit; end;
@@ -259,6 +265,7 @@ begin
   if (ttype = TRIGGER_HEALTH) then begin xreadHealth(); exit; end;
   if (ttype = TRIGGER_SHOT) then begin xreadShot(); exit; end;
   if (ttype = TRIGGER_EFFECT) then begin xreadEffect(); exit; end;
+  if (ttype = TRIGGER_SCRIPT) then begin xreadScript(); exit; end;
   raise Exception.Create('invalid trigger type in mb_Read_TriggerData');
 end;
 

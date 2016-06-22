@@ -133,7 +133,7 @@ uses
   GL, GLExt, g_weapons, g_game, g_sound, e_sound, CONFIG,
   g_options, MAPREADER, g_triggers, g_player, MAPDEF,
   Math, g_monsters, g_saveload, g_language, g_netmsg,
-  utils, sfs,
+  utils, sfs, g_scripts,
   ImagingTypes, Imaging, ImagingUtility,
   ImagingGif, ImagingNetworkGraphics;
 
@@ -907,9 +907,10 @@ var
                            DoorPanel: Integer;
                            ShotPanel: Integer;
                           end;
-  FileName, mapResName, s, TexName: String;
-  Data: Pointer;
-  Len: Integer;
+  FileName, mapResName, s, TexName, ScrStr: String;
+  Data, ScrText: Pointer;
+  ScrEnd: PByte;
+  Len, ScrLen: Integer;
   ok, isAnim, trigRef: Boolean;
   CurTex, ntn: Integer;
 begin
@@ -940,6 +941,19 @@ begin
       WAD.Free();
       Exit;
     end;
+    
+    // try to load the map script
+    g_Scripts_Reset(RESET_MAP);
+    ScrText := nil;
+    ScrLen := 0;
+    if WAD.GetResource('SCRIPTS/'+mapResName, ScrText, ScrLen) then
+    begin
+      g_Console_Add('SCRIPT: Found script for this map. Loading...');
+      SetString(ScrStr, ScrText, ScrLen);
+      g_Scripts_Load(ScrStr);
+      FreeMem(ScrText);
+    end;
+
     WAD.Free();
 
   // Загрузка карты:

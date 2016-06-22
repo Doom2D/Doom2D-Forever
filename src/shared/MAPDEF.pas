@@ -160,7 +160,8 @@ const
   TRIGGER_HEALTH          = 26;
   TRIGGER_SHOT            = 27;
   TRIGGER_EFFECT          = 28;
-  TRIGGER_MAX             = 28;
+  TRIGGER_SCRIPT          = 29;
+  TRIGGER_MAX             = 29;
 
   TRIGGER_SHOT_PISTOL  = 0;
   TRIGGER_SHOT_BULLET  = 1;
@@ -330,6 +331,8 @@ type
                              FXSpreadR: Byte;
                              FXSpreadU: Byte;
                              FXSpreadD: Byte);
+      TRIGGER_SCRIPT:       (SCRProc: Char64;
+                             SCRArg: Integer);
   end;
 
 {$INCLUDE mapstructsizes.inc}
