@@ -88,7 +88,7 @@ uses
   g_player, g_map, Math, g_gfx, g_game, g_textures,
   g_console, g_monsters, g_items, g_phys, g_weapons,
   wadreader, g_main, SysUtils, e_log, g_language,
-  g_options, g_net, g_netmsg;
+  g_options, g_net, g_netmsg, g_scripts;
 
 const
   TRIGGER_SIGNATURE = $52475254; // 'TRGR'
@@ -208,7 +208,6 @@ begin
         if g_Game_IsServer and g_Game_IsNet then
           MH_SEND_Sound(X, Y, 'SOUND_GAME_SWITCH1');
       end;
-
 
     with gWalls[PanelID] do
     begin
@@ -1945,6 +1944,13 @@ begin
             Dec(i);
           end;
           TimeOut := Data.FXWait;
+        end;
+
+      TRIGGER_SCRIPT:
+        begin
+          g_Scripts_ProcExec(Data.SCRProc, [ID, ActivateUID, Data.SCRArg], 'map');
+          TimeOut := 1;
+          Result := True;
         end;
     end;
   end;

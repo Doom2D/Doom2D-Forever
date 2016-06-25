@@ -26,7 +26,28 @@ function SP_Lua_ConPrint(L: PScriptContext): Integer; cdecl;
 implementation
 
 uses
+<<<<<<< HEAD
   lua, g_console;
+=======
+  lua, lauxlib,
+  g_player, g_map, Math, g_gfx, g_game, g_textures,
+  g_console, g_monsters, g_items, g_phys, g_weapons,
+  g_main, SysUtils, e_log, g_language, g_basic,
+  g_options, g_net, g_netmsg, g_triggers, g_panel,
+  g_sound, MAPDEF;
+
+function CheckArgs(L: PScriptContext; MinArgs: Integer; Error: Boolean = True): Boolean; inline;
+begin
+  Result := True;
+  if lua_gettop(L) < MinArgs then
+  begin
+    if Error then g_Console_Add('SCRIPT: ERROR: expected at least ' + IntToStr(MinArgs) + ' argument(s)');
+    Result := False;
+  end;
+end;
+
+// system //
+>>>>>>> 3132944... made TRIGGER_SCRIPT work
 
 function SP_Lua_ConPrint(L: PScriptContext): Integer; cdecl;
 begin

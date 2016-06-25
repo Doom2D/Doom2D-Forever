@@ -38,7 +38,7 @@ var
 
 function g_Scripts_Init(): Boolean;
 procedure g_Scripts_Reset(What: Integer);
-function g_Scripts_ProcExec(PName: string; const Args: array of const): Integer;
+function g_Scripts_ProcExec(PName: string; const Args: array of const; Namespace: string = ''): Integer;
 function g_Scripts_ProcExists(PName: string): Boolean;
 function g_Scripts_ProcInstall(PName: string; PPtr: PScriptProc): Boolean;
 function g_Scripts_Load(Text: string): Boolean;
@@ -69,6 +69,11 @@ begin
   Result := False;
 
   if not g_Scripts_ProcInstall('conprint', SP_Lua_ConPrint) then Exit;
+
+  if not g_Scripts_ProcInstall('spawn_item', SP_Lua_SpawnItem) then Exit;
+  if not g_Scripts_ProcInstall('spawn_shot', SP_Lua_SpawnShot) then Exit;
+  if not g_Scripts_ProcInstall('spawn_effect', SP_Lua_SpawnEffect) then Exit;
+  if not g_Scripts_ProcInstall('spawn_monster', SP_Lua_SpawnMonster) then Exit;
 
   Result := True;
 end;
@@ -167,19 +172,25 @@ begin
     Result := True;
 end;
 
-function g_Scripts_ProcExec(PName: string; const Args: array of const): Integer;
+function g_Scripts_ProcExec(PName: string; const Args: array of const; Namespace: string = ''): Integer;
 var
   i: Integer;
 begin
   Result := -255;
   if not gScriptInit then Exit;
 
-  lua_getglobal(gScriptCtx, 'game');
-  lua_pushstring(gScriptCtx, PName);
-  lua_gettable(gScriptCtx, -2);
+  if Namespace = '' then
+    lua_getglobal(gScriptCtx, PChar(PName))
+  else
+  begin
+    lua_getglobal(gScriptCtx, PChar(Namespace));
+    lua_pushstring(gScriptCtx, PName);
+    lua_gettable(gScriptCtx, -2);
+  end;
+
   if not lua_isfunction(gScriptCtx, -1) then
   begin
-    g_Console_Add('SCRIPT: ProcExec(' + PName + ') error: no such function');
+    g_Console_Add('SCRIPT: ProcExec(' + Namespace + '.' + PName + ') error: no such function');
     Exit;
   end;
 
@@ -197,18 +208,16 @@ begin
 
   if lua_pcall(gScriptCtx, Length(Args), 1, 0) <> 0 then
   begin
-    g_Console_Add('SCRIPT: ProcExec(' + PName + ') error: ' + lua_tostring(gScriptCtx, -1));
+    g_Console_Add('SCRIPT: ProcExec(' + Namespace + '.' + PName + ') error: ' + lua_tostring(gScriptCtx, -1));
     Exit;
   end;
 
-  if not lua_isnumber(gScriptCtx, -1) then
+  Result := 0;
+  if lua_isnumber(gScriptCtx, -1) then
   begin
-    g_Console_Add('SCRIPT: ProcExec(' + PName + ') error: return value is not a number');
-    Exit;
+    Result := lua_tointeger(gScriptCtx, -1);
+    lua_pop(gScriptCtx, 1);
   end;
-
-  Result := lua_tointeger(gScriptCtx, -1);
-  lua_pop(gScriptCtx, 1);
 end;
 
 function g_Scripts_Load(Text: string): Boolean;
