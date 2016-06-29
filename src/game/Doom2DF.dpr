@@ -106,7 +106,10 @@ uses
   g_language in 'g_language.pas',
   ImagingTypes,
   Imaging,
-  ImagingUtility;
+  ImagingUtility,
+  lua in '../lib/lua/lua.pas',
+  lualib in '../lib/lua/lualib.pas',
+  lauxlib in '../lib/lua/lauxlib.pas';
 
 {$IFDEF WINDOWS}
   {$R *.res}

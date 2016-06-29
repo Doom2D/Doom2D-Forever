@@ -1949,7 +1949,7 @@ begin
       TRIGGER_SCRIPT:
         begin
           g_Scripts_ProcExec(Data.SCRProc, [ID, ActivateUID, actType, Data.SCRArg], 'map');
-          TimeOut := 1;
+          TimeOut := 0;
           Result := True;
         end;
     end;

@@ -23,10 +23,13 @@ uses
 
 const
   // reset levels
-  RESET_ALL  = 0;
-  RESET_SRV  = 1;
-  RESET_WAD  = 2;
-  RESET_MAP  = 3;
+  RESET_SRV_BIT  = 4;
+  RESET_WAD_BIT  = 2;
+  RESET_MAP_BIT  = 1;
+  RESET_SRV      = RESET_SRV_BIT or RESET_WAD_BIT or RESET_MAP_BIT;
+  RESET_WAD      = RESET_WAD_BIT or RESET_MAP_BIT;
+  RESET_MAP      = RESET_MAP_BIT;
+  RESET_ALL      = 255;
 
 type
   PScriptContext = Plua_State;
@@ -37,7 +40,7 @@ var
   gScriptInit: Boolean = False;
 
 function g_Scripts_Init(): Boolean;
-procedure g_Scripts_Reset(What: Integer);
+procedure g_Scripts_Reset(What: Byte);
 function g_Scripts_ProcExec(PName: string; const Args: array of const; Namespace: string = ''): Integer;
 function g_Scripts_ProcExists(PName: string): Boolean;
 function g_Scripts_ProcInstall(PName: string; PPtr: PScriptProc): Boolean;
@@ -50,18 +53,20 @@ uses
   SysUtils, g_console, g_scriptprocs;
 
 type
-  POpenFunc = function(L: Plua_State): LongBool; cdecl;
   TLuaReg = record
     name: PAnsiChar;
-    func: POpenFunc;
+    func: lua_CFunction;
   end;
 
 const
-  LUA_LIBS: array [0..3] of TLuaReg = (
+  LUA_LIBS: array [0..6] of TLuaReg = (
     (name: ''; func: luaopen_base),
+    (name: LUA_LOADLIBNAME; func: luaopen_package),
     (name: LUA_TABLIBNAME; func: luaopen_table),
-    (name: LUA_STRLINAME; func: luaopen_string), // STRLINAME is actually a typo in fpc's lua module
-    (name: LUA_MATHLIBNAME; func: luaopen_math)
+    (name: LUA_STRLIBNAME; func: luaopen_string),
+    (name: LUA_MATHLIBNAME; func: luaopen_math),
+    (name: LUA_OSLIBNAME; func: luaopen_os), // TODO: something to restrict these two
+    (name: LUA_IOLIBNAME; func: luaopen_io)
   );
 
 function LuaInstallGameFuncs(): Boolean;
@@ -132,10 +137,9 @@ begin
   // don't open all the libs
   for i := 0 to High(LUA_LIBS) do
   begin
-    //lua_pushcfunction(gScriptCtx, LUA_LIBS[i].func);
+    lua_pushcfunction(gScriptCtx, LUA_LIBS[i].func);
     lua_pushstring(gScriptCtx, LUA_LIBS[i].name);
-    //lua_call(gScriptCtx, 1, 0);
-    LUA_LIBS[i].func(gScriptCtx);
+    lua_call(gScriptCtx, 1, 0);
   end;
 
   // create a table for game-related functions
@@ -160,23 +164,29 @@ begin
 end;
 
 // TODO: maybe actually put some fields into these?
-procedure g_Scripts_Reset(What: Integer);
+procedure g_Scripts_Reset(What: Byte);
 begin
   if not gScriptInit then Exit;
-  if What in [RESET_ALL, RESET_SRV] then
+  if LongBool(What and RESET_SRV_BIT) then
   begin
     lua_newtable(gScriptCtx);
     lua_setglobal(gScriptCtx, 'srv');
   end;
-  if What in [RESET_ALL, RESET_WAD] then
+  if LongBool(What and RESET_WAD_BIT) then
   begin
     lua_newtable(gScriptCtx);
     lua_setglobal(gScriptCtx, 'wad');
   end;
-  if What in [RESET_ALL, RESET_MAP] then
+  if LongBool(What and RESET_MAP_BIT) then
   begin
     lua_newtable(gScriptCtx);
     lua_setglobal(gScriptCtx, 'map');
+
+    // disable io and os modules on any kind of reset
+    lua_pushnil(gScriptCtx);
+    lua_pushnil(gScriptCtx);
+    lua_setglobal(gScriptCtx, 'os');
+    lua_setglobal(gScriptCtx, 'io');
   end;
 end;
 
