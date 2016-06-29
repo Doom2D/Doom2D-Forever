@@ -69,6 +69,47 @@ begin
   Result := False;
 
   if not g_Scripts_ProcInstall('conprint', SP_Lua_ConPrint) then Exit;
+  if not g_Scripts_ProcInstall('message', SP_Lua_Message) then Exit;
+  if not g_Scripts_ProcInstall('sound', SP_Lua_PlaySound) then Exit;
+  if not g_Scripts_ProcInstall('get_gamemode', SP_Lua_GetGameMode) then Exit;
+  if not g_Scripts_ProcInstall('get_gametype', SP_Lua_GetGameType) then Exit;
+  if not g_Scripts_ProcInstall('get_time', SP_Lua_GetTime) then Exit;
+
+  if not g_Scripts_ProcInstall('player_get_keys', SP_Lua_PlayerGetKeys) then Exit;
+  if not g_Scripts_ProcInstall('player_get_armor', SP_Lua_PlayerGetArmor) then Exit;
+  if not g_Scripts_ProcInstall('player_get_score', SP_Lua_PlayerGetScore) then Exit;
+  if not g_Scripts_ProcInstall('player_get_name', SP_Lua_PlayerGetName) then Exit;
+  if not g_Scripts_ProcInstall('player_get_team', SP_Lua_PlayerGetTeam) then Exit;
+
+  if not g_Scripts_ProcInstall('uid_get_health', SP_Lua_ActorGetHealth) then Exit;
+  if not g_Scripts_ProcInstall('uid_get_pos', SP_Lua_ActorGetPos) then Exit;
+  if not g_Scripts_ProcInstall('uid_get_state', SP_Lua_ActorGetState) then Exit;
+  if not g_Scripts_ProcInstall('uid_get_type', SP_Lua_ActorGetType) then Exit;
+  if not g_Scripts_ProcInstall('uid_nearest', SP_Lua_ActorNearest) then Exit;
+  if not g_Scripts_ProcInstall('uid_farthest', SP_Lua_ActorFarthest) then Exit;
+  if not g_Scripts_ProcInstall('uid_damage', SP_Lua_ActorDamage) then Exit;
+  if not g_Scripts_ProcInstall('uid_push', SP_Lua_ActorPush) then Exit;
+  if not g_Scripts_ProcInstall('uid_teleport', SP_Lua_ActorTeleport) then Exit;
+
+  if not g_Scripts_ProcInstall('trigger_get_enabled', SP_Lua_TriggerGetEnabled) then Exit;
+  if not g_Scripts_ProcInstall('trigger_set_enabled', SP_Lua_TriggerSetEnabled) then Exit;
+  if not g_Scripts_ProcInstall('trigger_activate', SP_Lua_TriggerActivate) then Exit;
+  if not g_Scripts_ProcInstall('trigger_get_pos', SP_Lua_TriggerGetPos) then Exit;
+  if not g_Scripts_ProcInstall('trigger_set_pos', SP_Lua_TriggerSetPos) then Exit;
+
+  if not g_Scripts_ProcInstall('panel_get_type', SP_Lua_PanelGetType) then Exit;
+  if not g_Scripts_ProcInstall('panel_get_pos', SP_Lua_PanelGetPos) then Exit;
+  if not g_Scripts_ProcInstall('panel_get_size', SP_Lua_PanelGetSize) then Exit;
+  if not g_Scripts_ProcInstall('panel_set_pos', SP_Lua_PanelSetPos) then Exit;
+  if not g_Scripts_ProcInstall('panel_switch_texture', SP_Lua_PanelSwitchTexture) then Exit;
+
+  if not g_Scripts_ProcInstall('door_get_open', SP_Lua_DoorGetState) then Exit;
+  if not g_Scripts_ProcInstall('door_close', SP_Lua_DoorClose) then Exit;
+  if not g_Scripts_ProcInstall('door_close_trap', SP_Lua_DoorCloseTrap) then Exit;
+  if not g_Scripts_ProcInstall('door_open', SP_Lua_DoorOpen) then Exit;
+  if not g_Scripts_ProcInstall('door_toggle', SP_Lua_DoorToggle) then Exit;
+  if not g_Scripts_ProcInstall('lift_get_dir', SP_Lua_LiftGetDir) then Exit;
+  if not g_Scripts_ProcInstall('lift_set_dir', SP_Lua_LiftSetDir) then Exit;
 
   if not g_Scripts_ProcInstall('spawn_item', SP_Lua_SpawnItem) then Exit;
   if not g_Scripts_ProcInstall('spawn_shot', SP_Lua_SpawnShot) then Exit;
