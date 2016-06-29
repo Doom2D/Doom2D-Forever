@@ -51,6 +51,7 @@ type
     SaveIt:           Boolean; // Сохранять при SaveState?
     Enabled:          Boolean;
     Door:             Boolean;
+    Moved:            Boolean;
     LiftType:         Byte;
     LastAnimLoop:     Byte;
 
@@ -101,6 +102,7 @@ begin
   FCurFrame := 0;
   FCurFrameCount := 0;
   LastAnimLoop := 0;
+  Moved := False;
 
 // Тип панели:
   PanelType := PanelRec.PanelType;
@@ -467,6 +469,9 @@ begin
   Mem.WriteByte(LiftType);
 // Номер текущей текстуры:
   Mem.WriteInt(FCurTexture);
+// Коорды
+  Mem.WriteInt(X);
+  Mem.WriteInt(Y);
 // Анимированная ли текущая текстура:
   if (FCurTexture >= 0) and (FTextureIDs[FCurTexture].Anim) then
     begin
@@ -502,6 +507,9 @@ begin
   Mem.ReadByte(LiftType);
 // Номер текущей текстуры:
   Mem.ReadInt(FCurTexture);
+// Коорды
+  Mem.ReadInt(X);
+  Mem.ReadInt(Y);
 // Анимированная ли текущая текстура:
   Mem.ReadBoolean(anim);
 // Если да - загружаем анимацию:

@@ -663,14 +663,22 @@ begin
     for I := Low(gRenderForegrounds) to High(gRenderForegrounds) do
       if gRenderForegrounds[I] <> nil then
         with gRenderForegrounds[I] do
+        begin
           if (GetTextureCount > 1) then
             MH_SEND_PanelTexture(PanelType, I, LastAnimLoop, ID);
+          if Moved then
+            MH_SEND_PanelState(PanelType, I, ID);
+        end;
   if gRenderBackgrounds <> nil then
     for I := Low(gRenderBackgrounds) to High(gRenderBackgrounds) do
       if gRenderBackgrounds[I] <> nil then
         with gRenderBackgrounds[I] do
-          if GetTextureCount > 1 then
+        begin
+          if (GetTextureCount > 1) then
             MH_SEND_PanelTexture(PanelType, I, LastAnimLoop, ID);
+          if Moved then
+            MH_SEND_PanelState(PanelType, I, ID);
+        end;
   if gWater <> nil then
     for I := Low(gWater) to High(gWater) do
       if gWater[I] <> nil then
@@ -1223,6 +1231,16 @@ begin
       TP := gWalls[PID];
     PANEL_LIFTUP, PANEL_LIFTDOWN, PANEL_LIFTLEFT, PANEL_LIFTRIGHT:
       TP := gLifts[PID];
+    PANEL_BACK:
+    begin
+      TP := gRenderBackgrounds[PID];
+      TP.Moved := True;
+    end;
+    PANEL_FORE:
+    begin
+      TP := gRenderForegrounds[PID];
+      TP.Moved := True;
+    end;
     else
       Exit;
   end;
@@ -1232,6 +1250,8 @@ begin
   e_Buffer_Write(@NetOut, PID);
   e_Buffer_Write(@NetOut, Byte(TP.Enabled));
   e_Buffer_Write(@NetOut, TP.LiftType);
+  e_Buffer_Write(@NetOut, TP.X);
+  e_Buffer_Write(@NetOut, TP.Y);
 
   g_Net_Host_Send(ID, True, NET_CHAN_LARGEDATA);
 end;
@@ -2427,12 +2447,15 @@ var
   E: Boolean;
   Lift: Byte;
   PType: Word;
+  X, Y: Integer;
 begin
   if not gGameOn then Exit;
   PType := e_Raw_Read_Word(P);
   ID := e_Raw_Read_LongWord(P);
   E := (e_Raw_Read_Byte(P) <> 0);
   Lift := e_Raw_Read_Byte(P);
+  X := e_Raw_Read_LongInt(P);
+  Y := e_Raw_Read_LongInt(P);
 
   case PType of
     PANEL_WALL, PANEL_OPENDOOR, PANEL_CLOSEDOOR:
@@ -2443,6 +2466,18 @@ begin
 
     PANEL_LIFTUP, PANEL_LIFTDOWN, PANEL_LIFTLEFT, PANEL_LIFTRIGHT:
       g_Map_SetLift(ID, Lift);
+
+    PANEL_BACK:
+    begin
+      gRenderBackgrounds[ID].X := X;
+      gRenderBackgrounds[ID].Y := Y;
+    end;
+
+    PANEL_FORE:
+    begin
+      gRenderForegrounds[ID].X := X;
+      gRenderForegrounds[ID].Y := Y;
+    end;      
   end;
 end;
 
