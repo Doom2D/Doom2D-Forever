@@ -7,6 +7,8 @@ del /S *.o
 del /S *.ppu
 del /S *.a
 del /S *.or
+del /S *.rsj
+del /S *.lps
 del "src\game\CustomRes.obj"
 del "src\game\*.exe"
 
