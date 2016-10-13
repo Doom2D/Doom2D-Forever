@@ -65,7 +65,7 @@ type
 
 function g_Triggers_Create(Trigger: TTrigger): DWORD;
 procedure g_Triggers_Update();
-procedure g_Triggers_Press(ID: DWORD; ActivateType: Byte);
+procedure g_Triggers_Press(ID: DWORD; ActivateType: Byte; ActivateUID: Word = 0);
 function g_Triggers_PressR(X, Y: Integer; Width, Height: Word; UID: Word;
                            ActivateType: Byte; IgnoreList: DWArray = nil): DWArray;
 procedure g_Triggers_PressL(X1, Y1, X2, Y2: Integer; UID: DWORD; ActivateType: Byte);
@@ -75,6 +75,19 @@ procedure g_Triggers_DecreaseSpawner(ID: DWORD);
 procedure g_Triggers_Free();
 procedure g_Triggers_SaveState(var Mem: TBinMemoryWriter);
 procedure g_Triggers_LoadState(var Mem: TBinMemoryReader);
+
+function tr_Message(MKind: Integer; MText: string; MSendTo: Integer; MTime: Integer; ActivateUID: Integer): Boolean;
+
+function tr_CloseDoor(PanelID: Integer; NoSound: Boolean; d2d: Boolean): Boolean;
+function tr_OpenDoor(PanelID: Integer; NoSound: Boolean; d2d: Boolean): Boolean;
+procedure tr_CloseTrap(PanelID: Integer; NoSound: Boolean; d2d: Boolean);
+function tr_SetLift(PanelID: Integer; d: Integer; NoSound: Boolean; d2d: Boolean): Boolean;
+
+function tr_Teleport(ActivateUID: Integer; TX, TY: Integer; TDir: Integer; Silent: Boolean; D2D: Boolean): Boolean;
+function tr_Push(ActivateUID: Integer; VX, VY: Integer; ResetVel: Boolean): Boolean;
+
+procedure tr_MakeEffect(X, Y, VX, VY: Integer; T, ST, CR, CG, CB: Byte; Silent, Send: Boolean);
+function tr_SpawnShot(ShotType: Integer; wx, wy, dx, dy: Integer; ShotSound: Boolean; ShotTarget: Word): Integer;
 
 var
   gTriggerClientID: Integer = 0;
@@ -118,7 +131,7 @@ begin
   end;
 end;
 
-function CloseDoor(PanelID: Integer; NoSound: Boolean; d2d: Boolean): Boolean;
+function tr_CloseDoor(PanelID: Integer; NoSound: Boolean; d2d: Boolean): Boolean;
 var
   a, b, c: Integer;
 begin
@@ -193,7 +206,7 @@ begin
   end;
 end;
 
-procedure CloseTrap(PanelID: Integer; NoSound: Boolean; d2d: Boolean);
+procedure tr_CloseTrap(PanelID: Integer; NoSound: Boolean; d2d: Boolean);
 var
   a, b, c: Integer;
 begin
@@ -277,7 +290,7 @@ begin
   end;
 end;
 
-function OpenDoor(PanelID: Integer; NoSound: Boolean; d2d: Boolean): Boolean;
+function tr_OpenDoor(PanelID: Integer; NoSound: Boolean; d2d: Boolean): Boolean;
 var
   a, b, c: Integer;
 begin
@@ -340,7 +353,7 @@ begin
   end;
 end;
 
-function SetLift(PanelID: Integer; d: Integer; NoSound: Boolean; d2d: Boolean): Boolean;
+function tr_SetLift(PanelID: Integer; d: Integer; NoSound: Boolean; d2d: Boolean): Boolean;
 var
   a, b, c, t: Integer;
 begin
@@ -414,12 +427,179 @@ begin
   end;
 end;
 
-procedure MakeShot(var Trigger: TTrigger; wx, wy, dx, dy: Integer; TargetUID: Word);
+function tr_SpawnShot(ShotType: Integer; wx, wy, dx, dy: Integer; ShotSound: Boolean; ShotTarget: Word): Integer;
 var
-  Projectile: Boolean;
   snd: string;
+  Projectile: Boolean;
   TextureID: DWORD;
   Anim: TAnimation;
+begin
+  Result := -1;
+  snd := 'SOUND_WEAPON_FIREROCKET';
+  Projectile := True;
+  case ShotType of
+    TRIGGER_SHOT_PISTOL:
+      begin
+        g_Weapon_pistol(wx, wy, dx, dy, 0, True);
+        snd := 'SOUND_WEAPON_FIREPISTOL';
+        Projectile := False;
+        if ShotSound then
+        begin
+          g_Player_CreateShell(wx, wy, 0, -2, SHELL_BULLET);
+          if g_Game_IsNet then
+            MH_SEND_Effect(wx, wy, 0, NET_GFX_SHELL1);
+        end;
+      end;
+
+    TRIGGER_SHOT_BULLET:
+      begin
+        g_Weapon_mgun(wx, wy, dx, dy, 0, True);
+        if gSoundEffectsDF then snd := 'SOUND_WEAPON_FIRECGUN'
+        else snd := 'SOUND_WEAPON_FIREPISTOL';
+        Projectile := False;
+        if ShotSound then
+        begin
+          g_Player_CreateShell(wx, wy, 0, -2, SHELL_BULLET);
+          if g_Game_IsNet then
+            MH_SEND_Effect(wx, wy, 0, NET_GFX_SHELL1);
+        end;
+      end;
+
+    TRIGGER_SHOT_SHOTGUN:
+      begin
+        g_Weapon_Shotgun(wx, wy, dx, dy, 0, True);
+        snd := 'SOUND_WEAPON_FIRESHOTGUN';
+        Projectile := False;
+        if ShotSound then
+        begin
+          g_Player_CreateShell(wx, wy, 0, -2, SHELL_SHELL);
+          if g_Game_IsNet then
+            MH_SEND_Effect(wx, wy, 0, NET_GFX_SHELL2);
+        end;
+      end;
+
+    TRIGGER_SHOT_SSG:
+      begin
+        g_Weapon_DShotgun(wx, wy, dx, dy, 0, True);
+        snd := 'SOUND_WEAPON_FIRESHOTGUN2';
+        Projectile := False;
+        if ShotSound then
+        begin
+          g_Player_CreateShell(wx, wy, 0, -2, SHELL_SHELL);
+          g_Player_CreateShell(wx, wy, 0, -2, SHELL_SHELL);
+          if g_Game_IsNet then
+            MH_SEND_Effect(wx, wy, 0, NET_GFX_SHELL3);
+        end;
+      end;
+
+    TRIGGER_SHOT_IMP:
+      begin
+        g_Weapon_ball1(wx, wy, dx, dy, 0, -1, True);
+        snd := 'SOUND_WEAPON_FIREBALL';
+      end;
+
+    TRIGGER_SHOT_PLASMA:
+      begin
+        g_Weapon_Plasma(wx, wy, dx, dy, 0, -1, True);
+        snd := 'SOUND_WEAPON_FIREPLASMA';
+      end;
+
+    TRIGGER_SHOT_SPIDER:
+      begin
+        g_Weapon_aplasma(wx, wy, dx, dy, 0, -1, True);
+        snd := 'SOUND_WEAPON_FIREPLASMA';
+      end;
+
+    TRIGGER_SHOT_CACO:
+      begin
+        g_Weapon_ball2(wx, wy, dx, dy, 0, -1, True);
+        snd := 'SOUND_WEAPON_FIREBALL';
+      end;
+
+    TRIGGER_SHOT_BARON:
+      begin
+        g_Weapon_ball7(wx, wy, dx, dy, 0, -1, True);
+        snd := 'SOUND_WEAPON_FIREBALL';
+      end;
+
+    TRIGGER_SHOT_MANCUB:
+      begin
+        g_Weapon_manfire(wx, wy, dx, dy, 0, -1, True);
+        snd := 'SOUND_WEAPON_FIREBALL';
+      end;
+
+    TRIGGER_SHOT_REV:
+      begin
+        g_Weapon_revf(wx, wy, dx, dy, 0, ShotTarget, -1, True);
+        snd := 'SOUND_WEAPON_FIREREV';
+      end;
+
+    TRIGGER_SHOT_ROCKET:
+      begin
+        g_Weapon_Rocket(wx, wy, dx, dy, 0, -1, True);
+        snd := 'SOUND_WEAPON_FIREROCKET';
+      end;
+
+    TRIGGER_SHOT_BFG:
+      begin
+        g_Weapon_BFGShot(wx, wy, dx, dy, 0, -1, True);
+        snd := 'SOUND_WEAPON_FIREBFG';
+      end;
+
+    TRIGGER_SHOT_EXPL:
+      begin
+        if g_Frames_Get(TextureID, 'FRAMES_EXPLODE_ROCKET') then
+        begin
+          Anim := TAnimation.Create(TextureID, False, 6);
+          Anim.Blending := False;
+          g_GFX_OnceAnim(wx-64, wy-64, Anim);
+          Anim.Free();
+        end;
+        Projectile := False;
+        g_Weapon_Explode(wx, wy, 60, 0);
+        snd := 'SOUND_WEAPON_EXPLODEROCKET';
+      end;
+
+    TRIGGER_SHOT_BFGEXPL:
+      begin
+        if g_Frames_Get(TextureID, 'FRAMES_EXPLODE_BFG') then
+        begin
+          Anim := TAnimation.Create(TextureID, False, 6);
+          Anim.Blending := False;
+          g_GFX_OnceAnim(wx-64, wy-64, Anim);
+          Anim.Free();
+        end;
+        Projectile := False;
+        g_Weapon_BFG9000(wx, wy, 0);
+        snd := 'SOUND_WEAPON_EXPLODEBFG';
+      end;
+
+    else exit;
+  end;
+
+  if g_Game_IsNet and g_Game_IsServer then
+    case ShotType of
+      TRIGGER_SHOT_EXPL:
+        MH_SEND_Effect(wx, wy, Byte(ShotSound), NET_GFX_EXPLODE);
+      TRIGGER_SHOT_BFGEXPL:
+        MH_SEND_Effect(wx, wy, Byte(ShotSound), NET_GFX_BFGEXPL);
+      else
+      begin
+        if Projectile then
+          MH_SEND_CreateShot(LastShotID);
+        if ShotSound then
+          MH_SEND_Sound(wx, wy, snd);
+      end;
+    end;
+
+  if ShotSound then
+    g_Sound_PlayExAt(snd, wx, wy);
+
+  if Projectile then
+    Result := LastShotID;
+end;
+
+procedure MakeShot(var Trigger: TTrigger; wx, wy, dx, dy: Integer; TargetUID: Word);
 begin
   with Trigger do
     if (Data.ShotAmmo = 0) or
@@ -435,174 +615,18 @@ begin
         ShotSightTimeout := 180; // ~= 5 секунд
 
       if ShotAmmoCount > 0 then Dec(ShotAmmoCount);
-      Projectile := True;
-      snd := 'SOUND_WEAPON_FIREROCKET';
 
       dx := dx + Random(Data.ShotAccuracy) - Random(Data.ShotAccuracy);
       dy := dy + Random(Data.ShotAccuracy) - Random(Data.ShotAccuracy);
-
-      case Data.ShotType of
-        TRIGGER_SHOT_PISTOL:
-          begin
-            g_Weapon_pistol(wx, wy, dx, dy, 0, True);
-            Projectile := False;
-            snd := 'SOUND_WEAPON_FIREPISTOL';
-            if Data.ShotSound then
-            begin
-              g_Player_CreateShell(wx, wy, 0, -2, SHELL_BULLET);
-              if g_Game_IsNet then
-                MH_SEND_Effect(wx, wy, 0, NET_GFX_SHELL1);
-            end;
-          end;
-
-        TRIGGER_SHOT_BULLET:
-          begin
-            g_Weapon_mgun(wx, wy, dx, dy, 0, True);
-            Projectile := False;
-            if gSoundEffectsDF then snd := 'SOUND_WEAPON_FIRECGUN'
-            else snd := 'SOUND_WEAPON_FIREPISTOL';
-            if Data.ShotSound then
-            begin
-              g_Player_CreateShell(wx, wy, 0, -2, SHELL_BULLET);
-              if g_Game_IsNet then
-                MH_SEND_Effect(wx, wy, 0, NET_GFX_SHELL1);
-            end;
-          end;
-
-        TRIGGER_SHOT_SHOTGUN:
-          begin
-            g_Weapon_Shotgun(wx, wy, dx, dy, 0, True);
-            Projectile := False;
-            snd := 'SOUND_WEAPON_FIRESHOTGUN';
-            if Data.ShotSound then
-            begin
-              g_Player_CreateShell(wx, wy, 0, -2, SHELL_SHELL);
-              if g_Game_IsNet then
-                MH_SEND_Effect(wx, wy, 0, NET_GFX_SHELL2);
-            end;
-          end;
-
-        TRIGGER_SHOT_SSG:
-          begin
-            g_Weapon_DShotgun(wx, wy, dx, dy, 0, True);
-            Projectile := False;
-            snd := 'SOUND_WEAPON_FIRESHOTGUN2';
-            if Data.ShotSound then
-            begin
-              g_Player_CreateShell(wx, wy, 0, -2, SHELL_SHELL);
-              g_Player_CreateShell(wx, wy, 0, -2, SHELL_SHELL);
-              if g_Game_IsNet then
-                MH_SEND_Effect(wx, wy, 0, NET_GFX_SHELL3);
-            end;
-          end;
-
-        TRIGGER_SHOT_IMP:
-          begin
-            g_Weapon_ball1(wx, wy, dx, dy, 0, -1, True);
-            snd := 'SOUND_WEAPON_FIREBALL';
-          end;
-
-        TRIGGER_SHOT_PLASMA:
-          begin
-            g_Weapon_Plasma(wx, wy, dx, dy, 0, -1, True);
-            snd := 'SOUND_WEAPON_FIREPLASMA';
-          end;
-
-        TRIGGER_SHOT_SPIDER:
-          begin
-            g_Weapon_aplasma(wx, wy, dx, dy, 0, -1, True);
-            snd := 'SOUND_WEAPON_FIREPLASMA';
-          end;
-
-        TRIGGER_SHOT_CACO:
-          begin
-            g_Weapon_ball2(wx, wy, dx, dy, 0, -1, True);
-            snd := 'SOUND_WEAPON_FIREBALL';
-          end;
-
-        TRIGGER_SHOT_BARON:
-          begin
-            g_Weapon_ball7(wx, wy, dx, dy, 0, -1, True);
-            snd := 'SOUND_WEAPON_FIREBALL';
-          end;
-
-        TRIGGER_SHOT_MANCUB:
-          begin
-            g_Weapon_manfire(wx, wy, dx, dy, 0, -1, True);
-            snd := 'SOUND_WEAPON_FIREBALL';
-          end;
-
-        TRIGGER_SHOT_REV:
-          begin
-            g_Weapon_revf(wx, wy, dx, dy, 0, TargetUID, -1, True);
-            snd := 'SOUND_WEAPON_FIREREV';
-          end;
-
-        TRIGGER_SHOT_ROCKET:
-          begin
-            g_Weapon_Rocket(wx, wy, dx, dy, 0, -1, True);
-            snd := 'SOUND_WEAPON_FIREROCKET';
-          end;
-
-        TRIGGER_SHOT_BFG:
-          begin
-            g_Weapon_BFGShot(wx, wy, dx, dy, 0, -1, True);
-            snd := 'SOUND_WEAPON_FIREBFG';
-          end;
-
-        TRIGGER_SHOT_EXPL:
-          begin
-            if g_Frames_Get(TextureID, 'FRAMES_EXPLODE_ROCKET') then
-            begin
-              Anim := TAnimation.Create(TextureID, False, 6);
-              Anim.Blending := False;
-              g_GFX_OnceAnim(wx-64, wy-64, Anim);
-              Anim.Free();
-            end;
-            Projectile := False;
-            g_Weapon_Explode(wx, wy, 60, 0);
-            snd := 'SOUND_WEAPON_EXPLODEROCKET';
-          end;
-
-        TRIGGER_SHOT_BFGEXPL:
-          begin
-            if g_Frames_Get(TextureID, 'FRAMES_EXPLODE_BFG') then
-            begin
-              Anim := TAnimation.Create(TextureID, False, 6);
-              Anim.Blending := False;
-              g_GFX_OnceAnim(wx-64, wy-64, Anim);
-              Anim.Free();
-            end;
-            Projectile := False;
-            g_Weapon_BFG9000(wx, wy, 0);
-            snd := 'SOUND_WEAPON_EXPLODEBFG';
-          end;
-      end;
-
-      if g_Game_IsNet and g_Game_IsServer then
-        case Data.ShotType of
-          TRIGGER_SHOT_EXPL:
-            MH_SEND_Effect(wx, wy, Byte(Data.ShotSound), NET_GFX_EXPLODE);
-          TRIGGER_SHOT_BFGEXPL:
-            MH_SEND_Effect(wx, wy, Byte(Data.ShotSound), NET_GFX_BFGEXPL);
-          else
-          begin
-            if Projectile then
-              MH_SEND_CreateShot(LastShotID);
-            if Data.ShotSound then
-              MH_SEND_Sound(wx, wy, snd);
-          end;
-        end;
-
-      if Data.ShotSound then
-        g_Sound_PlayExAt(snd, wx, wy);
+      
+      tr_SpawnShot(Data.ShotType, wx, wy, dx, dy, Data.ShotSound, TargetUID);
     end
     else
       if (Data.ShotIntReload > 0) and (ShotReloadTime = 0) then
         ShotReloadTime := Data.ShotIntReload; // тиков на перезарядку пушки
 end;
 
-procedure MakeEffect(X, Y, VX, VY: Integer; T, ST, CR, CG, CB: Byte; Silent, Send: Boolean);
+procedure tr_MakeEffect(X, Y, VX, VY: Integer; T, ST, CR, CG, CB: Byte; Silent, Send: Boolean);
 var
   FramesID: DWORD;
   Anim: TAnimation;
@@ -672,6 +696,233 @@ begin
     end;
 end;
 
+function tr_Teleport(ActivateUID: Integer; TX, TY: Integer; TDir: Integer; Silent: Boolean; D2D: Boolean): Boolean;
+var
+  p: TPlayer;
+  m: TMonster;
+begin
+  Result := False;
+  if (ActivateUID < 0) or (ActivateUID > $FFFF) then Exit;
+  case g_GetUIDType(ActivateUID) of
+    UID_PLAYER:
+      begin
+        p := g_Player_Get(ActivateUID);
+        if p = nil then
+          Exit;
+
+        if D2D then
+          begin
+            if p.TeleportTo(TX-(p.Obj.Rect.Width div 2),
+                            TY-p.Obj.Rect.Height,
+                            Silent,
+                            TDir) then
+              Result := True;
+          end
+        else
+          if p.TeleportTo(TX, TY, Silent, TDir) then
+            Result := True;
+      end;
+
+    UID_MONSTER:
+      begin
+        m := g_Monsters_Get(ActivateUID);
+        if m = nil then
+          Exit;
+
+        if D2D then
+          begin
+            if m.TeleportTo(TX-(p.Obj.Rect.Width div 2),
+                            TY-p.Obj.Rect.Height,
+                            Silent,
+                            TDir) then
+              Result := True;
+          end
+        else
+          if m.TeleportTo(TX, TY, Silent, TDir) then
+            Result := True;
+      end;
+  end;
+end;
+
+function tr_Push(ActivateUID: Integer; VX, VY: Integer; ResetVel: Boolean): Boolean;
+var
+  p: TPlayer;
+  m: TMonster;
+begin
+  Result := True;
+  if (ActivateUID < 0) or (ActivateUID > $FFFF) then Exit;
+  case g_GetUIDType(ActivateUID) of
+    UID_PLAYER:
+      begin
+        p := g_Player_Get(ActivateUID);
+        if p = nil then
+          Exit;
+
+        if ResetVel then
+        begin
+          p.GameVelX := 0;
+          p.GameVelY := 0;
+          p.GameAccelX := 0;
+          p.GameAccelY := 0;
+        end;
+
+        p.Push(VX, VY);
+      end;
+
+    UID_MONSTER:
+      begin
+        m := g_Monsters_Get(ActivateUID);
+        if m = nil then
+          Exit;
+
+        if ResetVel then
+        begin
+          m.GameVelX := 0;
+          m.GameVelY := 0;
+          m.GameAccelX := 0;
+          m.GameAccelY := 0;
+        end;
+
+        m.Push(VX, VY);
+      end;
+  end;
+end;
+
+function tr_Message(MKind: Integer; MText: string; MSendTo: Integer; MTime: Integer; ActivateUID: Integer): Boolean;
+var
+  msg: string;
+  p: TPlayer;
+  i: Integer;
+begin
+  Result := True;
+  if (ActivateUID < 0) or (ActivateUID > $FFFF) then Exit;
+  msg := b_Text_Format(MText);
+  case MSendTo of
+    0: // activator
+      begin
+        if g_GetUIDType(ActivateUID) = UID_PLAYER then
+        begin
+          if g_Game_IsWatchedPlayer(ActivateUID) then
+          begin
+            if MKind = 0 then
+              g_Console_Add(msg, True)
+            else if MKind = 1 then
+              g_Game_Message(msg, MTime);
+          end
+          else
+          begin
+            p := g_Player_Get(ActivateUID);
+            if g_Game_IsNet and (p.FClientID >= 0) then
+              if MKind = 0 then
+                MH_SEND_Chat(msg, NET_CHAT_SYSTEM, p.FClientID)
+              else if MKind = 1 then
+                MH_SEND_GameEvent(NET_EV_BIGTEXT, MTime, msg, p.FClientID);
+          end;
+        end;
+      end;
+
+    1: // activator's team
+      begin
+        if g_GetUIDType(ActivateUID) = UID_PLAYER then
+        begin
+          p := g_Player_Get(ActivateUID);
+          if g_Game_IsWatchedTeam(p.Team) then
+            if MKind = 0 then
+              g_Console_Add(msg, True)
+            else if MKind = 1 then
+              g_Game_Message(msg, MTime);
+
+          if g_Game_IsNet then
+          begin
+            for i := Low(gPlayers) to High(gPlayers) do
+              if (gPlayers[i].Team = p.Team) and (gPlayers[i].FClientID >= 0) then
+                if MKind = 0 then
+                  MH_SEND_Chat(msg, NET_CHAT_SYSTEM, gPlayers[i].FClientID)
+                else if MKind = 1 then
+                  MH_SEND_GameEvent(NET_EV_BIGTEXT, MTime, msg, gPlayers[i].FClientID);
+          end;
+        end;
+      end;
+
+    2: // activator's enemy team
+      begin
+        if g_GetUIDType(ActivateUID) = UID_PLAYER then
+        begin
+          p := g_Player_Get(ActivateUID);
+          if g_Game_IsWatchedTeam(p.Team) then
+            if MKind = 0 then
+              g_Console_Add(msg, True)
+            else if MKind = 1 then
+              g_Game_Message(msg, MTime);
+
+          if g_Game_IsNet then
+          begin
+            for i := Low(gPlayers) to High(gPlayers) do
+              if (gPlayers[i].Team <> p.Team) and (gPlayers[i].FClientID >= 0) then
+                if MKind = 0 then
+                  MH_SEND_Chat(msg, NET_CHAT_SYSTEM, gPlayers[i].FClientID)
+                else if MKind = 1 then
+                  MH_SEND_GameEvent(NET_EV_BIGTEXT, MTime, msg, gPlayers[i].FClientID);
+          end;
+        end;
+      end;
+
+    3: // red team
+      begin
+        if g_Game_IsWatchedTeam(TEAM_RED) then
+          if MKind = 0 then
+            g_Console_Add(msg, True)
+          else if MKind = 1 then
+            g_Game_Message(msg, MTime);
+
+        if g_Game_IsNet then
+        begin
+          for i := Low(gPlayers) to High(gPlayers) do
+            if (gPlayers[i].Team = TEAM_RED) and (gPlayers[i].FClientID >= 0) then
+              if MKind = 0 then
+                MH_SEND_Chat(msg, NET_CHAT_SYSTEM, gPlayers[i].FClientID)
+              else if MKind = 1 then
+                MH_SEND_GameEvent(NET_EV_BIGTEXT, MTime, msg, gPlayers[i].FClientID);
+        end;
+      end;
+
+    4: // blue team
+      begin
+        if g_Game_IsWatchedTeam(TEAM_BLUE) then
+          if MKind = 0 then
+            g_Console_Add(msg, True)
+          else if MKind = 1 then
+            g_Game_Message(msg, MTime);
+
+        if g_Game_IsNet then
+        begin
+          for i := Low(gPlayers) to High(gPlayers) do
+            if (gPlayers[i].Team = TEAM_BLUE) and (gPlayers[i].FClientID >= 0) then
+              if MKind = 0 then
+                MH_SEND_Chat(msg, NET_CHAT_SYSTEM, gPlayers[i].FClientID)
+              else if MKind = 1 then
+                MH_SEND_GameEvent(NET_EV_BIGTEXT, MTime, msg, gPlayers[i].FClientID);
+        end;
+      end;
+
+    5: // everyone
+      begin
+        if MKind = 0 then
+          g_Console_Add(msg, True)
+        else if MKind = 1 then
+          g_Game_Message(msg, MTime);
+
+        if g_Game_IsNet then
+        begin
+          if MKind = 0 then
+            MH_SEND_Chat(msg, NET_CHAT_SYSTEM)
+          else if MKind = 1 then
+            MH_SEND_GameEvent(NET_EV_BIGTEXT, MTime, msg);
+        end;
+      end;
+  end;
+end;
+
 function ActivateTrigger(var Trigger: TTrigger; actType: Byte): Boolean;
 var
   animonce: Boolean;
@@ -685,7 +936,6 @@ var
   Anim: TAnimation;
   UIDType: Byte;
   TargetUID: Word;
-  msg: string;
 begin
   Result := False;
   if g_Game_IsClient then
@@ -719,64 +969,22 @@ begin
 
       TRIGGER_TELEPORT:
         begin
-          case g_GetUIDType(ActivateUID) of
-            UID_PLAYER:
-              begin
-                p := g_Player_Get(ActivateUID);
-                if p = nil then
-                  Exit;
-
-                if Data.d2d_teleport then
-                  begin
-                    if p.TeleportTo(Data.TargetPoint.X-(p.Obj.Rect.Width div 2),
-                                    Data.TargetPoint.Y-p.Obj.Rect.Height,
-                                    Data.silent_teleport,
-                                    Data.TlpDir) then
-                      Result := True;
-                  end
-                else
-                  if p.TeleportTo(Data.TargetPoint.X,
-                                  Data.TargetPoint.Y,
-                                  Data.silent_teleport,
-                                  Data.TlpDir) then
-                    Result := True;
-              end;
-
-            UID_MONSTER:
-              begin
-                m := g_Monsters_Get(ActivateUID);
-                if m = nil then
-                  Exit;
-
-                if Data.d2d_teleport then
-                  begin
-                    if m.TeleportTo(Data.TargetPoint.X-(m.Obj.Rect.Width div 2),
-                                    Data.TargetPoint.Y-m.Obj.Rect.Height,
-                                    Data.silent_teleport,
-                                    Data.TlpDir) then
-                      Result := True;
-                  end
-                else
-                  if m.TeleportTo(Data.TargetPoint.X,
-                                  Data.TargetPoint.Y,
-                                  Data.silent_teleport,
-                                  Data.TlpDir) then
-                    Result := True;
-              end;
-          end;
-
+          Result := tr_Teleport(ActivateUID,
+                                Data.TargetPoint.X, Data.TargetPoint.Y,
+                                Data.TlpDir, Data.silent_teleport,
+                                Data.d2d_teleport);
           TimeOut := 0;
         end;
 
       TRIGGER_OPENDOOR:
         begin
-          Result := OpenDoor(Data.PanelID, Data.NoSound, Data.d2d_doors);
+          Result := tr_OpenDoor(Data.PanelID, Data.NoSound, Data.d2d_doors);
           TimeOut := 0;
         end;
 
       TRIGGER_CLOSEDOOR:
         begin
-          Result := CloseDoor(Data.PanelID, Data.NoSound, Data.d2d_doors);
+          Result := tr_CloseDoor(Data.PanelID, Data.NoSound, Data.d2d_doors);
           TimeOut := 0;
         end;
 
@@ -786,13 +994,13 @@ begin
           begin
             if gWalls[Data.PanelID].Enabled then
               begin
-                Result := OpenDoor(Data.PanelID, Data.NoSound, Data.d2d_doors);
+                Result := tr_OpenDoor(Data.PanelID, Data.NoSound, Data.d2d_doors);
 
                 if TriggerType = TRIGGER_DOOR5 then
                   DoorTime := 180;
               end
             else
-              Result := CloseDoor(Data.PanelID, Data.NoSound, Data.d2d_doors);
+              Result := tr_CloseDoor(Data.PanelID, Data.NoSound, Data.d2d_doors);
 
             if Result then
               TimeOut := 18;
@@ -801,7 +1009,7 @@ begin
 
       TRIGGER_CLOSETRAP, TRIGGER_TRAP:
         begin
-          CloseTrap(Data.PanelID, Data.NoSound, Data.d2d_doors);
+          tr_CloseTrap(Data.PanelID, Data.NoSound, Data.d2d_doors);
 
           if TriggerType = TRIGGER_TRAP then
             begin
@@ -846,7 +1054,7 @@ begin
 
       TRIGGER_LIFTUP:
         begin
-          Result := SetLift(Data.PanelID, 0, Data.NoSound, Data.d2d_doors);
+          Result := tr_SetLift(Data.PanelID, 0, Data.NoSound, Data.d2d_doors);
           TimeOut := 0;
 
           if (not Data.NoSound) and Result then begin
@@ -862,7 +1070,7 @@ begin
 
       TRIGGER_LIFTDOWN:
         begin
-          Result := SetLift(Data.PanelID, 1, Data.NoSound, Data.d2d_doors);
+          Result := tr_SetLift(Data.PanelID, 1, Data.NoSound, Data.d2d_doors);
           TimeOut := 0;
 
           if (not Data.NoSound) and Result then begin
@@ -878,7 +1086,7 @@ begin
 
       TRIGGER_LIFT:
         begin
-          Result := SetLift(Data.PanelID, 3, Data.NoSound, Data.d2d_doors);
+          Result := tr_SetLift(Data.PanelID, 3, Data.NoSound, Data.d2d_doors);
 
           if Result then
           begin
@@ -968,10 +1176,12 @@ begin
                 gMonsters[i].SetHealth(Data.MonHealth);
             // Устанавливаем поведение:
               gMonsters[i].MonsterBehaviour := Data.MonBehav;
+              gMonsters[i].FNoRespawn := True;
+              if g_Game_IsNet then
+                MH_SEND_MonsterSpawn(gMonsters[i].UID);
             // Идем искать цель, если надо:
               if Data.MonActive then
                 gMonsters[i].WakeUp();
-              gMonsters[i].FNoRespawn := True;
 
               if Data.MonType <> MONSTER_BARREL then Inc(gTotalMonsters);
 
@@ -1031,9 +1241,6 @@ begin
                                    NET_GFX_FIRE);
                 end;
               end;
-
-              if g_Game_IsNet then
-                MH_SEND_MonsterSpawn(gMonsters[i].UID);
             end;
           if g_Game_IsNet then
           begin
@@ -1175,47 +1382,12 @@ begin
 
       TRIGGER_PUSH:
         begin
-          case g_GetUIDType(ActivateUID) of
-            UID_PLAYER:
-              begin
-                p := g_Player_Get(ActivateUID);
-                if p = nil then
-                  Exit;
-
-                if Data.ResetVel then
-                begin
-                  p.GameVelX := 0;
-                  p.GameVelY := 0;
-                  p.GameAccelX := 0;
-                  p.GameAccelY := 0;
-                end;
-
-                pAngle := -DegToRad(Data.PushAngle);
-                p.Push(Floor(Cos(pAngle)*Data.PushForce),
-                       Floor(Sin(pAngle)*Data.PushForce));
-              end;
-
-            UID_MONSTER:
-              begin
-                m := g_Monsters_Get(ActivateUID);
-                if m = nil then
-                  Exit;
-                if Data.ResetVel then
-                begin
-                  m.GameVelX := 0;
-                  m.GameVelY := 0;
-                  m.GameAccelX := 0;
-                  m.GameAccelY := 0;
-                end;
-
-                pAngle := -DegToRad(Data.PushAngle);
-                m.Push(Floor(Cos(pAngle)*Data.PushForce),
-                       Floor(Sin(pAngle)*Data.PushForce));
-              end;
-          end;
-
+          pAngle := -DegToRad(Data.PushAngle);
+          Result := tr_Push(ActivateUID,
+                            Floor(Cos(pAngle)*Data.PushForce),
+                            Floor(Sin(pAngle)*Data.PushForce),
+                            Data.ResetVel);
           TimeOut := 0;
-          Result := True;
         end;
 
       TRIGGER_SCORE:
@@ -1554,131 +1726,9 @@ begin
 
       TRIGGER_MESSAGE:
         begin
-          msg := b_Text_Format(Data.MessageText);
-          case Data.MessageSendTo of
-            0: // activator
-              begin
-                if g_GetUIDType(ActivateUID) = UID_PLAYER then
-                begin
-                  if g_Game_IsWatchedPlayer(ActivateUID) then
-                  begin
-                    if Data.MessageKind = 0 then
-                      g_Console_Add(msg, True)
-                    else if Data.MessageKind = 1 then
-                      g_Game_Message(msg, Data.MessageTime);
-                  end
-                  else
-                  begin
-                    p := g_Player_Get(ActivateUID);
-                    if g_Game_IsNet and (p.FClientID >= 0) then
-                      if Data.MessageKind = 0 then
-                        MH_SEND_Chat(msg, NET_CHAT_SYSTEM, p.FClientID)
-                      else if Data.MessageKind = 1 then
-                        MH_SEND_GameEvent(NET_EV_BIGTEXT, Data.MessageTime, msg, p.FClientID);
-                  end;
-                end;
-              end;
-
-            1: // activator's team
-              begin
-                if g_GetUIDType(ActivateUID) = UID_PLAYER then
-                begin
-                  p := g_Player_Get(ActivateUID);
-                  if g_Game_IsWatchedTeam(p.Team) then
-                    if Data.MessageKind = 0 then
-                      g_Console_Add(msg, True)
-                    else if Data.MessageKind = 1 then
-                      g_Game_Message(msg, Data.MessageTime);
-
-                  if g_Game_IsNet then
-                  begin
-                    for i := Low(gPlayers) to High(gPlayers) do
-                      if (gPlayers[i].Team = p.Team) and (gPlayers[i].FClientID >= 0) then
-                        if Data.MessageKind = 0 then
-                          MH_SEND_Chat(msg, NET_CHAT_SYSTEM, gPlayers[i].FClientID)
-                        else if Data.MessageKind = 1 then
-                          MH_SEND_GameEvent(NET_EV_BIGTEXT, Data.MessageTime, msg, gPlayers[i].FClientID);
-                  end;
-                end;
-              end;
-
-            2: // activator's enemy team
-              begin
-                if g_GetUIDType(ActivateUID) = UID_PLAYER then
-                begin
-                  p := g_Player_Get(ActivateUID);
-                  if g_Game_IsWatchedTeam(p.Team) then
-                    if Data.MessageKind = 0 then
-                      g_Console_Add(msg, True)
-                    else if Data.MessageKind = 1 then
-                      g_Game_Message(msg, Data.MessageTime);
-
-                  if g_Game_IsNet then
-                  begin
-                    for i := Low(gPlayers) to High(gPlayers) do
-                      if (gPlayers[i].Team <> p.Team) and (gPlayers[i].FClientID >= 0) then
-                        if Data.MessageKind = 0 then
-                          MH_SEND_Chat(msg, NET_CHAT_SYSTEM, gPlayers[i].FClientID)
-                        else if Data.MessageKind = 1 then
-                          MH_SEND_GameEvent(NET_EV_BIGTEXT, Data.MessageTime, msg, gPlayers[i].FClientID);
-                  end;
-                end;
-              end;
-
-            3: // red team
-              begin
-                if g_Game_IsWatchedTeam(TEAM_RED) then
-                  if Data.MessageKind = 0 then
-                    g_Console_Add(msg, True)
-                  else if Data.MessageKind = 1 then
-                    g_Game_Message(msg, Data.MessageTime);
-
-                if g_Game_IsNet then
-                begin
-                  for i := Low(gPlayers) to High(gPlayers) do
-                    if (gPlayers[i].Team = TEAM_RED) and (gPlayers[i].FClientID >= 0) then
-                      if Data.MessageKind = 0 then
-                        MH_SEND_Chat(msg, NET_CHAT_SYSTEM, gPlayers[i].FClientID)
-                      else if Data.MessageKind = 1 then
-                        MH_SEND_GameEvent(NET_EV_BIGTEXT, Data.MessageTime, msg, gPlayers[i].FClientID);
-                end;
-              end;
-
-            4: // blue team
-              begin
-                if g_Game_IsWatchedTeam(TEAM_BLUE) then
-                  if Data.MessageKind = 0 then
-                    g_Console_Add(msg, True)
-                  else if Data.MessageKind = 1 then
-                    g_Game_Message(msg, Data.MessageTime);
-
-                if g_Game_IsNet then
-                begin
-                  for i := Low(gPlayers) to High(gPlayers) do
-                    if (gPlayers[i].Team = TEAM_BLUE) and (gPlayers[i].FClientID >= 0) then
-                      if Data.MessageKind = 0 then
-                        MH_SEND_Chat(msg, NET_CHAT_SYSTEM, gPlayers[i].FClientID)
-                      else if Data.MessageKind = 1 then
-                        MH_SEND_GameEvent(NET_EV_BIGTEXT, Data.MessageTime, msg, gPlayers[i].FClientID);
-                end;
-              end;
-
-            5: // everyone
-              begin
-                if Data.MessageKind = 0 then
-                  g_Console_Add(msg, True)
-                else if Data.MessageKind = 1 then
-                  g_Game_Message(msg, Data.MessageTime);
-
-                if g_Game_IsNet then
-                begin
-                  if Data.MessageKind = 0 then
-                    MH_SEND_Chat(msg, NET_CHAT_SYSTEM)
-                  else if Data.MessageKind = 1 then
-                    MH_SEND_GameEvent(NET_EV_BIGTEXT, Data.MessageTime, msg);
-                end;
-              end;
-          end;
+          Result := tr_Message(Data.MessageKind, Data.MessageText, 
+                               Data.MessageSendTo, Data.MessageTime,
+                               ActivateUID);
           TimeOut := 18;
         end;
 
@@ -1938,7 +1988,7 @@ begin
             if Data.FXSpreadR > 0 then xd := xd + Random(Data.FXSpreadR + 1);
             if Data.FXSpreadU > 0 then yd := yd - Random(Data.FXSpreadU + 1);
             if Data.FXSpreadD > 0 then yd := yd + Random(Data.FXSpreadD + 1);
-            MakeEffect(wx, wy, xd, yd,
+            tr_MakeEffect(wx, wy, xd, yd,
                        Data.FXType, Data.FXSubType,
                        Data.FXColorR, Data.FXColorG, Data.FXColorB, True, False);
             Dec(i);
@@ -2177,7 +2227,7 @@ begin
       // Триггер "Ловушка" - пора открывать:
         if (TriggerType = TRIGGER_TRAP) and (DoorTime = 0) and (Data.PanelID <> -1) then
         begin
-          OpenDoor(Data.PanelID, Data.NoSound, Data.d2d_doors);
+          tr_OpenDoor(Data.PanelID, Data.NoSound, Data.d2d_doors);
           DoorTime := -1;
         end;
 
@@ -2188,7 +2238,7 @@ begin
           if gWalls[Data.PanelID].Enabled then
             DoorTime := -1
           else // Пока открыта - закрываем
-            if CloseDoor(Data.PanelID, Data.NoSound, Data.d2d_doors) then
+            if tr_CloseDoor(Data.PanelID, Data.NoSound, Data.d2d_doors) then
               DoorTime := -1;
         end;
 
@@ -2339,9 +2389,9 @@ begin
       end;
 end;
 
-procedure g_Triggers_Press(ID: DWORD; ActivateType: Byte);
+procedure g_Triggers_Press(ID: DWORD; ActivateType: Byte; ActivateUID: Word = 0);
 begin
-  gTriggers[ID].ActivateUID := 0;
+  gTriggers[ID].ActivateUID := ActivateUID;
   ActivateTrigger(gTriggers[ID], ActivateType);
 end;
 
@@ -2483,7 +2533,7 @@ begin
          (TriggerType = TRIGGER_DOOR5) or
          (TriggerType = TRIGGER_DOOR) then
       begin
-        OpenDoor(Data.PanelID, True, Data.d2d_doors);
+        tr_OpenDoor(Data.PanelID, True, Data.d2d_doors);
         if TriggerType = TRIGGER_DOOR5 then DoorTime := 180;
         b := True;
       end;

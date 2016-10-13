@@ -73,6 +73,7 @@ type
     procedure   LoadState(var Mem: TBinMemoryReader);
   end;
 
+  PPanel = ^TPanel;
   TPanelArray = Array of TPanel;
 
 implementation

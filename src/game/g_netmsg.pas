@@ -146,7 +146,7 @@ procedure MH_SEND_Everything(CreatePlayers: Boolean = False; ID: Integer = NET_E
 procedure MH_SEND_Info(ID: Byte);
 procedure MH_SEND_Chat(Txt: string; Mode: Byte; ID: Integer = NET_EVERYONE);
 procedure MH_SEND_Effect(X, Y: Integer; Ang: SmallInt; Kind: Byte; ID: Integer = NET_EVERYONE);
-procedure MH_SEND_Sound(X, Y: Integer; Name: string; ID: Integer = NET_EVERYONE);
+procedure MH_SEND_Sound(X, Y: Integer; Name: string; Pos: Boolean = True; ID: Integer = NET_EVERYONE);
 procedure MH_SEND_CreateShot(Proj: LongInt; ID: Integer = NET_EVERYONE);
 procedure MH_SEND_UpdateShot(Proj: LongInt; ID: Integer = NET_EVERYONE);
 procedure MH_SEND_DeleteShot(Proj: LongInt; X, Y: LongInt; Loud: Boolean = True; ID: Integer = NET_EVERYONE);
@@ -838,12 +838,18 @@ begin
   g_Net_Host_Send(ID, False, NET_CHAN_GAME);
 end;
 
-procedure MH_SEND_Sound(X, Y: Integer; Name: string; ID: Integer = NET_EVERYONE);
+procedure MH_SEND_Sound(X, Y: Integer; Name: string; Pos: Boolean = True; ID: Integer = NET_EVERYONE);
 begin
   e_Buffer_Write(@NetOut, Byte(NET_MSG_SND));
   e_Buffer_Write(@NetOut, Name);
-  e_Buffer_Write(@NetOut, X);
-  e_Buffer_Write(@NetOut, Y);
+  if Pos then
+  begin
+    e_Buffer_Write(@NetOut, Byte(1));
+    e_Buffer_Write(@NetOut, X);
+    e_Buffer_Write(@NetOut, Y);
+  end
+  else
+    e_Buffer_Write(@NetOut, Byte(0));
 
   g_Net_Host_Send(ID, False, NET_CHAN_GAME);
 end;
@@ -1555,11 +1561,18 @@ procedure MC_RECV_Sound(P: Pointer);
 var
   Name: string;
   X, Y: Integer;
+  Pos: Boolean;
 begin
   Name := e_Raw_Read_String(P);
-  X := e_Raw_Read_LongInt(P);
-  Y := e_Raw_Read_LongInt(P);
-  g_Sound_PlayExAt(Name, X, Y);
+  Pos := e_Raw_Read_Byte(P) <> 0;
+  if Pos then
+  begin
+    X := e_Raw_Read_LongInt(P);
+    Y := e_Raw_Read_LongInt(P);
+    g_Sound_PlayExAt(Name, X, Y);
+  end
+  else
+    g_Sound_PlayEx(Name);
 end;
 
 procedure MC_RECV_CreateShot(P: Pointer);
