@@ -37,13 +37,13 @@ var
   AddTextureForm: TAddTextureForm;
 
 function IsAnim(Res: String): Boolean;
-function GetFrame(Res: String; var Data: Pointer;
+function GetFrame(Res: String; var Data: Pointer; var DataLen: Integer;
                   var Width, Height: Word): Boolean;
 
 implementation
 
 uses
-  BinEditor, WADEDITOR, f_main, g_textures, WADSTRUCT, CONFIG, g_map,
+  BinEditor, WADEDITOR, WADSTRUCT, f_main, g_textures, CONFIG, g_map,
   g_language;
 
 type
@@ -169,7 +169,7 @@ begin
   Result := ok;
 end;
 
-function GetFrame(Res: String; var Data: Pointer;
+function GetFrame(Res: String; var Data: Pointer; var DataLen: Integer;
                   var Width, Height: Word): Boolean;
 var
   AnimWAD:      Pointer;
@@ -231,6 +231,8 @@ begin
     WAD.Free();
     Exit;
   end;
+
+  DataLen := Len;
 
   Height := config.ReadInt('', 'frameheight', 0);
   Width := config.ReadInt('', 'framewidth', 0);

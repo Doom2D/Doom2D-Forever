@@ -1,4 +1,4 @@
-Unit g_language;
+﻿Unit g_language;
 
 {$MODE Delphi}
 
@@ -602,7 +602,8 @@ Const
   LANGUAGE_ENGLISH_N = 2;
 
 Var
-  _lc: Array [TStrings_Locale] of String;
+  _lc: Array [TStrings_Locale] of String;  // for the GUI (in UTF-8)
+  _glc: Array [TStrings_Locale] of String; // for GL text (in CP1251)
 
   BoolNames: Array [False..True] of String;
   DirNames: Array [D_LEFT..D_RIGHT] of String;
@@ -628,7 +629,7 @@ Uses
   f_addresource_sky, f_addresource_sound,
   f_addresource_texture, f_choosetype, f_keys, f_mapcheck,
   f_mapoptions, f_maptest, f_mapoptimization, f_options,
-  f_packmap, f_savemap, f_saveminimap, f_selectmap, Forms;
+  f_packmap, f_savemap, f_saveminimap, f_selectmap, Forms, utils;
 
 Const
   g_lang_default: Array [TStrings_Locale] of Array [1..3] of String = (
@@ -2441,7 +2442,11 @@ begin
     n := LANGUAGE_RUSSIAN_N;
 
   for i := Low(TStrings_Locale) to High(TStrings_Locale) do
+  begin
     _lc[i] := g_lang_default[i][n];
+    // have to cache a CP1251 version for GL text
+    _glc[i] := utf8to1251(g_lang_default[i][n]);
+  end;
 
   SetupArrays();
   SetupCaptions();

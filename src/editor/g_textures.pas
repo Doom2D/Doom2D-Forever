@@ -13,7 +13,7 @@ function g_SimpleCreateTextureWADSize(var ID: DWORD; Resource: string;
 function g_CreateTextureWAD(TextureName: ShortString; Resource: string; flag: Byte = 0): Boolean;
 function g_CreateTextureWADSize(TextureName: ShortString; Resource: string;
                                 X, Y, Width, Height: Word; flag: Byte = 0): Boolean;
-function g_CreateTextureMemorySize(pData: Pointer; Name: ShortString; X, Y,
+function g_CreateTextureMemorySize(pData: Pointer; dataLen: Integer; Name: ShortString; X, Y,
                                    Width, Height: Word; flag: Byte = 0): Boolean;
 
 function g_GetTexture(TextureName: ShortString; var ID: DWORD): Boolean;
@@ -82,7 +82,7 @@ begin
 
  if WAD.GetResource(SectionName, ResourceName, TextureData, ResourceLength) then
  begin
-  if e_CreateTextureMem(TextureData, ID) then Result := True;
+  if e_CreateTextureMem(TextureData, ResourceLength, ID) then Result := True;
   FreeMem(TextureData);
  end
   else
@@ -93,7 +93,7 @@ begin
  WAD.Destroy;
 end;
 
-function g_CreateTextureMemorySize(pData: Pointer; Name: ShortString; X, Y,
+function g_CreateTextureMemorySize(pData: Pointer; dataLen: Integer; Name: ShortString; X, Y,
                                    Width, Height: Word; flag: Byte = 0): Boolean;
 var
   find_id: DWORD;
@@ -104,7 +104,7 @@ begin
 
   find_id := FindTexture;
 
-  if not e_CreateTextureMemEx(pData, TexturesArray[find_id].ID, X, Y, Width, Height) then
+  if not e_CreateTextureMemEx(pData, dataLen, TexturesArray[find_id].ID, X, Y, Width, Height) then
   begin
     FreeMem(pData);
     Exit;
@@ -139,7 +139,7 @@ begin
 
  if WAD.GetResource(SectionName, ResourceName, TextureData, ResourceLength) then
  begin
-  Result := e_CreateTextureMem(TextureData, TexturesArray[find_id].ID);
+  Result := e_CreateTextureMem(TextureData, ResourceLength, TexturesArray[find_id].ID);
   FreeMem(TextureData);
   if Result then
   begin
@@ -176,7 +176,7 @@ begin
 
  if WAD.GetResource(SectionName, ResourceName, TextureData, ResourceLength) then
  begin
-  if e_CreateTextureMemEx(TextureData, ID, X, Y, Width, Height) then Result := True;
+  if e_CreateTextureMemEx(TextureData, ResourceLength, ID, X, Y, Width, Height) then Result := True;
   FreeMem(TextureData);
  end
   else
@@ -207,7 +207,7 @@ begin
 
  if WAD.GetResource(SectionName, ResourceName, TextureData, ResourceLength) then
  begin
-  Result := e_CreateTextureMemEx(TextureData, TexturesArray[find_id].ID, X, Y, Width, Height);
+  Result := e_CreateTextureMemEx(TextureData, ResourceLength, TexturesArray[find_id].ID, X, Y, Width, Height);
   FreeMem(TextureData);
   if Result then
   begin

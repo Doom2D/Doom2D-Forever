@@ -1,3 +1,19 @@
+(* Copyright (C)  DooM 2D:Forever Developers
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *)
+{$MODE DELPHI}
 unit e_textures;
 
 { This unit provides interface to load 24-bit and 32-bit uncompressed images
@@ -7,53 +23,98 @@ unit e_textures;
 interface
 
 uses
-  Windows, dglOpenGL, SysUtils, e_log;
+  GL, GLExt, SysUtils, e_log,
+  ImagingTypes, Imaging, ImagingUtility;
+
+type
+  GLTexture = record
+    id: GLuint;
+    width, height: Word; // real
+    glwidth, glheight: Word; // powerof2
+    u, v: Single; // usually 1.0
+    fmt: GLuint;
+  end;
 
 var
-  fUseMipmaps: Boolean = False;
+  e_DummyTextures: Boolean = False;
+  e_glLegacyNPOT: Boolean = False;
   TEXTUREFILTER: Integer = GL_NEAREST;
 
+function CreateTexture (var tex: GLTexture; Width, Height, aFormat: Word; pData: Pointer): Boolean;
+
 // Standard set of images loading functions
-function LoadTexture( Filename: String; var Texture: GLuint;
-                      var pWidth, pHeight: Word ): Boolean;
+function LoadTexture (Filename: String; var Texture: GLTexture; var pWidth, pHeight: Word; Fmt: PWord=nil): Boolean;
+function LoadTextureEx (Filename: String; var Texture: GLTexture; fX, fY, fWidth, fHeight: Word; Fmt: PWord=nil): Boolean;
+function LoadTextureMem (pData: Pointer; dataSize: LongInt; var Texture: GLTexture; var pWidth, pHeight: Word; Fmt: PWord=nil): Boolean;
+function LoadTextureMemEx (pData: Pointer; dataSize: LongInt; var Texture: GLTexture; fX, fY, fWidth, fHeight: Word; Fmt: PWord=nil): Boolean;
 
-function LoadTextureEx( Filename: String; var Texture: GLuint;
-                        fX, fY, fWidth, fHeight: Word ): Boolean;
+// `img` must be valid!
+function LoadTextureImg (var img: TImageData; var Texture: GLTexture; var pWidth, pHeight: Word; Fmt: PWord=nil): Boolean;
 
-function LoadTextureMem( pData: Pointer; var Texture: GLuint;
-                         var pWidth, pHeight: Word ): Boolean;
-
-function LoadTextureMemEx( pData: Pointer; var Texture: GLuint;
-                           fX, fY, fWidth, fHeight: Word ): Boolean;
 
 implementation
 
-type
-  TTGAHeader = packed record
-    FileType:     Byte;
-    ColorMapType: Byte;
-    ImageType:    Byte;
-    ColorMapSpec: array[0..4] of Byte;
-    OrigX:        array[0..1] of Byte;
-    OrigY:        array[0..1] of Byte;
-    Width:        array[0..1] of Byte;
-    Height:       array[0..1] of Byte;
-    BPP:          Byte;
-    ImageInfo:    Byte;
-  end;
+uses
+  Classes, BinEditor, utils;
+
+
+function AlignP2 (n: Word): Word;
+begin
+  Dec(n);
+  n := n or (n shr 1);
+  n := n or (n shr 2);
+  n := n or (n shr 4);
+  n := n or (n shr 8);
+  n := n or (n shr 16);
+  Inc(n);
+  Result := n;
+end;
+
 
 // This is auxiliary function that creates OpenGL texture from raw image data
-function CreateTexture( Width, Height, Format: Word; pData: Pointer ): Integer;
+function CreateTexture (var tex: GLTexture; Width, Height, aFormat: Word; pData: Pointer): Boolean;
 var
   Texture: GLuint;
+  fmt: GLenum;
+  buf: PByte;
+  f, c: Integer;
 begin
-  glGenTextures( 1, @Texture );
-  glBindTexture( GL_TEXTURE_2D, Texture );
+  tex.width := Width;
+  tex.height := Height;
+  tex.glwidth := Width;
+  tex.glheight := Height;
+  tex.u := 1;
+  tex.v := 1;
 
-    {Texture blends with object background}
-  glTexEnvi( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE );
-    {Texture does NOT blend with object background}
- // glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL);
+  if e_glLegacyNPOT then
+  begin
+    tex.glwidth := AlignP2(Width);
+    tex.glheight := AlignP2(Height);
+    if tex.glwidth <> tex.width then tex.u := (tex.width+0.0)/(tex.glwidth+0.0);
+    if tex.glheight <> tex.height then tex.v := (tex.height+0.0)/(tex.glheight+0.0);
+  end;
+
+  //if (tex.glwidth <> tex.width) or (tex.glheight <> tex.height) then
+  //  e_WriteLog(Format('NPOT: orig is %ux%u; gl is %ux%u; u=%f; v=%f', [Width, Height, tex.glwidth, tex.glheight, tex.u, tex.v]), MSG_NOTIFY);
+
+  if e_DummyTextures then
+  begin
+    tex.id := GLuint(-1);
+    Result := True;
+    Exit;
+  end;
+
+  glGenTextures(1, @Texture);
+  tex.id := Texture;
+  glBindTexture(GL_TEXTURE_2D, Texture);
+
+  if (tex.glwidth <> tex.width) or (tex.glheight <> tex.height) then
+    e_WriteLog(Format('NPOT: %u is %ux%u; gl is %ux%u; u=%f; v=%f', [tex.id, Width, Height, tex.glwidth, tex.glheight, tex.u, tex.v]), MSG_NOTIFY);
+
+  // texture blends with object background
+  glTexEnvi( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+  // texture does NOT blend with object background
+  //glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL);
 
   {
     Select a filtering type.
@@ -66,370 +127,249 @@ begin
   }
 
   // for GL_TEXTURE_MAG_FILTER only first two can be used
-  glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, TEXTUREFILTER );
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, TEXTUREFILTER);
   // for GL_TEXTURE_MIN_FILTER all of the above can be used
-  glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, TEXTUREFILTER );
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, TEXTUREFILTER);
 
-  if Format = GL_RGBA then
-  begin
-    if fUseMipmaps then
-      gluBuild2DMipmaps( GL_TEXTURE_2D, GL_RGBA, Width, Height, GL_RGBA,
-                         GL_UNSIGNED_BYTE, pData )
-    else
-      glTexImage2D( GL_TEXTURE_2D, 0, 4, Width, Height,
-                    0, GL_RGBA, GL_UNSIGNED_BYTE, pData );
-  end else
-  begin
-    if fUseMipmaps then
-      gluBuild2DMipmaps( GL_TEXTURE_2D, 3, Width, Height, GL_RGB,
-                         GL_UNSIGNED_BYTE, pData )
-    else
-      glTexImage2D( GL_TEXTURE_2D, 0, 3, Width, Height,
-                    0, GL_RGB, GL_UNSIGNED_BYTE, pData );
+  // create empty texture
+  if aFormat = GL_RGBA then fmt := GL_RGBA else fmt := GL_RGB; // silly, yeah?
+  glTexImage2D(GL_TEXTURE_2D, 0, fmt, tex.glwidth, tex.glheight, 0, GL_RGBA, GL_UNSIGNED_BYTE, nil);
+
+  (*
+  GetMem(buf, tex.glwidth*4*tex.glheight);
+  try
+    FillChar(buf^, tex.glwidth*4*tex.glheight, 255);
+    glTexSubImage2D(GL_TEXTURE_2D, 0,  0, 0, tex.glwidth, tex.glheight, fmt, GL_UNSIGNED_BYTE, buf);
+    if (tex.glheight = 128) and (tex.height = 80) then
+    begin
+      for f := 0 to tex.glheight-1 do
+      begin
+        for c := 0 to tex.glwidth-1 do
+        begin
+          buf[f*(tex.glwidth*4)+c*4+0] := 255;
+          buf[f*(tex.glwidth*4)+c*4+1] := 127;
+          buf[f*(tex.glwidth*4)+c*4+2] := 0;
+        end;
+      end;
+      glTexSubImage2D(GL_TEXTURE_2D, 0,  0, 82, tex.glwidth, {tex.glheight}1, fmt, GL_UNSIGNED_BYTE, buf);
+    end;
+  finally
+    FreeMem(buf);
   end;
+  *)
 
-  Result := Texture;
+  glTexSubImage2D(GL_TEXTURE_2D, 0,  0, 0, Width, Height, fmt, GL_UNSIGNED_BYTE, pData);
+  //glTexSubImage2D(GL_TEXTURE_2D, 0,  0, tex.glheight-tex.height, Width, Height, fmt, GL_UNSIGNED_BYTE, pData);
+
+  glBindTexture(GL_TEXTURE_2D, 0);
+
+  Result := true;
 end;
 
-function LoadTextureMem( pData: Pointer; var Texture: GLuint;
-                         var pWidth, pHeight: Word ): Boolean;
+// `img` must be valid!
+function LoadTextureImg (var img: TImageData; var Texture: GLTexture; var pWidth, pHeight: Word; Fmt: PWord=nil): Boolean;
 var
-  TGAHeader:     TTGAHeader;
-  image:         Pointer;
-  Width, Height: Integer;
-  ImageSize:     Integer;
-  i:             Integer;
-  Front:         ^Byte;
-  Back:          ^Byte;
-  Temp:          Byte;
-  BPP:           Byte;
-
+  image, ii: PByte;
+  width, height: Integer;
+  imageSize: Integer;
+  x, y: Integer;
+  clr: TColor32Rec;
 begin
-  Result := False;
+  result := false;
   pWidth := 0;
   pHeight := 0;
+  if Fmt <> nil then Fmt^ := GL_RGBA; // anyway
 
-  CopyMemory( @TGAHeader, pData, SizeOf(TGAHeader) );
-
-  if ( TGAHeader.ImageType <> 2 ) then
+  if (img.width < 1) or (img.width > 32768) or (img.height < 1) or (img.height > 32768) then
   begin
-    e_WriteLog( 'Error loading texture: Bad ImageType', MSG_WARNING );
-    Exit;
+    e_WriteLog('Error loading texture: invalid image dimensions', MSG_WARNING);
+    exit;
   end;
-
-  if ( TGAHeader.ColorMapType <> 0 ) then
-  begin
-    e_WriteLog( 'Error loading texture: Bad ColorMapType', MSG_WARNING );
-    Exit;
+  //ConvertImage(img, ifA8R8G8B8);
+  width := img.width;
+  height := img.height;
+  pWidth := width;
+  pHeight := height;
+  imageSize := Width*Height*4;
+  GetMem(image, imageSize);
+  try
+    // it's slow, but i don't care for now
+    ii := image;
+    for y := height-1 downto 0 do
+    begin
+      for x := 0 to width-1 do
+      begin
+        clr := GetPixel32(img, x, y);
+        ii^ := clr.r; Inc(ii);
+        ii^ := clr.g; Inc(ii);
+        ii^ := clr.b; Inc(ii);
+        ii^ := clr.a; Inc(ii);
+      end;
+    end;
+    CreateTexture(Texture, width, height, GL_RGBA, image);
+    result := true;
+  finally
+    FreeMem(image);
   end;
-
-  if ( TGAHeader.BPP < 24 ) then
-  begin
-    e_WriteLog( 'Error loading texture: BPP less than 24', MSG_WARNING );
-    Exit;
-  end;
-
-  Width  := TGAHeader.Width[0]  + TGAHeader.Width[1]  * 256;
-  Height := TGAHeader.Height[0] + TGAHeader.Height[1] * 256;
-  BPP := TGAHeader.BPP;
-
-  ImageSize := Width * Height * (BPP div 8);
-
-  GetMem( Image, ImageSize );
-  CopyMemory( Image, Pointer( Integer(pData) + SizeOf(TGAHeader) ), ImageSize );
-
-  for i := 0 to Width * Height - 1 do
-  begin
-    Front := Pointer( Integer(Image) + i*(BPP div 8) );
-    Back  := Pointer( Integer(Image) + i*(BPP div 8) + 2 );
-    Temp   := Front^;
-    Front^ := Back^;
-    Back^  := Temp;
-  end;
-
-  if ( BPP = 24 ) then
-    Texture := CreateTexture( Width, Height, GL_RGB, Image )
-  else
-    Texture := CreateTexture( Width, Height, GL_RGBA, Image );
-
-  FreeMem( Image );
-
-  pWidth := Width;
-  pHeight := Height;
-
-  Result := True;
 end;
 
-function LoadTextureMemEx( pData: Pointer; var Texture: GLuint;
-                           fX, fY, fWidth, fHeight: Word ): Boolean;
+
+function LoadTextureMem (pData: Pointer; dataSize: LongInt; var Texture: GLTexture; var pWidth, pHeight: Word; Fmt: PWord=nil): Boolean;
 var
-  TGAHeader:     TTGAHeader;
-  image, image2: Pointer;
-  Width, Height: Integer;
-  ImageSize:     Integer;
-  i, a, b:       Integer;
-  Front:         ^Byte;
-  Back:          ^Byte;
-  Temp:          Byte;
-  BPP:           Byte;
-  Base:          Integer;
-
+  image, ii: PByte;
+  width, height: Integer;
+  imageSize: Integer;
+  img: TImageData;
+  x, y: Integer;
+  clr: TColor32Rec;
 begin
-  Result := False;
-
-  CopyMemory( @TGAHeader, pData, SizeOf(TGAHeader) );
-
-  if ( TGAHeader.ImageType <> 2 ) then
-  begin
-    e_WriteLog( 'Error loading texture: Bad ImageType', MSG_WARNING );
-    Exit;
-  end;
-
-  if ( TGAHeader.ColorMapType <> 0 ) then
-  begin
-    e_WriteLog( 'Error loading texture: Bad ColorMapType', MSG_WARNING );
-    Exit;
-  end;
-
-  if ( TGAHeader.BPP < 24 ) then
-  begin
-    e_WriteLog( 'Error loading texture: BPP less than 24', MSG_WARNING );
-    Exit;
-  end;
-
-  Width  := TGAHeader.Width[0]  + TGAHeader.Width[1]  * 256;
-  Height := TGAHeader.Height[0] + TGAHeader.Height[1] * 256;
-  BPP := TGAHeader.BPP;
-
-  if fX > Width then Exit;
-  if fY > Height then Exit;
-  if fX+fWidth > Width then Exit;
-  if fY+fHeight > Height then Exit;
-
-  ImageSize := Width * Height * (BPP div 8);
-  GetMem( Image2, ImageSize );
-  CopyMemory( Image2, Pointer( Integer(pData) + SizeOf(TGAHeader) ), ImageSize );
-
-  a := BPP div 8;
-
-  for i := 0 to Width * Height - 1 do
-  begin
-    Front := Pointer( Integer(Image2) + i * a );
-    Back  := Pointer( Integer(Image2) + i * a + 2 );
-    Temp   := Front^;
-    Front^ := Back^;
-    Back^  := Temp;
-  end;
-
-  fY := Height - (fY + fHeight);
-
-  ImageSize := fHeight * fWidth * (BPP div 8);
-  GetMem( Image, ImageSize );
-
-  Base := Integer( Image2 ) + fY * Width * (BPP div 8) + fX * (BPP div 8);
-  a := fWidth * (BPP div 8);
-  b := Width * (BPP div 8);
-
-  for i := 0 to fHeight-1 do
-    CopyMemory( Pointer( Integer(image) + a*i ), Pointer( Base + b*i ), a );
-
-  if ( BPP = 24 ) then
-    Texture := CreateTexture( fWidth, fHeight, GL_RGB, image )
-  else
-    Texture := CreateTexture( fWidth, fHeight, GL_RGBA, image );
-
-  FreeMem( Image );
-  FreeMem( Image2 );
-
-  Result := True;
-end;
-
-function LoadTexture( Filename: String; var Texture: GLuint;
-                      var pWidth, pHeight: Word ): Boolean;
-var
-  TGAHeader:     TTGAHeader;
-  TGAFile:       File;
-  bytesRead:     Integer;
-  image:         Pointer;
-  Width, Height: Integer;
-  ImageSize:     Integer;
-  i:             Integer;
-  Front:         ^Byte;
-  Back:          ^Byte;
-  Temp:          Byte;
-  BPP:           Byte;
-
-begin
-  Result := False;
+  result := false;
   pWidth := 0;
   pHeight := 0;
+  if Fmt <> nil then Fmt^ := GL_RGBA; // anyway
 
-  if not FileExists(Filename) then
+  InitImage(img);
+  if not LoadImageFromMemory(pData, dataSize, img) then
   begin
-    e_WriteLog('Texture ' + Filename + ' not found', MSG_WARNING);
-    Exit;
+    e_WriteLog('Error loading texture: unknown image format', MSG_WARNING);
+    exit;
   end;
-
-  AssignFile( TGAFile, Filename );
-  Reset( TGAFile, 1 );
-  BlockRead( TGAFile, TGAHeader, SizeOf(TGAHeader) );
-
-  if ( TGAHeader.ImageType <> 2 ) then
-  begin
-    CloseFile( TGAFile );
-    e_WriteLog( 'Error loading texture: Bad ImageType', MSG_WARNING );
-    Exit;
+  try
+    result := LoadTextureImg(img, Texture, pWidth, pHeight, Fmt);
+  finally
+    FreeImage(img);
   end;
-
-  if ( TGAHeader.ColorMapType <> 0 ) then
-  begin
-    CloseFile( TGAFile );
-    e_WriteLog( 'Error loading texture: Bad ColorMapType', MSG_WARNING );
-    Exit;
-  end;
-
-  if ( TGAHeader.BPP < 24 ) then
-  begin
-    CloseFile( TGAFile );
-    e_WriteLog( 'Error loading texture: BPP less than 24', MSG_WARNING );
-    Exit;
-  end;
-
-  Width  := TGAHeader.Width[0]  + TGAHeader.Width[1]  * 256;
-  Height := TGAHeader.Height[0] + TGAHeader.Height[1] * 256;
-  BPP := TGAHeader.BPP;
-
-  ImageSize := Width * Height * (BPP div 8);
-
-  GetMem( Image, ImageSize );
-
-  BlockRead( TGAFile, image^, ImageSize, bytesRead );
-  if ( bytesRead <> ImageSize ) then
-  begin
-    CloseFile( TGAFile );
-    Exit;
-  end;
-
-  CloseFile( TGAFile );
-
-  for i := 0 to Width * Height - 1 do
-  begin
-    Front := Pointer( Integer(Image) + i * (BPP div 8) );
-    Back  := Pointer( Integer(Image) + i * (BPP div 8) + 2 );
-    Temp   := Front^;
-    Front^ := Back^;
-    Back^  := Temp;
-  end;
-
-  if ( BPP = 24 ) then
-    Texture := CreateTexture( Width, Height, GL_RGB, Image )
-  else
-    Texture := CreateTexture( Width, Height, GL_RGBA, Image );
-
-  FreeMem( Image );
-
-  pWidth := Width;
-  pHeight := Height;
-
-  Result := True;
 end;
 
-function LoadTextureEx( Filename: String; var Texture: GLuint;
-                        fX, fY, fWidth, fHeight: Word ): Boolean;
+
+function LoadTextureMemEx (pData: Pointer; dataSize: LongInt; var Texture: GLTexture; fX, fY, fWidth, fHeight: Word; Fmt: PWord=nil): Boolean;
 var
-  TGAHeader:     TTGAHeader;
-  TGAFile:       File;
-  image, image2: Pointer;
-  Width, Height: Integer;
-  ImageSize:     Integer;
-  i:             Integer;
-  Front:         ^Byte;
-  Back:          ^Byte;
-  Temp:          Byte;
-  BPP:           Byte;
-  Base:          Integer;
-  
+  image, ii: PByte;
+  width, height: Integer;
+  imageSize: Integer;
+  img: TImageData;
+  x, y: Integer;
+  clr: TColor32Rec;
 begin
-  Result := False;
+  result := false;
+  if Fmt <> nil then Fmt^ := GL_RGBA; // anyway
 
-  if not FileExists(Filename) then
+  InitImage(img);
+  if not LoadImageFromMemory(pData, dataSize, img) then
   begin
-    e_WriteLog( 'Texture ' + Filename + ' not found', MSG_WARNING );
-    Exit;
+    e_WriteLog('Error loading texture: unknown image format', MSG_WARNING);
+    exit;
+  end;
+  try
+    if (img.width < 1) or (img.width > 32768) or (img.height < 1) or (img.height > 32768) then
+    begin
+      e_WriteLog('Error loading texture: invalid image dimensions', MSG_WARNING);
+      exit;
+    end;
+    //ConvertImage(img, ifA8R8G8B8);
+    if fX > img.width then exit;
+    if fY > img.height then exit;
+    if fX+fWidth > img.width then exit;
+    if fY+fHeight > img.height then exit;
+    //writeln('fX=', fX, '; fY=', fY, '; fWidth=', fWidth, '; fHeight=', fHeight);
+    imageSize := img.width*img.height*4;
+    GetMem(image, imageSize);
+    try
+      // it's slow, but i don't care for now
+      ii := image;
+      for y := fY+fHeight-1 downto fY do
+      begin
+        for x := fX to fX+fWidth-1 do
+        begin
+          clr := GetPixel32(img, x, y);
+          ii^ := clr.r; Inc(ii);
+          ii^ := clr.g; Inc(ii);
+          ii^ := clr.b; Inc(ii);
+          ii^ := clr.a; Inc(ii);
+        end;
+      end;
+      CreateTexture(Texture, fWidth, fHeight, GL_RGBA, image);
+      result := true;
+    finally
+      FreeMem(image);
+    end;
+  finally
+    FreeImage(img);
+  end;
+end;
+
+
+function LoadTexture (filename: AnsiString; var Texture: GLTexture; var pWidth, pHeight: Word; Fmt: PWord=nil): Boolean;
+var
+  fs: TStream;
+  img: Pointer;
+  imageSize: LongInt;
+begin
+  result := False;
+  pWidth := 0;
+  pHeight := 0;
+  if Fmt <> nil then Fmt^ := GL_RGBA; // anyway
+  fs := nil;
+
+  try
+    fs := openDiskFileRO(filename);
+  except
+    fs := nil;
+  end;
+  if fs = nil then
+  begin
+    e_WriteLog('Texture "'+filename+'" not found', MSG_WARNING);
+    exit;
   end;
 
-  AssignFile( TGAFile, Filename );
-  Reset( TGAFile, 1 );
-  BlockRead( TGAFile, TGAHeader, SizeOf(TGAHeader) );
+  try
+    imageSize := fs.size;
+    GetMem(img, imageSize);
+    try
+      fs.readBuffer(img^, imageSize);
+      result := LoadTextureMem(img, imageSize, Texture, pWidth, pHeight, Fmt);
+    finally
+      FreeMem(img);
+    end;
+  finally
+    fs.Free();
+  end;
+end;
 
-  if ( TGAHeader.ImageType <> 2 ) then
+
+function LoadTextureEx (filename: AnsiString; var Texture: GLTexture; fX, fY, fWidth, fHeight: Word; Fmt: PWord=nil): Boolean;
+var
+  fs: TStream;
+  img: Pointer;
+  imageSize: LongInt;
+begin
+  result := False;
+  if Fmt <> nil then Fmt^ := GL_RGBA; // anyway
+  fs := nil;
+
+  try
+    fs := openDiskFileRO(filename);
+  except
+    fs := nil;
+  end;
+  if fs = nil then
   begin
-    CloseFile( TGAFile );
-    e_WriteLog( 'Error loading texture: Bad ImageType', MSG_WARNING );
-    Exit;
+    e_WriteLog('Texture "'+filename+'" not found', MSG_WARNING);
+    exit;
   end;
 
-  if ( TGAHeader.ColorMapType <> 0 ) then
-  begin
-    CloseFile( TGAFile );
-    e_WriteLog( 'Error loading texture: Bad ColorMapType', MSG_WARNING );
-    Exit;
+  try
+    imageSize := fs.size;
+    GetMem(img, imageSize);
+    try
+      fs.readBuffer(img^, imageSize);
+      result := LoadTextureMemEx(img, imageSize, Texture, fX, fY, fWidth, fHeight, Fmt);
+    finally
+      FreeMem(img);
+    end;
+  finally
+    fs.Free();
   end;
-
-  if ( TGAHeader.BPP < 24 ) then
-  begin
-    CloseFile( TGAFile );
-    e_WriteLog( 'Error loading texture: BPP less than 24', MSG_WARNING );
-    Exit;
-  end;
-
-  Width  := TGAHeader.Width[0]  + TGAHeader.Width[1]  * 256;
-  Height := TGAHeader.Height[0] + TGAHeader.Height[1] * 256;
-  BPP := TGAHeader.BPP;
-
-  if fX > Width then Exit;
-  if fY > Height then Exit;
-  if fX+fWidth > Width then Exit;
-  if fY+fHeight > Height then Exit;
-
-  ImageSize := Width * Height * (BPP div 8);
-  GetMem( Image2, ImageSize );
-  BlockRead( TGAFile, Image2^, ImageSize );
-
-  CloseFile( TGAFile );
-
-  for i := 0 to Width * Height - 1 do
-  begin
-    Front := Pointer( Integer(Image2) + i * (BPP div 8) );
-    Back  := Pointer( Integer(Image2) + i * (BPP div 8) + 2 );
-    Temp   := Front^;
-    Front^ := Back^;
-    Back^  := Temp;
-  end;
-
-  fY := Height - (fY + fHeight);
-
-  ImageSize := fHeight * fWidth * (BPP div 8);
-  GetMem( Image, ImageSize );
-
-  Base := Integer(Image2) + fY * Width * (BPP div 8) + fX * (BPP div 8);
-
-  for i := 0 to fHeight-1 do
-  begin
-    CopyMemory( Pointer( Integer(image) + fWidth * (BPP div 8) * i ),
-                Pointer( Base + Width * (BPP div 8) * i), fWidth * (BPP div 8) );
-  end;                                                
-
-  if ( BPP = 24 ) then
-    Texture := CreateTexture( fWidth, fHeight, GL_RGB, Image )
-  else
-    Texture := CreateTexture( fWidth, fHeight, GL_RGBA, Image );
-
-  FreeMem( Image );
-  FreeMem( Image2 );
-
-  Result := True;
 end;
 
 end.
-

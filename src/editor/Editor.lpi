@@ -31,10 +31,13 @@
         <FormatVersion Value="1"/>
       </local>
     </RunParams>
-    <RequiredPackages Count="1">
+    <RequiredPackages Count="2">
       <Item1>
-        <PackageName Value="LCL"/>
+        <PackageName Value="LazOpenGLContext"/>
       </Item1>
+      <Item2>
+        <PackageName Value="LCL"/>
+      </Item2>
     </RequiredPackages>
     <Units Count="40">
       <Unit0>
@@ -98,7 +101,9 @@
       <Unit14>
         <Filename Value="f_main.pas"/>
         <IsPartOfProject Value="True"/>
+        <ComponentName Value="MainForm"/>
         <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
       </Unit14>
       <Unit15>
         <Filename Value="g_map.pas"/>
@@ -224,8 +229,8 @@
       <Filename Value="../../bin/editor"/>
     </Target>
     <SearchPaths>
-      <IncludeFiles Value="..;../lib/dgl;../engine;../shared;../lib/fmod;$(ProjOutDir)"/>
-      <OtherUnitFiles Value="..;../lib/dgl;../engine;../shared;../lib/fmod"/>
+      <IncludeFiles Value="..;../engine;../shared;../lib/fmod;../lib/vampimg;../lib/vampimg/JpegLib;../lib/vampimg/ZLib;$(ProjOutDir)"/>
+      <OtherUnitFiles Value="..;../engine;../shared;../lib/fmod;../lib/vampimg;../lib/vampimg/JpegLib;../lib/vampimg/ZLib"/>
       <UnitOutputDirectory Value="../../tmp"/>
       <ObjectPath Value=".."/>
     </SearchPaths>

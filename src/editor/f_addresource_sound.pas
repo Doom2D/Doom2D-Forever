@@ -105,7 +105,8 @@ function CreateSoundWAD(Resource: String): Boolean;
 var
   WAD: TWADEditor_1;
   FileName, SectionName, ResourceName: String;
-  ResLength, sz: Integer;
+  ResLength: Integer;
+  sz: LongWord;
   soundExInfo: FMOD_CREATESOUNDEXINFO;
   res: FMOD_RESULT;
 
@@ -126,10 +127,10 @@ begin
       sz := SizeOf(FMOD_CREATESOUNDEXINFO);
       FillMemory(@soundExInfo, sz, 0);
       soundExInfo.cbsize := sz;
-      soundExInfo.length := ResLength;
+      soundExInfo.length := LongWord(ResLength);
 
       res := FMOD_System_CreateStream(F_System, SoundData,
-        FMOD_LOOP_OFF + FMOD_2D + FMOD_SOFTWARE + FMOD_OPENMEMORY,
+        FMOD_LOOP_OFF or FMOD_2D or FMOD_OPENMEMORY,
         @soundExInfo, Sound);
         
       if res <> FMOD_OK then

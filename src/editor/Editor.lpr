@@ -4,7 +4,7 @@ program Editor;
 
 uses
   Forms, Interfaces,
-  dglOpenGL in '../lib/dgl/dglOpenGL.pas',
+  GL, GLExt,
   e_graphics in '../engine/e_graphics.pas',
   e_log in '../engine/e_log.pas',
   e_textures in '../engine/e_textures.pas',
@@ -37,10 +37,13 @@ uses
   f_packmap in 'f_packmap.pas' {PackMapForm},
   f_maptest in 'f_maptest.pas' {MapTestForm},
   f_choosetype in 'f_choosetype.pas' {ChooseTypeForm},
-  fmod in '../lib/fmod/fmod.pas',
-  fmoderrors in '../lib/fmod/fmoderrors.pas',
-  fmodpresets in '../lib/fmod/fmodpresets.pas',
-  fmodtypes in '../lib/fmod/fmodtypes.pas',
+  fmod,
+  fmoderrors,
+  fmodpresets,
+  fmodtypes,
+  ImagingTypes,
+  Imaging,
+  ImagingUtility,
   g_language in 'g_language.pas',
   f_selectlang in 'f_selectlang.pas' {SelectLanguageForm};
 

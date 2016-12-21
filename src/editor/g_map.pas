@@ -1378,7 +1378,7 @@ var
   FileName, SectionName, ResName, _fn: String;
   TextureRes: String;
   pData: Pointer;
-  Len: Integer;
+  Len, FrameLen: Integer;
   Error: Boolean;
   NoTextureID: DWORD;
   NW, NH: Word;
@@ -1457,14 +1457,14 @@ begin
         end
       else // Anim
         begin // Анимированная текстура
-          if not GetFrame(TextureRes, Data, Width, Height) then
+          if not GetFrame(TextureRes, Data, FrameLen, Width, Height) then
           begin // Кадры
             e_WriteLog(Format('GetFrame() error, res=%s',
                               [textures[a].Resource]), MSG_WARNING);
             Error := True;
           end;
 
-          if not g_CreateTextureMemorySize(Data, textures[a].Resource, 0, 0, Width, Height, 1) then
+          if not g_CreateTextureMemorySize(Data, FrameLen, textures[a].Resource, 0, 0, Width, Height, 1) then
           begin // Сама текстура
             e_WriteLog(Format('g_CreateTextureMemorySize() error, res=%s',
                               [textures[a].Resource]), MSG_WARNING);

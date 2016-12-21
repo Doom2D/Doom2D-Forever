@@ -8,10 +8,14 @@ uses
   LCLIntf, LCLType, LMessages, SysUtils, Variants, Classes, Graphics,
   Controls, Forms, Dialogs, ImgList, StdCtrls, Buttons,
   ComCtrls, ValEdit, Types, ToolWin, Menus, ExtCtrls,
-  CheckLst, Grids;
+  CheckLst, Grids, OpenGLContext;
 
 type
+
+  { TMainForm }
+
   TMainForm = class(TForm)
+    lLoad: TLabel;
   // Главное меню:
     MainMenu: TMainMenu;
   // "Файл":
@@ -77,6 +81,9 @@ type
 
   // Панель инструментов:
     MainToolBar: TToolBar;
+    pbLoad: TProgressBar;
+    pLoadProgress: TPanel;
+    RenderPanel: TOpenGLControl;
     tbNewMap: TToolButton;
     tbOpenMap: TToolButton;
     tbSaveMap: TToolButton;
@@ -107,12 +114,6 @@ type
 
   // Панель карты:
     PanelMap: TPanel;
-  // Панель отображения карты:
-    RenderPanel: TPanel;
-  // Панель загрузки:
-    pLoadProgress: TPanel;
-    lLoad: TLabel;
-    pbLoad: TProgressBar;
   // Полосы прокрутки:
     sbHorizontal: TScrollBar;
     sbVertical: TScrollBar;
@@ -209,6 +210,7 @@ type
     procedure RenderPanelMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
     procedure RenderPanelMouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer);
     procedure RenderPanelMouseUp(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+    procedure RenderPanelPaint(Sender: TObject);
     procedure RenderPanelResize(Sender: TObject);
     procedure vleObjectPropertyEditButtonClick(Sender: TObject);
     procedure vleObjectPropertyGetPickList(Sender: TObject; const KeyName: String; Values: TStrings);
@@ -321,14 +323,14 @@ procedure ChangeShownProperty(Name: String; NewValue: String);
 implementation
 
 uses
-  f_options, e_graphics, e_log, dglOpenGL, Math,
+  f_options, e_graphics, e_log, GL, GLExt, Math,
   f_mapoptions, g_basic, f_about, f_mapoptimization,
   f_mapcheck, f_addresource_texture, g_textures,
   f_activationtype, f_keys, MAPWRITER, MAPSTRUCT,
-  MAPREADER, f_selectmap, f_savemap, WADEDITOR, MAPDEF,
+  MAPREADER, f_selectmap, f_savemap, WADEDITOR, WADSTRUCT, MAPDEF,
   g_map, f_saveminimap, f_addresource, CONFIG, f_packmap,
   f_addresource_sound, f_maptest, f_choosetype,
-  g_language, f_selectlang, ClipBrd, Windows;
+  g_language, f_selectlang, ClipBrd;
 
 const
   UNDO_DELETE_PANEL   = 1;
@@ -419,9 +421,8 @@ type
   TCopyRecArray = Array of TCopyRec;
 
 var
-  hDC: THandle;
-  hRC: THandle;
   gEditorFont: DWORD;
+  gDataLoaded: Boolean = False;
   ShowMap: Boolean = False;
   DrawRect: PRect = nil;
   SnapToGrid: Boolean = True;
@@ -1869,7 +1870,7 @@ end;
 
 function AddTexture(aWAD, aSection, aTex: String; silent: Boolean): Boolean;
 var
-  a: Integer;
+  a, FrameLen: Integer;
   ok: Boolean;
   FileName: String;
   ResourceName: String;
@@ -1940,9 +1941,9 @@ begin
 
     if IsAnim(FullResourceName) then
       begin // Аним. текстура
-        GetFrame(FullResourceName, Data, Width, Height);
+        GetFrame(FullResourceName, Data, FrameLen, Width, Height);
 
-        if g_CreateTextureMemorySize(Data, ResourceName, 0, 0, Width, Height, 1) then
+        if g_CreateTextureMemorySize(Data, FrameLen, ResourceName, 0, 0, Width, Height, 1) then
           a := MainForm.lbTextureList.Items.Add(ResourceName);
       end
     else // Обычная текстура
@@ -2520,10 +2521,46 @@ begin
   OptionsForm.ShowModal();
 end;
 
+procedure LoadStdFont(cfgres, texture: string; var FontID: DWORD);
+var
+  cwdt, chgt: Byte;
+  spc: ShortInt;
+  ID: DWORD;
+  wad: TWADEditor_1;
+  cfgdata: Pointer;
+  cfglen: Integer;
+  config: TConfig;
+begin
+  cfglen := 0;
+
+  wad := TWADEditor_1.Create;
+  if wad.ReadFile(EditorDir+'data\Game.wad') then
+    wad.GetResource('FONTS', cfgres, cfgdata, cfglen);
+  wad.Free();
+
+  if cfglen <> 0 then
+  begin
+    if not g_CreateTextureWAD('FONT_STD', EditorDir+'data\Game.wad:FONTS\'+texture) then
+      e_WriteLog('ERROR ERROR ERROR', MSG_WARNING);
+
+    config := TConfig.CreateMem(cfgdata, cfglen);
+    cwdt := Min(Max(config.ReadInt('FontMap', 'CharWidth', 0), 0), 255);
+    chgt := Min(Max(config.ReadInt('FontMap', 'CharHeight', 0), 0), 255);
+    spc := Min(Max(config.ReadInt('FontMap', 'Kerning', 0), -128), 127);
+
+    if g_GetTexture('FONT_STD', ID) then
+      e_TextureFontBuild(ID, FontID, cwdt, chgt, spc-2);
+
+    config.Free();
+  end
+  else
+    e_WriteLog('Could not load FONT_STD', MSG_WARNING);
+
+  if cfglen <> 0 then FreeMem(cfgdata);
+end;
+
 procedure TMainForm.FormCreate(Sender: TObject);
 var
-  PixelFormat: GLuint;
-  pfd: TPIXELFORMATDESCRIPTOR;
   config: TConfig;
   i: Integer;
   s: String;
@@ -2534,37 +2571,7 @@ begin
 
   e_InitLog(EditorDir+'Editor.log', WM_NEWFILE);
 
-  e_WriteLog('Init OpenGL', MSG_NOTIFY);
-
-  InitOpenGL();
-  hDC := GetDC(RenderPanel.Handle);
-
-  FillChar(pfd, SizeOf(pfd), 0);
-  with pfd do
-  begin
-    nSize := SizeOf(pfd);
-    nVersion := 1;
-    dwFlags := PFD_DRAW_TO_WINDOW or PFD_SUPPORT_OPENGL or PFD_DOUBLEBUFFER;
-    dwLayerMask := PFD_MAIN_PLANE;
-    iPixelType := PFD_TYPE_RGBA;
-    cColorBits := 24;
-    cDepthBits := 32;
-    iLayerType := PFD_MAIN_PLANE;
-  end;
-  PixelFormat := ChoosePixelFormat (hDC, @pfd);
-  SetPixelFormat(hDC, PixelFormat, @pfd);
-
-  hRC := wglCreateContext(hDC);
-  ActivateRenderingContext(hDC, hRC);
-
-  e_InitGL(False);
-
-  gEditorFont := e_SimpleFontCreate('Arial Cyr', 12, FW_BOLD, hDC);
-
   slInvalidTextures := TStringList.Create;
-
-  e_WriteLog('Loading data', MSG_NOTIFY);
-  LoadData();
 
   ShowLayer(LAYER_BACK, True);
   ShowLayer(LAYER_WALLS, True);
@@ -2657,9 +2664,14 @@ begin
   Application.OnIdle := OnIdle;
 end;
 
+procedure PrintBlack(X, Y: Integer; Text: string; FontID: DWORD);
+begin
+  // NOTE: all the font printing routines assume CP1251
+  e_TextureFontPrintEx(X, Y, Text, FontID, 0, 0, 0, 1.0);
+end;
+
 procedure TMainForm.Draw();
 var
-  ps: TPaintStruct;
   x, y: Integer;
   a, b: Integer;
   ID: DWORD;
@@ -2668,7 +2680,6 @@ var
   ObjCount: Word;
   aX, aY, aX2, aY2, XX, ScaleSz: Integer;
 begin
-  BeginPaint(Handle, ps);
   e_BeginRender();
 
   e_Clear(GL_COLOR_BUFFER_BIT,
@@ -2755,7 +2766,7 @@ begin
 
     e_DrawFillQuad(MousePos.X, MousePos.Y, MousePos.X+180, MousePos.Y+18, 192, 192, 192, 127);
     e_DrawQuad(MousePos.X, MousePos.Y, MousePos.X+180, MousePos.Y+18, 255, 255, 255);
-    e_SimpleFontPrint(MousePos.X+8, MousePos.Y+14, PChar(_lc[I_HINT_TELEPORT]), gEditorFont, 0, 0, 0);
+    PrintBlack(MousePos.X+2, MousePos.Y+2, _glc[I_HINT_TELEPORT], gEditorFont);
   end;
 
 // Подсказка при выборе точки появления:
@@ -2766,7 +2777,7 @@ begin
                0, 0, 255);
     e_DrawFillQuad(MousePos.X, MousePos.Y, MousePos.X+180, MousePos.Y+18, 192, 192, 192, 127);
     e_DrawQuad(MousePos.X, MousePos.Y, MousePos.X+180, MousePos.Y+18, 255, 255, 255);
-    e_SimpleFontPrint(MousePos.X+8, MousePos.Y+14, PChar(_lc[I_HINT_SPAWN]), gEditorFont, 0, 0, 0);
+    PrintBlack(MousePos.X+2, MousePos.Y+2, _glc[I_HINT_SPAWN], gEditorFont);
   end;
 
 // Подсказка при выборе панели двери:
@@ -2774,7 +2785,7 @@ begin
   begin
     e_DrawFillQuad(MousePos.X, MousePos.Y, MousePos.X+180, MousePos.Y+18, 192, 192, 192, 127);
     e_DrawQuad(MousePos.X, MousePos.Y, MousePos.X+180, MousePos.Y+18, 255, 255, 255);
-    e_SimpleFontPrint(MousePos.X+8, MousePos.Y+14, PChar(_lc[I_HINT_PANEL_DOOR]), gEditorFont, 0, 0, 0);
+    PrintBlack(MousePos.X+2, MousePos.Y+2, _glc[I_HINT_PANEL_DOOR], gEditorFont);
   end;
 
 // Подсказка при выборе панели с текстурой:
@@ -2782,7 +2793,7 @@ begin
   begin
     e_DrawFillQuad(MousePos.X, MousePos.Y, MousePos.X+196, MousePos.Y+18, 192, 192, 192, 127);
     e_DrawQuad(MousePos.X, MousePos.Y, MousePos.X+196, MousePos.Y+18, 255, 255, 255);
-    e_SimpleFontPrint(MousePos.X+8, MousePos.Y+14, PChar(_lc[I_HINT_PANEL_TEXTURE]), gEditorFont, 0, 0, 0);
+    PrintBlack(MousePos.X+2, MousePos.Y+2, _glc[I_HINT_PANEL_TEXTURE], gEditorFont);
   end;
 
 // Подсказка при выборе панели индикации выстрела:
@@ -2790,7 +2801,7 @@ begin
   begin
     e_DrawFillQuad(MousePos.X, MousePos.Y, MousePos.X+316, MousePos.Y+18, 192, 192, 192, 127);
     e_DrawQuad(MousePos.X, MousePos.Y, MousePos.X+316, MousePos.Y+18, 255, 255, 255);
-    e_SimpleFontPrint(MousePos.X+8, MousePos.Y+14, PChar(_lc[I_HINT_PANEL_SHOT]), gEditorFont, 0, 0, 0);
+    PrintBlack(MousePos.X+2, MousePos.Y+2, _glc[I_HINT_PANEL_SHOT], gEditorFont);
   end;
 
 // Подсказка при выборе панели лифта:
@@ -2798,7 +2809,7 @@ begin
   begin
     e_DrawFillQuad(MousePos.X, MousePos.Y, MousePos.X+180, MousePos.Y+18, 192, 192, 192, 127);
     e_DrawQuad(MousePos.X, MousePos.Y, MousePos.X+180, MousePos.Y+18, 255, 255, 255);
-    e_SimpleFontPrint(MousePos.X+8, MousePos.Y+14, PChar(_lc[I_HINT_PANEL_LIFT]), gEditorFont, 0, 0, 0);
+    PrintBlack(MousePos.X+2, MousePos.Y+2, _glc[I_HINT_PANEL_LIFT], gEditorFont);
   end;
 
 // Подсказка при выборе монстра:
@@ -2806,7 +2817,7 @@ begin
   begin
     e_DrawFillQuad(MousePos.X, MousePos.Y, MousePos.X+120, MousePos.Y+18, 192, 192, 192, 127);
     e_DrawQuad(MousePos.X, MousePos.Y, MousePos.X+120, MousePos.Y+18, 255, 255, 255);
-    e_SimpleFontPrint(MousePos.X+8, MousePos.Y+14, PChar(_lc[I_HINT_MONSTER]), gEditorFont, 0, 0, 0);
+    PrintBlack(MousePos.X+2, MousePos.Y+2, _glc[I_HINT_MONSTER], gEditorFont);
   end;
 
 // Подсказка при выборе области воздействия:
@@ -2814,7 +2825,7 @@ begin
   begin
     e_DrawFillQuad(MousePos.X, MousePos.Y, MousePos.X+204, MousePos.Y+18, 192, 192, 192, 127);
     e_DrawQuad(MousePos.X, MousePos.Y, MousePos.X+204, MousePos.Y+18, 255, 255, 255);
-    e_SimpleFontPrint(MousePos.X+8, MousePos.Y+14, PChar(_lc[I_HINT_EXT_AREA]), gEditorFont, 0, 0, 0);
+    PrintBlack(MousePos.X+2, MousePos.Y+2, _glc[I_HINT_EXT_AREA], gEditorFont);
   end;
 
 // Рисуем текстуры, если чертим панель:
@@ -2844,10 +2855,10 @@ begin
 
     if MouseAction in [MOUSEACTION_DRAWPANEL, MOUSEACTION_DRAWTRIGGER] then
       begin // Чертим новый
-        e_SimpleFontPrint(MousePos.X+8, MousePos.Y+14, PChar(Format(_lc[I_HINT_WIDTH],
-                          [Abs(MousePos.X-MouseLDownPos.X)])), gEditorFont, 0, 0, 0);
-        e_SimpleFontPrint(MousePos.X+8, MousePos.Y+28, PChar(Format(_lc[I_HINT_HEIGHT],
-                          [Abs(MousePos.Y-MouseLDownPos.Y)])), gEditorFont, 0, 0, 0);
+        PrintBlack(MousePos.X+2, MousePos.Y+2, Format(_glc[I_HINT_WIDTH],
+                          [Abs(MousePos.X-MouseLDownPos.X)]), gEditorFont);
+        PrintBlack(MousePos.X+2, MousePos.Y+14, Format(_glc[I_HINT_HEIGHT],
+                          [Abs(MousePos.Y-MouseLDownPos.Y)]), gEditorFont);
       end
     else // Растягиваем существующий
       if SelectedObjects[GetFirstSelected].ObjectType in [OBJECT_PANEL, OBJECT_TRIGGER] then
@@ -2863,10 +2874,10 @@ begin
             Height := gTriggers[SelectedObjects[GetFirstSelected].ID].Height;
           end;
 
-        e_SimpleFontPrint(MousePos.X+8, MousePos.Y+14, PChar(Format(_lc[I_HINT_WIDTH], [Width])),
-                          gEditorFont, 0, 0, 0);
-        e_SimpleFontPrint(MousePos.X+8, MousePos.Y+28, PChar(Format(_lc[I_HINT_HEIGHT], [Height])),
-                          gEditorFont, 0, 0, 0);
+        PrintBlack(MousePos.X+2, MousePos.Y+2, Format(_glc[I_HINT_WIDTH], [Width]),
+                          gEditorFont);
+        PrintBlack(MousePos.X+2, MousePos.Y+14, Format(_glc[I_HINT_HEIGHT], [Height]),
+                          gEditorFont);
       end;
   end;
 
@@ -2962,8 +2973,7 @@ begin
   end; // Мини-карта
 
   e_EndRender();
-  SwapBuffers(hDC);
-  EndPaint(Handle, ps);
+  RenderPanel.SwapBuffers();
 end;
 
 procedure TMainForm.FormResize(Sender: TObject);
@@ -3616,7 +3626,7 @@ begin
                   trigger.Key := Trigger.Key or KEY_BLUETEAM;
 
               // Параметры триггера:
-                ZeroMemory(@trigger.Data.Default[0], 128);
+                FillByte(trigger.Data.Default[0], 128, 0);
 
                 case trigger.TriggerType of
                 // Переключаемая панель:
@@ -3837,6 +3847,11 @@ begin
     end;
 end;
 
+procedure TMainForm.RenderPanelPaint(Sender: TObject);
+begin
+  Draw();
+end;
+
 procedure TMainForm.RenderPanelMouseMove(Sender: TObject;
   Shift: TShiftState; X, Y: Integer);
 var
@@ -3909,8 +3924,10 @@ begin
       begin
         if DrawRect = nil then
           New(DrawRect);
-        DrawRect.TopLeft := MouseRDownPos;
-        DrawRect.BottomRight := MousePos;
+        DrawRect.Top := MouseRDownPos.y;
+        DrawRect.Left := MouseRDownPos.x;
+        DrawRect.Bottom := MousePos.y;
+        DrawRect.Right := MousePos.x;
       end
     else
     // Двигаем выделенные объекты:
@@ -3959,8 +3976,10 @@ begin
       begin
         if DrawRect = nil then
           New(DrawRect);
-        DrawRect.TopLeft := MouseLDownPos;
-        DrawRect.BottomRight := MousePos;
+        DrawRect.Top := MouseLDownPos.y;
+        DrawRect.Left := MouseLDownPos.x;
+        DrawRect.Bottom := MousePos.y;
+        DrawRect.Right := MousePos.x;
       end
     else // Двигаем карту:
       if MouseAction = MOUSEACTION_MOVEMAP then
@@ -3983,7 +4002,7 @@ begin
   CanClose := MessageBox(0, PChar(_lc[I_MSG_EXIT_PROMT]),
                          PChar(_lc[I_MSG_EXIT]),
                          MB_ICONQUESTION or MB_YESNO or
-                         MB_TASKMODAL or MB_DEFBUTTON1) = idYes;
+                         MB_DEFBUTTON1) = idYes;
 end;
 
 procedure TMainForm.aExitExecute(Sender: TObject);
@@ -4023,8 +4042,6 @@ begin
   config.Free();
 
   slInvalidTextures.Free;
-
-  wglDeleteContext(hRC);
 end;
 
 procedure TMainForm.RenderPanelResize(Sender: TObject);
@@ -4632,9 +4649,9 @@ begin
             TRIGGER_EXIT:
               begin
                 s := vleObjectProperty.Values[_lc[I_PROP_TR_NEXT_MAP]];
-                ZeroMemory(@Data.MapName[0], 16);
+                FillByte(Data.MapName[0], 16, 0);
                 if s <> '' then
-                  CopyMemory(@Data.MapName[0], @s[1], Min(Length(s), 16));
+                  Move(Data.MapName[0], s[1], Min(Length(s), 16));
               end;
 
             TRIGGER_TEXTURE:
@@ -4671,9 +4688,9 @@ begin
             TRIGGER_SOUND:
               begin
                 s := vleObjectProperty.Values[_lc[I_PROP_TR_SOUND_NAME]];
-                ZeroMemory(@Data.SoundName[0], 64);
+                FillByte(Data.SoundName[0], 64, 0);
                 if s <> '' then
-                  CopyMemory(@Data.SoundName[0], @s[1], Min(Length(s), 64));
+                  Move(Data.SoundName[0], s[1], Min(Length(s), 64));
 
                 Data.Volume := Min(StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_SOUND_VOLUME]], 0), 255);
                 Data.Pan := Min(StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_SOUND_PAN]], 0), 255);
@@ -4725,9 +4742,9 @@ begin
             TRIGGER_MUSIC:
               begin
                 s := vleObjectProperty.Values[_lc[I_PROP_TR_MUSIC_NAME]];
-                ZeroMemory(@Data.MusicName[0], 64);
+                FillByte(Data.MusicName[0], 64, 0);
                 if s <> '' then
-                  CopyMemory(@Data.MusicName[0], @s[1], Min(Length(s), 64));
+                  Move(Data.MusicName[0], s[1], Min(Length(s), 64));
 
                 if vleObjectProperty.Values[_lc[I_PROP_TR_MUSIC_ACT]] = _lc[I_PROP_TR_MUSIC_ON] then
                   Data.MusicAction := 1
@@ -4785,9 +4802,9 @@ begin
                   Data.MessageSendTo := 5;
 
                 s := vleObjectProperty.Values[_lc[I_PROP_TR_MESSAGE_TEXT]];
-                ZeroMemory(@Data.MessageText[0], 100);
+                FillByte(Data.MessageText[0], 100, 0);
                 if s <> '' then
-                  CopyMemory(@Data.MessageText[0], @s[1], Min(Length(s), 100));
+                  Move(Data.MessageText[0], s[1], Min(Length(s), 100));
 
                 Data.MessageTime := Min(Max(
                   StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_MESSAGE_TIME]], 0), 0), 65535);
@@ -4915,7 +4932,7 @@ begin
                                 [SelectedTexture()])),
                 PChar(_lc[I_MSG_DEL_TEXTURE]),
                 MB_ICONQUESTION or MB_YESNO or
-                MB_TASKMODAL or MB_DEFBUTTON1) <> idYes then
+                MB_DEFBUTTON1) <> idYes then
     Exit;
 
   if gPanels <> nil then
@@ -4940,7 +4957,7 @@ begin
   if (MessageBox(0, PChar(_lc[I_MSG_CLEAR_MAP_PROMT]),
                  PChar(_lc[I_MSG_CLEAR_MAP]),
                  MB_ICONQUESTION or MB_YESNO or
-                 MB_TASKMODAL or MB_DEFBUTTON1) = mrYes) then
+                 MB_DEFBUTTON1) = mrYes) then
     FullClear();
 end;
 
@@ -5761,13 +5778,13 @@ begin
   begin
     str := SelectMapForm.lbMapList.Items[SelectMapForm.lbMapList.ItemIndex];
     MapName := '';
-    CopyMemory(@MapName[0], @str[1], Min(16, Length(str)));
+    Move(MapName[0], str[1], Min(16, Length(str)));
 
     if MessageBox(0, PChar(Format(_lc[I_MSG_DELETE_MAP_PROMT],
                            [MapName, OpenDialog.FileName])),
                   PChar(_lc[I_MSG_DELETE_MAP]),
                   MB_ICONQUESTION or MB_YESNO or
-                  MB_TASKMODAL or MB_DEFBUTTON2) <> mrYes then
+                  MB_DEFBUTTON2) <> mrYes then
       Exit;
 
     WAD.RemoveResource('', MapName);
@@ -5776,7 +5793,7 @@ begin
                                [MapName])),
                PChar(_lc[I_MSG_MAP_DELETED]),
                MB_ICONINFORMATION or MB_OK or
-               MB_TASKMODAL or MB_DEFBUTTON1);
+               MB_DEFBUTTON1);
 
     WAD.SaveTo(OpenDialog.FileName);
 
@@ -6014,6 +6031,17 @@ end;
 
 procedure TMainForm.OnIdle(Sender: TObject; var Done: Boolean);
 begin
+  // FIXME: this is a shitty hack
+  if not gDataLoaded then
+  begin
+    e_WriteLog('Init OpenGL', MSG_NOTIFY);
+    e_InitGL();
+    e_WriteLog('Loading data', MSG_NOTIFY);
+    LoadStdFont('STDTXT', 'STDFONT', gEditorFont);
+    LoadData();
+    gDataLoaded := True;
+    MainForm.FormResize(nil);
+  end;
   Draw();
 end;
 
@@ -6222,10 +6250,7 @@ begin
   Application.Minimize();
   if ExecuteProcess(TestD2dExe, cmd) < 0 then
   begin
-    FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER or FORMAT_MESSAGE_FROM_SYSTEM,
-                  nil, GetLastError(), LANG_SYSTEM_DEFAULT,
-                  @lpMsgBuf, 0, nil);
-    MessageBox(0, lpMsgBuf,
+    MessageBox(0, 'FIXME',
                PChar(_lc[I_MSG_EXEC_ERROR]),
                MB_OK or MB_ICONERROR);
   end;
