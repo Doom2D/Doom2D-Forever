@@ -2716,6 +2716,7 @@ end;
 
 procedure LoadData();
 begin
+ g_CreateTextureWAD('PREVIEW', EditorDir+'\data\Editor.wad:TEXTURES\CHECKERS');
  g_CreateTextureWAD('NOTEXTURE', EditorDir+'\data\Game.wad:TEXTURES\NOTEXTURE');
 
  g_CreateTextureWADSize('AREA_REDFLAG', EditorDir+'\data\Game.wad:TEXTURES\FLAGRED', 0, 0, 64, 64);

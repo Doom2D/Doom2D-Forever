@@ -2674,7 +2674,7 @@ procedure TMainForm.Draw();
 var
   x, y: Integer;
   a, b: Integer;
-  ID: DWORD;
+  ID, PID: DWORD;
   Width, Height: Word;
   Rect: TRectWH;
   ObjCount: Word;
@@ -2746,10 +2746,9 @@ begin
     if not g_GetTexture(SelectedTexture(), ID) then
       g_GetTexture('NOTEXTURE', ID);
     g_GetTextureSizeByID(ID, Width, Height);
-    e_DrawFillQuad(RenderPanel.Width-Width-2, RenderPanel.Height-Height-2,
-                   RenderPanel.Width-1, RenderPanel.Height-1,
-                   GetRValue(PreviewColor), GetGValue(PreviewColor), GetBValue(PreviewColor), 0);
-    e_Draw(ID, RenderPanel.Width-Width-1, RenderPanel.Height-Height-1, 0, True, False);
+    if g_GetTexture('PREVIEW', PID) then
+       e_DrawFill(PID, RenderPanel.Width-Width, RenderPanel.Height-Height, Width div 16 + 1, Height div 16 + 1, 0, True, False);
+    e_Draw(ID, RenderPanel.Width-Width, RenderPanel.Height-Height, 0, True, False);
   end;
 
 // Подсказка при выборе точки Телепорта:
