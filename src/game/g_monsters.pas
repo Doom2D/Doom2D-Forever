@@ -310,7 +310,7 @@ const
      AnimDeltaRight: ((X:  0; Y: -4), (X:  0; Y: -4), (X: -3; Y: -1), (X: -4; Y: -1), (X:  1; Y: -4), (X:  1; Y: -4), (X:  0; Y: -4));
      AnimDeltaLeft:  ((X:  0; Y: -4), (X:  0; Y: -4), (X: -3; Y: -1), (X: -4; Y: -1), (X:  1; Y: -4), (X:  1; Y: -4), (X:  0; Y: -4))),
 
-    (LeftAnim: True; wX: 70; wY: 73; AnimSpeed:(3, 3, 3, 3, 3, 0, 3);  //CYBER
+    (LeftAnim: True; wX: 70; wY: 73; AnimSpeed:(3, 3, 3, 3, 3, 3, 3);  //CYBER
      AnimDeltaRight: ((X:  2; Y: -6), (X:  2; Y: -6), (X: -3; Y: -4), (X: -3; Y: -4), (X: 25; Y: -6), (X: 25; Y: -6), (X: -2; Y: -6));
      AnimDeltaLeft:  ((X:  3; Y: -3), (X:  3; Y: -3), (X: -3; Y: -4), (X: -3; Y: -4), (X:-26; Y: -3), (X:-26; Y: -3), (X:  1; Y: -3))),
 
@@ -658,6 +658,8 @@ begin
   g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_CYBER_PAIN_L', GameWAD+':MTEXTURES\CYBER_PAIN_L', 128, 128, 1);
   g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_CYBER_ATTACK', GameWAD+':MTEXTURES\CYBER_ATTACK', 128, 128, 2);
   g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_CYBER_ATTACK_L', GameWAD+':MTEXTURES\CYBER_ATTACK_L', 128, 128, 2);
+  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_CYBER_ATTACK2', GameWAD+':MTEXTURES\CYBER_KICK', 128, 128, 2);
+  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_CYBER_ATTACK2_L', GameWAD+':MTEXTURES\CYBER_KICK_L', 128, 128, 2);
   g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_CYBER_DIE', GameWAD+':MTEXTURES\CYBER_DIE', 128, 128, 9);
 
   g_Game_SetLoadingText(_lc[I_LOAD_MONSTER_SOUNDS], 0, False);
@@ -874,6 +876,8 @@ begin
   g_Frames_DeleteByName('FRAMES_MONSTER_CYBER_PAIN_L');
   g_Frames_DeleteByName('FRAMES_MONSTER_CYBER_ATTACK');
   g_Frames_DeleteByName('FRAMES_MONSTER_CYBER_ATTACK_L');
+  g_Frames_DeleteByName('FRAMES_MONSTER_CYBER_KICK');
+  g_Frames_DeleteByName('FRAMES_MONSTER_CYBER_KICK_L');
   g_Frames_DeleteByName('FRAMES_MONSTER_CYBER_DIE');
 
   g_Sound_Delete('SOUND_MONSTER_BARREL_DIE');
@@ -2718,13 +2722,13 @@ _end:
                   if g_Weapon_Hit(@FObj, 10, FUID, HIT_SOME) <> 0 then
                     g_Sound_PlayExAt('SOUND_MONSTER_FISH_ATTACK', FObj.X, FObj.Y);
 
-                MONSTER_SKEL, MONSTER_ROBO:
-                // Робот или скелет сильно пинаются:
+                MONSTER_SKEL, MONSTER_ROBO, MONSTER_CYBER:
+                // Робот, кибер или скелет сильно пинаются:
                   if FCurAnim = ANIM_ATTACK2 then
                   begin
                     o := FObj;
                     o.Vel.X := IfThen(FDirection = D_RIGHT, 1, -1)*50;
-                    if g_Weapon_Hit(@o, 50, FUID, HIT_SOME) <> 0 then
+                    if g_Weapon_Hit(@o, IfThen(FMonsterType = MONSTER_CYBER, 33, 50), FUID, HIT_SOME) <> 0 then
                       g_Sound_PlayExAt('SOUND_MONSTER_SKEL_HIT', FObj.X, FObj.Y);
                   end;
 
@@ -3471,13 +3475,13 @@ _end:
                 MONSTER_FISH:
                   g_Weapon_Hit(@FObj, 10, FUID, HIT_SOME);
 
-                MONSTER_SKEL, MONSTER_ROBO:
-                // Робот или скелет сильно пинаются:
+                MONSTER_SKEL, MONSTER_ROBO, MONSTER_CYBER:
+                // Робот, кибер или скелет сильно пинаются:
                   if FCurAnim = ANIM_ATTACK2 then
                   begin
                     o := FObj;
                     o.Vel.X := IfThen(FDirection = D_RIGHT, 1, -1)*50;
-                    g_Weapon_Hit(@o, 50, FUID, HIT_SOME);
+                    g_Weapon_Hit(@o, IfThen(FMonsterType = MONSTER_CYBER, 33, 50), FUID, HIT_SOME);
                   end;
 
                 MONSTER_VILE:
@@ -3768,13 +3772,7 @@ begin
         g_Sound_PlayExAt('SOUND_MONSTER_IMP_ATTACK', FObj.X, FObj.Y);
         Result := True;
       end;
-    MONSTER_SKEL:
-      begin
-        SetState(STATE_ATTACK, ANIM_ATTACK2);
-        g_Sound_PlayExAt('SOUND_MONSTER_SKEL_ATTACK', FObj.X, FObj.Y);
-        Result := True;
-      end;
-    MONSTER_ROBO:
+    MONSTER_SKEL, MONSTER_ROBO, MONSTER_CYBER:
       begin
         SetState(STATE_ATTACK, ANIM_ATTACK2);
         g_Sound_PlayExAt('SOUND_MONSTER_SKEL_ATTACK', FObj.X, FObj.Y);
