@@ -310,9 +310,9 @@ const
      AnimDeltaRight: ((X:  0; Y: -4), (X:  0; Y: -4), (X: -3; Y: -1), (X: -4; Y: -1), (X:  1; Y: -4), (X:  1; Y: -4), (X:  0; Y: -4));
      AnimDeltaLeft:  ((X:  0; Y: -4), (X:  0; Y: -4), (X: -3; Y: -1), (X: -4; Y: -1), (X:  1; Y: -4), (X:  1; Y: -4), (X:  0; Y: -4))),
 
-    (LeftAnim: True; wX: 70; wY: 73; AnimSpeed:(3, 3, 3, 3, 3, 3, 3);  //CYBER
-     AnimDeltaRight: ((X:  2; Y: -6), (X:  2; Y: -6), (X: -3; Y: -4), (X: -3; Y: -4), (X: 25; Y: -6), (X: 25; Y: -6), (X: -2; Y: -6));
-     AnimDeltaLeft:  ((X:  3; Y: -3), (X:  3; Y: -3), (X: -3; Y: -4), (X: -3; Y: -4), (X:-26; Y: -3), (X:-26; Y: -3), (X:  1; Y: -3))),
+    (LeftAnim: True; wX: 70; wY: 73; AnimSpeed:(3, 3, 3, 3, 3, 4, 3);  //CYBER
+     AnimDeltaRight: ((X:  2; Y: -6), (X:  2; Y: -6), (X: -3; Y: -4), (X: -3; Y: -4), (X: 25; Y: -6), (X: 0; Y: -6), (X: -2; Y: -6));
+     AnimDeltaLeft:  ((X:  3; Y: -3), (X:  3; Y: -3), (X: -3; Y: -4), (X: -3; Y: -4), (X:-26; Y: -3), (X:-1; Y: -3), (X:  1; Y: -3))),
 
     (LeftAnim: True; wX: 32; wY: 32; AnimSpeed:(3, 2, 2, 2, 1, 0, 4);  //CGUN
      AnimDeltaRight: ((X: -1; Y: -2), (X: -1; Y: -2), (X: -2; Y:  0), (X: -2; Y:  0), (X:  0; Y: -3), (X:  0; Y: -3), (X: -1; Y: -2));
@@ -658,8 +658,8 @@ begin
   g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_CYBER_PAIN_L', GameWAD+':MTEXTURES\CYBER_PAIN_L', 128, 128, 1);
   g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_CYBER_ATTACK', GameWAD+':MTEXTURES\CYBER_ATTACK', 128, 128, 2);
   g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_CYBER_ATTACK_L', GameWAD+':MTEXTURES\CYBER_ATTACK_L', 128, 128, 2);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_CYBER_ATTACK2', GameWAD+':MTEXTURES\CYBER_KICK', 128, 128, 2);
-  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_CYBER_ATTACK2_L', GameWAD+':MTEXTURES\CYBER_KICK_L', 128, 128, 2);
+  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_CYBER_ATTACK2', GameWAD+':MTEXTURES\CYBER_ATTACK2', 128, 128, 2);
+  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_CYBER_ATTACK2_L', GameWAD+':MTEXTURES\CYBER_ATTACK2_L', 128, 128, 2);
   g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_CYBER_DIE', GameWAD+':MTEXTURES\CYBER_DIE', 128, 128, 9);
 
   g_Game_SetLoadingText(_lc[I_LOAD_MONSTER_SOUNDS], 0, False);
@@ -876,8 +876,8 @@ begin
   g_Frames_DeleteByName('FRAMES_MONSTER_CYBER_PAIN_L');
   g_Frames_DeleteByName('FRAMES_MONSTER_CYBER_ATTACK');
   g_Frames_DeleteByName('FRAMES_MONSTER_CYBER_ATTACK_L');
-  g_Frames_DeleteByName('FRAMES_MONSTER_CYBER_KICK');
-  g_Frames_DeleteByName('FRAMES_MONSTER_CYBER_KICK_L');
+  g_Frames_DeleteByName('FRAMES_MONSTER_CYBER_ATTACK2');
+  g_Frames_DeleteByName('FRAMES_MONSTER_CYBER_ATTACK2_L');
   g_Frames_DeleteByName('FRAMES_MONSTER_CYBER_DIE');
 
   g_Sound_Delete('SOUND_MONSTER_BARREL_DIE');
@@ -2262,8 +2262,11 @@ begin
         if g_Obj_Collide(@FObj, @o) and (FTargetUID <> 0) then
         begin
           FTargetTime := 0;
-          if kick(@o) then
-            goto _end;
+          if (FMonsterType <> MONSTER_CYBER) or (Random(2) = 0) then
+          begin
+            if kick(@o) then
+              goto _end;
+          end;
         end;
 
       // Расстояние до цели:
@@ -2727,7 +2730,7 @@ _end:
                   if FCurAnim = ANIM_ATTACK2 then
                   begin
                     o := FObj;
-                    o.Vel.X := IfThen(FDirection = D_RIGHT, 1, -1)*50;
+                    o.Vel.X := IfThen(FDirection = D_RIGHT, 1, -1)*IfThen(FMonsterType = MONSTER_CYBER, 60, 50);
                     if g_Weapon_Hit(@o, IfThen(FMonsterType = MONSTER_CYBER, 33, 50), FUID, HIT_SOME) <> 0 then
                       g_Sound_PlayExAt('SOUND_MONSTER_SKEL_HIT', FObj.X, FObj.Y);
                   end;
@@ -3480,7 +3483,7 @@ _end:
                   if FCurAnim = ANIM_ATTACK2 then
                   begin
                     o := FObj;
-                    o.Vel.X := IfThen(FDirection = D_RIGHT, 1, -1)*50;
+                    o.Vel.X := IfThen(FDirection = D_RIGHT, 1, -1)*IfThen(FMonsterType = MONSTER_CYBER, 60, 50);
                     g_Weapon_Hit(@o, IfThen(FMonsterType = MONSTER_CYBER, 33, 50), FUID, HIT_SOME);
                   end;
 
