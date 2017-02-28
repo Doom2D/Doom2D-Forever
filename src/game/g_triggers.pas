@@ -69,7 +69,7 @@ procedure g_Triggers_Press(ID: DWORD; ActivateType: Byte; ActivateUID: Word = 0)
 function g_Triggers_PressR(X, Y: Integer; Width, Height: Word; UID: Word;
                            ActivateType: Byte; IgnoreList: DWArray = nil): DWArray;
 procedure g_Triggers_PressL(X1, Y1, X2, Y2: Integer; UID: DWORD; ActivateType: Byte);
-procedure g_Triggers_PressC(CX, CY: Integer; Radius: Word; UID: Word; ActivateType: Byte);
+procedure g_Triggers_PressC(CX, CY: Integer; Radius: Word; UID: Word; ActivateType: Byte; IgnoreTrigger: Integer = -1);
 procedure g_Triggers_OpenAll();
 procedure g_Triggers_DecreaseSpawner(ID: DWORD);
 procedure g_Triggers_Free();
@@ -87,7 +87,7 @@ function tr_Teleport(ActivateUID: Integer; TX, TY: Integer; TDir: Integer; Silen
 function tr_Push(ActivateUID: Integer; VX, VY: Integer; ResetVel: Boolean): Boolean;
 
 procedure tr_MakeEffect(X, Y, VX, VY: Integer; T, ST, CR, CG, CB: Byte; Silent, Send: Boolean);
-function tr_SpawnShot(ShotType: Integer; wx, wy, dx, dy: Integer; ShotSound: Boolean; ShotTarget: Word): Integer;
+function tr_SpawnShot(ShotType: Integer; wx, wy, dx, dy: Integer; ShotSound: Boolean; ShotTarget: Word; TID: DWORD): Integer;
 
 var
   gTriggerClientID: Integer = 0;
@@ -427,7 +427,7 @@ begin
   end;
 end;
 
-function tr_SpawnShot(ShotType: Integer; wx, wy, dx, dy: Integer; ShotSound: Boolean; ShotTarget: Word): Integer;
+function tr_SpawnShot(ShotType: Integer; wx, wy, dx, dy: Integer; ShotSound: Boolean; ShotTarget: Word; TID: DWORD): Integer;
 var
   snd: string;
   Projectile: Boolean;
@@ -435,6 +435,7 @@ var
   Anim: TAnimation;
 begin
   Result := -1;
+  TextureID := DWORD(-1);
   snd := 'SOUND_WEAPON_FIREROCKET';
   Projectile := True;
   case ShotType of
@@ -556,7 +557,7 @@ begin
           Anim.Free();
         end;
         Projectile := False;
-        g_Weapon_Explode(wx, wy, 60, 0);
+        g_Weapon_Explode(wx, wy, 60, 0, TID);
         snd := 'SOUND_WEAPON_EXPLODEROCKET';
       end;
 
@@ -619,7 +620,7 @@ begin
       dx := dx + Random(Data.ShotAccuracy) - Random(Data.ShotAccuracy);
       dy := dy + Random(Data.ShotAccuracy) - Random(Data.ShotAccuracy);
       
-      tr_SpawnShot(Data.ShotType, wx, wy, dx, dy, Data.ShotSound, TargetUID);
+      tr_SpawnShot(Data.ShotType, wx, wy, dx, dy, Data.ShotSound, TargetUID, ID);
     end
     else
       if (Data.ShotIntReload > 0) and (ShotReloadTime = 0) then
@@ -2472,7 +2473,7 @@ begin
       end;
 end;
 
-procedure g_Triggers_PressC(CX, CY: Integer; Radius: Word; UID: Word; ActivateType: Byte);
+procedure g_Triggers_PressC(CX, CY: Integer; Radius: Word; UID: Word; ActivateType: Byte; IgnoreTrigger: Integer = -1);
 var
   a: Integer;
   k: Byte;
@@ -2498,7 +2499,8 @@ begin
   rsq := Radius * Radius;
 
   for a := 0 to High(gTriggers) do
-    if (gTriggers[a].TriggerType <> TRIGGER_NONE) and
+    if (gTriggers[a].ID <> DWORD(IgnoreTrigger)) and
+	   (gTriggers[a].TriggerType <> TRIGGER_NONE) and
        (gTriggers[a].TimeOut = 0) and
        ((gTriggers[a].Keys and k) = gTriggers[a].Keys) and
        ByteBool(gTriggers[a].ActivateType and ActivateType) then
