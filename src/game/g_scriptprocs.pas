@@ -1134,7 +1134,7 @@ begin
   if (ShotTarget > 0) and (ShotTarget < $FFFF) then
     ShotTargetW := ShotTarget;
 
-  lua_pushinteger(L, tr_SpawnShot(ShotType, wx, wy, dx, dy, not Silent, ShotTargetW, DWORD(-1)));
+  lua_pushinteger(L, tr_SpawnShot(ShotType, wx, wy, dx, dy, not Silent, ShotTargetW));
 end;
 
 function SP_Lua_SpawnEffect(L: PScriptContext): Integer; cdecl;

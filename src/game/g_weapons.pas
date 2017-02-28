@@ -76,7 +76,7 @@ procedure g_Weapon_mgun(x, y, xd, yd: Integer; SpawnerUID: Word; Silent: Boolean
 procedure g_Weapon_shotgun(x, y, xd, yd: Integer; SpawnerUID: Word; Silent: Boolean = False);
 procedure g_Weapon_dshotgun(x, y, xd, yd: Integer; SpawnerUID: Word; Silent: Boolean = False);
 
-function g_Weapon_Explode(X, Y: Integer; rad: Integer; SpawnerUID: Word; IgnoreTrigger: Integer = -1): Boolean;
+function g_Weapon_Explode(X, Y: Integer; rad: Integer; SpawnerUID: Word): Boolean;
 procedure g_Weapon_BFG9000(X, Y: Integer; SpawnerUID: Word);
 procedure g_Weapon_Update();
 procedure g_Weapon_Draw();
@@ -796,15 +796,14 @@ begin
   end;
 end;
 
-function g_Weapon_Explode(X, Y: Integer; rad: Integer; SpawnerUID: Word; IgnoreTrigger: Integer = -1): Boolean;
+function g_Weapon_Explode(X, Y: Integer; rad: Integer; SpawnerUID: Word): Boolean;
 var
   i, h, r, dx, dy, m, mm: Integer;
   _angle: SmallInt;
 begin
   Result := False;
 
-  // don't let turret explosions use the turret
-  g_Triggers_PressC(X, Y, rad, SpawnerUID, ACTIVATE_SHOT, IgnoreTrigger);
+  g_Triggers_PressC(X, Y, rad, SpawnerUID, ACTIVATE_SHOT);
 
   r := rad*rad;
 

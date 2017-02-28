@@ -87,7 +87,7 @@ function tr_Teleport(ActivateUID: Integer; TX, TY: Integer; TDir: Integer; Silen
 function tr_Push(ActivateUID: Integer; VX, VY: Integer; ResetVel: Boolean): Boolean;
 
 procedure tr_MakeEffect(X, Y, VX, VY: Integer; T, ST, CR, CG, CB: Byte; Silent, Send: Boolean);
-function tr_SpawnShot(ShotType: Integer; wx, wy, dx, dy: Integer; ShotSound: Boolean; ShotTarget: Word; TID: DWORD): Integer;
+function tr_SpawnShot(ShotType: Integer; wx, wy, dx, dy: Integer; ShotSound: Boolean; ShotTarget: Word): Integer;
 
 var
   gTriggerClientID: Integer = 0;
@@ -427,7 +427,7 @@ begin
   end;
 end;
 
-function tr_SpawnShot(ShotType: Integer; wx, wy, dx, dy: Integer; ShotSound: Boolean; ShotTarget: Word; TID: DWORD): Integer;
+function tr_SpawnShot(ShotType: Integer; wx, wy, dx, dy: Integer; ShotSound: Boolean; ShotTarget: Word): Integer;
 var
   snd: string;
   Projectile: Boolean;
@@ -557,7 +557,7 @@ begin
           Anim.Free();
         end;
         Projectile := False;
-        g_Weapon_Explode(wx, wy, 60, 0, TID);
+        g_Weapon_Explode(wx, wy, 60, 0);
         snd := 'SOUND_WEAPON_EXPLODEROCKET';
       end;
 
@@ -620,7 +620,7 @@ begin
       dx := dx + Random(Data.ShotAccuracy) - Random(Data.ShotAccuracy);
       dy := dy + Random(Data.ShotAccuracy) - Random(Data.ShotAccuracy);
       
-      tr_SpawnShot(Data.ShotType, wx, wy, dx, dy, Data.ShotSound, TargetUID, ID);
+      tr_SpawnShot(Data.ShotType, wx, wy, dx, dy, Data.ShotSound, TargetUID);
     end
     else
       if (Data.ShotIntReload > 0) and (ShotReloadTime = 0) then
@@ -1829,6 +1829,9 @@ begin
           if ShotSightTime > 0 then
             Exit;
 
+		  // put this at the beginning so it doesn't trigger itself
+		  TimeOut := Data.ShotWait + 1;
+
           wx := Data.ShotPos.X;
           wy := Data.ShotPos.Y;
           pAngle := -DegToRad(Data.ShotAngle);
@@ -1957,8 +1960,6 @@ begin
               end;
             end;
           end;
-
-          TimeOut := Data.ShotWait + 1;
         end;
 
       TRIGGER_EFFECT:
