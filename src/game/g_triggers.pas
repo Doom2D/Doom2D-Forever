@@ -731,8 +731,8 @@ begin
 
         if D2D then
           begin
-            if m.TeleportTo(TX-(p.Obj.Rect.Width div 2),
-                            TY-p.Obj.Rect.Height,
+            if m.TeleportTo(TX-(m.Obj.Rect.Width div 2),
+                            TY-m.Obj.Rect.Height,
                             Silent,
                             TDir) then
               Result := True;
