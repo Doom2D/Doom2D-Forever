@@ -1829,8 +1829,8 @@ begin
           if ShotSightTime > 0 then
             Exit;
 
-		  // put this at the beginning so it doesn't trigger itself
-		  TimeOut := Data.ShotWait + 1;
+          // put this at the beginning so it doesn't trigger itself
+          TimeOut := Data.ShotWait + 1;
 
           wx := Data.ShotPos.X;
           wy := Data.ShotPos.Y;
@@ -2501,7 +2501,7 @@ begin
 
   for a := 0 to High(gTriggers) do
     if (gTriggers[a].ID <> DWORD(IgnoreTrigger)) and
-	   (gTriggers[a].TriggerType <> TRIGGER_NONE) and
+     (gTriggers[a].TriggerType <> TRIGGER_NONE) and
        (gTriggers[a].TimeOut = 0) and
        ((gTriggers[a].Keys and k) = gTriggers[a].Keys) and
        ByteBool(gTriggers[a].ActivateType and ActivateType) then
