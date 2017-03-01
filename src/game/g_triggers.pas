@@ -1938,7 +1938,11 @@ begin
                   end;
             end;
 
-            else TargetUID := ActivateUID;
+            else begin
+              if (Data.ShotTarget <> TRIGGER_SHOT_TARGET_NONE) or
+                 (Data.ShotType <> TRIGGER_SHOT_REV) then
+                TargetUID := ActivateUID;
+            end;
           end;
 
           if (Data.ShotTarget = TRIGGER_SHOT_TARGET_NONE) or (TargetUID > 0) then

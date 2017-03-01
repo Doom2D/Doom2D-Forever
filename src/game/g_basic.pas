@@ -513,7 +513,7 @@ begin
   b := abs(vy);
 
   if a = 0 then
-    c := 0
+    c := 90
   else
     c := RadToDeg(ArcTan(b/a));
 
