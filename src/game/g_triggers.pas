@@ -2501,7 +2501,7 @@ begin
 
   for a := 0 to High(gTriggers) do
     if (gTriggers[a].ID <> DWORD(IgnoreTrigger)) and
-     (gTriggers[a].TriggerType <> TRIGGER_NONE) and
+       (gTriggers[a].TriggerType <> TRIGGER_NONE) and
        (gTriggers[a].TimeOut = 0) and
        ((gTriggers[a].Keys and k) = gTriggers[a].Keys) and
        ByteBool(gTriggers[a].ActivateType and ActivateType) then
