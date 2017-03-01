@@ -64,6 +64,7 @@ type
     FPain: Integer;
     FSleep: Integer;
     FPainSound: Boolean;
+    FPainTicks: Integer;
     FWaitAttackAnim: Boolean;
     FChainFire: Boolean;
     tx, ty: Integer;
@@ -1268,6 +1269,7 @@ begin
     Exit;
 
   FPainSound := True;
+  FPainTicks := 20;
 
   case FMonsterType of
     MONSTER_IMP, MONSTER_ZOMBY, MONSTER_SERG,
@@ -1275,7 +1277,7 @@ begin
       g_Sound_PlayExAt('SOUND_MONSTER_PAIN', FObj.X, FObj.Y);
     MONSTER_SOUL, MONSTER_BARON, MONSTER_CACO,
     MONSTER_KNIGHT, MONSTER_DEMON, MONSTER_SPIDER,
-    MONSTER_CYBER:
+    MONSTER_BSP, MONSTER_CYBER:
       g_Sound_PlayExAt('SOUND_MONSTER_PAIN2', FObj.X, FObj.Y);
     MONSTER_VILE:
       g_Sound_PlayExAt('SOUND_MONSTER_VILE_PAIN', FObj.X, FObj.Y);
@@ -2015,7 +2017,10 @@ begin
     Exit;
   end;
 
-  FPainSound := False;
+  if FPainTicks > 0 then
+    Dec(FPainTicks)
+  else
+    FPainSound := False;
 
 // Двигаемся:
   st := g_Obj_Move(@FObj, fall, True, True);
@@ -2138,6 +2143,8 @@ begin
           FPain := MONSTERTABLE[FMonsterType].Pain;
           if gSoundEffectsDF then PainSound();
         end;
+        if (not gSoundEffectsDF) and (FPain >= MONSTERTABLE[FMonsterType].MinPain) then
+          PainSound();
 
       // Снижаем боль со временем:
         FPain := FPain - 5;
@@ -2948,7 +2955,10 @@ begin
     Exit;
   end;
 
-  FPainSound := False;
+  if FPainTicks > 0 then
+    Dec(FPainTicks)
+  else
+    FPainSound := False;
 
 // Двигаемся:
   st := g_Obj_Move(@FObj, fall, True, True);
@@ -3053,8 +3063,10 @@ begin
         if FPain >= MONSTERTABLE[FMonsterType].Pain then
         begin
           FPain := MONSTERTABLE[FMonsterType].Pain;
-          PainSound();
+          if gSoundEffectsDF then PainSound();
         end;
+        if (not gSoundEffectsDF) and (FPain >= MONSTERTABLE[FMonsterType].MinPain) then
+          PainSound();
 
       // Снижаем боль со временем:
         FPain := FPain - 5;
