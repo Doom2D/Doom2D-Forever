@@ -1461,7 +1461,13 @@ begin
                   MaxLength := 3;
                 end;
 
-                with ItemProps[InsertRow(_lc[I_PROP_TR_SHOT_ALLMAP], BoolNames[Data.ShotAllMap], True)] do
+                case Data.ShotAim of
+                  1: str := _lc[I_PROP_TR_SHOT_AIM_1];
+                  2: str := _lc[I_PROP_TR_SHOT_AIM_2];
+                  3: str := _lc[I_PROP_TR_SHOT_AIM_3];
+                  else str := _lc[I_PROP_TR_SHOT_AIM_0];
+                end;
+                with ItemProps[InsertRow(_lc[I_PROP_TR_SHOT_AIM], str, True)-1] do
                 begin
                   EditStyle := esPickList;
                   ReadOnly := True;
@@ -3734,7 +3740,7 @@ begin
                       trigger.Data.ShotPanelID := -1;
                       trigger.Data.ShotTarget := 0;
                       trigger.Data.ShotIntSight := 0;
-                      trigger.Data.ShotAllMap := False;
+                      trigger.Data.ShotAim := TRIGGER_SHOT_AIM_DEFAULT;
                       trigger.Data.ShotPos.X := trigger.X-64;
                       trigger.Data.ShotPos.Y := trigger.Y-64;
                       trigger.Data.ShotAngle := 0;
@@ -4415,6 +4421,13 @@ begin
         Values.Add(_lc[I_PROP_TR_SHOT_TO_5]);
         Values.Add(_lc[I_PROP_TR_SHOT_TO_6]);
       end
+    else if KeyName = _lc[I_PROP_TR_SHOT_AIM] then
+      begin
+        Values.Add(_lc[I_PROP_TR_SHOT_AIM_0]);
+        Values.Add(_lc[I_PROP_TR_SHOT_AIM_1]);
+        Values.Add(_lc[I_PROP_TR_SHOT_AIM_2]);
+        Values.Add(_lc[I_PROP_TR_SHOT_AIM_3]);
+      end
     else if (KeyName = _lc[I_PROP_PANEL_BLEND]) or
             (KeyName = _lc[I_PROP_DM_ONLY]) or
             (KeyName = _lc[I_PROP_ITEM_FALLS]) or
@@ -4432,7 +4445,6 @@ begin
             (KeyName = _lc[I_PROP_TR_SCORE_CON]) or
             (KeyName = _lc[I_PROP_TR_SCORE_MSG]) or
             (KeyName = _lc[I_PROP_TR_HEALTH_MAX]) or
-            (KeyName = _lc[I_PROP_TR_SHOT_ALLMAP]) or
             (KeyName = _lc[I_PROP_TR_SHOT_SOUND]) or
             (KeyName = _lc[I_PROP_TR_EFFECT_CENTER]) then
       begin
@@ -4846,7 +4858,13 @@ begin
                   Data.ShotTarget := 6;
                 Data.ShotIntSight := Min(Max(
                   StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_SHOT_SIGHT]], 0), 0), 65535);
-                Data.ShotAllMap := NameToBool(vleObjectProperty.Values[_lc[I_PROP_TR_SHOT_ALLMAP]]);
+                Data.ShotAim := 0;
+                if vleObjectProperty.Values[_lc[I_PROP_TR_SHOT_AIM]] = _lc[I_PROP_TR_SHOT_AIM_1] then
+                  Data.ShotAim := 1
+                else if vleObjectProperty.Values[_lc[I_PROP_TR_SHOT_AIM]] = _lc[I_PROP_TR_SHOT_AIM_2] then
+                  Data.ShotAim := 2
+                else if vleObjectProperty.Values[_lc[I_PROP_TR_SHOT_AIM]] = _lc[I_PROP_TR_SHOT_AIM_3] then
+                  Data.ShotAim := 3;
                 Data.ShotAngle := Min(
                   StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_SHOT_ANGLE]], 0), 360);
                 Data.ShotWait := Min(Max(
