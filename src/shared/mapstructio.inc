@@ -201,7 +201,7 @@ procedure mb_Read_TriggerData (var tr: TTriggerData; ttype: Integer; const buf; 
     getBytesAt(tr.ShotType, buf, 8, 1);
     getBytesAt(tr.ShotTarget, buf, 9, 1);
     getBytesAt(tr.ShotSound, buf, 10, 1);
-    getBytesAt(tr.ShotAllMap, buf, 11, 1);
+    getBytesAt(tr.ShotAim, buf, 11, 1);
     getIntAt(tr.ShotPanelID, buf, 12);
     getWordAt(tr.ShotIntSight, buf, 16);
     getWordAt(tr.ShotAngle, buf, 18);
@@ -512,7 +512,7 @@ procedure mb_Write_TriggerData (var buf; bufsize: Integer; ttype: Integer; var t
     putBytesAt(buf, 8, tr.ShotType, 1);
     putBytesAt(buf, 9, tr.ShotTarget, 1);
     putBytesAt(buf, 10, tr.ShotSound, 1);
-    putBytesAt(buf, 11, tr.ShotAllMap, 1);
+    putBytesAt(buf, 11, tr.ShotAim, 1);
     putIntAt(buf, 12, tr.ShotPanelID);
     putWordAt(buf, 16, tr.ShotIntSight);
     putWordAt(buf, 18, tr.ShotAngle);

@@ -924,6 +924,22 @@ begin
   end;
 end;
 
+function tr_ShotAimCheck(var Trigger: TTrigger; Obj: PObj): Boolean;
+begin
+  with Trigger do
+  begin
+    if TriggerType <> TRIGGER_SHOT then
+      Exit;
+    Result := (Data.ShotAim and TRIGGER_SHOT_AIM_ALLMAP > 0)
+              or g_Obj_Collide(X, Y, Width, Height, Obj);
+    if Result and (Data.ShotAim and TRIGGER_SHOT_AIM_TRACE > 0) then
+      Result := g_TraceVector(Data.ShotPos.X,
+                              Data.ShotPos.Y,
+                              Obj^.X + Obj^.Rect.X + (Obj^.Rect.Width div 2),
+                              Obj^.Y + Obj^.Rect.Y + (Obj^.Rect.Height div 2));
+  end;
+end;
+
 function ActivateTrigger(var Trigger: TTrigger; actType: Byte): Boolean;
 var
   animonce: Boolean;
@@ -1844,7 +1860,7 @@ begin
               if gMonsters <> nil then
                 for i := Low(gMonsters) to High(gMonsters) do
                   if (gMonsters[i] <> nil) and gMonsters[i].Live and
-                     (Data.ShotAllMap or g_Obj_Collide(X, Y, Width, Height, @(gMonsters[i].Obj))) then
+                     tr_ShotAimCheck(Trigger, @(gMonsters[i].Obj)) then
                   begin
                     xd := gMonsters[i].GameX + gMonsters[i].Obj.Rect.Width div 2;
                     yd := gMonsters[i].GameY + gMonsters[i].Obj.Rect.Height div 2;
@@ -1856,7 +1872,7 @@ begin
               if gPlayers <> nil then
                 for i := Low(gPlayers) to High(gPlayers) do
                   if (gPlayers[i] <> nil) and gPlayers[i].Live and
-                     (Data.ShotAllMap or g_Obj_Collide(X, Y, Width, Height, @(gPlayers[i].Obj))) then
+                     tr_ShotAimCheck(Trigger, @(gPlayers[i].Obj)) then
                   begin
                     xd := gPlayers[i].GameX + PLAYER_RECT_CX;
                     yd := gPlayers[i].GameY + PLAYER_RECT_CY;
@@ -1869,7 +1885,7 @@ begin
                 for i := Low(gPlayers) to High(gPlayers) do
                   if (gPlayers[i] <> nil) and gPlayers[i].Live and
                      (gPlayers[i].Team = TEAM_RED) and
-                     (Data.ShotAllMap or g_Obj_Collide(X, Y, Width, Height, @(gPlayers[i].Obj))) then
+                     tr_ShotAimCheck(Trigger, @(gPlayers[i].Obj)) then
                   begin
                     xd := gPlayers[i].GameX + PLAYER_RECT_CX;
                     yd := gPlayers[i].GameY + PLAYER_RECT_CY;
@@ -1882,7 +1898,7 @@ begin
                 for i := Low(gPlayers) to High(gPlayers) do
                   if (gPlayers[i] <> nil) and gPlayers[i].Live and
                      (gPlayers[i].Team = TEAM_BLUE) and
-                     (Data.ShotAllMap or g_Obj_Collide(X, Y, Width, Height, @(gPlayers[i].Obj))) then
+                     tr_ShotAimCheck(Trigger, @(gPlayers[i].Obj)) then
                   begin
                     xd := gPlayers[i].GameX + PLAYER_RECT_CX;
                     yd := gPlayers[i].GameY + PLAYER_RECT_CY;
@@ -1895,7 +1911,7 @@ begin
               if gMonsters <> nil then
                 for i := Low(gMonsters) to High(gMonsters) do
                   if (gMonsters[i] <> nil) and gMonsters[i].Live and
-                     (Data.ShotAllMap or g_Obj_Collide(X, Y, Width, Height, @(gMonsters[i].Obj))) then
+                     tr_ShotAimCheck(Trigger, @(gMonsters[i].Obj)) then
                   begin
                     xd := gMonsters[i].GameX + gMonsters[i].Obj.Rect.Width div 2;
                     yd := gMonsters[i].GameY + gMonsters[i].Obj.Rect.Height div 2;
@@ -1905,7 +1921,7 @@ begin
               if (TargetUID = 0) and (gPlayers <> nil) then
                 for i := Low(gPlayers) to High(gPlayers) do
                   if (gPlayers[i] <> nil) and gPlayers[i].Live and
-                     (Data.ShotAllMap or g_Obj_Collide(X, Y, Width, Height, @(gPlayers[i].Obj))) then
+                     tr_ShotAimCheck(Trigger, @(gPlayers[i].Obj)) then
                   begin
                     xd := gPlayers[i].GameX + PLAYER_RECT_CX;
                     yd := gPlayers[i].GameY + PLAYER_RECT_CY;
@@ -1919,7 +1935,7 @@ begin
               if gPlayers <> nil then
                 for i := Low(gPlayers) to High(gPlayers) do
                   if (gPlayers[i] <> nil) and gPlayers[i].Live and
-                     (Data.ShotAllMap or g_Obj_Collide(X, Y, Width, Height, @(gPlayers[i].Obj))) then
+                     tr_ShotAimCheck(Trigger, @(gPlayers[i].Obj)) then
                   begin
                     xd := gPlayers[i].GameX + PLAYER_RECT_CX;
                     yd := gPlayers[i].GameY + PLAYER_RECT_CY;
@@ -1929,7 +1945,7 @@ begin
               if (TargetUID = 0) and (gMonsters <> nil) then
                 for i := Low(gMonsters) to High(gMonsters) do
                   if (gMonsters[i] <> nil) and gMonsters[i].Live and
-                     (Data.ShotAllMap or g_Obj_Collide(X, Y, Width, Height, @(gMonsters[i].Obj))) then
+                     tr_ShotAimCheck(Trigger, @(gMonsters[i].Obj)) then
                   begin
                     xd := gMonsters[i].GameX + gMonsters[i].Obj.Rect.Width div 2;
                     yd := gMonsters[i].GameY + gMonsters[i].Obj.Rect.Height div 2;
@@ -1945,7 +1961,8 @@ begin
             end;
           end;
 
-          if (Data.ShotTarget = TRIGGER_SHOT_TARGET_NONE) or (TargetUID > 0) then
+          if (Data.ShotTarget = TRIGGER_SHOT_TARGET_NONE) or (TargetUID > 0) or
+            ((Data.ShotTarget > TRIGGER_SHOT_TARGET_NONE) and (TargetUID = 0)) then
           begin
             Result := True;
             if (Data.ShotIntSight = 0) or
