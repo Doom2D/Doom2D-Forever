@@ -1100,7 +1100,7 @@ begin
     g_Menu_Init();
     
     g_Scripts_Init();
-    g_Scripts_Load('game.conprint("ass")');
+    g_Scripts_Load('game.conprint("Scripts Init")');
 
     gMusic := TMusic.Create();
     gMusic.SetByName('MUSIC_MENU');

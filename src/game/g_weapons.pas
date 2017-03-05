@@ -122,11 +122,11 @@ type
   end;
 
 const
-  SHOT_ROCKETLAUNCHER_WIDTH = 27;
-  SHOT_ROCKETLAUNCHER_HEIGHT = 12;
+  SHOT_ROCKETLAUNCHER_WIDTH = 14;
+  SHOT_ROCKETLAUNCHER_HEIGHT = 14;
 
-  SHOT_SKELFIRE_WIDTH = 32;
-  SHOT_SKELFIRE_HEIGHT = 16;
+  SHOT_SKELFIRE_WIDTH = 14;
+  SHOT_SKELFIRE_HEIGHT = 14;
 
   SHOT_PLASMA_WIDTH = 16;
   SHOT_PLASMA_HEIGHT = 16;
@@ -1205,7 +1205,7 @@ begin
     Obj.Rect.Width := SHOT_ROCKETLAUNCHER_WIDTH;
     Obj.Rect.Height := SHOT_ROCKETLAUNCHER_HEIGHT;
 
-    dx := IfThen(xd>x, -Obj.Rect.Width, 0);
+    dx := -(Obj.Rect.Width div 2);
     dy := -(Obj.Rect.Height div 2);
     throw(find_id, x+dx, y+dy, xd+dx, yd+dy, 12);
 
@@ -1243,7 +1243,7 @@ begin
     Obj.Rect.Width := SHOT_SKELFIRE_WIDTH;
     Obj.Rect.Height := SHOT_SKELFIRE_HEIGHT;
 
-    dx := IfThen(xd>x, -Obj.Rect.Width, 0);
+    dx := -(Obj.Rect.Width div 2);
     dy := -(Obj.Rect.Height div 2);
     throw(find_id, x+dx, y+dy, xd+dx, yd+dy, 12);
 
@@ -1691,7 +1691,7 @@ begin
               begin
                 Anim := TAnimation.Create(_id, False, 3);
                 Anim.Alpha := 150;
-                g_GFX_OnceAnim(Obj.X-8+Random(9),
+                g_GFX_OnceAnim(Obj.X-14+Random(9),
                                Obj.Y+(Obj.Rect.Height div 2)-20+Random(9),
                                Anim, ONCEANIM_SMOKE);
                 Anim.Free();
@@ -1713,7 +1713,7 @@ begin
                   begin
                     Anim := TAnimation.Create(TextureID, False, 8);
                     Anim.Blending := False;
-                    g_GFX_OnceAnim((Obj.X+32)-32, (Obj.Y+8)-32, Anim);
+                    g_GFX_OnceAnim((Obj.X+32)-58, (Obj.Y+8)-36, Anim);
                     Anim.Free();
                   end;
                 end
