@@ -798,7 +798,7 @@ begin
   end
   else
   begin
-    if (Level in [2, 3]) and (FSlopSound > 0) then
+    if (Level in [2, 3, 5]) and (FSlopSound > 0) then
     begin
       g_Sound_PlayExAt('SOUND_MONSTER_SLOP', X, Y);
       if FSlopSound = 1 then
@@ -815,6 +815,12 @@ begin
         SetLength(TempArray, Length(TempArray)+1);
         TempArray[High(TempArray)] := FDieSounds[a].ID;
       end;
+    if (TempArray = nil) and (Level = 5) then
+    begin
+      g_Sound_PlayExAt('SOUND_MONSTER_SLOP', X, Y);
+      Result := True;
+      Exit;
+    end;
   end;
 
   if TempArray = nil then Exit;

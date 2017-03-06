@@ -5668,8 +5668,9 @@ begin
         g_Player_CreateGibs(FObj.X+FObj.Rect.X+(FObj.Rect.Width div 2),
                             FObj.Y+FObj.Rect.Y+(FObj.Rect.Height div 2),
                             FModelName, FColor);
+        // Звук мяса от трупа:
         pm := g_PlayerModel_Get(FModelName);
-        pm.PlaySound(MODELSOUND_DIE, 3, FObj.X, FObj.Y);
+        pm.PlaySound(MODELSOUND_DIE, 5, FObj.X, FObj.Y);
         pm.Free;
       end;
     end
