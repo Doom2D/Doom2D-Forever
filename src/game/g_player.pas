@@ -2176,6 +2176,7 @@ procedure TPlayer.Draw();
 var
   ID: DWORD;
   w, h: Word;
+  dr: Boolean;
 begin
   if FLive then
   begin
@@ -2195,7 +2196,16 @@ begin
     begin
       if (gPlayerDrawn <> nil) and ((Self = gPlayerDrawn) or
          ((FTeam = gPlayerDrawn.Team) and (gGameSettings.GameMode <> GM_DM))) then
-        FModel.Draw(FObj.X, FObj.Y, 200)
+      begin
+        if (FMegaRulez[MR_INVIS] - gTime) <= 2100 then
+          dr := not Odd((FMegaRulez[MR_INVIS] - gTime) div 300)
+        else
+          dr := True;
+        if dr then
+          FModel.Draw(FObj.X, FObj.Y, 200)
+        else
+          FModel.Draw(FObj.X, FObj.Y);
+      end
       else
         FModel.Draw(FObj.X, FObj.Y, 254);
     end
