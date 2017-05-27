@@ -183,6 +183,8 @@ type
     I_MENU_LOADING,
     I_MENU_PLAYER_1,
     I_MENU_PLAYER_2,
+    I_MENU_PLAYER_1_ALT,
+    I_MENU_PLAYER_2_ALT,
 
     I_MENU_CONTROL_JOYSTICKS,
     I_MENU_CONTROL_DEADZONE,
@@ -913,6 +915,10 @@ const
                                        'Первый игрок'),
     ('MENU PLAYER 2',                  'Player 2',
                                        'Второй игрок'),
+    ('MENU PLAYER 1 ALT',              'Player 1 ALT',
+                                       'Первый игрок ALT'),
+    ('MENU PLAYER 2 ALT',              'Player 2 ALT',
+                                       'Второй игрок ALT'),
 
     ('MENU CONTROL JOYSTICKS',         'Joystick Settings',
                                        'Настройки джойстиков'),

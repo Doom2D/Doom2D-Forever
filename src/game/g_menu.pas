@@ -164,7 +164,6 @@ begin
   end;
 
   menu := TGUIMenu(g_GUI_GetWindow('OptionsControlsP1Menu').GetControl('mOptionsControlsP1Menu'));
-
   with menu, gGameControls.P1Control do
   begin
     KeyRight := TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_RIGHT])).Key;
@@ -178,8 +177,21 @@ begin
     KeyOpen := TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_USE])).Key;
   end;
 
-  menu := TGUIMenu(g_GUI_GetWindow('OptionsControlsP2Menu').GetControl('mOptionsControlsP2Menu'));
+  menu := TGUIMenu(g_GUI_GetWindow('OptionsControlsP1MenuAlt').GetControl('mOptionsControlsP1MenuAlt'));
+  with menu, gGameControls.P1Control do
+  begin
+    KeyRight2 := TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_RIGHT])).Key;
+    KeyLeft2 := TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_LEFT])).Key;
+    KeyUp2 := TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_UP])).Key;
+    KeyDown2 := TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_DOWN])).Key;
+    KeyFire2 := TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_FIRE])).Key;
+    KeyJump2 := TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_JUMP])).Key;
+    KeyNextWeapon2 := TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_NEXT_WEAPON])).Key;
+    KeyPrevWeapon2 := TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_PREV_WEAPON])).Key;
+    KeyOpen2 := TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_USE])).Key;
+  end;
 
+  menu := TGUIMenu(g_GUI_GetWindow('OptionsControlsP2Menu').GetControl('mOptionsControlsP2Menu'));
   with menu, gGameControls.P2Control do
   begin
     KeyRight := TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_RIGHT])).Key;
@@ -191,6 +203,20 @@ begin
     KeyNextWeapon := TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_NEXT_WEAPON])).Key;
     KeyPrevWeapon := TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_PREV_WEAPON])).Key;
     KeyOpen := TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_USE])).Key;
+  end;
+
+  menu := TGUIMenu(g_GUI_GetWindow('OptionsControlsP2MenuAlt').GetControl('mOptionsControlsP2MenuAlt'));
+  with menu, gGameControls.P2Control do
+  begin
+    KeyRight2 := TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_RIGHT])).Key;
+    KeyLeft2 := TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_LEFT])).Key;
+    KeyUp2 := TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_UP])).Key;
+    KeyDown2 := TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_DOWN])).Key;
+    KeyFire2 := TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_FIRE])).Key;
+    KeyJump2 := TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_JUMP])).Key;
+    KeyNextWeapon2 := TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_NEXT_WEAPON])).Key;
+    KeyPrevWeapon2 := TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_PREV_WEAPON])).Key;
+    KeyOpen2 := TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_USE])).Key;
   end;
 
   if e_JoysticksAvailable > 0 then
@@ -304,7 +330,6 @@ begin
       ItemIndex := 0;
 
   menu := TGUIMenu(g_GUI_GetWindow('OptionsControlsP1Menu').GetControl('mOptionsControlsP1Menu'));
-
   with menu, gGameControls.P1Control do
   begin
     TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_RIGHT])).Key := KeyRight;
@@ -318,8 +343,21 @@ begin
     TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_USE])).Key := KeyOpen;
   end;
 
-  menu := TGUIMenu(g_GUI_GetWindow('OptionsControlsP2Menu').GetControl('mOptionsControlsP2Menu'));
+  menu := TGUIMenu(g_GUI_GetWindow('OptionsControlsP1MenuAlt').GetControl('mOptionsControlsP1MenuAlt'));
+  with menu, gGameControls.P1Control do
+  begin
+    TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_RIGHT])).Key := KeyRight2;
+    TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_LEFT])).Key := KeyLeft2;
+    TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_UP])).Key := KeyUp2;
+    TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_DOWN])).Key := KeyDown2;
+    TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_FIRE])).Key := KeyFire2;
+    TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_JUMP])).Key := KeyJump2;
+    TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_NEXT_WEAPON])).Key := KeyNextWeapon2;
+    TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_PREV_WEAPON])).Key := KeyPrevWeapon2;
+    TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_USE])).Key := KeyOpen2;
+  end;
 
+  menu := TGUIMenu(g_GUI_GetWindow('OptionsControlsP2Menu').GetControl('mOptionsControlsP2Menu'));
   with menu, gGameControls.P2Control do
   begin
     TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_RIGHT])).Key := KeyRight;
@@ -331,6 +369,20 @@ begin
     TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_NEXT_WEAPON])).Key := KeyNextWeapon;
     TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_PREV_WEAPON])).Key := KeyPrevWeapon;
     TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_USE])).Key := KeyOpen;
+  end;
+
+  menu := TGUIMenu(g_GUI_GetWindow('OptionsControlsP2MenuAlt').GetControl('mOptionsControlsP2MenuAlt'));
+  with menu, gGameControls.P2Control do
+  begin
+    TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_RIGHT])).Key := KeyRight2;
+    TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_LEFT])).Key := KeyLeft2;
+    TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_UP])).Key := KeyUp2;
+    TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_DOWN])).Key := KeyDown2;
+    TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_FIRE])).Key := KeyFire2;
+    TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_JUMP])).Key := KeyJump2;
+    TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_NEXT_WEAPON])).Key := KeyNextWeapon2;
+    TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_PREV_WEAPON])).Key := KeyPrevWeapon2;
+    TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_USE])).Key := KeyOpen2;
   end;
 
   if e_JoysticksAvailable > 0 then
@@ -2545,7 +2597,9 @@ begin
     AddKeyRead(_lc[I_MENU_CONTROL_TEAMCHAT]).Name := _lc[I_MENU_CONTROL_TEAMCHAT];
     AddSpace();
     AddButton(nil, _lc[I_MENU_PLAYER_1], 'OptionsControlsP1Menu');
+    AddButton(nil, _lc[I_MENU_PLAYER_1_ALT], 'OptionsControlsP1MenuAlt');
     AddButton(nil, _lc[I_MENU_PLAYER_2], 'OptionsControlsP2Menu');
+    AddButton(nil, _lc[I_MENU_PLAYER_2_ALT], 'OptionsControlsP2MenuAlt');
     AddSpace();
     if e_JoysticksAvailable <> 0 then
       AddButton(nil, _lc[I_MENU_CONTROL_JOYSTICKS], 'OptionsControlsJoystickMenu');
@@ -2570,6 +2624,23 @@ begin
   Menu.DefControl := 'mOptionsControlsP1Menu';
   g_GUI_AddWindow(Menu);
 
+  Menu := TGUIWindow.Create('OptionsControlsP1MenuAlt');
+  with TGUIMenu(Menu.AddChild(TGUIMenu.Create(gMenuFont, gMenuSmallFont, _lc[I_MENU_PLAYER_1]))) do
+  begin
+    Name := 'mOptionsControlsP1MenuAlt';
+    AddKeyRead(_lc[I_MENU_CONTROL_LEFT]).Name := _lc[I_MENU_CONTROL_LEFT];
+    AddKeyRead(_lc[I_MENU_CONTROL_RIGHT]).Name := _lc[I_MENU_CONTROL_RIGHT];
+    AddKeyRead(_lc[I_MENU_CONTROL_UP]).Name := _lc[I_MENU_CONTROL_UP];
+    AddKeyRead(_lc[I_MENU_CONTROL_DOWN]).Name := _lc[I_MENU_CONTROL_DOWN];
+    AddKeyRead(_lc[I_MENU_CONTROL_JUMP]).Name := _lc[I_MENU_CONTROL_JUMP];
+    AddKeyRead(_lc[I_MENU_CONTROL_FIRE]).Name := _lc[I_MENU_CONTROL_FIRE];
+    AddKeyRead(_lc[I_MENU_CONTROL_USE]).Name := _lc[I_MENU_CONTROL_USE];
+    AddKeyRead(_lc[I_MENU_CONTROL_NEXT_WEAPON]).Name := _lc[I_MENU_CONTROL_NEXT_WEAPON];
+    AddKeyRead(_lc[I_MENU_CONTROL_PREV_WEAPON]).Name := _lc[I_MENU_CONTROL_PREV_WEAPON];
+  end;
+  Menu.DefControl := 'mOptionsControlsP1MenuAlt';
+  g_GUI_AddWindow(Menu);
+
   Menu := TGUIWindow.Create('OptionsControlsP2Menu');
   with TGUIMenu(Menu.AddChild(TGUIMenu.Create(gMenuFont, gMenuSmallFont, _lc[I_MENU_PLAYER_2]))) do
   begin
@@ -2585,6 +2656,23 @@ begin
     AddKeyRead(_lc[I_MENU_CONTROL_PREV_WEAPON]).Name := _lc[I_MENU_CONTROL_PREV_WEAPON];
   end;
   Menu.DefControl := 'mOptionsControlsP2Menu';
+  g_GUI_AddWindow(Menu);
+
+  Menu := TGUIWindow.Create('OptionsControlsP2MenuAlt');
+  with TGUIMenu(Menu.AddChild(TGUIMenu.Create(gMenuFont, gMenuSmallFont, _lc[I_MENU_PLAYER_2]))) do
+  begin
+    Name := 'mOptionsControlsP2MenuAlt';
+    AddKeyRead(_lc[I_MENU_CONTROL_LEFT]).Name := _lc[I_MENU_CONTROL_LEFT];
+    AddKeyRead(_lc[I_MENU_CONTROL_RIGHT]).Name := _lc[I_MENU_CONTROL_RIGHT];
+    AddKeyRead(_lc[I_MENU_CONTROL_UP]).Name := _lc[I_MENU_CONTROL_UP];
+    AddKeyRead(_lc[I_MENU_CONTROL_DOWN]).Name := _lc[I_MENU_CONTROL_DOWN];
+    AddKeyRead(_lc[I_MENU_CONTROL_JUMP]).Name := _lc[I_MENU_CONTROL_JUMP];
+    AddKeyRead(_lc[I_MENU_CONTROL_FIRE]).Name := _lc[I_MENU_CONTROL_FIRE];
+    AddKeyRead(_lc[I_MENU_CONTROL_USE]).Name := _lc[I_MENU_CONTROL_USE];
+    AddKeyRead(_lc[I_MENU_CONTROL_NEXT_WEAPON]).Name := _lc[I_MENU_CONTROL_NEXT_WEAPON];
+    AddKeyRead(_lc[I_MENU_CONTROL_PREV_WEAPON]).Name := _lc[I_MENU_CONTROL_PREV_WEAPON];
+  end;
+  Menu.DefControl := 'mOptionsControlsP2MenuAlt';
   g_GUI_AddWindow(Menu);
 
   Menu := TGUIWindow.Create('OptionsControlsJoystickMenu');

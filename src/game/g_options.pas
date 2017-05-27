@@ -32,6 +32,16 @@ type
     KeyNextWeapon: Word;
     KeyPrevWeapon: Word;
     KeyOpen:       Word;
+
+    KeyRight2:      Word;
+    KeyLeft2:       Word;
+    KeyUp2:         Word;
+    KeyDown2:       Word;
+    KeyFire2:       Word;
+    KeyJump2:       Word;
+    KeyNextWeapon2: Word;
+    KeyPrevWeapon2: Word;
+    KeyOpen2:       Word;
   end;
 
   TGameControls = record
@@ -165,6 +175,16 @@ begin
     KeyNextWeapon := 73;
     KeyPrevWeapon := 71;
     KeyOpen := 54;
+
+    KeyRight2 := 0;
+    KeyLeft2 := 0;
+    KeyUp2 := 0;
+    KeyDown2 := 0;
+    KeyFire2 := 0;
+    KeyJump2 := 0;
+    KeyNextWeapon2 := 0;
+    KeyPrevWeapon2 := 0;
+    KeyOpen2 := 0;
   end;
 
   with gGameControls.P2Control do
@@ -178,6 +198,16 @@ begin
     KeyNextWeapon := 19;
     KeyPrevWeapon := 17;
     KeyOpen := 58;
+
+    KeyRight2 := 0;
+    KeyLeft2 := 0;
+    KeyUp2 := 0;
+    KeyDown2 := 0;
+    KeyFire2 := 0;
+    KeyJump2 := 0;
+    KeyNextWeapon2 := 0;
+    KeyPrevWeapon2 := 0;
+    KeyOpen2 := 0;
   end;
 
   with gPlayer1Settings do
@@ -284,6 +314,16 @@ begin
     KeyNextWeapon := ReadInt('Player1', 'KeyNextWeapon', 19);
     KeyPrevWeapon := ReadInt('Player1', 'KeyPrevWeapon', 17);
     KeyOpen := ReadInt('Player1', 'KeyOpen', 58);
+
+    KeyRight2 := ReadInt('Player1', 'KeyRight2', 0);
+    KeyLeft2 := ReadInt('Player1', 'KeyLeft2', 0);
+    KeyUp2 := ReadInt('Player1', 'KeyUp2', 0);
+    KeyDown2 := ReadInt('Player1', 'KeyDown2', 0);
+    KeyFire2 := ReadInt('Player1', 'KeyFire2', 0);
+    KeyJump2 := ReadInt('Player1', 'KeyJump2', 0);
+    KeyNextWeapon2 := ReadInt('Player1', 'KeyNextWeapon2', 0);
+    KeyPrevWeapon2 := ReadInt('Player1', 'KeyPrevWeapon2', 0);
+    KeyOpen2 := ReadInt('Player1', 'KeyOpen2', 0);
   end;
 
   with gPlayer1Settings, config do
@@ -309,6 +349,16 @@ begin
     KeyNextWeapon := ReadInt('Player2', 'KeyNextWeapon', 73);
     KeyPrevWeapon := ReadInt('Player2', 'KeyPrevWeapon', 71);
     KeyOpen := ReadInt('Player2', 'KeyOpen', 54);
+
+    KeyRight2 := ReadInt('Player2', 'KeyRight2', 0);
+    KeyLeft2 := ReadInt('Player2', 'KeyLeft2', 0);
+    KeyUp2 := ReadInt('Player2', 'KeyUp2', 0);
+    KeyDown2 := ReadInt('Player2', 'KeyDown2', 0);
+    KeyFire2 := ReadInt('Player2', 'KeyFire2', 0);
+    KeyJump2 := ReadInt('Player2', 'KeyJump2', 0);
+    KeyNextWeapon2 := ReadInt('Player2', 'KeyNextWeapon2', 0);
+    KeyPrevWeapon2 := ReadInt('Player2', 'KeyPrevWeapon2', 0);
+    KeyOpen2 := ReadInt('Player2', 'KeyOpen2', 0);
   end;
 
   with gPlayer2Settings, config do
@@ -501,6 +551,16 @@ begin
     WriteInt('Player1', 'KeyPrevWeapon', KeyPrevWeapon);
     WriteInt('Player1', 'KeyOpen', KeyOpen);
 
+    WriteInt('Player1', 'KeyRight2', KeyRight2);
+    WriteInt('Player1', 'KeyLeft2', KeyLeft2);
+    WriteInt('Player1', 'KeyUp2', KeyUp2);
+    WriteInt('Player1', 'KeyDown2', KeyDown2);
+    WriteInt('Player1', 'KeyFire2', KeyFire2);
+    WriteInt('Player1', 'KeyJump2', KeyJump2);
+    WriteInt('Player1', 'KeyNextWeapon2', KeyNextWeapon2);
+    WriteInt('Player1', 'KeyPrevWeapon2', KeyPrevWeapon2);
+    WriteInt('Player1', 'KeyOpen2', KeyOpen2);
+
     WriteStr('Player1', 'Name', Name);
     WriteStr('Player1', 'model', Model);
     WriteInt('Player1', 'red', Color.R);
@@ -520,6 +580,16 @@ begin
     WriteInt('Player2', 'KeyNextWeapon', KeyNextWeapon);
     WriteInt('Player2', 'KeyPrevWeapon', KeyPrevWeapon);
     WriteInt('Player2', 'KeyOpen', KeyOpen);
+
+    WriteInt('Player2', 'KeyRight2', KeyRight2);
+    WriteInt('Player2', 'KeyLeft2', KeyLeft2);
+    WriteInt('Player2', 'KeyUp2', KeyUp2);
+    WriteInt('Player2', 'KeyDown2', KeyDown2);
+    WriteInt('Player2', 'KeyFire2', KeyFire2);
+    WriteInt('Player2', 'KeyJump2', KeyJump2);
+    WriteInt('Player2', 'KeyNextWeapon2', KeyNextWeapon2);
+    WriteInt('Player2', 'KeyPrevWeapon2', KeyPrevWeapon2);
+    WriteInt('Player2', 'KeyOpen2', KeyOpen2);
 
     WriteStr('Player2', 'Name', Name);
     WriteStr('Player2', 'model', Model);

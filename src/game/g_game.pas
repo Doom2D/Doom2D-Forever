@@ -1219,6 +1219,13 @@ begin
     Result := ids[(Length(ids) - 1 + idx) mod Length(ids)];
 end;
 
+function isKeyPressed (key1: Word; key2: Word): Boolean;
+begin
+  if (key1 <> 0) and e_KeyPressed(key1) then begin result := true; exit; end;
+  if (key2 <> 0) and e_KeyPressed(key2) then begin result := true; exit; end;
+  result := false;
+end;
+
 procedure g_Game_Update();
 var
   Msg: g_gui.TMessage;
@@ -1462,13 +1469,13 @@ begin
         if gPlayer1 <> nil then
           with gGameControls.P1Control do
           begin
-            if e_KeyPressed(KeyLeft) and (not e_KeyPressed(KeyRight)) then
+            if isKeyPressed(KeyLeft, KeyLeft2) and (not isKeyPressed(KeyRight, KeyRight2)) then
               P1MoveButton := 1 // Нажата только "Влево"
             else
-              if (not e_KeyPressed(KeyLeft)) and e_KeyPressed(KeyRight) then
+              if (not isKeyPressed(KeyLeft, KeyLeft2)) and isKeyPressed(KeyRight, KeyRight2) then
                 P1MoveButton := 2 // Нажата только "Вправо"
               else
-                if (not e_KeyPressed(KeyLeft)) and (not e_KeyPressed(KeyRight)) then
+                if (not isKeyPressed(KeyLeft, KeyLeft2)) and (not isKeyPressed(KeyRight, KeyRight2)) then
                   P1MoveButton := 0; // Не нажаты ни "Влево", ни "Вправо"
 
           // Сейчас или раньше были нажаты "Влево"/"Вправо" => передаем игроку:
@@ -1479,11 +1486,11 @@ begin
               gPlayer1.PressKey(KEY_RIGHT);
 
           // Раньше была нажата "Вправо", а сейчас "Влево" => бежим вправо, смотрим влево:
-            if (P1MoveButton = 2) and e_KeyPressed(KeyLeft) then
+            if (P1MoveButton = 2) and isKeyPressed(KeyLeft, KeyLeft2) then
               gPlayer1.SetDirection(D_LEFT)
             else
             // Раньше была нажата "Влево", а сейчас "Вправо" => бежим влево, смотрим вправо:
-              if (P1MoveButton = 1) and e_KeyPressed(KeyRight) then
+              if (P1MoveButton = 1) and isKeyPressed(KeyRight, KeyRight2) then
                 gPlayer1.SetDirection(D_RIGHT)
               else
               // Что-то было нажато и не изменилось => куда бежим, туда и смотрим:
@@ -1491,25 +1498,25 @@ begin
                   gPlayer1.SetDirection(TDirection(P1MoveButton-1));
 
           // Остальные клавиши:
-            if e_KeyPressed(KeyJump) then gPlayer1.PressKey(KEY_JUMP);
-            if e_KeyPressed(KeyUp) then gPlayer1.PressKey(KEY_UP);
-            if e_KeyPressed(KeyDown) then gPlayer1.PressKey(KEY_DOWN);
-            if e_KeyPressed(KeyFire) then gPlayer1.PressKey(KEY_FIRE);
-            if e_KeyPressed(KeyNextWeapon) then gPlayer1.PressKey(KEY_NEXTWEAPON);
-            if e_KeyPressed(KeyPrevWeapon) then gPlayer1.PressKey(KEY_PREVWEAPON);
-            if e_KeyPressed(KeyOpen) then gPlayer1.PressKey(KEY_OPEN);
+            if isKeyPressed(KeyJump, KeyJump2) then gPlayer1.PressKey(KEY_JUMP);
+            if isKeyPressed(KeyUp, KeyUp2) then gPlayer1.PressKey(KEY_UP);
+            if isKeyPressed(KeyDown, KeyDown2) then gPlayer1.PressKey(KEY_DOWN);
+            if isKeyPressed(KeyFire, KeyFire2) then gPlayer1.PressKey(KEY_FIRE);
+            if isKeyPressed(KeyNextWeapon, KeyNextWeapon2) then gPlayer1.PressKey(KEY_NEXTWEAPON);
+            if isKeyPressed(KeyPrevWeapon, KeyPrevWeapon2) then gPlayer1.PressKey(KEY_PREVWEAPON);
+            if isKeyPressed(KeyOpen, KeyOpen2) then gPlayer1.PressKey(KEY_OPEN);
           end;
       // Второй игрок:
         if gPlayer2 <> nil then
           with gGameControls.P2Control do
           begin
-            if e_KeyPressed(KeyLeft) and (not e_KeyPressed(KeyRight)) then
+            if isKeyPressed(KeyLeft, KeyLeft2) and (not isKeyPressed(KeyRight, KeyRight2)) then
               P2MoveButton := 1 // Нажата только "Влево"
             else
-              if (not e_KeyPressed(KeyLeft)) and e_KeyPressed(KeyRight) then
+              if (not isKeyPressed(KeyLeft, KeyLeft2)) and isKeyPressed(KeyRight, KeyRight2) then
                 P2MoveButton := 2 // Нажата только "Вправо"
               else
-                if (not e_KeyPressed(KeyLeft)) and (not e_KeyPressed(KeyRight)) then
+                if (not isKeyPressed(KeyLeft, KeyLeft2)) and (not isKeyPressed(KeyRight, KeyRight2)) then
                   P2MoveButton := 0; // Не нажаты ни "Влево", ни "Вправо"
 
           // Сейчас или раньше были нажаты "Влево"/"Вправо" => передаем игроку:
@@ -1520,11 +1527,11 @@ begin
                 gPlayer2.PressKey(KEY_RIGHT, 1000);
 
           // Раньше была нажата "Вправо", а сейчас "Влево" => бежим вправо, смотрим влево:
-            if (P2MoveButton = 2) and e_KeyPressed(KeyLeft) then
+            if (P2MoveButton = 2) and isKeyPressed(KeyLeft, KeyLeft2) then
               gPlayer2.SetDirection(D_LEFT)
             else
             // Раньше была нажата "Влево", а сейчас "Вправо" => бежим влево, смотрим вправо:
-              if (P2MoveButton = 1) and e_KeyPressed(KeyRight) then
+              if (P2MoveButton = 1) and isKeyPressed(KeyRight, KeyRight2) then
                 gPlayer2.SetDirection(D_RIGHT)
               else
               // Что-то было нажато и не изменилось => куда бежим, туда и смотрим:
@@ -1532,13 +1539,13 @@ begin
                   gPlayer2.SetDirection(TDirection(P2MoveButton-1));
 
           // Остальные клавиши:
-            if e_KeyPressed(KeyJump) then gPlayer2.PressKey(KEY_JUMP, 1000);
-            if e_KeyPressed(KeyUp) then gPlayer2.PressKey(KEY_UP, 1000);
-            if e_KeyPressed(KeyDown) then gPlayer2.PressKey(KEY_DOWN, 1000);
-            if e_KeyPressed(KeyFire) then gPlayer2.PressKey(KEY_FIRE);
-            if e_KeyPressed(KeyNextWeapon) then gPlayer2.PressKey(KEY_NEXTWEAPON);
-            if e_KeyPressed(KeyPrevWeapon) then gPlayer2.PressKey(KEY_PREVWEAPON);
-            if e_KeyPressed(KeyOpen) then gPlayer2.PressKey(KEY_OPEN);
+            if isKeyPressed(KeyJump, KeyJump2) then gPlayer2.PressKey(KEY_JUMP, 1000);
+            if isKeyPressed(KeyUp, KeyUp2) then gPlayer2.PressKey(KEY_UP, 1000);
+            if isKeyPressed(KeyDown, KeyDown2) then gPlayer2.PressKey(KEY_DOWN, 1000);
+            if isKeyPressed(KeyFire, KeyFire2) then gPlayer2.PressKey(KEY_FIRE);
+            if isKeyPressed(KeyNextWeapon, KeyNextWeapon2) then gPlayer2.PressKey(KEY_NEXTWEAPON);
+            if isKeyPressed(KeyPrevWeapon, KeyPrevWeapon2) then gPlayer2.PressKey(KEY_PREVWEAPON);
+            if isKeyPressed(KeyOpen, KeyOpen2) then gPlayer2.PressKey(KEY_OPEN);
           end;
       end  // if not console
       else
@@ -1553,7 +1560,7 @@ begin
     begin
       if not gSpectKeyPress then
       begin
-        if e_KeyPressed(gGameControls.P1Control.KeyJump) then
+        if isKeyPressed(gGameControls.P1Control.KeyJump, gGameControls.P1Control.KeyJump2) then
         begin
           // switch spect mode
           case gSpectMode of
@@ -1566,21 +1573,21 @@ begin
         end;
         if gSpectMode = SPECT_MAPVIEW then
         begin
-          if e_KeyPressed(gGameControls.P1Control.KeyLeft) then
+          if isKeyPressed(gGameControls.P1Control.KeyLeft, gGameControls.P1Control.KeyLeft2) then
             gSpectX := Max(gSpectX - gSpectStep, 0);
-          if e_KeyPressed(gGameControls.P1Control.KeyRight) then
+          if isKeyPressed(gGameControls.P1Control.KeyRight, gGameControls.P1Control.KeyRight2) then
             gSpectX := Min(gSpectX + gSpectStep, gMapInfo.Width - gScreenWidth);
-          if e_KeyPressed(gGameControls.P1Control.KeyUp) then
+          if isKeyPressed(gGameControls.P1Control.KeyUp, gGameControls.P1Control.KeyUp2) then
             gSpectY := Max(gSpectY - gSpectStep, 0);
-          if e_KeyPressed(gGameControls.P1Control.KeyDown) then
+          if isKeyPressed(gGameControls.P1Control.KeyDown, gGameControls.P1Control.KeyDown2) then
             gSpectY := Min(gSpectY + gSpectStep, gMapInfo.Height - gScreenHeight);
-          if e_KeyPressed(gGameControls.P1Control.KeyPrevWeapon) then
+          if isKeyPressed(gGameControls.P1Control.KeyPrevWeapon, gGameControls.P1Control.KeyPrevWeapon2) then
           begin
             // decrease step
             if gSpectStep > 4 then gSpectStep := gSpectStep shr 1;
             gSpectKeyPress := True;
           end;
-          if e_KeyPressed(gGameControls.P1Control.KeyNextWeapon) then
+          if isKeyPressed(gGameControls.P1Control.KeyNextWeapon, gGameControls.P1Control.KeyNextWeapon2) then
           begin
             // increase step
             if gSpectStep < 64 then gSpectStep := gSpectStep shl 1;
@@ -1589,37 +1596,37 @@ begin
         end;
         if gSpectMode = SPECT_PLAYERS then
         begin
-          if e_KeyPressed(gGameControls.P1Control.KeyUp) then
+          if isKeyPressed(gGameControls.P1Control.KeyUp, gGameControls.P1Control.KeyUp2) then
           begin
             // add second view
             gSpectViewTwo := True;
             gSpectKeyPress := True;
           end;
-          if e_KeyPressed(gGameControls.P1Control.KeyDown) then
+          if isKeyPressed(gGameControls.P1Control.KeyDown, gGameControls.P1Control.KeyDown2) then
           begin
             // remove second view
             gSpectViewTwo := False;
             gSpectKeyPress := True;
           end;
-          if e_KeyPressed(gGameControls.P1Control.KeyLeft) then
+          if isKeyPressed(gGameControls.P1Control.KeyLeft, gGameControls.P1Control.KeyLeft2) then
           begin
             // prev player (view 1)
             gSpectPID1 := GetActivePlayerID_Prev(gSpectPID1);
             gSpectKeyPress := True;
           end;
-          if e_KeyPressed(gGameControls.P1Control.KeyRight) then
+          if isKeyPressed(gGameControls.P1Control.KeyRight, gGameControls.P1Control.KeyRight2) then
           begin
             // next player (view 1)
             gSpectPID1 := GetActivePlayerID_Next(gSpectPID1);
             gSpectKeyPress := True;
           end;
-          if e_KeyPressed(gGameControls.P1Control.KeyPrevWeapon) then
+          if isKeyPressed(gGameControls.P1Control.KeyPrevWeapon, gGameControls.P1Control.KeyPrevWeapon2) then
           begin
             // prev player (view 2)
             gSpectPID2 := GetActivePlayerID_Prev(gSpectPID2);
             gSpectKeyPress := True;
           end;
-          if e_KeyPressed(gGameControls.P1Control.KeyNextWeapon) then
+          if isKeyPressed(gGameControls.P1Control.KeyNextWeapon, gGameControls.P1Control.KeyNextWeapon2) then
           begin
             // next player (view 2)
             gSpectPID2 := GetActivePlayerID_Next(gSpectPID2);
@@ -1628,13 +1635,13 @@ begin
         end;
       end
       else
-        if (not e_KeyPressed(gGameControls.P1Control.KeyJump)) and
-           (not e_KeyPressed(gGameControls.P1Control.KeyLeft)) and
-           (not e_KeyPressed(gGameControls.P1Control.KeyRight)) and
-           (not e_KeyPressed(gGameControls.P1Control.KeyUp)) and
-           (not e_KeyPressed(gGameControls.P1Control.KeyDown)) and
-           (not e_KeyPressed(gGameControls.P1Control.KeyPrevWeapon)) and
-           (not e_KeyPressed(gGameControls.P1Control.KeyNextWeapon)) then
+        if (not isKeyPressed(gGameControls.P1Control.KeyJump, gGameControls.P1Control.KeyJump2)) and
+           (not isKeyPressed(gGameControls.P1Control.KeyLeft, gGameControls.P1Control.KeyLeft2)) and
+           (not isKeyPressed(gGameControls.P1Control.KeyRight, gGameControls.P1Control.KeyRight2)) and
+           (not isKeyPressed(gGameControls.P1Control.KeyUp, gGameControls.P1Control.KeyUp2)) and
+           (not isKeyPressed(gGameControls.P1Control.KeyDown, gGameControls.P1Control.KeyDown2)) and
+           (not isKeyPressed(gGameControls.P1Control.KeyPrevWeapon, gGameControls.P1Control.KeyPrevWeapon2)) and
+           (not isKeyPressed(gGameControls.P1Control.KeyNextWeapon, gGameControls.P1Control.KeyNextWeapon2)) then
           gSpectKeyPress := False;
     end;
 
