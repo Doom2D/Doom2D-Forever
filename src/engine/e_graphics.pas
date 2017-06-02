@@ -1380,7 +1380,7 @@ begin
   glNewList(e_TextureFonts[id].Base+loop1, GL_COMPILE);
    glBegin(GL_QUADS);
     glTexCoord2f(cx, 1.0-cy-1/YCount);
-    glVertex2d(0, e_Textures[Tex].tx.Height div YCount);
+    glVertex2i(0, e_Textures[Tex].tx.Height div YCount);
 
     glTexCoord2f(cx+1/XCount, 1.0-cy-1/YCount);
     glVertex2i(e_Textures[Tex].tx.Width div XCount, e_Textures[Tex].tx.Height div YCount);
