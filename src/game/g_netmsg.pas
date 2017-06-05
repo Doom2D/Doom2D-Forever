@@ -2781,6 +2781,7 @@ procedure MC_SEND_PlayerPos();
 var
   kByte: Word;
   Predict: Boolean;
+  strafeDir: Byte;
 begin
   if not gGameOn then Exit;
   if gPlayers = nil then Exit;
@@ -2790,15 +2791,31 @@ begin
   Predict := NetPredictSelf; // and (not NetGotKeys);
 
   if (not gConsoleShow) and (not gChatShow) and (g_ActiveWindow = nil) then
+  begin
+    strafeDir := P1MoveButton shr 4;
+    P1MoveButton := P1MoveButton and $0F;
     with gGameControls.P1Control do
     begin
            if isKeyPressed(KeyLeft, KeyLeft2) and (not isKeyPressed(KeyRight, KeyRight2)) then P1MoveButton := 1
       else if (not isKeyPressed(KeyLeft, KeyLeft2)) and isKeyPressed(KeyRight, KeyRight2) then P1MoveButton := 2
       else if (not isKeyPressed(KeyLeft, KeyLeft2)) and (not isKeyPressed(KeyRight, KeyRight2)) then P1MoveButton := 0;
 
-           if (P1MoveButton = 2) and isKeyPressed(KeyLeft, KeyLeft2) then gPlayer1.SetDirection(D_LEFT)
-      else if (P1MoveButton = 1) and isKeyPressed(KeyRight, KeyRight2) then gPlayer1.SetDirection(D_RIGHT)
-      else if P1MoveButton <> 0 then gPlayer1.SetDirection(TDirection(P1MoveButton-1));
+      // strafing
+      if isKeyPressed(KeyStrafe, KeyStrafe2) then
+      begin
+        // new strafe mechanics
+        if (strafeDir = 0) then strafeDir := P1MoveButton; // start strafing
+        // now set direction according to strafe
+             if (strafeDir = 1) then gPlayer1.SetDirection(D_LEFT)
+        else if (strafeDir = 2) then gPlayer1.SetDirection(D_RIGHT)
+        else gPlayer1.SetDirection(TDirection(P1MoveButton-1));
+      end
+      else
+      begin
+             if (P1MoveButton = 2) and isKeyPressed(KeyLeft, KeyLeft2) then gPlayer1.SetDirection(D_LEFT)
+        else if (P1MoveButton = 1) and isKeyPressed(KeyRight, KeyRight2) then gPlayer1.SetDirection(D_RIGHT)
+        else if P1MoveButton <> 0 then gPlayer1.SetDirection(TDirection(P1MoveButton-1));
+      end;
 
       gPlayer1.ReleaseKeys;
       if P1MoveButton = 1 then
@@ -2830,7 +2847,10 @@ begin
       if isKeyPressed(KeyOpen, KeyOpen2) then kByte := kByte or NET_KEY_OPEN;
       if isKeyPressed(KeyNextWeapon, KeyNextWeapon2) then kByte := kByte or NET_KEY_NW;
       if isKeyPressed(KeyPrevWeapon, KeyPrevWeapon2) then kByte := kByte or NET_KEY_PW;
-    end
+    end;
+    // fix movebutton state
+    P1MoveButton := P1MoveButton or (strafeDir shl 4);
+  end
   else
     kByte := NET_KEY_CHAT;
 
