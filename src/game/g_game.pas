@@ -1226,6 +1226,40 @@ begin
   result := false;
 end;
 
+procedure processPlayerControls (plr: TPlayer; var ctrl: TPlayerControl; var MoveButton: Byte; p2hack: Boolean=false);
+var
+  time: Word;
+begin
+  if (plr = nil) then exit;
+  if (p2hack) then time := 1000 else time := 1;
+  with ctrl do
+  begin
+         if isKeyPressed(KeyLeft, KeyLeft2) and (not isKeyPressed(KeyRight, KeyRight2)) then MoveButton := 1 // Нажата только "Влево"
+    else if (not isKeyPressed(KeyLeft, KeyLeft2)) and isKeyPressed(KeyRight, KeyRight2) then MoveButton := 2 // Нажата только "Вправо"
+    else if (not isKeyPressed(KeyLeft, KeyLeft2)) and (not isKeyPressed(KeyRight, KeyRight2)) then MoveButton := 0; // Не нажаты ни "Влево", ни "Вправо"
+
+    // Сейчас или раньше были нажаты "Влево"/"Вправо" => передаем игроку:
+         if MoveButton = 1 then plr.PressKey(KEY_LEFT, time)
+    else if MoveButton = 2 then plr.PressKey(KEY_RIGHT, time);
+
+    // Раньше была нажата "Вправо", а сейчас "Влево" => бежим вправо, смотрим влево:
+         if (MoveButton = 2) and isKeyPressed(KeyLeft, KeyLeft2) then plr.SetDirection(D_LEFT)
+    // Раньше была нажата "Влево", а сейчас "Вправо" => бежим влево, смотрим вправо:
+    else if (MoveButton = 1) and isKeyPressed(KeyRight, KeyRight2) then plr.SetDirection(D_RIGHT)
+    // Что-то было нажато и не изменилось => куда бежим, туда и смотрим:
+    else if MoveButton <> 0 then plr.SetDirection(TDirection(MoveButton-1));
+
+    // Остальные клавиши:
+    if isKeyPressed(KeyJump, KeyJump2) then plr.PressKey(KEY_JUMP, time);
+    if isKeyPressed(KeyUp, KeyUp2) then plr.PressKey(KEY_UP, time);
+    if isKeyPressed(KeyDown, KeyDown2) then plr.PressKey(KEY_DOWN, time);
+    if isKeyPressed(KeyFire, KeyFire2) then plr.PressKey(KEY_FIRE);
+    if isKeyPressed(KeyNextWeapon, KeyNextWeapon2) then plr.PressKey(KEY_NEXTWEAPON);
+    if isKeyPressed(KeyPrevWeapon, KeyPrevWeapon2) then plr.PressKey(KEY_PREVWEAPON);
+    if isKeyPressed(KeyOpen, KeyOpen2) then plr.PressKey(KEY_OPEN);
+  end;
+end;
+
 procedure g_Game_Update();
 var
   Msg: g_gui.TMessage;
@@ -1465,93 +1499,13 @@ begin
       if gPlayer2 <> nil then gPlayer2.ReleaseKeys();
       if (not gConsoleShow) and (not gChatShow) and (g_ActiveWindow = nil) then
       begin
-      // Первый игрок:
-        if gPlayer1 <> nil then
-          with gGameControls.P1Control do
-          begin
-            if isKeyPressed(KeyLeft, KeyLeft2) and (not isKeyPressed(KeyRight, KeyRight2)) then
-              P1MoveButton := 1 // Нажата только "Влево"
-            else
-              if (not isKeyPressed(KeyLeft, KeyLeft2)) and isKeyPressed(KeyRight, KeyRight2) then
-                P1MoveButton := 2 // Нажата только "Вправо"
-              else
-                if (not isKeyPressed(KeyLeft, KeyLeft2)) and (not isKeyPressed(KeyRight, KeyRight2)) then
-                  P1MoveButton := 0; // Не нажаты ни "Влево", ни "Вправо"
-
-          // Сейчас или раньше были нажаты "Влево"/"Вправо" => передаем игроку:
-            if P1MoveButton = 1 then
-              gPlayer1.PressKey(KEY_LEFT)
-            else
-            if P1MoveButton = 2 then
-              gPlayer1.PressKey(KEY_RIGHT);
-
-          // Раньше была нажата "Вправо", а сейчас "Влево" => бежим вправо, смотрим влево:
-            if (P1MoveButton = 2) and isKeyPressed(KeyLeft, KeyLeft2) then
-              gPlayer1.SetDirection(D_LEFT)
-            else
-            // Раньше была нажата "Влево", а сейчас "Вправо" => бежим влево, смотрим вправо:
-              if (P1MoveButton = 1) and isKeyPressed(KeyRight, KeyRight2) then
-                gPlayer1.SetDirection(D_RIGHT)
-              else
-              // Что-то было нажато и не изменилось => куда бежим, туда и смотрим:
-                if P1MoveButton <> 0 then
-                  gPlayer1.SetDirection(TDirection(P1MoveButton-1));
-
-          // Остальные клавиши:
-            if isKeyPressed(KeyJump, KeyJump2) then gPlayer1.PressKey(KEY_JUMP);
-            if isKeyPressed(KeyUp, KeyUp2) then gPlayer1.PressKey(KEY_UP);
-            if isKeyPressed(KeyDown, KeyDown2) then gPlayer1.PressKey(KEY_DOWN);
-            if isKeyPressed(KeyFire, KeyFire2) then gPlayer1.PressKey(KEY_FIRE);
-            if isKeyPressed(KeyNextWeapon, KeyNextWeapon2) then gPlayer1.PressKey(KEY_NEXTWEAPON);
-            if isKeyPressed(KeyPrevWeapon, KeyPrevWeapon2) then gPlayer1.PressKey(KEY_PREVWEAPON);
-            if isKeyPressed(KeyOpen, KeyOpen2) then gPlayer1.PressKey(KEY_OPEN);
-          end;
-      // Второй игрок:
-        if gPlayer2 <> nil then
-          with gGameControls.P2Control do
-          begin
-            if isKeyPressed(KeyLeft, KeyLeft2) and (not isKeyPressed(KeyRight, KeyRight2)) then
-              P2MoveButton := 1 // Нажата только "Влево"
-            else
-              if (not isKeyPressed(KeyLeft, KeyLeft2)) and isKeyPressed(KeyRight, KeyRight2) then
-                P2MoveButton := 2 // Нажата только "Вправо"
-              else
-                if (not isKeyPressed(KeyLeft, KeyLeft2)) and (not isKeyPressed(KeyRight, KeyRight2)) then
-                  P2MoveButton := 0; // Не нажаты ни "Влево", ни "Вправо"
-
-          // Сейчас или раньше были нажаты "Влево"/"Вправо" => передаем игроку:
-            if P2MoveButton = 1 then
-              gPlayer2.PressKey(KEY_LEFT, 1000)
-            else
-              if P2MoveButton = 2 then
-                gPlayer2.PressKey(KEY_RIGHT, 1000);
-
-          // Раньше была нажата "Вправо", а сейчас "Влево" => бежим вправо, смотрим влево:
-            if (P2MoveButton = 2) and isKeyPressed(KeyLeft, KeyLeft2) then
-              gPlayer2.SetDirection(D_LEFT)
-            else
-            // Раньше была нажата "Влево", а сейчас "Вправо" => бежим влево, смотрим вправо:
-              if (P2MoveButton = 1) and isKeyPressed(KeyRight, KeyRight2) then
-                gPlayer2.SetDirection(D_RIGHT)
-              else
-              // Что-то было нажато и не изменилось => куда бежим, туда и смотрим:
-                if P2MoveButton <> 0 then
-                  gPlayer2.SetDirection(TDirection(P2MoveButton-1));
-
-          // Остальные клавиши:
-            if isKeyPressed(KeyJump, KeyJump2) then gPlayer2.PressKey(KEY_JUMP, 1000);
-            if isKeyPressed(KeyUp, KeyUp2) then gPlayer2.PressKey(KEY_UP, 1000);
-            if isKeyPressed(KeyDown, KeyDown2) then gPlayer2.PressKey(KEY_DOWN, 1000);
-            if isKeyPressed(KeyFire, KeyFire2) then gPlayer2.PressKey(KEY_FIRE);
-            if isKeyPressed(KeyNextWeapon, KeyNextWeapon2) then gPlayer2.PressKey(KEY_NEXTWEAPON);
-            if isKeyPressed(KeyPrevWeapon, KeyPrevWeapon2) then gPlayer2.PressKey(KEY_PREVWEAPON);
-            if isKeyPressed(KeyOpen, KeyOpen2) then gPlayer2.PressKey(KEY_OPEN);
-          end;
+        processPlayerControls(gPlayer1, gGameControls.P1Control, P1MoveButton);
+        processPlayerControls(gPlayer2, gGameControls.P2Control, P2MoveButton, true);
       end  // if not console
       else
-        if g_Game_IsNet and (gPlayer1 <> nil) then
-          gPlayer1.PressKey(KEY_CHAT, 10000);
-
+      begin
+        if g_Game_IsNet and (gPlayer1 <> nil) then gPlayer1.PressKey(KEY_CHAT, 10000);
+      end;
     end; // if server
 
   // Наблюдатель
