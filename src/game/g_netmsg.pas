@@ -2770,6 +2770,13 @@ begin
   g_Net_Client_Send(True, NET_CHAN_CHAT);
 end;
 
+function isKeyPressed (key1: Word; key2: Word): Boolean;
+begin
+  if (key1 <> 0) and e_KeyPressed(key1) then begin result := true; exit; end;
+  if (key2 <> 0) and e_KeyPressed(key2) then begin result := true; exit; end;
+  result := false;
+end;
+
 procedure MC_SEND_PlayerPos();
 var
   kByte: Word;
@@ -2785,23 +2792,13 @@ begin
   if (not gConsoleShow) and (not gChatShow) and (g_ActiveWindow = nil) then
     with gGameControls.P1Control do
     begin
-      if e_KeyPressed(KeyLeft) and (not e_KeyPressed(KeyRight)) then
-        P1MoveButton := 1
-      else
-        if (not e_KeyPressed(KeyLeft)) and e_KeyPressed(KeyRight) then
-          P1MoveButton := 2
-        else
-          if (not e_KeyPressed(KeyLeft)) and (not e_KeyPressed(KeyRight)) then
-            P1MoveButton := 0;
+           if isKeyPressed(KeyLeft, KeyLeft2) and (not isKeyPressed(KeyRight, KeyRight2)) then P1MoveButton := 1
+      else if (not isKeyPressed(KeyLeft, KeyLeft2)) and isKeyPressed(KeyRight, KeyRight2) then P1MoveButton := 2
+      else if (not isKeyPressed(KeyLeft, KeyLeft2)) and (not isKeyPressed(KeyRight, KeyRight2)) then P1MoveButton := 0;
 
-      if (P1MoveButton = 2) and e_KeyPressed(KeyLeft) then
-        gPlayer1.SetDirection(D_LEFT)
-      else
-       if (P1MoveButton = 1) and e_KeyPressed(KeyRight) then
-          gPlayer1.SetDirection(D_RIGHT)
-        else
-          if P1MoveButton <> 0 then
-            gPlayer1.SetDirection(TDirection(P1MoveButton-1));
+           if (P1MoveButton = 2) and isKeyPressed(KeyLeft, KeyLeft2) then gPlayer1.SetDirection(D_LEFT)
+      else if (P1MoveButton = 1) and isKeyPressed(KeyRight, KeyRight2) then gPlayer1.SetDirection(D_RIGHT)
+      else if P1MoveButton <> 0 then gPlayer1.SetDirection(TDirection(P1MoveButton-1));
 
       gPlayer1.ReleaseKeys;
       if P1MoveButton = 1 then
@@ -2814,25 +2811,25 @@ begin
         kByte := kByte or NET_KEY_RIGHT;
         if Predict then gPlayer1.PressKey(KEY_RIGHT, 10000);
       end;
-      if e_KeyPressed(KeyUp) then
+      if isKeyPressed(KeyUp, KeyUp2) then
       begin
         kByte := kByte or NET_KEY_UP;
         gPlayer1.PressKey(KEY_UP, 10000);
       end;
-      if e_KeyPressed(KeyDown) then
+      if isKeyPressed(KeyDown, KeyDown2) then
       begin
         kByte := kByte or NET_KEY_DOWN;
         gPlayer1.PressKey(KEY_DOWN, 10000);
       end;
-      if e_KeyPressed(KeyJump) then
+      if isKeyPressed(KeyJump, KeyJump2) then
       begin
         kByte := kByte or NET_KEY_JUMP;
         // gPlayer1.PressKey(KEY_JUMP, 10000); // TODO: Make a prediction option
       end;
-      if e_KeyPressed(KeyFire) then kByte := kByte or NET_KEY_FIRE;
-      if e_KeyPressed(KeyOpen) then kByte := kByte or NET_KEY_OPEN;
-      if e_KeyPressed(KeyNextWeapon) then kByte := kByte or NET_KEY_NW;
-      if e_KeyPressed(KeyPrevWeapon) then kByte := kByte or NET_KEY_PW;
+      if isKeyPressed(KeyFire, KeyFire2) then kByte := kByte or NET_KEY_FIRE;
+      if isKeyPressed(KeyOpen, KeyOpen2) then kByte := kByte or NET_KEY_OPEN;
+      if isKeyPressed(KeyNextWeapon, KeyNextWeapon2) then kByte := kByte or NET_KEY_NW;
+      if isKeyPressed(KeyPrevWeapon, KeyPrevWeapon2) then kByte := kByte or NET_KEY_PW;
     end
   else
     kByte := NET_KEY_CHAT;
