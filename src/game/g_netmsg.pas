@@ -2808,7 +2808,7 @@ begin
         // now set direction according to strafe
              if (strafeDir = 1) then gPlayer1.SetDirection(D_LEFT)
         else if (strafeDir = 2) then gPlayer1.SetDirection(D_RIGHT)
-        else gPlayer1.SetDirection(TDirection(P1MoveButton-1));
+        else if P1MoveButton <> 0 then gPlayer1.SetDirection(TDirection(P1MoveButton-1));
       end
       else
       begin

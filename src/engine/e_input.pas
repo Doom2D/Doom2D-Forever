@@ -27,15 +27,15 @@ const
   e_MaxKbdKeys  = SDL_NUM_SCANCODES;
   e_MaxJoys     = 4;
   e_MaxJoyBtns  = 32;
-  e_MaxJoyAxes  = 4;
-  e_MaxJoyHats  = 4;
+  e_MaxJoyAxes  = 8;
+  e_MaxJoyHats  = 8;
 
   e_MaxJoyKeys = e_MaxJoyBtns + e_MaxJoyAxes*2 + e_MaxJoyHats*4;
 
   e_MaxInputKeys = e_MaxKbdKeys + e_MaxJoys*e_MaxJoyKeys - 1;
   // $$$..$$$ -  321 Keyboard buttons/keys
   // $$$..$$$ - 4*32 Joystick buttons
-  // $$$..$$$ -  4*4 Joystick axes (- and +)
+  // $$$..$$$ -  8*2 Joystick axes (- and +)
   // $$$..$$$ -  4*4 Joystick hats (L U R D)
 
   // these are apparently used in g_gui and g_game and elsewhere
@@ -134,6 +134,7 @@ type
     Hats:    Byte;
     ButtBuf: array [0..e_MaxJoyBtns] of Boolean;
     AxisBuf: array [0..e_MaxJoyAxes] of Integer;
+    AxisZero: array [0..e_MaxJoyAxes] of Integer;
     HatBuf:  array [0..e_MaxJoyHats] of array [HAT_LEFT..HAT_DOWN] of Boolean;
   end;
 
@@ -143,7 +144,7 @@ var
 
 function OpenJoysticks(): Byte;
 var
-  i, k, c: Integer;
+  i, j, k, c: Integer;
   joy: PSDL_Joystick;
 begin
   Result := 0;
@@ -156,7 +157,8 @@ begin
     if joy <> nil then
     begin
       Inc(c);
-      e_WriteLog('Input: Opened SDL joystick ' + IntToStr(i) + ' as joystick ' + IntToStr(c) + ':', MSG_NOTIFY);
+      e_WriteLog('Input: Opened SDL joystick ' + IntToStr(i) + ' (' + SDL_JoystickName(joy) +
+                 ') as joystick ' + IntToStr(c) + ':', MSG_NOTIFY);
       SetLength(Joysticks, c);
       with Joysticks[c-1] do
       begin
@@ -165,6 +167,8 @@ begin
         Axes := Min(e_MaxJoyAxes, SDL_JoystickNumAxes(joy));
         Buttons := Min(e_MaxJoyBtns, SDL_JoystickNumButtons(joy));
         Hats := Min(e_MaxJoyHats, SDL_JoystickNumHats(joy));
+        // TODO: find proper solution for this xbox trigger shit
+        for j := 0 to Axes do AxisZero[j] := SDL_JoystickGetAxis(joy, j);
         e_WriteLog('       ' + IntToStr(Axes) + ' axes, ' + IntToStr(Buttons) + ' buttons, ' +
                    IntToStr(Hats) + ' hats.', MSG_NOTIFY);
       end;
@@ -340,9 +344,11 @@ begin
       Key := (Key - JOYA_BEG) mod (e_MaxJoyAxes*2);
       dir := Key mod 2;
       if dir = AX_MINUS then
-        Result := Joysticks[JoyI].AxisBuf[Key div 2] < -e_JoystickDeadzones[JoyI]
+        Result := Joysticks[JoyI].AxisBuf[Key div 2] <
+          Joysticks[JoyI].AxisZero[Key div 2] - e_JoystickDeadzones[JoyI]
       else
-        Result := Joysticks[JoyI].AxisBuf[Key div 2] > e_JoystickDeadzones[JoyI]
+        Result := Joysticks[JoyI].AxisBuf[Key div 2] >
+          Joysticks[JoyI].AxisZero[Key div 2] + e_JoystickDeadzones[JoyI]
     end;
   end
 
