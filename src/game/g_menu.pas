@@ -189,6 +189,7 @@ begin
     KeyNextWeapon2 := TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_NEXT_WEAPON])).Key;
     KeyPrevWeapon2 := TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_PREV_WEAPON])).Key;
     KeyOpen2 := TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_USE])).Key;
+    KeyStrafe2 := TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_STRAFE])).Key;
   end;
 
   menu := TGUIMenu(g_GUI_GetWindow('OptionsControlsP2Menu').GetControl('mOptionsControlsP2Menu'));
@@ -217,6 +218,7 @@ begin
     KeyNextWeapon2 := TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_NEXT_WEAPON])).Key;
     KeyPrevWeapon2 := TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_PREV_WEAPON])).Key;
     KeyOpen2 := TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_USE])).Key;
+    KeyStrafe2 := TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_STRAFE])).Key;
   end;
 
   if e_JoysticksAvailable > 0 then
@@ -355,6 +357,7 @@ begin
     TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_NEXT_WEAPON])).Key := KeyNextWeapon2;
     TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_PREV_WEAPON])).Key := KeyPrevWeapon2;
     TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_USE])).Key := KeyOpen2;
+    TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_STRAFE])).Key := KeyStrafe2;
   end;
 
   menu := TGUIMenu(g_GUI_GetWindow('OptionsControlsP2Menu').GetControl('mOptionsControlsP2Menu'));
@@ -383,6 +386,7 @@ begin
     TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_NEXT_WEAPON])).Key := KeyNextWeapon2;
     TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_PREV_WEAPON])).Key := KeyPrevWeapon2;
     TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_USE])).Key := KeyOpen2;
+    TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_STRAFE])).Key := KeyStrafe2;
   end;
 
   if e_JoysticksAvailable > 0 then
@@ -2637,6 +2641,7 @@ begin
     AddKeyRead(_lc[I_MENU_CONTROL_USE]).Name := _lc[I_MENU_CONTROL_USE];
     AddKeyRead(_lc[I_MENU_CONTROL_NEXT_WEAPON]).Name := _lc[I_MENU_CONTROL_NEXT_WEAPON];
     AddKeyRead(_lc[I_MENU_CONTROL_PREV_WEAPON]).Name := _lc[I_MENU_CONTROL_PREV_WEAPON];
+    AddKeyRead(_lc[I_MENU_CONTROL_STRAFE]).Name := _lc[I_MENU_CONTROL_STRAFE];
   end;
   Menu.DefControl := 'mOptionsControlsP1MenuAlt';
   g_GUI_AddWindow(Menu);
@@ -2671,6 +2676,7 @@ begin
     AddKeyRead(_lc[I_MENU_CONTROL_USE]).Name := _lc[I_MENU_CONTROL_USE];
     AddKeyRead(_lc[I_MENU_CONTROL_NEXT_WEAPON]).Name := _lc[I_MENU_CONTROL_NEXT_WEAPON];
     AddKeyRead(_lc[I_MENU_CONTROL_PREV_WEAPON]).Name := _lc[I_MENU_CONTROL_PREV_WEAPON];
+    AddKeyRead(_lc[I_MENU_CONTROL_STRAFE]).Name := _lc[I_MENU_CONTROL_STRAFE];
   end;
   Menu.DefControl := 'mOptionsControlsP2MenuAlt';
   g_GUI_AddWindow(Menu);

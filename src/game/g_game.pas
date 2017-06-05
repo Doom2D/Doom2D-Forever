@@ -300,6 +300,12 @@ var
   gEvents: Array of TGameEvent;
   gDelayedEvents: Array of TDelayedEvent;
 
+  // move button values:
+  // bits 0-1: l/r state:
+  //   0: neither left, nor right pressed
+  //   1: left pressed
+  //   2: right pressed
+  // bits 4-5: l/r state when strafe was pressed
   P1MoveButton: Byte = 0;
   P2MoveButton: Byte = 0;
 
@@ -1229,9 +1235,12 @@ end;
 procedure processPlayerControls (plr: TPlayer; var ctrl: TPlayerControl; var MoveButton: Byte; p2hack: Boolean=false);
 var
   time: Word;
+  strafeDir: Byte;
 begin
   if (plr = nil) then exit;
   if (p2hack) then time := 1000 else time := 1;
+  strafeDir := MoveButton shr 4;
+  MoveButton := MoveButton and $0F;
   with ctrl do
   begin
          if isKeyPressed(KeyLeft, KeyLeft2) and (not isKeyPressed(KeyRight, KeyRight2)) then MoveButton := 1 // Нажата только "Влево"
@@ -1242,12 +1251,29 @@ begin
          if MoveButton = 1 then plr.PressKey(KEY_LEFT, time)
     else if MoveButton = 2 then plr.PressKey(KEY_RIGHT, time);
 
-    // Раньше была нажата "Вправо", а сейчас "Влево" => бежим вправо, смотрим влево:
-         if (MoveButton = 2) and isKeyPressed(KeyLeft, KeyLeft2) then plr.SetDirection(D_LEFT)
-    // Раньше была нажата "Влево", а сейчас "Вправо" => бежим влево, смотрим вправо:
-    else if (MoveButton = 1) and isKeyPressed(KeyRight, KeyRight2) then plr.SetDirection(D_RIGHT)
-    // Что-то было нажато и не изменилось => куда бежим, туда и смотрим:
-    else if MoveButton <> 0 then plr.SetDirection(TDirection(MoveButton-1));
+    // if we have "strafe" key, turn off old strafe mechanics
+    if isKeyPressed(KeyStrafe, KeyStrafe2) then
+    begin
+      // new strafe mechanics
+      if (strafeDir = 0) then strafeDir := MoveButton; // start strafing
+      // now set direction according to strafe
+           if (strafeDir = 1) then plr.SetDirection(D_LEFT)
+      else if (strafeDir = 2) then plr.SetDirection(D_RIGHT)
+      else plr.SetDirection(TDirection(MoveButton-1));
+    end
+    else
+    begin
+      strafeDir := 0; // not strafing anymore
+      // Раньше была нажата "Вправо", а сейчас "Влево" => бежим вправо, смотрим влево:
+           if (MoveButton = 2) and isKeyPressed(KeyLeft, KeyLeft2) then plr.SetDirection(D_LEFT)
+      // Раньше была нажата "Влево", а сейчас "Вправо" => бежим влево, смотрим вправо:
+      else if (MoveButton = 1) and isKeyPressed(KeyRight, KeyRight2) then plr.SetDirection(D_RIGHT)
+      // Что-то было нажато и не изменилось => куда бежим, туда и смотрим:
+      else if MoveButton <> 0 then plr.SetDirection(TDirection(MoveButton-1));
+    end;
+
+    // fix movebutton state
+    MoveButton := MoveButton or (strafeDir shl 4);
 
     // Остальные клавиши:
     if isKeyPressed(KeyJump, KeyJump2) then plr.PressKey(KEY_JUMP, time);
