@@ -2805,10 +2805,9 @@ begin
       begin
         // new strafe mechanics
         if (strafeDir = 0) then strafeDir := P1MoveButton; // start strafing
-        // now set direction according to strafe
-             if (strafeDir = 1) then gPlayer1.SetDirection(D_LEFT)
-        else if (strafeDir = 2) then gPlayer1.SetDirection(D_RIGHT)
-        else if P1MoveButton <> 0 then gPlayer1.SetDirection(TDirection(P1MoveButton-1));
+        // now set direction according to strafe (reversed)
+             if (strafeDir = 2) then gPlayer1.SetDirection(D_LEFT)
+        else if (strafeDir = 1) then gPlayer1.SetDirection(D_RIGHT);
       end
       else
       begin

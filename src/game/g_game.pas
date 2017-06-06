@@ -1256,10 +1256,9 @@ begin
     begin
       // new strafe mechanics
       if (strafeDir = 0) then strafeDir := MoveButton; // start strafing
-      // now set direction according to strafe
-           if (strafeDir = 1) then plr.SetDirection(D_LEFT)
-      else if (strafeDir = 2) then plr.SetDirection(D_RIGHT)
-      else if MoveButton <> 0 then plr.SetDirection(TDirection(MoveButton-1));
+      // now set direction according to strafe (reversed)
+           if (strafeDir = 2) then plr.SetDirection(D_LEFT)
+      else if (strafeDir = 1) then plr.SetDirection(D_RIGHT);
     end
     else
     begin
