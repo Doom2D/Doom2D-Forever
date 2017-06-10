@@ -1205,7 +1205,7 @@ begin
     Obj.Rect.Width := SHOT_ROCKETLAUNCHER_WIDTH;
     Obj.Rect.Height := SHOT_ROCKETLAUNCHER_HEIGHT;
 
-    dx := -(Obj.Rect.Width div 2);
+    dx := IfThen(xd > x, -Obj.Rect.Width, 0);
     dy := -(Obj.Rect.Height div 2);
     throw(find_id, x+dx, y+dy, xd+dx, yd+dy, 12);
 
