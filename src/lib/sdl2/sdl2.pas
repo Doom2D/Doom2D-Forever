@@ -137,7 +137,7 @@ interface
       Windows;
   {$ENDIF}
 
-  {$IFDEF LINUX}
+  {$IFDEF UNIX}
     uses
       X,
       XLib;
