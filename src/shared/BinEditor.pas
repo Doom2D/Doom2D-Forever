@@ -450,7 +450,7 @@ begin
     begin
     // Длина блока памяти:
       CopyMemory(@memSize,
-                 Pointer((FData) + FPosition),
+                 Pointer(NativeUInt(FData) + FPosition),
                  SizeOf(Cardinal));
 
       if (FPosition + SizeOf(Cardinal) + memSize) <= FSize then
