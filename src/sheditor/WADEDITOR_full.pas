@@ -648,7 +648,7 @@ begin
   else
  begin
   TempData := GetMemory(FResTable[i].Length);
-  CopyMemory(TempData, Pointer(LongWord(FResData)+FResTable[i].Address+6+
+  CopyMemory(TempData, Pointer(NativeUInt(FResData)+FResTable[i].Address+6+
              LongWord(SizeOf(TWADHeaderRec_1)+SizeOf(TResourceTableRec_1)*Length(FResTable))),
              FResTable[i].Length);
   DecompressBuf(TempData, FResTable[i].Length, 0, pData, OutBytes);
@@ -810,19 +810,19 @@ begin
   Exit;
  end;
 
- CopyMemory(@FVersion, Pointer(LongWord(Data)+5), 1);
+ CopyMemory(@FVersion, Pointer(NativeUInt(Data)+5), 1);
  if FVersion <> DFWAD_VERSION then
  begin
    FLastError := DFWAD_ERROR_WRONGVERSION;
    Exit;
  end;
 
- CopyMemory(@FHeader, Pointer(LongWord(Data)+6), SizeOf(TWADHeaderRec_1));
+ CopyMemory(@FHeader, Pointer(NativeUInt(Data)+6), SizeOf(TWADHeaderRec_1));
 
  SetLength(FResTable, FHeader.RecordsCount);
  if FResTable <> nil then
  begin
-  CopyMemory(@FResTable[0], Pointer(LongWord(Data)+6+SizeOf(TWADHeaderRec_1)),
+  CopyMemory(@FResTable[0], Pointer(NativeUInt(Data)+6+SizeOf(TWADHeaderRec_1)),
              SizeOf(TResourceTableRec_1)*FHeader.RecordsCount);
 
   for a := 0 to High(FResTable) do

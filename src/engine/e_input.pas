@@ -192,14 +192,14 @@ function PollKeyboard(): Boolean;
 var
   Keys: PByte;
   NKeys: Integer;
-  i: Cardinal;
+  i: NativeInt;
 begin
   Result := False;
   Keys := SDL_GetKeyboardState(@NKeys);
   if (Keys = nil) or (NKeys < 1) then
     Exit;
   for i := 0 to NKeys do
-    KeyBuffer[i] := ((PByte(Cardinal(Keys) + i)^) <> 0);
+    KeyBuffer[i] := ((PByte(NativeInt(Keys) + i)^) <> 0);
   for i := NKeys to High(KeyBuffer) do
     KeyBuffer[i] := False;
 end;
