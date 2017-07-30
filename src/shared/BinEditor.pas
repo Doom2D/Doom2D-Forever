@@ -166,7 +166,7 @@ begin
   if (FPosition + varSize) > FSize then
     ExtendMemory(varSize);
 
-  CopyMemory(Pointer(NativeInt(FData) + FPosition),
+  CopyMemory(Pointer(NativeUInt(FData) + FPosition),
              @x, varSize);
   FPosition := FPosition + varSize;
 end;
@@ -256,13 +256,13 @@ begin
     ExtendMemory(SizeOf(Byte) + len);
 
 // Длина строки:
-  CopyMemory(Pointer(NativeInt(FData) + FPosition),
+  CopyMemory(Pointer(NativeUInt(FData) + FPosition),
              @len, SizeOf(Byte));
   FPosition := FPosition + SizeOf(Byte);
 // Строка:
   if len > 0 then
   begin
-    CopyMemory(Pointer(NativeInt(FData) + FPosition),
+    CopyMemory(Pointer(NativeUInt(FData) + FPosition),
                @x[1], len);
     FPosition := FPosition + len;
   end;
@@ -274,13 +274,13 @@ begin
     ExtendMemory(SizeOf(Cardinal) + memSize);
 
 // Длина блока памяти:
-  CopyMemory(Pointer(NativeInt(FData) + FPosition),
+  CopyMemory(Pointer(NativeUInt(FData) + FPosition),
              @memSize, SizeOf(Cardinal));
   FPosition := FPosition + SizeOf(Cardinal);
 // Блок памяти:
   if memSize > 0 then
   begin
-    CopyMemory(Pointer(NativeInt(FData) + FPosition),
+    CopyMemory(Pointer(NativeUInt(FData) + FPosition),
                x, memSize);
     FPosition := FPosition + memSize;
   end;
@@ -293,7 +293,7 @@ begin
 
   if aLen > 0 then
   begin
-    FillMemory(Pointer(NativeInt(FData) + FPosition),
+    FillMemory(Pointer(NativeUInt(FData) + FPosition),
                aLen, aFillSym);
     FPosition := FPosition + aLen;
   end;
@@ -354,7 +354,7 @@ begin
   if (FPosition + varSize) <= FSize then
     begin
       CopyMemory(@x,
-                 Pointer(NativeInt(FData) + FPosition),
+                 Pointer(NativeUInt(FData) + FPosition),
                  varSize);
       FPosition := FPosition + varSize;
     end
@@ -419,7 +419,7 @@ begin
     begin
     // Длина строки:
       CopyMemory(@len,
-                 Pointer(NativeInt(FData) + FPosition),
+                 Pointer(NativeUInt(FData) + FPosition),
                  SizeOf(Byte));
 
       if (FPosition + SizeOf(Byte) + len) <= FSize then
@@ -430,7 +430,7 @@ begin
           if len > 0 then
             begin
               CopyMemory(@x[1],
-                         Pointer(NativeInt(FData) + FPosition),
+                         Pointer(NativeUInt(FData) + FPosition),
                          len);
               FPosition := FPosition + len;
             end
@@ -461,7 +461,7 @@ begin
             begin
               GetMem(x, memSize);
               CopyMemory(x,
-                         Pointer(NativeInt(FData) + FPosition),
+                         Pointer(NativeUInt(FData) + FPosition),
                          memSize);
               FPosition := FPosition + memSize;
             end

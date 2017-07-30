@@ -152,7 +152,7 @@ function TMapReader_1.GetAreas(): TAreasRec1Array;
 var
   TempDataBlocks: TDataBlocksArray;
   a: Integer;
-  b, Size: NativeInt;
+  b, Size: NativeUInt;
 begin
  Result := nil;
 
@@ -167,7 +167,7 @@ begin
   begin
    SetLength(Result, Length(Result)+1);
    //CopyMemory(@Result[High(Result)], Pointer(LongWord(TempDataBlocks[a].Data)+b*size), size);
-   mb_Read_TAreaRec_1(Result[High(Result)], Pointer(NativeInt(TempDataBlocks[a].Data)+b*size)^, size);
+   mb_Read_TAreaRec_1(Result[High(Result)], Pointer(NativeUInt(TempDataBlocks[a].Data)+b*size)^, size);
   end;
 
  TempDataBlocks := nil;
@@ -177,7 +177,7 @@ function TMapReader_1.GetItems(): TItemsRec1Array;
 var
   TempDataBlocks: TDataBlocksArray;
   a: Integer;
-  b, Size: NativeInt;
+  b, Size: NativeUInt;
 begin
  Result := nil;
 
@@ -192,7 +192,7 @@ begin
   begin
    SetLength(Result, Length(Result)+1);
    //CopyMemory(@Result[High(Result)], Pointer(LongWord(TempDataBlocks[a].Data)+b*size), size);
-   mb_Read_TItemRec_1(Result[High(Result)], Pointer(NativeInt(TempDataBlocks[a].Data)+b*size)^, size);
+   mb_Read_TItemRec_1(Result[High(Result)], Pointer(NativeUInt(TempDataBlocks[a].Data)+b*size)^, size);
   end;
 
  TempDataBlocks := nil;
@@ -218,7 +218,7 @@ function TMapReader_1.GetMonsters(): TMonsterRec1Array;
 var
   TempDataBlocks: TDataBlocksArray;
   a: Integer;
-  b, Size: NativeInt;
+  b, Size: NativeUInt;
 begin
  Result := nil;
 
@@ -233,7 +233,7 @@ begin
   begin
    SetLength(Result, Length(Result)+1);
    //CopyMemory(@Result[High(Result)], Pointer(LongWord(TempDataBlocks[a].Data)+b*size), size);
-   mb_Read_TMonsterRec_1(Result[High(Result)], Pointer(NativeInt(TempDataBlocks[a].Data)+b*size)^, size);
+   mb_Read_TMonsterRec_1(Result[High(Result)], Pointer(NativeUInt(TempDataBlocks[a].Data)+b*size)^, size);
   end;
 
  TempDataBlocks := nil;
@@ -243,7 +243,7 @@ function TMapReader_1.GetPanels(): TPanelsRec1Array;
 var
   TempDataBlocks: TDataBlocksArray;
   a: Integer;
-  b, Size: NativeInt;
+  b, Size: NativeUInt;
 begin
  Result := nil;
 
@@ -258,7 +258,7 @@ begin
   begin
    SetLength(Result, Length(Result)+1);
    //CopyMemory(@Result[High(Result)], Pointer(LongWord(TempDataBlocks[a].Data)+b*size), size);
-   mb_Read_TPanelRec_1(Result[High(Result)], Pointer(NativeInt(TempDataBlocks[a].Data)+b*size)^, size);
+   mb_Read_TPanelRec_1(Result[High(Result)], Pointer(NativeUInt(TempDataBlocks[a].Data)+b*size)^, size);
   end;
 
  TempDataBlocks := nil;
@@ -268,7 +268,7 @@ function TMapReader_1.GetTextures(): TTexturesRec1Array;
 var
   TempDataBlocks: TDataBlocksArray;
   a: Integer;
-  b, Size: NativeInt;
+  b, Size: NativeUInt;
 begin
  Result := nil;
 
@@ -283,7 +283,7 @@ begin
   begin
    SetLength(Result, Length(Result)+1);
     //CopyMemory(@Result[High(Result)], Pointer(LongWord(TempDataBlocks[a].Data)+b*size), size);
-    mb_Read_TTextureRec_1(Result[High(Result)], Pointer(NativeInt(TempDataBlocks[a].Data)+b*size)^, size);
+    mb_Read_TTextureRec_1(Result[High(Result)], Pointer(NativeUInt(TempDataBlocks[a].Data)+b*size)^, size);
   end;
 
  TempDataBlocks := nil;
@@ -293,7 +293,7 @@ function TMapReader_1.GetTriggers(): TTriggersRec1Array;
 var
   TempDataBlocks: TDataBlocksArray;
   a: Integer;
-  b: NativeInt;
+  b: NativeUInt;
   Size: LongWord;
   trdata: TTriggerData;
 begin
@@ -310,7 +310,7 @@ begin
   begin
    SetLength(Result, Length(Result)+1);
    //CopyMemory(@Result[High(Result)], Pointer(LongWord(TempDataBlocks[a].Data)+b*size), size);
-   mb_Read_TTriggerRec_1(Result[High(Result)], Pointer(NativeInt(TempDataBlocks[a].Data)+b*size)^, size);
+   mb_Read_TTriggerRec_1(Result[High(Result)], Pointer(NativeUInt(TempDataBlocks[a].Data)+b*size)^, size);
    if (Result[High(Result)].TriggerType <> 0) then
    begin
      // preprocess trigger data
@@ -380,7 +380,7 @@ end;
 
 function TMapReader.LoadMap(Data: Pointer): Boolean;
 var
-  adr: NativeInt;
+  adr: NativeUInt;
   _id: Integer;
   Sign: array[0..2] of Char;
   Ver: Byte;
@@ -395,7 +395,7 @@ begin
  end;
  adr := 3;
 
- CopyMemory(@Ver, Pointer(NativeInt(Data)+adr), 1);
+ CopyMemory(@Ver, Pointer(NativeUInt(Data)+adr), 1);
  FVersion := Ver;
  if Ver > HandledVersion() then
  begin
@@ -408,12 +408,12 @@ begin
   SetLength(FDataBlocks, Length(FDataBlocks)+1);
   _id := High(FDataBlocks);
 
-  CopyMemory(@FDataBlocks[_id].Block, Pointer(NativeInt(Data)+adr), SizeOf(TBlock));
+  CopyMemory(@FDataBlocks[_id].Block, Pointer(NativeUInt(Data)+adr), SizeOf(TBlock));
   adr := adr+SizeOf(TBlock);
 
   FDataBlocks[_id].Data := GetMemory(FDataBlocks[_id].Block.BlockSize);
 
-  CopyMemory(FDataBlocks[_id].Data, Pointer(NativeInt(Data)+adr), FDataBlocks[_id].Block.BlockSize);
+  CopyMemory(FDataBlocks[_id].Data, Pointer(NativeUInt(Data)+adr), FDataBlocks[_id].Block.BlockSize);
 
   adr := adr+FDataBlocks[_id].Block.BlockSize;
  until FDataBlocks[_id].Block.BlockType = BLOCK_NONE;
