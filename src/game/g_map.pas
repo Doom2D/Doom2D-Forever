@@ -134,7 +134,7 @@ uses
   GL, GLExt, g_weapons, g_game, g_sound, e_sound, CONFIG,
   g_options, MAPREADER, g_triggers, g_player, MAPDEF,
   Math, g_monsters, g_saveload, g_language, g_netmsg,
-  utils, sfs, g_scripts,
+  utils, sfs,
   ImagingTypes, Imaging, ImagingUtility,
   ImagingGif, ImagingNetworkGraphics;
 
@@ -488,12 +488,11 @@ function CreateAnimTexture(RecName: String; Map: string; log: Boolean): Integer;
 var
   WAD: TWADFile;
   TextureWAD: PChar = nil;
-  ttw: PChar = nil;
   TextData: Pointer = nil;
   TextureData: Pointer = nil;
   cfg: TConfig = nil;
   WADName: String;
-  ResLength, rrl: Integer;
+  ResLength: Integer;
   TextureResource: String;
   _width, _height, _framecount, _speed: Integer;
   _backanimation: Boolean;
@@ -920,9 +919,9 @@ var
                            DoorPanel: Integer;
                            ShotPanel: Integer;
                           end;
-  FileName, mapResName, s, TexName, ScrStr: String;
-  Data, ScrText: Pointer;
-  Len, ScrLen: Integer;
+  FileName, mapResName, s, TexName: String;
+  Data: Pointer;
+  Len: Integer;
   ok, isAnim, trigRef: Boolean;
   CurTex, ntn: Integer;
 begin
@@ -952,18 +951,6 @@ begin
       g_FatalError(Format(_lc[I_GAME_ERROR_MAP_RES], [mapResName]));
       WAD.Free();
       Exit;
-    end;
-    
-    // try to load the map script
-    g_Scripts_Reset(RESET_MAP);
-    ScrText := nil;
-    ScrLen := 0;
-    if WAD.GetResource('SCRIPTS/'+mapResName, ScrText, ScrLen) then
-    begin
-      g_Console_Add('SCRIPT: Found script for this map. Loading...');
-      SetString(ScrStr, ScrText, ScrLen);
-      g_Scripts_Load(ScrStr);
-      FreeMem(ScrText);
     end;
 
     WAD.Free();

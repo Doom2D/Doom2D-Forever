@@ -101,7 +101,7 @@ uses
   g_player, g_map, Math, g_gfx, g_game, g_textures,
   g_console, g_monsters, g_items, g_phys, g_weapons,
   wadreader, g_main, SysUtils, e_log, g_language,
-  g_options, g_net, g_netmsg, g_scripts;
+  g_options, g_net, g_netmsg;
 
 const
   TRIGGER_SIGNATURE = $52475254; // 'TRGR'
@@ -2017,13 +2017,6 @@ begin
             Dec(i);
           end;
           TimeOut := Data.FXWait;
-        end;
-
-      TRIGGER_SCRIPT:
-        begin
-          g_Scripts_ProcExec(Data.SCRProc, [ID, ActivateUID, actType, Data.SCRArg], 'map');
-          TimeOut := 0;
-          Result := True;
         end;
     end;
   end;

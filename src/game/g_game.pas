@@ -20,7 +20,7 @@ interface
 
 uses
   g_basic, g_player, e_graphics, Classes, g_res_downloader,
-  SysUtils, g_sound, g_gui, g_scripts, MAPSTRUCT, wadreader, md5;
+  SysUtils, g_sound, g_gui, MAPSTRUCT, wadreader, md5;
 
 type
   TGameSettings = record
@@ -1104,9 +1104,6 @@ begin
 
     g_Game_SetLoadingText(_lc[I_LOAD_MENUS], 0, False);
     g_Menu_Init();
-    
-    g_Scripts_Init();
-    g_Scripts_Load('game.conprint("Scripts Init")');
 
     gMusic := TMusic.Create();
     gMusic.SetByName('MUSIC_MENU');
