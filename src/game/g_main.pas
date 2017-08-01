@@ -40,7 +40,8 @@ uses
   e_graphics, e_input, g_game, g_console, g_gui,
   e_sound, g_options, g_sound, g_player,
   g_weapons, SysUtils, g_triggers, MAPDEF, g_map,
-  MAPSTRUCT, g_menu, g_language, g_net, utils, conbuf;
+  MAPSTRUCT, g_menu, g_language, g_net,
+  utils, conbuf, envvars;
 
 var
   charbuff: Array [0..15] of Char;
@@ -75,7 +76,13 @@ begin
   g_Language_Set(gLanguage);
 
 {$IFDEF HEADLESS}
+ {$IFDEF USE_SDLMIXER}
+  sdlflags := SDL_INIT_TIMER or SDL_INIT_AUDIO or $00004000;
+  // HACK: shit this into env and hope for the best
+  SetEnvVar('SDL_AUDIODRIVER', 'dummy');
+ {$ELSE}
   sdlflags := SDL_INIT_TIMER or $00004000;
+ {$ENDIF}
 {$ELSE}
  {$IFDEF USE_SDLMIXER}
   sdlflags := SDL_INIT_EVERYTHING;
@@ -107,8 +114,19 @@ end;
 procedure Init();
 var
   a: Integer;
+  NoSound: Boolean;
 begin
   Randomize;
+
+{$IFDEF HEADLESS}
+ {$IFDEF USE_SDLMIXER}
+  NoSound := False; // hope env has set SDL_AUDIODRIVER to dummy
+ {$ELSE}
+  NoSound := True; // FMOD backend will sort it out
+ {$ENDIF}
+{$ELSE}
+  NoSound := False;
+{$ENDIF}
 
   e_WriteLog('Init Input', MSG_NOTIFY);
   e_InitInput();
@@ -121,7 +139,7 @@ begin
   if (not gNoSound) then
   begin
     e_WriteLog('Initializing sound system', MSG_NOTIFY);
-    e_InitSoundSystem({$IFDEF HEADLESS}True{$ELSE}False{$ENDIF});
+    e_InitSoundSystem(NoSound);
   end;
 
   e_WriteLog('Init game', MSG_NOTIFY);

@@ -102,6 +102,7 @@ uses
   fmodtypes in '../lib/FMOD/fmodtypes.pas',
 {$ENDIF}
   BinEditor in '../shared/BinEditor.pas',
+  envvars in '../shared/envvars.pas',
   g_panel in 'g_panel.pas',
   g_language in 'g_language.pas',
   ImagingTypes,
@@ -132,6 +133,6 @@ begin
       on E: Exception do
         e_WriteLog(Format(_lc[I_SYSTEM_ERROR_MSG], [E.Message]), MSG_FATALERROR);
       else
-        e_WriteLog(Format(_lc[I_SYSTEM_ERROR_UNKNOWN], [LongWord(ExceptAddr())]), MSG_FATALERROR);
+        e_WriteLog(Format(_lc[I_SYSTEM_ERROR_UNKNOWN], [NativeUInt(ExceptAddr())]), MSG_FATALERROR);
     end;
 end.

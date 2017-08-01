@@ -110,7 +110,7 @@ begin
   if (B^.WritePos + N > B^.Len) then
     B^.Len := B^.WritePos + N + 1;
 
-  CopyMemory(Pointer(Cardinal(Addr(B^.Data)) + B^.WritePos),
+  CopyMemory(Pointer(NativeUInt(Addr(B^.Data)) + B^.WritePos),
              @V, N);
 
   B^.WritePos := B^.WritePos + N;
@@ -119,7 +119,7 @@ procedure e_Buffer_Read_Generic(B: pTBuffer; var V; N: Cardinal);
 begin
   if (B^.ReadPos + N >= BUF_SIZE) then Exit;
 
-  CopyMemory(@V, Pointer(Cardinal(Addr(B^.Data)) + B^.ReadPos), N);
+  CopyMemory(@V, Pointer(NativeUInt(Addr(B^.Data)) + B^.ReadPos), N);
 
   B^.ReadPos := B^.ReadPos + N;
 end;
@@ -179,7 +179,7 @@ begin
 
   if (P > B^.Len) then B^.Len := P;
 
-  CopyMemory(Pointer(Cardinal(Addr(B^.Data)) + B^.WritePos),
+  CopyMemory(Pointer(NativeUInt(Addr(B^.Data)) + B^.WritePos),
              @V[1], Len);
 
   B^.WritePos := P;
@@ -241,7 +241,7 @@ begin
     Len := B^.Len - B^.ReadPos;
 
   SetLength(Result, Len);
-  CopyMemory(@Result[1], Pointer(Cardinal(Addr(B^.Data)) + B^.ReadPos), Len);
+  CopyMemory(@Result[1], Pointer(NativeUInt(Addr(B^.Data)) + B^.ReadPos), Len);
 
   B^.ReadPos := B^.ReadPos + Len;
 end;
@@ -256,7 +256,7 @@ end;
 
 procedure e_Raw_Read_Generic(P: Pointer; var V; N: Cardinal);
 begin
-  CopyMemory(@V, Pointer(Cardinal(P) + RawPos), N);
+  CopyMemory(@V, Pointer(NativeUInt(P) + RawPos), N);
 
   RawPos := RawPos + N;
 end;
@@ -301,7 +301,7 @@ begin
   if Len = 0 then Exit;
 
   SetLength(Result, Len);
-  CopyMemory(@Result[1], Pointer(Cardinal(P) + RawPos), Len);
+  CopyMemory(@Result[1], Pointer(NativeUInt(P) + RawPos), Len);
 
   RawPos := RawPos + Len;
 end;
