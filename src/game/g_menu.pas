@@ -192,6 +192,13 @@ begin
     KeyStrafe2 := TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_STRAFE])).Key;
   end;
 
+  menu := TGUIMenu(g_GUI_GetWindow('OptionsControlsP1MenuWeapons').GetControl('mOptionsControlsP1MenuWeapons'));
+  with menu, gGameControls.P1Control do
+  begin
+    for i := 0 to 9 do
+      KeyWeapon[i] := TGUIKeyRead(GetControl(_lc[TStrings_Locale(Cardinal(I_GAME_WEAPON0) + i)])).Key;
+  end;
+
   menu := TGUIMenu(g_GUI_GetWindow('OptionsControlsP2Menu').GetControl('mOptionsControlsP2Menu'));
   with menu, gGameControls.P2Control do
   begin
@@ -219,6 +226,13 @@ begin
     KeyPrevWeapon2 := TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_PREV_WEAPON])).Key;
     KeyOpen2 := TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_USE])).Key;
     KeyStrafe2 := TGUIKeyRead(GetControl(_lc[I_MENU_CONTROL_STRAFE])).Key;
+  end;
+
+  menu := TGUIMenu(g_GUI_GetWindow('OptionsControlsP2MenuWeapons').GetControl('mOptionsControlsP2MenuWeapons'));
+  with menu, gGameControls.P2Control do
+  begin
+    for i := 0 to 9 do
+      KeyWeapon[i] := TGUIKeyRead(GetControl(_lc[TStrings_Locale(Cardinal(I_GAME_WEAPON0) + i)])).Key;
   end;
 
   if e_JoysticksAvailable > 0 then
@@ -2602,8 +2616,10 @@ begin
     AddSpace();
     AddButton(nil, _lc[I_MENU_PLAYER_1], 'OptionsControlsP1Menu');
     AddButton(nil, _lc[I_MENU_PLAYER_1_ALT], 'OptionsControlsP1MenuAlt');
+    AddButton(nil, _lc[I_MENU_PLAYER_1_WEAPONS], 'OptionsControlsP1MenuWeapons');
     AddButton(nil, _lc[I_MENU_PLAYER_2], 'OptionsControlsP2Menu');
     AddButton(nil, _lc[I_MENU_PLAYER_2_ALT], 'OptionsControlsP2MenuAlt');
+    AddButton(nil, _lc[I_MENU_PLAYER_2_WEAPONS], 'OptionsControlsP2MenuWeapons');
     AddSpace();
     if e_JoysticksAvailable <> 0 then
       AddButton(nil, _lc[I_MENU_CONTROL_JOYSTICKS], 'OptionsControlsJoystickMenu');
@@ -2629,7 +2645,7 @@ begin
   g_GUI_AddWindow(Menu);
 
   Menu := TGUIWindow.Create('OptionsControlsP1MenuAlt');
-  with TGUIMenu(Menu.AddChild(TGUIMenu.Create(gMenuFont, gMenuSmallFont, _lc[I_MENU_PLAYER_1]))) do
+  with TGUIMenu(Menu.AddChild(TGUIMenu.Create(gMenuFont, gMenuSmallFont, _lc[I_MENU_PLAYER_1_ALT]))) do
   begin
     Name := 'mOptionsControlsP1MenuAlt';
     AddKeyRead(_lc[I_MENU_CONTROL_LEFT]).Name := _lc[I_MENU_CONTROL_LEFT];
@@ -2644,6 +2660,17 @@ begin
     AddKeyRead(_lc[I_MENU_CONTROL_STRAFE]).Name := _lc[I_MENU_CONTROL_STRAFE];
   end;
   Menu.DefControl := 'mOptionsControlsP1MenuAlt';
+  g_GUI_AddWindow(Menu);
+
+  Menu := TGUIWindow.Create('OptionsControlsP1MenuWeapons');
+  with TGUIMenu(Menu.AddChild(TGUIMenu.Create(gMenuFont, gMenuSmallFont, _lc[I_MENU_PLAYER_1_WEAPONS]))) do
+  begin
+    Name := 'mOptionsControlsP1MenuWeapons';
+    for i := 0 to 9 do
+      AddKeyRead(_lc[TStrings_Locale(Cardinal(I_GAME_WEAPON0) + i)]).Name :=
+        _lc[TStrings_Locale(Cardinal(I_GAME_WEAPON0) + i)];
+  end;
+  Menu.DefControl := 'mOptionsControlsP1MenuWeapons';
   g_GUI_AddWindow(Menu);
 
   Menu := TGUIWindow.Create('OptionsControlsP2Menu');
@@ -2664,7 +2691,7 @@ begin
   g_GUI_AddWindow(Menu);
 
   Menu := TGUIWindow.Create('OptionsControlsP2MenuAlt');
-  with TGUIMenu(Menu.AddChild(TGUIMenu.Create(gMenuFont, gMenuSmallFont, _lc[I_MENU_PLAYER_2]))) do
+  with TGUIMenu(Menu.AddChild(TGUIMenu.Create(gMenuFont, gMenuSmallFont, _lc[I_MENU_PLAYER_2_ALT]))) do
   begin
     Name := 'mOptionsControlsP2MenuAlt';
     AddKeyRead(_lc[I_MENU_CONTROL_LEFT]).Name := _lc[I_MENU_CONTROL_LEFT];
@@ -2679,6 +2706,18 @@ begin
     AddKeyRead(_lc[I_MENU_CONTROL_STRAFE]).Name := _lc[I_MENU_CONTROL_STRAFE];
   end;
   Menu.DefControl := 'mOptionsControlsP2MenuAlt';
+  g_GUI_AddWindow(Menu);
+
+
+  Menu := TGUIWindow.Create('OptionsControlsP2MenuWeapons');
+  with TGUIMenu(Menu.AddChild(TGUIMenu.Create(gMenuFont, gMenuSmallFont, _lc[I_MENU_PLAYER_2_WEAPONS]))) do
+  begin
+    Name := 'mOptionsControlsP2MenuWeapons';
+    for i := 0 to 9 do
+      AddKeyRead(_lc[TStrings_Locale(Cardinal(I_GAME_WEAPON0) + i)]).Name :=
+        _lc[TStrings_Locale(Cardinal(I_GAME_WEAPON0) + i)];
+  end;
+  Menu.DefControl := 'mOptionsControlsP2MenuWeapons';
   g_GUI_AddWindow(Menu);
 
   Menu := TGUIWindow.Create('OptionsControlsJoystickMenu');

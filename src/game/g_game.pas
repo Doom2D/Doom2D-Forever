@@ -1233,6 +1233,7 @@ procedure processPlayerControls (plr: TPlayer; var ctrl: TPlayerControl; var Mov
 var
   time: Word;
   strafeDir: Byte;
+  i: Integer;
 begin
   if (plr = nil) then exit;
   if (p2hack) then time := 1000 else time := 1;
@@ -1279,6 +1280,13 @@ begin
     if isKeyPressed(KeyNextWeapon, KeyNextWeapon2) then plr.PressKey(KEY_NEXTWEAPON);
     if isKeyPressed(KeyPrevWeapon, KeyPrevWeapon2) then plr.PressKey(KEY_PREVWEAPON);
     if isKeyPressed(KeyOpen, KeyOpen2) then plr.PressKey(KEY_OPEN);
+
+    for i := 0 to High(KeyWeapon) do
+      if isKeyPressed(KeyWeapon[i], KeyWeapon2[i]) then
+      begin
+        plr.ForceWeapon(i);
+        Break;
+      end;
   end;
 end;
 

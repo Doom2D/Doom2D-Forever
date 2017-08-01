@@ -33,6 +33,7 @@ type
     KeyPrevWeapon: Word;
     KeyOpen:       Word;
     KeyStrafe:     Word;
+    KeyWeapon:     array [0..9] of Word;
 
     KeyRight2:      Word;
     KeyLeft2:       Word;
@@ -44,6 +45,7 @@ type
     KeyPrevWeapon2: Word;
     KeyOpen2:       Word;
     KeyStrafe2:     Word;
+    KeyWeapon2:     array [0..9] of Word;
   end;
 
   TGameControls = record
@@ -178,6 +180,8 @@ begin
     KeyPrevWeapon := 71;
     KeyOpen := 54;
     KeyStrafe := 0;
+    for i := 0 to High(KeyWeapon) do
+      KeyWeapon[i] := 0;
 
     KeyRight2 := 0;
     KeyLeft2 := 0;
@@ -189,6 +193,8 @@ begin
     KeyPrevWeapon2 := 0;
     KeyOpen2 := 0;
     KeyStrafe2 := 0;
+    for i := 0 to High(KeyWeapon2) do
+      KeyWeapon2[i] := 0;
   end;
 
   with gGameControls.P2Control do
@@ -203,6 +209,8 @@ begin
     KeyPrevWeapon := 17;
     KeyOpen := 58;
     KeyStrafe := 0;
+    for i := 0 to High(KeyWeapon) do
+      KeyWeapon[i] := 0;
 
     KeyRight2 := 0;
     KeyLeft2 := 0;
@@ -214,6 +222,8 @@ begin
     KeyPrevWeapon2 := 0;
     KeyOpen2 := 0;
     KeyStrafe2 := 0;
+    for i := 0 to High(KeyWeapon2) do
+      KeyWeapon2[i] := 0;
   end;
 
   with gPlayer1Settings do
@@ -321,6 +331,8 @@ begin
     KeyPrevWeapon := ReadInt('Player1', 'KeyPrevWeapon', 17);
     KeyOpen := ReadInt('Player1', 'KeyOpen', 58);
     KeyStrafe := ReadInt('Player1', 'KeyStrafe', 0);
+    for i := 0 to High(KeyWeapon) do
+      KeyWeapon[i] := ReadInt('Player1', 'KeyWeapon' + IntToStr(i), 0);
 
     KeyRight2 := ReadInt('Player1', 'KeyRight2', 0);
     KeyLeft2 := ReadInt('Player1', 'KeyLeft2', 0);
@@ -332,6 +344,8 @@ begin
     KeyPrevWeapon2 := ReadInt('Player1', 'KeyPrevWeapon2', 0);
     KeyOpen2 := ReadInt('Player1', 'KeyOpen2', 0);
     KeyStrafe2 := ReadInt('Player1', 'KeyStrafe2', 0);
+    for i := 0 to High(KeyWeapon2) do
+      KeyWeapon2[i] := ReadInt('Player1', 'KeyWeapon2' + IntToStr(i), 0);
   end;
 
   with gPlayer1Settings, config do
@@ -358,6 +372,8 @@ begin
     KeyPrevWeapon := ReadInt('Player2', 'KeyPrevWeapon', 71);
     KeyOpen := ReadInt('Player2', 'KeyOpen', 54);
     KeyStrafe := ReadInt('Player2', 'KeyStrafe', 0);
+    for i := 0 to High(KeyWeapon) do
+      KeyWeapon[i] := ReadInt('Player2', 'KeyWeapon' + IntToStr(i), 0);
 
     KeyRight2 := ReadInt('Player2', 'KeyRight2', 0);
     KeyLeft2 := ReadInt('Player2', 'KeyLeft2', 0);
@@ -369,6 +385,8 @@ begin
     KeyPrevWeapon2 := ReadInt('Player2', 'KeyPrevWeapon2', 0);
     KeyOpen2 := ReadInt('Player2', 'KeyOpen2', 0);
     KeyStrafe2 := ReadInt('Player2', 'KeyStrafe2', 0);
+    for i := 0 to High(KeyWeapon2) do
+      KeyWeapon2[i] := ReadInt('Player2', 'KeyWeapon2' + IntToStr(i), 0);
   end;
 
   with gPlayer2Settings, config do
@@ -561,6 +579,8 @@ begin
     WriteInt('Player1', 'KeyPrevWeapon', KeyPrevWeapon);
     WriteInt('Player1', 'KeyOpen', KeyOpen);
     WriteInt('Player1', 'KeyStrafe', KeyStrafe);
+    for i := 0 to High(KeyWeapon) do
+      WriteInt('Player1', 'KeyWeapon' + IntToStr(i), KeyWeapon[i]);
 
     WriteInt('Player1', 'KeyRight2', KeyRight2);
     WriteInt('Player1', 'KeyLeft2', KeyLeft2);
@@ -572,6 +592,8 @@ begin
     WriteInt('Player1', 'KeyPrevWeapon2', KeyPrevWeapon2);
     WriteInt('Player1', 'KeyOpen2', KeyOpen2);
     WriteInt('Player1', 'KeyStrafe2', KeyStrafe2);
+    for i := 0 to High(KeyWeapon2) do
+      WriteInt('Player1', 'KeyWeapon2' + IntToStr(i), KeyWeapon2[i]);
 
     WriteStr('Player1', 'Name', Name);
     WriteStr('Player1', 'model', Model);
@@ -593,6 +615,8 @@ begin
     WriteInt('Player2', 'KeyPrevWeapon', KeyPrevWeapon);
     WriteInt('Player2', 'KeyOpen', KeyOpen);
     WriteInt('Player2', 'KeyStrafe', KeyStrafe);
+    for i := 0 to High(KeyWeapon) do
+      WriteInt('Player2', 'KeyWeapon' + IntToStr(i), KeyWeapon[i]);
 
     WriteInt('Player2', 'KeyRight2', KeyRight2);
     WriteInt('Player2', 'KeyLeft2', KeyLeft2);
@@ -604,6 +628,8 @@ begin
     WriteInt('Player2', 'KeyPrevWeapon2', KeyPrevWeapon2);
     WriteInt('Player2', 'KeyOpen2', KeyOpen2);
     WriteInt('Player2', 'KeyStrafe2', KeyStrafe2);
+    for i := 0 to High(KeyWeapon2) do
+      WriteInt('Player2', 'KeyWeapon2' + IntToStr(i), KeyWeapon2[i]);
 
     WriteStr('Player2', 'Name', Name);
     WriteStr('Player2', 'model', Model);

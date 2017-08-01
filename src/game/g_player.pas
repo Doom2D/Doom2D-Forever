@@ -287,6 +287,7 @@ type
     procedure   NetFire(Wpn: Byte; X, Y, AX, AY: Integer; WID: Integer = -1);
     procedure   DoLerp(Level: Integer = 2);
     procedure   SetLerp(XTo, YTo: Integer);
+    procedure   ForceWeapon(Weapon: Byte);
     procedure   JetpackOn;
     procedure   JetpackOff;
 
@@ -3248,6 +3249,30 @@ begin
               FObj.Y+PLAYER_RECT.Y+(PLAYER_RECT.Height div 2),
               Count, VelX, VelY, 16, (PLAYER_RECT.Height*2) div 3,
               150, 0, 0);
+end;
+
+procedure TPlayer.ForceWeapon(Weapon: Byte);
+var
+  i: Byte;
+begin
+  if g_Game_IsClient then Exit;
+  if Weapon > High(FWeapon) then Exit;
+  if FBFGFireCounter <> -1 then Exit;
+
+  if FTime[T_SWITCH] > gTime then Exit;
+
+  for i := WEAPON_KASTET to WEAPON_SUPERPULEMET do
+    if FReloading[i] > 0 then Exit;
+
+  if FWeapon[Weapon] then
+  begin
+    FCurrWeap := Weapon;
+    FTime[T_SWITCH] := gTime+156;
+    if FCurrWeap = WEAPON_SAW then
+      FSawSoundSelect.PlayAt(FObj.X, FObj.Y);
+    FModel.SetWeapon(FCurrWeap);
+    if g_Game_IsNet then MH_SEND_PlayerStats(FUID);
+  end;
 end;
 
 procedure TPlayer.NextWeapon();
