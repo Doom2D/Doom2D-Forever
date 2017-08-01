@@ -1,5 +1,5 @@
 @echo off
 cd "./src/game"
-fpc -dUSE_FMOD -MDELPHI -O2 -Fi../lib/lua -Fi../lib/vampimg -Fi../lib/vampimg/JpegLib -Fi../lib/vampimg/ZLib -Fu../lib/vampimg -Fu../lib/vampimg/JpegLib -Fu../lib/vampimg/ZLib -FE../../bin -FU../../tmp Doom2DF.dpr
+fpc -dUSE_FMOD -MDELPHI -O2 -Fi../lib/vampimg -Fi../lib/vampimg/JpegLib -Fi../lib/vampimg/ZLib -Fu../lib/vampimg -Fu../lib/vampimg/JpegLib -Fu../lib/vampimg/ZLib -FE../../bin -FU../../tmp Doom2DF.dpr
 cd "../.."
 pause
