@@ -73,8 +73,7 @@ implementation
 
 uses
   SysUtils, e_fixedbuffer, e_input, e_graphics, e_log, g_window, g_net, g_console,
-  g_map, g_game, g_sound, g_textures, g_gui, g_menu, g_options, g_language, wadreader,
-  ENetPlatform;
+  g_map, g_game, g_sound, g_textures, g_gui, g_menu, g_options, g_language, wadreader;
 
 var
   NetMEvent:      ENetEvent;

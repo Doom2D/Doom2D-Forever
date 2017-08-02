@@ -47,12 +47,6 @@ uses
   SDL2_mixer in '../lib/sdl2/SDL2_mixer.pas',
 {$ENDIF}
   ENet in '../lib/enet/enet.pp',
-  ENetTypes in '../lib/enet/enettypes.pp',
-  ENetList in '../lib/enet/enetlist.pp',
-  ENetTime in '../lib/enet/enettime.pp',
-  ENetProtocol in '../lib/enet/enetprotocol.pp',
-  ENetCallbacks in '../lib/enet/enetcallbacks.pp',
-  ENetPlatform in '../lib/enet/enetplatform.pp',
   e_graphics in '../engine/e_graphics.pas',
   e_input in '../engine/e_input.pas',
   e_log in '../engine/e_log.pas',

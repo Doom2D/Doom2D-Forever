@@ -19,7 +19,7 @@ unit g_net;
 interface
 
 uses
-  e_log, e_fixedbuffer, ENet, ENetTypes, ENetPlatform, Classes;
+  e_log, e_fixedbuffer, ENet, Classes;
 
 const
   NET_PROTOCOL_VER = 168;
@@ -428,7 +428,7 @@ begin
     P := enet_packet_create(Addr(NetOut.Data), NetOut.Len, F);
     if not Assigned(P) then Exit;
 
-    enet_host_widecast(NetHost, Chan, P);
+    enet_host_broadcast(NetHost, Chan, P);
   end;
 
   g_Net_Flush();
@@ -877,7 +877,7 @@ begin
   begin
     P := enet_packet_create(@Data[0], dataLength, F);
     if not Assigned(P) then Exit;
-    enet_host_widecast(NetHost, Chan, P);
+    enet_host_broadcast(NetHost, Chan, P);
   end;
 
   enet_host_flush(NetHost);
