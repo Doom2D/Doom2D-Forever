@@ -357,7 +357,7 @@ begin
     TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_NEXT_WEAPON])).Key0 := KeyNextWeapon;
     TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_PREV_WEAPON])).Key0 := KeyPrevWeapon;
     TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_USE])).Key0 := KeyOpen;
-    TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_STRAFE])).Key1 := KeyStrafe;
+    TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_STRAFE])).Key0 := KeyStrafe;
     // second set
     TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_RIGHT])).Key1 := KeyRight2;
     TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_LEFT])).Key1 := KeyLeft2;
