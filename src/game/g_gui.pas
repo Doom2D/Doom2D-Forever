@@ -120,6 +120,7 @@ type
     procedure OnMessage(var Msg: TMessage); virtual;
     procedure Update; virtual;
     procedure Draw; virtual;
+    function WantActivationKey (key: LongInt): Boolean; virtual;
     property X: Integer read FX write FX;
     property Y: Integer read FY write FY;
     property Enabled: Boolean read FEnabled write FEnabled;
@@ -289,6 +290,7 @@ type
     procedure OnMessage(var Msg: TMessage); override;
     procedure Draw; override;
     function GetWidth(): Word;
+    function WantActivationKey (key: LongInt): Boolean; override;
     property Key: Word read FKey write FKey;
     property Color: TRGB read FColor write FColor;
     property Font: TFont read FFont write FFont;
@@ -842,12 +844,15 @@ end;
 
 procedure TGUIControl.Update();
 begin
-
 end;
 
 procedure TGUIControl.Draw();
 begin
+end;
 
+function TGUIControl.WantActivationKey (key: LongInt): Boolean;
+begin
+  result := false;
 end;
 
 { TGUITextButton }
@@ -1444,6 +1449,14 @@ begin
 
   if not ok then Exit;
 
+  if (Msg.Msg = WM_KEYDOWN) and (FIndex <> -1) and (FItems[FIndex].Control <> nil) and
+     (FItems[FIndex].Control.WantActivationKey(Msg.wParam)) then
+  begin
+    FItems[FIndex].Control.OnMessage(Msg);
+    g_Sound_PlayEx(MENU_CLICKSOUND);
+    exit;
+  end;
+
   case Msg.Msg of
     WM_KEYDOWN:
     begin
@@ -1496,7 +1509,7 @@ begin
             if FItems[FIndex].Control <> nil then
               FItems[FIndex].Control.OnMessage(Msg);
         end;
-        IK_RETURN, IK_KPRETURN, IK_BACKSPACE:
+        IK_RETURN, IK_KPRETURN:
         begin
           if FIndex <> -1 then
           begin
@@ -2240,6 +2253,15 @@ begin
 
   FFont.GetTextSize(KEYREAD_CLEAR, w, h);
   if w > Result then Result := w;
+end;
+
+function TGUIKeyRead.WantActivationKey (key: LongInt): Boolean;
+begin
+  result :=
+    (key = IK_BACKSPACE) or
+    (key = IK_LEFT) or (key = IK_RIGHT) or
+    (key = IK_KPLEFT) or (key = IK_KPRIGHT) or
+    false; // oops
 end;
 
 procedure TGUIKeyRead.OnMessage(var Msg: TMessage);
