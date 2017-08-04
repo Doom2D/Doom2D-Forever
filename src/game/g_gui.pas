@@ -296,6 +296,28 @@ type
     property Font: TFont read FFont write FFont;
   end;
 
+  // can hold two keys
+  TGUIKeyRead2 = class(TGUIControl)
+  private
+    FFont: TFont;
+    FFontID: DWORD;
+    FColor: TRGB;
+    FKey0, FKey1: Word; // this should be an array. sorry.
+    FKeyIdx: Integer;
+    FIsQuery: Boolean;
+    FMaxKeyNameWdt: Integer;
+  public
+    constructor Create(FontID: DWORD);
+    procedure OnMessage(var Msg: TMessage); override;
+    procedure Draw; override;
+    function GetWidth(): Word;
+    function WantActivationKey (key: LongInt): Boolean; override;
+    property Key0: Word read FKey0 write FKey0;
+    property Key1: Word read FKey1 write FKey1;
+    property Color: TRGB read FColor write FColor;
+    property Font: TFont read FFont write FFont;
+  end;
+
   TGUIModelView = class(TGUIControl)
   private
     FModel: TPlayerModel;
@@ -487,6 +509,7 @@ type
     function AddSwitch(fText: string): TGUISwitch;
     function AddEdit(fText: string): TGUIEdit;
     function AddKeyRead(fText: string): TGUIKeyRead;
+    function AddKeyRead2(fText: string): TGUIKeyRead2;
     function AddList(fText: string; Width, Height: Word): TGUIListBox;
     function AddFileList(fText: string; Width, Height: Word): TGUIFileListBox;
     function AddMemo(fText: string; Width, Height: Word): TGUIMemo;
@@ -1566,6 +1589,8 @@ begin
           w := w+(FItems[a].Control as TGUIEdit).GetWidth
         else if FItems[a].ControlType = TGUIKeyRead then
           w := w+(FItems[a].Control as TGUIKeyRead).GetWidth
+        else if FItems[a].ControlType = TGUIKeyRead2 then
+          w := w+(FItems[a].Control as TGUIKeyRead2).GetWidth
         else if (FItems[a].ControlType = TGUIListBox) then
           w := w+(FItems[a].Control as TGUIListBox).GetWidth
         else if (FItems[a].ControlType = TGUIFileListBox) then
@@ -1789,6 +1814,36 @@ begin
     ControlType := TGUIKeyRead;
 
     Result := (Control as TGUIKeyRead);
+  end;
+
+  if FIndex = -1 then FIndex := i;
+
+  ReAlign();
+end;
+
+function TGUIMenu.AddKeyRead2(fText: string): TGUIKeyRead2;
+var
+  i: Integer;
+begin
+  i := NewItem();
+  with FItems[i] do
+  begin
+    Control := TGUIKeyRead2.Create(FFontID);
+    with Control as TGUIKeyRead2 do
+    begin
+      FWindow := Self.FWindow;
+      FColor := MENU_ITEMSCTRL_COLOR;
+    end;
+
+    Text := TGUILabel.Create(fText, FFontID);
+    with Text do
+    begin
+      FColor := MENU_ITEMSTEXT_COLOR;
+    end;
+
+    ControlType := TGUIKeyRead2;
+
+    Result := (Control as TGUIKeyRead2);
   end;
 
   if FIndex = -1 then FIndex := i;
@@ -2223,6 +2278,8 @@ end;
 constructor TGUIKeyRead.Create(FontID: DWORD);
 begin
   inherited Create();
+  FKey := 0;
+  FIsQuery := false;
 
   FFont := TFont.Create(FontID, FONT_CHAR);
 end;
@@ -2259,8 +2316,6 @@ function TGUIKeyRead.WantActivationKey (key: LongInt): Boolean;
 begin
   result :=
     (key = IK_BACKSPACE) or
-    (key = IK_LEFT) or (key = IK_RIGHT) or
-    (key = IK_KPLEFT) or (key = IK_KPRIGHT) or
     false; // oops
 end;
 
@@ -2325,7 +2380,6 @@ begin
           end
           else if FIsQuery and (wParam <> IK_ENTER) and (wParam <> IK_KPRETURN) then // Not <Enter
           begin
-            e_WriteLog(Format('HIT! %s', ['3']), MSG_WARNING);
             if e_KeyNames[wParam] <> '' then
               FKey := wParam;
             FIsQuery := False;
@@ -2334,6 +2388,165 @@ begin
         end;
     end;
 end;
+
+{ TGUIKeyRead2 }
+
+constructor TGUIKeyRead2.Create(FontID: DWORD);
+var
+  a: Byte;
+  w, h: Word;
+begin
+  inherited Create();
+
+  FKey0 := 0;
+  FKey1 := 0;
+  FKeyIdx := 0;
+  FIsQuery := False;
+
+  FFontID := FontID;
+  FFont := TFont.Create(FontID, FONT_CHAR);
+
+  FMaxKeyNameWdt := 0;
+  for a := 0 to 255 do
+  begin
+    FFont.GetTextSize(e_KeyNames[a], w, h);
+    FMaxKeyNameWdt := Max(FMaxKeyNameWdt, w);
+  end;
+
+  FFont.GetTextSize(KEYREAD_QUERY, w, h);
+  if w > FMaxKeyNameWdt then FMaxKeyNameWdt := w;
+
+  FFont.GetTextSize(KEYREAD_CLEAR, w, h);
+  if w > FMaxKeyNameWdt then FMaxKeyNameWdt := w;
+end;
+
+procedure TGUIKeyRead2.Draw;
+  procedure drawText (idx: Integer);
+  var
+    x, y: Integer;
+    r, g, b: Byte;
+    kk: DWORD;
+  begin
+    if idx = 0 then kk := FKey0 else kk := FKey1;
+    y := FY;
+    if idx = 0 then x := FX+8 else x := FX+8+FMaxKeyNameWdt+16;
+    r := 255;
+    g := 0;
+    b := 0;
+    if FKeyIdx = idx then g := 127;
+    if FIsQuery and (FKeyIdx = idx) then
+      FFont.Draw(x, y, KEYREAD_QUERY, r, g, b)
+    else
+      FFont.Draw(x, y, IfThen(kk <> 0, e_KeyNames[kk], KEYREAD_CLEAR), r, g, b);
+  end;
+
+begin
+  inherited;
+
+  //FFont.Draw(FX+8, FY, IfThen(FIsQuery and (FKeyIdx = 0), KEYREAD_QUERY, IfThen(FKey0 <> 0, e_KeyNames[FKey0], KEYREAD_CLEAR)), FColor.R, FColor.G, FColor.B);
+  //FFont.Draw(FX+8+FMaxKeyNameWdt+16, FY, IfThen(FIsQuery and (FKeyIdx = 1), KEYREAD_QUERY, IfThen(FKey1 <> 0, e_KeyNames[FKey1], KEYREAD_CLEAR)), FColor.R, FColor.G, FColor.B);
+  drawText(0);
+  drawText(1);
+end;
+
+function TGUIKeyRead2.GetWidth: Word;
+begin
+  Result := FMaxKeyNameWdt*2+8+8+16;
+end;
+
+function TGUIKeyRead2.WantActivationKey (key: LongInt): Boolean;
+begin
+  result :=
+    (key = IK_BACKSPACE) or
+    (key = IK_LEFT) or (key = IK_RIGHT) or
+    (key = IK_KPLEFT) or (key = IK_KPRIGHT) or
+    false; // oops
+end;
+
+procedure TGUIKeyRead2.OnMessage(var Msg: TMessage);
+  procedure actDefCtl ();
+  begin
+    with FWindow do
+      if FDefControl <> '' then
+        SetActive(GetControl(FDefControl))
+      else
+        SetActive(nil);
+  end;
+
+begin
+  inherited;
+
+  if not FEnabled then
+    Exit;
+
+  with Msg do
+    case Msg of
+      WM_KEYDOWN:
+        case wParam of
+          IK_ESCAPE:
+            begin
+              if FIsQuery then actDefCtl();
+              FIsQuery := False;
+            end;
+          IK_RETURN, IK_KPRETURN:
+            begin
+              if not FIsQuery then
+                begin
+                  with FWindow do
+                    if FActiveControl <> Self then
+                      SetActive(Self);
+
+                  FIsQuery := True;
+                end
+              else
+                begin
+                  if (FKeyIdx = 0) then FKey0 := IK_ENTER else FKey1 := IK_ENTER; // <Enter>
+                  FIsQuery := False;
+                  actDefCtl();
+                end;
+            end;
+          IK_BACKSPACE: // clear keybinding if we aren't waiting for a key
+            begin
+              if not FIsQuery then
+              begin
+                if (FKeyIdx = 0) then FKey0 := 0 else FKey1 := 0;
+                actDefCtl();
+              end;
+            end;
+          IK_LEFT, IK_KPLEFT:
+            if not FIsQuery then
+            begin
+              FKeyIdx := 0;
+              actDefCtl();
+            end;
+          IK_RIGHT, IK_KPRIGHT:
+            if not FIsQuery then
+            begin
+              FKeyIdx := 1;
+              actDefCtl();
+            end;
+        end;
+
+      MESSAGE_DIKEY:
+        begin
+          if not FIsQuery and (wParam = IK_BACKSPACE) then
+          begin
+            if (FKeyIdx = 0) then FKey0 := 0 else FKey1 := 0;
+            actDefCtl();
+          end
+          else if FIsQuery and (wParam <> IK_ENTER) and (wParam <> IK_KPRETURN) then // Not <Enter
+          begin
+            if e_KeyNames[wParam] <> '' then
+            begin
+              if (FKeyIdx = 0) then FKey0 := wParam else FKey1 := wParam;
+            end;
+            FIsQuery := False;
+            actDefCtl();
+          end;
+        end;
+    end;
+end;
+
 
 { TGUIModelView }
 
