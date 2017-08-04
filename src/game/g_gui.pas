@@ -19,7 +19,7 @@ unit g_gui;
 interface
 
 uses
-  e_graphics, e_input, g_playermodel, g_basic, MAPSTRUCT, wadreader;
+  e_graphics, e_input, e_log, g_playermodel, g_basic, MAPSTRUCT, wadreader;
 
 const
   MAINMENU_HEADER_COLOR: TRGB = (R:255; G:255; B:255);
@@ -1496,7 +1496,7 @@ begin
             if FItems[FIndex].Control <> nil then
               FItems[FIndex].Control.OnMessage(Msg);
         end;
-        IK_RETURN, IK_KPRETURN:
+        IK_RETURN, IK_KPRETURN, IK_BACKSPACE:
         begin
           if FIndex <> -1 then
           begin
@@ -2243,6 +2243,15 @@ begin
 end;
 
 procedure TGUIKeyRead.OnMessage(var Msg: TMessage);
+  procedure actDefCtl ();
+  begin
+    with FWindow do
+      if FDefControl <> '' then
+        SetActive(GetControl(FDefControl))
+      else
+        SetActive(nil);
+  end;
+
 begin
   inherited;
 
@@ -2255,13 +2264,7 @@ begin
         case wParam of
           IK_ESCAPE:
             begin
-              if FIsQuery then
-                with FWindow do
-                  if FDefControl <> '' then
-                    SetActive(GetControl(FDefControl))
-                  else
-                    SetActive(nil);
-
+              if FIsQuery then actDefCtl();
               FIsQuery := False;
             end;
           IK_RETURN, IK_KPRETURN:
@@ -2278,28 +2281,34 @@ begin
                 begin
                   FKey := IK_ENTER; // <Enter>
                   FIsQuery := False;
-
-                  with FWindow do
-                    if FDefControl <> '' then
-                      SetActive(GetControl(FDefControl))
-                    else
-                      SetActive(nil);
+                  actDefCtl();
                 end;
+            end;
+          IK_BACKSPACE: // clear keybinding if we aren't waiting for a key
+            begin
+              if not FIsQuery then
+              begin
+                FKey := 0;
+                actDefCtl();
+              end;
             end;
         end;
 
       MESSAGE_DIKEY:
-        if FIsQuery and (wParam <> IK_ENTER) and (wParam <> IK_KPRETURN) then // Not <Enter
         begin
-          if e_KeyNames[wParam] <> '' then
-            FKey := wParam;
-          FIsQuery := False;
-
-          with FWindow do
-            if FDefControl <> '' then
-              SetActive(GetControl(FDefControl))
-            else
-              SetActive(nil);
+          if not FIsQuery and (wParam = IK_BACKSPACE) then
+          begin
+            FKey := 0;
+            actDefCtl();
+          end
+          else if FIsQuery and (wParam <> IK_ENTER) and (wParam <> IK_KPRETURN) then // Not <Enter
+          begin
+            e_WriteLog(Format('HIT! %s', ['3']), MSG_WARNING);
+            if e_KeyNames[wParam] <> '' then
+              FKey := wParam;
+            FIsQuery := False;
+            actDefCtl();
+          end;
         end;
     end;
 end;
