@@ -193,7 +193,10 @@ begin
   with menu, gGameControls.P1Control do
   begin
     for i := 0 to 9 do
-      KeyWeapon[i] := TGUIKeyRead(GetControl(_lc[TStrings_Locale(Cardinal(I_GAME_WEAPON0) + i)])).Key;
+    begin
+      KeyWeapon[i] := TGUIKeyRead2(GetControl(_lc[TStrings_Locale(Cardinal(I_GAME_WEAPON0) + i)])).Key0;
+      KeyWeapon2[i] := TGUIKeyRead2(GetControl(_lc[TStrings_Locale(Cardinal(I_GAME_WEAPON0) + i)])).Key1;
+    end;
   end;
 
   menu := TGUIMenu(g_GUI_GetWindow('OptionsControlsP2Menu').GetControl('mOptionsControlsP2Menu'));
@@ -226,7 +229,10 @@ begin
   with menu, gGameControls.P2Control do
   begin
     for i := 0 to 9 do
-      KeyWeapon[i] := TGUIKeyRead(GetControl(_lc[TStrings_Locale(Cardinal(I_GAME_WEAPON0) + i)])).Key;
+    begin
+      KeyWeapon[i] := TGUIKeyRead2(GetControl(_lc[TStrings_Locale(Cardinal(I_GAME_WEAPON0) + i)])).Key0;
+      KeyWeapon2[i] := TGUIKeyRead2(GetControl(_lc[TStrings_Locale(Cardinal(I_GAME_WEAPON0) + i)])).Key1;
+    end;
   end;
 
   if e_JoysticksAvailable > 0 then
@@ -365,6 +371,16 @@ begin
     TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_STRAFE])).Key1 := KeyStrafe2;
   end;
 
+  menu := TGUIMenu(g_GUI_GetWindow('OptionsControlsP1MenuWeapons').GetControl('mOptionsControlsP1MenuWeapons'));
+  with menu, gGameControls.P1Control do
+  begin
+    for i := 0 to 9 do
+    begin
+      TGUIKeyRead2(GetControl(_lc[TStrings_Locale(Cardinal(I_GAME_WEAPON0) + i)])).Key0 := KeyWeapon[i];
+      TGUIKeyRead2(GetControl(_lc[TStrings_Locale(Cardinal(I_GAME_WEAPON0) + i)])).Key1 := KeyWeapon2[i];
+    end;
+  end;
+
   menu := TGUIMenu(g_GUI_GetWindow('OptionsControlsP2Menu').GetControl('mOptionsControlsP2Menu'));
   with menu, gGameControls.P2Control do
   begin
@@ -389,6 +405,16 @@ begin
     TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_PREV_WEAPON])).Key1 := KeyPrevWeapon2;
     TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_USE])).Key1 := KeyOpen2;
     TGUIKeyRead2(GetControl(_lc[I_MENU_CONTROL_STRAFE])).Key1 := KeyStrafe2;
+  end;
+
+  menu := TGUIMenu(g_GUI_GetWindow('OptionsControlsP2MenuWeapons').GetControl('mOptionsControlsP2MenuWeapons'));
+  with menu, gGameControls.P2Control do
+  begin
+    for i := 0 to 9 do
+    begin
+      TGUIKeyRead2(GetControl(_lc[TStrings_Locale(Cardinal(I_GAME_WEAPON0) + i)])).Key0 := KeyWeapon[i];
+      TGUIKeyRead2(GetControl(_lc[TStrings_Locale(Cardinal(I_GAME_WEAPON0) + i)])).Key1 := KeyWeapon2[i];
+    end;
   end;
 
   if e_JoysticksAvailable > 0 then
@@ -2638,7 +2664,7 @@ begin
   begin
     Name := 'mOptionsControlsP1MenuWeapons';
     for i := 0 to 9 do
-      AddKeyRead(_lc[TStrings_Locale(Cardinal(I_GAME_WEAPON0) + i)]).Name :=
+      AddKeyRead2(_lc[TStrings_Locale(Cardinal(I_GAME_WEAPON0) + i)]).Name :=
         _lc[TStrings_Locale(Cardinal(I_GAME_WEAPON0) + i)];
   end;
   Menu.DefControl := 'mOptionsControlsP1MenuWeapons';
@@ -2667,7 +2693,7 @@ begin
   begin
     Name := 'mOptionsControlsP2MenuWeapons';
     for i := 0 to 9 do
-      AddKeyRead(_lc[TStrings_Locale(Cardinal(I_GAME_WEAPON0) + i)]).Name :=
+      AddKeyRead2(_lc[TStrings_Locale(Cardinal(I_GAME_WEAPON0) + i)]).Name :=
         _lc[TStrings_Locale(Cardinal(I_GAME_WEAPON0) + i)];
   end;
   Menu.DefControl := 'mOptionsControlsP2MenuWeapons';
