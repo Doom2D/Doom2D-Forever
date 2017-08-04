@@ -115,17 +115,22 @@ type
     FWindow : TGUIWindow;
     FName: string;
     FUserData: Pointer;
+    FRightAlign: Boolean; //HACK! this works only for "normal" menus, only for menu text labels, and generally sux. sorry.
+    FMaxWidth: Integer; //HACK! used for right-aligning labels
   public
     constructor Create;
     procedure OnMessage(var Msg: TMessage); virtual;
     procedure Update; virtual;
     procedure Draw; virtual;
+    function GetWidth(): Integer; virtual;
+    function GetHeight(): Integer; virtual;
     function WantActivationKey (key: LongInt): Boolean; virtual;
     property X: Integer read FX write FX;
     property Y: Integer read FY write FY;
     property Enabled: Boolean read FEnabled write FEnabled;
     property Name: string read FName write FName;
     property UserData: Pointer read FUserData write FUserData;
+    property RightAlign: Boolean read FRightAlign write FRightAlign; // for menu
   end;
 
   TGUIWindow = class
@@ -177,8 +182,8 @@ type
     procedure OnMessage(var Msg: TMessage); override;
     procedure Update(); override;
     procedure Draw(); override;
-    function GetWidth(): Integer;
-    function GetHeight(): Integer;
+    function GetWidth(): Integer; override;
+    function GetHeight(): Integer; override;
     procedure Click(Silent: Boolean = False);
     property Caption: string read FText write FText;
     property Color: TRGB read FColor write FColor;
@@ -197,8 +202,8 @@ type
     constructor Create(Text: string; FontID: DWORD);
     procedure OnMessage(var Msg: TMessage); override;
     procedure Draw; override;
-    function GetWidth: Integer;
-    function GetHeight: Integer;
+    function GetWidth: Integer; override;
+    function GetHeight: Integer; override;
     property OnClick: TOnClickEvent read FOnClickEvent write FOnClickEvent;
     property FixedLength: Word read FFixedLen write FFixedLen;
     property Text: string read FText write FText;
@@ -221,7 +226,7 @@ type
     procedure OnMessage(var Msg: TMessage); override;
     procedure Update; override;
     procedure Draw; override;
-    function GetWidth(): Word;
+    function GetWidth(): Integer; override;
     property OnChange: TOnChangeEvent read FOnChangeEvent write FOnChangeEvent;
     property Max: Word read FMax write FMax;
     property Value: Integer read FValue write FSetValue;
@@ -240,7 +245,7 @@ type
     procedure AddItem(Item: string);
     procedure Update; override;
     procedure Draw; override;
-    function GetWidth(): Word;
+    function GetWidth(): Integer; override;
     function GetText: string;
     property ItemIndex: Integer read FIndex write FIndex;
     property Color: TRGB read FColor write FColor;
@@ -268,7 +273,7 @@ type
     procedure OnMessage(var Msg: TMessage); override;
     procedure Update; override;
     procedure Draw; override;
-    function GetWidth(): Word;
+    function GetWidth(): Integer; override;
     property OnChange: TOnChangeEvent read FOnChangeEvent write FOnChangeEvent;
     property OnEnter: TOnEnterEvent read FOnEnterEvent write FOnEnterEvent;
     property Width: Word read FWidth write FWidth;
@@ -289,7 +294,7 @@ type
     constructor Create(FontID: DWORD);
     procedure OnMessage(var Msg: TMessage); override;
     procedure Draw; override;
-    function GetWidth(): Word;
+    function GetWidth(): Integer; override;
     function WantActivationKey (key: LongInt): Boolean; override;
     property Key: Word read FKey write FKey;
     property Color: TRGB read FColor write FColor;
@@ -310,7 +315,7 @@ type
     constructor Create(FontID: DWORD);
     procedure OnMessage(var Msg: TMessage); override;
     procedure Draw; override;
-    function GetWidth(): Word;
+    function GetWidth(): Integer; override;
     function WantActivationKey (key: LongInt): Boolean; override;
     property Key0: Word read FKey0 write FKey0;
     property Key1: Word read FKey1 write FKey1;
@@ -396,8 +401,8 @@ type
     procedure AddItem(Item: String);
     procedure SelectItem(Item: String);
     procedure Clear();
-    function  GetWidth(): Word;
-    function  GetHeight(): Word;
+    function  GetWidth(): Integer; override;
+    function  GetHeight(): Integer; override;
     function  SelectedItem(): String;
 
     property OnChange: TOnChangeEvent read FOnChangeEvent write FOnChangeEvent;
@@ -446,8 +451,8 @@ type
     procedure OnMessage(var Msg: TMessage); override;
     procedure Draw; override;
     procedure Clear;
-    function GetWidth(): Word;
-    function GetHeight(): Word;
+    function GetWidth(): Integer; override;
+    function GetHeight(): Integer; override;
     procedure SetText(Text: string);
     property DrawBack: Boolean read FDrawBack write FDrawBack;
     property DrawScrollBar: Boolean read FDrawScroll write FDrawScroll;
@@ -857,6 +862,8 @@ begin
   FY := 0;
 
   FEnabled := True;
+  FRightAlign := false;
+  FMaxWidth := -1;
 end;
 
 procedure TGUIControl.OnMessage(var Msg: TMessage);
@@ -876,6 +883,16 @@ end;
 function TGUIControl.WantActivationKey (key: LongInt): Boolean;
 begin
   result := false;
+end;
+
+function TGUIControl.GetWidth(): Integer;
+begin
+  result := 0;
+end;
+
+function TGUIControl.GetHeight(): Integer;
+begin
+  result := 0;
 end;
 
 { TGUITextButton }
@@ -1205,8 +1222,18 @@ begin
 end;
 
 procedure TGUILabel.Draw;
+var
+  w, h: Word;
 begin
-  FFont.Draw(FX, FY, FText, FColor.R, FColor.G, FColor.B);
+  if RightAlign then
+  begin
+    FFont.GetTextSize(FText, w, h);
+    FFont.Draw(FX+FMaxWidth-w, FY, FText, FColor.R, FColor.G, FColor.B);
+  end
+  else
+  begin
+    FFont.Draw(FX, FY, FText, FColor.R, FColor.G, FColor.B);
+  end;
 end;
 
 function TGUILabel.GetHeight: Integer;
@@ -1396,6 +1423,11 @@ begin
     begin
       x := FItems[FIndex].Text.FX;
       y := FItems[FIndex].Text.FY;
+      //HACK!
+      if FItems[FIndex].Text.RightAlign then
+      begin
+        x := x+FItems[FIndex].Text.FMaxWidth-FItems[FIndex].Text.GetWidth;
+      end;
     end
     else if FItems[FIndex].Control <> nil then
     begin
@@ -1563,10 +1595,27 @@ end;
 procedure TGUIMenu.ReAlign();
 var
   a, tx, cx, w, h: Integer;
+  cww: array of Integer; // cached widths
+  maxcww: Integer;
 begin
   if FItems = nil then Exit;
 
-  if not FAlign then tx := FLeft else
+  SetLength(cww, length(FItems));
+  maxcww := 0;
+  for a := 0 to High(FItems) do
+  begin
+    if FItems[a].Text <> nil then
+    begin
+      cww[a] := FItems[a].Text.GetWidth;
+      if maxcww < cww[a] then maxcww := cww[a];
+    end;
+  end;
+
+  if not FAlign then
+  begin
+    tx := FLeft;
+  end
+  else
   begin
     tx := gScreenWidth;
     for a := 0 to High(FItems) do
@@ -1576,29 +1625,17 @@ begin
       if FItems[a].Control <> nil then
       begin
         w := w+MENU_HSPACE;
-
-        if FItems[a].ControlType = TGUILabel then
-          w := w+(FItems[a].Control as TGUILabel).GetWidth
-        else if FItems[a].ControlType = TGUITextButton then
-          w := w+(FItems[a].Control as TGUITextButton).GetWidth
-        else if FItems[a].ControlType = TGUIScroll then
-          w := w+(FItems[a].Control as TGUIScroll).GetWidth
-        else if FItems[a].ControlType = TGUISwitch then
-          w := w+(FItems[a].Control as TGUISwitch).GetWidth
-        else if FItems[a].ControlType = TGUIEdit then
-          w := w+(FItems[a].Control as TGUIEdit).GetWidth
-        else if FItems[a].ControlType = TGUIKeyRead then
-          w := w+(FItems[a].Control as TGUIKeyRead).GetWidth
-        else if FItems[a].ControlType = TGUIKeyRead2 then
-          w := w+(FItems[a].Control as TGUIKeyRead2).GetWidth
-        else if (FItems[a].ControlType = TGUIListBox) then
-          w := w+(FItems[a].Control as TGUIListBox).GetWidth
-        else if (FItems[a].ControlType = TGUIFileListBox) then
-          w := w+(FItems[a].Control as TGUIFileListBox).GetWidth
-        else if FItems[a].ControlType = TGUIMemo then
-          w := w+(FItems[a].Control as TGUIMemo).GetWidth;
+             if FItems[a].ControlType = TGUILabel then w := w+(FItems[a].Control as TGUILabel).GetWidth
+        else if FItems[a].ControlType = TGUITextButton then w := w+(FItems[a].Control as TGUITextButton).GetWidth
+        else if FItems[a].ControlType = TGUIScroll then w := w+(FItems[a].Control as TGUIScroll).GetWidth
+        else if FItems[a].ControlType = TGUISwitch then w := w+(FItems[a].Control as TGUISwitch).GetWidth
+        else if FItems[a].ControlType = TGUIEdit then w := w+(FItems[a].Control as TGUIEdit).GetWidth
+        else if FItems[a].ControlType = TGUIKeyRead then w := w+(FItems[a].Control as TGUIKeyRead).GetWidth
+        else if FItems[a].ControlType = TGUIKeyRead2 then w := w+(FItems[a].Control as TGUIKeyRead2).GetWidth
+        else if FItems[a].ControlType = TGUIListBox then w := w+(FItems[a].Control as TGUIListBox).GetWidth
+        else if FItems[a].ControlType = TGUIFileListBox then w := w+(FItems[a].Control as TGUIFileListBox).GetWidth
+        else if FItems[a].ControlType = TGUIMemo then w := w+(FItems[a].Control as TGUIMemo).GetWidth;
       end;
-
       tx := Min(tx, (gScreenWidth div 2)-(w div 2));
     end;
   end;
@@ -1641,35 +1678,46 @@ begin
   end;
 
   for a := 0 to High(FItems) do
+  begin
     with FItems[a] do
     begin
       if Text <> nil then
+      begin
         with Text do
         begin
           FX := tx;
           FY := h;
         end;
+        //HACK!
+        if Text.RightAlign and (length(cww) > a) then
+        begin
+          //Text.FX := Text.FX+maxcww;
+          Text.FMaxWidth := maxcww;
+        end;
+      end;
 
-        if Control <> nil then
-          with Control do
-            if Text <> nil then
-            begin
-              FX := cx;
-              FY := h;
-            end
-            else
-            begin
-              FX := tx;
-              FY := h;
-            end;
+      if Control <> nil then
+      begin
+        with Control do
+        begin
+          if Text <> nil then
+          begin
+            FX := cx;
+            FY := h;
+          end
+          else
+          begin
+            FX := tx;
+            FY := h;
+          end;
+        end;
+      end;
 
-        if (ControlType = TGUIListBox) or (ControlType = TGUIFileListBox) then
-          Inc(h, (Control as TGUIListBox).GetHeight+MENU_VSPACE)
-        else if ControlType = TGUIMemo then
-          Inc(h, (Control as TGUIMemo).GetHeight+MENU_VSPACE)
-        else
-          Inc(h, e_CharFont_GetMaxHeight(FFontID)+MENU_VSPACE);
+           if (ControlType = TGUIListBox) or (ControlType = TGUIFileListBox) then Inc(h, (Control as TGUIListBox).GetHeight+MENU_VSPACE)
+      else if ControlType = TGUIMemo then Inc(h, (Control as TGUIMemo).GetHeight+MENU_VSPACE)
+      else Inc(h, e_CharFont_GetMaxHeight(FFontID)+MENU_VSPACE);
     end;
+  end;
 
   // another ugly hack
   if FYesNo and (length(FItems) > 1) then
@@ -1838,7 +1886,8 @@ begin
     Text := TGUILabel.Create(fText, FFontID);
     with Text do
     begin
-      FColor := MENU_ITEMSTEXT_COLOR;
+      FColor := MENU_ITEMSCTRL_COLOR; //MENU_ITEMSTEXT_COLOR;
+      RightAlign := true;
     end;
 
     ControlType := TGUIKeyRead2;
@@ -2029,7 +2078,7 @@ begin
   if a > FMax then FValue := FMax else FValue := a;
 end;
 
-function TGUIScroll.GetWidth: Word;
+function TGUIScroll.GetWidth: Integer;
 begin
   Result := 16+(FMax+1)*8;
 end;
@@ -2101,7 +2150,7 @@ begin
   else Result := '';
 end;
 
-function TGUISwitch.GetWidth: Word;
+function TGUISwitch.GetWidth: Integer;
 var
   a: Integer;
   w, h: Word;
@@ -2198,7 +2247,7 @@ begin
   end;
 end;
 
-function TGUIEdit.GetWidth: Word;
+function TGUIEdit.GetWidth: Integer;
 begin
   Result := 16+FWidth*16;
 end;
@@ -2292,7 +2341,7 @@ begin
              FColor.R, FColor.G, FColor.B);
 end;
 
-function TGUIKeyRead.GetWidth: Word;
+function TGUIKeyRead.GetWidth: Integer;
 var
   a: Byte;
   w, h: Word;
@@ -2413,6 +2462,8 @@ begin
     FMaxKeyNameWdt := Max(FMaxKeyNameWdt, w);
   end;
 
+  FMaxKeyNameWdt := FMaxKeyNameWdt-(FMaxKeyNameWdt div 3);
+
   FFont.GetTextSize(KEYREAD_QUERY, w, h);
   if w > FMaxKeyNameWdt then FMaxKeyNameWdt := w;
 
@@ -2433,7 +2484,7 @@ procedure TGUIKeyRead2.Draw;
     r := 255;
     g := 0;
     b := 0;
-    if FKeyIdx = idx then g := 127;
+    if FKeyIdx = idx then begin r := 255; g := 255; b := 255; end;
     if FIsQuery and (FKeyIdx = idx) then
       FFont.Draw(x, y, KEYREAD_QUERY, r, g, b)
     else
@@ -2449,7 +2500,7 @@ begin
   drawText(1);
 end;
 
-function TGUIKeyRead2.GetWidth: Word;
+function TGUIKeyRead2.GetWidth: Integer;
 begin
   Result := FMaxKeyNameWdt*2+8+8+16;
 end;
@@ -2909,12 +2960,12 @@ begin
     end;
 end;
 
-function TGUIListBox.GetHeight: Word;
+function TGUIListBox.GetHeight: Integer;
 begin
   Result := 8+FHeight*16;
 end;
 
-function TGUIListBox.GetWidth: Word;
+function TGUIListBox.GetWidth: Integer;
 begin
   Result := 8+(FWidth+1)*16;
 end;
@@ -3278,12 +3329,12 @@ begin
       FFont.Draw(FX+4, FY+4+(a-FStartLine)*16, FLines[a], FColor.R, FColor.G, FColor.B);
 end;
 
-function TGUIMemo.GetHeight: Word;
+function TGUIMemo.GetHeight: Integer;
 begin
   Result := 8+FHeight*16;
 end;
 
-function TGUIMemo.GetWidth: Word;
+function TGUIMemo.GetWidth: Integer;
 begin
   Result := 8+(FWidth+1)*16;
 end;
