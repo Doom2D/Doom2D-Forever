@@ -4836,15 +4836,50 @@ begin
         continue;
       end;
       if cmd = 'air' then begin plr.GiveItem(ITEM_OXYGEN); g_Console_Add('player got some air'); continue; end;
-      if cmd = 'jetpack' then begin plr.GiveItem(ITEM_JETPACK); g_Console_Add('player got jetpack'); continue; end;
-      if cmd = 'suit' then begin plr.GiveItem(ITEM_SUIT); g_Console_Add('player got envirosuit'); continue; end;
-      if cmd = 'berserk' then begin plr.GiveItem(ITEM_MEDKIT_BLACK); g_Console_Add('player got berserk pack'); continue; end;
+      if cmd = 'jetpack' then begin plr.GiveItem(ITEM_JETPACK); g_Console_Add('player got a jetpack'); continue; end;
+      if cmd = 'suit' then begin plr.GiveItem(ITEM_SUIT); g_Console_Add('player got an envirosuit'); continue; end;
+      if cmd = 'berserk' then begin plr.GiveItem(ITEM_MEDKIT_BLACK); g_Console_Add('player got a berserk pack'); continue; end;
+      if cmd = 'backpack' then begin plr.GiveItem(ITEM_AMMO_BACKPACK); g_Console_Add('player got a backpack'); continue; end;
+
+      if cmd = 'helmet' then begin plr.GiveItem(ITEM_HELMET); g_Console_Add('player got a helmet'); continue; end;
+      if cmd = 'bottle' then begin plr.GiveItem(ITEM_BOTTLE); g_Console_Add('player got a bottle of health'); continue; end;
+
+      if cmd = 'redkey' then begin plr.GiveItem(ITEM_KEY_RED); g_Console_Add('player got the red key'); continue; end;
+      if cmd = 'greenkey' then begin plr.GiveItem(ITEM_KEY_RED); g_Console_Add('player got the green key'); continue; end;
+      if cmd = 'bluekey' then begin plr.GiveItem(ITEM_KEY_RED); g_Console_Add('player got the blue key'); continue; end;
+
       if (cmd = 'shotgun') or (cmd = 'sg') then begin plr.GiveItem(ITEM_WEAPON_SHOTGUN1); plr.GiveItem(ITEM_AMMO_SHELLS_BOX); g_Console_Add('player got a shotgun'); continue; end;
       if (cmd = 'supershotgun') or (cmd = 'ssg') then begin plr.GiveItem(ITEM_WEAPON_SHOTGUN2); plr.GiveItem(ITEM_AMMO_SHELLS_BOX); g_Console_Add('player got a supershotgun'); continue; end;
-      if (cmd = 'chain') or (cmd = 'chaingun') then begin plr.GiveItem(ITEM_WEAPON_CHAINGUN); plr.GiveItem(ITEM_AMMO_BULLETS_BOX); g_Console_Add('player got a chaingun'); continue; end;
+      if cmd = 'chaingun' then begin plr.GiveItem(ITEM_WEAPON_CHAINGUN); plr.GiveItem(ITEM_AMMO_BULLETS_BOX); g_Console_Add('player got a chaingun'); continue; end;
       if (cmd = 'launcher') or (cmd = 'rocketlauncher') then begin plr.GiveItem(ITEM_WEAPON_ROCKETLAUNCHER); plr.GiveItem(ITEM_AMMO_ROCKET_BOX); g_Console_Add('player got a rocket launcher'); continue; end;
       if cmd = 'plasmagun' then begin plr.GiveItem(ITEM_WEAPON_PLASMA); plr.GiveItem(ITEM_AMMO_CELL_BIG); g_Console_Add('player got a plasma gun'); continue; end;
       if cmd = 'bfg' then begin plr.GiveItem(ITEM_WEAPON_BFG); plr.GiveItem(ITEM_AMMO_CELL_BIG); g_Console_Add('player got a BFG-9000'); continue; end;
+
+      if cmd = 'superchaingun' then begin plr.GiveItem(ITEM_WEAPON_SUPERPULEMET); plr.GiveItem(ITEM_AMMO_BULLETS_BOX); g_Console_Add('player got a superchaingun'); continue; end;
+      if cmd = 'chainsaw' then begin plr.GiveItem(ITEM_WEAPON_SAW); g_Console_Add('player got a chainsaw'); continue; end;
+
+      if cmd = 'ammo' then
+      begin
+        plr.GiveItem(ITEM_AMMO_SHELLS_BOX);
+        plr.GiveItem(ITEM_AMMO_BULLETS_BOX);
+        plr.GiveItem(ITEM_AMMO_CELL_BIG);
+        plr.GiveItem(ITEM_AMMO_ROCKET_BOX);
+        g_Console_Add('player got an ammo');
+        continue;
+      end;
+
+      if cmd = 'weapons' then
+      begin
+        plr.GiveItem(ITEM_WEAPON_SHOTGUN1);
+        plr.GiveItem(ITEM_WEAPON_SHOTGUN2);
+        plr.GiveItem(ITEM_WEAPON_CHAINGUN);
+        plr.GiveItem(ITEM_WEAPON_ROCKETLAUNCHER);
+        plr.GiveItem(ITEM_WEAPON_PLASMA);
+        plr.GiveItem(ITEM_WEAPON_BFG);
+        g_Console_Add('player got weapons');
+        continue;
+      end;
+
       g_Console_Add('i don''t know how to give '''+cmd+'''!');
     end;
     exit;
