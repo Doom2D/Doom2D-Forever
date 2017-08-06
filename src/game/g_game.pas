@@ -4846,13 +4846,16 @@ begin
       if cmd = 'bottle' then begin plr.GiveItem(ITEM_BOTTLE); g_Console_Add('player got a bottle of health'); continue; end;
 
       if cmd = 'stimpack' then begin plr.GiveItem(ITEM_MEDKIT_SMALL); g_Console_Add('player got a stimpack'); continue; end;
-      if cmd = 'medkit' then begin plr.GiveItem(ITEM_MEDKIT_LARGE); g_Console_Add('player got a medkit'); continue; end;
+      if (cmd = 'medkit') or (cmd = 'medikit') or (cmd = 'medpack') or (cmd = 'medipack') then begin plr.GiveItem(ITEM_MEDKIT_LARGE); g_Console_Add('player got a '+cmd); continue; end;
 
       if cmd = 'greenarmor' then begin plr.GiveItem(ITEM_ARMOR_GREEN); g_Console_Add('player got a security armor'); continue; end;
       if cmd = 'bluearmor' then begin plr.GiveItem(ITEM_ARMOR_BLUE); g_Console_Add('player got a combat armor'); continue; end;
 
-      if cmd = 'megasphere' then begin plr.GiveItem(ITEM_SPHERE_BLUE); g_Console_Add('player got a megasphere'); continue; end;
-      if cmd = 'recharge' then begin plr.GiveItem(ITEM_SPHERE_WHITE); g_Console_Add('player got a recharge sphere'); continue; end;
+      if (cmd = 'megasphere') or (cmd = 'mega') then begin plr.GiveItem(ITEM_SPHERE_BLUE); g_Console_Add('player got a megasphere'); continue; end;
+      if (cmd = 'soulsphere') or (cmd = 'soul')then begin plr.GiveItem(ITEM_SPHERE_WHITE); g_Console_Add('player got a soul sphere'); continue; end;
+
+      if (cmd = 'invul') or (cmd = 'invulnerability') then begin plr.GiveItem(ITEM_INVUL); g_Console_Add('player got invulnerability'); continue; end;
+      if (cmd = 'invis') or (cmd = 'invisibility') then begin plr.GiveItem(ITEM_INVIS); g_Console_Add('player got invisibility'); continue; end;
 
       if cmd = 'redkey' then begin plr.GiveItem(ITEM_KEY_RED); g_Console_Add('player got the red key'); continue; end;
       if cmd = 'greenkey' then begin plr.GiveItem(ITEM_KEY_GREEN); g_Console_Add('player got the green key'); continue; end;
