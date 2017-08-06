@@ -430,7 +430,8 @@ end;
 
 function  MH_RECV_PlayerPos(C: pTNetClient; P: Pointer): Word;
 var
-  Dir, WeaponSelect: Byte;
+  Dir, i: Byte;
+  WeaponSelect: Word;
   PID: Word;
   kByte: Word;
   Pl: TPlayer;
@@ -452,7 +453,7 @@ begin
     NetTime := GT;
     kByte := e_Raw_Read_Word(P);
     Dir := e_Raw_Read_Byte(P);
-    WeaponSelect := e_Raw_Read_Byte(P);
+    WeaponSelect := e_Raw_Read_Word(P);
     if Direction <> TDirection(Dir) then
       JustTeleported := False;
 
@@ -475,8 +476,7 @@ begin
     if LongBool(kByte and NET_KEY_NW) then PressKey(KEY_NEXTWEAPON, 10000);
     if LongBool(kByte and NET_KEY_PW) then PressKey(KEY_PREVWEAPON, 10000);
 
-    if WeaponSelect <> 255 then
-      QueueWeaponSwitch(WeaponSelect);
+    for i := 0 to 15 do if (WeaponSelect and (1 shl i)) <> 0 then QueueWeaponSwitch(i);
   end;
 
   // MH_SEND_PlayerPos(False, PID, C^.ID);
@@ -2787,7 +2787,7 @@ var
   kByte: Word;
   Predict: Boolean;
   strafeDir: Byte;
-  WeaponSelect: Byte = 255;
+  WeaponSelect: Word = 0;
   I: Integer;
 begin
   if not gGameOn then Exit;
@@ -2855,7 +2855,7 @@ begin
       if isKeyPressed(KeyPrevWeapon, KeyPrevWeapon2) then kByte := kByte or NET_KEY_PW;
       for I := 0 to High(KeyWeapon) do
         if isKeyPressed(KeyWeapon[I], KeyWeapon2[I]) then
-          WeaponSelect := I;
+          WeaponSelect := WeaponSelect or Word(1 shl I);
     end;
     // fix movebutton state
     P1MoveButton := P1MoveButton or (strafeDir shl 4);
