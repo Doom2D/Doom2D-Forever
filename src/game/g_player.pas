@@ -3303,6 +3303,7 @@ begin
   result := 255; // default result: "no switch"
   for i := 0 to High(wantThisWeapon) do wantThisWeapon[i] := false;
   for i := 0 to High(FWeapon) do if (FNextWeap and (1 shl i)) <> 0 then begin wantThisWeapon[i] := true; Inc(wwc); end;
+  (*
   if wantThisWeapon[FCurrWeap] then
   begin
     // these hacks implements alternating between SG and SSG; sorry
@@ -3312,6 +3313,7 @@ begin
     if FCurrWeap = WEAPON_KASTET then begin wantThisWeapon[WEAPON_SAW] := true; Inc(wwc); end;
     if FCurrWeap = WEAPON_SAW then begin wantThisWeapon[WEAPON_KASTET] := true; Inc(wwc); end;
   end;
+  *)
   // exclude currently selected weapon from the set
   wantThisWeapon[FCurrWeap] := false;
   // slow down alterations a little
