@@ -212,6 +212,7 @@ type
     procedure cycleWeapon (dir: Integer);
     function getNextWeaponIndex (): Byte; // return 255 for "no switch"
     procedure resetWeaponQueue ();
+    function hasAmmoForWeapon (weapon: Byte): Boolean;
 
   public
     FDamageBuffer:   Integer;
@@ -3279,6 +3280,19 @@ begin
   FNextWeapDelay := 0;
 end;
 
+function TPlayer.hasAmmoForWeapon (weapon: Byte): Boolean;
+begin
+  result := false;
+  case weapon of
+    WEAPON_KASTET, WEAPON_SAW: result := true;
+    WEAPON_SHOTGUN1, WEAPON_SHOTGUN2: result := (FAmmo[A_SHELLS] > 0);
+    WEAPON_PISTOL, WEAPON_CHAINGUN, WEAPON_SUPERPULEMET: result := (FAmmo[A_BULLETS] > 0);
+    WEAPON_ROCKETLAUNCHER: result := (FAmmo[A_ROCKETS] > 0);
+    WEAPON_PLASMA, WEAPON_BFG: result := (FAmmo[A_CELLS] > 0);
+    else result := (weapon < length(FWeapon));
+  end;
+end;
+
 // return 255 for "no switch"
 function TPlayer.getNextWeaponIndex (): Byte;
 var
@@ -3306,12 +3320,11 @@ begin
     // more than one weapon requested, assume "alteration" and check alteration delay
     if FNextWeapDelay > 0 then begin FNextWeap := 0; exit; end; // yeah
   end;
-  // no more hacks (yet)
   // do not reset weapon queue, it will be done in `RealizeCurrentWeapon()`
   // try weapons in descending order
   for i := High(FWeapon) downto 0 do
   begin
-    if wantThisWeapon[i] and FWeapon[i] then
+    if wantThisWeapon[i] and FWeapon[i] and ((wwc = 1) or hasAmmoForWeapon(i)) then
     begin
       // i found her!
       result := Byte(i);
