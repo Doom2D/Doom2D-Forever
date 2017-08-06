@@ -3303,17 +3303,6 @@ begin
   result := 255; // default result: "no switch"
   for i := 0 to High(wantThisWeapon) do wantThisWeapon[i] := false;
   for i := 0 to High(FWeapon) do if (FNextWeap and (1 shl i)) <> 0 then begin wantThisWeapon[i] := true; Inc(wwc); end;
-  (*
-  if wantThisWeapon[FCurrWeap] then
-  begin
-    // these hacks implements alternating between SG and SSG; sorry
-    if FCurrWeap = WEAPON_SHOTGUN1 then begin wantThisWeapon[WEAPON_SHOTGUN2] := true; Inc(wwc); end;
-    if FCurrWeap = WEAPON_SHOTGUN2 then begin wantThisWeapon[WEAPON_SHOTGUN1] := true; Inc(wwc); end;
-    // these hacks implements alternating between knuckles and chainsaw; sorry
-    if FCurrWeap = WEAPON_KASTET then begin wantThisWeapon[WEAPON_SAW] := true; Inc(wwc); end;
-    if FCurrWeap = WEAPON_SAW then begin wantThisWeapon[WEAPON_KASTET] := true; Inc(wwc); end;
-  end;
-  *)
   // exclude currently selected weapon from the set
   wantThisWeapon[FCurrWeap] := false;
   // slow down alterations a little
@@ -3323,6 +3312,8 @@ begin
     if FNextWeapDelay > 0 then begin FNextWeap := 0; exit; end; // yeah
   end;
   // do not reset weapon queue, it will be done in `RealizeCurrentWeapon()`
+  if wwc < 1 then begin resetWeaponQueue(); exit; end;
+  //e_WriteLog(Format('wwc=%d', [wwc]), MSG_WARNING);
   // try weapons in descending order
   for i := High(FWeapon) downto 0 do
   begin
@@ -3333,6 +3324,8 @@ begin
       exit;
     end;
   end;
+  // no suitable weapon found, so reset the queue, to avoid accidental "queuing" of weapon w/o ammo
+  resetWeaponQueue();
 end;
 
 procedure TPlayer.RealizeCurrentWeapon();
@@ -5654,6 +5647,20 @@ begin
       if FJetFuel < JET_MAX then
       begin
         FJetFuel := JET_MAX;
+      end;
+
+    ITEM_MEDKIT_SMALL: if FHealth < PLAYER_HP_SOFT then IncMax(FHealth, 10, PLAYER_HP_SOFT);
+    ITEM_MEDKIT_LARGE: if FHealth < PLAYER_HP_SOFT then IncMax(FHealth, 25, PLAYER_HP_SOFT);
+
+    ITEM_ARMOR_GREEN: if FArmor < PLAYER_AP_SOFT then FArmor := PLAYER_AP_SOFT;
+    ITEM_ARMOR_BLUE: if FArmor < PLAYER_AP_LIMIT then FArmor := PLAYER_AP_LIMIT;
+
+    ITEM_SPHERE_BLUE: if FHealth < PLAYER_HP_LIMIT then IncMax(FHealth, 100, PLAYER_HP_LIMIT);
+    ITEM_SPHERE_WHITE:
+      if (FHealth < PLAYER_HP_LIMIT) or (FArmor < PLAYER_AP_LIMIT) then
+      begin
+        if FHealth < PLAYER_HP_LIMIT then FHealth := PLAYER_HP_LIMIT;
+        if FArmor < PLAYER_AP_LIMIT then FArmor := PLAYER_AP_LIMIT;
       end;
 
     ITEM_WEAPON_SAW: FWeapon[WEAPON_SAW] := True;
