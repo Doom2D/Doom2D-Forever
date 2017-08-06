@@ -1283,10 +1283,7 @@ begin
 
     for i := 0 to High(KeyWeapon) do
       if isKeyPressed(KeyWeapon[i], KeyWeapon2[i]) then
-      begin
-        plr.ForceWeapon(i);
-        Break;
-      end;
+        plr.QueueWeaponSwitch(i); // all choices are passed there, and god will take the best
   end;
 end;
 
@@ -1536,6 +1533,9 @@ begin
       begin
         if g_Game_IsNet and (gPlayer1 <> nil) then gPlayer1.PressKey(KEY_CHAT, 10000);
       end;
+      // process weapon switch queue
+      if gPlayer1 <> nil then gPlayer1.RealizeCurrentWeapon();
+      if gPlayer2 <> nil then gPlayer2.RealizeCurrentWeapon();
     end; // if server
 
   // Наблюдатель
@@ -4839,6 +4839,12 @@ begin
       if cmd = 'jetpack' then begin plr.GiveItem(ITEM_JETPACK); g_Console_Add('player got jetpack'); continue; end;
       if cmd = 'suit' then begin plr.GiveItem(ITEM_SUIT); g_Console_Add('player got envirosuit'); continue; end;
       if cmd = 'berserk' then begin plr.GiveItem(ITEM_MEDKIT_BLACK); g_Console_Add('player got berserk pack'); continue; end;
+      if (cmd = 'shotgun') or (cmd = 'sg') then begin plr.GiveItem(ITEM_WEAPON_SHOTGUN1); plr.GiveItem(ITEM_AMMO_SHELLS_BOX); g_Console_Add('player got a shotgun'); continue; end;
+      if (cmd = 'supershotgun') or (cmd = 'ssg') then begin plr.GiveItem(ITEM_WEAPON_SHOTGUN2); plr.GiveItem(ITEM_AMMO_SHELLS_BOX); g_Console_Add('player got a supershotgun'); continue; end;
+      if (cmd = 'chain') or (cmd = 'chaingun') then begin plr.GiveItem(ITEM_WEAPON_CHAINGUN); plr.GiveItem(ITEM_AMMO_BULLETS_BOX); g_Console_Add('player got a chaingun'); continue; end;
+      if (cmd = 'launcher') or (cmd = 'rocketlauncher') then begin plr.GiveItem(ITEM_WEAPON_ROCKETLAUNCHER); plr.GiveItem(ITEM_AMMO_ROCKET_BOX); g_Console_Add('player got a rocket launcher'); continue; end;
+      if cmd = 'plasmagun' then begin plr.GiveItem(ITEM_WEAPON_PLASMA); plr.GiveItem(ITEM_AMMO_CELL_BIG); g_Console_Add('player got a plasma gun'); continue; end;
+      if cmd = 'bfg' then begin plr.GiveItem(ITEM_WEAPON_BFG); plr.GiveItem(ITEM_AMMO_CELL_BIG); g_Console_Add('player got a BFG-9000'); continue; end;
       g_Console_Add('i don''t know how to give '''+cmd+'''!');
     end;
     exit;

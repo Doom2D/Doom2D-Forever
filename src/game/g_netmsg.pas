@@ -476,7 +476,7 @@ begin
     if LongBool(kByte and NET_KEY_PW) then PressKey(KEY_PREVWEAPON, 10000);
 
     if WeaponSelect <> 255 then
-      ForceWeapon(WeaponSelect);
+      QueueWeaponSwitch(WeaponSelect);
   end;
 
   // MH_SEND_PlayerPos(False, PID, C^.ID);

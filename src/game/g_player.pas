@@ -112,6 +112,7 @@ type
     Air:        Integer;
     JetFuel:    Integer;
     CurrWeap:   Byte;
+    NextWeap:   WORD;
     Ammo:       Array [A_BULLETS..A_CELLS] of Word;
     MaxAmmo:    Array [A_BULLETS..A_CELLS] of Word;
     Weapon:     Array [WEAPON_KASTET..WEAPON_SUPERPULEMET] of Boolean;
@@ -151,6 +152,7 @@ type
     FFlag:      Byte;
     FSecrets:   Integer;
     FCurrWeap:  Byte;
+    FNextWeap:  WORD;
     FBFGFireCounter: SmallInt;
     FLastSpawnerUID: Word;
     FLastHit:   Byte;
@@ -204,6 +206,10 @@ type
     procedure   Fire();
     procedure   Jump();
     procedure   Use();
+
+    procedure cycleWeapon (dir: Integer);
+    function getNextWeaponIndex (): Byte; // return 255 for "no switch"
+    procedure resetWeaponQueue ();
 
   public
     FDamageBuffer:   Integer;
@@ -287,7 +293,8 @@ type
     procedure   NetFire(Wpn: Byte; X, Y, AX, AY: Integer; WID: Integer = -1);
     procedure   DoLerp(Level: Integer = 2);
     procedure   SetLerp(XTo, YTo: Integer);
-    procedure   ForceWeapon(Weapon: Byte);
+    procedure   QueueWeaponSwitch(Weapon: Byte);
+    procedure   RealizeCurrentWeapon();
     procedure   JetpackOn;
     procedure   JetpackOff;
 
@@ -798,6 +805,8 @@ begin
   Mem.ReadInt(gPlayers[a].FSecrets);
 // Текущее оружие:
   Mem.ReadByte(gPlayers[a].FCurrWeap);
+// Следующее желаемое оружие:
+  Mem.ReadWord(gPlayers[a].FNextWeap);
 // Время зарядки BFG:
   Mem.ReadSmallInt(gPlayers[a].FBFGFireCounter);
 // Буфер урона:
@@ -3251,111 +3260,105 @@ begin
               150, 0, 0);
 end;
 
-procedure TPlayer.ForceWeapon(Weapon: Byte);
-var
-  i: Byte;
+procedure TPlayer.QueueWeaponSwitch(Weapon: Byte);
 begin
   if g_Game_IsClient then Exit;
   if Weapon > High(FWeapon) then Exit;
-  if FBFGFireCounter <> -1 then Exit;
+  FNextWeap := FNextWeap or (1 shl Weapon);
+end;
 
-  if FTime[T_SWITCH] > gTime then Exit;
+procedure TPlayer.resetWeaponQueue ();
+begin
+  FNextWeap := 0;
+end;
 
-  for i := WEAPON_KASTET to WEAPON_SUPERPULEMET do
-    if FReloading[i] > 0 then Exit;
-
-  if FWeapon[Weapon] then
+// return 255 for "no switch"; resets `FNextWeap`
+function TPlayer.getNextWeaponIndex (): Byte;
+var
+  i: Word;
+  wantThisWeapon: array[0..64] of Boolean;
+begin
+  result := 255; // default result: "no switch"
+  for i := 0 to High(wantThisWeapon) do wantThisWeapon[i] := false;
+  for i := 0 to High(FWeapon) do if (FNextWeap and (1 shl i)) <> 0 then wantThisWeapon[i] := true;
+  if wantThisWeapon[FCurrWeap] then
   begin
-    FCurrWeap := Weapon;
+    // these hacks implements alternating between SG and SSG; sorry
+    if FCurrWeap = WEAPON_SHOTGUN1 then wantThisWeapon[WEAPON_SHOTGUN2] := true;
+    if FCurrWeap = WEAPON_SHOTGUN2 then wantThisWeapon[WEAPON_SHOTGUN1] := true;
+    // these hacks implements alternating between knuckles and chainsaw; sorry
+    if FCurrWeap = WEAPON_KASTET then wantThisWeapon[WEAPON_SAW] := true;
+    if FCurrWeap = WEAPON_SAW then wantThisWeapon[WEAPON_KASTET] := true;
+  end;
+  // now exclude currently selected weapon from the set
+  wantThisWeapon[FCurrWeap] := false;
+  // no more hacks (yet)
+  // do not reset weapon queue, it will be done in `RealizeCurrentWeapon()`
+  // now try weapons in descending order
+  for i := High(FWeapon) downto 0 do
+  begin
+    if wantThisWeapon[i] and FWeapon[i] then
+    begin
+      // i found her!
+      result := Byte(i);
+      exit;
+    end;
+  end;
+end;
+
+procedure TPlayer.RealizeCurrentWeapon();
+var
+  i, nw: Byte;
+begin
+  nw := getNextWeaponIndex();
+  if nw > High(FWeapon) then begin resetWeaponQueue(); exit; end; // don't forget to reset queue here!
+
+  if FBFGFireCounter <> -1 then exit;
+  if FTime[T_SWITCH] > gTime then exit;
+
+  for i := WEAPON_KASTET to WEAPON_SUPERPULEMET do if FReloading[i] > 0 then exit;
+
+  if FWeapon[nw] then
+  begin
+    FCurrWeap := nw;
     FTime[T_SWITCH] := gTime+156;
-    if FCurrWeap = WEAPON_SAW then
-      FSawSoundSelect.PlayAt(FObj.X, FObj.Y);
+    if FCurrWeap = WEAPON_SAW then FSawSoundSelect.PlayAt(FObj.X, FObj.Y);
     FModel.SetWeapon(FCurrWeap);
     if g_Game_IsNet then MH_SEND_PlayerStats(FUID);
+  end;
+  // reset weapon queue; `getNextWeaponIndex()` guarantees to not select a weapon player don't have
+  resetWeaponQueue();
+end;
+
+procedure TPlayer.cycleWeapon (dir: Integer);
+var
+  i, cwi: Integer;
+begin
+  if dir < 0 then dir := 1 else if dir > 0 then dir := 1 else exit;
+  cwi := FCurrWeap;
+  for i := 0 to High(FWeapon) do
+  begin
+    cwi := cwi+dir;
+         if cwi < 0 then cwi += length(FWeapon)
+    else if cwi > High(FWeapon) then cwi := cwi-length(FWeapon);
+    if FWeapon[cwi] then
+    begin
+      QueueWeaponSwitch(Byte(cwi));
+      exit;
+    end;
   end;
 end;
 
 procedure TPlayer.NextWeapon();
-var
-  i: Byte;
-  ok: Boolean;
 begin
   if g_Game_IsClient then Exit;
-  if FBFGFireCounter <> -1 then Exit;
-
-  if FTime[T_SWITCH] > gTime then Exit;
-
-  for i := WEAPON_KASTET to WEAPON_SUPERPULEMET do
-    if FReloading[i] > 0 then Exit;
-
-  ok := False;
-
-  for i := FCurrWeap+1 to WEAPON_SUPERPULEMET do
-    if FWeapon[i] then
-    begin
-      FCurrWeap := i;
-      ok := True;
-      Break;
-    end;
-
-  if not ok then
-    for i := WEAPON_KASTET to FCurrWeap-1 do
-      if FWeapon[i] then
-      begin
-        FCurrWeap := i;
-        Break;
-      end;
-
-  FTime[T_SWITCH] := gTime+156;
-
-  if FCurrWeap = WEAPON_SAW then
-    FSawSoundSelect.PlayAt(FObj.X, FObj.Y);
-
-  FModel.SetWeapon(FCurrWeap);
-
-  if g_Game_IsNet then MH_SEND_PlayerStats(FUID);
+  cycleWeapon(1);
 end;
 
 procedure TPlayer.PrevWeapon();
-var
-  i: Byte;
-  ok: Boolean;
 begin
   if g_Game_IsClient then Exit;
-  if FBFGFireCounter <> -1 then Exit;
-
-  if FTime[T_SWITCH] > gTime then Exit;
-
-  for i := WEAPON_KASTET to WEAPON_SUPERPULEMET do
-    if FReloading[i] > 0 then Exit;
-
-  ok := False;
-
-  if FCurrWeap > 0 then
-    for i := FCurrWeap-1 downto WEAPON_KASTET do
-      if FWeapon[i] then
-      begin
-        FCurrWeap := i;
-        ok := True;
-        Break;
-      end;
-
-  if not ok then
-    for i := WEAPON_SUPERPULEMET downto FCurrWeap+1 do
-      if FWeapon[i] then
-      begin
-        FCurrWeap := i;
-        Break;
-      end;
-
-  FTime[T_SWITCH] := gTime+156;
-
-  if FCurrWeap = WEAPON_SAW then
-    FSawSoundSelect.PlayAt(FObj.X, FObj.Y);
-
-  FModel.SetWeapon(FCurrWeap);
-
-  if g_Game_IsNet then MH_SEND_PlayerStats(FUID);
+  cycleWeapon(-1);
 end;
 
 procedure TPlayer.SetWeapon(W: Byte);
@@ -3366,6 +3369,7 @@ begin
 
   FCurrWeap := W;
   FModel.SetWeapon(CurrWeap);
+  resetWeaponQueue();
 end;
 
 function TPlayer.PickItem(ItemType: Byte; respawn: Boolean; var remove: Boolean): Boolean;
@@ -3686,6 +3690,7 @@ begin
           if FBFGFireCounter = -1 then
           begin
             FCurrWeap := WEAPON_KASTET;
+            resetWeaponQueue();
             FModel.SetWeapon(WEAPON_KASTET);
           end;
           if gFlash <> 0 then
@@ -4040,6 +4045,7 @@ begin
     FWeapon[WEAPON_PISTOL] := True;
     FWeapon[WEAPON_KASTET] := True;
     FCurrWeap := WEAPON_PISTOL;
+    resetWeaponQueue();
 
     FModel.SetWeapon(FCurrWeap);
 
@@ -5193,6 +5199,7 @@ begin
   FSavedState.Air := FAir;
   FSavedState.JetFuel := FJetFuel;
   FSavedState.CurrWeap := FCurrWeap;
+  FSavedState.NextWeap := FNextWeap;
 
   for i := 0 to 3 do
     FSavedState.Ammo[i] := FAmmo[i];
@@ -5214,6 +5221,7 @@ begin
   FAir := FSavedState.Air;
   FJetFuel := FSavedState.JetFuel;
   FCurrWeap := FSavedState.CurrWeap;
+  FNextWeap := FSavedState.NextWeap;
 
   for i := 0 to 3 do
     FAmmo[i] := FSavedState.Ammo[i];
@@ -5292,6 +5300,8 @@ begin
   Mem.WriteInt(FSecrets);
 // Текущее оружие:
   Mem.WriteByte(FCurrWeap);
+// Желаемое оружие:
+  Mem.WriteWord(FNextWeap);
 // Время зарядки BFG:
   Mem.WriteSmallInt(FBFGFireCounter);
 // Буфер урона:
@@ -5428,6 +5438,8 @@ begin
   Mem.ReadInt(FSecrets);
 // Текущее оружие:
   Mem.ReadByte(FCurrWeap);
+// Желаемое оружие:
+  Mem.ReadWord(FNextWeap);
 // Время зарядки BFG:
   Mem.ReadSmallInt(FBFGFireCounter);
 // Буфер урона:
@@ -5574,6 +5586,7 @@ begin
           if FBFGFireCounter < 1 then
           begin
             FCurrWeap := WEAPON_KASTET;
+            resetWeaponQueue();
             FModel.SetWeapon(WEAPON_KASTET);
           end;
           if gFlash <> 0 then
@@ -5604,6 +5617,50 @@ begin
       begin
         FJetFuel := JET_MAX;
       end;
+
+    ITEM_WEAPON_SAW: FWeapon[WEAPON_SAW] := True;
+    ITEM_WEAPON_SHOTGUN1: FWeapon[WEAPON_SHOTGUN1] := True;
+    ITEM_WEAPON_SHOTGUN2: FWeapon[WEAPON_SHOTGUN2] := True;
+    ITEM_WEAPON_CHAINGUN: FWeapon[WEAPON_CHAINGUN] := True;
+    ITEM_WEAPON_ROCKETLAUNCHER: FWeapon[WEAPON_ROCKETLAUNCHER] := True;
+    ITEM_WEAPON_PLASMA: FWeapon[WEAPON_PLASMA] := True;
+    ITEM_WEAPON_BFG: FWeapon[WEAPON_BFG] := True;
+    ITEM_WEAPON_SUPERPULEMET: FWeapon[WEAPON_SUPERPULEMET] := True;
+
+    ITEM_AMMO_BULLETS: if FAmmo[A_BULLETS] < FMaxAmmo[A_BULLETS] then IncMax(FAmmo[A_BULLETS], 10, FMaxAmmo[A_BULLETS]);
+    ITEM_AMMO_BULLETS_BOX: if FAmmo[A_BULLETS] < FMaxAmmo[A_BULLETS] then IncMax(FAmmo[A_BULLETS], 50, FMaxAmmo[A_BULLETS]);
+    ITEM_AMMO_SHELLS: if FAmmo[A_SHELLS] < FMaxAmmo[A_SHELLS] then IncMax(FAmmo[A_SHELLS], 4, FMaxAmmo[A_SHELLS]);
+    ITEM_AMMO_SHELLS_BOX: if FAmmo[A_SHELLS] < FMaxAmmo[A_SHELLS] then IncMax(FAmmo[A_SHELLS], 25, FMaxAmmo[A_SHELLS]);
+    ITEM_AMMO_ROCKET: if FAmmo[A_ROCKETS] < FMaxAmmo[A_ROCKETS] then IncMax(FAmmo[A_ROCKETS], 1, FMaxAmmo[A_ROCKETS]);
+    ITEM_AMMO_ROCKET_BOX: if FAmmo[A_ROCKETS] < FMaxAmmo[A_ROCKETS] then IncMax(FAmmo[A_ROCKETS], 5, FMaxAmmo[A_ROCKETS]);
+    ITEM_AMMO_CELL: if FAmmo[A_CELLS] < FMaxAmmo[A_CELLS] then IncMax(FAmmo[A_CELLS], 40, FMaxAmmo[A_CELLS]);
+    ITEM_AMMO_CELL_BIG: if FAmmo[A_CELLS] < FMaxAmmo[A_CELLS] then IncMax(FAmmo[A_CELLS], 100, FMaxAmmo[A_CELLS]);
+
+    ITEM_AMMO_BACKPACK:
+      if (FAmmo[A_BULLETS] < FMaxAmmo[A_BULLETS]) or
+         (FAmmo[A_SHELLS] < FMaxAmmo[A_SHELLS]) or
+         (FAmmo[A_ROCKETS] < FMaxAmmo[A_ROCKETS]) or
+         (FAmmo[A_CELLS] < FMaxAmmo[A_CELLS]) then
+      begin
+        FMaxAmmo[A_BULLETS] := 400;
+        FMaxAmmo[A_SHELLS] := 100;
+        FMaxAmmo[A_ROCKETS] := 100;
+        FMaxAmmo[A_CELLS] := 600;
+
+        if FAmmo[A_BULLETS] < FMaxAmmo[A_BULLETS] then IncMax(FAmmo[A_BULLETS], 10, FMaxAmmo[A_BULLETS]);
+        if FAmmo[A_SHELLS] < FMaxAmmo[A_SHELLS] then IncMax(FAmmo[A_SHELLS], 4, FMaxAmmo[A_SHELLS]);
+        if FAmmo[A_ROCKETS] < FMaxAmmo[A_ROCKETS] then IncMax(FAmmo[A_ROCKETS], 1, FMaxAmmo[A_ROCKETS]);
+        if FAmmo[A_CELLS] < FMaxAmmo[A_CELLS] then IncMax(FAmmo[A_CELLS], 40, FMaxAmmo[A_CELLS]);
+
+        FRulez := FRulez + [R_ITEM_BACKPACK];
+      end;
+
+    ITEM_KEY_RED: if not (R_KEY_RED in FRulez) then Include(FRulez, R_KEY_RED);
+    ITEM_KEY_GREEN: if not (R_KEY_GREEN in FRulez) then Include(FRulez, R_KEY_GREEN);
+    ITEM_KEY_BLUE: if not (R_KEY_BLUE in FRulez) then Include(FRulez, R_KEY_BLUE);
+
+    ITEM_BOTTLE: if FHealth < PLAYER_HP_LIMIT then IncMax(FHealth, 4, PLAYER_HP_LIMIT);
+    ITEM_HELMET: if FArmor < PLAYER_AP_LIMIT then IncMax(FArmor, 5, PLAYER_AP_LIMIT);
 
     else
       Exit;
@@ -5890,6 +5947,7 @@ begin
 
   FAIFlags := nil;
   FSelectedWeapon := FCurrWeap;
+  resetWeaponQueue();
   FTargetUID := 0;
 end;
 
@@ -6315,6 +6373,9 @@ begin
                 SetAIFlag('GOLEFT', '1');
             end;
         end;
+
+  //HACK! (does it belongs there?)
+  RealizeCurrentWeapon();
 
 // Если есть возможные цели:
 // (Стреляем по направлению к целям)
