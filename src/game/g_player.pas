@@ -113,6 +113,7 @@ type
     JetFuel:    Integer;
     CurrWeap:   Byte;
     NextWeap:   WORD;
+    NextWeapDelay: Byte;
     Ammo:       Array [A_BULLETS..A_CELLS] of Word;
     MaxAmmo:    Array [A_BULLETS..A_CELLS] of Word;
     Weapon:     Array [WEAPON_KASTET..WEAPON_SUPERPULEMET] of Boolean;
@@ -153,6 +154,7 @@ type
     FSecrets:   Integer;
     FCurrWeap:  Byte;
     FNextWeap:  WORD;
+    FNextWeapDelay: Byte; // frames
     FBFGFireCounter: SmallInt;
     FLastSpawnerUID: Word;
     FLastHit:   Byte;
@@ -807,6 +809,8 @@ begin
   Mem.ReadByte(gPlayers[a].FCurrWeap);
 // Следующее желаемое оружие:
   Mem.ReadWord(gPlayers[a].FNextWeap);
+// ...и пауза:
+  Mem.ReadByte(gPlayers[a].FNextWeapDelay);
 // Время зарядки BFG:
   Mem.ReadSmallInt(gPlayers[a].FBFGFireCounter);
 // Буфер урона:
@@ -1969,6 +1973,8 @@ begin
   FBFGFireCounter := -1;
   FJustTeleported := False;
   FNetTime := 0;
+
+  resetWeaponQueue();
 end;
 
 procedure TPlayer.Damage(value: Word; SpawnerUID: Word; vx, vy: Integer; t: Byte);
@@ -3270,31 +3276,39 @@ end;
 procedure TPlayer.resetWeaponQueue ();
 begin
   FNextWeap := 0;
+  FNextWeapDelay := 0;
 end;
 
-// return 255 for "no switch"; resets `FNextWeap`
+// return 255 for "no switch"
 function TPlayer.getNextWeaponIndex (): Byte;
 var
   i: Word;
   wantThisWeapon: array[0..64] of Boolean;
+  wwc: Integer = 0; //HACK!
 begin
   result := 255; // default result: "no switch"
   for i := 0 to High(wantThisWeapon) do wantThisWeapon[i] := false;
-  for i := 0 to High(FWeapon) do if (FNextWeap and (1 shl i)) <> 0 then wantThisWeapon[i] := true;
+  for i := 0 to High(FWeapon) do if (FNextWeap and (1 shl i)) <> 0 then begin wantThisWeapon[i] := true; Inc(wwc); end;
   if wantThisWeapon[FCurrWeap] then
   begin
     // these hacks implements alternating between SG and SSG; sorry
-    if FCurrWeap = WEAPON_SHOTGUN1 then wantThisWeapon[WEAPON_SHOTGUN2] := true;
-    if FCurrWeap = WEAPON_SHOTGUN2 then wantThisWeapon[WEAPON_SHOTGUN1] := true;
+    if FCurrWeap = WEAPON_SHOTGUN1 then begin wantThisWeapon[WEAPON_SHOTGUN2] := true; Inc(wwc); end;
+    if FCurrWeap = WEAPON_SHOTGUN2 then begin wantThisWeapon[WEAPON_SHOTGUN1] := true; Inc(wwc); end;
     // these hacks implements alternating between knuckles and chainsaw; sorry
-    if FCurrWeap = WEAPON_KASTET then wantThisWeapon[WEAPON_SAW] := true;
-    if FCurrWeap = WEAPON_SAW then wantThisWeapon[WEAPON_KASTET] := true;
+    if FCurrWeap = WEAPON_KASTET then begin wantThisWeapon[WEAPON_SAW] := true; Inc(wwc); end;
+    if FCurrWeap = WEAPON_SAW then begin wantThisWeapon[WEAPON_KASTET] := true; Inc(wwc); end;
   end;
-  // now exclude currently selected weapon from the set
+  // exclude currently selected weapon from the set
   wantThisWeapon[FCurrWeap] := false;
+  // slow down alterations a little
+  if wwc > 1 then
+  begin
+    // more than one weapon requested, assume "alteration" and check alteration delay
+    if FNextWeapDelay > 0 then begin FNextWeap := 0; exit; end; // yeah
+  end;
   // no more hacks (yet)
   // do not reset weapon queue, it will be done in `RealizeCurrentWeapon()`
-  // now try weapons in descending order
+  // try weapons in descending order
   for i := High(FWeapon) downto 0 do
   begin
     if wantThisWeapon[i] and FWeapon[i] then
@@ -3311,6 +3325,8 @@ var
   i, nw: Byte;
 begin
   nw := getNextWeaponIndex();
+  if FNextWeapDelay > 0 then Dec(FNextWeapDelay); // "alteration delay"
+  if nw = 255 then exit; // don't reset anything here
   if nw > High(FWeapon) then begin resetWeaponQueue(); exit; end; // don't forget to reset queue here!
 
   if FBFGFireCounter <> -1 then exit;
@@ -3328,6 +3344,7 @@ begin
   end;
   // reset weapon queue; `getNextWeaponIndex()` guarantees to not select a weapon player don't have
   resetWeaponQueue();
+  FNextWeapDelay := 10; // anyway, 'cause why not
 end;
 
 procedure TPlayer.cycleWeapon (dir: Integer);
@@ -5200,6 +5217,7 @@ begin
   FSavedState.JetFuel := FJetFuel;
   FSavedState.CurrWeap := FCurrWeap;
   FSavedState.NextWeap := FNextWeap;
+  FSavedState.NextWeapDelay := FNextWeapDelay;
 
   for i := 0 to 3 do
     FSavedState.Ammo[i] := FAmmo[i];
@@ -5222,6 +5240,7 @@ begin
   FJetFuel := FSavedState.JetFuel;
   FCurrWeap := FSavedState.CurrWeap;
   FNextWeap := FSavedState.NextWeap;
+  FNextWeapDelay := FSavedState.NextWeapDelay;
 
   for i := 0 to 3 do
     FAmmo[i] := FSavedState.Ammo[i];
@@ -5302,6 +5321,8 @@ begin
   Mem.WriteByte(FCurrWeap);
 // Желаемое оружие:
   Mem.WriteWord(FNextWeap);
+// ...и пауза
+  Mem.WriteByte(FNextWeapDelay);
 // Время зарядки BFG:
   Mem.WriteSmallInt(FBFGFireCounter);
 // Буфер урона:
@@ -5440,6 +5461,8 @@ begin
   Mem.ReadByte(FCurrWeap);
 // Желаемое оружие:
   Mem.ReadWord(FNextWeap);
+// ...и пауза
+  Mem.ReadByte(FNextWeapDelay);
 // Время зарядки BFG:
   Mem.ReadSmallInt(FBFGFireCounter);
 // Буфер урона:
