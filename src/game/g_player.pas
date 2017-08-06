@@ -1272,9 +1272,16 @@ begin
   for i := 0 to High(gPlayers) do
     if gPlayers[i] <> nil then
     begin
-      gPlayers[i].RealizeCurrentWeapon();
-      if gPlayers[i] is TPlayer then gPlayers[i].Update()
-      else TBot(gPlayers[i]).Update();
+      if gPlayers[i] is TPlayer then
+      begin
+        gPlayers[i].Update();
+        gPlayers[i].RealizeCurrentWeapon(); // WARNING! DO NOT MOVE THIS INTO `Update()`!
+      end
+      else
+      begin
+        // bot updates weapons in `UpdateCombat()`
+        TBot(gPlayers[i]).Update();
+      end;
     end;
 end;
 
@@ -6526,6 +6533,10 @@ begin
     begin
       UpdateMove();
       UpdateCombat();
+    end
+    else
+    begin
+      RealizeCurrentWeapon();
     end;
   end;
 
