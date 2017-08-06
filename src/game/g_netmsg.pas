@@ -454,6 +454,7 @@ begin
     kByte := e_Raw_Read_Word(P);
     Dir := e_Raw_Read_Byte(P);
     WeaponSelect := e_Raw_Read_Word(P);
+    //e_WriteLog(Format('R:ws=%d', [WeaponSelect]), MSG_WARNING);
     if Direction <> TDirection(Dir) then
       JustTeleported := False;
 
@@ -476,7 +477,14 @@ begin
     if LongBool(kByte and NET_KEY_NW) then PressKey(KEY_NEXTWEAPON, 10000);
     if LongBool(kByte and NET_KEY_PW) then PressKey(KEY_PREVWEAPON, 10000);
 
-    for i := 0 to 15 do if (WeaponSelect and (1 shl i)) <> 0 then QueueWeaponSwitch(i);
+    for i := 0 to 15 do
+    begin
+      if (WeaponSelect and Word(1 shl i)) <> 0 then
+      begin
+        //e_WriteLog(Format(' R:wn=%d', [i]), MSG_WARNING);
+        QueueWeaponSwitch(i);
+      end;
+    end;
   end;
 
   // MH_SEND_PlayerPos(False, PID, C^.ID);
@@ -2868,6 +2876,7 @@ begin
   e_Buffer_Write(@NetOut, kByte);
   e_Buffer_Write(@NetOut, Byte(gPlayer1.Direction));
   e_Buffer_Write(@NetOut, WeaponSelect);
+  //e_WriteLog(Format('S:ws=%d', [WeaponSelect]), MSG_WARNING);
   g_Net_Client_Send(True, NET_CHAN_PLAYERPOS);
 
   //kBytePrev := kByte;

@@ -1534,8 +1534,8 @@ begin
         if g_Game_IsNet and (gPlayer1 <> nil) then gPlayer1.PressKey(KEY_CHAT, 10000);
       end;
       // process weapon switch queue
-      if gPlayer1 <> nil then gPlayer1.RealizeCurrentWeapon();
-      if gPlayer2 <> nil then gPlayer2.RealizeCurrentWeapon();
+      //if gPlayer1 <> nil then gPlayer1.RealizeCurrentWeapon();
+      //if gPlayer2 <> nil then gPlayer2.RealizeCurrentWeapon();
     end; // if server
 
   // Наблюдатель
