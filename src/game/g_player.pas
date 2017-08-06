@@ -209,7 +209,6 @@ type
     procedure   Jump();
     procedure   Use();
 
-    procedure cycleWeapon (dir: Integer);
     function getNextWeaponIndex (): Byte; // return 255 for "no switch"
     procedure resetWeaponQueue ();
     function hasAmmoForWeapon (weapon: Byte): Boolean;
@@ -1269,7 +1268,9 @@ var
 begin
   if gPlayers = nil then Exit;
 
+  //e_WriteLog('***g_Player_UpdateAll: ENTER', MSG_WARNING);
   for i := 0 to High(gPlayers) do
+  begin
     if gPlayers[i] <> nil then
     begin
       if gPlayers[i] is TPlayer then
@@ -1283,6 +1284,8 @@ begin
         TBot(gPlayers[i]).Update();
       end;
     end;
+  end;
+  //e_WriteLog('***g_Player_UpdateAll: EXIT', MSG_WARNING);
 end;
 
 procedure g_Player_DrawAll();
@@ -3309,8 +3312,33 @@ var
   i: Word;
   wantThisWeapon: array[0..64] of Boolean;
   wwc: Integer = 0; //HACK!
+  dir, cwi: Integer;
 begin
   result := 255; // default result: "no switch"
+  // had weapon cycling on previous frame? remove that flag
+  if (FNextWeap and $2000) <> 0 then begin FNextWeap := FNextWeap and $1FFF; FNextWeapDelay := 0; end;
+  // cycling has priority
+  if (FNextWeap and $C000) <> 0 then
+  begin
+    if (FNextWeap and $8000) <> 0 then dir := 1 else dir := -1;
+    FNextWeap := FNextWeap or $2000; // we need this
+    if FNextWeapDelay > 0 then exit; // cooldown time
+    cwi := FCurrWeap;
+    for i := 0 to High(FWeapon) do
+    begin
+      cwi := (cwi+length(FWeapon)+dir) mod length(FWeapon);
+      if FWeapon[cwi] then
+      begin
+        //e_WriteLog(Format(' SWITCH: cur=%d; new=%d', [FCurrWeap, cwi]), MSG_WARNING);
+        result := Byte(cwi);
+        FNextWeapDelay := 10;
+        exit;
+      end;
+    end;
+    resetWeaponQueue();
+    exit;
+  end;
+  // no cycling
   for i := 0 to High(wantThisWeapon) do wantThisWeapon[i] := false;
   for i := 0 to High(FWeapon) do if (FNextWeap and (1 shl i)) <> 0 then begin wantThisWeapon[i] := true; Inc(wwc); end;
   // exclude currently selected weapon from the set
@@ -3318,10 +3346,12 @@ begin
   // slow down alterations a little
   if wwc > 1 then
   begin
+    //e_WriteLog(Format(' FNextWeap=%x; delay=%d', [FNextWeap, FNextWeapDelay]), MSG_WARNING);
     // more than one weapon requested, assume "alteration" and check alteration delay
     if FNextWeapDelay > 0 then begin FNextWeap := 0; exit; end; // yeah
   end;
   // do not reset weapon queue, it will be done in `RealizeCurrentWeapon()`
+  // but clear all counters if no weapon should be switched
   if wwc < 1 then begin resetWeaponQueue(); exit; end;
   //e_WriteLog(Format('wwc=%d', [wwc]), MSG_WARNING);
   // try weapons in descending order
@@ -3331,6 +3361,8 @@ begin
     begin
       // i found her!
       result := Byte(i);
+      resetWeaponQueue();
+      FNextWeapDelay := 10; // anyway, 'cause why not
       exit;
     end;
   end;
@@ -3339,18 +3371,40 @@ begin
 end;
 
 procedure TPlayer.RealizeCurrentWeapon();
+  function switchAllowed (): Boolean;
+  var
+    i: Byte;
+  begin
+    result := false;
+    if FBFGFireCounter <> -1 then exit;
+    if FTime[T_SWITCH] > gTime then exit;
+    for i := WEAPON_KASTET to WEAPON_SUPERPULEMET do if FReloading[i] > 0 then exit;
+    result := true;
+  end;
+
 var
-  i, nw: Byte;
+  nw: Byte;
 begin
-  nw := getNextWeaponIndex();
+  //e_WriteLog(Format('***RealizeCurrentWeapon: FNextWeap=%x; FNextWeapDelay=%d', [FNextWeap, FNextWeapDelay]), MSG_WARNING);
+  //FNextWeap := FNextWeap and $1FFF;
   if FNextWeapDelay > 0 then Dec(FNextWeapDelay); // "alteration delay"
+
+  if not switchAllowed then
+  begin
+    //HACK for weapon cycling
+    if (FNextWeap and $7000) <> 0 then FNextWeap := 0;
+    exit;
+  end;
+
+  nw := getNextWeaponIndex();
   if nw = 255 then exit; // don't reset anything here
-  if nw > High(FWeapon) then begin resetWeaponQueue(); exit; end; // don't forget to reset queue here!
-
-  if FBFGFireCounter <> -1 then exit;
-  if FTime[T_SWITCH] > gTime then exit;
-
-  for i := WEAPON_KASTET to WEAPON_SUPERPULEMET do if FReloading[i] > 0 then exit;
+  if nw > High(FWeapon) then
+  begin
+    // don't forget to reset queue here!
+    //e_WriteLog(' RealizeCurrentWeapon: WUTAFUUUU', MSG_WARNING);
+    resetWeaponQueue();
+    exit;
+  end;
 
   if FWeapon[nw] then
   begin
@@ -3360,38 +3414,18 @@ begin
     FModel.SetWeapon(FCurrWeap);
     if g_Game_IsNet then MH_SEND_PlayerStats(FUID);
   end;
-  // reset weapon queue; `getNextWeaponIndex()` guarantees to not select a weapon player don't have
-  resetWeaponQueue();
-  FNextWeapDelay := 10; // anyway, 'cause why not
-end;
-
-procedure TPlayer.cycleWeapon (dir: Integer);
-var
-  i, cwi: Integer;
-begin
-  if dir < 0 then dir := -1 else if dir > 0 then dir := 1 else exit;
-  cwi := FCurrWeap;
-  for i := 0 to High(FWeapon) do
-  begin
-    cwi := (cwi+length(FWeapon)+dir) mod length(FWeapon);
-    if FWeapon[cwi] then
-    begin
-      QueueWeaponSwitch(Byte(cwi));
-      exit;
-    end;
-  end;
 end;
 
 procedure TPlayer.NextWeapon();
 begin
   if g_Game_IsClient then Exit;
-  cycleWeapon(1);
+  FNextWeap := $8000;
 end;
 
 procedure TPlayer.PrevWeapon();
 begin
   if g_Game_IsClient then Exit;
-  cycleWeapon(-1);
+  FNextWeap := $4000;
 end;
 
 procedure TPlayer.SetWeapon(W: Byte);
@@ -4461,6 +4495,10 @@ begin
     FIncCam := FIncCam*i;
   end;
 
+  // no need to do that each second frame, weapon queue will take care of it
+  if FLive and FKeys[KEY_NEXTWEAPON].Pressed and AnyServer then NextWeapon();
+  if FLive and FKeys[KEY_PREVWEAPON].Pressed and AnyServer then PrevWeapon();
+
   if gTime mod (GAME_TICK*2) <> 0 then
   begin
     if (FObj.Vel.X = 0) and FLive then
@@ -4484,8 +4522,8 @@ begin
     // Let alive player do some actions
     if FKeys[KEY_LEFT].Pressed then Run(D_LEFT);
     if FKeys[KEY_RIGHT].Pressed then Run(D_RIGHT);
-    if FKeys[KEY_NEXTWEAPON].Pressed and AnyServer then NextWeapon();
-    if FKeys[KEY_PREVWEAPON].Pressed and AnyServer then PrevWeapon();
+    //if FKeys[KEY_NEXTWEAPON].Pressed and AnyServer then NextWeapon();
+    //if FKeys[KEY_PREVWEAPON].Pressed and AnyServer then PrevWeapon();
     if FKeys[KEY_FIRE].Pressed and AnyServer then Fire();
     if FKeys[KEY_OPEN].Pressed and AnyServer then Use();
     if FKeys[KEY_JUMP].Pressed then Jump()
