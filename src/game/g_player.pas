@@ -1271,8 +1271,11 @@ begin
 
   for i := 0 to High(gPlayers) do
     if gPlayers[i] <> nil then
+    begin
+      gPlayers[i].RealizeCurrentWeapon();
       if gPlayers[i] is TPlayer then gPlayers[i].Update()
       else TBot(gPlayers[i]).Update();
+    end;
 end;
 
 procedure g_Player_DrawAll();
@@ -3359,13 +3362,11 @@ procedure TPlayer.cycleWeapon (dir: Integer);
 var
   i, cwi: Integer;
 begin
-  if dir < 0 then dir := 1 else if dir > 0 then dir := 1 else exit;
+  if dir < 0 then dir := -1 else if dir > 0 then dir := 1 else exit;
   cwi := FCurrWeap;
   for i := 0 to High(FWeapon) do
   begin
-    cwi := cwi+dir;
-         if cwi < 0 then cwi += length(FWeapon)
-    else if cwi > High(FWeapon) then cwi := cwi-length(FWeapon);
+    cwi := (cwi+length(FWeapon)+dir) mod length(FWeapon);
     if FWeapon[cwi] then
     begin
       QueueWeaponSwitch(Byte(cwi));
