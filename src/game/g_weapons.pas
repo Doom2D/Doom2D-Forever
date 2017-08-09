@@ -106,6 +106,9 @@ const
   WEAPON_MANCUB_FIRE    = 25;
   WEAPON_SKEL_FIRE      = 26;
 
+  WP_FIRST          = WEAPON_KASTET;
+  WP_LAST           = WEAPON_SUPERPULEMET;
+
 implementation
 
 uses

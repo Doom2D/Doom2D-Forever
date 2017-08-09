@@ -2640,7 +2640,7 @@ begin
   if FModel = nil then
     Exit;
 
-  if FModel.Weapon < WEAPON_SUPERPULEMET then
+  if FModel.Weapon < WP_LAST then
     FModel.SetWeapon(FModel.Weapon+1)
   else
     FModel.SetWeapon(WEAPON_KASTET);

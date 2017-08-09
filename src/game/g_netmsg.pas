@@ -1074,7 +1074,7 @@ begin
     e_Buffer_Write(@NetOut, Lives);
     e_Buffer_Write(@NetOut, Team);
 
-    for I := WEAPON_KASTET to WEAPON_SUPERPULEMET do
+    for I := WP_FIRST to WP_LAST do
       e_Buffer_Write(@NetOut, Byte(FWeapon[I]));
 
     for I := A_BULLETS to A_CELLS do
@@ -2127,7 +2127,7 @@ begin
     Lives := e_Raw_Read_Byte(P);
     NewTeam := e_Raw_Read_Byte(P);
 
-    for I := WEAPON_KASTET to WEAPON_SUPERPULEMET do
+    for I := WP_FIRST to WP_LAST do
       FWeapon[I] := (e_Raw_Read_Byte(P) <> 0);
 
     for I := A_BULLETS to A_CELLS do

@@ -58,7 +58,7 @@ type
 
   TModelSoundArray = Array of TModelSound;
   TGibsArray = Array of TGibSprite;
-  TWeaponPoints = Array [WEAPON_SAW..WEAPON_SUPERPULEMET] of
+  TWeaponPoints = Array [WP_FIRST + 1..WP_LAST] of
                   Array [A_STAND..A_PAIN] of
                   Array [D_LEFT..D_RIGHT] of Array of TPoint;
 
@@ -143,18 +143,18 @@ const
   FLAG_BASEPOINT: TPoint = (X:16; Y:43);
   FLAG_DEFPOINT:  TPoint = (X:32; Y:16);
   FLAG_DEFANGLE = -20;
-  WEAPONBASE: Array [WEAPON_SAW..WEAPON_SUPERPULEMET] of TPoint =
+  WEAPONBASE: Array [WP_FIRST + 1..WP_LAST] of TPoint =
               ((X:8; Y:4), (X:8; Y:8), (X:16; Y:16), (X:16; Y:24),
                (X:16; Y:16), (X:24; Y:24), (X:16; Y:16), (X:24; Y:24), (X:16; Y:16));
 
   AnimNames: Array [A_STAND..A_PAIN] of String =
              ('StandAnim','WalkAnim','Die1Anim','Die2Anim','AttackAnim',
               'SeeUpAnim','SeeDownAnim','AttackUpAnim','AttackDownAnim','PainAnim');
-  WeapNames: Array [WEAPON_SAW..WEAPON_SUPERPULEMET] of String =
+  WeapNames: Array [WP_FIRST + 1..WP_LAST] of String =
              ('csaw', 'hgun', 'sg', 'ssg', 'mgun', 'rkt', 'plz', 'bfg', 'spl');
 
 var
-  WeaponID: Array [WEAPON_SAW..WEAPON_SUPERPULEMET] of
+  WeaponID: Array [WP_FIRST + 1..WP_LAST] of
             Array [W_POS_NORMAL..W_POS_DOWN] of
             Array [W_ACT_NORMAL..W_ACT_FIRE] of DWORD;
   PlayerModelsArray: Array of TPlayerModelInfo;
@@ -163,7 +163,7 @@ procedure g_PlayerModel_LoadData();
 var
   a: Integer;
 begin
-  for a := WEAPON_SAW to WEAPON_SUPERPULEMET do
+  for a := WP_FIRST + 1 to WP_LAST do
   begin
     g_Texture_CreateWAD(WeaponID[a][W_POS_NORMAL][W_ACT_NORMAL], GameWAD+':WEAPONS\'+UpperCase(WeapNames[a]));
     g_Texture_CreateWAD(WeaponID[a][W_POS_NORMAL][W_ACT_FIRE], GameWAD+':WEAPONS\'+UpperCase(WeapNames[a])+'_FIRE');
@@ -313,7 +313,7 @@ begin
       Exit;
     end;
 
-    for aa := WEAPON_SAW to WEAPON_SUPERPULEMET do
+    for aa := WP_FIRST + 1 to WP_LAST do
       for bb := A_STAND to A_PAIN do
         for cc := D_LEFT to D_RIGHT do
         begin
@@ -391,7 +391,7 @@ begin
     end;
 
     ok := True;
-    for aa := WEAPON_SAW to WEAPON_SUPERPULEMET do
+    for aa := WP_FIRST + 1 to WP_LAST do
       for bb := A_STAND to A_PAIN do
         if not (bb in [A_DIE1, A_DIE2, A_PAIN]) then
         begin
@@ -594,7 +594,7 @@ var
   i: DWORD;
   a, b, c: Integer;
 begin
-  for a := WEAPON_SAW to WEAPON_SUPERPULEMET do
+  for a := WP_FIRST + 1 to WP_LAST do
     for b := W_POS_NORMAL to W_POS_DOWN do
       for c := W_ACT_NORMAL to W_ACT_FIRE do
         e_DeleteTexture(WeaponID[a][b][c]);
@@ -703,7 +703,7 @@ begin
 
   if FDrawWeapon and
     (not (FCurrentAnimation in [A_DIE1, A_DIE2, A_PAIN])) and
-    (FCurrentWeapon in [WEAPON_SAW..WEAPON_SUPERPULEMET]) then
+    (FCurrentWeapon in [WP_FIRST + 1..WP_LAST]) then
   begin
     if FCurrentAnimation in [A_SEEUP, A_ATTACKUP] then
       pos := W_POS_UP

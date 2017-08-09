@@ -116,7 +116,7 @@ type
     NextWeapDelay: Byte;
     Ammo:       Array [A_BULLETS..A_CELLS] of Word;
     MaxAmmo:    Array [A_BULLETS..A_CELLS] of Word;
-    Weapon:     Array [WEAPON_KASTET..WEAPON_SUPERPULEMET] of Boolean;
+    Weapon:     Array [WP_FIRST..WP_LAST] of Boolean;
     Rulez:      Set of R_ITEM_BACKPACK..R_BERSERK;
     WaitRecall: Boolean;
   end;
@@ -218,11 +218,11 @@ type
 
     FAmmo:      Array [A_BULLETS..A_CELLS] of Word;
     FMaxAmmo:   Array [A_BULLETS..A_CELLS] of Word;
-    FWeapon:    Array [WEAPON_KASTET..WEAPON_SUPERPULEMET] of Boolean;
+    FWeapon:    Array [WP_FIRST..WP_LAST] of Boolean;
     FRulez:     Set of R_ITEM_BACKPACK..R_BERSERK;
     FBerserk:   Integer;
     FMegaRulez: Array [MR_SUIT..MR_MAX] of DWORD;
-    FReloading: Array [WEAPON_KASTET..WEAPON_SUPERPULEMET] of Word;
+    FReloading: Array [WP_FIRST..WP_LAST] of Word;
     FTime:      Array [T_RESPAWN..T_FLAGCAP] of DWORD;
     FKeys:      Array [KEY_LEFT..KEY_CHAT] of TKeyState;
     FColor:     TRGB;
@@ -341,9 +341,9 @@ type
     FlyPrecision: Byte;
     Cover: Byte;
     CloseJump: Byte;
-    WeaponPrior: Array [WEAPON_KASTET..WEAPON_SUPERPULEMET] of Byte;
-    CloseWeaponPrior: Array [WEAPON_KASTET..WEAPON_SUPERPULEMET] of Byte;
-    //SafeWeaponPrior: Array [WEAPON_KASTET..WEAPON_SUPERPULEMET] of Byte;
+    WeaponPrior: Array [WP_FIRST..WP_LAST] of Byte;
+    CloseWeaponPrior: Array [WP_FIRST..WP_LAST] of Byte;
+    //SafeWeaponPrior: Array [WP_FIRST..WP_LAST] of Byte;
   end;
 
   TAIFlag = record
@@ -511,9 +511,9 @@ type
     fly_precision: Byte;
     cover: Byte;
     close_jump: Byte;
-    w_prior1: Array [WEAPON_KASTET..WEAPON_SUPERPULEMET] of Byte;
-    w_prior2: Array [WEAPON_KASTET..WEAPON_SUPERPULEMET] of Byte;
-    w_prior3: Array [WEAPON_KASTET..WEAPON_SUPERPULEMET] of Byte;
+    w_prior1: Array [WP_FIRST..WP_LAST] of Byte;
+    w_prior2: Array [WP_FIRST..WP_LAST] of Byte;
+    w_prior3: Array [WP_FIRST..WP_LAST] of Byte;
   end;
 
 const
@@ -549,19 +549,19 @@ const
   DIFFICULT_HARD: TDifficult = (DiagFire: 255; InvisFire: 255; DiagPrecision: 255;
                                 FlyPrecision: 255; Cover: 255; CloseJump: 255;
                                 WeaponPrior:(0,0,0,0,0,0,0,0,0,0); CloseWeaponPrior:(0,0,0,0,0,0,0,0,0,0));
-  WEAPON_PRIOR1: Array [WEAPON_KASTET..WEAPON_SUPERPULEMET] of Byte =
+  WEAPON_PRIOR1: Array [WP_FIRST..WP_LAST] of Byte =
                                 (WEAPON_SUPERPULEMET, WEAPON_SHOTGUN2, WEAPON_SHOTGUN1,
                                  WEAPON_CHAINGUN, WEAPON_PLASMA, WEAPON_ROCKETLAUNCHER,
                                  WEAPON_BFG, WEAPON_PISTOL, WEAPON_SAW, WEAPON_KASTET);
-  WEAPON_PRIOR2: Array [WEAPON_KASTET..WEAPON_SUPERPULEMET] of Byte =
+  WEAPON_PRIOR2: Array [WP_FIRST..WP_LAST] of Byte =
                                 (WEAPON_SUPERPULEMET, WEAPON_BFG, WEAPON_ROCKETLAUNCHER,
                                  WEAPON_SHOTGUN2, WEAPON_PLASMA, WEAPON_SHOTGUN1,
                                  WEAPON_CHAINGUN, WEAPON_PISTOL, WEAPON_SAW, WEAPON_KASTET);
-  //WEAPON_PRIOR3: Array [WEAPON_KASTET..WEAPON_SUPERPULEMET] of Byte =
+  //WEAPON_PRIOR3: Array [WP_FIRST..WP_LAST] of Byte =
   //                              (WEAPON_SUPERPULEMET, WEAPON_BFG, WEAPON_PLASMA,
   //                               WEAPON_SHOTGUN2, WEAPON_CHAINGUN, WEAPON_SHOTGUN1,
   //                               WEAPON_SAW, WEAPON_ROCKETLAUNCHER, WEAPON_PISTOL, WEAPON_KASTET);
-  WEAPON_RELOAD: Array [WEAPON_KASTET..WEAPON_SUPERPULEMET] of Byte =
+  WEAPON_RELOAD: Array [WP_FIRST..WP_LAST] of Byte =
                                 (5, 2, 6, 18, 36, 2, 12, 2, 14, 2);
 
   PLAYER_SIGNATURE = $52594C50; // 'PLYR'
@@ -828,10 +828,10 @@ begin
   for i := A_BULLETS to A_CELLS do
     Mem.ReadWord(gPlayers[a].FMaxAmmo[i]);
 // Наличие оружия:
-  for i := WEAPON_KASTET to WEAPON_SUPERPULEMET do
+  for i := WP_FIRST to WP_LAST do
     Mem.ReadBoolean(gPlayers[a].FWeapon[i]);
 // Время перезарядки оружия:
-  for i := WEAPON_KASTET to WEAPON_SUPERPULEMET do
+  for i := WP_FIRST to WP_LAST do
     Mem.ReadWord(gPlayers[a].FReloading[i]);
 // Наличие рюкзака:
   Mem.ReadByte(b);
@@ -997,7 +997,7 @@ begin
       else FDifficult := DIFFICULT_HARD;
     end;
 
-    for a := WEAPON_KASTET to WEAPON_SUPERPULEMET do
+    for a := WP_FIRST to WP_LAST do
     begin
       FDifficult.WeaponPrior[a] := WEAPON_PRIOR1[a];
       FDifficult.CloseWeaponPrior[a] := WEAPON_PRIOR2[a];
@@ -1075,7 +1075,7 @@ begin
     FDifficult.Cover := BotList[num].cover;
     FDifficult.CloseJump := BotList[num].close_jump;
 
-    for a := WEAPON_KASTET to WEAPON_SUPERPULEMET do
+    for a := WP_FIRST to WP_LAST do
     begin
       FDifficult.WeaponPrior[a] := BotList[num].w_prior1[a];
       FDifficult.CloseWeaponPrior[a] := BotList[num].w_prior2[a];
@@ -3083,7 +3083,7 @@ begin
   if Srv then
   begin
 // Выброс оружия:
-    for a := WEAPON_KASTET to WEAPON_SUPERPULEMET do
+    for a := WP_FIRST to WP_LAST do
       if FWeapon[a] then
       begin
         case a of
@@ -3376,9 +3376,13 @@ procedure TPlayer.RealizeCurrentWeapon();
     i: Byte;
   begin
     result := false;
-    if FBFGFireCounter <> -1 then exit;
-    if FTime[T_SWITCH] > gTime then exit;
-    for i := WEAPON_KASTET to WEAPON_SUPERPULEMET do if FReloading[i] > 0 then exit;
+    if FBFGFireCounter <> -1 then
+      exit;
+    if FTime[T_SWITCH] > gTime then
+      exit;
+    for i := WP_FIRST to WP_LAST do
+      if FReloading[i] > 0 then
+        exit;
     result := true;
   end;
 
@@ -4103,7 +4107,7 @@ begin
     FAir := AIR_DEF;
     FJetFuel := 0;
 
-    for a := WEAPON_KASTET to WEAPON_SUPERPULEMET do
+    for a := WP_FIRST to WP_LAST do
     begin
       FWeapon[a] := False;
       FReloading[a] := 0;
@@ -4688,7 +4692,7 @@ begin
         FJetSoundFly.PlayAt(FObj.X, FObj.Y);
       end;
 
-    for b := WEAPON_KASTET to WEAPON_SUPERPULEMET do
+    for b := WP_FIRST to WP_LAST do
       if FReloading[b] > 0 then
         if FNoReload then
           FReloading[b] := 0
@@ -5394,10 +5398,10 @@ begin
   for i := A_BULLETS to A_CELLS do
     Mem.WriteWord(FMaxAmmo[i]);
 // Наличие оружия:
-  for i := WEAPON_KASTET to WEAPON_SUPERPULEMET do
+  for i := WP_FIRST to WP_LAST do
     Mem.WriteBoolean(FWeapon[i]);
 // Время перезарядки оружия:
-  for i := WEAPON_KASTET to WEAPON_SUPERPULEMET do
+  for i := WP_FIRST to WP_LAST do
     Mem.WriteWord(FReloading[i]);
 // Наличие рюкзака:
   if R_ITEM_BACKPACK in FRulez then
@@ -5534,10 +5538,10 @@ begin
   for i := A_BULLETS to A_CELLS do
     Mem.ReadWord(FMaxAmmo[i]);
 // Наличие оружия:
-  for i := WEAPON_KASTET to WEAPON_SUPERPULEMET do
+  for i := WP_FIRST to WP_LAST do
     Mem.ReadBoolean(FWeapon[i]);
 // Время перезарядки оружия:
-  for i := WEAPON_KASTET to WEAPON_SUPERPULEMET do
+  for i := WP_FIRST to WP_LAST do
     Mem.ReadWord(FReloading[i]);
 // Наличие рюкзака:
   Mem.ReadByte(b);
@@ -5600,7 +5604,7 @@ begin
     Exit;
   end;
 
-  for a := WEAPON_KASTET to WEAPON_SUPERPULEMET do FWeapon[a] := True;
+  for a := WP_FIRST to WP_LAST do FWeapon[a] := True;
   for a := A_BULLETS to A_CELLS do FAmmo[a] := 30000;
   FRulez := FRulez+[R_KEY_RED, R_KEY_GREEN, R_KEY_BLUE];
 end;
@@ -6010,7 +6014,7 @@ begin
 
   Inc(gNumBots);
 
-  for a := WEAPON_KASTET to WEAPON_SUPERPULEMET do
+  for a := WP_FIRST to WP_LAST do
   begin
     FDifficult.WeaponPrior[a] := WEAPON_PRIOR1[a];
     FDifficult.CloseWeaponPrior[a] := WEAPON_PRIOR2[a];
