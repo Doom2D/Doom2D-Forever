@@ -52,6 +52,10 @@ const
   A_CELLS           = 3;
   A_HIGH            = 3;
 
+  AmmoLimits: Array [0..1] of Array [A_BULLETS..A_HIGH] of Word =
+  ((200,  50,  50, 300),
+   (400, 100, 100, 600));
+
   K_SIMPLEKILL      = 0;
   K_HARDKILL        = 1;
   K_EXTRAHARDKILL   = 2;
@@ -3686,10 +3690,10 @@ begin
             (FAmmo[A_ROCKETS] < FMaxAmmo[A_ROCKETS]) or
             (FAmmo[A_CELLS] < FMaxAmmo[A_CELLS]) then
       begin
-        FMaxAmmo[A_BULLETS] := 400;
-        FMaxAmmo[A_SHELLS] := 100;
-        FMaxAmmo[A_ROCKETS] := 100;
-        FMaxAmmo[A_CELLS] := 600;
+        FMaxAmmo[A_BULLETS] := AmmoLimits[1, A_BULLETS];
+        FMaxAmmo[A_SHELLS] := AmmoLimits[1, A_SHELLS];
+        FMaxAmmo[A_ROCKETS] := AmmoLimits[1, A_ROCKETS];
+        FMaxAmmo[A_CELLS] := AmmoLimits[1, A_CELLS];
 
         if FAmmo[A_BULLETS] < FMaxAmmo[A_BULLETS] then
           IncMax(FAmmo[A_BULLETS], 10, FMaxAmmo[A_BULLETS]);
@@ -4126,10 +4130,10 @@ begin
 
     FAmmo[A_BULLETS] := 50;
 
-    FMaxAmmo[A_BULLETS] := 200;
-    FMaxAmmo[A_SHELLS] := 50;
-    FMaxAmmo[A_ROCKETS] := 50;
-    FMaxAmmo[A_CELLS] := 300;
+    FMaxAmmo[A_BULLETS] := AmmoLimits[0, A_BULLETS];
+    FMaxAmmo[A_SHELLS] := AmmoLimits[0, A_SHELLS];
+    FMaxAmmo[A_ROCKETS] := AmmoLimits[0, A_SHELLS];
+    FMaxAmmo[A_CELLS] := AmmoLimits[0, A_CELLS];
 
     if gGameSettings.GameMode in [GM_DM, GM_TDM, GM_CTF] then
       FRulez := [R_KEY_RED, R_KEY_GREEN, R_KEY_BLUE]
@@ -5738,10 +5742,10 @@ begin
          (FAmmo[A_ROCKETS] < FMaxAmmo[A_ROCKETS]) or
          (FAmmo[A_CELLS] < FMaxAmmo[A_CELLS]) then
       begin
-        FMaxAmmo[A_BULLETS] := 400;
-        FMaxAmmo[A_SHELLS] := 100;
-        FMaxAmmo[A_ROCKETS] := 100;
-        FMaxAmmo[A_CELLS] := 600;
+        FMaxAmmo[A_BULLETS] := AmmoLimits[1, A_BULLETS];
+        FMaxAmmo[A_SHELLS] := AmmoLimits[1, A_SHELLS];
+        FMaxAmmo[A_ROCKETS] := AmmoLimits[1, A_ROCKETS];
+        FMaxAmmo[A_CELLS] := AmmoLimits[1, A_CELLS];
 
         if FAmmo[A_BULLETS] < FMaxAmmo[A_BULLETS] then IncMax(FAmmo[A_BULLETS], 10, FMaxAmmo[A_BULLETS]);
         if FAmmo[A_SHELLS] < FMaxAmmo[A_SHELLS] then IncMax(FAmmo[A_SHELLS], 4, FMaxAmmo[A_SHELLS]);
