@@ -1077,10 +1077,10 @@ begin
     for I := WP_FIRST to WP_LAST do
       e_Buffer_Write(@NetOut, Byte(FWeapon[I]));
 
-    for I := A_BULLETS to A_CELLS do
+    for I := A_BULLETS to A_HIGH do
       e_Buffer_Write(@NetOut, FAmmo[I]);
 
-    for I := A_BULLETS to A_CELLS do
+    for I := A_BULLETS to A_HIGH do
       e_Buffer_Write(@NetOut, FMaxAmmo[I]);
 
     for I := MR_SUIT to MR_MAX do
@@ -2130,10 +2130,10 @@ begin
     for I := WP_FIRST to WP_LAST do
       FWeapon[I] := (e_Raw_Read_Byte(P) <> 0);
 
-    for I := A_BULLETS to A_CELLS do
+    for I := A_BULLETS to A_HIGH do
       FAmmo[I] := e_Raw_Read_Word(P);
 
-    for I := A_BULLETS to A_CELLS do
+    for I := A_BULLETS to A_HIGH do
       FMaxAmmo[I] := e_Raw_Read_Word(P);
 
     for I := MR_SUIT to MR_MAX do

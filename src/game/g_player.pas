@@ -50,6 +50,7 @@ const
   A_SHELLS          = 1;
   A_ROCKETS         = 2;
   A_CELLS           = 3;
+  A_HIGH            = 3;
 
   K_SIMPLEKILL      = 0;
   K_HARDKILL        = 1;
@@ -114,8 +115,8 @@ type
     CurrWeap:   Byte;
     NextWeap:   WORD;
     NextWeapDelay: Byte;
-    Ammo:       Array [A_BULLETS..A_CELLS] of Word;
-    MaxAmmo:    Array [A_BULLETS..A_CELLS] of Word;
+    Ammo:       Array [A_BULLETS..A_HIGH] of Word;
+    MaxAmmo:    Array [A_BULLETS..A_HIGH] of Word;
     Weapon:     Array [WP_FIRST..WP_LAST] of Boolean;
     Rulez:      Set of R_ITEM_BACKPACK..R_BERSERK;
     WaitRecall: Boolean;
@@ -216,8 +217,8 @@ type
   public
     FDamageBuffer:   Integer;
 
-    FAmmo:      Array [A_BULLETS..A_CELLS] of Word;
-    FMaxAmmo:   Array [A_BULLETS..A_CELLS] of Word;
+    FAmmo:      Array [A_BULLETS..A_HIGH] of Word;
+    FMaxAmmo:   Array [A_BULLETS..A_HIGH] of Word;
     FWeapon:    Array [WP_FIRST..WP_LAST] of Boolean;
     FRulez:     Set of R_ITEM_BACKPACK..R_BERSERK;
     FBerserk:   Integer;
@@ -822,10 +823,10 @@ begin
 // Объект игрока:
   Obj_LoadState(@gPlayers[a].FObj, Mem);
 // Текущее количество патронов:
-  for i := A_BULLETS to A_CELLS do
+  for i := A_BULLETS to A_HIGH do
     Mem.ReadWord(gPlayers[a].FAmmo[i]);
 // Максимальное количество патронов:
-  for i := A_BULLETS to A_CELLS do
+  for i := A_BULLETS to A_HIGH do
     Mem.ReadWord(gPlayers[a].FMaxAmmo[i]);
 // Наличие оружия:
   for i := WP_FIRST to WP_LAST do
@@ -4120,7 +4121,7 @@ begin
 
     FModel.SetWeapon(FCurrWeap);
 
-    for b := A_BULLETS to A_CELLS do
+    for b := A_BULLETS to A_HIGH do
       FAmmo[b] := 0;
 
     FAmmo[A_BULLETS] := 50;
@@ -5392,10 +5393,10 @@ begin
 // Объект игрока:
   Obj_SaveState(@FObj, Mem);
 // Текущее количество патронов:
-  for i := A_BULLETS to A_CELLS do
+  for i := A_BULLETS to A_HIGH do
     Mem.WriteWord(FAmmo[i]);
 // Максимальное количество патронов:
-  for i := A_BULLETS to A_CELLS do
+  for i := A_BULLETS to A_HIGH do
     Mem.WriteWord(FMaxAmmo[i]);
 // Наличие оружия:
   for i := WP_FIRST to WP_LAST do
@@ -5532,10 +5533,10 @@ begin
 // Объект игрока:
   Obj_LoadState(@FObj, Mem);
 // Текущее количество патронов:
-  for i := A_BULLETS to A_CELLS do
+  for i := A_BULLETS to A_HIGH do
     Mem.ReadWord(FAmmo[i]);
 // Максимальное количество патронов:
-  for i := A_BULLETS to A_CELLS do
+  for i := A_BULLETS to A_HIGH do
     Mem.ReadWord(FMaxAmmo[i]);
 // Наличие оружия:
   for i := WP_FIRST to WP_LAST do
@@ -5605,7 +5606,7 @@ begin
   end;
 
   for a := WP_FIRST to WP_LAST do FWeapon[a] := True;
-  for a := A_BULLETS to A_CELLS do FAmmo[a] := 30000;
+  for a := A_BULLETS to A_HIGH do FAmmo[a] := 30000;
   FRulez := FRulez+[R_KEY_RED, R_KEY_GREEN, R_KEY_BLUE];
 end;
 
