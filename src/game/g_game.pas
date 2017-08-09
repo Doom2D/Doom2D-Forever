@@ -4876,6 +4876,9 @@ begin
       if cmd = 'superchaingun' then begin plr.GiveItem(ITEM_WEAPON_SUPERPULEMET); g_Console_Add('player got a superchaingun'); continue; end;
       if cmd = 'superchaingunzz' then begin plr.GiveItem(ITEM_WEAPON_SUPERPULEMET); plr.GiveItem(ITEM_AMMO_BULLETS_BOX); g_Console_Add('player got a superchaingun'); continue; end;
 
+      if (cmd = 'flamer') or (cmd = 'flamethrower') or (cmd = 'ft') then begin plr.GiveItem(ITEM_WEAPON_FLAMETHROWER); g_Console_Add('player got a flame thrower'); continue; end;
+      if (cmd = 'flamerzz') or (cmd = 'flamethrowerzz') or (cmd = 'ftzz') then begin plr.GiveItem(ITEM_WEAPON_FLAMETHROWER); plr.GiveItem(ITEM_AMMO_FUELCAN); g_Console_Add('player got a flame thrower'); continue; end;
+
       if cmd = 'chainsaw' then begin plr.GiveItem(ITEM_WEAPON_SAW); g_Console_Add('player got a chainsaw'); continue; end;
 
       if cmd = 'ammo' then
@@ -4884,6 +4887,7 @@ begin
         plr.GiveItem(ITEM_AMMO_BULLETS_BOX);
         plr.GiveItem(ITEM_AMMO_CELL_BIG);
         plr.GiveItem(ITEM_AMMO_ROCKET_BOX);
+        plr.GiveItem(ITEM_AMMO_FUELCAN);
         g_Console_Add('player got some ammo');
         continue;
       end;
@@ -4899,6 +4903,8 @@ begin
 
       if cmd = 'rocket' then begin plr.GiveItem(ITEM_AMMO_ROCKET); g_Console_Add('player got a rocket'); continue; end;
       if cmd = 'rocketbox' then begin plr.GiveItem(ITEM_AMMO_ROCKET_BOX); g_Console_Add('player got some rockets'); continue; end;
+
+      if (cmd = 'fuel') or (cmd = 'fuelcan') then begin plr.GiveItem(ITEM_AMMO_FUELCAN); g_Console_Add('player got fuel canister'); continue; end;
 
       if cmd = 'weapons' then
       begin

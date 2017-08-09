@@ -2385,7 +2385,8 @@ begin
         else
           if gItems[ID].ItemType in [ITEM_WEAPON_SAW, ITEM_WEAPON_PISTOL, ITEM_WEAPON_SHOTGUN1, ITEM_WEAPON_SHOTGUN2,
                                      ITEM_WEAPON_CHAINGUN, ITEM_WEAPON_ROCKETLAUNCHER, ITEM_WEAPON_PLASMA,
-                                     ITEM_WEAPON_BFG, ITEM_WEAPON_SUPERPULEMET, ITEM_AMMO_BACKPACK] then
+                                     ITEM_WEAPON_BFG, ITEM_WEAPON_SUPERPULEMET, ITEM_WEAPON_FLAMETHROWER,
+                                     ITEM_AMMO_BACKPACK] then
             g_Sound_PlayExAt('SOUND_ITEM_GETWEAPON',
               gItems[ID].Obj.X, gItems[ID].Obj.Y)
             else
@@ -2401,7 +2402,7 @@ begin
       else
         if gItems[ID].ItemType in [ITEM_WEAPON_SAW, ITEM_WEAPON_PISTOL, ITEM_WEAPON_SHOTGUN1, ITEM_WEAPON_SHOTGUN2,
                                    ITEM_WEAPON_CHAINGUN, ITEM_WEAPON_ROCKETLAUNCHER, ITEM_WEAPON_PLASMA,
-                                   ITEM_WEAPON_BFG, ITEM_WEAPON_SUPERPULEMET] then
+                                   ITEM_WEAPON_BFG, ITEM_WEAPON_SUPERPULEMET, ITEM_WEAPON_FLAMETHROWER] then
           g_Sound_PlayExAt('SOUND_ITEM_GETWEAPON',
             gItems[ID].Obj.X, gItems[ID].Obj.Y)
         else

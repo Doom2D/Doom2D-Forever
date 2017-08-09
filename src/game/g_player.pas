@@ -50,11 +50,12 @@ const
   A_SHELLS          = 1;
   A_ROCKETS         = 2;
   A_CELLS           = 3;
-  A_HIGH            = 3;
+  A_FUEL            = 4;
+  A_HIGH            = 4;
 
   AmmoLimits: Array [0..1] of Array [A_BULLETS..A_HIGH] of Word =
-  ((200,  50,  50, 300),
-   (400, 100, 100, 600));
+  ((200,  50,  50, 300, 100),
+   (400, 100, 100, 600, 200));
 
   K_SIMPLEKILL      = 0;
   K_HARDKILL        = 1;
@@ -547,27 +548,30 @@ const
                                                    (R:0; G:0; B:255));
   DIFFICULT_EASY: TDifficult = (DiagFire: 32; InvisFire: 32; DiagPrecision: 32;
                                 FlyPrecision: 32; Cover: 32; CloseJump: 32;
-                                WeaponPrior:(0,0,0,0,0,0,0,0,0,0); CloseWeaponPrior:(0,0,0,0,0,0,0,0,0,0));
+                                WeaponPrior:(0,0,0,0,0,0,0,0,0,0,0); CloseWeaponPrior:(0,0,0,0,0,0,0,0,0,0,0));
   DIFFICULT_MEDIUM: TDifficult = (DiagFire: 127; InvisFire: 127; DiagPrecision: 127;
                                   FlyPrecision: 127; Cover: 127; CloseJump: 127;
-                                WeaponPrior:(0,0,0,0,0,0,0,0,0,0); CloseWeaponPrior:(0,0,0,0,0,0,0,0,0,0));
+                                WeaponPrior:(0,0,0,0,0,0,0,0,0,0,0); CloseWeaponPrior:(0,0,0,0,0,0,0,0,0,0,0));
   DIFFICULT_HARD: TDifficult = (DiagFire: 255; InvisFire: 255; DiagPrecision: 255;
                                 FlyPrecision: 255; Cover: 255; CloseJump: 255;
-                                WeaponPrior:(0,0,0,0,0,0,0,0,0,0); CloseWeaponPrior:(0,0,0,0,0,0,0,0,0,0));
+                                WeaponPrior:(0,0,0,0,0,0,0,0,0,0,0); CloseWeaponPrior:(0,0,0,0,0,0,0,0,0,0,0));
   WEAPON_PRIOR1: Array [WP_FIRST..WP_LAST] of Byte =
-                                (WEAPON_SUPERPULEMET, WEAPON_SHOTGUN2, WEAPON_SHOTGUN1,
+                                (WEAPON_FLAMETHROWER, WEAPON_SUPERPULEMET,
+                                 WEAPON_SHOTGUN2, WEAPON_SHOTGUN1,
                                  WEAPON_CHAINGUN, WEAPON_PLASMA, WEAPON_ROCKETLAUNCHER,
                                  WEAPON_BFG, WEAPON_PISTOL, WEAPON_SAW, WEAPON_KASTET);
   WEAPON_PRIOR2: Array [WP_FIRST..WP_LAST] of Byte =
-                                (WEAPON_SUPERPULEMET, WEAPON_BFG, WEAPON_ROCKETLAUNCHER,
+                                (WEAPON_FLAMETHROWER, WEAPON_SUPERPULEMET,
+                                 WEAPON_BFG, WEAPON_ROCKETLAUNCHER,
                                  WEAPON_SHOTGUN2, WEAPON_PLASMA, WEAPON_SHOTGUN1,
                                  WEAPON_CHAINGUN, WEAPON_PISTOL, WEAPON_SAW, WEAPON_KASTET);
   //WEAPON_PRIOR3: Array [WP_FIRST..WP_LAST] of Byte =
-  //                              (WEAPON_SUPERPULEMET, WEAPON_BFG, WEAPON_PLASMA,
-  //                               WEAPON_SHOTGUN2, WEAPON_CHAINGUN, WEAPON_SHOTGUN1,
-  //                               WEAPON_SAW, WEAPON_ROCKETLAUNCHER, WEAPON_PISTOL, WEAPON_KASTET);
+  //                              (WEAPON_FLAMETHROWER, WEAPON_SUPERPULEMET,
+  //                               WEAPON_BFG, WEAPON_PLASMA, WEAPON_SHOTGUN2,
+  //                               WEAPON_CHAINGUN, WEAPON_SHOTGUN1, WEAPON_SAW,
+  //                               WEAPON_ROCKETLAUNCHER, WEAPON_PISTOL, WEAPON_KASTET);
   WEAPON_RELOAD: Array [WP_FIRST..WP_LAST] of Byte =
-                                (5, 2, 6, 18, 36, 2, 12, 2, 14, 2);
+                                (5, 2, 6, 18, 36, 2, 12, 2, 14, 2, 0);
 
   PLAYER_SIGNATURE = $52594C50; // 'PLYR'
   CORPSE_SIGNATURE = $50524F43; // 'CORP'
@@ -2492,6 +2496,7 @@ begin
     WEAPON_ROCKETLAUNCHER: ID := gItemsTexturesID[ITEM_WEAPON_ROCKETLAUNCHER];
     WEAPON_PLASMA: ID := gItemsTexturesID[ITEM_WEAPON_PLASMA];
     WEAPON_BFG: ID := gItemsTexturesID[ITEM_WEAPON_BFG];
+    WEAPON_FLAMETHROWER: ID := gItemsTexturesID[ITEM_WEAPON_FLAMETHROWER];
   end;
 
   e_CharFont_GetSize(gMenuFont, s, tw, th);
@@ -2799,6 +2804,16 @@ begin
         g_Player_CreateShell(GameX+PLAYER_RECT_CX, GameY+PLAYER_RECT_CX,
                              GameVelX, GameVelY-2, SHELL_SHELL);
       end;
+
+    WEAPON_FLAMETHROWER:
+      if FAmmo[A_FUEL] > 0 then
+      begin
+        FReloading[FCurrWeap] := WEAPON_RELOAD[FCurrWeap];
+        Dec(FAmmo[A_FUEL]);
+        FFireAngle := FAngle;
+        f := True;
+        DidFire := True;
+      end;
   end;
 
   if g_Game_IsNet then
@@ -2829,6 +2844,7 @@ begin
     WEAPON_SHOTGUN1, WEAPON_SHOTGUN2, WEAPON_SUPERPULEMET: Result := FAmmo[A_SHELLS];
     WEAPON_ROCKETLAUNCHER: Result := FAmmo[A_ROCKETS];
     WEAPON_PLASMA, WEAPON_BFG: Result := FAmmo[A_CELLS];
+    WEAPON_FLAMETHROWER: Result := FAmmo[A_FUEL];
     else Result := 0;
   end;
 end;
@@ -3100,6 +3116,7 @@ begin
           WEAPON_PLASMA: i := ITEM_WEAPON_PLASMA;
           WEAPON_BFG: i := ITEM_WEAPON_BFG;
           WEAPON_SUPERPULEMET: i := ITEM_WEAPON_SUPERPULEMET;
+          WEAPON_FLAMETHROWER: i := ITEM_WEAPON_FLAMETHROWER;
           else i := 0;
         end;
 
@@ -3307,6 +3324,7 @@ begin
     WEAPON_PISTOL, WEAPON_CHAINGUN, WEAPON_SUPERPULEMET: result := (FAmmo[A_BULLETS] > 0);
     WEAPON_ROCKETLAUNCHER: result := (FAmmo[A_ROCKETS] > 0);
     WEAPON_PLASMA, WEAPON_BFG: result := (FAmmo[A_CELLS] > 0);
+    WEAPON_FLAMETHROWER: result := (FAmmo[A_FUEL] > 0);
     else result := (weapon < length(FWeapon));
   end;
 end;
@@ -3611,6 +3629,18 @@ begin
         if a and g_Game_IsNet then MH_SEND_Sound(GameX, GameY, 'SOUND_ITEM_GETWEAPON');
       end;
 
+    ITEM_WEAPON_FLAMETHROWER:
+      if (FAmmo[A_FUEL] < FMaxAmmo[A_FUEL]) or not FWeapon[WEAPON_FLAMETHROWER] then
+      begin
+        if a and FWeapon[WEAPON_FLAMETHROWER] then Exit;
+
+        IncMax(FAmmo[A_FUEL], 100, FMaxAmmo[A_FUEL]);
+        FWeapon[WEAPON_FLAMETHROWER] := True;
+        Result := True;
+        if gFlash = 2 then Inc(FPickup, 5);
+        if a and g_Game_IsNet then MH_SEND_Sound(GameX, GameY, 'SOUND_ITEM_GETWEAPON');
+      end;
+
     ITEM_AMMO_BULLETS:
       if FAmmo[A_BULLETS] < FMaxAmmo[A_BULLETS] then
       begin
@@ -3683,17 +3713,28 @@ begin
         if gFlash = 2 then Inc(FPickup, 5);
       end;
 
+    ITEM_AMMO_FUELCAN:
+      if FAmmo[A_FUEL] < FMaxAmmo[A_FUEL] then
+      begin
+        IncMax(FAmmo[A_FUEL], 100, FMaxAmmo[A_FUEL]);
+        Result := True;
+        remove := True;
+        if gFlash = 2 then Inc(FPickup, 5);
+      end;
+
     ITEM_AMMO_BACKPACK:
       if not(R_ITEM_BACKPACK in FRulez) or
             (FAmmo[A_BULLETS] < FMaxAmmo[A_BULLETS]) or
             (FAmmo[A_SHELLS] < FMaxAmmo[A_SHELLS]) or
             (FAmmo[A_ROCKETS] < FMaxAmmo[A_ROCKETS]) or
-            (FAmmo[A_CELLS] < FMaxAmmo[A_CELLS]) then
+            (FAmmo[A_CELLS] < FMaxAmmo[A_CELLS]) or
+            (FMaxAmmo[A_FUEL] < AmmoLimits[1, A_FUEL]) then
       begin
         FMaxAmmo[A_BULLETS] := AmmoLimits[1, A_BULLETS];
         FMaxAmmo[A_SHELLS] := AmmoLimits[1, A_SHELLS];
         FMaxAmmo[A_ROCKETS] := AmmoLimits[1, A_ROCKETS];
         FMaxAmmo[A_CELLS] := AmmoLimits[1, A_CELLS];
+        FMaxAmmo[A_FUEL] := AmmoLimits[1, A_FUEL];
 
         if FAmmo[A_BULLETS] < FMaxAmmo[A_BULLETS] then
           IncMax(FAmmo[A_BULLETS], 10, FMaxAmmo[A_BULLETS]);
@@ -4134,6 +4175,7 @@ begin
     FMaxAmmo[A_SHELLS] := AmmoLimits[0, A_SHELLS];
     FMaxAmmo[A_ROCKETS] := AmmoLimits[0, A_SHELLS];
     FMaxAmmo[A_CELLS] := AmmoLimits[0, A_CELLS];
+    FMaxAmmo[A_FUEL] := AmmoLimits[0, A_FUEL];
 
     if gGameSettings.GameMode in [GM_DM, GM_TDM, GM_CTF] then
       FRulez := [R_KEY_RED, R_KEY_GREEN, R_KEY_BLUE]
@@ -5042,6 +5084,12 @@ begin
       g_Player_CreateShell(GameX+PLAYER_RECT_CX, GameY+PLAYER_RECT_CX,
                              GameVelX, GameVelY-2, SHELL_SHELL);
     end;
+
+    WEAPON_FLAMETHROWER:
+    begin
+      FFireAngle := FAngle;
+      f := True;
+    end;
   end;
 
   if not f then Exit;
@@ -5726,6 +5774,7 @@ begin
     ITEM_WEAPON_PLASMA: FWeapon[WEAPON_PLASMA] := True;
     ITEM_WEAPON_BFG: FWeapon[WEAPON_BFG] := True;
     ITEM_WEAPON_SUPERPULEMET: FWeapon[WEAPON_SUPERPULEMET] := True;
+    ITEM_WEAPON_FLAMETHROWER: FWeapon[WEAPON_FLAMETHROWER] := True;
 
     ITEM_AMMO_BULLETS: if FAmmo[A_BULLETS] < FMaxAmmo[A_BULLETS] then IncMax(FAmmo[A_BULLETS], 10, FMaxAmmo[A_BULLETS]);
     ITEM_AMMO_BULLETS_BOX: if FAmmo[A_BULLETS] < FMaxAmmo[A_BULLETS] then IncMax(FAmmo[A_BULLETS], 50, FMaxAmmo[A_BULLETS]);
@@ -5735,17 +5784,20 @@ begin
     ITEM_AMMO_ROCKET_BOX: if FAmmo[A_ROCKETS] < FMaxAmmo[A_ROCKETS] then IncMax(FAmmo[A_ROCKETS], 5, FMaxAmmo[A_ROCKETS]);
     ITEM_AMMO_CELL: if FAmmo[A_CELLS] < FMaxAmmo[A_CELLS] then IncMax(FAmmo[A_CELLS], 40, FMaxAmmo[A_CELLS]);
     ITEM_AMMO_CELL_BIG: if FAmmo[A_CELLS] < FMaxAmmo[A_CELLS] then IncMax(FAmmo[A_CELLS], 100, FMaxAmmo[A_CELLS]);
+    ITEM_AMMO_FUELCAN: if FAmmo[A_FUEL] < FMaxAmmo[A_FUEL] then IncMax(FAmmo[A_FUEL], 100, FMaxAmmo[A_FUEL]);
 
     ITEM_AMMO_BACKPACK:
       if (FAmmo[A_BULLETS] < FMaxAmmo[A_BULLETS]) or
          (FAmmo[A_SHELLS] < FMaxAmmo[A_SHELLS]) or
          (FAmmo[A_ROCKETS] < FMaxAmmo[A_ROCKETS]) or
-         (FAmmo[A_CELLS] < FMaxAmmo[A_CELLS]) then
+         (FAmmo[A_CELLS] < FMaxAmmo[A_CELLS]) or
+         (FMaxAmmo[A_FUEL] < AmmoLimits[1, A_FUEL]) then
       begin
         FMaxAmmo[A_BULLETS] := AmmoLimits[1, A_BULLETS];
         FMaxAmmo[A_SHELLS] := AmmoLimits[1, A_SHELLS];
         FMaxAmmo[A_ROCKETS] := AmmoLimits[1, A_ROCKETS];
         FMaxAmmo[A_CELLS] := AmmoLimits[1, A_CELLS];
+        FMaxAmmo[A_FUEL] := AmmoLimits[1, A_FUEL];
 
         if FAmmo[A_BULLETS] < FMaxAmmo[A_BULLETS] then IncMax(FAmmo[A_BULLETS], 10, FMaxAmmo[A_BULLETS]);
         if FAmmo[A_SHELLS] < FMaxAmmo[A_SHELLS] then IncMax(FAmmo[A_SHELLS], 4, FMaxAmmo[A_SHELLS]);
@@ -6110,7 +6162,7 @@ begin
 
       case FCurrWeap of
         WEAPON_PLASMA, WEAPON_SUPERPULEMET, WEAPON_CHAINGUN: PressKey(KEY_FIRE, 20);
-        WEAPON_SAW, WEAPON_KASTET, WEAPON_MEGAKASTET: PressKey(KEY_FIRE, 40);
+        WEAPON_SAW, WEAPON_KASTET, WEAPON_FLAMETHROWER: PressKey(KEY_FIRE, 40);
         else PressKey(KEY_FIRE);
       end;
     end;
@@ -7082,6 +7134,7 @@ var
       WEAPON_PLASMA: Result := FAmmo[A_CELLS] >= 10;
       WEAPON_BFG: Result := FAmmo[A_CELLS] >= 40;
       WEAPON_SUPERPULEMET: Result := FAmmo[A_SHELLS] >= 1;
+      WEAPON_FLAMETHROWER: Result := FAmmo[A_FUEL] >= 1;
       else Result := True;
     end;
   end;

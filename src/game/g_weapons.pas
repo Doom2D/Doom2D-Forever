@@ -97,7 +97,7 @@ const
   WEAPON_PLASMA         = 7;
   WEAPON_BFG            = 8;
   WEAPON_SUPERPULEMET   = 9;
-  WEAPON_MEGAKASTET     = 10;
+  WEAPON_FLAMETHROWER   = 10;
   WEAPON_ZOMBY_PISTOL   = 20;
   WEAPON_IMP_FIRE       = 21;
   WEAPON_BSP_FIRE       = 22;
@@ -107,7 +107,7 @@ const
   WEAPON_SKEL_FIRE      = 26;
 
   WP_FIRST          = WEAPON_KASTET;
-  WP_LAST           = WEAPON_SUPERPULEMET;
+  WP_LAST           = WEAPON_FLAMETHROWER;
 
 implementation
 

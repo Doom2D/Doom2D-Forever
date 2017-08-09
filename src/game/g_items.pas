@@ -19,7 +19,7 @@ unit g_items;
 interface
 
 uses
-  g_textures, g_phys, g_saveload, BinEditor;
+  g_textures, g_phys, g_saveload, BinEditor, MAPDEF;
 
 Type
   TItem = record
@@ -50,7 +50,7 @@ procedure g_Items_LoadState(var Mem: TBinMemoryReader);
 
 var
   gItems: Array of TItem = nil;
-  gItemsTexturesID: Array [1..35] of DWORD;
+  gItemsTexturesID: Array [1..ITEM_MAX] of DWORD;
   gMaxDist: Integer = 1;
   ITEM_RESPAWNTIME: Integer = 60 * 36;
 
@@ -59,7 +59,7 @@ implementation
 uses
   g_basic, e_graphics, g_sound, g_main, g_gfx, g_map,
   Math, g_game, g_triggers, g_console, SysUtils, g_player, g_net, g_netmsg,
-  MAPDEF, e_log;
+  e_log;
 
 const
   ITEM_SIGNATURE = $4D455449; // 'ITEM'
@@ -100,7 +100,9 @@ const
      ((14), (18)), // BOTTLE
      ((16), (15)), // HELMET
      ((32), (24)), // JETPACK
-     ((25), (25))); // INVIS
+     ((25), (25)), // INVIS
+     ((53), (20)), // WEAPON_FLAMETHROWER
+     ((13), (20))); // AMMO_FUELCAN
 
 procedure InitTextures();
 begin
@@ -117,6 +119,7 @@ begin
   g_Texture_Get('ITEM_WEAPON_PLASMA',    gItemsTexturesID[ITEM_WEAPON_PLASMA]);
   g_Texture_Get('ITEM_WEAPON_BFG',       gItemsTexturesID[ITEM_WEAPON_BFG]);
   g_Texture_Get('ITEM_WEAPON_SUPERPULEMET', gItemsTexturesID[ITEM_WEAPON_SUPERPULEMET]);
+  g_Texture_Get('ITEM_WEAPON_FLAMETHROWER', gItemsTexturesID[ITEM_WEAPON_FLAMETHROWER]);
   g_Texture_Get('ITEM_AMMO_BULLETS',     gItemsTexturesID[ITEM_AMMO_BULLETS]);
   g_Texture_Get('ITEM_AMMO_BULLETS_BOX', gItemsTexturesID[ITEM_AMMO_BULLETS_BOX]);
   g_Texture_Get('ITEM_AMMO_SHELLS',      gItemsTexturesID[ITEM_AMMO_SHELLS]);
@@ -125,6 +128,7 @@ begin
   g_Texture_Get('ITEM_AMMO_ROCKET_BOX',  gItemsTexturesID[ITEM_AMMO_ROCKET_BOX]);
   g_Texture_Get('ITEM_AMMO_CELL',        gItemsTexturesID[ITEM_AMMO_CELL]);
   g_Texture_Get('ITEM_AMMO_CELL_BIG',    gItemsTexturesID[ITEM_AMMO_CELL_BIG]);
+  g_Texture_Get('ITEM_AMMO_FUELCAN',     gItemsTexturesID[ITEM_AMMO_FUELCAN]);
   g_Texture_Get('ITEM_AMMO_BACKPACK',    gItemsTexturesID[ITEM_AMMO_BACKPACK]);
   g_Texture_Get('ITEM_KEY_RED',          gItemsTexturesID[ITEM_KEY_RED]);
   g_Texture_Get('ITEM_KEY_GREEN',        gItemsTexturesID[ITEM_KEY_GREEN]);
@@ -167,6 +171,7 @@ begin
   g_Texture_CreateWADEx('ITEM_WEAPON_PLASMA', GameWAD+':TEXTURES\PGUN');
   g_Texture_CreateWADEx('ITEM_WEAPON_BFG', GameWAD+':TEXTURES\BFG');
   g_Texture_CreateWADEx('ITEM_WEAPON_SUPERPULEMET', GameWAD+':TEXTURES\SPULEMET');
+  g_Texture_CreateWADEx('ITEM_WEAPON_FLAMETHROWER', GameWAD+':TEXTURES\FLAMETHROWER');
   g_Texture_CreateWADEx('ITEM_AMMO_BULLETS', GameWAD+':TEXTURES\CLIP');
   g_Texture_CreateWADEx('ITEM_AMMO_BULLETS_BOX', GameWAD+':TEXTURES\AMMO');
   g_Texture_CreateWADEx('ITEM_AMMO_SHELLS', GameWAD+':TEXTURES\SHELL1');
@@ -175,6 +180,7 @@ begin
   g_Texture_CreateWADEx('ITEM_AMMO_ROCKET_BOX', GameWAD+':TEXTURES\ROCKETS');
   g_Texture_CreateWADEx('ITEM_AMMO_CELL', GameWAD+':TEXTURES\CELL');
   g_Texture_CreateWADEx('ITEM_AMMO_CELL_BIG', GameWAD+':TEXTURES\CELL2');
+  g_Texture_CreateWADEx('ITEM_AMMO_FUELCAN', GameWAD+':TEXTURES\FUELCAN');
   g_Texture_CreateWADEx('ITEM_AMMO_BACKPACK', GameWAD+':TEXTURES\BPACK');
   g_Texture_CreateWADEx('ITEM_KEY_RED', GameWAD+':TEXTURES\KEYR');
   g_Texture_CreateWADEx('ITEM_KEY_GREEN', GameWAD+':TEXTURES\KEYG');
@@ -221,6 +227,7 @@ begin
   g_Texture_Delete('ITEM_WEAPON_PLASMA');
   g_Texture_Delete('ITEM_WEAPON_BFG');
   g_Texture_Delete('ITEM_WEAPON_SUPERPULEMET');
+  g_Texture_Delete('ITEM_WEAPON_FLAMETHROWER');
   g_Texture_Delete('ITEM_AMMO_BULLETS');
   g_Texture_Delete('ITEM_AMMO_BULLETS_BOX');
   g_Texture_Delete('ITEM_AMMO_SHELLS');
@@ -229,6 +236,7 @@ begin
   g_Texture_Delete('ITEM_AMMO_ROCKET_BOX');
   g_Texture_Delete('ITEM_AMMO_CELL');
   g_Texture_Delete('ITEM_AMMO_CELL_BIG');
+  g_Texture_Delete('ITEM_AMMO_FUELCAN');
   g_Texture_Delete('ITEM_AMMO_BACKPACK');
   g_Texture_Delete('ITEM_KEY_RED');
   g_Texture_Delete('ITEM_KEY_GREEN');
@@ -446,7 +454,8 @@ begin
                     else
                       if ItemType in [ITEM_WEAPON_SAW, ITEM_WEAPON_PISTOL, ITEM_WEAPON_SHOTGUN1, ITEM_WEAPON_SHOTGUN2,
                                       ITEM_WEAPON_CHAINGUN, ITEM_WEAPON_ROCKETLAUNCHER, ITEM_WEAPON_PLASMA,
-                                      ITEM_WEAPON_BFG, ITEM_WEAPON_SUPERPULEMET, ITEM_AMMO_BACKPACK] then
+                                      ITEM_WEAPON_BFG, ITEM_WEAPON_SUPERPULEMET, ITEM_WEAPON_FLAMETHROWER,
+                                      ITEM_AMMO_BACKPACK] then
                         g_Sound_PlayExAt('SOUND_ITEM_GETWEAPON',
                           gPlayers[j].Obj.X, gPlayers[j].Obj.Y)
                       else
@@ -462,7 +471,7 @@ begin
                     else
                       if ItemType in [ITEM_WEAPON_SAW, ITEM_WEAPON_PISTOL, ITEM_WEAPON_SHOTGUN1, ITEM_WEAPON_SHOTGUN2,
                                       ITEM_WEAPON_CHAINGUN, ITEM_WEAPON_ROCKETLAUNCHER, ITEM_WEAPON_PLASMA,
-                                      ITEM_WEAPON_BFG, ITEM_WEAPON_SUPERPULEMET] then
+                                      ITEM_WEAPON_BFG, ITEM_WEAPON_SUPERPULEMET, ITEM_WEAPON_FLAMETHROWER] then
                         g_Sound_PlayExAt('SOUND_ITEM_GETWEAPON',
                           gPlayers[j].Obj.X, gPlayers[j].Obj.Y)
                       else

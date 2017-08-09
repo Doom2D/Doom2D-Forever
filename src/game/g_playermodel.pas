@@ -145,13 +145,14 @@ const
   FLAG_DEFANGLE = -20;
   WEAPONBASE: Array [WP_FIRST + 1..WP_LAST] of TPoint =
               ((X:8; Y:4), (X:8; Y:8), (X:16; Y:16), (X:16; Y:24),
-               (X:16; Y:16), (X:24; Y:24), (X:16; Y:16), (X:24; Y:24), (X:16; Y:16));
+               (X:16; Y:16), (X:24; Y:24), (X:16; Y:16), (X:24; Y:24),
+               (X:16; Y:16), (X:8; Y:8));
 
   AnimNames: Array [A_STAND..A_PAIN] of String =
              ('StandAnim','WalkAnim','Die1Anim','Die2Anim','AttackAnim',
               'SeeUpAnim','SeeDownAnim','AttackUpAnim','AttackDownAnim','PainAnim');
   WeapNames: Array [WP_FIRST + 1..WP_LAST] of String =
-             ('csaw', 'hgun', 'sg', 'ssg', 'mgun', 'rkt', 'plz', 'bfg', 'spl');
+             ('csaw', 'hgun', 'sg', 'ssg', 'mgun', 'rkt', 'plz', 'bfg', 'spl', 'flm');
 
 var
   WeaponID: Array [WP_FIRST + 1..WP_LAST] of
@@ -253,7 +254,7 @@ var
   WAD: TWADFile;
   s: string;
   prefix: string;
-  ok: Boolean;
+  ok, chk: Boolean;
 begin
   e_WriteLog(Format('Loading player model: %s', [ExtractFileName(FileName)]), MSG_NOTIFY);
 
@@ -395,10 +396,60 @@ begin
       for bb := A_STAND to A_PAIN do
         if not (bb in [A_DIE1, A_DIE2, A_PAIN]) then
         begin
-          ok := ok and GetWeapPoints(config.ReadStr(AnimNames[bb], WeapNames[aa]+'_points', ''), aa, bb, D_RIGHT,
-                                     config.ReadInt(AnimNames[bb], 'frames', 0),
-                                     config.ReadBool(AnimNames[bb], 'backanim', False),
-                                     WeaponPoints);
+          chk := GetWeapPoints(config.ReadStr(AnimNames[bb], WeapNames[aa]+'_points', ''), aa, bb, D_RIGHT,
+                               config.ReadInt(AnimNames[bb], 'frames', 0),
+                               config.ReadBool(AnimNames[bb], 'backanim', False),
+                               WeaponPoints);
+          if ok and (not chk) and (aa = WEAPON_FLAMETHROWER) then
+          begin
+            // workaround for flamethrower
+            chk := GetWeapPoints(config.ReadStr(AnimNames[bb], WeapNames[WEAPON_PLASMA]+'_points', ''), aa, bb, D_RIGHT,
+                                 config.ReadInt(AnimNames[bb], 'frames', 0),
+                                 config.ReadBool(AnimNames[bb], 'backanim', False),
+                                 WeaponPoints);
+            if chk then
+            for f := 0 to High(WeaponPoints[aa, bb, D_RIGHT]) do
+            begin
+              case bb of
+                A_STAND, A_PAIN:
+                begin
+                  Dec(WeaponPoints[aa, bb, D_RIGHT, f].X, 6);
+                  Dec(WeaponPoints[aa, bb, D_RIGHT, f].Y, 8);
+                end;
+                A_WALK:
+                begin
+                  Dec(WeaponPoints[aa, bb, D_RIGHT, f].X, 9);
+                  Dec(WeaponPoints[aa, bb, D_RIGHT, f].Y, 9);
+                end;
+                A_ATTACK:
+                begin
+                  Dec(WeaponPoints[aa, bb, D_RIGHT, f].X, 5);
+                  Dec(WeaponPoints[aa, bb, D_RIGHT, f].Y, 8);
+                end;
+                A_SEEUP:
+                begin
+                  Dec(WeaponPoints[aa, bb, D_RIGHT, f].X, 5);
+                  Dec(WeaponPoints[aa, bb, D_RIGHT, f].Y, 16);
+                end;
+                A_SEEDOWN:
+                begin
+                  Dec(WeaponPoints[aa, bb, D_RIGHT, f].X, 6);
+                  Dec(WeaponPoints[aa, bb, D_RIGHT, f].Y, 5);
+                end;
+                A_ATTACKUP:
+                begin
+                  Dec(WeaponPoints[aa, bb, D_RIGHT, f].X, 5);
+                  Dec(WeaponPoints[aa, bb, D_RIGHT, f].Y, 16);
+                end;
+                A_ATTACKDOWN:
+                begin
+                  Dec(WeaponPoints[aa, bb, D_RIGHT, f].X, 6);
+                  Dec(WeaponPoints[aa, bb, D_RIGHT, f].Y, 4);
+                end;
+              end;
+            end;
+          end;
+          ok := ok and chk;
 
           if not GetWeapPoints(config.ReadStr(AnimNames[bb], WeapNames[aa]+'2_points', ''), aa, bb, D_LEFT,
                                config.ReadInt(AnimNames[bb], 'frames', 0),

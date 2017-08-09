@@ -92,8 +92,10 @@ const
   ITEM_HELMET                = 34;
   ITEM_JETPACK               = 35;
   ITEM_INVIS                 = 36;
+  ITEM_WEAPON_FLAMETHROWER   = 37;
+  ITEM_AMMO_FUELCAN          = 38;
 
-  ITEM_MAX                   = 36; // store the last item's id in here
+  ITEM_MAX                   = 38; // store the last item's id in here
                                    // use this in for loops
 
   ITEM_OPTION_ONLYDM = 1;
