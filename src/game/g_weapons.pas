@@ -1933,7 +1933,7 @@ begin
                 Stopped := MOVE_HITCEIL;
             end;
 
-            a := IfThen(Stopped = 0, 5, 1);
+            a := IfThen(Stopped = 0, 3, 1);
           // Если в кого-то попали
             if g_Weapon_Hit(@Obj, a, SpawnerUID, HIT_FLAME, False) <> 0 then
             begin
@@ -1943,7 +1943,7 @@ begin
                 ShotType := 0;
             end;
 
-            if g_Frames_Get(_id, 'FRAMES_FLAME') and (gTime mod 2 = 0) then
+            if g_Frames_Get(_id, 'FRAMES_FLAME') and (gTime mod 3 = 0) then
             begin
               Anim := TAnimation.Create(_id, False, 2 + Random(2));
               Anim.Alpha := 0;

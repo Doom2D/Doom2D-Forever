@@ -2884,7 +2884,7 @@ end;
 
 procedure TPlayer.CatchFire(Attacker: Word);
 begin
-  if FMegaRulez[MR_SUIT] > 0 then
+  if FMegaRulez[MR_SUIT] >= gTime then
     Exit;
   FFireTime := 100;
   FFireAttacker := Attacker;
