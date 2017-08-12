@@ -131,7 +131,9 @@ const
      ((14), (18)), // BOTTLE
      ((16), (15)), // HELMET
      ((32), (24)), // JETPACK
-     ((25), (25))); // INVIS
+     ((25), (25)), // INVIS
+     ((53), (20)), // WEAPON_FLAMETHROWER
+     ((13), (20))); // AMMO_FUELCAN
 
   AreaSize: Array [AREA_PLAYERPOINT1..AREA_BLUETEAMPOINT] of TRectWH =
     ((X:15; Y:12; Width:34; Height:52), // PLAYERPOINT1
@@ -2149,6 +2151,8 @@ begin
             ITEM_HELMET: g_GetTexture('ITEM_HELMET', ID);
             ITEM_JETPACK: g_GetTexture('ITEM_JETPACK', ID);
             ITEM_INVIS: g_GetTexture('ITEM_INVIS', ID);
+            ITEM_WEAPON_FLAMETHROWER: g_GetTexture('ITEM_WEAPON_FLAMETHROWER', ID);
+            ITEM_AMMO_FUELCAN: g_GetTexture('ITEM_AMMO_FUELCAN', ID);
           end;
 
           if ID <> DWORD(-1) then
@@ -2538,6 +2542,8 @@ begin
                         ITEM_HELMET: g_GetTexture('ITEM_HELMET', ID);
                         ITEM_JETPACK: g_GetTexture('ITEM_JETPACK', ID);
                         ITEM_INVIS: g_GetTexture('ITEM_INVIS', ID);
+                        ITEM_WEAPON_FLAMETHROWER: g_GetTexture('ITEM_WEAPON_FLAMETHROWER', ID);
+                        ITEM_AMMO_FUELCAN: g_GetTexture('ITEM_AMMO_FUELCAN', ID);
                       end;
                       if ID <> DWORD(-1) then
                         e_Draw(ID, MapOffset.X+Data.ItemPos.X-(ItemSize[Data.ItemType][0] div 2),
@@ -2752,6 +2758,8 @@ begin
  g_CreateTextureWADSize('ITEM_BOTTLE', EditorDir+'\data\Game.wad:TEXTURES\BOTTLE', 0, 0, 16, 32);
  g_CreateTextureWADSize('ITEM_HELMET', EditorDir+'\data\Game.wad:TEXTURES\HELMET', 0, 0, 16, 16);
  g_CreateTextureWADSize('ITEM_INVIS', EditorDir+'\data\Game.wad:TEXTURES\INVIS', 0, 0, 32, 32);
+ g_CreateTextureWADSize('ITEM_WEAPON_FLAMETHROWER', EditorDir+'\data\Game.wad:TEXTURES\FLAMETHROWER', 0, 0, 64, 32);
+ g_CreateTextureWADSize('ITEM_AMMO_FUELCAN', EditorDir+'\data\Game.wad:TEXTURES\FUELCAN', 0, 0, 16, 32);
 
  g_CreateTextureWAD('ITEM_MEDKIT_SMALL', EditorDir+'\data\Game.wad:TEXTURES\MED1');
  g_CreateTextureWAD('ITEM_MEDKIT_LARGE', EditorDir+'\data\Game.wad:TEXTURES\MED2');
@@ -2862,6 +2870,8 @@ begin
  g_DeleteTexture('ITEM_MEDKIT_BLACK');
  g_DeleteTexture('ITEM_JETPACK');
  g_DeleteTexture('ITEM_INVIS');
+ g_DeleteTexture('ITEM_WEAPON_FLAMETHROWER');
+ g_DeleteTexture('ITEM_AMMO_FUELCAN');
 
  g_DeleteTexture('AREA_PLAYERPOINT1');
  g_DeleteTexture('AREA_PLAYERPOINT2');

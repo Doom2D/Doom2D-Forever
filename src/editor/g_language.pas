@@ -62,6 +62,7 @@ Type
     I_ARRAY_ITEM_PLASMA_RIFLE,
     I_ARRAY_ITEM_BFG,
     I_ARRAY_ITEM_SUPER_MINIGUN,
+    I_ARRAY_ITEM_FLAMETHROWER,
     I_ARRAY_ITEM_CLIP,
     I_ARRAY_ITEM_AMMO_BOX,
     I_ARRAY_ITEM_4_SHELLS,
@@ -70,6 +71,7 @@ Type
     I_ARRAY_ITEM_ROCKET_BOX,
     I_ARRAY_ITEM_CELL,
     I_ARRAY_ITEM_LARGE_CELL,
+    I_ARRAY_ITEM_FUELCAN,
     I_ARRAY_ITEM_BACKPACK,
     I_ARRAY_ITEM_KEY_RED,
     I_ARRAY_ITEM_KEY_GREEN,
@@ -737,6 +739,8 @@ Const
                                        'BFG9000'),
     ('ARRAY ITEM SUPER MINIGUN',       'Super Chaingun',
                                        'Суперпулемёт'),
+    ('ARRAY ITEM FLAMETHROWER',        'Flamethrower',
+                                       'Огнемёт'),
     ('ARRAY ITEM CLIP',                'Clip',
                                        'Патроны'),
     ('ARRAY ITEM AMMO BOX',            'Box of Bullets',
@@ -753,6 +757,8 @@ Const
                                        'Батарейка'),
     ('ARRAY ITEM LARGE CELL',          'Energy Cell Pack',
                                        'Батарея'),
+    ('ARRAY ITEM FUELCAN',             'Fuel Canister',
+                                       'Канистра'),
     ('ARRAY ITEM BACKPACK',            'Backpack',
                                        'Рюкзак'),
     ('ARRAY ITEM KEY RED',             'Red Key',
@@ -1832,6 +1838,7 @@ begin
   ItemNames[ITEM_WEAPON_PLASMA] := _lc[I_ARRAY_ITEM_PLASMA_RIFLE];
   ItemNames[ITEM_WEAPON_BFG] := _lc[I_ARRAY_ITEM_BFG];
   ItemNames[ITEM_WEAPON_SUPERPULEMET] := _lc[I_ARRAY_ITEM_SUPER_MINIGUN];
+  ItemNames[ITEM_WEAPON_FLAMETHROWER] := _lc[I_ARRAY_ITEM_FLAMETHROWER];
   ItemNames[ITEM_AMMO_BULLETS] := _lc[I_ARRAY_ITEM_CLIP];
   ItemNames[ITEM_AMMO_BULLETS_BOX] := _lc[I_ARRAY_ITEM_AMMO_BOX];
   ItemNames[ITEM_AMMO_SHELLS] := _lc[I_ARRAY_ITEM_4_SHELLS];
@@ -1840,6 +1847,7 @@ begin
   ItemNames[ITEM_AMMO_ROCKET_BOX] := _lc[I_ARRAY_ITEM_ROCKET_BOX];
   ItemNames[ITEM_AMMO_CELL] := _lc[I_ARRAY_ITEM_CELL];
   ItemNames[ITEM_AMMO_CELL_BIG] := _lc[I_ARRAY_ITEM_LARGE_CELL];
+  ItemNames[ITEM_AMMO_FUELCAN] := _lc[I_ARRAY_ITEM_FUELCAN];
   ItemNames[ITEM_AMMO_BACKPACK] := _lc[I_ARRAY_ITEM_BACKPACK];
   ItemNames[ITEM_KEY_RED] := _lc[I_ARRAY_ITEM_KEY_RED];
   ItemNames[ITEM_KEY_GREEN] := _lc[I_ARRAY_ITEM_KEY_GREEN];
@@ -1945,6 +1953,8 @@ begin
     lbItemList.Items.Add(ItemNames[ITEM_HELMET]);
     lbItemList.Items.Add(ItemNames[ITEM_JETPACK]);
     lbItemList.Items.Add(ItemNames[ITEM_INVIS]);
+    lbItemList.Items.Add(ItemNames[ITEM_WEAPON_FLAMETHROWER]);
+    lbItemList.Items.Add(ItemNames[ITEM_AMMO_FUELCAN]);
 
     lbMonsterList.Clear();
     for i := MONSTER_DEMON to MONSTER_MAN do
