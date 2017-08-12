@@ -2884,8 +2884,6 @@ end;
 
 procedure TPlayer.CatchFire(Attacker: Word);
 begin
-  if FMegaRulez[MR_SUIT] >= gTime then
-    Exit;
   FFireTime := 100;
   FFireAttacker := Attacker;
   if g_Game_IsNet and g_Game_IsServer then
@@ -4848,6 +4846,12 @@ begin
       if BodyInLiquid(0, 0) then
       begin
         FFireTime := 0;
+        FFirePainTime := 0;
+      end
+      else if FMegaRulez[MR_SUIT] >= gTime then
+      begin
+        if FMegaRulez[MR_SUIT] = gTime then
+          FFireTime := 1;
         FFirePainTime := 0;
       end
       else
