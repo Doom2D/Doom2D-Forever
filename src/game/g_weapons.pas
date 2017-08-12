@@ -553,6 +553,7 @@ begin
         ShotType := WEAPON_FLAMETHROWER;
         Animation := nil;
         TextureID := 0;
+        g_Frames_Get(TextureID, 'FRAMES_FLAME');
         Stopped := 0;
       end;
     end;
@@ -1377,6 +1378,7 @@ begin
     triggers := nil;
     Animation := nil;
     TextureID := 0;
+    g_Frames_Get(TextureID, 'FRAMES_FLAME');
     Stopped := 0;
   end;
 
@@ -1948,9 +1950,9 @@ begin
             else
               tf := 3;
 
-            if (gTime mod tf = 0) and g_Frames_Get(_id, 'FRAMES_FLAME') then
+            if (gTime mod tf = 0) then
             begin
-              Anim := TAnimation.Create(_id, False, 2 + Random(2));
+              Anim := TAnimation.Create(TextureID, False, 2 + Random(2));
               Anim.Alpha := 0;
               case Stopped of
                 0:             g_GFX_OnceAnim(cx-4+Random(8)-(Anim.Width div 2),
@@ -2129,7 +2131,7 @@ begin
           begin
             if (Shots[i].ShotType = WEAPON_ROCKETLAUNCHER) then
               e_DrawAdv(TextureID, Obj.X, Obj.Y, 0, True, False, a, @p, M_NONE)
-            else
+            else if (Shots[i].ShotType <> WEAPON_FLAMETHROWER) then
               e_Draw(TextureID, Obj.X, Obj.Y, 0, True, False);
           end;
 
