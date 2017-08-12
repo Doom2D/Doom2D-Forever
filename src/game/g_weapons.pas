@@ -1697,7 +1697,7 @@ end;
 
 procedure g_Weapon_Update();
 var
-  i, a, h, cx, cy, oldvx, oldvy: Integer;
+  i, a, h, cx, cy, oldvx, oldvy, tf: Integer;
   _id: DWORD;
   Anim: TAnimation;
   t: DWArray;
@@ -1943,7 +1943,12 @@ begin
                 ShotType := 0;
             end;
 
-            if g_Frames_Get(_id, 'FRAMES_FLAME') and (gTime mod 3 = 0) then
+            if Stopped = 0 then
+              tf := 2
+            else
+              tf := 3;
+
+            if (gTime mod tf = 0) and g_Frames_Get(_id, 'FRAMES_FLAME') then
             begin
               Anim := TAnimation.Create(_id, False, 2 + Random(2));
               Anim.Alpha := 0;
