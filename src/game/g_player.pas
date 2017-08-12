@@ -168,6 +168,7 @@ type
     FXTo, FYTo: Integer;
     FSpectatePlayer: Integer;
     FFirePainTime:   Integer;
+    FFireAttacker:   Word;
 
     FSavedState: TPlayerSavedState;
 
@@ -308,7 +309,7 @@ type
     procedure   RealizeCurrentWeapon();
     procedure   JetpackOn;
     procedure   JetpackOff;
-    procedure   CatchFire();
+    procedure   CatchFire(Attacker: Word);
 
     property    Name: String read FName write FName;
     property    Model: TPlayerModel read FModel;
@@ -575,7 +576,7 @@ const
   //                               WEAPON_CHAINGUN, WEAPON_SHOTGUN1, WEAPON_SAW,
   //                               WEAPON_ROCKETLAUNCHER, WEAPON_PISTOL, WEAPON_KASTET);
   WEAPON_RELOAD: Array [WP_FIRST..WP_LAST] of Byte =
-                                (5, 2, 6, 18, 36, 2, 12, 2, 14, 2, 0);
+                                (5, 2, 6, 18, 36, 2, 12, 2, 14, 2, 2);
 
   PLAYER_SIGNATURE = $52594C50; // 'PLYR'
   CORPSE_SIGNATURE = $50524F43; // 'CORP'
@@ -1993,6 +1994,7 @@ begin
   FShellTimer := -1;
   FFireTime := 0;
   FFirePainTime := 0;
+  FFireAttacker := 0;
 
   FActualModelName := 'doomer';
 
@@ -2880,9 +2882,10 @@ begin
   FJetSoundOff.PlayAt(FObj.X, FObj.Y);
 end;
 
-procedure TPlayer.CatchFire();
+procedure TPlayer.CatchFire(Attacker: Word);
 begin
-  FFireTime := 360;
+  FFireTime := 100;
+  FFireAttacker := Attacker;
   if g_Game_IsNet and g_Game_IsServer then
     MH_SEND_PlayerStats(FUID);
 end;
@@ -4236,6 +4239,9 @@ begin
   FDamageBuffer := 0;
   FJetpack := False;
   FCanJetpack := False;
+  FFireTime := 0;
+  FFirePainTime := 0;
+  FFireAttacker := 0;
 
 // Анимация возрождения:
   if (not gLoadGameMode) and (not Silent) then
@@ -4840,7 +4846,7 @@ begin
         if FFirePainTime <= 0 then
         begin
           if g_Game_IsServer then
-            Damage(5, 0, 0, 0, HIT_FLAME);
+            Damage(5, FFireAttacker, 0, 0, HIT_FLAME);
           FFirePainTime := 18;
         end;
         FFirePainTime := FFirePainTime - 1;

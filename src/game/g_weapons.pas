@@ -143,7 +143,7 @@ const
 
   SHOT_FLAME_WIDTH = 4;
   SHOT_FLAME_HEIGHT = 4;
-  SHOT_FLAME_LIFETIME = 360; 
+  SHOT_FLAME_LIFETIME = 180; 
 
   SHOT_SIGNATURE = $544F4853; // 'SHOT'
 
@@ -358,7 +358,7 @@ begin
     else
       Result := True;
     if t = HIT_FLAME then
-      m.CatchFire();
+      m.CatchFire(SpawnerUID);
   end
   else
     Result := True;
@@ -377,7 +377,7 @@ begin
     if (t <> HIT_FLAME) or (p.FFireTime = 0) or (vx <> 0) or (vy <> 0) then
       p.Damage(d, SpawnerUID, vx, vy, t);
     if (t = HIT_FLAME) then
-      p.CatchFire();
+      p.CatchFire(SpawnerUID);
   end;
 
   Result := True;
@@ -684,10 +684,13 @@ begin
   Shots[i].Obj.Accel.Y := 0;
   if Shots[i].ShotType in [WEAPON_ROCKETLAUNCHER, WEAPON_BFG] then
     Shots[i].Timeout := 900 // ~25 sec
-  else if Shots[i].ShotType = WEAPON_FLAMETHROWER then
-    Shots[i].Timeout := SHOT_FLAME_LIFETIME
-  else
-    Shots[i].Timeout := 550 // ~15 sec
+  else 
+  begin
+    if Shots[i].ShotType = WEAPON_FLAMETHROWER then
+      Shots[i].Timeout := SHOT_FLAME_LIFETIME
+    else
+      Shots[i].Timeout := 550; // ~15 sec
+  end;
 end;
 
 function g_Weapon_Hit(obj: PObj; d: Integer; SpawnerUID: Word; t: Byte; HitCorpses: Boolean = True): Byte;
@@ -1249,11 +1252,12 @@ begin
 
     dx := IfThen(xd > x, -Obj.Rect.Width, 0);
     dy := -(Obj.Rect.Height div 2);
+
+    ShotType := WEAPON_ROCKETLAUNCHER;
     throw(find_id, x+dx, y+dy, xd+dx, yd+dy, 12);
 
     Animation := nil;
     triggers := nil;
-    ShotType := WEAPON_ROCKETLAUNCHER;
     g_Texture_Get('TEXTURE_WEAPON_ROCKET', TextureID);
   end;
 
@@ -1287,10 +1291,11 @@ begin
 
     dx := -(Obj.Rect.Width div 2);
     dy := -(Obj.Rect.Height div 2);
+
+    ShotType := WEAPON_SKEL_FIRE;
     throw(find_id, x+dx, y+dy, xd+dx, yd+dy, 12);
 
     triggers := nil;
-    ShotType := WEAPON_SKEL_FIRE;
     target := TargetUID;
     g_Frames_Get(FramesID, 'FRAMES_WEAPON_SKELFIRE');
     Animation := TAnimation.Create(FramesID, True, 5);
@@ -1326,10 +1331,11 @@ begin
 
     dx := IfThen(xd>x, -Obj.Rect.Width, 0);
     dy := -(Obj.Rect.Height div 2);
+
+    ShotType := WEAPON_PLASMA;
     throw(find_id, x+dx, y+dy, xd+dx, yd+dy, 16);
 
     triggers := nil;
-    ShotType := WEAPON_PLASMA;
     g_Frames_Get(FramesID, 'FRAMES_WEAPON_PLASMA');
     Animation := TAnimation.Create(FramesID, True, 5);
   end;
@@ -1364,10 +1370,11 @@ begin
 
     dx := IfThen(xd>x, -Obj.Rect.Width, 0);
     dy := -(Obj.Rect.Height div 2);
+
+    ShotType := WEAPON_FLAMETHROWER;
     throw(find_id, x+dx, y+dy, xd+dx, yd+dy, 16);
 
     triggers := nil;
-    ShotType := WEAPON_FLAMETHROWER;
     Animation := nil;
     TextureID := 0;
     Stopped := 0;
@@ -1403,10 +1410,11 @@ begin
 
     dx := IfThen(xd>x, -Obj.Rect.Width, 0);
     dy := -(Obj.Rect.Height div 2);
+
+    ShotType := WEAPON_IMP_FIRE;
     throw(find_id, x+dx, y+dy, xd+dx, yd+dy, 16);
 
     triggers := nil;
-    ShotType := WEAPON_IMP_FIRE;
     g_Frames_Get(FramesID, 'FRAMES_WEAPON_IMPFIRE');
     Animation := TAnimation.Create(FramesID, True, 4);
   end;
@@ -1441,10 +1449,11 @@ begin
 
     dx := IfThen(xd>x, -Obj.Rect.Width, 0);
     dy := -(Obj.Rect.Height div 2);
+
+    ShotType := WEAPON_CACO_FIRE;
     throw(find_id, x+dx, y+dy, xd+dx, yd+dy, 16);
 
     triggers := nil;
-    ShotType := WEAPON_CACO_FIRE;
     g_Frames_Get(FramesID, 'FRAMES_WEAPON_CACOFIRE');
     Animation := TAnimation.Create(FramesID, True, 4);
   end;
@@ -1479,10 +1488,11 @@ begin
 
     dx := IfThen(xd>x, -Obj.Rect.Width, 0);
     dy := -(Obj.Rect.Height div 2);
+
+    ShotType := WEAPON_BARON_FIRE;
     throw(find_id, x+dx, y+dy, xd+dx, yd+dy, 16);
 
     triggers := nil;
-    ShotType := WEAPON_BARON_FIRE;
     g_Frames_Get(FramesID, 'FRAMES_WEAPON_BARONFIRE');
     Animation := TAnimation.Create(FramesID, True, 4);
   end;
@@ -1517,10 +1527,12 @@ begin
 
     dx := IfThen(xd>x, -Obj.Rect.Width, 0);
     dy := -(Obj.Rect.Height div 2);
+
+    ShotType := WEAPON_BSP_FIRE;
     throw(find_id, x+dx, y+dy, xd+dx, yd+dy, 16);
 
     triggers := nil;
-    ShotType := WEAPON_BSP_FIRE;
+    
     g_Frames_Get(FramesID, 'FRAMES_WEAPON_BSPFIRE');
     Animation := TAnimation.Create(FramesID, True, 4);
   end;
@@ -1555,10 +1567,12 @@ begin
 
     dx := IfThen(xd>x, -Obj.Rect.Width, 0);
     dy := -(Obj.Rect.Height div 2);
+
+    ShotType := WEAPON_MANCUB_FIRE;
     throw(find_id, x+dx, y+dy, xd+dx, yd+dy, 16);
 
     triggers := nil;
-    ShotType := WEAPON_MANCUB_FIRE;
+
     g_Frames_Get(FramesID, 'FRAMES_WEAPON_MANCUBFIRE');
     Animation := TAnimation.Create(FramesID, True, 4);
   end;
@@ -1593,10 +1607,11 @@ begin
 
     dx := IfThen(xd>x, -Obj.Rect.Width, 0);
     dy := -(Obj.Rect.Height div 2);
+
+    ShotType := WEAPON_BFG;
     throw(find_id, x+dx, y+dy, xd+dx, yd+dy, 16);
 
     triggers := nil;
-    ShotType := WEAPON_BFG;
     g_Frames_Get(FramesID, 'FRAMES_WEAPON_BFG');
     Animation := TAnimation.Create(FramesID, True, 6);
   end;
@@ -1928,7 +1943,7 @@ begin
                 ShotType := 0;
             end;
 
-            if g_Frames_Get(_id, 'FRAMES_FLAME') then
+            if g_Frames_Get(_id, 'FRAMES_FLAME') and (gTime mod 2 = 0) then
             begin
               Anim := TAnimation.Create(_id, False, 2 + Random(2));
               Anim.Alpha := 0;

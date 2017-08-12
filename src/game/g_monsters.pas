@@ -77,6 +77,7 @@ type
     FShellTimer: Integer;
     FShellType: Byte;
     FFirePainTime: Integer;
+    FFireAttacker: Word;
     vilefire: TAnimation;
 
     FDieTriggers: Array of Integer;
@@ -124,7 +125,7 @@ type
     function  AnimIsReverse: Boolean;
     function  shoot(o: PObj; immediately: Boolean): Boolean;
     function  kick(o: PObj): Boolean;
-    procedure CatchFire();
+    procedure CatchFire(Attacker: Word);
     procedure OnFireFlame(Times: DWORD = 1);
 
     property MonsterType: Byte read FMonsterType;
@@ -1484,6 +1485,7 @@ begin
   FBehaviour := BH_NORMAL;
   FFireTime := 0;
   FFirePainTime := 0;
+  FFireAttacker := 0;
 
   if FMonsterType in [MONSTER_ROBO, MONSTER_BARREL] then
     FBloodKind := BLOOD_SPARKS
@@ -2063,7 +2065,7 @@ begin
       if (FState <> STATE_DIE) and (FState <> STATE_DEAD) then
         if FFirePainTime = 0 then
         begin
-          Damage(5, 0, 0, 0, HIT_FLAME);
+          Damage(5, FFireAttacker, 0, 0, HIT_FLAME);
           FFirePainTime := 18;
         end
         else
@@ -4180,9 +4182,10 @@ begin
   SetLength(FDieTriggers, 0);
 end;
 
-procedure TMonster.CatchFire();
+procedure TMonster.CatchFire(Attacker: Word);
 begin
-  FFireTime := 360;
+  FFireTime := 100;
+  FFireAttacker := Attacker;
   if g_Game_IsNet and g_Game_IsServer then
     MH_SEND_MonsterState(FUID);
 end;
