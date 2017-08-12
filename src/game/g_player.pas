@@ -2884,6 +2884,8 @@ end;
 
 procedure TPlayer.CatchFire(Attacker: Word);
 begin
+  if FMegaRulez[MR_SUIT] > 0 then
+    Exit;
   FFireTime := 100;
   FFireAttacker := Attacker;
   if g_Game_IsNet and g_Game_IsServer then
@@ -3501,6 +3503,7 @@ begin
         IncMax(FHealth, 10, PLAYER_HP_SOFT);
         Result := True;
         remove := True;
+        FFireTime := 0;
         if gFlash = 2 then Inc(FPickup, 5);
       end;
 
@@ -3510,6 +3513,7 @@ begin
         IncMax(FHealth, 25, PLAYER_HP_SOFT);
         Result := True;
         remove := True;
+        FFireTime := 0;
         if gFlash = 2 then Inc(FPickup, 5);
       end;
 
@@ -3537,6 +3541,7 @@ begin
         IncMax(FHealth, 100, PLAYER_HP_LIMIT);
         Result := True;
         remove := True;
+        FFireTime := 0;
         if gFlash = 2 then Inc(FPickup, 5);
       end;
 
@@ -3549,6 +3554,7 @@ begin
           FArmor := PLAYER_AP_LIMIT;
         Result := True;
         remove := True;
+        FFireTime := 0;
         if gFlash = 2 then Inc(FPickup, 5);
       end;
 
@@ -3804,6 +3810,7 @@ begin
         FMegaRulez[MR_SUIT] := gTime+PLAYER_SUIT_TIME;
         Result := True;
         remove := True;
+        FFireTime := 0;
         if gFlash = 2 then Inc(FPickup, 5);
       end;
 
@@ -3833,6 +3840,7 @@ begin
           FBerserk := gTime+30000;
           Result := True;
           remove := True;
+          FFireTime := 0;
         end;
         if FHealth < PLAYER_HP_SOFT then
         begin
@@ -3840,6 +3848,7 @@ begin
           FBerserk := gTime+30000;
           Result := True;
           remove := True;
+          FFireTime := 0;
         end;
       end;
 
@@ -3858,6 +3867,7 @@ begin
         IncMax(FHealth, 4, PLAYER_HP_LIMIT);
         Result := True;
         remove := True;
+        FFireTime := 0;
         if gFlash = 2 then Inc(FPickup, 5);
       end;
 
