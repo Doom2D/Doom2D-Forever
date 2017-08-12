@@ -554,7 +554,6 @@ begin
         Animation := nil;
         TextureID := 0;
         g_Frames_Get(TextureID, 'FRAMES_FLAME');
-        Stopped := 0;
       end;
     end;
 
@@ -663,6 +662,10 @@ begin
   Shots[find_id].Obj.Accel.X := 0;
   Shots[find_id].Obj.Accel.Y := 0;
   Shots[find_id].SpawnerUID := Spawner;
+  if (ShotType = WEAPON_FLAMETHROWER) and (XV = 0) and (YV = 0) then
+    Shots[find_id].Stopped := 255
+  else
+    Shots[find_id].Stopped := 0;
   Result := find_id;
 end;
 
@@ -683,6 +686,7 @@ begin
   Shots[i].Obj.Vel.Y := (yd*s) div a;
   Shots[i].Obj.Accel.X := 0;
   Shots[i].Obj.Accel.Y := 0;
+  Shots[i].Stopped := 0;
   if Shots[i].ShotType in [WEAPON_ROCKETLAUNCHER, WEAPON_BFG] then
     Shots[i].Timeout := 900 // ~25 sec
   else 
@@ -1379,7 +1383,6 @@ begin
     Animation := nil;
     TextureID := 0;
     g_Frames_Get(TextureID, 'FRAMES_FLAME');
-    Stopped := 0;
   end;
 
   Shots[find_id].SpawnerUID := SpawnerUID;
@@ -1725,7 +1728,7 @@ begin
       oldvx := Obj.Vel.X;
       oldvy := Obj.Vel.Y;
     // Активировать триггеры по пути (кроме уже активированных):
-      if g_Game_IsServer then
+      if (Stopped = 0) and g_Game_IsServer then
         t := g_Triggers_PressR(Obj.X, Obj.Y, Obj.Rect.Width, Obj.Rect.Height,
                                SpawnerUID, ACTIVATE_SHOT, triggers)
       else
@@ -1759,7 +1762,10 @@ begin
              (ShotType <> WEAPON_BSP_FIRE) and
              (ShotType <> WEAPON_FLAMETHROWER);
 
-      st := g_Obj_Move(@Obj, False, spl);
+      if Stopped = 0 then
+        st := g_Obj_Move(@Obj, False, spl)
+      else
+        st := 0;
 
       if WordBool(st and MOVE_FALLOUT) or (Obj.X < -1000) or
         (Obj.X > gMapInfo.Width+1000) or (Obj.Y < -1000) then
@@ -1955,9 +1961,6 @@ begin
               Anim := TAnimation.Create(TextureID, False, 2 + Random(2));
               Anim.Alpha := 0;
               case Stopped of
-                0:             g_GFX_OnceAnim(cx-4+Random(8)-(Anim.Width div 2),
-                                 cy-4+Random(8)-(Anim.Height div 2),
-                                 Anim, ONCEANIM_SMOKE);
                 MOVE_HITWALL:  g_GFX_OnceAnim(cx-4+Random(8)-(Anim.Width div 2),
                                  cy-12+Random(24)-(Anim.Height div 2),
                                  Anim, ONCEANIM_SMOKE);
@@ -1966,6 +1969,9 @@ begin
                                  Anim, ONCEANIM_SMOKE);
                 MOVE_HITCEIL:  g_GFX_OnceAnim(cx-12+Random(24)-(Anim.Width div 2),
                                  cy+6+Random(8)-(Anim.Height div 2),
+                                 Anim, ONCEANIM_SMOKE);
+                else           g_GFX_OnceAnim(cx-4+Random(8)-(Anim.Width div 2),
+                                 cy-4+Random(8)-(Anim.Height div 2),
                                  Anim, ONCEANIM_SMOKE);
               end;
               Anim.Free();
