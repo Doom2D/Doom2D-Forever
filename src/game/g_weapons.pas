@@ -1739,7 +1739,8 @@ begin
     // Движение:
       spl := (ShotType <> WEAPON_PLASMA) and
              (ShotType <> WEAPON_BFG) and
-             (ShotType <> WEAPON_BSP_FIRE);
+             (ShotType <> WEAPON_BSP_FIRE) and
+             (ShotType <> WEAPON_FLAMETHROWER);
 
       st := g_Obj_Move(@Obj, False, spl);
 
@@ -1872,9 +1873,29 @@ begin
 
         WEAPON_FLAMETHROWER: // Огнемет
           begin
-          // Под водой не стреляет, со временем умирает
-            if (Timeout < 1) or WordBool(st and (MOVE_INWATER)) then
+          // Со временем умирает
+            if (Timeout < 1) then
             begin
+              ShotType := 0;
+              Continue;
+            end;
+          // Под водой тоже
+            if WordBool(st and (MOVE_HITWATER or MOVE_INWATER)) then
+            begin
+              if WordBool(st and MOVE_HITWATER) then
+              begin
+                if g_Frames_Get(_id, 'FRAMES_SMOKE') then
+                begin
+                  Anim := TAnimation.Create(_id, False, 3);
+                  Anim.Alpha := 0;
+                  g_GFX_OnceAnim(cx-4+Random(8)-(Anim.Width div 2),
+                    cy-4+Random(8)-(Anim.Height div 2),
+                    Anim, ONCEANIM_SMOKE);
+                  Anim.Free();
+                end;
+              end
+              else
+                g_GFX_Bubbles(cx, cy, 1+Random(3), 16, 16);
               ShotType := 0;
               Continue;
             end;
@@ -1889,13 +1910,15 @@ begin
               Obj.Vel.X := 0;
               Obj.Vel.Y := 0;
               Obj.Accel.Y := 0;
-              if WordBool(st and (MOVE_HITWALL or MOVE_HITWATER)) then
-                Stopped := 1
-              else
-                Stopped := 2;
+              if WordBool(st and MOVE_HITWALL) then
+                Stopped := MOVE_HITWALL
+              else if WordBool(st and MOVE_HITLAND) then
+                Stopped := MOVE_HITLAND
+              else if WordBool(st and MOVE_HITCEIL) then
+                Stopped := MOVE_HITCEIL;
             end;
 
-            a := IfThen(Stopped = 0, 2, 1);
+            a := IfThen(Stopped = 0, 5, 1);
           // Если в кого-то попали
             if g_Weapon_Hit(@Obj, a, SpawnerUID, HIT_FLAME, False) <> 0 then
             begin
@@ -1907,18 +1930,21 @@ begin
 
             if g_Frames_Get(_id, 'FRAMES_FLAME') then
             begin
-              Anim := TAnimation.Create(_id, False, 3);
+              Anim := TAnimation.Create(_id, False, 2 + Random(2));
               Anim.Alpha := 0;
               case Stopped of
-                0: g_GFX_OnceAnim(cx-4+Random(8)-(Anim.Width div 2),
-                               cy-4+Random(8)-(Anim.Height div 2),
-                               Anim, ONCEANIM_SMOKE);
-                1: g_GFX_OnceAnim(cx-4+Random(8)-(Anim.Width div 2),
-                               cy-12+Random(24)-(Anim.Height div 2),
-                               Anim, ONCEANIM_SMOKE);
-                2: g_GFX_OnceAnim(cx-12+Random(24)-(Anim.Width div 2),
-                               cy-4+Random(8)-(Anim.Height div 2),
-                               Anim, ONCEANIM_SMOKE);
+                0:             g_GFX_OnceAnim(cx-4+Random(8)-(Anim.Width div 2),
+                                 cy-4+Random(8)-(Anim.Height div 2),
+                                 Anim, ONCEANIM_SMOKE);
+                MOVE_HITWALL:  g_GFX_OnceAnim(cx-4+Random(8)-(Anim.Width div 2),
+                                 cy-12+Random(24)-(Anim.Height div 2),
+                                 Anim, ONCEANIM_SMOKE);
+                MOVE_HITLAND:  g_GFX_OnceAnim(cx-12+Random(24)-(Anim.Width div 2),
+                                 cy-10+Random(8)-(Anim.Height div 2),
+                                 Anim, ONCEANIM_SMOKE);
+                MOVE_HITCEIL:  g_GFX_OnceAnim(cx-12+Random(24)-(Anim.Width div 2),
+                                 cy+6+Random(8)-(Anim.Height div 2),
+                                 Anim, ONCEANIM_SMOKE);
               end;
               Anim.Free();
             end;
