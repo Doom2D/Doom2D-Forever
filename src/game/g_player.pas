@@ -167,6 +167,7 @@ type
     FObj:       TObj;
     FXTo, FYTo: Integer;
     FSpectatePlayer: Integer;
+    FFirePainTime:   Integer;
 
     FSavedState: TPlayerSavedState;
 
@@ -201,6 +202,7 @@ type
     function    FullInLift(XInc, YInc: Integer): Integer;
     {procedure   CollideItem();}
     procedure   FlySmoke(Times: DWORD = 1);
+    procedure   OnFireFlame(Times: DWORD = 1);
     function    GetAmmoByWeapon(Weapon: Byte): Word;
     procedure   SetAction(Action: Byte; Force: Boolean = False);
     procedure   OnDamage(Angle: SmallInt); virtual;
@@ -244,6 +246,7 @@ type
     FPing:      Word;
     FLoss:      Byte;
     FDummy:     Boolean;
+    FFireTime:  Integer;
 
     constructor Create(); virtual;
     destructor  Destroy(); override;
@@ -305,6 +308,7 @@ type
     procedure   RealizeCurrentWeapon();
     procedure   JetpackOn;
     procedure   JetpackOff;
+    procedure   CatchFire();
 
     property    Name: String read FName write FName;
     property    Model: TPlayerModel read FModel;
@@ -1987,6 +1991,8 @@ begin
   FLoss := 0;
   FSavedState.WaitRecall := False;
   FShellTimer := -1;
+  FFireTime := 0;
+  FFirePainTime := 0;
 
   FActualModelName := 'doomer';
 
@@ -2808,6 +2814,7 @@ begin
     WEAPON_FLAMETHROWER:
       if FAmmo[A_FUEL] > 0 then
       begin
+        g_Weapon_flame(wx, wy, xd, yd, FUID);
         FReloading[FCurrWeap] := WEAPON_RELOAD[FCurrWeap];
         Dec(FAmmo[A_FUEL]);
         FFireAngle := FAngle;
@@ -2871,6 +2878,13 @@ begin
   FJetSoundOn.Stop;
   FJetSoundOff.SetPosition(0);
   FJetSoundOff.PlayAt(FObj.X, FObj.Y);
+end;
+
+procedure TPlayer.CatchFire();
+begin
+  FFireTime := 360;
+  if g_Game_IsNet and g_Game_IsServer then
+    MH_SEND_PlayerStats(FUID);
 end;
 
 procedure TPlayer.Jump();
@@ -4813,6 +4827,29 @@ begin
     end else if FAir < AIR_DEF then
       FAir := AIR_DEF;
 
+    if FFireTime > 0 then
+    begin
+      if BodyInLiquid(0, 0) then
+      begin
+        FFireTime := 0;
+        FFirePainTime := 0;
+      end
+      else
+      begin
+        OnFireFlame(1);
+        if FFirePainTime <= 0 then
+        begin
+          if g_Game_IsServer then
+            Damage(5, 0, 0, 0, HIT_FLAME);
+          FFirePainTime := 18;
+        end;
+        FFirePainTime := FFirePainTime - 1;
+        FFireTime := FFireTime - 1;
+        if (FFireTime = 0) and g_Game_IsNet and g_Game_IsServer then
+          MH_SEND_PlayerStats(FUID);
+      end;
+    end;
+
     if FDamageBuffer > 0 then
     begin
       if FDamageBuffer >= 9 then
@@ -5087,6 +5124,7 @@ begin
 
     WEAPON_FLAMETHROWER:
     begin
+      g_Weapon_flame(wx, wy, xd, yd, FUID, WID);
       FFireAngle := FAngle;
       f := True;
     end;
@@ -5848,6 +5886,27 @@ begin
       Anim.Alpha := 150;
       g_GFX_OnceAnim(Obj.X+Obj.Rect.X+Random(Obj.Rect.Width+Times*2)-(Anim.Width div 2),
                    Obj.Y+Obj.Rect.Height-4+Random(8+Times*2), Anim, ONCEANIM_SMOKE);
+      Anim.Free();
+    end;
+  end;
+end;
+
+procedure TPlayer.OnFireFlame(Times: DWORD = 1);
+var
+  id, i: DWORD;
+  Anim: TAnimation;
+begin
+  if (Random(10) = 1) and (Times = 1) then
+    Exit;
+
+  if g_Frames_Get(id, 'FRAMES_FLAME') then
+  begin
+    for i := 1 to Times do
+    begin
+      Anim := TAnimation.Create(id, False, 3);
+      Anim.Alpha := 0;
+      g_GFX_OnceAnim(Obj.X+Obj.Rect.X+Random(Obj.Rect.Width+Times*2)-(Anim.Width div 2),
+                   Obj.Y+8+Random(8+Times*2), Anim, ONCEANIM_SMOKE);
       Anim.Free();
     end;
   end;

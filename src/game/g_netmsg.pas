@@ -1102,6 +1102,7 @@ begin
     e_Buffer_Write(@NetOut, Byte(FPhysics));
     e_Buffer_Write(@NetOut, Byte(FNoRespawn));
     e_Buffer_Write(@NetOut, Byte(FJetpack));
+    e_Buffer_Write(@NetOut, FFireTime);
   end;
 
   g_Net_Host_Send(ID, True, NET_CHAN_PLAYER);
@@ -1378,6 +1379,7 @@ begin
     e_Buffer_Write(@NetOut, MonsterAmmo);
     e_Buffer_Write(@NetOut, MonsterPain);
     e_Buffer_Write(@NetOut, Byte(AnimIsReverse));
+    e_Buffer_Write(@NetOut, FFireTime);
   end;
 
   g_Net_Host_Send(ID, True, NET_CHAN_MONSTER);
@@ -2182,6 +2184,7 @@ begin
     FNoRespawn := e_Raw_Read_Byte(P) <> 0;
     OldJet := FJetpack;
     FJetpack := e_Raw_Read_Byte(P) <> 0;
+    FFireTime := e_Raw_Read_LongInt(P);
     if OldJet and not FJetpack then
       JetpackOff
     else if not OldJet and FJetpack then
@@ -2668,6 +2671,7 @@ begin
     MonsterAmmo := e_Raw_Read_LongInt(P);
     MonsterPain := e_Raw_Read_LongInt(P);
     AnimRevert := e_Raw_Read_Byte(P) <> 0;
+    FFireTime := e_Raw_Read_LongInt(P);
     RevertAnim(AnimRevert);
 
     if MonsterState <> MState then

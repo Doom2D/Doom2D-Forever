@@ -44,6 +44,7 @@ type
     Animation: TAnimation;
     TextureID: DWORD;
     Timeout: DWORD;
+    Stopped: Byte;
   end;
 
 var
@@ -63,6 +64,7 @@ procedure g_Weapon_punch(x, y: Integer; d, SpawnerUID: Word);
 function g_Weapon_chainsaw(x, y: Integer; d, SpawnerUID: Word): Integer;
 procedure g_Weapon_rocket(x, y, xd, yd: Integer; SpawnerUID: Word; WID: Integer = -1; Silent: Boolean = False);
 procedure g_Weapon_revf(x, y, xd, yd: Integer; SpawnerUID, TargetUID: Word; WID: Integer = -1; Silent: Boolean = False);
+procedure g_Weapon_flame(x, y, xd, yd: Integer; SpawnerUID: Word; WID: Integer = -1; Silent: Boolean = False);
 procedure g_Weapon_plasma(x, y, xd, yd: Integer; SpawnerUID: Word; WID: Integer = -1; Silent: Boolean = False);
 procedure g_Weapon_ball1(x, y, xd, yd: Integer; SpawnerUID: Word; WID: Integer = -1; Silent: Boolean = False);
 procedure g_Weapon_ball2(x, y, xd, yd: Integer; SpawnerUID: Word; WID: Integer = -1; Silent: Boolean = False);
@@ -138,6 +140,10 @@ const
   SHOT_BFG_HEIGHT = 32;
   SHOT_BFG_DAMAGE = 100;
   SHOT_BFG_RADIUS = 256;
+
+  SHOT_FLAME_WIDTH = 4;
+  SHOT_FLAME_HEIGHT = 4;
+  SHOT_FLAME_LIFETIME = 360; 
 
   SHOT_SIGNATURE = $544F4853; // 'SHOT'
 
@@ -346,7 +352,14 @@ begin
   end;
 
   if g_Game_IsServer then
-    Result := m.Damage(d, vx, vy, SpawnerUID, t)
+  begin
+    if (t <> HIT_FLAME) or (m.FFireTime = 0) or (vx <> 0) or (vy <> 0) then
+      Result := m.Damage(d, vx, vy, SpawnerUID, t)
+    else
+      Result := True;
+    if t = HIT_FLAME then
+      m.CatchFire();
+  end
   else
     Result := True;
 end;
@@ -359,7 +372,13 @@ begin
   if (p.UID = SpawnerUID) and (t <> HIT_ROCKET) and (t <> HIT_ELECTRO) then
     Exit;
 
-  if g_Game_IsServer then p.Damage(d, SpawnerUID, vx, vy, t);
+  if g_Game_IsServer then 
+  begin
+    if (t <> HIT_FLAME) or (p.FFireTime = 0) or (vx <> 0) or (vy <> 0) then
+      p.Damage(d, SpawnerUID, vx, vy, t);
+    if (t = HIT_FLAME) then
+      p.CatchFire();
+  end;
 
   Result := True;
 end;
@@ -521,6 +540,23 @@ begin
       end;
     end;
 
+    WEAPON_FLAMETHROWER:
+    begin
+      with Shots[find_id] do
+      begin
+        g_Obj_Init(@Obj);
+
+        Obj.Rect.Width := SHOT_FLAME_WIDTH;
+        Obj.Rect.Height := SHOT_FLAME_HEIGHT;
+
+        Triggers := nil;
+        ShotType := WEAPON_FLAMETHROWER;
+        Animation := nil;
+        TextureID := 0;
+        Stopped := 0;
+      end;
+    end;
+
     WEAPON_IMP_FIRE:
     begin
       with Shots[find_id] do
@@ -648,6 +684,8 @@ begin
   Shots[i].Obj.Accel.Y := 0;
   if Shots[i].ShotType in [WEAPON_ROCKETLAUNCHER, WEAPON_BFG] then
     Shots[i].Timeout := 900 // ~25 sec
+  else if Shots[i].ShotType = WEAPON_FLAMETHROWER then
+    Shots[i].Timeout := SHOT_FLAME_LIFETIME
   else
     Shots[i].Timeout := 550 // ~15 sec
 end;
@@ -988,6 +1026,7 @@ begin
   g_Frames_CreateWAD(nil, 'FRAMES_EXPLODE_IMPFIRE', GameWAD+':TEXTURES\EIMPFIRE', 64, 64, 3);
   g_Frames_CreateWAD(nil, 'FRAMES_BFGHIT', GameWAD+':TEXTURES\BFGHIT', 64, 64, 4);
   g_Frames_CreateWAD(nil, 'FRAMES_FIRE', GameWAD+':TEXTURES\FIRE', 64, 128, 8);
+  g_Frames_CreateWAD(nil, 'FRAMES_FLAME', GameWAD+':TEXTURES\FLAME', 32, 32, 11);
   g_Frames_CreateWAD(nil, 'FRAMES_EXPLODE_PLASMA', GameWAD+':TEXTURES\EPLASMA', 32, 32, 4, True);
   g_Frames_CreateWAD(nil, 'FRAMES_EXPLODE_BSPFIRE', GameWAD+':TEXTURES\EBSPFIRE', 32, 32, 5);
   g_Frames_CreateWAD(nil, 'FRAMES_EXPLODE_CACOFIRE', GameWAD+':TEXTURES\ECACOFIRE', 64, 64, 3);
@@ -1299,6 +1338,45 @@ begin
 
   if not Silent then
     g_Sound_PlayExAt('SOUND_WEAPON_FIREPLASMA', x, y);
+end;
+
+procedure g_Weapon_flame(x, y, xd, yd: Integer; SpawnerUID: Word; WID: Integer = -1;
+  Silent: Boolean = False);
+var
+  find_id, FramesID: DWORD;
+  dx, dy: Integer;
+begin
+  if WID < 0 then
+    find_id := FindShot()
+  else
+  begin
+    find_id := WID;
+    if Integer(find_id) >= High(Shots) then
+      SetLength(Shots, find_id + 64);
+  end;
+
+  with Shots[find_id] do
+  begin
+    g_Obj_Init(@Obj);
+
+    Obj.Rect.Width := SHOT_FLAME_WIDTH;
+    Obj.Rect.Height := SHOT_FLAME_HEIGHT;
+
+    dx := IfThen(xd>x, -Obj.Rect.Width, 0);
+    dy := -(Obj.Rect.Height div 2);
+    throw(find_id, x+dx, y+dy, xd+dx, yd+dy, 16);
+
+    triggers := nil;
+    ShotType := WEAPON_FLAMETHROWER;
+    Animation := nil;
+    TextureID := 0;
+    Stopped := 0;
+  end;
+
+  Shots[find_id].SpawnerUID := SpawnerUID;
+
+  // if not Silent then
+  //  g_Sound_PlayExAt('SOUND_WEAPON_FIREPLASMA', x, y);
 end;
 
 procedure g_Weapon_ball1(x, y, xd, yd: Integer; SpawnerUID: Word; WID: Integer = -1;
@@ -1792,6 +1870,60 @@ begin
             end;
           end;
 
+        WEAPON_FLAMETHROWER: // Огнемет
+          begin
+          // Под водой не стреляет, со временем умирает
+            if (Timeout < 1) or WordBool(st and (MOVE_INWATER)) then
+            begin
+              ShotType := 0;
+              Continue;
+            end;
+
+          // Гравитация
+            if Stopped = 0 then
+              Obj.Accel.Y := Obj.Accel.Y + 1;
+          // Попали в стену или в воду:
+            if WordBool(st and (MOVE_HITWALL or MOVE_HITLAND or MOVE_HITCEIL or MOVE_HITWATER)) then
+            begin
+            // Прилипаем:
+              Obj.Vel.X := 0;
+              Obj.Vel.Y := 0;
+              Obj.Accel.Y := 0;
+              if WordBool(st and (MOVE_HITWALL or MOVE_HITWATER)) then
+                Stopped := 1
+              else
+                Stopped := 2;
+            end;
+
+            a := IfThen(Stopped = 0, 2, 1);
+          // Если в кого-то попали
+            if g_Weapon_Hit(@Obj, a, SpawnerUID, HIT_FLAME, False) <> 0 then
+            begin
+            // HIT_FLAME сам подожжет
+            // Если в полете попали, исчезаем
+              if Stopped = 0 then
+                ShotType := 0;
+            end;
+
+            if g_Frames_Get(_id, 'FRAMES_FLAME') then
+            begin
+              Anim := TAnimation.Create(_id, False, 3);
+              Anim.Alpha := 0;
+              case Stopped of
+                0: g_GFX_OnceAnim(cx-4+Random(8)-(Anim.Width div 2),
+                               cy-4+Random(8)-(Anim.Height div 2),
+                               Anim, ONCEANIM_SMOKE);
+                1: g_GFX_OnceAnim(cx-4+Random(8)-(Anim.Width div 2),
+                               cy-12+Random(24)-(Anim.Height div 2),
+                               Anim, ONCEANIM_SMOKE);
+                2: g_GFX_OnceAnim(cx-12+Random(24)-(Anim.Width div 2),
+                               cy-4+Random(8)-(Anim.Height div 2),
+                               Anim, ONCEANIM_SMOKE);
+              end;
+              Anim.Free();
+            end;
+          end;
+
         WEAPON_BFG: // BFG
           begin
           // Попала в воду - электрошок по воде:
@@ -1901,10 +2033,13 @@ begin
       begin
         if gGameSettings.GameType = GT_SERVER then
           MH_SEND_DeleteShot(i, Obj.X, Obj.Y, Loud);
-        Animation.Free();
-        Animation := nil;
+        if Animation <> nil then
+        begin
+          Animation.Free();
+          Animation := nil;
+        end;
       end
-      else if (oldvx <> Obj.Vel.X) or (oldvy <> Obj.Vel.Y) then
+      else if (ShotType <> WEAPON_FLAMETHROWER) and ((oldvx <> Obj.Vel.X) or (oldvy <> Obj.Vel.Y)) then
         if gGameSettings.GameType = GT_SERVER then
           MH_SEND_UpdateShot(i);
     end;
@@ -1944,7 +2079,7 @@ begin
             else
               Animation.Draw(Obj.X, Obj.Y, M_NONE);
           end
-        else
+        else if TextureID <> 0 then
           begin
             if (Shots[i].ShotType = WEAPON_ROCKETLAUNCHER) then
               e_DrawAdv(TextureID, Obj.X, Obj.Y, 0, True, False, a, @p, M_NONE)
@@ -2026,6 +2161,8 @@ begin
         Mem.WriteDWORD(Shots[i].Triggers[j]);
     // Объект снаряда:
       Obj_SaveState(@Shots[i].Obj, Mem);
+    // Костылина ебаная:
+      Mem.WriteByte(Shots[i].Stopped);
     end;
 end;
 
@@ -2067,6 +2204,8 @@ begin
       Mem.ReadDWORD(Shots[i].Triggers[j]);
   // Объект предмета:
     Obj_LoadState(@Shots[i].Obj, Mem);
+  // Костылина ебаная:
+    Mem.ReadByte(Shots[i].Stopped);
 
   // Установка текстуры или анимации:
     Shots[i].TextureID := DWORD(-1);

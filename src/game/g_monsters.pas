@@ -76,6 +76,7 @@ type
     FBloodKind: Byte;
     FShellTimer: Integer;
     FShellType: Byte;
+    FFirePainTime: Integer;
     vilefire: TAnimation;
 
     FDieTriggers: Array of Integer;
@@ -87,6 +88,7 @@ type
 
   public
     FNoRespawn: Boolean;
+    FFireTime: Integer;
 
     constructor Create(MonsterType: Byte; aID: Integer; ForcedUID: Integer = -1);
     destructor Destroy(); override;
@@ -122,6 +124,8 @@ type
     function  AnimIsReverse: Boolean;
     function  shoot(o: PObj; immediately: Boolean): Boolean;
     function  kick(o: PObj): Boolean;
+    procedure CatchFire();
+    procedure OnFireFlame(Times: DWORD = 1);
 
     property MonsterType: Byte read FMonsterType;
     property MonsterHealth: Integer read FHealth write FHealth;
@@ -1478,6 +1482,8 @@ begin
   FNoRespawn := False;
   FShellTimer := -1;
   FBehaviour := BH_NORMAL;
+  FFireTime := 0;
+  FFirePainTime := 0;
 
   if FMonsterType in [MONSTER_ROBO, MONSTER_BARREL] then
     FBloodKind := BLOOD_SPARKS
@@ -2045,6 +2051,25 @@ begin
 // Сопротивление воздуха для трупа:
   if (FState = STATE_DIE) or (FState = STATE_DEAD) then
     FObj.Vel.X := z_dec(FObj.Vel.X, 1);
+
+  if FFireTime > 0 then
+  begin
+    if WordBool(st and MOVE_INWATER) then
+      FFireTime := 0
+    else
+    begin
+      OnFireFlame(1);
+      FFireTime := FFireTime - 1;
+      if (FState <> STATE_DIE) and (FState <> STATE_DEAD) then
+        if FFirePainTime = 0 then
+        begin
+          Damage(5, 0, 0, 0, HIT_FLAME);
+          FFirePainTime := 18;
+        end
+        else
+          FFirePainTime := FFirePainTime - 1;
+    end;
+  end;
 
 // Мертвый ничего не делает:
   if (FState = STATE_DEAD) then
@@ -2976,6 +3001,17 @@ begin
 // Сопротивление воздуха для трупа:
   if (FState = STATE_DIE) or (FState = STATE_DEAD) then
     FObj.Vel.X := z_dec(FObj.Vel.X, 1);
+
+  if FFireTime > 0 then
+  begin
+    if WordBool(st and MOVE_INWATER) then
+      FFireTime := 0
+    else
+    begin
+      OnFireFlame(1);
+      FFireTime := FFireTime - 1;
+    end;
+  end;
 
 // Мертвый ничего не делает:
   if (FState = STATE_DEAD) then
@@ -4142,6 +4178,34 @@ end;
 procedure TMonster.ClearTriggers();
 begin
   SetLength(FDieTriggers, 0);
+end;
+
+procedure TMonster.CatchFire();
+begin
+  FFireTime := 360;
+  if g_Game_IsNet and g_Game_IsServer then
+    MH_SEND_MonsterState(FUID);
+end;
+
+procedure TMonster.OnFireFlame(Times: DWORD = 1);
+var
+  id, i: DWORD;
+  Anim: TAnimation;
+begin
+  if (Random(10) = 1) and (Times = 1) then
+    Exit;
+
+  if g_Frames_Get(id, 'FRAMES_FLAME') then
+  begin
+    for i := 1 to Times do
+    begin
+      Anim := TAnimation.Create(id, False, 3);
+      Anim.Alpha := 0;
+      g_GFX_OnceAnim(Obj.X+Obj.Rect.X+Random(Obj.Rect.Width+Times*2)-(Anim.Width div 2),
+                   Obj.Y+8+Random(8+Times*2)+IfThen(FState = STATE_DEAD, 16, 0), Anim, ONCEANIM_SMOKE);
+      Anim.Free();
+    end;
+  end;
 end;
 
 end.
