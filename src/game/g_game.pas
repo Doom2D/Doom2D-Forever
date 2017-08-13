@@ -6488,7 +6488,12 @@ begin
 // Debug mode:
   s := Find_Param_Value(pars, '--debug');
   if (s <> '') then
+  begin
     g_Game_SetDebugMode();
+    s := Find_Param_Value(pars, '--netdump');
+    if (s <> '') then
+      NetDump := True;
+  end;
 
 // Connect when game loads
   ip := Find_Param_Value(pars, '-connect');

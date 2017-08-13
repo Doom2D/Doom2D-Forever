@@ -63,6 +63,7 @@ const
   NET_STATE_GAME = 2;
 
   BANLIST_FILENAME = 'banlist.txt';
+  NETDUMP_FILENAME = 'netdump';
 
 type
   TNetClient = record
@@ -86,6 +87,7 @@ type
 var
   NetInitDone:     Boolean = False;
   NetMode:         Byte = NET_NONE;
+  NetDump:         Boolean = False;
 
   NetServerName:   string = 'Unnamed Server';
   NetPassword:     string = '';
@@ -138,6 +140,8 @@ var
 
   NetGotEverything: Boolean = False;
 
+  NetDumpFile: TStream;
+
 function  g_Net_Init(): Boolean;
 procedure g_Net_Cleanup();
 procedure g_Net_Free();
@@ -172,12 +176,17 @@ function  g_Net_UnbanHost(IP: LongWord): Boolean; overload;
 procedure g_Net_UnbanNonPermHosts();
 procedure g_Net_SaveBanList();
 
+procedure g_Net_DumpStart();
+procedure g_Net_DumpSendBuffer();
+procedure g_Net_DumpRecvBuffer(Buf: penet_uint8; Len: LongWord);
+procedure g_Net_DumpEnd();
+
 implementation
 
 uses
   SysUtils,
   e_input, g_nethandler, g_netmsg, g_netmaster, g_player, g_window, g_console,
-  g_main, g_game, g_language, g_weapons;
+  g_main, g_game, g_language, g_weapons, utils;
 
 
 { /// SERVICE FUNCTIONS /// }
@@ -295,6 +304,9 @@ begin
   NetTimeToReliable := 0;
 
   NetMode := NET_NONE;
+
+  if NetDump then
+    g_Net_DumpEnd();
 end;
 
 procedure g_Net_Free();
@@ -362,6 +374,9 @@ begin
 
   NetMode := NET_SERVER;
   e_Buffer_Clear(@NetOut);
+
+  if NetDump then
+    g_Net_DumpStart();
 end;
 
 procedure g_Net_Host_Die();
@@ -431,6 +446,7 @@ begin
     enet_host_broadcast(NetHost, Chan, P);
   end;
 
+  if NetDump then g_Net_DumpSendBuffer();
   g_Net_Flush();
   e_Buffer_Clear(@NetOut);
 end;
@@ -546,6 +562,7 @@ begin
         if ID > High(NetClients) then Exit;
         TC := @NetClients[ID];
 
+        if NetDump then g_Net_DumpRecvBuffer(NetEvent.packet^.data, NetEvent.packet^.dataLength);
         g_Net_HostMsgHandler(TC, NetEvent.packet);
       end;
 
@@ -650,6 +667,7 @@ begin
   if not Assigned(P) then Exit;
 
   enet_peer_send(NetPeer, Chan, P);
+  if NetDump then g_Net_DumpSendBuffer();
   g_Net_Flush();
   e_Buffer_Clear(@NetOut);
 end;
@@ -661,7 +679,10 @@ begin
   begin
     case NetEvent.kind of
       ENET_EVENT_TYPE_RECEIVE:
+      begin
+        if NetDump then g_Net_DumpRecvBuffer(NetEvent.packet^.data, NetEvent.packet^.dataLength);
         g_Net_ClientMsgHandler(NetEvent.packet);
+      end;
 
       ENET_EVENT_TYPE_DISCONNECT:
       begin
@@ -680,7 +701,10 @@ begin
   begin
     case NetEvent.kind of
       ENET_EVENT_TYPE_RECEIVE:
+      begin
+        if NetDump then g_Net_DumpRecvBuffer(NetEvent.packet^.data, NetEvent.packet^.dataLength);
         g_Net_ClientLightMsgHandler(NetEvent.packet);
+      end;
 
       ENET_EVENT_TYPE_DISCONNECT:
       begin
@@ -757,6 +781,8 @@ begin
         enet_peer_timeout(NetPeer, ENET_PEER_TIMEOUT_LIMIT * 2, ENET_PEER_TIMEOUT_MINIMUM * 2, ENET_PEER_TIMEOUT_MAXIMUM * 2);
         NetClientIP := IP;
         NetClientPort := Port;
+        if NetDump then
+          g_Net_DumpStart();
         Exit;
       end;
     end;
@@ -1046,6 +1072,37 @@ begin
       if NetBannedHosts[I].Perm and (NetBannedHosts[I].IP > 0) then
         Writeln(F, IpToStr(NetBannedHosts[I].IP));
   CloseFile(F);
+end;
+
+procedure g_Net_DumpStart();
+begin
+  if NetMode = NET_SERVER then
+    NetDumpFile := createDiskFile(NETDUMP_FILENAME + '_server')
+  else
+    NetDumpFile := createDiskFile(NETDUMP_FILENAME + '_client');
+end;
+
+procedure g_Net_DumpSendBuffer();
+begin
+  writeInt(NetDumpFile, gTime);
+  writeInt(NetDumpFile, LongWord(NetOut.Len));
+  writeInt(NetDumpFile, Byte(1));
+  NetDumpFile.WriteBuffer(NetOut.Data[0], NetOut.Len);
+end;
+
+procedure g_Net_DumpRecvBuffer(Buf: penet_uint8; Len: LongWord);
+begin
+  if (Buf = nil) or (Len = 0) then Exit;
+  writeInt(NetDumpFile, gTime);
+  writeInt(NetDumpFile, Len);
+  writeInt(NetDumpFile, Byte(0));
+  NetDumpFile.WriteBuffer(Buf^, Len);
+end;
+
+procedure g_Net_DumpEnd();
+begin
+  NetDumpFile.Free();
+  NetDumpFile := nil;
 end;
 
 end.
