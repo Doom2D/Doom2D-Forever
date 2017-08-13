@@ -6224,7 +6224,7 @@ var
   firew, fireh: Integer;
   angle: SmallInt;
   mon: TMonster;
-  pla: TPlayer;
+  pla, tpla: TPlayer;
   vsPlayer, vsMonster, ok: Boolean;
 begin
   vsPlayer := LongBool(gGameSettings.Options and GAME_OPTION_BOTVSPLAYER);
@@ -6258,14 +6258,16 @@ begin
       if (g_GetUIDType(Target.UID) = UID_PLAYER) and
           vsPlayer then
         begin // Игрок
-          with g_Player_Get(Target.UID) do
-            begin
-              if (@FObj) <> nil then
+          tpla := g_Player_Get(Target.UID);
+          if tpla <> nil then
+            with tpla do
               begin
-                Target.X := FObj.X;
-                Target.Y := FObj.Y;
+                if (@FObj) <> nil then
+                begin
+                  Target.X := FObj.X;
+                  Target.Y := FObj.Y;
+                end;
               end;
-            end;
 
           Target.cX := Target.X + PLAYER_RECT_CX;
           Target.cY := Target.Y + PLAYER_RECT_CY;
