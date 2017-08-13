@@ -646,15 +646,15 @@ begin
   e_NoGraphics := True;
 {$ENDIF}
 
+  e_WriteLog('Initializing OpenGL', MSG_NOTIFY);
+  InitOpenGL(gVSync);
+
   e_WriteLog('Creating GL window', MSG_NOTIFY);
   if not CreateGLWindow(PChar(Format('Doom 2D: Forever %s', [GAME_VERSION]))) then
   begin
     Result := 0;
     exit;
   end;
-
-  e_WriteLog('Initializing OpenGL', MSG_NOTIFY);
-  InitOpenGL(gVSync);
 
   {EnumDisplayModes();}
 
