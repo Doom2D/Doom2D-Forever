@@ -62,6 +62,7 @@ type
     destructor  Destroy(); override;
 
     procedure   Draw();
+    procedure   DrawShadowVolume(lightX: Integer; lightY: Integer; radius: Integer);
     procedure   Update();
     procedure   SetFrame(Frame: Integer; Count: Byte);
     procedure   NextTexture(AnimLoop: Byte = 0);
@@ -80,7 +81,7 @@ implementation
 
 uses
   SysUtils, g_basic, g_map, MAPDEF, g_game, e_graphics,
-  g_console, g_language, e_log;
+  g_console, g_language, e_log, GL;
 
 const
   PANEL_SIGNATURE = $4C4E4150; // 'PANL'
@@ -306,6 +307,53 @@ begin
                        FAlpha, True, FBlending);
         end;
       end;
+  end;
+end;
+
+procedure TPanel.DrawShadowVolume(lightX: Integer; lightY: Integer; radius: Integer);
+  procedure extrude (x: Integer; y: Integer);
+  begin
+    glVertex2i(x+(x-lightX)*500, y+(y-lightY)*500);
+    //e_WriteLog(Format('  : (%d,%d)', [x+(x-lightX)*300, y+(y-lightY)*300]), MSG_WARNING);
+  end;
+
+  procedure drawLine (x0: Integer; y0: Integer; x1: Integer; y1: Integer);
+  begin
+    // does this side facing the light?
+    if ((x1-x0)*(lightY-y0)-(lightX-x0)*(y1-y0) >= 0) then exit;
+    //e_WriteLog(Format('lightpan: (%d,%d)-(%d,%d)', [x0, y0, x1, y1]), MSG_WARNING);
+    // this edge is facing the light, extrude and draw it
+    glVertex2i(x0, y0);
+    glVertex2i(x1, y1);
+    extrude(x1, y1);
+    extrude(x0, y0);
+  end;
+
+begin
+  if radius < 4 then exit;
+  if Enabled and (FCurTexture >= 0) and (Width > 0) and (Height > 0) and (FAlpha < 255) and g_Collide(X, Y, Width, Height, sX, sY, sWidth, sHeight) then
+  begin
+    if not FTextureIDs[FCurTexture].Anim then
+    begin
+      case FTextureIDs[FCurTexture].Tex of
+        TEXTURE_SPECIAL_WATER: exit;
+        TEXTURE_SPECIAL_ACID1: exit;
+        TEXTURE_SPECIAL_ACID2: exit;
+        TEXTURE_NONE: exit;
+      end;
+    end;
+    if (X+Width < lightX-radius) then exit;
+    if (Y+Height < lightY-radius) then exit;
+    if (X > lightX+radius) then exit;
+    if (Y > lightY+radius) then exit;
+    //e_DrawFill(FTextureIDs[FCurTexture].Tex, X, Y, Width div FTextureWidth, Height div FTextureHeight, FAlpha, True, FBlending);
+
+    glBegin(GL_QUADS);
+      drawLine(x,       y,        x+width, y); // top
+      drawLine(x+width, y,        x+width, y+height); // right
+      drawLine(x+width, y+height, x,       y+height); // bottom
+      drawLine(x,       y+height, x,       y); // left
+    glEnd();
   end;
 end;
 

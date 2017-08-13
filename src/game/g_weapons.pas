@@ -88,6 +88,8 @@ procedure g_Weapon_DestroyShot(I: Integer; X, Y: Integer; Loud: Boolean = True);
 procedure g_Weapon_SaveState(var Mem: TBinMemoryWriter);
 procedure g_Weapon_LoadState(var Mem: TBinMemoryReader);
 
+procedure g_Weapon_AddDynLights();
+
 const
   WEAPON_KASTET         = 0;
   WEAPON_SAW            = 1;
@@ -1820,6 +1822,7 @@ begin
                     Anim := TAnimation.Create(TextureID, False, 8);
                     Anim.Blending := False;
                     g_GFX_OnceAnim((Obj.X+32)-58, (Obj.Y+8)-36, Anim);
+                    g_DynLightExplosion((Obj.X+32), (Obj.Y+8), 64, 1, 0, 0);
                     Anim.Free();
                   end;
                 end
@@ -1830,6 +1833,7 @@ begin
                     Anim := TAnimation.Create(TextureID, False, 6);
                     Anim.Blending := False;
                     g_GFX_OnceAnim(cx-64, cy-64, Anim);
+                    g_DynLightExplosion(cx, cy, 64, 1, 0, 0);
                     Anim.Free();
                   end;
                 end;
@@ -1887,6 +1891,7 @@ begin
                 Anim.Blending := False;
                 g_GFX_OnceAnim(cx-16, cy-16, Anim);
                 Anim.Free();
+                g_DynLightExplosion(cx, cy, 32, 0, 0.5, 0.5);
               end;
 
               g_Sound_PlayExAt('SOUND_WEAPON_EXPLODEPLASMA', Obj.X, Obj.Y);
@@ -1971,6 +1976,7 @@ begin
               end;
               g_GFX_OnceAnim(tcx-(Anim.Width div 2), tcy-(Anim.Height div 2), Anim, ONCEANIM_SMOKE);
               Anim.Free();
+              //g_DynLightExplosion(tcx, tcy, 1, 1, 0.8, 0.3);
             end;
           end;
 
@@ -2000,6 +2006,7 @@ begin
                 Anim.Blending := False;
                 g_GFX_OnceAnim(cx-64, cy-64, Anim);
                 Anim.Free();
+                g_DynLightExplosion(cx, cy, 96, 0, 1, 0);
               end;
 
               g_Sound_PlayExAt('SOUND_WEAPON_EXPLODEBFG', Obj.X, Obj.Y);
@@ -2421,6 +2428,40 @@ begin
 
     ShotType := 0;
     Animation.Free();
+  end;
+end;
+
+
+procedure g_Weapon_AddDynLights();
+var
+  i: Integer;
+begin
+  if Shots = nil then Exit;
+  for i := 0 to High(Shots) do
+  begin
+    if Shots[i].ShotType = 0 then continue;
+    if (Shots[i].ShotType = WEAPON_ROCKETLAUNCHER) or
+       (Shots[i].ShotType = WEAPON_BARON_FIRE) or
+       (Shots[i].ShotType = WEAPON_MANCUB_FIRE) or
+       (Shots[i].ShotType = WEAPON_SKEL_FIRE) or
+       (Shots[i].ShotType = WEAPON_IMP_FIRE) or
+       (Shots[i].ShotType = WEAPON_CACO_FIRE) or
+       (Shots[i].ShotType = WEAPON_MANCUB_FIRE) or
+       (Shots[i].ShotType = WEAPON_BSP_FIRE) or
+       (Shots[i].ShotType = WEAPON_PLASMA) or
+       (Shots[i].ShotType = WEAPON_BFG) or
+       (Shots[i].ShotType = WEAPON_FLAMETHROWER) or
+       false then
+    begin
+      if (Shots[i].ShotType = WEAPON_PLASMA) then
+        g_AddDynLight(Shots[i].Obj.X+(Shots[i].Obj.Rect.Width div 2), Shots[i].Obj.Y+(Shots[i].Obj.Rect.Height div 2), 128,  0, 0.3, 1, 0.4)
+      else if (Shots[i].ShotType = WEAPON_BFG) then
+        g_AddDynLight(Shots[i].Obj.X+(Shots[i].Obj.Rect.Width div 2), Shots[i].Obj.Y+(Shots[i].Obj.Rect.Height div 2), 128,  0, 1, 0, 0.5)
+      else if (Shots[i].ShotType = WEAPON_FLAMETHROWER) then
+        g_AddDynLight(Shots[i].Obj.X+(Shots[i].Obj.Rect.Width div 2), Shots[i].Obj.Y+(Shots[i].Obj.Rect.Height div 2), 42,  1, 0.8, 0, 0.4)
+      else
+        g_AddDynLight(Shots[i].Obj.X+(Shots[i].Obj.Rect.Width div 2), Shots[i].Obj.Y+(Shots[i].Obj.Rect.Height div 2), 128,  1, 0, 0, 0.4);
+    end;
   end;
 end;
 

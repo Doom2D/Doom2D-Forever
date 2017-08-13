@@ -92,6 +92,8 @@ function g_Map_PanelForPID(PanelID: Integer; var PanelArrayID: Integer): PPanel;
 procedure g_Map_SaveState(Var Mem: TBinMemoryWriter);
 procedure g_Map_LoadState(Var Mem: TBinMemoryReader);
 
+procedure g_Map_DrawPanelShadowVolumes(lightX: Integer; lightY: Integer; radius: Integer);
+
 const
   RESPAWNPOINT_PLAYER1 = 1;
   RESPAWNPOINT_PLAYER2 = 2;
@@ -1790,6 +1792,26 @@ begin
     PANEL_ACID2:      DrawPanels(5, gAcid2);
     PANEL_STEP:       DrawPanels(6, gSteps);
   end;
+end;
+
+procedure g_Map_DrawPanelShadowVolumes(lightX: Integer; lightY: Integer; radius: Integer);
+
+  procedure drawPanels (var panels: TPanelArray);
+  var
+    a: Integer;
+  begin
+    if panels <> nil then
+    begin
+      for a := 0 to High(panels) do
+      begin
+        panels[a].DrawShadowVolume(lightX, lightY, radius);
+      end;
+    end;
+  end;
+
+begin
+  drawPanels(gWalls);
+  drawPanels(gRenderForegrounds);
 end;
 
 procedure g_Map_DrawBack(dx, dy: Integer);

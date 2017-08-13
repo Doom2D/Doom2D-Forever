@@ -309,6 +309,10 @@ var
   P1MoveButton: Byte = 0;
   P2MoveButton: Byte = 0;
 
+procedure g_ResetDynlights ();
+procedure g_AddDynLight (x, y, radius: Integer; r, g, b, a: Single);
+procedure g_DynLightExplosion (x, y, radius: Integer; r, g, b: Single);
+
 implementation
 
 uses
@@ -319,6 +323,76 @@ uses
   BinEditor, g_language, g_net, SDL,
   ENet, e_fixedbuffer, g_netmsg, g_netmaster, GL, GLExt,
   utils, sfs;
+
+type
+  TDynLight = record
+    x, y, radius: Integer;
+    r, g, b, a: Single;
+    exploCount: Integer;
+    exploRadius: Integer;
+  end;
+
+var
+  g_dynLights: array of TDynLight = nil;
+  g_dynLightCount: Integer = 0;
+  g_playerLight: Boolean = false;
+
+procedure g_ResetDynlights ();
+var
+  lnum, idx: Integer;
+begin
+  lnum := 0;
+  for idx := 0 to g_dynLightCount-1 do
+  begin
+    if g_dynLights[idx].exploCount = -666 then
+    begin
+      // skip it
+    end
+    else
+    begin
+      // explosion
+      Inc(g_dynLights[idx].exploCount);
+      if (g_dynLights[idx].exploCount < 10) then
+      begin
+        g_dynLights[idx].radius := g_dynLights[idx].exploRadius+g_dynLights[idx].exploCount*8;
+        g_dynLights[idx].a := 0.4+g_dynLights[idx].exploCount/10;
+        if (g_dynLights[idx].a > 0.8) then g_dynLights[idx].a := 0.8;
+        if lnum <> idx then g_dynLights[lnum] := g_dynLights[idx];
+        Inc(lnum);
+      end;
+    end;
+  end;
+  g_dynLightCount := lnum;
+end;
+
+procedure g_AddDynLight (x, y, radius: Integer; r, g, b, a: Single);
+begin
+  if g_dynLightCount = length(g_dynLights) then SetLength(g_dynLights, g_dynLightCount+1024);
+  g_dynLights[g_dynLightCount].x := x;
+  g_dynLights[g_dynLightCount].y := y;
+  g_dynLights[g_dynLightCount].radius := radius;
+  g_dynLights[g_dynLightCount].r := r;
+  g_dynLights[g_dynLightCount].g := g;
+  g_dynLights[g_dynLightCount].b := b;
+  g_dynLights[g_dynLightCount].a := a;
+  g_dynLights[g_dynLightCount].exploCount := -666;
+  Inc(g_dynLightCount);
+end;
+
+procedure g_DynLightExplosion (x, y, radius: Integer; r, g, b: Single);
+begin
+  if g_dynLightCount = length(g_dynLights) then SetLength(g_dynLights, g_dynLightCount+1024);
+  g_dynLights[g_dynLightCount].x := x;
+  g_dynLights[g_dynLightCount].y := y;
+  g_dynLights[g_dynLightCount].radius := 0;
+  g_dynLights[g_dynLightCount].exploRadius := radius;
+  g_dynLights[g_dynLightCount].r := r;
+  g_dynLights[g_dynLightCount].g := g;
+  g_dynLights[g_dynLightCount].b := b;
+  g_dynLights[g_dynLightCount].a := 0;
+  g_dynLights[g_dynLightCount].exploCount := 0;
+  Inc(g_dynLightCount);
+end;
 
 type
   TEndCustomGameStat = record
@@ -1285,6 +1359,18 @@ begin
       if isKeyPressed(KeyWeapon[i], KeyWeapon2[i]) then
         plr.QueueWeaponSwitch(i); // all choices are passed there, and god will take the best
   end;
+
+  // HACK: add dynlight here
+  if e_KeyPressed(IK_F8) and gGameOn and (not gConsoleShow) and (g_ActiveWindow = nil) then
+  begin
+    g_playerLight := true;
+  end;
+  if e_KeyPressed(IK_F9) and gGameOn and (not gConsoleShow) and (g_ActiveWindow = nil) then
+  begin
+    g_playerLight := false;
+  end;
+
+  if (g_playerLight) then g_AddDynLight(plr.GameX+32, plr.GameY+40, 128, 1, 1, 0, 0.6);
 end;
 
 procedure g_Game_Update();
@@ -1295,6 +1381,7 @@ var
   w: Word;
   i, b: Integer;
 begin
+  g_ResetDynlights();
 // Пора выключать игру:
   if gExit = EXIT_QUIT then
     Exit;
@@ -1813,6 +1900,8 @@ begin
     UPSCounter := 0;
     UPSTime := Time;
   end;
+
+  if gGameOn then g_Weapon_AddDynLights();
 end;
 
 procedure g_Game_LoadData();
@@ -2543,6 +2632,8 @@ procedure DrawPlayer(p: TPlayer);
 var
   px, py, a, b, c, d: Integer;
   //R: TRect;
+  lln: Integer;
+  lx, ly, lrad: Integer;
 begin
   if (p = nil) or (p.FDummy) then
   begin
@@ -2650,6 +2741,57 @@ begin
   begin
     g_Monsters_DrawHealth();
     g_Player_DrawHealth();
+  end;
+
+  if gwin_has_stencil and (g_dynLightCount > 0) then
+  begin
+    // setup OpenGL parameters
+    glStencilMask($FFFFFFFF);
+    glStencilFunc(GL_ALWAYS, 0, $FFFFFFFF);
+    glEnable(GL_STENCIL_TEST);
+    //!glEnable(GL_SCISSOR_TEST);
+    //glClear(GL_STENCIL_BUFFER_BIT);
+    glStencilFunc(GL_EQUAL, 0, $ff);
+
+    for lln := 0 to g_dynLightCount-1 do
+    begin
+      lx := g_dynLights[lln].x;
+      ly := g_dynLights[lln].y;
+      lrad := g_dynLights[lln].radius;
+      if lrad < 2 then continue;
+      // set scissor to optimize drawing
+      //!glScissor((lx-cameraOfsX)-lrad+2, v_height-(ly-cameraOfsY)-lrad-1+2, lrad*2-4, lrad*2-4);
+      // clear stencil buffer
+      glClear(GL_STENCIL_BUFFER_BIT); //!!!
+      glStencilOp(GL_KEEP, GL_KEEP, GL_INCR);
+      // draw extruded panels
+      glDisable(GL_TEXTURE_2D);
+      glDisable(GL_BLEND);
+      glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE); // no need to modify color buffer
+      if (lrad > 4) then g_Map_DrawPanelShadowVolumes(lx, ly, lrad);
+      // render light texture
+      glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE); // modify color buffer
+      //glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
+      glStencilOp(GL_ZERO, GL_ZERO, GL_ZERO); // draw light, and clear stencil buffer
+      // blend it
+      glEnable(GL_BLEND);
+      glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+      glEnable(GL_TEXTURE_2D);
+      // color and opacity
+      glColor4f(g_dynLights[lln].r, g_dynLights[lln].g, g_dynLights[lln].b, g_dynLights[lln].a);
+      glBindTexture(GL_TEXTURE_2D, g_Texture_Light());
+      glBegin(GL_QUADS);
+        glTexCoord2f(0.0, 0.0); glVertex2i(lx-lrad, ly-lrad); // top-left
+        glTexCoord2f(1.0, 0.0); glVertex2i(lx+lrad, ly-lrad); // top-right
+        glTexCoord2f(1.0, 1.0); glVertex2i(lx+lrad, ly+lrad); // bottom-right
+        glTexCoord2f(0.0, 1.0); glVertex2i(lx-lrad, ly+lrad); // bottom-left
+      glEnd();
+    end;
+    // done
+    glDisable(GL_STENCIL_TEST);
+    glDisable(GL_BLEND);
+    glDisable(GL_SCISSOR_TEST);
+    //!glScissor((lx-cameraOfsX)-radius+2, v_height-(ly-cameraOfsY)-radius-1+2, radius*2-4, radius*2-4);
   end;
 
   if p.FSpectator then

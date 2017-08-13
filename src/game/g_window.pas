@@ -38,6 +38,7 @@ function  g_Window_SetSize(W, H: Word; FScreen: Boolean): Boolean;
 
 var
   gwin_dump_extensions: Boolean = false;
+  gwin_has_stencil: Boolean = false;
 
 implementation
 
@@ -640,6 +641,7 @@ begin
   SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 8);
   SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 16);
   SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+  SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 1); // lights; it is enough to have 1-bit stencil buffer for lighting
   SDL_GL_SetSwapInterval(v);
 end;
 
@@ -687,6 +689,7 @@ end;
 function SDLMain(): Integer;
 var
   idx: Integer;
+  ltmp: Integer;
 begin
 {$IFDEF HEADLESS}
   e_NoGraphics := True;
@@ -708,6 +711,11 @@ begin
   begin
     if ParamStr(idx) = '--opengl-dump-exts' then gwin_dump_extensions := true;
   end;
+
+  SDL_GL_GetAttribute(SDL_GL_STENCIL_SIZE, @ltmp);
+  e_WriteLog(Format('stencil buffer size: %d', [ltmp]), MSG_WARNING);
+
+  gwin_has_stencil := (ltmp > 0);
 
   if not glHasExtension('GL_ARB_texture_non_power_of_two') then
   begin
