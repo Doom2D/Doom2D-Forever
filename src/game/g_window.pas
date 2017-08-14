@@ -685,6 +685,8 @@ begin
 end;
 
 function SDLMain(): Integer;
+var
+  idx: Integer;
 begin
 {$IFDEF HEADLESS}
   e_NoGraphics := True;
@@ -702,6 +704,11 @@ begin
 
   {EnumDisplayModes();}
 
+  for idx := 1 to ParamCount do
+  begin
+    if ParamStr(idx) = '--opengl-dump-exts' then gwin_dump_extensions := true;
+  end;
+
   if not glHasExtension('GL_ARB_texture_non_power_of_two') then
   begin
     e_WriteLog('Driver DID''T advertised NPOT textures support', MSG_WARNING);
@@ -712,6 +719,7 @@ begin
     e_WriteLog('Driver advertised NPOT textures support', MSG_NOTIFY);
     glLegacyNPOT := false;
   end;
+  gwin_dump_extensions := false;
 
   Init();
   Time_Old := GetTimer();

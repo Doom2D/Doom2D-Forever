@@ -6485,9 +6485,6 @@ var
 begin
   Parse_Params(pars);
 
-  s := Find_Param_Value(pars, '--opengl-dump-exts');
-  if s <> '' then gwin_dump_extensions := true; // sorry
-
 // Debug mode:
   s := Find_Param_Value(pars, '--debug');
   if (s <> '') then
