@@ -3356,13 +3356,21 @@ var
 begin
   result := 255; // default result: "no switch"
   // had weapon cycling on previous frame? remove that flag
-  if (FNextWeap and $2000) <> 0 then begin FNextWeap := FNextWeap and $1FFF; FNextWeapDelay := 0; end;
+  if (FNextWeap and $2000) <> 0 then
+  begin
+    FNextWeap := FNextWeap and $1FFF;
+    FNextWeapDelay := 0;
+  end;
   // cycling has priority
   if (FNextWeap and $C000) <> 0 then
   begin
-    if (FNextWeap and $8000) <> 0 then dir := 1 else dir := -1;
+    if (FNextWeap and $8000) <> 0 then
+      dir := 1
+    else
+      dir := -1;
     FNextWeap := FNextWeap or $2000; // we need this
-    if FNextWeapDelay > 0 then exit; // cooldown time
+    if FNextWeapDelay > 0 then
+      exit; // cooldown time
     cwi := FCurrWeap;
     for i := 0 to High(FWeapon) do
     begin
@@ -3379,8 +3387,14 @@ begin
     exit;
   end;
   // no cycling
-  for i := 0 to High(wantThisWeapon) do wantThisWeapon[i] := false;
-  for i := 0 to High(FWeapon) do if (FNextWeap and (1 shl i)) <> 0 then begin wantThisWeapon[i] := true; Inc(wwc); end;
+  for i := 0 to High(wantThisWeapon) do
+    wantThisWeapon[i] := false;
+  for i := 0 to High(FWeapon) do
+    if (FNextWeap and (1 shl i)) <> 0 then
+    begin
+      wantThisWeapon[i] := true;
+      Inc(wwc);
+    end;
   // exclude currently selected weapon from the set
   wantThisWeapon[FCurrWeap] := false;
   // slow down alterations a little
@@ -3388,11 +3402,19 @@ begin
   begin
     //e_WriteLog(Format(' FNextWeap=%x; delay=%d', [FNextWeap, FNextWeapDelay]), MSG_WARNING);
     // more than one weapon requested, assume "alteration" and check alteration delay
-    if FNextWeapDelay > 0 then begin FNextWeap := 0; exit; end; // yeah
+    if FNextWeapDelay > 0 then
+    begin
+      FNextWeap := 0;
+      exit;
+    end; // yeah
   end;
   // do not reset weapon queue, it will be done in `RealizeCurrentWeapon()`
   // but clear all counters if no weapon should be switched
-  if wwc < 1 then begin resetWeaponQueue(); exit; end;
+  if wwc < 1 then
+  begin
+    resetWeaponQueue();
+    exit;
+  end;
   //e_WriteLog(Format('wwc=%d', [wwc]), MSG_WARNING);
   // try weapons in descending order
   for i := High(FWeapon) downto 0 do
