@@ -19,7 +19,7 @@ unit g_options;
 interface
 
 uses
-  g_language;
+  g_language, g_weapons;
 
 type
   TPlayerControl = record
@@ -33,7 +33,7 @@ type
     KeyPrevWeapon: Word;
     KeyOpen:       Word;
     KeyStrafe:     Word;
-    KeyWeapon:     array [0..9] of Word;
+    KeyWeapon:     array [WP_FIRST..WP_LAST] of Word;
 
     KeyRight2:      Word;
     KeyLeft2:       Word;
@@ -45,7 +45,7 @@ type
     KeyPrevWeapon2: Word;
     KeyOpen2:       Word;
     KeyStrafe2:     Word;
-    KeyWeapon2:     array [0..9] of Word;
+    KeyWeapon2:     array [WP_FIRST..WP_LAST] of Word;
   end;
 
   TGameControls = record

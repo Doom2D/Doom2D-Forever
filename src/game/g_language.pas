@@ -111,6 +111,7 @@ type
     I_GAME_WEAPON7,
     I_GAME_WEAPON8,
     I_GAME_WEAPON9,
+    I_GAME_WEAPON10,
 
     I_MENU_START_GAME,
     I_MENU_MAIN_MENU,
@@ -782,7 +783,7 @@ const
     ('GAME WEAPON4',                   'Super Shotgun',
                                        'Двустволка'),
     ('GAME WEAPON5',                   'Chaingun',
-                                       'Пулемет'),
+                                       'Пулемёт'),
     ('GAME WEAPON6',                   'Rocket Launcher',
                                        'Ракетница'),
     ('GAME WEAPON7',                   'Plasma Gun',
@@ -790,7 +791,9 @@ const
     ('GAME WEAPON8',                   'BFG9000',
                                        'BFG9000'),
     ('GAME WEAPON9',                   'Super Chaingun',
-                                       'Суперпулемет'),
+                                       'Суперпулемёт'),
+    ('GAME WEAPON10',                  'Flamethrower',
+                                       'Огнемёт'),
 
     ('MENU START GAME',                'Start Game',
                                        'НАЧАТЬ ИГРУ'),

@@ -43,7 +43,7 @@ implementation
 
 uses
   g_gui, g_textures, e_graphics, g_main, g_window, g_game, g_map,
-  g_basic, g_console, g_sound, g_gfx, g_player, g_options,
+  g_basic, g_console, g_sound, g_gfx, g_player, g_options, g_weapons,
   e_log, SysUtils, CONFIG, g_playermodel, DateUtils,
   MAPSTRUCT, wadreader, Math, g_saveload,
   e_textures, GL, GLExt, g_language,
@@ -192,7 +192,7 @@ begin
   menu := TGUIMenu(g_GUI_GetWindow('OptionsControlsP1MenuWeapons').GetControl('mOptionsControlsP1MenuWeapons'));
   with menu, gGameControls.P1Control do
   begin
-    for i := 0 to 9 do
+    for i := WP_FIRST to WP_LAST do
     begin
       KeyWeapon[i] := TGUIKeyRead2(GetControl(_lc[TStrings_Locale(Cardinal(I_GAME_WEAPON0) + i)])).Key0;
       KeyWeapon2[i] := TGUIKeyRead2(GetControl(_lc[TStrings_Locale(Cardinal(I_GAME_WEAPON0) + i)])).Key1;
@@ -228,7 +228,7 @@ begin
   menu := TGUIMenu(g_GUI_GetWindow('OptionsControlsP2MenuWeapons').GetControl('mOptionsControlsP2MenuWeapons'));
   with menu, gGameControls.P2Control do
   begin
-    for i := 0 to 9 do
+    for i := WP_FIRST to WP_LAST do
     begin
       KeyWeapon[i] := TGUIKeyRead2(GetControl(_lc[TStrings_Locale(Cardinal(I_GAME_WEAPON0) + i)])).Key0;
       KeyWeapon2[i] := TGUIKeyRead2(GetControl(_lc[TStrings_Locale(Cardinal(I_GAME_WEAPON0) + i)])).Key1;
@@ -374,7 +374,7 @@ begin
   menu := TGUIMenu(g_GUI_GetWindow('OptionsControlsP1MenuWeapons').GetControl('mOptionsControlsP1MenuWeapons'));
   with menu, gGameControls.P1Control do
   begin
-    for i := 0 to 9 do
+    for i := WP_FIRST to WP_LAST do
     begin
       TGUIKeyRead2(GetControl(_lc[TStrings_Locale(Cardinal(I_GAME_WEAPON0) + i)])).Key0 := KeyWeapon[i];
       TGUIKeyRead2(GetControl(_lc[TStrings_Locale(Cardinal(I_GAME_WEAPON0) + i)])).Key1 := KeyWeapon2[i];
@@ -410,7 +410,7 @@ begin
   menu := TGUIMenu(g_GUI_GetWindow('OptionsControlsP2MenuWeapons').GetControl('mOptionsControlsP2MenuWeapons'));
   with menu, gGameControls.P2Control do
   begin
-    for i := 0 to 9 do
+    for i := WP_FIRST to WP_LAST do
     begin
       TGUIKeyRead2(GetControl(_lc[TStrings_Locale(Cardinal(I_GAME_WEAPON0) + i)])).Key0 := KeyWeapon[i];
       TGUIKeyRead2(GetControl(_lc[TStrings_Locale(Cardinal(I_GAME_WEAPON0) + i)])).Key1 := KeyWeapon2[i];
@@ -2663,7 +2663,7 @@ begin
   with TGUIMenu(Menu.AddChild(TGUIMenu.Create(gMenuFont, gMenuSmallFont, _lc[I_MENU_PLAYER_1_WEAPONS]))) do
   begin
     Name := 'mOptionsControlsP1MenuWeapons';
-    for i := 0 to 9 do
+    for i := WP_FIRST to WP_LAST do
       AddKeyRead2(_lc[TStrings_Locale(Cardinal(I_GAME_WEAPON0) + i)]).Name :=
         _lc[TStrings_Locale(Cardinal(I_GAME_WEAPON0) + i)];
   end;
@@ -2692,7 +2692,7 @@ begin
   with TGUIMenu(Menu.AddChild(TGUIMenu.Create(gMenuFont, gMenuSmallFont, _lc[I_MENU_PLAYER_2_WEAPONS]))) do
   begin
     Name := 'mOptionsControlsP2MenuWeapons';
-    for i := 0 to 9 do
+    for i := WP_FIRST to WP_LAST do
       AddKeyRead2(_lc[TStrings_Locale(Cardinal(I_GAME_WEAPON0) + i)]).Name :=
         _lc[TStrings_Locale(Cardinal(I_GAME_WEAPON0) + i)];
   end;
