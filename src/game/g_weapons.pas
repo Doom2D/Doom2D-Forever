@@ -1354,7 +1354,7 @@ end;
 procedure g_Weapon_flame(x, y, xd, yd: Integer; SpawnerUID: Word; WID: Integer = -1;
   Silent: Boolean = False);
 var
-  find_id, FramesID: DWORD;
+  find_id: DWORD;
   dx, dy: Integer;
 begin
   if WID < 0 then
@@ -1711,6 +1711,7 @@ var
   o: TObj;
   spl: Boolean;
   Loud: Boolean;
+  tcx, tcy: Integer;
 begin
   if Shots = nil then
     Exit;
@@ -1911,8 +1912,10 @@ begin
                 begin
                   Anim := TAnimation.Create(_id, False, 3);
                   Anim.Alpha := 0;
-                  g_GFX_OnceAnim(cx-4+Random(8)-(Anim.Width div 2),
-                    cy-4+Random(8)-(Anim.Height div 2),
+                  tcx := Random(8);
+                  tcy := Random(8);
+                  g_GFX_OnceAnim(cx-4+tcx-(Anim.Width div 2),
+                    cy-4+tcy-(Anim.Height div 2),
                     Anim, ONCEANIM_SMOKE);
                   Anim.Free();
                 end;
@@ -1961,19 +1964,12 @@ begin
               Anim := TAnimation.Create(TextureID, False, 2 + Random(2));
               Anim.Alpha := 0;
               case Stopped of
-                MOVE_HITWALL:  g_GFX_OnceAnim(cx-4+Random(8)-(Anim.Width div 2),
-                                 cy-12+Random(24)-(Anim.Height div 2),
-                                 Anim, ONCEANIM_SMOKE);
-                MOVE_HITLAND:  g_GFX_OnceAnim(cx-12+Random(24)-(Anim.Width div 2),
-                                 cy-10+Random(8)-(Anim.Height div 2),
-                                 Anim, ONCEANIM_SMOKE);
-                MOVE_HITCEIL:  g_GFX_OnceAnim(cx-12+Random(24)-(Anim.Width div 2),
-                                 cy+6+Random(8)-(Anim.Height div 2),
-                                 Anim, ONCEANIM_SMOKE);
-                else           g_GFX_OnceAnim(cx-4+Random(8)-(Anim.Width div 2),
-                                 cy-4+Random(8)-(Anim.Height div 2),
-                                 Anim, ONCEANIM_SMOKE);
+                MOVE_HITWALL: begin tcx := cx-4+Random(8); tcy := cy-12+Random(24); end;
+                MOVE_HITLAND: begin tcx := cx-12+Random(24); tcy := cy-10+Random(8); end;
+                MOVE_HITCEIL: begin tcx := cx-12+Random(24); tcy := cy+6+Random(8); end;
+                else begin tcx := cx-4+Random(8); tcy := cy-4+Random(8); end;
               end;
+              g_GFX_OnceAnim(tcx-(Anim.Width div 2), tcy-(Anim.Height div 2), Anim, ONCEANIM_SMOKE);
               Anim.Free();
             end;
           end;
