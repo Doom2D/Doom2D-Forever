@@ -36,6 +36,9 @@ function  GetDisplayModes(dBPP: DWORD; var SelRes: DWORD): SArray;
 function  g_Window_SetDisplay(PreserveGL: Boolean = False): Boolean;
 function  g_Window_SetSize(W, H: Word; FScreen: Boolean): Boolean;
 
+var
+  gwin_dump_extensions: Boolean = false;
+
 implementation
 
 uses
@@ -640,6 +643,47 @@ begin
   SDL_GL_SetSwapInterval(v);
 end;
 
+function glHasExtension (name: AnsiString): Boolean;
+var
+  exts: PChar;
+  i: Integer;
+  found: Boolean;
+  extName: ShortString;
+begin
+  result := false;
+  if length(name) = 0 then exit;
+  exts := glGetString(GL_EXTENSIONS);
+  if exts = nil then exit;
+  while (exts[0] <> #0) and (exts[0] = ' ') do Inc(exts);
+  while exts[0] <> #0 do
+  begin
+    if gwin_dump_extensions then
+    begin
+      i := 0;
+      while (exts[i] <> #0) and (exts[i] <> ' ') do Inc(i);
+      if i > 255 then
+      begin
+        e_WriteLog('FUUUUUUUUUUUUU', MSG_WARNING);
+      end
+      else
+      begin
+        Move(exts^, extName[1], i);
+        extName[0] := Char(i);
+        e_WriteLog(Format('EXT: %s', [extName]), MSG_NOTIFY);
+      end;
+    end;
+    found := true;
+    for i := 0 to length(name)-1 do
+    begin
+      if exts[i] = #0 then begin found := false; break; end;
+      if exts[i] <> name[i+1] then begin found := false; break; end;
+    end;
+    if found and ((exts[length(name)] = #0) or (exts[length(name)] = ' ')) then begin result := true; exit; end;
+    while (exts[0] <> #0) and (exts[0] <> ' ') do Inc(exts);
+    while (exts[0] <> #0) and (exts[0] = ' ') do Inc(exts);
+  end;
+end;
+
 function SDLMain(): Integer;
 begin
 {$IFDEF HEADLESS}
@@ -657,6 +701,17 @@ begin
   end;
 
   {EnumDisplayModes();}
+
+  if not glHasExtension('GL_ARB_texture_non_power_of_two') then
+  begin
+    e_WriteLog('Driver DID''T advertised NPOT textures support', MSG_WARNING);
+    glLegacyNPOT := true;
+  end
+  else
+  begin
+    e_WriteLog('Driver advertised NPOT textures support', MSG_NOTIFY);
+    glLegacyNPOT := false;
+  end;
 
   Init();
   Time_Old := GetTimer();
