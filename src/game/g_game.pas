@@ -2512,6 +2512,7 @@ begin
 
   glTranslatef(-x, -y, 0);
 
+  g_Map_BuildPVP(sX, sY, sX+sWidth-1, sY+sHeight-1);
   g_Map_DrawPanels(PANEL_BACK);
   g_Map_DrawPanels(PANEL_STEP);
   g_Items_Draw();
@@ -2533,6 +2534,7 @@ begin
     g_Monsters_DrawHealth();
     g_Player_DrawHealth();
   end;
+  g_Map_ResetPVP();
 
   glPopMatrix();
 end;
@@ -2626,6 +2628,8 @@ begin
 
   glTranslatef(a, b+p.IncCam, 0);
 
+  g_Map_BuildPVP(sX, sY, sX+sWidth-1, sY+sHeight-1);
+
   g_Map_DrawPanels(PANEL_BACK);
   g_Map_DrawPanels(PANEL_STEP);
   g_Items_Draw();
@@ -2671,6 +2675,7 @@ begin
   }
 
   glPopMatrix();
+  g_Map_ResetPVP();
 
   p.DrawPain();
   p.DrawPickup();

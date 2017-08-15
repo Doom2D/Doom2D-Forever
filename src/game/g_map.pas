@@ -61,7 +61,13 @@ function  g_Map_GetMapsList(WADName: String): SArray;
 function  g_Map_Exist(Res: String): Boolean;
 procedure g_Map_Free();
 procedure g_Map_Update();
+
+// build "potentially visible panels" set, so we can avoid looping over all level panels again and again
+procedure g_Map_BuildPVP (minx, miny, maxx, maxy: Integer);
+procedure g_Map_ResetPVP ();
+// do not call this without calling `g_Map_BuildPVP()` or `g_Map_ResetPVP()` first!
 procedure g_Map_DrawPanels(PanelType: Word);
+
 procedure g_Map_DrawBack(dx, dy: Integer);
 function  g_Map_CollidePanel(X, Y: Integer; Width, Height: Word;
                              PanelType: Word; b1x3: Boolean): Boolean;
@@ -1674,30 +1680,115 @@ begin
   end;
 end;
 
+
+var
+  pvpset: array of PPanel = nil; // potentially lit panels
+  pvpb, pvpe: array [0..7] of Integer; // start/end (inclusive) of the correspoinding type panels in pvpset
+  pvpcount: Integer = -1; // to avoid constant reallocations
+
+function pvpType (panelType: Word): Integer;
+begin
+  case panelType of
+    PANEL_WALL, PANEL_CLOSEDOOR: result := 0; // gWalls
+    PANEL_BACK: result := 1; // gRenderBackgrounds
+    PANEL_FORE: result := 2; // gRenderForegrounds
+    PANEL_WATER: result := 3; // gWater
+    PANEL_ACID1: result := 4; // gAcid1
+    PANEL_ACID2: result := 5; // gAcid2
+    PANEL_STEP: result := 6; // gSteps
+    else result := -1;
+  end;
+end;
+
+procedure g_Map_ResetPVP ();
+begin
+  pvpcount := -1; // special
+end;
+
+procedure g_Map_BuildPVP (minx, miny, maxx, maxy: Integer);
+var
+  idx: Integer;
+  tpc: Integer;
+
+  procedure checkPanels (var panels: TPanelArray; stp: Integer);
+  var
+    idx, x, y, w, h: Integer;
+  begin
+    if panels = nil then exit;
+    tpc := tpc+Length(panels);
+    if (stp < 0) or (stp > 6) then exit;
+    pvpb[stp] := pvpcount;
+    for idx := 0 to High(panels) do
+    begin
+      w := panels[idx].Width;
+      h := panels[idx].Height;
+      if (w < 1) or (h < 1) then continue;
+      x := panels[idx].X;
+      y := panels[idx].Y;
+      if (x > maxx) or (y > maxy) then continue;
+      if (x+w <= minx) or (y+h <= miny) then continue;
+      if pvpcount = length(pvpset) then SetLength(pvpset, pvpcount+32768);
+      pvpset[pvpcount] := @panels[idx];
+      Inc(pvpcount);
+    end;
+    pvpe[stp] := pvpcount-1;
+  end;
+
+begin
+  //e_WriteLog(Format('visible rect: (%d,%d)-(%d,%d)', [minx, miny, maxx, maxy]), MSG_NOTIFY);
+  pvpcount := 0;
+  for idx := 0 to High(pvpb) do begin pvpb[idx] := 0; pvpe[idx] := -1; end;
+  tpc := 0;
+  checkPanels(gWalls, 0);
+  checkPanels(gRenderBackgrounds, 1);
+  checkPanels(gRenderForegrounds, 2);
+  checkPanels(gWater, 3);
+  checkPanels(gAcid1, 4);
+  checkPanels(gAcid2, 5);
+  checkPanels(gSteps, 6);
+  //e_WriteLog(Format('total panels: %d; visible panels: %d', [tpc, pvpcount]), MSG_NOTIFY);
+end;
+
 procedure g_Map_DrawPanels(PanelType: Word);
 
-  procedure DrawPanels(var panels: TPanelArray;
-                       drawDoors: Boolean = False);
+  procedure DrawPanels (stp: Integer; var panels: TPanelArray; drawDoors: Boolean=False);
   var
-    a: Integer;
-
+    idx: Integer;
   begin
-    if panels <> nil then
-      for a := 0 to High(panels) do
-        if not (drawDoors xor panels[a].Door) then
-          panels[a].Draw();
+    if (panels <> nil) and (stp >= 0) and (stp <= 6) then
+    begin
+      if pvpcount < 0 then
+      begin
+        // alas, no visible set
+        for idx := 0 to High(panels) do
+        begin
+          if not (drawDoors xor panels[idx].Door) then panels[idx].Draw();
+        end;
+      end
+      else
+      begin
+        // wow, use visible set
+        if pvpb[stp] <= pvpe[stp] then
+        begin
+          for idx := pvpb[stp] to pvpe[stp] do
+          begin
+            if not (drawDoors xor pvpset[idx].Door) then pvpset[idx].Draw();
+          end;
+        end;
+      end;
+    end;
   end;
 
 begin
   case PanelType of
-    PANEL_WALL:       DrawPanels(gWalls);
-    PANEL_CLOSEDOOR:  DrawPanels(gWalls, True);
-    PANEL_BACK:       DrawPanels(gRenderBackgrounds);
-    PANEL_FORE:       DrawPanels(gRenderForegrounds);
-    PANEL_WATER:      DrawPanels(gWater);
-    PANEL_ACID1:      DrawPanels(gAcid1);
-    PANEL_ACID2:      DrawPanels(gAcid2);
-    PANEL_STEP:       DrawPanels(gSteps);
+    PANEL_WALL:       DrawPanels(0, gWalls);
+    PANEL_CLOSEDOOR:  DrawPanels(0, gWalls, True);
+    PANEL_BACK:       DrawPanels(1, gRenderBackgrounds);
+    PANEL_FORE:       DrawPanels(2, gRenderForegrounds);
+    PANEL_WATER:      DrawPanels(3, gWater);
+    PANEL_ACID1:      DrawPanels(4, gAcid1);
+    PANEL_ACID2:      DrawPanels(5, gAcid2);
+    PANEL_STEP:       DrawPanels(6, gSteps);
   end;
 end;
 
