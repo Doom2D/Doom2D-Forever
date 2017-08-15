@@ -92,6 +92,8 @@ function g_Map_PanelForPID(PanelID: Integer; var PanelArrayID: Integer): PPanel;
 procedure g_Map_SaveState(Var Mem: TBinMemoryWriter);
 procedure g_Map_LoadState(Var Mem: TBinMemoryReader);
 
+// build "possibly lit panels" index, so we can avoid looping over all level panels again and again
+function g_Map_BuildPLP (ltminx, ltminy, ltmaxx, ltmaxy: Integer): Boolean; // returns `false` if no patels lit
 procedure g_Map_DrawPanelShadowVolumes(lightX: Integer; lightY: Integer; radius: Integer);
 
 const
@@ -1794,8 +1796,41 @@ begin
   end;
 end;
 
+var
+  plpset: array of Integer = nil; // potentially lit panels
+  plpcount: Integer; // to avoid constant reallocations
+
+function g_Map_BuildPLP (ltminx, ltminy, ltmaxx, ltmaxy: Integer): Boolean;
+var
+  idx: Integer;
+  panels: TPanelArray;
+begin
+  panels := gWalls;
+  plpcount := 0;
+  if (ltminx < ltmaxx) and (ltminy < ltmaxy) then
+  begin
+    if panels <> nil then
+    begin
+      for idx := 0 to High(panels) do
+      begin
+        if (panels[idx].Width < 1) or (panels[idx].Height < 1) then continue;
+        if (panels[idx].X+panels[idx].Width <= ltminx) then continue;
+        if (panels[idx].Y+panels[idx].Height <= ltminy) then continue;
+        if (panels[idx].X > ltmaxx) then continue;
+        if (panels[idx].Y > ltmaxy) then continue;
+        if plpcount = length(plpset) then SetLength(plpset, plpcount+32768);
+        plpset[plpcount] := idx;
+        Inc(plpcount);
+      end;
+      //e_WriteLog(Format('%d panels left out of %d', [plpcount, Length(panels)]), MSG_NOTIFY);
+    end;
+  end;
+  result := (plpcount > 0);
+end;
+
 procedure g_Map_DrawPanelShadowVolumes(lightX: Integer; lightY: Integer; radius: Integer);
 
+  (* old
   procedure drawPanels (var panels: TPanelArray);
   var
     a: Integer;
@@ -1808,10 +1843,18 @@ procedure g_Map_DrawPanelShadowVolumes(lightX: Integer; lightY: Integer; radius:
       end;
     end;
   end;
-
+  *)
+var
+  idx: Integer;
 begin
+  (*
   drawPanels(gWalls);
   //drawPanels(gRenderForegrounds);
+  *)
+  for idx := 0 to plpcount-1 do
+  begin
+    gWalls[plpset[idx]].DrawShadowVolume(lightX, lightY, radius);
+  end;
 end;
 
 procedure g_Map_DrawBack(dx, dy: Integer);

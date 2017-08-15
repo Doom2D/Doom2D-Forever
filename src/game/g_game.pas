@@ -2634,6 +2634,7 @@ var
   //R: TRect;
   lln: Integer;
   lx, ly, lrad: Integer;
+  ltminx, ltminy, ltmaxx, ltmaxy: Integer;
 begin
   if (p = nil) or (p.FDummy) then
   begin
@@ -2739,54 +2740,82 @@ begin
 
   if gwin_has_stencil and (g_dynLightCount > 0) then
   begin
-    // setup OpenGL parameters
-    glStencilMask($FFFFFFFF);
-    glStencilFunc(GL_ALWAYS, 0, $FFFFFFFF);
-    glEnable(GL_STENCIL_TEST);
-    glEnable(GL_SCISSOR_TEST);
-    glClear(GL_STENCIL_BUFFER_BIT);
-    glStencilFunc(GL_EQUAL, 0, $ff);
+    // get light bounds
+    ltminx := $3fffffff;
+    ltminy := $3fffffff;
+    ltmaxx := -$3fffffff;
+    ltmaxy := -$3fffffff;
 
     for lln := 0 to g_dynLightCount-1 do
     begin
-      lx := g_dynLights[lln].x;
-      ly := g_dynLights[lln].y;
+      lx := g_dynLights[lln].x-sX;
+      ly := g_dynLights[lln].y-sY;
       lrad := g_dynLights[lln].radius;
       if lrad < 3 then continue;
-      // set scissor to optimize drawing
-      glScissor((lx-sX)-lrad+2, gPlayerScreenSize.Y-(ly-sY)-lrad-1+2, lrad*2-4, lrad*2-4);
-      // clear stencil buffer
-      //glClear(GL_STENCIL_BUFFER_BIT); //!!!
-      glStencilOp(GL_KEEP, GL_KEEP, GL_INCR);
-      // draw extruded panels
-      glDisable(GL_TEXTURE_2D);
-      glDisable(GL_BLEND);
-      glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE); // no need to modify color buffer
-      if (lrad > 4) then g_Map_DrawPanelShadowVolumes(lx, ly, lrad);
-      // render light texture
-      glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE); // modify color buffer
-      //glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
-      glStencilOp(GL_ZERO, GL_ZERO, GL_ZERO); // draw light, and clear stencil buffer
-      // blend it
-      glEnable(GL_BLEND);
-      glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-      glEnable(GL_TEXTURE_2D);
-      // color and opacity
-      glColor4f(g_dynLights[lln].r, g_dynLights[lln].g, g_dynLights[lln].b, g_dynLights[lln].a);
-      glBindTexture(GL_TEXTURE_2D, g_Texture_Light());
-      glBegin(GL_QUADS);
-        glTexCoord2f(0.0, 0.0); glVertex2i(lx-lrad, ly-lrad); // top-left
-        glTexCoord2f(1.0, 0.0); glVertex2i(lx+lrad, ly-lrad); // top-right
-        glTexCoord2f(1.0, 1.0); glVertex2i(lx+lrad, ly+lrad); // bottom-right
-        glTexCoord2f(0.0, 1.0); glVertex2i(lx-lrad, ly+lrad); // bottom-left
-      glEnd();
+
+      if lx+lrad < 0 then continue;
+      if ly+lrad < 0 then continue;
+      if lx-lrad >= gPlayerScreenSize.X then continue;
+      if ly-lrad >= gPlayerScreenSize.Y then continue;
+
+      lx := lx+sX;
+      ly := ly+sY;
+
+      if ltminx > lx-lrad then ltminx := lx-lrad;
+      if ltminy > ly-lrad then ltminy := ly-lrad;
+      if ltmaxx < lx+lrad then ltmaxx := lx+lrad;
+      if ltmaxy < ly+lrad then ltmaxy := ly+lrad;
     end;
 
-    // done
-    glDisable(GL_STENCIL_TEST);
-    glDisable(GL_BLEND);
-    glDisable(GL_SCISSOR_TEST);
-    glScissor(0, 0, sWidth, sHeight);
+    if g_Map_BuildPLP(ltminx, ltminy, ltmaxx, ltmaxy) then
+    begin
+      // setup OpenGL parameters
+      glStencilMask($FFFFFFFF);
+      glStencilFunc(GL_ALWAYS, 0, $FFFFFFFF);
+      glEnable(GL_STENCIL_TEST);
+      glEnable(GL_SCISSOR_TEST);
+      glClear(GL_STENCIL_BUFFER_BIT);
+      glStencilFunc(GL_EQUAL, 0, $ff);
+
+      for lln := 0 to g_dynLightCount-1 do
+      begin
+        lx := g_dynLights[lln].x;
+        ly := g_dynLights[lln].y;
+        lrad := g_dynLights[lln].radius;
+        if lrad < 3 then continue;
+        // set scissor to optimize drawing
+        glScissor((lx-sX)-lrad+2, gPlayerScreenSize.Y-(ly-sY)-lrad-1+2, lrad*2-4, lrad*2-4);
+        // no need to clear stencil buffer, light blitting will do it for us
+        glStencilOp(GL_KEEP, GL_KEEP, GL_INCR);
+        // draw extruded panels
+        glDisable(GL_TEXTURE_2D);
+        glDisable(GL_BLEND);
+        glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE); // no need to modify color buffer
+        if (lrad > 4) then g_Map_DrawPanelShadowVolumes(lx, ly, lrad);
+        // render light texture
+        glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE); // modify color buffer
+        glStencilOp(GL_ZERO, GL_ZERO, GL_ZERO); // draw light, and clear stencil buffer
+        // blend it
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        glEnable(GL_TEXTURE_2D);
+        // color and opacity
+        glColor4f(g_dynLights[lln].r, g_dynLights[lln].g, g_dynLights[lln].b, g_dynLights[lln].a);
+        glBindTexture(GL_TEXTURE_2D, g_Texture_Light());
+        glBegin(GL_QUADS);
+          glTexCoord2f(0.0, 0.0); glVertex2i(lx-lrad, ly-lrad); // top-left
+          glTexCoord2f(1.0, 0.0); glVertex2i(lx+lrad, ly-lrad); // top-right
+          glTexCoord2f(1.0, 1.0); glVertex2i(lx+lrad, ly+lrad); // bottom-right
+          glTexCoord2f(0.0, 1.0); glVertex2i(lx-lrad, ly+lrad); // bottom-left
+        glEnd();
+      end;
+
+      // done
+      glDisable(GL_STENCIL_TEST);
+      glDisable(GL_BLEND);
+      glDisable(GL_SCISSOR_TEST);
+      glScissor(0, 0, sWidth, sHeight);
+    end;
   end;
 
   g_Map_DrawPanels(PANEL_FORE);
