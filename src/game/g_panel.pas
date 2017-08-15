@@ -54,6 +54,7 @@ type
     Moved:            Boolean;
     LiftType:         Byte;
     LastAnimLoop:     Byte;
+    ArrIdx:           Integer; // index in one of internal arrays; sorry
 
     constructor Create(PanelRec: TPanelRec_1;
                        AddTextures: TAddTextureArray;

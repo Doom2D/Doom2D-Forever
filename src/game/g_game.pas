@@ -2602,22 +2602,22 @@ begin
   glTranslatef(-x, -y, 0);
 
   g_Map_BuildPVP(sX, sY, sX+sWidth-1, sY+sHeight-1);
-  g_Map_DrawPanels(PANEL_BACK);
-  g_Map_DrawPanels(PANEL_STEP);
+  g_Map_DrawPanels(sX, sY, sWidth, sHeight, PANEL_BACK);
+  g_Map_DrawPanels(sX, sY, sWidth, sHeight, PANEL_STEP);
   g_Items_Draw();
   g_Weapon_Draw();
   g_Player_DrawShells();
   g_Player_DrawAll();
   g_Player_DrawCorpses();
-  g_Map_DrawPanels(PANEL_WALL);
+  g_Map_DrawPanels(sX, sY, sWidth, sHeight, PANEL_WALL);
   g_Monsters_Draw();
-  g_Map_DrawPanels(PANEL_CLOSEDOOR);
+  g_Map_DrawPanels(sX, sY, sWidth, sHeight, PANEL_CLOSEDOOR);
   g_GFX_Draw();
   g_Map_DrawFlags();
-  g_Map_DrawPanels(PANEL_ACID1);
-  g_Map_DrawPanels(PANEL_ACID2);
-  g_Map_DrawPanels(PANEL_WATER);
-  g_Map_DrawPanels(PANEL_FORE);
+  g_Map_DrawPanels(sX, sY, sWidth, sHeight, PANEL_ACID1);
+  g_Map_DrawPanels(sX, sY, sWidth, sHeight, PANEL_ACID2);
+  g_Map_DrawPanels(sX, sY, sWidth, sHeight, PANEL_WATER);
+  g_Map_DrawPanels(sX, sY, sWidth, sHeight, PANEL_FORE);
   if g_debug_HealthBar then
   begin
     g_Monsters_DrawHealth();
@@ -2722,21 +2722,21 @@ begin
 
   g_Map_BuildPVP(sX, sY, sX+sWidth-1, sY+sHeight-1);
 
-  g_Map_DrawPanels(PANEL_BACK);
-  g_Map_DrawPanels(PANEL_STEP);
+  g_Map_DrawPanels(sX, sY, sWidth, sHeight, PANEL_BACK);
+  g_Map_DrawPanels(sX, sY, sWidth, sHeight, PANEL_STEP);
   g_Items_Draw();
   g_Weapon_Draw();
   g_Player_DrawShells();
   g_Player_DrawAll();
   g_Player_DrawCorpses();
-  g_Map_DrawPanels(PANEL_WALL);
+  g_Map_DrawPanels(sX, sY, sWidth, sHeight, PANEL_WALL);
   g_Monsters_Draw();
-  g_Map_DrawPanels(PANEL_CLOSEDOOR);
+  g_Map_DrawPanels(sX, sY, sWidth, sHeight, PANEL_CLOSEDOOR);
   g_GFX_Draw();
   g_Map_DrawFlags();
-  g_Map_DrawPanels(PANEL_ACID1);
-  g_Map_DrawPanels(PANEL_ACID2);
-  g_Map_DrawPanels(PANEL_WATER);
+  g_Map_DrawPanels(sX, sY, sWidth, sHeight, PANEL_ACID1);
+  g_Map_DrawPanels(sX, sY, sWidth, sHeight, PANEL_ACID2);
+  g_Map_DrawPanels(sX, sY, sWidth, sHeight, PANEL_WATER);
 
   if gwin_has_stencil and (g_dynLightCount > 0) then
   begin
@@ -2818,7 +2818,7 @@ begin
     end;
   end;
 
-  g_Map_DrawPanels(PANEL_FORE);
+  g_Map_DrawPanels(sX, sY, sWidth, sHeight, PANEL_FORE);
   if g_debug_HealthBar then
   begin
     g_Monsters_DrawHealth();

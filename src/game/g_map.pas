@@ -14,13 +14,14 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *)
 {$MODE DELPHI}
+{$modeswitch nestedprocvars}
 unit g_map;
 
 interface
 
 uses
   e_graphics, g_basic, MAPSTRUCT, g_textures, Classes,
-  g_phys, wadreader, BinEditor, g_panel, md5;
+  g_phys, wadreader, BinEditor, g_panel, g_grid, md5;
 
 type
   TMapInfo = record
@@ -66,7 +67,7 @@ procedure g_Map_Update();
 procedure g_Map_BuildPVP (minx, miny, maxx, maxy: Integer);
 procedure g_Map_ResetPVP ();
 // do not call this without calling `g_Map_BuildPVP()` or `g_Map_ResetPVP()` first!
-procedure g_Map_DrawPanels(PanelType: Word);
+procedure g_Map_DrawPanels(x0, y0, wdt, hgt: Integer; PanelType: Word);
 
 procedure g_Map_DrawBack(dx, dy: Integer);
 function  g_Map_CollidePanel(X, Y: Integer; Width, Height: Word;
@@ -136,6 +137,7 @@ var
   gWADHash: TMD5Digest;
   BackID:  DWORD = DWORD(-1);
   gExternalResources: TStringList;
+  gMapGrid: TBodyGrid = nil;
 
 implementation
 
@@ -146,7 +148,8 @@ uses
   Math, g_monsters, g_saveload, g_language, g_netmsg,
   utils, sfs,
   ImagingTypes, Imaging, ImagingUtility,
-  ImagingGif, ImagingNetworkGraphics;
+  ImagingGif, ImagingNetworkGraphics,
+  libc;
 
 const
   FLAGRECT: TRectWH = (X:15; Y:12; Width:33; Height:52);
@@ -374,8 +377,8 @@ begin
   len := Length(panels^);
   SetLength(panels^, len + 1);
 
-  panels^[len] := TPanel.Create(PanelRec, AddTextures,
-                                CurTex, Textures);
+  panels^[len] := TPanel.Create(PanelRec, AddTextures, CurTex, Textures);
+  panels^[len].ArrIdx := len;
   if sav then
     panels^[len].SaveIt := True;
 
@@ -934,7 +937,40 @@ var
   Len: Integer;
   ok, isAnim, trigRef: Boolean;
   CurTex, ntn: Integer;
+
+  mapX0: Integer = $3fffffff;
+  mapY0: Integer = $3fffffff;
+  mapX1: Integer = -$3fffffff;
+  mapY1: Integer = -$3fffffff;
+
+  procedure fixMinMax (var panels: TPanelArray);
+  var
+    idx: Integer;
+  begin
+    for idx := 0 to High(panels) do
+    begin
+      if (panels[idx].Width < 1) or (panels[idx].Height < 1) then continue;
+      if mapX0 > panels[idx].X then mapX0 := panels[idx].X;
+      if mapY0 > panels[idx].Y then mapY0 := panels[idx].Y;
+      if mapX1 < panels[idx].X+panels[idx].Width-1 then mapX1 := panels[idx].X+panels[idx].Width-1;
+      if mapY1 < panels[idx].Y+panels[idx].Height-1 then mapY1 := panels[idx].Y+panels[idx].Height-1;
+    end;
+  end;
+
+  procedure addPanelsToGrid (var panels: TPanelArray; tag: Integer);
+  var
+    idx: Integer;
+  begin
+    for idx := 0 to High(panels) do
+    begin
+      gMapGrid.insertBody(panels[idx], panels[idx].X, panels[idx].Y, panels[idx].Width, panels[idx].Height, tag);
+    end;
+  end;
+
 begin
+  gMapGrid.Free();
+  gMapGrid := nil;
+
   Result := False;
   gMapInfo.Map := Res;
   TriggersTable := nil;
@@ -1401,6 +1437,28 @@ begin
     sfsGCEnable(); // enable releasing unused volumes
   end;
 
+  e_WriteLog('Creating map grid', MSG_NOTIFY);
+
+  fixMinMax(gWalls);
+  fixMinMax(gRenderBackgrounds);
+  fixMinMax(gRenderForegrounds);
+  fixMinMax(gWater);
+  fixMinMax(gAcid1);
+  fixMinMax(gAcid2);
+  fixMinMax(gSteps);
+
+  gMapGrid := TBodyGrid.Create(mapX1+1, mapY1+1);
+
+  addPanelsToGrid(gWalls, PANEL_WALL); // and PANEL_CLOSEDOOR
+  addPanelsToGrid(gRenderBackgrounds, PANEL_BACK);
+  addPanelsToGrid(gRenderForegrounds, PANEL_FORE);
+  addPanelsToGrid(gWater, PANEL_WATER);
+  addPanelsToGrid(gAcid1, PANEL_ACID1);
+  addPanelsToGrid(gAcid2, PANEL_ACID2);
+  addPanelsToGrid(gSteps, PANEL_STEP);
+
+  gMapGrid.dumpStats();
+
   e_WriteLog('Done loading map.', MSG_NOTIFY);
   Result := True;
 end;
@@ -1753,7 +1811,7 @@ begin
   //e_WriteLog(Format('total panels: %d; visible panels: %d', [tpc, pvpcount]), MSG_NOTIFY);
 end;
 
-procedure g_Map_DrawPanels(PanelType: Word);
+procedure g_Map_DrawPanelsOld(x0, y0, wdt, hgt: Integer; PanelType: Word);
 
   procedure DrawPanels (stp: Integer; var panels: TPanelArray; drawDoors: Boolean=False);
   var
@@ -1783,7 +1841,109 @@ procedure g_Map_DrawPanels(PanelType: Word);
     end;
   end;
 
+  procedure dumpPanels (stp: Integer; var panels: TPanelArray; drawDoors: Boolean=False);
+  var
+    idx: Integer;
+  begin
+    if (panels <> nil) and (stp >= 0) and (stp <= 6) then
+    begin
+      if pvpcount < 0 then
+      begin
+        // alas, no visible set
+        for idx := 0 to High(panels) do
+        begin
+          if not (drawDoors xor panels[idx].Door) then
+          begin
+            e_WriteLog(Format(' body hit: (%d,%d)-(%dx%d)', [panels[idx].X, panels[idx].Y, panels[idx].Width, panels[idx].Height]), MSG_NOTIFY);
+          end;
+        end;
+      end
+      else
+      begin
+        // wow, use visible set
+        if pvpb[stp] <= pvpe[stp] then
+        begin
+          for idx := pvpb[stp] to pvpe[stp] do
+          begin
+            if not (drawDoors xor pvpset[idx].Door) then
+            begin
+              e_WriteLog(Format(' body hit: (%d,%d)-(%dx%d)', [pvpset[idx].X, pvpset[idx].Y, pvpset[idx].Width, pvpset[idx].Height]), MSG_NOTIFY);
+            end;
+          end;
+        end;
+      end;
+    end;
+  end;
+
+  function qq (obj: TObject; tag: Integer): Boolean;
+  var
+    pan: TPanel;
+  begin
+    result := false; // don't stop, ever
+
+    //e_WriteLog(Format('  *body: tag:%d; qtag:%d', [tag, PanelType]), MSG_NOTIFY);
+
+    if obj = nil then
+    begin
+      e_WriteLog(Format('  !bodyFUUUUU0: tag:%d; qtag:%d', [tag, PanelType]), MSG_NOTIFY);
+    end;
+    if not (obj is TPanel) then
+    begin
+      e_WriteLog(Format('  !bodyFUUUUU1: tag:%d; qtag:%d', [tag, PanelType]), MSG_NOTIFY);
+      exit;
+    end;
+      //pan := (obj as TPanel);
+      //e_WriteLog(Format('  !body: (%d,%d)-(%dx%d) tag:%d; qtag:%d', [pan.X, pan.Y, pan.Width, pan.Height, tag, PanelType]), MSG_NOTIFY);
+
+    if (tag = PANEL_WALL) then
+    begin
+      if (PanelType = PANEL_WALL) then
+      begin
+        pan := (obj as TPanel);
+        if not pan.Door then
+        begin
+          //e_WriteLog(Format('  body hit: (%d,%d)-(%dx%d)', [pan.X, pan.Y, pan.Width, pan.Height]), MSG_NOTIFY);
+          pan.Draw();
+        end;
+      end
+      else if (PanelType = PANEL_CLOSEDOOR) then
+      begin
+        pan := (obj as TPanel);
+        if pan.Door then
+        begin
+          //e_WriteLog(Format('  body hit: (%d,%d)-(%dx%d)', [pan.X, pan.Y, pan.Width, pan.Height]), MSG_NOTIFY);
+          pan.Draw();
+        end;
+      end
+    end
+    else if (PanelType = tag) then
+    begin
+      pan := (obj as TPanel);
+      if not pan.Door then
+      begin
+        //e_WriteLog(Format('  body hit: (%d,%d)-(%dx%d)', [pan.X, pan.Y, pan.Width, pan.Height]), MSG_NOTIFY);
+        pan.Draw();
+      end;
+    end;
+  end;
+
 begin
+  //e_WriteLog(Format('QQQ: qtag:%d', [PanelType]), MSG_NOTIFY);
+  gMapGrid.forEachInAABB(x0, y0, wdt, hgt, qq);
+  (*
+  case PanelType of
+    PANEL_WALL:       dumpPanels(0, gWalls);
+    PANEL_CLOSEDOOR:  dumpPanels(0, gWalls, True);
+    PANEL_BACK:       dumpPanels(1, gRenderBackgrounds);
+    PANEL_FORE:       dumpPanels(2, gRenderForegrounds);
+    PANEL_WATER:      dumpPanels(3, gWater);
+    PANEL_ACID1:      dumpPanels(4, gAcid1);
+    PANEL_ACID2:      dumpPanels(5, gAcid2);
+    PANEL_STEP:       dumpPanels(6, gSteps);
+  end;
+  *)
+
+  (*
   case PanelType of
     PANEL_WALL:       DrawPanels(0, gWalls);
     PANEL_CLOSEDOOR:  DrawPanels(0, gWalls, True);
@@ -1794,6 +1954,109 @@ begin
     PANEL_ACID2:      DrawPanels(5, gAcid2);
     PANEL_STEP:       DrawPanels(6, gSteps);
   end;
+  *)
+end;
+
+var
+  gDrawPanelList: array of TPanel = nil;
+  gDrawPanelListUsed: Integer = 0;
+
+procedure dplClear ();
+begin
+  gDrawPanelListUsed := 0;
+end;
+
+procedure dplAddPanel (pan: TPanel);
+begin
+  if pan = nil then exit;
+  if gDrawPanelListUsed = Length(gDrawPanelList) then SetLength(gDrawPanelList, gDrawPanelListUsed+4096); // arbitrary number
+  gDrawPanelList[gDrawPanelListUsed] := pan;
+  Inc(gDrawPanelListUsed);
+end;
+
+function dplCompare (p0, p1: Pointer): LongInt; cdecl;
+var
+  pan0, pan1: PPanel;
+begin
+  pan0 := PPanel(p0);
+  pan1 := PPanel(p1);
+       if pan0.ArrIdx < pan1.ArrIdx then result := -1
+  else if pan0.ArrIdx > pan1.ArrIdx then result := 1
+  else result := 0;
+end;
+
+procedure dplSort();
+begin
+  qsort(@gDrawPanelList[0], gDrawPanelListUsed, sizeof(TPanel), &dplCompare);
+end;
+
+procedure g_Map_DrawPanels(x0, y0, wdt, hgt: Integer; PanelType: Word);
+
+  function qq (obj: TObject; tag: Integer): Boolean;
+  var
+    pan: TPanel;
+  begin
+    result := false; // don't stop, ever
+
+    //e_WriteLog(Format('  *body: tag:%d; qtag:%d', [tag, PanelType]), MSG_NOTIFY);
+
+    if obj = nil then
+    begin
+      e_WriteLog(Format('  !bodyFUUUUU0: tag:%d; qtag:%d', [tag, PanelType]), MSG_NOTIFY);
+    end;
+    if not (obj is TPanel) then
+    begin
+      e_WriteLog(Format('  !bodyFUUUUU1: tag:%d; qtag:%d', [tag, PanelType]), MSG_NOTIFY);
+      exit;
+    end;
+      //pan := (obj as TPanel);
+      //e_WriteLog(Format('  !body: (%d,%d)-(%dx%d) tag:%d; qtag:%d', [pan.X, pan.Y, pan.Width, pan.Height, tag, PanelType]), MSG_NOTIFY);
+
+    if (tag = PANEL_WALL) then
+    begin
+      if (PanelType = PANEL_WALL) then
+      begin
+        pan := (obj as TPanel);
+        if not pan.Door then
+        begin
+          //e_WriteLog(Format('  body hit: (%d,%d)-(%dx%d)', [pan.X, pan.Y, pan.Width, pan.Height]), MSG_NOTIFY);
+          dplAddPanel(pan);
+        end;
+      end
+      else if (PanelType = PANEL_CLOSEDOOR) then
+      begin
+        pan := (obj as TPanel);
+        if pan.Door then
+        begin
+          //e_WriteLog(Format('  body hit: (%d,%d)-(%dx%d)', [pan.X, pan.Y, pan.Width, pan.Height]), MSG_NOTIFY);
+          dplAddPanel(pan);
+        end;
+      end
+    end
+    else if (PanelType = tag) then
+    begin
+      pan := (obj as TPanel);
+      if not pan.Door then
+      begin
+        //e_WriteLog(Format('  body hit: (%d,%d)-(%dx%d)', [pan.X, pan.Y, pan.Width, pan.Height]), MSG_NOTIFY);
+        dplAddPanel(pan);
+      end;
+    end;
+  end;
+
+var
+  idx: Integer;
+begin
+  //e_WriteLog(Format('QQQ: qtag:%d', [PanelType]), MSG_NOTIFY);
+  dplClear();
+  gMapGrid.forEachInAABB(x0, y0, wdt, hgt, qq);
+  // sort and draw the list (we need to sort it, or rendering is fucked)
+  if gDrawPanelListUsed > 0 then
+  begin
+    dplSort();
+    for idx := 0 to gDrawPanelListUsed-1 do gDrawPanelList[idx].Draw();
+  end;
+  dplClear();
 end;
 
 var
@@ -1865,7 +2128,7 @@ begin
     e_Clear(GL_COLOR_BUFFER_BIT, 0, 0, 0);
 end;
 
-function g_Map_CollidePanel(X, Y: Integer; Width, Height: Word;
+function g_Map_CollidePanelOld(X, Y: Integer; Width, Height: Word;
                             PanelType: Word; b1x3: Boolean): Boolean;
 var
   a, h: Integer;
@@ -1984,6 +2247,121 @@ begin
         end;
     end;
 end;
+
+function g_Map_CollidePanel(X, Y: Integer; Width, Height: Word; PanelType: Word; b1x3: Boolean): Boolean;
+
+  function qq (obj: TObject; tag: Integer): Boolean;
+  var
+    pan: TPanel;
+    a: Integer;
+  begin
+    result := false; // don't stop, ever
+
+    //e_WriteLog(Format('  *body: tag:%d; qtag:%d', [tag, PanelType]), MSG_NOTIFY);
+
+    if obj = nil then
+    begin
+      e_WriteLog(Format('  !bodyFUUUUU0: tag:%d; qtag:%d', [tag, PanelType]), MSG_NOTIFY);
+    end;
+    if not (obj is TPanel) then
+    begin
+      e_WriteLog(Format('  !bodyFUUUUU1: tag:%d; qtag:%d', [tag, PanelType]), MSG_NOTIFY);
+      exit;
+    end;
+
+    pan := (obj as TPanel);
+    a := pan.ArrIdx;
+
+    if WordBool(PanelType and PANEL_WALL) and WordBool(tag and PANEL_WALL) then
+    begin
+      if gWalls[a].Enabled and g_Collide(X, Y, Width, Height, gWalls[a].X, gWalls[a].Y, gWalls[a].Width, gWalls[a].Height) then
+      begin
+        result := true;
+        exit;
+      end;
+    end;
+
+    if WordBool(PanelType and PANEL_WATER) and WordBool(tag and PANEL_WATER) then
+    begin
+      if g_Collide(X, Y, Width, Height, gWater[a].X, gWater[a].Y, gWater[a].Width, gWater[a].Height) then
+      begin
+        result := True;
+        exit;
+      end;
+    end;
+
+    if WordBool(PanelType and PANEL_ACID1) and WordBool(tag and PANEL_ACID1) then
+    begin
+      if g_Collide(X, Y, Width, Height, gAcid1[a].X, gAcid1[a].Y, gAcid1[a].Width, gAcid1[a].Height) then
+      begin
+        result := True;
+        exit;
+      end;
+    end;
+
+    if WordBool(PanelType and PANEL_ACID2) and WordBool(tag and PANEL_ACID2) then
+    begin
+      if g_Collide(X, Y, Width, Height, gAcid2[a].X, gAcid2[a].Y, gAcid2[a].Width, gAcid2[a].Height) then
+      begin
+        result := True;
+        exit;
+      end;
+    end;
+
+    if WordBool(PanelType and PANEL_STEP) and WordBool(tag and PANEL_STEP) then
+    begin
+      if g_Collide(X, Y, Width, Height, gSteps[a].X, gSteps[a].Y, gSteps[a].Width, gSteps[a].Height) then
+      begin
+        result := True;
+        exit;
+      end;
+    end;
+  end;
+
+var
+  a, h: Integer;
+begin
+  result := gMapGrid.forEachInAABB(X, Y, Width, Height, qq);
+  if not result then
+  begin
+    if WordBool(PanelType and (PANEL_LIFTUP or PANEL_LIFTDOWN or PANEL_LIFTLEFT or PANEL_LIFTRIGHT)) and (gLifts <> nil) then
+    begin
+      h := High(gLifts);
+      for a := 0 to h do
+      begin
+        if ((WordBool(PanelType and (PANEL_LIFTUP)) and (gLifts[a].LiftType = 0)) or
+           (WordBool(PanelType and (PANEL_LIFTDOWN)) and (gLifts[a].LiftType = 1)) or
+           (WordBool(PanelType and (PANEL_LIFTLEFT)) and (gLifts[a].LiftType = 2)) or
+           (WordBool(PanelType and (PANEL_LIFTRIGHT)) and (gLifts[a].LiftType = 3))) and
+           g_Collide(X, Y, Width, Height,
+           gLifts[a].X, gLifts[a].Y,
+           gLifts[a].Width, gLifts[a].Height) then
+        begin
+          Result := True;
+          Exit;
+        end;
+      end;
+    end;
+
+    if WordBool(PanelType and PANEL_BLOCKMON) and (gBlockMon <> nil) then
+    begin
+      h := High(gBlockMon);
+      for a := 0 to h do
+      begin
+        if ( (not b1x3) or
+             ((gBlockMon[a].Width + gBlockMon[a].Height) >= 64) ) and
+           g_Collide(X, Y, Width, Height,
+           gBlockMon[a].X, gBlockMon[a].Y,
+           gBlockMon[a].Width, gBlockMon[a].Height) then
+        begin
+          Result := True;
+          Exit;
+        end;
+      end;
+    end;
+  end;
+end;
+
 
 function g_Map_CollideLiquid_Texture(X, Y: Integer; Width, Height: Word): DWORD;
 var
