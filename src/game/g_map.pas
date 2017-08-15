@@ -1811,7 +1811,7 @@ procedure g_Map_DrawPanelShadowVolumes(lightX: Integer; lightY: Integer; radius:
 
 begin
   drawPanels(gWalls);
-  drawPanels(gRenderForegrounds);
+  //drawPanels(gRenderForegrounds);
 end;
 
 procedure g_Map_DrawBack(dx, dy: Integer);

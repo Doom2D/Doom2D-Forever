@@ -2736,12 +2736,6 @@ begin
   g_Map_DrawPanels(PANEL_ACID1);
   g_Map_DrawPanels(PANEL_ACID2);
   g_Map_DrawPanels(PANEL_WATER);
-  g_Map_DrawPanels(PANEL_FORE);
-  if g_debug_HealthBar then
-  begin
-    g_Monsters_DrawHealth();
-    g_Player_DrawHealth();
-  end;
 
   if gwin_has_stencil and (g_dynLightCount > 0) then
   begin
@@ -2749,8 +2743,8 @@ begin
     glStencilMask($FFFFFFFF);
     glStencilFunc(GL_ALWAYS, 0, $FFFFFFFF);
     glEnable(GL_STENCIL_TEST);
-    //!glEnable(GL_SCISSOR_TEST);
-    //glClear(GL_STENCIL_BUFFER_BIT);
+    glEnable(GL_SCISSOR_TEST);
+    glClear(GL_STENCIL_BUFFER_BIT);
     glStencilFunc(GL_EQUAL, 0, $ff);
 
     for lln := 0 to g_dynLightCount-1 do
@@ -2758,11 +2752,11 @@ begin
       lx := g_dynLights[lln].x;
       ly := g_dynLights[lln].y;
       lrad := g_dynLights[lln].radius;
-      if lrad < 2 then continue;
+      if lrad < 3 then continue;
       // set scissor to optimize drawing
-      //!glScissor((lx-cameraOfsX)-lrad+2, v_height-(ly-cameraOfsY)-lrad-1+2, lrad*2-4, lrad*2-4);
+      glScissor((lx-sX)-lrad+2, gPlayerScreenSize.Y-(ly-sY)-lrad-1+2, lrad*2-4, lrad*2-4);
       // clear stencil buffer
-      glClear(GL_STENCIL_BUFFER_BIT); //!!!
+      //glClear(GL_STENCIL_BUFFER_BIT); //!!!
       glStencilOp(GL_KEEP, GL_KEEP, GL_INCR);
       // draw extruded panels
       glDisable(GL_TEXTURE_2D);
@@ -2787,11 +2781,19 @@ begin
         glTexCoord2f(0.0, 1.0); glVertex2i(lx-lrad, ly+lrad); // bottom-left
       glEnd();
     end;
+
     // done
     glDisable(GL_STENCIL_TEST);
     glDisable(GL_BLEND);
     glDisable(GL_SCISSOR_TEST);
-    //!glScissor((lx-cameraOfsX)-radius+2, v_height-(ly-cameraOfsY)-radius-1+2, radius*2-4, radius*2-4);
+    glScissor(0, 0, sWidth, sHeight);
+  end;
+
+  g_Map_DrawPanels(PANEL_FORE);
+  if g_debug_HealthBar then
+  begin
+    g_Monsters_DrawHealth();
+    g_Player_DrawHealth();
   end;
 
   if p.FSpectator then
