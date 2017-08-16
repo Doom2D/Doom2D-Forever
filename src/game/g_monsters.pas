@@ -13,7 +13,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *)
-{$MODE DELPHI}
+{$INCLUDE g_amodes.inc}
 unit g_monsters;
 
 interface
@@ -100,7 +100,7 @@ type
     function Live(): Boolean;
     procedure SetHealth(aH: Integer);
     procedure Push(vx, vy: Integer);
-    function Damage(Damage: Word; VelX, VelY: Integer; SpawnerUID: Word; t: Byte): Boolean;
+    function Damage(aDamage: Word; VelX, VelY: Integer; SpawnerUID: Word; t: Byte): Boolean;
     function Heal(Value: Word): Boolean;
     procedure BFGHit();
     procedure Update();
@@ -1574,7 +1574,7 @@ begin
     vilefire := nil;
 end;
 
-function TMonster.Damage(Damage: Word; VelX, VelY: Integer; SpawnerUID: Word; t: Byte): Boolean;
+function TMonster.Damage(aDamage: Word; VelX, VelY: Integer; SpawnerUID: Word; t: Byte): Boolean;
 var
   c, it: Integer;
   p: TPlayer;
@@ -1604,15 +1604,15 @@ begin
 
 // Роботу урона нет:
   if FMonsterType = MONSTER_ROBO then
-    Damage := 0;
+    aDamage := 0;
 
 // Наносим урон:
-  if g_Game_IsServer then Dec(FHealth, Damage);
+  if g_Game_IsServer then Dec(FHealth, aDamage);
 
 // Усиливаем боль монстра от урона:
   if FPain = 0 then
     FPain := 3;
-  FPain := FPain+Damage;
+  FPain := FPain+aDamage;
 
 // Если боль существенная, то меняем состояние на болевое:
   if FState <> STATE_PAIN then
@@ -1623,8 +1623,8 @@ begin
 // Если разрешена кровь - создаем брызги крови:
   if (gBloodCount > 0) then
   begin
-    c := Min(Damage, 200);
-    c := c*gBloodCount - (Damage div 4) + Random(c div 2);
+    c := Min(aDamage, 200);
+    c := c*gBloodCount - (aDamage div 4) + Random(c div 2);
 
     if (VelX = 0) and (VelY = 0) then
       MakeBloodSimple(c)
