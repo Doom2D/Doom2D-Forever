@@ -67,6 +67,7 @@ type
   TBodyGrid = class(TObject)
   private
     mTileSize: Integer;
+    mMinX, mMinY: Integer; // so grids can start at any origin
     mWidth, mHeight: Integer; // in tiles
     mGrid: array of Integer; // mWidth*mHeight, index in mCells
     mCells: array of TGridCell; // cell pool
@@ -90,7 +91,7 @@ type
     function forGridRect (x, y, w, h: Integer; cb: GridInternalCB): Boolean;
 
   public
-    constructor Create (aPixWidth, aPixHeight: Integer; aTileSize: Integer=GridDefaultTileSize);
+    constructor Create (aMinPixX, aMinPixY, aPixWidth, aPixHeight: Integer; aTileSize: Integer=GridDefaultTileSize);
     destructor Destroy (); override;
 
     function insertBody (aObj: TObject; ax, ay, aWidth, aHeight: Integer; aTag: Integer=0): TBodyProxy;
@@ -170,7 +171,7 @@ end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-constructor TBodyGrid.Create (aPixWidth, aPixHeight: Integer; aTileSize: Integer=GridDefaultTileSize);
+constructor TBodyGrid.Create (aMinPixX, aMinPixY, aPixWidth, aPixHeight: Integer; aTileSize: Integer=GridDefaultTileSize);
 var
   idx: Integer;
 begin
@@ -179,6 +180,8 @@ begin
   if aPixWidth < aTileSize then aPixWidth := aTileSize;
   if aPixHeight < aTileSize then aPixHeight := aTileSize;
   mTileSize := aTileSize;
+  mMinX := aMinPixX;
+  mMinY := aMinPixY;
   mWidth := (aPixWidth+aTileSize-1) div aTileSize;
   mHeight := (aPixHeight+aTileSize-1) div aTileSize;
   SetLength(mGrid, mWidth*mHeight);
@@ -334,6 +337,10 @@ var
 begin
   result := false;
   if (w < 1) or (h < 1) or not assigned(cb) then exit;
+  // fix coords
+  Dec(x, mMinX);
+  Dec(y, mMinY);
+  // go on
   if (x+w <= 0) or (y+h <= 0) then exit;
   if (x >= mWidth*mTileSize) or (y >= mHeight*mTileSize) then exit;
   for gy := y div mTileSize to (y+h-1) div mTileSize do
