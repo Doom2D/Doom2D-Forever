@@ -37,6 +37,11 @@ type
     mObj: TObject;
     mGrid: TBodyGrid;
     mTag: Integer;
+    prevLink: TBodyProxy; // only for used
+    nextLink: TBodyProxy; // either used or free
+
+  private
+    procedure setup (aX, aY, aWidth, aHeight: Integer; aObj: TObject; aTag: Integer);
 
   public
     constructor Create (aGrid: TBodyGrid; aX, aY, aWidth, aHeight: Integer; aObj: TObject; aTag: Integer);
@@ -66,10 +71,16 @@ type
     mFreeCell: Integer; // first free cell index or -1
     mLastQuery: Integer;
     mUsedCells: Integer;
+    mProxyFree: TBodyProxy; // free
+    mProxyList: TBodyProxy; // used
+    mProxyCount: Integer; // total allocated
 
   private
     function allocCell: Integer;
     procedure freeCell (idx: Integer); // `next` is simply overwritten
+
+    function allocProxy (aX, aY, aWidth, aHeight: Integer; aObj: TObject; aTag: Integer): TBodyProxy;
+    procedure freeProxy (body: TBodyProxy);
 
     procedure insert (body: TBodyProxy);
     procedure remove (body: TBodyProxy);
@@ -79,6 +90,8 @@ type
     destructor Destroy (); override;
 
     function insertBody (aObj: TObject; ax, ay, aWidth, aHeight: Integer; aTag: Integer=0): TBodyProxy;
+    procedure removeBody (aObj: TBodyProxy); // WARNING! this will NOT destroy proxy!
+
     procedure moveBody (body: TBodyProxy; dx, dy: Integer);
     procedure resizeBody (body: TBodyProxy; sx, sy: Integer);
     procedure moveResizeBody (body: TBodyProxy; dx, dy, sx, sy: Integer);
@@ -91,6 +104,33 @@ type
   end;
 
 
+type
+  TBinaryHeapLessFn = function (a, b: TObject): Boolean;
+
+  TBinaryHeapObj = class(TObject)
+  private
+    elem: array of TObject;
+    elemUsed: Integer;
+    lessfn: TBinaryHeapLessFn;
+
+  private
+    procedure heapify (root: Integer);
+
+  public
+    constructor Create (alessfn: TBinaryHeapLessFn);
+    destructor Destroy (); override;
+
+    procedure clear ();
+
+    procedure insert (val: TObject);
+
+    function front (): TObject;
+    procedure popFront ();
+
+    property count: Integer read elemUsed;
+  end;
+
+
 implementation
 
 uses
@@ -100,18 +140,28 @@ uses
 // ////////////////////////////////////////////////////////////////////////// //
 constructor TBodyProxy.Create (aGrid: TBodyGrid; aX, aY, aWidth, aHeight: Integer; aObj: TObject; aTag: Integer);
 begin
+  mGrid := aGrid;
+  setup(aX, aY, aWidth, aHeight, aObj, aTag);
+end;
+
+
+destructor TBodyProxy.Destroy ();
+begin
+  inherited;
+end;
+
+
+procedure TBodyProxy.setup (aX, aY, aWidth, aHeight: Integer; aObj: TObject; aTag: Integer);
+begin
   mX := aX;
   mY := aY;
   mWidth := aWidth;
   mHeight := aHeight;
   mQueryMark := 0;
   mObj := aObj;
-  mGrid := aGrid;
   mTag := aTag;
-end;
-
-destructor TBodyProxy.Destroy ();
-begin
+  prevLink := nil;
+  nextLink := nil;
 end;
 
 
@@ -141,18 +191,35 @@ begin
   for idx := 0 to High(mGrid) do mGrid[idx] := -1;
   mLastQuery := 0;
   mUsedCells := 0;
+  mProxyFree := nil;
+  mProxyList := nil;
+  mProxyCount := 0;
   e_WriteLog(Format('created grid with size: %dx%d (tile size: %d); pix: %dx%d', [mWidth, mHeight, mTileSize, mWidth*mTileSize, mHeight*mTileSize]), MSG_NOTIFY);
 end;
 
 
 destructor TBodyGrid.Destroy ();
 var
-  idx: Integer;
+  px: TBodyProxy;
 begin
   // free all owned proxies
-  for idx := 0 to High(mCells) do mCells[idx].body.Free;
+  while mProxyFree <> nil do
+  begin
+    px := mProxyFree;
+    mProxyFree := px.nextLink;
+    px.Free();
+  end;
+
+  while mProxyList <> nil do
+  begin
+    px := mProxyList;
+    mProxyList := px.nextLink;
+    px.Free();
+  end;
+
   mCells := nil;
   mGrid := nil;
+  inherited;
 end;
 
 
@@ -172,7 +239,7 @@ begin
     end;
     if (mcb < cnt) then mcb := cnt;
   end;
-  e_WriteLog(Format('grid size: %dx%d (tile size: %d); pix: %dx%d; used cells: %d; max bodys in cell: %d', [mWidth, mHeight, mTileSize, mWidth*mTileSize, mHeight*mTileSize, mUsedCells, mcb]), MSG_NOTIFY);
+  e_WriteLog(Format('grid size: %dx%d (tile size: %d); pix: %dx%d; used cells: %d; max bodies in cell: %d; proxies allocated: %d', [mWidth, mHeight, mTileSize, mWidth*mTileSize, mHeight*mTileSize, mUsedCells, mcb, mProxyCount]), MSG_NOTIFY);
 end;
 
 
@@ -184,7 +251,7 @@ begin
   begin
     // no free cells, want more
     mFreeCell := Length(mCells);
-    SetLength(mCells, mFreeCell+16384); // arbitrary number
+    SetLength(mCells, mFreeCell+32768); // arbitrary number
     for idx := mFreeCell to High(mCells) do
     begin
       mCells[idx].body := nil;
@@ -210,6 +277,50 @@ begin
     mFreeCell := idx;
     Dec(mUsedCells);
   end;
+end;
+
+
+function TBodyGrid.allocProxy (aX, aY, aWidth, aHeight: Integer; aObj: TObject; aTag: Integer): TBodyProxy;
+begin
+  if (mProxyFree = nil) then
+  begin
+    // no free proxies, create new
+    result := TBodyProxy.Create(self, aX, aY, aWidth, aHeight, aObj, aTag);
+    Inc(mProxyCount);
+  end
+  else
+  begin
+    // get one from list
+    result := mProxyFree;
+    mProxyFree := result.nextLink;
+    result.setup(aX, aY, aWidth, aHeight, aObj, aTag);
+  end;
+  // add to used list
+  result.nextLink := mProxyList;
+  if (mProxyList <> nil) then mProxyList.prevLink := result;
+  mProxyList := result;
+end;
+
+procedure TBodyGrid.freeProxy (body: TBodyProxy);
+begin
+  if body = nil then exit; // just in case
+  // remove from used list
+  if (body.prevLink = nil) then
+  begin
+    // this must be head
+    if (body <> mProxyList) then raise Exception.Create('wutafuuuuu in grid?');
+    mProxyList := body.nextLink;
+  end
+  else
+  begin
+    body.prevLink.nextLink := body.nextLink;
+  end;
+  if (body.nextLink <> nil) then body.nextLink.prevLink := body.prevLink;
+  // add to free list
+  //body.mObj := nil; //WARNING! DON'T DO THIS! `removeBody()` depends on valid mObj
+  body.prevLink := nil;
+  body.nextLink := mProxyFree;
+  mProxyFree := body;
 end;
 
 
@@ -306,10 +417,22 @@ end;
 
 function TBodyGrid.insertBody (aObj: TObject; aX, aY, aWidth, aHeight: Integer; aTag: Integer=0): TBodyProxy;
 begin
-  result := nil;
-  if aObj = nil then exit;
-  result := TBodyProxy.Create(self, aX, aY, aWidth, aHeight, aObj, aTag);
+  result := allocProxy(aX, aY, aWidth, aHeight, aObj, aTag);
   insert(result);
+end;
+
+
+// WARNING! this will NOT destroy proxy!
+procedure TBodyGrid.removeBody (aObj: TBodyProxy);
+begin
+  if aObj = nil then exit;
+  if (aObj.mGrid <> self) then raise Exception.Create('trying to remove alien proxy from grid');
+  removeBody(aObj);
+  //HACK!
+  freeProxy(aObj);
+  if (mProxyFree <> aObj) then raise Exception.Create('grid deletion invariant fucked');
+  mProxyFree := aObj.nextLink;
+  aObj.nextLink := nil;
 end;
 
 
@@ -395,5 +518,85 @@ begin
   result := nil;
   forEachInAABB(x, y, w, h, qq);
 end;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
+constructor TBinaryHeapObj.Create (alessfn: TBinaryHeapLessFn);
+begin
+  if not assigned(alessfn) then raise Exception.Create('wutafuck?!');
+  lessfn := alessfn;
+  SetLength(elem, 8192); // 'cause why not?
+  elemUsed := 0;
+end;
+
+
+destructor TBinaryHeapObj.Destroy ();
+begin
+  inherited;
+end;
+
+
+procedure TBinaryHeapObj.clear ();
+begin
+  elemUsed := 0;
+end;
+
+
+procedure TBinaryHeapObj.heapify (root: Integer);
+var
+  smallest, right: Integer;
+  tmp: TObject;
+begin
+  while true do
+  begin
+    smallest := 2*root+1; // left child
+    if (smallest >= elemUsed) then break; // anyway
+    right := smallest+1; // right child
+    if not lessfn(elem[smallest], elem[root]) then smallest := root;
+    if (right < elemUsed) and (lessfn(elem[right], elem[smallest])) then smallest := right;
+    if (smallest = root) then break;
+    // swap
+    tmp := elem[root];
+    elem[root] := elem[smallest];
+    elem[smallest] := tmp;
+    root := smallest;
+  end;
+end;
+
+
+procedure TBinaryHeapObj.insert (val: TObject);
+var
+  i, par: Integer;
+begin
+  if (val = nil) then exit;
+  i := elemUsed;
+  if (i = Length(elem)) then SetLength(elem, Length(elem)+16384); // arbitrary number
+  Inc(elemUsed);
+  while (i <> 0) do
+  begin
+    par := (i-1) div 2; // parent
+    if not lessfn(val, elem[par]) then break;
+    elem[i] := elem[par];
+    i := par;
+  end;
+  elem[i] := val;
+end;
+
+function TBinaryHeapObj.front (): TObject;
+begin
+  if elemUsed > 0 then result := elem[0] else result := nil;
+end;
+
+
+procedure TBinaryHeapObj.popFront ();
+begin
+  if (elemUsed > 0) then
+  begin
+    Dec(elemUsed);
+    elem[0] := elem[elemUsed];
+    heapify(0);
+  end;
+end;
+
 
 end.

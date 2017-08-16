@@ -148,8 +148,7 @@ uses
   Math, g_monsters, g_saveload, g_language, g_netmsg,
   utils, sfs,
   ImagingTypes, Imaging, ImagingUtility,
-  ImagingGif, ImagingNetworkGraphics,
-  libc;
+  ImagingGif, ImagingNetworkGraphics;
 
 const
   FLAGRECT: TRectWH = (X:15; Y:12; Width:33; Height:52);
@@ -1957,38 +1956,26 @@ begin
   *)
 end;
 
+
 var
-  gDrawPanelList: array of TPanel = nil;
-  gDrawPanelListUsed: Integer = 0;
+  gDrawPanelList: TBinaryHeapObj = nil;
+
+function dplLess (a, b: TObject): Boolean;
+begin
+  result := ((a as TPanel).ArrIdx < (b as TPanel).ArrIdx);
+end;
 
 procedure dplClear ();
 begin
-  gDrawPanelListUsed := 0;
+  if gDrawPanelList = nil then gDrawPanelList := TBinaryHeapObj.Create(@dplLess) else gDrawPanelList.clear();
 end;
 
 procedure dplAddPanel (pan: TPanel);
 begin
   if pan = nil then exit;
-  if gDrawPanelListUsed = Length(gDrawPanelList) then SetLength(gDrawPanelList, gDrawPanelListUsed+4096); // arbitrary number
-  gDrawPanelList[gDrawPanelListUsed] := pan;
-  Inc(gDrawPanelListUsed);
+  gDrawPanelList.insert(pan);
 end;
 
-function dplCompare (p0, p1: Pointer): LongInt; cdecl;
-var
-  pan0, pan1: PPanel;
-begin
-  pan0 := PPanel(p0);
-  pan1 := PPanel(p1);
-       if pan0.ArrIdx < pan1.ArrIdx then result := -1
-  else if pan0.ArrIdx > pan1.ArrIdx then result := 1
-  else result := 0;
-end;
-
-procedure dplSort();
-begin
-  qsort(@gDrawPanelList[0], gDrawPanelListUsed, sizeof(TPanel), &dplCompare);
-end;
 
 procedure g_Map_DrawPanels(x0, y0, wdt, hgt: Integer; PanelType: Word);
 
@@ -2044,19 +2031,16 @@ procedure g_Map_DrawPanels(x0, y0, wdt, hgt: Integer; PanelType: Word);
     end;
   end;
 
-var
-  idx: Integer;
 begin
   //e_WriteLog(Format('QQQ: qtag:%d', [PanelType]), MSG_NOTIFY);
   dplClear();
   gMapGrid.forEachInAABB(x0, y0, wdt, hgt, qq);
   // sort and draw the list (we need to sort it, or rendering is fucked)
-  if gDrawPanelListUsed > 0 then
+  while gDrawPanelList.count > 0 do
   begin
-    dplSort();
-    for idx := 0 to gDrawPanelListUsed-1 do gDrawPanelList[idx].Draw();
+    (gDrawPanelList.front() as TPanel).Draw();
+    gDrawPanelList.popFront();
   end;
-  dplClear();
 end;
 
 var
