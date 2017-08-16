@@ -62,6 +62,8 @@ type
     next: Integer; // in this cell; index in mCells
   end;
 
+  GridInternalCB = function (grida: Integer): Boolean is nested; // return `true` to stop
+
   TBodyGrid = class(TObject)
   private
     mTileSize: Integer;
@@ -84,6 +86,8 @@ type
 
     procedure insert (body: TBodyProxy);
     procedure remove (body: TBodyProxy);
+
+    function forGridRect (x, y, w, h: Integer; cb: GridInternalCB): Boolean;
 
   public
     constructor Create (aPixWidth, aPixHeight: Integer; aTileSize: Integer=GridDefaultTileSize);
@@ -324,94 +328,80 @@ begin
 end;
 
 
-procedure TBodyGrid.insert (body: TBodyProxy);
+function TBodyGrid.forGridRect (x, y, w, h: Integer; cb: GridInternalCB): Boolean;
 var
-  dx, dy, gx, gy, cidx: Integer;
+  gx, gy: Integer;
+begin
+  result := false;
+  if (w < 1) or (h < 1) or not assigned(cb) then exit;
+  if (x+w <= 0) or (y+h <= 0) then exit;
+  if (x >= mWidth*mTileSize) or (y >= mHeight*mTileSize) then exit;
+  for gy := y div mTileSize to (y+h-1) div mTileSize do
+  begin
+    if (gy < 0) then continue;
+    if (gy >= mHeight) then break;
+    for gx := x div mTileSize to (x+w-1) div mTileSize do
+    begin
+      if (gx < 0) then continue;
+      if (gx >= mWidth) then break;
+      if (cb(gy*mWidth+gx)) then begin result := true; exit; end;
+    end;
+  end;
+end;
+
+
+procedure TBodyGrid.insert (body: TBodyProxy);
+
+  function inserter (grida: Integer): Boolean;
+  var
+    cidx: Integer;
+  begin
+    result := false; // never stop
+    // add body to the given grid cell
+    cidx := allocCell();
+    //e_WriteLog(Format('  01: allocated cell for grid coords (%d,%d), body coords:(%d,%d): #%d', [gx, gy, dx, dy, cidx]), MSG_NOTIFY);
+    mCells[cidx].body := body;
+    mCells[cidx].next := mGrid[grida];
+    mGrid[grida] := cidx;
+  end;
+
 begin
   if body = nil then exit;
-  if (body.mWidth < 1) or (body.mHeight < 1) then exit;
-  // out of grid?
-  if (body.mX+body.mWidth <= 0) or (body.mY+body.mHeight <= 0) then exit;
-  if (body.mX >= mWidth*mTileSize) or (body.mY >= mHeight*mTileSize) then exit;
-  //e_WriteLog(Format('grid: inserting body: (%d,%d)-(%dx%d)', [body.mX, body.mY, body.mWidth, body.mHeight]), MSG_NOTIFY);
-  gy := body.mY div mTileSize;
-  dy := 0;
-  while (dy < body.mHeight) do
-  begin
-    if (gy >= 0) and (gy < mHeight) then
-    begin
-      dx := 0;
-      gx := body.mX div mTileSize;
-      while (dx < body.mWidth) do
-      begin
-        if (gx >= 0) and (gx < mWidth) then
-        begin
-          //e_WriteLog(Format('  00: allocating cell for grid coords (%d,%d), body coords:(%d,%d)', [gx, gy, dx, dy]), MSG_NOTIFY);
-          cidx := allocCell();
-          //e_WriteLog(Format('  01: allocated cell for grid coords (%d,%d), body coords:(%d,%d): #%d', [gx, gy, dx, dy, cidx]), MSG_NOTIFY);
-          mCells[cidx].body := body;
-          mCells[cidx].next := mGrid[gy*mWidth+gx];
-          mGrid[gy*mWidth+gx] := cidx;
-          //e_WriteLog(Format('  02: put cell for grid coords (%d,%d), body coords:(%d,%d): #%d', [gx, gy, dx, dy, cidx]), MSG_NOTIFY);
-        end;
-        Inc(dx, mTileSize);
-        Inc(gx);
-      end;
-    end;
-    Inc(dy, mTileSize);
-    Inc(gy);
-  end;
+  forGridRect(body.mX, body.mY, body.mWidth, body.mHeight, inserter);
 end;
 
 
 // absolutely not tested
 procedure TBodyGrid.remove (body: TBodyProxy);
-var
-  dx, dy, gx, gy, idx, pidx, tmp: Integer;
+
+  function remover (grida: Integer): Boolean;
+  var
+    pidx, idx, tmp: Integer;
+  begin
+    result := false; // never stop
+    // find and remove cell
+    pidx := -1;
+    idx := mGrid[grida];
+    while idx >= 0 do
+    begin
+      tmp := mCells[idx].next;
+      if (mCells[idx].body = body) then
+      begin
+        if (pidx = -1) then mGrid[grida] := tmp else mCells[pidx].next := tmp;
+        freeCell(idx);
+        break; // assume that we cannot have one object added to bucket twice
+      end
+      else
+      begin
+        pidx := idx;
+      end;
+      idx := tmp;
+    end;
+  end;
+
 begin
   if body = nil then exit;
-  if (body.mWidth < 1) or (body.mHeight < 1) then exit;
-  // out of grid?
-  if (body.mX+body.mWidth <= 0) or (body.mY+body.mHeight <= 0) then exit;
-  if (body.mX >= mWidth*mTileSize) or (body.mY >= mHeight*mTileSize) then exit;
-  gy := body.mY div mTileSize;
-  dy := 0;
-  pidx := -1;
-  while (dy < body.mHeight) do
-  begin
-    if (gy >= 0) and (gy < mHeight) then
-    begin
-      dx := 0;
-      gx := body.mX div mTileSize;
-      while (dx < body.mWidth) do
-      begin
-        if (gx >= 0) and (gx < mWidth) then
-        begin
-          // find and remove cell
-          pidx := -1;
-          idx := mGrid[gy*mWidth+gx];
-          while idx >= 0 do
-          begin
-            tmp := mCells[idx].next;
-            if mCells[idx].body = body then
-            begin
-              if pidx = -1 then mGrid[gy*mWidth+gx] := tmp else mCells[pidx].next := tmp;
-              freeCell(idx);
-            end
-            else
-            begin
-              pidx := idx;
-            end;
-            idx := tmp;
-          end;
-        end;
-        Inc(dx, mTileSize);
-        Inc(gx);
-      end;
-    end;
-    Inc(dy, mTileSize);
-    Inc(gy);
-  end;
+  forGridRect(body.mX, body.mY, body.mWidth, body.mHeight, remover);
 end;
 
 
@@ -459,20 +449,30 @@ end;
 
 
 function TBodyGrid.forEachInAABB (x, y, w, h: Integer; cb: GridQueryCB): Boolean;
+  function iterator (grida: Integer): Boolean;
+  var
+    idx: Integer;
+  begin
+    result := false;
+    idx := mGrid[grida];
+    while idx >= 0 do
+    begin
+      if (mCells[idx].body <> nil) and (mCells[idx].body.mQueryMark <> mLastQuery) then
+      begin
+        //e_WriteLog(Format('  query #%d body hit: (%d,%d)-(%dx%d) tag:%d', [mLastQuery, mCells[idx].body.mX, mCells[idx].body.mY, mCells[idx].body.mWidth, mCells[idx].body.mHeight, mCells[idx].body.mTag]), MSG_NOTIFY);
+        mCells[idx].body.mQueryMark := mLastQuery;
+        if (cb(mCells[idx].body.mObj, mCells[idx].body.mTag)) then begin result := true; exit; end;
+      end;
+      idx := mCells[idx].next;
+    end;
+  end;
+
 var
-  gx, gy, idx: Integer;
-  minx, miny, maxx, maxy: Integer;
+  idx: Integer;
 begin
   result := false;
   if not assigned(cb) then exit;
-  if (w < 1) or (h < 1) then exit;
-  minx := x;
-  miny := y;
-  maxx := x+w-1;
-  maxy := y+h-1;
-  if (minx > maxx) or (miny > maxy) then exit;
-  if (maxx < 0) or (maxy < 0) then exit;
-  if (minx >= mWidth*mTileSize) or (miny >= mHeight*mTileSize) then exit;
+
   // increase query counter
   Inc(mLastQuery);
   if (mLastQuery = 0) then
@@ -482,41 +482,38 @@ begin
     for idx := 0 to High(mCells) do if (mCells[idx].body <> nil) then mCells[idx].body.mQueryMark := 0;
   end;
   //e_WriteLog(Format('grid: query #%d: (%d,%d)-(%dx%d)', [mLastQuery, minx, miny, maxx, maxy]), MSG_NOTIFY);
-  // process grid
-  for gy := miny div mTileSize to maxy div mTileSize do
-  begin
-    if (gy < 0) then continue;
-    if (gy >= mHeight) then break;
-    for gx := minx div mTileSize to maxx div mTileSize do
-    begin
-      if (gx < 0) then continue;
-      if (gx >= mWidth) then break;
-      idx := mGrid[gy*mWidth+gx];
-      while idx >= 0 do
-      begin
-        if (mCells[idx].body <> nil) and (mCells[idx].body.mQueryMark <> mLastQuery) then
-        begin
-          //e_WriteLog(Format('  query #%d body hit: (%d,%d)-(%dx%d) tag:%d', [mLastQuery, mCells[idx].body.mX, mCells[idx].body.mY, mCells[idx].body.mWidth, mCells[idx].body.mHeight, mCells[idx].body.mTag]), MSG_NOTIFY);
-          mCells[idx].body.mQueryMark := mLastQuery;
-          if (cb(mCells[idx].body.mObj, mCells[idx].body.mTag)) then begin result := true; exit; end;
-        end;
-        idx := mCells[idx].next;
-      end;
-    end;
-  end;
+
+  result := forGridRect(x, y, w, h, iterator);
 end;
 
 
 function TBodyGrid.getProxyForBody (aObj: TObject; x, y, w, h: Integer): TBodyProxy;
+var
+  res: TBodyProxy = nil;
 
-  function qq (obj: TObject; tag: Integer): Boolean;
+  function iterator (grida: Integer): Boolean;
+  var
+    idx: Integer;
   begin
-    result := (obj = aObj);
+    result := false;
+    idx := mGrid[grida];
+    while idx >= 0 do
+    begin
+      if (mCells[idx].body <> nil) and (mCells[idx].body = aObj) then
+      begin
+        result := true;
+        res := mCells[idx].body;
+        exit;
+      end;
+      idx := mCells[idx].next;
+    end;
   end;
 
 begin
   result := nil;
-  forEachInAABB(x, y, w, h, qq);
+  if (aObj = nil) then exit;
+  forGridRect(x, y, w, h, iterator);
+  result := res;
 end;
 
 

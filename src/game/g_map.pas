@@ -960,7 +960,7 @@ var
   var
     idx: Integer;
   begin
-    for idx := 0 to High(panels) do
+    for idx := High(panels) downto 0 do
     begin
       gMapGrid.insertBody(panels[idx], panels[idx].X, panels[idx].Y, panels[idx].Width, panels[idx].Height, tag);
     end;
@@ -1743,7 +1743,7 @@ end;
 
 
 var
-  pvpset: array of PPanel = nil; // potentially lit panels
+  pvpset: array of TPanel = nil; // potentially lit panels
   pvpb, pvpe: array [0..7] of Integer; // start/end (inclusive) of the correspoinding type panels in pvpset
   pvpcount: Integer = -1; // to avoid constant reallocations
 
@@ -1789,7 +1789,7 @@ var
       if (x > maxx) or (y > maxy) then continue;
       if (x+w <= minx) or (y+h <= miny) then continue;
       if pvpcount = length(pvpset) then SetLength(pvpset, pvpcount+32768);
-      pvpset[pvpcount] := @panels[idx];
+      pvpset[pvpcount] := panels[idx];
       Inc(pvpcount);
     end;
     pvpe[stp] := pvpcount-1;
@@ -1810,7 +1810,7 @@ begin
   //e_WriteLog(Format('total panels: %d; visible panels: %d', [tpc, pvpcount]), MSG_NOTIFY);
 end;
 
-procedure g_Map_DrawPanelsOld(x0, y0, wdt, hgt: Integer; PanelType: Word);
+procedure g_Map_DrawPanelsOld(PanelType: Word);
 
   procedure DrawPanels (stp: Integer; var panels: TPanelArray; drawDoors: Boolean=False);
   var
@@ -1840,109 +1840,7 @@ procedure g_Map_DrawPanelsOld(x0, y0, wdt, hgt: Integer; PanelType: Word);
     end;
   end;
 
-  procedure dumpPanels (stp: Integer; var panels: TPanelArray; drawDoors: Boolean=False);
-  var
-    idx: Integer;
-  begin
-    if (panels <> nil) and (stp >= 0) and (stp <= 6) then
-    begin
-      if pvpcount < 0 then
-      begin
-        // alas, no visible set
-        for idx := 0 to High(panels) do
-        begin
-          if not (drawDoors xor panels[idx].Door) then
-          begin
-            e_WriteLog(Format(' body hit: (%d,%d)-(%dx%d)', [panels[idx].X, panels[idx].Y, panels[idx].Width, panels[idx].Height]), MSG_NOTIFY);
-          end;
-        end;
-      end
-      else
-      begin
-        // wow, use visible set
-        if pvpb[stp] <= pvpe[stp] then
-        begin
-          for idx := pvpb[stp] to pvpe[stp] do
-          begin
-            if not (drawDoors xor pvpset[idx].Door) then
-            begin
-              e_WriteLog(Format(' body hit: (%d,%d)-(%dx%d)', [pvpset[idx].X, pvpset[idx].Y, pvpset[idx].Width, pvpset[idx].Height]), MSG_NOTIFY);
-            end;
-          end;
-        end;
-      end;
-    end;
-  end;
-
-  function qq (obj: TObject; tag: Integer): Boolean;
-  var
-    pan: TPanel;
-  begin
-    result := false; // don't stop, ever
-
-    //e_WriteLog(Format('  *body: tag:%d; qtag:%d', [tag, PanelType]), MSG_NOTIFY);
-
-    if obj = nil then
-    begin
-      e_WriteLog(Format('  !bodyFUUUUU0: tag:%d; qtag:%d', [tag, PanelType]), MSG_NOTIFY);
-    end;
-    if not (obj is TPanel) then
-    begin
-      e_WriteLog(Format('  !bodyFUUUUU1: tag:%d; qtag:%d', [tag, PanelType]), MSG_NOTIFY);
-      exit;
-    end;
-      //pan := (obj as TPanel);
-      //e_WriteLog(Format('  !body: (%d,%d)-(%dx%d) tag:%d; qtag:%d', [pan.X, pan.Y, pan.Width, pan.Height, tag, PanelType]), MSG_NOTIFY);
-
-    if (tag = PANEL_WALL) then
-    begin
-      if (PanelType = PANEL_WALL) then
-      begin
-        pan := (obj as TPanel);
-        if not pan.Door then
-        begin
-          //e_WriteLog(Format('  body hit: (%d,%d)-(%dx%d)', [pan.X, pan.Y, pan.Width, pan.Height]), MSG_NOTIFY);
-          pan.Draw();
-        end;
-      end
-      else if (PanelType = PANEL_CLOSEDOOR) then
-      begin
-        pan := (obj as TPanel);
-        if pan.Door then
-        begin
-          //e_WriteLog(Format('  body hit: (%d,%d)-(%dx%d)', [pan.X, pan.Y, pan.Width, pan.Height]), MSG_NOTIFY);
-          pan.Draw();
-        end;
-      end
-    end
-    else if (PanelType = tag) then
-    begin
-      pan := (obj as TPanel);
-      if not pan.Door then
-      begin
-        //e_WriteLog(Format('  body hit: (%d,%d)-(%dx%d)', [pan.X, pan.Y, pan.Width, pan.Height]), MSG_NOTIFY);
-        pan.Draw();
-      end;
-    end;
-  end;
-
 begin
-  //e_WriteLog(Format('QQQ: qtag:%d', [PanelType]), MSG_NOTIFY);
-  gMapGrid.forEachInAABB(x0, y0, wdt, hgt, qq);
-  (*
-  case PanelType of
-    PANEL_WALL:       dumpPanels(0, gWalls);
-    PANEL_CLOSEDOOR:  dumpPanels(0, gWalls, True);
-    PANEL_BACK:       dumpPanels(1, gRenderBackgrounds);
-    PANEL_FORE:       dumpPanels(2, gRenderForegrounds);
-    PANEL_WATER:      dumpPanels(3, gWater);
-    PANEL_ACID1:      dumpPanels(4, gAcid1);
-    PANEL_ACID2:      dumpPanels(5, gAcid2);
-    PANEL_STEP:       dumpPanels(6, gSteps);
-  end;
-  *)
-
-  (*
   case PanelType of
     PANEL_WALL:       DrawPanels(0, gWalls);
     PANEL_CLOSEDOOR:  DrawPanels(0, gWalls, True);
@@ -1953,7 +1851,6 @@ begin
     PANEL_ACID2:      DrawPanels(5, gAcid2);
     PANEL_STEP:       DrawPanels(6, gSteps);
   end;
-  *)
 end;
 
 
@@ -2006,7 +1903,7 @@ procedure g_Map_DrawPanels(x0, y0, wdt, hgt: Integer; PanelType: Word);
         pan := (obj as TPanel);
         if not pan.Door then
         begin
-          //e_WriteLog(Format('  body hit: (%d,%d)-(%dx%d)', [pan.X, pan.Y, pan.Width, pan.Height]), MSG_NOTIFY);
+          //e_WriteLog(Format('  body hit: (%d,%d)-(%dx%d) tag: %d; qtag:%d', [pan.X, pan.Y, pan.Width, pan.Height, tag, PanelType]), MSG_NOTIFY);
           dplAddPanel(pan);
         end;
       end
@@ -2015,7 +1912,7 @@ procedure g_Map_DrawPanels(x0, y0, wdt, hgt: Integer; PanelType: Word);
         pan := (obj as TPanel);
         if pan.Door then
         begin
-          //e_WriteLog(Format('  body hit: (%d,%d)-(%dx%d)', [pan.X, pan.Y, pan.Width, pan.Height]), MSG_NOTIFY);
+          //e_WriteLog(Format('  body hit: (%d,%d)-(%dx%d) tag: %d; qtag:%d', [pan.X, pan.Y, pan.Width, pan.Height, tag, PanelType]), MSG_NOTIFY);
           dplAddPanel(pan);
         end;
       end
@@ -2025,16 +1922,72 @@ procedure g_Map_DrawPanels(x0, y0, wdt, hgt: Integer; PanelType: Word);
       pan := (obj as TPanel);
       if not pan.Door then
       begin
-        //e_WriteLog(Format('  body hit: (%d,%d)-(%dx%d)', [pan.X, pan.Y, pan.Width, pan.Height]), MSG_NOTIFY);
+        //e_WriteLog(Format('  body hit: (%d,%d)-(%dx%d) tag: %d; qtag:%d', [pan.X, pan.Y, pan.Width, pan.Height, tag, PanelType]), MSG_NOTIFY);
         dplAddPanel(pan);
       end;
     end;
   end;
 
+  procedure DrawPanels (stp: Integer; var panels: TPanelArray; drawDoors: Boolean=False);
+  var
+    idx: Integer;
+    pan: TPanel;
+  begin
+    if (panels <> nil) and (stp >= 0) and (stp <= 6) then
+    begin
+      if pvpcount < 0 then
+      begin
+        // alas, no visible set
+        for idx := 0 to High(panels) do
+        begin
+          if not (drawDoors xor panels[idx].Door) then
+          begin
+            pan := panels[idx];
+            e_WriteLog(Format(' *body hit: (%d,%d)-(%dx%d) tag: %d; qtag:%d', [pan.X, pan.Y, pan.Width, pan.Height, PanelType, PanelType]), MSG_NOTIFY);
+          end;
+        end;
+      end
+      else
+      begin
+        // wow, use visible set
+        if pvpb[stp] <= pvpe[stp] then
+        begin
+          for idx := pvpb[stp] to pvpe[stp] do
+          begin
+            if not (drawDoors xor pvpset[idx].Door) then
+            begin
+              pan := pvpset[idx];
+              e_WriteLog(Format(' *body hit: (%d,%d)-(%dx%d) tag: %d; qtag:%d', [pan.X, pan.Y, pan.Width, pan.Height, PanelType, PanelType]), MSG_NOTIFY);
+            end;
+          end;
+        end;
+      end;
+    end;
+  end;
+
 begin
-  //e_WriteLog(Format('QQQ: qtag:%d', [PanelType]), MSG_NOTIFY);
+  //g_Map_DrawPanelsOld(PanelType); exit;
+  //e_WriteLog('==================', MSG_NOTIFY);
+  //e_WriteLog(Format('***QQQ: qtag:%d', [PanelType]), MSG_NOTIFY);
   dplClear();
   gMapGrid.forEachInAABB(x0, y0, wdt, hgt, qq);
+
+  // debug
+  {
+  e_WriteLog(Format('+++QQQ: qtag:%d', [PanelType]), MSG_NOTIFY);
+  case PanelType of
+    PANEL_WALL:       DrawPanels(0, gWalls);
+    PANEL_CLOSEDOOR:  DrawPanels(0, gWalls, True);
+    PANEL_BACK:       DrawPanels(1, gRenderBackgrounds);
+    PANEL_FORE:       DrawPanels(2, gRenderForegrounds);
+    PANEL_WATER:      DrawPanels(3, gWater);
+    PANEL_ACID1:      DrawPanels(4, gAcid1);
+    PANEL_ACID2:      DrawPanels(5, gAcid2);
+    PANEL_STEP:       DrawPanels(6, gSteps);
+  end;
+  e_WriteLog('==================', MSG_NOTIFY);
+  }
+
   // sort and draw the list (we need to sort it, or rendering is fucked)
   while gDrawPanelList.count > 0 do
   begin
