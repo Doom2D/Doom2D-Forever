@@ -148,20 +148,31 @@ const
   MUSIC_SIGNATURE = $4953554D; // 'MUSI'
   FLAG_SIGNATURE = $47414C46; // 'FLAG'
 
+  GridTagInvalid = -1;
+  GridTagWallDoor = 0;
+  GridTagBack = 1;
+  GridTagFore = 2;
+  GridTagWater = 3;
+  GridTagAcid1 = 4;
+  GridTagAcid2 = 5;
+  GridTagStep = 6;
+  GridTagLift = 7;
+  GridTagBlockMon = 8;
+
 
 function panelTypeToTag (panelType: Word): Integer;
 begin
   case panelType of
-    PANEL_WALL, PANEL_OPENDOOR, PANEL_CLOSEDOOR: result := 0; // gWalls
-    PANEL_BACK: result := 1; // gRenderBackgrounds
-    PANEL_FORE: result := 2; // gRenderForegrounds
-    PANEL_WATER: result := 3; // gWater
-    PANEL_ACID1: result := 4; // gAcid1
-    PANEL_ACID2: result := 5; // gAcid2
-    PANEL_STEP: result := 6; // gSteps
-    PANEL_LIFTUP, PANEL_LIFTDOWN, PANEL_LIFTLEFT, PANEL_LIFTRIGHT: result := 7; // gLifts -- this is for all lifts
-    PANEL_BLOCKMON: result := 8; // gBlockMon -- this is for all blockmons
-    else result := -1;
+    PANEL_WALL, PANEL_OPENDOOR, PANEL_CLOSEDOOR: result := GridTagWallDoor; // gWalls
+    PANEL_BACK: result := GridTagBack; // gRenderBackgrounds
+    PANEL_FORE: result := GridTagFore; // gRenderForegrounds
+    PANEL_WATER: result := GridTagWater; // gWater
+    PANEL_ACID1: result := GridTagAcid1; // gAcid1
+    PANEL_ACID2: result := GridTagAcid2; // gAcid2
+    PANEL_STEP: result := GridTagStep; // gSteps
+    PANEL_LIFTUP, PANEL_LIFTDOWN, PANEL_LIFTLEFT, PANEL_LIFTRIGHT: result := GridTagLift; // gLifts -- this is for all lifts
+    PANEL_BLOCKMON: result := GridTagBlockMon; // gBlockMon -- this is for all blockmons
+    else result := GridTagInvalid;
   end;
 end;
 
@@ -1827,7 +1838,7 @@ procedure g_Map_DrawPanels(x0, y0, wdt, hgt: Integer; PanelType: Word);
 var
   ptag: Integer;
 
-  function qq (obj: TObject; tag: Integer): Boolean;
+  function checker (obj: TObject; tag: Integer): Boolean;
   var
     pan: TPanel;
   begin
@@ -1874,7 +1885,7 @@ begin
   //e_WriteLog(Format('***QQQ: qtag:%d', [PanelType]), MSG_NOTIFY);
   dplClear();
   ptag := panelTypeToTag(PanelType);
-  gMapGrid.forEachInAABB(x0, y0, wdt, hgt, qq);
+  gMapGrid.forEachInAABB(x0, y0, wdt, hgt, checker);
 
   // debug
   {
@@ -1902,18 +1913,18 @@ end;
 
 
 procedure g_Map_DrawPanelShadowVolumes(lightX: Integer; lightY: Integer; radius: Integer);
-  function qq (obj: TObject; tag: Integer): Boolean;
+  function checker (obj: TObject; tag: Integer): Boolean;
   var
     pan: TPanel;
   begin
     result := false; // don't stop, ever
-    if (tag <> 0 {panelTypeToTag(PANEL_WALL)}) then exit; // only walls
+    if (tag <> GridTagWallDoor) then exit; // only walls
     pan := (obj as TPanel);
     pan.DrawShadowVolume(lightX, lightY, radius);
   end;
 
 begin
-  gMapGrid.forEachInAABB(lightX-radius, lightY-radius, radius*2, radius*2, qq);
+  gMapGrid.forEachInAABB(lightX-radius, lightY-radius, radius*2, radius*2, checker);
 end;
 
 
@@ -1925,6 +1936,7 @@ begin
     e_Clear(GL_COLOR_BUFFER_BIT, 0, 0, 0);
 end;
 
+(*
 function g_Map_CollidePanelOld(X, Y: Integer; Width, Height: Word;
                             PanelType: Word; b1x3: Boolean): Boolean;
 var
@@ -2044,10 +2056,11 @@ begin
         end;
     end;
 end;
+*)
 
 function g_Map_CollidePanel(X, Y: Integer; Width, Height: Word; PanelType: Word; b1x3: Boolean): Boolean;
 
-  function qq (obj: TObject; tag: Integer): Boolean;
+  function checker (obj: TObject; tag: Integer): Boolean;
   var
     pan: TPanel;
     a: Integer;
@@ -2069,7 +2082,7 @@ function g_Map_CollidePanel(X, Y: Integer; Width, Height: Word; PanelType: Word;
     pan := (obj as TPanel);
     a := pan.ArrIdx;
 
-    if WordBool(PanelType and PANEL_WALL) and (tag = panelTypeToTag(PANEL_WALL)) then
+    if WordBool(PanelType and PANEL_WALL) and (tag = GridTagWallDoor) then
     begin
       if gWalls[a].Enabled and g_Collide(X, Y, Width, Height, gWalls[a].X, gWalls[a].Y, gWalls[a].Width, gWalls[a].Height) then
       begin
@@ -2078,7 +2091,7 @@ function g_Map_CollidePanel(X, Y: Integer; Width, Height: Word; PanelType: Word;
       end;
     end;
 
-    if WordBool(PanelType and PANEL_WATER) and (tag = panelTypeToTag(PANEL_WATER)) then
+    if WordBool(PanelType and PANEL_WATER) and (tag = GridTagWater) then
     begin
       if g_Collide(X, Y, Width, Height, gWater[a].X, gWater[a].Y, gWater[a].Width, gWater[a].Height) then
       begin
@@ -2087,7 +2100,7 @@ function g_Map_CollidePanel(X, Y: Integer; Width, Height: Word; PanelType: Word;
       end;
     end;
 
-    if WordBool(PanelType and PANEL_ACID1) and (tag = panelTypeToTag(PANEL_ACID1)) then
+    if WordBool(PanelType and PANEL_ACID1) and (tag = GridTagAcid1) then
     begin
       if g_Collide(X, Y, Width, Height, gAcid1[a].X, gAcid1[a].Y, gAcid1[a].Width, gAcid1[a].Height) then
       begin
@@ -2096,7 +2109,7 @@ function g_Map_CollidePanel(X, Y: Integer; Width, Height: Word; PanelType: Word;
       end;
     end;
 
-    if WordBool(PanelType and PANEL_ACID2) and (tag = panelTypeToTag(PANEL_ACID2)) then
+    if WordBool(PanelType and PANEL_ACID2) and (tag = GridTagAcid2) then
     begin
       if g_Collide(X, Y, Width, Height, gAcid2[a].X, gAcid2[a].Y, gAcid2[a].Width, gAcid2[a].Height) then
       begin
@@ -2105,7 +2118,7 @@ function g_Map_CollidePanel(X, Y: Integer; Width, Height: Word; PanelType: Word;
       end;
     end;
 
-    if WordBool(PanelType and PANEL_STEP) and (tag = panelTypeToTag(PANEL_STEP)) then
+    if WordBool(PanelType and PANEL_STEP) and (tag = GridTagStep) then
     begin
       if g_Collide(X, Y, Width, Height, gSteps[a].X, gSteps[a].Y, gSteps[a].Width, gSteps[a].Height) then
       begin
@@ -2114,7 +2127,7 @@ function g_Map_CollidePanel(X, Y: Integer; Width, Height: Word; PanelType: Word;
       end;
     end;
 
-    if WordBool(PanelType and (PANEL_LIFTUP or PANEL_LIFTDOWN or PANEL_LIFTLEFT or PANEL_LIFTRIGHT)) and (tag = panelTypeToTag(PANEL_LIFTUP)) then
+    if WordBool(PanelType and (PANEL_LIFTUP or PANEL_LIFTDOWN or PANEL_LIFTLEFT or PANEL_LIFTRIGHT)) and (tag = GridTagLift) then
     begin
       if ((WordBool(PanelType and (PANEL_LIFTUP)) and (gLifts[a].LiftType = 0)) or
           (WordBool(PanelType and (PANEL_LIFTDOWN)) and (gLifts[a].LiftType = 1)) or
@@ -2127,7 +2140,7 @@ function g_Map_CollidePanel(X, Y: Integer; Width, Height: Word; PanelType: Word;
       end;
     end;
 
-    if WordBool(PanelType and PANEL_BLOCKMON)and (tag = panelTypeToTag(PANEL_BLOCKMON)) then
+    if WordBool(PanelType and PANEL_BLOCKMON)and (tag = GridTagBlockMon) then
     begin
       if ((not b1x3) or ((gBlockMon[a].Width + gBlockMon[a].Height) >= 64)) and
          g_Collide(X, Y, Width, Height, gBlockMon[a].X, gBlockMon[a].Y, gBlockMon[a].Width, gBlockMon[a].Height) then
@@ -2139,57 +2152,60 @@ function g_Map_CollidePanel(X, Y: Integer; Width, Height: Word; PanelType: Word;
   end;
 
 begin
-  result := gMapGrid.forEachInAABB(X, Y, Width, Height, qq);
+  result := gMapGrid.forEachInAABB(X, Y, Width, Height, checker);
 end;
 
 
 function g_Map_CollideLiquid_Texture(X, Y: Integer; Width, Height: Word): DWORD;
 var
-  a, h: Integer;
+  cctype: Integer = 3; // priority: 0: water, 1: acid1, 2: acid2; 3: others (nothing)
+  texid: DWORD;
+
+  // slightly different from the old code, but meh...
+  function checker (obj: TObject; tag: Integer): Boolean;
+  var
+    pan: TPanel;
+    a: Integer;
+  begin
+    result := false; // don't stop, ever
+    pan := (obj as TPanel);
+    a := pan.ArrIdx;
+    // water
+    if (tag = GridTagWater) then
+    begin
+      if g_Collide(X, Y, Width, Height, gWater[a].X, gWater[a].Y, gWater[a].Width, gWater[a].Height) then
+      begin
+        result := true; // water has highest priority, so stop right here
+        texid := gWater[a].GetTextureID();
+        exit;
+      end;
+    end;
+    // acid1
+    if (cctype > 1) and (tag = GridTagAcid1) then
+    begin
+      if g_Collide(X, Y, Width, Height, gAcid1[a].X, gAcid1[a].Y, gAcid1[a].Width, gAcid1[a].Height) then
+      begin
+        cctype := 1;
+        texid := gAcid1[a].GetTextureID();
+        exit;
+      end;
+    end;
+    // acid2
+    if (cctype > 2) and (tag = GridTagAcid2) then
+    begin
+      if g_Collide(X, Y, Width, Height, gAcid2[a].X, gAcid2[a].Y, gAcid2[a].Width, gAcid2[a].Height) then
+      begin
+        cctype := 2;
+        texid := gAcid2[a].GetTextureID();
+        exit;
+      end;
+    end;
+  end;
+
 begin
-  Result := TEXTURE_NONE;
-
-  if gWater <> nil then
-  begin
-    h := High(gWater);
-
-    for a := 0 to h do
-      if g_Collide(X, Y, Width, Height,
-                   gWater[a].X, gWater[a].Y,
-                   gWater[a].Width, gWater[a].Height) then
-      begin
-        Result := gWater[a].GetTextureID();
-        Exit;
-      end;
-  end;
-
-  if gAcid1 <> nil then
-  begin
-    h := High(gAcid1);
-
-    for a := 0 to h do
-      if g_Collide(X, Y, Width, Height,
-                   gAcid1[a].X, gAcid1[a].Y,
-                   gAcid1[a].Width, gAcid1[a].Height) then
-      begin
-        Result := gAcid1[a].GetTextureID();
-        Exit;
-      end;
-  end;
-
-  if gAcid2 <> nil then
-  begin
-    h := High(gAcid2);
-
-    for a := 0 to h do
-      if g_Collide(X, Y, Width, Height,
-                   gAcid2[a].X, gAcid2[a].Y,
-                   gAcid2[a].Width, gAcid2[a].Height) then
-      begin
-        Result := gAcid2[a].GetTextureID();
-        Exit;
-      end;
-  end;
+  texid := TEXTURE_NONE;
+  gMapGrid.forEachInAABB(X, Y, Width, Height, checker);
+  result := texid;
 end;
 
 procedure g_Map_EnableWall(ID: DWORD);
