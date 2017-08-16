@@ -341,6 +341,7 @@ procedure g_ResetDynlights ();
 var
   lnum, idx: Integer;
 begin
+  if not gwin_has_stencil then begin g_dynLightCount := 0; exit; end;
   lnum := 0;
   for idx := 0 to g_dynLightCount-1 do
   begin
@@ -367,6 +368,7 @@ end;
 
 procedure g_AddDynLight (x, y, radius: Integer; r, g, b, a: Single);
 begin
+  if not gwin_has_stencil then exit;
   if g_dynLightCount = length(g_dynLights) then SetLength(g_dynLights, g_dynLightCount+1024);
   g_dynLights[g_dynLightCount].x := x;
   g_dynLights[g_dynLightCount].y := y;
@@ -381,6 +383,7 @@ end;
 
 procedure g_DynLightExplosion (x, y, radius: Integer; r, g, b: Single);
 begin
+  if not gwin_has_stencil then exit;
   if g_dynLightCount = length(g_dynLights) then SetLength(g_dynLights, g_dynLightCount+1024);
   g_dynLights[g_dynLightCount].x := x;
   g_dynLights[g_dynLightCount].y := y;
@@ -393,6 +396,7 @@ begin
   g_dynLights[g_dynLightCount].exploCount := 0;
   Inc(g_dynLightCount);
 end;
+
 
 type
   TEndCustomGameStat = record
@@ -1361,16 +1365,19 @@ begin
   end;
 
   // HACK: add dynlight here
-  if e_KeyPressed(IK_F8) and gGameOn and (not gConsoleShow) and (g_ActiveWindow = nil) then
+  if gwin_k8_enable_light_experiments then
   begin
-    g_playerLight := true;
-  end;
-  if e_KeyPressed(IK_F9) and gGameOn and (not gConsoleShow) and (g_ActiveWindow = nil) then
-  begin
-    g_playerLight := false;
+    if e_KeyPressed(IK_F8) and gGameOn and (not gConsoleShow) and (g_ActiveWindow = nil) then
+    begin
+      g_playerLight := true;
+    end;
+    if e_KeyPressed(IK_F9) and gGameOn and (not gConsoleShow) and (g_ActiveWindow = nil) then
+    begin
+      g_playerLight := false;
+    end;
   end;
 
-  if (g_playerLight) then g_AddDynLight(plr.GameX+32, plr.GameY+40, 128, 1, 1, 0, 0.6);
+  if gwin_has_stencil and g_playerLight then g_AddDynLight(plr.GameX+32, plr.GameY+40, 128, 1, 1, 0, 0.6);
 end;
 
 procedure g_Game_Update();
