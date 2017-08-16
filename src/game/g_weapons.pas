@@ -727,8 +727,9 @@ var
           if ChkTeam then
             if HitPlayer(gPlayers[i], d, obj^.Vel.X, obj^.Vel.Y, SpawnerUID, t) then
             begin
-              gPlayers[i].Push((obj^.Vel.X+obj^.Accel.X)*IfThen(t = HIT_BFG, 8, 1) div 4,
-                               (obj^.Vel.Y+obj^.Accel.Y)*IfThen(t = HIT_BFG, 8, 1) div 4);
+              if t <> HIT_FLAME then
+                gPlayers[i].Push((obj^.Vel.X+obj^.Accel.X)*IfThen(t = HIT_BFG, 8, 1) div 4,
+                                 (obj^.Vel.Y+obj^.Accel.Y)*IfThen(t = HIT_BFG, 8, 1) div 4);
               if t = HIT_BFG then
                 g_Game_DelayEvent(DE_BFGHIT, 1000, SpawnerUID);
               Result := True;
@@ -748,8 +749,9 @@ var
         if (gMonsters[i] <> nil) and gMonsters[i].Live and g_Obj_Collide(obj, @gMonsters[i].Obj) then
           if HitMonster(gMonsters[i], d, obj^.Vel.X, obj^.Vel.Y, SpawnerUID, t) then
           begin
-            gMonsters[i].Push((obj^.Vel.X+obj^.Accel.X)*IfThen(t = HIT_BFG, 8, 1) div 4,
-                              (obj^.Vel.Y+obj^.Accel.Y)*IfThen(t = HIT_BFG, 8, 1) div 4);
+            if t <> HIT_FLAME then
+              gMonsters[i].Push((obj^.Vel.X+obj^.Accel.X)*IfThen(t = HIT_BFG, 8, 1) div 4,
+                                (obj^.Vel.Y+obj^.Accel.Y)*IfThen(t = HIT_BFG, 8, 1) div 4);
             Result := True;
             break;
           end;
