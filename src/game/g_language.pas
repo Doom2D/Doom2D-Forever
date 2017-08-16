@@ -1565,8 +1565,8 @@ const
                                        'Отсылка информации'),
     ('LOAD WAIT INFO',                 'Awaiting response ([ESC] to abort)',
                                        'Ожидание ответа ([ESC] - отменить)'),
-    ('LOAD DL RES',                    'Downloading resources',
-                                       'Скачивание ресурсов'),
+    ('LOAD DL RES',                    'Downloading resources...',
+                                       'Скачивание ресурсов...'),
 
     ('CREDITS CAP 1',                  'Doom 2D: Forever',
                                        'Doom 2D: Forever'),
