@@ -311,7 +311,7 @@ var
   P2MoveButton: Byte = 0;
 
   g_profile_frame_update: Boolean = false;
-  g_profile_frame_draw: Boolean = true;
+  g_profile_frame_draw: Boolean = false;
 
 procedure g_ResetDynlights ();
 procedure g_AddDynLight (x, y, radius: Integer; r, g, b, a: Single);
@@ -4985,6 +4985,14 @@ end;
 procedure ProfilerCommands (P: SArray);
 var
   cmd: string;
+
+  function getBool (idx: Integer): Integer;
+  begin
+    if (idx < 0) or (idx > High(P)) then begin result := -1; exit; end;
+    result := 0;
+    if (P[idx] = '1') or (P[idx] = 'on') or (P[idx] = 'true') or (P[idx] = 'tan') then result := 1;
+  end;
+
 begin
   //if not gDebugMode then exit;
   cmd := LowerCase(P[0]);
@@ -4996,6 +5004,26 @@ begin
   if cmd = 'dpu' then
   begin
     g_profile_frame_update := not g_profile_frame_update;
+    exit;
+  end;
+  if cmd = 'r_draw_grid' then
+  begin
+    case getBool(1) of
+      -1: begin end;
+       0: gdbg_map_use_grid_render := false;
+       1: gdbg_map_use_grid_render := true;
+    end;
+    if gdbg_map_use_grid_render then g_Console_Add('grid rendering: tan') else g_Console_Add('grid rendering: ona');
+    exit;
+  end;
+  if cmd = 'dbg_coldet_grid' then
+  begin
+    case getBool(1) of
+      -1: begin end;
+       0: gdbg_map_use_grid_coldet := false;
+       1: gdbg_map_use_grid_coldet := true;
+    end;
+    if gdbg_map_use_grid_coldet then g_Console_Add('grid coldet: tan') else g_Console_Add('grid coldet: ona');
     exit;
   end;
 end;
@@ -6821,6 +6849,9 @@ var
   F: TextFile;
 begin
   Parse_Params(pars);
+
+  s := Find_Param_Value(pars, '--profile-frame');
+  if (s <> '') then g_profile_frame_draw := true;
 
 // Debug mode:
   s := Find_Param_Value(pars, '--debug');

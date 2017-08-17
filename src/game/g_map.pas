@@ -131,6 +131,9 @@ var
   BackID:  DWORD = DWORD(-1);
   gExternalResources: TStringList;
 
+  gdbg_map_use_grid_render: Boolean = true;
+  gdbg_map_use_grid_coldet: Boolean = true;
+
 implementation
 
 uses
@@ -1869,10 +1872,13 @@ var
         if not (drawDoors xor panels[idx].Door) then
         begin
           pan := panels[idx];
+          {
           if (pan.Width < 1) or (pan.Height < 1) then continue;
           if (pan.X+pan.Width <= x0) or (pan.Y+pan.Height <= y0) then continue;
           if (pan.X >= x0+wdt) or (pan.Y >= y0+hgt) then continue;
-          e_WriteLog(Format(' *body hit: (%d,%d)-(%dx%d) tag: %d; qtag:%d', [pan.X, pan.Y, pan.Width, pan.Height, PanelType, PanelType]), MSG_NOTIFY);
+          }
+          pan.Draw();
+          //e_WriteLog(Format(' *body hit: (%d,%d)-(%dx%d) tag: %d; qtag:%d', [pan.X, pan.Y, pan.Width, pan.Height, PanelType, PanelType]), MSG_NOTIFY);
         end;
       end;
     end;
@@ -1884,30 +1890,33 @@ begin
   //e_WriteLog(Format('***QQQ: qtag:%d', [PanelType]), MSG_NOTIFY);
   dplClear();
   ptag := panelTypeToTag(PanelType);
-  gMapGrid.forEachInAABB(x0, y0, wdt, hgt, checker);
 
-  // debug
-  {
-  e_WriteLog(Format('+++QQQ: qtag:%d', [PanelType]), MSG_NOTIFY);
-  case PanelType of
-    PANEL_WALL:       DrawPanels(0, gWalls);
-    PANEL_CLOSEDOOR:  DrawPanels(0, gWalls, True);
-    PANEL_BACK:       DrawPanels(1, gRenderBackgrounds);
-    PANEL_FORE:       DrawPanels(2, gRenderForegrounds);
-    PANEL_WATER:      DrawPanels(3, gWater);
-    PANEL_ACID1:      DrawPanels(4, gAcid1);
-    PANEL_ACID2:      DrawPanels(5, gAcid2);
-    PANEL_STEP:       DrawPanels(6, gSteps);
-  end;
-  e_WriteLog('==================', MSG_NOTIFY);
-  }
-
-  // sort and draw the list (we need to sort it, or rendering is fucked)
-  while gDrawPanelList.count > 0 do
+  if gdbg_map_use_grid_render then
   begin
-    (gDrawPanelList.front() as TPanel).Draw();
-    gDrawPanelList.popFront();
+    gMapGrid.forEachInAABB(x0, y0, wdt, hgt, checker);
+    // sort and draw the list (we need to sort it, or rendering is fucked)
+    while gDrawPanelList.count > 0 do
+    begin
+      (gDrawPanelList.front() as TPanel).Draw();
+      gDrawPanelList.popFront();
+    end;
+  end
+  else
+  begin
+    //e_WriteLog(Format('+++QQQ: qtag:%d', [PanelType]), MSG_NOTIFY);
+    case PanelType of
+      PANEL_WALL:       DrawPanels(0, gWalls);
+      PANEL_CLOSEDOOR:  DrawPanels(0, gWalls, True);
+      PANEL_BACK:       DrawPanels(1, gRenderBackgrounds);
+      PANEL_FORE:       DrawPanels(2, gRenderForegrounds);
+      PANEL_WATER:      DrawPanels(3, gWater);
+      PANEL_ACID1:      DrawPanels(4, gAcid1);
+      PANEL_ACID2:      DrawPanels(5, gAcid2);
+      PANEL_STEP:       DrawPanels(6, gSteps);
+    end;
   end;
+
+  //e_WriteLog('==================', MSG_NOTIFY);
 end;
 
 
@@ -1935,7 +1944,6 @@ begin
     e_Clear(GL_COLOR_BUFFER_BIT, 0, 0, 0);
 end;
 
-(*
 function g_Map_CollidePanelOld(X, Y: Integer; Width, Height: Word;
                             PanelType: Word; b1x3: Boolean): Boolean;
 var
@@ -2055,7 +2063,37 @@ begin
         end;
     end;
 end;
-*)
+
+function g_Map_CollideLiquid_TextureOld(X, Y: Integer; Width, Height: Word): DWORD;
+var
+  texid: DWORD;
+
+  function checkPanels (var panels: TPanelArray): Boolean;
+  var
+    a: Integer;
+  begin
+    result := false;
+    if panels = nil then exit;
+    for a := 0 to High(panels) do
+    begin
+      if g_Collide(X, Y, Width, Height, panels[a].X, panels[a].Y, panels[a].Width, panels[a].Height) then
+      begin
+        result := true;
+        texid := panels[a].GetTextureID();
+        exit;
+      end;
+    end;
+  end;
+
+begin
+  texid := TEXTURE_NONE;
+  result := texid;
+  if not checkPanels(gWater) then
+    if not checkPanels(gAcid1) then
+      if not checkPanels(gAcid2) then exit;
+  result := texid;
+end;
+
 
 function g_Map_CollidePanel(X, Y: Integer; Width, Height: Word; PanelType: Word; b1x3: Boolean): Boolean;
 
@@ -2139,7 +2177,7 @@ function g_Map_CollidePanel(X, Y: Integer; Width, Height: Word; PanelType: Word;
       end;
     end;
 
-    if WordBool(PanelType and PANEL_BLOCKMON)and (tag = GridTagBlockMon) then
+    if WordBool(PanelType and PANEL_BLOCKMON) and (tag = GridTagBlockMon) then
     begin
       if ((not b1x3) or ((gBlockMon[a].Width + gBlockMon[a].Height) >= 64)) and
          g_Collide(X, Y, Width, Height, gBlockMon[a].X, gBlockMon[a].Y, gBlockMon[a].Width, gBlockMon[a].Height) then
@@ -2151,7 +2189,14 @@ function g_Map_CollidePanel(X, Y: Integer; Width, Height: Word; PanelType: Word;
   end;
 
 begin
-  result := gMapGrid.forEachInAABB(X, Y, Width, Height, checker);
+  if gdbg_map_use_grid_coldet then
+  begin
+    result := gMapGrid.forEachInAABB(X, Y, Width, Height, checker);
+  end
+  else
+  begin
+    result := g_Map_CollidePanelOld(X, Y, Width, Height, PanelType, b1x3);
+  end;
 end;
 
 
@@ -2202,9 +2247,16 @@ var
   end;
 
 begin
-  texid := TEXTURE_NONE;
-  gMapGrid.forEachInAABB(X, Y, Width, Height, checker);
-  result := texid;
+  if not gdbg_map_use_grid_coldet then
+  begin
+    result := g_Map_CollideLiquid_TextureOld(X, Y, Width, Height);
+  end
+  else
+  begin
+    texid := TEXTURE_NONE;
+    gMapGrid.forEachInAABB(X, Y, Width, Height, checker);
+    result := texid;
+  end;
 end;
 
 procedure g_Map_EnableWall(ID: DWORD);

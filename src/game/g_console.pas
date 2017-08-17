@@ -390,6 +390,8 @@ begin
 
   AddCommand('dpp', ProfilerCommands);
   AddCommand('dpu', ProfilerCommands);
+  AddCommand('r_draw_grid', ProfilerCommands);
+  AddCommand('dbg_coldet_grid', ProfilerCommands);
 
   AddCommand('p1_name', GameCVars);
   AddCommand('p2_name', GameCVars);
