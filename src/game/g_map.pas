@@ -136,7 +136,8 @@ var
 
   gdbg_map_use_grid_render: Boolean = true;
   gdbg_map_use_grid_coldet: Boolean = true;
-  gdbg_map_use_sap: Boolean = false;
+  gdbg_map_use_sap_draw: Boolean = true;
+  gdbg_map_use_sap_coldet: Boolean = false;
   profMapCollision: TProfiler = nil; //WARNING: FOR DEBUGGING ONLY!
 
 implementation
@@ -1926,7 +1927,7 @@ begin
 
   if gdbg_map_use_grid_render then
   begin
-    if gdbg_map_use_sap then
+    if gdbg_map_use_sap_draw then
     begin
       gMapSAP.forEachInAABB(x0, y0, wdt, hgt, checker);
     end
@@ -1972,7 +1973,7 @@ procedure g_Map_DrawPanelShadowVolumes(lightX: Integer; lightY: Integer; radius:
   end;
 
 begin
-  if gdbg_map_use_sap then
+  if gdbg_map_use_sap_draw then
   begin
     gMapSAP.forEachInAABB(lightX-radius, lightY-radius, radius*2, radius*2, checker);
   end
@@ -2241,7 +2242,7 @@ begin
   try
     if gdbg_map_use_grid_coldet then
     begin
-      if gdbg_map_use_sap then
+      if gdbg_map_use_sap_coldet then
       begin
         gMapSAP.forEachInAABB(X, Y, Width, Height, checker);
       end
@@ -2313,7 +2314,7 @@ begin
     if gdbg_map_use_grid_coldet then
     begin
       texid := TEXTURE_NONE;
-      if gdbg_map_use_sap then
+      if gdbg_map_use_sap_coldet then
       begin
         gMapSAP.forEachInAABB(X, Y, Width, Height, checker);
       end
