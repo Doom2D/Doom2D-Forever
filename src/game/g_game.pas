@@ -1489,8 +1489,6 @@ var
   w: Word;
   i, b: Integer;
 begin
-  g_Map_ProfilersBegin();
-
   g_ResetDynlights();
 // Пора выключать игру:
   if gExit = EXIT_QUIT then
@@ -2012,8 +2010,6 @@ begin
   end;
 
   if gGameOn then g_Weapon_AddDynLights();
-
-  g_Map_ProfilersEnd();
 end;
 
 procedure g_Game_LoadData();

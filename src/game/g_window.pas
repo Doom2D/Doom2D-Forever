@@ -47,7 +47,8 @@ uses
 {$IFDEF WINDOWS}Windows,{$ENDIF}
   SDL2, GL, GLExt, e_graphics, e_log, g_main,
   g_console, SysUtils, e_input, g_options, g_game,
-  g_basic, g_textures, e_sound, g_sound, g_menu, ENet, g_net;
+  g_basic, g_textures, e_sound, g_sound, g_menu, ENet, g_net,
+  g_map;
 
 var
   h_Wnd: PSDL_Window;
@@ -577,6 +578,8 @@ begin
     wNeedTimeReset := False;
   end;
 
+  g_Map_ProfilersBegin();
+
   t := Time_Delta div 28{(27777 div 1000)};
   if t > 0 then
   begin
@@ -593,6 +596,8 @@ begin
     if NetMode = NET_SERVER then g_Net_Host_Update()
     else if NetMode = NET_CLIENT then g_Net_Client_Update();
   end;
+
+  g_Map_ProfilersEnd();
 
   if wLoadingQuit then
   begin

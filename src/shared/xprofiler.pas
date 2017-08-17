@@ -15,6 +15,7 @@
  *)
 // stopwatch timer to measure short periods (like frame rendering phases)
 {$INCLUDE a_modes.inc}
+{.$DEFINE XPROFILER_SLOW_AVERAGE}
 unit xprofiler;
 
 interface
@@ -69,7 +70,7 @@ type
 
 
 const
-  TProfHistorySize = 100;
+  TProfHistorySize = 1000;
 
 type
   TProfilerBar = record
@@ -78,8 +79,10 @@ type
 
   private
     history: array [0..TProfHistorySize-1] of Integer; // circular buffer
-    hisHead: Integer;
-    curval: Single;
+    hisLast: Integer;
+    //curval: Single;
+    curAccum: UInt64;
+    curAccumCount: Integer;
     mName: AnsiString;
     mLevel: Integer;
 
@@ -267,36 +270,42 @@ end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-procedure TProfilerBar.initialize (); begin hisHead := -1; curval := 0; end;
+procedure TProfilerBar.initialize (); begin hisLast := -1; curAccum := 0; curAccumCount := 0; end;
 
 procedure TProfilerBar.update (val: Integer);
 var
   idx: Integer;
 begin
   if (val < 0) then val := 0; //else if (val > 1000000) val := 1000000;
-  if (hisHead = -1) then begin hisHead := 0; curval := 0; for idx := 0 to TProfHistorySize-1 do history[idx] := val; end;
-  history[hisHead] := val;
-  Inc(hisHead);
-  if (hisHead = TProfHistorySize) then hisHead := 0;
-  curval := FilterFadeoff*val+(1.0-FilterFadeoff)*curval;
+  if (hisLast = -1) then begin hisLast := TProfHistorySize-1; curAccum := 0; curAccumCount := 0; for idx := 0 to TProfHistorySize-1 do history[idx] := val; end;
+  if (curAccumCount = TProfHistorySize) then Dec(curAccum, UInt64(history[(hisLast+1) mod TProfHistorySize])) else Inc(curAccumCount);
+  Inc(hisLast);
+  if (hisLast >= TProfHistorySize) then hisLast := 0;
+  Inc(curAccum, UInt64(val));
+  history[hisLast] := val;
+  //curval := FilterFadeoff*val+(1.0-FilterFadeoff)*curval;
 end;
 
 function TProfilerBar.getvalue (): Integer;
-//var idx: Integer;
+{$IFDEF XPROFILER_SLOW_AVERAGE}
+var idx: Integer;
+{$ENDIF}
 begin
-  result := round(curval);
-  {
+  {$IFDEF XPROFILER_SLOW_AVERAGE}
   result := 0;
   for idx := 0 to TProfHistorySize-1 do Inc(result, history[idx]);
   result := result div TProfHistorySize;
-  }
+  {$ELSE}
+  //result := round(curval);
+  if curAccumCount > 0 then result := Integer(curAccum div curAccumCount) else result := 0;
+  {$ENDIF}
 end;
 
 function TProfilerBar.getcount (): Integer; begin result := TProfHistorySize; end;
 
 function TProfilerBar.getvalat (idx: Integer): Integer;
 begin
-  if (idx < 0) or (idx >= TProfHistorySize) then result := 0 else result := history[(hisHead-idx-1+TProfHistorySize*2) mod TProfHistorySize];
+  if (idx < 0) or (idx >= TProfHistorySize) then result := 0 else result := history[(hisLast-idx+TProfHistorySize*2) mod TProfHistorySize];
 end;
 
 

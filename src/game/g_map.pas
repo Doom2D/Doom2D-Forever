@@ -205,9 +205,9 @@ begin
   // create sections
   if g_profile_collision then
   begin
-    profMapCollision.sectionBeginAccum('wall coldet');
+    profMapCollision.sectionBegin('wall coldet');
     profMapCollision.sectionEnd();
-    profMapCollision.sectionBeginAccum('liquid coldet');
+    profMapCollision.sectionBegin('liquid coldet');
     profMapCollision.sectionEnd();
   end;
 end;
