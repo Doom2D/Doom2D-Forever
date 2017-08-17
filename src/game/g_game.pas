@@ -312,6 +312,7 @@ var
 
   g_profile_frame_update: Boolean = false;
   g_profile_frame_draw: Boolean = false;
+  g_profile_collision: Boolean = false;
 
 procedure g_ResetDynlights ();
 procedure g_AddDynLight (x, y, radius: Integer; r, g, b, a: Single);
@@ -460,17 +461,27 @@ end;
 *)
 
 
-procedure drawProfiles (x, y: Integer; prof: TProfiler);
+function calcProfilesHeight (prof: TProfiler): Integer;
+begin
+  result := 0;
+  if (prof = nil) then exit;
+  if (length(prof.bars) = 0) then exit;
+  result := length(prof.bars)*(16+2);
+end;
+
+// returns width
+function drawProfiles (x, y: Integer; prof: TProfiler): Integer;
 var
   wdt, hgt: Integer;
   yy: Integer;
   ii, idx: Integer;
 begin
+  result := 0;
   if (prof = nil) then exit;
   // gScreenWidth
   if (length(prof.bars) = 0) then exit;
   wdt := 192;
-  hgt := length(prof.bars)*(16+2);
+  hgt := calcProfilesHeight(prof);
   if (x < 0) then x := gScreenWidth-(wdt-1)+x;
   if (y < 0) then y := gScreenHeight-(hgt-1)+y;
   // background
@@ -483,6 +494,7 @@ begin
     e_TextureFontPrintEx(x+2+4*prof.bars[ii].level, yy, Format('%s: %d', [prof.bars[ii].name, prof.bars[ii].value]), gStdFont, 255, 255, 0, 1, false);
     Inc(yy, 16+2);
   end;
+  result := wdt;
 end;
 
 
@@ -1477,6 +1489,8 @@ var
   w: Word;
   i, b: Integer;
 begin
+  g_Map_ProfilersBegin();
+
   g_ResetDynlights();
 // Пора выключать игру:
   if gExit = EXIT_QUIT then
@@ -1998,6 +2012,8 @@ begin
   end;
 
   if gGameOn then g_Weapon_AddDynLights();
+
+  g_Map_ProfilersEnd();
 end;
 
 procedure g_Game_LoadData();
@@ -2997,6 +3013,14 @@ begin
   p.DrawGUI();
 end;
 
+procedure drawProfilers ();
+var
+  px: Integer = -1;
+begin
+  if g_profile_frame_draw then px := px-drawProfiles(px, -1, profileFrameDraw);
+  if g_profile_collision then px := px-drawProfiles(px, -1, profMapCollision);
+end;
+
 procedure g_Game_Draw();
 var
   ID: DWORD;
@@ -3319,7 +3343,7 @@ begin
                      Format('%d:%.2d:%.2d', [gTime div 1000 div 3600, (gTime div 1000 div 60) mod 60, gTime div 1000 mod 60]),
                      gStdFont);
 
-  if g_profile_frame_draw then drawProfiles(-1, -1, profileFrameDraw); //drawProfiles(-1, -1, 'MAP RENDER');
+  drawProfilers();
 end;
 
 procedure g_Game_Quit();
@@ -5004,6 +5028,11 @@ begin
   if cmd = 'dpu' then
   begin
     g_profile_frame_update := not g_profile_frame_update;
+    exit;
+  end;
+  if cmd = 'dpc' then
+  begin
+    g_profile_collision := not g_profile_collision;
     exit;
   end;
   if cmd = 'r_draw_grid' then
@@ -6852,6 +6881,9 @@ begin
 
   s := Find_Param_Value(pars, '--profile-frame');
   if (s <> '') then g_profile_frame_draw := true;
+
+  s := Find_Param_Value(pars, '--profile-coldet');
+  if (s <> '') then g_profile_collision := true;
 
 // Debug mode:
   s := Find_Param_Value(pars, '--debug');

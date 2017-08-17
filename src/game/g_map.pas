@@ -20,7 +20,7 @@ interface
 
 uses
   e_graphics, g_basic, MAPSTRUCT, g_textures, Classes,
-  g_phys, wadreader, BinEditor, g_panel, g_grid, md5;
+  g_phys, wadreader, BinEditor, g_panel, g_grid, md5, xprofiler;
 
 type
   TMapInfo = record
@@ -90,6 +90,9 @@ procedure g_Map_LoadState(Var Mem: TBinMemoryReader);
 
 procedure g_Map_DrawPanelShadowVolumes(lightX: Integer; lightY: Integer; radius: Integer);
 
+procedure g_Map_ProfilersBegin ();
+procedure g_Map_ProfilersEnd ();
+
 const
   RESPAWNPOINT_PLAYER1 = 1;
   RESPAWNPOINT_PLAYER2 = 2;
@@ -133,6 +136,7 @@ var
 
   gdbg_map_use_grid_render: Boolean = true;
   gdbg_map_use_grid_coldet: Boolean = true;
+  profMapCollision: TProfiler = nil; //WARNING: FOR DEBUGGING ONLY!
 
 implementation
 
@@ -192,6 +196,26 @@ var
   FlagPoints:    Array [FLAG_RED..FLAG_BLUE] of PFlagPoint;
   //DOMFlagPoints: Array of TFlagPoint;
   gMapGrid: TBodyGrid = nil;
+
+
+procedure g_Map_ProfilersBegin ();
+begin
+  if (profMapCollision = nil) then profMapCollision := TProfiler.Create('MAP COLLISION');
+  profMapCollision.mainBegin(g_profile_collision);
+  // create sections
+  if g_profile_collision then
+  begin
+    profMapCollision.sectionBeginAccum('wall coldet');
+    profMapCollision.sectionEnd();
+    profMapCollision.sectionBeginAccum('liquid coldet');
+    profMapCollision.sectionEnd();
+  end;
+end;
+
+procedure g_Map_ProfilersEnd ();
+begin
+  if (profMapCollision <> nil) then profMapCollision.mainEnd();
+end;
 
 
 function g_Map_IsSpecialTexture(Texture: String): Boolean;
@@ -2189,13 +2213,19 @@ function g_Map_CollidePanel(X, Y: Integer; Width, Height: Word; PanelType: Word;
   end;
 
 begin
-  if gdbg_map_use_grid_coldet then
-  begin
-    result := gMapGrid.forEachInAABB(X, Y, Width, Height, checker);
-  end
-  else
-  begin
-    result := g_Map_CollidePanelOld(X, Y, Width, Height, PanelType, b1x3);
+  //TODO: detailed profile
+  if (profMapCollision <> nil) then profMapCollision.sectionBeginAccum('wall coldet');
+  try
+    if gdbg_map_use_grid_coldet then
+    begin
+      result := gMapGrid.forEachInAABB(X, Y, Width, Height, checker);
+    end
+    else
+    begin
+      result := g_Map_CollidePanelOld(X, Y, Width, Height, PanelType, b1x3);
+    end;
+  finally
+    if (profMapCollision <> nil) then profMapCollision.sectionEnd();
   end;
 end;
 
@@ -2247,15 +2277,21 @@ var
   end;
 
 begin
-  if not gdbg_map_use_grid_coldet then
-  begin
-    result := g_Map_CollideLiquid_TextureOld(X, Y, Width, Height);
-  end
-  else
-  begin
-    texid := TEXTURE_NONE;
-    gMapGrid.forEachInAABB(X, Y, Width, Height, checker);
-    result := texid;
+  //TODO: detailed profile?
+  if (profMapCollision <> nil) then profMapCollision.sectionBeginAccum('liquid coldet');
+  try
+    if not gdbg_map_use_grid_coldet then
+    begin
+      result := g_Map_CollideLiquid_TextureOld(X, Y, Width, Height);
+    end
+    else
+    begin
+      texid := TEXTURE_NONE;
+      gMapGrid.forEachInAABB(X, Y, Width, Height, checker);
+      result := texid;
+    end;
+  finally
+    if (profMapCollision <> nil) then profMapCollision.sectionEnd();
   end;
 end;
 

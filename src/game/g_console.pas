@@ -390,6 +390,7 @@ begin
 
   AddCommand('dpp', ProfilerCommands);
   AddCommand('dpu', ProfilerCommands);
+  AddCommand('dpc', ProfilerCommands);
   AddCommand('r_draw_grid', ProfilerCommands);
   AddCommand('dbg_coldet_grid', ProfilerCommands);
 
