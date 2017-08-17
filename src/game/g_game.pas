@@ -20,7 +20,7 @@ interface
 
 uses
   g_basic, g_player, e_graphics, Classes, g_res_downloader,
-  SysUtils, g_sound, g_gui, MAPSTRUCT, wadreader, md5;
+  SysUtils, g_sound, g_gui, MAPSTRUCT, wadreader, md5, xprofiler;
 
 type
   TGameSettings = record
@@ -124,6 +124,7 @@ procedure GameCVars(P: SArray);
 procedure GameCommands(P: SArray);
 procedure GameCheats(P: SArray);
 procedure DebugCommands(P: SArray);
+procedure ProfilerCommands(P: SArray);
 procedure g_Game_Process_Params;
 procedure g_Game_SetLoadingText(Text: String; Max: Integer; reWrite: Boolean);
 procedure g_Game_StepLoading();
@@ -309,6 +310,9 @@ var
   P1MoveButton: Byte = 0;
   P2MoveButton: Byte = 0;
 
+  g_profile_frame_update: Boolean = false;
+  g_profile_frame_draw: Boolean = true;
+
 procedure g_ResetDynlights ();
 procedure g_AddDynLight (x, y, radius: Integer; r, g, b, a: Single);
 procedure g_DynLightExplosion (x, y, radius: Integer; r, g, b: Single);
@@ -324,6 +328,8 @@ uses
   ENet, e_fixedbuffer, g_netmsg, g_netmaster, GL, GLExt,
   utils, sfs;
 
+
+// ////////////////////////////////////////////////////////////////////////// //
 type
   TDynLight = record
     x, y, radius: Integer;
@@ -398,6 +404,41 @@ begin
 end;
 
 
+// ////////////////////////////////////////////////////////////////////////// //
+procedure drawProfiles (x, y: Integer; title: AnsiString);
+var
+  wdt, hgt: Integer;
+  yy: Integer;
+
+  procedure drawItems ();
+  begin
+    repeat
+      e_TextureFontPrintEx(x+2+4*xprofItDepth, yy, Format('%s: %d', [xprofItName, xprofItMicro]), gStdFont, 255, 255, 0, 1, false);
+      Inc(yy, 16+2);
+      if xprofItHasChildren then
+      begin
+        xprofItDive();
+        drawItems();
+        xprofItPop();
+      end;
+    until xprofItNext();
+  end;
+
+begin
+  // gScreenWidth
+  if not xprofItReset() then exit;
+  wdt := 256;
+  hgt := 16+2+xprofTotalCount*(16+2); // title, items
+  // background
+  e_DrawFillQuad(x, y, x+wdt-1, y+hgt-1, 255, 255, 255, 200, B_BLEND);
+  // title
+  e_TextureFontPrintEx(x+2, y+2, Format('%s: %d', [title, Integer(xprofTotalMicro)]), gStdFont, 255, 255, 0, 1, false);
+  yy := y+16+2;
+  //drawItems();
+end;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
 type
   TEndCustomGameStat = record
     PlayerStat: TPlayerStatArray;
@@ -2715,7 +2756,9 @@ begin
     else
       d := Round((py-p.IncCam-(gPlayerScreenSize.Y div 2))/(gMapInfo.Height-gPlayerScreenSize.Y)*(gBackSize.Y-gPlayerScreenSize.Y));
 
+  xprofBeginSection('map background');
   g_Map_DrawBack(-c, -d);
+  xprofEndSection();
 
   sX := -a;
   sY := -(b+p.IncCam);
@@ -2724,26 +2767,74 @@ begin
 
   glTranslatef(a, b+p.IncCam, 0);
 
+  xprofBeginSection('map rendering');
+
+  xprofBeginSection('panel_back');
   g_Map_DrawPanels(sX, sY, sWidth, sHeight, PANEL_BACK);
+  xprofEndSection();
+
+  xprofBeginSection('panel_step');
   g_Map_DrawPanels(sX, sY, sWidth, sHeight, PANEL_STEP);
+  xprofEndSection();
+
+  xprofBeginSection('items');
   g_Items_Draw();
+  xprofEndSection();
+
+  xprofBeginSection('weapons');
   g_Weapon_Draw();
+  xprofEndSection();
+
+  xprofBeginSection('shells');
   g_Player_DrawShells();
+  xprofEndSection();
+
+  xprofBeginSection('drawall');
   g_Player_DrawAll();
+  xprofEndSection();
+
+  xprofBeginSection('corpses');
   g_Player_DrawCorpses();
+  xprofEndSection();
+
+  xprofBeginSection('panel_wall');
   g_Map_DrawPanels(sX, sY, sWidth, sHeight, PANEL_WALL);
+  xprofEndSection();
+
+  xprofBeginSection('monsters');
   g_Monsters_Draw();
+  xprofEndSection();
+
+  xprofBeginSection('panel_closedoor');
   g_Map_DrawPanels(sX, sY, sWidth, sHeight, PANEL_CLOSEDOOR);
+  xprofEndSection();
+
+  xprofBeginSection('gfx');
   g_GFX_Draw();
+  xprofEndSection();
+
+  xprofBeginSection('flags');
   g_Map_DrawFlags();
+  xprofEndSection();
+
+  xprofBeginSection('panel_acid1');
   g_Map_DrawPanels(sX, sY, sWidth, sHeight, PANEL_ACID1);
+  xprofEndSection();
+
+  xprofBeginSection('panel_acid2');
   g_Map_DrawPanels(sX, sY, sWidth, sHeight, PANEL_ACID2);
+  xprofEndSection();
+
+  xprofBeginSection('panel_water');
   g_Map_DrawPanels(sX, sY, sWidth, sHeight, PANEL_WATER);
+  xprofEndSection();
 
   //TODO: lights should be in separate grid, i think
   //      but on the other side: grid may be slower for dynlights, as their lifetime is short
   if gwin_has_stencil and (g_dynLightCount > 0) then
   begin
+    xprofBeginSection('dynlights');
+
     // setup OpenGL parameters
     glStencilMask($FFFFFFFF);
     glStencilFunc(GL_ALWAYS, 0, $FFFFFFFF);
@@ -2796,13 +2887,28 @@ begin
     glDisable(GL_BLEND);
     glDisable(GL_SCISSOR_TEST);
     glScissor(0, 0, sWidth, sHeight);
+
+    xprofEndSection();
+  end
+  else
+  begin
+    xprofBeginSection('dynlights');
+    xprofEndSection();
   end;
 
+  xprofBeginSection('panel_fore');
   g_Map_DrawPanels(sX, sY, sWidth, sHeight, PANEL_FORE);
+  xprofEndSection();
+
   if g_debug_HealthBar then
   begin
+    xprofBeginSection('monster health');
     g_Monsters_DrawHealth();
+    xprofEndSection();
+
+    xprofBeginSection('player health');
     g_Player_DrawHealth();
+    xprofEndSection();
   end;
 
   if p.FSpectator then
@@ -2828,6 +2934,8 @@ begin
   }
 
   glPopMatrix();
+
+  xprofEndSection(); // map rendering
 
   p.DrawPain();
   p.DrawPickup();
@@ -2858,6 +2966,8 @@ begin
     FPSCounter := 0;
     FPSTime := Time;
   end;
+
+  xprofBegin(g_profile_frame_draw);
 
   if gGameOn or (gState = STATE_FOLD) then
   begin
@@ -3159,6 +3269,9 @@ begin
   e_TextureFontPrint(gScreenWidth-72, 0,
                      Format('%d:%.2d:%.2d', [gTime div 1000 div 3600, (gTime div 1000 div 60) mod 60, gTime div 1000 mod 60]),
                      gStdFont);
+
+  xprofEnd();
+  if g_profile_frame_draw then drawProfiles(0, 0, 'MAP RENDER');
 end;
 
 procedure g_Game_Quit();
@@ -4817,6 +4930,25 @@ begin
                            [gGameSettings.MaxLives]));
       if g_Game_IsNet then MH_SEND_GameSettings;
     end;
+  end;
+end;
+
+// profiler console commands
+procedure ProfilerCommands (P: SArray);
+var
+  cmd: string;
+begin
+  //if not gDebugMode then exit;
+  cmd := LowerCase(P[0]);
+  if cmd = 'dpp' then
+  begin
+    g_profile_frame_draw := not g_profile_frame_draw;
+    exit;
+  end;
+  if cmd = 'dpu' then
+  begin
+    g_profile_frame_update := not g_profile_frame_update;
+    exit;
   end;
 end;
 

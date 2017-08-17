@@ -388,6 +388,9 @@ begin
   AddCommand('d_player', DebugCommands);
   AddCommand('d_joy', DebugCommands);
 
+  AddCommand('dpp', ProfilerCommands);
+  AddCommand('dpu', ProfilerCommands);
+
   AddCommand('p1_name', GameCVars);
   AddCommand('p2_name', GameCVars);
   AddCommand('p1_color', GameCVars);

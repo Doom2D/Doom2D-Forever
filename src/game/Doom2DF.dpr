@@ -95,6 +95,7 @@ uses
   fmodpresets in '../lib/FMOD/fmodpresets.pas',
   fmodtypes in '../lib/FMOD/fmodtypes.pas',
 {$ENDIF}
+  xprofiler in '../shared/xprofiler.pas',
   BinEditor in '../shared/BinEditor.pas',
   envvars in '../shared/envvars.pas',
   g_panel in 'g_panel.pas',
