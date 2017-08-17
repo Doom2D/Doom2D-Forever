@@ -313,6 +313,7 @@ var
   g_profile_frame_update: Boolean = false;
   g_profile_frame_draw: Boolean = false;
   g_profile_collision: Boolean = false;
+  g_profile_history_size: Integer = 1000;
 
 procedure g_ResetDynlights ();
 procedure g_AddDynLight (x, y, radius: Integer; r, g, b, a: Single);
@@ -2749,7 +2750,7 @@ begin
     Exit;
   end;
 
-  if (profileFrameDraw = nil) then profileFrameDraw := TProfiler.Create('MAP RENDER');
+  if (profileFrameDraw = nil) then profileFrameDraw := TProfiler.Create('MAP RENDER', g_profile_history_size);
   profileFrameDraw.mainBegin(g_profile_frame_draw);
 
   gPlayerDrawn := p;

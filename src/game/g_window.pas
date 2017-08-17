@@ -708,6 +708,7 @@ begin
   begin
     if ParamStr(idx) = '--opengl-dump-exts' then gwin_dump_extensions := true;
     if ParamStr(idx) = '--twinkletwinkle' then gwin_k8_enable_light_experiments := true;
+    if ParamStr(idx) = '--jah' then g_profile_history_size := 100;
   end;
 
   e_WriteLog('Initializing OpenGL', MSG_NOTIFY);

@@ -75,10 +75,10 @@ const
 type
   TProfilerBar = record
   private
-    const FilterFadeoff = 0.05; // 5%
+    //const FilterFadeoff = 0.05; // 5%
 
   private
-    history: array [0..TProfHistorySize-1] of Integer; // circular buffer
+    history: array of Integer; // circular buffer
     hisLast: Integer;
     //curval: Single;
     curAccum: UInt64;
@@ -87,7 +87,7 @@ type
     mLevel: Integer;
 
   private
-    procedure initialize (); inline;
+    procedure initialize (aHistSize: Integer); inline;
     function getvalue (): Integer; inline;
     function getvalat (idx: Integer): Integer; inline;
     function getcount (): Integer; inline;
@@ -124,9 +124,10 @@ type
   public
     bars: array of TProfilerBar; // 0: total time
     name: AnsiString;
+    histSize: Integer;
 
   public
-    constructor Create (aName: AnsiString);
+    constructor Create (aName: AnsiString; aHistSize: Integer);
     destructor Destroy (); override;
 
     // call this on frame start
@@ -270,17 +271,17 @@ end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-procedure TProfilerBar.initialize (); begin hisLast := -1; curAccum := 0; curAccumCount := 0; end;
+procedure TProfilerBar.initialize (aHistSize: Integer); begin SetLength(history, aHistSize); hisLast := -1; curAccum := 0; curAccumCount := 0; end;
 
 procedure TProfilerBar.update (val: Integer);
 var
   idx: Integer;
 begin
   if (val < 0) then val := 0; //else if (val > 1000000) val := 1000000;
-  if (hisLast = -1) then begin hisLast := TProfHistorySize-1; curAccum := 0; curAccumCount := 0; for idx := 0 to TProfHistorySize-1 do history[idx] := val; end;
-  if (curAccumCount = TProfHistorySize) then Dec(curAccum, UInt64(history[(hisLast+1) mod TProfHistorySize])) else Inc(curAccumCount);
+  if (hisLast = -1) then begin hisLast := High(history); curAccum := 0; curAccumCount := 0; for idx := 0 to High(history) do history[idx] := val; end;
+  if (curAccumCount = Length(history)) then Dec(curAccum, UInt64(history[(hisLast+1) mod Length(history)])) else Inc(curAccumCount);
   Inc(hisLast);
-  if (hisLast >= TProfHistorySize) then hisLast := 0;
+  if (hisLast >= Length(history)) then hisLast := 0;
   Inc(curAccum, UInt64(val));
   history[hisLast] := val;
   //curval := FilterFadeoff*val+(1.0-FilterFadeoff)*curval;
@@ -293,27 +294,30 @@ var idx: Integer;
 begin
   {$IFDEF XPROFILER_SLOW_AVERAGE}
   result := 0;
-  for idx := 0 to TProfHistorySize-1 do Inc(result, history[idx]);
-  result := result div TProfHistorySize;
+  for idx := 0 to High(history) do Inc(result, history[idx]);
+  result := result div Length(history);
   {$ELSE}
   //result := round(curval);
   if curAccumCount > 0 then result := Integer(curAccum div curAccumCount) else result := 0;
   {$ENDIF}
 end;
 
-function TProfilerBar.getcount (): Integer; begin result := TProfHistorySize; end;
+function TProfilerBar.getcount (): Integer; begin result := Length(history); end;
 
 function TProfilerBar.getvalat (idx: Integer): Integer;
 begin
-  if (idx < 0) or (idx >= TProfHistorySize) then result := 0 else result := history[(hisLast-idx+TProfHistorySize*2) mod TProfHistorySize];
+  if (idx < 0) or (idx >= Length(history)) then result := 0 else result := history[(hisLast-idx+Length(history)*2) mod Length(history)];
 end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-constructor TProfiler.Create (aName: AnsiString);
+constructor TProfiler.Create (aName: AnsiString; aHistSize: Integer);
 begin
   name := aName;
   bars := nil;
+  if (aHistSize < 10) then aHistSize := 10;
+  if (aHistSize > 10000) then aHistSize := 10000;
+  histSize := aHistSize;
   {$IF DEFINED(STOPWATCH_IS_HERE)}
   xptimer.clear();
   xpsecs := nil;
@@ -324,7 +328,10 @@ end;
 
 
 destructor TProfiler.Destroy ();
+var
+  idx: Integer;
 begin
+  for idx := 0 to High(bars) do bars[idx].history := nil;
   bars := nil;
   {$IF DEFINED(STOPWATCH_IS_HERE)}
   xpsecs := nil;
@@ -378,11 +385,11 @@ begin
       SetLength(bars, xpsused+1);
       for idx := 1 to xpsused do
       begin
-        bars[idx].initialize();
+        bars[idx].initialize(histSize);
         bars[idx].mName := xpsecs[idx-1].name;
         bars[idx].mLevel := xpsecs[idx-1].level+1;
       end;
-      bars[0].initialize();
+      bars[0].initialize(histSize);
       bars[0].mName := name;
       bars[0].mLevel := 0;
     end;
@@ -401,7 +408,7 @@ begin
     if (length(bars) <> 1) then
     begin
       SetLength(bars, 1);
-      bars[0].initialize();
+      bars[0].initialize(histSize);
       bars[0].mName := name;
       bars[0].mLevel := 0;
     end;
