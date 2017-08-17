@@ -447,7 +447,7 @@ begin
   end;
 
   if NetDump then g_Net_DumpSendBuffer();
-  g_Net_Flush();
+  // g_Net_Flush();
   e_Buffer_Clear(@NetOut);
 end;
 
@@ -668,7 +668,7 @@ begin
 
   enet_peer_send(NetPeer, Chan, P);
   if NetDump then g_Net_DumpSendBuffer();
-  g_Net_Flush();
+  // g_Net_Flush();
   e_Buffer_Clear(@NetOut);
 end;
 
@@ -714,7 +714,7 @@ begin
       end;
     end;
   end;
-  g_Net_Flush();
+  // g_Net_Flush();
 end;
 
 function g_Net_Connect(IP: string; Port: enet_uint16): Boolean;
