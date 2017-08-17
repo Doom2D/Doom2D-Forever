@@ -330,6 +330,11 @@ uses
 
 
 // ////////////////////////////////////////////////////////////////////////// //
+var
+  profileFrameDraw: TProfiler = nil;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
 type
   TDynLight = record
     x, y, radius: Integer;
@@ -405,7 +410,8 @@ end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-procedure drawProfiles (x, y: Integer; title: AnsiString);
+(*
+procedure drawProfiles (x, y: Integer; title: AnsiString); overload;
 var
   wdt, hgt: Integer;
   yy: Integer;
@@ -439,7 +445,8 @@ var
 
 begin
   // gScreenWidth
-  if not xprofItReset() then exit;
+  //if not xprofItReset() then exit;
+  if (xprofTotalCount = 0) then exit;
   wdt := 256;
   hgt := 16+2+xprofTotalCount*(16+2); // title, items
   // background
@@ -449,6 +456,33 @@ begin
   e_TextureFontPrintEx(x+2, y+2, Format('%s: %d', [title, Integer(xprofTotalMicro)]), gStdFont, 255, 255, 0, 1, false);
   yy := y+16+2;
   drawItems();
+end;
+*)
+
+
+procedure drawProfiles (x, y: Integer; prof: TProfiler);
+var
+  wdt, hgt: Integer;
+  yy: Integer;
+  ii, idx: Integer;
+begin
+  if (prof = nil) then exit;
+  // gScreenWidth
+  if (length(prof.bars) = 0) then exit;
+  wdt := 192;
+  hgt := length(prof.bars)*(16+2);
+  if (x < 0) then x := gScreenWidth-(wdt-1)+x;
+  if (y < 0) then y := gScreenHeight-(hgt-1)+y;
+  // background
+  //e_DrawFillQuad(x, y, x+wdt-1, y+hgt-1, 255, 255, 255, 200, B_BLEND);
+  e_DrawFillQuad(x, y, x+wdt-1, y+hgt-1, 20, 20, 20, 0, B_NONE);
+  // title
+  yy := y+2;
+  for ii := 0 to High(prof.bars) do
+  begin
+    e_TextureFontPrintEx(x+2+4*prof.bars[ii].level, yy, Format('%s: %d', [prof.bars[ii].name, prof.bars[ii].value]), gStdFont, 255, 255, 0, 1, false);
+    Inc(yy, 16+2);
+  end;
 end;
 
 
@@ -2703,6 +2737,9 @@ begin
     Exit;
   end;
 
+  if (profileFrameDraw = nil) then profileFrameDraw := TProfiler.Create('MAP RENDER');
+  profileFrameDraw.mainBegin(g_profile_frame_draw);
+
   gPlayerDrawn := p;
 
   glPushMatrix();
@@ -2770,9 +2807,9 @@ begin
     else
       d := Round((py-p.IncCam-(gPlayerScreenSize.Y div 2))/(gMapInfo.Height-gPlayerScreenSize.Y)*(gBackSize.Y-gPlayerScreenSize.Y));
 
-  xprofBeginSection('map background');
+  profileFrameDraw.sectionBegin('map background');
   g_Map_DrawBack(-c, -d);
-  xprofEndSection();
+  profileFrameDraw.sectionEnd();
 
   sX := -a;
   sY := -(b+p.IncCam);
@@ -2781,73 +2818,73 @@ begin
 
   glTranslatef(a, b+p.IncCam, 0);
 
-  xprofBeginSection('map rendering');
+  profileFrameDraw.sectionBegin('map rendering');
 
-  xprofBeginSection('panel_back');
+  profileFrameDraw.sectionBegin('panel_back');
   g_Map_DrawPanels(sX, sY, sWidth, sHeight, PANEL_BACK);
-  xprofEndSection();
+  profileFrameDraw.sectionEnd();
 
-  xprofBeginSection('panel_step');
+  profileFrameDraw.sectionBegin('panel_step');
   g_Map_DrawPanels(sX, sY, sWidth, sHeight, PANEL_STEP);
-  xprofEndSection();
+  profileFrameDraw.sectionEnd();
 
-  xprofBeginSection('items');
+  profileFrameDraw.sectionBegin('items');
   g_Items_Draw();
-  xprofEndSection();
+  profileFrameDraw.sectionEnd();
 
-  xprofBeginSection('weapons');
+  profileFrameDraw.sectionBegin('weapons');
   g_Weapon_Draw();
-  xprofEndSection();
+  profileFrameDraw.sectionEnd();
 
-  xprofBeginSection('shells');
+  profileFrameDraw.sectionBegin('shells');
   g_Player_DrawShells();
-  xprofEndSection();
+  profileFrameDraw.sectionEnd();
 
-  xprofBeginSection('drawall');
+  profileFrameDraw.sectionBegin('drawall');
   g_Player_DrawAll();
-  xprofEndSection();
+  profileFrameDraw.sectionEnd();
 
-  xprofBeginSection('corpses');
+  profileFrameDraw.sectionBegin('corpses');
   g_Player_DrawCorpses();
-  xprofEndSection();
+  profileFrameDraw.sectionEnd();
 
-  xprofBeginSection('panel_wall');
+  profileFrameDraw.sectionBegin('panel_wall');
   g_Map_DrawPanels(sX, sY, sWidth, sHeight, PANEL_WALL);
-  xprofEndSection();
+  profileFrameDraw.sectionEnd();
 
-  xprofBeginSection('monsters');
+  profileFrameDraw.sectionBegin('monsters');
   g_Monsters_Draw();
-  xprofEndSection();
+  profileFrameDraw.sectionEnd();
 
-  xprofBeginSection('panel_closedoor');
+  profileFrameDraw.sectionBegin('panel_closedoor');
   g_Map_DrawPanels(sX, sY, sWidth, sHeight, PANEL_CLOSEDOOR);
-  xprofEndSection();
+  profileFrameDraw.sectionEnd();
 
-  xprofBeginSection('gfx');
+  profileFrameDraw.sectionBegin('gfx');
   g_GFX_Draw();
-  xprofEndSection();
+  profileFrameDraw.sectionEnd();
 
-  xprofBeginSection('flags');
+  profileFrameDraw.sectionBegin('flags');
   g_Map_DrawFlags();
-  xprofEndSection();
+  profileFrameDraw.sectionEnd();
 
-  xprofBeginSection('panel_acid1');
+  profileFrameDraw.sectionBegin('panel_acid1');
   g_Map_DrawPanels(sX, sY, sWidth, sHeight, PANEL_ACID1);
-  xprofEndSection();
+  profileFrameDraw.sectionEnd();
 
-  xprofBeginSection('panel_acid2');
+  profileFrameDraw.sectionBegin('panel_acid2');
   g_Map_DrawPanels(sX, sY, sWidth, sHeight, PANEL_ACID2);
-  xprofEndSection();
+  profileFrameDraw.sectionEnd();
 
-  xprofBeginSection('panel_water');
+  profileFrameDraw.sectionBegin('panel_water');
   g_Map_DrawPanels(sX, sY, sWidth, sHeight, PANEL_WATER);
-  xprofEndSection();
+  profileFrameDraw.sectionEnd();
 
   //TODO: lights should be in separate grid, i think
   //      but on the other side: grid may be slower for dynlights, as their lifetime is short
   if gwin_has_stencil and (g_dynLightCount > 0) then
   begin
-    xprofBeginSection('dynlights');
+    profileFrameDraw.sectionBegin('dynlights');
 
     // setup OpenGL parameters
     glStencilMask($FFFFFFFF);
@@ -2902,27 +2939,27 @@ begin
     glDisable(GL_SCISSOR_TEST);
     glScissor(0, 0, sWidth, sHeight);
 
-    xprofEndSection();
+    profileFrameDraw.sectionEnd();
   end
   else
   begin
-    xprofBeginSection('dynlights');
-    xprofEndSection();
+    profileFrameDraw.sectionBegin('dynlights');
+    profileFrameDraw.sectionEnd();
   end;
 
-  xprofBeginSection('panel_fore');
+  profileFrameDraw.sectionBegin('panel_fore');
   g_Map_DrawPanels(sX, sY, sWidth, sHeight, PANEL_FORE);
-  xprofEndSection();
+  profileFrameDraw.sectionEnd();
 
   if g_debug_HealthBar then
   begin
-    xprofBeginSection('monster health');
+    profileFrameDraw.sectionBegin('monster health');
     g_Monsters_DrawHealth();
-    xprofEndSection();
+    profileFrameDraw.sectionEnd();
 
-    xprofBeginSection('player health');
+    profileFrameDraw.sectionBegin('player health');
     g_Player_DrawHealth();
-    xprofEndSection();
+    profileFrameDraw.sectionEnd();
   end;
 
   if p.FSpectator then
@@ -2949,7 +2986,7 @@ begin
 
   glPopMatrix();
 
-  xprofEndSection(); // map rendering
+  profileFrameDraw.mainEnd(); // map rendering
 
   p.DrawPain();
   p.DrawPickup();
@@ -2980,8 +3017,6 @@ begin
     FPSCounter := 0;
     FPSTime := Time;
   end;
-
-  xprofBegin(g_profile_frame_draw);
 
   if gGameOn or (gState = STATE_FOLD) then
   begin
@@ -3284,8 +3319,7 @@ begin
                      Format('%d:%.2d:%.2d', [gTime div 1000 div 3600, (gTime div 1000 div 60) mod 60, gTime div 1000 mod 60]),
                      gStdFont);
 
-  xprofEnd();
-  if g_profile_frame_draw then drawProfiles(0, 0, 'MAP RENDER');
+  if g_profile_frame_draw then drawProfiles(-1, -1, profileFrameDraw); //drawProfiles(-1, -1, 'MAP RENDER');
 end;
 
 procedure g_Game_Quit();

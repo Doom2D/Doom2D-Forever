@@ -84,6 +84,54 @@ type
 {$ENDIF}
 
 
+const
+  TProfHistorySize = 100;
+
+type
+  TProfilerBar = record
+  private
+    const FilterFadeoff = 0.05; // 5%
+
+  private
+    history: array [0..TProfHistorySize-1] of Integer; // circular buffer
+    hisHead: Integer;
+    curval: Single;
+    mName: AnsiString;
+    mLevel: Integer;
+
+  private
+    procedure initialize (); inline;
+    function getvalue (): Integer; inline;
+    function getvalat (idx: Integer): Integer; inline;
+    function getcount (): Integer; inline;
+
+  public
+    procedure update (val: Integer);
+
+    property value: Integer read getvalue;
+    property name: AnsiString read mName;
+    property level: Integer read mLevel;
+    property count: Integer read getcount;
+    property values[idx: Integer]: Integer read getvalat;
+  end;
+
+  TProfiler = class(TObject)
+  public
+    bars: array of TProfilerBar;
+    name: AnsiString;
+
+  public
+    constructor Create (aName: AnsiString);
+    destructor Destroy (); override;
+
+    procedure mainBegin (reallyActivate: Boolean=true);
+    procedure mainEnd ();
+
+    procedure sectionBegin (name: AnsiString);
+    procedure sectionEnd ();
+  end;
+
+
 // call this on frame start
 procedure xprofBegin (reallyActivate: Boolean=true);
 // call this on frame end
@@ -502,6 +550,91 @@ function xprofItDive (): Boolean; begin result := false; end;
 function xprofItPop (): Boolean; begin result := false; end;
 function xprofItNext (): Boolean; begin result := false; end;
 {$ENDIF}
+
+
+// ////////////////////////////////////////////////////////////////////////// //
+procedure TProfilerBar.initialize (); begin hisHead := -1; curval := 0; end;
+
+procedure TProfilerBar.update (val: Integer);
+var
+  idx: Integer;
+begin
+  if (val < 0) then val := 0; //else if (val > 1000000) val := 1000000;
+  if (hisHead = -1) then begin hisHead := 0; curval := 0; for idx := 0 to TProfHistorySize-1 do history[idx] := val; end;
+  history[hisHead] := val;
+  Inc(hisHead);
+  if (hisHead = TProfHistorySize) then hisHead := 0;
+  curval := FilterFadeoff*val+(1.0-FilterFadeoff)*curval;
+end;
+
+function TProfilerBar.getvalue (): Integer; begin result := round(curval); end;
+
+function TProfilerBar.getcount (): Integer; begin result := TProfHistorySize; end;
+
+function TProfilerBar.getvalat (idx: Integer): Integer;
+begin
+  if (idx < 0) or (idx >= TProfHistorySize) then result := 0 else result := history[(hisHead-idx-1+TProfHistorySize*2) mod TProfHistorySize];
+end;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
+constructor TProfiler.Create (aName: AnsiString);
+begin
+  name := aName;
+  bars := nil;
+end;
+
+
+destructor TProfiler.Destroy ();
+begin
+  bars := nil;
+  inherited;
+end;
+
+
+procedure TProfiler.mainBegin (reallyActivate: Boolean=true);
+begin
+  xprofBegin(reallyActivate);
+end;
+
+procedure TProfiler.mainEnd ();
+var
+  idx: Integer;
+begin
+  xprofEnd();
+  if (xprofTotalCount > 0) then
+  begin
+    // first time?
+    if (length(bars) = 0) or (length(bars) <> xprofTotalCount+1) then
+    begin
+      //if (length(bars) <> 0) then raise Exception.Create('FUUUUUUUUUUUUUUU');
+      SetLength(bars, xprofTotalCount+1);
+      for idx := 1 to xprofTotalCount do
+      begin
+        bars[idx].initialize();
+        bars[idx].mName := xprofNameAt(idx-1);
+        bars[idx].mLevel := xprofLevelAt(idx-1)+1;
+      end;
+      bars[0].initialize();
+      bars[0].mName := name;
+      bars[0].mLevel := 0;
+    end;
+    // update bars
+    for idx := 1 to xprofTotalCount do bars[idx].update(xprofMicroAt(idx-1));
+    bars[0].update(xprofTotalMicro);
+  end;
+end;
+
+procedure TProfiler.sectionBegin (name: AnsiString);
+begin
+  xprofBeginSection(name);
+end;
+
+procedure TProfiler.sectionEnd ();
+begin
+  xprofEndSection();
+end;
+
 
 begin
   {$IF DEFINED(STOPWATCH_IS_HERE)}
