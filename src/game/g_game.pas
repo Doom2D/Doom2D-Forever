@@ -475,7 +475,7 @@ function drawProfiles (x, y: Integer; prof: TProfiler): Integer;
 var
   wdt, hgt: Integer;
   yy: Integer;
-  ii, idx: Integer;
+  ii: Integer;
 begin
   result := 0;
   if (prof = nil) then exit;
@@ -5017,21 +5017,25 @@ var
 begin
   //if not gDebugMode then exit;
   cmd := LowerCase(P[0]);
+
   if cmd = 'dpp' then
   begin
     g_profile_frame_draw := not g_profile_frame_draw;
     exit;
   end;
+
   if cmd = 'dpu' then
   begin
     g_profile_frame_update := not g_profile_frame_update;
     exit;
   end;
+
   if cmd = 'dpc' then
   begin
     g_profile_collision := not g_profile_collision;
     exit;
   end;
+
   if cmd = 'r_gridrender' then
   begin
     case getBool(1) of
@@ -5042,6 +5046,7 @@ begin
     if gdbg_map_use_grid_render then g_Console_Add('grid rendering: tan') else g_Console_Add('grid rendering: ona');
     exit;
   end;
+
   if cmd = 'dbg_coldet_grid' then
   begin
     case getBool(1) of
@@ -5050,6 +5055,17 @@ begin
        1: gdbg_map_use_grid_coldet := true;
     end;
     if gdbg_map_use_grid_coldet then g_Console_Add('grid coldet: tan') else g_Console_Add('grid coldet: ona');
+    exit;
+  end;
+
+  if (cmd = 'sq_use_grid') or (cmd = 'sq_use_sap') then
+  begin
+    case getBool(1) of
+      -1: begin end;
+       0: gdbg_map_use_sap := (cmd = 'sq_use_grid');
+       1: gdbg_map_use_sap := (cmd = 'sq_use_sap');
+    end;
+    if gdbg_map_use_sap then g_Console_Add('coldet: sap') else g_Console_Add('coldet: grid');
     exit;
   end;
 end;

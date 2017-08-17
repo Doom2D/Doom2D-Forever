@@ -394,6 +394,9 @@ begin
   AddCommand('r_gridrender', ProfilerCommands);
   AddCommand('dbg_coldet_grid', ProfilerCommands);
 
+  AddCommand('sq_use_grid', ProfilerCommands);
+  AddCommand('sq_use_sap', ProfilerCommands);
+
   AddCommand('p1_name', GameCVars);
   AddCommand('p2_name', GameCVars);
   AddCommand('p1_color', GameCVars);

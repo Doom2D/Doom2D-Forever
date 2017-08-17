@@ -13,12 +13,11 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *)
+// universal spatial grid
 {$INCLUDE ../shared/a_modes.inc}
 unit g_grid;
 
 interface
-
-uses e_log;
 
 const
   GridDefaultTileSize = 32;
@@ -73,7 +72,7 @@ type
     mGrid: array of Integer; // mWidth*mHeight, index in mCells
     mCells: array of TGridCell; // cell pool
     mFreeCell: Integer; // first free cell index or -1
-    mLastQuery: Integer;
+    mLastQuery: DWord;
     mUsedCells: Integer;
     mProxies: array of TBodyProxyRec;
     mProxyFree: TBodyProxy; // free
@@ -111,55 +110,13 @@ type
   end;
 
 
-type
-  TBinaryHeapLessFn = function (a, b: TObject): Boolean;
-
-  TBinaryHeapObj = class(TObject)
-  private
-    elem: array of TObject;
-    elemUsed: Integer;
-    lessfn: TBinaryHeapLessFn;
-
-  private
-    procedure heapify (root: Integer);
-
-  public
-    constructor Create (alessfn: TBinaryHeapLessFn);
-    destructor Destroy (); override;
-
-    procedure clear ();
-
-    procedure insert (val: TObject);
-
-    function front (): TObject;
-    procedure popFront ();
-
-    property count: Integer read elemUsed;
-  end;
-
-
 implementation
 
 uses
-  SysUtils;
+  SysUtils, e_log;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-(*
-constructor TBodyProxy.Create (aGrid: TBodyGrid; aX, aY, aWidth, aHeight: Integer; aObj: TObject; aTag: Integer);
-begin
-  mGrid := aGrid;
-  setup(aX, aY, aWidth, aHeight, aObj, aTag);
-end;
-
-
-destructor TBodyProxy.Destroy ();
-begin
-  inherited;
-end;
-*)
-
-
 procedure TBodyProxyRec.setup (aX, aY, aWidth, aHeight: Integer; aObj: TObject; aTag: Integer);
 begin
   mX := aX;
@@ -213,8 +170,6 @@ end;
 
 
 destructor TBodyGrid.Destroy ();
-var
-  px: TBodyProxy;
 begin
   mCells := nil;
   mGrid := nil;
@@ -517,85 +472,6 @@ begin
   if (aObj = nil) then exit;
   forGridRect(x, y, w, h, iterator);
   result := res;
-end;
-
-
-// ////////////////////////////////////////////////////////////////////////// //
-constructor TBinaryHeapObj.Create (alessfn: TBinaryHeapLessFn);
-begin
-  if not assigned(alessfn) then raise Exception.Create('wutafuck?!');
-  lessfn := alessfn;
-  SetLength(elem, 8192); // 'cause why not?
-  elemUsed := 0;
-end;
-
-
-destructor TBinaryHeapObj.Destroy ();
-begin
-  inherited;
-end;
-
-
-procedure TBinaryHeapObj.clear ();
-begin
-  elemUsed := 0;
-end;
-
-
-procedure TBinaryHeapObj.heapify (root: Integer);
-var
-  smallest, right: Integer;
-  tmp: TObject;
-begin
-  while true do
-  begin
-    smallest := 2*root+1; // left child
-    if (smallest >= elemUsed) then break; // anyway
-    right := smallest+1; // right child
-    if not lessfn(elem[smallest], elem[root]) then smallest := root;
-    if (right < elemUsed) and (lessfn(elem[right], elem[smallest])) then smallest := right;
-    if (smallest = root) then break;
-    // swap
-    tmp := elem[root];
-    elem[root] := elem[smallest];
-    elem[smallest] := tmp;
-    root := smallest;
-  end;
-end;
-
-
-procedure TBinaryHeapObj.insert (val: TObject);
-var
-  i, par: Integer;
-begin
-  if (val = nil) then exit;
-  i := elemUsed;
-  if (i = Length(elem)) then SetLength(elem, Length(elem)+16384); // arbitrary number
-  Inc(elemUsed);
-  while (i <> 0) do
-  begin
-    par := (i-1) div 2; // parent
-    if not lessfn(val, elem[par]) then break;
-    elem[i] := elem[par];
-    i := par;
-  end;
-  elem[i] := val;
-end;
-
-function TBinaryHeapObj.front (): TObject;
-begin
-  if elemUsed > 0 then result := elem[0] else result := nil;
-end;
-
-
-procedure TBinaryHeapObj.popFront ();
-begin
-  if (elemUsed > 0) then
-  begin
-    Dec(elemUsed);
-    elem[0] := elem[elemUsed];
-    heapify(0);
-  end;
 end;
 
 

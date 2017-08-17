@@ -70,6 +70,8 @@ uses
   g_nethandler in 'g_nethandler.pas',
   g_netmaster in 'g_netmaster.pas',
   g_res_downloader in 'g_res_downloader.pas',
+  g_grid in 'g_grid.pas',
+  g_sap in 'g_sap.pas',
   g_game in 'g_game.pas',
   g_gfx in 'g_gfx.pas',
   g_gui in 'g_gui.pas',
@@ -96,6 +98,7 @@ uses
   fmodtypes in '../lib/FMOD/fmodtypes.pas',
 {$ENDIF}
   xprofiler in '../shared/xprofiler.pas',
+  binheap in '../shared/binheap.pas',
   BinEditor in '../shared/BinEditor.pas',
   envvars in '../shared/envvars.pas',
   g_panel in 'g_panel.pas',

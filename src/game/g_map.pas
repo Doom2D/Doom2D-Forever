@@ -20,7 +20,7 @@ interface
 
 uses
   e_graphics, g_basic, MAPSTRUCT, g_textures, Classes,
-  g_phys, wadreader, BinEditor, g_panel, g_grid, md5, xprofiler;
+  g_phys, wadreader, BinEditor, g_panel, g_grid, g_sap, md5, xprofiler;
 
 type
   TMapInfo = record
@@ -136,6 +136,7 @@ var
 
   gdbg_map_use_grid_render: Boolean = true;
   gdbg_map_use_grid_coldet: Boolean = true;
+  gdbg_map_use_sap: Boolean = false;
   profMapCollision: TProfiler = nil; //WARNING: FOR DEBUGGING ONLY!
 
 implementation
@@ -145,7 +146,7 @@ uses
   GL, GLExt, g_weapons, g_game, g_sound, e_sound, CONFIG,
   g_options, MAPREADER, g_triggers, g_player, MAPDEF,
   Math, g_monsters, g_saveload, g_language, g_netmsg,
-  utils, sfs,
+  utils, sfs, binheap,
   ImagingTypes, Imaging, ImagingUtility,
   ImagingGif, ImagingNetworkGraphics;
 
@@ -196,6 +197,7 @@ var
   FlagPoints:    Array [FLAG_RED..FLAG_BLUE] of PFlagPoint;
   //DOMFlagPoints: Array of TFlagPoint;
   gMapGrid: TBodyGrid = nil;
+  gMapSAP: TSweepAndPrune = nil;
 
 
 procedure g_Map_ProfilersBegin ();
@@ -984,12 +986,15 @@ var
     for idx := High(panels) downto 0 do
     begin
       gMapGrid.insertBody(panels[idx], panels[idx].X, panels[idx].Y, panels[idx].Width, panels[idx].Height, tag);
+      gMapSAP.insertBody(panels[idx], panels[idx].X, panels[idx].Y, panels[idx].Width, panels[idx].Height, tag);
     end;
   end;
 
 begin
   gMapGrid.Free();
   gMapGrid := nil;
+  gMapSAP.Free();
+  gMapSAP := nil;
 
   fixMinMax(gWalls);
   fixMinMax(gRenderBackgrounds);
@@ -1008,6 +1013,7 @@ begin
   end;
 
   gMapGrid := TBodyGrid.Create(mapX0, mapY0, mapX1-mapX0+1, mapY1-mapY0+1);
+  gMapSAP := TSweepAndPrune.Create();
 
   addPanelsToGrid(gWalls, PANEL_WALL); // and PANEL_CLOSEDOOR
   addPanelsToGrid(gRenderBackgrounds, PANEL_BACK);
@@ -1020,6 +1026,7 @@ begin
   addPanelsToGrid(gBlockMon, PANEL_BLOCKMON);
 
   gMapGrid.dumpStats();
+  gMapSAP.dumpStats();
 end;
 
 function g_Map_Load(Res: String): Boolean;
@@ -1056,6 +1063,8 @@ var
 begin
   gMapGrid.Free();
   gMapGrid := nil;
+  gMapSAP.Free();
+  gMapSAP := nil;
 
   Result := False;
   gMapInfo.Map := Res;
@@ -1917,7 +1926,14 @@ begin
 
   if gdbg_map_use_grid_render then
   begin
-    gMapGrid.forEachInAABB(x0, y0, wdt, hgt, checker);
+    if gdbg_map_use_sap then
+    begin
+      gMapSAP.forEachInAABB(x0, y0, wdt, hgt, checker);
+    end
+    else
+    begin
+      gMapGrid.forEachInAABB(x0, y0, wdt, hgt, checker);
+    end;
     // sort and draw the list (we need to sort it, or rendering is fucked)
     while gDrawPanelList.count > 0 do
     begin
@@ -1956,7 +1972,14 @@ procedure g_Map_DrawPanelShadowVolumes(lightX: Integer; lightY: Integer; radius:
   end;
 
 begin
-  gMapGrid.forEachInAABB(lightX-radius, lightY-radius, radius*2, radius*2, checker);
+  if gdbg_map_use_sap then
+  begin
+    gMapSAP.forEachInAABB(lightX-radius, lightY-radius, radius*2, radius*2, checker);
+  end
+  else
+  begin
+    gMapGrid.forEachInAABB(lightX-radius, lightY-radius, radius*2, radius*2, checker);
+  end;
 end;
 
 
@@ -2218,7 +2241,14 @@ begin
   try
     if gdbg_map_use_grid_coldet then
     begin
-      result := gMapGrid.forEachInAABB(X, Y, Width, Height, checker);
+      if gdbg_map_use_sap then
+      begin
+        gMapSAP.forEachInAABB(X, Y, Width, Height, checker);
+      end
+      else
+      begin
+        result := gMapGrid.forEachInAABB(X, Y, Width, Height, checker);
+      end;
     end
     else
     begin
@@ -2283,7 +2313,14 @@ begin
     if gdbg_map_use_grid_coldet then
     begin
       texid := TEXTURE_NONE;
-      gMapGrid.forEachInAABB(X, Y, Width, Height, checker);
+      if gdbg_map_use_sap then
+      begin
+        gMapSAP.forEachInAABB(X, Y, Width, Height, checker);
+      end
+      else
+      begin
+        gMapGrid.forEachInAABB(X, Y, Width, Height, checker);
+      end;
       result := texid;
     end
     else
