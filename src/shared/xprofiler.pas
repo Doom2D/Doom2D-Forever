@@ -14,7 +14,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *)
 // stopwatch timer to measure short periods (like frame rendering phases)
-// based on the code by Inoussa OUEDRAOGO, Copyright (c) 2012
+// TStopWatch is based on the code by Inoussa OUEDRAOGO, Copyright (c) 2012
 {$INCLUDE a_modes.inc}
 unit xprofiler;
 
@@ -72,6 +72,7 @@ type
     class property isHighResolution : Boolean read mIsHighResolution;
 
   public
+    procedure clear (); inline; // full clear
     procedure start (); // start or restart timer
     procedure stop ();
 
@@ -96,6 +97,12 @@ function xprofTotalCount (): Integer; // all items
 procedure xprofBeginSection (name: AnsiString);
 procedure xprofEndSection ();
 
+function xprofNameAt (idx: Integer): AnsiString;
+function xprofMicroAt (idx: Integer): Int64;
+function xprofMilliAt (idx: Integer): Int64;
+function xprofHasChildrenAt (idx: Integer): Boolean;
+function xprofLevelAt (idx: Integer): Integer;
+
 // iterator
 function xprofItReset (): Boolean; // false: no sections
 function xprofItCount (): Integer; // from current item to eol (not including children, but including current item)
@@ -105,7 +112,7 @@ function xprofItMicro (): Int64; // current section duration, microseconds
 function xprofItMilli (): Int64; // current section duration, milliseconds
 function xprofItHasChildren (): Boolean;
 function xprofItIsChild (): Boolean;
-function xprofItDepth (): Integer; // 0: top
+function xprofItLevel (): Integer; // 0: top
 
 function xprofItDive (): Boolean; // dive into childrens
 function xprofItPop (): Boolean; // pop into parent
@@ -143,7 +150,7 @@ end;
 class function TStopWatch.Create (): TStopWatch;
 begin
   initTimerIntr();
-  FillChar(result, sizeof(result), 0);
+  result.clear();
 end;
 
 
@@ -190,11 +197,21 @@ begin
 end;
 
 
+procedure TStopWatch.clear ();
+begin
+  //FillChar(self, sizeof(self), 0);
+  mElapsed := 0;
+  mRunning := false;
+  //mStartPosition: TBaseMesure;
+end;
+
+
 procedure TStopWatch.start ();
 begin
   //if mRunning then exit;
   if (mFrequency = 0) then initTimerIntr();
   mRunning := true;
+  mElapsed := 0;
   {$IF DEFINED(LINUX)}
   clock_gettime(CLOCK_MONOTONIC, @mStartPosition);
   {$ELSE}
@@ -249,6 +266,7 @@ type
     parent: Integer; // section index in xpsecs or -1
     firstChild: Integer; // first child, or -1
     next: Integer; // next sibling, or -1
+    level: Integer;
   end;
 
 var
@@ -256,8 +274,8 @@ var
   xpsecs: array of TProfSection = nil;
   xpsused: Integer = 0;
   xpscur: Integer = -1; // currently running section
+  xpslevel: Integer = 0;
   xitcur: Integer = -1; // for iterator
-  xitdepth: Integer = 0;
 
 
 // call this on frame start
@@ -266,7 +284,8 @@ begin
   xpsused := 0;
   xpscur := -1;
   xitcur := -1; // reset iterator
-  xitdepth := 0;
+  xpslevel := 0;
+  xptimer.clear();
   if reallyActivate then xptimer.start();
 end;
 
@@ -285,37 +304,49 @@ end;
 
 
 // don't fuckup pairing of there, 'cause they can be nested!
+//FIXME: rewrite without schlemiel's algo!
 procedure xprofBeginSection (name: AnsiString);
 var
   sid, t: Integer;
   pss: PProfSection;
 begin
   if not xptimer.isRunning then exit;
+  if (Length(xpsecs) = 0) then SetLength(xpsecs, 65536); // why not?
+  if (xpsused >= Length(xpsecs)) then raise Exception.Create('too many profile sections');
   sid := xpsused;
   Inc(xpsused);
-  if (sid = Length(xpsecs)) then SetLength(xpsecs, sid+1024);
   pss := @xpsecs[sid];
   pss.name := name;
+  pss.timer.clear();
   pss.parent := xpscur;
   pss.firstChild := -1;
   pss.next := -1;
-  // link to children
-  if xpscur <> -1 then
+  pss.level := xpslevel;
+  Inc(xpslevel);
+  // link to list
+  if (xpscur <> -1) then
   begin
+    // child
     t := xpsecs[xpscur].firstChild;
-    if t = -1 then
+    if (t = -1) then
     begin
       xpsecs[xpscur].firstChild := sid;
     end
     else
     begin
-      //FIXME: rewrite without schlemiel's algo!
       while (xpsecs[t].next <> -1) do t := xpsecs[t].next;
       xpsecs[t].next := sid;
     end;
   end
   else
   begin
+    // top level
+    if (sid <> 0) then
+    begin
+      t := 0;
+      while (xpsecs[t].next <> -1) do t := xpsecs[t].next;
+      xpsecs[t].next := sid;
+    end;
   end;
   xpscur := sid;
   pss.timer.start();
@@ -328,6 +359,7 @@ var
 begin
   if not xptimer.isRunning then exit;
   if (xpscur = -1) then exit; // this is bug, but meh...
+  Dec(xpslevel);
   pss := @xpsecs[xpscur];
   pss.timer.stop();
   // go back to parent
@@ -338,6 +370,7 @@ end;
 procedure xprofGlobalInit ();
 begin
   //SetLength(xpsecs, 1024); // 'cause why not? 'cause don't pay for something you may not need
+  xptimer.clear();
 end;
 
 
@@ -353,12 +386,18 @@ begin
 end;
 
 
+function xprofNameAt (idx: Integer): AnsiString; begin if xptimer.isRunning or (idx < 0) or (idx >= xpsused) then result := '' else result := xpsecs[idx].name; end;
+function xprofMicroAt (idx: Integer): Int64; begin if xptimer.isRunning or (idx < 0) or (idx >= xpsused) then result := 0 else result := xpsecs[idx].timer.elapsedMicro; end;
+function xprofMilliAt (idx: Integer): Int64; begin if xptimer.isRunning or (idx < 0) or (idx >= xpsused) then result := 0 else result := xpsecs[idx].timer.elapsedMilli; end;
+function xprofHasChildrenAt (idx: Integer): Boolean; begin if xptimer.isRunning or (idx < 0) or (idx >= xpsused) then result := false else result := (xpsecs[idx].firstChild <> -1); end;
+function xprofLevelAt (idx: Integer): Integer; begin if xptimer.isRunning or (idx < 0) or (idx >= xpsused) then result := 0 else result := xpsecs[idx].level; end;
+
+
 // false: no sections
 function xprofItReset (): Boolean;
 begin
   result := false;
   xitcur := -1;
-  xitdepth := 0;
   if xptimer.isRunning then exit;
   if (xpsused = 0) then exit; // no sections
   xitcur := 0;
@@ -388,7 +427,7 @@ function xprofItMicro (): Int64; begin if (xitcur = -1) then result := 0 else re
 function xprofItMilli (): Int64; begin if (xitcur = -1) then result := 0 else result := xpsecs[xitcur].timer.elapsedMilli; end;
 function xprofItHasChildren (): Boolean; begin if (xitcur = -1) then result := false else result := (xpsecs[xitcur].firstChild <> -1); end;
 function xprofItIsChild (): Boolean; begin if (xitcur = -1) then result := false else result := (xpsecs[xitcur].parent <> -1); end;
-function xprofItDepth (): Integer; begin result := xitdepth; end;
+function xprofItLevel (): Integer; begin if (xitcur = -1) then result := 0 else result := xpsecs[xitcur].level; end;
 
 // dive into childrens
 function xprofItDive (): Boolean;
@@ -401,7 +440,6 @@ begin
   begin
     result := true;
     xitcur := xpsecs[xitcur].firstChild;
-    Inc(xitdepth);
   end;
 end;
 
@@ -416,7 +454,6 @@ begin
   begin
     result := true;
     xitcur := xpsecs[xitcur].parent;
-    Dec(xitdepth);
   end;
 end;
 
@@ -443,6 +480,12 @@ procedure xprofEndSection (); begin end;
 function xprofTotalMicro (): Int64; begin result := 0; end;
 function xprofTotalMilli (): Int64; begin result := 0; end;
 function xprofTotalCount (): Integer; begin result := 0; end;
+
+function xprofNameAt (idx: Integer): AnsiString; begin result := ''; end;
+function xprofMicroAt (idx: Integer): Int64; begin result := 0; end;
+function xprofMilliAt (idx: Integer): Int64; begin result := 0; end;
+function xprofHasChildrenAt (idx: Integer): Boolean; begin result := false; end;
+function xprofLevelAt (idx: Integer): Integer; begin result := 0; end;
 
 function xprofItReset (): Boolean; begin result := false; end;
 function xprofItCount (): Integer; begin result := 0; end;

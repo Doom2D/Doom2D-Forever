@@ -410,10 +410,11 @@ var
   wdt, hgt: Integer;
   yy: Integer;
 
+  {
   procedure drawItems ();
   begin
     repeat
-      e_TextureFontPrintEx(x+2+4*xprofItDepth, yy, Format('%s: %d', [xprofItName, xprofItMicro]), gStdFont, 255, 255, 0, 1, false);
+      e_TextureFontPrintEx(x+2+4*xprofItLevel, yy, Format('%s: %d', [xprofItName, Integer(xprofItMicro)]), gStdFont, 255, 255, 0, 1, false);
       Inc(yy, 16+2);
       if xprofItHasChildren then
       begin
@@ -421,7 +422,19 @@ var
         drawItems();
         xprofItPop();
       end;
-    until xprofItNext();
+    until not xprofItNext();
+  end;
+  }
+
+  procedure drawItems ();
+  var
+    ii, idx: Integer;
+  begin
+    for ii := 0 to xprofTotalCount-1 do
+    begin
+      e_TextureFontPrintEx(x+2+4*xprofLevelAt(ii), yy, Format('%s: %d', [xprofNameAt(ii), Integer(xprofMicroAt(ii))]), gStdFont, 255, 255, 0, 1, false);
+      Inc(yy, 16+2);
+    end;
   end;
 
 begin
@@ -430,11 +443,12 @@ begin
   wdt := 256;
   hgt := 16+2+xprofTotalCount*(16+2); // title, items
   // background
-  e_DrawFillQuad(x, y, x+wdt-1, y+hgt-1, 255, 255, 255, 200, B_BLEND);
+  //e_DrawFillQuad(x, y, x+wdt-1, y+hgt-1, 255, 255, 255, 200, B_BLEND);
+  e_DrawFillQuad(x, y, x+wdt-1, y+hgt-1, 20, 20, 20, 0, B_NONE);
   // title
   e_TextureFontPrintEx(x+2, y+2, Format('%s: %d', [title, Integer(xprofTotalMicro)]), gStdFont, 255, 255, 0, 1, false);
   yy := y+16+2;
-  //drawItems();
+  drawItems();
 end;
 
 
