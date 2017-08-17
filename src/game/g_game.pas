@@ -5031,7 +5031,7 @@ begin
     g_profile_collision := not g_profile_collision;
     exit;
   end;
-  if cmd = 'r_draw_grid' then
+  if cmd = 'r_gridrender' then
   begin
     case getBool(1) of
       -1: begin end;
