@@ -2280,15 +2280,15 @@ begin
   //TODO: detailed profile?
   if (profMapCollision <> nil) then profMapCollision.sectionBeginAccum('liquid coldet');
   try
-    if not gdbg_map_use_grid_coldet then
-    begin
-      result := g_Map_CollideLiquid_TextureOld(X, Y, Width, Height);
-    end
-    else
+    if gdbg_map_use_grid_coldet then
     begin
       texid := TEXTURE_NONE;
       gMapGrid.forEachInAABB(X, Y, Width, Height, checker);
       result := texid;
+    end
+    else
+    begin
+      result := g_Map_CollideLiquid_TextureOld(X, Y, Width, Height);
     end;
   finally
     if (profMapCollision <> nil) then profMapCollision.sectionEnd();
