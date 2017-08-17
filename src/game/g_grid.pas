@@ -29,22 +29,24 @@ type
 type
   TBodyGrid = class;
 
-  TBodyProxy = class(TObject)
+  TBodyProxy = Integer;
+
+  PBodyProxyRec = ^TBodyProxyRec;
+  TBodyProxyRec = record
   private
     mX, mY, mWidth, mHeight: Integer; // aabb
     mQueryMark: DWord; // was this object visited at this query?
     mObj: TObject;
-    mGrid: TBodyGrid;
+    //mGrid: TBodyGrid;
     mTag: Integer;
-    prevLink: TBodyProxy; // only for used
-    nextLink: TBodyProxy; // either used or free
+    nextLink: TBodyProxy; // next free or nothing
 
   private
     procedure setup (aX, aY, aWidth, aHeight: Integer; aObj: TObject; aTag: Integer);
 
   public
-    constructor Create (aGrid: TBodyGrid; aX, aY, aWidth, aHeight: Integer; aObj: TObject; aTag: Integer);
-    destructor Destroy (); override;
+    //constructor Create (aGrid: TBodyGrid; aX, aY, aWidth, aHeight: Integer; aObj: TObject; aTag: Integer);
+    //destructor Destroy (); override;
 
     property x: Integer read mX;
     property y: Integer read mY;
@@ -52,12 +54,12 @@ type
     property height: Integer read mHeight;
     property obj: TObject read mObj;
     property tag: Integer read mTag;
-    property grid: TBodyGrid read mGrid;
+    //property grid: TBodyGrid read mGrid;
   end;
 
   PGridCell = ^TGridCell;
   TGridCell = record
-    body: TBodyProxy;
+    body: Integer;
     next: Integer; // in this cell; index in mCells
   end;
 
@@ -73,9 +75,10 @@ type
     mFreeCell: Integer; // first free cell index or -1
     mLastQuery: Integer;
     mUsedCells: Integer;
+    mProxies: array of TBodyProxyRec;
     mProxyFree: TBodyProxy; // free
-    mProxyList: TBodyProxy; // used
-    mProxyCount: Integer; // total allocated
+    mProxyCount: Integer; // currently used
+    mProxyMaxCount: Integer;
 
   private
     function allocCell: Integer;
@@ -94,7 +97,7 @@ type
     destructor Destroy (); override;
 
     function insertBody (aObj: TObject; ax, ay, aWidth, aHeight: Integer; aTag: Integer=0): TBodyProxy;
-    procedure removeBody (aObj: TBodyProxy); // WARNING! this will NOT destroy proxy!
+    procedure removeBody (aObj: TBodyProxy); // WARNING! this WILL destroy proxy!
 
     procedure moveBody (body: TBodyProxy; dx, dy: Integer);
     procedure resizeBody (body: TBodyProxy; sx, sy: Integer);
@@ -142,6 +145,7 @@ uses
 
 
 // ////////////////////////////////////////////////////////////////////////// //
+(*
 constructor TBodyProxy.Create (aGrid: TBodyGrid; aX, aY, aWidth, aHeight: Integer; aObj: TObject; aTag: Integer);
 begin
   mGrid := aGrid;
@@ -153,9 +157,10 @@ destructor TBodyProxy.Destroy ();
 begin
   inherited;
 end;
+*)
 
 
-procedure TBodyProxy.setup (aX, aY, aWidth, aHeight: Integer; aObj: TObject; aTag: Integer);
+procedure TBodyProxyRec.setup (aX, aY, aWidth, aHeight: Integer; aObj: TObject; aTag: Integer);
 begin
   mX := aX;
   mY := aY;
@@ -164,8 +169,7 @@ begin
   mQueryMark := 0;
   mObj := aObj;
   mTag := aTag;
-  prevLink := nil;
-  nextLink := nil;
+  nextLink := -1;
 end;
 
 
@@ -185,21 +189,25 @@ begin
   mHeight := (aPixHeight+aTileSize-1) div aTileSize;
   SetLength(mGrid, mWidth*mHeight);
   SetLength(mCells, mWidth*mHeight);
+  SetLength(mProxies, 8192);
   mFreeCell := 0;
   // init free list
   for idx := 0 to High(mCells) do
   begin
-    mCells[idx].body := nil;
+    mCells[idx].body := -1;
     mCells[idx].next := idx+1;
   end;
   mCells[High(mCells)].next := -1; // last cell
   // init grid
   for idx := 0 to High(mGrid) do mGrid[idx] := -1;
+  // init proxies
+  for idx := 0 to High(mProxies) do mProxies[idx].nextLink := idx+1;
+  mProxies[High(mProxies)].nextLink := -1;
   mLastQuery := 0;
   mUsedCells := 0;
-  mProxyFree := nil;
-  mProxyList := nil;
+  mProxyFree := 0;
   mProxyCount := 0;
+  mProxyMaxCount := 0;
   e_WriteLog(Format('created grid with size: %dx%d (tile size: %d); pix: %dx%d', [mWidth, mHeight, mTileSize, mWidth*mTileSize, mHeight*mTileSize]), MSG_NOTIFY);
 end;
 
@@ -208,23 +216,9 @@ destructor TBodyGrid.Destroy ();
 var
   px: TBodyProxy;
 begin
-  // free all owned proxies
-  while mProxyFree <> nil do
-  begin
-    px := mProxyFree;
-    mProxyFree := px.nextLink;
-    px.Free();
-  end;
-
-  while mProxyList <> nil do
-  begin
-    px := mProxyList;
-    mProxyList := px.nextLink;
-    px.Free();
-  end;
-
   mCells := nil;
   mGrid := nil;
+  mProxies := nil;
   inherited;
 end;
 
@@ -245,7 +239,7 @@ begin
     end;
     if (mcb < cnt) then mcb := cnt;
   end;
-  e_WriteLog(Format('grid size: %dx%d (tile size: %d); pix: %dx%d; used cells: %d; max bodies in cell: %d; proxies allocated: %d', [mWidth, mHeight, mTileSize, mWidth*mTileSize, mHeight*mTileSize, mUsedCells, mcb, mProxyCount]), MSG_NOTIFY);
+  e_WriteLog(Format('grid size: %dx%d (tile size: %d); pix: %dx%d; used cells: %d; max bodies in cell: %d; max proxies allocated: %d; proxies used: %d', [mWidth, mHeight, mTileSize, mWidth*mTileSize, mHeight*mTileSize, mUsedCells, mcb, mProxyMaxCount, mProxyCount]), MSG_NOTIFY);
 end;
 
 
@@ -260,7 +254,7 @@ begin
     SetLength(mCells, mFreeCell+32768); // arbitrary number
     for idx := mFreeCell to High(mCells) do
     begin
-      mCells[idx].body := nil;
+      mCells[idx].body := -1;
       mCells[idx].next := idx+1;
     end;
     mCells[High(mCells)].next := -1; // last cell
@@ -277,8 +271,8 @@ procedure TBodyGrid.freeCell (idx: Integer);
 begin
   if (idx >= 0) and (idx < High(mCells)) then
   begin
-    if mCells[idx].body = nil then exit; // the thing that should not be
-    mCells[idx].body := nil;
+    if mCells[idx].body = -1 then exit; // the thing that should not be
+    mCells[idx].body := -1;
     mCells[idx].next := mFreeCell;
     mFreeCell := idx;
     Dec(mUsedCells);
@@ -287,46 +281,40 @@ end;
 
 
 function TBodyGrid.allocProxy (aX, aY, aWidth, aHeight: Integer; aObj: TObject; aTag: Integer): TBodyProxy;
+var
+  olen, idx: Integer;
+  px: PBodyProxyRec;
 begin
-  if (mProxyFree = nil) then
+  if (mProxyFree = -1) then
   begin
-    // no free proxies, create new
-    result := TBodyProxy.Create(self, aX, aY, aWidth, aHeight, aObj, aTag);
-    Inc(mProxyCount);
-  end
-  else
-  begin
-    // get one from list
-    result := mProxyFree;
-    mProxyFree := result.nextLink;
-    result.setup(aX, aY, aWidth, aHeight, aObj, aTag);
+    // no free proxies, resize list
+    olen := Length(mProxies);
+    SetLength(mProxies, olen+8192); // arbitrary number
+    for idx := olen to High(mProxies) do mProxies[idx].nextLink := idx+1;
+    mProxies[High(mProxies)].nextLink := -1;
+    mProxyFree := olen;
   end;
+  // get one from list
+  result := mProxyFree;
+  px := @mProxies[result];
+  mProxyFree := px.nextLink;
+  px.setup(aX, aY, aWidth, aHeight, aObj, aTag);
   // add to used list
-  result.nextLink := mProxyList;
-  if (mProxyList <> nil) then mProxyList.prevLink := result;
-  mProxyList := result;
+  px.nextLink := -1;
+  // statistics
+  Inc(mProxyCount);
+  if (mProxyMaxCount < mProxyCount) then mProxyMaxCount := mProxyCount;
 end;
 
 procedure TBodyGrid.freeProxy (body: TBodyProxy);
 begin
-  if body = nil then exit; // just in case
-  // remove from used list
-  if (body.prevLink = nil) then
-  begin
-    // this must be head
-    if (body <> mProxyList) then raise Exception.Create('wutafuuuuu in grid?');
-    mProxyList := body.nextLink;
-  end
-  else
-  begin
-    body.prevLink.nextLink := body.nextLink;
-  end;
-  if (body.nextLink <> nil) then body.nextLink.prevLink := body.prevLink;
+  if (body < 0) or (body > High(mProxies)) then exit; // just in case
+  if (mProxyCount = 0) then raise Exception.Create('wutafuuuuu in grid (no allocated proxies, what i should free now?)');
   // add to free list
-  //body.mObj := nil; //WARNING! DON'T DO THIS! `removeBody()` depends on valid mObj
-  body.prevLink := nil;
-  body.nextLink := mProxyFree;
+  mProxies[body].mObj := nil;
+  mProxies[body].nextLink := mProxyFree;
   mProxyFree := body;
+  Dec(mProxyCount);
 end;
 
 
@@ -371,9 +359,12 @@ procedure TBodyGrid.insert (body: TBodyProxy);
     mGrid[grida] := cidx;
   end;
 
+var
+  px: PBodyProxyRec;
 begin
-  if body = nil then exit;
-  forGridRect(body.mX, body.mY, body.mWidth, body.mHeight, inserter);
+  if (body < 0) or (body > High(mProxies)) then exit; // just in case
+  px := @mProxies[body];
+  forGridRect(px.mX, px.mY, px.mWidth, px.mHeight, inserter);
 end;
 
 
@@ -405,9 +396,12 @@ procedure TBodyGrid.remove (body: TBodyProxy);
     end;
   end;
 
+var
+  px: PBodyProxyRec;
 begin
-  if body = nil then exit;
-  forGridRect(body.mX, body.mY, body.mWidth, body.mHeight, remover);
+  if (body < 0) or (body > High(mProxies)) then exit; // just in case
+  px := @mProxies[body];
+  forGridRect(px.mX, px.mY, px.mWidth, px.mHeight, remover);
 end;
 
 
@@ -418,28 +412,26 @@ begin
 end;
 
 
-// WARNING! this will NOT destroy proxy!
 procedure TBodyGrid.removeBody (aObj: TBodyProxy);
 begin
-  if aObj = nil then exit;
-  if (aObj.mGrid <> self) then raise Exception.Create('trying to remove alien proxy from grid');
+  if (aObj < 0) or (aObj > High(mProxies)) then exit; // just in case
   removeBody(aObj);
-  //HACK!
   freeProxy(aObj);
-  if (mProxyFree <> aObj) then raise Exception.Create('grid deletion invariant fucked');
-  mProxyFree := aObj.nextLink;
-  aObj.nextLink := nil;
 end;
 
 
 procedure TBodyGrid.moveResizeBody (body: TBodyProxy; dx, dy, sx, sy: Integer);
+var
+  px: PBodyProxyRec;
 begin
-  if (body = nil) or ((dx = 0) and (dy = 0) and (sx = 0) and (sy = 0)) then exit;
+  if (body < 0) or (body > High(mProxies)) then exit; // just in case
+  if ((dx = 0) and (dy = 0) and (sx = 0) and (sy = 0)) then exit;
   remove(body);
-  Inc(body.mX, dx);
-  Inc(body.mY, dy);
-  Inc(body.mWidth, sx);
-  Inc(body.mHeight, sy);
+  px := @mProxies[body];
+  Inc(px.mX, dx);
+  Inc(px.mY, dy);
+  Inc(px.mWidth, sx);
+  Inc(px.mHeight, sy);
   insert(body);
 end;
 
@@ -458,16 +450,21 @@ function TBodyGrid.forEachInAABB (x, y, w, h: Integer; cb: GridQueryCB): Boolean
   function iterator (grida: Integer): Boolean;
   var
     idx: Integer;
+    px: PBodyProxyRec;
   begin
     result := false;
     idx := mGrid[grida];
-    while idx >= 0 do
+    while (idx >= 0) do
     begin
-      if (mCells[idx].body <> nil) and (mCells[idx].body.mQueryMark <> mLastQuery) then
+      if (mCells[idx].body <> -1) then
       begin
-        //e_WriteLog(Format('  query #%d body hit: (%d,%d)-(%dx%d) tag:%d', [mLastQuery, mCells[idx].body.mX, mCells[idx].body.mY, mCells[idx].body.mWidth, mCells[idx].body.mHeight, mCells[idx].body.mTag]), MSG_NOTIFY);
-        mCells[idx].body.mQueryMark := mLastQuery;
-        if (cb(mCells[idx].body.mObj, mCells[idx].body.mTag)) then begin result := true; exit; end;
+        px := @mProxies[mCells[idx].body];
+        if (px.mQueryMark <> mLastQuery) then
+        begin
+          //e_WriteLog(Format('  query #%d body hit: (%d,%d)-(%dx%d) tag:%d', [mLastQuery, mCells[idx].body.mX, mCells[idx].body.mY, mCells[idx].body.mWidth, mCells[idx].body.mHeight, mCells[idx].body.mTag]), MSG_NOTIFY);
+          px.mQueryMark := mLastQuery;
+          if (cb(px.mObj, px.mTag)) then begin result := true; exit; end;
+        end;
       end;
       idx := mCells[idx].next;
     end;
@@ -485,7 +482,7 @@ begin
   begin
     // just in case of overflow
     mLastQuery := 1;
-    for idx := 0 to High(mCells) do if (mCells[idx].body <> nil) then mCells[idx].body.mQueryMark := 0;
+    for idx := 0 to High(mProxies) do mProxies[idx].mQueryMark := 0;
   end;
   //e_WriteLog(Format('grid: query #%d: (%d,%d)-(%dx%d)', [mLastQuery, minx, miny, maxx, maxy]), MSG_NOTIFY);
 
@@ -495,7 +492,7 @@ end;
 
 function TBodyGrid.getProxyForBody (aObj: TObject; x, y, w, h: Integer): TBodyProxy;
 var
-  res: TBodyProxy = nil;
+  res: TBodyProxy = -1;
 
   function iterator (grida: Integer): Boolean;
   var
@@ -505,7 +502,7 @@ var
     idx := mGrid[grida];
     while idx >= 0 do
     begin
-      if (mCells[idx].body <> nil) and (mCells[idx].body = aObj) then
+      if (mCells[idx].body <> -1) and (mProxies[mCells[idx].body].mObj = aObj) then
       begin
         result := true;
         res := mCells[idx].body;
@@ -516,7 +513,7 @@ var
   end;
 
 begin
-  result := nil;
+  result := -1;
   if (aObj = nil) then exit;
   forGridRect(x, y, w, h, iterator);
   result := res;
