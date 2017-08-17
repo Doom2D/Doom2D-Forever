@@ -14,8 +14,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *)
 // streaming file system (virtual)
-{$MODE DELPHI}
-{$R+}
+{$INCLUDE ../shared/a_modes.inc}
+{.$R+}
 {.$DEFINE SFS_VOLDEBUG}
 unit sfs;
 

@@ -18,8 +18,8 @@
 //   dfwad   : D2D:F wad archives
 //
 {.$DEFINE SFS_DEBUG_ZIPFS}
-{$MODE DELPHI}
-{$R+}
+{$INCLUDE ../shared/a_modes.inc}
+{.$R+}
 unit sfsZipFS;
 
 interface

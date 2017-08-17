@@ -13,7 +13,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *)
-{$INCLUDE e_amodes.inc}
+{$INCLUDE ../shared/a_modes.inc}
 {$R-}
 { $DEFINE CBLOG}
 unit e_log;

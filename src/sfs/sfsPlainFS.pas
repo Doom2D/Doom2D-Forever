@@ -17,8 +17,8 @@
 //   Quake I/II .PAK (PACK)
 //   SiN .SIN (SPAK)
 //
-{$MODE DELPHI}
-{$R+}
+{$INCLUDE ../shared/a_modes.inc}
+{.$R+}
 unit sfsPlainFS;
 
 interface

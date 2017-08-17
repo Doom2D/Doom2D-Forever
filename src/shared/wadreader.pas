@@ -13,10 +13,10 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *)
-{$MODE DELPHI}
+{$INCLUDE a_modes.inc}
 unit wadreader;
 
-{$DEFINE SFS_DWFAD_DEBUG}
+{$DEFINE SFS_DFWAD_DEBUG}
 {$DEFINE SFS_MAPDETECT_FX}
 
 interface
@@ -387,7 +387,7 @@ begin
       end;
 {$ENDIF}
       result := true;
-      {$IFDEF SFS_DWFAD_DEBUG}
+      {$IFDEF SFS_DFWAD_DEBUG}
       if wadoptDebug then
         e_WriteLog(Format('DFWAD: file [%s] FOUND in [%s]; size is %d bytes', [name, fFileName, Len]), MSG_NOTIFY);
       {$ENDIF}
@@ -455,7 +455,7 @@ begin
     e_WriteLog(Format('TWADFile.ReadFile: error looking for [%s]', [FileName]), MSG_NOTIFY);
     exit;
   end;
-  {$IFDEF SFS_DWFAD_DEBUG}
+  {$IFDEF SFS_DFWAD_DEBUG}
   if wadoptDebug then e_WriteLog(Format('TWADFile.ReadFile: FOUND [%s]', [rfn]), MSG_NOTIFY);
   {$ENDIF}
   // cache this wad
@@ -474,7 +474,7 @@ begin
   fIter := SFSFileList(rfn);
   if fIter = nil then Exit;
   fFileName := rfn;
-  {$IFDEF SFS_DWFAD_DEBUG}
+  {$IFDEF SFS_DFWAD_DEBUG}
   if wadoptDebug then e_WriteLog(Format('TWADFile.ReadFile: [%s] opened', [fFileName]), MSG_NOTIFY);
   {$ENDIF}
   Result := True;
@@ -501,8 +501,8 @@ begin
 
   fn := Format(' -- memwad %d -- ', [uniqueCounter]);
   Inc(uniqueCounter);
-  {$IFDEF SFS_DWFAD_DEBUG}
-    e_WriteLog(Format('TWADFile.ReadMemory: [%s]', [fn]), MSG_NOTIFY);
+  {$IFDEF SFS_DFWAD_DEBUG}
+  if wadoptDebug then e_WriteLog(Format('TWADFile.ReadMemory: [%s]', [fn]), MSG_NOTIFY);
   {$ENDIF}
 
   try
@@ -521,8 +521,8 @@ begin
   if fIter = nil then Exit;
 
   fFileName := fn;
-  {$IFDEF SFS_DWFAD_DEBUG}
-    e_WriteLog(Format('TWADFile.ReadMemory: [%s] opened', [fFileName]), MSG_NOTIFY);
+  {$IFDEF SFS_DFWAD_DEBUG}
+  if wadoptDebug then e_WriteLog(Format('TWADFile.ReadMemory: [%s] opened', [fFileName]), MSG_NOTIFY);
   {$ENDIF}
 
   {

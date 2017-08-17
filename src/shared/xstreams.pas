@@ -14,8 +14,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *)
 // special stream classes
-{$MODE DELPHI}
-{$R+}
+{$INCLUDE a_modes.inc}
+{.$R+}
 unit xstreams;
 
 interface

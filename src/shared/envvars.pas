@@ -13,7 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *)
-{$MODE OBJFPC}
+{$INCLUDE a_modes.inc}
+{.$MODE OBJFPC}
 unit envvars;
 
 interface
