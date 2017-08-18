@@ -6923,6 +6923,12 @@ begin
     Exit;
   end;
 
+  s := LowerCase(Find_Param_Value(pars, '-dbg-mainwad'));
+  if (s <> '') then
+  begin
+    gDefaultMegawadStart := s;
+  end;
+
 // Start map when game loads:
   map := LowerCase(Find_Param_Value(pars, '-map'));
   if isWadPath(map) then
