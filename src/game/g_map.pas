@@ -202,14 +202,13 @@ var
   pan: TPanel;
 begin
   result := false;
-  if (flesh = nil) then exit;
+  if (flesh = nil) then begin aabb := AABB2D.Create(0, 0, 0, 0); exit; end;
   pan := (flesh as TPanel);
-  if (pan.Width < 1) or (pan.Height < 1) then exit;
   aabb := AABB2D.Create(pan.X, pan.Y, pan.X+pan.Width, pan.Y+pan.Height);
+  if (pan.Width < 1) or (pan.Height < 1) then exit;
   //if (pan.Width = 1) then aabb.maxX += 1;
   //if (pan.Height = 1) then aabb.maxY += 1;
   if not aabb.valid then raise Exception.Create('wutafuuuuuuu?!');
-  //e_WriteLog(Format('getFleshAABB(%d;%d) AABB:(%f,%f)-(%f,%f); valid=%d; volume=%f; x=%d; y=%d; w=%d; h=%d', [pan.tag, pan.ArrIdx, aabb.minX, aabb.minY, aabb.maxX, aabb.maxY, Integer(aabb.valid), aabb.volume, pan.X, pan.Y, pan.Width, pan.Height]), MSG_NOTIFY);
   result := aabb.valid;
 end;
 
