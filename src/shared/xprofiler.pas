@@ -135,11 +135,11 @@ type
     // call this on frame end
     procedure mainEnd ();
 
-    procedure sectionBegin (name: AnsiString);
+    procedure sectionBegin (aName: AnsiString);
     procedure sectionEnd ();
 
     // this will reuse the section with the given name (if there is any); use `sectionEnd()` to end it as usual
-    procedure sectionBeginAccum (name: AnsiString);
+    procedure sectionBeginAccum (aName: AnsiString);
   end;
 
 
@@ -417,7 +417,7 @@ begin
   {$ENDIF}
 end;
 
-procedure TProfiler.sectionBegin (name: AnsiString);
+procedure TProfiler.sectionBegin (aName: AnsiString);
 {$IF DEFINED(STOPWATCH_IS_HERE)}
 var
   sid: Integer;
@@ -431,7 +431,7 @@ begin
   sid := xpsused;
   Inc(xpsused);
   pss := @xpsecs[sid];
-  pss.name := name;
+  pss.name := aName;
   pss.timer.clear();
   pss.prevAct := xpscur;
   // calculate level
@@ -441,7 +441,7 @@ begin
   {$ENDIF}
 end;
 
-procedure TProfiler.sectionBeginAccum (name: AnsiString);
+procedure TProfiler.sectionBeginAccum (aName: AnsiString);
 {$IF DEFINED(STOPWATCH_IS_HERE)}
 var
   idx: Integer;
@@ -453,10 +453,10 @@ begin
   begin
     for idx := 0 to xpsused-1 do
     begin
-      if (xpsecs[idx].name = name) then
+      if (xpsecs[idx].name = aName) then
       begin
-        if (idx = xpscur) then raise Exception.Create('profiler error(0): dobule resume: "'+name+'"');
-        if (xpsecs[idx].prevAct <> -1) then raise Exception.Create('profiler error(1): dobule resume: "'+name+'"');
+        if (idx = xpscur) then raise Exception.Create('profiler error(0): dobule resume: "'+aName+'"');
+        if (xpsecs[idx].prevAct <> -1) then raise Exception.Create('profiler error(1): dobule resume: "'+aName+'"');
         xpsecs[idx].prevAct := xpscur;
         xpscur := idx;
         xpsecs[idx].timer.resume();
@@ -464,7 +464,7 @@ begin
       end;
     end;
   end;
-  sectionBegin(name);
+  sectionBegin(aName);
   {$ENDIF}
 end;
 

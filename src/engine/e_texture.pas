@@ -14,7 +14,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *)
 {$INCLUDE ../shared/a_modes.inc}
-unit e_textures;
+unit e_texture;
 
 { This unit provides interface to load 24-bit and 32-bit uncompressed images
   from Truevision Targa (TGA) graphic files, and create OpenGL textures

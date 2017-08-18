@@ -51,7 +51,7 @@ uses
   e_input in '../engine/e_input.pas',
   e_log in '../engine/e_log.pas',
   e_sound in '../engine/e_sound.pas',
-  e_textures in '../engine/e_textures.pas',
+  e_texture in '../engine/e_texture.pas',
   e_fixedbuffer in '../engine/e_fixedbuffer.pas',
   utils in '../shared/utils.pas',
   xstreams in '../shared/xstreams.pas',

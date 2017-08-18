@@ -134,7 +134,7 @@ implementation
 
 uses
   e_log, e_input, g_window, g_sound, g_gfx, g_player, Math,
-  g_map, g_net, g_netmaster, SysUtils, CONFIG, g_game, g_main, e_textures,
+  g_map, g_net, g_netmaster, SysUtils, CONFIG, g_game, g_main, e_texture,
   g_items, GL, GLExt, wadreader, e_graphics;
 
 procedure g_Options_SetDefault();

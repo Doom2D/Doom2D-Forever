@@ -19,7 +19,7 @@ unit e_graphics;
 interface
 
 uses
-  SysUtils, Classes, Math, e_log, e_textures, SDL2, GL, GLExt, MAPDEF, ImagingTypes, Imaging, ImagingUtility;
+  SysUtils, Classes, Math, e_log, e_texture, SDL2, GL, GLExt, MAPDEF, ImagingTypes, Imaging, ImagingUtility;
 
 type
   TMirrorType=(M_NONE, M_HORIZONTAL, M_VERTICAL);

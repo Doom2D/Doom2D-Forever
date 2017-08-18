@@ -177,7 +177,7 @@ type
   public
     Proc: procedure;
     ProcEx: procedure (sender: TGUITextButton);
-    constructor Create(Proc: Pointer; FontID: DWORD; Text: string);
+    constructor Create(aProc: Pointer; FontID: DWORD; Text: string);
     destructor Destroy(); override;
     procedure OnMessage(var Msg: TMessage); override;
     procedure Update(); override;
@@ -474,8 +474,8 @@ type
     destructor Destroy; override;
     procedure OnMessage(var Msg: TMessage); override;
     function AddButton(fProc: Pointer; Caption: string; ShowWindow: string = ''): TGUITextButton;
-    function GetButton(Name: string): TGUITextButton;
-    procedure EnableButton(Name: string; e: Boolean);
+    function GetButton(aName: string): TGUITextButton;
+    procedure EnableButton(aName: string; e: Boolean);
     procedure AddSpace();
     procedure Update; override;
     procedure Draw; override;
@@ -519,8 +519,8 @@ type
     function AddFileList(fText: string; Width, Height: Word): TGUIFileListBox;
     function AddMemo(fText: string; Width, Height: Word): TGUIMemo;
     procedure ReAlign();
-    function GetControl(Name: string): TGUIControl;
-    function GetControlsText(Name: string): TGUILabel;
+    function GetControl(aName: string): TGUIControl;
+    function GetControlsText(aName: string): TGUILabel;
     procedure Draw; override;
     procedure Update; override;
     procedure UpdateIndex();
@@ -907,11 +907,11 @@ begin
   if FShowWindow <> '' then g_GUI_ShowWindow(FShowWindow);
 end;
 
-constructor TGUITextButton.Create(Proc: Pointer; FontID: DWORD; Text: string);
+constructor TGUITextButton.Create(aProc: Pointer; FontID: DWORD; Text: string);
 begin
   inherited Create();
 
-  Self.Proc := Proc;
+  Self.Proc := aProc;
   ProcEx := nil;
 
   FFont := TFont.Create(FontID, FONT_CHAR);
@@ -1113,14 +1113,14 @@ begin
   end;
 end;
 
-procedure TGUIMainMenu.EnableButton(Name: string; e: Boolean);
+procedure TGUIMainMenu.EnableButton(aName: string; e: Boolean);
 var
   a: Integer;
 begin
   if FButtons = nil then Exit;
 
   for a := 0 to High(FButtons) do
-    if (FButtons[a] <> nil) and (FButtons[a].Name = Name) then
+    if (FButtons[a] <> nil) and (FButtons[a].Name = aName) then
     begin
       if e then FButtons[a].FColor := MAINMENU_ITEMS_COLOR
       else FButtons[a].FColor := MAINMENU_UNACTIVEITEMS_COLOR;
@@ -1129,7 +1129,7 @@ begin
     end;
 end;
 
-function TGUIMainMenu.GetButton(Name: string): TGUITextButton;
+function TGUIMainMenu.GetButton(aName: string): TGUITextButton;
 var
   a: Integer;
 begin
@@ -1138,7 +1138,7 @@ begin
   if FButtons = nil then Exit;
 
   for a := 0 to High(FButtons) do
-    if (FButtons[a] <> nil) and (FButtons[a].Name = Name) then
+    if (FButtons[a] <> nil) and (FButtons[a].Name = aName) then
     begin
       Result := FButtons[a];
       Break;
@@ -1401,7 +1401,7 @@ end;
 
 procedure TGUIMenu.Draw;
 var
-  a, x, y: Integer;
+  a, locx, locy: Integer;
 begin
   inherited;
 
@@ -1416,32 +1416,32 @@ begin
 
   if (FIndex <> -1) and (FCounter > MENU_MARKERDELAY div 2) then
   begin
-    x := 0;
-    y := 0;
+    locx := 0;
+    locy := 0;
 
     if FItems[FIndex].Text <> nil then
     begin
-      x := FItems[FIndex].Text.FX;
-      y := FItems[FIndex].Text.FY;
+      locx := FItems[FIndex].Text.FX;
+      locy := FItems[FIndex].Text.FY;
       //HACK!
       if FItems[FIndex].Text.RightAlign then
       begin
-        x := x+FItems[FIndex].Text.FMaxWidth-FItems[FIndex].Text.GetWidth;
+        locx := locx+FItems[FIndex].Text.FMaxWidth-FItems[FIndex].Text.GetWidth;
       end;
     end
     else if FItems[FIndex].Control <> nil then
     begin
-      x := FItems[FIndex].Control.FX;
-      y := FItems[FIndex].Control.FY;
+      locx := FItems[FIndex].Control.FX;
+      locy := FItems[FIndex].Control.FY;
     end;
 
-    x := x-e_CharFont_GetMaxWidth(FFontID);
+    locx := locx-e_CharFont_GetMaxWidth(FFontID);
 
-    e_CharFont_PrintEx(FFontID, x, y, #16, _RGB(255, 0, 0));
+    e_CharFont_PrintEx(FFontID, locx, locy, #16, _RGB(255, 0, 0));
   end;
 end;
 
-function TGUIMenu.GetControl(Name: String): TGUIControl;
+function TGUIMenu.GetControl(aName: String): TGUIControl;
 var
   a: Integer;
 begin
@@ -1450,16 +1450,16 @@ begin
   if FItems <> nil then
     for a := 0 to High(FItems) do
       if FItems[a].Control <> nil then
-        if LowerCase(FItems[a].Control.Name) = LowerCase(Name) then
+        if LowerCase(FItems[a].Control.Name) = LowerCase(aName) then
         begin
           Result := FItems[a].Control;
           Break;
         end;
 
-  Assert(Result <> nil, 'GUI control "'+Name+'" not found!');
+  Assert(Result <> nil, 'GUI control "'+aName+'" not found!');
 end;
 
-function TGUIMenu.GetControlsText(Name: String): TGUILabel;
+function TGUIMenu.GetControlsText(aName: String): TGUILabel;
 var
   a: Integer;
 begin
@@ -1468,13 +1468,13 @@ begin
   if FItems <> nil then
     for a := 0 to High(FItems) do
       if FItems[a].Control <> nil then
-        if LowerCase(FItems[a].Control.Name) = LowerCase(Name) then
+        if LowerCase(FItems[a].Control.Name) = LowerCase(aName) then
         begin
           Result := FItems[a].Text;
           Break;
         end;
 
-  Assert(Result <> nil, 'GUI control''s text "'+Name+'" not found!');
+  Assert(Result <> nil, 'GUI control''s text "'+aName+'" not found!');
 end;
 
 function TGUIMenu.NewItem: Integer;

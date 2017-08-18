@@ -105,7 +105,7 @@ type
     procedure BFGHit();
     procedure Update();
     procedure ClientUpdate();
-    procedure ClientAttack(wx, wy, tx, ty: Integer);
+    procedure ClientAttack(wx, wy, atx, aty: Integer);
     procedure SetDeadAnim;
     procedure Draw();
     procedure WakeUp();
@@ -3607,7 +3607,7 @@ _end:
     FAnim[FCurAnim, FDirection].Update();
 end;
 
-procedure TMonster.ClientAttack(wx, wy, tx, ty: Integer);
+procedure TMonster.ClientAttack(wx, wy, atx, aty: Integer);
 begin
   case FMonsterType of
     MONSTER_ZOMBY:
@@ -3633,21 +3633,21 @@ begin
       g_Player_CreateShell(wx, wy, 0, -2, SHELL_BULLET);
     end;
     MONSTER_IMP:
-      g_Weapon_ball1(wx, wy, tx, ty, FUID);
+      g_Weapon_ball1(wx, wy, atx, aty, FUID);
     MONSTER_CYBER:
-      g_Weapon_rocket(wx, wy, tx, ty, FUID);
+      g_Weapon_rocket(wx, wy, atx, aty, FUID);
     MONSTER_SKEL:
-      g_Weapon_revf(wx, wy, tx, ty, FUID, FTargetUID);
+      g_Weapon_revf(wx, wy, atx, aty, FUID, FTargetUID);
     MONSTER_BSP:
-      g_Weapon_aplasma(wx, wy, tx, ty, FUID);
+      g_Weapon_aplasma(wx, wy, atx, aty, FUID);
     MONSTER_ROBO:
-      g_Weapon_plasma(wx, wy, tx, ty, FUID);
+      g_Weapon_plasma(wx, wy, atx, aty, FUID);
     MONSTER_MANCUB:
-      g_Weapon_manfire(wx, wy, tx, ty, FUID);
+      g_Weapon_manfire(wx, wy, atx, aty, FUID);
     MONSTER_BARON, MONSTER_KNIGHT:
-      g_Weapon_ball7(wx, wy, tx, ty, FUID);
+      g_Weapon_ball7(wx, wy, atx, aty, FUID);
     MONSTER_CACO:
-      g_Weapon_ball2(wx, wy, tx, ty, FUID);
+      g_Weapon_ball2(wx, wy, atx, aty, FUID);
   end;
 end;
 

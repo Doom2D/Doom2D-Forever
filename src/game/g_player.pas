@@ -260,7 +260,7 @@ type
     procedure   SetWeapon(W: Byte);
     function    IsKeyPressed(K: Byte): Boolean;
     function    GetKeys(): Byte;
-    function    PickItem(ItemType: Byte; respawn: Boolean; var remove: Boolean): Boolean; virtual;
+    function    PickItem(ItemType: Byte; arespawn: Boolean; var remove: Boolean): Boolean; virtual;
     function    Collide(X, Y: Integer; Width, Height: Word): Boolean; overload;
     function    Collide(Panel: TPanel): Boolean; overload;
     function    Collide(X, Y: Integer): Boolean; overload;
@@ -376,9 +376,9 @@ type
     function    FullInStep(XInc, YInc: Integer): Boolean;
     //function    NeedItem(Item: Byte): Byte;
     procedure   SelectWeapon(Dist: Integer);
-    procedure   SetAIFlag(fName, fValue: String20);
-    function    GetAIFlag(fName: String20): String20;
-    procedure   RemoveAIFlag(fName: String20);
+    procedure   SetAIFlag(aName, fValue: String20);
+    function    GetAIFlag(aName: String20): String20;
+    procedure   RemoveAIFlag(aName: String20);
     function    Healthy(): Byte;
     procedure   UpdateMove();
     procedure   UpdateCombat();
@@ -1835,13 +1835,13 @@ end;
 
 procedure TPlayer.ChangeModel(ModelName: string);
 var
-  Model: TPlayerModel;
+  locModel: TPlayerModel;
 begin
-  Model := g_PlayerModel_Get(ModelName);
-  if Model = nil then Exit;
+  locModel := g_PlayerModel_Get(ModelName);
+  if locModel = nil then Exit;
 
   FModel.Free();
-  FModel := Model;
+  FModel := locModel;
 end;
 
 procedure TPlayer.SetModel(ModelName: string);
@@ -2640,7 +2640,7 @@ procedure TPlayer.Fire();
 var
   f, DidFire: Boolean;
   wx, wy, xd, yd: Integer;
-  obj: TObj;
+  locobj: TObj;
 begin
   if g_Game_IsClient then Exit;
 // FBFGFireCounter - врем€ перед выстрелом (дл€ BFG)
@@ -2668,18 +2668,18 @@ begin
       if R_BERSERK in FRulez then
       begin
         //g_Weapon_punch(FObj.X+FObj.Rect.X, FObj.Y+FObj.Rect.Y, 75, FUID);
-        obj.X := FObj.X+FObj.Rect.X;
-        obj.Y := FObj.Y+FObj.Rect.Y;
-        obj.rect.X := 0;
-        obj.rect.Y := 0;
-        obj.rect.Width := 39;
-        obj.rect.Height := 52;
-        obj.Vel.X := (xd-wx) div 2;
-        obj.Vel.Y := (yd-wy) div 2;
-        obj.Accel.X := xd-wx;
-        obj.Accel.y := yd-wy;
+        locobj.X := FObj.X+FObj.Rect.X;
+        locobj.Y := FObj.Y+FObj.Rect.Y;
+        locobj.rect.X := 0;
+        locobj.rect.Y := 0;
+        locobj.rect.Width := 39;
+        locobj.rect.Height := 52;
+        locobj.Vel.X := (xd-wx) div 2;
+        locobj.Vel.Y := (yd-wy) div 2;
+        locobj.Accel.X := xd-wx;
+        locobj.Accel.y := yd-wy;
 
-        if g_Weapon_Hit(@obj, 50, FUID, HIT_SOME) <> 0 then
+        if g_Weapon_Hit(@locobj, 50, FUID, HIT_SOME) <> 0 then
           g_Sound_PlayExAt('SOUND_WEAPON_HITBERSERK', FObj.X, FObj.Y)
         else
           g_Sound_PlayExAt('SOUND_WEAPON_MISSBERSERK', FObj.X, FObj.Y);
@@ -3505,7 +3505,7 @@ begin
   resetWeaponQueue();
 end;
 
-function TPlayer.PickItem(ItemType: Byte; respawn: Boolean; var remove: Boolean): Boolean;
+function TPlayer.PickItem(ItemType: Byte; arespawn: Boolean; var remove: Boolean): Boolean;
 var
   a: Boolean;
 begin
@@ -3513,7 +3513,7 @@ begin
   if g_Game_IsClient then Exit;
 
   // a = true - место спавна предмета:
-  a := LongBool(gGameSettings.Options and GAME_OPTION_WEAPONSTAY) and respawn;
+  a := LongBool(gGameSettings.Options and GAME_OPTION_WEAPONSTAY) and arespawn;
   remove := not a;
 
   case ItemType of
@@ -3579,7 +3579,7 @@ begin
       end;
 
     ITEM_WEAPON_SAW:
-      if (not FWeapon[WEAPON_SAW]) or ((not respawn) and (gGameSettings.GameMode in [GM_DM, GM_TDM, GM_CTF])) then
+      if (not FWeapon[WEAPON_SAW]) or ((not arespawn) and (gGameSettings.GameMode in [GM_DM, GM_TDM, GM_CTF])) then
       begin
         FWeapon[WEAPON_SAW] := True;
         Result := True;
@@ -5042,7 +5042,7 @@ end;
 
 procedure TPlayer.NetFire(Wpn: Byte; X, Y, AX, AY: Integer; WID: Integer = -1);
 var
-  Obj: TObj;
+  locObj: TObj;
   F: Boolean;
   WX, WY, XD, YD: Integer;
 begin
@@ -5058,18 +5058,18 @@ begin
       if R_BERSERK in FRulez then
       begin
         //g_Weapon_punch(FObj.X+FObj.Rect.X, FObj.Y+FObj.Rect.Y, 75, FUID);
-        obj.X := FObj.X+FObj.Rect.X;
-        obj.Y := FObj.Y+FObj.Rect.Y;
-        obj.rect.X := 0;
-        obj.rect.Y := 0;
-        obj.rect.Width := 39;
-        obj.rect.Height := 52;
-        obj.Vel.X := (xd-wx) div 2;
-        obj.Vel.Y := (yd-wy) div 2;
-        obj.Accel.X := xd-wx;
-        obj.Accel.y := yd-wy;
+        locobj.X := FObj.X+FObj.Rect.X;
+        locobj.Y := FObj.Y+FObj.Rect.Y;
+        locobj.rect.X := 0;
+        locobj.rect.Y := 0;
+        locobj.rect.Width := 39;
+        locobj.rect.Height := 52;
+        locobj.Vel.X := (xd-wx) div 2;
+        locobj.Vel.Y := (yd-wy) div 2;
+        locobj.Accel.X := xd-wx;
+        locobj.Accel.y := yd-wy;
 
-        if g_Weapon_Hit(@obj, 50, FUID, HIT_SOME) <> 0 then
+        if g_Weapon_Hit(@locobj, 50, FUID, HIT_SOME) <> 0 then
           g_Sound_PlayExAt('SOUND_WEAPON_HITBERSERK', FObj.X, FObj.Y)
         else
           g_Sound_PlayExAt('SOUND_WEAPON_MISSBERSERK', FObj.X, FObj.Y);
@@ -6759,33 +6759,33 @@ begin
   Result := FKeys[Key].Pressed;
 end;
 
-function TBot.GetAIFlag(fName: String20): String20;
+function TBot.GetAIFlag(aName: String20): String20;
 var
   a: Integer;
 begin
   Result := '';
 
-  fName := LowerCase(fName);
+  aName := LowerCase(aName);
 
   if FAIFlags <> nil then
     for a := 0 to High(FAIFlags) do
-      if LowerCase(FAIFlags[a].Name) = fName then
+      if LowerCase(FAIFlags[a].Name) = aName then
       begin
         Result := FAIFlags[a].Value;
         Break;
       end;
 end;
 
-procedure TBot.RemoveAIFlag(fName: String20);
+procedure TBot.RemoveAIFlag(aName: String20);
 var
   a, b: Integer;
 begin
   if FAIFlags = nil then Exit;
 
-  fName := LowerCase(fName);
+  aName := LowerCase(aName);
 
   for a := 0 to High(FAIFlags) do
-    if LowerCase(FAIFlags[a].Name) = fName then
+    if LowerCase(FAIFlags[a].Name) = aName then
     begin
       if a <> High(FAIFlags) then
         for b := a to High(FAIFlags)-1 do
@@ -6796,7 +6796,7 @@ begin
     end;
 end;
 
-procedure TBot.SetAIFlag(fName, fValue: String20);
+procedure TBot.SetAIFlag(aName, fValue: String20);
 var
   a: Integer;
   ok: Boolean;
@@ -6804,11 +6804,11 @@ begin
   a := 0;
   ok := False;
 
-  fName := LowerCase(fName);
+  aName := LowerCase(aName);
 
   if FAIFlags <> nil then
     for a := 0 to High(FAIFlags) do
-      if LowerCase(FAIFlags[a].Name) = fName then
+      if LowerCase(FAIFlags[a].Name) = aName then
       begin
         ok := True;
         Break;
@@ -6820,7 +6820,7 @@ begin
     SetLength(FAIFlags, Length(FAIFlags)+1);
     with FAIFlags[High(FAIFlags)] do
     begin
-      Name := fName;
+      Name := aName;
       Value := fValue;
     end;
   end;

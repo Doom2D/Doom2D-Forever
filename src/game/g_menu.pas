@@ -46,7 +46,7 @@ uses
   g_basic, g_console, g_sound, g_gfx, g_player, g_options, g_weapons,
   e_log, SysUtils, CONFIG, g_playermodel, DateUtils,
   MAPSTRUCT, wadreader, Math, g_saveload,
-  e_textures, GL, GLExt, g_language,
+  e_texture, GL, GLExt, g_language,
   g_net, g_netmsg, g_netmaster, g_items, e_input;
 
 
