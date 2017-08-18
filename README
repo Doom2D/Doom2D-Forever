@@ -1,7 +1,7 @@
 D2DF-SDL
 ---------
 
-Doom 2D Forever (https://github.com/pss88/DF) adapted for use with the FreePascal Compiler
+Doom 2D Forever ( http://repo.or.cz/d2df-sdl.git ) adapted for use with the FreePascal Compiler
 and ported to SDL 2.0.
 
 Building
