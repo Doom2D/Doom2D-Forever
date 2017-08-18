@@ -1739,7 +1739,7 @@ begin
         sign[2] := 68;
         sign[3] := 82;
         st.writeBuffer(sign, 4);
-        crc := crc32(0, @sign, 4);
+        crc := crc32(0, @sign[0], 4);
         hbuf[0] := 0;
         hbuf[1] := 0;
         hbuf[2] := (Width shr 8) and $ff;
@@ -1753,7 +1753,7 @@ begin
         hbuf[10] := 0; // compression method
         hbuf[11] := 0; // filter method
         hbuf[12] := 0; // no interlace
-        crc := crc32(crc, @hbuf, 13);
+        crc := crc32(crc, @hbuf[0], 13);
         st.writeBuffer(hbuf, 13);
         writeIntBE(st, crc);
         //e_WriteLog('PNG: header written', MSG_NOTIFY);
@@ -1765,7 +1765,7 @@ begin
         sign[2] := 65;
         sign[3] := 84;
         st.writeBuffer(sign, 4);
-        crc := crc32(0, @sign, 4);
+        crc := crc32(0, @sign[0], 4);
         crc := crc32(crc, obuf, dlen);
         st.writeBuffer(obuf^, dlen);
         writeIntBE(st, crc);
@@ -1778,7 +1778,7 @@ begin
         sign[2] := 78;
         sign[3] := 68;
         st.writeBuffer(sign, 4);
-        crc := crc32(0, @sign, 4);
+        crc := crc32(0, @sign[0], 4);
         writeIntBE(st, crc);
         //e_WriteLog('PNG: end marker written', MSG_NOTIFY);
       finally

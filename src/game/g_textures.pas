@@ -847,7 +847,7 @@ end;
 
 
 var
-  ltexid: Integer = 0;
+  ltexid: GLuint = 0;
 
 function g_Texture_Light(): Integer;
 const
