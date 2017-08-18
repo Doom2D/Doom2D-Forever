@@ -1126,7 +1126,7 @@ end;
 // returns tree node if visitor says stop or -1
 function TDynAABBTree.visit (checker: TVisitCheckerCB; visitor: TQueryOverlapCB; tagmask: Integer=-1): Integer;
 var
-  stack: array [0..255] of Integer; // stack with the nodes to visit
+  stack: array [0..2048] of Integer; // stack with the nodes to visit
   bigstack: array of Integer = nil;
   sp: Integer = 0;
 
