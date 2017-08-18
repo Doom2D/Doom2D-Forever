@@ -15,12 +15,14 @@
  *)
 // universal spatial grid
 {$INCLUDE ../shared/a_modes.inc}
+{$DEFINE grid_use_buckets}
 unit g_grid;
 
 interface
 
 const
   GridDefaultTileSize = 32;
+  GridCellBucketSize = 8; // WARNING! can't be less than 2!
 
 type
   GridQueryCB = function (obj: TObject; tag: Integer): Boolean is nested; // return `true` to stop
@@ -58,7 +60,11 @@ type
 
   PGridCell = ^TGridCell;
   TGridCell = record
+    {$IFDEF grid_use_buckets}
+    bodies: array [0..GridCellBucketSize-1] of Integer; // -1: end of list
+    {$ELSE}
     body: Integer;
+    {$ENDIF}
     next: Integer; // in this cell; index in mCells
   end;
 
@@ -104,7 +110,7 @@ type
 
     function forEachInAABB (x, y, w, h: Integer; cb: GridQueryCB; tagmask: Integer=-1): Boolean;
 
-    function getProxyForBody (aObj: TObject; x, y, w, h: Integer): TBodyProxy;
+    //function getProxyForBody (aObj: TObject; x, y, w, h: Integer): TBodyProxy;
 
     procedure dumpStats ();
   end;
@@ -151,7 +157,11 @@ begin
   // init free list
   for idx := 0 to High(mCells) do
   begin
+    {$IFDEF grid_use_buckets}
+    mCells[idx].bodies[0] := -1;
+    {$ELSE}
     mCells[idx].body := -1;
+    {$ENDIF}
     mCells[idx].next := idx+1;
   end;
   mCells[High(mCells)].next := -1; // last cell
@@ -209,7 +219,11 @@ begin
     SetLength(mCells, mFreeCell+32768); // arbitrary number
     for idx := mFreeCell to High(mCells) do
     begin
+      {$IFDEF grid_use_buckets}
+      mCells[idx].bodies[0] := -1;
+      {$ELSE}
       mCells[idx].body := -1;
+      {$ENDIF}
       mCells[idx].next := idx+1;
     end;
     mCells[High(mCells)].next := -1; // last cell
@@ -226,8 +240,8 @@ procedure TBodyGrid.freeCell (idx: Integer);
 begin
   if (idx >= 0) and (idx < High(mCells)) then
   begin
-    if mCells[idx].body = -1 then exit; // the thing that should not be
-    mCells[idx].body := -1;
+    //if mCells[idx].body = -1 then exit; // the thing that should not be
+    //mCells[idx].body := -1;
     mCells[idx].next := mFreeCell;
     mFreeCell := idx;
     Dec(mUsedCells);
@@ -304,14 +318,44 @@ procedure TBodyGrid.insert (body: TBodyProxy);
   function inserter (grida: Integer): Boolean;
   var
     cidx: Integer;
+    pc: PInteger;
+    {$IFDEF grid_use_buckets}
+    pi: PGridCell;
+    f: Integer;
+    {$ENDIF}
   begin
     result := false; // never stop
     // add body to the given grid cell
+    pc := @mGrid[grida];
+    {$IFDEF grid_use_buckets}
+    if (pc^ <> -1) then
+    begin
+      pi := @mCells[pc^];
+      f := 0;
+      for f := 0 to High(TGridCell.bodies) do
+      begin
+        if (pi.bodies[f] = -1) then
+        begin
+          // can add here
+          pi.bodies[f] := body;
+          if (f+1 < Length(TGridCell.bodies)) then pi.bodies[f+1] := -1;
+          exit;
+        end;
+      end;
+    end;
+    // either no room, or no cell at all
+    cidx := allocCell();
+    mCells[cidx].bodies[0] := body;
+    mCells[cidx].bodies[1] := -1;
+    mCells[cidx].next := pc^;
+    pc^ := cidx;
+    {$ELSE}
     cidx := allocCell();
     //e_WriteLog(Format('  01: allocated cell for grid coords (%d,%d), body coords:(%d,%d): #%d', [gx, gy, dx, dy, cidx]), MSG_NOTIFY);
     mCells[cidx].body := body;
-    mCells[cidx].next := mGrid[grida];
-    mGrid[grida] := cidx;
+    mCells[cidx].next := pc^;
+    pc^ := cidx;
+    {$ENDIF}
   end;
 
 var
@@ -326,6 +370,7 @@ end;
 // absolutely not tested
 procedure TBodyGrid.remove (body: TBodyProxy);
 
+(*
   function remover (grida: Integer): Boolean;
   var
     pidx, idx, tmp: Integer;
@@ -353,10 +398,14 @@ procedure TBodyGrid.remove (body: TBodyProxy);
 
 var
   px: PBodyProxyRec;
+*)
 begin
+(*
   if (body < 0) or (body > High(mProxies)) then exit; // just in case
   px := @mProxies[body];
   forGridRect(px.mX, px.mY, px.mWidth, px.mHeight, remover);
+*)
+  raise Exception.Create('TBodyGrid.remove: not yet, sorry');
 end;
 
 
@@ -406,11 +455,30 @@ function TBodyGrid.forEachInAABB (x, y, w, h: Integer; cb: GridQueryCB; tagmask:
   var
     idx: Integer;
     px: PBodyProxyRec;
+    {$IFDEF grid_use_buckets}
+    pi: PGridCell;
+    f: Integer;
+    {$ENDIF}
   begin
     result := false;
     idx := mGrid[grida];
     while (idx >= 0) do
     begin
+      {$IFDEF grid_use_buckets}
+      pi := @mCells[idx];
+      for f := 0 to High(TGridCell.bodies) do
+      begin
+        if (pi.bodies[f] = -1) then break;
+        px := @mProxies[pi.bodies[f]];
+        if (px.mQueryMark <> mLastQuery) and ((px.mTag and tagmask) <> 0) then
+        begin
+          //e_WriteLog(Format('  query #%d body hit: (%d,%d)-(%dx%d) tag:%d', [mLastQuery, mCells[idx].body.mX, mCells[idx].body.mY, mCells[idx].body.mWidth, mCells[idx].body.mHeight, mCells[idx].body.mTag]), MSG_NOTIFY);
+          px.mQueryMark := mLastQuery;
+          if (cb(px.mObj, px.mTag)) then begin result := true; exit; end;
+        end;
+      end;
+      idx := pi.next;
+      {$ELSE}
       if (mCells[idx].body <> -1) then
       begin
         px := @mProxies[mCells[idx].body];
@@ -422,6 +490,7 @@ function TBodyGrid.forEachInAABB (x, y, w, h: Integer; cb: GridQueryCB; tagmask:
         end;
       end;
       idx := mCells[idx].next;
+      {$ENDIF}
     end;
   end;
 
@@ -445,6 +514,7 @@ begin
 end;
 
 
+(*
 function TBodyGrid.getProxyForBody (aObj: TObject; x, y, w, h: Integer): TBodyProxy;
 var
   res: TBodyProxy = -1;
@@ -473,6 +543,7 @@ begin
   forGridRect(x, y, w, h, iterator);
   result := res;
 end;
+*)
 
 
 end.

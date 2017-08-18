@@ -208,6 +208,8 @@ begin
   if (pan.Width < 1) or (pan.Height < 1) then exit;
   //if (pan.Width = 1) then aabb.maxX += 1;
   //if (pan.Height = 1) then aabb.maxY += 1;
+  //if (pan.Width < 3) or (pan.Height < 3) then exit;
+  //aabb := AABB2D.Create(pan.X, pan.Y, pan.X+pan.Width-2, pan.Y+pan.Height-2);
   if not aabb.valid then raise Exception.Create('wutafuuuuuuu?!');
   result := aabb.valid;
 end;
@@ -2267,6 +2269,7 @@ begin
   begin
     if gdbg_map_use_tree_coldet then
     begin
+      //e_WriteLog(Format('coldet query: x=%d; y=%d; w=%d; h=%d', [X, Y, Width, Height]), MSG_NOTIFY);
       result := (mapTree.aabbQuery(X, Y, Width, Height, checker, (GridTagWallDoor or GridTagWater or GridTagAcid1 or GridTagAcid2 or GridTagStep or GridTagLift or GridTagBlockMon)) <> nil);
       if (gdbg_map_dump_coldet_tree_queries) and (mapTree.nodesVisited <> 0) then
       begin
