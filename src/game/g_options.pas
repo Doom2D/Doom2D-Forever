@@ -126,6 +126,7 @@ var
   gsSDLBufferSize: Integer    = 2048;
   gSFSDebug: Boolean          = False;
   gSFSFastMode: Boolean       = False;
+  gDefaultMegawadStart: AnsiString = 'megawads/DOOM2D.WAD:\MAP01';
 
 implementation
 
@@ -432,6 +433,7 @@ begin
   gSFSFastMode := config.ReadBool('Game', 'SFSFastMode', False);
   wadoptFast := gSFSFastMode;
   e_FastScreenshots := config.ReadBool('Game', 'FastScreenshots', True);
+  gDefaultMegawadStart := config.ReadStr('Game', 'DefaultMegawadStart', 'megawads/DOOM2D.WAD:\MAP01');
 
 // Геймплей в своей игре
   gcMap := config.ReadStr('GameplayCustom', 'Map', '');
@@ -668,6 +670,7 @@ begin
   config.WriteBool('Game', 'SFSDebug', gSFSDebug);
   config.WriteBool('Game', 'SFSFastMode', gSFSFastMode);
   config.WriteBool('Game', 'FastScreenshots', e_FastScreenshots);
+  config.WriteStr('Game', 'DefaultMegawadStart', gDefaultMegawadStart);
 
   config.WriteStr ('GameplayCustom', 'Map', gcMap);
   config.WriteStr ('GameplayCustom', 'GameMode', gcGameMode);

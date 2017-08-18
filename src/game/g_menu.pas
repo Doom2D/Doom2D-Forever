@@ -1124,12 +1124,12 @@ end;
 
 procedure ProcSingle1Player();
 begin
-  g_Game_StartSingle('megawads/DOOM2D.WAD:\MAP01', False, 1);
+  g_Game_StartSingle(gDefaultMegawadStart, False, 1);
 end;
 
 procedure ProcSingle2Players();
 begin
-  g_Game_StartSingle('megawads/DOOM2D.WAD:\MAP01', True, 2);
+  g_Game_StartSingle(gDefaultMegawadStart, True, 2);
 end;
 
 procedure ProcSelectMapMenu();
