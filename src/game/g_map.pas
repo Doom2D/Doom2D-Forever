@@ -156,16 +156,16 @@ const
   MUSIC_SIGNATURE = $4953554D; // 'MUSI'
   FLAG_SIGNATURE = $47414C46; // 'FLAG'
 
-  GridTagInvalid = -1;
-  GridTagWallDoor = 0;
-  GridTagBack = 1;
-  GridTagFore = 2;
-  GridTagWater = 3;
-  GridTagAcid1 = 4;
-  GridTagAcid2 = 5;
-  GridTagStep = 6;
-  GridTagLift = 7;
-  GridTagBlockMon = 8;
+  GridTagInvalid = 0;
+  GridTagWallDoor = $0001;
+  GridTagBack = $0002;
+  GridTagFore = $0004;
+  GridTagWater = $0008;
+  GridTagAcid1 = $0010;
+  GridTagAcid2 = $0020;
+  GridTagStep = $0040;
+  GridTagLift = $0080;
+  GridTagBlockMon = $0100;
 
 
 function panelTypeToTag (panelType: Word): Integer;
@@ -1005,7 +1005,7 @@ var
     begin
       panels[idx].tag := tag;
       gMapGrid.insertBody(panels[idx], panels[idx].X, panels[idx].Y, panels[idx].Width, panels[idx].Height, tag);
-      mapTree.insertObject(panels[idx], true); // as static object
+      mapTree.insertObject(panels[idx], tag, true); // as static object
     end;
   end;
 
@@ -1898,8 +1898,8 @@ var
     pan: TPanel;
   begin
     result := false; // don't stop, ever
+    //e_WriteLog(Format('  *body: tag:%d; ptag:%d; pantype=%d', [tag, ptag, PanelType]), MSG_NOTIFY);
     if (tag <> ptag) then exit;
-    //e_WriteLog(Format('  *body: tag:%d; qtag:%d', [tag, PanelType]), MSG_NOTIFY);
 
     if obj = nil then begin e_WriteLog(Format('  !bodyFUUUUU0: tag:%d; qtag:%d', [tag, PanelType]), MSG_NOTIFY); exit; end;
     if not (obj is TPanel) then begin e_WriteLog(Format('  !bodyFUUUUU1: tag:%d; qtag:%d', [tag, PanelType]), MSG_NOTIFY); exit; end;
@@ -1907,18 +1907,6 @@ var
     //e_WriteLog(Format('  !body: (%d,%d)-(%dx%d) tag:%d; qtag:%d', [pan.X, pan.Y, pan.Width, pan.Height, tag, PanelType]), MSG_NOTIFY);
 
     pan := (obj as TPanel);
-    if (PanelType = PANEL_CLOSEDOOR) then begin if not pan.Door then exit; end else begin if pan.Door then exit; end;
-    //e_WriteLog(Format('  body hit: (%d,%d)-(%dx%d) tag: %d; qtag:%d', [pan.X, pan.Y, pan.Width, pan.Height, tag, PanelType]), MSG_NOTIFY);
-    dplAddPanel(pan);
-  end;
-
-  function checkerTree (obj: TObject): Boolean;
-  var
-    pan: TPanel;
-  begin
-    result := false; // don't stop, ever
-    pan := (obj as TPanel);
-    if (pan.tag <> ptag) then exit;
     if (PanelType = PANEL_CLOSEDOOR) then begin if not pan.Door then exit; end else begin if pan.Door then exit; end;
     //e_WriteLog(Format('  body hit: (%d,%d)-(%dx%d) tag: %d; qtag:%d', [pan.X, pan.Y, pan.Width, pan.Height, tag, PanelType]), MSG_NOTIFY);
     dplAddPanel(pan);
@@ -1960,7 +1948,7 @@ begin
   begin
     if gdbg_map_use_tree_draw then
     begin
-      mapTree.aabbQuery(x0, y0, wdt, hgt, checkerTree);
+      mapTree.aabbQuery(x0, y0, wdt, hgt, checker, ptag);
     end
     else
     begin
@@ -2003,20 +1991,10 @@ procedure g_Map_DrawPanelShadowVolumes(lightX: Integer; lightY: Integer; radius:
     pan.DrawShadowVolume(lightX, lightY, radius);
   end;
 
-  function checkerTree (obj: TObject): Boolean;
-  var
-    pan: TPanel;
-  begin
-    result := false; // don't stop, ever
-    pan := (obj as TPanel);
-    if (pan.tag <> GridTagWallDoor) then exit; // only walls
-    pan.DrawShadowVolume(lightX, lightY, radius);
-  end;
-
 begin
   if gdbg_map_use_tree_draw then
   begin
-    mapTree.aabbQuery(lightX-radius, lightY-radius, radius*2, radius*2, checkerTree);
+    mapTree.aabbQuery(lightX-radius, lightY-radius, radius*2, radius*2, checker, GridTagWallDoor);
   end
   else
   begin
@@ -2277,14 +2255,6 @@ function g_Map_CollidePanel(X, Y: Integer; Width, Height: Word; PanelType: Word;
     end;
   end;
 
-  function checkerTree (obj: TObject): Boolean;
-  var
-    pan: TPanel;
-  begin
-    pan := (obj as TPanel);
-    result := checker(obj, pan.tag);
-  end;
-
 begin
   //TODO: detailed profile
   if (profMapCollision <> nil) then profMapCollision.sectionBeginAccum('wall coldet');
@@ -2293,7 +2263,7 @@ begin
     begin
       if gdbg_map_use_tree_coldet then
       begin
-        result := mapTree.aabbQuery(X, Y, Width, Height, checkerTree);
+        result := (mapTree.aabbQuery(X, Y, Width, Height, checker, (GridTagWallDoor or GridTagWater or GridTagAcid1 or GridTagAcid2 or GridTagStep or GridTagLift or GridTagBlockMon)) <> nil);
         {
         if (mapTree.nodesVisited <> 0) then
         begin
@@ -2328,6 +2298,7 @@ var
     a: Integer;
   begin
     result := false; // don't stop, ever
+    if (tag <> GridTagWater) and (tag <> GridTagAcid1) and (tag <> GridTagAcid2) then exit;
     pan := (obj as TPanel);
     a := pan.ArrIdx;
     // water
@@ -2362,15 +2333,6 @@ var
     end;
   end;
 
-  function checkerTree (obj: TObject): Boolean;
-  var
-    pan: TPanel;
-  begin
-    result := false;
-    pan := (obj as TPanel);
-    if (pan.tag = GridTagWater) or (pan.tag = GridTagAcid1) or (pan.tag = GridTagAcid2) then result := checker(obj, pan.tag);
-  end;
-
 {var
   cctype1: Integer = 3; // priority: 0: water, 1: acid1, 2: acid2; 3: others (nothing)
   texid1: DWORD;}
@@ -2383,7 +2345,7 @@ begin
       texid := TEXTURE_NONE;
       if gdbg_map_use_tree_coldet then
       begin
-        mapTree.aabbQuery(X, Y, Width, Height, checkerTree);
+        mapTree.aabbQuery(X, Y, Width, Height, checker);
         {
         cctype1 := cctype;
         texid1 := texid;

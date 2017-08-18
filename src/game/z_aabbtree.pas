@@ -153,6 +153,7 @@ type
         height: SmallInt;
         // fat axis aligned bounding box (AABB) corresponding to the node
         aabb: AABB2D;
+        tag: Integer; // just a user-defined tag
       public
         // return true if the node is a leaf of the tree
         procedure clear (); inline;
@@ -163,7 +164,7 @@ type
       end;
 
       TVisitCheckerCB = function (node: PTreeNode): Boolean is nested;
-      TVisitVisitorCB = function (abody: TTreeFlesh): Boolean is nested;
+      //TVisitVisitorCB = function (abody: TTreeFlesh; atag: Integer): Boolean is nested;
 
   public
     // return `true` to stop
@@ -186,26 +187,10 @@ type
     // without triggering a large modification of the tree which can be costly
     mExtraGap: Float;
 
-  private
-    function allocateNode (): Integer;
-    procedure releaseNode (nodeId: Integer);
-    procedure insertLeafNode (nodeId: Integer);
-    procedure removeLeafNode (nodeId: Integer);
-    function balanceSubTreeAtNode (nodeId: Integer): Integer;
-    function computeHeight (nodeId: Integer): Integer;
-    function insertObjectInternal (var aabb: AABB2D; staticObject: Boolean): Integer;
-    procedure setup ();
-    function visit (checker: TVisitCheckerCB; visitor: TVisitVisitorCB): Integer;
-
-  public
-    {$IFDEF aabbtree_query_count}
-    mNodesVisited, mNodesDeepVisited: Integer;
-    {$ENDIF}
-
   public
     // called when a overlapping node has been found during the call to forEachAABBOverlap()
     // return `true` to stop
-    type TQueryOverlapCB = function (abody: TTreeFlesh): Boolean is nested;
+    type TQueryOverlapCB = function (abody: TTreeFlesh; atag: Integer): Boolean is nested;
     type TSegQueryCallback = function (abody: TTreeFlesh; ax, ay, bx, by: Float): Float is nested; // return dist from (ax,ay) to abody
 
     TSegmentQueryResult = record
@@ -215,6 +200,22 @@ type
       procedure reset (); inline;
       function valid (): Boolean; inline;
     end;
+
+  private
+    function allocateNode (): Integer;
+    procedure releaseNode (nodeId: Integer);
+    procedure insertLeafNode (nodeId: Integer);
+    procedure removeLeafNode (nodeId: Integer);
+    function balanceSubTreeAtNode (nodeId: Integer): Integer;
+    function computeHeight (nodeId: Integer): Integer;
+    function insertObjectInternal (var aabb: AABB2D; staticObject: Boolean): Integer;
+    procedure setup ();
+    function visit (checker: TVisitCheckerCB; visitor: TQueryOverlapCB; tagmask: Integer=-1): Integer;
+
+  public
+    {$IFDEF aabbtree_query_count}
+    mNodesVisited, mNodesDeepVisited: Integer;
+    {$ENDIF}
 
   public
     constructor Create (extraAABBGap: Float=0.0);
@@ -237,7 +238,7 @@ type
     // this method creates a new leaf node in the tree and returns the id of the corresponding node or -1 on error
     // AABB for static object will not be "fat" (simple optimization)
     // WARNING! inserting the same object several times *WILL* break everything!
-    function insertObject (flesh: TTreeFlesh; staticObject: Boolean=false): Integer;
+    function insertObject (flesh: TTreeFlesh; tag: Integer; staticObject: Boolean=false): Integer;
 
     // remove an object from the tree
     // WARNING: ids of removed objects can be reused on later insertions!
@@ -260,7 +261,7 @@ type
      *)
     function updateObject (nodeId: Integer; dispX, dispY: Float; forceReinsert: Boolean=false): Boolean;
 
-    function aabbQuery (ax, ay, aw, ah: Float; cb: TQueryOverlapCB): Boolean;
+    function aabbQuery (ax, ay, aw, ah: Float; cb: TQueryOverlapCB; tagmask: Integer=-1): TTreeFlesh;
     function pointQuery (ax, ay: Float; cb: TQueryOverlapCB): TTreeFlesh;
     function segmentQuery (var qr: TSegmentQueryResult; ax, ay, bx, by: Float; cb: TSegQueryCallback): Boolean;
 
@@ -524,6 +525,7 @@ begin
   children[0] := 0;
   children[1] := 0;
   flesh := nil;
+  tag := 0;
   height := 0;
   aabb.minX := 0;
   aabb.minY := 0;
@@ -1105,7 +1107,7 @@ end;
 // return `true` from visitor to stop immediately
 // checker should check if this node should be considered to further checking
 // returns tree node if visitor says stop or -1
-function TDynAABBTree.visit (checker: TVisitCheckerCB; visitor: TVisitVisitorCB): Integer;
+function TDynAABBTree.visit (checker: TVisitCheckerCB; visitor: TQueryOverlapCB; tagmask: Integer=-1): Integer;
 var
   stack: array [0..255] of Integer; // stack with the nodes to visit
   bigstack: array of Integer = nil;
@@ -1206,9 +1208,9 @@ begin
         begin
           // call visitor on it
           {$IFDEF aabbtree_query_count}Inc(mNodesDeepVisited);{$ENDIF}
-          if assigned(visitor) then
+          if ((node.tag and tagmask) <> 0) and assigned(visitor) then
           begin
-            if (visitor(node.flesh)) then begin result := nodeId; exit; end;
+            if (visitor(node.flesh, node.tag)) then begin result := nodeId; exit; end;
           end;
         end
         else
@@ -1287,7 +1289,7 @@ end;
 // this method creates a new leaf node in the tree and returns the id of the corresponding node or -1 on error
 // AABB for static object will not be "fat" (simple optimization)
 // WARNING! inserting the same object several times *WILL* break everything!
-function TDynAABBTree.insertObject (flesh: TTreeFlesh; staticObject: Boolean=false): Integer;
+function TDynAABBTree.insertObject (flesh: TTreeFlesh; tag: Integer; staticObject: Boolean=false): Integer;
 var
   aabb: AABB2D;
   nodeId: Integer;
@@ -1310,6 +1312,7 @@ begin
   nodeId := insertObjectInternal(aabb, staticObject);
   {$IFDEF aabbtree_many_asserts}assert(mNodes[nodeId].leaf);{$ENDIF}
   mNodes[nodeId].flesh := flesh;
+  mNodes[nodeId].tag := tag;
   result := nodeId;
 end;
 
@@ -1378,29 +1381,33 @@ end;
 
 
 // report all shapes overlapping with the AABB given in parameter
-function TDynAABBTree.aabbQuery (ax, ay, aw, ah: Float; cb: TQueryOverlapCB): Boolean;
+function TDynAABBTree.aabbQuery (ax, ay, aw, ah: Float; cb: TQueryOverlapCB; tagmask: Integer=-1): TTreeFlesh;
 var
   caabb: AABB2D;
   function checker (node: PTreeNode): Boolean;
   begin
     result := caabb.overlaps(node.aabb);
   end;
+var
+  nid: Integer;
 begin
+  result := nil;
   if not assigned(cb) then exit;
   if (aw < 1) or (ah < 1) then exit;
   caabb := AABB2D.Create(ax, ay, ax+aw, ay+ah);
-  result := (visit(checker, cb) <> -1);
+  nid := visit(checker, cb, tagmask);
+  if (nid >= 0) then result := mNodes[nid].flesh else result := nil;
 end;
 
 
 // report body that contains the given point, or nil
 function TDynAABBTree.pointQuery (ax, ay: Float; cb: TQueryOverlapCB): TTreeFlesh;
-var
-  nid: Integer;
   function checker (node: PTreeNode): Boolean;
   begin
     result := node.aabb.contains(ax, ay);
   end;
+var
+  nid: Integer;
 begin
   nid := visit(checker, cb);
   {$IFDEF aabbtree_many_asserts}assert((nid < 0) or ((nid >= 0) and (nid < mNodeCount) and (mNodes[nid].leaf)));{$ENDIF}
@@ -1422,7 +1429,7 @@ var
     result := node.aabb.intersects(curax, curay, curbx, curby);
   end;
 
-  function visitor (flesh: TTreeFlesh): Boolean;
+  function visitor (flesh: TTreeFlesh; tag: Integer): Boolean;
   var
     hitFraction: Float;
   begin
