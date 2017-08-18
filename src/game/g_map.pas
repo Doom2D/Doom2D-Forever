@@ -2294,6 +2294,12 @@ begin
       if gdbg_map_use_tree_coldet then
       begin
         result := mapTree.aabbQuery(X, Y, Width, Height, checkerTree);
+        {
+        if (mapTree.nodesVisited <> 0) then
+        begin
+          e_WriteLog(Format('map collision: %d nodes visited (%d deep)', [mapTree.nodesVisited, mapTree.nodesDeepVisited]), MSG_NOTIFY);
+        end;
+        }
       end
       else
       begin

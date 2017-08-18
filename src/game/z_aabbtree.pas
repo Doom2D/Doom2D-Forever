@@ -14,8 +14,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *)
 {$INCLUDE ../shared/a_modes.inc}
-{$DEFINE aabbtree_many_asserts}
-{$DEFINE aabbtree_query_count}
+{.$DEFINE aabbtree_many_asserts}
+{.$DEFINE aabbtree_query_count}
 unit z_aabbtree;
 
 interface
@@ -199,7 +199,7 @@ type
 
   public
     {$IFDEF aabbtree_query_count}
-    nodesVisited, nodesDeepVisited: Integer;
+    mNodesVisited, mNodesDeepVisited: Integer;
     {$ENDIF}
 
   public
@@ -269,6 +269,13 @@ type
     property extraGap: Float read mExtraGap write mExtraGap;
     property nodeCount: Integer read mNodeCount;
     property nodeAlloced: Integer read mAllocCount;
+    {$IFDEF aabbtree_query_count}
+    property nodesVisited: Integer read mNodesVisited;
+    property nodesDeepVisited: Integer read mNodesDeepVisited;
+    {$ELSE}
+    const nodesVisited = 0;
+    const nodesDeepVisited = 0;
+    {$ENDIF}
   end;
 
 
@@ -1104,7 +1111,7 @@ var
   bigstack: array of Integer = nil;
   sp: Integer = 0;
 
-  procedure spush (id: Integer);
+  procedure spush (id: Integer); inline;
   var
     xsp: Integer;
   begin
@@ -1133,9 +1140,10 @@ var
     end;
   end;
 
-  function spop (): Integer;
+  (*
+  function spop (): Integer; inline;
   begin
-    assert(sp > 0);
+    {$IFDEF aabbtree_many_asserts}assert(sp > 0);{$ENDIF}
     if (sp <= length(stack)) then
     begin
       // use "small stack"
@@ -1149,6 +1157,7 @@ var
       result := bigstack[sp-length(stack)];
     end;
   end;
+  *)
 
 var
   nodeId: Integer;
@@ -1158,8 +1167,8 @@ begin
   //if not assigned(visitor) then begin result := -1; exit; end;
   try
     {$IFDEF aabbtree_query_count}
-    nodesVisited := 0;
-    nodesDeepVisited := 0;
+    mNodesVisited := 0;
+    mNodesDeepVisited := 0;
     {$ENDIF}
 
     // start from root node
@@ -1169,10 +1178,24 @@ begin
     while (sp > 0) do
     begin
       // get the next node id to visit
-      nodeId := spop();
+      //nodeId := spop();
+      {$IFDEF aabbtree_many_asserts}assert(sp > 0);{$ENDIF}
+      if (sp <= length(stack)) then
+      begin
+        // use "small stack"
+        Dec(sp);
+        nodeId := stack[sp];
+      end
+      else
+      begin
+        // use "big stack"
+        Dec(sp);
+        nodeId := bigstack[sp-length(stack)];
+      end;
+
       // skip it if it is a nil node
       if (nodeId = TTreeNode.NullTreeNode) then continue;
-      {$IFDEF aabbtree_query_count}Inc(nodesVisited);{$ENDIF}
+      {$IFDEF aabbtree_query_count}Inc(mNodesVisited);{$ENDIF}
       // get the corresponding node
       node := @mNodes[nodeId];
       // should we investigate this node?
@@ -1182,7 +1205,7 @@ begin
         if (node.leaf) then
         begin
           // call visitor on it
-          {$IFDEF aabbtree_query_count}Inc(nodesDeepVisited);{$ENDIF}
+          {$IFDEF aabbtree_query_count}Inc(mNodesDeepVisited);{$ENDIF}
           if assigned(visitor) then
           begin
             if (visitor(node.flesh)) then begin result := nodeId; exit; end;
