@@ -1016,6 +1016,8 @@ begin
   gMapGrid := TBodyGrid.Create(mapX0, mapY0, mapX1-mapX0+1, mapY1-mapY0+1);
   gMapSAP := TSweepAndPrune.Create();
 
+  gMapSAP.batchUpdateBegin();
+
   addPanelsToGrid(gWalls, PANEL_WALL); // and PANEL_CLOSEDOOR
   addPanelsToGrid(gRenderBackgrounds, PANEL_BACK);
   addPanelsToGrid(gRenderForegrounds, PANEL_FORE);
@@ -1025,6 +1027,8 @@ begin
   addPanelsToGrid(gSteps, PANEL_STEP);
   addPanelsToGrid(gLifts, PANEL_LIFTUP); // it doesn't matter which LIFT type is used here
   addPanelsToGrid(gBlockMon, PANEL_BLOCKMON);
+
+  gMapSAP.batchUpdateEnd();
 
   gMapGrid.dumpStats();
   gMapSAP.dumpStats();
