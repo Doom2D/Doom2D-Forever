@@ -1,0 +1,25 @@
+D2DF-SDL
+---------
+
+Doom 2D Forever (https://github.com/pss88/DF) adapted for use with the FreePascal Compiler
+and ported to SDL 2.0.
+
+Building
+---------
+
+Requirements:
+* FPC >= 3.0.0;
+* FMODEx >= 4.26.xx or SDL_mixer >= 2.0;
+* libenet >= 1.3.13;
+* SDL >= 2.0.
+
+Create the "tmp" and "bin" directories beforehand if they don't exist already. Then run
+
+cd src/game
+fpc -dUSE_FMOD -O3 -Fi../lib/vampimg -Fi../lib/vampimg/JpegLib -Fi../lib/vampimg/ZLib -Fu../lib/vampimg -Fu../lib/vampimg/JpegLib -Fu../lib/vampimg/ZLib -FE../../bin -FU../../tmp Doom2DF.dpr
+
+If you want SDL_mixer instead of FMOD, replace -dUSE_FMOD with -dUSE_MIXER.
+To build a headless (no video/audio, for dedicated servers) executable, add -dHEADLESS.
+Add -g -dDEBUG to enable debugging features.
+
+Windows binaries will require the appropriate DLLs (SDL2.dll, SDL2_mixer.dll or FMODEx.dll, ENet.dll).
