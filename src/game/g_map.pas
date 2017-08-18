@@ -134,8 +134,8 @@ var
   BackID:  DWORD = DWORD(-1);
   gExternalResources: TStringList;
 
-  gdbg_map_use_grid_render: Boolean = true;
-  gdbg_map_use_grid_coldet: Boolean = true;
+  gdbg_map_use_accel_render: Boolean = true;
+  gdbg_map_use_accel_coldet: Boolean = true;
   gdbg_map_use_tree_draw: Boolean = false;
   gdbg_map_use_tree_coldet: Boolean = false;
   gdbg_map_dump_coldet_tree_queries: Boolean = false;
@@ -1949,7 +1949,7 @@ begin
   dplClear();
   ptag := panelTypeToTag(PanelType);
 
-  if gdbg_map_use_grid_render then
+  if gdbg_map_use_accel_render then
   begin
     if gdbg_map_use_tree_draw then
     begin
@@ -2264,7 +2264,7 @@ begin
   //TODO: detailed profile
   if (profMapCollision <> nil) then profMapCollision.sectionBeginAccum('wall coldet');
   try
-    if gdbg_map_use_grid_coldet then
+    if gdbg_map_use_accel_coldet then
     begin
       if gdbg_map_use_tree_coldet then
       begin
@@ -2337,29 +2337,16 @@ var
     end;
   end;
 
-{var
-  cctype1: Integer = 3; // priority: 0: water, 1: acid1, 2: acid2; 3: others (nothing)
-  texid1: DWORD;}
 begin
   //TODO: detailed profile?
   if (profMapCollision <> nil) then profMapCollision.sectionBeginAccum('liquid coldet');
   try
-    if gdbg_map_use_grid_coldet then
+    if gdbg_map_use_accel_coldet then
     begin
       texid := TEXTURE_NONE;
       if gdbg_map_use_tree_coldet then
       begin
         mapTree.aabbQuery(X, Y, Width, Height, checker, (GridTagWater or GridTagAcid1 or GridTagAcid2));
-        {
-        cctype1 := cctype;
-        texid1 := texid;
-        cctype := 3;
-        texid := TEXTURE_NONE;
-        gMapGrid.forEachInAABB(X, Y, Width, Height, checker);
-        if (cctype1 <> cctype) or (texid1 <> texid) then
-        begin
-          e_WriteLog(Format('g_Map_CollideLiquid_Texture(%d, %d, %u, %u): tree(cctype:%d;texid:%u); grid(cctype:%d;texid:%u)', [X, Y, Width, Height, cctype1, texid1, cctype, texid]), MSG_WARNING);
-        end;}
       end
       else
       begin

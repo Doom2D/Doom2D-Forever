@@ -5040,10 +5040,10 @@ begin
   begin
     case getBool(1) of
       -1: begin end;
-       0: gdbg_map_use_grid_render := false;
-       1: gdbg_map_use_grid_render := true;
+       0: gdbg_map_use_accel_render := false;
+       1: gdbg_map_use_accel_render := true;
     end;
-    if gdbg_map_use_grid_render then g_Console_Add('accelerated rendering: tan') else g_Console_Add('accelerated rendering: ona');
+    if gdbg_map_use_accel_render then g_Console_Add('accelerated rendering: tan') else g_Console_Add('accelerated rendering: ona');
     exit;
   end;
 
@@ -5051,10 +5051,10 @@ begin
   begin
     case getBool(1) of
       -1: begin end;
-       0: gdbg_map_use_grid_coldet := false;
-       1: gdbg_map_use_grid_coldet := true;
+       0: gdbg_map_use_accel_coldet := false;
+       1: gdbg_map_use_accel_coldet := true;
     end;
-    if gdbg_map_use_grid_coldet then g_Console_Add('accelerated coldet: tan') else g_Console_Add('accelerated coldet: ona');
+    if gdbg_map_use_accel_coldet then g_Console_Add('accelerated coldet: tan') else g_Console_Add('accelerated coldet: ona');
     exit;
   end;
 
