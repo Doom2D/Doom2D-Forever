@@ -136,7 +136,7 @@ var
 
   gdbg_map_use_grid_render: Boolean = true;
   gdbg_map_use_grid_coldet: Boolean = true;
-  gdbg_map_use_tree_draw: Boolean = true;
+  gdbg_map_use_tree_draw: Boolean = false;
   gdbg_map_use_tree_coldet: Boolean = false;
   gdbg_map_dump_coldet_tree_queries: Boolean = false;
   profMapCollision: TProfiler = nil; //WARNING: FOR DEBUGGING ONLY!
@@ -201,9 +201,14 @@ function TDynAABBTreeMap.getFleshAABB (var aabb: AABB2D; flesh: TTreeFlesh): Boo
 var
   pan: TPanel;
 begin
-  if (flesh = nil) then begin result := false; exit; end;
+  result := false;
+  if (flesh = nil) then exit;
   pan := (flesh as TPanel);
+  if (pan.Width < 1) or (pan.Height < 1) then exit;
   aabb := AABB2D.Create(pan.X, pan.Y, pan.X+pan.Width, pan.Y+pan.Height);
+  //if (pan.Width = 1) then aabb.maxX += 1;
+  //if (pan.Height = 1) then aabb.maxY += 1;
+  if not aabb.valid then raise Exception.Create('wutafuuuuuuu?!');
   //e_WriteLog(Format('getFleshAABB(%d;%d) AABB:(%f,%f)-(%f,%f); valid=%d; volume=%f; x=%d; y=%d; w=%d; h=%d', [pan.tag, pan.ArrIdx, aabb.minX, aabb.minY, aabb.maxX, aabb.maxY, Integer(aabb.valid), aabb.volume, pan.X, pan.Y, pan.Width, pan.Height]), MSG_NOTIFY);
   result := aabb.valid;
 end;

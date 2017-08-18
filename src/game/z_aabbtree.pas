@@ -26,8 +26,7 @@ uses e_log;
 
 // ////////////////////////////////////////////////////////////////////////// //
 type
-  {$IFDEF aabbtree_use_floats}Float = Single;{$ELSE}Float = Integer;{$ENDIF}
-  //PFloat = ^Float;
+  {$IFDEF aabbtree_use_floats}TreeNumber = Single;{$ELSE}TreeNumber = Integer;{$ENDIF}
 
   TTreeFlesh = TObject;
 
@@ -56,32 +55,32 @@ type
 type
   AABB2D = record
   public
-    minX, minY, maxX, maxY: Float;
+    minX, minY, maxX, maxY: TreeNumber;
 
   private
     function getvalid (): Boolean; inline;
-    function getcenterX (): Float; inline;
-    function getcenterY (): Float; inline;
-    function getextentX (): Float; inline;
-    function getextentY (): Float; inline;
+    function getcenterX (): TreeNumber; inline;
+    function getcenterY (): TreeNumber; inline;
+    function getextentX (): TreeNumber; inline;
+    function getextentY (): TreeNumber; inline;
 
   public
-    constructor Create (x0, y0, x1, y1: Float); overload;
+    constructor Create (x0, y0, x1, y1: TreeNumber); overload;
     constructor Create (const aabb: AABB2D); overload;
     constructor Create (const aabb0, aabb1: AABB2D); overload;
 
     procedure copyFrom (const aabb: AABB2D); inline;
-    procedure setDims (x0, y0, x1, y1: Float); inline;
+    procedure setDims (x0, y0, x1, y1: TreeNumber); inline;
 
     procedure setMergeTwo (const aabb0, aabb1: AABB2D); inline;
 
-    function volume (): Float; inline;
+    function volume (): TreeNumber; inline;
 
     procedure merge (const aabb: AABB2D); inline;
 
     // return true if the current AABB contains the AABB given in parameter
     function contains (const aabb: AABB2D): Boolean; inline; overload;
-    function contains (ax, ay: Float): Boolean; inline; overload;
+    function contains (ax, ay: TreeNumber): Boolean; inline; overload;
 
     // return true if the current AABB is overlapping with the AABB in parameter
     // two AABBs overlap if they overlap in the two axes at the same time
@@ -92,10 +91,10 @@ type
     function intersects (ax, ay, bx, by: Single): Boolean; inline; overload;
 
     property valid: Boolean read getvalid;
-    property centerX: Float read getcenterX;
-    property centerY: Float read getcenterY;
-    property extentX: Float read getextentX;
-    property extentY: Float read getextentY;
+    property centerX: TreeNumber read getcenterX;
+    property centerY: TreeNumber read getcenterY;
+    property extentX: TreeNumber read getextentX;
+    property extentY: TreeNumber read getextentY;
   end;
 
 
@@ -190,7 +189,7 @@ type
 
     // extra AABB Gap used to allow the collision shape to move a little bit
     // without triggering a large modification of the tree which can be costly
-    mExtraGap: Float;
+    mExtraGap: TreeNumber;
 
   public
     // called when a overlapping node has been found during the call to forEachAABBOverlap()
@@ -215,7 +214,7 @@ type
     function computeHeight (nodeId: Integer): Integer;
     function insertObjectInternal (var aabb: AABB2D; staticObject: Boolean): Integer;
     procedure setup ();
-    function visit (checker: TVisitCheckerCB; visitor: TQueryOverlapCB; tagmask: Integer=-1): Integer;
+    function visit (var caabb: AABB2D; mode: Integer; checker: TVisitCheckerCB; visitor: TQueryOverlapCB; tagmask: Integer=-1): Integer;
 
   public
     {$IFDEF aabbtree_query_count}
@@ -223,7 +222,7 @@ type
     {$ENDIF}
 
   public
-    constructor Create (extraAABBGap: Float=0);
+    constructor Create (extraAABBGap: TreeNumber=0);
     destructor Destroy (); override;
 
     // clear all the nodes and reset the tree
@@ -264,15 +263,15 @@ type
      *
      * return `true` if the tree was modified.
      *)
-    function updateObject (nodeId: Integer; dispX, dispY: Float; forceReinsert: Boolean=false): Boolean;
+    function updateObject (nodeId: Integer; dispX, dispY: TreeNumber; forceReinsert: Boolean=false): Boolean;
 
-    function aabbQuery (ax, ay, aw, ah: Float; cb: TQueryOverlapCB; tagmask: Integer=-1): TTreeFlesh;
-    function pointQuery (ax, ay: Float; cb: TQueryOverlapCB): TTreeFlesh;
-    function segmentQuery (var qr: TSegmentQueryResult; ax, ay, bx, by: Float; cb: TSegQueryCallback): Boolean;
+    function aabbQuery (ax, ay, aw, ah: TreeNumber; cb: TQueryOverlapCB; tagmask: Integer=-1): TTreeFlesh;
+    function pointQuery (ax, ay: TreeNumber; cb: TQueryOverlapCB): TTreeFlesh;
+    function segmentQuery (var qr: TSegmentQueryResult; ax, ay, bx, by: TreeNumber; cb: TSegQueryCallback): Boolean;
 
     function computeTreeHeight (): Integer; // compute the height of the tree
 
-    property extraGap: Float read mExtraGap write mExtraGap;
+    property extraGap: TreeNumber read mExtraGap write mExtraGap;
     property nodeCount: Integer read mNodeCount;
     property nodeAlloced: Integer read mAllocCount;
     {$IFDEF aabbtree_query_count}
@@ -295,8 +294,8 @@ uses
 function minI (a, b: Integer): Integer; inline; begin if (a < b) then result := a else result := b; end;
 function maxI (a, b: Integer): Integer; inline; begin if (a > b) then result := a else result := b; end;
 
-function minF (a, b: Float): Float; inline; begin if (a < b) then result := a else result := b; end;
-function maxF (a, b: Float): Float; inline; begin if (a > b) then result := a else result := b; end;
+function minF (a, b: TreeNumber): TreeNumber; inline; begin if (a < b) then result := a else result := b; end;
+function maxF (a, b: TreeNumber): TreeNumber; inline; begin if (a > b) then result := a else result := b; end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
@@ -341,7 +340,7 @@ end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-constructor AABB2D.Create (x0, y0, x1, y1: Float); overload;
+constructor AABB2D.Create (x0, y0, x1, y1: TreeNumber); overload;
 begin
   setDims(x0, y0, x1, y1);
 end;
@@ -359,14 +358,14 @@ end;
 function AABB2D.getvalid (): Boolean; inline; begin result := (minX < maxX) and (minY < maxY); end;
 
 {$IFDEF aabbtree_use_floats}
-function AABB2D.getcenterX (): Float; inline; begin result := (minX+maxX)/2.0; end;
-function AABB2D.getcenterY (): Float; inline; begin result := (minY+maxY)/2.0; end;
+function AABB2D.getcenterX (): TreeNumber; inline; begin result := (minX+maxX)/2.0; end;
+function AABB2D.getcenterY (): TreeNumber; inline; begin result := (minY+maxY)/2.0; end;
 {$ELSE}
-function AABB2D.getcenterX (): Float; inline; begin result := (minX+maxX) div 2; end;
-function AABB2D.getcenterY (): Float; inline; begin result := (minY+maxY) div 2; end;
+function AABB2D.getcenterX (): TreeNumber; inline; begin result := (minX+maxX) div 2; end;
+function AABB2D.getcenterY (): TreeNumber; inline; begin result := (minY+maxY) div 2; end;
 {$ENDIF}
-function AABB2D.getextentX (): Float; inline; begin result := (maxX-minX); end;
-function AABB2D.getextentY (): Float; inline; begin result := (maxY-minY); end;
+function AABB2D.getextentX (): TreeNumber; inline; begin result := (maxX-minX); end;
+function AABB2D.getextentY (): TreeNumber; inline; begin result := (maxY-minY); end;
 
 procedure AABB2D.copyFrom (const aabb: AABB2D); inline;
 begin
@@ -380,7 +379,7 @@ begin
 end;
 
 
-procedure AABB2D.setDims (x0, y0, x1, y1: Float); inline;
+procedure AABB2D.setDims (x0, y0, x1, y1: TreeNumber); inline;
 begin
   minX := minF(x0, x1);
   minY := minF(y0, y1);
@@ -408,7 +407,7 @@ begin
 end;
 
 
-function AABB2D.volume (): Float; inline;
+function AABB2D.volume (): TreeNumber; inline;
 begin
   result := (maxX-minX)*(maxY-minY);
 end;
@@ -437,7 +436,7 @@ begin
 end;
 
 
-function AABB2D.contains (ax, ay: Float): Boolean; inline; overload;
+function AABB2D.contains (ax, ay: TreeNumber): Boolean; inline; overload;
 begin
   result := (ax >= minX) and (ay >= minY) and (ax <= maxX) and (ay <= maxY);
 end;
@@ -602,8 +601,8 @@ var
   currentNodeId: Integer;
   leftChild, rightChild, siblingNode: Integer;
   oldParentNode, newParentNode: Integer;
-  volumeAABB, mergedVolume: Float;
-  costS, costI, costLeft, costRight: Float;
+  volumeAABB, mergedVolume: TreeNumber;
+  costS, costI, costLeft, costRight: TreeNumber;
 begin
   // if the tree is empty
   if (mRootNodeId = TTreeNode.NullTreeNode) then
@@ -1124,7 +1123,10 @@ end;
 // return `true` from visitor to stop immediately
 // checker should check if this node should be considered to further checking
 // returns tree node if visitor says stop or -1
-function TDynAABBTree.visit (checker: TVisitCheckerCB; visitor: TQueryOverlapCB; tagmask: Integer=-1): Integer;
+const ModeNoChecks = 0;
+const ModeAABB = 1;
+const ModePoint = 2;
+function TDynAABBTree.visit (var caabb: AABB2D; mode: Integer; checker: TVisitCheckerCB; visitor: TQueryOverlapCB; tagmask: Integer=-1): Integer;
 var
   stack: array [0..2048] of Integer; // stack with the nodes to visit
   bigstack: array of Integer = nil;
@@ -1159,7 +1161,6 @@ var
     end;
   end;
 
-  (*
   function spop (): Integer; inline;
   begin
     {$IFDEF aabbtree_many_asserts}assert(sp > 0);{$ENDIF}
@@ -1176,11 +1177,11 @@ var
       result := bigstack[sp-length(stack)];
     end;
   end;
-  *)
 
 var
   nodeId: Integer;
   node: PTreeNode;
+  doNode: Boolean = false;
 begin
   if not assigned(checker) then begin result := -1; exit; end;
   //if not assigned(visitor) then begin result := -1; exit; end;
@@ -1197,28 +1198,19 @@ begin
     while (sp > 0) do
     begin
       // get the next node id to visit
-      //nodeId := spop();
-      {$IFDEF aabbtree_many_asserts}assert(sp > 0);{$ENDIF}
-      if (sp <= length(stack)) then
-      begin
-        // use "small stack"
-        Dec(sp);
-        nodeId := stack[sp];
-      end
-      else
-      begin
-        // use "big stack"
-        Dec(sp);
-        nodeId := bigstack[sp-length(stack)];
-      end;
-
+      nodeId := spop();
       // skip it if it is a nil node
       if (nodeId = TTreeNode.NullTreeNode) then continue;
       {$IFDEF aabbtree_query_count}Inc(mNodesVisited);{$ENDIF}
       // get the corresponding node
       node := @mNodes[nodeId];
       // should we investigate this node?
-      if (checker(node)) then
+      case mode of
+        ModeNoChecks: doNode := checker(node);
+        ModeAABB: doNode := caabb.overlaps(node.aabb);
+        ModePoint: doNode := node.aabb.contains(caabb.minX, caabb.minY);
+      end;
+      if doNode then
       begin
         // if the node is a leaf
         if (node.leaf) then
@@ -1248,7 +1240,7 @@ end;
 
 // add `extraAABBGap` to bounding boxes so slight object movement won't cause tree rebuilds
 // extra AABB Gap used to allow the collision shape to move a little bit without triggering a large modification of the tree which can be costly
-constructor TDynAABBTree.Create (extraAABBGap: Float=0);
+constructor TDynAABBTree.Create (extraAABBGap: TreeNumber=0);
 begin
   mExtraGap := extraAABBGap;
   setup();
@@ -1353,7 +1345,7 @@ begin
 end;
 
 
-function TDynAABBTree.updateObject (nodeId: Integer; dispX, dispY: Float; forceReinsert: Boolean=false): Boolean;
+function TDynAABBTree.updateObject (nodeId: Integer; dispX, dispY: TreeNumber; forceReinsert: Boolean=false): Boolean;
 var
   newAABB: AABB2D;
 begin
@@ -1406,7 +1398,7 @@ end;
 
 
 // report all shapes overlapping with the AABB given in parameter
-function TDynAABBTree.aabbQuery (ax, ay, aw, ah: Float; cb: TQueryOverlapCB; tagmask: Integer=-1): TTreeFlesh;
+function TDynAABBTree.aabbQuery (ax, ay, aw, ah: TreeNumber; cb: TQueryOverlapCB; tagmask: Integer=-1): TTreeFlesh;
 var
   caabb: AABB2D;
   function checker (node: PTreeNode): Boolean;
@@ -1420,34 +1412,37 @@ begin
   if not assigned(cb) then exit;
   if (aw < 1) or (ah < 1) then exit;
   caabb := AABB2D.Create(ax, ay, ax+aw, ay+ah);
-  nid := visit(checker, cb, tagmask);
+  nid := visit(caabb, ModeAABB, checker, cb, tagmask);
   if (nid >= 0) then result := mNodes[nid].flesh else result := nil;
 end;
 
 
 // report body that contains the given point, or nil
-function TDynAABBTree.pointQuery (ax, ay: Float; cb: TQueryOverlapCB): TTreeFlesh;
+function TDynAABBTree.pointQuery (ax, ay: TreeNumber; cb: TQueryOverlapCB): TTreeFlesh;
   function checker (node: PTreeNode): Boolean;
   begin
     result := node.aabb.contains(ax, ay);
   end;
 var
   nid: Integer;
+  caabb: AABB2D;
 begin
-  nid := visit(checker, cb);
+  caabb := AABB2D.Create(ax, ay, ax+1, ay+1);
+  nid := visit(caabb, ModePoint, checker, cb);
   {$IFDEF aabbtree_many_asserts}assert((nid < 0) or ((nid >= 0) and (nid < mNodeCount) and (mNodes[nid].leaf)));{$ENDIF}
   if (nid >= 0) then result := mNodes[nid].flesh else result := nil;
 end;
 
 
 // segment querying method
-function TDynAABBTree.segmentQuery (var qr: TSegmentQueryResult; ax, ay, bx, by: Float; cb: TSegQueryCallback): Boolean;
+function TDynAABBTree.segmentQuery (var qr: TSegmentQueryResult; ax, ay, bx, by: TreeNumber; cb: TSegQueryCallback): Boolean;
 var
   maxFraction: Single = 1.0e100; // infinity
   curax, curay: Single;
   curbx, curby: Single;
   dirx, diry: Single;
   invlen: Single;
+  caabb: AABB2D;
 
   function checker (node: PTreeNode): Boolean;
   begin
@@ -1502,7 +1497,8 @@ begin
   dirx *= invlen;
   diry *= invlen;
 
-  visit(checker, visitor);
+  caabb := AABB2D.Create(0, 0, 1, 1);
+  visit(caabb, ModeNoChecks, checker, visitor);
 
   result := qr.valid;
 end;
