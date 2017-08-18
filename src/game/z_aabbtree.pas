@@ -16,6 +16,7 @@
 {$INCLUDE ../shared/a_modes.inc}
 {.$DEFINE aabbtree_many_asserts}
 {.$DEFINE aabbtree_query_count}
+{.$DEFINE aabbtree_use_floats}
 unit z_aabbtree;
 
 interface
@@ -25,8 +26,8 @@ uses e_log;
 
 // ////////////////////////////////////////////////////////////////////////// //
 type
-  Float = Single;
-  PFloat = ^Float;
+  {$IFDEF aabbtree_use_floats}Float = Single;{$ELSE}Float = Integer;{$ENDIF}
+  //PFloat = ^Float;
 
   TTreeFlesh = TObject;
 
@@ -35,20 +36,20 @@ type
 type
   Ray2D = record
   public
-    origX, origY: Float;
-    dirX, dirY: Float;
+    origX, origY: Single;
+    dirX, dirY: Single;
 
   public
-    constructor Create (ax, ay: Float; aangle: Float); overload;
-    constructor Create (ax0, ay0, ax1, ay1: Float); overload;
+    constructor Create (ax, ay: Single; aangle: Single); overload;
+    constructor Create (ax0, ay0, ax1, ay1: Single); overload;
     constructor Create (const aray: Ray2D); overload;
 
     procedure copyFrom (const aray: Ray2D); inline;
 
     procedure normalizeDir (); inline;
 
-    procedure setXYAngle (ax, ay: Float; aangle: Float); inline;
-    procedure setX0Y0X1Y1 (ax0, ay0, ax1, ay1: Float); inline;
+    procedure setXYAngle (ax, ay: Single; aangle: Single); inline;
+    procedure setX0Y0X1Y1 (ax0, ay0, ax1, ay1: Single); inline;
   end;
 
 // ////////////////////////////////////////////////////////////////////////// //
@@ -87,8 +88,8 @@ type
     function overlaps (const aabb: AABB2D): Boolean; inline; overload;
 
     // ray direction must be normalized
-    function intersects (const ray: Ray2D; tmino: PFloat=nil; tmaxo: PFloat=nil): Boolean; overload;
-    function intersects (ax, ay, bx, by: Float): Boolean; inline; overload;
+    function intersects (const ray: Ray2D; tmino: PSingle=nil; tmaxo: PSingle=nil): Boolean; overload;
+    function intersects (ax, ay, bx, by: Single): Boolean; inline; overload;
 
     property valid: Boolean read getvalid;
     property centerX: Float read getcenterX;
@@ -174,7 +175,11 @@ type
     // in the broad-phase collision detection (dynamic AABB tree), the AABBs are
     // also inflated in direction of the linear motion of the body by mutliplying the
     // followin constant with the linear velocity and the elapsed time between two frames
+    {$IFDEF aabbtree_use_floats}
     const LinearMotionGapMultiplier = 1.7;
+    {$ELSE}
+    const LinearMotionGapMultiplier = 17; // *10
+    {$ENDIF}
 
   private
     mNodes: array of TTreeNode; // nodes of the tree
@@ -191,10 +196,10 @@ type
     // called when a overlapping node has been found during the call to forEachAABBOverlap()
     // return `true` to stop
     type TQueryOverlapCB = function (abody: TTreeFlesh; atag: Integer): Boolean is nested;
-    type TSegQueryCallback = function (abody: TTreeFlesh; ax, ay, bx, by: Float): Float is nested; // return dist from (ax,ay) to abody
+    type TSegQueryCallback = function (abody: TTreeFlesh; ax, ay, bx, by: Single): Single is nested; // return dist from (ax,ay) to abody
 
     TSegmentQueryResult = record
-      dist: Float; // <0: nothing was hit
+      dist: Single; // <0: nothing was hit
       flesh: TTreeFlesh;
 
       procedure reset (); inline;
@@ -218,7 +223,7 @@ type
     {$ENDIF}
 
   public
-    constructor Create (extraAABBGap: Float=0.0);
+    constructor Create (extraAABBGap: Float=0);
     destructor Destroy (); override;
 
     // clear all the nodes and reset the tree
@@ -295,8 +300,8 @@ function maxF (a, b: Float): Float; inline; begin if (a > b) then result := a el
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-constructor Ray2D.Create (ax, ay: Float; aangle: Float); begin setXYAngle(ax, ay, aangle); end;
-constructor Ray2D.Create (ax0, ay0, ax1, ay1: Float); begin setX0Y0X1Y1(ax0, ay0, ax1, ay1); end;
+constructor Ray2D.Create (ax, ay: Single; aangle: Single); begin setXYAngle(ax, ay, aangle); end;
+constructor Ray2D.Create (ax0, ay0, ax1, ay1: Single); begin setX0Y0X1Y1(ax0, ay0, ax1, ay1); end;
 constructor Ray2D.Create (const aray: Ray2D); overload; begin copyFrom(aray); end;
 
 
@@ -310,14 +315,14 @@ end;
 
 procedure Ray2D.normalizeDir (); inline;
 var
-  invlen: Float;
+  invlen: Single;
 begin
   invlen := 1.0/sqrt(dirX*dirX+dirY*dirY);
   dirX *= invlen;
   dirY *= invlen;
 end;
 
-procedure Ray2D.setXYAngle (ax, ay: Float; aangle: Float); inline;
+procedure Ray2D.setXYAngle (ax, ay: Single; aangle: Single); inline;
 begin
   origX := ax;
   origY := ay;
@@ -325,7 +330,7 @@ begin
   dirY := sin(aangle);
 end;
 
-procedure Ray2D.setX0Y0X1Y1 (ax0, ay0, ax1, ay1: Float); inline;
+procedure Ray2D.setX0Y0X1Y1 (ax0, ay0, ax1, ay1: Single); inline;
 begin
   origX := ax0;
   origY := ay0;
@@ -353,11 +358,15 @@ end;
 
 function AABB2D.getvalid (): Boolean; inline; begin result := (minX < maxX) and (minY < maxY); end;
 
+{$IFDEF aabbtree_use_floats}
 function AABB2D.getcenterX (): Float; inline; begin result := (minX+maxX)/2.0; end;
 function AABB2D.getcenterY (): Float; inline; begin result := (minY+maxY)/2.0; end;
-function AABB2D.getextentX (): Float; inline; begin result := (maxX-minX)+1.0; end;
-function AABB2D.getextentY (): Float; inline; begin result := (maxY-minY)+1.0; end;
-
+{$ELSE}
+function AABB2D.getcenterX (): Float; inline; begin result := (minX+maxX) div 2; end;
+function AABB2D.getcenterY (): Float; inline; begin result := (minY+maxY) div 2; end;
+{$ENDIF}
+function AABB2D.getextentX (): Float; inline; begin result := (maxX-minX); end;
+function AABB2D.getextentY (): Float; inline; begin result := (maxY-minY); end;
 
 procedure AABB2D.copyFrom (const aabb: AABB2D); inline;
 begin
@@ -446,10 +455,10 @@ end;
 
 // something to consider here is that 0 * inf =nan which occurs when the ray starts exactly on the edge of a box
 // https://tavianator.com/fast-branchless-raybounding-box-intersections-part-2-nans/
-function AABB2D.intersects (const ray: Ray2D; tmino: PFloat=nil; tmaxo: PFloat=nil): Boolean; overload;
+function AABB2D.intersects (const ray: Ray2D; tmino: PSingle=nil; tmaxo: PSingle=nil): Boolean; overload;
 var
-  dinv, t1, t2, tmp: Float;
-  tmin, tmax: Float;
+  dinv, t1, t2, tmp: Single;
+  tmin, tmax: Single;
 begin
   // ok with coplanars
   tmin := -1.0e100;
@@ -491,9 +500,9 @@ begin
   end;
 end;
 
-function AABB2D.intersects (ax, ay, bx, by: Float): Boolean; inline; overload;
+function AABB2D.intersects (ax, ay, bx, by: Single): Boolean; inline; overload;
 var
-  tmin: Float;
+  tmin: Single;
   ray: Ray2D;
 begin
   result := true;
@@ -620,10 +629,10 @@ begin
     mergedVolume := mergedAABBs.volume;
 
     // compute the cost of making the current node the sibling of the new node
-    costS := 2.0*mergedVolume;
+    costS := 2*mergedVolume;
 
     // compute the minimum cost of pushing the new node further down the tree (inheritance cost)
-    costI := 2.0*(mergedVolume-volumeAABB);
+    costI := 2*(mergedVolume-volumeAABB);
 
     // compute the cost of descending into the left child
     currentAndLeftAABB := AABB2D.Create(newNodeAABB, mNodes[leftChild].aabb);
@@ -808,7 +817,7 @@ begin
   balanceFactor := nodeC.height-nodeB.height;
 
   // if the right node C is 2 higher than left node B
-  if (balanceFactor > 1.0) then
+  if (balanceFactor > 1) then
   begin
     {$IFDEF aabbtree_many_asserts}assert(not nodeC.leaf);{$ENDIF}
 
@@ -1058,11 +1067,19 @@ function TDynAABBTree.forEachLeaf (dg: TForEachLeafCB): Boolean;
     assert(pNode.height >= 0);
     if (not pNode.aabb.valid) then
     begin
+      {$IFDEF aabbtree_use_floats}
       e_WriteLog(Format('AABB:(%f,%f)-(%f,%f); volume=%f; valid=%d; height=%d; leaf=%d', [pNode.aabb.minX, pNode.aabb.minY, pNode.aabb.maxX, pNode.aabb.maxY, pNode.aabb.volume, Integer(pNode.aabb.valid), pNode.height, Integer(pNode.leaf)]), MSG_NOTIFY);
+      {$ELSE}
+      e_WriteLog(Format('AABB:(%d,%d)-(%d,%d); volume=%d; valid=%d; height=%d; leaf=%d', [pNode.aabb.minX, pNode.aabb.minY, pNode.aabb.maxX, pNode.aabb.maxY, pNode.aabb.volume, Integer(pNode.aabb.valid), pNode.height, Integer(pNode.leaf)]), MSG_NOTIFY);
+      {$ENDIF}
       if pNode.leaf then
       begin
         getFleshAABB(aabb, pNode.flesh);
+        {$IFDEF aabbtree_use_floats}
         e_WriteLog(Format('  LEAF AABB:(%f,%f)-(%f,%f); valid=%d; volume=%f', [aabb.minX, aabb.minY, aabb.maxX, aabb.maxY, Integer(aabb.valid), aabb.volume]), MSG_NOTIFY);
+        {$ELSE}
+        e_WriteLog(Format('  LEAF AABB:(%d,%d)-(%d,%d); valid=%d; volume=%d', [aabb.minX, aabb.minY, aabb.maxX, aabb.maxY, Integer(aabb.valid), aabb.volume]), MSG_NOTIFY);
+        {$ENDIF}
       end;
     end;
     assert(pNode.aabb.valid);
@@ -1231,7 +1248,7 @@ end;
 
 // add `extraAABBGap` to bounding boxes so slight object movement won't cause tree rebuilds
 // extra AABB Gap used to allow the collision shape to move a little bit without triggering a large modification of the tree which can be costly
-constructor TDynAABBTree.Create (extraAABBGap: Float=0.0);
+constructor TDynAABBTree.Create (extraAABBGap: Float=0);
 begin
   mExtraGap := extraAABBGap;
   setup();
@@ -1296,14 +1313,22 @@ var
 begin
   if not getFleshAABB(aabb, flesh) then
   begin
+    {$IFDEF aabbtree_use_floats}
     e_WriteLog(Format('trying to insert FUCKED FLESH:(%f,%f)-(%f,%f); volume=%f; valid=%d', [aabb.minX, aabb.minY, aabb.maxX, aabb.maxY, aabb.volume, Integer(aabb.valid)]), MSG_WARNING);
+    {$ELSE}
+    e_WriteLog(Format('trying to insert FUCKED FLESH:(%d,%d)-(%d,%d); volume=%d; valid=%d', [aabb.minX, aabb.minY, aabb.maxX, aabb.maxY, aabb.volume, Integer(aabb.valid)]), MSG_WARNING);
+    {$ENDIF}
     //raise Exception.Create('trying to insert invalid flesh in dyntree');
     result := -1;
     exit;
   end;
   if not aabb.valid then
   begin
+    {$IFDEF aabbtree_use_floats}
     e_WriteLog(Format('trying to insert FUCKED AABB:(%f,%f)-(%f,%f); volume=%f; valid=%d', [aabb.minX, aabb.minY, aabb.maxX, aabb.maxY, aabb.volume, Integer(aabb.valid)]), MSG_WARNING);
+    {$ELSE}
+    e_WriteLog(Format('trying to insert FUCKED AABB:(%d,%d)-(%d,%d); volume=%d; valid=%d', [aabb.minX, aabb.minY, aabb.maxX, aabb.maxY, aabb.volume, Integer(aabb.valid)]), MSG_WARNING);
+    {$ENDIF}
     raise Exception.Create('trying to insert invalid aabb in dyntree');
     result := -1;
     exit;
@@ -1354,21 +1379,21 @@ begin
   end;
 
   // inflate the fat AABB in direction of the linear motion of the AABB
-  if (dispX < 0.0) then
+  if (dispX < 0) then
   begin
-    mNodes[nodeId].aabb.minX := mNodes[nodeId].aabb.minX+LinearMotionGapMultiplier*dispX;
+    mNodes[nodeId].aabb.minX := mNodes[nodeId].aabb.minX+LinearMotionGapMultiplier*dispX {$IFDEF aabbtree_use_floats}{$ELSE}div 10{$ENDIF};
   end
   else
   begin
-    mNodes[nodeId].aabb.maxX := mNodes[nodeId].aabb.maxX+LinearMotionGapMultiplier*dispX;
+    mNodes[nodeId].aabb.maxX := mNodes[nodeId].aabb.maxX+LinearMotionGapMultiplier*dispX {$IFDEF aabbtree_use_floats}{$ELSE}div 10{$ENDIF};
   end;
-  if (dispY < 0.0) then
+  if (dispY < 0) then
   begin
-    mNodes[nodeId].aabb.minY := mNodes[nodeId].aabb.minY+LinearMotionGapMultiplier*dispY;
+    mNodes[nodeId].aabb.minY := mNodes[nodeId].aabb.minY+LinearMotionGapMultiplier*dispY {$IFDEF aabbtree_use_floats}{$ELSE}div 10{$ENDIF};
   end
   else
   begin
-    mNodes[nodeId].aabb.maxY := mNodes[nodeId].aabb.maxY+LinearMotionGapMultiplier*dispY;
+    mNodes[nodeId].aabb.maxY := mNodes[nodeId].aabb.maxY+LinearMotionGapMultiplier*dispY {$IFDEF aabbtree_use_floats}{$ELSE}div 10{$ENDIF};
   end;
 
   {$IFDEF aabbtree_many_asserts}assert(mNodes[nodeId].aabb.contains(newAABB));{$ENDIF}
@@ -1418,11 +1443,11 @@ end;
 // segment querying method
 function TDynAABBTree.segmentQuery (var qr: TSegmentQueryResult; ax, ay, bx, by: Float; cb: TSegQueryCallback): Boolean;
 var
-  maxFraction: Float = 1.0e100; // infinity
-  curax, curay: Float;
-  curbx, curby: Float;
-  dirx, diry: Float;
-  invlen: Float;
+  maxFraction: Single = 1.0e100; // infinity
+  curax, curay: Single;
+  curbx, curby: Single;
+  dirx, diry: Single;
+  invlen: Single;
 
   function checker (node: PTreeNode): Boolean;
   begin
@@ -1431,7 +1456,7 @@ var
 
   function visitor (flesh: TTreeFlesh; tag: Integer): Boolean;
   var
-    hitFraction: Float;
+    hitFraction: Single;
   begin
     hitFraction := cb(flesh, curax, curay, curbx, curby);
     // if the user returned a hitFraction of zero, it means that the raycasting should stop here
