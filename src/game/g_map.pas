@@ -1043,7 +1043,7 @@ begin
   addPanelsToGrid(gBlockMon, PANEL_BLOCKMON);
 
   gMapGrid.dumpStats();
-  //gMapSAP.dumpStats();
+  e_WriteLog(Format('tree depth: %d; %d nodes used, %d nodes allocated', [mapTree.computeTreeHeight, mapTree.nodeCount, mapTree.nodeAlloced]), MSG_NOTIFY);
 end;
 
 function g_Map_Load(Res: String): Boolean;
