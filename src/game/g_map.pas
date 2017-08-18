@@ -1957,7 +1957,7 @@ begin
     end
     else
     begin
-      gMapGrid.forEachInAABB(x0, y0, wdt, hgt, checker);
+      gMapGrid.forEachInAABB(x0, y0, wdt, hgt, checker, ptag);
     end;
     // sort and draw the list (we need to sort it, or rendering is fucked)
     while gDrawPanelList.count > 0 do
@@ -2003,7 +2003,7 @@ begin
   end
   else
   begin
-    gMapGrid.forEachInAABB(lightX-radius, lightY-radius, radius*2, radius*2, checker);
+    gMapGrid.forEachInAABB(lightX-radius, lightY-radius, radius*2, radius*2, checker, GridTagWallDoor);
   end;
 end;
 
@@ -2277,7 +2277,7 @@ begin
       end
       else
       begin
-        result := gMapGrid.forEachInAABB(X, Y, Width, Height, checker);
+        result := gMapGrid.forEachInAABB(X, Y, Width, Height, checker, (GridTagWallDoor or GridTagWater or GridTagAcid1 or GridTagAcid2 or GridTagStep or GridTagLift or GridTagBlockMon));
       end;
     end
     else
@@ -2349,7 +2349,7 @@ begin
       texid := TEXTURE_NONE;
       if gdbg_map_use_tree_coldet then
       begin
-        mapTree.aabbQuery(X, Y, Width, Height, checker);
+        mapTree.aabbQuery(X, Y, Width, Height, checker, (GridTagWater or GridTagAcid1 or GridTagAcid2));
         {
         cctype1 := cctype;
         texid1 := texid;
@@ -2363,7 +2363,7 @@ begin
       end
       else
       begin
-        gMapGrid.forEachInAABB(X, Y, Width, Height, checker);
+        gMapGrid.forEachInAABB(X, Y, Width, Height, checker, (GridTagWater or GridTagAcid1 or GridTagAcid2));
       end;
       result := texid;
     end

@@ -102,7 +102,7 @@ type
     procedure resizeBody (body: TBodyProxy; sx, sy: Integer);
     procedure moveResizeBody (body: TBodyProxy; dx, dy, sx, sy: Integer);
 
-    function forEachInAABB (x, y, w, h: Integer; cb: GridQueryCB): Boolean;
+    function forEachInAABB (x, y, w, h: Integer; cb: GridQueryCB; tagmask: Integer=-1): Boolean;
 
     function getProxyForBody (aObj: TObject; x, y, w, h: Integer): TBodyProxy;
 
@@ -401,7 +401,7 @@ begin
 end;
 
 
-function TBodyGrid.forEachInAABB (x, y, w, h: Integer; cb: GridQueryCB): Boolean;
+function TBodyGrid.forEachInAABB (x, y, w, h: Integer; cb: GridQueryCB; tagmask: Integer=-1): Boolean;
   function iterator (grida: Integer): Boolean;
   var
     idx: Integer;
@@ -414,7 +414,7 @@ function TBodyGrid.forEachInAABB (x, y, w, h: Integer; cb: GridQueryCB): Boolean
       if (mCells[idx].body <> -1) then
       begin
         px := @mProxies[mCells[idx].body];
-        if (px.mQueryMark <> mLastQuery) then
+        if (px.mQueryMark <> mLastQuery) and ((px.mTag and tagmask) <> 0) then
         begin
           //e_WriteLog(Format('  query #%d body hit: (%d,%d)-(%dx%d) tag:%d', [mLastQuery, mCells[idx].body.mX, mCells[idx].body.mY, mCells[idx].body.mWidth, mCells[idx].body.mHeight, mCells[idx].body.mTag]), MSG_NOTIFY);
           px.mQueryMark := mLastQuery;
