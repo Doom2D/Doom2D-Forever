@@ -15,7 +15,7 @@
  *)
 {$INCLUDE ../shared/a_modes.inc}
 {.$DEFINE aabbtree_many_asserts}
-{.$DEFINE aabbtree_query_count}
+{$DEFINE aabbtree_query_count}
 {.$DEFINE aabbtree_use_floats}
 unit z_aabbtree;
 

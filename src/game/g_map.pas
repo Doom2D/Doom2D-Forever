@@ -138,6 +138,7 @@ var
   gdbg_map_use_grid_coldet: Boolean = true;
   gdbg_map_use_tree_draw: Boolean = true;
   gdbg_map_use_tree_coldet: Boolean = false;
+  gdbg_map_dump_coldet_tree_queries: Boolean = false;
   profMapCollision: TProfiler = nil; //WARNING: FOR DEBUGGING ONLY!
 
 implementation
@@ -2264,12 +2265,11 @@ begin
       if gdbg_map_use_tree_coldet then
       begin
         result := (mapTree.aabbQuery(X, Y, Width, Height, checker, (GridTagWallDoor or GridTagWater or GridTagAcid1 or GridTagAcid2 or GridTagStep or GridTagLift or GridTagBlockMon)) <> nil);
-        {
-        if (mapTree.nodesVisited <> 0) then
+        if (gdbg_map_dump_coldet_tree_queries) and (mapTree.nodesVisited <> 0) then
         begin
-          e_WriteLog(Format('map collision: %d nodes visited (%d deep)', [mapTree.nodesVisited, mapTree.nodesDeepVisited]), MSG_NOTIFY);
+          //e_WriteLog(Format('map collision: %d nodes visited (%d deep)', [mapTree.nodesVisited, mapTree.nodesDeepVisited]), MSG_NOTIFY);
+          g_Console_Add(Format('map collision: %d nodes visited (%d deep)', [mapTree.nodesVisited, mapTree.nodesDeepVisited]));
         end;
-        }
       end
       else
       begin

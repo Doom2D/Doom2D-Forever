@@ -5064,6 +5064,17 @@ begin
     if gdbg_map_use_tree_coldet then g_Console_Add('coldet: tree') else g_Console_Add('coldet: grid');
     exit;
   end;
+
+  if (cmd = 't_dump_node_queries') then
+  begin
+    case getBool(1) of
+      -1: begin end;
+       0: gdbg_map_dump_coldet_tree_queries := false;
+       1: gdbg_map_dump_coldet_tree_queries := true;
+    end;
+    if gdbg_map_dump_coldet_tree_queries then g_Console_Add('grid coldet tree queries: tan') else g_Console_Add('grid coldet tree queries: ona');
+    exit;
+  end;
 end;
 
 procedure DebugCommands(P: SArray);

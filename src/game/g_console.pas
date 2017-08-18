@@ -394,6 +394,8 @@ begin
   AddCommand('r_gridrender', ProfilerCommands);
   AddCommand('dbg_coldet_grid', ProfilerCommands);
 
+  AddCommand('t_dump_node_queries', ProfilerCommands);
+
   AddCommand('sq_use_grid', ProfilerCommands);
   AddCommand('sq_use_tree', ProfilerCommands);
 
