@@ -71,6 +71,8 @@ procedure g_Options_Write_Gameplay_Net(FileName: String);
 procedure g_Options_Write_Net_Server(FileName: String);
 procedure g_Options_Write_Net_Client(FileName: String);
 
+const DF_Default_Megawad_Start = 'megawads/DOOM2D.WAD:\MAP01';
+
 var
   gGameControls: TControls;
   gScreenWidth: Word          = 800;
@@ -126,7 +128,7 @@ var
   gsSDLBufferSize: Integer    = 2048;
   gSFSDebug: Boolean          = False;
   gSFSFastMode: Boolean       = False;
-  gDefaultMegawadStart: AnsiString = 'megawads/DOOM2D.WAD:\MAP01';
+  gDefaultMegawadStart: AnsiString = DF_Default_Megawad_Start;
 
 implementation
 
