@@ -20,6 +20,9 @@ unit z_aabbtree;
 
 interface
 
+uses e_log;
+
+
 // ////////////////////////////////////////////////////////////////////////// //
 type
   Float = Single;
@@ -36,7 +39,13 @@ type
     dirX, dirY: Float;
 
   public
-    procedure normalizeDir ();
+    constructor Create (ax, ay: Float; aangle: Float); overload;
+    constructor Create (ax0, ay0, ax1, ay1: Float); overload;
+    constructor Create (const aray: Ray2D); overload;
+
+    procedure copyFrom (const aray: Ray2D); inline;
+
+    procedure normalizeDir (); inline;
 
     procedure setXYAngle (ax, ay: Float; aangle: Float); inline;
     procedure setX0Y0X1Y1 (ax0, ay0, ax1, ay1: Float); inline;
@@ -56,26 +65,30 @@ type
     function getextentY (): Float; inline;
 
   public
-    procedure setX0Y0X1Y1 (x0, y0, x1, y1: Float); inline;
-    procedure setXYWH (ax, ay, aw, ah: Float); inline;
+    constructor Create (x0, y0, x1, y1: Float); overload;
+    constructor Create (const aabb: AABB2D); overload;
+    constructor Create (const aabb0, aabb1: AABB2D); overload;
 
-    procedure setMergeTwo (var aabb0, aabb1: AABB2D); inline;
+    procedure copyFrom (const aabb: AABB2D); inline;
+    procedure setDims (x0, y0, x1, y1: Float); inline;
+
+    procedure setMergeTwo (const aabb0, aabb1: AABB2D); inline;
 
     function volume (): Float; inline;
 
-    procedure merge (var aabb: AABB2D); inline;
+    procedure merge (const aabb: AABB2D); inline;
 
     // return true if the current AABB contains the AABB given in parameter
-    function contains (var aabb: AABB2D): Boolean; inline; overload;
+    function contains (const aabb: AABB2D): Boolean; inline; overload;
     function contains (ax, ay: Float): Boolean; inline; overload;
 
     // return true if the current AABB is overlapping with the AABB in parameter
     // two AABBs overlap if they overlap in the two axes at the same time
-    function overlaps (var aabb: AABB2D): Boolean; inline; overload;
+    function overlaps (const aabb: AABB2D): Boolean; inline; overload;
 
     // ray direction must be normalized
-    function intersects (var ray: Ray2D; tmino: PFloat=nil; tmaxo: PFloat=nil): Boolean; overload;
-    function intersects (ax, ay, bx, by: Float): Boolean; overload;
+    function intersects (const ray: Ray2D; tmino: PFloat=nil; tmaxo: PFloat=nil): Boolean; overload;
+    function intersects (ax, ay, bx, by: Float): Boolean; inline; overload;
 
     property valid: Boolean read getvalid;
     property centerX: Float read getcenterX;
@@ -116,35 +129,6 @@ type
  * based on the one from Erin Catto in Box2D as described in the book
  * "Introduction to Game Physics with Box2D" by Ian Parberry.
  *)
-type
-  PDTProxyRec = ^TDTProxyRec;
-  TDTProxyRec = record
-  private
-    mX, mY, mWidth, mHeight: Integer;
-    mQueryMark: DWord; // was this object visited at this query?
-    mObj: TObject;
-    mTag: Integer;
-    nextfree: Integer;
-
-  private
-    procedure setup (aX, aY, aWidth, aHeight: Integer; aObj: TObject; aTag: Integer);
-
-    function getx1 (): Integer; inline;
-    function gety1 (): Integer; inline;
-
-  public
-    property x: Integer read mX;
-    property y: Integer read mY;
-    property width: Integer read mWidth;
-    property height: Integer read mHeight;
-    property x0: Integer read mX;
-    property y0: Integer read mY;
-    property x1: Integer read getx1;
-    property y1: Integer read gety1;
-    property obj: TObject read mObj;
-    property tag: Integer read mTag;
-  end;
-
 // ////////////////////////////////////////////////////////////////////////// //
 // Dynamic AABB Tree: can be used to speed up broad phase in various engines
 type
@@ -171,7 +155,7 @@ type
         aabb: AABB2D;
       public
         // return true if the node is a leaf of the tree
-        procedure clear ();
+        procedure clear (); inline;
         function leaf (): Boolean; inline;
         function free (): Boolean; inline;
         property nextNodeId: Integer read parentId write parentId;
@@ -189,7 +173,7 @@ type
     // in the broad-phase collision detection (dynamic AABB tree), the AABBs are
     // also inflated in direction of the linear motion of the body by mutliplying the
     // followin constant with the linear velocity and the elapsed time between two frames
-    const LinearMotionGapMultiplier = Float(1.7);
+    const LinearMotionGapMultiplier = 1.7;
 
   private
     mNodes: array of TTreeNode; // nodes of the tree
@@ -298,35 +282,34 @@ uses
 function minI (a, b: Integer): Integer; inline; begin if (a < b) then result := a else result := b; end;
 function maxI (a, b: Integer): Integer; inline; begin if (a > b) then result := a else result := b; end;
 
+function minF (a, b: Float): Float; inline; begin if (a < b) then result := a else result := b; end;
+function maxF (a, b: Float): Float; inline; begin if (a > b) then result := a else result := b; end;
+
 
 // ////////////////////////////////////////////////////////////////////////// //
-procedure TDTProxyRec.setup (aX, aY, aWidth, aHeight: Integer; aObj: TObject; aTag: Integer);
+constructor Ray2D.Create (ax, ay: Float; aangle: Float); begin setXYAngle(ax, ay, aangle); end;
+constructor Ray2D.Create (ax0, ay0, ax1, ay1: Float); begin setX0Y0X1Y1(ax0, ay0, ax1, ay1); end;
+constructor Ray2D.Create (const aray: Ray2D); overload; begin copyFrom(aray); end;
+
+
+procedure Ray2D.copyFrom (const aray: Ray2D); inline;
 begin
-  mX := aX;
-  mY := aY;
-  mWidth := aWidth;
-  mHeight := aHeight;
-  mQueryMark := 0;
-  mObj := aObj;
-  mTag := aTag;
-  nextfree := -1;
+  origX := aray.origX;
+  origY := aray.origY;
+  dirX := aray.dirX;
+  dirY := aray.dirY;
 end;
 
-function TDTProxyRec.getx1 (): Integer; begin result := mX+mWidth-1; end;
-function TDTProxyRec.gety1 (): Integer; begin result := mY+mHeight-1; end;
-
-
-// ////////////////////////////////////////////////////////////////////////// //
-procedure Ray2D.normalizeDir ();
+procedure Ray2D.normalizeDir (); inline;
 var
   invlen: Float;
 begin
-  invlen := Float(1.0)/sqrt(dirX*dirX+dirY*dirY);
+  invlen := 1.0/sqrt(dirX*dirX+dirY*dirY);
   dirX *= invlen;
   dirY *= invlen;
 end;
 
-procedure Ray2D.setXYAngle (ax, ay: Float; aangle: Float);
+procedure Ray2D.setXYAngle (ax, ay: Float; aangle: Float); inline;
 begin
   origX := ax;
   origY := ay;
@@ -334,7 +317,7 @@ begin
   dirY := sin(aangle);
 end;
 
-procedure Ray2D.setX0Y0X1Y1 (ax0, ay0, ax1, ay1: Float);
+procedure Ray2D.setX0Y0X1Y1 (ax0, ay0, ax1, ay1: Float); inline;
 begin
   origX := ax0;
   origY := ay0;
@@ -345,69 +328,72 @@ end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-function AABB2D.getvalid (): Boolean; begin result := (minX <= maxX) and (minY <= maxY); end;
-
-function AABB2D.getcenterX (): Float; begin result := (minX+maxX)/2; end;
-function AABB2D.getcenterY (): Float; begin result := (minY+maxY)/2; end;
-function AABB2D.getextentX (): Float; begin result := (maxX-minX)+1; end;
-function AABB2D.getextentY (): Float; begin result := (maxY-minY)+1; end;
-
-
-procedure AABB2D.setX0Y0X1Y1 (x0, y0, x1, y1: Float);
+constructor AABB2D.Create (x0, y0, x1, y1: Float); overload;
 begin
-  if (x0 < x1) then begin minX := x0; maxX := x1; end else begin minX := x1; maxX := x0; end;
-  if (y0 < y1) then begin minY := y0; maxY := y1; end else begin minY := y1; maxY := y0; end;
+  setDims(x0, y0, x1, y1);
+end;
+
+constructor AABB2D.Create (const aabb: AABB2D); overload;
+begin
+  copyFrom(aabb);
+end;
+
+constructor AABB2D.Create (const aabb0, aabb1: AABB2D); overload;
+begin
+  setMergeTwo(aabb0, aabb1);
+end;
+
+function AABB2D.getvalid (): Boolean; inline; begin result := (minX < maxX) and (minY < maxY); end;
+
+function AABB2D.getcenterX (): Float; inline; begin result := (minX+maxX)/2; end;
+function AABB2D.getcenterY (): Float; inline; begin result := (minY+maxY)/2; end;
+function AABB2D.getextentX (): Float; inline; begin result := (maxX-minX)+1; end;
+function AABB2D.getextentY (): Float; inline; begin result := (maxY-minY)+1; end;
+
+
+procedure AABB2D.copyFrom (const aabb: AABB2D); inline;
+begin
+  minX := aabb.minX;
+  minY := aabb.minY;
+  maxX := aabb.maxX;
+  maxY := aabb.maxY;
 end;
 
 
-procedure AABB2D.setXYWH (ax, ay, aw, ah: Float);
+procedure AABB2D.setDims (x0, y0, x1, y1: Float); inline;
 begin
-  if (aw < 0) then aw := 0;
-  if (ah < 0) then ah := 0;
-  minX := ax;
-  minY := ay;
-  maxX := ax+aw-1;
-  maxY := ay+ah-1;
+  minX := minF(x0, x1);
+  minY := minF(y0, y1);
+  maxX := maxF(x0, x1);
+  maxY := maxF(y0, y1);
 end;
 
 
-procedure AABB2D.setMergeTwo (var aabb0, aabb1: AABB2D);
-var
-  x0, y0, x1, y1: Float;
+procedure AABB2D.setMergeTwo (const aabb0, aabb1: AABB2D); inline;
 begin
-  if (aabb0.minX < aabb1.minX) then x0 := aabb0.minX else x0 := aabb1.minX;
-  if (aabb0.minY < aabb1.minY) then y0 := aabb0.minY else y0 := aabb1.minY;
-
-  if (aabb0.maxX > aabb1.maxX) then x1 := aabb0.maxX else x1 := aabb1.maxX;
-  if (aabb0.maxY > aabb1.maxY) then y1 := aabb0.maxY else y1 := aabb1.maxY;
-
-  minX := x0;
-  minY := y0;
-  maxX := x1;
-  maxY := y1;
+  minX := minF(aabb0.minX, aabb1.minX);
+  minY := minF(aabb0.minY, aabb1.minY);
+  maxX := maxF(aabb0.maxX, aabb1.maxX);
+  maxY := maxF(aabb0.maxY, aabb1.maxY);
 end;
 
 
-function AABB2D.volume (): Float;
-var
-  diffX, diffY: Float;
+function AABB2D.volume (): Float; inline;
 begin
-  diffX := maxX-minX;
-  diffY := maxY-minY;
-  result := diffX*diffY;
+  result := (maxX-minX)*(maxY-minY);
 end;
 
 
-procedure AABB2D.merge (var aabb: AABB2D);
+procedure AABB2D.merge (const aabb: AABB2D); inline;
 begin
-  if (minX > aabb.minX) then minX := aabb.minX;
-  if (minY > aabb.minY) then minY := aabb.minY;
-  if (maxX < aabb.maxX) then maxX := aabb.maxX;
-  if (maxY < aabb.maxY) then maxY := aabb.maxY;
+  minX := minF(minX, aabb.minX);
+  minY := minF(minY, aabb.minY);
+  maxX := maxF(maxX, aabb.maxX);
+  maxY := maxF(maxY, aabb.maxY);
 end;
 
 
-function AABB2D.contains (var aabb: AABB2D): Boolean; overload;
+function AABB2D.contains (const aabb: AABB2D): Boolean; inline; overload;
 begin
   result :=
     (aabb.minX >= minX) and (aabb.minY >= minY) and
@@ -415,13 +401,13 @@ begin
 end;
 
 
-function AABB2D.contains (ax, ay: Float): Boolean; overload;
+function AABB2D.contains (ax, ay: Float): Boolean; inline; overload;
 begin
   result := (ax >= minX) and (ay >= minY) and (ax <= maxX) and (ay <= maxY);
 end;
 
 
-function AABB2D.overlaps (var aabb: AABB2D): Boolean; overload;
+function AABB2D.overlaps (const aabb: AABB2D): Boolean; inline; overload;
 begin
   result := false;
   // exit with no intersection if found separated along any axis
@@ -433,7 +419,7 @@ end;
 
 // something to consider here is that 0 * inf =nan which occurs when the ray starts exactly on the edge of a box
 // https://tavianator.com/fast-branchless-raybounding-box-intersections-part-2-nans/
-function AABB2D.intersects (var ray: Ray2D; tmino: PFloat=nil; tmaxo: PFloat=nil): Boolean; overload;
+function AABB2D.intersects (const ray: Ray2D; tmino: PFloat=nil; tmaxo: PFloat=nil): Boolean; overload;
 var
   dinv, t1, t2, tmp: Float;
   tmin, tmax: Float;
@@ -444,7 +430,7 @@ begin
   // do X
   if (ray.dirX <> 0.0) then
   begin
-    dinv := Float(1.0)/ray.dirX;
+    dinv := 1.0/ray.dirX;
     t1 := (minX-ray.origX)*dinv;
     t2 := (maxX-ray.origX)*dinv;
     if (t1 < t2) then tmin := t1 else tmin := t2;
@@ -453,7 +439,7 @@ begin
   // do Y
   if (ray.dirY <> 0.0) then
   begin
-    dinv := Float(1.0)/ray.dirY;
+    dinv := 1.0/ray.dirY;
     t1 := (minY-ray.origY)*dinv;
     t2 := (maxY-ray.origY)*dinv;
     // tmin
@@ -478,7 +464,7 @@ begin
   end;
 end;
 
-function AABB2D.intersects (ax, ay, bx, by: Float): Boolean; overload;
+function AABB2D.intersects (ax, ay, bx, by: Float): Boolean; inline; overload;
 var
   tmin: Float;
   ray: Ray2D;
@@ -488,7 +474,7 @@ begin
   if (ax >= minX) and (ay >= minY) and (ax <= maxX) and (ay <= maxY) then exit; // a
   if (bx >= minX) and (by >= minY) and (bx <= maxX) and (by <= maxY) then exit; // b
   // nope, do it hard way
-  ray.setX0Y0X1Y1(ax, ay, bx, by);
+  ray := Ray2D.Create(ax, ay, bx, by);
   if not intersects(ray, @tmin) then begin result := false; exit; end;
   if (tmin < 0) then exit; // inside, just in case
   bx := bx-ax;
@@ -498,22 +484,26 @@ end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-procedure TDynAABBTree.TSegmentQueryResult.reset (); begin dist := -1; flesh := nil; end;
-function TDynAABBTree.TSegmentQueryResult.valid (): Boolean; begin result := (dist >= 0) and (flesh <> nil); end;
+procedure TDynAABBTree.TSegmentQueryResult.reset (); inline; begin dist := -1; flesh := nil; end;
+function TDynAABBTree.TSegmentQueryResult.valid (): Boolean; inline; begin result := (dist >= 0) and (flesh <> nil); end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-function TDynAABBTree.TTreeNode.leaf (): Boolean; begin result := (height = 0); end;
-function TDynAABBTree.TTreeNode.free (): Boolean; begin result := (height = -1); end;
+function TDynAABBTree.TTreeNode.leaf (): Boolean; inline; begin result := (height = 0); end;
+function TDynAABBTree.TTreeNode.free (): Boolean; inline; begin result := (height = -1); end;
 
-procedure TDynAABBTree.TTreeNode.clear ();
+procedure TDynAABBTree.TTreeNode.clear (); inline;
 begin
   parentId := 0;
   children[0] := 0;
   children[1] := 0;
   flesh := nil;
   height := 0;
-  aabb.setX0Y0X1Y1(0, 0, 0, 0);
+  //aabb.setX0Y0X1Y1(0, 0, 0, 0);
+  aabb.minX := 0;
+  aabb.minY := 0;
+  aabb.maxX := -1;
+  aabb.maxY := -1;
 end;
 
 
@@ -522,6 +512,7 @@ end;
 function TDynAABBTree.allocateNode (): Integer;
 var
   i, newsz, freeNodeId: Integer;
+  node: PTreeNode;
 begin
   // if there is no more allocated node to use
   if (mFreeNodeId = TTreeNode.NullTreeNode) then
@@ -544,9 +535,11 @@ begin
   // get the next free node
   freeNodeId := mFreeNodeId;
   {$IFDEF aabbtree_many_asserts}assert((freeNodeId >= mNodeCount) and (freeNodeId < mAllocCount));{$ENDIF}
-  mFreeNodeId := mNodes[freeNodeId].nextNodeId;
-  mNodes[freeNodeId].parentId := TTreeNode.NullTreeNode;
-  mNodes[freeNodeId].height := 0;
+  node := @mNodes[freeNodeId];
+  mFreeNodeId := node.nextNodeId;
+  node.clear();
+  node.parentId := TTreeNode.NullTreeNode;
+  node.height := 0;
   Inc(mNodeCount);
   result := freeNodeId;
 end;
@@ -596,36 +589,24 @@ begin
 
     // compute the merged AABB
     volumeAABB := mNodes[currentNodeId].aabb.volume;
-    mergedAABBs.setMergeTwo(mNodes[currentNodeId].aabb, newNodeAABB);
+    mergedAABBs := AABB2D.Create(mNodes[currentNodeId].aabb, newNodeAABB);
     mergedVolume := mergedAABBs.volume;
 
     // compute the cost of making the current node the sibling of the new node
-    costS := Float(2.0)*mergedVolume;
+    costS := 2.0*mergedVolume;
 
     // compute the minimum cost of pushing the new node further down the tree (inheritance cost)
-    costI := Float(2.0)*(mergedVolume-volumeAABB);
+    costI := 2.0*(mergedVolume-volumeAABB);
 
     // compute the cost of descending into the left child
-    currentAndLeftAABB.setMergeTwo(newNodeAABB, mNodes[leftChild].aabb);
-    if (mNodes[leftChild].leaf) then
-    begin
-      costLeft := currentAndLeftAABB.volume+costI;
-    end
-    else
-    begin
-      costLeft := costI+currentAndLeftAABB.volume-mNodes[leftChild].aabb.volume;
-    end;
+    currentAndLeftAABB := AABB2D.Create(newNodeAABB, mNodes[leftChild].aabb);
+    costLeft := currentAndLeftAABB.volume+costI;
+    if not mNodes[leftChild].leaf then costLeft := costLeft-mNodes[leftChild].aabb.volume;
 
     // compute the cost of descending into the right child
-    currentAndRightAABB.setMergeTwo(newNodeAABB, mNodes[rightChild].aabb);
-    if (mNodes[rightChild].leaf) then
-    begin
-      costRight := currentAndRightAABB.volume+costI;
-    end
-    else
-    begin
-      costRight := costI+currentAndRightAABB.volume-mNodes[rightChild].aabb.volume;
-    end;
+    currentAndRightAABB := AABB2D.Create(newNodeAABB, mNodes[rightChild].aabb);
+    costRight := currentAndRightAABB.volume+costI;
+    if not mNodes[rightChild].leaf then costRight := costRight-mNodes[rightChild].aabb.volume;
 
     // if the cost of making the current node a sibling of the new node is smaller than the cost of going down into the left or right child
     if (costS < costLeft) and (costS < costRight) then break;
@@ -800,7 +781,7 @@ begin
   balanceFactor := nodeC.height-nodeB.height;
 
   // if the right node C is 2 higher than left node B
-  if (balanceFactor > 1) then
+  if (balanceFactor > 1.0) then
   begin
     {$IFDEF aabbtree_many_asserts}assert(not nodeC.leaf);{$ENDIF}
 
@@ -989,10 +970,10 @@ begin
   mNodes[nodeId].aabb := aabb;
   if (not staticObject) then
   begin
-    mNodes[nodeId].aabb.minX := mNodes[nodeId].aabb.minX-mExtraGap;
-    mNodes[nodeId].aabb.minY := mNodes[nodeId].aabb.minY-mExtraGap;
-    mNodes[nodeId].aabb.maxX := mNodes[nodeId].aabb.maxX+mExtraGap;
-    mNodes[nodeId].aabb.maxY := mNodes[nodeId].aabb.maxY+mExtraGap;
+    mNodes[nodeId].aabb.minX -= mExtraGap;
+    mNodes[nodeId].aabb.minY -= mExtraGap;
+    mNodes[nodeId].aabb.maxX += mExtraGap;
+    mNodes[nodeId].aabb.maxY += mExtraGap;
   end;
 
   // set the height of the node in the tree
@@ -1049,12 +1030,14 @@ function TDynAABBTree.forEachLeaf (dg: TForEachLeafCB): Boolean;
     // get the children nodes
     pNode := @mNodes[nodeId];
     assert(pNode.height >= 0);
+    e_WriteLog(Format('AABB:(%f,%f)-(%f,%f); volume=%f; valid=%d', [pNode.aabb.minX, pNode.aabb.minY, pNode.aabb.maxX, pNode.aabb.maxY, pNode.aabb.volume, Integer(pNode.aabb.valid)]), MSG_NOTIFY);
+    assert(pNode.aabb.valid);
     assert(pNode.aabb.volume > 0);
     // if the current node is a leaf
     if (pNode.leaf) then
     begin
       assert(pNode.height = 0);
-      result := dg(pNode.flesh, pNode.aabb);
+      if assigned(dg) then result := dg(pNode.flesh, pNode.aabb);
     end
     else
     begin
@@ -1070,7 +1053,7 @@ function TDynAABBTree.forEachLeaf (dg: TForEachLeafCB): Boolean;
       height := 1+maxI(mNodes[leftChild].height, mNodes[rightChild].height);
       assert(mNodes[nodeId].height = height);
       // check the AABB of the node
-      aabb.setMergeTwo(mNodes[leftChild].aabb, mNodes[rightChild].aabb);
+      aabb := AABB2D.Create(mNodes[leftChild].aabb, mNodes[rightChild].aabb);
       assert(aabb.minX = mNodes[nodeId].aabb.minX);
       assert(aabb.minY = mNodes[nodeId].aabb.minY);
       assert(aabb.maxX = mNodes[nodeId].aabb.maxX);
@@ -1082,8 +1065,6 @@ function TDynAABBTree.forEachLeaf (dg: TForEachLeafCB): Boolean;
   end;
 
 begin
-  result := false;
-  if not assigned(dg) then exit;
   // recursively check each node
   result := forEachNode(mRootNodeId);
 end;
@@ -1250,7 +1231,7 @@ end;
 // get fat object AABB by nodeid; returns random shit for invalid ids
 procedure TDynAABBTree.getNodeFatAABB (var aabb: AABB2D; nodeid: Integer);
 begin
-  if (nodeid >= 0) and (nodeid < mNodeCount) and (not mNodes[nodeid].free) then aabb := mNodes[nodeid].aabb else aabb.setX0Y0X1Y1(0, 0, -1, -1);
+  if (nodeid >= 0) and (nodeid < mNodeCount) and (not mNodes[nodeid].free) then aabb.copyFrom(mNodes[nodeid].aabb) else aabb.setDims(0, 0, 0, 0);
 end;
 
 
@@ -1263,7 +1244,13 @@ var
   aabb: AABB2D;
   nodeId: Integer;
 begin
-  if not getFleshAABB(aabb, flesh) then begin result := -1; exit; end;
+  if not getFleshAABB(aabb, flesh) then
+  begin
+    e_WriteLog(Format('trying to insert FUCKED AABB:(%f,%f)-(%f,%f); volume=%f; valid=%d', [aabb.minX, aabb.minY, aabb.maxX, aabb.maxY, aabb.volume, Integer(aabb.valid)]), MSG_WARNING);
+    result := -1;
+    exit;
+  end;
+  e_WriteLog(Format('inserting AABB:(%f,%f)-(%f,%f); volume=%f; valid=%d', [aabb.minX, aabb.minY, aabb.maxX, aabb.maxY, aabb.volume, Integer(aabb.valid)]), MSG_NOTIFY);
   nodeId := insertObjectInternal(aabb, staticObject);
   {$IFDEF aabbtree_many_asserts}assert(mNodes[nodeId].leaf);{$ENDIF}
   mNodes[nodeId].flesh := flesh;
@@ -1343,7 +1330,8 @@ var
   end;
 begin
   if not assigned(cb) then exit;
-  caabb.setXYWH(ax, ay, aw, ah);
+  if (aw < 1) or (ah < 1) then exit;
+  caabb := AABB2D.Create(ax, ay, ax+aw-1, ay+ah-1);
   visit(checker, cb);
 end;
 
@@ -1421,7 +1409,7 @@ begin
   dirx := (curbx-curax);
   diry := (curby-curay);
   // normalize
-  invlen := Float(1.0)/sqrt(dirx*dirx+diry*diry);
+  invlen := 1.0/sqrt(dirx*dirx+diry*diry);
   dirx *= invlen;
   diry *= invlen;
 

@@ -201,7 +201,7 @@ var
   pan: TPanel;
 begin
   pan := (flesh as TPanel);
-  aabb.setXYWH(pan.X, pan.Y, pan.Width, pan.Height);
+  aabb.setDims(pan.X, pan.Y, pan.X+pan.Width-1, pan.Y+pan.Height-1);
   result := true;
 end;
 
@@ -1044,6 +1044,7 @@ begin
 
   gMapGrid.dumpStats();
   e_WriteLog(Format('tree depth: %d; %d nodes used, %d nodes allocated', [mapTree.computeTreeHeight, mapTree.nodeCount, mapTree.nodeAlloced]), MSG_NOTIFY);
+  mapTree.forEachLeaf(nil);
 end;
 
 function g_Map_Load(Res: String): Boolean;
