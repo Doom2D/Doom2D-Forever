@@ -8,7 +8,7 @@ Building
 ---------
 
 Requirements:
-* FPC >= 3.0.0;
+* FPC >= 3.0.2;
 * FMODEx >= 4.26.xx or SDL_mixer >= 2.0;
 * libenet >= 1.3.13;
 * SDL >= 2.0.
