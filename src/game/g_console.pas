@@ -395,7 +395,7 @@ begin
   AddCommand('dbg_coldet_grid', ProfilerCommands);
 
   AddCommand('sq_use_grid', ProfilerCommands);
-  AddCommand('sq_use_sap', ProfilerCommands);
+  AddCommand('sq_use_tree', ProfilerCommands);
 
   AddCommand('p1_name', GameCVars);
   AddCommand('p2_name', GameCVars);

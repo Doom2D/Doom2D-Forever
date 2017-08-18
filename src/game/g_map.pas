@@ -200,9 +200,11 @@ function TDynAABBTreeMap.getFleshAABB (var aabb: AABB2D; flesh: TTreeFlesh): Boo
 var
   pan: TPanel;
 begin
+  if (flesh = nil) then begin result := false; exit; end;
   pan := (flesh as TPanel);
-  aabb.setDims(pan.X, pan.Y, pan.X+pan.Width-1, pan.Y+pan.Height-1);
-  result := true;
+  aabb := AABB2D.Create(pan.X, pan.Y, pan.X+pan.Width, pan.Y+pan.Height);
+  //e_WriteLog(Format('getFleshAABB(%d;%d) AABB:(%f,%f)-(%f,%f); valid=%d; volume=%f; x=%d; y=%d; w=%d; h=%d', [pan.tag, pan.ArrIdx, aabb.minX, aabb.minY, aabb.maxX, aabb.maxY, Integer(aabb.valid), aabb.volume, pan.X, pan.Y, pan.Width, pan.Height]), MSG_NOTIFY);
+  result := aabb.valid;
 end;
 
 var
@@ -2291,7 +2293,7 @@ begin
     begin
       if gdbg_map_use_tree_coldet then
       begin
-        mapTree.aabbQuery(X, Y, Width, Height, checkerTree);
+        result := mapTree.aabbQuery(X, Y, Width, Height, checkerTree);
       end
       else
       begin
@@ -2358,10 +2360,14 @@ var
   var
     pan: TPanel;
   begin
+    result := false;
     pan := (obj as TPanel);
-    result := checker(obj, pan.tag);
+    if (pan.tag = GridTagWater) or (pan.tag = GridTagAcid1) or (pan.tag = GridTagAcid2) then result := checker(obj, pan.tag);
   end;
 
+{var
+  cctype1: Integer = 3; // priority: 0: water, 1: acid1, 2: acid2; 3: others (nothing)
+  texid1: DWORD;}
 begin
   //TODO: detailed profile?
   if (profMapCollision <> nil) then profMapCollision.sectionBeginAccum('liquid coldet');
@@ -2372,6 +2378,16 @@ begin
       if gdbg_map_use_tree_coldet then
       begin
         mapTree.aabbQuery(X, Y, Width, Height, checkerTree);
+        {
+        cctype1 := cctype;
+        texid1 := texid;
+        cctype := 3;
+        texid := TEXTURE_NONE;
+        gMapGrid.forEachInAABB(X, Y, Width, Height, checker);
+        if (cctype1 <> cctype) or (texid1 <> texid) then
+        begin
+          e_WriteLog(Format('g_Map_CollideLiquid_Texture(%d, %d, %u, %u): tree(cctype:%d;texid:%u); grid(cctype:%d;texid:%u)', [X, Y, Width, Height, cctype1, texid1, cctype, texid]), MSG_WARNING);
+        end;}
       end
       else
       begin

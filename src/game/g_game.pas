@@ -5058,12 +5058,12 @@ begin
     exit;
   end;
 
-  if (cmd = 'sq_use_grid') or (cmd = 'sq_use_sap') then
+  if (cmd = 'sq_use_grid') or (cmd = 'sq_use_tree') then
   begin
     case getBool(1) of
       -1: begin end;
        0: gdbg_map_use_tree_coldet := (cmd = 'sq_use_grid');
-       1: gdbg_map_use_tree_coldet := (cmd = 'sq_use_sap');
+       1: gdbg_map_use_tree_coldet := (cmd = 'sq_use_tree');
     end;
     if gdbg_map_use_tree_coldet then g_Console_Add('coldet: tree') else g_Console_Add('coldet: grid');
     exit;

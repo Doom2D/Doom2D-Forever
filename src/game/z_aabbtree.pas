@@ -157,7 +157,7 @@ type
         // return true if the node is a leaf of the tree
         procedure clear (); inline;
         function leaf (): Boolean; inline;
-        function free (): Boolean; inline;
+        function isfree (): Boolean; inline;
         property nextNodeId: Integer read parentId write parentId;
         //property flesh: Integer read children[0] write children[0];
       end;
@@ -260,7 +260,7 @@ type
      *)
     function updateObject (nodeId: Integer; dispX, dispY: Float; forceReinsert: Boolean=false): Boolean;
 
-    procedure aabbQuery (ax, ay, aw, ah: Float; cb: TQueryOverlapCB);
+    function aabbQuery (ax, ay, aw, ah: Float; cb: TQueryOverlapCB): Boolean;
     function pointQuery (ax, ay: Float; cb: TQueryOverlapCB): TTreeFlesh;
     function segmentQuery (var qr: TSegmentQueryResult; ax, ay, bx, by: Float; cb: TSegQueryCallback): Boolean;
 
@@ -345,10 +345,10 @@ end;
 
 function AABB2D.getvalid (): Boolean; inline; begin result := (minX < maxX) and (minY < maxY); end;
 
-function AABB2D.getcenterX (): Float; inline; begin result := (minX+maxX)/2; end;
-function AABB2D.getcenterY (): Float; inline; begin result := (minY+maxY)/2; end;
-function AABB2D.getextentX (): Float; inline; begin result := (maxX-minX)+1; end;
-function AABB2D.getextentY (): Float; inline; begin result := (maxY-minY)+1; end;
+function AABB2D.getcenterX (): Float; inline; begin result := (minX+maxX)/2.0; end;
+function AABB2D.getcenterY (): Float; inline; begin result := (minY+maxY)/2.0; end;
+function AABB2D.getextentX (): Float; inline; begin result := (maxX-minX)+1.0; end;
+function AABB2D.getextentY (): Float; inline; begin result := (maxY-minY)+1.0; end;
 
 
 procedure AABB2D.copyFrom (const aabb: AABB2D); inline;
@@ -357,6 +357,9 @@ begin
   minY := aabb.minY;
   maxX := aabb.maxX;
   maxY := aabb.maxY;
+  {$IF DEFINED(D2F_DEBUG)}
+  if not valid then raise Exception.Create('copyFrom: result is fucked');
+  {$ENDIF}
 end;
 
 
@@ -366,15 +369,25 @@ begin
   minY := minF(y0, y1);
   maxX := maxF(x0, x1);
   maxY := maxF(y0, y1);
+  {$IF DEFINED(D2F_DEBUG)}
+  if not valid then raise Exception.Create('setDims: result is fucked');
+  {$ENDIF}
 end;
 
 
 procedure AABB2D.setMergeTwo (const aabb0, aabb1: AABB2D); inline;
 begin
+  {$IF DEFINED(D2F_DEBUG)}
+  if not aabb0.valid then raise Exception.Create('setMergeTwo: aabb0 is fucked');
+  if not aabb1.valid then raise Exception.Create('setMergeTwo: aabb0 is fucked');
+  {$ENDIF}
   minX := minF(aabb0.minX, aabb1.minX);
   minY := minF(aabb0.minY, aabb1.minY);
   maxX := maxF(aabb0.maxX, aabb1.maxX);
   maxY := maxF(aabb0.maxY, aabb1.maxY);
+  {$IF DEFINED(D2F_DEBUG)}
+  if not valid then raise Exception.Create('setMergeTwo: result is fucked');
+  {$ENDIF}
 end;
 
 
@@ -386,10 +399,16 @@ end;
 
 procedure AABB2D.merge (const aabb: AABB2D); inline;
 begin
+  {$IF DEFINED(D2F_DEBUG)}
+  if not aabb.valid then raise Exception.Create('merge: aabb is fucked');
+  {$ENDIF}
   minX := minF(minX, aabb.minX);
   minY := minF(minY, aabb.minY);
   maxX := maxF(maxX, aabb.maxX);
   maxY := maxF(maxY, aabb.maxY);
+  {$IF DEFINED(D2F_DEBUG)}
+  if not valid then raise Exception.Create('setMergeTwo: result is fucked');
+  {$ENDIF}
 end;
 
 
@@ -490,7 +509,7 @@ function TDynAABBTree.TSegmentQueryResult.valid (): Boolean; inline; begin resul
 
 // ////////////////////////////////////////////////////////////////////////// //
 function TDynAABBTree.TTreeNode.leaf (): Boolean; inline; begin result := (height = 0); end;
-function TDynAABBTree.TTreeNode.free (): Boolean; inline; begin result := (height = -1); end;
+function TDynAABBTree.TTreeNode.isfree (): Boolean; inline; begin result := (height = -1); end;
 
 procedure TDynAABBTree.TTreeNode.clear (); inline;
 begin
@@ -499,11 +518,10 @@ begin
   children[1] := 0;
   flesh := nil;
   height := 0;
-  //aabb.setX0Y0X1Y1(0, 0, 0, 0);
   aabb.minX := 0;
   aabb.minY := 0;
-  aabb.maxX := -1;
-  aabb.maxY := -1;
+  aabb.maxX := 0;
+  aabb.maxY := 0;
 end;
 
 
@@ -519,17 +537,16 @@ begin
   begin
     {$IFDEF aabbtree_many_asserts}assert(mNodeCount = mAllocCount);{$ENDIF}
     // allocate more nodes in the tree
-    if (mAllocCount < 8192) then newsz := mAllocCount*2 else newsz := mAllocCount+8192;
+    if (mAllocCount < 32768) then newsz := mAllocCount*2 else newsz := mAllocCount+16384;
     SetLength(mNodes, newsz);
     mAllocCount := newsz;
     // initialize the allocated nodes
-    for i := mNodeCount to mAllocCount-2 do
+    for i := mNodeCount to mAllocCount-1 do
     begin
       mNodes[i].nextNodeId := i+1;
       mNodes[i].height := -1;
     end;
     mNodes[mAllocCount-1].nextNodeId := TTreeNode.NullTreeNode;
-    mNodes[mAllocCount-1].height := -1;
     mFreeNodeId := mNodeCount;
   end;
   // get the next free node
@@ -553,6 +570,7 @@ begin
   {$IFDEF aabbtree_many_asserts}assert(mNodes[nodeId].height >= 0);{$ENDIF}
   mNodes[nodeId].nextNodeId := mFreeNodeId;
   mNodes[nodeId].height := -1;
+  mNodes[nodeId].flesh := nil;
   mFreeNodeId := nodeId;
   Dec(mNodeCount);
 end;
@@ -580,7 +598,7 @@ begin
   {$IFDEF aabbtree_many_asserts}assert(mRootNodeId <> TTreeNode.NullTreeNode);{$ENDIF}
 
   // find the best sibling node for the new node
-  newNodeAABB := mNodes[nodeId].aabb;
+  newNodeAABB := AABB2D.Create(mNodes[nodeId].aabb);
   currentNodeId := mRootNodeId;
   while not mNodes[currentNodeId].leaf do
   begin
@@ -601,12 +619,12 @@ begin
     // compute the cost of descending into the left child
     currentAndLeftAABB := AABB2D.Create(newNodeAABB, mNodes[leftChild].aabb);
     costLeft := currentAndLeftAABB.volume+costI;
-    if not mNodes[leftChild].leaf then costLeft := costLeft-mNodes[leftChild].aabb.volume;
+    if not mNodes[leftChild].leaf then costLeft -= mNodes[leftChild].aabb.volume;
 
     // compute the cost of descending into the right child
     currentAndRightAABB := AABB2D.Create(newNodeAABB, mNodes[rightChild].aabb);
     costRight := currentAndRightAABB.volume+costI;
-    if not mNodes[rightChild].leaf then costRight := costRight-mNodes[rightChild].aabb.volume;
+    if not mNodes[rightChild].leaf then costRight -= mNodes[rightChild].aabb.volume;
 
     // if the cost of making the current node a sibling of the new node is smaller than the cost of going down into the left or right child
     if (costS < costLeft) and (costS < costRight) then break;
@@ -967,7 +985,7 @@ begin
   nodeId := allocateNode();
 
   // create the fat aabb to use in the tree
-  mNodes[nodeId].aabb := aabb;
+  mNodes[nodeId].aabb := AABB2D.Create(aabb);
   if (not staticObject) then
   begin
     mNodes[nodeId].aabb.minX -= mExtraGap;
@@ -1004,13 +1022,12 @@ begin
   for i := 0 to mAllocCount-1 do mNodes[i].clear();
 
   // initialize the allocated nodes
-  for i := 0 to mAllocCount-2 do
+  for i := 0 to mAllocCount-1 do
   begin
     mNodes[i].nextNodeId := i+1;
     mNodes[i].height := -1;
   end;
   mNodes[mAllocCount-1].nextNodeId := TTreeNode.NullTreeNode;
-  mNodes[mAllocCount-1].height := -1;
   mFreeNodeId := 0;
 end;
 
@@ -1030,7 +1047,15 @@ function TDynAABBTree.forEachLeaf (dg: TForEachLeafCB): Boolean;
     // get the children nodes
     pNode := @mNodes[nodeId];
     assert(pNode.height >= 0);
-    e_WriteLog(Format('AABB:(%f,%f)-(%f,%f); volume=%f; valid=%d', [pNode.aabb.minX, pNode.aabb.minY, pNode.aabb.maxX, pNode.aabb.maxY, pNode.aabb.volume, Integer(pNode.aabb.valid)]), MSG_NOTIFY);
+    if (not pNode.aabb.valid) then
+    begin
+      e_WriteLog(Format('AABB:(%f,%f)-(%f,%f); volume=%f; valid=%d; height=%d; leaf=%d', [pNode.aabb.minX, pNode.aabb.minY, pNode.aabb.maxX, pNode.aabb.maxY, pNode.aabb.volume, Integer(pNode.aabb.valid), pNode.height, Integer(pNode.leaf)]), MSG_NOTIFY);
+      if pNode.leaf then
+      begin
+        getFleshAABB(aabb, pNode.flesh);
+        e_WriteLog(Format('  LEAF AABB:(%f,%f)-(%f,%f); valid=%d; volume=%f', [aabb.minX, aabb.minY, aabb.maxX, aabb.maxY, Integer(aabb.valid), aabb.volume]), MSG_NOTIFY);
+      end;
+    end;
     assert(pNode.aabb.valid);
     assert(pNode.aabb.volume > 0);
     // if the current node is a leaf
@@ -1231,7 +1256,7 @@ end;
 // get fat object AABB by nodeid; returns random shit for invalid ids
 procedure TDynAABBTree.getNodeFatAABB (var aabb: AABB2D; nodeid: Integer);
 begin
-  if (nodeid >= 0) and (nodeid < mNodeCount) and (not mNodes[nodeid].free) then aabb.copyFrom(mNodes[nodeid].aabb) else aabb.setDims(0, 0, 0, 0);
+  if (nodeid >= 0) and (nodeid < mNodeCount) and (not mNodes[nodeid].isfree) then aabb.copyFrom(mNodes[nodeid].aabb) else aabb.setDims(0, 0, 0, 0);
 end;
 
 
@@ -1246,11 +1271,19 @@ var
 begin
   if not getFleshAABB(aabb, flesh) then
   begin
-    e_WriteLog(Format('trying to insert FUCKED AABB:(%f,%f)-(%f,%f); volume=%f; valid=%d', [aabb.minX, aabb.minY, aabb.maxX, aabb.maxY, aabb.volume, Integer(aabb.valid)]), MSG_WARNING);
+    e_WriteLog(Format('trying to insert FUCKED FLESH:(%f,%f)-(%f,%f); volume=%f; valid=%d', [aabb.minX, aabb.minY, aabb.maxX, aabb.maxY, aabb.volume, Integer(aabb.valid)]), MSG_WARNING);
+    //raise Exception.Create('trying to insert invalid flesh in dyntree');
     result := -1;
     exit;
   end;
-  e_WriteLog(Format('inserting AABB:(%f,%f)-(%f,%f); volume=%f; valid=%d', [aabb.minX, aabb.minY, aabb.maxX, aabb.maxY, aabb.volume, Integer(aabb.valid)]), MSG_NOTIFY);
+  if not aabb.valid then
+  begin
+    e_WriteLog(Format('trying to insert FUCKED AABB:(%f,%f)-(%f,%f); volume=%f; valid=%d', [aabb.minX, aabb.minY, aabb.maxX, aabb.maxY, aabb.volume, Integer(aabb.valid)]), MSG_WARNING);
+    raise Exception.Create('trying to insert invalid aabb in dyntree');
+    result := -1;
+    exit;
+  end;
+  //e_WriteLog(Format('inserting AABB:(%f,%f)-(%f,%f); volume=%f; valid=%d', [aabb.minX, aabb.minY, aabb.maxX, aabb.maxY, aabb.volume, Integer(aabb.valid)]), MSG_NOTIFY);
   nodeId := insertObjectInternal(aabb, staticObject);
   {$IFDEF aabbtree_many_asserts}assert(mNodes[nodeId].leaf);{$ENDIF}
   mNodes[nodeId].flesh := flesh;
@@ -1273,9 +1306,10 @@ function TDynAABBTree.updateObject (nodeId: Integer; dispX, dispY: Float; forceR
 var
   newAABB: AABB2D;
 begin
-  if (nodeId < 0) or (nodeId >= mNodeCount) or (not mNodes[nodeId].leaf) then raise Exception.Create('invalid node id in TDynAABBTree');
+  if (nodeId < 0) or (nodeId >= mNodeCount) or (not mNodes[nodeId].leaf) then raise Exception.Create('invalid node id in TDynAABBTree.updateObject');
 
-  if not getFleshAABB(newAABB, mNodes[nodeId].flesh) then raise Exception.Create('invalid node id in TDynAABBTree');
+  if not getFleshAABB(newAABB, mNodes[nodeId].flesh) then raise Exception.Create('invalid node id in TDynAABBTree.updateObject');
+  if not newAABB.valid then raise Exception.Create('invalid flesh aabb in TDynAABBTree.updateObject');
 
   // if the new AABB is still inside the fat AABB of the node
   if (not forceReinsert) and (mNodes[nodeId].aabb.contains(newAABB)) then begin result := false; exit; end;
@@ -1285,7 +1319,7 @@ begin
 
   // compute the fat AABB by inflating the AABB with a constant gap
   mNodes[nodeId].aabb := newAABB;
-  if not forceReinsert and ((dispX <> 0) or (dispY <> 0)) then
+  if (not forceReinsert) and ((dispX <> 0) or (dispY <> 0)) then
   begin
     mNodes[nodeId].aabb.minX := mNodes[nodeId].aabb.minX-mExtraGap;
     mNodes[nodeId].aabb.minY := mNodes[nodeId].aabb.minY-mExtraGap;
@@ -1321,7 +1355,7 @@ end;
 
 
 // report all shapes overlapping with the AABB given in parameter
-procedure TDynAABBTree.aabbQuery (ax, ay, aw, ah: Float; cb: TQueryOverlapCB);
+function TDynAABBTree.aabbQuery (ax, ay, aw, ah: Float; cb: TQueryOverlapCB): Boolean;
 var
   caabb: AABB2D;
   function checker (node: PTreeNode): Boolean;
@@ -1331,8 +1365,8 @@ var
 begin
   if not assigned(cb) then exit;
   if (aw < 1) or (ah < 1) then exit;
-  caabb := AABB2D.Create(ax, ay, ax+aw-1, ay+ah-1);
-  visit(checker, cb);
+  caabb := AABB2D.Create(ax, ay, ax+aw, ay+ah);
+  result := (visit(checker, cb) <> -1);
 end;
 
 
