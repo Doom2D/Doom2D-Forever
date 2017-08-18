@@ -6937,13 +6937,13 @@ begin
     Exit;
   end;
 
-  s := LowerCase(Find_Param_Value(pars, '--dbg-mainwad'));
+  s := LowerCase(Find_Param_Value(pars, '-dbg-mainwad'));
   if (s <> '') then
   begin
     gDefaultMegawadStart := s;
   end;
 
-  s := LowerCase(Find_Param_Value(pars, '--dbg-mainwad-restore'));
+  s := LowerCase(Find_Param_Value(pars, '-dbg-mainwad-restore'));
   if (s <> '') then
   begin
     gDefaultMegawadStart := DF_Default_Megawad_Start;
