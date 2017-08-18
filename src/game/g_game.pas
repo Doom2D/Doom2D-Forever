@@ -5018,50 +5018,57 @@ begin
   //if not gDebugMode then exit;
   cmd := LowerCase(P[0]);
 
-  if cmd = 'dpp' then
+  if cmd = 'pf_draw_frame' then
   begin
     g_profile_frame_draw := not g_profile_frame_draw;
     exit;
   end;
 
-  if cmd = 'dpu' then
+  if cmd = 'pf_update_frame' then
   begin
     g_profile_frame_update := not g_profile_frame_update;
     exit;
   end;
 
-  if cmd = 'dpc' then
+  if cmd = 'pf_coldet' then
   begin
     g_profile_collision := not g_profile_collision;
     exit;
   end;
 
-  if cmd = 'r_gridrender' then
+  if cmd = 'r_sq_draw' then
   begin
     case getBool(1) of
       -1: begin end;
        0: gdbg_map_use_grid_render := false;
        1: gdbg_map_use_grid_render := true;
     end;
-    if gdbg_map_use_grid_render then g_Console_Add('grid rendering: tan') else g_Console_Add('grid rendering: ona');
+    if gdbg_map_use_grid_render then g_Console_Add('accelerated rendering: tan') else g_Console_Add('accelerated rendering: ona');
     exit;
   end;
 
-  if cmd = 'dbg_coldet_grid' then
+  if cmd = 'dbg_sq_coldet' then
   begin
     case getBool(1) of
       -1: begin end;
        0: gdbg_map_use_grid_coldet := false;
        1: gdbg_map_use_grid_coldet := true;
     end;
-    if gdbg_map_use_grid_coldet then g_Console_Add('grid coldet: tan') else g_Console_Add('grid coldet: ona');
+    if gdbg_map_use_grid_coldet then g_Console_Add('accelerated coldet: tan') else g_Console_Add('accelerated coldet: ona');
     exit;
   end;
 
   if (cmd = 'sq_use_grid') or (cmd = 'sq_use_tree') then
   begin
     gdbg_map_use_tree_coldet := (cmd = 'sq_use_tree');
-    if gdbg_map_use_tree_coldet then g_Console_Add('coldet: tree') else g_Console_Add('coldet: grid');
+    if gdbg_map_use_tree_coldet then g_Console_Add('coldet acceleration: tree') else g_Console_Add('coldet acceleration: grid');
+    exit;
+  end;
+
+  if (cmd = 'r_sq_use_grid') or (cmd = 'r_sq_use_tree') then
+  begin
+    gdbg_map_use_tree_draw := (cmd = 'r_sq_use_tree');
+    if gdbg_map_use_tree_draw then g_Console_Add('render acceleration: tree') else g_Console_Add('render acceleration: grid');
     exit;
   end;
 

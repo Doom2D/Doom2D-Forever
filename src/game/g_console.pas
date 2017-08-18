@@ -388,11 +388,13 @@ begin
   AddCommand('d_player', DebugCommands);
   AddCommand('d_joy', DebugCommands);
 
-  AddCommand('dpp', ProfilerCommands);
-  AddCommand('dpu', ProfilerCommands);
-  AddCommand('dpc', ProfilerCommands);
-  AddCommand('r_gridrender', ProfilerCommands);
-  AddCommand('dbg_coldet_grid', ProfilerCommands);
+  AddCommand('pf_draw_frame', ProfilerCommands);
+  AddCommand('pf_update_frame', ProfilerCommands);
+  AddCommand('pf_coldet', ProfilerCommands);
+  AddCommand('r_sq_draw', ProfilerCommands);
+  AddCommand('r_sq_use_grid', ProfilerCommands);
+  AddCommand('r_sq_use_tree', ProfilerCommands);
+  AddCommand('dbg_sq_coldet', ProfilerCommands);
 
   AddCommand('t_dump_node_queries', ProfilerCommands);
 
