@@ -2263,30 +2263,27 @@ function g_Map_CollidePanel(X, Y: Integer; Width, Height: Word; PanelType: Word;
 begin
   //TODO: detailed profile
   if (profMapCollision <> nil) then profMapCollision.sectionBeginAccum('wall coldet');
-  try
-    if gdbg_map_use_accel_coldet then
+  if gdbg_map_use_accel_coldet then
+  begin
+    if gdbg_map_use_tree_coldet then
     begin
-      if gdbg_map_use_tree_coldet then
+      result := (mapTree.aabbQuery(X, Y, Width, Height, checker, (GridTagWallDoor or GridTagWater or GridTagAcid1 or GridTagAcid2 or GridTagStep or GridTagLift or GridTagBlockMon)) <> nil);
+      if (gdbg_map_dump_coldet_tree_queries) and (mapTree.nodesVisited <> 0) then
       begin
-        result := (mapTree.aabbQuery(X, Y, Width, Height, checker, (GridTagWallDoor or GridTagWater or GridTagAcid1 or GridTagAcid2 or GridTagStep or GridTagLift or GridTagBlockMon)) <> nil);
-        if (gdbg_map_dump_coldet_tree_queries) and (mapTree.nodesVisited <> 0) then
-        begin
-          //e_WriteLog(Format('map collision: %d nodes visited (%d deep)', [mapTree.nodesVisited, mapTree.nodesDeepVisited]), MSG_NOTIFY);
-          g_Console_Add(Format('map collision: %d nodes visited (%d deep)', [mapTree.nodesVisited, mapTree.nodesDeepVisited]));
-        end;
-      end
-      else
-      begin
-        result := gMapGrid.forEachInAABB(X, Y, Width, Height, checker, (GridTagWallDoor or GridTagWater or GridTagAcid1 or GridTagAcid2 or GridTagStep or GridTagLift or GridTagBlockMon));
+        //e_WriteLog(Format('map collision: %d nodes visited (%d deep)', [mapTree.nodesVisited, mapTree.nodesDeepVisited]), MSG_NOTIFY);
+        g_Console_Add(Format('map collision: %d nodes visited (%d deep)', [mapTree.nodesVisited, mapTree.nodesDeepVisited]));
       end;
     end
     else
     begin
-      result := g_Map_CollidePanelOld(X, Y, Width, Height, PanelType, b1x3);
+      result := gMapGrid.forEachInAABB(X, Y, Width, Height, checker, (GridTagWallDoor or GridTagWater or GridTagAcid1 or GridTagAcid2 or GridTagStep or GridTagLift or GridTagBlockMon));
     end;
-  finally
-    if (profMapCollision <> nil) then profMapCollision.sectionEnd();
+  end
+  else
+  begin
+    result := g_Map_CollidePanelOld(X, Y, Width, Height, PanelType, b1x3);
   end;
+  if (profMapCollision <> nil) then profMapCollision.sectionEnd();
 end;
 
 
@@ -2340,27 +2337,24 @@ var
 begin
   //TODO: detailed profile?
   if (profMapCollision <> nil) then profMapCollision.sectionBeginAccum('liquid coldet');
-  try
-    if gdbg_map_use_accel_coldet then
+  if gdbg_map_use_accel_coldet then
+  begin
+    texid := TEXTURE_NONE;
+    if gdbg_map_use_tree_coldet then
     begin
-      texid := TEXTURE_NONE;
-      if gdbg_map_use_tree_coldet then
-      begin
-        mapTree.aabbQuery(X, Y, Width, Height, checker, (GridTagWater or GridTagAcid1 or GridTagAcid2));
-      end
-      else
-      begin
-        gMapGrid.forEachInAABB(X, Y, Width, Height, checker, (GridTagWater or GridTagAcid1 or GridTagAcid2));
-      end;
-      result := texid;
+      mapTree.aabbQuery(X, Y, Width, Height, checker, (GridTagWater or GridTagAcid1 or GridTagAcid2));
     end
     else
     begin
-      result := g_Map_CollideLiquid_TextureOld(X, Y, Width, Height);
+      gMapGrid.forEachInAABB(X, Y, Width, Height, checker, (GridTagWater or GridTagAcid1 or GridTagAcid2));
     end;
-  finally
-    if (profMapCollision <> nil) then profMapCollision.sectionEnd();
+    result := texid;
+  end
+  else
+  begin
+    result := g_Map_CollideLiquid_TextureOld(X, Y, Width, Height);
   end;
+  if (profMapCollision <> nil) then profMapCollision.sectionEnd();
 end;
 
 procedure g_Map_EnableWall(ID: DWORD);

@@ -1185,7 +1185,7 @@ var
 begin
   if not assigned(checker) then begin result := -1; exit; end;
   //if not assigned(visitor) then begin result := -1; exit; end;
-  try
+  //try
     {$IFDEF aabbtree_query_count}
     mNodesVisited := 0;
     mNodesDeepVisited := 0;
@@ -1219,7 +1219,7 @@ begin
           {$IFDEF aabbtree_query_count}Inc(mNodesDeepVisited);{$ENDIF}
           if ((node.tag and tagmask) <> 0) and assigned(visitor) then
           begin
-            if (visitor(node.flesh, node.tag)) then begin result := nodeId; exit; end;
+            if (visitor(node.flesh, node.tag)) then begin result := nodeId; bigstack := nil; exit; end;
           end;
         end
         else
@@ -1232,9 +1232,10 @@ begin
     end;
 
     result := -1; // oops
-  finally
     bigstack := nil;
-  end;
+  //finally
+  //  bigstack := nil;
+  //end;
 end;
 
 
