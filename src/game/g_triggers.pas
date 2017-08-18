@@ -926,6 +926,7 @@ end;
 
 function tr_ShotAimCheck(var Trigger: TTrigger; Obj: PObj): Boolean;
 begin
+  result := false;
   with Trigger do
   begin
     if TriggerType <> TRIGGER_SHOT then
