@@ -55,6 +55,7 @@ type
     LiftType:         Byte;
     LastAnimLoop:     Byte;
     ArrIdx:           Integer; // index in one of internal arrays; sorry
+    tag:              Integer; // used in coldets and such; sorry
 
     constructor Create(PanelRec: TPanelRec_1;
                        AddTextures: TAddTextureArray;

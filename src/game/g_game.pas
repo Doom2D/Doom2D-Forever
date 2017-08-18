@@ -5062,10 +5062,10 @@ begin
   begin
     case getBool(1) of
       -1: begin end;
-       0: gdbg_map_use_sap_coldet := (cmd = 'sq_use_grid');
-       1: gdbg_map_use_sap_coldet := (cmd = 'sq_use_sap');
+       0: gdbg_map_use_tree_coldet := (cmd = 'sq_use_grid');
+       1: gdbg_map_use_tree_coldet := (cmd = 'sq_use_sap');
     end;
-    if gdbg_map_use_sap_coldet then g_Console_Add('coldet: sap') else g_Console_Add('coldet: grid');
+    if gdbg_map_use_tree_coldet then g_Console_Add('coldet: tree') else g_Console_Add('coldet: grid');
     exit;
   end;
 end;

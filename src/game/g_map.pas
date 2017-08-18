@@ -20,7 +20,7 @@ interface
 
 uses
   e_graphics, g_basic, MAPSTRUCT, g_textures, Classes,
-  g_phys, wadreader, BinEditor, g_panel, g_grid, g_sap, md5, xprofiler;
+  g_phys, wadreader, BinEditor, g_panel, g_grid, z_aabbtree, md5, xprofiler;
 
 type
   TMapInfo = record
@@ -136,8 +136,8 @@ var
 
   gdbg_map_use_grid_render: Boolean = true;
   gdbg_map_use_grid_coldet: Boolean = true;
-  gdbg_map_use_sap_draw: Boolean = true;
-  gdbg_map_use_sap_coldet: Boolean = false;
+  gdbg_map_use_tree_draw: Boolean = true;
+  gdbg_map_use_tree_coldet: Boolean = false;
   profMapCollision: TProfiler = nil; //WARNING: FOR DEBUGGING ONLY!
 
 implementation
@@ -191,6 +191,20 @@ type
     PArrID: Integer;
   end;
 
+type
+  TDynAABBTreeMap = class(TDynAABBTree)
+    function getFleshAABB (var aabb: AABB2D; flesh: TTreeFlesh): Boolean; override;
+  end;
+
+function TDynAABBTreeMap.getFleshAABB (var aabb: AABB2D; flesh: TTreeFlesh): Boolean;
+var
+  pan: TPanel;
+begin
+  pan := (flesh as TPanel);
+  aabb.setXYWH(pan.X, pan.Y, pan.Width, pan.Height);
+  result := true;
+end;
+
 var
   PanelById:     array of TPanelID;
   Textures:      TLevelTextureArray;
@@ -198,7 +212,7 @@ var
   FlagPoints:    Array [FLAG_RED..FLAG_BLUE] of PFlagPoint;
   //DOMFlagPoints: Array of TFlagPoint;
   gMapGrid: TBodyGrid = nil;
-  gMapSAP: TSweepAndPrune = nil;
+  mapTree: TDynAABBTree = nil;
 
 
 procedure g_Map_ProfilersBegin ();
@@ -430,6 +444,7 @@ begin
 
   panels^[len] := TPanel.Create(PanelRec, AddTextures, CurTex, Textures);
   panels^[len].ArrIdx := len;
+  panels^[len].tag := panelTypeToTag(PanelRec.PanelType);
   if sav then
     panels^[len].SaveIt := True;
 
@@ -986,16 +1001,17 @@ var
     tag := panelTypeToTag(tag);
     for idx := High(panels) downto 0 do
     begin
+      panels[idx].tag := tag;
       gMapGrid.insertBody(panels[idx], panels[idx].X, panels[idx].Y, panels[idx].Width, panels[idx].Height, tag);
-      gMapSAP.insertBody(panels[idx], panels[idx].X, panels[idx].Y, panels[idx].Width, panels[idx].Height, tag);
+      mapTree.insertObject(panels[idx], true); // as static object
     end;
   end;
 
 begin
   gMapGrid.Free();
   gMapGrid := nil;
-  gMapSAP.Free();
-  gMapSAP := nil;
+  mapTree.Free();
+  mapTree := nil;
 
   fixMinMax(gWalls);
   fixMinMax(gRenderBackgrounds);
@@ -1014,9 +1030,7 @@ begin
   end;
 
   gMapGrid := TBodyGrid.Create(mapX0, mapY0, mapX1-mapX0+1, mapY1-mapY0+1);
-  gMapSAP := TSweepAndPrune.Create();
-
-  gMapSAP.batchUpdateBegin();
+  mapTree := TDynAABBTreeMap.Create();
 
   addPanelsToGrid(gWalls, PANEL_WALL); // and PANEL_CLOSEDOOR
   addPanelsToGrid(gRenderBackgrounds, PANEL_BACK);
@@ -1028,10 +1042,8 @@ begin
   addPanelsToGrid(gLifts, PANEL_LIFTUP); // it doesn't matter which LIFT type is used here
   addPanelsToGrid(gBlockMon, PANEL_BLOCKMON);
 
-  gMapSAP.batchUpdateEnd();
-
   gMapGrid.dumpStats();
-  gMapSAP.dumpStats();
+  //gMapSAP.dumpStats();
 end;
 
 function g_Map_Load(Res: String): Boolean;
@@ -1068,8 +1080,8 @@ var
 begin
   gMapGrid.Free();
   gMapGrid := nil;
-  gMapSAP.Free();
-  gMapSAP := nil;
+  mapTree.Free();
+  mapTree := nil;
 
   Result := False;
   gMapInfo.Map := Res;
@@ -1897,6 +1909,18 @@ var
     dplAddPanel(pan);
   end;
 
+  function checkerTree (obj: TObject): Boolean;
+  var
+    pan: TPanel;
+  begin
+    result := false; // don't stop, ever
+    pan := (obj as TPanel);
+    if (pan.tag <> ptag) then exit;
+    if (PanelType = PANEL_CLOSEDOOR) then begin if not pan.Door then exit; end else begin if pan.Door then exit; end;
+    //e_WriteLog(Format('  body hit: (%d,%d)-(%dx%d) tag: %d; qtag:%d', [pan.X, pan.Y, pan.Width, pan.Height, tag, PanelType]), MSG_NOTIFY);
+    dplAddPanel(pan);
+  end;
+
   procedure DrawPanels (stp: Integer; var panels: TPanelArray; drawDoors: Boolean=False);
   var
     idx: Integer;
@@ -1931,9 +1955,9 @@ begin
 
   if gdbg_map_use_grid_render then
   begin
-    if gdbg_map_use_sap_draw then
+    if gdbg_map_use_tree_draw then
     begin
-      gMapSAP.forEachInAABB(x0, y0, wdt, hgt, checker);
+      mapTree.aabbQuery(x0, y0, wdt, hgt, checkerTree);
     end
     else
     begin
@@ -1976,10 +2000,20 @@ procedure g_Map_DrawPanelShadowVolumes(lightX: Integer; lightY: Integer; radius:
     pan.DrawShadowVolume(lightX, lightY, radius);
   end;
 
-begin
-  if gdbg_map_use_sap_draw then
+  function checkerTree (obj: TObject): Boolean;
+  var
+    pan: TPanel;
   begin
-    gMapSAP.forEachInAABB(lightX-radius, lightY-radius, radius*2, radius*2, checker);
+    result := false; // don't stop, ever
+    pan := (obj as TPanel);
+    if (pan.tag <> GridTagWallDoor) then exit; // only walls
+    pan.DrawShadowVolume(lightX, lightY, radius);
+  end;
+
+begin
+  if gdbg_map_use_tree_draw then
+  begin
+    mapTree.aabbQuery(lightX-radius, lightY-radius, radius*2, radius*2, checkerTree);
   end
   else
   begin
@@ -2240,15 +2274,23 @@ function g_Map_CollidePanel(X, Y: Integer; Width, Height: Word; PanelType: Word;
     end;
   end;
 
+  function checkerTree (obj: TObject): Boolean;
+  var
+    pan: TPanel;
+  begin
+    pan := (obj as TPanel);
+    result := checker(obj, pan.tag);
+  end;
+
 begin
   //TODO: detailed profile
   if (profMapCollision <> nil) then profMapCollision.sectionBeginAccum('wall coldet');
   try
     if gdbg_map_use_grid_coldet then
     begin
-      if gdbg_map_use_sap_coldet then
+      if gdbg_map_use_tree_coldet then
       begin
-        gMapSAP.forEachInAABB(X, Y, Width, Height, checker);
+        mapTree.aabbQuery(X, Y, Width, Height, checkerTree);
       end
       else
       begin
@@ -2311,6 +2353,14 @@ var
     end;
   end;
 
+  function checkerTree (obj: TObject): Boolean;
+  var
+    pan: TPanel;
+  begin
+    pan := (obj as TPanel);
+    result := checker(obj, pan.tag);
+  end;
+
 begin
   //TODO: detailed profile?
   if (profMapCollision <> nil) then profMapCollision.sectionBeginAccum('liquid coldet');
@@ -2318,9 +2368,9 @@ begin
     if gdbg_map_use_grid_coldet then
     begin
       texid := TEXTURE_NONE;
-      if gdbg_map_use_sap_coldet then
+      if gdbg_map_use_tree_coldet then
       begin
-        gMapSAP.forEachInAABB(X, Y, Width, Height, checker);
+        mapTree.aabbQuery(X, Y, Width, Height, checkerTree);
       end
       else
       begin

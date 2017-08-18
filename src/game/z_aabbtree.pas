@@ -1,3 +1,18 @@
+(* Copyright (C)  DooM 2D:Forever Developers
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *)
 {$INCLUDE ../shared/a_modes.inc}
 {$DEFINE aabbtree_many_asserts}
 {$DEFINE aabbtree_query_count}
@@ -9,6 +24,8 @@ interface
 type
   Float = Single;
   PFloat = ^Float;
+
+  TTreeFlesh = TObject;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
@@ -147,7 +164,7 @@ type
         // a node is either a leaf (has data) or is an internal node (has children)
         children: array [0..1] of Integer; // left and right child of the node (children[0] = left child)
         //TODO: `flesh` can be united with `children`
-        //flesh: Integer;
+        flesh: TTreeFlesh;
         // height of the node in the tree (-1 for free nodes)
         height: SmallInt;
         // fat axis aligned bounding box (AABB) corresponding to the node
@@ -158,15 +175,15 @@ type
         function leaf (): Boolean; inline;
         function free (): Boolean; inline;
         property nextNodeId: Integer read parentId write parentId;
-        property flesh: Integer read children[0] write children[0];
+        //property flesh: Integer read children[0] write children[0];
       end;
 
       TVisitCheckerCB = function (node: PTreeNode): Boolean is nested;
-      TVisitVisitorCB = function (abody: Integer): Boolean is nested;
+      TVisitVisitorCB = function (abody: TTreeFlesh): Boolean is nested;
 
   public
     // return `true` to stop
-    type TForEachLeafCB = function (abody: Integer; const aabb: AABB2D): Boolean is nested; // WARNING! don't modify AABB here!
+    type TForEachLeafCB = function (abody: TTreeFlesh; const aabb: AABB2D): Boolean is nested; // WARNING! don't modify AABB here!
 
   public
     // in the broad-phase collision detection (dynamic AABB tree), the AABBs are
@@ -204,12 +221,12 @@ type
   public
     // called when a overlapping node has been found during the call to forEachAABBOverlap()
     // return `true` to stop
-    type TQueryOverlapCB = function (abody: Integer): Boolean is nested;
-    type TSegQueryCallback = function (abody: Integer; ax, ay, bx, by: Float): Float is nested; // return dist from (ax,ay) to abody
+    type TQueryOverlapCB = function (abody: TTreeFlesh): Boolean is nested;
+    type TSegQueryCallback = function (abody: TTreeFlesh; ax, ay, bx, by: Float): Float is nested; // return dist from (ax,ay) to abody
 
     TSegmentQueryResult = record
       dist: Float; // <0: nothing was hit
-      flesh: Integer;
+      flesh: TTreeFlesh;
 
       procedure reset (); inline;
       function valid (): Boolean; inline;
@@ -226,17 +243,17 @@ type
     procedure getRootAABB (var aabb: AABB2D);
 
     function isValidId (id: Integer): Boolean; inline;
-    function getNodeObjectId (nodeid: Integer): Integer; inline;
+    function getNodeObjectId (nodeid: Integer): TTreeFlesh; inline;
     procedure getNodeFatAABB (var aabb: AABB2D; nodeid: Integer); inline;
 
     // return `false` for invalid flesh
-    function getFleshAABB (var aabb: AABB2D; flesh: Integer): Boolean; virtual; abstract;
+    function getFleshAABB (var aabb: AABB2D; flesh: TTreeFlesh): Boolean; virtual; abstract;
 
     // insert an object into the tree
     // this method creates a new leaf node in the tree and returns the id of the corresponding node or -1 on error
     // AABB for static object will not be "fat" (simple optimization)
     // WARNING! inserting the same object several times *WILL* break everything!
-    function insertObject (flesh: Integer; staticObject: Boolean=false): Integer;
+    function insertObject (flesh: TTreeFlesh; staticObject: Boolean=false): Integer;
 
     // remove an object from the tree
     // WARNING: ids of removed objects can be reused on later insertions!
@@ -260,7 +277,7 @@ type
     function updateObject (nodeId: Integer; dispX, dispY: Float; forceReinsert: Boolean=false): Boolean;
 
     procedure aabbQuery (ax, ay, aw, ah: Float; cb: TQueryOverlapCB);
-    function pointQuery (ax, ay: Float; cb: TQueryOverlapCB): Integer;
+    function pointQuery (ax, ay: Float; cb: TQueryOverlapCB): TTreeFlesh;
     function segmentQuery (var qr: TSegmentQueryResult; ax, ay, bx, by: Float; cb: TSegQueryCallback): Boolean;
 
     function computeTreeHeight (): Integer; // compute the height of the tree
@@ -481,8 +498,8 @@ end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-procedure TDynAABBTree.TSegmentQueryResult.reset (); begin dist := -1; flesh := -1; end;
-function TDynAABBTree.TSegmentQueryResult.valid (): Boolean; begin result := (dist >= 0) and (flesh >= 0); end;
+procedure TDynAABBTree.TSegmentQueryResult.reset (); begin dist := -1; flesh := nil; end;
+function TDynAABBTree.TSegmentQueryResult.valid (): Boolean; begin result := (dist >= 0) and (flesh <> nil); end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
@@ -494,7 +511,7 @@ begin
   parentId := 0;
   children[0] := 0;
   children[1] := 0;
-  //flesh: Integer;
+  flesh := nil;
   height := 0;
   aabb.setX0Y0X1Y1(0, 0, 0, 0);
 end;
@@ -1225,9 +1242,9 @@ end;
 
 
 // get object by nodeid; can return nil for invalid ids
-function TDynAABBTree.getNodeObjectId (nodeid: Integer): Integer;
+function TDynAABBTree.getNodeObjectId (nodeid: Integer): TTreeFlesh;
 begin
-  if (nodeid >= 0) and (nodeid < mNodeCount) and (mNodes[nodeid].leaf) then result := mNodes[nodeid].flesh else result := -1;
+  if (nodeid >= 0) and (nodeid < mNodeCount) and (mNodes[nodeid].leaf) then result := mNodes[nodeid].flesh else result := nil;
 end;
 
 // get fat object AABB by nodeid; returns random shit for invalid ids
@@ -1241,7 +1258,7 @@ end;
 // this method creates a new leaf node in the tree and returns the id of the corresponding node or -1 on error
 // AABB for static object will not be "fat" (simple optimization)
 // WARNING! inserting the same object several times *WILL* break everything!
-function TDynAABBTree.insertObject (flesh: Integer; staticObject: Boolean=false): Integer;
+function TDynAABBTree.insertObject (flesh: TTreeFlesh; staticObject: Boolean=false): Integer;
 var
   aabb: AABB2D;
   nodeId: Integer;
@@ -1331,8 +1348,8 @@ begin
 end;
 
 
-// report body that contains the given point, or -1
-function TDynAABBTree.pointQuery (ax, ay: Float; cb: TQueryOverlapCB): Integer;
+// report body that contains the given point, or nil
+function TDynAABBTree.pointQuery (ax, ay: Float; cb: TQueryOverlapCB): TTreeFlesh;
 var
   nid: Integer;
   function checker (node: PTreeNode): Boolean;
@@ -1342,7 +1359,7 @@ var
 begin
   nid := visit(checker, cb);
   {$IFDEF aabbtree_many_asserts}assert((nid < 0) or ((nid >= 0) and (nid < mNodeCount) and (mNodes[nid].leaf)));{$ENDIF}
-  if (nid >= 0) then result := mNodes[nid].flesh else result := -1;
+  if (nid >= 0) then result := mNodes[nid].flesh else result := nil;
 end;
 
 
@@ -1360,7 +1377,7 @@ var
     result := node.aabb.intersects(curax, curay, curbx, curby);
   end;
 
-  function visitor (flesh: Integer): Boolean;
+  function visitor (flesh: TTreeFlesh): Boolean;
   var
     hitFraction: Float;
   begin
