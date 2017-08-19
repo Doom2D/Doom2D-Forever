@@ -189,6 +189,26 @@ const
   FLAG_SIGNATURE = $47414C46; // 'FLAG'
 
 
+type
+  TPanelGrid = specialize TBodyGridBase<TPanel>;
+
+  TDynAABBTreePanelBase = specialize TDynAABBTreeBase<TPanel>;
+
+  TDynAABBTreeMap = class(TDynAABBTreePanelBase)
+    function getFleshAABB (out aabb: AABB2D; pan: TPanel; tag: Integer): Boolean; override;
+  end;
+
+function TDynAABBTreeMap.getFleshAABB (out aabb: AABB2D; pan: TPanel; tag: Integer): Boolean;
+begin
+  result := false;
+  if (pan = nil) then begin aabb := AABB2D.Create(0, 0, 0, 0); exit; end;
+  aabb := AABB2D.Create(pan.X, pan.Y, pan.X+pan.Width-1, pan.Y+pan.Height-1);
+  if (pan.Width < 1) or (pan.Height < 1) then exit;
+  if not aabb.valid then raise Exception.Create('wutafuuuuuuu?!');
+  result := true;
+end;
+
+
 function panelTypeToTag (panelType: Word): Integer;
 begin
   case panelType of
@@ -231,37 +251,14 @@ type
     PArrID: Integer;
   end;
 
-type
-  TDynAABBTreeMap = class(TDynAABBTree)
-    function getFleshAABB (var aabb: AABB2D; flesh: TTreeFlesh; tag: Integer): Boolean; override;
-  end;
-
-function TDynAABBTreeMap.getFleshAABB (var aabb: AABB2D; flesh: TTreeFlesh; tag: Integer): Boolean;
-var
-  pan: TPanel;
-begin
-  result := false;
-  if (flesh = nil) then begin aabb := AABB2D.Create(0, 0, 0, 0); exit; end;
-  //pan := (flesh as TPanel);
-  pan := TPanel(flesh);
-  aabb := AABB2D.Create(pan.X, pan.Y, pan.X+pan.Width, pan.Y+pan.Height);
-  if (pan.Width < 1) or (pan.Height < 1) then exit;
-  //if (pan.Width = 1) then aabb.maxX += 1;
-  //if (pan.Height = 1) then aabb.maxY += 1;
-  //if (pan.Width < 3) or (pan.Height < 3) then exit;
-  //aabb := AABB2D.Create(pan.X, pan.Y, pan.X+pan.Width-2, pan.Y+pan.Height-2);
-  if not aabb.valid then raise Exception.Create('wutafuuuuuuu?!');
-  result := aabb.valid;
-end;
-
 var
   PanelById:     array of TPanelID;
   Textures:      TLevelTextureArray;
   RespawnPoints: Array of TRespawnPoint;
   FlagPoints:    Array [FLAG_RED..FLAG_BLUE] of PFlagPoint;
   //DOMFlagPoints: Array of TFlagPoint;
-  gMapGrid: TBodyGrid = nil;
-  mapTree: TDynAABBTree = nil;
+  gMapGrid: TPanelGrid = nil;
+  mapTree: TDynAABBTreeMap = nil;
 
 
 procedure g_Map_ProfilersBegin ();
@@ -1080,7 +1077,7 @@ begin
 
   e_WriteLog(Format('map dimensions: (%d,%d)-(%d,%d)', [mapX0, mapY0, mapX1, mapY1]), MSG_WARNING);
 
-  gMapGrid := TBodyGrid.Create(mapX0, mapY0, mapX1-mapX0+1, mapY1-mapY0+1);
+  gMapGrid := TPanelGrid.Create(mapX0, mapY0, mapX1-mapX0+1, mapY1-mapY0+1);
   mapTree := TDynAABBTreeMap.Create();
 
   addPanelsToGrid(gWalls, PANEL_WALL);
@@ -1923,16 +1920,10 @@ end;
 
 // new algo
 procedure g_Map_CollectDrawPanels (x0, y0, wdt, hgt: Integer);
-  function checker (obj: TObject; tag: Integer): Boolean;
-  var
-    pan: TPanel;
+  function checker (pan: TPanel; tag: Integer): Boolean;
   begin
     result := false; // don't stop, ever
-    //pan := (obj as TPanel);
-    pan := TPanel(obj);
-    //if (PanelType = PANEL_CLOSEDOOR) then begin if not pan.Door then exit; end else begin if pan.Door then exit; end;
     if ((tag and GridTagDoor) <> 0) <> pan.Door then exit;
-    //dplAddPanel(pan);
     gDrawPanelList.insert(pan);
   end;
 
@@ -1949,26 +1940,13 @@ begin
     gMapGrid.forEachInAABB(x0, y0, wdt, hgt, checker, (GridTagBack or GridTagStep or GridTagWall or GridTagDoor or GridTagAcid1 or GridTagAcid2 or GridTagWater or GridTagFore));
   end;
   // list will be rendered in `g_game.DrawPlayer()`
-  (*
-  while (gDrawPanelList.count > 0) do
-  begin
-    //(gDrawPanelList.front() as TPanel).Draw();
-    TPanel(gDrawPanelList.front()).Draw();
-    gDrawPanelList.popFront();
-  end;
-  *)
 end;
 
 
 procedure g_Map_DrawPanelShadowVolumes(lightX: Integer; lightY: Integer; radius: Integer);
-  function checker (obj: TObject; tag: Integer): Boolean;
-  var
-    pan: TPanel;
+  function checker (pan: TPanel; tag: Integer): Boolean;
   begin
     result := false; // don't stop, ever
-    //if (tag <> GridTagWall) and (tag <> GridTagDoor) then exit; // only walls
-    //pan := (obj as TPanel);
-    pan := TPanel(obj);
     pan.DrawShadowVolume(lightX, lightY, radius);
   end;
 
@@ -2144,12 +2122,9 @@ end;
 
 
 function g_Map_CollidePanel(X, Y: Integer; Width, Height: Word; PanelType: Word; b1x3: Boolean): Boolean;
-  function checker (obj: TObject; tag: Integer): Boolean;
-  var
-    pan: TPanel;
+  function checker (pan: TPanel; tag: Integer): Boolean;
   begin
     result := false; // don't stop, ever
-    pan := TPanel(obj);
 
     if ((tag and (GridTagWall or GridTagDoor)) <> 0) then
     begin
@@ -2222,9 +2197,7 @@ var
   texid: DWORD;
 
   // slightly different from the old code, but meh...
-  function checker (obj: TObject; tag: Integer): Boolean;
-  var
-    pan: TPanel;
+  function checker (pan: TPanel; tag: Integer): Boolean;
   begin
     result := false; // don't stop, ever
     //if ((tag and (GridTagWater or GridTagAcid1 or GridTagAcid2)) = 0) then exit;
@@ -2235,10 +2208,9 @@ var
       //2: if ((tag and (GridTagWater or GridTagAcid1 or GridTagAcid2) = 0) then exit; // allowed: water, acid1, acid2
     end;
     // collision?
-    pan := (obj as TPanel);
     if not g_Collide(X, Y, Width, Height, pan.X, pan.Y, pan.Width, pan.Height) then exit;
     // yeah
-    texid := TPanel(obj).GetTextureID();
+    texid := pan.GetTextureID();
     // water? water has the highest priority, so stop right here
     if ((tag and GridTagWater) <> 0) then begin cctype := 0; result := true; exit; end;
     // acid2?

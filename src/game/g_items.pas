@@ -88,10 +88,35 @@ uses
   g_grid, z_aabbtree, binheap;
 
 
+var
+  ggItems: Array of TItem = nil;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
+type
+  TDynAABBTreeItemBase = specialize TDynAABBTreeBase<Integer>;
+
+  TDynAABBTreeItem = class(TDynAABBTreeItemBase)
+    function getFleshAABB (out aabb: AABB2D; flesh: Integer; tag: Integer): Boolean; override;
+  end;
+
+function TDynAABBTreeItem.getFleshAABB (out aabb: AABB2D; flesh: Integer; tag: Integer): Boolean;
+var
+  it: PItem;
+begin
+  result := false;
+  if (flesh < 0) or (flesh > High(ggItems)) then raise Exception.Create('DynTree: trying to get dimensions of inexistant item');
+  it := @ggItems[flesh];
+  if (it.Obj.Rect.Width < 1) or (it.Obj.Rect.Height < 1) then exit;
+  aabb := AABB2D.Create(it.Obj.X, it.Obj.Y, it.Obj.X+it.Obj.Rect.Width-1, it.Obj.Y+it.Obj.Rect.Height-1);
+  if not aabb.valid then raise Exception.Create('wutafuuuuuuu?!');
+  result := true;
+end;
+
+
 // ////////////////////////////////////////////////////////////////////////// //
 var
-  itemTree: TDynAABBTree = nil;
-  ggItems: Array of TItem = nil;
+  itemTree: TDynAABBTreeItem = nil;
   freeIds: TBinaryHeapInt = nil; // free item ids
 
 
@@ -122,35 +147,13 @@ end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-type
-  TDynAABBTreeItem = class(TDynAABBTree)
-    function getFleshAABB (var aabb: AABB2D; flesh: TTreeFlesh; tag: Integer): Boolean; override;
-  end;
-
-function TDynAABBTreeItem.getFleshAABB (var aabb: AABB2D; flesh: TTreeFlesh; tag: Integer): Boolean;
-var
-  it: PItem;
-begin
-  result := false;
-  if (flesh = nil) then begin aabb := AABB2D.Create(0, 0, 0, 0); exit; end;
-  //if not g_ItemValidId(tag) then raise Exception.Create('DynTree: trying to get dimensions of inexistant item');
-  if (tag < 0) or (tag > High(ggItems)) then raise Exception.Create('DynTree: trying to get dimensions of inexistant item');
-  it := @ggItems[tag];
-  if (it.Obj.Rect.Width < 1) or (it.Obj.Rect.Height < 1) then exit;
-  aabb := AABB2D.Create(it.Obj.X, it.Obj.Y, it.Obj.X+it.Obj.Rect.Width, it.Obj.Y+it.Obj.Rect.Height);
-  if not aabb.valid then raise Exception.Create('wutafuuuuuuu?!');
-  result := true;
-end;
-
-
-// ////////////////////////////////////////////////////////////////////////// //
 procedure TItem.positionChanged ();
 var
   x, y: Integer;
 begin
   if (treeNode = -1) then
   begin
-    treeNode := itemTree.insertObject(itemTree{doesn't matter}, arrIdx, true); // static object
+    treeNode := itemTree.insertObject(arrIdx, 0, true); // static object
     itemTree.getNodeXY(treeNode, x, y);
     {$IF DEFINED(D2F_DEBUG)}e_WriteLog(Format('item #%d: inserted into the tree; nodeid=%d; x=%d; y=%d', [arrIdx, treeNode, x, y]), MSG_NOTIFY);{$ENDIF}
   end
@@ -164,7 +167,7 @@ begin
     itemTree.updateObject(treeNode);
     {$ELSE}
     itemTree.removeObject(treeNode);
-    treeNode := itemTree.insertObject(itemTree{doesn't matter}, arrIdx, true); // static object
+    treeNode := itemTree.insertObject(arrIdx, 0, true); // static object
     {$ENDIF}
 
     itemTree.getNodeXY(treeNode, x, y);

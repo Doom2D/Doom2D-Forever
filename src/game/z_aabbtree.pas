@@ -29,8 +29,6 @@ uses
 type
   {$IFDEF aabbtree_use_floats}TreeNumber = Single;{$ELSE}TreeNumber = Integer;{$ENDIF}
 
-  TTreeFlesh = TObject;
-
 
 // ////////////////////////////////////////////////////////////////////////// //
 type
@@ -133,7 +131,10 @@ type
 // ////////////////////////////////////////////////////////////////////////// //
 // Dynamic AABB Tree: can be used to speed up broad phase in various engines
 type
-  TDynAABBTree = class(TObject)
+  generic TDynAABBTreeBase<ITP> = class(TObject)
+  public
+    type TTreeFlesh = ITP;
+
   private
     type
       PTreeNode = ^TTreeNode;
@@ -167,8 +168,12 @@ type
         procedure dumpToLog ();
       end;
 
-      TVisitCheckerCB = function (node: PTreeNode): Boolean is nested;
+      TVisitCheckerCB = function (node: PTreeNode): Boolean of object;
       //TVisitVisitorCB = function (abody: TTreeFlesh; atag: Integer): Boolean is nested;
+
+    const ModeNoChecks = 0;
+    const ModeAABB = 1;
+    const ModePoint = 2;
 
   public
     // return `true` to stop
@@ -184,6 +189,21 @@ type
     const LinearMotionGapMultiplier = 17; // *10
     {$ENDIF}
 
+  public
+    // called when a overlapping node has been found during the call to forEachAABBOverlap()
+    // return `true` to stop
+    type TQueryOverlapCB = function (abody: TTreeFlesh; atag: Integer): Boolean is nested;
+    type TSegQueryCallback = function (abody: TTreeFlesh; ax, ay, bx, by: Single): Single is nested; // return dist from (ax,ay) to abody
+
+    PSegmentQueryResult = ^TSegmentQueryResult;
+    TSegmentQueryResult = record
+      dist: Single; // <0: nothing was hit
+      flesh: TTreeFlesh;
+
+      procedure reset (); inline;
+      function valid (): Boolean; inline;
+    end;
+
   private
     mNodes: array of TTreeNode; // nodes of the tree
     mRootNodeId: Integer; // id of the root node of the tree
@@ -195,19 +215,21 @@ type
     // without triggering a large modification of the tree which can be costly
     mExtraGap: TreeNumber;
 
-  public
-    // called when a overlapping node has been found during the call to forEachAABBOverlap()
-    // return `true` to stop
-    type TQueryOverlapCB = function (abody: TTreeFlesh; atag: Integer): Boolean is nested;
-    type TSegQueryCallback = function (abody: TTreeFlesh; ax, ay, bx, by: Single): Single is nested; // return dist from (ax,ay) to abody
+    chkAABB: AABB2D; // for checkers
+    qSRes: PSegmentQueryResult; // for queries
+    // for segment query
+    maxFraction: Single;
+    curax, curay: Single;
+    curbx, curby: Single;
+    dirx, diry: Single;
+    sqcb: TSegQueryCallback;
 
-    TSegmentQueryResult = record
-      dist: Single; // <0: nothing was hit
-      flesh: TTreeFlesh;
+    function checkerAABB (node: PTreeNode): Boolean;
+    function checkerPoint (node: PTreeNode): Boolean;
+    function checkerRay (node: PTreeNode): Boolean;
+    function visitorRay (flesh: TTreeFlesh; tag: Integer): Boolean;
 
-      procedure reset (); inline;
-      function valid (): Boolean; inline;
-    end;
+    type TQueryOverlapDg = function (abody: TTreeFlesh; atag: Integer): Boolean of object;
 
   private
     function allocateNode (): Integer;
@@ -218,7 +240,9 @@ type
     function computeHeight (nodeId: Integer): Integer;
     function insertObjectInternal (var aabb: AABB2D; staticObject: Boolean): Integer;
     procedure setup ();
-    function visit (var caabb: AABB2D; mode: Integer; checker: TVisitCheckerCB; visitor: TQueryOverlapCB; tagmask: Integer=-1): Integer;
+    function visit (var caabb: AABB2D; mode: Integer; checker: TVisitCheckerCB; visitor: TQueryOverlapCB; visdg: TQueryOverlapDg; tagmask: Integer): Integer;
+
+    function forEachNode (nodeId: Integer; dg: TForEachLeafCB): Boolean;
 
   public
     {$IFDEF aabbtree_query_count}
@@ -243,7 +267,7 @@ type
     function getNodeXY (nodeid: Integer; out x, y: Integer): Boolean; inline;
 
     // return `false` for invalid flesh
-    function getFleshAABB (var aabb: AABB2D; flesh: TTreeFlesh; tag: Integer): Boolean; virtual; abstract;
+    function getFleshAABB (out aabb: AABB2D; flesh: TTreeFlesh; tag: Integer): Boolean; virtual; abstract;
 
     // insert an object into the tree
     // this method creates a new leaf node in the tree and returns the id of the corresponding node or -1 on error
@@ -274,8 +298,8 @@ type
     function updateObject (nodeId: Integer; forceReinsert: Boolean=false): Boolean; overload;
 
     function aabbQuery (ax, ay, aw, ah: TreeNumber; cb: TQueryOverlapCB; tagmask: Integer=-1): TTreeFlesh;
-    function pointQuery (ax, ay: TreeNumber; cb: TQueryOverlapCB): TTreeFlesh;
-    function segmentQuery (var qr: TSegmentQueryResult; ax, ay, bx, by: TreeNumber; cb: TSegQueryCallback): Boolean;
+    function pointQuery (ax, ay: TreeNumber; cb: TQueryOverlapCB; tagmask: Integer=-1): TTreeFlesh;
+    function segmentQuery (var qr: TSegmentQueryResult; ax, ay, bx, by: TreeNumber; cb: TSegQueryCallback; tagmask: Integer=-1): Boolean;
 
     function computeTreeHeight (): Integer; // compute the height of the tree
 
@@ -292,6 +316,13 @@ type
   end;
 
 
+function dtMinI (a, b: Integer): Integer; inline;
+function dtMaxI (a, b: Integer): Integer; inline;
+
+function dtMinF (a, b: TreeNumber): TreeNumber; inline;
+function dtMaxF (a, b: TreeNumber): TreeNumber; inline;
+
+
 implementation
 
 uses
@@ -299,11 +330,11 @@ uses
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-function minI (a, b: Integer): Integer; inline; begin if (a < b) then result := a else result := b; end;
-function maxI (a, b: Integer): Integer; inline; begin if (a > b) then result := a else result := b; end;
+function dtMinI (a, b: Integer): Integer; inline; begin if (a < b) then result := a else result := b; end;
+function dtMaxI (a, b: Integer): Integer; inline; begin if (a > b) then result := a else result := b; end;
 
-function minF (a, b: TreeNumber): TreeNumber; inline; begin if (a < b) then result := a else result := b; end;
-function maxF (a, b: TreeNumber): TreeNumber; inline; begin if (a > b) then result := a else result := b; end;
+function dtMinF (a, b: TreeNumber): TreeNumber; inline; begin if (a < b) then result := a else result := b; end;
+function dtMaxF (a, b: TreeNumber): TreeNumber; inline; begin if (a > b) then result := a else result := b; end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
@@ -363,7 +394,7 @@ begin
   setMergeTwo(aabb0, aabb1);
 end;
 
-function AABB2D.getvalid (): Boolean; inline; begin result := (minX < maxX) and (minY < maxY); end;
+function AABB2D.getvalid (): Boolean; inline; begin result := (minX <= maxX) and (minY <= maxY); end;
 
 {$IFDEF aabbtree_use_floats}
 function AABB2D.getcenterX (): TreeNumber; inline; begin result := (minX+maxX)/2.0; end;
@@ -372,8 +403,8 @@ function AABB2D.getcenterY (): TreeNumber; inline; begin result := (minY+maxY)/2
 function AABB2D.getcenterX (): TreeNumber; inline; begin result := (minX+maxX) div 2; end;
 function AABB2D.getcenterY (): TreeNumber; inline; begin result := (minY+maxY) div 2; end;
 {$ENDIF}
-function AABB2D.getextentX (): TreeNumber; inline; begin result := (maxX-minX); end;
-function AABB2D.getextentY (): TreeNumber; inline; begin result := (maxY-minY); end;
+function AABB2D.getextentX (): TreeNumber; inline; begin result := maxX-minX+1; end;
+function AABB2D.getextentY (): TreeNumber; inline; begin result := maxY-minY+1; end;
 
 procedure AABB2D.copyFrom (var aabb: AABB2D); inline;
 begin
@@ -389,10 +420,10 @@ end;
 
 procedure AABB2D.setDims (x0, y0, x1, y1: TreeNumber); inline;
 begin
-  minX := minF(x0, x1);
-  minY := minF(y0, y1);
-  maxX := maxF(x0, x1);
-  maxY := maxF(y0, y1);
+  minX := dtMinF(x0, x1);
+  minY := dtMinF(y0, y1);
+  maxX := dtMaxF(x0, x1);
+  maxY := dtMaxF(y0, y1);
   {$IF DEFINED(D2F_DEBUG)}
   if not valid then raise Exception.Create('setDims: result is fucked');
   {$ENDIF}
@@ -405,10 +436,10 @@ begin
   if not aabb0.valid then raise Exception.Create('setMergeTwo: aabb0 is fucked');
   if not aabb1.valid then raise Exception.Create('setMergeTwo: aabb0 is fucked');
   {$ENDIF}
-  minX := minF(aabb0.minX, aabb1.minX);
-  minY := minF(aabb0.minY, aabb1.minY);
-  maxX := maxF(aabb0.maxX, aabb1.maxX);
-  maxY := maxF(aabb0.maxY, aabb1.maxY);
+  minX := dtMinF(aabb0.minX, aabb1.minX);
+  minY := dtMinF(aabb0.minY, aabb1.minY);
+  maxX := dtMaxF(aabb0.maxX, aabb1.maxX);
+  maxY := dtMaxF(aabb0.maxY, aabb1.maxY);
   {$IF DEFINED(D2F_DEBUG)}
   if not valid then raise Exception.Create('setMergeTwo: result is fucked');
   {$ENDIF}
@@ -417,7 +448,7 @@ end;
 
 function AABB2D.volume (): TreeNumber; inline;
 begin
-  result := (maxX-minX)*(maxY-minY);
+  result := (maxX-minX+1)*(maxY-minY+1);
 end;
 
 
@@ -426,10 +457,10 @@ begin
   {$IF DEFINED(D2F_DEBUG)}
   if not aabb.valid then raise Exception.Create('merge: aabb is fucked');
   {$ENDIF}
-  minX := minF(minX, aabb.minX);
-  minY := minF(minY, aabb.minY);
-  maxX := maxF(maxX, aabb.maxX);
-  maxY := maxF(maxY, aabb.maxY);
+  minX := dtMinF(minX, aabb.minX);
+  minY := dtMinF(minY, aabb.minY);
+  maxX := dtMaxF(maxX, aabb.maxX);
+  maxY := dtMaxF(maxY, aabb.maxY);
   {$IF DEFINED(D2F_DEBUG)}
   if not valid then raise Exception.Create('setMergeTwo: result is fucked');
   {$ENDIF}
@@ -527,20 +558,20 @@ end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-procedure TDynAABBTree.TSegmentQueryResult.reset (); inline; begin dist := -1; flesh := nil; end;
-function TDynAABBTree.TSegmentQueryResult.valid (): Boolean; inline; begin result := (dist >= 0) and (flesh <> nil); end;
+procedure TDynAABBTreeBase.TSegmentQueryResult.reset (); inline; begin dist := -1; flesh := Default(ITP); end;
+function TDynAABBTreeBase.TSegmentQueryResult.valid (): Boolean; inline; begin result := (dist >= 0) and (flesh <> Default(ITP)); end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-function TDynAABBTree.TTreeNode.leaf (): Boolean; inline; begin result := (height = 0); end;
-function TDynAABBTree.TTreeNode.isfree (): Boolean; inline; begin result := (height = -1); end;
+function TDynAABBTreeBase.TTreeNode.leaf (): Boolean; inline; begin result := (height = 0); end;
+function TDynAABBTreeBase.TTreeNode.isfree (): Boolean; inline; begin result := (height = -1); end;
 
-procedure TDynAABBTree.TTreeNode.clear (); inline;
+procedure TDynAABBTreeBase.TTreeNode.clear (); inline;
 begin
   parentId := 0;
   children[0] := 0;
   children[1] := 0;
-  flesh := nil;
+  flesh := Default(ITP);
   tag := 0;
   height := 0;
   aabb.minX := 0;
@@ -549,7 +580,7 @@ begin
   aabb.maxY := 0;
 end;
 
-procedure TDynAABBTree.TTreeNode.dumpToLog ();
+procedure TDynAABBTreeBase.TTreeNode.dumpToLog ();
 begin
   e_WriteLog(Format('NODE: parentId=%d; children=[%d,%d]; height=%d; tag=%d; fleshX=%d; fleshY=%d; aabb=(%d,%d)-(%d,%d)',
     [parentId, children[0], children[1], Integer(height), tag, fleshX, fleshY, aabb.minX, aabb.minY, aabb.maxX, aabb.maxY]),
@@ -559,7 +590,7 @@ end;
 
 // ////////////////////////////////////////////////////////////////////////// //
 // allocate and return a node to use in the tree
-function TDynAABBTree.allocateNode (): Integer;
+function TDynAABBTreeBase.allocateNode (): Integer;
 var
   i, newsz, freeNodeId: Integer;
   node: PTreeNode;
@@ -597,14 +628,14 @@ end;
 
 
 // release a node
-procedure TDynAABBTree.releaseNode (nodeId: Integer);
+procedure TDynAABBTreeBase.releaseNode (nodeId: Integer);
 begin
   {$IFDEF aabbtree_many_asserts}assert(mNodeCount > 0);{$ENDIF}
   {$IFDEF aabbtree_many_asserts}assert((nodeId >= 0) and (nodeId < mAllocCount));{$ENDIF}
   {$IFDEF aabbtree_many_asserts}assert(mNodes[nodeId].height >= 0);{$ENDIF}
   mNodes[nodeId].nextNodeId := mFreeNodeId;
   mNodes[nodeId].height := -1;
-  mNodes[nodeId].flesh := nil;
+  mNodes[nodeId].flesh := Default(ITP);
   mFreeNodeId := nodeId;
   Dec(mNodeCount);
 
@@ -614,7 +645,7 @@ end;
 
 // insert a leaf node in the tree
 // the process of inserting a new leaf node in the dynamic tree is described in the book "Introduction to Game Physics with Box2D" by Ian Parberry
-procedure TDynAABBTree.insertLeafNode (nodeId: Integer);
+procedure TDynAABBTreeBase.insertLeafNode (nodeId: Integer);
 var
   newNodeAABB, mergedAABBs, currentAndLeftAABB, currentAndRightAABB: AABB2D;
   currentNodeId: Integer;
@@ -723,7 +754,7 @@ begin
     {$IFDEF aabbtree_many_asserts}assert(rightChild <> TTreeNode.NullTreeNode);{$ENDIF}
 
     // recompute the height of the node in the tree
-    mNodes[currentNodeId].height := maxI(mNodes[leftChild].height, mNodes[rightChild].height)+1;
+    mNodes[currentNodeId].height := dtMaxI(mNodes[leftChild].height, mNodes[rightChild].height)+1;
     {$IFDEF aabbtree_many_asserts}assert(mNodes[currentNodeId].height > 0);{$ENDIF}
 
     // recompute the AABB of the node
@@ -737,7 +768,7 @@ end;
 
 
 // remove a leaf node from the tree
-procedure TDynAABBTree.removeLeafNode (nodeId: Integer);
+procedure TDynAABBTreeBase.removeLeafNode (nodeId: Integer);
 var
   currentNodeId, parentNodeId, grandParentNodeId, siblingNodeId: Integer;
   leftChildId, rightChildId: Integer;
@@ -791,7 +822,7 @@ begin
 
       // recompute the AABB and the height of the current node
       mNodes[currentNodeId].aabb.setMergeTwo(mNodes[leftChildId].aabb, mNodes[rightChildId].aabb);
-      mNodes[currentNodeId].height := maxI(mNodes[leftChildId].height, mNodes[rightChildId].height)+1;
+      mNodes[currentNodeId].height := dtMaxI(mNodes[leftChildId].height, mNodes[rightChildId].height)+1;
       {$IFDEF aabbtree_many_asserts}assert(mNodes[currentNodeId].height > 0);{$ENDIF}
 
       currentNodeId := mNodes[currentNodeId].parentId;
@@ -810,7 +841,7 @@ end;
 // balance the sub-tree of a given node using left or right rotations
 // the rotation schemes are described in the book "Introduction to Game Physics with Box2D" by Ian Parberry
 // this method returns the new root node id
-function TDynAABBTree.balanceSubTreeAtNode (nodeId: Integer): Integer;
+function TDynAABBTreeBase.balanceSubTreeAtNode (nodeId: Integer): Integer;
 var
   nodeA, nodeB, nodeC, nodeF, nodeG: PTreeNode;
   nodeBId, nodeCId, nodeFId, nodeGId: Integer;
@@ -882,8 +913,8 @@ begin
       nodeC.aabb.setMergeTwo(nodeA.aabb, nodeF.aabb);
 
       // recompute the height of node A and C
-      nodeA.height := maxI(nodeB.height, nodeG.height)+1;
-      nodeC.height := maxI(nodeA.height, nodeF.height)+1;
+      nodeA.height := dtMaxI(nodeB.height, nodeG.height)+1;
+      nodeC.height := dtMaxI(nodeA.height, nodeF.height)+1;
       {$IFDEF aabbtree_many_asserts}assert(nodeA.height > 0);{$ENDIF}
       {$IFDEF aabbtree_many_asserts}assert(nodeC.height > 0);{$ENDIF}
     end
@@ -899,8 +930,8 @@ begin
       nodeC.aabb.setMergeTwo(nodeA.aabb, nodeG.aabb);
 
       // recompute the height of node A and C
-      nodeA.height := maxI(nodeB.height, nodeF.height)+1;
-      nodeC.height := maxI(nodeA.height, nodeG.height)+1;
+      nodeA.height := dtMaxI(nodeB.height, nodeF.height)+1;
+      nodeC.height := dtMaxI(nodeA.height, nodeG.height)+1;
       {$IFDEF aabbtree_many_asserts}assert(nodeA.height > 0);{$ENDIF}
       {$IFDEF aabbtree_many_asserts}assert(nodeC.height > 0);{$ENDIF}
     end;
@@ -958,8 +989,8 @@ begin
       nodeB.aabb.setMergeTwo(nodeA.aabb, nodeF.aabb);
 
       // recompute the height of node A and B
-      nodeA.height := maxI(nodeC.height, nodeG.height)+1;
-      nodeB.height := maxI(nodeA.height, nodeF.height)+1;
+      nodeA.height := dtMaxI(nodeC.height, nodeG.height)+1;
+      nodeB.height := dtMaxI(nodeA.height, nodeF.height)+1;
       {$IFDEF aabbtree_many_asserts}assert(nodeA.height > 0);{$ENDIF}
       {$IFDEF aabbtree_many_asserts}assert(nodeB.height > 0);{$ENDIF}
     end
@@ -975,8 +1006,8 @@ begin
       nodeB.aabb.setMergeTwo(nodeA.aabb, nodeG.aabb);
 
       // recompute the height of node A and B
-      nodeA.height := maxI(nodeC.height, nodeF.height)+1;
-      nodeB.height := maxI(nodeA.height, nodeG.height)+1;
+      nodeA.height := dtMaxI(nodeC.height, nodeF.height)+1;
+      nodeB.height := dtMaxI(nodeA.height, nodeG.height)+1;
       {$IFDEF aabbtree_many_asserts}assert(nodeA.height > 0);{$ENDIF}
       {$IFDEF aabbtree_many_asserts}assert(nodeB.height > 0);{$ENDIF}
     end;
@@ -992,7 +1023,7 @@ end;
 
 
 // compute the height of a given node in the tree
-function TDynAABBTree.computeHeight (nodeId: Integer): Integer;
+function TDynAABBTreeBase.computeHeight (nodeId: Integer): Integer;
 var
   node: PTreeNode;
   leftHeight, rightHeight: Integer;
@@ -1008,12 +1039,12 @@ begin
   rightHeight := computeHeight(node.children[TTreeNode.Right]);
 
   // return the height of the node
-  result := 1+maxI(leftHeight, rightHeight);
+  result := 1+dtMaxI(leftHeight, rightHeight);
 end;
 
 
 // internally add an object into the tree
-function TDynAABBTree.insertObjectInternal (var aabb: AABB2D; staticObject: Boolean): Integer;
+function TDynAABBTreeBase.insertObjectInternal (var aabb: AABB2D; staticObject: Boolean): Integer;
 var
   nodeId: Integer;
   node: PTreeNode;
@@ -1048,7 +1079,7 @@ end;
 
 
 // initialize the tree
-procedure TDynAABBTree.setup ();
+procedure TDynAABBTreeBase.setup ();
 var
   i: Integer;
 begin
@@ -1072,88 +1103,88 @@ end;
 
 
 // also, checks if the tree structure is valid (for debugging purpose)
-function TDynAABBTree.forEachLeaf (dg: TForEachLeafCB): Boolean;
-  function forEachNode (nodeId: Integer): Boolean;
-  var
-    pNode: PTreeNode;
-    leftChild, rightChild, height: Integer;
-    aabb: AABB2D;
+function TDynAABBTreeBase.forEachNode (nodeId: Integer; dg: TForEachLeafCB): Boolean;
+var
+  pNode: PTreeNode;
+  leftChild, rightChild, height: Integer;
+  aabb: AABB2D;
+begin
+  result := false;
+  if (nodeId = TTreeNode.NullTreeNode) then exit;
+  // if it is the root
+  if (nodeId = mRootNodeId) then assert(mNodes[nodeId].parentId = TTreeNode.NullTreeNode);
+  // get the children nodes
+  pNode := @mNodes[nodeId];
+  assert(pNode.height >= 0);
+  if (not pNode.aabb.valid) then
   begin
-    result := false;
-    if (nodeId = TTreeNode.NullTreeNode) then exit;
-    // if it is the root
-    if (nodeId = mRootNodeId) then assert(mNodes[nodeId].parentId = TTreeNode.NullTreeNode);
-    // get the children nodes
-    pNode := @mNodes[nodeId];
-    assert(pNode.height >= 0);
-    if (not pNode.aabb.valid) then
+    {$IFDEF aabbtree_use_floats}
+    e_WriteLog(Format('AABB:(%f,%f)-(%f,%f); volume=%f; valid=%d; height=%d; leaf=%d', [pNode.aabb.minX, pNode.aabb.minY, pNode.aabb.maxX, pNode.aabb.maxY, pNode.aabb.volume, Integer(pNode.aabb.valid), pNode.height, Integer(pNode.leaf)]), MSG_NOTIFY);
+    {$ELSE}
+    e_WriteLog(Format('AABB:(%d,%d)-(%d,%d); volume=%d; valid=%d; height=%d; leaf=%d', [pNode.aabb.minX, pNode.aabb.minY, pNode.aabb.maxX, pNode.aabb.maxY, pNode.aabb.volume, Integer(pNode.aabb.valid), pNode.height, Integer(pNode.leaf)]), MSG_NOTIFY);
+    {$ENDIF}
+    if pNode.leaf then
     begin
+      getFleshAABB(aabb, pNode.flesh, pNode.tag);
       {$IFDEF aabbtree_use_floats}
-      e_WriteLog(Format('AABB:(%f,%f)-(%f,%f); volume=%f; valid=%d; height=%d; leaf=%d', [pNode.aabb.minX, pNode.aabb.minY, pNode.aabb.maxX, pNode.aabb.maxY, pNode.aabb.volume, Integer(pNode.aabb.valid), pNode.height, Integer(pNode.leaf)]), MSG_NOTIFY);
+      e_WriteLog(Format('  LEAF AABB:(%f,%f)-(%f,%f); valid=%d; volume=%f', [aabb.minX, aabb.minY, aabb.maxX, aabb.maxY, Integer(aabb.valid), aabb.volume]), MSG_NOTIFY);
       {$ELSE}
-      e_WriteLog(Format('AABB:(%d,%d)-(%d,%d); volume=%d; valid=%d; height=%d; leaf=%d', [pNode.aabb.minX, pNode.aabb.minY, pNode.aabb.maxX, pNode.aabb.maxY, pNode.aabb.volume, Integer(pNode.aabb.valid), pNode.height, Integer(pNode.leaf)]), MSG_NOTIFY);
+      e_WriteLog(Format('  LEAF AABB:(%d,%d)-(%d,%d); valid=%d; volume=%d', [aabb.minX, aabb.minY, aabb.maxX, aabb.maxY, Integer(aabb.valid), aabb.volume]), MSG_NOTIFY);
       {$ENDIF}
-      if pNode.leaf then
-      begin
-        getFleshAABB(aabb, pNode.flesh, pNode.tag);
-        {$IFDEF aabbtree_use_floats}
-        e_WriteLog(Format('  LEAF AABB:(%f,%f)-(%f,%f); valid=%d; volume=%f', [aabb.minX, aabb.minY, aabb.maxX, aabb.maxY, Integer(aabb.valid), aabb.volume]), MSG_NOTIFY);
-        {$ELSE}
-        e_WriteLog(Format('  LEAF AABB:(%d,%d)-(%d,%d); valid=%d; volume=%d', [aabb.minX, aabb.minY, aabb.maxX, aabb.maxY, Integer(aabb.valid), aabb.volume]), MSG_NOTIFY);
-        {$ENDIF}
-      end;
-    end;
-    assert(pNode.aabb.valid);
-    assert(pNode.aabb.volume > 0);
-    // if the current node is a leaf
-    if (pNode.leaf) then
-    begin
-      assert(pNode.height = 0);
-      if assigned(dg) then result := dg(pNode.flesh, pNode.aabb);
-    end
-    else
-    begin
-      leftChild := pNode.children[TTreeNode.Left];
-      rightChild := pNode.children[TTreeNode.Right];
-      // check that the children node Ids are valid
-      assert((0 <= leftChild) and (leftChild < mAllocCount));
-      assert((0 <= rightChild) and (rightChild < mAllocCount));
-      // check that the children nodes have the correct parent node
-      assert(mNodes[leftChild].parentId = nodeId);
-      assert(mNodes[rightChild].parentId = nodeId);
-      // check the height of node
-      height := 1+maxI(mNodes[leftChild].height, mNodes[rightChild].height);
-      assert(mNodes[nodeId].height = height);
-      // check the AABB of the node
-      aabb := AABB2D.Create(mNodes[leftChild].aabb, mNodes[rightChild].aabb);
-      assert(aabb.minX = mNodes[nodeId].aabb.minX);
-      assert(aabb.minY = mNodes[nodeId].aabb.minY);
-      assert(aabb.maxX = mNodes[nodeId].aabb.maxX);
-      assert(aabb.maxY = mNodes[nodeId].aabb.maxY);
-      // recursively check the children nodes
-      result := forEachNode(leftChild);
-      if not result then result := forEachNode(rightChild);
     end;
   end;
+  assert(pNode.aabb.valid);
+  assert(pNode.aabb.volume > 0);
+  // if the current node is a leaf
+  if (pNode.leaf) then
+  begin
+    assert(pNode.height = 0);
+    if assigned(dg) then result := dg(pNode.flesh, pNode.aabb);
+  end
+  else
+  begin
+    leftChild := pNode.children[TTreeNode.Left];
+    rightChild := pNode.children[TTreeNode.Right];
+    // check that the children node Ids are valid
+    assert((0 <= leftChild) and (leftChild < mAllocCount));
+    assert((0 <= rightChild) and (rightChild < mAllocCount));
+    // check that the children nodes have the correct parent node
+    assert(mNodes[leftChild].parentId = nodeId);
+    assert(mNodes[rightChild].parentId = nodeId);
+    // check the height of node
+    height := 1+dtMaxI(mNodes[leftChild].height, mNodes[rightChild].height);
+    assert(mNodes[nodeId].height = height);
+    // check the AABB of the node
+    aabb := AABB2D.Create(mNodes[leftChild].aabb, mNodes[rightChild].aabb);
+    assert(aabb.minX = mNodes[nodeId].aabb.minX);
+    assert(aabb.minY = mNodes[nodeId].aabb.minY);
+    assert(aabb.maxX = mNodes[nodeId].aabb.maxX);
+    assert(aabb.maxY = mNodes[nodeId].aabb.maxY);
+    // recursively check the children nodes
+    result := forEachNode(leftChild, dg);
+    if not result then result := forEachNode(rightChild, dg);
+  end;
+end;
 
+
+// also, checks if the tree structure is valid (for debugging purpose)
+function TDynAABBTreeBase.forEachLeaf (dg: TForEachLeafCB): Boolean;
 begin
   // recursively check each node
-  result := forEachNode(mRootNodeId);
+  result := forEachNode(mRootNodeId, dg);
 end;
 
 
 // return `true` from visitor to stop immediately
 // checker should check if this node should be considered to further checking
 // returns tree node if visitor says stop or -1
-const ModeNoChecks = 0;
-const ModeAABB = 1;
-const ModePoint = 2;
-function TDynAABBTree.visit (var caabb: AABB2D; mode: Integer; checker: TVisitCheckerCB; visitor: TQueryOverlapCB; tagmask: Integer=-1): Integer;
+function TDynAABBTreeBase.visit (var caabb: AABB2D; mode: Integer; checker: TVisitCheckerCB; visitor: TQueryOverlapCB; visdg: TQueryOverlapDg; tagmask: Integer): Integer;
 var
   stack: array [0..2048] of Integer; // stack with the nodes to visit
   bigstack: array of Integer = nil;
   sp: Integer = 0;
 
+  (*
   procedure spush (id: Integer); inline;
   var
     xsp: Integer;
@@ -1199,15 +1230,16 @@ var
       result := bigstack[sp-length(stack)];
     end;
   end;
+  *)
 
 var
   nodeId: Integer;
   node: PTreeNode;
   doNode: Boolean = false;
+  xsp: Integer;
 begin
   if not assigned(checker) then begin result := -1; exit; end;
-  if not assigned(visitor) then raise Exception.Create('dyntree: empty visitors aren''t supported');
-  //if not assigned(visitor) then begin result := -1; exit; end;
+  //if not assigned(visitor) and not assigned(visdg) then raise Exception.Create('dyntree: empty visitors aren''t supported');
   //try
     {$IFDEF aabbtree_query_count}
     mNodesVisited := 0;
@@ -1215,27 +1247,25 @@ begin
     {$ENDIF}
 
     // start from root node
-    spush(mRootNodeId);
+    {$IF FALSE}
+      spush(mRootNodeId);
+    {$ELSE}
+      if (sp < length(stack)) then begin stack[sp] := mRootNodeId; Inc(sp); end
+      else begin xsp := sp-length(stack); if (xsp < length(bigstack)) then bigstack[xsp] := mRootNodeId
+      else begin SetLength(bigstack, length(bigstack)+1); bigstack[high(bigstack)] := mRootNodeId; end;
+      end;
+      Inc(sp);
+    {$ENDIF}
 
     // while there are still nodes to visit
     while (sp > 0) do
     begin
       // get the next node id to visit
-      {$IF TRUE}
+      {$IF FALSE}
         nodeId := spop();
       {$ELSE}
-        if (sp <= length(stack)) then
-        begin
-          // use "small stack"
-          Dec(sp);
-          nodeId := stack[sp];
-        end
-        else
-        begin
-          // use "big stack"
-          Dec(sp);
-          nodeId := bigstack[sp-length(stack)];
-        end;
+        if (sp <= length(stack)) then begin Dec(sp); nodeId := stack[sp]; end
+        else begin Dec(sp); nodeId := bigstack[sp-length(stack)]; end;
       {$ENDIF}
       // skip it if it is a nil node
       if (nodeId = TTreeNode.NullTreeNode) then continue;
@@ -1270,14 +1300,36 @@ begin
           {$IFDEF aabbtree_query_count}Inc(mNodesDeepVisited);{$ENDIF}
           if ((node.tag and tagmask) <> 0) then
           begin
-            if (visitor(node.flesh, node.tag)) then begin result := nodeId; bigstack := nil; exit; end;
+            if assigned(visitor) then
+            begin
+              if (visitor(node.flesh, node.tag)) then begin result := nodeId; bigstack := nil; exit; end;
+            end;
+            if assigned(visdg) then
+            begin
+              if (visdg(node.flesh, node.tag)) then begin result := nodeId; bigstack := nil; exit; end;
+            end;
           end;
         end
         else
         begin
           // if the node is not a leaf, we need to visit its children
-          spush(node.children[TTreeNode.Left]);
-          spush(node.children[TTreeNode.Right]);
+          {$IF FALSE}
+            spush(node.children[TTreeNode.Left]);
+            spush(node.children[TTreeNode.Right]);
+          {$ELSE}
+            if (sp < length(stack)) then begin stack[sp] := node.children[TTreeNode.Left]; Inc(sp); end
+            else begin xsp := sp-length(stack); if (xsp < length(bigstack)) then bigstack[xsp] := node.children[TTreeNode.Left]
+            else begin SetLength(bigstack, length(bigstack)+1); bigstack[high(bigstack)] := node.children[TTreeNode.Left]; end;
+            end;
+            Inc(sp);
+
+            if (sp < length(stack)) then begin stack[sp] := node.children[TTreeNode.Right]; Inc(sp); end
+            else begin xsp := sp-length(stack); if (xsp < length(bigstack)) then bigstack[xsp] := node.children[TTreeNode.Right]
+            else begin SetLength(bigstack, length(bigstack)+1); bigstack[high(bigstack)] := node.children[TTreeNode.Right]; end;
+            end;
+            Inc(sp);
+
+          {$ENDIF}
         end;
       end;
     end;
@@ -1292,14 +1344,14 @@ end;
 
 // add `extraAABBGap` to bounding boxes so slight object movement won't cause tree rebuilds
 // extra AABB Gap used to allow the collision shape to move a little bit without triggering a large modification of the tree which can be costly
-constructor TDynAABBTree.Create (extraAABBGap: TreeNumber=0);
+constructor TDynAABBTreeBase.Create (extraAABBGap: TreeNumber=0);
 begin
   mExtraGap := extraAABBGap;
   setup();
 end;
 
 
-destructor TDynAABBTree.Destroy ();
+destructor TDynAABBTreeBase.Destroy ();
 begin
   mNodes := nil;
   inherited;
@@ -1307,18 +1359,18 @@ end;
 
 
 // clear all the nodes and reset the tree
-procedure TDynAABBTree.reset ();
+procedure TDynAABBTreeBase.reset ();
 begin
   mNodes := nil;
   setup();
 end;
 
 
-function TDynAABBTree.computeTreeHeight (): Integer; begin result := computeHeight(mRootNodeId); end;
+function TDynAABBTreeBase.computeTreeHeight (): Integer; begin result := computeHeight(mRootNodeId); end;
 
 
 // return the root AABB of the tree
-procedure TDynAABBTree.getRootAABB (var aabb: AABB2D);
+procedure TDynAABBTreeBase.getRootAABB (var aabb: AABB2D);
 begin
   {$IFDEF aabbtree_many_asserts}assert((mRootNodeId >= 0) and (mRootNodeId < mAllocCount));{$ENDIF}
   aabb := mNodes[mRootNodeId].aabb;
@@ -1327,25 +1379,25 @@ end;
 
 // does the given id represents a valid object?
 // WARNING: ids of removed objects can be reused on later insertions!
-function TDynAABBTree.isValidId (id: Integer): Boolean;
+function TDynAABBTreeBase.isValidId (id: Integer): Boolean;
 begin
   result := (id >= 0) and (id < mAllocCount) and (mNodes[id].leaf);
 end;
 
 
 // get object by nodeid; can return nil for invalid ids
-function TDynAABBTree.getNodeObjectId (nodeid: Integer): TTreeFlesh;
+function TDynAABBTreeBase.getNodeObjectId (nodeid: Integer): TTreeFlesh;
 begin
-  if (nodeid >= 0) and (nodeid < mAllocCount) and (mNodes[nodeid].leaf) then result := mNodes[nodeid].flesh else result := nil;
+  if (nodeid >= 0) and (nodeid < mAllocCount) and (mNodes[nodeid].leaf) then result := mNodes[nodeid].flesh else result := Default(ITP);
 end;
 
 // get fat object AABB by nodeid; returns random shit for invalid ids
-procedure TDynAABBTree.getNodeFatAABB (var aabb: AABB2D; nodeid: Integer);
+procedure TDynAABBTreeBase.getNodeFatAABB (var aabb: AABB2D; nodeid: Integer);
 begin
   if (nodeid >= 0) and (nodeid < mAllocCount) and (not mNodes[nodeid].isfree) then aabb.copyFrom(mNodes[nodeid].aabb) else aabb.setDims(0, 0, 0, 0);
 end;
 
-function TDynAABBTree.getNodeXY (nodeid: Integer; out x, y: Integer): Boolean; inline;
+function TDynAABBTreeBase.getNodeXY (nodeid: Integer; out x, y: Integer): Boolean; inline;
 begin
   if (nodeid >= 0) and (nodeid < mAllocCount) and (mNodes[nodeid].leaf) then
   begin
@@ -1372,7 +1424,7 @@ end;
 // this method creates a new leaf node in the tree and returns the id of the corresponding node or -1 on error
 // AABB for static object will not be "fat" (simple optimization)
 // WARNING! inserting the same object several times *WILL* break everything!
-function TDynAABBTree.insertObject (flesh: TTreeFlesh; tag: Integer; staticObject: Boolean=false): Integer;
+function TDynAABBTreeBase.insertObject (flesh: TTreeFlesh; tag: Integer; staticObject: Boolean=false): Integer;
 var
   aabb: AABB2D;
   nodeId, fx, fy: Integer;
@@ -1414,24 +1466,24 @@ end;
 
 // remove an object from the tree
 // WARNING: ids of removed objects can be reused on later insertions!
-procedure TDynAABBTree.removeObject (nodeId: Integer);
+procedure TDynAABBTreeBase.removeObject (nodeId: Integer);
 begin
-  if (nodeId < 0) or (nodeId >= mAllocCount) or (not mNodes[nodeId].leaf) then raise Exception.Create('invalid node id in TDynAABBTree');
+  if (nodeId < 0) or (nodeId >= mAllocCount) or (not mNodes[nodeId].leaf) then raise Exception.Create('invalid node id in TDynAABBTreeBase');
   // remove the node from the tree
   removeLeafNode(nodeId);
   releaseNode(nodeId);
 end;
 
 
-function TDynAABBTree.updateObject (nodeId: Integer; forceReinsert: Boolean=false): Boolean; overload;
+function TDynAABBTreeBase.updateObject (nodeId: Integer; forceReinsert: Boolean=false): Boolean; overload;
 var
   newAABB: AABB2D;
   dispX, dispY: TreeNumber;
 begin
-  if (nodeId < 0) or (nodeId >= mAllocCount) or (not mNodes[nodeId].leaf) then raise Exception.Create('invalid node id in TDynAABBTree.updateObject');
+  if (nodeId < 0) or (nodeId >= mAllocCount) or (not mNodes[nodeId].leaf) then raise Exception.Create('invalid node id in TDynAABBTreeBase.updateObject');
 
-  if not getFleshAABB(newAABB, mNodes[nodeId].flesh, mNodes[nodeId].tag) then raise Exception.Create('invalid flesh dimensions in TDynAABBTree.updateObject');
-  if not newAABB.valid then raise Exception.Create('invalid flesh aabb in TDynAABBTree.updateObject');
+  if not getFleshAABB(newAABB, mNodes[nodeId].flesh, mNodes[nodeId].tag) then raise Exception.Create('invalid flesh dimensions in TDynAABBTreeBase.updateObject');
+  if not newAABB.valid then raise Exception.Create('invalid flesh aabb in TDynAABBTreeBase.updateObject');
 
   dispX := newAABB.minX-mNodes[nodeId].fleshX;
   dispY := newAABB.minY-mNodes[nodeId].fleshY;
@@ -1442,16 +1494,16 @@ begin
   result := updateObject(nodeId, dispX, dispY, forceReinsert);
 end;
 
-function TDynAABBTree.updateObject (nodeId: Integer; dispX, dispY: TreeNumber; forceReinsert: Boolean=false): Boolean; overload;
+function TDynAABBTreeBase.updateObject (nodeId: Integer; dispX, dispY: TreeNumber; forceReinsert: Boolean=false): Boolean; overload;
 var
   newAABB: AABB2D;
   fx, fy: Integer;
   node: PTreeNode;
 begin
-  if (nodeId < 0) or (nodeId >= mAllocCount) or (not mNodes[nodeId].leaf) then raise Exception.Create('invalid node id in TDynAABBTree.updateObject');
+  if (nodeId < 0) or (nodeId >= mAllocCount) or (not mNodes[nodeId].leaf) then raise Exception.Create('invalid node id in TDynAABBTreeBase.updateObject');
 
-  if not getFleshAABB(newAABB, mNodes[nodeId].flesh, mNodes[nodeId].tag) then raise Exception.Create('invalid flesh dimensions in TDynAABBTree.updateObject');
-  if not newAABB.valid then raise Exception.Create('invalid flesh aabb in TDynAABBTree.updateObject');
+  if not getFleshAABB(newAABB, mNodes[nodeId].flesh, mNodes[nodeId].tag) then raise Exception.Create('invalid flesh dimensions in TDynAABBTreeBase.updateObject');
+  if not newAABB.valid then raise Exception.Create('invalid flesh aabb in TDynAABBTreeBase.updateObject');
 
   fx := newAABB.minX;
   fy := newAABB.minY;
@@ -1512,114 +1564,143 @@ begin
 end;
 
 
+function TDynAABBTreeBase.checkerAABB (node: PTreeNode): Boolean;
+begin
+  result := chkAABB.overlaps(node.aabb);
+end;
+
+
 // report all shapes overlapping with the AABB given in parameter
-function TDynAABBTree.aabbQuery (ax, ay, aw, ah: TreeNumber; cb: TQueryOverlapCB; tagmask: Integer=-1): TTreeFlesh;
-var
-  caabb: AABB2D;
-  function checker (node: PTreeNode): Boolean;
-  begin
-    result := caabb.overlaps(node.aabb);
-  end;
+function TDynAABBTreeBase.aabbQuery (ax, ay, aw, ah: TreeNumber; cb: TQueryOverlapCB; tagmask: Integer=-1): TTreeFlesh;
 var
   nid: Integer;
+  oldaabb: AABB2D;
 begin
-  result := nil;
+  result := Default(ITP);
   if not assigned(cb) then exit;
   if (aw < 1) or (ah < 1) then exit;
-  //caabb := AABB2D.Create(ax, ay, ax+aw, ay+ah);
-  caabb.minX := ax;
-  caabb.minY := ay;
-  caabb.maxX := ax+aw;
-  caabb.maxY := ay+ah;
-  nid := visit(caabb, ModeAABB, checker, cb, tagmask);
-  if (nid >= 0) then result := mNodes[nid].flesh else result := nil;
+  //chkAABB := AABB2D.Create(ax, ay, ax+aw, ay+ah);
+  oldaabb := chkAABB;
+  chkAABB.minX := ax;
+  chkAABB.minY := ay;
+  chkAABB.maxX := ax+aw;
+  chkAABB.maxY := ay+ah;
+  nid := visit(chkAABB, ModeAABB, checkerAABB, cb, nil, tagmask);
+  chkAABB := oldaabb;
+  if (nid >= 0) then result := mNodes[nid].flesh else result := Default(ITP);
+end;
+
+
+function TDynAABBTreeBase.checkerPoint (node: PTreeNode): Boolean;
+begin
+  result := node.aabb.contains(chkAABB.minX, chkAABB.minY);
 end;
 
 
 // report body that contains the given point, or nil
-function TDynAABBTree.pointQuery (ax, ay: TreeNumber; cb: TQueryOverlapCB): TTreeFlesh;
-  function checker (node: PTreeNode): Boolean;
-  begin
-    result := node.aabb.contains(ax, ay);
-  end;
-  function dummycb (abody: TTreeFlesh; atag: Integer): Boolean; begin result := false; end;
+function TDynAABBTreeBase.pointQuery (ax, ay: TreeNumber; cb: TQueryOverlapCB; tagmask: Integer=-1): TTreeFlesh;
 var
   nid: Integer;
-  caabb: AABB2D;
+  oldaabb: AABB2D;
 begin
-  if not assigned(cb) then cb := dummycb;
-  caabb := AABB2D.Create(ax, ay, ax+1, ay+1);
-  nid := visit(caabb, ModePoint, checker, cb);
+  oldaabb := chkAABB;
+  chkAABB := AABB2D.Create(ax, ay, ax+1, ay+1);
+  nid := visit(chkAABB, ModePoint, checkerPoint, cb, nil, tagmask);
   {$IFDEF aabbtree_many_asserts}assert((nid < 0) or ((nid >= 0) and (nid < mAllocCount) and (mNodes[nid].leaf)));{$ENDIF}
-  if (nid >= 0) then result := mNodes[nid].flesh else result := nil;
+  chkAABB := oldaabb;
+  if (nid >= 0) then result := mNodes[nid].flesh else result := Default(ITP);
+end;
+
+
+function TDynAABBTreeBase.checkerRay (node: PTreeNode): Boolean;
+begin
+  result := node.aabb.intersects(curax, curay, curbx, curby);
+end;
+
+function TDynAABBTreeBase.visitorRay (flesh: TTreeFlesh; tag: Integer): Boolean;
+var
+  hitFraction: Single;
+begin
+  hitFraction := sqcb(flesh, curax, curay, curbx, curby);
+  // if the user returned a hitFraction of zero, it means that the raycasting should stop here
+  if (hitFraction = 0.0) then
+  begin
+    qSRes.dist := 0;
+    qSRes.flesh := flesh;
+    result := true;
+    exit;
+  end;
+  // if the user returned a positive fraction
+  if (hitFraction > 0.0) then
+  begin
+    // we update the maxFraction value and the ray AABB using the new maximum fraction
+    if (hitFraction < maxFraction) then
+    begin
+      maxFraction := hitFraction;
+      qSRes.dist := hitFraction;
+      qSRes.flesh := flesh;
+      // fix curb here
+      //curb := cura+dir*hitFraction;
+      curbx := curax+dirx*hitFraction;
+      curby := curay+diry*hitFraction;
+    end;
+  end;
+  result := false; // continue
 end;
 
 
 // segment querying method
-function TDynAABBTree.segmentQuery (var qr: TSegmentQueryResult; ax, ay, bx, by: TreeNumber; cb: TSegQueryCallback): Boolean;
+function TDynAABBTreeBase.segmentQuery (var qr: TSegmentQueryResult; ax, ay, bx, by: TreeNumber; cb: TSegQueryCallback; tagmask: Integer=-1): Boolean;
 var
-  maxFraction: Single = 1.0e100; // infinity
-  curax, curay: Single;
-  curbx, curby: Single;
-  dirx, diry: Single;
+  oldmaxFraction: Single;
+  oldcurax, oldcuray: Single;
+  oldcurbx, oldcurby: Single;
+  olddirx, olddiry: Single;
   invlen: Single;
-  caabb: AABB2D;
-
-  function checker (node: PTreeNode): Boolean;
-  begin
-    result := node.aabb.intersects(curax, curay, curbx, curby);
-  end;
-
-  function visitor (flesh: TTreeFlesh; tag: Integer): Boolean;
-  var
-    hitFraction: Single;
-  begin
-    hitFraction := cb(flesh, curax, curay, curbx, curby);
-    // if the user returned a hitFraction of zero, it means that the raycasting should stop here
-    if (hitFraction = 0.0) then
-    begin
-      qr.dist := 0;
-      qr.flesh := flesh;
-      result := true;
-      exit;
-    end;
-    // if the user returned a positive fraction
-    if (hitFraction > 0.0) then
-    begin
-      // we update the maxFraction value and the ray AABB using the new maximum fraction
-      if (hitFraction < maxFraction) then
-      begin
-        maxFraction := hitFraction;
-        qr.dist := hitFraction;
-        qr.flesh := flesh;
-        // fix curb here
-        //curb := cura+dir*hitFraction;
-        curbx := curax+dirx*hitFraction;
-        curby := curay+diry*hitFraction;
-      end;
-    end;
-    result := false; // continue
-  end;
-
+  osres: PSegmentQueryResult;
+  osqcb: TSegQueryCallback;
 begin
   qr.reset();
 
   if (ax >= bx) or (ay >= by) then begin result := false; exit; end;
 
+  oldmaxFraction := maxFraction;
+  oldcurax := curax;
+  oldcuray := curay;
+  oldcurbx := curbx;
+  oldcurby := curby;
+  olddirx := dirx;
+  olddiry := diry;
+
+  maxFraction := 1.0e100; // infinity
   curax := ax;
   curay := ay;
   curbx := bx;
   curby := by;
 
-  dirx := (curbx-curax);
-  diry := (curby-curay);
+  dirx := curbx-curax;
+  diry := curby-curay;
   // normalize
   invlen := 1.0/sqrt(dirx*dirx+diry*diry);
   dirx *= invlen;
   diry *= invlen;
 
-  caabb := AABB2D.Create(0, 0, 1, 1);
-  visit(caabb, ModeNoChecks, checker, visitor);
+  //chkAABB := AABB2D.Create(0, 0, 1, 1);
+  osres := qSRes;
+  qSRes := @qr;
+  osqcb := sqcb;
+  sqcb := cb;
+  visit(chkAABB, ModeNoChecks, checkerRay, nil, visitorRay, tagmask);
+  qSRes := osres;
+  sqcb := osqcb;
+
+  curax := oldcurax;
+  curay := oldcuray;
+  curbx := oldcurbx;
+  curby := oldcurby;
+  dirx := olddirx;
+  diry := olddiry;
+  maxFraction := oldmaxFraction;
 
   result := qr.valid;
 end;

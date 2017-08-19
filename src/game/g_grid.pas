@@ -20,57 +20,46 @@ unit g_grid;
 
 interface
 
-const
-  GridDefaultTileSize = 32;
-  GridCellBucketSize = 8; // WARNING! can't be less than 2!
 
 type
-  TGridQueryCB = function (obj: TObject; tag: Integer): Boolean is nested; // return `true` to stop
+  TBodyProxyId = Integer;
 
-type
-  TBodyGrid = class;
-
-  TBodyProxy = Integer;
-
-  PBodyProxyRec = ^TBodyProxyRec;
-  TBodyProxyRec = record
-  private
-    mX, mY, mWidth, mHeight: Integer; // aabb
-    mQueryMark: DWord; // was this object visited at this query?
-    mObj: TObject;
-    //mGrid: TBodyGrid;
-    mTag: Integer;
-    nextLink: TBodyProxy; // next free or nothing
-
-  private
-    procedure setup (aX, aY, aWidth, aHeight: Integer; aObj: TObject; aTag: Integer);
-
+  generic TBodyGridBase<ITP> = class(TObject)
   public
-    //constructor Create (aGrid: TBodyGrid; aX, aY, aWidth, aHeight: Integer; aObj: TObject; aTag: Integer);
-    //destructor Destroy (); override;
+    type TGridQueryCB = function (obj: ITP; tag: Integer): Boolean is nested; // return `true` to stop
 
-    property x: Integer read mX;
-    property y: Integer read mY;
-    property width: Integer read mWidth;
-    property height: Integer read mHeight;
-    property obj: TObject read mObj;
-    property tag: Integer read mTag;
-    //property grid: TBodyGrid read mGrid;
-  end;
+  private
+    const
+      GridDefaultTileSize = 32;
+      GridCellBucketSize = 8; // WARNING! can't be less than 2!
 
-  PGridCell = ^TGridCell;
-  TGridCell = record
-    {$IFDEF grid_use_buckets}
-    bodies: array [0..GridCellBucketSize-1] of Integer; // -1: end of list
-    {$ELSE}
-    body: Integer;
-    {$ENDIF}
-    next: Integer; // in this cell; index in mCells
-  end;
+  private
+    type
+      PBodyProxyRec = ^TBodyProxyRec;
+      TBodyProxyRec = record
+      private
+        mX, mY, mWidth, mHeight: Integer; // aabb
+        mQueryMark: DWord; // was this object visited at this query?
+        mObj: ITP;
+        mTag: Integer;
+        nextLink: TBodyProxyId; // next free or nothing
 
-  TGridInternalCB = function (grida: Integer): Boolean is nested; // return `true` to stop
+      private
+        procedure setup (aX, aY, aWidth, aHeight: Integer; aObj: ITP; aTag: Integer);
+      end;
 
-  TBodyGrid = class(TObject)
+      PGridCell = ^TGridCell;
+      TGridCell = record
+        {$IFDEF grid_use_buckets}
+        bodies: array [0..GridCellBucketSize-1] of Integer; // -1: end of list
+        {$ELSE}
+        body: Integer;
+        {$ENDIF}
+        next: Integer; // in this cell; index in mCells
+      end;
+
+      TGridInternalCB = function (grida: Integer): Boolean of object; // return `true` to stop
+
   private
     mTileSize: Integer;
     mMinX, mMinY: Integer; // so grids can start at any origin
@@ -81,36 +70,42 @@ type
     mLastQuery: DWord;
     mUsedCells: Integer;
     mProxies: array of TBodyProxyRec;
-    mProxyFree: TBodyProxy; // free
+    mProxyFree: TBodyProxyId; // free
     mProxyCount: Integer; // currently used
     mProxyMaxCount: Integer;
+
+    mUData: TBodyProxyId; // for inserter/remover
+    mTagMask: Integer; // for iterator
+    mItCB: TGridQueryCB; // for iterator
 
   private
     function allocCell: Integer;
     procedure freeCell (idx: Integer); // `next` is simply overwritten
 
-    function allocProxy (aX, aY, aWidth, aHeight: Integer; aObj: TObject; aTag: Integer): TBodyProxy;
-    procedure freeProxy (body: TBodyProxy);
+    function allocProxy (aX, aY, aWidth, aHeight: Integer; aObj: ITP; aTag: Integer): TBodyProxyId;
+    procedure freeProxy (body: TBodyProxyId);
 
-    procedure insert (body: TBodyProxy);
-    procedure remove (body: TBodyProxy);
+    procedure insert (body: TBodyProxyId);
+    procedure remove (body: TBodyProxyId);
 
     function forGridRect (x, y, w, h: Integer; cb: TGridInternalCB): Boolean;
+
+    function inserter (grida: Integer): Boolean;
+    function remover (grida: Integer): Boolean;
+    function iterator (grida: Integer): Boolean;
 
   public
     constructor Create (aMinPixX, aMinPixY, aPixWidth, aPixHeight: Integer; aTileSize: Integer=GridDefaultTileSize);
     destructor Destroy (); override;
 
-    function insertBody (aObj: TObject; ax, ay, aWidth, aHeight: Integer; aTag: Integer=0): TBodyProxy;
-    procedure removeBody (aObj: TBodyProxy); // WARNING! this WILL destroy proxy!
+    function insertBody (aObj: ITP; ax, ay, aWidth, aHeight: Integer; aTag: Integer=0): TBodyProxyId;
+    procedure removeBody (aObj: TBodyProxyId); // WARNING! this WILL destroy proxy!
 
-    procedure moveBody (body: TBodyProxy; dx, dy: Integer);
-    procedure resizeBody (body: TBodyProxy; sx, sy: Integer);
-    procedure moveResizeBody (body: TBodyProxy; dx, dy, sx, sy: Integer);
+    procedure moveBody (body: TBodyProxyId; dx, dy: Integer);
+    procedure resizeBody (body: TBodyProxyId; sx, sy: Integer);
+    procedure moveResizeBody (body: TBodyProxyId; dx, dy, sx, sy: Integer);
 
     function forEachInAABB (x, y, w, h: Integer; cb: TGridQueryCB; tagmask: Integer=-1): Boolean;
-
-    //function getProxyForBody (aObj: TObject; x, y, w, h: Integer): TBodyProxy;
 
     procedure dumpStats ();
   end;
@@ -123,7 +118,7 @@ uses
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-procedure TBodyProxyRec.setup (aX, aY, aWidth, aHeight: Integer; aObj: TObject; aTag: Integer);
+procedure TBodyGridBase.TBodyProxyRec.setup (aX, aY, aWidth, aHeight: Integer; aObj: ITP; aTag: Integer);
 begin
   mX := aX;
   mY := aY;
@@ -137,7 +132,7 @@ end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-constructor TBodyGrid.Create (aMinPixX, aMinPixY, aPixWidth, aPixHeight: Integer; aTileSize: Integer=GridDefaultTileSize);
+constructor TBodyGridBase.Create (aMinPixX, aMinPixY, aPixWidth, aPixHeight: Integer; aTileSize: Integer=GridDefaultTileSize);
 var
   idx: Integer;
 begin
@@ -175,11 +170,14 @@ begin
   mProxyFree := 0;
   mProxyCount := 0;
   mProxyMaxCount := 0;
+  mUData := 0;
+  mTagMask := 0;
+  mItCB := nil;
   e_WriteLog(Format('created grid with size: %dx%d (tile size: %d); pix: %dx%d', [mWidth, mHeight, mTileSize, mWidth*mTileSize, mHeight*mTileSize]), MSG_NOTIFY);
 end;
 
 
-destructor TBodyGrid.Destroy ();
+destructor TBodyGridBase.Destroy ();
 begin
   mCells := nil;
   mGrid := nil;
@@ -188,7 +186,7 @@ begin
 end;
 
 
-procedure TBodyGrid.dumpStats ();
+procedure TBodyGridBase.dumpStats ();
 var
   idx, mcb, cidx, cnt: Integer;
 begin
@@ -208,7 +206,7 @@ begin
 end;
 
 
-function TBodyGrid.allocCell: Integer;
+function TBodyGridBase.allocCell: Integer;
 var
   idx: Integer;
 begin
@@ -236,7 +234,7 @@ begin
 end;
 
 
-procedure TBodyGrid.freeCell (idx: Integer);
+procedure TBodyGridBase.freeCell (idx: Integer);
 begin
   if (idx >= 0) and (idx < High(mCells)) then
   begin
@@ -249,7 +247,7 @@ begin
 end;
 
 
-function TBodyGrid.allocProxy (aX, aY, aWidth, aHeight: Integer; aObj: TObject; aTag: Integer): TBodyProxy;
+function TBodyGridBase.allocProxy (aX, aY, aWidth, aHeight: Integer; aObj: ITP; aTag: Integer): TBodyProxyId;
 var
   olen, idx: Integer;
   px: PBodyProxyRec;
@@ -275,7 +273,7 @@ begin
   if (mProxyMaxCount < mProxyCount) then mProxyMaxCount := mProxyCount;
 end;
 
-procedure TBodyGrid.freeProxy (body: TBodyProxy);
+procedure TBodyGridBase.freeProxy (body: TBodyProxyId);
 begin
   if (body < 0) or (body > High(mProxies)) then exit; // just in case
   if (mProxyCount = 0) then raise Exception.Create('wutafuuuuu in grid (no allocated proxies, what i should free now?)');
@@ -287,7 +285,7 @@ begin
 end;
 
 
-function TBodyGrid.forGridRect (x, y, w, h: Integer; cb: TGridInternalCB): Boolean;
+function TBodyGridBase.forGridRect (x, y, w, h: Integer; cb: TGridInternalCB): Boolean;
 var
   gx, gy: Integer;
 begin
@@ -313,118 +311,152 @@ begin
 end;
 
 
-procedure TBodyGrid.insert (body: TBodyProxy);
-
-  function inserter (grida: Integer): Boolean;
-  var
-    cidx: Integer;
-    pc: PInteger;
-    {$IFDEF grid_use_buckets}
-    pi: PGridCell;
-    f: Integer;
-    {$ENDIF}
+function TBodyGridBase.inserter (grida: Integer): Boolean;
+var
+  cidx: Integer;
+  pc: PInteger;
+  {$IFDEF grid_use_buckets}
+  pi: PGridCell;
+  f: Integer;
+  {$ENDIF}
+begin
+  result := false; // never stop
+  // add body to the given grid cell
+  pc := @mGrid[grida];
+  {$IFDEF grid_use_buckets}
+  if (pc^ <> -1) then
   begin
-    result := false; // never stop
-    // add body to the given grid cell
-    pc := @mGrid[grida];
-    {$IFDEF grid_use_buckets}
-    if (pc^ <> -1) then
+    pi := @mCells[pc^];
+    f := 0;
+    for f := 0 to High(TGridCell.bodies) do
     begin
-      pi := @mCells[pc^];
-      f := 0;
-      for f := 0 to High(TGridCell.bodies) do
+      if (pi.bodies[f] = -1) then
       begin
-        if (pi.bodies[f] = -1) then
-        begin
-          // can add here
-          pi.bodies[f] := body;
-          if (f+1 < Length(TGridCell.bodies)) then pi.bodies[f+1] := -1;
-          exit;
-        end;
+        // can add here
+        pi.bodies[f] := mUData;
+        if (f+1 < Length(TGridCell.bodies)) then pi.bodies[f+1] := -1;
+        exit;
       end;
     end;
-    // either no room, or no cell at all
-    cidx := allocCell();
-    mCells[cidx].bodies[0] := body;
-    mCells[cidx].bodies[1] := -1;
-    mCells[cidx].next := pc^;
-    pc^ := cidx;
-    {$ELSE}
-    cidx := allocCell();
-    //e_WriteLog(Format('  01: allocated cell for grid coords (%d,%d), body coords:(%d,%d): #%d', [gx, gy, dx, dy, cidx]), MSG_NOTIFY);
-    mCells[cidx].body := body;
-    mCells[cidx].next := pc^;
-    pc^ := cidx;
-    {$ENDIF}
   end;
+  // either no room, or no cell at all
+  cidx := allocCell();
+  mCells[cidx].bodies[0] := mUData;
+  mCells[cidx].bodies[1] := -1;
+  mCells[cidx].next := pc^;
+  pc^ := cidx;
+  {$ELSE}
+  cidx := allocCell();
+  //e_WriteLog(Format('  01: allocated cell for grid coords (%d,%d), body coords:(%d,%d): #%d', [gx, gy, dx, dy, cidx]), MSG_NOTIFY);
+  mCells[cidx].body := mUData;
+  mCells[cidx].next := pc^;
+  pc^ := cidx;
+  {$ENDIF}
+end;
 
+
+procedure TBodyGridBase.insert (body: TBodyProxyId);
 var
   px: PBodyProxyRec;
+  oudata: Integer;
 begin
   if (body < 0) or (body > High(mProxies)) then exit; // just in case
   px := @mProxies[body];
+  oudata := mUData;
+  mUData := body;
   forGridRect(px.mX, px.mY, px.mWidth, px.mHeight, inserter);
+  mUData := oudata;
+end;
+
+
+function TBodyGridBase.remover (grida: Integer): Boolean;
+var
+  pidx, idx, tmp, f: Integer;
+  pc: PGridCell;
+begin
+  result := false; // never stop
+  // find and remove cell
+  pidx := -1;
+  idx := mGrid[grida];
+  while (idx >= 0) do
+  begin
+    tmp := mCells[idx].next;
+    {$IFDEF grid_use_buckets}
+    pc := @mCells[idx];
+    f := 0;
+    while (f < High(TGridCell.bodies)) do
+    begin
+      if (pc.bodies[f] = mUData) then
+      begin
+        // i found her!
+        if (f = 0) and (pc.bodies[1] = -1) then
+        begin
+          // this cell contains no elements, remove it
+          tmp := mCells[idx].next;
+          if (pidx = -1) then mGrid[grida] := tmp else mCells[pidx].next := tmp;
+          freeCell(idx);
+        end
+        else
+        begin
+          // remove element from bucket
+          Inc(f);
+          while (f < High(TGridCell.bodies)) do
+          begin
+            pc.bodies[f-1] := pc.bodies[f];
+            if (pc.bodies[f] = -1) then break;
+            Inc(f);
+          end;
+          pc.bodies[High(TGridCell.bodies)] := -1; // just in case
+        end;
+        exit; // assume that we cannot have one object added to bucket twice
+      end;
+      Inc(f);
+    end;
+    {$ELSE}
+    if (mCells[idx].body = mUData) then
+    begin
+      if (pidx = -1) then mGrid[grida] := tmp else mCells[pidx].next := tmp;
+      freeCell(idx);
+      exit; // assume that we cannot have one object added to bucket twice
+    end;
+    {$ENDIF}
+    pidx := idx;
+    idx := tmp;
+  end;
 end;
 
 
 // absolutely not tested
-procedure TBodyGrid.remove (body: TBodyProxy);
-
-(*
-  function remover (grida: Integer): Boolean;
-  var
-    pidx, idx, tmp: Integer;
-  begin
-    result := false; // never stop
-    // find and remove cell
-    pidx := -1;
-    idx := mGrid[grida];
-    while idx >= 0 do
-    begin
-      tmp := mCells[idx].next;
-      if (mCells[idx].body = body) then
-      begin
-        if (pidx = -1) then mGrid[grida] := tmp else mCells[pidx].next := tmp;
-        freeCell(idx);
-        break; // assume that we cannot have one object added to bucket twice
-      end
-      else
-      begin
-        pidx := idx;
-      end;
-      idx := tmp;
-    end;
-  end;
-
+procedure TBodyGridBase.remove (body: TBodyProxyId);
 var
   px: PBodyProxyRec;
-*)
+  oudata: Integer;
 begin
-(*
   if (body < 0) or (body > High(mProxies)) then exit; // just in case
   px := @mProxies[body];
+  oudata := mUData;
+  mUData := body;
   forGridRect(px.mX, px.mY, px.mWidth, px.mHeight, remover);
-*)
-  raise Exception.Create('TBodyGrid.remove: not yet, sorry');
+  mUData := oudata;
 end;
 
 
-function TBodyGrid.insertBody (aObj: TObject; aX, aY, aWidth, aHeight: Integer; aTag: Integer=0): TBodyProxy;
+function TBodyGridBase.insertBody (aObj: ITP; aX, aY, aWidth, aHeight: Integer; aTag: Integer=0): TBodyProxyId;
 begin
   result := allocProxy(aX, aY, aWidth, aHeight, aObj, aTag);
   insert(result);
 end;
 
 
-procedure TBodyGrid.removeBody (aObj: TBodyProxy);
+procedure TBodyGridBase.removeBody (aObj: TBodyProxyId);
 begin
   if (aObj < 0) or (aObj > High(mProxies)) then exit; // just in case
-  removeBody(aObj);
+  remove(aObj);
   freeProxy(aObj);
 end;
 
 
-procedure TBodyGrid.moveResizeBody (body: TBodyProxy; dx, dy, sx, sy: Integer);
+procedure TBodyGridBase.moveResizeBody (body: TBodyProxyId; dx, dy, sx, sy: Integer);
 var
   px: PBodyProxyRec;
 begin
@@ -439,63 +471,65 @@ begin
   insert(body);
 end;
 
-procedure TBodyGrid.moveBody (body: TBodyProxy; dx, dy: Integer);
+procedure TBodyGridBase.moveBody (body: TBodyProxyId; dx, dy: Integer);
 begin
   moveResizeBody(body, dx, dy, 0, 0);
 end;
 
-procedure TBodyGrid.resizeBody (body: TBodyProxy; sx, sy: Integer);
+procedure TBodyGridBase.resizeBody (body: TBodyProxyId; sx, sy: Integer);
 begin
   moveResizeBody(body, 0, 0, sx, sy);
 end;
 
 
-function TBodyGrid.forEachInAABB (x, y, w, h: Integer; cb: TGridQueryCB; tagmask: Integer=-1): Boolean;
-  function iterator (grida: Integer): Boolean;
-  var
-    idx: Integer;
-    px: PBodyProxyRec;
-    {$IFDEF grid_use_buckets}
-    pi: PGridCell;
-    f: Integer;
-    {$ENDIF}
-  begin
-    result := false;
-    idx := mGrid[grida];
-    while (idx >= 0) do
-    begin
-      {$IFDEF grid_use_buckets}
-      pi := @mCells[idx];
-      for f := 0 to High(TGridCell.bodies) do
-      begin
-        if (pi.bodies[f] = -1) then break;
-        px := @mProxies[pi.bodies[f]];
-        if (px.mQueryMark <> mLastQuery) and ((px.mTag and tagmask) <> 0) then
-        begin
-          //e_WriteLog(Format('  query #%d body hit: (%d,%d)-(%dx%d) tag:%d', [mLastQuery, mCells[idx].body.mX, mCells[idx].body.mY, mCells[idx].body.mWidth, mCells[idx].body.mHeight, mCells[idx].body.mTag]), MSG_NOTIFY);
-          px.mQueryMark := mLastQuery;
-          if (cb(px.mObj, px.mTag)) then begin result := true; exit; end;
-        end;
-      end;
-      idx := pi.next;
-      {$ELSE}
-      if (mCells[idx].body <> -1) then
-      begin
-        px := @mProxies[mCells[idx].body];
-        if (px.mQueryMark <> mLastQuery) and ((px.mTag and tagmask) <> 0) then
-        begin
-          //e_WriteLog(Format('  query #%d body hit: (%d,%d)-(%dx%d) tag:%d', [mLastQuery, mCells[idx].body.mX, mCells[idx].body.mY, mCells[idx].body.mWidth, mCells[idx].body.mHeight, mCells[idx].body.mTag]), MSG_NOTIFY);
-          px.mQueryMark := mLastQuery;
-          if (cb(px.mObj, px.mTag)) then begin result := true; exit; end;
-        end;
-      end;
-      idx := mCells[idx].next;
-      {$ENDIF}
-    end;
-  end;
-
+function TBodyGridBase.iterator (grida: Integer): Boolean;
 var
   idx: Integer;
+  px: PBodyProxyRec;
+  {$IFDEF grid_use_buckets}
+  pi: PGridCell;
+  f: Integer;
+  {$ENDIF}
+begin
+  result := false;
+  idx := mGrid[grida];
+  while (idx >= 0) do
+  begin
+    {$IFDEF grid_use_buckets}
+    pi := @mCells[idx];
+    for f := 0 to High(TGridCell.bodies) do
+    begin
+      if (pi.bodies[f] = -1) then break;
+      px := @mProxies[pi.bodies[f]];
+      if (px.mQueryMark <> mLastQuery) and ((px.mTag and mTagMask) <> 0) then
+      begin
+        //e_WriteLog(Format('  query #%d body hit: (%d,%d)-(%dx%d) tag:%d', [mLastQuery, mCells[idx].body.mX, mCells[idx].body.mY, mCells[idx].body.mWidth, mCells[idx].body.mHeight, mCells[idx].body.mTag]), MSG_NOTIFY);
+        px.mQueryMark := mLastQuery;
+        if (mItCB(px.mObj, px.mTag)) then begin result := true; exit; end;
+      end;
+    end;
+    idx := pi.next;
+    {$ELSE}
+    if (mCells[idx].body <> -1) then
+    begin
+      px := @mProxies[mCells[idx].body];
+      if (px.mQueryMark <> mLastQuery) and ((px.mTag and mTagMask) <> 0) then
+      begin
+        //e_WriteLog(Format('  query #%d body hit: (%d,%d)-(%dx%d) tag:%d', [mLastQuery, mCells[idx].body.mX, mCells[idx].body.mY, mCells[idx].body.mWidth, mCells[idx].body.mHeight, mCells[idx].body.mTag]), MSG_NOTIFY);
+        px.mQueryMark := mLastQuery;
+        if (mItCB(px.mObj, px.mTag)) then begin result := true; exit; end;
+      end;
+    end;
+    idx := mCells[idx].next;
+    {$ENDIF}
+  end;
+end;
+
+function TBodyGridBase.forEachInAABB (x, y, w, h: Integer; cb: TGridQueryCB; tagmask: Integer=-1): Boolean;
+var
+  idx: Integer;
+  otagmask: Integer;
+  ocb: TGridQueryCB;
 begin
   result := false;
   if not assigned(cb) then exit;
@@ -510,40 +544,14 @@ begin
   end;
   //e_WriteLog(Format('grid: query #%d: (%d,%d)-(%dx%d)', [mLastQuery, minx, miny, maxx, maxy]), MSG_NOTIFY);
 
+  otagmask := mTagMask;
+  mTagMask := tagmask;
+  ocb := mItCB;
+  mItCB := cb;
   result := forGridRect(x, y, w, h, iterator);
+  mTagMask := otagmask;
+  mItCB := ocb;
 end;
-
-
-(*
-function TBodyGrid.getProxyForBody (aObj: TObject; x, y, w, h: Integer): TBodyProxy;
-var
-  res: TBodyProxy = -1;
-
-  function iterator (grida: Integer): Boolean;
-  var
-    idx: Integer;
-  begin
-    result := false;
-    idx := mGrid[grida];
-    while idx >= 0 do
-    begin
-      if (mCells[idx].body <> -1) and (mProxies[mCells[idx].body].mObj = aObj) then
-      begin
-        result := true;
-        res := mCells[idx].body;
-        exit;
-      end;
-      idx := mCells[idx].next;
-    end;
-  end;
-
-begin
-  result := -1;
-  if (aObj = nil) then exit;
-  forGridRect(x, y, w, h, iterator);
-  result := res;
-end;
-*)
 
 
 end.
