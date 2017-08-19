@@ -2181,7 +2181,7 @@ function g_Map_CollidePanel(X, Y: Integer; Width, Height: Word; PanelType: Word;
 var
   tagmask: Integer = 0;
 begin
-  if WordBool(PanelType and PANEL_WALL) then tagmask := tagmask or GridTagWall or GridTagDoor;
+  if WordBool(PanelType and (PANEL_WALL or PANEL_CLOSEDOOR or PANEL_OPENDOOR)) then tagmask := tagmask or (GridTagWall or GridTagDoor);
   if WordBool(PanelType and PANEL_WATER) then tagmask := tagmask or GridTagWater;
   if WordBool(PanelType and PANEL_ACID1) then tagmask := tagmask or GridTagAcid1;
   if WordBool(PanelType and PANEL_ACID2) then tagmask := tagmask or GridTagAcid2;

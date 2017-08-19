@@ -102,6 +102,10 @@ begin
 end;
 
 function g_CollideLevel(X, Y: Integer; Width, Height: Word): Boolean;
+begin
+  result := g_Map_CollidePanel(X, Y, Width, Height, (PANEL_WALL or PANEL_CLOSEDOOR or PANEL_OPENDOOR), false);
+end;
+(*
 var
   a: Integer;
 begin
@@ -121,6 +125,7 @@ begin
       Exit;
     end;
 end;
+*)
 
 function g_CollidePlayer(X, Y: Integer; Width, Height: Word): Boolean;
 var
