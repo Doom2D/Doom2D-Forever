@@ -1924,7 +1924,7 @@ end;
 
 // new algo
 procedure g_Map_CollectDrawPanels (x0, y0, wdt, hgt: Integer);
-  function checker (obj: TObject; objx, objy, objw, objh: Integer; tag: Integer): Boolean;
+  function checker (obj: TObject; tag: Integer): Boolean;
   var
     pan: TPanel;
   begin
@@ -1962,7 +1962,7 @@ end;
 
 
 procedure g_Map_DrawPanelShadowVolumes(lightX: Integer; lightY: Integer; radius: Integer);
-  function checker (obj: TObject; objx, objy, objw, objh: Integer; tag: Integer): Boolean;
+  function checker (obj: TObject; tag: Integer): Boolean;
   var
     pan: TPanel;
   begin
@@ -2145,44 +2145,42 @@ end;
 
 
 function g_Map_CollidePanel(X, Y: Integer; Width, Height: Word; PanelType: Word; b1x3: Boolean): Boolean;
-
-  function checker (obj: TObject; objx, objy, objwidth, objheight: Integer; tag: Integer): Boolean;
+  function checker (obj: TObject; tag: Integer): Boolean;
   var
     pan: TPanel;
   begin
     result := false; // don't stop, ever
+    pan := TPanel(obj);
+
+    if ((tag and (GridTagWall or GridTagDoor)) <> 0) then
+    begin
+      if not pan.Enabled then exit;
+    end;
 
     if ((tag and GridTagLift) <> 0) then
     begin
-      pan := TPanel(obj);
-      if ((WordBool(PanelType and (PANEL_LIFTUP)) and (pan.LiftType = 0)) or
-          (WordBool(PanelType and (PANEL_LIFTDOWN)) and (pan.LiftType = 1)) or
-          (WordBool(PanelType and (PANEL_LIFTLEFT)) and (pan.LiftType = 2)) or
-          (WordBool(PanelType and (PANEL_LIFTRIGHT)) and (pan.LiftType = 3))) and
-          g_Collide(X, Y, Width, Height, objx, objy, objwidth, objheight) then
-      begin
-        result := true;
-        exit;
-      end;
+      result :=
+        ((WordBool(PanelType and PANEL_LIFTUP) and (pan.LiftType = 0)) or
+         (WordBool(PanelType and PANEL_LIFTDOWN) and (pan.LiftType = 1)) or
+         (WordBool(PanelType and PANEL_LIFTLEFT) and (pan.LiftType = 2)) or
+         (WordBool(PanelType and PANEL_LIFTRIGHT) and (pan.LiftType = 3))) and
+         g_Collide(X, Y, Width, Height, pan.X, pan.Y, pan.Width, pan.Height);
+      exit;
     end;
 
     if ((tag and GridTagBlockMon) <> 0) then
     begin
-      if ((not b1x3) or (objwidth+objheight >= 64)) and g_Collide(X, Y, Width, Height, objx, objy, objwidth, objheight) then
-      begin
-        result := True;
-        exit;
-      end;
+      result := ((not b1x3) or (pan.Width+pan.Height >= 64)) and g_Collide(X, Y, Width, Height, pan.X, pan.Y, pan.Width, pan.Height);
+      exit;
     end;
 
     // other shit
-    result := g_Collide(X, Y, Width, Height, objx, objy, objwidth, objheight);
+    result := g_Collide(X, Y, Width, Height, pan.X, pan.Y, pan.Width, pan.Height);
   end;
 
 var
   tagmask: Integer = 0;
 begin
-  //TODO: detailed profile
   if WordBool(PanelType and PANEL_WALL) then tagmask := tagmask or GridTagWall or GridTagDoor;
   if WordBool(PanelType and PANEL_WATER) then tagmask := tagmask or GridTagWater;
   if WordBool(PanelType and PANEL_ACID1) then tagmask := tagmask or GridTagAcid1;
@@ -2221,36 +2219,36 @@ end;
 
 function g_Map_CollideLiquid_Texture(X, Y: Integer; Width, Height: Word): DWORD;
 var
-  cctype: Integer = 3; // priority: 0: water, 1: acid1, 2: acid2; 3: others (nothing)
+  cctype: Integer = 3; // priority: 0: water was hit, 1: acid1 was hit, 2: acid2 was hit; 3: nothing was hit
   texid: DWORD;
 
   // slightly different from the old code, but meh...
-  function checker (obj: TObject; objx, objy, objwidth, objheight: Integer; tag: Integer): Boolean;
-  //var pan: TPanel;
+  function checker (obj: TObject; tag: Integer): Boolean;
+  var
+    pan: TPanel;
   begin
     result := false; // don't stop, ever
-    if ((tag and (GridTagWater or GridTagAcid1 or GridTagAcid2)) = 0) then exit;
+    //if ((tag and (GridTagWater or GridTagAcid1 or GridTagAcid2)) = 0) then exit;
     // check priorities
     case cctype of
-      0: if ((tag and GridTagWater) = 0) then exit; // only water
-      1: if ((tag and (GridTagWater or GridTagAcid1)) = 0) then exit; // water, acid1
-      //2: if ((tag and (GridTagWater or GridTagAcid1 or GridTagAcid2) = 0) then exit; // water, acid1, acid2
+      0: if ((tag and GridTagWater) = 0) then exit; // allowed: water
+      1: if ((tag and (GridTagWater or GridTagAcid1)) = 0) then exit; // allowed: water, acid1
+      //2: if ((tag and (GridTagWater or GridTagAcid1 or GridTagAcid2) = 0) then exit; // allowed: water, acid1, acid2
     end;
     // collision?
-    if not g_Collide(X, Y, Width, Height, objx, objy, objwidth, objheight) then exit;
+    pan := (obj as TPanel);
+    if not g_Collide(X, Y, Width, Height, pan.X, pan.Y, pan.Width, pan.Height) then exit;
     // yeah
-    //pan := (obj as TPanel);
     texid := TPanel(obj).GetTextureID();
     // water? water has the highest priority, so stop right here
     if ((tag and GridTagWater) <> 0) then begin cctype := 0; result := true; exit; end;
-    // acid2
+    // acid2?
     if ((tag and GridTagAcid2) <> 0) then cctype := 2;
-    // acid1
+    // acid1?
     if ((tag and GridTagAcid1) <> 0) then cctype := 1;
   end;
 
 begin
-  //TODO: detailed profile?
   if (profMapCollision <> nil) then profMapCollision.sectionBeginAccum('liquids');
   if gdbg_map_use_accel_coldet then
   begin

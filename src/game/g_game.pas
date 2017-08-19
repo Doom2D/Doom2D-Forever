@@ -6869,8 +6869,8 @@ begin
     gDefaultMegawadStart := s;
   end;
 
-  s := LowerCase(Find_Param_Value(pars, '-dbg-mainwad-restore'));
-  if (s <> '') then
+  if (Find_Param_Value(pars, '--dbg-mainwad-restore') <> '') or
+     (Find_Param_Value(pars, '--dbg-mainwad-default') <> '') then
   begin
     gDefaultMegawadStart := DF_Default_Megawad_Start;
   end;

@@ -25,7 +25,7 @@ const
   GridCellBucketSize = 8; // WARNING! can't be less than 2!
 
 type
-  TGridQueryCB = function (obj: TObject; objx, objy, objw, objh: Integer; tag: Integer): Boolean is nested; // return `true` to stop
+  TGridQueryCB = function (obj: TObject; tag: Integer): Boolean is nested; // return `true` to stop
 
 type
   TBodyGrid = class;
@@ -68,7 +68,7 @@ type
     next: Integer; // in this cell; index in mCells
   end;
 
-  GridInternalCB = function (grida: Integer): Boolean is nested; // return `true` to stop
+  TGridInternalCB = function (grida: Integer): Boolean is nested; // return `true` to stop
 
   TBodyGrid = class(TObject)
   private
@@ -95,7 +95,7 @@ type
     procedure insert (body: TBodyProxy);
     procedure remove (body: TBodyProxy);
 
-    function forGridRect (x, y, w, h: Integer; cb: GridInternalCB): Boolean;
+    function forGridRect (x, y, w, h: Integer; cb: TGridInternalCB): Boolean;
 
   public
     constructor Create (aMinPixX, aMinPixY, aPixWidth, aPixHeight: Integer; aTileSize: Integer=GridDefaultTileSize);
@@ -287,7 +287,7 @@ begin
 end;
 
 
-function TBodyGrid.forGridRect (x, y, w, h: Integer; cb: GridInternalCB): Boolean;
+function TBodyGrid.forGridRect (x, y, w, h: Integer; cb: TGridInternalCB): Boolean;
 var
   gx, gy: Integer;
 begin
@@ -474,7 +474,7 @@ function TBodyGrid.forEachInAABB (x, y, w, h: Integer; cb: TGridQueryCB; tagmask
         begin
           //e_WriteLog(Format('  query #%d body hit: (%d,%d)-(%dx%d) tag:%d', [mLastQuery, mCells[idx].body.mX, mCells[idx].body.mY, mCells[idx].body.mWidth, mCells[idx].body.mHeight, mCells[idx].body.mTag]), MSG_NOTIFY);
           px.mQueryMark := mLastQuery;
-          if (cb(px.mObj, px.mX, px.mY, px.mWidth, px.mHeight, px.mTag)) then begin result := true; exit; end;
+          if (cb(px.mObj, px.mTag)) then begin result := true; exit; end;
         end;
       end;
       idx := pi.next;
@@ -486,7 +486,7 @@ function TBodyGrid.forEachInAABB (x, y, w, h: Integer; cb: TGridQueryCB; tagmask
         begin
           //e_WriteLog(Format('  query #%d body hit: (%d,%d)-(%dx%d) tag:%d', [mLastQuery, mCells[idx].body.mX, mCells[idx].body.mY, mCells[idx].body.mWidth, mCells[idx].body.mHeight, mCells[idx].body.mTag]), MSG_NOTIFY);
           px.mQueryMark := mLastQuery;
-          if (cb(px.mObj, px.mX, px.mY, px.mWidth, px.mHeight, px.mTag)) then begin result := true; exit; end;
+          if (cb(px.mObj, px.mTag)) then begin result := true; exit; end;
         end;
       end;
       idx := mCells[idx].next;
