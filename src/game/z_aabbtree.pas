@@ -148,12 +148,13 @@ type
         //nextNodeId: Integer;
         // a node is either a leaf (has data) or is an internal node (has children)
         children: array [0..1] of Integer; // left and right child of the node (children[0] = left child)
-        //TODO: `flesh` can be united with `children`
-        flesh: TTreeFlesh;
         // height of the node in the tree (-1 for free nodes)
         height: SmallInt;
         // fat axis aligned bounding box (AABB) corresponding to the node
         aabb: AABB2D;
+        //TODO: `flesh` can be united with `children`
+        flesh: TTreeFlesh;
+        fleshX, fleshY: TreeNumber;
         tag: Integer; // just a user-defined tag
       public
         // return true if the node is a leaf of the tree
@@ -162,6 +163,8 @@ type
         function isfree (): Boolean; inline;
         property nextNodeId: Integer read parentId write parentId;
         //property flesh: Integer read children[0] write children[0];
+
+        procedure dumpToLog ();
       end;
 
       TVisitCheckerCB = function (node: PTreeNode): Boolean is nested;
@@ -236,8 +239,11 @@ type
     function getNodeObjectId (nodeid: Integer): TTreeFlesh; inline;
     procedure getNodeFatAABB (var aabb: AABB2D; nodeid: Integer); inline;
 
+    // returns `false` if nodeid is not leaf
+    function getNodeXY (nodeid: Integer; out x, y: Integer): Boolean; inline;
+
     // return `false` for invalid flesh
-    function getFleshAABB (var aabb: AABB2D; flesh: TTreeFlesh): Boolean; virtual; abstract;
+    function getFleshAABB (var aabb: AABB2D; flesh: TTreeFlesh; tag: Integer): Boolean; virtual; abstract;
 
     // insert an object into the tree
     // this method creates a new leaf node in the tree and returns the id of the corresponding node or -1 on error
@@ -264,7 +270,8 @@ type
      *
      * return `true` if the tree was modified.
      *)
-    function updateObject (nodeId: Integer; dispX, dispY: TreeNumber; forceReinsert: Boolean=false): Boolean;
+    function updateObject (nodeId: Integer; dispX, dispY: TreeNumber; forceReinsert: Boolean=false): Boolean; overload;
+    function updateObject (nodeId: Integer; forceReinsert: Boolean=false): Boolean; overload;
 
     function aabbQuery (ax, ay, aw, ah: TreeNumber; cb: TQueryOverlapCB; tagmask: Integer=-1): TTreeFlesh;
     function pointQuery (ax, ay: TreeNumber; cb: TQueryOverlapCB): TTreeFlesh;
@@ -542,6 +549,13 @@ begin
   aabb.maxY := 0;
 end;
 
+procedure TDynAABBTree.TTreeNode.dumpToLog ();
+begin
+  e_WriteLog(Format('NODE: parentId=%d; children=[%d,%d]; height=%d; tag=%d; fleshX=%d; fleshY=%d; aabb=(%d,%d)-(%d,%d)',
+    [parentId, children[0], children[1], Integer(height), tag, fleshX, fleshY, aabb.minX, aabb.minY, aabb.maxX, aabb.maxY]),
+    MSG_NOTIFY);
+end;
+
 
 // ////////////////////////////////////////////////////////////////////////// //
 // allocate and return a node to use in the tree
@@ -555,7 +569,7 @@ begin
   begin
     {$IFDEF aabbtree_many_asserts}assert(mNodeCount = mAllocCount);{$ENDIF}
     // allocate more nodes in the tree
-    if (mAllocCount < 32768) then newsz := mAllocCount*2 else newsz := mAllocCount+16384;
+    if (mAllocCount <= 16384) then newsz := mAllocCount*2 else newsz := mAllocCount+16384;
     SetLength(mNodes, newsz);
     mAllocCount := newsz;
     // initialize the allocated nodes
@@ -569,7 +583,7 @@ begin
   end;
   // get the next free node
   freeNodeId := mFreeNodeId;
-  {$IFDEF aabbtree_many_asserts}assert((freeNodeId >= mNodeCount) and (freeNodeId < mAllocCount));{$ENDIF}
+  {$IFDEF aabbtree_many_asserts}assert(freeNodeId < mAllocCount);{$ENDIF}
   node := @mNodes[freeNodeId];
   mFreeNodeId := node.nextNodeId;
   node.clear();
@@ -577,6 +591,8 @@ begin
   node.height := 0;
   Inc(mNodeCount);
   result := freeNodeId;
+
+  //e_WriteLog(Format('tree: allocated node #%d', [result]), MSG_NOTIFY);
 end;
 
 
@@ -591,6 +607,8 @@ begin
   mNodes[nodeId].flesh := nil;
   mFreeNodeId := nodeId;
   Dec(mNodeCount);
+
+  //e_WriteLog(Format('tree: released node #%d', [nodeId]), MSG_NOTIFY);
 end;
 
 
@@ -998,28 +1016,31 @@ end;
 function TDynAABBTree.insertObjectInternal (var aabb: AABB2D; staticObject: Boolean): Integer;
 var
   nodeId: Integer;
+  node: PTreeNode;
 begin
   // get the next available node (or allocate new ones if necessary)
   nodeId := allocateNode();
 
+  node := @mNodes[nodeId];
+
   // create the fat aabb to use in the tree
-  mNodes[nodeId].aabb := AABB2D.Create(aabb);
+  node.aabb := AABB2D.Create(aabb);
   if (not staticObject) then
   begin
-    mNodes[nodeId].aabb.minX -= mExtraGap;
-    mNodes[nodeId].aabb.minY -= mExtraGap;
-    mNodes[nodeId].aabb.maxX += mExtraGap;
-    mNodes[nodeId].aabb.maxY += mExtraGap;
+    node.aabb.minX -= mExtraGap;
+    node.aabb.minY -= mExtraGap;
+    node.aabb.maxX += mExtraGap;
+    node.aabb.maxY += mExtraGap;
   end;
 
   // set the height of the node in the tree
-  mNodes[nodeId].height := 0;
+  node.height := 0;
 
   // insert the new leaf node in the tree
   insertLeafNode(nodeId);
-  {$IFDEF aabbtree_many_asserts}assert(mNodes[nodeId].leaf);{$ENDIF}
 
-  {$IFDEF aabbtree_many_asserts}assert(nodeId >= 0);{$ENDIF}
+  {$IFDEF aabbtree_many_asserts}node := @mNodes[nodeId];{$ENDIF}
+  {$IFDEF aabbtree_many_asserts}assert(node.leaf);{$ENDIF}
 
   // return the id of the node
   result := nodeId;
@@ -1074,7 +1095,7 @@ function TDynAABBTree.forEachLeaf (dg: TForEachLeafCB): Boolean;
       {$ENDIF}
       if pNode.leaf then
       begin
-        getFleshAABB(aabb, pNode.flesh);
+        getFleshAABB(aabb, pNode.flesh, pNode.tag);
         {$IFDEF aabbtree_use_floats}
         e_WriteLog(Format('  LEAF AABB:(%f,%f)-(%f,%f); valid=%d; volume=%f', [aabb.minX, aabb.minY, aabb.maxX, aabb.maxY, Integer(aabb.valid), aabb.volume]), MSG_NOTIFY);
         {$ELSE}
@@ -1299,7 +1320,7 @@ function TDynAABBTree.computeTreeHeight (): Integer; begin result := computeHeig
 // return the root AABB of the tree
 procedure TDynAABBTree.getRootAABB (var aabb: AABB2D);
 begin
-  {$IFDEF aabbtree_many_asserts}assert((mRootNodeId >= 0) and (mRootNodeId < mNodeCount));{$ENDIF}
+  {$IFDEF aabbtree_many_asserts}assert((mRootNodeId >= 0) and (mRootNodeId < mAllocCount));{$ENDIF}
   aabb := mNodes[mRootNodeId].aabb;
 end;
 
@@ -1308,20 +1329,42 @@ end;
 // WARNING: ids of removed objects can be reused on later insertions!
 function TDynAABBTree.isValidId (id: Integer): Boolean;
 begin
-  result := (id >= 0) and (id < mNodeCount) and (mNodes[id].leaf);
+  result := (id >= 0) and (id < mAllocCount) and (mNodes[id].leaf);
 end;
 
 
 // get object by nodeid; can return nil for invalid ids
 function TDynAABBTree.getNodeObjectId (nodeid: Integer): TTreeFlesh;
 begin
-  if (nodeid >= 0) and (nodeid < mNodeCount) and (mNodes[nodeid].leaf) then result := mNodes[nodeid].flesh else result := nil;
+  if (nodeid >= 0) and (nodeid < mAllocCount) and (mNodes[nodeid].leaf) then result := mNodes[nodeid].flesh else result := nil;
 end;
 
 // get fat object AABB by nodeid; returns random shit for invalid ids
 procedure TDynAABBTree.getNodeFatAABB (var aabb: AABB2D; nodeid: Integer);
 begin
-  if (nodeid >= 0) and (nodeid < mNodeCount) and (not mNodes[nodeid].isfree) then aabb.copyFrom(mNodes[nodeid].aabb) else aabb.setDims(0, 0, 0, 0);
+  if (nodeid >= 0) and (nodeid < mAllocCount) and (not mNodes[nodeid].isfree) then aabb.copyFrom(mNodes[nodeid].aabb) else aabb.setDims(0, 0, 0, 0);
+end;
+
+function TDynAABBTree.getNodeXY (nodeid: Integer; out x, y: Integer): Boolean; inline;
+begin
+  if (nodeid >= 0) and (nodeid < mAllocCount) and (mNodes[nodeid].leaf) then
+  begin
+    result := true;
+    {$IFDEF aabbtree_use_floats}
+    x := round(mNodes[nodeid].fleshX);
+    y := round(mNodes[nodeid].fleshY);
+    {$ELSE}
+    x := mNodes[nodeid].fleshX;
+    y := mNodes[nodeid].fleshY;
+    {$ENDIF}
+  end
+  else
+  begin
+    result := false;
+    x := 0;
+    y := 0;
+    //if (nodeid >= 0) and (nodeid < mAllocCount) then mNodes[nodeid].dumpToLog();
+  end;
 end;
 
 
@@ -1332,9 +1375,9 @@ end;
 function TDynAABBTree.insertObject (flesh: TTreeFlesh; tag: Integer; staticObject: Boolean=false): Integer;
 var
   aabb: AABB2D;
-  nodeId: Integer;
+  nodeId, fx, fy: Integer;
 begin
-  if not getFleshAABB(aabb, flesh) then
+  if not getFleshAABB(aabb, flesh, tag) then
   begin
     {$IFDEF aabbtree_use_floats}
     e_WriteLog(Format('trying to insert FUCKED FLESH:(%f,%f)-(%f,%f); volume=%f; valid=%d', [aabb.minX, aabb.minY, aabb.maxX, aabb.maxY, aabb.volume, Integer(aabb.valid)]), MSG_WARNING);
@@ -1357,10 +1400,14 @@ begin
     exit;
   end;
   //e_WriteLog(Format('inserting AABB:(%f,%f)-(%f,%f); volume=%f; valid=%d', [aabb.minX, aabb.minY, aabb.maxX, aabb.maxY, aabb.volume, Integer(aabb.valid)]), MSG_NOTIFY);
+  fx := aabb.minX;
+  fy := aabb.minY;
   nodeId := insertObjectInternal(aabb, staticObject);
   {$IFDEF aabbtree_many_asserts}assert(mNodes[nodeId].leaf);{$ENDIF}
   mNodes[nodeId].flesh := flesh;
   mNodes[nodeId].tag := tag;
+  mNodes[nodeId].fleshX := fx;
+  mNodes[nodeId].fleshY := fy;
   result := nodeId;
 end;
 
@@ -1369,57 +1416,94 @@ end;
 // WARNING: ids of removed objects can be reused on later insertions!
 procedure TDynAABBTree.removeObject (nodeId: Integer);
 begin
-  if (nodeId < 0) or (nodeId >= mNodeCount) or (not mNodes[nodeId].leaf) then raise Exception.Create('invalid node id in TDynAABBTree');
+  if (nodeId < 0) or (nodeId >= mAllocCount) or (not mNodes[nodeId].leaf) then raise Exception.Create('invalid node id in TDynAABBTree');
   // remove the node from the tree
   removeLeafNode(nodeId);
   releaseNode(nodeId);
 end;
 
 
-function TDynAABBTree.updateObject (nodeId: Integer; dispX, dispY: TreeNumber; forceReinsert: Boolean=false): Boolean;
+function TDynAABBTree.updateObject (nodeId: Integer; forceReinsert: Boolean=false): Boolean; overload;
 var
   newAABB: AABB2D;
+  dispX, dispY: TreeNumber;
 begin
-  if (nodeId < 0) or (nodeId >= mNodeCount) or (not mNodes[nodeId].leaf) then raise Exception.Create('invalid node id in TDynAABBTree.updateObject');
+  if (nodeId < 0) or (nodeId >= mAllocCount) or (not mNodes[nodeId].leaf) then raise Exception.Create('invalid node id in TDynAABBTree.updateObject');
 
-  if not getFleshAABB(newAABB, mNodes[nodeId].flesh) then raise Exception.Create('invalid node id in TDynAABBTree.updateObject');
+  if not getFleshAABB(newAABB, mNodes[nodeId].flesh, mNodes[nodeId].tag) then raise Exception.Create('invalid flesh dimensions in TDynAABBTree.updateObject');
   if not newAABB.valid then raise Exception.Create('invalid flesh aabb in TDynAABBTree.updateObject');
 
+  dispX := newAABB.minX-mNodes[nodeId].fleshX;
+  dispY := newAABB.minY-mNodes[nodeId].fleshY;
+
+  if (dispX < -16) then dispX := -16 else if (dispX > 16) then dispX := 16;
+  if (dispY < -16) then dispY := -16 else if (dispY > 16) then dispY := 16;
+
+  result := updateObject(nodeId, dispX, dispY, forceReinsert);
+end;
+
+function TDynAABBTree.updateObject (nodeId: Integer; dispX, dispY: TreeNumber; forceReinsert: Boolean=false): Boolean; overload;
+var
+  newAABB: AABB2D;
+  fx, fy: Integer;
+  node: PTreeNode;
+begin
+  if (nodeId < 0) or (nodeId >= mAllocCount) or (not mNodes[nodeId].leaf) then raise Exception.Create('invalid node id in TDynAABBTree.updateObject');
+
+  if not getFleshAABB(newAABB, mNodes[nodeId].flesh, mNodes[nodeId].tag) then raise Exception.Create('invalid flesh dimensions in TDynAABBTree.updateObject');
+  if not newAABB.valid then raise Exception.Create('invalid flesh aabb in TDynAABBTree.updateObject');
+
+  fx := newAABB.minX;
+  fy := newAABB.minY;
+
   // if the new AABB is still inside the fat AABB of the node
-  if (not forceReinsert) and (mNodes[nodeId].aabb.contains(newAABB)) then begin result := false; exit; end;
+  if (not forceReinsert) and (mNodes[nodeId].aabb.contains(newAABB)) then
+  begin
+    node := @mNodes[nodeId];
+    node.fleshX := fx;
+    node.fleshY := fy;
+    result := false;
+    exit;
+  end;
 
   // if the new AABB is outside the fat AABB, we remove the corresponding node
   removeLeafNode(nodeId);
 
+  node := @mNodes[nodeId];
+
   // compute the fat AABB by inflating the AABB with a constant gap
-  mNodes[nodeId].aabb := newAABB;
+  node.aabb.copyFrom(newAABB);
+  node.fleshX := fx;
+  node.fleshY := fy;
+
   if (not forceReinsert) and ((dispX <> 0) or (dispY <> 0)) then
   begin
-    mNodes[nodeId].aabb.minX := mNodes[nodeId].aabb.minX-mExtraGap;
-    mNodes[nodeId].aabb.minY := mNodes[nodeId].aabb.minY-mExtraGap;
-    mNodes[nodeId].aabb.maxX := mNodes[nodeId].aabb.maxX+mExtraGap;
-    mNodes[nodeId].aabb.maxY := mNodes[nodeId].aabb.maxY+mExtraGap;
+    node.aabb.minX -= mExtraGap;
+    node.aabb.minY += mExtraGap;
+    node.aabb.maxX += mExtraGap;
+    node.aabb.maxY += mExtraGap;
   end;
 
   // inflate the fat AABB in direction of the linear motion of the AABB
   if (dispX < 0) then
   begin
-    mNodes[nodeId].aabb.minX := mNodes[nodeId].aabb.minX+LinearMotionGapMultiplier*dispX {$IFDEF aabbtree_use_floats}{$ELSE}div 10{$ENDIF};
+    node.aabb.minX += LinearMotionGapMultiplier*dispX {$IFDEF aabbtree_use_floats}{$ELSE}div 10{$ENDIF};
   end
   else
   begin
-    mNodes[nodeId].aabb.maxX := mNodes[nodeId].aabb.maxX+LinearMotionGapMultiplier*dispX {$IFDEF aabbtree_use_floats}{$ELSE}div 10{$ENDIF};
-  end;
-  if (dispY < 0) then
-  begin
-    mNodes[nodeId].aabb.minY := mNodes[nodeId].aabb.minY+LinearMotionGapMultiplier*dispY {$IFDEF aabbtree_use_floats}{$ELSE}div 10{$ENDIF};
-  end
-  else
-  begin
-    mNodes[nodeId].aabb.maxY := mNodes[nodeId].aabb.maxY+LinearMotionGapMultiplier*dispY {$IFDEF aabbtree_use_floats}{$ELSE}div 10{$ENDIF};
+    node.aabb.maxX += LinearMotionGapMultiplier*dispX {$IFDEF aabbtree_use_floats}{$ELSE}div 10{$ENDIF};
   end;
 
-  {$IFDEF aabbtree_many_asserts}assert(mNodes[nodeId].aabb.contains(newAABB));{$ENDIF}
+  if (dispY < 0) then
+  begin
+    node.aabb.minY += LinearMotionGapMultiplier*dispY {$IFDEF aabbtree_use_floats}{$ELSE}div 10{$ENDIF};
+  end
+  else
+  begin
+    node.aabb.maxY += LinearMotionGapMultiplier*dispY {$IFDEF aabbtree_use_floats}{$ELSE}div 10{$ENDIF};
+  end;
+
+  {$IFDEF aabbtree_many_asserts}assert(node.aabb.contains(newAABB));{$ENDIF}
 
   // reinsert the node into the tree
   insertLeafNode(nodeId);
@@ -1466,7 +1550,7 @@ begin
   if not assigned(cb) then cb := dummycb;
   caabb := AABB2D.Create(ax, ay, ax+1, ay+1);
   nid := visit(caabb, ModePoint, checker, cb);
-  {$IFDEF aabbtree_many_asserts}assert((nid < 0) or ((nid >= 0) and (nid < mNodeCount) and (mNodes[nid].leaf)));{$ENDIF}
+  {$IFDEF aabbtree_many_asserts}assert((nid < 0) or ((nid >= 0) and (nid < mAllocCount) and (mNodes[nid].leaf)));{$ENDIF}
   if (nid >= 0) then result := mNodes[nid].flesh else result := nil;
 end;
 

@@ -189,7 +189,6 @@ const
   FLAG_SIGNATURE = $47414C46; // 'FLAG'
 
 
-
 function panelTypeToTag (panelType: Word): Integer;
 begin
   case panelType of
@@ -234,10 +233,10 @@ type
 
 type
   TDynAABBTreeMap = class(TDynAABBTree)
-    function getFleshAABB (var aabb: AABB2D; flesh: TTreeFlesh): Boolean; override;
+    function getFleshAABB (var aabb: AABB2D; flesh: TTreeFlesh; tag: Integer): Boolean; override;
   end;
 
-function TDynAABBTreeMap.getFleshAABB (var aabb: AABB2D; flesh: TTreeFlesh): Boolean;
+function TDynAABBTreeMap.getFleshAABB (var aabb: AABB2D; flesh: TTreeFlesh; tag: Integer): Boolean;
 var
   pan: TPanel;
 begin

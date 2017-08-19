@@ -627,11 +627,20 @@ end;
 // GAME (SEND)
 
 procedure MH_SEND_Everything(CreatePlayers: Boolean = False; ID: Integer = NET_EVERYONE);
+
+  function sendItemRespawn (it: PItem): Boolean;
+  begin
+    result := false; // don't stop
+    MH_SEND_ItemSpawn(True, it.myid, ID);
+  end;
+
 var
   I: Integer;
 begin
   if gPlayers <> nil then
+  begin
     for I := Low(gPlayers) to High(gPlayers) do
+    begin
       if gPlayers[I] <> nil then
       begin
         if CreatePlayers then MH_SEND_PlayerCreate(gPlayers[I].UID, ID);
@@ -641,13 +650,10 @@ begin
         if (gPlayers[I].Flag <> FLAG_NONE) and (gGameSettings.GameMode = GM_CTF) then
           MH_SEND_FlagEvent(FLAG_STATE_CAPTURED, gPlayers[I].Flag, gPlayers[I].UID, True, ID);
       end;
-
-  if gItems <> nil then
-  begin
-    for I := High(gItems) downto Low(gItems) do
-      if gItems[I].Live then
-        MH_SEND_ItemSpawn(True, I, ID);
+    end;
   end;
+
+  g_Items_ForEachAlive(sendItemRespawn, true); // backwards
 
   if gMonsters <> nil then
     for I := 0 to High(gMonsters) do
@@ -1179,17 +1185,21 @@ end;
 // ITEM (SEND)
 
 procedure MH_SEND_ItemSpawn(Quiet: Boolean; IID: Word; ID: Integer = NET_EVERYONE);
+var
+  it: PItem;
 begin
+  it := g_ItemByIdx(IID);
+
   e_Buffer_Write(@NetOut, Byte(NET_MSG_ISPAWN));
   e_Buffer_Write(@NetOut, IID);
   e_Buffer_Write(@NetOut, Byte(Quiet));
-  e_Buffer_Write(@NetOut, gItems[IID].ItemType);
-  e_Buffer_Write(@NetOut, Byte(gItems[IID].Fall));
-  e_Buffer_Write(@NetOut, Byte(gItems[IID].Respawnable));
-  e_Buffer_Write(@NetOut, gItems[IID].Obj.X);
-  e_Buffer_Write(@NetOut, gItems[IID].Obj.Y);
-  e_Buffer_Write(@NetOut, gItems[IID].Obj.Vel.X);
-  e_Buffer_Write(@NetOut, gItems[IID].Obj.Vel.Y);
+  e_Buffer_Write(@NetOut, it.ItemType);
+  e_Buffer_Write(@NetOut, Byte(it.Fall));
+  e_Buffer_Write(@NetOut, Byte(it.Respawnable));
+  e_Buffer_Write(@NetOut, it.Obj.X);
+  e_Buffer_Write(@NetOut, it.Obj.Y);
+  e_Buffer_Write(@NetOut, it.Obj.Vel.X);
+  e_Buffer_Write(@NetOut, it.Obj.Vel.Y);
 
   g_Net_Host_Send(ID, True, NET_CHAN_LARGEDATA);
 end;
@@ -2339,6 +2349,7 @@ var
   T: Byte;
   Quiet, Fall{, Resp}: Boolean;
   Anim: TAnimation;
+  it: PItem;
 begin
   if not gGameOn then Exit;
   ID := e_Raw_Read_Word(P);
@@ -2352,8 +2363,10 @@ begin
   VY := e_Raw_Read_LongInt(P);
 
   g_Items_Create(X, Y, T, Fall, False, False, ID);
-  gItems[ID].Obj.Vel.X := VX;
-  gItems[ID].Obj.Vel.Y := VY;
+
+  it := g_ItemByIdx(ID);
+  it.Obj.Vel.X := VX;
+  it.Obj.Vel.Y := VY;
 
   if not Quiet then
   begin
@@ -2361,7 +2374,7 @@ begin
     if g_Frames_Get(AID, 'FRAMES_ITEM_RESPAWN') then
     begin
       Anim := TAnimation.Create(AID, False, 4);
-      g_GFX_OnceAnim(X+(gItems[ID].Obj.Rect.Width div 2)-16, Y+(gItems[ID].Obj.Rect.Height div 2)-16, Anim);
+      g_GFX_OnceAnim(X+(it.Obj.Rect.Width div 2)-16, Y+(it.Obj.Rect.Height div 2)-16, Anim);
       Anim.Free();
     end;
   end;
@@ -2375,43 +2388,10 @@ begin
   if not gGameOn then Exit;
   ID := e_Raw_Read_Word(P);
   Quiet := e_Raw_Read_Byte(P) <> 0;
-  if gItems = nil then Exit;
-  if (ID > High(gItems)) then Exit;
 
-  if not Quiet then
-    if gSoundEffectsDF then
-    begin
-      if gItems[ID].ItemType in [ITEM_SPHERE_BLUE, ITEM_SPHERE_WHITE, ITEM_INVUL,
-                                 ITEM_INVIS, ITEM_MEDKIT_BLACK, ITEM_JETPACK] then
-        g_Sound_PlayExAt('SOUND_ITEM_GETRULEZ',
-          gItems[ID].Obj.X, gItems[ID].Obj.Y)
-        else
-          if gItems[ID].ItemType in [ITEM_WEAPON_SAW, ITEM_WEAPON_PISTOL, ITEM_WEAPON_SHOTGUN1, ITEM_WEAPON_SHOTGUN2,
-                                     ITEM_WEAPON_CHAINGUN, ITEM_WEAPON_ROCKETLAUNCHER, ITEM_WEAPON_PLASMA,
-                                     ITEM_WEAPON_BFG, ITEM_WEAPON_SUPERPULEMET, ITEM_WEAPON_FLAMETHROWER,
-                                     ITEM_AMMO_BACKPACK] then
-            g_Sound_PlayExAt('SOUND_ITEM_GETWEAPON',
-              gItems[ID].Obj.X, gItems[ID].Obj.Y)
-            else
-              g_Sound_PlayExAt('SOUND_ITEM_GETITEM',
-                gItems[ID].Obj.X, gItems[ID].Obj.Y);
-    end
-    else
-    begin
-      if gItems[ID].ItemType in [ITEM_SPHERE_BLUE, ITEM_SPHERE_WHITE, ITEM_SUIT,
-                                 ITEM_MEDKIT_BLACK, ITEM_INVUL, ITEM_INVIS, ITEM_JETPACK] then
-        g_Sound_PlayExAt('SOUND_ITEM_GETRULEZ',
-          gItems[ID].Obj.X, gItems[ID].Obj.Y)
-      else
-        if gItems[ID].ItemType in [ITEM_WEAPON_SAW, ITEM_WEAPON_PISTOL, ITEM_WEAPON_SHOTGUN1, ITEM_WEAPON_SHOTGUN2,
-                                   ITEM_WEAPON_CHAINGUN, ITEM_WEAPON_ROCKETLAUNCHER, ITEM_WEAPON_PLASMA,
-                                   ITEM_WEAPON_BFG, ITEM_WEAPON_SUPERPULEMET, ITEM_WEAPON_FLAMETHROWER] then
-          g_Sound_PlayExAt('SOUND_ITEM_GETWEAPON',
-            gItems[ID].Obj.X, gItems[ID].Obj.Y)
-        else
-          g_Sound_PlayExAt('SOUND_ITEM_GETITEM',
-            gItems[ID].Obj.X, gItems[ID].Obj.Y);
-    end;
+  if not g_ItemValidId(ID) then exit;
+
+  if not Quiet then g_Item_EmitPickupSound(ID);
 
   g_Items_Remove(ID);
 end;

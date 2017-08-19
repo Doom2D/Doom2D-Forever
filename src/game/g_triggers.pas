@@ -954,6 +954,7 @@ var
   Anim: TAnimation;
   UIDType: Byte;
   TargetUID: Word;
+  it: PItem;
 begin
   Result := False;
   if g_Game_IsClient then
@@ -1305,51 +1306,55 @@ begin
 
                 if Data.ItemMax > 0 then
                 begin
-                  gItems[iid].SpawnTrigger := ID;
+                  it := g_ItemByIdx(iid);
+                  it.SpawnTrigger := ID;
                   Inc(SpawnedCount);
                 end;
 
                 case Data.ItemEffect of
                   EFFECT_TELEPORT: begin
+                    it := g_ItemByIdx(iid);
                     if g_Frames_Get(FramesID, 'FRAMES_TELEPORT') then
                     begin
                       Anim := TAnimation.Create(FramesID, False, 3);
                       g_Sound_PlayExAt('SOUND_GAME_TELEPORT', Data.ItemPos.X, Data.ItemPos.Y);
-                      g_GFX_OnceAnim(gItems[iid].Obj.X+gItems[iid].Obj.Rect.X+(gItems[iid].Obj.Rect.Width div 2)-32,
-                                     gItems[iid].Obj.Y+gItems[iid].Obj.Rect.Y+(gItems[iid].Obj.Rect.Height div 2)-32, Anim);
+                      g_GFX_OnceAnim(it.Obj.X+it.Obj.Rect.X+(it.Obj.Rect.Width div 2)-32,
+                                     it.Obj.Y+it.Obj.Rect.Y+(it.Obj.Rect.Height div 2)-32, Anim);
                       Anim.Free();
                     end;
                     if g_Game_IsServer and g_Game_IsNet then
-                      MH_SEND_Effect(gItems[iid].Obj.X+gItems[iid].Obj.Rect.X+(gItems[iid].Obj.Rect.Width div 2)-32,
-                                     gItems[iid].Obj.Y+gItems[iid].Obj.Rect.Y+(gItems[iid].Obj.Rect.Height div 2)-32, 1,
+                      MH_SEND_Effect(it.Obj.X+it.Obj.Rect.X+(it.Obj.Rect.Width div 2)-32,
+                                     it.Obj.Y+it.Obj.Rect.Y+(it.Obj.Rect.Height div 2)-32, 1,
                                      NET_GFX_TELE);
                   end;
                   EFFECT_RESPAWN: begin
+                    it := g_ItemByIdx(iid);
                     if g_Frames_Get(FramesID, 'FRAMES_ITEM_RESPAWN') then
                     begin
                       Anim := TAnimation.Create(FramesID, False, 4);
                       g_Sound_PlayExAt('SOUND_ITEM_RESPAWNITEM', Data.ItemPos.X, Data.ItemPos.Y);
-                      g_GFX_OnceAnim(gItems[iid].Obj.X+gItems[iid].Obj.Rect.X+(gItems[iid].Obj.Rect.Width div 2)-16,
-                                     gItems[iid].Obj.Y+gItems[iid].Obj.Rect.Y+(gItems[iid].Obj.Rect.Height div 2)-16, Anim);
+                      g_GFX_OnceAnim(it.Obj.X+it.Obj.Rect.X+(it.Obj.Rect.Width div 2)-16,
+                                     it.Obj.Y+it.Obj.Rect.Y+(it.Obj.Rect.Height div 2)-16, Anim);
                       Anim.Free();
                     end;
                     if g_Game_IsServer and g_Game_IsNet then
-                      MH_SEND_Effect(gItems[iid].Obj.X+gItems[iid].Obj.Rect.X+(gItems[iid].Obj.Rect.Width div 2)-16,
-                                     gItems[iid].Obj.Y+gItems[iid].Obj.Rect.Y+(gItems[iid].Obj.Rect.Height div 2)-16, 1,
+                      MH_SEND_Effect(it.Obj.X+it.Obj.Rect.X+(it.Obj.Rect.Width div 2)-16,
+                                     it.Obj.Y+it.Obj.Rect.Y+(it.Obj.Rect.Height div 2)-16, 1,
                                      NET_GFX_RESPAWN);
                   end;
                   EFFECT_FIRE: begin
+                    it := g_ItemByIdx(iid);
                     if g_Frames_Get(FramesID, 'FRAMES_FIRE') then
                     begin
                       Anim := TAnimation.Create(FramesID, False, 4);
                       g_Sound_PlayExAt('SOUND_FIRE', Data.ItemPos.X, Data.ItemPos.Y);
-                      g_GFX_OnceAnim(gItems[iid].Obj.X+gItems[iid].Obj.Rect.X+(gItems[iid].Obj.Rect.Width div 2)-32,
-                                     gItems[iid].Obj.Y+gItems[iid].Obj.Rect.Y+gItems[iid].Obj.Rect.Height-128, Anim);
+                      g_GFX_OnceAnim(it.Obj.X+it.Obj.Rect.X+(it.Obj.Rect.Width div 2)-32,
+                                     it.Obj.Y+it.Obj.Rect.Y+it.Obj.Rect.Height-128, Anim);
                       Anim.Free();
                     end;
                     if g_Game_IsServer and g_Game_IsNet then
-                      MH_SEND_Effect(gItems[iid].Obj.X+gItems[iid].Obj.Rect.X+(gItems[iid].Obj.Rect.Width div 2)-32,
-                                     gItems[iid].Obj.Y+gItems[iid].Obj.Rect.Y+gItems[iid].Obj.Rect.Height-128, 1,
+                      MH_SEND_Effect(it.Obj.X+it.Obj.Rect.X+(it.Obj.Rect.Width div 2)-32,
+                                     it.Obj.Y+it.Obj.Rect.Y+it.Obj.Rect.Height-128, 1,
                                      NET_GFX_FIRE);
                   end;
                 end;

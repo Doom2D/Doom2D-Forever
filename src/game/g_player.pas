@@ -2973,31 +2973,33 @@ var
   DoFrags: Boolean;
   OldLR: Byte;
   KP: TPlayer;
+  it: PItem;
 
   procedure PushItem(t: Byte);
   var
     id: DWORD;
   begin
     id := g_Items_Create(FObj.X, FObj.Y, t, True, False);
+    it := g_ItemByIdx(id);
     if KillType = K_EXTRAHARDKILL then // -7..+7; -8..0
     begin
-      g_Obj_Push(@gItems[id].Obj, (FObj.Vel.X div 2)-7+Random(15),
-                                  (FObj.Vel.Y div 2)-Random(9));
-      gItems[id].positionChanged(); // this updates spatial accelerators
+      g_Obj_Push(@it.Obj, (FObj.Vel.X div 2)-7+Random(15),
+                          (FObj.Vel.Y div 2)-Random(9));
+      it.positionChanged(); // this updates spatial accelerators
     end
     else
     begin
       if KillType = K_HARDKILL then // -5..+5; -5..0
       begin
-        g_Obj_Push(@gItems[id].Obj, (FObj.Vel.X div 2)-5+Random(11),
-                                    (FObj.Vel.Y div 2)-Random(6));
+        g_Obj_Push(@it.Obj, (FObj.Vel.X div 2)-5+Random(11),
+                            (FObj.Vel.Y div 2)-Random(6));
       end
       else // -3..+3; -3..0
       begin
-        g_Obj_Push(@gItems[id].Obj, (FObj.Vel.X div 2)-3+Random(7),
-                                    (FObj.Vel.Y div 2)-Random(4));
+        g_Obj_Push(@it.Obj, (FObj.Vel.X div 2)-3+Random(7),
+                            (FObj.Vel.Y div 2)-Random(4));
       end;
-      gItems[id].positionChanged(); // this updates spatial accelerators
+      it.positionChanged(); // this updates spatial accelerators
     end;
 
     if g_Game_IsNet and g_Game_IsServer then

@@ -22,7 +22,13 @@ uses
   g_textures, g_phys, g_saveload, BinEditor, MAPDEF;
 
 Type
+  PItem = ^TItem;
   TItem = record
+  private
+    treeNode: Integer;
+    arrIdx: Integer; // in ggItems
+
+  public
     ItemType:      Byte;
     Respawnable:   Boolean;
     InitX, InitY:  Integer;
@@ -35,6 +41,8 @@ Type
     Animation:     TAnimation;
 
     procedure positionChanged (); //WARNING! call this after monster position was changed, or coldet will not work right!
+
+    property myid: Integer read arrIdx;
   end;
 
 procedure g_Items_LoadData();
@@ -50,8 +58,23 @@ procedure g_Items_Remove(ID: DWORD);
 procedure g_Items_SaveState(var Mem: TBinMemoryWriter);
 procedure g_Items_LoadState(var Mem: TBinMemoryReader);
 
+procedure g_Items_RestartRound ();
+
+function g_ItemValidId (idx: Integer): Boolean; inline;
+function g_ItemByIdx (idx: Integer): PItem;
+function g_ItemObjByIdx (idx: Integer): PObj;
+
+procedure g_Item_EmitPickupSound (idx: Integer); // at item position
+procedure g_Item_EmitPickupSoundAt (idx, x, y: Integer);
+
+
+type
+  TItemEachAliveCB = function (it: PItem): Boolean is nested; // return `true` to stop
+
+function g_Items_ForEachAlive (cb: TItemEachAliveCB; backwards: Boolean=false): Boolean;
+
+
 var
-  gItems: Array of TItem = nil;
   gItemsTexturesID: Array [1..ITEM_MAX] of DWORD;
   gMaxDist: Integer = 1;
   ITEM_RESPAWNTIME: Integer = 60 * 36;
@@ -61,8 +84,96 @@ implementation
 uses
   g_basic, e_graphics, g_sound, g_main, g_gfx, g_map,
   Math, g_game, g_triggers, g_console, SysUtils, g_player, g_net, g_netmsg,
-  e_log;
+  e_log,
+  g_grid, z_aabbtree, binheap;
 
+
+// ////////////////////////////////////////////////////////////////////////// //
+var
+  itemTree: TDynAABBTree = nil;
+  ggItems: Array of TItem = nil;
+  freeIds: TBinaryHeapInt = nil; // free item ids
+
+
+// ////////////////////////////////////////////////////////////////////////// //
+function g_ItemValidId (idx: Integer): Boolean; inline;
+begin
+  result := false;
+  if (idx < 0) or (idx > High(ggItems)) then exit;
+  if (ggItems[idx].treeNode = -1) then exit;
+  result := true;
+end;
+
+
+function g_ItemByIdx (idx: Integer): PItem;
+begin
+  if (idx < 0) or (idx > High(ggItems)) then raise Exception.Create('g_ItemObjByIdx: invalid index');
+  result := @ggItems[idx];
+  if (result.treeNode = -1) then raise Exception.Create('g_ItemObjByIdx: requested inexistent item');
+end;
+
+
+function g_ItemObjByIdx (idx: Integer): PObj;
+begin
+  if (idx < 0) or (idx > High(ggItems)) then raise Exception.Create('g_ItemObjByIdx: invalid index');
+  if (ggItems[idx].treeNode = -1) then raise Exception.Create('g_ItemObjByIdx: requested inexistent item');
+  result := @ggItems[idx].Obj;
+end;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
+type
+  TDynAABBTreeItem = class(TDynAABBTree)
+    function getFleshAABB (var aabb: AABB2D; flesh: TTreeFlesh; tag: Integer): Boolean; override;
+  end;
+
+function TDynAABBTreeItem.getFleshAABB (var aabb: AABB2D; flesh: TTreeFlesh; tag: Integer): Boolean;
+var
+  it: PItem;
+begin
+  result := false;
+  if (flesh = nil) then begin aabb := AABB2D.Create(0, 0, 0, 0); exit; end;
+  //if not g_ItemValidId(tag) then raise Exception.Create('DynTree: trying to get dimensions of inexistant item');
+  if (tag < 0) or (tag > High(ggItems)) then raise Exception.Create('DynTree: trying to get dimensions of inexistant item');
+  it := @ggItems[tag];
+  if (it.Obj.Rect.Width < 1) or (it.Obj.Rect.Height < 1) then exit;
+  aabb := AABB2D.Create(it.Obj.X, it.Obj.Y, it.Obj.X+it.Obj.Rect.Width, it.Obj.Y+it.Obj.Rect.Height);
+  if not aabb.valid then raise Exception.Create('wutafuuuuuuu?!');
+  result := true;
+end;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
+procedure TItem.positionChanged ();
+var
+  x, y: Integer;
+begin
+  if (treeNode = -1) then
+  begin
+    treeNode := itemTree.insertObject(itemTree{doesn't matter}, arrIdx, true); // static object
+    itemTree.getNodeXY(treeNode, x, y);
+    {$IF DEFINED(D2F_DEBUG)}e_WriteLog(Format('item #%d: inserted into the tree; nodeid=%d; x=%d; y=%d', [arrIdx, treeNode, x, y]), MSG_NOTIFY);{$ENDIF}
+  end
+  else
+  begin
+    itemTree.getNodeXY(treeNode, x, y);
+    if (Obj.X = x) and (Obj.Y = y) then exit; // nothing to do
+    {$IF DEFINED(D2F_DEBUG)}e_WriteLog(Format('item #%d: updating tree; nodeid=%d; x=%d; y=%d', [arrIdx, treeNode, x, y]), MSG_NOTIFY);{$ENDIF}
+
+    {$IFDEF TRUE}
+    itemTree.updateObject(treeNode);
+    {$ELSE}
+    itemTree.removeObject(treeNode);
+    treeNode := itemTree.insertObject(itemTree{doesn't matter}, arrIdx, true); // static object
+    {$ENDIF}
+
+    itemTree.getNodeXY(treeNode, x, y);
+    {$IF DEFINED(D2F_DEBUG)}e_WriteLog(Format('item #%d: updated tree; nodeid=%d; x=%d; y=%d', [arrIdx, treeNode, x, y]), MSG_NOTIFY);{$ENDIF}
+  end;
+end;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
 const
   ITEM_SIGNATURE = $4D455449; // 'ITEM'
 
@@ -194,7 +305,11 @@ begin
   g_Texture_CreateWADEx('ITEM_JETPACK', GameWAD+':TEXTURES\JETPACK');
 
   InitTextures();
+
+  itemTree := TDynAABBTreeItem.Create();
+  freeIds := binHeapNewIntLess();
 end;
+
 
 procedure g_Items_FreeData();
 begin
@@ -248,443 +363,597 @@ begin
   g_Texture_Delete('ITEM_WEAPON_KASTET');
   g_Texture_Delete('ITEM_MEDKIT_BLACK');
   g_Texture_Delete('ITEM_JETPACK');
+
+  itemTree.Free();
+  freeIds.Free();
 end;
 
-function FindItem(): DWORD;
+
+procedure releaseItem (idx: Integer);
 var
-  i: Integer;
+  it: PItem;
 begin
-  if gItems <> nil then
-    for i := 0 to High(gItems) do
-      if gItems[i].ItemType = ITEM_NONE then
-      begin
-        Result := i;
-        Exit;
-      end;
-
-  if gItems = nil then
-    begin
-      SetLength(gItems, 32);
-      Result := 0;
-    end
-  else
-    begin
-      Result := High(gItems) + 1;
-      SetLength(gItems, Length(gItems) + 32);
-    end;
+  if (idx < 0) or (idx > High(ggItems)) then raise Exception.Create('releaseItem: invalid item id');
+  it := @ggItems[idx];
+  if (it.treeNode = -1) then raise Exception.Create('releaseItem: trying to release unallocated item');
+  if (it.arrIdx <> idx) then raise Exception.Create('releaseItem: arrIdx inconsistency');
+  itemTree.removeObject(it.treeNode);
+  it.treeNode := -1;
+  if (it.Animation <> nil) then
+  begin
+    it.Animation.Free();
+    it.Animation := nil;
+  end;
+  it.Live := False;
+  it.SpawnTrigger := -1;
+  it.ItemType := ITEM_NONE;
+  freeIds.insert(it.arrIdx);
 end;
 
-procedure g_Items_Init();
+
+function allocItem (): DWORD;
+var
+  i, olen: Integer;
+  it: PItem;
+begin
+  if (freeIds.count = 0) then
+  begin
+    // no free slots
+    olen := Length(ggItems);
+    SetLength(ggItems, olen+64);
+    for i := olen to High(ggItems) do
+    begin
+      it := @ggItems[i];
+      it.treeNode := -1;
+      it.arrIdx := i;
+      it.ItemType := ITEM_NONE;
+      it.Animation := nil;
+      it.Live := false;
+      it.SpawnTrigger := -1;
+      it.Respawnable := false;
+      freeIds.insert(i);
+    end;
+  end;
+
+  result := freeIds.front;
+  freeIds.popFront();
+
+  if (result > High(ggItems)) then raise Exception.Create('allocItem: freeid list corrupted');
+  if (ggItems[result].arrIdx <> result) then raise Exception.Create('allocItem: arrIdx inconsistency');
+end;
+
+
+// it will be slow if the slot is free (we have to rebuild the heap)
+function wantItemSlot (slot: Integer): Integer;
+var
+  i, olen: Integer;
+  it: PItem;
+  rebuildFreeList: Boolean = true;
+begin
+  if (slot < 0) or (slot > $0fffffff) then raise Exception.Create('wantItemSlot: bad item slot request');
+  // do we need to grow item storate?
+  olen := Length(ggItems);
+  if (slot >= olen) then
+  begin
+    // need more spice!
+    SetLength(ggItems, slot+64);
+    // add free slots to free list
+    for i := olen to High(ggItems) do
+    begin
+      it := @ggItems[i];
+      it.treeNode := -1;
+      it.arrIdx := i;
+      it.ItemType := ITEM_NONE;
+      it.Animation := nil;
+      it.Live := false;
+      it.SpawnTrigger := -1;
+      it.Respawnable := false;
+      if (i <> slot) then freeIds.insert(i);
+    end;
+    rebuildFreeList := false;
+  end;
+
+  it := @ggItems[slot];
+  if (it.treeNode = -1) then
+  begin
+    // this is unused slot; get it, and rebuild id list
+    if rebuildFreeList then
+    begin
+      freeIds.clear();
+      for i := 0 to High(ggItems) do
+      begin
+        if (i <> slot) and (ggItems[i].treeNode = -1) then freeIds.insert(i);
+      end;
+    end;
+  end
+  else
+  begin
+    // it will be readded
+    itemTree.removeObject(it.treeNode);
+    it.treeNode := -1;
+  end;
+
+  result := slot;
+end;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
+procedure g_Items_Init ();
 var
   a, b: Integer;
 begin
-  if gMapInfo.Height > gPlayerScreenSize.Y then
-    a := gMapInfo.Height - gPlayerScreenSize.Y
-  else
-    a := gMapInfo.Height;
-
-  if gMapInfo.Width > gPlayerScreenSize.X then
-    b := gMapInfo.Width - gPlayerScreenSize.X
-  else
-    b := gMapInfo.Width;
-
+  if gMapInfo.Height > gPlayerScreenSize.Y then a := gMapInfo.Height-gPlayerScreenSize.Y else a := gMapInfo.Height;
+  if gMapInfo.Width > gPlayerScreenSize.X then b := gMapInfo.Width-gPlayerScreenSize.X else b := gMapInfo.Width;
   gMaxDist := Trunc(Hypot(a, b));
 end;
 
-procedure g_Items_Free();
+
+procedure g_Items_Free ();
 var
   i: Integer;
 begin
-  if gItems <> nil then
+  if (ggItems <> nil) then
   begin
-    for i := 0 to High(gItems) do
-      gItems[i].Animation.Free();
-    gItems := nil;
+    for i := 0 to High(ggItems) do ggItems[i].Animation.Free();
+    ggItems := nil;
   end;
+  if (itemTree <> nil) then itemTree.reset();
+  freeIds.clear();
 end;
 
-function g_Items_Create(X, Y: Integer; ItemType: Byte;
+
+function g_Items_Create (X, Y: Integer; ItemType: Byte;
            Fall, Respawnable: Boolean; AdjCoord: Boolean = False; ForcedID: Integer = -1): DWORD;
 var
   find_id: DWORD;
   ID: DWORD;
+  it: PItem;
 begin
-  if ForcedID < 0 then
-    find_id := FindItem()
-  else
-  begin
-    find_id := ForcedID;
-    if Integer(find_id) > High(gItems) then
-      SetLength(gItems, find_id + 32);
-  end;
+  if ForcedID < 0 then find_id := allocItem() else find_id := wantItemSlot(ForcedID);
 
-  gItems[find_id].ItemType := ItemType;
-  gItems[find_id].Respawnable := Respawnable;
-  if g_Game_IsServer and (ITEM_RESPAWNTIME = 0) then
-    gItems[find_id].Respawnable := False;
-  gItems[find_id].InitX := X;
-  gItems[find_id].InitY := Y;
-  gItems[find_id].RespawnTime := 0;
-  gItems[find_id].Fall := Fall;
-  gItems[find_id].Live := True;
-  gItems[find_id].QuietRespawn := False;
+  {$IF DEFINED(D2F_DEBUG)}e_WriteLog(Format('allocated item #%d', [Integer(find_id)]), MSG_NOTIFY);{$ENDIF}
 
-  g_Obj_Init(@gItems[find_id].Obj);
-  gItems[find_id].Obj.X := X;
-  gItems[find_id].Obj.Y := Y;
-  gItems[find_id].Obj.Rect.Width := ITEMSIZE[ItemType][0];
-  gItems[find_id].Obj.Rect.Height := ITEMSIZE[ItemType][1];
+  it := @ggItems[find_id];
 
-  gItems[find_id].Animation := nil;
-  gItems[find_id].SpawnTrigger := -1;
+  it.ItemType := ItemType;
+  it.Respawnable := Respawnable;
+  if g_Game_IsServer and (ITEM_RESPAWNTIME = 0) then it.Respawnable := False;
+  it.InitX := X;
+  it.InitY := Y;
+  it.RespawnTime := 0;
+  it.Fall := Fall;
+  it.Live := True;
+  it.QuietRespawn := False;
 
-// Координаты относительно центра нижнего ребра:
+  if (it.treeNode <> -1) then raise Exception.Create('g_Items_Create: trying to reuse already allocated item');
+  if (it.arrIdx <> find_id) then raise Exception.Create('g_Items_Create: arrIdx inconsistency');
+  //it.treeNode := -1;
+  //it.arrIdx := find_id;
+
+  g_Obj_Init(@it.Obj);
+  it.Obj.X := X;
+  it.Obj.Y := Y;
+  it.Obj.Rect.Width := ITEMSIZE[ItemType][0];
+  it.Obj.Rect.Height := ITEMSIZE[ItemType][1];
+
+  it.Animation := nil;
+  it.SpawnTrigger := -1;
+
+  // Координаты относительно центра нижнего ребра
   if AdjCoord then
-    with gItems[find_id] do
+  begin
+    with it^ do
     begin
       Obj.X := X - (Obj.Rect.Width div 2);
       Obj.Y := Y - Obj.Rect.Height;
       InitX := Obj.X;
       InitY := Obj.Y;
     end;
-
-// Установка анимации:
-  with gItems[find_id] do
-  begin
-    case ItemType of
-      ITEM_ARMOR_GREEN:
-        if g_Frames_Get(ID, 'FRAMES_ITEM_ARMORGREEN') then
-          Animation := TAnimation.Create(ID, True, 20);
-      ITEM_ARMOR_BLUE:
-        if g_Frames_Get(ID, 'FRAMES_ITEM_ARMORBLUE') then
-          Animation := TAnimation.Create(ID, True, 20);
-      ITEM_SPHERE_BLUE:
-        if g_Frames_Get(ID, 'FRAMES_ITEM_BLUESPHERE') then
-          Animation := TAnimation.Create(ID, True, 15);
-      ITEM_SPHERE_WHITE:
-        if g_Frames_Get(ID, 'FRAMES_ITEM_WHITESPHERE') then
-          Animation := TAnimation.Create(ID, True, 20);
-      ITEM_INVUL:
-        if g_Frames_Get(ID, 'FRAMES_ITEM_INVUL') then
-          Animation := TAnimation.Create(ID, True, 20);
-      ITEM_INVIS:
-        if g_Frames_Get(ID, 'FRAMES_ITEM_INVIS') then
-          Animation := TAnimation.Create(ID, True, 20);
-      ITEM_BOTTLE:
-        if g_Frames_Get(ID, 'FRAMES_ITEM_BOTTLE') then
-          Animation := TAnimation.Create(ID, True, 20);
-      ITEM_HELMET:
-        if g_Frames_Get(ID, 'FRAMES_ITEM_HELMET') then
-          Animation := TAnimation.Create(ID, True, 20);
-    end;
   end;
 
-  Result := find_id;
+  // Установка анимации
+  case it.ItemType of
+    ITEM_ARMOR_GREEN: if g_Frames_Get(ID, 'FRAMES_ITEM_ARMORGREEN') then it.Animation := TAnimation.Create(ID, True, 20);
+    ITEM_ARMOR_BLUE: if g_Frames_Get(ID, 'FRAMES_ITEM_ARMORBLUE') then it.Animation := TAnimation.Create(ID, True, 20);
+    ITEM_SPHERE_BLUE: if g_Frames_Get(ID, 'FRAMES_ITEM_BLUESPHERE') then it.Animation := TAnimation.Create(ID, True, 15);
+    ITEM_SPHERE_WHITE: if g_Frames_Get(ID, 'FRAMES_ITEM_WHITESPHERE') then it.Animation := TAnimation.Create(ID, True, 20);
+    ITEM_INVUL: if g_Frames_Get(ID, 'FRAMES_ITEM_INVUL') then it.Animation := TAnimation.Create(ID, True, 20);
+    ITEM_INVIS: if g_Frames_Get(ID, 'FRAMES_ITEM_INVIS') then it.Animation := TAnimation.Create(ID, True, 20);
+    ITEM_BOTTLE: if g_Frames_Get(ID, 'FRAMES_ITEM_BOTTLE') then it.Animation := TAnimation.Create(ID, True, 20);
+    ITEM_HELMET: if g_Frames_Get(ID, 'FRAMES_ITEM_HELMET') then it.Animation := TAnimation.Create(ID, True, 20);
+  end;
+
+  it.positionChanged();
+
+  result := find_id;
 end;
 
-procedure g_Items_Update();
+
+procedure g_Items_Update ();
 var
   i, j, k: Integer;
-  ID: DWORD;
+  ID: DWord;
   Anim: TAnimation;
   m: Word;
   r, nxt: Boolean;
 begin
-  if gItems <> nil then
-    for i := 0 to High(gItems) do
-      if gItems[i].ItemType <> ITEM_NONE then
-        with gItems[i] do
+  if (ggItems = nil) then exit;
+
+  for i := 0 to High(ggItems) do
+  begin
+    if (ggItems[i].ItemType = ITEM_NONE) then continue;
+
+    with ggItems[i] do
+    begin
+      nxt := False;
+
+      if Live then
+      begin
+        if Fall then
         begin
-          nxt := False;
+          m := g_Obj_Move(@Obj, True, True);
+          positionChanged(); // this updates spatial accelerators
 
-          if Live then
+          // Сопротивление воздуха
+          if gTime mod (GAME_TICK*2) = 0 then Obj.Vel.X := z_dec(Obj.Vel.X, 1);
+
+          // Если выпал за карту
+          if WordBool(m and MOVE_FALLOUT) then
           begin
-            if Fall then
+            if SpawnTrigger = -1 then
             begin
-              m := g_Obj_Move(@Obj, True, True);
-              positionChanged(); // this updates spatial accelerators
-
-            // Сопротивление воздуха:
-              if gTime mod (GAME_TICK*2) = 0 then
-                Obj.Vel.X := z_dec(Obj.Vel.X, 1);
-            // Если выпал за карту:
-              if WordBool(m and MOVE_FALLOUT) then
-              begin
-                if SpawnTrigger = -1 then
-                  g_Items_Pick(i)
-                else begin
-                  g_Items_Remove(i);
-                  if g_Game_IsServer and g_Game_IsNet then MH_SEND_ItemDestroy(True, i);
-                end;
-                Continue;
-              end;
-            end;
-
-          // Если игроки поблизости:
-            if gPlayers <> nil then
+              g_Items_Pick(i);
+            end
+            else
             begin
-              j := Random(Length(gPlayers)) - 1;
-
-              for k := 0 to High(gPlayers) do
-              begin
-                Inc(j);
-                if j > High(gPlayers) then
-                  j := 0;
-
-                if (gPlayers[j] <> nil) and gPlayers[j].Live and
-                   g_Obj_Collide(@gPlayers[j].Obj, @Obj) then
-                begin
-                  if g_Game_IsClient then Continue;
-
-                  if not gPlayers[j].PickItem(ItemType, Respawnable, r) then
-                    Continue;
-
-                  if g_Game_IsNet then MH_SEND_PlayerStats(gPlayers[j].UID);
-
-{
-  Doom 2D: Original:
-  1. I_NONE,I_CLIP,I_SHEL,I_ROCKET,I_CELL,I_AMMO,I_SBOX,I_RBOX,I_CELP,I_BPACK,I_CSAW,I_SGUN,I_SGUN2,I_MGUN,I_LAUN,I_PLAS,I_BFG,I_GUN2
-  +2. I_MEGA,I_INVL,I_SUPER
-  3. I_STIM,I_MEDI,I_ARM1,I_ARM2,I_AQUA,I_KEYR,I_KEYG,I_KEYB,I_SUIT,I_RTORCH,I_GTORCH,I_BTORCH,I_GOR1,I_FCAN
-}
-
-                  if gSoundEffectsDF then
-                  begin
-                    if ItemType in [ITEM_SPHERE_BLUE, ITEM_SPHERE_WHITE, ITEM_INVUL,
-                                    ITEM_INVIS, ITEM_MEDKIT_BLACK, ITEM_JETPACK] then
-                      g_Sound_PlayExAt('SOUND_ITEM_GETRULEZ',
-                        gPlayers[j].Obj.X, gPlayers[j].Obj.Y)
-                    else
-                      if ItemType in [ITEM_WEAPON_SAW, ITEM_WEAPON_PISTOL, ITEM_WEAPON_SHOTGUN1, ITEM_WEAPON_SHOTGUN2,
-                                      ITEM_WEAPON_CHAINGUN, ITEM_WEAPON_ROCKETLAUNCHER, ITEM_WEAPON_PLASMA,
-                                      ITEM_WEAPON_BFG, ITEM_WEAPON_SUPERPULEMET, ITEM_WEAPON_FLAMETHROWER,
-                                      ITEM_AMMO_BACKPACK] then
-                        g_Sound_PlayExAt('SOUND_ITEM_GETWEAPON',
-                          gPlayers[j].Obj.X, gPlayers[j].Obj.Y)
-                      else
-                        g_Sound_PlayExAt('SOUND_ITEM_GETITEM',
-                          gPlayers[j].Obj.X, gPlayers[j].Obj.Y);
-                  end
-                  else
-                  begin
-                    if ItemType in [ITEM_SPHERE_BLUE, ITEM_SPHERE_WHITE, ITEM_SUIT,
-                                    ITEM_MEDKIT_BLACK, ITEM_INVUL, ITEM_INVIS, ITEM_JETPACK] then
-                      g_Sound_PlayExAt('SOUND_ITEM_GETRULEZ',
-                        gPlayers[j].Obj.X, gPlayers[j].Obj.Y)
-                    else
-                      if ItemType in [ITEM_WEAPON_SAW, ITEM_WEAPON_PISTOL, ITEM_WEAPON_SHOTGUN1, ITEM_WEAPON_SHOTGUN2,
-                                      ITEM_WEAPON_CHAINGUN, ITEM_WEAPON_ROCKETLAUNCHER, ITEM_WEAPON_PLASMA,
-                                      ITEM_WEAPON_BFG, ITEM_WEAPON_SUPERPULEMET, ITEM_WEAPON_FLAMETHROWER] then
-                        g_Sound_PlayExAt('SOUND_ITEM_GETWEAPON',
-                          gPlayers[j].Obj.X, gPlayers[j].Obj.Y)
-                      else
-                        g_Sound_PlayExAt('SOUND_ITEM_GETITEM',
-                          gPlayers[j].Obj.X, gPlayers[j].Obj.Y);
-                  end;
-
-                // Надо убрать с карты, если это не ключ, которым нужно поделиться с другим игроком:
-                  if r then
-                  begin
-                    if not Respawnable then
-                      g_Items_Remove(i)
-                    else
-                      g_Items_Pick(i);
-
-                    if g_Game_IsNet then MH_SEND_ItemDestroy(False, i);
-                    nxt := True;
-                    Break;
-                  end;
-                end;
-              end;
+              g_Items_Remove(i);
+              if g_Game_IsServer and g_Game_IsNet then MH_SEND_ItemDestroy(True, i);
             end;
-
-            if nxt then
-              Continue;
+            continue;
           end;
-
-          if Respawnable and g_Game_IsServer then
-          begin
-            DecMin(RespawnTime, 0);
-            if (RespawnTime = 0) and (not Live) then
-            begin
-              if not QuietRespawn then
-                g_Sound_PlayExAt('SOUND_ITEM_RESPAWNITEM', InitX, InitY);
-
-              if g_Frames_Get(ID, 'FRAMES_ITEM_RESPAWN') then
-              begin
-                Anim := TAnimation.Create(ID, False, 4);
-                g_GFX_OnceAnim(InitX+(Obj.Rect.Width div 2)-16, InitY+(Obj.Rect.Height div 2)-16, Anim);
-                Anim.Free();
-              end;
-
-              Obj.X := InitX;
-              Obj.Y := InitY;
-              Obj.Vel.X := 0;
-              Obj.Vel.Y := 0;
-              Obj.Accel.X := 0;
-              Obj.Accel.Y := 0;
-              positionChanged(); // this updates spatial accelerators
-
-              Live := True;
-
-              if g_Game_IsNet then MH_SEND_ItemSpawn(QuietRespawn, i);
-              QuietRespawn := False;
-            end;
-          end;
-
-          if Animation <> nil then
-            Animation.Update();
         end;
+
+        // Если игроки поблизости
+        if (gPlayers <> nil) then
+        begin
+          j := Random(Length(gPlayers))-1;
+
+          for k := 0 to High(gPlayers) do
+          begin
+            Inc(j);
+            if j > High(gPlayers) then j := 0;
+
+            if (gPlayers[j] <> nil) and gPlayers[j].Live and g_Obj_Collide(@gPlayers[j].Obj, @Obj) then
+            begin
+              if g_Game_IsClient then continue;
+
+              if not gPlayers[j].PickItem(ItemType, Respawnable, r) then continue;
+
+              if g_Game_IsNet then MH_SEND_PlayerStats(gPlayers[j].UID);
+
+              {
+                Doom 2D: Original:
+                1. I_NONE,I_CLIP,I_SHEL,I_ROCKET,I_CELL,I_AMMO,I_SBOX,I_RBOX,I_CELP,I_BPACK,I_CSAW,I_SGUN,I_SGUN2,I_MGUN,I_LAUN,I_PLAS,I_BFG,I_GUN2
+                +2. I_MEGA,I_INVL,I_SUPER
+                3. I_STIM,I_MEDI,I_ARM1,I_ARM2,I_AQUA,I_KEYR,I_KEYG,I_KEYB,I_SUIT,I_RTORCH,I_GTORCH,I_BTORCH,I_GOR1,I_FCAN
+              }
+              g_Item_EmitPickupSoundAt(i, gPlayers[j].Obj.X, gPlayers[j].Obj.Y);
+
+              // Надо убрать с карты, если это не ключ, которым нужно поделиться с другим игроком
+              if r then
+              begin
+                if not Respawnable then g_Items_Remove(i) else g_Items_Pick(i);
+                if g_Game_IsNet then MH_SEND_ItemDestroy(False, i);
+                nxt := True;
+                break;
+              end;
+            end;
+          end;
+        end;
+
+        if nxt then continue;
+      end;
+
+      if Respawnable and g_Game_IsServer then
+      begin
+        DecMin(RespawnTime, 0);
+        if (RespawnTime = 0) and (not Live) then
+        begin
+          if not QuietRespawn then g_Sound_PlayExAt('SOUND_ITEM_RESPAWNITEM', InitX, InitY);
+
+          if g_Frames_Get(ID, 'FRAMES_ITEM_RESPAWN') then
+          begin
+            Anim := TAnimation.Create(ID, False, 4);
+            g_GFX_OnceAnim(InitX+(Obj.Rect.Width div 2)-16, InitY+(Obj.Rect.Height div 2)-16, Anim);
+            Anim.Free();
+          end;
+
+          Obj.X := InitX;
+          Obj.Y := InitY;
+          Obj.Vel.X := 0;
+          Obj.Vel.Y := 0;
+          Obj.Accel.X := 0;
+          Obj.Accel.Y := 0;
+          positionChanged(); // this updates spatial accelerators
+
+          Live := true;
+
+          if g_Game_IsNet then MH_SEND_ItemSpawn(QuietRespawn, i);
+          QuietRespawn := false;
+        end;
+      end;
+
+      if (Animation <> nil) then Animation.Update();
+    end;
+  end;
 end;
 
-procedure g_Items_Draw();
+
+procedure g_Items_Draw ();
 var
   i: Integer;
 begin
-  if gItems <> nil then
-    for i := 0 to High(gItems) do
-      if gItems[i].Live then
-        with gItems[i] do
-          if g_Collide(Obj.X, Obj.Y, Obj.Rect.Width, Obj.Rect.Height,
-                       sX, sY, sWidth, sHeight) then
-          begin
-            if Animation = nil then
-              e_Draw(gItemsTexturesID[ItemType], Obj.X, Obj.Y, 0, True, False)
-            else
-              Animation.Draw(Obj.X, Obj.Y, M_NONE);
+  if (ggItems = nil) then exit;
 
-            if g_debug_Frames then
-            begin
-              e_DrawQuad(Obj.X+Obj.Rect.X,
-                         Obj.Y+Obj.Rect.Y,
-                         Obj.X+Obj.Rect.X+Obj.Rect.Width-1,
-                         Obj.Y+Obj.Rect.Y+Obj.Rect.Height-1,
-                         0, 255, 0);
-            end;
-          end;
-end;
-
-procedure g_Items_Pick(ID: DWORD);
-begin
-  gItems[ID].Live := False;
-  gItems[ID].RespawnTime := ITEM_RESPAWNTIME;
-end;
-
-procedure g_Items_Remove(ID: DWORD);
-begin
-  gItems[ID].ItemType := ITEM_NONE;
-
-  if gItems[ID].Animation <> nil then
+  for i := 0 to High(ggItems) do
   begin
-    gItems[ID].Animation.Free();
-    gItems[ID].Animation := nil;
-  end;
+    if not ggItems[i].Live then continue;
 
-  gItems[ID].Live := False;
+    with ggItems[i] do
+    begin
+      if g_Collide(Obj.X, Obj.Y, Obj.Rect.Width, Obj.Rect.Height, sX, sY, sWidth, sHeight) then
+      begin
+        if (Animation = nil) then
+        begin
+          e_Draw(gItemsTexturesID[ItemType], Obj.X, Obj.Y, 0, true, false);
+        end
+        else
+        begin
+          Animation.Draw(Obj.X, Obj.Y, M_NONE);
+        end;
 
-  if gItems[ID].SpawnTrigger > -1 then
-  begin
-    g_Triggers_DecreaseSpawner(gItems[ID].SpawnTrigger);
-    gItems[ID].SpawnTrigger := -1;
+        if g_debug_Frames then
+        begin
+          e_DrawQuad(Obj.X+Obj.Rect.X,
+                     Obj.Y+Obj.Rect.Y,
+                     Obj.X+Obj.Rect.X+Obj.Rect.Width-1,
+                     Obj.Y+Obj.Rect.Y+Obj.Rect.Height-1,
+                     0, 255, 0);
+        end;
+      end;
+    end;
   end;
 end;
 
-procedure g_Items_SaveState(var Mem: TBinMemoryWriter);
+
+procedure g_Items_Pick (ID: DWORD);
+begin
+  ggItems[ID].Live := false;
+  ggItems[ID].RespawnTime := ITEM_RESPAWNTIME;
+end;
+
+
+procedure g_Items_Remove (ID: DWORD);
+var
+  it: PItem;
+  trig: Integer;
+  x, y: Integer;
+begin
+  if not g_ItemValidId(ID) then raise Exception.Create('g_Items_Remove: invalid item id');
+
+  it := @ggItems[ID];
+  if (it.arrIdx <> ID) then raise Exception.Create('g_Items_Remove: arrIdx desync');
+
+  itemTree.getNodeXY(it.treeNode, x, y);
+  {$IF DEFINED(D2F_DEBUG)}e_WriteLog(Format('removing item #%d: updating tree; nodeid=%d; x=%d; y=%d (%d,%d)', [it.arrIdx, it.treeNode, x, y, it.Obj.X, it.Obj.Y]), MSG_NOTIFY);{$ENDIF}
+
+  trig := it.SpawnTrigger;
+
+  releaseItem(ID);
+
+  if (trig > -1) then g_Triggers_DecreaseSpawner(trig);
+end;
+
+
+procedure g_Items_SaveState (var Mem: TBinMemoryWriter);
 var
   count, i: Integer;
   sig: DWORD;
 begin
-// Считаем количество существующих предметов:
+  // Считаем количество существующих предметов
   count := 0;
-  if gItems <> nil then
-    for i := 0 to High(gItems) do
-      if gItems[i].ItemType <> ITEM_NONE then
-        count := count + 1;
+  if (ggItems <> nil) then
+  begin
+    for i := 0 to High(ggItems) do if (ggItems[i].ItemType <> ITEM_NONE) then Inc(count);
+  end;
 
   Mem := TBinMemoryWriter.Create((count+1) * 60);
 
-// Количество предметов:
+  // Количество предметов
   Mem.WriteInt(count);
 
-  if count = 0 then
-    Exit;
+  if (count = 0) then exit;
 
-  for i := 0 to High(gItems) do
-    if gItems[i].ItemType <> ITEM_NONE then
+  for i := 0 to High(ggItems) do
+  begin
+    if (ggItems[i].ItemType <> ITEM_NONE) then
     begin
-    // Сигнатура предмета:
+      // Сигнатура предмета
       sig := ITEM_SIGNATURE; // 'ITEM'
       Mem.WriteDWORD(sig);
-    // Тип предмета:
-      Mem.WriteByte(gItems[i].ItemType);
-    // Есть ли респаун:
-      Mem.WriteBoolean(gItems[i].Respawnable);
-    // Координаты респуна:
-      Mem.WriteInt(gItems[i].InitX);
-      Mem.WriteInt(gItems[i].InitY);
-    // Время до респауна:
-      Mem.WriteWord(gItems[i].RespawnTime);
-    // Существует ли этот предмет:
-      Mem.WriteBoolean(gItems[i].Live);
-    // Может ли он падать:
-      Mem.WriteBoolean(gItems[i].Fall);
-    // Индекс триггера, создавшего предмет:
-      Mem.WriteInt(gItems[i].SpawnTrigger);
-    // Объект предмета:
-      Obj_SaveState(@gItems[i].Obj, Mem);
+      // Тип предмета
+      Mem.WriteByte(ggItems[i].ItemType);
+      // Есть ли респаун
+      Mem.WriteBoolean(ggItems[i].Respawnable);
+      // Координаты респуна
+      Mem.WriteInt(ggItems[i].InitX);
+      Mem.WriteInt(ggItems[i].InitY);
+      // Время до респауна
+      Mem.WriteWord(ggItems[i].RespawnTime);
+      // Существует ли этот предмет
+      Mem.WriteBoolean(ggItems[i].Live);
+      // Может ли он падать
+      Mem.WriteBoolean(ggItems[i].Fall);
+      // Индекс триггера, создавшего предмет
+      Mem.WriteInt(ggItems[i].SpawnTrigger);
+      // Объект предмета
+      Obj_SaveState(@ggItems[i].Obj, Mem);
     end;
+  end;
 end;
 
-procedure g_Items_LoadState(var Mem: TBinMemoryReader);
+
+procedure g_Items_LoadState (var Mem: TBinMemoryReader);
 var
   count, i, a: Integer;
   sig: DWORD;
   b: Byte;
 begin
-  if Mem = nil then
-    Exit;
+  if (Mem = nil) then exit;
 
   g_Items_Free();
 
-// Количество предметов:
+  // Количество предметов
   Mem.ReadInt(count);
 
-  if count = 0 then
-    Exit;
+  if (count = 0) then Exit;
 
   for a := 0 to count-1 do
   begin
-  // Сигнатура предмета:
+    // Сигнатура предмета
     Mem.ReadDWORD(sig);
-    if sig <> ITEM_SIGNATURE then // 'ITEM'
-    begin
-      raise EBinSizeError.Create('g_Items_LoadState: Wrong Item Signature');
-    end;
-  // Тип предмета:
+    if (sig <> ITEM_SIGNATURE) then raise EBinSizeError.Create('g_Items_LoadState: Wrong Item Signature'); // 'ITEM'
+    // Тип предмета
     Mem.ReadByte(b);
-  // Создаем предмет:
+    // Создаем предмет
     i := g_Items_Create(0, 0, b, False, False);
-  // Есть ли респаун:
-    Mem.ReadBoolean(gItems[i].Respawnable);
-  // Координаты респуна:
-    Mem.ReadInt(gItems[i].InitX);
-    Mem.ReadInt(gItems[i].InitY);
-  // Время до респауна:
-    Mem.ReadWord(gItems[i].RespawnTime);
-  // Существует ли этот предмет:
-    Mem.ReadBoolean(gItems[i].Live);
-  // Может ли он падать:
-    Mem.ReadBoolean(gItems[i].Fall);
-  // Индекс триггера, создавшего предмет:
-    Mem.ReadInt(gItems[i].SpawnTrigger);
-  // Объект предмета:
-    Obj_LoadState(@gItems[i].Obj, Mem);
+    // Есть ли респаун
+    Mem.ReadBoolean(ggItems[i].Respawnable);
+    // Координаты респуна
+    Mem.ReadInt(ggItems[i].InitX);
+    Mem.ReadInt(ggItems[i].InitY);
+    // Время до респауна
+    Mem.ReadWord(ggItems[i].RespawnTime);
+    // Существует ли этот предмет
+    Mem.ReadBoolean(ggItems[i].Live);
+    // Может ли он падать
+    Mem.ReadBoolean(ggItems[i].Fall);
+    // Индекс триггера, создавшего предмет
+    Mem.ReadInt(ggItems[i].SpawnTrigger);
+    // Объект предмета
+    Obj_LoadState(@ggItems[i].Obj, Mem);
   end;
 end;
 
 
-procedure TItem.positionChanged ();
+procedure g_Items_RestartRound ();
+var
+  i: Integer;
+  it: PItem;
 begin
+  for i := 0 to High(ggItems) do
+  begin
+    it := @ggItems[i];
+    if it.Respawnable then
+    begin
+      it.QuietRespawn := True;
+      it.RespawnTime := 0;
+    end
+    else
+    begin
+      g_Items_Remove(i);
+      if g_Game_IsNet then MH_SEND_ItemDestroy(True, i);
+    end;
+  end;
+end;
+
+
+function g_Items_ForEachAlive (cb: TItemEachAliveCB; backwards: Boolean=false): Boolean;
+var
+  idx: Integer;
+begin
+  result := false;
+  if (ggItems = nil) or not assigned(cb) then exit;
+
+  if backwards then
+  begin
+    for idx := High(ggItems) downto 0 do
+    begin
+      if ggItems[idx].Live then
+      begin
+        result := cb(@ggItems[idx]);
+        if result then exit;
+      end;
+    end;
+  end
+  else
+  begin
+    for idx := 0 to High(ggItems) do
+    begin
+      if ggItems[idx].Live then
+      begin
+        result := cb(@ggItems[idx]);
+        if result then exit;
+      end;
+    end;
+  end;
+end;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
+procedure g_Item_EmitPickupSound (idx: Integer);
+var
+  it: PItem;
+begin
+  if not g_ItemValidId(idx) then exit;
+  it := @ggItems[idx];
+  g_Item_EmitPickupSoundAt(idx, it.Obj.X, it.Obj.Y);
+end;
+
+procedure g_Item_EmitPickupSoundAt (idx, x, y: Integer);
+var
+  it: PItem;
+begin
+  if not g_ItemValidId(idx) then exit;
+
+  it := @ggItems[idx];
+  if gSoundEffectsDF then
+  begin
+    if it.ItemType in [ITEM_SPHERE_BLUE, ITEM_SPHERE_WHITE, ITEM_INVUL,
+                       ITEM_INVIS, ITEM_MEDKIT_BLACK, ITEM_JETPACK] then
+    begin
+      g_Sound_PlayExAt('SOUND_ITEM_GETRULEZ', x, y);
+    end
+    else if it.ItemType in [ITEM_WEAPON_SAW, ITEM_WEAPON_PISTOL, ITEM_WEAPON_SHOTGUN1, ITEM_WEAPON_SHOTGUN2,
+                            ITEM_WEAPON_CHAINGUN, ITEM_WEAPON_ROCKETLAUNCHER, ITEM_WEAPON_PLASMA,
+                            ITEM_WEAPON_BFG, ITEM_WEAPON_SUPERPULEMET, ITEM_WEAPON_FLAMETHROWER,
+                            ITEM_AMMO_BACKPACK] then
+    begin
+      g_Sound_PlayExAt('SOUND_ITEM_GETWEAPON', x, y);
+    end
+    else
+    begin
+      g_Sound_PlayExAt('SOUND_ITEM_GETITEM', x, y);
+    end;
+  end
+  else
+  begin
+    if it.ItemType in [ITEM_SPHERE_BLUE, ITEM_SPHERE_WHITE, ITEM_SUIT,
+                       ITEM_MEDKIT_BLACK, ITEM_INVUL, ITEM_INVIS, ITEM_JETPACK] then
+    begin
+      g_Sound_PlayExAt('SOUND_ITEM_GETRULEZ', x, y);
+    end
+    else if it.ItemType in [ITEM_WEAPON_SAW, ITEM_WEAPON_PISTOL, ITEM_WEAPON_SHOTGUN1, ITEM_WEAPON_SHOTGUN2,
+                            ITEM_WEAPON_CHAINGUN, ITEM_WEAPON_ROCKETLAUNCHER, ITEM_WEAPON_PLASMA,
+                            ITEM_WEAPON_BFG, ITEM_WEAPON_SUPERPULEMET, ITEM_WEAPON_FLAMETHROWER] then
+    begin
+      g_Sound_PlayExAt('SOUND_ITEM_GETWEAPON', x, y);
+    end
+    else
+    begin
+      g_Sound_PlayExAt('SOUND_ITEM_GETITEM', x, y);
+    end;
+  end;
 end;
 
 end.

@@ -1688,8 +1688,8 @@ begin
         it := g_Items_Create(FObj.X + (FObj.Rect.Width div 2),
                              FObj.Y + (FObj.Rect.Height div 2),
                              c, True, False);
-        g_Obj_Push(@gItems[it].Obj, (FObj.Vel.X div 2)-3+Random(7),
-                                    (FObj.Vel.Y div 2)-Random(4));
+        g_Obj_Push(g_ItemObjByIdx(it), (FObj.Vel.X div 2)-3+Random(7),
+                                       (FObj.Vel.Y div 2)-Random(4));
         positionChanged(); // this updates spatial accelerators
         if g_Game_IsServer and g_Game_IsNet then
           MH_SEND_ItemSpawn(True, it);

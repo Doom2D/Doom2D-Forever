@@ -21,11 +21,14 @@ interface
 
 
 type
-  TBinaryHeapLessFn = function (a, b: TObject): Boolean;
-
-  TBinaryHeapObj = class(TObject)
+  // WARNING! don't put structures into heap, use ponters or ids!
+  generic TBinaryHeapBase<ITP> = class(TObject)
   private
-    elem: array of TObject;
+    type
+      TBinaryHeapLessFn = function (a, b: ITP): Boolean;
+
+  private
+    elem: array of ITP;
     elemUsed: Integer;
     lessfn: TBinaryHeapLessFn;
 
@@ -38,13 +41,22 @@ type
 
     procedure clear ();
 
-    procedure insert (val: TObject);
+    procedure insert (val: ITP);
 
-    function front (): TObject;
+    function front (): ITP;
     procedure popFront ();
 
     property count: Integer read elemUsed;
   end;
+
+
+type
+  TBinaryHeapObj = specialize TBinaryHeapBase<TObject>;
+  TBinaryHeapInt = specialize TBinaryHeapBase<Integer>;
+
+
+function binHeapNewIntLess (): TBinaryHeapInt;
+function binHeapNewIntGreat (): TBinaryHeapInt;
 
 
 implementation
@@ -54,32 +66,41 @@ uses
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-constructor TBinaryHeapObj.Create (alessfn: TBinaryHeapLessFn);
+function intLess (a, b: Integer): Boolean; begin result := (a < b); end;
+function intGreat (a, b: Integer): Boolean; begin result := (a > b); end;
+
+
+function binHeapNewIntLess (): TBinaryHeapInt; begin result := TBinaryHeapInt.Create(@intLess); end;
+function binHeapNewIntGreat (): TBinaryHeapInt; begin result := TBinaryHeapInt.Create(@intGreat); end;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
+constructor TBinaryHeapBase.Create (alessfn: TBinaryHeapLessFn);
 begin
   if not assigned(alessfn) then raise Exception.Create('wutafuck?!');
   lessfn := alessfn;
-  SetLength(elem, 8192); // 'cause why not?
+  SetLength(elem, 128); // 'cause why not?
   elemUsed := 0;
 end;
 
 
-destructor TBinaryHeapObj.Destroy ();
+destructor TBinaryHeapBase.Destroy ();
 begin
   elem := nil;
   inherited;
 end;
 
 
-procedure TBinaryHeapObj.clear ();
+procedure TBinaryHeapBase.clear ();
 begin
   elemUsed := 0;
 end;
 
 
-procedure TBinaryHeapObj.heapify (root: Integer);
+procedure TBinaryHeapBase.heapify (root: Integer);
 var
   smallest, right: Integer;
-  tmp: TObject;
+  tmp: ITP;
 begin
   while true do
   begin
@@ -98,14 +119,21 @@ begin
 end;
 
 
-procedure TBinaryHeapObj.insert (val: TObject);
+procedure TBinaryHeapBase.insert (val: ITP);
 var
   i, par: Integer;
 begin
-  if (val = nil) then exit;
+  //if (val = nil) then exit;
   i := elemUsed;
-  if (i = Length(elem)) then SetLength(elem, Length(elem)+16384); // arbitrary number
+  // grow?
+  if (i = Length(elem)) then
+  begin
+    if (i <= 65536) then par := i*2 else par := i+65536; // arbitrary numbers
+    SetLength(elem, par);
+  end;
+  // increase counter
   Inc(elemUsed);
+  // insert element
   while (i <> 0) do
   begin
     par := (i-1) div 2; // parent
@@ -116,13 +144,13 @@ begin
   elem[i] := val;
 end;
 
-function TBinaryHeapObj.front (): TObject;
+function TBinaryHeapBase.front (): ITP;
 begin
-  if elemUsed > 0 then result := elem[0] else result := nil;
+  if elemUsed > 0 then result := elem[0] else result := Default(ITP);
 end;
 
 
-procedure TBinaryHeapObj.popFront ();
+procedure TBinaryHeapBase.popFront ();
 begin
   if (elemUsed > 0) then
   begin

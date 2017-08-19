@@ -4241,19 +4241,7 @@ begin
       gPlayer2 := g_Player_Get(gLMSPID2);
   end;
 
-  for i := Low(gItems) to High(gItems) do
-  begin
-    if gItems[i].Respawnable then
-    begin
-      gItems[i].QuietRespawn := True;
-      gItems[i].RespawnTime := 0;
-    end
-    else
-    begin
-      g_Items_Remove(i);
-      if g_Game_IsNet then MH_SEND_ItemDestroy(True, i);
-    end;
-  end;
+  g_Items_RestartRound();
 
   for i := Low(gMonsters) to High(gMonsters) do
   begin
