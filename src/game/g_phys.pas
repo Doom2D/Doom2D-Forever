@@ -143,26 +143,6 @@ begin
         end;
 end;
 
-function CollideMonsters(Obj: PObj; XInc, YInc: Integer): Boolean;
-var
-  a: Integer;
-begin
-  Result := False;
-
-  if gMonsters = nil then
-    Exit;
-
-  for a := 0 to High(gMonsters) do
-    if gMonsters[a] <> nil then
-      if gMonsters[a].Live and
-         gMonsters[a].Collide(Obj^.X+Obj^.Rect.X+XInc, Obj^.Y+Obj^.Rect.Y+YInc,
-                              Obj^.Rect.Width, Obj^.Rect.Height) then
-      begin
-        Result := True;
-        Exit;
-      end;
-end;
-
 function Blocked(Obj: PObj; XInc, YInc: Integer): Boolean;
 begin
   Result := g_Map_CollidePanel(Obj^.X+Obj^.Rect.X+XInc, Obj^.Y+Obj.Rect.Y+YInc,
