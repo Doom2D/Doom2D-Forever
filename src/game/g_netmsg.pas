@@ -2625,6 +2625,8 @@ begin
     SetHealth(MHealth);
 
     SetState(MState);
+
+    positionChanged(); // this updates spatial accelerators
   end;
 end;
 
@@ -2645,6 +2647,7 @@ begin
     GameVelX := e_Raw_Read_LongInt(P);
     GameVelY := e_Raw_Read_LongInt(P);
     GameDirection := TDirection(e_Raw_Read_Byte(P));
+    positionChanged(); // this updates spatial accelerators
   end;
 end;
 

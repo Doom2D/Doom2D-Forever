@@ -45,7 +45,10 @@ type
     TextureID: DWORD;
     Timeout: DWORD;
     Stopped: Byte;
+
+    procedure positionChanged (); //WARNING! call this after monster position was changed, or coldet will not work right!
   end;
+
 
 var
   Shots: array of TShot = nil;
@@ -145,7 +148,7 @@ const
 
   SHOT_FLAME_WIDTH = 4;
   SHOT_FLAME_HEIGHT = 4;
-  SHOT_FLAME_LIFETIME = 180; 
+  SHOT_FLAME_LIFETIME = 180;
 
   SHOT_SIGNATURE = $544F4853; // 'SHOT'
 
@@ -961,6 +964,7 @@ begin
                                Obj.Y+Obj.Rect.Y+(Obj.Rect.Height div 2), X, Y);
 
             g_Obj_PushA(@Obj, Round(15*(rad-m)/rad), _angle);
+            positionChanged(); // this updates spatial accelerators
           end;
         end;
 end;
@@ -1768,9 +1772,14 @@ begin
              (ShotType <> WEAPON_FLAMETHROWER);
 
       if Stopped = 0 then
-        st := g_Obj_Move(@Obj, False, spl)
+      begin
+        st := g_Obj_Move(@Obj, False, spl);
+      end
       else
+      begin
         st := 0;
+      end;
+      positionChanged(); // this updates spatial accelerators
 
       if WordBool(st and MOVE_FALLOUT) or (Obj.X < -1000) or
         (Obj.X > gMapInfo.Width+1000) or (Obj.Y < -1000) then
@@ -2466,5 +2475,9 @@ begin
     end;
   end;
 end;
+
+
+procedure TShot.positionChanged (); begin end;
+
 
 end.

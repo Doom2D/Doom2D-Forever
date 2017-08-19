@@ -128,6 +128,8 @@ type
     procedure CatchFire(Attacker: Word);
     procedure OnFireFlame(Times: DWORD = 1);
 
+    procedure positionChanged (); //WARNING! call this after monster position was changed, or coldet will not work right!
+
     property MonsterType: Byte read FMonsterType;
     property MonsterHealth: Integer read FHealth write FHealth;
     property MonsterAmmo: Integer read FAmmo write FAmmo;
@@ -1447,6 +1449,8 @@ begin
   FState := STATE_SLEEP;
   FCurAnim := ANIM_SLEEP;
 
+  positionChanged(); // this updates spatial accelerators
+
   if g_Game_IsNet and g_Game_IsServer then
   begin
     MH_SEND_MonsterPos(FUID);
@@ -1686,6 +1690,7 @@ begin
                              c, True, False);
         g_Obj_Push(@gItems[it].Obj, (FObj.Vel.X div 2)-3+Random(7),
                                     (FObj.Vel.Y div 2)-Random(4));
+        positionChanged(); // this updates spatial accelerators
         if g_Game_IsServer and g_Game_IsNet then
           MH_SEND_ItemSpawn(True, it);
       end;
@@ -2022,6 +2027,7 @@ begin
   if gTime mod (GAME_TICK*2) <> 0 then
   begin
     g_Obj_Move(@FObj, fall, True, True);
+    positionChanged(); // this updates spatial accelerators
     Exit;
   end;
 
@@ -2032,6 +2038,7 @@ begin
 
 // Двигаемся:
   st := g_Obj_Move(@FObj, fall, True, True);
+  positionChanged(); // this updates spatial accelerators
 
 // Вылетел за карту - удаляем и запускаем триггеры:
   if WordBool(st and MOVE_FALLOUT) or (FObj.X < -1000) or
@@ -2421,14 +2428,23 @@ begin
               b := Abs(FObj.Vel.X);
               if b > 1 then b := b * (Random(8 div b) + 1);
               for a := 0 to High(gGibs) do
+              begin
                 if gGibs[a].Live and
                    g_Obj_Collide(FObj.X+FObj.Rect.X, FObj.Y+FObj.Rect.Y+FObj.Rect.Height-4,
                                  FObj.Rect.Width, 8, @gGibs[a].Obj) and (Random(3) = 0) then
+                begin
                   // Пинаем куски
                   if FObj.Vel.X < 0 then
-                    g_Obj_PushA(@gGibs[a].Obj, b, Random(61)+120) // налево
+                  begin
+                    g_Obj_PushA(@gGibs[a].Obj, b, Random(61)+120); // налево
+                  end
                   else
+                  begin
                     g_Obj_PushA(@gGibs[a].Obj, b, Random(61));    // направо
+                  end;
+                  positionChanged(); // this updates spatial accelerators
+                end;
+              end;
             end;
           // Боссы могут пинать трупы:
             if (FMonsterType in [MONSTER_CYBER, MONSTER_SPIDER, MONSTER_ROBO]) and
@@ -2979,6 +2995,7 @@ begin
   if gTime mod (GAME_TICK*2) <> 0 then
   begin
     g_Obj_Move(@FObj, fall, True, True);
+    positionChanged(); // this updates spatial accelerators
     Exit;
   end;
 
@@ -2989,6 +3006,7 @@ begin
 
 // Двигаемся:
   st := g_Obj_Move(@FObj, fall, True, True);
+  positionChanged(); // this updates spatial accelerators
 
 // Вылетел за карту - удаляем и запускаем триггеры:
   if WordBool(st and MOVE_FALLOUT) or (FObj.X < -1000) or
@@ -3242,14 +3260,23 @@ begin
               b := Abs(FObj.Vel.X);
               if b > 1 then b := b * (Random(8 div b) + 1);
               for a := 0 to High(gGibs) do
+              begin
                 if gGibs[a].Live and
                    g_Obj_Collide(FObj.X+FObj.Rect.X, FObj.Y+FObj.Rect.Y+FObj.Rect.Height-4,
                                  FObj.Rect.Width, 8, @gGibs[a].Obj) and (Random(3) = 0) then
+                begin
                   // Пинаем куски
                   if FObj.Vel.X < 0 then
-                    g_Obj_PushA(@gGibs[a].Obj, b, Random(61)+120) // налево
+                  begin
+                    g_Obj_PushA(@gGibs[a].Obj, b, Random(61)+120); // налево
+                  end
                   else
+                  begin
                     g_Obj_PushA(@gGibs[a].Obj, b, Random(61));    // направо
+                  end;
+                  positionChanged(); // this updates spatial accelerators
+                end;
+              end;
             end;
           // Боссы могут пинать трупы:
             if (FMonsterType in [MONSTER_CYBER, MONSTER_SPIDER, MONSTER_ROBO]) and
@@ -4209,6 +4236,11 @@ begin
       Anim.Free();
     end;
   end;
+end;
+
+//WARNING! call this after monster position was changed, or coldet will not work right!
+procedure TMonster.positionChanged ();
+begin
 end;
 
 end.

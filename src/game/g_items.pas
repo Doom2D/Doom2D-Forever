@@ -33,6 +33,8 @@ Type
     SpawnTrigger:  Integer;
     Obj:           TObj;
     Animation:     TAnimation;
+
+    procedure positionChanged (); //WARNING! call this after monster position was changed, or coldet will not work right!
   end;
 
 procedure g_Items_LoadData();
@@ -400,6 +402,7 @@ begin
             if Fall then
             begin
               m := g_Obj_Move(@Obj, True, True);
+              positionChanged(); // this updates spatial accelerators
 
             // Сопротивление воздуха:
               if gTime mod (GAME_TICK*2) = 0 then
@@ -520,6 +523,7 @@ begin
               Obj.Vel.Y := 0;
               Obj.Accel.X := 0;
               Obj.Accel.Y := 0;
+              positionChanged(); // this updates spatial accelerators
 
               Live := True;
 
@@ -676,6 +680,11 @@ begin
   // Объект предмета:
     Obj_LoadState(@gItems[i].Obj, Mem);
   end;
+end;
+
+
+procedure TItem.positionChanged ();
+begin
 end;
 
 end.

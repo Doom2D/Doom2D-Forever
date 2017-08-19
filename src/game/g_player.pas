@@ -311,6 +311,9 @@ type
     procedure   JetpackOff;
     procedure   CatchFire(Attacker: Word);
 
+    //WARNING! this does nothing for now, but still call it!
+    procedure positionChanged (); //WARNING! call this after monster position was changed, or coldet will not work right!
+
     property    Name: String read FName write FName;
     property    Model: TPlayerModel read FModel;
     property    Health: Integer read FHealth write FHealth;
@@ -406,7 +409,10 @@ type
     RAngle:   Integer;
     Color:    TRGB;
     Obj:      TObj;
+
+    procedure positionChanged (); //WARNING! call this after monster position was changed, or coldet will not work right!
   end;
+
 
   TShell = record
     SpriteID: DWORD;
@@ -416,6 +422,8 @@ type
     Timeout:  Cardinal;
     CX, CY:   Integer;
     Obj:      TObj;
+
+    procedure positionChanged (); //WARNING! call this after monster position was changed, or coldet will not work right!
   end;
 
   TCorpse = class (TObject)
@@ -437,6 +445,8 @@ type
     procedure   Draw();
     procedure   SaveState(var Mem: TBinMemoryWriter);
     procedure   LoadState(var Mem: TBinMemoryReader);
+
+    procedure positionChanged (); //WARNING! call this after monster position was changed, or coldet will not work right!
 
     property    Obj: TObj read FObj;
     property    State: Byte read FState;
@@ -592,6 +602,11 @@ var
   CurrentShell: Integer = 0;
   BotNames: Array of String;
   BotList: Array of TBotProfile;
+
+
+procedure TGib.positionChanged (); begin end;
+procedure TShell.positionChanged (); begin end;
+
 
 function Lerp(X, Y, Factor: Integer): Integer;
 begin
@@ -1521,6 +1536,7 @@ begin
     Obj.X := fX;
     Obj.Y := fY;
     g_Obj_Push(@Obj, dX + Random(4)-Random(4), dY-Random(4));
+    positionChanged(); // this updates spatial accelerators
     RAngle := Random(360);
     Timeout := gTime + SHELL_TIMEOUT;
 
@@ -1553,6 +1569,7 @@ begin
       Obj.X := fX-GibsArray[a].Rect.X-(GibsArray[a].Rect.Width div 2);
       Obj.Y := fY-GibsArray[a].Rect.Y-(GibsArray[a].Rect.Height div 2);
       g_Obj_PushA(@Obj, 25 + Random(10), Random(361));
+      positionChanged(); // this updates spatial accelerators
       RAngle := Random(360);
 
       if gBloodCount > 0 then
@@ -1592,6 +1609,7 @@ begin
         begin
           vel := Obj.Vel;
           mr := g_Obj_Move(@Obj, True, False, True);
+          positionChanged(); // this updates spatial accelerators
 
           if WordBool(mr and MOVE_FALLOUT) then
           begin
@@ -1641,6 +1659,7 @@ begin
         begin
           vel := Obj.Vel;
           mr := g_Obj_Move(@Obj, True, False, True);
+          positionChanged(); // this updates spatial accelerators
 
           if WordBool(mr and MOVE_FALLOUT) or (gShells[i].Timeout < gTime) then
           begin
@@ -2006,6 +2025,10 @@ begin
   FNetTime := 0;
 
   resetWeaponQueue();
+end;
+
+procedure TPlayer.positionChanged ();
+begin
 end;
 
 procedure TPlayer.Damage(value: Word; SpawnerUID: Word; vx, vy: Integer; t: Byte);
@@ -2957,15 +2980,25 @@ var
   begin
     id := g_Items_Create(FObj.X, FObj.Y, t, True, False);
     if KillType = K_EXTRAHARDKILL then // -7..+7; -8..0
+    begin
       g_Obj_Push(@gItems[id].Obj, (FObj.Vel.X div 2)-7+Random(15),
-                                  (FObj.Vel.Y div 2)-Random(9))
+                                  (FObj.Vel.Y div 2)-Random(9));
+      gItems[id].positionChanged(); // this updates spatial accelerators
+    end
     else
+    begin
       if KillType = K_HARDKILL then // -5..+5; -5..0
+      begin
         g_Obj_Push(@gItems[id].Obj, (FObj.Vel.X div 2)-5+Random(11),
-                                    (FObj.Vel.Y div 2)-Random(6))
+                                    (FObj.Vel.Y div 2)-Random(6));
+      end
       else // -3..+3; -3..0
+      begin
         g_Obj_Push(@gItems[id].Obj, (FObj.Vel.X div 2)-3+Random(7),
                                     (FObj.Vel.Y div 2)-Random(4));
+      end;
+      gItems[id].positionChanged(); // this updates spatial accelerators
+    end;
 
     if g_Game_IsNet and g_Game_IsServer then
       MH_SEND_ItemSpawn(True, id);
@@ -4377,14 +4410,23 @@ begin
     b := Abs(FObj.Vel.X);
     if b > 1 then b := b * (Random(8 div b) + 1);
     for a := 0 to High(gGibs) do
+    begin
       if gGibs[a].Live and
          g_Obj_Collide(FObj.X+FObj.Rect.X, FObj.Y+FObj.Rect.Y+FObj.Rect.Height-4,
                        FObj.Rect.Width, 8, @gGibs[a].Obj) and (Random(3) = 0) then
+      begin
         // Пинаем куски
         if FObj.Vel.X < 0 then
+        begin
           g_Obj_PushA(@gGibs[a].Obj, b, Random(61)+120) // налево
+        end
         else
+        begin
           g_Obj_PushA(@gGibs[a].Obj, b, Random(61));    // направо
+        end;
+        gGibs[a].positionChanged(); // this updates spatial accelerators
+      end;
+    end;
   end;
 
   SetAction(A_WALK);
@@ -4611,7 +4653,10 @@ begin
     end;
 
     if FPhysics then
+    begin
       g_Obj_Move(@FObj, True, True, True);
+      positionChanged(); // this updates spatial accelerators
+    end;
 
     Exit;
   end;
@@ -4734,7 +4779,10 @@ begin
   end;
 
   if FPhysics then
-    g_Obj_Move(@FObj, True, True, True)
+  begin
+    g_Obj_Move(@FObj, True, True, True);
+    positionChanged(); // this updates spatial accelerators
+  end
   else
   begin
     FObj.Vel.X := 0;
@@ -5342,6 +5390,7 @@ begin
     Count := FLAG_TIME;
     g_Obj_Push(@Obj, (FObj.Vel.X div 2)-2+Random(5),
                      (FObj.Vel.Y div 2)-2+Random(5));
+    positionChanged(); // this updates spatial accelerators
 
     if FFlag = FLAG_RED then
       s := _lc[I_PLAYER_FLAG_RED]
@@ -5992,6 +6041,8 @@ begin
   inherited;
 end;
 
+procedure TCorpse.positionChanged (); begin end;
+
 procedure TCorpse.Damage(Value: Word; vx, vy: Integer);
 var
   pm: TPlayerModel;
@@ -6058,7 +6109,7 @@ begin
   if gTime mod (GAME_TICK*2) <> 0 then
   begin
     g_Obj_Move(@FObj, True, True, True);
-
+    positionChanged(); // this updates spatial accelerators
     Exit;
   end;
 
@@ -6066,6 +6117,7 @@ begin
   FObj.Vel.X := z_dec(FObj.Vel.X, 1);
 
   st := g_Obj_Move(@FObj, True, True, True);
+  positionChanged(); // this updates spatial accelerators
 
   if WordBool(st and MOVE_FALLOUT) then
   begin
