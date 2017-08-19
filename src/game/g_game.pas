@@ -2758,40 +2758,40 @@ type
   end;
 
 begin
-  profileFrameDraw.sectionBegin('map rendering');
+  profileFrameDraw.sectionBegin('total');
 
   // our accelerated renderer will collect all panels to gDrawPanelList
   // we can use panel tag to render level parts (see GridTagXXX in g_map.pas)
-  profileFrameDraw.sectionBegin('pancollect');
+  profileFrameDraw.sectionBegin('collect');
   if gdbg_map_use_accel_render then
   begin
     g_Map_CollectDrawPanels(sX, sY, sWidth, sHeight);
   end;
   profileFrameDraw.sectionEnd();
 
-  profileFrameDraw.sectionBegin('map background');
+  profileFrameDraw.sectionBegin('skyback');
   g_Map_DrawBack(backXOfs, backYOfs);
   profileFrameDraw.sectionEnd();
 
   if (setTransMatrix) then glTranslatef(transX, transY, 0);
 
-  drawPanelType('panel_back', PANEL_BACK);
-  drawPanelType('panel_step', PANEL_STEP);
+  drawPanelType('*back', PANEL_BACK);
+  drawPanelType('*step', PANEL_STEP);
   drawOther('items', @g_Items_Draw);
   drawOther('weapons', @g_Weapon_Draw);
   drawOther('shells', @g_Player_DrawShells);
   drawOther('drawall', @g_Player_DrawAll);
   drawOther('corpses', @g_Player_DrawCorpses);
-  drawPanelType('panel_wall', PANEL_WALL);
+  drawPanelType('*wall', PANEL_WALL);
   drawOther('monsters', @g_Monsters_Draw);
-  drawPanelType('panel_closedoor', PANEL_CLOSEDOOR);
+  drawPanelType('*door', PANEL_CLOSEDOOR);
   drawOther('gfx', @g_GFX_Draw);
   drawOther('flags', @g_Map_DrawFlags);
-  drawPanelType('panel_acid1', PANEL_ACID1);
-  drawPanelType('panel_acid2', PANEL_ACID2);
-  drawPanelType('panel_water', PANEL_WATER);
+  drawPanelType('*acid1', PANEL_ACID1);
+  drawPanelType('*acid2', PANEL_ACID2);
+  drawPanelType('*water', PANEL_WATER);
   drawOther('dynlights', @renderDynLightsInternal);
-  drawPanelType('panel_fore', PANEL_FORE);
+  drawPanelType('*fore', PANEL_FORE);
 
   if g_debug_HealthBar then
   begin
@@ -2838,7 +2838,7 @@ begin
     Exit;
   end;
 
-  if (profileFrameDraw = nil) then profileFrameDraw := TProfiler.Create('MAP RENDER', g_profile_history_size);
+  if (profileFrameDraw = nil) then profileFrameDraw := TProfiler.Create('RENDER', g_profile_history_size);
   profileFrameDraw.mainBegin(g_profile_frame_draw);
 
   gPlayerDrawn := p;
@@ -3266,7 +3266,7 @@ begin
                      Format('%d:%.2d:%.2d', [gTime div 1000 div 3600, (gTime div 1000 div 60) mod 60, gTime div 1000 mod 60]),
                      gStdFont);
 
-  drawProfilers();
+  if gGameOn then drawProfilers();
 end;
 
 procedure g_Game_Quit();

@@ -267,14 +267,14 @@ var
 
 procedure g_Map_ProfilersBegin ();
 begin
-  if (profMapCollision = nil) then profMapCollision := TProfiler.Create('MAP COLLISION', g_profile_history_size);
+  if (profMapCollision = nil) then profMapCollision := TProfiler.Create('COLSOLID', g_profile_history_size);
   profMapCollision.mainBegin(g_profile_collision);
   // create sections
   if g_profile_collision then
   begin
-    profMapCollision.sectionBegin('wall coldet');
+    profMapCollision.sectionBegin('*solids');
     profMapCollision.sectionEnd();
-    profMapCollision.sectionBegin('liquid coldet');
+    profMapCollision.sectionBegin('liquids');
     profMapCollision.sectionEnd();
   end;
 end;
@@ -2193,7 +2193,7 @@ begin
 
   if (tagmask = 0) then begin result := false; exit; end; // just in case
 
-  if (profMapCollision <> nil) then profMapCollision.sectionBeginAccum('wall coldet');
+  if (profMapCollision <> nil) then profMapCollision.sectionBeginAccum('*solids');
   if gdbg_map_use_accel_coldet then
   begin
     if gdbg_map_use_tree_coldet then
@@ -2251,7 +2251,7 @@ var
 
 begin
   //TODO: detailed profile?
-  if (profMapCollision <> nil) then profMapCollision.sectionBeginAccum('liquid coldet');
+  if (profMapCollision <> nil) then profMapCollision.sectionBeginAccum('liquids');
   if gdbg_map_use_accel_coldet then
   begin
     texid := TEXTURE_NONE;
