@@ -21,7 +21,8 @@ unit z_aabbtree;
 
 interface
 
-uses e_log;
+uses
+  e_log, g_grid;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
@@ -194,7 +195,7 @@ type
   public
     // called when a overlapping node has been found during the call to forEachAABBOverlap()
     // return `true` to stop
-    type TQueryOverlapCB = function (abody: TTreeFlesh; atag: Integer): Boolean is nested;
+    type TQueryOverlapCB = function (abody: TTreeFlesh; objx, objy, objw, objh: Integer; atag: Integer): Boolean is nested;
     type TSegQueryCallback = function (abody: TTreeFlesh; ax, ay, bx, by: Single): Single is nested; // return dist from (ax,ay) to abody
 
     TSegmentQueryResult = record
@@ -1248,7 +1249,7 @@ begin
           {$IFDEF aabbtree_query_count}Inc(mNodesDeepVisited);{$ENDIF}
           if ((node.tag and tagmask) <> 0) then
           begin
-            if (visitor(node.flesh, node.tag)) then begin result := nodeId; bigstack := nil; exit; end;
+            if (visitor(node.flesh, node.aabb.minX, node.aabb.minY, node.aabb.maxX, node.aabb.maxY, node.tag)) then begin result := nodeId; bigstack := nil; exit; end;
           end;
         end
         else
@@ -1457,7 +1458,7 @@ function TDynAABBTree.pointQuery (ax, ay: TreeNumber; cb: TQueryOverlapCB): TTre
   begin
     result := node.aabb.contains(ax, ay);
   end;
-  function dummycb (abody: TTreeFlesh; atag: Integer): Boolean; begin result := false; end;
+  function dummycb (abody: TTreeFlesh; objx, objy, objw, objh: Integer; atag: Integer): Boolean; begin result := false; end;
 var
   nid: Integer;
   caabb: AABB2D;
@@ -1485,7 +1486,7 @@ var
     result := node.aabb.intersects(curax, curay, curbx, curby);
   end;
 
-  function visitor (flesh: TTreeFlesh; tag: Integer): Boolean;
+  function visitor (flesh: TTreeFlesh; objx, objy, objw, objh: Integer; tag: Integer): Boolean;
   var
     hitFraction: Single;
   begin

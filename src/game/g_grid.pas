@@ -25,7 +25,7 @@ const
   GridCellBucketSize = 8; // WARNING! can't be less than 2!
 
 type
-  GridQueryCB = function (obj: TObject; var proxy: PBodyProxyRec; tag: Integer): Boolean is nested; // return `true` to stop
+  TGridQueryCB = function (obj: TObject; objx, objy, objw, objh: Integer; tag: Integer): Boolean is nested; // return `true` to stop
 
 type
   TBodyGrid = class;
@@ -108,7 +108,7 @@ type
     procedure resizeBody (body: TBodyProxy; sx, sy: Integer);
     procedure moveResizeBody (body: TBodyProxy; dx, dy, sx, sy: Integer);
 
-    function forEachInAABB (x, y, w, h: Integer; cb: GridQueryCB; tagmask: Integer=-1): Boolean;
+    function forEachInAABB (x, y, w, h: Integer; cb: TGridQueryCB; tagmask: Integer=-1): Boolean;
 
     //function getProxyForBody (aObj: TObject; x, y, w, h: Integer): TBodyProxy;
 
@@ -450,7 +450,7 @@ begin
 end;
 
 
-function TBodyGrid.forEachInAABB (x, y, w, h: Integer; cb: GridQueryCB; tagmask: Integer=-1): Boolean;
+function TBodyGrid.forEachInAABB (x, y, w, h: Integer; cb: TGridQueryCB; tagmask: Integer=-1): Boolean;
   function iterator (grida: Integer): Boolean;
   var
     idx: Integer;
@@ -474,7 +474,7 @@ function TBodyGrid.forEachInAABB (x, y, w, h: Integer; cb: GridQueryCB; tagmask:
         begin
           //e_WriteLog(Format('  query #%d body hit: (%d,%d)-(%dx%d) tag:%d', [mLastQuery, mCells[idx].body.mX, mCells[idx].body.mY, mCells[idx].body.mWidth, mCells[idx].body.mHeight, mCells[idx].body.mTag]), MSG_NOTIFY);
           px.mQueryMark := mLastQuery;
-          if (cb(px.mObj, px.mTag)) then begin result := true; exit; end;
+          if (cb(px.mObj, px.mX, px.mY, px.mWidth, px.mHeight, px.mTag)) then begin result := true; exit; end;
         end;
       end;
       idx := pi.next;
@@ -486,7 +486,7 @@ function TBodyGrid.forEachInAABB (x, y, w, h: Integer; cb: GridQueryCB; tagmask:
         begin
           //e_WriteLog(Format('  query #%d body hit: (%d,%d)-(%dx%d) tag:%d', [mLastQuery, mCells[idx].body.mX, mCells[idx].body.mY, mCells[idx].body.mWidth, mCells[idx].body.mHeight, mCells[idx].body.mTag]), MSG_NOTIFY);
           px.mQueryMark := mLastQuery;
-          if (cb(px.mObj, px.mTag)) then begin result := true; exit; end;
+          if (cb(px.mObj, px.mX, px.mY, px.mWidth, px.mHeight, px.mTag)) then begin result := true; exit; end;
         end;
       end;
       idx := mCells[idx].next;
