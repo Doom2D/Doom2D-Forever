@@ -20,7 +20,7 @@ interface
 
 uses
   e_graphics, g_basic, MAPSTRUCT, g_textures, Classes,
-  g_phys, wadreader, BinEditor, g_panel, g_grid, z_aabbtree, md5, xprofiler;
+  g_phys, wadreader, BinEditor, g_panel, g_grid, z_aabbtree, md5, binheap, xprofiler;
 
 type
   TMapInfo = record
@@ -62,7 +62,8 @@ function  g_Map_Exist(Res: String): Boolean;
 procedure g_Map_Free();
 procedure g_Map_Update();
 
-procedure g_Map_DrawPanels(x0, y0, wdt, hgt: Integer; PanelType: Word);
+procedure g_Map_DrawPanels (PanelType: Word); // unaccelerated
+procedure g_Map_CollectDrawPanels (x0, y0, wdt, hgt: Integer);
 
 procedure g_Map_DrawBack(dx, dy: Integer);
 function  g_Map_CollidePanel(X, Y: Integer; Width, Height: Word;
@@ -116,6 +117,33 @@ const
 
   SKY_STRETCH: Single = 1.5;
 
+const
+  GridTagInvalid = 0;
+
+  (* draw order:
+      PANEL_BACK
+      PANEL_STEP
+      PANEL_WALL
+      PANEL_CLOSEDOOR
+      PANEL_ACID1
+      PANEL_ACID2
+      PANEL_WATER
+      PANEL_FORE
+   *)
+  // sorted by draw priority
+  GridTagBack = 1 shl 0;
+  GridTagStep = 1 shl 1;
+  GridTagWall = 1 shl 2;
+  GridTagDoor = 1 shl 3;
+  GridTagAcid1 = 1 shl 4;
+  GridTagAcid2 = 1 shl 5;
+  GridTagWater = 1 shl 6;
+  GridTagFore = 1 shl 7;
+  // the following are invisible
+  GridTagLift = 1 shl 8;
+  GridTagBlockMon = 1 shl 9;
+
+
 var
   gWalls: TPanelArray;
   gRenderBackgrounds: TPanelArray;
@@ -140,6 +168,9 @@ var
   gdbg_map_use_tree_coldet: Boolean = false;
   gdbg_map_dump_coldet_tree_queries: Boolean = false;
   profMapCollision: TProfiler = nil; //WARNING: FOR DEBUGGING ONLY!
+  gDrawPanelList: TBinaryHeapObj = nil; // binary heap of all walls we have to render, populated by `g_Map_CollectDrawPanels()`
+
+function panelTypeToTag (panelType: Word): Integer; // returns GridTagXXX
 
 implementation
 
@@ -148,7 +179,7 @@ uses
   GL, GLExt, g_weapons, g_game, g_sound, e_sound, CONFIG,
   g_options, MAPREADER, g_triggers, g_player, MAPDEF,
   Math, g_monsters, g_saveload, g_language, g_netmsg,
-  utils, sfs, binheap,
+  utils, sfs,
   ImagingTypes, Imaging, ImagingUtility,
   ImagingGif, ImagingNetworkGraphics;
 
@@ -157,22 +188,13 @@ const
   MUSIC_SIGNATURE = $4953554D; // 'MUSI'
   FLAG_SIGNATURE = $47414C46; // 'FLAG'
 
-  GridTagInvalid = 0;
-  GridTagWallDoor = $0001;
-  GridTagBack = $0002;
-  GridTagFore = $0004;
-  GridTagWater = $0008;
-  GridTagAcid1 = $0010;
-  GridTagAcid2 = $0020;
-  GridTagStep = $0040;
-  GridTagLift = $0080;
-  GridTagBlockMon = $0100;
 
 
 function panelTypeToTag (panelType: Word): Integer;
 begin
   case panelType of
-    PANEL_WALL, PANEL_OPENDOOR, PANEL_CLOSEDOOR: result := GridTagWallDoor; // gWalls
+    PANEL_WALL: result := GridTagWall; // gWalls
+    PANEL_OPENDOOR, PANEL_CLOSEDOOR: result := GridTagDoor; // gWalls
     PANEL_BACK: result := GridTagBack; // gRenderBackgrounds
     PANEL_FORE: result := GridTagFore; // gRenderForegrounds
     PANEL_WATER: result := GridTagWater; // gWater
@@ -183,6 +205,24 @@ begin
     PANEL_BLOCKMON: result := GridTagBlockMon; // gBlockMon -- this is for all blockmons
     else result := GridTagInvalid;
   end;
+end;
+
+
+function dplLess (a, b: TObject): Boolean;
+var
+  pa, pb: TPanel;
+begin
+  //result := ((a as TPanel).ArrIdx < (b as TPanel).ArrIdx);
+  pa := TPanel(a);
+  pb := TPanel(b);
+  if (pa.tag < pb.tag) then begin result := true; exit; end;
+  if (pa.tag > pb.tag) then begin result := false; exit; end;
+  result := (pa.ArrIdx < pb.ArrIdx);
+end;
+
+procedure dplClear ();
+begin
+  if (gDrawPanelList = nil) then gDrawPanelList := TBinaryHeapObj.Create(@dplLess) else gDrawPanelList.clear();
 end;
 
 
@@ -203,7 +243,8 @@ var
 begin
   result := false;
   if (flesh = nil) then begin aabb := AABB2D.Create(0, 0, 0, 0); exit; end;
-  pan := (flesh as TPanel);
+  //pan := (flesh as TPanel);
+  pan := TPanel(flesh);
   aabb := AABB2D.Create(pan.X, pan.Y, pan.X+pan.Width, pan.Y+pan.Height);
   if (pan.Width < 1) or (pan.Height < 1) then exit;
   //if (pan.Width = 1) then aabb.maxX += 1;
@@ -989,30 +1030,36 @@ var
   mapX1: Integer = -$3fffffff;
   mapY1: Integer = -$3fffffff;
 
-  procedure fixMinMax (var panels: TPanelArray);
+  procedure calcBoundingBox (var panels: TPanelArray);
   var
     idx: Integer;
+    pan: TPanel;
   begin
     for idx := 0 to High(panels) do
     begin
-      if (panels[idx].Width < 1) or (panels[idx].Height < 1) then continue;
-      if mapX0 > panels[idx].X then mapX0 := panels[idx].X;
-      if mapY0 > panels[idx].Y then mapY0 := panels[idx].Y;
-      if mapX1 < panels[idx].X+panels[idx].Width-1 then mapX1 := panels[idx].X+panels[idx].Width-1;
-      if mapY1 < panels[idx].Y+panels[idx].Height-1 then mapY1 := panels[idx].Y+panels[idx].Height-1;
+      pan := panels[idx];
+      if not pan.visvalid then continue;
+      if (pan.Width < 1) or (pan.Height < 1) then continue;
+      if (mapX0 > pan.x0) then mapX0 := pan.x0;
+      if (mapY0 > pan.y0) then mapY0 := pan.y0;
+      if (mapX1 < pan.x1) then mapX1 := pan.x1;
+      if (mapY1 < pan.y1) then mapY1 := pan.y1;
     end;
   end;
 
   procedure addPanelsToGrid (var panels: TPanelArray; tag: Integer);
   var
     idx: Integer;
+    pan: TPanel;
   begin
     tag := panelTypeToTag(tag);
     for idx := High(panels) downto 0 do
     begin
-      panels[idx].tag := tag;
-      gMapGrid.insertBody(panels[idx], panels[idx].X, panels[idx].Y, panels[idx].Width, panels[idx].Height, tag);
-      mapTree.insertObject(panels[idx], tag, true); // as static object
+      pan := panels[idx];
+      pan.tag := tag;
+      if not pan.visvalid then continue;
+      gMapGrid.insertBody(pan, pan.X, pan.Y, pan.Width, pan.Height, tag);
+      mapTree.insertObject(pan, tag, true); // as static object
     end;
   end;
 
@@ -1022,26 +1069,24 @@ begin
   mapTree.Free();
   mapTree := nil;
 
-  fixMinMax(gWalls);
-  fixMinMax(gRenderBackgrounds);
-  fixMinMax(gRenderForegrounds);
-  fixMinMax(gWater);
-  fixMinMax(gAcid1);
-  fixMinMax(gAcid2);
-  fixMinMax(gSteps);
-  fixMinMax(gLifts);
-  fixMinMax(gBlockMon);
+  calcBoundingBox(gWalls);
+  calcBoundingBox(gRenderBackgrounds);
+  calcBoundingBox(gRenderForegrounds);
+  calcBoundingBox(gWater);
+  calcBoundingBox(gAcid1);
+  calcBoundingBox(gAcid2);
+  calcBoundingBox(gSteps);
+  calcBoundingBox(gLifts);
+  calcBoundingBox(gBlockMon);
 
-  if (mapX0 < 0) or (mapY0 < 0) then
-  begin
-    e_WriteLog(Format('funny map dimensions: (%d,%d)-(%d,%d)', [mapX0, mapY0, mapX1, mapY1]), MSG_WARNING);
-    //raise Exception.Create('we are fucked');
-  end;
+  e_WriteLog(Format('map dimensions: (%d,%d)-(%d,%d)', [mapX0, mapY0, mapX1, mapY1]), MSG_WARNING);
 
   gMapGrid := TBodyGrid.Create(mapX0, mapY0, mapX1-mapX0+1, mapY1-mapY0+1);
   mapTree := TDynAABBTreeMap.Create();
 
-  addPanelsToGrid(gWalls, PANEL_WALL); // and PANEL_CLOSEDOOR
+  addPanelsToGrid(gWalls, PANEL_WALL);
+  addPanelsToGrid(gWalls, PANEL_CLOSEDOOR);
+  addPanelsToGrid(gWalls, PANEL_OPENDOOR);
   addPanelsToGrid(gRenderBackgrounds, PANEL_BACK);
   addPanelsToGrid(gRenderForegrounds, PANEL_FORE);
   addPanelsToGrid(gWater, PANEL_WATER);
@@ -1846,13 +1891,14 @@ begin
 end;
 
 
-procedure g_Map_DrawPanelsOld(PanelType: Word);
+// old algo
+procedure g_Map_DrawPanels (PanelType: Word);
 
-  procedure DrawPanels (stp: Integer; var panels: TPanelArray; drawDoors: Boolean=False);
+  procedure DrawPanels (var panels: TPanelArray; drawDoors: Boolean=False);
   var
     idx: Integer;
   begin
-    if (panels <> nil) and (stp >= 0) and (stp <= 6) then
+    if (panels <> nil) then
     begin
       // alas, no visible set
       for idx := 0 to High(panels) do
@@ -1864,148 +1910,77 @@ procedure g_Map_DrawPanelsOld(PanelType: Word);
 
 begin
   case PanelType of
-    PANEL_WALL:       DrawPanels(0, gWalls);
-    PANEL_CLOSEDOOR:  DrawPanels(0, gWalls, True);
-    PANEL_BACK:       DrawPanels(1, gRenderBackgrounds);
-    PANEL_FORE:       DrawPanels(2, gRenderForegrounds);
-    PANEL_WATER:      DrawPanels(3, gWater);
-    PANEL_ACID1:      DrawPanels(4, gAcid1);
-    PANEL_ACID2:      DrawPanels(5, gAcid2);
-    PANEL_STEP:       DrawPanels(6, gSteps);
+    PANEL_WALL:       DrawPanels(gWalls);
+    PANEL_CLOSEDOOR:  DrawPanels(gWalls, True);
+    PANEL_BACK:       DrawPanels(gRenderBackgrounds);
+    PANEL_FORE:       DrawPanels(gRenderForegrounds);
+    PANEL_WATER:      DrawPanels(gWater);
+    PANEL_ACID1:      DrawPanels(gAcid1);
+    PANEL_ACID2:      DrawPanels(gAcid2);
+    PANEL_STEP:       DrawPanels(gSteps);
   end;
 end;
 
 
-var
-  gDrawPanelList: TBinaryHeapObj = nil;
-
-function dplLess (a, b: TObject): Boolean;
-begin
-  result := ((a as TPanel).ArrIdx < (b as TPanel).ArrIdx);
-end;
-
-procedure dplClear ();
-begin
-  if gDrawPanelList = nil then gDrawPanelList := TBinaryHeapObj.Create(@dplLess) else gDrawPanelList.clear();
-end;
-
-procedure dplAddPanel (pan: TPanel);
-begin
-  if pan = nil then exit;
-  gDrawPanelList.insert(pan);
-end;
-
-
-procedure g_Map_DrawPanels(x0, y0, wdt, hgt: Integer; PanelType: Word);
-var
-  ptag: Integer;
-
-  function checker (obj: TObject; tag: Integer): Boolean;
+// new algo
+procedure g_Map_CollectDrawPanels (x0, y0, wdt, hgt: Integer);
+  function checker (obj: TObject; ; var proxy: PBodyProxyRectag: Integer): Boolean;
   var
     pan: TPanel;
   begin
     result := false; // don't stop, ever
-    //e_WriteLog(Format('  *body: tag:%d; ptag:%d; pantype=%d', [tag, ptag, PanelType]), MSG_NOTIFY);
-    if (tag <> ptag) then exit;
-
-    if obj = nil then begin e_WriteLog(Format('  !bodyFUUUUU0: tag:%d; qtag:%d', [tag, PanelType]), MSG_NOTIFY); exit; end;
-    if not (obj is TPanel) then begin e_WriteLog(Format('  !bodyFUUUUU1: tag:%d; qtag:%d', [tag, PanelType]), MSG_NOTIFY); exit; end;
     //pan := (obj as TPanel);
-    //e_WriteLog(Format('  !body: (%d,%d)-(%dx%d) tag:%d; qtag:%d', [pan.X, pan.Y, pan.Width, pan.Height, tag, PanelType]), MSG_NOTIFY);
-
-    pan := (obj as TPanel);
-    if (PanelType = PANEL_CLOSEDOOR) then begin if not pan.Door then exit; end else begin if pan.Door then exit; end;
-    //e_WriteLog(Format('  body hit: (%d,%d)-(%dx%d) tag: %d; qtag:%d', [pan.X, pan.Y, pan.Width, pan.Height, tag, PanelType]), MSG_NOTIFY);
-    dplAddPanel(pan);
-  end;
-
-  procedure DrawPanels (stp: Integer; var panels: TPanelArray; drawDoors: Boolean=False);
-  var
-    idx: Integer;
-    pan: TPanel;
-  begin
-    if (panels <> nil) and (stp >= 0) and (stp <= 6) then
-    begin
-      // alas, no visible set
-      for idx := 0 to High(panels) do
-      begin
-        if not (drawDoors xor panels[idx].Door) then
-        begin
-          pan := panels[idx];
-          {
-          if (pan.Width < 1) or (pan.Height < 1) then continue;
-          if (pan.X+pan.Width <= x0) or (pan.Y+pan.Height <= y0) then continue;
-          if (pan.X >= x0+wdt) or (pan.Y >= y0+hgt) then continue;
-          }
-          pan.Draw();
-          //e_WriteLog(Format(' *body hit: (%d,%d)-(%dx%d) tag: %d; qtag:%d', [pan.X, pan.Y, pan.Width, pan.Height, PanelType, PanelType]), MSG_NOTIFY);
-        end;
-      end;
-    end;
+    pan := TPanel(obj);
+    //if (PanelType = PANEL_CLOSEDOOR) then begin if not pan.Door then exit; end else begin if pan.Door then exit; end;
+    if ((tag and GridTagDoor) <> 0) <> pan.Door then exit;
+    //dplAddPanel(pan);
+    gDrawPanelList.insert(pan);
   end;
 
 begin
-  //g_Map_DrawPanelsOld(PanelType); exit;
-  //e_WriteLog('==================', MSG_NOTIFY);
-  //e_WriteLog(Format('***QQQ: qtag:%d', [PanelType]), MSG_NOTIFY);
   dplClear();
-  ptag := panelTypeToTag(PanelType);
+  //tagmask := panelTypeToTag(PanelType);
 
-  if gdbg_map_use_accel_render then
+  if gdbg_map_use_tree_draw then
   begin
-    if gdbg_map_use_tree_draw then
-    begin
-      mapTree.aabbQuery(x0, y0, wdt, hgt, checker, ptag);
-    end
-    else
-    begin
-      gMapGrid.forEachInAABB(x0, y0, wdt, hgt, checker, ptag);
-    end;
-    // sort and draw the list (we need to sort it, or rendering is fucked)
-    while gDrawPanelList.count > 0 do
-    begin
-      (gDrawPanelList.front() as TPanel).Draw();
-      gDrawPanelList.popFront();
-    end;
+    mapTree.aabbQuery(x0, y0, wdt, hgt, checker, (GridTagBack or GridTagStep or GridTagWall or GridTagDoor or GridTagAcid1 or GridTagAcid2 or GridTagWater or GridTagFore));
   end
   else
   begin
-    //e_WriteLog(Format('+++QQQ: qtag:%d', [PanelType]), MSG_NOTIFY);
-    case PanelType of
-      PANEL_WALL:       DrawPanels(0, gWalls);
-      PANEL_CLOSEDOOR:  DrawPanels(0, gWalls, True);
-      PANEL_BACK:       DrawPanels(1, gRenderBackgrounds);
-      PANEL_FORE:       DrawPanels(2, gRenderForegrounds);
-      PANEL_WATER:      DrawPanels(3, gWater);
-      PANEL_ACID1:      DrawPanels(4, gAcid1);
-      PANEL_ACID2:      DrawPanels(5, gAcid2);
-      PANEL_STEP:       DrawPanels(6, gSteps);
-    end;
+    gMapGrid.forEachInAABB(x0, y0, wdt, hgt, checker, (GridTagBack or GridTagStep or GridTagWall or GridTagDoor or GridTagAcid1 or GridTagAcid2 or GridTagWater or GridTagFore));
   end;
-
-  //e_WriteLog('==================', MSG_NOTIFY);
+  // list will be rendered in `g_game.DrawPlayer()`
+  (*
+  while (gDrawPanelList.count > 0) do
+  begin
+    //(gDrawPanelList.front() as TPanel).Draw();
+    TPanel(gDrawPanelList.front()).Draw();
+    gDrawPanelList.popFront();
+  end;
+  *)
 end;
 
 
 procedure g_Map_DrawPanelShadowVolumes(lightX: Integer; lightY: Integer; radius: Integer);
-  function checker (obj: TObject; tag: Integer): Boolean;
+  function checker (obj: TObject; ; var proxy: PBodyProxyRectag: Integer): Boolean;
   var
     pan: TPanel;
   begin
     result := false; // don't stop, ever
-    if (tag <> GridTagWallDoor) then exit; // only walls
-    pan := (obj as TPanel);
+    //if (tag <> GridTagWall) and (tag <> GridTagDoor) then exit; // only walls
+    //pan := (obj as TPanel);
+    pan := TPanel(obj);
     pan.DrawShadowVolume(lightX, lightY, radius);
   end;
 
 begin
   if gdbg_map_use_tree_draw then
   begin
-    mapTree.aabbQuery(lightX-radius, lightY-radius, radius*2, radius*2, checker, GridTagWallDoor);
+    mapTree.aabbQuery(lightX-radius, lightY-radius, radius*2, radius*2, checker, (GridTagWall or GridTagDoor));
   end
   else
   begin
-    gMapGrid.forEachInAABB(lightX-radius, lightY-radius, radius*2, radius*2, checker, GridTagWallDoor);
+    gMapGrid.forEachInAABB(lightX-radius, lightY-radius, radius*2, radius*2, checker, (GridTagWall or GridTagDoor));
   end;
 end;
 
@@ -2171,106 +2146,60 @@ end;
 
 function g_Map_CollidePanel(X, Y: Integer; Width, Height: Word; PanelType: Word; b1x3: Boolean): Boolean;
 
-  function checker (obj: TObject; tag: Integer): Boolean;
+  function checker (obj: TObject; ; var proxy: PBodyProxyRectag: Integer): Boolean;
   var
     pan: TPanel;
-    a: Integer;
   begin
     result := false; // don't stop, ever
 
-    //e_WriteLog(Format('  *body: tag:%d; qtag:%d', [tag, PanelType]), MSG_NOTIFY);
-
-    if obj = nil then
+    if ((tag and GridTagLift) <> 0) then
     begin
-      e_WriteLog(Format('  !bodyFUUUUU0: tag:%d; qtag:%d', [tag, PanelType]), MSG_NOTIFY);
-    end;
-    if not (obj is TPanel) then
-    begin
-      e_WriteLog(Format('  !bodyFUUUUU1: tag:%d; qtag:%d', [tag, PanelType]), MSG_NOTIFY);
-      exit;
-    end;
-
-    pan := (obj as TPanel);
-    a := pan.ArrIdx;
-
-    if WordBool(PanelType and PANEL_WALL) and (tag = GridTagWallDoor) then
-    begin
-      if gWalls[a].Enabled and g_Collide(X, Y, Width, Height, gWalls[a].X, gWalls[a].Y, gWalls[a].Width, gWalls[a].Height) then
+      pan := TPanel(obj);
+      if ((WordBool(PanelType and (PANEL_LIFTUP)) and (pan.LiftType = 0)) or
+          (WordBool(PanelType and (PANEL_LIFTDOWN)) and (pan.LiftType = 1)) or
+          (WordBool(PanelType and (PANEL_LIFTLEFT)) and (pan.LiftType = 2)) or
+          (WordBool(PanelType and (PANEL_LIFTRIGHT)) and (pan.LiftType = 3))) and
+          g_Collide(X, Y, Width, Height, pan.X, pan.Y, pan.Width, pan.Height) then
       begin
         result := true;
         exit;
       end;
     end;
 
-    if WordBool(PanelType and PANEL_WATER) and (tag = GridTagWater) then
+    if ((pan.tag and GridTagBlockMon) <> 0) then
     begin
-      if g_Collide(X, Y, Width, Height, gWater[a].X, gWater[a].Y, gWater[a].Width, gWater[a].Height) then
+      if ((not b1x3) or (pan.Width+pan.Height >= 64)) and g_Collide(X, Y, Width, Height, pan.X, pan.Y, pan.Width, pan.Height) then
       begin
         result := True;
         exit;
       end;
     end;
 
-    if WordBool(PanelType and PANEL_ACID1) and (tag = GridTagAcid1) then
-    begin
-      if g_Collide(X, Y, Width, Height, gAcid1[a].X, gAcid1[a].Y, gAcid1[a].Width, gAcid1[a].Height) then
-      begin
-        result := True;
-        exit;
-      end;
-    end;
-
-    if WordBool(PanelType and PANEL_ACID2) and (tag = GridTagAcid2) then
-    begin
-      if g_Collide(X, Y, Width, Height, gAcid2[a].X, gAcid2[a].Y, gAcid2[a].Width, gAcid2[a].Height) then
-      begin
-        result := True;
-        exit;
-      end;
-    end;
-
-    if WordBool(PanelType and PANEL_STEP) and (tag = GridTagStep) then
-    begin
-      if g_Collide(X, Y, Width, Height, gSteps[a].X, gSteps[a].Y, gSteps[a].Width, gSteps[a].Height) then
-      begin
-        result := True;
-        exit;
-      end;
-    end;
-
-    if WordBool(PanelType and (PANEL_LIFTUP or PANEL_LIFTDOWN or PANEL_LIFTLEFT or PANEL_LIFTRIGHT)) and (tag = GridTagLift) then
-    begin
-      if ((WordBool(PanelType and (PANEL_LIFTUP)) and (gLifts[a].LiftType = 0)) or
-          (WordBool(PanelType and (PANEL_LIFTDOWN)) and (gLifts[a].LiftType = 1)) or
-          (WordBool(PanelType and (PANEL_LIFTLEFT)) and (gLifts[a].LiftType = 2)) or
-          (WordBool(PanelType and (PANEL_LIFTRIGHT)) and (gLifts[a].LiftType = 3))) and
-          g_Collide(X, Y, Width, Height, gLifts[a].X, gLifts[a].Y, gLifts[a].Width, gLifts[a].Height) then
-      begin
-        result := true;
-        exit;
-      end;
-    end;
-
-    if WordBool(PanelType and PANEL_BLOCKMON) and (tag = GridTagBlockMon) then
-    begin
-      if ((not b1x3) or ((gBlockMon[a].Width + gBlockMon[a].Height) >= 64)) and
-         g_Collide(X, Y, Width, Height, gBlockMon[a].X, gBlockMon[a].Y, gBlockMon[a].Width, gBlockMon[a].Height) then
-      begin
-        result := True;
-        exit;
-      end;
-    end;
+    // other shit
+    result := g_Collide(X, Y, Width, Height, pan.X, pan.Y, pan.Width, pan.Height);
   end;
 
+var
+  tagmask: Integer = 0;
 begin
   //TODO: detailed profile
+  if WordBool(PanelType and PANEL_WALL) then tagmask := tagmask or GridTagWall or GridTagDoor;
+  if WordBool(PanelType and PANEL_WATER) then tagmask := tagmask or GridTagWater;
+  if WordBool(PanelType and PANEL_ACID1) then tagmask := tagmask or GridTagAcid1;
+  if WordBool(PanelType and PANEL_ACID2) then tagmask := tagmask or GridTagAcid2;
+  if WordBool(PanelType and PANEL_STEP) then tagmask := tagmask or GridTagStep;
+  if WordBool(PanelType and (PANEL_LIFTUP or PANEL_LIFTDOWN or PANEL_LIFTLEFT or PANEL_LIFTRIGHT)) then tagmask := tagmask or GridTagLift;
+  if WordBool(PanelType and PANEL_BLOCKMON) then tagmask := tagmask or GridTagBlockMon;
+
+  if (tagmask = 0) then begin result := false; exit; end; // just in case
+
   if (profMapCollision <> nil) then profMapCollision.sectionBeginAccum('wall coldet');
   if gdbg_map_use_accel_coldet then
   begin
     if gdbg_map_use_tree_coldet then
     begin
       //e_WriteLog(Format('coldet query: x=%d; y=%d; w=%d; h=%d', [X, Y, Width, Height]), MSG_NOTIFY);
-      result := (mapTree.aabbQuery(X, Y, Width, Height, checker, (GridTagWallDoor or GridTagWater or GridTagAcid1 or GridTagAcid2 or GridTagStep or GridTagLift or GridTagBlockMon)) <> nil);
+      result := (mapTree.aabbQuery(X, Y, Width, Height, checker, tagmask) <> nil);
       if (gdbg_map_dump_coldet_tree_queries) and (mapTree.nodesVisited <> 0) then
       begin
         //e_WriteLog(Format('map collision: %d nodes visited (%d deep)', [mapTree.nodesVisited, mapTree.nodesDeepVisited]), MSG_NOTIFY);
@@ -2279,7 +2208,7 @@ begin
     end
     else
     begin
-      result := gMapGrid.forEachInAABB(X, Y, Width, Height, checker, (GridTagWallDoor or GridTagWater or GridTagAcid1 or GridTagAcid2 or GridTagStep or GridTagLift or GridTagBlockMon));
+      result := gMapGrid.forEachInAABB(X, Y, Width, Height, checker, tagmask);
     end;
   end
   else
@@ -2299,42 +2228,27 @@ var
   function checker (obj: TObject; tag: Integer): Boolean;
   var
     pan: TPanel;
-    a: Integer;
   begin
     result := false; // don't stop, ever
-    if (tag <> GridTagWater) and (tag <> GridTagAcid1) and (tag <> GridTagAcid2) then exit;
-    pan := (obj as TPanel);
-    a := pan.ArrIdx;
-    // water
-    if (tag = GridTagWater) then
-    begin
-      if g_Collide(X, Y, Width, Height, gWater[a].X, gWater[a].Y, gWater[a].Width, gWater[a].Height) then
-      begin
-        result := true; // water has highest priority, so stop right here
-        texid := gWater[a].GetTextureID();
-        exit;
-      end;
+    if ((tag and (GridTagWater or GridTagAcid1 or GridTagAcid2)) = 0) then exit;
+    //pan := (obj as TPanel);
+    pan := TPanel(obj);
+    // check priorities
+    case cctype of
+      0: if ((tag and GridTagWater) = 0) then exit; // only water
+      1: if ((tag and (GridTagWater or GridTagAcid1)) = 0) then exit; // water, acid1
+      //2: if ((tag and (GridTagWater or GridTagAcid1 or GridTagAcid2) = 0) then exit; // water, acid1, acid2
     end;
-    // acid1
-    if (cctype > 1) and (tag = GridTagAcid1) then
-    begin
-      if g_Collide(X, Y, Width, Height, gAcid1[a].X, gAcid1[a].Y, gAcid1[a].Width, gAcid1[a].Height) then
-      begin
-        cctype := 1;
-        texid := gAcid1[a].GetTextureID();
-        exit;
-      end;
-    end;
+    // collision?
+    if not g_Collide(X, Y, Width, Height, pan.X, pan.Y, pan.Width, pan.Height) then exit;
+    // yeah
+    texid := pan.GetTextureID();
+    // water? water has the highest priority, so stop right here
+    if ((tag and GridTagWater) <> 0) then begin cctype := 0; result := true; exit; end;
     // acid2
-    if (cctype > 2) and (tag = GridTagAcid2) then
-    begin
-      if g_Collide(X, Y, Width, Height, gAcid2[a].X, gAcid2[a].Y, gAcid2[a].Width, gAcid2[a].Height) then
-      begin
-        cctype := 2;
-        texid := gAcid2[a].GetTextureID();
-        exit;
-      end;
-    end;
+    if ((tag and GridTagAcid2) <> 0) then cctype := 2;
+    // acid1
+    if ((tag and GridTagAcid1) <> 0) then cctype := 1;
   end;
 
 begin

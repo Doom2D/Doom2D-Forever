@@ -323,7 +323,7 @@ implementation
 
 uses
   g_textures, g_main, g_window, g_menu,
-  e_input, e_log, g_console, g_items, g_map,
+  e_input, e_log, g_console, g_items, g_map, g_panel,
   g_playermodel, g_gfx, g_options, g_weapons, Math,
   g_triggers, MAPDEF, g_monsters, e_sound, CONFIG,
   BinEditor, g_language, g_net, SDL,
@@ -412,56 +412,6 @@ end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-(*
-procedure drawProfiles (x, y: Integer; title: AnsiString); overload;
-var
-  wdt, hgt: Integer;
-  yy: Integer;
-
-  {
-  procedure drawItems ();
-  begin
-    repeat
-      e_TextureFontPrintEx(x+2+4*xprofItLevel, yy, Format('%s: %d', [xprofItName, Integer(xprofItMicro)]), gStdFont, 255, 255, 0, 1, false);
-      Inc(yy, 16+2);
-      if xprofItHasChildren then
-      begin
-        xprofItDive();
-        drawItems();
-        xprofItPop();
-      end;
-    until not xprofItNext();
-  end;
-  }
-
-  procedure drawItems ();
-  var
-    ii, idx: Integer;
-  begin
-    for ii := 0 to xprofTotalCount-1 do
-    begin
-      e_TextureFontPrintEx(x+2+4*xprofLevelAt(ii), yy, Format('%s: %d', [xprofNameAt(ii), Integer(xprofMicroAt(ii))]), gStdFont, 255, 255, 0, 1, false);
-      Inc(yy, 16+2);
-    end;
-  end;
-
-begin
-  // gScreenWidth
-  //if not xprofItReset() then exit;
-  if (xprofTotalCount = 0) then exit;
-  wdt := 256;
-  hgt := 16+2+xprofTotalCount*(16+2); // title, items
-  // background
-  //e_DrawFillQuad(x, y, x+wdt-1, y+hgt-1, 255, 255, 255, 200, B_BLEND);
-  e_DrawFillQuad(x, y, x+wdt-1, y+hgt-1, 20, 20, 20, 0, B_NONE);
-  // title
-  e_TextureFontPrintEx(x+2, y+2, Format('%s: %d', [title, Integer(xprofTotalMicro)]), gStdFont, 255, 255, 0, 1, false);
-  yy := y+16+2;
-  drawItems();
-end;
-*)
-
-
 function calcProfilesHeight (prof: TProfiler): Integer;
 begin
   result := 0;
@@ -2693,7 +2643,168 @@ begin
   end;
 end;
 
+
+// setup sX, sY, sWidth, sHeight, and transformation matrix before calling this!
+procedure renderDynLightsInternal ();
+var
+  lln: Integer;
+  lx, ly, lrad: Integer;
+begin
+  //TODO: lights should be in separate grid, i think
+  //      but on the other side: grid may be slower for dynlights, as their lifetime is short
+  if not gwin_has_stencil or (g_dynLightCount < 1) then exit;
+
+  // setup OpenGL parameters
+  glStencilMask($FFFFFFFF);
+  glStencilFunc(GL_ALWAYS, 0, $FFFFFFFF);
+  glEnable(GL_STENCIL_TEST);
+  glEnable(GL_SCISSOR_TEST);
+  glClear(GL_STENCIL_BUFFER_BIT);
+  glStencilFunc(GL_EQUAL, 0, $ff);
+
+  for lln := 0 to g_dynLightCount-1 do
+  begin
+    lx := g_dynLights[lln].x;
+    ly := g_dynLights[lln].y;
+    lrad := g_dynLights[lln].radius;
+    if lrad < 3 then continue;
+
+    if lx-sX+lrad < 0 then continue;
+    if ly-sY+lrad < 0 then continue;
+    if lx-sX-lrad >= gPlayerScreenSize.X then continue;
+    if ly-sY-lrad >= gPlayerScreenSize.Y then continue;
+
+    // set scissor to optimize drawing
+    glScissor((lx-sX)-lrad+2, gPlayerScreenSize.Y-(ly-sY)-lrad-1+2, lrad*2-4, lrad*2-4);
+    // no need to clear stencil buffer, light blitting will do it for us
+    glStencilOp(GL_KEEP, GL_KEEP, GL_INCR);
+    // draw extruded panels
+    glDisable(GL_TEXTURE_2D);
+    glDisable(GL_BLEND);
+    glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE); // no need to modify color buffer
+    if (lrad > 4) then g_Map_DrawPanelShadowVolumes(lx, ly, lrad);
+    // render light texture
+    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE); // modify color buffer
+    glStencilOp(GL_ZERO, GL_ZERO, GL_ZERO); // draw light, and clear stencil buffer
+    // blend it
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glEnable(GL_TEXTURE_2D);
+    // color and opacity
+    glColor4f(g_dynLights[lln].r, g_dynLights[lln].g, g_dynLights[lln].b, g_dynLights[lln].a);
+    glBindTexture(GL_TEXTURE_2D, g_Texture_Light());
+    glBegin(GL_QUADS);
+      glTexCoord2f(0.0, 0.0); glVertex2i(lx-lrad, ly-lrad); // top-left
+      glTexCoord2f(1.0, 0.0); glVertex2i(lx+lrad, ly-lrad); // top-right
+      glTexCoord2f(1.0, 1.0); glVertex2i(lx+lrad, ly+lrad); // bottom-right
+      glTexCoord2f(0.0, 1.0); glVertex2i(lx-lrad, ly+lrad); // bottom-left
+    glEnd();
+  end;
+
+  // done
+  glDisable(GL_STENCIL_TEST);
+  glDisable(GL_BLEND);
+  glDisable(GL_SCISSOR_TEST);
+  glScissor(0, 0, sWidth, sHeight);
+end;
+
+
+// setup sX, sY, sWidth, sHeight, and transformation matrix before calling this!
+// WARNING! this WILL CALL `glTranslatef()`, but won't restore matrices!
+procedure renderMapInternal (backXOfs, backYOfs: Integer; transX, transY: Integer; setTransMatrix: Boolean);
+type
+  TDrawCB = procedure ();
+
+  procedure drawPanelType (profname: AnsiString; panType: DWord);
+  var
+    tagmask: Integer;
+    pan: TPanel;
+  begin
+    profileFrameDraw.sectionBegin(profname);
+    if gdbg_map_use_accel_render then
+    begin
+      tagmask := panelTypeToTag(panType);
+      {$IF TRUE}
+      while (gDrawPanelList.count > 0) do
+      begin
+        pan := TPanel(gDrawPanelList.front());
+        if ((pan.tag and tagmask) = 0) then break;
+        pan.Draw();
+        gDrawPanelList.popFront();
+      end;
+      {$ELSE}
+      e_WriteLog(Format('=== PANELS: %d ===', [gDrawPanelList.count]), MSG_NOTIFY);
+      while (gDrawPanelList.count > 0) do
+      begin
+        pan := TPanel(gDrawPanelList.front());
+        e_WriteLog(Format('tagmask: 0x%04x; pan.tag: 0x%04x; pan.ArrIdx: %d', [tagmask, pan.tag, pan.ArrIdx]), MSG_NOTIFY);
+        pan.Draw();
+        gDrawPanelList.popFront();
+      end;
+      {$ENDIF}
+    end
+    else
+    begin
+      g_Map_DrawPanels(panType);
+    end;
+    profileFrameDraw.sectionEnd();
+  end;
+
+  procedure drawOther (profname: AnsiString; cb: TDrawCB);
+  begin
+    profileFrameDraw.sectionBegin(profname);
+    if assigned(cb) then cb();
+    profileFrameDraw.sectionEnd();
+  end;
+
+begin
+  profileFrameDraw.sectionBegin('map rendering');
+
+  // our accelerated renderer will collect all panels to gDrawPanelList
+  // we can use panel tag to render level parts (see GridTagXXX in g_map.pas)
+  profileFrameDraw.sectionBegin('pancollect');
+  if gdbg_map_use_accel_render then
+  begin
+    g_Map_CollectDrawPanels(sX, sY, sWidth, sHeight);
+  end;
+  profileFrameDraw.sectionEnd();
+
+  profileFrameDraw.sectionBegin('map background');
+  g_Map_DrawBack(backXOfs, backYOfs);
+  profileFrameDraw.sectionEnd();
+
+  if (setTransMatrix) then glTranslatef(transX, transY, 0);
+
+  drawPanelType('panel_back', PANEL_BACK);
+  drawPanelType('panel_step', PANEL_STEP);
+  drawOther('items', @g_Items_Draw);
+  drawOther('weapons', @g_Weapon_Draw);
+  drawOther('shells', @g_Player_DrawShells);
+  drawOther('drawall', @g_Player_DrawAll);
+  drawOther('corpses', @g_Player_DrawCorpses);
+  drawPanelType('panel_wall', PANEL_WALL);
+  drawOther('monsters', @g_Monsters_Draw);
+  drawPanelType('panel_closedoor', PANEL_CLOSEDOOR);
+  drawOther('gfx', @g_GFX_Draw);
+  drawOther('flags', @g_Map_DrawFlags);
+  drawPanelType('panel_acid1', PANEL_ACID1);
+  drawPanelType('panel_acid2', PANEL_ACID2);
+  drawPanelType('panel_water', PANEL_WATER);
+  drawOther('dynlights', @renderDynLightsInternal);
+  drawPanelType('panel_fore', PANEL_FORE);
+
+  if g_debug_HealthBar then
+  begin
+    g_Monsters_DrawHealth();
+    g_Player_DrawHealth();
+  end;
+
+  profileFrameDraw.mainEnd(); // map rendering
+end;
+
+
 procedure DrawMapView(x, y, w, h: Integer);
+
 var
   bx, by: Integer;
 begin
@@ -2701,46 +2812,23 @@ begin
 
   bx := Round(x/(gMapInfo.Width - w)*(gBackSize.X - w));
   by := Round(y/(gMapInfo.Height - h)*(gBackSize.Y - h));
-  g_Map_DrawBack(-bx, -by);
 
   sX := x;
   sY := y;
   sWidth := w;
   sHeight := h;
 
-  glTranslatef(-x, -y, 0);
-
-  g_Map_DrawPanels(sX, sY, sWidth, sHeight, PANEL_BACK);
-  g_Map_DrawPanels(sX, sY, sWidth, sHeight, PANEL_STEP);
-  g_Items_Draw();
-  g_Weapon_Draw();
-  g_Player_DrawShells();
-  g_Player_DrawAll();
-  g_Player_DrawCorpses();
-  g_Map_DrawPanels(sX, sY, sWidth, sHeight, PANEL_WALL);
-  g_Monsters_Draw();
-  g_Map_DrawPanels(sX, sY, sWidth, sHeight, PANEL_CLOSEDOOR);
-  g_GFX_Draw();
-  g_Map_DrawFlags();
-  g_Map_DrawPanels(sX, sY, sWidth, sHeight, PANEL_ACID1);
-  g_Map_DrawPanels(sX, sY, sWidth, sHeight, PANEL_ACID2);
-  g_Map_DrawPanels(sX, sY, sWidth, sHeight, PANEL_WATER);
-  g_Map_DrawPanels(sX, sY, sWidth, sHeight, PANEL_FORE);
-  if g_debug_HealthBar then
-  begin
-    g_Monsters_DrawHealth();
-    g_Player_DrawHealth();
-  end;
+  renderMapInternal(-bx, -by, -x, -y, true);
 
   glPopMatrix();
 end;
+
 
 procedure DrawPlayer(p: TPlayer);
 var
   px, py, a, b, c, d: Integer;
   //R: TRect;
-  lln: Integer;
-  lx, ly, lrad: Integer;
+
 begin
   if (p = nil) or (p.FDummy) then
   begin
@@ -2760,220 +2848,60 @@ begin
   px := p.GameX + PLAYER_RECT_CX;
   py := p.GameY + PLAYER_RECT_CY;
 
-  if px > (gPlayerScreenSize.X div 2) then
-    a := -px + (gPlayerScreenSize.X div 2)
-  else
-    a := 0;
-  if py > (gPlayerScreenSize.Y div 2) then
-    b := -py + (gPlayerScreenSize.Y div 2)
-  else
-    b := 0;
-  if px > (gMapInfo.Width - (gPlayerScreenSize.X div 2)) then
-    a := -gMapInfo.Width + gPlayerScreenSize.X;
-  if py > (gMapInfo.Height - (gPlayerScreenSize.Y div 2)) then
-    b := -gMapInfo.Height + gPlayerScreenSize.Y;
-  if gMapInfo.Width <= gPlayerScreenSize.X then
-    a := 0;
-  if gMapInfo.Height <= gPlayerScreenSize.Y then
-    b := 0;
+  if px > (gPlayerScreenSize.X div 2) then a := -px+(gPlayerScreenSize.X div 2) else a := 0;
+  if py > (gPlayerScreenSize.Y div 2) then b := -py+(gPlayerScreenSize.Y div 2) else b := 0;
+
+  if px > gMapInfo.Width-(gPlayerScreenSize.X div 2) then a := -gMapInfo.Width+gPlayerScreenSize.X;
+  if py > gMapInfo.Height-(gPlayerScreenSize.Y div 2) then b := -gMapInfo.Height+gPlayerScreenSize.Y;
+
+  if gMapInfo.Width <= gPlayerScreenSize.X then a := 0;
+  if gMapInfo.Height <= gPlayerScreenSize.Y then b := 0;
 
   if p.IncCam <> 0 then
   begin
-    if py > (gMapInfo.Height - (gPlayerScreenSize.Y div 2)) then
+    if py > gMapInfo.Height-(gPlayerScreenSize.Y div 2) then
     begin
       if p.IncCam > 120-(py-(gMapInfo.Height-(gPlayerScreenSize.Y div 2))) then
+      begin
         p.IncCam := 120-(py-(gMapInfo.Height-(gPlayerScreenSize.Y div 2)));
+      end;
     end;
 
-    if py < (gPlayerScreenSize.Y div 2) then
+    if py < gPlayerScreenSize.Y div 2 then
     begin
       if p.IncCam < -120+((gPlayerScreenSize.Y div 2)-py) then
+      begin
         p.IncCam := -120+((gPlayerScreenSize.Y div 2)-py);
+      end;
     end;
 
     if p.IncCam < 0 then
-      while (py+(gPlayerScreenSize.Y div 2)-p.IncCam > gMapInfo.Height) and
-            (p.IncCam < 0) do
-        p.IncCam := p.IncCam + 1;
+    begin
+      while (py+(gPlayerScreenSize.Y div 2)-p.IncCam > gMapInfo.Height) and (p.IncCam < 0) do p.IncCam := p.IncCam+1; //Inc(p.IncCam);
+    end;
 
     if p.IncCam > 0 then
-      while (py-(gPlayerScreenSize.Y div 2)-p.IncCam < 0) and
-            (p.IncCam > 0) do
-        p.IncCam := p.IncCam - 1;
+    begin
+      while (py-(gPlayerScreenSize.Y div 2)-p.IncCam < 0) and (p.IncCam > 0) do p.IncCam := p.IncCam-1; //Dec(p.IncCam);
+    end;
   end;
 
-  if (px< gPlayerScreenSize.X div 2) or
-     (gMapInfo.Width-gPlayerScreenSize.X <= 256) then
-    c := 0
-  else
-    if (px > gMapInfo.Width-(gPlayerScreenSize.X div 2)) then
-      c := gBackSize.X - gPlayerScreenSize.X
-    else
-      c := Round((px-(gPlayerScreenSize.X div 2))/(gMapInfo.Width-gPlayerScreenSize.X)*(gBackSize.X-gPlayerScreenSize.X));
+       if (px < gPlayerScreenSize.X div 2) or (gMapInfo.Width-gPlayerScreenSize.X <= 256) then c := 0
+  else if (px > gMapInfo.Width-(gPlayerScreenSize.X div 2)) then c := gBackSize.X-gPlayerScreenSize.X
+  else c := round((px-(gPlayerScreenSize.X div 2))/(gMapInfo.Width-gPlayerScreenSize.X)*(gBackSize.X-gPlayerScreenSize.X));
 
-  if (py-p.IncCam <= gPlayerScreenSize.Y div 2) or
-     (gMapInfo.Height-gPlayerScreenSize.Y <= 256) then
-    d := 0
-  else
-    if (py-p.IncCam >= gMapInfo.Height-(gPlayerScreenSize.Y div 2)) then
-      d := gBackSize.Y - gPlayerScreenSize.Y
-    else
-      d := Round((py-p.IncCam-(gPlayerScreenSize.Y div 2))/(gMapInfo.Height-gPlayerScreenSize.Y)*(gBackSize.Y-gPlayerScreenSize.Y));
-
-  profileFrameDraw.sectionBegin('map background');
-  g_Map_DrawBack(-c, -d);
-  profileFrameDraw.sectionEnd();
+       if (py-p.IncCam <= gPlayerScreenSize.Y div 2) or (gMapInfo.Height-gPlayerScreenSize.Y <= 256) then d := 0
+  else if (py-p.IncCam >= gMapInfo.Height-(gPlayerScreenSize.Y div 2)) then d := gBackSize.Y-gPlayerScreenSize.Y
+  else d := round((py-p.IncCam-(gPlayerScreenSize.Y div 2))/(gMapInfo.Height-gPlayerScreenSize.Y)*(gBackSize.Y-gPlayerScreenSize.Y));
 
   sX := -a;
   sY := -(b+p.IncCam);
   sWidth := gPlayerScreenSize.X;
   sHeight := gPlayerScreenSize.Y;
 
-  glTranslatef(a, b+p.IncCam, 0);
+  //glTranslatef(a, b+p.IncCam, 0);
 
-  profileFrameDraw.sectionBegin('map rendering');
-
-  profileFrameDraw.sectionBegin('panel_back');
-  g_Map_DrawPanels(sX, sY, sWidth, sHeight, PANEL_BACK);
-  profileFrameDraw.sectionEnd();
-
-  profileFrameDraw.sectionBegin('panel_step');
-  g_Map_DrawPanels(sX, sY, sWidth, sHeight, PANEL_STEP);
-  profileFrameDraw.sectionEnd();
-
-  profileFrameDraw.sectionBegin('items');
-  g_Items_Draw();
-  profileFrameDraw.sectionEnd();
-
-  profileFrameDraw.sectionBegin('weapons');
-  g_Weapon_Draw();
-  profileFrameDraw.sectionEnd();
-
-  profileFrameDraw.sectionBegin('shells');
-  g_Player_DrawShells();
-  profileFrameDraw.sectionEnd();
-
-  profileFrameDraw.sectionBegin('drawall');
-  g_Player_DrawAll();
-  profileFrameDraw.sectionEnd();
-
-  profileFrameDraw.sectionBegin('corpses');
-  g_Player_DrawCorpses();
-  profileFrameDraw.sectionEnd();
-
-  profileFrameDraw.sectionBegin('panel_wall');
-  g_Map_DrawPanels(sX, sY, sWidth, sHeight, PANEL_WALL);
-  profileFrameDraw.sectionEnd();
-
-  profileFrameDraw.sectionBegin('monsters');
-  g_Monsters_Draw();
-  profileFrameDraw.sectionEnd();
-
-  profileFrameDraw.sectionBegin('panel_closedoor');
-  g_Map_DrawPanels(sX, sY, sWidth, sHeight, PANEL_CLOSEDOOR);
-  profileFrameDraw.sectionEnd();
-
-  profileFrameDraw.sectionBegin('gfx');
-  g_GFX_Draw();
-  profileFrameDraw.sectionEnd();
-
-  profileFrameDraw.sectionBegin('flags');
-  g_Map_DrawFlags();
-  profileFrameDraw.sectionEnd();
-
-  profileFrameDraw.sectionBegin('panel_acid1');
-  g_Map_DrawPanels(sX, sY, sWidth, sHeight, PANEL_ACID1);
-  profileFrameDraw.sectionEnd();
-
-  profileFrameDraw.sectionBegin('panel_acid2');
-  g_Map_DrawPanels(sX, sY, sWidth, sHeight, PANEL_ACID2);
-  profileFrameDraw.sectionEnd();
-
-  profileFrameDraw.sectionBegin('panel_water');
-  g_Map_DrawPanels(sX, sY, sWidth, sHeight, PANEL_WATER);
-  profileFrameDraw.sectionEnd();
-
-  //TODO: lights should be in separate grid, i think
-  //      but on the other side: grid may be slower for dynlights, as their lifetime is short
-  if gwin_has_stencil and (g_dynLightCount > 0) then
-  begin
-    profileFrameDraw.sectionBegin('dynlights');
-
-    // setup OpenGL parameters
-    glStencilMask($FFFFFFFF);
-    glStencilFunc(GL_ALWAYS, 0, $FFFFFFFF);
-    glEnable(GL_STENCIL_TEST);
-    glEnable(GL_SCISSOR_TEST);
-    glClear(GL_STENCIL_BUFFER_BIT);
-    glStencilFunc(GL_EQUAL, 0, $ff);
-
-    for lln := 0 to g_dynLightCount-1 do
-    begin
-      lx := g_dynLights[lln].x;
-      ly := g_dynLights[lln].y;
-      lrad := g_dynLights[lln].radius;
-      if lrad < 3 then continue;
-
-      if lx-sX+lrad < 0 then continue;
-      if ly-sY+lrad < 0 then continue;
-      if lx-sX-lrad >= gPlayerScreenSize.X then continue;
-      if ly-sY-lrad >= gPlayerScreenSize.Y then continue;
-
-      // set scissor to optimize drawing
-      glScissor((lx-sX)-lrad+2, gPlayerScreenSize.Y-(ly-sY)-lrad-1+2, lrad*2-4, lrad*2-4);
-      // no need to clear stencil buffer, light blitting will do it for us
-      glStencilOp(GL_KEEP, GL_KEEP, GL_INCR);
-      // draw extruded panels
-      glDisable(GL_TEXTURE_2D);
-      glDisable(GL_BLEND);
-      glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE); // no need to modify color buffer
-      if (lrad > 4) then g_Map_DrawPanelShadowVolumes(lx, ly, lrad);
-      // render light texture
-      glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE); // modify color buffer
-      glStencilOp(GL_ZERO, GL_ZERO, GL_ZERO); // draw light, and clear stencil buffer
-      // blend it
-      glEnable(GL_BLEND);
-      glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-      glEnable(GL_TEXTURE_2D);
-      // color and opacity
-      glColor4f(g_dynLights[lln].r, g_dynLights[lln].g, g_dynLights[lln].b, g_dynLights[lln].a);
-      glBindTexture(GL_TEXTURE_2D, g_Texture_Light());
-      glBegin(GL_QUADS);
-        glTexCoord2f(0.0, 0.0); glVertex2i(lx-lrad, ly-lrad); // top-left
-        glTexCoord2f(1.0, 0.0); glVertex2i(lx+lrad, ly-lrad); // top-right
-        glTexCoord2f(1.0, 1.0); glVertex2i(lx+lrad, ly+lrad); // bottom-right
-        glTexCoord2f(0.0, 1.0); glVertex2i(lx-lrad, ly+lrad); // bottom-left
-      glEnd();
-    end;
-
-    // done
-    glDisable(GL_STENCIL_TEST);
-    glDisable(GL_BLEND);
-    glDisable(GL_SCISSOR_TEST);
-    glScissor(0, 0, sWidth, sHeight);
-
-    profileFrameDraw.sectionEnd();
-  end
-  else
-  begin
-    profileFrameDraw.sectionBegin('dynlights');
-    profileFrameDraw.sectionEnd();
-  end;
-
-  profileFrameDraw.sectionBegin('panel_fore');
-  g_Map_DrawPanels(sX, sY, sWidth, sHeight, PANEL_FORE);
-  profileFrameDraw.sectionEnd();
-
-  if g_debug_HealthBar then
-  begin
-    profileFrameDraw.sectionBegin('monster health');
-    g_Monsters_DrawHealth();
-    profileFrameDraw.sectionEnd();
-
-    profileFrameDraw.sectionBegin('player health');
-    g_Player_DrawHealth();
-    profileFrameDraw.sectionEnd();
-  end;
+  renderMapInternal(-c, -d, a, b+p.IncCam, true);
 
   if p.FSpectator then
     e_TextureFontPrintEx(p.GameX + PLAYER_RECT_CX - 4,
@@ -2998,8 +2926,6 @@ begin
   }
 
   glPopMatrix();
-
-  profileFrameDraw.mainEnd(); // map rendering
 
   p.DrawPain();
   p.DrawPickup();
@@ -6906,7 +6832,7 @@ var
 begin
   Parse_Params(pars);
 
-  s := Find_Param_Value(pars, '--profile-frame');
+  s := Find_Param_Value(pars, '--profile-render');
   if (s <> '') then g_profile_frame_draw := true;
 
   s := Find_Param_Value(pars, '--profile-coldet');

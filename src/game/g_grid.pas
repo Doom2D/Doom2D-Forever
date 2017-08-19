@@ -25,7 +25,7 @@ const
   GridCellBucketSize = 8; // WARNING! can't be less than 2!
 
 type
-  GridQueryCB = function (obj: TObject; tag: Integer): Boolean is nested; // return `true` to stop
+  GridQueryCB = function (obj: TObject; var proxy: PBodyProxyRec; tag: Integer): Boolean is nested; // return `true` to stop
 
 type
   TBodyGrid = class;

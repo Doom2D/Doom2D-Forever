@@ -41,6 +41,11 @@ type
                             True:  (AnTex: TAnimation);
                         end;
 
+  private
+    function getx1 (): Integer; inline;
+    function gety1 (): Integer; inline;
+    function getvisvalid (): Boolean; inline;
+
   public
     FCurTexture:      Integer; // Номер текущей текстуры
     FCurFrame:        Integer;
@@ -74,6 +79,12 @@ type
 
     procedure   SaveState(var Mem: TBinMemoryWriter);
     procedure   LoadState(var Mem: TBinMemoryReader);
+
+    property x0: Integer read X;
+    property y0: Integer read Y;
+    property x1: Integer read getx1; // inclusive!
+    property y1: Integer read gety1; // inclusive!
+    property visvalid: Boolean read getvisvalid; // panel is "visvalid" when it's width and height are positive
   end;
 
   PPanel = ^TPanel;
@@ -247,6 +258,10 @@ begin
 
   Inherited;
 end;
+
+function TPanel.getx1 (): Integer; inline; begin result := X+Width-1; end;
+function TPanel.gety1 (): Integer; inline; begin result := Y+Height-1; end;
+function TPanel.getvisvalid (): Boolean; inline; begin result := (Width > 0) and (Height > 0); end;
 
 procedure TPanel.Draw();
 var
