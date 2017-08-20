@@ -244,9 +244,21 @@ begin
 end;
 
 procedure CheckTrap(ID: DWORD; dm: Integer; t: Byte);
+
 var
   a, b, c, d, i1, i2: Integer;
   pl, mn: WArray;
+
+  function monsWaterCheck (monidx: Integer; mon: TMonster): Boolean;
+  begin
+    result := false; // don't stop
+    if mon.Live and mon.Collide(gWater[WaterMap[a][c]]) and (not InWArray(monidx, mn)) and (i2 < 1023) then //FIXME
+    begin
+      i2 += 1;
+      mn[i2] := monidx;
+    end;
+  end;
+
 begin
   if (gWater = nil) or (WaterMap = nil) then Exit;
 
@@ -280,18 +292,7 @@ begin
                   end;
         end;
 
-        if gMonsters <> nil then
-        begin
-          for d := 0 to High(gMonsters) do
-            if (gMonsters[d] <> nil) and (gMonsters[d].Live) then
-              if gMonsters[d].Collide(gWater[WaterMap[a][c]]) then
-                if not InWArray(d, mn) then
-                  if i2 < 1023 then
-                  begin
-                    i2 := i2+1;
-                    mn[i2] := d;
-                  end;
-        end;
+        g_Mons_ForEach(monsWaterCheck);
       end;
 
       if i1 <> -1 then
@@ -300,7 +301,7 @@ begin
 
       if i2 <> -1 then
         for d := 0 to i2 do
-          gMonsters[mn[d]].Damage(dm, 0, 0, Shots[ID].SpawnerUID, t);
+          g_Mons_ByIdx(mn[d]).Damage(dm, 0, 0, Shots[ID].SpawnerUID, t);
     end;
 
   pl := nil;
@@ -377,7 +378,7 @@ begin
   if (p.UID = SpawnerUID) and (t <> HIT_ROCKET) and (t <> HIT_ELECTRO) then
     Exit;
 
-  if g_Game_IsServer then 
+  if g_Game_IsServer then
   begin
     if (t <> HIT_FLAME) or (p.FFireTime = 0) or (vx <> 0) or (vy <> 0) then
       p.Damage(d, SpawnerUID, vx, vy, t);
@@ -390,6 +391,20 @@ end;
 
 function GunHit(X, Y: Integer; vx, vy: Integer; dmg: Integer;
   SpawnerUID: Word; AllowPush: Boolean): Byte;
+
+  function monsCheck (monidx: Integer; mon: TMonster): Boolean;
+  begin
+    result := false; // don't stop
+    if (mon <> nil) and mon.Live and mon.Collide(X, Y) then
+    begin
+      if HitMonster(mon, dmg, vx*10, vy*10-3, SpawnerUID, HIT_SOME) then
+      begin
+        if AllowPush then mon.Push(vx, vy);
+        result := true;
+      end;
+    end;
+  end;
+
 var
   i, h: Integer;
 begin
@@ -408,20 +423,29 @@ begin
 
   if Result <> 0 then Exit;
 
-  h := High(gMonsters);
-
-  if h <> -1 then
-    for i := 0 to h do
-      if (gMonsters[i] <> nil) and gMonsters[i].Live and gMonsters[i].Collide(X, Y) then
-        if HitMonster(gMonsters[i], dmg, vx*10, vy*10-3, SpawnerUID, HIT_SOME) then
-        begin
-          if AllowPush then gMonsters[i].Push(vx, vy);
-          Result := 2;
-          Exit;
-        end;
+  if g_Mons_ForEach(monsCheck) then result := 2;
 end;
 
 procedure g_Weapon_BFG9000(X, Y: Integer; SpawnerUID: Word);
+
+  function monsCheck (monidx: Integer; mon: TMonster): Boolean;
+  begin
+    result := false; // don't stop
+    if (mon <> nil) and (mon.Live) and (mon.UID <> SpawnerUID) then
+    begin
+      with mon do
+      begin
+        if (g_PatchLength(X, Y, Obj.X+Obj.Rect.X+(Obj.Rect.Width div 2),
+                                Obj.Y+Obj.Rect.Y+(Obj.Rect.Height div 2)) <= SHOT_BFG_RADIUS) and
+            g_TraceVector(X, Y, Obj.X+Obj.Rect.X+(Obj.Rect.Width div 2),
+                                Obj.Y+Obj.Rect.Y+(Obj.Rect.Height div 2)) then
+        begin
+          if HitMonster(mon, 50, 0, 0, SpawnerUID, HIT_SOME) then mon.BFGHit();
+        end;
+      end;
+    end;
+  end;
+
 var
   i, h: Integer;
   st: Byte;
@@ -470,17 +494,7 @@ begin
               gPlayers[i].BFGHit();
           end;
 
-  h := High(gMonsters);
-
-  if h <> -1 then
-    for i := 0 to h do
-      if (gMonsters[i] <> nil) and (gMonsters[i].Live) and (gMonsters[i].UID <> SpawnerUID) then
-        with gMonsters[i] do
-          if (g_PatchLength(X, Y, Obj.X+Obj.Rect.X+(Obj.Rect.Width div 2),
-                            Obj.Y+Obj.Rect.Y+(Obj.Rect.Height div 2)) <= SHOT_BFG_RADIUS) and
-              g_TraceVector(X, Y, Obj.X+Obj.Rect.X+(Obj.Rect.Width div 2),
-                            Obj.Y+Obj.Rect.Y+(Obj.Rect.Height div 2)) then
-            if HitMonster(gMonsters[i], 50, 0, 0, SpawnerUID, HIT_SOME) then gMonsters[i].BFGHit();
+  g_Mons_ForEach(monsCheck);
 end;
 
 function g_Weapon_CreateShot(I: Integer; ShotType: Byte; Spawner, TargetUID: Word; X, Y, XV, YV: Integer): LongWord;
@@ -694,7 +708,7 @@ begin
   Shots[i].Stopped := 0;
   if Shots[i].ShotType in [WEAPON_ROCKETLAUNCHER, WEAPON_BFG] then
     Shots[i].Timeout := 900 // ~25 sec
-  else 
+  else
   begin
     if Shots[i].ShotType = WEAPON_FLAMETHROWER then
       Shots[i].Timeout := SHOT_FLAME_LIFETIME
@@ -740,25 +754,29 @@ var
             end;
         end;
   end;
-  function MonsterHit(): Boolean;
-  var
-    i: Integer;
-  begin
-    Result := False;
-    h := High(gMonsters);
 
-    if h <> -1 then
-      for i := 0 to h do
-        if (gMonsters[i] <> nil) and gMonsters[i].Live and g_Obj_Collide(obj, @gMonsters[i].Obj) then
-          if HitMonster(gMonsters[i], d, obj^.Vel.X, obj^.Vel.Y, SpawnerUID, t) then
-          begin
-            if t <> HIT_FLAME then
-              gMonsters[i].Push((obj^.Vel.X+obj^.Accel.X)*IfThen(t = HIT_BFG, 8, 1) div 4,
-                                (obj^.Vel.Y+obj^.Accel.Y)*IfThen(t = HIT_BFG, 8, 1) div 4);
-            Result := True;
-            break;
-          end;
+  function monsCheckHit (monidx: Integer; mon: TMonster): Boolean;
+  begin
+    result := false; // don't stop
+    if (mon <> nil) and mon.Live and g_Obj_Collide(obj, @mon.Obj) then
+    begin
+      if HitMonster(mon, d, obj^.Vel.X, obj^.Vel.Y, SpawnerUID, t) then
+      begin
+        if (t <> HIT_FLAME) then
+        begin
+          mon.Push((obj^.Vel.X+obj^.Accel.X)*IfThen(t = HIT_BFG, 8, 1) div 4,
+                              (obj^.Vel.Y+obj^.Accel.Y)*IfThen(t = HIT_BFG, 8, 1) div 4);
+        end;
+        result := True;
+      end;
+    end;
   end;
+
+  function MonsterHit(): Boolean;
+  begin
+    result := g_Mons_ForEach(monsCheckHit);
+  end;
+
 begin
   Result := 0;
 
@@ -854,8 +872,44 @@ end;
 
 function g_Weapon_Explode(X, Y: Integer; rad: Integer; SpawnerUID: Word): Boolean;
 var
-  i, h, r, dx, dy, m, mm: Integer;
+  r: Integer;
+
+  function monsExCheck (monidx: Integer; mon: TMonster): Boolean;
+  var
+    dx, dy, mm: Integer;
+  begin
+    result := false; // don't stop
+    if mon <> nil then
+    begin
+      with mon do
+      begin
+        dx := Obj.X+Obj.Rect.X+(Obj.Rect.Width div 2)-X;
+        dy := Obj.Y+Obj.Rect.Y+(Obj.Rect.Height div 2)-Y;
+
+        if dx > 1000 then dx := 1000;
+        if dy > 1000 then dy := 1000;
+
+        if (dx*dx+dy*dy < r) then
+        begin
+          //m := PointToRect(X, Y, Obj.X+Obj.Rect.X, Obj.Y+Obj.Rect.Y, Obj.Rect.Width, Obj.Rect.Height);
+
+          mm := Max(abs(dx), abs(dy));
+          if mm = 0 then mm := 1;
+
+          if mon.Live then
+            HitMonster(mon, ((mon.Obj.Rect.Width div 4)*10*(rad-mm)) div rad,
+                       0, 0, SpawnerUID, HIT_ROCKET);
+
+          mon.Push((dx*7) div mm, (dy*7) div mm);
+        end;
+      end;
+    end;
+  end;
+
+var
+  i, h, dx, dy, m, mm: Integer;
   _angle: SmallInt;
+
 begin
   Result := False;
 
@@ -889,34 +943,8 @@ begin
           end;
         end;
 
-  h := High(gMonsters);
+  g_Mons_ForEach(monsExCheck);
 
-  if h <> -1 then
-    for i := 0 to h do
-      if gMonsters[i] <> nil then
-        with gMonsters[i] do
-        begin
-          dx := Obj.X+Obj.Rect.X+(Obj.Rect.Width div 2)-X;
-          dy := Obj.Y+Obj.Rect.Y+(Obj.Rect.Height div 2)-Y;
-
-          if dx > 1000 then dx := 1000;
-          if dy > 1000 then dy := 1000;
-
-          if dx*dx+dy*dy < r then
-          begin
-            //m := PointToRect(X, Y, Obj.X+Obj.Rect.X, Obj.Y+Obj.Rect.Y,
-            //                 Obj.Rect.Width, Obj.Rect.Height);
-
-            mm := Max(abs(dx), abs(dy));
-            if mm = 0 then mm := 1;
-
-            if gMonsters[i].Live then
-              HitMonster(gMonsters[i], ((gMonsters[i].Obj.Rect.Width div 4)*10*(rad-mm)) div rad,
-                         0, 0, SpawnerUID, HIT_ROCKET);
-
-            gMonsters[i].Push((dx*7) div mm, (dy*7) div mm);
-          end;
-        end;
 
   h := High(gCorpses);
 
@@ -1545,7 +1573,7 @@ begin
     throw(find_id, x+dx, y+dy, xd+dx, yd+dy, 16);
 
     triggers := nil;
-    
+
     g_Frames_Get(FramesID, 'FRAMES_WEAPON_BSPFIRE');
     Animation := TAnimation.Create(FramesID, True, 4);
   end;

@@ -1439,6 +1439,24 @@ var
   a: Byte;
   w: Word;
   i, b: Integer;
+
+  function sendMonsPos (monidx: Integer; mon: TMonster): Boolean;
+  begin
+    result := false; // don't stop
+    if (mon.MonsterType = MONSTER_BARREL) then
+    begin
+      if (mon.GameVelX <> 0) or (mon.GameVelY <> 0) then MH_SEND_MonsterPos(mon.UID);
+    end
+    else
+      if (mon.MonsterState <> MONSTATE_SLEEP) then
+      begin
+        if (mon.MonsterState <> MONSTATE_DEAD) or (mon.GameVelX <> 0) or (mon.GameVelY <> 0) then
+        begin
+          MH_SEND_MonsterPos(mon.UID);
+        end;
+      end;
+  end;
+
 begin
   g_ResetDynlights();
 // Пора выключать игру:
@@ -1808,22 +1826,7 @@ begin
           if gPlayers[I] <> nil then
             MH_SEND_PlayerPos(True, gPlayers[I].UID);
 
-        if gMonsters <> nil then
-          for I := 0 to High(gMonsters) do
-            if gMonsters[I] <> nil then
-            begin
-              if (gMonsters[I].MonsterType = MONSTER_BARREL) then
-              begin
-                if (gMonsters[I].GameVelX <> 0) or (gMonsters[I].GameVelY <> 0) then
-                  MH_SEND_MonsterPos(gMonsters[I].UID);
-              end
-              else
-                if (gMonsters[I].MonsterState <> MONSTATE_SLEEP) then
-                  if (gMonsters[I].MonsterState <> MONSTATE_DEAD) or
-                     (gMonsters[I].GameVelX <> 0) or
-                     (gMonsters[I].GameVelY <> 0) then
-                  MH_SEND_MonsterPos(gMonsters[I].UID);
-            end;
+        g_Mons_ForEach(sendMonsPos);
 
         NetTimeToReliable := 0;
         NetTimeToUpdate := NetUpdateRate;
@@ -1835,22 +1838,7 @@ begin
             if gPlayers[I] <> nil then
               MH_SEND_PlayerPos(False, gPlayers[I].UID);
 
-        if gMonsters <> nil then
-          for I := 0 to High(gMonsters) do
-            if gMonsters[I] <> nil then
-            begin
-              if (gMonsters[I].MonsterType = MONSTER_BARREL) then
-              begin
-                if (gMonsters[I].GameVelX <> 0) or (gMonsters[I].GameVelY <> 0) then
-                  MH_SEND_MonsterPos(gMonsters[I].UID);
-              end
-              else
-                if (gMonsters[I].MonsterState <> MONSTATE_SLEEP) then
-                  if (gMonsters[I].MonsterState <> MONSTATE_DEAD) or
-                     (gMonsters[I].GameVelX <> 0) or
-                     (gMonsters[I].GameVelY <> 0) then
-                  MH_SEND_MonsterPos(gMonsters[I].UID);
-            end;
+        g_Mons_ForEach(sendMonsPos);
 
         NetTimeToUpdate := 0;
       end;
@@ -2453,6 +2441,28 @@ end;
 procedure DrawMinimap(p: TPlayer; RenderRect: e_graphics.TRect);
 var
   a, aX, aY, aX2, aY2, Scale, ScaleSz: Integer;
+
+  function monDraw (monidx: Integer; mon: TMonster): Boolean;
+  begin
+    result := false; // don't stop
+    with mon do
+    begin
+      if Live then
+      begin
+        // Левый верхний угол
+        aX := Obj.X div ScaleSz + 1;
+        aY := Obj.Y div ScaleSz + 1;
+        // Размеры
+        aX2 := max(Obj.Rect.Width div ScaleSz, 1);
+        aY2 := max(Obj.Rect.Height div ScaleSz, 1);
+        // Правый нижний угол
+        aX2 := aX + aX2 - 1;
+        aY2 := aY + aY2 - 1;
+        e_DrawFillQuad(aX, aY, aX2, aY2, 255, 255, 0, 0);
+      end;
+    end;
+  end;
+
 begin
   if (gMapInfo.Width > RenderRect.Right - RenderRect.Left) or
      (gMapInfo.Height > RenderRect.Bottom - RenderRect.Top) then
@@ -2621,25 +2631,8 @@ begin
               end;
           end;
     end;
-    if gMonsters <> nil then
-    begin
-    // Рисуем монстров:
-      for a := 0 to High(gMonsters) do
-        if gMonsters[a] <> nil then with gMonsters[a] do
-          if Live then begin
-          // Левый верхний угол:
-            aX := Obj.X div ScaleSz + 1;
-            aY := Obj.Y div ScaleSz + 1;
-          // Размеры:
-            aX2 := max(Obj.Rect.Width div ScaleSz, 1);
-            aY2 := max(Obj.Rect.Height div ScaleSz, 1);
-          // Правый нижний угол:
-            aX2 := aX + aX2 - 1;
-            aY2 := aY + aY2 - 1;
-
-            e_DrawFillQuad(aX, aY, aX2, aY2, 255, 255, 0, 0);
-          end;
-    end;
+    // Рисуем монстров
+    g_Mons_ForEach(monDraw);
   end;
 end;
 
@@ -4175,6 +4168,13 @@ end;
 procedure g_Game_RestartRound(NoMapRestart: Boolean = False);
 var
   i, n, nb, nr: Integer;
+
+  function monRespawn (monidx: Integer; mon: TMonster): Boolean;
+  begin
+    result := false; // don't stop
+    if not mon.FNoRespawn then mon.Respawn();
+  end;
+
 begin
   if not g_Game_IsServer then Exit;
   if gLMSRespawn = LMS_RESPAWN_NONE then Exit;
@@ -4243,11 +4243,8 @@ begin
 
   g_Items_RestartRound();
 
-  for i := Low(gMonsters) to High(gMonsters) do
-  begin
-    if (gMonsters[i] <> nil) and not gMonsters[i].FNoRespawn then
-      gMonsters[i].Respawn;
-  end;
+
+  g_Mons_ForEach(monRespawn);
 
   gLMSSoftSpawn := False;
 end;
@@ -5003,6 +5000,7 @@ var
   a, b: Integer;
   cmd: string;
   //pt: TPoint;
+  mon: TMonster;
 begin
 // Команды отладочного режима:
   if gDebugMode then
@@ -5080,12 +5078,14 @@ begin
           else
             begin
               with gPlayer1.Obj do
-                b := g_Monsters_Create(a,
+              begin
+                mon := g_Monsters_Create(a,
                      X + Rect.X + (Rect.Width div 2),
                      Y + Rect.Y + Rect.Height,
                      gPlayer1.Direction, True);
-              if (Length(P) > 2) and (b >= 0) then
-                gMonsters[b].MonsterBehaviour := Min(Max(StrToIntDef(P[2], BH_NORMAL), BH_NORMAL), BH_GOOD);
+              end;
+              if (Length(P) > 2) and (mon <> nil) then
+                mon.MonsterBehaviour := Min(Max(StrToIntDef(P[2], BH_NORMAL), BH_NORMAL), BH_GOOD);
             end;
         end;
     end

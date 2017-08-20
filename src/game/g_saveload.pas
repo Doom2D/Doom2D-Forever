@@ -565,7 +565,7 @@ begin
   ///// /////
 
   // Ищем триггеры с условием смерти монстров:
-    if (gMonsters <> nil) and (gTriggers <> nil) then
+    if {(gMonsters <> nil) and} (gTriggers <> nil) then
       g_Map_ReAdd_DieTriggers();
 
   // Закрываем файл загрузки:

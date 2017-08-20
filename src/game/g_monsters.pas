@@ -161,8 +161,8 @@ procedure g_Monsters_LoadData();
 procedure g_Monsters_FreeData();
 procedure g_Monsters_Init();
 procedure g_Monsters_Free();
-function  g_Monsters_Create(MonsterType: Byte; X, Y: Integer;
-            Direction: TDirection; AdjCoord: Boolean = False; ForcedUID: Integer = -1): Integer;
+function g_Monsters_Create(MonsterType: Byte; X, Y: Integer;
+            Direction: TDirection; AdjCoord: Boolean = False; ForcedUID: Integer = -1): TMonster;
 procedure g_Monsters_Update();
 procedure g_Monsters_Draw();
 procedure g_Monsters_DrawHealth();
@@ -174,8 +174,20 @@ function  g_Monsters_GetIDByName(name: String): Integer;
 function  g_Monsters_GetNameByID(MonsterType: Byte): String;
 function  g_Monsters_GetKilledBy(MonsterType: Byte): String;
 
-var
-  gMonsters: array of TMonster;
+
+type
+  TEachMonsterCB = function (monidx: Integer; mon: TMonster): Boolean is nested; // return `true` to stop
+
+function g_Mons_ForEach (cb: TEachMonsterCB): Boolean;
+
+// throws on invalid uid
+function g_Mons_ByIdx (uid: Integer): TMonster; inline;
+
+// can return null
+function g_Mons_ByIdx_NC (uid: Integer): TMonster; inline;
+
+function g_Mons_AnyAt (x, y: Integer; width, height: Integer): Boolean;
+
 
 implementation
 
@@ -384,6 +396,9 @@ const
 
   MAX_ATM = 89; // Время ожидания после потери цели
   MAX_SOUL = 512; // Ограничение Lost_Soul'ов
+
+var
+  gMonsters: array of TMonster;
 
 var
   pt_x: Integer = 0;
@@ -985,40 +1000,39 @@ begin
 end;
 
 function g_Monsters_Create(MonsterType: Byte; X, Y: Integer;
-           Direction: TDirection; AdjCoord: Boolean = False; ForcedUID: Integer = -1): Integer;
+           Direction: TDirection; AdjCoord: Boolean = False; ForcedUID: Integer = -1): TMonster;
 var
   find_id: DWORD;
 begin
-  Result := -1;
+  result := nil;
 
-// Нет такого монстра:
-  if (MonsterType > MONSTER_MAN) or (MonsterType = 0) then
-    Exit;
+  // Нет такого монстра
+  if (MonsterType > MONSTER_MAN) or (MonsterType = 0) then exit;
 
-// Соблюдаем ограничение Lost_Soul'ов:
+  // Соблюдаем ограничение Lost_Soul'ов
   if MonsterType = MONSTER_SOUL then
-    if soulcount > MAX_SOUL then
-      Exit
-    else
-      soulcount := soulcount + 1;
+  begin
+    if soulcount > MAX_SOUL then exit;
+    soulcount := soulcount + 1;
+  end;
 
   find_id := FindMonster();
 
   gMonsters[find_id] := TMonster.Create(MonsterType, find_id, ForcedUID);
 
-// Настраиваем положение:
+  // Настраиваем положение
   with gMonsters[find_id] do
   begin
     if AdjCoord then
-      begin
-        FObj.X := X-FObj.Rect.X - (FObj.Rect.Width div 2);
-        FObj.Y := Y-FObj.Rect.Y - FObj.Rect.Height;
-      end
+    begin
+      FObj.X := X-FObj.Rect.X - (FObj.Rect.Width div 2);
+      FObj.Y := Y-FObj.Rect.Y - FObj.Rect.Height;
+    end
     else
-      begin
-        FObj.X := X-FObj.Rect.X;
-        FObj.Y := Y-FObj.Rect.Y;
-      end;
+    begin
+      FObj.X := X-FObj.Rect.X;
+      FObj.Y := Y-FObj.Rect.Y;
+    end;
 
     FDirection := Direction;
     FStartDirection := Direction;
@@ -1026,7 +1040,7 @@ begin
     FStartY := GameY;
   end;
 
-  Result := find_id;
+  result := {find_id}gMonsters[find_id];
 end;
 
 procedure g_Monsters_killedp();
@@ -1172,39 +1186,35 @@ end;
 
 procedure g_Monsters_LoadState(var Mem: TBinMemoryReader);
 var
-  count, i, a: Integer;
+  count, a: Integer;
   b: Byte;
+  mon: TMonster;
 begin
-  if Mem = nil then
-    Exit;
+  if Mem = nil then exit;
 
   g_Monsters_Free();
 
-// Загружаем информацию целеуказателя:
+  // Загружаем информацию целеуказателя
   Mem.ReadInt(pt_x);
   Mem.ReadInt(pt_xs);
   Mem.ReadInt(pt_y);
   Mem.ReadInt(pt_ys);
 
-// Количество монстров:
+  // Количество монстров
   Mem.ReadInt(count);
 
-  if count = 0 then
-    Exit;
+  if count = 0 then exit;
 
-// Загружаем монстров:
+  // Загружаем монстров
   for a := 0 to count-1 do
   begin
-  // Тип монстра:
+    // Тип монстра
     Mem.ReadByte(b);
-  // Создаем монстра:
-    i := g_Monsters_Create(b, 0, 0, D_LEFT);
-    if i < 0 then
-    begin
-      raise EBinSizeError.Create('g_Monsters_LoadState: ID = -1 (Can''t create)');
-    end;
-  // Загружаем данные монстра:
-    gMonsters[i].LoadState(Mem);
+    // Создаем монстра
+    mon := g_Monsters_Create(b, 0, 0, D_LEFT);
+    if mon = nil then raise EBinSizeError.Create('g_Monsters_LoadState: ID = -1 (Can''t create)');
+    // Загружаем данные монстра
+    mon.LoadState(Mem);
   end;
 end;
 
@@ -2004,6 +2014,7 @@ var
   st: Word;
   o, co: TObj;
   fall: Boolean;
+  mon: TMonster;
 label
   _end;
 begin
@@ -2681,32 +2692,32 @@ _end:
     // Pain_Elemental при смерти выпускает 3 Lost_Soul'а:
       if (FMonsterType = MONSTER_PAIN) then
       begin
-        sx := g_Monsters_Create(MONSTER_SOUL, FObj.X+FObj.Rect.X+(FObj.Rect.Width div 2)-30,
-                                FObj.Y+FObj.Rect.Y+20, D_LEFT);
-        if sx <> -1 then
+        mon := g_Monsters_Create(MONSTER_SOUL, FObj.X+FObj.Rect.X+(FObj.Rect.Width div 2)-30,
+                                 FObj.Y+FObj.Rect.Y+20, D_LEFT);
+        if mon <> nil then
         begin
-          gMonsters[sx].SetState(STATE_GO);
-          gMonsters[sx].FNoRespawn := True;
+          mon.SetState(STATE_GO);
+          mon.FNoRespawn := True;
           Inc(gTotalMonsters);
           if g_Game_IsNet then MH_SEND_MonsterSpawn(gMonsters[sx].UID);
         end;
 
-        sx := g_Monsters_Create(MONSTER_SOUL, FObj.X+FObj.Rect.X+(FObj.Rect.Width div 2),
-                                FObj.Y+FObj.Rect.Y+20, D_RIGHT);
-        if sx <> -1 then
+        mon := g_Monsters_Create(MONSTER_SOUL, FObj.X+FObj.Rect.X+(FObj.Rect.Width div 2),
+                                 FObj.Y+FObj.Rect.Y+20, D_RIGHT);
+        if mon <> nil then
         begin
-          gMonsters[sx].SetState(STATE_GO);
-          gMonsters[sx].FNoRespawn := True;
+          mon.SetState(STATE_GO);
+          mon.FNoRespawn := True;
           Inc(gTotalMonsters);
           if g_Game_IsNet then MH_SEND_MonsterSpawn(gMonsters[sx].UID);
         end;
 
-        sx := g_Monsters_Create(MONSTER_SOUL, FObj.X+FObj.Rect.X+(FObj.Rect.Width div 2)-15,
-                                FObj.Y+FObj.Rect.Y, D_RIGHT);
-        if sx <> -1 then
+        mon := g_Monsters_Create(MONSTER_SOUL, FObj.X+FObj.Rect.X+(FObj.Rect.Width div 2)-15,
+                                 FObj.Y+FObj.Rect.Y, D_RIGHT);
+        if mon <> nil then
         begin
-          gMonsters[sx].SetState(STATE_GO);
-          gMonsters[sx].FNoRespawn := True;
+          mon.SetState(STATE_GO);
+          mon.FNoRespawn := True;
           Inc(gTotalMonsters);
           if g_Game_IsNet then MH_SEND_MonsterSpawn(gMonsters[sx].UID);
         end;
@@ -2870,17 +2881,17 @@ _end:
                   g_Weapon_ball2(wx, wy, tx, ty, FUID);
                 MONSTER_PAIN:
                   begin // Создаем Lost_Soul:
-                    sx := g_Monsters_Create(MONSTER_SOUL, FObj.X+(FObj.Rect.Width div 2),
-                                            FObj.Y+FObj.Rect.Y, FDirection);
+                    mon := g_Monsters_Create(MONSTER_SOUL, FObj.X+(FObj.Rect.Width div 2),
+                                             FObj.Y+FObj.Rect.Y, FDirection);
 
-                    if sx <> -1 then
+                    if mon <> nil then
                     begin // Цель - цель Pain_Elemental'а. Летим к ней:
-                      gMonsters[sx].FTargetUID := FTargetUID;
+                      mon.FTargetUID := FTargetUID;
                       GetPos(FTargetUID, @o);
-                      gMonsters[sx].FTargetTime := 0;
-                      gMonsters[sx].FNoRespawn := True;
-                      gMonsters[sx].SetState(STATE_GO);
-                      gMonsters[sx].shoot(@o, True);
+                      mon.FTargetTime := 0;
+                      mon.FNoRespawn := True;
+                      mon.SetState(STATE_GO);
+                      mon.shoot(@o, True);
                       Inc(gTotalMonsters);
 
                       if g_Game_IsNet then MH_SEND_MonsterSpawn(gMonsters[sx].UID);
@@ -4242,5 +4253,61 @@ end;
 procedure TMonster.positionChanged ();
 begin
 end;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
+function g_Mons_ForEach (cb: TEachMonsterCB): Boolean;
+var
+  idx: Integer;
+begin
+  result := false;
+  if (gMonsters = nil) or not assigned(cb) then exit;
+  for idx := 0 to High(gMonsters) do
+  begin
+    if (gMonsters[idx] <> nil) then
+    begin
+      result := cb(idx, gMonsters[idx]);
+      if result then exit;
+    end;
+  end;
+end;
+
+
+// throws on invalid uid
+function g_Mons_ByIdx (uid: Integer): TMonster; inline;
+begin
+  result := g_Mons_ByIdx_NC(uid);
+  if (result = nil) then raise Exception.Create('g_Mons_ByIdx: invalid monster id');
+end;
+
+
+// can return null
+function g_Mons_ByIdx_NC (uid: Integer): TMonster; inline;
+begin
+  if (uid < 0) or (uid > High(gMonsters)) then begin result := nil; exit; end;
+  result := gMonsters[uid];
+end;
+
+
+function g_Mons_AnyAt (x, y: Integer; width, height: Integer): Boolean;
+var
+  idx: Integer;
+begin
+  result := false;
+  if (width < 1) or (height < 1) then exit;
+
+  for idx := 0 to High(gMonsters) do
+  begin
+    if (gMonsters[idx] <> nil) and gMonsters[idx].Live then
+    begin
+      if g_Obj_Collide(x, y, width, height, @gMonsters[idx].Obj) then
+      begin
+        result := True;
+        exit;
+      end;
+    end;
+  end;
+end;
+
 
 end.

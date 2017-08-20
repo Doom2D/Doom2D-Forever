@@ -6302,6 +6302,41 @@ var
   mon: TMonster;
   pla, tpla: TPlayer;
   vsPlayer, vsMonster, ok: Boolean;
+
+
+  function monsUpdate (monidx: Integer; mon: TMonster): Boolean;
+  begin
+    result := false; // don't stop
+    if (mon <> nil) and (mon.Live) and (mon.MonsterType <> MONSTER_BARREL) then
+    begin
+      if not TargetOnScreen(mon.Obj.X+mon.Obj.Rect.X, mon.Obj.Y+mon.Obj.Rect.Y) then exit;
+
+      x2 := mon.Obj.X+mon.Obj.Rect.X+(mon.Obj.Rect.Width div 2);
+      y2 := mon.Obj.Y+mon.Obj.Rect.Y+(mon.Obj.Rect.Height div 2);
+
+      // Если монстр на экране и не прикрыт стеной
+      if g_TraceVector(x1, y1, x2, y2) then
+      begin
+        // Добавляем к списку возможных целей
+        SetLength(targets, Length(targets)+1);
+        with targets[High(targets)] do
+        begin
+          UID := mon.UID;
+          X := mon.Obj.X;
+          Y := mon.Obj.Y;
+          cX := x2;
+          cY := y2;
+          Rect := mon.Obj.Rect;
+          Dist := g_PatchLength(x1, y1, x2, y2);
+          Line := (y1+4 < Target.Y + mon.Obj.Rect.Y + mon.Obj.Rect.Height) and
+                  (y1-4 > Target.Y + mon.Obj.Rect.Y);
+          Visible := True;
+          IsPlayer := False;
+        end;
+      end;
+    end;
+  end;
+
 begin
   vsPlayer := LongBool(gGameSettings.Options and GAME_OPTION_BOTVSPLAYER);
   vsMonster := LongBool(gGameSettings.Options and GAME_OPTION_BOTVSMONSTER);
@@ -6431,41 +6466,7 @@ begin
           end;
 
   // Монстры:
-    if vsMonster and (gMonsters <> nil) then
-      for a := 0 to High(gMonsters) do
-        if (gMonsters[a] <> nil) and (gMonsters[a].Live) and
-           (gMonsters[a].MonsterType <> MONSTER_BARREL) then
-          begin
-            mon := gMonsters[a];
-
-            if not TargetOnScreen(mon.Obj.X + mon.Obj.Rect.X,
-                                  mon.Obj.Y + mon.Obj.Rect.Y) then
-              Continue;
-
-            x2 := mon.Obj.X + mon.Obj.Rect.X + (mon.Obj.Rect.Width div 2);
-            y2 := mon.Obj.Y + mon.Obj.Rect.Y + (mon.Obj.Rect.Height div 2);
-
-          // Если монстр на экране и не прикрыт стеной:
-            if g_TraceVector(x1, y1, x2, y2) then
-              begin
-              // Добавляем к списку возможных целей:
-                SetLength(targets, Length(targets)+1);
-                with targets[High(targets)] do
-                  begin
-                    UID := mon.UID;
-                    X := mon.Obj.X;
-                    Y := mon.Obj.Y;
-                    cX := x2;
-                    cY := y2;
-                    Rect := mon.Obj.Rect;
-                    Dist := g_PatchLength(x1, y1, x2, y2);
-                    Line := (y1+4 < Target.Y + mon.Obj.Rect.Y + mon.Obj.Rect.Height) and
-                            (y1-4 > Target.Y + mon.Obj.Rect.Y);
-                    Visible := True;
-                    IsPlayer := False;
-                  end;
-              end;
-          end;
+    if vsMonster then g_Mons_ForEach(monsUpdate);
   end;
 
 // Если есть возможные цели:

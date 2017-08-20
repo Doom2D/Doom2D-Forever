@@ -935,45 +935,52 @@ end;
 
 procedure CreateMonster(monster: TMonsterRec_1);
 var
-  a, i: Integer;
+  a: Integer;
+  mon: TMonster;
 begin
   if g_Game_IsClient then Exit;
 
   if (gGameSettings.GameType = GT_SINGLE)
   or LongBool(gGameSettings.Options and GAME_OPTION_MONSTERS) then
   begin
-    i := g_Monsters_Create(monster.MonsterType, monster.X, monster.Y,
-                           TDirection(monster.Direction));
+    mon := g_Monsters_Create(monster.MonsterType, monster.X, monster.Y, TDirection(monster.Direction));
 
     if gTriggers <> nil then
+    begin
       for a := 0 to High(gTriggers) do
-        if gTriggers[a].TriggerType in [TRIGGER_PRESS,
-             TRIGGER_ON, TRIGGER_OFF, TRIGGER_ONOFF] then
-          if (gTriggers[a].Data.MonsterID-1) = gMonsters[i].StartID then
-            gMonsters[i].AddTrigger(a);
+      begin
+        if gTriggers[a].TriggerType in [TRIGGER_PRESS, TRIGGER_ON, TRIGGER_OFF, TRIGGER_ONOFF] then
+        begin
+          if (gTriggers[a].Data.MonsterID-1) = mon.StartID then mon.AddTrigger(a);
+        end;
+      end;
+    end;
 
-    if monster.MonsterType <> MONSTER_BARREL then
-      Inc(gTotalMonsters);
+    if monster.MonsterType <> MONSTER_BARREL then Inc(gTotalMonsters);
   end;
 end;
 
 procedure g_Map_ReAdd_DieTriggers();
-var
-  i, a: Integer;
+
+  function monsDieTrig (monidx: Integer; mon: TMonster): Boolean;
+  var
+    a: Integer;
+  begin
+    result := false; // don't stop
+    mon.ClearTriggers();
+    for a := 0 to High(gTriggers) do
+    begin
+      if gTriggers[a].TriggerType in [TRIGGER_PRESS, TRIGGER_ON, TRIGGER_OFF, TRIGGER_ONOFF] then
+      begin
+        if (gTriggers[a].Data.MonsterID-1) = mon.StartID then mon.AddTrigger(a);
+      end;
+    end;
+  end;
+
 begin
   if g_Game_IsClient then Exit;
 
-  for i := 0 to High(gMonsters) do
-    if gMonsters[i] <> nil then
-      begin
-        gMonsters[i].ClearTriggers();
-
-        for a := 0 to High(gTriggers) do
-          if gTriggers[a].TriggerType in [TRIGGER_PRESS,
-               TRIGGER_ON, TRIGGER_OFF, TRIGGER_ONOFF] then
-            if (gTriggers[a].Data.MonsterID-1) = gMonsters[i].StartID then
-              gMonsters[i].AddTrigger(a);
-      end;
+  g_Mons_ForEach(monsDieTrig);
 end;
 
 function extractWadName(resourceName: string): string;

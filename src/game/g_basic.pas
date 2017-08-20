@@ -144,20 +144,8 @@ begin
 end;
 
 function g_CollideMonster(X, Y: Integer; Width, Height: Word): Boolean;
-var
-  a: Integer;
 begin
-  Result := False;
-
-  if gMonsters = nil then Exit;
-
-  for a := 0 to High(gMonsters) do
-    if (gMonsters[a] <> nil) and gMonsters[a].Live then
-      if g_Obj_Collide(X, Y, Width, Height, @gMonsters[a].Obj) then
-      begin
-        Result := True;
-        Exit;
-      end;
+  result := g_Mons_AnyAt(X, Y, Width, Height);
 end;
 
 function g_TraceVector(X1, Y1, X2, Y2: Integer): Boolean;
@@ -240,19 +228,12 @@ begin
 
     UID_MONSTER:
     begin
-      repeat
-        Result := UID_MAX_PLAYER+$1+Random(UID_MAX_MONSTER-UID_MAX_GAME-UID_MAX_PLAYER+$1);
-
-        ok := True;
-        if gMonsters <> nil then
-          for i := 0 to High(gMonsters) do
-            if gMonsters[i] <> nil then
-              if Result = gMonsters[i].UID then
-              begin
-                ok := False;
-                Break;
-              end;
-      until ok;
+      //FIXME!!!
+      while true do
+      begin
+        result := UID_MAX_PLAYER+$1+Random(UID_MAX_MONSTER-UID_MAX_GAME-UID_MAX_PLAYER+$1);
+        if (g_Monsters_Get(result) = nil) then break;
+      end;
     end;
   end;
 end;

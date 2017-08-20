@@ -209,18 +209,36 @@ end;
 procedure tr_CloseTrap(PanelID: Integer; NoSound: Boolean; d2d: Boolean);
 var
   a, b, c: Integer;
+  wx, wy, wh, ww: Integer;
+
+  function monsDamage (monidx: Integer; mon: TMonster): Boolean;
+  begin
+    result := false; // don't stop
+    if (mon <> nil) and mon.Live and g_Obj_Collide(wx, wy, ww, wh, @mon.Obj) then
+    begin
+      mon.Damage(TRAP_DAMAGE, 0, 0, 0, HIT_TRAP);
+    end;
+  end;
+
 begin
   if PanelID = -1 then Exit;
 
   if not d2d then
   begin
     with gWalls[PanelID] do
+    begin
       if (not NoSound) and (not Enabled) then
       begin
         g_Sound_PlayExAt('SOUND_GAME_SWITCH1', X, Y);
         if g_Game_IsServer and g_Game_IsNet then
           MH_SEND_Sound(X, Y, 'SOUND_GAME_SWITCH1');
       end;
+    end;
+
+    wx := gWalls[PanelID].X;
+    wy := gWalls[PanelID].Y;
+    ww := gWalls[PanelID].Width;
+    wh := gWalls[PanelID].Height;
 
     with gWalls[PanelID] do
     begin
@@ -230,11 +248,7 @@ begin
               gPlayers[a].Collide(X, Y, Width, Height) then
             gPlayers[a].Damage(TRAP_DAMAGE, 0, 0, 0, HIT_TRAP);
 
-      if gMonsters <> nil then
-        for a := 0 to High(gMonsters) do
-          if (gMonsters[a] <> nil) and gMonsters[a].Live and
-          g_Obj_Collide(X, Y, Width, Height, @gMonsters[a].Obj) then
-            gMonsters[a].Damage(TRAP_DAMAGE, 0, 0, 0, HIT_TRAP);
+      g_Mons_ForEach(monsDamage);
 
       if not Enabled then g_Map_EnableWall(PanelID);
     end;
@@ -247,30 +261,41 @@ begin
     for a := 0 to High(gDoorMap) do
     begin
       for b := 0 to High(gDoorMap[a]) do
+      begin
         if gDoorMap[a, b] = DWORD(PanelID) then
         begin
           c := a;
           Break;
         end;
+      end;
 
       if c <> -1 then Break;
     end;
     if c = -1 then Exit;
 
     if not NoSound then
+    begin
       for b := 0 to High(gDoorMap[c]) do
+      begin
         if not gWalls[gDoorMap[c, b]].Enabled then
         begin
           with gWalls[PanelID] do
           begin
             g_Sound_PlayExAt('SOUND_GAME_SWITCH1', X, Y);
-            if g_Game_IsServer and g_Game_IsNet then
-              MH_SEND_Sound(X, Y, 'SOUND_GAME_SWITCH1');
+            if g_Game_IsServer and g_Game_IsNet then MH_SEND_Sound(X, Y, 'SOUND_GAME_SWITCH1');
           end;
           Break;
         end;
+      end;
+    end;
 
     for b := 0 to High(gDoorMap[c]) do
+    begin
+      wx := gWalls[gDoorMap[c, b]].X;
+      wy := gWalls[gDoorMap[c, b]].Y;
+      ww := gWalls[gDoorMap[c, b]].Width;
+      wh := gWalls[gDoorMap[c, b]].Height;
+
       with gWalls[gDoorMap[c, b]] do
       begin
         if gPlayers <> nil then
@@ -279,14 +304,18 @@ begin
             gPlayers[a].Collide(X, Y, Width, Height) then
               gPlayers[a].Damage(TRAP_DAMAGE, 0, 0, 0, HIT_TRAP);
 
+        g_Mons_ForEach(monsDamage);
+        (*
         if gMonsters <> nil then
           for a := 0 to High(gMonsters) do
             if (gMonsters[a] <> nil) and gMonsters[a].Live and
             g_Obj_Collide(X, Y, Width, Height, @gMonsters[a].Obj) then
               gMonsters[a].Damage(TRAP_DAMAGE, 0, 0, 0, HIT_TRAP);
+        *)
 
         if not Enabled then g_Map_EnableWall(gDoorMap[c, b]);
       end;
+    end;
   end;
 end;
 
@@ -946,7 +975,7 @@ var
   animonce: Boolean;
   p: TPlayer;
   m: TMonster;
-  i, k, wx, wy, xd, yd: Integer;
+  idx, k, wx, wy, xd, yd: Integer;
   iid: LongWord;
   coolDown: Boolean;
   pAngle: Real;
@@ -955,6 +984,44 @@ var
   UIDType: Byte;
   TargetUID: Word;
   it: PItem;
+  mon: TMonster;
+
+  function monsShotTarget (monidx: Integer; mon: TMonster): Boolean;
+  begin
+    result := false; // don't stop
+    if (mon <> nil) and mon.Live and tr_ShotAimCheck(Trigger, @(mon.Obj)) then
+    begin
+      xd := mon.GameX + mon.Obj.Rect.Width div 2;
+      yd := mon.GameY + mon.Obj.Rect.Height div 2;
+      TargetUID := mon.UID;
+      result := true; // stop
+    end;
+  end;
+
+  function monsShotTargetMonPlr (monidx: Integer; mon: TMonster): Boolean;
+  begin
+    result := false; // don't stop
+    if (mon <> nil) and mon.Live and tr_ShotAimCheck(Trigger, @(mon.Obj)) then
+    begin
+      xd := mon.GameX + mon.Obj.Rect.Width div 2;
+      yd := mon.GameY + mon.Obj.Rect.Height div 2;
+      TargetUID := mon.UID;
+      result := true; // stop
+    end;
+  end;
+
+  function monShotTargetPlrMon (monidx: Integer; mon: TMonster): Boolean;
+  begin
+    result := false; // don't stop
+    if (mon <> nil) and mon.Live and tr_ShotAimCheck(Trigger, @(mon.Obj)) then
+    begin
+      xd := mon.GameX + mon.Obj.Rect.Width div 2;
+      yd := mon.GameY + mon.Obj.Rect.Height div 2;
+      TargetUID := mon.UID;
+      result := true; // stop
+    end;
+  end;
+
 begin
   Result := False;
   if g_Game_IsClient then
@@ -1184,7 +1251,7 @@ begin
               if (Data.MonMax > 0) and (SpawnedCount >= Data.MonMax) then
                 Break;
 
-              i := g_Monsters_Create(Data.MonType,
+              mon := g_Monsters_Create(Data.MonType,
                      Data.MonPos.X, Data.MonPos.Y,
                      TDirection(Data.MonDir), True);
 
@@ -1192,27 +1259,27 @@ begin
 
             // Здоровье:
               if (Data.MonHealth > 0) then
-                gMonsters[i].SetHealth(Data.MonHealth);
+                mon.SetHealth(Data.MonHealth);
             // Устанавливаем поведение:
-              gMonsters[i].MonsterBehaviour := Data.MonBehav;
-              gMonsters[i].FNoRespawn := True;
+              mon.MonsterBehaviour := Data.MonBehav;
+              mon.FNoRespawn := True;
               if g_Game_IsNet then
-                MH_SEND_MonsterSpawn(gMonsters[i].UID);
+                MH_SEND_MonsterSpawn(mon.UID);
             // Идем искать цель, если надо:
               if Data.MonActive then
-                gMonsters[i].WakeUp();
+                mon.WakeUp();
 
               if Data.MonType <> MONSTER_BARREL then Inc(gTotalMonsters);
 
               if g_Game_IsNet then
               begin
                 SetLength(gMonstersSpawned, Length(gMonstersSpawned)+1);
-                gMonstersSpawned[High(gMonstersSpawned)] := gMonsters[i].UID;
+                gMonstersSpawned[High(gMonstersSpawned)] := mon.UID;
               end;
 
               if Data.MonMax > 0 then
               begin
-                gMonsters[i].SpawnTrigger := ID;
+                mon.SpawnTrigger := ID;
                 Inc(SpawnedCount);
               end;
 
@@ -1222,13 +1289,13 @@ begin
                   begin
                     Anim := TAnimation.Create(FramesID, False, 3);
                     g_Sound_PlayExAt('SOUND_GAME_TELEPORT', Data.MonPos.X, Data.MonPos.Y);
-                    g_GFX_OnceAnim(gMonsters[i].Obj.X+gMonsters[i].Obj.Rect.X+(gMonsters[i].Obj.Rect.Width div 2)-32,
-                                   gMonsters[i].Obj.Y+gMonsters[i].Obj.Rect.Y+(gMonsters[i].Obj.Rect.Height div 2)-32, Anim);
+                    g_GFX_OnceAnim(mon.Obj.X+mon.Obj.Rect.X+(mon.Obj.Rect.Width div 2)-32,
+                                   mon.Obj.Y+mon.Obj.Rect.Y+(mon.Obj.Rect.Height div 2)-32, Anim);
                     Anim.Free();
                   end;
                   if g_Game_IsServer and g_Game_IsNet then
-                    MH_SEND_Effect(gMonsters[i].Obj.X+gMonsters[i].Obj.Rect.X+(gMonsters[i].Obj.Rect.Width div 2)-32,
-                                   gMonsters[i].Obj.Y+gMonsters[i].Obj.Rect.Y+(gMonsters[i].Obj.Rect.Height div 2)-32, 1,
+                    MH_SEND_Effect(mon.Obj.X+mon.Obj.Rect.X+(mon.Obj.Rect.Width div 2)-32,
+                                   mon.Obj.Y+mon.Obj.Rect.Y+(mon.Obj.Rect.Height div 2)-32, 1,
                                    NET_GFX_TELE);
                 end;
                 EFFECT_RESPAWN: begin
@@ -1236,13 +1303,13 @@ begin
                   begin
                     Anim := TAnimation.Create(FramesID, False, 4);
                     g_Sound_PlayExAt('SOUND_ITEM_RESPAWNITEM', Data.MonPos.X, Data.MonPos.Y);
-                    g_GFX_OnceAnim(gMonsters[i].Obj.X+gMonsters[i].Obj.Rect.X+(gMonsters[i].Obj.Rect.Width div 2)-16,
-                                   gMonsters[i].Obj.Y+gMonsters[i].Obj.Rect.Y+(gMonsters[i].Obj.Rect.Height div 2)-16, Anim);
+                    g_GFX_OnceAnim(mon.Obj.X+mon.Obj.Rect.X+(mon.Obj.Rect.Width div 2)-16,
+                                   mon.Obj.Y+mon.Obj.Rect.Y+(mon.Obj.Rect.Height div 2)-16, Anim);
                     Anim.Free();
                   end;
                   if g_Game_IsServer and g_Game_IsNet then
-                    MH_SEND_Effect(gMonsters[i].Obj.X+gMonsters[i].Obj.Rect.X+(gMonsters[i].Obj.Rect.Width div 2)-16,
-                                   gMonsters[i].Obj.Y+gMonsters[i].Obj.Rect.Y+(gMonsters[i].Obj.Rect.Height div 2)-16, 1,
+                    MH_SEND_Effect(mon.Obj.X+mon.Obj.Rect.X+(mon.Obj.Rect.Width div 2)-16,
+                                   mon.Obj.Y+mon.Obj.Rect.Y+(mon.Obj.Rect.Height div 2)-16, 1,
                                    NET_GFX_RESPAWN);
                 end;
                 EFFECT_FIRE: begin
@@ -1250,13 +1317,13 @@ begin
                   begin
                     Anim := TAnimation.Create(FramesID, False, 4);
                     g_Sound_PlayExAt('SOUND_FIRE', Data.MonPos.X, Data.MonPos.Y);
-                    g_GFX_OnceAnim(gMonsters[i].Obj.X+gMonsters[i].Obj.Rect.X+(gMonsters[i].Obj.Rect.Width div 2)-32,
-                                   gMonsters[i].Obj.Y+gMonsters[i].Obj.Rect.Y+gMonsters[i].Obj.Rect.Height-128, Anim);
+                    g_GFX_OnceAnim(mon.Obj.X+mon.Obj.Rect.X+(mon.Obj.Rect.Width div 2)-32,
+                                   mon.Obj.Y+mon.Obj.Rect.Y+mon.Obj.Rect.Height-128, Anim);
                     Anim.Free();
                   end;
                   if g_Game_IsServer and g_Game_IsNet then
-                    MH_SEND_Effect(gMonsters[i].Obj.X+gMonsters[i].Obj.Rect.X+(gMonsters[i].Obj.Rect.Width div 2)-32,
-                                   gMonsters[i].Obj.Y+gMonsters[i].Obj.Rect.Y+gMonsters[i].Obj.Rect.Height-128, 1,
+                    MH_SEND_Effect(mon.Obj.X+mon.Obj.Rect.X+(mon.Obj.Rect.Width div 2)-32,
+                                   mon.Obj.Y+mon.Obj.Rect.Y+mon.Obj.Rect.Height-128, 1,
                                    NET_GFX_FIRE);
                 end;
               end;
@@ -1766,10 +1833,10 @@ begin
             if coolDown then
             begin
               // Вспоминаем, активировал ли он меня раньше
-              for i := 0 to High(Activators) do
-                if Activators[i].UID = ActivateUID then
+              for idx := 0 to High(Activators) do
+                if Activators[idx].UID = ActivateUID then
                 begin
-                  k := i;
+                  k := idx;
                   Break;
                 end;
               if k = -1 then
@@ -1833,12 +1900,12 @@ begin
               end;
               // Назначаем время следующего воздействия
               if TriggerType = TRIGGER_DAMAGE then
-                i := Data.DamageInterval
+                idx := Data.DamageInterval
               else
-                i := Data.HealInterval;
+                idx := Data.HealInterval;
               if coolDown then
-                if i > 0 then
-                  Activators[k].TimeOut := i
+                if idx > 0 then
+                  Activators[k].TimeOut := idx
                 else
                   Activators[k].TimeOut := 65535;
             end;
@@ -1863,75 +1930,58 @@ begin
 
           case Data.ShotTarget of
             TRIGGER_SHOT_TARGET_MON: // monsters
-              if gMonsters <> nil then
-                for i := Low(gMonsters) to High(gMonsters) do
-                  if (gMonsters[i] <> nil) and gMonsters[i].Live and
-                     tr_ShotAimCheck(Trigger, @(gMonsters[i].Obj)) then
-                  begin
-                    xd := gMonsters[i].GameX + gMonsters[i].Obj.Rect.Width div 2;
-                    yd := gMonsters[i].GameY + gMonsters[i].Obj.Rect.Height div 2;
-                    TargetUID := gMonsters[i].UID;
-                    break;
-                  end;
+              g_Mons_ForEach(monsShotTarget);
 
             TRIGGER_SHOT_TARGET_PLR: // players
               if gPlayers <> nil then
-                for i := Low(gPlayers) to High(gPlayers) do
-                  if (gPlayers[i] <> nil) and gPlayers[i].Live and
-                     tr_ShotAimCheck(Trigger, @(gPlayers[i].Obj)) then
+                for idx := Low(gPlayers) to High(gPlayers) do
+                  if (gPlayers[idx] <> nil) and gPlayers[idx].Live and
+                     tr_ShotAimCheck(Trigger, @(gPlayers[idx].Obj)) then
                   begin
-                    xd := gPlayers[i].GameX + PLAYER_RECT_CX;
-                    yd := gPlayers[i].GameY + PLAYER_RECT_CY;
-                    TargetUID := gPlayers[i].UID;
+                    xd := gPlayers[idx].GameX + PLAYER_RECT_CX;
+                    yd := gPlayers[idx].GameY + PLAYER_RECT_CY;
+                    TargetUID := gPlayers[idx].UID;
                     break;
                   end;
 
             TRIGGER_SHOT_TARGET_RED: // red team
               if gPlayers <> nil then
-                for i := Low(gPlayers) to High(gPlayers) do
-                  if (gPlayers[i] <> nil) and gPlayers[i].Live and
-                     (gPlayers[i].Team = TEAM_RED) and
-                     tr_ShotAimCheck(Trigger, @(gPlayers[i].Obj)) then
+                for idx := Low(gPlayers) to High(gPlayers) do
+                  if (gPlayers[idx] <> nil) and gPlayers[idx].Live and
+                     (gPlayers[idx].Team = TEAM_RED) and
+                     tr_ShotAimCheck(Trigger, @(gPlayers[idx].Obj)) then
                   begin
-                    xd := gPlayers[i].GameX + PLAYER_RECT_CX;
-                    yd := gPlayers[i].GameY + PLAYER_RECT_CY;
-                    TargetUID := gPlayers[i].UID;
+                    xd := gPlayers[idx].GameX + PLAYER_RECT_CX;
+                    yd := gPlayers[idx].GameY + PLAYER_RECT_CY;
+                    TargetUID := gPlayers[idx].UID;
                     break;
                   end;
 
             TRIGGER_SHOT_TARGET_BLUE: // blue team
               if gPlayers <> nil then
-                for i := Low(gPlayers) to High(gPlayers) do
-                  if (gPlayers[i] <> nil) and gPlayers[i].Live and
-                     (gPlayers[i].Team = TEAM_BLUE) and
-                     tr_ShotAimCheck(Trigger, @(gPlayers[i].Obj)) then
+                for idx := Low(gPlayers) to High(gPlayers) do
+                  if (gPlayers[idx] <> nil) and gPlayers[idx].Live and
+                     (gPlayers[idx].Team = TEAM_BLUE) and
+                     tr_ShotAimCheck(Trigger, @(gPlayers[idx].Obj)) then
                   begin
-                    xd := gPlayers[i].GameX + PLAYER_RECT_CX;
-                    yd := gPlayers[i].GameY + PLAYER_RECT_CY;
-                    TargetUID := gPlayers[i].UID;
+                    xd := gPlayers[idx].GameX + PLAYER_RECT_CX;
+                    yd := gPlayers[idx].GameY + PLAYER_RECT_CY;
+                    TargetUID := gPlayers[idx].UID;
                     break;
                   end;
 
             TRIGGER_SHOT_TARGET_MONPLR: // monsters then players
             begin
-              if gMonsters <> nil then
-                for i := Low(gMonsters) to High(gMonsters) do
-                  if (gMonsters[i] <> nil) and gMonsters[i].Live and
-                     tr_ShotAimCheck(Trigger, @(gMonsters[i].Obj)) then
-                  begin
-                    xd := gMonsters[i].GameX + gMonsters[i].Obj.Rect.Width div 2;
-                    yd := gMonsters[i].GameY + gMonsters[i].Obj.Rect.Height div 2;
-                    TargetUID := gMonsters[i].UID;
-                    break;
-                  end;
+              g_Mons_ForEach(monsShotTargetMonPlr);
+
               if (TargetUID = 0) and (gPlayers <> nil) then
-                for i := Low(gPlayers) to High(gPlayers) do
-                  if (gPlayers[i] <> nil) and gPlayers[i].Live and
-                     tr_ShotAimCheck(Trigger, @(gPlayers[i].Obj)) then
+                for idx := Low(gPlayers) to High(gPlayers) do
+                  if (gPlayers[idx] <> nil) and gPlayers[idx].Live and
+                     tr_ShotAimCheck(Trigger, @(gPlayers[idx].Obj)) then
                   begin
-                    xd := gPlayers[i].GameX + PLAYER_RECT_CX;
-                    yd := gPlayers[i].GameY + PLAYER_RECT_CY;
-                    TargetUID := gPlayers[i].UID;
+                    xd := gPlayers[idx].GameX + PLAYER_RECT_CX;
+                    yd := gPlayers[idx].GameY + PLAYER_RECT_CY;
+                    TargetUID := gPlayers[idx].UID;
                     break;
                   end;
             end;
@@ -1939,25 +1989,16 @@ begin
             TRIGGER_SHOT_TARGET_PLRMON: // players then monsters
             begin
               if gPlayers <> nil then
-                for i := Low(gPlayers) to High(gPlayers) do
-                  if (gPlayers[i] <> nil) and gPlayers[i].Live and
-                     tr_ShotAimCheck(Trigger, @(gPlayers[i].Obj)) then
+                for idx := Low(gPlayers) to High(gPlayers) do
+                  if (gPlayers[idx] <> nil) and gPlayers[idx].Live and
+                     tr_ShotAimCheck(Trigger, @(gPlayers[idx].Obj)) then
                   begin
-                    xd := gPlayers[i].GameX + PLAYER_RECT_CX;
-                    yd := gPlayers[i].GameY + PLAYER_RECT_CY;
-                    TargetUID := gPlayers[i].UID;
+                    xd := gPlayers[idx].GameX + PLAYER_RECT_CX;
+                    yd := gPlayers[idx].GameY + PLAYER_RECT_CY;
+                    TargetUID := gPlayers[idx].UID;
                     break;
                   end;
-              if (TargetUID = 0) and (gMonsters <> nil) then
-                for i := Low(gMonsters) to High(gMonsters) do
-                  if (gMonsters[i] <> nil) and gMonsters[i].Live and
-                     tr_ShotAimCheck(Trigger, @(gMonsters[i].Obj)) then
-                  begin
-                    xd := gMonsters[i].GameX + gMonsters[i].Obj.Rect.Width div 2;
-                    yd := gMonsters[i].GameY + gMonsters[i].Obj.Rect.Height div 2;
-                    TargetUID := gMonsters[i].UID;
-                    break;
-                  end;
+              if TargetUID = 0 then g_Mons_ForEach(monShotTargetPlrMon);
             end;
 
             else begin
@@ -1991,9 +2032,9 @@ begin
 
       TRIGGER_EFFECT:
         begin
-          i := Data.FXCount;
+          idx := Data.FXCount;
 
-          while i > 0 do
+          while idx > 0 do
           begin
             case Data.FXPos of
               TRIGGER_EFFECT_POS_CENTER:
@@ -2020,7 +2061,7 @@ begin
             tr_MakeEffect(wx, wy, xd, yd,
                        Data.FXType, Data.FXSubType,
                        Data.FXColorR, Data.FXColorG, Data.FXColorB, True, False);
-            Dec(i);
+            Dec(idx);
           end;
           TimeOut := Data.FXWait;
         end;
@@ -2154,6 +2195,17 @@ procedure g_Triggers_Update();
 var
   a, b, i: Integer;
   Affected: array of Integer;
+
+  function monsNear (monidx: Integer; mon: TMonster): Boolean;
+  begin
+    result := false; // don't stop
+    if mon.Collide(gTriggers[a].X, gTriggers[a].Y, gTriggers[a].Width, gTriggers[a].Height) then
+    begin
+      gTriggers[a].ActivateUID := mon.UID;
+      ActivateTrigger(gTriggers[a], ACTIVATE_MONSTERCOLLIDE);
+    end;
+  end;
+
 begin
   if gTriggers = nil then
     Exit;
@@ -2384,20 +2436,14 @@ begin
           ActivateTrigger(gTriggers[a], 0);
         end else
         begin
-        // "Монстр близко":
+          // "Монстр близко"
           if ByteBool(ActivateType and ACTIVATE_MONSTERCOLLIDE) and
              (TimeOut = 0) and (Keys = 0) then // Если не нужны ключи
-            if gMonsters <> nil then
-              for b := 0 to High(gMonsters) do
-                if (gMonsters[b] <> nil) then
-                  with gMonsters[b] do
-                    if Collide(X, Y, Width, Height) then
-                    begin
-                      gTriggers[a].ActivateUID := UID;
-                      ActivateTrigger(gTriggers[a], ACTIVATE_MONSTERCOLLIDE);
-                    end;
+          begin
+            g_Mons_ForEach(monsNear);
+          end;
 
-        // "Монстров нет":
+          // "Монстров нет"
           if ByteBool(ActivateType and ACTIVATE_NOMONSTER) and
              (TimeOut = 0) and (Keys = 0) then
             if not g_CollideMonster(X, Y, Width, Height) then

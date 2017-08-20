@@ -634,6 +634,12 @@ procedure MH_SEND_Everything(CreatePlayers: Boolean = False; ID: Integer = NET_E
     MH_SEND_ItemSpawn(True, it.myid, ID);
   end;
 
+  function sendMonSpawn (monidx: Integer; mon: TMonster): Boolean;
+  begin
+    result := false; // don't stop
+    MH_SEND_MonsterSpawn(mon.UID, ID);
+  end;
+
 var
   I: Integer;
 begin
@@ -654,11 +660,7 @@ begin
   end;
 
   g_Items_ForEachAlive(sendItemRespawn, true); // backwards
-
-  if gMonsters <> nil then
-    for I := 0 to High(gMonsters) do
-      if gMonsters[I] <> nil then
-        MH_SEND_MonsterSpawn(gMonsters[I].UID, ID);
+  g_Mons_ForEach(sendMonSpawn);
 
   if gWalls <> nil then
     for I := Low(gWalls) to High(gWalls) do
@@ -2697,14 +2699,15 @@ end;
 procedure MC_RECV_MonsterDelete(P: Pointer);
 var
   ID: Integer;
-  M: TMonster;
+  M, mon: TMonster;
 begin
   ID := e_Raw_Read_Word(P);
   M := g_Monsters_Get(ID);
   if M = nil then Exit;
 
-  gMonsters[ID].SetState(5);
-  gMonsters[ID].MonsterRemoved := True;
+  mon := g_Mons_ByIdx(ID);
+  mon.SetState(5);
+  mon.MonsterRemoved := True;
 end;
 
 procedure MC_RECV_TimeSync(P: Pointer);
