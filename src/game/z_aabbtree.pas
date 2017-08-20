@@ -40,9 +40,9 @@ type
   public
     constructor Create (ax, ay: Single; aangle: Single); overload;
     constructor Create (ax0, ay0, ax1, ay1: Single); overload;
-    constructor Create (var aray: Ray2D); overload;
+    constructor Create (constref aray: Ray2D); overload;
 
-    procedure copyFrom (var aray: Ray2D); inline;
+    procedure copyFrom (constref aray: Ray2D); inline;
 
     procedure normalizeDir (); inline;
 
@@ -65,30 +65,30 @@ type
 
   public
     constructor Create (x0, y0, x1, y1: TreeNumber); overload;
-    constructor Create (var aabb: AABB2D); overload;
-    constructor Create (var aabb0, aabb1: AABB2D); overload;
+    constructor Create (constref aabb: AABB2D); overload;
+    constructor Create (constref aabb0, aabb1: AABB2D); overload;
 
     constructor CreateWH (ax, ay, w, h: TreeNumber);
 
-    procedure copyFrom (var aabb: AABB2D); inline;
+    procedure copyFrom (constref aabb: AABB2D); inline;
     procedure setDims (x0, y0, x1, y1: TreeNumber); inline;
 
-    procedure setMergeTwo (var aabb0, aabb1: AABB2D); inline;
+    procedure setMergeTwo (constref aabb0, aabb1: AABB2D); inline;
 
     function volume (): TreeNumber; inline;
 
-    procedure merge (var aabb: AABB2D); inline;
+    procedure merge (constref aabb: AABB2D); inline;
 
     // return true if the current AABB contains the AABB given in parameter
-    function contains (var aabb: AABB2D): Boolean; inline; overload;
+    function contains (constref aabb: AABB2D): Boolean; inline; overload;
     function contains (ax, ay: TreeNumber): Boolean; inline; overload;
 
     // return true if the current AABB is overlapping with the AABB in parameter
     // two AABBs overlap if they overlap in the two axes at the same time
-    function overlaps (var aabb: AABB2D): Boolean; inline; overload;
+    function overlaps (constref aabb: AABB2D): Boolean; inline; overload;
 
     // ray direction must be normalized
-    function intersects (var ray: Ray2D; tmino: PSingle=nil; tmaxo: PSingle=nil): Boolean; overload;
+    function intersects (constref ray: Ray2D; tmino: PSingle=nil; tmaxo: PSingle=nil): Boolean; overload;
     function intersects (ax, ay, bx, by: Single): Boolean; inline; overload;
 
     property valid: Boolean read getvalid;
@@ -179,7 +179,7 @@ type
 
   public
     // return `true` to stop
-    type TForEachLeafCB = function (abody: TTreeFlesh; var aabb: AABB2D): Boolean is nested; // WARNING! don't modify AABB here!
+    type TForEachLeafCB = function (abody: TTreeFlesh; constref aabb: AABB2D): Boolean is nested; // WARNING! don't modify AABB here!
 
   public
     // in the broad-phase collision detection (dynamic AABB tree), the AABBs are
@@ -240,9 +240,9 @@ type
     procedure removeLeafNode (nodeId: Integer);
     function balanceSubTreeAtNode (nodeId: Integer): Integer;
     function computeHeight (nodeId: Integer): Integer;
-    function insertObjectInternal (var aabb: AABB2D; staticObject: Boolean): Integer;
+    function insertObjectInternal (constref aabb: AABB2D; staticObject: Boolean): Integer;
     procedure setup ();
-    function visit (var caabb: AABB2D; mode: Integer; checker: TVisitCheckerCB; visitor: TQueryOverlapCB; visdg: TQueryOverlapDg; tagmask: Integer): Integer;
+    function visit (constref caabb: AABB2D; mode: Integer; checker: TVisitCheckerCB; visitor: TQueryOverlapCB; visdg: TQueryOverlapDg; tagmask: Integer): Integer;
 
     function forEachNode (nodeId: Integer; dg: TForEachLeafCB): Boolean;
 
@@ -259,11 +259,11 @@ type
     procedure reset ();
 
     function forEachLeaf (dg: TForEachLeafCB): Boolean; // WARNING! don't modify AABB/tree here!
-    procedure getRootAABB (var aabb: AABB2D);
+    procedure getRootAABB (out aabb: AABB2D);
 
     function isValidId (id: Integer): Boolean; inline;
     function getNodeObjectId (nodeid: Integer): TTreeFlesh; inline;
-    procedure getNodeFatAABB (var aabb: AABB2D; nodeid: Integer); inline;
+    procedure getNodeFatAABB (out aabb: AABB2D; nodeid: Integer); inline;
 
     // returns `false` if nodeid is not leaf
     function getNodeXY (nodeid: Integer; out x, y: Integer): Boolean; inline;
@@ -301,7 +301,7 @@ type
 
     function aabbQuery (ax, ay, aw, ah: TreeNumber; cb: TQueryOverlapCB; tagmask: Integer=-1): TTreeFlesh;
     function pointQuery (ax, ay: TreeNumber; cb: TQueryOverlapCB; tagmask: Integer=-1): TTreeFlesh;
-    function segmentQuery (var qr: TSegmentQueryResult; ax, ay, bx, by: TreeNumber; cb: TSegQueryCallback; tagmask: Integer=-1): Boolean;
+    function segmentQuery (out qr: TSegmentQueryResult; ax, ay, bx, by: TreeNumber; cb: TSegQueryCallback; tagmask: Integer=-1): Boolean;
 
     function computeTreeHeight (): Integer; // compute the height of the tree
 
@@ -342,10 +342,10 @@ function dtMaxF (a, b: TreeNumber): TreeNumber; inline; begin if (a > b) then re
 // ////////////////////////////////////////////////////////////////////////// //
 constructor Ray2D.Create (ax, ay: Single; aangle: Single); begin setXYAngle(ax, ay, aangle); end;
 constructor Ray2D.Create (ax0, ay0, ax1, ay1: Single); begin setX0Y0X1Y1(ax0, ay0, ax1, ay1); end;
-constructor Ray2D.Create (var aray: Ray2D); overload; begin copyFrom(aray); end;
+constructor Ray2D.Create (constref aray: Ray2D); overload; begin copyFrom(aray); end;
 
 
-procedure Ray2D.copyFrom (var aray: Ray2D); inline;
+procedure Ray2D.copyFrom (constref aray: Ray2D); inline;
 begin
   origX := aray.origX;
   origY := aray.origY;
@@ -386,12 +386,12 @@ begin
   setDims(x0, y0, x1, y1);
 end;
 
-constructor AABB2D.Create (var aabb: AABB2D); overload;
+constructor AABB2D.Create (constref aabb: AABB2D); overload;
 begin
   copyFrom(aabb);
 end;
 
-constructor AABB2D.Create (var aabb0, aabb1: AABB2D); overload;
+constructor AABB2D.Create (constref aabb0, aabb1: AABB2D); overload;
 begin
   setMergeTwo(aabb0, aabb1);
 end;
@@ -416,7 +416,7 @@ function AABB2D.getcenterY (): TreeNumber; inline; begin result := (minY+maxY) d
 function AABB2D.getextentX (): TreeNumber; inline; begin result := maxX-minX+1; end;
 function AABB2D.getextentY (): TreeNumber; inline; begin result := maxY-minY+1; end;
 
-procedure AABB2D.copyFrom (var aabb: AABB2D); inline;
+procedure AABB2D.copyFrom (constref aabb: AABB2D); inline;
 begin
   minX := aabb.minX;
   minY := aabb.minY;
@@ -440,7 +440,7 @@ begin
 end;
 
 
-procedure AABB2D.setMergeTwo (var aabb0, aabb1: AABB2D); inline;
+procedure AABB2D.setMergeTwo (constref aabb0, aabb1: AABB2D); inline;
 begin
   {$IF DEFINED(D2F_DEBUG)}
   if not aabb0.valid then raise Exception.Create('setMergeTwo: aabb0 is fucked');
@@ -462,7 +462,7 @@ begin
 end;
 
 
-procedure AABB2D.merge (var aabb: AABB2D); inline;
+procedure AABB2D.merge (constref aabb: AABB2D); inline;
 begin
   {$IF DEFINED(D2F_DEBUG)}
   if not aabb.valid then raise Exception.Create('merge: aabb is fucked');
@@ -477,7 +477,7 @@ begin
 end;
 
 
-function AABB2D.contains (var aabb: AABB2D): Boolean; inline; overload;
+function AABB2D.contains (constref aabb: AABB2D): Boolean; inline; overload;
 begin
   result :=
     (aabb.minX >= minX) and (aabb.minY >= minY) and
@@ -491,7 +491,7 @@ begin
 end;
 
 
-function AABB2D.overlaps (var aabb: AABB2D): Boolean; inline; overload;
+function AABB2D.overlaps (constref aabb: AABB2D): Boolean; inline; overload;
 begin
   result := false;
   // exit with no intersection if found separated along any axis
@@ -503,7 +503,7 @@ end;
 
 // something to consider here is that 0 * inf =nan which occurs when the ray starts exactly on the edge of a box
 // https://tavianator.com/fast-branchless-raybounding-box-intersections-part-2-nans/
-function AABB2D.intersects (var ray: Ray2D; tmino: PSingle=nil; tmaxo: PSingle=nil): Boolean; overload;
+function AABB2D.intersects (constref ray: Ray2D; tmino: PSingle=nil; tmaxo: PSingle=nil): Boolean; overload;
 var
   dinv, t1, t2, tmp: Single;
   tmin, tmax: Single;
@@ -1054,7 +1054,7 @@ end;
 
 
 // internally add an object into the tree
-function TDynAABBTreeBase.insertObjectInternal (var aabb: AABB2D; staticObject: Boolean): Integer;
+function TDynAABBTreeBase.insertObjectInternal (constref aabb: AABB2D; staticObject: Boolean): Integer;
 var
   nodeId: Integer;
   node: PTreeNode;
@@ -1188,7 +1188,7 @@ end;
 // return `true` from visitor to stop immediately
 // checker should check if this node should be considered to further checking
 // returns tree node if visitor says stop or -1
-function TDynAABBTreeBase.visit (var caabb: AABB2D; mode: Integer; checker: TVisitCheckerCB; visitor: TQueryOverlapCB; visdg: TQueryOverlapDg; tagmask: Integer): Integer;
+function TDynAABBTreeBase.visit (constref caabb: AABB2D; mode: Integer; checker: TVisitCheckerCB; visitor: TQueryOverlapCB; visdg: TQueryOverlapDg; tagmask: Integer): Integer;
 var
   stack: array [0..2048] of Integer; // stack with the nodes to visit
   bigstack: array of Integer = nil;
@@ -1380,7 +1380,7 @@ function TDynAABBTreeBase.computeTreeHeight (): Integer; begin result := compute
 
 
 // return the root AABB of the tree
-procedure TDynAABBTreeBase.getRootAABB (var aabb: AABB2D);
+procedure TDynAABBTreeBase.getRootAABB (out aabb: AABB2D);
 begin
   {$IFDEF aabbtree_many_asserts}assert((mRootNodeId >= 0) and (mRootNodeId < mAllocCount));{$ENDIF}
   aabb := mNodes[mRootNodeId].aabb;
@@ -1402,7 +1402,7 @@ begin
 end;
 
 // get fat object AABB by nodeid; returns random shit for invalid ids
-procedure TDynAABBTreeBase.getNodeFatAABB (var aabb: AABB2D; nodeid: Integer);
+procedure TDynAABBTreeBase.getNodeFatAABB (out aabb: AABB2D; nodeid: Integer);
 begin
   if (nodeid >= 0) and (nodeid < mAllocCount) and (not mNodes[nodeid].isfree) then aabb.copyFrom(mNodes[nodeid].aabb) else aabb.setDims(0, 0, 0, 0);
 end;
@@ -1660,7 +1660,7 @@ end;
 
 
 // segment querying method
-function TDynAABBTreeBase.segmentQuery (var qr: TSegmentQueryResult; ax, ay, bx, by: TreeNumber; cb: TSegQueryCallback; tagmask: Integer=-1): Boolean;
+function TDynAABBTreeBase.segmentQuery (out qr: TSegmentQueryResult; ax, ay, bx, by: TreeNumber; cb: TSegQueryCallback; tagmask: Integer=-1): Boolean;
 var
   oldmaxFraction: Single;
   oldcurax, oldcuray: Single;

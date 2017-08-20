@@ -648,7 +648,7 @@ begin
 
       dx := dx + Random(Data.ShotAccuracy) - Random(Data.ShotAccuracy);
       dy := dy + Random(Data.ShotAccuracy) - Random(Data.ShotAccuracy);
-      
+
       tr_SpawnShot(Data.ShotType, wx, wy, dx, dy, Data.ShotSound, TargetUID);
     end
     else

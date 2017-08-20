@@ -1033,7 +1033,7 @@ var
   mapX1: Integer = -$3fffffff;
   mapY1: Integer = -$3fffffff;
 
-  procedure calcBoundingBox (var panels: TPanelArray);
+  procedure calcBoundingBox (constref panels: TPanelArray);
   var
     idx: Integer;
     pan: TPanel;
@@ -1050,7 +1050,7 @@ var
     end;
   end;
 
-  procedure addPanelsToGrid (var panels: TPanelArray; tag: Integer);
+  procedure addPanelsToGrid (constref panels: TPanelArray; tag: Integer);
   var
     idx: Integer;
     pan: TPanel;
@@ -1897,7 +1897,7 @@ end;
 // old algo
 procedure g_Map_DrawPanels (PanelType: Word);
 
-  procedure DrawPanels (var panels: TPanelArray; drawDoors: Boolean=False);
+  procedure DrawPanels (constref panels: TPanelArray; drawDoors: Boolean=False);
   var
     idx: Integer;
   begin
@@ -2101,7 +2101,7 @@ function g_Map_CollideLiquid_TextureOld(X, Y: Integer; Width, Height: Word): DWO
 var
   texid: DWORD;
 
-  function checkPanels (var panels: TPanelArray): Boolean;
+  function checkPanels (constref panels: TPanelArray): Boolean;
   var
     a: Integer;
   begin

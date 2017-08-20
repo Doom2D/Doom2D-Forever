@@ -27,10 +27,10 @@ function cbufLastChange (): LongWord;
 
 function cbufWalkStart (): LongWord;
 function cbufWalkEnd (pos: LongWord): LongWord;
-procedure cbufPrev (var pos: LongWord);
-procedure cbufNext (var pos: LongWord);
+procedure cbufPrev (var pos: LongWord); inline;
+procedure cbufNext (var pos: LongWord); inline;
 
-function cbufAt (const pos: LongWord): Char;
+function cbufAt (const pos: LongWord): Char; inline;
 
 // get last line
 procedure cbufLastLine (var sp: LongWord; var ep: LongWord);
@@ -118,10 +118,10 @@ end;
 // warning! don't modify conbuf while the range is active!
 function cbufWalkStart (): LongWord; begin result := cbuftail; end;
 function cbufWalkEnd (pos: LongWord): LongWord; begin result := cbufhead; end;
-procedure cbufPrev (var pos: LongWord); begin pos := (pos+ConBufSize-1) mod ConBufSize; end;
-procedure cbufNext (var pos: LongWord); begin pos := (pos+1) mod ConBufSize; end;
+procedure cbufPrev (var pos: LongWord); inline; begin pos := (pos+ConBufSize-1) mod ConBufSize; end;
+procedure cbufNext (var pos: LongWord); inline; begin pos := (pos+1) mod ConBufSize; end;
 
-function cbufAt (const pos: LongWord): Char; begin result := cbuf[pos mod ConBufSize]; end;
+function cbufAt (const pos: LongWord): Char; inline; begin result := cbuf[pos mod ConBufSize]; end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
