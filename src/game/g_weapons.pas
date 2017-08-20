@@ -470,7 +470,7 @@ procedure g_Weapon_BFG9000(X, Y: Integer; SpawnerUID: Word);
   function monsCheck (monidx: Integer; mon: TMonster): Boolean;
   begin
     result := false; // don't stop
-    if (mon <> nil) and (mon.Live) and (mon.UID <> SpawnerUID) then
+    if (mon.Live) and (mon.UID <> SpawnerUID) then
     begin
       with mon do
       begin
@@ -799,7 +799,7 @@ var
   function monsCheckHit (monidx: Integer; mon: TMonster): Boolean;
   begin
     result := false; // don't stop
-    if (mon <> nil) and mon.Live and g_Obj_Collide(obj, @mon.Obj) then
+    if mon.Live and g_Obj_Collide(obj, @mon.Obj) then
     begin
       if HitMonster(mon, d, obj^.Vel.X, obj^.Vel.Y, SpawnerUID, t) then
       begin
@@ -929,36 +929,34 @@ end;
 
 function g_Weapon_Explode(X, Y: Integer; rad: Integer; SpawnerUID: Word): Boolean;
 var
-  r: Integer;
+  r: Integer; // squared radius
 
   function monsExCheck (monidx: Integer; mon: TMonster): Boolean;
   var
     dx, dy, mm: Integer;
   begin
     result := false; // don't stop
-    if mon <> nil then
     begin
-      with mon do
+      dx := mon.Obj.X+mon.Obj.Rect.X+(mon.Obj.Rect.Width div 2)-X;
+      dy := mon.Obj.Y+mon.Obj.Rect.Y+(mon.Obj.Rect.Height div 2)-Y;
+
+      if dx > 1000 then dx := 1000;
+      if dy > 1000 then dy := 1000;
+
+      if (dx*dx+dy*dy < r) then
       begin
-        dx := Obj.X+Obj.Rect.X+(Obj.Rect.Width div 2)-X;
-        dy := Obj.Y+Obj.Rect.Y+(Obj.Rect.Height div 2)-Y;
+        //m := PointToRect(X, Y, Obj.X+Obj.Rect.X, Obj.Y+Obj.Rect.Y, Obj.Rect.Width, Obj.Rect.Height);
+        //e_WriteLog(Format('explo monster #%d: x=%d; y=%d; rad=%d; dx=%d; dy=%d', [monidx, X, Y, rad, dx, dy]), MSG_NOTIFY);
 
-        if dx > 1000 then dx := 1000;
-        if dy > 1000 then dy := 1000;
+        mm := Max(abs(dx), abs(dy));
+        if mm = 0 then mm := 1;
 
-        if (dx*dx+dy*dy < r) then
+        if mon.Live then
         begin
-          //m := PointToRect(X, Y, Obj.X+Obj.Rect.X, Obj.Y+Obj.Rect.Y, Obj.Rect.Width, Obj.Rect.Height);
-
-          mm := Max(abs(dx), abs(dy));
-          if mm = 0 then mm := 1;
-
-          if mon.Live then
-            HitMonster(mon, ((mon.Obj.Rect.Width div 4)*10*(rad-mm)) div rad,
-                       0, 0, SpawnerUID, HIT_ROCKET);
-
-          mon.Push((dx*7) div mm, (dy*7) div mm);
+          HitMonster(mon, ((mon.Obj.Rect.Width div 4)*10*(rad-mm)) div rad, 0, 0, SpawnerUID, HIT_ROCKET);
         end;
+
+        mon.Push((dx*7) div mm, (dy*7) div mm);
       end;
     end;
   end;
@@ -966,9 +964,8 @@ var
 var
   i, h, dx, dy, m, mm: Integer;
   _angle: SmallInt;
-
 begin
-  Result := False;
+  result := false;
 
   g_Triggers_PressC(X, Y, rad, SpawnerUID, ACTIVATE_SHOT);
 
@@ -1000,8 +997,8 @@ begin
           end;
         end;
 
-  g_Mons_ForEach(monsExCheck);
-
+  //g_Mons_ForEach(monsExCheck);
+  g_Mons_ForEachAt(X-(rad+32), Y-(rad+32), (rad+32)*2, (rad+32)*2, monsExCheck);
 
   h := High(gCorpses);
 
