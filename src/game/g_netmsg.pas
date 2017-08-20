@@ -18,7 +18,7 @@ unit g_netmsg;
 
 interface
 
-uses g_net, g_triggers, Classes, SysUtils, md5;
+uses e_msg, g_net, g_triggers, Classes, SysUtils, md5;
 
 const
   NET_MSG_INFO   = 100;
@@ -129,17 +129,17 @@ const
 
 // HOST MESSAGES
 
-procedure MH_RECV_Info(C: pTNetClient; P: Pointer);
-procedure MH_RECV_Chat(C: pTNetClient; P: Pointer);
-procedure MH_RECV_FullStateRequest(C: pTNetClient; P: Pointer);
-function  MH_RECV_PlayerPos(C: pTNetClient; P: Pointer): Word;
-procedure MH_RECV_PlayerSettings(C: pTNetClient; P: Pointer);
-procedure MH_RECV_CheatRequest(C: pTNetClient; P: Pointer);
-procedure MH_RECV_RCONPassword(C: pTNetClient; P: Pointer);
-procedure MH_RECV_RCONCommand(C: pTNetClient; P: Pointer);
-procedure MH_RECV_MapRequest(C: pTNetClient; P: Pointer);
-procedure MH_RECV_ResRequest(C: pTNetClient; P: Pointer);
-procedure MH_RECV_Vote(C: pTNetClient; P: Pointer);
+procedure MH_RECV_Info(C: pTNetClient; var M: TMsg);
+procedure MH_RECV_Chat(C: pTNetClient; var M: TMsg);
+procedure MH_RECV_FullStateRequest(C: pTNetClient; var M: TMsg);
+function  MH_RECV_PlayerPos(C: pTNetClient; var M: TMsg): Word;
+procedure MH_RECV_PlayerSettings(C: pTNetClient; var M: TMsg);
+procedure MH_RECV_CheatRequest(C: pTNetClient; var M: TMsg);
+procedure MH_RECV_RCONPassword(C: pTNetClient; var M: TMsg);
+procedure MH_RECV_RCONCommand(C: pTNetClient; var M: TMsg);
+procedure MH_RECV_MapRequest(C: pTNetClient; var M: TMsg);
+procedure MH_RECV_ResRequest(C: pTNetClient; var M: TMsg);
+procedure MH_RECV_Vote(C: pTNetClient; var M: TMsg);
 
 // GAME
 procedure MH_SEND_Everything(CreatePlayers: Boolean = False; ID: Integer = NET_EVERYONE);
@@ -189,45 +189,45 @@ procedure MH_SEND_VoteEvent(EvType: Byte;
 // CLIENT MESSAGES //
 
 // GAME
-procedure MC_RECV_Chat(P: Pointer);
-procedure MC_RECV_Effect(P: Pointer);
-procedure MC_RECV_Sound(P: Pointer);
-procedure MC_RECV_GameStats(P: Pointer);
-procedure MC_RECV_CoopStats(P: Pointer);
-procedure MC_RECV_GameEvent(P: Pointer);
-procedure MC_RECV_FlagEvent(P: Pointer);
-procedure MC_RECV_GameSettings(P: Pointer);
+procedure MC_RECV_Chat(var M: TMsg);
+procedure MC_RECV_Effect(var M: TMsg);
+procedure MC_RECV_Sound(var M: TMsg);
+procedure MC_RECV_GameStats(var M: TMsg);
+procedure MC_RECV_CoopStats(var M: TMsg);
+procedure MC_RECV_GameEvent(var M: TMsg);
+procedure MC_RECV_FlagEvent(var M: TMsg);
+procedure MC_RECV_GameSettings(var M: TMsg);
 // PLAYER
-function  MC_RECV_PlayerCreate(P: Pointer): Word;
-function  MC_RECV_PlayerPos(P: Pointer): Word;
-function  MC_RECV_PlayerStats(P: Pointer): Word;
-function  MC_RECV_PlayerDelete(P: Pointer): Word;
-function  MC_RECV_PlayerDamage(P: Pointer): Word;
-function  MC_RECV_PlayerDeath(P: Pointer): Word;
-function  MC_RECV_PlayerFire(P: Pointer): Word;
-procedure MC_RECV_PlayerSettings(P: Pointer);
+function  MC_RECV_PlayerCreate(var M: TMsg): Word;
+function  MC_RECV_PlayerPos(var M: TMsg): Word;
+function  MC_RECV_PlayerStats(var M: TMsg): Word;
+function  MC_RECV_PlayerDelete(var M: TMsg): Word;
+function  MC_RECV_PlayerDamage(var M: TMsg): Word;
+function  MC_RECV_PlayerDeath(var M: TMsg): Word;
+function  MC_RECV_PlayerFire(var M: TMsg): Word;
+procedure MC_RECV_PlayerSettings(var M: TMsg);
 // ITEM
-procedure MC_RECV_ItemSpawn(P: Pointer);
-procedure MC_RECV_ItemDestroy(P: Pointer);
+procedure MC_RECV_ItemSpawn(var M: TMsg);
+procedure MC_RECV_ItemDestroy(var M: TMsg);
 // PANEL
-procedure MC_RECV_PanelTexture(P: Pointer);
-procedure MC_RECV_PanelState(P: Pointer);
+procedure MC_RECV_PanelTexture(var M: TMsg);
+procedure MC_RECV_PanelState(var M: TMsg);
 // MONSTER
-procedure MC_RECV_MonsterSpawn(P: Pointer);
-procedure MC_RECV_MonsterPos(P: Pointer);
-procedure MC_RECV_MonsterState(P: Pointer);
-procedure MC_RECV_MonsterShot(P: Pointer);
-procedure MC_RECV_MonsterDelete(P: Pointer);
+procedure MC_RECV_MonsterSpawn(var M: TMsg);
+procedure MC_RECV_MonsterPos(var M: TMsg);
+procedure MC_RECV_MonsterState(var M: TMsg);
+procedure MC_RECV_MonsterShot(var M: TMsg);
+procedure MC_RECV_MonsterDelete(var M: TMsg);
 // SHOT
-procedure MC_RECV_CreateShot(P: Pointer);
-procedure MC_RECV_UpdateShot(P: Pointer);
-procedure MC_RECV_DeleteShot(P: Pointer);
+procedure MC_RECV_CreateShot(var M: TMsg);
+procedure MC_RECV_UpdateShot(var M: TMsg);
+procedure MC_RECV_DeleteShot(var M: TMsg);
 // TRIGGER
-procedure MC_RECV_TriggerSound(P: Pointer);
-procedure MC_RECV_TriggerMusic(P: Pointer);
+procedure MC_RECV_TriggerSound(var M: TMsg);
+procedure MC_RECV_TriggerMusic(var M: TMsg);
 // MISC
-procedure MC_RECV_TimeSync(P: Pointer);
-procedure MC_RECV_VoteEvent(P: Pointer);
+procedure MC_RECV_TimeSync(var M: TMsg);
+procedure MC_RECV_VoteEvent(var M: TMsg);
 // SERVICE
 procedure MC_SEND_Info(Password: string);
 procedure MC_SEND_Chat(Txt: string; Mode: Byte);
@@ -267,7 +267,7 @@ function ResDataFromMsgStream(msgStream: TMemoryStream):TResDataMsg;
 implementation
 
 uses
-  Math, ENet, e_input, e_fixedbuffer, e_graphics, e_log,
+  Math, ENet, e_input, e_graphics, e_log,
   g_textures, g_gfx, g_sound, g_console, g_basic, g_options, g_main,
   g_game, g_player, g_map, g_panel, g_items, g_weapons, g_phys, g_gui,
   g_language, g_monsters, g_netmaster, utils, wadreader, MAPDEF;
@@ -295,7 +295,7 @@ const
 
 // GAME
 
-procedure MH_RECV_Chat(C: pTNetClient; P: Pointer);
+procedure MH_RECV_Chat(C: pTNetClient; var M: TMsg);
 var
   Txt: string;
   Mode: Byte;
@@ -305,8 +305,8 @@ begin
   PID := C^.Player;
   Pl := g_Player_Get(PID);
 
-  Txt := e_Raw_Read_String(P);
-  Mode := e_Raw_Read_Byte(P);
+  Txt := M.ReadString();
+  Mode := M.ReadByte();
   if (Mode = NET_CHAT_SYSTEM) then
     Mode := NET_CHAT_PLAYER; // prevent sending system messages from clients
   if (Mode = NET_CHAT_TEAM) and (not gGameSettings.GameMode in [GM_TDM, GM_CTF]) then
@@ -318,7 +318,7 @@ begin
     MH_SEND_Chat(Pl.Name + ': ' + Txt, Mode, IfThen(Mode = NET_CHAT_TEAM, Pl.Team, NET_EVERYONE));
 end;
 
-procedure MH_RECV_Info(C: pTNetClient; P: Pointer);
+procedure MH_RECV_Info(C: pTNetClient; var M: TMsg);
 var
   Ver, PName, Model, Pw: string;
   R, G, B, T: Byte;
@@ -326,14 +326,14 @@ var
   Color: TRGB;
   I: Integer;
 begin
-  Ver := e_Raw_Read_String(P);
-  Pw := e_Raw_Read_String(P);
-  PName := e_Raw_Read_String(P);
-  Model := e_Raw_Read_String(P);
-  R := e_Raw_Read_Byte(P);
-  G := e_Raw_Read_Byte(P);
-  B := e_Raw_Read_Byte(P);
-  T := e_Raw_Read_Byte(P);
+  Ver := M.ReadString();
+  Pw := M.ReadString();
+  PName := M.ReadString();
+  Model := M.ReadString();
+  R := M.ReadByte();
+  G := M.ReadByte();
+  B := M.ReadByte();
+  T := M.ReadByte();
 
   if Ver <> GAME_VERSION then
   begin
@@ -418,7 +418,7 @@ begin
   if NetUseMaster then g_Net_Slist_Update;
 end;
 
-procedure MH_RECV_FullStateRequest(C: pTNetClient; P: Pointer);
+procedure MH_RECV_FullStateRequest(C: pTNetClient; var M: TMsg);
 begin
   if gGameOn then
     MH_SEND_Everything((C^.State = NET_STATE_AUTH), C^.ID)
@@ -428,7 +428,7 @@ end;
 
 // PLAYER
 
-function  MH_RECV_PlayerPos(C: pTNetClient; P: Pointer): Word;
+function  MH_RECV_PlayerPos(C: pTNetClient; var M: TMsg): Word;
 var
   Dir, i: Byte;
   WeaponSelect: Word;
@@ -440,7 +440,7 @@ begin
   Result := 0;
   if not gGameOn then Exit;
 
-  GT := e_Raw_Read_LongWord(P);
+  GT := M.ReadLongWord();
   PID := C^.Player;
   Pl := g_Player_Get(PID);
   if Pl = nil then
@@ -451,9 +451,9 @@ begin
   with Pl do
   begin
     NetTime := GT;
-    kByte := e_Raw_Read_Word(P);
-    Dir := e_Raw_Read_Byte(P);
-    WeaponSelect := e_Raw_Read_Word(P);
+    kByte := M.ReadWord();
+    Dir := M.ReadByte();
+    WeaponSelect := M.ReadWord();
     //e_WriteLog(Format('R:ws=%d', [WeaponSelect]), MSG_WARNING);
     if Direction <> TDirection(Dir) then
       JustTeleported := False;
@@ -490,7 +490,7 @@ begin
   // MH_SEND_PlayerPos(False, PID, C^.ID);
 end;
 
-procedure MH_RECV_CheatRequest(C: pTNetClient; P: Pointer);
+procedure MH_RECV_CheatRequest(C: pTNetClient; var M: TMsg);
 var
   CheatKind: Byte;
   Pl: TPlayer;
@@ -498,7 +498,7 @@ begin
   Pl := g_Player_Get(C^.Player);
   if Pl = nil then Exit;
 
-  CheatKind := e_Raw_Read_Byte(P);
+  CheatKind := M.ReadByte();
 
   case CheatKind of
     NET_CHEAT_SUICIDE:
@@ -513,7 +513,7 @@ begin
   end;
 end;
 
-procedure MH_RECV_PlayerSettings(C: pTNetClient; P: Pointer);
+procedure MH_RECV_PlayerSettings(C: pTNetClient; var M: TMsg);
 var
   TmpName: string;
   TmpModel: string;
@@ -521,12 +521,12 @@ var
   TmpTeam: Byte;
   Pl: TPlayer;
 begin
-  TmpName := e_Raw_Read_String(P);
-  TmpModel := e_Raw_Read_String(P);
-  TmpColor.R := e_Raw_Read_Byte(P);
-  TmpColor.G := e_Raw_Read_Byte(P);
-  TmpColor.B := e_Raw_Read_Byte(P);
-  TmpTeam := e_Raw_Read_Byte(P);
+  TmpName := M.ReadString();
+  TmpModel := M.ReadString();
+  TmpColor.R := M.ReadByte();
+  TmpColor.G := M.ReadByte();
+  TmpColor.B := M.ReadByte();
+  TmpTeam := M.ReadByte();
 
   Pl := g_Player_Get(C^.Player);
   if Pl = nil then Exit;
@@ -550,11 +550,11 @@ end;
 
 // RCON
 
-procedure MH_RECV_RCONPassword(C: pTNetClient; P: Pointer);
+procedure MH_RECV_RCONPassword(C: pTNetClient; var M: TMsg);
 var
   Pwd: string;
 begin
-  Pwd := e_Raw_Read_String(P);
+  Pwd := M.ReadString();
   if not NetAllowRCON then Exit;
   if Pwd = NetRCONPassword then
   begin
@@ -565,11 +565,11 @@ begin
     MH_SEND_GameEvent(NET_EV_RCON, NET_RCON_PWBAD, 'N', C^.ID);
 end;
 
-procedure MH_RECV_RCONCommand(C: pTNetClient; P: Pointer);
+procedure MH_RECV_RCONCommand(C: pTNetClient; var M: TMsg);
 var
   Cmd: string;
 begin
-  Cmd := e_Raw_Read_String(P);
+  Cmd := M.ReadString();
   if not NetAllowRCON then Exit;
   if not C^.RCONAuth then
   begin
@@ -581,15 +581,15 @@ end;
 
 // MISC
 
-procedure MH_RECV_Vote(C: pTNetClient; P: Pointer);
+procedure MH_RECV_Vote(C: pTNetClient; var M: TMsg);
 var
   Start: Boolean;
   Name, Command: string;
   Need: Integer;
   Pl: TPlayer;
 begin
-  Start := e_Raw_Read_Byte(P) <> 0;
-  Command := e_Raw_Read_String(P);
+  Start := M.ReadByte() <> 0;
+  Command := M.ReadString();
 
   Pl := g_Player_Get(C^.Player);
   if Pl = nil then Exit;
@@ -760,20 +760,20 @@ var
 begin
   Map := g_ExtractFileName(gMapInfo.Map);
 
-  e_Buffer_Clear(@NetOut);
+  NetOut.Clear();
 
-  e_Buffer_Write(@NetOut, Byte(NET_MSG_INFO));
-  e_Buffer_Write(@NetOut, ID);
-  e_Buffer_Write(@NetOut, NetClients[ID].Player);
-  e_Buffer_Write(@NetOut, gGameSettings.WAD);
-  e_Buffer_Write(@NetOut, Map);
-  e_Buffer_Write(@NetOut, gWADHash);
-  e_Buffer_Write(@NetOut, gGameSettings.GameMode);
-  e_Buffer_Write(@NetOut, gGameSettings.GoalLimit);
-  e_Buffer_Write(@NetOut, gGameSettings.TimeLimit);
-  e_Buffer_Write(@NetOut, gGameSettings.MaxLives);
-  e_Buffer_Write(@NetOut, gGameSettings.Options);
-  e_Buffer_Write(@NetOut, gTime);
+  NetOut.Write(Byte(NET_MSG_INFO));
+  NetOut.Write(ID);
+  NetOut.Write(NetClients[ID].Player);
+  NetOut.Write(gGameSettings.WAD);
+  NetOut.Write(Map);
+  NetOut.Write(gWADHash);
+  NetOut.Write(gGameSettings.GameMode);
+  NetOut.Write(gGameSettings.GoalLimit);
+  NetOut.Write(gGameSettings.TimeLimit);
+  NetOut.Write(gGameSettings.MaxLives);
+  NetOut.Write(gGameSettings.Options);
+  NetOut.Write(gTime);
 
   g_Net_Host_Send(ID, True, NET_CHAN_SERVICE);
 end;
@@ -794,9 +794,9 @@ begin
       if (gPlayers[i] <> nil) and (gPlayers[i].FClientID >= 0) and
          (gPlayers[i].Team = ID) then
       begin
-        e_Buffer_Write(@NetOut, Byte(NET_MSG_CHAT));
-        e_Buffer_Write(@NetOut, Txt);
-        e_Buffer_Write(@NetOut, Mode);
+        NetOut.Write(Byte(NET_MSG_CHAT));
+        NetOut.Write(Txt);
+        NetOut.Write(Mode);
         g_Net_Host_Send(gPlayers[i].FClientID, True, NET_CHAN_CHAT);
       end;
     Team := ID;
@@ -804,9 +804,9 @@ begin
   end
   else
   begin
-    e_Buffer_Write(@NetOut, Byte(NET_MSG_CHAT));
-    e_Buffer_Write(@NetOut, Txt);
-    e_Buffer_Write(@NetOut, Mode);
+    NetOut.Write(Byte(NET_MSG_CHAT));
+    NetOut.Write(Txt);
+    NetOut.Write(Mode);
     g_Net_Host_Send(ID, True, NET_CHAN_CHAT);
   end;
 
@@ -850,27 +850,27 @@ end;
 
 procedure MH_SEND_Effect(X, Y: Integer; Ang: SmallInt; Kind: Byte; ID: Integer = NET_EVERYONE);
 begin
-  e_Buffer_Write(@NetOut, Byte(NET_MSG_GFX));
-  e_Buffer_Write(@NetOut, Kind);
-  e_Buffer_Write(@NetOut, X);
-  e_Buffer_Write(@NetOut, Y);
-  e_Buffer_Write(@NetOut, Ang);
+  NetOut.Write(Byte(NET_MSG_GFX));
+  NetOut.Write(Kind);
+  NetOut.Write(X);
+  NetOut.Write(Y);
+  NetOut.Write(Ang);
 
   g_Net_Host_Send(ID, False, NET_CHAN_GAME);
 end;
 
 procedure MH_SEND_Sound(X, Y: Integer; Name: string; Pos: Boolean = True; ID: Integer = NET_EVERYONE);
 begin
-  e_Buffer_Write(@NetOut, Byte(NET_MSG_SND));
-  e_Buffer_Write(@NetOut, Name);
+  NetOut.Write(Byte(NET_MSG_SND));
+  NetOut.Write(Name);
   if Pos then
   begin
-    e_Buffer_Write(@NetOut, Byte(1));
-    e_Buffer_Write(@NetOut, X);
-    e_Buffer_Write(@NetOut, Y);
+    NetOut.Write(Byte(1));
+    NetOut.Write(X);
+    NetOut.Write(Y);
   end
   else
-    e_Buffer_Write(@NetOut, Byte(0));
+    NetOut.Write(Byte(0));
 
   g_Net_Host_Send(ID, False, NET_CHAN_GAME);
 end;
@@ -879,16 +879,16 @@ procedure MH_SEND_CreateShot(Proj: LongInt; ID: Integer = NET_EVERYONE);
 begin
   if (Shots = nil) or (Proj < 0) or (Proj > High(Shots)) then Exit;
 
-  e_Buffer_Write(@NetOut, Byte(NET_MSG_SHADD));
-  e_Buffer_Write(@NetOut, Proj);
-  e_Buffer_Write(@NetOut, Shots[Proj].ShotType);
-  e_Buffer_Write(@NetOut, Shots[Proj].Target);
-  e_Buffer_Write(@NetOut, Shots[Proj].SpawnerUID);
-  e_Buffer_Write(@NetOut, Shots[Proj].Timeout);
-  e_Buffer_Write(@NetOut, Shots[Proj].Obj.X);
-  e_Buffer_Write(@NetOut, Shots[Proj].Obj.Y);
-  e_Buffer_Write(@NetOut, Shots[Proj].Obj.Vel.X);
-  e_Buffer_Write(@NetOut, Shots[Proj].Obj.Vel.Y);
+  NetOut.Write(Byte(NET_MSG_SHADD));
+  NetOut.Write(Proj);
+  NetOut.Write(Shots[Proj].ShotType);
+  NetOut.Write(Shots[Proj].Target);
+  NetOut.Write(Shots[Proj].SpawnerUID);
+  NetOut.Write(Shots[Proj].Timeout);
+  NetOut.Write(Shots[Proj].Obj.X);
+  NetOut.Write(Shots[Proj].Obj.Y);
+  NetOut.Write(Shots[Proj].Obj.Vel.X);
+  NetOut.Write(Shots[Proj].Obj.Vel.Y);
 
   g_Net_Host_Send(ID, True, NET_CHAN_SHOTS);
 end;
@@ -897,40 +897,40 @@ procedure MH_SEND_UpdateShot(Proj: LongInt; ID: Integer = NET_EVERYONE);
 begin
   if (Shots = nil) or (Proj < 0) or (Proj > High(Shots)) then Exit;
 
-  e_Buffer_Write(@NetOut, Byte(NET_MSG_SHPOS));
-  e_Buffer_Write(@NetOut, Proj);
-  e_Buffer_Write(@NetOut, Shots[Proj].Obj.X);
-  e_Buffer_Write(@NetOut, Shots[Proj].Obj.Y);
-  e_Buffer_Write(@NetOut, Shots[Proj].Obj.Vel.X);
-  e_Buffer_Write(@NetOut, Shots[Proj].Obj.Vel.Y);
+  NetOut.Write(Byte(NET_MSG_SHPOS));
+  NetOut.Write(Proj);
+  NetOut.Write(Shots[Proj].Obj.X);
+  NetOut.Write(Shots[Proj].Obj.Y);
+  NetOut.Write(Shots[Proj].Obj.Vel.X);
+  NetOut.Write(Shots[Proj].Obj.Vel.Y);
 
   g_Net_Host_Send(ID, False, NET_CHAN_SHOTS);
 end;
 
 procedure MH_Send_DeleteShot(Proj: LongInt; X, Y: LongInt; Loud: Boolean = True; ID: Integer = NET_EVERYONE);
 begin
-  e_Buffer_Write(@NetOut, Byte(NET_MSG_SHDEL));
-  e_Buffer_Write(@NetOut, Proj);
-  e_Buffer_Write(@NetOut, Byte(Loud));
-  e_Buffer_Write(@NetOut, X);
-  e_Buffer_Write(@NetOut, Y);
+  NetOut.Write(Byte(NET_MSG_SHDEL));
+  NetOut.Write(Proj);
+  NetOut.Write(Byte(Loud));
+  NetOut.Write(X);
+  NetOut.Write(Y);
 
   g_Net_Host_Send(ID, True, NET_CHAN_SHOTS);
 end;
 
 procedure MH_SEND_GameStats(ID: Integer = NET_EVERYONE);
 begin
-  e_Buffer_Write(@NetOut, Byte(NET_MSG_SCORE));
+  NetOut.Write(Byte(NET_MSG_SCORE));
   if gGameSettings.GameMode in [GM_TDM, GM_CTF] then
   begin
-    e_Buffer_Write(@NetOut, gTeamStat[TEAM_RED].Goals);
-    e_Buffer_Write(@NetOut, gTeamStat[TEAM_BLUE].Goals);
+    NetOut.Write(gTeamStat[TEAM_RED].Goals);
+    NetOut.Write(gTeamStat[TEAM_BLUE].Goals);
   end
   else
     if gGameSettings.GameMode = GM_COOP then
     begin
-      e_Buffer_Write(@NetOut, gCoopMonstersKilled);
-      e_Buffer_Write(@NetOut, gCoopSecretsFound);
+      NetOut.Write(gCoopMonstersKilled);
+      NetOut.Write(gCoopSecretsFound);
     end;
 
   g_Net_Host_Send(ID, True, NET_CHAN_IMPORTANT);
@@ -938,58 +938,58 @@ end;
 
 procedure MH_SEND_CoopStats(ID: Integer = NET_EVERYONE);
 begin
-  e_Buffer_Write(@NetOut, Byte(NET_MSG_COOP));
-  e_Buffer_Write(@NetOut, gTotalMonsters);
-  e_Buffer_Write(@NetOut, gSecretsCount);
-  e_Buffer_Write(@NetOut, gCoopTotalMonstersKilled);
-  e_Buffer_Write(@NetOut, gCoopTotalSecretsFound);
-  e_Buffer_Write(@NetOut, gCoopTotalMonsters);
-  e_Buffer_Write(@NetOut, gCoopTotalSecrets);
+  NetOut.Write(Byte(NET_MSG_COOP));
+  NetOut.Write(gTotalMonsters);
+  NetOut.Write(gSecretsCount);
+  NetOut.Write(gCoopTotalMonstersKilled);
+  NetOut.Write(gCoopTotalSecretsFound);
+  NetOut.Write(gCoopTotalMonsters);
+  NetOut.Write(gCoopTotalSecrets);
 end;
 
 procedure MH_SEND_GameEvent(EvType: Byte; EvNum: Integer = 0; EvStr: string = 'N'; ID: Integer = NET_EVERYONE);
 begin
-  e_Buffer_Write(@NetOut, Byte(NET_MSG_GEVENT));
-  e_Buffer_Write(@NetOut, EvType);
-  e_Buffer_Write(@NetOut, EvNum);
-  e_Buffer_Write(@NetOut, EvStr);
-  e_Buffer_Write(@NetOut, Byte(gLastMap));
-  e_Buffer_Write(@NetOut, gTime);
+  NetOut.Write(Byte(NET_MSG_GEVENT));
+  NetOut.Write(EvType);
+  NetOut.Write(EvNum);
+  NetOut.Write(EvStr);
+  NetOut.Write(Byte(gLastMap));
+  NetOut.Write(gTime);
   if (EvType = NET_EV_MAPSTART) and (Pos(':\', EvStr) > 0) then
   begin
-    e_Buffer_Write(@NetOut, Byte(1));
-    e_Buffer_Write(@NetOut, gWADHash);
+    NetOut.Write(Byte(1));
+    NetOut.Write(gWADHash);
   end else
-    e_Buffer_Write(@NetOut, Byte(0));
+    NetOut.Write(Byte(0));
 
   g_Net_Host_Send(ID, True, NET_CHAN_SERVICE);
 end;
 
 procedure MH_SEND_FlagEvent(EvType: Byte; Flag: Byte; PID: Word; Quiet: Boolean = False; ID: Integer = NET_EVERYONE);
 begin
-  e_Buffer_Write(@NetOut, Byte(NET_MSG_FLAG));
-  e_Buffer_Write(@NetOut, EvType);
-  e_Buffer_Write(@NetOut, Flag);
-  e_Buffer_Write(@NetOut, Byte(Quiet));
-  e_Buffer_Write(@NetOut, PID);
-  e_Buffer_Write(@NetOut, gFlags[Flag].State);
-  e_Buffer_Write(@NetOut, gFlags[Flag].CaptureTime);
-  e_Buffer_Write(@NetOut, gFlags[Flag].Obj.X);
-  e_Buffer_Write(@NetOut, gFlags[Flag].Obj.Y);
-  e_Buffer_Write(@NetOut, gFlags[Flag].Obj.Vel.X);
-  e_Buffer_Write(@NetOut, gFlags[Flag].Obj.Vel.Y);
+  NetOut.Write(Byte(NET_MSG_FLAG));
+  NetOut.Write(EvType);
+  NetOut.Write(Flag);
+  NetOut.Write(Byte(Quiet));
+  NetOut.Write(PID);
+  NetOut.Write(gFlags[Flag].State);
+  NetOut.Write(gFlags[Flag].CaptureTime);
+  NetOut.Write(gFlags[Flag].Obj.X);
+  NetOut.Write(gFlags[Flag].Obj.Y);
+  NetOut.Write(gFlags[Flag].Obj.Vel.X);
+  NetOut.Write(gFlags[Flag].Obj.Vel.Y);
 
   g_Net_Host_Send(ID, True, NET_CHAN_IMPORTANT);
 end;
 
 procedure MH_SEND_GameSettings(ID: Integer = NET_EVERYONE);
 begin
-  e_Buffer_Write(@NetOut, Byte(NET_MSG_GSET));
-  e_Buffer_Write(@NetOut, gGameSettings.GameMode);
-  e_Buffer_Write(@NetOut, gGameSettings.GoalLimit);
-  e_Buffer_Write(@NetOut, gGameSettings.TimeLimit);
-  e_Buffer_Write(@NetOut, gGameSettings.MaxLives);
-  e_Buffer_Write(@NetOut, gGameSettings.Options);
+  NetOut.Write(Byte(NET_MSG_GSET));
+  NetOut.Write(gGameSettings.GameMode);
+  NetOut.Write(gGameSettings.GoalLimit);
+  NetOut.Write(gGameSettings.TimeLimit);
+  NetOut.Write(gGameSettings.MaxLives);
+  NetOut.Write(gGameSettings.Options);
 
   g_Net_Host_Send(ID, True, NET_CHAN_IMPORTANT);
 end;
@@ -1003,15 +1003,15 @@ begin
   P := g_Player_Get(PID);
   if P = nil then Exit;
 
-  e_Buffer_Write(@NetOut, Byte(NET_MSG_PLR));
-  e_Buffer_Write(@NetOut, PID);
-  e_Buffer_Write(@NetOut, P.Name);
+  NetOut.Write(Byte(NET_MSG_PLR));
+  NetOut.Write(PID);
+  NetOut.Write(P.Name);
 
-  e_Buffer_Write(@NetOut, P.FActualModelName);
-  e_Buffer_Write(@NetOut, P.FColor.R);
-  e_Buffer_Write(@NetOut, P.FColor.G);
-  e_Buffer_Write(@NetOut, P.FColor.B);
-  e_Buffer_Write(@NetOut, P.Team);
+  NetOut.Write(P.FActualModelName);
+  NetOut.Write(P.FColor.R);
+  NetOut.Write(P.FColor.G);
+  NetOut.Write(P.FColor.B);
+  NetOut.Write(P.Team);
 
   g_Net_Host_Send(ID, True, NET_CHAN_IMPORTANT)
 end;
@@ -1025,16 +1025,16 @@ begin
   if Pl = nil then Exit;
   if Pl.FDummy then Exit;
 
-  e_Buffer_Write(@NetOut, Byte(NET_MSG_PLRPOS));
-  e_Buffer_Write(@NetOut, gTime);
-  e_Buffer_Write(@NetOut, PID);
+  NetOut.Write(Byte(NET_MSG_PLRPOS));
+  NetOut.Write(gTime);
+  NetOut.Write(PID);
 
   kByte := 0;
 
   with Pl do
   begin
-    e_Buffer_Write(@NetOut, FPing);
-    e_Buffer_Write(@NetOut, FLoss);
+    NetOut.Write(FPing);
+    NetOut.Write(FLoss);
     if IsKeyPressed(KEY_CHAT) then
       kByte := NET_KEY_CHAT
     else
@@ -1047,14 +1047,14 @@ begin
       if JustTeleported then kByte := kByte or NET_KEY_FORCEDIR;
     end;
 
-    e_Buffer_Write(@NetOut, kByte);
-    if Direction = D_LEFT then e_Buffer_Write(@NetOut, Byte(0)) else e_Buffer_Write(@NetOut, Byte(1));
-    e_Buffer_Write(@NetOut, GameX);
-    e_Buffer_Write(@NetOut, GameY);
-    e_Buffer_Write(@NetOut, GameVelX);
-    e_Buffer_Write(@NetOut, GameVelY);
-    e_Buffer_Write(@NetOut, GameAccelX);
-    e_Buffer_Write(@NetOut, GameAccelY);
+    NetOut.Write(kByte);
+    if Direction = D_LEFT then NetOut.Write(Byte(0)) else NetOut.Write(Byte(1));
+    NetOut.Write(GameX);
+    NetOut.Write(GameY);
+    NetOut.Write(GameVelX);
+    NetOut.Write(GameVelY);
+    NetOut.Write(GameAccelX);
+    NetOut.Write(GameAccelY);
   end;
 
   g_Net_Host_Send(ID, Reliable, NET_CHAN_PLAYERPOS);
@@ -1068,49 +1068,49 @@ begin
   P := g_Player_Get(PID);
   if P = nil then Exit;
 
-  e_Buffer_Write(@NetOut, Byte(NET_MSG_PLRSTA));
-  e_Buffer_Write(@NetOut, PID);
+  NetOut.Write(Byte(NET_MSG_PLRSTA));
+  NetOut.Write(PID);
 
   with P do
   begin
-    e_Buffer_Write(@NetOut, Byte(Live));
-    e_Buffer_Write(@NetOut, Byte(GodMode));
-    e_Buffer_Write(@NetOut, Health);
-    e_Buffer_Write(@NetOut, Armor);
-    e_Buffer_Write(@NetOut, Air);
-    e_Buffer_Write(@NetOut, JetFuel);
-    e_Buffer_Write(@NetOut, Lives);
-    e_Buffer_Write(@NetOut, Team);
+    NetOut.Write(Byte(Live));
+    NetOut.Write(Byte(GodMode));
+    NetOut.Write(Health);
+    NetOut.Write(Armor);
+    NetOut.Write(Air);
+    NetOut.Write(JetFuel);
+    NetOut.Write(Lives);
+    NetOut.Write(Team);
 
     for I := WP_FIRST to WP_LAST do
-      e_Buffer_Write(@NetOut, Byte(FWeapon[I]));
+      NetOut.Write(Byte(FWeapon[I]));
 
     for I := A_BULLETS to A_HIGH do
-      e_Buffer_Write(@NetOut, FAmmo[I]);
+      NetOut.Write(FAmmo[I]);
 
     for I := A_BULLETS to A_HIGH do
-      e_Buffer_Write(@NetOut, FMaxAmmo[I]);
+      NetOut.Write(FMaxAmmo[I]);
 
     for I := MR_SUIT to MR_MAX do
-      e_Buffer_Write(@NetOut, LongWord(FMegaRulez[I]));
+      NetOut.Write(LongWord(FMegaRulez[I]));
 
-    e_Buffer_Write(@NetOut, Byte(R_ITEM_BACKPACK in FRulez));
-    e_Buffer_Write(@NetOut, Byte(R_KEY_RED in FRulez));
-    e_Buffer_Write(@NetOut, Byte(R_KEY_GREEN in FRulez));
-    e_Buffer_Write(@NetOut, Byte(R_KEY_BLUE in FRulez));
-    e_Buffer_Write(@NetOut, Byte(R_BERSERK in FRulez));
+    NetOut.Write(Byte(R_ITEM_BACKPACK in FRulez));
+    NetOut.Write(Byte(R_KEY_RED in FRulez));
+    NetOut.Write(Byte(R_KEY_GREEN in FRulez));
+    NetOut.Write(Byte(R_KEY_BLUE in FRulez));
+    NetOut.Write(Byte(R_BERSERK in FRulez));
 
-    e_Buffer_Write(@NetOut, Frags);
-    e_Buffer_Write(@NetOut, Death);
+    NetOut.Write(Frags);
+    NetOut.Write(Death);
 
-    e_Buffer_Write(@NetOut, CurrWeap);
+    NetOut.Write(CurrWeap);
 
-    e_Buffer_Write(@NetOut, Byte(FSpectator));
-    e_Buffer_Write(@NetOut, Byte(FGhost));
-    e_Buffer_Write(@NetOut, Byte(FPhysics));
-    e_Buffer_Write(@NetOut, Byte(FNoRespawn));
-    e_Buffer_Write(@NetOut, Byte(FJetpack));
-    e_Buffer_Write(@NetOut, FFireTime);
+    NetOut.Write(Byte(FSpectator));
+    NetOut.Write(Byte(FGhost));
+    NetOut.Write(Byte(FPhysics));
+    NetOut.Write(Byte(FNoRespawn));
+    NetOut.Write(Byte(FJetpack));
+    NetOut.Write(FFireTime);
   end;
 
   g_Net_Host_Send(ID, True, NET_CHAN_PLAYER);
@@ -1118,46 +1118,46 @@ end;
 
 procedure MH_SEND_PlayerDamage(PID: Word; Kind: Byte; Attacker, Value: Word; VX, VY: Integer; ID: Integer = NET_EVERYONE);
 begin
-  e_Buffer_Write(@NetOut, Byte(NET_MSG_PLRDMG));
-  e_Buffer_Write(@NetOut, PID);
-  e_Buffer_Write(@NetOut, Kind);
-  e_Buffer_Write(@NetOut, Attacker);
-  e_Buffer_Write(@NetOut, Value);
-  e_Buffer_Write(@NetOut, VX);
-  e_Buffer_Write(@NetOut, VY);
+  NetOut.Write(Byte(NET_MSG_PLRDMG));
+  NetOut.Write(PID);
+  NetOut.Write(Kind);
+  NetOut.Write(Attacker);
+  NetOut.Write(Value);
+  NetOut.Write(VX);
+  NetOut.Write(VY);
 
   g_Net_Host_Send(ID, False, NET_CHAN_PLAYER);
 end;
 
 procedure MH_SEND_PlayerDeath(PID: Word; KillType, DeathType: Byte; Attacker: Word; ID: Integer = NET_EVERYONE);
 begin
-  e_Buffer_Write(@NetOut, Byte(NET_MSG_PLRDIE));
-  e_Buffer_Write(@NetOut, PID);
-  e_Buffer_Write(@NetOut, KillType);
-  e_Buffer_Write(@NetOut, DeathType);
-  e_Buffer_Write(@NetOut, Attacker);
+  NetOut.Write(Byte(NET_MSG_PLRDIE));
+  NetOut.Write(PID);
+  NetOut.Write(KillType);
+  NetOut.Write(DeathType);
+  NetOut.Write(Attacker);
 
   g_Net_Host_Send(ID, True, NET_CHAN_PLAYER);
 end;
 
 procedure MH_SEND_PlayerFire(PID: Word; Weapon: Byte; X, Y, AX, AY: Integer; ShotID: Integer = -1; ID: Integer = NET_EVERYONE);
 begin
-  e_Buffer_Write(@NetOut, Byte(NET_MSG_PLRFIRE));
-  e_Buffer_Write(@NetOut, PID);
-  e_Buffer_Write(@NetOut, Weapon);
-  e_Buffer_Write(@NetOut, X);
-  e_Buffer_Write(@NetOut, Y);
-  e_Buffer_Write(@NetOut, AX);
-  e_Buffer_Write(@NetOut, AY);
-  e_Buffer_Write(@NetOut, ShotID);
+  NetOut.Write(Byte(NET_MSG_PLRFIRE));
+  NetOut.Write(PID);
+  NetOut.Write(Weapon);
+  NetOut.Write(X);
+  NetOut.Write(Y);
+  NetOut.Write(AX);
+  NetOut.Write(AY);
+  NetOut.Write(ShotID);
 
   g_Net_Host_Send(ID, True, NET_CHAN_SHOTS);
 end;
 
 procedure MH_SEND_PlayerDelete(PID: Word; ID: Integer = NET_EVERYONE);
 begin
-  e_Buffer_Write(@NetOut, Byte(NET_MSG_PLRDEL));
-  e_Buffer_Write(@NetOut, PID);
+  NetOut.Write(Byte(NET_MSG_PLRDEL));
+  NetOut.Write(PID);
 
   g_Net_Host_Send(ID, True, NET_CHAN_IMPORTANT);
 end;
@@ -1169,17 +1169,17 @@ begin
   Pl := g_Player_Get(PID);
   if Pl = nil then Exit;
 
-  e_Buffer_Write(@NetOut, Byte(NET_MSG_PLRSET));
-  e_Buffer_Write(@NetOut, PID);
-  e_Buffer_Write(@NetOut, Pl.Name);
+  NetOut.Write(Byte(NET_MSG_PLRSET));
+  NetOut.Write(PID);
+  NetOut.Write(Pl.Name);
   if Mdl = '' then
-    e_Buffer_Write(@NetOut, Pl.Model.Name)
+    NetOut.Write(Pl.Model.Name)
   else
-    e_Buffer_Write(@NetOut, Mdl);
-  e_Buffer_Write(@NetOut, Pl.FColor.R);
-  e_Buffer_Write(@NetOut, Pl.FColor.G);
-  e_Buffer_Write(@NetOut, Pl.FColor.B);
-  e_Buffer_Write(@NetOut, Pl.Team);
+    NetOut.Write(Mdl);
+  NetOut.Write(Pl.FColor.R);
+  NetOut.Write(Pl.FColor.G);
+  NetOut.Write(Pl.FColor.B);
+  NetOut.Write(Pl.Team);
 
   g_Net_Host_Send(ID, True, NET_CHAN_IMPORTANT);
 end;
@@ -1192,25 +1192,25 @@ var
 begin
   it := g_ItemByIdx(IID);
 
-  e_Buffer_Write(@NetOut, Byte(NET_MSG_ISPAWN));
-  e_Buffer_Write(@NetOut, IID);
-  e_Buffer_Write(@NetOut, Byte(Quiet));
-  e_Buffer_Write(@NetOut, it.ItemType);
-  e_Buffer_Write(@NetOut, Byte(it.Fall));
-  e_Buffer_Write(@NetOut, Byte(it.Respawnable));
-  e_Buffer_Write(@NetOut, it.Obj.X);
-  e_Buffer_Write(@NetOut, it.Obj.Y);
-  e_Buffer_Write(@NetOut, it.Obj.Vel.X);
-  e_Buffer_Write(@NetOut, it.Obj.Vel.Y);
+  NetOut.Write(Byte(NET_MSG_ISPAWN));
+  NetOut.Write(IID);
+  NetOut.Write(Byte(Quiet));
+  NetOut.Write(it.ItemType);
+  NetOut.Write(Byte(it.Fall));
+  NetOut.Write(Byte(it.Respawnable));
+  NetOut.Write(it.Obj.X);
+  NetOut.Write(it.Obj.Y);
+  NetOut.Write(it.Obj.Vel.X);
+  NetOut.Write(it.Obj.Vel.Y);
 
   g_Net_Host_Send(ID, True, NET_CHAN_LARGEDATA);
 end;
 
 procedure MH_SEND_ItemDestroy(Quiet: Boolean; IID: Word; ID: Integer = NET_EVERYONE);
 begin
-  e_Buffer_Write(@NetOut, Byte(NET_MSG_IDEL));
-  e_Buffer_Write(@NetOut, IID);
-  e_Buffer_Write(@NetOut, Byte(Quiet));
+  NetOut.Write(Byte(NET_MSG_IDEL));
+  NetOut.Write(IID);
+  NetOut.Write(Byte(Quiet));
 
   g_Net_Host_Send(ID, True, NET_CHAN_LARGEDATA);
 end;
@@ -1242,13 +1242,13 @@ begin
 
   with TP do
   begin
-    e_Buffer_Write(@NetOut, Byte(NET_MSG_PTEX));
-    e_Buffer_Write(@NetOut, PType);
-    e_Buffer_Write(@NetOut, PID);
-    e_Buffer_Write(@NetOut, FCurTexture);
-    e_Buffer_Write(@NetOut, FCurFrame);
-    e_Buffer_Write(@NetOut, FCurFrameCount);
-    e_Buffer_Write(@NetOut, AnimLoop);
+    NetOut.Write(Byte(NET_MSG_PTEX));
+    NetOut.Write(PType);
+    NetOut.Write(PID);
+    NetOut.Write(FCurTexture);
+    NetOut.Write(FCurFrame);
+    NetOut.Write(FCurFrameCount);
+    NetOut.Write(AnimLoop);
   end;
 
   g_Net_Host_Send(ID, True, NET_CHAN_LARGEDATA);
@@ -1277,13 +1277,13 @@ begin
       Exit;
   end;
 
-  e_Buffer_Write(@NetOut, Byte(NET_MSG_PSTATE));
-  e_Buffer_Write(@NetOut, PType);
-  e_Buffer_Write(@NetOut, PID);
-  e_Buffer_Write(@NetOut, Byte(TP.Enabled));
-  e_Buffer_Write(@NetOut, TP.LiftType);
-  e_Buffer_Write(@NetOut, TP.X);
-  e_Buffer_Write(@NetOut, TP.Y);
+  NetOut.Write(Byte(NET_MSG_PSTATE));
+  NetOut.Write(PType);
+  NetOut.Write(PID);
+  NetOut.Write(Byte(TP.Enabled));
+  NetOut.Write(TP.LiftType);
+  NetOut.Write(TP.X);
+  NetOut.Write(TP.Y);
 
   g_Net_Host_Send(ID, True, NET_CHAN_LARGEDATA);
 end;
@@ -1295,22 +1295,22 @@ begin
   if gTriggers = nil then Exit;
   if T.Sound = nil then Exit;
 
-  e_Buffer_Write(@NetOut, Byte(NET_MSG_TSOUND));
-  e_Buffer_Write(@NetOut, T.ClientID);
-  e_Buffer_Write(@NetOut, Byte(T.Sound.IsPlaying));
-  e_Buffer_Write(@NetOut, LongWord(T.Sound.GetPosition));
-  e_Buffer_Write(@NetOut, T.SoundPlayCount);
+  NetOut.Write(Byte(NET_MSG_TSOUND));
+  NetOut.Write(T.ClientID);
+  NetOut.Write(Byte(T.Sound.IsPlaying));
+  NetOut.Write(LongWord(T.Sound.GetPosition));
+  NetOut.Write(T.SoundPlayCount);
 
   g_Net_Host_Send(ID, True);
 end;
 
 procedure MH_SEND_TriggerMusic(ID: Integer = NET_EVERYONE);
 begin
-  e_Buffer_Write(@NetOut, Byte(NET_MSG_TMUSIC));
-  e_Buffer_Write(@NetOut, gMusic.Name);
-  e_Buffer_Write(@NetOut, Byte(gMusic.IsPlaying));
-  e_Buffer_Write(@NetOut, LongWord(gMusic.GetPosition));
-  e_Buffer_Write(@NetOut, Byte(gMusic.SpecPause or gMusic.IsPaused));
+  NetOut.Write(Byte(NET_MSG_TMUSIC));
+  NetOut.Write(gMusic.Name);
+  NetOut.Write(Byte(gMusic.IsPlaying));
+  NetOut.Write(LongWord(gMusic.GetPosition));
+  NetOut.Write(Byte(gMusic.SpecPause or gMusic.IsPaused));
 
   g_Net_Host_Send(ID, True);
 end;
@@ -1327,22 +1327,22 @@ begin
 
   with M do
   begin
-    e_Buffer_Write(@NetOut, Byte(NET_MSG_MSPAWN));
-    e_Buffer_Write(@NetOut, UID);
-    e_Buffer_Write(@NetOut, MonsterType);
-    e_Buffer_Write(@NetOut, MonsterState);
-    e_Buffer_Write(@NetOut, MonsterAnim);
-    e_Buffer_Write(@NetOut, MonsterTargetUID);
-    e_Buffer_Write(@NetOut, MonsterTargetTime);
-    e_Buffer_Write(@NetOut, MonsterBehaviour);
-    e_Buffer_Write(@NetOut, MonsterSleep);
-    e_Buffer_Write(@NetOut, MonsterHealth);
-    e_Buffer_Write(@NetOut, MonsterAmmo);
-    e_Buffer_Write(@NetOut, GameX);
-    e_Buffer_Write(@NetOut, GameY);
-    e_Buffer_Write(@NetOut, GameVelX);
-    e_Buffer_Write(@NetOut, GameVelY);
-    e_Buffer_Write(@NetOut, Byte(GameDirection));
+    NetOut.Write(Byte(NET_MSG_MSPAWN));
+    NetOut.Write(UID);
+    NetOut.Write(MonsterType);
+    NetOut.Write(MonsterState);
+    NetOut.Write(MonsterAnim);
+    NetOut.Write(MonsterTargetUID);
+    NetOut.Write(MonsterTargetTime);
+    NetOut.Write(MonsterBehaviour);
+    NetOut.Write(MonsterSleep);
+    NetOut.Write(MonsterHealth);
+    NetOut.Write(MonsterAmmo);
+    NetOut.Write(GameX);
+    NetOut.Write(GameY);
+    NetOut.Write(GameVelX);
+    NetOut.Write(GameVelY);
+    NetOut.Write(Byte(GameDirection));
   end;
 
   g_Net_Host_Send(ID, True, NET_CHAN_LARGEDATA);
@@ -1355,16 +1355,16 @@ begin
   M := g_Monsters_Get(UID);
   if M = nil then Exit;
 
-  e_Buffer_Write(@NetOut, Byte(NET_MSG_MPOS));
-  e_Buffer_Write(@NetOut, UID);
+  NetOut.Write(Byte(NET_MSG_MPOS));
+  NetOut.Write(UID);
 
   with M do
   begin
-    e_Buffer_Write(@NetOut, GameX);
-    e_Buffer_Write(@NetOut, GameY);
-    e_Buffer_Write(@NetOut, GameVelX);
-    e_Buffer_Write(@NetOut, GameVelY);
-    e_Buffer_Write(@NetOut, Byte(GameDirection));
+    NetOut.Write(GameX);
+    NetOut.Write(GameY);
+    NetOut.Write(GameVelX);
+    NetOut.Write(GameVelY);
+    NetOut.Write(Byte(GameDirection));
   end;
 
   g_Net_Host_Send(ID, False, NET_CHAN_MONSTERPOS);
@@ -1377,21 +1377,21 @@ begin
   M := g_Monsters_Get(UID);
   if M = nil then Exit;
 
-  e_Buffer_Write(@NetOut, Byte(NET_MSG_MSTATE));
-  e_Buffer_Write(@NetOut, UID);
+  NetOut.Write(Byte(NET_MSG_MSTATE));
+  NetOut.Write(UID);
 
   with M do
   begin
-    e_Buffer_Write(@NetOut, MonsterState);
-    e_Buffer_Write(@NetOut, ForcedAnim);
-    e_Buffer_Write(@NetOut, MonsterTargetUID);
-    e_Buffer_Write(@NetOut, MonsterTargetTime);
-    e_Buffer_Write(@NetOut, MonsterSleep);
-    e_Buffer_Write(@NetOut, MonsterHealth);
-    e_Buffer_Write(@NetOut, MonsterAmmo);
-    e_Buffer_Write(@NetOut, MonsterPain);
-    e_Buffer_Write(@NetOut, Byte(AnimIsReverse));
-    e_Buffer_Write(@NetOut, FFireTime);
+    NetOut.Write(MonsterState);
+    NetOut.Write(ForcedAnim);
+    NetOut.Write(MonsterTargetUID);
+    NetOut.Write(MonsterTargetTime);
+    NetOut.Write(MonsterSleep);
+    NetOut.Write(MonsterHealth);
+    NetOut.Write(MonsterAmmo);
+    NetOut.Write(MonsterPain);
+    NetOut.Write(Byte(AnimIsReverse));
+    NetOut.Write(FFireTime);
   end;
 
   g_Net_Host_Send(ID, True, NET_CHAN_MONSTER);
@@ -1399,12 +1399,12 @@ end;
 
 procedure MH_SEND_MonsterShot(UID: Word; X, Y, VX, VY: Integer; ID: Integer = NET_EVERYONE);
 begin
-  e_Buffer_Write(@NetOut, Byte(NET_MSG_MSHOT));
-  e_Buffer_Write(@NetOut, UID);
-  e_Buffer_Write(@NetOut, X);
-  e_Buffer_Write(@NetOut, Y);
-  e_Buffer_Write(@NetOut, VX);
-  e_Buffer_Write(@NetOut, VY);
+  NetOut.Write(Byte(NET_MSG_MSHOT));
+  NetOut.Write(UID);
+  NetOut.Write(X);
+  NetOut.Write(Y);
+  NetOut.Write(VX);
+  NetOut.Write(VY);
 
   g_Net_Host_Send(ID, True, NET_CHAN_MONSTER);
 end;
@@ -1416,8 +1416,8 @@ begin
   M := g_Monsters_Get(UID);
   if M = nil then Exit;
 
-  e_Buffer_Write(@NetOut, Byte(NET_MSG_MDEL));
-  e_Buffer_Write(@NetOut, UID);
+  NetOut.Write(Byte(NET_MSG_MDEL));
+  NetOut.Write(UID);
 
   g_Net_Host_Send(ID, True, NET_CHAN_LARGEDATA);
 end;
@@ -1426,8 +1426,8 @@ end;
 
 procedure MH_SEND_TimeSync(Time: LongWord; ID: Integer = NET_EVERYONE);
 begin
-  e_Buffer_Write(@NetOut, Byte(NET_MSG_TIME_SYNC));
-  e_Buffer_Write(@NetOut, Time);
+  NetOut.Write(Byte(NET_MSG_TIME_SYNC));
+  NetOut.Write(Time);
 
   g_Net_Host_Send(ID, False, NET_CHAN_SERVICE);
 end;
@@ -1437,12 +1437,12 @@ procedure MH_SEND_VoteEvent(EvType: Byte;
                             IntArg1: SmallInt = 0; IntArg2: SmallInt = 0;
                             ID: Integer = NET_EVERYONE);
 begin
-  e_Buffer_Write(@NetOut, Byte(NET_MSG_VOTE_EVENT));
-  e_Buffer_Write(@NetOut, EvType);
-  e_Buffer_Write(@NetOut, IntArg1);
-  e_Buffer_Write(@NetOut, IntArg2);
-  e_Buffer_Write(@NetOut, StrArg1);
-  e_Buffer_Write(@NetOut, StrArg2);
+  NetOut.Write(Byte(NET_MSG_VOTE_EVENT));
+  NetOut.Write(EvType);
+  NetOut.Write(IntArg1);
+  NetOut.Write(IntArg2);
+  NetOut.Write(StrArg1);
+  NetOut.Write(StrArg2);
 
   g_Net_Host_Send(ID, True, NET_CHAN_IMPORTANT);
 end;
@@ -1451,13 +1451,13 @@ end;
 
 // GAME
 
-procedure MC_RECV_Chat(P: Pointer);
+procedure MC_RECV_Chat(var M: TMsg);
 var
   Txt: string;
   Mode: Byte;
 begin
-  Txt := e_Raw_Read_String(P);
-  Mode := e_Raw_Read_Byte(P);
+  Txt := M.ReadString();
+  Mode := M.ReadByte();
 
   if Mode <> NET_CHAT_SYSTEM then
   begin
@@ -1480,7 +1480,7 @@ begin
     g_Console_Add(Txt, True);
 end;
 
-procedure MC_RECV_Effect(P: Pointer);
+procedure MC_RECV_Effect(var M: TMsg);
 var
   Kind: Byte;
   X, Y: Integer;
@@ -1489,10 +1489,10 @@ var
   ID: LongWord;
 begin
   if not gGameOn then Exit;
-  Kind := e_Raw_Read_Byte(P);
-  X := e_Raw_Read_LongInt(P);
-  Y := e_Raw_Read_LongInt(P);
-  Ang := e_Raw_Read_SmallInt(P);
+  Kind := M.ReadByte();
+  X := M.ReadLongInt();
+  Y := M.ReadLongInt();
+  Ang := M.ReadSmallInt();
 
   case Kind of
     NET_GFX_SPARK:
@@ -1584,40 +1584,40 @@ begin
   end;
 end;
 
-procedure MC_RECV_Sound(P: Pointer);
+procedure MC_RECV_Sound(var M: TMsg);
 var
   Name: string;
   X, Y: Integer;
   Pos: Boolean;
 begin
-  Name := e_Raw_Read_String(P);
-  Pos := e_Raw_Read_Byte(P) <> 0;
+  Name := M.ReadString();
+  Pos := M.ReadByte() <> 0;
   if Pos then
   begin
-    X := e_Raw_Read_LongInt(P);
-    Y := e_Raw_Read_LongInt(P);
+    X := M.ReadLongInt();
+    Y := M.ReadLongInt();
     g_Sound_PlayExAt(Name, X, Y);
   end
   else
     g_Sound_PlayEx(Name);
 end;
 
-procedure MC_RECV_CreateShot(P: Pointer);
+procedure MC_RECV_CreateShot(var M: TMsg);
 var
   I, X, Y, XV, YV: Integer;
   Timeout: LongWord;
   Target, Spawner: Word;
   ShType: Byte;
 begin
-  I := e_Raw_Read_LongInt(P);
-  ShType := e_Raw_Read_Byte(P);
-  Target := e_Raw_Read_Word(P);
-  Spawner := e_Raw_Read_Word(P);
-  Timeout := e_Raw_Read_LongWord(P);
-  X := e_Raw_Read_LongInt(P);
-  Y := e_Raw_Read_LongInt(P);
-  XV := e_Raw_Read_LongInt(P);
-  YV := e_Raw_Read_LongInt(P);
+  I := M.ReadLongInt();
+  ShType := M.ReadByte();
+  Target := M.ReadWord();
+  Spawner := M.ReadWord();
+  Timeout := M.ReadLongWord();
+  X := M.ReadLongInt();
+  Y := M.ReadLongInt();
+  XV := M.ReadLongInt();
+  YV := M.ReadLongInt();
 
   I := g_Weapon_CreateShot(I, ShType, Spawner, Target, X, Y, XV, YV);
   if (Shots <> nil) and (I <= High(Shots)) then
@@ -1627,15 +1627,15 @@ begin
   end;
 end;
 
-procedure MC_RECV_UpdateShot(P: Pointer);
+procedure MC_RECV_UpdateShot(var M: TMsg);
 var
   I, TX, TY, TXV, TYV: Integer;
 begin
-  I := e_Raw_Read_LongInt(P);
-  TX := e_Raw_Read_LongInt(P);
-  TY := e_Raw_Read_LongInt(P);
-  TXV := e_Raw_Read_LongInt(P);
-  TYV := e_Raw_Read_LongInt(P);
+  I := M.ReadLongInt();
+  TX := M.ReadLongInt();
+  TY := M.ReadLongInt();
+  TXV := M.ReadLongInt();
+  TYV := M.ReadLongInt();
 
   if (Shots <> nil) and (I <= High(Shots)) then
     with (Shots[i]) do
@@ -1647,46 +1647,46 @@ begin
     end;
 end;
 
-procedure MC_RECV_DeleteShot(P: Pointer);
+procedure MC_RECV_DeleteShot(var M: TMsg);
 var
   I, X, Y: Integer;
   L: Boolean;
 begin
   if not gGameOn then Exit;
-  I := e_Raw_Read_LongInt(P);
-  L := (e_Raw_Read_Byte(P) <> 0);
-  X := e_Raw_Read_LongInt(P);
-  Y := e_Raw_Read_LongInt(P);
+  I := M.ReadLongInt();
+  L := (M.ReadByte() <> 0);
+  X := M.ReadLongInt();
+  Y := M.ReadLongInt();
 
   g_Weapon_DestroyShot(I, X, Y, L);
 end;
 
-procedure MC_RECV_GameStats(P: Pointer);
+procedure MC_RECV_GameStats(var M: TMsg);
 begin
   if gGameSettings.GameMode in [GM_TDM, GM_CTF] then
   begin
-    gTeamStat[TEAM_RED].Goals := e_Raw_Read_SmallInt(P);
-    gTeamStat[TEAM_BLUE].Goals := e_Raw_Read_SmallInt(P);
+    gTeamStat[TEAM_RED].Goals := M.ReadSmallInt();
+    gTeamStat[TEAM_BLUE].Goals := M.ReadSmallInt();
   end
   else
     if gGameSettings.GameMode = GM_COOP then
     begin
-      gCoopMonstersKilled := e_Raw_Read_Word(P);
-      gCoopSecretsFound := e_Raw_Read_Word(P);
+      gCoopMonstersKilled := M.ReadWord();
+      gCoopSecretsFound := M.ReadWord();
     end;
 end;
 
-procedure MC_RECV_CoopStats(P: Pointer);
+procedure MC_RECV_CoopStats(var M: TMsg);
 begin
-  gTotalMonsters := e_Raw_Read_LongInt(P);
-  gSecretsCount := e_Raw_Read_LongInt(P);
-  gCoopTotalMonstersKilled := e_Raw_Read_Word(P);
-  gCoopTotalSecretsFound := e_Raw_Read_Word(P);
-  gCoopTotalMonsters := e_Raw_Read_Word(P);
-  gCoopTotalSecrets := e_Raw_Read_Word(P);
+  gTotalMonsters := M.ReadLongInt();
+  gSecretsCount := M.ReadLongInt();
+  gCoopTotalMonstersKilled := M.ReadWord();
+  gCoopTotalSecretsFound := M.ReadWord();
+  gCoopTotalMonsters := M.ReadWord();
+  gCoopTotalSecrets := M.ReadWord();
 end;
 
-procedure MC_RECV_GameEvent(P: Pointer);
+procedure MC_RECV_GameEvent(var M: TMsg);
 var
   EvType: Byte;
   EvNum: Integer;
@@ -1700,16 +1700,16 @@ var
   cnt: Byte;
 begin
   FillChar(EvHash, Sizeof(EvHash), 0);
-  EvType := e_Raw_Read_Byte(P);
-  EvNum := e_Raw_Read_LongInt(P);
-  EvStr := e_Raw_Read_String(P);
-  gLastMap := e_Raw_Read_Byte(P) <> 0;
+  EvType := M.ReadByte();
+  EvNum := M.ReadLongInt();
+  EvStr := M.ReadString();
+  gLastMap := M.ReadByte() <> 0;
   if gLastMap and (gGameSettings.GameMode = GM_COOP) then gStatsOff := True;
   gStatsPressed := True;
-  EvTime := e_Raw_Read_LongWord(P);
-  BHash := e_Raw_Read_Byte(P) <> 0;
+  EvTime := M.ReadLongWord();
+  BHash := M.ReadByte() <> 0;
   if BHash then
-    EvHash := e_Raw_Read_MD5(P);
+    EvHash := M.ReadMD5();
 
   gTime := EvTime;
 
@@ -1888,7 +1888,7 @@ begin
   end;
 end;
 
-procedure MC_RECV_FlagEvent(P: Pointer);
+procedure MC_RECV_FlagEvent(var M: TMsg);
 var
   PID: Word;
   Pl: TPlayer;
@@ -1897,20 +1897,20 @@ var
   Quiet: Boolean;
   s, ts: string;
 begin
-  EvType := e_Raw_Read_Byte(P);
-  Fl := e_Raw_Read_Byte(P);
+  EvType := M.ReadByte();
+  Fl := M.ReadByte();
 
   if Fl = FLAG_NONE then Exit;
 
-  Quiet := (e_Raw_Read_Byte(P) <> 0);
-  PID := e_Raw_Read_Word(P);
+  Quiet := (M.ReadByte() <> 0);
+  PID := M.ReadWord();
 
-  gFlags[Fl].State := e_Raw_Read_Byte(P);
-  gFlags[Fl].CaptureTime := e_Raw_Read_LongWord(P);
-  gFlags[Fl].Obj.X := e_Raw_Read_LongInt(P);
-  gFlags[Fl].Obj.Y := e_Raw_Read_LongInt(P);
-  gFlags[Fl].Obj.Vel.X := e_Raw_Read_LongInt(P);
-  gFlags[Fl].Obj.Vel.Y := e_Raw_Read_LongInt(P);
+  gFlags[Fl].State := M.ReadByte();
+  gFlags[Fl].CaptureTime := M.ReadLongWord();
+  gFlags[Fl].Obj.X := M.ReadLongInt();
+  gFlags[Fl].Obj.Y := M.ReadLongInt();
+  gFlags[Fl].Obj.Vel.X := M.ReadLongInt();
+  gFlags[Fl].Obj.Vel.Y := M.ReadLongInt();
 
   Pl := g_Player_Get(PID);
   if (Pl = nil) and
@@ -1995,18 +1995,18 @@ begin
   end;
 end;
 
-procedure MC_RECV_GameSettings(P: Pointer);
+procedure MC_RECV_GameSettings(var M: TMsg);
 begin
-  gGameSettings.GameMode := e_Raw_Read_Byte(P);
-  gGameSettings.GoalLimit := e_Raw_Read_Word(P);
-  gGameSettings.TimeLimit := e_Raw_Read_Word(P);
-  gGameSettings.MaxLives := e_Raw_Read_Byte(P);
-  gGameSettings.Options := e_Raw_Read_LongWord(P);
+  gGameSettings.GameMode := M.ReadByte();
+  gGameSettings.GoalLimit := M.ReadWord();
+  gGameSettings.TimeLimit := M.ReadWord();
+  gGameSettings.MaxLives := M.ReadByte();
+  gGameSettings.Options := M.ReadLongWord();
 end;
 
 // PLAYER
 
-function MC_RECV_PlayerCreate(P: Pointer): Word;
+function MC_RECV_PlayerCreate(var M: TMsg): Word;
 var
   PID, DID: Word;
   PName, Model: string;
@@ -2014,15 +2014,15 @@ var
   T: Byte;
   Pl: TPlayer;
 begin
-  PID := e_Raw_Read_Word(P);
+  PID := M.ReadWord();
   Pl := g_Player_Get(PID);
 
-  PName := e_Raw_Read_String(P);
-  Model := e_Raw_Read_String(P);
-  Color.R := e_Raw_Read_Byte(P);
-  Color.G := e_Raw_Read_Byte(P);
-  Color.B := e_Raw_Read_Byte(P);
-  T := e_Raw_Read_Byte(P);
+  PName := M.ReadString();
+  Model := M.ReadString();
+  Color.R := M.ReadByte();
+  Color.G := M.ReadByte();
+  Color.B := M.ReadByte();
+  T := M.ReadByte();
 
   Result := 0;
   if (PID <> NetPlrUID1) and (PID <> NetPlrUID2) then
@@ -2055,7 +2055,7 @@ begin
   Result := PID;
 end;
 
-function MC_RECV_PlayerPos(P: Pointer): Word;
+function MC_RECV_PlayerPos(var M: TMsg): Word;
 var
   GT: LongWord;
   PID: Word;
@@ -2066,7 +2066,7 @@ var
 begin
   Result := 0;
 
-  GT := e_Raw_Read_LongWord(P);
+  GT := M.ReadLongWord();
   if GT < gTime - NET_MAX_DIFFTIME then
   begin
     gTime := GT;
@@ -2074,7 +2074,7 @@ begin
   end;
   gTime := GT;
 
-  PID := e_Raw_Read_Word(P);
+  PID := M.ReadWord();
   Pl := g_Player_Get(PID);
 
   if Pl = nil then Exit;
@@ -2083,13 +2083,13 @@ begin
 
   with Pl do
   begin
-    FPing := e_Raw_Read_Word(P);
-    FLoss := e_Raw_Read_Byte(P);
-    kByte := e_Raw_Read_Word(P);
-    Dir := e_Raw_Read_Byte(P);
+    FPing := M.ReadWord();
+    FLoss := M.ReadByte();
+    kByte := M.ReadWord();
+    Dir := M.ReadByte();
 
-    TmpX := e_Raw_Read_LongInt(P);
-    TmpY := e_Raw_Read_LongInt(P);
+    TmpX := M.ReadLongInt();
+    TmpY := M.ReadLongInt();
 
     ReleaseKeys;
 
@@ -2107,16 +2107,16 @@ begin
     if ((Pl <> gPlayer1) and (Pl <> gPlayer2)) or LongBool(kByte and NET_KEY_FORCEDIR) then
       SetDirection(TDirection(Dir));
 
-    GameVelX := e_Raw_Read_LongInt(P);
-    GameVelY := e_Raw_Read_LongInt(P);
-    GameAccelX := e_Raw_Read_LongInt(P);
-    GameAccelY := e_Raw_Read_LongInt(P);
+    GameVelX := M.ReadLongInt();
+    GameVelY := M.ReadLongInt();
+    GameAccelX := M.ReadLongInt();
+    GameAccelY := M.ReadLongInt();
     SetLerp(TmpX, TmpY);
     if NetForcePlayerUpdate then Update();
   end;
 end;
 
-function MC_RECV_PlayerStats(P: Pointer): Word;
+function MC_RECV_PlayerStats(var M: TMsg): Word;
 var
   PID: Word;
   Pl: TPlayer;
@@ -2124,7 +2124,7 @@ var
   OldJet: Boolean;
   NewTeam: Byte;
 begin
-  PID := e_Raw_Read_Word(P);
+  PID := M.ReadWord();
   Pl := g_Player_Get(PID);
   Result := 0;
   if Pl = nil then
@@ -2132,45 +2132,45 @@ begin
 
   with Pl do
   begin
-    Live := (e_Raw_Read_Byte(P) <> 0);
-    GodMode := (e_Raw_Read_Byte(P) <> 0);
-    Health := e_Raw_Read_LongInt(P);
-    Armor := e_Raw_Read_LongInt(P);
-    Air := e_Raw_Read_LongInt(P);
-    JetFuel := e_Raw_Read_LongInt(P);
-    Lives := e_Raw_Read_Byte(P);
-    NewTeam := e_Raw_Read_Byte(P);
+    Live := (M.ReadByte() <> 0);
+    GodMode := (M.ReadByte() <> 0);
+    Health := M.ReadLongInt();
+    Armor := M.ReadLongInt();
+    Air := M.ReadLongInt();
+    JetFuel := M.ReadLongInt();
+    Lives := M.ReadByte();
+    NewTeam := M.ReadByte();
 
     for I := WP_FIRST to WP_LAST do
-      FWeapon[I] := (e_Raw_Read_Byte(P) <> 0);
+      FWeapon[I] := (M.ReadByte() <> 0);
 
     for I := A_BULLETS to A_HIGH do
-      FAmmo[I] := e_Raw_Read_Word(P);
+      FAmmo[I] := M.ReadWord();
 
     for I := A_BULLETS to A_HIGH do
-      FMaxAmmo[I] := e_Raw_Read_Word(P);
+      FMaxAmmo[I] := M.ReadWord();
 
     for I := MR_SUIT to MR_MAX do
-      FMegaRulez[I] := e_Raw_Read_LongWord(P);
+      FMegaRulez[I] := M.ReadLongWord();
 
     FRulez := [];
-    if (e_Raw_Read_Byte(P) <> 0) then
+    if (M.ReadByte() <> 0) then
       FRulez := FRulez + [R_ITEM_BACKPACK];
-    if (e_Raw_Read_Byte(P) <> 0) then
+    if (M.ReadByte() <> 0) then
       FRulez := FRulez + [R_KEY_RED];
-    if (e_Raw_Read_Byte(P) <> 0) then
+    if (M.ReadByte() <> 0) then
       FRulez := FRulez + [R_KEY_GREEN];
-    if (e_Raw_Read_Byte(P) <> 0) then
+    if (M.ReadByte() <> 0) then
       FRulez := FRulez + [R_KEY_BLUE];
-    if (e_Raw_Read_Byte(P) <> 0) then
+    if (M.ReadByte() <> 0) then
       FRulez := FRulez + [R_BERSERK];
 
-    Frags := e_Raw_Read_LongInt(P);
-    Death := e_Raw_Read_LongInt(P);
+    Frags := M.ReadLongInt();
+    Death := M.ReadLongInt();
 
-    SetWeapon(e_Raw_Read_Byte(P));
+    SetWeapon(M.ReadByte());
 
-    FSpectator := e_Raw_Read_Byte(P) <> 0;
+    FSpectator := M.ReadByte() <> 0;
     if FSpectator then
     begin
       if Pl = gPlayer1 then
@@ -2191,12 +2191,12 @@ begin
       if (gPlayer2 = nil) and (gLMSPID2 > 0) then
         gPlayer2 := g_Player_Get(gLMSPID2);
     end;
-    FGhost := e_Raw_Read_Byte(P) <> 0;
-    FPhysics := e_Raw_Read_Byte(P) <> 0;
-    FNoRespawn := e_Raw_Read_Byte(P) <> 0;
+    FGhost := M.ReadByte() <> 0;
+    FPhysics := M.ReadByte() <> 0;
+    FNoRespawn := M.ReadByte() <> 0;
     OldJet := FJetpack;
-    FJetpack := e_Raw_Read_Byte(P) <> 0;
-    FFireTime := e_Raw_Read_LongInt(P);
+    FJetpack := M.ReadByte() <> 0;
+    FFireTime := M.ReadLongInt();
     if OldJet and not FJetpack then
       JetpackOff
     else if not OldJet and FJetpack then
@@ -2208,7 +2208,7 @@ begin
   Result := PID;
 end;
 
-function MC_RECV_PlayerDamage(P: Pointer): Word;
+function MC_RECV_PlayerDamage(var M: TMsg): Word;
 var
   PID: Word;
   Pl: TPlayer;
@@ -2218,15 +2218,15 @@ var
 begin
   Result := 0;
   if not gGameOn then Exit;
-  PID := e_Raw_Read_Word(P);
+  PID := M.ReadWord();
   Pl := g_Player_Get(PID);
   if Pl = nil then Exit;
 
-  Kind := e_Raw_Read_Byte(P);
-  Attacker := e_Raw_Read_Word(P);
-  Value := e_Raw_Read_Word(P);
-  VX := e_Raw_Read_Word(P);
-  VY := e_Raw_Read_Word(P);
+  Kind := M.ReadByte();
+  Attacker := M.ReadWord();
+  Value := M.ReadWord();
+  VX := M.ReadWord();
+  VY := M.ReadWord();
 
   with Pl do
     Damage(Value, Attacker, VX, VY, Kind);
@@ -2234,7 +2234,7 @@ begin
   Result := PID;
 end;
 
-function MC_RECV_PlayerDeath(P: Pointer): Word;
+function MC_RECV_PlayerDeath(var M: TMsg): Word;
 var
   PID: Word;
   Pl: TPlayer;
@@ -2243,13 +2243,13 @@ var
 begin
   Result := 0;
   if not gGameOn then Exit;
-  PID := e_Raw_Read_Word(P);
+  PID := M.ReadWord();
   Pl := g_Player_Get(PID);
   if Pl = nil then Exit;
 
-  KillType := e_Raw_Read_Byte(P);
-  DeathType := e_Raw_Read_Byte(P);
-  Attacker := e_Raw_Read_Word(P);
+  KillType := M.ReadByte();
+  DeathType := M.ReadByte();
+  Attacker := M.ReadWord();
 
   with Pl do
   begin
@@ -2258,12 +2258,12 @@ begin
   end;
 end;
 
-function MC_RECV_PlayerDelete(P: Pointer): Word;
+function MC_RECV_PlayerDelete(var M: TMsg): Word;
 var
   PID: Word;
   Pl: TPlayer;
 begin
-  PID := e_Raw_Read_Word(P);
+  PID := M.ReadWord();
   Pl := g_Player_Get(PID);
   Result := 0;
   if Pl = nil then Exit;
@@ -2276,7 +2276,7 @@ begin
   Result := PID;
 end;
 
-function MC_RECV_PlayerFire(P: Pointer): Word;
+function MC_RECV_PlayerFire(var M: TMsg): Word;
 var
   PID: Word;
   Weap: Byte;
@@ -2286,22 +2286,22 @@ var
 begin
   Result := 0;
   if not gGameOn then Exit;
-  PID := e_Raw_Read_Word(P);
+  PID := M.ReadWord();
   Pl := g_Player_Get(PID);
   if Pl = nil then Exit;
 
-  Weap := e_Raw_Read_Byte(P);
-  X := e_Raw_Read_LongInt(P);
-  Y := e_Raw_Read_LongInt(P);
-  AX := e_Raw_Read_LongInt(P);
-  AY := e_Raw_Read_LongInt(P);
-  SHID := e_Raw_Read_LongInt(P);
+  Weap := M.ReadByte();
+  X := M.ReadLongInt();
+  Y := M.ReadLongInt();
+  AX := M.ReadLongInt();
+  AY := M.ReadLongInt();
+  SHID := M.ReadLongInt();
 
   with Pl do
     if Live then NetFire(Weap, X, Y, AX, AY, SHID);
 end;
 
-procedure MC_RECV_PlayerSettings(P: Pointer);
+procedure MC_RECV_PlayerSettings(var M: TMsg);
 var
   TmpName: string;
   TmpModel: string;
@@ -2310,16 +2310,16 @@ var
   Pl: TPlayer;
   PID: Word;
 begin
-  PID := e_Raw_Read_Word(P);
+  PID := M.ReadWord();
   Pl := g_Player_Get(PID);
   if Pl = nil then Exit;
 
-  TmpName := e_Raw_Read_String(P);
-  TmpModel := e_Raw_Read_String(P);
-  TmpColor.R := e_Raw_Read_Byte(P);
-  TmpColor.G := e_Raw_Read_Byte(P);
-  TmpColor.B := e_Raw_Read_Byte(P);
-  TmpTeam := e_Raw_Read_Byte(P);
+  TmpName := M.ReadString();
+  TmpModel := M.ReadString();
+  TmpColor.R := M.ReadByte();
+  TmpColor.G := M.ReadByte();
+  TmpColor.B := M.ReadByte();
+  TmpTeam := M.ReadByte();
 
   if (gGameSettings.GameMode in [GM_TDM, GM_CTF]) and (Pl.Team <> TmpTeam) then
   begin
@@ -2343,7 +2343,7 @@ end;
 
 // ITEM
 
-procedure MC_RECV_ItemSpawn(P: Pointer);
+procedure MC_RECV_ItemSpawn(var M: TMsg);
 var
   ID: Word;
   AID: DWord;
@@ -2354,15 +2354,15 @@ var
   it: PItem;
 begin
   if not gGameOn then Exit;
-  ID := e_Raw_Read_Word(P);
-  Quiet := e_Raw_Read_Byte(P) <> 0;
-  T := e_Raw_Read_Byte(P);
-  Fall := e_Raw_Read_Byte(P) <> 0;
-  {Resp :=} e_Raw_Read_Byte(P);
-  X := e_Raw_Read_LongInt(P);
-  Y := e_Raw_Read_LongInt(P);
-  VX := e_Raw_Read_LongInt(P);
-  VY := e_Raw_Read_LongInt(P);
+  ID := M.ReadWord();
+  Quiet := M.ReadByte() <> 0;
+  T := M.ReadByte();
+  Fall := M.ReadByte() <> 0;
+  {Resp :=} M.ReadByte();
+  X := M.ReadLongInt();
+  Y := M.ReadLongInt();
+  VX := M.ReadLongInt();
+  VY := M.ReadLongInt();
 
   g_Items_Create(X, Y, T, Fall, False, False, ID);
 
@@ -2382,14 +2382,14 @@ begin
   end;
 end;
 
-procedure MC_RECV_ItemDestroy(P: Pointer);
+procedure MC_RECV_ItemDestroy(var M: TMsg);
 var
   ID: Word;
   Quiet: Boolean;
 begin
   if not gGameOn then Exit;
-  ID := e_Raw_Read_Word(P);
-  Quiet := e_Raw_Read_Byte(P) <> 0;
+  ID := M.ReadWord();
+  Quiet := M.ReadByte() <> 0;
 
   if not g_ItemValidId(ID) then exit;
 
@@ -2400,7 +2400,7 @@ end;
 
 // PANEL
 
-procedure MC_RECV_PanelTexture(P: Pointer);
+procedure MC_RECV_PanelTexture(var M: TMsg);
 var
   TP: TPanel;
   PType: Word;
@@ -2409,12 +2409,12 @@ var
   Loop, Cnt: Byte;
 begin
   if not gGameOn then Exit;
-  PType := e_Raw_Read_Word(P);
-  ID := e_Raw_Read_LongWord(P);
-  Tex := e_Raw_Read_LongInt(P);
-  Fr := e_Raw_Read_LongInt(P);
-  Cnt := e_Raw_Read_Byte(P);
-  Loop := e_Raw_Read_Byte(P);
+  PType := M.ReadWord();
+  ID := M.ReadLongWord();
+  Tex := M.ReadLongInt();
+  Fr := M.ReadLongInt();
+  Cnt := M.ReadByte();
+  Loop := M.ReadByte();
 
   TP := nil;
 
@@ -2453,7 +2453,7 @@ begin
       TP.NextTexture(Loop);
 end;
 
-procedure MC_RECV_PanelState(P: Pointer);
+procedure MC_RECV_PanelState(var M: TMsg);
 var
   ID: LongWord;
   E: Boolean;
@@ -2462,12 +2462,12 @@ var
   X, Y: Integer;
 begin
   if not gGameOn then Exit;
-  PType := e_Raw_Read_Word(P);
-  ID := e_Raw_Read_LongWord(P);
-  E := (e_Raw_Read_Byte(P) <> 0);
-  Lift := e_Raw_Read_Byte(P);
-  X := e_Raw_Read_LongInt(P);
-  Y := e_Raw_Read_LongInt(P);
+  PType := M.ReadWord();
+  ID := M.ReadLongWord();
+  E := (M.ReadByte() <> 0);
+  Lift := M.ReadByte();
+  X := M.ReadLongInt();
+  Y := M.ReadLongInt();
 
   case PType of
     PANEL_WALL, PANEL_OPENDOOR, PANEL_CLOSEDOOR:
@@ -2495,7 +2495,7 @@ end;
 
 // TRIGGERS
 
-procedure MC_RECV_TriggerSound(P: Pointer);
+procedure MC_RECV_TriggerSound(var M: TMsg);
 var
   SPlaying: Boolean;
   SPos, SID: LongWord;
@@ -2505,10 +2505,10 @@ begin
   if not gGameOn then Exit;
   if gTriggers = nil then Exit;
 
-  SID := e_Raw_Read_LongWord(P);
-  SPlaying := e_Raw_Read_Byte(P) <> 0;
-  SPos := e_Raw_Read_LongWord(P);
-  SCount := e_Raw_Read_LongInt(P);
+  SID := M.ReadLongWord();
+  SPlaying := M.ReadByte() <> 0;
+  SPos := M.ReadLongWord();
+  SCount := M.ReadLongInt();
 
   for I := Low(gTriggers) to High(gTriggers) do
     if gTriggers[I].TriggerType = TRIGGER_SOUND then
@@ -2530,7 +2530,7 @@ begin
         end;
 end;
 
-procedure MC_RECV_TriggerMusic(P: Pointer);
+procedure MC_RECV_TriggerMusic(var M: TMsg);
 var
   MName: string;
   MPlaying: Boolean;
@@ -2539,10 +2539,10 @@ var
 begin
   if not gGameOn then Exit;
 
-  MName := e_Raw_Read_String(P);
-  MPlaying := e_Raw_Read_Byte(P) <> 0;
-  MPos := e_Raw_Read_LongWord(P);
-  MPaused := e_Raw_Read_Byte(P) <> 0;
+  MName := M.ReadString();
+  MPlaying := M.ReadByte() <> 0;
+  MPos := M.ReadLongWord();
+  MPaused := M.ReadByte() <> 0;
 
   if MPlaying then
   begin
@@ -2557,41 +2557,41 @@ end;
 
 // MONSTERS
 
-procedure MC_RECV_MonsterSpawn(P: Pointer);
+procedure MC_RECV_MonsterSpawn(var M: TMsg);
 var
   ID: Word;
   MType, MState, MDir, MAnim, MBehav: Byte;
   X, Y, VX, VY, MTargTime, MHealth, MAmmo, MSleep: Integer;
   MTarg: Word;
-  M: TMonster;
+  Mon: TMonster;
 begin
-  ID := e_Raw_Read_Word(P);
-  M := g_Monsters_Get(ID);
-  if M <> nil then
+  ID := M.ReadWord();
+  Mon := g_Monsters_Get(ID);
+  if Mon <> nil then
     Exit;
 
-  MType := e_Raw_Read_Byte(P);
-  MState := e_Raw_Read_Byte(P);
-  MAnim := e_Raw_Read_Byte(P);
-  MTarg := e_Raw_Read_Word(P);
-  MTargTime := e_Raw_Read_LongInt(P);
-  MBehav := e_Raw_Read_Byte(P);
-  MSleep := e_Raw_Read_LongInt(P);
-  MHealth := e_Raw_Read_LongInt(P);
-  MAmmo := e_Raw_Read_LongInt(P);
+  MType := M.ReadByte();
+  MState := M.ReadByte();
+  MAnim := M.ReadByte();
+  MTarg := M.ReadWord();
+  MTargTime := M.ReadLongInt();
+  MBehav := M.ReadByte();
+  MSleep := M.ReadLongInt();
+  MHealth := M.ReadLongInt();
+  MAmmo := M.ReadLongInt();
 
-  X := e_Raw_Read_LongInt(P);
-  Y := e_Raw_Read_LongInt(P);
-  VX := e_Raw_Read_LongInt(P);
-  VY := e_Raw_Read_LongInt(P);
-  MDir := e_Raw_Read_Byte(P);
+  X := M.ReadLongInt();
+  Y := M.ReadLongInt();
+  VX := M.ReadLongInt();
+  VY := M.ReadLongInt();
+  MDir := M.ReadByte();
 
   g_Monsters_Create(MType, X, Y, TDirection(MDir), False, ID);
-  M := g_Monsters_Get(ID);
-  if M = nil then
+  Mon := g_Monsters_Get(ID);
+  if Mon = nil then
     Exit;
 
-  with M do
+  with Mon do
   begin
     GameX := X;
     GameY := Y;
@@ -2612,51 +2612,51 @@ begin
   end;
 end;
 
-procedure MC_RECV_MonsterPos(P: Pointer);
+procedure MC_RECV_MonsterPos(var M: TMsg);
 var
-  M: TMonster;
+  Mon: TMonster;
   ID: Word;
 begin
-  ID := e_Raw_Read_Word(P);
-  M := g_Monsters_Get(ID);
-  if M = nil then
+  ID := M.ReadWord();
+  Mon := g_Monsters_Get(ID);
+  if Mon = nil then
     Exit;
 
-  with M do
+  with Mon do
   begin
-    GameX := e_Raw_Read_LongInt(P);
-    GameY := e_Raw_Read_LongInt(P);
-    GameVelX := e_Raw_Read_LongInt(P);
-    GameVelY := e_Raw_Read_LongInt(P);
-    GameDirection := TDirection(e_Raw_Read_Byte(P));
+    GameX := M.ReadLongInt();
+    GameY := M.ReadLongInt();
+    GameVelX := M.ReadLongInt();
+    GameVelY := M.ReadLongInt();
+    GameDirection := TDirection(M.ReadByte());
     positionChanged(); // this updates spatial accelerators
   end;
 end;
 
-procedure MC_RECV_MonsterState(P: Pointer);
+procedure MC_RECV_MonsterState(var M: TMsg);
 var
   ID: Integer;
   MState, MFAnm: Byte;
-  M: TMonster;
+  Mon: TMonster;
   AnimRevert: Boolean;
 begin
-  ID := e_Raw_Read_Word(P);
-  M := g_Monsters_Get(ID);
-  if M = nil then Exit;
+  ID := M.ReadWord();
+  Mon := g_Monsters_Get(ID);
+  if Mon = nil then Exit;
 
-  MState := e_Raw_Read_Byte(P);
-  MFAnm := e_Raw_Read_Byte(P);
+  MState := M.ReadByte();
+  MFAnm := M.ReadByte();
 
-  with M do
+  with Mon do
   begin
-    MonsterTargetUID := e_Raw_Read_Word(P);
-    MonsterTargetTime := e_Raw_Read_LongInt(P);
-    MonsterSleep := e_Raw_Read_LongInt(P);
-    MonsterHealth := e_Raw_Read_LongInt(P);
-    MonsterAmmo := e_Raw_Read_LongInt(P);
-    MonsterPain := e_Raw_Read_LongInt(P);
-    AnimRevert := e_Raw_Read_Byte(P) <> 0;
-    FFireTime := e_Raw_Read_LongInt(P);
+    MonsterTargetUID := M.ReadWord();
+    MonsterTargetTime := M.ReadLongInt();
+    MonsterSleep := M.ReadLongInt();
+    MonsterHealth := M.ReadLongInt();
+    MonsterAmmo := M.ReadLongInt();
+    MonsterPain := M.ReadLongInt();
+    AnimRevert := M.ReadByte() <> 0;
+    FFireTime := M.ReadLongInt();
     RevertAnim(AnimRevert);
 
     if MonsterState <> MState then
@@ -2677,60 +2677,58 @@ begin
   end;
 end;
 
-procedure MC_RECV_MonsterShot(P: Pointer);
+procedure MC_RECV_MonsterShot(var M: TMsg);
 var
   ID: Integer;
-  M: TMonster;
+  Mon: TMonster;
   X, Y, VX, VY: Integer;
 begin
-  ID := e_Raw_Read_Word(P);
+  ID := M.ReadWord();
 
-  M := g_Monsters_Get(ID);
-  if M = nil then Exit;
+  Mon := g_Monsters_Get(ID);
+  if Mon = nil then Exit;
 
-  X := e_Raw_Read_LongInt(P);
-  Y := e_Raw_Read_LongInt(P);
-  VX := e_Raw_Read_LongInt(P);
-  VY := e_Raw_Read_LongInt(P);
+  X := M.ReadLongInt();
+  Y := M.ReadLongInt();
+  VX := M.ReadLongInt();
+  VY := M.ReadLongInt();
 
-  M.ClientAttack(X, Y, VX, VY);
+  Mon.ClientAttack(X, Y, VX, VY);
 end;
 
-procedure MC_RECV_MonsterDelete(P: Pointer);
+procedure MC_RECV_MonsterDelete(var M: TMsg);
 var
   ID: Integer;
-  M, mon: TMonster;
+  Mon: TMonster;
 begin
-  ID := e_Raw_Read_Word(P);
-  M := g_Monsters_Get(ID);
-  if M = nil then Exit;
-
-  mon := g_Mons_ByIdx(ID);
-  mon.SetState(5);
-  mon.MonsterRemoved := True;
+  ID := M.ReadWord();
+  Mon := g_Monsters_Get(ID);
+  if Mon = nil then Exit;
+  Mon.SetState(5);
+  Mon.MonsterRemoved := True;
 end;
 
-procedure MC_RECV_TimeSync(P: Pointer);
+procedure MC_RECV_TimeSync(var M: TMsg);
 var
   Time: LongWord;
 begin
-  Time := e_Raw_Read_LongWord(P);
+  Time := M.ReadLongWord();
 
   if gState = STATE_INTERCUSTOM then
     gServInterTime := Min(Time, 255);
 end;
 
-procedure MC_RECV_VoteEvent(P: Pointer);
+procedure MC_RECV_VoteEvent(var M: TMsg);
 var
   EvID: Byte;
   Str1, Str2: string;
   Int1, Int2: SmallInt;
 begin
-  EvID := e_Raw_Read_Byte(P);
-  Int1 := e_Raw_Read_SmallInt(P);
-  Int2 := e_Raw_Read_SmallInt(P);
-  Str1 := e_Raw_Read_String(P);
-  Str2 := e_Raw_Read_String(P);
+  EvID := M.ReadByte();
+  Int1 := M.ReadSmallInt();
+  Int2 := M.ReadSmallInt();
+  Str1 := M.ReadString();
+  Str2 := M.ReadString();
 
   case EvID of
     NET_VE_STARTED:
@@ -2750,26 +2748,26 @@ end;
 
 procedure MC_SEND_Info(Password: string);
 begin
-  e_Buffer_Clear(@NetOut);
+  NetOut.Clear();
 
-  e_Buffer_Write(@NetOut, Byte(NET_MSG_INFO));
-  e_Buffer_Write(@NetOut, GAME_VERSION);
-  e_Buffer_Write(@NetOut, Password);
-  e_Buffer_Write(@NetOut, gPlayer1Settings.Name);
-  e_Buffer_Write(@NetOut, gPlayer1Settings.Model);
-  e_Buffer_Write(@NetOut, gPlayer1Settings.Color.R);
-  e_Buffer_Write(@NetOut, gPlayer1Settings.Color.G);
-  e_Buffer_Write(@NetOut, gPlayer1Settings.Color.B);
-  e_Buffer_Write(@NetOut, gPlayer1Settings.Team);
+  NetOut.Write(Byte(NET_MSG_INFO));
+  NetOut.Write(GAME_VERSION);
+  NetOut.Write(Password);
+  NetOut.Write(gPlayer1Settings.Name);
+  NetOut.Write(gPlayer1Settings.Model);
+  NetOut.Write(gPlayer1Settings.Color.R);
+  NetOut.Write(gPlayer1Settings.Color.G);
+  NetOut.Write(gPlayer1Settings.Color.B);
+  NetOut.Write(gPlayer1Settings.Team);
 
   g_Net_Client_Send(True, NET_CHAN_SERVICE);
 end;
 
 procedure MC_SEND_Chat(Txt: string; Mode: Byte);
 begin
-  e_Buffer_Write(@NetOut, Byte(NET_MSG_CHAT));
-  e_Buffer_Write(@NetOut, Txt);
-  e_Buffer_Write(@NetOut, Mode);
+  NetOut.Write(Byte(NET_MSG_CHAT));
+  NetOut.Write(Txt);
+  NetOut.Write(Mode);
 
   g_Net_Client_Send(True, NET_CHAN_CHAT);
 end;
@@ -2862,11 +2860,11 @@ begin
   else
     kByte := NET_KEY_CHAT;
 
-  e_Buffer_Write(@NetOut, Byte(NET_MSG_PLRPOS));
-  e_Buffer_Write(@NetOut, gTime);
-  e_Buffer_Write(@NetOut, kByte);
-  e_Buffer_Write(@NetOut, Byte(gPlayer1.Direction));
-  e_Buffer_Write(@NetOut, WeaponSelect);
+  NetOut.Write(Byte(NET_MSG_PLRPOS));
+  NetOut.Write(gTime);
+  NetOut.Write(kByte);
+  NetOut.Write(Byte(gPlayer1.Direction));
+  NetOut.Write(WeaponSelect);
   //e_WriteLog(Format('S:ws=%d', [WeaponSelect]), MSG_WARNING);
   g_Net_Client_Send(True, NET_CHAN_PLAYERPOS);
 
@@ -2876,50 +2874,50 @@ end;
 
 procedure MC_SEND_Vote(Start: Boolean = False; Command: string = 'a');
 begin
-  e_Buffer_Write(@NetOut, Byte(NET_MSG_VOTE_EVENT));
-  e_Buffer_Write(@NetOut, Byte(Start));
-  e_Buffer_Write(@NetOut, Command);
+  NetOut.Write(Byte(NET_MSG_VOTE_EVENT));
+  NetOut.Write(Byte(Start));
+  NetOut.Write(Command);
   g_Net_Client_Send(True, NET_CHAN_IMPORTANT);
 end;
 
 procedure MC_SEND_PlayerSettings();
 begin
-  e_Buffer_Write(@NetOut, Byte(NET_MSG_PLRSET));
-  e_Buffer_Write(@NetOut, gPlayer1Settings.Name);
-  e_Buffer_Write(@NetOut, gPlayer1Settings.Model);
-  e_Buffer_Write(@NetOut, gPlayer1Settings.Color.R);
-  e_Buffer_Write(@NetOut, gPlayer1Settings.Color.G);
-  e_Buffer_Write(@NetOut, gPlayer1Settings.Color.B);
-  e_Buffer_Write(@NetOut, gPlayer1Settings.Team);
+  NetOut.Write(Byte(NET_MSG_PLRSET));
+  NetOut.Write(gPlayer1Settings.Name);
+  NetOut.Write(gPlayer1Settings.Model);
+  NetOut.Write(gPlayer1Settings.Color.R);
+  NetOut.Write(gPlayer1Settings.Color.G);
+  NetOut.Write(gPlayer1Settings.Color.B);
+  NetOut.Write(gPlayer1Settings.Team);
 
   g_Net_Client_Send(True, NET_CHAN_IMPORTANT);
 end;
 
 procedure MC_SEND_FullStateRequest();
 begin
-  e_Buffer_Write(@NetOut, Byte(NET_MSG_REQFST));
+  NetOut.Write(Byte(NET_MSG_REQFST));
 
   g_Net_Client_Send(True, NET_CHAN_SERVICE);
 end;
 
 procedure MC_SEND_CheatRequest(Kind: Byte);
 begin
-  e_Buffer_Write(@NetOut, Byte(NET_MSG_CHEAT));
-  e_Buffer_Write(@NetOut, Kind);
+  NetOut.Write(Byte(NET_MSG_CHEAT));
+  NetOut.Write(Kind);
 
   g_Net_Client_Send(True, NET_CHAN_IMPORTANT);
 end;
 procedure MC_SEND_RCONPassword(Password: string);
 begin
-  e_Buffer_Write(@NetOut, Byte(NET_MSG_RCON_AUTH));
-  e_Buffer_Write(@NetOut, Password);
+  NetOut.Write(Byte(NET_MSG_RCON_AUTH));
+  NetOut.Write(Password);
 
   g_Net_Client_Send(True, NET_CHAN_SERVICE);
 end;
 procedure MC_SEND_RCONCommand(Cmd: string);
 begin
-  e_Buffer_Write(@NetOut, Byte(NET_MSG_RCON_CMD));
-  e_Buffer_Write(@NetOut, Cmd);
+  NetOut.Write(Byte(NET_MSG_RCON_CMD));
+  NetOut.Write(Cmd);
 
   g_Net_Client_Send(True, NET_CHAN_SERVICE);
 end;
@@ -3060,18 +3058,18 @@ end;
 
 procedure MC_SEND_MapRequest();
 begin
-  e_Buffer_Write(@NetOut, Byte(NET_MSG_MAP_REQUEST));
+  NetOut.Write(Byte(NET_MSG_MAP_REQUEST));
   g_Net_Client_Send(True, NET_CHAN_IMPORTANT);
 end;
 
 procedure MC_SEND_ResRequest(const resName: AnsiString);
 begin
-  e_Buffer_Write(@NetOut, Byte(NET_MSG_RES_REQUEST));
-  e_Buffer_Write(@NetOut, resName);
+  NetOut.Write(Byte(NET_MSG_RES_REQUEST));
+  NetOut.Write(resName);
   g_Net_Client_Send(True, NET_CHAN_IMPORTANT);
 end;
 
-procedure MH_RECV_MapRequest(C: pTNetClient; P: Pointer);
+procedure MH_RECV_MapRequest(C: pTNetClient; var M: TMsg);
 var
   payload: AByte;
   peer: pENetPeer;
@@ -3091,14 +3089,14 @@ begin
   mapDataMsg.ExternalResources := nil;
 end;
 
-procedure MH_RECV_ResRequest(C: pTNetClient; P: Pointer);
+procedure MH_RECV_ResRequest(C: pTNetClient; var M: TMsg);
 var
   payload: AByte;
   peer: pENetPeer;
   FileName: String;
   resDataMsg: TResDataMsg;
 begin
-  FileName := ExtractFileName(e_Raw_Read_String(P));
+  FileName := ExtractFileName(M.ReadString());
   e_WriteLog('NET: Received res request: ' + FileName +
              ' from ' + DecodeIPV4(C.Peer.address.host), MSG_NOTIFY);
 

@@ -52,7 +52,7 @@ uses
   e_log in '../engine/e_log.pas',
   e_sound in '../engine/e_sound.pas',
   e_texture in '../engine/e_texture.pas',
-  e_fixedbuffer in '../engine/e_fixedbuffer.pas',
+  e_msg in '../engine/e_msg.pas',
   utils in '../shared/utils.pas',
   xstreams in '../shared/xstreams.pas',
   sfs in '../sfs/sfs.pas',

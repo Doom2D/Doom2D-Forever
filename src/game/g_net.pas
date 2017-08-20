@@ -19,7 +19,7 @@ unit g_net;
 interface
 
 uses
-  e_log, e_fixedbuffer, ENet, Classes;
+  e_log, e_msg, ENet, Classes;
 
 const
   NET_PROTOCOL_VER = 171;
@@ -43,7 +43,7 @@ const
   NET_SERVER = 1;
   NET_CLIENT = 2;
 
-  NET_BUFSIZE = 65536;
+  NET_BUFSIZE = $FFFF;
 
   NET_EVERYONE = -1;
 
@@ -116,7 +116,7 @@ var
   NetClientIP:   string = '127.0.0.1';
   NetClientPort: Word   = 25666;
 
-  NetIn, NetOut: TBuffer;
+  NetIn, NetOut: TMsg;
 
   NetClients:     array of TNetClient;
   NetClientCount: Byte = 0;
@@ -248,8 +248,8 @@ var
   IPstr: string;
   IP: LongWord;
 begin
-  e_Buffer_Clear(@NetIn);
-  e_Buffer_Clear(@NetOut);
+  NetIn.Clear();
+  NetOut.Clear();
   SetLength(NetClients, 0);
   NetPeer := nil;
   NetHost := nil;
@@ -282,8 +282,8 @@ end;
 
 procedure g_Net_Cleanup();
 begin
-  e_Buffer_Clear(@NetIn);
-  e_Buffer_Clear(@NetOut);
+  NetIn.Clear();
+  NetOut.Clear();
 
   SetLength(NetClients, 0);
   NetClientCount := 0;
@@ -373,7 +373,7 @@ begin
   end;
 
   NetMode := NET_SERVER;
-  e_Buffer_Clear(@NetOut);
+  NetOut.Clear();
 
   if NetDump then
     g_Net_DumpStart();
@@ -433,14 +433,14 @@ begin
     if ID > High(NetClients) then Exit;
     if NetClients[ID].Peer = nil then Exit;
 
-    P := enet_packet_create(Addr(NetOut.Data), NetOut.Len, F);
+    P := enet_packet_create(NetOut.Data, NetOut.CurSize, F);
     if not Assigned(P) then Exit;
 
     enet_peer_send(NetClients[ID].Peer, Chan, P);
   end
   else
   begin
-    P := enet_packet_create(Addr(NetOut.Data), NetOut.Len, F);
+    P := enet_packet_create(NetOut.Data, NetOut.CurSize, F);
     if not Assigned(P) then Exit;
 
     enet_host_broadcast(NetHost, Chan, P);
@@ -448,7 +448,7 @@ begin
 
   if NetDump then g_Net_DumpSendBuffer();
   g_Net_Flush();
-  e_Buffer_Clear(@NetOut);
+  NetOut.Clear();
 end;
 
 procedure g_Net_Host_CheckPings();
@@ -474,22 +474,22 @@ begin
   begin
     ClTime := Int64(Addr(Ping[2])^);
 
-    e_Buffer_Clear(@NetOut);
-    e_Buffer_Write(@NetOut, Byte(Ord('D')));
-    e_Buffer_Write(@NetOut, Byte(Ord('F')));
-    e_Buffer_Write(@NetOut, ClTime);
+    NetOut.Clear();
+    NetOut.Write(Byte(Ord('D')));
+    NetOut.Write(Byte(Ord('F')));
+    NetOut.Write(ClTime);
     g_Net_Slist_WriteInfo();
     NPl := 0;
     if gPlayer1 <> nil then Inc(NPl);
     if gPlayer2 <> nil then Inc(NPl);
-    e_Buffer_Write(@NetOut, NPl);
-    e_Buffer_Write(@NetOut, gNumBots);
+    NetOut.Write(NPl);
+    NetOut.Write(gNumBots);
 
-    Buf.data := Addr(NetOut.Data[0]);
-    Buf.dataLength := NetOut.WritePos;
+    Buf.data := NetOut.Data;
+    Buf.dataLength := NetOut.CurSize;
     enet_socket_send(NetPongSock, @ClAddr, @Buf, 1);
 
-    e_Buffer_Clear(@NetOut);
+    NetOut.Clear();
   end;
 end;
 
@@ -663,13 +663,13 @@ begin
   else
     F := 0;
 
-  P := enet_packet_create(Addr(NetOut.Data), NetOut.Len, F);
+  P := enet_packet_create(NetOut.Data, NetOut.CurSize, F);
   if not Assigned(P) then Exit;
 
   enet_peer_send(NetPeer, Chan, P);
   if NetDump then g_Net_DumpSendBuffer();
   g_Net_Flush();
-  e_Buffer_Clear(@NetOut);
+  NetOut.Clear();
 end;
 
 function g_Net_Client_Update(): enet_size_t;
@@ -777,7 +777,7 @@ begin
       begin
         g_Console_Add(_lc[I_NET_MSG] + _lc[I_NET_MSG_CLIENT_DONE]);
         NetMode := NET_CLIENT;
-        e_Buffer_Clear(@NetOut);
+        NetOut.Clear();
         enet_peer_timeout(NetPeer, ENET_PEER_TIMEOUT_LIMIT * 2, ENET_PEER_TIMEOUT_MINIMUM * 2, ENET_PEER_TIMEOUT_MAXIMUM * 2);
         NetClientIP := IP;
         NetClientPort := Port;
@@ -810,15 +810,11 @@ function IpToStr(IP: LongWord): string;
 var
   Ptr: Pointer;
 begin
-  Result := '';
   Ptr := Addr(IP);
-
-  e_Raw_Seek(0);
-  Result := Result + IntToStr(e_Raw_Read_Byte(Ptr)) + '.';
-  Result := Result + IntToStr(e_Raw_Read_Byte(Ptr)) + '.';
-  Result := Result + IntToStr(e_Raw_Read_Byte(Ptr)) + '.';
-  Result := Result + IntToStr(e_Raw_Read_Byte(Ptr));
-  e_Raw_Seek(0);
+  Result :=          IntToStr(PByte(Ptr + 0)^) + '.';
+  Result := Result + IntToStr(PByte(Ptr + 1)^) + '.';
+  Result := Result + IntToStr(PByte(Ptr + 2)^) + '.';
+  Result := Result + IntToStr(PByte(Ptr + 3)^);
 end;
 
 function StrToIp(IPstr: string; var IP: LongWord): Boolean;
@@ -1085,9 +1081,9 @@ end;
 procedure g_Net_DumpSendBuffer();
 begin
   writeInt(NetDumpFile, gTime);
-  writeInt(NetDumpFile, LongWord(NetOut.Len));
+  writeInt(NetDumpFile, LongWord(NetOut.CurSize));
   writeInt(NetDumpFile, Byte(1));
-  NetDumpFile.WriteBuffer(NetOut.Data[0], NetOut.Len);
+  NetDumpFile.WriteBuffer(NetOut.Data^, NetOut.CurSize);
 end;
 
 procedure g_Net_DumpRecvBuffer(Buf: penet_uint8; Len: LongWord);
@@ -1104,5 +1100,15 @@ begin
   NetDumpFile.Free();
   NetDumpFile := nil;
 end;
+
+initialization
+
+  NetIn.Alloc(NET_BUFSIZE);
+  NetOut.Alloc(NET_BUFSIZE);
+
+finalization
+
+  NetIn.Free();
+  NetOut.Free();
 
 end.

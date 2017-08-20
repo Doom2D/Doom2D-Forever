@@ -327,7 +327,7 @@ uses
   g_playermodel, g_gfx, g_options, g_weapons, Math,
   g_triggers, MAPDEF, g_monsters, e_sound, CONFIG,
   BinEditor, g_language, g_net, SDL,
-  ENet, e_fixedbuffer, g_netmsg, g_netmaster, GL, GLExt,
+  ENet, e_msg, g_netmsg, g_netmaster, GL, GLExt,
   utils, sfs;
 
 
@@ -3740,6 +3740,7 @@ var
   State: Byte;
   OuterLoop: Boolean;
   newResPath: string;
+  InMsg: TMsg;
 begin
   g_Game_Free();
 
@@ -3787,27 +3788,28 @@ begin
       if (NetEvent.kind = ENET_EVENT_TYPE_RECEIVE) then
       begin
         Ptr := NetEvent.packet^.data;
-        e_Raw_Seek(0);
+        if not InMsg.Init(Ptr, NetEvent.packet^.dataLength, True) then
+          continue;
 
-        MID := e_Raw_Read_Byte(Ptr);
+        MID := InMsg.ReadByte();
 
         if (MID = NET_MSG_INFO) and (State = 0) then
         begin
-          NetMyID := e_Raw_Read_Byte(Ptr);
-          NetPlrUID1 := e_Raw_Read_Word(Ptr);
+          NetMyID := InMsg.ReadByte();
+          NetPlrUID1 := InMsg.ReadWord();
 
-          WadName := e_Raw_Read_String(Ptr);
-          Map := e_Raw_Read_String(Ptr);
+          WadName := InMsg.ReadString();
+          Map := InMsg.ReadString();
 
-          gWADHash := e_Raw_Read_MD5(Ptr);
+          gWADHash := InMsg.ReadMD5();
 
-          gGameSettings.GameMode := e_Raw_Read_Byte(Ptr);
+          gGameSettings.GameMode := InMsg.ReadByte();
           gSwitchGameMode := gGameSettings.GameMode;
-          gGameSettings.GoalLimit := e_Raw_Read_Word(Ptr);
-          gGameSettings.TimeLimit := e_Raw_Read_Word(Ptr);
-          gGameSettings.MaxLives := e_Raw_Read_Byte(Ptr);
-          gGameSettings.Options := e_Raw_Read_LongWord(Ptr);
-          T := e_Raw_Read_LongWord(Ptr);
+          gGameSettings.GoalLimit := InMsg.ReadWord();
+          gGameSettings.TimeLimit := InMsg.ReadWord();
+          gGameSettings.MaxLives := InMsg.ReadByte();
+          gGameSettings.Options := InMsg.ReadLongWord();
+          T := InMsg.ReadLongWord();
 
           newResPath := g_Res_SearchSameWAD(MapsDir, WadName, gWADHash);
           if newResPath = '' then

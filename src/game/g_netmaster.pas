@@ -72,7 +72,7 @@ procedure g_Serverlist_Control(var SL: TNetServerList);
 implementation
 
 uses
-  SysUtils, e_fixedbuffer, e_input, e_graphics, e_log, g_window, g_net, g_console,
+  SysUtils, e_msg, e_input, e_graphics, e_log, g_window, g_net, g_console,
   g_map, g_game, g_sound, g_textures, g_gui, g_menu, g_options, g_language, wadreader;
 
 var
@@ -113,6 +113,7 @@ var
   T: Int64;
   Sock: ENetSocket;
   Buf: ENetBuffer;
+  InMsg: TMsg;
   SvAddr: ENetAddress;
 begin
   Result := False;
@@ -127,10 +128,12 @@ begin
   e_WriteLog('Fetching serverlist...', MSG_NOTIFY);
   g_Console_Add(_lc[I_NET_MSG] + _lc[I_NET_SLIST_FETCH]);
 
-  e_Buffer_Clear(@NetOut);
-  e_Buffer_Write(@NetOut, Byte(NET_MMSG_GET));
+  NetOut.Clear();
+  NetOut.Write(Byte(NET_MMSG_GET));
+  e_WriteLog('Wr ' + IntToStr(PByte(NetOut.Data)^) + ' !.', MSG_NOTIFY);
+  e_WriteLog('Wr ' + IntToStr(NetOut.CurSize) + ' !.', MSG_NOTIFY);
 
-  P := enet_packet_create(Addr(NetOut.Data), NetOut.Len, Cardinal(ENET_PACKET_FLAG_RELIABLE));
+  P := enet_packet_create(NetOut.Data, NetOut.CurSize, Cardinal(ENET_PACKET_FLAG_RELIABLE));
   enet_peer_send(NetMPeer, NET_MCHAN_MAIN, P);
   enet_host_flush(NetMHost);
 
@@ -138,12 +141,14 @@ begin
   begin
     if NetMEvent.kind = ENET_EVENT_TYPE_RECEIVE then
     begin
-      e_Raw_Seek(0);
-      MID := e_Raw_Read_Byte(NetMEvent.packet^.data);
+      if not InMsg.Init(NetMEvent.packet^.data, NetMEvent.packet^.dataLength, True) then continue;
+
+      MID := InMsg.ReadByte();
+      e_WriteLog('Retrieved ' + IntToStr(MID) + ' !.', MSG_NOTIFY);
 
       if MID <> NET_MMSG_GET then continue;
 
-      Cnt := e_Raw_Read_Byte(NetMEvent.packet^.data);
+      Cnt := InMsg.ReadByte();
       e_WriteLog('Retrieved ' + IntToStr(Cnt) + ' server(s).', MSG_NOTIFY);
       g_Console_Add(_lc[I_NET_MSG] + Format(_lc[I_NET_SLIST_RETRIEVED], [Cnt]), True);
       //writeln('BOO!');
@@ -155,15 +160,15 @@ begin
         for I := 0 to Cnt - 1 do
         begin
           SL[I].Number := I;
-          SL[I].IP := e_Raw_Read_String(NetMEvent.packet^.data);
-          SL[I].Port := e_Raw_Read_Word(NetMEvent.packet^.data);
-          SL[I].Name := e_Raw_Read_String(NetMEvent.packet^.data);
-          SL[I].Map := e_Raw_Read_String(NetMEvent.packet^.data);
-          SL[I].GameMode := e_Raw_Read_Byte(NetMEvent.packet^.data);
-          SL[I].Players := e_Raw_Read_Byte(NetMEvent.packet^.data);
-          SL[I].MaxPlayers := e_Raw_Read_Byte(NetMEvent.packet^.data);
-          SL[I].Protocol := e_Raw_Read_Byte(NetMEvent.packet^.data);
-          SL[I].Password := e_Raw_Read_Byte(NetMEvent.packet^.data) = 1;
+          SL[I].IP := InMsg.ReadString();
+          SL[I].Port := InMsg.ReadWord();
+          SL[I].Name := InMsg.ReadString();
+          SL[I].Map := InMsg.ReadString();
+          SL[I].GameMode := InMsg.ReadByte();
+          SL[I].Players := InMsg.ReadByte();
+          SL[I].MaxPlayers := InMsg.ReadByte();
+          SL[I].Protocol := InMsg.ReadByte();
+          SL[I].Password := InMsg.ReadByte() = 1;
           enet_address_set_host(Addr(SL[I].PingAddr), PChar(Addr(SL[I].IP[1])));
           SL[I].Ping := -1;
           SL[I].PingAddr.port := SL[I].Port + 1;
@@ -176,7 +181,7 @@ begin
   end;
 
   g_Net_Slist_Disconnect;
-  e_Buffer_Clear(@NetOut);
+  NetOut.Clear();
 
   if Length(SL) = 0 then Exit;
 
@@ -189,23 +194,24 @@ begin
 
   T := GetTimerMS();
 
-  e_Buffer_Clear(@NetIn);
-  Buf.data := Addr(NetIn.Data);
-  Buf.dataLength := Length(NetIn.Data);
+  InMsg.Alloc(NET_BUFSIZE);
+  Buf.data := InMsg.Data;
+  Buf.dataLength := InMsg.MaxSize;
   Cnt := 0;
   while Cnt < Length(SL) do
   begin
     if GetTimerMS() - T > 500 then break;
 
-    e_Buffer_Clear(@NetIn);
+    InMsg.Clear();
 
     RX := enet_socket_receive(Sock, @SvAddr, @Buf, 1);
     if RX <= 0 then continue;
-    NetIn.Len := RX + 1;
-    NetIn.ReadPos := 0;
+    InMsg.CurSize := RX;
 
-    if e_Buffer_Read_Char(@NetIn) <> 'D' then continue;
-    if e_Buffer_Read_Char(@NetIn) <> 'F' then continue;
+    InMsg.BeginReading();
+
+    if InMsg.ReadChar() <> 'D' then continue;
+    if InMsg.ReadChar() <> 'F' then continue;
 
     for I := Low(SL) to High(SL) do
       if (SL[I].PingAddr.host = SvAddr.host) and
@@ -213,23 +219,24 @@ begin
       begin
         with SL[I] do
         begin
-          Ping := e_Buffer_Read_Int64(@NetIn);
+          Ping := InMsg.ReadInt64();
           Ping := GetTimerMS() - Ping;
-          Name := e_Buffer_Read_String(@NetIn);
-          Map := e_Buffer_Read_String(@NetIn);
-          GameMode := e_Buffer_Read_Byte(@NetIn);
-          Players := e_Buffer_Read_Byte(@NetIn);
-          MaxPlayers := e_Buffer_Read_Byte(@NetIn);
-          Protocol := e_Buffer_Read_Byte(@NetIn);
-          Password := e_Buffer_Read_Byte(@NetIn) = 1;
-          LocalPl := e_Buffer_Read_Byte(@NetIn);
-          Bots := e_Buffer_Read_Word(@NetIn);
+          Name := InMsg.ReadString();
+          Map := InMsg.ReadString();
+          GameMode := InMsg.ReadByte();
+          Players := InMsg.ReadByte();
+          MaxPlayers := InMsg.ReadByte();
+          Protocol := InMsg.ReadByte();
+          Password := InMsg.ReadByte() = 1;
+          LocalPl := InMsg.ReadByte();
+          Bots := InMsg.ReadWord();
         end;
         Inc(Cnt);
         break;
       end;
   end;
 
+  InMsg.Free();
   enet_socket_destroy(Sock);
 end;
 
@@ -241,18 +248,18 @@ begin
   Wad := g_ExtractWadNameNoPath(gMapInfo.Map);
   Map := g_ExtractFileName(gMapInfo.Map);
 
-  e_Buffer_Write(@NetOut, NetServerName);
+  NetOut.Write(NetServerName);
 
-  e_Buffer_Write(@NetOut, Wad + ':\' + Map);
-  e_Buffer_Write(@NetOut, gGameSettings.GameMode);
+  NetOut.Write(Wad + ':\' + Map);
+  NetOut.Write(gGameSettings.GameMode);
 
   Cli := NetClientCount;
-  e_Buffer_Write(@NetOut, Cli);
+  NetOut.Write(Cli);
 
-  e_Buffer_Write(@NetOut, NetMaxClients);
+  NetOut.Write(NetMaxClients);
 
-  e_Buffer_Write(@NetOut, Byte(NET_PROTOCOL_VER));
-  e_Buffer_Write(@NetOut, Byte(NetPassword <> ''));
+  NetOut.Write(Byte(NET_PROTOCOL_VER));
+  NetOut.Write(Byte(NetPassword <> ''));
 end;
 
 procedure g_Net_Slist_Update;
@@ -263,17 +270,17 @@ var
 begin
   if (NetMHost = nil) or (NetMPeer = nil) then Exit;
 
-  e_Buffer_Clear(@NetOut);
-  e_Buffer_Write(@NetOut, Byte(NET_MMSG_UPD));
-  e_Buffer_Write(@NetOut, NetAddr.port);
+  NetOut.Clear();
+  NetOut.Write(Byte(NET_MMSG_UPD));
+  NetOut.Write(NetAddr.port);
 
   g_Net_Slist_WriteInfo();
 
-  P := enet_packet_create(Addr(NetOut.Data), NetOut.Len, Cardinal(ENET_PACKET_FLAG_RELIABLE));
+  P := enet_packet_create(NetOut.Data, NetOut.CurSize, Cardinal(ENET_PACKET_FLAG_RELIABLE));
   enet_peer_send(NetMPeer, NET_MCHAN_UPD, P);
 
   enet_host_flush(NetMHost);
-  e_Buffer_Clear(@NetOut);
+  NetOut.Clear();
 end;
 
 procedure g_Net_Slist_Remove;
@@ -281,15 +288,15 @@ var
   P: pENetPacket;
 begin
   if (NetMHost = nil) or (NetMPeer = nil) then Exit;
-  e_Buffer_Clear(@NetOut);
-  e_Buffer_Write(@NetOut, Byte(NET_MMSG_DEL));
-  e_Buffer_Write(@NetOut, NetAddr.port);
+  NetOut.Clear();
+  NetOut.Write(Byte(NET_MMSG_DEL));
+  NetOut.Write(NetAddr.port);
 
-  P := enet_packet_create(Addr(NetOut.Data), NetOut.Len, Cardinal(ENET_PACKET_FLAG_RELIABLE));
+  P := enet_packet_create(NetOut.Data, NetOut.CurSize, Cardinal(ENET_PACKET_FLAG_RELIABLE));
   enet_peer_send(NetMPeer, NET_MCHAN_MAIN, P);
 
   enet_host_flush(NetMHost);
-  e_Buffer_Clear(@NetOut);
+  NetOut.Clear();
 end;
 
 function g_Net_Slist_Connect: Boolean;
