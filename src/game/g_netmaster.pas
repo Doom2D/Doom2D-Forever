@@ -130,8 +130,6 @@ begin
 
   NetOut.Clear();
   NetOut.Write(Byte(NET_MMSG_GET));
-  e_WriteLog('Wr ' + IntToStr(PByte(NetOut.Data)^) + ' !.', MSG_NOTIFY);
-  e_WriteLog('Wr ' + IntToStr(NetOut.CurSize) + ' !.', MSG_NOTIFY);
 
   P := enet_packet_create(NetOut.Data, NetOut.CurSize, Cardinal(ENET_PACKET_FLAG_RELIABLE));
   enet_peer_send(NetMPeer, NET_MCHAN_MAIN, P);
@@ -144,14 +142,11 @@ begin
       if not InMsg.Init(NetMEvent.packet^.data, NetMEvent.packet^.dataLength, True) then continue;
 
       MID := InMsg.ReadByte();
-      e_WriteLog('Retrieved ' + IntToStr(MID) + ' !.', MSG_NOTIFY);
 
       if MID <> NET_MMSG_GET then continue;
 
       Cnt := InMsg.ReadByte();
-      e_WriteLog('Retrieved ' + IntToStr(Cnt) + ' server(s).', MSG_NOTIFY);
       g_Console_Add(_lc[I_NET_MSG] + Format(_lc[I_NET_SLIST_RETRIEVED], [Cnt]), True);
-      //writeln('BOO!');
 
       if Cnt > 0 then
       begin
