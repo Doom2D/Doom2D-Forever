@@ -119,7 +119,7 @@ const
 implementation
 
 uses
-  Math, g_map, g_player, g_gfx, g_sound, g_main,
+  Math, g_map, g_player, g_gfx, g_sound, g_main, g_panel,
   g_console, SysUtils, g_options, g_game,
   g_triggers, MAPDEF, e_log, g_monsters, g_saveload,
   g_language, g_netmsg;
@@ -243,19 +243,27 @@ begin
   WaterArray := nil;
 end;
 
+
+var
+  chkTrap_pl: array [0..256] of Integer;
+  chkTrap_mn: array [0..65535] of TMonster;
+
 procedure CheckTrap(ID: DWORD; dm: Integer; t: Byte);
 var
-  a, b, c, d, i1, i2: Integer;
-  pl, mn: WArray;
+  //a, b, c, d, i1, i2: Integer;
+  //chkTrap_pl, chkTrap_mn: WArray;
+  plaCount: Integer = 0;
+  mnaCount: Integer = 0;
+  frameId: DWord;
 
   {
   function monsWaterCheck (monidx: Integer; mon: TMonster): Boolean;
   begin
     result := false; // don't stop
-    if mon.Live and mon.Collide(gWater[WaterMap[a][c]]) and (not InWArray(monidx, mn)) and (i2 < 1023) then //FIXME
+    if mon.Live and mon.Collide(gWater[WaterMap[a][c]]) and (not InWArray(monidx, chkTrap_mn)) and (i2 < 1023) then //FIXME
     begin
       i2 += 1;
-      mn[i2] := monidx;
+      chkTrap_mn[i2] := monidx;
     end;
   end;
   }
@@ -263,66 +271,69 @@ var
   function monsWaterCheck (monidx: Integer; mon: TMonster): Boolean;
   begin
     result := false; // don't stop
-    if (not InWArray(monidx, mn)) and (i2 < 1023) then //FIXME
+    if (mon.trapCheckFrameId <> frameId) then
     begin
-      i2 += 1;
-      mn[i2] := monidx;
+      mon.trapCheckFrameId := frameId;
+      chkTrap_mn[mnaCount] := mon;
+      Inc(mnaCount);
     end;
   end;
 
+var
+  a, b, c, d, f: Integer;
+  pan: TPanel;
 begin
   if (gWater = nil) or (WaterMap = nil) then Exit;
 
-  i1 := -1;
-  i2 := -1;
+  frameId := g_Mons_getNewTrapFrameId();
 
-  SetLength(pl, 1024);
-  SetLength(mn, 1024);
-  for d := 0 to 1023 do pl[d] := $FFFF;
-  for d := 0 to 1023 do mn[d] := $FFFF;
+  //i1 := -1;
+  //i2 := -1;
+
+  //SetLength(chkTrap_pl, 1024);
+  //SetLength(chkTrap_mn, 1024);
+  //for d := 0 to 1023 do chkTrap_pl[d] := $FFFF;
+  //for d := 0 to 1023 do chkTrap_mn[d] := $FFFF;
 
   for a := 0 to High(WaterMap) do
+  begin
     for b := 0 to High(WaterMap[a]) do
     begin
-      if not g_Obj_Collide(gWater[WaterMap[a][b]].X, gWater[WaterMap[a][b]].Y,
-                           gWater[WaterMap[a][b]].Width, gWater[WaterMap[a][b]].Height,
-                           @Shots[ID].Obj) then Continue;
+      pan := gWater[WaterMap[a][b]];
+      if not g_Obj_Collide(pan.X, pan.Y, pan.Width, pan.Height, @Shots[ID].Obj) then continue;
 
       for c := 0 to High(WaterMap[a]) do
       begin
-        if gPlayers <> nil then
+        pan := gWater[WaterMap[a][c]];
+        for d := 0 to High(gPlayers) do
         begin
-          for d := 0 to High(gPlayers) do
-            if (gPlayers[d] <> nil) and (gPlayers[d].Live) then
-              if gPlayers[d].Collide(gWater[WaterMap[a][c]]) then
-                if not InWArray(d, pl) then
-                  if i1 < 1023 then
-                  begin
-                    i1 := i1+1;
-                    pl[i1] := d;
-                  end;
+          if (gPlayers[d] <> nil) and (gPlayers[d].Live) then
+          begin
+            if gPlayers[d].Collide(pan) then
+            begin
+              f := 0;
+              while (f < plaCount) and (chkTrap_pl[f] <> d) do Inc(f);
+              if (f = plaCount) then
+              begin
+                chkTrap_pl[plaCount] := d;
+                Inc(plaCount);
+                if (plaCount = Length(chkTrap_pl)) then break;
+              end;
+            end;
+          end;
         end;
 
         //g_Mons_ForEach(monsWaterCheck);
-        g_Mons_ForEachAtAlive(
-          gWater[WaterMap[a][c]].X, gWater[WaterMap[a][c]].Y,
-          gWater[WaterMap[a][c]].Width, gWater[WaterMap[a][c]].Height,
-          monsWaterCheck);
+        g_Mons_ForEachAtAlive(pan.X, pan.Y, pan.Width, pan.Height, monsWaterCheck);
       end;
 
-      if i1 <> -1 then
-      begin
-        for d := 0 to i1 do gPlayers[pl[d]].Damage(dm, Shots[ID].SpawnerUID, 0, 0, t);
-      end;
-
-      if i2 <> -1 then
-      begin
-        for d := 0 to i2 do g_Mons_ByIdx(mn[d]).Damage(dm, 0, 0, Shots[ID].SpawnerUID, t);
-      end;
+      for f := 0 to plaCount-1 do gPlayers[chkTrap_pl[f]].Damage(dm, Shots[ID].SpawnerUID, 0, 0, t);
+      for f := 0 to mnaCount-1 do chkTrap_mn[f].Damage(dm, 0, 0, Shots[ID].SpawnerUID, t);
     end;
+  end;
 
-  pl := nil;
-  mn := nil;
+  //chkTrap_pl := nil;
+  //chkTrap_mn := nil;
 end;
 
 function HitMonster(m: TMonster; d: Integer; vx, vy: Integer; SpawnerUID: Word; t: Byte): Boolean;

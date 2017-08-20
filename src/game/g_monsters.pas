@@ -93,6 +93,7 @@ type
   public
     FNoRespawn: Boolean;
     FFireTime: Integer;
+    trapCheckFrameId: DWord; // for `g_weapons.CheckTrap()`
 
     constructor Create(MonsterType: Byte; aID: Integer; ForcedUID: Integer = -1);
     destructor Destroy(); override;
@@ -195,6 +196,8 @@ function g_Mons_IsAnyAliveAt (x, y: Integer; width, height: Integer): Boolean;
 function g_Mons_ForEachAt (x, y: Integer; width, height: Integer; cb: TEachMonsterCB): Boolean;
 function g_Mons_ForEachAtAlive (x, y: Integer; width, height: Integer; cb: TEachMonsterCB): Boolean;
 
+function g_Mons_getNewTrapFrameId (): DWord;
+
 
 var
   gmon_debug_use_sqaccel: Boolean = true;
@@ -207,6 +210,11 @@ uses
   g_weapons, g_triggers, MAPDEF, g_items, g_options,
   g_console, g_map, Math, SysUtils, g_menu, wadreader,
   g_language, g_netmsg, z_aabbtree;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
+var
+  monCheckTrapLastFrameId: DWord;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
@@ -481,6 +489,24 @@ var
   idx: Integer;
 begin
   for idx := 0 to High(uidMap) do uidMap[idx] := nil;
+end;
+
+
+function g_Mons_getNewTrapFrameId (): DWord;
+var
+  f: Integer;
+begin
+  Inc(monCheckTrapLastFrameId);
+  if monCheckTrapLastFrameId = 0 then
+  begin
+    // wraparound
+    monCheckTrapLastFrameId := 1;
+    for f := 0 to High(gMonsters) do
+    begin
+      if (gMonsters[f] <> nil) then gMonsters[f].trapCheckFrameId := 0;
+    end;
+  end;
+  result := monCheckTrapLastFrameId;
 end;
 
 
@@ -878,6 +904,7 @@ begin
 
   monsTree := TDynAABBTreeMons.Create();
   clearUidMap();
+  monCheckTrapLastFrameId := 0;
 end;
 
 procedure g_Monsters_FreeData();
@@ -1111,6 +1138,7 @@ begin
   monsTree.reset();
   gMonsters := nil;
   clearUidMap();
+  monCheckTrapLastFrameId := 0;
 end;
 
 function g_Monsters_Create(MonsterType: Byte; X, Y: Integer;
@@ -1625,6 +1653,7 @@ begin
 
   treeNode := -1;
   arrIdx := -1;
+  trapCheckFrameId := 0;
 
   if FMonsterType in [MONSTER_ROBO, MONSTER_BARREL] then
     FBloodKind := BLOOD_SPARKS
