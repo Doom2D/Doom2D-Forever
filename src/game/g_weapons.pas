@@ -533,6 +533,7 @@ begin
               gPlayers[i].BFGHit();
           end;
 
+  //FIXME
   g_Mons_ForEach(monsCheck);
 end;
 
@@ -794,6 +795,7 @@ var
         end;
   end;
 
+  {
   function monsCheckHit (monidx: Integer; mon: TMonster): Boolean;
   begin
     result := false; // don't stop
@@ -810,10 +812,26 @@ var
       end;
     end;
   end;
+  }
+
+  function monsCheckHit (monidx: Integer; mon: TMonster): Boolean;
+  begin
+    result := false; // don't stop
+    if HitMonster(mon, d, obj.Vel.X, obj.Vel.Y, SpawnerUID, t) then
+    begin
+      if (t <> HIT_FLAME) then
+      begin
+        mon.Push((obj.Vel.X+obj.Accel.X)*IfThen(t = HIT_BFG, 8, 1) div 4,
+                 (obj.Vel.Y+obj.Accel.Y)*IfThen(t = HIT_BFG, 8, 1) div 4);
+      end;
+      result := true;
+    end;
+  end;
 
   function MonsterHit(): Boolean;
   begin
-    result := g_Mons_ForEach(monsCheckHit);
+    //result := g_Mons_ForEach(monsCheckHit);
+    result := g_Mons_ForEachAtAlive(obj.X+obj.Rect.X, obj.Y+obj.Rect.Y, obj.Rect.Width, obj.Rect.Height, monsCheckHit);
   end;
 
 begin
