@@ -68,6 +68,8 @@ type
     constructor Create (var aabb: AABB2D); overload;
     constructor Create (var aabb0, aabb1: AABB2D); overload;
 
+    constructor CreateWH (ax, ay, w, h: TreeNumber);
+
     procedure copyFrom (var aabb: AABB2D); inline;
     procedure setDims (x0, y0, x1, y1: TreeNumber); inline;
 
@@ -273,7 +275,7 @@ type
     // this method creates a new leaf node in the tree and returns the id of the corresponding node or -1 on error
     // AABB for static object will not be "fat" (simple optimization)
     // WARNING! inserting the same object several times *WILL* break everything!
-    function insertObject (flesh: TTreeFlesh; tag: Integer; staticObject: Boolean=false): Integer;
+    function insertObject (flesh: TTreeFlesh; tag: Integer=-1; staticObject: Boolean=false): Integer;
 
     // remove an object from the tree
     // WARNING: ids of removed objects can be reused on later insertions!
@@ -392,6 +394,14 @@ end;
 constructor AABB2D.Create (var aabb0, aabb1: AABB2D); overload;
 begin
   setMergeTwo(aabb0, aabb1);
+end;
+
+constructor AABB2D.CreateWH (ax, ay, w, h: TreeNumber);
+begin
+  minX := ax;
+  minY := ay;
+  maxX := ax+w-1;
+  maxY := ay+h-1;
 end;
 
 function AABB2D.getvalid (): Boolean; inline; begin result := (minX <= maxX) and (minY <= maxY); end;
@@ -1298,7 +1308,7 @@ begin
         begin
           // call visitor on it
           {$IFDEF aabbtree_query_count}Inc(mNodesDeepVisited);{$ENDIF}
-          if ((node.tag and tagmask) <> 0) then
+          if (tagmask = -1) or ((node.tag and tagmask) <> 0) then
           begin
             if assigned(visitor) then
             begin

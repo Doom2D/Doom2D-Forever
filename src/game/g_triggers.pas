@@ -144,7 +144,7 @@ begin
     with gWalls[PanelID] do
     begin
       if g_CollidePlayer(X, Y, Width, Height) or
-         g_CollideMonster(X, Y, Width, Height) then Exit;
+         g_Mons_IsAnyAliveAt(X, Y, Width, Height) then Exit;
 
       if not Enabled then
       begin
@@ -181,7 +181,7 @@ begin
       with gWalls[gDoorMap[c, b]] do
       begin
         if g_CollidePlayer(X, Y, Width, Height) or
-          g_CollideMonster(X, Y, Width, Height) then Exit;
+          g_Mons_IsAnyAliveAt(X, Y, Width, Height) then Exit;
       end;
 
     if not NoSound then
@@ -1373,14 +1373,14 @@ begin
 
                 if Data.ItemMax > 0 then
                 begin
-                  it := g_ItemByIdx(iid);
+                  it := g_Items_ByIdx(iid);
                   it.SpawnTrigger := ID;
                   Inc(SpawnedCount);
                 end;
 
                 case Data.ItemEffect of
                   EFFECT_TELEPORT: begin
-                    it := g_ItemByIdx(iid);
+                    it := g_Items_ByIdx(iid);
                     if g_Frames_Get(FramesID, 'FRAMES_TELEPORT') then
                     begin
                       Anim := TAnimation.Create(FramesID, False, 3);
@@ -1395,7 +1395,7 @@ begin
                                      NET_GFX_TELE);
                   end;
                   EFFECT_RESPAWN: begin
-                    it := g_ItemByIdx(iid);
+                    it := g_Items_ByIdx(iid);
                     if g_Frames_Get(FramesID, 'FRAMES_ITEM_RESPAWN') then
                     begin
                       Anim := TAnimation.Create(FramesID, False, 4);
@@ -1410,7 +1410,7 @@ begin
                                      NET_GFX_RESPAWN);
                   end;
                   EFFECT_FIRE: begin
-                    it := g_ItemByIdx(iid);
+                    it := g_Items_ByIdx(iid);
                     if g_Frames_Get(FramesID, 'FRAMES_FIRE') then
                     begin
                       Anim := TAnimation.Create(FramesID, False, 4);
@@ -2196,7 +2196,7 @@ var
   a, b, i: Integer;
   Affected: array of Integer;
 
-  function monsNear (monidx: Integer; mon: TMonster): Boolean;
+  {function monsNear (monidx: Integer; mon: TMonster): Boolean;
   begin
     result := false; // don't stop
     if mon.Collide(gTriggers[a].X, gTriggers[a].Y, gTriggers[a].Width, gTriggers[a].Height) then
@@ -2204,6 +2204,13 @@ var
       gTriggers[a].ActivateUID := mon.UID;
       ActivateTrigger(gTriggers[a], ACTIVATE_MONSTERCOLLIDE);
     end;
+  end;}
+
+  function monsNear (monidx: Integer; mon: TMonster): Boolean;
+  begin
+    result := false; // don't stop
+    gTriggers[a].ActivateUID := mon.UID;
+    ActivateTrigger(gTriggers[a], ACTIVATE_MONSTERCOLLIDE);
   end;
 
 begin
@@ -2440,13 +2447,14 @@ begin
           if ByteBool(ActivateType and ACTIVATE_MONSTERCOLLIDE) and
              (TimeOut = 0) and (Keys = 0) then // Если не нужны ключи
           begin
-            g_Mons_ForEach(monsNear);
+            //g_Mons_ForEach(monsNear);
+            g_Mons_ForEachAt(gTriggers[a].X, gTriggers[a].Y, gTriggers[a].Width, gTriggers[a].Height, monsNear);
           end;
 
           // "Монстров нет"
           if ByteBool(ActivateType and ACTIVATE_NOMONSTER) and
              (TimeOut = 0) and (Keys = 0) then
-            if not g_CollideMonster(X, Y, Width, Height) then
+            if not g_Mons_IsAnyAliveAt(X, Y, Width, Height) then
             begin
               gTriggers[a].ActivateUID := 0;
               ActivateTrigger(gTriggers[a], ACTIVATE_NOMONSTER);

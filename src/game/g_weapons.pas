@@ -392,16 +392,26 @@ end;
 function GunHit(X, Y: Integer; vx, vy: Integer; dmg: Integer;
   SpawnerUID: Word; AllowPush: Boolean): Byte;
 
-  function monsCheck (monidx: Integer; mon: TMonster): Boolean;
+  {function monsCheck (monidx: Integer; mon: TMonster): Boolean;
   begin
     result := false; // don't stop
-    if (mon <> nil) and mon.Live and mon.Collide(X, Y) then
+    if mon.Live and mon.Collide(X, Y) then
     begin
       if HitMonster(mon, dmg, vx*10, vy*10-3, SpawnerUID, HIT_SOME) then
       begin
         if AllowPush then mon.Push(vx, vy);
         result := true;
       end;
+    end;
+  end;}
+
+  function monsCheck (monidx: Integer; mon: TMonster): Boolean;
+  begin
+    result := false; // don't stop
+    if HitMonster(mon, dmg, vx*10, vy*10-3, SpawnerUID, HIT_SOME) then
+    begin
+      if AllowPush then mon.Push(vx, vy);
+      result := true;
     end;
   end;
 
@@ -423,7 +433,8 @@ begin
 
   if Result <> 0 then Exit;
 
-  if g_Mons_ForEach(monsCheck) then result := 2;
+  //if g_Mons_ForEach(monsCheck) then result := 2;
+  if g_Mons_ForEachAtAlive(X, Y, 1, 1, monsCheck) then result := 2;
 end;
 
 procedure g_Weapon_BFG9000(X, Y: Integer; SpawnerUID: Word);

@@ -2980,7 +2980,7 @@ var
     id: DWORD;
   begin
     id := g_Items_Create(FObj.X, FObj.Y, t, True, False);
-    it := g_ItemByIdx(id);
+    it := g_Items_ByIdx(id);
     if KillType = K_EXTRAHARDKILL then // -7..+7; -8..0
     begin
       g_Obj_Push(@it.Obj, (FObj.Vel.X div 2)-7+Random(15),

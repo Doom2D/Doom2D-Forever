@@ -80,6 +80,9 @@ type
     FFireAttacker: Word;
     vilefire: TAnimation;
 
+    treeNode: Integer; // node in dyntree or -1
+    arrIdx: Integer; // in gMonsters
+
     FDieTriggers: Array of Integer;
     FSpawnTrigger: Integer;
 
@@ -186,7 +189,14 @@ function g_Mons_ByIdx (uid: Integer): TMonster; inline;
 // can return null
 function g_Mons_ByIdx_NC (uid: Integer): TMonster; inline;
 
-function g_Mons_AnyAt (x, y: Integer; width, height: Integer): Boolean;
+function g_Mons_IsAnyAliveAt (x, y: Integer; width, height: Integer): Boolean;
+
+function g_Mons_ForEachAt (x, y: Integer; width, height: Integer; cb: TEachMonsterCB): Boolean;
+function g_Mons_ForEachAtAlive (x, y: Integer; width, height: Integer; cb: TEachMonsterCB): Boolean;
+
+
+var
+  gmon_debug_use_sqaccel: Boolean = true;
 
 
 implementation
@@ -195,8 +205,70 @@ uses
   e_log, g_main, g_sound, g_gfx, g_player, g_game,
   g_weapons, g_triggers, MAPDEF, g_items, g_options,
   g_console, g_map, Math, SysUtils, g_menu, wadreader,
-  g_language, g_netmsg;
+  g_language, g_netmsg, z_aabbtree;
 
+
+// ////////////////////////////////////////////////////////////////////////// //
+type
+  TDynAABBTreeMonsBase = specialize TDynAABBTreeBase<TMonster>;
+
+  TDynAABBTreeMons = class(TDynAABBTreeMonsBase)
+    function getFleshAABB (out aabb: AABB2D; flesh: TMonster; tag: Integer): Boolean; override;
+  end;
+
+function TDynAABBTreeMons.getFleshAABB (out aabb: AABB2D; flesh: TMonster; tag: Integer): Boolean;
+begin
+  result := false;
+  if (flesh = nil) then raise Exception.Create('DynTree: trying to get dimensions of inexistant monsters');
+  if (flesh.Obj.Rect.Width < 1) or (flesh.Obj.Rect.Height < 1) then raise Exception.Create('DynTree: monster without size, wtf?!');
+  aabb := AABB2D.CreateWH(flesh.Obj.X+flesh.Obj.Rect.X, flesh.Obj.Y+flesh.Obj.Rect.Y, flesh.Obj.Rect.Width, flesh.Obj.Rect.Height);
+  if not aabb.valid then raise Exception.Create('wutafuuuuuuu?!');
+  result := true;
+end;
+
+
+var
+  monsTree: TDynAABBTreeMons = nil;
+
+
+//WARNING! call this after monster position was changed, or coldet will not work right!
+procedure TMonster.positionChanged ();
+var
+  x, y: Integer;
+begin
+  {$IF DEFINED(D2F_DEBUG)}
+  //e_WriteLog(Format('monster #%d(%u): pos=(%d,%d); rpos=(%d,%d)', [arrIdx, UID, FObj.X, FObj.Y, FObj.Rect.X, FObj.Rect.Y]), MSG_NOTIFY);
+  {$ENDIF}
+  if (treeNode = -1) then
+  begin
+    treeNode := monsTree.insertObject(self, 0);
+    {$IF DEFINED(D2F_DEBUG)}
+    monsTree.getNodeXY(treeNode, x, y);
+    e_WriteLog(Format('monster #%d(%u): inserted into the tree; nodeid=%d; x=%d; y=%d', [arrIdx, UID, treeNode, x, y]), MSG_NOTIFY);
+    {$ENDIF}
+  end
+  else
+  begin
+    monsTree.getNodeXY(treeNode, x, y);
+    if (FObj.X+FObj.Rect.X = x) and (FObj.Y+FObj.Rect.Y = y) then exit; // nothing to do
+    {$IF DEFINED(D2F_DEBUG)}e_WriteLog(Format('monster #%d(%u): updating tree; nodeid=%d; x=%d; y=%d', [arrIdx, UID, treeNode, x, y]), MSG_NOTIFY);{$ENDIF}
+
+    {$IFDEF TRUE}
+    monsTree.updateObject(treeNode);
+    {$ELSE}
+    monsTree.removeObject(treeNode);
+    treeNode := monsTree.insertObject(self);
+    {$ENDIF}
+
+    {$IF DEFINED(D2F_DEBUG)}
+    monsTree.getNodeXY(treeNode, x, y);
+    e_WriteLog(Format('monster #%d(%u): updated tree; nodeid=%d; x=%d; y=%d', [arrIdx, UID, treeNode, x, y]), MSG_NOTIFY);
+    {$ENDIF}
+  end;
+end;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
 const
   ANIM_SLEEP   = 0;
   ANIM_GO      = 1;
@@ -397,6 +469,7 @@ const
   MAX_ATM = 89; // Время ожидания после потери цели
   MAX_SOUL = 512; // Ограничение Lost_Soul'ов
 
+
 var
   gMonsters: array of TMonster;
 
@@ -407,29 +480,33 @@ var
   pt_ys: Integer = 1;
   soulcount: Integer = 0;
 
-function FindMonster(): DWORD;
-var
-  i: Integer;
-begin
-  if gMonsters <> nil then
-    for i := 0 to High(gMonsters) do
-      if gMonsters[i] = nil then
-      begin
-        Result := i;
-        Exit;
-      end;
 
-  if gMonsters = nil then
+function allocMonster(): DWORD;
+var
+  i, olen: Integer;
+begin
+  for i := 0 to High(gMonsters) do
+  begin
+    if (gMonsters[i] = nil) then
     begin
-      SetLength(gMonsters, 32);
-      Result := 0;
-    end
-  else
-    begin
-      Result := High(gMonsters) + 1;
-      SetLength(gMonsters, Length(gMonsters) + 32);
+      result := i;
+      exit;
     end;
+  end;
+
+  olen := Length(gMonsters);
+  if (olen = 0) then
+  begin
+    SetLength(gMonsters, 64);
+    result := 0;
+  end
+  else
+  begin
+    result := olen;
+    SetLength(gMonsters, Length(gMonsters)+32);
+  end;
 end;
+
 
 function IsFriend(a, b: Byte): Boolean;
 begin
@@ -500,23 +577,42 @@ begin
 end;
 
 function isCorpse(o: PObj; immediately: Boolean): Integer;
+
+  function monsCollCheck (mon: TMonster; atag: Integer): Boolean;
+  begin
+    result := false; // don't stop
+    if (mon.FState = STATE_DEAD) and g_Obj_Collide(o, @mon.FObj) then
+    begin
+      case mon.FMonsterType of // Не воскресить:
+        MONSTER_SOUL, MONSTER_PAIN, MONSTER_CYBER, MONSTER_SPIDER,
+        MONSTER_VILE, MONSTER_BARREL, MONSTER_ROBO: exit;
+      end;
+      // Остальных можно воскресить
+      result := true;
+    end;
+  end;
+
 var
   a: Integer;
+  mon: TMonster;
 begin
-  Result := -1;
+  result := -1;
 
-// Если нужна вероятность:
-  if not immediately then
-    if Random(8) <> 0 then
-      Exit;
+  // Если нужна вероятность
+  if not immediately and (Random(8) <> 0) then exit;
 
-  if gMonsters = nil then
-    Exit;
-
-// Ищем мертвых монстров поблизости:
-  for a := 0 to High(gMonsters) do
-    if (gMonsters[a] <> nil) and (gMonsters[a].FState = STATE_DEAD) then
-      if g_Obj_Collide(o, @gMonsters[a].FObj) then
+  // Ищем мертвых монстров поблизости
+  if gmon_debug_use_sqaccel then
+  begin
+    mon := monsTree.aabbQuery(o.X+o.Rect.X, o.Y+o.Rect.Y, o.Rect.Width, o.Rect.Height, monsCollCheck);
+    if (mon <> nil) then result := mon.arrIdx;
+  end
+  else
+  begin
+    for a := 0 to High(gMonsters) do
+    begin
+      if (gMonsters[a] <> nil) and (gMonsters[a].FState = STATE_DEAD) and g_Obj_Collide(o, @gMonsters[a].FObj) then
+      begin
         case gMonsters[a].FMonsterType of // Не воскресить:
           MONSTER_SOUL, MONSTER_PAIN, MONSTER_CYBER, MONSTER_SPIDER,
           MONSTER_VILE, MONSTER_BARREL, MONSTER_ROBO: Continue;
@@ -526,6 +622,9 @@ begin
               Exit;
             end;
         end;
+      end;
+    end;
+  end;
 end;
 
 procedure g_Monsters_LoadData();
@@ -765,6 +864,8 @@ begin
   g_Sound_CreateWADEx('SOUND_MONSTER_SPIDER_WALK', GameWAD+':MSOUNDS\SPIDER_WALK');
 
   g_Sound_CreateWADEx('SOUND_MONSTER_FISH_ATTACK', GameWAD+':MSOUNDS\FISH_ATTACK');
+
+  monsTree := TDynAABBTreeMons.Create();
 end;
 
 procedure g_Monsters_FreeData();
@@ -981,6 +1082,8 @@ begin
   g_Sound_Delete('SOUND_MONSTER_SPIDER_WALK');
 
   g_Sound_Delete('SOUND_MONSTER_FISH_ATTACK');
+
+  monsTree.Free();
 end;
 
 procedure g_Monsters_Init();
@@ -996,6 +1099,7 @@ begin
     for a := 0 to High(gMonsters) do
       gMonsters[a].Free();
 
+  monsTree.reset();
   gMonsters := nil;
 end;
 
@@ -1003,6 +1107,7 @@ function g_Monsters_Create(MonsterType: Byte; X, Y: Integer;
            Direction: TDirection; AdjCoord: Boolean = False; ForcedUID: Integer = -1): TMonster;
 var
   find_id: DWORD;
+  mon: TMonster;
 begin
   result := nil;
 
@@ -1016,12 +1121,15 @@ begin
     soulcount := soulcount + 1;
   end;
 
-  find_id := FindMonster();
+  find_id := allocMonster();
 
-  gMonsters[find_id] := TMonster.Create(MonsterType, find_id, ForcedUID);
+  mon := TMonster.Create(MonsterType, find_id, ForcedUID);
+  gMonsters[find_id] := mon;
+  mon.arrIdx := find_id;
+  mon.treeNode := -1;
 
   // Настраиваем положение
-  with gMonsters[find_id] do
+  with mon do
   begin
     if AdjCoord then
     begin
@@ -1040,7 +1148,9 @@ begin
     FStartY := GameY;
   end;
 
-  result := {find_id}gMonsters[find_id];
+  mon.positionChanged();
+
+  result := mon;
 end;
 
 procedure g_Monsters_killedp();
@@ -1501,6 +1611,9 @@ begin
   FFirePainTime := 0;
   FFireAttacker := 0;
 
+  treeNode := -1;
+  arrIdx := -1;
+
   if FMonsterType in [MONSTER_ROBO, MONSTER_BARREL] then
     FBloodKind := BLOOD_SPARKS
   else
@@ -1698,8 +1811,8 @@ begin
         it := g_Items_Create(FObj.X + (FObj.Rect.Width div 2),
                              FObj.Y + (FObj.Rect.Height div 2),
                              c, True, False);
-        g_Obj_Push(g_ItemObjByIdx(it), (FObj.Vel.X div 2)-3+Random(7),
-                                       (FObj.Vel.Y div 2)-Random(4));
+        g_Obj_Push(g_Items_ObjByIdx(it), (FObj.Vel.X div 2)-3+Random(7),
+                                        (FObj.Vel.Y div 2)-Random(4));
         positionChanged(); // this updates spatial accelerators
         if g_Game_IsServer and g_Game_IsNet then
           MH_SEND_ItemSpawn(True, it);
@@ -1774,6 +1887,14 @@ begin
   end;
 
   vilefire.Free();
+
+  if (treeNode <> -1) then
+  begin
+    {$IF DEFINED(D2F_DEBUG)}
+    e_WriteLog(Format('monster #%d(%u): removed from tree; nodeid=%d', [arrIdx, UID, treeNode]), MSG_NOTIFY);
+    {$ENDIF}
+    monsTree.removeObject(treeNode);
+  end;
 
   inherited Destroy();
 end;
@@ -1975,6 +2096,7 @@ begin
 
   FObj.X := X - FObj.Rect.X;
   FObj.Y := Y - FObj.Rect.Y;
+  positionChanged();
 
   if dir = 1 then
     FDirection := D_LEFT
@@ -2389,8 +2511,7 @@ begin
                     if g_Obj_CollideLevel(@FObj, 0, 1) or g_Obj_StayOnStep(@FObj) then
                     begin // "Стоит" твердо
                     // Рыба трепыхается на поверхности:
-                      if FObj.Accel.Y = 0 then
-                        FObj.Vel.Y := -6;
+                      if FObj.Accel.Y = 0 then FObj.Vel.Y := -6;
                       FObj.Accel.X := FObj.Accel.X - 8 + Random(17);
                     end;
 
@@ -2453,7 +2574,6 @@ begin
                   begin
                     g_Obj_PushA(@gGibs[a].Obj, b, Random(61));    // направо
                   end;
-                  positionChanged(); // this updates spatial accelerators
                 end;
               end;
             end;
@@ -4249,11 +4369,6 @@ begin
   end;
 end;
 
-//WARNING! call this after monster position was changed, or coldet will not work right!
-procedure TMonster.positionChanged ();
-begin
-end;
-
 
 // ////////////////////////////////////////////////////////////////////////// //
 function g_Mons_ForEach (cb: TEachMonsterCB): Boolean;
@@ -4289,21 +4404,111 @@ begin
 end;
 
 
-function g_Mons_AnyAt (x, y: Integer; width, height: Integer): Boolean;
+function g_Mons_IsAnyAliveAt (x, y: Integer; width, height: Integer): Boolean;
+
+  function monsCollCheck (mon: TMonster; atag: Integer): Boolean;
+  begin
+    result := (mon.Live and g_Obj_Collide(x, y, width, height, @mon.Obj));
+  end;
+
 var
   idx: Integer;
 begin
   result := false;
   if (width < 1) or (height < 1) then exit;
 
-  for idx := 0 to High(gMonsters) do
+  if gmon_debug_use_sqaccel then
   begin
-    if (gMonsters[idx] <> nil) and gMonsters[idx].Live then
+    result := (monsTree.aabbQuery(x, y, width, height, monsCollCheck) <> nil);
+  end
+  else
+  begin
+    for idx := 0 to High(gMonsters) do
     begin
-      if g_Obj_Collide(x, y, width, height, @gMonsters[idx].Obj) then
+      if (gMonsters[idx] <> nil) and gMonsters[idx].Live then
       begin
-        result := True;
-        exit;
+        if g_Obj_Collide(x, y, width, height, @gMonsters[idx].Obj) then
+        begin
+          result := true;
+          exit;
+        end;
+      end;
+    end;
+  end;
+end;
+
+
+function g_Mons_ForEachAt (x, y: Integer; width, height: Integer; cb: TEachMonsterCB): Boolean;
+
+  function monsCollCheck (mon: TMonster; atag: Integer): Boolean;
+  begin
+    result := false;
+    if g_Obj_Collide(x, y, width, height, @mon.Obj) then result := cb(mon.arrIdx, mon);
+  end;
+
+var
+  idx: Integer;
+begin
+  result := false;
+  if (width < 1) or (height < 1) then exit;
+
+  if gmon_debug_use_sqaccel then
+  begin
+    result := (monsTree.aabbQuery(x, y, width, height, monsCollCheck) <> nil);
+  end
+  else
+  begin
+    for idx := 0 to High(gMonsters) do
+    begin
+      if (gMonsters[idx] <> nil) and gMonsters[idx].Live then
+      begin
+        if g_Obj_Collide(x, y, width, height, @gMonsters[idx].Obj) then
+        begin
+          result := cb(idx, gMonsters[idx]);
+          if result then exit;
+        end;
+      end;
+    end;
+  end;
+end;
+
+
+function g_Mons_ForEachAtAlive (x, y: Integer; width, height: Integer; cb: TEachMonsterCB): Boolean;
+
+  function monsCollCheck (mon: TMonster; atag: Integer): Boolean;
+  begin
+    result := false;
+    if mon.Live and g_Obj_Collide(x, y, width, height, @mon.Obj) then result := cb(mon.arrIdx, mon);
+  end;
+
+var
+  idx: Integer;
+begin
+  result := false;
+  if (width < 1) or (height < 1) then exit;
+
+  if gmon_debug_use_sqaccel then
+  begin
+    if (width = 1) and (height = 1) then
+    begin
+      result := (monsTree.pointQuery(x, y, monsCollCheck) <> nil);
+    end
+    else
+    begin
+      result := (monsTree.aabbQuery(x, y, width, height, monsCollCheck) <> nil);
+    end;
+  end
+  else
+  begin
+    for idx := 0 to High(gMonsters) do
+    begin
+      if (gMonsters[idx] <> nil) and gMonsters[idx].Live then
+      begin
+        if g_Obj_Collide(x, y, width, height, @gMonsters[idx].Obj) then
+        begin
+          result := cb(idx, gMonsters[idx]);
+          if result then exit;
+        end;
       end;
     end;
   end;

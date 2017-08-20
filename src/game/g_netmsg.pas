@@ -1190,7 +1190,7 @@ procedure MH_SEND_ItemSpawn(Quiet: Boolean; IID: Word; ID: Integer = NET_EVERYON
 var
   it: PItem;
 begin
-  it := g_ItemByIdx(IID);
+  it := g_Items_ByIdx(IID);
 
   NetOut.Write(Byte(NET_MSG_ISPAWN));
   NetOut.Write(IID);
@@ -2366,7 +2366,7 @@ begin
 
   g_Items_Create(X, Y, T, Fall, False, False, ID);
 
-  it := g_ItemByIdx(ID);
+  it := g_Items_ByIdx(ID);
   it.Obj.Vel.X := VX;
   it.Obj.Vel.Y := VY;
 
@@ -2391,9 +2391,9 @@ begin
   ID := M.ReadWord();
   Quiet := M.ReadByte() <> 0;
 
-  if not g_ItemValidId(ID) then exit;
+  if not g_Items_ValidId(ID) then exit;
 
-  if not Quiet then g_Item_EmitPickupSound(ID);
+  if not Quiet then g_Items_EmitPickupSound(ID);
 
   g_Items_Remove(ID);
 end;

@@ -47,7 +47,6 @@ function g_CollideLevel(X, Y: Integer; Width, Height: Word): Boolean;
 function g_CollideAround(X1, Y1: Integer; Width1, Height1: Word;
                          X2, Y2: Integer; Width2, Height2: Word): Boolean;
 function g_CollidePlayer(X, Y: Integer; Width, Height: Word): Boolean;
-function g_CollideMonster(X, Y: Integer; Width, Height: Word): Boolean;
 function g_PatchLength(X1, Y1, X2, Y2: Integer): Word;
 function g_TraceVector(X1, Y1, X2, Y2: Integer): Boolean;
 function g_GetAcidHit(X, Y: Integer; Width, Height: Word): Byte;
@@ -141,11 +140,6 @@ begin
         Result := True;
         Exit;
       end;
-end;
-
-function g_CollideMonster(X, Y: Integer; Width, Height: Word): Boolean;
-begin
-  result := g_Mons_AnyAt(X, Y, Width, Height);
 end;
 
 function g_TraceVector(X1, Y1, X2, Y2: Integer): Boolean;

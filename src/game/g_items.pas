@@ -25,7 +25,8 @@ Type
   PItem = ^TItem;
   TItem = record
   private
-    treeNode: Integer;
+    //treeNode: Integer;
+    slotIsUsed: Boolean;
     arrIdx: Integer; // in ggItems
 
   public
@@ -60,12 +61,12 @@ procedure g_Items_LoadState(var Mem: TBinMemoryReader);
 
 procedure g_Items_RestartRound ();
 
-function g_ItemValidId (idx: Integer): Boolean; inline;
-function g_ItemByIdx (idx: Integer): PItem;
-function g_ItemObjByIdx (idx: Integer): PObj;
+function g_Items_ValidId (idx: Integer): Boolean; inline;
+function g_Items_ByIdx (idx: Integer): PItem;
+function g_Items_ObjByIdx (idx: Integer): PObj;
 
-procedure g_Item_EmitPickupSound (idx: Integer); // at item position
-procedure g_Item_EmitPickupSoundAt (idx, x, y: Integer);
+procedure g_Items_EmitPickupSound (idx: Integer); // at item position
+procedure g_Items_EmitPickupSoundAt (idx, x, y: Integer);
 
 
 type
@@ -115,6 +116,7 @@ begin
 end;
 }
 
+
 // ////////////////////////////////////////////////////////////////////////// //
 var
   //itemTree: TDynAABBTreeItem = nil;
@@ -122,27 +124,30 @@ var
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-function g_ItemValidId (idx: Integer): Boolean; inline;
+function g_Items_ValidId (idx: Integer): Boolean; inline;
 begin
   result := false;
   if (idx < 0) or (idx > High(ggItems)) then exit;
-  if (ggItems[idx].treeNode = -1) then exit;
+  //if (ggItems[idx].treeNode = -1) then exit;
+  if not ggItems[idx].slotIsUsed then exit;
   result := true;
 end;
 
 
-function g_ItemByIdx (idx: Integer): PItem;
+function g_Items_ByIdx (idx: Integer): PItem;
 begin
   if (idx < 0) or (idx > High(ggItems)) then raise Exception.Create('g_ItemObjByIdx: invalid index');
   result := @ggItems[idx];
-  if (result.treeNode = -1) then raise Exception.Create('g_ItemObjByIdx: requested inexistent item');
+  //if (result.treeNode = -1) then raise Exception.Create('g_ItemObjByIdx: requested inexistent item');
+  if not result.slotIsUsed then raise Exception.Create('g_ItemObjByIdx: requested inexistent item');
 end;
 
 
-function g_ItemObjByIdx (idx: Integer): PObj;
+function g_Items_ObjByIdx (idx: Integer): PObj;
 begin
   if (idx < 0) or (idx > High(ggItems)) then raise Exception.Create('g_ItemObjByIdx: invalid index');
-  if (ggItems[idx].treeNode = -1) then raise Exception.Create('g_ItemObjByIdx: requested inexistent item');
+  //if (ggItems[idx].treeNode = -1) then raise Exception.Create('g_ItemObjByIdx: requested inexistent item');
+  if not ggItems[idx].slotIsUsed then raise Exception.Create('g_ItemObjByIdx: requested inexistent item');
   result := @ggItems[idx].Obj;
 end;
 
@@ -385,10 +390,12 @@ var
 begin
   if (idx < 0) or (idx > High(ggItems)) then raise Exception.Create('releaseItem: invalid item id');
   it := @ggItems[idx];
-  if (it.treeNode = -1) then raise Exception.Create('releaseItem: trying to release unallocated item');
+  //if (it.treeNode = -1) then raise Exception.Create('releaseItem: trying to release unallocated item');
+  if not it.slotIsUsed then raise Exception.Create('releaseItem: trying to release unallocated item');
   if (it.arrIdx <> idx) then raise Exception.Create('releaseItem: arrIdx inconsistency');
   //itemTree.removeObject(it.treeNode);
-  it.treeNode := -1;
+  //it.treeNode := -1;
+  it.slotIsUsed := false;
   if (it.Animation <> nil) then
   begin
     it.Animation.Free();
@@ -414,7 +421,8 @@ begin
     for i := olen to High(ggItems) do
     begin
       it := @ggItems[i];
-      it.treeNode := -1;
+      //it.treeNode := -1;
+      it.slotIsUsed := false;
       it.arrIdx := i;
       it.ItemType := ITEM_NONE;
       it.Animation := nil;
@@ -451,7 +459,8 @@ begin
     for i := olen to High(ggItems) do
     begin
       it := @ggItems[i];
-      it.treeNode := -1;
+      //it.treeNode := -1;
+      it.slotIsUsed := false;
       it.arrIdx := i;
       it.ItemType := ITEM_NONE;
       it.Animation := nil;
@@ -464,7 +473,7 @@ begin
   end;
 
   it := @ggItems[slot];
-  if (it.treeNode = -1) then
+  if {(it.treeNode = -1)} not it.slotIsUsed then
   begin
     // this is unused slot; get it, and rebuild id list
     if rebuildFreeList then
@@ -472,7 +481,7 @@ begin
       freeIds.clear();
       for i := 0 to High(ggItems) do
       begin
-        if (i <> slot) and (ggItems[i].treeNode = -1) then freeIds.insert(i);
+        if (i <> slot) and {(ggItems[i].treeNode = -1)} (not it.slotIsUsed) then freeIds.insert(i);
       end;
     end;
   end
@@ -480,7 +489,8 @@ begin
   begin
     // it will be readded
     //itemTree.removeObject(it.treeNode);
-    it.treeNode := -1;
+    //it.treeNode := -1;
+    it.slotIsUsed := false;
   end;
 
   result := slot;
@@ -525,6 +535,12 @@ begin
 
   it := @ggItems[find_id];
 
+  //if (it.treeNode <> -1) then raise Exception.Create('g_Items_Create: trying to reuse already allocated item');
+  if (it.arrIdx <> find_id) then raise Exception.Create('g_Items_Create: arrIdx inconsistency');
+  //it.treeNode := -1;
+  //it.arrIdx := find_id;
+  it.slotIsUsed := true;
+
   it.ItemType := ItemType;
   it.Respawnable := Respawnable;
   if g_Game_IsServer and (ITEM_RESPAWNTIME = 0) then it.Respawnable := False;
@@ -534,11 +550,6 @@ begin
   it.Fall := Fall;
   it.Live := True;
   it.QuietRespawn := False;
-
-  if (it.treeNode <> -1) then raise Exception.Create('g_Items_Create: trying to reuse already allocated item');
-  if (it.arrIdx <> find_id) then raise Exception.Create('g_Items_Create: arrIdx inconsistency');
-  //it.treeNode := -1;
-  //it.arrIdx := find_id;
 
   g_Obj_Init(@it.Obj);
   it.Obj.X := X;
@@ -647,7 +658,7 @@ begin
                 +2. I_MEGA,I_INVL,I_SUPER
                 3. I_STIM,I_MEDI,I_ARM1,I_ARM2,I_AQUA,I_KEYR,I_KEYG,I_KEYB,I_SUIT,I_RTORCH,I_GTORCH,I_BTORCH,I_GOR1,I_FCAN
               }
-              g_Item_EmitPickupSoundAt(i, gPlayers[j].Obj.X, gPlayers[j].Obj.Y);
+              g_Items_EmitPickupSoundAt(i, gPlayers[j].Obj.X, gPlayers[j].Obj.Y);
 
               // Ќадо убрать с карты, если это не ключ, которым нужно поделитьс€ с другим игроком
               if r then
@@ -751,7 +762,7 @@ var
   //x, y: Integer;
 {$ENDIF}
 begin
-  if not g_ItemValidId(ID) then raise Exception.Create('g_Items_Remove: invalid item id');
+  if not g_Items_ValidId(ID) then raise Exception.Create('g_Items_Remove: invalid item id');
 
   it := @ggItems[ID];
   if (it.arrIdx <> ID) then raise Exception.Create('g_Items_Remove: arrIdx desync');
@@ -915,20 +926,20 @@ end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-procedure g_Item_EmitPickupSound (idx: Integer);
+procedure g_Items_EmitPickupSound (idx: Integer);
 var
   it: PItem;
 begin
-  if not g_ItemValidId(idx) then exit;
+  if not g_Items_ValidId(idx) then exit;
   it := @ggItems[idx];
-  g_Item_EmitPickupSoundAt(idx, it.Obj.X, it.Obj.Y);
+  g_Items_EmitPickupSoundAt(idx, it.Obj.X, it.Obj.Y);
 end;
 
-procedure g_Item_EmitPickupSoundAt (idx, x, y: Integer);
+procedure g_Items_EmitPickupSoundAt (idx, x, y: Integer);
 var
   it: PItem;
 begin
-  if not g_ItemValidId(idx) then exit;
+  if not g_Items_ValidId(idx) then exit;
 
   it := @ggItems[idx];
   if gSoundEffectsDF then

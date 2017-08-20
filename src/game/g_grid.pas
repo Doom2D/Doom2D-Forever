@@ -171,7 +171,7 @@ begin
   mProxyCount := 0;
   mProxyMaxCount := 0;
   mUData := 0;
-  mTagMask := 0;
+  mTagMask := -1;
   mItCB := nil;
   e_WriteLog(Format('created grid with size: %dx%d (tile size: %d); pix: %dx%d', [mWidth, mHeight, mTileSize, mWidth*mTileSize, mHeight*mTileSize]), MSG_NOTIFY);
 end;
@@ -501,7 +501,7 @@ begin
     begin
       if (pi.bodies[f] = -1) then break;
       px := @mProxies[pi.bodies[f]];
-      if (px.mQueryMark <> mLastQuery) and ((px.mTag and mTagMask) <> 0) then
+      if (px.mQueryMark <> mLastQuery) and ((mTagMask = -1) or ((px.mTag and mTagMask) <> 0)) then
       begin
         //e_WriteLog(Format('  query #%d body hit: (%d,%d)-(%dx%d) tag:%d', [mLastQuery, mCells[idx].body.mX, mCells[idx].body.mY, mCells[idx].body.mWidth, mCells[idx].body.mHeight, mCells[idx].body.mTag]), MSG_NOTIFY);
         px.mQueryMark := mLastQuery;
@@ -513,7 +513,7 @@ begin
     if (mCells[idx].body <> -1) then
     begin
       px := @mProxies[mCells[idx].body];
-      if (px.mQueryMark <> mLastQuery) and ((px.mTag and mTagMask) <> 0) then
+      if (px.mQueryMark <> mLastQuery) and ((mTagMask = -1) or ((px.mTag and mTagMask) <> 0)) then
       begin
         //e_WriteLog(Format('  query #%d body hit: (%d,%d)-(%dx%d) tag:%d', [mLastQuery, mCells[idx].body.mX, mCells[idx].body.mY, mCells[idx].body.mWidth, mCells[idx].body.mHeight, mCells[idx].body.mTag]), MSG_NOTIFY);
         px.mQueryMark := mLastQuery;
