@@ -93,6 +93,7 @@ var
 
 
 // ////////////////////////////////////////////////////////////////////////// //
+{
 type
   TDynAABBTreeItemBase = specialize TDynAABBTreeBase<Integer>;
 
@@ -112,11 +113,11 @@ begin
   if not aabb.valid then raise Exception.Create('wutafuuuuuuu?!');
   result := true;
 end;
-
+}
 
 // ////////////////////////////////////////////////////////////////////////// //
 var
-  itemTree: TDynAABBTreeItem = nil;
+  //itemTree: TDynAABBTreeItem = nil;
   freeIds: TBinaryHeapInt = nil; // free item ids
 
 
@@ -148,14 +149,17 @@ end;
 
 // ////////////////////////////////////////////////////////////////////////// //
 procedure TItem.positionChanged ();
-var
-  x, y: Integer;
+//var
+//  x, y: Integer;
 begin
+  (*
   if (treeNode = -1) then
   begin
     treeNode := itemTree.insertObject(arrIdx, 0, true); // static object
+    {$IF DEFINED(D2F_DEBUG)}
     itemTree.getNodeXY(treeNode, x, y);
-    {$IF DEFINED(D2F_DEBUG)}e_WriteLog(Format('item #%d: inserted into the tree; nodeid=%d; x=%d; y=%d', [arrIdx, treeNode, x, y]), MSG_NOTIFY);{$ENDIF}
+    e_WriteLog(Format('item #%d: inserted into the tree; nodeid=%d; x=%d; y=%d', [arrIdx, treeNode, x, y]), MSG_NOTIFY);
+    {$ENDIF}
   end
   else
   begin
@@ -170,9 +174,12 @@ begin
     treeNode := itemTree.insertObject(arrIdx, 0, true); // static object
     {$ENDIF}
 
+    {$IF DEFINED(D2F_DEBUG)}
     itemTree.getNodeXY(treeNode, x, y);
-    {$IF DEFINED(D2F_DEBUG)}e_WriteLog(Format('item #%d: updated tree; nodeid=%d; x=%d; y=%d', [arrIdx, treeNode, x, y]), MSG_NOTIFY);{$ENDIF}
+    e_WriteLog(Format('item #%d: updated tree; nodeid=%d; x=%d; y=%d', [arrIdx, treeNode, x, y]), MSG_NOTIFY);
+    {$ENDIF}
   end;
+  *)
 end;
 
 
@@ -309,7 +316,7 @@ begin
 
   InitTextures();
 
-  itemTree := TDynAABBTreeItem.Create();
+  //itemTree := TDynAABBTreeItem.Create();
   freeIds := binHeapNewIntLess();
 end;
 
@@ -367,7 +374,7 @@ begin
   g_Texture_Delete('ITEM_MEDKIT_BLACK');
   g_Texture_Delete('ITEM_JETPACK');
 
-  itemTree.Free();
+  //itemTree.Free();
   freeIds.Free();
 end;
 
@@ -380,7 +387,7 @@ begin
   it := @ggItems[idx];
   if (it.treeNode = -1) then raise Exception.Create('releaseItem: trying to release unallocated item');
   if (it.arrIdx <> idx) then raise Exception.Create('releaseItem: arrIdx inconsistency');
-  itemTree.removeObject(it.treeNode);
+  //itemTree.removeObject(it.treeNode);
   it.treeNode := -1;
   if (it.Animation <> nil) then
   begin
@@ -472,7 +479,7 @@ begin
   else
   begin
     // it will be readded
-    itemTree.removeObject(it.treeNode);
+    //itemTree.removeObject(it.treeNode);
     it.treeNode := -1;
   end;
 
@@ -500,7 +507,7 @@ begin
     for i := 0 to High(ggItems) do ggItems[i].Animation.Free();
     ggItems := nil;
   end;
-  if (itemTree <> nil) then itemTree.reset();
+  //if (itemTree <> nil) then itemTree.reset();
   freeIds.clear();
 end;
 
@@ -740,15 +747,19 @@ procedure g_Items_Remove (ID: DWORD);
 var
   it: PItem;
   trig: Integer;
-  x, y: Integer;
+{$IF DEFINED(D2F_DEBUG)}
+  //x, y: Integer;
+{$ENDIF}
 begin
   if not g_ItemValidId(ID) then raise Exception.Create('g_Items_Remove: invalid item id');
 
   it := @ggItems[ID];
   if (it.arrIdx <> ID) then raise Exception.Create('g_Items_Remove: arrIdx desync');
 
-  itemTree.getNodeXY(it.treeNode, x, y);
-  {$IF DEFINED(D2F_DEBUG)}e_WriteLog(Format('removing item #%d: updating tree; nodeid=%d; x=%d; y=%d (%d,%d)', [it.arrIdx, it.treeNode, x, y, it.Obj.X, it.Obj.Y]), MSG_NOTIFY);{$ENDIF}
+  {$IF DEFINED(D2F_DEBUG)}
+  //itemTree.getNodeXY(it.treeNode, x, y);
+  //e_WriteLog(Format('removing item #%d: updating tree; nodeid=%d; x=%d; y=%d (%d,%d)', [it.arrIdx, it.treeNode, x, y, it.Obj.X, it.Obj.Y]), MSG_NOTIFY);
+  {$ENDIF}
 
   trig := it.SpawnTrigger;
 
