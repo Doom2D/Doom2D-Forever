@@ -1134,8 +1134,8 @@ procedure g_Monsters_Free();
 var
   a: Integer;
 begin
-  for a := 0 to High(gMonsters) do gMonsters[a].Free();
   monsTree.reset();
+  for a := 0 to High(gMonsters) do gMonsters[a].Free();
   gMonsters := nil;
   clearUidMap();
   monCheckTrapLastFrameId := 0;
@@ -1929,10 +1929,13 @@ begin
 
   if (treeNode <> -1) then
   begin
-    {$IF DEFINED(D2F_DEBUG)}
-    e_WriteLog(Format('monster #%d(%u): removed from tree; nodeid=%d', [arrIdx, UID, treeNode]), MSG_NOTIFY);
-    {$ENDIF}
-    if monsTree.isValidId(treeNode) then monsTree.removeObject(treeNode);
+    if monsTree.isValidId(treeNode) then
+    begin
+      {$IF DEFINED(D2F_DEBUG)}
+      e_WriteLog(Format('monster #%d(%u): removed from tree; nodeid=%d', [arrIdx, UID, treeNode]), MSG_NOTIFY);
+      {$ENDIF}
+      monsTree.removeObject(treeNode);
+    end;
   end;
 
   if (arrIdx <> -1) then
