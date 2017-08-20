@@ -1932,7 +1932,7 @@ begin
     {$IF DEFINED(D2F_DEBUG)}
     e_WriteLog(Format('monster #%d(%u): removed from tree; nodeid=%d', [arrIdx, UID, treeNode]), MSG_NOTIFY);
     {$ENDIF}
-    monsTree.removeObject(treeNode);
+    if monsTree.isValidId(treeNode) then monsTree.removeObject(treeNode);
   end;
 
   if (arrIdx <> -1) then
