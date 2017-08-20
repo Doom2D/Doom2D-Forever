@@ -755,7 +755,7 @@ begin
 
     UID_MONSTER:
       begin
-        m := g_Monsters_Get(ActivateUID);
+        m := g_Monsters_ByUID(ActivateUID);
         if m = nil then
           Exit;
 
@@ -801,7 +801,7 @@ begin
 
     UID_MONSTER:
       begin
-        m := g_Monsters_Get(ActivateUID);
+        m := g_Monsters_ByUID(ActivateUID);
         if m = nil then
           Exit;
 
@@ -1880,7 +1880,7 @@ begin
 
                 UID_MONSTER:
                   begin
-                    m := g_Monsters_Get(ActivateUID);
+                    m := g_Monsters_ByUID(ActivateUID);
                     if m = nil then
                       Exit;
 

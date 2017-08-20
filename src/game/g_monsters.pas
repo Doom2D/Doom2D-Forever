@@ -160,22 +160,23 @@ type
     property StartID: Integer read FStartID;
   end;
 
-procedure g_Monsters_LoadData();
-procedure g_Monsters_FreeData();
-procedure g_Monsters_Init();
-procedure g_Monsters_Free();
-function g_Monsters_Create(MonsterType: Byte; X, Y: Integer;
-            Direction: TDirection; AdjCoord: Boolean = False; ForcedUID: Integer = -1): TMonster;
-procedure g_Monsters_Update();
-procedure g_Monsters_Draw();
-procedure g_Monsters_DrawHealth();
-function  g_Monsters_Get(UID: Word): TMonster;
-procedure g_Monsters_killedp();
-procedure g_Monsters_SaveState(var Mem: TBinMemoryWriter);
-procedure g_Monsters_LoadState(var Mem: TBinMemoryReader);
-function  g_Monsters_GetIDByName(name: String): Integer;
-function  g_Monsters_GetNameByID(MonsterType: Byte): String;
-function  g_Monsters_GetKilledBy(MonsterType: Byte): String;
+
+procedure g_Monsters_LoadData ();
+procedure g_Monsters_FreeData ();
+procedure g_Monsters_Init ();
+procedure g_Monsters_Free ();
+function g_Monsters_Create (MonsterType: Byte; X, Y: Integer; Direction: TDirection;
+  AdjCoord: Boolean = False; ForcedUID: Integer = -1): TMonster;
+procedure g_Monsters_Update ();
+procedure g_Monsters_Draw ();
+procedure g_Monsters_DrawHealth ();
+function  g_Monsters_ByUID (UID: Word): TMonster;
+procedure g_Monsters_killedp ();
+procedure g_Monsters_SaveState (var Mem: TBinMemoryWriter);
+procedure g_Monsters_LoadState (var Mem: TBinMemoryReader);
+function  g_Monsters_GetIDByName (name: String): Integer;
+function  g_Monsters_GetNameByID (MonsterType: Byte): String;
+function  g_Monsters_GetKilledBy (MonsterType: Byte): String;
 
 
 type
@@ -472,6 +473,16 @@ const
 
 var
   gMonsters: array of TMonster;
+  uidMap: array [0..65535] of TMonster; // monster knows it's index
+
+
+procedure clearUidMap ();
+var
+  idx: Integer;
+begin
+  for idx := 0 to High(uidMap) do uidMap[idx] := nil;
+end;
+
 
 var
   pt_x: Integer = 0;
@@ -546,7 +557,7 @@ begin
   UIDType := g_GetUIDType(SpawnerUID);
   if UIDType = UID_MONSTER then
   begin
-    m := g_Monsters_Get(SpawnerUID);
+    m := g_Monsters_ByUID(SpawnerUID);
     if m = nil then Exit;
     MonsterType := m.FMonsterType;
   end;
@@ -866,6 +877,7 @@ begin
   g_Sound_CreateWADEx('SOUND_MONSTER_FISH_ATTACK', GameWAD+':MSOUNDS\FISH_ATTACK');
 
   monsTree := TDynAABBTreeMons.Create();
+  clearUidMap();
 end;
 
 procedure g_Monsters_FreeData();
@@ -1095,12 +1107,10 @@ procedure g_Monsters_Free();
 var
   a: Integer;
 begin
-  if gMonsters <> nil then
-    for a := 0 to High(gMonsters) do
-      gMonsters[a].Free();
-
+  for a := 0 to High(gMonsters) do gMonsters[a].Free();
   monsTree.reset();
   gMonsters := nil;
+  clearUidMap();
 end;
 
 function g_Monsters_Create(MonsterType: Byte; X, Y: Integer;
@@ -1127,6 +1137,8 @@ begin
   gMonsters[find_id] := mon;
   mon.arrIdx := find_id;
   mon.treeNode := -1;
+
+  uidMap[mon.FUID] := mon;
 
   // Настраиваем положение
   with mon do
@@ -1179,34 +1191,33 @@ procedure g_Monsters_Update();
 var
   a: Integer;
 begin
-// Целеуказатель:
+  // Целеуказатель
   if gTime mod (GAME_TICK*2) = 0 then
   begin
     pt_x := pt_x+pt_xs;
     pt_y := pt_y+pt_ys;
-    if Abs(pt_x) > 246 then
-      pt_xs := -pt_xs;
-    if Abs(pt_y) > 100 then
-      pt_ys := -pt_ys;
+    if abs(pt_x) > 246 then pt_xs := -pt_xs;
+    if abs(pt_y) > 100 then pt_ys := -pt_ys;
   end;
 
   gMon := True; // Для работы BlockMon'а
 
-  if gMonsters <> nil then
-    for a := 0 to High(gMonsters) do
-      if (gMonsters[a] <> nil) then
-        if not gMonsters[a].FRemoved then
-        begin
-          if g_Game_IsClient then
-            gMonsters[a].ClientUpdate()
-          else
-            gMonsters[a].Update();
-        end
-        else
-          begin
-            gMonsters[a].Free();
-            gMonsters[a] := nil;
-          end;
+  for a := 0 to High(gMonsters) do
+  begin
+    if (gMonsters[a] = nil) then continue;
+    if not gMonsters[a].FRemoved then
+    begin
+      if g_Game_IsClient then
+        gMonsters[a].ClientUpdate()
+      else
+        gMonsters[a].Update();
+    end
+    else
+    begin
+      gMonsters[a].Free();
+      gMonsters[a] := nil;
+    end;
+  end;
 
   gMon := False;
 end;
@@ -1238,12 +1249,12 @@ begin
     end;
 end;
 
-function g_Monsters_Get(UID: Word): TMonster;
-var
-  a: Integer;
+function g_Monsters_ByUID (UID: Word): TMonster;
+//var a: Integer;
 begin
+  result := uidMap[UID];
+  {
   Result := nil;
-
   if gMonsters <> nil then
     for a := 0 to High(gMonsters) do
       if (gMonsters[a] <> nil) and
@@ -1252,6 +1263,7 @@ begin
         Result := gMonsters[a];
         Break;
       end;
+  }
 end;
 
 procedure g_Monsters_SaveState(var Mem: TBinMemoryWriter);
@@ -1763,8 +1775,7 @@ begin
   end;
 
 // Теперь цель - ударивший, если только не сам себя:
-  if (SpawnerUID <> FUID) and
-  (BehaviourDamage(SpawnerUID, FBehaviour, FMonsterType)) then
+  if (SpawnerUID <> FUID) and (BehaviourDamage(SpawnerUID, FBehaviour, FMonsterType)) then
   begin
     FTargetUID := SpawnerUID;
     FTargetTime := 0;
@@ -1870,8 +1881,7 @@ begin
   if FHealth < FMaxHealth then
   begin
     IncMax(FHealth, Value, FMaxHealth);
-    if g_Game_IsServer and g_Game_IsNet then
-      MH_SEND_MonsterState(FUID);
+    if g_Game_IsServer and g_Game_IsNet then MH_SEND_MonsterState(FUID);
     Result := True;
   end;
 end;
@@ -1895,6 +1905,13 @@ begin
     {$ENDIF}
     monsTree.removeObject(treeNode);
   end;
+
+  if (arrIdx <> -1) then
+  begin
+    gMonsters[arrIdx] := nil;
+  end;
+
+  uidMap[FUID] := nil;
 
   inherited Destroy();
 end;
@@ -2000,8 +2017,7 @@ procedure TMonster.Push(vx, vy: Integer);
 begin
   FObj.Accel.X := FObj.Accel.X + vx;
   FObj.Accel.Y := FObj.Accel.Y + vy;
-  if g_Game_IsServer and g_Game_IsNet then
-    MH_SEND_MonsterPos(FUID);
+  if g_Game_IsServer and g_Game_IsNet then MH_SEND_MonsterPos(FUID);
 end;
 
 procedure TMonster.SetState(State: Byte; ForceAnim: Byte = 255);
@@ -2125,8 +2141,7 @@ begin
                     NET_GFX_TELE);
   end;
 
-  if g_Game_IsServer and g_Game_IsNet then
-    MH_SEND_MonsterPos(FUID);
+  if g_Game_IsServer and g_Game_IsNet then MH_SEND_MonsterPos(FUID);
   Result := True;
 end;
 
@@ -4344,8 +4359,7 @@ procedure TMonster.CatchFire(Attacker: Word);
 begin
   FFireTime := 100;
   FFireAttacker := Attacker;
-  if g_Game_IsNet and g_Game_IsServer then
-    MH_SEND_MonsterState(FUID);
+  if g_Game_IsNet and g_Game_IsServer then MH_SEND_MonsterState(FUID);
 end;
 
 procedure TMonster.OnFireFlame(Times: DWORD = 1);

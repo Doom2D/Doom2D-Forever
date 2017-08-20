@@ -3121,7 +3121,7 @@ begin
       end
     else if g_GetUIDType(SpawnerUID) = UID_MONSTER then
       begin // Убит монстром
-        mon := g_Monsters_Get(SpawnerUID);
+        mon := g_Monsters_ByUID(SpawnerUID);
         if mon = nil then
           s := '?'
         else
@@ -6393,7 +6393,7 @@ begin
         if (g_GetUIDType(Target.UID) = UID_MONSTER) and
             vsMonster then
           begin // Монстр
-            mon := g_Monsters_Get(Target.UID);
+            mon := g_Monsters_ByUID(Target.UID);
             if mon <> nil then
               begin
                 Target.X := mon.Obj.X;
@@ -6626,7 +6626,7 @@ begin
             end
           else
             begin // Цель - монстр
-              mon := g_Monsters_Get(Target.UID);
+              mon := g_Monsters_ByUID(Target.UID);
               if (mon = nil) or (not mon.Live) then
                 Target.UID := 0; // то забыть цель
             end;
@@ -7378,7 +7378,7 @@ begin
         if (g_GetUIDType(FLastSpawnerUID) = UID_MONSTER) and
            LongBool(gGameSettings.Options and GAME_OPTION_BOTVSMONSTER) then
         begin // Монстр
-          mon := g_Monsters_Get(FLastSpawnerUID);
+          mon := g_Monsters_ByUID(FLastSpawnerUID);
           ok := not TargetOnScreen(mon.Obj.X + mon.Obj.Rect.X,
                                    mon.Obj.Y + mon.Obj.Rect.Y);
         end;

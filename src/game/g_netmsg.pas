@@ -1321,7 +1321,7 @@ procedure MH_SEND_MonsterSpawn(UID: Word; ID: Integer = NET_EVERYONE);
 var
   M: TMonster;
 begin
-  M := g_Monsters_Get(UID);
+  M := g_Monsters_ByUID(UID);
   if M = nil then
     Exit;
 
@@ -1352,7 +1352,7 @@ procedure MH_SEND_MonsterPos(UID: Word; ID: Integer = NET_EVERYONE);
 var
   M: TMonster;
 begin
-  M := g_Monsters_Get(UID);
+  M := g_Monsters_ByUID(UID);
   if M = nil then Exit;
 
   NetOut.Write(Byte(NET_MSG_MPOS));
@@ -1374,7 +1374,7 @@ procedure MH_SEND_MonsterState(UID: Word; ForcedAnim: Byte = 255; ID: Integer = 
 var
   M: TMonster;
 begin
-  M := g_Monsters_Get(UID);
+  M := g_Monsters_ByUID(UID);
   if M = nil then Exit;
 
   NetOut.Write(Byte(NET_MSG_MSTATE));
@@ -1413,7 +1413,7 @@ procedure MH_SEND_MonsterDelete(UID: Word; ID: Integer = NET_EVERYONE);
 var
   M: TMonster;
 begin
-  M := g_Monsters_Get(UID);
+  M := g_Monsters_ByUID(UID);
   if M = nil then Exit;
 
   NetOut.Write(Byte(NET_MSG_MDEL));
@@ -2566,7 +2566,7 @@ var
   Mon: TMonster;
 begin
   ID := M.ReadWord();
-  Mon := g_Monsters_Get(ID);
+  Mon := g_Monsters_ByUID(ID);
   if Mon <> nil then
     Exit;
 
@@ -2587,7 +2587,7 @@ begin
   MDir := M.ReadByte();
 
   g_Monsters_Create(MType, X, Y, TDirection(MDir), False, ID);
-  Mon := g_Monsters_Get(ID);
+  Mon := g_Monsters_ByUID(ID);
   if Mon = nil then
     Exit;
 
@@ -2618,7 +2618,7 @@ var
   ID: Word;
 begin
   ID := M.ReadWord();
-  Mon := g_Monsters_Get(ID);
+  Mon := g_Monsters_ByUID(ID);
   if Mon = nil then
     Exit;
 
@@ -2641,7 +2641,7 @@ var
   AnimRevert: Boolean;
 begin
   ID := M.ReadWord();
-  Mon := g_Monsters_Get(ID);
+  Mon := g_Monsters_ByUID(ID);
   if Mon = nil then Exit;
 
   MState := M.ReadByte();
@@ -2685,7 +2685,7 @@ var
 begin
   ID := M.ReadWord();
 
-  Mon := g_Monsters_Get(ID);
+  Mon := g_Monsters_ByUID(ID);
   if Mon = nil then Exit;
 
   X := M.ReadLongInt();
@@ -2702,7 +2702,7 @@ var
   Mon: TMonster;
 begin
   ID := M.ReadWord();
-  Mon := g_Monsters_Get(ID);
+  Mon := g_Monsters_ByUID(ID);
   if Mon = nil then Exit;
   Mon.SetState(5);
   Mon.MonsterRemoved := True;

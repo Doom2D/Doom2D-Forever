@@ -244,15 +244,26 @@ begin
 end;
 
 procedure CheckTrap(ID: DWORD; dm: Integer; t: Byte);
-
 var
   a, b, c, d, i1, i2: Integer;
   pl, mn: WArray;
 
+  {
   function monsWaterCheck (monidx: Integer; mon: TMonster): Boolean;
   begin
     result := false; // don't stop
     if mon.Live and mon.Collide(gWater[WaterMap[a][c]]) and (not InWArray(monidx, mn)) and (i2 < 1023) then //FIXME
+    begin
+      i2 += 1;
+      mn[i2] := monidx;
+    end;
+  end;
+  }
+
+  function monsWaterCheck (monidx: Integer; mon: TMonster): Boolean;
+  begin
+    result := false; // don't stop
+    if (not InWArray(monidx, mn)) and (i2 < 1023) then //FIXME
     begin
       i2 += 1;
       mn[i2] := monidx;
@@ -292,16 +303,22 @@ begin
                   end;
         end;
 
-        g_Mons_ForEach(monsWaterCheck);
+        //g_Mons_ForEach(monsWaterCheck);
+        g_Mons_ForEachAtAlive(
+          gWater[WaterMap[a][c]].X, gWater[WaterMap[a][c]].Y,
+          gWater[WaterMap[a][c]].Width, gWater[WaterMap[a][c]].Height,
+          monsWaterCheck);
       end;
 
       if i1 <> -1 then
-        for d := 0 to i1 do
-          gPlayers[pl[d]].Damage(dm, Shots[ID].SpawnerUID, 0, 0, t);
+      begin
+        for d := 0 to i1 do gPlayers[pl[d]].Damage(dm, Shots[ID].SpawnerUID, 0, 0, t);
+      end;
 
       if i2 <> -1 then
-        for d := 0 to i2 do
-          g_Mons_ByIdx(mn[d]).Damage(dm, 0, 0, Shots[ID].SpawnerUID, t);
+      begin
+        for d := 0 to i2 do g_Mons_ByIdx(mn[d]).Damage(dm, 0, 0, Shots[ID].SpawnerUID, t);
+      end;
     end;
 
   pl := nil;
@@ -318,9 +335,9 @@ begin
   tt := g_GetUIDType(SpawnerUID);
   if tt = UID_MONSTER then
   begin
-    mon := g_Monsters_Get(SpawnerUID);
+    mon := g_Monsters_ByUID(SpawnerUID);
     if mon <> nil then
-      mt := g_Monsters_Get(SpawnerUID).MonsterType
+      mt := g_Monsters_ByUID(SpawnerUID).MonsterType
     else
       mt := 0;
   end
@@ -876,7 +893,7 @@ begin
 
   case g_GetUIDType(UID) of
     UID_PLAYER: Result := HitPlayer(g_Player_Get(UID), d, 0, 0, SpawnerUID, t);
-    UID_MONSTER: Result := HitMonster(g_Monsters_Get(UID), d, 0, 0, SpawnerUID, t);
+    UID_MONSTER: Result := HitMonster(g_Monsters_ByUID(UID), d, 0, 0, SpawnerUID, t);
     else Exit;
   end;
 end;
