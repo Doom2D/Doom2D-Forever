@@ -52,6 +52,8 @@ type
   TCommand = record
     Cmd: String;
     Proc: TCmdProc;
+    help: String;
+    hidden: Boolean;
   end;
 
   TAlias = record
@@ -157,7 +159,16 @@ begin
     g_Console_Add('');
     g_Console_Add('Commands list:');
     for a := High(Commands) downto 0 do
-      g_Console_Add('  '+Commands[a].Cmd);
+    begin
+      if (Length(Commands[a].help) > 0) then
+      begin
+        g_Console_Add('  '+Commands[a].Cmd+' -- '+Commands[a].help);
+      end
+      else
+      begin
+        g_Console_Add('  '+Commands[a].Cmd);
+      end;
+    end;
   end;
 
   if Cmd = 'time' then
@@ -337,7 +348,7 @@ begin
   Whitelist[a] := LowerCase(Cmd);
 end;
 
-procedure AddCommand(Cmd: String; Proc: TCmdProc);
+procedure AddCommand(Cmd: String; Proc: TCmdProc; ahelp: String=''; ahidden: Boolean=false);
 var
   a: Integer;
 begin
@@ -345,6 +356,8 @@ begin
   a := High(Commands);
   Commands[a].Cmd := LowerCase(Cmd);
   Commands[a].Proc := Proc;
+  Commands[a].hidden := ahidden;
+  Commands[a].help := ahelp;
 end;
 
 procedure g_Console_Init();
@@ -365,7 +378,7 @@ begin
       Time := 0;
     end;
 
-  AddCommand('clear', ConsoleCommands);
+  AddCommand('clear', ConsoleCommands, 'clear console');
   AddCommand('clearhistory', ConsoleCommands);
   AddCommand('showhistory', ConsoleCommands);
   AddCommand('commands', ConsoleCommands);
@@ -388,20 +401,20 @@ begin
   AddCommand('d_player', DebugCommands);
   AddCommand('d_joy', DebugCommands);
 
-  AddCommand('pf_draw_frame', ProfilerCommands);
-  AddCommand('pf_update_frame', ProfilerCommands);
-  AddCommand('pf_coldet', ProfilerCommands);
-  AddCommand('r_sq_draw', ProfilerCommands);
-  AddCommand('r_sq_use_grid', ProfilerCommands);
-  AddCommand('r_sq_use_tree', ProfilerCommands);
-  AddCommand('dbg_sq_coldet', ProfilerCommands);
+  AddCommand('pf_draw_frame', ProfilerCommands, 'draw frame rendering profiles');
+  //AddCommand('pf_update_frame', ProfilerCommands);
+  AddCommand('pf_coldet', ProfilerCommands, 'draw collision detection profiles');
+  AddCommand('r_sq_draw', ProfilerCommands, 'accelerated spatial queries in rendering');
+  AddCommand('r_sq_use_grid', ProfilerCommands, 'use grid for render acceleration');
+  AddCommand('r_sq_use_tree', ProfilerCommands, 'use tree for render acceleration');
+  AddCommand('dbg_sq_coldet', ProfilerCommands, 'accelerated spatial queries in map coldet');
 
   AddCommand('t_dump_node_queries', ProfilerCommands);
 
-  AddCommand('sq_use_grid', ProfilerCommands);
-  AddCommand('sq_use_tree', ProfilerCommands);
+  AddCommand('sq_use_grid', ProfilerCommands, 'use grid for map coldet acceleration');
+  AddCommand('sq_use_tree', ProfilerCommands, 'use tree for map coldet acceleration');
 
-  AddCommand('mon_sq_enabled', ProfilerCommands);
+  AddCommand('mon_sq_enabled', ProfilerCommands, 'use accelerated spatial queries for monsters');
 
   AddCommand('p1_name', GameCVars);
   AddCommand('p2_name', GameCVars);
@@ -730,6 +743,7 @@ end;
 
 var
   tcomplist: array of string = nil;
+  tcompidx: array of Integer = nil;
 
 procedure Complete ();
 var
@@ -742,9 +756,16 @@ begin
     g_Console_Add('');
     for i := 0 to High(Commands) do
     begin
-      if (Commands[i].Cmd <> 'goobers') then
+      if not Commands[i].hidden then
       begin
-        g_Console_Add('  '+Commands[i].Cmd);
+        if (Length(Commands[i].help) > 0) then
+        begin
+          g_Console_Add('  '+Commands[i].Cmd+' -- '+Commands[i].help);
+        end
+        else
+        begin
+          g_Console_Add('  '+Commands[i].Cmd);
+        end;
       end;
     end;
     exit;
@@ -753,16 +774,38 @@ begin
   ll := LowerCase(Line);
   lpfx := '';
 
+  if (Length(ll) > 1) and (ll[Length(ll)] = ' ') then
+  begin
+    ll := Copy(ll, 0, Length(ll)-1);
+    for i := 0 to High(Commands) do
+    begin
+      if Commands[i].hidden then continue;
+      if (Commands[i].Cmd = ll) then
+      begin
+        if (Length(Commands[i].help) > 0) then
+        begin
+          g_Console_Add('  '+Commands[i].Cmd+' -- '+Commands[i].help);
+        end;
+      end;
+    end;
+    exit;
+  end;
+
   // build completion list
   tused := 0;
   for i := 0 to High(Commands) do
   begin
+    if Commands[i].hidden then continue;
     cmd := Commands[i].Cmd;
-    if (cmd = 'goobers') then continue;
     if (Length(cmd) >= Length(ll)) and (ll = Copy(cmd, 0, Length(ll))) then
     begin
-      if (tused = Length(tcomplist)) then SetLength(tcomplist, Length(tcomplist)+128);
+      if (tused = Length(tcomplist)) then
+      begin
+        SetLength(tcomplist, Length(tcomplist)+128);
+        SetLength(tcompidx, Length(tcompidx)+128);
+      end;
       tcomplist[tused] := cmd;
+      tcompidx[tused] := i;
       Inc(tused);
       if (Length(cmd) > Length(lpfx)) then lpfx := cmd;
     end;
@@ -797,7 +840,17 @@ begin
     else
     begin
       g_Console_Add('');
-      for i := 0 to tused-1 do g_Console_Add('  '+tcomplist[i]);
+      for i := 0 to tused-1 do
+      begin
+        if (Length(Commands[tcompidx[i]].help) > 0) then
+        begin
+          g_Console_Add('  '+tcomplist[i]+' -- '+Commands[tcompidx[i]].help);
+        end
+        else
+        begin
+          g_Console_Add('  '+tcomplist[i]);
+        end;
+      end;
     end;
   end;
 end;
