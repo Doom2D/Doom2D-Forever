@@ -5006,6 +5006,17 @@ begin
     if gmon_debug_use_sqaccel then g_Console_Add('accelerated monster coldet: tan') else g_Console_Add('accelerated monster coldet: ona');
     exit;
   end;
+
+  if (cmd = 'wtrace_sq_enabled') then
+  begin
+    case getBool(1) of
+      -1: begin end;
+       0: gwep_debug_fast_trace := false;
+       1: gwep_debug_fast_trace := true;
+    end;
+    if gwep_debug_fast_trace then g_Console_Add('accelerated weapon hitscan: tan') else g_Console_Add('accelerated weapon hitscan: ona');
+    exit;
+  end;
 end;
 
 procedure DebugCommands(P: SArray);

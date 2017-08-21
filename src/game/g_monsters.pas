@@ -204,6 +204,12 @@ function g_Mons_ForEachAliveAt (x, y: Integer; width, height: Integer; cb: TEach
 function g_Mons_getNewTrapFrameId (): DWord;
 
 
+type
+  TMonsAlongLineCB = function (mon: TMonster; dist: Single): Boolean is nested;
+
+function g_Mons_alongLine (x0, y0, x1, y1: Integer; cb: TMonsAlongLineCB): TMonster;
+
+
 var
   gmon_debug_use_sqaccel: Boolean = true;
 
@@ -252,18 +258,48 @@ var
   monsTree: TDynAABBTreeMons = nil;
 
 
+function g_Mons_alongLine (x0, y0, x1, y1: Integer; cb: TMonsAlongLineCB): TMonster;
+
+  function sqchecker (mon: TMonster; var ray: Ray2D): Single;
+  var
+    aabb: AABB2D;
+    tmin: Single;
+  begin
+    result := -666.0; // invalid
+    aabb := mon.mapAABB;
+    if not aabb.valid then exit;
+    if aabb.intersects(ray, @tmin) then
+    begin
+      if (tmin <= 0.0) then tmin := 0.0;
+      result := tmin;
+      if cb(mon, tmin) then result := 0.0; // instant stop
+    end;
+  end;
+
+var
+  qr: TDynAABBTreeMons.TSegmentQueryResult;
+begin
+  result := nil;
+  if not assigned(cb) then exit;
+  if monsTree.segmentQuery(qr, x0, y0, x1, y1, sqchecker) then
+  begin
+    if (qr.flesh <> nil) then result := qr.flesh;
+  end;
+end;
+
+
 //WARNING! call this after monster position was changed, or coldet will not work right!
 procedure TMonster.positionChanged ();
 var
   x, y: Integer;
 begin
-  {$IF DEFINED(D2F_DEBUG)}
+  {$IF DEFINED(D2F_DEBUG_MONS_MOVE)}
   //e_WriteLog(Format('monster #%d(%u): pos=(%d,%d); rpos=(%d,%d)', [arrIdx, UID, FObj.X, FObj.Y, FObj.Rect.X, FObj.Rect.Y]), MSG_NOTIFY);
   {$ENDIF}
   if (treeNode = -1) then
   begin
     treeNode := monsTree.insertObject(self, 0);
-    {$IF DEFINED(D2F_DEBUG)}
+    {$IF DEFINED(D2F_DEBUG_MONS_MOVE)}
     monsTree.getNodeXY(treeNode, x, y);
     e_WriteLog(Format('monster #%d(%u): inserted into the tree; nodeid=%d; x=%d; y=%d', [arrIdx, UID, treeNode, x, y]), MSG_NOTIFY);
     {$ENDIF}
@@ -272,7 +308,7 @@ begin
   begin
     monsTree.getNodeXY(treeNode, x, y);
     if (FObj.X+FObj.Rect.X = x) and (FObj.Y+FObj.Rect.Y = y) then exit; // nothing to do
-    {$IF DEFINED(D2F_DEBUG)}e_WriteLog(Format('monster #%d(%u): updating tree; nodeid=%d; x=%d; y=%d', [arrIdx, UID, treeNode, x, y]), MSG_NOTIFY);{$ENDIF}
+    {$IF DEFINED(D2F_DEBUG_MONS_MOVE)}e_WriteLog(Format('monster #%d(%u): updating tree; nodeid=%d; x=%d; y=%d', [arrIdx, UID, treeNode, x, y]), MSG_NOTIFY);{$ENDIF}
 
     {$IFDEF TRUE}
     monsTree.updateObject(treeNode);
@@ -281,7 +317,7 @@ begin
     treeNode := monsTree.insertObject(self);
     {$ENDIF}
 
-    {$IF DEFINED(D2F_DEBUG)}
+    {$IF DEFINED(D2F_DEBUG_MONS_MOVE)}
     monsTree.getNodeXY(treeNode, x, y);
     e_WriteLog(Format('monster #%d(%u): updated tree; nodeid=%d; x=%d; y=%d', [arrIdx, UID, treeNode, x, y]), MSG_NOTIFY);
     {$ENDIF}
@@ -1946,7 +1982,7 @@ begin
   begin
     if monsTree.isValidId(treeNode) then
     begin
-      {$IF DEFINED(D2F_DEBUG)}
+      {$IF DEFINED(D2F_DEBUG_MONS_MOVE)}
       e_WriteLog(Format('monster #%d(%u): removed from tree; nodeid=%d', [arrIdx, UID, treeNode]), MSG_NOTIFY);
       {$ENDIF}
       monsTree.removeObject(treeNode);

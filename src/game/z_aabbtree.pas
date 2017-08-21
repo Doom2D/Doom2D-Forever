@@ -37,6 +37,9 @@ type
     origX, origY: Single;
     dirX, dirY: Single;
 
+    function getOrigN (idx: Integer): Single; inline;
+    function getDirN (idx: Integer): Single; inline;
+
   public
     constructor Create (ax, ay: Single; aangle: Single); overload;
     constructor Create (ax0, ay0, ax1, ay1: Single); overload;
@@ -50,6 +53,9 @@ type
     procedure setX0Y0X1Y1 (ax0, ay0, ax1, ay1: Single); inline;
 
     procedure atTime (time: Single; out rx, ry: Integer); inline;
+
+    property orig[idx: Integer]: Single read getOrigN;
+    property dir[idx: Integer]: Single read getDirN;
   end;
 
 // ////////////////////////////////////////////////////////////////////////// //
@@ -64,6 +70,8 @@ type
     function getcenterY (): TreeNumber; inline;
     function getextentX (): TreeNumber; inline;
     function getextentY (): TreeNumber; inline;
+    function getMinN (idx: Integer): TreeNumber; inline;
+    function getMaxN (idx: Integer): TreeNumber; inline;
 
   public
     constructor Create (x0, y0, x1, y1: TreeNumber); overload;
@@ -91,13 +99,17 @@ type
 
     // ray direction must be normalized
     function intersects (constref ray: Ray2D; tmino: PSingle=nil; tmaxo: PSingle=nil): Boolean; overload;
-    function intersects (ax, ay, bx, by: Single): Boolean; inline; overload;
+    function intersects (ax, ay, bx, by: Single; tmino: PSingle=nil): Boolean; inline; overload;
+    function intersects (constref ray: Ray2D; maxtime: Single; tmino: PSingle=nil): Boolean; inline; overload;
 
     property valid: Boolean read getvalid;
     property centerX: TreeNumber read getcenterX;
     property centerY: TreeNumber read getcenterY;
     property extentX: TreeNumber read getextentX;
     property extentY: TreeNumber read getextentY;
+
+    property min[idx: Integer]: TreeNumber read getMinN;
+    property max[idx: Integer]: TreeNumber read getMaxN;
   end;
 
 
@@ -197,11 +209,11 @@ type
     // called when a overlapping node has been found during the call to forEachAABBOverlap()
     // return `true` to stop
     type TQueryOverlapCB = function (abody: TTreeFlesh; atag: Integer): Boolean is nested;
-    type TSegQueryCallback = function (abody: TTreeFlesh; ax, ay, bx, by: Single): Single is nested; // return dist from (ax,ay) to abody
+    type TSegQueryCallback = function (abody: TTreeFlesh; var ray: Ray2D): Single is nested; // return hit time
 
     PSegmentQueryResult = ^TSegmentQueryResult;
     TSegmentQueryResult = record
-      dist: Single; // <0: nothing was hit
+      time: Single; // <0: nothing was hit
       flesh: TTreeFlesh;
 
       constructor Create (fuckyoufpc: Boolean);
@@ -227,6 +239,7 @@ type
     curax, curay: Single;
     curbx, curby: Single;
     dirx, diry: Single;
+    traceRay: Ray2D;
     sqcb: TSegQueryCallback;
     vstack: array of Integer; // for `visit()`
     vstused: Integer; // to support recursive queries
@@ -329,6 +342,9 @@ function dtMaxI (a, b: Integer): Integer; inline;
 function dtMinF (a, b: TreeNumber): TreeNumber; inline;
 function dtMaxF (a, b: TreeNumber): TreeNumber; inline;
 
+function minSingle (a, b: Single): Single; inline;
+function maxSingle (a, b: Single): Single; inline;
+
 
 implementation
 
@@ -343,11 +359,18 @@ function dtMaxI (a, b: Integer): Integer; inline; begin if (a > b) then result :
 function dtMinF (a, b: TreeNumber): TreeNumber; inline; begin if (a < b) then result := a else result := b; end;
 function dtMaxF (a, b: TreeNumber): TreeNumber; inline; begin if (a > b) then result := a else result := b; end;
 
+function minSingle (a, b: Single): Single; inline; begin if (a < b) then result := a else result := b; end;
+function maxSingle (a, b: Single): Single; inline; begin if (a > b) then result := a else result := b; end;
+
 
 // ////////////////////////////////////////////////////////////////////////// //
 constructor Ray2D.Create (ax, ay: Single; aangle: Single); begin setXYAngle(ax, ay, aangle); end;
 constructor Ray2D.Create (ax0, ay0, ax1, ay1: Single); begin setX0Y0X1Y1(ax0, ay0, ax1, ay1); end;
 constructor Ray2D.Create (constref aray: Ray2D); overload; begin copyFrom(aray); end;
+
+
+function Ray2D.getOrigN (idx: Integer): Single; inline; begin if (idx = 0) then result := origX else if (idx = 1) then result := origY else result := 0; end;
+function Ray2D.getDirN (idx: Integer): Single; inline; begin if (idx = 0) then result := dirX else if (idx = 1) then result := dirY else result := 0; end;
 
 
 procedure Ray2D.copyFrom (constref aray: Ray2D); inline;
@@ -427,6 +450,9 @@ function AABB2D.getcenterY (): TreeNumber; inline; begin result := (minY+maxY) d
 {$ENDIF}
 function AABB2D.getextentX (): TreeNumber; inline; begin result := maxX-minX+1; end;
 function AABB2D.getextentY (): TreeNumber; inline; begin result := maxY-minY+1; end;
+
+function AABB2D.getMinN (idx: Integer): TreeNumber; inline; begin if (idx = 0) then result := minX else if (idx = 1) then result := minY else result := 0; end;
+function AABB2D.getMaxN (idx: Integer): TreeNumber; inline; begin if (idx = 0) then result := maxX else if (idx = 1) then result := maxY else result := 0; end;
 
 procedure AABB2D.copyFrom (constref aabb: AABB2D); inline;
 begin
@@ -515,6 +541,7 @@ end;
 
 // something to consider here is that 0 * inf =nan which occurs when the ray starts exactly on the edge of a box
 // https://tavianator.com/fast-branchless-raybounding-box-intersections-part-2-nans/
+{
 function AABB2D.intersects (constref ray: Ray2D; tmino: PSingle=nil; tmaxo: PSingle=nil): Boolean; overload;
 var
   dinv, t1, t2, tmp: Single;
@@ -559,30 +586,86 @@ begin
     result := false;
   end;
 end;
+}
 
-function AABB2D.intersects (ax, ay, bx, by: Single): Boolean; inline; overload;
+
+function AABB2D.intersects (constref ray: Ray2D; tmino: PSingle=nil; tmaxo: PSingle=nil): Boolean; overload;
+var
+  tmin, tmax, t1, t2, invd: Single;
+  i: Integer;
+begin
+  tmin := -1.0e100;
+  tmax := 1.0e100;
+  for i := 0 to 1 do
+  begin
+    if (ray.dir[i] <> 0.0) then
+    begin
+      //t1 := (self.min[i]-ray.orig[i])/ray.dir[i];
+      //t2 := (self.max[i]-ray.orig[i])/ray.dir[i];
+      invd := 1.0/ray.dir[i];
+      t1 := (self.min[i]-ray.orig[i])*invd;
+      t2 := (self.max[i]-ray.orig[i])*invd;
+      tmin := maxSingle(tmin, minSingle(t1, t2));
+      tmax := minSingle(tmax, maxSingle(t1, t2));
+    end
+    else if (ray.orig[i] <= self.min[i]) or (ray.orig[i] >= self.max[i]) then
+    begin
+      result := false;
+      exit;
+    end;
+  end;
+
+  result := (tmax > tmin) and (tmax > 0.0);
+  if result then
+  begin
+    if (tmino <> nil) then tmino^ := tmin;
+    if (tmaxo <> nil) then tmaxo^ := tmin;
+  end;
+end;
+
+
+function AABB2D.intersects (ax, ay, bx, by: Single; tmino: PSingle=nil): Boolean; inline; overload;
 var
   tmin: Single;
   ray: Ray2D;
 begin
   result := true;
+  if (tmino <> nil) then tmino^ := 0.0;
   // it may be faster to first check if start or end point is inside AABB (this is sometimes enough for dyntree)
   if (ax >= minX) and (ay >= minY) and (ax <= maxX) and (ay <= maxY) then exit; // a
   if (bx >= minX) and (by >= minY) and (bx <= maxX) and (by <= maxY) then exit; // b
   // nope, do it hard way
   ray := Ray2D.Create(ax, ay, bx, by);
-  if not intersects(ray, @tmin) then begin result := false; exit; end;
+  if not intersects(ray, @tmin) then begin if (tmino <> nil) then tmino^ := tmin; result := false; exit; end;
+  if (tmino <> nil) then tmino^ := tmin;
   if (tmin < 0) then exit; // inside, just in case
-  bx := bx-ax;
-  by := by-ay;
+  bx -= ax;
+  by -= ay;
   result := (tmin*tmin <= bx*bx+by*by);
 end;
 
 
+function AABB2D.intersects (constref ray: Ray2D; maxtime: Single; tmino: PSingle=nil): Boolean; inline; overload;
+var
+  tmin: Single;
+begin
+  result := true;
+  if (ray.origX >= minX) and (ray.origY >= minY) and (ray.origX <= maxX) and (ray.origY <= maxY) then
+  begin
+    if (tmino <> nil) then tmino^ := 0.0;
+    exit;
+  end;
+  if not intersects(ray, @tmin) then begin if (tmino <> nil) then tmino^ := -1.0; result := false; exit; end;
+  if (tmin < 0) then tmin := 0; // inside
+  if (tmino <> nil) then tmino^ := tmin;
+  result := (tmin <= maxtime);
+end;
+
+
 // ////////////////////////////////////////////////////////////////////////// //
-constructor TDynAABBTreeBase.TSegmentQueryResult.Create (fuckyoufpc: Boolean); begin dist := -1; flesh := Default(ITP); end;
-procedure TDynAABBTreeBase.TSegmentQueryResult.reset (); inline; begin dist := -1; flesh := Default(ITP); end;
-function TDynAABBTreeBase.TSegmentQueryResult.valid (): Boolean; inline; begin result := (dist >= 0) and (flesh <> Default(ITP)); end;
+constructor TDynAABBTreeBase.TSegmentQueryResult.Create (fuckyoufpc: Boolean); begin time := -1; flesh := Default(ITP); end;
+procedure TDynAABBTreeBase.TSegmentQueryResult.reset (); inline; begin time := -1; flesh := Default(ITP); end;
+function TDynAABBTreeBase.TSegmentQueryResult.valid (): Boolean; inline; begin result := (time >= 0) and (flesh <> Default(ITP)); end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
@@ -1597,19 +1680,51 @@ end;
 
 
 function TDynAABBTreeBase.checkerRay (node: PTreeNode): Boolean;
+var
+  tmin: Single = 0;
 begin
-  result := node.aabb.intersects(curax, curay, curbx, curby);
+  {$IF FALSE}
+  result := node.aabb.intersects(curax, curay, curbx, curby, @tmin);
+  e_WriteLog(Format('intersect: (%f,%f)-(%f,%f)  (%d,%d)-(%d,%d) tmin=%f  res=%d', [
+    minSingle(curax, curbx),
+    minSingle(curay, curby),
+    maxSingle(curax, curbx),
+    maxSingle(curay, curby),
+    node.aabb.minX, node.aabb.minY,
+    node.aabb.maxX, node.aabb.maxY,
+    tmin,
+    Integer(result),
+  ]), MSG_NOTIFY);
+  {$ELSE}
+  result := node.aabb.intersects(traceRay, maxFraction, @tmin);
+  {
+  e_WriteLog(Format('intersect: (%f,%f)-(%f,%f)  (%d,%d)-(%d,%d) tmin=%f  res=%d  frac=%f', [
+    curax, curay, curbx, curby,
+    node.aabb.minX, node.aabb.minY,
+    node.aabb.maxX, node.aabb.maxY,
+    tmin,
+    Integer(result),
+    maxFraction
+  ]), MSG_NOTIFY);
+  }
+  {$ENDIF}
 end;
+
 
 function TDynAABBTreeBase.visitorRay (flesh: TTreeFlesh; tag: Integer): Boolean;
 var
   hitFraction: Single;
+  ray: Ray2D;
 begin
-  hitFraction := sqcb(flesh, curax, curay, curbx, curby);
+  ray.origX := curax;
+  ray.origY := curay;
+  ray.dirX := dirx;
+  ray.dirY := diry;
+  hitFraction := sqcb(flesh, ray);
   // if the user returned a hitFraction of zero, it means that the raycasting should stop here
   if (hitFraction = 0.0) then
   begin
-    qSRes.dist := 0;
+    qSRes.time := 0;
     qSRes.flesh := flesh;
     result := true;
     exit;
@@ -1621,7 +1736,7 @@ begin
     if (hitFraction < maxFraction) then
     begin
       maxFraction := hitFraction;
-      qSRes.dist := hitFraction;
+      qSRes.time := hitFraction;
       qSRes.flesh := flesh;
       // fix curb here
       //curb := cura+dir*hitFraction;
@@ -1643,10 +1758,11 @@ var
   invlen: Single;
   osres: PSegmentQueryResult;
   osqcb: TSegQueryCallback;
+  oldray: Ray2D;
 begin
   qr := TSegmentQueryResult.Create(false);
 
-  if (ax >= bx) or (ay >= by) then begin result := false; exit; end;
+  if (ax = bx) and (ay = by) then begin result := false; exit; end;
 
   oldmaxFraction := maxFraction;
   oldcurax := curax;
@@ -1655,6 +1771,7 @@ begin
   oldcurby := curby;
   olddirx := dirx;
   olddiry := diry;
+  oldray := traceRay;
 
   maxFraction := 1.0e100; // infinity
   curax := ax;
@@ -1668,6 +1785,11 @@ begin
   invlen := 1.0/sqrt(dirx*dirx+diry*diry);
   dirx *= invlen;
   diry *= invlen;
+
+  traceRay.origX := curax;
+  traceRay.origY := curay;
+  traceRay.dirX := dirx;
+  traceRay.dirY := diry;
 
   //chkAABB := AABB2D.Create(0, 0, 1, 1);
   osres := qSRes;
@@ -1685,6 +1807,7 @@ begin
   dirx := olddirx;
   diry := olddiry;
   maxFraction := oldmaxFraction;
+  traceRay := oldray;
 
   result := qr.valid;
 end;

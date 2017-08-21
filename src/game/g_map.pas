@@ -172,6 +172,9 @@ var
 
 function panelTypeToTag (panelType: Word): Integer; // returns GridTagXXX
 
+function g_Map_traceToNearestWall (x0, y0, x1, y1: Integer; hitx: PInteger=nil; hity: PInteger=nil): Integer;
+
+
 implementation
 
 uses
@@ -278,6 +281,70 @@ end;
 procedure g_Map_ProfilersEnd ();
 begin
   if (profMapCollision <> nil) then profMapCollision.mainEnd();
+end;
+
+
+// wall index in `gWalls` or -1
+function g_Map_traceToNearestWall (x0, y0, x1, y1: Integer; hitx: PInteger=nil; hity: PInteger=nil): Integer;
+
+  function sqchecker (pan: TPanel; var ray: Ray2D): Single;
+  var
+    aabb: AABB2D;
+    tmin: Single;
+  begin
+    result := -666.0; // invalid
+    if not pan.Enabled then exit;
+    aabb := AABB2D.CreateWH(pan.X, pan.Y, pan.Width, pan.Height);
+    if not aabb.valid then exit;
+    if aabb.intersects(ray, @tmin) then
+    begin
+      if (tmin >= 0.0) then
+      begin
+        //e_WriteLog(Format('sqchecker(%d,%d,%d,%d): panel #%d (%d,%d)-(%d,%d); tmin=%f', [x0, y0, x1, y1, pan.arrIdx, pan.X, pan.Y, pan.Width, pan.Height, tmin]), MSG_NOTIFY);
+        //if (tmin < 0.0) then tmin := 0.0;
+        result := tmin;
+      end;
+    end;
+  end;
+
+var
+  qr: TDynAABBTreeMap.TSegmentQueryResult;
+  ray: Ray2D;
+  hxf, hyf: Single;
+  hx, hy: Integer;
+begin
+  result := -1;
+  if (mapTree = nil) then exit;
+  if mapTree.segmentQuery(qr, x0, y0, x1, y1, sqchecker, (GridTagWall or GridTagDoor)) then
+  begin
+    if (qr.flesh <> nil) then
+    begin
+      result := qr.flesh.arrIdx;
+      if (hitx <> nil) or (hity <> nil) then
+      begin
+        ray := Ray2D.Create(x0, y0, x1, y1);
+        hxf := ray.origX+ray.dirX*qr.time;
+        hyf := ray.origY+ray.dirY*qr.time;
+        while true do
+        begin
+          hx := trunc(hxf);
+          hy := trunc(hyf);
+          if (hx >= qr.flesh.X) and (hy >= qr.flesh.Y) and (hx < qr.flesh.X+qr.flesh.Width) and (hy < qr.flesh.Y+qr.flesh.Height) then
+          begin
+            // go back a little
+            hxf -= ray.dirX;
+            hyf -= ray.dirY;
+          end
+          else
+          begin
+            break;
+          end;
+        end;
+        if (hitx <> nil) then hitx^ := hx;
+        if (hity <> nil) then hity^ := hy;
+      end;
+    end;
+  end;
 end;
 
 

@@ -415,6 +415,7 @@ begin
   AddCommand('sq_use_tree', ProfilerCommands, 'use tree for map coldet acceleration');
 
   AddCommand('mon_sq_enabled', ProfilerCommands, 'use accelerated spatial queries for monsters');
+  AddCommand('wtrace_sq_enabled', ProfilerCommands, 'use accelerated weapon hitscan trace');
 
   AddCommand('p1_name', GameCVars);
   AddCommand('p2_name', GameCVars);
