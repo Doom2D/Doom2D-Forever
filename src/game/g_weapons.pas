@@ -324,7 +324,7 @@ begin
         end;
 
         //g_Mons_ForEach(monsWaterCheck);
-        g_Mons_ForEachAtAlive(pan.X, pan.Y, pan.Width, pan.Height, monsWaterCheck);
+        g_Mons_ForEachAliveAt(pan.X, pan.Y, pan.Width, pan.Height, monsWaterCheck);
       end;
 
       for f := 0 to plaCount-1 do gPlayers[chkTrap_pl[f]].Damage(dm, Shots[ID].SpawnerUID, 0, 0, t);
@@ -462,7 +462,7 @@ begin
   if Result <> 0 then Exit;
 
   //if g_Mons_ForEach(monsCheck) then result := 2;
-  if g_Mons_ForEachAtAlive(X, Y, 1, 1, monsCheck) then result := 2;
+  if g_Mons_ForEachAliveAt(X, Y, 1, 1, monsCheck) then result := 2;
 end;
 
 procedure g_Weapon_BFG9000(X, Y: Integer; SpawnerUID: Word);
@@ -831,7 +831,7 @@ var
   function MonsterHit(): Boolean;
   begin
     //result := g_Mons_ForEach(monsCheckHit);
-    result := g_Mons_ForEachAtAlive(obj.X+obj.Rect.X, obj.Y+obj.Rect.Y, obj.Rect.Width, obj.Rect.Height, monsCheckHit);
+    result := g_Mons_ForEachAliveAt(obj.X+obj.Rect.X, obj.Y+obj.Rect.Y, obj.Rect.Width, obj.Rect.Height, monsCheckHit);
   end;
 
 begin

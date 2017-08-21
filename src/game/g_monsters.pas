@@ -183,8 +183,6 @@ function  g_Monsters_GetKilledBy (MonsterType: Byte): String;
 type
   TEachMonsterCB = function (monidx: Integer; mon: TMonster): Boolean is nested; // return `true` to stop
 
-function g_Mons_ForEach (cb: TEachMonsterCB): Boolean;
-
 // throws on invalid uid
 function g_Mons_ByIdx (uid: Integer): TMonster; inline;
 
@@ -193,8 +191,11 @@ function g_Mons_ByIdx_NC (uid: Integer): TMonster; inline;
 
 function g_Mons_IsAnyAliveAt (x, y: Integer; width, height: Integer): Boolean;
 
+function g_Mons_ForEach (cb: TEachMonsterCB): Boolean;
+function g_Mons_ForEachAlive (cb: TEachMonsterCB): Boolean;
+
 function g_Mons_ForEachAt (x, y: Integer; width, height: Integer; cb: TEachMonsterCB): Boolean;
-function g_Mons_ForEachAtAlive (x, y: Integer; width, height: Integer; cb: TEachMonsterCB): Boolean;
+function g_Mons_ForEachAliveAt (x, y: Integer; width, height: Integer; cb: TEachMonsterCB): Boolean;
 
 function g_Mons_getNewTrapFrameId (): DWord;
 
@@ -2866,7 +2867,7 @@ _end:
           mon.SetState(STATE_GO);
           mon.FNoRespawn := True;
           Inc(gTotalMonsters);
-          if g_Game_IsNet then MH_SEND_MonsterSpawn(gMonsters[sx].UID);
+          if g_Game_IsNet then MH_SEND_MonsterSpawn(mon.UID);
         end;
 
         mon := g_Monsters_Create(MONSTER_SOUL, FObj.X+FObj.Rect.X+(FObj.Rect.Width div 2),
@@ -2876,7 +2877,7 @@ _end:
           mon.SetState(STATE_GO);
           mon.FNoRespawn := True;
           Inc(gTotalMonsters);
-          if g_Game_IsNet then MH_SEND_MonsterSpawn(gMonsters[sx].UID);
+          if g_Game_IsNet then MH_SEND_MonsterSpawn(mon.UID);
         end;
 
         mon := g_Monsters_Create(MONSTER_SOUL, FObj.X+FObj.Rect.X+(FObj.Rect.Width div 2)-15,
@@ -2886,9 +2887,10 @@ _end:
           mon.SetState(STATE_GO);
           mon.FNoRespawn := True;
           Inc(gTotalMonsters);
-          if g_Game_IsNet then MH_SEND_MonsterSpawn(gMonsters[sx].UID);
+          if g_Game_IsNet then MH_SEND_MonsterSpawn(mon.UID);
         end;
-        if g_Game_IsNet then MH_SEND_CoopStats(gMonsters[sx].UID);
+
+        if g_Game_IsNet then MH_SEND_CoopStats();
       end;
 
     // У этих монстров нет трупов:
@@ -3061,7 +3063,7 @@ _end:
                       mon.shoot(@o, True);
                       Inc(gTotalMonsters);
 
-                      if g_Game_IsNet then MH_SEND_MonsterSpawn(gMonsters[sx].UID);
+                      if g_Game_IsNet then MH_SEND_MonsterSpawn(mon.UID);
                     end;
                   end;
               end;
@@ -4417,23 +4419,6 @@ end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-function g_Mons_ForEach (cb: TEachMonsterCB): Boolean;
-var
-  idx: Integer;
-begin
-  result := false;
-  if (gMonsters = nil) or not assigned(cb) then exit;
-  for idx := 0 to High(gMonsters) do
-  begin
-    if (gMonsters[idx] <> nil) then
-    begin
-      result := cb(idx, gMonsters[idx]);
-      if result then exit;
-    end;
-  end;
-end;
-
-
 // throws on invalid uid
 function g_Mons_ByIdx (uid: Integer): TMonster; inline;
 begin
@@ -4450,6 +4435,44 @@ begin
 end;
 
 
+function g_Mons_ForEach (cb: TEachMonsterCB): Boolean;
+var
+  idx: Integer;
+  mon: TMonster;
+begin
+  result := false;
+  if (gMonsters = nil) or not assigned(cb) then exit;
+  for idx := 0 to High(gMonsters) do
+  begin
+    mon := gMonsters[idx];
+    if (mon <> nil) then
+    begin
+      result := cb(idx, gMonsters[idx]);
+      if result then exit;
+    end;
+  end;
+end;
+
+
+function g_Mons_ForEachAlive (cb: TEachMonsterCB): Boolean;
+var
+  idx: Integer;
+  mon: TMonster;
+begin
+  result := false;
+  if (gMonsters = nil) or not assigned(cb) then exit;
+  for idx := 0 to High(gMonsters) do
+  begin
+    mon := gMonsters[idx];
+    if (mon <> nil) and mon.Live then
+    begin
+      result := cb(idx, gMonsters[idx]);
+      if result then exit;
+    end;
+  end;
+end;
+
+
 function g_Mons_IsAnyAliveAt (x, y: Integer; width, height: Integer): Boolean;
 
   function monsCollCheck (mon: TMonster; atag: Integer): Boolean;
@@ -4459,10 +4482,10 @@ function g_Mons_IsAnyAliveAt (x, y: Integer; width, height: Integer): Boolean;
 
 var
   idx: Integer;
+  mon: TMonster;
 begin
   result := false;
   if (width < 1) or (height < 1) then exit;
-
   if gmon_debug_use_sqaccel then
   begin
     result := (monsTree.aabbQuery(x, y, width, height, monsCollCheck) <> nil);
@@ -4471,9 +4494,10 @@ begin
   begin
     for idx := 0 to High(gMonsters) do
     begin
-      if (gMonsters[idx] <> nil) and gMonsters[idx].Live then
+      mon := gMonsters[idx];
+      if (mon <> nil) and mon.Live then
       begin
-        if g_Obj_Collide(x, y, width, height, @gMonsters[idx].Obj) then
+        if g_Obj_Collide(x, y, width, height, @mon.Obj) then
         begin
           result := true;
           exit;
@@ -4494,10 +4518,10 @@ function g_Mons_ForEachAt (x, y: Integer; width, height: Integer; cb: TEachMonst
 
 var
   idx: Integer;
+  mon: TMonster;
 begin
   result := false;
   if (width < 1) or (height < 1) then exit;
-
   if gmon_debug_use_sqaccel then
   begin
     result := (monsTree.aabbQuery(x, y, width, height, monsCollCheck) <> nil);
@@ -4506,11 +4530,12 @@ begin
   begin
     for idx := 0 to High(gMonsters) do
     begin
-      if (gMonsters[idx] <> nil) and gMonsters[idx].Live then
+      mon := gMonsters[idx];
+      if (mon <> nil) and mon.Live then
       begin
-        if g_Obj_Collide(x, y, width, height, @gMonsters[idx].Obj) then
+        if g_Obj_Collide(x, y, width, height, @mon.Obj) then
         begin
-          result := cb(idx, gMonsters[idx]);
+          result := cb(idx, mon);
           if result then exit;
         end;
       end;
@@ -4519,7 +4544,7 @@ begin
 end;
 
 
-function g_Mons_ForEachAtAlive (x, y: Integer; width, height: Integer; cb: TEachMonsterCB): Boolean;
+function g_Mons_ForEachAliveAt (x, y: Integer; width, height: Integer; cb: TEachMonsterCB): Boolean;
 
   function monsCollCheck (mon: TMonster; atag: Integer): Boolean;
   begin
@@ -4529,10 +4554,10 @@ function g_Mons_ForEachAtAlive (x, y: Integer; width, height: Integer; cb: TEach
 
 var
   idx: Integer;
+  mon: TMonster;
 begin
   result := false;
   if (width < 1) or (height < 1) then exit;
-
   if gmon_debug_use_sqaccel then
   begin
     if (width = 1) and (height = 1) then
@@ -4548,11 +4573,12 @@ begin
   begin
     for idx := 0 to High(gMonsters) do
     begin
-      if (gMonsters[idx] <> nil) and gMonsters[idx].Live then
+      mon := gMonsters[idx];
+      if (mon <> nil) and mon.Live then
       begin
-        if g_Obj_Collide(x, y, width, height, @gMonsters[idx].Obj) then
+        if g_Obj_Collide(x, y, width, height, @mon.Obj) then
         begin
-          result := cb(idx, gMonsters[idx]);
+          result := cb(idx, mon);
           if result then exit;
         end;
       end;

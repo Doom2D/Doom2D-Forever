@@ -214,10 +214,7 @@ var
   function monsDamage (monidx: Integer; mon: TMonster): Boolean;
   begin
     result := false; // don't stop
-    if (mon <> nil) and mon.Live and g_Obj_Collide(wx, wy, ww, wh, @mon.Obj) then
-    begin
-      mon.Damage(TRAP_DAMAGE, 0, 0, 0, HIT_TRAP);
-    end;
+    if g_Obj_Collide(wx, wy, ww, wh, @mon.Obj) then mon.Damage(TRAP_DAMAGE, 0, 0, 0, HIT_TRAP);
   end;
 
 begin
@@ -248,7 +245,8 @@ begin
               gPlayers[a].Collide(X, Y, Width, Height) then
             gPlayers[a].Damage(TRAP_DAMAGE, 0, 0, 0, HIT_TRAP);
 
-      g_Mons_ForEach(monsDamage);
+      //g_Mons_ForEach(monsDamage);
+      g_Mons_ForEachAliveAt(wx, wy, ww, wh, monsDamage);
 
       if not Enabled then g_Map_EnableWall(PanelID);
     end;
@@ -304,7 +302,8 @@ begin
             gPlayers[a].Collide(X, Y, Width, Height) then
               gPlayers[a].Damage(TRAP_DAMAGE, 0, 0, 0, HIT_TRAP);
 
-        g_Mons_ForEach(monsDamage);
+        //g_Mons_ForEach(monsDamage);
+        g_Mons_ForEachAliveAt(wx, wy, ww, wh, monsDamage);
         (*
         if gMonsters <> nil then
           for a := 0 to High(gMonsters) do
@@ -989,7 +988,7 @@ var
   function monsShotTarget (monidx: Integer; mon: TMonster): Boolean;
   begin
     result := false; // don't stop
-    if (mon <> nil) and mon.Live and tr_ShotAimCheck(Trigger, @(mon.Obj)) then
+    if mon.Live and tr_ShotAimCheck(Trigger, @(mon.Obj)) then
     begin
       xd := mon.GameX + mon.Obj.Rect.Width div 2;
       yd := mon.GameY + mon.Obj.Rect.Height div 2;
@@ -1001,7 +1000,7 @@ var
   function monsShotTargetMonPlr (monidx: Integer; mon: TMonster): Boolean;
   begin
     result := false; // don't stop
-    if (mon <> nil) and mon.Live and tr_ShotAimCheck(Trigger, @(mon.Obj)) then
+    if mon.Live and tr_ShotAimCheck(Trigger, @(mon.Obj)) then
     begin
       xd := mon.GameX + mon.Obj.Rect.Width div 2;
       yd := mon.GameY + mon.Obj.Rect.Height div 2;
@@ -1013,7 +1012,7 @@ var
   function monShotTargetPlrMon (monidx: Integer; mon: TMonster): Boolean;
   begin
     result := false; // don't stop
-    if (mon <> nil) and mon.Live and tr_ShotAimCheck(Trigger, @(mon.Obj)) then
+    if mon.Live and tr_ShotAimCheck(Trigger, @(mon.Obj)) then
     begin
       xd := mon.GameX + mon.Obj.Rect.Width div 2;
       yd := mon.GameY + mon.Obj.Rect.Height div 2;
@@ -1930,7 +1929,8 @@ begin
 
           case Data.ShotTarget of
             TRIGGER_SHOT_TARGET_MON: // monsters
-              g_Mons_ForEach(monsShotTarget);
+              //TODO: accelerate this!
+              g_Mons_ForEachAlive(monsShotTarget);
 
             TRIGGER_SHOT_TARGET_PLR: // players
               if gPlayers <> nil then
@@ -1972,7 +1972,8 @@ begin
 
             TRIGGER_SHOT_TARGET_MONPLR: // monsters then players
             begin
-              g_Mons_ForEach(monsShotTargetMonPlr);
+              //TODO: accelerate this!
+              g_Mons_ForEachAlive(monsShotTargetMonPlr);
 
               if (TargetUID = 0) and (gPlayers <> nil) then
                 for idx := Low(gPlayers) to High(gPlayers) do
@@ -1998,7 +1999,11 @@ begin
                     TargetUID := gPlayers[idx].UID;
                     break;
                   end;
-              if TargetUID = 0 then g_Mons_ForEach(monShotTargetPlrMon);
+              if TargetUID = 0 then
+              begin
+                //TODO: accelerate this!
+                g_Mons_ForEachAlive(monShotTargetPlrMon);
+              end;
             end;
 
             else begin
@@ -2448,6 +2453,7 @@ begin
              (TimeOut = 0) and (Keys = 0) then // Если не нужны ключи
           begin
             //g_Mons_ForEach(monsNear);
+            //Alive?!
             g_Mons_ForEachAt(gTriggers[a].X, gTriggers[a].Y, gTriggers[a].Width, gTriggers[a].Height, monsNear);
           end;
 
