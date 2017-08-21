@@ -283,7 +283,7 @@ begin
   begin
     newsz := Length(mBuckets);
     if (Length(mEntries) <> newsz) then raise Exception.Create('internal error in hash table (resize)');
-    if (newsz <= 1024*1024*512) then newsz *= 2 else newsz += 1024*1024;
+    if (newsz <= 1024*1024*1024) then newsz *= 2 else raise Exception.Create('hash table too big');
     {$IFDEF RBHASH_DEBUG_RESIZE}
     writeln('resizing hash; used=', mBucketsUsed, '; total=', blen, '; maxload=', blen*LoadFactorPrc div 100, '; newsz=', newsz);
     {$ENDIF}
