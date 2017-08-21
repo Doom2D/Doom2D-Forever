@@ -1440,7 +1440,7 @@ var
   w: Word;
   i, b: Integer;
 
-  function sendMonsPos (monidx: Integer; mon: TMonster): Boolean;
+  function sendMonsPos (mon: TMonster): Boolean;
   begin
     result := false; // don't stop
     if (mon.MonsterType = MONSTER_BARREL) then
@@ -2442,7 +2442,7 @@ procedure DrawMinimap(p: TPlayer; RenderRect: e_graphics.TRect);
 var
   a, aX, aY, aX2, aY2, Scale, ScaleSz: Integer;
 
-  function monDraw (monidx: Integer; mon: TMonster): Boolean;
+  function monDraw (mon: TMonster): Boolean;
   begin
     result := false; // don't stop
     with mon do
@@ -4171,7 +4171,7 @@ procedure g_Game_RestartRound(NoMapRestart: Boolean = False);
 var
   i, n, nb, nr: Integer;
 
-  function monRespawn (monidx: Integer; mon: TMonster): Boolean;
+  function monRespawn (mon: TMonster): Boolean;
   begin
     result := false; // don't stop
     if not mon.FNoRespawn then mon.Respawn();

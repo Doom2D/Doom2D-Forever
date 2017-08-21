@@ -962,7 +962,7 @@ end;
 
 procedure g_Map_ReAdd_DieTriggers();
 
-  function monsDieTrig (monidx: Integer; mon: TMonster): Boolean;
+  function monsDieTrig (mon: TMonster): Boolean;
   var
     a: Integer;
   begin

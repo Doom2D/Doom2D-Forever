@@ -634,7 +634,7 @@ procedure MH_SEND_Everything(CreatePlayers: Boolean = False; ID: Integer = NET_E
     MH_SEND_ItemSpawn(True, it.myid, ID);
   end;
 
-  function sendMonSpawn (monidx: Integer; mon: TMonster): Boolean;
+  function sendMonSpawn (mon: TMonster): Boolean;
   begin
     result := false; // don't stop
     MH_SEND_MonsterSpawn(mon.UID, ID);

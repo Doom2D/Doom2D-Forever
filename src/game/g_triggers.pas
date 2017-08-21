@@ -211,7 +211,7 @@ var
   a, b, c: Integer;
   wx, wy, wh, ww: Integer;
 
-  function monsDamage (monidx: Integer; mon: TMonster): Boolean;
+  function monsDamage (mon: TMonster): Boolean;
   begin
     result := false; // don't stop
     if g_Obj_Collide(wx, wy, ww, wh, @mon.Obj) then mon.Damage(TRAP_DAMAGE, 0, 0, 0, HIT_TRAP);
@@ -985,7 +985,7 @@ var
   it: PItem;
   mon: TMonster;
 
-  function monsShotTarget (monidx: Integer; mon: TMonster): Boolean;
+  function monsShotTarget (mon: TMonster): Boolean;
   begin
     result := false; // don't stop
     if mon.Live and tr_ShotAimCheck(Trigger, @(mon.Obj)) then
@@ -997,7 +997,7 @@ var
     end;
   end;
 
-  function monsShotTargetMonPlr (monidx: Integer; mon: TMonster): Boolean;
+  function monsShotTargetMonPlr (mon: TMonster): Boolean;
   begin
     result := false; // don't stop
     if mon.Live and tr_ShotAimCheck(Trigger, @(mon.Obj)) then
@@ -1009,7 +1009,7 @@ var
     end;
   end;
 
-  function monShotTargetPlrMon (monidx: Integer; mon: TMonster): Boolean;
+  function monShotTargetPlrMon (mon: TMonster): Boolean;
   begin
     result := false; // don't stop
     if mon.Live and tr_ShotAimCheck(Trigger, @(mon.Obj)) then
@@ -2201,7 +2201,7 @@ var
   a, b, i: Integer;
   Affected: array of Integer;
 
-  {function monsNear (monidx: Integer; mon: TMonster): Boolean;
+  {function monsNear (mon: TMonster): Boolean;
   begin
     result := false; // don't stop
     if mon.Collide(gTriggers[a].X, gTriggers[a].Y, gTriggers[a].Width, gTriggers[a].Height) then
@@ -2211,7 +2211,7 @@ var
     end;
   end;}
 
-  function monsNear (monidx: Integer; mon: TMonster): Boolean;
+  function monsNear (mon: TMonster): Boolean;
   begin
     result := false; // don't stop
     gTriggers[a].ActivateUID := mon.UID;

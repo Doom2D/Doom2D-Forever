@@ -257,7 +257,7 @@ var
   frameId: DWord;
 
   {
-  function monsWaterCheck (monidx: Integer; mon: TMonster): Boolean;
+  function monsWaterCheck (mon: TMonster): Boolean;
   begin
     result := false; // don't stop
     if mon.Live and mon.Collide(gWater[WaterMap[a][c]]) and (not InWArray(monidx, chkTrap_mn)) and (i2 < 1023) then //FIXME
@@ -268,7 +268,7 @@ var
   end;
   }
 
-  function monsWaterCheck (monidx: Integer; mon: TMonster): Boolean;
+  function monsWaterCheck (mon: TMonster): Boolean;
   begin
     result := false; // don't stop
     if (mon.trapCheckFrameId <> frameId) then
@@ -420,7 +420,7 @@ end;
 function GunHit(X, Y: Integer; vx, vy: Integer; dmg: Integer;
   SpawnerUID: Word; AllowPush: Boolean): Byte;
 
-  {function monsCheck (monidx: Integer; mon: TMonster): Boolean;
+  {function monsCheck (mon: TMonster): Boolean;
   begin
     result := false; // don't stop
     if mon.Live and mon.Collide(X, Y) then
@@ -433,7 +433,7 @@ function GunHit(X, Y: Integer; vx, vy: Integer; dmg: Integer;
     end;
   end;}
 
-  function monsCheck (monidx: Integer; mon: TMonster): Boolean;
+  function monsCheck (mon: TMonster): Boolean;
   begin
     result := false; // don't stop
     if HitMonster(mon, dmg, vx*10, vy*10-3, SpawnerUID, HIT_SOME) then
@@ -467,7 +467,7 @@ end;
 
 procedure g_Weapon_BFG9000(X, Y: Integer; SpawnerUID: Word);
 
-  function monsCheck (monidx: Integer; mon: TMonster): Boolean;
+  function monsCheck (mon: TMonster): Boolean;
   begin
     result := false; // don't stop
     if (mon.Live) and (mon.UID <> SpawnerUID) then
@@ -534,7 +534,7 @@ begin
           end;
 
   //FIXME
-  g_Mons_ForEach(monsCheck);
+  g_Mons_ForEachAlive(monsCheck);
 end;
 
 function g_Weapon_CreateShot(I: Integer; ShotType: Byte; Spawner, TargetUID: Word; X, Y, XV, YV: Integer): LongWord;
@@ -814,7 +814,7 @@ var
   end;
   }
 
-  function monsCheckHit (monidx: Integer; mon: TMonster): Boolean;
+  function monsCheckHit (mon: TMonster): Boolean;
   begin
     result := false; // don't stop
     if HitMonster(mon, d, obj.Vel.X, obj.Vel.Y, SpawnerUID, t) then
@@ -831,6 +831,7 @@ var
   function MonsterHit(): Boolean;
   begin
     //result := g_Mons_ForEach(monsCheckHit);
+    //FIXME: accelerate this!
     result := g_Mons_ForEachAliveAt(obj.X+obj.Rect.X, obj.Y+obj.Rect.Y, obj.Rect.Width, obj.Rect.Height, monsCheckHit);
   end;
 
@@ -931,7 +932,7 @@ function g_Weapon_Explode(X, Y: Integer; rad: Integer; SpawnerUID: Word): Boolea
 var
   r: Integer; // squared radius
 
-  function monsExCheck (monidx: Integer; mon: TMonster): Boolean;
+  function monsExCheck (mon: TMonster): Boolean;
   var
     dx, dy, mm: Integer;
   begin

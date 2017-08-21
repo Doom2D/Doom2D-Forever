@@ -6304,10 +6304,10 @@ var
   vsPlayer, vsMonster, ok: Boolean;
 
 
-  function monsUpdate (monidx: Integer; mon: TMonster): Boolean;
+  function monsUpdate (mon: TMonster): Boolean;
   begin
     result := false; // don't stop
-    if (mon <> nil) and (mon.Live) and (mon.MonsterType <> MONSTER_BARREL) then
+    if mon.Live and (mon.MonsterType <> MONSTER_BARREL) then
     begin
       if not TargetOnScreen(mon.Obj.X+mon.Obj.Rect.X, mon.Obj.Y+mon.Obj.Rect.Y) then exit;
 

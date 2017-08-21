@@ -181,7 +181,7 @@ function  g_Monsters_GetKilledBy (MonsterType: Byte): String;
 
 
 type
-  TEachMonsterCB = function (monidx: Integer; mon: TMonster): Boolean is nested; // return `true` to stop
+  TEachMonsterCB = function (mon: TMonster): Boolean is nested; // return `true` to stop
 
 // throws on invalid uid
 function g_Mons_ByIdx (uid: Integer): TMonster; inline;
@@ -573,6 +573,7 @@ begin
   Result := False;
 end;
 
+
 function BehaviourDamage(SpawnerUID: Word; BH, SelfType: Byte): Boolean;
 var
   m: TMonster;
@@ -602,6 +603,7 @@ begin
   end;
 end;
 
+
 function canShoot(m: Byte): Boolean;
 begin
   Result := False;
@@ -614,7 +616,8 @@ begin
   end;
 end;
 
-function isCorpse(o: PObj; immediately: Boolean): Integer;
+
+function isCorpse (o: PObj; immediately: Boolean): Integer;
 
   function monsCollCheck (mon: TMonster; atag: Integer): Boolean;
   begin
@@ -4447,7 +4450,7 @@ begin
     mon := gMonsters[idx];
     if (mon <> nil) then
     begin
-      result := cb(idx, gMonsters[idx]);
+      result := cb(mon);
       if result then exit;
     end;
   end;
@@ -4466,7 +4469,7 @@ begin
     mon := gMonsters[idx];
     if (mon <> nil) and mon.Live then
     begin
-      result := cb(idx, gMonsters[idx]);
+      result := cb(mon);
       if result then exit;
     end;
   end;
@@ -4513,7 +4516,7 @@ function g_Mons_ForEachAt (x, y: Integer; width, height: Integer; cb: TEachMonst
   function monsCollCheck (mon: TMonster; atag: Integer): Boolean;
   begin
     result := false;
-    if g_Obj_Collide(x, y, width, height, @mon.Obj) then result := cb(mon.arrIdx, mon);
+    if g_Obj_Collide(x, y, width, height, @mon.Obj) then result := cb(mon);
   end;
 
 var
@@ -4535,7 +4538,7 @@ begin
       begin
         if g_Obj_Collide(x, y, width, height, @mon.Obj) then
         begin
-          result := cb(idx, mon);
+          result := cb(mon);
           if result then exit;
         end;
       end;
@@ -4549,7 +4552,7 @@ function g_Mons_ForEachAliveAt (x, y: Integer; width, height: Integer; cb: TEach
   function monsCollCheck (mon: TMonster; atag: Integer): Boolean;
   begin
     result := false;
-    if mon.Live and g_Obj_Collide(x, y, width, height, @mon.Obj) then result := cb(mon.arrIdx, mon);
+    if mon.Live and g_Obj_Collide(x, y, width, height, @mon.Obj) then result := cb(mon);
   end;
 
 var
@@ -4578,7 +4581,7 @@ begin
       begin
         if g_Obj_Collide(x, y, width, height, @mon.Obj) then
         begin
-          result := cb(idx, mon);
+          result := cb(mon);
           if result then exit;
         end;
       end;
