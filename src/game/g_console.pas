@@ -334,7 +334,7 @@ var
 begin
   SetLength(Whitelist, Length(Whitelist)+1);
   a := High(Whitelist);
-  Whitelist[a] := Cmd;
+  Whitelist[a] := LowerCase(Cmd);
 end;
 
 procedure AddCommand(Cmd: String; Proc: TCmdProc);
@@ -343,7 +343,7 @@ var
 begin
   SetLength(Commands, Length(Commands)+1);
   a := High(Commands);
-  Commands[a].Cmd := Cmd;
+  Commands[a].Cmd := LowerCase(Cmd);
   Commands[a].Proc := Proc;
 end;
 
@@ -727,38 +727,81 @@ begin
   CPos := CPos + 1;
 end;
 
-procedure Complete();
+
 var
-  i: Integer;
-  t: Array of String;
+  tcomplist: array of string = nil;
+
+procedure Complete ();
+var
+  i, c: Integer;
+  tused: Integer;
+  ll, lpfx, cmd: string;
 begin
-  if Line = '' then
-    Exit;
-
-  t := nil;
-
-  for i := 0 to High(Commands) do
-    if LowerCase(Line) = LowerCase(Copy(Commands[i].Cmd, 0, Length(Line))) then
+  if (Length(Line) = 0) then
+  begin
+    g_Console_Add('');
+    for i := 0 to High(Commands) do
     begin
-      SetLength(t, Length(t) + 1);
-      t[Length(t)-1] := Commands[i].Cmd;
+      if (Commands[i].Cmd <> 'goobers') then
+      begin
+        g_Console_Add('  '+Commands[i].Cmd);
+      end;
     end;
+    exit;
+  end;
 
-  if t = nil then
-    Exit;
+  ll := LowerCase(Line);
+  lpfx := '';
 
-  if Length(t) = 1 then
+  // build completion list
+  tused := 0;
+  for i := 0 to High(Commands) do
+  begin
+    cmd := Commands[i].Cmd;
+    if (cmd = 'goobers') then continue;
+    if (Length(cmd) >= Length(ll)) and (ll = Copy(cmd, 0, Length(ll))) then
     begin
-      Line := t[0]+' ';
-      CPos := Length(Line)+1;
-    end
+      if (tused = Length(tcomplist)) then SetLength(tcomplist, Length(tcomplist)+128);
+      tcomplist[tused] := cmd;
+      Inc(tused);
+      if (Length(cmd) > Length(lpfx)) then lpfx := cmd;
+    end;
+  end;
+
+  // get longest prefix
+  for i := 0 to tused-1 do
+  begin
+    cmd := tcomplist[i];
+    for c := 1 to Length(lpfx) do
+    begin
+      if (c > Length(cmd)) then break;
+      if (cmd[c] <> lpfx[c]) then begin lpfx := Copy(lpfx, 0, c-1); break; end;
+    end;
+  end;
+
+  if (tused = 0) then exit;
+
+  if (tused = 1) then
+  begin
+    Line := tcomplist[0]+' ';
+    CPos := Length(Line)+1;
+  end
   else
+  begin
+    // has longest prefix?
+    if (Length(lpfx) > Length(ll)) then
+    begin
+      Line := lpfx;
+      CPos:= Length(Line)+1;
+    end
+    else
     begin
       g_Console_Add('');
-      for i := 0 to High(t) do
-        g_Console_Add('  '+t[i]);
+      for i := 0 to tused-1 do g_Console_Add('  '+tcomplist[i]);
     end;
+  end;
 end;
+
 
 procedure g_Console_Control(K: Word);
 begin
