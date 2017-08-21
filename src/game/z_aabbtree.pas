@@ -318,7 +318,7 @@ type
 
     function aabbQuery (ax, ay, aw, ah: TreeNumber; cb: TQueryOverlapCB; tagmask: Integer=-1): TTreeFlesh;
     function pointQuery (ax, ay: TreeNumber; cb: TQueryOverlapCB; tagmask: Integer=-1): TTreeFlesh;
-    function segmentQuery (out qr: TSegmentQueryResult; ax, ay, bx, by: TreeNumber; cb: TSegQueryCallback; tagmask: Integer=-1): Boolean;
+    function segmentQuery (out qr: TSegmentQueryResult; const ax, ay, bx, by: TreeNumber; cb: TSegQueryCallback; tagmask: Integer=-1): Boolean;
 
     function computeTreeHeight (): Integer; // compute the height of the tree
 
@@ -1749,7 +1749,7 @@ end;
 
 
 // segment querying method
-function TDynAABBTreeBase.segmentQuery (out qr: TSegmentQueryResult; ax, ay, bx, by: TreeNumber; cb: TSegQueryCallback; tagmask: Integer=-1): Boolean;
+function TDynAABBTreeBase.segmentQuery (out qr: TSegmentQueryResult; const ax, ay, bx, by: TreeNumber; cb: TSegQueryCallback; tagmask: Integer=-1): Boolean;
 var
   oldcurax, oldcuray: Single;
   oldcurbx, oldcurby: Single;
@@ -1807,7 +1807,15 @@ begin
   diry := olddiry;
   traceRay := oldray;
 
-  result := qr.valid;
+  if qr.valid and (qr.time <= (bx-ax)*(bx-ax)+(by-ay)*(by-ay)) then
+  begin
+    result := true;
+  end
+  else
+  begin
+    result := false;
+    qr.flesh := nil;
+  end;
 end;
 
 
