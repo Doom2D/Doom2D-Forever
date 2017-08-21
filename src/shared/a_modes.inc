@@ -55,7 +55,6 @@
 {$MMX-} // get lost, mmx
 
 {$IF DEFINED(D2F_DEBUG)}
-  {$RANGECHECKS ON}
   {$STACKFRAMES ON}
 {$ELSE}
   {$STACKFRAMES OFF}
