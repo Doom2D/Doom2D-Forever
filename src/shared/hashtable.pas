@@ -37,6 +37,7 @@ type
   public
     type THashFn = function (constref o: KeyT): LongWord;
     type TEquFn = function (constref a, b: KeyT): Boolean;
+    type TIteratorFn = function (constref k: KeyT; constref v: ValueT): Boolean is nested; // return `true` to stop
 
   private
     type
@@ -45,7 +46,7 @@ type
         key: KeyT;
         value: ValueT;
         hash: LongWord; // key hash or 0
-        nextFree: PEntry;
+        nextFree: PEntry; // next free entry
       end;
 
   private
@@ -54,8 +55,11 @@ type
     mBuckets: array of PEntry; // entries, points to mEntries elements
     mBucketsUsed: Integer;
     mEntries: array of TEntry;
+    {$IFDEF RBHASH_SANITY_CHECKS}
     mEntriesUsed: Integer;
+    {$ENDIF}
     mFreeEntryHead: PEntry;
+    mFirstEntry, mLastEntry: Integer;
     mSeed: LongWord;
 
   private
@@ -81,6 +85,9 @@ type
     function put (constref akey: KeyT; constref aval: ValueT): Boolean; // `true`: replaced
     function has (constref akey: KeyT): Boolean; // `true`: found
     function del (constref akey: KeyT): Boolean; // `true`: deleted
+
+    //WARNING! don't modify table in iterator (queries are ok, though)
+    function forEach (it: TIteratorFn): Boolean;
 
     property count: Integer read mBucketsUsed;
     property capacity: Integer read getCapacity;
@@ -289,10 +296,38 @@ begin
 end;
 
 
+procedure THashBase.clear ();
+var
+  idx: Integer;
+begin
+  SetLength(mBuckets, InitSize);
+  for idx := 0 to High(mBuckets) do mBuckets[idx] := nil;
+
+  SetLength(mEntries, Length(mBuckets));
+  for idx := 0 to High(mEntries)-1 do
+  begin
+    mEntries[idx].hash := 0;
+    mEntries[idx].nextFree := @mEntries[idx+1]; //idx+1;
+  end;
+  mEntries[High(mEntries)].hash := 0;
+  mEntries[High(mEntries)].nextFree := nil;
+
+  mBucketsUsed := 0;
+  {$IFDEF RBHASH_SANITY_CHECKS}
+  mEntriesUsed := 0;
+  {$ENDIF}
+  mFreeEntryHead := @mEntries[0];
+  mFirstEntry := -1;
+  mLastEntry := -1;
+end;
+
+
 function THashBase.getCapacity (): Integer; inline; begin result := Length(mBuckets); end;
 
 
 function THashBase.allocEntry (): PEntry;
+var
+  idx: Integer;
 begin
   {$IFDEF RBHASH_SANITY_CHECKS}
   if (mFreeEntryHead = nil) then raise Exception.Create('internal error in hash entry allocator (0)');
@@ -300,28 +335,80 @@ begin
   {$ENDIF}
   result := mFreeEntryHead;
   mFreeEntryHead := result.nextFree;
+  {$IFDEF RBHASH_SANITY_CHECKS}
   Inc(mEntriesUsed);
-  result.nextFree := nil;
+  {$ENDIF}
+  result.nextFree := nil; // just in case
+  // fix mFirstEntry and mLastEntry
+  idx := Integer((PtrUInt(result)-PtrUInt(@mEntries[0])) div sizeof(mEntries[0]));
+  {$IFDEF RBHASH_SANITY_CHECKS}
+  if (idx < 0) or (idx > High(mEntries)) then raise Exception.Create('internal error in hash entry allocator (invalid entry address)');
+  if (result <> @mEntries[idx]) then raise Exception.Create('internal error in hash entry allocator (wtf?!)');
+  {$ENDIF}
+  if (mFirstEntry < 0) or (idx < mFirstEntry) then mFirstEntry := idx;
+  if (idx > mLastEntry) then mLastEntry := idx;
 end;
 
 
 procedure THashBase.releaseEntry (e: PEntry);
-//var
-//  idx: LongWord;
+var
+  cidx, idx: Integer;
 begin
   {$IFDEF RBHASH_SANITY_CHECKS}
   if (mEntriesUsed = 0) then raise Exception.Create('internal error in hash entry allocator');
+  if (mEntriesUsed <> mBucketsUsed) then raise Exception.Create('internal error in hash entry allocator (entry/bucket count mismatch)');
   if (e = nil) then raise Exception.Create('internal error in hash entry allocator (trying to release nil entry)');
-  if (e.nextFree <> nil) or (e.hash = 0) then raise Exception.Create('internal error in hash entry allocator (trying to release unallocated entry)');
+  if (e.hash = 0) then raise Exception.Create('internal error in hash entry allocator (trying to release unallocated entry)');
   {$ENDIF}
-  //idx := LongWord((PtrUInt(e)-PtrUInt(@mEntries[0])) div sizeof(mEntries[0]));
+  idx := Integer((PtrUInt(e)-PtrUInt(@mEntries[0])) div sizeof(mEntries[0]));
   {$IFDEF RBHASH_SANITY_CHECKS}
-  //if (idx >= Length(mEntries)) then raise Exception.Create('internal error in hash entry allocator (invalid calculated index)');
+  if (idx < 0) or (idx > High(mEntries)) then raise Exception.Create('internal error in hash entry allocator (invalid entry address)');
+  if (e <> @mEntries[idx]) then raise Exception.Create('internal error in hash entry allocator (wtf?!)');
   {$ENDIF}
   e.hash := 0;
   e.nextFree := mFreeEntryHead;
   mFreeEntryHead := e; //idx;
+  {$IFDEF RBHASH_SANITY_CHECKS}
   Dec(mEntriesUsed);
+  {$ENDIF}
+  // fix mFirstEntry and mLastEntry
+  {$IFDEF RBHASH_SANITY_CHECKS}
+  if (mFirstEntry < 0) or (mLastEntry < 0) then raise Exception.Create('internal error in hash entry allocator (invalid first/last range; 0)');
+  {$ENDIF}
+  if (mFirstEntry = mLastEntry) then
+  begin
+    {$IFDEF RBHASH_SANITY_CHECKS}
+    if (mEntriesUsed <> 0) then raise Exception.Create('internal error in hash entry allocator (invalid first/last range; 1)');
+    {$ENDIF}
+    mFirstEntry := -1;
+    mLastEntry := -1;
+  end
+  else
+  begin
+    {$IFDEF RBHASH_SANITY_CHECKS}
+    if (mEntriesUsed = 0) then raise Exception.Create('internal error in hash entry allocator (invalid first/last range; 2)');
+    {$ENDIF}
+    // fix first entry index
+    if (idx = mFirstEntry) then
+    begin
+      cidx := idx+1;
+      while (mEntries[cidx].hash = 0) do Inc(cidx);
+      {$IFDEF RBHASH_SANITY_CHECKS}
+      if (cidx > High(mEntries)) then raise Exception.Create('internal error in hash entry allocator (invalid first/last range; 3)');
+      {$ENDIF}
+      mFirstEntry := cidx;
+    end;
+    // fix last entry index
+    if (idx = mLastEntry) then
+    begin
+      cidx := idx-1;
+      while (mEntries[cidx].hash = 0) do Dec(cidx);
+      {$IFDEF RBHASH_SANITY_CHECKS}
+      if (cidx < 0) then raise Exception.Create('internal error in hash entry allocator (invalid first/last range; 3)');
+      {$ENDIF}
+      mLastEntry := cidx;
+    end;
+  end;
 end;
 
 
@@ -487,7 +574,7 @@ begin
     {$ENDIF}
     SetLength(mBuckets, newsz);
     // resize entries array
-    eidx := newsz;
+    eidx := Length(mEntries);
     SetLength(mEntries, newsz);
     while (eidx < Length(mEntries)) do begin mEntries[eidx].hash := 0; Inc(eidx); end;
     // mFreeEntryHead will be fixed in `rehash()`
@@ -571,33 +658,14 @@ begin
 end;
 
 
-procedure THashBase.clear ();
-var
-  idx: Integer;
-begin
-  SetLength(mBuckets, InitSize);
-  for idx := 0 to High(mBuckets) do mBuckets[idx] := nil;
-
-  SetLength(mEntries, Length(mBuckets));
-  for idx := 0 to High(mEntries)-1 do
-  begin
-    mEntries[idx].hash := 0;
-    mEntries[idx].nextFree := @mEntries[idx+1]; //idx+1;
-  end;
-  mEntries[High(mEntries)].hash := 0;
-  mEntries[High(mEntries)].nextFree := nil;
-
-  mBucketsUsed := 0;
-  mEntriesUsed := 0;
-  mFreeEntryHead := @mEntries[0];
-end;
-
-
 procedure THashBase.rehash ();
 var
   idx: Integer;
   lastfree: PEntry;
-  e: PEntry;
+  e: PEntry = nil; // shut up, fpc!
+  {$IFDEF RBHASH_SANITY_CHECKS}
+  cnt: Integer = 0;
+  {$ENDIF}
 begin
   // change seed, to minimize pathological cases
   if (mSeed = 0) then mSeed := $29a;
@@ -613,6 +681,12 @@ begin
     e := @mEntries[idx];
     if (e.hash <> 0) then
     begin
+      {$IFDEF RBHASH_SANITY_CHECKS}
+      if (e.nextFree <> nil) then raise Exception.Create('internal error in rehash: inconsistent');
+      if (cnt = 0) and (idx <> mFirstEntry) then raise Exception.Create('internal error in rehash: inconsistent (1)');
+      Inc(cnt);
+      if (cnt = mBucketsUsed) and (idx <> mLastEntry) then raise Exception.Create('internal error in rehash: inconsistent (2)');
+      {$ENDIF}
       e.hash := hashfn(e.key) xor mSeed; if (e.hash = 0) then e.hash := $29a;
       putEntryInternal(e);
     end
@@ -622,12 +696,20 @@ begin
       lastfree := e;
     end;
   end;
+  if (lastfree <> nil) then e.nextFree := nil;
+  {$IFDEF RBHASH_SANITY_CHECKS}
+  if (cnt <> mBucketsUsed) then raise Exception.Create('internal error in hash table resize (invalid first/last range; 0)');
+  if (cnt <> mEntriesUsed) then raise Exception.Create('internal error in hash table resize (invalid first/last range; 1)');
+  {$ENDIF}
 end;
 
 
 procedure THashBase.compact ();
 var
   newsz, didx, f: Integer;
+  {$IFDEF RBHASH_SANITY_CHECKS}
+  cnt: Integer;
+  {$ENDIF}
 begin
   newsz := nextPOT(LongWord(mBucketsUsed));
   if (newsz >= 1024*1024*1024) then exit;
@@ -636,27 +718,55 @@ begin
   {$IFDEF RBHASH_DEBUG_COMPACT}writeln('compacting; used=', mBucketsUsed, '; oldsizePOT=', newsz, '; newsize=', newsz*2);{$ENDIF}
   newsz *= 2;
   // move all entries to top
-  didx := 0;
-  while (didx < Length(mEntries)) do if (mEntries[didx].hash <> 0) then Inc(didx) else break;
-  f := didx+1;
-  while (f < Length(mEntries)) do if (mEntries[f].hash = 0) then Inc(f) else break;
-  // copy entries
-  while (f < Length(mEntries)) do
+  if (mFirstEntry >= 0) then
   begin
-    if (mEntries[f].hash <> 0) then
+    {$IFDEF RBHASH_SANITY_CHECKS}
+    if (mBucketsUsed < 1) then raise Exception.Create('internal error in hash table (invalid bucket count; 0)');
+    {$ENDIF}
+    didx := 0;
+    while (didx < Length(mEntries)) do if (mEntries[didx].hash <> 0) then Inc(didx) else break;
+    f := didx+1;
+    // copy entries
+    while true do
     begin
-      if (didx >= f) then raise Exception.Create('internal error in hash: inconsistent');
-      mEntries[didx] := mEntries[f];
-      mEntries[f].hash := 0;
-      Inc(didx);
-      while (didx < Length(mEntries)) do if (mEntries[didx].hash <> 0) then Inc(didx) else break;
-      Inc(f);
-      while (f < Length(mEntries)) do if (mEntries[f].hash = 0) then Inc(f) else break;
-    end
-    else
-    begin
+      if (mEntries[f].hash <> 0) then
+      begin
+        {$IFDEF RBHASH_SANITY_CHECKS}
+        if (didx >= f) then raise Exception.Create('internal error in hash: inconsistent');
+        {$ENDIF}
+        mEntries[didx] := mEntries[f];
+        mEntries[f].hash := 0;
+        Inc(didx);
+        if (f = mLastEntry) then break;
+        while (didx < Length(mEntries)) do if (mEntries[didx].hash <> 0) then Inc(didx) else break;
+      end;
       Inc(f);
     end;
+    {$IFDEF RBHASH_SANITY_CHECKS}
+    if (didx <> mBucketsUsed) then raise Exception.Create('internal error in hash table (invalid first/last range; 1)');
+    {$ENDIF}
+    mFirstEntry := 0;
+    mLastEntry := mBucketsUsed-1;
+    {$IFDEF RBHASH_SANITY_CHECKS}
+    cnt := 0;
+    for f := mFirstEntry to mLastEntry do
+    begin
+      if (mEntries[f].hash = 0) then raise Exception.Create('internal error in hash table (invalid first/last range; 2)');
+      Inc(cnt);
+    end;
+    if (cnt <> mBucketsUsed) then raise Exception.Create('internal error in hash table (invalid first/last range; 3)');
+    if (cnt <> mEntriesUsed) then raise Exception.Create('internal error in hash table (invalid first/last range; 4)');
+    for f := mLastEntry+1 to High(mEntries) do
+    begin
+      if (mEntries[f].hash <> 0) then raise Exception.Create('internal error in hash table (invalid first/last range; 5)');
+    end;
+    {$ENDIF}
+  end
+  else
+  begin
+    {$IFDEF RBHASH_SANITY_CHECKS}
+    if (mBucketsUsed <> 0) then raise Exception.Create('internal error in hash table (invalid bucket count; 1)');
+    {$ENDIF}
   end;
   // shrink
   SetLength(mBuckets, newsz);
@@ -664,6 +774,26 @@ begin
   // mFreeEntryHead will be fixed in `rehash()`
   // reinsert entries
   rehash();
+end;
+
+
+function THashBase.forEach (it: TIteratorFn): Boolean;
+var
+  i: Integer;
+begin
+  result := false;
+  if not assigned(it) then exit;
+  i := mFirstEntry;
+  if (i < 0) then exit;
+  while (i <= mLastEntry) do
+  begin
+    if (mEntries[i].hash <> 0) then
+    begin
+      result := it(mEntries[i].key, mEntries[i].value);
+      if result then exit;
+    end;
+    Inc(i);
+  end;
 end;
 
 
