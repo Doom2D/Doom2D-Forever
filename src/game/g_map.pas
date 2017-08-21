@@ -286,6 +286,8 @@ end;
 
 // wall index in `gWalls` or -1
 function g_Map_traceToNearestWall (x0, y0, x1, y1: Integer; hitx: PInteger=nil; hity: PInteger=nil): Integer;
+var
+  maxDistSq: Single;
 
   function sqchecker (pan: TPanel; var ray: Ray2D): Single;
   var
@@ -298,6 +300,7 @@ function g_Map_traceToNearestWall (x0, y0, x1, y1: Integer; hitx: PInteger=nil; 
     if not aabb.valid then exit;
     if aabb.intersects(ray, @tmin) then
     begin
+      //if (tmin*tmin > maxDistSq) then exit;
       if (tmin >= 0.0) then
       begin
         //e_WriteLog(Format('sqchecker(%d,%d,%d,%d): panel #%d (%d,%d)-(%d,%d); tmin=%f', [x0, y0, x1, y1, pan.arrIdx, pan.X, pan.Y, pan.Width, pan.Height, tmin]), MSG_NOTIFY);
@@ -315,9 +318,10 @@ var
 begin
   result := -1;
   if (mapTree = nil) then exit;
+  maxDistSq := (x1-x0)*(x1-x0)+(y1-y0)*(y1-y0);
   if mapTree.segmentQuery(qr, x0, y0, x1, y1, sqchecker, (GridTagWall or GridTagDoor)) then
   begin
-    if (qr.flesh <> nil) then
+    if (qr.flesh <> nil) and (qr.time*qr.time <= maxDistSq) then
     begin
       result := qr.flesh.arrIdx;
       if (hitx <> nil) or (hity <> nil) then

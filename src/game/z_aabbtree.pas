@@ -235,7 +235,6 @@ type
     chkAABB: AABB2D; // for checkers
     qSRes: PSegmentQueryResult; // for queries
     // for segment query
-    maxFraction: Single;
     curax, curay: Single;
     curbx, curby: Single;
     dirx, diry: Single;
@@ -1680,8 +1679,7 @@ end;
 
 
 function TDynAABBTreeBase.checkerRay (node: PTreeNode): Boolean;
-var
-  tmin: Single = 0;
+//var tmin: Single = 0;
 begin
   {$IF FALSE}
   result := node.aabb.intersects(curax, curay, curbx, curby, @tmin);
@@ -1696,7 +1694,10 @@ begin
     Integer(result),
   ]), MSG_NOTIFY);
   {$ELSE}
-  result := node.aabb.intersects(traceRay, maxFraction, @tmin);
+  result := false;
+  if (node.aabb.maxX < minSingle(curax, curbx)) or (node.aabb.maxY < minSingle(curay, curby)) then exit;
+  if (node.aabb.minX > maxSingle(curax, curbx)) or (node.aabb.minY > maxSingle(curay, curby)) then exit;
+  result := node.aabb.intersects(traceRay, qSRes.time{, @tmin});
   {
   e_WriteLog(Format('intersect: (%f,%f)-(%f,%f)  (%d,%d)-(%d,%d) tmin=%f  res=%d  frac=%f', [
     curax, curay, curbx, curby,
@@ -1704,7 +1705,7 @@ begin
     node.aabb.maxX, node.aabb.maxY,
     tmin,
     Integer(result),
-    maxFraction
+    qSRes.time
   ]), MSG_NOTIFY);
   }
   {$ENDIF}
@@ -1733,9 +1734,8 @@ begin
   if (hitFraction > 0.0) then
   begin
     // we update the maxFraction value and the ray AABB using the new maximum fraction
-    if (hitFraction < maxFraction) then
+    if (hitFraction < qSRes.time) then
     begin
-      maxFraction := hitFraction;
       qSRes.time := hitFraction;
       qSRes.flesh := flesh;
       // fix curb here
@@ -1751,7 +1751,6 @@ end;
 // segment querying method
 function TDynAABBTreeBase.segmentQuery (out qr: TSegmentQueryResult; ax, ay, bx, by: TreeNumber; cb: TSegQueryCallback; tagmask: Integer=-1): Boolean;
 var
-  oldmaxFraction: Single;
   oldcurax, oldcuray: Single;
   oldcurbx, oldcurby: Single;
   olddirx, olddiry: Single;
@@ -1764,7 +1763,6 @@ begin
 
   if (ax = bx) and (ay = by) then begin result := false; exit; end;
 
-  oldmaxFraction := maxFraction;
   oldcurax := curax;
   oldcuray := curay;
   oldcurbx := curbx;
@@ -1773,7 +1771,8 @@ begin
   olddiry := diry;
   oldray := traceRay;
 
-  maxFraction := 1.0e100; // infinity
+  qr.time := 1.0e100; // infinity
+  //qr.time := sqrt((bx-ax)*(bx-ax)+(by-ay)*(by-ay))+1.0;
   curax := ax;
   curay := ay;
   curbx := bx;
@@ -1806,7 +1805,6 @@ begin
   curby := oldcurby;
   dirx := olddirx;
   diry := olddiry;
-  maxFraction := oldmaxFraction;
   traceRay := oldray;
 
   result := qr.valid;

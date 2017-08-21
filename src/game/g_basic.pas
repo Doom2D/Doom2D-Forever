@@ -48,7 +48,7 @@ function g_CollideAround(X1, Y1: Integer; Width1, Height1: Word;
                          X2, Y2: Integer; Width2, Height2: Word): Boolean;
 function g_CollidePlayer(X, Y: Integer; Width, Height: Word): Boolean;
 function g_PatchLength(X1, Y1, X2, Y2: Integer): Word;
-function g_TraceVector(X1, Y1, X2, Y2: Integer): Boolean;
+function g_TraceVector(X1, Y1, X2, Y2: Integer): Boolean; // `true`: no wall hit
 function g_GetAcidHit(X, Y: Integer; Width, Height: Word): Byte;
 function g_Look(a, b: PObj; d: TDirection): Boolean;
 procedure IncMax(var A: Integer; B, Max: Integer); overload;
@@ -142,15 +142,21 @@ begin
       end;
 end;
 
+
 function g_TraceVector(X1, Y1, X2, Y2: Integer): Boolean;
 var
+  wallHitX: Integer = 0;
+  wallHitY: Integer = 0;
+(*
   i: Integer;
   dx, dy: Integer;
   Xerr, Yerr, d: LongWord;
   incX, incY: Integer;
   x, y: Integer;
+*)
 begin
-  Result := False;
+  (*
+  result := False;
 
   Assert(gCollideMap <> nil, 'g_TraceVector: gCollideMap = nil');
 
@@ -193,7 +199,20 @@ begin
   end;
 
   Result := True;
+  *)
+
+  if (g_Map_traceToNearestWall(x1, y1, x2, y2, @wallHitX, @wallHitY) >= 0) then
+  begin
+    // check distance
+    //result := ((wallHitX-x1)*(wallHitX-x1)+(wallHitY-y1)*(wallHitY-y1) > (x2-x1)*(x2-x1)+(y2-y1)*(y2-y1));
+    result := false;
+  end
+  else
+  begin
+    result := true; // no obstacles
+  end;
 end;
+
 
 function g_CreateUID(UIDType: Byte): Word;
 var

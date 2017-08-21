@@ -1250,6 +1250,7 @@ begin
 end;
 
 
+(*
 procedure g_Weapon_gunOld(const x, y, xd, yd, v, dmg: Integer; SpawnerUID: Word; CheckTrigger: Boolean);
 var
   a: Integer;
@@ -1362,6 +1363,7 @@ begin
   if CheckTrigger and g_Game_IsServer then
     g_Triggers_PressL(X, Y, xx-xi, yy-yi, SpawnerUID, ACTIVATE_SHOT);
 end;
+*)
 
 
 (*
@@ -1769,11 +1771,13 @@ var
   stt: UInt64;
   {$ENDIF}
 begin
+  (*
   if not gwep_debug_fast_trace then
   begin
     g_Weapon_gunOld(x, y, xd, yd, v, dmg, SpawnerUID, CheckTrigger);
     exit;
   end;
+  *)
 
   wgunMonHash.reset(); //FIXME: clear hash on level change
   wgunHitHeap.clear();

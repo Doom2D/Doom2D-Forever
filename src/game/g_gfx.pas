@@ -14,6 +14,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *)
 {$INCLUDE ../shared/a_modes.inc}
+{.$DEFINE HAS_COLLIDE_BITMAP}
 unit g_gfx;
 
 interface
@@ -58,8 +59,12 @@ procedure g_Mark(x, y, Width, Height: Integer; t: Byte; st: Boolean);
 procedure g_GFX_Update();
 procedure g_GFX_Draw();
 
+
+{$IF DEFINED(HAS_COLLIDE_BITMAP)}
 var
   gCollideMap: Array of Array of Byte;
+{$ENDIF}
+
 
 implementation
 
@@ -103,9 +108,12 @@ var
   CurrentParticle: Integer;
 
 procedure g_Mark(x, y, Width, Height: Integer; t: Byte; st: Boolean);
+{$IF DEFINED(HAS_COLLIDE_BITMAP)}
 var
   yy, y2, xx, x2: Integer;
+{$ENDIF}
 begin
+{$IF DEFINED(HAS_COLLIDE_BITMAP)}
   if x < 0 then
   begin
     Width := Width + x;
@@ -150,12 +158,16 @@ begin
         for xx := x to x2 do
           gCollideMap[yy][xx] := gCollideMap[yy][xx] and t;
     end;
+{$ENDIF}
 end;
 
 procedure CreateCollideMap();
+{$IF DEFINED(HAS_COLLIDE_BITMAP)}
 var
   a: Integer;
+{$ENDIF}
 begin
+{$IF DEFINED(HAS_COLLIDE_BITMAP)}
   g_Game_SetLoadingText(_lc[I_LOAD_COLLIDE_MAP]+' 1/6', 0, False);
   SetLength(gCollideMap, gMapInfo.Height+1);
   for a := 0 to High(gCollideMap) do
@@ -225,6 +237,7 @@ begin
           g_Mark(X, Y, Width, Height, MARK_WALL, True);
     end;
   end;
+{$ENDIF}
 end;
 
 procedure g_GFX_Init();
@@ -248,9 +261,13 @@ begin
     OnceAnims := nil;
   end;
 
+  {$IF DEFINED(HAS_COLLIDE_BITMAP)}
   gCollideMap := nil;
+  {$ENDIF}
 end;
 
+
+{$IF DEFINED(HAS_COLLIDE_BITMAP)}
 procedure CorrectOffsets(id: Integer);
 begin
   with Particles[id] do
@@ -270,14 +287,19 @@ begin
       offsetX := 0;
   end;
 end;
+{$ENDIF}
+
 
 procedure g_GFX_SparkVel(fX, fY: Integer; Count: Word; VX, VY: Integer; DevX, DevY: Byte);
+{$IF DEFINED(HAS_COLLIDE_BITMAP)}
 var
   a: Integer;
   DevX1, DevX2,
   DevY1, DevY2: Byte;
   l: Integer;
+{$ENDIF}
 begin
+{$IF DEFINED(HAS_COLLIDE_BITMAP)}
   l := Length(Particles);
   if l = 0 then
     Exit;
@@ -326,10 +348,12 @@ begin
     else
       CurrentParticle := CurrentParticle+1;
   end;
+{$ENDIF}
 end;
 
 procedure g_GFX_Blood(fX, fY: Integer; Count: Word; vx, vy: Integer;
   DevX, DevY: Word; CR, CG, CB: Byte; Kind: Byte = BLOOD_NORMAL);
+{$IF DEFINED(HAS_COLLIDE_BITMAP)}
 var
   a: Integer;
   DevX1, DevX2,
@@ -337,7 +361,9 @@ var
   l: Integer;
   CRnd: Byte;
   CC: SmallInt;
+{$ENDIF}
 begin
+{$IF DEFINED(HAS_COLLIDE_BITMAP)}
   if Kind = BLOOD_SPARKS then
   begin
     g_GFX_SparkVel(fX, fY, 2 + Random(2), -VX div 2, -VY div 2, DevX, DevY);
@@ -419,9 +445,11 @@ begin
     else
       CurrentParticle := CurrentParticle+1;
   end;
+{$ENDIF}
 end;
 
 procedure g_GFX_Spark(fX, fY: Integer; Count: Word; Angle: SmallInt; DevX, DevY: Byte);
+{$IF DEFINED(HAS_COLLIDE_BITMAP)}
 var
   a: Integer;
   b: Single;
@@ -429,7 +457,9 @@ var
   DevY1, DevY2: Byte;
   BaseVelX, BaseVelY: Single;
   l: Integer;
+{$ENDIF}
 begin
+{$IF DEFINED(HAS_COLLIDE_BITMAP)}
   l := Length(Particles);
   if l = 0 then
     Exit;
@@ -480,15 +510,19 @@ begin
     else
       CurrentParticle := CurrentParticle+1;
   end;
+{$ENDIF}
 end;
 
 procedure g_GFX_Water(fX, fY: Integer; Count: Word; fVelX, fVelY: Single; DevX, DevY, Color: Byte);
+{$IF DEFINED(HAS_COLLIDE_BITMAP)}
 var
   a: Integer;
   DevX1, DevX2,
   DevY1, DevY2: Byte;
   l: Integer;
+{$ENDIF}
 begin
+{$IF DEFINED(HAS_COLLIDE_BITMAP)}
   l := Length(Particles);
   if l = 0 then
     Exit;
@@ -562,13 +596,17 @@ begin
     else
       CurrentParticle := CurrentParticle+1;
   end;
+{$ENDIF}
 end;
 
 procedure g_GFX_SimpleWater(fX, fY: Integer; Count: Word; fVelX, fVelY: Single; DefColor, CR, CG, CB: Byte);
+{$IF DEFINED(HAS_COLLIDE_BITMAP)}
 var
   a: Integer;
   l: Integer;
+{$ENDIF}
 begin
+{$IF DEFINED(HAS_COLLIDE_BITMAP)}
   l := Length(Particles);
   if l = 0 then
     Exit;
@@ -647,15 +685,19 @@ begin
     else
       CurrentParticle := CurrentParticle+1;
   end;
+{$ENDIF}
 end;
 
 procedure g_GFX_Bubbles(fX, fY: Integer; Count: Word; DevX, DevY: Byte);
+{$IF DEFINED(HAS_COLLIDE_BITMAP)}
 var
   a: Integer;
   DevX1, DevX2,
   DevY1, DevY2: Byte;
   l: Integer;
+{$ENDIF}
 begin
+{$IF DEFINED(HAS_COLLIDE_BITMAP)}
   l := Length(Particles);
   if l = 0 then
     Exit;
@@ -704,6 +746,7 @@ begin
     else
       CurrentParticle := CurrentParticle+1;
   end;
+{$ENDIF}
 end;
 
 procedure g_GFX_SetMax(Count: Integer);
@@ -766,12 +809,15 @@ end;
 procedure g_GFX_Update();
 var
   a: Integer;
+{$IF DEFINED(HAS_COLLIDE_BITMAP)}
   w, h: Integer;
   dX, dY: SmallInt;
   b, len: Integer;
   s: ShortInt;
   c: Byte;
+{$ENDIF}
 begin
+{$IF DEFINED(HAS_COLLIDE_BITMAP)}
   if Particles <> nil then
   begin
     w := gMapInfo.Width;
@@ -1235,6 +1281,7 @@ begin
           CorrectOffsets(a);
         end;
   end; // Particles <> nil
+{$ENDIF}
 
   if OnceAnims <> nil then
   begin
