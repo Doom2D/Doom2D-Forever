@@ -14,7 +14,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *)
 {$INCLUDE ../shared/a_modes.inc}
-{.$DEFINE HAS_COLLIDE_BITMAP}
 unit g_gfx;
 
 interface
@@ -58,12 +57,6 @@ procedure g_Mark(x, y, Width, Height: Integer; t: Byte; st: Boolean);
 
 procedure g_GFX_Update();
 procedure g_GFX_Draw();
-
-
-{$IF DEFINED(HAS_COLLIDE_BITMAP)}
-var
-  gCollideMap: Array of Array of Byte;
-{$ENDIF}
 
 
 implementation
@@ -308,37 +301,13 @@ begin
 
     OnceAnims := nil;
   end;
-
-  {$IF DEFINED(HAS_COLLIDE_BITMAP)}
-  gCollideMap := nil;
-  {$ENDIF}
 end;
 
 
 procedure CorrectOffsets(id: Integer);
-{$IF not DEFINED(HAS_COLLIDE_BITMAP)}
 var
   part: PParticle;
-{$ENDIF}
 begin
-{$IF DEFINED(HAS_COLLIDE_BITMAP)}
-  with Particles[id] do
-  begin
-    if (X >= 0) and (Y > 0) and
-    (Y < Length(gCollideMap)) and (X < Length(gCollideMap[0])) and
-    (ByteBool(gCollideMap[Y-1, X] and MARK_BLOCKED)) then
-      offsetY := 1 // Стена сверху
-    else
-      offsetY := 0;
-
-    if (X > 0) and (Y >= 0) and
-    (Y < Length(gCollideMap)) and (X < Length(gCollideMap[0])) and
-    (ByteBool(gCollideMap[Y, X-1] and MARK_BLOCKED)) then
-      offsetX := 1 // Стена слева
-    else
-      offsetX := 0;
-  end;
-{$ELSE}
   part := @Particles[id];
   part.offsetX := 0;
   part.offsetY := 0;
@@ -346,7 +315,6 @@ begin
   if isBlockedAt(part.X, part.Y-1) then part.offsetY := 1;
   // check for left wall
   if isBlockedAt(part.X-1, part.Y) then part.offsetX := 1;
-{$ENDIF}
 end;
 
 
