@@ -19,7 +19,7 @@ unit g_gfx;
 interface
 
 uses
-  g_textures;
+  e_log, g_textures;
 
 const
   BLOOD_NORMAL = 0;
@@ -102,49 +102,49 @@ var
   CurrentParticle: Integer;
 
 
-function isBlockedAt (x, y: Integer; w: Integer=1; h: Integer=1): Boolean; inline;
+function isBlockedAt (x, y: Integer): Boolean; inline;
 begin
-  result := g_Map_CollidePanel(x, y, w, h, (PANEL_WALL or PANEL_CLOSEDOOR or PANEL_STEP));
+  result := g_Map_HasAnyPanelAtPoint(x, y, (PANEL_WALL or PANEL_CLOSEDOOR or PANEL_STEP));
 end;
 
 
 // ???
-function isWallAt (x, y: Integer; w: Integer=1; h: Integer=1): Boolean; inline;
+function isWallAt (x, y: Integer): Boolean; inline;
 begin
-  result := g_Map_CollidePanel(x, y, w, h, (PANEL_WALL or PANEL_STEP));
+  result := g_Map_HasAnyPanelAtPoint(x, y, (PANEL_WALL or PANEL_STEP));
 end;
 
 
-function isLiftUpAt (x, y: Integer; w: Integer=1; h: Integer=1): Boolean; inline;
+function isLiftUpAt (x, y: Integer): Boolean; inline;
 begin
-  result := g_Map_CollidePanel(x, y, w, h, PANEL_LIFTUP);
+  result := g_Map_HasAnyPanelAtPoint(x, y, PANEL_LIFTUP);
 end;
 
-function isLiftDownAt (x, y: Integer; w: Integer=1; h: Integer=1): Boolean; inline;
+function isLiftDownAt (x, y: Integer): Boolean; inline;
 begin
-  result := g_Map_CollidePanel(x, y, w, h, PANEL_LIFTDOWN);
+  result := g_Map_HasAnyPanelAtPoint(x, y, PANEL_LIFTDOWN);
 end;
 
-function isLiftLeftAt (x, y: Integer; w: Integer=1; h: Integer=1): Boolean; inline;
+function isLiftLeftAt (x, y: Integer): Boolean; inline;
 begin
-  result := g_Map_CollidePanel(x, y, w, h, PANEL_LIFTLEFT);
+  result := g_Map_HasAnyPanelAtPoint(x, y, PANEL_LIFTLEFT);
 end;
 
-function isLiftRightAt (x, y: Integer; w: Integer=1; h: Integer=1): Boolean; inline;
+function isLiftRightAt (x, y: Integer): Boolean; inline;
 begin
-  result := g_Map_CollidePanel(x, y, w, h, PANEL_LIFTRIGHT);
-end;
-
-
-function isLiquidAt (x, y: Integer; w: Integer=1; h: Integer=1): Boolean; inline;
-begin
-  result := g_Map_CollidePanel(x, y, w, h, (PANEL_WATER or PANEL_ACID1 or PANEL_ACID2));
+  result := g_Map_HasAnyPanelAtPoint(x, y, PANEL_LIFTRIGHT);
 end;
 
 
-function isAnythingAt (x, y: Integer; w: Integer=1; h: Integer=1): Boolean; inline;
+function isLiquidAt (x, y: Integer): Boolean; inline;
 begin
-  result := g_Map_CollidePanel(x, y, w, h, (PANEL_WALL or PANEL_CLOSEDOOR or PANEL_OPENDOOR or PANEL_WATER or PANEL_ACID1 or PANEL_ACID2 or PANEL_STEP or PANEL_LIFTUP or PANEL_LIFTDOWN or PANEL_LIFTLEFT or PANEL_LIFTRIGHT));
+  result := g_Map_HasAnyPanelAtPoint(x, y, (PANEL_WATER or PANEL_ACID1 or PANEL_ACID2));
+end;
+
+
+function isAnythingAt (x, y: Integer): Boolean; inline;
+begin
+  result := g_Map_HasAnyPanelAtPoint(x, y, (PANEL_WALL or PANEL_CLOSEDOOR or PANEL_OPENDOOR or PANEL_WATER or PANEL_ACID1 or PANEL_ACID2 or PANEL_STEP or PANEL_LIFTUP or PANEL_LIFTDOWN or PANEL_LIFTLEFT or PANEL_LIFTRIGHT));
 end;
 
 
@@ -833,15 +833,15 @@ begin
     len := High(Particles);
 
     for a := 0 to len do
-      if Particles[a].State <> 0 then
+    begin
+      if Particles[a].State <> STATE_FREE then
+      begin
         with Particles[a] do
         begin
-          if Time = LiveTime then
-            State := STATE_FREE;
-          if (X+1 >= w) or (Y+1 >= h) or (X <= 0) or (Y <= 0) then
-            State := STATE_FREE;
-          if State = STATE_FREE then
-            Continue;
+          if Time = LiveTime then State := STATE_FREE;
+          if (X+1 >= w) or (Y+1 >= h) or (X <= 0) or (Y <= 0) then State := STATE_FREE;
+          if State = STATE_FREE then Continue;
+          //e_WriteLog(Format('particle #%d: %d', [State, ParticleType]), MSG_NOTIFY);
 
           case ParticleType of
             PARTICLE_BLOOD:
@@ -1294,7 +1294,9 @@ begin
           end; // case
 
           CorrectOffsets(a);
-        end;
+        end; // with
+      end; // if
+    end; // for
   end; // Particles <> nil
 
   if OnceAnims <> nil then

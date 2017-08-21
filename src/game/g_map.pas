@@ -99,6 +99,8 @@ type
 
 function g_Map_ForEachPanelAt (x, y: Integer; cb: TForEachPanelCB; panelType: Word): Boolean;
 
+function g_Map_HasAnyPanelAtPoint (x, y: Integer; panelType: Word): Boolean;
+
 
 procedure g_Map_ProfilersBegin ();
 procedure g_Map_ProfilersEnd ();
@@ -453,6 +455,48 @@ begin
 
   if (tagmask = 0) then exit;// just in case
   result := gMapGrid.forEachInAABB(x, y, 1, 1, checker, tagmask);
+end;
+
+
+function g_Map_HasAnyPanelAtPoint (x, y: Integer; panelType: Word): Boolean;
+
+  function checker (pan: TPanel; tag: Integer): Boolean;
+  begin
+    result := false; // don't stop, ever
+
+    if ((tag and (GridTagWall or GridTagDoor)) <> 0) then
+    begin
+      if not pan.Enabled then exit;
+    end;
+
+    result := (x >= pan.X) and (y >= pan.Y) and (x < pan.X+pan.Width) and (y < pan.Y+pan.Height);
+    if not result then exit;
+
+    if ((tag and GridTagLift) <> 0) then
+    begin
+      result :=
+        ((WordBool(PanelType and PANEL_LIFTUP) and (pan.LiftType = 0)) or
+         (WordBool(PanelType and PANEL_LIFTDOWN) and (pan.LiftType = 1)) or
+         (WordBool(PanelType and PANEL_LIFTLEFT) and (pan.LiftType = 2)) or
+         (WordBool(PanelType and PANEL_LIFTRIGHT) and (pan.LiftType = 3)));
+    end;
+  end;
+
+var
+  tagmask: Integer = 0;
+begin
+  result := false;
+
+  if WordBool(PanelType and (PANEL_WALL or PANEL_CLOSEDOOR or PANEL_OPENDOOR)) then tagmask := tagmask or (GridTagWall or GridTagDoor);
+  if WordBool(PanelType and PANEL_WATER) then tagmask := tagmask or GridTagWater;
+  if WordBool(PanelType and PANEL_ACID1) then tagmask := tagmask or GridTagAcid1;
+  if WordBool(PanelType and PANEL_ACID2) then tagmask := tagmask or GridTagAcid2;
+  if WordBool(PanelType and PANEL_STEP) then tagmask := tagmask or GridTagStep;
+  if WordBool(PanelType and (PANEL_LIFTUP or PANEL_LIFTDOWN or PANEL_LIFTLEFT or PANEL_LIFTRIGHT)) then tagmask := tagmask or GridTagLift;
+  if WordBool(PanelType and PANEL_BLOCKMON) then tagmask := tagmask or GridTagBlockMon;
+
+  if (tagmask = 0) then exit;// just in case
+  result := gMapGrid.forEachAtPoint(x, y, checker, tagmask);
 end;
 
 

@@ -201,7 +201,7 @@ begin
   Result := True;
   *)
 
-  //result := false;
+  result := false;
   if g_Map_traceToNearestWall(x1, y1, x2, y2, @wallHitX, @wallHitY) then
   begin
     // check distance

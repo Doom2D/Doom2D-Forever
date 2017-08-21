@@ -78,7 +78,6 @@ type
     mUData: TBodyProxyId; // for inserter/remover
     mTagMask: Integer; // for iterator
     mItCB: TGridQueryCB; // for iterator
-    mQueryInProcess: Boolean;
 
   private
     function allocCell: Integer;
@@ -94,7 +93,6 @@ type
 
     function inserter (grida: Integer): Boolean;
     function remover (grida: Integer): Boolean;
-    function iterator (grida: Integer): Boolean;
 
   public
     constructor Create (aMinPixX, aMinPixY, aPixWidth, aPixHeight: Integer; aTileSize: Integer=GridDefaultTileSize);
@@ -109,6 +107,9 @@ type
 
     //WARNING: can't do recursive queries
     function forEachInAABB (x, y, w, h: Integer; cb: TGridQueryCB; tagmask: Integer=-1): Boolean;
+
+    //WARNING: can't do recursive queries
+    function forEachAtPoint (x, y: Integer; cb: TGridQueryCB; tagmask: Integer=-1): Boolean;
 
     //WARNING: can't do recursive queries
     // cb with `(nil)` will be called before processing new tile
@@ -180,7 +181,6 @@ begin
   mUData := 0;
   mTagMask := -1;
   mItCB := nil;
-  mQueryInProcess := false;
   e_WriteLog(Format('created grid with size: %dx%d (tile size: %d); pix: %dx%d', [mWidth, mHeight, mTileSize, mWidth*mTileSize, mHeight*mTileSize]), MSG_NOTIFY);
 end;
 
@@ -313,8 +313,62 @@ begin
     begin
       if (gx < 0) then continue;
       if (gx >= mWidth) then break;
-      if (cb(gy*mWidth+gx)) then begin result := true; exit; end;
+      result := cb(gy*mWidth+gx);
+      if result then exit;
     end;
+  end;
+end;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
+function TBodyGridBase.forEachAtPoint (x, y: Integer; cb: TGridQueryCB; tagmask: Integer=-1): Boolean;
+var
+  idx, ga, curci: Integer;
+  f: Integer;
+  cc: PGridCell = nil;
+  px: PBodyProxyRec;
+  lq: LongWord;
+begin
+  result := false;
+  if not assigned(cb) or (tagmask = 0) then exit;
+
+  Dec(x, mMinX);
+  Dec(y, mMinY);
+  if (x < 0) or (y < 0) or (x >= mWidth*mTileSize) or (y >= mHeight*mTileSize) then exit;
+
+  ga := (y div mTileSize)*mWidth+(x div mTileSize);
+  curci := mGrid[ga];
+  Inc(x, mMinX);
+  Inc(y, mMinY);
+
+  // increase query counter
+  Inc(mLastQuery);
+  if (mLastQuery = 0) then
+  begin
+    // just in case of overflow
+    mLastQuery := 1;
+    for idx := 0 to High(mProxies) do mProxies[idx].mQueryMark := 0;
+  end;
+  lq := mLastQuery;
+
+  while (curci <> -1) do
+  begin
+    cc := @mCells[curci];
+    for f := 0 to High(TGridCell.bodies) do
+    begin
+      if (cc.bodies[f] = -1) then break;
+      px := @mProxies[cc.bodies[f]];
+      if (px.mQueryMark <> lq) and ((px.mTag and tagmask) <> 0) then
+      begin
+        if (x >= px.mX) and (y >= px.mY) and (x < px.mX+px.mWidth) and (y < px.mY+px.mHeight) then
+        begin
+          px.mQueryMark := lq;
+          result := cb(px.mObj, px.mTag);
+          if result then exit;
+        end;
+      end;
+    end;
+    curci := cc.next;
   end;
 end;
 
@@ -342,7 +396,7 @@ var
   prevX, prevY: Integer;
   minx, miny: Integer;
 begin
-  result := False;
+  result := false;
 
   if (tagmask = 0) then exit;
 
@@ -572,22 +626,16 @@ end;
 
 function TBodyGridBase.insertBody (aObj: ITP; aX, aY, aWidth, aHeight: Integer; aTag: Integer=0): TBodyProxyId;
 begin
-  if mQueryInProcess then raise Exception.Create('grid doesn''t support recursive queries');
-  mQueryInProcess := true;
   result := allocProxy(aX, aY, aWidth, aHeight, aObj, aTag);
   insert(result);
-  mQueryInProcess := false;
 end;
 
 
 procedure TBodyGridBase.removeBody (aObj: TBodyProxyId);
 begin
   if (aObj < 0) or (aObj > High(mProxies)) then exit; // just in case
-  if mQueryInProcess then raise Exception.Create('grid doesn''t support recursive queries');
-  mQueryInProcess := true;
   remove(aObj);
   freeProxy(aObj);
-  mQueryInProcess := false;
 end;
 
 
@@ -597,8 +645,6 @@ var
 begin
   if (body < 0) or (body > High(mProxies)) then exit; // just in case
   if ((dx = 0) and (dy = 0) and (sx = 0) and (sy = 0)) then exit;
-  if mQueryInProcess then raise Exception.Create('grid doesn''t support recursive queries');
-  mQueryInProcess := true;
   remove(body);
   px := @mProxies[body];
   Inc(px.mX, dx);
@@ -606,7 +652,6 @@ begin
   Inc(px.mWidth, sx);
   Inc(px.mHeight, sy);
   insert(body);
-  mQueryInProcess := false;
 end;
 
 procedure TBodyGridBase.moveBody (body: TBodyProxyId; dx, dy: Integer);
@@ -620,58 +665,33 @@ begin
 end;
 
 
-function TBodyGridBase.iterator (grida: Integer): Boolean;
-var
-  idx: Integer;
-  px: PBodyProxyRec;
-  {$IFDEF grid_use_buckets}
-  pi: PGridCell;
-  f: Integer;
-  {$ENDIF}
-begin
-  result := false;
-  idx := mGrid[grida];
-  while (idx >= 0) do
-  begin
-    {$IFDEF grid_use_buckets}
-    pi := @mCells[idx];
-    for f := 0 to High(TGridCell.bodies) do
-    begin
-      if (pi.bodies[f] = -1) then break;
-      px := @mProxies[pi.bodies[f]];
-      if (px.mQueryMark <> mLastQuery) and ((mTagMask = -1) or ((px.mTag and mTagMask) <> 0)) then
-      begin
-        //e_WriteLog(Format('  query #%d body hit: (%d,%d)-(%dx%d) tag:%d', [mLastQuery, mCells[idx].body.mX, mCells[idx].body.mY, mCells[idx].body.mWidth, mCells[idx].body.mHeight, mCells[idx].body.mTag]), MSG_NOTIFY);
-        px.mQueryMark := mLastQuery;
-        if (mItCB(px.mObj, px.mTag)) then begin result := true; exit; end;
-      end;
-    end;
-    idx := pi.next;
-    {$ELSE}
-    if (mCells[idx].body <> -1) then
-    begin
-      px := @mProxies[mCells[idx].body];
-      if (px.mQueryMark <> mLastQuery) and ((mTagMask = -1) or ((px.mTag and mTagMask) <> 0)) then
-      begin
-        //e_WriteLog(Format('  query #%d body hit: (%d,%d)-(%dx%d) tag:%d', [mLastQuery, mCells[idx].body.mX, mCells[idx].body.mY, mCells[idx].body.mWidth, mCells[idx].body.mHeight, mCells[idx].body.mTag]), MSG_NOTIFY);
-        px.mQueryMark := mLastQuery;
-        if (mItCB(px.mObj, px.mTag)) then begin result := true; exit; end;
-      end;
-    end;
-    idx := mCells[idx].next;
-    {$ENDIF}
-  end;
-end;
-
 function TBodyGridBase.forEachInAABB (x, y, w, h: Integer; cb: TGridQueryCB; tagmask: Integer=-1): Boolean;
 var
   idx: Integer;
+  gx, gy: Integer;
+  curci: Integer;
+  f: Integer;
+  cc: PGridCell = nil;
+  px: PBodyProxyRec;
+  lq: LongWord;
+  tsize, gw: Integer;
+  x0, y0: Integer;
 begin
   result := false;
-  if not assigned(cb) then exit;
+  if (w < 1) or (h < 1) or not assigned(cb) then exit;
 
-  if mQueryInProcess then raise Exception.Create('grid doesn''t support recursive queries');
-  mQueryInProcess := true;
+  x0 := x;
+  y0 := y;
+
+  // fix coords
+  Dec(x, mMinX);
+  Dec(y, mMinY);
+
+  gw := mWidth;
+  tsize := mTileSize;
+
+  if (x+w <= 0) or (y+h <= 0) then exit;
+  if (x >= gw*tsize) or (y >= mHeight*tsize) then exit;
 
   // increase query counter
   Inc(mLastQuery);
@@ -682,11 +702,39 @@ begin
     for idx := 0 to High(mProxies) do mProxies[idx].mQueryMark := 0;
   end;
   //e_WriteLog(Format('grid: query #%d: (%d,%d)-(%dx%d)', [mLastQuery, minx, miny, maxx, maxy]), MSG_NOTIFY);
+  lq := mLastQuery;
 
-  mTagMask := tagmask;
-  mItCB := cb;
-  result := forGridRect(x, y, w, h, iterator);
-  mQueryInProcess := false;
+  // go on
+  for gy := y div tsize to (y+h-1) div tsize do
+  begin
+    if (gy < 0) then continue;
+    if (gy >= mHeight) then break;
+    for gx := x div tsize to (x+w-1) div tsize do
+    begin
+      if (gx < 0) then continue;
+      if (gx >= gw) then break;
+      // process cells
+      curci := mGrid[gy*gw+gx];
+      while (curci <> -1) do
+      begin
+        cc := @mCells[curci];
+        for f := 0 to High(TGridCell.bodies) do
+        begin
+          if (cc.bodies[f] = -1) then break;
+          px := @mProxies[cc.bodies[f]];
+          if (px.mQueryMark <> lq) and ((px.mTag and tagmask) <> 0) then
+          begin
+            if (x0 >= px.mX+px.mWidth) or (y0 >= px.mY+px.mHeight) then continue;
+            if (x0+w <= px.mX) or (y0+h <= px.mY) then continue;
+            px.mQueryMark := lq;
+            result := cb(px.mObj, px.mTag);
+            if result then exit;
+          end;
+        end;
+        curci := cc.next;
+      end;
+    end;
+  end;
 end;
 
 
