@@ -1198,6 +1198,8 @@ const
   StackGran = 1024;
 var
   oldvstused: Integer;
+  vsp: Integer;
+  vstk: array of Integer;
   nodeId: Integer;
   node: PTreeNode;
   doNode: Boolean = false;
@@ -1206,99 +1208,108 @@ begin
   //if not assigned(visitor) and not assigned(visdg) then raise Exception.Create('dyntree: empty visitors aren''t supported');
   oldvstused := vstused;
   if (vstused+StackGran > Length(vstack)) then SetLength(vstack, vstused+StackGran);
-  //try
-    {$IFDEF aabbtree_query_count}
-    mNodesVisited := 0;
-    mNodesDeepVisited := 0;
-    {$ENDIF}
+  vsp := vstused;
+  vstk := vstack;
 
-    // start from root node
+  {$IFDEF aabbtree_query_count}
+  mNodesVisited := 0;
+  mNodesDeepVisited := 0;
+  {$ENDIF}
+
+  // start from root node
+  // we can't have nested functions in generics, sorry
+  {$IF FALSE}
+    spush(mRootNodeId);
+  {$ELSE}
+    if (vsp >= Length(vstk)) then SetLength(vstk, vsp+StackGran);
+    vstk[vsp] := mRootNodeId;
+    Inc(vsp);
+  {$ENDIF}
+
+  // while there are still nodes to visit
+  while (vsp > oldvstused) do
+  begin
+    // get the next node id to visit
     // we can't have nested functions in generics, sorry
     {$IF FALSE}
-      spush(mRootNodeId);
+      nodeId := spop();
     {$ELSE}
-      if (vstused >= Length(vstack)) then SetLength(vstack, vstused+StackGran);
-      vstack[vstused] := mRootNodeId;
-      Inc(vstused);
+      Dec(vsp);
+      nodeId := vstk[vsp];
     {$ENDIF}
-
-    // while there are still nodes to visit
-    while (vstused > oldvstused) do
-    begin
-      // get the next node id to visit
-      // we can't have nested functions in generics, sorry
-      {$IF FALSE}
-        nodeId := spop();
-      {$ELSE}
-        Dec(vstused);
-        nodeId := vstack[vstused];
-      {$ENDIF}
-      // skip it if it is a nil node
-      if (nodeId = TTreeNode.NullTreeNode) then continue;
-      {$IFDEF aabbtree_query_count}Inc(mNodesVisited);{$ENDIF}
-      // get the corresponding node
-      node := @mNodes[nodeId];
-      // should we investigate this node?
-      case mode of
-        ModeNoChecks: doNode := checker(node);
-        ModeAABB:
-          begin
-            //doNode := caabb.overlaps(node.aabb);
-            // this gives small speedup (or not...)
-            // exit with no intersection if found separated along any axis
-                 if (caabb.maxX < node.aabb.minX) or (caabb.minX > node.aabb.maxX) then doNode := false
-            else if (caabb.maxY < node.aabb.minY) or (caabb.minY > node.aabb.maxY) then doNode := false
-            else doNode := true;
-          end;
-        ModePoint:
-          begin
-            //doNode := node.aabb.contains(caabb.minX, caabb.minY);
-            // this gives small speedup
-            doNode := (caabb.minX >= node.aabb.minX) and (caabb.minY >= node.aabb.minY) and (caabb.minX <= node.aabb.maxX) and (caabb.minY <= node.aabb.maxY);
-          end;
-      end;
-      if doNode then
-      begin
-        // if the node is a leaf
-        if (node.leaf) then
+    // skip it if it is a nil node
+    if (nodeId = TTreeNode.NullTreeNode) then continue;
+    {$IFDEF aabbtree_query_count}Inc(mNodesVisited);{$ENDIF}
+    // get the corresponding node
+    node := @mNodes[nodeId];
+    // should we investigate this node?
+    case mode of
+      ModeNoChecks: doNode := checker(node);
+      ModeAABB:
         begin
-          // call visitor on it
-          {$IFDEF aabbtree_query_count}Inc(mNodesDeepVisited);{$ENDIF}
-          if (tagmask = -1) or ((node.tag and tagmask) <> 0) then
-          begin
-            if assigned(visitor) then
-            begin
-              if (visitor(node.flesh, node.tag)) then begin result := nodeId; vstused := oldvstused; exit; end;
-            end;
-            if assigned(visdg) then
-            begin
-              if (visdg(node.flesh, node.tag)) then begin result := nodeId; vstused := oldvstused; exit; end;
-            end;
-          end;
-        end
-        else
-        begin
-          // if the node is not a leaf, we need to visit its children
-          // we can't have nested functions in generics, sorry
-          {$IF FALSE}
-            spush(node.children[TTreeNode.Left]);
-            spush(node.children[TTreeNode.Right]);
-          {$ELSE}
-            if (vstused+2 > Length(vstack)) then SetLength(vstack, vstused+StackGran);
-            vstack[vstused] := node.children[TTreeNode.Left];
-            Inc(vstused);
-            vstack[vstused] := node.children[TTreeNode.Right];
-            Inc(vstused);
-          {$ENDIF}
+          //doNode := caabb.overlaps(node.aabb);
+          // this gives small speedup (or not...)
+          // exit with no intersection if found separated along any axis
+               if (caabb.maxX < node.aabb.minX) or (caabb.minX > node.aabb.maxX) then doNode := false
+          else if (caabb.maxY < node.aabb.minY) or (caabb.minY > node.aabb.maxY) then doNode := false
+          else doNode := true;
         end;
+      ModePoint:
+        begin
+          //doNode := node.aabb.contains(caabb.minX, caabb.minY);
+          // this gives small speedup
+          doNode := (caabb.minX >= node.aabb.minX) and (caabb.minY >= node.aabb.minY) and (caabb.minX <= node.aabb.maxX) and (caabb.minY <= node.aabb.maxY);
+        end;
+    end;
+    if doNode then
+    begin
+      // if the node is a leaf
+      if (node.leaf) then
+      begin
+        // call visitor on it
+        {$IFDEF aabbtree_query_count}Inc(mNodesDeepVisited);{$ENDIF}
+        if (tagmask = -1) or ((node.tag and tagmask) <> 0) then
+        begin
+          doNode := false;
+          // update object vars from cache, so recursive calls to `visit()` will work
+          vstack := vstk;
+          vstused := vsp;
+          // call callbacks
+          if assigned(visitor) then doNode := visitor(node.flesh, node.tag);
+          if assigned(visdg) and visdg(node.flesh, node.tag) then doNode := true;
+          // do some sanity checks
+          if (vstused <> vsp) then raise Exception.Create('internal error in dyntree visitor');
+          // should we exit?
+          if doNode then
+          begin
+            result := nodeId;
+            vstack := vstk;
+            vstused := oldvstused;
+            exit;
+          end;
+        end;
+      end
+      else
+      begin
+        // if the node is not a leaf, we need to visit its children
+        // we can't have nested functions in generics, sorry
+        {$IF FALSE}
+          spush(node.children[TTreeNode.Left]);
+          spush(node.children[TTreeNode.Right]);
+        {$ELSE}
+          if (vsp+2 > Length(vstk)) then SetLength(vstk, vsp+StackGran);
+          vstk[vsp] := node.children[TTreeNode.Left];
+          Inc(vsp);
+          vstk[vsp] := node.children[TTreeNode.Right];
+          Inc(vsp);
+        {$ENDIF}
       end;
     end;
+  end;
 
-    result := -1; // oops
-    vstused := oldvstused;
-  //finally
-  //  bigstack := nil;
-  //end;
+  result := -1; // oops
+  vstack := vstk;
+  vstused := oldvstused;
 end;
 
 
