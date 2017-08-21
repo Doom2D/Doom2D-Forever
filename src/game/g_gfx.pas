@@ -74,6 +74,7 @@ uses
   g_game, g_language, g_net;
 
 type
+  PParticle = ^TParticle;
   TParticle = record
     X, Y:               Integer;
     VelX, VelY:         Single;
@@ -106,6 +107,53 @@ var
   OnceAnims: Array of TOnceAnim;
   MaxParticles: Integer;
   CurrentParticle: Integer;
+
+
+function isBlockedAt (x, y: Integer; w: Integer=1; h: Integer=1): Boolean; inline;
+begin
+  result := g_Map_CollidePanel(x, y, w, h, (PANEL_WALL or PANEL_CLOSEDOOR or PANEL_STEP));
+end;
+
+
+// ???
+function isWallAt (x, y: Integer; w: Integer=1; h: Integer=1): Boolean; inline;
+begin
+  result := g_Map_CollidePanel(x, y, w, h, (PANEL_WALL or PANEL_STEP));
+end;
+
+
+function isLiftUpAt (x, y: Integer; w: Integer=1; h: Integer=1): Boolean; inline;
+begin
+  result := g_Map_CollidePanel(x, y, w, h, PANEL_LIFTUP);
+end;
+
+function isLiftDownAt (x, y: Integer; w: Integer=1; h: Integer=1): Boolean; inline;
+begin
+  result := g_Map_CollidePanel(x, y, w, h, PANEL_LIFTDOWN);
+end;
+
+function isLiftLeftAt (x, y: Integer; w: Integer=1; h: Integer=1): Boolean; inline;
+begin
+  result := g_Map_CollidePanel(x, y, w, h, PANEL_LIFTLEFT);
+end;
+
+function isLiftRightAt (x, y: Integer; w: Integer=1; h: Integer=1): Boolean; inline;
+begin
+  result := g_Map_CollidePanel(x, y, w, h, PANEL_LIFTRIGHT);
+end;
+
+
+function isLiquidAt (x, y: Integer; w: Integer=1; h: Integer=1): Boolean; inline;
+begin
+  result := g_Map_CollidePanel(x, y, w, h, (PANEL_WATER or PANEL_ACID1 or PANEL_ACID2));
+end;
+
+
+function isAnythingAt (x, y: Integer; w: Integer=1; h: Integer=1): Boolean; inline;
+begin
+  result := g_Map_CollidePanel(x, y, w, h, (PANEL_WALL or PANEL_CLOSEDOOR or PANEL_OPENDOOR or PANEL_WATER or PANEL_ACID1 or PANEL_ACID2 or PANEL_STEP or PANEL_LIFTUP or PANEL_LIFTDOWN or PANEL_LIFTLEFT or PANEL_LIFTRIGHT));
+end;
+
 
 procedure g_Mark(x, y, Width, Height: Integer; t: Byte; st: Boolean);
 {$IF DEFINED(HAS_COLLIDE_BITMAP)}
@@ -267,9 +315,13 @@ begin
 end;
 
 
-{$IF DEFINED(HAS_COLLIDE_BITMAP)}
 procedure CorrectOffsets(id: Integer);
+{$IF not DEFINED(HAS_COLLIDE_BITMAP)}
+var
+  part: PParticle;
+{$ENDIF}
 begin
+{$IF DEFINED(HAS_COLLIDE_BITMAP)}
   with Particles[id] do
   begin
     if (X >= 0) and (Y > 0) and
@@ -286,25 +338,28 @@ begin
     else
       offsetX := 0;
   end;
-end;
+{$ELSE}
+  part := @Particles[id];
+  part.offsetX := 0;
+  part.offsetY := 0;
+  // check for upper wall
+  if isBlockedAt(part.X, part.Y-1) then part.offsetY := 1;
+  // check for left wall
+  if isBlockedAt(part.X-1, part.Y) then part.offsetX := 1;
 {$ENDIF}
+end;
 
 
-procedure g_GFX_SparkVel(fX, fY: Integer; Count: Word; VX, VY: Integer; DevX, DevY: Byte);
-{$IF DEFINED(HAS_COLLIDE_BITMAP)}
+procedure g_GFX_SparkVel (fX, fY: Integer; Count: Word; VX, VY: Integer; DevX, DevY: Byte);
 var
   a: Integer;
   DevX1, DevX2,
   DevY1, DevY2: Byte;
   l: Integer;
-{$ENDIF}
 begin
-{$IF DEFINED(HAS_COLLIDE_BITMAP)}
   l := Length(Particles);
-  if l = 0 then
-    Exit;
-  if Count > l then
-    Count := l;
+  if l = 0 then exit;
+  if Count > l then Count := l;
 
   DevX1 := DevX div 2;
   DevX2 := DevX + 1;
@@ -348,12 +403,11 @@ begin
     else
       CurrentParticle := CurrentParticle+1;
   end;
-{$ENDIF}
 end;
+
 
 procedure g_GFX_Blood(fX, fY: Integer; Count: Word; vx, vy: Integer;
   DevX, DevY: Word; CR, CG, CB: Byte; Kind: Byte = BLOOD_NORMAL);
-{$IF DEFINED(HAS_COLLIDE_BITMAP)}
 var
   a: Integer;
   DevX1, DevX2,
@@ -361,9 +415,7 @@ var
   l: Integer;
   CRnd: Byte;
   CC: SmallInt;
-{$ENDIF}
 begin
-{$IF DEFINED(HAS_COLLIDE_BITMAP)}
   if Kind = BLOOD_SPARKS then
   begin
     g_GFX_SparkVel(fX, fY, 2 + Random(2), -VX div 2, -VY div 2, DevX, DevY);
@@ -387,10 +439,13 @@ begin
       X := fX - DevX1 + Random(DevX2);
       Y := fY - DevY1 + Random(DevY2);
 
+      {
       if (X < 0) or (X > gMapInfo.Width-1) or
          (Y < 0) or (Y > gMapInfo.Height-1) or
          ByteBool(gCollideMap[Y, X] and MARK_WALL) then
         Continue;
+      }
+      if isWallAt(X, Y) then continue;
 
       VelX := vx + (Random-Random)*3;
       VelY := vy + (Random-Random)*3;
@@ -445,11 +500,10 @@ begin
     else
       CurrentParticle := CurrentParticle+1;
   end;
-{$ENDIF}
 end;
 
+
 procedure g_GFX_Spark(fX, fY: Integer; Count: Word; Angle: SmallInt; DevX, DevY: Byte);
-{$IF DEFINED(HAS_COLLIDE_BITMAP)}
 var
   a: Integer;
   b: Single;
@@ -457,9 +511,7 @@ var
   DevY1, DevY2: Byte;
   BaseVelX, BaseVelY: Single;
   l: Integer;
-{$ENDIF}
 begin
-{$IF DEFINED(HAS_COLLIDE_BITMAP)}
   l := Length(Particles);
   if l = 0 then
     Exit;
@@ -510,19 +562,15 @@ begin
     else
       CurrentParticle := CurrentParticle+1;
   end;
-{$ENDIF}
 end;
 
 procedure g_GFX_Water(fX, fY: Integer; Count: Word; fVelX, fVelY: Single; DevX, DevY, Color: Byte);
-{$IF DEFINED(HAS_COLLIDE_BITMAP)}
 var
   a: Integer;
   DevX1, DevX2,
   DevY1, DevY2: Byte;
   l: Integer;
-{$ENDIF}
 begin
-{$IF DEFINED(HAS_COLLIDE_BITMAP)}
   l := Length(Particles);
   if l = 0 then
     Exit;
@@ -596,17 +644,13 @@ begin
     else
       CurrentParticle := CurrentParticle+1;
   end;
-{$ENDIF}
 end;
 
 procedure g_GFX_SimpleWater(fX, fY: Integer; Count: Word; fVelX, fVelY: Single; DefColor, CR, CG, CB: Byte);
-{$IF DEFINED(HAS_COLLIDE_BITMAP)}
 var
   a: Integer;
   l: Integer;
-{$ENDIF}
 begin
-{$IF DEFINED(HAS_COLLIDE_BITMAP)}
   l := Length(Particles);
   if l = 0 then
     Exit;
@@ -685,19 +729,15 @@ begin
     else
       CurrentParticle := CurrentParticle+1;
   end;
-{$ENDIF}
 end;
 
 procedure g_GFX_Bubbles(fX, fY: Integer; Count: Word; DevX, DevY: Byte);
-{$IF DEFINED(HAS_COLLIDE_BITMAP)}
 var
   a: Integer;
   DevX1, DevX2,
   DevY1, DevY2: Byte;
   l: Integer;
-{$ENDIF}
 begin
-{$IF DEFINED(HAS_COLLIDE_BITMAP)}
   l := Length(Particles);
   if l = 0 then
     Exit;
@@ -720,7 +760,7 @@ begin
          (Y >= gMapInfo.Height) or (Y <= 0) then
         Continue;
 
-      if not ByteBool(gCollideMap[Y, X] and MARK_LIQUID) then
+      if not isLiquidAt(X, Y) {ByteBool(gCollideMap[Y, X] and MARK_LIQUID)} then
         Continue;
 
       VelX := 0;
@@ -746,7 +786,6 @@ begin
     else
       CurrentParticle := CurrentParticle+1;
   end;
-{$ENDIF}
 end;
 
 procedure g_GFX_SetMax(Count: Integer);
@@ -809,15 +848,12 @@ end;
 procedure g_GFX_Update();
 var
   a: Integer;
-{$IF DEFINED(HAS_COLLIDE_BITMAP)}
   w, h: Integer;
   dX, dY: SmallInt;
   b, len: Integer;
   s: ShortInt;
-  c: Byte;
-{$ENDIF}
+  //c: Byte;
 begin
-{$IF DEFINED(HAS_COLLIDE_BITMAP)}
   if Particles <> nil then
   begin
     w := gMapInfo.Width;
@@ -842,10 +878,18 @@ begin
               if gAdvBlood then
                 begin
                   if (State = STATE_STICK) then
+                    {
                     if (not ByteBool(gCollideMap[Y-1, X] and MARK_BLOCKED)) and
                        (not ByteBool(gCollideMap[Y+1, X] and MARK_BLOCKED)) and
                        (not ByteBool(gCollideMap[Y, X-1] and MARK_BLOCKED)) and
-                       (not ByteBool(gCollideMap[Y, X+1] and MARK_BLOCKED)) then
+                       (not ByteBool(gCollideMap[Y, X+1] and MARK_BLOCKED))
+                    then
+                    }
+                    if (not isBlockedAt(X, Y-1)) and
+                       (not isBlockedAt(X, Y+1)) and
+                       (not isBlockedAt(X-1, Y)) and
+                       (not isBlockedAt(X+1, Y))
+                    then
                       begin // Отлипла - капает
                         VelY := 0.5;
                         AccelY := 0.15;
@@ -859,9 +903,9 @@ begin
                         Continue;
                       end;
 
-                  if not ByteBool(gCollideMap[Y, X] and MARK_BLOCKED) then
+                  if not isBlockedAt(X, Y) {ByteBool(gCollideMap[Y, X] and MARK_BLOCKED)} then
                   begin
-                    if ByteBool(gCollideMap[Y, X] and MARK_LIFTUP) then
+                    if isLiftUpAt(X, Y) {ByteBool(gCollideMap[Y, X] and MARK_LIFTUP)} then
                     begin // Лифт вверх
                       if VelY > -4-Random(3) then
                         VelY := VelY - 0.8;
@@ -870,13 +914,13 @@ begin
                       VelX := VelX + (Random-Random)*0.2;
                       AccelY := 0.15;
                     end;
-                    if ByteBool(gCollideMap[Y, X] and MARK_LIFTLEFT) then
+                    if isLiftLeftAt(X, Y) {ByteBool(gCollideMap[Y, X] and MARK_LIFTLEFT)} then
                     begin // Поток влево
                       if VelX > -8-Random(3) then
                         VelX := VelX - 0.8;
                       AccelY := 0.15;
                     end;
-                    if ByteBool(gCollideMap[Y, X] and MARK_LIFTRIGHT) then
+                    if isLiftRightAt(X, Y) {ByteBool(gCollideMap[Y, X] and MARK_LIFTRIGHT)} then
                     begin // Поток вправо
                       if VelX < 8+Random(3) then
                         VelX := VelX + 0.8;
@@ -889,9 +933,9 @@ begin
 
                   if (Abs(VelX) < 0.1) and (Abs(VelY) < 0.1) then
                     if (State <> STATE_STICK) and
-                       (not ByteBool(gCollideMap[Y-1, X] and MARK_BLOCKED)) and
-                       (not ByteBool(gCollideMap[Y, X] and MARK_BLOCKED)) and
-                       (not ByteBool(gCollideMap[Y+1, X] and MARK_BLOCKED)) then
+                       (not isBlockedAt(X, Y-1) {ByteBool(gCollideMap[Y-1, X] and MARK_BLOCKED)}) and
+                       (not isBlockedAt(X, Y) {ByteBool(gCollideMap[Y, X] and MARK_BLOCKED)}) and
+                       (not isBlockedAt(X, Y+1) {ByteBool(gCollideMap[Y+1, X] and MARK_BLOCKED)}) then
                     begin // Висит в воздухе - капает
                       VelY := 0.8;
                       AccelY := 0.5;
@@ -915,9 +959,9 @@ begin
                         Break;
                       end;
 
-                      c := gCollideMap[Y, X+s];
+                      //c := gCollideMap[Y, X+s];
 
-                      if ByteBool(c and MARK_BLOCKED) then
+                      if isBlockedAt(X+s, Y) {ByteBool(c and MARK_BLOCKED)} then
                       begin // Стена/дверь
                         VelX := 0;
                         VelY := 0;
@@ -948,9 +992,9 @@ begin
                         Break;
                       end;
 
-                      c := gCollideMap[Y+s, X];
+                      //c := gCollideMap[Y+s, X];
 
-                      if ByteBool(c and MARK_BLOCKED) then
+                      if isBlockedAt(X, Y+s) {ByteBool(c and MARK_BLOCKED)} then
                       begin // Стена/дверь
                         VelX := 0;
                         VelY := 0;
@@ -974,7 +1018,7 @@ begin
 
                   if (X+dX >= w) or (Y+dY >= h) or
                      (X+dX <= 0) or (Y+dY <= 0) or
-                     ByteBool(gCollideMap[Y+dY, X+dX] and MARK_BLOCKED) then
+                     isBlockedAt(X+dX, Y+dY) {ByteBool(gCollideMap[Y+dY, X+dX] and MARK_BLOCKED)} then
                     begin // Стена/дверь/граница
                       State := STATE_FREE;
                       VelX := 0;
@@ -991,7 +1035,7 @@ begin
               VelY := VelY + AccelY;
 
             // Кровь растворяется в жидкости:
-              if ByteBool(gCollideMap[Y, X] and MARK_LIQUID) then
+              if isLiquidAt(X, Y) {ByteBool(gCollideMap[Y, X] and MARK_LIQUID)} then
               begin
                 Inc(Time);
 
@@ -1005,9 +1049,9 @@ begin
               dY := Round(VelY);
 
               if (Abs(VelX) < 0.1) and (Abs(VelY) < 0.1) and
-                 (not ByteBool(gCollideMap[Y-1, X] and MARK_BLOCKED)) and
-                 (not ByteBool(gCollideMap[Y, X] and MARK_BLOCKED)) and
-                 (not ByteBool(gCollideMap[Y+1, X] and MARK_BLOCKED)) then
+                 (not isBlockedAt(X, Y-1) {ByteBool(gCollideMap[Y-1, X] and MARK_BLOCKED)}) and
+                 (not isBlockedAt(X, Y) {ByteBool(gCollideMap[Y, X] and MARK_BLOCKED)}) and
+                 (not isBlockedAt(X, Y+1) {ByteBool(gCollideMap[Y+1, X] and MARK_BLOCKED)}) then
               begin // Висит в воздухе
                 VelY := 0.8;
                 AccelY := 0.5;
@@ -1030,16 +1074,16 @@ begin
                     Break;
                   end;
 
-                  c := gCollideMap[Y, X+s];
+                  //c := gCollideMap[Y, X+s];
 
-                  if ByteBool(c and MARK_BLOCKED) then
+                  if isBlockedAt(X+s, Y) {ByteBool(c and MARK_BLOCKED)} then
                     begin // Стена/дверь - падает вертикально
                       VelX := 0;
                       AccelX := 0;
                       Break;
                     end
                   else // Пусто:
-                    if c = MARK_FREE then
+                    if not isAnythingAt(X+s, Y) {c = MARK_FREE} then
                       X := X + s
                     else // Остальное:
                       begin
@@ -1066,9 +1110,9 @@ begin
                     Break;
                   end;
 
-                  c := gCollideMap[Y+s, X];
+                  //c := gCollideMap[Y+s, X];
 
-                  if ByteBool(c and MARK_BLOCKED) then
+                  if isBlockedAt(X, Y+s) {ByteBool(c and MARK_BLOCKED)} then
                     begin // Стена/дверь - падает вертикально
                       if s < 0 then
                         begin
@@ -1086,7 +1130,7 @@ begin
                       Break;
                     end
                   else // Пусто:
-                    if c = MARK_FREE then
+                    if not isAnythingAt(X, Y+s) {c = MARK_FREE} then
                       Y := Y + s
                     else // Осальное:
                       begin
@@ -1114,15 +1158,15 @@ begin
               begin // Стекает/отлипает
                 VelY := 0.5;
                 AccelY := 0.15;
-                if (not ByteBool(gCollideMap[Y, X-1] and MARK_BLOCKED)) and
-                   (not ByteBool(gCollideMap[Y, X+1] and MARK_BLOCKED)) then
+                if (not isBlockedAt(X-1, Y) {ByteBool(gCollideMap[Y, X-1] and MARK_BLOCKED)}) and
+                   (not isBlockedAt(X+1, Y) {ByteBool(gCollideMap[Y, X+1] and MARK_BLOCKED)}) then
                   State := STATE_NORMAL;
                 Continue;
               end;
 
-              if not ByteBool(gCollideMap[Y, X] and MARK_BLOCKED) then
+              if not isBlockedAt(X, Y) {ByteBool(gCollideMap[Y, X] and MARK_BLOCKED)} then
               begin
-                if ByteBool(gCollideMap[Y, X] and MARK_LIFTUP) then
+                if isLiftUpAt(X, Y) {ByteBool(gCollideMap[Y, X] and MARK_LIFTUP)} then
                 begin // Лифт вверх
                   if VelY > -4-Random(3) then
                     VelY := VelY - 0.8;
@@ -1131,13 +1175,13 @@ begin
                   VelX := VelX + (Random-Random)*0.2;
                   AccelY := 0.15;
                 end;
-                if ByteBool(gCollideMap[Y, X] and MARK_LIFTLEFT) then
+                if isLiftLeftAt(X, Y) {ByteBool(gCollideMap[Y, X] and MARK_LIFTLEFT)} then
                 begin // Поток влево
                   if VelX > -8-Random(3) then
                     VelX := VelX - 0.8;
                   AccelY := 0.15;
                 end;
-                if ByteBool(gCollideMap[Y, X] and MARK_LIFTRIGHT) then
+                if isLiftRightAt(X, Y) {ByteBool(gCollideMap[Y, X] and MARK_LIFTRIGHT)} then
                 begin // Поток вправо
                   if VelX < 8+Random(3) then
                     VelX := VelX + 0.8;
@@ -1150,9 +1194,9 @@ begin
 
               if (Abs(VelX) < 0.1) and (Abs(VelY) < 0.1) then
                 if (State <> STATE_STICK) and
-                   (not ByteBool(gCollideMap[Y-1, X] and MARK_BLOCKED)) and
-                   (not ByteBool(gCollideMap[Y, X] and MARK_BLOCKED)) and
-                   (not ByteBool(gCollideMap[Y+1, X] and MARK_BLOCKED)) then
+                   (not isBlockedAt(X, Y-1) {ByteBool(gCollideMap[Y-1, X] and MARK_BLOCKED)}) and
+                   (not isBlockedAt(X, Y) {ByteBool(gCollideMap[Y, X] and MARK_BLOCKED)}) and
+                   (not isBlockedAt(X, Y+1) {ByteBool(gCollideMap[Y+1, X] and MARK_BLOCKED)}) then
                 begin // Висит в воздухе - капает
                   VelY := 0.8;
                   AccelY := 0.5;
@@ -1174,15 +1218,15 @@ begin
                     Break;
                   end;
 
-                  c := gCollideMap[Y, X+s];
+                  //c := gCollideMap[Y, X+s];
 
-                  if ByteBool(c and MARK_LIQUID) and (dY > 0) then
+                  if isLiquidAt(X+s, Y) {ByteBool(c and MARK_LIQUID)} and (dY > 0) then
                   begin // Сбоку жидкость, а частица уже падает
                     State := STATE_FREE;
                     Break;
                   end;
 
-                  if ByteBool(c and MARK_BLOCKED) then
+                  if isBlockedAt(X+s, Y) {ByteBool(c and MARK_BLOCKED)} then
                   begin // Стена/дверь
                     VelX := 0;
                     VelY := 0;
@@ -1211,15 +1255,15 @@ begin
                     Break;
                   end;
 
-                  c := gCollideMap[Y+s, X];
+                  //c := gCollideMap[Y+s, X];
 
-                  if ByteBool(c and MARK_LIQUID) and (dY > 0) then
+                  if isLiquidAt(X, Y+s) {ByteBool(c and MARK_LIQUID)} and (dY > 0) then
                   begin // Снизу жидкость, а частица уже падает
                     State := STATE_FREE;
                     Break;
                   end;
 
-                  if ByteBool(c and MARK_BLOCKED) then
+                  if isBlockedAt(X, Y+s) {ByteBool(c and MARK_BLOCKED)} then
                   begin // Стена/дверь
                     VelX := 0;
                     VelY := 0;
@@ -1261,7 +1305,7 @@ begin
                     Break;
                   end;
 
-                  if not ByteBool(gCollideMap[Y+s, X] and MARK_LIQUID) then
+                  if not isLiquidAt(X, Y+s) {ByteBool(gCollideMap[Y+s, X] and MARK_LIQUID)} then
                   begin // Уже не жидкость
                     State := STATE_FREE;
                     Break;
@@ -1281,7 +1325,6 @@ begin
           CorrectOffsets(a);
         end;
   end; // Particles <> nil
-{$ENDIF}
 
   if OnceAnims <> nil then
   begin

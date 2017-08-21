@@ -67,7 +67,7 @@ procedure g_Map_CollectDrawPanels (x0, y0, wdt, hgt: Integer);
 
 procedure g_Map_DrawBack(dx, dy: Integer);
 function  g_Map_CollidePanel(X, Y: Integer; Width, Height: Word;
-                             PanelType: Word; b1x3: Boolean): Boolean;
+                             PanelType: Word; b1x3: Boolean=false): Boolean;
 function  g_Map_CollideLiquid_Texture(X, Y: Integer; Width, Height: Word): DWORD;
 procedure g_Map_EnableWall(ID: DWORD);
 procedure g_Map_DisableWall(ID: DWORD);
@@ -90,6 +90,15 @@ procedure g_Map_SaveState(Var Mem: TBinMemoryWriter);
 procedure g_Map_LoadState(Var Mem: TBinMemoryReader);
 
 procedure g_Map_DrawPanelShadowVolumes(lightX: Integer; lightY: Integer; radius: Integer);
+
+// returns wall index in `gWalls` or -1
+function g_Map_traceToNearestWall (x0, y0, x1, y1: Integer; hitx: PInteger=nil; hity: PInteger=nil): Integer;
+
+type
+  TForEachPanelCB = function (pan: TPanel): Boolean; // return `true` to stop
+
+function g_Map_ForEachPanelAt (x, y: Integer; cb: TForEachPanelCB; panelType: Word): Boolean;
+
 
 procedure g_Map_ProfilersBegin ();
 procedure g_Map_ProfilersEnd ();
@@ -171,8 +180,6 @@ var
   gDrawPanelList: TBinaryHeapObj = nil; // binary heap of all walls we have to render, populated by `g_Map_CollectDrawPanels()`
 
 function panelTypeToTag (panelType: Word): Integer; // returns GridTagXXX
-
-function g_Map_traceToNearestWall (x0, y0, x1, y1: Integer; hitx: PInteger=nil; hity: PInteger=nil): Integer;
 
 
 implementation
@@ -286,8 +293,6 @@ end;
 
 // wall index in `gWalls` or -1
 function g_Map_traceToNearestWall (x0, y0, x1, y1: Integer; hitx: PInteger=nil; hity: PInteger=nil): Integer;
-var
-  maxDistSq: Single;
 
   function sqchecker (pan: TPanel; var ray: Ray2D): Single;
   var
@@ -315,12 +320,13 @@ var
   ray: Ray2D;
   hxf, hyf: Single;
   hx, hy: Integer;
+  maxDistSq: Single;
 begin
   result := -1;
   if (mapTree = nil) then exit;
-  maxDistSq := (x1-x0)*(x1-x0)+(y1-y0)*(y1-y0);
   if mapTree.segmentQuery(qr, x0, y0, x1, y1, sqchecker, (GridTagWall or GridTagDoor)) then
   begin
+    maxDistSq := (x1-x0)*(x1-x0)+(y1-y0)*(y1-y0);
     if (qr.flesh <> nil) and (qr.time*qr.time <= maxDistSq) then
     begin
       result := qr.flesh.arrIdx;
@@ -349,6 +355,55 @@ begin
       end;
     end;
   end;
+end;
+
+
+function g_Map_ForEachPanelAt (x, y: Integer; cb: TForEachPanelCB; panelType: Word): Boolean;
+
+  function checker (pan: TPanel; tag: Integer): Boolean;
+  begin
+    result := false; // don't stop, ever
+
+    if ((tag and (GridTagWall or GridTagDoor)) <> 0) then
+    begin
+      if not pan.Enabled then exit;
+    end;
+
+    if ((tag and GridTagLift) <> 0) then
+    begin
+      result :=
+        ((WordBool(PanelType and PANEL_LIFTUP) and (pan.LiftType = 0)) or
+         (WordBool(PanelType and PANEL_LIFTDOWN) and (pan.LiftType = 1)) or
+         (WordBool(PanelType and PANEL_LIFTLEFT) and (pan.LiftType = 2)) or
+         (WordBool(PanelType and PANEL_LIFTRIGHT) and (pan.LiftType = 3))) and
+         (x >= pan.X) and (y >= pan.Y) and (x < pan.X+pan.Width) and (y < pan.Y+pan.Height);
+      if result then result := cb(pan);;
+      exit;
+    end;
+
+    // other shit
+    result := (x >= pan.X) and (y >= pan.Y) and (x < pan.X+pan.Width) and (y < pan.Y+pan.Height);
+    if result then result := cb(pan);
+  end;
+
+var
+  tagmask: Integer = 0;
+begin
+  result := false;
+  if not assigned(cb) then exit;
+  //if (mapTree = nil) then exit;
+  //function TDynAABBTreeBase.pointQuery (ax, ay: TreeNumber; cb: TQueryOverlapCB; tagmask: Integer=-1): TTreeFlesh;
+
+  if WordBool(PanelType and (PANEL_WALL or PANEL_CLOSEDOOR or PANEL_OPENDOOR)) then tagmask := tagmask or (GridTagWall or GridTagDoor);
+  if WordBool(PanelType and PANEL_WATER) then tagmask := tagmask or GridTagWater;
+  if WordBool(PanelType and PANEL_ACID1) then tagmask := tagmask or GridTagAcid1;
+  if WordBool(PanelType and PANEL_ACID2) then tagmask := tagmask or GridTagAcid2;
+  if WordBool(PanelType and PANEL_STEP) then tagmask := tagmask or GridTagStep;
+  if WordBool(PanelType and (PANEL_LIFTUP or PANEL_LIFTDOWN or PANEL_LIFTLEFT or PANEL_LIFTRIGHT)) then tagmask := tagmask or GridTagLift;
+  if WordBool(PanelType and PANEL_BLOCKMON) then tagmask := tagmask or GridTagBlockMon;
+
+  if (tagmask = 0) then exit;// just in case
+  result := gMapGrid.forEachInAABB(x, y, 1, 1, checker, tagmask);
 end;
 
 
@@ -2049,7 +2104,7 @@ begin
 end;
 
 function g_Map_CollidePanelOld(X, Y: Integer; Width, Height: Word;
-                            PanelType: Word; b1x3: Boolean): Boolean;
+                            PanelType: Word; b1x3: Boolean=false): Boolean;
 var
   a, h: Integer;
 begin
