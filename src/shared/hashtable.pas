@@ -77,6 +77,7 @@ type
     destructor Destroy (); override;
 
     procedure clear ();
+    procedure reset (); // don't shrink buckets
 
     procedure rehash ();
     procedure compact (); // call this instead of `rehash()` after alot of deletions
@@ -319,6 +320,32 @@ begin
   mFreeEntryHead := @mEntries[0];
   mFirstEntry := -1;
   mLastEntry := -1;
+end;
+
+
+procedure THashBase.reset ();
+var
+  idx: Integer;
+begin
+  if (mBucketsUsed > 0) then
+  begin
+    for idx := 0 to High(mBuckets) do mBuckets[idx] := nil;
+    for idx := 0 to High(mEntries)-1 do
+    begin
+      mEntries[idx].hash := 0;
+      mEntries[idx].nextFree := @mEntries[idx+1]; //idx+1;
+    end;
+    mEntries[High(mEntries)].hash := 0;
+    mEntries[High(mEntries)].nextFree := nil;
+
+    mBucketsUsed := 0;
+    {$IFDEF RBHASH_SANITY_CHECKS}
+    mEntriesUsed := 0;
+    {$ENDIF}
+    mFreeEntryHead := @mEntries[0];
+    mFirstEntry := -1;
+    mLastEntry := -1;
+  end;
 end;
 
 

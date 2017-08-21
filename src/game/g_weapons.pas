@@ -62,7 +62,7 @@ function g_Weapon_Hit(obj: PObj; d: Integer; SpawnerUID: Word; t: Byte; HitCorps
 function g_Weapon_HitUID(UID: Word; d: Integer; SpawnerUID: Word; t: Byte): Boolean;
 function g_Weapon_CreateShot(I: Integer; ShotType: Byte; Spawner, TargetUID: Word; X, Y, XV, YV: Integer): LongWord;
 
-procedure g_Weapon_gun(x, y, xd, yd, v, dmg: Integer; SpawnerUID: Word; CheckTrigger: Boolean);
+procedure g_Weapon_gun(const x, y, xd, yd, v, dmg: Integer; SpawnerUID: Word; CheckTrigger: Boolean);
 procedure g_Weapon_punch(x, y: Integer; d, SpawnerUID: Word);
 function g_Weapon_chainsaw(x, y: Integer; d, SpawnerUID: Word): Integer;
 procedure g_Weapon_rocket(x, y, xd, yd: Integer; SpawnerUID: Word; WID: Integer = -1; Silent: Boolean = False);
@@ -122,7 +122,8 @@ uses
   Math, g_map, g_player, g_gfx, g_sound, g_main, g_panel,
   g_console, SysUtils, g_options, g_game,
   g_triggers, MAPDEF, e_log, g_monsters, g_saveload,
-  g_language, g_netmsg;
+  g_language, g_netmsg,
+  z_aabbtree, binheap, hashtable;
 
 type
   TWaterPanel = record
@@ -152,8 +153,65 @@ const
 
   SHOT_SIGNATURE = $544F4853; // 'SHOT'
 
+type
+  PHitTime = ^THitTime;
+  THitTime = record
+    time: Single;
+    mon: TMonster;
+    plridx: Integer; // if mon=nil
+  end;
+
+  // indicies in `wgunHitTime` array
+  TBinaryHeapHitTimes = specialize TBinaryHeapBase<Integer>;
+
 var
   WaterMap: array of array of DWORD = nil;
+  wgunMonHash: THashIntInt = nil;
+  wgunHitHeap: TBinaryHeapHitTimes = nil;
+  wgunHitTime: array of THitTime = nil;
+  wgunHitTimeUsed: Integer = 0;
+
+
+function hitTimeCompare (a, b: Integer): Boolean;
+begin
+  if (wgunHitTime[a].time < wgunHitTime[b].time) then begin result := true; exit; end;
+  if (wgunHitTime[a].time > wgunHitTime[b].time) then begin result := false; exit; end;
+  if (wgunHitTime[a].mon <> nil) then
+  begin
+    // a is monster
+    if (wgunHitTime[b].mon = nil) then begin result := false; exit; end; // players first
+    result := (wgunHitTime[a].mon.UID < wgunHitTime[b].mon.UID); // why not?
+  end
+  else
+  begin
+    // a is player
+    if (wgunHitTime[b].mon <> nil) then begin result := true; exit; end; // players first
+    result := (wgunHitTime[a].plridx < wgunHitTime[b].plridx); // why not?
+  end;
+end;
+
+
+procedure appendHitTimeMon (time: Single; mon: TMonster);
+begin
+  if (wgunHitTimeUsed = Length(wgunHitTime)) then SetLength(wgunHitTime, wgunHitTimeUsed+128);
+  wgunHitTime[wgunHitTimeUsed].time := time;
+  wgunHitTime[wgunHitTimeUsed].mon := mon;
+  wgunHitTime[wgunHitTimeUsed].plridx := -1;
+  wgunHitHeap.insert(wgunHitTimeUsed);
+  Inc(wgunHitTimeUsed);
+end;
+
+
+procedure appendHitTimePlr (time: Single; plridx: Integer);
+begin
+  if (wgunHitTimeUsed = Length(wgunHitTime)) then SetLength(wgunHitTime, wgunHitTimeUsed+128);
+  wgunHitTime[wgunHitTimeUsed].time := time;
+  wgunHitTime[wgunHitTimeUsed].mon := nil;
+  wgunHitTime[wgunHitTimeUsed].plridx := plridx;
+  wgunHitHeap.insert(wgunHitTimeUsed);
+  Inc(wgunHitTimeUsed);
+end;
+
 
 function FindShot(): DWORD;
 var
@@ -398,72 +456,23 @@ begin
     Result := True;
 end;
 
-function HitPlayer(p: TPlayer; d: Integer; vx, vy: Integer; SpawnerUID: Word; t: Byte): Boolean;
-begin
-  Result := False;
 
-// Сам себя может ранить только ракетой и током:
-  if (p.UID = SpawnerUID) and (t <> HIT_ROCKET) and (t <> HIT_ELECTRO) then
-    Exit;
+function HitPlayer (p: TPlayer; d: Integer; vx, vy: Integer; SpawnerUID: Word; t: Byte): Boolean;
+begin
+  result := False;
+
+  // Сам себя может ранить только ракетой и током
+  if (p.UID = SpawnerUID) and (t <> HIT_ROCKET) and (t <> HIT_ELECTRO) then exit;
 
   if g_Game_IsServer then
   begin
-    if (t <> HIT_FLAME) or (p.FFireTime = 0) or (vx <> 0) or (vy <> 0) then
-      p.Damage(d, SpawnerUID, vx, vy, t);
-    if (t = HIT_FLAME) then
-      p.CatchFire(SpawnerUID);
+    if (t <> HIT_FLAME) or (p.FFireTime = 0) or (vx <> 0) or (vy <> 0) then p.Damage(d, SpawnerUID, vx, vy, t);
+    if (t = HIT_FLAME) then p.CatchFire(SpawnerUID);
   end;
 
-  Result := True;
+  result := true;
 end;
 
-function GunHit(X, Y: Integer; vx, vy: Integer; dmg: Integer;
-  SpawnerUID: Word; AllowPush: Boolean): Byte;
-
-  {function monsCheck (mon: TMonster): Boolean;
-  begin
-    result := false; // don't stop
-    if mon.Live and mon.Collide(X, Y) then
-    begin
-      if HitMonster(mon, dmg, vx*10, vy*10-3, SpawnerUID, HIT_SOME) then
-      begin
-        if AllowPush then mon.Push(vx, vy);
-        result := true;
-      end;
-    end;
-  end;}
-
-  function monsCheck (mon: TMonster): Boolean;
-  begin
-    result := false; // don't stop
-    if HitMonster(mon, dmg, vx*10, vy*10-3, SpawnerUID, HIT_SOME) then
-    begin
-      if AllowPush then mon.Push(vx, vy);
-      result := true;
-    end;
-  end;
-
-var
-  i, h: Integer;
-begin
-  Result := 0;
-
-  h := High(gPlayers);
-
-  if h <> -1 then
-    for i := 0 to h do
-      if (gPlayers[i] <> nil) and gPlayers[i].Live and gPlayers[i].Collide(X, Y) then
-        if HitPlayer(gPlayers[i], dmg, vx*10, vy*10-3, SpawnerUID, HIT_SOME) then
-        begin
-          if AllowPush then gPlayers[i].Push(vx, vy);
-          Result := 1;
-        end;
-
-  if Result <> 0 then Exit;
-
-  //if g_Mons_ForEach(monsCheck) then result := 2;
-  if g_Mons_ForEachAliveAt(X, Y, 1, 1, monsCheck) then result := 2;
-end;
 
 procedure g_Weapon_BFG9000(X, Y: Integer; SpawnerUID: Word);
 
@@ -1134,6 +1143,9 @@ begin
 
   g_Texture_CreateWADEx('TEXTURE_SHELL_BULLET', GameWAD+':TEXTURES\EBULLET');
   g_Texture_CreateWADEx('TEXTURE_SHELL_SHELL', GameWAD+':TEXTURES\ESHELL');
+
+  wgunMonHash := hashNewIntInt();
+  wgunHitHeap := TBinaryHeapHitTimes.Create(hitTimeCompare);
 end;
 
 procedure g_Weapon_FreeData();
@@ -1193,7 +1205,46 @@ begin
   g_Frames_DeleteByName('FRAMES_EXPLODE_BARONFIRE');
 end;
 
-procedure g_Weapon_gun(x, y, xd, yd, v, dmg: Integer; SpawnerUID: Word; CheckTrigger: Boolean);
+
+function GunHitPlayer (X, Y: Integer; vx, vy: Integer; dmg: Integer; SpawnerUID: Word; AllowPush: Boolean): Boolean;
+var
+  i: Integer;
+begin
+  result := false;
+  for i := 0 to High(gPlayers) do
+  begin
+    if (gPlayers[i] <> nil) and gPlayers[i].Live and gPlayers[i].Collide(X, Y) then
+    begin
+      if HitPlayer(gPlayers[i], dmg, vx*10, vy*10-3, SpawnerUID, HIT_SOME) then
+      begin
+        if AllowPush then gPlayers[i].Push(vx, vy);
+        result := true;
+      end;
+    end;
+  end;
+end;
+
+
+function GunHit (X, Y: Integer; vx, vy: Integer; dmg: Integer; SpawnerUID: Word; AllowPush: Boolean): Byte;
+
+  function monsCheck (mon: TMonster): Boolean;
+  begin
+    result := false; // don't stop
+    if HitMonster(mon, dmg, vx*10, vy*10-3, SpawnerUID, HIT_SOME) then
+    begin
+      if AllowPush then mon.Push(vx, vy);
+      result := true;
+    end;
+  end;
+
+begin
+  result := 0;
+       if GunHitPlayer(X, Y, vx, vy, dmg, SpawnerUID, AllowPush) then result := 1
+  else if g_Mons_ForEachAliveAt(X, Y, 1, 1, monsCheck) then result := 2;
+end;
+
+
+procedure g_Weapon_gunOld(const x, y, xd, yd, v, dmg: Integer; SpawnerUID: Word; CheckTrigger: Boolean);
 var
   a: Integer;
   x2, y2: Integer;
@@ -1284,6 +1335,248 @@ begin
   if CheckTrigger and g_Game_IsServer then
     g_Triggers_PressL(X, Y, xx-xi, yy-yi, SpawnerUID, ACTIVATE_SHOT);
 end;
+
+
+procedure g_Weapon_gun (const x, y, xd, yd, v, dmg: Integer; SpawnerUID: Word; CheckTrigger: Boolean);
+const
+  HHGridSize = 64;
+  Nothing = -666666;
+
+var
+  hitray: Ray2D;
+  xi, yi: Integer;
+
+  function doPlayerHit (idx: Integer): Boolean;
+  begin
+    result := false;
+    if (idx < 0) or (idx > High(gPlayers)) then exit;
+    if (gPlayers[idx] = nil) or not gPlayers[idx].Live then exit;
+    result := HitPlayer(gPlayers[idx], dmg, (xi*v)*10, (yi*v)*10-3, SpawnerUID, HIT_SOME);
+    if result and (v <> 0) then gPlayers[idx].Push((xi*v), (yi*v));
+  end;
+
+  function doMonsterHit (mon: TMonster): Boolean;
+  begin
+    result := false;
+    if (mon = nil) then exit;
+    result := HitMonster(mon, dmg, (xi*v)*10, (yi*v)*10-3, SpawnerUID, HIT_SOME);
+    if result and (v <> 0) then mon.Push((xi*v), (yi*v));
+  end;
+
+  // get nearest player along hitray
+  // return `true` if instant hit was detected
+  function playerPossibleHit (): Boolean;
+  var
+    i: Integer;
+    aabb: AABB2D;
+    tmin: Single;
+  begin
+    result := false;
+    for i := 0 to High(gPlayers) do
+    begin
+      if (gPlayers[i] <> nil) and gPlayers[i].Live then
+      begin
+        aabb := gPlayers[i].mapAABB;
+        // inside?
+        if aabb.contains(x, y) then
+        begin
+          if doPlayerHit(i) then begin result := true; exit; end;
+        end
+        else if (aabb.intersects(hitray, @tmin)) then
+        begin
+          // intersect
+          if (tmin <= 0) then
+          begin
+            if doPlayerHit(i) then begin result := true; exit; end;
+          end
+          else
+          begin
+            appendHitTimePlr(tmin, i);
+          end;
+        end;
+      end;
+    end;
+  end;
+
+  function monsPossibleHitInstant (mon: TMonster): Boolean;
+  var
+    aabb: AABB2D;
+  begin
+    result := false; // don't stop
+    aabb := mon.mapAABB;
+    if aabb.contains(x, y) then
+    begin
+      result := doMonsterHit(mon);
+    end;
+  end;
+
+  function monsPossibleHit (mon: TMonster): Boolean;
+  var
+    aabb: AABB2D;
+    tmin: Single;
+  begin
+    result := false; // don't stop
+    if not wgunMonHash.put(Integer(mon.UID), 1) then
+    begin
+      // new monster; calculate hitpoint
+      aabb := mon.mapAABB;
+      if (aabb.intersects(hitray, @tmin)) then
+      begin
+        if (tmin < 0) then tmin := 1.0;
+        appendHitTimeMon(tmin, mon);
+      end;
+    end;
+  end;
+
+var
+  a: Integer;
+  x2, y2: Integer;
+  dx, dy: Integer;
+  xe, ye: Integer;
+  s, c: Extended;
+  xx, yy, d: Integer;
+  leftToNextMonsterQuery: Integer = 0;
+  i: Integer;
+  t1: Boolean;
+  w, h: Word;
+  wallWasHit: Boolean = false;
+  wallHitX: Integer = 0;
+  wallHitY: Integer = 0;
+  didHit: Boolean = false;
+begin
+  wgunMonHash.reset(); //FIXME: clear hash on level change
+  wgunHitHeap.clear();
+  wgunHitTimeUsed := 0;
+
+  a := GetAngle(x, y, xd, yd)+180;
+
+  SinCos(DegToRad(-a), s, c);
+
+  if Abs(s) < 0.01 then s := 0;
+  if Abs(c) < 0.01 then c := 0;
+
+  x2 := x+Round(c*gMapInfo.Width);
+  y2 := y+Round(s*gMapInfo.Width);
+
+  hitray := Ray2D.Create(x, y, x2, y2);
+
+  t1 := (gWalls <> nil);
+  w := gMapInfo.Width;
+  h := gMapInfo.Height;
+
+  dx := x2-x;
+  dy := y2-y;
+
+  if (xd = 0) and (yd = 0) then Exit;
+
+  if dx > 0 then xi := 1 else if dx < 0 then xi := -1 else xi := 0;
+  if dy > 0 then yi := 1 else if dy < 0 then yi := -1 else yi := 0;
+
+  // check instant hits
+  xx := x;
+  yy := y;
+  if (dx < 0) then Dec(xx);
+  if (dy < 0) then Dec(yy);
+
+  dx := Abs(dx);
+  dy := Abs(dy);
+
+  if playerPossibleHit() then exit; // instant hit
+  if g_Mons_ForEachAliveAt(xx, yy, 3, 3, monsPossibleHitInstant) then exit; // instant hit
+
+  if dx > dy then d := dx else d := dy;
+
+  //blood vel, for Monster.Damage()
+  //vx := (dx*10 div d)*xi;
+  //vy := (dy*10 div d)*yi;
+
+  // find wall, collect monsters
+  begin
+    xe := 0;
+    ye := 0;
+    xx := x;
+    yy := y;
+    for i := 1 to d do
+    begin
+      xe += dx;
+      ye += dy;
+      if (xe > d) then begin xe -= d; xx += xi; end;
+      if (ye > d) then begin ye -= d; yy += yi; end;
+
+      // wtf?!
+      //if (yy > h) or (yy < 0) then break;
+      //if (xx > w) or (xx < 0) then break;
+
+      if t1 and (xx >= 0) and (yy >= 0) and (xx < w) and (yy < h) then
+      begin
+        if ByteBool(gCollideMap[yy, xx] and MARK_BLOCKED) then
+        begin
+          wallWasHit := true;
+          wallHitX := xx-xi;
+          wallHitY := yy-xi;
+        end;
+      end;
+
+      if (leftToNextMonsterQuery <> 0) and not wallWasHit then
+      begin
+        Dec(leftToNextMonsterQuery);
+      end
+      else
+      begin
+        // check monsters
+        g_Mons_ForEachAliveAt(xx-HHGridSize div 2, yy-HHGridSize div 2, HHGridSize+HHGridSize div 2, HHGridSize+HHGridSize div 2, monsPossibleHit);
+        leftToNextMonsterQuery := HHGridSize; // again
+        if wallWasHit then break;
+      end;
+    end;
+
+    if not wallWasHit then
+    begin
+      wallHitX := xx;
+      wallHitY := yy;
+    end;
+  end;
+
+  // here, we collected all monsters and players in `wgunHitHeap` and `wgunHitTime`
+  // also, if `wallWasHit` is true, then `wallHitX` and `wallHitY` contains wall coords
+  while (wgunHitHeap.count > 0) do
+  begin
+    // has some entities to check, do it
+    i := wgunHitHeap.front;
+    wgunHitHeap.popFront();
+    hitray.atTime(wgunHitTime[i].time, xe, ye);
+    // check if it is not behind the wall
+    if ((xe-x)*(xe-x)+(ye-y)*(ye-y) < (wallHitX-x)*(wallHitX-x)+(wallHitY-y)*(wallHitY-y)) then
+    begin
+      if (wgunHitTime[i].mon <> nil) then
+      begin
+        didHit := doMonsterHit(wgunHitTime[i].mon);
+      end
+      else
+      begin
+        didHit := doPlayerHit(wgunHitTime[i].plridx);
+      end;
+      if didHit then
+      begin
+        // need new coords for trigger
+        wallHitX := xe;
+        wallHitY := ye;
+        wallWasHit := false; // no sparks
+        break;
+      end;
+    end;
+  end;
+
+  // need sparks?
+  if wallWasHit then
+  begin
+    g_GFX_Spark(wallHitX, wallHitY, 2+Random(2), 180+a, 0, 0);
+    if g_Game_IsServer and g_Game_IsNet then MH_SEND_Effect(wallHitX, wallHitY, 180+a, NET_GFX_SPARK);
+  end;
+
+  if CheckTrigger and g_Game_IsServer then g_Triggers_PressL(X, Y, wallHitX, wallHitY, SpawnerUID, ACTIVATE_SHOT);
+end;
+
 
 procedure g_Weapon_punch(x, y: Integer; d, SpawnerUID: Word);
 var

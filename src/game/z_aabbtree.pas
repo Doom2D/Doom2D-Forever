@@ -48,6 +48,8 @@ type
 
     procedure setXYAngle (ax, ay: Single; aangle: Single); inline;
     procedure setX0Y0X1Y1 (ax0, ay0, ax1, ay1: Single); inline;
+
+    procedure atTime (time: Single; out rx, ry: Integer); inline;
   end;
 
 // ////////////////////////////////////////////////////////////////////////// //
@@ -380,6 +382,13 @@ begin
   dirX := ax1-ax0;
   dirY := ay1-ay0;
   normalizeDir();
+end;
+
+
+procedure Ray2D.atTime (time: Single; out rx, ry: Integer); inline;
+begin
+  rx := round(origX+dirX*time);
+  ry := round(origY+dirY*time);
 end;
 
 

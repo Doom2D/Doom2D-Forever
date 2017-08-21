@@ -20,7 +20,7 @@ interface
 
 uses
   g_basic, e_graphics, g_phys, g_textures,
-  g_saveload, BinEditor, g_panel;
+  g_saveload, BinEditor, g_panel, z_aabbtree;
 
 const
   MONSTATE_SLEEP  = 0;
@@ -90,6 +90,8 @@ type
     function findNewPrey(): Boolean;
     procedure ActivateTriggers();
 
+    function getMapAABB (): AABB2D; inline;
+
   public
     FNoRespawn: Boolean;
     FFireTime: Integer;
@@ -158,6 +160,8 @@ type
     property GameAccelY: Integer read FObj.Accel.Y write FObj.Accel.Y;
     property GameDirection: TDirection read FDirection write FDirection;
 
+    property mapAABB: AABB2D read getMapAABB;
+
     property StartID: Integer read FStartID;
   end;
 
@@ -210,12 +214,18 @@ uses
   e_log, g_main, g_sound, g_gfx, g_player, g_game,
   g_weapons, g_triggers, MAPDEF, g_items, g_options,
   g_console, g_map, Math, SysUtils, g_menu, wadreader,
-  g_language, g_netmsg, z_aabbtree;
+  g_language, g_netmsg;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
 var
   monCheckTrapLastFrameId: DWord;
+
+
+function TMonster.getMapAABB (): AABB2D; inline;
+begin
+  result := AABB2D.CreateWH(FObj.X+FObj.Rect.X, FObj.Y+FObj.Rect.Y, FObj.Rect.Width, FObj.Rect.Height);
+end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
@@ -231,7 +241,8 @@ begin
   result := false;
   if (flesh = nil) then raise Exception.Create('DynTree: trying to get dimensions of inexistant monsters');
   if (flesh.Obj.Rect.Width < 1) or (flesh.Obj.Rect.Height < 1) then raise Exception.Create('DynTree: monster without size, wtf?!');
-  aabb := AABB2D.CreateWH(flesh.Obj.X+flesh.Obj.Rect.X, flesh.Obj.Y+flesh.Obj.Rect.Y, flesh.Obj.Rect.Width, flesh.Obj.Rect.Height);
+  //aabb := AABB2D.CreateWH(flesh.Obj.X+flesh.Obj.Rect.X, flesh.Obj.Y+flesh.Obj.Rect.Y, flesh.Obj.Rect.Width, flesh.Obj.Rect.Height);
+  aabb := flesh.getMapAABB();
   if not aabb.valid then raise Exception.Create('wutafuuuuuuu?!');
   result := true;
 end;

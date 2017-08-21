@@ -21,7 +21,7 @@ interface
 uses
   e_graphics, g_playermodel, g_basic, g_textures,
   g_weapons, g_phys, g_sound, g_saveload, MAPSTRUCT,
-  BinEditor, g_panel;
+  BinEditor, g_panel, z_aabbtree;
 
 const
   KEY_LEFT       = 1;
@@ -222,6 +222,8 @@ type
     procedure resetWeaponQueue ();
     function hasAmmoForWeapon (weapon: Byte): Boolean;
 
+    function getMapAABB (): AABB2D;
+
   public
     FDamageBuffer:   Integer;
 
@@ -346,6 +348,8 @@ type
     property    UID: Word read FUID write FUID;
     property    JustTeleported: Boolean read FJustTeleported write FJustTeleported;
     property    NetTime: LongWord read FNetTime write FNetTime;
+
+    property mapAABB: AABB2D read getMapAABB;
   end;
 
   TDifficult = record
@@ -4996,6 +5000,11 @@ begin
 
   for b := Low(FKeys) to High(FKeys) do
     if FKeys[b].Time = 0 then FKeys[b].Pressed := False else Dec(FKeys[b].Time);
+end;
+
+function TPlayer.getMapAABB (): AABB2D; inline;
+begin
+  result := AABB2D.CreateWH(FObj.X+PLAYER_RECT.X, FObj.Y+PLAYER_RECT.Y, PLAYER_RECT.Width, PLAYER_RECT.Height);
 end;
 
 function TPlayer.Collide(X, Y: Integer; Width, Height: Word): Boolean;
