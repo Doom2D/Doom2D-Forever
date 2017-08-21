@@ -202,6 +202,7 @@ type
       dist: Single; // <0: nothing was hit
       flesh: TTreeFlesh;
 
+      constructor Create (fuckyoufpc: Boolean);
       procedure reset (); inline;
       function valid (): Boolean; inline;
     end;
@@ -225,6 +226,8 @@ type
     curbx, curby: Single;
     dirx, diry: Single;
     sqcb: TSegQueryCallback;
+    vstack: array of Integer; // for `visit()`
+    vstused: Integer; // to support recursive queries
 
     function checkerAABB (node: PTreeNode): Boolean;
     function checkerPoint (node: PTreeNode): Boolean;
@@ -568,6 +571,7 @@ end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
+constructor TDynAABBTreeBase.TSegmentQueryResult.Create (fuckyoufpc: Boolean); begin dist := -1; flesh := Default(ITP); end;
 procedure TDynAABBTreeBase.TSegmentQueryResult.reset (); inline; begin dist := -1; flesh := Default(ITP); end;
 function TDynAABBTreeBase.TSegmentQueryResult.valid (): Boolean; inline; begin result := (dist >= 0) and (flesh <> Default(ITP)); end;
 
@@ -1096,6 +1100,7 @@ begin
   mRootNodeId := TTreeNode.NullTreeNode;
   mNodeCount := 0;
   mAllocCount := 8192;
+  vstused := 0;
 
   SetLength(mNodes, mAllocCount);
   //memset(mNodes, 0, mAllocCount*TTreeNode.sizeof);
@@ -1189,67 +1194,18 @@ end;
 // checker should check if this node should be considered to further checking
 // returns tree node if visitor says stop or -1
 function TDynAABBTreeBase.visit (constref caabb: AABB2D; mode: Integer; checker: TVisitCheckerCB; visitor: TQueryOverlapCB; visdg: TQueryOverlapDg; tagmask: Integer): Integer;
+const
+  StackGran = 1024;
 var
-  stack: array [0..2048] of Integer; // stack with the nodes to visit
-  bigstack: array of Integer = nil;
-  sp: Integer = 0;
-
-  (*
-  procedure spush (id: Integer); inline;
-  var
-    xsp: Integer;
-  begin
-    if (sp < length(stack)) then
-    begin
-      // use "small stack"
-      stack[sp] := id;
-      Inc(sp);
-    end
-    else
-    begin
-      // use "big stack"
-      xsp := sp-length(stack);
-      if (xsp < length(bigstack)) then
-      begin
-        // reuse
-        bigstack[xsp] := id;
-      end
-      else
-      begin
-        // grow
-        SetLength(bigstack, length(bigstack)+1);
-        bigstack[high(bigstack)] := id;
-      end;
-      Inc(sp);
-    end;
-  end;
-
-  function spop (): Integer; inline;
-  begin
-    //{$IFDEF aabbtree_many_asserts}assert(sp > 0);{$ENDIF}
-    if (sp <= length(stack)) then
-    begin
-      // use "small stack"
-      Dec(sp);
-      result := stack[sp];
-    end
-    else
-    begin
-      // use "big stack"
-      Dec(sp);
-      result := bigstack[sp-length(stack)];
-    end;
-  end;
-  *)
-
-var
+  oldvstused: Integer;
   nodeId: Integer;
   node: PTreeNode;
   doNode: Boolean = false;
-  xsp: Integer;
 begin
   if not assigned(checker) then begin result := -1; exit; end;
   //if not assigned(visitor) and not assigned(visdg) then raise Exception.Create('dyntree: empty visitors aren''t supported');
+  oldvstused := vstused;
+  if (vstused+StackGran > Length(vstack)) then SetLength(vstack, vstused+StackGran);
   //try
     {$IFDEF aabbtree_query_count}
     mNodesVisited := 0;
@@ -1257,25 +1213,25 @@ begin
     {$ENDIF}
 
     // start from root node
+    // we can't have nested functions in generics, sorry
     {$IF FALSE}
       spush(mRootNodeId);
     {$ELSE}
-      if (sp < length(stack)) then begin stack[sp] := mRootNodeId; Inc(sp); end
-      else begin xsp := sp-length(stack); if (xsp < length(bigstack)) then bigstack[xsp] := mRootNodeId
-      else begin SetLength(bigstack, length(bigstack)+1); bigstack[high(bigstack)] := mRootNodeId; end;
-      end;
-      Inc(sp);
+      if (vstused >= Length(vstack)) then SetLength(vstack, vstused+StackGran);
+      vstack[vstused] := mRootNodeId;
+      Inc(vstused);
     {$ENDIF}
 
     // while there are still nodes to visit
-    while (sp > 0) do
+    while (vstused > oldvstused) do
     begin
       // get the next node id to visit
+      // we can't have nested functions in generics, sorry
       {$IF FALSE}
         nodeId := spop();
       {$ELSE}
-        if (sp <= length(stack)) then begin Dec(sp); nodeId := stack[sp]; end
-        else begin Dec(sp); nodeId := bigstack[sp-length(stack)]; end;
+        Dec(vstused);
+        nodeId := vstack[vstused];
       {$ENDIF}
       // skip it if it is a nil node
       if (nodeId = TTreeNode.NullTreeNode) then continue;
@@ -1312,40 +1268,34 @@ begin
           begin
             if assigned(visitor) then
             begin
-              if (visitor(node.flesh, node.tag)) then begin result := nodeId; bigstack := nil; exit; end;
+              if (visitor(node.flesh, node.tag)) then begin result := nodeId; vstused := oldvstused; exit; end;
             end;
             if assigned(visdg) then
             begin
-              if (visdg(node.flesh, node.tag)) then begin result := nodeId; bigstack := nil; exit; end;
+              if (visdg(node.flesh, node.tag)) then begin result := nodeId; vstused := oldvstused; exit; end;
             end;
           end;
         end
         else
         begin
           // if the node is not a leaf, we need to visit its children
+          // we can't have nested functions in generics, sorry
           {$IF FALSE}
             spush(node.children[TTreeNode.Left]);
             spush(node.children[TTreeNode.Right]);
           {$ELSE}
-            if (sp < length(stack)) then begin stack[sp] := node.children[TTreeNode.Left]; Inc(sp); end
-            else begin xsp := sp-length(stack); if (xsp < length(bigstack)) then bigstack[xsp] := node.children[TTreeNode.Left]
-            else begin SetLength(bigstack, length(bigstack)+1); bigstack[high(bigstack)] := node.children[TTreeNode.Left]; end;
-            end;
-            Inc(sp);
-
-            if (sp < length(stack)) then begin stack[sp] := node.children[TTreeNode.Right]; Inc(sp); end
-            else begin xsp := sp-length(stack); if (xsp < length(bigstack)) then bigstack[xsp] := node.children[TTreeNode.Right]
-            else begin SetLength(bigstack, length(bigstack)+1); bigstack[high(bigstack)] := node.children[TTreeNode.Right]; end;
-            end;
-            Inc(sp);
-
+            if (vstused+2 > Length(vstack)) then SetLength(vstack, vstused+StackGran);
+            vstack[vstused] := node.children[TTreeNode.Left];
+            Inc(vstused);
+            vstack[vstused] := node.children[TTreeNode.Right];
+            Inc(vstused);
           {$ENDIF}
         end;
       end;
     end;
 
     result := -1; // oops
-    bigstack := nil;
+    vstused := oldvstused;
   //finally
   //  bigstack := nil;
   //end;
@@ -1357,6 +1307,9 @@ end;
 constructor TDynAABBTreeBase.Create (extraAABBGap: TreeNumber=0);
 begin
   mExtraGap := extraAABBGap;
+  mNodes := nil;
+  SetLength(vstack, 2048);
+  vstused := 0;
   setup();
 end;
 
@@ -1364,6 +1317,7 @@ end;
 destructor TDynAABBTreeBase.Destroy ();
 begin
   mNodes := nil;
+  vstack := nil;
   inherited;
 end;
 
@@ -1404,7 +1358,7 @@ end;
 // get fat object AABB by nodeid; returns random shit for invalid ids
 procedure TDynAABBTreeBase.getNodeFatAABB (out aabb: AABB2D; nodeid: Integer);
 begin
-  if (nodeid >= 0) and (nodeid < mAllocCount) and (not mNodes[nodeid].isfree) then aabb.copyFrom(mNodes[nodeid].aabb) else aabb.setDims(0, 0, 0, 0);
+  if (nodeid >= 0) and (nodeid < mAllocCount) and (not mNodes[nodeid].isfree) then aabb := AABB2D.Create(mNodes[nodeid].aabb) else aabb := AABB2D.Create(0, 0, 0, 0);
 end;
 
 function TDynAABBTreeBase.getNodeXY (nodeid: Integer; out x, y: Integer): Boolean; inline;
@@ -1670,7 +1624,7 @@ var
   osres: PSegmentQueryResult;
   osqcb: TSegQueryCallback;
 begin
-  qr.reset();
+  qr := TSegmentQueryResult.Create(false);
 
   if (ax >= bx) or (ay >= by) then begin result := false; exit; end;
 
