@@ -143,6 +143,10 @@ type
   end;
 
 
+function curTimeMicro (): UInt64; inline;
+function curTimeMilli (): UInt64; inline;
+
+
 implementation
 
 {$IF DEFINED(LINUX)}
@@ -182,7 +186,7 @@ function curTimeMicro (): UInt64; inline;
 var
   r: THPTimeType;
 begin
-  if (mFrequency = 0) then initTimerIntr();
+  //if (mFrequency = 0) then initTimerIntr();
   {$IF DEFINED(LINUX)}
   clock_gettime(CLOCK_MONOTONIC, @r);
   result := UInt64(r.tv_sec)*1000000+UInt64(r.tv_nsec) div 1000; // microseconds
@@ -190,6 +194,12 @@ begin
   QueryPerformanceCounter(r);
   result := UInt64(r)*1000000 div mFrequency;
   {$ENDIF}
+end;
+
+
+function curTimeMilli (): UInt64; inline;
+begin
+  result := curTimeMicro div 1000;
 end;
 
 
@@ -486,4 +496,6 @@ begin
 end;
 
 
+begin
+  initTimerIntr();
 end.
