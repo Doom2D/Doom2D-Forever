@@ -53,7 +53,7 @@ function  g_GFX_GetMax(): Integer;
 
 procedure g_GFX_OnceAnim(X, Y: Integer; Anim: TAnimation; AnimType: Byte = 0);
 
-procedure g_Mark(x, y, Width, Height: Integer; t: Byte; st: Boolean);
+//procedure g_Mark(x, y, Width, Height: Integer; t: Byte; st: Boolean);
 
 procedure g_GFX_Update();
 procedure g_GFX_Draw();
@@ -148,13 +148,11 @@ begin
 end;
 
 
-procedure g_Mark(x, y, Width, Height: Integer; t: Byte; st: Boolean);
 {$IF DEFINED(HAS_COLLIDE_BITMAP)}
+procedure g_Mark(x, y, Width, Height: Integer; t: Byte; st: Boolean);
 var
   yy, y2, xx, x2: Integer;
-{$ENDIF}
 begin
-{$IF DEFINED(HAS_COLLIDE_BITMAP)}
   if x < 0 then
   begin
     Width := Width + x;
@@ -199,16 +197,15 @@ begin
         for xx := x to x2 do
           gCollideMap[yy][xx] := gCollideMap[yy][xx] and t;
     end;
-{$ENDIF}
 end;
+{$ENDIF}
 
-procedure CreateCollideMap();
+
 {$IF DEFINED(HAS_COLLIDE_BITMAP)}
+procedure CreateCollideMap();
 var
   a: Integer;
-{$ENDIF}
 begin
-{$IF DEFINED(HAS_COLLIDE_BITMAP)}
   g_Game_SetLoadingText(_lc[I_LOAD_COLLIDE_MAP]+' 1/6', 0, False);
   SetLength(gCollideMap, gMapInfo.Height+1);
   for a := 0 to High(gCollideMap) do
@@ -278,13 +275,15 @@ begin
           g_Mark(X, Y, Width, Height, MARK_WALL, True);
     end;
   end;
-{$ENDIF}
 end;
+{$ENDIF}
+
 
 procedure g_GFX_Init();
 begin
-  CreateCollideMap();
+  //CreateCollideMap();
 end;
+
 
 procedure g_GFX_Free();
 var

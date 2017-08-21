@@ -2379,7 +2379,7 @@ begin
   with gWalls[ID] do
   begin
     Enabled := True;
-    g_Mark(X, Y, Width, Height, MARK_DOOR, True);
+    //g_Mark(X, Y, Width, Height, MARK_DOOR, True);
 
     if g_Game_IsServer and g_Game_IsNet then MH_SEND_PanelState(PanelType, ID);
   end;
@@ -2390,7 +2390,7 @@ begin
   with gWalls[ID] do
   begin
     Enabled := False;
-    g_Mark(X, Y, Width, Height, MARK_DOOR, False);
+    //g_Mark(X, Y, Width, Height, MARK_DOOR, False);
 
     if g_Game_IsServer and g_Game_IsNet then MH_SEND_PanelState(PanelType, ID);
   end;
@@ -2433,6 +2433,7 @@ begin
   begin
     LiftType := t;
 
+    {
     g_Mark(X, Y, Width, Height, MARK_LIFT, False);
 
     if LiftType = 0 then
@@ -2443,6 +2444,7 @@ begin
       g_Mark(X, Y, Width, Height, MARK_LIFTLEFT, True)
     else if LiftType = 3 then
       g_Mark(X, Y, Width, Height, MARK_LIFTRIGHT, True);
+    }
 
     if g_Game_IsServer and g_Game_IsNet then MH_SEND_PanelState(PanelType, ID);
   end;
