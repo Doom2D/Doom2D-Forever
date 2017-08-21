@@ -96,8 +96,8 @@ const
   STATE_STICK  = 2;
 
 var
-  Particles: Array of TParticle;
-  OnceAnims: Array of TOnceAnim;
+  Particles: array of TParticle;
+  OnceAnims: array of TOnceAnim;
   MaxParticles: Integer;
   CurrentParticle: Integer;
 
@@ -291,6 +291,7 @@ var
 begin
   Particles := nil;
   SetLength(Particles, MaxParticles);
+  for a := 0 to High(Particles) do Particles[a].State := STATE_FREE;
   CurrentParticle := 0;
 
   if OnceAnims <> nil then
@@ -756,13 +757,16 @@ begin
 end;
 
 procedure g_GFX_SetMax(Count: Integer);
+var
+  a: Integer;
 begin
-  if Count > 50000 then
-    Count := 50000;
+  if Count > 50000 then Count := 50000;
+  if (Count < 1) then Count := 1;
 
   SetLength(Particles, Count);
+  for a := 0 to High(Particles) do Particles[a].State := STATE_FREE;
   MaxParticles := Count;
-  if CurrentParticle >= Count then
+  //if CurrentParticle >= Count then
     CurrentParticle := 0;
 end;
 

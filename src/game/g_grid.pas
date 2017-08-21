@@ -27,6 +27,7 @@ type
   generic TBodyGridBase<ITP> = class(TObject)
   public
     type TGridQueryCB = function (obj: ITP; tag: Integer): Boolean is nested; // return `true` to stop
+    type TGridRayQueryCB = function (obj: ITP; tag: Integer; x, y, prevx, prevy: Integer): Boolean is nested; // return `true` to stop
 
   private
     const
@@ -39,7 +40,7 @@ type
       TBodyProxyRec = record
       private
         mX, mY, mWidth, mHeight: Integer; // aabb
-        mQueryMark: DWord; // was this object visited at this query?
+        mQueryMark: LongWord; // was this object visited at this query?
         mObj: ITP;
         mTag: Integer;
         nextLink: TBodyProxyId; // next free or nothing
@@ -67,7 +68,7 @@ type
     mGrid: array of Integer; // mWidth*mHeight, index in mCells
     mCells: array of TGridCell; // cell pool
     mFreeCell: Integer; // first free cell index or -1
-    mLastQuery: DWord;
+    mLastQuery: LongWord;
     mUsedCells: Integer;
     mProxies: array of TBodyProxyRec;
     mProxyFree: TBodyProxyId; // free
@@ -77,6 +78,7 @@ type
     mUData: TBodyProxyId; // for inserter/remover
     mTagMask: Integer; // for iterator
     mItCB: TGridQueryCB; // for iterator
+    mQueryInProcess: Boolean;
 
   private
     function allocCell: Integer;
@@ -105,7 +107,12 @@ type
     procedure resizeBody (body: TBodyProxyId; sx, sy: Integer);
     procedure moveResizeBody (body: TBodyProxyId; dx, dy, sx, sy: Integer);
 
+    //WARNING: can't do recursive queries
     function forEachInAABB (x, y, w, h: Integer; cb: TGridQueryCB; tagmask: Integer=-1): Boolean;
+
+    //WARNING: can't do recursive queries
+    // cb with `(nil)` will be called before processing new tile
+    function traceRay (x0, y0, x1, y1: Integer; cb: TGridRayQueryCB; tagmask: Integer=-1): Boolean; overload;
 
     procedure dumpStats ();
   end;
@@ -173,6 +180,7 @@ begin
   mUData := 0;
   mTagMask := -1;
   mItCB := nil;
+  mQueryInProcess := false;
   e_WriteLog(Format('created grid with size: %dx%d (tile size: %d); pix: %dx%d', [mWidth, mHeight, mTileSize, mWidth*mTileSize, mHeight*mTileSize]), MSG_NOTIFY);
 end;
 
@@ -311,6 +319,133 @@ begin
 end;
 
 
+// ////////////////////////////////////////////////////////////////////////// //
+function TBodyGridBase.traceRay (x0, y0, x1, y1: Integer; cb: TGridRayQueryCB; tagmask: Integer=-1): Boolean;
+var
+  i: Integer;
+  dx, dy: Integer;
+  xerr, yerr, d: LongWord;
+  incx, incy: Integer;
+  x, y: Integer;
+  maxx, maxy: Integer;
+  tsize: Integer; // tile size
+  gw, gh: Integer;
+  lastGA: Integer = -1;
+  ga: Integer = -1; // last used grid address
+  ccidx: Integer = -1;
+  curci: Integer = -1;
+  cc: PGridCell = nil;
+  hasUntried: Boolean;
+  f: Integer;
+  px: PBodyProxyRec;
+  lq: LongWord;
+  prevX, prevY: Integer;
+  minx, miny: Integer;
+begin
+  result := False;
+
+  if (tagmask = 0) then exit;
+
+  // make coords (0,0)-based
+  minx := mMinX;
+  miny := mMinY;
+  Dec(x0, minx);
+  Dec(y0, miny);
+  Dec(x1, minx);
+  Dec(y1, miny);
+
+  xerr := 0;
+  yerr := 0;
+  dx := x1-x0;
+  dy := y1-y0;
+
+  if (dx > 0) then incx := 1 else if (dx < 0) then incx := -1 else incx := 0;
+  if (dy > 0) then incy := 1 else if (dy < 0) then incy := -1 else incy := 0;
+
+  dx := abs(dx);
+  dy := abs(dy);
+
+  if (dx > dy) then d := dx else d := dy;
+
+  x := x0;
+  y := y0;
+
+  // increase query counter
+  Inc(mLastQuery);
+  if (mLastQuery = 0) then
+  begin
+    // just in case of overflow
+    mLastQuery := 1;
+    for i := 0 to High(mProxies) do mProxies[i].mQueryMark := 0;
+  end;
+  lq := mLastQuery;
+
+  tsize := mTileSize;
+  gw := mWidth;
+  gh := mHeight;
+  maxx := gw*tsize-1;
+  maxy := gh*tsize-1;
+
+  for i := 1 to d do
+  begin
+    prevX := x;
+    prevY := y;
+    Inc(xerr, dx); if (xerr > d) then begin Dec(xerr, d); Inc(x, incx); end;
+    Inc(yerr, dy); if (yerr > d) then begin Dec(yerr, d); Inc(y, incy); end;
+
+    if (x >= 0) and (y >= 0) and (x <= maxx) and (y <= maxy) then
+    begin
+      ga := (y div tsize)*gw+(x div tsize);
+      if (lastGA <> ga) then
+      begin
+        // new cell
+        lastGA := ga;
+        ccidx := mGrid[lastGA];
+        if (ccidx <> -1) then
+        begin
+          result := cb(nil, 0, x+minx, y+miny, prevX+minx, prevY+miny);
+          if result then exit;
+        end;
+      end;
+    end
+    else
+    begin
+      ccidx := -1;
+    end;
+
+    if (ccidx <> -1) then
+    begin
+      curci := ccidx;
+      hasUntried := false;
+      while (curci <> -1) do
+      begin
+        cc := @mCells[curci];
+        for f := 0 to High(TGridCell.bodies) do
+        begin
+          if (cc.bodies[f] = -1) then break;
+          px := @mProxies[cc.bodies[f]];
+          if (px.mQueryMark <> lq) and ((px.mTag and tagmask) <> 0) then
+          begin
+            if (x+minx >= px.mX) and (y+miny >= px.mY) and (x+minx < px.mX+px.mWidth) and (y+miny < px.mY+px.mHeight) then
+            begin
+              px.mQueryMark := lq;
+              result := cb(px.mObj, px.mTag, x+minx, y+miny, prevX+minx, prevY+miny);
+              if result then exit;
+            end
+            else
+            begin
+              hasUntried := true;
+            end;
+          end;
+        end;
+        curci := cc.next;
+      end;
+      if not hasUntried then ccidx := -1; // don't process this cell anymore
+    end;
+  end;
+end;
+
+
 function TBodyGridBase.inserter (grida: Integer): Boolean;
 var
   cidx: Integer;
@@ -358,14 +493,11 @@ end;
 procedure TBodyGridBase.insert (body: TBodyProxyId);
 var
   px: PBodyProxyRec;
-  oudata: Integer;
 begin
   if (body < 0) or (body > High(mProxies)) then exit; // just in case
   px := @mProxies[body];
-  oudata := mUData;
   mUData := body;
   forGridRect(px.mX, px.mY, px.mWidth, px.mHeight, inserter);
-  mUData := oudata;
 end;
 
 
@@ -430,29 +562,32 @@ end;
 procedure TBodyGridBase.remove (body: TBodyProxyId);
 var
   px: PBodyProxyRec;
-  oudata: Integer;
 begin
   if (body < 0) or (body > High(mProxies)) then exit; // just in case
   px := @mProxies[body];
-  oudata := mUData;
   mUData := body;
   forGridRect(px.mX, px.mY, px.mWidth, px.mHeight, remover);
-  mUData := oudata;
 end;
 
 
 function TBodyGridBase.insertBody (aObj: ITP; aX, aY, aWidth, aHeight: Integer; aTag: Integer=0): TBodyProxyId;
 begin
+  if mQueryInProcess then raise Exception.Create('grid doesn''t support recursive queries');
+  mQueryInProcess := true;
   result := allocProxy(aX, aY, aWidth, aHeight, aObj, aTag);
   insert(result);
+  mQueryInProcess := false;
 end;
 
 
 procedure TBodyGridBase.removeBody (aObj: TBodyProxyId);
 begin
   if (aObj < 0) or (aObj > High(mProxies)) then exit; // just in case
+  if mQueryInProcess then raise Exception.Create('grid doesn''t support recursive queries');
+  mQueryInProcess := true;
   remove(aObj);
   freeProxy(aObj);
+  mQueryInProcess := false;
 end;
 
 
@@ -462,6 +597,8 @@ var
 begin
   if (body < 0) or (body > High(mProxies)) then exit; // just in case
   if ((dx = 0) and (dy = 0) and (sx = 0) and (sy = 0)) then exit;
+  if mQueryInProcess then raise Exception.Create('grid doesn''t support recursive queries');
+  mQueryInProcess := true;
   remove(body);
   px := @mProxies[body];
   Inc(px.mX, dx);
@@ -469,6 +606,7 @@ begin
   Inc(px.mWidth, sx);
   Inc(px.mHeight, sy);
   insert(body);
+  mQueryInProcess := false;
 end;
 
 procedure TBodyGridBase.moveBody (body: TBodyProxyId; dx, dy: Integer);
@@ -528,11 +666,12 @@ end;
 function TBodyGridBase.forEachInAABB (x, y, w, h: Integer; cb: TGridQueryCB; tagmask: Integer=-1): Boolean;
 var
   idx: Integer;
-  otagmask: Integer;
-  ocb: TGridQueryCB;
 begin
   result := false;
   if not assigned(cb) then exit;
+
+  if mQueryInProcess then raise Exception.Create('grid doesn''t support recursive queries');
+  mQueryInProcess := true;
 
   // increase query counter
   Inc(mLastQuery);
@@ -544,13 +683,10 @@ begin
   end;
   //e_WriteLog(Format('grid: query #%d: (%d,%d)-(%dx%d)', [mLastQuery, minx, miny, maxx, maxy]), MSG_NOTIFY);
 
-  otagmask := mTagMask;
   mTagMask := tagmask;
-  ocb := mItCB;
   mItCB := cb;
   result := forGridRect(x, y, w, h, iterator);
-  mTagMask := otagmask;
-  mItCB := ocb;
+  mQueryInProcess := false;
 end;
 
 

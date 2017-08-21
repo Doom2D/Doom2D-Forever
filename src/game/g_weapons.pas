@@ -1763,7 +1763,7 @@ var
   xe, ye: Integer;
   s, c: Extended;
   i: Integer;
-  wallHitIdx: Integer = -1;
+  wallHitFlag: Boolean = false;
   wallHitX: Integer = 0;
   wallHitY: Integer = 0;
   didHit: Boolean = false;
@@ -1806,8 +1806,8 @@ begin
   stt := curTimeMicro();
   {$ENDIF}
 
-  wallHitIdx := g_Map_traceToNearestWall(x, y, x2, y2, @wallHitX, @wallHitY);
-  if (wallHitIdx >= 0) then
+  wallHitFlag := g_Map_traceToNearestWall(x, y, x2, y2, @wallHitX, @wallHitY);
+  if wallHitFlag then
   begin
     x2 := wallHitX;
     y2 := wallHitY;
@@ -1848,13 +1848,13 @@ begin
       // need new coords for trigger
       wallHitX := xe;
       wallHitY := ye;
-      wallHitIdx := -1; // no sparks
+      wallHitFlag := false; // no sparks
       break;
     end;
   end;
 
   // need sparks?
-  if (wallHitIdx >= 0) then
+  if wallHitFlag then
   begin
     {$IF DEFINED(D2F_DEBUG)}
     stt := curTimeMicro()-stt;

@@ -92,7 +92,7 @@ procedure g_Map_LoadState(Var Mem: TBinMemoryReader);
 procedure g_Map_DrawPanelShadowVolumes(lightX: Integer; lightY: Integer; radius: Integer);
 
 // returns wall index in `gWalls` or -1
-function g_Map_traceToNearestWall (x0, y0, x1, y1: Integer; hitx: PInteger=nil; hity: PInteger=nil): Integer;
+function g_Map_traceToNearestWall (x0, y0, x1, y1: Integer; hitx: PInteger=nil; hity: PInteger=nil): Boolean;
 
 type
   TForEachPanelCB = function (pan: TPanel): Boolean; // return `true` to stop
@@ -292,7 +292,8 @@ end;
 
 
 // wall index in `gWalls` or -1
-function g_Map_traceToNearestWall (x0, y0, x1, y1: Integer; hitx: PInteger=nil; hity: PInteger=nil): Integer;
+(*
+function g_Map_traceToNearestWallOld (x0, y0, x1, y1: Integer; hitx: PInteger=nil; hity: PInteger=nil): Integer;
 
   function sqchecker (pan: TPanel; var ray: Ray2D): Single;
   var
@@ -356,6 +357,53 @@ begin
     end;
   end;
 end;
+*)
+
+
+// wall index in `gWalls` or -1
+function g_Map_traceToNearestWall (x0, y0, x1, y1: Integer; hitx: PInteger=nil; hity: PInteger=nil): Boolean;
+var
+  lastX, lastY, lastDist: Integer;
+  wasHit: Boolean = false;
+
+  // pan=nil: before processing new tile
+  function sqchecker (pan: TPanel; tag: Integer; x, y, prevx, prevy: Integer): Boolean;
+  var
+    dist: Integer;
+  begin
+    if (pan = nil) then
+    begin
+      // stop if something was hit at the previous tile
+      result := wasHit;
+    end
+    else
+    begin
+      result := false;
+      if ((tag and (GridTagWall or GridTagDoor)) <> 0) then
+      begin
+        if not pan.Enabled then exit;
+      end;
+      dist := (prevx-x0)*(prevx-x0)+(prevy-y0)*(prevy-y0);
+      if (dist < lastDist) then
+      begin
+        wasHit := true;
+        lastDist := dist;
+        lastX := prevx;
+        lastY := prevy;
+      end;
+    end;
+  end;
+
+begin
+  result := false;
+  if (gMapGrid = nil) then exit;
+  lastDist := (x1-x0)*(x1-x0)+(y1-y0)*(y1-y0)+1;
+  lastX := 0;
+  lastY := 0;
+  result := gMapGrid.traceRay(x0, y0, x1, y1, sqchecker, (GridTagWall or GridTagDoor));
+  if (hitx <> nil) then hitx^ := lastX;
+  if (hity <> nil) then hity^ := lastY;
+end;
 
 
 function g_Map_ForEachPanelAt (x, y: Integer; cb: TForEachPanelCB; panelType: Word): Boolean;
@@ -369,20 +417,19 @@ function g_Map_ForEachPanelAt (x, y: Integer; cb: TForEachPanelCB; panelType: Wo
       if not pan.Enabled then exit;
     end;
 
+    result := (x >= pan.X) and (y >= pan.Y) and (x < pan.X+pan.Width) and (y < pan.Y+pan.Height);
+    if not result then exit;
+
     if ((tag and GridTagLift) <> 0) then
     begin
       result :=
         ((WordBool(PanelType and PANEL_LIFTUP) and (pan.LiftType = 0)) or
          (WordBool(PanelType and PANEL_LIFTDOWN) and (pan.LiftType = 1)) or
          (WordBool(PanelType and PANEL_LIFTLEFT) and (pan.LiftType = 2)) or
-         (WordBool(PanelType and PANEL_LIFTRIGHT) and (pan.LiftType = 3))) and
-         (x >= pan.X) and (y >= pan.Y) and (x < pan.X+pan.Width) and (y < pan.Y+pan.Height);
-      if result then result := cb(pan);;
-      exit;
+         (WordBool(PanelType and PANEL_LIFTRIGHT) and (pan.LiftType = 3)));
     end;
 
     // other shit
-    result := (x >= pan.X) and (y >= pan.Y) and (x < pan.X+pan.Width) and (y < pan.Y+pan.Height);
     if result then result := cb(pan);
   end;
 
@@ -391,8 +438,6 @@ var
 begin
   result := false;
   if not assigned(cb) then exit;
-  //if (mapTree = nil) then exit;
-  //function TDynAABBTreeBase.pointQuery (ax, ay: TreeNumber; cb: TQueryOverlapCB; tagmask: Integer=-1): TTreeFlesh;
 
   if WordBool(PanelType and (PANEL_WALL or PANEL_CLOSEDOOR or PANEL_OPENDOOR)) then tagmask := tagmask or (GridTagWall or GridTagDoor);
   if WordBool(PanelType and PANEL_WATER) then tagmask := tagmask or GridTagWater;
