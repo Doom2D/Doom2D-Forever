@@ -305,6 +305,7 @@ begin
   for idx := 0 to High(mBuckets) do mBuckets[idx] := nil;
 
   SetLength(mEntries, Length(mBuckets));
+  {
   for idx := 0 to High(mEntries)-1 do
   begin
     mEntries[idx].hash := 0;
@@ -312,12 +313,20 @@ begin
   end;
   mEntries[High(mEntries)].hash := 0;
   mEntries[High(mEntries)].nextFree := nil;
+  }
+  {
+  for idx := 0 to High(mEntries) do
+  begin
+    mEntries[idx].hash := 0;
+    mEntries[idx].nextFree := nil;
+  end;
+  }
 
   mBucketsUsed := 0;
   {$IFDEF RBHASH_SANITY_CHECKS}
   mEntriesUsed := 0;
   {$ENDIF}
-  mFreeEntryHead := @mEntries[0];
+  mFreeEntryHead := nil; //@mEntries[0];
   mFirstEntry := -1;
   mLastEntry := -1;
 end;
@@ -330,6 +339,7 @@ begin
   if (mBucketsUsed > 0) then
   begin
     for idx := 0 to High(mBuckets) do mBuckets[idx] := nil;
+    {
     for idx := 0 to High(mEntries)-1 do
     begin
       mEntries[idx].hash := 0;
@@ -337,12 +347,23 @@ begin
     end;
     mEntries[High(mEntries)].hash := 0;
     mEntries[High(mEntries)].nextFree := nil;
+    }
+    {
+    if (mFirstEntry >= 0) then
+    begin
+      for idx := mFirstEntry to mLastEntry do
+      begin
+        mEntries[idx].hash := 0;
+        mEntries[idx].nextFree := nil;
+      end;
+    end;
+    }
 
     mBucketsUsed := 0;
     {$IFDEF RBHASH_SANITY_CHECKS}
     mEntriesUsed := 0;
     {$ENDIF}
-    mFreeEntryHead := @mEntries[0];
+    mFreeEntryHead := nil; //@mEntries[0];
     mFirstEntry := -1;
     mLastEntry := -1;
   end;
@@ -356,6 +377,22 @@ function THashBase.allocEntry (): PEntry;
 var
   idx: Integer;
 begin
+  if (mFreeEntryHead = nil) then
+  begin
+    if (mLastEntry = High(mEntries)) then raise Exception.Create('internal error in hash entry allocator (0.0)');
+    Inc(mLastEntry);
+    if (mFirstEntry = -1) then
+    begin
+      if (mLastEntry <> 0) then raise Exception.Create('internal error in hash entry allocator (0.1)');
+      mFirstEntry := 0;
+    end;
+    result := @mEntries[mLastEntry];
+    result.nextFree := nil; // just in case
+    {$IFDEF RBHASH_SANITY_CHECKS}
+    Inc(mEntriesUsed);
+    {$ENDIF}
+    exit;
+  end;
   {$IFDEF RBHASH_SANITY_CHECKS}
   if (mFreeEntryHead = nil) then raise Exception.Create('internal error in hash entry allocator (0)');
   if (mFreeEntryHead.hash <> 0) then raise Exception.Create('internal error in hash entry allocator (1)');
@@ -392,12 +429,12 @@ begin
   if (idx < 0) or (idx > High(mEntries)) then raise Exception.Create('internal error in hash entry allocator (invalid entry address)');
   if (e <> @mEntries[idx]) then raise Exception.Create('internal error in hash entry allocator (wtf?!)');
   {$ENDIF}
-  e.hash := 0;
-  e.nextFree := mFreeEntryHead;
-  mFreeEntryHead := e; //idx;
   {$IFDEF RBHASH_SANITY_CHECKS}
   Dec(mEntriesUsed);
   {$ENDIF}
+  e.hash := 0;
+  e.nextFree := mFreeEntryHead;
+  mFreeEntryHead := e; //idx;
   // fix mFirstEntry and mLastEntry
   {$IFDEF RBHASH_SANITY_CHECKS}
   if (mFirstEntry < 0) or (mLastEntry < 0) then raise Exception.Create('internal error in hash entry allocator (invalid first/last range; 0)');
