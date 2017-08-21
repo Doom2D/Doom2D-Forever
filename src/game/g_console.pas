@@ -401,6 +401,8 @@ begin
   AddCommand('sq_use_grid', ProfilerCommands);
   AddCommand('sq_use_tree', ProfilerCommands);
 
+  AddCommand('mon_sq_enabled', ProfilerCommands);
+
   AddCommand('p1_name', GameCVars);
   AddCommand('p2_name', GameCVars);
   AddCommand('p1_color', GameCVars);

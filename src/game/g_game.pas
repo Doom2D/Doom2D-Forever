@@ -4995,6 +4995,17 @@ begin
     if gdbg_map_dump_coldet_tree_queries then g_Console_Add('grid coldet tree queries: tan') else g_Console_Add('grid coldet tree queries: ona');
     exit;
   end;
+
+  if (cmd = 'mon_sq_enabled') then
+  begin
+    case getBool(1) of
+      -1: begin end;
+       0: gmon_debug_use_sqaccel := false;
+       1: gmon_debug_use_sqaccel := true;
+    end;
+    if gmon_debug_use_sqaccel then g_Console_Add('accelerated monster coldet: tan') else g_Console_Add('accelerated monster coldet: ona');
+    exit;
+  end;
 end;
 
 procedure DebugCommands(P: SArray);
