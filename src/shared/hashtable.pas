@@ -45,7 +45,7 @@ type
         key: KeyT;
         value: ValueT;
         hash: LongWord; // key hash or 0
-        nextFree: Integer;
+        nextFree: PEntry;
       end;
 
   private
@@ -55,7 +55,7 @@ type
     mBucketsUsed: Integer;
     mEntries: array of TEntry;
     mEntriesUsed: Integer;
-    mFreeEntryHead: Integer;
+    mFreeEntryHead: PEntry;
     mSeed: LongWord;
 
   private
@@ -295,32 +295,32 @@ function THashBase.getCapacity (): Integer; inline; begin result := Length(mBuck
 function THashBase.allocEntry (): PEntry;
 begin
   {$IFDEF RBHASH_SANITY_CHECKS}
-  if (mFreeEntryHead = -1) then raise Exception.Create('internal error in hash entry allocator (0)');
-  if (mEntries[mFreeEntryHead].hash <> 0) then raise Exception.Create('internal error in hash entry allocator (1)');
+  if (mFreeEntryHead = nil) then raise Exception.Create('internal error in hash entry allocator (0)');
+  if (mFreeEntryHead.hash <> 0) then raise Exception.Create('internal error in hash entry allocator (1)');
   {$ENDIF}
-  result := @mEntries[mFreeEntryHead];
+  result := mFreeEntryHead;
   mFreeEntryHead := result.nextFree;
   Inc(mEntriesUsed);
-  result.nextFree := -1;
+  result.nextFree := nil;
 end;
 
 
 procedure THashBase.releaseEntry (e: PEntry);
-var
-  idx: LongWord;
+//var
+//  idx: LongWord;
 begin
   {$IFDEF RBHASH_SANITY_CHECKS}
   if (mEntriesUsed = 0) then raise Exception.Create('internal error in hash entry allocator');
   if (e = nil) then raise Exception.Create('internal error in hash entry allocator (trying to release nil entry)');
-  if (e.nextFree <> -1) or (e.hash = 0) then raise Exception.Create('internal error in hash entry allocator (trying to release unallocated entry)');
+  if (e.nextFree <> nil) or (e.hash = 0) then raise Exception.Create('internal error in hash entry allocator (trying to release unallocated entry)');
   {$ENDIF}
-  idx := LongWord((PtrUInt(e)-PtrUInt(@mEntries[0])) div sizeof(mEntries[0]));
+  //idx := LongWord((PtrUInt(e)-PtrUInt(@mEntries[0])) div sizeof(mEntries[0]));
   {$IFDEF RBHASH_SANITY_CHECKS}
-  if (idx >= Length(mEntries)) then raise Exception.Create('internal error in hash entry allocator (invalid calculated index)');
+  //if (idx >= Length(mEntries)) then raise Exception.Create('internal error in hash entry allocator (invalid calculated index)');
   {$ENDIF}
   e.hash := 0;
   e.nextFree := mFreeEntryHead;
-  mFreeEntryHead := idx;
+  mFreeEntryHead := e; //idx;
   Dec(mEntriesUsed);
 end;
 
@@ -579,22 +579,24 @@ begin
   for idx := 0 to High(mBuckets) do mBuckets[idx] := nil;
 
   SetLength(mEntries, Length(mBuckets));
-  for idx := 0 to High(mEntries) do
+  for idx := 0 to High(mEntries)-1 do
   begin
     mEntries[idx].hash := 0;
-    mEntries[idx].nextFree := idx+1;
+    mEntries[idx].nextFree := @mEntries[idx+1]; //idx+1;
   end;
-  mEntries[High(mEntries)].nextFree := -1;
+  mEntries[High(mEntries)].hash := 0;
+  mEntries[High(mEntries)].nextFree := nil;
 
   mBucketsUsed := 0;
   mEntriesUsed := 0;
-  mFreeEntryHead := 0;
+  mFreeEntryHead := @mEntries[0];
 end;
 
 
 procedure THashBase.rehash ();
 var
-  idx, lastfree: Integer;
+  idx: Integer;
+  lastfree: PEntry;
   e: PEntry;
 begin
   // change seed, to minimize pathological cases
@@ -604,8 +606,8 @@ begin
   for idx := 0 to High(mBuckets) do mBuckets[idx] := nil;
   mBucketsUsed := 0;
   // reinsert entries
-  mFreeEntryHead := -1;
-  lastfree := -1;
+  mFreeEntryHead := nil;
+  lastfree := nil;
   for idx := 0 to High(mEntries) do
   begin
     e := @mEntries[idx];
@@ -616,8 +618,8 @@ begin
     end
     else
     begin
-      if (lastfree <> -1) then mEntries[lastfree].nextFree := idx else mFreeEntryHead := idx;
-      lastfree := idx;
+      if (lastfree <> nil) then lastfree.nextFree := e else mFreeEntryHead := e;
+      lastfree := e;
     end;
   end;
 end;
@@ -630,6 +632,7 @@ begin
   newsz := nextPOT(LongWord(mBucketsUsed));
   if (newsz >= 1024*1024*1024) then exit;
   if (newsz*2 >= Length(mBuckets)) then exit;
+  if (newsz*2 < 128) then exit;
   {$IFDEF RBHASH_DEBUG_COMPACT}writeln('compacting; used=', mBucketsUsed, '; oldsizePOT=', newsz, '; newsize=', newsz*2);{$ENDIF}
   newsz *= 2;
   // move all entries to top
