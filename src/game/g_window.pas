@@ -709,17 +709,17 @@ begin
     if ParamStr(idx) = '--opengl-dump-exts' then gwin_dump_extensions := true;
     if ParamStr(idx) = '--twinkletwinkle' then gwin_k8_enable_light_experiments := true;
     if ParamStr(idx) = '--jah' then g_profile_history_size := 100;
-    if ParamStr(idx) = '--tree-draw' then gdbg_map_use_tree_draw := true;
-    if ParamStr(idx) = '--grid-draw' then gdbg_map_use_tree_draw := false;
-    if ParamStr(idx) = '--tree-coldet' then gdbg_map_use_tree_coldet := true;
-    if ParamStr(idx) = '--grid-coldet' then gdbg_map_use_tree_coldet := false;
+    //if ParamStr(idx) = '--tree-draw' then gdbg_map_use_tree_draw := true;
+    //if ParamStr(idx) = '--grid-draw' then gdbg_map_use_tree_draw := false;
+    //if ParamStr(idx) = '--tree-coldet' then gdbg_map_use_tree_coldet := true;
+    //if ParamStr(idx) = '--grid-coldet' then gdbg_map_use_tree_coldet := false;
   end;
 
-  if gdbg_map_use_tree_draw then e_WriteLog('using TREE renderer', MSG_NOTIFY);
-  if not gdbg_map_use_tree_draw then e_WriteLog('using GRID renderer', MSG_NOTIFY);
+  //if gdbg_map_use_tree_draw then e_WriteLog('using TREE renderer', MSG_NOTIFY);
+  //if not gdbg_map_use_tree_draw then e_WriteLog('using GRID renderer', MSG_NOTIFY);
 
-  if gdbg_map_use_tree_coldet then e_WriteLog('using TREE coldet', MSG_NOTIFY);
-  if not gdbg_map_use_tree_coldet then e_WriteLog('using GRID coldet', MSG_NOTIFY);
+  //if gdbg_map_use_tree_coldet then e_WriteLog('using TREE coldet', MSG_NOTIFY);
+  //if not gdbg_map_use_tree_coldet then e_WriteLog('using GRID coldet', MSG_NOTIFY);
 
   e_WriteLog('Initializing OpenGL', MSG_NOTIFY);
   InitOpenGL(gVSync);

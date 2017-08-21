@@ -4960,7 +4960,7 @@ begin
     exit;
   end;
 
-  if cmd = 'dbg_sq_coldet' then
+  if cmd = 'cd_sq_enabled' then
   begin
     case getBool(1) of
       -1: begin end;
@@ -4971,6 +4971,7 @@ begin
     exit;
   end;
 
+  {
   if (cmd = 'sq_use_grid') or (cmd = 'sq_use_tree') then
   begin
     gdbg_map_use_tree_coldet := (cmd = 'sq_use_tree');
@@ -4984,7 +4985,9 @@ begin
     if gdbg_map_use_tree_draw then g_Console_Add('render acceleration: tree') else g_Console_Add('render acceleration: grid');
     exit;
   end;
+  }
 
+  {
   if (cmd = 't_dump_node_queries') then
   begin
     case getBool(1) of
@@ -4995,6 +4998,7 @@ begin
     if gdbg_map_dump_coldet_tree_queries then g_Console_Add('grid coldet tree queries: tan') else g_Console_Add('grid coldet tree queries: ona');
     exit;
   end;
+  }
 
   if (cmd = 'mon_sq_enabled') then
   begin

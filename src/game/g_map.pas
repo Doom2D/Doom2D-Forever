@@ -173,9 +173,9 @@ var
 
   gdbg_map_use_accel_render: Boolean = true;
   gdbg_map_use_accel_coldet: Boolean = true;
-  gdbg_map_use_tree_draw: Boolean = false;
-  gdbg_map_use_tree_coldet: Boolean = false;
-  gdbg_map_dump_coldet_tree_queries: Boolean = false;
+  //gdbg_map_use_tree_draw: Boolean = false;
+  //gdbg_map_use_tree_coldet: Boolean = false;
+  //gdbg_map_dump_coldet_tree_queries: Boolean = false;
   profMapCollision: TProfiler = nil; //WARNING: FOR DEBUGGING ONLY!
   gDrawPanelList: TBinaryHeapObj = nil; // binary heap of all walls we have to render, populated by `g_Map_CollectDrawPanels()`
 
@@ -202,12 +202,15 @@ const
 type
   TPanelGrid = specialize TBodyGridBase<TPanel>;
 
+  {
   TDynAABBTreePanelBase = specialize TDynAABBTreeBase<TPanel>;
 
   TDynAABBTreeMap = class(TDynAABBTreePanelBase)
     function getFleshAABB (out aabb: AABB2D; pan: TPanel; tag: Integer): Boolean; override;
   end;
+  {
 
+{
 function TDynAABBTreeMap.getFleshAABB (out aabb: AABB2D; pan: TPanel; tag: Integer): Boolean;
 begin
   result := false;
@@ -217,6 +220,7 @@ begin
   if not aabb.valid then raise Exception.Create('wutafuuuuuuu?!');
   result := true;
 end;
+}
 
 
 function panelTypeToTag (panelType: Word): Integer;
@@ -268,7 +272,7 @@ var
   FlagPoints:    Array [FLAG_RED..FLAG_BLUE] of PFlagPoint;
   //DOMFlagPoints: Array of TFlagPoint;
   gMapGrid: TPanelGrid = nil;
-  mapTree: TDynAABBTreeMap = nil;
+  //mapTree: TDynAABBTreeMap = nil;
 
 
 procedure g_Map_ProfilersBegin ();
@@ -1233,15 +1237,15 @@ var
       pan.tag := tag;
       if not pan.visvalid then continue;
       gMapGrid.insertBody(pan, pan.X, pan.Y, pan.Width, pan.Height, tag);
-      mapTree.insertObject(pan, tag, true); // as static object
+      //mapTree.insertObject(pan, tag, true); // as static object
     end;
   end;
 
 begin
   gMapGrid.Free();
   gMapGrid := nil;
-  mapTree.Free();
-  mapTree := nil;
+  //mapTree.Free();
+  //mapTree := nil;
 
   calcBoundingBox(gWalls);
   calcBoundingBox(gRenderBackgrounds);
@@ -1256,7 +1260,7 @@ begin
   e_WriteLog(Format('map dimensions: (%d,%d)-(%d,%d)', [mapX0, mapY0, mapX1, mapY1]), MSG_WARNING);
 
   gMapGrid := TPanelGrid.Create(mapX0, mapY0, mapX1-mapX0+1, mapY1-mapY0+1);
-  mapTree := TDynAABBTreeMap.Create();
+  //mapTree := TDynAABBTreeMap.Create();
 
   addPanelsToGrid(gWalls, PANEL_WALL);
   addPanelsToGrid(gWalls, PANEL_CLOSEDOOR);
@@ -1271,8 +1275,8 @@ begin
   addPanelsToGrid(gBlockMon, PANEL_BLOCKMON);
 
   gMapGrid.dumpStats();
-  e_WriteLog(Format('tree depth: %d; %d nodes used, %d nodes allocated', [mapTree.computeTreeHeight, mapTree.nodeCount, mapTree.nodeAlloced]), MSG_NOTIFY);
-  mapTree.forEachLeaf(nil);
+  //e_WriteLog(Format('tree depth: %d; %d nodes used, %d nodes allocated', [mapTree.computeTreeHeight, mapTree.nodeCount, mapTree.nodeAlloced]), MSG_NOTIFY);
+  //mapTree.forEachLeaf(nil);
 end;
 
 function g_Map_Load(Res: String): Boolean;
@@ -1309,8 +1313,8 @@ var
 begin
   gMapGrid.Free();
   gMapGrid := nil;
-  mapTree.Free();
-  mapTree := nil;
+  //mapTree.Free();
+  //mapTree := nil;
 
   Result := False;
   gMapInfo.Map := Res;
@@ -2109,11 +2113,11 @@ begin
   dplClear();
   //tagmask := panelTypeToTag(PanelType);
 
-  if gdbg_map_use_tree_draw then
+  {if gdbg_map_use_tree_draw then
   begin
     mapTree.aabbQuery(x0, y0, wdt, hgt, checker, (GridTagBack or GridTagStep or GridTagWall or GridTagDoor or GridTagAcid1 or GridTagAcid2 or GridTagWater or GridTagFore));
   end
-  else
+  else}
   begin
     gMapGrid.forEachInAABB(x0, y0, wdt, hgt, checker, (GridTagBack or GridTagStep or GridTagWall or GridTagDoor or GridTagAcid1 or GridTagAcid2 or GridTagWater or GridTagFore));
   end;
@@ -2129,11 +2133,11 @@ procedure g_Map_DrawPanelShadowVolumes(lightX: Integer; lightY: Integer; radius:
   end;
 
 begin
-  if gdbg_map_use_tree_draw then
+  {if gdbg_map_use_tree_draw then
   begin
     mapTree.aabbQuery(lightX-radius, lightY-radius, radius*2, radius*2, checker, (GridTagWall or GridTagDoor));
   end
-  else
+  else}
   begin
     gMapGrid.forEachInAABB(lightX-radius, lightY-radius, radius*2, radius*2, checker, (GridTagWall or GridTagDoor));
   end;
@@ -2346,7 +2350,7 @@ begin
   if (profMapCollision <> nil) then profMapCollision.sectionBeginAccum('*solids');
   if gdbg_map_use_accel_coldet then
   begin
-    if gdbg_map_use_tree_coldet then
+    {if gdbg_map_use_tree_coldet then
     begin
       //e_WriteLog(Format('coldet query: x=%d; y=%d; w=%d; h=%d', [X, Y, Width, Height]), MSG_NOTIFY);
       result := (mapTree.aabbQuery(X, Y, Width, Height, checker, tagmask) <> nil);
@@ -2356,7 +2360,7 @@ begin
         g_Console_Add(Format('map collision: %d nodes visited (%d deep)', [mapTree.nodesVisited, mapTree.nodesDeepVisited]));
       end;
     end
-    else
+    else}
     begin
       result := gMapGrid.forEachInAABB(X, Y, Width, Height, checker, tagmask);
     end;
@@ -2402,11 +2406,11 @@ begin
   if gdbg_map_use_accel_coldet then
   begin
     texid := TEXTURE_NONE;
-    if gdbg_map_use_tree_coldet then
+    {if gdbg_map_use_tree_coldet then
     begin
       mapTree.aabbQuery(X, Y, Width, Height, checker, (GridTagWater or GridTagAcid1 or GridTagAcid2));
     end
-    else
+    else}
     begin
       gMapGrid.forEachInAABB(X, Y, Width, Height, checker, (GridTagWater or GridTagAcid1 or GridTagAcid2));
     end;
