@@ -1149,7 +1149,9 @@ begin
   // done?
   if (xd = term) then exit;
 
+  {$IF DEFINED(D2F_DEBUG)}
   if (xptr^ < 0) or (yptr^ < 0) or (xptr^ >= gw*tsize) and (yptr^ > mHeight*tsize) then raise Exception.Create('raycaster internal error (0)');
+  {$ENDIF}
 
   //if (dbgShowTraceLog) then e_WriteLog(Format('raycast start: (%d,%d)-(%d,%d); xptr^=%d; yptr^=%d', [ax0, ay0, ax1, ay1, xptr^, yptr^]), MSG_NOTIFY);
 
@@ -1174,7 +1176,9 @@ begin
   while (xd <> term) do
   begin
     // check cell(s)
+    {$IF DEFINED(D2F_DEBUG)}
     if (xptr^ < 0) or (yptr^ < 0) or (xptr^ >= gw*tsize) and (yptr^ > mHeight*tsize) then raise Exception.Create('raycaster internal error (0)');
+    {$ENDIF}
     // new tile?
     ga := (yptr^ div tsize)*gw+(xptr^ div tsize);
     if (ga <> lastGA) then
@@ -1361,11 +1365,15 @@ begin
     xerr += dx;
     yerr += dy;
     // invariant: one of those always changed
+    {$IF DEFINED(D2F_DEBUG)}
     if (xerr < 0) and (yerr < 0) then raise Exception.Create('internal bug in grid raycaster (0)');
+    {$ENDIF}
     if (xerr >= 0) then begin xerr -= d; x += incx; stepx := incx; end else stepx := 0;
     if (yerr >= 0) then begin yerr -= d; y += incy; stepy := incy; end else stepy := 0;
     // invariant: we always doing a step
+    {$IF DEFINED(D2F_DEBUG)}
     if ((stepx or stepy) = 0) then raise Exception.Create('internal bug in grid raycaster (1)');
+    {$ENDIF}
     begin
       // check for crossing tile/grid boundary
       if (x >= 0) and (y >= 0) and (x <= maxx) and (y <= maxy) then
