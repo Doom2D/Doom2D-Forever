@@ -14,6 +14,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *)
 {$INCLUDE ../shared/a_modes.inc}
+{$DEFINE MAP_DEBUG_ENABLED_FLAG}
 unit g_map;
 
 interface
@@ -156,6 +157,8 @@ const
   // the following are invisible
   GridTagLift = 1 shl 8;
   GridTagBlockMon = 1 shl 9;
+
+  GridDrawableMask = (GridTagBack or GridTagStep or GridTagWall or GridTagDoor or GridTagAcid1 or GridTagAcid2 or GridTagWater or GridTagFore);
 
 
 var
@@ -416,7 +419,7 @@ begin
   if (hitx <> nil) then hitx^ := lastX;
   if (hity <> nil) then hity^ := lastY;
   *)
-  result := mapGrid.traceRay(ex, ey, x0, y0, x1, y1, nil, (GridTagWall or GridTagDoor));
+  result := (mapGrid.traceRay(ex, ey, x0, y0, x1, y1, nil, (GridTagWall or GridTagDoor)) <> nil);
 end;
 
 
@@ -463,12 +466,12 @@ begin
   if ((tagmask and GridTagLift) <> 0) then
   begin
     // slow
-    result := mapGrid.forEachAtPoint(x, y, checker, tagmask);
+    result := (mapGrid.forEachAtPoint(x, y, checker, tagmask) <> nil);
   end
   else
   begin
     // fast
-    result := mapGrid.forEachAtPoint(x, y, nil, tagmask);
+    result := (mapGrid.forEachAtPoint(x, y, nil, tagmask) <> nil);
   end;
 end;
 
@@ -1255,7 +1258,14 @@ var
       pan.tag := tag;
       if not pan.visvalid then continue;
       pan.proxyId := mapGrid.insertBody(pan, pan.X, pan.Y, pan.Width, pan.Height, tag);
+      // "enabled" flag has meaning only for doors and walls (engine assumes it); but meh...
       mapGrid.proxyEnabled[pan.proxyId] := pan.Enabled;
+      {$IFDEF MAP_DEBUG_ENABLED_FLAG}
+      if ((tag and (GridTagWall or GridTagDoor)) <> 0) then
+      begin
+        e_WriteLog(Format('INSERTED wall #%d(%d) enabled (%d)', [Integer(idx), Integer(pan.proxyId), Integer(mapGrid.proxyEnabled[pan.proxyId])]), MSG_NOTIFY);
+      end;
+      {$ENDIF}
       //mapTree.insertObject(pan, tag, true); // as static object
     end;
   end;
@@ -2139,7 +2149,7 @@ begin
   end
   else}
   begin
-    mapGrid.forEachInAABB(x0, y0, wdt, hgt, checker, (GridTagBack or GridTagStep or GridTagWall or GridTagDoor or GridTagAcid1 or GridTagAcid2 or GridTagWater or GridTagFore));
+    mapGrid.forEachInAABB(x0, y0, wdt, hgt, checker, GridDrawableMask, true);
   end;
   // list will be rendered in `g_game.DrawPlayer()`
 end;
@@ -2160,7 +2170,7 @@ begin
   end
   else}
   begin
-    mapGrid.forEachInAABB(lightX-radius, lightY-radius, radius*2, radius*2, checker, (GridTagWall or GridTagDoor));
+    mapGrid.forEachInAABB(lightX-radius, lightY-radius, radius*2, radius*2, checker, (GridTagWall or GridTagDoor), true);
   end;
 end;
 
@@ -2325,10 +2335,10 @@ end;
 
 
 function g_Map_CollidePanel(X, Y: Integer; Width, Height: Word; PanelType: Word; b1x3: Boolean): Boolean;
+const
+  SlowMask = GridTagLift or GridTagBlockMon;
   function checker (pan: TPanel; tag: Integer): Boolean;
   begin
-    result := false; // don't stop, ever
-
     {
     if ((tag and (GridTagWall or GridTagDoor)) <> 0) then
     begin
@@ -2356,7 +2366,7 @@ function g_Map_CollidePanel(X, Y: Integer; Width, Height: Word; PanelType: Word;
 
     // other shit
     //result := g_Collide(X, Y, Width, Height, pan.X, pan.Y, pan.Width, pan.Height);
-    result := true;
+    result := true; // i found her!
   end;
 
 var
@@ -2389,28 +2399,28 @@ begin
     begin
       if (Width = 1) and (Height = 1) then
       begin
-        if ((tagmask and (GridTagLift or GridTagBlockMon)) <> 0) then
+        if ((tagmask and SlowMask) <> 0) then
         begin
           // slow
-          result := mapGrid.forEachAtPoint(X, Y, checker, tagmask);
+          result := (mapGrid.forEachAtPoint(X, Y, checker, tagmask) <> nil);
         end
         else
         begin
           // fast
-          result := mapGrid.forEachAtPoint(X, Y, nil, tagmask);
+          result := (mapGrid.forEachAtPoint(X, Y, nil, tagmask) <> nil);
         end;
       end
       else
       begin
-        if ((tagmask and (GridTagLift or GridTagBlockMon)) <> 0) then
+        if ((tagmask and SlowMask) <> 0) then
         begin
           // slow
-          result := mapGrid.forEachInAABB(X, Y, Width, Height, checker, tagmask);
+          result := (mapGrid.forEachInAABB(X, Y, Width, Height, checker, tagmask) <> nil);
         end
         else
         begin
           // fast
-          result := mapGrid.forEachInAABB(X, Y, Width, Height, nil, tagmask);
+          result := (mapGrid.forEachInAABB(X, Y, Width, Height, nil, tagmask) <> nil);
         end;
       end;
     end;
@@ -2482,27 +2492,40 @@ end;
 
 
 procedure g_Map_EnableWall(ID: DWORD);
+var
+  pan: TPanel;
 begin
-  with gWalls[ID] do
-  begin
-    Enabled := True;
-    g_Mark(X, Y, Width, Height, MARK_DOOR, True);
-    mapGrid.proxyEnabled[proxyId] := true;
+  pan := gWalls[ID];
+  pan.Enabled := True;
+  g_Mark(pan.X, pan.Y, pan.Width, pan.Height, MARK_DOOR, True);
 
-    if g_Game_IsServer and g_Game_IsNet then MH_SEND_PanelState(PanelType, ID);
-  end;
+  mapGrid.proxyEnabled[pan.proxyId] := true;
+  //if (pan.proxyId >= 0) then mapGrid.proxyEnabled[pan.proxyId] := true
+  //else pan.proxyId := mapGrid.insertBody(pan, pan.X, pan.Y, pan.Width, pan.Height, GridTagDoor);
+
+  if g_Game_IsServer and g_Game_IsNet then MH_SEND_PanelState(gWalls[ID].PanelType, ID);
+
+  {$IFDEF MAP_DEBUG_ENABLED_FLAG}
+  e_WriteLog(Format('wall #%d(%d) enabled (%d)  (%d,%d)-(%d,%d)', [Integer(ID), Integer(pan.proxyId), Integer(mapGrid.proxyEnabled[pan.proxyId]), pan.x, pan.y, pan.width, pan.height]), MSG_NOTIFY);
+  {$ENDIF}
 end;
 
 procedure g_Map_DisableWall(ID: DWORD);
+var
+  pan: TPanel;
 begin
-  with gWalls[ID] do
-  begin
-    Enabled := False;
-    g_Mark(X, Y, Width, Height, MARK_DOOR, False);
-    mapGrid.proxyEnabled[proxyId] := false;
+  pan := gWalls[ID];
+  pan.Enabled := False;
+  g_Mark(pan.X, pan.Y, pan.Width, pan.Height, MARK_DOOR, False);
 
-    if g_Game_IsServer and g_Game_IsNet then MH_SEND_PanelState(PanelType, ID);
-  end;
+  mapGrid.proxyEnabled[pan.proxyId] := false;
+  //if (pan.proxyId >= 0) then begin mapGrid.removeBody(pan.proxyId); pan.proxyId := -1; end;
+
+  if g_Game_IsServer and g_Game_IsNet then MH_SEND_PanelState(pan.PanelType, ID);
+
+  {$IFDEF MAP_DEBUG_ENABLED_FLAG}
+  e_WriteLog(Format('wall #%d(%d) disabled (%d)  (%d,%d)-(%d,%d)', [Integer(ID), Integer(pan.proxyId), Integer(mapGrid.proxyEnabled[pan.proxyId]), pan.x, pan.y, pan.width, pan.height]), MSG_NOTIFY);
+  {$ENDIF}
 end;
 
 procedure g_Map_SwitchTexture(PanelType: Word; ID: DWORD; AnimLoop: Byte = 0);
@@ -2930,14 +2953,14 @@ begin
   topx := x;
   topy := y;
   // started outside of the liquid?
-  if not mapGrid.forEachAtPoint(x, y, nil, MaskLiquid) then begin result := false; exit; end;
+  if (mapGrid.forEachAtPoint(x, y, nil, MaskLiquid) = nil) then begin result := false; exit; end;
   if (dx = 0) and (dy = 0) then begin result := false; exit; end; // sanity check
   result := true;
   while true do
   begin
     Inc(x, dx);
     Inc(y, dy);
-    if not mapGrid.forEachAtPoint(x, y, nil, MaskLiquid) then exit; // out of the water, just exit
+    if (mapGrid.forEachAtPoint(x, y, nil, MaskLiquid) = nil) then exit; // out of the water, just exit
     topx := x;
     topy := y;
   end;

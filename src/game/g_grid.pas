@@ -29,6 +29,7 @@ type
     type TGridRayQueryCB = function (obj: ITP; tag: Integer; x, y, prevx, prevy: Integer): Boolean is nested; // return `true` to stop
 
     const TagDisabled = $40000000;
+    const TagFullMask = $3fffffff;
 
   private
     const
@@ -43,7 +44,7 @@ type
         mX, mY, mWidth, mHeight: Integer; // aabb
         mQueryMark: LongWord; // was this object visited at this query?
         mObj: ITP;
-        mTag: Integer;
+        mTag: Integer; // `TagDisabled` set: disabled ;-)
         nextLink: TBodyProxyId; // next free or nothing
 
       private
@@ -56,7 +57,7 @@ type
         next: Integer; // in this cell; index in mCells
       end;
 
-      TGridInternalCB = function (grida: Integer): Boolean of object; // return `true` to stop
+      TGridInternalCB = function (grida: Integer; bodyId: TBodyProxyId): Boolean of object; // return `true` to stop
 
   private
     mTileSize: Integer;
@@ -72,10 +73,6 @@ type
     mProxyCount: Integer; // currently used
     mProxyMaxCount: Integer;
 
-    mUData: TBodyProxyId; // for inserter/remover
-    mTagMask: Integer; // for iterator
-    mItCB: TGridQueryCB; // for iterator
-
   private
     function allocCell: Integer;
     procedure freeCell (idx: Integer); // `next` is simply overwritten
@@ -83,13 +80,13 @@ type
     function allocProxy (aX, aY, aWidth, aHeight: Integer; aObj: ITP; aTag: Integer): TBodyProxyId;
     procedure freeProxy (body: TBodyProxyId);
 
-    procedure insert (body: TBodyProxyId);
-    procedure remove (body: TBodyProxyId);
+    procedure insertInternal (body: TBodyProxyId);
+    procedure removeInternal (body: TBodyProxyId);
 
-    function forGridRect (x, y, w, h: Integer; cb: TGridInternalCB): Boolean;
+    function forGridRect (x, y, w, h: Integer; cb: TGridInternalCB; bodyId: TBodyProxyId): Boolean;
 
-    function inserter (grida: Integer): Boolean;
-    function remover (grida: Integer): Boolean;
+    function inserter (grida: Integer; bodyId: TBodyProxyId): Boolean;
+    function remover (grida: Integer; bodyId: TBodyProxyId): Boolean;
 
     function getProxyEnabled (pid: TBodyProxyId): Boolean; inline;
     procedure setProxyEnabled (pid: TBodyProxyId; val: Boolean); inline;
@@ -98,7 +95,7 @@ type
     constructor Create (aMinPixX, aMinPixY, aPixWidth, aPixHeight: Integer; aTileSize: Integer=GridDefaultTileSize);
     destructor Destroy (); override;
 
-    function insertBody (aObj: ITP; ax, ay, aWidth, aHeight: Integer; aTag: Integer=0): TBodyProxyId;
+    function insertBody (aObj: ITP; ax, ay, aWidth, aHeight: Integer; aTag: Integer=-1): TBodyProxyId;
     procedure removeBody (aObj: TBodyProxyId); // WARNING! this WILL destroy proxy!
 
     procedure moveBody (body: TBodyProxyId; dx, dy: Integer);
@@ -107,19 +104,22 @@ type
 
     function insideGrid (x, y: Integer): Boolean; inline;
 
-    //WARNING: can't do recursive queries
+    //WARNING: don't modify grid while any query is in progress (no checks are made!)
+    //         you can set enabled/disabled flag, tho (but iterator can still return objects disabled inside it)
     // no callback: return `true` on the first hit
-    function forEachInAABB (x, y, w, h: Integer; cb: TGridQueryCB; tagmask: Integer=-1): Boolean;
+    function forEachInAABB (x, y, w, h: Integer; cb: TGridQueryCB; tagmask: Integer=-1; allowDisabled: Boolean=false): ITP;
 
-    //WARNING: can't do recursive queries
+    //WARNING: don't modify grid while any query is in progress (no checks are made!)
+    //         you can set enabled/disabled flag, tho (but iterator can still return objects disabled inside it)
     // no callback: return `true` on the first hit
-    function forEachAtPoint (x, y: Integer; cb: TGridQueryCB; tagmask: Integer=-1): Boolean;
+    function forEachAtPoint (x, y: Integer; cb: TGridQueryCB; tagmask: Integer=-1): ITP;
 
-    //WARNING: can't do recursive queries
+    //WARNING: don't modify grid while any query is in progress (no checks are made!)
+    //         you can set enabled/disabled flag, tho (but iterator can still return objects disabled inside it)
     // cb with `(nil)` will be called before processing new tile
     // no callback: return `true` on the nearest hit
-    function traceRay (x0, y0, x1, y1: Integer; cb: TGridRayQueryCB; tagmask: Integer=-1): Boolean; overload;
-    function traceRay (out ex, ey: Integer; x0, y0, x1, y1: Integer; cb: TGridRayQueryCB; tagmask: Integer=-1): Boolean;
+    function traceRay (x0, y0, x1, y1: Integer; cb: TGridRayQueryCB; tagmask: Integer=-1): ITP; overload;
+    function traceRay (out ex, ey: Integer; x0, y0, x1, y1: Integer; cb: TGridRayQueryCB; tagmask: Integer=-1): ITP;
 
     procedure dumpStats ();
 
@@ -183,9 +183,6 @@ begin
   mProxyFree := 0;
   mProxyCount := 0;
   mProxyMaxCount := 0;
-  mUData := 0;
-  mTagMask := -1;
-  mItCB := nil;
   e_WriteLog(Format('created grid with size: %dx%d (tile size: %d); pix: %dx%d', [mWidth, mHeight, mTileSize, mWidth*mTileSize, mHeight*mTileSize]), MSG_NOTIFY);
 end;
 
@@ -244,7 +241,7 @@ begin
     end
     else
     begin
-      mProxies[pid].mTag := mProxies[pid].mTag or TagDisabled
+      mProxies[pid].mTag := mProxies[pid].mTag or TagDisabled;
     end;
   end;
 end;
@@ -326,7 +323,7 @@ begin
 end;
 
 
-function TBodyGridBase.forGridRect (x, y, w, h: Integer; cb: TGridInternalCB): Boolean;
+function TBodyGridBase.forGridRect (x, y, w, h: Integer; cb: TGridInternalCB; bodyId: TBodyProxyId): Boolean;
 var
   gx, gy: Integer;
   gw, gh, tsize: Integer;
@@ -350,14 +347,14 @@ begin
     begin
       if (gx < 0) then continue;
       if (gx >= gw) then break;
-      result := cb(gy*gw+gx);
+      result := cb(gy*gw+gx, bodyId);
       if result then exit;
     end;
   end;
 end;
 
 
-function TBodyGridBase.inserter (grida: Integer): Boolean;
+function TBodyGridBase.inserter (grida: Integer; bodyId: TBodyProxyId): Boolean;
 var
   cidx: Integer;
   pc: Integer;
@@ -376,7 +373,7 @@ begin
       if (pi.bodies[f] = -1) then
       begin
         // can add here
-        pi.bodies[f] := mUData;
+        pi.bodies[f] := bodyId;
         if (f+1 < Length(TGridCell.bodies)) then pi.bodies[f+1] := -1;
         exit;
       end;
@@ -384,25 +381,24 @@ begin
   end;
   // either no room, or no cell at all
   cidx := allocCell();
-  mCells[cidx].bodies[0] := mUData;
+  mCells[cidx].bodies[0] := bodyId;
   mCells[cidx].bodies[1] := -1;
   mCells[cidx].next := pc;
   mGrid[grida] := cidx;
 end;
 
-
-procedure TBodyGridBase.insert (body: TBodyProxyId);
+procedure TBodyGridBase.insertInternal (body: TBodyProxyId);
 var
   px: PBodyProxyRec;
 begin
   if (body < 0) or (body > High(mProxies)) then exit; // just in case
   px := @mProxies[body];
-  mUData := body;
-  forGridRect(px.mX, px.mY, px.mWidth, px.mHeight, inserter);
+  forGridRect(px.mX, px.mY, px.mWidth, px.mHeight, inserter, body);
 end;
 
 
-function TBodyGridBase.remover (grida: Integer): Boolean;
+// absolutely not tested
+function TBodyGridBase.remover (grida: Integer; bodyId: TBodyProxyId): Boolean;
 var
   f: Integer;
   pidx, idx, tmp: Integer;
@@ -419,7 +415,7 @@ begin
     f := 0;
     while (f < High(TGridCell.bodies)) do
     begin
-      if (pc.bodies[f] = mUData) then
+      if (pc.bodies[f] = bodyId) then
       begin
         // i found her!
         if (f = 0) and (pc.bodies[1] = -1) then
@@ -450,30 +446,29 @@ begin
   end;
 end;
 
-
 // absolutely not tested
-procedure TBodyGridBase.remove (body: TBodyProxyId);
+procedure TBodyGridBase.removeInternal (body: TBodyProxyId);
 var
   px: PBodyProxyRec;
 begin
   if (body < 0) or (body > High(mProxies)) then exit; // just in case
   px := @mProxies[body];
-  mUData := body;
-  forGridRect(px.mX, px.mY, px.mWidth, px.mHeight, remover);
+  forGridRect(px.mX, px.mY, px.mWidth, px.mHeight, remover, body);
 end;
 
 
-function TBodyGridBase.insertBody (aObj: ITP; aX, aY, aWidth, aHeight: Integer; aTag: Integer=0): TBodyProxyId;
+function TBodyGridBase.insertBody (aObj: ITP; aX, aY, aWidth, aHeight: Integer; aTag: Integer=-1): TBodyProxyId;
 begin
+  aTag := aTag and TagFullMask;
   result := allocProxy(aX, aY, aWidth, aHeight, aObj, aTag);
-  insert(result);
+  insertInternal(result);
 end;
 
 
 procedure TBodyGridBase.removeBody (aObj: TBodyProxyId);
 begin
   if (aObj < 0) or (aObj > High(mProxies)) then exit; // just in case
-  remove(aObj);
+  removeInternal(aObj);
   freeProxy(aObj);
 end;
 
@@ -484,13 +479,13 @@ var
 begin
   if (body < 0) or (body > High(mProxies)) then exit; // just in case
   if ((dx = 0) and (dy = 0) and (sx = 0) and (sy = 0)) then exit;
-  remove(body);
+  removeInternal(body);
   px := @mProxies[body];
   Inc(px.mX, dx);
   Inc(px.mY, dy);
   Inc(px.mWidth, sx);
   Inc(px.mHeight, sy);
-  insert(body);
+  insertInternal(body);
 end;
 
 procedure TBodyGridBase.moveBody (body: TBodyProxyId; dx, dy: Integer);
@@ -506,7 +501,7 @@ end;
 
 // ////////////////////////////////////////////////////////////////////////// //
 // no callback: return `true` on the first hit
-function TBodyGridBase.forEachAtPoint (x, y: Integer; cb: TGridQueryCB; tagmask: Integer=-1): Boolean;
+function TBodyGridBase.forEachAtPoint (x, y: Integer; cb: TGridQueryCB; tagmask: Integer=-1): ITP;
 var
   f: Integer;
   idx, curci: Integer;
@@ -515,7 +510,8 @@ var
   lq: LongWord;
   ptag: Integer;
 begin
-  result := false;
+  result := Default(ITP);
+  tagmask := tagmask and TagFullMask;
   if (tagmask = 0) then exit;
 
   // make coords (0,0)-based
@@ -545,16 +541,20 @@ begin
     begin
       if (cc.bodies[f] = -1) then break;
       px := @mProxies[cc.bodies[f]];
-      if (px.mQueryMark <> lq) then
+      ptag := px.mTag;
+      if ((ptag and TagDisabled) = 0) and ((ptag and tagmask) <> 0) and (px.mQueryMark <> lq) then
       begin
-        ptag := px.mTag;
-        if ((ptag and TagDisabled) = 0) and ((px.mTag and tagmask) <> 0) then
+        if (x >= px.mX) and (y >= px.mY) and (x < px.mX+px.mWidth) and (y < px.mY+px.mHeight) then
         begin
-          if (x >= px.mX) and (y >= px.mY) and (x < px.mX+px.mWidth) and (y < px.mY+px.mHeight) then
+          px.mQueryMark := lq;
+          if assigned(cb) then
           begin
-            px.mQueryMark := lq;
-            if assigned(cb) then result := cb(px.mObj, px.mTag) else result := true;
-            if result then exit;
+            if cb(px.mObj, ptag) then begin result := px.mObj; exit; end;
+          end
+          else
+          begin
+            result := px.mObj;
+            exit;
           end;
         end;
       end;
@@ -565,7 +565,7 @@ end;
 
 
 // no callback: return `true` on the first hit
-function TBodyGridBase.forEachInAABB (x, y, w, h: Integer; cb: TGridQueryCB; tagmask: Integer=-1): Boolean;
+function TBodyGridBase.forEachInAABB (x, y, w, h: Integer; cb: TGridQueryCB; tagmask: Integer=-1; allowDisabled: Boolean=false): ITP;
 var
   idx: Integer;
   gx, gy: Integer;
@@ -578,8 +578,10 @@ var
   x0, y0: Integer;
   ptag: Integer;
 begin
-  result := false;
+  result := Default(ITP);
   if (w < 1) or (h < 1) then exit;
+  tagmask := tagmask and TagFullMask;
+  if (tagmask = 0) then exit;
 
   x0 := x;
   y0 := y;
@@ -623,16 +625,23 @@ begin
         begin
           if (cc.bodies[f] = -1) then break;
           px := @mProxies[cc.bodies[f]];
-          if (px.mQueryMark <> lq) then
+          ptag := px.mTag;
+          if (not allowDisabled) and ((ptag and TagDisabled) <> 0) then continue;
+          if ((ptag and tagmask) <> 0) and (px.mQueryMark <> lq) then
+          //if ((ptag and TagDisabled) = 0) and ((ptag and tagmask) <> 0) and (px.mQueryMark <> lq) then
+          //if ( ((ptag and TagDisabled) = 0) = ignoreDisabled) and ((ptag and tagmask) <> 0) and (px.mQueryMark <> lq) then
           begin
-            ptag := px.mTag;
-            if ((ptag and TagDisabled) = 0) and ((px.mTag and tagmask) <> 0) then
+            if (x0 >= px.mX+px.mWidth) or (y0 >= px.mY+px.mHeight) then continue;
+            if (x0+w <= px.mX) or (y0+h <= px.mY) then continue;
+            px.mQueryMark := lq;
+            if assigned(cb) then
             begin
-              if (x0 >= px.mX+px.mWidth) or (y0 >= px.mY+px.mHeight) then continue;
-              if (x0+w <= px.mX) or (y0+h <= px.mY) then continue;
-              px.mQueryMark := lq;
-              if assigned(cb) then result := cb(px.mObj, px.mTag) else result := true;
-              if result then exit;
+              if cb(px.mObj, ptag) then begin result := px.mObj; exit; end;
+            end
+            else
+            begin
+              result := px.mObj;
+              exit;
             end;
           end;
         end;
@@ -645,7 +654,7 @@ end;
 
 // ////////////////////////////////////////////////////////////////////////// //
 // no callback: return `true` on the nearest hit
-function TBodyGridBase.traceRay (x0, y0, x1, y1: Integer; cb: TGridRayQueryCB; tagmask: Integer=-1): Boolean;
+function TBodyGridBase.traceRay (x0, y0, x1, y1: Integer; cb: TGridRayQueryCB; tagmask: Integer=-1): ITP;
 var
   ex, ey: Integer;
 begin
@@ -654,7 +663,7 @@ end;
 
 
 // no callback: return `true` on the nearest hit
-function TBodyGridBase.traceRay (out ex, ey: Integer; x0, y0, x1, y1: Integer; cb: TGridRayQueryCB; tagmask: Integer=-1): Boolean;
+function TBodyGridBase.traceRay (out ex, ey: Integer; x0, y0, x1, y1: Integer; cb: TGridRayQueryCB; tagmask: Integer=-1): ITP;
 var
   i: Integer;
   dx, dy: Integer;
@@ -680,18 +689,21 @@ var
   ptag: Integer;
   lastDistSq, distSq: Integer;
   wasHit: Boolean = false;
+  lastObj: ITP;
+  lastWasInGrid: Boolean = false;
 begin
-  result := false;
-
+  result := Default(ITP);
+  lastObj := Default(ITP);
+  tagmask := tagmask and TagFullMask;
   if (tagmask = 0) then begin ex := x0; ey := y0; exit; end;
 
   // make coords (0,0)-based
   minx := mMinX;
   miny := mMinY;
-  Dec(x0, minx);
-  Dec(y0, miny);
-  Dec(x1, minx);
-  Dec(y1, miny);
+  //Dec(x0, minx);
+  //Dec(y0, miny);
+  //Dec(x1, minx);
+  //Dec(y1, miny);
 
   dx := x1-x0;
   dy := y1-y0;
@@ -704,8 +716,9 @@ begin
 
   if (dx > dy) then d := dx else d := dy;
 
-  x := x0;
-  y := y0;
+  // `x` and `y` will be in grid coords
+  x := x0-minx;
+  y := y0-miny;
 
   // increase query counter
   Inc(mLastQuery);
@@ -723,38 +736,72 @@ begin
   maxx := gw*tsize-1;
   maxy := gh*tsize-1;
   lastDistSq := (x1-x0)*(x1-x0)+(y1-y0)*(y1-y0)+1;
+  lastWasInGrid := (x >= 0) and (y >= 0) and (x <= maxx) and (y <= maxy);
 
   for i := 1 to d do
   begin
+    // prevs are always in map coords
     prevX := x+minx;
     prevY := y+miny;
-    Inc(xerr, dx); if (xerr >= d) then begin Dec(xerr, d); Inc(x, incx); end;
-    Inc(yerr, dy); if (yerr >= d) then begin Dec(yerr, d); Inc(y, incy); end;
+    // do one step
+    xerr += dx; if (xerr >= d) then begin xerr -= d; x += incx; end;
+    yerr += dy; if (yerr >= d) then begin yerr -= d; y += incy; end;
 
+    // check for new tile
     if (x >= 0) and (y >= 0) and (x <= maxx) and (y <= maxy) then
     begin
       ga := (y div tsize)*gw+(x div tsize);
       if (lastGA <> ga) then
       begin
         // new cell
+        lastWasInGrid := true; // do it here, yeah
         lastGA := ga;
+        // had something in the cell we're leaving?
+        if (ccidx <> -1) then
+        begin
+          // yes, signal cell completion
+          if assigned(cb) then
+          begin
+            if cb(nil, 0, x+minx, y+miny, prevX, prevY) then begin result := lastObj; exit; end;
+          end
+          else if wasHit then
+          begin
+            result := lastObj;
+            exit;
+          end;
+        end;
+        // have something in this cell?
         ccidx := mGrid[lastGA];
       end;
     end
     else
     begin
+      // out of grid, had something in the cell we're last processed?
       if (ccidx <> -1) then
       begin
+        // yes, signal cell completion
         ccidx := -1;
-        if assigned(cb) then result := cb(nil, 0, x+minx, y+miny, prevX, prevY) else result := wasHit;
-        if result then exit;
+        if assigned(cb) then
+        begin
+          if cb(nil, 0, x+minx, y+miny, prevX, prevY) then begin result := lastObj; exit; end;
+        end
+        else if wasHit then
+        begin
+          result := lastObj;
+          exit;
+        end;
       end;
+      if lastWasInGrid then exit; // oops, stepped out of the grid -- there is no way to return
+      //lastWasInGrid := false;
     end;
 
+    // has something to process in the current cell?
     if (ccidx <> -1) then
     begin
+      // process cell
       curci := ccidx;
-      hasUntried := false;
+      hasUntried := false; // this will be set to `true` if we have some panels we still want to process at the next step
+      // convert coords to map
       Inc(x, minx);
       Inc(y, miny);
       while (curci <> -1) do
@@ -764,47 +811,63 @@ begin
         begin
           if (cc.bodies[f] = -1) then break;
           px := @mProxies[cc.bodies[f]];
-          if (px.mQueryMark <> lq) then
+          ptag := px.mTag;
+          if ((ptag and TagDisabled) = 0) and ((ptag and tagmask) <> 0) and (px.mQueryMark <> lq) then
           begin
-            ptag := px.mTag;
-            if ((ptag and TagDisabled) = 0) and ((px.mTag and tagmask) <> 0) then
+            // can we process this wall?
+            if (x >= px.mX) and (y >= px.mY) and (x < px.mX+px.mWidth) and (y < px.mY+px.mHeight) then
             begin
-              if (x >= px.mX) and (y >= px.mY) and (x < px.mX+px.mWidth) and (y < px.mY+px.mHeight) then
+              px.mQueryMark := lq; // mark as processed
+              if assigned(cb) then
               begin
-                px.mQueryMark := lq;
-                if assigned(cb) then
+                if cb(px.mObj, ptag, x, y, prevX, prevY) then
                 begin
-                  result := cb(px.mObj, px.mTag, x, y, prevX, prevY);
-                  if result then begin ex := prevX; ey := prevY; exit; end;
-                end
-                else
-                begin
-                  distSq := (prevX-x)*(prevX-x)+(prevY-y)*(prevY-y);
-                  if (distSq < lastDistSq) then
-                  begin
-                    wasHit := true;
-                    lastDistSq := distSq;
-                    ex := prevx;
-                    ey := prevy;
-                  end;
+                  result := lastObj;
+                  ex := prevX;
+                  ey := prevY;
+                  exit;
                 end;
               end
               else
               begin
-                hasUntried := true;
+                // remember this hitpoint if it is nearer than an old one
+                distSq := (prevX-x0)*(prevX-x0)+(prevY-y0)*(prevY-y0);
+                if (distSq < lastDistSq) then
+                begin
+                  wasHit := true;
+                  lastDistSq := distSq;
+                  ex := prevX;
+                  ey := prevY;
+                  lastObj := px.mObj;
+                end;
               end;
+            end
+            else
+            begin
+              // this is possibly interesting wall, set "has more to check" flag
+              hasUntried := true;
             end;
           end;
         end;
+        // next cell
         curci := cc.next;
       end;
+      // still has something interesting in this cell?
       if not hasUntried then
       begin
-        // don't process this cell anymore
+        // nope, don't process this cell anymore; signal cell completion
         ccidx := -1;
-        if assigned(cb) then result := cb(nil, 0, x, y, prevX, prevY) else result := wasHit;
-        if result then exit; // don't update lasthit: it is done in real checker
+        if assigned(cb) then
+        begin
+          if cb(nil, 0, x, y, prevX, prevY) then begin result := lastObj; exit; end;
+        end
+        else if wasHit then
+        begin
+          result := lastObj;
+          exit;
+        end;
       end;
+      // convert coords to grid
       Dec(x, minx);
       Dec(y, miny);
     end;

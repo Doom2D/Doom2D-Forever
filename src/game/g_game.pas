@@ -313,6 +313,7 @@ var
   g_profile_frame_update: Boolean = false;
   g_profile_frame_draw: Boolean = false;
   g_profile_collision: Boolean = false;
+  g_profile_los: Boolean = false;
   g_profile_history_size: Integer = 1000;
 
 procedure g_ResetDynlights ();
@@ -2932,9 +2933,11 @@ end;
 procedure drawProfilers ();
 var
   px: Integer = -1;
+  py: Integer = -1;
 begin
-  if g_profile_frame_draw then px := px-drawProfiles(px, -1, profileFrameDraw);
-  if g_profile_collision then px := px-drawProfiles(px, -1, profMapCollision);
+  if g_profile_frame_draw then px := px-drawProfiles(px, py, profileFrameDraw);
+  if g_profile_collision then begin px := px-drawProfiles(px, py, profMapCollision); py -= calcProfilesHeight(profMonsLOS); end;
+  if g_profile_los then begin px := px-drawProfiles(px, py, profMonsLOS); py -= calcProfilesHeight(profMonsLOS); end;
 end;
 
 procedure g_Game_Draw();
@@ -4965,6 +4968,7 @@ begin
   if (cmd = 'pf_draw_frame') then begin binaryFlag(g_profile_frame_draw, 'render profiles'); exit; end;
   if (cmd = 'pf_update_frame') then begin binaryFlag(g_profile_frame_update, 'update profiles (not yet)'); exit; end;
   if (cmd = 'pf_coldet') then begin binaryFlag(g_profile_collision, 'coldet profiles'); exit; end;
+  if (cmd = 'pf_los') then begin binaryFlag(g_profile_los, 'monster LOS profiles'); exit; end;
   if (cmd = 'r_sq_draw') then begin binaryFlag(gdbg_map_use_accel_render, 'accelerated rendering'); exit; end;
   if (cmd = 'cd_sq_enabled') then begin binaryFlag(gdbg_map_use_accel_coldet, 'accelerated map coldet'); exit; end;
   if (cmd = 'mon_sq_enabled') then begin binaryFlag(gmon_debug_use_sqaccel, 'accelerated monster coldet'); exit; end;
@@ -6799,12 +6803,6 @@ var
   F: TextFile;
 begin
   Parse_Params(pars);
-
-  s := Find_Param_Value(pars, '--profile-render');
-  if (s <> '') then g_profile_frame_draw := true;
-
-  s := Find_Param_Value(pars, '--profile-coldet');
-  if (s <> '') then g_profile_collision := true;
 
 // Debug mode:
   s := Find_Param_Value(pars, '--debug');

@@ -20,7 +20,7 @@ interface
 
 uses
   g_basic, e_graphics, g_phys, g_textures,
-  g_saveload, BinEditor, g_panel, z_aabbtree;
+  g_saveload, BinEditor, g_panel, z_aabbtree, xprofiler;
 
 const
   MONSTATE_SLEEP  = 0;
@@ -214,6 +214,17 @@ var
   gmon_debug_use_sqaccel: Boolean = true;
 
 
+//HACK!
+procedure g_Mons_ProfilersBegin ();
+procedure g_Mons_ProfilersEnd ();
+
+procedure g_Mons_LOS_Start (); inline;
+procedure g_Mons_LOS_End (); inline;
+
+var
+  profMonsLOS: TProfiler = nil; //WARNING: FOR DEBUGGING ONLY!
+
+
 implementation
 
 uses
@@ -221,6 +232,34 @@ uses
   g_weapons, g_triggers, MAPDEF, g_items, g_options,
   g_console, g_map, Math, SysUtils, g_menu, wadreader,
   g_language, g_netmsg;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
+procedure g_Mons_ProfilersBegin ();
+begin
+  if (profMonsLOS = nil) then profMonsLOS := TProfiler.Create('LOS CALC', g_profile_history_size);
+  profMonsLOS.mainBegin(g_profile_los);
+  if g_profile_los then
+  begin
+    profMonsLOS.sectionBegin('loscalc');
+    profMonsLOS.sectionEnd();
+  end;
+end;
+
+procedure g_Mons_ProfilersEnd ();
+begin
+  if (profMonsLOS <> nil) and (g_profile_los) then profMapCollision.mainEnd();
+end;
+
+procedure g_Mons_LOS_Start (); inline;
+begin
+  profMonsLOS.sectionBeginAccum('loscalc');
+end;
+
+procedure g_Mons_LOS_End (); inline;
+begin
+  profMonsLOS.sectionEnd();
+end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //

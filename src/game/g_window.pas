@@ -48,7 +48,7 @@ uses
   SDL2, GL, GLExt, e_graphics, e_log, g_main,
   g_console, SysUtils, e_input, g_options, g_game,
   g_basic, g_textures, e_sound, g_sound, g_menu, ENet, g_net,
-  g_map, g_gfx;
+  g_map, g_gfx, g_monsters;
 
 var
   h_Wnd: PSDL_Window;
@@ -579,6 +579,7 @@ begin
   end;
 
   g_Map_ProfilersBegin();
+  g_Mons_ProfilersBegin();
 
   t := Time_Delta div 28{(27777 div 1000)};
   if t > 0 then
@@ -598,6 +599,7 @@ begin
   end;
 
   g_Map_ProfilersEnd();
+  g_Mons_ProfilersEnd();
 
   if wLoadingQuit then
   begin
@@ -715,6 +717,10 @@ begin
     //if ParamStr(idx) = '--grid-coldet' then gdbg_map_use_tree_coldet := false;
     if ParamStr(idx) = '--no-particles' then gpart_dbg_enabled := false;
     if ParamStr(idx) = '--no-los' then gmon_dbg_los_enabled := false;
+
+    if ParamStr(idx) = '--profile-render' then g_profile_frame_draw := true;
+    if ParamStr(idx) = '--profile-coldet' then g_profile_collision := true;
+    if ParamStr(idx) = '--profile-los' then g_profile_los := true;
 
     if ParamStr(idx) = '--no-part-phys' then gpart_dbg_phys_enabled := false;
     if ParamStr(idx) = '--no-part-physics' then gpart_dbg_phys_enabled := false;

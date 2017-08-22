@@ -95,8 +95,8 @@ var
 implementation
 
 uses
-  Math, g_map, g_gfx, g_player, SysUtils, MAPDEF,
-  StrUtils, e_graphics, g_monsters, g_items;
+  Math, e_log, g_map, g_gfx, g_player, SysUtils, MAPDEF,
+  StrUtils, e_graphics, g_monsters, g_items, g_game;
 
 function g_PatchLength(X1, Y1, X2, Y2: Integer): Word;
 begin
@@ -205,17 +205,10 @@ begin
   Result := True;
   *)
 
-  result := false;
-  if g_Map_traceToNearestWall(x1, y1, x2, y2, @wallHitX, @wallHitY) then
-  begin
-    // check distance
-    //result := ((wallHitX-x1)*(wallHitX-x1)+(wallHitY-y1)*(wallHitY-y1) > (x2-x1)*(x2-x1)+(y2-y1)*(y2-y1));
-    result := false;
-  end
-  else
-  begin
-    result := true; // no obstacles
-  end;
+  // `true` if no obstacles
+  if (g_profile_los) then g_Mons_LOS_Start();
+  result := not g_Map_traceToNearestWall(x1, y1, x2, y2, @wallHitX, @wallHitY);
+  if (g_profile_los) then g_Mons_LOS_End();
 end;
 
 

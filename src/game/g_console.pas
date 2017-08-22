@@ -404,6 +404,7 @@ begin
   AddCommand('pf_draw_frame', ProfilerCommands, 'draw frame rendering profiles');
   //AddCommand('pf_update_frame', ProfilerCommands);
   AddCommand('pf_coldet', ProfilerCommands, 'draw collision detection profiles');
+  AddCommand('pf_los', ProfilerCommands, 'draw monster LOS profiles');
   AddCommand('r_sq_draw', ProfilerCommands, 'accelerated spatial queries in rendering');
   AddCommand('cd_sq_enabled', ProfilerCommands, 'accelerated spatial queries in map coldet');
   AddCommand('mon_sq_enabled', ProfilerCommands, 'use accelerated spatial queries for monsters');
