@@ -128,7 +128,7 @@ uses
   Math, g_map, g_player, g_gfx, g_sound, g_main, g_panel,
   g_console, SysUtils, g_options, g_game,
   g_triggers, MAPDEF, e_log, g_monsters, g_saveload,
-  g_language, g_netmsg,
+  g_language, g_netmsg, g_grid,
   binheap, hashtable;
 
 type
@@ -162,9 +162,10 @@ const
 type
   PHitTime = ^THitTime;
   THitTime = record
-    time: Single;
+    distSq: Integer;
     mon: TMonster;
     plridx: Integer; // if mon=nil
+    x, y: Integer;
   end;
 
   // indicies in `wgunHitTime` array
@@ -172,7 +173,7 @@ type
 
 var
   WaterMap: array of array of DWORD = nil;
-  wgunMonHash: THashIntInt = nil;
+  //wgunMonHash: THashIntInt = nil;
   wgunHitHeap: TBinaryHeapHitTimes = nil;
   wgunHitTime: array of THitTime = nil;
   wgunHitTimeUsed: Integer = 0;
@@ -180,8 +181,8 @@ var
 
 function hitTimeCompare (a, b: Integer): Boolean;
 begin
-  if (wgunHitTime[a].time < wgunHitTime[b].time) then begin result := true; exit; end;
-  if (wgunHitTime[a].time > wgunHitTime[b].time) then begin result := false; exit; end;
+  if (wgunHitTime[a].distSq < wgunHitTime[b].distSq) then begin result := true; exit; end;
+  if (wgunHitTime[a].distSq > wgunHitTime[b].distSq) then begin result := false; exit; end;
   if (wgunHitTime[a].mon <> nil) then
   begin
     // a is monster
@@ -197,23 +198,33 @@ begin
 end;
 
 
-procedure appendHitTimeMon (time: Single; mon: TMonster);
+procedure appendHitTimeMon (adistSq: Integer; amon: TMonster; ax, ay: Integer);
 begin
   if (wgunHitTimeUsed = Length(wgunHitTime)) then SetLength(wgunHitTime, wgunHitTimeUsed+128);
-  wgunHitTime[wgunHitTimeUsed].time := time;
-  wgunHitTime[wgunHitTimeUsed].mon := mon;
-  wgunHitTime[wgunHitTimeUsed].plridx := -1;
+  with wgunHitTime[wgunHitTimeUsed] do
+  begin
+    distSq := adistSq;
+    mon := amon;
+    plridx := -1;
+    x := ax;
+    y := ay;
+  end;
   wgunHitHeap.insert(wgunHitTimeUsed);
   Inc(wgunHitTimeUsed);
 end;
 
 
-procedure appendHitTimePlr (time: Single; plridx: Integer);
+procedure appendHitTimePlr (adistSq: Integer; aplridx: Integer; ax, ay: Integer);
 begin
   if (wgunHitTimeUsed = Length(wgunHitTime)) then SetLength(wgunHitTime, wgunHitTimeUsed+128);
-  wgunHitTime[wgunHitTimeUsed].time := time;
-  wgunHitTime[wgunHitTimeUsed].mon := nil;
-  wgunHitTime[wgunHitTimeUsed].plridx := plridx;
+  with wgunHitTime[wgunHitTimeUsed] do
+  begin
+    distSq := adistSq;
+    mon := nil;
+    plridx := aplridx;
+    x := ax;
+    y := ay;
+  end;
   wgunHitHeap.insert(wgunHitTimeUsed);
   Inc(wgunHitTimeUsed);
 end;
@@ -1151,7 +1162,7 @@ begin
   g_Texture_CreateWADEx('TEXTURE_SHELL_BULLET', GameWAD+':TEXTURES\EBULLET');
   g_Texture_CreateWADEx('TEXTURE_SHELL_SHELL', GameWAD+':TEXTURES\ESHELL');
 
-  wgunMonHash := hashNewIntInt();
+  //wgunMonHash := hashNewIntInt();
   wgunHitHeap := TBinaryHeapHitTimes.Create(hitTimeCompare);
 end;
 
@@ -1369,13 +1380,12 @@ end;
 
 //!!!FIXME!!!
 procedure g_Weapon_gun (const x, y, xd, yd, v, dmg: Integer; SpawnerUID: Word; CheckTrigger: Boolean);
-(*
 var
-  hitray: Ray2D;
+  x2, y2: Integer;
   xi, yi: Integer;
-  wallDistSq: Single = 1.0e100;
+  wallDistSq: Integer = $3fffffff;
 
-  function doPlayerHit (idx: Integer): Boolean;
+  function doPlayerHit (idx: Integer; hx, hy: Integer): Boolean;
   begin
     result := false;
     if (idx < 0) or (idx > High(gPlayers)) then exit;
@@ -1387,7 +1397,7 @@ var
     {$ENDIF}
   end;
 
-  function doMonsterHit (mon: TMonster): Boolean;
+  function doMonsterHit (mon: TMonster; hx, hy: Integer): Boolean;
   begin
     result := false;
     if (mon = nil) then exit;
@@ -1403,47 +1413,52 @@ var
   function playerPossibleHit (): Boolean;
   var
     i: Integer;
-    aabb: AABB2D;
-    tmin: Single;
+    px, py, pw, ph: Integer;
+    inx, iny: Integer;
+    distSq: Integer;
+    plr: TPlayer;
   begin
     result := false;
     for i := 0 to High(gPlayers) do
     begin
-      if (gPlayers[i] <> nil) and gPlayers[i].Live then
+      plr := gPlayers[i];
+      if (plr <> nil) and plr.Live then
       begin
-        aabb := gPlayers[i].mapAABB;
-        // inside?
-        if aabb.contains(x, y) then
+        plr.getMapBox(px, py, pw, ph);
+        if lineAABBIntersects(x, y, x2, y2, px, py, pw, ph, inx, iny) then
         begin
-          if doPlayerHit(i) then begin result := true; exit; end;
-        end
-        else if (aabb.intersects(hitray, @tmin)) then
-        begin
-          // intersect
-          if (tmin <= 0.0) then
+          distSq := distanceSq(x, y, inx, iny);
+          if (distSq = 0) then
           begin
-            if doPlayerHit(i) then begin result := true; exit; end;
+            // contains
+            if doPlayerHit(i, x, y) then begin result := true; exit; end;
           end
-          else
+          else if (distSq < wallDistSq) then
           begin
-            if (tmin*tmin < wallDistSq) then appendHitTimePlr(tmin, i);
+            appendHitTimePlr(distSq, i, inx, iny);
           end;
         end;
       end;
     end;
   end;
 
-  function sqchecker (mon: TMonster; dist: Single): Boolean;
+  function sqchecker (mon: TMonster; tag: Integer): Boolean;
+  var
+    mx, my, mw, mh: Integer;
+    inx, iny: Integer;
+    distSq: Integer;
   begin
     result := false; // don't stop
-    if (dist*dist < wallDistSq) then appendHitTimeMon(dist, mon);
+    mon.getMapBox(mx, my, mw, mh);
+    if lineAABBIntersects(x, y, x2, y2, mx, my, mw, mh, inx, iny) then
+    begin
+      distSq := distanceSq(x, y, inx, iny);
+      if (distSq < wallDistSq) then appendHitTimeMon(distanceSq(x, y, inx, iny), mon, inx, iny);
+    end;
   end;
-*)
 
-(*
 var
   a: Integer;
-  x2, y2: Integer;
   dx, dy: Integer;
   xe, ye: Integer;
   s, c: Extended;
@@ -1455,7 +1470,6 @@ var
   {$IF DEFINED(D2F_DEBUG)}
   stt: UInt64;
   {$ENDIF}
-*)
 begin
   (*
   if not gwep_debug_fast_trace then
@@ -1465,8 +1479,7 @@ begin
   end;
   *)
 
-(*
-  wgunMonHash.reset(); //FIXME: clear hash on level change
+  //wgunMonHash.reset(); //FIXME: clear hash on level change
   wgunHitHeap.clear();
   wgunHitTimeUsed := 0;
 
@@ -1498,15 +1511,13 @@ begin
   begin
     x2 := wallHitX;
     y2 := wallHitY;
-    wallDistSq := (wallHitX-x)*(wallHitX-x)+(wallHitY-y)*(wallHitY-y);
+    wallDistSq := distanceSq(x, y, wallHitX, wallHitY);
   end
   else
   begin
     wallHitX := x2;
     wallHitY := y2;
   end;
-
-  hitray := Ray2D.Create(x, y, x2, y2);
 
   if playerPossibleHit() then exit; // instant hit
 
@@ -1520,15 +1531,16 @@ begin
     // has some entities to check, do it
     i := wgunHitHeap.front;
     wgunHitHeap.popFront();
-    hitray.atTime(wgunHitTime[i].time, xe, ye);
+    xe := wgunHitTime[i].x;
+    ye := wgunHitTime[i].y;
     // check if it is not behind the wall
     if (wgunHitTime[i].mon <> nil) then
     begin
-      didHit := doMonsterHit(wgunHitTime[i].mon);
+      didHit := doMonsterHit(wgunHitTime[i].mon, xe, ye);
     end
     else
     begin
-      didHit := doPlayerHit(wgunHitTime[i].plridx);
+      didHit := doPlayerHit(wgunHitTime[i].plridx, xe, ye);
     end;
     if didHit then
     begin
@@ -1559,7 +1571,6 @@ begin
   end;
 
   if CheckTrigger and g_Game_IsServer then g_Triggers_PressL(X, Y, wallHitX, wallHitY, SpawnerUID, ACTIVATE_SHOT);
-*)
 end;
 
 

@@ -206,7 +206,7 @@ function g_Mons_getNewTrapFrameId (): DWord;
 
 
 type
-  TMonsAlongLineCB = function (mon: TMonster; distSq: Integer): Boolean is nested;
+  TMonsAlongLineCB = function (mon: TMonster; tag: Integer): Boolean is nested;
 
 function g_Mons_alongLine (x0, y0, x1, y1: Integer; cb: TMonsAlongLineCB): TMonster;
 
@@ -286,36 +286,9 @@ var
 
 
 function g_Mons_alongLine (x0, y0, x1, y1: Integer; cb: TMonsAlongLineCB): TMonster;
-//!!!FIXME!!!
-{
-  function sqchecker (mon: TMonster; var ray: Ray2D): Single;
-  var
-    aabb: AABB2D;
-    tmin: Single;
-  begin
-    result := -666.0; // invalid
-    aabb := mon.mapAABB;
-    if not aabb.valid then exit;
-    if aabb.intersects(ray, @tmin) then
-    begin
-      if (tmin <= 0.0) then tmin := 0.0;
-      result := tmin;
-      if cb(mon, tmin) then result := 0.0; // instant stop
-    end;
-  end;
-
-var
-  qr: TDynAABBTreeMons.TSegmentQueryResult;
-}
 begin
-  result := nil;
-{
-  if not assigned(cb) then exit;
-  if monsTree.segmentQuery(qr, x0, y0, x1, y1, sqchecker) then
-  begin
-    if (qr.flesh <> nil) then result := qr.flesh;
-  end;
-}
+  if not assigned(cb) then begin result := nil; exit; end;
+  result := monsGrid.forEachAlongLine(x0, y0, x1, y1, cb);
 end;
 
 
@@ -2019,14 +1992,17 @@ begin
 
   if (proxyId <> -1) then
   begin
-    monsGrid.removeBody(proxyId);
-    {$IF DEFINED(D2F_DEBUG_MONS_MOVE)}
-    e_WriteLog(Format('monster #%d(%u): removed from tree; proxyid=%d', [arrIdx, UID, proxyId]), MSG_NOTIFY);
-    {$ENDIF}
+    if (monsGrid <> nil) then
+    begin
+      monsGrid.removeBody(proxyId);
+      {$IF DEFINED(D2F_DEBUG_MONS_MOVE)}
+      e_WriteLog(Format('monster #%d(%u): removed from tree; proxyid=%d', [arrIdx, UID, proxyId]), MSG_NOTIFY);
+      {$ENDIF}
+    end;
     proxyId := -1;
   end;
 
-  if (arrIdx <> -1) then gMonsters[arrIdx] := nil;
+  if (arrIdx <> -1) and (arrIdx < Length(gMonsters)) then gMonsters[arrIdx] := nil;
   arrIdx := -1;
 
   uidMap[FUID] := nil;

@@ -27,6 +27,7 @@ type
   public
     type TGridQueryCB = function (obj: ITP; tag: Integer): Boolean is nested; // return `true` to stop
     type TGridRayQueryCB = function (obj: ITP; tag: Integer; x, y, prevx, prevy: Integer): Boolean is nested; // return `true` to stop
+    type TGridAlongQueryCB = function (obj: ITP; tag: Integer): Boolean is nested; // return `true` to stop
 
     const TagDisabled = $40000000;
     const TagFullMask = $3fffffff;
@@ -130,6 +131,11 @@ type
     function traceRay (x0, y0, x1, y1: Integer; cb: TGridRayQueryCB; tagmask: Integer=-1): ITP; overload;
     function traceRay (out ex, ey: Integer; x0, y0, x1, y1: Integer; cb: TGridRayQueryCB; tagmask: Integer=-1): ITP;
 
+    //WARNING: don't modify grid while any query is in progress (no checks are made!)
+    //         you can set enabled/disabled flag, tho (but iterator can still return objects disabled inside it)
+    // trace line along the grid, calling `cb` for all objects in passed cells, in no particular order
+    function forEachAlongLine (x0, y0, x1, y1: Integer; cb: TGridAlongQueryCB; tagmask: Integer=-1): ITP;
+
     procedure dumpStats ();
 
     //WARNING! no sanity checks!
@@ -142,7 +148,15 @@ type
   end;
 
 
+// you are not supposed to understand this
+// returns `true` if there is an intersection, and enter coords
+// enter coords will be equal to (x0, y0) if starting point is inside the box
+// if result is `false`, `inx` and `iny` are undefined
+function lineAABBIntersects (x0, y0, x1, y1: Integer; bx, by, bw, bh: Integer; out inx, iny: Integer): Boolean;
+
+
 procedure swapInt (var a: Integer; var b: Integer); inline;
+function distanceSq (x0, y0, x1, y1: Integer): Integer; inline;
 
 
 implementation
@@ -153,6 +167,8 @@ uses
 
 // ////////////////////////////////////////////////////////////////////////// //
 procedure swapInt (var a: Integer; var b: Integer); inline; var t: Integer; begin t := a; a := b; b := t; end;
+
+function distanceSq (x0, y0, x1, y1: Integer): Integer; inline; begin result := (x1-x0)*(x1-x0)+(y1-y0)*(y1-y0); end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
@@ -1161,6 +1177,152 @@ begin
           exit;
         end;
       end;
+      // convert coords to grid
+      Dec(x, minx);
+      Dec(y, miny);
+    end;
+  end;
+end;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
+function TBodyGridBase.forEachAlongLine (x0, y0, x1, y1: Integer; cb: TGridAlongQueryCB; tagmask: Integer=-1): ITP;
+const
+  tsize = mTileSize;
+var
+  i: Integer;
+  dx, dy, d: Integer;
+  xerr, yerr: Integer;
+  incx, incy: Integer;
+  stepx, stepy: Integer;
+  x, y: Integer;
+  maxx, maxy: Integer;
+  gw, gh: Integer;
+  ccidx: Integer;
+  curci: Integer;
+  cc: PGridCell;
+  px: PBodyProxyRec;
+  lq: LongWord;
+  minx, miny: Integer;
+  ptag: Integer;
+  lastWasInGrid: Boolean;
+  tbcross: Boolean;
+  f: Integer;
+begin
+  result := Default(ITP);
+  tagmask := tagmask and TagFullMask;
+  if (tagmask = 0) then exit;
+
+  minx := mMinX;
+  miny := mMinY;
+
+  dx := x1-x0;
+  dy := y1-y0;
+
+  if (dx > 0) then incx := 1 else if (dx < 0) then incx := -1 else incx := 0;
+  if (dy > 0) then incy := 1 else if (dy < 0) then incy := -1 else incy := 0;
+
+  dx := abs(dx);
+  dy := abs(dy);
+
+  if (dx > dy) then d := dx else d := dy;
+
+  // `x` and `y` will be in grid coords
+  x := x0-minx;
+  y := y0-miny;
+
+  // increase query counter
+  Inc(mLastQuery);
+  if (mLastQuery = 0) then
+  begin
+    // just in case of overflow
+    mLastQuery := 1;
+    for i := 0 to High(mProxies) do mProxies[i].mQueryMark := 0;
+  end;
+  lq := mLastQuery;
+
+  // cache various things
+  //tsize := mTileSize;
+  gw := mWidth;
+  gh := mHeight;
+  maxx := gw*tsize-1;
+  maxy := gh*tsize-1;
+
+  // setup distance and flags
+  lastWasInGrid := (x >= 0) and (y >= 0) and (x <= maxx) and (y <= maxy);
+
+  // setup starting tile ('cause we'll adjust tile vars only on tile edge crossing)
+  if lastWasInGrid then ccidx := mGrid[(y div tsize)*gw+(x div tsize)] else ccidx := -1;
+
+  // it is slightly faster this way
+  xerr := -d;
+  yerr := -d;
+
+  // now trace
+  for i := 1 to d do
+  begin
+    // do one step
+    xerr += dx;
+    yerr += dy;
+    // invariant: one of those always changed
+    if (xerr < 0) and (yerr < 0) then raise Exception.Create('internal bug in grid raycaster (0)');
+    if (xerr >= 0) then begin xerr -= d; x += incx; stepx := incx; end else stepx := 0;
+    if (yerr >= 0) then begin yerr -= d; y += incy; stepy := incy; end else stepy := 0;
+    // invariant: we always doing a step
+    if ((stepx or stepy) = 0) then raise Exception.Create('internal bug in grid raycaster (1)');
+    begin
+      // check for crossing tile/grid boundary
+      if (x >= 0) and (y >= 0) and (x <= maxx) and (y <= maxy) then
+      begin
+        // we're still in grid
+        lastWasInGrid := true;
+        // check for tile edge crossing
+             if (stepx < 0) and ((x mod tsize) = tsize-1) then tbcross := true
+        else if (stepx > 0) and ((x mod tsize) = 0) then tbcross := true
+        else if (stepy < 0) and ((y mod tsize) = tsize-1) then tbcross := true
+        else if (stepy > 0) and ((y mod tsize) = 0) then tbcross := true
+        else tbcross := false;
+        // crossed tile edge?
+        if tbcross then
+        begin
+          // setup new cell index
+          ccidx := mGrid[(y div tsize)*gw+(x div tsize)];
+        end;
+      end
+      else
+      begin
+        // out of grid
+        if lastWasInGrid then exit; // oops, stepped out of the grid -- there is no way to return
+      end;
+    end;
+
+    // has something to process in the current cell?
+    if (ccidx <> -1) then
+    begin
+      // process cell
+      curci := ccidx;
+      // convert coords to map (to avoid ajdusting coords inside the loop)
+      Inc(x, minx);
+      Inc(y, miny);
+      // process cell list
+      while (curci <> -1) do
+      begin
+        cc := @mCells[curci];
+        for f := 0 to High(TGridCell.bodies) do
+        begin
+          if (cc.bodies[f] = -1) then break;
+          px := @mProxies[cc.bodies[f]];
+          ptag := px.mTag;
+          if ((ptag and TagDisabled) = 0) and ((ptag and tagmask) <> 0) and (px.mQueryMark <> lq) then
+          begin
+            px.mQueryMark := lq; // mark as processed
+            if cb(px.mObj, ptag) then begin result := px.mObj; exit; end;
+          end;
+        end;
+        // next cell
+        curci := cc.next;
+      end;
+      ccidx := -1; // don't process this anymore
       // convert coords to grid
       Dec(x, minx);
       Dec(y, miny);
