@@ -766,6 +766,9 @@ begin
   if gPlayer2 <> nil then gPlayer2.GodMode := False;
   if gPlayer1 <> nil then gPlayer1.NoTarget := False;
   if gPlayer2 <> nil then gPlayer2.NoTarget := False;
+
+  if gPlayer1 <> nil then gPlayer1.NoTarget := True;
+  gAimLine := true;
 end;
 
 procedure g_Game_ExecuteEvent(Name: String);

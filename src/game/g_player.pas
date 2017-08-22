@@ -2303,6 +2303,22 @@ begin
 end;
 
 procedure TPlayer.DrawAim();
+  procedure drawCast (sz: Integer; ax0, ay0, ax1, ay1: Integer);
+  var
+    ex, ey: Integer;
+  begin
+    e_DrawLine(sz, ax0, ay0, ax1, ay1, 255, 0, 0, 96);
+    if g_Map_traceToNearestWall(ax0, ay0, ax1, ay1, @ex, @ey, true) then
+    begin
+      e_DrawLine(sz, ax0, ay0, ex, ey, 0, 255, 0, 96);
+      e_DrawPoint(4, ex, ey, 255, 127, 0);
+    end
+    else
+    begin
+      e_DrawLine(sz, ax0, ay0, ex, ey, 0, 0, 255, 96);
+    end;
+  end;
+
 var
   wx, wy, xx, yy: Integer;
   angle: SmallInt;
@@ -2389,7 +2405,11 @@ begin
   end;
   xx := Trunc(Cos(-DegToRad(angle)) * len) + wx;
   yy := Trunc(Sin(-DegToRad(angle)) * len) + wy;
+  {$IF FALSE}
   e_DrawLine(sz, wx, wy, xx, yy, 255, 0, 0, 96);
+  {$ELSE}
+  drawCast(sz, wx, wy, xx, yy);
+  {$ENDIF}
 end;
 
 procedure TPlayer.DrawGUI();

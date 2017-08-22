@@ -77,6 +77,9 @@ type
     mProxyCount: Integer; // currently used
     mProxyMaxCount: Integer;
 
+  public
+    dbgShowTraceLog: Boolean;
+
   private
     function allocCell (): Integer;
     procedure freeCell (idx: Integer); // `next` is simply overwritten
@@ -129,7 +132,7 @@ type
     // cb with `(nil)` will be called before processing new tile
     // no callback: return `true` on the nearest hit
     function traceRay (x0, y0, x1, y1: Integer; cb: TGridRayQueryCB; tagmask: Integer=-1): ITP; overload;
-    function traceRay (out ex, ey: Integer; x0, y0, x1, y1: Integer; cb: TGridRayQueryCB; tagmask: Integer=-1): ITP;
+    function traceRay (out ex, ey: Integer; ax0, ay0, ax1, ay1: Integer; cb: TGridRayQueryCB; tagmask: Integer=-1): ITP;
 
     //WARNING: don't modify grid while any query is in progress (no checks are made!)
     //         you can set enabled/disabled flag, tho (but iterator can still return objects disabled inside it)
@@ -349,6 +352,7 @@ constructor TBodyGridBase.Create (aMinPixX, aMinPixY, aPixWidth, aPixHeight: Int
 var
   idx: Integer;
 begin
+  dbgShowTraceLog := false;
   {
   if aTileSize < 1 then aTileSize := 1;
   if aTileSize > 8192 then aTileSize := 8192; // arbitrary limit
@@ -956,6 +960,7 @@ end;
 
 
 // no callback: return `true` on the nearest hit
+(*
 function TBodyGridBase.traceRay (out ex, ey: Integer; x0, y0, x1, y1: Integer; cb: TGridRayQueryCB; tagmask: Integer=-1): ITP;
 const
   tsize = mTileSize;
@@ -1183,9 +1188,331 @@ begin
     end;
   end;
 end;
+*)
+
+
+// no callback: return `true` on the nearest hit
+// you are not supposed to understand this
+function TBodyGridBase.traceRay (out ex, ey: Integer; ax0, ay0, ax1, ay1: Integer; cb: TGridRayQueryCB; tagmask: Integer=-1): ITP;
+const
+  tsize = mTileSize;
+var
+  wx0, wy0, wx1, wy1: Integer; // window coordinates
+  stx, sty: Integer; // "steps" for x and y axes
+  dsx, dsy: Integer; // "lengthes" for x and y axes
+  dx2, dy2: Integer; // "double lengthes" for x and y axes
+  xd, yd: Integer; // current coord
+  e: Integer; // "error" (as in bresenham algo)
+  rem: Integer;
+  term: Integer;
+  xptr, yptr: PInteger;
+  xfixed: Boolean;
+  temp: Integer;
+  prevx, prevy: Integer;
+  lastDistSq: Integer;
+  ccidx, curci: Integer;
+  hasUntried: Boolean;
+  lastGA: Integer = -1;
+  ga, x, y: Integer;
+  lastObj: ITP;
+  wasHit: Boolean = false;
+  gw, gh, minx, miny, maxx, maxy: Integer;
+  cc: PGridCell;
+  px: PBodyProxyRec;
+  lq: LongWord;
+  f, ptag, distSq: Integer;
+  x0, y0, x1, y1: Integer;
+begin
+  result := Default(ITP);
+  lastObj := Default(ITP);
+  tagmask := tagmask and TagFullMask;
+  ex := ax1; // why not?
+  ey := ay1; // why not?
+  if (tagmask = 0) then exit;
+
+  if (ax0 = ax1) and (ay0 = ay1) then exit; // as the first point is ignored, just get outta here
+
+  lastDistSq := distanceSq(ax0, ay0, ax1, ay1)+1;
+
+  gw := mWidth;
+  gh := mHeight;
+  minx := mMinX;
+  miny := mMinY;
+  maxx := gw*tsize-1;
+  maxy := gh*tsize-1;
+
+  x0 := ax0;
+  y0 := ay0;
+  x1 := ax1;
+  y1 := ay1;
+
+  // offset query coords to (0,0)-based
+  Dec(x0, minx);
+  Dec(y0, miny);
+  Dec(x1, minx);
+  Dec(y1, miny);
+
+  // clip rectange
+  wx0 := 0;
+  wy0 := 0;
+  wx1 := maxx;
+  wy1 := maxy;
+
+  // horizontal setup
+  if (x0 < x1) then
+  begin
+    // from left to right
+    if (x0 > wx1) or (x1 < wx0) then exit; // out of screen
+    stx := 1; // going right
+  end
+  else
+  begin
+    // from right to left
+    if (x1 > wx1) or (x0 < wx0) then exit; // out of screen
+    stx := -1; // going left
+    x0 := -x0;
+    x1 := -x1;
+    wx0 := -wx0;
+    wx1 := -wx1;
+    swapInt(wx0, wx1);
+  end;
+
+  // vertical setup
+  if (y0 < y1) then
+  begin
+    // from top to bottom
+    if (y0 > wy1) or (y1 < wy0) then exit; // out of screen
+    sty := 1; // going down
+  end
+  else
+  begin
+    // from bottom to top
+    if (y1 > wy1) or (y0 < wy0) then exit; // out of screen
+    sty := -1; // going up
+    y0 := -y0;
+    y1 := -y1;
+    wy0 := -wy0;
+    wy1 := -wy1;
+    swapInt(wy0, wy1);
+  end;
+
+  dsx := x1-x0;
+  dsy := y1-y0;
+
+  if (dsx < dsy) then
+  begin
+    xptr := @yd;
+    yptr := @xd;
+    swapInt(x0, y0);
+    swapInt(x1, y1);
+    swapInt(dsx, dsy);
+    swapInt(wx0, wy0);
+    swapInt(wx1, wy1);
+    swapInt(stx, sty);
+  end
+  else
+  begin
+    xptr := @xd;
+    yptr := @yd;
+  end;
+
+  dx2 := 2*dsx;
+  dy2 := 2*dsy;
+  xd := x0;
+  yd := y0;
+  e := 2*dsy-dsx;
+  term := x1;
+
+  xfixed := false;
+  if (y0 < wy0) then
+  begin
+    // clip at top
+    temp := dx2*(wy0-y0)-dsx;
+    xd += temp div dy2;
+    rem := temp mod dy2;
+    if (xd > wx1) then exit; // x is moved out of clipping rect, nothing to do
+    if (xd+1 >= wx0) then
+    begin
+      yd := wy0;
+      e -= rem+dsx;
+      if (rem > 0) then begin Inc(xd); e += dy2; end;
+      xfixed := true;
+    end;
+  end;
+
+  if (not xfixed) and (x0 < wx0) then
+  begin
+    // clip at left
+    temp := dy2*(wx0-x0);
+    yd += temp div dx2;
+    rem := temp mod dx2;
+    if (yd > wy1) or (yd = wy1) and (rem >= dsx) then exit;
+    xd := wx0;
+    e += rem;
+    if (rem >= dsx) then begin Inc(yd); e -= dx2; end;
+  end;
+
+  if (y1 > wy1) then
+  begin
+    // clip at bottom
+    temp := dx2*(wy1-y0)+dsx;
+    term := x0+temp div dy2;
+    rem := temp mod dy2;
+    if (rem = 0) then Dec(term);
+  end;
+
+  if (term > wx1) then term := wx1; // clip at right
+
+  Inc(term); // draw last point
+  //if (term = xd) then exit; // this is the only point, get out of here
+
+  if (sty = -1) then yd := -yd;
+  if (stx = -1) then begin xd := -xd; term := -term; end;
+  dx2 -= dy2;
+
+  // first move, to skip starting point
+  if (xd = term) then exit;
+  prevx := xptr^+minx;
+  prevy := yptr^+miny;
+  // move coords
+  if (e >= 0) then begin yd += sty; e -= dx2; end else e += dy2;
+  xd += stx;
+  // done?
+  if (xd = term) then exit;
+
+  if (xptr^ < 0) or (yptr^ < 0) or (xptr^ >= gw*tsize) and (yptr^ > mHeight*tsize) then raise Exception.Create('raycaster internal error (0)');
+
+  if (dbgShowTraceLog) then e_WriteLog(Format('raycast start: (%d,%d)-(%d,%d); xptr^=%d; yptr^=%d', [ax0, ay0, ax1, ay1, xptr^, yptr^]), MSG_NOTIFY);
+
+  // restore query coords
+  Inc(ax0, minx);
+  Inc(ay0, miny);
+  //Inc(ax1, minx);
+  //Inc(ay1, miny);
+
+  // increase query counter
+  Inc(mLastQuery);
+  if (mLastQuery = 0) then
+  begin
+    // just in case of overflow
+    mLastQuery := 1;
+    for f := 0 to High(mProxies) do mProxies[f].mQueryMark := 0;
+  end;
+  lq := mLastQuery;
+
+  ccidx := -1;
+  // draw it; can omit checks
+  while (xd <> term) do
+  begin
+    // check cell(s)
+    if (xptr^ < 0) or (yptr^ < 0) or (xptr^ >= gw*tsize) and (yptr^ > mHeight*tsize) then raise Exception.Create('raycaster internal error (0)');
+    // new tile?
+    ga := (yptr^ div tsize)*gw+(xptr^ div tsize);
+    if (ga <> lastGA) then
+    begin
+      // yes
+      if (ccidx <> -1) then
+      begin
+        // signal cell completion
+        if assigned(cb) then
+        begin
+          if cb(nil, 0, xptr^+minx, yptr^+miny, prevx, prevy) then begin result := lastObj; exit; end;
+        end
+        else if wasHit then
+        begin
+          result := lastObj;
+          exit;
+        end;
+      end;
+      lastGA := ga;
+      ccidx := mGrid[lastGA];
+    end;
+    // has something to process in this tile?
+    if (ccidx <> -1) then
+    begin
+      // process cell
+      curci := ccidx;
+      hasUntried := false; // this will be set to `true` if we have some proxies we still want to process at the next step
+      // convert coords to map (to avoid ajdusting coords inside the loop)
+      x := xptr^+minx;
+      y := yptr^+miny;
+      // process cell list
+      while (curci <> -1) do
+      begin
+        cc := @mCells[curci];
+        for f := 0 to High(TGridCell.bodies) do
+        begin
+          if (cc.bodies[f] = -1) then break;
+          px := @mProxies[cc.bodies[f]];
+          ptag := px.mTag;
+          if ((ptag and TagDisabled) = 0) and ((ptag and tagmask) <> 0) and (px.mQueryMark <> lq) then
+          begin
+            // can we process this proxy?
+            if (x >= px.mX) and (y >= px.mY) and (x < px.mX+px.mWidth) and (y < px.mY+px.mHeight) then
+            begin
+              px.mQueryMark := lq; // mark as processed
+              if assigned(cb) then
+              begin
+                if cb(px.mObj, ptag, x, y, prevx, prevy) then
+                begin
+                  result := lastObj;
+                  ex := prevx;
+                  ey := prevy;
+                  exit;
+                end;
+              end
+              else
+              begin
+                // remember this hitpoint if it is nearer than an old one
+                distSq := distanceSq(ax0, ay0, prevx, prevy);
+                if (distSq < lastDistSq) then
+                begin
+                  wasHit := true;
+                  lastDistSq := distSq;
+                  ex := prevx;
+                  ey := prevy;
+                  lastObj := px.mObj;
+                end;
+              end;
+            end
+            else
+            begin
+              // this is possibly interesting proxy, set "has more to check" flag
+              hasUntried := true;
+            end;
+          end;
+        end;
+        // next cell
+        curci := cc.next;
+      end;
+      // still has something interesting in this cell?
+      if not hasUntried then
+      begin
+        // nope, don't process this cell anymore; signal cell completion
+        ccidx := -1;
+        if assigned(cb) then
+        begin
+          if cb(nil, 0, x, y, prevx, prevy) then begin result := lastObj; exit; end;
+        end
+        else if wasHit then
+        begin
+          result := lastObj;
+          exit;
+        end;
+      end;
+    end;
+    //putPixel(xptr^, yptr^);
+    // move coords
+    prevx := xptr^+minx;
+    prevy := yptr^+miny;
+    if (e >= 0) then begin yd += sty; e -= dx2; end else e += dy2;
+    xd += stx;
+  end;
+end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
+//FIXME! optimize this with real tile walking
 function TBodyGridBase.forEachAlongLine (x0, y0, x1, y1: Integer; cb: TGridAlongQueryCB; tagmask: Integer=-1): ITP;
 const
   tsize = mTileSize;
