@@ -187,7 +187,7 @@ var
   xd, yd: Integer; // current coord
   e: Integer; // "error" (as in bresenham algo)
   rem: Integer;
-  term: Integer;
+  //!term: Integer;
   d0, d1: PInteger;
   xfixed: Boolean;
   temp: Integer;
@@ -277,7 +277,7 @@ begin
   xd := x0;
   yd := y0;
   e := 2*dsy-dsx;
-  term := x1;
+  //!term := x1;
 
   xfixed := false;
   if (y0 < wy0) then
@@ -308,6 +308,7 @@ begin
     if (rem >= dsx) then begin Inc(yd); e -= dx2; end;
   end;
 
+  (*
   if (y1 > wy1) then
   begin
     // clip at bottom
@@ -321,10 +322,11 @@ begin
 
   Inc(term); // draw last point
   //if (term = xd) then exit; // this is the only point, get out of here
+  *)
 
   if (sty = -1) then yd := -yd;
-  if (stx = -1) then begin xd := -xd; term := -term; end;
-  dx2 -= dy2;
+  if (stx = -1) then begin xd := -xd; {!term := -term;} end;
+  //!dx2 -= dy2;
 
   inx := d0^;
   iny := d1^;
