@@ -2305,10 +2305,25 @@ end;
 
 procedure TPlayer.DrawAim();
   procedure drawCast (sz: Integer; ax0, ay0, ax1, ay1: Integer);
+
+    function monsCollector (mon: TMonster; tag: Integer): Boolean;
+    var
+      ex, ey: Integer;
+      mx, my, mw, mh: Integer;
+    begin
+      result := false;
+      mon.getMapBox(mx, my, mw, mh);
+      e_DrawQuad(mx, my, mx+mw-1, my+mh-1, 255, 255, 0, 96);
+      if lineAABBIntersects(ax0, ay0, ax1, ay1, mx, my, mw, mh, ex, ey) then
+      begin
+        e_DrawPoint(8, ex, ey, 0, 255, 0);
+      end;
+    end;
+
   var
     ex, ey: Integer;
-    mon: TMonster;
-    mx, my, mw, mh: Integer;
+    //mon: TMonster;
+    //mx, my, mw, mh: Integer;
   begin
     e_DrawLine(sz, ax0, ay0, ax1, ay1, 255, 0, 0, 96);
     if g_Map_traceToNearestWall(ax0, ay0, ax1, ay1, @ex, @ey) then
@@ -2321,13 +2336,14 @@ procedure TPlayer.DrawAim();
       e_DrawLine(sz, ax0, ay0, ex, ey, 0, 0, 255, 96);
     end;
 
+    {
     mon := g_Mons_ByIdx(0);
     mon.getMapBox(mx, my, mw, mh);
     ax1 := mx+mw div 2;
     ay1 := my+mh div 2;
     e_DrawLine(2, ax0, ay0, ax1, ay1, 0, 96, 96, 96);
 
-    if lineAABBIntersects(ax0, ay0, ax1, ay1,  mx, my, mw, mh, ex, ey) then
+    if lineAABBIntersects(ax0, ay0, ax1, ay1, mx, my, mw, mh, ex, ey) then
     begin
       e_DrawLine(2, ax0, ay0, ex, ey, 255, 255, 0, 96);
     end
@@ -2335,6 +2351,9 @@ procedure TPlayer.DrawAim();
     begin
       e_DrawLine(2, ax0, ay0, ex, ey, 255, 127, 0, 96);
     end;
+    }
+
+    g_Mons_alongLine(ax0, ay0, ax1, ay1, monsCollector);
   end;
 
 var

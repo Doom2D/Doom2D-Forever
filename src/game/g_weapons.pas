@@ -179,21 +179,24 @@ var
   wgunHitTimeUsed: Integer = 0;
 
 
-function hitTimeCompare (a, b: Integer): Boolean;
+function hitTimeLess (a, b: Integer): Boolean;
+var
+  hta, htb: PHitTime;
 begin
-  if (wgunHitTime[a].distSq < wgunHitTime[b].distSq) then begin result := true; exit; end;
-  if (wgunHitTime[a].distSq > wgunHitTime[b].distSq) then begin result := false; exit; end;
-  if (wgunHitTime[a].mon <> nil) then
+  hta := @wgunHitTime[a];
+  htb := @wgunHitTime[b];
+  if (hta.distSq <> htb.distSq) then begin result := (hta.distSq < htb.distSq); exit; end;
+  if (hta.mon <> nil) then
   begin
     // a is monster
-    if (wgunHitTime[b].mon = nil) then begin result := false; exit; end; // players first
-    result := (wgunHitTime[a].mon.UID < wgunHitTime[b].mon.UID); // why not?
+    if (htb.mon = nil) then begin result := false; exit; end; // players first
+    result := (hta.mon.UID < htb.mon.UID); // why not?
   end
   else
   begin
     // a is player
-    if (wgunHitTime[b].mon <> nil) then begin result := true; exit; end; // players first
-    result := (wgunHitTime[a].plridx < wgunHitTime[b].plridx); // why not?
+    if (htb.mon <> nil) then begin result := true; exit; end; // players first
+    result := (hta.plridx < htb.plridx); // why not?
   end;
 end;
 
@@ -1163,7 +1166,7 @@ begin
   g_Texture_CreateWADEx('TEXTURE_SHELL_SHELL', GameWAD+':TEXTURES\ESHELL');
 
   //wgunMonHash := hashNewIntInt();
-  wgunHitHeap := TBinaryHeapHitTimes.Create(hitTimeCompare);
+  wgunHitHeap := TBinaryHeapHitTimes.Create(hitTimeLess);
 end;
 
 procedure g_Weapon_FreeData();
@@ -1381,6 +1384,7 @@ end;
 //!!!FIXME!!!
 procedure g_Weapon_gun (const x, y, xd, yd, v, dmg: Integer; SpawnerUID: Word; CheckTrigger: Boolean);
 var
+  x0, y0: Integer;
   x2, y2: Integer;
   xi, yi: Integer;
   wallDistSq: Integer = $3fffffff;
@@ -1450,10 +1454,10 @@ var
   begin
     result := false; // don't stop
     mon.getMapBox(mx, my, mw, mh);
-    if lineAABBIntersects(x, y, x2, y2, mx, my, mw, mh, inx, iny) then
+    if lineAABBIntersects(x0, y0, x2, y2, mx, my, mw, mh, inx, iny) then
     begin
-      distSq := distanceSq(x, y, inx, iny);
-      if (distSq < wallDistSq) then appendHitTimeMon(distanceSq(x, y, inx, iny), mon, inx, iny);
+      distSq := distanceSq(x0, y0, inx, iny);
+      if (distSq < wallDistSq) then appendHitTimeMon(distSq, mon, inx, iny);
     end;
   end;
 
@@ -1479,6 +1483,8 @@ begin
   end;
   *)
 
+  if (xd = 0) and (yd = 0) then exit;
+
   //wgunMonHash.reset(); //FIXME: clear hash on level change
   wgunHitHeap.clear();
   wgunHitTimeUsed := 0;
@@ -1490,16 +1496,16 @@ begin
   if Abs(s) < 0.01 then s := 0;
   if Abs(c) < 0.01 then c := 0;
 
+  x0 := x;
+  y0 := y;
   x2 := x+Round(c*gMapInfo.Width);
   y2 := y+Round(s*gMapInfo.Width);
 
   dx := x2-x;
   dy := y2-y;
 
-  if (xd = 0) and (yd = 0) then exit;
-
-  if dx > 0 then xi := 1 else if dx < 0 then xi := -1 else xi := 0;
-  if dy > 0 then yi := 1 else if dy < 0 then yi := -1 else yi := 0;
+  if (dx > 0) then xi := 1 else if (dx < 0) then xi := -1 else xi := 0;
+  if (dy > 0) then yi := 1 else if (dy < 0) then yi := -1 else yi := 0;
 
   {$IF DEFINED(D2F_DEBUG)}
   e_WriteLog(Format('GUN TRACE: (%d,%d) to (%d,%d)', [x, y, x2, y2]), MSG_NOTIFY);
@@ -1525,12 +1531,13 @@ begin
   g_Mons_alongLine(x, y, x2, y2, sqchecker);
 
   // here, we collected all monsters and players in `wgunHitHeap` and `wgunHitTime`
-  // also, if `wallWasHit` >= 0, then `wallHitX` and `wallHitY` contains spark coords
+  // also, if `wallWasHit` is `true`, then `wallHitX` and `wallHitY` contains spark coords
   while (wgunHitHeap.count > 0) do
   begin
     // has some entities to check, do it
     i := wgunHitHeap.front;
     wgunHitHeap.popFront();
+    // hitpoint
     xe := wgunHitTime[i].x;
     ye := wgunHitTime[i].y;
     // check if it is not behind the wall
