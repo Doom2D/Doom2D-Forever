@@ -60,7 +60,10 @@ type
       TGridInternalCB = function (grida: Integer; bodyId: TBodyProxyId): Boolean of object; // return `true` to stop
 
   private
-    mTileSize: Integer;
+    //mTileSize: Integer;
+    const mTileSize = GridDefaultTileSize;
+
+  private
     mMinX, mMinY: Integer; // so grids can start at any origin
     mWidth, mHeight: Integer; // in tiles
     mGrid: array of Integer; // mWidth*mHeight, index in mCells
@@ -92,7 +95,7 @@ type
     procedure setProxyEnabled (pid: TBodyProxyId; val: Boolean); inline;
 
   public
-    constructor Create (aMinPixX, aMinPixY, aPixWidth, aPixHeight: Integer; aTileSize: Integer=GridDefaultTileSize);
+    constructor Create (aMinPixX, aMinPixY, aPixWidth, aPixHeight: Integer{; aTileSize: Integer=GridDefaultTileSize});
     destructor Destroy (); override;
 
     function insertBody (aObj: ITP; ax, ay, aWidth, aHeight: Integer; aTag: Integer=-1): TBodyProxyId;
@@ -149,19 +152,21 @@ end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-constructor TBodyGridBase.Create (aMinPixX, aMinPixY, aPixWidth, aPixHeight: Integer; aTileSize: Integer=GridDefaultTileSize);
+constructor TBodyGridBase.Create (aMinPixX, aMinPixY, aPixWidth, aPixHeight: Integer{; aTileSize: Integer=GridDefaultTileSize});
 var
   idx: Integer;
 begin
+  {
   if aTileSize < 1 then aTileSize := 1;
   if aTileSize > 8192 then aTileSize := 8192; // arbitrary limit
-  if aPixWidth < aTileSize then aPixWidth := aTileSize;
-  if aPixHeight < aTileSize then aPixHeight := aTileSize;
   mTileSize := aTileSize;
+  }
+  if (aPixWidth < mTileSize) then aPixWidth := mTileSize;
+  if (aPixHeight < mTileSize) then aPixHeight := mTileSize;
   mMinX := aMinPixX;
   mMinY := aMinPixY;
-  mWidth := (aPixWidth+aTileSize-1) div aTileSize;
-  mHeight := (aPixHeight+aTileSize-1) div aTileSize;
+  mWidth := (aPixWidth+mTileSize-1) div mTileSize;
+  mHeight := (aPixHeight+mTileSize-1) div mTileSize;
   SetLength(mGrid, mWidth*mHeight);
   SetLength(mCells, mWidth*mHeight);
   SetLength(mProxies, 8192);
@@ -324,9 +329,11 @@ end;
 
 
 function TBodyGridBase.forGridRect (x, y, w, h: Integer; cb: TGridInternalCB; bodyId: TBodyProxyId): Boolean;
+const
+  tsize = mTileSize;
 var
   gx, gy: Integer;
-  gw, gh, tsize: Integer;
+  gw, gh: Integer;
 begin
   result := false;
   if (w < 1) or (h < 1) or not assigned(cb) then exit;
@@ -337,7 +344,7 @@ begin
   if (x+w <= 0) or (y+h <= 0) then exit;
   gw := mWidth;
   gh := mHeight;
-  tsize := mTileSize;
+  //tsize := mTileSize;
   if (x >= gw*tsize) or (y >= gh*tsize) then exit;
   for gy := y div tsize to (y+h-1) div tsize do
   begin
@@ -566,6 +573,8 @@ end;
 
 // no callback: return `true` on the first hit
 function TBodyGridBase.forEachInAABB (x, y, w, h: Integer; cb: TGridQueryCB; tagmask: Integer=-1; allowDisabled: Boolean=false): ITP;
+const
+  tsize = mTileSize;
 var
   idx: Integer;
   gx, gy: Integer;
@@ -574,7 +583,7 @@ var
   cc: PGridCell = nil;
   px: PBodyProxyRec;
   lq: LongWord;
-  tsize, gw: Integer;
+  gw: Integer;
   x0, y0: Integer;
   ptag: Integer;
 begin
@@ -591,7 +600,7 @@ begin
   Dec(y, mMinY);
 
   gw := mWidth;
-  tsize := mTileSize;
+  //tsize := mTileSize;
 
   if (x+w <= 0) or (y+h <= 0) then exit;
   if (x >= gw*tsize) or (y >= mHeight*tsize) then exit;
@@ -664,6 +673,8 @@ end;
 
 // no callback: return `true` on the nearest hit
 function TBodyGridBase.traceRay (out ex, ey: Integer; x0, y0, x1, y1: Integer; cb: TGridRayQueryCB; tagmask: Integer=-1): ITP;
+const
+  tsize = mTileSize;
 var
   i: Integer;
   dx, dy, d: Integer;
@@ -672,7 +683,6 @@ var
   stepx, stepy: Integer;
   x, y: Integer;
   maxx, maxy: Integer;
-  tsize: Integer; // tile size
   gw, gh: Integer;
   ccidx: Integer;
   curci: Integer;
@@ -724,7 +734,7 @@ begin
   lq := mLastQuery;
 
   // cache various things
-  tsize := mTileSize;
+  //tsize := mTileSize;
   gw := mWidth;
   gh := mHeight;
   maxx := gw*tsize-1;
