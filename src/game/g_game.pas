@@ -3298,8 +3298,12 @@ begin
 end;
 
 procedure g_Game_SetupScreenSize();
+const
+  RES_FACTOR = 4.0 / 3.0;
 var
-  d: Single;
+  s: Single;
+  rf: Single;
+  bw, bh: Word;
 begin
 // Размер экранов игроков:
   gPlayerScreenSize.X := gScreenWidth-196;
@@ -3311,14 +3315,24 @@ begin
 // Размер заднего плана:
   if BackID <> DWORD(-1) then
   begin
-    d := SKY_STRETCH;
-
-    if (gScreenWidth*d > gMapInfo.Width) or
-       (gScreenHeight*d > gMapInfo.Height) then
-      d := 1.0;
-
-    gBackSize.X := Round(gScreenWidth*d);
-    gBackSize.Y := Round(gScreenHeight*d);
+    s := SKY_STRETCH;
+    if (gScreenWidth*s > gMapInfo.Width) or
+       (gScreenHeight*s > gMapInfo.Height) then
+    begin
+      gBackSize.X := gScreenWidth;
+      gBackSize.Y := gScreenHeight;
+    end
+    else
+    begin
+      e_GetTextureSize(BackID, @bw, @bh);
+      rf := Single(bw) / Single(bh);
+      if (rf > RES_FACTOR) then bw := Round(Single(bh) * RES_FACTOR)
+      else if (rf < RES_FACTOR) then bh := Round(Single(bw) / RES_FACTOR);
+      s := Max(gScreenWidth / bw, gScreenHeight / bh);
+      if (s < 1.0) then s := 1.0;
+      gBackSize.X := Round(bw*s);
+      gBackSize.Y := Round(bh*s);
+    end;
   end;
 end;
 
