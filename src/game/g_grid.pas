@@ -108,9 +108,9 @@ type
     function insertBody (aObj: ITP; ax, ay, aWidth, aHeight: Integer; aTag: Integer=-1): TBodyProxyId;
     procedure removeBody (body: TBodyProxyId); // WARNING! this WILL destroy proxy!
 
-    procedure moveBody (body: TBodyProxyId; dx, dy: Integer);
-    procedure resizeBody (body: TBodyProxyId; sx, sy: Integer);
-    procedure moveResizeBody (body: TBodyProxyId; dx, dy, sx, sy: Integer);
+    procedure moveBody (body: TBodyProxyId; nx, ny: Integer);
+    procedure resizeBody (body: TBodyProxyId; nw, nh: Integer);
+    procedure moveResizeBody (body: TBodyProxyId; nx, ny, nw, nh: Integer);
 
     function insideGrid (x, y: Integer): Boolean; inline;
 
@@ -707,55 +707,58 @@ end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-procedure TBodyGridBase.moveResizeBody (body: TBodyProxyId; dx, dy, sx, sy: Integer);
+procedure TBodyGridBase.moveResizeBody (body: TBodyProxyId; nx, ny, nw, nh: Integer);
 var
   px: PBodyProxyRec;
   x0, y0, w, h: Integer;
 begin
   if (body < 0) or (body > High(mProxies)) then exit; // just in case
-  if (dx = 0) and (dy = 0) and (sx = 0) and (sy = 0) then exit;
   px := @mProxies[body];
   x0 := px.mX;
   y0 := px.mY;
   w := px.mWidth;
   h := px.mHeight;
+  if (nx = x0) and (ny = y0) and (nw = w) and (nh = h) then exit;
   // did any corner crossed tile boundary?
-  if (x0 div mTileSize <> (x0+dx) div mTileSize) or
-     (y0 div mTileSize <> (y0+dx) div mTileSize) or
-     ((x0+w) div mTileSize <> (x0+w+sx) div mTileSize) or
-     ((y0+h) div mTileSize <> (y0+h+sy) div mTileSize) then
+  if (x0 div mTileSize <> nx div mTileSize) or
+     (y0 div mTileSize <> ny div mTileSize) or
+     ((x0+w) div mTileSize <> (nx+nw) div mTileSize) or
+     ((y0+h) div mTileSize <> (ny+nh) div mTileSize) then
   begin
     removeInternal(body);
-    Inc(px.mX, dx);
-    Inc(px.mY, dy);
-    Inc(px.mWidth, sx);
-    Inc(px.mHeight, sy);
+    px.mX := nx;
+    px.mY := ny;
+    px.mWidth := nw;
+    px.mHeight := nh;
     insertInternal(body);
   end
   else
   begin
-    Inc(px.mX, dx);
-    Inc(px.mY, dy);
-    Inc(px.mWidth, sx);
-    Inc(px.mHeight, sy);
+    px.mX := nx;
+    px.mY := ny;
+    px.mWidth := nw;
+    px.mHeight := nh;
   end;
 end;
 
-procedure TBodyGridBase.moveBody (body: TBodyProxyId; dx, dy: Integer);
+procedure TBodyGridBase.moveBody (body: TBodyProxyId; nx, ny: Integer);
 var
   px: PBodyProxyRec;
-  nx, ny: Integer;
+  x0, y0: Integer;
 begin
   if (body < 0) or (body > High(mProxies)) then exit; // just in case
-  if (dx = 0) and (dy = 0) then exit;
   // check if tile coords was changed
   px := @mProxies[body];
-  nx := px.mX+dx;
-  ny := px.mY+dy;
-  if (nx div mTileSize <> px.mX div mTileSize) or (ny div mTileSize <> px.mY div mTileSize) then
+  x0 := px.mX;
+  y0 := px.mY;
+  if (nx = x0) and (ny = y0) then exit;
+  if (nx div mTileSize <> x0 div mTileSize) or (ny div mTileSize <> y0 div mTileSize) then
   begin
     // crossed tile boundary, do heavy work
-    moveResizeBody(body, dx, dy, 0, 0);
+    removeInternal(body);
+    px.mX := nx;
+    px.mY := ny;
+    insertInternal(body);
   end
   else
   begin
@@ -765,25 +768,26 @@ begin
   end;
 end;
 
-procedure TBodyGridBase.resizeBody (body: TBodyProxyId; sx, sy: Integer);
+procedure TBodyGridBase.resizeBody (body: TBodyProxyId; nw, nh: Integer);
 var
   px: PBodyProxyRec;
-  x0, y0: Integer;
-  nw, nh: Integer;
+  x0, y0, w, h: Integer;
 begin
   if (body < 0) or (body > High(mProxies)) then exit; // just in case
-  if (sx = 0) and (sy = 0) then exit;
   // check if tile coords was changed
   px := @mProxies[body];
   x0 := px.mX;
   y0 := px.mY;
-  nw := px.mWidth+sx;
-  nh := px.mHeight+sy;
-  if ((x0+px.mWidth) div mTileSize <> (x0+nw) div mTileSize) or
-     ((y0+px.mHeight) div mTileSize <> (y0+nh) div mTileSize) then
+  w := px.mWidth;
+  h := px.mHeight;
+  if ((x0+w) div mTileSize <> (x0+nw) div mTileSize) or
+     ((y0+h) div mTileSize <> (y0+nh) div mTileSize) then
   begin
     // crossed tile boundary, do heavy work
-    moveResizeBody(body, 0, 0, sx, sy);
+    removeInternal(body);
+    px.mWidth := nw;
+    px.mHeight := nh;
+    insertInternal(body);
   end
   else
   begin
