@@ -405,17 +405,13 @@ begin
   //AddCommand('pf_update_frame', ProfilerCommands);
   AddCommand('pf_coldet', ProfilerCommands, 'draw collision detection profiles');
   AddCommand('r_sq_draw', ProfilerCommands, 'accelerated spatial queries in rendering');
-  //AddCommand('r_sq_use_grid', ProfilerCommands, 'use grid for render acceleration');
-  //AddCommand('r_sq_use_tree', ProfilerCommands, 'use tree for render acceleration');
   AddCommand('cd_sq_enabled', ProfilerCommands, 'accelerated spatial queries in map coldet');
-
-  //AddCommand('t_dump_node_queries', ProfilerCommands);
-
-  //AddCommand('sq_use_grid', ProfilerCommands, 'use grid for map coldet acceleration');
-  //AddCommand('sq_use_tree', ProfilerCommands, 'use tree for map coldet acceleration');
-
   AddCommand('mon_sq_enabled', ProfilerCommands, 'use accelerated spatial queries for monsters');
   AddCommand('wtrace_sq_enabled', ProfilerCommands, 'use accelerated weapon hitscan trace');
+
+  AddCommand('pr_enabled', ProfilerCommands, 'enable/disable particles');
+  AddCommand('pr_phys_enabled', ProfilerCommands, 'enable/disable particle physics');
+  AddCommand('los_enabled', ProfilerCommands, 'enable/disable LOS calculations');
 
   AddCommand('p1_name', GameCVars);
   AddCommand('p2_name', GameCVars);

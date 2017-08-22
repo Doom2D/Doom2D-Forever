@@ -4941,101 +4941,39 @@ var
     if (P[idx] = '1') or (P[idx] = 'on') or (P[idx] = 'true') or (P[idx] = 'tan') then result := 1;
   end;
 
+  procedure binaryFlag (var flag: Boolean; msg: string);
+  begin
+    if (Length(p) > 2) then
+    begin
+      g_Console_Add('too many arguments to '''+P[0]+'''');
+    end
+    else
+    begin
+      case getBool(1) of
+        -1: begin end;
+         0: flag := false;
+         1: flag := true;
+      end;
+      if flag then g_Console_Add(msg+': tan') else g_Console_Add(msg+': ona');
+    end;
+  end;
+
 begin
   //if not gDebugMode then exit;
   cmd := LowerCase(P[0]);
 
-  if cmd = 'pf_draw_frame' then
-  begin
-    g_profile_frame_draw := not g_profile_frame_draw;
-    exit;
-  end;
-
-  if cmd = 'pf_update_frame' then
-  begin
-    g_profile_frame_update := not g_profile_frame_update;
-    exit;
-  end;
-
-  if cmd = 'pf_coldet' then
-  begin
-    g_profile_collision := not g_profile_collision;
-    exit;
-  end;
-
-  if cmd = 'r_sq_draw' then
-  begin
-    case getBool(1) of
-      -1: begin end;
-       0: gdbg_map_use_accel_render := false;
-       1: gdbg_map_use_accel_render := true;
-    end;
-    if gdbg_map_use_accel_render then g_Console_Add('accelerated rendering: tan') else g_Console_Add('accelerated rendering: ona');
-    exit;
-  end;
-
-  if cmd = 'cd_sq_enabled' then
-  begin
-    case getBool(1) of
-      -1: begin end;
-       0: gdbg_map_use_accel_coldet := false;
-       1: gdbg_map_use_accel_coldet := true;
-    end;
-    if gdbg_map_use_accel_coldet then g_Console_Add('accelerated coldet: tan') else g_Console_Add('accelerated coldet: ona');
-    exit;
-  end;
-
-  {
-  if (cmd = 'sq_use_grid') or (cmd = 'sq_use_tree') then
-  begin
-    gdbg_map_use_tree_coldet := (cmd = 'sq_use_tree');
-    if gdbg_map_use_tree_coldet then g_Console_Add('coldet acceleration: tree') else g_Console_Add('coldet acceleration: grid');
-    exit;
-  end;
-
-  if (cmd = 'r_sq_use_grid') or (cmd = 'r_sq_use_tree') then
-  begin
-    gdbg_map_use_tree_draw := (cmd = 'r_sq_use_tree');
-    if gdbg_map_use_tree_draw then g_Console_Add('render acceleration: tree') else g_Console_Add('render acceleration: grid');
-    exit;
-  end;
-  }
-
-  {
-  if (cmd = 't_dump_node_queries') then
-  begin
-    case getBool(1) of
-      -1: begin end;
-       0: gdbg_map_dump_coldet_tree_queries := false;
-       1: gdbg_map_dump_coldet_tree_queries := true;
-    end;
-    if gdbg_map_dump_coldet_tree_queries then g_Console_Add('grid coldet tree queries: tan') else g_Console_Add('grid coldet tree queries: ona');
-    exit;
-  end;
-  }
-
-  if (cmd = 'mon_sq_enabled') then
-  begin
-    case getBool(1) of
-      -1: begin end;
-       0: gmon_debug_use_sqaccel := false;
-       1: gmon_debug_use_sqaccel := true;
-    end;
-    if gmon_debug_use_sqaccel then g_Console_Add('accelerated monster coldet: tan') else g_Console_Add('accelerated monster coldet: ona');
-    exit;
-  end;
-
-  if (cmd = 'wtrace_sq_enabled') then
-  begin
-    case getBool(1) of
-      -1: begin end;
-       0: gwep_debug_fast_trace := false;
-       1: gwep_debug_fast_trace := true;
-    end;
-    if gwep_debug_fast_trace then g_Console_Add('accelerated weapon hitscan: tan') else g_Console_Add('accelerated weapon hitscan: ona');
-    exit;
-  end;
+  if (cmd = 'pf_draw_frame') then begin binaryFlag(g_profile_frame_draw, 'render profiles'); exit; end;
+  if (cmd = 'pf_update_frame') then begin binaryFlag(g_profile_frame_update, 'update profiles (not yet)'); exit; end;
+  if (cmd = 'pf_coldet') then begin binaryFlag(g_profile_collision, 'coldet profiles'); exit; end;
+  if (cmd = 'r_sq_draw') then begin binaryFlag(gdbg_map_use_accel_render, 'accelerated rendering'); exit; end;
+  if (cmd = 'cd_sq_enabled') then begin binaryFlag(gdbg_map_use_accel_coldet, 'accelerated map coldet'); exit; end;
+  if (cmd = 'mon_sq_enabled') then begin binaryFlag(gmon_debug_use_sqaccel, 'accelerated monster coldet'); exit; end;
+  if (cmd = 'wtrace_sq_enabled') then begin binaryFlag(gwep_debug_fast_trace, 'accelerated weapon hitscan'); exit; end;
+  if (cmd = 'pr_enabled') then begin binaryFlag(gpart_dbg_enabled, 'particles'); exit; end;
+  if (cmd = 'pr_phys_enabled') then begin binaryFlag(gpart_dbg_phys_enabled, 'particle physics'); exit; end;
+  if (cmd = 'los_enabled') then begin binaryFlag(gmon_dbg_los_enabled, 'LOS calculations'); exit; end;
 end;
+
 
 procedure DebugCommands(P: SArray);
 var

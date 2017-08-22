@@ -53,10 +53,15 @@ function  g_GFX_GetMax(): Integer;
 
 procedure g_GFX_OnceAnim(X, Y: Integer; Anim: TAnimation; AnimType: Byte = 0);
 
-//procedure g_Mark(x, y, Width, Height: Integer; t: Byte; st: Boolean);
+procedure g_Mark(x, y, Width, Height: Integer; t: Byte; st: Boolean);
 
 procedure g_GFX_Update();
 procedure g_GFX_Draw();
+
+
+var
+  gpart_dbg_enabled: Boolean = true;
+  gpart_dbg_phys_enabled: Boolean = true;
 
 
 implementation
@@ -104,52 +109,59 @@ var
 
 function isBlockedAt (x, y: Integer): Boolean; inline;
 begin
+  if not gpart_dbg_phys_enabled then begin result := false; exit; end;
   result := g_Map_HasAnyPanelAtPoint(x, y, (PANEL_WALL or PANEL_CLOSEDOOR or PANEL_STEP));
 end;
-
 
 // ???
 function isWallAt (x, y: Integer): Boolean; inline;
 begin
+  if not gpart_dbg_phys_enabled then begin result := false; exit; end;
   result := g_Map_HasAnyPanelAtPoint(x, y, (PANEL_WALL or PANEL_STEP));
 end;
 
-
 function isLiftUpAt (x, y: Integer): Boolean; inline;
 begin
+  if not gpart_dbg_phys_enabled then begin result := false; exit; end;
   result := g_Map_HasAnyPanelAtPoint(x, y, PANEL_LIFTUP);
 end;
 
 function isLiftDownAt (x, y: Integer): Boolean; inline;
 begin
+  if not gpart_dbg_phys_enabled then begin result := false; exit; end;
   result := g_Map_HasAnyPanelAtPoint(x, y, PANEL_LIFTDOWN);
 end;
 
 function isLiftLeftAt (x, y: Integer): Boolean; inline;
 begin
+  if not gpart_dbg_phys_enabled then begin result := false; exit; end;
   result := g_Map_HasAnyPanelAtPoint(x, y, PANEL_LIFTLEFT);
 end;
 
 function isLiftRightAt (x, y: Integer): Boolean; inline;
 begin
+  if not gpart_dbg_phys_enabled then begin result := false; exit; end;
   result := g_Map_HasAnyPanelAtPoint(x, y, PANEL_LIFTRIGHT);
 end;
 
-
 function isLiquidAt (x, y: Integer): Boolean; inline;
 begin
+  if not gpart_dbg_phys_enabled then begin result := false; exit; end;
   result := g_Map_HasAnyPanelAtPoint(x, y, (PANEL_WATER or PANEL_ACID1 or PANEL_ACID2));
 end;
 
-
 function isAnythingAt (x, y: Integer): Boolean; inline;
 begin
+  if not gpart_dbg_phys_enabled then begin result := false; exit; end;
   result := g_Map_HasAnyPanelAtPoint(x, y, (PANEL_WALL or PANEL_CLOSEDOOR or PANEL_OPENDOOR or PANEL_WATER or PANEL_ACID1 or PANEL_ACID2 or PANEL_STEP or PANEL_LIFTUP or PANEL_LIFTDOWN or PANEL_LIFTLEFT or PANEL_LIFTRIGHT));
 end;
 
 
-{$IF DEFINED(HAS_COLLIDE_BITMAP)}
 procedure g_Mark(x, y, Width, Height: Integer; t: Byte; st: Boolean);
+{$IF not DEFINED(HAS_COLLIDE_BITMAP)}
+begin
+end;
+{$ELSE}
 var
   yy, y2, xx, x2: Integer;
 begin
@@ -825,6 +837,7 @@ var
   s: ShortInt;
   //c: Byte;
 begin
+  if not gpart_dbg_enabled then exit;
   if Particles <> nil then
   begin
     w := gMapInfo.Width;

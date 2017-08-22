@@ -48,7 +48,7 @@ uses
   SDL2, GL, GLExt, e_graphics, e_log, g_main,
   g_console, SysUtils, e_input, g_options, g_game,
   g_basic, g_textures, e_sound, g_sound, g_menu, ENet, g_net,
-  g_map;
+  g_map, g_gfx;
 
 var
   h_Wnd: PSDL_Window;
@@ -713,6 +713,15 @@ begin
     //if ParamStr(idx) = '--grid-draw' then gdbg_map_use_tree_draw := false;
     //if ParamStr(idx) = '--tree-coldet' then gdbg_map_use_tree_coldet := true;
     //if ParamStr(idx) = '--grid-coldet' then gdbg_map_use_tree_coldet := false;
+    if ParamStr(idx) = '--no-particles' then gpart_dbg_enabled := false;
+    if ParamStr(idx) = '--no-los' then gmon_dbg_los_enabled := false;
+
+    if ParamStr(idx) = '--no-part-phys' then gpart_dbg_phys_enabled := false;
+    if ParamStr(idx) = '--no-part-physics' then gpart_dbg_phys_enabled := false;
+    if ParamStr(idx) = '--no-particles-phys' then gpart_dbg_phys_enabled := false;
+    if ParamStr(idx) = '--no-particles-physics' then gpart_dbg_phys_enabled := false;
+    if ParamStr(idx) = '--no-particle-phys' then gpart_dbg_phys_enabled := false;
+    if ParamStr(idx) = '--no-particle-physics' then gpart_dbg_phys_enabled := false;
   end;
 
   //if gdbg_map_use_tree_draw then e_WriteLog('using TREE renderer', MSG_NOTIFY);

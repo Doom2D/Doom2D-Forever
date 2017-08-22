@@ -88,6 +88,10 @@ procedure SortSArray(var S: SArray);
 function b_Text_Format(S: string): string;
 function b_Text_Unformat(S: string): string;
 
+
+var
+  gmon_dbg_los_enabled: Boolean = true;
+
 implementation
 
 uses
@@ -455,6 +459,8 @@ end;
 
 function g_Look(a, b: PObj; d: TDirection): Boolean;
 begin
+  if not gmon_dbg_los_enabled then begin result := false; exit; end; // always "wall hit"
+
   if ((b^.X > a^.X) and (d = D_LEFT)) or
      ((b^.X < a^.X) and (d = D_RIGHT)) then
   begin
