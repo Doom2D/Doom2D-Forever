@@ -155,8 +155,7 @@ type
 // returns `true` if there is an intersection, and enter coords
 // enter coords will be equal to (x0, y0) if starting point is inside the box
 // if result is `false`, `inx` and `iny` are undefined
-function lineAABBIntersects (x0, y0, x1, y1: Integer; bx, by, bw, bh: Integer; out inx, iny: Integer; log: Boolean=false): Boolean;
-
+function lineAABBIntersects (x0, y0, x1, y1: Integer; bx, by, bw, bh: Integer; out inx, iny: Integer): Boolean;
 
 procedure swapInt (var a: Integer; var b: Integer); inline;
 function distanceSq (x0, y0, x1, y1: Integer): Integer; inline;
@@ -179,7 +178,7 @@ function distanceSq (x0, y0, x1, y1: Integer): Integer; inline; begin result := 
 // returns `true` if there is an intersection, and enter coords
 // enter coords will be equal to (x0, y0) if starting point is inside the box
 // if result is `false`, `inx` and `iny` are undefined
-function lineAABBIntersects (x0, y0, x1, y1: Integer; bx, by, bw, bh: Integer; out inx, iny: Integer; log: Boolean=false): Boolean;
+function lineAABBIntersects (x0, y0, x1, y1: Integer; bx, by, bw, bh: Integer; out inx, iny: Integer): Boolean;
 var
   wx0, wy0, wx1, wy1: Integer; // window coordinates
   stx, sty: Integer; // "steps" for x and y axes
@@ -215,7 +214,6 @@ begin
   wx1 := bx+bw-1;
   wy1 := by+bh-1;
 
-  if log then e_WriteLog('lineAABBIntersects: 0', MSG_NOTIFY);
   // horizontal setup
   if (x0 < x1) then
   begin
@@ -235,7 +233,6 @@ begin
     swapInt(wx0, wx1);
   end;
 
-  if log then e_WriteLog('lineAABBIntersects: 1', MSG_NOTIFY);
   // vertical setup
   if (y0 < y1) then
   begin
@@ -282,7 +279,6 @@ begin
   e := 2*dsy-dsx;
   term := x1;
 
-  if log then e_WriteLog('lineAABBIntersects: 2', MSG_NOTIFY);
   xfixed := false;
   if (y0 < wy0) then
   begin
@@ -300,7 +296,6 @@ begin
     end;
   end;
 
-  if log then e_WriteLog('lineAABBIntersects: 3', MSG_NOTIFY);
   if (not xfixed) and (x0 < wx0) then
   begin
     // clip at left
@@ -313,7 +308,6 @@ begin
     if (rem >= dsx) then begin Inc(yd); e -= dx2; end;
   end;
 
-  if log then e_WriteLog('lineAABBIntersects: 4', MSG_NOTIFY);
   if (y1 > wy1) then
   begin
     // clip at bottom
@@ -332,7 +326,6 @@ begin
   if (stx = -1) then begin xd := -xd; term := -term; end;
   dx2 -= dy2;
 
-  if log then e_WriteLog('lineAABBIntersects: 5', MSG_NOTIFY);
   inx := d0^;
   iny := d1^;
   result := true;
