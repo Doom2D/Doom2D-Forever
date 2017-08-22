@@ -129,7 +129,7 @@ uses
   g_console, SysUtils, g_options, g_game,
   g_triggers, MAPDEF, e_log, g_monsters, g_saveload,
   g_language, g_netmsg,
-  z_aabbtree, binheap, hashtable;
+  binheap, hashtable;
 
 type
   TWaterPanel = record
@@ -554,7 +554,8 @@ end;
 
 function g_Weapon_CreateShot(I: Integer; ShotType: Byte; Spawner, TargetUID: Word; X, Y, XV, YV: Integer): LongWord;
 var
-  find_id, FramesID: DWORD;
+  find_id: DWord;
+  FramesID: DWORD = 0;
 begin
   if I < 0 then
     find_id := FindShot()
@@ -1366,327 +1367,9 @@ end;
 *)
 
 
-(*
-procedure g_Weapon_gunComplicated (const x, y, xd, yd, v, dmg: Integer; SpawnerUID: Word; CheckTrigger: Boolean);
-const
-  HHGridSize = 64;
-
-var
-  hitray: Ray2D;
-  xi, yi: Integer;
-
-  function doPlayerHit (idx: Integer): Boolean;
-  begin
-    result := false;
-    if (idx < 0) or (idx > High(gPlayers)) then exit;
-    if (gPlayers[idx] = nil) or not gPlayers[idx].Live then exit;
-    result := HitPlayer(gPlayers[idx], dmg, (xi*v)*10, (yi*v)*10-3, SpawnerUID, HIT_SOME);
-    if result and (v <> 0) then gPlayers[idx].Push((xi*v), (yi*v));
-    {$IF DEFINED(D2F_DEBUG)}
-    //if result then e_WriteLog(Format('  PLAYER #%d HIT', [idx]), MSG_NOTIFY);
-    {$ENDIF}
-  end;
-
-  function doMonsterHit (mon: TMonster): Boolean;
-  begin
-    result := false;
-    if (mon = nil) then exit;
-    result := HitMonster(mon, dmg, (xi*v)*10, (yi*v)*10-3, SpawnerUID, HIT_SOME);
-    if result and (v <> 0) then mon.Push((xi*v), (yi*v));
-    {$IF DEFINED(D2F_DEBUG)}
-    //if result then e_WriteLog(Format('  MONSTER #%u HIT', [LongWord(mon.UID)]), MSG_NOTIFY);
-    {$ENDIF}
-  end;
-
-  // get nearest player along hitray
-  // return `true` if instant hit was detected
-  function playerPossibleHit (): Boolean;
-  var
-    i: Integer;
-    aabb: AABB2D;
-    tmin: Single;
-  begin
-    result := false;
-    for i := 0 to High(gPlayers) do
-    begin
-      if (gPlayers[i] <> nil) and gPlayers[i].Live then
-      begin
-        aabb := gPlayers[i].mapAABB;
-        // inside?
-        if aabb.contains(x, y) then
-        begin
-          if doPlayerHit(i) then begin result := true; exit; end;
-        end
-        else if (aabb.intersects(hitray, @tmin)) then
-        begin
-          // intersect
-          if (tmin <= 0) then
-          begin
-            if doPlayerHit(i) then begin result := true; exit; end;
-          end
-          else
-          begin
-            appendHitTimePlr(tmin, i);
-          end;
-        end;
-      end;
-    end;
-  end;
-
-  function monsPossibleHitInstant (mon: TMonster): Boolean;
-  var
-    aabb: AABB2D;
-  begin
-    result := false; // don't stop
-    aabb := mon.mapAABB;
-    if aabb.contains(x, y) then
-    begin
-      result := doMonsterHit(mon);
-    end;
-  end;
-
-  function monsPossibleHit (mon: TMonster): Boolean;
-  var
-    aabb: AABB2D;
-    tmin: Single;
-  begin
-    result := false; // don't stop
-    if not wgunMonHash.put(Integer(mon.UID), 1) then
-    begin
-      // new monster; calculate hitpoint
-      aabb := mon.mapAABB;
-      if (aabb.intersects(hitray, @tmin)) then
-      begin
-        if (tmin < 0) then tmin := 1.0;
-        appendHitTimeMon(tmin, mon);
-      end;
-    end;
-  end;
-
-var
-  a: Integer;
-  x2, y2: Integer;
-  dx, dy: Integer;
-  xe, ye: Integer;
-  s, c: Extended;
-  xx, yy, d: Integer;
-  prevX, prevY: Integer;
-  leftToNextMonsterQuery: Integer = 0;
-  i: Integer;
-  t1: Boolean;
-  {$IF DEFINED(GWEP_HITSCAN_TRACE_BITMAP_CHECKER)}
-  w, h: Word;
-  {$ENDIF}
-  wallWasHit: Boolean = false;
-  wallHitX: Integer = 0;
-  wallHitY: Integer = 0;
-  didHit: Boolean = false;
-  mptWX: Integer = 0;
-  mptWY: Integer = 0;
-  mptHit: Integer = -1;
-  {$IF DEFINED(D2F_DEBUG)}
-  stt: UInt64;
-  {$ENDIF}
-begin
-  if not gwep_debug_fast_trace then
-  begin
-    g_Weapon_gunOld(x, y, xd, yd, v, dmg, SpawnerUID, CheckTrigger);
-    exit;
-  end;
-
-  wgunMonHash.reset(); //FIXME: clear hash on level change
-  wgunHitHeap.clear();
-  wgunHitTimeUsed := 0;
-
-  a := GetAngle(x, y, xd, yd)+180;
-
-  SinCos(DegToRad(-a), s, c);
-
-  if Abs(s) < 0.01 then s := 0;
-  if Abs(c) < 0.01 then c := 0;
-
-  x2 := x+Round(c*gMapInfo.Width);
-  y2 := y+Round(s*gMapInfo.Width);
-
-  hitray := Ray2D.Create(x, y, x2, y2);
-
-  e_WriteLog(Format('GUN TRACE: (%d,%d) to (%d,%d)', [x, y, x2, y2]), MSG_NOTIFY);
-
-  {$IF DEFINED(GWEP_HITSCAN_TRACE_BITMAP_CHECKER)}
-  t1 := (gWalls <> nil);
-  w := gMapInfo.Width;
-  h := gMapInfo.Height;
-  {$ENDIF}
-
-  dx := x2-x;
-  dy := y2-y;
-
-  if (xd = 0) and (yd = 0) then Exit;
-
-  if dx > 0 then xi := 1 else if dx < 0 then xi := -1 else xi := 0;
-  if dy > 0 then yi := 1 else if dy < 0 then yi := -1 else yi := 0;
-
-  // check instant hits
-  xx := x;
-  yy := y;
-  if (dx < 0) then Dec(xx);
-  if (dy < 0) then Dec(yy);
-
-  dx := Abs(dx);
-  dy := Abs(dy);
-
-  if playerPossibleHit() then exit; // instant hit
-  if g_Mons_ForEachAliveAt(xx, yy, 3, 3, monsPossibleHitInstant) then exit; // instant hit
-
-  if dx > dy then d := dx else d := dy;
-
-  //blood vel, for Monster.Damage()
-  //vx := (dx*10 div d)*xi;
-  //vy := (dy*10 div d)*yi;
-
-  {$IF DEFINED(D2F_DEBUG)}
-  mptHit := g_Map_traceToNearestWall(x, y, x2, y2, @mptWX, @mptWY);
-  e_WriteLog(Format('tree trace: (%d,%d)', [mptWX, mptWY]), MSG_NOTIFY);
-  {$ENDIF}
-
-  {$IF not DEFINED(GWEP_HITSCAN_TRACE_BITMAP_CHECKER)}
-  wallWasHit := (mptHit >= 0);
-  wallHitX := mptWX;
-  wallHitY := mptWY;
-  t1 := false;
-  {$ENDIF}
-
-  {$IF DEFINED(D2F_DEBUG)}
-  stt := curTimeMicro();
-  {$ENDIF}
-  // find wall, collect monsters
-  begin
-    xe := 0;
-    ye := 0;
-    xx := x;
-    yy := y;
-    prevX := xx;
-    prevY := yy;
-    for i := 1 to d do
-    begin
-      prevX := xx;
-      prevY := yy;
-      xe += dx;
-      ye += dy;
-      if (xe > d) then begin xe -= d; xx += xi; end;
-      if (ye > d) then begin ye -= d; yy += yi; end;
-
-      // wtf?!
-      //if (yy > h) or (yy < 0) then break;
-      //if (xx > w) or (xx < 0) then break;
-
-      {$IF DEFINED(GWEP_HITSCAN_TRACE_BITMAP_CHECKER)}
-      if t1 and (xx >= 0) and (yy >= 0) and (xx < w) and (yy < h) then
-      begin
-        if ByteBool(gCollideMap[yy, xx] and MARK_BLOCKED) then
-        begin
-          wallWasHit := true;
-          wallHitX := prevX;
-          wallHitY := prevY;
-        end;
-      end;
-      {$ELSE}
-      if (abs(prevX-wallHitX) < 2) and (abs(prevY-wallHitY) < 2) then t1 := true;
-      {$ENDIF}
-
-      if (leftToNextMonsterQuery <> 0) and not wallWasHit then
-      begin
-        Dec(leftToNextMonsterQuery);
-      end
-      else
-      begin
-        // check monsters
-        g_Mons_ForEachAliveAt(xx-HHGridSize div 2, yy-HHGridSize div 2, HHGridSize+HHGridSize div 2, HHGridSize+HHGridSize div 2, monsPossibleHit);
-        leftToNextMonsterQuery := HHGridSize; // again
-        {$IF DEFINED(GWEP_HITSCAN_TRACE_BITMAP_CHECKER)}
-        if wallWasHit then break;
-        {$ELSE}
-        if t1 then break;
-        {$ENDIF}
-      end;
-    end;
-
-    if not wallWasHit then
-    begin
-      wallHitX := prevX;
-      wallHitY := prevY;
-    end;
-  end;
-
-  // here, we collected all monsters and players in `wgunHitHeap` and `wgunHitTime`
-  // also, if `wallWasHit` is true, then `wallHitX` and `wallHitY` contains wall coords
-  while (wgunHitHeap.count > 0) do
-  begin
-    // has some entities to check, do it
-    i := wgunHitHeap.front;
-    wgunHitHeap.popFront();
-    hitray.atTime(wgunHitTime[i].time, xe, ye);
-    // check if it is not behind the wall
-    if ((xe-x)*(xe-x)+(ye-y)*(ye-y) < (wallHitX-x)*(wallHitX-x)+(wallHitY-y)*(wallHitY-y)) then
-    begin
-      if (wgunHitTime[i].mon <> nil) then
-      begin
-        didHit := doMonsterHit(wgunHitTime[i].mon);
-      end
-      else
-      begin
-        didHit := doPlayerHit(wgunHitTime[i].plridx);
-      end;
-      if didHit then
-      begin
-        // need new coords for trigger
-        wallHitX := xe;
-        wallHitY := ye;
-        wallWasHit := false; // no sparks
-        break;
-      end;
-    end;
-  end;
-
-  // need sparks?
-  if wallWasHit then
-  begin
-    {$IF DEFINED(GWEP_HITSCAN_TRACE_BITMAP_CHECKER)}
-    if (mptHit < 0) then
-    begin
-      e_WriteLog('OOPS: tree trace failed, but pixel trace found the wall!', MSG_WARNING);
-      raise Exception.Create('map tree trace fucked');
-    end
-    else
-    begin
-      {$IF DEFINED(D2F_DEBUG)}
-      //e_WriteLog(Format('  trace: (%d,%d)', [wallHitX, wallHitY]), MSG_NOTIFY);
-      {$ENDIF}
-      wallHitX := mptWX;
-      wallHitY := mptWY;
-    end;
-    {$ENDIF}
-    {$IF DEFINED(D2F_DEBUG)}
-    stt := curTimeMicro()-stt;
-    e_WriteLog(Format('*** new trace time: %u microseconds', [LongWord(stt)]), MSG_NOTIFY);
-    {$ENDIF}
-    g_GFX_Spark(wallHitX, wallHitY, 2+Random(2), 180+a, 0, 0);
-    if g_Game_IsServer and g_Game_IsNet then MH_SEND_Effect(wallHitX, wallHitY, 180+a, NET_GFX_SPARK);
-  end
-  else
-  begin
-    {$IF DEFINED(D2F_DEBUG)}
-    stt := curTimeMicro()-stt;
-    e_WriteLog(Format('*** new trace time: %u microseconds', [LongWord(stt)]), MSG_NOTIFY);
-    {$ENDIF}
-  end;
-
-  if CheckTrigger and g_Game_IsServer then g_Triggers_PressL(X, Y, wallHitX, wallHitY, SpawnerUID, ACTIVATE_SHOT);
-end;
-*)
-
-
+//!!!FIXME!!!
 procedure g_Weapon_gun (const x, y, xd, yd, v, dmg: Integer; SpawnerUID: Word; CheckTrigger: Boolean);
+(*
 var
   hitray: Ray2D;
   xi, yi: Integer;
@@ -1755,7 +1438,9 @@ var
     result := false; // don't stop
     if (dist*dist < wallDistSq) then appendHitTimeMon(dist, mon);
   end;
+*)
 
+(*
 var
   a: Integer;
   x2, y2: Integer;
@@ -1770,6 +1455,7 @@ var
   {$IF DEFINED(D2F_DEBUG)}
   stt: UInt64;
   {$ENDIF}
+*)
 begin
   (*
   if not gwep_debug_fast_trace then
@@ -1779,6 +1465,7 @@ begin
   end;
   *)
 
+(*
   wgunMonHash.reset(); //FIXME: clear hash on level change
   wgunHitHeap.clear();
   wgunHitTimeUsed := 0;
@@ -1872,6 +1559,7 @@ begin
   end;
 
   if CheckTrigger and g_Game_IsServer then g_Triggers_PressL(X, Y, wallHitX, wallHitY, SpawnerUID, ACTIVATE_SHOT);
+*)
 end;
 
 
@@ -2648,7 +2336,7 @@ begin
             else
               tf := 3;
 
-            if (gTime mod tf = 0) then
+            if (gTime mod LongWord(tf) = 0) then
             begin
               Anim := TAnimation.Create(TextureID, False, 2 + Random(2));
               Anim.Alpha := 0;

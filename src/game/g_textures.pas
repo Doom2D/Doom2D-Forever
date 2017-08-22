@@ -99,8 +99,8 @@ function g_Frames_CreateFile(ID: PDWORD; Name: ShortString; FileName: String;
 function g_Frames_CreateMemory(ID: PDWORD; Name: ShortString; pData: Pointer; dataSize: LongInt;
                                FWidth, FHeight, FCount: Word; BackAnimation: Boolean = False): Boolean;
 //function g_Frames_CreateRevert(ID: PDWORD; Name: ShortString; Frames: string): Boolean;
-function g_Frames_Get(var ID: DWORD; FramesName: ShortString): Boolean;
-function g_Frames_GetTexture(var ID: DWORD; FramesName: ShortString; Frame: Word): Boolean;
+function g_Frames_Get(out ID: DWORD; FramesName: ShortString): Boolean;
+function g_Frames_GetTexture(out ID: DWORD; FramesName: ShortString; Frame: Word): Boolean;
 function g_Frames_Exists(FramesName: String): Boolean;
 procedure g_Frames_DeleteByName(FramesName: ShortString);
 procedure g_Frames_DeleteByID(ID: DWORD);
@@ -572,7 +572,7 @@ begin
   FramesArray := nil;
 end;
 
-function g_Frames_Get(var ID: DWORD; FramesName: ShortString): Boolean;
+function g_Frames_Get(out ID: DWORD; FramesName: ShortString): Boolean;
 var
   a: DWORD;
 begin
@@ -595,7 +595,7 @@ begin
     g_FatalError(Format(_lc[I_GAME_ERROR_FRAMES], [FramesName]));
 end;
 
-function g_Frames_GetTexture(var ID: DWORD; FramesName: ShortString; Frame: Word): Boolean;
+function g_Frames_GetTexture(out ID: DWORD; FramesName: ShortString; Frame: Word): Boolean;
 var
   a: DWORD;
 begin

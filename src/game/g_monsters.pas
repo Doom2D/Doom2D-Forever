@@ -20,7 +20,7 @@ interface
 
 uses
   g_basic, e_graphics, g_phys, g_textures,
-  g_saveload, BinEditor, g_panel, z_aabbtree, xprofiler;
+  g_saveload, BinEditor, g_panel, xprofiler;
 
 const
   MONSTATE_SLEEP  = 0;
@@ -80,7 +80,7 @@ type
     FFireAttacker: Word;
     vilefire: TAnimation;
 
-    treeNode: Integer; // node in dyntree or -1
+    proxyId: Integer; // node in dyntree or -1
     arrIdx: Integer; // in gMonsters
 
     FDieTriggers: Array of Integer;
@@ -89,8 +89,6 @@ type
     procedure Turn();
     function findNewPrey(): Boolean;
     procedure ActivateTriggers();
-
-    function getMapAABB (): AABB2D; inline;
 
   public
     FNoRespawn: Boolean;
@@ -136,6 +134,8 @@ type
 
     procedure positionChanged (); //WARNING! call this after monster position was changed, or coldet will not work right!
 
+    procedure getMapBox (out x, y, w, h: Integer); inline;
+
     property MonsterType: Byte read FMonsterType;
     property MonsterHealth: Integer read FHealth write FHealth;
     property MonsterAmmo: Integer read FAmmo write FAmmo;
@@ -160,11 +160,12 @@ type
     property GameAccelY: Integer read FObj.Accel.Y write FObj.Accel.Y;
     property GameDirection: TDirection read FDirection write FDirection;
 
-    property mapAABB: AABB2D read getMapAABB;
-
     property StartID: Integer read FStartID;
   end;
 
+
+// will be called from map loader
+procedure g_Mons_InitTree (x, y, w, h: Integer);
 
 procedure g_Monsters_LoadData ();
 procedure g_Monsters_FreeData ();
@@ -205,7 +206,7 @@ function g_Mons_getNewTrapFrameId (): DWord;
 
 
 type
-  TMonsAlongLineCB = function (mon: TMonster; dist: Single): Boolean is nested;
+  TMonsAlongLineCB = function (mon: TMonster; distSq: Integer): Boolean is nested;
 
 function g_Mons_alongLine (x0, y0, x1, y1: Integer; cb: TMonsAlongLineCB): TMonster;
 
@@ -231,7 +232,7 @@ uses
   e_log, g_main, g_sound, g_gfx, g_player, g_game,
   g_weapons, g_triggers, MAPDEF, g_items, g_options,
   g_console, g_map, Math, SysUtils, g_menu, wadreader,
-  g_language, g_netmsg;
+  g_language, g_netmsg, g_grid;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
@@ -267,38 +268,26 @@ var
   monCheckTrapLastFrameId: DWord;
 
 
-function TMonster.getMapAABB (): AABB2D; inline;
+procedure TMonster.getMapBox (out x, y, w, h: Integer); inline;
 begin
-  result := AABB2D.CreateWH(FObj.X+FObj.Rect.X, FObj.Y+FObj.Rect.Y, FObj.Rect.Width, FObj.Rect.Height);
+  x := FObj.X+FObj.Rect.X;
+  y := FObj.Y+FObj.Rect.Y;
+  w := FObj.Rect.Width;
+  h := FObj.Rect.Height;
 end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
 type
-  TDynAABBTreeMonsBase = specialize TDynAABBTreeBase<TMonster>;
-
-  TDynAABBTreeMons = class(TDynAABBTreeMonsBase)
-    function getFleshAABB (out aabb: AABB2D; flesh: TMonster; tag: Integer): Boolean; override;
-  end;
-
-function TDynAABBTreeMons.getFleshAABB (out aabb: AABB2D; flesh: TMonster; tag: Integer): Boolean;
-begin
-  result := false;
-  if (flesh = nil) then raise Exception.Create('DynTree: trying to get dimensions of inexistant monsters');
-  if (flesh.Obj.Rect.Width < 1) or (flesh.Obj.Rect.Height < 1) then raise Exception.Create('DynTree: monster without size, wtf?!');
-  //aabb := AABB2D.CreateWH(flesh.Obj.X+flesh.Obj.Rect.X, flesh.Obj.Y+flesh.Obj.Rect.Y, flesh.Obj.Rect.Width, flesh.Obj.Rect.Height);
-  aabb := flesh.getMapAABB();
-  if not aabb.valid then raise Exception.Create('wutafuuuuuuu?!');
-  result := true;
-end;
-
+  TMonsterGrid = specialize TBodyGridBase<TMonster>;
 
 var
-  monsTree: TDynAABBTreeMons = nil;
+  monsGrid: TMonsterGrid = nil;
 
 
 function g_Mons_alongLine (x0, y0, x1, y1: Integer; cb: TMonsAlongLineCB): TMonster;
-
+//!!!FIXME!!!
+{
   function sqchecker (mon: TMonster; var ray: Ray2D): Single;
   var
     aabb: AABB2D;
@@ -317,13 +306,16 @@ function g_Mons_alongLine (x0, y0, x1, y1: Integer; cb: TMonsAlongLineCB): TMons
 
 var
   qr: TDynAABBTreeMons.TSegmentQueryResult;
+}
 begin
   result := nil;
+{
   if not assigned(cb) then exit;
   if monsTree.segmentQuery(qr, x0, y0, x1, y1, sqchecker) then
   begin
     if (qr.flesh <> nil) then result := qr.flesh;
   end;
+}
 end;
 
 
@@ -335,30 +327,30 @@ begin
   {$IF DEFINED(D2F_DEBUG_MONS_MOVE)}
   //e_WriteLog(Format('monster #%d(%u): pos=(%d,%d); rpos=(%d,%d)', [arrIdx, UID, FObj.X, FObj.Y, FObj.Rect.X, FObj.Rect.Y]), MSG_NOTIFY);
   {$ENDIF}
-  if (treeNode = -1) then
+  if (proxyId = -1) then
   begin
-    treeNode := monsTree.insertObject(self, 0);
+    proxyId := monsGrid.insertBody(self, FObj.X+FObj.Rect.X, FObj.Y+FObj.Rect.Y, FObj.Rect.Width, FObj.Rect.Height);
     {$IF DEFINED(D2F_DEBUG_MONS_MOVE)}
-    monsTree.getNodeXY(treeNode, x, y);
-    e_WriteLog(Format('monster #%d(%u): inserted into the tree; nodeid=%d; x=%d; y=%d', [arrIdx, UID, treeNode, x, y]), MSG_NOTIFY);
+    monsGrid.getBodyXY(proxyId, x, y);
+    e_WriteLog(Format('monster #%d(%u): inserted into the grid; proxyid=%d; x=%d; y=%d', [arrIdx, UID, proxyId, x, y]), MSG_NOTIFY);
     {$ENDIF}
   end
   else
   begin
-    monsTree.getNodeXY(treeNode, x, y);
+    monsGrid.getBodyXY(proxyId, x, y);
     if (FObj.X+FObj.Rect.X = x) and (FObj.Y+FObj.Rect.Y = y) then exit; // nothing to do
-    {$IF DEFINED(D2F_DEBUG_MONS_MOVE)}e_WriteLog(Format('monster #%d(%u): updating tree; nodeid=%d; x=%d; y=%d', [arrIdx, UID, treeNode, x, y]), MSG_NOTIFY);{$ENDIF}
+    {$IF DEFINED(D2F_DEBUG_MONS_MOVE)}e_WriteLog(Format('monster #%d(%u): updating tree; proxyid=%d; x=%d; y=%d', [arrIdx, UID, proxyId, x, y]), MSG_NOTIFY);{$ENDIF}
 
-    {$IFDEF TRUE}
-    monsTree.updateObject(treeNode);
+    {$IF TRUE}
+    monsGrid.moveBody(proxyId, FObj.X+FObj.Rect.X, FObj.Y+FObj.Rect.Y);
     {$ELSE}
-    monsTree.removeObject(treeNode);
-    treeNode := monsTree.insertObject(self);
+    monsGrid.removeBody(proxyId);
+    proxyId := monsGrid.insertBody(self, FObj.X+FObj.Rect.X, FObj.Y+FObj.Rect.Y, FObj.Rect.Width, FObj.Rect.Height);
     {$ENDIF}
 
     {$IF DEFINED(D2F_DEBUG_MONS_MOVE)}
-    monsTree.getNodeXY(treeNode, x, y);
-    e_WriteLog(Format('monster #%d(%u): updated tree; nodeid=%d; x=%d; y=%d', [arrIdx, UID, treeNode, x, y]), MSG_NOTIFY);
+    monsGrid.getBodyXY(proxyId, x, y);
+    e_WriteLog(Format('monster #%d(%u): updated tree; proxyid=%d; x=%d; y=%d', [arrIdx, UID, proxyId, x, y]), MSG_NOTIFY);
     {$ENDIF}
   end;
 end;
@@ -707,6 +699,7 @@ function isCorpse (o: PObj; immediately: Boolean): Integer;
 
   function monsCollCheck (mon: TMonster; atag: Integer): Boolean;
   begin
+    atag := atag; // shut up, fpc!
     result := false; // don't stop
     if (mon.FState = STATE_DEAD) and g_Obj_Collide(o, @mon.FObj) then
     begin
@@ -731,7 +724,7 @@ begin
   // »щем мертвых монстров поблизости
   if gmon_debug_use_sqaccel then
   begin
-    mon := monsTree.aabbQuery(o.X+o.Rect.X, o.Y+o.Rect.Y, o.Rect.Width, o.Rect.Height, monsCollCheck);
+    mon := monsGrid.forEachInAABB(o.X+o.Rect.X, o.Y+o.Rect.Y, o.Rect.Width, o.Rect.Height, monsCollCheck);
     if (mon <> nil) then result := mon.arrIdx;
   end
   else
@@ -992,7 +985,6 @@ begin
 
   g_Sound_CreateWADEx('SOUND_MONSTER_FISH_ATTACK', GameWAD+':MSOUNDS\FISH_ATTACK');
 
-  monsTree := TDynAABBTreeMons.Create();
   clearUidMap();
   monCheckTrapLastFrameId := 0;
 end;
@@ -1211,8 +1203,6 @@ begin
   g_Sound_Delete('SOUND_MONSTER_SPIDER_WALK');
 
   g_Sound_Delete('SOUND_MONSTER_FISH_ATTACK');
-
-  monsTree.Free();
 end;
 
 procedure g_Monsters_Init();
@@ -1224,12 +1214,22 @@ procedure g_Monsters_Free();
 var
   a: Integer;
 begin
-  monsTree.reset();
+  monsGrid.Free();
+  monsGrid := nil;
   for a := 0 to High(gMonsters) do gMonsters[a].Free();
   gMonsters := nil;
   clearUidMap();
   monCheckTrapLastFrameId := 0;
 end;
+
+
+// will be called from map loader
+procedure g_Mons_InitTree (x, y, w, h: Integer);
+begin
+  monsGrid.Free();
+  monsGrid := TMonsterGrid.Create(x, y, w, h);
+end;
+
 
 function g_Monsters_Create(MonsterType: Byte; X, Y: Integer;
            Direction: TDirection; AdjCoord: Boolean = False; ForcedUID: Integer = -1): TMonster;
@@ -1254,7 +1254,7 @@ begin
   mon := TMonster.Create(MonsterType, find_id, ForcedUID);
   gMonsters[find_id] := mon;
   mon.arrIdx := find_id;
-  mon.treeNode := -1;
+  mon.proxyId := -1;
 
   uidMap[mon.FUID] := mon;
 
@@ -1711,7 +1711,7 @@ end;
 constructor TMonster.Create(MonsterType: Byte; aID: Integer; ForcedUID: Integer = -1);
 var
   a: Integer;
-  FramesID: DWORD;
+  FramesID: DWORD = 0;
   s: String;
   res: Boolean;
 begin
@@ -1741,7 +1741,7 @@ begin
   FFirePainTime := 0;
   FFireAttacker := 0;
 
-  treeNode := -1;
+  proxyId := -1;
   arrIdx := -1;
   trapCheckFrameId := 0;
 
@@ -2017,21 +2017,17 @@ begin
 
   vilefire.Free();
 
-  if (treeNode <> -1) then
+  if (proxyId <> -1) then
   begin
-    if monsTree.isValidId(treeNode) then
-    begin
-      {$IF DEFINED(D2F_DEBUG_MONS_MOVE)}
-      e_WriteLog(Format('monster #%d(%u): removed from tree; nodeid=%d', [arrIdx, UID, treeNode]), MSG_NOTIFY);
-      {$ENDIF}
-      monsTree.removeObject(treeNode);
-    end;
+    monsGrid.removeBody(proxyId);
+    {$IF DEFINED(D2F_DEBUG_MONS_MOVE)}
+    e_WriteLog(Format('monster #%d(%u): removed from tree; proxyid=%d', [arrIdx, UID, proxyId]), MSG_NOTIFY);
+    {$ENDIF}
+    proxyId := -1;
   end;
 
-  if (arrIdx <> -1) then
-  begin
-    gMonsters[arrIdx] := nil;
-  end;
+  if (arrIdx <> -1) then gMonsters[arrIdx] := nil;
+  arrIdx := -1;
 
   uidMap[FUID] := nil;
 
@@ -4566,7 +4562,7 @@ function g_Mons_IsAnyAliveAt (x, y: Integer; width, height: Integer): Boolean;
 
   function monsCollCheck (mon: TMonster; atag: Integer): Boolean;
   begin
-    result := (mon.Live and g_Obj_Collide(x, y, width, height, @mon.Obj));
+    result := mon.Live;// and g_Obj_Collide(x, y, width, height, @mon.Obj));
   end;
 
 var
@@ -4577,7 +4573,7 @@ begin
   if (width < 1) or (height < 1) then exit;
   if gmon_debug_use_sqaccel then
   begin
-    result := (monsTree.aabbQuery(x, y, width, height, monsCollCheck) <> nil);
+    result := (monsGrid.forEachInAABB(x, y, width, height, monsCollCheck) <> nil);
   end
   else
   begin
@@ -4597,12 +4593,14 @@ begin
 end;
 
 
+///!!!FIXME!!!
 function g_Mons_ForEachAt (x, y: Integer; width, height: Integer; cb: TEachMonsterCB): Boolean;
 
   function monsCollCheck (mon: TMonster; atag: Integer): Boolean;
   begin
-    result := false;
-    if g_Obj_Collide(x, y, width, height, @mon.Obj) then result := cb(mon);
+    //result := false;
+    //if g_Obj_Collide(x, y, width, height, @mon.Obj) then result := cb(mon);
+    result := cb(mon);
   end;
 
 var
@@ -4613,7 +4611,7 @@ begin
   if (width < 1) or (height < 1) then exit;
   if gmon_debug_use_sqaccel then
   begin
-    result := (monsTree.aabbQuery(x, y, width, height, monsCollCheck) <> nil);
+    result := (monsGrid.forEachInAABB(x, y, width, height, monsCollCheck) <> nil);
   end
   else
   begin
@@ -4637,8 +4635,9 @@ function g_Mons_ForEachAliveAt (x, y: Integer; width, height: Integer; cb: TEach
 
   function monsCollCheck (mon: TMonster; atag: Integer): Boolean;
   begin
-    result := false;
-    if mon.Live and g_Obj_Collide(x, y, width, height, @mon.Obj) then result := cb(mon);
+    //result := false;
+    //if mon.Live and g_Obj_Collide(x, y, width, height, @mon.Obj) then result := cb(mon);
+    if mon.Live then result := cb(mon) else result := false;
   end;
 
 var
@@ -4651,11 +4650,11 @@ begin
   begin
     if (width = 1) and (height = 1) then
     begin
-      result := (monsTree.pointQuery(x, y, monsCollCheck) <> nil);
+      result := (monsGrid.forEachAtPoint(x, y, monsCollCheck) <> nil);
     end
     else
     begin
-      result := (monsTree.aabbQuery(x, y, width, height, monsCollCheck) <> nil);
+      result := (monsGrid.forEachInAABB(x, y, width, height, monsCollCheck) <> nil);
     end;
   end
   else

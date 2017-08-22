@@ -21,7 +21,7 @@ interface
 
 uses
   e_graphics, g_basic, MAPSTRUCT, g_textures, Classes,
-  g_phys, wadreader, BinEditor, g_panel, g_grid, z_aabbtree, md5, binheap, xprofiler;
+  g_phys, wadreader, BinEditor, g_panel, g_grid, md5, binheap, xprofiler;
 
 type
   TMapInfo = record
@@ -181,9 +181,6 @@ var
 
   gdbg_map_use_accel_render: Boolean = true;
   gdbg_map_use_accel_coldet: Boolean = true;
-  //gdbg_map_use_tree_draw: Boolean = false;
-  //gdbg_map_use_tree_coldet: Boolean = false;
-  //gdbg_map_dump_coldet_tree_queries: Boolean = false;
   profMapCollision: TProfiler = nil; //WARNING: FOR DEBUGGING ONLY!
   gDrawPanelList: TBinaryHeapObj = nil; // binary heap of all walls we have to render, populated by `g_Map_CollectDrawPanels()`
 
@@ -209,26 +206,6 @@ const
 
 type
   TPanelGrid = specialize TBodyGridBase<TPanel>;
-
-  {
-  TDynAABBTreePanelBase = specialize TDynAABBTreeBase<TPanel>;
-
-  TDynAABBTreeMap = class(TDynAABBTreePanelBase)
-    function getFleshAABB (out aabb: AABB2D; pan: TPanel; tag: Integer): Boolean; override;
-  end;
-  {
-
-{
-function TDynAABBTreeMap.getFleshAABB (out aabb: AABB2D; pan: TPanel; tag: Integer): Boolean;
-begin
-  result := false;
-  if (pan = nil) then begin aabb := AABB2D.Create(0, 0, 0, 0); exit; end;
-  aabb := AABB2D.Create(pan.X, pan.Y, pan.X+pan.Width-1, pan.Y+pan.Height-1);
-  if (pan.Width < 1) or (pan.Height < 1) then exit;
-  if not aabb.valid then raise Exception.Create('wutafuuuuuuu?!');
-  result := true;
-end;
-}
 
 
 function panelTypeToTag (panelType: Word): Integer;
@@ -279,7 +256,6 @@ var
   FlagPoints:    Array [FLAG_RED..FLAG_BLUE] of PFlagPoint;
   //DOMFlagPoints: Array of TFlagPoint;
   mapGrid: TPanelGrid = nil;
-  //mapTree: TDynAABBTreeMap = nil;
 
 
 procedure g_Map_ProfilersBegin ();
@@ -303,122 +279,10 @@ end;
 
 
 // wall index in `gWalls` or -1
-(*
-function g_Map_traceToNearestWallOld (x0, y0, x1, y1: Integer; hitx: PInteger=nil; hity: PInteger=nil): Integer;
-
-  function sqchecker (pan: TPanel; var ray: Ray2D): Single;
-  var
-    aabb: AABB2D;
-    tmin: Single;
-  begin
-    result := -666.0; // invalid
-    if not pan.Enabled then exit;
-    aabb := AABB2D.CreateWH(pan.X, pan.Y, pan.Width, pan.Height);
-    if not aabb.valid then exit;
-    if aabb.intersects(ray, @tmin) then
-    begin
-      //if (tmin*tmin > maxDistSq) then exit;
-      if (tmin >= 0.0) then
-      begin
-        //e_WriteLog(Format('sqchecker(%d,%d,%d,%d): panel #%d (%d,%d)-(%d,%d); tmin=%f', [x0, y0, x1, y1, pan.arrIdx, pan.X, pan.Y, pan.Width, pan.Height, tmin]), MSG_NOTIFY);
-        //if (tmin < 0.0) then tmin := 0.0;
-        result := tmin;
-      end;
-    end;
-  end;
-
-var
-  qr: TDynAABBTreeMap.TSegmentQueryResult;
-  ray: Ray2D;
-  hxf, hyf: Single;
-  hx, hy: Integer;
-  maxDistSq: Single;
-begin
-  result := -1;
-  if (mapTree = nil) then exit;
-  if mapTree.segmentQuery(qr, x0, y0, x1, y1, sqchecker, (GridTagWall or GridTagDoor)) then
-  begin
-    maxDistSq := (x1-x0)*(x1-x0)+(y1-y0)*(y1-y0);
-    if (qr.flesh <> nil) and (qr.time*qr.time <= maxDistSq) then
-    begin
-      result := qr.flesh.arrIdx;
-      if (hitx <> nil) or (hity <> nil) then
-      begin
-        ray := Ray2D.Create(x0, y0, x1, y1);
-        hxf := ray.origX+ray.dirX*qr.time;
-        hyf := ray.origY+ray.dirY*qr.time;
-        while true do
-        begin
-          hx := trunc(hxf);
-          hy := trunc(hyf);
-          if (hx >= qr.flesh.X) and (hy >= qr.flesh.Y) and (hx < qr.flesh.X+qr.flesh.Width) and (hy < qr.flesh.Y+qr.flesh.Height) then
-          begin
-            // go back a little
-            hxf -= ray.dirX;
-            hyf -= ray.dirY;
-          end
-          else
-          begin
-            break;
-          end;
-        end;
-        if (hitx <> nil) then hitx^ := hx;
-        if (hity <> nil) then hity^ := hy;
-      end;
-    end;
-  end;
-end;
-*)
-
-
-// wall index in `gWalls` or -1
 function g_Map_traceToNearestWall (x0, y0, x1, y1: Integer; hitx: PInteger=nil; hity: PInteger=nil): Boolean;
-(*
-var
-  lastX, lastY, lastDistSq: Integer;
-  wasHit: Boolean = false;
-
-  // pan=nil: before processing new tile
-  function sqchecker (pan: TPanel; tag: Integer; x, y, prevx, prevy: Integer): Boolean;
-  var
-    distSq: Integer;
-  begin
-    if (pan = nil) then
-    begin
-      // stop if something was hit at the previous tile
-      result := wasHit;
-    end
-    else
-    begin
-      result := false;
-      if ((tag and (GridTagWall or GridTagDoor)) <> 0) then
-      begin
-        if not pan.Enabled then exit;
-      end;
-      distSq := (prevx-x0)*(prevx-x0)+(prevy-y0)*(prevy-y0);
-      if (distSq < lastDistSq) then
-      begin
-        wasHit := true;
-        lastDistSq := distSq;
-        lastX := prevx;
-        lastY := prevy;
-      end;
-    end;
-  end;
-*)
 var
   ex, ey: Integer;
 begin
-  (*
-  result := false;
-  if (mapGrid = nil) then exit;
-  lastDistSq := (x1-x0)*(x1-x0)+(y1-y0)*(y1-y0)+1;
-  lastX := 0;
-  lastY := 0;
-  result := mapGrid.traceRay(x0, y0, x1, y1, sqchecker, (GridTagWall or GridTagDoor));
-  if (hitx <> nil) then hitx^ := lastX;
-  if (hity <> nil) then hity^ := lastY;
-  *)
   result := (mapGrid.traceRay(ex, ey, x0, y0, x1, y1, nil, (GridTagWall or GridTagDoor)) <> nil);
 end;
 
@@ -1037,7 +901,7 @@ end;
 procedure CreateArea(Area: TAreaRec_1);
 var
   a: Integer;
-  id: DWORD;
+  id: DWORD = 0;
 begin
   case Area.AreaType of
     AREA_DMPOINT, AREA_PLAYERPOINT1, AREA_PLAYERPOINT2,
@@ -1222,6 +1086,7 @@ begin
   addResToExternalResList(mapHeader.SkyName);
 end;
 
+
 procedure mapCreateGrid ();
 var
   mapX0: Integer = $3fffffff;
@@ -1266,15 +1131,12 @@ var
         e_WriteLog(Format('INSERTED wall #%d(%d) enabled (%d)', [Integer(idx), Integer(pan.proxyId), Integer(mapGrid.proxyEnabled[pan.proxyId])]), MSG_NOTIFY);
       end;
       {$ENDIF}
-      //mapTree.insertObject(pan, tag, true); // as static object
     end;
   end;
 
 begin
   mapGrid.Free();
   mapGrid := nil;
-  //mapTree.Free();
-  //mapTree := nil;
 
   calcBoundingBox(gWalls);
   calcBoundingBox(gRenderBackgrounds);
@@ -1289,7 +1151,6 @@ begin
   e_WriteLog(Format('map dimensions: (%d,%d)-(%d,%d)', [mapX0, mapY0, mapX1, mapY1]), MSG_WARNING);
 
   mapGrid := TPanelGrid.Create(mapX0-512, mapY0-512, mapX1-mapX0+1+512*2, mapY1-mapY0+1+512*2);
-  //mapTree := TDynAABBTreeMap.Create();
 
   addPanelsToGrid(gWalls, PANEL_WALL);
   addPanelsToGrid(gWalls, PANEL_CLOSEDOOR);
@@ -1304,9 +1165,10 @@ begin
   addPanelsToGrid(gBlockMon, PANEL_BLOCKMON);
 
   mapGrid.dumpStats();
-  //e_WriteLog(Format('tree depth: %d; %d nodes used, %d nodes allocated', [mapTree.computeTreeHeight, mapTree.nodeCount, mapTree.nodeAlloced]), MSG_NOTIFY);
-  //mapTree.forEachLeaf(nil);
+
+  g_Mons_InitTree(mapGrid.gridX0, mapGrid.gridY0, mapGrid.gridWidth, mapGrid.gridHeight);
 end;
+
 
 function g_Map_Load(Res: String): Boolean;
 const
@@ -1650,6 +1512,11 @@ begin
       end;
     end;
 
+    // create map grid, init other grids (for monsters, for example)
+    e_WriteLog('Creating map grid', MSG_NOTIFY);
+    mapCreateGrid();
+
+
   // Если не LoadState, то создаем триггеры:
     if (triggers <> nil) and not gLoadGameMode then
     begin
@@ -1810,9 +1677,6 @@ begin
   finally
     sfsGCEnable(); // enable releasing unused volumes
   end;
-
-  e_WriteLog('Creating map grid', MSG_NOTIFY);
-  mapCreateGrid();
 
   e_WriteLog('Done loading map.', MSG_NOTIFY);
   Result := True;

@@ -71,7 +71,6 @@ uses
   g_netmaster in 'g_netmaster.pas',
   g_res_downloader in 'g_res_downloader.pas',
   g_grid in 'g_grid.pas',
-  z_aabbtree in 'z_aabbtree.pas',
   g_game in 'g_game.pas',
   g_gfx in 'g_gfx.pas',
   g_gui in 'g_gui.pas',

@@ -21,7 +21,7 @@ interface
 uses
   e_graphics, g_playermodel, g_basic, g_textures,
   g_weapons, g_phys, g_sound, g_saveload, MAPSTRUCT,
-  BinEditor, g_panel, z_aabbtree;
+  BinEditor, g_panel;
 
 const
   KEY_LEFT       = 1;
@@ -222,8 +222,6 @@ type
     procedure resetWeaponQueue ();
     function hasAmmoForWeapon (weapon: Byte): Boolean;
 
-    function getMapAABB (): AABB2D;
-
   public
     FDamageBuffer:   Integer;
 
@@ -316,6 +314,8 @@ type
     //WARNING! this does nothing for now, but still call it!
     procedure positionChanged (); //WARNING! call this after monster position was changed, or coldet will not work right!
 
+    procedure getMapBox (out x, y, w, h: Integer); inline;
+
     property    Name: String read FName write FName;
     property    Model: TPlayerModel read FModel;
     property    Health: Integer read FHealth write FHealth;
@@ -348,8 +348,6 @@ type
     property    UID: Word read FUID write FUID;
     property    JustTeleported: Boolean read FJustTeleported write FJustTeleported;
     property    NetTime: LongWord read FNetTime write FNetTime;
-
-    property mapAABB: AABB2D read getMapAABB;
   end;
 
   TDifficult = record
@@ -4817,7 +4815,7 @@ begin
   DecMin(FPain, 5, 0);
   DecMin(FPickup, 1, 0);
 
-  if FLive and (FObj.Y > gMapInfo.Height+128) and AnyServer then
+  if FLive and (FObj.Y > Integer(gMapInfo.Height)+128) and AnyServer then
   begin
     // Обнулить действия примочек, чтобы фон пропал
     FMegaRulez[MR_SUIT] := 0;
@@ -5002,9 +5000,12 @@ begin
     if FKeys[b].Time = 0 then FKeys[b].Pressed := False else Dec(FKeys[b].Time);
 end;
 
-function TPlayer.getMapAABB (): AABB2D; inline;
+procedure TPlayer.getMapBox (out x, y, w, h: Integer); inline;
 begin
-  result := AABB2D.CreateWH(FObj.X+PLAYER_RECT.X, FObj.Y+PLAYER_RECT.Y, PLAYER_RECT.Width, PLAYER_RECT.Height);
+  x := FObj.X+PLAYER_RECT.X;
+  y := FObj.Y+PLAYER_RECT.Y;
+  w := PLAYER_RECT.Width;
+  h := PLAYER_RECT.Height;
 end;
 
 function TPlayer.Collide(X, Y: Integer; Width, Height: Word): Boolean;

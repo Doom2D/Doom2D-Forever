@@ -86,7 +86,7 @@ uses
   g_basic, e_graphics, g_sound, g_main, g_gfx, g_map,
   Math, g_game, g_triggers, g_console, SysUtils, g_player, g_net, g_netmsg,
   e_log,
-  g_grid, z_aabbtree, binheap;
+  g_grid, binheap;
 
 
 var
@@ -94,32 +94,7 @@ var
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-{
-type
-  TDynAABBTreeItemBase = specialize TDynAABBTreeBase<Integer>;
-
-  TDynAABBTreeItem = class(TDynAABBTreeItemBase)
-    function getFleshAABB (out aabb: AABB2D; flesh: Integer; tag: Integer): Boolean; override;
-  end;
-
-function TDynAABBTreeItem.getFleshAABB (out aabb: AABB2D; flesh: Integer; tag: Integer): Boolean;
 var
-  it: PItem;
-begin
-  result := false;
-  if (flesh < 0) or (flesh > High(ggItems)) then raise Exception.Create('DynTree: trying to get dimensions of inexistant item');
-  it := @ggItems[flesh];
-  if (it.Obj.Rect.Width < 1) or (it.Obj.Rect.Height < 1) then exit;
-  aabb := AABB2D.Create(it.Obj.X, it.Obj.Y, it.Obj.X+it.Obj.Rect.Width-1, it.Obj.Y+it.Obj.Rect.Height-1);
-  if not aabb.valid then raise Exception.Create('wutafuuuuuuu?!');
-  result := true;
-end;
-}
-
-
-// ////////////////////////////////////////////////////////////////////////// //
-var
-  //itemTree: TDynAABBTreeItem = nil;
   freeIds: TBinaryHeapInt = nil; // free item ids
 
 
@@ -128,7 +103,6 @@ function g_Items_ValidId (idx: Integer): Boolean; inline;
 begin
   result := false;
   if (idx < 0) or (idx > High(ggItems)) then exit;
-  //if (ggItems[idx].treeNode = -1) then exit;
   if not ggItems[idx].slotIsUsed then exit;
   result := true;
 end;
@@ -138,7 +112,6 @@ function g_Items_ByIdx (idx: Integer): PItem;
 begin
   if (idx < 0) or (idx > High(ggItems)) then raise Exception.Create('g_ItemObjByIdx: invalid index');
   result := @ggItems[idx];
-  //if (result.treeNode = -1) then raise Exception.Create('g_ItemObjByIdx: requested inexistent item');
   if not result.slotIsUsed then raise Exception.Create('g_ItemObjByIdx: requested inexistent item');
 end;
 
@@ -146,7 +119,6 @@ end;
 function g_Items_ObjByIdx (idx: Integer): PObj;
 begin
   if (idx < 0) or (idx > High(ggItems)) then raise Exception.Create('g_ItemObjByIdx: invalid index');
-  //if (ggItems[idx].treeNode = -1) then raise Exception.Create('g_ItemObjByIdx: requested inexistent item');
   if not ggItems[idx].slotIsUsed then raise Exception.Create('g_ItemObjByIdx: requested inexistent item');
   result := @ggItems[idx].Obj;
 end;
@@ -154,37 +126,7 @@ end;
 
 // ////////////////////////////////////////////////////////////////////////// //
 procedure TItem.positionChanged ();
-//var
-//  x, y: Integer;
 begin
-  (*
-  if (treeNode = -1) then
-  begin
-    treeNode := itemTree.insertObject(arrIdx, 0, true); // static object
-    {$IF DEFINED(D2F_DEBUG)}
-    itemTree.getNodeXY(treeNode, x, y);
-    e_WriteLog(Format('item #%d: inserted into the tree; nodeid=%d; x=%d; y=%d', [arrIdx, treeNode, x, y]), MSG_NOTIFY);
-    {$ENDIF}
-  end
-  else
-  begin
-    itemTree.getNodeXY(treeNode, x, y);
-    if (Obj.X = x) and (Obj.Y = y) then exit; // nothing to do
-    {$IF DEFINED(D2F_DEBUG)}e_WriteLog(Format('item #%d: updating tree; nodeid=%d; x=%d; y=%d', [arrIdx, treeNode, x, y]), MSG_NOTIFY);{$ENDIF}
-
-    {$IFDEF TRUE}
-    itemTree.updateObject(treeNode);
-    {$ELSE}
-    itemTree.removeObject(treeNode);
-    treeNode := itemTree.insertObject(arrIdx, 0, true); // static object
-    {$ENDIF}
-
-    {$IF DEFINED(D2F_DEBUG)}
-    itemTree.getNodeXY(treeNode, x, y);
-    e_WriteLog(Format('item #%d: updated tree; nodeid=%d; x=%d; y=%d', [arrIdx, treeNode, x, y]), MSG_NOTIFY);
-    {$ENDIF}
-  end;
-  *)
 end;
 
 
@@ -321,7 +263,6 @@ begin
 
   InitTextures();
 
-  //itemTree := TDynAABBTreeItem.Create();
   freeIds := binHeapNewIntLess();
 end;
 
@@ -379,7 +320,6 @@ begin
   g_Texture_Delete('ITEM_MEDKIT_BLACK');
   g_Texture_Delete('ITEM_JETPACK');
 
-  //itemTree.Free();
   freeIds.Free();
 end;
 
@@ -390,11 +330,8 @@ var
 begin
   if (idx < 0) or (idx > High(ggItems)) then raise Exception.Create('releaseItem: invalid item id');
   it := @ggItems[idx];
-  //if (it.treeNode = -1) then raise Exception.Create('releaseItem: trying to release unallocated item');
   if not it.slotIsUsed then raise Exception.Create('releaseItem: trying to release unallocated item');
   if (it.arrIdx <> idx) then raise Exception.Create('releaseItem: arrIdx inconsistency');
-  //itemTree.removeObject(it.treeNode);
-  //it.treeNode := -1;
   it.slotIsUsed := false;
   if (it.Animation <> nil) then
   begin
@@ -421,7 +358,6 @@ begin
     for i := olen to High(ggItems) do
     begin
       it := @ggItems[i];
-      //it.treeNode := -1;
       it.slotIsUsed := false;
       it.arrIdx := i;
       it.ItemType := ITEM_NONE;
@@ -436,8 +372,8 @@ begin
   result := freeIds.front;
   freeIds.popFront();
 
-  if (result > High(ggItems)) then raise Exception.Create('allocItem: freeid list corrupted');
-  if (ggItems[result].arrIdx <> result) then raise Exception.Create('allocItem: arrIdx inconsistency');
+  if (Integer(result) > High(ggItems)) then raise Exception.Create('allocItem: freeid list corrupted');
+  if (ggItems[result].arrIdx <> Integer(result)) then raise Exception.Create('allocItem: arrIdx inconsistency');
 end;
 
 
@@ -459,7 +395,6 @@ begin
     for i := olen to High(ggItems) do
     begin
       it := @ggItems[i];
-      //it.treeNode := -1;
       it.slotIsUsed := false;
       it.arrIdx := i;
       it.ItemType := ITEM_NONE;
@@ -473,7 +408,7 @@ begin
   end;
 
   it := @ggItems[slot];
-  if {(it.treeNode = -1)} not it.slotIsUsed then
+  if not it.slotIsUsed then
   begin
     // this is unused slot; get it, and rebuild id list
     if rebuildFreeList then
@@ -481,15 +416,13 @@ begin
       freeIds.clear();
       for i := 0 to High(ggItems) do
       begin
-        if (i <> slot) and {(ggItems[i].treeNode = -1)} (not it.slotIsUsed) then freeIds.insert(i);
+        if (i <> slot) and (not it.slotIsUsed) then freeIds.insert(i);
       end;
     end;
   end
   else
   begin
     // it will be readded
-    //itemTree.removeObject(it.treeNode);
-    //it.treeNode := -1;
     it.slotIsUsed := false;
   end;
 
@@ -517,7 +450,6 @@ begin
     for i := 0 to High(ggItems) do ggItems[i].Animation.Free();
     ggItems := nil;
   end;
-  //if (itemTree <> nil) then itemTree.reset();
   freeIds.clear();
 end;
 
@@ -535,9 +467,7 @@ begin
 
   it := @ggItems[find_id];
 
-  //if (it.treeNode <> -1) then raise Exception.Create('g_Items_Create: trying to reuse already allocated item');
-  if (it.arrIdx <> find_id) then raise Exception.Create('g_Items_Create: arrIdx inconsistency');
-  //it.treeNode := -1;
+  if (it.arrIdx <> Integer(find_id)) then raise Exception.Create('g_Items_Create: arrIdx inconsistency');
   //it.arrIdx := find_id;
   it.slotIsUsed := true;
 
@@ -758,19 +688,11 @@ procedure g_Items_Remove (ID: DWORD);
 var
   it: PItem;
   trig: Integer;
-{$IF DEFINED(D2F_DEBUG)}
-  //x, y: Integer;
-{$ENDIF}
 begin
   if not g_Items_ValidId(ID) then raise Exception.Create('g_Items_Remove: invalid item id');
 
   it := @ggItems[ID];
-  if (it.arrIdx <> ID) then raise Exception.Create('g_Items_Remove: arrIdx desync');
-
-  {$IF DEFINED(D2F_DEBUG)}
-  //itemTree.getNodeXY(it.treeNode, x, y);
-  //e_WriteLog(Format('removing item #%d: updating tree; nodeid=%d; x=%d; y=%d (%d,%d)', [it.arrIdx, it.treeNode, x, y, it.Obj.X, it.Obj.Y]), MSG_NOTIFY);
-  {$ENDIF}
+  if (it.arrIdx <> Integer(ID)) then raise Exception.Create('g_Items_Remove: arrIdx desync');
 
   trig := it.SpawnTrigger;
 

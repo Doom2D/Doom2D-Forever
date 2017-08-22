@@ -110,7 +110,7 @@ procedure e_TextureFontPrint(X, Y: GLint; Text: string; FontID: DWORD);
 procedure e_TextureFontPrintEx(X, Y: GLint; Text: string; FontID: DWORD; Red, Green,
                                Blue: Byte; Scale: Single; Shadow: Boolean = False);
 procedure e_TextureFontPrintFmt(X, Y: GLint; Text: string; FontID: DWORD; Shadow: Boolean = False);
-procedure e_TextureFontGetSize(ID: DWORD; var CharWidth, CharHeight: Byte);
+procedure e_TextureFontGetSize(ID: DWORD; out CharWidth, CharHeight: Byte);
 procedure e_RemoveAllTextureFont();
 
 function e_TextureFontCharWidth (ch: Char; FontID: DWORD): Integer;
@@ -1596,7 +1596,7 @@ begin
   glDisable(GL_BLEND);
 end;
 
-procedure e_TextureFontGetSize(ID: DWORD; var CharWidth, CharHeight: Byte);
+procedure e_TextureFontGetSize(ID: DWORD; out CharWidth, CharHeight: Byte);
 begin
   CharWidth := 16;
   CharHeight := 16;

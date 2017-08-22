@@ -73,7 +73,7 @@ implementation
 
 uses
   SysUtils, e_msg, e_input, e_graphics, e_log, g_window, g_net, g_console,
-  g_map, g_game, g_sound, g_textures, g_gui, g_menu, g_options, g_language, wadreader;
+  g_map, g_game, g_sound, g_gui, g_menu, g_options, g_language, wadreader;
 
 var
   NetMEvent:      ENetEvent;
@@ -383,8 +383,10 @@ end;
 procedure g_Serverlist_Draw(var SL: TNetServerList);
 var
   sy, i, y, mw, mx, l: Integer;
-  cw, ch: Byte;
-  ww, hh: Word;
+  cw: Byte = 0;
+  ch: Byte = 0;
+  ww: Word = 0;
+  hh: Word = 0;
   ip: string;
 begin
   ip := '';

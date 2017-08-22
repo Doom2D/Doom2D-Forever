@@ -77,7 +77,7 @@ type
     mProxyMaxCount: Integer;
 
   private
-    function allocCell: Integer;
+    function allocCell (): Integer;
     procedure freeCell (idx: Integer); // `next` is simply overwritten
 
     function allocProxy (aX, aY, aWidth, aHeight: Integer; aObj: ITP; aTag: Integer): TBodyProxyId;
@@ -94,18 +94,24 @@ type
     function getProxyEnabled (pid: TBodyProxyId): Boolean; inline;
     procedure setProxyEnabled (pid: TBodyProxyId; val: Boolean); inline;
 
+    function getGridWidthPx (): Integer; inline;
+    function getGridHeightPx (): Integer; inline;
+
   public
     constructor Create (aMinPixX, aMinPixY, aPixWidth, aPixHeight: Integer{; aTileSize: Integer=GridDefaultTileSize});
     destructor Destroy (); override;
 
     function insertBody (aObj: ITP; ax, ay, aWidth, aHeight: Integer; aTag: Integer=-1): TBodyProxyId;
-    procedure removeBody (aObj: TBodyProxyId); // WARNING! this WILL destroy proxy!
+    procedure removeBody (body: TBodyProxyId); // WARNING! this WILL destroy proxy!
 
     procedure moveBody (body: TBodyProxyId; dx, dy: Integer);
     procedure resizeBody (body: TBodyProxyId; sx, sy: Integer);
     procedure moveResizeBody (body: TBodyProxyId; dx, dy, sx, sy: Integer);
 
     function insideGrid (x, y: Integer): Boolean; inline;
+
+    // `false` if `body` is surely invalid
+    function getBodyXY (body: TBodyProxyId; out rx, ry: Integer): Boolean; inline;
 
     //WARNING: don't modify grid while any query is in progress (no checks are made!)
     //         you can set enabled/disabled flag, tho (but iterator can still return objects disabled inside it)
@@ -128,13 +134,184 @@ type
 
     //WARNING! no sanity checks!
     property proxyEnabled[pid: TBodyProxyId]: Boolean read getProxyEnabled write setProxyEnabled;
+
+    property gridX0: Integer read mMinX;
+    property gridY0: Integer read mMinY;
+    property gridWidth: Integer read getGridWidthPx; // in pixels
+    property gridHeight: Integer read getGridHeightPx; // in pixels
   end;
+
+
+procedure swapInt (var a: Integer; var b: Integer); inline;
 
 
 implementation
 
 uses
   SysUtils, e_log;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
+procedure swapInt (var a: Integer; var b: Integer); inline; var t: Integer; begin t := a; a := b; b := t; end;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
+// you are not supposed to understand this
+// returns `true` if there is an intersection, and enter coords
+// enter coords will be equal to (x0, y0) if starting point is inside the box
+// if result is `false`, `inx` and `iny` are undefined
+function lineAABBIntersects (x0, y0, x1, y1: Integer; bx, by, bw, bh: Integer; out inx, iny: Integer): Boolean;
+var
+  wx0, wy0, wx1, wy1: Integer; // window coordinates
+  stx, sty: Integer; // "steps" for x and y axes
+  dsx, dsy: Integer; // "lengthes" for x and y axes
+  dx2, dy2: Integer; // "double lengthes" for x and y axes
+  xd, yd: Integer; // current coord
+  e: Integer; // "error" (as in bresenham algo)
+  rem: Integer;
+  term: Integer;
+  d0, d1: PInteger;
+  xfixed: Boolean;
+  temp: Integer;
+begin
+  result := false;
+  // why not
+  inx := x0;
+  iny := y0;
+  if (bw < 1) or (bh < 1) then exit; // impossible box
+
+  if (x0 = x1) and (y0 = y1) then
+  begin
+    // check this point
+    result := (x0 >= bx) and (y0 >= by) and (x0 < bx+bw) and (y0 < by+bh);
+    exit;
+  end;
+
+  // check if staring point is inside the box
+  if (x0 >= bx) and (y0 >= by) and (x0 < bx+bw) and (y0 < by+bh) then begin result := true; exit; end;
+
+  // clip rectange
+  wx0 := bx;
+  wy0 := by;
+  wx1 := bx+bw-1;
+  wy1 := by+bh-1;
+
+  // horizontal setup
+  if (x0 < x1) then
+  begin
+    // from left to right
+    if (x0 > wx1) or (x1 < wx0) then exit; // out of screen
+    stx := 1; // going right
+  end
+  else
+  begin
+    // from right to left
+    if (x1 > wx1) or (x0 < wx0) then exit; // out of screen
+    stx := -1; // going left
+    x0 := -x0;
+    x1 := -x1;
+    wx0 := -wx0;
+    wx1 := -wx1;
+    swapInt(wx0, wx1);
+  end;
+
+  // vertical setup
+  if (y0 < y1) then
+  begin
+    // from top to bottom
+    if (y0 > wy1) or (y1 < wy0) then exit; // out of screen
+    sty := 1; // going down
+  end
+  else
+  begin
+    // from bottom to top
+    if (y1 > wy1) or (y0 < wy0) then exit; // out of screen
+    sty := -1; // going up
+    y0 := -y0;
+    y1 := -y1;
+    wy0 := -wy0;
+    wy1 := -wy1;
+    swapInt(wy0, wy1);
+  end;
+
+  dsx := x1-x0;
+  dsy := y1-y0;
+
+  if (dsx < dsy) then
+  begin
+    d0 := @yd;
+    d1 := @xd;
+    swapInt(x0, y0);
+    swapInt(x1, y1);
+    swapInt(dsx, dsy);
+    swapInt(wx0, wy0);
+    swapInt(wx1, wy1);
+    swapInt(stx, sty);
+  end
+  else
+  begin
+    d0 := @xd;
+    d1 := @yd;
+  end;
+
+  dx2 := 2*dsx;
+  dy2 := 2*dsy;
+  xd := x0;
+  yd := y0;
+  e := 2*dsy-dsx;
+  term := x1;
+
+  xfixed := false;
+  if (y0 < wy0) then
+  begin
+    // clip at top
+    temp := dx2*(wy0-y0)-dsx;
+    xd += temp div dy2;
+    rem := temp mod dy2;
+    if (xd > wx1) then exit; // x is moved out of clipping rect, nothing to do
+    if (xd+1 >= wx0) then
+    begin
+      yd := wy0;
+      e -= rem+dsx;
+      if (rem > 0) then begin Inc(xd); e += dy2; end;
+      xfixed := true;
+    end;
+  end;
+
+  if (not xfixed) and (x0 < wx0) then
+  begin
+    // clip at left
+    temp := dy2*(wx0-x0);
+    yd += temp div dx2;
+    rem := temp mod dx2;
+    if (yd > wy1) or (yd = wy1) and (rem >= dsx) then exit;
+    xd := wx0;
+    e += rem;
+    if (rem >= dsx) then begin Inc(yd); e -= dx2; end;
+  end;
+
+  if (y1 > wy1) then
+  begin
+    // clip at bottom
+    temp := dx2*(wy1-y0)+dsx;
+    term := x0+temp div dy2;
+    rem := temp mod dy2;
+    if (rem = 0) then Dec(term);
+  end;
+
+  if (term > wx1) then term := wx1; // clip at right
+
+  Inc(term); // draw last point
+  //if (term = xd) then exit; // this is the only point, get out of here
+
+  if (sty = -1) then yd := -yd;
+  if (stx = -1) then begin xd := -xd; term := -term; end;
+  dx2 -= dy2;
+
+  inx := d0^;
+  iny := d1^;
+  result := true;
+end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
@@ -201,6 +378,7 @@ begin
 end;
 
 
+// ////////////////////////////////////////////////////////////////////////// //
 procedure TBodyGridBase.dumpStats ();
 var
   idx, mcb, cidx, cnt: Integer;
@@ -221,6 +399,11 @@ begin
 end;
 
 
+// ////////////////////////////////////////////////////////////////////////// //
+function TBodyGridBase.getGridWidthPx (): Integer; inline; begin result := mWidth*mTileSize; end;
+function TBodyGridBase.getGridHeightPx (): Integer; inline; begin result := mHeight*mTileSize; end;
+
+
 function TBodyGridBase.insideGrid (x, y: Integer): Boolean; inline;
 begin
   // fix coords
@@ -230,6 +413,23 @@ begin
 end;
 
 
+function TBodyGridBase.getBodyXY (body: TBodyProxyId; out rx, ry: Integer): Boolean; inline;
+begin
+  if (body >= 0) and (body < Length(mProxies)) then
+  begin
+    with mProxies[body] do begin rx := mX; ry := mY; end;
+    result := true;
+  end
+  else
+  begin
+    rx := 0;
+    ry := 0;
+    result := false;
+  end;
+end;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
 function TBodyGridBase.getProxyEnabled (pid: TBodyProxyId): Boolean; inline;
 begin
   if (pid >= 0) then result := ((mProxies[pid].mTag and TagDisabled) = 0) else result := false;
@@ -252,7 +452,8 @@ begin
 end;
 
 
-function TBodyGridBase.allocCell: Integer;
+// ////////////////////////////////////////////////////////////////////////// //
+function TBodyGridBase.allocCell (): Integer;
 var
   idx: Integer;
 begin
@@ -290,6 +491,7 @@ begin
 end;
 
 
+// ////////////////////////////////////////////////////////////////////////// //
 function TBodyGridBase.allocProxy (aX, aY, aWidth, aHeight: Integer; aObj: ITP; aTag: Integer): TBodyProxyId;
 var
   olen, idx: Integer;
@@ -328,6 +530,7 @@ begin
 end;
 
 
+// ////////////////////////////////////////////////////////////////////////// //
 function TBodyGridBase.forGridRect (x, y, w, h: Integer; cb: TGridInternalCB; bodyId: TBodyProxyId): Boolean;
 const
   tsize = mTileSize;
@@ -361,6 +564,7 @@ begin
 end;
 
 
+// ////////////////////////////////////////////////////////////////////////// //
 function TBodyGridBase.inserter (grida: Integer; bodyId: TBodyProxyId): Boolean;
 var
   cidx: Integer;
@@ -464,6 +668,7 @@ begin
 end;
 
 
+// ////////////////////////////////////////////////////////////////////////// //
 function TBodyGridBase.insertBody (aObj: ITP; aX, aY, aWidth, aHeight: Integer; aTag: Integer=-1): TBodyProxyId;
 begin
   aTag := aTag and TagFullMask;
@@ -472,37 +677,99 @@ begin
 end;
 
 
-procedure TBodyGridBase.removeBody (aObj: TBodyProxyId);
+procedure TBodyGridBase.removeBody (body: TBodyProxyId);
 begin
-  if (aObj < 0) or (aObj > High(mProxies)) then exit; // just in case
-  removeInternal(aObj);
-  freeProxy(aObj);
+  if (body < 0) or (body > High(mProxies)) then exit; // just in case
+  removeInternal(body);
+  freeProxy(body);
 end;
 
 
+// ////////////////////////////////////////////////////////////////////////// //
 procedure TBodyGridBase.moveResizeBody (body: TBodyProxyId; dx, dy, sx, sy: Integer);
 var
   px: PBodyProxyRec;
+  x0, y0, w, h: Integer;
 begin
   if (body < 0) or (body > High(mProxies)) then exit; // just in case
-  if ((dx = 0) and (dy = 0) and (sx = 0) and (sy = 0)) then exit;
-  removeInternal(body);
+  if (dx = 0) and (dy = 0) and (sx = 0) and (sy = 0) then exit;
   px := @mProxies[body];
-  Inc(px.mX, dx);
-  Inc(px.mY, dy);
-  Inc(px.mWidth, sx);
-  Inc(px.mHeight, sy);
-  insertInternal(body);
+  x0 := px.mX;
+  y0 := px.mY;
+  w := px.mWidth;
+  h := px.mHeight;
+  // did any corner crossed tile boundary?
+  if (x0 div mTileSize <> (x0+dx) div mTileSize) or
+     (y0 div mTileSize <> (y0+dx) div mTileSize) or
+     ((x0+w) div mTileSize <> (x0+w+sx) div mTileSize) or
+     ((y0+h) div mTileSize <> (y0+h+sy) div mTileSize) then
+  begin
+    removeInternal(body);
+    Inc(px.mX, dx);
+    Inc(px.mY, dy);
+    Inc(px.mWidth, sx);
+    Inc(px.mHeight, sy);
+    insertInternal(body);
+  end
+  else
+  begin
+    Inc(px.mX, dx);
+    Inc(px.mY, dy);
+    Inc(px.mWidth, sx);
+    Inc(px.mHeight, sy);
+  end;
 end;
 
 procedure TBodyGridBase.moveBody (body: TBodyProxyId; dx, dy: Integer);
+var
+  px: PBodyProxyRec;
+  nx, ny: Integer;
 begin
-  moveResizeBody(body, dx, dy, 0, 0);
+  if (body < 0) or (body > High(mProxies)) then exit; // just in case
+  if (dx = 0) and (dy = 0) then exit;
+  // check if tile coords was changed
+  px := @mProxies[body];
+  nx := px.mX+dx;
+  ny := px.mY+dy;
+  if (nx div mTileSize <> px.mX div mTileSize) or (ny div mTileSize <> px.mY div mTileSize) then
+  begin
+    // crossed tile boundary, do heavy work
+    moveResizeBody(body, dx, dy, 0, 0);
+  end
+  else
+  begin
+    // nothing to do with the grid, just fix coordinates
+    px.mX := nx;
+    px.mY := ny;
+  end;
 end;
 
 procedure TBodyGridBase.resizeBody (body: TBodyProxyId; sx, sy: Integer);
+var
+  px: PBodyProxyRec;
+  x0, y0: Integer;
+  nw, nh: Integer;
 begin
-  moveResizeBody(body, 0, 0, sx, sy);
+  if (body < 0) or (body > High(mProxies)) then exit; // just in case
+  if (sx = 0) and (sy = 0) then exit;
+  // check if tile coords was changed
+  px := @mProxies[body];
+  x0 := px.mX;
+  y0 := px.mY;
+  nw := px.mWidth+sx;
+  nh := px.mHeight+sy;
+  if ((x0+px.mWidth) div mTileSize <> (x0+nw) div mTileSize) or
+     ((y0+px.mHeight) div mTileSize <> (y0+nh) div mTileSize) then
+  begin
+    // crossed tile boundary, do heavy work
+    moveResizeBody(body, 0, 0, sx, sy);
+  end
+  else
+  begin
+    // nothing to do with the grid, just fix size
+    px.mWidth := nw;
+    px.mHeight := nh;
+  end;
 end;
 
 
@@ -571,6 +838,7 @@ begin
 end;
 
 
+// ////////////////////////////////////////////////////////////////////////// //
 // no callback: return `true` on the first hit
 function TBodyGridBase.forEachInAABB (x, y, w, h: Integer; cb: TGridQueryCB; tagmask: Integer=-1; allowDisabled: Boolean=false): ITP;
 const
