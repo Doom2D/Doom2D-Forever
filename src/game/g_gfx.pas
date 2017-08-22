@@ -316,7 +316,8 @@ begin
 end;
 
 
-procedure CorrectOffsets(id: Integer);
+{
+procedure CorrectOffsets(id: Integer); inline;
 var
   part: PParticle;
 begin
@@ -328,6 +329,7 @@ begin
   // check for left wall
   if isBlockedAt(part.X-1, part.Y) then part.offsetX := 1;
 end;
+}
 
 
 procedure g_GFX_SparkVel (fX, fY: Integer; Count: Word; VX, VY: Integer; DevX, DevY: Byte);
@@ -375,7 +377,7 @@ begin
       LiveTime := 30+Random(60);
       ParticleType := PARTICLE_SPARK;
 
-      CorrectOffsets(CurrentParticle);
+      {CorrectOffsets(CurrentParticle);}
     end;
 
     if CurrentParticle+2 > MaxParticles then
@@ -472,7 +474,7 @@ begin
       LiveTime := 120+Random(40);
       ParticleType := PARTICLE_BLOOD;
 
-      CorrectOffsets(CurrentParticle);
+      {CorrectOffsets(CurrentParticle);}
     end;
 
     if CurrentParticle >= MaxParticles-1 then
@@ -534,7 +536,7 @@ begin
       LiveTime := 30+Random(60);
       ParticleType := PARTICLE_SPARK;
 
-      CorrectOffsets(CurrentParticle);
+      {CorrectOffsets(CurrentParticle);}
     end;
 
     if CurrentParticle+2 > MaxParticles then
@@ -616,7 +618,7 @@ begin
       LiveTime := 60+Random(60);
       ParticleType := PARTICLE_WATER;
 
-      CorrectOffsets(CurrentParticle);
+      {CorrectOffsets(CurrentParticle);}
     end;
 
     if CurrentParticle+2 > MaxParticles then
@@ -701,7 +703,7 @@ begin
       LiveTime := 60+Random(60);
       ParticleType := PARTICLE_WATER;
 
-      CorrectOffsets(CurrentParticle);
+      {CorrectOffsets(CurrentParticle);}
     end;
 
     if CurrentParticle+2 > MaxParticles then
@@ -758,7 +760,7 @@ begin
       LiveTime := 65535;
       ParticleType := PARTICLE_BUBBLES;
 
-      CorrectOffsets(CurrentParticle);
+      {CorrectOffsets(CurrentParticle);}
     end;
 
     if CurrentParticle+2 > MaxParticles then
@@ -1306,7 +1308,7 @@ begin
             end;
           end; // case
 
-          CorrectOffsets(a);
+          {CorrectOffsets(a);}
         end; // with
       end; // if
     end; // for
