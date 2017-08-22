@@ -97,8 +97,6 @@ function g_Map_traceToNearestWall (x0, y0, x1, y1: Integer; hitx: PInteger=nil; 
 type
   TForEachPanelCB = function (pan: TPanel): Boolean; // return `true` to stop
 
-function g_Map_ForEachPanelAt (x, y: Integer; cb: TForEachPanelCB; panelType: Word): Boolean;
-
 function g_Map_HasAnyPanelAtPoint (x, y: Integer; panelType: Word): Boolean;
 
 
@@ -369,13 +367,13 @@ end;
 // wall index in `gWalls` or -1
 function g_Map_traceToNearestWall (x0, y0, x1, y1: Integer; hitx: PInteger=nil; hity: PInteger=nil): Boolean;
 var
-  lastX, lastY, lastDist: Integer;
+  lastX, lastY, lastDistSq: Integer;
   wasHit: Boolean = false;
 
   // pan=nil: before processing new tile
   function sqchecker (pan: TPanel; tag: Integer; x, y, prevx, prevy: Integer): Boolean;
   var
-    dist: Integer;
+    distSq: Integer;
   begin
     if (pan = nil) then
     begin
@@ -389,11 +387,11 @@ var
       begin
         if not pan.Enabled then exit;
       end;
-      dist := (prevx-x0)*(prevx-x0)+(prevy-y0)*(prevy-y0);
-      if (dist < lastDist) then
+      distSq := (prevx-x0)*(prevx-x0)+(prevy-y0)*(prevy-y0);
+      if (distSq < lastDistSq) then
       begin
         wasHit := true;
-        lastDist := dist;
+        lastDistSq := distSq;
         lastX := prevx;
         lastY := prevy;
       end;
@@ -403,58 +401,12 @@ var
 begin
   result := false;
   if (gMapGrid = nil) then exit;
-  lastDist := (x1-x0)*(x1-x0)+(y1-y0)*(y1-y0)+1;
+  lastDistSq := (x1-x0)*(x1-x0)+(y1-y0)*(y1-y0)+1;
   lastX := 0;
   lastY := 0;
   result := gMapGrid.traceRay(x0, y0, x1, y1, sqchecker, (GridTagWall or GridTagDoor));
   if (hitx <> nil) then hitx^ := lastX;
   if (hity <> nil) then hity^ := lastY;
-end;
-
-
-function g_Map_ForEachPanelAt (x, y: Integer; cb: TForEachPanelCB; panelType: Word): Boolean;
-
-  function checker (pan: TPanel; tag: Integer): Boolean;
-  begin
-    result := false; // don't stop, ever
-
-    if ((tag and (GridTagWall or GridTagDoor)) <> 0) then
-    begin
-      if not pan.Enabled then exit;
-    end;
-
-    result := (x >= pan.X) and (y >= pan.Y) and (x < pan.X+pan.Width) and (y < pan.Y+pan.Height);
-    if not result then exit;
-
-    if ((tag and GridTagLift) <> 0) then
-    begin
-      result :=
-        ((WordBool(PanelType and PANEL_LIFTUP) and (pan.LiftType = 0)) or
-         (WordBool(PanelType and PANEL_LIFTDOWN) and (pan.LiftType = 1)) or
-         (WordBool(PanelType and PANEL_LIFTLEFT) and (pan.LiftType = 2)) or
-         (WordBool(PanelType and PANEL_LIFTRIGHT) and (pan.LiftType = 3)));
-    end;
-
-    // other shit
-    if result then result := cb(pan);
-  end;
-
-var
-  tagmask: Integer = 0;
-begin
-  result := false;
-  if not assigned(cb) then exit;
-
-  if WordBool(PanelType and (PANEL_WALL or PANEL_CLOSEDOOR or PANEL_OPENDOOR)) then tagmask := tagmask or (GridTagWall or GridTagDoor);
-  if WordBool(PanelType and PANEL_WATER) then tagmask := tagmask or GridTagWater;
-  if WordBool(PanelType and PANEL_ACID1) then tagmask := tagmask or GridTagAcid1;
-  if WordBool(PanelType and PANEL_ACID2) then tagmask := tagmask or GridTagAcid2;
-  if WordBool(PanelType and PANEL_STEP) then tagmask := tagmask or GridTagStep;
-  if WordBool(PanelType and (PANEL_LIFTUP or PANEL_LIFTDOWN or PANEL_LIFTLEFT or PANEL_LIFTRIGHT)) then tagmask := tagmask or GridTagLift;
-  if WordBool(PanelType and PANEL_BLOCKMON) then tagmask := tagmask or GridTagBlockMon;
-
-  if (tagmask = 0) then exit;// just in case
-  result := gMapGrid.forEachInAABB(x, y, 1, 1, checker, tagmask);
 end;
 
 
@@ -2363,8 +2315,8 @@ function g_Map_CollidePanel(X, Y: Integer; Width, Height: Word; PanelType: Word;
         ((WordBool(PanelType and PANEL_LIFTUP) and (pan.LiftType = 0)) or
          (WordBool(PanelType and PANEL_LIFTDOWN) and (pan.LiftType = 1)) or
          (WordBool(PanelType and PANEL_LIFTLEFT) and (pan.LiftType = 2)) or
-         (WordBool(PanelType and PANEL_LIFTRIGHT) and (pan.LiftType = 3))) and
-         g_Collide(X, Y, Width, Height, pan.X, pan.Y, pan.Width, pan.Height);
+         (WordBool(PanelType and PANEL_LIFTRIGHT) and (pan.LiftType = 3))) {and
+         g_Collide(X, Y, Width, Height, pan.X, pan.Y, pan.Width, pan.Height)};
       exit;
     end;
 
@@ -2375,7 +2327,8 @@ function g_Map_CollidePanel(X, Y: Integer; Width, Height: Word; PanelType: Word;
     end;
 
     // other shit
-    result := g_Collide(X, Y, Width, Height, pan.X, pan.Y, pan.Width, pan.Height);
+    //result := g_Collide(X, Y, Width, Height, pan.X, pan.Y, pan.Width, pan.Height);
+    result := true;
   end;
 
 var
@@ -2406,7 +2359,14 @@ begin
     end
     else}
     begin
-      result := gMapGrid.forEachInAABB(X, Y, Width, Height, checker, tagmask);
+      if (Width = 1) and (Height = 1) then
+      begin
+        result := gMapGrid.forEachAtPoint(X, Y, checker, tagmask);
+      end
+      else
+      begin
+        result := gMapGrid.forEachInAABB(X, Y, Width, Height, checker, tagmask);
+      end;
     end;
   end
   else
@@ -2434,7 +2394,7 @@ var
       //2: if ((tag and (GridTagWater or GridTagAcid1 or GridTagAcid2) = 0) then exit; // allowed: water, acid1, acid2
     end;
     // collision?
-    if not g_Collide(X, Y, Width, Height, pan.X, pan.Y, pan.Width, pan.Height) then exit;
+    //if not g_Collide(X, Y, Width, Height, pan.X, pan.Y, pan.Width, pan.Height) then exit;
     // yeah
     texid := pan.GetTextureID();
     // water? water has the highest priority, so stop right here
@@ -2456,7 +2416,14 @@ begin
     end
     else}
     begin
-      gMapGrid.forEachInAABB(X, Y, Width, Height, checker, (GridTagWater or GridTagAcid1 or GridTagAcid2));
+      if (Width = 1) and (Height = 1) then
+      begin
+        gMapGrid.forEachAtPoint(X, Y, checker, (GridTagWater or GridTagAcid1 or GridTagAcid2));
+      end
+      else
+      begin
+        gMapGrid.forEachInAABB(X, Y, Width, Height, checker, (GridTagWater or GridTagAcid1 or GridTagAcid2));
+      end;
     end;
     result := texid;
   end
