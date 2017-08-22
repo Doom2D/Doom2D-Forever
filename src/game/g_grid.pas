@@ -666,22 +666,18 @@ end;
 function TBodyGridBase.traceRay (out ex, ey: Integer; x0, y0, x1, y1: Integer; cb: TGridRayQueryCB; tagmask: Integer=-1): ITP;
 var
   i: Integer;
-  dx, dy: Integer;
-  xerr: Integer = 0;
-  yerr: Integer = 0;
-  d: Integer;
+  dx, dy, d: Integer;
+  xerr, yerr: Integer;
   incx, incy: Integer;
+  stepx, stepy: Integer;
   x, y: Integer;
   maxx, maxy: Integer;
   tsize: Integer; // tile size
   gw, gh: Integer;
-  lastGA: Integer = -1;
-  ga: Integer = -1; // last used grid address
-  ccidx: Integer = -1;
-  curci: Integer = -1;
-  cc: PGridCell = nil;
+  ccidx: Integer;
+  curci: Integer;
+  cc: PGridCell;
   hasUntried: Boolean;
-  f: Integer;
   px: PBodyProxyRec;
   lq: LongWord;
   prevX, prevY: Integer;
@@ -690,20 +686,17 @@ var
   lastDistSq, distSq: Integer;
   wasHit: Boolean = false;
   lastObj: ITP;
-  lastWasInGrid: Boolean = false;
+  lastWasInGrid: Boolean;
+  tbcross: Boolean;
+  f: Integer;
 begin
   result := Default(ITP);
   lastObj := Default(ITP);
   tagmask := tagmask and TagFullMask;
   if (tagmask = 0) then begin ex := x0; ey := y0; exit; end;
 
-  // make coords (0,0)-based
   minx := mMinX;
   miny := mMinY;
-  //Dec(x0, minx);
-  //Dec(y0, miny);
-  //Dec(x1, minx);
-  //Dec(y1, miny);
 
   dx := x1-x0;
   dy := y1-y0;
@@ -730,36 +723,79 @@ begin
   end;
   lq := mLastQuery;
 
+  // cache various things
   tsize := mTileSize;
   gw := mWidth;
   gh := mHeight;
   maxx := gw*tsize-1;
   maxy := gh*tsize-1;
+
+  // setup distance and flags
   lastDistSq := (x1-x0)*(x1-x0)+(y1-y0)*(y1-y0)+1;
   lastWasInGrid := (x >= 0) and (y >= 0) and (x <= maxx) and (y <= maxy);
 
+  // setup starting tile ('cause we'll adjust tile vars only on tile edge crossing)
+  if lastWasInGrid then ccidx := mGrid[(y div tsize)*gw+(x div tsize)] else ccidx := -1;
+
+  // it is slightly faster this way
+  xerr := -d;
+  yerr := -d;
+
+  // now trace
   for i := 1 to d do
   begin
     // prevs are always in map coords
     prevX := x+minx;
     prevY := y+miny;
     // do one step
-    xerr += dx; if (xerr >= d) then begin xerr -= d; x += incx; end;
-    yerr += dy; if (yerr >= d) then begin yerr -= d; y += incy; end;
-
-    // check for new tile
-    if (x >= 0) and (y >= 0) and (x <= maxx) and (y <= maxy) then
+    xerr += dx;
+    yerr += dy;
+    // invariant: one of those always changed
+    if (xerr < 0) and (yerr < 0) then raise Exception.Create('internal bug in grid raycaster (0)');
+    if (xerr >= 0) then begin xerr -= d; x += incx; stepx := incx; end else stepx := 0;
+    if (yerr >= 0) then begin yerr -= d; y += incy; stepy := incy; end else stepy := 0;
+    // invariant: we always doing a step
+    if ((stepx or stepy) = 0) then raise Exception.Create('internal bug in grid raycaster (1)');
     begin
-      ga := (y div tsize)*gw+(x div tsize);
-      if (lastGA <> ga) then
+      // check for crossing tile/grid boundary
+      if (x >= 0) and (y >= 0) and (x <= maxx) and (y <= maxy) then
       begin
-        // new cell
-        lastWasInGrid := true; // do it here, yeah
-        lastGA := ga;
-        // had something in the cell we're leaving?
+        // we're still in grid
+        lastWasInGrid := true;
+        // check for tile edge crossing
+             if (stepx < 0) and ((x mod tsize) = tsize-1) then tbcross := true
+        else if (stepx > 0) and ((x mod tsize) = 0) then tbcross := true
+        else if (stepy < 0) and ((y mod tsize) = tsize-1) then tbcross := true
+        else if (stepy > 0) and ((y mod tsize) = 0) then tbcross := true
+        else tbcross := false;
+        // crossed tile edge?
+        if tbcross then
+        begin
+          // had something in the cell we're leaving?
+          if (ccidx <> -1) then
+          begin
+            // yes, signal cell completion
+            if assigned(cb) then
+            begin
+              if cb(nil, 0, x+minx, y+miny, prevX, prevY) then begin result := lastObj; exit; end;
+            end
+            else if wasHit then
+            begin
+              result := lastObj;
+              exit;
+            end;
+          end;
+          // setup new cell index
+          ccidx := mGrid[(y div tsize)*gw+(x div tsize)];
+        end;
+      end
+      else
+      begin
+        // out of grid, had something in the last processed cell?
         if (ccidx <> -1) then
         begin
           // yes, signal cell completion
+          ccidx := -1;
           if assigned(cb) then
           begin
             if cb(nil, 0, x+minx, y+miny, prevX, prevY) then begin result := lastObj; exit; end;
@@ -770,29 +806,8 @@ begin
             exit;
           end;
         end;
-        // have something in this cell?
-        ccidx := mGrid[lastGA];
+        if lastWasInGrid then exit; // oops, stepped out of the grid -- there is no way to return
       end;
-    end
-    else
-    begin
-      // out of grid, had something in the cell we're last processed?
-      if (ccidx <> -1) then
-      begin
-        // yes, signal cell completion
-        ccidx := -1;
-        if assigned(cb) then
-        begin
-          if cb(nil, 0, x+minx, y+miny, prevX, prevY) then begin result := lastObj; exit; end;
-        end
-        else if wasHit then
-        begin
-          result := lastObj;
-          exit;
-        end;
-      end;
-      if lastWasInGrid then exit; // oops, stepped out of the grid -- there is no way to return
-      //lastWasInGrid := false;
     end;
 
     // has something to process in the current cell?
@@ -800,10 +815,11 @@ begin
     begin
       // process cell
       curci := ccidx;
-      hasUntried := false; // this will be set to `true` if we have some panels we still want to process at the next step
-      // convert coords to map
+      hasUntried := false; // this will be set to `true` if we have some proxies we still want to process at the next step
+      // convert coords to map (to avoid ajdusting coords inside the loop)
       Inc(x, minx);
       Inc(y, miny);
+      // process cell list
       while (curci <> -1) do
       begin
         cc := @mCells[curci];
@@ -814,7 +830,7 @@ begin
           ptag := px.mTag;
           if ((ptag and TagDisabled) = 0) and ((ptag and tagmask) <> 0) and (px.mQueryMark <> lq) then
           begin
-            // can we process this wall?
+            // can we process this proxy?
             if (x >= px.mX) and (y >= px.mY) and (x < px.mX+px.mWidth) and (y < px.mY+px.mHeight) then
             begin
               px.mQueryMark := lq; // mark as processed
@@ -844,7 +860,7 @@ begin
             end
             else
             begin
-              // this is possibly interesting wall, set "has more to check" flag
+              // this is possibly interesting proxy, set "has more to check" flag
               hasUntried := true;
             end;
           end;
