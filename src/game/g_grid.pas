@@ -155,7 +155,7 @@ type
 // returns `true` if there is an intersection, and enter coords
 // enter coords will be equal to (x0, y0) if starting point is inside the box
 // if result is `false`, `inx` and `iny` are undefined
-function lineAABBIntersects (x0, y0, x1, y1: Integer; bx, by, bw, bh: Integer; out inx, iny: Integer): Boolean;
+function lineAABBIntersects (x0, y0, x1, y1: Integer; bx, by, bw, bh: Integer; out inx, iny: Integer; log: Boolean=false): Boolean;
 
 
 procedure swapInt (var a: Integer; var b: Integer); inline;
@@ -179,7 +179,7 @@ function distanceSq (x0, y0, x1, y1: Integer): Integer; inline; begin result := 
 // returns `true` if there is an intersection, and enter coords
 // enter coords will be equal to (x0, y0) if starting point is inside the box
 // if result is `false`, `inx` and `iny` are undefined
-function lineAABBIntersects (x0, y0, x1, y1: Integer; bx, by, bw, bh: Integer; out inx, iny: Integer): Boolean;
+function lineAABBIntersects (x0, y0, x1, y1: Integer; bx, by, bw, bh: Integer; out inx, iny: Integer; log: Boolean=false): Boolean;
 var
   wx0, wy0, wx1, wy1: Integer; // window coordinates
   stx, sty: Integer; // "steps" for x and y axes
@@ -215,6 +215,7 @@ begin
   wx1 := bx+bw-1;
   wy1 := by+bh-1;
 
+  if log then e_WriteLog('lineAABBIntersects: 0', MSG_NOTIFY);
   // horizontal setup
   if (x0 < x1) then
   begin
@@ -234,6 +235,7 @@ begin
     swapInt(wx0, wx1);
   end;
 
+  if log then e_WriteLog('lineAABBIntersects: 1', MSG_NOTIFY);
   // vertical setup
   if (y0 < y1) then
   begin
@@ -280,6 +282,7 @@ begin
   e := 2*dsy-dsx;
   term := x1;
 
+  if log then e_WriteLog('lineAABBIntersects: 2', MSG_NOTIFY);
   xfixed := false;
   if (y0 < wy0) then
   begin
@@ -297,6 +300,7 @@ begin
     end;
   end;
 
+  if log then e_WriteLog('lineAABBIntersects: 3', MSG_NOTIFY);
   if (not xfixed) and (x0 < wx0) then
   begin
     // clip at left
@@ -309,6 +313,7 @@ begin
     if (rem >= dsx) then begin Inc(yd); e -= dx2; end;
   end;
 
+  if log then e_WriteLog('lineAABBIntersects: 4', MSG_NOTIFY);
   if (y1 > wy1) then
   begin
     // clip at bottom
@@ -327,6 +332,7 @@ begin
   if (stx = -1) then begin xd := -xd; term := -term; end;
   dx2 -= dy2;
 
+  if log then e_WriteLog('lineAABBIntersects: 5', MSG_NOTIFY);
   inx := d0^;
   iny := d1^;
   result := true;
@@ -960,238 +966,6 @@ end;
 
 
 // no callback: return `true` on the nearest hit
-(*
-function TBodyGridBase.traceRay (out ex, ey: Integer; x0, y0, x1, y1: Integer; cb: TGridRayQueryCB; tagmask: Integer=-1): ITP;
-const
-  tsize = mTileSize;
-var
-  i: Integer;
-  dx, dy, d: Integer;
-  xerr, yerr: Integer;
-  incx, incy: Integer;
-  stepx, stepy: Integer;
-  x, y: Integer;
-  maxx, maxy: Integer;
-  gw, gh: Integer;
-  ccidx: Integer;
-  curci: Integer;
-  cc: PGridCell;
-  hasUntried: Boolean;
-  px: PBodyProxyRec;
-  lq: LongWord;
-  prevX, prevY: Integer;
-  minx, miny: Integer;
-  ptag: Integer;
-  lastDistSq, distSq: Integer;
-  wasHit: Boolean = false;
-  lastObj: ITP;
-  lastWasInGrid: Boolean;
-  tbcross: Boolean;
-  f: Integer;
-begin
-  result := Default(ITP);
-  lastObj := Default(ITP);
-  tagmask := tagmask and TagFullMask;
-  if (tagmask = 0) then begin ex := x0; ey := y0; exit; end;
-
-  minx := mMinX;
-  miny := mMinY;
-
-  dx := x1-x0;
-  dy := y1-y0;
-
-  if (dx > 0) then incx := 1 else if (dx < 0) then incx := -1 else incx := 0;
-  if (dy > 0) then incy := 1 else if (dy < 0) then incy := -1 else incy := 0;
-
-  dx := abs(dx);
-  dy := abs(dy);
-
-  if (dx > dy) then d := dx else d := dy;
-
-  // `x` and `y` will be in grid coords
-  x := x0-minx;
-  y := y0-miny;
-
-  // increase query counter
-  Inc(mLastQuery);
-  if (mLastQuery = 0) then
-  begin
-    // just in case of overflow
-    mLastQuery := 1;
-    for i := 0 to High(mProxies) do mProxies[i].mQueryMark := 0;
-  end;
-  lq := mLastQuery;
-
-  // cache various things
-  //tsize := mTileSize;
-  gw := mWidth;
-  gh := mHeight;
-  maxx := gw*tsize-1;
-  maxy := gh*tsize-1;
-
-  // setup distance and flags
-  lastDistSq := (x1-x0)*(x1-x0)+(y1-y0)*(y1-y0)+1;
-  lastWasInGrid := (x >= 0) and (y >= 0) and (x <= maxx) and (y <= maxy);
-
-  // setup starting tile ('cause we'll adjust tile vars only on tile edge crossing)
-  if lastWasInGrid then ccidx := mGrid[(y div tsize)*gw+(x div tsize)] else ccidx := -1;
-
-  // it is slightly faster this way
-  xerr := -d;
-  yerr := -d;
-
-  // now trace
-  for i := 1 to d do
-  begin
-    // prevs are always in map coords
-    prevX := x+minx;
-    prevY := y+miny;
-    // do one step
-    xerr += dx;
-    yerr += dy;
-    // invariant: one of those always changed
-    if (xerr < 0) and (yerr < 0) then raise Exception.Create('internal bug in grid raycaster (0)');
-    if (xerr >= 0) then begin xerr -= d; x += incx; stepx := incx; end else stepx := 0;
-    if (yerr >= 0) then begin yerr -= d; y += incy; stepy := incy; end else stepy := 0;
-    // invariant: we always doing a step
-    if ((stepx or stepy) = 0) then raise Exception.Create('internal bug in grid raycaster (1)');
-    begin
-      // check for crossing tile/grid boundary
-      if (x >= 0) and (y >= 0) and (x <= maxx) and (y <= maxy) then
-      begin
-        // we're still in grid
-        lastWasInGrid := true;
-        // check for tile edge crossing
-             if (stepx < 0) and ((x mod tsize) = tsize-1) then tbcross := true
-        else if (stepx > 0) and ((x mod tsize) = 0) then tbcross := true
-        else if (stepy < 0) and ((y mod tsize) = tsize-1) then tbcross := true
-        else if (stepy > 0) and ((y mod tsize) = 0) then tbcross := true
-        else tbcross := false;
-        // crossed tile edge?
-        if tbcross then
-        begin
-          // had something in the cell we're leaving?
-          if (ccidx <> -1) then
-          begin
-            // yes, signal cell completion
-            if assigned(cb) then
-            begin
-              if cb(nil, 0, x+minx, y+miny, prevX, prevY) then begin result := lastObj; exit; end;
-            end
-            else if wasHit then
-            begin
-              result := lastObj;
-              exit;
-            end;
-          end;
-          // setup new cell index
-          ccidx := mGrid[(y div tsize)*gw+(x div tsize)];
-        end;
-      end
-      else
-      begin
-        // out of grid, had something in the last processed cell?
-        if (ccidx <> -1) then
-        begin
-          // yes, signal cell completion
-          ccidx := -1;
-          if assigned(cb) then
-          begin
-            if cb(nil, 0, x+minx, y+miny, prevX, prevY) then begin result := lastObj; exit; end;
-          end
-          else if wasHit then
-          begin
-            result := lastObj;
-            exit;
-          end;
-        end;
-        if lastWasInGrid then exit; // oops, stepped out of the grid -- there is no way to return
-      end;
-    end;
-
-    // has something to process in the current cell?
-    if (ccidx <> -1) then
-    begin
-      // process cell
-      curci := ccidx;
-      hasUntried := false; // this will be set to `true` if we have some proxies we still want to process at the next step
-      // convert coords to map (to avoid ajdusting coords inside the loop)
-      Inc(x, minx);
-      Inc(y, miny);
-      // process cell list
-      while (curci <> -1) do
-      begin
-        cc := @mCells[curci];
-        for f := 0 to High(TGridCell.bodies) do
-        begin
-          if (cc.bodies[f] = -1) then break;
-          px := @mProxies[cc.bodies[f]];
-          ptag := px.mTag;
-          if ((ptag and TagDisabled) = 0) and ((ptag and tagmask) <> 0) and (px.mQueryMark <> lq) then
-          begin
-            // can we process this proxy?
-            if (x >= px.mX) and (y >= px.mY) and (x < px.mX+px.mWidth) and (y < px.mY+px.mHeight) then
-            begin
-              px.mQueryMark := lq; // mark as processed
-              if assigned(cb) then
-              begin
-                if cb(px.mObj, ptag, x, y, prevX, prevY) then
-                begin
-                  result := lastObj;
-                  ex := prevX;
-                  ey := prevY;
-                  exit;
-                end;
-              end
-              else
-              begin
-                // remember this hitpoint if it is nearer than an old one
-                distSq := (prevX-x0)*(prevX-x0)+(prevY-y0)*(prevY-y0);
-                if (distSq < lastDistSq) then
-                begin
-                  wasHit := true;
-                  lastDistSq := distSq;
-                  ex := prevX;
-                  ey := prevY;
-                  lastObj := px.mObj;
-                end;
-              end;
-            end
-            else
-            begin
-              // this is possibly interesting proxy, set "has more to check" flag
-              hasUntried := true;
-            end;
-          end;
-        end;
-        // next cell
-        curci := cc.next;
-      end;
-      // still has something interesting in this cell?
-      if not hasUntried then
-      begin
-        // nope, don't process this cell anymore; signal cell completion
-        ccidx := -1;
-        if assigned(cb) then
-        begin
-          if cb(nil, 0, x, y, prevX, prevY) then begin result := lastObj; exit; end;
-        end
-        else if wasHit then
-        begin
-          result := lastObj;
-          exit;
-        end;
-      end;
-      // convert coords to grid
-      Dec(x, minx);
-      Dec(y, miny);
-    end;
-  end;
-end;
-*)
-
-
-// no callback: return `true` on the nearest hit
 // you are not supposed to understand this
 function TBodyGridBase.traceRay (out ex, ey: Integer; ax0, ay0, ax1, ay1: Integer; cb: TGridRayQueryCB; tagmask: Integer=-1): ITP;
 const
@@ -1382,7 +1156,7 @@ begin
 
   if (xptr^ < 0) or (yptr^ < 0) or (xptr^ >= gw*tsize) and (yptr^ > mHeight*tsize) then raise Exception.Create('raycaster internal error (0)');
 
-  if (dbgShowTraceLog) then e_WriteLog(Format('raycast start: (%d,%d)-(%d,%d); xptr^=%d; yptr^=%d', [ax0, ay0, ax1, ay1, xptr^, yptr^]), MSG_NOTIFY);
+  //if (dbgShowTraceLog) then e_WriteLog(Format('raycast start: (%d,%d)-(%d,%d); xptr^=%d; yptr^=%d', [ax0, ay0, ax1, ay1, xptr^, yptr^]), MSG_NOTIFY);
 
   // restore query coords
   Inc(ax0, minx);
