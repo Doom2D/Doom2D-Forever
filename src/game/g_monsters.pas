@@ -208,7 +208,7 @@ function g_Mons_getNewTrapFrameId (): DWord;
 type
   TMonsAlongLineCB = function (mon: TMonster; tag: Integer): Boolean is nested;
 
-function g_Mons_alongLine (x0, y0, x1, y1: Integer; cb: TMonsAlongLineCB): TMonster;
+function g_Mons_AlongLine (x0, y0, x1, y1: Integer; cb: TMonsAlongLineCB; log: Boolean=false): TMonster;
 
 
 var
@@ -285,10 +285,10 @@ var
   monsGrid: TMonsterGrid = nil;
 
 
-function g_Mons_alongLine (x0, y0, x1, y1: Integer; cb: TMonsAlongLineCB): TMonster;
+function g_Mons_AlongLine (x0, y0, x1, y1: Integer; cb: TMonsAlongLineCB; log: Boolean=false): TMonster;
 begin
   if not assigned(cb) then begin result := nil; exit; end;
-  result := monsGrid.forEachAlongLine(x0, y0, x1, y1, cb);
+  result := monsGrid.forEachAlongLine(x0, y0, x1, y1, cb, -1, log);
 end;
 
 

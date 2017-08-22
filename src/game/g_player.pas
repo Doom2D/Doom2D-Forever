@@ -2353,7 +2353,7 @@ procedure TPlayer.DrawAim();
     end;
     }
 
-    g_Mons_alongLine(ax0, ay0, ax1, ay1, monsCollector);
+    g_Mons_AlongLine(ax0, ay0, ax1, ay1, monsCollector, true);
   end;
 
 var

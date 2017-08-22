@@ -34,7 +34,7 @@ type
 
   private
     const
-      GridDefaultTileSize = 32;
+      GridDefaultTileSize = 32; // must be power of two!
       GridCellBucketSize = 8; // WARNING! can't be less than 2!
 
   private
@@ -137,7 +137,7 @@ type
     //WARNING: don't modify grid while any query is in progress (no checks are made!)
     //         you can set enabled/disabled flag, tho (but iterator can still return objects disabled inside it)
     // trace line along the grid, calling `cb` for all objects in passed cells, in no particular order
-    function forEachAlongLine (x0, y0, x1, y1: Integer; cb: TGridAlongQueryCB; tagmask: Integer=-1): ITP;
+    function forEachAlongLine (x0, y0, x1, y1: Integer; cb: TGridAlongQueryCB; tagmask: Integer=-1; log: Boolean=false): ITP;
 
     procedure dumpStats ();
 
@@ -157,8 +157,11 @@ type
 // if result is `false`, `inx` and `iny` are undefined
 function lineAABBIntersects (x0, y0, x1, y1: Integer; bx, by, bw, bh: Integer; out inx, iny: Integer): Boolean;
 
-procedure swapInt (var a: Integer; var b: Integer); inline;
 function distanceSq (x0, y0, x1, y1: Integer): Integer; inline;
+
+procedure swapInt (var a: Integer; var b: Integer); inline;
+function minInt (a, b: Integer): Integer; inline;
+function maxInt (a, b: Integer): Integer; inline;
 
 
 implementation
@@ -169,6 +172,8 @@ uses
 
 // ////////////////////////////////////////////////////////////////////////// //
 procedure swapInt (var a: Integer; var b: Integer); inline; var t: Integer; begin t := a; a := b; b := t; end;
+function minInt (a, b: Integer): Integer; inline; begin if (a < b) then result := a else result := b; end;
+function maxInt (a, b: Integer): Integer; inline; begin if (a > b) then result := a else result := b; end;
 
 function distanceSq (x0, y0, x1, y1: Integer): Integer; inline; begin result := (x1-x0)*(x1-x0)+(y1-y0)*(y1-y0); end;
 
@@ -1290,7 +1295,7 @@ end;
 
 // ////////////////////////////////////////////////////////////////////////// //
 //FIXME! optimize this with real tile walking
-function TBodyGridBase.forEachAlongLine (x0, y0, x1, y1: Integer; cb: TGridAlongQueryCB; tagmask: Integer=-1): ITP;
+function TBodyGridBase.forEachAlongLine (x0, y0, x1, y1: Integer; cb: TGridAlongQueryCB; tagmask: Integer=-1; log: Boolean=false): ITP;
 const
   tsize = mTileSize;
 var
@@ -1311,11 +1316,11 @@ var
   ptag: Integer;
   lastWasInGrid: Boolean;
   tbcross: Boolean;
-  f: Integer;
+  f, tedist: Integer;
 begin
   result := Default(ITP);
   tagmask := tagmask and TagFullMask;
-  if (tagmask = 0) then exit;
+  if (tagmask = 0) or not assigned(cb) then exit;
 
   minx := mMinX;
   miny := mMinY;
@@ -1362,9 +1367,13 @@ begin
   xerr := -d;
   yerr := -d;
 
+  if (log) then e_WriteLog(Format('tracing: (%d,%d)-(%d,%d)', [x, y, x1-minx, y1-miny]), MSG_NOTIFY);
+
   // now trace
-  for i := 1 to d do
+  i := 0;
+  while (i < d) do
   begin
+    Inc(i);
     // do one step
     xerr += dx;
     yerr += dy;
@@ -1395,6 +1404,33 @@ begin
         begin
           // setup new cell index
           ccidx := mGrid[(y div tsize)*gw+(x div tsize)];
+          if (log) then e_WriteLog(Format(' stepped to new tile (%d,%d) -- (%d,%d)', [(x div tsize), (y div tsize), x, y]), MSG_NOTIFY);
+        end
+        else
+        if (ccidx = -1) then
+        begin
+          // we have nothing interesting here anymore, jump directly to tile edge
+          // get minimal distance to tile edges
+          if (incx < 0) then tedist := x-(x and (not tsize)) else if (incx > 0) then tedist := (x or (tsize+1))-x else tedist := 0;
+          {$IF DEFINED(D2F_DEBUG)}
+          if (tedist < 0) then raise Exception.Create('internal bug in grid raycaster (2.x)');
+          {$ENDIF}
+          if (incy < 0) then f := y-(y and (not tsize)) else if (incy > 0) then f := (y or (tsize+1))-y else f := 0;
+          {$IF DEFINED(D2F_DEBUG)}
+          if (f < 0) then raise Exception.Create('internal bug in grid raycaster (2.y)');
+          {$ENDIF}
+          if (tedist = 0) then tedist := f else if (f <> 0) then tedist := minInt(tedist, f);
+          // do jump
+          if (tedist > 1) then
+          begin
+            if (log) then e_WriteLog(Format('  doing jump from tile (%d,%d) - (%d,%d) by %d steps', [(x div tsize), (y div tsize), x, y, tedist]), MSG_NOTIFY);
+            xerr += dx*tedist;
+            yerr += dy*tedist;
+            if (xerr >= 0) then begin x += incx*((xerr div d)+1); xerr := (xerr mod d)-d; end;
+            if (yerr >= 0) then begin y += incy*((yerr div d)+1); yerr := (yerr mod d)-d; end;
+            Inc(i, tedist);
+            if (log) then e_WriteLog(Format('   jumped to tile (%d,%d) - (%d,%d) by %d steps', [(x div tsize), (y div tsize), x, y, tedist]), MSG_NOTIFY);
+          end;
         end;
       end
       else
@@ -1410,8 +1446,8 @@ begin
       // process cell
       curci := ccidx;
       // convert coords to map (to avoid ajdusting coords inside the loop)
-      Inc(x, minx);
-      Inc(y, miny);
+      //Inc(x, minx);
+      //Inc(y, miny);
       // process cell list
       while (curci <> -1) do
       begin
@@ -1432,8 +1468,8 @@ begin
       end;
       ccidx := -1; // don't process this anymore
       // convert coords to grid
-      Dec(x, minx);
-      Dec(y, miny);
+      //Dec(x, minx);
+      //Dec(y, miny);
     end;
   end;
 end;

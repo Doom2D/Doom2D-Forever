@@ -1528,7 +1528,7 @@ begin
   if playerPossibleHit() then exit; // instant hit
 
   // collect monsters
-  g_Mons_alongLine(x, y, x2, y2, sqchecker);
+  g_Mons_AlongLine(x, y, x2, y2, sqchecker);
 
   // here, we collected all monsters and players in `wgunHitHeap` and `wgunHitTime`
   // also, if `wallWasHit` is `true`, then `wallHitX` and `wallHitY` contains spark coords
