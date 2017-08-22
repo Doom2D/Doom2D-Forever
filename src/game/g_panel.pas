@@ -59,8 +59,9 @@ type
     Moved:            Boolean;
     LiftType:         Byte;
     LastAnimLoop:     Byte;
-    ArrIdx:           Integer; // index in one of internal arrays; sorry
+    arrIdx:           Integer; // index in one of internal arrays; sorry
     tag:              Integer; // used in coldets and such; sorry
+    proxyId:          Integer; // proxy id in map grid (DO NOT USE!)
 
     constructor Create(PanelRec: TPanelRec_1;
                        AddTextures: TAddTextureArray;

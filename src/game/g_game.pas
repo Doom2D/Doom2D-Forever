@@ -2730,7 +2730,7 @@ type
       while (gDrawPanelList.count > 0) do
       begin
         pan := TPanel(gDrawPanelList.front());
-        e_WriteLog(Format('tagmask: 0x%04x; pan.tag: 0x%04x; pan.ArrIdx: %d', [tagmask, pan.tag, pan.ArrIdx]), MSG_NOTIFY);
+        e_WriteLog(Format('tagmask: 0x%04x; pan.tag: 0x%04x; pan.arrIdx: %d', [tagmask, pan.tag, pan.arrIdx]), MSG_NOTIFY);
         pan.Draw();
         gDrawPanelList.popFront();
       end;

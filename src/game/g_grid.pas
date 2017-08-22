@@ -15,7 +15,6 @@
  *)
 // universal spatial grid
 {$INCLUDE ../shared/a_modes.inc}
-{$DEFINE grid_use_buckets}
 unit g_grid;
 
 interface
@@ -29,12 +28,12 @@ type
     type TGridQueryCB = function (obj: ITP; tag: Integer): Boolean is nested; // return `true` to stop
     type TGridRayQueryCB = function (obj: ITP; tag: Integer; x, y, prevx, prevy: Integer): Boolean is nested; // return `true` to stop
 
+    const TagDisabled = $40000000;
+
   private
     const
       GridDefaultTileSize = 32;
-      {$IFDEF grid_use_buckets}
       GridCellBucketSize = 8; // WARNING! can't be less than 2!
-      {$ENDIF}
 
   private
     type
@@ -53,11 +52,7 @@ type
 
       PGridCell = ^TGridCell;
       TGridCell = record
-        {$IFDEF grid_use_buckets}
         bodies: array [0..GridCellBucketSize-1] of Integer; // -1: end of list
-        {$ELSE}
-        body: Integer;
-        {$ENDIF}
         next: Integer; // in this cell; index in mCells
       end;
 
@@ -96,6 +91,9 @@ type
     function inserter (grida: Integer): Boolean;
     function remover (grida: Integer): Boolean;
 
+    function getProxyEnabled (pid: TBodyProxyId): Boolean; inline;
+    procedure setProxyEnabled (pid: TBodyProxyId; val: Boolean); inline;
+
   public
     constructor Create (aMinPixX, aMinPixY, aPixWidth, aPixHeight: Integer; aTileSize: Integer=GridDefaultTileSize);
     destructor Destroy (); override;
@@ -107,17 +105,26 @@ type
     procedure resizeBody (body: TBodyProxyId; sx, sy: Integer);
     procedure moveResizeBody (body: TBodyProxyId; dx, dy, sx, sy: Integer);
 
+    function insideGrid (x, y: Integer): Boolean; inline;
+
     //WARNING: can't do recursive queries
+    // no callback: return `true` on the first hit
     function forEachInAABB (x, y, w, h: Integer; cb: TGridQueryCB; tagmask: Integer=-1): Boolean;
 
     //WARNING: can't do recursive queries
+    // no callback: return `true` on the first hit
     function forEachAtPoint (x, y: Integer; cb: TGridQueryCB; tagmask: Integer=-1): Boolean;
 
     //WARNING: can't do recursive queries
     // cb with `(nil)` will be called before processing new tile
+    // no callback: return `true` on the nearest hit
     function traceRay (x0, y0, x1, y1: Integer; cb: TGridRayQueryCB; tagmask: Integer=-1): Boolean; overload;
+    function traceRay (out ex, ey: Integer; x0, y0, x1, y1: Integer; cb: TGridRayQueryCB; tagmask: Integer=-1): Boolean;
 
     procedure dumpStats ();
+
+    //WARNING! no sanity checks!
+    property proxyEnabled[pid: TBodyProxyId]: Boolean read getProxyEnabled write setProxyEnabled;
   end;
 
 
@@ -162,11 +169,7 @@ begin
   // init free list
   for idx := 0 to High(mCells) do
   begin
-    {$IFDEF grid_use_buckets}
     mCells[idx].bodies[0] := -1;
-    {$ELSE}
-    mCells[idx].body := -1;
-    {$ENDIF}
     mCells[idx].next := idx+1;
   end;
   mCells[High(mCells)].next := -1; // last cell
@@ -216,6 +219,37 @@ begin
 end;
 
 
+function TBodyGridBase.insideGrid (x, y: Integer): Boolean; inline;
+begin
+  // fix coords
+  Dec(x, mMinX);
+  Dec(y, mMinY);
+  result := (x >= 0) and (y >= 0) and (x < mWidth*mTileSize) and (y < mHeight*mTileSize);
+end;
+
+
+function TBodyGridBase.getProxyEnabled (pid: TBodyProxyId): Boolean; inline;
+begin
+  if (pid >= 0) then result := ((mProxies[pid].mTag and TagDisabled) = 0) else result := false;
+end;
+
+
+procedure TBodyGridBase.setProxyEnabled (pid: TBodyProxyId; val: Boolean); inline;
+begin
+  if (pid >= 0) then
+  begin
+    if val then
+    begin
+      mProxies[pid].mTag := mProxies[pid].mTag and not TagDisabled;
+    end
+    else
+    begin
+      mProxies[pid].mTag := mProxies[pid].mTag or TagDisabled
+    end;
+  end;
+end;
+
+
 function TBodyGridBase.allocCell: Integer;
 var
   idx: Integer;
@@ -227,11 +261,7 @@ begin
     SetLength(mCells, mFreeCell+32768); // arbitrary number
     for idx := mFreeCell to High(mCells) do
     begin
-      {$IFDEF grid_use_buckets}
       mCells[idx].bodies[0] := -1;
-      {$ELSE}
-      mCells[idx].body := -1;
-      {$ENDIF}
       mCells[idx].next := idx+1;
     end;
     mCells[High(mCells)].next := -1; // last cell
@@ -239,11 +269,7 @@ begin
   result := mFreeCell;
   mFreeCell := mCells[result].next;
   mCells[result].next := -1;
-  {$IFDEF grid_use_buckets}
   mCells[result].bodies[0] := -1;
-  {$ELSE}
-  mCells[result].body := -1;
-  {$ENDIF}
   Inc(mUsedCells);
   //e_WriteLog(Format('grid: allocated new cell #%d (total: %d)', [result, mUsedCells]), MSG_NOTIFY);
 end;
@@ -254,11 +280,7 @@ begin
   if (idx >= 0) and (idx < Length(mCells)) then
   begin
     //if mCells[idx].body = -1 then exit; // the thing that should not be
-    {$IFDEF grid_use_buckets}
     mCells[idx].bodies[0] := -1;
-    {$ELSE}
-    mCells[idx].body := -1;
-    {$ENDIF}
     mCells[idx].next := mFreeCell;
     mFreeCell := idx;
     Dec(mUsedCells);
@@ -339,15 +361,12 @@ function TBodyGridBase.inserter (grida: Integer): Boolean;
 var
   cidx: Integer;
   pc: Integer;
-  {$IFDEF grid_use_buckets}
   pi: PGridCell;
   f: Integer;
-  {$ENDIF}
 begin
   result := false; // never stop
   // add body to the given grid cell
   pc := mGrid[grida];
-  {$IFDEF grid_use_buckets}
   if (pc <> -1) then
   begin
     pi := @mCells[pc];
@@ -369,13 +388,6 @@ begin
   mCells[cidx].bodies[1] := -1;
   mCells[cidx].next := pc;
   mGrid[grida] := cidx;
-  {$ELSE}
-  cidx := allocCell();
-  //e_WriteLog(Format('  01: allocated cell for grid coords (%d,%d), body coords:(%d,%d): #%d', [gx, gy, dx, dy, cidx]), MSG_NOTIFY);
-  mCells[cidx].body := mUData;
-  mCells[cidx].next := pc;
-  mGrid[grida] := cidx;
-  {$ENDIF}
 end;
 
 
@@ -392,13 +404,9 @@ end;
 
 function TBodyGridBase.remover (grida: Integer): Boolean;
 var
-  {$IFDEF grid_use_buckets}
   f: Integer;
-  {$ENDIF}
   pidx, idx, tmp: Integer;
-  {$IFDEF grid_use_buckets}
   pc: PGridCell;
-  {$ENDIF}
 begin
   result := false; // never stop
   // find and remove cell
@@ -407,7 +415,6 @@ begin
   while (idx >= 0) do
   begin
     tmp := mCells[idx].next;
-    {$IFDEF grid_use_buckets}
     pc := @mCells[idx];
     f := 0;
     while (f < High(TGridCell.bodies)) do
@@ -438,14 +445,6 @@ begin
       end;
       Inc(f);
     end;
-    {$ELSE}
-    if (mCells[idx].body = mUData) then
-    begin
-      if (pidx = -1) then mGrid[grida] := tmp else mCells[pidx].next := tmp;
-      freeCell(idx);
-      exit; // assume that we cannot have one object added to bucket twice
-    end;
-    {$ENDIF}
     pidx := idx;
     idx := tmp;
   end;
@@ -506,18 +505,18 @@ end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
+// no callback: return `true` on the first hit
 function TBodyGridBase.forEachAtPoint (x, y: Integer; cb: TGridQueryCB; tagmask: Integer=-1): Boolean;
 var
-  {$IFDEF grid_use_buckets}
   f: Integer;
-  {$ENDIF}
   idx, curci: Integer;
   cc: PGridCell = nil;
   px: PBodyProxyRec;
   lq: LongWord;
+  ptag: Integer;
 begin
   result := false;
-  if not assigned(cb) or (tagmask = 0) then exit;
+  if (tagmask = 0) then exit;
 
   // make coords (0,0)-based
   Dec(x, mMinX);
@@ -542,57 +541,45 @@ begin
   while (curci <> -1) do
   begin
     cc := @mCells[curci];
-    {$IFDEF grid_use_buckets}
     for f := 0 to High(TGridCell.bodies) do
     begin
       if (cc.bodies[f] = -1) then break;
       px := @mProxies[cc.bodies[f]];
-      if (px.mQueryMark <> lq) and ((px.mTag and tagmask) <> 0) then
+      if (px.mQueryMark <> lq) then
       begin
-        if (x >= px.mX) and (y >= px.mY) and (x < px.mX+px.mWidth) and (y < px.mY+px.mHeight) then
+        ptag := px.mTag;
+        if ((ptag and TagDisabled) = 0) and ((px.mTag and tagmask) <> 0) then
         begin
-          px.mQueryMark := lq;
-          result := cb(px.mObj, px.mTag);
-          if result then exit;
+          if (x >= px.mX) and (y >= px.mY) and (x < px.mX+px.mWidth) and (y < px.mY+px.mHeight) then
+          begin
+            px.mQueryMark := lq;
+            if assigned(cb) then result := cb(px.mObj, px.mTag) else result := true;
+            if result then exit;
+          end;
         end;
       end;
     end;
-    {$ELSE}
-    if (cc.body <> -1) then
-    begin
-      px := @mProxies[cc.body];
-      if (px.mQueryMark <> lq) and ((px.mTag and tagmask) <> 0) then
-      begin
-        if (x >= px.mX) and (y >= px.mY) and (x < px.mX+px.mWidth) and (y < px.mY+px.mHeight) then
-        begin
-          px.mQueryMark := lq;
-          result := cb(px.mObj, px.mTag);
-          if result then exit;
-        end;
-      end;
-    end;
-    {$ENDIF}
     curci := cc.next;
   end;
 end;
 
 
+// no callback: return `true` on the first hit
 function TBodyGridBase.forEachInAABB (x, y, w, h: Integer; cb: TGridQueryCB; tagmask: Integer=-1): Boolean;
 var
   idx: Integer;
   gx, gy: Integer;
   curci: Integer;
-  {$IFDEF grid_use_buckets}
   f: Integer;
-  {$ENDIF}
   cc: PGridCell = nil;
   px: PBodyProxyRec;
   lq: LongWord;
   tsize, gw: Integer;
   x0, y0: Integer;
+  ptag: Integer;
 begin
   result := false;
-  if (w < 1) or (h < 1) or not assigned(cb) then exit;
+  if (w < 1) or (h < 1) then exit;
 
   x0 := x;
   y0 := y;
@@ -632,39 +619,23 @@ begin
       while (curci <> -1) do
       begin
         cc := @mCells[curci];
-        {$IFDEF grid_use_buckets}
         for f := 0 to High(TGridCell.bodies) do
         begin
           if (cc.bodies[f] = -1) then break;
           px := @mProxies[cc.bodies[f]];
-          if (px.mQueryMark <> lq) and ((px.mTag and tagmask) <> 0) then
+          if (px.mQueryMark <> lq) then
           begin
-            if (x0 >= px.mX+px.mWidth) or (y0 >= px.mY+px.mHeight) then continue;
-            if (x0+w <= px.mX) or (y0+h <= px.mY) then continue;
-            px.mQueryMark := lq;
-            result := cb(px.mObj, px.mTag);
-            if result then exit;
-          end;
-        end;
-        {$ELSE}
-        if (cc.body <> 1) then
-        begin
-          px := @mProxies[cc.body];
-          if (px.mQueryMark <> lq) and ((px.mTag and tagmask) <> 0) then
-          begin
-            if (x0 >= px.mX+px.mWidth) or (y0 >= px.mY+px.mHeight) or (x0+w <= px.mX) or (y0+h <= px.mY) then
+            ptag := px.mTag;
+            if ((ptag and TagDisabled) = 0) and ((px.mTag and tagmask) <> 0) then
             begin
-              // no intersection
-            end
-            else
-            begin
+              if (x0 >= px.mX+px.mWidth) or (y0 >= px.mY+px.mHeight) then continue;
+              if (x0+w <= px.mX) or (y0+h <= px.mY) then continue;
               px.mQueryMark := lq;
-              result := cb(px.mObj, px.mTag);
+              if assigned(cb) then result := cb(px.mObj, px.mTag) else result := true;
               if result then exit;
             end;
           end;
         end;
-        {$ENDIF}
         curci := cc.next;
       end;
     end;
@@ -673,7 +644,17 @@ end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
+// no callback: return `true` on the nearest hit
 function TBodyGridBase.traceRay (x0, y0, x1, y1: Integer; cb: TGridRayQueryCB; tagmask: Integer=-1): Boolean;
+var
+  ex, ey: Integer;
+begin
+  result := traceRay(ex, ey, x0, y0, x1, y1, cb, tagmask);
+end;
+
+
+// no callback: return `true` on the nearest hit
+function TBodyGridBase.traceRay (out ex, ey: Integer; x0, y0, x1, y1: Integer; cb: TGridRayQueryCB; tagmask: Integer=-1): Boolean;
 var
   i: Integer;
   dx, dy: Integer;
@@ -696,10 +677,13 @@ var
   lq: LongWord;
   prevX, prevY: Integer;
   minx, miny: Integer;
+  ptag: Integer;
+  lastDistSq, distSq: Integer;
+  wasHit: Boolean = false;
 begin
   result := false;
 
-  if (tagmask = 0) then exit;
+  if (tagmask = 0) then begin ex := x0; ey := y0; exit; end;
 
   // make coords (0,0)-based
   minx := mMinX;
@@ -738,6 +722,7 @@ begin
   gh := mHeight;
   maxx := gw*tsize-1;
   maxy := gh*tsize-1;
+  lastDistSq := (x1-x0)*(x1-x0)+(y1-y0)*(y1-y0)+1;
 
   for i := 1 to d do
   begin
@@ -754,13 +739,6 @@ begin
         // new cell
         lastGA := ga;
         ccidx := mGrid[lastGA];
-        {
-        if (ccidx <> -1) then
-        begin
-          result := cb(nil, 0, x+minx, y+miny, prevX, prevY);
-          if result then exit;
-        end;
-        }
       end;
     end
     else
@@ -768,7 +746,7 @@ begin
       if (ccidx <> -1) then
       begin
         ccidx := -1;
-        result := cb(nil, 0, x+minx, y+miny, prevX, prevY);
+        if assigned(cb) then result := cb(nil, 0, x+minx, y+miny, prevX, prevY) else result := wasHit;
         if result then exit;
       end;
     end;
@@ -782,52 +760,50 @@ begin
       while (curci <> -1) do
       begin
         cc := @mCells[curci];
-        {$IFDEF grid_use_buckets}
         for f := 0 to High(TGridCell.bodies) do
         begin
           if (cc.bodies[f] = -1) then break;
           px := @mProxies[cc.bodies[f]];
-          if (px.mQueryMark <> lq) and ((px.mTag and tagmask) <> 0) then
+          if (px.mQueryMark <> lq) then
           begin
-            if (x >= px.mX) and (y >= px.mY) and (x < px.mX+px.mWidth) and (y < px.mY+px.mHeight) then
+            ptag := px.mTag;
+            if ((ptag and TagDisabled) = 0) and ((px.mTag and tagmask) <> 0) then
             begin
-              px.mQueryMark := lq;
-              result := cb(px.mObj, px.mTag, x, y, prevX, prevY);
-              if result then exit;
-            end
-            else
-            begin
-              hasUntried := true;
+              if (x >= px.mX) and (y >= px.mY) and (x < px.mX+px.mWidth) and (y < px.mY+px.mHeight) then
+              begin
+                px.mQueryMark := lq;
+                if assigned(cb) then
+                begin
+                  result := cb(px.mObj, px.mTag, x, y, prevX, prevY);
+                  if result then begin ex := prevX; ey := prevY; exit; end;
+                end
+                else
+                begin
+                  distSq := (prevX-x)*(prevX-x)+(prevY-y)*(prevY-y);
+                  if (distSq < lastDistSq) then
+                  begin
+                    wasHit := true;
+                    lastDistSq := distSq;
+                    ex := prevx;
+                    ey := prevy;
+                  end;
+                end;
+              end
+              else
+              begin
+                hasUntried := true;
+              end;
             end;
           end;
         end;
-        {$ELSE}
-        if (cc.body <> -1) then
-        begin
-          px := @mProxies[cc.body];
-          if (px.mQueryMark <> lq) and ((px.mTag and tagmask) <> 0) then
-          begin
-            if (x >= px.mX) and (y >= px.mY) and (x < px.mX+px.mWidth) and (y < px.mY+px.mHeight) then
-            begin
-              px.mQueryMark := lq;
-              result := cb(px.mObj, px.mTag, x, y, prevX, prevY);
-              if result then exit;
-            end
-            else
-            begin
-              hasUntried := true;
-            end;
-          end;
-        end;
-        {$ENDIF}
         curci := cc.next;
       end;
       if not hasUntried then
       begin
         // don't process this cell anymore
         ccidx := -1;
-        result := cb(nil, 0, x, y, prevX, prevY);
-        if result then exit;
+        if assigned(cb) then result := cb(nil, 0, x, y, prevX, prevY) else result := wasHit;
+        if result then exit; // don't update lasthit: it is done in real checker
       end;
       Dec(x, minx);
       Dec(y, miny);

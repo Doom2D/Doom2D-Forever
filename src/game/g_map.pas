@@ -99,9 +99,14 @@ type
 
 function g_Map_HasAnyPanelAtPoint (x, y: Integer; panelType: Word): Boolean;
 
+// trace liquid, stepping by `dx` and `dy`
+// return last seen liquid coords, and `false` if we're started outside of the liquid
+function g_Map_TraceLiquid (x, y, dx, dy: Integer; out topx, topy: Integer): Boolean;
+
 
 procedure g_Map_ProfilersBegin ();
 procedure g_Map_ProfilersEnd ();
+
 
 const
   RESPAWNPOINT_PLAYER1 = 1;
@@ -245,12 +250,11 @@ function dplLess (a, b: TObject): Boolean;
 var
   pa, pb: TPanel;
 begin
-  //result := ((a as TPanel).ArrIdx < (b as TPanel).ArrIdx);
   pa := TPanel(a);
   pb := TPanel(b);
   if (pa.tag < pb.tag) then begin result := true; exit; end;
   if (pa.tag > pb.tag) then begin result := false; exit; end;
-  result := (pa.ArrIdx < pb.ArrIdx);
+  result := (pa.arrIdx < pb.arrIdx);
 end;
 
 procedure dplClear ();
@@ -271,7 +275,7 @@ var
   RespawnPoints: Array of TRespawnPoint;
   FlagPoints:    Array [FLAG_RED..FLAG_BLUE] of PFlagPoint;
   //DOMFlagPoints: Array of TFlagPoint;
-  gMapGrid: TPanelGrid = nil;
+  mapGrid: TPanelGrid = nil;
   //mapTree: TDynAABBTreeMap = nil;
 
 
@@ -366,6 +370,7 @@ end;
 
 // wall index in `gWalls` or -1
 function g_Map_traceToNearestWall (x0, y0, x1, y1: Integer; hitx: PInteger=nil; hity: PInteger=nil): Boolean;
+(*
 var
   lastX, lastY, lastDistSq: Integer;
   wasHit: Boolean = false;
@@ -397,16 +402,21 @@ var
       end;
     end;
   end;
-
+*)
+var
+  ex, ey: Integer;
 begin
+  (*
   result := false;
-  if (gMapGrid = nil) then exit;
+  if (mapGrid = nil) then exit;
   lastDistSq := (x1-x0)*(x1-x0)+(y1-y0)*(y1-y0)+1;
   lastX := 0;
   lastY := 0;
-  result := gMapGrid.traceRay(x0, y0, x1, y1, sqchecker, (GridTagWall or GridTagDoor));
+  result := mapGrid.traceRay(x0, y0, x1, y1, sqchecker, (GridTagWall or GridTagDoor));
   if (hitx <> nil) then hitx^ := lastX;
   if (hity <> nil) then hity^ := lastY;
+  *)
+  result := mapGrid.traceRay(ex, ey, x0, y0, x1, y1, nil, (GridTagWall or GridTagDoor));
 end;
 
 
@@ -414,24 +424,26 @@ function g_Map_HasAnyPanelAtPoint (x, y: Integer; panelType: Word): Boolean;
 
   function checker (pan: TPanel; tag: Integer): Boolean;
   begin
-    result := false; // don't stop, ever
-
+    {
     if ((tag and (GridTagWall or GridTagDoor)) <> 0) then
     begin
-      if not pan.Enabled then exit;
+      result := pan.Enabled; // stop if wall is enabled
+      exit;
     end;
-
-    result := (x >= pan.X) and (y >= pan.Y) and (x < pan.X+pan.Width) and (y < pan.Y+pan.Height);
-    if not result then exit;
+    }
 
     if ((tag and GridTagLift) <> 0) then
     begin
+      // stop if the lift of the right type
       result :=
         ((WordBool(PanelType and PANEL_LIFTUP) and (pan.LiftType = 0)) or
          (WordBool(PanelType and PANEL_LIFTDOWN) and (pan.LiftType = 1)) or
          (WordBool(PanelType and PANEL_LIFTLEFT) and (pan.LiftType = 2)) or
          (WordBool(PanelType and PANEL_LIFTRIGHT) and (pan.LiftType = 3)));
+      exit;
     end;
+
+    result := true; // otherwise, stop anyway, 'cause `forEachAtPoint()` is guaranteed to call this only for correct panels
   end;
 
 var
@@ -448,7 +460,16 @@ begin
   if WordBool(PanelType and PANEL_BLOCKMON) then tagmask := tagmask or GridTagBlockMon;
 
   if (tagmask = 0) then exit;// just in case
-  result := gMapGrid.forEachAtPoint(x, y, checker, tagmask);
+  if ((tagmask and GridTagLift) <> 0) then
+  begin
+    // slow
+    result := mapGrid.forEachAtPoint(x, y, checker, tagmask);
+  end
+  else
+  begin
+    // fast
+    result := mapGrid.forEachAtPoint(x, y, nil, tagmask);
+  end;
 end;
 
 
@@ -660,7 +681,8 @@ begin
   SetLength(panels^, len + 1);
 
   panels^[len] := TPanel.Create(PanelRec, AddTextures, CurTex, Textures);
-  panels^[len].ArrIdx := len;
+  panels^[len].arrIdx := len;
+  panels^[len].proxyId := -1;
   panels^[len].tag := panelTypeToTag(PanelRec.PanelType);
   if sav then
     panels^[len].SaveIt := True;
@@ -1232,14 +1254,15 @@ var
       pan := panels[idx];
       pan.tag := tag;
       if not pan.visvalid then continue;
-      gMapGrid.insertBody(pan, pan.X, pan.Y, pan.Width, pan.Height, tag);
+      pan.proxyId := mapGrid.insertBody(pan, pan.X, pan.Y, pan.Width, pan.Height, tag);
+      mapGrid.proxyEnabled[pan.proxyId] := pan.Enabled;
       //mapTree.insertObject(pan, tag, true); // as static object
     end;
   end;
 
 begin
-  gMapGrid.Free();
-  gMapGrid := nil;
+  mapGrid.Free();
+  mapGrid := nil;
   //mapTree.Free();
   //mapTree := nil;
 
@@ -1255,7 +1278,7 @@ begin
 
   e_WriteLog(Format('map dimensions: (%d,%d)-(%d,%d)', [mapX0, mapY0, mapX1, mapY1]), MSG_WARNING);
 
-  gMapGrid := TPanelGrid.Create(mapX0, mapY0, mapX1-mapX0+1, mapY1-mapY0+1);
+  mapGrid := TPanelGrid.Create(mapX0-512, mapY0-512, mapX1-mapX0+1+512*2, mapY1-mapY0+1+512*2);
   //mapTree := TDynAABBTreeMap.Create();
 
   addPanelsToGrid(gWalls, PANEL_WALL);
@@ -1270,7 +1293,7 @@ begin
   addPanelsToGrid(gLifts, PANEL_LIFTUP); // it doesn't matter which LIFT type is used here
   addPanelsToGrid(gBlockMon, PANEL_BLOCKMON);
 
-  gMapGrid.dumpStats();
+  mapGrid.dumpStats();
   //e_WriteLog(Format('tree depth: %d; %d nodes used, %d nodes allocated', [mapTree.computeTreeHeight, mapTree.nodeCount, mapTree.nodeAlloced]), MSG_NOTIFY);
   //mapTree.forEachLeaf(nil);
 end;
@@ -1307,8 +1330,8 @@ var
   CurTex, ntn: Integer;
 
 begin
-  gMapGrid.Free();
-  gMapGrid := nil;
+  mapGrid.Free();
+  mapGrid := nil;
   //mapTree.Free();
   //mapTree := nil;
 
@@ -2098,6 +2121,7 @@ end;
 
 // new algo
 procedure g_Map_CollectDrawPanels (x0, y0, wdt, hgt: Integer);
+
   function checker (pan: TPanel; tag: Integer): Boolean;
   begin
     result := false; // don't stop, ever
@@ -2115,13 +2139,14 @@ begin
   end
   else}
   begin
-    gMapGrid.forEachInAABB(x0, y0, wdt, hgt, checker, (GridTagBack or GridTagStep or GridTagWall or GridTagDoor or GridTagAcid1 or GridTagAcid2 or GridTagWater or GridTagFore));
+    mapGrid.forEachInAABB(x0, y0, wdt, hgt, checker, (GridTagBack or GridTagStep or GridTagWall or GridTagDoor or GridTagAcid1 or GridTagAcid2 or GridTagWater or GridTagFore));
   end;
   // list will be rendered in `g_game.DrawPlayer()`
 end;
 
 
 procedure g_Map_DrawPanelShadowVolumes(lightX: Integer; lightY: Integer; radius: Integer);
+
   function checker (pan: TPanel; tag: Integer): Boolean;
   begin
     result := false; // don't stop, ever
@@ -2135,7 +2160,7 @@ begin
   end
   else}
   begin
-    gMapGrid.forEachInAABB(lightX-radius, lightY-radius, radius*2, radius*2, checker, (GridTagWall or GridTagDoor));
+    mapGrid.forEachInAABB(lightX-radius, lightY-radius, radius*2, radius*2, checker, (GridTagWall or GridTagDoor));
   end;
 end;
 
@@ -2304,10 +2329,13 @@ function g_Map_CollidePanel(X, Y: Integer; Width, Height: Word; PanelType: Word;
   begin
     result := false; // don't stop, ever
 
+    {
     if ((tag and (GridTagWall or GridTagDoor)) <> 0) then
     begin
-      if not pan.Enabled then exit;
+      result := pan.Enabled;
+      exit;
     end;
+    }
 
     if ((tag and GridTagLift) <> 0) then
     begin
@@ -2322,7 +2350,7 @@ function g_Map_CollidePanel(X, Y: Integer; Width, Height: Word; PanelType: Word;
 
     if ((tag and GridTagBlockMon) <> 0) then
     begin
-      result := ((not b1x3) or (pan.Width+pan.Height >= 64)) and g_Collide(X, Y, Width, Height, pan.X, pan.Y, pan.Width, pan.Height);
+      result := ((not b1x3) or (pan.Width+pan.Height >= 64)); //and g_Collide(X, Y, Width, Height, pan.X, pan.Y, pan.Width, pan.Height);
       exit;
     end;
 
@@ -2361,11 +2389,29 @@ begin
     begin
       if (Width = 1) and (Height = 1) then
       begin
-        result := gMapGrid.forEachAtPoint(X, Y, checker, tagmask);
+        if ((tagmask and (GridTagLift or GridTagBlockMon)) <> 0) then
+        begin
+          // slow
+          result := mapGrid.forEachAtPoint(X, Y, checker, tagmask);
+        end
+        else
+        begin
+          // fast
+          result := mapGrid.forEachAtPoint(X, Y, nil, tagmask);
+        end;
       end
       else
       begin
-        result := gMapGrid.forEachInAABB(X, Y, Width, Height, checker, tagmask);
+        if ((tagmask and (GridTagLift or GridTagBlockMon)) <> 0) then
+        begin
+          // slow
+          result := mapGrid.forEachInAABB(X, Y, Width, Height, checker, tagmask);
+        end
+        else
+        begin
+          // fast
+          result := mapGrid.forEachInAABB(X, Y, Width, Height, nil, tagmask);
+        end;
       end;
     end;
   end
@@ -2418,11 +2464,11 @@ begin
     begin
       if (Width = 1) and (Height = 1) then
       begin
-        gMapGrid.forEachAtPoint(X, Y, checker, (GridTagWater or GridTagAcid1 or GridTagAcid2));
+        mapGrid.forEachAtPoint(X, Y, checker, (GridTagWater or GridTagAcid1 or GridTagAcid2));
       end
       else
       begin
-        gMapGrid.forEachInAABB(X, Y, Width, Height, checker, (GridTagWater or GridTagAcid1 or GridTagAcid2));
+        mapGrid.forEachInAABB(X, Y, Width, Height, checker, (GridTagWater or GridTagAcid1 or GridTagAcid2));
       end;
     end;
     result := texid;
@@ -2434,12 +2480,14 @@ begin
   if (profMapCollision <> nil) then profMapCollision.sectionEnd();
 end;
 
+
 procedure g_Map_EnableWall(ID: DWORD);
 begin
   with gWalls[ID] do
   begin
     Enabled := True;
     g_Mark(X, Y, Width, Height, MARK_DOOR, True);
+    mapGrid.proxyEnabled[proxyId] := true;
 
     if g_Game_IsServer and g_Game_IsNet then MH_SEND_PanelState(PanelType, ID);
   end;
@@ -2451,6 +2499,7 @@ begin
   begin
     Enabled := False;
     g_Mark(X, Y, Width, Height, MARK_DOOR, False);
+    mapGrid.proxyEnabled[proxyId] := false;
 
     if g_Game_IsServer and g_Game_IsNet then MH_SEND_PanelState(PanelType, ID);
   end;
@@ -2494,6 +2543,7 @@ begin
     LiftType := t;
 
     g_Mark(X, Y, Width, Height, MARK_LIFT, False);
+    //TODO: make separate lift tags, and change tag here
 
     if LiftType = 0 then
       g_Mark(X, Y, Width, Height, MARK_LIFTUP, True)
@@ -2869,5 +2919,29 @@ begin
   PanelArrayID := PanelByID[PanelID].PArrID;
   Result := Addr(Arr[PanelByID[PanelID].PArrID]);
 end;
+
+
+// trace liquid, stepping by `dx` and `dy`
+// return last seen liquid coords, and `false` if we're started outside of the liquid
+function g_Map_TraceLiquid (x, y, dx, dy: Integer; out topx, topy: Integer): Boolean;
+const
+  MaskLiquid = GridTagWater or GridTagAcid1 or GridTagAcid2;
+begin
+  topx := x;
+  topy := y;
+  // started outside of the liquid?
+  if not mapGrid.forEachAtPoint(x, y, nil, MaskLiquid) then begin result := false; exit; end;
+  if (dx = 0) and (dy = 0) then begin result := false; exit; end; // sanity check
+  result := true;
+  while true do
+  begin
+    Inc(x, dx);
+    Inc(y, dy);
+    if not mapGrid.forEachAtPoint(x, y, nil, MaskLiquid) then exit; // out of the water, just exit
+    topx := x;
+    topy := y;
+  end;
+end;
+
 
 end.

@@ -83,6 +83,8 @@ type
     State:              Byte;
     ParticleType:       Byte;
     offsetX, offsetY:   ShortInt;
+    // for bubbles
+    liquidTopY: Integer; // don't float higher than this
   end;
 
   TOnceAnim = record
@@ -713,12 +715,13 @@ begin
   end;
 end;
 
+
 procedure g_GFX_Bubbles(fX, fY: Integer; Count: Word; DevX, DevY: Byte);
 var
   a: Integer;
   DevX1, DevX2,
   DevY1, DevY2: Byte;
-  l: Integer;
+  l, liquidx: Integer;
 begin
   l := Length(Particles);
   if l = 0 then
@@ -742,8 +745,15 @@ begin
          (Y >= gMapInfo.Height) or (Y <= 0) then
         Continue;
 
+      (*
+      // don't spawn bubbles outside of the liquid
       if not isLiquidAt(X, Y) {ByteBool(gCollideMap[Y, X] and MARK_LIQUID)} then
         Continue;
+      *)
+
+      // trace liquid, so we'll know where it ends; do it in 8px steps for speed
+      // tracer will return `false` if we started outside of the liquid
+      if not g_Map_TraceLiquid(X, Y, 0, -8, liquidx, liquidTopY) then continue;
 
       VelX := 0;
       VelY := -1-Random;
