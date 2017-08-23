@@ -77,7 +77,7 @@ implementation
 
 uses
   SysUtils, GL,
-  g_options;
+  MAPDEF, g_options;
 
 
 var
@@ -89,121 +89,18 @@ var
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-// cursor (hi, Death Track!)
-const curWidth = 17;
-const curHeight = 23;
-
-const cursorImg: array[0..curWidth*curHeight-1] of Byte = (
-  0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-  0,0,3,2,0,0,0,0,0,0,0,0,0,0,0,0,0,
-  1,0,3,2,2,0,0,0,0,0,0,0,0,0,0,0,0,
-  1,1,3,3,2,2,0,0,0,0,0,0,0,0,0,0,0,
-  1,1,3,3,4,2,2,0,0,0,0,0,0,0,0,0,0,
-  1,1,3,3,4,4,2,2,0,0,0,0,0,0,0,0,0,
-  1,1,3,3,4,4,4,2,2,0,0,0,0,0,0,0,0,
-  1,1,3,3,4,4,4,4,2,2,0,0,0,0,0,0,0,
-  1,1,3,3,4,4,4,5,6,2,2,0,0,0,0,0,0,
-  1,1,3,3,4,4,5,6,7,5,2,2,0,0,0,0,0,
-  1,1,3,3,4,5,6,7,5,4,5,2,2,0,0,0,0,
-  1,1,3,3,5,6,7,5,4,5,6,7,2,2,0,0,0,
-  1,1,3,3,6,7,5,4,5,6,7,7,7,2,2,0,0,
-  1,1,3,3,7,5,4,5,6,7,7,7,7,7,2,2,0,
-  1,1,3,3,5,4,5,6,8,8,8,8,8,8,8,8,2,
-  1,1,3,3,4,5,6,3,8,8,8,8,8,8,8,8,8,
-  1,1,3,3,5,6,3,3,1,1,1,1,1,1,1,0,0,
-  1,1,3,3,6,3,3,1,1,1,1,1,1,1,1,0,0,
-  1,1,3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,
-  1,1,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,
-  1,1,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,
-  1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-  1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-);
-const cursorPal: array[0..9*4-1] of Byte = (
-    0,  0,  0,  0,
-    0,  0,  0,163,
-   85,255,255,255,
-   85, 85,255,255,
-  255, 85, 85,255,
-  170,  0,170,255,
-   85, 85, 85,255,
-    0,  0,  0,255,
-    0,  0,170,255
-);
-
-
-var
-  curtexid: GLuint = 0;
-
-procedure createCursorTexture ();
-var
-  tex, tpp: PByte;
-  c: Integer;
-  x, y: Integer;
-begin
-  if (curtexid <> 0) then exit; //begin glDeleteTextures(1, @curtexid); curtexid := 0; end;
-
-  GetMem(tex, curWidth*curHeight*4);
-
-  tpp := tex;
-  for y := 0 to curHeight-1 do
-  begin
-    for x := 0 to curWidth-1 do
-    begin
-      c := cursorImg[y*curWidth+x]*4;
-      tpp^ := cursorPal[c+0]; Inc(tpp);
-      tpp^ := cursorPal[c+1]; Inc(tpp);
-      tpp^ := cursorPal[c+2]; Inc(tpp);
-      tpp^ := cursorPal[c+3]; Inc(tpp);
-    end;
-  end;
-
-  glGenTextures(1, @curtexid);
-  if (curtexid = 0) then raise Exception.Create('can''t create Holmes texture');
-
-  glBindTexture(GL_TEXTURE_2D, curtexid);
-  glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-  glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-
-  //GLfloat[4] bclr = 0.0;
-  //glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, bclr.ptr);
-
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, curWidth, curHeight, 0, GL_RGBA{gltt}, GL_UNSIGNED_BYTE, tex);
-
-  //FreeMem(tex);
-end;
-
-
-procedure drawCursor ();
-begin
-  if (curtexid = 0) then createCursorTexture() else glBindTexture(GL_TEXTURE_2D, curtexid);
-  // blend it
-  glEnable(GL_BLEND);
-  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-  glEnable(GL_TEXTURE_2D);
-  // color and opacity
-  glColor4f(1, 1, 1, 0.9);
-  Dec(msX, 2);
-  glBegin(GL_QUADS);
-    glTexCoord2f(0.0, 0.0); glVertex2i(msX, msY); // top-left
-    glTexCoord2f(1.0, 0.0); glVertex2i(msX+curWidth, msY); // top-right
-    glTexCoord2f(1.0, 1.0); glVertex2i(msX+curWidth, msY+curHeight); // bottom-right
-    glTexCoord2f(0.0, 1.0); glVertex2i(msX, msY+curHeight); // bottom-left
-  glEnd();
-  Inc(msX, 2);
-  glDisable(GL_BLEND);
-  glDisable(GL_TEXTURE_2D);
-  glColor4f(1, 1, 1, 1);
-  glBindTexture(GL_TEXTURE_2D, 0);
-end;
-
+{$INCLUDE g_holmes.inc}
 
 // ////////////////////////////////////////////////////////////////////////// //
 procedure g_Holmes_VidModeChanged ();
 begin
   e_WriteLog(Format('Inspector: videomode changed: %dx%d', [gScreenWidth, gScreenHeight]), MSG_NOTIFY);
-  curtexid := 0; // texture is possibly lost here, idc
+  // texture space is possibly lost here, idc
+  curtexid := 0;
+  font6texid := 0;
+  font8texid := 0;
+  prfont6texid := 0;
+  prfont8texid := 0;
   //createCursorTexture();
 end;
 
@@ -304,6 +201,40 @@ procedure plrDebugDraw ();
     end;
   end;
 
+  procedure drawMonsterInfo (mon: TMonster);
+  var
+    mx, my, mw, mh: Integer;
+  begin
+    if (mon = nil) then exit;
+    mon.getMapBox(mx, my, mw, mh);
+    //mx += mw div 2;
+
+    //fillRect(mx-4, my-7*8-6, 110, 7*8+6, 0, 0, 94, 250);
+    shadeRect(mx-4, my-7*8-6, 110, 7*8+6, 128);
+    my -= 8;
+    my -= 2;
+
+    // type
+    drawText6(mx, my, Format('%s(U:%u)', [monsTypeToString(mon.MonsterType), mon.UID]), 255, 127, 0); my -= 8;
+    // beh
+    drawText6(mx, my, Format('Beh: %s', [monsBehToString(mon.MonsterBehaviour)]), 255, 127, 0); my -= 8;
+    // state
+    drawText6(mx, my, Format('State:%s (%d)', [monsStateToString(mon.MonsterState), mon.MonsterSleep]), 255, 127, 0); my -= 8;
+    // health
+    drawText6(mx, my, Format('Health:%d', [mon.MonsterHealth]), 255, 127, 0); my -= 8;
+    // ammo
+    drawText6(mx, my, Format('Ammo:%d', [mon.MonsterAmmo]), 255, 127, 0); my -= 8;
+    // target
+    drawText6(mx, my, Format('TgtUID:%u', [mon.MonsterTargetUID]), 255, 127, 0); my -= 8;
+    drawText6(mx, my, Format('TgtTime:%d', [mon.MonsterTargetTime]), 255, 127, 0); my -= 8;
+
+    {
+    property MonsterRemoved: Boolean read FRemoved write FRemoved;
+    property MonsterPain: Integer read FPain write FPain;
+    property MonsterAnim: Byte read FCurAnim write FCurAnim;
+    }
+  end;
+
 var
   mon: TMonster;
   mx, my, mw, mh: Integer;
@@ -325,6 +256,7 @@ begin
     begin
       mon.getMapBox(mx, my, mw, mh);
       e_DrawQuad(mx, my, mx+mw-1, my+mh-1, 255, 0, 0, 30);
+      drawMonsterInfo(mon);
     end;
   end;
 
@@ -385,7 +317,13 @@ begin
   glDisable(GL_SCISSOR_TEST);
   glDisable(GL_TEXTURE_2D);
 
-  plrDebugDraw();
+  if gGameOn then
+  begin
+    plrDebugDraw();
+  end;
+
+  //drawText6Prop(10, 10, 'Hi there, I''m Holmes!', 255, 255, 0);
+  //drawText8Prop(10, 20, 'Hi there, I''m Holmes!', 255, 255, 0);
 
   drawCursor();
 end;

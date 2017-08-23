@@ -349,19 +349,6 @@ const
   ANIM_ATTACK2 = 5;
   ANIM_PAIN    = 6;
 
-  STATE_SLEEP  = 0;
-  STATE_GO     = 1;
-  STATE_RUN    = 2;
-  STATE_CLIMB  = 3;
-  STATE_DIE    = 4;
-  STATE_DEAD   = 5;
-  STATE_ATTACK = 6;
-  STATE_SHOOT  = 7;
-  STATE_PAIN   = 8;
-  STATE_WAIT   = 9;
-  STATE_REVIVE = 10;
-  STATE_RUNOUT = 11;
-
   MONSTER_SIGNATURE = $534E4F4D; // 'MONS'
 
 // Таблица типов анимации монстров:
@@ -684,7 +671,7 @@ function isCorpse (o: PObj; immediately: Boolean): Integer;
   begin
     atag := atag; // shut up, fpc!
     result := false; // don't stop
-    if (mon.FState = STATE_DEAD) and g_Obj_Collide(o, @mon.FObj) then
+    if (mon.FState = MONSTATE_DEAD) and g_Obj_Collide(o, @mon.FObj) then
     begin
       case mon.FMonsterType of // Не воскресить:
         MONSTER_SOUL, MONSTER_PAIN, MONSTER_CYBER, MONSTER_SPIDER,
@@ -714,7 +701,7 @@ begin
   begin
     for a := 0 to High(gMonsters) do
     begin
-      if (gMonsters[a] <> nil) and (gMonsters[a].FState = STATE_DEAD) and g_Obj_Collide(o, @gMonsters[a].FObj) then
+      if (gMonsters[a] <> nil) and (gMonsters[a].FState = MONSTATE_DEAD) and g_Obj_Collide(o, @gMonsters[a].FObj) then
       begin
         case gMonsters[a].FMonsterType of // Не воскресить:
           MONSTER_SOUL, MONSTER_PAIN, MONSTER_CYBER, MONSTER_SPIDER,
@@ -1279,9 +1266,9 @@ begin
     if (gMonsters[a] <> nil) then
       with gMonsters[a] do
         if (FMonsterType = MONSTER_MAN) and
-           (FState <> STATE_DEAD) and
-           (FState <> STATE_SLEEP) and
-           (FState <> STATE_DIE) then
+           (FState <> MONSTATE_DEAD) and
+           (FState <> MONSTATE_SLEEP) and
+           (FState <> MONSTATE_DIE) then
         begin
           g_Sound_PlayExAt('SOUND_MONSTER_TRUP', FObj.X, FObj.Y);
           Exit;
@@ -1682,7 +1669,7 @@ begin
   FChainFire := False;
   FShellTimer := -1;
 
-  FState := STATE_SLEEP;
+  FState := MONSTATE_SLEEP;
   FCurAnim := ANIM_SLEEP;
 
   positionChanged(); // this updates spatial accelerators
@@ -1710,7 +1697,7 @@ begin
 
   g_Obj_Init(@FObj);
 
-  FState := STATE_SLEEP;
+  FState := MONSTATE_SLEEP;
   FCurAnim := ANIM_SLEEP;
   FHealth := MONSTERTABLE[MonsterType].Health;
   FMaxHealth := FHealth;
@@ -1826,7 +1813,7 @@ begin
   Result := False;
 
 // Умирает, умер или воскрешается => урон делать некому:
-  if (FState = STATE_DEAD) or (FState = STATE_DIE) or (FState = STATE_REVIVE) then
+  if (FState = MONSTATE_DEAD) or (FState = MONSTATE_DIE) or (FState = MONSTATE_REVIVE) then
     Exit;
 
 // Рыбу в воде бьет током => паника без урона:
@@ -1838,7 +1825,7 @@ begin
     else
       FDirection := D_LEFT;
     Result := True;
-    SetState(STATE_RUN);
+    SetState(MONSTATE_RUN);
     Exit;
   end;
 
@@ -1859,10 +1846,10 @@ begin
   FPain := FPain+aDamage;
 
 // Если боль существенная, то меняем состояние на болевое:
-  if FState <> STATE_PAIN then
+  if FState <> MONSTATE_PAIN then
     if (FPain >= MONSTERTABLE[FMonsterType].MinPain) and
        (FMonsterType <> MONSTER_BARREL) then
-         SetState(STATE_PAIN);
+         SetState(MONSTATE_PAIN);
 
 // Если разрешена кровь - создаем брызги крови:
   if (gBloodCount > 0) then
@@ -1951,12 +1938,12 @@ begin
           (FMonsterType = MONSTER_MAN)) then
         begin
           g_Sound_PlayExAt('SOUND_MONSTER_SLOP', FObj.X, FObj.Y);
-          SetState(STATE_DIE, ANIM_MESS);
+          SetState(MONSTATE_DIE, ANIM_MESS);
         end
       else
         begin
           DieSound();
-          SetState(STATE_DIE);
+          SetState(MONSTATE_DIE);
         end;
 
     // Активировать триггеры, ждущие смерти этого монстра:
@@ -1965,10 +1952,10 @@ begin
       FHealth := 0;
     end
   else
-    if FState = STATE_SLEEP then
+    if FState = MONSTATE_SLEEP then
     begin // Спал, разбудили несмертельным ударом:
       FPain := MONSTERTABLE[FMonsterType].Pain;
-      SetState(STATE_GO);
+      SetState(MONSTATE_GO);
     end;
 
   if g_Game_IsServer and g_Game_IsNet then MH_SEND_MonsterState(FUID);
@@ -2034,7 +2021,7 @@ begin
 
 // Если колдун стреляет, то рисуем огонь:
   if FMonsterType = MONSTER_VILE then
-    if FState = STATE_SHOOT then
+    if FState = MONSTATE_SHOOT then
       if GetPos(FTargetUID, @o) then
         vilefire.Draw(o.X+o.Rect.X+(o.Rect.Width div 2)-32,
                       o.Y+o.Rect.Y+o.Rect.Height-128, M_NONE);
@@ -2045,7 +2032,7 @@ begin
     Exit;
 
 // Эти монстры, умирая, не оставляют трупов:
-  if FState = STATE_DEAD then
+  if FState = MONSTATE_DEAD then
     case FMonsterType of
       MONSTER_BARREL, MONSTER_SOUL, MONSTER_PAIN: Exit;
     end;
@@ -2133,14 +2120,14 @@ var
 begin
 // Если состояние = начали умирать, а этот монстр = Lost_Soul,
 // то соблюдаем ограничение количества Lost_Soul'ов:
-  if (State = STATE_DIE) and (MonsterType = MONSTER_SOUL) then
+  if (State = MONSTATE_DIE) and (MonsterType = MONSTER_SOUL) then
     soulcount := soulcount-1;
 
 // Присмерти - нельзя сразу начинать атаковать или бегать:
   case FState of
-    STATE_DIE, STATE_DEAD, STATE_REVIVE:
-      if (State <> STATE_DEAD) and (State <> STATE_REVIVE) and
-         (State <> STATE_GO) then
+    MONSTATE_DIE, MONSTATE_DEAD, MONSTATE_REVIVE:
+      if (State <> MONSTATE_DEAD) and (State <> MONSTATE_REVIVE) and
+         (State <> MONSTATE_GO) then
         Exit;
   end;
 
@@ -2151,14 +2138,14 @@ begin
 
 // Новая анимация при новом состоянии:
   case FState of
-    STATE_SLEEP: Anim := ANIM_SLEEP;
-    STATE_PAIN: Anim := ANIM_PAIN;
-    STATE_WAIT: Anim := ANIM_SLEEP;
-    STATE_CLIMB, STATE_RUN, STATE_RUNOUT, STATE_GO: Anim := ANIM_GO;
-    STATE_SHOOT: Anim := ANIM_ATTACK;
-    STATE_ATTACK: Anim := ANIM_ATTACK;
-    STATE_DIE: Anim := ANIM_DIE;
-    STATE_REVIVE:
+    MONSTATE_SLEEP: Anim := ANIM_SLEEP;
+    MONSTATE_PAIN: Anim := ANIM_PAIN;
+    MONSTATE_WAIT: Anim := ANIM_SLEEP;
+    MONSTATE_CLIMB, MONSTATE_RUN, MONSTATE_RUNOUT, MONSTATE_GO: Anim := ANIM_GO;
+    MONSTATE_SHOOT: Anim := ANIM_ATTACK;
+    MONSTATE_ATTACK: Anim := ANIM_ATTACK;
+    MONSTATE_DIE: Anim := ANIM_DIE;
+    MONSTATE_REVIVE:
       begin // начали восрешаться
         Anim := FCurAnim;
         FAnim[Anim, FDirection].Revert(True);
@@ -2267,15 +2254,15 @@ begin
 // Рыбы "летают" только в воде:
   if FMonsterType = MONSTER_FISH then
     if g_Obj_CollidePanel(@FObj, 0, 0, PANEL_WATER or PANEL_ACID1 or PANEL_ACID2) then
-      if (FState <> STATE_DIE) and (FState <> STATE_DEAD) then
+      if (FState <> MONSTATE_DIE) and (FState <> MONSTATE_DEAD) then
         fall := False;
 
 // Летающие монтсры:
   if ((FMonsterType = MONSTER_SOUL) or
       (FMonsterType = MONSTER_PAIN) or
       (FMonsterType = MONSTER_CACO)) and
-     (FState <> STATE_DIE) and
-     (FState <> STATE_DEAD) then
+     (FState <> MONSTATE_DIE) and
+     (FState <> MONSTATE_DEAD) then
     fall := False;
 
 // Меняем скорость только по четным кадрам:
@@ -2313,7 +2300,7 @@ begin
   oldvelx := FObj.Vel.X;
 
 // Сопротивление воздуха для трупа:
-  if (FState = STATE_DIE) or (FState = STATE_DEAD) then
+  if (FState = MONSTATE_DIE) or (FState = MONSTATE_DEAD) then
     FObj.Vel.X := z_dec(FObj.Vel.X, 1);
 
   if FFireTime > 0 then
@@ -2324,7 +2311,7 @@ begin
     begin
       OnFireFlame(1);
       FFireTime := FFireTime - 1;
-      if (FState <> STATE_DIE) and (FState <> STATE_DEAD) then
+      if (FState <> MONSTATE_DIE) and (FState <> MONSTATE_DEAD) then
         if FFirePainTime = 0 then
         begin
           Damage(5, FFireAttacker, 0, 0, HIT_FLAME);
@@ -2336,15 +2323,15 @@ begin
   end;
 
 // Мертвый ничего не делает:
-  if (FState = STATE_DEAD) then
+  if (FState = MONSTATE_DEAD) then
     goto _end;
 
 // AI монстров выключен:
   if g_debug_MonsterOff then
   begin
     FSleep := 1;
-    if FState <> STATE_SLEEP then
-      SetState(STATE_SLEEP);
+    if FState <> MONSTATE_SLEEP then
+      SetState(MONSTATE_SLEEP);
   end;
 
 // Возможно, создаем пузырьки в воде:
@@ -2370,7 +2357,7 @@ begin
 // Если прошел первый кадр анимации взрыва бочки, то взрыв:
   if FMonsterType = MONSTER_BARREL then
   begin
-    if (FState = STATE_DIE) and (FAnim[FCurAnim, FDirection].CurrentFrame = 1) and
+    if (FState = MONSTATE_DIE) and (FAnim[FCurAnim, FDirection].CurrentFrame = 1) and
        (FAnim[FCurAnim, FDirection].Counter = 0) then
       g_Weapon_Explode(FObj.X+FObj.Rect.X+(FObj.Rect.Width div 2),
                        FObj.Y+FObj.Rect.Y+FObj.Rect.Height-16,
@@ -2415,8 +2402,8 @@ begin
 
 // Пробуем увернуться от летящей пули:
   if fall then
-    if (FState in [STATE_GO, STATE_RUN, STATE_RUNOUT,
-                   STATE_ATTACK, STATE_SHOOT]) then
+    if (FState in [MONSTATE_GO, MONSTATE_RUN, MONSTATE_RUNOUT,
+                   MONSTATE_ATTACK, MONSTATE_SHOOT]) then
       if g_Weapon_Danger(FUID, FObj.X+FObj.Rect.X, FObj.Y+FObj.Rect.Y,
                          FObj.Rect.Width, FObj.Rect.Height, 50) then
         if (g_Obj_CollideLevel(@FObj, 0, 1) or g_Obj_StayOnStep(@FObj)) and
@@ -2424,7 +2411,7 @@ begin
           FObj.Vel.Y := -MONSTERTABLE[FMonsterType].Jump;
 
   case FState of
-    STATE_PAIN: // Состояние - Боль
+    MONSTATE_PAIN: // Состояние - Боль
       begin
       // Боль сильная => монстр кричит:
         if FPain >= MONSTERTABLE[FMonsterType].Pain then
@@ -2443,11 +2430,11 @@ begin
         begin
           FPain := 0;
           FAmmo := -9;
-          SetState(STATE_GO);
+          SetState(MONSTATE_GO);
         end;
       end;
 
-    STATE_SLEEP: // Состояние - Сон
+    MONSTATE_SLEEP: // Состояние - Сон
       begin
       // Спим:
         FSleep := FSleep + 1;
@@ -2471,7 +2458,7 @@ begin
                     FTargetUID := gPlayers[a].UID;
                     FTargetTime := 0;
                     WakeUpSound();
-                    SetState(STATE_GO);
+                    SetState(MONSTATE_GO);
                     Break;
                   end;
 
@@ -2500,30 +2487,30 @@ begin
                   FTargetUID := gMonsters[a].UID;
                   FTargetTime := 0;
                   WakeUpSound();
-                  SetState(STATE_GO);
+                  SetState(MONSTATE_GO);
                   Break;
                 end;
               end;
       end;
 
-    STATE_WAIT: // Состояние - Ожидание
+    MONSTATE_WAIT: // Состояние - Ожидание
       begin
       // Ждем:
         FSleep := FSleep - 1;
 
       // Выждали достаточно - идем:
         if FSleep < 0 then
-          SetState(STATE_GO);
+          SetState(MONSTATE_GO);
       end;
 
-    STATE_GO: // Состояние - Движение (с осмотром ситуации)
+    MONSTATE_GO: // Состояние - Движение (с осмотром ситуации)
       begin
       // Если наткнулись на БлокМон - убегаем от него:
         if WordBool(st and MOVE_BLOCK) then
         begin
           Turn();
           FSleep := 40;
-          SetState(STATE_RUNOUT);
+          SetState(MONSTATE_RUNOUT);
 
           goto _end;
         end;
@@ -2533,7 +2520,7 @@ begin
           if isCorpse(@FObj, False) <> -1 then
           begin
             FObj.Vel.X := 0;
-            SetState(STATE_ATTACK, ANIM_ATTACK2);
+            SetState(MONSTATE_ATTACK, ANIM_ATTACK2);
 
             goto _end;
           end;
@@ -2586,7 +2573,7 @@ begin
           if FMonsterType <> MONSTER_FISH then
           begin
             FSleep := 15;
-            SetState(STATE_RUN);
+            SetState(MONSTATE_RUN);
             if Random(2) = 0 then
               FDirection := D_LEFT
             else
@@ -2602,7 +2589,7 @@ begin
                                FObj.Rect.Height, FUID, ACTIVATE_MONSTERPRESS) <> nil then
           begin // Смогли нажать кнопку - небольшое ожидание
             FSleep := 4;
-            SetState(STATE_WAIT);
+            SetState(MONSTATE_WAIT);
 
             goto _end;
           end;
@@ -2615,7 +2602,7 @@ begin
               begin // Стоим на твердом полу или ступени
               // Прыжок через стену:
                 FObj.Vel.Y := -MONSTERTABLE[FMonsterType].Jump;
-                SetState(STATE_CLIMB);
+                SetState(MONSTATE_CLIMB);
               end;
           end;
 
@@ -2638,7 +2625,7 @@ begin
                     end;
 
                   // Рыбе больно:
-                    SetState(STATE_PAIN);
+                    SetState(MONSTATE_PAIN);
                     FPain := FPain + 50;
                   end
                 else // Рыба в воде
@@ -2661,7 +2648,7 @@ begin
                         else
                           FDirection := D_RIGHT;
                         FSleep := 20;
-                        SetState(STATE_RUN);
+                        SetState(MONSTATE_RUN);
                       end;
                    end;
               end
@@ -2750,14 +2737,14 @@ begin
             FObj.Vel.X := 0;
       end;
 
-    STATE_RUN: // Состояние - Бег
+    MONSTATE_RUN: // Состояние - Бег
       begin
       // Если наткнулись на БлокМон - убегаем от него:
         if WordBool(st and MOVE_BLOCK) then
         begin
           Turn();
           FSleep := 40;
-          SetState(STATE_RUNOUT);
+          SetState(MONSTATE_RUNOUT);
 
           goto _end;
         end;
@@ -2768,7 +2755,7 @@ begin
         if (FSleep <= 0) or (WordBool(st and MOVE_HITWALL) and ((FObj.Vel.Y+FObj.Accel.Y) = 0)) then
         begin
           FSleep := 0;
-          SetState(STATE_GO);
+          SetState(MONSTATE_GO);
         // Стена - идем обратно:
           if WordBool(st and (MOVE_HITWALL or MOVE_BLOCK)) then
             Turn();
@@ -2791,7 +2778,7 @@ begin
             FObj.Vel.X := 0;
       end;
 
-    STATE_RUNOUT: // Состояние - Убегает от чего-то
+    MONSTATE_RUNOUT: // Состояние - Убегает от чего-то
       begin
       // Вышли из БлокМона:
         if (not WordBool(st and MOVE_BLOCK)) and (FSleep > 0) then
@@ -2803,7 +2790,7 @@ begin
         if FSleep <= -18 then
         begin
           FSleep := 0;
-          SetState(STATE_GO);
+          SetState(MONSTATE_GO);
         // Стена/БлокМон - идем обратно:
           if WordBool(st and (MOVE_HITWALL or MOVE_BLOCK)) then
             Turn();
@@ -2826,21 +2813,21 @@ begin
             FObj.Vel.X := 0;
       end;
 
-    STATE_CLIMB: // Состояние - Прыжок (чтобы обойти стену)
+    MONSTATE_CLIMB: // Состояние - Прыжок (чтобы обойти стену)
       begin
       // Достигли высшей точки прыжка или стена кончилась => переходим на шаг:
         if ((FObj.Vel.Y+FObj.Accel.Y) >= 0) or
            (not WordBool(st and MOVE_HITWALL)) then
         begin
           FSleep := 0;
-          SetState(STATE_GO);
+          SetState(MONSTATE_GO);
 
         // Стена не кончилась => бежим от нее:
           if WordBool(st and (MOVE_HITWALL or MOVE_BLOCK)) then
           begin
             Turn();
             FSleep := 15;
-            SetState(STATE_RUN);
+            SetState(MONSTATE_RUN);
           end;
         end;
 
@@ -2858,14 +2845,14 @@ begin
             FObj.Vel.X := 0;
       end;
 
-    STATE_ATTACK, // Состояние - Атака
-    STATE_SHOOT:  // Состояние - Стрельба
+    MONSTATE_ATTACK, // Состояние - Атака
+    MONSTATE_SHOOT:  // Состояние - Стрельба
       begin
       // Lost_Soul врезался в стену при атаке => переходит на шаг:
         if FMonsterType = MONSTER_SOUL then
         begin
           if WordBool(st and (MOVE_HITWALL or MOVE_HITCEIL or MOVE_HITLAND)) then
-            SetState(STATE_GO);
+            SetState(MONSTATE_GO);
 
           goto _end;
         end;
@@ -2875,12 +2862,12 @@ begin
           FObj.Vel.X := z_dec(FObj.Vel.X, 1);
 
       // Нужно стрелять, а монстр - колдун:
-        if (FMonsterType = MONSTER_VILE) and (FState = STATE_SHOOT) then
+        if (FMonsterType = MONSTER_VILE) and (FState = MONSTATE_SHOOT) then
         begin
         // Цель погибла => идем дальше:
           if not GetPos(FTargetUID, @o) then
           begin
-            SetState(STATE_GO);
+            SetState(MONSTATE_GO);
 
             goto _end;
           end;
@@ -2888,7 +2875,7 @@ begin
         // Цель не видно => идем дальше:
           if not g_Look(@FObj, @o, FDirection) then
           begin
-            SetState(STATE_GO);
+            SetState(MONSTATE_GO);
 
             goto _end;
           end;
@@ -2896,7 +2883,7 @@ begin
         // Цель в воде - не загорится => идем дальше:
           if g_Obj_CollideWater(@o, 0, 0) then
           begin
-            SetState(STATE_GO);
+            SetState(MONSTATE_GO);
 
             goto _end;
           end;
@@ -2912,11 +2899,11 @@ begin
 _end:
 
 // Состояние - Воскрешение:
-  if FState = STATE_REVIVE then
+  if FState = MONSTATE_REVIVE then
     if FAnim[FCurAnim, FDirection].Played then
     begin // Обратная анимация умирания закончилась - идем дальше:
       FAnim[FCurAnim, FDirection].Revert(False);
-      SetState(STATE_GO);
+      SetState(MONSTATE_GO);
     end;
 
 // Если есть анимация огня колдуна - пусть она идет:
@@ -2924,12 +2911,12 @@ _end:
     vilefire.Update();
 
 // Состояние - Умирает и текущая анимация проиграна:
-  if (FState = STATE_DIE) and
+  if (FState = MONSTATE_DIE) and
      (FAnim[FCurAnim, FDirection] <> nil) and
      (FAnim[FCurAnim, FDirection].Played) then
     begin
     // Умер:
-      SetState(STATE_DEAD);
+      SetState(MONSTATE_DEAD);
 
     // Pain_Elemental при смерти выпускает 3 Lost_Soul'а:
       if (FMonsterType = MONSTER_PAIN) then
@@ -2938,7 +2925,7 @@ _end:
                                  FObj.Y+FObj.Rect.Y+20, D_LEFT);
         if mon <> nil then
         begin
-          mon.SetState(STATE_GO);
+          mon.SetState(MONSTATE_GO);
           mon.FNoRespawn := True;
           Inc(gTotalMonsters);
           if g_Game_IsNet then MH_SEND_MonsterSpawn(mon.UID);
@@ -2948,7 +2935,7 @@ _end:
                                  FObj.Y+FObj.Rect.Y+20, D_RIGHT);
         if mon <> nil then
         begin
-          mon.SetState(STATE_GO);
+          mon.SetState(MONSTATE_GO);
           mon.FNoRespawn := True;
           Inc(gTotalMonsters);
           if g_Game_IsNet then MH_SEND_MonsterSpawn(mon.UID);
@@ -2958,7 +2945,7 @@ _end:
                                  FObj.Y+FObj.Rect.Y, D_RIGHT);
         if mon <> nil then
         begin
-          mon.SetState(STATE_GO);
+          mon.SetState(MONSTATE_GO);
           mon.FNoRespawn := True;
           Inc(gTotalMonsters);
           if g_Game_IsNet then MH_SEND_MonsterSpawn(mon.UID);
@@ -2975,22 +2962,22 @@ _end:
     end;
 
 // Совершение атаки и стрельбы:
-  if (FState = STATE_ATTACK) or (FState = STATE_SHOOT) then
+  if (FState = MONSTATE_ATTACK) or (FState = MONSTATE_SHOOT) then
     if (FAnim[FCurAnim, FDirection] <> nil) then
     // Анимация атаки есть - можно атаковать
       if (FAnim[FCurAnim, FDirection].Played) then
         begin // Анимация атаки закончилась => переходим на шаг
-          if FState = STATE_ATTACK then
+          if FState = MONSTATE_ATTACK then
             begin // Состояние - Атака
             // Если монстр не Lost_Soul, то после атаки переходим на шаг:
               if FMonsterType <> MONSTER_SOUL then
-                SetState(STATE_GO);
+                SetState(MONSTATE_GO);
             end
           else // Состояние - Стрельба
             begin
             // Переходим на шаг, если не надо стрелять еще раз:
               if not FChainFire then
-                SetState(STATE_GO)
+                SetState(MONSTATE_GO)
               else
                 begin // Надо стрелять еще
                   FChainFire := False;
@@ -3010,7 +2997,7 @@ _end:
               (FAnim[FCurAnim, FDirection].TotalFrames div 2))
            ) then
         begin // Атаки еще не было и это середина анимации атаки
-          if FState = STATE_ATTACK then
+          if FState = MONSTATE_ATTACK then
             begin // Состояние - Атака
             // Если это Lost_Soul, то сбрасываем анимацию атаки:
               if FMonsterType = MONSTER_SOUL then
@@ -3022,7 +3009,7 @@ _end:
                   if g_Weapon_Hit(@FObj, 15, FUID, HIT_SOME) <> 0 then
                   // Lost_Soul укусил кого-то => переходит на шаг:
                     if FMonsterType = MONSTER_SOUL then
-                      SetState(STATE_GO);
+                      SetState(MONSTATE_GO);
 
                 MONSTER_FISH:
                 // Рыба кусает первого попавшегося со звуком:
@@ -3046,7 +3033,7 @@ _end:
                     sx := isCorpse(@FObj, True);
                     if sx <> -1 then
                     begin // Нашли, кого воскресить
-                      gMonsters[sx].SetState(STATE_REVIVE);
+                      gMonsters[sx].SetState(MONSTATE_REVIVE);
                       g_Sound_PlayExAt('SOUND_MONSTER_SLOP', FObj.X, FObj.Y);
                     // Воскрешать - себе вредить:
                       {g_Weapon_HitUID(FUID, 5, 0, HIT_SOME);}
@@ -3133,7 +3120,7 @@ _end:
                       GetPos(FTargetUID, @o);
                       mon.FTargetTime := 0;
                       mon.FNoRespawn := True;
-                      mon.SetState(STATE_GO);
+                      mon.SetState(MONSTATE_GO);
                       mon.shoot(@o, True);
                       Inc(gTotalMonsters);
 
@@ -3167,7 +3154,7 @@ _end:
 // Последний кадр текущей анимации:
   if FAnim[FCurAnim, FDirection].Counter = FAnim[FCurAnim, FDirection].Speed-1 then
     case FState of
-      STATE_GO, STATE_RUN, STATE_CLIMB, STATE_RUNOUT:
+      MONSTATE_GO, MONSTATE_RUN, MONSTATE_CLIMB, MONSTATE_RUNOUT:
       // Звуки при передвижении:
         case FMonsterType of
           MONSTER_CYBER:
@@ -3190,7 +3177,7 @@ _end:
     end;
 
   if g_Obj_CollidePanel(@FObj, 0, 0, PANEL_LIFTLEFT or PANEL_LIFTRIGHT) and
-     not ((FState = STATE_DEAD) or (FState = STATE_DIE))  then
+     not ((FState = MONSTATE_DEAD) or (FState = MONSTATE_DIE))  then
     FObj.Vel.X := oldvelx;
 
 // Если есть анимация, то пусть она идет:
@@ -3234,15 +3221,15 @@ begin
 // Рыбы "летают" только в воде:
   if FMonsterType = MONSTER_FISH then
     if g_Obj_CollidePanel(@FObj, 0, 0, PANEL_WATER or PANEL_ACID1 or PANEL_ACID2) then
-      if (FState <> STATE_DIE) and (FState <> STATE_DEAD) then
+      if (FState <> MONSTATE_DIE) and (FState <> MONSTATE_DEAD) then
         fall := False;
 
 // Летающие монтсры:
   if ((FMonsterType = MONSTER_SOUL) or
       (FMonsterType = MONSTER_PAIN) or
       (FMonsterType = MONSTER_CACO)) and
-     (FState <> STATE_DIE) and
-     (FState <> STATE_DEAD) then
+     (FState <> MONSTATE_DIE) and
+     (FState <> MONSTATE_DEAD) then
     fall := False;
 
 // Меняем скорость только по четным кадрам:
@@ -3273,7 +3260,7 @@ begin
   oldvelx := FObj.Vel.X;
 
 // Сопротивление воздуха для трупа:
-  if (FState = STATE_DIE) or (FState = STATE_DEAD) then
+  if (FState = MONSTATE_DIE) or (FState = MONSTATE_DEAD) then
     FObj.Vel.X := z_dec(FObj.Vel.X, 1);
 
   if FFireTime > 0 then
@@ -3288,7 +3275,7 @@ begin
   end;
 
 // Мертвый ничего не делает:
-  if (FState = STATE_DEAD) then
+  if (FState = MONSTATE_DEAD) then
     goto _end;
 
 // Возможно, создаем пузырьки в воде:
@@ -3314,7 +3301,7 @@ begin
 // Если прошел первый кадр анимации взрыва бочки, то взрыв:
   if FMonsterType = MONSTER_BARREL then
   begin
-    if (FState = STATE_DIE) and (FAnim[FCurAnim, FDirection].CurrentFrame = 1) and
+    if (FState = MONSTATE_DIE) and (FAnim[FCurAnim, FDirection].CurrentFrame = 1) and
        (FAnim[FCurAnim, FDirection].Counter = 0) then
       g_Weapon_Explode(FObj.X+FObj.Rect.X+(FObj.Rect.Width div 2),
                        FObj.Y+FObj.Rect.Y+FObj.Rect.Height-16,
@@ -3358,8 +3345,8 @@ begin
 
 // Пробуем увернуться от летящей пули:
   if fall then
-    if (FState in [STATE_GO, STATE_RUN, STATE_RUNOUT,
-                   STATE_ATTACK, STATE_SHOOT]) then
+    if (FState in [MONSTATE_GO, MONSTATE_RUN, MONSTATE_RUNOUT,
+                   MONSTATE_ATTACK, MONSTATE_SHOOT]) then
       if g_Weapon_Danger(FUID, FObj.X+FObj.Rect.X, FObj.Y+FObj.Rect.Y,
                          FObj.Rect.Width, FObj.Rect.Height, 50) then
         if (g_Obj_CollideLevel(@FObj, 0, 1) or g_Obj_StayOnStep(@FObj)) and
@@ -3367,7 +3354,7 @@ begin
           FObj.Vel.Y := -MONSTERTABLE[FMonsterType].Jump;
 
   case FState of
-    STATE_PAIN: // Состояние - Боль
+    MONSTATE_PAIN: // Состояние - Боль
       begin
       // Боль сильная => монстр кричит:
         if FPain >= MONSTERTABLE[FMonsterType].Pain then
@@ -3384,12 +3371,12 @@ begin
       // Боль уже не ошутимая => идем дальше:
         if FPain <= MONSTERTABLE[FMonsterType].MinPain then
         begin
-          SetState(STATE_GO);
+          SetState(MONSTATE_GO);
           FPain := 0;
         end;
       end;
 
-    STATE_SLEEP: // Состояние - Сон
+    MONSTATE_SLEEP: // Состояние - Сон
       begin
       // Спим:
         FSleep := FSleep + 1;
@@ -3401,20 +3388,20 @@ begin
           goto _end;
       end;
 
-    STATE_WAIT: // Состояние - Ожидание
+    MONSTATE_WAIT: // Состояние - Ожидание
       begin
       // Ждем:
         FSleep := FSleep - 1;
       end;
 
-    STATE_GO: // Состояние - Движение (с осмотром ситуации)
+    MONSTATE_GO: // Состояние - Движение (с осмотром ситуации)
       begin
       // Если наткнулись на БлокМон - убегаем от него:
         if WordBool(st and MOVE_BLOCK) then
         begin
           Turn();
           FSleep := 40;
-          SetState(STATE_RUNOUT);
+          SetState(MONSTATE_RUNOUT);
 
           goto _end;
         end;
@@ -3423,7 +3410,7 @@ begin
         if (FMonsterType = MONSTER_VILE) then
           if isCorpse(@FObj, False) <> -1 then
           begin
-            SetState(STATE_ATTACK, ANIM_ATTACK2);
+            SetState(MONSTATE_ATTACK, ANIM_ATTACK2);
             FObj.Vel.X := 0;
 
             goto _end;
@@ -3433,7 +3420,7 @@ begin
         if Abs(sx) < 40 then
           if FMonsterType <> MONSTER_FISH then
           begin
-            SetState(STATE_RUN);
+            SetState(MONSTATE_RUN);
             FSleep := 15;
 
             goto _end;
@@ -3450,7 +3437,7 @@ begin
               begin // Стоим на твердом полу или ступени
               // Прыжок через стену:
                 FObj.Vel.Y := -MONSTERTABLE[FMonsterType].Jump;
-                SetState(STATE_CLIMB);
+                SetState(MONSTATE_CLIMB);
               end;
           end;
 
@@ -3474,7 +3461,7 @@ begin
                     end;
 
                   // Рыбе больно:
-                    SetState(STATE_PAIN);
+                    SetState(MONSTATE_PAIN);
                     FPain := FPain + 50;
                   end
                 else // Рыба в воде
@@ -3492,7 +3479,7 @@ begin
                       // Всплыли до поверхности - стоп:
                         FObj.Vel.Y := 0;
                       // Плаваем туда-сюда:
-                        SetState(STATE_RUN);
+                        SetState(MONSTATE_RUN);
                         FSleep := 20;
                       end;
                    end;
@@ -3577,12 +3564,12 @@ begin
             FObj.Vel.X := 0;
       end;
 
-    STATE_RUN: // Состояние - Бег
+    MONSTATE_RUN: // Состояние - Бег
       begin
       // Если наткнулись на БлокМон - убегаем от него:
         if WordBool(st and MOVE_BLOCK) then
         begin
-          SetState(STATE_RUNOUT);
+          SetState(MONSTATE_RUNOUT);
           FSleep := 40;
 
           goto _end;
@@ -3593,7 +3580,7 @@ begin
       // Пробежали достаточно или врезались в стену => переходим на шаг:
         if (FSleep <= 0) or (WordBool(st and MOVE_HITWALL) and ((FObj.Vel.Y+FObj.Accel.Y) = 0)) then
         begin
-          SetState(STATE_GO);
+          SetState(MONSTATE_GO);
           FSleep := 0;
 
         // Иногда рычим:
@@ -3615,7 +3602,7 @@ begin
             FObj.Vel.X := 0;
       end;
 
-    STATE_RUNOUT: // Состояние - Убегает от чего-то
+    MONSTATE_RUNOUT: // Состояние - Убегает от чего-то
       begin
       // Вышли из БлокМона:
         if (not WordBool(st and MOVE_BLOCK)) and (FSleep > 0) then
@@ -3626,7 +3613,7 @@ begin
       // Убажели достаточно далеко => переходим на шаг:
         if FSleep <= -18 then
         begin
-          SetState(STATE_GO);
+          SetState(MONSTATE_GO);
           FSleep := 0;
 
         // Иногда рычим:
@@ -3648,19 +3635,19 @@ begin
             FObj.Vel.X := 0;
       end;
 
-    STATE_CLIMB: // Состояние - Прыжок (чтобы обойти стену)
+    MONSTATE_CLIMB: // Состояние - Прыжок (чтобы обойти стену)
       begin
       // Достигли высшей точки прыжка или стена кончилась => переходим на шаг:
         if ((FObj.Vel.Y+FObj.Accel.Y) >= 0) or
            (not WordBool(st and MOVE_HITWALL)) then
         begin
-          SetState(STATE_GO);
+          SetState(MONSTATE_GO);
           FSleep := 0;
 
         // Стена не кончилась => бежим от нее:
           if WordBool(st and (MOVE_HITWALL or MOVE_BLOCK)) then
           begin
-            SetState(STATE_RUN);
+            SetState(MONSTATE_RUN);
             FSleep := 15;
           end;
         end;
@@ -3679,14 +3666,14 @@ begin
             FObj.Vel.X := 0;
       end;
 
-    STATE_ATTACK, // Состояние - Атака
-    STATE_SHOOT:  // Состояние - Стрельба
+    MONSTATE_ATTACK, // Состояние - Атака
+    MONSTATE_SHOOT:  // Состояние - Стрельба
       begin
       // Lost_Soul врезался в стену при атаке => переходит на шаг:
         if FMonsterType = MONSTER_SOUL then
         begin
           if WordBool(st and (MOVE_HITWALL or MOVE_HITCEIL or MOVE_HITLAND)) then
-            SetState(STATE_GO);
+            SetState(MONSTATE_GO);
 
           goto _end;
         end;
@@ -3696,12 +3683,12 @@ begin
           FObj.Vel.X := z_dec(FObj.Vel.X, 1);
 
       // Нужно стрелять, а монстр - колдун:
-        if (FMonsterType = MONSTER_VILE) and (FState = STATE_SHOOT) then
+        if (FMonsterType = MONSTER_VILE) and (FState = MONSTATE_SHOOT) then
         begin
         // Цель погибла => идем дальше:
           if not GetPos(FTargetUID, @o) then
           begin
-            SetState(STATE_GO);
+            SetState(MONSTATE_GO);
 
             goto _end;
           end;
@@ -3709,7 +3696,7 @@ begin
         // Цель не видно => идем дальше:
           if not g_Look(@FObj, @o, FDirection) then
           begin
-            SetState(STATE_GO);
+            SetState(MONSTATE_GO);
 
             goto _end;
           end;
@@ -3717,7 +3704,7 @@ begin
         // Цель в воде - не загорится => идем дальше:
           if g_Obj_CollideWater(@o, 0, 0) then
           begin
-            SetState(STATE_GO);
+            SetState(MONSTATE_GO);
 
             goto _end;
           end;
@@ -3728,11 +3715,11 @@ begin
 _end:
 
 // Состояние - Воскрешение:
-  if FState = STATE_REVIVE then
+  if FState = MONSTATE_REVIVE then
     if FAnim[FCurAnim, FDirection].Played then
     begin // Обратная анимация умирания закончилась - идем дальше:
       FAnim[FCurAnim, FDirection].Revert(False);
-      SetState(STATE_GO);
+      SetState(MONSTATE_GO);
     end;
 
 // Если есть анимация огня колдуна - пусть она идет:
@@ -3740,12 +3727,12 @@ _end:
     vilefire.Update();
 
 // Состояние - Умирает и текущая анимация проиграна:
-  if (FState = STATE_DIE) and
+  if (FState = MONSTATE_DIE) and
      (FAnim[FCurAnim, FDirection] <> nil) and
      (FAnim[FCurAnim, FDirection].Played) then
     begin
     // Умер:
-      SetState(STATE_DEAD);
+      SetState(MONSTATE_DEAD);
 
     // У этих монстров нет трупов:
       if (FMonsterType = MONSTER_PAIN) or
@@ -3757,22 +3744,22 @@ _end:
     end;
 
 // Совершение атаки и стрельбы:
-  if (FState = STATE_ATTACK) or (FState = STATE_SHOOT) then
+  if (FState = MONSTATE_ATTACK) or (FState = MONSTATE_SHOOT) then
     if (FAnim[FCurAnim, FDirection] <> nil) then
     // Анимация атаки есть - можно атаковать
       if (FAnim[FCurAnim, FDirection].Played) then
         begin // Анимация атаки закончилась => переходим на шаг
-          if FState = STATE_ATTACK then
+          if FState = MONSTATE_ATTACK then
             begin // Состояние - Атака
             // Если монстр не Lost_Soul, то после атаки переходим на шаг:
               if FMonsterType <> MONSTER_SOUL then
-                SetState(STATE_GO);
+                SetState(MONSTATE_GO);
             end
           else // Состояние - Стрельба
             begin
             // Переходим на шаг, если не надо стрелять еще раз:
               if not FChainFire then
-                SetState(STATE_GO)
+                SetState(MONSTATE_GO)
               else
                 begin // Надо стрелять еще
                   FChainFire := False;
@@ -3792,7 +3779,7 @@ _end:
               (FAnim[FCurAnim, FDirection].TotalFrames div 2))
            ) then
         begin // Атаки еще не было и это середина анимации атаки
-          if FState = STATE_ATTACK then
+          if FState = MONSTATE_ATTACK then
             begin // Состояние - Атака
             // Если это Lost_Soul, то сбрасываем анимацию атаки:
               if FMonsterType = MONSTER_SOUL then
@@ -3804,7 +3791,7 @@ _end:
                   if g_Weapon_Hit(@FObj, 15, FUID, HIT_SOME) <> 0 then
                   // Lost_Soul укусил кого-то => переходит на шаг:
                     if FMonsterType = MONSTER_SOUL then
-                      SetState(STATE_GO);
+                      SetState(MONSTATE_GO);
 
                 MONSTER_FISH:
                   g_Weapon_Hit(@FObj, 10, FUID, HIT_SOME);
@@ -3856,7 +3843,7 @@ _end:
 // Последний кадр текущей анимации:
   if FAnim[FCurAnim, FDirection].Counter = FAnim[FCurAnim, FDirection].Speed-1 then
     case FState of
-      STATE_GO, STATE_RUN, STATE_CLIMB, STATE_RUNOUT:
+      MONSTATE_GO, MONSTATE_RUN, MONSTATE_CLIMB, MONSTATE_RUNOUT:
       // Звуки при передвижении:
         case FMonsterType of
           MONSTER_CYBER:
@@ -3880,7 +3867,7 @@ _end:
 
 // Костыль для потоков
   if g_Obj_CollidePanel(@FObj, 0, 0, PANEL_LIFTLEFT or PANEL_LIFTRIGHT) and
-     not ((FState = STATE_DEAD) or (FState = STATE_DIE))  then
+     not ((FState = MONSTATE_DEAD) or (FState = MONSTATE_DIE))  then
     FObj.Vel.X := oldvelx;
 
 // Если есть анимация, то пусть она идет:
@@ -4091,24 +4078,24 @@ begin
   case FMonsterType of
     MONSTER_FISH:
       begin
-        SetState(STATE_ATTACK);
+        SetState(MONSTATE_ATTACK);
         Result := True;
       end;
     MONSTER_DEMON:
       begin
-        SetState(STATE_ATTACK);
+        SetState(MONSTATE_ATTACK);
         g_Sound_PlayExAt('SOUND_MONSTER_DEMON_ATTACK', FObj.X, FObj.Y);
         Result := True;
       end;
     MONSTER_IMP:
       begin
-        SetState(STATE_ATTACK);
+        SetState(MONSTATE_ATTACK);
         g_Sound_PlayExAt('SOUND_MONSTER_IMP_ATTACK', FObj.X, FObj.Y);
         Result := True;
       end;
     MONSTER_SKEL, MONSTER_ROBO, MONSTER_CYBER:
       begin
-        SetState(STATE_ATTACK, ANIM_ATTACK2);
+        SetState(MONSTATE_ATTACK, ANIM_ATTACK2);
         g_Sound_PlayExAt('SOUND_MONSTER_SKEL_ATTACK', FObj.X, FObj.Y);
         Result := True;
       end;
@@ -4191,19 +4178,19 @@ begin
   case FMonsterType of
     MONSTER_IMP, MONSTER_BARON, MONSTER_KNIGHT, MONSTER_CACO:
       begin
-        SetState(STATE_SHOOT);
+        SetState(MONSTATE_SHOOT);
         {nn}
       end;
     MONSTER_SKEL:
       begin
-        SetState(STATE_SHOOT);
+        SetState(MONSTATE_SHOOT);
         {nn}
       end;
     MONSTER_VILE:
       begin // Зажигаем огонь
         tx := o^.X+o^.Rect.X+(o^.Rect.Width div 2);
         ty := o^.Y+o^.Rect.Y;
-        SetState(STATE_SHOOT);
+        SetState(MONSTATE_SHOOT);
 
         vilefire.Reset();
 
@@ -4212,7 +4199,7 @@ begin
       end;
     MONSTER_SOUL:
       begin // Летит в сторону цели:
-        SetState(STATE_ATTACK);
+        SetState(MONSTATE_ATTACK);
         g_Sound_PlayExAt('SOUND_MONSTER_SOUL_ATTACK', FObj.X, FObj.Y);
 
         xd := tx-(FObj.X+FObj.Rect.X+(FObj.Rect.Width div 2));
@@ -4232,7 +4219,7 @@ begin
           if FAmmo = 1 then
             g_Sound_PlayExAt('SOUND_MONSTER_MANCUB_ATTACK', FObj.X, FObj.Y);
 
-        SetState(STATE_SHOOT);
+        SetState(MONSTATE_SHOOT);
       end;
     else Exit;
   end;
@@ -4242,7 +4229,7 @@ end;
 
 function TMonster.Live(): Boolean;
 begin
-  Result := (FState <> STATE_DIE) and (FState <> STATE_DEAD) and (FHealth > 0);
+  Result := (FState <> MONSTATE_DIE) and (FState <> MONSTATE_DEAD) and (FHealth > 0);
 end;
 
 procedure TMonster.SetHealth(aH: Integer);
@@ -4258,7 +4245,7 @@ end;
 procedure TMonster.WakeUp();
 begin
   if g_Game_IsClient then Exit;
-  SetState(STATE_GO);
+  SetState(MONSTATE_GO);
   FTargetTime := MAX_ATM;
   WakeUpSound();
 end;
@@ -4485,7 +4472,7 @@ begin
       Anim := TAnimation.Create(id, False, 3);
       Anim.Alpha := 0;
       g_GFX_OnceAnim(Obj.X+Obj.Rect.X+Random(Obj.Rect.Width+Times*2)-(Anim.Width div 2),
-                   Obj.Y+8+Random(8+Times*2)+IfThen(FState = STATE_DEAD, 16, 0), Anim, ONCEANIM_SMOKE);
+                   Obj.Y+8+Random(8+Times*2)+IfThen(FState = MONSTATE_DEAD, 16, 0), Anim, ONCEANIM_SMOKE);
       Anim.Free();
     end;
   end;
