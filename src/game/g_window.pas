@@ -833,7 +833,7 @@ begin
     if ParamStr(idx) = '--no-particle-phys' then gpart_dbg_phys_enabled := false;
     if ParamStr(idx) = '--no-particle-physics' then gpart_dbg_phys_enabled := false;
 
-    if ParamStr(idx) = '--holmes' then g_holmes_enabled := false;
+    if ParamStr(idx) = '--holmes' then begin g_holmes_enabled := true; g_Game_SetDebugMode(); end;
   end;
 
   //if gdbg_map_use_tree_draw then e_WriteLog('using TREE renderer', MSG_NOTIFY);
