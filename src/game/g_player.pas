@@ -2318,36 +2318,11 @@ end;
 
 procedure TPlayer.DrawAim();
   procedure drawCast (sz: Integer; ax0, ay0, ax1, ay1: Integer);
-
-    {
-    procedure drawTileGrid ();
-    var
-      x, y: Integer;
-    begin
-      y := mapGrid.gridY0;
-      while (y < mapGrid.gridY0+mapGrid.gridHeight) do
-      begin
-        x := mapGrid.gridX0;
-        while (x < mapGrid.gridX0+mapGrid.gridWidth) do
-        begin
-          if (x+mapGrid.tileSize > viewPortX) and (y+mapGrid.tileSize > viewPortY) and
-             (x < viewPortX+viewPortW) and (y < viewPortY+viewPortH) then
-          begin
-            e_DrawQuad(x, y, x+mapGrid.tileSize-1, y+mapGrid.tileSize-1, 96, 96, 96, 96);
-          end;
-          Inc(x, mapGrid.tileSize);
-        end;
-        Inc(y, mapGrid.tileSize);
-      end;
-    end;
-    }
-
   var
     ex, ey: Integer;
   begin
     if isValidViewPort and (self = gPlayer1) then
     begin
-      g_Holmes_plrView(viewPortX, viewPortY, viewPortW, viewPortH);
       g_Holmes_plrLaser(ax0, ay0, ax1, ay1);
     end;
 
@@ -2360,8 +2335,6 @@ procedure TPlayer.DrawAim();
     begin
       e_DrawLine(sz, ax0, ay0, ex, ey, 0, 0, 255, 96);
     end;
-
-    //drawTileGrid();
   end;
 
 var

@@ -2907,6 +2907,11 @@ begin
   p.viewPortW := sWidth;
   p.viewPortH := sHeight;
 
+  if (p = gPlayer1) then
+  begin
+    g_Holmes_plrView(p.viewPortX, p.viewPortY, p.viewPortW, p.viewPortH);
+  end;
+
   renderMapInternal(-c, -d, a, b+p.IncCam, true);
 
   if p.FSpectator then

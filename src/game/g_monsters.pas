@@ -1929,6 +1929,7 @@ begin
       begin
         FObj.Rect.Y := FObj.Rect.Y + FObj.Rect.Height-12;
         FObj.Rect.Height := 12;
+        positionChanged();
       end;
 
     // Урон был сильным => слабые - в кашу:

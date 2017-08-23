@@ -427,6 +427,8 @@ end;
 
 
 function g_Holmes_KeyEvent (var ev: THKeyEvent): Boolean;
+var
+  mon: TMonster;
 begin
   result := false;
   msB := ev.bstate;
@@ -469,6 +471,17 @@ begin
       showAllMonsCells := not showAllMonsCells;
       exit;
     end;
+    // M-A: wake up monster
+    if (ev.scan = SDL_SCANCODE_A) and ((ev.kstate and THKeyEvent.ModAlt) <> 0) then
+    begin
+      result := true;
+      if (monMarkedUID <> -1) then
+      begin
+        mon := g_Monsters_ByUID(monMarkedUID);
+        if (mon <> nil) then mon.WakeUp();
+      end;
+      exit;
+    end;
   end;
 end;
 
@@ -491,6 +504,8 @@ begin
   //drawText8Prop(10, 20, 'Hi there, I''m Holmes!', 255, 255, 0);
 
   drawCursor();
+
+  laserSet := false;
 end;
 
 
