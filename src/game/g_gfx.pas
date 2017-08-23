@@ -73,6 +73,7 @@ uses
 
 type
   PParticle = ^TParticle;
+
   TParticle = record
     X, Y:               Integer;
     VelX, VelY:         Single;
@@ -85,6 +86,17 @@ type
     offsetX, offsetY:   ShortInt;
     // for bubbles
     liquidTopY: Integer; // don't float higher than this
+
+    //k8: sorry, i have to emulate virtual methods this way, 'cause i haet `Object`
+
+    procedure thinkerBlood ();
+    procedure thinkerSpark ();
+    procedure thinkerBubble ();
+    procedure thinkerWater ();
+
+    function alive (): Boolean; inline;
+    procedure die (); inline;
+    procedure think (); inline;
   end;
 
   TOnceAnim = record
@@ -109,6 +121,22 @@ var
   CurrentParticle: Integer;
 
 
+// ////////////////////////////////////////////////////////////////////////// //
+function TParticle.alive (): Boolean; inline; begin result := (State <> STATE_FREE); end;
+procedure TParticle.die (); inline; begin State := STATE_FREE; end;
+
+procedure TParticle.think (); inline;
+begin
+  case ParticleType of
+    PARTICLE_BLOOD: thinkerBlood();
+    PARTICLE_SPARK: thinkerSpark();
+    PARTICLE_BUBBLES: thinkerBubble();
+    PARTICLE_WATER: thinkerWater();
+  end;
+end;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
 function isBlockedAt (x, y: Integer): Boolean; inline;
 begin
   if not gpart_dbg_phys_enabled then begin result := false; exit; end;
@@ -305,7 +333,7 @@ var
 begin
   Particles := nil;
   SetLength(Particles, MaxParticles);
-  for a := 0 to High(Particles) do Particles[a].State := STATE_FREE;
+  for a := 0 to High(Particles) do Particles[a].die();
   CurrentParticle := 0;
 
   if OnceAnims <> nil then
@@ -334,6 +362,466 @@ end;
 }
 
 
+// ////////////////////////////////////////////////////////////////////////// //
+procedure TParticle.thinkerBlood ();
+var
+  w, h: Integer;
+  dX, dY: SmallInt;
+  b: Integer;
+  s: ShortInt;
+begin
+  w := gMapInfo.Width;
+  h := gMapInfo.Height;
+
+  if gAdvBlood then
+    begin
+      if (State = STATE_STICK) then
+        {
+        if (not ByteBool(gCollideMap[Y-1, X] and MARK_BLOCKED)) and
+           (not ByteBool(gCollideMap[Y+1, X] and MARK_BLOCKED)) and
+           (not ByteBool(gCollideMap[Y, X-1] and MARK_BLOCKED)) and
+           (not ByteBool(gCollideMap[Y, X+1] and MARK_BLOCKED))
+        then
+        }
+        if (not isBlockedAt(X, Y-1)) and
+           (not isBlockedAt(X, Y+1)) and
+           (not isBlockedAt(X-1, Y)) and
+           (not isBlockedAt(X+1, Y))
+        then
+          begin // Отлипла - капает
+            VelY := 0.5;
+            AccelY := 0.15;
+            State := STATE_NORMAL;
+          end
+        else
+          if Random(200) = 100 then
+          begin // Прилеплена - но возможно стекает
+            VelY := 0.5;
+            AccelY := 0.15;
+            exit;
+          end;
+
+      if not isBlockedAt(X, Y) {ByteBool(gCollideMap[Y, X] and MARK_BLOCKED)} then
+      begin
+        if isLiftUpAt(X, Y) {ByteBool(gCollideMap[Y, X] and MARK_LIFTUP)} then
+        begin // Лифт вверх
+          if VelY > -4-Random(3) then
+            VelY := VelY - 0.8;
+          if Abs(VelX) > 0.1 then
+            VelX := VelX - VelX/10.0;
+          VelX := VelX + (Random-Random)*0.2;
+          AccelY := 0.15;
+        end;
+        if isLiftLeftAt(X, Y) {ByteBool(gCollideMap[Y, X] and MARK_LIFTLEFT)} then
+        begin // Поток влево
+          if VelX > -8-Random(3) then
+            VelX := VelX - 0.8;
+          AccelY := 0.15;
+        end;
+        if isLiftRightAt(X, Y) {ByteBool(gCollideMap[Y, X] and MARK_LIFTRIGHT)} then
+        begin // Поток вправо
+          if VelX < 8+Random(3) then
+            VelX := VelX + 0.8;
+          AccelY := 0.15;
+        end;
+      end;
+
+      dX := Round(VelX);
+      dY := Round(VelY);
+
+      if (Abs(VelX) < 0.1) and (Abs(VelY) < 0.1) then
+        if (State <> STATE_STICK) and
+           (not isBlockedAt(X, Y-1) {ByteBool(gCollideMap[Y-1, X] and MARK_BLOCKED)}) and
+           (not isBlockedAt(X, Y) {ByteBool(gCollideMap[Y, X] and MARK_BLOCKED)}) and
+           (not isBlockedAt(X, Y+1) {ByteBool(gCollideMap[Y+1, X] and MARK_BLOCKED)}) then
+        begin // Висит в воздухе - капает
+          VelY := 0.8;
+          AccelY := 0.5;
+          State := STATE_NORMAL;
+        end;
+
+      if dX <> 0 then
+      begin
+        if dX > 0 then
+          s := 1
+        else
+          s := -1;
+
+        dX := Abs(dX);
+
+        for b := 1 to dX do
+        begin
+          if (X+s >= w) or (X+s <= 0) then begin die(); break; end;
+
+          //c := gCollideMap[Y, X+s];
+
+          if isBlockedAt(X+s, Y) {ByteBool(c and MARK_BLOCKED)} then
+          begin // Стена/дверь
+            VelX := 0;
+            VelY := 0;
+            AccelX := 0;
+            AccelY := 0;
+            State := STATE_STICK;
+            Break;
+          end;
+
+          X := X+s;
+        end;
+      end;
+
+      if dY <> 0 then
+      begin
+        if dY > 0 then
+          s := 1
+        else
+          s := -1;
+
+        dY := Abs(dY);
+
+        for b := 1 to dY do
+        begin
+          if (Y+s >= h) or (Y+s <= 0) then begin die(); break; end;
+
+          //c := gCollideMap[Y+s, X];
+
+          if isBlockedAt(X, Y+s) {ByteBool(c and MARK_BLOCKED)} then
+          begin // Стена/дверь
+            VelX := 0;
+            VelY := 0;
+            AccelX := 0;
+            AccelY := 0;
+            if (s > 0) and (State <> STATE_STICK) then
+              State := STATE_NORMAL
+            else
+              State := STATE_STICK;
+            Break;
+          end;
+
+          Y := Y+s;
+        end;
+      end;
+    end // if gAdvBlood
+  else
+    begin
+      dX := Round(VelX);
+      dY := Round(VelY);
+
+      if (X+dX >= w) or (Y+dY >= h) or
+         (X+dX <= 0) or (Y+dY <= 0) or
+         isBlockedAt(X+dX, Y+dY) {ByteBool(gCollideMap[Y+dY, X+dX] and MARK_BLOCKED)} then
+        begin // Стена/дверь/граница
+          die();
+          VelX := 0;
+          VelY := 0;
+        end
+      else
+        begin
+          Y := Y + dY;
+          X := X + dX;
+        end;
+    end;
+
+  VelX := VelX + AccelX;
+  VelY := VelY + AccelY;
+
+// Кровь растворяется в жидкости:
+  if isLiquidAt(X, Y) {ByteBool(gCollideMap[Y, X] and MARK_LIQUID)} then
+  begin
+    Inc(Time);
+
+    Alpha := 255 - Trunc((255.0 * Time) / LiveTime);
+  end;
+end;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
+procedure TParticle.thinkerSpark ();
+var
+  w, h: Integer;
+  dX, dY: SmallInt;
+  b: Integer;
+  s: ShortInt;
+begin
+  w := gMapInfo.Width;
+  h := gMapInfo.Height;
+
+  dX := Round(VelX);
+  dY := Round(VelY);
+
+  if (Abs(VelX) < 0.1) and (Abs(VelY) < 0.1) and
+     (not isBlockedAt(X, Y-1) {ByteBool(gCollideMap[Y-1, X] and MARK_BLOCKED)}) and
+     (not isBlockedAt(X, Y) {ByteBool(gCollideMap[Y, X] and MARK_BLOCKED)}) and
+     (not isBlockedAt(X, Y+1) {ByteBool(gCollideMap[Y+1, X] and MARK_BLOCKED)}) then
+  begin // Висит в воздухе
+    VelY := 0.8;
+    AccelY := 0.5;
+  end;
+
+  if dX <> 0 then
+  begin
+    if dX > 0 then
+      s := 1
+    else
+      s := -1;
+
+    dX := Abs(dX);
+
+    for b := 1 to dX do
+    begin
+      if (X+s >= w) or (X+s <= 0) then begin die(); break; end;
+
+      //c := gCollideMap[Y, X+s];
+
+      if isBlockedAt(X+s, Y) {ByteBool(c and MARK_BLOCKED)} then
+        begin // Стена/дверь - падает вертикально
+          VelX := 0;
+          AccelX := 0;
+          Break;
+        end
+      else // Пусто:
+        if not isAnythingAt(X+s, Y) {c = MARK_FREE} then
+          X := X + s
+        else // Остальное:
+          begin
+            die();
+            break;
+          end;
+    end;
+  end;
+
+  if dY <> 0 then
+  begin
+    if dY > 0 then
+      s := 1
+    else
+      s := -1;
+
+    dY := Abs(dY);
+
+    for b := 1 to dY do
+    begin
+      if (Y+s >= h) or (Y+s <= 0) then begin die(); break; end;
+
+      //c := gCollideMap[Y+s, X];
+
+      if isBlockedAt(X, Y+s) {ByteBool(c and MARK_BLOCKED)} then
+        begin // Стена/дверь - падает вертикально
+          if s < 0 then
+            begin
+              VelY := -VelY;
+              AccelY := Abs(AccelY);
+            end
+          else // Или не падает
+            begin
+              VelX := 0;
+              AccelX := 0;
+              VelY := 0;
+              AccelY := 0.8;
+            end;
+
+          Break;
+        end
+      else // Пусто:
+        if not isAnythingAt(X, Y+s) {c = MARK_FREE} then
+          Y := Y + s
+        else // Осальное:
+          begin
+            die();
+            break;
+          end;
+    end;
+  end;
+
+  if VelX <> 0.0 then
+    VelX := VelX + AccelX;
+  if VelY <> 0.0 then
+  begin
+    if AccelY < 10 then
+      AccelY := AccelY + 0.08;
+    VelY := VelY + AccelY;
+  end;
+
+  Time := Time + 1;
+end;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
+procedure TParticle.thinkerBubble ();
+var
+  h: Integer;
+  dY: SmallInt;
+  b: Integer;
+  s: ShortInt;
+begin
+  h := gMapInfo.Height;
+
+  dY := Round(VelY);
+
+  if dY <> 0 then
+  begin
+    if dY > 0 then
+      s := 1
+    else
+      s := -1;
+
+    for b := 1 to Abs(dY) do
+    begin
+      if (Y+s >= h) or (Y+s <= 0) then begin die(); break; end;
+
+      (*
+      if not isLiquidAt(X, Y+s) {ByteBool(gCollideMap[Y+s, X] and MARK_LIQUID)} then
+      begin // Уже не жидкость
+        State := STATE_FREE;
+        Break;
+      end;
+      *)
+      // we traced liquid before, so don't bother checking
+      if (Y+s <= liquidTopY) then begin die(); break; end;
+
+      Y := Y+s;
+    end;
+  end;
+
+  if VelY > -4 then
+    VelY := VelY + AccelY;
+
+  Time := Time + 1;
+end;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
+procedure TParticle.thinkerWater ();
+var
+  w, h: Integer;
+  dX, dY: SmallInt;
+  b: Integer;
+  s: ShortInt;
+begin
+  w := gMapInfo.Width;
+  h := gMapInfo.Height;
+
+  if (State = STATE_STICK) and (Random(30) = 15) then
+  begin // Стекает/отлипает
+    VelY := 0.5;
+    AccelY := 0.15;
+    if (not isBlockedAt(X-1, Y) {ByteBool(gCollideMap[Y, X-1] and MARK_BLOCKED)}) and
+       (not isBlockedAt(X+1, Y) {ByteBool(gCollideMap[Y, X+1] and MARK_BLOCKED)}) then
+      State := STATE_NORMAL;
+    exit;
+  end;
+
+  if not isBlockedAt(X, Y) {ByteBool(gCollideMap[Y, X] and MARK_BLOCKED)} then
+  begin
+    if isLiftUpAt(X, Y) {ByteBool(gCollideMap[Y, X] and MARK_LIFTUP)} then
+    begin // Лифт вверх
+      if VelY > -4-Random(3) then
+        VelY := VelY - 0.8;
+      if Abs(VelX) > 0.1 then
+        VelX := VelX - VelX/10.0;
+      VelX := VelX + (Random-Random)*0.2;
+      AccelY := 0.15;
+    end;
+    if isLiftLeftAt(X, Y) {ByteBool(gCollideMap[Y, X] and MARK_LIFTLEFT)} then
+    begin // Поток влево
+      if VelX > -8-Random(3) then
+        VelX := VelX - 0.8;
+      AccelY := 0.15;
+    end;
+    if isLiftRightAt(X, Y) {ByteBool(gCollideMap[Y, X] and MARK_LIFTRIGHT)} then
+    begin // Поток вправо
+      if VelX < 8+Random(3) then
+        VelX := VelX + 0.8;
+      AccelY := 0.15;
+    end;
+  end;
+
+  dX := Round(VelX);
+  dY := Round(VelY);
+
+  if (Abs(VelX) < 0.1) and (Abs(VelY) < 0.1) then
+    if (State <> STATE_STICK) and
+       (not isBlockedAt(X, Y-1) {ByteBool(gCollideMap[Y-1, X] and MARK_BLOCKED)}) and
+       (not isBlockedAt(X, Y) {ByteBool(gCollideMap[Y, X] and MARK_BLOCKED)}) and
+       (not isBlockedAt(X, Y+1) {ByteBool(gCollideMap[Y+1, X] and MARK_BLOCKED)}) then
+    begin // Висит в воздухе - капает
+      VelY := 0.8;
+      AccelY := 0.5;
+      State := STATE_NORMAL;
+    end;
+
+  if dX <> 0 then
+  begin
+    if dX > 0 then
+      s := 1
+    else
+      s := -1;
+
+    for b := 1 to Abs(dX) do
+    begin
+       // Сбоку граница?
+      if (X+s >= w) or (X+s <= 0) then begin die(); break;end;
+
+      //c := gCollideMap[Y, X+s];
+
+      // Сбоку жидкость, а частица уже падает?
+      if isLiquidAt(X+s, Y) {ByteBool(c and MARK_LIQUID)} and (dY > 0) then begin die(); break; end;
+
+      if isBlockedAt(X+s, Y) {ByteBool(c and MARK_BLOCKED)} then
+      begin // Стена/дверь
+        VelX := 0;
+        VelY := 0;
+        AccelX := 0;
+        AccelY := 0;
+        State := STATE_STICK;
+        Break;
+      end;
+
+      X := X+s;
+    end;
+  end;
+
+  if dY <> 0 then
+  begin
+    if dY > 0 then
+      s := 1
+    else
+      s := -1;
+
+    for b := 1 to Abs(dY) do
+    begin
+      // Снизу/сверху граница
+      if (Y+s >= h) or (Y+s <= 0) then begin die(); break; end;
+
+      //c := gCollideMap[Y+s, X];
+
+      // Снизу жидкость, а частица уже падает
+      if isLiquidAt(X, Y+s) {ByteBool(c and MARK_LIQUID)} and (dY > 0) then begin die(); break; end;
+
+      if isBlockedAt(X, Y+s) {ByteBool(c and MARK_BLOCKED)} then
+      begin // Стена/дверь
+        VelX := 0;
+        VelY := 0;
+        AccelX := 0;
+        AccelY := 0;
+        if (s > 0) and (State <> STATE_STICK) then
+          State := STATE_NORMAL
+        else
+          State := STATE_STICK;
+        Break;
+      end;
+
+      Y := Y+s;
+    end;
+  end;
+
+  VelX := VelX + AccelX;
+  VelY := VelY + AccelY;
+
+  Time := Time + 1;
+end;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
 procedure g_GFX_SparkVel (fX, fY: Integer; Count: Word; VX, VY: Integer; DevX, DevY: Byte);
 var
   a: Integer;
@@ -788,7 +1276,7 @@ begin
   if (Count < 1) then Count := 1;
 
   SetLength(Particles, Count);
-  for a := 0 to High(Particles) do Particles[a].State := STATE_FREE;
+  for a := 0 to High(Particles) do Particles[a].die();
   MaxParticles := Count;
   //if CurrentParticle >= Count then
     CurrentParticle := 0;
@@ -844,10 +1332,7 @@ procedure g_GFX_Update();
 var
   a: Integer;
   w, h: Integer;
-  dX, dY: SmallInt;
-  b, len: Integer;
-  s: ShortInt;
-  //c: Byte;
+  len: Integer;
 begin
   if not gpart_dbg_enabled then exit;
   if Particles <> nil then
@@ -859,465 +1344,15 @@ begin
 
     for a := 0 to len do
     begin
-      if Particles[a].State <> STATE_FREE then
+      if Particles[a].alive then
       begin
         with Particles[a] do
         begin
-          if Time = LiveTime then State := STATE_FREE;
-          if (X+1 >= w) or (Y+1 >= h) or (X <= 0) or (Y <= 0) then State := STATE_FREE;
-          if State = STATE_FREE then Continue;
+          if (Time = LiveTime) then begin die(); continue; end;
+          if (X+1 >= w) or (Y+1 >= h) or (X <= 0) or (Y <= 0) then begin die(); end;
+          //if not alive then Continue;
           //e_WriteLog(Format('particle #%d: %d', [State, ParticleType]), MSG_NOTIFY);
-
-          case ParticleType of
-            PARTICLE_BLOOD:
-            begin
-              if gAdvBlood then
-                begin
-                  if (State = STATE_STICK) then
-                    {
-                    if (not ByteBool(gCollideMap[Y-1, X] and MARK_BLOCKED)) and
-                       (not ByteBool(gCollideMap[Y+1, X] and MARK_BLOCKED)) and
-                       (not ByteBool(gCollideMap[Y, X-1] and MARK_BLOCKED)) and
-                       (not ByteBool(gCollideMap[Y, X+1] and MARK_BLOCKED))
-                    then
-                    }
-                    if (not isBlockedAt(X, Y-1)) and
-                       (not isBlockedAt(X, Y+1)) and
-                       (not isBlockedAt(X-1, Y)) and
-                       (not isBlockedAt(X+1, Y))
-                    then
-                      begin // Отлипла - капает
-                        VelY := 0.5;
-                        AccelY := 0.15;
-                        State := STATE_NORMAL;
-                      end
-                    else
-                      if Random(200) = 100 then
-                      begin // Прилеплена - но возможно стекает
-                        VelY := 0.5;
-                        AccelY := 0.15;
-                        Continue;
-                      end;
-
-                  if not isBlockedAt(X, Y) {ByteBool(gCollideMap[Y, X] and MARK_BLOCKED)} then
-                  begin
-                    if isLiftUpAt(X, Y) {ByteBool(gCollideMap[Y, X] and MARK_LIFTUP)} then
-                    begin // Лифт вверх
-                      if VelY > -4-Random(3) then
-                        VelY := VelY - 0.8;
-                      if Abs(VelX) > 0.1 then
-                        VelX := VelX - VelX/10.0;
-                      VelX := VelX + (Random-Random)*0.2;
-                      AccelY := 0.15;
-                    end;
-                    if isLiftLeftAt(X, Y) {ByteBool(gCollideMap[Y, X] and MARK_LIFTLEFT)} then
-                    begin // Поток влево
-                      if VelX > -8-Random(3) then
-                        VelX := VelX - 0.8;
-                      AccelY := 0.15;
-                    end;
-                    if isLiftRightAt(X, Y) {ByteBool(gCollideMap[Y, X] and MARK_LIFTRIGHT)} then
-                    begin // Поток вправо
-                      if VelX < 8+Random(3) then
-                        VelX := VelX + 0.8;
-                      AccelY := 0.15;
-                    end;
-                  end;
-
-                  dX := Round(VelX);
-                  dY := Round(VelY);
-
-                  if (Abs(VelX) < 0.1) and (Abs(VelY) < 0.1) then
-                    if (State <> STATE_STICK) and
-                       (not isBlockedAt(X, Y-1) {ByteBool(gCollideMap[Y-1, X] and MARK_BLOCKED)}) and
-                       (not isBlockedAt(X, Y) {ByteBool(gCollideMap[Y, X] and MARK_BLOCKED)}) and
-                       (not isBlockedAt(X, Y+1) {ByteBool(gCollideMap[Y+1, X] and MARK_BLOCKED)}) then
-                    begin // Висит в воздухе - капает
-                      VelY := 0.8;
-                      AccelY := 0.5;
-                      State := STATE_NORMAL;
-                    end;
-
-                  if dX <> 0 then
-                  begin
-                    if dX > 0 then
-                      s := 1
-                    else
-                      s := -1;
-
-                    dX := Abs(dX);
-
-                    for b := 1 to dX do
-                    begin
-                      if (X+s >= w) or (X+s <= 0) then
-                      begin
-                        State := STATE_FREE;
-                        Break;
-                      end;
-
-                      //c := gCollideMap[Y, X+s];
-
-                      if isBlockedAt(X+s, Y) {ByteBool(c and MARK_BLOCKED)} then
-                      begin // Стена/дверь
-                        VelX := 0;
-                        VelY := 0;
-                        AccelX := 0;
-                        AccelY := 0;
-                        State := STATE_STICK;
-                        Break;
-                      end;
-
-                      X := X+s;
-                    end;
-                  end;
-
-                  if dY <> 0 then
-                  begin
-                    if dY > 0 then
-                      s := 1
-                    else
-                      s := -1;
-
-                    dY := Abs(dY);
-
-                    for b := 1 to dY do
-                    begin
-                      if (Y+s >= h) or (Y+s <= 0) then
-                      begin
-                        State := STATE_FREE;
-                        Break;
-                      end;
-
-                      //c := gCollideMap[Y+s, X];
-
-                      if isBlockedAt(X, Y+s) {ByteBool(c and MARK_BLOCKED)} then
-                      begin // Стена/дверь
-                        VelX := 0;
-                        VelY := 0;
-                        AccelX := 0;
-                        AccelY := 0;
-                        if (s > 0) and (State <> STATE_STICK) then
-                          State := STATE_NORMAL
-                        else
-                          State := STATE_STICK;
-                        Break;
-                      end;
-
-                      Y := Y+s;
-                    end;
-                  end;
-                end // if gAdvBlood
-              else
-                begin
-                  dX := Round(VelX);
-                  dY := Round(VelY);
-
-                  if (X+dX >= w) or (Y+dY >= h) or
-                     (X+dX <= 0) or (Y+dY <= 0) or
-                     isBlockedAt(X+dX, Y+dY) {ByteBool(gCollideMap[Y+dY, X+dX] and MARK_BLOCKED)} then
-                    begin // Стена/дверь/граница
-                      State := STATE_FREE;
-                      VelX := 0;
-                      VelY := 0;
-                    end
-                  else
-                    begin
-                      Y := Y + dY;
-                      X := X + dX;
-                    end;
-                end;
-
-              VelX := VelX + AccelX;
-              VelY := VelY + AccelY;
-
-            // Кровь растворяется в жидкости:
-              if isLiquidAt(X, Y) {ByteBool(gCollideMap[Y, X] and MARK_LIQUID)} then
-              begin
-                Inc(Time);
-
-                Alpha := 255 - Trunc((255.0 * Time) / LiveTime);
-              end;
-            end;
-
-            PARTICLE_SPARK:
-            begin
-              dX := Round(VelX);
-              dY := Round(VelY);
-
-              if (Abs(VelX) < 0.1) and (Abs(VelY) < 0.1) and
-                 (not isBlockedAt(X, Y-1) {ByteBool(gCollideMap[Y-1, X] and MARK_BLOCKED)}) and
-                 (not isBlockedAt(X, Y) {ByteBool(gCollideMap[Y, X] and MARK_BLOCKED)}) and
-                 (not isBlockedAt(X, Y+1) {ByteBool(gCollideMap[Y+1, X] and MARK_BLOCKED)}) then
-              begin // Висит в воздухе
-                VelY := 0.8;
-                AccelY := 0.5;
-              end;
-
-              if dX <> 0 then
-              begin
-                if dX > 0 then
-                  s := 1
-                else
-                  s := -1;
-
-                dX := Abs(dX);
-
-                for b := 1 to dX do
-                begin
-                  if (X+s >= w) or (X+s <= 0) then
-                  begin
-                    State := STATE_FREE;
-                    Break;
-                  end;
-
-                  //c := gCollideMap[Y, X+s];
-
-                  if isBlockedAt(X+s, Y) {ByteBool(c and MARK_BLOCKED)} then
-                    begin // Стена/дверь - падает вертикально
-                      VelX := 0;
-                      AccelX := 0;
-                      Break;
-                    end
-                  else // Пусто:
-                    if not isAnythingAt(X+s, Y) {c = MARK_FREE} then
-                      X := X + s
-                    else // Остальное:
-                      begin
-                        State := STATE_FREE;
-                        Break;
-                      end;
-                end;
-              end;
-
-              if dY <> 0 then
-              begin
-                if dY > 0 then
-                  s := 1
-                else
-                  s := -1;
-
-                dY := Abs(dY);
-
-                for b := 1 to dY do
-                begin
-                  if (Y+s >= h) or (Y+s <= 0) then
-                  begin
-                    State := STATE_FREE;
-                    Break;
-                  end;
-
-                  //c := gCollideMap[Y+s, X];
-
-                  if isBlockedAt(X, Y+s) {ByteBool(c and MARK_BLOCKED)} then
-                    begin // Стена/дверь - падает вертикально
-                      if s < 0 then
-                        begin
-                          VelY := -VelY;
-                          AccelY := Abs(AccelY);
-                        end
-                      else // Или не падает
-                        begin
-                          VelX := 0;
-                          AccelX := 0;
-                          VelY := 0;
-                          AccelY := 0.8;
-                        end;
-
-                      Break;
-                    end
-                  else // Пусто:
-                    if not isAnythingAt(X, Y+s) {c = MARK_FREE} then
-                      Y := Y + s
-                    else // Осальное:
-                      begin
-                        State := STATE_FREE;
-                        Break;
-                      end;
-                end;
-              end;
-
-              if VelX <> 0.0 then
-                VelX := VelX + AccelX;
-              if VelY <> 0.0 then
-              begin
-                if AccelY < 10 then
-                  AccelY := AccelY + 0.08;
-                VelY := VelY + AccelY;
-              end;
-
-              Time := Time + 1;
-            end;
-
-            PARTICLE_WATER:
-            begin
-              if (State = STATE_STICK) and (Random(30) = 15) then
-              begin // Стекает/отлипает
-                VelY := 0.5;
-                AccelY := 0.15;
-                if (not isBlockedAt(X-1, Y) {ByteBool(gCollideMap[Y, X-1] and MARK_BLOCKED)}) and
-                   (not isBlockedAt(X+1, Y) {ByteBool(gCollideMap[Y, X+1] and MARK_BLOCKED)}) then
-                  State := STATE_NORMAL;
-                Continue;
-              end;
-
-              if not isBlockedAt(X, Y) {ByteBool(gCollideMap[Y, X] and MARK_BLOCKED)} then
-              begin
-                if isLiftUpAt(X, Y) {ByteBool(gCollideMap[Y, X] and MARK_LIFTUP)} then
-                begin // Лифт вверх
-                  if VelY > -4-Random(3) then
-                    VelY := VelY - 0.8;
-                  if Abs(VelX) > 0.1 then
-                    VelX := VelX - VelX/10.0;
-                  VelX := VelX + (Random-Random)*0.2;
-                  AccelY := 0.15;
-                end;
-                if isLiftLeftAt(X, Y) {ByteBool(gCollideMap[Y, X] and MARK_LIFTLEFT)} then
-                begin // Поток влево
-                  if VelX > -8-Random(3) then
-                    VelX := VelX - 0.8;
-                  AccelY := 0.15;
-                end;
-                if isLiftRightAt(X, Y) {ByteBool(gCollideMap[Y, X] and MARK_LIFTRIGHT)} then
-                begin // Поток вправо
-                  if VelX < 8+Random(3) then
-                    VelX := VelX + 0.8;
-                  AccelY := 0.15;
-                end;
-              end;
-
-              dX := Round(VelX);
-              dY := Round(VelY);
-
-              if (Abs(VelX) < 0.1) and (Abs(VelY) < 0.1) then
-                if (State <> STATE_STICK) and
-                   (not isBlockedAt(X, Y-1) {ByteBool(gCollideMap[Y-1, X] and MARK_BLOCKED)}) and
-                   (not isBlockedAt(X, Y) {ByteBool(gCollideMap[Y, X] and MARK_BLOCKED)}) and
-                   (not isBlockedAt(X, Y+1) {ByteBool(gCollideMap[Y+1, X] and MARK_BLOCKED)}) then
-                begin // Висит в воздухе - капает
-                  VelY := 0.8;
-                  AccelY := 0.5;
-                  State := STATE_NORMAL;
-                end;
-
-              if dX <> 0 then
-              begin
-                if dX > 0 then
-                  s := 1
-                else
-                  s := -1;
-
-                for b := 1 to Abs(dX) do
-                begin
-                  if (X+s >= w) or (X+s <= 0) then
-                  begin // Сбоку граница
-                    State := STATE_FREE;
-                    Break;
-                  end;
-
-                  //c := gCollideMap[Y, X+s];
-
-                  if isLiquidAt(X+s, Y) {ByteBool(c and MARK_LIQUID)} and (dY > 0) then
-                  begin // Сбоку жидкость, а частица уже падает
-                    State := STATE_FREE;
-                    Break;
-                  end;
-
-                  if isBlockedAt(X+s, Y) {ByteBool(c and MARK_BLOCKED)} then
-                  begin // Стена/дверь
-                    VelX := 0;
-                    VelY := 0;
-                    AccelX := 0;
-                    AccelY := 0;
-                    State := STATE_STICK;
-                    Break;
-                  end;
-
-                  X := X+s;
-                end;
-              end;
-
-              if dY <> 0 then
-              begin
-                if dY > 0 then
-                  s := 1
-                else
-                  s := -1;
-
-                for b := 1 to Abs(dY) do
-                begin
-                  if (Y+s >= h) or (Y+s <= 0) then
-                  begin // Снизу/сверху граница
-                    State := STATE_FREE;
-                    Break;
-                  end;
-
-                  //c := gCollideMap[Y+s, X];
-
-                  if isLiquidAt(X, Y+s) {ByteBool(c and MARK_LIQUID)} and (dY > 0) then
-                  begin // Снизу жидкость, а частица уже падает
-                    State := STATE_FREE;
-                    Break;
-                  end;
-
-                  if isBlockedAt(X, Y+s) {ByteBool(c and MARK_BLOCKED)} then
-                  begin // Стена/дверь
-                    VelX := 0;
-                    VelY := 0;
-                    AccelX := 0;
-                    AccelY := 0;
-                    if (s > 0) and (State <> STATE_STICK) then
-                      State := STATE_NORMAL
-                    else
-                      State := STATE_STICK;
-                    Break;
-                  end;
-
-                  Y := Y+s;
-                end;
-              end;
-
-              VelX := VelX + AccelX;
-              VelY := VelY + AccelY;
-
-              Time := Time + 1;
-            end;
-
-            PARTICLE_BUBBLES:
-            begin
-              dY := Round(VelY);
-
-              if dY <> 0 then
-              begin
-                if dY > 0 then
-                  s := 1
-                else
-                  s := -1;
-
-                for b := 1 to Abs(dY) do
-                begin
-                  if (Y+s >= h) or (Y+s <= 0) then
-                  begin
-                    State := STATE_FREE;
-                    Break;
-                  end;
-
-                  if not isLiquidAt(X, Y+s) {ByteBool(gCollideMap[Y+s, X] and MARK_LIQUID)} then
-                  begin // Уже не жидкость
-                    State := STATE_FREE;
-                    Break;
-                  end;
-
-                  Y := Y+s;
-                end;
-              end;
-
-              if VelY > -4 then
-                VelY := VelY + AccelY;
-
-              Time := Time + 1;
-            end;
-          end; // case
-
+          think();
           {CorrectOffsets(a);}
         end; // with
       end; // if
@@ -1368,8 +1403,7 @@ begin
 
     for a := 0 to len do
       with Particles[a] do
-        if (State <> STATE_FREE) and (X >= sX) and (Y >= sY) and
-           (X <= sX+sWidth) and (sY <= sY+sHeight) then
+        if alive and (X >= sX) and (Y >= sY) and (X <= sX+sWidth) and (sY <= sY+sHeight) then
         begin
           glColor4ub(Red, Green, Blue, Alpha);
           glVertex2i(X + offsetX, Y + offsetY);
