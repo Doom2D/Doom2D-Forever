@@ -93,7 +93,7 @@ procedure g_Map_LoadState(Var Mem: TBinMemoryReader);
 procedure g_Map_DrawPanelShadowVolumes(lightX: Integer; lightY: Integer; radius: Integer);
 
 // returns wall index in `gWalls` or -1
-function g_Map_traceToNearestWall (x0, y0, x1, y1: Integer; hitx: PInteger=nil; hity: PInteger=nil): Boolean;
+function g_Map_traceToNearestWall (x0, y0, x1, y1: Integer; hitx: PInteger=nil; hity: PInteger=nil): TPanel;
 
 type
   TForEachPanelCB = function (pan: TPanel): Boolean; // return `true` to stop
@@ -184,7 +184,15 @@ var
   profMapCollision: TProfiler = nil; //WARNING: FOR DEBUGGING ONLY!
   gDrawPanelList: TBinaryHeapObj = nil; // binary heap of all walls we have to render, populated by `g_Map_CollectDrawPanels()`
 
+
 function panelTypeToTag (panelType: Word): Integer; // returns GridTagXXX
+
+
+type
+  TPanelGrid = specialize TBodyGridBase<TPanel>;
+
+var
+  mapGrid: TPanelGrid = nil;
 
 
 implementation
@@ -202,10 +210,6 @@ const
   FLAGRECT: TRectWH = (X:15; Y:12; Width:33; Height:52);
   MUSIC_SIGNATURE = $4953554D; // 'MUSI'
   FLAG_SIGNATURE = $47414C46; // 'FLAG'
-
-
-type
-  TPanelGrid = specialize TBodyGridBase<TPanel>;
 
 
 function panelTypeToTag (panelType: Word): Integer;
@@ -255,7 +259,6 @@ var
   RespawnPoints: Array of TRespawnPoint;
   FlagPoints:    Array [FLAG_RED..FLAG_BLUE] of PFlagPoint;
   //DOMFlagPoints: Array of TFlagPoint;
-  mapGrid: TPanelGrid = nil;
 
 
 procedure g_Map_ProfilersBegin ();
@@ -279,12 +282,12 @@ end;
 
 
 // wall index in `gWalls` or -1
-function g_Map_traceToNearestWall (x0, y0, x1, y1: Integer; hitx: PInteger=nil; hity: PInteger=nil): Boolean;
+function g_Map_traceToNearestWall (x0, y0, x1, y1: Integer; hitx: PInteger=nil; hity: PInteger=nil): TPanel;
 var
   ex, ey: Integer;
 begin
-  result := (mapGrid.traceRay(ex, ey, x0, y0, x1, y1, nil, (GridTagWall or GridTagDoor)) <> nil);
-  if result then
+  result := mapGrid.traceRay(ex, ey, x0, y0, x1, y1, nil, (GridTagWall or GridTagDoor));
+  if (result <> nil) then
   begin
     if (hitx <> nil) then hitx^ := ex;
     if (hity <> nil) then hity^ := ey;
@@ -1158,9 +1161,15 @@ begin
   calcBoundingBox(gLifts);
   calcBoundingBox(gBlockMon);
 
-  e_WriteLog(Format('map dimensions: (%d,%d)-(%d,%d)', [mapX0, mapY0, mapX1, mapY1]), MSG_WARNING);
+  e_WriteLog(Format('map dimensions: (%d,%d)-(%d,%d); editor size:(0,0)-(%d,%d)', [mapX0, mapY0, mapX1, mapY1, gMapInfo.Width, gMapInfo.Height]), MSG_WARNING);
 
-  mapGrid := TPanelGrid.Create(mapX0-512, mapY0-512, mapX1-mapX0+1+512*2, mapY1-mapY0+1+512*2);
+  if (mapX0 > 0) then mapX0 := 0;
+  if (mapY0 > 0) then mapY0 := 0;
+
+  if (mapX1 < gMapInfo.Width-1) then mapX1 := gMapInfo.Width-1;
+  if (mapY1 < gMapInfo.Height-1) then mapY1 := gMapInfo.Height-1;
+
+  mapGrid := TPanelGrid.Create(mapX0-128, mapY0-128, mapX1-mapX0+1+128*2, mapY1-mapY0+1+128*2);
 
   addPanelsToGrid(gWalls, PANEL_WALL);
   addPanelsToGrid(gWalls, PANEL_CLOSEDOOR);
@@ -1266,6 +1275,22 @@ begin
     g_Game_SetLoadingText(_lc[I_LOAD_TEXTURES], 0, False);
     _textures := MapReader.GetTextures();
     _texnummap := nil;
+
+  // Загрузка описания карты:
+    e_WriteLog('  Reading map info...', MSG_NOTIFY);
+    g_Game_SetLoadingText(_lc[I_LOAD_MAP_HEADER], 0, False);
+    Header := MapReader.GetMapHeader();
+
+    with gMapInfo do
+    begin
+      Name := Header.MapName;
+      Description := Header.MapDescription;
+      Author := Header.MapAuthor;
+      MusicName := Header.MusicName;
+      SkyName := Header.SkyName;
+      Height := Header.Height;
+      Width := Header.Width;
+    end;
 
   // Добавление текстур в Textures[]:
     if _textures <> nil then
@@ -1526,7 +1551,6 @@ begin
     e_WriteLog('Creating map grid', MSG_NOTIFY);
     mapCreateGrid();
 
-
   // Если не LoadState, то создаем триггеры:
     if (triggers <> nil) and not gLoadGameMode then
     begin
@@ -1592,23 +1616,7 @@ begin
         CreateMonster(monsters[a]);
     end;
 
-  // Загрузка описания карты:
-    e_WriteLog('  Reading map info...', MSG_NOTIFY);
-    g_Game_SetLoadingText(_lc[I_LOAD_MAP_HEADER], 0, False);
-    Header := MapReader.GetMapHeader();
-
     MapReader.Free();
-
-    with gMapInfo do
-    begin
-      Name := Header.MapName;
-      Description := Header.MapDescription;
-      Author := Header.MapAuthor;
-      MusicName := Header.MusicName;
-      SkyName := Header.SkyName;
-      Height := Header.Height;
-      Width := Header.Width;
-    end;
 
   // Загрузка неба:
     if gMapInfo.SkyName <> '' then
@@ -2380,7 +2388,7 @@ begin
   if g_Game_IsServer and g_Game_IsNet then MH_SEND_PanelState(gWalls[ID].PanelType, ID);
 
   {$IFDEF MAP_DEBUG_ENABLED_FLAG}
-  e_WriteLog(Format('wall #%d(%d) enabled (%d)  (%d,%d)-(%d,%d)', [Integer(ID), Integer(pan.proxyId), Integer(mapGrid.proxyEnabled[pan.proxyId]), pan.x, pan.y, pan.width, pan.height]), MSG_NOTIFY);
+  //e_WriteLog(Format('wall #%d(%d) enabled (%d)  (%d,%d)-(%d,%d)', [Integer(ID), Integer(pan.proxyId), Integer(mapGrid.proxyEnabled[pan.proxyId]), pan.x, pan.y, pan.width, pan.height]), MSG_NOTIFY);
   {$ENDIF}
 end;
 
@@ -2398,7 +2406,7 @@ begin
   if g_Game_IsServer and g_Game_IsNet then MH_SEND_PanelState(pan.PanelType, ID);
 
   {$IFDEF MAP_DEBUG_ENABLED_FLAG}
-  e_WriteLog(Format('wall #%d(%d) disabled (%d)  (%d,%d)-(%d,%d)', [Integer(ID), Integer(pan.proxyId), Integer(mapGrid.proxyEnabled[pan.proxyId]), pan.x, pan.y, pan.width, pan.height]), MSG_NOTIFY);
+  //e_WriteLog(Format('wall #%d(%d) disabled (%d)  (%d,%d)-(%d,%d)', [Integer(ID), Integer(pan.proxyId), Integer(mapGrid.proxyEnabled[pan.proxyId]), pan.x, pan.y, pan.width, pan.height]), MSG_NOTIFY);
   {$ENDIF}
 end;
 

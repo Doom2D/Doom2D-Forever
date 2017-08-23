@@ -19,7 +19,7 @@ unit g_monsters;
 interface
 
 uses
-  g_basic, e_graphics, g_phys, g_textures,
+  g_basic, e_graphics, g_phys, g_textures, g_grid,
   g_saveload, BinEditor, g_panel, xprofiler;
 
 const
@@ -80,8 +80,14 @@ type
     FFireAttacker: Word;
     vilefire: TAnimation;
 
+  {$IF DEFINED(D2F_DEBUG)}
+  public
+  {$ENDIF}
     proxyId: Integer; // node in dyntree or -1
     arrIdx: Integer; // in gMonsters
+  {$IF DEFINED(D2F_DEBUG)}
+  private
+  {$ENDIF}
 
     FDieTriggers: Array of Integer;
     FSpawnTrigger: Integer;
@@ -226,13 +232,24 @@ var
   profMonsLOS: TProfiler = nil; //WARNING: FOR DEBUGGING ONLY!
 
 
+type
+  TMonsterGrid = specialize TBodyGridBase<TMonster>;
+
+var
+  monsGrid: TMonsterGrid = nil;
+
+
+var
+  gmon_debug_think: Boolean = true;
+
+
 implementation
 
 uses
   e_log, g_main, g_sound, g_gfx, g_player, g_game,
   g_weapons, g_triggers, MAPDEF, g_items, g_options,
   g_console, g_map, Math, SysUtils, g_menu, wadreader,
-  g_language, g_netmsg, g_grid;
+  g_language, g_netmsg;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
@@ -278,13 +295,6 @@ end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-type
-  TMonsterGrid = specialize TBodyGridBase<TMonster>;
-
-var
-  monsGrid: TMonsterGrid = nil;
-
-
 function g_Mons_AlongLine (x0, y0, x1, y1: Integer; cb: TMonsAlongLineCB; log: Boolean=false): TMonster;
 begin
   if not assigned(cb) then begin result := nil; exit; end;
@@ -1293,20 +1303,23 @@ begin
 
   gMon := True; // Для работы BlockMon'а
 
-  for a := 0 to High(gMonsters) do
+  if (gmon_debug_think) then
   begin
-    if (gMonsters[a] = nil) then continue;
-    if not gMonsters[a].FRemoved then
+    for a := 0 to High(gMonsters) do
     begin
-      if g_Game_IsClient then
-        gMonsters[a].ClientUpdate()
+      if (gMonsters[a] = nil) then continue;
+      if not gMonsters[a].FRemoved then
+      begin
+        if g_Game_IsClient then
+          gMonsters[a].ClientUpdate()
+        else
+          gMonsters[a].Update();
+      end
       else
-        gMonsters[a].Update();
-    end
-    else
-    begin
-      gMonsters[a].Free();
-      gMonsters[a] := nil;
+      begin
+        gMonsters[a].Free();
+        gMonsters[a] := nil;
+      end;
     end;
   end;
 
@@ -4569,13 +4582,10 @@ begin
 end;
 
 
-///!!!FIXME!!!
 function g_Mons_ForEachAt (x, y: Integer; width, height: Integer; cb: TEachMonsterCB): Boolean;
 
   function monsCollCheck (mon: TMonster; atag: Integer): Boolean;
   begin
-    //result := false;
-    //if g_Obj_Collide(x, y, width, height, @mon.Obj) then result := cb(mon);
     result := cb(mon);
   end;
 

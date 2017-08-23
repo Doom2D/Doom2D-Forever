@@ -249,6 +249,11 @@ type
     FDummy:     Boolean;
     FFireTime:  Integer;
 
+    // debug: viewport offset
+    viewPortX, viewPortY, viewPortW, viewPortH: Integer;
+
+    function isValidViewPort (): Boolean; inline;
+
     constructor Create(); virtual;
     destructor  Destroy(); override;
     procedure   Respawn(Silent: Boolean; Force: Boolean = False); virtual;
@@ -521,7 +526,7 @@ uses
   e_log, g_map, g_items, g_console, SysUtils, g_gfx, Math,
   g_options, g_triggers, g_menu, MAPDEF, g_game, g_grid,
   wadreader, g_main, g_monsters, CONFIG, g_language,
-  g_net, g_netmsg;
+  g_net, g_netmsg, g_window, GL;
 
 type
   TBotProfile = record
@@ -1845,6 +1850,8 @@ end;
 
 { T P l a y e r : }
 
+function TPlayer.isValidViewPort (): Boolean; inline; begin result := (viewPortW > 0) and (viewPortH > 0); end;
+
 procedure TPlayer.BFGHit();
 begin
   g_Weapon_BFGHit(FObj.X+FObj.Rect.X+(FObj.Rect.Width div 2),
@@ -1988,6 +1995,11 @@ end;
 
 constructor TPlayer.Create();
 begin
+  viewPortX := 0;
+  viewPortY := 0;
+  viewPortW := 0;
+  viewPortH := 0;
+
   FIamBot := False;
   FDummy := False;
   FSpawned := False;
@@ -2303,20 +2315,124 @@ begin
     DrawAim();
 end;
 
+
+var
+  plrMouseX: Integer = -666;
+  plrMouseY: Integer = -666;
+  vpx, vpy: Integer;
+  //vpw, vph: Integer;
+  laserX0, laserY0, laserX1, laserY1: Integer;
+  monMarkedUID: Integer = -1;
+
+function pmsCurMapX (): Integer; inline; begin result := plrMouseX+vpx; end;
+function pmsCurMapY (): Integer; inline; begin result := plrMouseY+vpy; end;
+
+procedure plrDebugMouse (msx, msy, but: Integer; bstate: Integer);
+
+  function wallToggle (pan: TPanel; tag: Integer): Boolean;
+  begin
+    result := false; // don't stop
+    if pan.Enabled then g_Map_DisableWall(pan.arrIdx) else g_Map_EnableWall(pan.arrIdx);
+  end;
+
+  function monsAtDump (mon: TMonster; tag: Integer): Boolean;
+  begin
+    result := false; // don't stop
+    e_WriteLog(Format('monster #%d; UID=%d', [mon.arrIdx, mon.UID]), MSG_NOTIFY);
+    monMarkedUID := mon.UID;
+    //if pan.Enabled then g_Map_DisableWall(pan.arrIdx) else g_Map_EnableWall(pan.arrIdx);
+  end;
+
+begin
+  plrMouseX := msx;
+  plrMouseY := msy;
+  //e_WriteLog(Format('mouse: x=%d; y=%d; but=%d; bstate=%d', [msx, msy, but, bstate]), MSG_NOTIFY);
+  if (gPlayer1 = nil) then exit;
+
+  if (but = MouseLeft) then
+  begin
+    mapGrid.forEachAtPoint(pmsCurMapX, pmsCurMapY, wallToggle, (GridTagWall or GridTagDoor));
+    exit;
+  end;
+
+  if (but = MouseRight) then
+  begin
+    monMarkedUID := -1;
+    e_WriteLog('===========================', MSG_NOTIFY);
+    monsGrid.forEachAtPoint(pmsCurMapX, pmsCurMapY, monsAtDump);
+    e_WriteLog('---------------------------', MSG_NOTIFY);
+    exit;
+  end;
+end;
+
+
+procedure plrDebugDrawMouse ();
+
+  function monsCollector (mon: TMonster; tag: Integer): Boolean;
+  var
+    ex, ey: Integer;
+    mx, my, mw, mh: Integer;
+  begin
+    result := false;
+    mon.getMapBox(mx, my, mw, mh);
+    e_DrawQuad(mx, my, mx+mw-1, my+mh-1, 255, 255, 0, 96);
+    if lineAABBIntersects(laserX0, laserY0, laserX1, laserY1, mx, my, mw, mh, ex, ey) then
+    begin
+      e_DrawPoint(8, ex, ey, 0, 255, 0);
+    end;
+  end;
+
+var
+  mon: TMonster;
+  mx, my, mw, mh: Integer;
+begin
+  e_DrawPoint(4, plrMouseX, plrMouseY, 255, 0, 255);
+  if (gPlayer1 = nil) then exit;
+
+  //e_WriteLog(Format('(%d,%d)-(%d,%d)', [laserX0, laserY0, laserX1, laserY1]), MSG_NOTIFY);
+
+  glPushMatrix();
+  glTranslatef(-vpx, -vpy, 0);
+
+  g_Mons_AlongLine(laserX0, laserY0, laserX1, laserY1, monsCollector, true);
+
+  if (monMarkedUID <> -1) then
+  begin
+    mon := g_Monsters_ByUID(monMarkedUID);
+    if (mon <> nil) then
+    begin
+      mon.getMapBox(mx, my, mw, mh);
+      e_DrawQuad(mx, my, mx+mw-1, my+mh-1, 255, 0, 0, 30);
+    end;
+  end;
+
+  //e_DrawPoint(16, laserX0, laserY0, 255, 255, 255);
+
+  glPopMatrix();
+end;
+
+
 procedure TPlayer.DrawAim();
   procedure drawCast (sz: Integer; ax0, ay0, ax1, ay1: Integer);
 
-    function monsCollector (mon: TMonster; tag: Integer): Boolean;
+    procedure drawTileGrid ();
     var
-      ex, ey: Integer;
-      mx, my, mw, mh: Integer;
+      x, y: Integer;
     begin
-      result := false;
-      mon.getMapBox(mx, my, mw, mh);
-      e_DrawQuad(mx, my, mx+mw-1, my+mh-1, 255, 255, 0, 96);
-      if lineAABBIntersects(ax0, ay0, ax1, ay1, mx, my, mw, mh, ex, ey) then
+      y := mapGrid.gridY0;
+      while (y < mapGrid.gridY0+mapGrid.gridHeight) do
       begin
-        e_DrawPoint(8, ex, ey, 0, 255, 0);
+        x := mapGrid.gridX0;
+        while (x < mapGrid.gridX0+mapGrid.gridWidth) do
+        begin
+          if (x+mapGrid.tileSize > viewPortX) and (y+mapGrid.tileSize > viewPortY) and
+             (x < viewPortX+viewPortW) and (y < viewPortY+viewPortH) then
+          begin
+            e_DrawQuad(x, y, x+mapGrid.tileSize-1, y+mapGrid.tileSize-1, 96, 96, 96, 96);
+          end;
+          Inc(x, mapGrid.tileSize);
+        end;
+        Inc(y, mapGrid.tileSize);
       end;
     end;
 
@@ -2325,11 +2441,25 @@ procedure TPlayer.DrawAim();
     //mon: TMonster;
     //mx, my, mw, mh: Integer;
   begin
+    if isValidViewPort and (self = gPlayer1) then
+    begin
+      vpx := viewPortX;
+      vpy := viewPortY;
+      //vpw := viewPortW;
+      //vpy := viewPortH;
+      evMouseCB := plrDebugMouse;
+      postdrawMouse := plrDebugDrawMouse;
+    end;
+
+    laserX0 := ax0;
+    laserY0 := ay0;
+    laserX1 := ax1;
+    laserY1 := ay1;
+
     e_DrawLine(sz, ax0, ay0, ax1, ay1, 255, 0, 0, 96);
-    if g_Map_traceToNearestWall(ax0, ay0, ax1, ay1, @ex, @ey) then
+    if (g_Map_traceToNearestWall(ax0, ay0, ax1, ay1, @ex, @ey) <> nil) then
     begin
       e_DrawLine(sz, ax0, ay0, ex, ey, 0, 255, 0, 96);
-      e_DrawPoint(4, ex, ey, 255, 127, 0);
     end
     else
     begin
@@ -2353,7 +2483,7 @@ procedure TPlayer.DrawAim();
     end;
     }
 
-    g_Mons_AlongLine(ax0, ay0, ax1, ay1, monsCollector, true);
+    drawTileGrid();
   end;
 
 var
@@ -2442,10 +2572,10 @@ begin
   end;
   xx := Trunc(Cos(-DegToRad(angle)) * len) + wx;
   yy := Trunc(Sin(-DegToRad(angle)) * len) + wy;
-  {$IF FALSE}
-  e_DrawLine(sz, wx, wy, xx, yy, 255, 0, 0, 96);
-  {$ELSE}
+  {$IF DEFINED(D2F_DEBUG)}
   drawCast(sz, wx, wy, xx, yy);
+  {$ELSE}
+  e_DrawLine(sz, wx, wy, xx, yy, 255, 0, 0, 96);
   {$ENDIF}
 end;
 

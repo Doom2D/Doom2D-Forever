@@ -207,7 +207,7 @@ begin
 
   // `true` if no obstacles
   if (g_profile_los) then g_Mons_LOS_Start();
-  result := not g_Map_traceToNearestWall(x1, y1, x2, y2, @wallHitX, @wallHitY);
+  result := (g_Map_traceToNearestWall(x1, y1, x2, y2, @wallHitX, @wallHitY) = nil);
   if (g_profile_los) then g_Mons_LOS_End();
 end;
 

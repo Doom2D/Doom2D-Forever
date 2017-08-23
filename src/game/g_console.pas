@@ -414,6 +414,8 @@ begin
   AddCommand('pr_phys_enabled', ProfilerCommands, 'enable/disable particle physics');
   AddCommand('los_enabled', ProfilerCommands, 'enable/disable LOS calculations');
 
+  AddCommand('mon_think', ProfilerCommands, 'enable/disable monster thinking');
+
   AddCommand('p1_name', GameCVars);
   AddCommand('p2_name', GameCVars);
   AddCommand('p1_color', GameCVars);

@@ -316,6 +316,8 @@ var
   g_profile_los: Boolean = false;
   g_profile_history_size: Integer = 1000;
 
+  postdrawMouse: procedure = nil;
+
 procedure g_ResetDynlights ();
 procedure g_AddDynLight (x, y, radius: Integer; r, g, b, a: Single);
 procedure g_DynLightExplosion (x, y, radius: Integer; r, g, b: Single);
@@ -767,8 +769,10 @@ begin
   if gPlayer1 <> nil then gPlayer1.NoTarget := False;
   if gPlayer2 <> nil then gPlayer2.NoTarget := False;
 
+  {$IF DEFINED(D2F_DEBUG)}
   if gPlayer1 <> nil then gPlayer1.NoTarget := True;
   gAimLine := true;
+  {$ENDIF}
 end;
 
 procedure g_Game_ExecuteEvent(Name: String);
@@ -2898,6 +2902,11 @@ begin
 
   //glTranslatef(a, b+p.IncCam, 0);
 
+  p.viewPortX := sX;
+  p.viewPortY := sY;
+  p.viewPortW := sWidth;
+  p.viewPortH := sHeight;
+
   renderMapInternal(-c, -d, a, b+p.IncCam, true);
 
   if p.FSpectator then
@@ -3264,6 +3273,8 @@ begin
   e_TextureFontPrint(gScreenWidth-72, 0,
                      Format('%d:%.2d:%.2d', [gTime div 1000 div 3600, (gTime div 1000 div 60) mod 60, gTime div 1000 mod 60]),
                      gStdFont);
+
+  if gGameOn and assigned(postdrawMouse) then postdrawMouse();
 
   if gGameOn then drawProfilers();
 end;
@@ -4979,6 +4990,7 @@ begin
   if (cmd = 'pr_enabled') then begin binaryFlag(gpart_dbg_enabled, 'particles'); exit; end;
   if (cmd = 'pr_phys_enabled') then begin binaryFlag(gpart_dbg_phys_enabled, 'particle physics'); exit; end;
   if (cmd = 'los_enabled') then begin binaryFlag(gmon_dbg_los_enabled, 'LOS calculations'); exit; end;
+  if (cmd = 'mon_think') then begin binaryFlag(gmon_debug_think, 'monster thinking'); exit; end;
 end;
 
 

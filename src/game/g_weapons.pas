@@ -1512,7 +1512,7 @@ begin
   stt := curTimeMicro();
   {$ENDIF}
 
-  wallHitFlag := g_Map_traceToNearestWall(x, y, x2, y2, @wallHitX, @wallHitY);
+  wallHitFlag := (g_Map_traceToNearestWall(x, y, x2, y2, @wallHitX, @wallHitY) <> nil);
   if wallHitFlag then
   begin
     x2 := wallHitX;

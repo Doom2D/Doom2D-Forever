@@ -64,6 +64,9 @@ type
     //mTileSize: Integer;
     const mTileSize = GridDefaultTileSize;
 
+  public
+    const tileSize = mTileSize;
+
   private
     mMinX, mMinY: Integer; // so grids can start at any origin
     mWidth, mHeight: Integer; // in tiles
@@ -1316,8 +1319,10 @@ var
   ptag: Integer;
   lastWasInGrid: Boolean;
   tbcross: Boolean;
-  f, tedist: Integer;
+  f: Integer;
+  //tedist: Integer;
 begin
+  log := false;
   result := Default(ITP);
   tagmask := tagmask and TagFullMask;
   if (tagmask = 0) or not assigned(cb) then exit;
@@ -1330,6 +1335,8 @@ begin
 
   if (dx > 0) then incx := 1 else if (dx < 0) then incx := -1 else incx := 0;
   if (dy > 0) then incy := 1 else if (dy < 0) then incy := -1 else incy := 0;
+
+  if (incx = 0) and (incy = 0) then exit; // just incase
 
   dx := abs(dx);
   dy := abs(dy);
@@ -1410,6 +1417,34 @@ begin
         if (ccidx = -1) then
         begin
           // we have nothing interesting here anymore, jump directly to tile edge
+          (*
+          if (incx = 0) then
+          begin
+            // vertical line
+            if (incy < 0) then tedist := y-(y and (not tsize)) else tedist := (y or (tsize-1))-y;
+            if (tedist > 1) then
+            begin
+              if (log) then e_WriteLog(Format('  doing vertical jump from tile (%d,%d) - (%d,%d) by %d steps', [(x div tsize), (y div tsize), x, y, tedist]), MSG_NOTIFY);
+              y += incy*tedist;
+              Inc(i, tedist);
+              if (log) then e_WriteLog(Format('   jumped to tile (%d,%d) - (%d,%d) by %d steps', [(x div tsize), (y div tsize), x, y, tedist]), MSG_NOTIFY);
+            end;
+          end
+          else if (incy = 0) then
+          begin
+            // horizontal line
+            if (incx < 0) then tedist := x-(x and (not tsize)) else tedist := (x or (tsize-1))-x;
+            if (tedist > 1) then
+            begin
+              if (log) then e_WriteLog(Format('  doing horizontal jump from tile (%d,%d) - (%d,%d) by %d steps', [(x div tsize), (y div tsize), x, y, tedist]), MSG_NOTIFY);
+              x += incx*tedist;
+              Inc(i, tedist);
+              if (log) then e_WriteLog(Format('   jumped to tile (%d,%d) - (%d,%d) by %d steps', [(x div tsize), (y div tsize), x, y, tedist]), MSG_NOTIFY);
+            end;
+          end;
+          *)
+          (*
+           else if (
           // get minimal distance to tile edges
           if (incx < 0) then tedist := x-(x and (not tsize)) else if (incx > 0) then tedist := (x or (tsize+1))-x else tedist := 0;
           {$IF DEFINED(D2F_DEBUG)}
@@ -1431,6 +1466,7 @@ begin
             Inc(i, tedist);
             if (log) then e_WriteLog(Format('   jumped to tile (%d,%d) - (%d,%d) by %d steps', [(x div tsize), (y div tsize), x, y, tedist]), MSG_NOTIFY);
           end;
+          *)
         end;
       end
       else

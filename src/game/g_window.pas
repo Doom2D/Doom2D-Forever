@@ -41,6 +41,24 @@ var
   gwin_has_stencil: Boolean = false;
   gwin_k8_enable_light_experiments: Boolean = false;
 
+
+// both for but and for bstate
+const
+  MouseLeft = $0001;
+  MouseRight = $0002;
+  MouseMiddle = $0004;
+  MouseWheelUp = $0008;
+  MouseWheelDown = $0010;
+
+type
+  // but=0: motion; but <0: release, do (-but) to get MouseXXX
+  // on press, bstate will contain pressed button; on release it won't
+  TMouseHandler = procedure (x, y, but: Integer; bstate: Integer);
+
+var
+  evMouseCB: TMouseHandler = nil;
+
+
 implementation
 
 uses
@@ -69,6 +87,9 @@ var
   ticksOverflow: Int64 = -1;
   lastTicks: Uint32 = 0; // to detect overflow
 {$ENDIF}
+  curMsButState: Integer = 0;
+  curMsX: Integer = 0;
+  curMsY: Integer = 0;
 
 const
   // TODO: move this to a separate file
@@ -242,6 +263,7 @@ begin
 
     SDL_WINDOWEVENT_MINIMIZED:
     begin
+      curMsButState := 0;
       if not wMinimized then
       begin
         e_ResizeWindow(0, 0);
@@ -293,6 +315,7 @@ begin
 
     SDL_WINDOWEVENT_RESTORED:
     begin
+      curMsButState := 0;
       if wMinimized then
       begin
         e_ResizeWindow(gScreenWidth, gScreenHeight);
@@ -312,12 +335,14 @@ begin
     begin
       wActivate := True;
       //e_WriteLog('window gained focus!', MSG_NOTIFY);
+      curMsButState := 0;
     end;
 
     SDL_WINDOWEVENT_FOCUS_LOST:
     begin
       wDeactivate := True;
       //e_WriteLog('window lost focus!', MSG_NOTIFY);
+      curMsButState := 0;
     end;
   end;
 
@@ -373,6 +398,27 @@ var
   key, keychr: Word;
   uc: UnicodeChar;
   //joy: Integer;
+  but: Integer;
+
+  function buildBut (b: Byte): Integer;
+  begin
+    result := 0;
+    case b of
+      SDL_BUTTON_LEFT: result := result or MouseLeft;
+      SDL_BUTTON_MIDDLE: result := result or MouseMiddle;
+      SDL_BUTTON_RIGHT: result := result or MouseRight;
+    end;
+  end;
+
+  function buildButState (b: Byte): Integer;
+  begin
+    result := 0;
+    case b of
+      SDL_BUTTON_LEFT: result := result or MouseLeft;
+      SDL_BUTTON_MIDDLE: result := result or MouseMiddle;
+      SDL_BUTTON_RIGHT: result := result or MouseRight;
+    end;
+  end;
 begin
   Result := False;
   case ev.type_ of
@@ -399,6 +445,51 @@ begin
       key := ev.key.keysym.scancode;
       KeyPress(key);
     end;
+
+    SDL_MOUSEBUTTONDOWN:
+      begin
+        curMsX := ev.button.x;
+        curMsY := ev.button.y;
+        but := buildBut(ev.button.button);
+        if (but <> 0) then
+        begin
+          // ev.button.clicks: Byte
+          curMsButState := curMsButState or but;
+          if assigned(evMouseCB) then evMouseCB(ev.button.x, ev.button.y, but, curMsButState);
+        end;
+      end;
+    SDL_MOUSEBUTTONUP:
+      begin
+        curMsX := ev.button.x;
+        curMsY := ev.button.y;
+        but := buildBut(ev.button.button);
+        if (but <> 0) then
+        begin
+          curMsButState := curMsButState and (not but);
+          if assigned(evMouseCB) then evMouseCB(ev.button.x, ev.button.y, -but, curMsButState);
+        end;
+      end;
+    SDL_MOUSEWHEEL:
+      begin
+        if assigned(evMouseCB) then
+        begin
+          (*
+          if (ev.wheel.direction = SDL_MOUSEWHEEL_FLIPPED) then
+          begin
+            ev.wheel.x := -ev.wheel.x;
+            ev.wheel.y := -ev.wheel.y;
+          end;
+          *)
+          if (ev.wheel.y > 0) then evMouseCB(curMsX, curMsY, MouseWheelUp, curMsButState);
+          if (ev.wheel.y < 0) then evMouseCB(curMsX, curMsY, MouseWheelDown, curMsButState);
+        end;
+      end;
+    SDL_MOUSEMOTION:
+      begin
+        curMsX := ev.motion.x;
+        curMsY := ev.motion.y;
+        if assigned(evMouseCB) then evMouseCB(curMsX, curMsY, 0, curMsButState);
+      end;
 
     SDL_TEXTINPUT:
     begin
