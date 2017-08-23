@@ -2009,7 +2009,7 @@ begin
     begin
       monsGrid.removeBody(mProxyId);
       {$IF DEFINED(D2F_DEBUG_MONS_MOVE)}
-      e_WriteLog(Format('monster #%d:(%u): removed from tree; mProxyid=%d', [mArrIdx, UID, mProxyId]), MSG_NOTIFY);
+      e_WriteLog(Format('monster #%d:(%u): removed from grid; mProxyid=%d', [mArrIdx, UID, mProxyId]), MSG_NOTIFY);
       {$ENDIF}
     end;
     mProxyId := -1;
