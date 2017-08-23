@@ -270,7 +270,7 @@ var
   NoTextureID: DWORD;
   NW, NH: Word;
 begin
-  if Enabled and (FCurTexture >= 0) and
+  if {Enabled and} (FCurTexture >= 0) and
      (Width > 0) and (Height > 0) and (FAlpha < 255) and
      g_Collide(X, Y, Width, Height,
                sX, sY, sWidth, sHeight) then
