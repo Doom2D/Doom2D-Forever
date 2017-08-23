@@ -2319,6 +2319,7 @@ end;
 procedure TPlayer.DrawAim();
   procedure drawCast (sz: Integer; ax0, ay0, ax1, ay1: Integer);
 
+    {
     procedure drawTileGrid ();
     var
       x, y: Integer;
@@ -2339,6 +2340,7 @@ procedure TPlayer.DrawAim();
         Inc(y, mapGrid.tileSize);
       end;
     end;
+    }
 
   var
     ex, ey: Integer;
@@ -2359,7 +2361,7 @@ procedure TPlayer.DrawAim();
       e_DrawLine(sz, ax0, ay0, ex, ey, 0, 0, 255, 96);
     end;
 
-    drawTileGrid();
+    //drawTileGrid();
   end;
 
 var

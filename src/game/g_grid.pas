@@ -29,6 +29,8 @@ type
     type TGridRayQueryCB = function (obj: ITP; tag: Integer; x, y, prevx, prevy: Integer): Boolean is nested; // return `true` to stop
     type TGridAlongQueryCB = function (obj: ITP; tag: Integer): Boolean is nested; // return `true` to stop
 
+    type TCellQueryCB = procedure (x, y: Integer) is nested; // top-left cell corner coords
+
     const TagDisabled = $40000000;
     const TagFullMask = $3fffffff;
 
@@ -142,6 +144,9 @@ type
     // trace line along the grid, calling `cb` for all objects in passed cells, in no particular order
     function forEachAlongLine (x0, y0, x1, y1: Integer; cb: TGridAlongQueryCB; tagmask: Integer=-1; log: Boolean=false): ITP;
 
+    // debug
+    procedure forEachBodyCell (body: TBodyProxyId; cb: TCellQueryCB);
+    function forEachInCell (x, y: Integer; cb: TGridQueryCB): ITP;
     procedure dumpStats ();
 
     //WARNING! no sanity checks!
@@ -425,6 +430,57 @@ begin
     if (mcb < cnt) then mcb := cnt;
   end;
   e_WriteLog(Format('grid size: %dx%d (tile size: %d); pix: %dx%d; used cells: %d; max bodies in cell: %d; max proxies allocated: %d; proxies used: %d', [mWidth, mHeight, mTileSize, mWidth*mTileSize, mHeight*mTileSize, mUsedCells, mcb, mProxyMaxCount, mProxyCount]), MSG_NOTIFY);
+end;
+
+
+procedure TBodyGridBase.forEachBodyCell (body: TBodyProxyId; cb: TCellQueryCB);
+var
+  g, f, cidx: Integer;
+  cc: PGridCell;
+  //px: PBodyProxyRec;
+begin
+  if (body < 0) or (body > High(mProxies)) or not assigned(cb) then exit;
+  for g := 0 to High(mGrid) do
+  begin
+    cidx := mGrid[g];
+    while (cidx <> -1) do
+    begin
+      cc := @mCells[cidx];
+      for f := 0 to High(TGridCell.bodies) do
+      begin
+        if (cc.bodies[f] = -1) then break;
+        if (cc.bodies[f] = body) then cb((g mod mWidth)*mTileSize+mMinX, (g div mWidth)*mTileSize+mMinY);
+        //px := @mProxies[cc.bodies[f]];
+      end;
+      // next cell
+      cidx := cc.next;
+    end;
+  end;
+end;
+
+
+function TBodyGridBase.forEachInCell (x, y: Integer; cb: TGridQueryCB): ITP;
+var
+  f, cidx: Integer;
+  cc: PGridCell;
+begin
+  result := Default(ITP);
+  if not assigned(cb) then exit;
+  Dec(x, mMinX);
+  Dec(y, mMinY);
+  if (x < 0) or (y < 0) or (x >= mWidth*mTileSize) or (y > mHeight*mTileSize) then exit;
+  cidx := mGrid[(y div mTileSize)*mWidth+(x div mTileSize)];
+  while (cidx <> -1) do
+  begin
+    cc := @mCells[cidx];
+    for f := 0 to High(TGridCell.bodies) do
+    begin
+      if (cc.bodies[f] = -1) then break;
+      if cb(mProxies[cc.bodies[f]].mObj, mProxies[cc.bodies[f]].mTag) then begin result := mProxies[cc.bodies[f]].mObj; exit; end;
+    end;
+    // next cell
+    cidx := cc.next;
+  end;
 end;
 
 

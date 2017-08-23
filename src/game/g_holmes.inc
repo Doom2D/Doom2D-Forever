@@ -501,7 +501,9 @@ begin
 
   glDisable(GL_TEXTURE_2D);
   glColor4f(r/255.0, g/255.0, b/255.0, a/255.0);
+
   glLineWidth(1);
+  glPointSize(1);
 
   glBegin(GL_LINES);
     glVertex2i(x1, y1);
@@ -510,6 +512,19 @@ begin
 
   glColor4f(1, 1, 1, 1);
   glDisable(GL_BLEND);
+end;
+
+
+procedure drawRect (x, y, w, h: Integer; r, g, b: Integer; a: Integer=255);
+begin
+  if (w < 0) or (h < 0) then exit;
+  if (w = 1) and (h = 1) then begin drawLine(x, y, x, y, r, g, b, a); exit; end;
+  Inc(w);
+  Inc(h);
+  drawLine(x, y, x+w-1, y, r, g, b, a);
+  drawLine(x+w-1, y+1, x+w-1, y+h-2, r, g, b, a);
+  drawLine(x+w-2, y+h-1, x, y+h-1, r, g, b, a);
+  drawLine(x, y+h-2, x, y+1, r, g, b, a);
 end;
 
 

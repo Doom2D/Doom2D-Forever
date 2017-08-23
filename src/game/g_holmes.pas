@@ -167,6 +167,12 @@ procedure plrDebugMouse (var ev: THMouseEvent);
     //if pan.Enabled then g_Map_DisableWall(pan.arrIdx) else g_Map_EnableWall(pan.arrIdx);
   end;
 
+  function monsInCell (mon: TMonster; tag: Integer): Boolean;
+  begin
+    result := false; // don't stop
+    e_WriteLog(Format('monster #%d (UID:%u) (proxyid:%d)', [mon.arrIdx, mon.UID, mon.proxyId]), MSG_NOTIFY);
+  end;
+
 begin
   //e_WriteLog(Format('mouse: x=%d; y=%d; but=%d; bstate=%d', [msx, msy, but, bstate]), MSG_NOTIFY);
   if (gPlayer1 = nil) then exit;
@@ -174,7 +180,18 @@ begin
 
   if (ev.but = THMouseEvent.Left) then
   begin
-    mapGrid.forEachAtPoint(pmsCurMapX, pmsCurMapY, wallToggle, (GridTagWall or GridTagDoor));
+    if ((kbS and THKeyEvent.ModShift) <> 0) then
+    begin
+      // dump monsters in cell
+      e_WriteLog('===========================', MSG_NOTIFY);
+      monsGrid.forEachInCell(pmsCurMapX, pmsCurMapY, monsInCell);
+      e_WriteLog('---------------------------', MSG_NOTIFY);
+    end
+    else
+    begin
+      // toggle wall
+      mapGrid.forEachAtPoint(pmsCurMapX, pmsCurMapY, wallToggle, (GridTagWall or GridTagDoor));
+    end;
     exit;
   end;
 
@@ -190,6 +207,33 @@ end;
 
 
 procedure plrDebugDraw ();
+
+  procedure drawTileGrid ();
+  var
+    x, y: Integer;
+  begin
+    y := mapGrid.gridY0;
+    while (y < mapGrid.gridY0+mapGrid.gridHeight) do
+    begin
+      x := mapGrid.gridX0;
+      while (x < mapGrid.gridX0+mapGrid.gridWidth) do
+      begin
+        if (x+mapGrid.tileSize > vpx) and (y+mapGrid.tileSize > vpy) and
+           (x < vpx+vpw) and (y < vpy+vph) then
+        begin
+          //e_DrawQuad(x, y, x+mapGrid.tileSize-1, y+mapGrid.tileSize-1, 96, 96, 96, 96);
+          drawRect(x, y, mapGrid.tileSize, mapGrid.tileSize, 96, 96, 96, 255);
+        end;
+        Inc(x, mapGrid.tileSize);
+      end;
+      Inc(y, mapGrid.tileSize);
+    end;
+  end;
+
+  procedure hilightCell (cx, cy: Integer);
+  begin
+    fillRect(cx, cy, monsGrid.tileSize, monsGrid.tileSize, 0, 128, 0, 64);
+  end;
 
   function monsCollector (mon: TMonster; tag: Integer): Boolean;
   var
@@ -216,26 +260,32 @@ procedure plrDebugDraw ();
     mon.getMapBox(mx, my, mw, mh);
     //mx += mw div 2;
 
-    //fillRect(mx-4, my-7*8-6, 110, 7*8+6, 0, 0, 94, 250);
-    shadeRect(mx-4, my-7*8-6, 110, 7*8+6, 128);
-    my -= 8;
-    my -= 2;
+    monsGrid.forEachBodyCell(mon.proxyId, hilightCell);
 
-    // type
-    drawText6(mx, my, Format('%s(U:%u)', [monsTypeToString(mon.MonsterType), mon.UID]), 255, 127, 0); my -= 8;
-    // beh
-    drawText6(mx, my, Format('Beh: %s', [monsBehToString(mon.MonsterBehaviour)]), 255, 127, 0); my -= 8;
-    // state
-    drawText6(mx, my, Format('State:%s (%d)', [monsStateToString(mon.MonsterState), mon.MonsterSleep]), 255, 127, 0); my -= 8;
-    // health
-    drawText6(mx, my, Format('Health:%d', [mon.MonsterHealth]), 255, 127, 0); my -= 8;
-    // ammo
-    drawText6(mx, my, Format('Ammo:%d', [mon.MonsterAmmo]), 255, 127, 0); my -= 8;
-    // target
-    drawText6(mx, my, Format('TgtUID:%u', [mon.MonsterTargetUID]), 255, 127, 0); my -= 8;
-    drawText6(mx, my, Format('TgtTime:%d', [mon.MonsterTargetTime]), 255, 127, 0); my -= 8;
+    if ((kbS and THKeyEvent.ModCtrl) <> 0) then
+    begin
+      //fillRect(mx-4, my-7*8-6, 110, 7*8+6, 0, 0, 94, 250);
+      shadeRect(mx-4, my-7*8-6, 110, 7*8+6, 128);
+      my -= 8;
+      my -= 2;
 
-    mon.getMapBox(mx, my, mw, mh);
+      // type
+      drawText6(mx, my, Format('%s(U:%u)', [monsTypeToString(mon.MonsterType), mon.UID]), 255, 127, 0); my -= 8;
+      // beh
+      drawText6(mx, my, Format('Beh: %s', [monsBehToString(mon.MonsterBehaviour)]), 255, 127, 0); my -= 8;
+      // state
+      drawText6(mx, my, Format('State:%s (%d)', [monsStateToString(mon.MonsterState), mon.MonsterSleep]), 255, 127, 0); my -= 8;
+      // health
+      drawText6(mx, my, Format('Health:%d', [mon.MonsterHealth]), 255, 127, 0); my -= 8;
+      // ammo
+      drawText6(mx, my, Format('Ammo:%d', [mon.MonsterAmmo]), 255, 127, 0); my -= 8;
+      // target
+      drawText6(mx, my, Format('TgtUID:%u', [mon.MonsterTargetUID]), 255, 127, 0); my -= 8;
+      drawText6(mx, my, Format('TgtTime:%d', [mon.MonsterTargetTime]), 255, 127, 0); my -= 8;
+
+      mon.getMapBox(mx, my, mw, mh);
+    end;
+
     if (g_GetUIDType(mon.MonsterTargetUID) = UID_PLAYER) then
     begin
       eplr := g_Player_Get(mon.MonsterTargetUID);
@@ -274,6 +324,8 @@ begin
   glPushMatrix();
   glTranslatef(-vpx, -vpy, 0);
 
+  drawTileGrid();
+
   g_Mons_AlongLine(laserX0, laserY0, laserX1, laserY1, monsCollector, true);
 
   if (monMarkedUID <> -1) then
@@ -291,30 +343,6 @@ begin
 
   glPopMatrix();
 end;
-
-
-{
-    procedure drawTileGrid ();
-    var
-      x, y: Integer;
-    begin
-      y := mapGrid.gridY0;
-      while (y < mapGrid.gridY0+mapGrid.gridHeight) do
-      begin
-        x := mapGrid.gridX0;
-        while (x < mapGrid.gridX0+mapGrid.gridWidth) do
-        begin
-          if (x+mapGrid.tileSize > vpx) and (y+mapGrid.tileSize > vpy) and
-             (x < vpx+vpw) and (y < vpy+vph) then
-          begin
-            e_DrawQuad(x, y, x+mapGrid.tileSize-1, y+mapGrid.tileSize-1, 96, 96, 96, 96);
-          end;
-          Inc(x, mapGrid.tileSize);
-        end;
-        Inc(y, mapGrid.tileSize);
-      end;
-    end;
-}
 
 
 // ////////////////////////////////////////////////////////////////////////// //
