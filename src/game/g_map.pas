@@ -2033,7 +2033,7 @@ begin
   end
   else}
   begin
-    mapGrid.forEachInAABB(x0, y0, wdt, hgt, checker, GridDrawableMask, true);
+    mapGrid.forEachInAABB(x0, y0, wdt, hgt, checker, GridDrawableMask);
   end;
   // list will be rendered in `g_game.DrawPlayer()`
 end;
@@ -2054,7 +2054,7 @@ begin
   end
   else}
   begin
-    mapGrid.forEachInAABB(lightX-radius, lightY-radius, radius*2, radius*2, checker, (GridTagWall or GridTagDoor), true);
+    mapGrid.forEachInAABB(lightX-radius, lightY-radius, radius*2, radius*2, checker, (GridTagWall or GridTagDoor));
   end;
 end;
 
