@@ -103,6 +103,7 @@ var
   msB: Word = 0; // button state
   kbS: Word = 0; // keyboard modifiers state
   showMonsInfo: Boolean = false;
+  showMonsLOS2Plr: Boolean = false;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
@@ -248,6 +249,20 @@ procedure plrDebugDraw ();
     fillRect(cx, cy, monsGrid.tileSize, monsGrid.tileSize, 0, 128, 0, 64);
   end;
 
+  procedure hilightCell1 (cx, cy: Integer);
+  begin
+    //e_WriteLog(Format('h1: (%d,%d)', [cx, cy]), MSG_NOTIFY);
+    fillRect(cx, cy, monsGrid.tileSize, monsGrid.tileSize, 255, 255, 0, 92);
+  end;
+
+  function hilightWallTrc (pan: TPanel; tag: Integer; x, y, prevx, prevy: Integer): Boolean;
+  begin
+    result := false; // don't stop
+    if (pan = nil) then exit; // cell completion, ignore
+    //e_WriteLog(Format('h1: (%d,%d)', [cx, cy]), MSG_NOTIFY);
+    fillRect(pan.X, pan.Y, pan.Width, pan.Height, 0, 128, 128, 64);
+  end;
+
   function monsCollector (mon: TMonster; tag: Integer): Boolean;
   var
     ex, ey: Integer;
@@ -288,11 +303,35 @@ procedure plrDebugDraw ();
         exit;
       end;
       mon.getMapBox(mx, my, mw, mh);
-      drawLine(mx+mw div 2, my+mh div 2, emx+emw div 2, emy+emh div 2, 255, 0, 0, 128);
+      drawLine(mx+mw div 2, my+mh div 2, emx+emw div 2, emy+emh div 2, 255, 0, 0, 255);
       if (g_Map_traceToNearestWall(mx+mw div 2, my+mh div 2, emx+emw div 2, emy+emh div 2, @ex, @ey) <> nil) then
       begin
-        drawLine(mx+mw div 2, my+mh div 2, ex, ey, 0, 255, 0, 128);
+        drawLine(mx+mw div 2, my+mh div 2, ex, ey, 0, 255, 0, 255);
       end;
+    end;
+
+    procedure drawLOS2Plr ();
+    var
+      emx, emy, emw, emh: Integer;
+      eplr: TPlayer;
+      ex, ey: Integer;
+    begin
+      eplr := gPlayers[0];
+      if (eplr = nil) then exit;
+      eplr.getMapBox(emx, emy, emw, emh);
+      mon.getMapBox(mx, my, mw, mh);
+      drawLine(mx+mw div 2, my+mh div 2, emx+emw div 2, emy+emh div 2, 255, 0, 0, 255);
+      {$IF DEFINED(D2F_DEBUG)}
+      //mapGrid.dbgRayTraceTileHitCB := hilightCell1;
+      {$ENDIF}
+      if (g_Map_traceToNearestWall(mx+mw div 2, my+mh div 2, emx+emw div 2, emy+emh div 2, @ex, @ey) <> nil) then
+      //if (mapGrid.traceRay(ex, ey, mx+mw div 2, my+mh div 2, emx+emw div 2, emy+emh div 2, hilightWallTrc, (GridTagWall or GridTagDoor)) <> nil) then
+      begin
+        drawLine(mx+mw div 2, my+mh div 2, ex, ey, 0, 255, 0, 255);
+      end;
+      {$IF DEFINED(D2F_DEBUG)}
+      //mapGrid.dbgRayTraceTileHitCB := nil;
+      {$ENDIF}
     end;
 
   begin
@@ -325,6 +364,7 @@ procedure plrDebugDraw ();
     end;
 
     drawMonsterTargetLine();
+    if showMonsLOS2Plr then drawLOS2Plr();
     {
     property MonsterRemoved: Boolean read FRemoved write FRemoved;
     property MonsterPain: Integer read FPain write FPain;
@@ -404,6 +444,13 @@ begin
     begin
       result := true;
       showMonsInfo := not showMonsInfo;
+      exit;
+    end;
+    // M-L: toggle monster LOS to player
+    if (ev.scan = SDL_SCANCODE_L) and ((ev.kstate and THKeyEvent.ModAlt) <> 0) then
+    begin
+      result := true;
+      showMonsLOS2Plr := not showMonsLOS2Plr;
       exit;
     end;
   end;

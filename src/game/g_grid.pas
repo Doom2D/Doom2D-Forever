@@ -15,6 +15,9 @@
  *)
 // universal spatial grid
 {$INCLUDE ../shared/a_modes.inc}
+{$IF DEFINED(D2F_DEBUG)}
+  {.$DEFINE D2F_DEBUG_RAYTRACE}
+{$ENDIF}
 unit g_grid;
 
 interface
@@ -84,6 +87,9 @@ type
 
   public
     dbgShowTraceLog: Boolean;
+    {$IF DEFINED(D2F_DEBUG)}
+    dbgRayTraceTileHitCB: TCellQueryCB;
+    {$ENDIF}
 
   private
     function allocCell (): Integer;
@@ -136,13 +142,13 @@ type
     //         you can set enabled/disabled flag, tho (but iterator can still return objects disabled inside it)
     // cb with `(nil)` will be called before processing new tile
     // no callback: return `true` on the nearest hit
-    function traceRay (x0, y0, x1, y1: Integer; cb: TGridRayQueryCB; tagmask: Integer=-1): ITP; overload;
-    function traceRay (out ex, ey: Integer; ax0, ay0, ax1, ay1: Integer; cb: TGridRayQueryCB; tagmask: Integer=-1): ITP;
+    function traceRay (const x0, y0, x1, y1: Integer; cb: TGridRayQueryCB; tagmask: Integer=-1): ITP; overload;
+    function traceRay (out ex, ey: Integer; const ax0, ay0, ax1, ay1: Integer; cb: TGridRayQueryCB; tagmask: Integer=-1): ITP;
 
     //WARNING: don't modify grid while any query is in progress (no checks are made!)
     //         you can set enabled/disabled flag, tho (but iterator can still return objects disabled inside it)
     // trace line along the grid, calling `cb` for all objects in passed cells, in no particular order
-    function forEachAlongLine (x0, y0, x1, y1: Integer; cb: TGridAlongQueryCB; tagmask: Integer=-1; log: Boolean=false): ITP;
+    function forEachAlongLine (const x0, y0, x1, y1: Integer; cb: TGridAlongQueryCB; tagmask: Integer=-1; log: Boolean=false): ITP;
 
     // debug
     procedure forEachBodyCell (body: TBodyProxyId; cb: TCellQueryCB);
@@ -367,6 +373,9 @@ var
   idx: Integer;
 begin
   dbgShowTraceLog := false;
+  {$IF DEFINED(D2F_DEBUG)}
+  dbgRayTraceTileHitCB := nil;
+  {$ENDIF}
   {
   if aTileSize < 1 then aTileSize := 1;
   if aTileSize > 8192 then aTileSize := 8192; // arbitrary limit
@@ -1111,7 +1120,7 @@ end;
 
 // ////////////////////////////////////////////////////////////////////////// //
 // no callback: return `true` on the nearest hit
-function TBodyGridBase.traceRay (x0, y0, x1, y1: Integer; cb: TGridRayQueryCB; tagmask: Integer=-1): ITP;
+function TBodyGridBase.traceRay (const x0, y0, x1, y1: Integer; cb: TGridRayQueryCB; tagmask: Integer=-1): ITP;
 var
   ex, ey: Integer;
 begin
@@ -1121,7 +1130,7 @@ end;
 
 // no callback: return `true` on the nearest hit
 // you are not supposed to understand this
-function TBodyGridBase.traceRay (out ex, ey: Integer; ax0, ay0, ax1, ay1: Integer; cb: TGridRayQueryCB; tagmask: Integer=-1): ITP;
+function TBodyGridBase.traceRay (out ex, ey: Integer; const ax0, ay0, ax1, ay1: Integer; cb: TGridRayQueryCB; tagmask: Integer=-1): ITP;
 const
   tsize = mTileSize;
 var
@@ -1168,6 +1177,10 @@ begin
   miny := mMinY;
   maxx := gw*tsize-1;
   maxy := gh*tsize-1;
+
+  {$IF DEFINED(D2F_DEBUG_RAYTRACE)}
+  if assigned(dbgRayTraceTileHitCB) then e_WriteLog(Format('TRACING: (%d,%d)-(%d,%d) [(%d,%d)-(%d,%d)]; maxdistsq=%d', [ax0, ay0, ax1, ay1, minx, miny, maxx, maxy, lastDistSq]), MSG_NOTIFY);
+  {$ENDIF}
 
   x0 := ax0;
   y0 := ay0;
@@ -1309,16 +1322,20 @@ begin
   if (xd = term) then exit;
 
   {$IF DEFINED(D2F_DEBUG)}
-  if (xptr^ < 0) or (yptr^ < 0) or (xptr^ >= gw*tsize) and (yptr^ > mHeight*tsize) then raise Exception.Create('raycaster internal error (0)');
+  if (xptr^ < 0) or (yptr^ < 0) or (xptr^ >= gw*tsize) and (yptr^ >= gh*tsize) then raise Exception.Create('raycaster internal error (0)');
+  {$ENDIF}
+  lastGA := (yptr^ div tsize)*gw+(xptr^ div tsize);
+  ccidx := mGrid[lastGA];
+
+  {$IF DEFINED(D2F_DEBUG_RAYTRACE)}
+  //if assigned(dbgRayTraceTileHitCB) then e_WriteLog('1:TRACING!', MSG_NOTIFY);
+  {$ENDIF}
+
+  {$IF DEFINED(D2F_DEBUG_RAYTRACE)}
+  if assigned(dbgRayTraceTileHitCB) then dbgRayTraceTileHitCB((xptr^ div tsize*tsize)+minx, (yptr^ div tsize*tsize)+miny);
   {$ENDIF}
 
   //if (dbgShowTraceLog) then e_WriteLog(Format('raycast start: (%d,%d)-(%d,%d); xptr^=%d; yptr^=%d', [ax0, ay0, ax1, ay1, xptr^, yptr^]), MSG_NOTIFY);
-
-  // restore query coords
-  Inc(ax0, minx);
-  Inc(ay0, miny);
-  //Inc(ax1, minx);
-  //Inc(ay1, miny);
 
   // increase query counter
   Inc(mLastQuery);
@@ -1336,13 +1353,16 @@ begin
   begin
     // check cell(s)
     {$IF DEFINED(D2F_DEBUG)}
-    if (xptr^ < 0) or (yptr^ < 0) or (xptr^ >= gw*tsize) and (yptr^ > mHeight*tsize) then raise Exception.Create('raycaster internal error (0)');
+    if (xptr^ < 0) or (yptr^ < 0) or (xptr^ >= gw*tsize) and (yptr^ >= gh*tsize) then raise Exception.Create('raycaster internal error (0)');
     {$ENDIF}
     // new tile?
     ga := (yptr^ div tsize)*gw+(xptr^ div tsize);
     if (ga <> lastGA) then
     begin
       // yes
+      {$IF DEFINED(D2F_DEBUG)}
+      if assigned(dbgRayTraceTileHitCB) then dbgRayTraceTileHitCB((xptr^ div tsize*tsize)+minx, (yptr^ div tsize*tsize)+miny);
+      {$ENDIF}
       if (ccidx <> -1) then
       begin
         // signal cell completion
@@ -1392,11 +1412,28 @@ begin
                   ey := prevy;
                   exit;
                 end;
+                (*
+                  {$IF DEFINED(D2F_DEBUG_RAYTRACE)}
+                  distSq := distanceSq(ax0, ay0, prevx, prevy);
+                  if assigned(dbgRayTraceTileHitCB) then e_WriteLog(Format('  hit(%d): a=(%d,%d), h=(%d,%d), p=(%d,%d); distsq=%d; lastsq=%d', [cc.bodies[f], ax0, ay0, x, y, prevx, prevy, distSq, lastDistSq]), MSG_NOTIFY);
+                  if (distSq < lastDistSq) then
+                  begin
+                    wasHit := true;
+                    lastDistSq := distSq;
+                    ex := prevx;
+                    ey := prevy;
+                    lastObj := px.mObj;
+                  end;
+                  {$ENDIF}
+                *)
               end
               else
               begin
                 // remember this hitpoint if it is nearer than an old one
                 distSq := distanceSq(ax0, ay0, prevx, prevy);
+                {$IF DEFINED(D2F_DEBUG_RAYTRACE)}
+                if assigned(dbgRayTraceTileHitCB) then e_WriteLog(Format('  hit(%d): a=(%d,%d), h=(%d,%d), p=(%d,%d); distsq=%d; lastsq=%d', [cc.bodies[f], ax0, ay0, x, y, prevx, prevy, distSq, lastDistSq]), MSG_NOTIFY);
+                {$ENDIF}
                 if (distSq < lastDistSq) then
                 begin
                   wasHit := true;
@@ -1445,7 +1482,7 @@ end;
 
 // ////////////////////////////////////////////////////////////////////////// //
 //FIXME! optimize this with real tile walking
-function TBodyGridBase.forEachAlongLine (x0, y0, x1, y1: Integer; cb: TGridAlongQueryCB; tagmask: Integer=-1; log: Boolean=false): ITP;
+function TBodyGridBase.forEachAlongLine (const x0, y0, x1, y1: Integer; cb: TGridAlongQueryCB; tagmask: Integer=-1; log: Boolean=false): ITP;
 const
   tsize = mTileSize;
 var
