@@ -79,15 +79,8 @@ type
     FFirePainTime: Integer;
     FFireAttacker: Word;
     vilefire: TAnimation;
-
-  {$IF DEFINED(D2F_DEBUG)}
-  public
-  {$ENDIF}
-    proxyId: Integer; // node in dyntree or -1
-    arrIdx: Integer; // in gMonsters
-  {$IF DEFINED(D2F_DEBUG)}
-  private
-  {$ENDIF}
+    mProxyId: Integer; // node in dyntree or -1
+    mArrIdx: Integer; // in gMonsters
 
     FDieTriggers: Array of Integer;
     FSpawnTrigger: Integer;
@@ -167,6 +160,9 @@ type
     property GameDirection: TDirection read FDirection write FDirection;
 
     property StartID: Integer read FStartID;
+
+    property proxyId: Integer read mProxyId;
+    property arrIdx: Integer read mArrIdx;
   end;
 
 
@@ -311,32 +307,32 @@ var
   x, y: Integer;
 begin
   {$IF DEFINED(D2F_DEBUG_MONS_MOVE)}
-  //e_WriteLog(Format('monster #%d(%u): pos=(%d,%d); rpos=(%d,%d)', [arrIdx, UID, FObj.X, FObj.Y, FObj.Rect.X, FObj.Rect.Y]), MSG_NOTIFY);
+  //e_WriteLog(Format('monster #%d(%u): pos=(%d,%d); rpos=(%d,%d)', [mArrIdx, UID, FObj.X, FObj.Y, FObj.Rect.X, FObj.Rect.Y]), MSG_NOTIFY);
   {$ENDIF}
-  if (proxyId = -1) then
+  if (mProxyId = -1) then
   begin
-    proxyId := monsGrid.insertBody(self, FObj.X+FObj.Rect.X, FObj.Y+FObj.Rect.Y, FObj.Rect.Width, FObj.Rect.Height);
+    mProxyId := monsGrid.insertBody(self, FObj.X+FObj.Rect.X, FObj.Y+FObj.Rect.Y, FObj.Rect.Width, FObj.Rect.Height);
     {$IF DEFINED(D2F_DEBUG_MONS_MOVE)}
-    monsGrid.getBodyXY(proxyId, x, y);
-    e_WriteLog(Format('monster #%d(%u): inserted into the grid; proxyid=%d; x=%d; y=%d', [arrIdx, UID, proxyId, x, y]), MSG_NOTIFY);
+    monsGrid.getBodyXY(mProxyId, x, y);
+    e_WriteLog(Format('monster #%d(%u): inserted into the grid; mProxyid=%d; x=%d; y=%d', [mArrIdx, UID, mProxyId, x, y]), MSG_NOTIFY);
     {$ENDIF}
   end
   else
   begin
-    monsGrid.getBodyXY(proxyId, x, y);
+    monsGrid.getBodyXY(mProxyId, x, y);
     if (FObj.X+FObj.Rect.X = x) and (FObj.Y+FObj.Rect.Y = y) then exit; // nothing to do
-    {$IF DEFINED(D2F_DEBUG_MONS_MOVE)}e_WriteLog(Format('monster #%d(%u): updating tree; proxyid=%d; x=%d; y=%d', [arrIdx, UID, proxyId, x, y]), MSG_NOTIFY);{$ENDIF}
+    {$IF DEFINED(D2F_DEBUG_MONS_MOVE)}e_WriteLog(Format('monster #%d(%u): updating tree; mProxyid=%d; x=%d; y=%d', [mArrIdx, UID, mProxyId, x, y]), MSG_NOTIFY);{$ENDIF}
 
     {$IF TRUE}
-    monsGrid.moveBody(proxyId, FObj.X+FObj.Rect.X, FObj.Y+FObj.Rect.Y);
+    monsGrid.moveBody(mProxyId, FObj.X+FObj.Rect.X, FObj.Y+FObj.Rect.Y);
     {$ELSE}
-    monsGrid.removeBody(proxyId);
-    proxyId := monsGrid.insertBody(self, FObj.X+FObj.Rect.X, FObj.Y+FObj.Rect.Y, FObj.Rect.Width, FObj.Rect.Height);
+    monsGrid.removeBody(mProxyId);
+    mProxyId := monsGrid.insertBody(self, FObj.X+FObj.Rect.X, FObj.Y+FObj.Rect.Y, FObj.Rect.Width, FObj.Rect.Height);
     {$ENDIF}
 
     {$IF DEFINED(D2F_DEBUG_MONS_MOVE)}
-    monsGrid.getBodyXY(proxyId, x, y);
-    e_WriteLog(Format('monster #%d(%u): updated tree; proxyid=%d; x=%d; y=%d', [arrIdx, UID, proxyId, x, y]), MSG_NOTIFY);
+    monsGrid.getBodyXY(mProxyId, x, y);
+    e_WriteLog(Format('monster #%d(%u): updated tree; mProxyid=%d; x=%d; y=%d', [mArrIdx, UID, mProxyId, x, y]), MSG_NOTIFY);
     {$ENDIF}
   end;
 end;
@@ -698,7 +694,7 @@ begin
   if gmon_debug_use_sqaccel then
   begin
     mon := monsGrid.forEachInAABB(o.X+o.Rect.X, o.Y+o.Rect.Y, o.Rect.Width, o.Rect.Height, monsCollCheck);
-    if (mon <> nil) then result := mon.arrIdx;
+    if (mon <> nil) then result := mon.mArrIdx;
   end
   else
   begin
@@ -1226,8 +1222,8 @@ begin
 
   mon := TMonster.Create(MonsterType, find_id, ForcedUID);
   gMonsters[find_id] := mon;
-  mon.arrIdx := find_id;
-  mon.proxyId := -1;
+  mon.mArrIdx := find_id;
+  mon.mProxyId := -1;
 
   uidMap[mon.FUID] := mon;
 
@@ -1718,8 +1714,8 @@ begin
   FFirePainTime := 0;
   FFireAttacker := 0;
 
-  proxyId := -1;
-  arrIdx := -1;
+  mProxyId := -1;
+  mArrIdx := -1;
   trapCheckFrameId := 0;
 
   if FMonsterType in [MONSTER_ROBO, MONSTER_BARREL] then
@@ -1994,20 +1990,20 @@ begin
 
   vilefire.Free();
 
-  if (proxyId <> -1) then
+  if (mProxyId <> -1) then
   begin
     if (monsGrid <> nil) then
     begin
-      monsGrid.removeBody(proxyId);
+      monsGrid.removeBody(mProxyId);
       {$IF DEFINED(D2F_DEBUG_MONS_MOVE)}
-      e_WriteLog(Format('monster #%d(%u): removed from tree; proxyid=%d', [arrIdx, UID, proxyId]), MSG_NOTIFY);
+      e_WriteLog(Format('monster #%d(%u): removed from tree; mProxyid=%d', [mArrIdx, UID, mProxyId]), MSG_NOTIFY);
       {$ENDIF}
     end;
-    proxyId := -1;
+    mProxyId := -1;
   end;
 
-  if (arrIdx <> -1) and (arrIdx < Length(gMonsters)) then gMonsters[arrIdx] := nil;
-  arrIdx := -1;
+  if (mArrIdx <> -1) and (mArrIdx < Length(gMonsters)) then gMonsters[mArrIdx] := nil;
+  mArrIdx := -1;
 
   uidMap[FUID] := nil;
 
