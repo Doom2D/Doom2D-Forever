@@ -1352,20 +1352,24 @@ begin
   dx2 -= dy2;
 
   // first move, to skip starting point
+  // DON'T DO THIS! loop will take care of that
   if (xd = term) then exit;
   prevx := xptr^+minx;
   prevy := yptr^+miny;
+  (*
   // move coords
   if (e >= 0) then begin yd += sty; e -= dx2; end else e += dy2;
   xd += stx;
   // done?
   if (xd = term) then exit;
+  *)
 
   {$IF DEFINED(D2F_DEBUG)}
   if (xptr^ < 0) or (yptr^ < 0) or (xptr^ >= gw*tsize) and (yptr^ >= gh*tsize) then raise Exception.Create('raycaster internal error (0)');
   {$ENDIF}
-  lastGA := (yptr^ div tsize)*gw+(xptr^ div tsize);
-  ccidx := mGrid[lastGA];
+  // DON'T DO THIS! loop will take care of that
+  //lastGA := (yptr^ div tsize)*gw+(xptr^ div tsize);
+  //ccidx := mGrid[lastGA];
 
   {$IF DEFINED(D2F_DEBUG_RAYTRACE)}
   //if assigned(dbgRayTraceTileHitCB) then e_WriteLog('1:TRACING!', MSG_NOTIFY);
