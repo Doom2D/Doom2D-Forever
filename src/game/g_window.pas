@@ -440,8 +440,7 @@ begin
         Result := True;
       end;
 
-    SDL_KEYDOWN,
-    SDL_KEYUP:
+    SDL_KEYDOWN, SDL_KEYUP:
       begin
         key := ev.key.keysym.scancode;
         if (g_holmes_enabled) then

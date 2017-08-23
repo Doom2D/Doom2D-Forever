@@ -159,6 +159,7 @@ begin
   laserY0 := ay0;
   laserX1 := ax1;
   laserY1 := ay1;
+  laserSet := laserSet; // shut up, fpc!
 end;
 
 
@@ -171,6 +172,7 @@ procedure plrDebugMouse (var ev: THMouseEvent);
   function wallToggle (pan: TPanel; tag: Integer): Boolean;
   begin
     result := false; // don't stop
+    e_WriteLog(Format('wall #%d(%d); enabled=%d (%d)', [pan.arrIdx, pan.proxyId, Integer(pan.Enabled), Integer(mapGrid.proxyEnabled[pan.proxyId])]), MSG_NOTIFY);
     if pan.Enabled then g_Map_DisableWall(pan.arrIdx) else g_Map_EnableWall(pan.arrIdx);
   end;
 
@@ -190,8 +192,10 @@ procedure plrDebugMouse (var ev: THMouseEvent);
 
 begin
   //e_WriteLog(Format('mouse: x=%d; y=%d; but=%d; bstate=%d', [msx, msy, but, bstate]), MSG_NOTIFY);
-  if (gPlayer1 = nil) then exit;
+  if (gPlayer1 = nil) or not vpSet then exit;
   if (ev.kind <> THMouseEvent.Press) then exit;
+
+  e_WriteLog(Format('mev: %d', [Integer(ev.kind)]), MSG_NOTIFY);
 
   if (ev.but = THMouseEvent.Left) then
   begin
@@ -205,7 +209,9 @@ begin
     else
     begin
       // toggle wall
+      e_WriteLog('=== TOGGLE WALL ===', MSG_NOTIFY);
       mapGrid.forEachAtPoint(pmsCurMapX, pmsCurMapY, wallToggle, (GridTagWall or GridTagDoor));
+      e_WriteLog('--- toggle wall ---', MSG_NOTIFY);
     end;
     exit;
   end;
@@ -422,6 +428,7 @@ begin
   msY := ev.y;
   msB := ev.bstate;
   kbS := ev.kstate;
+  msB := msB;
   plrDebugMouse(ev);
 end;
 

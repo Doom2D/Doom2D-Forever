@@ -17,6 +17,7 @@
 {$INCLUDE ../shared/a_modes.inc}
 {$IF DEFINED(D2F_DEBUG)}
   {.$DEFINE D2F_DEBUG_RAYTRACE}
+  {.$DEFINE D2F_DEBUG_XXQ}
 {$ENDIF}
 unit g_grid;
 
@@ -142,12 +143,14 @@ type
     //         you can set enabled/disabled flag, tho (but iterator can still return objects disabled inside it)
     // cb with `(nil)` will be called before processing new tile
     // no callback: return `true` on the nearest hit
+    //WARNING: don't change tags in callbacks here!
     function traceRay (const x0, y0, x1, y1: Integer; cb: TGridRayQueryCB; tagmask: Integer=-1): ITP; overload;
     function traceRay (out ex, ey: Integer; const ax0, ay0, ax1, ay1: Integer; cb: TGridRayQueryCB; tagmask: Integer=-1): ITP;
 
     //WARNING: don't modify grid while any query is in progress (no checks are made!)
     //         you can set enabled/disabled flag, tho (but iterator can still return objects disabled inside it)
     // trace line along the grid, calling `cb` for all objects in passed cells, in no particular order
+    //WARNING: don't change tags in callbacks here!
     function forEachAlongLine (const x0, y0, x1, y1: Integer; cb: TGridAlongQueryCB; tagmask: Integer=-1; log: Boolean=false): ITP;
 
     // debug
@@ -675,22 +678,42 @@ begin
   pc := mGrid[grida];
   if (pc <> -1) then
   begin
-    pi := @mCells[pc];
-    // check "has room" flag
-    if (pi.bodies[GridCellBucketSize-1] = -1) then
+    {$IF DEFINED(D2F_DEBUG)}
+    cidx := pc;
+    while (cidx <> -1) do
     begin
-      // can add here
+      pi := @mCells[cidx];
       for f := 0 to GridCellBucketSize-1 do
       begin
-        if (pi.bodies[f] = -1) then
-        begin
-          pi.bodies[f] := bodyId;
-          if (f+1 < GridCellBucketSize) then pi.bodies[f+1] := -1;
-          exit;
-        end;
+        if (pi.bodies[f] = -1) then break;
+        if (pi.bodies[f] = bodyId) then raise Exception.Create('trying to insert already inserted proxy');
       end;
-      raise Exception.Create('internal error in grid inserter');
+      cidx := pi.next;
     end;
+    {$ENDIF}
+    cidx := pc;
+    while (cidx <> -1) do
+    begin
+      pi := @mCells[cidx];
+      // check "has room" flag
+      if (pi.bodies[GridCellBucketSize-1] = -1) then
+      begin
+        // can add here
+        for f := 0 to GridCellBucketSize-1 do
+        begin
+          if (pi.bodies[f] = -1) then
+          begin
+            pi.bodies[f] := bodyId;
+            if (f+1 < GridCellBucketSize) then pi.bodies[f+1] := -1;
+            exit;
+          end;
+        end;
+        raise Exception.Create('internal error in grid inserter');
+      end;
+      // no room, go to next cell in list (if there is any)
+      cidx := pi.next;
+    end;
+    // no room in cells, add new cell to list
   end;
   // either no room, or no cell at all
   cidx := allocCell();
@@ -975,12 +998,21 @@ begin
   tagmask := tagmask and TagFullMask;
   if (tagmask = 0) then exit;
 
+  {$IF DEFINED(D2F_DEBUG_XXQ)}
+  if (assigned(cb)) then e_WriteLog(Format('0: grid pointquery: (%d,%d)', [x, y]), MSG_NOTIFY);
+  {$ENDIF}
+
   // make coords (0,0)-based
   Dec(x, mMinX);
   Dec(y, mMinY);
   if (x < 0) or (y < 0) or (x >= mWidth*mTileSize) or (y >= mHeight*mTileSize) then exit;
 
   curci := mGrid[(y div mTileSize)*mWidth+(x div mTileSize)];
+
+  {$IF DEFINED(D2F_DEBUG_XXQ)}
+  if (assigned(cb)) then e_WriteLog(Format('1: grid pointquery: (%d,%d) (%d,%d) %d', [x, y, (x div mTileSize), (y div mTileSize), curci]), MSG_NOTIFY);
+  {$ENDIF}
+
   // restore coords
   Inc(x, mMinX);
   Inc(y, mMinY);
@@ -995,19 +1027,31 @@ begin
   end;
   lq := mLastQuery;
 
+  {$IF DEFINED(D2F_DEBUG_XXQ)}
+  if (assigned(cb)) then e_WriteLog(Format('2: grid pointquery: (%d,%d); lq=%u', [x, y, lq]), MSG_NOTIFY);
+  {$ENDIF}
+
   while (curci <> -1) do
   begin
+    {$IF DEFINED(D2F_DEBUG_XXQ)}
+    if (assigned(cb)) then e_WriteLog(Format(' cell #%d', [curci]), MSG_NOTIFY);
+    {$ENDIF}
     cc := @mCells[curci];
     for f := 0 to GridCellBucketSize-1 do
     begin
       if (cc.bodies[f] = -1) then break;
       px := @mProxies[cc.bodies[f]];
-      ptag := px.mTag;
-      if ((ptag and TagDisabled) = 0) and ((ptag and tagmask) <> 0) and (px.mQueryMark <> lq) then
+      {$IF DEFINED(D2F_DEBUG_XXQ)}
+      if (assigned(cb)) then e_WriteLog(Format('  proxy #%d; qm:%u; tag:%08x; tagflag:%d  %u', [cc.bodies[f], px.mQueryMark, px.mTag, (px.mTag and tagmask), LongWord(px.mObj)]), MSG_NOTIFY);
+      {$ENDIF}
+      // shit. has to do it this way, so i can change tag in callback
+      if (px.mQueryMark <> lq) then
       begin
-        if (x >= px.mX) and (y >= px.mY) and (x < px.mX+px.mWidth) and (y < px.mY+px.mHeight) then
+        px.mQueryMark := lq;
+        ptag := px.mTag;
+        if ((ptag and TagDisabled) = 0) and ((ptag and tagmask) <> 0) and
+           (x >= px.mX) and (y >= px.mY) and (x < px.mX+px.mWidth) and (y < px.mY+px.mHeight) then
         begin
-          px.mQueryMark := lq;
           if assigned(cb) then
           begin
             if cb(px.mObj, ptag) then begin result := px.mObj; exit; end;
@@ -1089,24 +1133,22 @@ begin
         begin
           if (cc.bodies[f] = -1) then break;
           px := @mProxies[cc.bodies[f]];
+          // shit. has to do it this way, so i can change tag in callback
+          if (px.mQueryMark = lq) then continue;
+          px.mQueryMark := lq;
           ptag := px.mTag;
           if (not allowDisabled) and ((ptag and TagDisabled) <> 0) then continue;
-          if ((ptag and tagmask) <> 0) and (px.mQueryMark <> lq) then
-          //if ((ptag and TagDisabled) = 0) and ((ptag and tagmask) <> 0) and (px.mQueryMark <> lq) then
-          //if ( ((ptag and TagDisabled) = 0) = ignoreDisabled) and ((ptag and tagmask) <> 0) and (px.mQueryMark <> lq) then
+          if ((ptag and tagmask) = 0) then continue;
+          if (x0 >= px.mX+px.mWidth) or (y0 >= px.mY+px.mHeight) then continue;
+          if (x0+w <= px.mX) or (y0+h <= px.mY) then continue;
+          if assigned(cb) then
           begin
-            if (x0 >= px.mX+px.mWidth) or (y0 >= px.mY+px.mHeight) then continue;
-            if (x0+w <= px.mX) or (y0+h <= px.mY) then continue;
-            px.mQueryMark := lq;
-            if assigned(cb) then
-            begin
-              if cb(px.mObj, ptag) then begin result := px.mObj; exit; end;
-            end
-            else
-            begin
-              result := px.mObj;
-              exit;
-            end;
+            if cb(px.mObj, ptag) then begin result := px.mObj; exit; end;
+          end
+          else
+          begin
+            result := px.mObj;
+            exit;
           end;
         end;
         curci := cc.next;

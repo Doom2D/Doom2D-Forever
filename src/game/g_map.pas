@@ -1124,18 +1124,40 @@ var
     end;
   end;
 
-  procedure addPanelsToGrid (constref panels: TPanelArray; tag: Integer);
+  procedure addPanelsToGrid (constref panels: TPanelArray);
   var
     idx: Integer;
     pan: TPanel;
+    newtag: Integer;
   begin
-    tag := panelTypeToTag(tag);
+    //tag := panelTypeToTag(tag);
     for idx := 0 to High(panels) do
     begin
       pan := panels[idx];
-      pan.tag := tag;
       if not pan.visvalid then continue;
-      pan.proxyId := mapGrid.insertBody(pan, pan.X, pan.Y, pan.Width, pan.Height, tag);
+      if (pan.proxyId <> -1) then
+      begin
+        {$IF DEFINED(D2F_DEBUG)}
+        e_WriteLog(Format('DUPLICATE wall #%d(%d) enabled (%d); type:%08x', [Integer(idx), Integer(pan.proxyId), Integer(mapGrid.proxyEnabled[pan.proxyId]), pan.PanelType]), MSG_NOTIFY);
+        {$ENDIF}
+        continue;
+      end;
+      case pan.PanelType of
+        PANEL_WALL: newtag := GridTagWall;
+        PANEL_OPENDOOR, PANEL_CLOSEDOOR: newtag := GridTagDoor;
+        PANEL_BACK: newtag := GridTagBack;
+        PANEL_FORE: newtag := GridTagFore;
+        PANEL_WATER: newtag := GridTagWater;
+        PANEL_ACID1: newtag := GridTagAcid1;
+        PANEL_ACID2: newtag := GridTagAcid2;
+        PANEL_STEP: newtag := GridTagStep;
+        PANEL_LIFTUP, PANEL_LIFTDOWN, PANEL_LIFTLEFT, PANEL_LIFTRIGHT: newtag := GridTagLift;
+        PANEL_BLOCKMON: newtag := GridTagBlockMon;
+        else continue; // oops
+      end;
+      pan.tag := newtag;
+
+      pan.proxyId := mapGrid.insertBody(pan, pan.X, pan.Y, pan.Width, pan.Height, newtag);
       // "enabled" flag has meaning only for doors and walls (engine assumes it); but meh...
       mapGrid.proxyEnabled[pan.proxyId] := pan.Enabled;
       {$IFDEF MAP_DEBUG_ENABLED_FLAG}
@@ -1173,17 +1195,15 @@ begin
 
   mapGrid := TPanelGrid.Create(mapX0-128, mapY0-128, mapX1-mapX0+1+128*2, mapY1-mapY0+1+128*2);
 
-  addPanelsToGrid(gWalls, PANEL_WALL);
-  addPanelsToGrid(gWalls, PANEL_CLOSEDOOR);
-  addPanelsToGrid(gWalls, PANEL_OPENDOOR);
-  addPanelsToGrid(gRenderBackgrounds, PANEL_BACK);
-  addPanelsToGrid(gRenderForegrounds, PANEL_FORE);
-  addPanelsToGrid(gWater, PANEL_WATER);
-  addPanelsToGrid(gAcid1, PANEL_ACID1);
-  addPanelsToGrid(gAcid2, PANEL_ACID2);
-  addPanelsToGrid(gSteps, PANEL_STEP);
-  addPanelsToGrid(gLifts, PANEL_LIFTUP); // it doesn't matter which LIFT type is used here
-  addPanelsToGrid(gBlockMon, PANEL_BLOCKMON);
+  addPanelsToGrid(gWalls);
+  addPanelsToGrid(gRenderBackgrounds);
+  addPanelsToGrid(gRenderForegrounds);
+  addPanelsToGrid(gWater);
+  addPanelsToGrid(gAcid1);
+  addPanelsToGrid(gAcid2);
+  addPanelsToGrid(gSteps);
+  addPanelsToGrid(gLifts); // it doesn't matter which LIFT type is used here
+  addPanelsToGrid(gBlockMon);
 
   mapGrid.dumpStats();
 
@@ -2390,7 +2410,7 @@ begin
   if g_Game_IsServer and g_Game_IsNet then MH_SEND_PanelState(gWalls[ID].PanelType, ID);
 
   {$IFDEF MAP_DEBUG_ENABLED_FLAG}
-  //e_WriteLog(Format('wall #%d(%d) enabled (%d)  (%d,%d)-(%d,%d)', [Integer(ID), Integer(pan.proxyId), Integer(mapGrid.proxyEnabled[pan.proxyId]), pan.x, pan.y, pan.width, pan.height]), MSG_NOTIFY);
+  //e_WriteLog(Format('ENABLE: wall #%d(%d) enabled (%d)  (%d,%d)-(%d,%d)', [Integer(ID), Integer(pan.proxyId), Integer(mapGrid.proxyEnabled[pan.proxyId]), pan.x, pan.y, pan.width, pan.height]), MSG_NOTIFY);
   {$ENDIF}
 end;
 
@@ -2408,7 +2428,7 @@ begin
   if g_Game_IsServer and g_Game_IsNet then MH_SEND_PanelState(pan.PanelType, ID);
 
   {$IFDEF MAP_DEBUG_ENABLED_FLAG}
-  //e_WriteLog(Format('wall #%d(%d) disabled (%d)  (%d,%d)-(%d,%d)', [Integer(ID), Integer(pan.proxyId), Integer(mapGrid.proxyEnabled[pan.proxyId]), pan.x, pan.y, pan.width, pan.height]), MSG_NOTIFY);
+  //e_WriteLog(Format('DISABLE: wall #%d(%d) disabled (%d)  (%d,%d)-(%d,%d)', [Integer(ID), Integer(pan.proxyId), Integer(mapGrid.proxyEnabled[pan.proxyId]), pan.x, pan.y, pan.width, pan.height]), MSG_NOTIFY);
   {$ENDIF}
 end;
 
