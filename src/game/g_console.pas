@@ -415,6 +415,7 @@ begin
   AddCommand('los_enabled', ProfilerCommands, 'enable/disable LOS calculations');
 
   AddCommand('mon_think', ProfilerCommands, 'enable/disable monster thinking');
+  AddCommand('dbg_holmes', ProfilerCommands, 'turn Holmes on/off');
 
   AddCommand('p1_name', GameCVars);
   AddCommand('p2_name', GameCVars);

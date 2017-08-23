@@ -461,7 +461,7 @@ begin
           curMsButState := curMsButState or msev.but;
           msev.bstate := curMsButState;
           msev.kstate := curKbState;
-          g_Holmes_mouseEvent(msev);
+          if (g_holmes_enabled) then g_Holmes_mouseEvent(msev);
         end;
       end;
     SDL_MOUSEWHEEL:
@@ -476,7 +476,7 @@ begin
           msev.y := curMsY;
           msev.bstate := curMsButState;
           msev.kstate := curKbState;
-          g_Holmes_mouseEvent(msev);
+          if (g_holmes_enabled) then g_Holmes_mouseEvent(msev);
         end;
       end;
     SDL_MOUSEMOTION:
@@ -491,7 +491,7 @@ begin
         msev.y := curMsY;
         msev.bstate := curMsButState;
         msev.kstate := curKbState;
-        g_Holmes_mouseEvent(msev);
+        if (g_holmes_enabled) then g_Holmes_mouseEvent(msev);
       end;
 
     SDL_TEXTINPUT:
@@ -822,6 +822,8 @@ begin
     if ParamStr(idx) = '--no-particles-physics' then gpart_dbg_phys_enabled := false;
     if ParamStr(idx) = '--no-particle-phys' then gpart_dbg_phys_enabled := false;
     if ParamStr(idx) = '--no-particle-physics' then gpart_dbg_phys_enabled := false;
+
+    if ParamStr(idx) = '--holmes' then g_holmes_enabled := false;
   end;
 
   //if gdbg_map_use_tree_draw then e_WriteLog('using TREE renderer', MSG_NOTIFY);

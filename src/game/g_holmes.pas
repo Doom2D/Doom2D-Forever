@@ -73,6 +73,10 @@ procedure g_Holmes_plrView (viewPortX, viewPortY, viewPortW, viewPortH: Integer)
 procedure g_Holmes_plrLaser (ax0, ay0, ax1, ay1: Integer);
 
 
+var
+  g_holmes_enabled: Boolean = {$IF DEFINED(D2F_DEBUG)}true{$ELSE}false{$ENDIF};
+
+
 implementation
 
 uses
@@ -204,6 +208,9 @@ procedure plrDebugDraw ();
   procedure drawMonsterInfo (mon: TMonster);
   var
     mx, my, mw, mh: Integer;
+    emx, emy, emw, emh: Integer;
+    enemy: TMonster;
+    eplr: TPlayer;
   begin
     if (mon = nil) then exit;
     mon.getMapBox(mx, my, mw, mh);
@@ -227,6 +234,26 @@ procedure plrDebugDraw ();
     // target
     drawText6(mx, my, Format('TgtUID:%u', [mon.MonsterTargetUID]), 255, 127, 0); my -= 8;
     drawText6(mx, my, Format('TgtTime:%d', [mon.MonsterTargetTime]), 255, 127, 0); my -= 8;
+
+    mon.getMapBox(mx, my, mw, mh);
+    if (g_GetUIDType(mon.MonsterTargetUID) = UID_PLAYER) then
+    begin
+      eplr := g_Player_Get(mon.MonsterTargetUID);
+      if (eplr <> nil) then
+      begin
+        eplr.getMapBox(emx, emy, emw, emh);
+        drawLine(mx+mw div 2, my+mh div 2, emx+emw div 2, emy+emh div 2, 255, 0, 0, 128);
+      end;
+    end
+    else if (g_GetUIDType(mon.MonsterTargetUID) = UID_MONSTER) then
+    begin
+      enemy := g_Monsters_ByUID(mon.MonsterTargetUID);
+      if (enemy <> nil) then
+      begin
+        enemy.getMapBox(emx, emy, emw, emh);
+        drawLine(mx+mw div 2, my+mh div 2, emx+emw div 2, emy+emh div 2, 255, 0, 0, 128);
+      end;
+    end;
 
     {
     property MonsterRemoved: Boolean read FRemoved write FRemoved;

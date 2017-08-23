@@ -419,8 +419,7 @@ var
 begin
   result := 0;
   if (Length(s) = 0) then exit;
-  if (a < 0) then a := 0;
-  if (a > 255) then a := 255;
+  if (a < 0) then a := 0 else if (a > 255) then a := 255;
   if (r < 0) then r := 0 else if (r > 255) then r := 255;
   if (g < 0) then g := 0 else if (g > 255) then g := 255;
   if (b < 0) then b := 0 else if (b > 255) then b := 255;
@@ -459,6 +458,58 @@ begin
   glDisable(GL_TEXTURE_2D);
   glColor4f(1, 1, 1, 1);
   glBindTexture(GL_TEXTURE_2D, 0);
+end;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
+procedure drawLine (x1, y1, x2, y2: Integer; r, g, b: Integer; a: Integer=255);
+
+  procedure lcor (var x1, y1, x2, y2: Integer);
+  begin
+    if (y2 < y1) then
+    begin
+      x1 := x1 xor x2;
+      x2 := x1 xor x2;
+      x1 := x1 xor x2;
+
+      y1 := y1 xor y2;
+      y2 := y1 xor y2;
+      y1 := y1 xor y2;
+    end;
+
+    if (x1 < x2) then Inc(X2) else Inc(x1);
+    Inc(y2);
+  end;
+
+begin
+  lcor(x1, y1, x2, y2);
+
+  if (a < 0) then a := 0 else if (a > 255) then a := 255;
+  if (r < 0) then r := 0 else if (r > 255) then r := 255;
+  if (g < 0) then g := 0 else if (g > 255) then g := 255;
+  if (b < 0) then b := 0 else if (b > 255) then b := 255;
+
+  if (a < 255) then
+  begin
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  end
+  else
+  begin
+    glDisable(GL_BLEND);
+  end;
+
+  glDisable(GL_TEXTURE_2D);
+  glColor4f(r/255.0, g/255.0, b/255.0, a/255.0);
+  glLineWidth(1);
+
+  glBegin(GL_LINES);
+    glVertex2i(x1, y1);
+    glVertex2i(x2, y2);
+  glEnd();
+
+  glColor4f(1, 1, 1, 1);
+  glDisable(GL_BLEND);
 end;
 
 

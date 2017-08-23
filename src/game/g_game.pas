@@ -3255,7 +3255,7 @@ begin
   end;
 
   // draw inspector
-  g_Holmes_Draw();
+  if (g_holmes_enabled) then g_Holmes_Draw();
 
   g_Console_Draw();
 
@@ -4991,7 +4991,12 @@ begin
   if (cmd = 'pr_enabled') then begin binaryFlag(gpart_dbg_enabled, 'particles'); exit; end;
   if (cmd = 'pr_phys_enabled') then begin binaryFlag(gpart_dbg_phys_enabled, 'particle physics'); exit; end;
   if (cmd = 'los_enabled') then begin binaryFlag(gmon_dbg_los_enabled, 'LOS calculations'); exit; end;
+
+  if (not gGameOn) or (not gCheats) or ((gGameSettings.GameType <> GT_SINGLE) and
+     (gGameSettings.GameMode <> GM_COOP) and (not gDebugMode)) or g_Game_IsNet then exit;
+
   if (cmd = 'mon_think') then begin binaryFlag(gmon_debug_think, 'monster thinking'); exit; end;
+  if (cmd = 'dbg_holmes') then begin binaryFlag(g_holmes_enabled, 'Holmes'); exit; end;
 end;
 
 
