@@ -18,6 +18,7 @@
 {$IF DEFINED(D2F_DEBUG)}
   {.$DEFINE D2F_DEBUG_RAYTRACE}
   {.$DEFINE D2F_DEBUG_XXQ}
+  {.$DEFINE D2F_DEBUG_MOVER}
 {$ENDIF}
 unit g_grid;
 
@@ -128,6 +129,8 @@ type
 
     // `false` if `body` is surely invalid
     function getBodyXY (body: TBodyProxyId; out rx, ry: Integer): Boolean; inline;
+    function getBodyWH (body: TBodyProxyId; out rw, rh: Integer): Boolean; inline;
+    function getBodyDims (body: TBodyProxyId; out rx, ry, rw, rh: Integer): Boolean; inline;
 
     //WARNING: don't modify grid while any query is in progress (no checks are made!)
     //         you can set enabled/disabled flag, tho (but iterator can still return objects disabled inside it)
@@ -525,6 +528,41 @@ begin
 end;
 
 
+function TBodyGridBase.getBodyWH (body: TBodyProxyId; out rw, rh: Integer): Boolean; inline;
+begin
+  if (body >= 0) and (body < Length(mProxies)) then
+  begin
+    with mProxies[body] do begin rw := mWidth; rh := mHeight; end;
+    result := true;
+  end
+  else
+  begin
+    rw := 0;
+    rh := 0;
+    result := false;
+  end;
+end;
+
+
+function TBodyGridBase.getBodyDims (body: TBodyProxyId; out rx, ry, rw, rh: Integer): Boolean; inline;
+begin
+  if (body >= 0) and (body < Length(mProxies)) then
+  begin
+    with mProxies[body] do begin rx := mX; ry := mY; rw := mWidth; rh := mHeight; end;
+    result := true;
+  end
+  else
+  begin
+    rx := 0;
+    ry := 0;
+    rw := 0;
+    rh := 0;
+    result := false;
+  end;
+end;
+
+
+
 // ////////////////////////////////////////////////////////////////////////// //
 function TBodyGridBase.getProxyEnabled (pid: TBodyProxyId): Boolean; inline;
 begin
@@ -814,7 +852,15 @@ begin
   y0 := px.mY;
   w := px.mWidth;
   h := px.mHeight;
+  {$IF DEFINED(D2F_DEBUG_MOVER)}
+  e_WriteLog(Format('proxy #%d: MOVERESIZE: xg=%d;yg=%d;w=%d;h=%d;nx=%d;ny=%d;nw=%d;nh=%d', [body, x0-mMinX, y0-mMinY, w, h, nx-mMinX, ny-mMinY, nw, nh]), MSG_NOTIFY);
+  {$ENDIF}
   if (nx = x0) and (ny = y0) and (nw = w) and (nh = h) then exit;
+  // map -> grid
+  Dec(x0, mMinX);
+  Dec(y0, mMinY);
+  Dec(nx, mMinX);
+  Dec(ny, mMinY);
   // did any corner crossed tile boundary?
   if (x0 div mTileSize <> nx div mTileSize) or
      (y0 div mTileSize <> ny div mTileSize) or
@@ -822,16 +868,16 @@ begin
      ((y0+h) div mTileSize <> (ny+nh) div mTileSize) then
   begin
     removeInternal(body);
-    px.mX := nx;
-    px.mY := ny;
+    px.mX := nx+mMinX;
+    px.mY := ny+mMinY;
     px.mWidth := nw;
     px.mHeight := nh;
     insertInternal(body);
   end
   else
   begin
-    px.mX := nx;
-    px.mY := ny;
+    px.mX := nx+mMinX;
+    px.mY := ny+mMinY;
     px.mWidth := nw;
     px.mHeight := nh;
   end;
@@ -856,9 +902,9 @@ begin
   if (nx = x0) and (ny = y0) then exit;
   // map -> grid
   Dec(x0, mMinX);
-  Dec(y0, mMinX);
+  Dec(y0, mMinY);
   Dec(nx, mMinX);
-  Dec(ny, mMinX);
+  Dec(ny, mMinY);
   // check for heavy work
   pw := px.mWidth;
   ph := px.mHeight;
@@ -870,6 +916,9 @@ begin
   ogy1 := (y0+ph-1) div mTileSize;
   ngx1 := (nx+pw-1) div mTileSize;
   ngy1 := (ny+ph-1) div mTileSize;
+  {$IF DEFINED(D2F_DEBUG_MOVER)}
+  e_WriteLog(Format('proxy #%d: checkmove: xg=%d;yg=%d;w=%d;h=%d;nx=%d;ny=%d og:(%d,%d)-(%d,%d); ng:(%d,%d)-(%d,%d)', [body, x0, y0, pw, ph, nx, ny, ogx0, ogy0, ogx1, ogy1, ngx0, ngy0, ngx1, ngy1]), MSG_NOTIFY);
+  {$ENDIF}
   if (ogx0 <> ngx0) or (ogy0 <> ngy0) or (ogx1 <> ngx1) or (ogy1 <> ngy1) then
   begin
     // crossed tile boundary, do heavy work
@@ -877,7 +926,9 @@ begin
     gh := mHeight;
     // cycle with old rect, remove body where it is necessary
     // optimized for horizontal moves
-    //e_WriteLog(Format('og:(%d,%d)-(%d,%d); ng:(%d,%d)-(%d,%d)', [ogx0, ogy0, ogx1, ogy1, ngx0, ngy0, ngx1, ngy1]), MSG_NOTIFY);
+    {$IF DEFINED(D2F_DEBUG_MOVER)}
+    e_WriteLog(Format('proxy #%d: xg=%d;yg=%d;w=%d;h=%d;nx=%d;ny=%d og:(%d,%d)-(%d,%d); ng:(%d,%d)-(%d,%d)', [body, x0, y0, pw, ph, nx, ny, ogx0, ogy0, ogx1, ogy1, ngx0, ngy0, ngx1, ngy1]), MSG_NOTIFY);
+    {$ENDIF}
     // remove stale marks
     if not ((ogy0 >= gh) or (ogy1 < 0)) and
        not ((ogx0 >= gw) or (ogx1 < 0)) then
@@ -886,7 +937,9 @@ begin
       if (ogy0 < 0) then ogy0 := 0;
       if (ogx1 > gw-1) then ogx1 := gw-1;
       if (ogy1 > gh-1) then ogy1 := gh-1;
-      //e_WriteLog(Format(' norm og:(%d,%d)-(%d,%d)', [ogx0, ogy0, ogx1, ogy1]), MSG_NOTIFY);
+      {$IF DEFINED(D2F_DEBUG_MOVER)}
+      e_WriteLog(Format(' norm og:(%d,%d)-(%d,%d)', [ogx0, ogy0, ogx1, ogy1]), MSG_NOTIFY);
+      {$ENDIF}
       for gx := ogx0 to ogx1 do
       begin
         if (gx < ngx0) or (gx > ngx1) then
@@ -894,7 +947,9 @@ begin
           // this column is completely outside of new rect
           for gy := ogy0 to ogy1 do
           begin
-            //e_WriteLog(Format('  remove:(%d,%d)', [gx, gy]), MSG_NOTIFY);
+            {$IF DEFINED(D2F_DEBUG_MOVER)}
+            e_WriteLog(Format('  remove0:(%d,%d)', [gx, gy]), MSG_NOTIFY);
+            {$ENDIF}
             remover(gy*gw+gx, body);
           end;
         end
@@ -905,7 +960,9 @@ begin
           begin
             if (gy < ngy0) or (gy > ngy1) then
             begin
-              //e_WriteLog(Format('  remove:(%d,%d)', [gx, gy]), MSG_NOTIFY);
+              {$IF DEFINED(D2F_DEBUG_MOVER)}
+              e_WriteLog(Format('  remove1:(%d,%d)', [gx, gy]), MSG_NOTIFY);
+              {$ENDIF}
               remover(gy*gw+gx, body);
             end;
           end;
@@ -920,7 +977,9 @@ begin
       if (ngy0 < 0) then ngy0 := 0;
       if (ngx1 > gw-1) then ngx1 := gw-1;
       if (ngy1 > gh-1) then ngy1 := gh-1;
-      //e_WriteLog(Format(' norm ng:(%d,%d)-(%d,%d)', [ngx0, ngy0, ngx1, ngy1]), MSG_NOTIFY);
+      {$IF DEFINED(D2F_DEBUG_MOVER)}
+      e_WriteLog(Format(' norm ng:(%d,%d)-(%d,%d)', [ngx0, ngy0, ngx1, ngy1]), MSG_NOTIFY);
+      {$ENDIF}
       for gx := ngx0 to ngx1 do
       begin
         if (gx < ogx0) or (gx > ogx1) then
@@ -928,7 +987,9 @@ begin
           // this column is completely outside of old rect
           for gy := ngy0 to ngy1 do
           begin
-            //e_WriteLog(Format('  insert:(%d,%d)', [gx, gy]), MSG_NOTIFY);
+            {$IF DEFINED(D2F_DEBUG_MOVER)}
+            e_WriteLog(Format('  insert0:(%d,%d)', [gx, gy]), MSG_NOTIFY);
+            {$ENDIF}
             inserter(gy*gw+gx, body);
           end;
         end
@@ -939,7 +1000,9 @@ begin
           begin
             if (gy < ogy0) or (gy > ogy1) then
             begin
-              //e_WriteLog(Format('  insert:(%d,%d)', [gx, gy]), MSG_NOTIFY);
+              {$IF DEFINED(D2F_DEBUG_MOVER)}
+              e_WriteLog(Format('  insert1:(%d,%d)', [gx, gy]), MSG_NOTIFY);
+              {$ENDIF}
               inserter(gy*gw+gx, body);
             end;
           end;
@@ -947,6 +1010,12 @@ begin
       end;
     end;
     // done
+  end
+  else
+  begin
+    {$IF DEFINED(D2F_DEBUG_MOVER)}
+    e_WriteLog(Format('proxy #%d: GRID OK: xg=%d;yg=%d;w=%d;h=%d;nx=%d;ny=%d og:(%d,%d)-(%d,%d); ng:(%d,%d)-(%d,%d)', [body, x0, y0, pw, ph, nx, ny, ogx0, ogy0, ogx1, ogy1, ngx0, ngy0, ngx1, ngy1]), MSG_NOTIFY);
+    {$ENDIF}
   end;
   // update coordinates
   px.mX := nx+mMinX;
@@ -961,10 +1030,13 @@ begin
   if (body < 0) or (body > High(mProxies)) then exit; // just in case
   // check if tile coords was changed
   px := @mProxies[body];
-  x0 := px.mX;
-  y0 := px.mY;
+  x0 := px.mX-mMinX;
+  y0 := px.mY-mMinY;
   w := px.mWidth;
   h := px.mHeight;
+  {$IF DEFINED(D2F_DEBUG_MOVER)}
+  e_WriteLog(Format('proxy #%d: RESIZE: xg=%d;yg=%d;w=%d;h=%d;nw=%d;nh=%d', [body, x0, y0, w, h, nw, nh]), MSG_NOTIFY);
+  {$ENDIF}
   if ((x0+w) div mTileSize <> (x0+nw) div mTileSize) or
      ((y0+h) div mTileSize <> (y0+nh) div mTileSize) then
   begin

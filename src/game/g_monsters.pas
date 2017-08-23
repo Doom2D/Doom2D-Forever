@@ -14,6 +14,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *)
 {$INCLUDE ../shared/a_modes.inc}
+{.$DEFINE D2F_DEBUG_MONS_MOVE}
 unit g_monsters;
 
 interface
@@ -304,7 +305,8 @@ end;
 //WARNING! call this after monster position was changed, or coldet will not work right!
 procedure TMonster.positionChanged ();
 var
-  x, y: Integer;
+  x, y, w, h: Integer;
+  nx, ny, nw, nh: Integer;
 begin
   {$IF DEFINED(D2F_DEBUG_MONS_MOVE)}
   //e_WriteLog(Format('monster #%d(%u): pos=(%d,%d); rpos=(%d,%d)', [mArrIdx, UID, FObj.X, FObj.Y, FObj.Rect.X, FObj.Rect.Y]), MSG_NOTIFY);
@@ -314,25 +316,35 @@ begin
     mProxyId := monsGrid.insertBody(self, FObj.X+FObj.Rect.X, FObj.Y+FObj.Rect.Y, FObj.Rect.Width, FObj.Rect.Height);
     {$IF DEFINED(D2F_DEBUG_MONS_MOVE)}
     monsGrid.getBodyXY(mProxyId, x, y);
-    e_WriteLog(Format('monster #%d(%u): inserted into the grid; mProxyid=%d; x=%d; y=%d', [mArrIdx, UID, mProxyId, x, y]), MSG_NOTIFY);
+    e_WriteLog(Format('monster #%d:(%u): inserted into the grid; mProxyid=%d; gx=%d; gy=%d', [mArrIdx, UID, mProxyId, x-monsGrid.gridX0, y-monsGrid.gridY0]), MSG_NOTIFY);
     {$ENDIF}
   end
   else
   begin
-    monsGrid.getBodyXY(mProxyId, x, y);
-    if (FObj.X+FObj.Rect.X = x) and (FObj.Y+FObj.Rect.Y = y) then exit; // nothing to do
-    {$IF DEFINED(D2F_DEBUG_MONS_MOVE)}e_WriteLog(Format('monster #%d(%u): updating tree; mProxyid=%d; x=%d; y=%d', [mArrIdx, UID, mProxyId, x, y]), MSG_NOTIFY);{$ENDIF}
+    monsGrid.getBodyDims(mProxyId, x, y, w, h);
+    getMapBox(nx, ny, nw, nh);
 
-    {$IF TRUE}
-    monsGrid.moveBody(mProxyId, FObj.X+FObj.Rect.X, FObj.Y+FObj.Rect.Y);
-    {$ELSE}
-    monsGrid.removeBody(mProxyId);
-    mProxyId := monsGrid.insertBody(self, FObj.X+FObj.Rect.X, FObj.Y+FObj.Rect.Y, FObj.Rect.Width, FObj.Rect.Height);
-    {$ENDIF}
-
+    if (w <> nw) or (h <> nh) then
+    begin
+      {$IF DEFINED(D2F_DEBUG_MONS_MOVE)}
+      e_WriteLog(Format('monster #%d:(%u): resized; mProxyid=%d; gx=%d; gy=%d', [mArrIdx, UID, mProxyId, x-monsGrid.gridX0, y-monsGrid.gridY0]), MSG_NOTIFY);
+      {$ENDIF}
+      monsGrid.moveResizeBody(mProxyId, nx, ny, nw, nh);
+    end
+    else if (x <> nx) or (y <> ny) then
+    begin
+      {$IF DEFINED(D2F_DEBUG_MONS_MOVE)}
+      e_WriteLog(Format('monster #%d:(%u): updating grid; mProxyid=%d; gx=%d; gy=%d', [mArrIdx, UID, mProxyId, x-monsGrid.gridX0, y-monsGrid.gridY0]), MSG_NOTIFY);
+      {$ENDIF}
+      monsGrid.moveBody(mProxyId, nx, ny);
+    end
+    else
+    begin
+      exit; // nothing to do
+    end;
     {$IF DEFINED(D2F_DEBUG_MONS_MOVE)}
     monsGrid.getBodyXY(mProxyId, x, y);
-    e_WriteLog(Format('monster #%d(%u): updated tree; mProxyid=%d; x=%d; y=%d', [mArrIdx, UID, mProxyId, x, y]), MSG_NOTIFY);
+    e_WriteLog(Format('monster #%d:(%u): updated grid; mProxyid=%d; gx=%d; gy=%d', [mArrIdx, UID, mProxyId, x-monsGrid.gridX0, y-monsGrid.gridY0]), MSG_NOTIFY);
     {$ENDIF}
   end;
 end;
@@ -1997,7 +2009,7 @@ begin
     begin
       monsGrid.removeBody(mProxyId);
       {$IF DEFINED(D2F_DEBUG_MONS_MOVE)}
-      e_WriteLog(Format('monster #%d(%u): removed from tree; mProxyid=%d', [mArrIdx, UID, mProxyId]), MSG_NOTIFY);
+      e_WriteLog(Format('monster #%d:(%u): removed from tree; mProxyid=%d', [mArrIdx, UID, mProxyId]), MSG_NOTIFY);
       {$ENDIF}
     end;
     mProxyId := -1;

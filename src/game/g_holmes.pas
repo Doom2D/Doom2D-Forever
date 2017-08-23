@@ -436,6 +436,7 @@ end;
 function g_Holmes_KeyEvent (var ev: THKeyEvent): Boolean;
 var
   mon: TMonster;
+  x, y, w, h: Integer;
 begin
   result := false;
   msB := ev.bstate;
@@ -486,6 +487,18 @@ begin
       begin
         mon := g_Monsters_ByUID(monMarkedUID);
         if (mon <> nil) then mon.WakeUp();
+      end;
+      exit;
+    end;
+    // C-T: teleport player
+    if (ev.scan = SDL_SCANCODE_T) and ((ev.kstate and THKeyEvent.ModCtrl) <> 0) then
+    begin
+      result := true;
+      //e_WriteLog(Format('TELEPORT: (%d,%d)', [pmsCurMapX, pmsCurMapY]), MSG_NOTIFY);
+      if (gPlayers[0] <> nil) then
+      begin
+        gPlayers[0].getMapBox(x, y, w, h);
+        gPlayers[0].TeleportTo(pmsCurMapX-w div 2, pmsCurMapY-h div 2, true, 69); // 69: don't change dir
       end;
       exit;
     end;
