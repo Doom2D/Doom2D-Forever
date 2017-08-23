@@ -316,11 +316,11 @@ var
   g_profile_los: Boolean = false;
   g_profile_history_size: Integer = 1000;
 
-  postdrawMouse: procedure = nil;
 
 procedure g_ResetDynlights ();
 procedure g_AddDynLight (x, y, radius: Integer; r, g, b, a: Single);
 procedure g_DynLightExplosion (x, y, radius: Integer; r, g, b: Single);
+
 
 implementation
 
@@ -331,7 +331,7 @@ uses
   g_triggers, MAPDEF, g_monsters, e_sound, CONFIG,
   BinEditor, g_language, g_net, SDL,
   ENet, e_msg, g_netmsg, g_netmaster, GL, GLExt,
-  utils, sfs;
+  utils, sfs, g_holmes;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
@@ -3254,6 +3254,9 @@ begin
     g_ActiveWindow.Draw();
   end;
 
+  // draw inspector
+  g_Holmes_Draw();
+
   g_Console_Draw();
 
   if g_debug_Sounds and gGameOn then
@@ -3273,8 +3276,6 @@ begin
   e_TextureFontPrint(gScreenWidth-72, 0,
                      Format('%d:%.2d:%.2d', [gTime div 1000 div 3600, (gTime div 1000 div 60) mod 60, gTime div 1000 mod 60]),
                      gStdFont);
-
-  if gGameOn and assigned(postdrawMouse) then postdrawMouse();
 
   if gGameOn then drawProfilers();
 end;

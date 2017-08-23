@@ -89,6 +89,7 @@ uses
   g_triggers in 'g_triggers.pas',
   g_weapons in 'g_weapons.pas',
   g_window in 'g_window.pas',
+  g_holmes in 'g_holmes.pas',
   SysUtils,
 {$IFDEF USE_FMOD}
   fmod in '../lib/FMOD/fmod.pas',

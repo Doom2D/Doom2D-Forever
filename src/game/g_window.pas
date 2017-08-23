@@ -42,23 +42,6 @@ var
   gwin_k8_enable_light_experiments: Boolean = false;
 
 
-// both for but and for bstate
-const
-  MouseLeft = $0001;
-  MouseRight = $0002;
-  MouseMiddle = $0004;
-  MouseWheelUp = $0008;
-  MouseWheelDown = $0010;
-
-type
-  // but=0: motion; but <0: release, do (-but) to get MouseXXX
-  // on press, bstate will contain pressed button; on release it won't
-  TMouseHandler = procedure (x, y, but: Integer; bstate: Integer);
-
-var
-  evMouseCB: TMouseHandler = nil;
-
-
 implementation
 
 uses
@@ -66,7 +49,7 @@ uses
   SDL2, GL, GLExt, e_graphics, e_log, g_main,
   g_console, SysUtils, e_input, g_options, g_game,
   g_basic, g_textures, e_sound, g_sound, g_menu, ENet, g_net,
-  g_map, g_gfx, g_monsters;
+  g_map, g_gfx, g_monsters, g_holmes;
 
 var
   h_Wnd: PSDL_Window;
@@ -87,7 +70,8 @@ var
   ticksOverflow: Int64 = -1;
   lastTicks: Uint32 = 0; // to detect overflow
 {$ENDIF}
-  curMsButState: Integer = 0;
+  curMsButState: Word = 0;
+  curKbState: Word = 0;
   curMsX: Integer = 0;
   curMsY: Integer = 0;
 
@@ -212,6 +196,7 @@ begin
   g_Game_SetupScreenSize();
   g_Menu_Reset();
   g_Game_ClearLoading();
+  g_Holmes_VidModeChanged();
 end;
 
 function g_Window_SetSize(W, H: Word; FScreen: Boolean): Boolean;
@@ -264,6 +249,7 @@ begin
     SDL_WINDOWEVENT_MINIMIZED:
     begin
       curMsButState := 0;
+      curKbState := 0;
       if not wMinimized then
       begin
         e_ResizeWindow(0, 0);
@@ -280,6 +266,8 @@ begin
 
     SDL_WINDOWEVENT_RESIZED:
     begin
+      curMsButState := 0;
+      curKbState := 0;
       gScreenWidth := ev.data1;
       gScreenHeight := ev.data2;
       ChangeWindowSize();
@@ -296,6 +284,8 @@ begin
 
     SDL_WINDOWEVENT_MAXIMIZED:
     begin
+      curMsButState := 0;
+      curKbState := 0;
       if wMinimized then
       begin
         e_ResizeWindow(gScreenWidth, gScreenHeight);
@@ -316,6 +306,7 @@ begin
     SDL_WINDOWEVENT_RESTORED:
     begin
       curMsButState := 0;
+      curKbState := 0;
       if wMinimized then
       begin
         e_ResizeWindow(gScreenWidth, gScreenHeight);
@@ -333,16 +324,20 @@ begin
 
     SDL_WINDOWEVENT_FOCUS_GAINED:
     begin
+      curMsButState := 0;
+      curKbState := 0;
       wActivate := True;
       //e_WriteLog('window gained focus!', MSG_NOTIFY);
-      curMsButState := 0;
+      g_Holmes_WindowFocused();
     end;
 
     SDL_WINDOWEVENT_FOCUS_LOST:
     begin
+      curMsButState := 0;
+      curKbState := 0;
       wDeactivate := True;
       //e_WriteLog('window lost focus!', MSG_NOTIFY);
-      curMsButState := 0;
+      g_Holmes_WindowBlured();
     end;
   end;
 
@@ -398,29 +393,33 @@ var
   key, keychr: Word;
   uc: UnicodeChar;
   //joy: Integer;
-  but: Integer;
+  msev: THMouseEvent;
 
-  function buildBut (b: Byte): Integer;
+  function buildBut (b: Byte): Word;
   begin
     result := 0;
     case b of
-      SDL_BUTTON_LEFT: result := result or MouseLeft;
-      SDL_BUTTON_MIDDLE: result := result or MouseMiddle;
-      SDL_BUTTON_RIGHT: result := result or MouseRight;
+      SDL_BUTTON_LEFT: result := result or THMouseEvent.Left;
+      SDL_BUTTON_MIDDLE: result := result or THMouseEvent.Middle;
+      SDL_BUTTON_RIGHT: result := result or THMouseEvent.Right;
     end;
   end;
 
-  function buildButState (b: Byte): Integer;
+  procedure updateKBState ();
+  var
+    kbstate: PUint8;
   begin
-    result := 0;
-    case b of
-      SDL_BUTTON_LEFT: result := result or MouseLeft;
-      SDL_BUTTON_MIDDLE: result := result or MouseMiddle;
-      SDL_BUTTON_RIGHT: result := result or MouseRight;
-    end;
+    curKbState := 0;
+    kbstate := SDL_GetKeyboardState(nil);
+    if (kbstate[SDL_SCANCODE_LCTRL] <> 0) or (kbstate[SDL_SCANCODE_RCTRL] <> 0) then curKbState := curKbState or THKeyEvent.ModCtrl;
+    if (kbstate[SDL_SCANCODE_LALT] <> 0) or (kbstate[SDL_SCANCODE_RALT] <> 0) then curKbState := curKbState or THKeyEvent.ModAlt;
+    if (kbstate[SDL_SCANCODE_LSHIFT] <> 0) or (kbstate[SDL_SCANCODE_RSHIFT] <> 0) then curKbState := curKbState or THKeyEvent.ModShift;
   end;
+
 begin
   Result := False;
+  updateKBState();
+
   case ev.type_ of
     SDL_WINDOWEVENT:
       Result := WindowEventHandler(ev.window);
@@ -446,49 +445,53 @@ begin
       KeyPress(key);
     end;
 
-    SDL_MOUSEBUTTONDOWN:
+    SDL_MOUSEBUTTONDOWN, SDL_MOUSEBUTTONUP:
       begin
+        msev.dx := ev.button.x-curMsX;
+        msev.dy := ev.button.y-curMsY;
         curMsX := ev.button.x;
         curMsY := ev.button.y;
-        but := buildBut(ev.button.button);
-        if (but <> 0) then
+        if (ev.type_ = SDL_MOUSEBUTTONDOWN) then msev.kind := THMouseEvent.Press else msev.kind := THMouseEvent.Release;
+        msev.but := buildBut(ev.button.button);
+        msev.x := curMsX;
+        msev.y := curMsY;
+        if (msev.but <> 0) then
         begin
           // ev.button.clicks: Byte
-          curMsButState := curMsButState or but;
-          if assigned(evMouseCB) then evMouseCB(ev.button.x, ev.button.y, but, curMsButState);
-        end;
-      end;
-    SDL_MOUSEBUTTONUP:
-      begin
-        curMsX := ev.button.x;
-        curMsY := ev.button.y;
-        but := buildBut(ev.button.button);
-        if (but <> 0) then
-        begin
-          curMsButState := curMsButState and (not but);
-          if assigned(evMouseCB) then evMouseCB(ev.button.x, ev.button.y, -but, curMsButState);
+          curMsButState := curMsButState or msev.but;
+          msev.bstate := curMsButState;
+          msev.kstate := curKbState;
+          g_Holmes_mouseEvent(msev);
         end;
       end;
     SDL_MOUSEWHEEL:
       begin
-        if assigned(evMouseCB) then
+        if (ev.wheel.y <> 0) then
         begin
-          (*
-          if (ev.wheel.direction = SDL_MOUSEWHEEL_FLIPPED) then
-          begin
-            ev.wheel.x := -ev.wheel.x;
-            ev.wheel.y := -ev.wheel.y;
-          end;
-          *)
-          if (ev.wheel.y > 0) then evMouseCB(curMsX, curMsY, MouseWheelUp, curMsButState);
-          if (ev.wheel.y < 0) then evMouseCB(curMsX, curMsY, MouseWheelDown, curMsButState);
+          msev.dx := 0;
+          msev.dy := ev.wheel.y;
+          msev.kind := THMouseEvent.Press;
+          if (ev.wheel.y < 0) then msev.but := THMouseEvent.WheelUp else msev.but := THMouseEvent.WheelDown;
+          msev.x := curMsX;
+          msev.y := curMsY;
+          msev.bstate := curMsButState;
+          msev.kstate := curKbState;
+          g_Holmes_mouseEvent(msev);
         end;
       end;
     SDL_MOUSEMOTION:
       begin
-        curMsX := ev.motion.x;
-        curMsY := ev.motion.y;
-        if assigned(evMouseCB) then evMouseCB(curMsX, curMsY, 0, curMsButState);
+        msev.dx := ev.button.x-curMsX;
+        msev.dy := ev.button.y-curMsY;
+        curMsX := ev.button.x;
+        curMsY := ev.button.y;
+        msev.kind := THMouseEvent.Motion;
+        msev.but := 0;
+        msev.x := curMsX;
+        msev.y := curMsY;
+        msev.bstate := curMsButState;
+        msev.kstate := curKbState;
+        g_Holmes_mouseEvent(msev);
       end;
 
     SDL_TEXTINPUT:
