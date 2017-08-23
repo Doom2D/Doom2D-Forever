@@ -541,6 +541,7 @@ end;
 function TBodyGridBase.allocCell (): Integer;
 var
   idx: Integer;
+  pc: PGridCell;
 begin
   if (mFreeCell < 0) then
   begin
@@ -550,14 +551,16 @@ begin
     for idx := mFreeCell to High(mCells) do
     begin
       mCells[idx].bodies[0] := -1;
+      mCells[idx].bodies[High(TGridCell.bodies)] := -1; // 'has free room' flag
       mCells[idx].next := idx+1;
     end;
     mCells[High(mCells)].next := -1; // last cell
   end;
   result := mFreeCell;
-  mFreeCell := mCells[result].next;
-  mCells[result].next := -1;
-  mCells[result].bodies[0] := -1;
+  pc := @mCells[result];
+  mFreeCell := pc.next;
+  pc.next := -1;
+  //pc.bodies[0] := -1;
   Inc(mUsedCells);
   //e_WriteLog(Format('grid: allocated new cell #%d (total: %d)', [result, mUsedCells]), MSG_NOTIFY);
 end;
@@ -567,9 +570,12 @@ procedure TBodyGridBase.freeCell (idx: Integer);
 begin
   if (idx >= 0) and (idx < Length(mCells)) then
   begin
-    //if mCells[idx].body = -1 then exit; // the thing that should not be
-    mCells[idx].bodies[0] := -1;
-    mCells[idx].next := mFreeCell;
+    with mCells[idx] do
+    begin
+      bodies[0] := -1;
+      bodies[High(TGridCell.bodies)] := -1; // 'has free room' flag
+      next := mFreeCell;
+    end;
     mFreeCell := idx;
     Dec(mUsedCells);
   end;
@@ -663,23 +669,27 @@ begin
   if (pc <> -1) then
   begin
     pi := @mCells[pc];
-    f := 0;
-    for f := 0 to High(TGridCell.bodies) do
+    if (pi.bodies[High(TGridCell.bodies)] = -1) then
     begin
-      if (pi.bodies[f] = -1) then
+      // can add here
+      for f := 0 to High(TGridCell.bodies) do
       begin
-        // can add here
-        pi.bodies[f] := bodyId;
-        if (f+1 < Length(TGridCell.bodies)) then pi.bodies[f+1] := -1;
-        exit;
+        if (pi.bodies[f] = -1) then
+        begin
+          pi.bodies[f] := bodyId;
+          if (f+1 < Length(TGridCell.bodies)) then pi.bodies[f+1] := -1;
+          exit;
+        end;
       end;
+      raise Exception.Create('internal error in grid inserter');
     end;
   end;
   // either no room, or no cell at all
   cidx := allocCell();
-  mCells[cidx].bodies[0] := bodyId;
-  mCells[cidx].bodies[1] := -1;
-  mCells[cidx].next := pc;
+  pi := @mCells[cidx];
+  pi.bodies[0] := bodyId;
+  pi.bodies[1] := -1;
+  pi.next := pc;
   mGrid[grida] := cidx;
 end;
 
@@ -693,23 +703,21 @@ begin
 end;
 
 
-// absolutely not tested
+// assume that we cannot have one object added to bucket twice
 function TBodyGridBase.remover (grida: Integer; bodyId: TBodyProxyId): Boolean;
 var
-  f: Integer;
-  pidx, idx, tmp: Integer;
+  f, c: Integer;
+  pidx, cidx: Integer;
   pc: PGridCell;
 begin
   result := false; // never stop
   // find and remove cell
-  pidx := -1;
-  idx := mGrid[grida];
-  while (idx >= 0) do
+  pidx := -1; // previous cell index
+  cidx := mGrid[grida]; // current cell index
+  while (cidx <> -1) do
   begin
-    tmp := mCells[idx].next;
-    pc := @mCells[idx];
-    f := 0;
-    while (f < High(TGridCell.bodies)) do
+    pc := @mCells[cidx];
+    for f := 0 to High(TGridCell.bodies) do
     begin
       if (pc.bodies[f] = bodyId) then
       begin
@@ -717,28 +725,22 @@ begin
         if (f = 0) and (pc.bodies[1] = -1) then
         begin
           // this cell contains no elements, remove it
-          tmp := mCells[idx].next;
-          if (pidx = -1) then mGrid[grida] := tmp else mCells[pidx].next := tmp;
-          freeCell(idx);
-        end
-        else
-        begin
-          // remove element from bucket
-          Inc(f);
-          while (f < High(TGridCell.bodies)) do
-          begin
-            pc.bodies[f-1] := pc.bodies[f];
-            if (pc.bodies[f] = -1) then break;
-            Inc(f);
-          end;
-          pc.bodies[High(TGridCell.bodies)] := -1; // just in case
+          if (pidx = -1) then mGrid[grida] := pc.next else mCells[pidx].next := pc.next;
+          freeCell(cidx);
+          exit;
         end;
-        exit; // assume that we cannot have one object added to bucket twice
+        // remove element from bucket
+        for c := f to High(TGridCell.bodies)-1 do
+        begin
+          pc.bodies[c] := pc.bodies[c+1];
+          if (pc.bodies[c] = -1) then break;
+        end;
+        pc.bodies[High(TGridCell.bodies)] := -1; // "has free room" flag
+        exit;
       end;
-      Inc(f);
     end;
-    pidx := idx;
-    idx := tmp;
+    pidx := cidx;
+    cidx := pc.next;
   end;
 end;
 
@@ -805,10 +807,16 @@ begin
   end;
 end;
 
+//TODO: optimize for horizontal/vertical moves
 procedure TBodyGridBase.moveBody (body: TBodyProxyId; nx, ny: Integer);
 var
   px: PBodyProxyRec;
   x0, y0: Integer;
+  ogx0, ogx1, ogy0, ogy1: Integer; // old grid rect
+  ngx0, ngx1, ngy0, ngy1: Integer; // new grid rect
+  gx, gy: Integer;
+  gw, gh: Integer;
+  pw, ph: Integer;
 begin
   if (body < 0) or (body > High(mProxies)) then exit; // just in case
   // check if tile coords was changed
@@ -816,20 +824,103 @@ begin
   x0 := px.mX;
   y0 := px.mY;
   if (nx = x0) and (ny = y0) then exit;
-  if (nx div mTileSize <> x0 div mTileSize) or (ny div mTileSize <> y0 div mTileSize) then
+  // map -> grid
+  Dec(x0, mMinX);
+  Dec(y0, mMinX);
+  Dec(nx, mMinX);
+  Dec(ny, mMinX);
+  // check for heavy work
+  pw := px.mWidth;
+  ph := px.mHeight;
+  ogx0 := x0 div mTileSize;
+  ogy0 := y0 div mTileSize;
+  ngx0 := nx div mTileSize;
+  ngy0 := ny div mTileSize;
+  ogx1 := (x0+pw-1) div mTileSize;
+  ogy1 := (y0+ph-1) div mTileSize;
+  ngx1 := (nx+pw-1) div mTileSize;
+  ngy1 := (ny+ph-1) div mTileSize;
+  if (ogx0 <> ngx0) or (ogy0 <> ngy0) or (ogx1 <> ngx1) or (ogy1 <> ngy1) then
   begin
     // crossed tile boundary, do heavy work
-    removeInternal(body);
-    px.mX := nx;
-    px.mY := ny;
-    insertInternal(body);
-  end
-  else
-  begin
-    // nothing to do with the grid, just fix coordinates
-    px.mX := nx;
-    px.mY := ny;
+    gw := mWidth;
+    gh := mHeight;
+    // cycle with old rect, remove body where it is necessary
+    // optimized for horizontal moves
+    //e_WriteLog(Format('og:(%d,%d)-(%d,%d); ng:(%d,%d)-(%d,%d)', [ogx0, ogy0, ogx1, ogy1, ngx0, ngy0, ngx1, ngy1]), MSG_NOTIFY);
+    // remove stale marks
+    if not ((ogy0 >= gh) or (ogy1 < 0)) and
+       not ((ogx0 >= gw) or (ogx1 < 0)) then
+    begin
+      if (ogx0 < 0) then ogx0 := 0;
+      if (ogy0 < 0) then ogy0 := 0;
+      if (ogx1 > gw-1) then ogx1 := gw-1;
+      if (ogy1 > gh-1) then ogy1 := gh-1;
+      //e_WriteLog(Format(' norm og:(%d,%d)-(%d,%d)', [ogx0, ogy0, ogx1, ogy1]), MSG_NOTIFY);
+      for gx := ogx0 to ogx1 do
+      begin
+        if (gx < ngx0) or (gx > ngx1) then
+        begin
+          // this column is completely outside of new rect
+          for gy := ogy0 to ogy1 do
+          begin
+            //e_WriteLog(Format('  remove:(%d,%d)', [gx, gy]), MSG_NOTIFY);
+            remover(gy*gw+gx, body);
+          end;
+        end
+        else
+        begin
+          // heavy checks
+          for gy := ogy0 to ogy1 do
+          begin
+            if (gy < ngy0) or (gy > ngy1) then
+            begin
+              //e_WriteLog(Format('  remove:(%d,%d)', [gx, gy]), MSG_NOTIFY);
+              remover(gy*gw+gx, body);
+            end;
+          end;
+        end;
+      end;
+    end;
+    // cycle with new rect, add body where it is necessary
+    if not ((ngy0 >= gh) or (ngy1 < 0)) and
+       not ((ngx0 >= gw) or (ngx1 < 0)) then
+    begin
+      if (ngx0 < 0) then ngx0 := 0;
+      if (ngy0 < 0) then ngy0 := 0;
+      if (ngx1 > gw-1) then ngx1 := gw-1;
+      if (ngy1 > gh-1) then ngy1 := gh-1;
+      //e_WriteLog(Format(' norm ng:(%d,%d)-(%d,%d)', [ngx0, ngy0, ngx1, ngy1]), MSG_NOTIFY);
+      for gx := ngx0 to ngx1 do
+      begin
+        if (gx < ogx0) or (gx > ogx1) then
+        begin
+          // this column is completely outside of old rect
+          for gy := ngy0 to ngy1 do
+          begin
+            //e_WriteLog(Format('  insert:(%d,%d)', [gx, gy]), MSG_NOTIFY);
+            inserter(gy*gw+gx, body);
+          end;
+        end
+        else
+        begin
+          // heavy checks
+          for gy := ngy0 to ngy1 do
+          begin
+            if (gy < ogy0) or (gy > ogy1) then
+            begin
+              //e_WriteLog(Format('  insert:(%d,%d)', [gx, gy]), MSG_NOTIFY);
+              inserter(gy*gw+gx, body);
+            end;
+          end;
+        end;
+      end;
+    end;
+    // done
   end;
+  // update coordinates
+  px.mX := nx+mMinX;
+  px.mY := ny+mMinY;
 end;
 
 procedure TBodyGridBase.resizeBody (body: TBodyProxyId; nw, nh: Integer);

@@ -394,6 +394,7 @@ var
   uc: UnicodeChar;
   //joy: Integer;
   msev: THMouseEvent;
+  kbev: THKeyEvent;
 
   function buildBut (b: Byte): Word;
   begin
@@ -425,25 +426,35 @@ begin
       Result := WindowEventHandler(ev.window);
 
     SDL_QUITEV:
-    begin
-      if gExit <> EXIT_QUIT then
       begin
-        if not wLoadingProgress then
+        if gExit <> EXIT_QUIT then
         begin
-          g_Game_Free();
-          g_Game_Quit();
-        end
-        else
-          wLoadingQuit := True;
+          if not wLoadingProgress then
+          begin
+            g_Game_Free();
+            g_Game_Quit();
+          end
+          else
+            wLoadingQuit := True;
+        end;
+        Result := True;
       end;
-      Result := True;
-    end;
 
-    SDL_KEYDOWN:
-    begin
-      key := ev.key.keysym.scancode;
-      KeyPress(key);
-    end;
+    SDL_KEYDOWN,
+    SDL_KEYUP:
+      begin
+        key := ev.key.keysym.scancode;
+        if (g_holmes_enabled) then
+        begin
+          if (ev.type_ = SDL_KEYDOWN) then kbev.kind := THKeyEvent.Press else kbev.kind := THKeyEvent.Release;
+          kbev.scan := ev.key.keysym.scancode;
+          kbev.sym := ev.key.keysym.sym;
+          kbev.bstate := curMsButState;
+          kbev.kstate := curKbState;
+          if g_Holmes_keyEvent(kbev) then exit;
+        end;
+        if (ev.type_ = SDL_KEYDOWN) then KeyPress(key);
+      end;
 
     SDL_MOUSEBUTTONDOWN, SDL_MOUSEBUTTONUP:
       begin
@@ -495,13 +506,12 @@ begin
       end;
 
     SDL_TEXTINPUT:
-    begin
-      Utf8ToUnicode(@uc, PChar(ev.text.text), 1);
-      keychr := Word(uc);
-      if (keychr > 127) then
-        keychr := WCharToCP1251(keychr);
-      CharPress(Chr(keychr));
-    end;
+      begin
+        Utf8ToUnicode(@uc, PChar(ev.text.text), 1);
+        keychr := Word(uc);
+        if (keychr > 127) then keychr := WCharToCP1251(keychr);
+        CharPress(Chr(keychr));
+      end;
 
     // other key presses and joysticks are handled in e_input
   end;

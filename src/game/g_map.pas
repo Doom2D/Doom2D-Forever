@@ -1130,7 +1130,7 @@ var
     pan: TPanel;
   begin
     tag := panelTypeToTag(tag);
-    for idx := High(panels) downto 0 do
+    for idx := 0 to High(panels) do
     begin
       pan := panels[idx];
       pan.tag := tag;

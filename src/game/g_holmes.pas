@@ -37,15 +37,15 @@ type
       WheelDown = $0010;
 
       // event types
-      Motion = 0;
+      Release = 0;
       Press = 1;
-      Release = 2;
+      Motion = 2;
 
   public
     kind: Byte; // motion, press, release
     x, y: Integer;
     dx, dy: Integer; // for wheel this is wheel motion, otherwise this is relative mouse motion
-    but: Word; // current pressed button or 0
+    but: Word; // current pressed/released button, or 0 for motion
     bstate: Word; // button state
     kstate: Word; // keyboard state (see THKeyEvent);
   end;
@@ -53,9 +53,21 @@ type
   THKeyEvent = record
   public
     const
+      // modifiers
       ModCtrl = $0001;
       ModAlt = $0002;
       ModShift = $0004;
+
+      // event types
+      Release = 0;
+      Press = 1;
+
+  public
+    kind: Byte;
+    scan: Word; // SDL_SCANCODE_XXX
+    sym: Word; // SDLK_XXX
+    bstate: Word; // button state
+    kstate: Word; // keyboard state
   end;
 
 
@@ -80,7 +92,7 @@ var
 implementation
 
 uses
-  SysUtils, GL,
+  SysUtils, GL, SDL2,
   MAPDEF, g_options;
 
 
@@ -90,6 +102,7 @@ var
   msY: Integer = -666;
   msB: Word = 0; // button state
   kbS: Word = 0; // keyboard modifiers state
+  showMonsInfo: Boolean = false;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
@@ -252,9 +265,36 @@ procedure plrDebugDraw ();
   procedure drawMonsterInfo (mon: TMonster);
   var
     mx, my, mw, mh: Integer;
-    emx, emy, emw, emh: Integer;
-    enemy: TMonster;
-    eplr: TPlayer;
+
+    procedure drawMonsterTargetLine ();
+    var
+      emx, emy, emw, emh: Integer;
+      enemy: TMonster;
+      eplr: TPlayer;
+      ex, ey: Integer;
+    begin
+      if (g_GetUIDType(mon.MonsterTargetUID) = UID_PLAYER) then
+      begin
+        eplr := g_Player_Get(mon.MonsterTargetUID);
+        if (eplr <> nil) then eplr.getMapBox(emx, emy, emw, emh) else exit;
+      end
+      else if (g_GetUIDType(mon.MonsterTargetUID) = UID_MONSTER) then
+      begin
+        enemy := g_Monsters_ByUID(mon.MonsterTargetUID);
+        if (enemy <> nil) then enemy.getMapBox(emx, emy, emw, emh) else exit;
+      end
+      else
+      begin
+        exit;
+      end;
+      mon.getMapBox(mx, my, mw, mh);
+      drawLine(mx+mw div 2, my+mh div 2, emx+emw div 2, emy+emh div 2, 255, 0, 0, 128);
+      if (g_Map_traceToNearestWall(mx+mw div 2, my+mh div 2, emx+emw div 2, emy+emh div 2, @ex, @ey) <> nil) then
+      begin
+        drawLine(mx+mw div 2, my+mh div 2, ex, ey, 0, 255, 0, 128);
+      end;
+    end;
+
   begin
     if (mon = nil) then exit;
     mon.getMapBox(mx, my, mw, mh);
@@ -262,7 +302,7 @@ procedure plrDebugDraw ();
 
     monsGrid.forEachBodyCell(mon.proxyId, hilightCell);
 
-    if ((kbS and THKeyEvent.ModCtrl) <> 0) then
+    if showMonsInfo then
     begin
       //fillRect(mx-4, my-7*8-6, 110, 7*8+6, 0, 0, 94, 250);
       shadeRect(mx-4, my-7*8-6, 110, 7*8+6, 128);
@@ -282,29 +322,9 @@ procedure plrDebugDraw ();
       // target
       drawText6(mx, my, Format('TgtUID:%u', [mon.MonsterTargetUID]), 255, 127, 0); my -= 8;
       drawText6(mx, my, Format('TgtTime:%d', [mon.MonsterTargetTime]), 255, 127, 0); my -= 8;
-
-      mon.getMapBox(mx, my, mw, mh);
     end;
 
-    if (g_GetUIDType(mon.MonsterTargetUID) = UID_PLAYER) then
-    begin
-      eplr := g_Player_Get(mon.MonsterTargetUID);
-      if (eplr <> nil) then
-      begin
-        eplr.getMapBox(emx, emy, emw, emh);
-        drawLine(mx+mw div 2, my+mh div 2, emx+emw div 2, emy+emh div 2, 255, 0, 0, 128);
-      end;
-    end
-    else if (g_GetUIDType(mon.MonsterTargetUID) = UID_MONSTER) then
-    begin
-      enemy := g_Monsters_ByUID(mon.MonsterTargetUID);
-      if (enemy <> nil) then
-      begin
-        enemy.getMapBox(emx, emy, emw, emh);
-        drawLine(mx+mw div 2, my+mh div 2, emx+emw div 2, emy+emh div 2, 255, 0, 0, 128);
-      end;
-    end;
-
+    drawMonsterTargetLine();
     {
     property MonsterRemoved: Boolean read FRemoved write FRemoved;
     property MonsterPain: Integer read FPain write FPain;
@@ -360,6 +380,33 @@ end;
 function g_Holmes_KeyEvent (var ev: THKeyEvent): Boolean;
 begin
   result := false;
+  msB := ev.bstate;
+  kbS := ev.kstate;
+  case ev.scan of
+    SDL_SCANCODE_LCTRL, SDL_SCANCODE_RCTRL,
+    SDL_SCANCODE_LALT, SDL_SCANCODE_RALT,
+    SDL_SCANCODE_LSHIFT, SDL_SCANCODE_RSHIFT:
+      result := true;
+  end;
+  // press
+  if (ev.kind = THKeyEvent.Press) then
+  begin
+    // M-M: one monster think step
+    if (ev.scan = SDL_SCANCODE_M) and ((ev.kstate and THKeyEvent.ModAlt) <> 0) then
+    begin
+      result := true;
+      gmon_debug_think := false;
+      gmon_debug_one_think_step := true; // do one step
+      exit;
+    end;
+    // M-I: toggle monster info
+    if (ev.scan = SDL_SCANCODE_I) and ((ev.kstate and THKeyEvent.ModAlt) <> 0) then
+    begin
+      result := true;
+      showMonsInfo := not showMonsInfo;
+      exit;
+    end;
+  end;
 end;
 
 

@@ -241,6 +241,7 @@ var
 
 var
   gmon_debug_think: Boolean = true;
+  gmon_debug_one_think_step: Boolean = false;
 
 
 implementation
@@ -1290,8 +1291,9 @@ begin
 
   gMon := True; // Для работы BlockMon'а
 
-  if (gmon_debug_think) then
+  if gmon_debug_think or gmon_debug_one_think_step then
   begin
+    gmon_debug_one_think_step := false;
     for a := 0 to High(gMonsters) do
     begin
       if (gMonsters[a] = nil) then continue;
