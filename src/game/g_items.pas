@@ -463,7 +463,7 @@ var
 begin
   if ForcedID < 0 then find_id := allocItem() else find_id := wantItemSlot(ForcedID);
 
-  {$IF DEFINED(D2F_DEBUG)}e_WriteLog(Format('allocated item #%d', [Integer(find_id)]), MSG_NOTIFY);{$ENDIF}
+  //{$IF DEFINED(D2F_DEBUG)}e_WriteLog(Format('allocated item #%d', [Integer(find_id)]), MSG_NOTIFY);{$ENDIF}
 
   it := @ggItems[find_id];
 

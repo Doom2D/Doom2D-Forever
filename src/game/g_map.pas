@@ -1139,10 +1139,12 @@ var
       // "enabled" flag has meaning only for doors and walls (engine assumes it); but meh...
       mapGrid.proxyEnabled[pan.proxyId] := pan.Enabled;
       {$IFDEF MAP_DEBUG_ENABLED_FLAG}
+      {
       if ((tag and (GridTagWall or GridTagDoor)) <> 0) then
       begin
         e_WriteLog(Format('INSERTED wall #%d(%d) enabled (%d)', [Integer(idx), Integer(pan.proxyId), Integer(mapGrid.proxyEnabled[pan.proxyId])]), MSG_NOTIFY);
       end;
+      }
       {$ENDIF}
     end;
   end;

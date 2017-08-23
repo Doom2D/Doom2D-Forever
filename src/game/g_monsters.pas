@@ -200,6 +200,8 @@ function g_Mons_ByIdx (uid: Integer): TMonster; inline;
 // can return null
 function g_Mons_ByIdx_NC (uid: Integer): TMonster; inline;
 
+function g_Mons_TotalCount (): Integer; inline;
+
 function g_Mons_IsAnyAliveAt (x, y: Integer; width, height: Integer): Boolean;
 
 function g_Mons_ForEach (cb: TEachMonsterCB): Boolean;
@@ -4489,12 +4491,16 @@ begin
   if (result = nil) then raise Exception.Create('g_Mons_ByIdx: invalid monster id');
 end;
 
-
 // can return null
 function g_Mons_ByIdx_NC (uid: Integer): TMonster; inline;
 begin
   if (uid < 0) or (uid > High(gMonsters)) then begin result := nil; exit; end;
   result := gMonsters[uid];
+end;
+
+function g_Mons_TotalCount (): Integer; inline;
+begin
+  result := Length(gMonsters);
 end;
 
 

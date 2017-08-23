@@ -395,6 +395,7 @@ begin
   for idx := 0 to High(mCells) do
   begin
     mCells[idx].bodies[0] := -1;
+    mCells[idx].bodies[GridCellBucketSize-1] := -1; // "has free room" flag
     mCells[idx].next := idx+1;
   end;
   mCells[High(mCells)].next := -1; // last cell
@@ -446,7 +447,6 @@ procedure TBodyGridBase.forEachBodyCell (body: TBodyProxyId; cb: TCellQueryCB);
 var
   g, f, cidx: Integer;
   cc: PGridCell;
-  //px: PBodyProxyRec;
 begin
   if (body < 0) or (body > High(mProxies)) or not assigned(cb) then exit;
   for g := 0 to High(mGrid) do
@@ -455,11 +455,10 @@ begin
     while (cidx <> -1) do
     begin
       cc := @mCells[cidx];
-      for f := 0 to High(TGridCell.bodies) do
+      for f := 0 to GridCellBucketSize-1 do
       begin
         if (cc.bodies[f] = -1) then break;
         if (cc.bodies[f] = body) then cb((g mod mWidth)*mTileSize+mMinX, (g div mWidth)*mTileSize+mMinY);
-        //px := @mProxies[cc.bodies[f]];
       end;
       // next cell
       cidx := cc.next;
@@ -482,7 +481,7 @@ begin
   while (cidx <> -1) do
   begin
     cc := @mCells[cidx];
-    for f := 0 to High(TGridCell.bodies) do
+    for f := 0 to GridCellBucketSize-1 do
     begin
       if (cc.bodies[f] = -1) then break;
       if cb(mProxies[cc.bodies[f]].mObj, mProxies[cc.bodies[f]].mTag) then begin result := mProxies[cc.bodies[f]].mObj; exit; end;
@@ -560,7 +559,7 @@ begin
     for idx := mFreeCell to High(mCells) do
     begin
       mCells[idx].bodies[0] := -1;
-      mCells[idx].bodies[High(TGridCell.bodies)] := -1; // 'has free room' flag
+      mCells[idx].bodies[GridCellBucketSize-1] := -1; // 'has free room' flag
       mCells[idx].next := idx+1;
     end;
     mCells[High(mCells)].next := -1; // last cell
@@ -569,7 +568,6 @@ begin
   pc := @mCells[result];
   mFreeCell := pc.next;
   pc.next := -1;
-  //pc.bodies[0] := -1;
   Inc(mUsedCells);
   //e_WriteLog(Format('grid: allocated new cell #%d (total: %d)', [result, mUsedCells]), MSG_NOTIFY);
 end;
@@ -582,7 +580,7 @@ begin
     with mCells[idx] do
     begin
       bodies[0] := -1;
-      bodies[High(TGridCell.bodies)] := -1; // 'has free room' flag
+      bodies[GridCellBucketSize-1] := -1; // 'has free room' flag
       next := mFreeCell;
     end;
     mFreeCell := idx;
@@ -678,15 +676,16 @@ begin
   if (pc <> -1) then
   begin
     pi := @mCells[pc];
-    if (pi.bodies[High(TGridCell.bodies)] = -1) then
+    // check "has room" flag
+    if (pi.bodies[GridCellBucketSize-1] = -1) then
     begin
       // can add here
-      for f := 0 to High(TGridCell.bodies) do
+      for f := 0 to GridCellBucketSize-1 do
       begin
         if (pi.bodies[f] = -1) then
         begin
           pi.bodies[f] := bodyId;
-          if (f+1 < Length(TGridCell.bodies)) then pi.bodies[f+1] := -1;
+          if (f+1 < GridCellBucketSize) then pi.bodies[f+1] := -1;
           exit;
         end;
       end;
@@ -726,7 +725,7 @@ begin
   while (cidx <> -1) do
   begin
     pc := @mCells[cidx];
-    for f := 0 to High(TGridCell.bodies) do
+    for f := 0 to GridCellBucketSize-1 do
     begin
       if (pc.bodies[f] = bodyId) then
       begin
@@ -739,12 +738,12 @@ begin
           exit;
         end;
         // remove element from bucket
-        for c := f to High(TGridCell.bodies)-1 do
+        for c := f to GridCellBucketSize-2 do
         begin
           pc.bodies[c] := pc.bodies[c+1];
           if (pc.bodies[c] = -1) then break;
         end;
-        pc.bodies[High(TGridCell.bodies)] := -1; // "has free room" flag
+        pc.bodies[GridCellBucketSize-1] := -1; // "has free room" flag
         exit;
       end;
     end;
@@ -753,7 +752,6 @@ begin
   end;
 end;
 
-// absolutely not tested
 procedure TBodyGridBase.removeInternal (body: TBodyProxyId);
 var
   px: PBodyProxyRec;
@@ -1000,7 +998,7 @@ begin
   while (curci <> -1) do
   begin
     cc := @mCells[curci];
-    for f := 0 to High(TGridCell.bodies) do
+    for f := 0 to GridCellBucketSize-1 do
     begin
       if (cc.bodies[f] = -1) then break;
       px := @mProxies[cc.bodies[f]];
@@ -1087,7 +1085,7 @@ begin
       while (curci <> -1) do
       begin
         cc := @mCells[curci];
-        for f := 0 to High(TGridCell.bodies) do
+        for f := 0 to GridCellBucketSize-1 do
         begin
           if (cc.bodies[f] = -1) then break;
           px := @mProxies[cc.bodies[f]];
@@ -1392,7 +1390,7 @@ begin
       while (curci <> -1) do
       begin
         cc := @mCells[curci];
-        for f := 0 to High(TGridCell.bodies) do
+        for f := 0 to GridCellBucketSize-1 do
         begin
           if (cc.bodies[f] = -1) then break;
           px := @mProxies[cc.bodies[f]];
@@ -1672,7 +1670,7 @@ begin
       while (curci <> -1) do
       begin
         cc := @mCells[curci];
-        for f := 0 to High(TGridCell.bodies) do
+        for f := 0 to GridCellBucketSize-1 do
         begin
           if (cc.bodies[f] = -1) then break;
           px := @mProxies[cc.bodies[f]];

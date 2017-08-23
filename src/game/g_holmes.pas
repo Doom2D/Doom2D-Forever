@@ -104,6 +104,7 @@ var
   kbS: Word = 0; // keyboard modifiers state
   showMonsInfo: Boolean = false;
   showMonsLOS2Plr: Boolean = false;
+  showAllMonsCells: Boolean = false;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
@@ -372,6 +373,12 @@ procedure plrDebugDraw ();
     }
   end;
 
+  function highlightAllMonsterCells (mon: TMonster): Boolean;
+  begin
+    result := false; // don't stop
+    monsGrid.forEachBodyCell(mon.proxyId, hilightCell);
+  end;
+
 var
   mon: TMonster;
   mx, my, mw, mh: Integer;
@@ -398,6 +405,8 @@ begin
       drawMonsterInfo(mon);
     end;
   end;
+
+  if showAllMonsCells then g_Mons_ForEach(highlightAllMonsterCells);
 
   //e_DrawPoint(16, laserX0, laserY0, 255, 255, 255);
 
@@ -451,6 +460,13 @@ begin
     begin
       result := true;
       showMonsLOS2Plr := not showMonsLOS2Plr;
+      exit;
+    end;
+    // M-G: toggle "show all cells occupied by monsters"
+    if (ev.scan = SDL_SCANCODE_G) and ((ev.kstate and THKeyEvent.ModAlt) <> 0) then
+    begin
+      result := true;
+      showAllMonsCells := not showAllMonsCells;
       exit;
     end;
   end;
