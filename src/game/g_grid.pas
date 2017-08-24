@@ -87,6 +87,10 @@ type
     mProxyCount: Integer; // currently used
     mProxyMaxCount: Integer;
 
+  private
+    // optimized horizontal tracer
+    //function traceRayHOpt (out ex, ey: Integer; const ax0, ay0, ax1, ay1, x0, len, dx: Integer; cb: TGridRayQueryCB; tagmask: Integer): ITP;
+
   public
     dbgShowTraceLog: Boolean;
     {$IF DEFINED(D2F_DEBUG)}
@@ -1282,6 +1286,8 @@ var
   lq: LongWord;
   f, ptag, distSq: Integer;
   x0, y0, x1, y1: Integer;
+  // horizontal walker
+  wklen, wkstep, wkpos: Integer;
 begin
   result := Default(ITP);
   lastObj := Default(ITP);
@@ -1491,10 +1497,6 @@ begin
   //if assigned(dbgRayTraceTileHitCB) then e_WriteLog('1:TRACING!', MSG_NOTIFY);
   {$ENDIF}
 
-  {$IF DEFINED(D2F_DEBUG_RAYTRACE)}
-  if assigned(dbgRayTraceTileHitCB) then dbgRayTraceTileHitCB((xptr^ div tsize*tsize)+minx, (yptr^ div tsize*tsize)+miny);
-  {$ENDIF}
-
   //if (dbgShowTraceLog) then e_WriteLog(Format('raycast start: (%d,%d)-(%d,%d); xptr^=%d; yptr^=%d', [ax0, ay0, ax1, ay1, xptr^, yptr^]), MSG_NOTIFY);
 
   // increase query counter
@@ -1507,8 +1509,149 @@ begin
   end;
   lq := mLastQuery;
 
+  // if this is strict horizontal/vertical trace, use optimized codepath
+  if (ay0 = ay1) then
+  begin
+    //if dbgShowTraceLog then e_LogWritefln('!!!', []);
+    // horizontal trace
+    // for horizontal traces, we'll walk the whole tiles, calculating mindist once for each proxy in cell
+    // one step:
+    // while (xd <> term) do
+    //   if (e >= 0) then begin yd += sty; e -= dx2; end else e += dy2;
+    //   xd += stx;
+    if (stx < 0) then wklen := -(term-xd) else wklen := term-xd;
+    {$IF DEFINED(D2F_DEBUG)}
+    if dbgShowTraceLog then e_LogWritefln('optimized htrace; wklen=%d', [wklen]);
+    {$ENDIF}
+    ga := (yptr^ div tsize)*gw+(xptr^ div tsize);
+    y := yptr^+miny; // it will never change
+    {$IF DEFINED(D2F_DEBUG)}
+    if (y <> ay0) then raise Exception.Create('htrace fatal internal error');
+    {$ENDIF}
+    while (wklen > 0) do
+    begin
+      {$IF DEFINED(D2F_DEBUG)}
+      if dbgShowTraceLog then e_LogWritefln('  htrace; ga=%d; x=%d; y=%d; y=%d; y=%d', [ga, xptr^+minx, yptr^+miny, y, ay0]);
+      {$ENDIF}
+      // new tile?
+      if (ga <> lastGA) then
+      begin
+        lastGA := ga;
+        ccidx := mGrid[lastGA];
+        // convert coords to map (to avoid ajdusting coords inside the loop)
+        x := xptr^+minx;
+        while (ccidx <> -1) do
+        begin
+          cc := @mCells[ccidx];
+          for f := 0 to GridCellBucketSize-1 do
+          begin
+            if (cc.bodies[f] = -1) then break;
+            px := @mProxies[cc.bodies[f]];
+            ptag := px.mTag;
+            if ((ptag and TagDisabled) = 0) and ((ptag and tagmask) <> 0) and (px.mQueryMark <> lq) and
+               (y >= px.mY) and (y < px.mY+px.mHeight) then // y should be inside
+            begin
+              px.mQueryMark := lq; // mark as processed
+              // inside the proxy; something that should not be
+              if (x > px.mX) and (x < px.mX+px.mWidth-1) then
+              begin
+                //raise Exception.Create('abosultely impossible embedding in htrace');
+                if assigned(cb) then
+                begin
+                  if cb(px.mObj, ptag, x, y, x, y) then
+                  begin
+                    result := lastObj;
+                    ex := prevx;
+                    ey := prevy;
+                    exit;
+                  end;
+                end
+                else
+                begin
+                  distSq := distanceSq(ax0, ay0, x, y);
+                  {$IF DEFINED(D2F_DEBUG)}
+                  if dbgShowTraceLog then e_LogWritefln('  EMBEDDED hhit(%d): a=(%d,%d), h=(%d,%d), distsq=%d; lastsq=%d', [cc.bodies[f], ax0, ay0, x, y, distSq, lastDistSq]);
+                  {$ENDIF}
+                  if (distSq < lastDistSq) then
+                  begin
+                    ex := x;
+                    ey := y;
+                    result := px.mObj;
+                    exit;
+                  end;
+                end;
+                continue;
+              end;
+              // remember this hitpoint if it is nearer than an old one
+              if (stx < 0) then wkpos := px.mX+px.mWidth else wkpos := px.mX-1;
+              if assigned(cb) then
+              begin
+                if (stx < 0) then x := wkpos+1 else x := wkpos-1;
+                if cb(px.mObj, ptag, x, y, wkpos, y) then
+                begin
+                  result := lastObj;
+                  ex := prevx;
+                  ey := prevy;
+                  exit;
+                end;
+              end
+              else
+              begin
+                distSq := distanceSq(ax0, ay0, wkpos, y);
+                {$IF DEFINED(D2F_DEBUG)}
+                if dbgShowTraceLog then e_LogWritefln('  hhit(%d): a=(%d,%d), h=(%d,%d), p=(%d,%d), distsq=%d; lastsq=%d', [cc.bodies[f], ax0, ay0, x, y, wkpos, y, distSq, lastDistSq]);
+                {$ENDIF}
+                if (distSq < lastDistSq) then
+                begin
+                  wasHit := true;
+                  lastDistSq := distSq;
+                  ex := wkpos;
+                  ey := y;
+                  lastObj := px.mObj;
+                end;
+              end;
+            end;
+          end;
+          // next cell
+          ccidx := cc.next;
+        end;
+        if wasHit and not assigned(cb) then begin result := lastObj; exit; end;
+      end;
+      // skip to next tile
+      if (ax0 < ax1) then
+      begin
+        // to the right
+        wkstep := ((xptr^ or (mTileSize-1))+1)-xptr^;
+        {$IF DEFINED(D2F_DEBUG)}
+        if dbgShowTraceLog then e_LogWritefln('  right step: wklen=%d; wkstep=%d', [wklen, wkstep]);
+        {$ENDIF}
+        if (wkstep >= wklen) then break;
+        Inc(xptr^, wkstep);
+        Inc(ga);
+      end
+      else
+      begin
+        // to the left
+        wkstep := xptr^-((xptr^ and (not (mTileSize-1)))-1);
+        {$IF DEFINED(D2F_DEBUG)}
+        if dbgShowTraceLog then e_LogWritefln('  left step: wklen=%d; wkstep=%d', [wklen, wkstep]);
+        {$ENDIF}
+        if (wkstep >= wklen) then break;
+        Dec(xptr^, wkstep);
+        Dec(ga);
+      end;
+    end;
+    // we can travel less than one cell
+    if wasHit and not assigned(cb) then result := lastObj else begin ex := ax1; ey := ay1; end;
+    exit;
+  end;
+
+  {$IF DEFINED(D2F_DEBUG_RAYTRACE)}
+  if assigned(dbgRayTraceTileHitCB) then dbgRayTraceTileHitCB((xptr^ div tsize*tsize)+minx, (yptr^ div tsize*tsize)+miny);
+  {$ENDIF}
+
   ccidx := -1;
-  // draw it; can omit checks
+  //  can omit checks
   while (xd <> term) do
   begin
     // check cell(s)

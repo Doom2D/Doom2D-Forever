@@ -446,6 +446,7 @@ var
   pan: TPanel;
   x, y, w, h: Integer;
   ex, ey: Integer;
+  dx, dy: Integer;
 
   procedure dummyWallTrc (cx, cy: Integer);
   begin
@@ -530,19 +531,29 @@ begin
       showGrid := not showGrid;
       exit;
     end;
-    // C-DOWN: trace down 10 pixels from cursor
-    if (ev.scan = SDL_SCANCODE_DOWN) and ((ev.kstate and THKeyEvent.ModCtrl) <> 0) then
+    // C-UP, C-DOWN, C-LEFT, C-RIGHT: trace 10 pixels from cursor in the respective direction
+    if ((ev.scan = SDL_SCANCODE_UP) or (ev.scan = SDL_SCANCODE_DOWN) or (ev.scan = SDL_SCANCODE_LEFT) or (ev.scan = SDL_SCANCODE_RIGHT)) and
+       ((ev.kstate and THKeyEvent.ModCtrl) <> 0) then
     begin
       result := true;
+      dx := pmsCurMapX;
+      dy := pmsCurMapY;
+      case ev.scan of
+        SDL_SCANCODE_UP: dy -= 120;
+        SDL_SCANCODE_DOWN: dy += 120;
+        SDL_SCANCODE_LEFT: dx -= 120;
+        SDL_SCANCODE_RIGHT: dx += 120;
+      end;
       {$IF DEFINED(D2F_DEBUG)}
-      mapGrid.dbgRayTraceTileHitCB := dummyWallTrc;
+      //mapGrid.dbgRayTraceTileHitCB := dummyWallTrc;
+      mapGrid.dbgShowTraceLog := true;
       {$ENDIF}
-      pan := g_Map_traceToNearest(pmsCurMapX, pmsCurMapY, pmsCurMapX, pmsCurMapY+10, (GridTagWall or GridTagDoor or GridTagStep or GridTagAcid1 or GridTagAcid2 or GridTagWater), @ex, @ey);
+      pan := g_Map_traceToNearest(pmsCurMapX, pmsCurMapY, dx, dy, (GridTagWall or GridTagDoor or GridTagStep or GridTagAcid1 or GridTagAcid2 or GridTagWater), @ex, @ey);
       {$IF DEFINED(D2F_DEBUG)}
-      mapGrid.dbgRayTraceTileHitCB := nil;
+      //mapGrid.dbgRayTraceTileHitCB := nil;
+      mapGrid.dbgShowTraceLog := false;
       {$ENDIF}
-      e_LogWritefln('v-trace: (%d,%d)-(%d,%d); end=(%d,%d); hit=%d', [pmsCurMapX, pmsCurMapY, pmsCurMapX, pmsCurMapY+10, ex, ey, (pan <> nil)]);
-      //conwritefln('!!!v-trace: (%d,%d)-(%d,%d); end=(%d,%d); hit=%d', [pmsCurMapX, pmsCurMapY, pmsCurMapX, pmsCurMapY+10, ex, ey, (pan <> nil)]);
+      e_LogWritefln('v-trace: (%d,%d)-(%d,%d); end=(%d,%d); hit=%d', [pmsCurMapX, pmsCurMapY, dx, dy, ex, ey, (pan <> nil)]);
       exit;
     end;
   end;
