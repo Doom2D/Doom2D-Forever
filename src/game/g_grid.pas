@@ -1287,7 +1287,8 @@ var
   f, ptag, distSq: Integer;
   x0, y0, x1, y1: Integer;
   // horizontal walker
-  wklen, wkstep, wkpos: Integer;
+  wklen, wkstep: Integer;
+  hopt: Boolean;
 begin
   result := Default(ITP);
   lastObj := Default(ITP);
@@ -1509,29 +1510,36 @@ begin
   end;
   lq := mLastQuery;
 
-  // if this is strict horizontal/vertical trace, use optimized codepath
-  if (ay0 = ay1) then
+  // if this is strict horizontal trace, use optimized codepath
+  if (ax0 = ax1) or (ay0 = ay1) then
   begin
-    //if dbgShowTraceLog then e_LogWritefln('!!!', []);
-    // horizontal trace
-    // for horizontal traces, we'll walk the whole tiles, calculating mindist once for each proxy in cell
-    // one step:
-    // while (xd <> term) do
-    //   if (e >= 0) then begin yd += sty; e -= dx2; end else e += dy2;
-    //   xd += stx;
+    // horizontal trace: walk the whole tiles, calculating mindist once for each proxy in cell
+    //   stx < 0: going left, otherwise `stx` is > 0, and we're going right
+    // vertical trace: walk the whole tiles, calculating mindist once for each proxy in cell
+    // stx < 0: going up, otherwise `stx` is > 0, and we're going down
+    hopt := (ay0 = ay1); // horizontal?
     if (stx < 0) then wklen := -(term-xd) else wklen := term-xd;
     {$IF DEFINED(D2F_DEBUG)}
     if dbgShowTraceLog then e_LogWritefln('optimized htrace; wklen=%d', [wklen]);
     {$ENDIF}
     ga := (yptr^ div tsize)*gw+(xptr^ div tsize);
-    y := yptr^+miny; // it will never change
+    // one of those will never change
+    x := xptr^+minx;
+    y := yptr^+miny;
     {$IF DEFINED(D2F_DEBUG)}
-    if (y <> ay0) then raise Exception.Create('htrace fatal internal error');
+    if hopt then
+    begin
+      if (y <> ay0) then raise Exception.Create('htrace fatal internal error');
+    end
+    else
+    begin
+      if (x <> ax0) then raise Exception.Create('vtrace fatal internal error');
+    end;
     {$ENDIF}
     while (wklen > 0) do
     begin
       {$IF DEFINED(D2F_DEBUG)}
-      if dbgShowTraceLog then e_LogWritefln('  htrace; ga=%d; x=%d; y=%d; y=%d; y=%d', [ga, xptr^+minx, yptr^+miny, y, ay0]);
+      if dbgShowTraceLog then e_LogWritefln('  htrace; ga=%d; x=%d, y=%d; y=%d; y=%d', [ga, xptr^+minx, yptr^+miny, y, ay0]);
       {$ENDIF}
       // new tile?
       if (ga <> lastGA) then
@@ -1539,7 +1547,7 @@ begin
         lastGA := ga;
         ccidx := mGrid[lastGA];
         // convert coords to map (to avoid ajdusting coords inside the loop)
-        x := xptr^+minx;
+        if hopt then x := xptr^+minx else y := yptr^+miny;
         while (ccidx <> -1) do
         begin
           cc := @mCells[ccidx];
@@ -1549,13 +1557,15 @@ begin
             px := @mProxies[cc.bodies[f]];
             ptag := px.mTag;
             if ((ptag and TagDisabled) = 0) and ((ptag and tagmask) <> 0) and (px.mQueryMark <> lq) and
-               (y >= px.mY) and (y < px.mY+px.mHeight) then // y should be inside
+               // constant coord should be inside
+               ((hopt and (y >= px.mY) and (y < px.mY+px.mHeight)) or
+                ((not hopt) and (x >= px.mX) and (x < px.mX+px.mWidth))) then
             begin
               px.mQueryMark := lq; // mark as processed
-              // inside the proxy; something that should not be
-              if (x > px.mX) and (x < px.mX+px.mWidth-1) then
+              // inside the proxy?
+              if (hopt and (x > px.mX) and (x < px.mX+px.mWidth-1)) or
+                 ((not hopt) and (y > px.mY) and (y < px.mY+px.mHeight-1)) then
               begin
-                //raise Exception.Create('abosultely impossible embedding in htrace');
                 if assigned(cb) then
                 begin
                   if cb(px.mObj, ptag, x, y, x, y) then
@@ -1565,6 +1575,7 @@ begin
                     ey := prevy;
                     exit;
                   end;
+                  x := xptr^+minx;
                 end
                 else
                 begin
@@ -1583,30 +1594,70 @@ begin
                 continue;
               end;
               // remember this hitpoint if it is nearer than an old one
-              if (stx < 0) then wkpos := px.mX+px.mWidth else wkpos := px.mX-1;
+              if hopt then
+              begin
+                prevy := y;
+                if (stx < 0) then
+                begin
+                  // going left
+                  if (x < px.mX) then continue;
+                  prevx := px.mX+px.mWidth;
+                end
+                else
+                begin
+                  // going right
+                  if (x > px.mX{+px.mWidth}) then continue;
+                  prevx := px.mX-1;
+                end;
+              end
+              else
+              begin
+                prevx := x;
+                if (stx < 0) then
+                begin
+                  // going up
+                  if (y < px.mY) then continue;
+                  prevy := px.mY+px.mHeight;
+                end
+                else
+                begin
+                  // going down
+                  if (y > px.mY{+px.mHeight}) then continue;
+                  prevy := px.mY-1;
+                end;
+              end;
               if assigned(cb) then
               begin
-                if (stx < 0) then x := wkpos+1 else x := wkpos-1;
-                if cb(px.mObj, ptag, x, y, wkpos, y) then
+                if (stx < 0) then
+                begin
+                  if hopt then x := prevx-1 else y := prevy-1;
+                end
+                else
+                begin
+                  if hopt then x := prevx+1 else y := prevy+1;
+                end;
+                if cb(px.mObj, ptag, x, y, prevx, prevy) then
                 begin
                   result := lastObj;
                   ex := prevx;
                   ey := prevy;
                   exit;
                 end;
+                x := xptr^+minx;
+                y := yptr^+miny;
               end
               else
               begin
-                distSq := distanceSq(ax0, ay0, wkpos, y);
+                distSq := distanceSq(ax0, ay0, prevx, prevy);
                 {$IF DEFINED(D2F_DEBUG)}
-                if dbgShowTraceLog then e_LogWritefln('  hhit(%d): a=(%d,%d), h=(%d,%d), p=(%d,%d), distsq=%d; lastsq=%d', [cc.bodies[f], ax0, ay0, x, y, wkpos, y, distSq, lastDistSq]);
+                if dbgShowTraceLog then e_LogWritefln('  hhit(%d): a=(%d,%d), h=(%d,%d), p=(%d,%d), distsq=%d; lastsq=%d', [cc.bodies[f], ax0, ay0, x, y, prevx, prevy, distSq, lastDistSq]);
                 {$ENDIF}
                 if (distSq < lastDistSq) then
                 begin
                   wasHit := true;
                   lastDistSq := distSq;
-                  ex := wkpos;
-                  ey := y;
+                  ex := prevx;
+                  ey := prevy;
                   lastObj := px.mObj;
                 end;
               end;
@@ -1618,28 +1669,57 @@ begin
         if wasHit and not assigned(cb) then begin result := lastObj; exit; end;
       end;
       // skip to next tile
-      if (ax0 < ax1) then
+      if hopt then
       begin
-        // to the right
-        wkstep := ((xptr^ or (mTileSize-1))+1)-xptr^;
-        {$IF DEFINED(D2F_DEBUG)}
-        if dbgShowTraceLog then e_LogWritefln('  right step: wklen=%d; wkstep=%d', [wklen, wkstep]);
-        {$ENDIF}
-        if (wkstep >= wklen) then break;
-        Inc(xptr^, wkstep);
-        Inc(ga);
+        if (stx > 0) then
+        begin
+          // to the right
+          wkstep := ((xptr^ or (mTileSize-1))+1)-xptr^;
+          {$IF DEFINED(D2F_DEBUG)}
+          if dbgShowTraceLog then e_LogWritefln('  right step: wklen=%d; wkstep=%d', [wklen, wkstep]);
+          {$ENDIF}
+          if (wkstep >= wklen) then break;
+          Inc(xptr^, wkstep);
+          Inc(ga);
+        end
+        else
+        begin
+          // to the left
+          wkstep := xptr^-((xptr^ and (not (mTileSize-1)))-1);
+          {$IF DEFINED(D2F_DEBUG)}
+          if dbgShowTraceLog then e_LogWritefln('  left step: wklen=%d; wkstep=%d', [wklen, wkstep]);
+          {$ENDIF}
+          if (wkstep >= wklen) then break;
+          Dec(xptr^, wkstep);
+          Dec(ga);
+        end;
       end
       else
       begin
-        // to the left
-        wkstep := xptr^-((xptr^ and (not (mTileSize-1)))-1);
-        {$IF DEFINED(D2F_DEBUG)}
-        if dbgShowTraceLog then e_LogWritefln('  left step: wklen=%d; wkstep=%d', [wklen, wkstep]);
-        {$ENDIF}
-        if (wkstep >= wklen) then break;
-        Dec(xptr^, wkstep);
-        Dec(ga);
+        if (stx > 0) then
+        begin
+          // to the down
+          wkstep := ((yptr^ or (mTileSize-1))+1)-yptr^;
+          {$IF DEFINED(D2F_DEBUG)}
+          if dbgShowTraceLog then e_LogWritefln('  down step: wklen=%d; wkstep=%d', [wklen, wkstep]);
+          {$ENDIF}
+          if (wkstep >= wklen) then break;
+          Inc(yptr^, wkstep);
+          Inc(ga, mHeight);
+        end
+        else
+        begin
+          // to the up
+          wkstep := yptr^-((yptr^ and (not (mTileSize-1)))-1);
+          {$IF DEFINED(D2F_DEBUG)}
+          if dbgShowTraceLog then e_LogWritefln('  up step: wklen=%d; wkstep=%d', [wklen, wkstep]);
+          {$ENDIF}
+          if (wkstep >= wklen) then break;
+          Dec(yptr^, wkstep);
+          Dec(ga, mHeight);
+        end;
       end;
+      Dec(wklen, wkstep);
     end;
     // we can travel less than one cell
     if wasHit and not assigned(cb) then result := lastObj else begin ex := ax1; ey := ay1; end;
