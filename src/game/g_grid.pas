@@ -139,13 +139,13 @@ type
 
     //WARNING: don't modify grid while any query is in progress (no checks are made!)
     //         you can set enabled/disabled flag, tho (but iterator can still return objects disabled inside it)
-    // no callback: return `true` on the first hit
-    function forEachAtPoint (x, y: Integer; cb: TGridQueryCB; tagmask: Integer=-1): ITP;
+    // no callback: return object on the first hit or nil
+    function forEachAtPoint (x, y: Integer; cb: TGridQueryCB; tagmask: Integer=-1; exittag: PInteger=nil): ITP;
 
     //WARNING: don't modify grid while any query is in progress (no checks are made!)
     //         you can set enabled/disabled flag, tho (but iterator can still return objects disabled inside it)
     // cb with `(nil)` will be called before processing new tile
-    // no callback: return `true` on the nearest hit
+    // no callback: return object of the nearest hit or nil
     //WARNING: don't change tags in callbacks here!
     function traceRay (const x0, y0, x1, y1: Integer; cb: TGridRayQueryCB; tagmask: Integer=-1): ITP; overload;
     function traceRay (out ex, ey: Integer; const ax0, ay0, ax1, ay1: Integer; cb: TGridRayQueryCB; tagmask: Integer=-1): ITP;
@@ -1057,7 +1057,7 @@ end;
 
 // ////////////////////////////////////////////////////////////////////////// //
 // no callback: return `true` on the first hit
-function TBodyGridBase.forEachAtPoint (x, y: Integer; cb: TGridQueryCB; tagmask: Integer=-1): ITP;
+function TBodyGridBase.forEachAtPoint (x, y: Integer; cb: TGridQueryCB; tagmask: Integer=-1; exittag: PInteger=nil): ITP;
 var
   f: Integer;
   idx, curci: Integer;
@@ -1067,6 +1067,7 @@ var
   ptag: Integer;
 begin
   result := Default(ITP);
+  if (exittag <> nil) then exittag^ := 0;
   tagmask := tagmask and TagFullMask;
   if (tagmask = 0) then exit;
 
@@ -1126,11 +1127,17 @@ begin
         begin
           if assigned(cb) then
           begin
-            if cb(px.mObj, ptag) then begin result := px.mObj; exit; end;
+            if cb(px.mObj, ptag) then
+            begin
+              result := px.mObj;
+              if (exittag <> nil) then exittag^ := ptag;
+              exit;
+            end;
           end
           else
           begin
             result := px.mObj;
+            if (exittag <> nil) then exittag^ := ptag;
             exit;
           end;
         end;
@@ -1279,7 +1286,31 @@ begin
   ey := ay1; // why not?
   if (tagmask = 0) then exit;
 
-  if (ax0 = ax1) and (ay0 = ay1) then exit; // as the first point is ignored, just get outta here
+  if (ax0 = ax1) and (ay0 = ay1) then
+  begin
+    result := forEachAtPoint(ax0, ay0, nil, tagmask, @ptag);
+    if (result <> nil) then
+    begin
+      if assigned(cb) then
+      begin
+        if cb(result, ptag, ax0, ay0, ax0, ay0) then
+        begin
+          ex := ax0;
+          ey := ay0;
+        end
+        else
+        begin
+          result := nil;
+        end;
+      end
+      else
+      begin
+        ex := ax0;
+        ey := ay0;
+      end;
+    end;
+    exit;
+  end;
 
   lastDistSq := distanceSq(ax0, ay0, ax1, ay1)+1;
 
@@ -1425,7 +1456,32 @@ begin
 
   // first move, to skip starting point
   // DON'T DO THIS! loop will take care of that
-  if (xd = term) then exit;
+  if (xd = term) then
+  begin
+    result := forEachAtPoint(ax0, ay0, nil, tagmask, @ptag);
+    if (result <> nil) then
+    begin
+      if assigned(cb) then
+      begin
+        if cb(result, ptag, ax0, ay0, ax0, ay0) then
+        begin
+          ex := ax0;
+          ey := ay0;
+        end
+        else
+        begin
+          result := nil;
+        end;
+      end
+      else
+      begin
+        ex := ax0;
+        ey := ay0;
+      end;
+    end;
+    exit;
+  end;
+
   prevx := xptr^+minx;
   prevy := yptr^+miny;
   (*
@@ -1473,6 +1529,9 @@ begin
     {$ENDIF}
     // new tile?
     ga := (yptr^ div tsize)*gw+(xptr^ div tsize);
+    {$IF DEFINED(D2F_DEBUG_RAYTRACE)}
+    if assigned(dbgRayTraceTileHitCB) then e_WriteLog(Format(' xd=%d; term=%d; gx=%d; gy=%d; ga=%d; lastga=%d', [xd, term, xptr^, yptr^, ga, lastGA]), MSG_NOTIFY);
+    {$ENDIF}
     if (ga <> lastGA) then
     begin
       // yes
@@ -1592,6 +1651,16 @@ begin
     prevy := yptr^+miny;
     if (e >= 0) then begin yd += sty; e -= dx2; end else e += dy2;
     xd += stx;
+  end;
+  // we can travel less than one cell
+  if wasHit and not assigned(cb) then
+  begin
+    result := lastObj;
+  end
+  else
+  begin
+    ex := ax1; // why not?
+    ey := ay1; // why not?
   end;
 end;
 
