@@ -120,7 +120,8 @@ begin
   for f := 1 to ParamCount do
   begin
          if ParamStr(f) = '--gdb' then noct := true
-    else if ParamStr(f) = '--log' then conbufDumpToStdOut := true;
+    else if ParamStr(f) = '--log' then conbufDumpToStdOut := true
+    else if ParamStr(f) = '--safe-log' then e_SetSafeSlowLog(true);
   end;
   if noct then
   begin

@@ -31,6 +31,8 @@ type
 procedure e_InitLog (fFileName: String; fWriteMode: TWriteMode);
 procedure e_DeinitLog ();
 
+procedure e_SetSafeSlowLog (slowAndSafe: Boolean);
+
 procedure e_WriteLog (TextLine: String; RecordCategory: TRecordCategory; WriteTime: Boolean=True);
 
 function DecodeIPV4 (ip: LongWord): string;
@@ -146,6 +148,19 @@ var
   xlogPrefix: AnsiString;
   xlogLastWasEOL: Boolean = false;
   xlogWantSpace: Boolean = false;
+  xlogSlowAndSafe: Boolean = false;
+
+
+procedure e_SetSafeSlowLog (slowAndSafe: Boolean);
+begin
+  xlogSlowAndSafe := slowAndSafe;
+  if xlogSlowAndSafe and xlogFileOpened then
+  begin
+    CloseFile(xlogFile);
+    xlogFileOpened := false;
+  end;
+end;
+
 
 procedure logwriter (constref buf; len: SizeUInt);
 var
@@ -246,6 +261,12 @@ begin
   xlogWantSpace := true; // after prefix
   formatstrf(fmt, args, logwriter);
   if not xlogLastWasEOL then writeln(xlogFile, '') else writeln(xlogFile, xlogPrefix);
+
+  if xlogSlowAndSafe and xlogFileOpened then
+  begin
+    CloseFile(xlogFile);
+    xlogFileOpened := false;
+  end;
 
   //if fopened then CloseFile(xlogFile);
 end;
