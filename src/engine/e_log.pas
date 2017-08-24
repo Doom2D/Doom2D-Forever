@@ -29,12 +29,16 @@ type
 
 
 procedure e_InitLog (fFileName: String; fWriteMode: TWriteMode);
-procedure e_WriteLog (TextLine: String; RecordCategory: TRecordCategory; WriteTime: Boolean=True);
-function DecodeIPV4 (ip: LongWord): string;
+procedure e_DeinitLog ();
 
+procedure e_WriteLog (TextLine: String; RecordCategory: TRecordCategory; WriteTime: Boolean=True);
+
+function DecodeIPV4 (ip: LongWord): string;
 
 // start Write/WriteLn driver. it will write everything to cbuf.
 procedure e_InitWritelnDriver ();
+
+procedure e_LogWritefln (const fmt: AnsiString; args: array of const; category: TRecordCategory=MSG_NOTIFY; writeTime: Boolean=true);
 
 
 var
@@ -44,8 +48,7 @@ var
 implementation
 
 uses
-  conbuf;
-
+  conbuf, utils;
 
 var
   FirstRecord: Boolean;
@@ -60,6 +63,10 @@ end;
 
 
 procedure e_WriteLog (TextLine: String; RecordCategory: TRecordCategory; WriteTime: Boolean=True);
+begin
+  e_LogWritefln('%s', [TextLine], RecordCategory, WriteTime);
+end;
+(*
 var
   LogFile: TextFile;
   Prefix: ShortString = '';
@@ -106,19 +113,164 @@ begin
   except // sorry
   end;
 end;
+*)
+
+
+// returns formatted string if `writerCB` is `nil`, empty string otherwise
+//function formatstrf (const fmt: AnsiString; args: array of const; writerCB: TFormatStrFCallback=nil): AnsiString;
+//TFormatStrFCallback = procedure (constref buf; len: SizeUInt);
+
+procedure conwriter (constref buf; len: SizeUInt);
+var
+  ss: ShortString;
+  slen: Integer;
+  b: PByte;
+begin
+  if (len < 1) then exit;
+  b := PByte(@buf);
+  while (len > 0) do
+  begin
+    if (len > 255) then slen := 255 else slen := Integer(len);
+    Move(b^, ss[1], len);
+    ss[0] := AnsiChar(slen);
+    write(ss);
+    b += slen;
+    len -= slen;
+  end;
+end;
+
+
+var
+  xlogFile: TextFile;
+  xlogFileOpened: Boolean = false;
+  xlogPrefix: AnsiString;
+  xlogLastWasEOL: Boolean = false;
+  xlogWantSpace: Boolean = false;
+
+procedure logwriter (constref buf; len: SizeUInt);
+var
+  ss: ShortString;
+  slen: Integer;
+  b: PByte;
+begin
+  if (len < 1) then exit;
+  b := PByte(@buf);
+  if xlogLastWasEOL then
+  begin
+    write(xlogFile, xlogPrefix);
+    xlogLastWasEOL := false;
+    xlogWantSpace := true;
+  end;
+  while (len > 0) do
+  begin
+    slen := 0;
+    while (slen < len) and (slen < 255) and (b[slen] <> 13) and (b[slen] <> 10) do Inc(slen);
+    // print string
+    if (slen > 0) then
+    begin
+      if xlogWantSpace then begin write(xlogFile, ' '); xlogWantSpace := false; end;
+      Move(b^, ss[1], len);
+      ss[0] := AnsiChar(slen);
+      write(xlogFile, ss);
+      b += slen;
+      len -= slen;
+      continue;
+    end;
+    // process newline
+    if (len > 0) and ((b[0] = 13) or (b[0] = 10)) then
+    begin
+      if (len > 1) and (b[0] = 13) and (b[1] = 10) then
+      begin
+        len -= 2;
+        b += 2;
+      end
+      else
+      begin
+        len -= 1;
+        b += 1;
+      end;
+      xlogLastWasEOL := false;
+      writeln(xlogFile, '');
+      write(xlogFile, xlogPrefix);
+    end;
+  end;
+end;
+
+
+procedure e_LogWritefln (const fmt: AnsiString; args: array of const; category: TRecordCategory=MSG_NOTIFY; writeTime: Boolean=true);
+
+  procedure xwrite (const s: AnsiString);
+  begin
+    if (Length(s) = 0) then exit;
+    logwriter(PAnsiChar(s)^, Length(s));
+  end;
+
+begin
+  if driverInited and (length(fmt) > 0) then
+  begin
+    case category of
+      MSG_FATALERROR: write('FATAL: ');
+      MSG_WARNING: write('WARNING: ');
+    end;
+    formatstrf(fmt, args, conwriter);
+    writeln;
+  end;
+
+  if (FileName = '') then exit;
+
+  if not xlogFileOpened then
+  begin
+    AssignFile(xlogFile, FileName);
+    try
+      if FileExists(FileName) then Append(xlogFile) else Rewrite(xlogFile);
+      xlogFileOpened := true;
+    except // sorry
+      exit;
+    end;
+  end;
+
+  if FirstRecord then
+  begin
+    writeln(xlogFile, '--- Log started at ', TimeToStr(Time), ' ---');
+    FirstRecord := false;
+  end;
+
+  xlogPrefix := '';
+  if writeTime then begin xlogPrefix += '['; xlogPrefix += TimeToStr(Time); xlogPrefix += '] '; end;
+  case category of
+    MSG_FATALERROR: xlogPrefix += '!!!';
+    MSG_WARNING: xlogPrefix += '!  ';
+    MSG_NOTIFY: xlogPrefix += '***';
+  end;
+  xlogLastWasEOL := true; // to output prefix
+  xlogWantSpace := true; // after prefix
+  formatstrf(fmt, args, logwriter);
+  if not xlogLastWasEOL then writeln(xlogFile, '') else writeln(xlogFile, xlogPrefix);
+
+  //if fopened then CloseFile(xlogFile);
+end;
 
 
 procedure e_InitLog (fFileName: String; fWriteMode: TWriteMode);
 begin
- FileName := fFileName;
- if fWriteMode = WM_NEWFILE then
- begin
-   try
-     if FileExists(FileName) then DeleteFile(FileName);
-   except // sorry
-   end;
- end;
- FirstRecord := True;
+  if xlogFileOpened then CloseFile(xlogFile);
+  xlogFileOpened := false;
+  FileName := fFileName;
+  if (fWriteMode = WM_NEWFILE) then
+  begin
+    try
+      if FileExists(FileName) then DeleteFile(FileName);
+    except // sorry
+    end;
+  end;
+  FirstRecord := true;
+end;
+
+
+procedure e_DeinitLog ();
+begin
+  if xlogFileOpened then CloseFile(xlogFile);
+  xlogFileOpened := false;
 end;
 
 

@@ -123,8 +123,11 @@ begin
     else if ParamStr(f) = '--log' then conbufDumpToStdOut := true;
   end;
   if noct then
+  begin
     Main()
+  end
   else
+  begin
     try
       Main();
       e_WriteLog('Shutdown with no errors.', MSG_NOTIFY);
@@ -134,4 +137,6 @@ begin
       else
         e_WriteLog(Format(_lc[I_SYSTEM_ERROR_UNKNOWN], [NativeUInt(ExceptAddr())]), MSG_FATALERROR);
     end;
+  end;
+  e_DeinitLog();
 end.

@@ -92,6 +92,13 @@ function readInt64BE (st: TStream): Int64;
 function readUInt64BE (st: TStream): UInt64;
 
 
+type
+  TFormatStrFCallback = procedure (constref buf; len: SizeUInt);
+
+// returns formatted string if `writerCB` is `nil`, empty string otherwise
+function formatstrf (const fmt: AnsiString; args: array of const; writerCB: TFormatStrFCallback=nil): AnsiString;
+
+
 implementation
 
 
@@ -524,4 +531,548 @@ function readInt64BE (st: TStream): Int64; begin readIntegerBE(st, @result, 8); 
 function readUInt64BE (st: TStream): UInt64; begin readIntegerBE(st, @result, 8); end;
 
 
+// ////////////////////////////////////////////////////////////////////////// //
+{$IFDEF WINDOWS}
+function snprintf (buf: PAnsiChar; bufsize: SizeUInt; const fmt: PAnsiChar): SizeUInt; cdecl; varargs; external 'msvcrt.dll' name '_snprintf';
+{$ELSE}
+function snprintf (buf: PAnsiChar; bufsize: SizeUInt; const fmt: PAnsiChar): SizeUInt; cdecl; varargs; external 'libc' name 'snprintf';
+{$ENDIF}
+
+
+(*
+procedure conwriter (constref buf; len: SizeUInt);
+var
+  ss: ShortString;
+  slen: Integer;
+  b: PByte;
+begin
+  if (len < 1) then exit;
+  b := PByte(@buf);
+  while (len > 0) do
+  begin
+    if (len > 255) then slen := 255 else slen := Integer(len);
+    Move(b^, ss[1], len);
+    ss[0] := AnsiChar(slen);
+    write(ss);
+    b += slen;
+    len -= slen;
+  end;
+end;
+*)
+
+
+function formatstrf (const fmt: AnsiString; args: array of const; writerCB: TFormatStrFCallback=nil): AnsiString;
+const
+  PadSpaces: AnsiString = '                                                                       ';
+  PadZeroes: AnsiString = '00000000000000000000000000000000000000000000000000000000000000000000000';
+var
+  curarg: Integer = 0; // current arg in `args`
+  sign, fmtch: AnsiChar;
+  zeropad: Boolean;
+  width, prec: Integer; // width and precision
+  spos, epos: Integer;
+  ch: AnsiChar;
+  strbuf: array[0..256] of AnsiChar;
+  strblen: SizeUInt;
+  fmtbuf: array[0..256] of AnsiChar;
+  fmtblen: Integer;
+  pclen: Integer;
+  pc: PAnsiChar;
+
+  procedure writer (constref buf; len: SizeUInt);
+  var
+    ss: ShortString;
+    slen: Integer;
+    b: PByte;
+  begin
+    if (len < 1) then exit;
+    b := PByte(@buf);
+    if assigned(writerCB) then
+    begin
+      writerCB(b^, len);
+    end
+    else
+    begin
+      while (len > 0) do
+      begin
+        if (len > 255) then slen := 255 else slen := Integer(len);
+        Move(b^, ss[1], len);
+        ss[0] := AnsiChar(slen);
+        result += ss;
+        b += slen;
+        len -= slen;
+      end;
+    end;
+  end;
+
+  procedure xwrite (const s: AnsiString);
+  begin
+    if (Length(s) > 0) then writer(PAnsiChar(s)^, Length(s));
+  end;
+
+  procedure putFmtChar (ch: AnsiChar);
+  begin
+    fmtbuf[fmtblen] := ch;
+    Inc(fmtblen);
+  end;
+
+  procedure putFmtInt (n: Integer);
+  var
+    len: SizeUInt;
+  begin
+    len := snprintf(@fmtbuf[fmtblen], Length(fmtbuf)-fmtblen, '%d', n);
+    if (len > 0) then Inc(fmtblen, len);
+  end;
+
+  procedure buildCFormat (const pfx: AnsiString='');
+  var
+    f: Integer;
+  begin
+    fmtblen := 0;
+    for f := 1 to Length(pfx) do putFmtChar(pfx[f]);
+    putFmtChar('%');
+    if (sign <> ' ') then putFmtChar(sign);
+    if (width >= 0) then
+    begin
+      if (zeropad) then putFmtChar('0');
+      putFmtInt(width);
+      if (prec >= 0) then
+      begin
+        putFmtChar('.');
+        putFmtInt(prec);
+      end;
+    end;
+    putFmtChar(fmtch);
+    fmtbuf[fmtblen] := #0;
+  end;
+
+  procedure writeStrBuf ();
+  begin
+    if (strblen > 0) then writer(strbuf, strblen);
+  end;
+
+  function i642str (n: Int64; hex: Boolean; hexup: Boolean): PAnsiChar;
+  var
+    neg: Boolean;
+    xpos: Integer;
+  begin
+    if (n = $8000000000000000) then
+    begin
+      if hex then snprintf(@strbuf[0], Length(strbuf), '-8000000000000000')
+      else snprintf(@strbuf[0], Length(strbuf), '-9223372036854775808');
+      result := @strbuf[0];
+    end
+    else
+    begin
+      neg := (n < 0);
+      if neg then n := -n;
+      xpos := High(strbuf);
+      strbuf[xpos] := #0; Dec(xpos);
+      repeat
+        if hex then
+        begin
+          strbuf[xpos] := AnsiChar((n mod 10)+48);
+          Dec(xpos);
+          n := n div 10;
+        end
+        else
+        begin
+          if (n mod 16 > 9) then
+          begin
+            strbuf[xpos] := AnsiChar((n mod 16)+48+7);
+            if not hexup then Inc(strbuf[xpos], 32);
+          end
+          else strbuf[xpos] := AnsiChar((n mod 16)+48);
+          Dec(xpos);
+          n := n div 16;
+        end;
+      until (n = 0);
+      if neg then begin strbuf[xpos] := '-'; Dec(xpos); end;
+      result := @strbuf[xpos+1];
+    end;
+  end;
+
+  function ui642str (n: UInt64; hex: Boolean; hexup: Boolean): PAnsiChar;
+  var
+    xpos: Integer;
+  begin
+    xpos := High(strbuf);
+    strbuf[xpos] := #0; Dec(xpos);
+    repeat
+      if hex then
+      begin
+        strbuf[xpos] := AnsiChar((n mod 10)+48);
+        Dec(xpos);
+        n := n div 10;
+      end
+      else
+      begin
+        if (n mod 16 > 9) then
+        begin
+          strbuf[xpos] := AnsiChar((n mod 16)+48+7);
+          if not hexup then Inc(strbuf[xpos], 32);
+        end
+        else strbuf[xpos] := AnsiChar((n mod 16)+48);
+        Dec(xpos);
+        n := n div 16;
+      end;
+    until (n = 0);
+    result := @strbuf[xpos+1];
+  end;
+
+  procedure indent (len: Integer);
+  var
+    ilen: Integer;
+  begin
+    while (len > 0) do
+    begin
+      if (len > Length(PadSpaces)) then ilen := Length(PadSpaces) else ilen := len;
+      writer(PAnsiChar(PadSpaces)^, ilen);
+      Dec(len, ilen);
+    end;
+  end;
+
+  procedure indent0 (len: Integer);
+  var
+    ilen: Integer;
+  begin
+    while (len > 0) do
+    begin
+      if (len > Length(PadZeroes)) then ilen := Length(PadZeroes) else ilen := len;
+      writer(PAnsiChar(PadZeroes)^, ilen);
+      Dec(len, ilen);
+    end;
+  end;
+
+begin
+  result := '';
+  spos := 1;
+  while (spos <= Length(fmt)) do
+  begin
+    // print literal part
+    epos := spos;
+    while (epos <= Length(fmt)) and (fmt[epos] <> '%') do Inc(epos);
+    // output literal part
+    if (epos > spos) then
+    begin
+      if (epos > Length(fmt)) then
+      begin
+        writer((PAnsiChar(fmt)+spos-1)^, epos-spos);
+        break;
+      end;
+           if (epos+1 > Length(fmt)) then Inc(epos) // last percent, output literally
+      else if (fmt[epos+1] = '%') then // special case
+      begin
+        Inc(epos);
+        writer((PAnsiChar(fmt)+spos-1)^, epos-spos);
+        spos := epos+1;
+      end
+      else
+      begin
+        writer((PAnsiChar(fmt)+spos-1)^, epos-spos);
+        spos := epos;
+      end;
+      continue;
+    end;
+    // check if we have argument for this format string
+    if (curarg > High(args)) then
+    begin
+      xwrite('<OUT OF ARGS>');
+      writer((PAnsiChar(fmt)+spos-1)^, Length(fmt)-spos+1);
+      break;
+    end;
+    // skip percent
+    if (spos+1 > Length(fmt)) then break; // oops
+    assert(fmt[spos] = '%');
+    Inc(spos);
+    // parse format; check for sign
+         if (fmt[spos] = '-') then begin sign := '-'; Inc(spos); end
+    else if (fmt[spos] = '+') then begin sign := '+'; Inc(spos); end
+    else sign := ' ';
+    // parse width
+    if (spos > Length(fmt)) then begin xwrite('<INVALID FORMAT>'); break; end;
+    if (sign <> ' ') or ((fmt[spos] >= '0') and (fmt[spos] <= '9')) then
+    begin
+      if (fmt[spos] < '0') or (fmt[spos] > '9') then begin xwrite('<INVALID FORMAT>'); writer((PAnsiChar(fmt)+spos-1)^, Length(fmt)-spos+1); break; end;
+      zeropad := (fmt[spos] = '0');
+      width := 0;
+      while (spos <= Length(fmt)) do
+      begin
+        ch := fmt[spos];
+        if (ch < '0') or (ch > '9') then break;
+        width := width*10+Integer(ch)-48;
+        Inc(spos);
+      end;
+    end
+    else
+    begin
+      width := -1;
+      zeropad := false;
+    end;
+    // parse precision
+    prec := -1;
+    if (spos <= Length(fmt)) and (fmt[spos] = '.') then
+    begin
+      Inc(spos);
+      if (spos > Length(fmt)) then begin xwrite('<INVALID FORMAT>'); break; end;
+      if (fmt[spos] < '0') or (fmt[spos] > '9') then begin xwrite('<INVALID FORMAT>'); writer((PAnsiChar(fmt)+spos-1)^, Length(fmt)-spos+1); break; end;
+      prec := 0;
+      while (spos <= Length(fmt)) do
+      begin
+        ch := fmt[spos];
+        if (ch < '0') or (ch > '9') then break;
+        prec := prec*10+Integer(ch)-48;
+        Inc(spos);
+      end;
+    end;
+    // get format char
+    if (spos > Length(fmt)) then begin xwrite('<INVALID FORMAT>'); break; end;
+    fmtch := fmt[spos];
+    Inc(spos);
+    // done parsing format, check for valid format chars
+    if not (fmtch in ['s','u','d','x','X','p','f','g','c']) then begin xwrite('<INVALID FORMAT CHAR>'); writer((PAnsiChar(fmt)+spos-1)^, Length(fmt)-spos+1); break; end;
+    // now write formatted string
+    case args[curarg].VType of
+      vtInteger: // args[curarg].VInteger
+        begin
+          if not (fmtch in ['s','u','d','x','X']) then begin xwrite('<INVALID FORMAT CHAR>'); writer((PAnsiChar(fmt)+spos-1)^, Length(fmt)-spos+1); break; end;
+          if (fmtch = 's') then fmtch := 'd';
+          buildCFormat();
+          strblen := snprintf(@strbuf[0], Length(strbuf), @fmtbuf[0], args[curarg].VInteger);
+          writeStrBuf();
+        end;
+      vtBoolean: // args[curarg].VBoolean
+        case fmtch of
+          's':
+            begin
+              buildCFormat();
+              if args[curarg].VBoolean then strblen := snprintf(@strbuf[0], Length(strbuf), @fmtbuf[0], 'true')
+              else strblen := snprintf(@strbuf[0], Length(strbuf), @fmtbuf[0], 'false');
+              writeStrBuf();
+            end;
+          'c':
+            begin
+              buildCFormat();
+              if args[curarg].VBoolean then strblen := snprintf(@strbuf[0], Length(strbuf), @fmtbuf[0], AnsiChar('t'))
+              else strblen := snprintf(@strbuf[0], Length(strbuf), @fmtbuf[0], AnsiChar('f'));
+              writeStrBuf();
+            end;
+          'u', 'd', 'x', 'X':
+            begin
+              buildCFormat();
+              strblen := snprintf(@strbuf[0], Length(strbuf), @fmtbuf[0], Integer(args[curarg].VBoolean));
+              writeStrBuf();
+            end;
+          else
+            begin
+              xwrite('<INVALID FORMAT CHAR>');
+              writer((PAnsiChar(fmt)+spos-1)^, Length(fmt)-spos+1);
+              break;
+            end;
+        end;
+      vtChar: // args[curarg].VChar
+        case fmtch of
+          's', 'c':
+            begin
+              fmtch := 'c';
+              buildCFormat();
+              strblen := snprintf(@strbuf[0], Length(strbuf), @fmtbuf[0], args[curarg].VChar);
+              writeStrBuf();
+            end;
+          'u', 'd', 'x', 'X':
+            begin
+              buildCFormat();
+              strblen := snprintf(@strbuf[0], Length(strbuf), @fmtbuf[0], Integer(args[curarg].VChar));
+              writeStrBuf();
+            end;
+          else
+            begin
+              xwrite('<INVALID FORMAT CHAR>');
+              writer((PAnsiChar(fmt)+spos-1)^, Length(fmt)-spos+1);
+              break;
+            end;
+        end;
+      //vtWideChar: begin end; // args[curarg].VWideChar (WideChar)
+      vtExtended: // args[curarg].VExtended^
+        case fmtch of
+          's', 'g':
+            begin
+              fmtch := 'g';
+              buildCFormat();
+              strblen := snprintf(@strbuf[0], Length(strbuf), @fmtbuf[0], Double(args[curarg].VExtended^));
+              writeStrBuf();
+            end;
+          'f':
+            begin
+              buildCFormat();
+              strblen := snprintf(@strbuf[0], Length(strbuf), @fmtbuf[0], Double(args[curarg].VExtended^));
+              writeStrBuf();
+            end;
+          'd':
+            begin
+              buildCFormat();
+              strblen := snprintf(@strbuf[0], Length(strbuf), @fmtbuf[0], Integer(trunc(args[curarg].VExtended^)));
+              writeStrBuf();
+            end;
+          'u', 'x', 'X':
+            begin
+              buildCFormat();
+              strblen := snprintf(@strbuf[0], Length(strbuf), @fmtbuf[0], LongWord(trunc(args[curarg].VExtended^)));
+              writeStrBuf();
+            end;
+          else
+            begin
+              xwrite('<INVALID FORMAT CHAR>');
+              writer((PAnsiChar(fmt)+spos-1)^, Length(fmt)-spos+1);
+              break;
+            end;
+        end;
+      vtString: // args[curarg].VString^ (PShortString)
+        begin
+          if (sign <> '-') then indent(width-Length(args[curarg].VString^));
+          writer(args[curarg].VString^[1], Length(args[curarg].VString^));
+          if (sign = '-') then indent(width-Length(args[curarg].VString^));
+        end;
+      vtPointer: // args[curarg].VPointer
+        case fmtch of
+          's':
+            begin
+              fmtch := 'x';
+              if (width < 8) then width := 8;
+              zeropad := true;
+              buildCFormat('0x');
+              strblen := snprintf(@strbuf[0], Length(strbuf), @fmtbuf[0], PtrUInt(args[curarg].VPointer));
+              writeStrBuf();
+            end;
+          'u', 'd', 'x', 'p', 'X':
+            begin
+              if (fmtch = 'p') then fmtch := 'x';
+              if (width < 8) then width := 8;
+              zeropad := true;
+              buildCFormat('0x');
+              strblen := snprintf(@strbuf[0], Length(strbuf), @fmtbuf[0], PtrUInt(args[curarg].VPointer));
+              writeStrBuf();
+            end;
+          else
+            begin
+              xwrite('<INVALID FORMAT CHAR>');
+              writer((PAnsiChar(fmt)+spos-1)^, Length(fmt)-spos+1);
+              break;
+            end;
+        end;
+      vtPChar: // args[curarg].VPChar
+        if (args[curarg].VPChar = nil) then
+        begin
+          if (sign <> '-') then indent(width-3);
+          xwrite('nil');
+          if (sign = '-') then indent(width-3);
+        end
+        else
+        begin
+          pclen := 0;
+          while (args[curarg].VPChar[pclen] <> #0) do Inc(pclen);
+          if (sign <> '-') then indent(width-pclen);
+          writer(args[curarg].VPChar^, pclen);
+          if (sign = '-') then indent(width-pclen);
+        end;
+      vtObject: // args[curarg].VObject.Classname (TObject)
+        begin
+          if (sign <> '-') then indent(width-Length(args[curarg].VObject.Classname));
+          xwrite(args[curarg].VObject.Classname);
+          if (sign = '-') then indent(width-Length(args[curarg].VObject.Classname));
+        end;
+      vtClass: // args[curarg].VClass.Classname (TClass)
+        begin
+          if (sign <> '-') then indent(width-Length(args[curarg].VClass.Classname));
+          xwrite(args[curarg].VClass.Classname);
+          if (sign = '-') then indent(width-Length(args[curarg].VClass.Classname));
+        end;
+      //vtPWideChar: begin end; // args[curarg].VPWideChar (PWideChar)
+      vtAnsiString: // AnsiString(args[curarg].VAnsiString) (Pointer)
+        begin
+          if (sign <> '-') then indent(width-Length(AnsiString(args[curarg].VAnsiString)));
+          xwrite(AnsiString(args[curarg].VAnsiString));
+          if (sign = '-') then indent(width-Length(AnsiString(args[curarg].VAnsiString)));
+        end;
+      //vtCurrency: begin end; // args[curarg].VCurrency (PCurrency)
+      //vtVariant: begin end; // args[curarg].VVariant^ (PVariant)
+      //vtInterface: begin end; // args[curarg].VInterface (Pointer);
+      //vtWideString: begin end; // args[curarg].VWideString (Pointer);
+      vtInt64: // args[curarg].VInt64^ (PInt64)
+        begin
+          case fmtch of
+            's','d','u': pc := i642str(args[curarg].VInt64^, false, false);
+            'x': pc := i642str(args[curarg].VInt64^, true, false);
+            'X': pc := i642str(args[curarg].VInt64^, true, true);
+            else begin xwrite('<INVALID FORMAT CHAR>'); writer((PAnsiChar(fmt)+spos-1)^, Length(fmt)-spos+1); break; end;
+          end;
+          pclen := 0;
+          while (pc[pclen] <> #0) do Inc(pclen);
+          if (sign <> '-') and (width > pclen) then
+          begin
+            if zeropad then
+            begin
+              if (pc[0] = '-') or (pc[0] = '+') then
+              begin
+                writer(pc^, 1);
+                indent0(width-pclen-1);
+                Inc(pc);
+                Dec(pclen);
+              end
+              else
+              begin
+                indent0(width-pclen);
+              end;
+            end
+            else
+            begin
+              indent(width-pclen);
+            end;
+          end;
+          writer(pc^, pclen);
+          if (sign = '-') then indent(width-pclen);
+        end;
+      vtQWord: // args[curarg].VQWord^ (PQWord)
+        begin
+          case fmtch of
+            's','d','u': pc := ui642str(args[curarg].VInt64^, false, false);
+            'x': pc := ui642str(args[curarg].VInt64^, true, false);
+            'X': pc := ui642str(args[curarg].VInt64^, true, true);
+            else begin xwrite('<INVALID FORMAT CHAR>'); writer((PAnsiChar(fmt)+spos-1)^, Length(fmt)-spos+1); break; end;
+          end;
+          pclen := 0;
+          while (pc[pclen] <> #0) do Inc(pclen);
+          if (sign <> '-') then begin if zeropad then indent0(width-pclen) else indent(width-pclen); end;
+          writer(pc^, pclen);
+          if (sign = '-') then indent(width-pclen);
+        end;
+      else
+        begin
+          xwrite('<INVALID TYPE>');
+          writer((PAnsiChar(fmt)+spos-1)^, Length(fmt)-spos+1);
+          break;
+        end;
+    end;
+    Inc(curarg);
+  end;
+end;
+
+
+(*
+var
+  ss: ShortString;
+  ls: AnsiString;
+  i64: Int64 = -$A000000000;
+  ui64: UInt64 = $A000000000;
+begin
+  writef(conwriter, 'test int:<%s> bool:<%s:%02d:%c> bool:<%s:%02d:%c>; char:<%2s;%c;%d>!'#10, [42, true, true, true, false, false, false, 'A', 'A', 'A']);
+  writef(conwriter, 'test float:<%s;%u;%f;%g>'#10, [666.6942, 666.6942, 666.6942, 666.6942]);
+  ss := 'fuckit';
+  ls := 'FUCKIT';
+  writef(conwriter, 'test ss:<%5s;%040s>'#10, [ss, ss]);
+  writef(conwriter, 'test ls:<%5s;%040s>'#10, [ls, ls]);
+  writef(conwriter, 'test pointer:<%s;%x;%p>'#10, [@ss, @ss, @ss]);
+  writef(conwriter, 'test i64:<%s;%x;%015d;%u;%X>'#10, [i64, i64, i64, i64, i64]);
+  writef(conwriter, 'test ui64:<%s;%x;%15d;%015u;%X>'#10, [ui64, ui64, ui64, ui64, ui64]);
+*)
 end.

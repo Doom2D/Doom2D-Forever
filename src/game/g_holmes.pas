@@ -541,7 +541,7 @@ begin
       {$IF DEFINED(D2F_DEBUG)}
       mapGrid.dbgRayTraceTileHitCB := nil;
       {$ENDIF}
-      e_WriteLog(Format('v-trace: (%d,%d)-(%d,%d); end=(%d,%d); hit=%d', [pmsCurMapX, pmsCurMapY, pmsCurMapX, pmsCurMapY+10, ex, ey, Integer(pan <> nil)]), MSG_NOTIFY);
+      e_LogWritefln('v-trace: (%d,%d)-(%d,%d); end=(%d,%d); hit=%d', [pmsCurMapX, pmsCurMapY, pmsCurMapX, pmsCurMapY+10, ex, ey, (pan <> nil)]);
       exit;
     end;
   end;
