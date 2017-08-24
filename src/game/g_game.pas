@@ -2855,8 +2855,19 @@ begin
   if px > gMapInfo.Width-(gPlayerScreenSize.X div 2) then a := -gMapInfo.Width+gPlayerScreenSize.X;
   if py > gMapInfo.Height-(gPlayerScreenSize.Y div 2) then b := -gMapInfo.Height+gPlayerScreenSize.Y;
 
-  if gMapInfo.Width <= gPlayerScreenSize.X then a := 0;
-  if gMapInfo.Height <= gPlayerScreenSize.Y then b := 0;
+       if (gMapInfo.Width = gPlayerScreenSize.X) then a := 0
+  else if (gMapInfo.Width < gPlayerScreenSize.X) then
+  begin
+    // hcenter
+    a := (gPlayerScreenSize.X-gMapInfo.Width) div 2;
+  end;
+
+       if (gMapInfo.Height = gPlayerScreenSize.Y) then b := 0
+  else if (gMapInfo.Height < gPlayerScreenSize.Y) then
+  begin
+    // vcenter
+    b := (gPlayerScreenSize.Y-gMapInfo.Height) div 2;
+  end;
 
   if p.IncCam <> 0 then
   begin

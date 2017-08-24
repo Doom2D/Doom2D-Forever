@@ -198,7 +198,7 @@ type
   TPanelGrid = specialize TBodyGridBase<TPanel>;
 
 var
-  mapGrid: TPanelGrid = nil;
+  mapGrid: TPanelGrid = nil; // DO NOT USE! public for debugging only!
 
 
 implementation
@@ -1226,6 +1226,7 @@ begin
   if (mapY1 < gMapInfo.Height-1) then mapY1 := gMapInfo.Height-1;
 
   mapGrid := TPanelGrid.Create(mapX0-128, mapY0-128, mapX1-mapX0+1+128*2, mapY1-mapY0+1+128*2);
+  //mapGrid := TPanelGrid.Create(0, 0, gMapInfo.Width, gMapInfo.Height);
 
   addPanelsToGrid(gWalls);
   addPanelsToGrid(gRenderBackgrounds);

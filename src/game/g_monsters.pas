@@ -235,7 +235,7 @@ type
   TMonsterGrid = specialize TBodyGridBase<TMonster>;
 
 var
-  monsGrid: TMonsterGrid = nil;
+  monsGrid: TMonsterGrid = nil; // DO NOT USE! public for debugging only!
 
 
 var
