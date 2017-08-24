@@ -104,10 +104,11 @@ type
   TForEachPanelCB = function (pan: TPanel): Boolean; // return `true` to stop
 
 function g_Map_HasAnyPanelAtPoint (x, y: Integer; panelType: Word): Boolean;
+function g_Map_PanelAtPoint (x, y: Integer; tagmask: Integer=-1): TPanel;
 
 // trace liquid, stepping by `dx` and `dy`
 // return last seen liquid coords, and `false` if we're started outside of the liquid
-function g_Map_TraceLiquid (x, y, dx, dy: Integer; out topx, topy: Integer): Boolean;
+function g_Map_TraceLiquidNonPrecise (x, y, dx, dy: Integer; out topx, topy: Integer): Boolean;
 
 
 procedure g_Map_ProfilersBegin ();
@@ -373,6 +374,14 @@ begin
     // fast
     result := (mapGrid.forEachAtPoint(x, y, nil, tagmask) <> nil);
   end;
+end;
+
+
+function g_Map_PanelAtPoint (x, y: Integer; tagmask: Integer=-1): TPanel;
+begin
+  result := nil;
+  if (tagmask = 0) then exit;
+  result := mapGrid.forEachAtPoint(x, y, nil, tagmask);
 end;
 
 
@@ -2873,7 +2882,7 @@ end;
 
 // trace liquid, stepping by `dx` and `dy`
 // return last seen liquid coords, and `false` if we're started outside of the liquid
-function g_Map_TraceLiquid (x, y, dx, dy: Integer; out topx, topy: Integer): Boolean;
+function g_Map_TraceLiquidNonPrecise (x, y, dx, dy: Integer; out topx, topy: Integer): Boolean;
 const
   MaskLiquid = GridTagWater or GridTagAcid1 or GridTagAcid2;
 begin

@@ -146,9 +146,13 @@ type
     //         you can set enabled/disabled flag, tho (but iterator can still return objects disabled inside it)
     // cb with `(nil)` will be called before processing new tile
     // no callback: return object of the nearest hit or nil
+    // if `inverted` is true, trace will register bodies *exluding* tagmask
     //WARNING: don't change tags in callbacks here!
     function traceRay (const x0, y0, x1, y1: Integer; cb: TGridRayQueryCB; tagmask: Integer=-1): ITP; overload;
     function traceRay (out ex, ey: Integer; const ax0, ay0, ax1, ay1: Integer; cb: TGridRayQueryCB; tagmask: Integer=-1): ITP;
+
+    //function traceRayWhileIn (const x0, y0, x1, y1: Integer; tagmask: Integer=-1): ITP; overload;
+    //function traceRayWhileIn (out ex, ey: Integer; const ax0, ay0, ax1, ay1: Integer; tagmask: Integer=-1): ITP;
 
     //WARNING: don't modify grid while any query is in progress (no checks are made!)
     //         you can set enabled/disabled flag, tho (but iterator can still return objects disabled inside it)
@@ -1291,23 +1295,7 @@ begin
     result := forEachAtPoint(ax0, ay0, nil, tagmask, @ptag);
     if (result <> nil) then
     begin
-      if assigned(cb) then
-      begin
-        if cb(result, ptag, ax0, ay0, ax0, ay0) then
-        begin
-          ex := ax0;
-          ey := ay0;
-        end
-        else
-        begin
-          result := nil;
-        end;
-      end
-      else
-      begin
-        ex := ax0;
-        ey := ay0;
-      end;
+      if assigned(cb) and not cb(result, ptag, ax0, ay0, ax0, ay0) then result := Default(ITP);
     end;
     exit;
   end;
@@ -1878,6 +1866,326 @@ begin
     end;
   end;
 end;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
+(*
+function TBodyGridBase.traceRayWhileIn (const x0, y0, x1, y1: Integer; tagmask: Integer=-1): ITP; overload;
+var
+  ex, ey: Integer;
+begin
+  result := traceRayWhileIn(ex, ey, x0, y0, x1, y1, tagmask);
+end;
+
+
+// FUCKIN' PASTA!
+function TBodyGridBase.traceRayWhileIn (out ex, ey: Integer; const ax0, ay0, ax1, ay1: Integer; tagmask: Integer=-1): ITP;
+const
+  tsize = mTileSize;
+var
+  wx0, wy0, wx1, wy1: Integer; // window coordinates
+  stx, sty: Integer; // "steps" for x and y axes
+  dsx, dsy: Integer; // "lengthes" for x and y axes
+  dx2, dy2: Integer; // "double lengthes" for x and y axes
+  xd, yd: Integer; // current coord
+  e: Integer; // "error" (as in bresenham algo)
+  rem: Integer;
+  term: Integer;
+  xptr, yptr: PInteger;
+  xfixed: Boolean;
+  temp: Integer;
+  prevx, prevy: Integer;
+  lastDistSq: Integer;
+  ccidx, curci: Integer;
+  hasUntried: Boolean;
+  lastGA: Integer = -1;
+  ga, x, y: Integer;
+  lastObj: ITP;
+  wasHit: Boolean = false;
+  gw, gh, minx, miny, maxx, maxy: Integer;
+  cc: PGridCell;
+  px: PBodyProxyRec;
+  lq: LongWord;
+  f, ptag, distSq: Integer;
+  x0, y0, x1, y1: Integer;
+  inx, iny: Integer;
+begin
+  result := Default(ITP);
+  lastObj := Default(ITP);
+  tagmask := tagmask and TagFullMask;
+  ex := ax1; // why not?
+  ey := ay1; // why not?
+  if (tagmask = 0) then exit;
+
+  if (ax0 = ax1) and (ay0 = ay1) then exit; // doesn't matter
+
+  // we should start inside
+  if (forEachAtPoint(ax0, ay0, nil, tagmask, @ptag) = nil) then
+  begin
+    ex := ax0; // why not?
+    ey := ay0; // why not?
+    exit;
+  end;
+
+  lastDistSq := distanceSq(ax0, ay0, ax1, ay1)+1;
+
+  gw := mWidth;
+  gh := mHeight;
+  minx := mMinX;
+  miny := mMinY;
+  maxx := gw*tsize-1;
+  maxy := gh*tsize-1;
+
+  x0 := ax0;
+  y0 := ay0;
+  x1 := ax1;
+  y1 := ay1;
+
+  // offset query coords to (0,0)-based
+  Dec(x0, minx);
+  Dec(y0, miny);
+  Dec(x1, minx);
+  Dec(y1, miny);
+
+  // clip rectange
+  wx0 := 0;
+  wy0 := 0;
+  wx1 := maxx;
+  wy1 := maxy;
+
+  // horizontal setup
+  if (x0 < x1) then
+  begin
+    // from left to right
+    if (x0 > wx1) or (x1 < wx0) then exit; // out of screen
+    stx := 1; // going right
+  end
+  else
+  begin
+    // from right to left
+    if (x1 > wx1) or (x0 < wx0) then exit; // out of screen
+    stx := -1; // going left
+    x0 := -x0;
+    x1 := -x1;
+    wx0 := -wx0;
+    wx1 := -wx1;
+    swapInt(wx0, wx1);
+  end;
+
+  // vertical setup
+  if (y0 < y1) then
+  begin
+    // from top to bottom
+    if (y0 > wy1) or (y1 < wy0) then exit; // out of screen
+    sty := 1; // going down
+  end
+  else
+  begin
+    // from bottom to top
+    if (y1 > wy1) or (y0 < wy0) then exit; // out of screen
+    sty := -1; // going up
+    y0 := -y0;
+    y1 := -y1;
+    wy0 := -wy0;
+    wy1 := -wy1;
+    swapInt(wy0, wy1);
+  end;
+
+  dsx := x1-x0;
+  dsy := y1-y0;
+
+  if (dsx < dsy) then
+  begin
+    xptr := @yd;
+    yptr := @xd;
+    swapInt(x0, y0);
+    swapInt(x1, y1);
+    swapInt(dsx, dsy);
+    swapInt(wx0, wy0);
+    swapInt(wx1, wy1);
+    swapInt(stx, sty);
+  end
+  else
+  begin
+    xptr := @xd;
+    yptr := @yd;
+  end;
+
+  dx2 := 2*dsx;
+  dy2 := 2*dsy;
+  xd := x0;
+  yd := y0;
+  e := 2*dsy-dsx;
+  term := x1;
+
+  xfixed := false;
+  if (y0 < wy0) then
+  begin
+    // clip at top
+    temp := dx2*(wy0-y0)-dsx;
+    xd += temp div dy2;
+    rem := temp mod dy2;
+    if (xd > wx1) then exit; // x is moved out of clipping rect, nothing to do
+    if (xd+1 >= wx0) then
+    begin
+      yd := wy0;
+      e -= rem+dsx;
+      if (rem > 0) then begin Inc(xd); e += dy2; end;
+      xfixed := true;
+    end;
+  end;
+
+  if (not xfixed) and (x0 < wx0) then
+  begin
+    // clip at left
+    temp := dy2*(wx0-x0);
+    yd += temp div dx2;
+    rem := temp mod dx2;
+    if (yd > wy1) or (yd = wy1) and (rem >= dsx) then exit;
+    xd := wx0;
+    e += rem;
+    if (rem >= dsx) then begin Inc(yd); e -= dx2; end;
+  end;
+
+  if (y1 > wy1) then
+  begin
+    // clip at bottom
+    temp := dx2*(wy1-y0)+dsx;
+    term := x0+temp div dy2;
+    rem := temp mod dy2;
+    if (rem = 0) then Dec(term);
+  end;
+
+  if (term > wx1) then term := wx1; // clip at right
+
+  Inc(term); // draw last point
+  //if (term = xd) then exit; // this is the only point, get out of here
+
+  if (sty = -1) then yd := -yd;
+  if (stx = -1) then begin xd := -xd; term := -term; end;
+  dx2 -= dy2;
+
+  // first move, to skip starting point
+  // DON'T DO THIS! loop will take care of that
+  if (xd = term) then
+  begin
+    result := forEachAtPoint(ax0, ay0, nil, tagmask, @ptag);
+    if (result <> nil) and ((ptag and tagmask) <> 0) then result := nil;
+    exit;
+  end;
+
+  prevx := xptr^+minx;
+  prevy := yptr^+miny;
+
+  // increase query counter
+  Inc(mLastQuery);
+  if (mLastQuery = 0) then
+  begin
+    // just in case of overflow
+    mLastQuery := 1;
+    for f := 0 to High(mProxies) do mProxies[f].mQueryMark := 0;
+  end;
+  lq := mLastQuery;
+
+  ccidx := -1;
+  // draw it; can omit checks
+  while (xd <> term) do
+  begin
+    // check cell(s)
+    // new tile?
+    ga := (yptr^ div tsize)*gw+(xptr^ div tsize);
+    if (ga <> lastGA) then
+    begin
+      // yes
+      lastGA := ga;
+      ccidx := mGrid[lastGA];
+      // no objects in cell == exit
+      if (ccidx = -1) then exit;
+    end;
+    // has something to process in this tile?
+    if (ccidx <> -1) then
+    begin
+      // process cell
+      curci := ccidx;
+      // convert coords to map (to avoid ajdusting coords inside the loop)
+      x := xptr^+minx;
+      y := yptr^+miny;
+      wasHit := false;
+      // process cell list
+      while (curci <> -1) do
+      begin
+        cc := @mCells[curci];
+        for f := 0 to GridCellBucketSize-1 do
+        begin
+          if (cc.bodies[f] = -1) then break;
+          px := @mProxies[cc.bodies[f]];
+          ptag := px.mTag;
+          if ((ptag and TagDisabled) = 0) and (px.mQueryMark <> lq) then
+          begin
+function lineAABBIntersects (x0, y0, x1, y1: Integer; bx, by, bw, bh: Integer; out inx, iny: Integer): Boolean;
+            // can we process this proxy?
+            if (x >= px.mX) and (y >= px.mY) and (x < px.mX+px.mWidth) and (y < px.mY+px.mHeight) then
+            begin
+              px.mQueryMark := lq; // mark as processed
+              if ((ptag and tagmask) = 0) then
+              begin
+                result := px.mObj;
+                ex := x;
+                ey := y;
+                exit;
+              end;
+              // march out of the panel/cell
+              while (xd <> term) do
+              begin
+                if (e >= 0) then begin yd += sty; e -= dx2; end else e += dy2;
+                xd += stx;
+                // new cell?
+                ga := (yptr^ div tsize)*gw+(xptr^ div tsize);
+                if (ga <> lastGA) then break;
+                // out of panel?
+                if not ((x >= px.mX) and (y >= px.mY) and (x < px.mX+px.mWidth) and (y < px.mY+px.mHeight)) then break;
+              end;
+            end;
+          end;
+        end;
+        // next cell
+        curci := cc.next;
+      end;
+      // still has something interesting in this cell?
+      if not hasUntried then
+      begin
+        // nope, don't process this cell anymore; signal cell completion
+        ccidx := -1;
+        if assigned(cb) then
+        begin
+          if cb(nil, 0, x, y, prevx, prevy) then begin result := lastObj; exit; end;
+        end
+        else if wasHit then
+        begin
+          result := lastObj;
+          exit;
+        end;
+      end;
+    end;
+    //putPixel(xptr^, yptr^);
+    // move coords
+    prevx := xptr^+minx;
+    prevy := yptr^+miny;
+    if (e >= 0) then begin yd += sty; e -= dx2; end else e += dy2;
+    xd += stx;
+  end;
+  // we can travel less than one cell
+  if wasHit and not assigned(cb) then
+  begin
+    result := lastObj;
+  end
+  else
+  begin
+    ex := ax1; // why not?
+    ey := ay1; // why not?
+  end;
+end;
+*)
 
 
 end.
