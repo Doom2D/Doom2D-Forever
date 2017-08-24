@@ -20,6 +20,7 @@
   {.$DEFINE D2F_DEBUG_XXQ}
   {.$DEFINE D2F_DEBUG_MOVER}
 {$ENDIF}
+{.$DEFINE GRID_USE_ORTHO_ACCEL}
 unit g_grid;
 
 interface
@@ -1506,6 +1507,7 @@ begin
   end;
   lq := mLastQuery;
 
+  {$IFDEF GRID_USE_ORTHO_ACCEL}
   // if this is strict horizontal trace, use optimized codepath
   if (ax0 = ax1) or (ay0 = ay1) then
   begin
@@ -1721,6 +1723,7 @@ begin
     if wasHit and not assigned(cb) then result := lastObj else begin ex := ax1; ey := ay1; end;
     exit;
   end;
+  {$ENDIF}
 
   {$IF DEFINED(D2F_DEBUG_RAYTRACE)}
   if assigned(dbgRayTraceTileHitCB) then dbgRayTraceTileHitCB((xptr^ div tsize*tsize)+minx, (yptr^ div tsize*tsize)+miny);
