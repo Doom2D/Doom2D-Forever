@@ -92,8 +92,13 @@ procedure g_Map_LoadState(Var Mem: TBinMemoryReader);
 
 procedure g_Map_DrawPanelShadowVolumes(lightX: Integer; lightY: Integer; radius: Integer);
 
-// returns wall index in `gWalls` or -1
+// returns panel or nil
+// sets `ex` and `ey` to `x1` and `y1` when no hit was detected
 function g_Map_traceToNearestWall (x0, y0, x1, y1: Integer; hitx: PInteger=nil; hity: PInteger=nil): TPanel;
+
+// returns panel or nil
+// sets `ex` and `ey` to `x1` and `y1` when no hit was detected
+function g_Map_traceToNearest (x0, y0, x1, y1: Integer; tag: Integer; hitx: PInteger=nil; hity: PInteger=nil): TPanel;
 
 type
   TForEachPanelCB = function (pan: TPanel): Boolean; // return `true` to stop
@@ -287,6 +292,24 @@ var
   ex, ey: Integer;
 begin
   result := mapGrid.traceRay(ex, ey, x0, y0, x1, y1, nil, (GridTagWall or GridTagDoor));
+  if (result <> nil) then
+  begin
+    if (hitx <> nil) then hitx^ := ex;
+    if (hity <> nil) then hity^ := ey;
+  end
+  else
+  begin
+    if (hitx <> nil) then hitx^ := x1;
+    if (hity <> nil) then hity^ := y1;
+  end;
+end;
+
+// returns panel or nil
+function g_Map_traceToNearest (x0, y0, x1, y1: Integer; tag: Integer; hitx: PInteger=nil; hity: PInteger=nil): TPanel;
+var
+  ex, ey: Integer;
+begin
+  result := mapGrid.traceRay(ex, ey, x0, y0, x1, y1, nil, tag);
   if (result <> nil) then
   begin
     if (hitx <> nil) then hitx^ := ex;

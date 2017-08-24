@@ -102,13 +102,16 @@ var
   msY: Integer = -666;
   msB: Word = 0; // button state
   kbS: Word = 0; // keyboard modifiers state
+  showGrid: Boolean = true;
   showMonsInfo: Boolean = false;
   showMonsLOS2Plr: Boolean = false;
   showAllMonsCells: Boolean = false;
+  showMapCurPos: Boolean = false;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
 {$INCLUDE g_holmes.inc}
+
 
 // ////////////////////////////////////////////////////////////////////////// //
 procedure g_Holmes_VidModeChanged ();
@@ -143,6 +146,7 @@ var
   laserX0, laserY0, laserX1, laserY1: Integer;
   monMarkedUID: Integer = -1;
 
+
 procedure g_Holmes_plrView (viewPortX, viewPortY, viewPortW, viewPortH: Integer);
 begin
   vpSet := true;
@@ -172,8 +176,11 @@ procedure plrDebugMouse (var ev: THMouseEvent);
   function wallToggle (pan: TPanel; tag: Integer): Boolean;
   begin
     result := false; // don't stop
-    e_WriteLog(Format('wall #%d(%d); enabled=%d (%d)', [pan.arrIdx, pan.proxyId, Integer(pan.Enabled), Integer(mapGrid.proxyEnabled[pan.proxyId])]), MSG_NOTIFY);
-    if pan.Enabled then g_Map_DisableWall(pan.arrIdx) else g_Map_EnableWall(pan.arrIdx);
+    e_WriteLog(Format('wall #%d(%d); enabled=%d (%d); (%d,%d)-(%d,%d)', [pan.arrIdx, pan.proxyId, Integer(pan.Enabled), Integer(mapGrid.proxyEnabled[pan.proxyId]), pan.X, pan.Y, pan.Width, pan.Height]), MSG_NOTIFY);
+    if ((kbS and THKeyEvent.ModAlt) <> 0) then
+    begin
+      if pan.Enabled then g_Map_DisableWall(pan.arrIdx) else g_Map_EnableWall(pan.arrIdx);
+    end;
   end;
 
   function monsAtDump (mon: TMonster; tag: Integer): Boolean;
@@ -397,9 +404,9 @@ begin
   glPushMatrix();
   glTranslatef(-vpx, -vpy, 0);
 
-  drawTileGrid();
+  if (showGrid) then drawTileGrid();
 
-  g_Mons_AlongLine(laserX0, laserY0, laserX1, laserY1, monsCollector, true);
+  if (laserSet) then g_Mons_AlongLine(laserX0, laserY0, laserX1, laserY1, monsCollector, true);
 
   if (monMarkedUID <> -1) then
   begin
@@ -414,9 +421,9 @@ begin
 
   if showAllMonsCells then g_Mons_ForEach(highlightAllMonsterCells);
 
-  //e_DrawPoint(16, laserX0, laserY0, 255, 255, 255);
-
   glPopMatrix();
+
+  if showMapCurPos then drawText8(4, gWinSizeY-10, Format('mappos:(%d,%d)', [pmsCurMapX, pmsCurMapY]), 255, 255, 0);
 end;
 
 
@@ -436,7 +443,14 @@ end;
 function g_Holmes_KeyEvent (var ev: THKeyEvent): Boolean;
 var
   mon: TMonster;
+  pan: TPanel;
   x, y, w, h: Integer;
+  ex, ey: Integer;
+
+  procedure dummyWallTrc (cx, cy: Integer);
+  begin
+  end;
+
 begin
   result := false;
   msB := ev.bstate;
@@ -500,6 +514,34 @@ begin
         gPlayers[0].getMapBox(x, y, w, h);
         gPlayers[0].TeleportTo(pmsCurMapX-w div 2, pmsCurMapY-h div 2, true, 69); // 69: don't change dir
       end;
+      exit;
+    end;
+    // C-P: show cursor position on the map
+    if (ev.scan = SDL_SCANCODE_P) and ((ev.kstate and THKeyEvent.ModCtrl) <> 0) then
+    begin
+      result := true;
+      showMapCurPos := not showMapCurPos;
+      exit;
+    end;
+    // C-G: toggle grid
+    if (ev.scan = SDL_SCANCODE_G) and ((ev.kstate and THKeyEvent.ModCtrl) <> 0) then
+    begin
+      result := true;
+      showGrid := not showGrid;
+      exit;
+    end;
+    // C-DOWN: trace down 10 pixels from cursor
+    if (ev.scan = SDL_SCANCODE_DOWN) and ((ev.kstate and THKeyEvent.ModCtrl) <> 0) then
+    begin
+      result := true;
+      {$IF DEFINED(D2F_DEBUG)}
+      mapGrid.dbgRayTraceTileHitCB := dummyWallTrc;
+      {$ENDIF}
+      pan := g_Map_traceToNearest(pmsCurMapX, pmsCurMapY, pmsCurMapX, pmsCurMapY+10, (GridTagWall or GridTagDoor or GridTagStep or GridTagAcid1 or GridTagAcid2 or GridTagWater), @ex, @ey);
+      {$IF DEFINED(D2F_DEBUG)}
+      mapGrid.dbgRayTraceTileHitCB := nil;
+      {$ENDIF}
+      e_WriteLog(Format('v-trace: (%d,%d)-(%d,%d); end=(%d,%d); hit=%d', [pmsCurMapX, pmsCurMapY, pmsCurMapX, pmsCurMapY+10, ex, ey, Integer(pan <> nil)]), MSG_NOTIFY);
       exit;
     end;
   end;

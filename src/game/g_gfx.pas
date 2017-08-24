@@ -14,6 +14,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *)
 {$INCLUDE ../shared/a_modes.inc}
+{$DEFINE D2F_NEW_SPARK_THINKER}
 unit g_gfx;
 
 interface
@@ -67,7 +68,7 @@ var
 implementation
 
 uses
-  g_map, g_basic, Math, e_graphics, GL, GLExt,
+  g_map, g_panel, g_basic, Math, e_graphics, GL, GLExt,
   g_options, g_console, SysUtils, g_triggers, MAPDEF,
   g_game, g_language, g_net;
 
@@ -537,17 +538,24 @@ end;
 // ////////////////////////////////////////////////////////////////////////// //
 procedure TParticle.thinkerSpark ();
 var
-  w, h: Integer;
   dX, dY: SmallInt;
+  {$IF not DEFINED(D2F_NEW_SPARK_THINKER)}
   b: Integer;
   s: ShortInt;
+  {$ELSE}
+  pan: TPanel;
+  ex, ey: Integer;
+  {$ENDIF}
 begin
-  w := gMapInfo.Width;
-  h := gMapInfo.Height;
-
   dX := Round(VelX);
   dY := Round(VelY);
 
+  {$IF DEFINED(D2F_NEW_SPARK_THINKER)}
+  if (Abs(VelX) < 0.1) and (Abs(VelY) < 0.1) then
+  begin
+    pan := g_Map_traceToNearest(X, Y-1, X, Y+1, (GridTagWall or GridTagDoor or GridTagStep or GridTagAcid1 or GridTagAcid2 or GridTagWater), @ex, @ey);
+  end;
+  {$ELSE}
   if (Abs(VelX) < 0.1) and (Abs(VelY) < 0.1) and
      (not isBlockedAt(X, Y-1) {ByteBool(gCollideMap[Y-1, X] and MARK_BLOCKED)}) and
      (not isBlockedAt(X, Y) {ByteBool(gCollideMap[Y, X] and MARK_BLOCKED)}) and
@@ -556,22 +564,30 @@ begin
     VelY := 0.8;
     AccelY := 0.5;
   end;
+  {$ENDIF}
 
-  if dX <> 0 then
+  if (dX <> 0) then
   begin
-    if dX > 0 then
-      s := 1
-    else
-      s := -1;
-
+    {$IF DEFINED(D2F_NEW_SPARK_THINKER)}
+    pan := g_Map_traceToNearest(X, Y, X+dX, Y, (GridTagWall or GridTagDoor or GridTagStep or GridTagAcid1 or GridTagAcid2 or GridTagWater), @ex, @ey);
+    //e_WriteLog(Format('spark h-trace: (%d,%d)-(%d,%d); dx=%d; end=(%d,%d); hit=%d', [X, Y, X+dX, Y, dX, ex, ey, Integer(pan <> nil)]), MSG_NOTIFY);
+    X := ex;
+    // free to ride?
+    if (pan <> nil) then
+    begin
+      // nope
+      if ((pan.tag and (GridTagAcid1 or GridTagAcid2 or GridTagWater)) <> 0) then begin die(); exit; end;
+      VelX := 0;
+      AccelX := 0;
+    end;
+    if (X < 0) or (X >= gMapInfo.Width) then begin die(); exit; end;
+    {$ELSE}
+    if (dX > 0) then s := 1 else s := -1;
     dX := Abs(dX);
-
     for b := 1 to dX do
     begin
-      if (X+s >= w) or (X+s <= 0) then begin die(); break; end;
-
+      if (X+s >= gMapInfo.Width) or (X+s <= 0) then begin die(); break; end;
       //c := gCollideMap[Y, X+s];
-
       if isBlockedAt(X+s, Y) {ByteBool(c and MARK_BLOCKED)} then
         begin // Стена/дверь - падает вертикально
           VelX := 0;
@@ -587,23 +603,52 @@ begin
             break;
           end;
     end;
+    {$ENDIF}
   end;
 
-  if dY <> 0 then
+  if (dY <> 0) then
   begin
-    if dY > 0 then
-      s := 1
+    {$IF DEFINED(D2F_NEW_SPARK_THINKER)}
+    pan := g_Map_traceToNearest(X, Y, X, Y+dY, (GridTagWall or GridTagDoor or GridTagStep or GridTagAcid1 or GridTagAcid2 or GridTagWater), @ex, @ey);
+    //e_WriteLog(Format('spark y-trace: (%d,%d)-(%d,%d); dy=%d; end=(%d,%d); hit=%d', [X, Y, X, Y+dY, dY, ex, ey, Integer(pan <> nil)]), MSG_NOTIFY);
+    (*
+    if (pan <> nil) then
+    begin
+      e_WriteLog(Format('spark y-trace: %08x (%d,%d)-(%d,%d); dy=%d; end=(%d,%d); hittag=%04x', [LongWord(@self), X, Y, X, Y+dY, dY, ex, ey, pan.tag]), MSG_NOTIFY);
+    end
     else
-      s := -1;
-
+    begin
+      e_WriteLog(Format('spark y-trace: %08x (%d,%d)-(%d,%d); dy=%d; end=(%d,%d); hit=%d', [LongWord(@self), X, Y, X, Y+dY, dY, ex, ey, Integer(pan <> nil)]), MSG_NOTIFY);
+    end;
+    *)
+    Y := ey;
+    // free to ride?
+    if (pan <> nil) then
+    begin
+      //die(); exit;
+      // nope
+      if ((pan.tag and (GridTagAcid1 or GridTagAcid2 or GridTagWater)) <> 0) then begin die(); exit; end;
+      if (dY < 0) then
+      begin
+        VelY := -VelY;
+        AccelY := abs(AccelY);
+      end
+      else
+      begin
+        VelX := 0;
+        AccelX := 0;
+        VelY := 0;
+        AccelY := 0.8;
+      end;
+    end;
+    if (Y < 0) or (Y >= gMapInfo.Height) then begin die(); exit; end;
+    {$ELSE}
+    if (dY > 0) then s := 1 else s := -1;
     dY := Abs(dY);
-
     for b := 1 to dY do
     begin
-      if (Y+s >= h) or (Y+s <= 0) then begin die(); break; end;
-
+      if (Y+s >= gMapInfo.Height) or (Y+s <= 0) then begin die(); break; end;
       //c := gCollideMap[Y+s, X];
-
       if isBlockedAt(X, Y+s) {ByteBool(c and MARK_BLOCKED)} then
         begin // Стена/дверь - падает вертикально
           if s < 0 then
@@ -630,18 +675,18 @@ begin
             break;
           end;
     end;
+    {$ENDIF}
   end;
 
-  if VelX <> 0.0 then
-    VelX := VelX + AccelX;
-  if VelY <> 0.0 then
+  if (VelX <> 0.0) then VelX += AccelX;
+
+  if (VelY <> 0.0) then
   begin
-    if AccelY < 10 then
-      AccelY := AccelY + 0.08;
-    VelY := VelY + AccelY;
+    if (AccelY < 10) then AccelY += 0.08;
+    VelY += AccelY;
   end;
 
-  Time := Time + 1;
+  Time += 1;
 end;
 
 
