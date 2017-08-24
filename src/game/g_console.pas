@@ -29,6 +29,9 @@ procedure g_Console_Add(L: String; Show: Boolean = False);
 procedure g_Console_Clear();
 function  g_Console_CommandBlacklisted(C: String): Boolean;
 
+procedure conwriteln (const s: AnsiString; show: Boolean=false);
+procedure conwritefln (const s: AnsiString; args: array of const; show: Boolean=false);
+
 procedure g_Console_Chat_Switch(Team: Boolean = False);
 
 var
@@ -44,7 +47,7 @@ implementation
 uses
   g_textures, g_main, e_graphics, e_input, g_game,
   SysUtils, g_basic, g_options, wadreader, Math,
-  g_menu, g_language, g_net, g_netmsg, e_log, conbuf;
+  g_menu, g_language, g_net, g_netmsg, e_log, conbuf, utils;
 
 type
   TCmdProc = procedure (P: SArray);
@@ -1042,6 +1045,58 @@ begin
 {$ENDIF}
   *)
 end;
+
+
+var
+  consolewriterLastWasEOL: Boolean = false;
+
+procedure consolewriter (constref buf; len: SizeUInt);
+var
+  b: PByte;
+begin
+  if (len < 1) then exit;
+  b := PByte(@buf);
+  consolewriterLastWasEOL := (b[len-1] = 13) or (b[len-1] = 10);
+  while (len > 0) do
+  begin
+    if (b[0] <> 13) and (b[0] <> 10) then
+    begin
+      cbufPut(Char(b[0]));
+    end
+    else
+    begin
+      if (len > 1) and (b[0] = 13) then begin len -= 1; b += 1; end;
+      cbufPut(#10);
+    end;
+    len -= 1;
+    b += 1;
+  end;
+end;
+
+
+// returns formatted string if `writerCB` is `nil`, empty string otherwise
+//function formatstrf (const fmt: AnsiString; args: array of const; writerCB: TFormatStrFCallback=nil): AnsiString;
+//TFormatStrFCallback = procedure (constref buf; len: SizeUInt);
+procedure conwriteln (const s: AnsiString; show: Boolean=false);
+begin
+  g_Console_Add(s, show);
+end;
+
+
+procedure conwritefln (const s: AnsiString; args: array of const; show: Boolean=false);
+begin
+  if show then
+  begin
+    g_Console_Add(formatstrf(s, args), true);
+  end
+  else
+  begin
+    consolewriterLastWasEOL := false;
+    formatstrf(s, args, consolewriter);
+    if not consolewriterLastWasEOL then cbufPut(#10);
+  end;
+end;
+
 
 procedure g_Console_Clear();
 begin

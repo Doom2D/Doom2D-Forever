@@ -542,6 +542,7 @@ begin
       mapGrid.dbgRayTraceTileHitCB := nil;
       {$ENDIF}
       e_LogWritefln('v-trace: (%d,%d)-(%d,%d); end=(%d,%d); hit=%d', [pmsCurMapX, pmsCurMapY, pmsCurMapX, pmsCurMapY+10, ex, ey, (pan <> nil)]);
+      //conwritefln('!!!v-trace: (%d,%d)-(%d,%d); end=(%d,%d); hit=%d', [pmsCurMapX, pmsCurMapY, pmsCurMapX, pmsCurMapY+10, ex, ey, (pan <> nil)]);
       exit;
     end;
   end;
