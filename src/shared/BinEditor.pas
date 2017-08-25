@@ -99,7 +99,7 @@ procedure ZeroMemory(Dest: Pointer; Len: Cardinal);
 Implementation
 
 Uses
-  Math, e_log;
+  Math, e_log, utils;
 
 Const
   MAX_BIN_SIZE = 4 * 1024 * 1024; // 4 MB
@@ -536,7 +536,7 @@ begin
 
   if (not FileExists(aFileName)) or (aOverWrite) then
   begin
-    AssignFile(FHandle, aFileName);
+    AssignFile(FHandle, findFileCIStr(aFileName));
     ReWrite(FHandle, 1);
 
   // Сигнатура:
@@ -607,7 +607,7 @@ begin
 
   if FileExists(aFileName) then
   begin
-    AssignFile(FHandle, aFileName);
+    AssignFile(FHandle, findFileCIStr(aFileName));
     ReSet(FHandle, 1);
 
   // Сигнатура:

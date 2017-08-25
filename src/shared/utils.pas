@@ -49,6 +49,9 @@ function utf8to1251 (s: AnsiString): AnsiString;
 // nobody cares about shitdoze, so i'll use the same code path for it
 function findFileCI (var pathname: AnsiString; lastIsDir: Boolean=false): Boolean;
 
+// returns name (the same if no file found)
+function findFileCIStr (pathname: AnsiString; lastIsDir: Boolean=false): AnsiString;
+
 // they throws
 function openDiskFileRO (pathname: AnsiString): TStream;
 function createDiskFile (pathname: AnsiString): TStream;
@@ -354,7 +357,7 @@ begin
     // remove trailing slashes again
     while (length(npt) > 0) and ((npt[1] = '/') or (npt[1] = '\')) do Delete(npt, 1, 1);
     wantdir := lastIsDir or (length(npt) > 0); // do we want directory here?
-    //writeln(Format('npt=[%s]; newname=[%s]; curname=[%s]; wantdir=%d', [npt, newname, curname, Integer(wantdir)]));
+    writeln(Format('0: npt=[%s]; newname=[%s]; curname=[%s]; wantdir=%d', [npt, newname, curname, Integer(wantdir)]));
     // try the easiest case first
     attr := FileGetAttr(newname+curname);
     if attr <> -1 then
@@ -362,12 +365,13 @@ begin
       if wantdir = ((attr and faDirectory) <> 0) then
       begin
         // i found her!
+        writeln(Format('3: npt=[%s]; newname=[%s]; curname=[%s]; wantdir=%d; found=tan', [npt, newname, curname, Integer(wantdir)]));
         newname := newname+curname;
         if wantdir then newname := newname+'/';
         continue;
       end;
     end;
-    //writeln(Format('npt=[%s]; newname=[%s]; curname=[%s]; wantdir=%d', [npt, newname, curname, Integer(wantdir)]));
+    writeln(Format('1: npt=[%s]; newname=[%s]; curname=[%s]; wantdir=%d', [npt, newname, curname, Integer(wantdir)]));
     // alas, either not found, or invalid attributes
     foundher := false;
     try
@@ -385,11 +389,29 @@ begin
     finally
       FindClose(sr);
     end;
+    if (foundher) then
+    begin
+      writeln(Format('2: npt=[%s]; newname=[%s]; curname=[%s]; wantdir=%d; found=tan', [npt, newname, curname, Integer(wantdir)]));
+    end
+    else
+    begin
+      writeln(Format('2: npt=[%s]; newname=[%s]; curname=[%s]; wantdir=%d; found=ona', [npt, newname, curname, Integer(wantdir)]));
+    end;
     if not foundher then begin newname := ''; result := false; break; end;
   end;
+  writeln(Format('4: npt=[%s]; newname=[%s]; curname=[%s]; wantdir=%d; found=ona', [npt, newname, curname, Integer(wantdir)]));
   if result then pathname := newname;
 end;
 
+function findFileCIStr (pathname: AnsiString; lastIsDir: Boolean=false): AnsiString;
+var
+  s: AnsiString;
+begin
+  s := pathname;
+  if not findFileCI(s, lastIsDir) then s := pathname;
+  writeln(Format('***: pathname=[%s]; s=[%s]', [pathname, s]));
+  result := s;
+end;
 
 function openDiskFileRO (pathname: AnsiString): TStream;
 begin

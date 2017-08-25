@@ -75,7 +75,7 @@ const
 implementation
 
 uses
-  SysUtils, BinEditor, ZLib;
+  SysUtils, BinEditor, ZLib, utils;
 
 const
   DFWAD_OPENED_NONE   = 0;
@@ -291,7 +291,7 @@ var
 begin
  Result := False;
 
- AssignFile(ResourceFile, FileName);
+ AssignFile(ResourceFile, findFileCIStr(FileName));
 
  try
   Reset(ResourceFile, 1);
@@ -421,7 +421,7 @@ begin
  if FResData <> nil then FreeMem(FResData);
 
  try
-  AssignFile(WADFile, FFileName);
+  AssignFile(WADFile, findFileCIStr(FFileName));
   Reset(WADFile, 1);
 
   b := 6+SizeOf(TWADHeaderRec_1)+SizeOf(TResourceTableRec_1)*Length(FResTable);
@@ -578,7 +578,7 @@ begin
  if FWADOpened = DFWAD_OPENED_FILE then
  begin
   try
-   AssignFile(WADFile, FFileName);
+   AssignFile(WADFile, findFileCIStr(FFileName));
    Reset(WADFile, 1);
 
    Seek(WADFile, FResTable[i].Address+6+
@@ -695,7 +695,7 @@ begin
 
  FFileName := FileName;
 
- AssignFile(WADFile, FFileName);
+ AssignFile(WADFile, findFileCIStr(FFileName));
 
  try
   Reset(WADFile, 1);

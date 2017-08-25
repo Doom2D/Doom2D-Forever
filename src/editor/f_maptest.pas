@@ -70,7 +70,7 @@ var
   n: Integer;
   
 begin
-  config := TConfig.CreateFile(EditorDir+'\Editor.cfg');
+  config := TConfig.CreateFile(EditorDir+'/Editor.cfg');
 
   if rbTDM.Checked then
     s := 'TDM'
@@ -114,7 +114,7 @@ begin
   config.WriteStr('TestRun', 'Exe', edD2dExe.Text);
   TestD2dExe := edD2dExe.Text;
 
-  config.SaveFile(EditorDir+'\Editor.cfg');
+  config.SaveFile(EditorDir+'/Editor.cfg');
   config.Free();
   Close();
 end;
@@ -153,7 +153,7 @@ var
   config: TConfig;
   
 begin
-  config := TConfig.CreateFile(EditorDir+'\Editor.cfg');
+  config := TConfig.CreateFile(EditorDir+'/Editor.cfg');
 
   TestGameMode := config.ReadStr('TestRun', 'GameMode', 'DM');
   TestLimTime := config.ReadStr('TestRun', 'LimTime', '0');

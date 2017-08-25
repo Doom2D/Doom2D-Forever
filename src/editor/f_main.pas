@@ -1906,7 +1906,7 @@ begin
       end
     else
       begin // Внешний WAD
-        FileName := EditorDir+'wads\'+aWAD;
+        FileName := EditorDir+'wads/'+aWAD;
         ResourceName := aWAD+':'+SectionName+'\'+aTex;
       end;
 
@@ -2540,13 +2540,13 @@ begin
   cfglen := 0;
 
   wad := TWADEditor_1.Create;
-  if wad.ReadFile(EditorDir+'data\Game.wad') then
+  if wad.ReadFile(EditorDir+'data/Game.wad') then
     wad.GetResource('FONTS', cfgres, cfgdata, cfglen);
   wad.Free();
 
   if cfglen <> 0 then
   begin
-    if not g_CreateTextureWAD('FONT_STD', EditorDir+'data\Game.wad:FONTS\'+texture) then
+    if not g_CreateTextureWAD('FONT_STD', EditorDir+'data/Game.wad:FONTS\'+texture) then
       e_WriteLog('ERROR ERROR ERROR', MSG_WARNING);
 
     config := TConfig.CreateMem(cfgdata, cfglen);
@@ -2595,7 +2595,7 @@ begin
   OpenedMap := '';
   OpenedWAD := '';
 
-  config := TConfig.CreateFile(EditorDir+'\Editor.cfg');
+  config := TConfig.CreateFile(EditorDir+'/Editor.cfg');
 
   if config.ReadBool('Editor', 'Maximize', False) then
     WindowState := wsMaximized;
@@ -4020,7 +4020,7 @@ var
   config: TConfig;
   i: Integer;
 begin
-  config := TConfig.CreateFile(EditorDir+'\Editor.cfg');
+  config := TConfig.CreateFile(EditorDir+'/Editor.cfg');
 
   config.WriteBool('Editor', 'Maximize', WindowState = wsMaximized);
   config.WriteBool('Editor', 'Minimap', ShowMap);
@@ -4043,7 +4043,7 @@ begin
       config.WriteStr('RecentFiles', IntToStr(i+1), '');
   RecentFiles.Free();
 
-  config.SaveFile(EditorDir+'\Editor.cfg');
+  config.SaveFile(EditorDir+'/Editor.cfg');
   config.Free();
 
   slInvalidTextures.Free;
@@ -5751,9 +5751,9 @@ begin
       else gLanguage := LANGUAGE_RUSSIAN;
     end;
 
-    config := TConfig.CreateFile(EditorDir+'\Editor.cfg');
+    config := TConfig.CreateFile(EditorDir+'/Editor.cfg');
     config.WriteStr('Editor', 'Language', gLanguage);
-    config.SaveFile(EditorDir+'\Editor.cfg');
+    config.SaveFile(EditorDir+'/Editor.cfg');
     config.Free();
   end;
 
@@ -6231,13 +6231,13 @@ begin
   // Сохраняем временную карту:
   time := 0;
   repeat
-    mapWAD := ExtractFilePath(TestD2dExe) + Format('maps\temp%.4d.wad', [time]);
+    mapWAD := ExtractFilePath(TestD2dExe) + Format('maps/temp%.4d.wad', [time]);
     Inc(time);
   until not FileExists(mapWAD);
   mapToRun := mapWAD + ':\' + TEST_MAP_NAME;
   SaveMap(mapToRun);
 
-  mapToRun := ExtractRelativePath(ExtractFilePath(TestD2dExe) + 'maps\', mapToRun);
+  mapToRun := ExtractRelativePath(ExtractFilePath(TestD2dExe) + 'maps/', mapToRun);
 
 // Опции игры:
   opt := 32 + 64;

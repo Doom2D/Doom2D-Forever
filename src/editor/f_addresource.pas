@@ -66,7 +66,7 @@ begin
   FResourceSelected := False;
 
   ChDir(EditorDir);
-  if FindFirst(EditorDir+'wads\*.wad', faAnyFile, SR) = 0 then
+  if FindFirst(EditorDir+'wads/*.wad', faAnyFile, SR) = 0 then
   repeat
     cbWADList.Items.Add(SR.Name);
   until FindNext(SR) <> 0;
@@ -114,7 +114,7 @@ begin
 
 // Внешний WAD:
   if cbWADList.Text <> _lc[I_WAD_SPECIAL_MAP] then
-     FileName := EditorDir+'wads\'+cbWADList.Text
+     FileName := EditorDir+'wads/'+cbWADList.Text
   else // WAD карты:
     begin
       g_ProcessResourceStr(OpenedMap, fn, sn, rn);
@@ -149,7 +149,7 @@ begin
 
 // Внешний WAD:
   if cbWADList.Text <> _lc[I_WAD_SPECIAL_MAP] then
-    FileName := EditorDir+'wads\'+cbWADList.Text
+    FileName := EditorDir+'wads/'+cbWADList.Text
   else // WAD карты:
     begin
       g_ProcessResourceStr(OpenedMap, fn, sn, rn);
@@ -204,7 +204,7 @@ begin
   FResourceName := FileName+':'+SectionName+'\'+lbResourcesList.Items[lbResourcesList.ItemIndex];
 
   if FileName <> '' then
-    FFullResourceName := EditorDir+'wads\'+FResourceName
+    FFullResourceName := EditorDir+'wads/'+FResourceName
   else
     begin
       g_ProcessResourceStr(OpenedMap, @fn, nil, nil);

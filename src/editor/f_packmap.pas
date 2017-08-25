@@ -84,7 +84,7 @@ begin
   if filename = '' then
     g_ProcessResourceStr(OpenedMap, @filename, nil, nil)
   else
-    filename := EditorDir+'wads\'+filename;
+    filename := EditorDir+'wads/'+filename;
 
 // Читаем ресурс из WAD-файла карты или какого-то другого:
   wad2 := TWADEditor_1.Create();

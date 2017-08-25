@@ -65,7 +65,7 @@ begin
 
  if cfg_data <> nil then config_close();
 
- AssignFile(f, FileName);
+ AssignFile(f, findFileCIStr(FileName));
 
  {$I-}
  Reset(f);
