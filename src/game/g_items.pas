@@ -28,7 +28,6 @@ Type
     //treeNode: Integer;
     slotIsUsed: Boolean;
     arrIdx: Integer; // in ggItems
-    nextFree: Integer; // in item array
 
   public
     ItemType:      Byte;
@@ -87,7 +86,7 @@ uses
   g_basic, e_graphics, g_sound, g_main, g_gfx, g_map,
   Math, g_game, g_triggers, g_console, SysUtils, g_player, g_net, g_netmsg,
   e_log,
-  g_grid, binheap;
+  g_grid, binheap, idpool;
 
 
 var
@@ -96,8 +95,7 @@ var
 
 // ////////////////////////////////////////////////////////////////////////// //
 var
-  //freeIds: TBinaryHeapInt = nil; // free item ids
-  freeListHead: Integer = -1;
+  freeIds: TIdPool = nil;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
@@ -265,7 +263,7 @@ begin
 
   InitTextures();
 
-  //freeIds := binHeapNewIntLess();
+  freeIds := TIdPool.Create();
 end;
 
 
@@ -322,7 +320,8 @@ begin
   g_Texture_Delete('ITEM_MEDKIT_BLACK');
   g_Texture_Delete('ITEM_JETPACK');
 
-  //freeIds.Free();
+  freeIds.Free();
+  freeIds := nil;
 end;
 
 
@@ -331,8 +330,9 @@ var
   it: PItem;
 begin
   if (idx < 0) or (idx > High(ggItems)) then raise Exception.Create('releaseItem: invalid item id');
+  if not freeIds.hasAlloced[LongWord(idx)] then raise Exception.Create('releaseItem: trying to release unallocated item (0)');
   it := @ggItems[idx];
-  if not it.slotIsUsed then raise Exception.Create('releaseItem: trying to release unallocated item');
+  if not it.slotIsUsed then raise Exception.Create('releaseItem: trying to release unallocated item (1)');
   if (it.arrIdx <> idx) then raise Exception.Create('releaseItem: arrIdx inconsistency');
   it.slotIsUsed := false;
   if (it.Animation <> nil) then
@@ -343,34 +343,11 @@ begin
   it.Live := False;
   it.SpawnTrigger := -1;
   it.ItemType := ITEM_NONE;
-  //freeIds.insert(it.arrIdx);
-  it.nextFree := freeListHead;
-  freeListHead := idx;
+  freeIds.release(LongWord(idx));
 end;
 
 
-procedure rebuildFreeList (reservedIdx: Integer=-1);
-var
-  i, lfi: Integer;
-  it: PItem;
-begin
-  // rebuild free list
-  freeListHead := -1;
-  lfi := -1;
-  for i := 0 to High(ggItems) do
-  begin
-    it := @ggItems[i];
-    if (i <> reservedIdx) and (not it.slotIsUsed) then
-    begin
-      if (lfi = -1) then freeListHead := i else ggItems[lfi].nextFree := lfi;
-      lfi := i;
-    end;
-  end;
-  if (lfi <> -1) then ggItems[lfi].nextFree := -1;
-end;
-
-
-procedure growItemArrayTo (newsz: Integer; rebuildList: Boolean=true);
+procedure growItemArrayTo (newsz: Integer);
 var
   i, olen: Integer;
   it: PItem;
@@ -384,29 +361,20 @@ begin
     it := @ggItems[i];
     it.slotIsUsed := false;
     it.arrIdx := i;
-    it.nextFree := i+1;
     it.ItemType := ITEM_NONE;
     it.Animation := nil;
     it.Live := false;
     it.SpawnTrigger := -1;
     it.Respawnable := false;
-    //freeIds.insert(i);
+    //if not freeIds.hasFree[LongWord(i)] then raise Exception.Create('internal error in item idx manager');
   end;
-  if rebuildList then rebuildFreeList();
 end;
 
 
 function allocItem (): DWORD;
 begin
-  if (freeListHead = -1) then
-  begin
-    growItemArrayTo(Length(ggItems)+64);
-    if (freeListHead = -1) then raise Exception.Create('internal error in item manager');
-  end;
-
-  result := DWORD(freeListHead);
-  freeListHead := ggItems[freeListHead].nextFree;
-
+  result := freeIds.alloc();
+  if (result >= Length(ggItems)) then growItemArrayTo(Integer(result)+64);
   if (Integer(result) > High(ggItems)) then raise Exception.Create('allocItem: freeid list corrupted');
   if (ggItems[result].arrIdx <> Integer(result)) then raise Exception.Create('allocItem: arrIdx inconsistency');
 end;
@@ -417,21 +385,20 @@ function wantItemSlot (slot: Integer): Integer;
 var
   olen: Integer;
   it: PItem;
-  rebuildList: Boolean = false;
 begin
   if (slot < 0) or (slot > $0fffffff) then raise Exception.Create('wantItemSlot: bad item slot request');
   // do we need to grow item storate?
   olen := Length(ggItems);
-  if (slot >= olen) then
-  begin
-    growItemArrayTo(slot+64, false);
-    rebuildList := true;
-  end;
+  if (slot >= olen) then growItemArrayTo(slot+64);
 
   it := @ggItems[slot];
-  if rebuildList or (not it.slotIsUsed) then
+  if not it.slotIsUsed then
   begin
-    rebuildFreeList(slot);
+    freeIds.alloc(LongWord(slot));
+  end
+  else
+  begin
+    if not freeIds.hasAlloced[slot] then raise Exception.Create('wantItemSlot: internal error in item idx manager');
   end;
   it.slotIsUsed := false;
 
@@ -459,8 +426,7 @@ begin
     for i := 0 to High(ggItems) do ggItems[i].Animation.Free();
     ggItems := nil;
   end;
-  //freeIds.clear();
-  freeListHead := -1;
+  freeIds.clear();
 end;
 
 

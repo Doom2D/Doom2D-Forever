@@ -100,6 +100,7 @@ uses
   xprofiler in '../shared/xprofiler.pas',
   binheap in '../shared/binheap.pas',
   hashtable in '../shared/hashtable.pas',
+  idpool in '../shared/idpool.pas',
   BinEditor in '../shared/BinEditor.pas',
   envvars in '../shared/envvars.pas',
   g_panel in 'g_panel.pas',

@@ -14,7 +14,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *)
 {$INCLUDE a_modes.inc}
-{$DEFINE IDPOOL_CHECKS}
+{.$DEFINE IDPOOL_CHECKS}
 unit idpool;
 
 interface
