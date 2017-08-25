@@ -1284,8 +1284,10 @@ var
   f, ptag, distSq: Integer;
   x0, y0, x1, y1: Integer;
   // horizontal walker
+  {$IFDEF GRID_USE_ORTHO_ACCEL}
   wklen, wkstep: Integer;
   hopt: Boolean;
+  {$ENDIF}
 begin
   result := Default(ITP);
   lastObj := Default(ITP);

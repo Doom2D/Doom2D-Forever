@@ -48,7 +48,7 @@
 {$SCOPEDENUMS OFF} // this will possibly be changed later
 {$SMARTLINK ON}
 {$TYPEDADDRESS ON}
-{$TYPEINFO OFF}
+{$TYPEINFO ON}
 {$VARSTRINGCHECKS OFF}
 
 {$S-} // disable stack checking

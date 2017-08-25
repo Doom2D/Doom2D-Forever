@@ -415,6 +415,7 @@ end;
 
 type
   TVolumeInfo = class
+  public
     fFactory: TSFSVolumeFactory;
     fVolume: TSFSVolume;
     fPackName: AnsiString; // для одного и того же файла будет только один том!
