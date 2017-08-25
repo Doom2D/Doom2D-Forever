@@ -48,11 +48,29 @@ var
   f, n: Integer;
   usedIds: Integer = 0;
 begin
-  ip := TIdPool.Create(65535*1024);
+  ip := TIdPool.Create(65535);
   SetLength(map, ip.maxId+1);
   for f := 0 to High(map) do map[f] := false;
   for f := 0 to High(map) div 2 do
   begin
+    while true do
+    begin
+      n := Random(ip.maxId+1);
+      if map[n] then
+      begin
+        if not ip.hasAlloced[n] then raise Exception.Create('invalid pool(0)');
+        if ip.hasFree[n] then raise Exception.Create('invalid pool(1)');
+        continue;
+      end;
+      break;
+    end;
+    if (ip.alloc(n) <> n) then raise Exception.Create('wutafuuuuu?!');
+    map[n] := true;
+    Inc(usedIds);
+    if not ip.hasAlloced[n] then raise Exception.Create('invalid pool(3)');
+    if ip.hasFree[n] then raise Exception.Create('invalid pool(4)');
+    //ip.dump();
+    {
     if ip.hasAlloced[f] then raise Exception.Create('invalid pool(0)');
     if not ip.hasFree[f] then raise Exception.Create('invalid pool(1)');
     if (ip.alloc <> f) then raise Exception.Create('invalid alloc(2)');
@@ -60,6 +78,7 @@ begin
     Inc(usedIds);
     if not ip.hasAlloced[f] then raise Exception.Create('invalid pool(3)');
     if ip.hasFree[f] then raise Exception.Create('invalid pool(4)');
+    }
   end;
   for f := 0 to 10000000 do
   begin
@@ -107,6 +126,7 @@ begin
       if not ip.hasFree[f] then raise Exception.Create('invalid pool(e)');
     end;
   end;
+  ip.Free();
 end;
 
 

@@ -14,7 +14,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *)
 {$INCLUDE a_modes.inc}
-{.$DEFINE IDPOOL_CHECKS}
+{$DEFINE IDPOOL_CHECKS}
 unit idpool;
 
 interface
@@ -56,6 +56,9 @@ type
     // returns InvalidId if there are no more free ids (or throws)
     function alloc (dothrow: Boolean=true): LongWord;
 
+    // returns InvalidId if there are no more free ids (or throws)
+    function alloc (aid: LongWord; dothrow: Boolean=true): LongWord;
+
     // it is NOT ok to release already released id
     procedure release (aid: LongWord);
 
@@ -73,7 +76,6 @@ type
     property usedRanges: Integer read mRangeUsed;
     property capacity: Integer read getCapacity;
   end;
-
 
 implementation
 
@@ -119,11 +121,11 @@ var
 begin
   for f := 0 to mRangeUsed-1 do
   begin
-    if (mRanges[f].first > mRanges[f].last) then raise Exception.Create('invalid range');
-    if (mRanges[f].first > mMaxId) then raise Exception.Create('invalid range');
-    if (mRanges[f].last > mMaxId) then raise Exception.Create('invalid range');
-    if (f > 0) and (mRanges[f-1].last >= mRanges[f].first) then raise Exception.Create('invalid range order');
-    if (f > 0) and (mRanges[f-1].last+1 = mRanges[f].first) then raise Exception.Create('unmerged ranges');
+    if (mRanges[f].first > mRanges[f].last) then begin dump(); raise Exception.Create('invalid range'); end;
+    if (mRanges[f].first > mMaxId) then begin dump(); raise Exception.Create('invalid range'); end;
+    if (mRanges[f].last > mMaxId) then begin dump(); raise Exception.Create('invalid range'); end;
+    if (f > 0) and (mRanges[f-1].last >= mRanges[f].first) then begin dump(); raise Exception.Create('invalid range order'); end;
+    if (f > 0) and (mRanges[f-1].last+1 = mRanges[f].first) then begin dump(); raise Exception.Create('unmerged ranges'); end;
   end;
 end;
 
@@ -220,6 +222,73 @@ begin
 end;
 
 
+// returns InvalidId if there are no more free ids (or throws)
+function TIdPool.alloc (aid: LongWord; dothrow: Boolean=true): LongWord;
+var
+  ii, c: Integer;
+begin
+  if (mRangeUsed = 0) then
+  begin
+    // no more ids
+    if dothrow then raise Exception.Create('TIdPool: no more free ids');
+    result := InvalidId;
+    exit;
+  end;
+  // invalid?
+  if (aid > mMaxId) then
+  begin
+    if dothrow then raise Exception.Create('TIdPool: cannot allocate invalid id');
+    result := InvalidId;
+    exit;
+  end;
+  // find range with this id
+  ii := findRangeWithId(aid);
+  if (ii < 0) or (aid < mRanges[ii].first) or (aid > mRanges[ii].last) then
+  begin
+    if dothrow then raise Exception.Create('TIdPool: cannot allocate already allocated id');
+    result := InvalidId;
+    exit;
+  end;
+  // always return requested id
+  result := aid;
+  // can we shrink range head?
+  if (aid = mRanges[ii].first) then
+  begin
+    // yep; range with the only id?
+    if (aid = mRanges[ii].last) then
+    begin
+      // delete this range
+      for c := ii+1 to mRangeUsed-1 do mRanges[c-1] := mRanges[c];
+      Dec(mRangeUsed);
+    end
+    else
+    begin
+      mRanges[ii].first := aid+1;
+    end;
+    Inc(mUsedIds);
+    {$IF DEFINED(IDPOOL_CHECKS)}check();{$ENDIF}
+    exit;
+  end;
+  // can we shrink range tail?
+  if (aid = mRanges[ii].last) then
+  begin
+    // yep; simply shrink, 'cause range with one id was processed in the previous `if`
+    mRanges[ii].last := aid-1;
+    Inc(mUsedIds);
+    {$IF DEFINED(IDPOOL_CHECKS)}check();{$ENDIF}
+    exit;
+  end;
+  // split this range to two
+  if (mRangeUsed+1 > Length(mRanges)) then SetLength(mRanges, Length(mRanges)+1024);
+  for c := mRangeUsed downto ii+1 do mRanges[c] := mRanges[c-1];
+  Inc(mRangeUsed);
+  mRanges[ii].last := aid-1;
+  mRanges[ii+1].first := aid+1;
+  Inc(mUsedIds);
+  {$IF DEFINED(IDPOOL_CHECKS)}check();{$ENDIF}
+end;
+
+
 // it is NOT ok to release already released id
 procedure TIdPool.release (aid: LongWord);
 var
@@ -250,7 +319,7 @@ begin
     else
     begin
       // nope, insert new first range
-      if (mRangeUsed+1 > Length(mRanges)) then SetLength(mRanges, Length(mRanges)*2);
+      if (mRangeUsed+1 > Length(mRanges)) then SetLength(mRanges, Length(mRanges)+1024);
       assert(mRangeUsed < Length(mRanges));
       for c := mRangeUsed downto 1 do mRanges[c] := mRanges[c-1];
       Inc(mRangeUsed);
@@ -273,7 +342,7 @@ begin
     else
     begin
       // nope, insert new last range
-      if (mRangeUsed+1 > Length(mRanges)) then SetLength(mRanges, Length(mRanges)*2);
+      if (mRangeUsed+1 > Length(mRanges)) then SetLength(mRanges, Length(mRanges)+1024);
       assert(mRangeUsed < Length(mRanges));
       mRanges[mRangeUsed].first := aid;
       mRanges[mRangeUsed].last := aid;
@@ -336,7 +405,7 @@ begin
     exit;
   end;
   // cannot grow anything, insert empty range after ii
-  if (mRangeUsed = Length(mRanges)) then SetLength(mRanges, Length(mRanges)*2);
+  if (mRangeUsed = Length(mRanges)) then SetLength(mRanges, Length(mRanges)+1024);
   for c := mRangeUsed downto ii do mRanges[c+1] := mRanges[c];
   Inc(ii);
   mRanges[ii].first := aid;
