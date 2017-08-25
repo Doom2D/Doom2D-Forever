@@ -249,7 +249,7 @@ uses
   e_log, g_main, g_sound, g_gfx, g_player, g_game,
   g_weapons, g_triggers, MAPDEF, g_items, g_options,
   g_console, g_map, Math, SysUtils, g_menu, wadreader,
-  g_language, g_netmsg;
+  g_language, g_netmsg, idpool;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
@@ -542,6 +542,7 @@ const
 var
   gMonsters: array of TMonster;
   uidMap: array [0..65535] of TMonster; // monster knows it's index
+  freeInds: TIdPool = nil;
 
 
 procedure clearUidMap ();
@@ -549,6 +550,7 @@ var
   idx: Integer;
 begin
   for idx := 0 to High(uidMap) do uidMap[idx] := nil;
+  freeInds.clear();
 end;
 
 
@@ -578,29 +580,16 @@ var
   soulcount: Integer = 0;
 
 
-function allocMonster(): DWORD;
+function allocMonster (): DWORD;
 var
-  i, olen: Integer;
+  f, olen: Integer;
 begin
-  for i := 0 to High(gMonsters) do
+  result := freeInds.alloc();
+  if (result > High(gMonsters)) then
   begin
-    if (gMonsters[i] = nil) then
-    begin
-      result := i;
-      exit;
-    end;
-  end;
-
-  olen := Length(gMonsters);
-  if (olen = 0) then
-  begin
-    SetLength(gMonsters, 64);
-    result := 0;
-  end
-  else
-  begin
-    result := olen;
-    SetLength(gMonsters, Length(gMonsters)+32);
+    olen := Length(gMonsters);
+    SetLength(gMonsters, result+64);
+    for f := olen to High(gMonsters) do gMonsters[f] := nil;
   end;
 end;
 
@@ -966,6 +955,7 @@ begin
 
   g_Sound_CreateWADEx('SOUND_MONSTER_FISH_ATTACK', GameWAD+':MSOUNDS\FISH_ATTACK');
 
+  freeInds := TIdPool.Create();
   clearUidMap();
   monCheckTrapLastFrameId := 0;
 end;
@@ -1184,6 +1174,9 @@ begin
   g_Sound_Delete('SOUND_MONSTER_SPIDER_WALK');
 
   g_Sound_Delete('SOUND_MONSTER_FISH_ATTACK');
+
+  freeInds.Free();
+  freeInds := nil;
 end;
 
 procedure g_Monsters_Init();
@@ -1277,11 +1270,14 @@ begin
   if gMonsters = nil then
     Exit;
 
-// Приколист смеется над смертью игрока:
+  // Приколист смеется над смертью игрока:
   h := High(gMonsters);
   for a := 0 to h do
+  begin
     if (gMonsters[a] <> nil) then
+    begin
       with gMonsters[a] do
+      begin
         if (FMonsterType = MONSTER_MAN) and
            (FState <> MONSTATE_DEAD) and
            (FState <> MONSTATE_SLEEP) and
@@ -1290,6 +1286,9 @@ begin
           g_Sound_PlayExAt('SOUND_MONSTER_TRUP', FObj.X, FObj.Y);
           Exit;
         end;
+      end;
+    end;
+  end;
 end;
 
 procedure g_Monsters_Update();
@@ -1336,9 +1335,12 @@ var
   a: Integer;
 begin
   if gMonsters <> nil then
+  begin
     for a := 0 to High(gMonsters) do
-      if gMonsters[a] <> nil then
-        gMonsters[a].Draw();
+    begin
+      if (gMonsters[a] <> nil) then gMonsters[a].Draw();
+    end;
+  end;
 end;
 
 procedure g_Monsters_DrawHealth();
@@ -1350,29 +1352,19 @@ begin
   e_TextureFontGetSize(gStdFont, fW, fH);
 
   for a := 0 to High(gMonsters) do
+  begin
     if gMonsters[a] <> nil then
     begin
       e_TextureFontPrint(gMonsters[a].FObj.X + gMonsters[a].FObj.Rect.X,
       gMonsters[a].FObj.Y + gMonsters[a].FObj.Rect.Y + gMonsters[a].FObj.Rect.Height - fH,
       IntToStr(gMonsters[a].FHealth), gStdFont);
     end;
+  end;
 end;
 
 function g_Monsters_ByUID (UID: Word): TMonster;
-//var a: Integer;
 begin
   result := uidMap[UID];
-  {
-  Result := nil;
-  if gMonsters <> nil then
-    for a := 0 to High(gMonsters) do
-      if (gMonsters[a] <> nil) and
-         (gMonsters[a].FUID = UID) then
-      begin
-        Result := gMonsters[a];
-        Break;
-      end;
-  }
 end;
 
 procedure g_Monsters_SaveState(var Mem: TBinMemoryWriter);
@@ -1382,11 +1374,16 @@ var
 begin
 // Считаем количество существующих монстров:
   count := 0;
-  if gMonsters <> nil then
+  if (gMonsters <> nil) then
+  begin
     for i := 0 to High(gMonsters) do
-      if gMonsters[i] <> nil then
-        if gMonsters[i].FMonsterType <> MONSTER_NONE then
-          count := count + 1;
+    begin
+      if (gMonsters[i] <> nil) then
+      begin
+        if (gMonsters[i].FMonsterType <> MONSTER_NONE) then count += 1;
+      end;
+    end;
+  end;
 
   Mem := TBinMemoryWriter.Create((count+1) * 350);
 
@@ -1404,15 +1401,19 @@ begin
 
 // Сохраняем монстров:
   for i := 0 to High(gMonsters) do
-    if gMonsters[i] <> nil then
-      if gMonsters[i].FMonsterType <> MONSTER_NONE then
+  begin
+    if (gMonsters[i] <> nil) then
+    begin
+      if (gMonsters[i].FMonsterType <> MONSTER_NONE) then
       begin
-      // Тип монстра:
+        // Тип монстра:
         b := gMonsters[i].MonsterType;
         Mem.WriteByte(b);
-      // Сохраняем данные монстра:
+        // Сохраняем данные монстра:
         gMonsters[i].SaveState(Mem);
       end;
+    end;
+  end;
 end;
 
 procedure g_Monsters_LoadState(var Mem: TBinMemoryReader);
@@ -2021,7 +2022,11 @@ begin
     mProxyId := -1;
   end;
 
-  if (mArrIdx <> -1) and (mArrIdx < Length(gMonsters)) then gMonsters[mArrIdx] := nil;
+  if (mArrIdx <> -1) and (mArrIdx < Length(gMonsters)) then
+  begin
+    freeInds.release(mArrIdx);
+    gMonsters[mArrIdx] := nil;
+  end;
   mArrIdx := -1;
 
   uidMap[FUID] := nil;
@@ -4351,9 +4356,6 @@ begin
   end;
 end;
 
-procedure monsPostLoad ();
-begin
-end;
 
 procedure TMonster.LoadState(var Mem: TBinMemoryReader);
 var
@@ -4680,6 +4682,4 @@ begin
 end;
 
 
-begin
-  g_SetPostLoadHook(monsPostLoad);
 end.
