@@ -18,6 +18,9 @@ unit g_console;
 
 interface
 
+uses
+  wadreader; // for SArray
+
 procedure g_Console_Init();
 procedure g_Console_Update();
 procedure g_Console_Draw();
@@ -32,7 +35,13 @@ function  g_Console_CommandBlacklisted(C: String): Boolean;
 procedure conwriteln (const s: AnsiString; show: Boolean=false);
 procedure conwritefln (const s: AnsiString; args: array of const; show: Boolean=false);
 
+// <0: no arg; 0/1: true/false
+function conGetBoolArg (P: SArray; idx: Integer): Integer;
+
 procedure g_Console_Chat_Switch(Team: Boolean = False);
+
+procedure conRegVar (const conname: AnsiString; pvar: PBoolean; const ahelp: AnsiString; const amsg: AnsiString; acheat: Boolean=false);
+
 
 var
   gConsoleShow: Boolean; // True - консоль открыта или открывается
@@ -46,23 +55,31 @@ implementation
 
 uses
   g_textures, g_main, e_graphics, e_input, g_game,
-  SysUtils, g_basic, g_options, wadreader, Math,
+  SysUtils, g_basic, g_options, Math,
   g_menu, g_language, g_net, g_netmsg, e_log, conbuf, utils;
 
 type
+  PCommand = ^TCommand;
+
   TCmdProc = procedure (P: SArray);
+  TCmdProcEx = procedure (me: PCommand; P: SArray);
 
   TCommand = record
     Cmd: String;
     Proc: TCmdProc;
+    ProcEx: TCmdProcEx;
     help: String;
     hidden: Boolean;
+    ptr: Pointer; // various data
+    msg: AnsiString; // message for var changes
+    cheat: Boolean;
   end;
 
   TAlias = record
     Name: String;
     Commands: SArray;
   end;
+
 
 const
   Step = 32;
@@ -83,14 +100,68 @@ var
   //ConsoleHistory: SArray;
   CommandHistory: SArray;
   Whitelist: SArray;
-  Commands: Array of TCommand;
-  Aliases: Array of TAlias;
+  Commands: Array of TCommand = nil;
+  Aliases: Array of TAlias = nil;
   CmdIndex: Word;
   conSkipLines: Integer = 0;
   MsgArray: Array [0..4] of record
                               Msg: String;
                               Time: Word;
                             end;
+
+
+// <0: no arg; 0/1: true/false
+function conGetBoolArg (P: SArray; idx: Integer): Integer;
+begin
+  if (idx < 0) or (idx > High(P)) then begin result := -1; exit; end;
+  result := 0;
+  if (P[idx] = '1') or (CompareText(P[idx], 'on') = 0) or (CompareText(P[idx], 'true') = 0) or
+     (CompareText(P[idx], 'tan') = 0) or (CompareText(P[idx], 'yes') = 0) then result := 1;
+end;
+
+
+procedure boolVarHandler (me: PCommand; P: SArray);
+
+  procedure binaryFlag (var flag: Boolean; msg: string);
+  begin
+    if (Length(p) > 2) then
+    begin
+      conwritefln('too many arguments to ''%s''', [P[0]]);
+    end
+    else
+    begin
+      case conGetBoolArg(P, 1) of
+        -1: begin end;
+         0: if conIsCheatsEnabled then flag := false else begin conwriteln('not available'); exit; end;
+         1: if conIsCheatsEnabled then flag := true else begin conwriteln('not available'); exit; end;
+      end;
+      if flag then conwritefln('%s: tan', [msg]) else conwritefln('%s: ona', [msg]);
+    end;
+  end;
+
+begin
+  binaryFlag(PBoolean(me.ptr)^, me.msg);
+end;
+
+
+procedure conRegVar (const conname: AnsiString; pvar: PBoolean; const ahelp: AnsiString; const amsg: AnsiString; acheat: Boolean=false);
+var
+  f: Integer;
+  cp: PCommand;
+begin
+  f := Length(Commands);
+  SetLength(Commands, f+1);
+  cp := @Commands[f];
+  cp.Cmd := LowerCase(conname);
+  cp.Proc := nil;
+  cp.ProcEx := boolVarHandler;
+  cp.help := ahelp;
+  cp.hidden := false;
+  cp.ptr := pvar;
+  cp.msg := amsg;
+  cp.cheat := acheat;
+end;
+
 
 function GetStrACmd(var Str: String): String;
 var
@@ -351,16 +422,22 @@ begin
   Whitelist[a] := LowerCase(Cmd);
 end;
 
-procedure AddCommand(Cmd: String; Proc: TCmdProc; ahelp: String=''; ahidden: Boolean=false);
+procedure AddCommand(Cmd: String; Proc: TCmdProc; ahelp: String=''; ahidden: Boolean=false; acheat: Boolean=false);
 var
   a: Integer;
+  cp: PCommand;
 begin
   SetLength(Commands, Length(Commands)+1);
   a := High(Commands);
-  Commands[a].Cmd := LowerCase(Cmd);
-  Commands[a].Proc := Proc;
-  Commands[a].hidden := ahidden;
-  Commands[a].help := ahelp;
+  cp := @Commands[a];
+  cp.Cmd := LowerCase(Cmd);
+  cp.Proc := Proc;
+  cp.ProcEx := nil;
+  cp.help := ahelp;
+  cp.hidden := ahidden;
+  cp.ptr := nil;
+  cp.msg := '';
+  cp.cheat := acheat;
 end;
 
 procedure g_Console_Init();
@@ -403,22 +480,6 @@ begin
   AddCommand('d_health', DebugCommands);
   AddCommand('d_player', DebugCommands);
   AddCommand('d_joy', DebugCommands);
-
-  AddCommand('pf_draw_frame', ProfilerCommands, 'draw frame rendering profiles');
-  //AddCommand('pf_update_frame', ProfilerCommands);
-  AddCommand('pf_coldet', ProfilerCommands, 'draw collision detection profiles');
-  AddCommand('pf_los', ProfilerCommands, 'draw monster LOS profiles');
-  AddCommand('r_sq_draw', ProfilerCommands, 'accelerated spatial queries in rendering');
-  AddCommand('cd_sq_enabled', ProfilerCommands, 'accelerated spatial queries in map coldet');
-  AddCommand('mon_sq_enabled', ProfilerCommands, 'use accelerated spatial queries for monsters');
-  AddCommand('wtrace_sq_enabled', ProfilerCommands, 'use accelerated weapon hitscan trace');
-
-  AddCommand('pr_enabled', ProfilerCommands, 'enable/disable particles');
-  AddCommand('pr_phys_enabled', ProfilerCommands, 'enable/disable particle physics');
-  AddCommand('los_enabled', ProfilerCommands, 'enable/disable LOS calculations');
-
-  AddCommand('mon_think', ProfilerCommands, 'enable/disable monster thinking');
-  AddCommand('dbg_holmes', ProfilerCommands, 'turn Holmes on/off');
 
   AddCommand('p1_name', GameCVars);
   AddCommand('p2_name', GameCVars);
@@ -1181,12 +1242,21 @@ begin
     AddToHistory(L);
 
   for i := 0 to High(Commands) do
+  begin
     if Commands[i].Cmd = LowerCase(Arr[0]) then
-      if @Commands[i].Proc <> nil then
+    begin
+      if assigned(Commands[i].ProcEx) then
+      begin
+        Commands[i].ProcEx(@Commands[i], Arr);
+        exit;
+      end;
+      if assigned(Commands[i].Proc) then
       begin
         Commands[i].Proc(Arr);
-        Exit;
+        exit;
       end;
+    end;
+  end;
 
   g_Console_Add(Format(_lc[I_CONSOLE_UNKNOWN], [Arr[0]]));
 end;

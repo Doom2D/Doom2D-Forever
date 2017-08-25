@@ -30,6 +30,9 @@ interface
 uses
   MAPSTRUCT;
 
+// *** WARNING! ***
+//   keep all constants in sync with "mapdesc.txt"!
+//   or even better: regenerate this part directly from "mapdesc.txt".
 const
   PANEL_NONE      = 0;
   PANEL_WALL      = 1;

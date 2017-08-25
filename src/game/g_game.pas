@@ -124,7 +124,7 @@ procedure GameCVars(P: SArray);
 procedure GameCommands(P: SArray);
 procedure GameCheats(P: SArray);
 procedure DebugCommands(P: SArray);
-procedure ProfilerCommands(P: SArray);
+//procedure ProfilerCommands(P: SArray);
 procedure g_Game_Process_Params;
 procedure g_Game_SetLoadingText(Text: String; Max: Integer; reWrite: Boolean);
 procedure g_Game_StepLoading();
@@ -321,6 +321,8 @@ procedure g_ResetDynlights ();
 procedure g_AddDynLight (x, y, radius: Integer; r, g, b, a: Single);
 procedure g_DynLightExplosion (x, y, radius: Integer; r, g, b: Single);
 
+function conIsCheatsEnabled (): Boolean;
+
 
 implementation
 
@@ -332,6 +334,16 @@ uses
   BinEditor, g_language, g_net, SDL,
   ENet, e_msg, g_netmsg, g_netmaster, GL, GLExt,
   utils, sfs, g_holmes;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
+function conIsCheatsEnabled (): Boolean;
+begin
+  result := false;
+  if (not gGameOn) or (not gCheats) or ((gGameSettings.GameType <> GT_SINGLE) and
+     (gGameSettings.GameMode <> GM_COOP) and (not gDebugMode)) or g_Game_IsNet then exit;
+  result := true;
+end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
@@ -4963,6 +4975,7 @@ begin
   end;
 end;
 
+(*
 // profiler console commands
 procedure ProfilerCommands (P: SArray);
 var
@@ -5014,7 +5027,7 @@ begin
   if (cmd = 'mon_think') then begin binaryFlag(gmon_debug_think, 'monster thinking'); exit; end;
   if (cmd = 'dbg_holmes') then begin binaryFlag(g_holmes_enabled, 'Holmes'); exit; end;
 end;
-
+*)
 
 procedure DebugCommands(P: SArray);
 var
@@ -6996,4 +7009,22 @@ begin
   SetLength(pars, 0);
 end;
 
+begin
+  conRegVar('pf_draw_frame', @g_profile_frame_draw, 'draw frame rendering profiles', 'render profiles');
+  //conRegVar('pf_update_frame', @g_profile_frame_update, 'draw frame updating profiles', 'update profiles');
+  conRegVar('pf_coldet', @g_profile_collision, 'draw collision detection profiles', 'coldet profiles');
+  conRegVar('pf_los', @g_profile_los, 'draw monster LOS profiles', 'monster LOS profiles');
+
+  conRegVar('r_sq_draw', @gdbg_map_use_accel_render, 'accelerated spatial queries in rendering', 'accelerated rendering');
+  conRegVar('cd_sq_enabled', @gdbg_map_use_accel_coldet, 'accelerated spatial queries in map coldet', 'accelerated map coldet');
+  conRegVar('mon_sq_enabled', @gmon_debug_use_sqaccel, 'accelerated spatial queries for monsters', 'accelerated monster coldet');
+  conRegVar('wtrace_sq_enabled', @gwep_debug_fast_trace, 'accelerated spatial queries for weapon hitscan trace', 'accelerated weapon hitscan');
+
+  conRegVar('pr_enabled', @gpart_dbg_enabled, 'enable/disable particles', 'particles');
+  conRegVar('pr_phys_enabled', @gpart_dbg_phys_enabled, 'enable/disable particle physics', 'particle physics');
+
+  conRegVar('los_enabled', @gmon_dbg_los_enabled, 'enable/disable monster LOS calculations', 'monster LOS', true);
+  conRegVar('mon_think', @gmon_debug_think, 'enable/disable monster thinking', 'monster thinking', true);
+
+  conRegVar('dbg_holmes', @g_holmes_enabled, 'enable/disable Holmes', 'Holmes', true);
 end.
