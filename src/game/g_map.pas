@@ -2768,7 +2768,8 @@ var
         end;
       // Загружаем панель:
         panels[i].LoadState(PAMem);
-        panels[i].arrIdx := i;
+        if (panels[i].arrIdx <> i) then raise Exception.Create('g_Map_LoadState: LoadPanelArray: Wrong Panel arrIdx');
+        if (panels[i].proxyId >= 0) then mapGrid.proxyEnabled[panels[i].proxyId] := panels[i].Enabled;
       end;
     end;
 
