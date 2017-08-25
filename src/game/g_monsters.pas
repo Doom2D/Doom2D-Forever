@@ -173,7 +173,7 @@ procedure g_Mons_InitTree (x, y, w, h: Integer);
 procedure g_Monsters_LoadData ();
 procedure g_Monsters_FreeData ();
 procedure g_Monsters_Init ();
-procedure g_Monsters_Free ();
+procedure g_Monsters_Free (clearGrid: Boolean=true);
 function g_Monsters_Create (MonsterType: Byte; X, Y: Integer; Direction: TDirection;
   AdjCoord: Boolean = False; ForcedUID: Integer = -1): TMonster;
 procedure g_Monsters_Update ();
@@ -1191,12 +1191,16 @@ begin
   soulcount := 0;
 end;
 
-procedure g_Monsters_Free();
+procedure g_Monsters_Free (clearGrid: Boolean=true);
 var
   a: Integer;
 begin
-  monsGrid.Free();
-  monsGrid := nil;
+  e_LogWritefln('Cleared monster data (clearGrid=%s)', [clearGrid]);
+  if (clearGrid) then
+  begin
+    monsGrid.Free();
+    monsGrid := nil;
+  end;
   for a := 0 to High(gMonsters) do gMonsters[a].Free();
   gMonsters := nil;
   clearUidMap();
@@ -1209,6 +1213,8 @@ procedure g_Mons_InitTree (x, y, w, h: Integer);
 begin
   monsGrid.Free();
   monsGrid := TMonsterGrid.Create(x, y, w, h);
+  //clearUidMap(); // why not?
+  e_LogWritefln('%s', ['Recreated monster tree']);
 end;
 
 
@@ -1417,7 +1423,7 @@ var
 begin
   if Mem = nil then exit;
 
-  g_Monsters_Free();
+  g_Monsters_Free(false);
 
   // Загружаем информацию целеуказателя
   Mem.ReadInt(pt_x);
@@ -4345,6 +4351,10 @@ begin
   end;
 end;
 
+procedure monsPostLoad ();
+begin
+end;
+
 procedure TMonster.LoadState(var Mem: TBinMemoryReader);
 var
   i: Integer;
@@ -4361,8 +4371,13 @@ begin
   begin
     raise EBinSizeError.Create('TMonster.LoadState: Wrong Monster Signature');
   end;
+  if (uidMap[FUID] <> nil) and (uidMap[FUID] <> self) then raise Exception.Create('internal error in monster loader (0)');
+  uidMap[FUID] := nil;
 // UID монстра:
   Mem.ReadWord(FUID);
+  //if (arrIdx = -1) then raise Exception.Create('internal error in monster loader');
+  if (uidMap[FUID] <> nil) then raise Exception.Create('internal error in monster loader (1)');
+  uidMap[FUID] := self;
 // Направление:
   Mem.ReadByte(b);
   if b = 1 then
@@ -4665,4 +4680,6 @@ begin
 end;
 
 
+begin
+  g_SetPostLoadHook(monsPostLoad);
 end.

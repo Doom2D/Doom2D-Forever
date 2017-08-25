@@ -27,6 +27,16 @@ function g_LoadGame(n: Integer): Boolean;
 procedure Obj_SaveState(o: PObj; var Mem: TBinMemoryWriter);
 procedure Obj_LoadState(o: PObj; var Mem: TBinMemoryReader);
 
+type
+  TLoadSaveHook = procedure ();
+
+procedure g_SetPreLoadHook (ahook: TLoadSaveHook);
+procedure g_SetPostLoadHook (ahook: TLoadSaveHook);
+
+procedure g_CallPreLoadHooks ();
+procedure g_CallPostLoadHooks ();
+
+
 implementation
 
 uses
@@ -41,6 +51,44 @@ const
   END_MARKER_STRING = 'END';
   PLAYER_VIEW_SIGNATURE = $57564C50; // 'PLVW'
   OBJ_SIGNATURE = $4A424F5F; // '_OBJ'
+
+
+var
+  preloadHooks: array of TLoadSaveHook = nil;
+  postloadHooks: array of TLoadSaveHook = nil;
+
+
+procedure g_SetPreLoadHook (ahook: TLoadSaveHook);
+begin
+  if not assigned(ahook) then exit;
+  SetLength(preloadHooks, Length(preloadHooks)+1);
+  preloadHooks[High(preloadHooks)] := ahook;
+end;
+
+
+procedure g_SetPostLoadHook (ahook: TLoadSaveHook);
+begin
+  if not assigned(ahook) then exit;
+  SetLength(postloadHooks, Length(postloadHooks)+1);
+  postloadHooks[High(postloadHooks)] := ahook;
+end;
+
+
+procedure g_CallPreLoadHooks ();
+var
+  f: Integer;
+begin
+  for f := 0 to High(preloadHooks) do preloadHooks[f]();
+end;
+
+
+procedure g_CallPostLoadHooks ();
+var
+  f: Integer;
+begin
+  for f := 0 to High(postloadHooks) do postloadHooks[f]();
+end;
+
 
 procedure Obj_SaveState(o: PObj; var Mem: TBinMemoryWriter);
 var
@@ -359,6 +407,8 @@ begin
     g_Game_SetLoadingText(_lc[I_LOAD_SAVE_FILE], 0, False);
     gLoadGameMode := True;
 
+    g_CallPreLoadHooks();
+
   ///// Загружаем состояние игры: /////
     bMem := TBinMemoryReader.Create();
     bFile.ReadMemory(bMem);
@@ -571,6 +621,7 @@ begin
   // Закрываем файл загрузки:
     bFile.Close();
     gLoadGameMode := False;
+    g_CallPostLoadHooks();
     Result := True;
 
   except

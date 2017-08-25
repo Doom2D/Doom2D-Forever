@@ -1217,7 +1217,7 @@ begin
   calcBoundingBox(gLifts);
   calcBoundingBox(gBlockMon);
 
-  e_WriteLog(Format('map dimensions: (%d,%d)-(%d,%d); editor size:(0,0)-(%d,%d)', [mapX0, mapY0, mapX1, mapY1, gMapInfo.Width, gMapInfo.Height]), MSG_WARNING);
+  e_LogWritefln('map dimensions: (%d,%d)-(%d,%d); editor size:(0,0)-(%d,%d)', [mapX0, mapY0, mapX1, mapY1, gMapInfo.Width, gMapInfo.Height]);
 
   if (mapX0 > 0) then mapX0 := 0;
   if (mapY0 > 0) then mapY0 := 0;
@@ -2757,6 +2757,7 @@ var
     PAMem.LoadFromMemory(Mem);
 
     for i := 0 to Length(panels)-1 do
+    begin
       if panels[i].SaveIt then
       begin
       // ID панели:
@@ -2767,7 +2768,9 @@ var
         end;
       // Загружаем панель:
         panels[i].LoadState(PAMem);
+        panels[i].arrIdx := i;
       end;
+    end;
 
   // Этот список панелей загружен:
     PAMem.Free();
@@ -2820,7 +2823,7 @@ begin
 
 // Обновляем карту столкновений и сетку:
   g_GFX_Init();
-  mapCreateGrid();
+  //mapCreateGrid();
 
 ///// Загружаем музыку: /////
 // Сигнатура музыки:

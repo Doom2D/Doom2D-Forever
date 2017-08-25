@@ -124,7 +124,6 @@ procedure GameCVars(P: SArray);
 procedure GameCommands(P: SArray);
 procedure GameCheats(P: SArray);
 procedure DebugCommands(P: SArray);
-//procedure ProfilerCommands(P: SArray);
 procedure g_Game_Process_Params;
 procedure g_Game_SetLoadingText(Text: String; Max: Integer; reWrite: Boolean);
 procedure g_Game_StepLoading();
@@ -4975,59 +4974,6 @@ begin
   end;
 end;
 
-(*
-// profiler console commands
-procedure ProfilerCommands (P: SArray);
-var
-  cmd: string;
-
-  function getBool (idx: Integer): Integer;
-  begin
-    if (idx < 0) or (idx > High(P)) then begin result := -1; exit; end;
-    result := 0;
-    if (P[idx] = '1') or (P[idx] = 'on') or (P[idx] = 'true') or (P[idx] = 'tan') then result := 1;
-  end;
-
-  procedure binaryFlag (var flag: Boolean; msg: string);
-  begin
-    if (Length(p) > 2) then
-    begin
-      g_Console_Add('too many arguments to '''+P[0]+'''');
-    end
-    else
-    begin
-      case getBool(1) of
-        -1: begin end;
-         0: flag := false;
-         1: flag := true;
-      end;
-      if flag then g_Console_Add(msg+': tan') else g_Console_Add(msg+': ona');
-    end;
-  end;
-
-begin
-  //if not gDebugMode then exit;
-  cmd := LowerCase(P[0]);
-
-  if (cmd = 'pf_draw_frame') then begin binaryFlag(g_profile_frame_draw, 'render profiles'); exit; end;
-  if (cmd = 'pf_update_frame') then begin binaryFlag(g_profile_frame_update, 'update profiles (not yet)'); exit; end;
-  if (cmd = 'pf_coldet') then begin binaryFlag(g_profile_collision, 'coldet profiles'); exit; end;
-  if (cmd = 'pf_los') then begin binaryFlag(g_profile_los, 'monster LOS profiles'); exit; end;
-  if (cmd = 'r_sq_draw') then begin binaryFlag(gdbg_map_use_accel_render, 'accelerated rendering'); exit; end;
-  if (cmd = 'cd_sq_enabled') then begin binaryFlag(gdbg_map_use_accel_coldet, 'accelerated map coldet'); exit; end;
-  if (cmd = 'mon_sq_enabled') then begin binaryFlag(gmon_debug_use_sqaccel, 'accelerated monster coldet'); exit; end;
-  if (cmd = 'wtrace_sq_enabled') then begin binaryFlag(gwep_debug_fast_trace, 'accelerated weapon hitscan'); exit; end;
-  if (cmd = 'pr_enabled') then begin binaryFlag(gpart_dbg_enabled, 'particles'); exit; end;
-  if (cmd = 'pr_phys_enabled') then begin binaryFlag(gpart_dbg_phys_enabled, 'particle physics'); exit; end;
-  if (cmd = 'los_enabled') then begin binaryFlag(gmon_dbg_los_enabled, 'LOS calculations'); exit; end;
-
-  if (not gGameOn) or (not gCheats) or ((gGameSettings.GameType <> GT_SINGLE) and
-     (gGameSettings.GameMode <> GM_COOP) and (not gDebugMode)) or g_Game_IsNet then exit;
-
-  if (cmd = 'mon_think') then begin binaryFlag(gmon_debug_think, 'monster thinking'); exit; end;
-  if (cmd = 'dbg_holmes') then begin binaryFlag(g_holmes_enabled, 'Holmes'); exit; end;
-end;
-*)
 
 procedure DebugCommands(P: SArray);
 var
