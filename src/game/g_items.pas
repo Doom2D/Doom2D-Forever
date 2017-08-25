@@ -28,6 +28,7 @@ Type
     //treeNode: Integer;
     slotIsUsed: Boolean;
     arrIdx: Integer; // in ggItems
+    nextFree: Integer; // in item array
 
   public
     ItemType:      Byte;
@@ -77,7 +78,7 @@ function g_Items_ForEachAlive (cb: TItemEachAliveCB; backwards: Boolean=false): 
 
 var
   gItemsTexturesID: Array [1..ITEM_MAX] of DWORD;
-  gMaxDist: Integer = 1;
+  gMaxDist: Integer = 1; // for sounds
   ITEM_RESPAWNTIME: Integer = 60 * 36;
 
 implementation
@@ -95,7 +96,8 @@ var
 
 // ////////////////////////////////////////////////////////////////////////// //
 var
-  freeIds: TBinaryHeapInt = nil; // free item ids
+  //freeIds: TBinaryHeapInt = nil; // free item ids
+  freeListHead: Integer = -1;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
@@ -263,7 +265,7 @@ begin
 
   InitTextures();
 
-  freeIds := binHeapNewIntLess();
+  //freeIds := binHeapNewIntLess();
 end;
 
 
@@ -320,7 +322,7 @@ begin
   g_Texture_Delete('ITEM_MEDKIT_BLACK');
   g_Texture_Delete('ITEM_JETPACK');
 
-  freeIds.Free();
+  //freeIds.Free();
 end;
 
 
@@ -341,36 +343,69 @@ begin
   it.Live := False;
   it.SpawnTrigger := -1;
   it.ItemType := ITEM_NONE;
-  freeIds.insert(it.arrIdx);
+  //freeIds.insert(it.arrIdx);
+  it.nextFree := freeListHead;
+  freeListHead := idx;
 end;
 
 
-function allocItem (): DWORD;
+procedure rebuildFreeList (reservedIdx: Integer=-1);
+var
+  i, lfi: Integer;
+  it: PItem;
+begin
+  // rebuild free list
+  freeListHead := -1;
+  lfi := -1;
+  for i := 0 to High(ggItems) do
+  begin
+    it := @ggItems[i];
+    if (i <> reservedIdx) and (not it.slotIsUsed) then
+    begin
+      if (lfi = -1) then freeListHead := i else ggItems[lfi].nextFree := lfi;
+      lfi := i;
+    end;
+  end;
+  if (lfi <> -1) then ggItems[lfi].nextFree := -1;
+end;
+
+
+procedure growItemArrayTo (newsz: Integer; rebuildList: Boolean=true);
 var
   i, olen: Integer;
   it: PItem;
 begin
-  if (freeIds.count = 0) then
+  if (newsz < Length(ggItems)) then exit;
+  // no free slots
+  olen := Length(ggItems);
+  SetLength(ggItems, newsz);
+  for i := olen to High(ggItems) do
   begin
-    // no free slots
-    olen := Length(ggItems);
-    SetLength(ggItems, olen+64);
-    for i := olen to High(ggItems) do
-    begin
-      it := @ggItems[i];
-      it.slotIsUsed := false;
-      it.arrIdx := i;
-      it.ItemType := ITEM_NONE;
-      it.Animation := nil;
-      it.Live := false;
-      it.SpawnTrigger := -1;
-      it.Respawnable := false;
-      freeIds.insert(i);
-    end;
+    it := @ggItems[i];
+    it.slotIsUsed := false;
+    it.arrIdx := i;
+    it.nextFree := i+1;
+    it.ItemType := ITEM_NONE;
+    it.Animation := nil;
+    it.Live := false;
+    it.SpawnTrigger := -1;
+    it.Respawnable := false;
+    //freeIds.insert(i);
+  end;
+  if rebuildList then rebuildFreeList();
+end;
+
+
+function allocItem (): DWORD;
+begin
+  if (freeListHead = -1) then
+  begin
+    growItemArrayTo(Length(ggItems)+64);
+    if (freeListHead = -1) then raise Exception.Create('internal error in item manager');
   end;
 
-  result := freeIds.front;
-  freeIds.popFront();
+  result := DWORD(freeListHead);
+  freeListHead := ggItems[freeListHead].nextFree;
 
   if (Integer(result) > High(ggItems)) then raise Exception.Create('allocItem: freeid list corrupted');
   if (ggItems[result].arrIdx <> Integer(result)) then raise Exception.Create('allocItem: arrIdx inconsistency');
@@ -380,51 +415,25 @@ end;
 // it will be slow if the slot is free (we have to rebuild the heap)
 function wantItemSlot (slot: Integer): Integer;
 var
-  i, olen: Integer;
+  olen: Integer;
   it: PItem;
-  rebuildFreeList: Boolean = true;
+  rebuildList: Boolean = false;
 begin
   if (slot < 0) or (slot > $0fffffff) then raise Exception.Create('wantItemSlot: bad item slot request');
   // do we need to grow item storate?
   olen := Length(ggItems);
   if (slot >= olen) then
   begin
-    // need more spice!
-    SetLength(ggItems, slot+64);
-    // add free slots to free list
-    for i := olen to High(ggItems) do
-    begin
-      it := @ggItems[i];
-      it.slotIsUsed := false;
-      it.arrIdx := i;
-      it.ItemType := ITEM_NONE;
-      it.Animation := nil;
-      it.Live := false;
-      it.SpawnTrigger := -1;
-      it.Respawnable := false;
-      if (i <> slot) then freeIds.insert(i);
-    end;
-    rebuildFreeList := false;
+    growItemArrayTo(slot+64, false);
+    rebuildList := true;
   end;
 
   it := @ggItems[slot];
-  if not it.slotIsUsed then
+  if rebuildList or (not it.slotIsUsed) then
   begin
-    // this is unused slot; get it, and rebuild id list
-    if rebuildFreeList then
-    begin
-      freeIds.clear();
-      for i := 0 to High(ggItems) do
-      begin
-        if (i <> slot) and (not it.slotIsUsed) then freeIds.insert(i);
-      end;
-    end;
-  end
-  else
-  begin
-    // it will be readded
-    it.slotIsUsed := false;
+    rebuildFreeList(slot);
   end;
+  it.slotIsUsed := false;
 
   result := slot;
 end;
@@ -450,7 +459,8 @@ begin
     for i := 0 to High(ggItems) do ggItems[i].Animation.Free();
     ggItems := nil;
   end;
-  freeIds.clear();
+  //freeIds.clear();
+  freeListHead := -1;
 end;
 
 
