@@ -57,7 +57,6 @@ type
     mSVal: AnsiString; // string; for byte and char arrays
     mRVal: TDynRecordArray; // for list
     mRecRef: TDynRecord; // for record
-    //mRecRefOwned: Boolean; // was mRecRef created from inline definition?
     mMaxDim: Integer; // for byte and char arrays; <0: not an array
     mBinOfs: Integer; // offset in binary; <0 - none
     mRecOfs: Integer; // offset in record; <0 - none
@@ -83,9 +82,6 @@ type
 
     procedure parseDef (pr: TTextParser);
 
-    procedure setIVal (v: Integer); inline;
-    procedure setSVal (const v: AnsiString); inline;
-
     procedure fixDefaultValue ();
     function isDefaultValue (): Boolean;
 
@@ -100,11 +96,11 @@ type
 
     function clone (): TDynField;
 
-    procedure parseValue (pr: TTextParser);
+    procedure parseValue (pr: TTextParser; curheader: TDynRecord);
     procedure parseBinValue (st: TStream);
 
     procedure writeTo (wr: TTextWriter);
-    procedure writeBinTo (st: TStream);
+    procedure writeBinTo (st: TStream; curheader: TDynRecord);
 
     // won't work for lists
     function isSimpleEqu (fld: TDynField): Boolean;
@@ -115,15 +111,15 @@ type
     property baseType: TType read mType;
     property defined: Boolean read mDefined write mDefined;
     property internal: Boolean read mInternal write mInternal;
-    property ival: Integer read mIVal write setIVal;
-    property sval: AnsiString read mSVal write setSVal;
+    //property ival: Integer read mIVal write setIVal;
+    //property sval: AnsiString read mSVal write setSVal;
     property list: TDynRecordArray read mRVal write mRVal;
     property maxdim: Integer read mMaxDim; // for fixed-size arrays
     property binOfs: Integer read mBinOfs; // offset in binary; <0 - none
     property recOfs: Integer read mRecOfs; // offset in record; <0 - none
     property hasDefault: Boolean read mHasDefault;
     property defsval: AnsiString read mDefSVal write mDefSVal;
-    property ebs: TEBS read mEBS write mEBS;
+    property ebstype: TEBS read mEBS write mEBS;
     property ebstypename: AnsiString read mEBSTypeName write mEBSTypeName; // enum/bitset name
 
     property x: Integer read mIVal;
@@ -164,11 +160,11 @@ type
 
     function clone (): TDynRecord;
 
-    procedure parseValue (pr: TTextParser; asheader: Boolean=false);
+    procedure parseValue (pr: TTextParser; curheader: TDynRecord);
     procedure parseBinValue (st: TStream);
 
     procedure writeTo (wr: TTextWriter; putHeader: Boolean=true);
-    procedure writeBinTo (st: TStream; trigbufsz: Integer=-1);
+    procedure writeBinTo (st: TStream; curheader: TDynRecord; trigbufsz: Integer=-1);
 
   public
     property id: AnsiString read mId; // for map parser
@@ -218,37 +214,36 @@ type
 
   TDynMapDef = class
   private
-    curheader: TDynRecord; // for parser
-
-  private
-    procedure addRecordByType (const atypename: AnsiString; rc: TDynRecord);
-    function findRecordByTypeId (const atypename, aid: AnsiString): TDynRecord;
-    function findRecordNumByType (const atypename: AnsiString; rc: TDynRecord): Integer;
+    procedure addRecordByType (const atypename: AnsiString; rc: TDynRecord; curheader: TDynRecord);
+    function findRecordByTypeId (const atypename, aid: AnsiString; curheader: TDynRecord): TDynRecord;
+    function findRecordNumByType (const atypename: AnsiString; rc: TDynRecord; curheader: TDynRecord): Integer;
 
   public
-    records: array of TDynRecord; // [0] is always header
-    trigDatas: array of TDynRecord;
-    ebs: array of TDynEBS;
+    recTypes: array of TDynRecord; // [0] is always header
+    trigTypes: array of TDynRecord; // trigdata
+    ebsTypes: array of TDynEBS; // enums, bitsets
 
   private
     procedure parseDef (pr: TTextParser);
 
-    function getHeader (): TDynRecord; inline;
+    function getHeaderRecType (): TDynRecord; inline;
 
   public
     constructor Create (pr: TTextParser); // parses data definition
     destructor Destroy (); override;
 
-    function findRec (const aname: AnsiString): TDynRecord;
-    function findTrigDataFor (const aname: AnsiString): TDynRecord;
-    function findEBS (const aname: AnsiString): TDynEBS;
+    function findRecType (const aname: AnsiString): TDynRecord;
+    function findTrigFor (const aname: AnsiString): TDynRecord;
+    function findEBSType (const aname: AnsiString): TDynEBS;
 
+    // creates new header record
     function parseMap (pr: TTextParser): TDynRecord;
 
+    // creates new header record
     function parseBinMap (st: TStream): TDynRecord;
 
   public
-    property header: TDynRecord read getHeader;
+    property headerType: TDynRecord read getHeaderRecType;
   end;
 
 
@@ -264,7 +259,6 @@ constructor TDynField.Create (const aname: AnsiString; atype: TType);
 begin
   mRVal := nil;
   mRecRef := nil;
-  //mRecRefOwned := false;
   cleanup();
   mName := aname;
   mType := atype;
@@ -293,9 +287,7 @@ begin
   mIVal2 := 0;
   mSVal := '';
   mRVal := nil;
-  //if mRecRefOwned then mRecRef.Free();
   mRecRef := nil;
-  //mRecRefOwned := false;
   mMaxDim := -1;
   mBinOfs := -1;
   mRecOfs := -1;
@@ -330,17 +322,6 @@ begin
   SetLength(result.mRVal, Length(mRVal));
   for f := 0 to High(mRVal) do result.mRVal[f] := mRVal[f].clone();
   result.mRecRef := mRecRef;
-  {
-  result.mRecRefOwned := mRecRefOwned;
-  if mRecRefOwned then
-  begin
-    if (mRecRef <> nil) then result.mRecRef := mRecRef.clone();
-  end
-  else
-  begin
-    result.mRecRef := mRecRef;
-  end;
-  }
   result.mMaxDim := mMaxDim;
   result.mBinOfs := mBinOfs;
   result.mRecOfs := mRecOfs;
@@ -358,10 +339,6 @@ begin
   result.mDefId := mDefId;
   result.mDefaultValueSet := mDefaultValueSet;
 end;
-
-
-procedure TDynField.setIVal (v: Integer); inline; begin mIVal := v; mDefined := true; end;
-procedure TDynField.setSVal (const v: AnsiString); inline; begin mSVal := v; mDefined := true; end;
 
 
 // won't work for lists
@@ -419,7 +396,7 @@ begin
     //writeln('DEFAULT for <', mName, '>: <', s, '>');
     stp := TStrTextParser.Create(s);
     try
-      parseValue(stp);
+      parseValue(stp, nil);
     finally
       stp.Free();
     end;
@@ -447,7 +424,7 @@ begin
   stp := TStrTextParser.Create(s);
   try
     fld := clone();
-    fld.parseValue(stp);
+    fld.parseValue(stp, nil);
     result := isSimpleEqu(fld);
   finally
     fld.Free();
@@ -700,7 +677,7 @@ begin
 end;
 
 
-procedure TDynField.writeBinTo (st: TStream);
+procedure TDynField.writeBinTo (st: TStream; curheader: TDynRecord);
 var
   s: AnsiString;
   f: Integer;
@@ -733,7 +710,7 @@ begin
             if (mRecRef <> nil) then
             begin
               ws := TSFSMemoryChunkStream.Create(buf, mMaxDim);
-              mRecRef.writeBinTo(ws, mMaxDim); // as trigdata
+              mRecRef.writeBinTo(ws, curheader, mMaxDim); // as trigdata
             end;
             st.WriteBuffer(buf^, mMaxDim);
           finally
@@ -763,7 +740,7 @@ begin
           else raise Exception.Create(Format('record reference type ''%s'' in field ''%s'' cannot be written', [mEBSTypeName, mName]));
         end;
         // find record number
-        f := mOwner.mOwner.findRecordNumByType(mEBSTypeName, mRecRef);
+        f := mOwner.mOwner.findRecordNumByType(mEBSTypeName, mRecRef, curheader);
         if (f < 0) then raise Exception.Create(Format('record reference type ''%s'' in field ''%s'' not found in record list', [mEBSTypeName, mName]));
         if (f > maxv) then raise Exception.Create(Format('record reference type ''%s'' in field ''%s'' has too big index', [mEBSTypeName, mName]));
         case mType of
@@ -893,7 +870,7 @@ begin
     TEBS.TEnum:
       begin
         def := mOwner.mOwner;
-        es := def.findEBS(mEBSTypeName);
+        es := def.findEBSType(mEBSTypeName);
         if (es = nil) then raise Exception.Create(Format('record enum type ''%s'' for field ''%s'' not found', [mEBSTypeName, mName]));
         for f := 0 to High(es.mVals) do
         begin
@@ -909,7 +886,7 @@ begin
     TEBS.TBitSet:
       begin
         def := mOwner.mOwner;
-        es := def.findEBS(mEBSTypeName);
+        es := def.findEBSType(mEBSTypeName);
         if (es = nil) then raise Exception.Create(Format('record bitset type ''%s'' for field ''%s'' not found', [mEBSTypeName, mName]));
         // none?
         if (mIVal = 0) then
@@ -1004,7 +981,7 @@ begin
 end;
 
 
-procedure TDynField.parseValue (pr: TTextParser);
+procedure TDynField.parseValue (pr: TTextParser; curheader: TDynRecord);
 
   procedure parseInt (min, max: Integer);
   begin
@@ -1034,12 +1011,10 @@ begin
           tfld := rec.field['type'];
           if (tfld = nil) then raise Exception.Create(Format('triggerdata value for field ''%s'' in record ''%s'' without ''type'' field', [mName, rec.mName]));
           if (tfld.mEBS <> TEBS.TEnum) then raise Exception.Create(Format('triggerdata value for field ''%s'' in record ''%s'' with bad ''type'' field', [mName, rec.mName]));
-          rc := def.findTrigDataFor(tfld.mSVal);
+          rc := def.findTrigFor(tfld.mSVal);
           if (rc = nil) then raise Exception.Create(Format('triggerdata definition for field ''%s'' in record ''%s'' with type ''%s'' not found', [mName, rec.mName, tfld.mSVal]));
           rc := rc.clone();
-          rc.parseValue(pr);
-          //if mRecRefOwned then mRecRef.Free();
-          //mRecRefOwned := true;
+          rc.parseValue(pr, curheader);
           mRecRef := rc;
           mDefined := true;
           exit;
@@ -1047,11 +1022,9 @@ begin
         // other record types
         if (pr.tokType = pr.TTId) then
         begin
-          rec := def.findRecordByTypeId(mEBSTypeName, pr.tokStr);
+          rec := def.findRecordByTypeId(mEBSTypeName, pr.tokStr, curheader);
           if (rec = nil) then raise Exception.Create(Format('record ''%s'' (%s) value for field ''%s'' not found', [pr.tokStr, mEBSTypeName, mName]));
           pr.expectId();
-          //if mRecRefOwned then mRecRef.Free();
-          //mRecRefOwned := false;
           mRecRef := rec;
           mDefined := true;
           pr.expectTT(pr.TTSemi);
@@ -1059,15 +1032,13 @@ begin
         end
         else if (pr.tokType = pr.TTBegin) then
         begin
-          rec := def.findRec(mEBSTypeName);
+          rec := def.findRecType(mEBSTypeName);
           if (rec = nil) then raise Exception.Create(Format('record type ''%s'' for field ''%s'' not found', [mEBSTypeName, mName]));
           rc := rec.clone();
-          rc.parseValue(pr);
-          //if mRecRefOwned then mRecRef.Free();
-          //mRecRefOwned := true;
+          rc.parseValue(pr, curheader);
           mRecRef := rc;
           mDefined := true;
-          mOwner.mOwner.addRecordByType(mEBSTypeName, rc);
+          mOwner.mOwner.addRecordByType(mEBSTypeName, rc, curheader);
           exit;
         end;
         pr.expectTT(pr.TTBegin);
@@ -1075,7 +1046,7 @@ begin
     TEBS.TEnum:
       begin
         def := mOwner.mOwner;
-        es := def.findEBS(mEBSTypeName);
+        es := def.findEBSType(mEBSTypeName);
         if (es = nil) then raise Exception.Create(Format('record enum type ''%s'' for field ''%s'' not found', [mEBSTypeName, mName]));
         tk := pr.expectId();
         if not es.has[tk] then raise Exception.Create(Format('record enum value ''%s'' of type ''%s'' for field ''%s'' not found', [tk, mEBSTypeName, mName]));
@@ -1089,7 +1060,7 @@ begin
     TEBS.TBitSet:
       begin
         def := mOwner.mOwner;
-        es := def.findEBS(mEBSTypeName);
+        es := def.findEBSType(mEBSTypeName);
         if (es = nil) then raise Exception.Create(Format('record bitset type ''%s'' for field ''%s'' not found', [mEBSTypeName, mName]));
         mIVal := 0;
         while true do
@@ -1442,7 +1413,7 @@ begin
 end;
 
 
-procedure TDynRecord.writeBinTo (st: TStream; trigbufsz: Integer=-1);
+procedure TDynRecord.writeBinTo (st: TStream; curheader: TDynRecord; trigbufsz: Integer=-1);
 var
   fld: TDynField;
   rec: TDynRecord;
@@ -1450,9 +1421,9 @@ var
   ws: TStream = nil;
   blk, blkmax: Integer;
   f, c: Integer;
-  oldh: TDynRecord;
   bufsz: Integer = 0;
 begin
+  if (curheader = nil) and mHeader then curheader := self;
   if (trigbufsz < 0) then
   begin
     if (mBinBlock < 1) then raise Exception.Create('cannot write binary record without block number');
@@ -1462,12 +1433,6 @@ begin
   else
   begin
     bufsz := trigbufsz;
-  end;
-  oldh := mOwner.curheader;
-  if mHeader then
-  begin
-    if (mOwner.curheader <> nil) then raise Exception.Create('`writeBinTo()` cannot be called recursively');
-    mOwner.curheader := self;
   end;
   try
     GetMem(buf, bufsz);
@@ -1485,7 +1450,7 @@ begin
       if (fld.mBinOfs >= bufsz) then raise Exception.Create('binary value offset is outside of the buffer');
       TSFSMemoryChunkStream(ws).setup(buf+fld.mBinOfs, bufsz-fld.mBinOfs);
       writeln('writing field <', fld.mName, '>');
-      fld.writeBinTo(ws);
+      fld.writeBinTo(ws, curheader);
     end;
 
     // write block with normal fields
@@ -1515,7 +1480,7 @@ begin
         if (fld.mType = fld.TType.TList) then
         begin
           if (Length(fld.mRVal) = 0) then continue;
-          rec := mOwner.findRec(fld.mName);
+          rec := mOwner.findRecType(fld.mName);
           if (rec = nil) then continue;
           if (rec.mBinBlock <= 0) then continue;
           if (blkmax < rec.mBinBlock) then blkmax := rec.mBinBlock;
@@ -1533,12 +1498,12 @@ begin
           if (fld.mType = fld.TType.TList) then
           begin
             if (Length(fld.mRVal) = 0) then continue;
-            rec := mOwner.findRec(fld.mName);
+            rec := mOwner.findRecType(fld.mName);
             if (rec = nil) then continue;
             if (rec.mBinBlock <> blk) then continue;
             if (ws = nil) then ws := TMemoryStream.Create();
             //rec.writeBinTo(ws);
-            for c := 0 to High(fld.mRVal) do fld.mRVal[c].writeBinTo(ws);
+            for c := 0 to High(fld.mRVal) do fld.mRVal[c].writeBinTo(ws, curheader);
           end;
         end;
         // flush block
@@ -1555,7 +1520,6 @@ begin
       end;
     end;
   finally
-    mOwner.curheader := oldh;
     ws.Free();
     if (buf <> nil) then FreeMem(buf);
   end;
@@ -1603,7 +1567,7 @@ begin
 end;
 
 
-procedure TDynRecord.parseValue (pr: TTextParser; asheader: Boolean=false);
+procedure TDynRecord.parseValue (pr: TTextParser; curheader: TDynRecord);
 var
   f, c: Integer;
   fld: TDynField;
@@ -1612,7 +1576,8 @@ var
 begin
   if (mOwner = nil) then raise Exception.Create(Format('can''t parse record ''%s'' value without owner', [mName]));
 
-  if not asheader then
+  // not a header?
+  if (curheader <> self) then
   begin
     // id?
     if (pr.tokType = pr.TTId) then mId := pr.expectId();
@@ -1623,21 +1588,19 @@ begin
   while (pr.tokType <> pr.TTEnd) do
   begin
     if (pr.tokType <> pr.TTId) then raise Exception.Create('identifier expected');
-
-    writeln('<', pr.tokStr, ':', asheader, '>');
+    //writeln('<', pr.tokStr, ':', asheader, '>');
 
     // records
-    if (asheader) then
+    if (curheader = self) then
     begin
-      assert(self = mOwner.curheader);
       // add records with this type (if any)
-      trc := mOwner.findRec(pr.tokStr);
+      trc := mOwner.findRecType(pr.tokStr);
       if (trc <> nil) then
       begin
         rec := trc.clone();
         try
           pr.skipToken();
-          rec.parseValue(pr);
+          rec.parseValue(pr, curheader);
           if (Length(rec.mId) > 0) then
           begin
             fld := field[pr.tokStr];
@@ -1649,55 +1612,13 @@ begin
               end;
             end;
           end;
-          mOwner.addRecordByType(rec.mName, rec);
+          mOwner.addRecordByType(rec.mName, rec, curheader);
           rec := nil;
         finally
           rec.Free();
         end;
         continue;
       end;
-      {
-      success := false;
-      for f := 0 to High(mOwner.records) do
-      begin
-        if (CompareText(mOwner.records[f].mName, pr.tokStr) = 0) then
-        begin
-          // find (or create) list of records with this type
-          fld := field[pr.tokStr];
-          if (fld = nil) then
-          begin
-            // first record
-            fld := TDynField.Create(mOwner.records[f].mName, TDynField.TType.TList);
-            fld.mOwner := self;
-            SetLength(mFields, Length(mFields)+1);
-            mFields[High(mFields)] := fld;
-          end;
-          if (fld.mType <> TDynField.TType.TList) then raise Exception.Create(Format('thing ''%s'' in record ''%s'' must be record', [fld.mName, mName]));
-          rec := mOwner.records[f].clone();
-          try
-            pr.skipToken();
-            rec.parseValue(pr);
-            if (Length(rec.mId) > 0) then
-            begin
-              for c := 0 to High(fld.mRVal) do
-              begin
-                if (Length(fld.mRVal[c].mId) > 0) and (CompareText(fld.mRVal[c].mId, rec.mId) = 0) then raise Exception.Create(Format('duplicate thing ''%s'' in record ''%s''', [fld.mName, mName]));
-              end;
-            end;
-            SetLength(fld.mRVal, Length(fld.mRVal)+1);
-            fld.mRVal[High(fld.mRVal)] := rec;
-            writeln('added ''', mOwner.records[f].mName, ''' with id ''', rec.mId, ''' (total:', Length(fld.mRVal), ')');
-            //assert(mOwner.findRecordById(mOwner.records[f].mName, rec.mId) <> nil);
-            rec := nil;
-          finally
-            rec.Free();
-          end;
-          success := true;
-          break;
-        end;
-      end;
-      if success then continue;
-      }
     end;
 
     // fields
@@ -1707,7 +1628,7 @@ begin
       if fld.defined then raise Exception.Create(Format('duplicate field ''%s'' in record ''%s''', [fld.mName, mName]));
       if fld.internal then raise Exception.Create(Format('internal field ''%s'' in record ''%s''', [fld.mName, mName]));
       pr.skipToken();
-      fld.parseValue(pr);
+      fld.parseValue(pr, curheader);
       continue;
     end;
 
@@ -1889,10 +1810,9 @@ end;
 // ////////////////////////////////////////////////////////////////////////// //
 constructor TDynMapDef.Create (pr: TTextParser);
 begin
-  records := nil;
-  trigDatas := nil;
-  ebs := nil;
-  curheader := nil;
+  recTypes := nil;
+  trigTypes := nil;
+  ebsTypes := nil;
   parseDef(pr);
 end;
 
@@ -1901,70 +1821,70 @@ destructor TDynMapDef.Destroy ();
 var
   f: Integer;
 begin
-  for f := 0 to High(records) do records[f].Free();
-  for f := 0 to High(trigDatas) do trigDatas[f].Free();
-  for f := 0 to High(ebs) do ebs[f].Free();
-  records := nil;
-  trigDatas := nil;
-  ebs := nil;
+  for f := 0 to High(recTypes) do recTypes[f].Free();
+  for f := 0 to High(trigTypes) do trigTypes[f].Free();
+  for f := 0 to High(ebsTypes) do ebsTypes[f].Free();
+  recTypes := nil;
+  trigTypes := nil;
+  ebsTypes := nil;
   inherited;
 end;
 
 
-function TDynMapDef.getHeader (): TDynRecord; inline;
+function TDynMapDef.getHeaderRecType (): TDynRecord; inline;
 begin
-  if (Length(records) = 0) then raise Exception.Create('no header in empty mapdef');
-  result := records[0];
+  if (Length(recTypes) = 0) then raise Exception.Create('no header in empty mapdef');
+  result := recTypes[0];
 end;
 
 
-function TDynMapDef.findRec (const aname: AnsiString): TDynRecord;
+function TDynMapDef.findRecType (const aname: AnsiString): TDynRecord;
 var
   f: Integer;
 begin
-  for f := 0 to High(records) do
+  for f := 0 to High(recTypes) do
   begin
-    if (CompareText(records[f].name, aname) = 0) then begin result := records[f]; exit; end;
+    if (CompareText(recTypes[f].name, aname) = 0) then begin result := recTypes[f]; exit; end;
   end;
   result := nil;
 end;
 
 
-function TDynMapDef.findTrigDataFor (const aname: AnsiString): TDynRecord;
+function TDynMapDef.findTrigFor (const aname: AnsiString): TDynRecord;
 var
   f: Integer;
 begin
-  for f := 0 to High(trigDatas) do
+  for f := 0 to High(trigTypes) do
   begin
-    if (trigDatas[f].isForTrig[aname]) then begin result := trigDatas[f]; exit; end;
+    if (trigTypes[f].isForTrig[aname]) then begin result := trigTypes[f]; exit; end;
   end;
   result := nil;
 end;
 
 
-function TDynMapDef.findEBS (const aname: AnsiString): TDynEBS;
+function TDynMapDef.findEBSType (const aname: AnsiString): TDynEBS;
 var
   f: Integer;
 begin
-  for f := 0 to High(ebs) do
+  for f := 0 to High(ebsTypes) do
   begin
-    if (CompareText(ebs[f].name, aname) = 0) then begin result := ebs[f]; exit; end;
+    if (CompareText(ebsTypes[f].name, aname) = 0) then begin result := ebsTypes[f]; exit; end;
   end;
   result := nil;
 end;
 
 
-function TDynMapDef.findRecordByTypeId (const atypename, aid: AnsiString): TDynRecord;
+function TDynMapDef.findRecordByTypeId (const atypename, aid: AnsiString; curheader: TDynRecord): TDynRecord;
 var
   rec: TDynRecord;
   fld: TDynField;
   f: Integer;
 begin
   result := nil;
-  if (curheader = nil) then exit;
   // find record type
+  if (curheader = nil) then exit;
   //writeln('searching for type <', atypename, '>');
-  rec := findRec(atypename);
+  rec := findRecType(atypename);
   if (rec = nil) then exit;
   // find record data
   //writeln('searching for data of type <', atypename, '>');
@@ -1986,14 +1906,14 @@ begin
 end;
 
 
-procedure TDynMapDef.addRecordByType (const atypename: AnsiString; rc: TDynRecord);
+procedure TDynMapDef.addRecordByType (const atypename: AnsiString; rc: TDynRecord; curheader: TDynRecord);
 var
   rec: TDynRecord;
   fld: TDynField;
 begin
   assert(curheader <> nil);
   // find record type
-  rec := findRec(atypename);
+  rec := findRecType(atypename);
   assert(rec <> nil);
   // find record data
   //writeln('searching for data of type <', atypename, '>');
@@ -2013,7 +1933,7 @@ begin
 end;
 
 
-function TDynMapDef.findRecordNumByType (const atypename: AnsiString; rc: TDynRecord): Integer;
+function TDynMapDef.findRecordNumByType (const atypename: AnsiString; rc: TDynRecord; curheader: TDynRecord): Integer;
 var
   rec: TDynRecord;
   fld: TDynField;
@@ -2022,7 +1942,7 @@ begin
   result := -1;
   if (curheader = nil) then exit;
   // find record type
-  rec := findRec(atypename);
+  rec := findRecType(atypename);
   if (rec = nil) then exit;
   // find record data
   fld := curheader.field[atypename];
@@ -2056,14 +1976,14 @@ begin
     if (pr.tokStr = 'enum') or (pr.tokStr = 'bitset') then
     begin
       eb := TDynEBS.Create(pr);
-      if (findEBS(eb.name) <> nil) then
+      if (findEBSType(eb.name) <> nil) then
       begin
         eb.Free();
         raise Exception.Create(Format('duplicate enum/bitset ''%s''', [eb.name]));
       end;
       eb.mOwner := self;
-      SetLength(ebs, Length(ebs)+1);
-      ebs[High(ebs)] := eb;
+      SetLength(ebsTypes, Length(ebsTypes)+1);
+      ebsTypes[High(ebsTypes)] := eb;
       //writeln(eb.definition); writeln;
       continue;
     end;
@@ -2073,22 +1993,22 @@ begin
       dr := TDynRecord.Create(pr);
       for f := 0 to High(dr.mTrigTypes) do
       begin
-        if (findTrigDataFor(dr.mTrigTypes[f]) <> nil) then
+        if (findTrigFor(dr.mTrigTypes[f]) <> nil) then
         begin
           dr.Free();
           raise Exception.Create(Format('duplicate trigdata ''%s''', [dr.mTrigTypes[f]]));
         end;
       end;
       dr.mOwner := self;
-      SetLength(trigDatas, Length(trigDatas)+1);
-      trigDatas[High(trigDatas)] := dr;
+      SetLength(trigTypes, Length(trigTypes)+1);
+      trigTypes[High(trigTypes)] := dr;
       //writeln(dr.definition); writeln;
       continue;
     end;
 
     dr := TDynRecord.Create(pr);
     //writeln(dr.definition); writeln;
-    if (findRec(dr.name) <> nil) then begin dr.Free(); raise Exception.Create(Format('duplicate record ''%s''', [dr.name])); end;
+    if (findRecType(dr.name) <> nil) then begin dr.Free(); raise Exception.Create(Format('duplicate record ''%s''', [dr.name])); end;
     if (hdr <> nil) and (CompareText(dr.name, hdr.name) = 0) then begin dr.Free(); raise Exception.Create(Format('duplicate record ''%s''', [dr.name])); end;
     dr.mOwner := self;
     if dr.mHeader then
@@ -2098,15 +2018,15 @@ begin
     end
     else
     begin
-      SetLength(records, Length(records)+1);
-      records[High(records)] := dr;
+      SetLength(recTypes, Length(recTypes)+1);
+      recTypes[High(recTypes)] := dr;
     end;
   end;
 
   if (hdr = nil) then raise Exception.Create('header definition not found in mapdef');
-  SetLength(records, Length(records)+1);
-  for f := High(records) downto 1 do records[f] := records[f-1];
-  records[0] := hdr;
+  SetLength(recTypes, Length(recTypes)+1);
+  for f := High(recTypes) downto 1 do recTypes[f] := recTypes[f-1];
+  recTypes[0] := hdr;
 end;
 
 
@@ -2115,18 +2035,18 @@ function TDynMapDef.parseMap (pr: TTextParser): TDynRecord;
 var
   res: TDynRecord = nil;
 begin
-  if (curheader <> nil) then raise Exception.Create('cannot call `parseMap()` recursively, sorry');
   result := nil;
   try
-    pr.expectId(header.name);
-    res := header.clone();
-    curheader := res;
-    res.parseValue(pr, true); // as header
+    pr.expectId(headerType.name);
+    res := headerType.clone();
+    res.parseValue(pr, res);
     result := res;
     res := nil;
-  finally
-    curheader := nil;
-    res.Free();
+  except on E: Exception do
+    begin
+      res.Free();
+      raise;
+    end;
   end;
 end;
 
