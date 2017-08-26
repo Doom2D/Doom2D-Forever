@@ -126,6 +126,29 @@ type
     function seek (const offset: Int64; origin: TSeekOrigin): Int64; override;
   end;
 
+  // fixed memory chunk
+  TSFSMemoryChunkStream = class(TCustomMemoryStream)
+  private
+    fFreeMem: Boolean;
+    fMemBuf: PByte;
+    fMemSize: Integer;
+    fCurPos: Integer;
+
+  public
+    // if `pMem` is `nil`, stream will allocate it
+    constructor Create (pMem: Pointer; pSize: Integer; aFreeMem: Boolean=false);
+    destructor Destroy (); override;
+
+    procedure setup (pMem: Pointer; pSize: Integer; aFreeMem: Boolean=false);
+
+    function Seek (const offset: Int64; origin: TSeekOrigin): Int64; override;
+    function Read (var buffer; count: LongInt): LongInt; override;
+    function Write (const buffer; count: LongInt): LongInt; override;
+
+    property chunkSize: Integer read fMemSize;
+    property chunkData: PByte read fMemBuf;
+  end;
+
 
 implementation
 
@@ -451,6 +474,94 @@ begin
   if result < 0 then result := 0;
   fSkipToPos := result;
   //writeln('seek: ofs=', offset, '; origin=', origin, '; result=', result);
+end;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
+constructor TSFSMemoryChunkStream.Create (pMem: Pointer; pSize: Integer; aFreeMem: Boolean=false);
+begin
+  fMemBuf := nil;
+  fFreeMem := false;
+  fMemSize := 0;
+  fCurPos := 0;
+  setup(pMem, pSize, aFreeMem);
+end;
+
+
+procedure TSFSMemoryChunkStream.setup (pMem: Pointer; pSize: Integer; aFreeMem: Boolean=false);
+begin
+  if fFreeMem then FreeMem(fMemBuf);
+  fMemBuf := nil;
+  fFreeMem := false;
+  fMemSize := 0;
+  fCurPos := 0;
+  if (pSize < 0) then raise XStreamError.Create('invalid chunk size');
+  if (pMem = nil) then
+  begin
+    if (pSize > 0) then
+    begin
+      GetMem(pMem, pSize);
+      if (pMem = nil) then raise XStreamError.Create('out of memory for chunk');
+      aFreeMem := true;
+    end
+    else
+    begin
+      aFreeMem := false;
+    end;
+  end;
+  fFreeMem := aFreeMem;
+  fMemBuf := PByte(pMem);
+  fMemSize := pSize;
+end;
+
+
+destructor TSFSMemoryChunkStream.Destroy ();
+begin
+  if fFreeMem then FreeMem(fMemBuf);
+  inherited;
+end;
+
+
+function TSFSMemoryChunkStream.Seek (const offset: Int64; origin: TSeekOrigin): Int64;
+begin
+  case origin of
+    soBeginning: result := offset;
+    soCurrent: result := offset+fCurPos;
+    soEnd: result := fMemSize+offset;
+    else raise XStreamError.Create('invalid Seek() call');
+  end;
+  if (result < 0) then raise XStreamError.Create('invalid Seek() call');
+  if (result > fMemSize) then result := fMemSize;
+  fCurPos := result;
+end;
+
+
+function TSFSMemoryChunkStream.Read (var buffer; count: LongInt): LongInt;
+var
+  left: Integer;
+begin
+  if (count < 0) then raise XStreamError.Create('negative read');
+  left := fMemSize-fCurPos;
+  if (left < 0) then raise XStreamError.Create('internal error in TSFSMemoryChunkStream (read)');
+  if (count > left) then count := left;
+  if (count > 0) then Move((fMemBuf+fCurPos)^, buffer, count);
+  Inc(fCurPos, count);
+  result := count;
+end;
+
+
+function TSFSMemoryChunkStream.Write (const buffer; count: LongInt): LongInt;
+var
+  left: Integer;
+begin
+  if (count < 0) then raise XStreamError.Create('negative write');
+  left := fMemSize-fCurPos;
+  if (left < 0) then raise XStreamError.Create('internal error in TSFSMemoryChunkStream (write)');
+  if (count > left) then count := left;
+  //writeln('mcs: writing ', count, ' bytes at ofs ', fCurPos, ' (total size is ', fMemSize, ')');
+  if (count > 0) then Move(buffer, (fMemBuf+fCurPos)^, count);
+  Inc(fCurPos, count);
+  result := count;
 end;
 
 
