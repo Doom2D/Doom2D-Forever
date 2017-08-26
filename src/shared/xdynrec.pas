@@ -80,7 +80,7 @@ type
   private
     procedure cleanup ();
 
-    procedure parse (pr: TTextParser);
+    procedure parseDef (pr: TTextParser);
 
     procedure setIVal (v: Integer); inline;
     procedure setSVal (const v: AnsiString); inline;
@@ -140,9 +140,10 @@ type
     mFields: TDynField.TDynFieldArray;
     mTrigTypes: array of AnsiString; // if this is triggerdata, we'll hold list of triggers here
     mHeader: Boolean; // true for header record
+    mBinBlock: Integer; // -1: none
 
   private
-    procedure parse (pr: TTextParser); // parse definition
+    procedure parseDef (pr: TTextParser); // parse definition
 
     function findByName (const aname: AnsiString): Integer; inline;
     function hasByName (const aname: AnsiString): Boolean; inline;
@@ -190,7 +191,7 @@ type
   private
     procedure cleanup ();
 
-    procedure parse (pr: TTextParser); // parse definition
+    procedure parseDef (pr: TTextParser); // parse definition
 
     function findByName (const aname: AnsiString): Integer; inline;
     function hasByName (const aname: AnsiString): Boolean; inline;
@@ -223,7 +224,7 @@ type
     ebs: array of TDynEBS;
 
   private
-    procedure parse (pr: TTextParser);
+    procedure parseDef (pr: TTextParser);
 
     function getHeader (): TDynRecord; inline;
 
@@ -263,7 +264,7 @@ end;
 constructor TDynField.Create (pr: TTextParser);
 begin
   cleanup();
-  parse(pr);
+  parseDef(pr);
 end;
 
 
@@ -504,7 +505,7 @@ begin
 end;
 
 
-procedure TDynField.parse (pr: TTextParser);
+procedure TDynField.parseDef (pr: TTextParser);
 var
   fldname: AnsiString;
   fldtype: AnsiString;
@@ -1060,7 +1061,8 @@ begin
   mFields := nil;
   mTrigTypes := nil;
   mHeader := false;
-  parse(pr);
+  mBinBlock := -1;
+  parseDef(pr);
 end;
 
 
@@ -1148,7 +1150,7 @@ begin
 end;
 
 
-procedure TDynRecord.parse (pr: TTextParser);
+procedure TDynRecord.parseDef (pr: TTextParser);
 var
   fld: TDynField;
   tdn: AnsiString;
@@ -1180,14 +1182,25 @@ begin
     mPasName := pr.expectId(); // pascal record name
     pr.expectId('is');
     mName := pr.expectStr();
-    if pr.eatId('header') then mHeader := true;
-    if pr.eatId('size') then
+    while (pr.tokType <> pr.TTBegin) do
     begin
-      mSize := pr.expectInt();
-      if (mSize < 1) then raise Exception.Create(Format('invalid record ''%s'' size: %d', [mName, mSize]));
-      pr.expectId('bytes');
+      if pr.eatId('header') then begin mHeader := true; continue; end;
+      if pr.eatId('size') then
+      begin
+        if (mSize > 0) then raise Exception.Create(Format('duplicate `size` in record ''%s''', [mName]));
+        mSize := pr.expectInt();
+        if (mSize < 1) then raise Exception.Create(Format('invalid record ''%s'' size: %d', [mName, mSize]));
+        pr.expectId('bytes');
+        continue;
+      end;
+      if pr.eatId('binblock') then
+      begin
+        if (mBinBlock >= 0) then raise Exception.Create(Format('duplicate `binblock` in record ''%s''', [mName]));
+        mBinBlock := pr.expectInt();
+        if (mBinBlock < 1) then raise Exception.Create(Format('invalid record ''%s'' binblock: %d', [mName, mBinBlock]));
+        continue;
+      end;
     end;
-    if pr.eatId('header') then mHeader := true;
   end;
 
   pr.expectTT(pr.TTBegin);
@@ -1383,7 +1396,7 @@ end;
 constructor TDynEBS.Create (pr: TTextParser);
 begin
   cleanup();
-  parse(pr);
+  parseDef(pr);
 end;
 
 
@@ -1463,7 +1476,7 @@ begin
 end;
 
 
-procedure TDynEBS.parse (pr: TTextParser);
+procedure TDynEBS.parseDef (pr: TTextParser);
 var
   idname: AnsiString;
   cv, v: Integer;
@@ -1546,7 +1559,7 @@ begin
   trigDatas := nil;
   ebs := nil;
   curheader := nil;
-  parse(pr);
+  parseDef(pr);
 end;
 
 
@@ -1639,7 +1652,7 @@ begin
 end;
 
 
-procedure TDynMapDef.parse (pr: TTextParser);
+procedure TDynMapDef.parseDef (pr: TTextParser);
 var
   dr, hdr: TDynRecord;
   eb: TDynEBS;

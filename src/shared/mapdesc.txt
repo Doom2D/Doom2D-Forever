@@ -19,7 +19,7 @@
 
 ////////////////////////////////////////////////////////////////////////////////
 // main blocks
-TMapHeaderRec_1 is "map" size 452 bytes header {
+TMapHeaderRec_1 is "map" size 452 bytes header binblock 7 {
   //_ is "version" type uint minvalue 1 maxvalue 1;
   MapName is "name" type char[32] offset 0;
   MapAuthor is "author" type char[32] offset 32 default "" omitdefault;
@@ -33,14 +33,14 @@ TMapHeaderRec_1 is "map" size 452 bytes header {
   Title is "title" type string default ""  omitdefault;
 }
 
-TTextureRec_1 is "texture" size 65 bytes {
+TTextureRec_1 is "texture" size 65 bytes binblock 1 {
   Resource is "path" type char[64] offset 0;
   Anim is "animated" type bool offset 64 default false omitdefault;
   // internals
   TexIdx is "texidx" type uint internal;
 }
 
-TPanelRec_1 is "panel" size 18 bytes {
+TPanelRec_1 is "panel" size 18 bytes binblock 2 {
   //X is "x" type int offset 0;
   //Y is "y" type int offset 4;
   Pos is "position" type point offset 0 as xy;
@@ -57,7 +57,7 @@ TPanelRec_1 is "panel" size 18 bytes {
   PanIdx is "panidx" type uint internal;
 }
 
-TItemRec_1 is "item" size 10 bytes {
+TItemRec_1 is "item" size 10 bytes binblock 3 {
   //X is "x" type int offset 0;
   //Y is "y" type int offset 4;
   Pos is "position" type point offset 0 as xy;
@@ -69,7 +69,7 @@ TItemRec_1 is "item" size 10 bytes {
   ItemIdx is "itemidx" type uint internal;
 }
 
-TMonsterRec_1 is "monster" size 10 bytes {
+TMonsterRec_1 is "monster" size 10 bytes binblock 5 {
   //X is "x" type int offset 0;
   //Y is "y" type int offset 4;
   Pos is "position" type point offset 0 as xy;
@@ -81,7 +81,7 @@ TMonsterRec_1 is "monster" size 10 bytes {
   MonsIdx is "monsidx" type uint internal;
 }
 
-TAreaRec_1 is "area" size 10 bytes {
+TAreaRec_1 is "area" size 10 bytes binblock 4 {
   //X is "x" type int offset 0;
   //Y is "y" type int offset 4;
   Pos is "position" type point offset 0 as xy;
@@ -93,7 +93,7 @@ TAreaRec_1 is "area" size 10 bytes {
   AreaIdx is "areaidx" type uint internal;
 }
 
-TTriggerRec_1 is "trigger" size 148 bytes {
+TTriggerRec_1 is "trigger" size 148 bytes binblock 6 {
   //X is "x" type int offset 0;
   //Y is "y" type int offset 4;
   Pos is "position" type point offset 0 as xy;
