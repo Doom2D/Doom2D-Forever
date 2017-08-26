@@ -982,6 +982,17 @@ begin
     gExit := 0;
 end;
 
+procedure drawTime(X, Y: Integer); inline;
+begin
+  e_TextureFontPrint(x, y,
+                     Format('%d:%.2d:%.2d', [
+                       gTime div 1000 div 3600,
+                       (gTime div 1000 div 60) mod 60,
+                       gTime div 1000 mod 60
+                     ]),
+                     gStdFont);
+end;
+
 procedure DrawStat();
 var
   pc, x, y, w, h: Integer;
@@ -1010,6 +1021,8 @@ begin
 
   e_DrawFillQuad(x, y, x+w-1, y+h-1, 64, 64, 64, 32);
   e_DrawQuad(x, y, x+w-1, y+h-1, 255, 127, 0);
+
+  drawTime(x+w-78, y+8);
 
   wad := g_ExtractWadNameNoPath(gMapInfo.Map);
   map := g_ExtractFileName(gMapInfo.Map);
@@ -3300,9 +3313,7 @@ begin
   end;
 
   if gGameOn and gShowTime and (gGameSettings.GameType in [GT_CUSTOM, GT_SERVER, GT_CLIENT]) then
-  e_TextureFontPrint(gScreenWidth-72, 0,
-                     Format('%d:%.2d:%.2d', [gTime div 1000 div 3600, (gTime div 1000 div 60) mod 60, gTime div 1000 mod 60]),
-                     gStdFont);
+    drawTime(gScreenWidth-72, gScreenHeight-16);
 
   if gGameOn then drawProfilers();
 end;

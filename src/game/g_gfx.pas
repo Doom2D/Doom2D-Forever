@@ -327,6 +327,9 @@ end;
 procedure g_GFX_Init();
 begin
   //CreateCollideMap();
+{$IFDEF HEADLESS}
+  gpart_dbg_enabled := False;
+{$ENDIF}
 end;
 
 
@@ -1048,6 +1051,7 @@ var
   DevY1, DevY2: Byte;
   l: Integer;
 begin
+  if not gpart_dbg_enabled then Exit;
   l := Length(Particles);
   if l = 0 then exit;
   if Count > l then Count := l;
@@ -1107,6 +1111,7 @@ var
   CRnd: Byte;
   CC: SmallInt;
 begin
+  if not gpart_dbg_enabled then Exit;
   if Kind = BLOOD_SPARKS then
   begin
     g_GFX_SparkVel(fX, fY, 2 + Random(2), -VX div 2, -VY div 2, DevX, DevY);
@@ -1203,6 +1208,7 @@ var
   BaseVelX, BaseVelY: Single;
   l: Integer;
 begin
+  if not gpart_dbg_enabled then Exit;
   l := Length(Particles);
   if l = 0 then
     Exit;
@@ -1262,6 +1268,7 @@ var
   DevY1, DevY2: Byte;
   l: Integer;
 begin
+  if not gpart_dbg_enabled then Exit;
   l := Length(Particles);
   if l = 0 then
     Exit;
@@ -1342,6 +1349,7 @@ var
   a: Integer;
   l: Integer;
 begin
+  if not gpart_dbg_enabled then Exit;
   l := Length(Particles);
   if l = 0 then
     Exit;
@@ -1430,6 +1438,7 @@ var
   DevY1, DevY2: Byte;
   l, liquidx: Integer;
 begin
+  if not gpart_dbg_enabled then Exit;
   l := Length(Particles);
   if l = 0 then
     Exit;
@@ -1534,6 +1543,7 @@ procedure g_GFX_OnceAnim(X, Y: Integer; Anim: TAnimation; AnimType: Byte = 0);
 var
   find_id: DWORD;
 begin
+  if not gpart_dbg_enabled then Exit;
   if Anim = nil then
     Exit;
 
