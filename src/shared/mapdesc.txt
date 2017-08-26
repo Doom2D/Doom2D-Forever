@@ -1,6 +1,6 @@
 // yes, this file serves both as format description and as template for code generation
 // the engine will use this description to populate the corresponding records from MAP*.pas
-// also, the engine will keep the loaded map as a list of this structures
+// also, the engine will keep the loaded map as a list of these structures
 
 // notes:
 //   field without offset is not in binary format
