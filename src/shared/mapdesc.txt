@@ -8,7 +8,7 @@
 //   fields with `internal` won't be written to any file ever (and won't be read)
 //   `ubyte` is unsigned byte, and `byte` is signed byte
 //   all strings are in utf-8
-//   struct named "mapheader" will contain all other structs and it's own fields
+//   struct with `header` flag will contain all other structs and it's own fields
 //     as top-level entities
 //   in binary, `size` is two ushorts
 //   `as xy` will use `X` and `Y` for points
