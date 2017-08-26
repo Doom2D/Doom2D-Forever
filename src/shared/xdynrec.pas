@@ -67,12 +67,12 @@ type
     mDefaultValueSet: Boolean;
     mOmitDef: Boolean;
     mInternal: Boolean;
-    // default values
-    mDefSVal: AnsiString;
-    mEBS: TEBS;
-    mEBSTypeName: AnsiString; // name of enum, bitset or record
-    mBitSetUnique: Boolean; // bitset can contain only one value
     mNegBool: Boolean;
+    mBitSetUnique: Boolean; // bitset can contain only one value
+    // default value
+    mDefSVal: AnsiString;
+    mEBS: TEBS; // complex type type
+    mEBSTypeName: AnsiString; // name of enum, bitset or record
 
     // temp
     mDefId: AnsiString;
@@ -129,6 +129,7 @@ type
   end;
 
 
+  // "value" header record contains TList fields, with name equal to record type
   TDynRecord = class
   private
     mOwner: TDynMapDef;
@@ -1039,6 +1040,7 @@ begin
           mRecRef := rc;
           mDefined := true;
           mOwner.mOwner.addRecordByType(mEBSTypeName, rc, curheader);
+          pr.eatTT(pr.TTSemi); // hack: allow (but don't require) semicolon after inline records
           exit;
         end;
         pr.expectTT(pr.TTBegin);
