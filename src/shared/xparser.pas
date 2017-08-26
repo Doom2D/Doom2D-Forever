@@ -18,6 +18,9 @@ unit xparser;
 
 interface
 
+uses
+  Classes;
+
 
 // ////////////////////////////////////////////////////////////////////////// //
 type
@@ -79,7 +82,7 @@ type
     mTokInt: Integer;
 
   protected
-    procedure warmup (); virtual; abstract; // called in constructor to warm up the system
+    procedure warmup (); virtual; // called in constructor to warm up the system
     procedure loadNextChar (); virtual; abstract; // loads next char into mNextChar; #0 means 'eof'
 
   public
@@ -132,10 +135,9 @@ type
 type
   TFileTextParser = class(TTextParser)
   private
-    mFile: File;
+    mFile: TStream;
 
   protected
-    procedure warmup (); override; // called in constructor to warm up the system
     procedure loadNextChar (); override; // loads next char into mNextChar; #0 means 'eof'
 
   public
@@ -149,7 +151,6 @@ type
     mPos: Integer;
 
   protected
-    procedure warmup (); override; // called in constructor to warm up the system
     procedure loadNextChar (); override; // loads next char into mNextChar; #0 means 'eof'
 
   public
@@ -184,7 +185,7 @@ type
 type
   TFileTextWriter = class(TTextWriter)
   private
-    mFile: File;
+    mFile: TStream;
 
   protected
     procedure putBuf (constref buf; len: SizeUInt); override;
@@ -431,6 +432,15 @@ end;
 
 
 function TTextParser.isEOF (): Boolean; inline; begin result := (mCurChar = #0); end;
+
+
+procedure TTextParser.warmup ();
+begin
+  mNextChar := ' ';
+  loadNextChar();
+  mCurChar := mNextChar;
+  if (mNextChar <> #0) then loadNextChar();
+end;
 
 
 function TTextParser.skipChar (): Boolean;
@@ -777,27 +787,15 @@ end;
 // ////////////////////////////////////////////////////////////////////////// //
 constructor TFileTextParser.Create (const fname: AnsiString; loadToken: Boolean=true);
 begin
-  AssignFile(mFile, fname);
-  Reset(mFile, 1);
+  mFile := openDiskFileRO(fname);
   inherited Create(loadToken);
 end;
 
 
 destructor TFileTextParser.Destroy ();
 begin
-  CloseFile(mFile);
+  mFile.Free();
   inherited;
-end;
-
-
-procedure TFileTextParser.warmup ();
-var
-  rd: Integer;
-begin
-  blockRead(mFile, mCurChar, 1, rd);
-  if (rd = 0) then begin mCurChar := #0; exit; end;
-  if (mCurChar = #0) then mCurChar := ' ';
-  loadNextChar();
 end;
 
 
@@ -805,7 +803,7 @@ procedure TFileTextParser.loadNextChar ();
 var
   rd: Integer;
 begin
-  blockRead(mFile, mNextChar, 1, rd);
+  rd := mFile.Read(mNextChar, 1);
   if (rd = 0) then begin mNextChar := #0; exit; end;
   if (mNextChar = #0) then mNextChar := ' ';
 end;
@@ -824,20 +822,6 @@ destructor TStrTextParser.Destroy ();
 begin
   mStr := '';
   inherited;
-end;
-
-
-procedure TStrTextParser.warmup ();
-begin
-  if (mPos > Length(mStr)) then
-  begin
-    mCurChar := #0;
-    mNextChar := #0;
-    exit;
-  end;
-  mCurChar := mStr[mPos]; Inc(mPos);
-  if (mCurChar = #0) then mCurChar := ' ';
-  loadNextChar();
 end;
 
 
@@ -864,28 +848,26 @@ procedure TTextWriter.unindent (); begin Dec(mIndent, 2); end;
 // ////////////////////////////////////////////////////////////////////////// //
 constructor TFileTextWriter.Create (const fname: AnsiString);
 begin
-  AssignFile(mFile, fname);
-  Rewrite(mFile, 1);
+  mFile := createDiskFile(fname);
   inherited Create();
 end;
 
 
 destructor TFileTextWriter.Destroy ();
 begin
-  CloseFile(mFile);
+  mFile.Free();
+  inherited;
 end;
 
 
 procedure TFileTextWriter.putBuf (constref buf; len: SizeUInt);
 var
-  wr: SizeUInt;
   pc: PChar;
 begin
   if (len > 0) then
   begin
     pc := @buf;
-    BlockWrite(mFile, pc^, len, wr);
-    if (wr <> len) then raise Exception.Create('write error');
+    mFile.WriteBuffer(pc^, len);
     {
     while (len > 0) do
     begin
