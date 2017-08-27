@@ -3337,6 +3337,8 @@ begin
     drawTime(gScreenWidth-72, gScreenHeight-16);
 
   if gGameOn then drawProfilers();
+
+  g_Holmes_DrawUI();
 end;
 
 procedure g_Game_Quit();

@@ -76,6 +76,7 @@ procedure g_Holmes_WindowFocused ();
 procedure g_Holmes_WindowBlured ();
 
 procedure g_Holmes_Draw ();
+procedure g_Holmes_DrawUI ();
 
 function g_Holmes_MouseEvent (var ev: THMouseEvent): Boolean; // returns `true` if event was eaten
 function g_Holmes_KeyEvent (var ev: THKeyEvent): Boolean; // returns `true` if event was eaten
@@ -116,6 +117,7 @@ var
 
 // ////////////////////////////////////////////////////////////////////////// //
 var
+  g_ol_nice: Boolean = false;
   g_ol_rlayer_back: Boolean = false;
   g_ol_rlayer_step: Boolean = false;
   g_ol_rlayer_wall: Boolean = false;
@@ -181,6 +183,8 @@ begin
   llb.appendItem('acid2', @g_ol_rlayer_acid2);
   llb.appendItem('water', @g_ol_rlayer_water);
   llb.appendItem('foreground', @g_ol_rlayer_fore);
+  llb.appendItem('', nil);
+  llb.appendItem('slow''n''nice', @g_ol_nice);
   winOutlines := THTopWindow.Create('outlines', 100, 10);
   winOutlines.escClose := true;
   winOutlines.appendChild(llb);
@@ -686,11 +690,14 @@ begin
     plrDebugDraw();
   end;
 
-  uiDraw();
-
-  drawCursor();
-
   laserSet := false;
+end;
+
+
+procedure g_Holmes_DrawUI ();
+begin
+  uiDraw();
+  drawCursor();
 end;
 
 

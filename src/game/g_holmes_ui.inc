@@ -898,14 +898,36 @@ begin
       SDL_SCANCODE_UP:
         begin
           result := true;
-               if (mCurIndex < 0) then mCurIndex := Length(mItems)
-          else if (mCurIndex > 0) then Dec(mCurIndex);
+          if (Length(mItems) > 0) then
+          begin
+            if (mCurIndex < 0) then mCurIndex := Length(mItems);
+            while (mCurIndex > 0) do
+            begin
+              Dec(mCurIndex);
+              if (mChecks[mCurIndex] <> nil) then break;
+            end;
+          end
+          else
+          begin
+            mCurIndex := -1;
+          end;
         end;
       SDL_SCANCODE_DOWN:
         begin
           result := true;
-               if (mCurIndex < 0) then mCurIndex := 0
-          else if (mCurIndex < High(mItems)) then Inc(mCurIndex);
+          if (Length(mItems) > 0) then
+          begin
+            if (mCurIndex < 0) then mCurIndex := -1;
+            while (mCurIndex < High(mItems)) do
+            begin
+              Inc(mCurIndex);
+              if (mChecks[mCurIndex] <> nil) then break;
+            end;
+          end
+          else
+          begin
+            mCurIndex := -1;
+          end;
         end;
       SDL_SCANCODE_SPACE,
       SDL_SCANCODE_RETURN:
