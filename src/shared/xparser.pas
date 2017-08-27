@@ -24,35 +24,6 @@ uses
 
 // ////////////////////////////////////////////////////////////////////////// //
 type
-  TUtf8DecoderFast = packed record
-  public
-    const Replacement = $FFFD; // replacement char for invalid unicode
-    const Accept = 0;
-    const Reject = 12;
-
-  private
-    state: LongWord;
-
-  public
-    codepoint: LongWord; // decoded codepoint (valid only when decoder is in "complete" state)
-
-  public
-    constructor Create (v: Boolean{fuck you, fpc});
-
-    procedure reset (); inline;
-
-    function complete (): Boolean; inline; // is current character complete? take `codepoint` then
-    function invalid (): Boolean; inline;
-    function completeOrInvalid (): Boolean; inline;
-
-    // process one byte, return `true` if codepoint is ready
-    function decode (b: Byte): Boolean; inline; overload;
-    function decode (c: AnsiChar): Boolean; inline; overload;
-  end;
-
-
-// ////////////////////////////////////////////////////////////////////////// //
-type
   TTextParser = class
   public
     const
@@ -84,9 +55,6 @@ type
   protected
     procedure warmup (); virtual; // called in constructor to warm up the system
     procedure loadNextChar (); virtual; abstract; // loads next char into mNextChar; #0 means 'eof'
-
-  public
-    class function quote (const s: AnsiString): AnsiString;
 
   public
     constructor Create (loadToken: Boolean=true);
@@ -196,13 +164,6 @@ type
   end;
 
 
-// ////////////////////////////////////////////////////////////////////////// //
-function wcharTo1251 (wc: WideChar): AnsiChar; inline;
-function utfTo1251 (const s: AnsiString): AnsiString;
-
-function digitInBase (ch: AnsiChar; base: Integer): Integer;
-
-
 implementation
 
 uses
@@ -243,168 +204,6 @@ function wcharTo1251 (wc: WideChar): AnsiChar; inline;
 begin
   if not wc2shitmapInited then initShitMap();
   if (LongWord(wc) > 65535) then result := '?' else result := wc2shitmap[LongWord(wc)];
-end;
-
-
-// ////////////////////////////////////////////////////////////////////////// //
-// fast state-machine based UTF-8 decoder; using 8 bytes of memory
-// code points from invalid range will never be valid, this is the property of the state machine
-const
-  // see http://bjoern.hoehrmann.de/utf-8/decoder/dfa/
-  utf8dfa: array[0..$16c-1] of Byte = (
-    // maps bytes to character classes
-    $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00, // 00-0f
-    $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00, // 10-1f
-    $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00, // 20-2f
-    $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00, // 30-3f
-    $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00, // 40-4f
-    $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00, // 50-5f
-    $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00, // 60-6f
-    $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00, // 70-7f
-    $01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01, // 80-8f
-    $09,$09,$09,$09,$09,$09,$09,$09,$09,$09,$09,$09,$09,$09,$09,$09, // 90-9f
-    $07,$07,$07,$07,$07,$07,$07,$07,$07,$07,$07,$07,$07,$07,$07,$07, // a0-af
-    $07,$07,$07,$07,$07,$07,$07,$07,$07,$07,$07,$07,$07,$07,$07,$07, // b0-bf
-    $08,$08,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02, // c0-cf
-    $02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02, // d0-df
-    $0a,$03,$03,$03,$03,$03,$03,$03,$03,$03,$03,$03,$03,$04,$03,$03, // e0-ef
-    $0b,$06,$06,$06,$05,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08, // f0-ff
-    // maps a combination of a state of the automaton and a character class to a state
-    $00,$0c,$18,$24,$3c,$60,$54,$0c,$0c,$0c,$30,$48,$0c,$0c,$0c,$0c, // 100-10f
-    $0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$00,$0c,$0c,$0c,$0c,$0c,$00, // 110-11f
-    $0c,$00,$0c,$0c,$0c,$18,$0c,$0c,$0c,$0c,$0c,$18,$0c,$18,$0c,$0c, // 120-12f
-    $0c,$0c,$0c,$0c,$0c,$0c,$0c,$18,$0c,$0c,$0c,$0c,$0c,$18,$0c,$0c, // 130-13f
-    $0c,$0c,$0c,$0c,$0c,$18,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$24, // 140-14f
-    $0c,$24,$0c,$0c,$0c,$24,$0c,$0c,$0c,$0c,$0c,$24,$0c,$24,$0c,$0c, // 150-15f
-    $0c,$24,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c,$0c);
-
-
-// ////////////////////////////////////////////////////////////////////////// //
-constructor TUtf8DecoderFast.Create (v: Boolean{fuck you, fpc}); begin state := Accept; codepoint := 0; end;
-
-procedure TUtf8DecoderFast.reset (); inline; begin state := Accept; codepoint := 0; end;
-
-function TUtf8DecoderFast.complete (): Boolean; inline; begin result := (state = Accept); end;
-function TUtf8DecoderFast.invalid (): Boolean; inline; begin result := (state = Reject); end;
-function TUtf8DecoderFast.completeOrInvalid (): Boolean; inline; begin result := (state = Accept) or (state = Reject); end;
-
-function TUtf8DecoderFast.decode (c: AnsiChar): Boolean; inline; overload; begin result := decode(Byte(c)); end;
-
-function TUtf8DecoderFast.decode (b: Byte): Boolean; inline; overload;
-var
-  tp: LongWord;
-begin
-  if (state = Reject) then begin state := Accept; codepoint := 0; end;
-  tp := utf8dfa[b];
-  if (state <> Accept) then codepoint := (b and $3f) or (codepoint shl 6) else codepoint := ($ff shr tp) and b;
-  state := utf8dfa[256+state+tp];
-  if (state = Reject) then begin codepoint := Replacement; state := Accept; end;
-  result := (state = Accept);
-end;
-
-
-// ////////////////////////////////////////////////////////////////////////// //
-function utfTo1251 (const s: AnsiString): AnsiString;
-var
-  f, c: Integer;
-  ud: TUtf8DecoderFast;
-begin
-  for f := 1 to Length(s) do
-  begin
-    if (Byte(s[f]) > 127) then
-    begin
-      ud := TUtf8DecoderFast.Create(true);
-      result := '';
-      for c := 1 to Length(s) do
-      begin
-        if ud.decode(s[c]) then result += wcharTo1251(WideChar(ud.codepoint));
-      end;
-      exit;
-    end;
-  end;
-  result := s;
-end;
-
-
-// ////////////////////////////////////////////////////////////////////////// //
-function digitInBase (ch: AnsiChar; base: Integer): Integer;
-begin
-  result := -1;
-  if (base < 1) or (base > 36) then exit;
-  if (ch < '0') then exit;
-  if (base <= 10) then
-  begin
-    if (Integer(ch) >= 48+base) then exit;
-    result := Integer(ch)-48;
-  end
-  else
-  begin
-    if (ch >= '0') and (ch <= '9') then begin result := Integer(ch)-48; exit; end;
-    if (ch >= 'a') and (ch <= 'z') then Dec(ch, 32); // poor man's tolower()
-    if (ch < 'A') or (Integer(ch) >= 65+(base-10)) then exit;
-    result := Integer(ch)-65+10;
-  end;
-end;
-
-
-// ////////////////////////////////////////////////////////////////////////// //
-class function TTextParser.quote (const s: AnsiString): AnsiString;
-
-  function squote (const s: AnsiString): AnsiString;
-  var
-    f: Integer;
-  begin
-    result := '''';
-    for f := 1 to Length(s) do
-    begin
-      if (s[f] = '''') then result += '''';
-      result += s[f];
-    end;
-    result += '''';
-  end;
-
-  function dquote (const s: AnsiString): AnsiString;
-  var
-    f: Integer;
-    ch: AnsiChar;
-  begin
-    result := '"';
-    for f := 1 to Length(s) do
-    begin
-      ch := s[f];
-           if (ch = #0) then result += '\z'
-      else if (ch = #9) then result += '\t'
-      else if (ch = #10) then result += '\n'
-      else if (ch = #13) then result += '\r'
-      else if (ch = #27) then result += '\e'
-      else if (ch < ' ') or (ch = #127) then
-      begin
-        result += '\x';
-        result += LowerCase(IntToHex(Integer(ch), 2));
-      end
-      else if (ch = '"') or (ch = '\') then
-      begin
-        result += '\';
-        result += ch;
-      end
-      else
-      begin
-        result += ch;
-      end;
-    end;
-    result += '"';
-  end;
-
-var
-  needSingle: Boolean = false;
-  f: Integer;
-begin
-  for f := 1 to Length(s) do
-  begin
-    if (s[f] = '''') then begin needSingle := true; continue; end;
-    if (s[f] < ' ') or (s[f] = #127) then begin result := dquote(s); exit; end;
-  end;
-  if needSingle then result := squote(s) else result := ''''+s+'''';
 end;
 
 

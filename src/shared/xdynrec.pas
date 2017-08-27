@@ -504,7 +504,7 @@ end;
 
 function TDynField.definition (): AnsiString;
 begin
-  result := mPasName+' is '+TTextParser.quote(mName)+' type ';
+  result := mPasName+' is '+quoteStr(mName)+' type ';
   result += getTypeName(mType);
   if (mMaxDim >= 0) then result += Format('[%d]', [mMaxDim]);
   if (mRecOfs >= 0) then result += Format(' offset %d', [mRecOfs]);
@@ -679,7 +679,7 @@ begin
   else if (fldtype = 'trigdata') then mType := TType.TTrigData
   else raise Exception.Create(Format('field ''%s'' has invalid type ''%s''', [fldname, fldtype]));
 
-       if hasdefStr then self.mDefUnparsed := TTextParser.quote(defstr)
+       if hasdefStr then self.mDefUnparsed := quoteStr(defstr)
   else if hasdefInt then self.mDefUnparsed := Format('%d', [defint])
   else if hasdefId then self.mDefUnparsed := defstr;
 
@@ -795,7 +795,7 @@ begin
         else
         begin
           if (Length(mSVal) > mMaxDim) then raise Exception.Create(Format('invalid string size definition for field ''%s''', [mName]));
-          s := utfTo1251(mSVal);
+          s := utf2win(mSVal);
           if (Length(s) > 0) then st.WriteBuffer(PChar(s)^, Length(s));
           for f := Length(s) to mMaxDim do writeInt(st, Byte(0));
         end;
@@ -951,7 +951,7 @@ begin
     TType.TChar:
       begin
         if (mMaxDim = 0) then raise Exception.Create(Format('invalid string size definition for field ''%s''', [mName]));
-        wr.put(TTextParser.quote(mSVal));
+        wr.put(quoteStr(mSVal));
         wr.put(';'#10);
         exit;
       end;
@@ -967,7 +967,7 @@ begin
       end;
     TType.TString:
       begin
-        wr.put(TTextParser.quote(mSVal));
+        wr.put(quoteStr(mSVal));
         wr.put(';'#10);
         exit;
       end;
@@ -1480,7 +1480,7 @@ begin
   else
   begin
     // record
-    result := mPasName+' is '+TTextParser.quote(mName);
+    result := mPasName+' is '+quoteStr(mName);
     if (mSize >= 0) then result += Format(' size %d bytes', [mSize]);
     if mHeader then result += ' header';
   end;
