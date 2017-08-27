@@ -368,6 +368,47 @@ var
     end;
   end;
 
+var
+  lsx: Integer = -1;
+  lex: Integer = -1;
+  lsy: Integer = -1;
+
+  procedure flushLine ();
+  begin
+    if (lsy > 0) and (lsx > 0) then
+    begin
+      if (lex = lsx) then
+      begin
+        glBegin(GL_POINTS);
+          glVertex2f(lsx-1+vpx+0.37, lsy-1+vpy+0.37);
+        glEnd();
+      end
+      else
+      begin
+        glBegin(GL_LINES);
+          glVertex2f(lsx-1+vpx+0.37, lsy-1+vpy+0.37);
+          glVertex2f(lex-0+vpx+0.37, lsy-1+vpy+0.37);
+        glEnd();
+      end;
+    end;
+    lsx := -1;
+    lex := -1;
+  end;
+
+  procedure startLine (y: Integer);
+  begin
+    flushLine();
+    lsy := y;
+  end;
+
+  procedure putPixel (x: Integer);
+  begin
+    if (x < 1) then exit;
+    if (lex+1 <> x) then flushLine();
+    if (lsx < 0) then lsx := x;
+    lex := x;
+  end;
+
   procedure drawEdges ();
   var
     x, y: Integer;
@@ -380,10 +421,10 @@ var
     glDisable(GL_LINE_SMOOTH);
     glDisable(GL_POLYGON_SMOOTH);
     glColor4f(r/255.0, g/255.0, b/255.0, 1.0);
-    glBegin(GL_POINTS);
     for y := 1 to vph do
     begin
       a := @edgeBmp[y*(gWinSizeX+4)+1];
+      startLine(y);
       for x := 1 to vpw do
       begin
         if (a[0] <> 0) then
@@ -392,29 +433,19 @@ var
              (a[-(gWinSizeX+4)-1] = 0) or (a[-(gWinSizeX+4)+1] = 0) or
              (a[gWinSizeX+4-1] = 0) or (a[gWinSizeX+4+1] = 0) then
           begin
-            glVertex2f(x-1+vpx+0.37, y-1+vpy+0.37);
+            putPixel(x);
           end;
         end;
         Inc(a);
       end;
+      flushLine();
     end;
-    glEnd();
   end;
 
   procedure drawFilledWalls ();
   var
-    x, y, sx, ex: Integer;
+    x, y: Integer;
     a: PByte;
-    procedure drawLine ();
-    begin
-      if (sx >= 0) then
-      begin
-        glVertex2f(sx-1+vpx+0.37, y-1+vpy+0.37);
-        glVertex2f(ex+vpx+0.37, y-1+vpy+0.37);
-      end;
-      sx := -1;
-      ex := -1;
-    end;
   begin
     glDisable(GL_BLEND);
     glDisable(GL_TEXTURE_2D);
@@ -423,32 +454,17 @@ var
     glDisable(GL_LINE_SMOOTH);
     glDisable(GL_POLYGON_SMOOTH);
     glColor4f(r/255.0, g/255.0, b/255.0, 1.0);
-    glBegin(GL_LINES);
     for y := 1 to vph do
     begin
       a := @edgeBmp[y*(gWinSizeX+4)+1];
-      sx := -1;
-      ex := -1;
+      startLine(y);
       for x := 1 to vpw do
       begin
-        if (a[0] <> 0) then
-        begin
-          if (ex+1 <> x) then drawLine();
-          if (sx < 0) then
-          begin
-            sx := x;
-            ex := x;
-          end
-          else
-          begin
-            ex := x;
-          end;
-        end;
+        if (a[0] <> 0) then putPixel(x);
         Inc(a);
       end;
-      drawLine();
+      flushLine();
     end;
-    glEnd();
   end;
 
   procedure doWallsOld (parr: array of TPanel; ptype: Word; ar, ag, ab: Integer);
