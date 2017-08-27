@@ -358,7 +358,7 @@ procedure plrDebugDraw ();
     if showMonsInfo then
     begin
       //fillRect(mx-4, my-7*8-6, 110, 7*8+6, 0, 0, 94, 250);
-      shadeRect(mx-4, my-7*8-6, 110, 7*8+6, 128);
+      darkenRect(mx-4, my-7*8-6, 110, 7*8+6, 128);
       my -= 8;
       my -= 2;
 

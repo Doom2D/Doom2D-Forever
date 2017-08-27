@@ -451,7 +451,8 @@ begin
   if (y < 0) then y := gScreenHeight-(hgt-1)+y;
   // background
   //e_DrawFillQuad(x, y, x+wdt-1, y+hgt-1, 255, 255, 255, 200, B_BLEND);
-  e_DrawFillQuad(x, y, x+wdt-1, y+hgt-1, 20, 20, 20, 0, B_NONE);
+  //e_DrawFillQuad(x, y, x+wdt-1, y+hgt-1, 20, 20, 20, 0, B_NONE);
+  e_DarkenQuadWH(x, y, wdt, hgt, 150);
   // title
   yy := y+2;
   for ii := 0 to High(prof.bars) do
@@ -3195,7 +3196,8 @@ begin
 
   if gPause and gGameOn and (g_ActiveWindow = nil) then
   begin
-    e_DrawFillQuad(0, 0, gScreenWidth-1, gScreenHeight-1, 48, 48, 48, 180);
+    //e_DrawFillQuad(0, 0, gScreenWidth-1, gScreenHeight-1, 48, 48, 48, 180);
+    e_DarkenQuadWH(0, 0, gScreenWidth, gScreenHeight, 150);
 
     e_CharFont_GetSize(gMenuFont, _lc[I_MENU_PAUSE], w, h);
     e_CharFont_Print(gMenuFont, (gScreenWidth div 2)-(w div 2),
@@ -3213,11 +3215,16 @@ begin
         else e_Clear(GL_COLOR_BUFFER_BIT, 0, 0, 0);
       end;
       if g_ActiveWindow <> nil then
-        e_DrawFillQuad(0, 0, gScreenWidth-1, gScreenHeight-1, 48, 48, 48, 180);
+      begin
+        //e_DrawFillQuad(0, 0, gScreenWidth-1, gScreenHeight-1, 48, 48, 48, 180);
+        e_DarkenQuadWH(0, 0, gScreenWidth, gScreenHeight, 150);
+      end;
     end;
 
     if gState = STATE_FOLD then
+    begin
       e_DrawFillQuad(0, 0, gScreenWidth-1, gScreenHeight-1, 0, 0, 0, EndingGameCounter);
+    end;
 
     if gState = STATE_INTERCUSTOM then
     begin
@@ -3238,13 +3245,18 @@ begin
       DrawCustomStat();
 
       if g_ActiveWindow <> nil then
-        e_DrawFillQuad(0, 0, gScreenWidth-1, gScreenHeight-1, 48, 48, 48, 180);
+      begin
+        //e_DrawFillQuad(0, 0, gScreenWidth-1, gScreenHeight-1, 48, 48, 48, 180);
+        e_DarkenQuadWH(0, 0, gScreenWidth, gScreenHeight, 150);
+      end;
     end;
 
     if gState = STATE_INTERSINGLE then
     begin
       if EndingGameCounter > 0 then
-        e_DrawFillQuad(0, 0, gScreenWidth-1, gScreenHeight-1, 0, 0, 0, EndingGameCounter)
+      begin
+        e_DrawFillQuad(0, 0, gScreenWidth-1, gScreenHeight-1, 0, 0, 0, EndingGameCounter);
+      end
       else
       begin
         back := 'INTER';
@@ -3257,7 +3269,10 @@ begin
         DrawSingleStat();
 
         if g_ActiveWindow <> nil then
-          e_DrawFillQuad(0, 0, gScreenWidth-1, gScreenHeight-1, 48, 48, 48, 180);
+        begin
+          //e_DrawFillQuad(0, 0, gScreenWidth-1, gScreenHeight-1, 48, 48, 48, 180);
+          e_DarkenQuadWH(0, 0, gScreenWidth, gScreenHeight, 150);
+        end;
       end;
     end;
 
@@ -3273,7 +3288,10 @@ begin
         e_Clear(GL_COLOR_BUFFER_BIT, 0, 0, 0);
 
       if g_ActiveWindow <> nil then
-        e_DrawFillQuad(0, 0, gScreenWidth-1, gScreenHeight-1, 48, 48, 48, 180);
+      begin
+        //e_DrawFillQuad(0, 0, gScreenWidth-1, gScreenHeight-1, 48, 48, 48, 180);
+        e_DarkenQuadWH(0, 0, gScreenWidth, gScreenHeight, 150);
+      end;
     end;
 
     if gState = STATE_SLIST then
@@ -3281,7 +3299,8 @@ begin
       if g_Texture_Get('MENU_BACKGROUND', ID) then
       begin
         e_DrawSize(ID, 0, 0, 0, False, False, gScreenWidth, gScreenHeight);
-        e_DrawFillQuad(0, 0, gScreenWidth-1, gScreenHeight-1, 48, 48, 48, 180);
+        //e_DrawFillQuad(0, 0, gScreenWidth-1, gScreenHeight-1, 48, 48, 48, 180);
+        e_DarkenQuadWH(0, 0, gScreenWidth, gScreenHeight, 150);
       end;
       g_Serverlist_Draw(slCurrent);
     end;
@@ -3290,7 +3309,10 @@ begin
   if g_ActiveWindow <> nil then
   begin
     if gGameOn then
-      e_DrawFillQuad(0, 0, gScreenWidth-1, gScreenHeight-1, 48, 48, 48, 180);
+    begin
+      //e_DrawFillQuad(0, 0, gScreenWidth-1, gScreenHeight-1, 48, 48, 48, 180);
+      e_DarkenQuadWH(0, 0, gScreenWidth, gScreenHeight, 150);
+    end;
     g_ActiveWindow.Draw();
   end;
 

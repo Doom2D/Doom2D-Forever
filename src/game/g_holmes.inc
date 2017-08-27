@@ -529,22 +529,21 @@ end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-procedure shadeRect (x, y, w, h: Integer; a: Integer);
+procedure darkenRect (x, y, w, h: Integer; a: Integer);
 begin
   if (a < 0) then a := 0;
   if (a > 255) then a := 255;
   glEnable(GL_BLEND);
-  glBlendFunc(GL_DST_COLOR, GL_SRC_COLOR);
-  //glBlendFunc(GL_ONE, GL_DST_COLOR);
-  //glBlendEquation(GL_FUNC_SUBTRACT);
+  glBlendFunc(GL_ZERO, GL_SRC_ALPHA);
   glDisable(GL_TEXTURE_2D);
-  glColor4f(0.0, 0.0, a/255.0, 1.0);
+  glColor4f(0.0, 0.0, 0.0, a/255.0);
   glBegin(GL_QUADS);
     glVertex2i(x, y);
     glVertex2i(x+w, y);
     glVertex2i(x+w, y+h);
     glVertex2i(x, y+h);
   glEnd();
+  //glRect(x, y, x+w, y+h);
   glColor4f(1, 1, 1, 1);
   glDisable(GL_BLEND);
   //glBlendEquation(GL_FUNC_ADD);

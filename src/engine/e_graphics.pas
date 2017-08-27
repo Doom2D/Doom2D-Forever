@@ -77,6 +77,8 @@ procedure e_DrawLine(Width: Byte; X1, Y1, X2, Y2: Integer; Red, Green, Blue: Byt
 procedure e_DrawQuad(X1, Y1, X2, Y2: Integer; Red, Green, Blue: Byte; Alpha: Byte = 0);
 procedure e_DrawFillQuad(X1, Y1, X2, Y2: Integer; Red, Green, Blue, Alpha: Byte;
                          Blending: TBlending = B_NONE);
+procedure e_DarkenQuad (x0, y0, x1, y1: Integer; a: Integer);
+procedure e_DarkenQuadWH (x, y, w, h: Integer; a: Integer);
 
 function e_CreateTextureImg (var img: TImageData; var ID: DWORD): Boolean;
 function e_CreateTexture(FileName: string; var ID: DWORD): Boolean;
@@ -860,6 +862,34 @@ begin
 
   glDisable(GL_BLEND);
 end;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
+procedure e_DarkenQuad (x0, y0, x1, y1: Integer; a: Integer);
+begin
+  if (a < 0) then a := 0;
+  if (a > 255) then a := 255;
+  glEnable(GL_BLEND);
+  glBlendFunc(GL_ZERO, GL_SRC_ALPHA);
+  glDisable(GL_TEXTURE_2D);
+  glColor4ub(0, 0, 0, Byte(255-a));
+  glBegin(GL_QUADS);
+    glVertex2i(x0, y0);
+    glVertex2i(x1, y0);
+    glVertex2i(x1, y1);
+    glVertex2i(x0, y1);
+  glEnd();
+  //glRect(x, y, x+w, y+h);
+  glColor4ub(1, 1, 1, 1);
+  glDisable(GL_BLEND);
+  //glBlendEquation(GL_FUNC_ADD);
+end;
+
+procedure e_DarkenQuadWH (x, y, w, h: Integer; a: Integer);
+begin
+  if (w > 0) and (h > 0) then e_DarkenQuad(x, y, x+w, y+h, a);
+end;
+
 
 procedure e_DrawLine(Width: Byte; X1, Y1, X2, Y2: Integer; Red, Green, Blue: Byte; Alpha: Byte = 0);
 begin
