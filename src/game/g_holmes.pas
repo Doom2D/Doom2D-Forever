@@ -313,13 +313,107 @@ end;
 
 
 var
-  olEdgeL: array of Boolean = nil;
-  olEdgeR: array of Boolean = nil;
-  olEdgeU: array of Boolean = nil;
-  olEdgeD: array of Boolean = nil;
+  edgeBmp: array of Byte = nil;
+
 
 procedure drawOutlines ();
+  procedure clearEdgeBmp ();
+  begin
+    SetLength(edgeBmp, (gWinSizeX+4)*(gWinSizeY+4));
+    FillChar(edgeBmp[0], Length(edgeBmp)*sizeof(edgeBmp[0]), 0);
+  end;
+
+  procedure drawPanel (pan: TPanel);
+  var
+    sx, len, y0, y1: Integer;
+  begin
+    if (pan = nil) or (pan.Width < 1) or (pan.Height < 1) then exit;
+    if (pan.X+pan.Width <= vpx-1) or (pan.Y+pan.Height <= vpy-1) or (pan.X >= vpx+vpw+1) or (pan.Y >= vpy+vph+1) then exit;
+    if g_ol_nice then
+    begin
+      sx := pan.X-(vpx-1);
+      len := pan.Width;
+      if (len > vpw+2) then len := vpw+2;
+      if (sx < 0) then begin len += sx; sx := 0; end;
+      if (sx+len > vpw+2) then len := vpw+2-sx;
+      if (len < 1) then exit;
+      assert(sx >= 0);
+      assert(sx+len <= vpw+2);
+      y0 := pan.Y-(vpy-1);
+      y1 := y0+pan.Height;
+      if (y0 < 0) then y0 := 0;
+      if (y1 > vph+2) then y1 := vph+2;
+      while (y0 < y1) do
+      begin
+        FillChar(edgeBmp[y0*(gWinSizeX+4)+sx], len*sizeof(edgeBmp[0]), 1);
+        Inc(y0);
+      end;
+    end
+    else
+    begin
+      drawRect(pan.X, pan.Y, pan.Width, pan.Height, 255, 255, 255);
+    end;
+  end;
+
+  procedure drawEdges ();
+  var
+    x, y: Integer;
+    a: PByte;
+  begin
+    glDisable(GL_BLEND);
+    glDisable(GL_TEXTURE_2D);
+    glLineWidth(1);
+    glPointSize(1);
+    glDisable(GL_LINE_SMOOTH);
+    glDisable(GL_POLYGON_SMOOTH);
+    glColor4f(1.0, 1.0, 1.0, 1.0);
+    glBegin(GL_POINTS);
+    for y := 1 to vph do
+    begin
+      a := @edgeBmp[y*(gWinSizeX+4)+1];
+      for x := 1 to vpw do
+      begin
+        if (a[0] <> 0) then
+        begin
+          if (a[-1] = 0) or (a[1] = 0) or (a[-(gWinSizeX+4)] = 0) or (a[gWinSizeX+4] = 0) or
+             (a[-(gWinSizeX+4)-1] = 0) or (a[-(gWinSizeX+4)+1] = 0) or
+             (a[gWinSizeX+4-1] = 0) or (a[gWinSizeX+4+1] = 0) then
+          begin
+            glVertex2i(x-1+vpx, y-1+vpy);
+          end;
+        end;
+        Inc(a);
+      end;
+    end;
+    glEnd();
+  end;
+
+  procedure doWalls (parr: array of TPanel; ptype: Word);
+  var
+    f: Integer;
+    pan: TPanel;
+  begin
+    if g_ol_nice then clearEdgeBmp();
+    for f := 0 to High(parr) do
+    begin
+      pan := parr[f];
+      if (pan = nil) or not pan.Enabled or (pan.Width < 1) or (pan.Height < 1) then continue;
+      if ((pan.PanelType and ptype) = 0) then continue;
+      drawPanel(pan);
+    end;
+    if g_ol_nice then drawEdges();
+  end;
+
 begin
+  //function forEachInAABB (x, y, w, h: Integer; cb: TGridQueryCB; tagmask: Integer=-1; allowDisabled: Boolean=false): ITP;
+  if g_ol_rlayer_back then doWalls(gRenderBackgrounds, PANEL_BACK);
+  if g_ol_rlayer_step then doWalls(gSteps, PANEL_STEP);
+  if g_ol_rlayer_wall then doWalls(gWalls, PANEL_WALL);
+  if g_ol_rlayer_door then doWalls(gWalls, PANEL_OPENDOOR or PANEL_CLOSEDOOR);
+  if g_ol_rlayer_acid1 then doWalls(gAcid1, PANEL_ACID1);
+  if g_ol_rlayer_acid2 then doWalls(gAcid2, PANEL_ACID2);
+  if g_ol_rlayer_water then doWalls(gWater, PANEL_WATER);
+  if g_ol_rlayer_fore then doWalls(gRenderForegrounds, PANEL_FORE);
 end;
 
 
@@ -486,9 +580,8 @@ begin
   glPushMatrix();
   glTranslatef(-vpx, -vpy, 0);
 
-  drawOutlines();
-
   if (showGrid) then drawTileGrid();
+  drawOutlines();
 
   if (laserSet) then g_Mons_AlongLine(laserX0, laserY0, laserX1, laserY1, monsCollector, true);
 

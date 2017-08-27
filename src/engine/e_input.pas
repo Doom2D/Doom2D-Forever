@@ -207,12 +207,15 @@ end;
 
 
 function PollKeyboard(): Boolean;
+{
 var
   Keys: PByte;
   NKeys: Integer;
   i: NativeUInt;
+}
 begin
   Result := False;
+  {
   Keys := SDL_GetKeyboardState(@NKeys);
   if (Keys = nil) or (NKeys < 1) then Exit;
   for i := 0 to NKeys do
@@ -220,6 +223,7 @@ begin
     if ((PByte(NativeUInt(Keys) + i)^) <> 0) then KeyBuffer[i] := false;
   end;
   for i := NKeys to High(KeyBuffer) do KeyBuffer[i] := False;
+  }
 end;
 
 function PollJoysticks(): Boolean;
