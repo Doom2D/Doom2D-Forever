@@ -379,7 +379,7 @@ procedure drawOutlines ();
              (a[-(gWinSizeX+4)-1] = 0) or (a[-(gWinSizeX+4)+1] = 0) or
              (a[gWinSizeX+4-1] = 0) or (a[gWinSizeX+4+1] = 0) then
           begin
-            glVertex2i(x-1+vpx, y-1+vpy);
+            glVertex2f(x-1+vpx+0.37, y-1+vpy+0.37);
           end;
         end;
         Inc(a);
@@ -388,7 +388,7 @@ procedure drawOutlines ();
     glEnd();
   end;
 
-  procedure doWalls (parr: array of TPanel; ptype: Word);
+  procedure doWallsOld (parr: array of TPanel; ptype: Word);
   var
     f: Integer;
     pan: TPanel;
@@ -404,8 +404,21 @@ procedure drawOutlines ();
     if g_ol_nice then drawEdges();
   end;
 
+  function doWallCB (pan: TPanel; tag: Integer): Boolean;
+  begin
+    result := false; // don't stop
+    //if (pan = nil) or not pan.Enabled or (pan.Width < 1) or (pan.Height < 1) then exit;
+    drawPanel(pan);
+  end;
+
+  procedure doWalls (parr: array of TPanel; ptype: Word);
+  begin
+    if g_ol_nice then clearEdgeBmp();
+    mapGrid.forEachInAABB(vpx-1, vpy-1, vpw+2, vph+2, doWallCB, panelTypeToTag(ptype));
+    if g_ol_nice then drawEdges();
+  end;
+
 begin
-  //function forEachInAABB (x, y, w, h: Integer; cb: TGridQueryCB; tagmask: Integer=-1; allowDisabled: Boolean=false): ITP;
   if g_ol_rlayer_back then doWalls(gRenderBackgrounds, PANEL_BACK);
   if g_ol_rlayer_step then doWalls(gSteps, PANEL_STEP);
   if g_ol_rlayer_wall then doWalls(gWalls, PANEL_WALL);
