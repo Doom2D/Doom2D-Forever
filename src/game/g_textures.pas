@@ -98,6 +98,7 @@ function g_Frames_CreateFile(ID: PDWORD; Name: ShortString; FileName: String;
                              FWidth, FHeight, FCount: Word; BackAnimation: Boolean = False): Boolean;
 function g_Frames_CreateMemory(ID: PDWORD; Name: ShortString; pData: Pointer; dataSize: LongInt;
                                FWidth, FHeight, FCount: Word; BackAnimation: Boolean = False): Boolean;
+function g_Frames_Dup(NewName, OldName: ShortString): Boolean;
 //function g_Frames_CreateRevert(ID: PDWORD; Name: ShortString; Frames: string): Boolean;
 function g_Frames_Get(out ID: DWORD; FramesName: ShortString): Boolean;
 function g_Frames_GetTexture(out ID: DWORD; FramesName: ShortString; Frame: Word): Boolean;
@@ -513,6 +514,30 @@ begin
 
  Result := True;
 end;}
+
+function g_Frames_Dup(NewName, OldName: ShortString): Boolean;
+var
+  find_id, b: DWORD;
+  a, c: Integer;
+begin
+  Result := False;
+
+  if not g_Frames_Get(b, OldName) then Exit;
+
+  find_id := FindFrame();
+
+  FramesArray[find_id].Name := LowerCase(NewName);
+  FramesArray[find_id].FrameWidth := FramesArray[b].FrameWidth;
+  FramesArray[find_id].FrameHeight := FramesArray[b].FrameHeight;
+
+  c := High(FramesArray[b].TexturesID);
+  SetLength(FramesArray[find_id].TexturesID, c+1);
+
+  for a := 0 to c do
+    FramesArray[find_id].TexturesID[a] := FramesArray[b].TexturesID[a];
+
+  Result := True;
+end;
 
 procedure g_Frames_DeleteByName(FramesName: ShortString);
 var

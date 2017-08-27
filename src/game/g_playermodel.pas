@@ -32,6 +32,24 @@ const
   A_ATTACKUP   = 7;
   A_ATTACKDOWN = 8;
   A_PAIN       = 9;
+  // EXTENDED
+  A_WALKATTACK     = 10;
+  A_WALKSEEUP      = 11;
+  A_WALKSEEDOWN    = 12;
+  A_WALKATTACKUP   = 13;
+  A_WALKATTACKDOWN = 14;
+  A_FISTSTAND      = 15;
+  A_FISTWALK       = 16;
+  A_FISTATTACK     = 17;
+  A_FISTWALKATTACK = 18;
+  A_FISTSEEUP      = 19;
+  A_FISTSEEDOWN    = 20;
+  A_FISTATTACKUP   = 21;
+  A_FISTATTACKDOWN = 22;
+
+  A_LASTBASE = A_PAIN;
+  A_LASTEXT  = A_FISTATTACKDOWN;
+  A_LAST     = A_LASTEXT;
 
   MODELSOUND_PAIN = 0;
   MODELSOUND_DIE  = 1;
@@ -59,7 +77,7 @@ type
   TModelSoundArray = Array of TModelSound;
   TGibsArray = Array of TGibSprite;
   TWeaponPoints = Array [WP_FIRST + 1..WP_LAST] of
-                  Array [A_STAND..A_PAIN] of
+                  Array [A_STAND..A_LAST] of
                   Array [D_LEFT..D_RIGHT] of Array of TPoint;
 
   TPlayerModel = class (TObject)
@@ -68,8 +86,8 @@ type
     FDirection:        TDirection;
     FColor:            TRGB;
     FCurrentAnimation: Byte;
-    FAnim:             Array [D_LEFT..D_RIGHT] of Array [A_STAND..A_PAIN] of TAnimation;
-    FMaskAnim:         Array [D_LEFT..D_RIGHT] of Array [A_STAND..A_PAIN] of TAnimation;
+    FAnim:             Array [D_LEFT..D_RIGHT] of Array [A_STAND..A_LAST] of TAnimation;
+    FMaskAnim:         Array [D_LEFT..D_RIGHT] of Array [A_STAND..A_LAST] of TAnimation;
     FWeaponPoints:     TWeaponPoints;
     FPainSounds:       TModelSoundArray;
     FDieSounds:        TModelSoundArray;
@@ -148,9 +166,14 @@ const
                (X:16; Y:16), (X:24; Y:24), (X:16; Y:16), (X:24; Y:24),
                (X:16; Y:16), (X:8; Y:8));
 
-  AnimNames: Array [A_STAND..A_PAIN] of String =
+  AnimNames: Array [A_STAND..A_LASTEXT] of String =
              ('StandAnim','WalkAnim','Die1Anim','Die2Anim','AttackAnim',
-              'SeeUpAnim','SeeDownAnim','AttackUpAnim','AttackDownAnim','PainAnim');
+              'SeeUpAnim','SeeDownAnim','AttackUpAnim','AttackDownAnim','PainAnim',
+              // EXTENDED
+              'WalkAttackAnim', 'WalkSeeUpAnim', 'WalkSeeDownAnim',
+              'WalkAttackUpAnim', 'WalkAttackDownAnim', 'FistStandAnim', 'FistWalkAnim',
+              'FistAttackAnim', 'FistWalkAttackAnim', 'FistSeeUpAnim', 'FistSeeDownAnim',
+              'FistAttackUpAnim', 'FistAttackDownAnim');
   WeapNames: Array [WP_FIRST + 1..WP_LAST] of String =
              ('csaw', 'hgun', 'sg', 'ssg', 'mgun', 'rkt', 'plz', 'bfg', 'spl', 'flm');
 
@@ -244,6 +267,50 @@ begin
   Result := True;
 end;
 
+procedure ExtAnimFromBaseAnim(MName: String; AIdx: Integer);
+const
+  CopyAnim: array [A_LASTBASE+1..A_LASTEXT] of Integer = (
+    A_WALK, A_WALK, A_WALK, A_WALK, A_WALK,
+    A_STAND, A_WALK, A_ATTACK, A_WALK, A_SEEUP, A_SEEDOWN,
+    A_ATTACKUP, A_ATTACKDOWN
+  );
+var
+  OIdx, W, I: Integer;
+  D: TDirection;
+  AName, OName: String;
+begin
+  // HACK: shitty workaround to duplicate base animations
+  //       in place of extended, replace with something better later
+
+  Assert((AIdx > A_LASTBASE) and (AIdx <= A_LASTEXT));
+  OIdx := CopyAnim[AIdx];
+
+  AName := MName + '_RIGHTANIM' + IntToStr(AIdx);
+  OName := MName + '_RIGHTANIM' + IntToStr(OIdx);
+  Assert(g_Frames_Dup(AName, OName));
+  Assert(g_Frames_Dup(AName + '_MASK', OName + '_MASK'));
+  AName := MName + '_LEFTANIM' + IntToStr(AIdx);
+  OName := MName + '_LEFTANIM' + IntToStr(OIdx);
+  if g_Frames_Exists(AName) then
+  begin
+    g_Frames_Dup(AName, OName);
+    g_Frames_Dup(AName + '_MASK', OName + '_MASK');
+  end;
+
+  with PlayerModelsArray[High(PlayerModelsArray)] do
+  begin
+    for W := WP_FIRST + 1 to WP_LAST do
+    begin
+      for D := D_LEFT to D_RIGHT do
+      begin
+        SetLength(WeaponPoints[W, AIdx, D], Length(WeaponPoints[W, OIdx, D]));
+        for I := 0 to High(WeaponPoints[W, AIdx, D]) do
+          WeaponPoints[W, AIdx, D, I] := WeaponPoints[W, OIdx, D, I]
+      end;
+    end;
+  end;
+end;
+
 function g_PlayerModel_Load(FileName: string): Boolean;
 var
   ID: DWORD;
@@ -252,7 +319,7 @@ var
   config: TConfig;
   pData, pData2: Pointer;
   WAD: TWADFile;
-  s: string;
+  s, aname: string;
   prefix: string;
   ok, chk: Boolean;
 begin
@@ -298,24 +365,33 @@ begin
     Description := config.ReadStr('Model', 'description', '');
   end;
 
-  for b := A_STAND to A_PAIN do
+  for b := A_STAND to A_LAST do
   begin
-    if not (g_Frames_CreateWAD(nil, s+'_RIGHTANIM'+IntToStr(b),
+    aname := s+'_RIGHTANIM'+IntToStr(b);
+    if not (g_Frames_CreateWAD(nil, aname,
                                prefix+config.ReadStr(AnimNames[b], 'resource', ''),
                                64, 64, config.ReadInt(AnimNames[b], 'frames', 1),
                                config.ReadBool(AnimNames[b], 'backanim', False)) and
-            g_Frames_CreateWAD(nil, s+'_RIGHTANIM'+IntToStr(b)+'_MASK',
+            g_Frames_CreateWAD(nil, aname+'_MASK',
                                prefix+config.ReadStr(AnimNames[b], 'mask', ''),
                                64, 64, config.ReadInt(AnimNames[b], 'frames', 1),
                                config.ReadBool(AnimNames[b], 'backanim', False))) then
     begin
-      config.Free();
-      WAD.Free();
-      Exit;
+      if b <= A_LASTBASE then
+      begin
+        config.Free();
+        WAD.Free();
+        Exit;
+      end
+      else
+      begin
+        ExtAnimFromBaseAnim(s, b);
+        continue;
+      end;
     end;
 
     for aa := WP_FIRST + 1 to WP_LAST do
-      for bb := A_STAND to A_PAIN do
+      for bb := A_STAND to A_LAST do
         for cc := D_LEFT to D_RIGHT do
         begin
           f := config.ReadInt(AnimNames[bb], 'frames', 1);
@@ -327,12 +403,13 @@ begin
     if (config.ReadStr(AnimNames[b], 'resource2', '') <> '') and
        (config.ReadStr(AnimNames[b], 'mask2', '') <> '') then
     begin
-      g_Frames_CreateWAD(nil, s+'_LEFTANIM'+IntToStr(b),
+      aname := s+'_LEFTANIM'+IntToStr(b);
+      g_Frames_CreateWAD(nil, aname,
                          prefix+config.ReadStr(AnimNames[b], 'resource2', ''),
                          64, 64, config.ReadInt(AnimNames[b], 'frames', 1),
                          config.ReadBool(AnimNames[b], 'backanim', False));
 
-      g_Frames_CreateWAD(nil, s+'_LEFTANIM'+IntToStr(b)+'_MASK',
+      g_Frames_CreateWAD(nil, aname+'_MASK',
                          prefix+config.ReadStr(AnimNames[b], 'mask2', ''),
                          64, 64, config.ReadInt(AnimNames[b], 'frames', 1),
                          config.ReadBool(AnimNames[b], 'backanim', False));
@@ -393,7 +470,7 @@ begin
 
     ok := True;
     for aa := WP_FIRST + 1 to WP_LAST do
-      for bb := A_STAND to A_PAIN do
+      for bb := A_STAND to A_LAST do
         if not (bb in [A_DIE1, A_DIE2, A_PAIN]) then
         begin
           chk := GetWeapPoints(config.ReadStr(AnimNames[bb], WeapNames[aa]+'_points', ''), aa, bb, D_RIGHT,
@@ -416,7 +493,7 @@ begin
                   Dec(WeaponPoints[aa, bb, D_RIGHT, f].X, 6);
                   Dec(WeaponPoints[aa, bb, D_RIGHT, f].Y, 8);
                 end;
-                A_WALK:
+                A_WALKATTACK, A_WALK:
                 begin
                   Dec(WeaponPoints[aa, bb, D_RIGHT, f].X, 9);
                   Dec(WeaponPoints[aa, bb, D_RIGHT, f].Y, 9);
@@ -426,22 +503,22 @@ begin
                   Dec(WeaponPoints[aa, bb, D_RIGHT, f].X, 5);
                   Dec(WeaponPoints[aa, bb, D_RIGHT, f].Y, 8);
                 end;
-                A_SEEUP:
+                A_WALKSEEUP, A_SEEUP:
                 begin
                   Dec(WeaponPoints[aa, bb, D_RIGHT, f].X, 5);
                   Dec(WeaponPoints[aa, bb, D_RIGHT, f].Y, 16);
                 end;
-                A_SEEDOWN:
+                A_WALKSEEDOWN, A_SEEDOWN:
                 begin
                   Dec(WeaponPoints[aa, bb, D_RIGHT, f].X, 6);
                   Dec(WeaponPoints[aa, bb, D_RIGHT, f].Y, 5);
                 end;
-                A_ATTACKUP:
+                A_WALKATTACKUP, A_ATTACKUP:
                 begin
                   Dec(WeaponPoints[aa, bb, D_RIGHT, f].X, 5);
                   Dec(WeaponPoints[aa, bb, D_RIGHT, f].Y, 16);
                 end;
-                A_ATTACKDOWN:
+                A_WALKATTACKDOWN, A_ATTACKDOWN:
                 begin
                   Dec(WeaponPoints[aa, bb, D_RIGHT, f].X, 6);
                   Dec(WeaponPoints[aa, bb, D_RIGHT, f].Y, 4);
@@ -449,7 +526,7 @@ begin
               end;
             end;
           end;
-          ok := ok and chk;
+          ok := ok and (chk or (bb > A_LASTBASE));
 
           if not GetWeapPoints(config.ReadStr(AnimNames[bb], WeapNames[aa]+'2_points', ''), aa, bb, D_LEFT,
                                config.ReadInt(AnimNames[bb], 'frames', 0),
@@ -498,43 +575,42 @@ begin
       begin
         Result.FName := Info.Name;
 
-        for b := A_STAND to A_PAIN do
+        for b := A_STAND to A_LAST do
         begin
           if not (g_Frames_Get(ID, Info.Name+'_RIGHTANIM'+IntToStr(b)) and
                   g_Frames_Get(ID2, Info.Name+'_RIGHTANIM'+IntToStr(b)+'_MASK')) then
           begin
             Result.Free();
             Result := nil;
-          Exit;
-        end;
+            Exit;
+          end;
 
-        Result.FAnim[D_RIGHT][b] := TAnimation.Create(ID, b in [A_STAND, A_WALK], ModelSpeed[b]);
+          Result.FAnim[D_RIGHT][b] := TAnimation.Create(ID, b in [A_STAND, A_WALK], ModelSpeed[b]);
 
-        Result.FMaskAnim[D_RIGHT][b] := TAnimation.Create(ID2, b in [A_STAND, A_WALK], ModelSpeed[b]);
+          Result.FMaskAnim[D_RIGHT][b] := TAnimation.Create(ID2, b in [A_STAND, A_WALK], ModelSpeed[b]);
 
-        if g_Frames_Exists(Info.Name+'_LEFTANIM'+IntToStr(b)) and
-           g_Frames_Exists(Info.Name+'_LEFTANIM'+IntToStr(b)+'_MASK') then
-        if g_Frames_Get(ID, Info.Name+'_LEFTANIM'+IntToStr(b)) and
-           g_Frames_Get(ID2, Info.Name+'_LEFTANIM'+IntToStr(b)+'_MASK') then
-        begin
-          Result.FAnim[D_LEFT][b] := TAnimation.Create(ID, b in [A_STAND, A_WALK], ModelSpeed[b]);
+          if g_Frames_Exists(Info.Name+'_LEFTANIM'+IntToStr(b)) and
+             g_Frames_Exists(Info.Name+'_LEFTANIM'+IntToStr(b)+'_MASK') then
+          if g_Frames_Get(ID, Info.Name+'_LEFTANIM'+IntToStr(b)) and
+             g_Frames_Get(ID2, Info.Name+'_LEFTANIM'+IntToStr(b)+'_MASK') then
+          begin
+            Result.FAnim[D_LEFT][b] := TAnimation.Create(ID, b in [A_STAND, A_WALK], ModelSpeed[b]);
 
-          Result.FMaskAnim[D_LEFT][b] := TAnimation.Create(ID2, b in [A_STAND, A_WALK], ModelSpeed[b]);
+            Result.FMaskAnim[D_LEFT][b] := TAnimation.Create(ID2, b in [A_STAND, A_WALK], ModelSpeed[b]);
+          end;
         end;
 
         Result.FPainSounds := PainSounds;
         Result.FDieSounds := DieSounds;
         Result.FSlopSound := SlopSound;
+        Result.FDrawWeapon := Info.HaveWeapon;
+        Result.FWeaponPoints := WeaponPoints;
+
+        Result.FFlagPoint := FlagPoint;
+        Result.FFlagAngle := FlagAngle;
+
+        Break;
       end;
-
-      Result.FDrawWeapon := Info.HaveWeapon;
-      Result.FWeaponPoints := WeaponPoints;
-
-      Result.FFlagPoint := FlagPoint;
-      Result.FFlagAngle := FlagAngle;
-
-      Break;
-    end;
   end;
 end;
 
@@ -657,7 +733,7 @@ begin
   for i := 0 to High(PlayerModelsArray) do
     with PlayerModelsArray[i] do
     begin
-      for a := A_STAND to A_PAIN do
+      for a := A_STAND to A_LAST do
       begin
         g_Frames_DeleteByName(Info.Name+'_LEFTANIM'+IntToStr(a));
         g_Frames_DeleteByName(Info.Name+'_LEFTANIM'+IntToStr(a)+'_MASK');
@@ -710,7 +786,7 @@ destructor TPlayerModel.Destroy();
 var
   a: Byte;
 begin
-  for a := A_STAND to A_PAIN do
+  for a := A_STAND to A_LAST do
   begin
     FAnim[D_LEFT][a].Free();
     FMaskAnim[D_LEFT][a].Free();
