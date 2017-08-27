@@ -312,30 +312,23 @@ begin
 end;
 
 
+var
+  olEdgeL: array of Boolean = nil;
+  olEdgeR: array of Boolean = nil;
+  olEdgeU: array of Boolean = nil;
+  olEdgeD: array of Boolean = nil;
+
+procedure drawOutlines ();
+begin
+end;
+
+
 procedure plrDebugDraw ();
 
   procedure drawTileGrid ();
   var
     x, y: Integer;
   begin
-    {
-    y := mapGrid.gridY0;
-    while (y < mapGrid.gridY0+mapGrid.gridHeight) do
-    begin
-      x := mapGrid.gridX0;
-      while (x < mapGrid.gridX0+mapGrid.gridWidth) do
-      begin
-        if (x+mapGrid.tileSize > vpx) and (y+mapGrid.tileSize > vpy) and
-           (x < vpx+vpw) and (y < vpy+vph) then
-        begin
-          //e_DrawQuad(x, y, x+mapGrid.tileSize-1, y+mapGrid.tileSize-1, 96, 96, 96, 96);
-          drawRect(x, y, mapGrid.tileSize, mapGrid.tileSize, 96, 96, 96, 255);
-        end;
-        Inc(x, mapGrid.tileSize);
-      end;
-      Inc(y, mapGrid.tileSize);
-    end;
-    }
     for y := 0 to (mapGrid.gridHeight div mapGrid.tileSize) do
     begin
       drawLine(mapGrid.gridX0, mapGrid.gridY0+y*mapGrid.tileSize, mapGrid.gridX0+mapGrid.gridWidth, mapGrid.gridY0+y*mapGrid.tileSize, 96, 96, 96, 255);
@@ -492,6 +485,8 @@ begin
 
   glPushMatrix();
   glTranslatef(-vpx, -vpy, 0);
+
+  drawOutlines();
 
   if (showGrid) then drawTileGrid();
 

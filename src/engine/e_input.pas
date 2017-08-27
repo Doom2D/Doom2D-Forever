@@ -105,6 +105,9 @@ function  e_JoyAxisToKey(id: Word; ax: Byte; dir: Byte): Word;
 function  e_JoyHatToKey(id: Word; hat: Byte; dir: Byte): Word;
 procedure e_SetKeyState(key: Word; state: Integer);
 
+procedure e_UnpressAllKeys ();
+procedure e_KeyUpDown (key: Word; down: Boolean);
+
 var
   {e_MouseInfo:          TMouseInfo;}
   e_EnableInput:        Boolean = False;
@@ -188,6 +191,21 @@ begin
   SetLength(Joysticks, 0);
 end;
 
+
+procedure e_UnpressAllKeys ();
+var
+  i: Integer;
+begin
+  for i := 0 to High(KeyBuffer) do KeyBuffer[i] := False;
+end;
+
+
+procedure e_KeyUpDown (key: Word; down: Boolean);
+begin
+  if (key > 0) and (key < Length(KeyBuffer)) then KeyBuffer[key] := down;
+end;
+
+
 function PollKeyboard(): Boolean;
 var
   Keys: PByte;
@@ -196,12 +214,12 @@ var
 begin
   Result := False;
   Keys := SDL_GetKeyboardState(@NKeys);
-  if (Keys = nil) or (NKeys < 1) then
-    Exit;
+  if (Keys = nil) or (NKeys < 1) then Exit;
   for i := 0 to NKeys do
-    KeyBuffer[i] := ((PByte(NativeUInt(Keys) + i)^) <> 0);
-  for i := NKeys to High(KeyBuffer) do
-    KeyBuffer[i] := False;
+  begin
+    if ((PByte(NativeUInt(Keys) + i)^) <> 0) then KeyBuffer[i] := false;
+  end;
+  for i := NKeys to High(KeyBuffer) do KeyBuffer[i] := False;
 end;
 
 function PollJoysticks(): Boolean;

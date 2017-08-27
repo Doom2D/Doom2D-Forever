@@ -250,6 +250,7 @@ begin
     begin
       curMsButState := 0;
       curKbState := 0;
+      e_UnpressAllKeys();
       if not wMinimized then
       begin
         e_ResizeWindow(0, 0);
@@ -336,6 +337,7 @@ begin
       curMsButState := 0;
       curKbState := 0;
       wDeactivate := True;
+      e_UnpressAllKeys();
       //e_WriteLog('window lost focus!', MSG_NOTIFY);
       g_Holmes_WindowBlured();
     end;
@@ -450,9 +452,14 @@ begin
           kbev.sym := ev.key.keysym.sym;
           kbev.bstate := curMsButState;
           kbev.kstate := curKbState;
-          if g_Holmes_keyEvent(kbev) then exit;
+          if g_Holmes_keyEvent(kbev) then
+          begin
+            if (ev.type_ <> SDL_KEYDOWN) then e_KeyUpDown(ev.key.keysym.scancode, false);
+            exit;
+          end;
         end;
         if (ev.type_ = SDL_KEYDOWN) then KeyPress(key);
+        e_KeyUpDown(ev.key.keysym.scancode, (ev.type_ = SDL_KEYDOWN));
       end;
 
     SDL_MOUSEBUTTONDOWN, SDL_MOUSEBUTTONUP:
