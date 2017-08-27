@@ -105,7 +105,7 @@ TTriggerRec_1 is "trigger" size 148 bytes binblock 6 {
   TriggerType is "type" type ubyte offset 17 enum TriggerType;
   ActivateType is "activatetype" type ubyte offset 18 bitset ActivateType;
   Keys is "keys" type ubyte offset 19 bitset Key default KEY_NONE omitdefault;
-  DATA is "triggerdata" type byte[128] offset 20 triggerdata; // the only special nested structure
+  DATA is "triggerdata" type trigdata[128] offset 20; // the only special nested structure
   // not in binary
   //Id is "id" type string default "" omitdefault;
   // internals
@@ -376,15 +376,15 @@ TriggerData for TRIGGER_EXIT {
 
 TriggerData for TRIGGER_TELEPORT {
   TargetPoint is "target" type point offset 0;
-  d2d_teleport is "d2d" type bool offset 8;
-  silent_teleport is "silent" type bool offset 9;
-  TlpDir is "direction" type ubyte offset 10 enum DirType;
+  d2d_teleport is "d2d" type bool offset 8 default false omitdefault;
+  silent_teleport is "silent" type bool offset 9 default false omitdefault;
+  TlpDir is "direction" type ubyte offset 10 enum DirType default DIR_LEFT omitdefault;
 }
 
 TriggerData for (TRIGGER_OPENDOOR, TRIGGER_CLOSEDOOR, TRIGGER_DOOR, TRIGGER_DOOR5, TRIGGER_CLOSETRAP, TRIGGER_TRAP, TRIGGER_LIFTUP, TRIGGER_LIFTDOWN, TRIGGER_LIFT) {
   PanelID is "panelid" type int offset 0 panel;
-  NoSound is "silent" type bool offset 4;
-  d2d_doors is "d2d" type bool offset 5;
+  NoSound is "silent" type bool offset 4 default false omitdefault;
+  d2d_doors is "d2d" type bool offset 5 default false omitdefault;
 }
 
 TriggerData for (TRIGGER_PRESS, TRIGGER_ON, TRIGGER_OFF, TRIGGER_ONOFF) {
