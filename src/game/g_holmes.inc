@@ -1,3 +1,18 @@
+(* Copyright (C)  DooM 2D:Forever Developers
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *)
 // ////////////////////////////////////////////////////////////////////////// //
 // cursor (hi, Death Track!)
 const curWidth = 17;
@@ -424,8 +439,17 @@ begin
   if (g < 0) then g := 0 else if (g > 255) then g := 255;
   if (b < 0) then b := 0 else if (b > 255) then b := 255;
 
-  glEnable(GL_BLEND);
-  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  if (a < 255) then
+  begin
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  end
+  else
+  begin
+    glDisable(GL_BLEND);
+  end;
+  glEnable(GL_ALPHA_TEST);
+  glAlphaFunc(GL_NOTEQUAL, 0.0);
   glEnable(GL_TEXTURE_2D);
   // color and opacity
   glColor4f(r/255.0, g/255.0, b/255.0, a/255.0);
@@ -454,6 +478,7 @@ begin
     end;
   end;
 
+  glDisable(GL_ALPHA_TEST);
   glDisable(GL_BLEND);
   glDisable(GL_TEXTURE_2D);
   glColor4f(1, 1, 1, 1);
@@ -518,23 +543,62 @@ end;
 procedure drawRect (x, y, w, h: Integer; r, g, b: Integer; a: Integer=255);
 begin
   if (w < 0) or (h < 0) then exit;
-  if (w = 1) and (h = 1) then begin drawLine(x, y, x, y, r, g, b, a); exit; end;
+  //if (w = 1) and (h = 1) then begin drawLine(x, y, x, y, r, g, b, a); exit; end;
+  if (a < 0) then a := 0 else if (a > 255) then a := 255;
+  if (r < 0) then r := 0 else if (r > 255) then r := 255;
+  if (g < 0) then g := 0 else if (g > 255) then g := 255;
+  if (b < 0) then b := 0 else if (b > 255) then b := 255;
+  {
   Inc(w);
   Inc(h);
   drawLine(x, y, x+w-1, y, r, g, b, a);
-  drawLine(x+w-1, y+1, x+w-1, y+h-2, r, g, b, a);
+  drawLine(x+w-1, y+1, x+w-1, y+h-1, r, g, b, a);
   drawLine(x+w-2, y+h-1, x, y+h-1, r, g, b, a);
   drawLine(x, y+h-2, x, y+1, r, g, b, a);
+  }
+  if (a < 255) then
+  begin
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  end
+  else
+  begin
+    glDisable(GL_BLEND);
+  end;
+  glDisable(GL_TEXTURE_2D);
+  glLineWidth(1);
+  glDisable(GL_LINE_SMOOTH);
+  glDisable(GL_POLYGON_SMOOTH);
+  glColor4f(r/255.0, g/255.0, b/255.0, a/255.0);
+  {
+  glBegin(GL_LINE_LOOP);
+    glVertex2f(x+0.37, y+0.37);
+    glVertex2f(x+w-1+0.37, y+0.37);
+    glVertex2f(x+w-1+0.37, y+h-1);
+    glVertex2f(x+0.37, y+h-1+0.37);
+  glEnd();
+  }
+  glBegin(GL_LINES);
+    glVertex2i(x, y); glVertex2i(x+w, y); // top
+    glVertex2i(x, y+h-1); glVertex2i(x+w, y+h-1); // bottom
+    glVertex2f(x+0.37, y+1); glVertex2f(x+0.37, y+h-1); // left
+    glVertex2f(x+w-1+0.37, y+1); glVertex2f(x+w-1+0.37, y+h-1); // right
+  glEnd();
+  //glRect(x, y, x+w, y+h);
+  glColor4f(1, 1, 1, 1);
+  glDisable(GL_BLEND);
 end;
 
 
-// ////////////////////////////////////////////////////////////////////////// //
 procedure darkenRect (x, y, w, h: Integer; a: Integer);
 begin
+  if (w < 0) or (h < 0) then exit;
   if (a < 0) then a := 0;
   if (a > 255) then a := 255;
   glEnable(GL_BLEND);
   glBlendFunc(GL_ZERO, GL_SRC_ALPHA);
+  glDisable(GL_LINE_SMOOTH);
+  glDisable(GL_POLYGON_SMOOTH);
   glDisable(GL_TEXTURE_2D);
   glColor4f(0.0, 0.0, 0.0, a/255.0);
   glBegin(GL_QUADS);
@@ -550,25 +614,31 @@ begin
 end;
 
 
-// ////////////////////////////////////////////////////////////////////////// //
 procedure fillRect (x, y, w, h: Integer; r, g, b: Integer; a: Integer=255);
 begin
-  if (a < 0) then a := 0;
-  if (a > 255) then a := 255;
+  if (w < 0) or (h < 0) then exit;
+  if (a < 0) then a := 0 else if (a > 255) then a := 255;
   if (r < 0) then r := 0 else if (r > 255) then r := 255;
   if (g < 0) then g := 0 else if (g > 255) then g := 255;
   if (b < 0) then b := 0 else if (b > 255) then b := 255;
-  glEnable(GL_BLEND);
-  //glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-  //glBlendFunc(GL_SRC_ALPHA, GL_DST_ALPHA);
-  glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+  if (a < 255) then
+  begin
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  end
+  else
+  begin
+    glDisable(GL_BLEND);
+  end;
+  glDisable(GL_LINE_SMOOTH);
+  glDisable(GL_POLYGON_SMOOTH);
   glDisable(GL_TEXTURE_2D);
   glColor4f(r/255.0, g/255.0, b/255.0, a/255.0);
   glBegin(GL_QUADS);
-    glVertex2i(x, y);
-    glVertex2i(x+w, y);
-    glVertex2i(x+w, y+h);
-    glVertex2i(x, y+h);
+    glVertex2f(x, y);
+    glVertex2f(x+w, y);
+    glVertex2f(x+w, y+h);
+    glVertex2f(x, y+h);
   glEnd();
   glColor4f(1, 1, 1, 1);
   glDisable(GL_BLEND);

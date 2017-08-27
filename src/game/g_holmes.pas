@@ -77,7 +77,7 @@ procedure g_Holmes_WindowBlured ();
 
 procedure g_Holmes_Draw ();
 
-function g_Holmes_mouseEvent (var ev: THMouseEvent): Boolean; // returns `true` if event was eaten
+function g_Holmes_MouseEvent (var ev: THMouseEvent): Boolean; // returns `true` if event was eaten
 function g_Holmes_KeyEvent (var ev: THKeyEvent): Boolean; // returns `true` if event was eaten
 
 // hooks for player
@@ -111,6 +111,80 @@ var
 
 // ////////////////////////////////////////////////////////////////////////// //
 {$INCLUDE g_holmes.inc}
+{$INCLUDE g_holmes_ui.inc}
+
+
+// ////////////////////////////////////////////////////////////////////////// //
+var
+  g_ol_rlayer_back: Boolean = false;
+  g_ol_rlayer_step: Boolean = false;
+  g_ol_rlayer_wall: Boolean = false;
+  g_ol_rlayer_door: Boolean = false;
+  g_ol_rlayer_acid1: Boolean = false;
+  g_ol_rlayer_acid2: Boolean = false;
+  g_ol_rlayer_water: Boolean = false;
+  g_ol_rlayer_fore: Boolean = false;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
+var
+  winOptions: THTopWindow = nil;
+  winLayers: THTopWindow = nil;
+  winOutlines: THTopWindow = nil;
+
+
+procedure createOptionsWindow ();
+var
+  llb: THCtlCBListBox;
+begin
+  llb := THCtlCBListBox.Create(0, 0);
+  llb.appendItem('map grid', @showGrid);
+  llb.appendItem('cursor position on map', @showMapCurPos);
+  llb.appendItem('monster info', @showMonsInfo);
+  llb.appendItem('monster LOS to player', @showMonsLOS2Plr);
+  llb.appendItem('monster cells (SLOW!)', @showAllMonsCells);
+  winOptions := THTopWindow.Create('Holmes Options', 100, 100);
+  winOptions.escClose := true;
+  winOptions.appendChild(llb);
+end;
+
+
+procedure createLayersWindow ();
+var
+  llb: THCtlCBListBox;
+begin
+  llb := THCtlCBListBox.Create(0, 0);
+  llb.appendItem('background', @g_rlayer_back);
+  llb.appendItem('steps', @g_rlayer_step);
+  llb.appendItem('walls', @g_rlayer_wall);
+  llb.appendItem('doors', @g_rlayer_door);
+  llb.appendItem('acid1', @g_rlayer_acid1);
+  llb.appendItem('acid2', @g_rlayer_acid2);
+  llb.appendItem('water', @g_rlayer_water);
+  llb.appendItem('foreground', @g_rlayer_fore);
+  winLayers := THTopWindow.Create('visible', 10, 10);
+  winLayers.escClose := true;
+  winLayers.appendChild(llb);
+end;
+
+
+procedure createOutlinesWindow ();
+var
+  llb: THCtlCBListBox;
+begin
+  llb := THCtlCBListBox.Create(0, 0);
+  llb.appendItem('background', @g_ol_rlayer_back);
+  llb.appendItem('steps', @g_ol_rlayer_step);
+  llb.appendItem('walls', @g_ol_rlayer_wall);
+  llb.appendItem('doors', @g_ol_rlayer_door);
+  llb.appendItem('acid1', @g_ol_rlayer_acid1);
+  llb.appendItem('acid2', @g_ol_rlayer_acid2);
+  llb.appendItem('water', @g_ol_rlayer_water);
+  llb.appendItem('foreground', @g_ol_rlayer_fore);
+  winOutlines := THTopWindow.Create('outlines', 100, 10);
+  winOutlines.escClose := true;
+  winOutlines.appendChild(llb);
+end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
@@ -240,6 +314,7 @@ procedure plrDebugDraw ();
   var
     x, y: Integer;
   begin
+    {
     y := mapGrid.gridY0;
     while (y < mapGrid.gridY0+mapGrid.gridHeight) do
     begin
@@ -255,6 +330,16 @@ procedure plrDebugDraw ();
         Inc(x, mapGrid.tileSize);
       end;
       Inc(y, mapGrid.tileSize);
+    end;
+    }
+    for y := 0 to (mapGrid.gridHeight div mapGrid.tileSize) do
+    begin
+      drawLine(mapGrid.gridX0, mapGrid.gridY0+y*mapGrid.tileSize, mapGrid.gridX0+mapGrid.gridWidth, mapGrid.gridY0+y*mapGrid.tileSize, 96, 96, 96, 255);
+    end;
+
+    for x := 0 to (mapGrid.gridWidth div mapGrid.tileSize) do
+    begin
+      drawLine(mapGrid.gridX0+x*mapGrid.tileSize, mapGrid.gridY0, mapGrid.gridX0+x*mapGrid.tileSize, mapGrid.gridY0+y*mapGrid.gridHeight, 96, 96, 96, 255);
     end;
   end;
 
@@ -396,10 +481,10 @@ var
   mon: TMonster;
   mx, my, mw, mh: Integer;
 begin
-  //e_DrawPoint(4, plrMouseX, plrMouseY, 255, 0, 255);
   if (gPlayer1 = nil) then exit;
 
-  //e_WriteLog(Format('(%d,%d)-(%d,%d)', [laserX0, laserY0, laserX1, laserY1]), MSG_NOTIFY);
+  glEnable(GL_SCISSOR_TEST);
+  glScissor(0, gWinSizeY-gPlayerScreenSize.Y-1, vpw, vph);
 
   glPushMatrix();
   glTranslatef(-vpx, -vpy, 0);
@@ -423,12 +508,14 @@ begin
 
   glPopMatrix();
 
+  glDisable(GL_SCISSOR_TEST);
+
   if showMapCurPos then drawText8(4, gWinSizeY-10, Format('mappos:(%d,%d)', [pmsCurMapX, pmsCurMapY]), 255, 255, 0);
 end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-function g_Holmes_mouseEvent (var ev: THMouseEvent): Boolean;
+function g_Holmes_MouseEvent (var ev: THMouseEvent): Boolean;
 begin
   result := true;
   msX := ev.x;
@@ -436,7 +523,7 @@ begin
   msB := ev.bstate;
   kbS := ev.kstate;
   msB := msB;
-  plrDebugMouse(ev);
+  if not uiMouseEvent(ev) then plrDebugMouse(ev);
 end;
 
 
@@ -462,6 +549,7 @@ begin
     SDL_SCANCODE_LSHIFT, SDL_SCANCODE_RSHIFT:
       result := true;
   end;
+  if uiKeyEvent(ev) then begin result := true; exit; end;
   // press
   if (ev.kind = THKeyEvent.Press) then
   begin
@@ -531,6 +619,30 @@ begin
       showGrid := not showGrid;
       exit;
     end;
+    // C-L: toggle layers window
+    if (ev.scan = SDL_SCANCODE_L) and ((ev.kstate and THKeyEvent.ModCtrl) <> 0) then
+    begin
+      result := true;
+      if (winLayers = nil) then createLayersWindow();
+      if not uiVisibleWindow(winLayers) then uiAddWindow(winLayers) else uiRemoveWindow(winLayers);
+      exit;
+    end;
+    // C-O: toggle outlines window
+    if (ev.scan = SDL_SCANCODE_O) and ((ev.kstate and THKeyEvent.ModCtrl) <> 0) then
+    begin
+      result := true;
+      if (winOutlines = nil) then createOutlinesWindow();
+      if not uiVisibleWindow(winOutlines) then uiAddWindow(winOutlines) else uiRemoveWindow(winOutlines);
+      exit;
+    end;
+    // F1: toggle options window
+    if (ev.scan = SDL_SCANCODE_F1) and (ev.kstate = 0) then
+    begin
+      result := true;
+      if (winOptions = nil) then createOptionsWindow();
+      if not uiVisibleWindow(winOptions) then uiAddWindow(winOptions) else uiRemoveWindow(winOptions);
+      exit;
+    end;
     // C-UP, C-DOWN, C-LEFT, C-RIGHT: trace 10 pixels from cursor in the respective direction
     if ((ev.scan = SDL_SCANCODE_UP) or (ev.scan = SDL_SCANCODE_DOWN) or (ev.scan = SDL_SCANCODE_LEFT) or (ev.scan = SDL_SCANCODE_RIGHT)) and
        ((ev.kstate and THKeyEvent.ModCtrl) <> 0) then
@@ -574,8 +686,7 @@ begin
     plrDebugDraw();
   end;
 
-  //drawText6Prop(10, 10, 'Hi there, I''m Holmes!', 255, 255, 0);
-  //drawText8Prop(10, 20, 'Hi there, I''m Holmes!', 255, 255, 0);
+  uiDraw();
 
   drawCursor();
 

@@ -315,6 +315,15 @@ var
   g_profile_los: Boolean = false;
   g_profile_history_size: Integer = 1000;
 
+  g_rlayer_back: Boolean = true;
+  g_rlayer_step: Boolean = true;
+  g_rlayer_wall: Boolean = true;
+  g_rlayer_door: Boolean = true;
+  g_rlayer_acid1: Boolean = true;
+  g_rlayer_acid2: Boolean = true;
+  g_rlayer_water: Boolean = true;
+  g_rlayer_fore: Boolean = true;
+
 
 procedure g_ResetDynlights ();
 procedure g_AddDynLight (x, y, radius: Integer; r, g, b, a: Single);
@@ -2701,6 +2710,7 @@ begin
     if ly-sY-lrad >= gPlayerScreenSize.Y then continue;
 
     // set scissor to optimize drawing
+    //FIXME: broken for splitscreen mode
     glScissor((lx-sX)-lrad+2, gPlayerScreenSize.Y-(ly-sY)-lrad-1+2, lrad*2-4, lrad*2-4);
     // no need to clear stencil buffer, light blitting will do it for us
     glStencilOp(GL_KEEP, GL_KEEP, GL_INCR);
@@ -2741,7 +2751,7 @@ procedure renderMapInternal (backXOfs, backYOfs: Integer; transX, transY: Intege
 type
   TDrawCB = procedure ();
 
-  procedure drawPanelType (profname: AnsiString; panType: DWord);
+  procedure drawPanelType (profname: AnsiString; panType: DWord; doDraw: Boolean);
   var
     tagmask: Integer;
     pan: TPanel;
@@ -2750,28 +2760,17 @@ type
     if gdbg_map_use_accel_render then
     begin
       tagmask := panelTypeToTag(panType);
-      {$IF TRUE}
       while (gDrawPanelList.count > 0) do
       begin
         pan := TPanel(gDrawPanelList.front());
         if ((pan.tag and tagmask) = 0) then break;
-        pan.Draw();
+        if doDraw then pan.Draw();
         gDrawPanelList.popFront();
       end;
-      {$ELSE}
-      e_WriteLog(Format('=== PANELS: %d ===', [gDrawPanelList.count]), MSG_NOTIFY);
-      while (gDrawPanelList.count > 0) do
-      begin
-        pan := TPanel(gDrawPanelList.front());
-        e_WriteLog(Format('tagmask: 0x%04x; pan.tag: 0x%04x; pan.arrIdx: %d', [tagmask, pan.tag, pan.arrIdx]), MSG_NOTIFY);
-        pan.Draw();
-        gDrawPanelList.popFront();
-      end;
-      {$ENDIF}
     end
     else
     begin
-      g_Map_DrawPanels(panType);
+      if doDraw then g_Map_DrawPanels(panType);
     end;
     profileFrameDraw.sectionEnd();
   end;
@@ -2801,23 +2800,23 @@ begin
 
   if (setTransMatrix) then glTranslatef(transX, transY, 0);
 
-  drawPanelType('*back', PANEL_BACK);
-  drawPanelType('*step', PANEL_STEP);
+  drawPanelType('*back', PANEL_BACK, g_rlayer_back);
+  drawPanelType('*step', PANEL_STEP, g_rlayer_step);
   drawOther('items', @g_Items_Draw);
   drawOther('weapons', @g_Weapon_Draw);
   drawOther('shells', @g_Player_DrawShells);
   drawOther('drawall', @g_Player_DrawAll);
   drawOther('corpses', @g_Player_DrawCorpses);
-  drawPanelType('*wall', PANEL_WALL);
+  drawPanelType('*wall', PANEL_WALL, g_rlayer_wall);
   drawOther('monsters', @g_Monsters_Draw);
-  drawPanelType('*door', PANEL_CLOSEDOOR);
+  drawPanelType('*door', PANEL_CLOSEDOOR, g_rlayer_door);
   drawOther('gfx', @g_GFX_Draw);
   drawOther('flags', @g_Map_DrawFlags);
-  drawPanelType('*acid1', PANEL_ACID1);
-  drawPanelType('*acid2', PANEL_ACID2);
-  drawPanelType('*water', PANEL_WATER);
+  drawPanelType('*acid1', PANEL_ACID1, g_rlayer_acid1);
+  drawPanelType('*acid2', PANEL_ACID2, g_rlayer_acid2);
+  drawPanelType('*water', PANEL_WATER, g_rlayer_water);
   drawOther('dynlights', @renderDynLightsInternal);
-  drawPanelType('*fore', PANEL_FORE);
+  drawPanelType('*fore', PANEL_FORE, g_rlayer_fore);
 
   if g_debug_HealthBar then
   begin
