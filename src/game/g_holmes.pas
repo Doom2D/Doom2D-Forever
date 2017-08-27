@@ -121,6 +121,7 @@ var
 // ////////////////////////////////////////////////////////////////////////// //
 var
   g_ol_nice: Boolean = false;
+  g_ol_fill_walls: Boolean = false;
   g_ol_rlayer_back: Boolean = false;
   g_ol_rlayer_step: Boolean = false;
   g_ol_rlayer_wall: Boolean = false;
@@ -189,6 +190,8 @@ begin
   llb.appendItem('acid2', @g_ol_rlayer_acid2);
   llb.appendItem('water', @g_ol_rlayer_water);
   llb.appendItem('foreground', @g_ol_rlayer_fore);
+  llb.appendItem('', nil);
+  llb.appendItem('fill walls', @g_ol_fill_walls);
   llb.appendItem('', nil);
   llb.appendItem('slow''n''nice', @g_ol_nice);
   winOutlines := THTopWindow.Create('outlines', 100, 10);
@@ -323,6 +326,9 @@ var
 
 
 procedure drawOutlines ();
+var
+  r, g, b: Integer;
+
   procedure clearEdgeBmp ();
   begin
     SetLength(edgeBmp, (gWinSizeX+4)*(gWinSizeY+4));
@@ -334,21 +340,22 @@ procedure drawOutlines ();
     sx, len, y0, y1: Integer;
   begin
     if (pan = nil) or (pan.Width < 1) or (pan.Height < 1) then exit;
-    if (pan.X+pan.Width <= vpx-1) or (pan.Y+pan.Height <= vpy-1) or (pan.X >= vpx+vpw+1) or (pan.Y >= vpy+vph+1) then exit;
-    if g_ol_nice then
+    if (pan.X+pan.Width <= vpx-1) or (pan.Y+pan.Height <= vpy-1) then exit;
+    if (pan.X >= vpx+vpw+1) or (pan.Y >= vpy+vph+1) then exit;
+    if g_ol_nice or g_ol_fill_walls then
     begin
       sx := pan.X-(vpx-1);
       len := pan.Width;
-      if (len > vpw+2) then len := vpw+2;
+      if (len > gWinSizeX+4) then len := gWinSizeX+4;
       if (sx < 0) then begin len += sx; sx := 0; end;
-      if (sx+len > vpw+2) then len := vpw+2-sx;
+      if (sx+len > gWinSizeX+4) then len := gWinSizeX+4-sx;
       if (len < 1) then exit;
       assert(sx >= 0);
-      assert(sx+len <= vpw+2);
+      assert(sx+len <= gWinSizeX+4);
       y0 := pan.Y-(vpy-1);
       y1 := y0+pan.Height;
       if (y0 < 0) then y0 := 0;
-      if (y1 > vph+2) then y1 := vph+2;
+      if (y1 > gWinSizeY+4) then y1 := gWinSizeY+4;
       while (y0 < y1) do
       begin
         FillChar(edgeBmp[y0*(gWinSizeX+4)+sx], len*sizeof(edgeBmp[0]), 1);
@@ -357,7 +364,7 @@ procedure drawOutlines ();
     end
     else
     begin
-      drawRect(pan.X, pan.Y, pan.Width, pan.Height, 255, 255, 255);
+      drawRect(pan.X, pan.Y, pan.Width, pan.Height, r, g, b);
     end;
   end;
 
@@ -372,7 +379,7 @@ procedure drawOutlines ();
     glPointSize(1);
     glDisable(GL_LINE_SMOOTH);
     glDisable(GL_POLYGON_SMOOTH);
-    glColor4f(1.0, 1.0, 1.0, 1.0);
+    glColor4f(r/255.0, g/255.0, b/255.0, 1.0);
     glBegin(GL_POINTS);
     for y := 1 to vph do
     begin
@@ -394,12 +401,65 @@ procedure drawOutlines ();
     glEnd();
   end;
 
-  procedure doWallsOld (parr: array of TPanel; ptype: Word);
+  procedure drawFilledWalls ();
+  var
+    x, y, sx, ex: Integer;
+    a: PByte;
+    procedure drawLine ();
+    begin
+      if (sx >= 0) then
+      begin
+        glVertex2f(sx-1+vpx+0.37, y-1+vpy+0.37);
+        glVertex2f(ex+vpx+0.37, y-1+vpy+0.37);
+      end;
+      sx := -1;
+      ex := -1;
+    end;
+  begin
+    glDisable(GL_BLEND);
+    glDisable(GL_TEXTURE_2D);
+    glLineWidth(1);
+    glPointSize(1);
+    glDisable(GL_LINE_SMOOTH);
+    glDisable(GL_POLYGON_SMOOTH);
+    glColor4f(r/255.0, g/255.0, b/255.0, 1.0);
+    glBegin(GL_LINES);
+    for y := 1 to vph do
+    begin
+      a := @edgeBmp[y*(gWinSizeX+4)+1];
+      sx := -1;
+      ex := -1;
+      for x := 1 to vpw do
+      begin
+        if (a[0] <> 0) then
+        begin
+          if (ex+1 <> x) then drawLine();
+          if (sx < 0) then
+          begin
+            sx := x;
+            ex := x;
+          end
+          else
+          begin
+            ex := x;
+          end;
+        end;
+        Inc(a);
+      end;
+      drawLine();
+    end;
+    glEnd();
+  end;
+
+  procedure doWallsOld (parr: array of TPanel; ptype: Word; ar, ag, ab: Integer);
   var
     f: Integer;
     pan: TPanel;
   begin
-    if g_ol_nice then clearEdgeBmp();
+    r := ar;
+    g := ag;
+    b := ab;
+    if g_ol_nice or g_ol_fill_walls then clearEdgeBmp();
     for f := 0 to High(parr) do
     begin
       pan := parr[f];
@@ -408,31 +468,43 @@ procedure drawOutlines ();
       drawPanel(pan);
     end;
     if g_ol_nice then drawEdges();
+    if g_ol_fill_walls then drawFilledWalls();
   end;
+
+var
+  xptag: Word;
 
   function doWallCB (pan: TPanel; tag: Integer): Boolean;
   begin
     result := false; // don't stop
     //if (pan = nil) or not pan.Enabled or (pan.Width < 1) or (pan.Height < 1) then exit;
+    if ((pan.PanelType and xptag) = 0) then exit;
     drawPanel(pan);
   end;
 
-  procedure doWalls (parr: array of TPanel; ptype: Word);
+  procedure doWalls (parr: array of TPanel; ptype: Word; ar, ag, ab: Integer);
   begin
-    if g_ol_nice then clearEdgeBmp();
-    mapGrid.forEachInAABB(vpx-1, vpy-1, vpw+2, vph+2, doWallCB, panelTypeToTag(ptype));
+    r := ar;
+    g := ag;
+    b := ab;
+    xptag := ptype;
+    if ((ptype and (PANEL_WALL or PANEL_OPENDOOR or PANEL_CLOSEDOOR)) <> 0) then ptype := GridTagWall or GridTagDoor
+    else panelTypeToTag(ptype);
+    if g_ol_nice or g_ol_fill_walls then clearEdgeBmp();
+    mapGrid.forEachInAABB(vpx-1, vpy-1, vpw+2, vph+2, doWallCB, ptype);
     if g_ol_nice then drawEdges();
+    if g_ol_fill_walls then drawFilledWalls();
   end;
 
 begin
-  if g_ol_rlayer_back then doWalls(gRenderBackgrounds, PANEL_BACK);
-  if g_ol_rlayer_step then doWalls(gSteps, PANEL_STEP);
-  if g_ol_rlayer_wall then doWalls(gWalls, PANEL_WALL);
-  if g_ol_rlayer_door then doWalls(gWalls, PANEL_OPENDOOR or PANEL_CLOSEDOOR);
-  if g_ol_rlayer_acid1 then doWalls(gAcid1, PANEL_ACID1);
-  if g_ol_rlayer_acid2 then doWalls(gAcid2, PANEL_ACID2);
-  if g_ol_rlayer_water then doWalls(gWater, PANEL_WATER);
-  if g_ol_rlayer_fore then doWalls(gRenderForegrounds, PANEL_FORE);
+  if g_ol_rlayer_back then doWallsOld(gRenderBackgrounds, PANEL_BACK, 255, 127, 0);
+  if g_ol_rlayer_step then doWallsOld(gSteps, PANEL_STEP, 192, 192, 192);
+  if g_ol_rlayer_wall then doWallsOld(gWalls, PANEL_WALL, 255, 255, 255);
+  if g_ol_rlayer_door then doWallsOld(gWalls, PANEL_OPENDOOR or PANEL_CLOSEDOOR, 0, 255, 0);
+  if g_ol_rlayer_acid1 then doWallsOld(gAcid1, PANEL_ACID1, 255, 0, 0);
+  if g_ol_rlayer_acid2 then doWallsOld(gAcid2, PANEL_ACID2, 198, 198, 0);
+  if g_ol_rlayer_water then doWallsOld(gWater, PANEL_WATER, 0, 255, 255);
+  if g_ol_rlayer_fore then doWallsOld(gRenderForegrounds, PANEL_FORE, 210, 210, 210);
 end;
 
 

@@ -15,6 +15,8 @@
  *)
 // ////////////////////////////////////////////////////////////////////////// //
 // cursor (hi, Death Track!)
+const curTexWidth = 32;
+const curTexHeight = 32;
 const curWidth = 17;
 const curHeight = 23;
 
@@ -67,11 +69,13 @@ var
 begin
   if (curtexid <> 0) then exit; //begin glDeleteTextures(1, @curtexid); curtexid := 0; end;
 
-  GetMem(tex, curWidth*curHeight*4);
+  GetMem(tex, curTexWidth*curTexHeight*4);
+  FillChar(tex^, curTexWidth*curTexHeight*4, 0);
 
   tpp := tex;
   for y := 0 to curHeight-1 do
   begin
+    tpp := tex+(y*(curTexWidth*4));
     for x := 0 to curWidth-1 do
     begin
       c := cursorImg[y*curWidth+x]*4;
@@ -94,7 +98,7 @@ begin
   //GLfloat[4] bclr = 0.0;
   //glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, bclr.ptr);
 
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, curWidth, curHeight, 0, GL_RGBA{gltt}, GL_UNSIGNED_BYTE, tex);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, curTexWidth, curTexHeight, 0, GL_RGBA{gltt}, GL_UNSIGNED_BYTE, tex);
   glFlush();
 
   //FreeMem(tex);
@@ -113,8 +117,8 @@ begin
   Dec(msX, 2);
   glBegin(GL_QUADS);
     glTexCoord2f(0.0, 0.0); glVertex2i(msX, msY); // top-left
-    glTexCoord2f(1.0, 0.0); glVertex2i(msX+curWidth, msY); // top-right
-    glTexCoord2f(1.0, 1.0); glVertex2i(msX+curWidth, msY+curHeight); // bottom-right
+    glTexCoord2f(1.0, 0.0); glVertex2i(msX+curTexWidth, msY); // top-right
+    glTexCoord2f(1.0, 1.0); glVertex2i(msX+curTexWidth, msY+curHeight); // bottom-right
     glTexCoord2f(0.0, 1.0); glVertex2i(msX, msY+curHeight); // bottom-left
   glEnd();
   Inc(msX, 2);
