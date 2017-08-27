@@ -884,8 +884,11 @@ begin
       if (ly < 2) then ly := 2;
       ly := ly div 8;
       if (ly < 0) then ly := 0 else if (ly > High(mItems)) then ly := High(mItems);
-      mCurIndex := ly;
-      if (mChecks[ly] <> nil) then mChecks[ly]^ := not mChecks[ly]^;
+      if (mChecks[ly] <> nil) then
+      begin
+        mCurIndex := ly;
+        if (mChecks[ly] <> nil) then mChecks[ly]^ := not mChecks[ly]^;
+      end;
     end;
   end;
 end;
