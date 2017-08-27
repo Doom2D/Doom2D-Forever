@@ -108,7 +108,10 @@ var
   showMonsLOS2Plr: Boolean = false;
   showAllMonsCells: Boolean = false;
   showMapCurPos: Boolean = false;
-
+  showLayersWindow: Boolean = false;
+  showOutlineWindow: Boolean = false;
+  oldShowLayersWindow: Boolean = false;
+  oldShowOutlineWindow: Boolean = false;
 
 // ////////////////////////////////////////////////////////////////////////// //
 {$INCLUDE g_holmes.inc}
@@ -145,6 +148,9 @@ begin
   llb.appendItem('monster info', @showMonsInfo);
   llb.appendItem('monster LOS to player', @showMonsLOS2Plr);
   llb.appendItem('monster cells (SLOW!)', @showAllMonsCells);
+  llb.appendItem('', nil);
+  llb.appendItem('layers window', @showLayersWindow);
+  llb.appendItem('outline window', @showOutlineWindow);
   winOptions := THTopWindow.Create('Holmes Options', 100, 100);
   winOptions.escClose := true;
   winOptions.appendChild(llb);
@@ -194,7 +200,7 @@ end;
 // ////////////////////////////////////////////////////////////////////////// //
 procedure g_Holmes_VidModeChanged ();
 begin
-  e_WriteLog(Format('Inspector: videomode changed: %dx%d', [gScreenWidth, gScreenHeight]), MSG_NOTIFY);
+  e_WriteLog(Format('Holmes: videomode changed: %dx%d', [gScreenWidth, gScreenHeight]), MSG_NOTIFY);
   // texture space is possibly lost here, idc
   curtexid := 0;
   font6texid := 0;
@@ -728,16 +734,14 @@ begin
     if (ev.scan = SDL_SCANCODE_L) and ((ev.kstate and THKeyEvent.ModCtrl) <> 0) then
     begin
       result := true;
-      if (winLayers = nil) then createLayersWindow();
-      if not uiVisibleWindow(winLayers) then uiAddWindow(winLayers) else uiRemoveWindow(winLayers);
+      showLayersWindow := not showLayersWindow;
       exit;
     end;
     // C-O: toggle outlines window
     if (ev.scan = SDL_SCANCODE_O) and ((ev.kstate and THKeyEvent.ModCtrl) <> 0) then
     begin
       result := true;
-      if (winOutlines = nil) then createOutlinesWindow();
-      if not uiVisibleWindow(winOutlines) then uiAddWindow(winOutlines) else uiRemoveWindow(winOutlines);
+      showOutlineWindow := not showOutlineWindow;
       exit;
     end;
     // F1: toggle options window
@@ -780,6 +784,44 @@ end;
 // ////////////////////////////////////////////////////////////////////////// //
 procedure g_Holmes_Draw ();
 begin
+  if (oldShowLayersWindow <> showLayersWindow) then
+  begin
+    oldShowLayersWindow := showLayersWindow;
+    if showLayersWindow then
+    begin
+      if (winLayers = nil) then createLayersWindow();
+      uiAddWindow(winLayers);
+    end
+    else
+    begin
+      uiRemoveWindow(winLayers);
+    end;
+  end
+  else
+  begin
+    showLayersWindow := uiVisibleWindow(winLayers);
+    oldShowLayersWindow := showLayersWindow;
+  end;
+
+  if (oldShowOutlineWindow <> showOutlineWindow) then
+  begin
+    oldShowOutlineWindow := showOutlineWindow;
+    if showOutlineWindow then
+    begin
+      if (winOutlines = nil) then createOutlinesWindow();
+      uiAddWindow(winOutlines);
+    end
+    else
+    begin
+      uiRemoveWindow(winOutlines);
+    end;
+  end
+  else
+  begin
+    showOutlineWindow := uiVisibleWindow(winOutlines);
+    oldShowOutlineWindow := showOutlineWindow;
+  end;
+
   glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE); // modify color buffer
   glDisable(GL_STENCIL_TEST);
   glDisable(GL_BLEND);

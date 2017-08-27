@@ -176,8 +176,14 @@ end;
 procedure uiDraw ();
 var
   f: Integer;
+  ctl: THControl;
 begin
-  for f := 0 to High(uiTopList) do uiTopList[f].draw();
+  for f := 0 to High(uiTopList) do
+  begin
+    ctl := uiTopList[f];
+    ctl.draw();
+    if (f <> High(uiTopList)) then darkenRect(ctl.x0, ctl.y0, ctl.width, ctl.height, 128);
+  end;
 end;
 
 
@@ -740,6 +746,7 @@ procedure THTopWindow.drawControlPost (sx, sy: Integer);
 var
   r, g, b: Integer;
 begin
+  {
   if getFocused then
   begin
     r := 255;
@@ -752,6 +759,10 @@ begin
     g := 127;
     b := 127;
   end;
+  }
+  r := 255;
+  g := 255;
+  b := 255;
   drawRect(mX, mY, mWidth, mHeight, r, g, b);
   if (Length(mTitle) > 0) then
   begin
@@ -834,6 +845,7 @@ begin
   SetLength(mChecks, Length(mChecks)+1);
   mChecks[High(mChecks)] := bv;
   if (Length(mItems)*8+4 > mHeight) then mHeight := Length(mItems)*8+4;
+  if (mCurIndex < 0) then mCurIndex := 0;
 end;
 
 
