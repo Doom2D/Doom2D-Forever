@@ -828,7 +828,7 @@ end;
 
 procedure THCtlCBListBox.appendItem (const atext: AnsiString; bv: PBoolean);
 begin
-  if (Length(atext)*8+4+10 > mWidth) then mWidth := Length(atext)*8+4+10;
+  if (Length(atext)*8+4+3*8+2 > mWidth) then mWidth := Length(atext)*8+4+3*8+2;
   SetLength(mItems, Length(mItems)+1);
   mItems[High(mItems)] := atext;
   SetLength(mChecks, Length(mChecks)+1);
@@ -847,8 +847,9 @@ begin
   for f := 0 to High(mItems) do
   begin
     if (mCurIndex = f) then fillRect(sx-2, sy, mWidth, 8, 0, 128, 0);
-    if (mChecks[f] <> nil) and (mChecks[f]^) then drawText8(sx, sy, '*', 255, 255, 255);
-    drawText8(sx+10, sy, mItems[f], 255, 255, 0);
+    drawText8(sx, sy, '[ ]', 255, 255, 255);
+    if (mChecks[f] <> nil) and (mChecks[f]^) then drawText8(sx+6, sy, 'x', 255, 255, 255);
+    drawText8(sx+3*8+2, sy, mItems[f], 255, 255, 0);
     Inc(sy, 8);
   end;
 end;
