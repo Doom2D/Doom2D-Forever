@@ -132,9 +132,43 @@ var
 
 // ////////////////////////////////////////////////////////////////////////// //
 var
+  winHelp: THTopWindow = nil;
   winOptions: THTopWindow = nil;
   winLayers: THTopWindow = nil;
   winOutlines: THTopWindow = nil;
+
+
+procedure createHelpWindow ();
+var
+  llb: THCtlSimpleText;
+begin
+  llb := THCtlSimpleText.Create(0, 0);
+  llb.appendItem('common keys', true, true);
+  llb.appendItem('  F1   -- toggle this window');
+  llb.appendItem('  M-F1 -- toggle options window');
+  llb.appendItem('');
+  llb.appendItem('control keys', true, true);
+  llb.appendItem('  M-M -- one monster think step');
+  llb.appendItem('  M-I -- toggle monster info');
+  llb.appendItem('  M-K -- toggle monster LOS to player');
+  llb.appendItem('  M-G -- toggle "show all cells occupied by monsters" (SLOW!)');
+  llb.appendItem('  M-A -- wake up monster');
+  llb.appendItem('  C-T -- teleport player');
+  llb.appendItem('  C-P -- show cursor position on the map');
+  llb.appendItem('  C-G -- toggle grid');
+  llb.appendItem('  C-L -- toggle layers window');
+  llb.appendItem('  C-O -- toggle outlines window');
+  llb.appendItem('');
+  llb.appendItem('mouse', true, true);
+  llb.appendItem('  LMB   -- select monster');
+  llb.appendItem('  M-LMB -- dump monsters in cell (to log)');
+  llb.appendItem('  RMB   -- dump wall info to log');
+  llb.appendItem('  M-LMB -- disable wall');
+  winHelp := THTopWindow.Create('Holmes Help', 10, 10);
+  winHelp.escClose := true;
+  winHelp.appendChild(llb);
+  winHelp.centerInScreen();
+end;
 
 
 procedure winLayersClosed (me: THControl; dummy: Integer); begin showLayersWindow := false; end;
@@ -227,6 +261,7 @@ begin
   winOptions := THTopWindow.Create('Holmes Options', 100, 100);
   winOptions.escClose := true;
   winOptions.appendChild(llb);
+  winOptions.centerInScreen();
 end;
 
 
@@ -294,7 +329,7 @@ procedure plrDebugMouse (var ev: THMouseEvent);
   begin
     result := false; // don't stop
     e_WriteLog(Format('wall #%d(%d); enabled=%d (%d); (%d,%d)-(%d,%d)', [pan.arrIdx, pan.proxyId, Integer(pan.Enabled), Integer(mapGrid.proxyEnabled[pan.proxyId]), pan.X, pan.Y, pan.Width, pan.Height]), MSG_NOTIFY);
-    if ((kbS and THKeyEvent.ModAlt) <> 0) then
+    if (kbS = THKeyEvent.ModAlt) then
     begin
       if pan.Enabled then g_Map_DisableWall(pan.arrIdx) else g_Map_EnableWall(pan.arrIdx);
     end;
@@ -321,31 +356,31 @@ begin
 
   e_WriteLog(Format('mev: %d', [Integer(ev.kind)]), MSG_NOTIFY);
 
+  if (ev.but = THMouseEvent.Right) then
+  begin
+    // dump/toggle wall
+    e_WriteLog('=== TOGGLE WALL ===', MSG_NOTIFY);
+    mapGrid.forEachAtPoint(pmsCurMapX, pmsCurMapY, wallToggle, (GridTagWall or GridTagDoor));
+    e_WriteLog('--- toggle wall ---', MSG_NOTIFY);
+    exit;
+  end;
+
   if (ev.but = THMouseEvent.Left) then
   begin
-    if ((kbS and THKeyEvent.ModShift) <> 0) then
+    if (kbS = THKeyEvent.ModAlt) then
     begin
       // dump monsters in cell
       e_WriteLog('===========================', MSG_NOTIFY);
       monsGrid.forEachInCell(pmsCurMapX, pmsCurMapY, monsInCell);
       e_WriteLog('---------------------------', MSG_NOTIFY);
     end
-    else
+    else if (kbS = 0) then
     begin
-      // toggle wall
-      e_WriteLog('=== TOGGLE WALL ===', MSG_NOTIFY);
-      mapGrid.forEachAtPoint(pmsCurMapX, pmsCurMapY, wallToggle, (GridTagWall or GridTagDoor));
-      e_WriteLog('--- toggle wall ---', MSG_NOTIFY);
+      monMarkedUID := -1;
+      e_WriteLog('===========================', MSG_NOTIFY);
+      monsGrid.forEachAtPoint(pmsCurMapX, pmsCurMapY, monsAtDump);
+      e_WriteLog('---------------------------', MSG_NOTIFY);
     end;
-    exit;
-  end;
-
-  if (ev.but = THMouseEvent.Right) then
-  begin
-    monMarkedUID := -1;
-    e_WriteLog('===========================', MSG_NOTIFY);
-    monsGrid.forEachAtPoint(pmsCurMapX, pmsCurMapY, monsAtDump);
-    e_WriteLog('---------------------------', MSG_NOTIFY);
     exit;
   end;
 end;
@@ -868,10 +903,19 @@ begin
     if (ev.scan = SDL_SCANCODE_F1) and (ev.kstate = 0) then
     begin
       result := true;
+      if (winHelp = nil) then createHelpWindow();
+      if not uiVisibleWindow(winHelp) then uiAddWindow(winHelp) else uiRemoveWindow(winHelp);
+      exit;
+    end;
+    // M-F1: toggle options window
+    if (ev.scan = SDL_SCANCODE_F1) and (ev.kstate = THKeyEvent.ModAlt) then
+    begin
+      result := true;
       if (winOptions = nil) then createOptionsWindow();
       if not uiVisibleWindow(winOptions) then uiAddWindow(winOptions) else uiRemoveWindow(winOptions);
       exit;
     end;
+    {$IF DEFINED(D2F_DEBUG)}
     // C-UP, C-DOWN, C-LEFT, C-RIGHT: trace 10 pixels from cursor in the respective direction
     if ((ev.scan = SDL_SCANCODE_UP) or (ev.scan = SDL_SCANCODE_DOWN) or (ev.scan = SDL_SCANCODE_LEFT) or (ev.scan = SDL_SCANCODE_RIGHT)) and
        ((ev.kstate and THKeyEvent.ModCtrl) <> 0) then
@@ -897,6 +941,7 @@ begin
       e_LogWritefln('v-trace: (%d,%d)-(%d,%d); end=(%d,%d); hit=%d', [pmsCurMapX, pmsCurMapY, dx, dy, ex, ey, (pan <> nil)]);
       exit;
     end;
+    {$ENDIF}
   end;
 end;
 

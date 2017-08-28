@@ -133,12 +133,39 @@ type
   public
     constructor Create (const atitle: AnsiString; ax, ay: Integer; aw: Integer=-1; ah: Integer=-1);
 
+    procedure centerInScreen ();
+
     // `sx` and `sy` are screen coordinates
     procedure drawControl (sx, sy: Integer); override;
     procedure drawControlPost (sx, sy: Integer); override;
 
     function keyEvent (var ev: THKeyEvent): Boolean; override; // returns `true` if event was eaten
     function mouseEvent (var ev: THMouseEvent): Boolean; override; // returns `true` if event was eaten
+  end;
+
+
+  THCtlSimpleText = class(THControl)
+  private
+    type
+      PItem = ^TItem;
+      TItem = record
+        title: AnsiString;
+        centered: Boolean;
+        hline: Boolean;
+      end;
+  private
+    mItems: array of TItem;
+
+  public
+    constructor Create (ax, ay: Integer; aparent: THControl=nil);
+    destructor Destroy (); override;
+
+    procedure appendItem (const atext: AnsiString; acentered: Boolean=false; ahline: Boolean=false);
+
+    procedure drawControl (sx, sy: Integer); override;
+
+    function mouseEvent (var ev: THMouseEvent): Boolean; override;
+    function keyEvent (var ev: THKeyEvent): Boolean; override;
   end;
 
 
@@ -166,6 +193,7 @@ type
     function mouseEvent (var ev: THMouseEvent): Boolean; override;
     function keyEvent (var ev: THKeyEvent): Boolean; override;
   end;
+
 
 // ////////////////////////////////////////////////////////////////////////// //
 var
@@ -817,6 +845,16 @@ begin
 end;
 
 
+procedure THTopWindow.centerInScreen ();
+begin
+  if (mWidth > 0) and (mHeight > 0) then
+  begin
+    mX := (gWinSizeX-mWidth) div 2;
+    mY := (gWinSizeY-mHeight) div 2;
+  end;
+end;
+
+
 procedure THTopWindow.drawControl (sx, sy: Integer);
 begin
   fillRect(sx, sy, mWidth, mHeight, 0, 0, 128);
@@ -962,6 +1000,88 @@ end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
+constructor THCtlSimpleText.Create (ax, ay: Integer; aparent: THControl=nil);
+begin
+  mItems := nil;
+  inherited Create(ax, ay, 4, 4);
+end;
+
+
+destructor THCtlSimpleText.Destroy ();
+begin
+  mItems := nil;
+  inherited;
+end;
+
+
+procedure THCtlSimpleText.appendItem (const atext: AnsiString; acentered: Boolean=false; ahline: Boolean=false);
+var
+  it: PItem;
+begin
+  if (Length(atext)*8+3*8+2 > mWidth) then mWidth := Length(atext)*8+3*8+2;
+  SetLength(mItems, Length(mItems)+1);
+  it := @mItems[High(mItems)];
+  it.title := atext;
+  it.centered := acentered;
+  it.hline := ahline;
+  if (Length(mItems)*8 > mHeight) then mHeight := Length(mItems)*8;
+end;
+
+
+procedure THCtlSimpleText.drawControl (sx, sy: Integer);
+var
+  f, tx: Integer;
+  it: PItem;
+  r, g, b: Integer;
+begin
+  for f := 0 to High(mItems) do
+  begin
+    it := @mItems[f];
+    tx := sx;
+    r := 255;
+    g := 255;
+    b := 0;
+    if it.centered then begin b := 255; tx := sx+(mWidth-Length(it.title)*8) div 2; end;
+    if it.hline then
+    begin
+      b := 255;
+      if (Length(it.title) = 0) then
+      begin
+        drawLine(sx+4, sy+3, sx+mWidth-8, sy+3, r, g, b);
+      end
+      else if (tx-3 > sx+4) then
+      begin
+        drawLine(sx+4, sy+3, tx-3, sy+3, r, g, b);
+        drawLine(tx+Length(it.title)*8, sy+3, sx+mWidth-4, sy+3, r, g, b);
+      end;
+    end;
+    drawText8(tx, sy, it.title, r, g, b);
+    Inc(sy, 8);
+  end;
+end;
+
+
+function THCtlSimpleText.mouseEvent (var ev: THMouseEvent): Boolean;
+var
+  lx, ly: Integer;
+begin
+  result := inherited mouseEvent(ev);
+  lx := ev.x;
+  ly := ev.y;
+  if not result and toLocal(lx, ly) then
+  begin
+    result := true;
+  end;
+end;
+
+
+function THCtlSimpleText.keyEvent (var ev: THKeyEvent): Boolean;
+begin
+  result := inherited keyEvent(ev);
+end;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
 constructor THCtlCBListBox.Create (ax, ay: Integer; aparent: THControl=nil);
 begin
   mItems := nil;
@@ -1014,7 +1134,7 @@ begin
         drawLine(sx+4, sy+3, tx-3, sy+3, 255, 255, 255);
         drawLine(tx+Length(it.title)*8, sy+3, sx+mWidth-4, sy+3, 255, 255, 255);
       end;
-      drawText8(sx+(mWidth-Length(it.title)*8) div 2, sy, it.title, 255, 255, 255);
+      drawText8(tx, sy, it.title, 255, 255, 255);
     end
     else
     begin
