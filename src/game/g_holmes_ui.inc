@@ -16,6 +16,9 @@
 // ////////////////////////////////////////////////////////////////////////// //
 type
   THControl = class
+  public
+    type TActionCB = procedure (me: THControl; uinfo: Integer);
+
   private
     mParent: THControl;
     mX, mY: Integer;
@@ -65,6 +68,9 @@ type
     // return `false` if destination rect is empty
     // modifies rect0
     class function intersectRect (var x0, y0, w0, h0: Integer; const x1, y1, w1, h1: Integer): Boolean;
+
+  public
+    actionCB: TActionCB;
 
   public
     constructor Create (ax, ay, aw, ah: Integer; aparent: THControl=nil);
@@ -122,6 +128,9 @@ type
     procedure blurred (); override;
 
   public
+    closeCB: TActionCB; // called after window was removed from ui window list
+
+  public
     constructor Create (const atitle: AnsiString; ax, ay: Integer; aw: Integer=-1; ah: Integer=-1);
 
     // `sx` and `sy` are screen coordinates
@@ -135,15 +144,22 @@ type
 
   THCtlCBListBox = class(THControl)
   private
-    mItems: array of AnsiString;
-    mChecks: array of PBoolean;
+    type
+      PItem = ^TItem;
+      TItem = record
+        title: AnsiString;
+        varp: PBoolean;
+        actionCB: TActionCB;
+      end;
+  private
+    mItems: array of TItem;
     mCurIndex: Integer;
 
   public
     constructor Create (ax, ay: Integer; aparent: THControl=nil);
     destructor Destroy (); override;
 
-    procedure appendItem (const atext: AnsiString; bv: PBoolean);
+    procedure appendItem (const atext: AnsiString; bv: PBoolean; aaction: TActionCB=nil);
 
     procedure drawControl (sx, sy: Integer); override;
 
@@ -251,6 +267,10 @@ begin
       ctl.blurred();
       for c := f+1 to High(uiTopList) do uiTopList[c-1] := uiTopList[c];
       SetLength(uiTopList, Length(uiTopList)-1);
+      if (ctl is THTopWindow) then
+      begin
+        if assigned(THTopWindow(ctl).closeCB) then THTopWindow(ctl).closeCB(ctl, 0);
+      end;
       exit;
     end;
   end;
@@ -290,6 +310,7 @@ begin
   mEatKeys := false;
   scallowed := false;
   mDrawShadow := false;
+  actionCB := nil;
 end;
 
 
@@ -719,6 +740,10 @@ begin
   begin
     if (ctl <> topLevel.mFocused) then ctl.setFocused(true);
     result := ctl.mouseEvent(ev);
+  end
+  else if (ctl = self) and assigned(actionCB) then
+  begin
+    actionCB(self, 0);
   end;
 end;
 
@@ -788,6 +813,7 @@ begin
   mDrawShadow := true;
   mWaitingClose := false;
   mInClose := false;
+  closeCB := nil;
 end;
 
 
@@ -939,7 +965,6 @@ end;
 constructor THCtlCBListBox.Create (ax, ay: Integer; aparent: THControl=nil);
 begin
   mItems := nil;
-  mChecks := nil;
   mCurIndex := -1;
   inherited Create(ax, ay, 4, 4);
 end;
@@ -948,19 +973,21 @@ end;
 destructor THCtlCBListBox.Destroy ();
 begin
   mItems := nil;
-  mChecks := nil;
   inherited;
 end;
 
 
-procedure THCtlCBListBox.appendItem (const atext: AnsiString; bv: PBoolean);
+procedure THCtlCBListBox.appendItem (const atext: AnsiString; bv: PBoolean; aaction: TActionCB=nil);
+var
+  it: PItem;
 begin
-  if (Length(atext)*8+4+3*8+2 > mWidth) then mWidth := Length(atext)*8+4+3*8+2;
+  if (Length(atext)*8+3*8+2 > mWidth) then mWidth := Length(atext)*8+3*8+2;
   SetLength(mItems, Length(mItems)+1);
-  mItems[High(mItems)] := atext;
-  SetLength(mChecks, Length(mChecks)+1);
-  mChecks[High(mChecks)] := bv;
-  if (Length(mItems)*8+4 > mHeight) then mHeight := Length(mItems)*8+4;
+  it := @mItems[High(mItems)];
+  it.title := atext;
+  it.varp := bv;
+  it.actionCB := aaction;
+  if (Length(mItems)*8 > mHeight) then mHeight := Length(mItems)*8;
   if (mCurIndex < 0) then mCurIndex := 0;
 end;
 
@@ -968,29 +995,26 @@ end;
 procedure THCtlCBListBox.drawControl (sx, sy: Integer);
 var
   f, tx: Integer;
+  it: PItem;
 begin
-  //fillRect(sx, sy, mWidth, mHeight, 0, 128, 0);
-  Inc(sx, 2);
-  Inc(sy, 2);
   for f := 0 to High(mItems) do
   begin
-    if (mCurIndex = f) then fillRect(sx-2, sy, mWidth, 8, 0, 128, 0);
-    if (mChecks[f] <> nil) then
+    it := @mItems[f];
+    if (mCurIndex = f) then fillRect(sx, sy, mWidth, 8, 0, 128, 0);
+    if (it.varp <> nil) then
     begin
-      //drawText8(sx, sy, '[ ]', 255, 255, 255);
-      //if mChecks[f]^ then drawText8(sx+6, sy, 'x', 255, 255, 255);
-      if mChecks[f]^ then drawText8(sx, sy, '[x]', 255, 255, 255) else drawText8(sx, sy, '[ ]', 255, 255, 255);
-      drawText8(sx+3*8+2, sy, mItems[f], 255, 255, 0);
+      if it.varp^ then drawText8(sx, sy, '[x]', 255, 255, 255) else drawText8(sx, sy, '[ ]', 255, 255, 255);
+      drawText8(sx+3*8+2, sy, it.title, 255, 255, 0);
     end
-    else if (Length(mItems[f]) > 0) then
+    else if (Length(it.title) > 0) then
     begin
-      tx := sx+(mWidth-Length(mItems[f])*8) div 2;
+      tx := sx+(mWidth-Length(it.title)*8) div 2;
       if (tx-3 > sx+4) then
       begin
         drawLine(sx+4, sy+3, tx-3, sy+3, 255, 255, 255);
-        drawLine(tx+Length(mItems[f])*8, sy+3, sx+mWidth-4, sy+3, 255, 255, 255);
+        drawLine(tx+Length(it.title)*8, sy+3, sx+mWidth-4, sy+3, 255, 255, 255);
       end;
-      drawText8(sx+(mWidth-Length(mItems[f])*8) div 2, sy, mItems[f], 255, 255, 255);
+      drawText8(sx+(mWidth-Length(it.title)*8) div 2, sy, it.title, 255, 255, 255);
     end
     else
     begin
@@ -1004,21 +1028,27 @@ end;
 function THCtlCBListBox.mouseEvent (var ev: THMouseEvent): Boolean;
 var
   lx, ly: Integer;
+  it: PItem;
 begin
   result := inherited mouseEvent(ev);
-  if not result and (Length(mItems) > 0) and (ev.kind = ev.Press) then
+  lx := ev.x;
+  ly := ev.y;
+  if not result and toLocal(lx, ly) then
   begin
-    lx := ev.x;
-    ly := ev.y;
-    if toLocal(lx, ly) then
+    result := true;
+    if (ev.kind = ev.Press) then
     begin
-      if (ly < 2) then ly := 2;
       ly := ly div 8;
-      if (ly < 0) then ly := 0 else if (ly > High(mItems)) then ly := High(mItems);
-      if (mChecks[ly] <> nil) then
+      if (ly >= 0) and (ly < Length(mItems)) then
       begin
-        mCurIndex := ly;
-        if (mChecks[ly] <> nil) then mChecks[ly]^ := not mChecks[ly]^;
+        it := @mItems[ly];
+        if (it.varp <> nil) then
+        begin
+          mCurIndex := ly;
+          it.varp^ := not it.varp^;
+          if assigned(it.actionCB) then it.actionCB(self, Integer(it.varp^));
+          if assigned(actionCB) then actionCB(self, ly);
+        end;
       end;
     end;
   end;
@@ -1026,6 +1056,8 @@ end;
 
 
 function THCtlCBListBox.keyEvent (var ev: THKeyEvent): Boolean;
+var
+  it: PItem;
 begin
   result := inherited keyEvent(ev);
   if not getFocused then exit;
@@ -1054,7 +1086,7 @@ begin
             while (mCurIndex > 0) do
             begin
               Dec(mCurIndex);
-              if (mChecks[mCurIndex] <> nil) then break;
+              if (mItems[mCurIndex].varp <> nil) then break;
             end;
           end
           else
@@ -1071,7 +1103,7 @@ begin
             while (mCurIndex < High(mItems)) do
             begin
               Inc(mCurIndex);
-              if (mChecks[mCurIndex] <> nil) then break;
+              if (mItems[mCurIndex].varp <> nil) then break;
             end;
           end
           else
@@ -1083,7 +1115,13 @@ begin
       SDL_SCANCODE_RETURN:
         begin
           result := true;
-          if (mCurIndex >= 0) and (mCurIndex < Length(mChecks)) and (mChecks[mCurIndex] <> nil) then mChecks[mCurIndex]^ := not mChecks[mCurIndex]^;
+          if (mCurIndex >= 0) and (mCurIndex < Length(mItems)) and (mItems[mCurIndex].varp <> nil) then
+          begin
+            it := @mItems[mCurIndex];
+            it.varp^ := not it.varp^;
+            if assigned(it.actionCB) then it.actionCB(self, Integer(it.varp^));
+            if assigned(actionCB) then actionCB(self, mCurIndex);
+          end;
         end;
     end;
   end;

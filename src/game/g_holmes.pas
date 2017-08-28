@@ -110,8 +110,6 @@ var
   showMapCurPos: Boolean = false;
   showLayersWindow: Boolean = false;
   showOutlineWindow: Boolean = false;
-  oldShowLayersWindow: Boolean = false;
-  oldShowOutlineWindow: Boolean = false;
 
 // ////////////////////////////////////////////////////////////////////////// //
 {$INCLUDE g_holmes.inc}
@@ -139,24 +137,8 @@ var
   winOutlines: THTopWindow = nil;
 
 
-procedure createOptionsWindow ();
-var
-  llb: THCtlCBListBox;
-begin
-  llb := THCtlCBListBox.Create(0, 0);
-  llb.appendItem('map grid', @showGrid);
-  llb.appendItem('cursor position on map', @showMapCurPos);
-  llb.appendItem('monster info', @showMonsInfo);
-  llb.appendItem('monster LOS to player', @showMonsLOS2Plr);
-  llb.appendItem('monster cells (SLOW!)', @showAllMonsCells);
-  llb.appendItem('WINDOWS', nil);
-  llb.appendItem('layers window', @showLayersWindow);
-  llb.appendItem('outline window', @showOutlineWindow);
-  winOptions := THTopWindow.Create('Holmes Options', 100, 100);
-  winOptions.escClose := true;
-  winOptions.appendChild(llb);
-end;
-
+procedure winLayersClosed (me: THControl; dummy: Integer); begin showLayersWindow := false; end;
+procedure winOutlinesClosed (me: THControl; dummy: Integer); begin showOutlineWindow := false; end;
 
 procedure createLayersWindow ();
 var
@@ -174,6 +156,7 @@ begin
   winLayers := THTopWindow.Create('visible', 10, 10);
   winLayers.escClose := true;
   winLayers.appendChild(llb);
+  winLayers.closeCB := winLayersClosed;
 end;
 
 
@@ -196,6 +179,54 @@ begin
   winOutlines := THTopWindow.Create('outlines', 100, 10);
   winOutlines.escClose := true;
   winOutlines.appendChild(llb);
+  winOutlines.closeCB := winOutlinesClosed;
+end;
+
+
+procedure toggleLayersWindow (me: THControl; checked: Integer);
+begin
+  if showLayersWindow then
+  begin
+    if (winLayers = nil) then createLayersWindow();
+    uiAddWindow(winLayers);
+  end
+  else
+  begin
+    uiRemoveWindow(winLayers);
+  end;
+end;
+
+
+procedure toggleOutlineWindow (me: THControl; checked: Integer);
+begin
+  if showOutlineWindow then
+  begin
+    if (winOutlines = nil) then createOutlinesWindow();
+    uiAddWindow(winOutlines);
+  end
+  else
+  begin
+    uiRemoveWindow(winOutlines);
+  end;
+end;
+
+
+procedure createOptionsWindow ();
+var
+  llb: THCtlCBListBox;
+begin
+  llb := THCtlCBListBox.Create(0, 0);
+  llb.appendItem('map grid', @showGrid);
+  llb.appendItem('cursor position on map', @showMapCurPos);
+  llb.appendItem('monster info', @showMonsInfo);
+  llb.appendItem('monster LOS to player', @showMonsLOS2Plr);
+  llb.appendItem('monster cells (SLOW!)', @showAllMonsCells);
+  llb.appendItem('WINDOWS', nil);
+  llb.appendItem('layers window', @showLayersWindow, toggleLayersWindow);
+  llb.appendItem('outline window', @showOutlineWindow, toggleOutlineWindow);
+  winOptions := THTopWindow.Create('Holmes Options', 100, 100);
+  winOptions.escClose := true;
+  winOptions.appendChild(llb);
 end;
 
 
@@ -822,6 +853,7 @@ begin
     begin
       result := true;
       showLayersWindow := not showLayersWindow;
+      toggleLayersWindow(nil, 0);
       exit;
     end;
     // C-O: toggle outlines window
@@ -829,6 +861,7 @@ begin
     begin
       result := true;
       showOutlineWindow := not showOutlineWindow;
+      toggleOutlineWindow(nil, 0);
       exit;
     end;
     // F1: toggle options window
@@ -871,44 +904,6 @@ end;
 // ////////////////////////////////////////////////////////////////////////// //
 procedure g_Holmes_Draw ();
 begin
-  if (oldShowLayersWindow <> showLayersWindow) then
-  begin
-    oldShowLayersWindow := showLayersWindow;
-    if showLayersWindow then
-    begin
-      if (winLayers = nil) then createLayersWindow();
-      uiAddWindow(winLayers);
-    end
-    else
-    begin
-      uiRemoveWindow(winLayers);
-    end;
-  end
-  else
-  begin
-    showLayersWindow := uiVisibleWindow(winLayers);
-    oldShowLayersWindow := showLayersWindow;
-  end;
-
-  if (oldShowOutlineWindow <> showOutlineWindow) then
-  begin
-    oldShowOutlineWindow := showOutlineWindow;
-    if showOutlineWindow then
-    begin
-      if (winOutlines = nil) then createOutlinesWindow();
-      uiAddWindow(winOutlines);
-    end
-    else
-    begin
-      uiRemoveWindow(winOutlines);
-    end;
-  end
-  else
-  begin
-    showOutlineWindow := uiVisibleWindow(winOutlines);
-    oldShowOutlineWindow := showOutlineWindow;
-  end;
-
   glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE); // modify color buffer
   glDisable(GL_STENCIL_TEST);
   glDisable(GL_BLEND);
