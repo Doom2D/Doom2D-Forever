@@ -404,8 +404,8 @@ var
 procedure createFonts ();
 begin
   if (font6texid = 0) then font6texid := createFontTexture(kgiFont6, kgiFont6PropWidth, false);
-  if (font8texid = 0) then font8texid := createFontTexture(kgiFont8, kgiFont8PropWidth, true);
-  if (prfont6texid = 0) then prfont6texid := createFontTexture(kgiFont6, kgiFont6PropWidth, false);
+  if (font8texid = 0) then font8texid := createFontTexture(kgiFont8, kgiFont8PropWidth, false);
+  if (prfont6texid = 0) then prfont6texid := createFontTexture(kgiFont6, kgiFont6PropWidth, true);
   if (prfont8texid = 0) then prfont8texid := createFontTexture(kgiFont8, kgiFont8PropWidth, true);
 end;
 
@@ -666,14 +666,14 @@ end;
 
 function drawText6Prop (x, y: Integer; const s: AnsiString; r, g, b: Integer; a: Integer=255): Integer;
 begin
-  if (font6texid = 0) then createFonts();
-  result := drawTextInternal(6, x, y, s, r, g, b, a, font6texid, kgiFont6PropWidth, true);
+  if (prfont6texid = 0) then createFonts();
+  result := drawTextInternal(6, x, y, s, r, g, b, a, prfont6texid, kgiFont6PropWidth, true);
 end;
 
 function drawText8Prop (x, y: Integer; const s: AnsiString; r, g, b: Integer; a: Integer=255): Integer;
 begin
-  if (font8texid = 0) then createFonts();
-  result := drawTextInternal(8, x, y, s, r, g, b, a, font8texid, kgiFont8PropWidth, true);
+  if (prfont8texid = 0) then createFonts();
+  result := drawTextInternal(8, x, y, s, r, g, b, a, prfont8texid, kgiFont8PropWidth, true);
 end;
 
 
@@ -697,16 +697,16 @@ end;
 
 function drawText6PropXC (x, y: Integer; const s: AnsiString; r, g, b: Integer; a: Integer=255): Integer;
 begin
-  if (font6texid = 0) then createFonts();
+  if (prfont6texid = 0) then createFonts();
   x -= textWidth6(s) div 2;
-  result := drawTextInternal(6, x, y, s, r, g, b, a, font6texid, kgiFont6PropWidth, true);
+  result := drawTextInternal(6, x, y, s, r, g, b, a, prfont6texid, kgiFont6PropWidth, true);
 end;
 
 function drawText8PropXC (x, y: Integer; const s: AnsiString; r, g, b: Integer; a: Integer=255): Integer;
 begin
-  if (font8texid = 0) then createFonts();
+  if (prfont8texid = 0) then createFonts();
   x -= textWidth8(s) div 2;
-  result := drawTextInternal(8, x, y, s, r, g, b, a, font8texid, kgiFont8PropWidth, true);
+  result := drawTextInternal(8, x, y, s, r, g, b, a, prfont8texid, kgiFont8PropWidth, true);
 end;
 
 

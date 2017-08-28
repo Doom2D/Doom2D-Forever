@@ -861,8 +861,9 @@ begin
     if (mCurIndex = f) then fillRect(sx-2, sy, mWidth, 8, 0, 128, 0);
     if (mChecks[f] <> nil) then
     begin
-      drawText8(sx, sy, '[ ]', 255, 255, 255);
-      if mChecks[f]^ then drawText8(sx+6, sy, 'x', 255, 255, 255);
+      //drawText8(sx, sy, '[ ]', 255, 255, 255);
+      //if mChecks[f]^ then drawText8(sx+6, sy, 'x', 255, 255, 255);
+      if mChecks[f]^ then drawText8(sx, sy, '[x]', 255, 255, 255) else drawText8(sx, sy, '[ ]', 255, 255, 255);
       drawText8(sx+3*8+2, sy, mItems[f], 255, 255, 0);
     end;
     Inc(sy, 8);
