@@ -785,7 +785,7 @@ begin
   if (topLevel.mFocused <> self) and isMyChild(topLevel.mFocused) and topLevel.mFocused.mEnabled then result := topLevel.mFocused.keyEvent(ev);
   if (mParent = nil) then
   begin
-    if (ev.kstate = THKeyEvent.ModShift) and (ev.scan = SDL_SCANCODE_TAB) then
+    if (ev.kind = ev.Press) and (ev = 'S-Tab') then
     begin
       result := true;
       if (ev.kind = ev.Press) then
@@ -799,7 +799,7 @@ begin
       end;
       exit;
     end;
-    if (ev.kstate = 0) and (ev.scan = SDL_SCANCODE_TAB) then
+    if (ev.kind = ev.Press) and (ev = 'Tab') then
     begin
       result := true;
       if (ev.kind = ev.Press) then
@@ -813,7 +813,7 @@ begin
       end;
       exit;
     end;
-    if mEscClose and (ev.kind = ev.Press) and (ev.kstate = 0) and (ev.scan = SDL_SCANCODE_ESCAPE) then
+    if mEscClose and (ev.kind = ev.Press) and (ev = 'Escape') then
     begin
       result := true;
       uiRemoveWindow(self);
@@ -906,7 +906,7 @@ function THTopWindow.keyEvent (var ev: THKeyEvent): Boolean;
 begin
   result := inherited keyEvent(ev);
   if not getFocused then exit;
-  if (ev.kstate = ev.ModAlt) and (ev.kind = ev.Press) and (ev.scan = SDL_SCANCODE_F3) then
+  if (ev.kind = ev.Press) and (ev = 'M-F3') then
   begin
     uiRemoveWindow(self);
     result := true;
@@ -1156,7 +1156,7 @@ begin
   if not result and toLocal(lx, ly) then
   begin
     result := true;
-    if (ev.kind = ev.Press) then
+    if (ev.kind = ev.Press) and (ev = 'lmb') then
     begin
       ly := ly div 8;
       if (ly >= 0) and (ly < Length(mItems)) then
@@ -1182,67 +1182,62 @@ begin
   result := inherited keyEvent(ev);
   if not getFocused then exit;
   //result := true;
-  if (ev.kstate = 0) and (ev.kind = ev.Press) then
+  if (ev.kind = ev.Press) then
   begin
-    case ev.scan of
-      SDL_SCANCODE_HOME,
-      SDL_SCANCODE_PAGEUP:
+    if (ev = 'Home') or (ev = 'PageUp') then
+    begin
+      result := true;
+      mCurIndex := 0;
+    end;
+    if (ev = 'End') or (ev = 'PageDown') then
+    begin
+      result := true;
+      mCurIndex := High(mItems);
+    end;
+    if (ev = 'Up') then
+    begin
+      result := true;
+      if (Length(mItems) > 0) then
+      begin
+        if (mCurIndex < 0) then mCurIndex := Length(mItems);
+        while (mCurIndex > 0) do
         begin
-          result := true;
-          mCurIndex := 0;
+          Dec(mCurIndex);
+          if (mItems[mCurIndex].varp <> nil) then break;
         end;
-      SDL_SCANCODE_END,
-      SDL_SCANCODE_PAGEDOWN:
+      end
+      else
+      begin
+        mCurIndex := -1;
+      end;
+    end;
+    if (ev = 'Down') then
+    begin
+      result := true;
+      if (Length(mItems) > 0) then
+      begin
+        if (mCurIndex < 0) then mCurIndex := -1;
+        while (mCurIndex < High(mItems)) do
         begin
-          result := true;
-          mCurIndex := High(mItems);
+          Inc(mCurIndex);
+          if (mItems[mCurIndex].varp <> nil) then break;
         end;
-      SDL_SCANCODE_UP:
-        begin
-          result := true;
-          if (Length(mItems) > 0) then
-          begin
-            if (mCurIndex < 0) then mCurIndex := Length(mItems);
-            while (mCurIndex > 0) do
-            begin
-              Dec(mCurIndex);
-              if (mItems[mCurIndex].varp <> nil) then break;
-            end;
-          end
-          else
-          begin
-            mCurIndex := -1;
-          end;
-        end;
-      SDL_SCANCODE_DOWN:
-        begin
-          result := true;
-          if (Length(mItems) > 0) then
-          begin
-            if (mCurIndex < 0) then mCurIndex := -1;
-            while (mCurIndex < High(mItems)) do
-            begin
-              Inc(mCurIndex);
-              if (mItems[mCurIndex].varp <> nil) then break;
-            end;
-          end
-          else
-          begin
-            mCurIndex := -1;
-          end;
-        end;
-      SDL_SCANCODE_SPACE,
-      SDL_SCANCODE_RETURN:
-        begin
-          result := true;
-          if (mCurIndex >= 0) and (mCurIndex < Length(mItems)) and (mItems[mCurIndex].varp <> nil) then
-          begin
-            it := @mItems[mCurIndex];
-            it.varp^ := not it.varp^;
-            if assigned(it.actionCB) then it.actionCB(self, Integer(it.varp^));
-            if assigned(actionCB) then actionCB(self, mCurIndex);
-          end;
-        end;
+      end
+      else
+      begin
+        mCurIndex := -1;
+      end;
+    end;
+    if (ev = 'Space') or (ev = 'Return') then
+    begin
+      result := true;
+      if (mCurIndex >= 0) and (mCurIndex < Length(mItems)) and (mItems[mCurIndex].varp <> nil) then
+      begin
+        it := @mItems[mCurIndex];
+        it.varp^ := not it.varp^;
+        if assigned(it.actionCB) then it.actionCB(self, Integer(it.varp^));
+        if assigned(actionCB) then actionCB(self, mCurIndex);
+      end;
     end;
   end;
 end;

@@ -19,7 +19,7 @@ unit g_holmes;
 interface
 
 uses
-  e_log,
+  e_log, e_input,
   g_textures, g_basic, e_graphics, g_phys, g_grid, g_player, g_monsters,
   g_window, g_map, g_triggers, g_items, g_game, g_panel, g_console,
   xprofiler;
@@ -68,8 +68,9 @@ type
     sym: Word; // SDLK_XXX
     bstate: Word; // button state
     kstate: Word; // keyboard state
-  end;
 
+  public
+  end;
 
 procedure g_Holmes_VidModeChanged ();
 procedure g_Holmes_WindowFocused ();
@@ -84,6 +85,13 @@ function g_Holmes_KeyEvent (var ev: THKeyEvent): Boolean; // returns `true` if e
 // hooks for player
 procedure g_Holmes_plrView (viewPortX, viewPortY, viewPortW, viewPortH: Integer);
 procedure g_Holmes_plrLaser (ax0, ay0, ax1, ay1: Integer);
+
+
+operator = (constref ev: THKeyEvent; const s: AnsiString): Boolean;
+operator = (const s: AnsiString; constref ev: THKeyEvent): Boolean;
+
+operator = (constref ev: THMouseEvent; const s: AnsiString): Boolean;
+operator = (const s: AnsiString; constref ev: THMouseEvent): Boolean;
 
 
 var
@@ -114,6 +122,108 @@ var
 // ////////////////////////////////////////////////////////////////////////// //
 {$INCLUDE g_holmes.inc}
 {$INCLUDE g_holmes_ui.inc}
+
+
+// ////////////////////////////////////////////////////////////////////////// //
+// any mods = 255: nothing was defined
+function parseModKeys (const s: AnsiString; out kmods: Byte; out mbuts: Byte): AnsiString;
+var
+  pos, epos: Integer;
+begin
+  kmods := 255;
+  mbuts := 255;
+  pos := 1;
+  while (pos <= Length(s)) and (s[pos] <= ' ') do Inc(pos);
+  while (pos < Length(s)) do
+  begin
+    if (Length(s)-pos >= 2) and (s[pos+1] = '-') then
+    begin
+      case s[pos] of
+        'C', 'c': begin if (kmods = 255) then kmods := 0; kmods := kmods or THKeyEvent.ModCtrl; Inc(pos, 2); continue; end;
+        'M', 'm': begin if (kmods = 255) then kmods := 0; kmods := kmods or THKeyEvent.ModAlt; Inc(pos, 2); continue; end;
+        'S', 's': begin if (kmods = 255) then kmods := 0; kmods := kmods or THKeyEvent.ModShift; Inc(pos, 2); continue; end;
+      end;
+      break;
+    end;
+    if (Length(s)-pos >= 4) and ((s[pos+1] = 'M') or (s[pos+1] = 'm')) and ((s[pos+2] = 'B') or (s[pos+1] = 'b')) and (s[pos+3] = '-') then
+    begin
+      case s[pos] of
+        'L', 'l': begin if (mbuts = 255) then mbuts := 0; mbuts := mbuts or THMouseEvent.Left; Inc(pos, 4); continue; end;
+        'R', 'r': begin if (mbuts = 255) then mbuts := 0; mbuts := mbuts or THMouseEvent.Right; Inc(pos, 4); continue; end;
+        'M', 'm': begin if (mbuts = 255) then mbuts := 0; mbuts := mbuts or THMouseEvent.Middle; Inc(pos, 4); continue; end;
+      end;
+      break;
+    end;
+    break;
+  end;
+  epos := Length(s)+1;
+  while (epos > pos) and (s[epos-1] <= ' ') do Dec(epos);
+  if (epos > pos) then result := Copy(s, pos, epos-pos) else result := '';
+end;
+
+
+operator = (constref ev: THKeyEvent; const s: AnsiString): Boolean;
+var
+  f: Integer;
+  kmods: Byte = 255;
+  mbuts: Byte = 255;
+  kname: AnsiString;
+begin
+  result := false;
+  kname := parseModKeys(s, kmods, mbuts);
+  if (kmods = 255) then kmods := 0;
+  if (ev.kstate <> kmods) then exit;
+  if (mbuts <> 255) and (ev.bstate <> mbuts) then exit;
+  for f := 1 to High(e_KeyNames) do
+  begin
+    if (CompareText(kname, e_KeyNames[f]) = 0) then
+    begin
+      result := (ev.scan = f);
+      exit;
+    end;
+  end;
+end;
+
+
+operator = (const s: AnsiString; constref ev: THKeyEvent): Boolean;
+begin
+  result := (ev = s);
+end;
+
+
+operator = (constref ev: THMouseEvent; const s: AnsiString): Boolean;
+var
+  kmods: Byte = 255;
+  mbuts: Byte = 255;
+  kname: AnsiString;
+  but: Integer = -1;
+begin
+  result := false;
+  kname := parseModKeys(s, kmods, mbuts);
+       if (CompareText(kname, 'LMB') = 0) then but := THMouseEvent.Left
+  else if (CompareText(kname, 'RMB') = 0) then but := THMouseEvent.Right
+  else if (CompareText(kname, 'MMB') = 0) then but := THMouseEvent.Middle
+  else if (CompareText(kname, 'None') = 0) then but := 0
+  else exit;
+
+  //conwritefln('s=[%s]; kname=[%s]; kmods=%s; mbuts=%s; but=%s', [s, kname, kmods, mbuts, but]);
+
+  if (mbuts = 255) then mbuts := 0;
+  if (kmods <> 255) and (ev.kstate <> kmods) then exit;
+
+       if (ev.kind = ev.Press) then mbuts := mbuts or but
+  else if (ev.kind = ev.Release) then mbuts := mbuts and (not but);
+
+  //conwritefln('  ev.bstate=%s; ev.but=%s; mbuts=%s', [ev.bstate, ev.but, mbuts]);
+
+  result := (ev.bstate = mbuts) and (ev.but = but);
+end;
+
+
+operator = (const s: AnsiString; constref ev: THMouseEvent): Boolean;
+begin
+  result := (ev = s);
+end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
@@ -818,7 +928,7 @@ begin
   if (ev.kind = THKeyEvent.Press) then
   begin
     // M-M: one monster think step
-    if (ev.scan = SDL_SCANCODE_M) and ((ev.kstate and THKeyEvent.ModAlt) <> 0) then
+    if (ev = 'M-M') then
     begin
       result := true;
       gmon_debug_think := false;
@@ -826,28 +936,28 @@ begin
       exit;
     end;
     // M-I: toggle monster info
-    if (ev.scan = SDL_SCANCODE_I) and ((ev.kstate and THKeyEvent.ModAlt) <> 0) then
+    if (ev = 'M-I') then
     begin
       result := true;
       showMonsInfo := not showMonsInfo;
       exit;
     end;
     // M-L: toggle monster LOS to player
-    if (ev.scan = SDL_SCANCODE_L) and ((ev.kstate and THKeyEvent.ModAlt) <> 0) then
+    if (ev = 'M-L') then
     begin
       result := true;
       showMonsLOS2Plr := not showMonsLOS2Plr;
       exit;
     end;
     // M-G: toggle "show all cells occupied by monsters"
-    if (ev.scan = SDL_SCANCODE_G) and ((ev.kstate and THKeyEvent.ModAlt) <> 0) then
+    if (ev = 'M-G') then
     begin
       result := true;
       showAllMonsCells := not showAllMonsCells;
       exit;
     end;
     // M-A: wake up monster
-    if (ev.scan = SDL_SCANCODE_A) and ((ev.kstate and THKeyEvent.ModAlt) <> 0) then
+    if (ev = 'M-A') then
     begin
       result := true;
       if (monMarkedUID <> -1) then
@@ -858,7 +968,7 @@ begin
       exit;
     end;
     // C-T: teleport player
-    if (ev.scan = SDL_SCANCODE_T) and ((ev.kstate and THKeyEvent.ModCtrl) <> 0) then
+    if (ev = 'C-T') then
     begin
       result := true;
       //e_WriteLog(Format('TELEPORT: (%d,%d)', [pmsCurMapX, pmsCurMapY]), MSG_NOTIFY);
@@ -870,21 +980,21 @@ begin
       exit;
     end;
     // C-P: show cursor position on the map
-    if (ev.scan = SDL_SCANCODE_P) and ((ev.kstate and THKeyEvent.ModCtrl) <> 0) then
+    if (ev = 'C-P') then
     begin
       result := true;
       showMapCurPos := not showMapCurPos;
       exit;
     end;
     // C-G: toggle grid
-    if (ev.scan = SDL_SCANCODE_G) and ((ev.kstate and THKeyEvent.ModCtrl) <> 0) then
+    if (ev = 'C-G') then
     begin
       result := true;
       showGrid := not showGrid;
       exit;
     end;
     // C-L: toggle layers window
-    if (ev.scan = SDL_SCANCODE_L) and ((ev.kstate and THKeyEvent.ModCtrl) <> 0) then
+    if (ev = 'C-L') then
     begin
       result := true;
       showLayersWindow := not showLayersWindow;
@@ -892,7 +1002,7 @@ begin
       exit;
     end;
     // C-O: toggle outlines window
-    if (ev.scan = SDL_SCANCODE_O) and ((ev.kstate and THKeyEvent.ModCtrl) <> 0) then
+    if (ev = 'C-O') then
     begin
       result := true;
       showOutlineWindow := not showOutlineWindow;
@@ -900,7 +1010,7 @@ begin
       exit;
     end;
     // F1: toggle options window
-    if (ev.scan = SDL_SCANCODE_F1) and (ev.kstate = 0) then
+    if (ev = 'F1') then
     begin
       result := true;
       if (winHelp = nil) then createHelpWindow();
@@ -908,7 +1018,7 @@ begin
       exit;
     end;
     // M-F1: toggle options window
-    if (ev.scan = SDL_SCANCODE_F1) and (ev.kstate = THKeyEvent.ModAlt) then
+    if (ev = 'M-F1') then
     begin
       result := true;
       if (winOptions = nil) then createOptionsWindow();

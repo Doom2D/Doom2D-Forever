@@ -475,7 +475,7 @@ begin
         if (msev.but <> 0) then
         begin
           // ev.button.clicks: Byte
-          curMsButState := curMsButState or msev.but;
+          if (ev.type_ = SDL_MOUSEBUTTONDOWN) then curMsButState := curMsButState or msev.but else curMsButState := curMsButState and (not msev.but);
           msev.bstate := curMsButState;
           msev.kstate := curKbState;
           if (g_holmes_enabled) then g_Holmes_mouseEvent(msev);
