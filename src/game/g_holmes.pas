@@ -904,10 +904,12 @@ end;
 function g_Holmes_KeyEvent (var ev: THKeyEvent): Boolean;
 var
   mon: TMonster;
-  pan: TPanel;
   x, y, w, h: Integer;
+  {$IF DEFINED(D2F_DEBUG)}
+  pan: TPanel;
   ex, ey: Integer;
   dx, dy: Integer;
+  {$ENDIF}
 
   procedure dummyWallTrc (cx, cy: Integer);
   begin
