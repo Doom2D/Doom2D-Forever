@@ -21,29 +21,29 @@ const curWidth = 17;
 const curHeight = 23;
 
 const cursorImg: array[0..curWidth*curHeight-1] of Byte = (
-  0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-  0,0,3,2,0,0,0,0,0,0,0,0,0,0,0,0,0,
-  1,0,3,2,2,0,0,0,0,0,0,0,0,0,0,0,0,
-  1,1,3,3,2,2,0,0,0,0,0,0,0,0,0,0,0,
-  1,1,3,3,4,2,2,0,0,0,0,0,0,0,0,0,0,
-  1,1,3,3,4,4,2,2,0,0,0,0,0,0,0,0,0,
-  1,1,3,3,4,4,4,2,2,0,0,0,0,0,0,0,0,
-  1,1,3,3,4,4,4,4,2,2,0,0,0,0,0,0,0,
-  1,1,3,3,4,4,4,5,6,2,2,0,0,0,0,0,0,
-  1,1,3,3,4,4,5,6,7,5,2,2,0,0,0,0,0,
-  1,1,3,3,4,5,6,7,5,4,5,2,2,0,0,0,0,
-  1,1,3,3,5,6,7,5,4,5,6,7,2,2,0,0,0,
-  1,1,3,3,6,7,5,4,5,6,7,7,7,2,2,0,0,
-  1,1,3,3,7,5,4,5,6,7,7,7,7,7,2,2,0,
-  1,1,3,3,5,4,5,6,8,8,8,8,8,8,8,8,2,
-  1,1,3,3,4,5,6,3,8,8,8,8,8,8,8,8,8,
-  1,1,3,3,5,6,3,3,1,1,1,1,1,1,1,0,0,
-  1,1,3,3,6,3,3,1,1,1,1,1,1,1,1,0,0,
-  1,1,3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,
-  1,1,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,
-  1,1,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,
-  1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-  1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+  2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+  3,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+  3,2,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+  3,3,2,2,0,0,0,0,0,0,0,0,0,0,0,0,0,
+  3,3,4,2,2,0,0,0,0,0,0,0,0,0,0,0,0,
+  3,3,4,4,2,2,0,0,0,0,0,0,0,0,0,0,0,
+  3,3,4,4,4,2,2,0,0,0,0,0,0,0,0,0,0,
+  3,3,4,4,4,4,2,2,0,0,0,0,0,0,0,0,0,
+  3,3,4,4,4,5,6,2,2,0,0,0,0,0,0,0,0,
+  3,3,4,4,5,6,7,5,2,2,0,0,0,0,0,0,0,
+  3,3,4,5,6,7,5,4,5,2,2,0,0,0,0,0,0,
+  3,3,5,6,7,5,4,5,6,7,2,2,0,0,0,0,0,
+  3,3,6,7,5,4,5,6,7,7,7,2,2,0,0,0,0,
+  3,3,7,5,4,5,6,7,7,7,7,7,2,2,0,0,0,
+  3,3,5,4,5,6,8,8,8,8,8,8,8,8,2,0,0,
+  3,3,4,5,6,3,8,8,8,8,8,8,8,8,8,0,0,
+  3,3,5,6,3,3,0,0,0,0,0,0,0,0,0,0,0,
+  3,3,6,3,3,0,0,0,0,0,0,0,0,0,0,0,0,
+  3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,
+  3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+  3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 );
 const cursorPal: array[0..9*4-1] of Byte = (
     0,  0,  0,  0,
@@ -72,17 +72,41 @@ begin
   GetMem(tex, curTexWidth*curTexHeight*4);
   FillChar(tex^, curTexWidth*curTexHeight*4, 0);
 
-  tpp := tex;
+  // draw shadow
   for y := 0 to curHeight-1 do
   begin
-    tpp := tex+(y*(curTexWidth*4));
+    for x := 0 to curWidth-1 do
+    begin
+      if (cursorImg[y*curWidth+x] <> 0) then
+      begin
+        c := 1*4;
+        tpp := tex+((y+1)*(curTexWidth*4)+(x+3)*4);
+        tpp^ := cursorPal[c+0]; Inc(tpp);
+        tpp^ := cursorPal[c+1]; Inc(tpp);
+        tpp^ := cursorPal[c+2]; Inc(tpp);
+        tpp^ := cursorPal[c+3]; Inc(tpp);
+        tpp^ := cursorPal[c+0]; Inc(tpp);
+        tpp^ := cursorPal[c+1]; Inc(tpp);
+        tpp^ := cursorPal[c+2]; Inc(tpp);
+        tpp^ := cursorPal[c+3]; Inc(tpp);
+      end;
+    end;
+  end;
+
+  // draw cursor
+  for y := 0 to curHeight-1 do
+  begin
     for x := 0 to curWidth-1 do
     begin
       c := cursorImg[y*curWidth+x]*4;
-      tpp^ := cursorPal[c+0]; Inc(tpp);
-      tpp^ := cursorPal[c+1]; Inc(tpp);
-      tpp^ := cursorPal[c+2]; Inc(tpp);
-      tpp^ := cursorPal[c+3]; Inc(tpp);
+      if (c <> 0) then
+      begin
+        tpp := tex+(y*(curTexWidth*4)+x*4);
+        tpp^ := cursorPal[c+0]; Inc(tpp);
+        tpp^ := cursorPal[c+1]; Inc(tpp);
+        tpp^ := cursorPal[c+2]; Inc(tpp);
+        tpp^ := cursorPal[c+3]; Inc(tpp);
+      end;
     end;
   end;
 
@@ -114,14 +138,14 @@ begin
   glEnable(GL_TEXTURE_2D);
   // color and opacity
   glColor4f(1, 1, 1, 0.9);
-  Dec(msX, 2);
+  //Dec(msX, 2);
   glBegin(GL_QUADS);
     glTexCoord2f(0.0, 0.0); glVertex2i(msX, msY); // top-left
     glTexCoord2f(1.0, 0.0); glVertex2i(msX+curTexWidth, msY); // top-right
     glTexCoord2f(1.0, 1.0); glVertex2i(msX+curTexWidth, msY+curTexHeight); // bottom-right
     glTexCoord2f(0.0, 1.0); glVertex2i(msX, msY+curTexHeight); // bottom-left
   glEnd();
-  Inc(msX, 2);
+  //Inc(msX, 2);
   glDisable(GL_BLEND);
   glDisable(GL_TEXTURE_2D);
   glColor4f(1, 1, 1, 1);
