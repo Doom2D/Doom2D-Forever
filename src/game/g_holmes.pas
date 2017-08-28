@@ -297,7 +297,7 @@ begin
   llb.appendItem('acid2', @g_rlayer_acid2);
   llb.appendItem('water', @g_rlayer_water);
   llb.appendItem('foreground', @g_rlayer_fore);
-  winLayers := THTopWindow.Create('visible', 10, 10);
+  winLayers := THTopWindow.Create('layers', 10, 10);
   winLayers.escClose := true;
   winLayers.appendChild(llb);
   winLayers.closeCB := winLayersClosed;

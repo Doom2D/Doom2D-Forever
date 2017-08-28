@@ -885,7 +885,7 @@ begin
   if (Length(mTitle) > 0) then
   begin
     setScissor(mFrameWidth+3*8, 0, mWidth-mFrameWidth*2-3*8, 8);
-    tx := mX+(mWidth-Length(mTitle)*8) div 2;
+    tx := (mX+3*8)+((mWidth-3*8)-Length(mTitle)*8) div 2;
     fillRect(tx-3, mY, Length(mTitle)*8+3+2, 8, 0, 0, 128);
     drawText8(tx, mY, mTitle, r, g, b);
   end;
