@@ -49,6 +49,17 @@ type
         nextFree: PEntry; // next free entry
       end;
 
+    TValEnumerator = class
+    private
+      mEntries: PEntry;
+      mFirstEntry, mLastEntry, cur: Integer;
+    public
+      constructor Create (aents: PEntry; afirst, alast: Integer);
+      function MoveNext: Boolean;
+      function getCurrent (): ValueT;
+      property Current: ValueT read getCurrent;
+    end;
+
   private
     hashfn: THashFn;
     equfn: TEquFn;
@@ -90,10 +101,11 @@ type
     //WARNING! don't modify table in iterator (queries are ok, though)
     function forEach (it: TIteratorFn): Boolean;
 
+    function GetEnumerator (): TValEnumerator;
+
     property count: Integer read mBucketsUsed;
     property capacity: Integer read getCapacity;
   end;
-
 
 type
   TJoaatHasher = record
@@ -107,7 +119,7 @@ type
     procedure reset (); inline; overload;
     procedure reset (aseed: LongWord); inline; overload;
 
-    procedure put (const buf; len: LongWord);
+    procedure put (constref buf; len: LongWord);
 
     // current hash value
     // you can continue putting data, as this is not destructive
@@ -122,8 +134,8 @@ function hashNewIntInt (): THashIntInt;
 
 
 function u32Hash (a: LongWord): LongWord; inline;
-function fnvHash (const buf; len: LongWord): LongWord;
-function joaatHash (const buf; len: LongWord): LongWord;
+function fnvHash (constref buf; len: LongWord): LongWord;
+function joaatHash (constref buf; len: LongWord): LongWord;
 
 function nextPOT (x: LongWord): LongWord; inline;
 
@@ -198,7 +210,7 @@ begin
 end;
 
 
-procedure TJoaatHasher.put (const buf; len: LongWord);
+procedure TJoaatHasher.put (constref buf; len: LongWord);
 var
   bytes: PByte;
   h: LongWord;
@@ -228,12 +240,12 @@ end;
 {$POP}
 
 
-function joaatHash (const buf; len: LongWord): LongWord;
+function joaatHash (constref buf; len: LongWord): LongWord;
 var
   h: TJoaatHasher;
 begin
   h := TJoaatHasher.Create(0);
-  h.put(buf, len);
+  h.put(PByte(@buf)^, len);
   result := h.value;
 end;
 
@@ -242,7 +254,7 @@ end;
 {$PUSH}
 {$RANGECHECKS OFF}
 // fnv-1a: http://www.isthe.com/chongo/tech/comp/fnv/
-function fnvHash (const buf; len: LongWord): LongWord;
+function fnvHash (constref buf; len: LongWord): LongWord;
 var
   b: PByte;
 begin
@@ -858,6 +870,42 @@ begin
     end;
     Inc(i);
   end;
+end;
+
+
+function THashBase.GetEnumerator (): TValEnumerator;
+begin
+  if (Length(mEntries) > 0) then
+  begin
+    result := TValEnumerator.Create(@mEntries[0], mFirstEntry, mLastEntry);
+  end
+  else
+  begin
+    result := TValEnumerator.Create(nil, -1, -1);
+  end;
+end;
+
+constructor THashBase.TValEnumerator.Create (aents: PEntry; afirst, alast: Integer);
+begin
+  mEntries := aents;
+  mFirstEntry := afirst;
+  mLastEntry := alast;
+  cur := mFirstEntry-1;
+end;
+
+function THashBase.TValEnumerator.MoveNext: Boolean;
+begin
+  Inc(cur);
+  while (cur <= mLastEntry) do
+  begin
+    if (mEntries[cur].hash <> 0) then begin result := true; exit; end;
+  end;
+  result := false;
+end;
+
+function THashBase.TValEnumerator.getCurrent (): ValueT;
+begin
+  result := mEntries[cur].value;
 end;
 
 

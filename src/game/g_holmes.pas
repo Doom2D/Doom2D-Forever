@@ -101,8 +101,8 @@ var
 implementation
 
 uses
-  SysUtils, GL, SDL2,
-  MAPDEF, g_options;
+  SysUtils, Classes, GL, SDL2,
+  MAPDEF, g_options, utils, hashtable, xparser;
 
 
 var
@@ -133,7 +133,8 @@ begin
   kmods := 255;
   mbuts := 255;
   pos := 1;
-  while (pos <= Length(s)) and (s[pos] <= ' ') do Inc(pos);
+  //while (pos <= Length(s)) and (s[pos] <= ' ') do Inc(pos);
+  if (pos < Length(s)) and ((s[pos] = '+') or (s[pos] = '-') or (s[pos] = '*')) then Inc(pos);
   while (pos < Length(s)) do
   begin
     if (Length(s)-pos >= 2) and (s[pos+1] = '-') then
@@ -170,6 +171,13 @@ var
   kname: AnsiString;
 begin
   result := false;
+  if (Length(s) > 0) then
+  begin
+         if (s[1] = '+') then begin if (ev.kind <> ev.Press) then exit; end
+    else if (s[1] = '-') then begin if (ev.kind <> ev.Release) then exit; end
+    else if (s[1] = '*') then begin end
+    else if (ev.kind <> ev.Press) then exit;
+  end;
   kname := parseModKeys(s, kmods, mbuts);
   if (kmods = 255) then kmods := 0;
   if (ev.kstate <> kmods) then exit;
@@ -199,6 +207,15 @@ var
   but: Integer = -1;
 begin
   result := false;
+
+  if (Length(s) > 0) then
+  begin
+         if (s[1] = '+') then begin if (ev.kind <> ev.Press) then exit; end
+    else if (s[1] = '-') then begin if (ev.kind <> ev.Release) then exit; end
+    else if (s[1] = '*') then begin if (ev.kind <> ev.Motion) then exit; end
+    else if (ev.kind <> ev.Press) then exit;
+  end;
+
   kname := parseModKeys(s, kmods, mbuts);
        if (CompareText(kname, 'LMB') = 0) then but := THMouseEvent.Left
   else if (CompareText(kname, 'RMB') = 0) then but := THMouseEvent.Right
@@ -209,7 +226,8 @@ begin
   //conwritefln('s=[%s]; kname=[%s]; kmods=%s; mbuts=%s; but=%s', [s, kname, kmods, mbuts, but]);
 
   if (mbuts = 255) then mbuts := 0;
-  if (kmods <> 255) and (ev.kstate <> kmods) then exit;
+  if (kmods = 255) then kmods := 0;
+  if (ev.kstate <> kmods) then exit;
 
        if (ev.kind = ev.Press) then mbuts := mbuts or but
   else if (ev.kind = ev.Release) then mbuts := mbuts and (not but);
@@ -224,6 +242,12 @@ operator = (const s: AnsiString; constref ev: THMouseEvent): Boolean;
 begin
   result := (ev = s);
 end;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
+{$INCLUDE g_holmes_cmd.inc}
+procedure holmesInitCommands (); forward;
+procedure holmesInitBinds (); forward;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
@@ -248,32 +272,132 @@ var
   winOutlines: THTopWindow = nil;
 
 
+procedure createHelpWindow (); forward;
+procedure createOptionsWindow (); forward;
+procedure createLayersWindow (); forward;
+procedure createOutlinesWindow (); forward;
+
+
+procedure toggleLayersWindowCB (me: THControl; checked: Integer);
+begin
+  if showLayersWindow then
+  begin
+    if (winLayers = nil) then createLayersWindow();
+    uiAddWindow(winLayers);
+  end
+  else
+  begin
+    uiRemoveWindow(winLayers);
+  end;
+end;
+
+
+procedure toggleOutlineWindowCB (me: THControl; checked: Integer);
+begin
+  if showOutlineWindow then
+  begin
+    if (winOutlines = nil) then createOutlinesWindow();
+    uiAddWindow(winOutlines);
+  end
+  else
+  begin
+    uiRemoveWindow(winOutlines);
+  end;
+end;
+
+
 procedure createHelpWindow ();
 var
   llb: THCtlSimpleText;
+  slist: array of AnsiString = nil;
+  cmd: PHolmesCommand;
+  bind: THolmesBinding;
+  f, maxkeylen: Integer;
+  s: AnsiString;
 begin
+  for cmd in cmdlist do cmd.helpmark := false;
+
+  maxkeylen := 0;
+  for bind in keybinds do
+  begin
+    if (Length(bind.key) = 0) then continue;
+    if cmdlist.get(bind.cmdName, cmd) then
+    begin
+      if (Length(cmd.help) > 0) then
+      begin
+        cmd.helpmark := true;
+        if (maxkeylen < Length(bind.key)) then maxkeylen := Length(bind.key);
+      end;
+    end;
+  end;
+
+  for cmd in cmdlist do
+  begin
+    if not cmd.helpmark then continue;
+    if (Length(cmd.help) = 0) then continue;
+    f := 0;
+    while (f < Length(slist)) and (CompareText(slist[f], cmd.section) <> 0) do Inc(f);
+    if (f = Length(slist)) then
+    begin
+      SetLength(slist, Length(slist)+1);
+      slist[High(slist)] := cmd.section;
+    end;
+  end;
+
   llb := THCtlSimpleText.Create(0, 0);
-  llb.appendItem('common keys', true, true);
-  llb.appendItem('  F1   -- toggle this window');
-  llb.appendItem('  M-F1 -- toggle options window');
-  llb.appendItem('');
-  llb.appendItem('control keys', true, true);
-  llb.appendItem('  M-M -- one monster think step');
-  llb.appendItem('  M-I -- toggle monster info');
-  llb.appendItem('  M-K -- toggle monster LOS to player');
-  llb.appendItem('  M-G -- toggle "show all cells occupied by monsters" (SLOW!)');
-  llb.appendItem('  M-A -- wake up monster');
-  llb.appendItem('  C-T -- teleport player');
-  llb.appendItem('  C-P -- show cursor position on the map');
-  llb.appendItem('  C-G -- toggle grid');
-  llb.appendItem('  C-L -- toggle layers window');
-  llb.appendItem('  C-O -- toggle outlines window');
+  for f := 0 to High(slist) do
+  begin
+    if (f > 0) then llb.appendItem('');
+    llb.appendItem(slist[f], true, true);
+    for cmd in cmdlist do
+    begin
+      if not cmd.helpmark then continue;
+      if (CompareText(cmd.section, slist[f]) <> 0) then continue;
+      for bind in keybinds do
+      begin
+        if (Length(bind.key) = 0) then continue;
+        if (cmd.name = bind.cmdName) then
+        begin
+          s := bind.key;
+          while (Length(s) < maxkeylen) do s += ' ';
+          s := '  '+s+' -- '+cmd.help;
+          llb.appendItem(s);
+        end;
+      end;
+    end;
+  end;
+
+  maxkeylen := 0;
+  for bind in msbinds do
+  begin
+    if (Length(bind.key) = 0) then continue;
+    if cmdlist.get(bind.cmdName, cmd) then
+    begin
+      if (Length(cmd.help) > 0) then
+      begin
+        cmd.helpmark := true;
+        if (maxkeylen < Length(bind.key)) then maxkeylen := Length(bind.key);
+      end;
+    end;
+  end;
+
   llb.appendItem('');
   llb.appendItem('mouse', true, true);
-  llb.appendItem('  LMB   -- select monster');
-  llb.appendItem('  M-LMB -- dump monsters in cell (to log)');
-  llb.appendItem('  RMB   -- dump wall info to log');
-  llb.appendItem('  M-LMB -- disable wall');
+  for bind in msbinds do
+  begin
+    if (Length(bind.key) = 0) then continue;
+    if cmdlist.get(bind.cmdName, cmd) then
+    begin
+      if (Length(cmd.help) > 0) then
+      begin
+        s := bind.key;
+        while (Length(s) < maxkeylen) do s += ' ';
+        s := '  '+s+' -- '+cmd.help;
+        llb.appendItem(s);
+      end;
+    end;
+  end;
+
   winHelp := THTopWindow.Create('Holmes Help', 10, 10);
   winHelp.escClose := true;
   winHelp.appendChild(llb);
@@ -327,34 +451,6 @@ begin
 end;
 
 
-procedure toggleLayersWindow (me: THControl; checked: Integer);
-begin
-  if showLayersWindow then
-  begin
-    if (winLayers = nil) then createLayersWindow();
-    uiAddWindow(winLayers);
-  end
-  else
-  begin
-    uiRemoveWindow(winLayers);
-  end;
-end;
-
-
-procedure toggleOutlineWindow (me: THControl; checked: Integer);
-begin
-  if showOutlineWindow then
-  begin
-    if (winOutlines = nil) then createOutlinesWindow();
-    uiAddWindow(winOutlines);
-  end
-  else
-  begin
-    uiRemoveWindow(winOutlines);
-  end;
-end;
-
-
 procedure createOptionsWindow ();
 var
   llb: THCtlCBListBox;
@@ -366,12 +462,37 @@ begin
   llb.appendItem('monster LOS to player', @showMonsLOS2Plr);
   llb.appendItem('monster cells (SLOW!)', @showAllMonsCells);
   llb.appendItem('WINDOWS', nil);
-  llb.appendItem('layers window', @showLayersWindow, toggleLayersWindow);
-  llb.appendItem('outline window', @showOutlineWindow, toggleOutlineWindow);
+  llb.appendItem('layers window', @showLayersWindow, toggleLayersWindowCB);
+  llb.appendItem('outline window', @showOutlineWindow, toggleOutlineWindowCB);
   winOptions := THTopWindow.Create('Holmes Options', 100, 100);
   winOptions.escClose := true;
   winOptions.appendChild(llb);
   winOptions.centerInScreen();
+end;
+
+
+procedure toggleLayersWindow (arg: Integer=-1);
+begin
+  showLayersWindow := not showLayersWindow;
+  toggleLayersWindowCB(nil, 0);
+end;
+
+procedure toggleOutlineWindow (arg: Integer=-1);
+begin
+  showOutlineWindow := not showOutlineWindow;
+  toggleOutlineWindowCB(nil, 0);
+end;
+
+procedure toggleHelpWindow (arg: Integer=-1);
+begin
+  if (winHelp = nil) then createHelpWindow();
+  if not uiVisibleWindow(winHelp) then uiAddWindow(winHelp) else uiRemoveWindow(winHelp);
+end;
+
+procedure toggleOptionsWindow (arg: Integer=-1);
+begin
+  if (winOptions = nil) then createOptionsWindow();
+  if not uiVisibleWindow(winOptions) then uiAddWindow(winOptions) else uiRemoveWindow(winOptions);
 end;
 
 
@@ -434,65 +555,12 @@ function pmsCurMapY (): Integer; inline; begin result := msY+vpy; end;
 
 
 procedure plrDebugMouse (var ev: THMouseEvent);
-
-  function wallToggle (pan: TPanel; tag: Integer): Boolean;
-  begin
-    result := false; // don't stop
-    e_WriteLog(Format('wall #%d(%d); enabled=%d (%d); (%d,%d)-(%d,%d)', [pan.arrIdx, pan.proxyId, Integer(pan.Enabled), Integer(mapGrid.proxyEnabled[pan.proxyId]), pan.X, pan.Y, pan.Width, pan.Height]), MSG_NOTIFY);
-    if (kbS = THKeyEvent.ModAlt) then
-    begin
-      if pan.Enabled then g_Map_DisableWall(pan.arrIdx) else g_Map_EnableWall(pan.arrIdx);
-    end;
-  end;
-
-  function monsAtDump (mon: TMonster; tag: Integer): Boolean;
-  begin
-    result := false; // don't stop
-    e_WriteLog(Format('monster #%d; UID=%d', [mon.arrIdx, mon.UID]), MSG_NOTIFY);
-    monMarkedUID := mon.UID;
-    //if pan.Enabled then g_Map_DisableWall(pan.arrIdx) else g_Map_EnableWall(pan.arrIdx);
-  end;
-
-  function monsInCell (mon: TMonster; tag: Integer): Boolean;
-  begin
-    result := false; // don't stop
-    e_WriteLog(Format('monster #%d (UID:%u) (proxyid:%d)', [mon.arrIdx, mon.UID, mon.proxyId]), MSG_NOTIFY);
-  end;
-
 begin
   //e_WriteLog(Format('mouse: x=%d; y=%d; but=%d; bstate=%d', [msx, msy, but, bstate]), MSG_NOTIFY);
   if (gPlayer1 = nil) or not vpSet then exit;
-  if (ev.kind <> THMouseEvent.Press) then exit;
-
-  e_WriteLog(Format('mev: %d', [Integer(ev.kind)]), MSG_NOTIFY);
-
-  if (ev.but = THMouseEvent.Right) then
-  begin
-    // dump/toggle wall
-    e_WriteLog('=== TOGGLE WALL ===', MSG_NOTIFY);
-    mapGrid.forEachAtPoint(pmsCurMapX, pmsCurMapY, wallToggle, (GridTagWall or GridTagDoor));
-    e_WriteLog('--- toggle wall ---', MSG_NOTIFY);
-    exit;
-  end;
-
-  if (ev.but = THMouseEvent.Left) then
-  begin
-    if (kbS = THKeyEvent.ModAlt) then
-    begin
-      // dump monsters in cell
-      e_WriteLog('===========================', MSG_NOTIFY);
-      monsGrid.forEachInCell(pmsCurMapX, pmsCurMapY, monsInCell);
-      e_WriteLog('---------------------------', MSG_NOTIFY);
-    end
-    else if (kbS = 0) then
-    begin
-      monMarkedUID := -1;
-      e_WriteLog('===========================', MSG_NOTIFY);
-      monsGrid.forEachAtPoint(pmsCurMapX, pmsCurMapY, monsAtDump);
-      e_WriteLog('---------------------------', MSG_NOTIFY);
-    end;
-    exit;
-  end;
+  //if (ev.kind <> THMouseEvent.Press) then exit;
+  //e_WriteLog(Format('mev: %d', [Integer(ev.kind)]), MSG_NOTIFY);
+  msbindExecute(ev);
 end;
 
 
@@ -700,7 +768,6 @@ end;
 
 
 procedure plrDebugDraw ();
-
   procedure drawTileGrid ();
   var
     x, y: Integer;
@@ -891,6 +958,8 @@ end;
 // ////////////////////////////////////////////////////////////////////////// //
 function g_Holmes_MouseEvent (var ev: THMouseEvent): Boolean;
 begin
+  holmesInitCommands();
+  holmesInitBinds();
   result := true;
   msX := ev.x;
   msY := ev.y;
@@ -901,21 +970,22 @@ begin
 end;
 
 
+// ////////////////////////////////////////////////////////////////////////// //
 function g_Holmes_KeyEvent (var ev: THKeyEvent): Boolean;
+{$IF DEFINED(D2F_DEBUG)}
 var
-  mon: TMonster;
-  x, y, w, h: Integer;
-  {$IF DEFINED(D2F_DEBUG)}
   pan: TPanel;
   ex, ey: Integer;
   dx, dy: Integer;
-  {$ENDIF}
+{$ENDIF}
 
   procedure dummyWallTrc (cx, cy: Integer);
   begin
   end;
 
 begin
+  holmesInitCommands();
+  holmesInitBinds();
   result := false;
   msB := ev.bstate;
   kbS := ev.kstate;
@@ -926,107 +996,10 @@ begin
       result := true;
   end;
   if uiKeyEvent(ev) then begin result := true; exit; end;
+  if keybindExecute(ev) then begin result := true; exit; end;
   // press
   if (ev.kind = THKeyEvent.Press) then
   begin
-    // M-M: one monster think step
-    if (ev = 'M-M') then
-    begin
-      result := true;
-      gmon_debug_think := false;
-      gmon_debug_one_think_step := true; // do one step
-      exit;
-    end;
-    // M-I: toggle monster info
-    if (ev = 'M-I') then
-    begin
-      result := true;
-      showMonsInfo := not showMonsInfo;
-      exit;
-    end;
-    // M-L: toggle monster LOS to player
-    if (ev = 'M-L') then
-    begin
-      result := true;
-      showMonsLOS2Plr := not showMonsLOS2Plr;
-      exit;
-    end;
-    // M-G: toggle "show all cells occupied by monsters"
-    if (ev = 'M-G') then
-    begin
-      result := true;
-      showAllMonsCells := not showAllMonsCells;
-      exit;
-    end;
-    // M-A: wake up monster
-    if (ev = 'M-A') then
-    begin
-      result := true;
-      if (monMarkedUID <> -1) then
-      begin
-        mon := g_Monsters_ByUID(monMarkedUID);
-        if (mon <> nil) then mon.WakeUp();
-      end;
-      exit;
-    end;
-    // C-T: teleport player
-    if (ev = 'C-T') then
-    begin
-      result := true;
-      //e_WriteLog(Format('TELEPORT: (%d,%d)', [pmsCurMapX, pmsCurMapY]), MSG_NOTIFY);
-      if (gPlayers[0] <> nil) then
-      begin
-        gPlayers[0].getMapBox(x, y, w, h);
-        gPlayers[0].TeleportTo(pmsCurMapX-w div 2, pmsCurMapY-h div 2, true, 69); // 69: don't change dir
-      end;
-      exit;
-    end;
-    // C-P: show cursor position on the map
-    if (ev = 'C-P') then
-    begin
-      result := true;
-      showMapCurPos := not showMapCurPos;
-      exit;
-    end;
-    // C-G: toggle grid
-    if (ev = 'C-G') then
-    begin
-      result := true;
-      showGrid := not showGrid;
-      exit;
-    end;
-    // C-L: toggle layers window
-    if (ev = 'C-L') then
-    begin
-      result := true;
-      showLayersWindow := not showLayersWindow;
-      toggleLayersWindow(nil, 0);
-      exit;
-    end;
-    // C-O: toggle outlines window
-    if (ev = 'C-O') then
-    begin
-      result := true;
-      showOutlineWindow := not showOutlineWindow;
-      toggleOutlineWindow(nil, 0);
-      exit;
-    end;
-    // F1: toggle options window
-    if (ev = 'F1') then
-    begin
-      result := true;
-      if (winHelp = nil) then createHelpWindow();
-      if not uiVisibleWindow(winHelp) then uiAddWindow(winHelp) else uiRemoveWindow(winHelp);
-      exit;
-    end;
-    // M-F1: toggle options window
-    if (ev = 'M-F1') then
-    begin
-      result := true;
-      if (winOptions = nil) then createOptionsWindow();
-      if not uiVisibleWindow(winOptions) then uiAddWindow(winOptions) else uiRemoveWindow(winOptions);
-      exit;
-    end;
     {$IF DEFINED(D2F_DEBUG)}
     // C-UP, C-DOWN, C-LEFT, C-RIGHT: trace 10 pixels from cursor in the respective direction
     if ((ev.scan = SDL_SCANCODE_UP) or (ev.scan = SDL_SCANCODE_DOWN) or (ev.scan = SDL_SCANCODE_LEFT) or (ev.scan = SDL_SCANCODE_RIGHT)) and
@@ -1061,6 +1034,9 @@ end;
 // ////////////////////////////////////////////////////////////////////////// //
 procedure g_Holmes_Draw ();
 begin
+  holmesInitCommands();
+  holmesInitBinds();
+
   glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE); // modify color buffer
   glDisable(GL_STENCIL_TEST);
   glDisable(GL_BLEND);
@@ -1080,6 +1056,191 @@ procedure g_Holmes_DrawUI ();
 begin
   uiDraw();
   drawCursor();
+end;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
+procedure bcOneMonsterThinkStep (); begin gmon_debug_think := false; gmon_debug_one_think_step := true; end;
+procedure bcToggleMonsterInfo (arg: Integer=-1); begin if (arg < 0) then showMonsInfo := not showMonsInfo else showMonsInfo := (arg > 0); end;
+procedure bcToggleMonsterLOSPlr (arg: Integer=-1); begin if (arg < 0) then showMonsLOS2Plr := not showMonsLOS2Plr else showMonsLOS2Plr := (arg > 0); end;
+procedure bcToggleMonsterCells (arg: Integer=-1); begin if (arg < 0) then showAllMonsCells := not showAllMonsCells else showAllMonsCells := (arg > 0); end;
+
+procedure bcToggleCurPos (arg: Integer=-1); begin if (arg < 0) then showMapCurPos := not showMapCurPos else showMapCurPos := (arg > 0); end;
+procedure bcToggleGrid (arg: Integer=-1); begin if (arg < 0) then showGrid := not showGrid else showGrid := (arg > 0); end;
+
+procedure bcMonsterWakeup ();
+var
+  mon: TMonster;
+begin
+  if (monMarkedUID <> -1) then
+  begin
+    mon := g_Monsters_ByUID(monMarkedUID);
+    if (mon <> nil) then mon.WakeUp();
+  end;
+end;
+
+procedure bcPlayerTeleport ();
+var
+  x, y, w, h: Integer;
+begin
+  //e_WriteLog(Format('TELEPORT: (%d,%d)', [pmsCurMapX, pmsCurMapY]), MSG_NOTIFY);
+  if (gPlayers[0] <> nil) then
+  begin
+    gPlayers[0].getMapBox(x, y, w, h);
+    gPlayers[0].TeleportTo(pmsCurMapX-w div 2, pmsCurMapY-h div 2, true, 69); // 69: don't change dir
+  end;
+end;
+
+procedure cbAtcurSelectMonster ();
+  function monsAtDump (mon: TMonster; tag: Integer): Boolean;
+  begin
+    result := true; // stop
+    e_WriteLog(Format('monster #%d (UID:%u) (proxyid:%d)', [mon.arrIdx, mon.UID, mon.proxyId]), MSG_NOTIFY);
+    monMarkedUID := mon.UID;
+  end;
+begin
+  monMarkedUID := -1;
+  //e_WriteLog('===========================', MSG_NOTIFY);
+  monsGrid.forEachAtPoint(pmsCurMapX, pmsCurMapY, monsAtDump);
+  //e_WriteLog('---------------------------', MSG_NOTIFY);
+end;
+
+procedure cbAtcurDumpMonsters ();
+  function monsAtDump (mon: TMonster; tag: Integer): Boolean;
+  begin
+    result := false; // don't stop
+    e_WriteLog(Format('monster #%d (UID:%u) (proxyid:%d)', [mon.arrIdx, mon.UID, mon.proxyId]), MSG_NOTIFY);
+  end;
+begin
+  e_WriteLog('===========================', MSG_NOTIFY);
+  monsGrid.forEachAtPoint(pmsCurMapX, pmsCurMapY, monsAtDump);
+  e_WriteLog('---------------------------', MSG_NOTIFY);
+end;
+
+procedure cbAtcurDumpWalls ();
+  function wallToggle (pan: TPanel; tag: Integer): Boolean;
+  begin
+    result := false; // don't stop
+    e_WriteLog(Format('wall #%d(%d); enabled=%d (%d); (%d,%d)-(%d,%d)', [pan.arrIdx, pan.proxyId, Integer(pan.Enabled), Integer(mapGrid.proxyEnabled[pan.proxyId]), pan.X, pan.Y, pan.Width, pan.Height]), MSG_NOTIFY);
+  end;
+begin
+  e_WriteLog('=== TOGGLE WALL ===', MSG_NOTIFY);
+  mapGrid.forEachAtPoint(pmsCurMapX, pmsCurMapY, wallToggle, (GridTagWall or GridTagDoor));
+  e_WriteLog('--- toggle wall ---', MSG_NOTIFY);
+end;
+
+procedure cbAtcurToggleWalls ();
+  function wallToggle (pan: TPanel; tag: Integer): Boolean;
+  begin
+    result := false; // don't stop
+    //e_WriteLog(Format('wall #%d(%d); enabled=%d (%d); (%d,%d)-(%d,%d)', [pan.arrIdx, pan.proxyId, Integer(pan.Enabled), Integer(mapGrid.proxyEnabled[pan.proxyId]), pan.X, pan.Y, pan.Width, pan.Height]), MSG_NOTIFY);
+    if pan.Enabled then g_Map_DisableWall(pan.arrIdx) else g_Map_EnableWall(pan.arrIdx);
+  end;
+begin
+  //e_WriteLog('=== TOGGLE WALL ===', MSG_NOTIFY);
+  mapGrid.forEachAtPoint(pmsCurMapX, pmsCurMapY, wallToggle, (GridTagWall or GridTagDoor));
+  //e_WriteLog('--- toggle wall ---', MSG_NOTIFY);
+end;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
+procedure holmesInitCommands ();
+begin
+  if (cmdlist <> nil) then exit;
+  cmdAdd('win_layers', toggleLayersWindow, 'toggle layers window', 'window control');
+  cmdAdd('win_outline', toggleOutlineWindow, 'toggle outline window', 'window control');
+  cmdAdd('win_help', toggleHelpWindow, 'toggle help window', 'window control');
+  cmdAdd('win_options', toggleOptionsWindow, 'toggle options window', 'window control');
+
+  cmdAdd('mon_think_step', bcOneMonsterThinkStep, 'one monster think step', 'monster control');
+  cmdAdd('mon_info', bcToggleMonsterInfo, 'toggle monster info', 'monster control');
+  cmdAdd('mon_los_plr', bcToggleMonsterLOSPlr, 'toggle monster LOS to player', 'monster control');
+  cmdAdd('mon_cells', bcToggleMonsterCells, 'toggle "show all cells occupied by monsters" (SLOW!)', 'monster control');
+  cmdAdd('mon_wakeup', bcMonsterWakeup, 'toggle "show all cells occupied by monsters" (SLOW!)', 'monster control');
+
+  cmdAdd('plr_teleport', bcPlayerTeleport, 'teleport player', 'player control');
+
+  cmdAdd('dbg_curpos', bcToggleCurPos, 'toggle "show cursor position on the map"', 'various');
+  cmdAdd('dbg_grid', bcToggleGrid, 'toggle grid', 'various');
+
+  cmdAdd('atcur_select_monster', cbAtcurSelectMonster, 'select monster to operate', 'monster control');
+  cmdAdd('atcur_dump_monsters', cbAtcurDumpMonsters, 'dump monsters in cell', 'monster control');
+  cmdAdd('atcur_dump_walls', cbAtcurDumpWalls, 'dump walls in cell', 'wall control');
+  cmdAdd('atcur_disable_walls', cbAtcurToggleWalls, 'disable walls', 'wall control');
+end;
+
+
+procedure holmesInitBinds ();
+var
+  st: TStream = nil;
+  pr: TTextParser = nil;
+  s, kn, v: AnsiString;
+  kmods: Byte;
+  mbuts: Byte;
+begin
+  kbS := kbS;
+  if not keybindsInited then
+  begin
+    // keyboard
+    keybindAdd('F1', 'win_help');
+    keybindAdd('M-F1', 'win_options');
+    keybindAdd('C-O', 'win_outline');
+    keybindAdd('C-L', 'win_layers');
+
+    keybindAdd('M-M', 'mon_think_step');
+    keybindAdd('M-I', 'mon_info');
+    keybindAdd('M-L', 'mon_los_plr');
+    keybindAdd('M-G', 'mon_cells');
+    keybindAdd('M-A', 'mon_wakeup');
+
+    keybindAdd('C-T', 'plr_teleport');
+
+    keybindAdd('C-P', 'dbg_curpos');
+    keybindAdd('C-G', 'dbg_grid');
+
+    // mouse
+    msbindAdd('LMB', 'atcur_select_monster');
+    msbindAdd('M-LMB', 'atcur_dump_monsters');
+    msbindAdd('RMB', 'atcur_dump_walls');
+    msbindAdd('M-RMB', 'atcur_disable_walls');
+
+    // load bindings from file
+    try
+      st := openDiskFileRO('holmes.rc');
+      pr := TFileTextParser.Create(st);
+      conwriteln('parsing "holmes.rc"...');
+      while (pr.tokType <> pr.TTEOF) do
+      begin
+        s := pr.expectId();
+             if (s = 'stop') then break
+        else if (s = 'unbind_keys') then keybinds := nil
+        else if (s = 'unbind_mouse') then msbinds := nil
+        else if (s = 'bind') then
+        begin
+               if (pr.tokType = pr.TTStr) then s := pr.expectStr(false)
+          else if (pr.tokType = pr.TTInt) then s := Format('%d', [pr.expectInt()])
+          else s := pr.expectId();
+
+               if (pr.tokType = pr.TTStr) then v := pr.expectStr(false)
+          else if (pr.tokType = pr.TTInt) then v := Format('%d', [pr.expectInt()])
+          else v := pr.expectId();
+
+          kn := parseModKeys(s, kmods, mbuts);
+          if (CompareText(kn, 'lmb') = 0) or (CompareText(kn, 'rmb') = 0) or (CompareText(kn, 'mmb') = 0) or (CompareText(kn, 'None') = 0) then
+          begin
+            msbindAdd(s, v);
+          end
+          else
+          begin
+            keybindAdd(s, v);
+          end;
+        end;
+      end;
+    except on e: Exception do // sorry
+      if (pr <> nil) then conwritefln('Holmes config parse error at (%s,%s): %s', [pr.tokLine, pr.tokCol, e.message]);
+    end;
+    if (pr <> nil) then pr.Free() else st.Free(); // ownership
+  end;
 end;
 
 

@@ -110,6 +110,7 @@ type
 
   public
     constructor Create (const fname: AnsiString; loadToken: Boolean=true);
+    constructor Create (st: TStream; loadToken: Boolean=true); // will take ownership on st
     destructor Destroy (); override;
   end;
 
@@ -587,6 +588,14 @@ end;
 constructor TFileTextParser.Create (const fname: AnsiString; loadToken: Boolean=true);
 begin
   mFile := openDiskFileRO(fname);
+  inherited Create(loadToken);
+end;
+
+
+constructor TFileTextParser.Create (st: TStream; loadToken: Boolean=true);
+begin
+  if (st = nil) then raise Exception.Create('cannot create parser for nil stream');
+  mFile := st;
   inherited Create(loadToken);
 end;
 
