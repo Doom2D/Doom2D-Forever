@@ -20,6 +20,7 @@ type
     mParent: THControl;
     mX, mY: Integer;
     mWidth, mHeight: Integer;
+    mFrameWidth, mFrameHeight: Integer;
     mEnabled: Boolean;
     mCanFocus: Boolean;
     mChildren: array of THControl;
@@ -27,6 +28,11 @@ type
     mGrab: THControl; // valid only for top-level controls
     mEscClose: Boolean; // valid only for top-level controls
     mEatKeys: Boolean;
+    mDrawShadow: Boolean;
+
+  private
+    scallowed: Boolean;
+    scxywh: array[0..3] of GLint;
 
   protected
     function getEnabled (): Boolean;
@@ -45,6 +51,20 @@ type
 
     procedure activated (); virtual;
     procedure blurred (); virtual;
+
+    //WARNING! do not call scissor functions outside `.draw*()` API!
+    // reset scissor to whole control
+    procedure resetScissor ();
+    // set scissor to this internal rect (in local coords)
+    procedure setScissor (lx, ly, lw, lh: Integer);
+
+    // DO NOT USE!
+    procedure setScissorGLInternal (x, y, w, h: Integer);
+
+  public
+    // return `false` if destination rect is empty
+    // modifies rect0
+    class function intersectRect (var x0, y0, w0, h0: Integer; const x1, y1, w1, h1: Integer): Boolean;
 
   public
     constructor Create (ax, ay, aw, ah: Integer; aparent: THControl=nil);
@@ -75,6 +95,8 @@ type
     function firstChild (): THControl; inline;
     function lastChild (): THControl; inline;
 
+    procedure appendChild (ctl: THControl); virtual;
+
   public
     property x0: Integer read mX;
     property y0: Integer read mY;
@@ -100,12 +122,11 @@ type
   public
     constructor Create (const atitle: AnsiString; ax, ay: Integer; aw: Integer=-1; ah: Integer=-1);
 
-    procedure appendChild (ctl: THControl);
-
     // `sx` and `sy` are screen coordinates
     procedure drawControl (sx, sy: Integer); override;
     procedure drawControlPost (sx, sy: Integer); override;
 
+    function keyEvent (var ev: THKeyEvent): Boolean; override; // returns `true` if event was eaten
     function mouseEvent (var ev: THMouseEvent): Boolean; override; // returns `true` if event was eaten
   end;
 
@@ -256,6 +277,8 @@ begin
   mY := ay;
   mWidth := aw;
   mHeight := ah;
+  mFrameWidth := 0;
+  mFrameHeight := 0;
   mEnabled := true;
   mCanFocus := true;
   mChildren := nil;
@@ -263,6 +286,8 @@ begin
   mGrab := nil;
   mEscClose := false;
   mEatKeys := false;
+  scallowed := false;
+  mDrawShadow := false;
 end;
 
 
@@ -543,36 +568,86 @@ begin
 end;
 
 
+procedure THControl.appendChild (ctl: THControl);
+begin
+  if (ctl = nil) then exit;
+  if (ctl.mParent <> nil) then exit;
+  SetLength(mChildren, Length(mChildren)+1);
+  mChildren[High(mChildren)] := ctl;
+  ctl.mParent := self;
+  Inc(ctl.mX, mFrameWidth);
+  Inc(ctl.mY, mFrameHeight);
+  if (ctl.mWidth > 0) and (ctl.mHeight > 0) and
+     (ctl.mX+ctl.mWidth > mFrameWidth) and (ctl.mY+ctl.mHeight > mFrameHeight) then
+  begin
+    if (mWidth+mFrameWidth < ctl.mX+ctl.mWidth) then mWidth := ctl.mX+ctl.mWidth+mFrameWidth;
+    if (mHeight+mFrameHeight < ctl.mY+ctl.mHeight) then mHeight := ctl.mY+ctl.mHeight+mFrameHeight;
+  end;
+  if (mFocused = nil) and ctl.mEnabled and ctl.mCanFocus and (ctl.mWidth > 0) and (ctl.mHeight > 0) then mFocused := ctl;
+end;
+
+
+//TODO: overflow checks
+class function THControl.intersectRect (var x0, y0, w0, h0: Integer; const x1, y1, w1, h1: Integer): Boolean;
+var
+  ex0, ey0: Integer;
+begin
+  result := false;
+  if (w0 < 1) or (h0 < 1) or (w1 < 1) or (h1 < 1) then exit;
+  // check for intersection
+  if (x0+w0 <= x1) or (y0+h0 <= y1) or (x1+w1 <= x0) or (y1+h1 <= y0) then exit;
+  if (x0 >= x1+w1) or (y0 >= y1+h1) or (x1 >= x0+h0) or (y1 >= y0+h0) then exit;
+  // ok, intersects
+  ex0 := x0+w0;
+  ey0 := y0+h0;
+  if (x0 < x1) then x0 := x1;
+  if (y0 < y1) then y0 := y1;
+  if (ex0 > x1+w1) then ex0 := x1+w1;
+  if (ey0 > y1+h1) then ey0 := y1+h1;
+  w0 := ex0-x0;
+  h0 := ey0-y0;
+  result := (w0 > 0) and (h0 > 0);
+end;
+
+
+procedure THControl.setScissorGLInternal (x, y, w, h: Integer);
+begin
+  if not scallowed then exit;
+  y := gWinSizeY-(y+h);
+  if not intersectRect(x, y, w, h, scxywh[0], scxywh[1], scxywh[2], scxywh[3]) then glScissor(0, 0, 0, 0) else glScissor(x, y, w, h);
+end;
+
+
+procedure THControl.resetScissor ();
+var
+  x, y: Integer;
+begin
+  if not scallowed then exit;
+  x := 0;
+  y := 0;
+  toGlobal(x, y);
+  setScissorGLInternal(x, y, mWidth, mHeight);
+end;
+
+
+procedure THControl.setScissor (lx, ly, lw, lh: Integer);
+var
+  x, y: Integer;
+begin
+  if not scallowed then exit;
+  if not intersectRect(lx, ly, lw, lh, 0, 0, mWidth, mHeight) then begin glScissor(0, 0, 0, 0); exit; end;
+  x := lx;
+  y := ly;
+  toGlobal(x, y);
+  setScissorGLInternal(x, y, lw, lh);
+end;
+
+
 procedure THControl.draw ();
 var
   f: Integer;
   x, y: Integer;
-  scxywh: array[0..3] of GLint;
   wassc: Boolean;
-
-  procedure setScissor (x, y, w, h: Integer);
-  var
-    x1, y1: Integer;
-    sx0, sy0: Integer;
-    sx1, sy1: Integer;
-  begin
-    if (w < 1) or (h < 1) or (scxywh[2] < 1) or (scxywh[3] < 1) then begin glScissor(0, 0, 0, 0); exit; end;
-    x1 := x+w-1;
-    y1 := y+h-1;
-    sx0 := scxywh[0];
-    sy0 := scxywh[1];
-    sx1 := sx0+scxywh[2]-1;
-    sy1 := sy0+scxywh[3]-1;
-    //conwritefln('0: (%d,%d)-(%d,%d)  (%d,%d)-(%d,%d)', [sx0, sy0, sx1, sy1, x, y, x1, y1]);
-    if (x1 < sx0) or (y1 < sy0) or (x > sx1) or (y > sy1) then begin glScissor(0, 0, 0, 0); exit; end;
-    if (x < sx0) then x := sx0;
-    if (y < sy0) then y := sy0;
-    if (x1 > sx1) then x1 := sx1;
-    if (y1 > sy1) then y1 := sy1;
-    //conwritefln('1: (%d,%d)-(%d,%d)  (%d,%d)-(%d,%d)', [sx0, sy0, sx1, sy1, x, y, x1, y1]);
-    glScissor(x, y, x1-x+1, y1-y+1);
-  end;
-
 begin
   if (mWidth < 1) or (mHeight < 1) then exit;
   x := 0;
@@ -586,38 +661,38 @@ begin
   scxywh[3] := 0;
 
   wassc := (glIsEnabled(GL_SCISSOR_TEST) <> 0);
-  if wassc then
-  begin
-    glGetIntegerv(GL_SCISSOR_BOX, @scxywh[0]);
-  end
-  else
-  begin
-    glGetIntegerv(GL_VIEWPORT, @scxywh[0]);
-  end;
+  if wassc then glGetIntegerv(GL_SCISSOR_BOX, @scxywh[0]) else glGetIntegerv(GL_VIEWPORT, @scxywh[0]);
   //conwritefln('(%d,%d)-(%d,%d)', [scxywh[0], scxywh[1], scxywh[2], scxywh[3]]);
-
   glEnable(GL_SCISSOR_TEST);
-  setScissor(x, gWinSizeY-(y+mHeight-1)-1, mWidth, mHeight);
+  scallowed := true;
 
+  resetScissor();
   drawControl(x, y);
-  if (mParent = nil) then setScissor(x+2, gWinSizeY-(y+mHeight-1-2)-1, mWidth-4, mHeight-14);
+  if (mFrameWidth <> 0) or (mFrameHeight <> 0) then setScissor(mFrameWidth, mFrameHeight, mWidth-mFrameWidth*2, mHeight-mFrameHeight*2);
   for f := 0 to High(mChildren) do mChildren[f].draw();
-  if (mParent = nil) then setScissor(x, gWinSizeY-(y+mHeight-1)-1, mWidth, mHeight);
+  if (mFrameWidth <> 0) or (mFrameHeight <> 0) then resetScissor();
   drawControlPost(x, y);
   glScissor(scxywh[0], scxywh[1], scxywh[2], scxywh[3]);
+
   if wassc then glEnable(GL_SCISSOR_TEST) else glDisable(GL_SCISSOR_TEST);
+  scallowed := false;
 end;
 
 
 procedure THControl.drawControl (sx, sy: Integer);
 begin
   if (mParent = nil) then darkenRect(sx, sy, mWidth, mHeight, 64);
-  //fillRect(sx, sy, mWidth, mHeight, 0, 0, 255, 120);
 end;
 
 
 procedure THControl.drawControlPost (sx, sy: Integer);
 begin
+  if mDrawShadow and (mWidth > 0) and (mHeight > 0) then
+  begin
+    setScissorGLInternal(sx+8, sy+8, mWidth, mHeight);
+    darkenRect(sx+mWidth, sy+8, 8, mHeight, 128);
+    darkenRect(sx+8, sy+mHeight, mWidth-8, 8, 128);
+  end;
 end;
 
 
@@ -697,78 +772,51 @@ end;
 // ////////////////////////////////////////////////////////////////////////// //
 constructor THTopWindow.Create (const atitle: AnsiString; ax, ay: Integer; aw: Integer=-1; ah: Integer=-1);
 begin
+  inherited Create(ax, ay, aw, ah, nil);
+  mFrameWidth := 8;
+  mFrameHeight := 8;
   mTitle := atitle;
+  if (mWidth < mFrameWidth*2) then mWidth := mFrameWidth*2;
+  if (mHeight < mFrameHeight*2) then mHeight := mFrameHeight*2;
   if (Length(mTitle) > 0) then
   begin
-    if (ah < 14) then ah := 14;
-    if (aw < Length(mTitle)*8+4) then aw := Length(mTitle)*8+4;
-  end
-  else
-  begin
-    if (ah < 4) then ah := 4;
-    if (aw < 4) then aw := 4;
+    if (mWidth < Length(mTitle)*8+mFrameWidth*2) then mWidth := Length(mTitle)*8+mFrameWidth*2;
   end;
   mDragging := false;
-  inherited Create(ax, ay, aw, ah, nil);
-end;
-
-
-procedure THTopWindow.appendChild (ctl: THControl);
-var
-  myofs: Integer;
-begin
-  if (ctl = nil) then exit;
-  if (ctl.mParent <> nil) then exit;
-  if (Length(mTitle) > 0) then myofs := 12 else myofs := 2;
-  SetLength(mChildren, Length(mChildren)+1);
-  mChildren[High(mChildren)] := ctl;
-  ctl.mParent := self;
-  Inc(ctl.mX, 2);
-  Inc(ctl.mY, myofs);
-  if (ctl.mWidth > 0) and (ctl.mHeight > 0) and
-     (ctl.mX+ctl.mWidth > 2) and (ctl.mY+ctl.mHeight > myofs-2) then
-  begin
-    if (mWidth+2 < ctl.mX+ctl.mWidth) then mWidth := ctl.mX+ctl.mWidth+2;
-    if (mHeight+2 < ctl.mY+ctl.mHeight) then mHeight := ctl.mY+ctl.mHeight+2;
-  end;
-  if (mFocused = nil) and ctl.mEnabled and ctl.mCanFocus and (ctl.mWidth > 0) and (ctl.mHeight > 0) then mFocused := ctl;
+  mDrawShadow := true;
 end;
 
 
 procedure THTopWindow.drawControl (sx, sy: Integer);
 begin
-  //if (mParent = nil) then darkenRect(sx, sy, mWidth, mHeight, 200);
   fillRect(sx, sy, mWidth, mHeight, 0, 0, 128);
 end;
 
 
 procedure THTopWindow.drawControlPost (sx, sy: Integer);
+const r = 255;
+const g = 255;
+const b = 255;
 var
-  r, g, b: Integer;
+  tx: Integer;
 begin
-  {
-  if getFocused then
+  if mDragging then
   begin
-    r := 255;
-    g := 255;
-    b := 255;
+    drawRect(mX+4, mY+4, mWidth-8, mHeight-8, r, g, b);
   end
   else
   begin
-    r := 127;
-    g := 127;
-    b := 127;
+    drawRect(mX+3, mY+3, mWidth-6, mHeight-6, r, g, b);
+    drawRect(mX+5, mY+5, mWidth-10, mHeight-10, r, g, b);
   end;
-  }
-  r := 255;
-  g := 255;
-  b := 255;
-  drawRect(mX, mY, mWidth, mHeight, r, g, b);
   if (Length(mTitle) > 0) then
   begin
-    fillRect(mX+1, mY+1, mWidth-2, 9, r, g, b);
-    drawText8(mX+2, mY+1, mTitle, 0, 0, 0);
+    setScissor(mFrameWidth, 0, mWidth-mFrameWidth*2, 8);
+    tx := (mWidth-Length(mTitle)*8) div 2;
+    fillRect(mX+tx-3, mY, Length(mTitle)*8+3+2, 8, 0, 0, 128);
+    drawText8(mX+tx, mY, mTitle, r, g, b);
   end;
+  inherited drawControlPost(sx, sy);
 end;
 
 
@@ -776,6 +824,19 @@ procedure THTopWindow.blurred ();
 begin
   mDragging := false;
   inherited;
+end;
+
+
+function THTopWindow.keyEvent (var ev: THKeyEvent): Boolean;
+begin
+  result := inherited keyEvent(ev);
+  if not getFocused then exit;
+  if (ev.kstate = ev.ModAlt) and (ev.kind = ev.Press) and (ev.scan = SDL_SCANCODE_F3) then
+  begin
+    uiRemoveWindow(self);
+    result := true;
+    exit;
+  end;
 end;
 
 
@@ -804,11 +865,26 @@ begin
     ly := ev.y;
     if toLocal(lx, ly) then
     begin
-      if ((Length(mTitle) > 0) and (ly < 12)) or ((Length(mTitle) = 0) and (ly < 2)) then
+      if (ly < 8) then
       begin
         mDragging := true;
         mDragStartX := ev.x;
         mDragStartY := ev.y;
+        result := true;
+        exit;
+      end;
+    end;
+  end;
+
+  if (ev.kind = ev.Press) and (ev.but = ev.Right) then
+  begin
+    lx := ev.x;
+    ly := ev.y;
+    if toLocal(lx, ly) then
+    begin
+      if (ly < 8) then
+      begin
+        uiRemoveWindow(self);
         result := true;
         exit;
       end;
@@ -851,7 +927,7 @@ end;
 
 procedure THCtlCBListBox.drawControl (sx, sy: Integer);
 var
-  f: Integer;
+  f, tx: Integer;
 begin
   //fillRect(sx, sy, mWidth, mHeight, 0, 128, 0);
   Inc(sx, 2);
@@ -865,6 +941,20 @@ begin
       //if mChecks[f]^ then drawText8(sx+6, sy, 'x', 255, 255, 255);
       if mChecks[f]^ then drawText8(sx, sy, '[x]', 255, 255, 255) else drawText8(sx, sy, '[ ]', 255, 255, 255);
       drawText8(sx+3*8+2, sy, mItems[f], 255, 255, 0);
+    end
+    else if (Length(mItems[f]) > 0) then
+    begin
+      tx := sx+(mWidth-Length(mItems[f])*8) div 2;
+      if (tx-3 > sx+4) then
+      begin
+        drawLine(sx+4, sy+3, tx-3, sy+3, 255, 255, 255);
+        drawLine(tx+Length(mItems[f])*8, sy+3, sx+mWidth-4, sy+3, 255, 255, 255);
+      end;
+      drawText8(sx+(mWidth-Length(mItems[f])*8) div 2, sy, mItems[f], 255, 255, 255);
+    end
+    else
+    begin
+      drawLine(sx+4, sy+3, sx+mWidth-8, sy+3, 255, 255, 255);
     end;
     Inc(sy, 8);
   end;

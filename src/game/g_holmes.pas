@@ -149,7 +149,7 @@ begin
   llb.appendItem('monster info', @showMonsInfo);
   llb.appendItem('monster LOS to player', @showMonsLOS2Plr);
   llb.appendItem('monster cells (SLOW!)', @showAllMonsCells);
-  llb.appendItem('', nil);
+  llb.appendItem('WINDOWS', nil);
   llb.appendItem('layers window', @showLayersWindow);
   llb.appendItem('outline window', @showOutlineWindow);
   winOptions := THTopWindow.Create('Holmes Options', 100, 100);
@@ -190,10 +190,9 @@ begin
   llb.appendItem('acid2', @g_ol_rlayer_acid2);
   llb.appendItem('water', @g_ol_rlayer_water);
   llb.appendItem('foreground', @g_ol_rlayer_fore);
-  llb.appendItem('', nil);
+  llb.appendItem('OPTIONS', nil);
   llb.appendItem('fill walls', @g_ol_fill_walls);
-  llb.appendItem('', nil);
-  llb.appendItem('slow''n''nice', @g_ol_nice);
+  llb.appendItem('contours', @g_ol_nice);
   winOutlines := THTopWindow.Create('outlines', 100, 10);
   winOutlines.escClose := true;
   winOutlines.appendChild(llb);

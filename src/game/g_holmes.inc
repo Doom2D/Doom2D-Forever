@@ -118,8 +118,8 @@ begin
   glBegin(GL_QUADS);
     glTexCoord2f(0.0, 0.0); glVertex2i(msX, msY); // top-left
     glTexCoord2f(1.0, 0.0); glVertex2i(msX+curTexWidth, msY); // top-right
-    glTexCoord2f(1.0, 1.0); glVertex2i(msX+curTexWidth, msY+curHeight); // bottom-right
-    glTexCoord2f(0.0, 1.0); glVertex2i(msX, msY+curHeight); // bottom-left
+    glTexCoord2f(1.0, 1.0); glVertex2i(msX+curTexWidth, msY+curTexHeight); // bottom-right
+    glTexCoord2f(0.0, 1.0); glVertex2i(msX, msY+curTexHeight); // bottom-left
   glEnd();
   Inc(msX, 2);
   glDisable(GL_BLEND);
@@ -492,27 +492,7 @@ end;
 
 // ////////////////////////////////////////////////////////////////////////// //
 procedure drawLine (x1, y1, x2, y2: Integer; r, g, b: Integer; a: Integer=255);
-
-  procedure lcor (var x1, y1, x2, y2: Integer);
-  begin
-    if (y2 < y1) then
-    begin
-      x1 := x1 xor x2;
-      x2 := x1 xor x2;
-      x1 := x1 xor x2;
-
-      y1 := y1 xor y2;
-      y2 := y1 xor y2;
-      y1 := y1 xor y2;
-    end;
-
-    if (x1 < x2) then Inc(X2) else Inc(x1);
-    Inc(y2);
-  end;
-
 begin
-  lcor(x1, y1, x2, y2);
-
   if (a < 0) then a := 0 else if (a > 255) then a := 255;
   if (r < 0) then r := 0 else if (r > 255) then r := 255;
   if (g < 0) then g := 0 else if (g > 255) then g := 255;
@@ -535,9 +515,16 @@ begin
   glPointSize(1);
 
   glBegin(GL_LINES);
-    glVertex2i(x1, y1);
-    glVertex2i(x2, y2);
+    glVertex2f(x1+0.37, y1+0.37);
+    glVertex2f(x2+0.37, y2+0.37);
   glEnd();
+
+  if (x1 <> x2) or (y1 <> y2) then
+  begin
+    glBegin(GL_POINTS);
+      glVertex2f(x2+0.37, y2+0.37);
+    glEnd();
+  end;
 
   glColor4f(1, 1, 1, 1);
   glDisable(GL_BLEND);
@@ -547,19 +534,10 @@ end;
 procedure drawRect (x, y, w, h: Integer; r, g, b: Integer; a: Integer=255);
 begin
   if (w < 0) or (h < 0) then exit;
-  //if (w = 1) and (h = 1) then begin drawLine(x, y, x, y, r, g, b, a); exit; end;
   if (a < 0) then a := 0 else if (a > 255) then a := 255;
   if (r < 0) then r := 0 else if (r > 255) then r := 255;
   if (g < 0) then g := 0 else if (g > 255) then g := 255;
   if (b < 0) then b := 0 else if (b > 255) then b := 255;
-  {
-  Inc(w);
-  Inc(h);
-  drawLine(x, y, x+w-1, y, r, g, b, a);
-  drawLine(x+w-1, y+1, x+w-1, y+h-1, r, g, b, a);
-  drawLine(x+w-2, y+h-1, x, y+h-1, r, g, b, a);
-  drawLine(x, y+h-2, x, y+1, r, g, b, a);
-  }
   if (a < 255) then
   begin
     glEnable(GL_BLEND);
@@ -574,20 +552,21 @@ begin
   glDisable(GL_LINE_SMOOTH);
   glDisable(GL_POLYGON_SMOOTH);
   glColor4f(r/255.0, g/255.0, b/255.0, a/255.0);
-  {
-  glBegin(GL_LINE_LOOP);
-    glVertex2f(x+0.37, y+0.37);
-    glVertex2f(x+w-1+0.37, y+0.37);
-    glVertex2f(x+w-1+0.37, y+h-1);
-    glVertex2f(x+0.37, y+h-1+0.37);
-  glEnd();
-  }
-  glBegin(GL_LINES);
-    glVertex2i(x, y); glVertex2i(x+w, y); // top
-    glVertex2i(x, y+h-1); glVertex2i(x+w, y+h-1); // bottom
-    glVertex2f(x+0.37, y+1); glVertex2f(x+0.37, y+h-1); // left
-    glVertex2f(x+w-1+0.37, y+1); glVertex2f(x+w-1+0.37, y+h-1); // right
-  glEnd();
+  if (w = 1) and (h = 1) then
+  begin
+    glBegin(GL_POINTS);
+      glVertex2f(x+0.37, y+0.37);
+    glEnd();
+  end
+  else
+  begin
+    glBegin(GL_LINES);
+      glVertex2i(x, y); glVertex2i(x+w, y); // top
+      glVertex2i(x, y+h-1); glVertex2i(x+w, y+h-1); // bottom
+      glVertex2f(x+0.37, y+1); glVertex2f(x+0.37, y+h-1); // left
+      glVertex2f(x+w-1+0.37, y+1); glVertex2f(x+w-1+0.37, y+h-1); // right
+    glEnd();
+  end;
   //glRect(x, y, x+w, y+h);
   glColor4f(1, 1, 1, 1);
   glDisable(GL_BLEND);
