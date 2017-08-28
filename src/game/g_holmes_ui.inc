@@ -115,6 +115,8 @@ type
     mTitle: AnsiString;
     mDragging: Boolean;
     mDragStartX, mDragStartY: Integer;
+    mWaitingClose: Boolean;
+    mInClose: Boolean;
 
   protected
     procedure blurred (); override;
@@ -776,14 +778,16 @@ begin
   mFrameWidth := 8;
   mFrameHeight := 8;
   mTitle := atitle;
-  if (mWidth < mFrameWidth*2) then mWidth := mFrameWidth*2;
+  if (mWidth < mFrameWidth*2+3*8) then mWidth := mFrameWidth*2+3*8;
   if (mHeight < mFrameHeight*2) then mHeight := mFrameHeight*2;
   if (Length(mTitle) > 0) then
   begin
-    if (mWidth < Length(mTitle)*8+mFrameWidth*2) then mWidth := Length(mTitle)*8+mFrameWidth*2;
+    if (mWidth < Length(mTitle)*8+mFrameWidth*2+3*8) then mWidth := Length(mTitle)*8+mFrameWidth*2+3*8;
   end;
   mDragging := false;
   mDrawShadow := true;
+  mWaitingClose := false;
+  mInClose := false;
 end;
 
 
@@ -808,13 +812,18 @@ begin
   begin
     drawRect(mX+3, mY+3, mWidth-6, mHeight-6, r, g, b);
     drawRect(mX+5, mY+5, mWidth-10, mHeight-10, r, g, b);
+    setScissor(mFrameWidth, 0, 3*8, 8);
+    fillRect(mX+mFrameWidth, mY, 3*8, 8, 0, 0, 128);
+    drawText8(mX+mFrameWidth, mY, '[ ]', r, g, b);
+    if mInClose then drawText8(mX+mFrameWidth+7, mY, '#', 0, 255, 0)
+    else drawText8(mX+mFrameWidth+7, mY, '*', 0, 255, 0);
   end;
   if (Length(mTitle) > 0) then
   begin
-    setScissor(mFrameWidth, 0, mWidth-mFrameWidth*2, 8);
-    tx := (mWidth-Length(mTitle)*8) div 2;
-    fillRect(mX+tx-3, mY, Length(mTitle)*8+3+2, 8, 0, 0, 128);
-    drawText8(mX+tx, mY, mTitle, r, g, b);
+    setScissor(mFrameWidth+3*8, 0, mWidth-mFrameWidth*2-3*8, 8);
+    tx := mX+(mWidth-Length(mTitle)*8) div 2;
+    fillRect(tx-3, mY, Length(mTitle)*8+3+2, 8, 0, 0, 128);
+    drawText8(tx, mY, mTitle, r, g, b);
   end;
   inherited drawControlPost(sx, sy);
 end;
@@ -823,6 +832,8 @@ end;
 procedure THTopWindow.blurred ();
 begin
   mDragging := false;
+  mWaitingClose := false;
+  mInClose := false;
   inherited;
 end;
 
@@ -859,13 +870,30 @@ begin
     exit;
   end;
 
-  if (ev.kind = ev.Press) and (ev.but = ev.Left) then
+  lx := ev.x;
+  ly := ev.y;
+  if toLocal(lx, ly) then
   begin
-    lx := ev.x;
-    ly := ev.y;
-    if toLocal(lx, ly) then
+    if (ev.kind = ev.Press) then
     begin
       if (ly < 8) then
+      begin
+        if (lx >= mFrameWidth) and (lx < mFrameWidth+3*8) then
+        begin
+          //uiRemoveWindow(self);
+          mWaitingClose := true;
+          mInClose := true;
+        end
+        else
+        begin
+          mDragging := true;
+          mDragStartX := ev.x;
+          mDragStartY := ev.y;
+        end;
+        result := true;
+        exit;
+      end;
+      if (lx < mFrameWidth) or (lx >= mWidth-mFrameWidth) or (ly >= mHeight-mFrameHeight) then
       begin
         mDragging := true;
         mDragStartX := ev.x;
@@ -874,21 +902,33 @@ begin
         exit;
       end;
     end;
-  end;
 
-  if (ev.kind = ev.Press) and (ev.but = ev.Right) then
-  begin
-    lx := ev.x;
-    ly := ev.y;
-    if toLocal(lx, ly) then
+    if (ev.kind = ev.Release) then
     begin
-      if (ly < 8) then
+      if mWaitingClose and (lx >= mFrameWidth) and (lx < mFrameWidth+3*8) then
       begin
         uiRemoveWindow(self);
         result := true;
         exit;
       end;
+      mWaitingClose := false;
+      mInClose := false;
     end;
+
+    if (ev.kind = ev.Motion) then
+    begin
+      if mWaitingClose then
+      begin
+        mInClose := (lx >= mFrameWidth) and (lx < mFrameWidth+3*8);
+        result := true;
+        exit;
+      end;
+    end;
+  end
+  else
+  begin
+    mInClose := false;
+    if (ev.kind <> ev.Motion) then mWaitingClose := false;
   end;
 
   result := inherited mouseEvent(ev);
