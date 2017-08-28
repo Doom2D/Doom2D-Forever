@@ -1990,7 +1990,11 @@ begin
     UPSTime := Time;
   end;
 
-  if gGameOn then g_Weapon_AddDynLights();
+  if gGameOn then
+  begin
+    g_Weapon_AddDynLights();
+    g_Items_AddDynLights();
+  end;
 end;
 
 procedure g_Game_LoadData();
