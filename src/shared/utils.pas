@@ -139,9 +139,125 @@ function digitInBase (ch: AnsiChar; base: Integer): Integer;
 function quoteStr (const s: AnsiString): AnsiString;
 
 
+type
+  generic TSimpleList<ItemT> = class
+  private
+    type PItemT = ^ItemT;
+
+  public
+    type
+      TEnumerator = record
+      private
+        mItems: PItemT;
+        mCount: Integer;
+        mCurrent: Integer;
+      public
+        constructor Create (aitems: PItemT; acount: Integer);
+        function MoveNext: Boolean;
+        function getCurrent (): ItemT;
+        property Current: ItemT read getCurrent;
+      end;
+
+  private
+    mItems: array of ItemT;
+    mCount: Integer; // can be less than `mItems` size
+
+  private
+    function getAt (idx: Integer): ItemT; inline;
+
+  public
+    constructor Create ();
+    destructor Destroy (); override;
+
+    function GetEnumerator (): TEnumerator;
+
+    procedure reset (); inline; // won't resize `mItems`
+    procedure clear (); inline;
+
+    procedure append (constref it: ItemT); inline;
+
+  public
+    property count: Integer read mCount;
+    property at[idx: Integer]: ItemT read getAt; default;
+  end;
+
+
 implementation
 
 
+// ////////////////////////////////////////////////////////////////////////// //
+constructor TSimpleList.TEnumerator.Create (aitems: PItemT; acount: Integer);
+begin
+  mItems := aitems;
+  mCount := acount;
+  mCurrent := -1;
+end;
+
+function TSimpleList.TEnumerator.MoveNext: Boolean;
+begin
+  Inc(mCurrent);
+  result := (mCurrent < mCount);
+end;
+
+function TSimpleList.TEnumerator.getCurrent (): ItemT;
+begin
+  result := mItems[mCurrent];
+end;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
+constructor TSimpleList.Create ();
+begin
+  mItems := nil;
+  mCount := 0;
+end;
+
+
+destructor TSimpleList.Destroy ();
+begin
+  mItems := nil;
+  inherited;
+end;
+
+
+function TSimpleList.GetEnumerator (): TEnumerator;
+begin
+  if (Length(mItems) > 0) then result := TEnumerator.Create(@mItems[0], mCount)
+  else result := TEnumerator.Create(nil, -1);
+end;
+
+
+procedure TSimpleList.reset (); inline;
+begin
+  mCount := 0;
+end;
+
+
+procedure TSimpleList.clear (); inline;
+begin
+  mItems := nil;
+  mCount := 0;
+end;
+
+
+function TSimpleList.getAt (idx: Integer): ItemT; inline;
+begin
+  if (idx >= 0) and (idx < mCount) then result := mItems[idx] else result := Default(ItemT);
+end;
+
+
+procedure TSimpleList.append (constref it: ItemT); inline;
+begin
+  if (mCount = Length(mItems)) then
+  begin
+    if (mCount = 0) then SetLength(mItems, 128) else SetLength(mItems, mCount*2);
+  end;
+  mItems[mCount] := it;
+  Inc(mCount);
+end;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
 var
   wc2shitmap: array[0..65535] of AnsiChar;
   wc2shitmapInited: Boolean = false;

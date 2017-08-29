@@ -1359,12 +1359,16 @@ begin
         SetLength(s, 64);
         CopyMemory(@s[1], @_textures[a].Resource[0], 64);
         for b := 1 to Length(s) do
+        begin
           if s[b] = #0 then
           begin
             SetLength(s, b-1);
             Break;
           end;
+        end;
+        {$IF DEFINED(D2F_DEBUG)}
         e_WriteLog(Format('    Loading texture #%d: %s', [a, s]), MSG_NOTIFY);
+        {$ENDIF}
         //if g_Map_IsSpecialTexture(s) then e_WriteLog('      SPECIAL!', MSG_NOTIFY);
       // Анимированная текстура:
         if ByteBool(_textures[a].Anim) then

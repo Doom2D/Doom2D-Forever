@@ -102,6 +102,7 @@ type
     mProxyFree: TBodyProxyId; // free
     mProxyCount: Integer; // currently used
     mProxyMaxCount: Integer;
+    mInQuery: Boolean;
 
   public
     dbgShowTraceLog: Boolean;
@@ -1235,6 +1236,9 @@ begin
   if (x+w <= 0) or (y+h <= 0) then exit;
   if (x >= gw*tsize) or (y >= mHeight*tsize) then exit;
 
+  if mInQuery then raise Exception.Create('recursive queries aren''t supported');
+  mInQuery := true;
+
   // increase query counter
   Inc(mLastQuery);
   if (mLastQuery = 0) then
@@ -1274,11 +1278,12 @@ begin
           if (x0+w <= px.mX) or (y0+h <= px.mY) then continue;
           if assigned(cb) then
           begin
-            if cb(px.mObj, ptag) then begin result := px.mObj; exit; end;
+            if cb(px.mObj, ptag) then begin result := px.mObj; mInQuery := false; exit; end;
           end
           else
           begin
             result := px.mObj;
+            mInQuery := false;
             exit;
           end;
         end;
@@ -1286,6 +1291,8 @@ begin
       end;
     end;
   end;
+
+  mInQuery := false;
 end;
 
 
@@ -1552,6 +1559,9 @@ begin
 
   //if (dbgShowTraceLog) then e_WriteLog(Format('raycast start: (%d,%d)-(%d,%d); xptr^=%d; yptr^=%d', [ax0, ay0, ax1, ay1, xptr^, yptr^]), MSG_NOTIFY);
 
+  if mInQuery then raise Exception.Create('recursive queries aren''t supported');
+  mInQuery := true;
+
   // increase query counter
   Inc(mLastQuery);
   if (mLastQuery = 0) then
@@ -1629,6 +1639,7 @@ begin
                     result := px.mObj;
                     ex := x;
                     ey := y;
+                    mInQuery := false;
                     exit;
                   end;
                 end
@@ -1643,6 +1654,7 @@ begin
                     ex := x;
                     ey := y;
                     result := px.mObj;
+                    mInQuery := false;
                     exit;
                   end;
                 end;
@@ -1697,6 +1709,7 @@ begin
                   result := px.mObj;
                   ex := prevx;
                   ey := prevy;
+                  mInQuery := false;
                   exit;
                 end;
               end
@@ -1720,8 +1733,8 @@ begin
           // next cell
           ccidx := cc.next;
         end;
-        if wasHit and not assigned(cb) then begin result := lastObj; exit; end;
-        if assigned(cb) and cb(nil, 0, x, y, x, y) then begin result := lastObj; exit; end;
+        if wasHit and not assigned(cb) then begin result := lastObj; mInQuery := false; exit; end;
+        if assigned(cb) and cb(nil, 0, x, y, x, y) then begin result := lastObj; mInQuery := false; exit; end;
       end;
       // skip to next tile
       if hopt then
@@ -1778,6 +1791,7 @@ begin
     end;
     // we can travel less than one cell
     if wasHit and not assigned(cb) then result := lastObj else begin ex := ax1; ey := ay1; end;
+    mInQuery := false;
     exit;
   end;
   {$ENDIF}
@@ -1811,11 +1825,12 @@ begin
         // signal cell completion
         if assigned(cb) then
         begin
-          if cb(nil, 0, xptr^+minx, yptr^+miny, prevx, prevy) then begin result := lastObj; exit; end;
+          if cb(nil, 0, xptr^+minx, yptr^+miny, prevx, prevy) then begin result := lastObj; mInQuery := false; exit; end;
         end
         else if wasHit then
         begin
           result := lastObj;
+          mInQuery := false;
           exit;
         end;
       end;
@@ -1853,6 +1868,7 @@ begin
                   result := px.mObj;
                   ex := prevx;
                   ey := prevy;
+                  mInQuery := false;
                   exit;
                 end;
               end
@@ -1890,11 +1906,12 @@ begin
         ccidx := -1;
         if assigned(cb) then
         begin
-          if cb(nil, 0, x, y, prevx, prevy) then begin result := lastObj; exit; end;
+          if cb(nil, 0, x, y, prevx, prevy) then begin result := lastObj; mInQuery := false; exit; end;
         end
         else if wasHit then
         begin
           result := lastObj;
+          mInQuery := false;
           exit;
         end;
       end;
@@ -1933,6 +1950,8 @@ begin
     ex := ax1; // why not?
     ey := ay1; // why not?
   end;
+
+  mInQuery := false;
 end;
 
 
@@ -2143,6 +2162,9 @@ begin
   //lastGA := (yptr^ div tsize)*gw+(xptr^ div tsize);
   //ccidx := mGrid[lastGA];
 
+  if mInQuery then raise Exception.Create('recursive queries aren''t supported');
+  mInQuery := true;
+
   // increase query counter
   Inc(mLastQuery);
   if (mLastQuery = 0) then
@@ -2205,11 +2227,12 @@ begin
               px.mQueryMark := lq; // mark as processed
               if assigned(cb) then
               begin
-                if cb(px.mObj, ptag) then begin result := px.mObj; exit; end;
+                if cb(px.mObj, ptag) then begin result := px.mObj; mInQuery := false; exit; end;
               end
               else
               begin
                 result := px.mObj;
+                mInQuery := false;
                 exit;
               end;
             end;
@@ -2271,6 +2294,7 @@ begin
       end;
       Dec(wklen, wkstep);
     end;
+    mInQuery := false;
     exit;
   end;
   {$ENDIF}
@@ -2323,11 +2347,12 @@ begin
             px.mQueryMark := lq; // mark as processed
             if assigned(cb) then
             begin
-              if cb(px.mObj, ptag) then begin result := px.mObj; exit; end;
+              if cb(px.mObj, ptag) then begin result := px.mObj; mInQuery := false; exit; end;
             end
             else
             begin
               result := px.mObj;
+              mInQuery := false;
               exit;
             end;
           end;
@@ -2357,6 +2382,8 @@ begin
     if (e >= 0) then begin yd += sty; e -= dx2; end else e += dy2;
     xd += stx;
   end;
+
+  mInQuery := false;
 end;
 
 

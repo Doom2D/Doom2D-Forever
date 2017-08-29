@@ -892,16 +892,17 @@ begin
     it := @ggItems[f];
     if not it.Live then continue;
     case it.ItemType of
-      ITEM_KEY_RED: g_AddDynLight(it.Obj.X+(it.Obj.Rect.Width div 2), it.Obj.Y+(it.Obj.Rect.Height div 2), 32,  1.0, 0.0, 0.0, 0.6);
-      ITEM_KEY_GREEN: g_AddDynLight(it.Obj.X+(it.Obj.Rect.Width div 2), it.Obj.Y+(it.Obj.Rect.Height div 2), 32,  0.0, 1.0, 0.0, 0.6);
-      ITEM_KEY_BLUE: g_AddDynLight(it.Obj.X+(it.Obj.Rect.Width div 2), it.Obj.Y+(it.Obj.Rect.Height div 2), 32,  0.0, 0.0, 1.0, 0.6);
+      ITEM_KEY_RED: g_AddDynLight(it.Obj.X+(it.Obj.Rect.Width div 2), it.Obj.Y+(it.Obj.Rect.Height div 2), 24,  1.0, 0.0, 0.0, 0.6);
+      ITEM_KEY_GREEN: g_AddDynLight(it.Obj.X+(it.Obj.Rect.Width div 2), it.Obj.Y+(it.Obj.Rect.Height div 2), 24,  0.0, 1.0, 0.0, 0.6);
+      ITEM_KEY_BLUE: g_AddDynLight(it.Obj.X+(it.Obj.Rect.Width div 2), it.Obj.Y+(it.Obj.Rect.Height div 2), 24,  0.0, 0.0, 1.0, 0.6);
       ITEM_ARMOR_GREEN: g_AddDynLight(it.Obj.X+(it.Obj.Rect.Width div 2), it.Obj.Y+(it.Obj.Rect.Height div 2), 42,  0.0, 1.0, 0.0, 0.6);
       ITEM_ARMOR_BLUE: g_AddDynLight(it.Obj.X+(it.Obj.Rect.Width div 2), it.Obj.Y+(it.Obj.Rect.Height div 2), 42,  0.0, 0.0, 1.0, 0.6);
       ITEM_SPHERE_BLUE: g_AddDynLight(it.Obj.X+(it.Obj.Rect.Width div 2), it.Obj.Y+(it.Obj.Rect.Height div 2), 32,  0.0, 1.0, 0.0, 0.6);
       ITEM_SPHERE_WHITE: g_AddDynLight(it.Obj.X+(it.Obj.Rect.Width div 2), it.Obj.Y+(it.Obj.Rect.Height div 2), 32,  1.0, 1.0, 1.0, 0.6);
       ITEM_INVUL: g_AddDynLight(it.Obj.X+(it.Obj.Rect.Width div 2), it.Obj.Y+(it.Obj.Rect.Height div 2), 32,  1.0, 0.0, 0.0, 0.6);
       ITEM_INVIS: g_AddDynLight(it.Obj.X+(it.Obj.Rect.Width div 2), it.Obj.Y+(it.Obj.Rect.Height div 2), 32,  1.0, 1.0, 0.0, 0.6);
-      ITEM_BOTTLE: g_AddDynLight(it.Obj.X+(it.Obj.Rect.Width div 2), it.Obj.Y+(it.Obj.Rect.Height div 2), 32,  0.0, 0.0, 1.0, 0.6);
+      ITEM_BOTTLE: g_AddDynLight(it.Obj.X+(it.Obj.Rect.Width div 2), it.Obj.Y+(it.Obj.Rect.Height div 2), 16,  0.0, 0.0, 0.8, 0.6);
+      ITEM_HELMET: g_AddDynLight(it.Obj.X+(it.Obj.Rect.Width div 2), it.Obj.Y+(it.Obj.Rect.Height div 2), 16,  0.0, 0.8, 0.0, 0.6);
     end;
   end;
 end;

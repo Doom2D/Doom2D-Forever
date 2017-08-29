@@ -101,7 +101,7 @@ uses
   g_player, g_map, Math, g_gfx, g_game, g_textures,
   g_console, g_monsters, g_items, g_phys, g_weapons,
   wadreader, g_main, SysUtils, e_log, g_language,
-  g_options, g_net, g_netmsg;
+  g_options, g_net, g_netmsg, utils;
 
 const
   TRIGGER_SIGNATURE = $52475254; // 'TRGR'
@@ -2196,29 +2196,34 @@ begin
   Result := find_id;
 end;
 
+
+// sorry; grid doesn't support recursive queries, so we have to do this
+type
+  TSimpleMonsterList = specialize TSimpleList<TMonster>;
+
+var
+  tgMonsList: TSimpleMonsterList = nil;
+
 procedure g_Triggers_Update();
 var
   a, b, i: Integer;
   Affected: array of Integer;
 
-  {function monsNear (mon: TMonster): Boolean;
-  begin
-    result := false; // don't stop
-    if mon.Collide(gTriggers[a].X, gTriggers[a].Y, gTriggers[a].Width, gTriggers[a].Height) then
-    begin
-      gTriggers[a].ActivateUID := mon.UID;
-      ActivateTrigger(gTriggers[a], ACTIVATE_MONSTERCOLLIDE);
-    end;
-  end;}
-
   function monsNear (mon: TMonster): Boolean;
   begin
     result := false; // don't stop
+    {
     gTriggers[a].ActivateUID := mon.UID;
     ActivateTrigger(gTriggers[a], ACTIVATE_MONSTERCOLLIDE);
+    }
+    tgMonsList.append(mon);
   end;
 
+var
+  mon: TMonster;
 begin
+  if (tgMonsList = nil) then tgMonsList := TSimpleMonsterList.Create();
+
   if gTriggers = nil then
     Exit;
   SetLength(Affected, 0);
@@ -2454,7 +2459,14 @@ begin
           begin
             //g_Mons_ForEach(monsNear);
             //Alive?!
+            tgMonsList.reset();
             g_Mons_ForEachAt(gTriggers[a].X, gTriggers[a].Y, gTriggers[a].Width, gTriggers[a].Height, monsNear);
+            for mon in tgMonsList do
+            begin
+              gTriggers[a].ActivateUID := mon.UID;
+              ActivateTrigger(gTriggers[a], ACTIVATE_MONSTERCOLLIDE);
+            end;
+            tgMonsList.reset(); // just in case
           end;
 
           // "Монстров нет"
