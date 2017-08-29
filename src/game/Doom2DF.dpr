@@ -102,6 +102,7 @@ uses
   hashtable in '../shared/hashtable.pas',
   idpool in '../shared/idpool.pas',
   xparser in '../shared/xparser.pas',
+  xdynrec in '../shared/xdynrec.pas',
   BinEditor in '../shared/BinEditor.pas',
   envvars in '../shared/envvars.pas',
   g_panel in 'g_panel.pas',

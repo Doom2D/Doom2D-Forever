@@ -63,6 +63,8 @@
 {$WARNINGS ON}
 {$NOTES ON}
 
+// include support for text maps
+{$DEFINE D2D_NEW_MAP_READER}
 
 {$IFDEF MSWINDOWS}
   {$IFNDEF WINDOWS}

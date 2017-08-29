@@ -208,7 +208,7 @@ uses
   GL, GLExt, g_weapons, g_game, g_sound, e_sound, CONFIG,
   g_options, MAPREADER, g_triggers, g_player, MAPDEF,
   Math, g_monsters, g_saveload, g_language, g_netmsg,
-  utils, sfs,
+  utils, sfs, xparser, xdynrec, xstreams,
   ImagingTypes, Imaging, ImagingUtility,
   ImagingGif, ImagingNetworkGraphics;
 
@@ -216,6 +216,47 @@ const
   FLAGRECT: TRectWH = (X:15; Y:12; Width:33; Height:52);
   MUSIC_SIGNATURE = $4953554D; // 'MUSI'
   FLAG_SIGNATURE = $47414C46; // 'FLAG'
+
+
+{$IF DEFINED(D2D_NEW_MAP_READER)}
+var
+  dfmapdef: TDynMapDef = nil;
+
+
+procedure loadMapDefinition ();
+var
+  pr: TTextParser = nil;
+  st: TStream = nil;
+  WAD: TWADFile = nil;
+begin
+  if (dfmapdef <> nil) then exit;
+  try
+    e_LogWritefln('parsing "mapdef.txt"...', []);
+    st := openDiskFileRO(DataDir+'mapdef.txt');
+  except
+    st := nil;
+    e_LogWritefln('local "%smapdef.txt" not found', [DataDir]);
+  end;
+  if (st = nil) then
+  begin
+    WAD := TWADFile.Create();
+    if not WAD.ReadFile(GameWAD) then raise Exception.Create('cannot load "game.wad"');
+    st := WAD.openFileStream('mapdef.txt');
+  end;
+
+  if (st = nil) then raise Exception.Create('cannot open "mapdef.txt"');
+  pr := TFileTextParser.Create(st);
+
+  try
+    dfmapdef := TDynMapDef.Create(pr);
+  except on e: Exception do
+    raise Exception.Create(Format('ERROR in "mapdef.txt" at (%s,%s): %s', [pr.line, pr.col, e.message]));
+  end;
+
+  st.Free();
+  WAD.Free();
+end;
+{$ENDIF}
 
 
 function panelTypeToTag (panelType: Word): Integer;
@@ -1274,12 +1315,15 @@ var
   Len: Integer;
   ok, isAnim, trigRef: Boolean;
   CurTex, ntn: Integer;
-
+  {$IF DEFINED(D2D_NEW_MAP_READER)}
+  pr: TTextParser = nil;
+  st: TStream = nil;
+  wst: TSFSMemoryChunkStream = nil;
+  rec: TDynRecord;
+  {$ENDIF}
 begin
   mapGrid.Free();
   mapGrid := nil;
-  //mapTree.Free();
-  //mapTree := nil;
 
   Result := False;
   gMapInfo.Map := Res;
@@ -1300,6 +1344,7 @@ begin
       WAD.Free();
       Exit;
     end;
+
     //k8: why loader ignores path here?
     mapResName := g_ExtractFileName(Res);
     if not WAD.GetMapResource(mapResName, Data, Len) then
@@ -1311,9 +1356,67 @@ begin
 
     WAD.Free();
 
-  // Загрузка карты:
-    e_WriteLog('Loading map: '+mapResName, MSG_NOTIFY);
+    if (Len < 4) then
+    begin
+      e_LogWritefln('invalid map file: ''%s''', [mapResName]);
+      FreeMem(Data);
+      exit;
+    end;
+
+    // Загрузка карты:
+    e_LogWritefln('Loading map: %s', [mapResName], MSG_NOTIFY);
     g_Game_SetLoadingText(_lc[I_LOAD_MAP], 0, False);
+
+    {$IF DEFINED(D2D_NEW_MAP_READER)}
+      if (PChar(Data)[0] = 'M') and (PChar(Data)[1] = 'A') and (PChar(Data)[2] = 'P') and (PByte(Data)[3] = 1) then
+      begin
+        // nothing
+      end
+      else
+      begin
+        e_LogWritefln('Loading text map: %s', [mapResName]);
+        loadMapDefinition();
+        if (dfmapdef = nil) then raise Exception.Create('internal map loader error');
+        //e_LogWritefln('***'#10'%s'#10'***', [dfmapdef.headerType.definition]);
+        wst := TSFSMemoryChunkStream.Create(Data, Len);
+        try
+          pr := TFileTextParser.Create(wst);
+          e_LogWritefln('parsing text map: %s', [mapResName]);
+          rec := dfmapdef.parseMap(pr);
+        except on e: Exception do
+          begin
+            if (pr <> nil) then e_LogWritefln('ERROR at (%s,%s): %s', [pr.line, pr.col, e.message])
+            else e_LogWritefln('ERROR: %s', [e.message]);
+            pr.Free();
+            wst.Free();
+            FreeMem(Data);
+            exit;
+          end;
+        end;
+        pr.Free();
+        //wst.Free(); // pr will do it
+        e_LogWritefln('writing text map to temporary bin storage...', []);
+        st := TMemoryStream.Create();
+        try
+          rec.writeBinTo(st);
+          Len := Integer(st.position);
+          st.position := 0;
+          FreeMem(Data);
+          GetMem(Data, Len);
+          st.ReadBuffer(Data^, Len);
+        except on e: Exception do
+          begin
+            rec.Free();
+            st.Free();
+            e_LogWritefln('ERROR: %s', [e.message]);
+            FreeMem(Data);
+            exit;
+          end;
+        end;
+        st.Free();
+      end;
+    {$ENDIF}
+
     MapReader := TMapReader_1.Create();
 
     if not MapReader.LoadMap(Data) then
@@ -2083,15 +2186,7 @@ procedure g_Map_CollectDrawPanels (x0, y0, wdt, hgt: Integer);
 begin
   dplClear();
   //tagmask := panelTypeToTag(PanelType);
-
-  {if gdbg_map_use_tree_draw then
-  begin
-    mapTree.aabbQuery(x0, y0, wdt, hgt, checker, (GridTagBack or GridTagStep or GridTagWall or GridTagDoor or GridTagAcid1 or GridTagAcid2 or GridTagWater or GridTagFore));
-  end
-  else}
-  begin
-    mapGrid.forEachInAABB(x0, y0, wdt, hgt, checker, GridDrawableMask);
-  end;
+  mapGrid.forEachInAABB(x0, y0, wdt, hgt, checker, GridDrawableMask);
   // list will be rendered in `g_game.DrawPlayer()`
 end;
 
@@ -2105,14 +2200,7 @@ procedure g_Map_DrawPanelShadowVolumes(lightX: Integer; lightY: Integer; radius:
   end;
 
 begin
-  {if gdbg_map_use_tree_draw then
-  begin
-    mapTree.aabbQuery(lightX-radius, lightY-radius, radius*2, radius*2, checker, (GridTagWall or GridTagDoor));
-  end
-  else}
-  begin
-    mapGrid.forEachInAABB(lightX-radius, lightY-radius, radius*2, radius*2, checker, (GridTagWall or GridTagDoor));
-  end;
+  mapGrid.forEachInAABB(lightX-radius, lightY-radius, radius*2, radius*2, checker, (GridTagWall or GridTagDoor));
 end;
 
 
@@ -2326,43 +2414,30 @@ begin
   if (profMapCollision <> nil) then profMapCollision.sectionBeginAccum('*solids');
   if gdbg_map_use_accel_coldet then
   begin
-    {if gdbg_map_use_tree_coldet then
+    if (Width = 1) and (Height = 1) then
     begin
-      //e_WriteLog(Format('coldet query: x=%d; y=%d; w=%d; h=%d', [X, Y, Width, Height]), MSG_NOTIFY);
-      result := (mapTree.aabbQuery(X, Y, Width, Height, checker, tagmask) <> nil);
-      if (gdbg_map_dump_coldet_tree_queries) and (mapTree.nodesVisited <> 0) then
+      if ((tagmask and SlowMask) <> 0) then
       begin
-        //e_WriteLog(Format('map collision: %d nodes visited (%d deep)', [mapTree.nodesVisited, mapTree.nodesDeepVisited]), MSG_NOTIFY);
-        g_Console_Add(Format('map collision: %d nodes visited (%d deep)', [mapTree.nodesVisited, mapTree.nodesDeepVisited]));
-      end;
-    end
-    else}
-    begin
-      if (Width = 1) and (Height = 1) then
-      begin
-        if ((tagmask and SlowMask) <> 0) then
-        begin
-          // slow
-          result := (mapGrid.forEachAtPoint(X, Y, checker, tagmask) <> nil);
-        end
-        else
-        begin
-          // fast
-          result := (mapGrid.forEachAtPoint(X, Y, nil, tagmask) <> nil);
-        end;
+        // slow
+        result := (mapGrid.forEachAtPoint(X, Y, checker, tagmask) <> nil);
       end
       else
       begin
-        if ((tagmask and SlowMask) <> 0) then
-        begin
-          // slow
-          result := (mapGrid.forEachInAABB(X, Y, Width, Height, checker, tagmask) <> nil);
-        end
-        else
-        begin
-          // fast
-          result := (mapGrid.forEachInAABB(X, Y, Width, Height, nil, tagmask) <> nil);
-        end;
+        // fast
+        result := (mapGrid.forEachAtPoint(X, Y, nil, tagmask) <> nil);
+      end;
+    end
+    else
+    begin
+      if ((tagmask and SlowMask) <> 0) then
+      begin
+        // slow
+        result := (mapGrid.forEachInAABB(X, Y, Width, Height, checker, tagmask) <> nil);
+      end
+      else
+      begin
+        // fast
+        result := (mapGrid.forEachInAABB(X, Y, Width, Height, nil, tagmask) <> nil);
       end;
     end;
   end
@@ -2407,20 +2482,13 @@ begin
   if gdbg_map_use_accel_coldet then
   begin
     texid := TEXTURE_NONE;
-    {if gdbg_map_use_tree_coldet then
+    if (Width = 1) and (Height = 1) then
     begin
-      mapTree.aabbQuery(X, Y, Width, Height, checker, (GridTagWater or GridTagAcid1 or GridTagAcid2));
+      mapGrid.forEachAtPoint(X, Y, checker, (GridTagWater or GridTagAcid1 or GridTagAcid2));
     end
-    else}
+    else
     begin
-      if (Width = 1) and (Height = 1) then
-      begin
-        mapGrid.forEachAtPoint(X, Y, checker, (GridTagWater or GridTagAcid1 or GridTagAcid2));
-      end
-      else
-      begin
-        mapGrid.forEachInAABB(X, Y, Width, Height, checker, (GridTagWater or GridTagAcid1 or GridTagAcid2));
-      end;
+      mapGrid.forEachInAABB(X, Y, Width, Height, checker, (GridTagWater or GridTagAcid1 or GridTagAcid2));
     end;
     result := texid;
   end

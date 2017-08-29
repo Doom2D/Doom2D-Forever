@@ -124,10 +124,6 @@ type
     property internal: Boolean read mInternal write mInternal;
     property ival: Integer read mIVal;
     property sval: AnsiString read mSVal;
-    //property list: TDynRecordArray read mRVal write mRVal;
-    property maxdim: Integer read mMaxDim; // for fixed-size arrays
-    property binOfs: Integer read mBinOfs; // offset in binary; <0 - none
-    property recOfs: Integer read mRecOfs; // offset in record; <0 - none
     property hasDefault: Boolean read mHasDefault;
     property defsval: AnsiString read mDefSVal;
     property ebs: TEBS read mEBS;
@@ -1222,6 +1218,7 @@ var
   es: TDynEBS = nil;
   tfld: TDynField;
   tk: AnsiString;
+  edim: AnsiChar;
 begin
   // if this field should contain struct, convert type and parse struct
   case mEBS of
@@ -1412,7 +1409,7 @@ begin
     TType.TPoint,
     TType.TSize:
       begin
-        pr.expectDelim('(');
+        if pr.eatDelim('[') then edim := ']' else begin pr.expectDelim('('); edim := ')'; end;
         mIVal := pr.expectInt();
         if (mType = TType.TSize) then
         begin
@@ -1424,7 +1421,7 @@ begin
           if (mIVal2 < 0) or (mIVal2 > 32767) then raise Exception.Create(Format('invalid %s value for field ''%s''', [getTypeName(mType), mName]));
         end;
         mDefined := true;
-        pr.expectDelim(')');
+        pr.expectDelim(edim);
         pr.expectTT(pr.TTSemi);
         exit;
       end;

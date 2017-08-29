@@ -103,7 +103,13 @@ type
 type
   TFileTextParser = class(TTextParser)
   private
+    const BufSize = 65536;
+
+  private
     mFile: TStream;
+    mBuffer: PChar;
+    mBufLen: Integer;
+    mBufPos: Integer;
 
   protected
     procedure loadNextChar (); override; // loads next char into mNextChar; #0 means 'eof'
@@ -587,7 +593,12 @@ end;
 // ////////////////////////////////////////////////////////////////////////// //
 constructor TFileTextParser.Create (const fname: AnsiString; loadToken: Boolean=true);
 begin
+  mBuffer := nil;
   mFile := openDiskFileRO(fname);
+  GetMem(mBuffer, BufSize);
+  mBufPos := 0;
+  mBufLen := mFile.Read(mBuffer^, BufSize);
+  if (mBufLen < 0) then raise Exception.Create('TFileTextParser: read error');
   inherited Create(loadToken);
 end;
 
@@ -596,23 +607,35 @@ constructor TFileTextParser.Create (st: TStream; loadToken: Boolean=true);
 begin
   if (st = nil) then raise Exception.Create('cannot create parser for nil stream');
   mFile := st;
+  GetMem(mBuffer, BufSize);
+  mBufPos := 0;
+  mBufLen := mFile.Read(mBuffer^, BufSize);
+  if (mBufLen < 0) then raise Exception.Create('TFileTextParser: read error');
   inherited Create(loadToken);
 end;
 
 
 destructor TFileTextParser.Destroy ();
 begin
+  if (mBuffer <> nil) then FreeMem(mBuffer);
   mFile.Free();
   inherited;
 end;
 
 
 procedure TFileTextParser.loadNextChar ();
-var
-  rd: Integer;
 begin
-  rd := mFile.Read(mNextChar, 1);
-  if (rd = 0) then begin mNextChar := #0; exit; end;
+  if (mBufLen = 0) then begin mNextChar := #0; exit; end;
+  if (mBufPos >= mBufLen) then
+  begin
+    mBufLen := mFile.Read(mBuffer^, BufSize);
+    if (mBufLen < 0) then raise Exception.Create('TFileTextParser: read error');
+    if (mBufLen = 0) then begin mNextChar := #0; exit; end;
+    mBufPos := 0;
+  end;
+  assert(mBufPos < mBufLen);
+  mNextChar := mBuffer[mBufPos];
+  Inc(mBufPos);
   if (mNextChar = #0) then mNextChar := ' ';
 end;
 

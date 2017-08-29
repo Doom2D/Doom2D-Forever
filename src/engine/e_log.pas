@@ -133,7 +133,7 @@ begin
   while (len > 0) do
   begin
     if (len > 255) then slen := 255 else slen := Integer(len);
-    Move(b^, ss[1], len);
+    Move(b^, ss[1], slen);
     ss[0] := AnsiChar(slen);
     write(ss);
     b += slen;
@@ -179,12 +179,13 @@ begin
   while (len > 0) do
   begin
     slen := 0;
-    while (slen < len) and (slen < 255) and (b[slen] <> 13) and (b[slen] <> 10) do Inc(slen);
+    while (slen < len) and (b[slen] <> 13) and (b[slen] <> 10) do Inc(slen);
+    if (slen > 255) then slen := 255;
     // print string
     if (slen > 0) then
     begin
       if xlogWantSpace then begin write(xlogFile, ' '); xlogWantSpace := false; end;
-      Move(b^, ss[1], len);
+      Move(b^, ss[1], slen);
       ss[0] := AnsiChar(slen);
       write(xlogFile, ss);
       b += slen;
@@ -194,16 +195,8 @@ begin
     // process newline
     if (len > 0) and ((b[0] = 13) or (b[0] = 10)) then
     begin
-      if (len > 1) and (b[0] = 13) and (b[1] = 10) then
-      begin
-        len -= 2;
-        b += 2;
-      end
-      else
-      begin
-        len -= 1;
-        b += 1;
-      end;
+      if (b[0] = 13) then begin len -= 1; b += 1; end;
+      if (len > 0) and (b[0] = 10) then begin len -= 1; b += 1; end;
       xlogLastWasEOL := false;
       writeln(xlogFile, '');
       write(xlogFile, xlogPrefix);

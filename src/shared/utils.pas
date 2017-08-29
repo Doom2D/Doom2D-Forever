@@ -1039,7 +1039,7 @@ var
       while (len > 0) do
       begin
         if (len > 255) then slen := 255 else slen := Integer(len);
-        Move(b^, ss[1], len);
+        Move(b^, ss[1], slen);
         ss[0] := AnsiChar(slen);
         result += ss;
         b += slen;
