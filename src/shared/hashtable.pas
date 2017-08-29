@@ -39,26 +39,51 @@ type
     type TEquFn = function (constref a, b: KeyT): Boolean;
     type TIteratorFn = function (constref k: KeyT; constref v: ValueT): Boolean is nested; // return `true` to stop
 
-  private
     type
       PEntry = ^TEntry;
       TEntry = record
+      public
         key: KeyT;
         value: ValueT;
+      private
         hash: LongWord; // key hash or 0
         nextFree: PEntry; // next free entry
       end;
 
-    TValEnumerator = class
-    private
-      mEntries: PEntry;
-      mFirstEntry, mLastEntry, cur: Integer;
-    public
-      constructor Create (aents: PEntry; afirst, alast: Integer);
-      function MoveNext: Boolean;
-      function getCurrent (): ValueT;
-      property Current: ValueT read getCurrent;
-    end;
+  private
+    type
+      TValEnumerator = record
+      private
+        mEntries: PEntry;
+        mFirstEntry, mLastEntry, cur: Integer;
+      public
+        constructor Create (aents: PEntry; afirst, alast: Integer);
+        function MoveNext: Boolean;
+        function getCurrent (): ValueT;
+        property Current: ValueT read getCurrent;
+      end;
+
+      TKeyEnumerator = record
+      private
+        mEntries: PEntry;
+        mFirstEntry, mLastEntry, cur: Integer;
+      public
+        constructor Create (aents: PEntry; afirst, alast: Integer);
+        function MoveNext: Boolean;
+        function getCurrent (): KeyT;
+        property Current: KeyT read getCurrent;
+      end;
+
+      TKeyValEnumerator = record
+      private
+        mEntries: PEntry;
+        mFirstEntry, mLastEntry, cur: Integer;
+      public
+        constructor Create (aents: PEntry; afirst, alast: Integer);
+        function MoveNext: Boolean;
+        function getCurrent (): PEntry;
+        property Current: PEntry read getCurrent;
+      end;
 
   private
     hashfn: THashFn;
@@ -101,7 +126,11 @@ type
     //WARNING! don't modify table in iterator (queries are ok, though)
     function forEach (it: TIteratorFn): Boolean;
 
+    // default `for ... in` enums values
     function GetEnumerator (): TValEnumerator;
+    function byKey (): TKeyEnumerator;
+    function byValue (): TValEnumerator;
+    function byKeyValue (): TKeyValEnumerator; // PEntry
 
     property count: Integer read mBucketsUsed;
     property capacity: Integer read getCapacity;
@@ -873,18 +902,33 @@ begin
 end;
 
 
+// enumerators
 function THashBase.GetEnumerator (): TValEnumerator;
 begin
-  if (Length(mEntries) > 0) then
-  begin
-    result := TValEnumerator.Create(@mEntries[0], mFirstEntry, mLastEntry);
-  end
-  else
-  begin
-    result := TValEnumerator.Create(nil, -1, -1);
-  end;
+  if (Length(mEntries) > 0) then result := TValEnumerator.Create(@mEntries[0], mFirstEntry, mLastEntry)
+  else result := TValEnumerator.Create(nil, -1, -1);
 end;
 
+function THashBase.byKey (): TKeyEnumerator;
+begin
+  if (Length(mEntries) > 0) then result := TKeyEnumerator.Create(@mEntries[0], mFirstEntry, mLastEntry)
+  else result := TKeyEnumerator.Create(nil, -1, -1);
+end;
+
+function THashBase.byValue (): TValEnumerator;
+begin
+  if (Length(mEntries) > 0) then result := TValEnumerator.Create(@mEntries[0], mFirstEntry, mLastEntry)
+  else result := TValEnumerator.Create(nil, -1, -1);
+end;
+
+function THashBase.byKeyValue (): TKeyValEnumerator; // PEntry
+begin
+  if (Length(mEntries) > 0) then result := TKeyValEnumerator.Create(@mEntries[0], mFirstEntry, mLastEntry)
+  else result := TKeyValEnumerator.Create(nil, -1, -1);
+end;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
 constructor THashBase.TValEnumerator.Create (aents: PEntry; afirst, alast: Integer);
 begin
   mEntries := aents;
@@ -906,6 +950,56 @@ end;
 function THashBase.TValEnumerator.getCurrent (): ValueT;
 begin
   result := mEntries[cur].value;
+end;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
+constructor THashBase.TKeyEnumerator.Create (aents: PEntry; afirst, alast: Integer);
+begin
+  mEntries := aents;
+  mFirstEntry := afirst;
+  mLastEntry := alast;
+  cur := mFirstEntry-1;
+end;
+
+function THashBase.TKeyEnumerator.MoveNext: Boolean;
+begin
+  Inc(cur);
+  while (cur <= mLastEntry) do
+  begin
+    if (mEntries[cur].hash <> 0) then begin result := true; exit; end;
+  end;
+  result := false;
+end;
+
+function THashBase.TKeyEnumerator.getCurrent (): KeyT;
+begin
+  result := mEntries[cur].key;
+end;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
+constructor THashBase.TKeyValEnumerator.Create (aents: PEntry; afirst, alast: Integer);
+begin
+  mEntries := aents;
+  mFirstEntry := afirst;
+  mLastEntry := alast;
+  cur := mFirstEntry-1;
+end;
+
+function THashBase.TKeyValEnumerator.MoveNext: Boolean;
+begin
+  Inc(cur);
+  while (cur <= mLastEntry) do
+  begin
+    if (mEntries[cur].hash <> 0) then begin result := true; exit; end;
+  end;
+  result := false;
+end;
+
+function THashBase.TKeyValEnumerator.getCurrent (): PEntry;
+begin
+  result := mEntries+cur;
 end;
 
 
