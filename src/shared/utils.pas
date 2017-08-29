@@ -130,6 +130,7 @@ function formatstrf (const fmt: AnsiString; args: array of const; writerCB: TFor
 
 function wchar2win (wc: WideChar): AnsiChar; inline;
 function utf2win (const s: AnsiString): AnsiString;
+function win2utf (const s: AnsiString): AnsiString;
 function digitInBase (ch: AnsiChar; base: Integer): Integer;
 
 // returns string in single or double quotes
@@ -164,11 +165,16 @@ type
 
   private
     function getAt (idx: Integer): ItemT; inline;
+    procedure setAt (idx: Integer; const it: ItemT); inline;
+
+    function getCapacity (): Integer; inline;
+    procedure setCapacity (v: Integer); inline;
 
   public
-    constructor Create ();
+    constructor Create (acapacity: Integer=-1);
     destructor Destroy (); override;
 
+    //WARNING! don't change list contents in `for ... in`!
     function GetEnumerator (): TEnumerator;
 
     procedure reset (); inline; // won't resize `mItems`
@@ -178,7 +184,8 @@ type
 
   public
     property count: Integer read mCount;
-    property at[idx: Integer]: ItemT read getAt; default;
+    property capacity: Integer read getCapacity write setCapacity;
+    property at[idx: Integer]: ItemT read getAt write setAt; default;
   end;
 
 
@@ -206,9 +213,10 @@ end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-constructor TSimpleList.Create ();
+constructor TSimpleList.Create (acapacity: Integer=-1);
 begin
   mItems := nil;
+  if (acapacity > 0) then SetLength(mItems, acapacity);
   mCount := 0;
 end;
 
@@ -217,6 +225,19 @@ destructor TSimpleList.Destroy ();
 begin
   mItems := nil;
   inherited;
+end;
+
+
+function TSimpleList.getCapacity (): Integer; inline;
+begin
+  result := Length(mItems);
+end;
+
+
+procedure TSimpleList.setCapacity (v: Integer); inline;
+begin
+  if (v < mCount) then v := mCount;
+  if (v <> Length(mItems)) then SetLength(mItems, v);
 end;
 
 
@@ -246,6 +267,12 @@ begin
 end;
 
 
+procedure TSimpleList.setAt (idx: Integer; const it: ItemT); inline;
+begin
+  if (idx >= 0) and (idx < mCount) then mItems[idx] := it;
+end;
+
+
 procedure TSimpleList.append (constref it: ItemT); inline;
 begin
   if (mCount = Length(mItems)) then
@@ -264,7 +291,6 @@ var
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-procedure initShitMap ();
 const
   cp1251: array[0..127] of Word = (
     $0402,$0403,$201A,$0453,$201E,$2026,$2020,$2021,$20AC,$2030,$0409,$2039,$040A,$040C,$040B,$040F,
@@ -276,6 +302,9 @@ const
     $0430,$0431,$0432,$0433,$0434,$0435,$0436,$0437,$0438,$0439,$043A,$043B,$043C,$043D,$043E,$043F,
     $0440,$0441,$0442,$0443,$0444,$0445,$0446,$0447,$0448,$0449,$044A,$044B,$044C,$044D,$044E,$044F
   );
+
+
+procedure initShitMap ();
 var
   f: Integer;
 begin
@@ -366,6 +395,65 @@ begin
       for c := 1 to Length(s) do
       begin
         if ud.decode(s[c]) then result += wchar2win(WideChar(ud.codepoint));
+      end;
+      exit;
+    end;
+  end;
+  result := s;
+end;
+
+
+function win2utf (const s: AnsiString): AnsiString;
+var
+  f, c: Integer;
+
+  function utf8Encode (code: Integer): AnsiString;
+  begin
+    if (code < 0) or (code > $10FFFF) then begin result := '?'; exit; end;
+    if (code <= $7f) then
+    begin
+      result := Char(code and $ff);
+    end
+    else if (code <= $7FF) then
+    begin
+      result := Char($C0 or (code shr 6));
+      result += Char($80 or (code and $3F));
+    end
+    else if (code <= $FFFF) then
+    begin
+      result := Char($E0 or (code shr 12));
+      result += Char($80 or ((code shr 6) and $3F));
+      result += Char($80 or (code and $3F));
+    end
+    else if (code <= $10FFFF) then
+    begin
+      result := Char($F0 or (code shr 18));
+      result += Char($80 or ((code shr 12) and $3F));
+      result += Char($80 or ((code shr 6) and $3F));
+      result += Char($80 or (code and $3F));
+    end
+    else
+    begin
+      result := '?';
+    end;
+  end;
+
+begin
+  for f := 1 to Length(s) do
+  begin
+    if (Byte(s[f]) > 127) then
+    begin
+      result := '';
+      for c := 1 to Length(s) do
+      begin
+        if (Byte(s[c]) < 128) then
+        begin
+          result += s[c];
+        end
+        else
+        begin
+          result += utf8Encode(cp1251[Byte(s[c])-128])
+        end;
       end;
       exit;
     end;

@@ -127,7 +127,7 @@ type
   end;
 
   // fixed memory chunk
-  TSFSMemoryChunkStream = class(TCustomMemoryStream)
+  TSFSMemoryChunkStream = class(TStream)
   private
     fFreeMem: Boolean;
     fMemBuf: PByte;
@@ -558,7 +558,6 @@ begin
   left := fMemSize-fCurPos;
   if (left < 0) then raise XStreamError.Create('internal error in TSFSMemoryChunkStream (write)');
   if (count > left) then count := left;
-  //writeln('mcs: writing ', count, ' bytes at ofs ', fCurPos, ' (total size is ', fMemSize, ')');
   if (count > 0) then Move(buffer, (fMemBuf+fCurPos)^, count);
   Inc(fCurPos, count);
   result := count;

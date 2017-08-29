@@ -105,6 +105,7 @@ TTriggerRec_1 is "trigger" size 148 bytes binblock 6 {
   TriggerType is "type" type ubyte offset 17 enum TriggerType;
   ActivateType is "activatetype" type ubyte offset 18 bitset ActivateType;
   Keys is "keys" type ubyte offset 19 bitset Key default KEY_NONE omitdefault;
+  //WARNING: "trigdata" MUST be defined before "type", and "type" MUST be named "type" (for now, can be changed later)
   DATA is "triggerdata" type trigdata[128] offset 20; // the only special nested structure
   // not in binary
   //Id is "id" type string default "" omitdefault;
