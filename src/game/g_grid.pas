@@ -213,7 +213,7 @@ function maxInt (a, b: Integer): Integer; inline;
 implementation
 
 uses
-  SysUtils, e_log;
+  SysUtils, e_log, g_console;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
@@ -1331,12 +1331,15 @@ var
   lq: LongWord;
   f, ptag, distSq: Integer;
   x0, y0, x1, y1: Integer;
+  swapped: Boolean = false; // true: xd is yd, and vice versa
   // horizontal walker
   {$IFDEF GRID_USE_ORTHO_ACCEL}
   wklen, wkstep: Integer;
   //wksign: Integer;
   hopt: Boolean;
   {$ENDIF}
+  // skipper
+  xdist, ydist: Integer;
 begin
   result := Default(ITP);
   lastObj := Default(ITP);
@@ -1428,6 +1431,7 @@ begin
 
   if (dsx < dsy) then
   begin
+    swapped := true;
     xptr := @yd;
     yptr := @xd;
     swapInt(x0, y0);
@@ -1781,6 +1785,7 @@ begin
   if assigned(dbgRayTraceTileHitCB) then dbgRayTraceTileHitCB((xptr^ div tsize*tsize)+minx, (yptr^ div tsize*tsize)+miny);
   {$ENDIF}
 
+  //e_LogWritefln('*********************', []);
   ccidx := -1;
   //  can omit checks
   while (xd <> term) do
@@ -1906,6 +1911,23 @@ begin
           exit;
         end;
       end;
+    end;
+    if (ccidx = -1) then
+    begin
+      // move to cell edge, as we have nothing to trace here anymore
+      if (stx < 0) then xdist := xd and (not (mTileSize-1)) else xdist := xd or (mTileSize-1);
+      if (sty < 0) then ydist := yd and (not (mTileSize-1)) else ydist := yd or (mTileSize-1);
+      //e_LogWritefln('0: swapped=%d; xd=%d; yd=%d; stx=%d; sty=%d; e=%d; dx2=%d; dy2=%d; term=%d; xdist=%d; ydist=%d', [swapped, xd, yd, stx, sty, e, dx2, dy2, term, xdist, ydist]);
+      while (xd <> xdist) and (yd <> ydist) do
+      begin
+        // step
+        xd += stx;
+        if (e >= 0) then begin yd += sty; e -= dx2; end else e += dy2;
+        //e_LogWritefln('  xd=%d; yd=%d', [xd, yd]);
+        if (xd = term) then break;
+      end;
+      //e_LogWritefln('1: swapped=%d; xd=%d; yd=%d; stx=%d; sty=%d; e=%d; dx2=%d; dy2=%d; term=%d; xdist=%d; ydist=%d', [swapped, xd, yd, stx, sty, e, dx2, dy2, term, xdist, ydist]);
+      if (xd = term) then break;
     end;
     //putPixel(xptr^, yptr^);
     // move coords
