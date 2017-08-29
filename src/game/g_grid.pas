@@ -20,7 +20,7 @@
   {.$DEFINE D2F_DEBUG_XXQ}
   {.$DEFINE D2F_DEBUG_MOVER}
 {$ENDIF}
-{.$DEFINE GRID_USE_ORTHO_ACCEL}
+{$DEFINE GRID_USE_ORTHO_ACCEL}
 unit g_grid;
 
 interface
@@ -45,7 +45,7 @@ type
       GridDefaultTileSize = 32; // must be power of two!
       GridCellBucketSize = 8; // WARNING! can't be less than 2!
 
-  private
+  public
     type
       PBodyProxyRec = ^TBodyProxyRec;
       TBodyProxyRec = record
@@ -58,8 +58,24 @@ type
 
       private
         procedure setup (aX, aY, aWidth, aHeight: Integer; aObj: ITP; aTag: Integer);
+
+        function getTag (): Integer; inline;
+        procedure setTag (v: Integer); inline;
+
+        function getEnabled (): Boolean; inline;
+        procedure setEnabled (v: Boolean); inline;
+
+      public
+        property x: Integer read mX;
+        property y: Integer read mY;
+        property width: Integer read mWidth;
+        property height: Integer read mHeight;
+        property tag: Integer read getTag write setTag;
+        property enabled: Boolean read getEnabled write setEnabled;
       end;
 
+  private
+    type
       PGridCell = ^TGridCell;
       TGridCell = record
         bodies: array [0..GridCellBucketSize-1] of Integer; // -1: end of list
@@ -115,6 +131,8 @@ type
     function getGridWidthPx (): Integer; inline;
     function getGridHeightPx (): Integer; inline;
 
+    function getProxyById (idx: TBodyProxyId): PBodyProxyRec; inline;
+
   public
     constructor Create (aMinPixX, aMinPixY, aPixWidth, aPixHeight: Integer{; aTileSize: Integer=GridDefaultTileSize});
     destructor Destroy (); override;
@@ -166,6 +184,7 @@ type
     function forEachInCell (x, y: Integer; cb: TGridQueryCB): ITP;
     procedure dumpStats ();
 
+  public
     //WARNING! no sanity checks!
     property proxyEnabled[pid: TBodyProxyId]: Boolean read getProxyEnabled write setProxyEnabled;
 
@@ -173,6 +192,8 @@ type
     property gridY0: Integer read mMinY;
     property gridWidth: Integer read getGridWidthPx; // in pixels
     property gridHeight: Integer read getGridHeightPx; // in pixels
+
+    property proxy[idx: TBodyProxyId]: PBodyProxyRec read getProxyById;
   end;
 
 
@@ -375,6 +396,27 @@ begin
   mObj := aObj;
   mTag := aTag;
   nextLink := -1;
+end;
+
+
+function TBodyGridBase.TBodyProxyRec.getTag (): Integer; inline;
+begin
+  result := mTag and TagFullMask;
+end;
+
+procedure TBodyGridBase.TBodyProxyRec.setTag (v: Integer); inline;
+begin
+  mTag := (mTag and TagDisabled) or (v and TagFullMask);
+end;
+
+function TBodyGridBase.TBodyProxyRec.getEnabled (): Boolean; inline;
+begin
+  result := ((mTag and TagDisabled) = 0);
+end;
+
+procedure TBodyGridBase.TBodyProxyRec.setEnabled (v: Boolean); inline;
+begin
+  if v then mTag := mTag and (not TagDisabled) else mTag := mTag or TagDisabled;
 end;
 
 
@@ -588,6 +630,12 @@ begin
       mProxies[pid].mTag := mProxies[pid].mTag or TagDisabled;
     end;
   end;
+end;
+
+
+function TBodyGridBase.getProxyById (idx: TBodyProxyId): PBodyProxyRec; inline;
+begin
+  if (idx >= 0) and (idx < High(mProxies)) then result := @mProxies[idx] else result := nil;
 end;
 
 
@@ -1286,6 +1334,7 @@ var
   // horizontal walker
   {$IFDEF GRID_USE_ORTHO_ACCEL}
   wklen, wkstep: Integer;
+  //wksign: Integer;
   hopt: Boolean;
   {$ENDIF}
 begin
@@ -1510,15 +1559,15 @@ begin
   lq := mLastQuery;
 
   {$IFDEF GRID_USE_ORTHO_ACCEL}
-  // if this is strict horizontal trace, use optimized codepath
+  // if this is strict horizontal/vertical trace, use optimized codepath
   if (ax0 = ax1) or (ay0 = ay1) then
   begin
     // horizontal trace: walk the whole tiles, calculating mindist once for each proxy in cell
     //   stx < 0: going left, otherwise `stx` is > 0, and we're going right
     // vertical trace: walk the whole tiles, calculating mindist once for each proxy in cell
-    // stx < 0: going up, otherwise `stx` is > 0, and we're going down
+    //   stx < 0: going up, otherwise `stx` is > 0, and we're going down
     hopt := (ay0 = ay1); // horizontal?
-    if (stx < 0) then wklen := -(term-xd) else wklen := term-xd;
+    if (stx < 0) then begin {wksign := -1;} wklen := -(term-xd); end else begin {wksign := 1;} wklen := term-xd; end;
     {$IF DEFINED(D2F_DEBUG)}
     if dbgShowTraceLog then e_LogWritefln('optimized htrace; wklen=%d', [wklen]);
     {$ENDIF}
@@ -1526,6 +1575,8 @@ begin
     // one of those will never change
     x := xptr^+minx;
     y := yptr^+miny;
+    //prevx := x;
+    //prevy := y;
     {$IF DEFINED(D2F_DEBUG)}
     if hopt then
     begin
@@ -1566,16 +1617,16 @@ begin
               if (hopt and (x > px.mX) and (x < px.mX+px.mWidth-1)) or
                  ((not hopt) and (y > px.mY) and (y < px.mY+px.mHeight-1)) then
               begin
+                // setup prev[xy]
                 if assigned(cb) then
                 begin
                   if cb(px.mObj, ptag, x, y, x, y) then
                   begin
                     result := lastObj;
-                    ex := prevx;
-                    ey := prevy;
+                    ex := x;
+                    ey := y;
                     exit;
                   end;
-                  x := xptr^+minx;
                 end
                 else
                 begin
@@ -1594,48 +1645,49 @@ begin
                 continue;
               end;
               // remember this hitpoint if it is nearer than an old one
+              // setup prev[xy]
               if hopt then
               begin
+                // horizontal trace
                 prevy := y;
+                y := yptr^+miny;
                 if (stx < 0) then
                 begin
                   // going left
-                  if (x < px.mX) then continue;
+                  if (x < px.mX+px.mWidth-1) then continue; // not on the right edge
                   prevx := px.mX+px.mWidth;
+                  x := prevx-1;
                 end
                 else
                 begin
                   // going right
-                  if (x > px.mX{+px.mWidth}) then continue;
+                  if (x > px.mX) then continue; // not on the left edge
                   prevx := px.mX-1;
+                  x := prevx+1;
                 end;
               end
               else
               begin
+                // vertical trace
                 prevx := x;
+                x := xptr^+minx;
                 if (stx < 0) then
                 begin
                   // going up
-                  if (y < px.mY) then continue;
+                  if (y < px.mY+px.mHeight-1) then continue; // not on the bottom edge
                   prevy := px.mY+px.mHeight;
+                  y := prevy-1;
                 end
                 else
                 begin
                   // going down
-                  if (y > px.mY{+px.mHeight}) then continue;
+                  if (y > px.mY) then continue; // not on the top edge
                   prevy := px.mY-1;
+                  y := prevy+1;
                 end;
               end;
               if assigned(cb) then
               begin
-                if (stx < 0) then
-                begin
-                  if hopt then x := prevx-1 else y := prevy-1;
-                end
-                else
-                begin
-                  if hopt then x := prevx+1 else y := prevy+1;
-                end;
                 if cb(px.mObj, ptag, x, y, prevx, prevy) then
                 begin
                   result := lastObj;
@@ -1643,8 +1695,6 @@ begin
                   ey := prevy;
                   exit;
                 end;
-                x := xptr^+minx;
-                y := yptr^+miny;
               end
               else
               begin
