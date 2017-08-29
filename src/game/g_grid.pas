@@ -33,7 +33,6 @@ type
   public
     type TGridQueryCB = function (obj: ITP; tag: Integer): Boolean is nested; // return `true` to stop
     type TGridRayQueryCB = function (obj: ITP; tag: Integer; x, y, prevx, prevy: Integer): Boolean is nested; // return `true` to stop
-    type TGridAlongQueryCB = function (obj: ITP; tag: Integer): Boolean is nested; // return `true` to stop
 
     type TCellQueryCB = procedure (x, y: Integer) is nested; // top-left cell corner coords
 
@@ -177,7 +176,7 @@ type
     //         you can set enabled/disabled flag, tho (but iterator can still return objects disabled inside it)
     // trace line along the grid, calling `cb` for all objects in passed cells, in no particular order
     //WARNING: don't change tags in callbacks here!
-    function forEachAlongLine (const x0, y0, x1, y1: Integer; cb: TGridAlongQueryCB; tagmask: Integer=-1; log: Boolean=false): ITP;
+    function forEachAlongLine (ax0, ay0, ax1, ay1: Integer; cb: TGridQueryCB; tagmask: Integer=-1; log: Boolean=false): ITP;
 
     // debug
     procedure forEachBodyCell (body: TBodyProxyId; cb: TCellQueryCB);
@@ -1331,7 +1330,7 @@ var
   lq: LongWord;
   f, ptag, distSq: Integer;
   x0, y0, x1, y1: Integer;
-  swapped: Boolean = false; // true: xd is yd, and vice versa
+  //swapped: Boolean = false; // true: xd is yd, and vice versa
   // horizontal walker
   {$IFDEF GRID_USE_ORTHO_ACCEL}
   wklen, wkstep: Integer;
@@ -1431,7 +1430,7 @@ begin
 
   if (dsx < dsy) then
   begin
-    swapped := true;
+    //swapped := true;
     xptr := @yd;
     yptr := @xd;
     swapInt(x0, y0);
@@ -1505,6 +1504,7 @@ begin
   // DON'T DO THIS! loop will take care of that
   if (xd = term) then
   begin
+    //FIXME!
     result := forEachAtPoint(ax0, ay0, nil, tagmask, @ptag);
     if (result <> nil) then
     begin
@@ -1626,7 +1626,7 @@ begin
                 begin
                   if cb(px.mObj, ptag, x, y, x, y) then
                   begin
-                    result := lastObj;
+                    result := px.mObj;
                     ex := x;
                     ey := y;
                     exit;
@@ -1694,7 +1694,7 @@ begin
               begin
                 if cb(px.mObj, ptag, x, y, prevx, prevy) then
                 begin
-                  result := lastObj;
+                  result := px.mObj;
                   ex := prevx;
                   ey := prevy;
                   exit;
@@ -1721,6 +1721,7 @@ begin
           ccidx := cc.next;
         end;
         if wasHit and not assigned(cb) then begin result := lastObj; exit; end;
+        if assigned(cb) and cb(nil, 0, x, y, x, y) then begin result := lastObj; exit; end;
       end;
       // skip to next tile
       if hopt then
@@ -1849,25 +1850,11 @@ begin
               begin
                 if cb(px.mObj, ptag, x, y, prevx, prevy) then
                 begin
-                  result := lastObj;
+                  result := px.mObj;
                   ex := prevx;
                   ey := prevy;
                   exit;
                 end;
-                (*
-                  {$IF DEFINED(D2F_DEBUG_RAYTRACE)}
-                  distSq := distanceSq(ax0, ay0, prevx, prevy);
-                  if assigned(dbgRayTraceTileHitCB) then e_WriteLog(Format('  hit(%d): a=(%d,%d), h=(%d,%d), p=(%d,%d); distsq=%d; lastsq=%d', [cc.bodies[f], ax0, ay0, x, y, prevx, prevy, distSq, lastDistSq]), MSG_NOTIFY);
-                  if (distSq < lastDistSq) then
-                  begin
-                    wasHit := true;
-                    lastDistSq := distSq;
-                    ex := prevx;
-                    ey := prevy;
-                    lastObj := px.mObj;
-                  end;
-                  {$ENDIF}
-                *)
               end
               else
               begin
@@ -1951,54 +1938,210 @@ end;
 
 // ////////////////////////////////////////////////////////////////////////// //
 //FIXME! optimize this with real tile walking
-function TBodyGridBase.forEachAlongLine (const x0, y0, x1, y1: Integer; cb: TGridAlongQueryCB; tagmask: Integer=-1; log: Boolean=false): ITP;
+function TBodyGridBase.forEachAlongLine (ax0, ay0, ax1, ay1: Integer; cb: TGridQueryCB; tagmask: Integer=-1; log: Boolean=false): ITP;
 const
   tsize = mTileSize;
 var
-  i: Integer;
-  dx, dy, d: Integer;
-  xerr, yerr: Integer;
-  incx, incy: Integer;
-  stepx, stepy: Integer;
-  x, y: Integer;
-  maxx, maxy: Integer;
-  gw, gh: Integer;
-  ccidx: Integer;
-  curci: Integer;
+  wx0, wy0, wx1, wy1: Integer; // window coordinates
+  stx, sty: Integer; // "steps" for x and y axes
+  dsx, dsy: Integer; // "lengthes" for x and y axes
+  dx2, dy2: Integer; // "double lengthes" for x and y axes
+  xd, yd: Integer; // current coord
+  e: Integer; // "error" (as in bresenham algo)
+  rem: Integer;
+  term: Integer;
+  xptr, yptr: PInteger;
+  xfixed: Boolean;
+  temp: Integer;
+  ccidx, curci: Integer;
+  lastGA: Integer = -1;
+  ga, x, y: Integer;
+  gw, gh, minx, miny, maxx, maxy: Integer;
   cc: PGridCell;
   px: PBodyProxyRec;
   lq: LongWord;
-  minx, miny: Integer;
-  ptag: Integer;
-  lastWasInGrid: Boolean;
-  tbcross: Boolean;
-  f: Integer;
-  //tedist: Integer;
+  f, ptag: Integer;
+  x0, y0, x1, y1: Integer;
+  //swapped: Boolean = false; // true: xd is yd, and vice versa
+  // horizontal walker
+  {$IFDEF GRID_USE_ORTHO_ACCEL}
+  wklen, wkstep: Integer;
+  //wksign: Integer;
+  hopt: Boolean;
+  {$ENDIF}
+  // skipper
+  xdist, ydist: Integer;
 begin
   log := false;
   result := Default(ITP);
   tagmask := tagmask and TagFullMask;
   if (tagmask = 0) or not assigned(cb) then exit;
 
+  if (ax0 = ax1) and (ay0 = ay1) then
+  begin
+    result := forEachAtPoint(ax0, ay0, cb, tagmask, @ptag);
+    exit;
+  end;
+
+  gw := mWidth;
+  gh := mHeight;
   minx := mMinX;
   miny := mMinY;
+  maxx := gw*tsize-1;
+  maxy := gh*tsize-1;
 
-  dx := x1-x0;
-  dy := y1-y0;
+  x0 := ax0;
+  y0 := ay0;
+  x1 := ax1;
+  y1 := ay1;
 
-  if (dx > 0) then incx := 1 else if (dx < 0) then incx := -1 else incx := 0;
-  if (dy > 0) then incy := 1 else if (dy < 0) then incy := -1 else incy := 0;
+  // offset query coords to (0,0)-based
+  Dec(x0, minx);
+  Dec(y0, miny);
+  Dec(x1, minx);
+  Dec(y1, miny);
 
-  if (incx = 0) and (incy = 0) then exit; // just incase
+  // clip rectange
+  wx0 := 0;
+  wy0 := 0;
+  wx1 := maxx;
+  wy1 := maxy;
 
-  dx := abs(dx);
-  dy := abs(dy);
+  // horizontal setup
+  if (x0 < x1) then
+  begin
+    // from left to right
+    if (x0 > wx1) or (x1 < wx0) then exit; // out of screen
+    stx := 1; // going right
+  end
+  else
+  begin
+    // from right to left
+    if (x1 > wx1) or (x0 < wx0) then exit; // out of screen
+    stx := -1; // going left
+    x0 := -x0;
+    x1 := -x1;
+    wx0 := -wx0;
+    wx1 := -wx1;
+    swapInt(wx0, wx1);
+  end;
 
-  if (dx > dy) then d := dx else d := dy;
+  // vertical setup
+  if (y0 < y1) then
+  begin
+    // from top to bottom
+    if (y0 > wy1) or (y1 < wy0) then exit; // out of screen
+    sty := 1; // going down
+  end
+  else
+  begin
+    // from bottom to top
+    if (y1 > wy1) or (y0 < wy0) then exit; // out of screen
+    sty := -1; // going up
+    y0 := -y0;
+    y1 := -y1;
+    wy0 := -wy0;
+    wy1 := -wy1;
+    swapInt(wy0, wy1);
+  end;
 
-  // `x` and `y` will be in grid coords
-  x := x0-minx;
-  y := y0-miny;
+  dsx := x1-x0;
+  dsy := y1-y0;
+
+  if (dsx < dsy) then
+  begin
+    //swapped := true;
+    xptr := @yd;
+    yptr := @xd;
+    swapInt(x0, y0);
+    swapInt(x1, y1);
+    swapInt(dsx, dsy);
+    swapInt(wx0, wy0);
+    swapInt(wx1, wy1);
+    swapInt(stx, sty);
+  end
+  else
+  begin
+    xptr := @xd;
+    yptr := @yd;
+  end;
+
+  dx2 := 2*dsx;
+  dy2 := 2*dsy;
+  xd := x0;
+  yd := y0;
+  e := 2*dsy-dsx;
+  term := x1;
+
+  xfixed := false;
+  if (y0 < wy0) then
+  begin
+    // clip at top
+    temp := dx2*(wy0-y0)-dsx;
+    xd += temp div dy2;
+    rem := temp mod dy2;
+    if (xd > wx1) then exit; // x is moved out of clipping rect, nothing to do
+    if (xd+1 >= wx0) then
+    begin
+      yd := wy0;
+      e -= rem+dsx;
+      if (rem > 0) then begin Inc(xd); e += dy2; end;
+      xfixed := true;
+    end;
+  end;
+
+  if (not xfixed) and (x0 < wx0) then
+  begin
+    // clip at left
+    temp := dy2*(wx0-x0);
+    yd += temp div dx2;
+    rem := temp mod dx2;
+    if (yd > wy1) or (yd = wy1) and (rem >= dsx) then exit;
+    xd := wx0;
+    e += rem;
+    if (rem >= dsx) then begin Inc(yd); e -= dx2; end;
+  end;
+
+  if (y1 > wy1) then
+  begin
+    // clip at bottom
+    temp := dx2*(wy1-y0)+dsx;
+    term := x0+temp div dy2;
+    rem := temp mod dy2;
+    if (rem = 0) then Dec(term);
+  end;
+
+  if (term > wx1) then term := wx1; // clip at right
+
+  Inc(term); // draw last point
+  //if (term = xd) then exit; // this is the only point, get out of here
+
+  if (sty = -1) then yd := -yd;
+  if (stx = -1) then begin xd := -xd; term := -term; end;
+  dx2 -= dy2;
+
+  // first move, to skip starting point
+  // DON'T DO THIS! loop will take care of that
+  if (xd = term) then
+  begin
+    result := forEachAtPoint(ax0, ay0, cb, tagmask, @ptag);
+    exit;
+  end;
+
+  (*
+  // move coords
+  if (e >= 0) then begin yd += sty; e -= dx2; end else e += dy2;
+  xd += stx;
+  // done?
+  if (xd = term) then exit;
+  *)
+
+  {$IF DEFINED(D2F_DEBUG)}
+  if (xptr^ < 0) or (yptr^ < 0) or (xptr^ >= gw*tsize) and (yptr^ >= gh*tsize) then raise Exception.Create('raycaster internal error (0)');
+  {$ENDIF}
+  // DON'T DO THIS! loop will take care of that
+  //lastGA := (yptr^ div tsize)*gw+(xptr^ div tsize);
+  //ccidx := mGrid[lastGA];
 
   // increase query counter
   Inc(mLastQuery);
@@ -2006,137 +2149,166 @@ begin
   begin
     // just in case of overflow
     mLastQuery := 1;
-    for i := 0 to High(mProxies) do mProxies[i].mQueryMark := 0;
+    for f := 0 to High(mProxies) do mProxies[f].mQueryMark := 0;
   end;
   lq := mLastQuery;
 
-  // cache various things
-  //tsize := mTileSize;
-  gw := mWidth;
-  gh := mHeight;
-  maxx := gw*tsize-1;
-  maxy := gh*tsize-1;
-
-  // setup distance and flags
-  lastWasInGrid := (x >= 0) and (y >= 0) and (x <= maxx) and (y <= maxy);
-
-  // setup starting tile ('cause we'll adjust tile vars only on tile edge crossing)
-  if lastWasInGrid then ccidx := mGrid[(y div tsize)*gw+(x div tsize)] else ccidx := -1;
-
-  // it is slightly faster this way
-  xerr := -d;
-  yerr := -d;
-
-  if (log) then e_WriteLog(Format('tracing: (%d,%d)-(%d,%d)', [x, y, x1-minx, y1-miny]), MSG_NOTIFY);
-
-  // now trace
-  i := 0;
-  while (i < d) do
+  {$IFDEF GRID_USE_ORTHO_ACCEL}
+  // if this is strict horizontal/vertical trace, use optimized codepath
+  if (ax0 = ax1) or (ay0 = ay1) then
   begin
-    Inc(i);
-    // do one step
-    xerr += dx;
-    yerr += dy;
-    // invariant: one of those always changed
+    // horizontal trace: walk the whole tiles, calculating mindist once for each proxy in cell
+    //   stx < 0: going left, otherwise `stx` is > 0, and we're going right
+    // vertical trace: walk the whole tiles, calculating mindist once for each proxy in cell
+    //   stx < 0: going up, otherwise `stx` is > 0, and we're going down
+    hopt := (ay0 = ay1); // horizontal?
+    if (stx < 0) then begin {wksign := -1;} wklen := -(term-xd); end else begin {wksign := 1;} wklen := term-xd; end;
     {$IF DEFINED(D2F_DEBUG)}
-    if (xerr < 0) and (yerr < 0) then raise Exception.Create('internal bug in grid raycaster (0)');
+    if dbgShowTraceLog then e_LogWritefln('optimized htrace; wklen=%d', [wklen]);
     {$ENDIF}
-    if (xerr >= 0) then begin xerr -= d; x += incx; stepx := incx; end else stepx := 0;
-    if (yerr >= 0) then begin yerr -= d; y += incy; stepy := incy; end else stepy := 0;
-    // invariant: we always doing a step
+    ga := (yptr^ div tsize)*gw+(xptr^ div tsize);
+    // one of those will never change
+    x := xptr^+minx;
+    y := yptr^+miny;
     {$IF DEFINED(D2F_DEBUG)}
-    if ((stepx or stepy) = 0) then raise Exception.Create('internal bug in grid raycaster (1)');
-    {$ENDIF}
+    if hopt then
     begin
-      // check for crossing tile/grid boundary
-      if (x >= 0) and (y >= 0) and (x <= maxx) and (y <= maxy) then
+      if (y <> ay0) then raise Exception.Create('htrace fatal internal error');
+    end
+    else
+    begin
+      if (x <> ax0) then raise Exception.Create('vtrace fatal internal error');
+    end;
+    {$ENDIF}
+    while (wklen > 0) do
+    begin
+      {$IF DEFINED(D2F_DEBUG)}
+      if dbgShowTraceLog then e_LogWritefln('  htrace; ga=%d; x=%d, y=%d; y=%d; y=%d', [ga, xptr^+minx, yptr^+miny, y, ay0]);
+      {$ENDIF}
+      // new tile?
+      if (ga <> lastGA) then
       begin
-        // we're still in grid
-        lastWasInGrid := true;
-        // check for tile edge crossing
-             if (stepx < 0) and ((x mod tsize) = tsize-1) then tbcross := true
-        else if (stepx > 0) and ((x mod tsize) = 0) then tbcross := true
-        else if (stepy < 0) and ((y mod tsize) = tsize-1) then tbcross := true
-        else if (stepy > 0) and ((y mod tsize) = 0) then tbcross := true
-        else tbcross := false;
-        // crossed tile edge?
-        if tbcross then
+        lastGA := ga;
+        ccidx := mGrid[lastGA];
+        // convert coords to map (to avoid ajdusting coords inside the loop)
+        if hopt then x := xptr^+minx else y := yptr^+miny;
+        while (ccidx <> -1) do
         begin
-          // setup new cell index
-          ccidx := mGrid[(y div tsize)*gw+(x div tsize)];
-          if (log) then e_WriteLog(Format(' stepped to new tile (%d,%d) -- (%d,%d)', [(x div tsize), (y div tsize), x, y]), MSG_NOTIFY);
+          cc := @mCells[ccidx];
+          for f := 0 to GridCellBucketSize-1 do
+          begin
+            if (cc.bodies[f] = -1) then break;
+            px := @mProxies[cc.bodies[f]];
+            ptag := px.mTag;
+            if ((ptag and TagDisabled) = 0) and ((ptag and tagmask) <> 0) and (px.mQueryMark <> lq) then
+            begin
+              px.mQueryMark := lq; // mark as processed
+              if assigned(cb) then
+              begin
+                if cb(px.mObj, ptag) then begin result := px.mObj; exit; end;
+              end
+              else
+              begin
+                result := px.mObj;
+                exit;
+              end;
+            end;
+          end;
+          // next cell
+          ccidx := cc.next;
+        end;
+      end;
+      // skip to next tile
+      if hopt then
+      begin
+        if (stx > 0) then
+        begin
+          // to the right
+          wkstep := ((xptr^ or (mTileSize-1))+1)-xptr^;
+          {$IF DEFINED(D2F_DEBUG)}
+          if dbgShowTraceLog then e_LogWritefln('  right step: wklen=%d; wkstep=%d', [wklen, wkstep]);
+          {$ENDIF}
+          if (wkstep >= wklen) then break;
+          Inc(xptr^, wkstep);
+          Inc(ga);
         end
         else
-        if (ccidx = -1) then
         begin
-          // we have nothing interesting here anymore, jump directly to tile edge
-          (*
-          if (incx = 0) then
-          begin
-            // vertical line
-            if (incy < 0) then tedist := y-(y and (not tsize)) else tedist := (y or (tsize-1))-y;
-            if (tedist > 1) then
-            begin
-              if (log) then e_WriteLog(Format('  doing vertical jump from tile (%d,%d) - (%d,%d) by %d steps', [(x div tsize), (y div tsize), x, y, tedist]), MSG_NOTIFY);
-              y += incy*tedist;
-              Inc(i, tedist);
-              if (log) then e_WriteLog(Format('   jumped to tile (%d,%d) - (%d,%d) by %d steps', [(x div tsize), (y div tsize), x, y, tedist]), MSG_NOTIFY);
-            end;
-          end
-          else if (incy = 0) then
-          begin
-            // horizontal line
-            if (incx < 0) then tedist := x-(x and (not tsize)) else tedist := (x or (tsize-1))-x;
-            if (tedist > 1) then
-            begin
-              if (log) then e_WriteLog(Format('  doing horizontal jump from tile (%d,%d) - (%d,%d) by %d steps', [(x div tsize), (y div tsize), x, y, tedist]), MSG_NOTIFY);
-              x += incx*tedist;
-              Inc(i, tedist);
-              if (log) then e_WriteLog(Format('   jumped to tile (%d,%d) - (%d,%d) by %d steps', [(x div tsize), (y div tsize), x, y, tedist]), MSG_NOTIFY);
-            end;
-          end;
-          *)
-          (*
-           else if (
-          // get minimal distance to tile edges
-          if (incx < 0) then tedist := x-(x and (not tsize)) else if (incx > 0) then tedist := (x or (tsize+1))-x else tedist := 0;
+          // to the left
+          wkstep := xptr^-((xptr^ and (not (mTileSize-1)))-1);
           {$IF DEFINED(D2F_DEBUG)}
-          if (tedist < 0) then raise Exception.Create('internal bug in grid raycaster (2.x)');
+          if dbgShowTraceLog then e_LogWritefln('  left step: wklen=%d; wkstep=%d', [wklen, wkstep]);
           {$ENDIF}
-          if (incy < 0) then f := y-(y and (not tsize)) else if (incy > 0) then f := (y or (tsize+1))-y else f := 0;
-          {$IF DEFINED(D2F_DEBUG)}
-          if (f < 0) then raise Exception.Create('internal bug in grid raycaster (2.y)');
-          {$ENDIF}
-          if (tedist = 0) then tedist := f else if (f <> 0) then tedist := minInt(tedist, f);
-          // do jump
-          if (tedist > 1) then
-          begin
-            if (log) then e_WriteLog(Format('  doing jump from tile (%d,%d) - (%d,%d) by %d steps', [(x div tsize), (y div tsize), x, y, tedist]), MSG_NOTIFY);
-            xerr += dx*tedist;
-            yerr += dy*tedist;
-            if (xerr >= 0) then begin x += incx*((xerr div d)+1); xerr := (xerr mod d)-d; end;
-            if (yerr >= 0) then begin y += incy*((yerr div d)+1); yerr := (yerr mod d)-d; end;
-            Inc(i, tedist);
-            if (log) then e_WriteLog(Format('   jumped to tile (%d,%d) - (%d,%d) by %d steps', [(x div tsize), (y div tsize), x, y, tedist]), MSG_NOTIFY);
-          end;
-          *)
+          if (wkstep >= wklen) then break;
+          Dec(xptr^, wkstep);
+          Dec(ga);
         end;
       end
       else
       begin
-        // out of grid
-        if lastWasInGrid then exit; // oops, stepped out of the grid -- there is no way to return
+        if (stx > 0) then
+        begin
+          // to the down
+          wkstep := ((yptr^ or (mTileSize-1))+1)-yptr^;
+          {$IF DEFINED(D2F_DEBUG)}
+          if dbgShowTraceLog then e_LogWritefln('  down step: wklen=%d; wkstep=%d', [wklen, wkstep]);
+          {$ENDIF}
+          if (wkstep >= wklen) then break;
+          Inc(yptr^, wkstep);
+          Inc(ga, mHeight);
+        end
+        else
+        begin
+          // to the up
+          wkstep := yptr^-((yptr^ and (not (mTileSize-1)))-1);
+          {$IF DEFINED(D2F_DEBUG)}
+          if dbgShowTraceLog then e_LogWritefln('  up step: wklen=%d; wkstep=%d', [wklen, wkstep]);
+          {$ENDIF}
+          if (wkstep >= wklen) then break;
+          Dec(yptr^, wkstep);
+          Dec(ga, mHeight);
+        end;
       end;
+      Dec(wklen, wkstep);
     end;
+    exit;
+  end;
+  {$ENDIF}
 
-    // has something to process in the current cell?
+  {$IF DEFINED(D2F_DEBUG_RAYTRACE)}
+  if assigned(dbgRayTraceTileHitCB) then dbgRayTraceTileHitCB((xptr^ div tsize*tsize)+minx, (yptr^ div tsize*tsize)+miny);
+  {$ENDIF}
+
+  ccidx := -1;
+  //  can omit checks
+  while (xd <> term) do
+  begin
+    // check cell(s)
+    {$IF DEFINED(D2F_DEBUG)}
+    if (xptr^ < 0) or (yptr^ < 0) or (xptr^ >= gw*tsize) and (yptr^ >= gh*tsize) then raise Exception.Create('raycaster internal error (0)');
+    {$ENDIF}
+    // new tile?
+    ga := (yptr^ div tsize)*gw+(xptr^ div tsize);
+    {$IF DEFINED(D2F_DEBUG_RAYTRACE)}
+    if assigned(dbgRayTraceTileHitCB) then e_WriteLog(Format(' xd=%d; term=%d; gx=%d; gy=%d; ga=%d; lastga=%d', [xd, term, xptr^, yptr^, ga, lastGA]), MSG_NOTIFY);
+    {$ENDIF}
+    if (ga <> lastGA) then
+    begin
+      // yes
+      {$IF DEFINED(D2F_DEBUG)}
+      if assigned(dbgRayTraceTileHitCB) then dbgRayTraceTileHitCB((xptr^ div tsize*tsize)+minx, (yptr^ div tsize*tsize)+miny);
+      {$ENDIF}
+      lastGA := ga;
+      ccidx := mGrid[lastGA];
+    end;
+    // has something to process in this tile?
     if (ccidx <> -1) then
     begin
       // process cell
       curci := ccidx;
       // convert coords to map (to avoid ajdusting coords inside the loop)
-      //Inc(x, minx);
-      //Inc(y, miny);
+      x := xptr^+minx;
+      y := yptr^+miny;
       // process cell list
       while (curci <> -1) do
       begin
@@ -2149,17 +2321,41 @@ begin
           if ((ptag and TagDisabled) = 0) and ((ptag and tagmask) <> 0) and (px.mQueryMark <> lq) then
           begin
             px.mQueryMark := lq; // mark as processed
-            if cb(px.mObj, ptag) then begin result := px.mObj; exit; end;
+            if assigned(cb) then
+            begin
+              if cb(px.mObj, ptag) then begin result := px.mObj; exit; end;
+            end
+            else
+            begin
+              result := px.mObj;
+              exit;
+            end;
           end;
         end;
         // next cell
         curci := cc.next;
       end;
-      ccidx := -1; // don't process this anymore
-      // convert coords to grid
-      //Dec(x, minx);
-      //Dec(y, miny);
+      // nothing more interesting in this cell
+      ccidx := -1;
     end;
+    // move to cell edge, as we have nothing to trace here anymore
+    if (stx < 0) then xdist := xd and (not (mTileSize-1)) else xdist := xd or (mTileSize-1);
+    if (sty < 0) then ydist := yd and (not (mTileSize-1)) else ydist := yd or (mTileSize-1);
+    //e_LogWritefln('0: swapped=%d; xd=%d; yd=%d; stx=%d; sty=%d; e=%d; dx2=%d; dy2=%d; term=%d; xdist=%d; ydist=%d', [swapped, xd, yd, stx, sty, e, dx2, dy2, term, xdist, ydist]);
+    while (xd <> xdist) and (yd <> ydist) do
+    begin
+      // step
+      xd += stx;
+      if (e >= 0) then begin yd += sty; e -= dx2; end else e += dy2;
+      //e_LogWritefln('  xd=%d; yd=%d', [xd, yd]);
+      if (xd = term) then break;
+    end;
+    //e_LogWritefln('1: swapped=%d; xd=%d; yd=%d; stx=%d; sty=%d; e=%d; dx2=%d; dy2=%d; term=%d; xdist=%d; ydist=%d', [swapped, xd, yd, stx, sty, e, dx2, dy2, term, xdist, ydist]);
+    if (xd = term) then break;
+    //putPixel(xptr^, yptr^);
+    // move coords
+    if (e >= 0) then begin yd += sty; e -= dx2; end else e += dy2;
+    xd += stx;
   end;
 end;
 
