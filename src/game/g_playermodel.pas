@@ -368,6 +368,7 @@ begin
   for b := A_STAND to A_LAST do
   begin
     aname := s+'_RIGHTANIM'+IntToStr(b);
+    //e_LogWritefln('### MODEL FILE: [%s]', [prefix+config.ReadStr(AnimNames[b], 'resource', '')]);
     if not (g_Frames_CreateWAD(nil, aname,
                                prefix+config.ReadStr(AnimNames[b], 'resource', ''),
                                64, 64, config.ReadInt(AnimNames[b], 'frames', 1),

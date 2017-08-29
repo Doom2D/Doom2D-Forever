@@ -462,6 +462,9 @@ var
 begin
   Result := False;
 
+  // models without "advanced" animations asks for "nothing" like this; don't spam log
+  if (Length(Resource) > 0) and ((Resource[Length(Resource)] = '/') or (Resource[Length(Resource)] = '\')) then exit;
+
   FileName := g_ExtractWadName(Resource);
 
   WAD := TWADFile.Create();
