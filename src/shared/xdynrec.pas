@@ -187,6 +187,9 @@ type
     procedure writeTo (wr: TTextWriter; putHeader: Boolean=true);
     procedure writeBinTo (st: TStream; trigbufsz: Integer=-1);
 
+    // find field with `TriggerType` type
+    function trigTypeField (): TDynField;
+
   public
     property id: AnsiString read mId; // for map parser
     property pasname: AnsiString read mPasName;
@@ -1020,7 +1023,6 @@ begin
   raise Exception.Create(Format('cannot parse field ''%s'' yet', [mName]));
 end;
 
-
 procedure TDynField.parseBinValue (st: TStream);
 var
   rec, rc: TDynRecord;
@@ -1040,9 +1042,8 @@ begin
           assert(mMaxDim > 0);
           rec := mOwner;
           // find trigger definition
-          tfld := rec.field['type'];
-          if (tfld = nil) then raise Exception.Create(Format('triggerdata value for field ''%s'' in record ''%s'' without ''type'' field', [mName, rec.mName]));
-          if (tfld.mEBS <> TEBS.TEnum) then raise Exception.Create(Format('triggerdata value for field ''%s'' in record ''%s'' with bad ''type'' field', [mName, rec.mName]));
+          tfld := rec.trigTypeField();
+          if (tfld = nil) then raise Exception.Create(Format('triggerdata value for field ''%s'' in record ''%s'' without TriggerType field', [mName, rec.mName]));
           rc := mOwner.mOwner.findTrigFor(tfld.mSVal); // find in mapdef
           if (rc = nil) then raise Exception.Create(Format('triggerdata definition for field ''%s'' in record ''%s'' with type ''%s'' not found', [mName, rec.mName, tfld.mSVal]));
           rc := rc.clone();
@@ -1241,9 +1242,8 @@ begin
           begin
             rec := mOwner;
             // find trigger definition
-            tfld := rec.field['type'];
+            tfld := rec.trigTypeField();
             if (tfld = nil) then raise Exception.Create(Format('triggerdata value for field ''%s'' in record ''%s'' without ''type'' field', [mName, rec.mName]));
-            if (tfld.mEBS <> TEBS.TEnum) then raise Exception.Create(Format('triggerdata value for field ''%s'' in record ''%s'' with bad ''type'' field', [mName, rec.mName]));
             rc := mOwner.mOwner.findTrigFor(tfld.mSVal); // find in mapdef
             if (rc = nil) then raise Exception.Create(Format('triggerdata definition for field ''%s'' in record ''%s'' with type ''%s'' not found', [mName, rec.mName, tfld.mSVal]));
             rc := rc.clone();
@@ -1627,6 +1627,23 @@ begin
     if not mFields[f].isSimpleEqu(rec.mFields[f]) then exit;
   end;
   result := true;
+end;
+
+
+function TDynRecord.trigTypeField (): TDynField;
+var
+  fld: TDynField;
+  es: TDynEBS = nil;
+begin
+  for fld in mFields do
+  begin
+    if (fld.mEBS <> TDynField.TEBS.TEnum) then continue;
+    if not (fld.mEBSType is TDynEBS) then continue;
+    es := (fld.mEBSType as TDynEBS);
+    assert(es <> nil);
+    if (CompareText(es.mName, 'TriggerType') = 0) then begin result := fld; exit; end;
+  end;
+  result := nil;
 end;
 
 
