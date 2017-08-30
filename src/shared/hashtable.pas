@@ -52,36 +52,38 @@ type
 
   private
     type
+      TEntryArray = array of TEntry;
+
       TValEnumerator = record
       private
-        mEntries: PEntry;
+        mEntries: TEntryArray;
         mFirstEntry, mLastEntry, cur: Integer;
       public
-        constructor Create (aents: PEntry; afirst, alast: Integer);
-        function MoveNext: Boolean;
-        function getCurrent (): ValueT;
+        constructor Create (aents: TEntryArray; afirst, alast: Integer);
+        function MoveNext (): Boolean; inline;
+        function getCurrent (): ValueT; inline;
         property Current: ValueT read getCurrent;
       end;
 
       TKeyEnumerator = record
       private
-        mEntries: PEntry;
+        mEntries: TEntryArray;
         mFirstEntry, mLastEntry, cur: Integer;
       public
-        constructor Create (aents: PEntry; afirst, alast: Integer);
-        function MoveNext: Boolean;
-        function getCurrent (): KeyT;
+        constructor Create (aents: TEntryArray; afirst, alast: Integer);
+        function MoveNext (): Boolean; inline;
+        function getCurrent (): KeyT; inline;
         property Current: KeyT read getCurrent;
       end;
 
       TKeyValEnumerator = record
       private
-        mEntries: PEntry;
+        mEntries: TEntryArray;
         mFirstEntry, mLastEntry, cur: Integer;
       public
-        constructor Create (aents: PEntry; afirst, alast: Integer);
-        function MoveNext: Boolean;
-        function getCurrent (): PEntry;
+        constructor Create (aents: TEntryArray; afirst, alast: Integer);
+        function MoveNext (): Boolean; inline;
+        function getCurrent (): PEntry; inline;
         property Current: PEntry read getCurrent;
       end;
 
@@ -90,7 +92,7 @@ type
     equfn: TEquFn;
     mBuckets: array of PEntry; // entries, points to mEntries elements
     mBucketsUsed: Integer;
-    mEntries: array of TEntry;
+    mEntries: TEntryArray;
     {$IFDEF RBHASH_SANITY_CHECKS}
     mEntriesUsed: Integer;
     {$ENDIF}
@@ -919,31 +921,31 @@ end;
 // enumerators
 function THashBase.GetEnumerator (): TValEnumerator;
 begin
-  if (Length(mEntries) > 0) then result := TValEnumerator.Create(@mEntries[0], mFirstEntry, mLastEntry)
+  if (Length(mEntries) > 0) then result := TValEnumerator.Create(mEntries, mFirstEntry, mLastEntry)
   else result := TValEnumerator.Create(nil, -1, -1);
 end;
 
 function THashBase.byKey (): TKeyEnumerator;
 begin
-  if (Length(mEntries) > 0) then result := TKeyEnumerator.Create(@mEntries[0], mFirstEntry, mLastEntry)
+  if (Length(mEntries) > 0) then result := TKeyEnumerator.Create(mEntries, mFirstEntry, mLastEntry)
   else result := TKeyEnumerator.Create(nil, -1, -1);
 end;
 
 function THashBase.byValue (): TValEnumerator;
 begin
-  if (Length(mEntries) > 0) then result := TValEnumerator.Create(@mEntries[0], mFirstEntry, mLastEntry)
+  if (Length(mEntries) > 0) then result := TValEnumerator.Create(mEntries, mFirstEntry, mLastEntry)
   else result := TValEnumerator.Create(nil, -1, -1);
 end;
 
 function THashBase.byKeyValue (): TKeyValEnumerator; // PEntry
 begin
-  if (Length(mEntries) > 0) then result := TKeyValEnumerator.Create(@mEntries[0], mFirstEntry, mLastEntry)
+  if (Length(mEntries) > 0) then result := TKeyValEnumerator.Create(mEntries, mFirstEntry, mLastEntry)
   else result := TKeyValEnumerator.Create(nil, -1, -1);
 end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-constructor THashBase.TValEnumerator.Create (aents: PEntry; afirst, alast: Integer);
+constructor THashBase.TValEnumerator.Create (aents: TEntryArray; afirst, alast: Integer);
 begin
   mEntries := aents;
   mFirstEntry := afirst;
@@ -951,7 +953,7 @@ begin
   cur := mFirstEntry-1;
 end;
 
-function THashBase.TValEnumerator.MoveNext: Boolean;
+function THashBase.TValEnumerator.MoveNext (): Boolean; inline;
 begin
   Inc(cur);
   while (cur <= mLastEntry) do
@@ -961,14 +963,14 @@ begin
   result := false;
 end;
 
-function THashBase.TValEnumerator.getCurrent (): ValueT;
+function THashBase.TValEnumerator.getCurrent (): ValueT; inline;
 begin
   result := mEntries[cur].value;
 end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-constructor THashBase.TKeyEnumerator.Create (aents: PEntry; afirst, alast: Integer);
+constructor THashBase.TKeyEnumerator.Create (aents: TEntryArray; afirst, alast: Integer);
 begin
   mEntries := aents;
   mFirstEntry := afirst;
@@ -976,7 +978,7 @@ begin
   cur := mFirstEntry-1;
 end;
 
-function THashBase.TKeyEnumerator.MoveNext: Boolean;
+function THashBase.TKeyEnumerator.MoveNext (): Boolean; inline;
 begin
   Inc(cur);
   while (cur <= mLastEntry) do
@@ -986,14 +988,14 @@ begin
   result := false;
 end;
 
-function THashBase.TKeyEnumerator.getCurrent (): KeyT;
+function THashBase.TKeyEnumerator.getCurrent (): KeyT; inline;
 begin
   result := mEntries[cur].key;
 end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-constructor THashBase.TKeyValEnumerator.Create (aents: PEntry; afirst, alast: Integer);
+constructor THashBase.TKeyValEnumerator.Create (aents: TEntryArray; afirst, alast: Integer);
 begin
   mEntries := aents;
   mFirstEntry := afirst;
@@ -1001,7 +1003,7 @@ begin
   cur := mFirstEntry-1;
 end;
 
-function THashBase.TKeyValEnumerator.MoveNext: Boolean;
+function THashBase.TKeyValEnumerator.MoveNext (): Boolean; inline;
 begin
   Inc(cur);
   while (cur <= mLastEntry) do
@@ -1011,9 +1013,9 @@ begin
   result := false;
 end;
 
-function THashBase.TKeyValEnumerator.getCurrent (): PEntry;
+function THashBase.TKeyValEnumerator.getCurrent (): PEntry; inline;
 begin
-  result := mEntries+cur;
+  result := @mEntries[cur];
 end;
 
 

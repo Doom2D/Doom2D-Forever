@@ -2039,7 +2039,7 @@ var
   temp: Integer;
   ccidx, curci: Integer;
   lastGA: Integer = -1;
-  ga, x, y: Integer;
+  ga: Integer;
   gw, gh, minx, miny, maxx, maxy: Integer;
   cc: PGridCell;
   px: PBodyProxyRec;
@@ -2254,23 +2254,20 @@ begin
     if dbgShowTraceLog then e_LogWritefln('optimized htrace; wklen=%d', [wklen]);
     {$ENDIF}
     ga := (yptr^ div tsize)*gw+(xptr^ div tsize);
-    // one of those will never change
-    x := xptr^+minx;
-    y := yptr^+miny;
     {$IF DEFINED(D2F_DEBUG)}
     if hopt then
     begin
-      if (y <> ay0) then raise Exception.Create('htrace fatal internal error');
+      if (yptr^ <> ay0) then raise Exception.Create('htrace fatal internal error');
     end
     else
     begin
-      if (x <> ax0) then raise Exception.Create('vtrace fatal internal error');
+      if (xptr^ <> ax0) then raise Exception.Create('vtrace fatal internal error');
     end;
     {$ENDIF}
     while (wklen > 0) do
     begin
       {$IF DEFINED(D2F_DEBUG)}
-      if dbgShowTraceLog then e_LogWritefln('  htrace; ga=%d; x=%d, y=%d; y=%d; y=%d', [ga, xptr^+minx, yptr^+miny, y, ay0]);
+      if dbgShowTraceLog then e_LogWritefln('  htrace; ga=%d; x=%d, y=%d; ay0=%d', [ga, xptr^+minx, yptr^+miny, ay0]);
       {$ENDIF}
       // new tile?
       if (ga <> lastGA) then
@@ -2278,7 +2275,6 @@ begin
         lastGA := ga;
         ccidx := mGrid[lastGA];
         // convert coords to map (to avoid ajdusting coords inside the loop)
-        if hopt then x := xptr^+minx else y := yptr^+miny;
         while (ccidx <> -1) do
         begin
           cc := @mCells[ccidx];
@@ -2395,9 +2391,6 @@ begin
     begin
       // process cell
       curci := ccidx;
-      // convert coords to map (to avoid ajdusting coords inside the loop)
-      x := xptr^+minx;
-      y := yptr^+miny;
       // process cell list
       while (curci <> -1) do
       begin
