@@ -71,6 +71,7 @@ type
         property height: Integer read mHeight;
         property tag: Integer read getTag write setTag;
         property enabled: Boolean read getEnabled write setEnabled;
+        property obj: ITP read mObj;
       end;
 
   private
@@ -81,20 +82,36 @@ type
         next: Integer; // in this cell; index in mCells
       end;
 
+      TCellArray = array of TGridCell;
+
       TGridInternalCB = function (grida: Integer; bodyId: TBodyProxyId): Boolean of object; // return `true` to stop
 
   private
     //mTileSize: Integer;
     const mTileSize = GridDefaultTileSize;
+    type TGetProxyFn = function (pxidx: Integer): PBodyProxyRec of object;
 
   public
     const tileSize = mTileSize;
+
+    type
+      TAtPointEnumerator = record
+      private
+        mCells: TCellArray;
+        curidx, curbki: Integer;
+        getpx: TGetProxyFn;
+      public
+        constructor Create (acells: TCellArray; aidx: Integer; agetpx: TGetProxyFn);
+        function MoveNext (): Boolean; inline;
+        function getCurrent (): PBodyProxyRec; inline;
+        property Current: PBodyProxyRec read getCurrent;
+      end;
 
   private
     mMinX, mMinY: Integer; // so grids can start at any origin
     mWidth, mHeight: Integer; // in tiles
     mGrid: array of Integer; // mWidth*mHeight, index in mCells
-    mCells: array of TGridCell; // cell pool
+    mCells: TCellArray; // cell pool
     mFreeCell: Integer; // first free cell index or -1
     mLastQuery: LongWord;
     mUsedCells: Integer;
@@ -160,6 +177,8 @@ type
     //         you can set enabled/disabled flag, tho (but iterator can still return objects disabled inside it)
     // no callback: return object on the first hit or nil
     function forEachAtPoint (x, y: Integer; cb: TGridQueryCB; tagmask: Integer=-1; exittag: PInteger=nil): ITP;
+
+    function atPoint (x, y: Integer): TAtPointEnumerator;
 
     //WARNING: don't modify grid while any query is in progress (no checks are made!)
     //         you can set enabled/disabled flag, tho (but iterator can still return objects disabled inside it)
@@ -417,6 +436,40 @@ end;
 procedure TBodyGridBase.TBodyProxyRec.setEnabled (v: Boolean); inline;
 begin
   if v then mTag := mTag and (not TagDisabled) else mTag := mTag or TagDisabled;
+end;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
+constructor TBodyGridBase.TAtPointEnumerator.Create (acells: TCellArray; aidx: Integer; agetpx: TGetProxyFn);
+begin
+  mCells := acells;
+  curidx := aidx;
+  curbki := -1;
+  getpx := agetpx;
+end;
+
+
+function TBodyGridBase.TAtPointEnumerator.MoveNext (): Boolean; inline;
+begin
+  while (curidx <> -1) do
+  begin
+    while (curbki < GridCellBucketSize) do
+    begin
+      Inc(curbki);
+      if (mCells[curidx].bodies[curbki] = -1) then break;
+      result := true;
+      exit;
+    end;
+    curidx := mCells[curidx].next;
+    curbki := -1;
+  end;
+  result := false;
+end;
+
+
+function TBodyGridBase.TAtPointEnumerator.getCurrent (): PBodyProxyRec; inline;
+begin
+  result := getpx(mCells[curidx].bodies[curbki]);
 end;
 
 
@@ -1105,6 +1158,18 @@ begin
     px.mWidth := nw;
     px.mHeight := nh;
   end;
+end;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
+function TBodyGridBase.atPoint (x, y: Integer): TAtPointEnumerator;
+var
+  cidx: Integer = -1;
+begin
+  Dec(x, mMinX);
+  Dec(y, mMinY);
+  if (x >= 0) and (y >= 0) and (x < mWidth*mTileSize) and (y < mHeight*mTileSize) then cidx := mGrid[(y div mTileSize)*mWidth+(x div mTileSize)];
+  result := TAtPointEnumerator.Create(mCells, cidx, getProxyById);
 end;
 
 
