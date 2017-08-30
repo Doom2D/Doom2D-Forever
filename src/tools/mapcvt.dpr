@@ -101,7 +101,7 @@ begin
     stt := curTimeMicro();
     map := dfmapdef.parseBinMap(st);
     stt := curTimeMicro()-stt;
-    writeln('binary map parsed in ', stt div 1000, '.', stt mod 1000, ' microseconds');
+    writeln('binary map parsed in ', stt div 1000, '.', stt mod 1000, ' milliseconds');
     st.Free();
   end
   else
@@ -113,7 +113,7 @@ begin
       stt := curTimeMicro();
       map := dfmapdef.parseMap(pr);
       stt := curTimeMicro()-stt;
-      writeln('text map parsed in ', stt div 1000, '.', stt mod 1000, ' microseconds');
+      writeln('text map parsed in ', stt div 1000, '.', stt mod 1000, ' milliseconds');
     except on e: Exception do
       begin
         writeln('ERROR at (', pr.line, ',', pr.col, '): ', e.message);
@@ -133,7 +133,7 @@ begin
     stt := curTimeMicro();
     map.writeBinTo(st);
     stt := curTimeMicro()-stt;
-    writeln('binary map written in ', stt div 1000, '.', stt mod 1000, ' microseconds');
+    writeln('binary map written in ', stt div 1000, '.', stt mod 1000, ' milliseconds');
   end
   else
   begin
@@ -142,7 +142,7 @@ begin
     stt := curTimeMicro();
     map.writeTo(wr);
     stt := curTimeMicro()-stt;
-    writeln('text map written in ', stt div 1000, '.', stt mod 1000, ' microseconds');
+    writeln('text map written in ', stt div 1000, '.', stt mod 1000, ' milliseconds');
     wr.Free();
   end;
 end.
