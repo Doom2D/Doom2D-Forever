@@ -1,6 +1,6 @@
 unit f_main;
 
-{$MODE Delphi}
+{$INCLUDE ../shared/a_modes.inc}
 
 interface
 
@@ -8,7 +8,7 @@ uses
   LCLIntf, LCLType, LMessages, SysUtils, Variants, Classes, Graphics,
   Controls, Forms, Dialogs, ImgList, StdCtrls, Buttons,
   ComCtrls, ValEdit, Types, ToolWin, Menus, ExtCtrls,
-  CheckLst, Grids, OpenGLContext;
+  CheckLst, Grids, OpenGLContext, utils;
 
 type
 
@@ -1880,6 +1880,7 @@ var
   ok: Boolean;
   FileName: String;
   ResourceName: String;
+  UResourceName: String;
   FullResourceName: String;
   SectionName: String;
   Data: Pointer;
@@ -1911,14 +1912,15 @@ begin
       end;
 
   ok := True;
+  UResourceName := win2utf(ResourceName);
 
 // Есть ли уже такая текстура:
   for a := 0 to MainForm.lbTextureList.Items.Count-1 do
-    if ResourceName = MainForm.lbTextureList.Items[a] then
+    if UResourceName = MainForm.lbTextureList.Items[a] then
     begin
       if not silent then
         ErrorMessageBox(Format(_lc[I_MSG_TEXTURE_ALREADY],
-                               [ResourceName]));
+                               [UResourceName]));
       ok := False;
     end;
 
@@ -1927,7 +1929,7 @@ begin
   begin
     if not silent then
       ErrorMessageBox(Format(_lc[I_MSG_RES_NAME_64],
-                             [ResourceName]));
+                             [UResourceName]));
     ok := False;
   end;
 
@@ -1936,7 +1938,7 @@ begin
     a := -1;
     if aWAD = _lc[I_WAD_SPECIAL_TEXS] then
     begin
-      a := MainForm.lbTextureList.Items.Add(ResourceName);
+      a := MainForm.lbTextureList.Items.Add(UResourceName);
       if not silent then
         SelectTexture(a);
       Result := True;
@@ -1950,12 +1952,12 @@ begin
         GetFrame(FullResourceName, Data, FrameLen, Width, Height);
 
         if g_CreateTextureMemorySize(Data, FrameLen, ResourceName, 0, 0, Width, Height, 1) then
-          a := MainForm.lbTextureList.Items.Add(ResourceName);
+          a := MainForm.lbTextureList.Items.Add(UResourceName);
       end
     else // Обычная текстура
       begin
         if g_CreateTextureWAD(ResourceName, FullResourceName) then
-          a := MainForm.lbTextureList.Items.Add(ResourceName);
+          a := MainForm.lbTextureList.Items.Add(UResourceName);
       end;
     if (a > -1) and (not silent) then
       SelectTexture(a);
@@ -2210,7 +2212,7 @@ end;
 function SelectedTexture(): String;
 begin
   if MainForm.lbTextureList.ItemIndex <> -1 then
-    Result := MainForm.lbTextureList.Items[MainForm.lbTextureList.ItemIndex]
+    Result := utf2win(MainForm.lbTextureList.Items[MainForm.lbTextureList.ItemIndex])
   else
     Result := '';
 end;
@@ -2218,7 +2220,7 @@ end;
 function IsSpecialTextureSel(): Boolean;
 begin
   Result := (MainForm.lbTextureList.ItemIndex <> -1) and
-            IsSpecialTexture(MainForm.lbTextureList.Items[MainForm.lbTextureList.ItemIndex]);
+            IsSpecialTexture(utf2win(MainForm.lbTextureList.Items[MainForm.lbTextureList.ItemIndex]));
 end;
 
 function CopyBufferToString(var CopyBuf: TCopyRecArray): String;
@@ -2595,7 +2597,7 @@ begin
   OpenedMap := '';
   OpenedWAD := '';
 
-  config := TConfig.CreateFile(EditorDir+'/Editor.cfg');
+  config := TConfig.CreateFile(EditorDir+'Editor.cfg');
 
   if config.ReadBool('Editor', 'Maximize', False) then
     WindowState := wsMaximized;
@@ -4020,7 +4022,7 @@ var
   config: TConfig;
   i: Integer;
 begin
-  config := TConfig.CreateFile(EditorDir+'/Editor.cfg');
+  config := TConfig.CreateFile(EditorDir+'Editor.cfg');
 
   config.WriteBool('Editor', 'Maximize', WindowState = wsMaximized);
   config.WriteBool('Editor', 'Minimap', ShowMap);
@@ -4043,7 +4045,7 @@ begin
       config.WriteStr('RecentFiles', IntToStr(i+1), '');
   RecentFiles.Free();
 
-  config.SaveFile(EditorDir+'/Editor.cfg');
+  config.SaveFile(EditorDir+'Editor.cfg');
   config.Free();
 
   slInvalidTextures.Free;
@@ -4286,11 +4288,11 @@ begin
       begin
         AddSoundForm.OKFunction := nil;
         AddSoundForm.lbResourcesList.MultiSelect := False;
-        AddSoundForm.SetResource := vleObjectProperty.Cells[1, i];
+        AddSoundForm.SetResource := utf2win(vleObjectProperty.Cells[1, i]);
 
         if (AddSoundForm.ShowModal() = mrOk) then
         begin
-          vleObjectProperty.Cells[1, i] := AddSoundForm.ResourceName;
+          vleObjectProperty.Cells[1, i] := win2utf(AddSoundForm.ResourceName);
           bApplyProperty.Click();
         end;
         Exit;
@@ -5281,8 +5283,8 @@ begin
                   begin
                     Panel^.TextureID := SpecialTextureID(Panel^.TextureName);
                     with MainForm.lbTextureList.Items do
-                      if IndexOf(Panel^.TextureName) = -1 then
-                        Add(Panel^.TextureName);
+                      if IndexOf(win2utf(Panel^.TextureName)) = -1 then
+                        Add(win2utf(Panel^.TextureName));
                   end;
               end;
 
@@ -5443,11 +5445,11 @@ begin
     begin // Выбор файла звука/музыки:
       AddSoundForm.OKFunction := nil;
       AddSoundForm.lbResourcesList.MultiSelect := False;
-      AddSoundForm.SetResource := vleObjectProperty.Values[Key];
+      AddSoundForm.SetResource := utf2win(vleObjectProperty.Values[Key]);
 
       if (AddSoundForm.ShowModal() = mrOk) then
       begin
-        vleObjectProperty.Values[Key] := AddSoundForm.ResourceName;
+        vleObjectProperty.Values[Key] := utf2win(AddSoundForm.ResourceName);
         bApplyProperty.Click();
       end;
     end
@@ -5751,9 +5753,9 @@ begin
       else gLanguage := LANGUAGE_RUSSIAN;
     end;
 
-    config := TConfig.CreateFile(EditorDir+'/Editor.cfg');
+    config := TConfig.CreateFile(EditorDir+'Editor.cfg');
     config.WriteStr('Editor', 'Language', gLanguage);
-    config.SaveFile(EditorDir+'/Editor.cfg');
+    config.SaveFile(EditorDir+'Editor.cfg');
     config.Free();
   end;
 
@@ -6057,7 +6059,9 @@ begin
     e_InitGL();
     e_WriteLog('Loading data', MSG_NOTIFY);
     LoadStdFont('STDTXT', 'STDFONT', gEditorFont);
+    e_WriteLog('Loading more data', MSG_NOTIFY);
     LoadData();
+    e_WriteLog('Loading even more data', MSG_NOTIFY);
     gDataLoaded := True;
     MainForm.FormResize(nil);
   end;

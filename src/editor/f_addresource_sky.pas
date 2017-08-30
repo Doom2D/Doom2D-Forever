@@ -1,13 +1,13 @@
 unit f_addresource_sky;
 
-{$MODE Delphi}
+{$INCLUDE ../shared/a_modes.inc}
 
 interface
 
 uses
   LCLIntf, LCLType, LMessages, SysUtils, Variants, Classes,
   Graphics, Controls, Forms, Dialogs, f_addresource,
-  ExtCtrls, StdCtrls;
+  ExtCtrls, StdCtrls, utils;
 
 type
   TAddSkyForm = class (TAddResourceForm)
@@ -34,21 +34,6 @@ uses
   BinEditor, WADEDITOR, f_main, g_language;
 
 {$R *.lfm}
-
-procedure SwapRGB(data: Pointer; Size: Integer);
-asm
-  mov ebx, eax
-  mov ecx, size
-
-@@loop :
-  mov al,[ebx+0]
-  mov ah,[ebx+2]
-  mov [ebx+2],al
-  mov [ebx+0],ah
-  add ebx,3
-  dec ecx
-  jnz @@loop
-end;
 
 function ShowTGATexture(ResourceStr: String): TBitMap;
 var
@@ -183,7 +168,7 @@ begin
       SectionName := '..';
 
   // WAD файл:
-    a := cbWADList.Items.IndexOf(FileName);
+    a := cbWADList.Items.IndexOf(win2utf(FileName));
     if a <> -1 then
     begin
       cbWADList.ItemIndex := a;
@@ -191,7 +176,7 @@ begin
     end;
 
   // Секция:
-    a := cbSectionsList.Items.IndexOf(SectionName);
+    a := cbSectionsList.Items.IndexOf(win2utf(SectionName));
     if a <> -1 then
     begin
       cbSectionsList.ItemIndex := a;
@@ -199,7 +184,7 @@ begin
     end;
 
   // Ресурс:
-    a := lbResourcesList.Items.IndexOf(ResourceName);
+    a := lbResourcesList.Items.IndexOf(win2utf(ResourceName));
     if a <> -1 then
     begin
       lbResourcesList.ItemIndex := a;

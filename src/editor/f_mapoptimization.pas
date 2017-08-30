@@ -1,13 +1,13 @@
 unit f_mapoptimization;
 
-{$MODE Delphi}
+{$INCLUDE ../shared/a_modes.inc}
 
 interface
 
 uses
   LCLIntf, LCLType, LMessages, Messages, SysUtils, Variants, Classes,
   Graphics, Controls, Forms, Dialogs, StdCtrls,
-  ComCtrls, ExtCtrls;
+  ComCtrls, ExtCtrls, utils;
 
 type
   TMapOptimizationForm = class (TForm)
@@ -105,7 +105,7 @@ begin
 
     for i := 0 to High(gPanels) do
       if (gPanels[i].PanelType <> 0) and
-         (gPanels[i].TextureName = MainForm.lbTextureList.Items[a]) then
+         (gPanels[i].TextureName = utf2win(MainForm.lbTextureList.Items[a])) then
       begin
         ok := False;
         Break;
@@ -114,14 +114,13 @@ begin
   // Нашли неиспользуемую текстуру:
     if ok then
       begin
-        g_DeleteTexture(MainForm.lbTextureList.Items[a]);
+        g_DeleteTexture(utf2win(MainForm.lbTextureList.Items[a]));
         if not b then
         begin
           mOptimizationResult.Lines.Add(_lc[I_OPT_DELETED_TEXTURES]);
           b := True;
         end;
         mOptimizationResult.Lines.Add('  '+MainForm.lbTextureList.Items[a]);
-        g_DeleteTexture(MainForm.lbTextureList.Items[a]);
         MainForm.lbTextureList.Items.Delete(a);
       end
     else

@@ -1,13 +1,13 @@
 unit f_addresource_sound;
 
-{$MODE Delphi}
+{$INCLUDE ../shared/a_modes.inc}
 
 interface
 
 uses
   LCLIntf, LCLType, LMessages, SysUtils, Variants, Classes,
   Graphics, Controls, Forms, Dialogs, f_addresource,
-  ExtCtrls, StdCtrls, spectrum, Buttons, ComCtrls;
+  ExtCtrls, StdCtrls, spectrum, Buttons, ComCtrls, utils;
 
 type
   TAddSoundForm = class (TAddResourceForm)
@@ -43,10 +43,23 @@ var
 implementation
 
 uses
-  BinEditor, fmod, fmodtypes, fmoderrors, WADEDITOR, e_log, f_main,
-  g_language;
+  BinEditor, WADEDITOR, e_log, f_main, g_language
+{$IFNDEF NOSOUND}, fmod, fmodtypes, fmoderrors;{$ELSE};{$ENDIF}
 
 {$R *.lfm}
+
+{$IFDEF NOSOUND}
+// fuck my life
+const
+  FMOD_OK = 0;
+
+type
+  FMOD_SYSTEM = Pointer;
+  FMOD_CHANNEL = Pointer;
+  FMOD_SOUND = Pointer;
+  FMOD_CREATESOUNDEXINFO = Pointer;
+  FMOD_RESULT = Integer;
+{$ENDIF}
 
 var
   F_System: FMOD_SYSTEM;
@@ -65,6 +78,7 @@ begin
 
   res := FMOD_OK;
 
+{$IFNDEF NOSOUND}
   try
     res := FMOD_System_Create(F_System);
     if res <> FMOD_OK then
@@ -94,6 +108,7 @@ begin
     Application.MessageBox(FMOD_ErrorString(res), 'Initialization', MB_OK or MB_ICONHAND);
     raise;
   end;
+{$ENDIF}
 
   FSpectrum := TMiniSpectrum.Create(pSpectrum);
   FSpectrum.Align := alClient;
@@ -112,11 +127,10 @@ var
 
 begin
   Result := False;
-
   SoundData := nil;
   Sound := nil;
   Channel := nil;
- 
+{$IFNDEF NOSOUND}
   g_ProcessResourceStr(Resource, FileName, SectionName, ResourceName);
 
   WAD := TWADEditor_1.Create;
@@ -151,6 +165,7 @@ begin
  
   WAD.Free();
   Result := True;
+{$ENDIF}
 end;
 
 procedure TAddSoundForm.bbPlayClick(Sender: TObject);
@@ -167,7 +182,7 @@ begin
 
     if not CreateSoundWAD(FFullResourceName) then
       Exit;
-
+{$IFNDEF NOSOUND}
     res := FMOD_System_PlaySound(F_System, FMOD_CHANNEL_FREE,
              Sound, False, Channel);
     if res <> FMOD_OK then
@@ -183,6 +198,7 @@ begin
     FMOD_Channel_SetVolume(Channel, 1.0);
 
     FSpectrum.SetChannel(Channel);
+{$ENDIF}
   end;
 end;
 
@@ -199,7 +215,7 @@ var
 
 begin
   Inherited;
-
+{$IFNDEF NOSOUND}
   FMOD_System_Update(F_System);
   
   ShowSpectrum();
@@ -207,6 +223,7 @@ begin
   res := FMOD_Channel_IsPlaying(Channel, b);
   if (res <> FMOD_OK) or (not b) then
     bbStop.Click();
+{$ENDIF}
 end;
 
 procedure TAddSoundForm.FormDestroy(Sender: TObject);
@@ -217,7 +234,7 @@ begin
   Inherited;
 
   FSpectrum.Free;
-
+{$IFNDEF NOSOUND}
   res := FMOD_System_Close(F_System);
   if res <> FMOD_OK then
   begin
@@ -232,18 +249,19 @@ begin
     e_WriteLog('Error releasing FMOD system!', MSG_FATALERROR);
     e_WriteLog(FMOD_ErrorString(res), MSG_FATALERROR);
   end;
+{$ENDIF}
 end;
 
 procedure Sound_StopRelease();
 begin
   Playing := False;
-
+{$IFNDEF NOSOUND}
   if Channel <> nil then
     FMOD_Channel_Stop(Channel);
 
   if Sound <> nil then
     FMOD_Sound_Release(Sound);
-
+{$ENDIF}
   if SoundData <> nil then
     FreeMem(SoundData);
 
@@ -293,7 +311,7 @@ begin
       SectionName := '..';
 
   // WAD файл:
-    a := cbWADList.Items.IndexOf(FileName);
+    a := cbWADList.Items.IndexOf(win2utf(FileName));
     if a <> -1 then
     begin
       cbWADList.ItemIndex := a;
@@ -301,7 +319,7 @@ begin
     end;
 
   // Секция:
-    a := cbSectionsList.Items.IndexOf(SectionName);
+    a := cbSectionsList.Items.IndexOf(win2utf(SectionName));
     if a <> -1 then
     begin
       cbSectionsList.ItemIndex := a;
@@ -309,7 +327,7 @@ begin
     end;
 
   // Ресурс:
-    a := lbResourcesList.Items.IndexOf(ResourceName);
+    a := lbResourcesList.Items.IndexOf(win2utf(ResourceName));
     if a <> -1 then
     begin
       lbResourcesList.ItemIndex := a;

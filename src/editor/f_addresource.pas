@@ -1,6 +1,6 @@
 unit f_addresource;
 
-{$MODE Delphi}
+{$INCLUDE ../shared/a_modes.inc}
 
 interface
 
@@ -45,7 +45,7 @@ var
 implementation
 
 uses
-  f_main, WADSTRUCT, g_language;
+  f_main, WADSTRUCT, g_language, utils;
 
 {$R *.lfm}
 
@@ -114,7 +114,7 @@ begin
 
 // Внешний WAD:
   if cbWADList.Text <> _lc[I_WAD_SPECIAL_MAP] then
-     FileName := EditorDir+'wads/'+cbWADList.Text
+     FileName := EditorDir+'wads/'+utf2win(cbWADList.Text)
   else // WAD карты:
     begin
       g_ProcessResourceStr(OpenedMap, fn, sn, rn);
@@ -132,7 +132,7 @@ begin
   if SectionList <> nil then
     for i := 0 to High(SectionList) do
       if SectionList[i] <> '' then
-        cbSectionsList.Items.Add(SectionList[i])
+        cbSectionsList.Items.Add(win2utf(SectionList[i]))
       else
         cbSectionsList.Items.Add('..');
 end;
@@ -149,7 +149,7 @@ begin
 
 // Внешний WAD:
   if cbWADList.Text <> _lc[I_WAD_SPECIAL_MAP] then
-    FileName := EditorDir+'wads/'+cbWADList.Text
+    FileName := EditorDir+'wads/'+utf2win(cbWADList.Text)
   else // WAD карты:
     begin
       g_ProcessResourceStr(OpenedMap, fn, sn, rn);
@@ -160,7 +160,7 @@ begin
   WAD.ReadFile(FileName);
 
   if cbSectionsList.Text <> '..' then
-    SectionName := cbSectionsList.Text
+    SectionName := utf2win(cbSectionsList.Text)
   else
     SectionName := '';
 
@@ -173,7 +173,7 @@ begin
 
   if ResourceList <> nil then
     for i := 0 to High(ResourceList) do
-      lbResourcesList.Items.Add(ResourceList[i]);
+      lbResourcesList.Items.Add(win2utf(ResourceList[i]));
 end;
 
 procedure TAddResourceForm.lbResourcesListClick(Sender: TObject);
@@ -194,14 +194,14 @@ begin
   if cbSectionsList.Text = '..' then
     SectionName := ''
   else
-    SectionName := cbSectionsList.Text;
+    SectionName := utf2win(cbSectionsList.Text);
 
   if cbWADList.Text[1] <> '<' then
-    FileName := cbWADList.Text
+    FileName := utf2win(cbWADList.Text)
   else
     FileName := '';
 
-  FResourceName := FileName+':'+SectionName+'\'+lbResourcesList.Items[lbResourcesList.ItemIndex];
+  FResourceName := FileName+':'+SectionName+'\'+utf2win(lbResourcesList.Items[lbResourcesList.ItemIndex]);
 
   if FileName <> '' then
     FFullResourceName := EditorDir+'wads/'+FResourceName

@@ -1,6 +1,6 @@
 unit f_options;
 
-{$MODE Delphi}
+{$INCLUDE ../shared/a_modes.inc}
 
 interface
 
@@ -195,7 +195,7 @@ begin
   else
     DotSize := 1;
 
-  config := TConfig.CreateFile(EditorDir+'/Editor.cfg');
+  config := TConfig.CreateFile(EditorDir+'Editor.cfg');
 
   config.WriteInt('Editor', 'DotColor', DotColor);
   config.WriteBool('Editor', 'DotEnable', DotEnable);
@@ -217,7 +217,7 @@ begin
     MainForm.RefreshRecentMenu();
   end;
 
-  config.SaveFile(EditorDir+'/Editor.cfg');
+  config.SaveFile(EditorDir+'Editor.cfg');
   config.Free();
   Close();
 end;

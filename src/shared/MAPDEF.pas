@@ -1,6 +1,6 @@
 unit MAPDEF;
 
-{$MODE Delphi}
+{$INCLUDE ../shared/a_modes.inc}
 
 {
 -----------------------------------

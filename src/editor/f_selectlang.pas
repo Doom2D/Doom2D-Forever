@@ -1,6 +1,6 @@
 unit f_selectlang;
 
-{$MODE Delphi}
+{$INCLUDE ../shared/a_modes.inc}
 
 interface
 

@@ -1,6 +1,6 @@
 program Editor;
 
-{$MODE Delphi}
+{$INCLUDE ../shared/a_modes.inc}
 
 uses
   Forms, Interfaces,
@@ -37,10 +37,12 @@ uses
   f_packmap in 'f_packmap.pas' {PackMapForm},
   f_maptest in 'f_maptest.pas' {MapTestForm},
   f_choosetype in 'f_choosetype.pas' {ChooseTypeForm},
+{$IFNDEF NOSOUND}
   fmod,
   fmoderrors,
   fmodpresets,
   fmodtypes,
+{$ENDIF}
   ImagingTypes,
   Imaging,
   ImagingUtility,

@@ -1,6 +1,6 @@
 unit e_log;
 
-{$MODE Delphi}
+{$INCLUDE ../shared/a_modes.inc}
 
 interface
 

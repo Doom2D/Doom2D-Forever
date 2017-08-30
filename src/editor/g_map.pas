@@ -1,12 +1,12 @@
 Unit g_map;
 
-{$MODE Delphi}
+{$INCLUDE ../shared/a_modes.inc}
 
 Interface
 
 Uses
   LCLIntf, LCLType, LMessages, g_basic, e_graphics, MAPREADER, MAPSTRUCT,
-  MAPWRITER, e_log, MAPDEF;
+  MAPWRITER, e_log, MAPDEF, utils;
 
 Type
   TMapObject = record
@@ -1111,7 +1111,7 @@ begin
     for a := 0 to MainForm.lbTextureList.Items.Count-1 do
     begin
       SetLength(textures, Length(textures)+1);
-      s := MainForm.lbTextureList.Items[a];
+      s := utf2win(MainForm.lbTextureList.Items[a]);
       CopyMemory(@textures[High(textures)].Resource[0], @s[1], Min(64, Length(s)));
       if g_GetTextureFlagByName(s) = 1 then
         textures[High(textures)].Anim := 1
@@ -1329,6 +1329,7 @@ begin
 // Записываем в WAD, если надо:
   if Res <> '' then
     begin
+      e_WriteLog('Fuck me (A) ' + ResName, MSG_NOTIFY);
       WAD.RemoveResource('', ResName);
       WAD.AddResource(Data, Len, ResName, '');
       WAD.SaveTo(FileName);
@@ -1345,16 +1346,18 @@ end;
 procedure AddTexture(res: String; Error: Boolean);
 var
   a: Integer;
+  ures: String;
 begin
+  ures := win2utf(res);
   with MainForm.lbTextureList do
   begin
     for a := 0 to Count-1 do
-      if Items[a] = res then
+      if Items[a] = ures then
         Exit;
 
-    if Error and (slInvalidTextures.IndexOf(res) = -1) then
-      slInvalidTextures.Add(res);
-    Items.Add(res);
+    if Error and (slInvalidTextures.IndexOf(ures) = -1) then
+      slInvalidTextures.Add(ures);
+    Items.Add(ures);
   end;
 end;
 
@@ -1696,7 +1699,7 @@ const
 var
   map: TConfig;
   i, a: Integer;
-  s, section: String;
+  s, us, section: String;
   panel: TPanel;
   item: TItem;
   area: TArea;
@@ -1731,17 +1734,17 @@ begin
       Continue;
 
   // Нет такой текстуры - ищем в WAD карты:
-    if not g_CreateTextureWAD(s, EditorDir+'/wads/'+s) then
+    if not g_CreateTextureWAD(s, EditorDir+'wads/'+s) then
     begin
       s := ExtractFileName(_FileName);
       Delete(s, Length(s)-3, 4);
       s := UpperCase(s) + '.WAD:TEXTURES\'+ UpperCase(map.ReadStr('Textures', 'TextureName'+IntToStr(a), ''));
 
-      if not g_CreateTextureWAD(s, EditorDir+'/wads/'+s) then
+      if not g_CreateTextureWAD(s, EditorDir+'wads/'+s) then
         Continue;
     end;
 
-    MainForm.lbTextureList.Items.Add(s);
+    MainForm.lbTextureList.Items.Add(win2utf(s));
   end;
 
 // Чтение панелей:
@@ -1822,9 +1825,10 @@ begin
             end;
         end;
 
+        us := win2utf(s);
         with MainForm.lbTextureList.Items do
-          if IndexOf(s) = -1 then
-            Add(s);
+          if IndexOf(us) = -1 then
+            Add(us);
         panel.TextureName := s;
         panel.TextureWidth := 1;
         panel.TextureHeight := 1;
@@ -1950,8 +1954,8 @@ begin
   begin
     if Items.Count > 0 then
       for a := Items.Count-1 downto 0 do
-        if not IsSpecialTexture(Items[a]) then
-          g_DeleteTexture(Items[a]);
+        if not IsSpecialTexture(utf2win(Items[a])) then
+          g_DeleteTexture(utf2win(Items[a]));
 
     Clear();
   end;
@@ -2722,79 +2726,79 @@ end;
 
 procedure LoadData();
 begin
- g_CreateTextureWAD('PREVIEW', EditorDir+'/data/Editor.wad:TEXTURES\CHECKERS');
- g_CreateTextureWAD('NOTEXTURE', EditorDir+'/data/Game.wad:TEXTURES\NOTEXTURE');
+ g_CreateTextureWAD('PREVIEW', EditorDir+'data/Editor.wad:TEXTURES\CHECKERS');
+ g_CreateTextureWAD('NOTEXTURE', EditorDir+'data/Game.wad:TEXTURES\NOTEXTURE');
 
- g_CreateTextureWADSize('AREA_REDFLAG', EditorDir+'/data/Game.wad:TEXTURES\FLAGRED', 0, 0, 64, 64);
- g_CreateTextureWADSize('AREA_BLUEFLAG', EditorDir+'/data/Game.wad:TEXTURES\FLAGBLUE', 0, 0, 64, 64);
- g_CreateTextureWADSize('AREA_DOMFLAG', EditorDir+'/data/Game.wad:TEXTURES\FLAGDOM', 0, 0, 64, 64);
+ g_CreateTextureWADSize('AREA_REDFLAG', EditorDir+'data/Game.wad:TEXTURES\FLAGRED', 0, 0, 64, 64);
+ g_CreateTextureWADSize('AREA_BLUEFLAG', EditorDir+'data/Game.wad:TEXTURES\FLAGBLUE', 0, 0, 64, 64);
+ g_CreateTextureWADSize('AREA_DOMFLAG', EditorDir+'data/Game.wad:TEXTURES\FLAGDOM', 0, 0, 64, 64);
 
- g_CreateTextureWADSize('MONSTER_DEMON', EditorDir+'/data/Game.wad:MTEXTURES\DEMON_SLEEP', 0, 0, 64, 64);
- g_CreateTextureWADSize('MONSTER_IMP', EditorDir+'/data/Game.wad:MTEXTURES\IMP_SLEEP', 0, 0, 64, 64);
- g_CreateTextureWADSize('MONSTER_ZOMBY', EditorDir+'/data/Game.wad:MTEXTURES\ZOMBY_SLEEP', 0, 0, 64, 64);
- g_CreateTextureWADSize('MONSTER_SERG', EditorDir+'/data/Game.wad:MTEXTURES\SERG_SLEEP', 0, 0, 64, 64);
- g_CreateTextureWADSize('MONSTER_CYBER', EditorDir+'/data/Game.wad:MTEXTURES\CYBER_SLEEP', 0, 0, 128, 128);
- g_CreateTextureWADSize('MONSTER_CGUN', EditorDir+'/data/Game.wad:MTEXTURES\CGUN_SLEEP', 0, 0, 64, 64);
- g_CreateTextureWADSize('MONSTER_BARON', EditorDir+'/data/Game.wad:MTEXTURES\BARON_SLEEP', 0, 0, 128, 128);
- g_CreateTextureWADSize('MONSTER_KNIGHT', EditorDir+'/data/Game.wad:MTEXTURES\KNIGHT_SLEEP', 0, 0, 128, 128);
- g_CreateTextureWADSize('MONSTER_CACO', EditorDir+'/data/Game.wad:MTEXTURES\CACO_SLEEP', 0, 0, 128, 128);
- g_CreateTextureWADSize('MONSTER_SOUL', EditorDir+'/data/Game.wad:MTEXTURES\SOUL_SLEEP', 0, 0, 64, 64);
- g_CreateTextureWADSize('MONSTER_PAIN', EditorDir+'/data/Game.wad:MTEXTURES\PAIN_SLEEP', 0, 0, 128, 128);
- g_CreateTextureWADSize('MONSTER_SPIDER', EditorDir+'/data/Game.wad:MTEXTURES\SPIDER_SLEEP', 0, 0, 256, 128);
- g_CreateTextureWADSize('MONSTER_BSP', EditorDir+'/data/Game.wad:MTEXTURES\BSP_SLEEP', 0, 0, 128, 64);
- g_CreateTextureWADSize('MONSTER_MANCUB', EditorDir+'/data/Game.wad:MTEXTURES\MANCUB_SLEEP', 0, 0, 128, 128);
- g_CreateTextureWADSize('MONSTER_SKEL', EditorDir+'/data/Game.wad:MTEXTURES\SKEL_SLEEP', 0, 0, 128, 128);
- g_CreateTextureWADSize('MONSTER_VILE', EditorDir+'/data/Game.wad:MTEXTURES\VILE_SLEEP', 0, 0, 128, 128);
- g_CreateTextureWADSize('MONSTER_FISH', EditorDir+'/data/Game.wad:MTEXTURES\FISH_SLEEP', 0, 0, 32, 32);
- g_CreateTextureWADSize('MONSTER_BARREL', EditorDir+'/data/Game.wad:MTEXTURES\BARREL_SLEEP', 0, 0, 64, 64);
- g_CreateTextureWADSize('MONSTER_ROBO', EditorDir+'/data/Game.wad:MTEXTURES\ROBO_SLEEP', 0, 0, 128, 128);
- g_CreateTextureWADSize('MONSTER_MAN', EditorDir+'/data/Game.wad:MTEXTURES\MAN_SLEEP', 0, 0, 64, 64);
+ g_CreateTextureWADSize('MONSTER_DEMON', EditorDir+'data/Game.wad:MTEXTURES\DEMON_SLEEP', 0, 0, 64, 64);
+ g_CreateTextureWADSize('MONSTER_IMP', EditorDir+'data/Game.wad:MTEXTURES\IMP_SLEEP', 0, 0, 64, 64);
+ g_CreateTextureWADSize('MONSTER_ZOMBY', EditorDir+'data/Game.wad:MTEXTURES\ZOMBY_SLEEP', 0, 0, 64, 64);
+ g_CreateTextureWADSize('MONSTER_SERG', EditorDir+'data/Game.wad:MTEXTURES\SERG_SLEEP', 0, 0, 64, 64);
+ g_CreateTextureWADSize('MONSTER_CYBER', EditorDir+'data/Game.wad:MTEXTURES\CYBER_SLEEP', 0, 0, 128, 128);
+ g_CreateTextureWADSize('MONSTER_CGUN', EditorDir+'data/Game.wad:MTEXTURES\CGUN_SLEEP', 0, 0, 64, 64);
+ g_CreateTextureWADSize('MONSTER_BARON', EditorDir+'data/Game.wad:MTEXTURES\BARON_SLEEP', 0, 0, 128, 128);
+ g_CreateTextureWADSize('MONSTER_KNIGHT', EditorDir+'data/Game.wad:MTEXTURES\KNIGHT_SLEEP', 0, 0, 128, 128);
+ g_CreateTextureWADSize('MONSTER_CACO', EditorDir+'data/Game.wad:MTEXTURES\CACO_SLEEP', 0, 0, 128, 128);
+ g_CreateTextureWADSize('MONSTER_SOUL', EditorDir+'data/Game.wad:MTEXTURES\SOUL_SLEEP', 0, 0, 64, 64);
+ g_CreateTextureWADSize('MONSTER_PAIN', EditorDir+'data/Game.wad:MTEXTURES\PAIN_SLEEP', 0, 0, 128, 128);
+ g_CreateTextureWADSize('MONSTER_SPIDER', EditorDir+'data/Game.wad:MTEXTURES\SPIDER_SLEEP', 0, 0, 256, 128);
+ g_CreateTextureWADSize('MONSTER_BSP', EditorDir+'data/Game.wad:MTEXTURES\BSP_SLEEP', 0, 0, 128, 64);
+ g_CreateTextureWADSize('MONSTER_MANCUB', EditorDir+'data/Game.wad:MTEXTURES\MANCUB_SLEEP', 0, 0, 128, 128);
+ g_CreateTextureWADSize('MONSTER_SKEL', EditorDir+'data/Game.wad:MTEXTURES\SKEL_SLEEP', 0, 0, 128, 128);
+ g_CreateTextureWADSize('MONSTER_VILE', EditorDir+'data/Game.wad:MTEXTURES\VILE_SLEEP', 0, 0, 128, 128);
+ g_CreateTextureWADSize('MONSTER_FISH', EditorDir+'data/Game.wad:MTEXTURES\FISH_SLEEP', 0, 0, 32, 32);
+ g_CreateTextureWADSize('MONSTER_BARREL', EditorDir+'data/Game.wad:MTEXTURES\BARREL_SLEEP', 0, 0, 64, 64);
+ g_CreateTextureWADSize('MONSTER_ROBO', EditorDir+'data/Game.wad:MTEXTURES\ROBO_SLEEP', 0, 0, 128, 128);
+ g_CreateTextureWADSize('MONSTER_MAN', EditorDir+'data/Game.wad:MTEXTURES\MAN_SLEEP', 0, 0, 64, 64);
 
- g_CreateTextureWADSize('ITEM_BLUESPHERE', EditorDir+'/data/Game.wad:TEXTURES\SBLUE', 0, 0, 32, 32);
- g_CreateTextureWADSize('ITEM_WHITESPHERE', EditorDir+'/data/Game.wad:TEXTURES\SWHITE', 0, 0, 32, 32);
- g_CreateTextureWADSize('ITEM_ARMORGREEN', EditorDir+'/data/Game.wad:TEXTURES\ARMORGREEN', 0, 0, 32, 16);
- g_CreateTextureWADSize('ITEM_ARMORBLUE', EditorDir+'/data/Game.wad:TEXTURES\ARMORBLUE', 0, 0, 32, 16);
- g_CreateTextureWADSize('ITEM_INVUL', EditorDir+'/data/Game.wad:TEXTURES\INVUL', 0, 0, 32, 32);
- g_CreateTextureWADSize('ITEM_BOTTLE', EditorDir+'/data/Game.wad:TEXTURES\BOTTLE', 0, 0, 16, 32);
- g_CreateTextureWADSize('ITEM_HELMET', EditorDir+'/data/Game.wad:TEXTURES\HELMET', 0, 0, 16, 16);
- g_CreateTextureWADSize('ITEM_INVIS', EditorDir+'/data/Game.wad:TEXTURES\INVIS', 0, 0, 32, 32);
- g_CreateTextureWADSize('ITEM_WEAPON_FLAMETHROWER', EditorDir+'/data/Game.wad:TEXTURES\FLAMETHROWER', 0, 0, 64, 32);
- g_CreateTextureWADSize('ITEM_AMMO_FUELCAN', EditorDir+'/data/Game.wad:TEXTURES\FUELCAN', 0, 0, 16, 32);
+ g_CreateTextureWADSize('ITEM_BLUESPHERE', EditorDir+'data/Game.wad:TEXTURES\SBLUE', 0, 0, 32, 32);
+ g_CreateTextureWADSize('ITEM_WHITESPHERE', EditorDir+'data/Game.wad:TEXTURES\SWHITE', 0, 0, 32, 32);
+ g_CreateTextureWADSize('ITEM_ARMORGREEN', EditorDir+'data/Game.wad:TEXTURES\ARMORGREEN', 0, 0, 32, 16);
+ g_CreateTextureWADSize('ITEM_ARMORBLUE', EditorDir+'data/Game.wad:TEXTURES\ARMORBLUE', 0, 0, 32, 16);
+ g_CreateTextureWADSize('ITEM_INVUL', EditorDir+'data/Game.wad:TEXTURES\INVUL', 0, 0, 32, 32);
+ g_CreateTextureWADSize('ITEM_BOTTLE', EditorDir+'data/Game.wad:TEXTURES\BOTTLE', 0, 0, 16, 32);
+ g_CreateTextureWADSize('ITEM_HELMET', EditorDir+'data/Game.wad:TEXTURES\HELMET', 0, 0, 16, 16);
+ g_CreateTextureWADSize('ITEM_INVIS', EditorDir+'data/Game.wad:TEXTURES\INVIS', 0, 0, 32, 32);
+ g_CreateTextureWADSize('ITEM_WEAPON_FLAMETHROWER', EditorDir+'data/Game.wad:TEXTURES\FLAMETHROWER', 0, 0, 64, 32);
+ g_CreateTextureWADSize('ITEM_AMMO_FUELCAN', EditorDir+'data/Game.wad:TEXTURES\FUELCAN', 0, 0, 16, 32);
 
- g_CreateTextureWAD('ITEM_MEDKIT_SMALL', EditorDir+'/data/Game.wad:TEXTURES\MED1');
- g_CreateTextureWAD('ITEM_MEDKIT_LARGE', EditorDir+'/data/Game.wad:TEXTURES\MED2');
- g_CreateTextureWAD('ITEM_WEAPON_SAW', EditorDir+'/data/Game.wad:TEXTURES\SAW');
- g_CreateTextureWAD('ITEM_WEAPON_PISTOL', EditorDir+'/data/Game.wad:TEXTURES\PISTOL');
- g_CreateTextureWAD('ITEM_WEAPON_KASTET', EditorDir+'/data/Game.wad:TEXTURES\KASTET');
- g_CreateTextureWAD('ITEM_WEAPON_SHOTGUN1', EditorDir+'/data/Game.wad:TEXTURES\SHOTGUN1');
- g_CreateTextureWAD('ITEM_WEAPON_SHOTGUN2', EditorDir+'/data/Game.wad:TEXTURES\SHOTGUN2');
- g_CreateTextureWAD('ITEM_WEAPON_CHAINGUN', EditorDir+'/data/Game.wad:TEXTURES\MGUN');
- g_CreateTextureWAD('ITEM_WEAPON_ROCKETLAUNCHER', EditorDir+'/data/Game.wad:TEXTURES\RLAUNCHER');
- g_CreateTextureWAD('ITEM_WEAPON_PLASMA', EditorDir+'/data/Game.wad:TEXTURES\PGUN');
- g_CreateTextureWAD('ITEM_WEAPON_BFG', EditorDir+'/data/Game.wad:TEXTURES\BFG');
- g_CreateTextureWAD('ITEM_WEAPON_SUPERPULEMET', EditorDir+'/data/Game.wad:TEXTURES\SPULEMET');
- g_CreateTextureWAD('ITEM_AMMO_BULLETS', EditorDir+'/data/Game.wad:TEXTURES\CLIP');
- g_CreateTextureWAD('ITEM_AMMO_BULLETS_BOX', EditorDir+'/data/Game.wad:TEXTURES\AMMO');
- g_CreateTextureWAD('ITEM_AMMO_SHELLS', EditorDir+'/data/Game.wad:TEXTURES\SHELL1');
- g_CreateTextureWAD('ITEM_AMMO_SHELLS_BOX', EditorDir+'/data/Game.wad:TEXTURES\SHELL2');
- g_CreateTextureWAD('ITEM_AMMO_ROCKET', EditorDir+'/data/Game.wad:TEXTURES\ROCKET');
- g_CreateTextureWAD('ITEM_AMMO_ROCKET_BOX', EditorDir+'/data/Game.wad:TEXTURES\ROCKETS');
- g_CreateTextureWAD('ITEM_AMMO_CELL', EditorDir+'/data/Game.wad:TEXTURES\CELL');
- g_CreateTextureWAD('ITEM_AMMO_CELL_BIG', EditorDir+'/data/Game.wad:TEXTURES\CELL2');
- g_CreateTextureWAD('ITEM_AMMO_BACKPACK', EditorDir+'/data/Game.wad:TEXTURES\BPACK');
- g_CreateTextureWAD('ITEM_KEY_RED', EditorDir+'/data/Game.wad:TEXTURES\KEYR');
- g_CreateTextureWAD('ITEM_KEY_GREEN', EditorDir+'/data/Game.wad:TEXTURES\KEYG');
- g_CreateTextureWAD('ITEM_KEY_BLUE', EditorDir+'/data/Game.wad:TEXTURES\KEYB');
- g_CreateTextureWAD('ITEM_OXYGEN', EditorDir+'/data/Game.wad:TEXTURES\OXYGEN');
- g_CreateTextureWAD('ITEM_SUIT', EditorDir+'/data/Game.wad:TEXTURES\SUIT');
- g_CreateTextureWAD('ITEM_MEDKIT_BLACK', EditorDir+'/data/Game.wad:TEXTURES\BMED');
- g_CreateTextureWAD('ITEM_JETPACK', EditorDir+'/data/Game.wad:TEXTURES\JETPACK');
+ g_CreateTextureWAD('ITEM_MEDKIT_SMALL', EditorDir+'data/Game.wad:TEXTURES\MED1');
+ g_CreateTextureWAD('ITEM_MEDKIT_LARGE', EditorDir+'data/Game.wad:TEXTURES\MED2');
+ g_CreateTextureWAD('ITEM_WEAPON_SAW', EditorDir+'data/Game.wad:TEXTURES\SAW');
+ g_CreateTextureWAD('ITEM_WEAPON_PISTOL', EditorDir+'data/Game.wad:TEXTURES\PISTOL');
+ g_CreateTextureWAD('ITEM_WEAPON_KASTET', EditorDir+'data/Game.wad:TEXTURES\KASTET');
+ g_CreateTextureWAD('ITEM_WEAPON_SHOTGUN1', EditorDir+'data/Game.wad:TEXTURES\SHOTGUN1');
+ g_CreateTextureWAD('ITEM_WEAPON_SHOTGUN2', EditorDir+'data/Game.wad:TEXTURES\SHOTGUN2');
+ g_CreateTextureWAD('ITEM_WEAPON_CHAINGUN', EditorDir+'data/Game.wad:TEXTURES\MGUN');
+ g_CreateTextureWAD('ITEM_WEAPON_ROCKETLAUNCHER', EditorDir+'data/Game.wad:TEXTURES\RLAUNCHER');
+ g_CreateTextureWAD('ITEM_WEAPON_PLASMA', EditorDir+'data/Game.wad:TEXTURES\PGUN');
+ g_CreateTextureWAD('ITEM_WEAPON_BFG', EditorDir+'data/Game.wad:TEXTURES\BFG');
+ g_CreateTextureWAD('ITEM_WEAPON_SUPERPULEMET', EditorDir+'data/Game.wad:TEXTURES\SPULEMET');
+ g_CreateTextureWAD('ITEM_AMMO_BULLETS', EditorDir+'data/Game.wad:TEXTURES\CLIP');
+ g_CreateTextureWAD('ITEM_AMMO_BULLETS_BOX', EditorDir+'data/Game.wad:TEXTURES\AMMO');
+ g_CreateTextureWAD('ITEM_AMMO_SHELLS', EditorDir+'data/Game.wad:TEXTURES\SHELL1');
+ g_CreateTextureWAD('ITEM_AMMO_SHELLS_BOX', EditorDir+'data/Game.wad:TEXTURES\SHELL2');
+ g_CreateTextureWAD('ITEM_AMMO_ROCKET', EditorDir+'data/Game.wad:TEXTURES\ROCKET');
+ g_CreateTextureWAD('ITEM_AMMO_ROCKET_BOX', EditorDir+'data/Game.wad:TEXTURES\ROCKETS');
+ g_CreateTextureWAD('ITEM_AMMO_CELL', EditorDir+'data/Game.wad:TEXTURES\CELL');
+ g_CreateTextureWAD('ITEM_AMMO_CELL_BIG', EditorDir+'data/Game.wad:TEXTURES\CELL2');
+ g_CreateTextureWAD('ITEM_AMMO_BACKPACK', EditorDir+'data/Game.wad:TEXTURES\BPACK');
+ g_CreateTextureWAD('ITEM_KEY_RED', EditorDir+'data/Game.wad:TEXTURES\KEYR');
+ g_CreateTextureWAD('ITEM_KEY_GREEN', EditorDir+'data/Game.wad:TEXTURES\KEYG');
+ g_CreateTextureWAD('ITEM_KEY_BLUE', EditorDir+'data/Game.wad:TEXTURES\KEYB');
+ g_CreateTextureWAD('ITEM_OXYGEN', EditorDir+'data/Game.wad:TEXTURES\OXYGEN');
+ g_CreateTextureWAD('ITEM_SUIT', EditorDir+'data/Game.wad:TEXTURES\SUIT');
+ g_CreateTextureWAD('ITEM_MEDKIT_BLACK', EditorDir+'data/Game.wad:TEXTURES\BMED');
+ g_CreateTextureWAD('ITEM_JETPACK', EditorDir+'data/Game.wad:TEXTURES\JETPACK');
 
- g_CreateTextureWAD('AREA_PLAYERPOINT1', EditorDir+'/data/Editor.wad:TEXTURES\P1POINT');
- g_CreateTextureWAD('AREA_PLAYERPOINT2', EditorDir+'/data/Editor.wad:TEXTURES\P2POINT');
- g_CreateTextureWAD('AREA_DMPOINT', EditorDir+'/data/Editor.wad:TEXTURES\DMPOINT');
- g_CreateTextureWAD('AREA_REDPOINT', EditorDir+'/data/Editor.wad:TEXTURES\REDPOINT');
- g_CreateTextureWAD('AREA_BLUEPOINT', EditorDir+'/data/Editor.wad:TEXTURES\BLUEPOINT');
+ g_CreateTextureWAD('AREA_PLAYERPOINT1', EditorDir+'data/Editor.wad:TEXTURES\P1POINT');
+ g_CreateTextureWAD('AREA_PLAYERPOINT2', EditorDir+'data/Editor.wad:TEXTURES\P2POINT');
+ g_CreateTextureWAD('AREA_DMPOINT', EditorDir+'data/Editor.wad:TEXTURES\DMPOINT');
+ g_CreateTextureWAD('AREA_REDPOINT', EditorDir+'data/Editor.wad:TEXTURES\REDPOINT');
+ g_CreateTextureWAD('AREA_BLUEPOINT', EditorDir+'data/Editor.wad:TEXTURES\BLUEPOINT');
 end;
 
 procedure FreeData();

@@ -1,6 +1,6 @@
 unit g_basic;
 
-{$MODE Delphi}
+{$INCLUDE ../shared/a_modes.inc}
 
 interface
 

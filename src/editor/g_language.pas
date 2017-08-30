@@ -1,6 +1,6 @@
 ﻿Unit g_language;
 
-{$MODE Delphi}
+{$INCLUDE ../shared/a_modes.inc}
 
 Interface
 

@@ -1,6 +1,6 @@
 unit CONFIG;
 
-{$MODE Delphi}
+{$INCLUDE ../shared/a_modes.inc}
 
 {
 -----------------------------------

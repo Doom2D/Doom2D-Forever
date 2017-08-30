@@ -150,7 +150,7 @@ begin
   if (FPosition + varSize) > FSize then
     ExtendMemory(varSize);
 
-  CopyMemory(Pointer(Cardinal(FData) + FPosition),
+  CopyMemory(Pointer(PtrUInt(FData) + FPosition),
              @x, varSize);
   FPosition := FPosition + varSize;
 end;
@@ -240,13 +240,13 @@ begin
     ExtendMemory(SizeOf(Byte) + len);
 
 // Длина строки:
-  CopyMemory(Pointer(Cardinal(FData) + FPosition),
+  CopyMemory(Pointer(PtrUInt(FData) + FPosition),
              @len, SizeOf(Byte));
   FPosition := FPosition + SizeOf(Byte);
 // Строка:
   if len > 0 then
   begin
-    CopyMemory(Pointer(Cardinal(FData) + FPosition),
+    CopyMemory(Pointer(PtrUInt(FData) + FPosition),
                @x[1], len);
     FPosition := FPosition + len;
   end;
@@ -258,13 +258,13 @@ begin
     ExtendMemory(SizeOf(Cardinal) + memSize);
 
 // Длина блока памяти:
-  CopyMemory(Pointer(Cardinal(FData) + FPosition),
+  CopyMemory(Pointer(PtrUInt(FData) + FPosition),
              @memSize, SizeOf(Cardinal));
   FPosition := FPosition + SizeOf(Cardinal);
 // Блок памяти:
   if memSize > 0 then
   begin
-    CopyMemory(Pointer(Cardinal(FData) + FPosition),
+    CopyMemory(Pointer(PtrUInt(FData) + FPosition),
                x, memSize);
     FPosition := FPosition + memSize;
   end;
@@ -277,7 +277,7 @@ begin
 
   if aLen > 0 then
   begin
-    FillMemory(Pointer(Cardinal(FData) + FPosition),
+    FillMemory(Pointer(PtrUInt(FData) + FPosition),
                aLen, aFillSym);
     FPosition := FPosition + aLen;
   end;
@@ -338,7 +338,7 @@ begin
   if (FPosition + varSize) <= FSize then
     begin
       CopyMemory(@x,
-                 Pointer(Cardinal(FData) + FPosition),
+                 Pointer(PtrUInt(FData) + FPosition),
                  varSize);
       FPosition := FPosition + varSize;
     end
@@ -403,7 +403,7 @@ begin
     begin
     // Длина строки:
       CopyMemory(@len,
-                 Pointer(Cardinal(FData) + FPosition),
+                 Pointer(PtrUInt(FData) + FPosition),
                  SizeOf(Byte));
          
       if (FPosition + SizeOf(Byte) + len) <= FSize then
@@ -414,7 +414,7 @@ begin
           if len > 0 then
             begin
               CopyMemory(@x[1],
-                         Pointer(Cardinal(FData) + FPosition),
+                         Pointer(PtrUInt(FData) + FPosition),
                          len);
               FPosition := FPosition + len;
             end
@@ -434,7 +434,7 @@ begin
     begin
     // Длина блока памяти:
       CopyMemory(@memSize,
-                 Pointer(Cardinal(FData) + FPosition),
+                 Pointer(PtrUInt(FData) + FPosition),
                  SizeOf(Cardinal));
 
       if (FPosition + SizeOf(Cardinal) + memSize) <= FSize then
@@ -445,7 +445,7 @@ begin
             begin
               GetMem(x, memSize);
               CopyMemory(x,
-                         Pointer(Cardinal(FData) + FPosition),
+                         Pointer(PtrUInt(FData) + FPosition),
                          memSize);
               FPosition := FPosition + memSize;
             end

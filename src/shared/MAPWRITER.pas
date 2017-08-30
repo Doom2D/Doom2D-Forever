@@ -1,12 +1,12 @@
 unit MAPWRITER;
 
-{$MODE Delphi}
+{$INCLUDE ../shared/a_modes.inc}
 
 {
 -----------------------------------
-MAPWRITER.PAS –í–ï–†–°–ò–Ø –û–¢ 24.09.06
+MAPWRITER.PAS ¬≈–—»ﬂ Œ“ 24.09.06
 
-–ü–æ–¥–¥–µ—Ä–∂–∫–∞ –∫–∞—Ä—Ç –≤–µ—Ä—Å–∏–∏ 1
+œÓ‰‰ÂÊÍ‡ Í‡Ú ‚ÂÒËË 1
 -----------------------------------
 }
 
@@ -99,19 +99,19 @@ begin
  c := 3;
 
  Ver := HandledVersion();
- CopyMemory(Pointer(LongWord(Data)+c), @Ver, 1);
+ CopyMemory(Pointer(PtrUInt(Data)+c), @Ver, 1);
  c := c+1;
 
  if FDataBlocks <> nil then
   for a := 0 to High(FDataBlocks) do
   begin
-   CopyMemory(Pointer(LongWord(Data)+c), @FDataBlocks[a].Block, SizeOf(TBlock));
+   CopyMemory(Pointer(PtrUInt(Data)+c), @FDataBlocks[a].Block, SizeOf(TBlock));
    c := c+SizeOf(TBlock);
-   CopyMemory(Pointer(LongWord(Data)+c), FDataBlocks[a].Data, FDataBlocks[a].Block.BlockSize);
+   CopyMemory(Pointer(PtrUInt(Data)+c), FDataBlocks[a].Data, FDataBlocks[a].Block.BlockSize);
    c := c+FDataBlocks[a].Block.BlockSize;
   end;
 
- ZeroMemory(Pointer(LongWord(Data)+c), SizeOf(TBlock));
+ ZeroMemory(Pointer(PtrUInt(Data)+c), SizeOf(TBlock));
 end;
 
 function TMapWriter.HandledVersion(): Byte;
@@ -144,7 +144,7 @@ begin
   Data := GetMemory(Block.BlockSize);
 
   for a := 0 to High(Areas) do
-   CopyMemory(Pointer(LongWord(Data)+a*Size), @Areas[a], size);
+   CopyMemory(Pointer(PtrUInt(Data)+a*Size), @Areas[a], size);
  end;
  
  Result := True;
@@ -173,7 +173,7 @@ begin
   Data := GetMemory(Block.BlockSize);
 
   for a := 0 to High(Items) do
-   CopyMemory(Pointer(LongWord(Data)+a*size), @Items[a], size);
+   CopyMemory(Pointer(PtrUInt(Data)+a*size), @Items[a], size);
  end;
  
  Result := True;
@@ -202,7 +202,7 @@ begin
   Data := GetMemory(Block.BlockSize);
 
   for a := 0 to High(Monsters) do
-   CopyMemory(Pointer(LongWord(Data)+a*Size), @Monsters[a], size);
+   CopyMemory(Pointer(PtrUInt(Data)+a*Size), @Monsters[a], size);
  end;
  
  Result := True;
@@ -231,7 +231,7 @@ begin
   Data := GetMemory(Block.BlockSize);
 
   for a := 0 to High(Panels) do
-   CopyMemory(Pointer(LongWord(Data)+a*size), @Panels[a], size);
+   CopyMemory(Pointer(PtrUInt(Data)+a*size), @Panels[a], size);
  end;
  
  Result := True;
@@ -260,7 +260,7 @@ begin
   Data := GetMemory(Block.BlockSize);
 
   for a := 0 to High(Textures) do
-   CopyMemory(Pointer(LongWord(Data)+a*size), @Textures[a], size);
+   CopyMemory(Pointer(PtrUInt(Data)+a*size), @Textures[a], size);
  end;
 
  Result := True;
@@ -289,7 +289,7 @@ begin
   Data := GetMemory(Block.BlockSize);
 
   for a := 0 to High(Triggers) do
-   CopyMemory(Pointer(LongWord(Data)+a*size), @Triggers[a], size);
+   CopyMemory(Pointer(PtrUInt(Data)+a*size), @Triggers[a], size);
  end;
 
  Result := True;
@@ -311,7 +311,7 @@ begin
 
   Data := GetMemory(Block.BlockSize);
 
-  CopyMemory(Pointer(LongWord(Data)), @MapHeader, size);
+  CopyMemory(Pointer(PtrUInt(Data)), @MapHeader, size);
  end;
  
  Result := True;

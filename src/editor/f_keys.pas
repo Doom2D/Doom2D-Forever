@@ -1,6 +1,6 @@
 unit f_keys;
 
-{$MODE Delphi}
+{$INCLUDE ../shared/a_modes.inc}
 
 interface
 

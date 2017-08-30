@@ -1,13 +1,13 @@
 unit f_addresource_texture;
 
-{$MODE Delphi}
+{$INCLUDE ../shared/a_modes.inc}
 
 interface
 
 uses
   LCLIntf, LCLType, LMessages, SysUtils, Variants, Classes,
   Graphics, Controls, Forms, Dialogs, f_addresource,
-  StdCtrls, ExtCtrls;
+  StdCtrls, ExtCtrls, utils;
 
 type
   TAddTextureForm = class (TAddResourceForm)
@@ -503,8 +503,8 @@ begin
   for i := 0 to lbResourcesList.Count-1 do
     if lbResourcesList.Selected[i] then
     begin
-      AddTexture(cbWADlist.Text, cbSectionsList.Text,
-                 lbResourcesList.Items[i], False);
+      AddTexture(utf2win(cbWADlist.Text), utf2win(cbSectionsList.Text),
+                 utf2win(lbResourcesList.Items[i]), False);
       lbResourcesList.Selected[i] := False;
     end;
 end;

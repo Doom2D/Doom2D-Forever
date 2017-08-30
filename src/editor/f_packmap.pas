@@ -1,6 +1,6 @@
 unit f_packmap;
 
-{$MODE Delphi}
+{$INCLUDE ../shared/a_modes.inc}
 
 interface
 

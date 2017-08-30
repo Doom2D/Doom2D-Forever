@@ -75,7 +75,7 @@ const
 implementation
 
 uses
-  SysUtils, BinEditor, ZLib, utils;
+  SysUtils, BinEditor, ZLib, utils, e_log;
 
 const
   DFWAD_OPENED_NONE   = 0;
@@ -113,6 +113,41 @@ begin
       end;
     finally
       inflateEnd(strm);
+    end;
+    ReallocMem(OutBuf, strm.total_out);
+    OutBytes := strm.total_out;
+  except
+    FreeMem(OutBuf);
+    raise
+  end;
+end;
+
+procedure CompressBuf(const InBuf: Pointer; InBytes: Integer;
+                      out OutBuf: Pointer; out OutBytes: Integer);
+var
+  strm: TZStreamRec;
+  P: Pointer;
+begin
+  FillChar(strm, sizeof(strm), 0);
+  OutBytes := ((InBytes + (InBytes div 10) + 12) + 255) and not 255;
+  GetMem(OutBuf, OutBytes);
+  try
+    strm.next_in := InBuf;
+    strm.avail_in := InBytes;
+    strm.next_out := OutBuf;
+    strm.avail_out := OutBytes;
+    deflateInit_(strm, Z_BEST_COMPRESSION, zlib_version, sizeof(strm));
+    try
+      while deflate(strm, Z_FINISH) <> Z_STREAM_END do
+      begin
+        P := OutBuf;
+        Inc(OutBytes, 256);
+        ReallocMem(OutBuf, OutBytes);
+        strm.next_out := PByteF(Integer(OutBuf) + (Integer(strm.next_out) - Integer(P)));
+        strm.avail_out := 256;
+      end;
+    finally
+      deflateEnd(strm);
     end;
     ReallocMem(OutBuf, strm.total_out);
     OutBytes := strm.total_out;
@@ -220,8 +255,9 @@ begin
 
  ResCompressed := nil;
  ResCompressedSize := 0;
- Compress(Data, @Len, ResCompressed, ResCompressedSize);
+ CompressBuf(Data, Len, ResCompressed, ResCompressedSize);
  if ResCompressed = nil then Exit;
+ e_WriteLog('Fuck me (D)', MSG_NOTIFY);
 
  if FResData = nil then FResData := AllocMem(ResCompressedSize)
   else ReallocMem(FResData, FDataSize+Cardinal(ResCompressedSize));
@@ -316,7 +352,7 @@ begin
 
  ResCompressed := nil;
  ResCompressedSize := 0;
- Compress(TempResource, @OriginalSize, ResCompressed, ResCompressedSize);
+ CompressBuf(TempResource, OriginalSize, ResCompressed, ResCompressedSize);
  FreeMemory(TempResource);
  if ResCompressed = nil then Exit;
 
@@ -600,8 +636,8 @@ begin
   else
  begin
   TempData := GetMemory(FResTable[i].Length);
-  CopyMemory(TempData, Pointer(LongWord(FResData)+FResTable[i].Address+6+
-             LongWord(SizeOf(TWADHeaderRec_1)+SizeOf(TResourceTableRec_1)*Length(FResTable))),
+  CopyMemory(TempData, Pointer(PtrUInt(FResData)+FResTable[i].Address+6+
+             PtrUInt(SizeOf(TWADHeaderRec_1)+SizeOf(TResourceTableRec_1)*Length(FResTable))),
              FResTable[i].Length);
   DecompressBuf(TempData, FResTable[i].Length, 0, pData, OutBytes);
   FreeMem(TempData);
@@ -761,19 +797,19 @@ begin
   Exit;
  end;
 
- CopyMemory(@FVersion, Pointer(LongWord(Data)+5), 1);
+ CopyMemory(@FVersion, Pointer(PtrUInt(Data)+5), 1);
  if FVersion <> DFWAD_VERSION then
  begin
    FLastError := DFWAD_ERROR_WRONGVERSION;
    Exit;
  end;
 
- CopyMemory(@FHeader, Pointer(LongWord(Data)+6), SizeOf(TWADHeaderRec_1));
+ CopyMemory(@FHeader, Pointer(PtrUInt(Data)+6), SizeOf(TWADHeaderRec_1));
 
  SetLength(FResTable, FHeader.RecordsCount);
  if FResTable <> nil then
  begin
-  CopyMemory(@FResTable[0], Pointer(LongWord(Data)+6+SizeOf(TWADHeaderRec_1)),
+  CopyMemory(@FResTable[0], Pointer(PtrUInt(Data)+6+SizeOf(TWADHeaderRec_1)),
              SizeOf(TResourceTableRec_1)*FHeader.RecordsCount);
 
   for a := 0 to High(FResTable) do
@@ -798,6 +834,8 @@ var
   b, c, d: LongWord;
 begin
  if FResTable = nil then Exit;
+
+ e_WriteLog('Fuck me (B) ' + Section + ' ' + Resource, MSG_NOTIFY);
 
  i := -1;
  b := 0;
@@ -824,6 +862,8 @@ begin
 
  if i = -1 then Exit;
 
+ e_WriteLog('Fuck me (C) ' + Section + ' ' + Resource, MSG_NOTIFY);
+
  for a := i to High(FResTable)-1 do
   FResTable[a] := FResTable[a+1];
 
@@ -837,7 +877,7 @@ begin
    d := d+FResTable[a].Length;
   end;
 
- CopyMemory(Pointer(LongWord(FResData)+c), Pointer(LongWord(FResData)+c+b), d);
+ CopyMemory(Pointer(PtrUInt(FResData)+c), Pointer(PtrUInt(FResData)+c+b), d);
 
  FDataSize := FDataSize-b;
  FOffset := FOffset-b;

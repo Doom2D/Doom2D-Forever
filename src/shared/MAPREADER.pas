@@ -1,12 +1,12 @@
 unit MAPREADER;
 
-{$MODE Delphi}
+{$INCLUDE ../shared/a_modes.inc}
 
 {
 -----------------------------------
-MAPREADER.PAS Ð’Ð•Ð Ð¡Ð˜Ð¯ ÐžÐ¢ 13.11.07
+MAPREADER.PAS ÂÅÐÑÈß ÎÒ 13.11.07
 
-ÐŸÐ¾Ð´Ð´ÐµÑ€Ð¶ÐºÐ° ÐºÐ°Ñ€Ñ‚ Ð²ÐµÑ€ÑÐ¸Ð¸ 1
+Ïîääåðæêà êàðò âåðñèè 1
 -----------------------------------
 }
 
@@ -72,9 +72,9 @@ uses
   SysUtils, BinEditor;
 
 var
-  NNF_PureName: String; // Ð˜Ð¼Ñ Ñ‚ÐµÐºÑÑ‚ÑƒÑ€Ñ‹ Ð±ÐµÐ· Ñ†Ð¸Ñ„Ñ€ Ð² ÐºÐ¾Ð½Ñ†Ðµ
-  NNF_FirstNum: Integer; // Ð§Ð¸ÑÐ»Ð¾ Ñƒ Ð½Ð°Ñ‡Ð°Ð»ÑŒÐ½Ð¾Ð¹ Ñ‚ÐµÐºÑÑ‚ÑƒÑ€Ñ‹
-  NNF_CurrentNum: Integer; // Ð¡Ð»ÐµÐ´ÑƒÑŽÑ‰ÐµÐµ Ñ‡Ð¸ÑÐ»Ð¾ Ñƒ Ñ‚ÐµÐºÑÑ‚ÑƒÑ€Ñ‹
+  NNF_PureName: String; // Èìÿ òåêñòóðû áåç öèôð â êîíöå
+  NNF_FirstNum: Integer; // ×èñëî ó íà÷àëüíîé òåêñòóðû
+  NNF_CurrentNum: Integer; // Ñëåäóþùåå ÷èñëî ó òåêñòóðû
 
 function g_Texture_NumNameFindStart(name: String): Boolean;
 var
@@ -87,10 +87,10 @@ begin
   NNF_CurrentNum := -1;
 
   for i := Length(name) downto 1 do
-    if (name[i] = '_') then // "_" - ÑÐ¸Ð¼Ð²Ð¾Ð» Ð½Ð°Ñ‡Ð°Ð»Ð° Ð½Ð¾Ð¼ÐµÑ€Ð½Ð¾Ð³Ð¾ Ð¿Ð¾ÑÑ‚Ñ„Ð¸ÐºÑÐ°
+    if (name[i] = '_') then // "_" - ñèìâîë íà÷àëà íîìåðíîãî ïîñòôèêñà
     begin
       if i = Length(name) then
-        begin // ÐÐµÑ‚ Ñ†Ð¸Ñ„Ñ€ Ð² ÐºÐ¾Ð½Ñ†Ðµ ÑÑ‚Ñ€Ð¾ÐºÐ¸
+        begin // Íåò öèôð â êîíöå ñòðîêè
           Exit;
         end
       else
@@ -101,7 +101,7 @@ begin
         end;
     end;
 
-// ÐÐµ Ð¿ÐµÑ€ÐµÐ²ÐµÑÑ‚Ð¸ Ð² Ñ‡Ð¸ÑÐ»Ð¾:
+// Íå ïåðåâåñòè â ÷èñëî:
   if not TryStrToInt(name, NNF_FirstNum) then
     Exit;
 
@@ -152,7 +152,7 @@ begin
   for b := 0 to (TempDataBlocks[a].Block.BlockSize div size)-1 do
   begin
    SetLength(Result, Length(Result)+1);
-   CopyMemory(@Result[High(Result)], Pointer(LongWord(TempDataBlocks[a].Data)+b*size), size);
+   CopyMemory(@Result[High(Result)], Pointer(PtrUInt(TempDataBlocks[a].Data)+b*size), size);
   end;
 
  TempDataBlocks := nil;
@@ -176,7 +176,7 @@ begin
   for b := 0 to (TempDataBlocks[a].Block.BlockSize div size)-1 do
   begin
    SetLength(Result, Length(Result)+1);
-   CopyMemory(@Result[High(Result)], Pointer(LongWord(TempDataBlocks[a].Data)+b*size), size);
+   CopyMemory(@Result[High(Result)], Pointer(PtrUInt(TempDataBlocks[a].Data)+b*size), size);
   end;
 
  TempDataBlocks := nil;
@@ -215,7 +215,7 @@ begin
   for b := 0 to (TempDataBlocks[a].Block.BlockSize div size)-1 do
   begin
    SetLength(Result, Length(Result)+1);
-   CopyMemory(@Result[High(Result)], Pointer(LongWord(TempDataBlocks[a].Data)+b*size), size);
+   CopyMemory(@Result[High(Result)], Pointer(PtrUInt(TempDataBlocks[a].Data)+b*size), size);
   end;
 
  TempDataBlocks := nil;
@@ -239,7 +239,7 @@ begin
   for b := 0 to (TempDataBlocks[a].Block.BlockSize div size)-1 do
   begin
    SetLength(Result, Length(Result)+1);
-   CopyMemory(@Result[High(Result)], Pointer(LongWord(TempDataBlocks[a].Data)+b*size), size);
+   CopyMemory(@Result[High(Result)], Pointer(PtrUInt(TempDataBlocks[a].Data)+b*size), size);
   end;
 
  TempDataBlocks := nil;
@@ -263,7 +263,7 @@ begin
   for b := 0 to (TempDataBlocks[a].Block.BlockSize div size)-1 do
   begin
    SetLength(Result, Length(Result)+1);
-   CopyMemory(@Result[High(Result)], Pointer(LongWord(TempDataBlocks[a].Data)+b*size), size);
+   CopyMemory(@Result[High(Result)], Pointer(PtrUInt(TempDataBlocks[a].Data)+b*size), size);
   end;
 
  TempDataBlocks := nil;
@@ -287,7 +287,7 @@ begin
   for b := 0 to (TempDataBlocks[a].Block.BlockSize div size)-1 do
   begin
    SetLength(Result, Length(Result)+1);
-   CopyMemory(@Result[High(Result)], Pointer(LongWord(TempDataBlocks[a].Data)+b*size), size);
+   CopyMemory(@Result[High(Result)], Pointer(PtrUInt(TempDataBlocks[a].Data)+b*size), size);
   end;
 
  TempDataBlocks := nil;
@@ -365,7 +365,7 @@ begin
  end;
  adr := 3;
 
- CopyMemory(@Ver, Pointer(LongWord(Data)+adr), 1);
+ CopyMemory(@Ver, Pointer(PtrUInt(Data)+adr), 1);
  FVersion := Ver;
  if Ver > HandledVersion() then
  begin
@@ -378,12 +378,12 @@ begin
   SetLength(FDataBlocks, Length(FDataBlocks)+1);
   _id := High(FDataBlocks);
 
-  CopyMemory(@FDataBlocks[_id].Block, Pointer(LongWord(Data)+adr), SizeOf(TBlock));
+  CopyMemory(@FDataBlocks[_id].Block, Pointer(PtrUInt(Data)+adr), SizeOf(TBlock));
   adr := adr+SizeOf(TBlock);
 
   FDataBlocks[_id].Data := GetMemory(FDataBlocks[_id].Block.BlockSize);
 
-  CopyMemory(FDataBlocks[_id].Data, Pointer(LongWord(Data)+adr), FDataBlocks[_id].Block.BlockSize);
+  CopyMemory(FDataBlocks[_id].Data, Pointer(PtrUInt(Data)+adr), FDataBlocks[_id].Block.BlockSize);
 
   adr := adr+FDataBlocks[_id].Block.BlockSize;
  until FDataBlocks[_id].Block.BlockType = BLOCK_NONE;

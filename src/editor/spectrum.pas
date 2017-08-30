@@ -1,15 +1,23 @@
 unit spectrum;
 
-{$MODE Delphi}
+{$INCLUDE ../shared/a_modes.inc}
 
 interface
 
 uses
-  LCLIntf, LCLType, LMessages, Classes, Controls, Graphics,
-  fmod, fmodtypes;
+  LCLIntf, LCLType, LMessages, Classes, Controls, Graphics
+  {$IFNDEF NOSOUND}, fmod, fmodtypes;{$ELSE};{$ENDIF}
 
 const
   N_SPECTRUM_VALUES = 512;
+{$IFDEF NOSOUND}
+// fuck my life
+  FMOD_OK = 0;
+
+type
+  FMOD_CHANNEL = Pointer;
+  FMOD_RESULT = Integer;
+{$ENDIF}
 
 type
   TSpectrumStyle = (ssSmooth, ssBlock);
@@ -130,7 +138,7 @@ begin
 {$R-}
   FBuffer.Canvas.Brush.Color := Color;
   FBuffer.Canvas.FillRect(BoundsRect);
-
+{$IFNDEF NOSOUND}
   if Enabled then
     begin
       if FChannel <> nil then
@@ -182,6 +190,7 @@ begin
       end;
     end
   else // if Enabled ...
+{$ENDIF}
     begin
       FBuffer.Canvas.Font.Color := clWhite;
       ARect := BoundsRect;

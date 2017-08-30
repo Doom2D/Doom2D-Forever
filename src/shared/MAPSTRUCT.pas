@@ -1,6 +1,6 @@
 unit MAPSTRUCT;
 
-{$MODE Delphi}
+{$INCLUDE ../shared/a_modes.inc}
 
 {
 -----------------------------------
