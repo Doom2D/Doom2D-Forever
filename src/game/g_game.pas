@@ -2857,7 +2857,6 @@ procedure DrawPlayer(p: TPlayer);
 var
   px, py, a, b, c, d: Integer;
   //R: TRect;
-
 begin
   if (p = nil) or (p.FDummy) then
   begin
@@ -2875,7 +2874,7 @@ begin
   glPushMatrix();
 
   px := p.GameX + PLAYER_RECT_CX;
-  py := p.GameY + PLAYER_RECT_CY;
+  py := p.GameY + PLAYER_RECT_CY+p.Obj.slopeUpLeft;
 
   if px > (gPlayerScreenSize.X div 2) then a := -px+(gPlayerScreenSize.X div 2) else a := 0;
   if py > (gPlayerScreenSize.Y div 2) then b := -py+(gPlayerScreenSize.Y div 2) else b := 0;

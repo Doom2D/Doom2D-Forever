@@ -122,6 +122,43 @@ function readInt64BE (st: TStream): Int64;
 function readUInt64BE (st: TStream): UInt64;
 
 
+function nmin (a, b: Byte): Byte; inline; overload;
+function nmin (a, b: ShortInt): ShortInt; inline; overload;
+function nmin (a, b: Word): Word; inline; overload;
+function nmin (a, b: SmallInt): SmallInt; inline; overload;
+function nmin (a, b: LongWord): LongWord; inline; overload;
+function nmin (a, b: LongInt): LongInt; inline; overload;
+function nmin (a, b: Int64): Int64; inline; overload;
+function nmin (a, b: UInt64): UInt64; inline; overload;
+function nmin (a, b: Single): Single; inline; overload;
+function nmin (a, b: Double): Double; inline; overload;
+function nmin (a, b: Extended): Extended; inline; overload;
+
+function nmax (a, b: Byte): Byte; inline; overload;
+function nmax (a, b: ShortInt): ShortInt; inline; overload;
+function nmax (a, b: Word): Word; inline; overload;
+function nmax (a, b: SmallInt): SmallInt; inline; overload;
+function nmax (a, b: LongWord): LongWord; inline; overload;
+function nmax (a, b: LongInt): LongInt; inline; overload;
+function nmax (a, b: Int64): Int64; inline; overload;
+function nmax (a, b: UInt64): UInt64; inline; overload;
+function nmax (a, b: Single): Single; inline; overload;
+function nmax (a, b: Double): Double; inline; overload;
+function nmax (a, b: Extended): Extended; inline; overload;
+
+function nclamp (v, a, b: Byte): Byte; inline; overload;
+function nclamp (v, a, b: ShortInt): ShortInt; inline; overload;
+function nclamp (v, a, b: Word): Word; inline; overload;
+function nclamp (v, a, b: SmallInt): SmallInt; inline; overload;
+function nclamp (v, a, b: LongWord): LongWord; inline; overload;
+function nclamp (v, a, b: LongInt): LongInt; inline; overload;
+function nclamp (v, a, b: Int64): Int64; inline; overload;
+function nclamp (v, a, b: UInt64): UInt64; inline; overload;
+function nclamp (v, a, b: Single): Single; inline; overload;
+function nclamp (v, a, b: Double): Double; inline; overload;
+function nclamp (v, a, b: Extended): Extended; inline; overload;
+
+
 type
   TFormatStrFCallback = procedure (constref buf; len: SizeUInt);
 
@@ -143,7 +180,7 @@ function quoteStr (const s: AnsiString): AnsiString;
 type
   generic TSimpleList<ItemT> = class
   private
-    type PItemT = ^ItemT;
+    //type PItemT = ^ItemT;
     type TItemArr = array of ItemT;
 
   public
@@ -973,6 +1010,44 @@ function readLongWordBE (st: TStream): LongWord; begin readIntegerBE(st, @result
 function readLongIntBE (st: TStream): LongInt; begin readIntegerBE(st, @result, 4); end;
 function readInt64BE (st: TStream): Int64; begin readIntegerBE(st, @result, 8); end;
 function readUInt64BE (st: TStream): UInt64; begin readIntegerBE(st, @result, 8); end;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
+function nmin (a, b: Byte): Byte; inline; overload; begin if (a < b) then result := a else result := b; end;
+function nmin (a, b: ShortInt): ShortInt; inline; overload; begin if (a < b) then result := a else result := b; end;
+function nmin (a, b: Word): Word; inline; overload; begin if (a < b) then result := a else result := b; end;
+function nmin (a, b: SmallInt): SmallInt; inline; overload; begin if (a < b) then result := a else result := b; end;
+function nmin (a, b: LongWord): LongWord; inline; overload; begin if (a < b) then result := a else result := b; end;
+function nmin (a, b: LongInt): LongInt; inline; overload; begin if (a < b) then result := a else result := b; end;
+function nmin (a, b: Int64): Int64; inline; overload; begin if (a < b) then result := a else result := b; end;
+function nmin (a, b: UInt64): UInt64; inline; overload; begin if (a < b) then result := a else result := b; end;
+function nmin (a, b: Single): Single; inline; overload; begin if (a < b) then result := a else result := b; end;
+function nmin (a, b: Double): Double; inline; overload; begin if (a < b) then result := a else result := b; end;
+function nmin (a, b: Extended): Extended; inline; overload; begin if (a < b) then result := a else result := b; end;
+
+function nmax (a, b: Byte): Byte; inline; overload; begin if (a > b) then result := a else result := b; end;
+function nmax (a, b: ShortInt): ShortInt; inline; overload; begin if (a > b) then result := a else result := b; end;
+function nmax (a, b: Word): Word; inline; overload; begin if (a > b) then result := a else result := b; end;
+function nmax (a, b: SmallInt): SmallInt; inline; overload; begin if (a > b) then result := a else result := b; end;
+function nmax (a, b: LongWord): LongWord; inline; overload; begin if (a > b) then result := a else result := b; end;
+function nmax (a, b: LongInt): LongInt; inline; overload; begin if (a > b) then result := a else result := b; end;
+function nmax (a, b: Int64): Int64; inline; overload; begin if (a > b) then result := a else result := b; end;
+function nmax (a, b: UInt64): UInt64; inline; overload; begin if (a > b) then result := a else result := b; end;
+function nmax (a, b: Single): Single; inline; overload; begin if (a > b) then result := a else result := b; end;
+function nmax (a, b: Double): Double; inline; overload; begin if (a > b) then result := a else result := b; end;
+function nmax (a, b: Extended): Extended; inline; overload; begin if (a > b) then result := a else result := b; end;
+
+function nclamp (v, a, b: Byte): Byte; inline; overload; begin if (v < a) then result := a else if (v > b) then result := b else result := v; end;
+function nclamp (v, a, b: ShortInt): ShortInt; inline; overload; begin if (v < a) then result := a else if (v > b) then result := b else result := v; end;
+function nclamp (v, a, b: Word): Word; inline; overload; begin if (v < a) then result := a else if (v > b) then result := b else result := v; end;
+function nclamp (v, a, b: SmallInt): SmallInt; inline; overload; begin if (v < a) then result := a else if (v > b) then result := b else result := v; end;
+function nclamp (v, a, b: LongWord): LongWord; inline; overload; begin if (v < a) then result := a else if (v > b) then result := b else result := v; end;
+function nclamp (v, a, b: LongInt): LongInt; inline; overload; begin if (v < a) then result := a else if (v > b) then result := b else result := v; end;
+function nclamp (v, a, b: Int64): Int64; inline; overload; begin if (v < a) then result := a else if (v > b) then result := b else result := v; end;
+function nclamp (v, a, b: UInt64): UInt64; inline; overload; begin if (v < a) then result := a else if (v > b) then result := b else result := v; end;
+function nclamp (v, a, b: Single): Single; inline; overload; begin if (v < a) then result := a else if (v > b) then result := b else result := v; end;
+function nclamp (v, a, b: Double): Double; inline; overload; begin if (v < a) then result := a else if (v > b) then result := b else result := v; end;
+function nclamp (v, a, b: Extended): Extended; inline; overload; begin if (v < a) then result := a else if (v > b) then result := b else result := v; end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //

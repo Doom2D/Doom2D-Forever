@@ -2271,10 +2271,10 @@ begin
         e_GetTextureSize(ID, @w, @h);
         if FDirection = D_LEFT then
           e_Draw(ID, FObj.X+FObj.Rect.X+(FObj.Rect.Width div 2)-(w div 2)+4,
-                     FObj.Y+FObj.Rect.Y+(FObj.Rect.Height div 2)-(h div 2)-7, 0, True, False)
+                     FObj.Y+FObj.Rect.Y+(FObj.Rect.Height div 2)-(h div 2)-7+FObj.slopeUpLeft, 0, True, False)
         else
           e_Draw(ID, FObj.X+FObj.Rect.X+(FObj.Rect.Width div 2)-(w div 2)-2,
-                     FObj.Y+FObj.Rect.Y+(FObj.Rect.Height div 2)-(h div 2)-7, 0, True, False);
+                     FObj.Y+FObj.Rect.Y+(FObj.Rect.Height div 2)-(h div 2)-7+FObj.slopeUpLeft, 0, True, False);
       end;
 
     if FMegaRulez[MR_INVIS] > gTime then
@@ -2287,15 +2287,15 @@ begin
         else
           dr := True;
         if dr then
-          FModel.Draw(FObj.X, FObj.Y, 200)
+          FModel.Draw(FObj.X, FObj.Y+FObj.slopeUpLeft, 200)
         else
-          FModel.Draw(FObj.X, FObj.Y);
+          FModel.Draw(FObj.X, FObj.Y+FObj.slopeUpLeft);
       end
       else
-        FModel.Draw(FObj.X, FObj.Y, 254);
+        FModel.Draw(FObj.X, FObj.Y+FObj.slopeUpLeft, 254);
     end
     else
-      FModel.Draw(FObj.X, FObj.Y);
+      FModel.Draw(FObj.X, FObj.Y+FObj.slopeUpLeft);
   end;
 
   if g_debug_Frames then
