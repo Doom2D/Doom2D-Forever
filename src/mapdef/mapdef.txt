@@ -15,6 +15,7 @@
 //   `as txy` will use `tX` and `tY` for points
 //   `as wh` will use `Width` and `Height` for size
 //   `as twh` will use `tWidth` and `tHeight` for size
+//   `as monsterid`: special hack for triggers: monster record number+1 in binary (so 0 means "none")
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -398,7 +399,7 @@ TriggerData for (TRIGGER_PRESS, TRIGGER_ON, TRIGGER_OFF, TRIGGER_ONOFF) {
   Size is "size" type size offset 8 as twh;
   Wait is "wait" type ushort offset 12;
   Count is "count" type ushort offset 14;
-  MonsterID is "monsterid" type int offset 16 monster;
+  MonsterID is "monsterid" type int offset 16 monster as monsterid;
   ExtRandom is "extrandom" type bool offset 20;
 }
 

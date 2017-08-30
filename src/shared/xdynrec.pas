@@ -70,6 +70,7 @@ type
     mInternal: Boolean;
     mNegBool: Boolean;
     mBitSetUnique: Boolean; // bitset can contain only one value
+    mAsMonsterId: Boolean; // special hack for triggers: monster record number+1 in binary (so 0 means "none")
     // default value
     mDefUnparsed: AnsiString;
     mDefSVal: AnsiString; // default string value
@@ -336,6 +337,7 @@ begin
   mEBSTypeName := '';
   mEBSType := nil;
   mBitSetUnique := false;
+  mAsMonsterId := false;
   mNegBool := false;
   mRecRefId := '';
   if (mType = TType.TList) then mRVal := TDynRecList.Create();
@@ -376,6 +378,7 @@ begin
   result.mInternal := mInternal;
   result.mNegBool := mNegBool;
   result.mBitSetUnique := mBitSetUnique;
+  result.mAsMonsterId := mAsMonsterId;
   result.mDefUnparsed := mDefUnparsed;
   result.mDefSVal := mDefSVal;
   result.mDefIVal := mDefIVal;
@@ -535,6 +538,7 @@ begin
     TEBS.TEnum: result += ' enum '+mEBSTypeName;
     TEBS.TBitSet: begin result += ' bitset '; if mBitSetUnique then result += 'unique '; result += mEBSTypeName; end;
   end;
+  if mAsMonsterId then result += ' as monsterid';
   if mHasDefault and (Length(mDefUnparsed) > 0) then result += ' default '+mDefUnparsed;
   if mSepPosSize then
   begin
@@ -592,6 +596,7 @@ var
   lmaxdim: Integer;
   lebs: TDynField.TEBS;
   unique: Boolean;
+  asmonid: Boolean;
 begin
   fldpasname := '';
   fldname := '';
@@ -609,6 +614,7 @@ begin
   hasdefInt := false;
   hasdefId := false;
   unique := false;
+  asmonid := false;
   lmaxdim := -1;
   lebs := TDynField.TEBS.TNone;
 
@@ -644,6 +650,7 @@ begin
       else if pr.eatId('wh') then aswh := true
       else if pr.eatId('txy') then begin asxy := true; ast := true; end
       else if pr.eatId('twh') then begin aswh := true; ast := true; end
+      else if pr.eatId('monsterid') then begin asmonid := true; end
       else raise Exception.Create(Format('invalid field ''%s'' as what?', [fldname]));
       continue;
     end;
@@ -745,6 +752,7 @@ begin
   self.mEBS := lebs;
   self.mEBSTypeName := fldrecname;
   self.mBitSetUnique := unique;
+  self.mAsMonsterId := asmonid;
   self.mMaxDim := lmaxdim;
   self.mBinOfs := fldofs;
   self.mRecOfs := fldofs;
@@ -806,11 +814,12 @@ begin
         begin
           f := mOwner.findRecordNumByType(mEBSTypeName, mRecRef);
           if (f < 0) then raise Exception.Create(Format('record reference type ''%s'' in field ''%s'' not found in record list', [mEBSTypeName, mName]));
+          if mAsMonsterId then Inc(f);
           if (f > maxv) then raise Exception.Create(Format('record reference type ''%s'' in field ''%s'' has too big index', [mEBSTypeName, mName]));
         end
         else
         begin
-          f := -1;
+          if mAsMonsterId then f := 0 else f := -1;
         end;
         case mType of
           TType.TByte, TType.TUByte: writeInt(st, Byte(f));
@@ -1101,6 +1110,7 @@ begin
             TType.TUInt: f := readLongWord(st);
             else raise Exception.Create(Format('invalid non-numeric type ''%s'' for field ''%s'' of record ''%s''', [getTypeName(mType), mName, mEBSTypeName]));
           end;
+          if mAsMonsterId then Dec(f);
           if (f < 0) then mRecRefId := '' else mRecRefId := Format('%s%d', [mEBSTypeName, f]);
         end;
         mDefined := true;
