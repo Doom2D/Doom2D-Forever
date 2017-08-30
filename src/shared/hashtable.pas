@@ -158,8 +158,10 @@ type
 
 type
   THashIntInt = specialize THashBase<Integer, Integer>;
+  THashStrInt = specialize THashBase<AnsiString, Integer>;
 
 function hashNewIntInt (): THashIntInt;
+function hashNewStrInt (): THashStrInt;
 
 
 function u32Hash (a: LongWord): LongWord; inline;
@@ -194,6 +196,7 @@ end;
 
 // ////////////////////////////////////////////////////////////////////////// //
 function hiiequ (constref a, b: Integer): Boolean; begin result := (a = b); end;
+function hsiequ (constref a, b: AnsiString): Boolean; begin result := (a = b); end;
 
 {$PUSH}
 {$RANGECHECKS OFF}
@@ -208,12 +211,23 @@ begin
   result := result xor (result shl 10);
   result := result xor (result shr 15);
 end;
+
+function hsihash (constref k: AnsiString): LongWord;
+begin
+  if (Length(k) > 0) then result := fnvHash(PAnsiChar(k)^, Length(k)) else result := 0;
+end;
 {$POP}
 
 
 function hashNewIntInt (): THashIntInt;
 begin
   result := THashIntInt.Create(hiihash, hiiequ);
+end;
+
+
+function hashNewStrInt (): THashStrInt;
+begin
+  result := THashStrInt.Create(hsihash, hsiequ);
 end;
 
 
