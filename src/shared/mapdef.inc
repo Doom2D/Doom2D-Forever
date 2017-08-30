@@ -1,5 +1,5 @@
 // *** WARNING! ***
-//   regenerate this part directly from "mapdef.txt" with 'zmapgen', NEVER manually change anything here!
+//   regenerate this part directly from "mapdef.txt" with 'mapgen', NEVER manually change anything here!
 
 
 // ////////////////////////////////////////////////////////////////////////// //

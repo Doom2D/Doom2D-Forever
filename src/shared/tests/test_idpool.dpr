@@ -16,7 +16,8 @@
 {$INCLUDE a_modes.inc}
 {$DEFINE IDPOOL_CHECKS}
 uses
-  SysUtils, idpool;
+  SysUtils,
+  idpool in '../idpool.pas';
 
 
 // ////////////////////////////////////////////////////////////////////////// //

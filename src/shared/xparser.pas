@@ -57,7 +57,7 @@ type
     procedure loadNextChar (); virtual; abstract; // loads next char into mNextChar; #0 means 'eof'
 
   public
-    constructor Create (loadToken: Boolean=true);
+    constructor Create ();
     destructor Destroy (); override;
 
     function isEOF (): Boolean; inline;
@@ -103,10 +103,11 @@ type
 type
   TFileTextParser = class(TTextParser)
   private
-    const BufSize = 65536;
+    const BufSize = 16384;
 
   private
     mFile: TStream;
+    mStreamOwned: Boolean;
     mBuffer: PChar;
     mBufLen: Integer;
     mBufPos: Integer;
@@ -115,8 +116,8 @@ type
     procedure loadNextChar (); override; // loads next char into mNextChar; #0 means 'eof'
 
   public
-    constructor Create (const fname: AnsiString; loadToken: Boolean=true);
-    constructor Create (st: TStream; loadToken: Boolean=true); // will take ownership on st
+    constructor Create (const fname: AnsiString);
+    constructor Create (st: TStream; astOwned: Boolean=true); // will take ownership on st by default
     destructor Destroy (); override;
   end;
 
@@ -129,7 +130,7 @@ type
     procedure loadNextChar (); override; // loads next char into mNextChar; #0 means 'eof'
 
   public
-    constructor Create (const astr: AnsiString; loadToken: Boolean=true);
+    constructor Create (const astr: AnsiString);
     destructor Destroy (); override;
   end;
 
@@ -146,6 +147,8 @@ type
   public
     constructor Create ();
 
+    procedure flush (); virtual;
+
     procedure put (const s: AnsiString); overload;
     procedure put (v: Byte); overload;
     procedure put (v: Integer); overload;
@@ -160,14 +163,23 @@ type
 type
   TFileTextWriter = class(TTextWriter)
   private
+    const BufSize = 16384;
+
+  private
     mFile: TStream;
+    mStreamOwned: Boolean;
+    mBuffer: PAnsiChar;
+    mBufUsed: Integer;
 
   protected
     procedure putBuf (constref buf; len: SizeUInt); override;
 
   public
     constructor Create (const fname: AnsiString);
+    constructor Create (ast: TStream; astOwned: Boolean=true); // will own the stream by default
     destructor Destroy (); override;
+
+    procedure flush (); override;
   end;
 
 
@@ -182,45 +194,7 @@ function StrEqu (const a, b: AnsiString): Boolean; inline; begin result := (a = 
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-var
-  wc2shitmap: array[0..65535] of AnsiChar;
-  wc2shitmapInited: Boolean = false;
-
-
-// ////////////////////////////////////////////////////////////////////////// //
-procedure initShitMap ();
-const
-  cp1251: array[0..127] of Word = (
-    $0402,$0403,$201A,$0453,$201E,$2026,$2020,$2021,$20AC,$2030,$0409,$2039,$040A,$040C,$040B,$040F,
-    $0452,$2018,$2019,$201C,$201D,$2022,$2013,$2014,$003F,$2122,$0459,$203A,$045A,$045C,$045B,$045F,
-    $00A0,$040E,$045E,$0408,$00A4,$0490,$00A6,$00A7,$0401,$00A9,$0404,$00AB,$00AC,$00AD,$00AE,$0407,
-    $00B0,$00B1,$0406,$0456,$0491,$00B5,$00B6,$00B7,$0451,$2116,$0454,$00BB,$0458,$0405,$0455,$0457,
-    $0410,$0411,$0412,$0413,$0414,$0415,$0416,$0417,$0418,$0419,$041A,$041B,$041C,$041D,$041E,$041F,
-    $0420,$0421,$0422,$0423,$0424,$0425,$0426,$0427,$0428,$0429,$042A,$042B,$042C,$042D,$042E,$042F,
-    $0430,$0431,$0432,$0433,$0434,$0435,$0436,$0437,$0438,$0439,$043A,$043B,$043C,$043D,$043E,$043F,
-    $0440,$0441,$0442,$0443,$0444,$0445,$0446,$0447,$0448,$0449,$044A,$044B,$044C,$044D,$044E,$044F
-  );
-var
-  f: Integer;
-begin
-  for f := 0 to High(wc2shitmap) do wc2shitmap[f] := '?';
-  for f := 0 to 127 do wc2shitmap[f] := AnsiChar(f);
-  for f := 0 to 127 do wc2shitmap[cp1251[f]] := AnsiChar(f+128);
-  wc2shitmapInited := true;
-end;
-
-
-// ////////////////////////////////////////////////////////////////////////// //
-// TODO: make a hash or something
-function wcharTo1251 (wc: WideChar): AnsiChar; inline;
-begin
-  if not wc2shitmapInited then initShitMap();
-  if (LongWord(wc) > 65535) then result := '?' else result := wc2shitmap[LongWord(wc)];
-end;
-
-
-// ////////////////////////////////////////////////////////////////////////// //
-constructor TTextParser.Create (loadToken: Boolean=true);
+constructor TTextParser.Create ();
 begin
   mLine := 1;
   mCol := 1;
@@ -232,7 +206,7 @@ begin
   mTokInt := 0;
   mAllowSignedNumbers := true;
   warmup(); // change `mAllowSignedNumbers` there, if necessary
-  if loadToken then skipToken();
+  skipToken();
 end;
 
 
@@ -596,34 +570,40 @@ end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-constructor TFileTextParser.Create (const fname: AnsiString; loadToken: Boolean=true);
+constructor TFileTextParser.Create (const fname: AnsiString);
 begin
   mBuffer := nil;
   mFile := openDiskFileRO(fname);
+  mStreamOwned := true;
   GetMem(mBuffer, BufSize);
   mBufPos := 0;
   mBufLen := mFile.Read(mBuffer^, BufSize);
   if (mBufLen < 0) then raise Exception.Create('TFileTextParser: read error');
-  inherited Create(loadToken);
+  inherited Create();
 end;
 
 
-constructor TFileTextParser.Create (st: TStream; loadToken: Boolean=true);
+constructor TFileTextParser.Create (st: TStream; astOwned: Boolean=true);
 begin
   if (st = nil) then raise Exception.Create('cannot create parser for nil stream');
   mFile := st;
+  mStreamOwned := astOwned;
   GetMem(mBuffer, BufSize);
   mBufPos := 0;
   mBufLen := mFile.Read(mBuffer^, BufSize);
   if (mBufLen < 0) then raise Exception.Create('TFileTextParser: read error');
-  inherited Create(loadToken);
+  inherited Create();
 end;
 
 
 destructor TFileTextParser.Destroy ();
 begin
   if (mBuffer <> nil) then FreeMem(mBuffer);
-  mFile.Free();
+  mBuffer := nil;
+  mBufPos := 0;
+  mBufLen := 0;
+  if mStreamOwned then mFile.Free();
+  mFile := nil;
   inherited;
 end;
 
@@ -646,11 +626,11 @@ end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-constructor TStrTextParser.Create (const astr: AnsiString; loadToken: Boolean=true);
+constructor TStrTextParser.Create (const astr: AnsiString);
 begin
   mStr := astr;
   mPos := 1;
-  inherited Create(loadToken);
+  inherited Create();
 end;
 
 
@@ -672,6 +652,7 @@ end;
 
 // ////////////////////////////////////////////////////////////////////////// //
 constructor TTextWriter.Create (); begin mIndent := 0; end;
+procedure TTextWriter.flush (); begin end;
 procedure TTextWriter.put (const s: AnsiString); overload; begin if (Length(s) > 0) then putBuf((@(s[1]))^, Length(s)); end;
 procedure TTextWriter.put (v: Byte); overload; begin put('%d', [v]); end;
 procedure TTextWriter.put (v: Integer); overload; begin put('%d', [v]); end;
@@ -685,33 +666,68 @@ procedure TTextWriter.unindent (); begin Dec(mIndent, 2); end;
 constructor TFileTextWriter.Create (const fname: AnsiString);
 begin
   mFile := createDiskFile(fname);
+  mStreamOwned := true;
+  mBufUsed := 0;
+  GetMem(mBuffer, BufSize);
+  assert(mBuffer <> nil);
   inherited Create();
+end;
+
+
+constructor TFileTextWriter.Create (ast: TStream; astOwned: Boolean=true);
+begin
+  if (ast = nil) then raise Exception.Create('cannot write to nil stream');
+  mFile := ast;
+  mStreamOwned := astOwned;
+  mBufUsed := 0;
+  GetMem(mBuffer, BufSize);
+  assert(mBuffer <> nil);
 end;
 
 
 destructor TFileTextWriter.Destroy ();
 begin
-  mFile.Free();
+  flush();
+  if (mBuffer <> nil) then FreeMem(mBuffer);
+  mBufUsed := 0;
+  mBuffer := nil;
+  if (mStreamOwned) then mFile.Free();
+  mFile := nil;
   inherited;
+end;
+
+
+procedure TFileTextWriter.flush ();
+begin
+  if (mFile <> nil) and (mBufUsed > 0) then
+  begin
+    mFile.WriteBuffer(mBuffer^, mBufUsed);
+  end;
+  mBufUsed := 0;
 end;
 
 
 procedure TFileTextWriter.putBuf (constref buf; len: SizeUInt);
 var
   pc: PChar;
+  left: Integer;
 begin
-  if (len > 0) then
+  if (len = 0) then exit;
+  pc := @buf;
+  while (len > 0) do
   begin
-    pc := @buf;
-    mFile.WriteBuffer(pc^, len);
-    {
-    while (len > 0) do
+    left := BufSize-mBufUsed;
+    if (left = 0) then
     begin
-      write(pc^);
-      Inc(pc);
-      Dec(len);
+      flush();
+      left := BufSize-mBufUsed;
+      assert(left > 0);
     end;
-    }
+    if (left > len) then left := Integer(len);
+    Move(pc^, (mBuffer+mBufUsed)^, left);
+    Inc(mBufUsed, left);
+    pc += left;
+    len -= left;
   end;
 end;
 

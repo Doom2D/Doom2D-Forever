@@ -52,14 +52,28 @@ type
 
 
 // ////////////////////////////////////////////////////////////////////////// //
+function getFilenameExt (const fn: AnsiString): AnsiString;
+function setFilenameExt (const fn, ext: AnsiString): AnsiString;
+function forceFilenameExt (const fn, ext: AnsiString): AnsiString;
+
+// strips out name from `fn`, leaving trailing slash
+function getFilenamePath (const fn: AnsiString): AnsiString;
+
+// ends with '/' or '\'?
+function isFilenamePath (const fn: AnsiString): Boolean;
+
+// strips extra trailing slashes in `path, and extra leading slashes in `fn`
+// will add slash to `path`, even if `fn` is empty!
+function filenameConcat (const path, fn: AnsiString): AnsiString;
+
 // does filename have one of ".wad", ".pk3", ".zip" extensions?
-function hasWadExtension (fn: AnsiString): Boolean;
+function hasWadExtension (const fn: AnsiString): Boolean;
 
 // does filepath have ".XXX:\" in it?
-function isWadPath (fn: AnsiString): Boolean;
+function isWadPath (const fn: AnsiString): Boolean;
 
 // adds ".wad" extension if filename doesn't have one of ".wad", ".pk3", ".zip"
-function addWadExtension (fn: AnsiString): AnsiString;
+function addWadExtension (const fn: AnsiString): AnsiString;
 
 // convert number to strig with nice commas
 function Int64ToStrComma (i: Int64): AnsiString;
@@ -583,40 +597,176 @@ end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-function hasWadExtension (fn: AnsiString): Boolean;
+function getFilenameExt (const fn: AnsiString): AnsiString;
+var
+  pos: Integer;
+  ch: AnsiChar;
 begin
-  fn := ExtractFileExt(fn);
-  result := StrEquCI1251(fn, '.wad') or StrEquCI1251(fn, '.pk3') or StrEquCI1251(fn, '.zip');
+  pos := Length(fn);
+  while (pos > 0) do
+  begin
+    ch := fn[pos];
+    if (ch = '.') then
+    begin
+      if (pos = Length(fn)) then result := '' else result := Copy(fn, pos, Length(fn)-pos+1);
+      exit;
+    end;
+    if (ch = '/') or (ch = '\') then break;
+    Dec(pos);
+  end;
+  result := ''; // no extension
 end;
 
 
-function addWadExtension (fn: AnsiString): AnsiString;
+function setFilenameExt (const fn, ext: AnsiString): AnsiString;
+var
+  pos: Integer;
+  ch: AnsiChar;
+begin
+  result := fn;
+  if (Length(ext) = 0) or (ext = '.') then exit;
+  pos := Length(fn);
+  while (pos > 0) do
+  begin
+    ch := fn[pos];
+    if (ch = '.') then exit;
+    if (ch = '/') or (ch = '\') then break;
+    Dec(pos);
+  end;
+  if (ext[1] <> '.') then result += '.';
+  result += ext;
+end;
+
+
+function forceFilenameExt (const fn, ext: AnsiString): AnsiString;
+var
+  pos: Integer;
+  ch: AnsiChar;
+begin
+  result := fn;
+  pos := Length(fn);
+  while (pos > 0) do
+  begin
+    ch := fn[pos];
+    if (ch = '.') then
+    begin
+      if (Length(ext) = 0) or (ext = '.') then
+      begin
+        result := Copy(fn, 1, pos-1);
+      end
+      else
+      begin
+        if (ext[1] = '.') then result := Copy(fn, 1, pos-1) else result := Copy(fn, 1, pos);
+        result += ext;
+        exit;
+      end;
+    end;
+    if (ch = '/') or (ch = '\') then break;
+    Dec(pos);
+  end;
+  if (Length(ext) > 0) then
+  begin
+    if (ext[1] <> '.') then result += '.';
+    result += ext;
+  end;
+end;
+
+
+// strips out name from `fn`, leaving trailing slash
+function getFilenamePath (const fn: AnsiString): AnsiString;
+var
+  pos: Integer;
+  ch: AnsiChar;
+begin
+  if (Length(fn) = 0) then begin result := './'; exit; end;
+  if (fn[Length(fn)] = '/') or (fn[Length(fn)] = '\') then begin result := fn; exit; end;
+  pos := Length(fn);
+  while (pos > 0) do
+  begin
+    ch := fn[pos];
+    if (ch = '/') or (ch = '\') then begin result := Copy(fn, 1, pos); exit; end;
+    Dec(pos);
+  end;
+  result := './'; // no path -> current dir
+end;
+
+
+// ends with '/' or '\'?
+function isFilenamePath (const fn: AnsiString): Boolean;
+begin
+  if (Length(fn) = 0) then
+  begin
+    result := false;
+  end
+  else
+  begin
+    result := (fn[Length(fn)] = '/') or (fn[Length(fn)] = '\');
+  end;
+end;
+
+
+// strips extra trailing slashes in `path, and extra leading slashes in `fn`
+// will add slash to `path`, even if `fn` is empty!
+function filenameConcat (const path, fn: AnsiString): AnsiString;
+var
+  pos: Integer;
+begin
+  pos := 1;
+  while (pos <= Length(fn)) and ((fn[pos] = '/') or (fn[pos] = '\')) do Inc(pos);
+  result := path;
+  if (Length(result) > 0) and ((result[Length(result)] <> '/') and (result[Length(result)] <> '\')) then result += '/';
+  if (pos <= Length(fn)) then
+  begin
+    result += Copy(fn, pos, Length(fn)-pos+1);
+    //FIXME: make this faster!
+    while (Length(result) > 0) and ((result[Length(result)] = '/') or (result[Length(result)] = '\')) do
+    begin
+      Delete(result, Length(result), 1);
+    end;
+    if (fn[Length(fn)] = '/') or (fn[Length(fn)] = '\') then result += '/';
+  end;
+end;
+
+
+function hasWadExtension (const fn: AnsiString): Boolean;
+var
+  ext: AnsiString;
+begin
+  ext := getFilenameExt(fn);
+  result := StrEquCI1251(ext, '.wad') or StrEquCI1251(ext, '.pk3') or StrEquCI1251(ext, '.zip');
+end;
+
+
+function addWadExtension (const fn: AnsiString): AnsiString;
 begin
   result := fn;
   if not hasWadExtension(result) then result := result+'.wad';
 end;
 
 
-function isWadPath (fn: AnsiString): Boolean;
+function isWadPath (const fn: AnsiString): Boolean;
 var
-  p: Integer;
+  pos: Integer;
   s: AnsiString;
 begin
   result := false;
-  while true do
+  pos := 1;
+  while (pos <= Length(fn)) do
   begin
-    p := Pos(':', fn);
-    if (p = 0) or (length(fn)-p < 1) then break;
-    if (p-4 > 1) and (fn[p-4] = '.') and ((fn[p+1] = '\') or (fn[p+1] = '/')) then
+    if (fn[pos] = ':') then
     begin
-      s := Copy(fn, p-4, 4);
-      if StrEquCI1251(s, '.wad') or StrEquCI1251(s, '.pk3') or StrEquCI1251(s, '.zip') then
+      if (Length(fn)-pos < 1) then break;
+      if (pos-4 > 1) and (fn[pos-4] = '.') and ((fn[pos+1] = '\') or (fn[pos+1] = '/')) then
       begin
-        result := true;
-        exit;
+        s := Copy(fn, pos-4, 4);
+        if StrEquCI1251(s, '.wad') or StrEquCI1251(s, '.pk3') or StrEquCI1251(s, '.zip') then
+        begin
+          result := true;
+          exit;
+        end;
       end;
     end;
-    Delete(fn, 1, p);
+    Inc(pos);
   end;
 end;
 

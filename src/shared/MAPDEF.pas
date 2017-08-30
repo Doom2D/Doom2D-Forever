@@ -76,7 +76,7 @@ function GetTriggers (rec: TDynRecord): TTriggersRec1Array;
 implementation
 
 uses
-  e_log, xparser, xstreams;
+  {e_log,} xparser, xstreams;
 
 
 function GetMapHeader (rec: TDynRecord): TMapHeaderRec_1;
