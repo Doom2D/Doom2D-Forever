@@ -59,7 +59,7 @@ type
         mEntries: TEntryArray;
         mFirstEntry, mLastEntry, cur: Integer;
       public
-        constructor Create (aents: TEntryArray; afirst, alast: Integer);
+        constructor Create (const aents: TEntryArray; afirst, alast: Integer);
         function MoveNext (): Boolean; inline;
         function getCurrent (): ValueT; inline;
         property Current: ValueT read getCurrent;
@@ -70,7 +70,7 @@ type
         mEntries: TEntryArray;
         mFirstEntry, mLastEntry, cur: Integer;
       public
-        constructor Create (aents: TEntryArray; afirst, alast: Integer);
+        constructor Create (const aents: TEntryArray; afirst, alast: Integer);
         function MoveNext (): Boolean; inline;
         function getCurrent (): KeyT; inline;
         property Current: KeyT read getCurrent;
@@ -81,7 +81,7 @@ type
         mEntries: TEntryArray;
         mFirstEntry, mLastEntry, cur: Integer;
       public
-        constructor Create (aents: TEntryArray; afirst, alast: Integer);
+        constructor Create (const aents: TEntryArray; afirst, alast: Integer);
         function MoveNext (): Boolean; inline;
         function getCurrent (): PEntry; inline;
         property Current: PEntry read getCurrent;
@@ -945,7 +945,7 @@ end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-constructor THashBase.TValEnumerator.Create (aents: TEntryArray; afirst, alast: Integer);
+constructor THashBase.TValEnumerator.Create (const aents: TEntryArray; afirst, alast: Integer);
 begin
   mEntries := aents;
   mFirstEntry := afirst;
@@ -970,7 +970,7 @@ end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-constructor THashBase.TKeyEnumerator.Create (aents: TEntryArray; afirst, alast: Integer);
+constructor THashBase.TKeyEnumerator.Create (const aents: TEntryArray; afirst, alast: Integer);
 begin
   mEntries := aents;
   mFirstEntry := afirst;
@@ -995,7 +995,7 @@ end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-constructor THashBase.TKeyValEnumerator.Create (aents: TEntryArray; afirst, alast: Integer);
+constructor THashBase.TKeyValEnumerator.Create (const aents: TEntryArray; afirst, alast: Integer);
 begin
   mEntries := aents;
   mFirstEntry := afirst;

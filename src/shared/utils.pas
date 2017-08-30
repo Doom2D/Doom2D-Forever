@@ -144,23 +144,24 @@ type
   generic TSimpleList<ItemT> = class
   private
     type PItemT = ^ItemT;
+    type TItemArr = array of ItemT;
 
   public
     type
       TEnumerator = record
       private
-        mItems: PItemT;
+        mItems: TItemArr;
         mCount: Integer;
         mCurrent: Integer;
       public
-        constructor Create (aitems: PItemT; acount: Integer);
+        constructor Create (const aitems: TItemArr; acount: Integer);
         function MoveNext: Boolean;
         function getCurrent (): ItemT;
         property Current: ItemT read getCurrent;
       end;
 
   private
-    mItems: array of ItemT;
+    mItems: TItemArr;
     mCount: Integer; // can be less than `mItems` size
 
   private
@@ -193,11 +194,11 @@ implementation
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-constructor TSimpleList.TEnumerator.Create (aitems: PItemT; acount: Integer);
+constructor TSimpleList.TEnumerator.Create (const aitems: TItemArr; acount: Integer);
 begin
   mItems := aitems;
-  mCount := acount;
   mCurrent := -1;
+  mCount := acount;
 end;
 
 function TSimpleList.TEnumerator.MoveNext: Boolean;
@@ -243,7 +244,7 @@ end;
 
 function TSimpleList.GetEnumerator (): TEnumerator;
 begin
-  if (Length(mItems) > 0) then result := TEnumerator.Create(@mItems[0], mCount)
+  if (Length(mItems) > 0) then result := TEnumerator.Create(mItems, mCount)
   else result := TEnumerator.Create(nil, -1);
 end;
 

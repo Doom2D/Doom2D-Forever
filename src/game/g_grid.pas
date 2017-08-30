@@ -1656,16 +1656,6 @@ begin
     y := yptr^+miny;
     //prevx := x;
     //prevy := y;
-    {$IF DEFINED(D2F_DEBUG)}
-    if hopt then
-    begin
-      if (y <> ay0) then raise Exception.Create('htrace fatal internal error');
-    end
-    else
-    begin
-      if (x <> ax0) then raise Exception.Create('vtrace fatal internal error');
-    end;
-    {$ENDIF}
     while (wklen > 0) do
     begin
       {$IF DEFINED(D2F_DEBUG)}
@@ -2254,16 +2244,6 @@ begin
     if dbgShowTraceLog then e_LogWritefln('optimized htrace; wklen=%d', [wklen]);
     {$ENDIF}
     ga := (yptr^ div tsize)*gw+(xptr^ div tsize);
-    {$IF DEFINED(D2F_DEBUG)}
-    if hopt then
-    begin
-      if (yptr^ <> ay0) then raise Exception.Create('htrace fatal internal error');
-    end
-    else
-    begin
-      if (xptr^ <> ax0) then raise Exception.Create('vtrace fatal internal error');
-    end;
-    {$ENDIF}
     while (wklen > 0) do
     begin
       {$IF DEFINED(D2F_DEBUG)}
