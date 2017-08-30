@@ -68,54 +68,6 @@ procedure e_WriteLog (TextLine: String; RecordCategory: TRecordCategory; WriteTi
 begin
   e_LogWritefln('%s', [TextLine], RecordCategory, WriteTime);
 end;
-(*
-var
-  LogFile: TextFile;
-  Prefix: ShortString = '';
-  OutStr: String;
-begin
-  if driverInited and (length(TextLine) > 0) then
-  begin
-    case RecordCategory of
-      MSG_FATALERROR: write('FATAL: ');
-      MSG_WARNING: write('WARNING: ');
-    end;
-    writeln(TextLine);
-  end;
-
-  if FileName = '' then Exit;
-
-  Assign(LogFile, FileName);
-  try
-    if FileExists(FileName) then
-      Append(LogFile)
-    else
-      Rewrite(LogFile);
-    try
-      if FirstRecord then
-      begin
-        Writeln(LogFile, '--- Log started at '+TimeToStr(Time)+' ---');
-        FirstRecord := False;
-      end;
-      case RecordCategory of
-        MSG_FATALERROR: Prefix := '!!!';
-        MSG_WARNING:    Prefix := '!  ';
-        MSG_NOTIFY:     Prefix := '***';
-      end;
-      if WriteTime then
-        OutStr := '['+TimeToStr(Time)+'] '+Prefix+' '+TextLine
-      else
-        OutStr := Prefix+' '+TextLine;
-      Writeln(LogFile, OutStr);
-      if e_WriteToStdOut then
-        Writeln(OutStr);
-    finally
-      Close(LogFile);
-    end;
-  except // sorry
-  end;
-end;
-*)
 
 
 // returns formatted string if `writerCB` is `nil`, empty string otherwise

@@ -6,7 +6,9 @@ uses
   xstreams in '../shared/xstreams.pas',
   xparser in '../shared/xparser.pas',
   xdynrec in '../shared/xdynrec.pas',
-  utils in '../shared/utils.pas';
+  utils in '../shared/utils.pas',
+  conbuf in '../shared/conbuf.pas',
+  e_log in '../engine/e_log.pas';
 
 
 // ////////////////////////////////////////////////////////////////////////// //
@@ -20,6 +22,10 @@ var
   s: AnsiString;
 begin
   //writeln(getFilenamePath(ParamStr(0)), '|');
+
+  e_InitWritelnDriver();
+  conbufDumpToStdOut := true;
+  conbufConPrefix := false;
 
   writeln('parsing "mapdef.txt"...');
   try

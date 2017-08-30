@@ -3,11 +3,17 @@
 
 uses
   SysUtils, Classes,
+  sfs in '../sfs/sfs.pas',
+  sfsPlainFS in '../sfs/sfsPlainFS.pas',
+  sfsZipFS in '../sfs/sfsZipFS.pas',
   xstreams in '../shared/xstreams.pas',
   xparser in '../shared/xparser.pas',
   xdynrec in '../shared/xdynrec.pas',
   xprofiler in '../shared/xprofiler.pas',
   utils in '../shared/utils.pas',
+  conbuf in '../shared/conbuf.pas',
+  e_log in '../engine/e_log.pas',
+  wadreader in '../shared/wadreader.pas',
   MAPDEF in '../shared/MAPDEF.pas';
 
 
@@ -23,6 +29,9 @@ var
   outname: AnsiString = '';
   totext: Integer = -1; // <0: guess; force outname extension
   sign: packed array[0..3] of AnsiChar;
+  wad: TWADFile = nil;
+  waddata: Pointer;
+  waddlen: Integer;
 begin
   if (ParamCount = 0) then
   begin
@@ -35,6 +44,11 @@ begin
   if (ParamCount = 1) then
   begin
     outname := forceFilenameExt(ParamStr(1), '');
+    if isWadPath(outname) then
+    begin
+      outname := SFSReplacePathDelims(g_ExtractFilePathName(outname), '/');
+      if (Length(outname) = 0) then begin writeln('FATAL: can''t guess output name!'); Halt(1); end;
+    end;
   end
   else
   begin
@@ -46,6 +60,10 @@ begin
     else begin writeln('FATAL: can''t guess output format!'); Halt(1); end;
   end;
   //writeln('outname: [', outname, ']; totext=', totext);
+
+  e_InitWritelnDriver();
+  conbufDumpToStdOut := true;
+  conbufConPrefix := false;
 
   writeln('parsing "mapdef.txt"...');
   //pr := TFileTextParser.Create('mapdef.txt');
@@ -60,7 +78,20 @@ begin
   end;
 
   writeln('parsing "', inname, '"...');
-  st := openDiskFileRO(inname);
+
+  if isWadPath(inname) then
+  begin
+    wad := TWADFile.Create();
+    wad.ReadFile(g_ExtractWadName(inname));
+    wad.GetMapResource(g_ExtractFilePathName(inname), waddata, waddlen);
+    st := TSFSMemoryChunkStream.Create(waddata, waddlen, true);
+    wad.Free();
+  end
+  else
+  begin
+    st := openDiskFileRO(inname);
+  end;
+
   st.ReadBuffer(sign, 4);
   st.position := 0;
   if (sign[0] = 'M') and (sign[1] = 'A') and (sign[2] = 'P') and (sign[3] = #1) then
@@ -71,6 +102,7 @@ begin
     map := dfmapdef.parseBinMap(st);
     stt := curTimeMicro()-stt;
     writeln('binary map parsed in ', stt div 1000, '.', stt mod 1000, ' microseconds');
+    st.Free();
   end
   else
   begin

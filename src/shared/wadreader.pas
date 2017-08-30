@@ -28,7 +28,7 @@ uses
 type
   SArray = array of ShortString;
 
-  TWADFile = class(TObject)
+  TWADFile = class
   private
     fFileName: AnsiString; // empty: not opened
     fIter: TSFSFileList;
@@ -39,10 +39,10 @@ type
     function GetResourceEx (name: AnsiString; wantMap: Boolean; var pData: Pointer; var Len: Integer): Boolean;
 
    public
-    constructor Create();
-    destructor Destroy(); override;
+    constructor Create ();
+    destructor Destroy (); override;
 
-    procedure FreeWAD();
+    procedure FreeWAD ();
 
     function ReadFile (FileName: AnsiString): Boolean;
     function ReadMemory (Data: Pointer; Len: LongWord): Boolean;

@@ -41,6 +41,7 @@ procedure cbufClear ();
 
 var
   conbufDumpToStdOut: Boolean = false;
+  conbufConPrefix: Boolean = true;
 
 
 implementation
@@ -78,7 +79,11 @@ begin
     begin
       for np := 0 to count-1 do
       begin
-        if needCon then begin write(stdout, 'CON: '); needCon := false; end;
+        if needCon then
+        begin
+          if conbufConPrefix then write(stdout, 'CON: ');
+          needCon := false;
+        end;
         write(stdout, buf[np]);
         needCon := (buf[np] = #10);
       end;

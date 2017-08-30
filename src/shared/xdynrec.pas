@@ -275,7 +275,7 @@ type
 implementation
 
 uses
-  SysUtils;
+  SysUtils, e_log;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
@@ -1852,7 +1852,11 @@ var
       if (Length(fld.mRecRefId) = 0) then continue;
       assert(fld.mEBSType <> nil);
       rt := findRecordByTypeId(fld.mEBSTypeName, fld.mRecRefId);
-      if (rt = nil) then raise Exception.Create(Format('record of type ''%s'' with id ''%s'' links to inexistant record of type ''%s'' with id ''%d''', [rec.mName, rec.mId, fld.mEBSTypeName, fld.mRecRefId]));
+      if (rt = nil) then
+      begin
+        e_LogWritefln('record of type ''%s'' with id ''%s'' links to inexistant record of type ''%s'' with id ''%s''', [rec.mName, rec.mId, fld.mEBSTypeName, fld.mRecRefId], MSG_WARNING);
+        //raise Exception.Create(Format('record of type ''%s'' with id ''%s'' links to inexistant record of type ''%s'' with id ''%s''', [rec.mName, rec.mId, fld.mEBSTypeName, fld.mRecRefId]));
+      end;
       //writeln(' ', rec.mName, '.', rec.mId, ':', fld.mName, ' -> ', rt.mName, '.', rt.mId, ' (', fld.mEBSTypeName, '.', fld.mRecRefId, ')');
       fld.mRecRefId := '';
       fld.mRecRef := rt;
@@ -1882,7 +1886,7 @@ begin
         if (btype = 0) then break; // no more blocks
         readLongWord(st); // reserved
         bsize := readLongInt(st);
-        //writeln('btype=', btype, '; bsize=', bsize);
+        {$IF DEFINED(D2D_XDYN_DEBUG)}writeln('btype=', btype, '; bsize=', bsize);{$ENDIF}
         if (bsize < 0) or (bsize > $1fffffff) then raise Exception.Create(Format('block of type %d has invalid size %d', [btype, bsize]));
         if loaded[btype] then raise Exception.Create(Format('block of type %d already loaded', [btype]));
         loaded[btype] := true;
