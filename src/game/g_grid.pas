@@ -178,7 +178,7 @@ type
     // no callback: return object on the first hit or nil
     function forEachAtPoint (x, y: Integer; cb: TGridQueryCB; tagmask: Integer=-1; exittag: PInteger=nil): ITP;
 
-    function atPoint (x, y: Integer): TAtPointEnumerator;
+    function atCellInPoint (x, y: Integer): TAtPointEnumerator;
 
     //WARNING: don't modify grid while any query is in progress (no checks are made!)
     //         you can set enabled/disabled flag, tho (but iterator can still return objects disabled inside it)
@@ -1162,7 +1162,7 @@ end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-function TBodyGridBase.atPoint (x, y: Integer): TAtPointEnumerator;
+function TBodyGridBase.atCellInPoint (x, y: Integer): TAtPointEnumerator;
 var
   cidx: Integer = -1;
 begin
