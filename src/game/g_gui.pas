@@ -19,7 +19,7 @@ unit g_gui;
 interface
 
 uses
-  e_graphics, e_input, e_log, g_playermodel, g_basic, MAPSTRUCT, wadreader;
+  e_graphics, e_input, e_log, g_playermodel, g_basic, MAPDEF, wadreader;
 
 const
   MAINMENU_HEADER_COLOR: TRGB = (R:255; G:255; B:255);
@@ -348,7 +348,7 @@ type
   TGUIMapPreview = class(TGUIControl)
   private
     FMapData: array of TPreviewPanel;
-    FMapSize: TPoint;
+    FMapSize: TDFPoint;
     FScale: Single;
   public
     constructor Create();
@@ -546,8 +546,8 @@ implementation
 
 uses
   GL, GLExt, g_textures, g_sound, SysUtils,
-  g_game, Math, StrUtils, g_player, g_options, MAPREADER,
-  g_map, MAPDEF, g_weapons;
+  g_game, Math, StrUtils, g_player, g_options,
+  g_map, g_weapons, xdynrec;
 
 var
   Box: Array [0..8] of DWORD;
@@ -2775,7 +2775,7 @@ end;
 procedure TGUIMapPreview.SetMap(Res: string);
 var
   WAD: TWADFile;
-  MapReader: TMapReader_1;
+  //MapReader: TMapReader_1;
   panels: TPanelsRec1Array;
   header: TMapHeaderRec_1;
   a: Integer;
@@ -2783,7 +2783,13 @@ var
   Data: Pointer;
   Len: Integer;
   rX, rY: Single;
+  map: TDynRecord = nil;
 begin
+  FMapSize.X := 0;
+  FMapSize.Y := 0;
+  FScale := 0.0;
+  FMapData := nil;
+
   FileName := g_ExtractWadName(Res);
 
   WAD := TWADFile.Create();
@@ -2802,8 +2808,15 @@ begin
 
   WAD.Free();
 
-  MapReader := TMapReader_1.Create();
+  try
+    map := g_Map_ParseMap(Data, Len);
+  except
+    map.Free();
+    raise;
+  end;
 
+  {
+  MapReader := TMapReader_1.Create();
   if not MapReader.LoadMap(Data) then
   begin
     FreeMem(Data);
@@ -2814,11 +2827,12 @@ begin
     FMapData := nil;
     Exit;
   end;
+  }
 
   FreeMem(Data);
 
-  panels := MapReader.GetPanels();
-  header := MapReader.GetMapHeader();
+  panels := GetPanels(map);
+  header := GetMapHeader(map);
 
   FMapSize.X := header.Width div 16;
   FMapSize.Y := header.Height div 16;
@@ -2863,7 +2877,8 @@ begin
 
   panels := nil;
 
-  MapReader.Free();
+  //MapReader.Free();
+  map.Free();
 end;
 
 procedure TGUIMapPreview.ClearMap();

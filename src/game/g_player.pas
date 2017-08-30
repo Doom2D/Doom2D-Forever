@@ -20,7 +20,7 @@ interface
 
 uses
   e_graphics, g_playermodel, g_basic, g_textures,
-  g_weapons, g_phys, g_sound, g_saveload, MAPSTRUCT,
+  g_weapons, g_phys, g_sound, g_saveload, MAPDEF,
   BinEditor, g_panel;
 
 const
@@ -524,7 +524,7 @@ implementation
 
 uses
   e_log, g_map, g_items, g_console, SysUtils, g_gfx, Math,
-  g_options, g_triggers, g_menu, MAPDEF, g_game, g_grid,
+  g_options, g_triggers, g_menu, g_game, g_grid,
   wadreader, g_main, g_monsters, CONFIG, g_language,
   g_net, g_netmsg, g_window, GL, g_holmes;
 
@@ -563,7 +563,7 @@ const
   ANGLE_LEFTUP    = 125;
   ANGLE_LEFTDOWN  = -145;
   PLAYER_HEADRECT: TRectWH = (X:24; Y:12; Width:20; Height:12);
-  WEAPONPOINT: Array [TDirection] of TPoint = ((X:16; Y:32), (X:47; Y:32));
+  WEAPONPOINT: Array [TDirection] of TDFPoint = ((X:16; Y:32), (X:47; Y:32));
   BOT_MAXJUMP = 84;
   BOT_LONGDIST   = 300;
   BOT_UNSAFEDIST = 128;
@@ -1711,7 +1711,7 @@ end;
 procedure g_Player_DrawCorpses();
 var
   i: Integer;
-  a: TPoint;
+  a: TDFPoint;
 begin
   if gGibs <> nil then
     for i := 0 to High(gGibs) do
@@ -1742,7 +1742,7 @@ end;
 procedure g_Player_DrawShells();
 var
   i: Integer;
-  a: TPoint;
+  a: TDFPoint;
 begin
   if gShells <> nil then
     for i := 0 to High(gShells) do

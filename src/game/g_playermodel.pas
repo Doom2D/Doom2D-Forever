@@ -19,7 +19,7 @@ unit g_playermodel;
 interface
 
 uses
-  g_textures, g_basic, g_weapons, e_graphics, wadreader;
+  MAPDEF, g_textures, g_basic, g_weapons, e_graphics, wadreader;
 
 const
   A_STAND      = 0;
@@ -78,7 +78,7 @@ type
   TGibsArray = Array of TGibSprite;
   TWeaponPoints = Array [WP_FIRST + 1..WP_LAST] of
                   Array [A_STAND..A_LAST] of
-                  Array [D_LEFT..D_RIGHT] of Array of TPoint;
+                  Array [D_LEFT..D_RIGHT] of Array of TDFPoint;
 
   TPlayerModel = class (TObject)
   private
@@ -95,7 +95,7 @@ type
     FCurrentWeapon:    Byte;
     FDrawWeapon:       Boolean;
     FFlag:             Byte;
-    FFlagPoint:        TPoint;
+    FFlagPoint:        TDFPoint;
     FFlagAngle:        SmallInt;
     FFlagAnim:         TAnimation;
     FFire:             Boolean;
@@ -141,7 +141,7 @@ type
   TPlayerModelInfo = record
     Info:         TModelInfo;
     ModelSpeed:   Array [A_STAND..A_PAIN] of Byte;
-    FlagPoint:    TPoint;
+    FlagPoint:    TDFPoint;
     FlagAngle:    SmallInt;
     WeaponPoints: TWeaponPoints;
     Gibs:         TGibsArray;
@@ -158,10 +158,10 @@ const
   W_ACT_NORMAL = 0;
   W_ACT_FIRE   = 1;
 
-  FLAG_BASEPOINT: TPoint = (X:16; Y:43);
-  FLAG_DEFPOINT:  TPoint = (X:32; Y:16);
+  FLAG_BASEPOINT: TDFPoint = (X:16; Y:43);
+  FLAG_DEFPOINT:  TDFPoint = (X:32; Y:16);
   FLAG_DEFANGLE = -20;
-  WEAPONBASE: Array [WP_FIRST + 1..WP_LAST] of TPoint =
+  WEAPONBASE: Array [WP_FIRST + 1..WP_LAST] of TDFPoint =
               ((X:8; Y:4), (X:8; Y:8), (X:16; Y:16), (X:16; Y:24),
                (X:16; Y:16), (X:24; Y:24), (X:16; Y:16), (X:24; Y:24),
                (X:16; Y:16), (X:8; Y:8));
@@ -198,7 +198,7 @@ begin
   end;
 end;
 
-function GetPoint(var str: String; var point: TPoint): Boolean;
+function GetPoint(var str: String; var point: TDFPoint): Boolean;
 var
   a, x, y: Integer;
   s: String;
@@ -802,7 +802,7 @@ procedure TPlayerModel.Draw(X, Y: Integer; Alpha: Byte = 0);
 var
   Mirror: TMirrorType;
   pos, act: Byte;
-  p: TPoint;
+  p: TDFPoint;
 begin
 // дыруш:
   if Direction = D_LEFT then

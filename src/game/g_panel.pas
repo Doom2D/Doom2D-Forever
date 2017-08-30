@@ -19,7 +19,7 @@ unit g_panel;
 interface
 
 uses
-  MAPSTRUCT, BinEditor, g_textures;
+  MAPDEF, BinEditor, g_textures;
 
 type
   TAddTextureArray = Array of
@@ -94,7 +94,7 @@ type
 implementation
 
 uses
-  SysUtils, g_basic, g_map, MAPDEF, g_game, e_graphics,
+  SysUtils, g_basic, g_map, g_game, e_graphics,
   g_console, g_language, e_log, GL;
 
 const
@@ -187,11 +187,11 @@ begin
 
     case PanelRec.PanelType of
       PANEL_WATER:
-        FTextureIDs[0].Tex := TEXTURE_SPECIAL_WATER;
+        FTextureIDs[0].Tex := LongWord(TEXTURE_SPECIAL_WATER);
       PANEL_ACID1:
-        FTextureIDs[0].Tex := TEXTURE_SPECIAL_ACID1;
+        FTextureIDs[0].Tex := LongWord(TEXTURE_SPECIAL_ACID1);
       PANEL_ACID2:
-        FTextureIDs[0].Tex := TEXTURE_SPECIAL_ACID2;
+        FTextureIDs[0].Tex := LongWord(TEXTURE_SPECIAL_ACID2);
     end;
 
     FCurTexture := 0;
@@ -289,16 +289,16 @@ begin
     else
       begin // Обычная текстура
         case FTextureIDs[FCurTexture].Tex of
-          TEXTURE_SPECIAL_WATER:
+          LongWord(TEXTURE_SPECIAL_WATER):
             e_DrawFillQuad(X, Y, X+Width-1, Y+Height-1,
                            0, 0, 255, 0, B_FILTER);
-          TEXTURE_SPECIAL_ACID1:
+          LongWord(TEXTURE_SPECIAL_ACID1):
             e_DrawFillQuad(X, Y, X+Width-1, Y+Height-1,
                            0, 128, 0, 0, B_FILTER);
-          TEXTURE_SPECIAL_ACID2:
+          LongWord(TEXTURE_SPECIAL_ACID2):
             e_DrawFillQuad(X, Y, X+Width-1, Y+Height-1,
                            128, 0, 0, 0, B_FILTER);
-          TEXTURE_NONE:
+          LongWord(TEXTURE_NONE):
             if g_Texture_Get('NOTEXTURE', NoTextureID) then
             begin
               e_GetTextureSize(NoTextureID, @NW, @NH);
@@ -354,10 +354,10 @@ begin
     if not FTextureIDs[FCurTexture].Anim then
     begin
       case FTextureIDs[FCurTexture].Tex of
-        TEXTURE_SPECIAL_WATER: exit;
-        TEXTURE_SPECIAL_ACID1: exit;
-        TEXTURE_SPECIAL_ACID2: exit;
-        TEXTURE_NONE: exit;
+        LongWord(TEXTURE_SPECIAL_WATER): exit;
+        LongWord(TEXTURE_SPECIAL_ACID1): exit;
+        LongWord(TEXTURE_SPECIAL_ACID2): exit;
+        LongWord(TEXTURE_NONE): exit;
       end;
     end;
     if (X+Width < lightX-radius) then exit;
@@ -498,7 +498,7 @@ end;
 
 function TPanel.GetTextureID(): DWORD;
 begin
-  Result := TEXTURE_NONE;
+  Result := LongWord(TEXTURE_NONE);
 
   if (FCurTexture >= 0) then
   begin

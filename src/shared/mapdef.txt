@@ -486,7 +486,7 @@ TriggerData for TRIGGER_SHOT {
   ShotType is "type" type ubyte offset 8 enum TriggerShot;
   ShotTarget is "target" type ubyte offset 9 enum TriggerShotTarget;
   ShotSound is "silent" type negbool offset 10; // negbool!
-  ShotAllMap is "allmap" type bool offset 11;
+  ShotAim is "aim" type byte offset 11;
   ShotPanelID is "panelid" type int offset 12;
   ShotIntSight is "sight" type ushort offset 16;
   ShotAngle is "angle" type ushort offset 18;

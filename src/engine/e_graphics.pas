@@ -29,9 +29,6 @@ type
     X, Y: Integer;
   end;
 
-  TPoint = MAPDEF.TPoint; // TODO: create an utiltypes.pas or something
-                          //       for other types like rect as well
-
   TPoint2f = record
     X, Y: Double;
   end;
@@ -49,7 +46,7 @@ type
    R, G, B: Byte;
   end;
 
-  PPoint = ^TPoint;
+  PDFPoint = ^TDFPoint;
   PPoint2f = ^TPoint2f;
   PRect = ^TRect;
   PRectWH = ^TRectWH;
@@ -65,7 +62,7 @@ procedure e_ResizeWindow(Width, Height: Integer);
 procedure e_Draw(ID: DWORD; X, Y: Integer; Alpha: Byte; AlphaChannel: Boolean;
                  Blending: Boolean; Mirror: TMirrorType = M_NONE);
 procedure e_DrawAdv(ID: DWORD; X, Y: Integer; Alpha: Byte; AlphaChannel: Boolean;
-                    Blending: Boolean; Angle: Single; RC: PPoint; Mirror: TMirrorType = M_NONE);
+                    Blending: Boolean; Angle: Single; RC: PDFPoint; Mirror: TMirrorType = M_NONE);
 procedure e_DrawSize(ID: DWORD; X, Y: Integer; Alpha: Byte; AlphaChannel: Boolean;
                      Blending: Boolean; Width, Height: Word; Mirror: TMirrorType = M_NONE);
 procedure e_DrawSizeMirror(ID: DWORD; X, Y: Integer; Alpha: Byte; AlphaChannel: Boolean;
@@ -683,7 +680,7 @@ begin
 end;
 
 procedure e_DrawAdv(ID: DWORD; X, Y: Integer; Alpha: Byte; AlphaChannel: Boolean;
-                    Blending: Boolean; Angle: Single; RC: PPoint; Mirror: TMirrorType = M_NONE);
+                    Blending: Boolean; Angle: Single; RC: PDFPoint; Mirror: TMirrorType = M_NONE);
 begin
   if e_NoGraphics then Exit;
 

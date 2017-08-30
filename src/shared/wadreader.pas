@@ -76,7 +76,7 @@ var
 implementation
 
 uses
-  SysUtils, e_log, utils, MAPSTRUCT;
+  SysUtils, e_log, utils, MAPDEF;
 
 
 function findDiskWad (fname: AnsiString): AnsiString;

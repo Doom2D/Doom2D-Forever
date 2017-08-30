@@ -102,7 +102,7 @@ implementation
 
 uses
   SysUtils, Classes, GL, SDL2,
-  MAPDEF, g_options, utils, hashtable, xparser;
+  MAPDEF, g_main, g_options, utils, hashtable, xparser;
 
 
 var
@@ -1206,7 +1206,7 @@ begin
 
     // load bindings from file
     try
-      st := openDiskFileRO('holmes.rc');
+      st := openDiskFileRO(GameDir+'holmes.rc');
       pr := TFileTextParser.Create(st);
       conwriteln('parsing "holmes.rc"...');
       while (pr.tokType <> pr.TTEOF) do

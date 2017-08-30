@@ -20,8 +20,8 @@ unit g_map;
 interface
 
 uses
-  e_graphics, g_basic, MAPSTRUCT, g_textures, Classes,
-  g_phys, wadreader, BinEditor, g_panel, g_grid, md5, binheap, xprofiler;
+  e_graphics, g_basic, MAPDEF, g_textures, Classes,
+  g_phys, wadreader, BinEditor, g_panel, g_grid, md5, binheap, xprofiler, xparser, xdynrec;
 
 type
   TMapInfo = record
@@ -115,6 +115,17 @@ procedure g_Map_ProfilersBegin ();
 procedure g_Map_ProfilersEnd ();
 
 
+function g_Map_ParseMap (data: Pointer; dataLen: Integer): TDynRecord;
+
+const
+  NNF_NO_NAME         = 0;
+  NNF_NAME_BEFORE     = 1;
+  NNF_NAME_EQUALS     = 2;
+  NNF_NAME_AFTER      = 3;
+
+function g_Texture_NumNameFindStart(name: String): Boolean;
+function g_Texture_NumNameFindNext(var newName: String): Byte;
+
 const
   RESPAWNPOINT_PLAYER1 = 1;
   RESPAWNPOINT_PLAYER2 = 2;
@@ -178,7 +189,7 @@ var
   gFlags: array [FLAG_RED..FLAG_BLUE] of TFlag;
   //gDOMFlags: array of TFlag;
   gMapInfo: TMapInfo;
-  gBackSize: TPoint;
+  gBackSize: TDFPoint;
   gDoorMap: array of array of DWORD;
   gLiftMap: array of array of DWORD;
   gWADHash: TMD5Digest;
@@ -206,9 +217,9 @@ implementation
 uses
   g_main, e_log, SysUtils, g_items, g_gfx, g_console,
   GL, GLExt, g_weapons, g_game, g_sound, e_sound, CONFIG,
-  g_options, MAPREADER, g_triggers, g_player, MAPDEF,
+  g_options, g_triggers, g_player,
   Math, g_monsters, g_saveload, g_language, g_netmsg,
-  utils, sfs, xparser, xdynrec, xstreams,
+  utils, sfs, xstreams,
   ImagingTypes, Imaging, ImagingUtility,
   ImagingGif, ImagingNetworkGraphics;
 
@@ -218,7 +229,6 @@ const
   FLAG_SIGNATURE = $47414C46; // 'FLAG'
 
 
-{$IF DEFINED(D2D_NEW_MAP_READER)}
 var
   dfmapdef: TDynMapDef = nil;
 
@@ -240,12 +250,27 @@ begin
   if (st = nil) then
   begin
     WAD := TWADFile.Create();
-    if not WAD.ReadFile(GameWAD) then raise Exception.Create('cannot load "game.wad"');
-    st := WAD.openFileStream('mapdef.txt');
+    if not WAD.ReadFile(GameWAD) then
+    begin
+      //raise Exception.Create('cannot load "game.wad"');
+      st := nil;
+    end
+    else
+    begin
+      st := WAD.openFileStream('mapdef.txt');
+    end;
   end;
 
-  if (st = nil) then raise Exception.Create('cannot open "mapdef.txt"');
-  pr := TFileTextParser.Create(st);
+  if (st = nil) then
+  begin
+    //raise Exception.Create('cannot open "mapdef.txt"');
+    e_LogWritefln('using default "mapdef.txt"...', [], MSG_WARNING);
+    pr := TStrTextParser.Create(defaultMapDef);
+  end
+  else
+  begin
+    pr := TFileTextParser.Create(st);
+  end;
 
   try
     dfmapdef := TDynMapDef.Create(pr);
@@ -256,7 +281,117 @@ begin
   st.Free();
   WAD.Free();
 end;
-{$ENDIF}
+
+
+function g_Map_ParseMap (data: Pointer; dataLen: Integer): TDynRecord;
+var
+  wst: TSFSMemoryChunkStream = nil;
+  pr: TTextParser = nil;
+begin
+  result := nil;
+  if (dataLen < 4) then exit;
+  loadMapDefinition();
+  if (dfmapdef = nil) then raise Exception.Create('internal map loader error');
+
+  wst := TSFSMemoryChunkStream.Create(data, dataLen);
+
+  if (PAnsiChar(data)[0] = 'M') and (PAnsiChar(data)[1] = 'A') and (PAnsiChar(data)[2] = 'P') and (PByte(data)[3] = 1) then
+  begin
+    // binary map
+    try
+      result := dfmapdef.parseBinMap(wst);
+    except on e: Exception do
+      begin
+        e_LogWritefln('ERROR: %s', [e.message]);
+        wst.Free();
+        result := nil;
+        exit;
+      end;
+    end;
+    wst.Free();
+  end
+  else
+  begin
+    // text map
+    pr := TFileTextParser.Create(wst);
+    try
+      result := dfmapdef.parseMap(pr);
+    except on e: Exception do
+      begin
+        if (pr <> nil) then e_LogWritefln('ERROR at (%s,%s): %s', [pr.line, pr.col, e.message])
+        else e_LogWritefln('ERROR: %s', [e.message]);
+        pr.Free(); // will free `wst`
+        result := nil;
+        exit;
+      end;
+    end;
+    pr.Free(); // will free `wst`
+  end;
+end;
+
+
+var
+  NNF_PureName: String; // Имя текстуры без цифр в конце
+  NNF_FirstNum: Integer; // Число у начальной текстуры
+  NNF_CurrentNum: Integer; // Следующее число у текстуры
+
+
+function g_Texture_NumNameFindStart(name: String): Boolean;
+var
+  i: Integer;
+
+begin
+  Result := False;
+  NNF_PureName := '';
+  NNF_FirstNum := -1;
+  NNF_CurrentNum := -1;
+
+  for i := Length(name) downto 1 do
+    if (name[i] = '_') then // "_" - символ начала номерного постфикса
+    begin
+      if i = Length(name) then
+        begin // Нет цифр в конце строки
+          Exit;
+        end
+      else
+        begin
+          NNF_PureName := Copy(name, 1, i);
+          Delete(name, 1, i);
+          Break;
+        end;
+    end;
+
+// Не перевести в число:
+  if not TryStrToInt(name, NNF_FirstNum) then
+    Exit;
+
+  NNF_CurrentNum := 0;
+
+  Result := True;
+end;
+
+
+function g_Texture_NumNameFindNext(var newName: String): Byte;
+begin
+  if (NNF_PureName = '') or (NNF_CurrentNum < 0) then
+  begin
+    newName := '';
+    Result := NNF_NO_NAME;
+    Exit;
+  end;
+
+  newName := NNF_PureName + IntToStr(NNF_CurrentNum);
+
+  if NNF_CurrentNum < NNF_FirstNum then
+    Result := NNF_NAME_BEFORE
+  else
+    if NNF_CurrentNum > NNF_FirstNum then
+      Result := NNF_NAME_AFTER
+    else
+      Result := NNF_NAME_EQUALS;
+
+  Inc(NNF_CurrentNum);
+end;
 
 
 function panelTypeToTag (panelType: Word): Integer;
@@ -659,7 +794,7 @@ begin
     Width := 1;
     Height := 1;
     Anim := False;
-    TextureID := TEXTURE_NONE;
+    TextureID := LongWord(TEXTURE_NONE);
   end;
 end;
 
@@ -692,13 +827,13 @@ begin
       TextureName := RecName;
 
       if TextureName = TEXTURE_NAME_WATER then
-        TextureID := TEXTURE_SPECIAL_WATER
+        TextureID := LongWord(TEXTURE_SPECIAL_WATER)
       else
         if TextureName = TEXTURE_NAME_ACID1 then
-          TextureID := TEXTURE_SPECIAL_ACID1
+          TextureID := LongWord(TEXTURE_SPECIAL_ACID1)
         else
           if TextureName = TEXTURE_NAME_ACID2 then
-            TextureID := TEXTURE_SPECIAL_ACID2;
+            TextureID := LongWord(TEXTURE_SPECIAL_ACID2);
 
       Anim := False;
     end;
@@ -1147,7 +1282,7 @@ begin
     gExternalResources.Add(res);
 end;
 
-procedure generateExternalResourcesList(mapReader: TMapReader_1);
+procedure generateExternalResourcesList({mapReader: TMapReader_1}map: TDynRecord);
 var
   textures: TTexturesRec1Array;
   mapHeader: TMapHeaderRec_1;
@@ -1158,7 +1293,7 @@ begin
     gExternalResources := TStringList.Create;
 
   gExternalResources.Clear;
-  textures := mapReader.GetTextures();
+  textures := GetTextures(map);
   for i := 0 to High(textures) do
   begin
     addResToExternalResList(resFile);
@@ -1166,7 +1301,7 @@ begin
 
   textures := nil;
 
-  mapHeader := mapReader.GetMapHeader;
+  mapHeader := GetMapHeader(map);
 
   addResToExternalResList(mapHeader.MusicName);
   addResToExternalResList(mapHeader.SkyName);
@@ -1291,7 +1426,8 @@ const
   DefaultSkyRes = 'Standart.wad:STDSKY\SKY0';
 var
   WAD: TWADFile;
-  MapReader: TMapReader_1;
+  //MapReader: TMapReader_1;
+  mapReader: TDynRecord = nil;
   Header: TMapHeaderRec_1;
   _textures: TTexturesRec1Array;
   _texnummap: array of Integer; // `_textures` -> `Textures`
@@ -1315,12 +1451,6 @@ var
   Len: Integer;
   ok, isAnim, trigRef: Boolean;
   CurTex, ntn: Integer;
-  {$IF DEFINED(D2D_NEW_MAP_READER)}
-  pr: TTextParser = nil;
-  st: TStream = nil;
-  wst: TSFSMemoryChunkStream = nil;
-  rec: TDynRecord;
-  {$ENDIF}
 begin
   mapGrid.Free();
   mapGrid := nil;
@@ -1367,58 +1497,67 @@ begin
     e_LogWritefln('Loading map: %s', [mapResName], MSG_NOTIFY);
     g_Game_SetLoadingText(_lc[I_LOAD_MAP], 0, False);
 
-    {$IF DEFINED(D2D_NEW_MAP_READER)}
-      if (PChar(Data)[0] = 'M') and (PChar(Data)[1] = 'A') and (PChar(Data)[2] = 'P') and (PByte(Data)[3] = 1) then
-      begin
-        // nothing
-      end
-      else
-      begin
-        e_LogWritefln('Loading text map: %s', [mapResName]);
-        loadMapDefinition();
-        if (dfmapdef = nil) then raise Exception.Create('internal map loader error');
-        //e_LogWritefln('***'#10'%s'#10'***', [dfmapdef.headerType.definition]);
-        wst := TSFSMemoryChunkStream.Create(Data, Len);
-        try
-          pr := TFileTextParser.Create(wst);
-          e_LogWritefln('parsing text map: %s', [mapResName]);
-          rec := dfmapdef.parseMap(pr);
-        except on e: Exception do
-          begin
-            if (pr <> nil) then e_LogWritefln('ERROR at (%s,%s): %s', [pr.line, pr.col, e.message])
-            else e_LogWritefln('ERROR: %s', [e.message]);
-            pr.Free();
-            wst.Free();
-            FreeMem(Data);
-            exit;
-          end;
-        end;
-        pr.Free();
-        //wst.Free(); // pr will do it
-        e_LogWritefln('writing text map to temporary bin storage...', []);
-        st := TMemoryStream.Create();
-        try
-          rec.writeBinTo(st);
-          Len := Integer(st.position);
-          st.position := 0;
+    {
+    if (PChar(Data)[0] = 'M') and (PChar(Data)[1] = 'A') and (PChar(Data)[2] = 'P') and (PByte(Data)[3] = 1) then
+    begin
+      // nothing
+    end
+    else
+    begin
+      e_LogWritefln('Loading text map: %s', [mapResName]);
+      loadMapDefinition();
+      if (dfmapdef = nil) then raise Exception.Create('internal map loader error');
+      //e_LogWritefln('***'#10'%s'#10'***', [dfmapdef.headerType.definition]);
+      wst := TSFSMemoryChunkStream.Create(Data, Len);
+      try
+        pr := TFileTextParser.Create(wst);
+        e_LogWritefln('parsing text map: %s', [mapResName]);
+        rec := dfmapdef.parseMap(pr);
+      except on e: Exception do
+        begin
+          if (pr <> nil) then e_LogWritefln('ERROR at (%s,%s): %s', [pr.line, pr.col, e.message])
+          else e_LogWritefln('ERROR: %s', [e.message]);
+          pr.Free();
+          wst.Free();
           FreeMem(Data);
-          GetMem(Data, Len);
-          st.ReadBuffer(Data^, Len);
-        except on e: Exception do
-          begin
-            rec.Free();
-            st.Free();
-            e_LogWritefln('ERROR: %s', [e.message]);
-            FreeMem(Data);
-            exit;
-          end;
+          exit;
         end;
-        st.Free();
       end;
-    {$ENDIF}
+      pr.Free();
+      //wst.Free(); // pr will do it
+      e_LogWritefln('writing text map to temporary bin storage...', []);
+      st := TMemoryStream.Create();
+      try
+        rec.writeBinTo(st);
+        Len := Integer(st.position);
+        st.position := 0;
+        FreeMem(Data);
+        GetMem(Data, Len);
+        st.ReadBuffer(Data^, Len);
+      except on e: Exception do
+        begin
+          rec.Free();
+          st.Free();
+          e_LogWritefln('ERROR: %s', [e.message]);
+          FreeMem(Data);
+          exit;
+        end;
+      end;
+      st.Free();
+    end;
+    }
+    try
+      mapReader := g_Map_ParseMap(Data, Len);
+    except
+      mapReader.Free();
+      g_FatalError(Format(_lc[I_GAME_ERROR_MAP_LOAD], [Res]));
+      FreeMem(Data);
+      MapReader.Free();
+      Exit;
+    end;
 
+    {
     MapReader := TMapReader_1.Create();
-
     if not MapReader.LoadMap(Data) then
     begin
       g_FatalError(Format(_lc[I_GAME_ERROR_MAP_LOAD], [Res]));
@@ -1426,18 +1565,19 @@ begin
       MapReader.Free();
       Exit;
     end;
+    }
 
     FreeMem(Data);
     generateExternalResourcesList(MapReader);
   // Загрузка текстур:
     g_Game_SetLoadingText(_lc[I_LOAD_TEXTURES], 0, False);
-    _textures := MapReader.GetTextures();
+    _textures := GetTextures(mapReader);
     _texnummap := nil;
 
   // Загрузка описания карты:
     e_WriteLog('  Reading map info...', MSG_NOTIFY);
     g_Game_SetLoadingText(_lc[I_LOAD_MAP_HEADER], 0, False);
-    Header := MapReader.GetMapHeader();
+    Header := GetMapHeader(mapReader);
 
     with gMapInfo do
     begin
@@ -1500,12 +1640,12 @@ begin
     gTriggerClientID := 0;
     e_WriteLog('  Loading triggers...', MSG_NOTIFY);
     g_Game_SetLoadingText(_lc[I_LOAD_TRIGGERS], 0, False);
-    triggers := MapReader.GetTriggers();
+    triggers := GetTriggers(mapReader);
 
   // Загрузка панелей:
     e_WriteLog('  Loading panels...', MSG_NOTIFY);
     g_Game_SetLoadingText(_lc[I_LOAD_PANELS], 0, False);
-    panels := MapReader.GetPanels();
+    panels := GetPanels(mapReader);
 
     // check texture numbers for panels
     for a := 0 to High(panels) do
@@ -1716,28 +1856,41 @@ begin
   // Если не LoadState, то создаем триггеры:
     if (triggers <> nil) and not gLoadGameMode then
     begin
-      e_WriteLog('  Creating triggers...', MSG_NOTIFY);
+      e_LogWritefln('  Creating triggers (%d)...', [Length(triggers)]);
       g_Game_SetLoadingText(_lc[I_LOAD_CREATE_TRIGGERS], 0, False);
     // Указываем тип панели, если есть:
       for a := 0 to High(triggers) do
       begin
-        if triggers[a].TexturePanel <> -1 then
-          b := panels[TriggersTable[a].TexturePanel].PanelType
+        if (triggers[a].TexturePanel <> -1) then
+        begin
+          if (TriggersTable[a].TexturePanel < 0) or (TriggersTable[a].TexturePanel > High(panels)) then
+          begin
+            e_WriteLog('error loading map: invalid panel index for trigger', MSG_FATALERROR);
+            result := false;
+            exit;
+          end;
+          b := panels[TriggersTable[a].TexturePanel].PanelType;
+        end
         else
+        begin
           b := 0;
-        if (triggers[a].TriggerType = TRIGGER_SHOT) and
-           (TTriggerData(triggers[a].DATA).ShotPanelID <> -1) then
+        end;
+        if (triggers[a].TriggerType = TRIGGER_SHOT) and (TTriggerData(triggers[a].DATA).ShotPanelID <> -1) then
+        begin
           c := panels[TriggersTable[a].ShotPanel].PanelType
+        end
         else
+        begin
           c := 0;
+        end;
         CreateTrigger(triggers[a], b, c);
       end;
     end;
 
   // Загрузка предметов:
-    e_WriteLog('  Loading triggers...', MSG_NOTIFY);
+    e_WriteLog('  Loading items...', MSG_NOTIFY);
     g_Game_SetLoadingText(_lc[I_LOAD_ITEMS], 0, False);
-    items := MapReader.GetItems();
+    items := GetItems(mapReader);
 
   // Если не LoadState, то создаем предметы:
     if (items <> nil) and not gLoadGameMode then
@@ -1751,7 +1904,7 @@ begin
   // Загрузка областей:
     e_WriteLog('  Loading areas...', MSG_NOTIFY);
     g_Game_SetLoadingText(_lc[I_LOAD_AREAS], 0, False);
-    areas := MapReader.GetAreas();
+    areas := GetAreas(mapReader);
 
   // Если не LoadState, то создаем области:
     if areas <> nil then
@@ -1765,7 +1918,7 @@ begin
   // Загрузка монстров:
     e_WriteLog('  Loading monsters...', MSG_NOTIFY);
     g_Game_SetLoadingText(_lc[I_LOAD_MONSTERS], 0, False);
-    monsters := MapReader.GetMonsters();
+    monsters := GetMonsters(mapReader);
 
     gTotalMonsters := 0;
 
@@ -1865,7 +2018,7 @@ end;
 function g_Map_GetMapInfo(Res: String): TMapInfo;
 var
   WAD: TWADFile;
-  MapReader: TMapReader_1;
+  MapReader: TDynRecord;
   Header: TMapHeaderRec_1;
   FileName: String;
   Data: Pointer;
@@ -1890,8 +2043,8 @@ begin
 
   WAD.Free();
 
+  {
   MapReader := TMapReader_1.Create();
-
   if not MapReader.LoadMap(Data) then
     begin
       g_Console_Add(Format(_lc[I_GAME_ERROR_MAP_LOAD], [Res]), True);
@@ -1905,9 +2058,31 @@ begin
       Result.Name := Header.MapName;
       Result.Description := Header.MapDescription;
     end;
+  }
+  try
+    mapReader := g_Map_ParseMap(Data, Len);
+  except
+    mapReader := nil;
+  end;
 
   FreeMem(Data);
+  //MapReader.Free();
+
+  if (mapReader <> nil) then Header := GetMapHeader(mapReader) else FillChar(Header, sizeof(Header), 0);
   MapReader.Free();
+
+  if (Header.Width > 0) and (Header.Height > 0) then
+  begin
+    Result.Name := Header.MapName;
+    Result.Description := Header.MapDescription;
+  end
+  else
+  begin
+    g_Console_Add(Format(_lc[I_GAME_ERROR_MAP_LOAD], [Res]), True);
+    ZeroMemory(@Header, SizeOf(Header));
+    Result.Name := _lc[I_GAME_ERROR_MAP_SELECT];
+    Result.Description := _lc[I_GAME_ERROR_MAP_SELECT];
+  end;
 
   Result.Map := Res;
   Result.Author := Header.MapAuthor;
@@ -2016,7 +2191,7 @@ begin
         if Textures[a].Anim then
           g_Frames_DeleteByID(Textures[a].FramesID)
         else
-          if Textures[a].TextureID <> TEXTURE_NONE then
+          if Textures[a].TextureID <> LongWord(TEXTURE_NONE) then
             e_DeleteTexture(Textures[a].TextureID);
 
     Textures := nil;
@@ -2354,7 +2529,7 @@ var
   end;
 
 begin
-  texid := TEXTURE_NONE;
+  texid := LongWord(TEXTURE_NONE);
   result := texid;
   if not checkPanels(gWater) then
     if not checkPanels(gAcid1) then
@@ -2481,7 +2656,7 @@ begin
   if (profMapCollision <> nil) then profMapCollision.sectionBeginAccum('liquids');
   if gdbg_map_use_accel_coldet then
   begin
-    texid := TEXTURE_NONE;
+    texid := LongWord(TEXTURE_NONE);
     if (Width = 1) and (Height = 1) then
     begin
       mapGrid.forEachAtPoint(X, Y, checker, (GridTagWater or GridTagAcid1 or GridTagAcid2));

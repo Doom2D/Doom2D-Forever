@@ -19,7 +19,7 @@ unit g_textures;
 interface
 
 uses
-  e_graphics, BinEditor, ImagingTypes, Imaging, ImagingUtility;
+  e_graphics, MAPDEF, BinEditor, ImagingTypes, Imaging, ImagingUtility;
 
 Type
   TLevelTexture = record
@@ -55,7 +55,7 @@ Type
     constructor Create(FramesID: DWORD; Loop: Boolean; Speed: Byte);
     destructor  Destroy(); override;
     procedure   Draw(X, Y: Integer; Mirror: TMirrorType);
-    procedure   DrawEx(X, Y: Integer; Mirror: TMirrorType; RPoint: TPoint;
+    procedure   DrawEx(X, Y: Integer; Mirror: TMirrorType; RPoint: TDFPoint;
                        Angle: SmallInt);
     procedure   Reset();
     procedure   Update();
@@ -785,7 +785,7 @@ begin
   FEnabled := True;
 end;
 
-procedure TAnimation.DrawEx(X, Y: Integer; Mirror: TMirrorType; RPoint: TPoint;
+procedure TAnimation.DrawEx(X, Y: Integer; Mirror: TMirrorType; RPoint: TDFPoint;
                             Angle: SmallInt);
 begin
   if not FEnabled then

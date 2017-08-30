@@ -452,8 +452,8 @@ const
        LeftAnim: Boolean;
        wX, wY: Integer; // Откуда вылетит пуля
        AnimSpeed: Array [ANIM_SLEEP..ANIM_PAIN] of Byte;
-       AnimDeltaRight: Array [ANIM_SLEEP..ANIM_PAIN] of TPoint;
-       AnimDeltaLeft: Array [ANIM_SLEEP..ANIM_PAIN] of TPoint;
+       AnimDeltaRight: Array [ANIM_SLEEP..ANIM_PAIN] of TDFPoint;
+       AnimDeltaLeft: Array [ANIM_SLEEP..ANIM_PAIN] of TDFPoint;
      end =          // SLEEP           GO              DIE             MESS            ATTACK          ATTACK2         PAIN
    ((LeftAnim: False; wX: 54; wY: 32; AnimSpeed:(3, 2, 3, 2, 3, 0, 4); //DEMON
      AnimDeltaRight: ((X:  1; Y:  4), (X:  1; Y:  4), (X:  0; Y:  4), (X:  0; Y:  4), (X:  2; Y:  6), (X:  2; Y:  6), (X:  2; Y:  5));

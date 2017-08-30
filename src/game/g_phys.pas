@@ -461,13 +461,13 @@ _move:
                                          Obj^.Rect.Width,
                                          Obj^.Rect.Height*2 div 3);
       case wtx of
-        TEXTURE_SPECIAL_WATER:
+        LongWord(TEXTURE_SPECIAL_WATER):
           g_Obj_Splash(Obj, 3);
-        TEXTURE_SPECIAL_ACID1:
+        LongWord(TEXTURE_SPECIAL_ACID1):
           g_Obj_Splash(Obj, 2);
-        TEXTURE_SPECIAL_ACID2:
+        LongWord(TEXTURE_SPECIAL_ACID2):
           g_Obj_Splash(Obj, 1);
-        TEXTURE_NONE:
+        LongWord(TEXTURE_NONE):
           ;
         else
           g_Obj_Splash(Obj, 0);

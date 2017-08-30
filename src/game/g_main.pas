@@ -40,7 +40,7 @@ uses
   e_graphics, e_input, g_game, g_console, g_gui,
   e_sound, g_options, g_sound, g_player,
   g_weapons, SysUtils, g_triggers, MAPDEF, g_map,
-  MAPSTRUCT, g_menu, g_language, g_net,
+  g_menu, g_language, g_net,
   utils, conbuf, envvars;
 
 var

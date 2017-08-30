@@ -19,7 +19,7 @@ unit g_triggers;
 interface
 
 uses
-  MAPSTRUCT, e_graphics, MAPDEF, g_basic, g_sound,
+  MAPDEF, e_graphics, g_basic, g_sound,
   BinEditor;
 
 type

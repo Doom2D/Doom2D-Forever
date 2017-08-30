@@ -2497,7 +2497,7 @@ procedure g_Weapon_Draw();
 var
   i: Integer;
   a: SmallInt;
-  p: TPoint;
+  p: TDFPoint;
 begin
   if Shots = nil then
     Exit;

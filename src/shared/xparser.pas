@@ -177,6 +177,11 @@ uses
   SysUtils, utils;
 
 
+// ////////////////////////////////////////////////////////////////////////// //
+function StrEqu (const a, b: AnsiString): Boolean; inline; begin result := (a = b); end;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
 var
   wc2shitmap: array[0..65535] of AnsiChar;
   wc2shitmapInited: Boolean = false;
@@ -528,7 +533,7 @@ end;
 
 procedure TTextParser.expectId (const aid: AnsiString);
 begin
-  if (mTokType <> TTId) or (CompareText(mTokStr, aid) <> 0) then raise Exception.Create('identifier '''+aid+''' expected');
+  if (mTokType <> TTId) or (not StrEqu(mTokStr, aid)) then raise Exception.Create('identifier '''+aid+''' expected');
   skipToken();
 end;
 
@@ -536,7 +541,7 @@ end;
 function TTextParser.eatId (const aid: AnsiString): Boolean;
 begin
   result := false;
-  if (mTokType <> TTId) or (CompareText(mTokStr, aid) <> 0) then exit;
+  if (mTokType <> TTId) or (not StrEqu(mTokStr, aid)) then exit;
   result := true;
   skipToken();
 end;

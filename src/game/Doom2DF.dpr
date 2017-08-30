@@ -59,8 +59,6 @@ uses
   sfsPlainFS in '../sfs/sfsPlainFS.pas',
   sfsZipFS in '../sfs/sfsZipFS.pas',
   wadreader in '../shared/wadreader.pas',
-  MAPSTRUCT in '../shared/MAPSTRUCT.pas',
-  MAPREADER in '../shared/MAPREADER.pas',
   MAPDEF in '../shared/MAPDEF.pas',
   CONFIG in '../shared/CONFIG.pas',
   g_basic in 'g_basic.pas',

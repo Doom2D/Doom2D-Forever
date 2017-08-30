@@ -20,7 +20,7 @@ interface
 
 uses
   g_basic, g_player, e_graphics, Classes, g_res_downloader,
-  SysUtils, g_sound, g_gui, MAPSTRUCT, wadreader, md5, xprofiler;
+  SysUtils, g_sound, g_gui, MAPDEF, wadreader, md5, xprofiler;
 
 type
   TGameSettings = record
@@ -63,7 +63,7 @@ type
 
   THearPoint = record
     Active: Boolean;
-    Coords: TPoint;
+    Coords: TDFPoint;
   end;
 
 function  g_Game_IsNet(): Boolean;
@@ -209,9 +209,9 @@ var
   gPlayer1Settings: TPlayerSettings;
   gPlayer2Settings: TPlayerSettings;
   gGameOn: Boolean;
-  gPlayerScreenSize: TPoint;
-  gPlayer1ScreenCoord: TPoint;
-  gPlayer2ScreenCoord: TPoint;
+  gPlayerScreenSize: TDFPoint;
+  gPlayer1ScreenCoord: TDFPoint;
+  gPlayer2ScreenCoord: TDFPoint;
   gPlayer1: TPlayer = nil;
   gPlayer2: TPlayer = nil;
   gPlayerDrawn: TPlayer = nil;
@@ -338,7 +338,7 @@ uses
   g_textures, g_main, g_window, g_menu,
   e_input, e_log, g_console, g_items, g_map, g_panel,
   g_playermodel, g_gfx, g_options, g_weapons, Math,
-  g_triggers, MAPDEF, g_monsters, e_sound, CONFIG,
+  g_triggers, g_monsters, e_sound, CONFIG,
   BinEditor, g_language, g_net, SDL,
   ENet, e_msg, g_netmsg, g_netmaster, GL, GLExt,
   utils, sfs, g_holmes;
@@ -5017,7 +5017,7 @@ procedure DebugCommands(P: SArray);
 var
   a, b: Integer;
   cmd: string;
-  //pt: TPoint;
+  //pt: TDFPoint;
   mon: TMonster;
 begin
 // Команды отладочного режима:
