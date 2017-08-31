@@ -16,10 +16,11 @@ Requirements:
 Create the "tmp" and "bin" directories beforehand if they don't exist already. Then run
 
 cd src/game
-fpc -dUSE_FMOD -O3 -Fi../lib/vampimg -Fi../lib/vampimg/JpegLib -Fi../lib/vampimg/ZLib -Fu../lib/vampimg -Fu../lib/vampimg/JpegLib -Fu../lib/vampimg/ZLib -FE../../bin -FU../../tmp Doom2DF.dpr
+fpc -O3 -Fi../lib/vampimg -Fi../lib/vampimg/JpegLib -Fi../lib/vampimg/ZLib -Fu../lib/vampimg -Fu../lib/vampimg/JpegLib -Fu../lib/vampimg/ZLib -FE../../bin -FU../../tmp Doom2DF.dpr
 
-If you want SDL_mixer instead of FMOD, replace -dUSE_FMOD with -dUSE_MIXER.
+If you want SDL_mixer instead of FMOD, add -dUSE_MIXER.
 To build a headless (no video/audio, for dedicated servers) executable, add -dHEADLESS.
-Add -g -dDEBUG to enable debugging features.
+Replace -O3 with -g -gl to enable debugging features. Run the game with --gdb when using a debugger to
+prevent it from eating exceptions.
 
 Windows binaries will require the appropriate DLLs (SDL2.dll, SDL2_mixer.dll or FMODEx.dll, ENet.dll).
