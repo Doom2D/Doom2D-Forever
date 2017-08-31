@@ -324,6 +324,8 @@ var
   g_rlayer_water: Boolean = true;
   g_rlayer_fore: Boolean = true;
 
+  g_dbg_scale_05: Boolean = false;
+
 
 procedure g_ResetDynlights ();
 procedure g_AddDynLight (x, y, radius: Integer; r, g, b, a: Single);
@@ -2794,7 +2796,14 @@ begin
   profileFrameDraw.sectionBegin('collect');
   if gdbg_map_use_accel_render then
   begin
-    g_Map_CollectDrawPanels(sX, sY, sWidth, sHeight);
+    if g_dbg_scale_05 then
+    begin
+      g_Map_CollectDrawPanels(sX, sY, sWidth*2, sHeight*2);
+    end
+    else
+    begin
+      g_Map_CollectDrawPanels(sX, sY, sWidth, sHeight);
+    end;
   end;
   profileFrameDraw.sectionEnd();
 
@@ -2802,7 +2811,18 @@ begin
   g_Map_DrawBack(backXOfs, backYOfs);
   profileFrameDraw.sectionEnd();
 
-  if (setTransMatrix) then glTranslatef(transX, transY, 0);
+  if (setTransMatrix) then
+  begin
+    if g_dbg_scale_05 then
+    begin
+      glScalef(0.5, 0.5, 1.0);
+      glTranslatef(transX, transY, 0);
+    end
+    else
+    begin
+      glTranslatef(transX, transY, 0);
+    end;
+  end;
 
   drawPanelType('*back', PANEL_BACK, g_rlayer_back);
   drawPanelType('*step', PANEL_STEP, g_rlayer_step);
@@ -7010,4 +7030,6 @@ begin
   conRegVar('mon_think', @gmon_debug_think, 'enable/disable monster thinking', 'monster thinking', true);
 
   conRegVar('dbg_holmes', @g_holmes_enabled, 'enable/disable Holmes', 'Holmes', true);
+
+  conRegVar('dbg_scale_half', @g_dbg_scale_05, 'experimental deBUG scale*0.5 mode', 'Scale0.5', true);
 end.

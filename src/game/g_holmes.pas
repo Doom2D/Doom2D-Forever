@@ -927,6 +927,7 @@ begin
   glScissor(0, gWinSizeY-gPlayerScreenSize.Y-1, vpw, vph);
 
   glPushMatrix();
+  if g_dbg_scale_05 then glScalef(0.5, 0.5, 1.0);
   glTranslatef(-vpx, -vpy, 0);
 
   if (showGrid) then drawTileGrid();

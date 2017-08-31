@@ -2051,9 +2051,12 @@ begin
                       o.Y+o.Rect.Y+o.Rect.Height-128, M_NONE);
 
 // Не в области рисования не ресуем:
-  if not g_Collide(FObj.X+FObj.Rect.X, FObj.Y+FObj.Rect.Y, FObj.Rect.Width, FObj.Rect.Height,
-                   sX-128, sY-128, sWidth+256, sHeight+256) then
-    Exit;
+  if not g_dbg_scale_05 then
+  begin
+    if not g_Collide(FObj.X+FObj.Rect.X, FObj.Y+FObj.Rect.Y, FObj.Rect.Width, FObj.Rect.Height,
+                     sX-128, sY-128, sWidth+256, sHeight+256) then
+      Exit;
+  end;
 
 // Эти монстры, умирая, не оставляют трупов:
   if FState = MONSTATE_DEAD then

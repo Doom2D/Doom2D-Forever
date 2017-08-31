@@ -272,8 +272,7 @@ var
 begin
   if {Enabled and} (FCurTexture >= 0) and
      (Width > 0) and (Height > 0) and (FAlpha < 255) and
-     g_Collide(X, Y, Width, Height,
-               sX, sY, sWidth, sHeight) then
+     (g_dbg_scale_05 or g_Collide(X, Y, Width, Height, sX, sY, sWidth, sHeight)) then
   begin
     if FTextureIDs[FCurTexture].Anim then
       begin // Анимированная текстура
