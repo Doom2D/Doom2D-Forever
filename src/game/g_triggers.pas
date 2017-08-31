@@ -63,6 +63,7 @@ type
     ShotReloadTime:   Integer;
 
     mapId: AnsiString; // trigger id, from map
+    mapIndex: Integer; // index in fields['trigger'], used in save/load
     //trigShotPanelId: Integer;
     trigPanelId: Integer;
 
@@ -76,7 +77,7 @@ type
     property trigShotPanelId: Integer read trigPanelId write trigPanelId;
   end;
 
-function g_Triggers_Create(Trigger: TTrigger): DWORD;
+function g_Triggers_Create(Trigger: TTrigger; forceInternalIndex: Integer=-1): DWORD;
 procedure g_Triggers_Update();
 procedure g_Triggers_Press(ID: DWORD; ActivateType: Byte; ActivateUID: Word = 0);
 function g_Triggers_PressR(X, Y: Integer; Width, Height: Word; UID: Word;
@@ -114,10 +115,10 @@ uses
   g_player, g_map, Math, g_gfx, g_game, g_textures,
   g_console, g_monsters, g_items, g_phys, g_weapons,
   wadreader, g_main, SysUtils, e_log, g_language,
-  g_options, g_net, g_netmsg, utils;
+  g_options, g_net, g_netmsg, utils, xparser;
 
 const
-  TRIGGER_SIGNATURE = $52475254; // 'TRGR'
+  TRIGGER_SIGNATURE = $58475254; // 'TRGX'
   TRAP_DAMAGE = 1000;
 
 
@@ -131,25 +132,24 @@ function FindTrigger(): DWORD;
 var
   i: Integer;
 begin
-  if gTriggers <> nil then
-    for i := 0 to High(gTriggers) do
-      if gTriggers[i].TriggerType = TRIGGER_NONE then
-      begin
-        Result := i;
-        Exit;
-      end;
+  for i := 0 to High(gTriggers) do
+  begin
+    if gTriggers[i].TriggerType = TRIGGER_NONE then begin result := i; exit; end;
+  end;
 
-  if gTriggers = nil then
+  if (gTriggers = nil) then
   begin
     SetLength(gTriggers, 8);
-    Result := 0;
+    result := 0;
   end
   else
   begin
-    Result := High(gTriggers) + 1;
-    SetLength(gTriggers, Length(gTriggers) + 8);
+    result := Length(gTriggers);
+    SetLength(gTriggers, result+8);
+    for i := result to High(gTriggers) do gTriggers[i].TriggerType := TRIGGER_NONE;
   end;
 end;
+
 
 function tr_CloseDoor(PanelID: Integer; NoSound: Boolean; d2d: Boolean): Boolean;
 var
@@ -2097,10 +2097,35 @@ begin
     g_Map_SwitchTexture(Trigger.TexturePanelType, Trigger.TexturePanel, IfThen(animonce, 2, 1));
 end;
 
-function g_Triggers_Create(Trigger: TTrigger): DWORD;
+
+function g_Triggers_CreateWithMapIndex (Trigger: TTrigger; arridx, mapidx: Integer): DWORD;
+var
+  triggers: TDynField;
+begin
+  triggers := gCurrentMap['trigger'];
+  if (triggers = nil) then raise Exception.Create('LOAD: map has no triggers');
+  if (mapidx < 0) or (mapidx >= triggers.count) then raise Exception.Create('LOAD: invalid map trigger index');
+  Trigger.trigData := triggers.item[mapidx];
+  if (Trigger.trigData = nil) then raise Exception.Create('LOAD: internal error in trigger loader');
+  Trigger.mapId := Trigger.trigData.id;
+  Trigger.mapIndex := mapidx;
+  if (Trigger.trigData.trigRec <> nil) then
+  begin
+    Trigger.trigData := Trigger.trigData.trigRec.clone();
+  end
+  else
+  begin
+    Trigger.trigData := nil;
+  end;
+  result := g_Triggers_Create(Trigger, arridx);
+end;
+
+
+function g_Triggers_Create(Trigger: TTrigger; forceInternalIndex: Integer=-1): DWORD;
 var
   find_id: DWORD;
-  fn, mapw: String;
+  fn, mapw: AnsiString;
+  f, olen: Integer;
 begin
 // Не создавать выход, если игра без выхода:
   if (Trigger.TriggerType = TRIGGER_EXIT) and
@@ -2117,8 +2142,23 @@ begin
   if Trigger.TriggerType = TRIGGER_SECRET then
     gSecretsCount := gSecretsCount + 1;
 
-  find_id := FindTrigger();
+  if (forceInternalIndex < 0) then
+  begin
+    find_id := FindTrigger();
+  end
+  else
+  begin
+    olen := Length(gTriggers);
+    if (forceInternalIndex >= olen) then
+    begin
+      SetLength(gTriggers, forceInternalIndex+1);
+      for f := olen to High(gTriggers) do gTriggers[f].TriggerType := TRIGGER_NONE;
+    end;
+    find_id := DWORD(forceInternalIndex);
+  end;
   gTriggers[find_id] := Trigger;
+
+  e_LogWritefln('created trigger with map index %s, findid=%s (%s)', [Trigger.mapIndex, find_id, Trigger.mapId]);
 
   {
   writeln('trigger #', find_id, ': pos=(', Trigger.x, ',', Trigger.y, ')-(', Trigger.width, 'x', Trigger.height, ')',
@@ -2708,31 +2748,30 @@ var
   dw: DWORD;
   sg: Single;
   b: Boolean;
-  //p: Pointer;
 begin
-// Считаем количество существующих триггеров:
-  count := 0;
-  if gTriggers <> nil then
-    for i := 0 to High(gTriggers) do
-      count := count + 1;
+  // Считаем количество существующих триггеров
+  count := Length(gTriggers);
 
   Mem := TBinMemoryWriter.Create((count+1) * 200);
 
-// Количество триггеров:
+  // Количество триггеров:
   Mem.WriteInt(count);
 
-  if count = 0 then
-    Exit;
+  e_LogWritefln('saving %s triggers (count=%s)', [Length(gTriggers), count]);
+
+  if count = 0 then exit;
 
   for i := 0 to High(gTriggers) do
   begin
   // Сигнатура триггера:
-    dw := TRIGGER_SIGNATURE; // 'TRGR'
+    dw := TRIGGER_SIGNATURE; // 'TRGX'
     Mem.WriteDWORD(dw);
   // Тип триггера:
     Mem.WriteByte(gTriggers[i].TriggerType);
-  // Специальные данные триггера:
-  //!!!FIXME!!!
+    if (gTriggers[i].TriggerType = TRIGGER_NONE) then continue; // empty one
+  // Специальные данные триггера: да в жопу, потом из карты опять вытащим; сохраним только индекс
+    e_LogWritefln('=== trigger #%s saved ===', [gTriggers[i].mapIndex]);
+    Mem.WriteInt(gTriggers[i].mapIndex);
     //p := @gTriggers[i].Data;
     //Mem.WriteMemory(p, SizeOf(TTriggerData));
   // Координаты левого верхнего угла:
@@ -2751,6 +2790,8 @@ begin
     Mem.WriteInt(gTriggers[i].TexturePanel);
   // Тип этой панели:
     Mem.WriteWord(gTriggers[i].TexturePanelType);
+  // Внутренний номер другой панели (по счастливой случайности он будет совпадать с тем, что создано при загрузке карты)
+    Mem.WriteInt(gTriggers[i].trigPanelId);
   // Время до возможности активации:
     Mem.WriteWord(gTriggers[i].TimeOut);
   // UID того, кто активировал этот триггер:
@@ -2811,6 +2852,8 @@ var
   b: Boolean;
   //p: Pointer;
   Trig: TTrigger;
+  mapIndex: Integer;
+  //tw: TStrTextWriter;
 begin
   if Mem = nil then
     Exit;
@@ -2820,20 +2863,21 @@ begin
 // Количество триггеров:
   Mem.ReadInt(count);
 
-  if count = 0 then
-    Exit;
+  if (count = 0) then exit;
 
   for a := 0 to count-1 do
   begin
   // Сигнатура триггера:
     Mem.ReadDWORD(dw);
-    if dw <> TRIGGER_SIGNATURE then // 'TRGR'
+    if (dw <> TRIGGER_SIGNATURE) then // 'TRGX'
     begin
       raise EBinSizeError.Create('g_Triggers_LoadState: Wrong Trigger Signature');
     end;
   // Тип триггера:
     Mem.ReadByte(Trig.TriggerType);
-  // Специальные данные триггера:
+  // Специальные данные триггера: индекс в gCurrentMap.field['triggers']
+    if (Trig.TriggerType = TRIGGER_NONE) then continue; // empty one
+    Mem.ReadInt(mapIndex);
   //!!!FIXME!!!
     {
     Mem.ReadMemory(p, dw);
@@ -2844,7 +2888,19 @@ begin
     Trig.Data := TTriggerData(p^);
     }
   // Создаем триггер:
-    i := g_Triggers_Create(Trig);
+    i := g_Triggers_CreateWithMapIndex(Trig, a, mapIndex);
+    {
+    if (gTriggers[i].trigData <> nil) then
+    begin
+      tw := TStrTextWriter.Create();
+      try
+        gTriggers[i].trigData.writeTo(tw);
+        e_LogWritefln('=== trigger #%s loaded ==='#10'%s'#10'---', [mapIndex, tw.str]);
+      finally
+        tw.Free();
+      end;
+    end;
+    }
   // Координаты левого верхнего угла:
     Mem.ReadInt(gTriggers[i].X);
     Mem.ReadInt(gTriggers[i].Y);
@@ -2861,6 +2917,8 @@ begin
     Mem.ReadInt(gTriggers[i].TexturePanel);
   // Тип этой панели:
     Mem.ReadWord(gTriggers[i].TexturePanelType);
+  // Внутренний номер другой панели (по счастливой случайности он будет совпадать с тем, что создано при загрузке карты)
+    Mem.ReadInt(gTriggers[i].trigPanelId);
   // Время до возможности активации:
     Mem.ReadWord(gTriggers[i].TimeOut);
   // UID того, кто активировал этот триггер:

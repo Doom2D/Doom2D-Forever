@@ -1190,7 +1190,7 @@ begin
   end;
 end;
 
-procedure CreateTrigger(Trigger: TDynRecord; atpanid, atrigpanid: Integer; fTexturePanel1Type, fTexturePanel2Type: Word);
+procedure CreateTrigger (amapIdx: Integer; Trigger: TDynRecord; atpanid, atrigpanid: Integer; fTexturePanel1Type, fTexturePanel2Type: Word);
 var
   _trigger: TTrigger;
 begin
@@ -1199,6 +1199,7 @@ begin
   with _trigger do
   begin
     mapId := Trigger.id;
+    mapIndex := amapIdx;
     X := Trigger.X;
     Y := Trigger.Y;
     Width := Trigger.Width;
@@ -1264,6 +1265,7 @@ procedure g_Map_ReAdd_DieTriggers();
   function monsDieTrig (mon: TMonster): Boolean;
   var
     a: Integer;
+    //tw: TStrTextWriter;
   begin
     result := false; // don't stop
     mon.ClearTriggers();
@@ -1272,6 +1274,15 @@ procedure g_Map_ReAdd_DieTriggers();
       if gTriggers[a].TriggerType in [TRIGGER_PRESS, TRIGGER_ON, TRIGGER_OFF, TRIGGER_ONOFF] then
       begin
         //if (gTriggers[a].Data.MonsterID-1) = Integer(mon.StartID) then mon.AddTrigger(a);
+        {
+        tw := TStrTextWriter.Create();
+        try
+          gTriggers[a].trigData.writeTo(tw);
+          e_LogWritefln('=== trigger #%s ==='#10'%s'#10'---', [a, tw.str]);
+        finally
+          tw.Free();
+        end;
+        }
         if (gTriggers[a].trigData.trigMonsterId) = Integer(mon.StartID) then mon.AddTrigger(a);
       end;
     end;
@@ -1873,7 +1884,7 @@ begin
         else if (TriggersTable[trignum].ShotPanelIdx <> -1) then tgpid := TriggersTable[trignum].ShotPanelIdx
         else tgpid := -1;
         //e_LogWritefln('creating trigger #%s; texpantype=%s; shotpantype=%s (%d,%d)', [trignum, b, c, TriggersTable[trignum].texPanIdx, TriggersTable[trignum].ShotPanelIdx]);
-        CreateTrigger(rec, TriggersTable[trignum].texPanIdx, tgpid, Word(b), Word(c));
+        CreateTrigger(trignum, rec, TriggersTable[trignum].texPanIdx, tgpid, Word(b), Word(c));
       end;
     end;
 

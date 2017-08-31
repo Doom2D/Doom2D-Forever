@@ -182,6 +182,20 @@ type
     procedure flush (); override;
   end;
 
+  TStrTextWriter = class(TTextWriter)
+  private
+    mStr: AnsiString;
+
+  protected
+    procedure putBuf (constref buf; len: SizeUInt); override;
+
+  public
+    constructor Create ();
+    destructor Destroy (); override;
+
+    property str: AnsiString read mStr;
+  end;
+
 
 implementation
 
@@ -728,6 +742,34 @@ begin
     Inc(mBufUsed, left);
     pc += left;
     len -= left;
+  end;
+end;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
+constructor TStrTextWriter.Create ();
+begin
+  mStr := '';
+end;
+
+
+destructor TStrTextWriter.Destroy ();
+begin
+  mStr := '';
+  inherited;
+end;
+
+
+procedure TStrTextWriter.putBuf (constref buf; len: SizeUInt);
+var
+  st: AnsiString = '';
+begin
+  if (len > 0) then
+  begin
+    SetLength(st, Integer(len));
+    Move(buf, PChar(st)^, Integer(len));
+    mStr += st;
+    st := '';
   end;
 end;
 
