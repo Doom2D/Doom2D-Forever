@@ -452,16 +452,19 @@ begin
           kbev.sym := ev.key.keysym.sym;
           kbev.bstate := curMsButState;
           kbev.kstate := curKbState;
+          {$IF not DEFINED(HEADLESS)}
           if g_Holmes_keyEvent(kbev) then
           begin
             if (ev.type_ <> SDL_KEYDOWN) then e_KeyUpDown(ev.key.keysym.scancode, false);
             exit;
           end;
+          {$ENDIF}
         end;
         if (ev.type_ = SDL_KEYDOWN) then KeyPress(key);
         e_KeyUpDown(ev.key.keysym.scancode, (ev.type_ = SDL_KEYDOWN));
       end;
 
+    {$IF not DEFINED(HEADLESS)}
     SDL_MOUSEBUTTONDOWN, SDL_MOUSEBUTTONUP:
       begin
         msev.dx := ev.button.x-curMsX;
@@ -510,6 +513,7 @@ begin
         msev.kstate := curKbState;
         if (g_holmes_enabled) then g_Holmes_mouseEvent(msev);
       end;
+    {$ENDIF}
 
     SDL_TEXTINPUT:
       begin

@@ -1035,6 +1035,7 @@ end;
 // ////////////////////////////////////////////////////////////////////////// //
 procedure g_Holmes_Draw ();
 begin
+  {$IF not DEFINED(HEADLESS)}
   holmesInitCommands();
   holmesInitBinds();
 
@@ -1048,6 +1049,7 @@ begin
   begin
     plrDebugDraw();
   end;
+  {$ENDIF}
 
   laserSet := false;
 end;
@@ -1055,8 +1057,10 @@ end;
 
 procedure g_Holmes_DrawUI ();
 begin
+  {$IF not DEFINED(HEADLESS)}
   uiDraw();
   drawCursor();
+  {$ENDIF}
 end;
 
 
