@@ -1247,6 +1247,7 @@ var
   fmtblen: Integer;
   pclen: Integer;
   pc: PAnsiChar;
+  ccname: ShortString;
 
   procedure writer (constref buf; len: SizeUInt);
   var
@@ -1646,15 +1647,17 @@ begin
         end;
       vtObject: // args[curarg].VObject.Classname (TObject)
         begin
-          if (sign <> '-') then indent(width-Length(args[curarg].VObject.Classname));
-          xwrite(args[curarg].VObject.Classname);
-          if (sign = '-') then indent(width-Length(args[curarg].VObject.Classname));
+          if (args[curarg].VObject <> nil) then ccname := args[curarg].VObject.Classname else ccname := '<nil>';
+          if (sign <> '-') then indent(width-Length(ccname));
+          xwrite(ccname);
+          if (sign = '-') then indent(width-Length(ccname));
         end;
       vtClass: // args[curarg].VClass.Classname (TClass)
         begin
-          if (sign <> '-') then indent(width-Length(args[curarg].VClass.Classname));
-          xwrite(args[curarg].VClass.Classname);
-          if (sign = '-') then indent(width-Length(args[curarg].VClass.Classname));
+          if (args[curarg].VClass <> nil) then ccname := args[curarg].VClass.Classname else ccname := '<nil>';
+          if (sign <> '-') then indent(width-Length(ccname));
+          xwrite(ccname);
+          if (sign = '-') then indent(width-Length(ccname));
         end;
       //vtPWideChar: begin end; // args[curarg].VPWideChar (PWideChar)
       vtAnsiString: // AnsiString(args[curarg].VAnsiString) (Pointer)

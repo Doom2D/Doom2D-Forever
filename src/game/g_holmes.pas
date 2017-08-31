@@ -968,7 +968,7 @@ procedure plrDebugDraw ();
       if (idx < 0) or (idx >= Length(parr)) then exit;
       pan := parr[idx];
       drawLine(
-        trig.x+trig.width div 2, trig.y+trig.height div 2,
+        trig.trigCenter.x, trig.trigCenter.y,
         pan.x+pan.width div 2, pan.y+pan.height div 2,
         255, 0, 255, 220);
     end;
@@ -982,6 +982,9 @@ procedure plrDebugDraw ();
     tx := trig.x+(trig.width-Length(tts)*6) div 2;
     darkenRect(tx-2, trig.y-10, Length(tts)*6+4, 10, 64);
     drawText6(tx, trig.y-9, tts, 255, 127, 0);
+    tx := trig.x+(trig.width-Length(trig.mapId)*6) div 2;
+    darkenRect(tx-2, trig.y-20, Length(trig.mapId)*6+4, 10, 64);
+    drawText6(tx, trig.y-19, trig.mapId, 255, 255, 0);
     case trig.TriggerType of
       TRIGGER_NONE: begin end;
       TRIGGER_EXIT: begin end;
@@ -992,15 +995,23 @@ procedure plrDebugDraw ();
       TRIGGER_DOOR5: begin drawPanelDest(gWalls, trig.trigPanelId); end;
       TRIGGER_CLOSETRAP: begin drawPanelDest(gWalls, trig.trigPanelId); end;
       TRIGGER_TRAP: begin drawPanelDest(gWalls, trig.trigPanelId); end;
-      TRIGGER_PRESS: begin end;
       TRIGGER_SECRET: begin end;
       TRIGGER_LIFTUP: begin drawPanelDest(gLifts, trig.trigPanelId); end;
       TRIGGER_LIFTDOWN: begin drawPanelDest(gLifts, trig.trigPanelId); end;
       TRIGGER_LIFT: begin drawPanelDest(gLifts, trig.trigPanelId); end;
       TRIGGER_TEXTURE: begin end;
-      TRIGGER_ON: begin end;
-      TRIGGER_OFF: begin end;
-      TRIGGER_ONOFF: begin end;
+      TRIGGER_ON, TRIGGER_OFF, TRIGGER_ONOFF, TRIGGER_PRESS:
+        begin
+        fillRect(
+          trig.trigData.trigTX, trig.trigData.trigTY,
+          trig.trigData.trigTWidth, trig.trigData.trigTHeight,
+          0, 255, 255, 42);
+        drawLine(
+          trig.trigCenter.x, trig.trigCenter.y,
+          trig.trigData.trigTX+trig.trigData.trigTWidth div 2,
+          trig.trigData.trigTY+trig.trigData.trigTHeight div 2,
+          255, 0, 255, 220);
+        end;
       TRIGGER_SOUND: begin end;
       TRIGGER_SPAWNMONSTER: begin end;
       TRIGGER_SPAWNITEM: begin end;
@@ -1238,10 +1249,27 @@ procedure cbAtcurDumpWalls ();
     result := false; // don't stop
     e_WriteLog(Format('wall #%d(%d); enabled=%d (%d); (%d,%d)-(%d,%d)', [pan.arrIdx, pan.proxyId, Integer(pan.Enabled), Integer(mapGrid.proxyEnabled[pan.proxyId]), pan.X, pan.Y, pan.Width, pan.Height]), MSG_NOTIFY);
   end;
+var
+  hasTrigs: Boolean = false;
+  f: Integer;
+  trig: PTrigger;
 begin
   e_WriteLog('=== TOGGLE WALL ===', MSG_NOTIFY);
   mapGrid.forEachAtPoint(pmsCurMapX, pmsCurMapY, wallToggle, (GridTagWall or GridTagDoor));
   e_WriteLog('--- toggle wall ---', MSG_NOTIFY);
+  if showTriggers then
+  begin
+    for f := 0 to High(gTriggers) do
+    begin
+      trig := @gTriggers[f];
+      if (pmsCurMapX >= trig.x) and (pmsCurMapY >= trig.y) and (pmsCurMapX < trig.x+trig.width) and (pmsCurMapY < trig.y+trig.height) then
+      begin
+        if not hasTrigs then begin writeln('=== TRIGGERS ==='); hasTrigs := true; end;
+        writeln('trigger ''', trig.mapId, ''' of type ''', trigType2Str(trig.TriggerType), '''');
+      end;
+    end;
+    if hasTrigs then writeln('--- triggers ---');
+  end;
 end;
 
 procedure cbAtcurToggleWalls ();

@@ -117,6 +117,11 @@ type
     {$INCLUDE mapdef_help.inc}
     function trigMonsterId (): Integer; inline;
 
+  private
+    // user fields
+    function getGamePanelId (): Integer; inline;
+    procedure setGamePanelId (v: Integer); inline;
+
   public
     property panel[idx: Integer]: TDynRecord read getPanelByIdx;
     property panelIndex[pan: TDynRecord]: Integer read getPanelIndex;
@@ -124,6 +129,8 @@ type
     property tgPanelID: Integer read getPanelId {write setPanelId};
     property tgShotPanelID: Integer read getPanelId {write setPanelId};
     property TexturePanel: Integer read getTexturePanel {write setTexturePanel}; // texturepanel, int
+    // user fields
+    property gamePanelId: Integer read getGamePanelId write setGamePanelId;
   end;
 
 implementation
@@ -134,6 +141,22 @@ uses
 
 // ////////////////////////////////////////////////////////////////////////// //
 constructor TDFPoint.Create (ax, ay: LongInt); begin X := ax; Y := ay; end;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
+function TDynRecordHelper.getGamePanelId (): Integer; inline;
+var
+  fld: TDynField;
+begin
+  fld := field['gamePanelId'];
+  if (fld = nil) or (fld.baseType <> TDynField.TType.TInt) then result := -1 else result := fld.ival;
+end;
+
+
+procedure TDynRecordHelper.setGamePanelId (v: Integer); inline;
+begin
+  setUserField('gamePanelId', Integer(v));
+end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //

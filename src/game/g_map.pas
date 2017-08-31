@@ -1198,11 +1198,12 @@ begin
 
   with _trigger do
   begin
+    mapId := Trigger.id;
     X := Trigger.X;
     Y := Trigger.Y;
     Width := Trigger.Width;
     Height := Trigger.Height;
-    Enabled := ByteBool(Trigger.Enabled);
+    Enabled := Trigger.Enabled;
     //TexturePanel := Trigger.TexturePanel;
     TexturePanel := atpanid;
     TexturePanelType := fTexturePanel1Type;
@@ -1213,7 +1214,18 @@ begin
     trigPanelId := atrigpanid;
     //trigShotPanelId := ashotpanid;
     //Data.Default := Trigger.DATA;
-    trigData := Trigger.trigRec.clone();
+    if (Trigger.trigRec = nil) then
+    begin
+      trigData := nil;
+      if (TriggerType <> TRIGGER_SECRET) then
+      begin
+        e_LogWritefln('trigger of type %s has no triggerdata; wtf?!', [TriggerType], MSG_WARNING);
+      end;
+    end
+    else
+    begin
+      trigData := Trigger.trigRec.clone();
+    end;
   end;
 
   g_Triggers_Create(_trigger);
@@ -1463,11 +1475,8 @@ type
   end;
 var
   WAD: TWADFile;
-  //MapReader: TMapReader_1;
   mapReader: TDynRecord = nil;
-  //Header: TMapHeaderRec_1;
-  _textures: TDynField = nil; //TTexturesRec1Array; tagInt: texture index
-  //_texnummap: array of Integer = nil; // `_textures` -> `Textures`
+  mapTextureList: TDynField = nil; //TTexturesRec1Array; tagInt: texture index
   panels: TDynField = nil; //TPanelsRec1Array;
   items: TDynField = nil; //TItemsRec1Array;
   monsters: TDynField = nil; //TMonsterRec1Array;
@@ -1476,7 +1485,6 @@ var
   b, c, k: Integer;
   PanelID: DWORD;
   AddTextures: TAddTextureArray;
-  //texture: TTextureRec_1;
   TriggersTable: array of TTRec;
   FileName, mapResName, s, TexName: String;
   Data: Pointer;
@@ -1486,11 +1494,6 @@ var
   rec, texrec: TDynRecord;
   pttit: PTRec;
   pannum, trignum, cnt, tgpid: Integer;
-  // key: panel index; value: `TriggersTable` index
-  hashTextPan: THashIntInt = nil;
-  hashLiftPan: THashIntInt = nil;
-  hashDoorPan: THashIntInt = nil;
-  hashShotPan: THashIntInt = nil;
 begin
   mapGrid.Free();
   mapGrid := nil;
@@ -1502,7 +1505,6 @@ begin
   gMapInfo.Map := Res;
   TriggersTable := nil;
   mapReader := nil;
-  //FillChar(texture, SizeOf(texture), 0);
 
   sfsGCDisable(); // temporary disable removing of temporary volumes
   try
@@ -1552,31 +1554,18 @@ begin
 
     FreeMem(Data);
 
-    hashTextPan := hashNewIntInt();
-    hashLiftPan := hashNewIntInt();
-    hashDoorPan := hashNewIntInt();
-    hashShotPan := hashNewIntInt();
-
-    generateExternalResourcesList(MapReader);
-    //_textures := GetTextures(mapReader);
-    _textures := mapReader['texture'];
-    //_texnummap := nil;
+    generateExternalResourcesList(mapReader);
+    mapTextureList := mapReader['texture'];
     // get all other lists here too
-    //panels := GetPanels(mapReader);
     panels := mapReader['panel'];
-    //triggers := GetTriggers(mapReader);
     triggers := mapReader['trigger'];
-    //items := GetItems(mapReader);
     items := mapReader['item'];
-    //areas := GetAreas(mapReader);
     areas := mapReader['area'];
-    //monsters := GetMonsters(mapReader);
     monsters := mapReader['monster'];
 
     // Загрузка описания карты:
     e_WriteLog('  Reading map info...', MSG_NOTIFY);
     g_Game_SetLoadingText(_lc[I_LOAD_MAP_HEADER], 0, False);
-    //Header := GetMapHeader(mapReader);
 
     with gMapInfo do
     begin
@@ -1592,14 +1581,13 @@ begin
     // Загрузка текстур:
     g_Game_SetLoadingText(_lc[I_LOAD_TEXTURES], 0, False);
     // Добавление текстур в Textures[]:
-    if (_textures <> nil) and (_textures.count > 0) then
+    if (mapTextureList <> nil) and (mapTextureList.count > 0) then
     begin
       e_WriteLog('  Loading textures:', MSG_NOTIFY);
-      g_Game_SetLoadingText(_lc[I_LOAD_TEXTURES], _textures.count-1, False);
-      //SetLength(_texnummap, _textures.count);
+      g_Game_SetLoadingText(_lc[I_LOAD_TEXTURES], mapTextureList.count-1, False);
 
       cnt := -1;
-      for rec in _textures do
+      for rec in mapTextureList do
       begin
         Inc(cnt);
         s := rec.Resource;
@@ -1621,8 +1609,7 @@ begin
         end;
         if (ntn < 0) then ntn := CreateNullTexture(rec.Resource);
 
-        //_texnummap[a] := ntn; // fix texture number
-        rec.tagInt := ntn;
+        rec.tagInt := ntn; // remember texture number
         g_Game_StepLoading();
       end;
 
@@ -1672,6 +1659,7 @@ begin
         SetLength(TriggersTable, Length(TriggersTable)+1);
         pttit := @TriggersTable[High(TriggersTable)];
         pttit.trigrec := rec;
+        // Смена текстуры (возможно, кнопки)
         pttit.texPan := mapReader.panel[rec.TexturePanel];
         pttit.liftPan := nil;
         pttit.doorPan := nil;
@@ -1680,33 +1668,21 @@ begin
         pttit.LiftPanelIdx := -1;
         pttit.DoorPanelIdx := -1;
         pttit.ShotPanelIdx := -1;
-        // Смена текстуры (возможно, кнопки)
-        //if (rec.TexturePanel >= 0) and (pttit.texPan = nil) then e_WriteLog('error loading map: invalid texture panel index for trigger', MSG_WARNING);
         // Лифты
         if rec.TriggerType in [TRIGGER_LIFTUP, TRIGGER_LIFTDOWN, TRIGGER_LIFT] then
         begin
-          //pttit.LiftPanel := TTriggerData(rec.DATA).PanelID
           pttit.liftPan := mapReader.panel[rec.trigRec.tgPanelID];
-          //if (rec.trigRec.trigPanelID >= 0) and (pttit.liftPan = nil) then e_WriteLog('error loading map: invalid lift panel index for trigger', MSG_WARNING);
         end;
         // Двери
         if rec.TriggerType in [TRIGGER_OPENDOOR, TRIGGER_CLOSEDOOR, TRIGGER_DOOR, TRIGGER_DOOR5, TRIGGER_CLOSETRAP, TRIGGER_TRAP] then
         begin
-          //pttit.DoorPanel := TTriggerData(rec.DATA).PanelID
           pttit.doorPan := mapReader.panel[rec.trigRec.tgPanelID];
         end;
         // Турель
         if (rec.TriggerType = TRIGGER_SHOT) then
         begin
-          //pttit.ShotPanel := TTriggerData(rec.DATA).ShotPanelID
           pttit.shotPan := mapReader.panel[rec.trigRec.tgShotPanelID];
         end;
-
-        // update hashes
-        if (pttit.texPan <> nil) then hashTextPan.put(rec.TexturePanel, High(TriggersTable));
-        if (pttit.liftPan <> nil) then hashLiftPan.put(rec.trigRec.tgPanelID, High(TriggersTable));
-        if (pttit.doorPan <> nil) then hashDoorPan.put(rec.trigRec.tgPanelID, High(TriggersTable));
-        if (pttit.shotPan <> nil) then hashShotPan.put(rec.trigRec.tgShotPanelID, High(TriggersTable));
 
         g_Game_StepLoading();
       end;
@@ -1728,7 +1704,7 @@ begin
         CurTex := -1;
         ok := false;
 
-        if (_textures <> nil) then
+        if (mapTextureList <> nil) then
         begin
           texrec := rec.TextureRec;
           ok := (texrec <> nil);
@@ -1739,7 +1715,7 @@ begin
           // Смотрим, ссылаются ли на эту панель триггеры.
           // Если да - то надо создать еще текстур
           ok := false;
-          if (TriggersTable <> nil) and (_textures <> nil) then
+          if (TriggersTable <> nil) and (mapTextureList <> nil) then
           begin
             for b := 0 to High(TriggersTable) do
             begin
@@ -1828,8 +1804,7 @@ begin
                 begin
                   // Заносим текущую текстуру на свое место
                   SetLength(AddTextures, Length(AddTextures)+1);
-                  //AddTextures[High(AddTextures)].Texture := _texnummap[rec.TextureNum]; //panels[a].TextureNum;
-                  AddTextures[High(AddTextures)].Texture := rec.tagInt; //panels[a].TextureNum;
+                  AddTextures[High(AddTextures)].Texture := rec.tagInt; // internal texture number, not map index
                   AddTextures[High(AddTextures)].Anim := texrec.Anim;
                   CurTex := High(AddTextures);
                   ok := true;
@@ -1849,66 +1824,32 @@ begin
         begin
           // Заносим только текущую текстуру
           SetLength(AddTextures, 1);
-          AddTextures[0].Texture := rec.tagInt; //panels[a].TextureNum;
+          AddTextures[0].Texture := rec.tagInt; // internal texture number, not map index
           AddTextures[0].Anim := false;
           if (texrec <> nil) then AddTextures[0].Anim := texrec.Anim;
           CurTex := 0;
         end;
 
-        //e_WriteLog(Format('panel #%d: TextureNum=%d; ht=%d; ht1=%d; atl=%d', [a, panels[a].TextureNum, High(_textures), High(Textures), High(AddTextures)]), MSG_NOTIFY);
+        //e_WriteLog(Format('panel #%d: TextureNum=%d; ht=%d; ht1=%d; atl=%d', [a, panels[a].TextureNum, High(mapTextureList), High(Textures), High(AddTextures)]), MSG_NOTIFY);
 
         // Создаем панель и запоминаем ее номер
         PanelID := CreatePanel(rec, AddTextures, CurTex, trigRef);
         //e_LogWritefln('panel #%s of type %s got id #%s', [pannum, rec.PanelType, PanelID]);
-
-        // Если используется в триггерах, то ставим точный ID
-        if hashTextPan.get(pannum, b) then TriggersTable[b].texPanIdx := PanelID;
-        if hashLiftPan.get(pannum, b) then TriggersTable[b].LiftPanelIdx := PanelID;
-        if hashDoorPan.get(pannum, b) then TriggersTable[b].DoorPanelIdx := PanelID;
-        if hashShotPan.get(pannum, b) then TriggersTable[b].ShotPanelIdx := PanelID;
-
-        (*
-        if (TriggersTable <> nil) then
-        begin
-          for b := 0 to High(TriggersTable) do
-          begin
-            if (TriggersTable[b].texPan = rec) then TriggersTable[b].texPanIdx := PanelID;
-            if (TriggersTable[b].liftPan = rec) then TriggersTable[b].LiftPanelIdx := PanelID;
-            if (TriggersTable[b].doorPan = rec) then TriggersTable[b].DoorPanelIdx := PanelID;
-            if (TriggersTable[b].shotPan = rec) then TriggersTable[b].ShotPanelIdx := PanelID;
-            {
-            // Триггер двери/лифта
-            if (TriggersTable[b].LiftPanel = pannum) or
-               (TriggersTable[b].DoorPanel = pannum) then
-              //TTriggerData(TriggersTable[b].trigrec.DATA).PanelID := PanelID;
-              TriggersTable[b].trigrec.trigRec.trigPanelID := PanelID;
-            // Триггер смены текстуры
-            if TriggersTable[b].texPanIdx = pannum then
-              TriggersTable[b].trigrec.TexturePanel := PanelID;
-            // Триггер "Турель"
-            if TriggersTable[b].ShotPanel = pannum then
-              TriggersTable[b].trigrec.trigRec.trigShotPanelID := PanelID;
-            }
-          end;
-        end;
-        *)
+        // set 'gamePanelId' field to panel id
+        rec.gamePanelId := PanelID; // remember game panel id, we'll fix triggers later
 
         g_Game_StepLoading();
       end;
     end;
 
-    (*
+    // Чиним ID'ы панелей, которые используются в триггерах
+    for b := 0 to High(TriggersTable) do
     begin
-      for b := 0 to High(TriggersTable) do
-      begin
-        // Триггер двери/лифта
-        if (TriggersTable[b].texPan <> nil) then e_LogWritefln('trigger #%s: textPan=%s; panidx=%s', [b, TriggersTable[b].texPanIdx, mapReader.panelIndex[TriggersTable[b].texPan]]);
-        if (TriggersTable[b].liftPan <> nil) then e_LogWritefln('trigger #%s: liftPan=%s; panidx=%s', [b, TriggersTable[b].LiftPanelIdx, mapReader.panelIndex[TriggersTable[b].liftPan]]);
-        if (TriggersTable[b].doorPan <> nil) then e_LogWritefln('trigger #%s: doorPan=%s; panidx=%s', [b, TriggersTable[b].DoorPanelIdx, mapReader.panelIndex[TriggersTable[b].doorPan]]);
-        if (TriggersTable[b].shotPan <> nil) then e_LogWritefln('trigger #%s: shotPan=%s; panidx=%s', [b, TriggersTable[b].ShotPanelIdx, mapReader.panelIndex[TriggersTable[b].shotPan]]);
-      end;
+      if (TriggersTable[b].texPan <> nil) then TriggersTable[b].texPanIdx := TriggersTable[b].texPan.gamePanelId;
+      if (TriggersTable[b].liftPan <> nil) then TriggersTable[b].LiftPanelIdx := TriggersTable[b].liftPan.gamePanelId;
+      if (TriggersTable[b].doorPan <> nil) then TriggersTable[b].DoorPanelIdx := TriggersTable[b].doorPan.gamePanelId;
+      if (TriggersTable[b].shotPan <> nil) then TriggersTable[b].ShotPanelIdx := TriggersTable[b].shotPan.gamePanelId;
     end;
-    *)
 
     // create map grid, init other grids (for monsters, for example)
     e_WriteLog('Creating map grid', MSG_NOTIFY);
@@ -1926,45 +1867,11 @@ begin
         Inc(trignum);
         if (TriggersTable[trignum].texPan <> nil) then b := TriggersTable[trignum].texPan.PanelType else b := 0;
         if (TriggersTable[trignum].shotPan <> nil) then c := TriggersTable[trignum].shotPan.PanelType else c := 0;
-        tgpid := -1;
+        // we can have only one of those
              if (TriggersTable[trignum].LiftPanelIdx <> -1) then tgpid := TriggersTable[trignum].LiftPanelIdx
         else if (TriggersTable[trignum].DoorPanelIdx <> -1) then tgpid := TriggersTable[trignum].DoorPanelIdx
         else if (TriggersTable[trignum].ShotPanelIdx <> -1) then tgpid := TriggersTable[trignum].ShotPanelIdx
         else tgpid := -1;
-        (*
-        if (rec.TexturePanel <> -1) then
-        begin
-          {
-          if (TriggersTable[trignum].TexturePanel < 0) or (TriggersTable[trignum].TexturePanel >= panels.count) then
-          begin
-            e_WriteLog('error loading map: invalid panel index for trigger', MSG_FATALERROR);
-            result := false;
-            exit;
-          end;
-          }
-          //b := panels[TriggersTable[a].TexturePanel].PanelType;
-          //b := mapReader.panel[TriggersTable[trignum].texPanIdx].PanelType;
-          assert(TriggersTable[trignum].texPanIdx >= 0);
-          b := TriggersTable[trignum].texPanIdx;
-        end
-        else
-        begin
-          b := 0;
-        end;
-        e_LogWritefln('trigger #%s: type=%s; texPanIdx=%s; b=%s', [trignum, rec.TriggerType, TriggersTable[trignum].texPanIdx, b]);
-        if (rec.TriggerType = TRIGGER_SHOT) then e_LogWritefln('  SHOT: shotpanidx=%s', [rec.trigRec.trigShotPanelID]);
-        if (rec.TriggerType = TRIGGER_SHOT) and {(rec.trigRec.trigShotPanelID <> -1)} (TriggersTable[trignum].shotPan <> nil) then
-        begin
-          //c := panels[TriggersTable[a].ShotPanel].PanelType;
-          //c := mapReader.panel[TriggersTable[trignum].ShotPanel].PanelType;
-          assert(TriggersTable[trignum].ShotPanelIdx >= 0);
-          c := TriggersTable[trignum].ShotPanelIdx;
-        end
-        else
-        begin
-          c := 0;
-        end;
-        *)
         //e_LogWritefln('creating trigger #%s; texpantype=%s; shotpantype=%s (%d,%d)', [trignum, b, c, TriggersTable[trignum].texPanIdx, TriggersTable[trignum].ShotPanelIdx]);
         CreateTrigger(rec, TriggersTable[trignum].texPanIdx, tgpid, Word(b), Word(c));
       end;
@@ -2008,8 +1915,7 @@ begin
       for rec in monsters do CreateMonster(rec);
     end;
 
-    //MapReader.Free();
-    gCurrentMap := mapReader;
+    gCurrentMap := mapReader; // this will be our current map now
     mapReader := nil;
 
     // Загрузка неба
@@ -2069,7 +1975,7 @@ begin
     if not gLoadGameMode then g_GFX_Init();
 
     // Сброс локальных массивов:
-    _textures := nil;
+    mapTextureList := nil;
     panels := nil;
     items := nil;
     areas := nil;
@@ -2090,20 +1996,17 @@ begin
   finally
     sfsGCEnable(); // enable releasing unused volumes
     mapReader.Free();
-    hashTextPan.Free();
-    hashLiftPan.Free();
-    hashDoorPan.Free();
-    hashShotPan.Free();
   end;
 
   e_WriteLog('Done loading map.', MSG_NOTIFY);
   Result := True;
 end;
 
+
 function g_Map_GetMapInfo(Res: String): TMapInfo;
 var
   WAD: TWADFile;
-  MapReader: TDynRecord;
+  mapReader: TDynRecord;
   //Header: TMapHeaderRec_1;
   FileName: String;
   Data: Pointer;

@@ -27,7 +27,9 @@ type
     UID:     Word;
     TimeOut: Word;
   end;
+  PTrigger = ^TTrigger;
   TTrigger = record
+  public
     ID:               DWORD;
     ClientID:         DWORD;
     TriggerType:      Byte;
@@ -60,12 +62,17 @@ type
     ShotAmmoCount:    Word;
     ShotReloadTime:   Integer;
 
+    mapId: AnsiString; // trigger id, from map
     //trigShotPanelId: Integer;
     trigPanelId: Integer;
 
     //TrigData:             TTriggerData;
     trigData: TDynRecord; // triggerdata; owned by trigger
 
+  public
+    function trigCenter (): TDFPoint; inline;
+
+  public
     property trigShotPanelId: Integer read trigPanelId write trigPanelId;
   end;
 
@@ -112,6 +119,13 @@ uses
 const
   TRIGGER_SIGNATURE = $52475254; // 'TRGR'
   TRAP_DAMAGE = 1000;
+
+
+function TTrigger.trigCenter (): TDFPoint; inline;
+begin
+  result := TDFPoint.Create(x+width div 2, y+height div 2);
+end;
+
 
 function FindTrigger(): DWORD;
 var
@@ -2106,6 +2120,7 @@ begin
   find_id := FindTrigger();
   gTriggers[find_id] := Trigger;
 
+  {
   writeln('trigger #', find_id, ': pos=(', Trigger.x, ',', Trigger.y, ')-(', Trigger.width, 'x', Trigger.height, ')',
     '; TexturePanel=', Trigger.TexturePanel,
     '; TexturePanelType=', Trigger.TexturePanelType,
@@ -2116,6 +2131,7 @@ begin
     '; trigPanelId=', Trigger.trigPanelId,
     '; trigShotPanelId=', Trigger.trigShotPanelId
     );
+  }
 
   with gTriggers[find_id] do
   begin
@@ -2666,7 +2682,6 @@ var
 begin
   for a := 0 to High(gTriggers) do
   begin
-    gTriggers[a].trigData.Free();
     if (gTriggers[a].TriggerType = TRIGGER_SOUND) then
     begin
       if g_Sound_Exists(gTriggers[a].trigData.trigSoundName) then
@@ -2679,6 +2694,7 @@ begin
     begin
       SetLength(gTriggers[a].Activators, 0);
     end;
+    gTriggers[a].trigData.Free();
   end;
 
   gTriggers := nil;

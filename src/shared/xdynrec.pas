@@ -110,6 +110,7 @@ type
     function addListItem (rec: TDynRecord): Boolean; inline;
 
   public
+    {
     type
       TListEnumerator = record
       private
@@ -121,6 +122,7 @@ type
         function getCurrent (): TDynRecord; inline;
         property Current: TDynRecord read getCurrent;
       end;
+    }
 
   public
     constructor Create (const aname: AnsiString; atype: TType);
@@ -145,7 +147,7 @@ type
 
     procedure setValue (const s: AnsiString);
 
-    function GetEnumerator (): TListEnumerator;
+    function GetEnumerator (): TDynRecList.TEnumerator; inline;
 
   public
     property pasname: AnsiString read mPasName;
@@ -244,6 +246,9 @@ type
 
     // number of records of the given instance
     function instanceCount (const typename: AnsiString): Integer;
+
+    procedure setUserField (const fldname: AnsiString; v: LongInt);
+    procedure setUserField (const fldname: AnsiString; v: AnsiString);
 
   public
     property id: AnsiString read mId; // for map parser
@@ -358,6 +363,7 @@ function StrEqu (const a, b: AnsiString): Boolean; inline; begin result := (a = 
 
 
 // ////////////////////////////////////////////////////////////////////////// //
+{
 constructor TDynField.TListEnumerator.Create (alist: TDynRecList);
 begin
   mList := alist;
@@ -376,11 +382,13 @@ function TDynField.TListEnumerator.getCurrent (): TDynRecord; inline;
 begin
   result := mList[mCurIdx];
 end;
+}
 
 
-function TDynField.GetEnumerator (): TListEnumerator;
+function TDynField.GetEnumerator (): TDynRecList.TEnumerator; inline;
 begin
-  result := TListEnumerator.Create(mRVal);
+  //result := TListEnumerator.Create(mRVal);
+  if (mRVal <> nil) then result := mRVal.GetEnumerator else result := TDynRecList.TEnumerator.Create(nil, 0);
 end;
 
 
@@ -1924,6 +1932,56 @@ begin
   result := 0;
   fld := field[typename];
   if (fld <> nil) and (fld.mType = fld.TType.TList) then result := fld.mRVal.count;
+end;
+
+
+procedure TDynRecord.setUserField (const fldname: AnsiString; v: LongInt);
+var
+  fld: TDynField;
+begin
+  if (Length(fldname) = 0) then exit;
+  fld := field[fldname];
+  if (fld <> nil) then
+  begin
+    if (fld.mType <> fld.TType.TInt) or (fld.mEBS <> fld.TEBS.TNone) then
+    begin
+      raise Exception.Create(Format('invalid user field ''%s'' type', [fld.name]));
+    end;
+  end
+  else
+  begin
+    fld := TDynField.Create(fldname, fld.TType.TInt);
+    fld.mOwner := self;
+    fld.mIVal := v;
+    fld.mInternal := true;
+    fld.mDefined := true;
+    addField(fld);
+  end;
+end;
+
+
+procedure TDynRecord.setUserField (const fldname: AnsiString; v: AnsiString);
+var
+  fld: TDynField;
+begin
+  if (Length(fldname) = 0) then exit;
+  fld := field[fldname];
+  if (fld <> nil) then
+  begin
+    if (fld.mType <> fld.TType.TString) or (fld.mEBS <> fld.TEBS.TNone) then
+    begin
+      raise Exception.Create(Format('invalid user field ''%s'' type', [fld.name]));
+    end;
+  end
+  else
+  begin
+    fld := TDynField.Create(fldname, fld.TType.TString);
+    fld.mOwner := self;
+    fld.mSVal := v;
+    fld.mInternal := true;
+    fld.mDefined := true;
+    addField(fld);
+  end;
 end;
 
 
