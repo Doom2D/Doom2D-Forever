@@ -5198,7 +5198,8 @@ begin
             begin
               g_Console_Add('player left the map');
               gExitByTrigger := True;
-              g_Game_ExitLevel(gTriggers[a].Data.MapName);
+              //g_Game_ExitLevel(gTriggers[a].Data.MapName);
+              g_Game_ExitLevel(gTriggers[a].trigData.trigMapName);
               break;
             end;
           end;
@@ -6067,7 +6068,8 @@ begin
             if gTriggers[a].TriggerType = TRIGGER_EXIT then
             begin
               gExitByTrigger := True;
-              gNextMap := gTriggers[a].Data.MapName;
+              //gNextMap := gTriggers[a].Data.MapName;
+              gNextMap := gTriggers[a].trigData.trigMapName;
               Break;
             end;
         // »щем следующую карту в WAD файле
@@ -6458,17 +6460,17 @@ begin
       with gTriggers[i] do
         if (TriggerType = TRIGGER_SOUND) and
            (Sound <> nil) and
-           (Data.Local) and
+           (trigData.trigLocal) and
            Sound.IsPlaying() then
         begin
           if ((gPlayer1 <> nil) and g_CollidePoint(gPlayer1.GameX, gPlayer1.GameY, X, Y, Width, Height)) or
              ((gPlayer2 <> nil) and g_CollidePoint(gPlayer2.GameX, gPlayer2.GameY, X, Y, Width, Height)) then
           begin
-            Sound.SetPan(0.5 - Data.Pan/255.0);
-            Sound.SetVolume(Data.Volume/255.0);
+            Sound.SetPan(0.5 - trigData.trigPan/255.0);
+            Sound.SetVolume(trigData.trigVolume/255.0);
           end
           else
-            Sound.SetCoords(X+(Width div 2), Y+(Height div 2), Data.Volume/255.0);
+            Sound.SetCoords(X+(Width div 2), Y+(Height div 2), trigData.trigVolume/255.0);
         end;
 end;
 

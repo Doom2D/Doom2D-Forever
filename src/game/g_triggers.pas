@@ -20,7 +20,7 @@ interface
 
 uses
   MAPDEF, e_graphics, g_basic, g_sound,
-  BinEditor;
+  BinEditor, xdynrec;
 
 type
   TActivator = record
@@ -60,7 +60,11 @@ type
     ShotAmmoCount:    Word;
     ShotReloadTime:   Integer;
 
-    Data:             TTriggerData;
+    trigShotPanelId: Integer;
+    trigPanelId: Integer;
+
+    //TrigData:             TTriggerData;
+    trigData: TDynRecord; // triggerdata; owned by trigger
   end;
 
 function g_Triggers_Create(Trigger: TTrigger): DWORD;
@@ -631,28 +635,28 @@ end;
 procedure MakeShot(var Trigger: TTrigger; wx, wy, dx, dy: Integer; TargetUID: Word);
 begin
   with Trigger do
-    if (Data.ShotAmmo = 0) or
-       ((Data.ShotAmmo > 0) and (ShotAmmoCount > 0)) then
+    if (trigData.trigShotAmmo = 0) or
+       ((trigData.trigShotAmmo > 0) and (ShotAmmoCount > 0)) then
     begin
-      if (Data.ShotPanelID <> -1) and (ShotPanelTime = 0) then
+      if (trigShotPanelID <> -1) and (ShotPanelTime = 0) then
       begin
-        g_Map_SwitchTexture(ShotPanelType, Data.ShotPanelID);
+        g_Map_SwitchTexture(ShotPanelType, trigShotPanelID);
         ShotPanelTime := 4; // тиков на вспышку выстрела
       end;
 
-      if Data.ShotIntSight > 0 then
+      if trigData.trigShotIntSight > 0 then
         ShotSightTimeout := 180; // ~= 5 секунд
 
       if ShotAmmoCount > 0 then Dec(ShotAmmoCount);
 
-      dx := dx + Random(Data.ShotAccuracy) - Random(Data.ShotAccuracy);
-      dy := dy + Random(Data.ShotAccuracy) - Random(Data.ShotAccuracy);
+      dx := dx + Random(trigData.trigShotAccuracy) - Random(trigData.trigShotAccuracy);
+      dy := dy + Random(trigData.trigShotAccuracy) - Random(trigData.trigShotAccuracy);
 
-      tr_SpawnShot(Data.ShotType, wx, wy, dx, dy, Data.ShotSound, TargetUID);
+      tr_SpawnShot(trigData.trigShotType, wx, wy, dx, dy, trigData.trigShotSound, TargetUID);
     end
     else
-      if (Data.ShotIntReload > 0) and (ShotReloadTime = 0) then
-        ShotReloadTime := Data.ShotIntReload; // тиков на перезарядку пушки
+      if (trigData.trigShotIntReload > 0) and (ShotReloadTime = 0) then
+        ShotReloadTime := trigData.trigShotIntReload; // тиков на перезарядку пушки
 end;
 
 procedure tr_MakeEffect(X, Y, VX, VY: Integer; T, ST, CR, CG, CB: Byte; Silent, Send: Boolean);
@@ -959,11 +963,11 @@ begin
   begin
     if TriggerType <> TRIGGER_SHOT then
       Exit;
-    Result := (Data.ShotAim and TRIGGER_SHOT_AIM_ALLMAP > 0)
+    Result := (trigData.trigShotAim and TRIGGER_SHOT_AIM_ALLMAP > 0)
               or g_Obj_Collide(X, Y, Width, Height, Obj);
-    if Result and (Data.ShotAim and TRIGGER_SHOT_AIM_TRACE > 0) then
-      Result := g_TraceVector(Data.ShotPos.X,
-                              Data.ShotPos.Y,
+    if Result and (trigData.trigShotAim and TRIGGER_SHOT_AIM_TRACE > 0) then
+      Result := g_TraceVector(trigData.trigShotPos.X,
+                              trigData.trigShotPos.Y,
                               Obj^.X + Obj^.Rect.X + (Obj^.Rect.Width div 2),
                               Obj^.Y + Obj^.Rect.Y + (Obj^.Rect.Height div 2));
   end;
@@ -1045,7 +1049,7 @@ begin
           g_Sound_PlayEx('SOUND_GAME_SWITCH0');
           if g_Game_IsNet then MH_SEND_Sound(X, Y, 'SOUND_GAME_SWITCH0');
           gExitByTrigger := True;
-          g_Game_ExitLevel(Data.MapName);
+          g_Game_ExitLevel(trigData.trigMapName);
           TimeOut := 18;
           Result := True;
 
@@ -1055,37 +1059,37 @@ begin
       TRIGGER_TELEPORT:
         begin
           Result := tr_Teleport(ActivateUID,
-                                Data.TargetPoint.X, Data.TargetPoint.Y,
-                                Data.TlpDir, Data.silent_teleport,
-                                Data.d2d_teleport);
+                                trigData.trigTargetPoint.X, trigData.trigTargetPoint.Y,
+                                trigData.trigTlpDir, trigData.trigsilent_teleport,
+                                trigData.trigd2d_teleport);
           TimeOut := 0;
         end;
 
       TRIGGER_OPENDOOR:
         begin
-          Result := tr_OpenDoor(Data.PanelID, Data.NoSound, Data.d2d_doors);
+          Result := tr_OpenDoor(trigPanelID, trigData.trigNoSound, trigData.trigd2d_doors);
           TimeOut := 0;
         end;
 
       TRIGGER_CLOSEDOOR:
         begin
-          Result := tr_CloseDoor(Data.PanelID, Data.NoSound, Data.d2d_doors);
+          Result := tr_CloseDoor(trigPanelID, trigData.trigNoSound, trigData.trigd2d_doors);
           TimeOut := 0;
         end;
 
       TRIGGER_DOOR, TRIGGER_DOOR5:
         begin
-          if Data.PanelID <> -1 then
+          if trigPanelID <> -1 then
           begin
-            if gWalls[Data.PanelID].Enabled then
+            if gWalls[trigPanelID].Enabled then
               begin
-                Result := tr_OpenDoor(Data.PanelID, Data.NoSound, Data.d2d_doors);
+                Result := tr_OpenDoor(trigPanelID, trigData.trigNoSound, trigData.trigd2d_doors);
 
                 if TriggerType = TRIGGER_DOOR5 then
                   DoorTime := 180;
               end
             else
-              Result := tr_CloseDoor(Data.PanelID, Data.NoSound, Data.d2d_doors);
+              Result := tr_CloseDoor(trigPanelID, trigData.trigNoSound, trigData.trigd2d_doors);
 
             if Result then
               TimeOut := 18;
@@ -1094,7 +1098,7 @@ begin
 
       TRIGGER_CLOSETRAP, TRIGGER_TRAP:
         begin
-          tr_CloseTrap(Data.PanelID, Data.NoSound, Data.d2d_doors);
+          tr_CloseTrap(trigPanelID, trigData.trigNoSound, trigData.trigd2d_doors);
 
           if TriggerType = TRIGGER_TRAP then
             begin
@@ -1115,7 +1119,7 @@ begin
           PressCount := PressCount + 1;
 
           if PressTime = -1 then
-            PressTime := Data.Wait;
+            PressTime := trigData.trigWait;
 
           if coolDown then
             TimeOut := 18
@@ -1139,10 +1143,10 @@ begin
 
       TRIGGER_LIFTUP:
         begin
-          Result := tr_SetLift(Data.PanelID, 0, Data.NoSound, Data.d2d_doors);
+          Result := tr_SetLift(trigPanelID, 0, trigData.trigNoSound, trigData.trigd2d_doors);
           TimeOut := 0;
 
-          if (not Data.NoSound) and Result then begin
+          if (not trigData.trigNoSound) and Result then begin
             g_Sound_PlayExAt('SOUND_GAME_SWITCH0',
                              X + (Width div 2),
                              Y + (Height div 2));
@@ -1155,10 +1159,10 @@ begin
 
       TRIGGER_LIFTDOWN:
         begin
-          Result := tr_SetLift(Data.PanelID, 1, Data.NoSound, Data.d2d_doors);
+          Result := tr_SetLift(trigPanelID, 1, trigData.trigNoSound, trigData.trigd2d_doors);
           TimeOut := 0;
 
-          if (not Data.NoSound) and Result then begin
+          if (not trigData.trigNoSound) and Result then begin
             g_Sound_PlayExAt('SOUND_GAME_SWITCH0',
                              X + (Width div 2),
                              Y + (Height div 2));
@@ -1171,13 +1175,13 @@ begin
 
       TRIGGER_LIFT:
         begin
-          Result := tr_SetLift(Data.PanelID, 3, Data.NoSound, Data.d2d_doors);
+          Result := tr_SetLift(trigPanelID, 3, trigData.trigNoSound, trigData.trigd2d_doors);
 
           if Result then
           begin
             TimeOut := 18;
 
-            if (not Data.NoSound) and Result then begin
+            if (not trigData.trigNoSound) and Result then begin
               g_Sound_PlayExAt('SOUND_GAME_SWITCH0',
                                X + (Width div 2),
                                Y + (Height div 2));
@@ -1191,7 +1195,7 @@ begin
 
       TRIGGER_TEXTURE:
         begin
-          if ByteBool(Data.ActivateOnce) then
+          if ByteBool(trigData.trigActivateOnce) then
             begin
               Enabled := False;
               TriggerType := TRIGGER_NONE;
@@ -1202,7 +1206,7 @@ begin
             else
               TimeOut := 0;
 
-          animonce := Data.AnimOnce;
+          animonce := trigData.trigAnimOnce;
           Result := True;
         end;
 
@@ -1210,17 +1214,17 @@ begin
         begin
           if Sound <> nil then
           begin
-            if Data.SoundSwitch and Sound.IsPlaying() then
+            if trigData.trigSoundSwitch and Sound.IsPlaying() then
               begin // Нужно выключить, если играл
                 Sound.Stop();
                 SoundPlayCount := 0;
                 Result := True;
               end
             else // (not Data.SoundSwitch) or (not Sound.IsPlaying())
-              if (Data.PlayCount > 0) or (not Sound.IsPlaying()) then
+              if (trigData.trigPlayCount > 0) or (not Sound.IsPlaying()) then
                 begin
-                  if Data.PlayCount > 0 then
-                    SoundPlayCount := Data.PlayCount
+                  if trigData.trigPlayCount > 0 then
+                    SoundPlayCount := trigData.trigPlayCount
                   else // 0 - играем бесконечно
                     SoundPlayCount := 1;
                   Result := True;
@@ -1230,10 +1234,10 @@ begin
         end;
 
       TRIGGER_SPAWNMONSTER:
-        if (Data.MonType in [MONSTER_DEMON..MONSTER_MAN]) then
+        if (trigData.trigMonType in [MONSTER_DEMON..MONSTER_MAN]) then
         begin
           Result := False;
-          if (Data.MonDelay > 0) and (actType <> ACTIVATE_CUSTOM) then
+          if (trigData.trigMonDelay > 0) and (actType <> ACTIVATE_CUSTOM) then
           begin
             AutoSpawn := not AutoSpawn;
             SpawnCooldown := 0;
@@ -1241,34 +1245,34 @@ begin
             Result := True;
           end;
 
-          if ((Data.MonDelay = 0) and (actType <> ACTIVATE_CUSTOM))
-          or ((Data.MonDelay > 0) and (actType = ACTIVATE_CUSTOM)) then
-            for k := 1 to Data.MonCount do
+          if ((trigData.trigMonDelay = 0) and (actType <> ACTIVATE_CUSTOM))
+          or ((trigData.trigMonDelay > 0) and (actType = ACTIVATE_CUSTOM)) then
+            for k := 1 to trigData.trigMonCount do
             begin
-              if (actType = ACTIVATE_CUSTOM) and (Data.MonDelay > 0) then
-                SpawnCooldown := Data.MonDelay;
-              if (Data.MonMax > 0) and (SpawnedCount >= Data.MonMax) then
+              if (actType = ACTIVATE_CUSTOM) and (trigData.trigMonDelay > 0) then
+                SpawnCooldown := trigData.trigMonDelay;
+              if (trigData.trigMonMax > 0) and (SpawnedCount >= trigData.trigMonMax) then
                 Break;
 
-              mon := g_Monsters_Create(Data.MonType,
-                     Data.MonPos.X, Data.MonPos.Y,
-                     TDirection(Data.MonDir), True);
+              mon := g_Monsters_Create(trigData.trigMonType,
+                     trigData.trigMonPos.X, trigData.trigMonPos.Y,
+                     TDirection(trigData.trigMonDir), True);
 
               Result := True;
 
             // Здоровье:
-              if (Data.MonHealth > 0) then
-                mon.SetHealth(Data.MonHealth);
+              if (trigData.trigMonHealth > 0) then
+                mon.SetHealth(trigData.trigMonHealth);
             // Устанавливаем поведение:
-              mon.MonsterBehaviour := Data.MonBehav;
+              mon.MonsterBehaviour := trigData.trigMonBehav;
               mon.FNoRespawn := True;
               if g_Game_IsNet then
                 MH_SEND_MonsterSpawn(mon.UID);
             // Идем искать цель, если надо:
-              if Data.MonActive then
+              if trigData.trigMonActive then
                 mon.WakeUp();
 
-              if Data.MonType <> MONSTER_BARREL then Inc(gTotalMonsters);
+              if trigData.trigMonType <> MONSTER_BARREL then Inc(gTotalMonsters);
 
               if g_Game_IsNet then
               begin
@@ -1276,18 +1280,18 @@ begin
                 gMonstersSpawned[High(gMonstersSpawned)] := mon.UID;
               end;
 
-              if Data.MonMax > 0 then
+              if trigData.trigMonMax > 0 then
               begin
                 mon.SpawnTrigger := ID;
                 Inc(SpawnedCount);
               end;
 
-              case Data.MonEffect of
+              case trigData.trigMonEffect of
                 EFFECT_TELEPORT: begin
                   if g_Frames_Get(FramesID, 'FRAMES_TELEPORT') then
                   begin
                     Anim := TAnimation.Create(FramesID, False, 3);
-                    g_Sound_PlayExAt('SOUND_GAME_TELEPORT', Data.MonPos.X, Data.MonPos.Y);
+                    g_Sound_PlayExAt('SOUND_GAME_TELEPORT', trigData.trigMonPos.X, trigData.trigMonPos.Y);
                     g_GFX_OnceAnim(mon.Obj.X+mon.Obj.Rect.X+(mon.Obj.Rect.Width div 2)-32,
                                    mon.Obj.Y+mon.Obj.Rect.Y+(mon.Obj.Rect.Height div 2)-32, Anim);
                     Anim.Free();
@@ -1301,7 +1305,7 @@ begin
                   if g_Frames_Get(FramesID, 'FRAMES_ITEM_RESPAWN') then
                   begin
                     Anim := TAnimation.Create(FramesID, False, 4);
-                    g_Sound_PlayExAt('SOUND_ITEM_RESPAWNITEM', Data.MonPos.X, Data.MonPos.Y);
+                    g_Sound_PlayExAt('SOUND_ITEM_RESPAWNITEM', trigData.trigMonPos.X, trigData.trigMonPos.Y);
                     g_GFX_OnceAnim(mon.Obj.X+mon.Obj.Rect.X+(mon.Obj.Rect.Width div 2)-16,
                                    mon.Obj.Y+mon.Obj.Rect.Y+(mon.Obj.Rect.Height div 2)-16, Anim);
                     Anim.Free();
@@ -1315,7 +1319,7 @@ begin
                   if g_Frames_Get(FramesID, 'FRAMES_FIRE') then
                   begin
                     Anim := TAnimation.Create(FramesID, False, 4);
-                    g_Sound_PlayExAt('SOUND_FIRE', Data.MonPos.X, Data.MonPos.Y);
+                    g_Sound_PlayExAt('SOUND_FIRE', trigData.trigMonPos.X, trigData.trigMonPos.Y);
                     g_GFX_OnceAnim(mon.Obj.X+mon.Obj.Rect.X+(mon.Obj.Rect.Width div 2)-32,
                                    mon.Obj.Y+mon.Obj.Rect.Y+mon.Obj.Rect.Height-128, Anim);
                     Anim.Free();
@@ -1343,10 +1347,10 @@ begin
         end;
 
       TRIGGER_SPAWNITEM:
-        if (Data.ItemType in [ITEM_MEDKIT_SMALL..ITEM_MAX]) then
+        if (trigData.trigItemType in [ITEM_MEDKIT_SMALL..ITEM_MAX]) then
         begin
           Result := False;
-          if (Data.ItemDelay > 0) and (actType <> ACTIVATE_CUSTOM) then
+          if (trigData.trigItemDelay > 0) and (actType <> ACTIVATE_CUSTOM) then
           begin
             AutoSpawn := not AutoSpawn;
             SpawnCooldown := 0;
@@ -1354,36 +1358,36 @@ begin
             Result := True;
           end;
 
-          if ((Data.ItemDelay = 0) and (actType <> ACTIVATE_CUSTOM))
-          or ((Data.ItemDelay > 0) and (actType = ACTIVATE_CUSTOM)) then
-            if (not Data.ItemOnlyDM) or
+          if ((trigData.trigItemDelay = 0) and (actType <> ACTIVATE_CUSTOM))
+          or ((trigData.trigItemDelay > 0) and (actType = ACTIVATE_CUSTOM)) then
+            if (not trigData.trigItemOnlyDM) or
                (gGameSettings.GameMode in [GM_DM, GM_TDM, GM_CTF]) then
-              for k := 1 to Data.ItemCount do
+              for k := 1 to trigData.trigItemCount do
               begin
-                if (actType = ACTIVATE_CUSTOM) and (Data.ItemDelay > 0) then
-                  SpawnCooldown := Data.ItemDelay;
-                if (Data.ItemMax > 0) and (SpawnedCount >= Data.ItemMax) then
+                if (actType = ACTIVATE_CUSTOM) and (trigData.trigItemDelay > 0) then
+                  SpawnCooldown := trigData.trigItemDelay;
+                if (trigData.trigItemMax > 0) and (SpawnedCount >= trigData.trigItemMax) then
                   Break;
 
-                iid := g_Items_Create(Data.ItemPos.X, Data.ItemPos.Y,
-                  Data.ItemType, Data.ItemFalls, False, True);
+                iid := g_Items_Create(trigData.trigItemPos.X, trigData.trigItemPos.Y,
+                  trigData.trigItemType, trigData.trigItemFalls, False, True);
 
                 Result := True;
 
-                if Data.ItemMax > 0 then
+                if trigData.trigItemMax > 0 then
                 begin
                   it := g_Items_ByIdx(iid);
                   it.SpawnTrigger := ID;
                   Inc(SpawnedCount);
                 end;
 
-                case Data.ItemEffect of
+                case trigData.trigItemEffect of
                   EFFECT_TELEPORT: begin
                     it := g_Items_ByIdx(iid);
                     if g_Frames_Get(FramesID, 'FRAMES_TELEPORT') then
                     begin
                       Anim := TAnimation.Create(FramesID, False, 3);
-                      g_Sound_PlayExAt('SOUND_GAME_TELEPORT', Data.ItemPos.X, Data.ItemPos.Y);
+                      g_Sound_PlayExAt('SOUND_GAME_TELEPORT', trigData.trigItemPos.X, trigData.trigItemPos.Y);
                       g_GFX_OnceAnim(it.Obj.X+it.Obj.Rect.X+(it.Obj.Rect.Width div 2)-32,
                                      it.Obj.Y+it.Obj.Rect.Y+(it.Obj.Rect.Height div 2)-32, Anim);
                       Anim.Free();
@@ -1398,7 +1402,7 @@ begin
                     if g_Frames_Get(FramesID, 'FRAMES_ITEM_RESPAWN') then
                     begin
                       Anim := TAnimation.Create(FramesID, False, 4);
-                      g_Sound_PlayExAt('SOUND_ITEM_RESPAWNITEM', Data.ItemPos.X, Data.ItemPos.Y);
+                      g_Sound_PlayExAt('SOUND_ITEM_RESPAWNITEM', trigData.trigItemPos.X, trigData.trigItemPos.Y);
                       g_GFX_OnceAnim(it.Obj.X+it.Obj.Rect.X+(it.Obj.Rect.Width div 2)-16,
                                      it.Obj.Y+it.Obj.Rect.Y+(it.Obj.Rect.Height div 2)-16, Anim);
                       Anim.Free();
@@ -1413,7 +1417,7 @@ begin
                     if g_Frames_Get(FramesID, 'FRAMES_FIRE') then
                     begin
                       Anim := TAnimation.Create(FramesID, False, 4);
-                      g_Sound_PlayExAt('SOUND_FIRE', Data.ItemPos.X, Data.ItemPos.Y);
+                      g_Sound_PlayExAt('SOUND_FIRE', trigData.trigItemPos.X, trigData.trigItemPos.Y);
                       g_GFX_OnceAnim(it.Obj.X+it.Obj.Rect.X+(it.Obj.Rect.Width div 2)-32,
                                      it.Obj.Y+it.Obj.Rect.Y+it.Obj.Rect.Height-128, Anim);
                       Anim.Free();
@@ -1441,14 +1445,14 @@ begin
       TRIGGER_MUSIC:
         begin
         // Меняем музыку, если есть на что:
-          if (Trigger.Data.MusicName <> '') then
+          if (Trigger.trigData.trigMusicName <> '') then
           begin
-            gMusic.SetByName(Trigger.Data.MusicName);
+            gMusic.SetByName(Trigger.trigData.trigMusicName);
             gMusic.SpecPause := True;
             gMusic.Play();
           end;
 
-          if Trigger.Data.MusicAction = 1 then
+          if Trigger.trigData.trigMusicAction = 1 then
             begin // Включить
               if gMusic.SpecPause then // Была на паузе => играть
                 gMusic.SpecPause := False
@@ -1471,11 +1475,11 @@ begin
 
       TRIGGER_PUSH:
         begin
-          pAngle := -DegToRad(Data.PushAngle);
+          pAngle := -DegToRad(trigData.trigPushAngle);
           Result := tr_Push(ActivateUID,
-                            Floor(Cos(pAngle)*Data.PushForce),
-                            Floor(Sin(pAngle)*Data.PushForce),
-                            Data.ResetVel);
+                            Floor(Cos(pAngle)*trigData.trigPushForce),
+                            Floor(Sin(pAngle)*trigData.trigPushForce),
+                            trigData.trigResetVel);
           TimeOut := 0;
         end;
 
@@ -1483,106 +1487,106 @@ begin
         begin
           Result := False;
           // Прибавить или отнять очко
-          if (Data.ScoreAction in [0..1]) and (Data.ScoreCount > 0) then
+          if (trigData.trigScoreAction in [0..1]) and (trigData.trigScoreCount > 0) then
           begin
             // Своей или чужой команде
-            if (Data.ScoreTeam in [0..1]) and (g_GetUIDType(ActivateUID) = UID_PLAYER) then
+            if (trigData.trigScoreTeam in [0..1]) and (g_GetUIDType(ActivateUID) = UID_PLAYER) then
             begin
               p := g_Player_Get(ActivateUID);
-              if ((Data.ScoreAction = 0) and (Data.ScoreTeam = 0) and (p.Team = TEAM_RED))
-              or ((Data.ScoreAction = 0) and (Data.ScoreTeam = 1) and (p.Team = TEAM_BLUE)) then
+              if ((trigData.trigScoreAction = 0) and (trigData.trigScoreTeam = 0) and (p.Team = TEAM_RED))
+              or ((trigData.trigScoreAction = 0) and (trigData.trigScoreTeam = 1) and (p.Team = TEAM_BLUE)) then
               begin
-                Inc(gTeamStat[TEAM_RED].Goals, Data.ScoreCount); // Red Scores
+                Inc(gTeamStat[TEAM_RED].Goals, trigData.trigScoreCount); // Red Scores
 
-                if Data.ScoreCon then
-                  if Data.ScoreTeam = 0 then
+                if trigData.trigScoreCon then
+                  if trigData.trigScoreTeam = 0 then
                   begin
-                    g_Console_Add(Format(_lc[I_PLAYER_SCORE_ADD_OWN], [p.Name, Data.ScoreCount, _lc[I_PLAYER_SCORE_TO_RED]]), True);
+                    g_Console_Add(Format(_lc[I_PLAYER_SCORE_ADD_OWN], [p.Name, trigData.trigScoreCount, _lc[I_PLAYER_SCORE_TO_RED]]), True);
                     if g_Game_IsServer and g_Game_IsNet then
-                      MH_SEND_GameEvent(NET_EV_SCORE, p.UID or (Data.ScoreCount shl 16), '+r');
+                      MH_SEND_GameEvent(NET_EV_SCORE, p.UID or (trigData.trigScoreCount shl 16), '+r');
                   end else
                   begin
-                    g_Console_Add(Format(_lc[I_PLAYER_SCORE_ADD_ENEMY], [p.Name, Data.ScoreCount, _lc[I_PLAYER_SCORE_TO_RED]]), True);
+                    g_Console_Add(Format(_lc[I_PLAYER_SCORE_ADD_ENEMY], [p.Name, trigData.trigScoreCount, _lc[I_PLAYER_SCORE_TO_RED]]), True);
                     if g_Game_IsServer and g_Game_IsNet then
-                      MH_SEND_GameEvent(NET_EV_SCORE, p.UID or (Data.ScoreCount shl 16), '+re');
+                      MH_SEND_GameEvent(NET_EV_SCORE, p.UID or (trigData.trigScoreCount shl 16), '+re');
                   end;
 
-                if Data.ScoreMsg then
+                if trigData.trigScoreMsg then
                 begin
                   g_Game_Message(Format(_lc[I_MESSAGE_SCORE_ADD], [AnsiUpperCase(_lc[I_GAME_TEAM_RED])]), 108);
                   if g_Game_IsServer and g_Game_IsNet then
                     MH_SEND_GameEvent(NET_EV_SCORE_MSG, TEAM_RED);
                 end;
               end;
-              if ((Data.ScoreAction = 1) and (Data.ScoreTeam = 0) and (p.Team = TEAM_RED))
-              or ((Data.ScoreAction = 1) and (Data.ScoreTeam = 1) and (p.Team = TEAM_BLUE)) then
+              if ((trigData.trigScoreAction = 1) and (trigData.trigScoreTeam = 0) and (p.Team = TEAM_RED))
+              or ((trigData.trigScoreAction = 1) and (trigData.trigScoreTeam = 1) and (p.Team = TEAM_BLUE)) then
               begin
-                Dec(gTeamStat[TEAM_RED].Goals, Data.ScoreCount); // Red Fouls
+                Dec(gTeamStat[TEAM_RED].Goals, trigData.trigScoreCount); // Red Fouls
 
-                if Data.ScoreCon then
-                  if Data.ScoreTeam = 0 then
+                if trigData.trigScoreCon then
+                  if trigData.trigScoreTeam = 0 then
                   begin
-                    g_Console_Add(Format(_lc[I_PLAYER_SCORE_SUB_OWN], [p.Name, Data.ScoreCount, _lc[I_PLAYER_SCORE_TO_RED]]), True);
+                    g_Console_Add(Format(_lc[I_PLAYER_SCORE_SUB_OWN], [p.Name, trigData.trigScoreCount, _lc[I_PLAYER_SCORE_TO_RED]]), True);
                     if g_Game_IsServer and g_Game_IsNet then
-                      MH_SEND_GameEvent(NET_EV_SCORE, p.UID or (Data.ScoreCount shl 16), '-r');
+                      MH_SEND_GameEvent(NET_EV_SCORE, p.UID or (trigData.trigScoreCount shl 16), '-r');
                   end else
                   begin
-                    g_Console_Add(Format(_lc[I_PLAYER_SCORE_SUB_ENEMY], [p.Name, Data.ScoreCount, _lc[I_PLAYER_SCORE_TO_RED]]), True);
+                    g_Console_Add(Format(_lc[I_PLAYER_SCORE_SUB_ENEMY], [p.Name, trigData.trigScoreCount, _lc[I_PLAYER_SCORE_TO_RED]]), True);
                     if g_Game_IsServer and g_Game_IsNet then
-                      MH_SEND_GameEvent(NET_EV_SCORE, p.UID or (Data.ScoreCount shl 16), '-re');
+                      MH_SEND_GameEvent(NET_EV_SCORE, p.UID or (trigData.trigScoreCount shl 16), '-re');
                   end;
 
-                if Data.ScoreMsg then
+                if trigData.trigScoreMsg then
                 begin
                   g_Game_Message(Format(_lc[I_MESSAGE_SCORE_SUB], [AnsiUpperCase(_lc[I_GAME_TEAM_RED])]), 108);
                   if g_Game_IsServer and g_Game_IsNet then
                     MH_SEND_GameEvent(NET_EV_SCORE_MSG, -TEAM_RED);
                 end;
               end;
-              if ((Data.ScoreAction = 0) and (Data.ScoreTeam = 0) and (p.Team = TEAM_BLUE))
-              or ((Data.ScoreAction = 0) and (Data.ScoreTeam = 1) and (p.Team = TEAM_RED)) then
+              if ((trigData.trigScoreAction = 0) and (trigData.trigScoreTeam = 0) and (p.Team = TEAM_BLUE))
+              or ((trigData.trigScoreAction = 0) and (trigData.trigScoreTeam = 1) and (p.Team = TEAM_RED)) then
               begin
-                Inc(gTeamStat[TEAM_BLUE].Goals, Data.ScoreCount); // Blue Scores
+                Inc(gTeamStat[TEAM_BLUE].Goals, trigData.trigScoreCount); // Blue Scores
 
-                if Data.ScoreCon then
-                  if Data.ScoreTeam = 0 then
+                if trigData.trigScoreCon then
+                  if trigData.trigScoreTeam = 0 then
                   begin
-                    g_Console_Add(Format(_lc[I_PLAYER_SCORE_ADD_OWN], [p.Name, Data.ScoreCount, _lc[I_PLAYER_SCORE_TO_BLUE]]), True);
+                    g_Console_Add(Format(_lc[I_PLAYER_SCORE_ADD_OWN], [p.Name, trigData.trigScoreCount, _lc[I_PLAYER_SCORE_TO_BLUE]]), True);
                     if g_Game_IsServer and g_Game_IsNet then
-                      MH_SEND_GameEvent(NET_EV_SCORE, p.UID or (Data.ScoreCount shl 16), '+b');
+                      MH_SEND_GameEvent(NET_EV_SCORE, p.UID or (trigData.trigScoreCount shl 16), '+b');
                   end else
                   begin
-                    g_Console_Add(Format(_lc[I_PLAYER_SCORE_ADD_ENEMY], [p.Name, Data.ScoreCount, _lc[I_PLAYER_SCORE_TO_BLUE]]), True);
+                    g_Console_Add(Format(_lc[I_PLAYER_SCORE_ADD_ENEMY], [p.Name, trigData.trigScoreCount, _lc[I_PLAYER_SCORE_TO_BLUE]]), True);
                     if g_Game_IsServer and g_Game_IsNet then
-                      MH_SEND_GameEvent(NET_EV_SCORE, p.UID or (Data.ScoreCount shl 16), '+be');
+                      MH_SEND_GameEvent(NET_EV_SCORE, p.UID or (trigData.trigScoreCount shl 16), '+be');
                   end;
 
-                if Data.ScoreMsg then
+                if trigData.trigScoreMsg then
                 begin
                   g_Game_Message(Format(_lc[I_MESSAGE_SCORE_ADD], [AnsiUpperCase(_lc[I_GAME_TEAM_BLUE])]), 108);
                   if g_Game_IsServer and g_Game_IsNet then
                     MH_SEND_GameEvent(NET_EV_SCORE_MSG, TEAM_BLUE);
                 end;
               end;
-              if ((Data.ScoreAction = 1) and (Data.ScoreTeam = 0) and (p.Team = TEAM_BLUE))
-              or ((Data.ScoreAction = 1) and (Data.ScoreTeam = 1) and (p.Team = TEAM_RED)) then
+              if ((trigData.trigScoreAction = 1) and (trigData.trigScoreTeam = 0) and (p.Team = TEAM_BLUE))
+              or ((trigData.trigScoreAction = 1) and (trigData.trigScoreTeam = 1) and (p.Team = TEAM_RED)) then
               begin
-                Dec(gTeamStat[TEAM_BLUE].Goals, Data.ScoreCount); // Blue Fouls
+                Dec(gTeamStat[TEAM_BLUE].Goals, trigData.trigScoreCount); // Blue Fouls
 
-                if Data.ScoreCon then
-                  if Data.ScoreTeam = 0 then
+                if trigData.trigScoreCon then
+                  if trigData.trigScoreTeam = 0 then
                   begin
-                    g_Console_Add(Format(_lc[I_PLAYER_SCORE_SUB_OWN], [p.Name, Data.ScoreCount, _lc[I_PLAYER_SCORE_TO_BLUE]]), True);
+                    g_Console_Add(Format(_lc[I_PLAYER_SCORE_SUB_OWN], [p.Name, trigData.trigScoreCount, _lc[I_PLAYER_SCORE_TO_BLUE]]), True);
                     if g_Game_IsServer and g_Game_IsNet then
-                      MH_SEND_GameEvent(NET_EV_SCORE, p.UID or (Data.ScoreCount shl 16), '-b');
+                      MH_SEND_GameEvent(NET_EV_SCORE, p.UID or (trigData.trigScoreCount shl 16), '-b');
                   end else
                   begin
-                    g_Console_Add(Format(_lc[I_PLAYER_SCORE_SUB_ENEMY], [p.Name, Data.ScoreCount, _lc[I_PLAYER_SCORE_TO_BLUE]]), True);
+                    g_Console_Add(Format(_lc[I_PLAYER_SCORE_SUB_ENEMY], [p.Name, trigData.trigScoreCount, _lc[I_PLAYER_SCORE_TO_BLUE]]), True);
                     if g_Game_IsServer and g_Game_IsNet then
-                      MH_SEND_GameEvent(NET_EV_SCORE, p.UID or (Data.ScoreCount shl 16), '-be');
+                      MH_SEND_GameEvent(NET_EV_SCORE, p.UID or (trigData.trigScoreCount shl 16), '-be');
                   end;
 
-                if Data.ScoreMsg then
+                if trigData.trigScoreMsg then
                 begin
                   g_Game_Message(Format(_lc[I_MESSAGE_SCORE_SUB], [AnsiUpperCase(_lc[I_GAME_TEAM_BLUE])]), 108);
                   if g_Game_IsServer and g_Game_IsNet then
@@ -1592,74 +1596,74 @@ begin
               Result := (p.Team = TEAM_RED) or (p.Team = TEAM_BLUE);
             end;
             // Какой-то конкретной команде
-            if Data.ScoreTeam in [2..3] then
+            if trigData.trigScoreTeam in [2..3] then
             begin
-              if (Data.ScoreAction = 0) and (Data.ScoreTeam = 2) then
+              if (trigData.trigScoreAction = 0) and (trigData.trigScoreTeam = 2) then
               begin
-                Inc(gTeamStat[TEAM_RED].Goals, Data.ScoreCount); // Red Scores
+                Inc(gTeamStat[TEAM_RED].Goals, trigData.trigScoreCount); // Red Scores
 
-                if Data.ScoreCon then
+                if trigData.trigScoreCon then
                 begin
-                  g_Console_Add(Format(_lc[I_PLAYER_SCORE_ADD_TEAM], [_lc[I_PLAYER_SCORE_RED], Data.ScoreCount]), True);
+                  g_Console_Add(Format(_lc[I_PLAYER_SCORE_ADD_TEAM], [_lc[I_PLAYER_SCORE_RED], trigData.trigScoreCount]), True);
                   if g_Game_IsServer and g_Game_IsNet then
-                    MH_SEND_GameEvent(NET_EV_SCORE, Data.ScoreCount shl 16, '+tr');
+                    MH_SEND_GameEvent(NET_EV_SCORE, trigData.trigScoreCount shl 16, '+tr');
                 end;
 
-                if Data.ScoreMsg then
+                if trigData.trigScoreMsg then
                 begin
                   g_Game_Message(Format(_lc[I_MESSAGE_SCORE_ADD], [AnsiUpperCase(_lc[I_GAME_TEAM_RED])]), 108);
                   if g_Game_IsServer and g_Game_IsNet then
                     MH_SEND_GameEvent(NET_EV_SCORE_MSG, TEAM_RED);
                 end;
               end;
-              if (Data.ScoreAction = 1) and (Data.ScoreTeam = 2) then
+              if (trigData.trigScoreAction = 1) and (trigData.trigScoreTeam = 2) then
               begin
-                Dec(gTeamStat[TEAM_RED].Goals, Data.ScoreCount); // Red Fouls
+                Dec(gTeamStat[TEAM_RED].Goals, trigData.trigScoreCount); // Red Fouls
 
-                if Data.ScoreCon then
+                if trigData.trigScoreCon then
                 begin
-                  g_Console_Add(Format(_lc[I_PLAYER_SCORE_SUB_TEAM], [_lc[I_PLAYER_SCORE_RED], Data.ScoreCount]), True);
+                  g_Console_Add(Format(_lc[I_PLAYER_SCORE_SUB_TEAM], [_lc[I_PLAYER_SCORE_RED], trigData.trigScoreCount]), True);
                   if g_Game_IsServer and g_Game_IsNet then
-                    MH_SEND_GameEvent(NET_EV_SCORE, Data.ScoreCount shl 16, '-tr');
+                    MH_SEND_GameEvent(NET_EV_SCORE, trigData.trigScoreCount shl 16, '-tr');
                 end;
 
-                if Data.ScoreMsg then
+                if trigData.trigScoreMsg then
                 begin
                   g_Game_Message(Format(_lc[I_MESSAGE_SCORE_SUB], [AnsiUpperCase(_lc[I_GAME_TEAM_RED])]), 108);
                   if g_Game_IsServer and g_Game_IsNet then
                     MH_SEND_GameEvent(NET_EV_SCORE_MSG, -TEAM_RED);
                 end;
               end;
-              if (Data.ScoreAction = 0) and (Data.ScoreTeam = 3) then
+              if (trigData.trigScoreAction = 0) and (trigData.trigScoreTeam = 3) then
               begin
-                Inc(gTeamStat[TEAM_BLUE].Goals, Data.ScoreCount); // Blue Scores
+                Inc(gTeamStat[TEAM_BLUE].Goals, trigData.trigScoreCount); // Blue Scores
 
-                if Data.ScoreCon then
+                if trigData.trigScoreCon then
                 begin
-                  g_Console_Add(Format(_lc[I_PLAYER_SCORE_ADD_TEAM], [_lc[I_PLAYER_SCORE_BLUE], Data.ScoreCount]), True);
+                  g_Console_Add(Format(_lc[I_PLAYER_SCORE_ADD_TEAM], [_lc[I_PLAYER_SCORE_BLUE], trigData.trigScoreCount]), True);
                   if g_Game_IsServer and g_Game_IsNet then
-                    MH_SEND_GameEvent(NET_EV_SCORE, Data.ScoreCount shl 16, '+tb');
+                    MH_SEND_GameEvent(NET_EV_SCORE, trigData.trigScoreCount shl 16, '+tb');
                 end;
 
-                if Data.ScoreMsg then
+                if trigData.trigScoreMsg then
                 begin
                   g_Game_Message(Format(_lc[I_MESSAGE_SCORE_ADD], [AnsiUpperCase(_lc[I_GAME_TEAM_BLUE])]), 108);
                   if g_Game_IsServer and g_Game_IsNet then
                     MH_SEND_GameEvent(NET_EV_SCORE_MSG, TEAM_BLUE);
                 end;
               end;
-              if (Data.ScoreAction = 1) and (Data.ScoreTeam = 3) then
+              if (trigData.trigScoreAction = 1) and (trigData.trigScoreTeam = 3) then
               begin
-                Dec(gTeamStat[TEAM_BLUE].Goals, Data.ScoreCount); // Blue Fouls
+                Dec(gTeamStat[TEAM_BLUE].Goals, trigData.trigScoreCount); // Blue Fouls
 
-                if Data.ScoreCon then
+                if trigData.trigScoreCon then
                 begin
-                  g_Console_Add(Format(_lc[I_PLAYER_SCORE_SUB_TEAM], [_lc[I_PLAYER_SCORE_BLUE], Data.ScoreCount]), True);
+                  g_Console_Add(Format(_lc[I_PLAYER_SCORE_SUB_TEAM], [_lc[I_PLAYER_SCORE_BLUE], trigData.trigScoreCount]), True);
                   if g_Game_IsServer and g_Game_IsNet then
-                    MH_SEND_GameEvent(NET_EV_SCORE, Data.ScoreCount shl 16, '-tb');
+                    MH_SEND_GameEvent(NET_EV_SCORE, trigData.trigScoreCount shl 16, '-tb');
                 end;
 
-                if Data.ScoreMsg then
+                if trigData.trigScoreMsg then
                 begin
                   g_Game_Message(Format(_lc[I_MESSAGE_SCORE_SUB], [AnsiUpperCase(_lc[I_GAME_TEAM_BLUE])]), 108);
                   if g_Game_IsServer and g_Game_IsNet then
@@ -1670,20 +1674,20 @@ begin
             end;
           end;
           // Выигрыш
-          if (Data.ScoreAction = 2) and (gGameSettings.GoalLimit > 0) then
+          if (trigData.trigScoreAction = 2) and (gGameSettings.GoalLimit > 0) then
           begin
             // Своей или чужой команды
-            if (Data.ScoreTeam in [0..1]) and (g_GetUIDType(ActivateUID) = UID_PLAYER) then
+            if (trigData.trigScoreTeam in [0..1]) and (g_GetUIDType(ActivateUID) = UID_PLAYER) then
             begin
               p := g_Player_Get(ActivateUID);
-              if ((Data.ScoreTeam = 0) and (p.Team = TEAM_RED)) // Red Wins
-              or ((Data.ScoreTeam = 1) and (p.Team = TEAM_BLUE)) then
+              if ((trigData.trigScoreTeam = 0) and (p.Team = TEAM_RED)) // Red Wins
+              or ((trigData.trigScoreTeam = 1) and (p.Team = TEAM_BLUE)) then
                 if gTeamStat[TEAM_RED].Goals < SmallInt(gGameSettings.GoalLimit) then
                 begin
                   gTeamStat[TEAM_RED].Goals := gGameSettings.GoalLimit;
 
-                  if Data.ScoreCon then
-                    if Data.ScoreTeam = 0 then
+                  if trigData.trigScoreCon then
+                    if trigData.trigScoreTeam = 0 then
                     begin
                       g_Console_Add(Format(_lc[I_PLAYER_SCORE_WIN_OWN], [p.Name, _lc[I_PLAYER_SCORE_TO_RED]]), True);
                       if g_Game_IsServer and g_Game_IsNet then
@@ -1697,14 +1701,14 @@ begin
 
                   Result := True;
                 end;
-              if ((Data.ScoreTeam = 0) and (p.Team = TEAM_BLUE)) // Blue Wins
-              or ((Data.ScoreTeam = 1) and (p.Team = TEAM_RED)) then
+              if ((trigData.trigScoreTeam = 0) and (p.Team = TEAM_BLUE)) // Blue Wins
+              or ((trigData.trigScoreTeam = 1) and (p.Team = TEAM_RED)) then
                 if gTeamStat[TEAM_BLUE].Goals < SmallInt(gGameSettings.GoalLimit) then
                 begin
                   gTeamStat[TEAM_BLUE].Goals := gGameSettings.GoalLimit;
 
-                  if Data.ScoreCon then
-                    if Data.ScoreTeam = 0 then
+                  if trigData.trigScoreCon then
+                    if trigData.trigScoreTeam = 0 then
                     begin
                       g_Console_Add(Format(_lc[I_PLAYER_SCORE_WIN_OWN], [p.Name, _lc[I_PLAYER_SCORE_TO_BLUE]]), True);
                       if g_Game_IsServer and g_Game_IsNet then
@@ -1720,15 +1724,15 @@ begin
                 end;
             end;
             // Какой-то конкретной команды
-            if Data.ScoreTeam in [2..3] then
+            if trigData.trigScoreTeam in [2..3] then
             begin
-              if Data.ScoreTeam = 2 then // Red Wins
+              if trigData.trigScoreTeam = 2 then // Red Wins
                 if gTeamStat[TEAM_RED].Goals < SmallInt(gGameSettings.GoalLimit) then
                 begin
                   gTeamStat[TEAM_RED].Goals := gGameSettings.GoalLimit;
                   Result := True;
                 end;
-              if Data.ScoreTeam = 3 then // Blue Wins
+              if trigData.trigScoreTeam = 3 then // Blue Wins
                 if gTeamStat[TEAM_BLUE].Goals < SmallInt(gGameSettings.GoalLimit) then
                 begin
                   gTeamStat[TEAM_BLUE].Goals := gGameSettings.GoalLimit;
@@ -1737,20 +1741,20 @@ begin
             end;
           end;
           // Проигрыш
-          if (Data.ScoreAction = 3) and (gGameSettings.GoalLimit > 0) then
+          if (trigData.trigScoreAction = 3) and (gGameSettings.GoalLimit > 0) then
           begin
             // Своей или чужой команды
-            if (Data.ScoreTeam in [0..1]) and (g_GetUIDType(ActivateUID) = UID_PLAYER) then
+            if (trigData.trigScoreTeam in [0..1]) and (g_GetUIDType(ActivateUID) = UID_PLAYER) then
             begin
               p := g_Player_Get(ActivateUID);
-              if ((Data.ScoreTeam = 0) and (p.Team = TEAM_BLUE)) // Red Wins
-              or ((Data.ScoreTeam = 1) and (p.Team = TEAM_RED)) then
+              if ((trigData.trigScoreTeam = 0) and (p.Team = TEAM_BLUE)) // Red Wins
+              or ((trigData.trigScoreTeam = 1) and (p.Team = TEAM_RED)) then
                 if gTeamStat[TEAM_RED].Goals < SmallInt(gGameSettings.GoalLimit) then
                 begin
                   gTeamStat[TEAM_RED].Goals := gGameSettings.GoalLimit;
 
-                  if Data.ScoreCon then
-                    if Data.ScoreTeam = 0 then
+                  if trigData.trigScoreCon then
+                    if trigData.trigScoreTeam = 0 then
                     begin
                       g_Console_Add(Format(_lc[I_PLAYER_SCORE_WIN_ENEMY], [p.Name, _lc[I_PLAYER_SCORE_TO_RED]]), True);
                       if g_Game_IsServer and g_Game_IsNet then
@@ -1764,14 +1768,14 @@ begin
 
                   Result := True;
                 end;
-              if ((Data.ScoreTeam = 0) and (p.Team = TEAM_RED)) // Blue Wins
-              or ((Data.ScoreTeam = 1) and (p.Team = TEAM_BLUE)) then
+              if ((trigData.trigScoreTeam = 0) and (p.Team = TEAM_RED)) // Blue Wins
+              or ((trigData.trigScoreTeam = 1) and (p.Team = TEAM_BLUE)) then
                 if gTeamStat[TEAM_BLUE].Goals < SmallInt(gGameSettings.GoalLimit) then
                 begin
                   gTeamStat[TEAM_BLUE].Goals := gGameSettings.GoalLimit;
 
-                  if Data.ScoreCon then
-                    if Data.ScoreTeam = 0 then
+                  if trigData.trigScoreCon then
+                    if trigData.trigScoreTeam = 0 then
                     begin
                       g_Console_Add(Format(_lc[I_PLAYER_SCORE_WIN_ENEMY], [p.Name, _lc[I_PLAYER_SCORE_TO_BLUE]]), True);
                       if g_Game_IsServer and g_Game_IsNet then
@@ -1787,15 +1791,15 @@ begin
                 end;
             end;
             // Какой-то конкретной команды
-            if Data.ScoreTeam in [2..3] then
+            if trigData.trigScoreTeam in [2..3] then
             begin
-              if Data.ScoreTeam = 3 then // Red Wins
+              if trigData.trigScoreTeam = 3 then // Red Wins
                 if gTeamStat[TEAM_RED].Goals < SmallInt(gGameSettings.GoalLimit) then
                 begin
                   gTeamStat[TEAM_RED].Goals := gGameSettings.GoalLimit;
                   Result := True;
                 end;
-              if Data.ScoreTeam = 2 then // Blue Wins
+              if trigData.trigScoreTeam = 2 then // Blue Wins
                 if gTeamStat[TEAM_BLUE].Goals < SmallInt(gGameSettings.GoalLimit) then
                 begin
                   gTeamStat[TEAM_BLUE].Goals := gGameSettings.GoalLimit;
@@ -1815,8 +1819,8 @@ begin
 
       TRIGGER_MESSAGE:
         begin
-          Result := tr_Message(Data.MessageKind, Data.MessageText, 
-                               Data.MessageSendTo, Data.MessageTime,
+          Result := tr_Message(trigData.trigMessageKind, trigData.trigMessageText, 
+                               trigData.trigMessageSendTo, trigData.trigMessageTime,
                                ActivateUID);
           TimeOut := 18;
         end;
@@ -1847,7 +1851,7 @@ begin
               end else
               begin // Уже видели его
                 // Если интервал отключён, но он всё ещё в зоне поражения, даём ему время
-                if (Data.DamageInterval = 0) and (Activators[k].TimeOut > 0) then
+                if (trigData.trigDamageInterval = 0) and (Activators[k].TimeOut > 0) then
                   Activators[k].TimeOut := 65535;
                 // Таймаут прошёл - работаем
                 Result := Activators[k].TimeOut = 0;
@@ -1864,12 +1868,12 @@ begin
                       Exit;
 
                     // Наносим урон игроку
-                    if (TriggerType = TRIGGER_DAMAGE) and (Data.DamageValue > 0) then
-                      p.Damage(Data.DamageValue, 0, 0, 0, HIT_SOME);
+                    if (TriggerType = TRIGGER_DAMAGE) and (trigData.trigDamageValue > 0) then
+                      p.Damage(trigData.trigDamageValue, 0, 0, 0, HIT_SOME);
 
                     // Лечим игрока
-                    if (TriggerType = TRIGGER_HEALTH) and (Data.HealValue > 0) then
-                      if p.Heal(Data.HealValue, not Data.HealMax) and (not Data.HealSilent) then
+                    if (TriggerType = TRIGGER_HEALTH) and (trigData.trigHealValue > 0) then
+                      if p.Heal(trigData.trigHealValue, not trigData.trigHealMax) and (not trigData.trigHealSilent) then
                       begin
                         g_Sound_PlayExAt('SOUND_ITEM_GETITEM', p.Obj.X, p.Obj.Y);
                         if g_Game_IsServer and g_Game_IsNet then
@@ -1884,12 +1888,12 @@ begin
                       Exit;
 
                     // Наносим урон монстру
-                    if (TriggerType = TRIGGER_DAMAGE) and (Data.DamageValue > 0) then
-                      m.Damage(Data.DamageValue, 0, 0, 0, HIT_SOME);
+                    if (TriggerType = TRIGGER_DAMAGE) and (trigData.trigDamageValue > 0) then
+                      m.Damage(trigData.trigDamageValue, 0, 0, 0, HIT_SOME);
 
                     // Лечим монстра
-                    if (TriggerType = TRIGGER_HEALTH) and (Data.HealValue > 0) then
-                      if m.Heal(Data.HealValue) and (not Data.HealSilent) then
+                    if (TriggerType = TRIGGER_HEALTH) and (trigData.trigHealValue > 0) then
+                      if m.Heal(trigData.trigHealValue) and (not trigData.trigHealSilent) then
                       begin
                         g_Sound_PlayExAt('SOUND_ITEM_GETITEM', m.Obj.X, m.Obj.Y);
                         if g_Game_IsServer and g_Game_IsNet then
@@ -1899,9 +1903,9 @@ begin
               end;
               // Назначаем время следующего воздействия
               if TriggerType = TRIGGER_DAMAGE then
-                idx := Data.DamageInterval
+                idx := trigData.trigDamageInterval
               else
-                idx := Data.HealInterval;
+                idx := trigData.trigHealInterval;
               if coolDown then
                 if idx > 0 then
                   Activators[k].TimeOut := idx
@@ -1918,16 +1922,16 @@ begin
             Exit;
 
           // put this at the beginning so it doesn't trigger itself
-          TimeOut := Data.ShotWait + 1;
+          TimeOut := trigData.trigShotWait + 1;
 
-          wx := Data.ShotPos.X;
-          wy := Data.ShotPos.Y;
-          pAngle := -DegToRad(Data.ShotAngle);
+          wx := trigData.trigShotPos.X;
+          wy := trigData.trigShotPos.Y;
+          pAngle := -DegToRad(trigData.trigShotAngle);
           xd := wx + Round(Cos(pAngle) * 32.0);
           yd := wy + Round(Sin(pAngle) * 32.0);
           TargetUID := 0;
 
-          case Data.ShotTarget of
+          case trigData.trigShotTarget of
             TRIGGER_SHOT_TARGET_MON: // monsters
               //TODO: accelerate this!
               g_Mons_ForEachAlive(monsShotTarget);
@@ -2007,25 +2011,25 @@ begin
             end;
 
             else begin
-              if (Data.ShotTarget <> TRIGGER_SHOT_TARGET_NONE) or
-                 (Data.ShotType <> TRIGGER_SHOT_REV) then
+              if (trigData.trigShotTarget <> TRIGGER_SHOT_TARGET_NONE) or
+                 (trigData.trigShotType <> TRIGGER_SHOT_REV) then
                 TargetUID := ActivateUID;
             end;
           end;
 
-          if (Data.ShotTarget = TRIGGER_SHOT_TARGET_NONE) or (TargetUID > 0) or
-            ((Data.ShotTarget > TRIGGER_SHOT_TARGET_NONE) and (TargetUID = 0)) then
+          if (trigData.trigShotTarget = TRIGGER_SHOT_TARGET_NONE) or (TargetUID > 0) or
+            ((trigData.trigShotTarget > TRIGGER_SHOT_TARGET_NONE) and (TargetUID = 0)) then
           begin
             Result := True;
-            if (Data.ShotIntSight = 0) or
-               (Data.ShotTarget = TRIGGER_SHOT_TARGET_NONE) or
+            if (trigData.trigShotIntSight = 0) or
+               (trigData.trigShotTarget = TRIGGER_SHOT_TARGET_NONE) or
                (TargetUID = ShotSightTarget) then
               MakeShot(Trigger, wx, wy, xd, yd, TargetUID)
             else
             begin
-              ShotSightTime := Data.ShotIntSight;
+              ShotSightTime := trigData.trigShotIntSight;
               ShotSightTargetN := TargetUID;
-              if Data.ShotType = TRIGGER_SHOT_BFG then
+              if trigData.trigShotType = TRIGGER_SHOT_BFG then
               begin
                 g_Sound_PlayExAt('SOUND_WEAPON_STARTFIREBFG', wx, wy);
                 if g_Game_IsNet and g_Game_IsServer then
@@ -2037,11 +2041,11 @@ begin
 
       TRIGGER_EFFECT:
         begin
-          idx := Data.FXCount;
+          idx := trigData.trigFXCount;
 
           while idx > 0 do
           begin
-            case Data.FXPos of
+            case trigData.trigFXPos of
               TRIGGER_EFFECT_POS_CENTER:
               begin
                 wx := X + Width div 2;
@@ -2057,18 +2061,18 @@ begin
                 wy := Y + Height div 2;
               end;
             end;
-            xd := Data.FXVelX;
-            yd := Data.FXVelY;
-            if Data.FXSpreadL > 0 then xd := xd - Random(Data.FXSpreadL + 1);
-            if Data.FXSpreadR > 0 then xd := xd + Random(Data.FXSpreadR + 1);
-            if Data.FXSpreadU > 0 then yd := yd - Random(Data.FXSpreadU + 1);
-            if Data.FXSpreadD > 0 then yd := yd + Random(Data.FXSpreadD + 1);
+            xd := trigData.trigFXVelX;
+            yd := trigData.trigFXVelY;
+            if trigData.trigFXSpreadL > 0 then xd := xd - Random(trigData.trigFXSpreadL + 1);
+            if trigData.trigFXSpreadR > 0 then xd := xd + Random(trigData.trigFXSpreadR + 1);
+            if trigData.trigFXSpreadU > 0 then yd := yd - Random(trigData.trigFXSpreadU + 1);
+            if trigData.trigFXSpreadD > 0 then yd := yd + Random(trigData.trigFXSpreadD + 1);
             tr_MakeEffect(wx, wy, xd, yd,
-                       Data.FXType, Data.FXSubType,
-                       Data.FXColorR, Data.FXColorG, Data.FXColorB, True, False);
+                       trigData.trigFXType, trigData.trigFXSubType,
+                       trigData.trigFXColorR, trigData.trigFXColorG, trigData.trigFXColorB, True, False);
             Dec(idx);
           end;
-          TimeOut := Data.FXWait;
+          TimeOut := trigData.trigFXWait;
         end;
     end;
   end;
@@ -2127,30 +2131,30 @@ begin
 
 // Загружаем звук, если это триггер "Звук":
   if (Trigger.TriggerType = TRIGGER_SOUND) and
-     (Trigger.Data.SoundName <> '') then
+     (Trigger.trigData.trigSoundName <> '') then
   begin
   // Еще нет такого звука:
-    if not g_Sound_Exists(Trigger.Data.SoundName) then
+    if not g_Sound_Exists(Trigger.trigData.trigSoundName) then
     begin
-      fn := g_ExtractWadName(Trigger.Data.SoundName);
+      fn := g_ExtractWadName(Trigger.trigData.trigSoundName);
 
       if fn = '' then
         begin // Звук в файле с картой
           mapw := g_ExtractWadName(gMapInfo.Map);
-          fn := mapw+':'+g_ExtractFilePathName(Trigger.Data.SoundName);
+          fn := mapw+':'+g_ExtractFilePathName(Trigger.trigData.trigSoundName);
         end
       else // Звук в отдельном файле
-        fn := GameDir + '/wads/' + Trigger.Data.SoundName;
+        fn := GameDir + '/wads/' + Trigger.trigData.trigSoundName;
 
-      if not g_Sound_CreateWADEx(Trigger.Data.SoundName, fn) then
-        g_FatalError(Format(_lc[I_GAME_ERROR_TR_SOUND], [fn, Trigger.Data.SoundName]));
+      if not g_Sound_CreateWADEx(Trigger.trigData.trigSoundName, fn) then
+        g_FatalError(Format(_lc[I_GAME_ERROR_TR_SOUND], [fn, Trigger.trigData.trigSoundName]));
     end;
 
   // Создаем объект звука:
     with gTriggers[find_id] do
     begin
       Sound := TPlayableSound.Create();
-      if not Sound.SetByName(Trigger.Data.SoundName) then
+      if not Sound.SetByName(Trigger.trigData.trigSoundName) then
       begin
         Sound.Free();
         Sound := nil;
@@ -2160,23 +2164,23 @@ begin
 
 // Загружаем музыку, если это триггер "Музыка":
   if (Trigger.TriggerType = TRIGGER_MUSIC) and
-     (Trigger.Data.MusicName <> '') then
+     (Trigger.trigData.trigMusicName <> '') then
   begin
   // Еще нет такой музыки:
-    if not g_Sound_Exists(Trigger.Data.MusicName) then
+    if not g_Sound_Exists(Trigger.trigData.trigMusicName) then
     begin
-      fn := g_ExtractWadName(Trigger.Data.MusicName);
+      fn := g_ExtractWadName(Trigger.trigData.trigMusicName);
 
       if fn = '' then
         begin // Музыка в файле с картой
           mapw := g_ExtractWadName(gMapInfo.Map);
-          fn := mapw+':'+g_ExtractFilePathName(Trigger.Data.MusicName);
+          fn := mapw+':'+g_ExtractFilePathName(Trigger.trigData.trigMusicName);
         end
       else // Музыка в файле с картой
-        fn := GameDir+'/wads/'+Trigger.Data.MusicName;
+        fn := GameDir+'/wads/'+Trigger.trigData.trigMusicName;
 
-      if not g_Sound_CreateWADEx(Trigger.Data.MusicName, fn, True) then
-        g_FatalError(Format(_lc[I_GAME_ERROR_TR_SOUND], [fn, Trigger.Data.MusicName]));
+      if not g_Sound_CreateWADEx(Trigger.trigData.trigMusicName, fn, True) then
+        g_FatalError(Format(_lc[I_GAME_ERROR_TR_SOUND], [fn, Trigger.trigData.trigMusicName]));
     end;
   end;
 
@@ -2189,7 +2193,7 @@ begin
       ShotSightTimeout := 0;
       ShotSightTarget := 0;
       ShotSightTargetN := 0;
-      ShotAmmoCount := Trigger.Data.ShotAmmo;
+      ShotAmmoCount := Trigger.trigData.trigShotAmmo;
       ShotReloadTime := 0;
     end;
 
@@ -2249,7 +2253,7 @@ begin
             else
               Continue;
             // Считаем, что объект покинул зону действия триггера
-            if (Data.DamageInterval = 0) and (Activators[b].TimeOut < 65530) then
+            if (trigData.trigDamageInterval = 0) and (Activators[b].TimeOut < 65530) then
               Activators[b].TimeOut := 0;
           end;
 
@@ -2258,13 +2262,13 @@ begin
           if SpawnCooldown = 0 then
           begin
             // Если пришло время, спавним монстра:
-            if (TriggerType = TRIGGER_SPAWNMONSTER) and (Data.MonDelay > 0)  then
+            if (TriggerType = TRIGGER_SPAWNMONSTER) and (trigData.trigMonDelay > 0)  then
             begin
               ActivateUID := 0;
               ActivateTrigger(gTriggers[a], ACTIVATE_CUSTOM);
             end;
             // Если пришло время, спавним предмет:
-            if (TriggerType = TRIGGER_SPAWNITEM) and (Data.ItemDelay > 0) then
+            if (TriggerType = TRIGGER_SPAWNITEM) and (trigData.trigItemDelay > 0) then
             begin
               ActivateUID := 0;
               ActivateTrigger(gTriggers[a], ACTIVATE_CUSTOM);
@@ -2279,7 +2283,7 @@ begin
           begin
             Dec(ShotPanelTime);
             if ShotPanelTime = 0 then
-              g_Map_SwitchTexture(ShotPanelType, Data.ShotPanelID);
+              g_Map_SwitchTexture(ShotPanelType, trigShotPanelID);
           end;
           if ShotSightTime > 0 then
           begin
@@ -2297,7 +2301,7 @@ begin
           begin
             Dec(ShotReloadTime);
             if ShotReloadTime = 0 then
-              ShotAmmoCount := Data.ShotAmmo;
+              ShotAmmoCount := trigData.trigShotAmmo;
           end;
         end;
 
@@ -2305,60 +2309,60 @@ begin
         if Enabled and (TriggerType = TRIGGER_SOUND) and (Sound <> nil) then
           if (SoundPlayCount > 0) and (not Sound.IsPlaying()) then
           begin
-            if Data.PlayCount > 0 then // Если 0 - играем звук бесконечно
+            if trigData.trigPlayCount > 0 then // Если 0 - играем звук бесконечно
               SoundPlayCount := SoundPlayCount - 1;
-            if Data.Local then
-              Sound.PlayVolumeAt(X+(Width div 2), Y+(Height div 2), Data.Volume/255.0)
+            if trigData.trigLocal then
+              Sound.PlayVolumeAt(X+(Width div 2), Y+(Height div 2), trigData.trigVolume/255.0)
             else
-              Sound.PlayPanVolume((Data.Pan-127.0)/128.0, Data.Volume/255.0);
+              Sound.PlayPanVolume((trigData.trigPan-127.0)/128.0, trigData.trigVolume/255.0);
             if Sound.IsPlaying() and g_Game_IsNet and g_Game_IsServer then
               MH_SEND_TriggerSound(gTriggers[a]);
           end;
 
       // Триггер "Ловушка" - пора открывать:
-        if (TriggerType = TRIGGER_TRAP) and (DoorTime = 0) and (Data.PanelID <> -1) then
+        if (TriggerType = TRIGGER_TRAP) and (DoorTime = 0) and (trigPanelID <> -1) then
         begin
-          tr_OpenDoor(Data.PanelID, Data.NoSound, Data.d2d_doors);
+          tr_OpenDoor(trigPanelID, trigData.trigNoSound, trigData.trigd2d_doors);
           DoorTime := -1;
         end;
 
       // Триггер "Дверь 5 сек" - пора закрывать:
-        if (TriggerType = TRIGGER_DOOR5) and (DoorTime = 0) and (Data.PanelID <> -1) then
+        if (TriggerType = TRIGGER_DOOR5) and (DoorTime = 0) and (trigPanelID <> -1) then
         begin
         // Уже закрыта:
-          if gWalls[Data.PanelID].Enabled then
+          if gWalls[trigPanelID].Enabled then
             DoorTime := -1
           else // Пока открыта - закрываем
-            if tr_CloseDoor(Data.PanelID, Data.NoSound, Data.d2d_doors) then
+            if tr_CloseDoor(trigPanelID, trigData.trigNoSound, trigData.trigd2d_doors) then
               DoorTime := -1;
         end;
 
       // Триггер - расширитель или переключатель, и прошла задержка, и нажали нужное число раз:
         if (TriggerType in [TRIGGER_PRESS, TRIGGER_ON, TRIGGER_OFF, TRIGGER_ONOFF]) and
-           (PressTime = 0) and (PressCount >= Data.Count) then
+           (PressTime = 0) and (PressCount >= trigData.trigCount) then
         begin
         // Сбрасываем задержку активации:
           PressTime := -1;
         // Сбрасываем счетчик нажатий:
-          if Data.Count > 0 then
-            PressCount := PressCount - Data.Count
+          if trigData.trigCount > 0 then
+            PressCount := PressCount - trigData.trigCount
           else
             PressCount := 0;
 
         // Определяем изменяемые им триггеры:
           for b := 0 to High(gTriggers) do
-            if g_Collide(Data.tX, Data.tY, Data.tWidth, Data.tHeight, gTriggers[b].X, gTriggers[b].Y,
+            if g_Collide(trigData.trigtX, trigData.trigtY, trigData.trigtWidth, trigData.trigtHeight, gTriggers[b].X, gTriggers[b].Y,
                gTriggers[b].Width, gTriggers[b].Height) and
-               ((b <> a) or (Data.Wait > 0)) then
+               ((b <> a) or (trigData.trigWait > 0)) then
             begin // Can be self-activated, if there is Data.Wait
-              if (not Data.ExtRandom) or gTriggers[b].Enabled then
+              if (not trigData.trigExtRandom) or gTriggers[b].Enabled then
               begin
                 SetLength(Affected, Length(Affected) + 1);
                 Affected[High(Affected)] := b;
               end;
             end;
         // Выбираем один из триггеров для расширителя, если включен рандом:
-          if (TriggerType = TRIGGER_PRESS) and Data.ExtRandom then
+          if (TriggerType = TRIGGER_PRESS) and trigData.trigExtRandom then
           begin
             if (Length(Affected) > 0) then
             begin
@@ -2628,7 +2632,7 @@ begin
          (TriggerType = TRIGGER_DOOR5) or
          (TriggerType = TRIGGER_DOOR) then
       begin
-        tr_OpenDoor(Data.PanelID, True, Data.d2d_doors);
+        tr_OpenDoor(trigPanelID, True, trigData.trigd2d_doors);
         if TriggerType = TRIGGER_DOOR5 then DoorTime := 180;
         b := True;
       end;
@@ -2647,19 +2651,22 @@ procedure g_Triggers_Free();
 var
   a: Integer;
 begin
-  if gTriggers <> nil then
-    for a := 0 to High(gTriggers) do
+  for a := 0 to High(gTriggers) do
+  begin
+    gTriggers[a].trigData.Free();
+    if (gTriggers[a].TriggerType = TRIGGER_SOUND) then
     begin
-      if gTriggers[a].TriggerType = TRIGGER_SOUND then
+      if g_Sound_Exists(gTriggers[a].trigData.trigSoundName) then
       begin
-        if g_Sound_Exists(gTriggers[a].Data.SoundName) then
-          g_Sound_Delete(gTriggers[a].Data.SoundName);
-
-        gTriggers[a].Sound.Free();
+        g_Sound_Delete(gTriggers[a].trigData.trigSoundName);
       end;
-      if gTriggers[a].Activators <> nil then
-        SetLength(gTriggers[a].Activators, 0);
+      gTriggers[a].Sound.Free();
     end;
+    if (gTriggers[a].Activators <> nil) then
+    begin
+      SetLength(gTriggers[a].Activators, 0);
+    end;
+  end;
 
   gTriggers := nil;
   gSecretsCount := 0;
@@ -2672,7 +2679,7 @@ var
   dw: DWORD;
   sg: Single;
   b: Boolean;
-  p: Pointer;
+  //p: Pointer;
 begin
 // Считаем количество существующих триггеров:
   count := 0;
@@ -2696,8 +2703,9 @@ begin
   // Тип триггера:
     Mem.WriteByte(gTriggers[i].TriggerType);
   // Специальные данные триггера:
-    p := @gTriggers[i].Data;
-    Mem.WriteMemory(p, SizeOf(TTriggerData));
+  //!!!FIXME!!!
+    //p := @gTriggers[i].Data;
+    //Mem.WriteMemory(p, SizeOf(TTriggerData));
   // Координаты левого верхнего угла:
     Mem.WriteInt(gTriggers[i].X);
     Mem.WriteInt(gTriggers[i].Y);
@@ -2772,7 +2780,7 @@ var
   dw: DWORD;
   vol, pan: Single;
   b: Boolean;
-  p: Pointer;
+  //p: Pointer;
   Trig: TTrigger;
 begin
   if Mem = nil then
@@ -2797,12 +2805,15 @@ begin
   // Тип триггера:
     Mem.ReadByte(Trig.TriggerType);
   // Специальные данные триггера:
+  //!!!FIXME!!!
+    {
     Mem.ReadMemory(p, dw);
     if dw <> SizeOf(TTriggerData) then
     begin
       raise EBinSizeError.Create('g_Triggers_LoadState: Wrong TriggerData Size');
     end;
     Trig.Data := TTriggerData(p^);
+    }
   // Создаем триггер:
     i := g_Triggers_Create(Trig);
   // Координаты левого верхнего угла:

@@ -17,14 +17,6 @@
 {$M+}
 unit MAPDEF;
 
-{
------------------------------------
-MAPDEF.PAS ВЕРСИЯ ОТ 22.03.09
-
-Поддержка карт версии 1
------------------------------------
-}
-
 interface
 
 uses
@@ -43,7 +35,11 @@ const
 
 type
   TDFPoint = packed record
+  public
     X, Y: LongInt;
+
+  public
+    constructor Create (ax, ay: LongInt);
   end;
 
   Char16     = packed array[0..15] of Char;
@@ -55,221 +51,207 @@ type
 
 {$INCLUDE mapdef.inc}
 
+// various helpers to access map structures
 type
-  TTexturesRec1Array = array of TTextureRec_1;
-  TPanelsRec1Array = array of TPanelRec_1;
-  TItemsRec1Array = array of TItemRec_1;
-  TMonsterRec1Array = array of TMonsterRec_1;
-  TAreasRec1Array = array of TAreaRec_1;
-  TTriggersRec1Array = array of TTriggerRec_1;
+  TDynRecordHelper = class helper for TDynRecord
+  private
+    function getFieldWithType (const aname: AnsiString; atype: TDynField.TType): TDynField; inline;
 
+    function getPanelByIdx (idx: Integer): TDynRecord; inline;
 
-function GetMapHeader (rec: TDynRecord): TMapHeaderRec_1;
-function GetTextures (rec: TDynRecord): TTexturesRec1Array;
-function GetPanels (rec: TDynRecord): TPanelsRec1Array;
-function GetItems (rec: TDynRecord): TItemsRec1Array;
-function GetAreas (rec: TDynRecord): TAreasRec1Array;
-function GetMonsters (rec: TDynRecord): TMonsterRec1Array;
-function GetTriggers (rec: TDynRecord): TTriggersRec1Array;
+    function getPanelId (): Integer; inline;
+    //procedure setPanelId (v: Integer); inline;
 
+    function getTexturePanel (): Integer; inline;
+    //procedure setTexturePanel (v: Integer); inline;
+
+    function getPanelIndex (pan: TDynRecord): Integer;
+
+    function getPointField (const aname: AnsiString): TDFPoint; inline;
+
+  public
+    function panelCount (): Integer; inline;
+
+    // header
+    function mapName (): AnsiString; inline;
+    function mapAuthor (): AnsiString; inline;
+    function mapDesc (): AnsiString; inline;
+    function musicName (): AnsiString; inline;
+    function skyName (): AnsiString; inline;
+
+    // panel
+    function X (): Integer; inline;
+    function Y (): Integer; inline;
+    function Width (): Word; inline;
+    function Height (): Word; inline;
+    function TextureNum (): Word; inline;
+    function TextureRec (): TDynRecord; inline;
+    function PanelType (): Word; inline;
+    function Alpha (): Byte; inline;
+    function Flags (): Byte; inline;
+
+    // texture
+    function Resource (): AnsiString; inline;
+    function Anim (): Boolean; inline;
+
+    // item
+    function ItemType (): Byte; inline;
+    function Options (): Byte; inline;
+
+    // monster
+    function MonsterType (): Byte; inline; // type, ubyte
+    function Direction (): Byte; inline; // direction, ubyte
+
+    // area
+    function AreaType (): Byte; inline; // type, ubyte
+    //function Direction (): Byte; inline; // direction, ubyte
+
+    // trigger
+    function trigRec (): TDynRecord; inline;
+    function Enabled (): Boolean; inline; // enabled, bool
+    function TriggerType (): Byte; inline; // type, ubyte
+    function ActivateType (): Byte; inline; // activatetype, ubyte
+    function Keys (): Byte; inline; // keys, ubyte
+    //function DATA (): Byte128; inline; // triggerdata, trigdata[128]; // the only special nested structure
+
+    {$INCLUDE mapdef_help.inc}
+    function trigMonsterId (): Integer; inline;
+
+  public
+    property panel[idx: Integer]: TDynRecord read getPanelByIdx;
+    property panelIndex[pan: TDynRecord]: Integer read getPanelIndex;
+    // triggers
+    property tgPanelID: Integer read getPanelId {write setPanelId};
+    property tgShotPanelID: Integer read getPanelId {write setPanelId};
+    property TexturePanel: Integer read getTexturePanel {write setTexturePanel}; // texturepanel, int
+  end;
 
 implementation
 
 uses
-  {e_log,} xparser, xstreams;
+  SysUtils, {e_log,} utils, xparser, xstreams;
 
 
-function GetMapHeader (rec: TDynRecord): TMapHeaderRec_1;
-var
-  ws: TSFSMemoryChunkStream = nil;
+// ////////////////////////////////////////////////////////////////////////// //
+constructor TDFPoint.Create (ax, ay: LongInt); begin X := ax; Y := ay; end;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
+function TDynRecordHelper.getFieldWithType (const aname: AnsiString; atype: TDynField.TType): TDynField; inline;
 begin
-  FillChar(result, sizeof(result), 0);
-  if (rec = nil) then exit;
-  try
-    ws := TSFSMemoryChunkStream.Create(@result, sizeof(result));
-    rec.writeBinTo(ws, -1, true); // only fields
-  except // sorry
-    FillChar(result, sizeof(result), 0);
-  end;
-  ws.Free();
+  result := field[aname];
+  if (result = nil) then raise Exception.Create(Format('field ''%s'' not found in record ''%s'' of type ''%s''', [aname, name, id]));
+  if (result.baseType <> atype) then raise Exception.Create(Format('field ''%s'' in record ''%s'' of type ''%s'' has invalid data type', [aname, name, id]));
 end;
 
 
-function GetTextures (rec: TDynRecord): TTexturesRec1Array;
+function TDynRecordHelper.getPointField (const aname: AnsiString): TDFPoint; inline;
 var
-  ws: TSFSMemoryChunkStream = nil;
+  fld: TDynField;
+begin
+  fld := field[aname];
+  if (fld = nil) then raise Exception.Create(Format('field ''%s'' not found in record ''%s'' of type ''%s''', [aname, name, id]));
+  if (fld.baseType <> TPoint) then raise Exception.Create(Format('field ''%s'' in record ''%s'' of type ''%s'' has invalid data type', [aname, name, id]));
+  result := TDFPoint.Create(fld.ival, fld.ival2);
+end;
+
+
+function TDynRecordHelper.getPanelByIdx (idx: Integer): TDynRecord; inline;
+var
+  fld: TDynField;
+begin
+  fld := headerRec['panel'];
+  if (fld <> nil) then result := fld.item[idx] else result := nil;
+end;
+
+
+function TDynRecordHelper.getPanelIndex (pan: TDynRecord): Integer;
+var
   fld: TDynField;
   f: Integer;
 begin
-  result := nil;
-  fld := rec.field['texture'];
-  if (fld = nil) or (fld.baseType <> fld.TType.TList) or (fld.count = 0) then exit;
-  ws := TSFSMemoryChunkStream.Create(nil, 0);
-  try
-    SetLength(result, fld.count);
-    for f := 0 to fld.count-1 do
+  result := -1;
+  if (pan <> nil) then
+  begin
+    fld := headerRec['panel'];
+    if (fld <> nil) then
     begin
-      FillChar(result[f], sizeof(result[f]), 0);
-      ws.setup(@result[f], sizeof(result[f]));
-      fld.item[f].writeBinTo(ws, -1, true); // only fields
+      for f := 0 to fld.count-1 do if (fld.item[f] = pan) then begin result := f; exit; end;
     end;
-  except
-    result := nil;
   end;
-  ws.Free();
 end;
 
 
-function GetPanels (rec: TDynRecord): TPanelsRec1Array;
+function TDynRecordHelper.panelCount (): Integer; inline;
 var
-  ws: TSFSMemoryChunkStream = nil;
   fld: TDynField;
-  f: Integer;
 begin
-  result := nil;
-  fld := rec.field['panel'];
-  if (fld = nil) or (fld.baseType <> fld.TType.TList) or (fld.count = 0) then exit;
-  ws := TSFSMemoryChunkStream.Create(nil, 0);
-  try
-    SetLength(result, fld.count);
-    for f := 0 to fld.count-1 do
-    begin
-      FillChar(result[f], sizeof(result[f]), 0);
-      ws.setup(@result[f], sizeof(result[f]));
-      fld.item[f].writeBinTo(ws, -1, true); // only fields
-    end;
-  except
-    result := nil;
-  end;
-  ws.Free();
+  fld := headerRec['panel'];
+  if (fld <> nil) then result := fld.count else result := 0;
 end;
 
 
-function GetItems (rec: TDynRecord): TItemsRec1Array;
+function TDynRecordHelper.TextureNum (): Word; inline;
 var
-  ws: TSFSMemoryChunkStream = nil;
+  idx: Integer;
   fld: TDynField;
-  f: Integer;
 begin
-  result := nil;
-  fld := rec.field['item'];
-  if (fld = nil) or (fld.baseType <> fld.TType.TList) or (fld.count = 0) then exit;
-  ws := TSFSMemoryChunkStream.Create(nil, 0);
-  try
-    SetLength(result, fld.count);
-    for f := 0 to fld.count-1 do
-    begin
-      FillChar(result[f], sizeof(result[f]), 0);
-      ws.setup(@result[f], sizeof(result[f]));
-      fld.item[f].writeBinTo(ws, -1, true); // only fields
-    end;
-  except
-    result := nil;
-  end;
-  ws.Free();
+  fld := getFieldWithType('texture', TDynField.TType.TUShort);
+  idx := fld.recrefIndex;
+  if (idx < 0) then result := Word(TEXTURE_NONE) else result := Word(idx);
 end;
 
 
-function GetAreas (rec: TDynRecord): TAreasRec1Array;
+// ////////////////////////////////////////////////////////////////////////// //
+// trigger
+function TDynRecordHelper.trigRec (): TDynRecord; inline;
 var
-  ws: TSFSMemoryChunkStream = nil;
   fld: TDynField;
-  f: Integer;
 begin
-  result := nil;
-  fld := rec.field['area'];
-  if (fld = nil) or (fld.baseType <> fld.TType.TList) or (fld.count = 0) then exit;
-  ws := TSFSMemoryChunkStream.Create(nil, 0);
-  try
-    SetLength(result, fld.count);
-    for f := 0 to fld.count-1 do
-    begin
-      FillChar(result[f], sizeof(result[f]), 0);
-      ws.setup(@result[f], sizeof(result[f]));
-      fld.item[f].writeBinTo(ws, -1, true); // only fields
-    end;
-  except
-    result := nil;
-  end;
-  ws.Free();
+  fld := getFieldWithType('triggerdata', TDynField.TType.TTrigData);
+  if (fld <> nil) then result := fld.recref else result := nil;
 end;
 
 
-function GetMonsters (rec: TDynRecord): TMonsterRec1Array;
+function TDynRecordHelper.trigMonsterId (): Integer; inline;
 var
-  ws: TSFSMemoryChunkStream = nil;
   fld: TDynField;
-  f: Integer;
 begin
-  result := nil;
-  fld := rec.field['monster'];
-  if (fld = nil) or (fld.baseType <> fld.TType.TList) or (fld.count = 0) then exit;
-  ws := TSFSMemoryChunkStream.Create(nil, 0);
-  try
-    SetLength(result, fld.count);
-    for f := 0 to fld.count-1 do
-    begin
-      FillChar(result[f], sizeof(result[f]), 0);
-      ws.setup(@result[f], sizeof(result[f]));
-      fld.item[f].writeBinTo(ws, -1, true); // only fields
-    end;
-  except
-    result := nil;
-  end;
-  ws.Free();
+  fld := getFieldWithType('monsterid', TDynField.TType.TInt);
+  result := fld.recrefIndex;
 end;
 
 
-function GetTriggers (rec: TDynRecord): TTriggersRec1Array;
-var
-  ws: TSFSMemoryChunkStream = nil;
-  fld: TDynField;
-  f: Integer;
-  //wr: TTextWriter;
-  //fo: File;
-begin
-  result := nil;
-  fld := rec.field['trigger'];
-  if (fld = nil) or (fld.baseType <> fld.TType.TList) or (fld.count = 0) then exit;
-  ws := TSFSMemoryChunkStream.Create(nil, 0);
-  try
-    //wr := TFileTextWriter.Create('z00.txt');
-    SetLength(result, fld.count);
-    for f := 0 to fld.count-1 do
-    begin
-      FillChar(result[f], sizeof(result[f]), 0);
-      //e_LogWritefln(': trigger #%s; TexturePanel=%s', [f, result[f].TexturePanel]);
-      ws.setup(@result[f], sizeof(result[f]));
-      fld.item[f].writeBinTo(ws, -1, true); // only fields
-      {
-      e_LogWritefln(': trigger #%s; X=%s; Y=%s; Width=%s; Height=%s; Enabled=%s; TexturePanel=%s; TriggerType=%s; ActivateType=%s; Keys=%s', [f,
-       result[f].X,
-       result[f].Y,
-       result[f].Width,
-       result[f].Height,
-       result[f].Enabled,
-       result[f].TexturePanel,
-       result[f].TriggerType,
-       result[f].ActivateType,
-       result[f].Keys
-       ]);
-      //e_LogWritefln('***'#10'%s'#10'***', [);
-      fld.item[f].writeTo(wr);
-      if (f = 0) then
-      begin
-        AssignFile(fo, 'z00.bin');
-        Rewrite(fo, 1);
-        BlockWrite(fo, result[f], sizeof(result[f]));
-        CloseFile(fo);
-      end;
-      }
-    end;
-    //wr.Free();
-  except
-    result := nil;
-  end;
-  ws.Free();
-end;
+// ////////////////////////////////////////////////////////////////////////// //
+function TDynRecordHelper.mapName (): AnsiString; inline; begin result := utf2win(getFieldWithType('name', TDynField.TType.TChar).sval); end;
+function TDynRecordHelper.mapAuthor (): AnsiString; inline; begin result := utf2win(getFieldWithType('author', TDynField.TType.TChar).sval); end;
+function TDynRecordHelper.mapDesc (): AnsiString; inline; begin result := utf2win(getFieldWithType('description', TDynField.TType.TChar).sval); end;
+function TDynRecordHelper.musicName (): AnsiString; inline; begin result := utf2win(getFieldWithType('music', TDynField.TType.TChar).sval); end;
+function TDynRecordHelper.skyName (): AnsiString; inline; begin result := utf2win(getFieldWithType('sky', TDynField.TType.TChar).sval); end;
+function TDynRecordHelper.X (): Integer; inline; begin result := getFieldWithType('position', TDynField.TType.TPoint).ival; end;
+function TDynRecordHelper.Y (): Integer; inline; begin result := getFieldWithType('position', TDynField.TType.TPoint).ival2; end;
+function TDynRecordHelper.Width (): Word; inline; begin result := Word(getFieldWithType('size', TDynField.TType.TSize).ival); end;
+function TDynRecordHelper.Height (): Word; inline; begin result := Word(getFieldWithType('size', TDynField.TType.TSize).ival2); end;
+function TDynRecordHelper.PanelType (): Word; inline; begin result := Word(getFieldWithType('type', TDynField.TType.TUShort).ival); end;
+function TDynRecordHelper.TextureRec (): TDynRecord; inline; begin result := getFieldWithType('texture', TDynField.TType.TUShort).recref; end;
+function TDynRecordHelper.Alpha (): Byte; inline; begin result := Byte(getFieldWithType('alpha', TDynField.TType.TUByte).ival); end;
+function TDynRecordHelper.Flags (): Byte; inline; begin result := Byte(getFieldWithType('flags', TDynField.TType.TUByte).ival); end;
+function TDynRecordHelper.Resource (): AnsiString; inline; begin result := utf2win(getFieldWithType('path', TDynField.TType.TChar).sval); end;
+function TDynRecordHelper.Anim (): Boolean; inline; begin result := (getFieldWithType('animated', TDynField.TType.TBool).ival <> 0); end;
+function TDynRecordHelper.ItemType (): Byte; inline; begin result := Byte(getFieldWithType('type', TDynField.TType.TUByte).ival); end;
+function TDynRecordHelper.Options (): Byte; inline; begin result := Byte(getFieldWithType('options', TDynField.TType.TUByte).ival); end;
+function TDynRecordHelper.MonsterType (): Byte; inline; begin result := Byte(getFieldWithType('type', TDynField.TType.TUByte).ival); end;
+function TDynRecordHelper.Direction (): Byte; inline; begin result := Byte(getFieldWithType('direction', TDynField.TType.TUByte).ival); end;
+function TDynRecordHelper.AreaType (): Byte; inline; begin result := Byte(getFieldWithType('type', TDynField.TType.TUByte).ival); end;
+function TDynRecordHelper.Enabled (): Boolean; inline; begin result := (getFieldWithType('enabled', TDynField.TType.TBool).ival <> 0); end;
+function TDynRecordHelper.TriggerType (): Byte; inline; begin result := Byte(getFieldWithType('type', TDynField.TType.TUByte).ival); end;
+function TDynRecordHelper.ActivateType (): Byte; inline; begin result := Byte(getFieldWithType('activatetype', TDynField.TType.TUByte).ival); end;
+function TDynRecordHelper.Keys (): Byte; inline; begin result := Byte(getFieldWithType('keys', TDynField.TType.TUByte).ival); end;
+
+function TDynRecordHelper.getPanelId (): Integer; inline; begin result := getFieldWithType('panelid', TDynField.TType.TInt).recrefIndex; end;
+function TDynRecordHelper.getTexturePanel (): Integer; begin result := getFieldWithType('texturepanel', TDynField.TType.TInt).recrefIndex; end;
+
+{$INCLUDE mapdef_impl.inc}
 
 
 end.

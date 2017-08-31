@@ -19,7 +19,7 @@ unit g_panel;
 interface
 
 uses
-  MAPDEF, BinEditor, g_textures;
+  MAPDEF, BinEditor, g_textures, xdynrec;
 
 type
   TAddTextureArray = Array of
@@ -63,7 +63,7 @@ type
     tag:              Integer; // used in coldets and such; sorry
     proxyId:          Integer; // proxy id in map grid (DO NOT USE!)
 
-    constructor Create(PanelRec: TPanelRec_1;
+    constructor Create(PanelRec: TDynRecord;
                        AddTextures: TAddTextureArray;
                        CurTex: Integer;
                        var Textures: TLevelTextureArray);
@@ -102,7 +102,7 @@ const
 
 { T P a n e l : }
 
-constructor TPanel.Create(PanelRec: TPanelRec_1;
+constructor TPanel.Create(PanelRec: TDynRecord;
                           AddTextures: TAddTextureArray;
                           CurTex: Integer;
                           var Textures: TLevelTextureArray);

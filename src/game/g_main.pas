@@ -302,7 +302,8 @@ begin
         if gTriggers[a].TriggerType = TRIGGER_EXIT then
         begin
           gExitByTrigger := True;
-          g_Game_ExitLevel(gTriggers[a].Data.MapName);
+          //g_Game_ExitLevel(gTriggers[a].Data.MapName);
+          g_Game_ExitLevel(gTriggers[a].trigData.trigMapName);
           Break;
         end;
     goto Cheated;

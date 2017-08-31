@@ -2517,10 +2517,10 @@ begin
         begin
           if SPlaying then
           begin
-            if Data.Local then
-              Sound.PlayVolumeAt(X+(Width div 2), Y+(Height div 2), Data.Volume/255.0)
+            if trigData.trigLocal then
+              Sound.PlayVolumeAt(X+(Width div 2), Y+(Height div 2), trigData.trigVolume/255.0)
             else
-              Sound.PlayPanVolume((Data.Pan-127.0)/128.0, Data.Volume/255.0);
+              Sound.PlayPanVolume((trigData.trigPan-127.0)/128.0, trigData.trigVolume/255.0);
             Sound.SetPosition(SPos);
           end
           else

@@ -63,7 +63,6 @@ type
     mRecRef: TDynRecord; // for TEBS.TRec
     mMaxDim: Integer; // for byte and char arrays; <0: not an array; 0: impossible value
     mBinOfs: Integer; // offset in binary; <0 - none
-    mRecOfs: Integer; // offset in record; <0 - none
     mSepPosSize: Boolean; // for points and sizes, use separate fields
     mAsT: Boolean; // for points and sizes, use separate fields, names starts with `t`
     mDefined: Boolean;
@@ -85,6 +84,10 @@ type
     // for binary parser
     mRecRefId: AnsiString;
 
+    // for userdata
+    mTagInt: Integer;
+    mTagPtr: Pointer;
+
   private
     procedure cleanup ();
 
@@ -98,9 +101,26 @@ type
     function getListItem (idx: Integer): TDynRecord; inline; overload;
     function getListItem (const aname: AnsiString): TDynRecord; inline; overload;
 
+    function getRecRefIndex (): Integer;
+
+    procedure setIVal (v: Integer); inline;
+
   protected
     // returns `true` for duplicate record id
     function addListItem (rec: TDynRecord): Boolean; inline;
+
+  public
+    type
+      TListEnumerator = record
+      private
+        mList: TDynRecList;
+        mCurIdx: Integer;
+      public
+        constructor Create (alist: TDynRecList);
+        function MoveNext (): Boolean; inline;
+        function getCurrent (): TDynRecord; inline;
+        property Current: TDynRecord read getCurrent;
+      end;
 
   public
     constructor Create (const aname: AnsiString; atype: TType);
@@ -125,28 +145,35 @@ type
 
     procedure setValue (const s: AnsiString);
 
+    function GetEnumerator (): TListEnumerator;
+
   public
     property pasname: AnsiString read mPasName;
     property name: AnsiString read mName;
     property baseType: TType read mType;
+    property negbool: Boolean read mNegBool;
     property defined: Boolean read mDefined write mDefined;
     property internal: Boolean read mInternal write mInternal;
-    property ival: Integer read mIVal;
+    property hasTPrefix: Boolean read mAsT;
+    property separatePasFields: Boolean read mSepPosSize;
+    property binOfs: Integer read mBinOfs;
+    property ival: Integer read mIVal write setIVal;
+    property ival2: Integer read mIVal2;
     property sval: AnsiString read mSVal;
     property hasDefault: Boolean read mHasDefault;
     property defsval: AnsiString read mDefSVal;
     property ebs: TEBS read mEBS;
     property ebstype: TObject read mEBSType;
     property ebstypename: AnsiString read mEBSTypeName; // enum/bitset name
+    property recref: TDynRecord read mRecRef write mRecRef; //FIXME: writing is a hack!
+    property recrefIndex: Integer read getRecRefIndex; // search for this record in header; -1: not found
     // for lists
     property count: Integer read getListCount;
     property item[idx: Integer]: TDynRecord read getListItem;
     property items[const aname: AnsiString]: TDynRecord read getListItem; default; // alas, FPC 3+ lost property overloading feature
-
-    property x: Integer read mIVal;
-    property w: Integer read mIVal;
-    property y: Integer read mIVal2;
-    property h: Integer read mIVal2;
+    // userdata
+    property tagInt: Integer read mTagInt write mTagInt;
+    property tagPtr: Pointer read mTagPtr write mTagPtr;
   end;
 
 
@@ -167,15 +194,24 @@ type
     mBinBlock: Integer; // -1: none
     mHeaderRec: TDynRecord; // for "value" records this is header record with data, for "type" records this is header type record
 
+    // for userdata
+    mTagInt: Integer;
+    mTagPtr: Pointer;
+
   private
     procedure parseDef (pr: TTextParser); // parse definition
 
     function findByName (const aname: AnsiString): Integer; inline;
     function hasByName (const aname: AnsiString): Boolean; inline;
     function getFieldByName (const aname: AnsiString): TDynField; inline;
+    function getFieldAt (idx: Integer): TDynField; inline;
+    function getCount (): Integer; inline;
 
     function getIsTrigData (): Boolean; inline;
     function getIsForTrig (const aname: AnsiString): Boolean; inline;
+
+    function getForTrigCount (): Integer; inline;
+    function getForTrigAt (idx: Integer): AnsiString; inline;
 
   protected
     function findRecordByTypeId (const atypename, aid: AnsiString): TDynRecord;
@@ -216,11 +252,18 @@ type
     property size: Integer read mSize; // size in bytes
     //property fields: TDynFieldList read mFields;
     property has[const aname: AnsiString]: Boolean read hasByName;
-    property field[const aname: AnsiString]: TDynField read getFieldByName;
+    property count: Integer read getCount;
+    property field[const aname: AnsiString]: TDynField read getFieldByName; default;
+    property fieldAt[idx: Integer]: TDynField read getFieldAt;
     property isTrigData: Boolean read getIsTrigData;
     property isForTrig[const aname: AnsiString]: Boolean read getIsForTrig;
-    property headerType: TDynRecord read mHeaderRec;
+    property forTrigCount: Integer read getForTrigCount;
+    property forTrigAt[idx: Integer]: AnsiString read getForTrigAt;
+    property headerRec: TDynRecord read mHeaderRec;
     property isHeader: Boolean read mHeader;
+    // userdata
+    property tagInt: Integer read mTagInt write mTagInt;
+    property tagPtr: Pointer read mTagPtr write mTagPtr;
   end;
 
   TDynEBS = class
@@ -271,6 +314,9 @@ type
 
     function getHeaderRecType (): TDynRecord; inline;
 
+    function getTrigTypeCount (): Integer; inline;
+    function getTrigTypeAt (idx: Integer): TDynRecord; inline;
+
   public
     constructor Create (pr: TTextParser); // parses data definition
     destructor Destroy (); override;
@@ -280,6 +326,7 @@ type
     function findEBSType (const aname: AnsiString): TDynEBS;
 
     function pasdef (): AnsiString;
+    function pasdefconst (): AnsiString;
 
     // creates new header record
     function parseMap (pr: TTextParser): TDynRecord;
@@ -289,6 +336,8 @@ type
 
   public
     property headerType: TDynRecord read getHeaderRecType;
+    property trigTypeCount: Integer read getTrigTypeCount;
+    property trigType[idx: Integer]: TDynRecord read getTrigTypeAt;
   end;
 
 
@@ -306,6 +355,33 @@ uses
 
 // ////////////////////////////////////////////////////////////////////////// //
 function StrEqu (const a, b: AnsiString): Boolean; inline; begin result := (a = b); end;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
+constructor TDynField.TListEnumerator.Create (alist: TDynRecList);
+begin
+  mList := alist;
+  mCurIdx := -1;
+end;
+
+
+function TDynField.TListEnumerator.MoveNext (): Boolean; inline;
+begin
+  Inc(mCurIdx);
+  result := (mList <> nil) and (mCurIdx < mList.count);
+end;
+
+
+function TDynField.TListEnumerator.getCurrent (): TDynRecord; inline;
+begin
+  result := mList[mCurIdx];
+end;
+
+
+function TDynField.GetEnumerator (): TListEnumerator;
+begin
+  result := TListEnumerator.Create(mRVal);
+end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
@@ -353,7 +429,6 @@ begin
   mRecRef := nil;
   mMaxDim := -1;
   mBinOfs := -1;
-  mRecOfs := -1;
   mSepPosSize := false;
   mAsT := false;
   mHasDefault := false;
@@ -372,6 +447,8 @@ begin
   mAsMonsterId := false;
   mNegBool := false;
   mRecRefId := '';
+  mTagInt := 0;
+  mTagPtr := nil;
 end;
 
 
@@ -397,7 +474,6 @@ begin
   result.mRecRef := mRecRef;
   result.mMaxDim := mMaxDim;
   result.mBinOfs := mBinOfs;
-  result.mRecOfs := mRecOfs;
   result.mSepPosSize := mSepPosSize;
   result.mAsT := mAsT;
   result.mDefined := mDefined;
@@ -416,6 +492,16 @@ begin
   result.mEBSTypeName := mEBSTypeName;
   result.mEBSType := mEBSType;
   result.mRecRefId := mRecRefId;
+  result.mTagInt := mTagInt;
+  result.mTagPtr := mTagPtr;
+end;
+
+
+procedure TDynField.setIVal (v: Integer); inline;
+begin
+  //FIXME: check type
+  mIVal := v;
+  mDefined := true;
 end;
 
 
@@ -590,7 +676,7 @@ begin
   result := mPasName+' is '+quoteStr(mName)+' type ';
   result += getTypeName(mType);
   if (mMaxDim >= 0) then result += Format('[%d]', [mMaxDim]);
-  if (mRecOfs >= 0) then result += Format(' offset %d', [mRecOfs]);
+  if (mBinOfs >= 0) then result += Format(' offset %d', [mBinOfs]);
   case mEBS of
     TEBS.TNone: begin end;
     TEBS.TRec: result += ' '+mEBSTypeName;
@@ -814,11 +900,17 @@ begin
   self.mAsMonsterId := asmonid;
   self.mMaxDim := lmaxdim;
   self.mBinOfs := fldofs;
-  self.mRecOfs := fldofs;
   self.mSepPosSize := (asxy or aswh);
   self.mAsT := ast;
   self.mOmitDef := omitdef;
   self.mInternal := ainternal;
+end;
+
+
+function TDynField.getRecRefIndex (): Integer;
+begin
+  if (mRecRef = nil) then begin result := -1; exit; end;
+  result := mOwner.findRecordNumByType(mEBSTypeName, mRecRef);
 end;
 
 
@@ -1121,6 +1213,7 @@ begin
   end;
   raise Exception.Create(Format('cannot parse field ''%s'' yet', [mName]));
 end;
+
 
 procedure TDynField.parseBinValue (st: TStream);
 var
@@ -1564,6 +1657,8 @@ begin
   mHeader := false;
   mHeaderRec := nil;
   mBinBlock := -1;
+  mTagInt := 0;
+  mTagPtr := nil;
   parseDef(pr);
 end;
 
@@ -1579,6 +1674,8 @@ begin
   mTrigTypes := nil;
   mHeader := false;
   mHeaderRec := nil;
+  mTagInt := 0;
+  mTagPtr := nil;
 end;
 
 
@@ -1593,6 +1690,8 @@ begin
   {$ENDIF}
   mTrigTypes := nil;
   mHeaderRec := nil;
+  mTagInt := 0;
+  mTagPtr := nil;
   inherited;
 end;
 
@@ -1652,6 +1751,18 @@ begin
 end;
 
 
+function TDynRecord.getFieldAt (idx: Integer): TDynField; inline;
+begin
+  if (idx >= 0) and (idx < mFields.count) then result := mFields[idx] else result := nil;
+end;
+
+
+function TDynRecord.getCount (): Integer; inline;
+begin
+  result := mFields.count;
+end;
+
+
 function TDynRecord.getIsTrigData (): Boolean; inline;
 begin
   result := (Length(mTrigTypes) > 0);
@@ -1665,6 +1776,18 @@ begin
   result := true;
   for f := 0 to High(mTrigTypes) do if StrEqu(mTrigTypes[f], aname) then exit;
   result := false;
+end;
+
+
+function TDynRecord.getForTrigCount (): Integer; inline;
+begin
+  result := Length(mTrigTypes);
+end;
+
+
+function TDynRecord.getForTrigAt (idx: Integer): AnsiString; inline;
+begin
+  if (idx >= 0) and (idx < Length(mTrigTypes)) then result := mTrigTypes[idx] else result := '';
 end;
 
 
@@ -1689,6 +1812,8 @@ begin
   result.mHeader := mHeader;
   result.mBinBlock := mBinBlock;
   result.mHeaderRec := mHeaderRec;
+  result.mTagInt := mTagInt;
+  result.mTagPtr := mTagPtr;
 end;
 
 
@@ -2813,6 +2938,21 @@ begin
   end;
   result += '  end;'#10;
 end;
+
+
+function TDynMapDef.pasdefconst (): AnsiString;
+var
+  ebs: TDynEBS;
+begin
+  result := '';
+  result += '// ////////////////////////////////////////////////////////////////////////// //'#10;
+  result += '// enums and bitsets'#10;
+  for ebs in ebsTypes do result += #10+ebs.pasdef();
+end;
+
+
+function TDynMapDef.getTrigTypeCount (): Integer; inline; begin result := trigTypes.count; end;
+function TDynMapDef.getTrigTypeAt (idx: Integer): TDynRecord; inline; begin if (idx >= 0) and (idx < trigTypes.count) then result := trigTypes[idx] else result := nil; end;
 
 
 end.
