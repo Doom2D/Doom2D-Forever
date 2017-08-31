@@ -14,6 +14,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *)
 {$INCLUDE a_modes.inc}
+{.$DEFINE XDYNREC_USE_FIELDHASH} // actually, it is SLOWER with this
 unit xdynrec;
 
 interface
@@ -94,7 +95,12 @@ type
     function isDefaultValue (): Boolean;
 
     function getListCount (): Integer; inline;
-    function getListItem (idx: Integer): TDynRecord; inline;
+    function getListItem (idx: Integer): TDynRecord; inline; overload;
+    function getListItem (const aname: AnsiString): TDynRecord; inline; overload;
+
+  protected
+    // returns `true` for duplicate record id
+    function addListItem (rec: TDynRecord): Boolean; inline;
 
   public
     constructor Create (const aname: AnsiString; atype: TType);
@@ -132,9 +138,10 @@ type
     property ebs: TEBS read mEBS;
     property ebstype: TObject read mEBSType;
     property ebstypename: AnsiString read mEBSTypeName; // enum/bitset name
-    //property list: TDynRecList read mRVal; // for list
+    // for lists
     property count: Integer read getListCount;
     property item[idx: Integer]: TDynRecord read getListItem;
+    property items[const aname: AnsiString]: TDynRecord read getListItem; default; // alas, FPC 3+ lost property overloading feature
 
     property x: Integer read mIVal;
     property w: Integer read mIVal;
@@ -152,6 +159,9 @@ type
     mName: AnsiString;
     mSize: Integer;
     mFields: TDynFieldList;
+    {$IF DEFINED(XDYNREC_USE_FIELDHASH)}
+    mFieldsHash: THashStrInt; // id -> index in mRVal
+    {$ENDIF}
     mTrigTypes: array of AnsiString; // if this is triggerdata, we'll hold list of triggers here
     mHeader: Boolean; // true for header record
     mBinBlock: Integer; // -1: none
@@ -170,7 +180,10 @@ type
   protected
     function findRecordByTypeId (const atypename, aid: AnsiString): TDynRecord;
     function findRecordNumByType (const atypename: AnsiString; rc: TDynRecord): Integer;
-    procedure addRecordByType (const atypename: AnsiString; rc: TDynRecord);
+    function addRecordByType (const atypename: AnsiString; rc: TDynRecord): Boolean; // `true`: duplicate record id
+
+    procedure addField (fld: TDynField); inline;
+    function addFieldChecked (fld: TDynField): Boolean; inline; // `true`: duplicate name
 
   public
     constructor Create ();
@@ -201,7 +214,7 @@ type
     property pasname: AnsiString read mPasName;
     property name: AnsiString read mName; // record name
     property size: Integer read mSize; // size in bytes
-    property fields: TDynFieldList read mFields;
+    //property fields: TDynFieldList read mFields;
     property has[const aname: AnsiString]: Boolean read hasByName;
     property field[const aname: AnsiString]: TDynField read getFieldByName;
     property isTrigData: Boolean read getIsTrigData;
@@ -364,7 +377,7 @@ end;
 
 function TDynField.clone (newOwner: TDynRecord=nil): TDynField;
 var
-  rec, nrc: TDynRecord;
+  rec: TDynRecord;
 begin
   result := TDynField.Create(mName, mType);
   result.mOwner := mOwner;
@@ -379,12 +392,7 @@ begin
   begin
     if (result.mRVal = nil) then result.mRVal := TDynRecList.Create(mRVal.count);
     if (result.mRHash = nil) then result.mRHash := hashNewStrInt();
-    for rec in mRVal do
-    begin
-      nrc := rec.clone();
-      result.mRVal.append(nrc);
-      if (Length(nrc.mId) > 0) then result.mRHash.put(nrc.mId, result.mRVal.count-1);
-    end;
+    for rec in mRVal do result.addListItem(rec.clone());
   end;
   result.mRecRef := mRecRef;
   result.mMaxDim := mMaxDim;
@@ -531,9 +539,28 @@ begin
 end;
 
 
-function TDynField.getListItem (idx: Integer): TDynRecord; inline;
+function TDynField.getListItem (idx: Integer): TDynRecord; inline; overload;
 begin
   if (mRVal <> nil) and (idx >= 0) and (idx < mRVal.count) then result := mRVal[idx] else result := nil;
+end;
+
+
+function TDynField.getListItem (const aname: AnsiString): TDynRecord; inline; overload;
+var
+  idx: Integer;
+begin
+  if (mRVal <> nil) and mRHash.get(aname, idx) then result := mRVal[idx] else result := nil;
+end;
+
+
+function TDynField.addListItem (rec: TDynRecord): Boolean; inline;
+begin
+  result := false;
+  if (mRVal <> nil) then
+  begin
+    mRVal.append(rec);
+    if (Length(rec.mId) > 0) then result := mRHash.put(rec.mId, mRVal.count-1);
+  end;
 end;
 
 
@@ -1364,7 +1391,11 @@ begin
           rc.parseValue(pr);
           mRecRef := rc;
           mDefined := true;
-          mOwner.addRecordByType(mEBSTypeName, rc);
+          if mOwner.addRecordByType(mEBSTypeName, rc) then
+          begin
+            //raise Exception.Create(Format('record type ''%s'' for field ''%s'' not found', [mEBSTypeName, mName]));
+            e_LogWritefln('duplicate record with id ''%s'' for field ''%s'' in record ''%s''', [rc.mId, mName, mOwner.mName]);
+          end;
           pr.eatTT(pr.TTSemi); // hack: allow (but don't require) semicolon after inline records
           exit;
         end;
@@ -1526,6 +1557,9 @@ begin
   mName := '';
   mSize := 0;
   mFields := TDynFieldList.Create();
+  {$IF DEFINED(XDYNREC_USE_FIELDHASH)}
+  mFieldsHash := hashNewStrInt();
+  {$ENDIF}
   mTrigTypes := nil;
   mHeader := false;
   mHeaderRec := nil;
@@ -1539,6 +1573,9 @@ begin
   mName := '';
   mSize := 0;
   mFields := TDynFieldList.Create();
+  {$IF DEFINED(XDYNREC_USE_FIELDHASH)}
+  mFieldsHash := hashNewStrInt();
+  {$ENDIF}
   mTrigTypes := nil;
   mHeader := false;
   mHeaderRec := nil;
@@ -1550,14 +1587,45 @@ begin
   mName := '';
   mFields.Free();
   mFields := nil;
+  {$IF DEFINED(XDYNREC_USE_FIELDHASH)}
+  mFieldsHash.Free();
+  mFieldsHash := nil;
+  {$ENDIF}
   mTrigTypes := nil;
   mHeaderRec := nil;
   inherited;
 end;
 
 
+procedure TDynRecord.addField (fld: TDynField); inline;
+begin
+  if (fld = nil) then raise Exception.Create('cannot append nil field to record');
+  mFields.append(fld);
+  {$IF DEFINED(XDYNREC_USE_FIELDHASH)}
+  if (Length(fld.mName) > 0) then mFieldsHash.put(fld.mName, mFields.count-1);
+  {$ENDIF}
+end;
+
+
+function TDynRecord.addFieldChecked (fld: TDynField): Boolean; inline; // `true`: duplicate name
+begin
+  result := false;
+  if (fld = nil) then raise Exception.Create('cannot append nil field to record');
+  {$IF not DEFINED(XDYNREC_USE_FIELDHASH)}
+  if (Length(fld.mName) > 0) then result := hasByName(fld.mName);
+  {$ENDIF}
+  mFields.append(fld);
+  {$IF DEFINED(XDYNREC_USE_FIELDHASH)}
+  if (Length(fld.mName) > 0) then result := mFieldsHash.put(fld.mName, mFields.count-1);
+  {$ENDIF}
+end;
+
+
 function TDynRecord.findByName (const aname: AnsiString): Integer; inline;
 begin
+  {$IF DEFINED(XDYNREC_USE_FIELDHASH)}
+  if not mFieldsHash.get(aname, result) then result := -1;
+  {$ELSE}
   result := 0;
   while (result < mFields.count) do
   begin
@@ -1565,6 +1633,7 @@ begin
     Inc(result);
   end;
   result := -1;
+  {$ENDIF}
 end;
 
 
@@ -1613,7 +1682,7 @@ begin
   if (mFields.count > 0) then
   begin
     result.mFields.capacity := mFields.count;
-    for fld in mFields do result.mFields.append(fld.clone(result));
+    for fld in mFields do result.addField(fld.clone(result));
   end;
   SetLength(result.mTrigTypes, Length(mTrigTypes));
   for f := 0 to High(mTrigTypes) do result.mTrigTypes[f] := mTrigTypes[f];
@@ -1626,7 +1695,6 @@ end;
 function TDynRecord.findRecordByTypeId (const atypename, aid: AnsiString): TDynRecord;
 var
   fld: TDynField;
-  //rec: TDynRecord;
   idx: Integer;
 begin
   result := nil;
@@ -1638,12 +1706,6 @@ begin
   // find by id
   if (fld.mRVal <> nil) then
   begin
-    {
-    for rec in fld.mRVal do
-    begin
-      if StrEqu(rec.mId, aid) then begin result := rec; exit; end;
-    end;
-    }
     if fld.mRHash.get(aid, idx) then begin result := fld.mRVal[idx]; exit; end;
   end;
   // alas
@@ -1672,7 +1734,7 @@ begin
 end;
 
 
-procedure TDynRecord.addRecordByType (const atypename: AnsiString; rc: TDynRecord);
+function TDynRecord.addRecordByType (const atypename: AnsiString; rc: TDynRecord): Boolean;
 var
   fld: TDynField;
 begin
@@ -1683,7 +1745,7 @@ begin
     // first record
     fld := TDynField.Create(atypename, TDynField.TType.TList);
     fld.mOwner := mHeaderRec;
-    mHeaderRec.mFields.append(fld);
+    mHeaderRec.addField(fld);
   end;
   if (fld.mType <> fld.TType.TList) then raise Exception.Create(Format('cannot append record of type ''%s'' due to name conflict with ordinary field', [atypename]));
   // append
@@ -1692,8 +1754,7 @@ begin
     fld.mRVal := TDynRecList.Create();
     fld.mRHash := hashNewStrInt();
   end;
-  fld.mRVal.append(rc);
-  if (Length(rc.mId) > 0) then fld.mRHash.put(rc.mId, fld.mRVal.count-1);
+  result := fld.addListItem(rc);
 end;
 
 
@@ -1800,10 +1861,14 @@ begin
   while (pr.tokType <> pr.TTEnd) do
   begin
     fld := TDynField.Create(pr);
-    if hasByName(fld.name) then begin fld.Free(); raise Exception.Create(Format('duplicate field ''%s''', [fld.name])); end;
+    //if hasByName(fld.name) then begin fld.Free(); raise Exception.Create(Format('duplicate field ''%s''', [fld.name])); end;
     // append
     fld.mOwner := self;
-    mFields.append(fld);
+    if addFieldChecked(fld) then
+    begin
+      fld.Free();
+      raise Exception.Create(Format('duplicate field ''%s''', [fld.name]));
+    end;
     // done with field
   end;
   pr.expectTT(pr.TTEnd);
@@ -1961,7 +2026,7 @@ begin
           // create list for this type
           fld := TDynField.Create(rec.mName, TDynField.TType.TList);
           fld.mOwner := self;
-          mFields.append(fld);
+          addField(fld);
           if (bsize > 0) then
           begin
             GetMem(buf, bsize);
@@ -1973,8 +2038,7 @@ begin
               rec.mHeaderRec := self;
               rec.parseBinValue(mst);
               rec.mId := Format('%s%d', [rec.mName, f]);
-              fld.mRVal.append(rec);
-              fld.mRHash.put(rec.mId, fld.mRVal.count-1);
+              fld.addListItem(rec);
               //writeln('parsed ''', rec.mId, '''...');
             end;
           end;
@@ -2244,12 +2308,14 @@ begin
         try
           pr.skipToken();
           rec.parseValue(pr);
+          (*
           if (Length(rec.mId) > 0) then
           begin
             {$IF DEFINED(D2D_DYNREC_PROFILER)}stt := curTimeMicro();{$ENDIF}
             fld := field[pr.tokStr];
             {$IF DEFINED(D2D_DYNREC_PROFILER)}profFieldSearching := curTimeMicro()-stt;{$ENDIF}
-            if (fld <> nil) and (fld.mRVal <> nil) and (Length(rec.mId) > 0) then
+            (*
+            if (fld <> nil) and (fld.mRVal <> nil) then
             begin
               {$IF DEFINED(D2D_DYNREC_PROFILER)}stt := curTimeMicro();{$ENDIF}
               //idtmp := trc.mName+':'+rec.mId;
@@ -2258,6 +2324,7 @@ begin
               {$IF DEFINED(D2D_DYNREC_PROFILER)}profListDupChecking := curTimeMicro()-stt;{$ENDIF}
             end;
           end;
+          *)
           {$IF DEFINED(D2D_DYNREC_PROFILER)}stt := curTimeMicro();{$ENDIF}
           addRecordByType(rec.mName, rec);
           {$IF DEFINED(D2D_DYNREC_PROFILER)}profAddRecByType := curTimeMicro()-stt;{$ENDIF}
