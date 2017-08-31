@@ -60,11 +60,13 @@ type
     ShotAmmoCount:    Word;
     ShotReloadTime:   Integer;
 
-    trigShotPanelId: Integer;
+    //trigShotPanelId: Integer;
     trigPanelId: Integer;
 
     //TrigData:             TTriggerData;
     trigData: TDynRecord; // triggerdata; owned by trigger
+
+    property trigShotPanelId: Integer read trigPanelId write trigPanelId;
   end;
 
 function g_Triggers_Create(Trigger: TTrigger): DWORD;
@@ -2103,6 +2105,17 @@ begin
 
   find_id := FindTrigger();
   gTriggers[find_id] := Trigger;
+
+  writeln('trigger #', find_id, ': pos=(', Trigger.x, ',', Trigger.y, ')-(', Trigger.width, 'x', Trigger.height, ')',
+    '; TexturePanel=', Trigger.TexturePanel,
+    '; TexturePanelType=', Trigger.TexturePanelType,
+    '; ShotPanelType=', Trigger.ShotPanelType,
+    '; TriggerType=', Trigger.TriggerType,
+    '; ActivateType=', Trigger.ActivateType,
+    '; Keys=', Trigger.Keys,
+    '; trigPanelId=', Trigger.trigPanelId,
+    '; trigShotPanelId=', Trigger.trigShotPanelId
+    );
 
   with gTriggers[find_id] do
   begin

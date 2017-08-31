@@ -1190,7 +1190,7 @@ begin
   end;
 end;
 
-procedure CreateTrigger(Trigger: TDynRecord; atpanid, ashotpanid: Integer; fTexturePanel1Type, fTexturePanel2Type: Word);
+procedure CreateTrigger(Trigger: TDynRecord; atpanid, atrigpanid: Integer; fTexturePanel1Type, fTexturePanel2Type: Word);
 var
   _trigger: TTrigger;
 begin
@@ -1203,14 +1203,15 @@ begin
     Width := Trigger.Width;
     Height := Trigger.Height;
     Enabled := ByteBool(Trigger.Enabled);
-    TexturePanel := Trigger.TexturePanel;
+    //TexturePanel := Trigger.TexturePanel;
+    TexturePanel := atpanid;
     TexturePanelType := fTexturePanel1Type;
     ShotPanelType := fTexturePanel2Type;
     TriggerType := Trigger.TriggerType;
     ActivateType := Trigger.ActivateType;
     Keys := Trigger.Keys;
-    trigPanelId := atpanid;
-    trigShotPanelId := ashotpanid;
+    trigPanelId := atrigpanid;
+    //trigShotPanelId := ashotpanid;
     //Data.Default := Trigger.DATA;
     trigData := Trigger.trigRec.clone();
   end;
@@ -1484,7 +1485,7 @@ var
   CurTex, ntn: Integer;
   rec, texrec: TDynRecord;
   pttit: PTRec;
-  pannum, trignum, cnt: Integer;
+  pannum, trignum, cnt, tgpid: Integer;
   // key: panel index; value: `TriggersTable` index
   hashTextPan: THashIntInt = nil;
   hashLiftPan: THashIntInt = nil;
@@ -1925,6 +1926,11 @@ begin
         Inc(trignum);
         if (TriggersTable[trignum].texPan <> nil) then b := TriggersTable[trignum].texPan.PanelType else b := 0;
         if (TriggersTable[trignum].shotPan <> nil) then c := TriggersTable[trignum].shotPan.PanelType else c := 0;
+        tgpid := -1;
+             if (TriggersTable[trignum].LiftPanelIdx <> -1) then tgpid := TriggersTable[trignum].LiftPanelIdx
+        else if (TriggersTable[trignum].DoorPanelIdx <> -1) then tgpid := TriggersTable[trignum].DoorPanelIdx
+        else if (TriggersTable[trignum].ShotPanelIdx <> -1) then tgpid := TriggersTable[trignum].ShotPanelIdx
+        else tgpid := -1;
         (*
         if (rec.TexturePanel <> -1) then
         begin
@@ -1960,7 +1966,7 @@ begin
         end;
         *)
         //e_LogWritefln('creating trigger #%s; texpantype=%s; shotpantype=%s (%d,%d)', [trignum, b, c, TriggersTable[trignum].texPanIdx, TriggersTable[trignum].ShotPanelIdx]);
-        CreateTrigger(rec, TriggersTable[trignum].texPanIdx, TriggersTable[trignum].ShotPanelIdx, Word(b), Word(c));
+        CreateTrigger(rec, TriggersTable[trignum].texPanIdx, tgpid, Word(b), Word(c));
       end;
     end;
 
