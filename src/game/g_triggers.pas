@@ -1197,7 +1197,7 @@ begin
 
       TRIGGER_TEXTURE:
         begin
-          if ByteBool(trigData.trigActivateOnce) then
+          if trigData.trigActivateOnce then
             begin
               Enabled := False;
               TriggerType := TRIGGER_NONE;
@@ -1821,7 +1821,7 @@ begin
 
       TRIGGER_MESSAGE:
         begin
-          Result := tr_Message(trigData.trigMessageKind, trigData.trigMessageText, 
+          Result := tr_Message(trigData.trigMessageKind, trigData.trigMessageText,
                                trigData.trigMessageSendTo, trigData.trigMessageTime,
                                ActivateUID);
           TimeOut := 18;

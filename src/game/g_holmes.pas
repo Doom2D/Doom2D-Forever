@@ -102,7 +102,8 @@ implementation
 
 uses
   SysUtils, Classes, GL, SDL2,
-  MAPDEF, g_main, g_options, utils, hashtable, xparser;
+  MAPDEF, g_main, g_options,
+  utils, hashtable, xparser;
 
 
 var
@@ -118,6 +119,7 @@ var
   showMapCurPos: Boolean = false;
   showLayersWindow: Boolean = false;
   showOutlineWindow: Boolean = false;
+  showTriggers: Boolean = {$IF DEFINED(D2F_DEBUG)}true{$ELSE}false{$ENDIF};
 
 // ////////////////////////////////////////////////////////////////////////// //
 {$INCLUDE g_holmes.inc}
@@ -243,6 +245,45 @@ begin
   result := (ev = s);
 end;
 
+
+// ////////////////////////////////////////////////////////////////////////// //
+//FIXME
+function trigType2Str (ttype: Integer): AnsiString;
+begin
+  result := '<unknown>';
+  case ttype of
+    TRIGGER_NONE: result := 'none';
+    TRIGGER_EXIT: result := 'exit';
+    TRIGGER_TELEPORT: result := 'teleport';
+    TRIGGER_OPENDOOR: result := 'opendoor';
+    TRIGGER_CLOSEDOOR: result := 'closedoor';
+    TRIGGER_DOOR: result := 'door';
+    TRIGGER_DOOR5: result := 'door5';
+    TRIGGER_CLOSETRAP: result := 'closetrap';
+    TRIGGER_TRAP: result := 'trap';
+    TRIGGER_PRESS: result := 'press';
+    TRIGGER_SECRET: result := 'secret';
+    TRIGGER_LIFTUP: result := 'liftup';
+    TRIGGER_LIFTDOWN: result := 'liftdown';
+    TRIGGER_LIFT: result := 'lift';
+    TRIGGER_TEXTURE: result := 'texture';
+    TRIGGER_ON: result := 'on';
+    TRIGGER_OFF: result := 'off';
+    TRIGGER_ONOFF: result := 'onoff';
+    TRIGGER_SOUND: result := 'sound';
+    TRIGGER_SPAWNMONSTER: result := 'spawnmonster';
+    TRIGGER_SPAWNITEM: result := 'spawnitem';
+    TRIGGER_MUSIC: result := 'music';
+    TRIGGER_PUSH: result := 'push';
+    TRIGGER_SCORE: result := 'score';
+    TRIGGER_MESSAGE: result := 'message';
+    TRIGGER_DAMAGE: result := 'damage';
+    TRIGGER_HEALTH: result := 'health';
+    TRIGGER_SHOT: result := 'shot';
+    TRIGGER_EFFECT: result := 'effect';
+    TRIGGER_SCRIPT: result := 'script';
+  end;
+end;
 
 // ////////////////////////////////////////////////////////////////////////// //
 {$INCLUDE g_holmes_cmd.inc}
@@ -461,6 +502,7 @@ begin
   llb.appendItem('monster info', @showMonsInfo);
   llb.appendItem('monster LOS to player', @showMonsLOS2Plr);
   llb.appendItem('monster cells (SLOW!)', @showAllMonsCells);
+  llb.appendItem('draw triggers (SLOW!)', @showTriggers);
   llb.appendItem('WINDOWS', nil);
   llb.appendItem('layers window', @showLayersWindow, toggleLayersWindowCB);
   llb.appendItem('outline window', @showOutlineWindow, toggleOutlineWindowCB);
@@ -917,6 +959,72 @@ procedure plrDebugDraw ();
     monsGrid.forEachBodyCell(mon.proxyId, hilightCell);
   end;
 
+  procedure drawTrigger (var trig: TTrigger);
+
+    procedure drawPanelDest (var parr: TPanelArray; idx: Integer);
+    var
+      pan: TPanel;
+    begin
+      if (idx < 0) or (idx >= Length(parr)) then exit;
+      pan := parr[idx];
+      drawLine(
+        trig.x+trig.width div 2, trig.y+trig.height div 2,
+        pan.x+pan.width div 2, pan.y+pan.height div 2,
+        255, 0, 255, 220);
+    end;
+
+  var
+    tts: AnsiString;
+    tx: Integer;
+  begin
+    fillRect(trig.x, trig.y, trig.width, trig.height, 255, 0, 255, 96);
+    tts := trigType2Str(trig.TriggerType);
+    tx := trig.x+(trig.width-Length(tts)*6) div 2;
+    darkenRect(tx-2, trig.y-10, Length(tts)*6+4, 10, 64);
+    drawText6(tx, trig.y-9, tts, 255, 127, 0);
+    case trig.TriggerType of
+      TRIGGER_NONE: begin end;
+      TRIGGER_EXIT: begin end;
+      TRIGGER_TELEPORT: begin end;
+      TRIGGER_OPENDOOR: begin drawPanelDest(gWalls, trig.trigPanelId); end;
+      TRIGGER_CLOSEDOOR: begin drawPanelDest(gWalls, trig.trigPanelId); end;
+      TRIGGER_DOOR: begin drawPanelDest(gWalls, trig.trigPanelId); end;
+      TRIGGER_DOOR5: begin drawPanelDest(gWalls, trig.trigPanelId); end;
+      TRIGGER_CLOSETRAP: begin drawPanelDest(gWalls, trig.trigPanelId); end;
+      TRIGGER_TRAP: begin drawPanelDest(gWalls, trig.trigPanelId); end;
+      TRIGGER_PRESS: begin end;
+      TRIGGER_SECRET: begin end;
+      TRIGGER_LIFTUP: begin drawPanelDest(gLifts, trig.trigPanelId); end;
+      TRIGGER_LIFTDOWN: begin drawPanelDest(gLifts, trig.trigPanelId); end;
+      TRIGGER_LIFT: begin drawPanelDest(gLifts, trig.trigPanelId); end;
+      TRIGGER_TEXTURE: begin end;
+      TRIGGER_ON: begin end;
+      TRIGGER_OFF: begin end;
+      TRIGGER_ONOFF: begin end;
+      TRIGGER_SOUND: begin end;
+      TRIGGER_SPAWNMONSTER: begin end;
+      TRIGGER_SPAWNITEM: begin end;
+      TRIGGER_MUSIC: begin end;
+      TRIGGER_PUSH: begin end;
+      TRIGGER_SCORE: begin end;
+      TRIGGER_MESSAGE: begin end;
+      TRIGGER_DAMAGE: begin end;
+      TRIGGER_HEALTH: begin end;
+      TRIGGER_SHOT: begin end;
+      TRIGGER_EFFECT: begin end;
+      TRIGGER_SCRIPT: begin end;
+    end;
+    //trigType2Str
+    //trigPanelId: Integer;
+  end;
+
+  procedure drawTriggers ();
+  var
+    f: Integer;
+  begin
+    for f := 0 to High(gTriggers) do drawTrigger(gTriggers[f]);
+  end;
+
 var
   mon: TMonster;
   mx, my, mw, mh: Integer;
@@ -947,6 +1055,7 @@ begin
   end;
 
   if showAllMonsCells then g_Mons_ForEach(highlightAllMonsterCells);
+  if showTriggers then drawTriggers();
 
   glPopMatrix();
 
@@ -1069,6 +1178,7 @@ procedure bcOneMonsterThinkStep (); begin gmon_debug_think := false; gmon_debug_
 procedure bcToggleMonsterInfo (arg: Integer=-1); begin if (arg < 0) then showMonsInfo := not showMonsInfo else showMonsInfo := (arg > 0); end;
 procedure bcToggleMonsterLOSPlr (arg: Integer=-1); begin if (arg < 0) then showMonsLOS2Plr := not showMonsLOS2Plr else showMonsLOS2Plr := (arg > 0); end;
 procedure bcToggleMonsterCells (arg: Integer=-1); begin if (arg < 0) then showAllMonsCells := not showAllMonsCells else showAllMonsCells := (arg > 0); end;
+procedure bcToggleDrawTriggers (arg: Integer=-1); begin if (arg < 0) then showTriggers := not showTriggers else showTriggers := (arg > 0); end;
 
 procedure bcToggleCurPos (arg: Integer=-1); begin if (arg < 0) then showMapCurPos := not showMapCurPos else showMapCurPos := (arg > 0); end;
 procedure bcToggleGrid (arg: Integer=-1); begin if (arg < 0) then showGrid := not showGrid else showGrid := (arg > 0); end;
@@ -1167,6 +1277,7 @@ begin
 
   cmdAdd('dbg_curpos', bcToggleCurPos, 'toggle "show cursor position on the map"', 'various');
   cmdAdd('dbg_grid', bcToggleGrid, 'toggle grid', 'various');
+  cmdAdd('dbg_triggers', bcToggleDrawTriggers, 'show/hide triggers (SLOW!)', 'various');
 
   cmdAdd('atcur_select_monster', cbAtcurSelectMonster, 'select monster to operate', 'monster control');
   cmdAdd('atcur_dump_monsters', cbAtcurDumpMonsters, 'dump monsters in cell', 'monster control');
@@ -1202,6 +1313,7 @@ begin
 
     keybindAdd('C-P', 'dbg_curpos');
     keybindAdd('C-G', 'dbg_grid');
+    keybindAdd('C-X', 'dbg_triggers');
 
     // mouse
     msbindAdd('LMB', 'atcur_select_monster');
