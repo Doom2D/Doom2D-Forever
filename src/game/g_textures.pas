@@ -84,7 +84,7 @@ Type
 
 function g_Texture_CreateWAD(var ID: DWORD; Resource: String): Boolean;
 function g_Texture_CreateFile(var ID: DWORD; FileName: String): Boolean;
-function g_Texture_CreateWADEx(TextureName: ShortString; Resource: String): Boolean;
+function g_Texture_CreateWADEx(TextureName: ShortString; Resource: String; altrsrc: AnsiString=''): Boolean;
 function g_Texture_CreateFileEx(TextureName: ShortString; FileName: String): Boolean;
 function g_Texture_Get(TextureName: ShortString; var ID: DWORD): Boolean;
 procedure g_Texture_Delete(TextureName: ShortString);
@@ -200,7 +200,7 @@ begin
   end;
 end;
 
-function g_Texture_CreateWADEx(TextureName: ShortString; Resource: String): Boolean;
+function texture_CreateWADExInternal (TextureName: ShortString; Resource: String; showmsg: Boolean): Boolean;
 var
   WAD: TWADFile;
   FileName: String;
@@ -217,23 +217,37 @@ begin
 
   if WAD.GetResource(g_ExtractFilePathName(Resource), TextureData, ResourceLength) then
   begin
-    Result := e_CreateTextureMem(TextureData, ResourceLength, TexturesArray[find_id].ID);
-    if Result then
+    result := e_CreateTextureMem(TextureData, ResourceLength, TexturesArray[find_id].ID);
+    if result then
     begin
-      e_GetTextureSize(TexturesArray[find_id].ID, @TexturesArray[find_id].Width,
-                       @TexturesArray[find_id].Height);
+      e_GetTextureSize(TexturesArray[find_id].ID, @TexturesArray[find_id].Width, @TexturesArray[find_id].Height);
       TexturesArray[find_id].Name := LowerCase(TextureName);
     end
     else
+    begin
       FreeMem(TextureData);
+    end;
   end
   else
   begin
-    e_WriteLog(Format('Error loading texture %s', [Resource]), MSG_WARNING);
+    if showmsg then
+    begin
+      e_WriteLog(Format('Error loading texture %s', [Resource]), MSG_WARNING);
+    end;
     //e_WriteLog(Format('WAD Reader error: %s', [WAD.GetLastErrorStr]), MSG_WARNING);
-    Result := False;
+    result := false;
   end;
   WAD.Free();
+end;
+
+function g_Texture_CreateWADEx(TextureName: ShortString; Resource: String; altrsrc: AnsiString=''): Boolean;
+begin
+  if (Length(altrsrc) > 0) then
+  begin
+    result := texture_CreateWADExInternal(TextureName, altrsrc, false);
+    if result then exit;
+  end;
+  result := texture_CreateWADExInternal(TextureName, Resource, true);
 end;
 
 function g_Texture_CreateFileEx(TextureName: ShortString; FileName: String): Boolean;
