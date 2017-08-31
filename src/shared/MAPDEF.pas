@@ -103,15 +103,15 @@ var
 begin
   result := nil;
   fld := rec.field['texture'];
-  if (fld = nil) or (fld.baseType <> fld.TType.TList) or (fld.list.count = 0) then exit;
+  if (fld = nil) or (fld.baseType <> fld.TType.TList) or (fld.count = 0) then exit;
   ws := TSFSMemoryChunkStream.Create(nil, 0);
   try
-    SetLength(result, fld.list.count);
-    for f := 0 to fld.list.count-1 do
+    SetLength(result, fld.count);
+    for f := 0 to fld.count-1 do
     begin
       FillChar(result[f], sizeof(result[f]), 0);
       ws.setup(@result[f], sizeof(result[f]));
-      fld.list[f].writeBinTo(ws, -1, true); // only fields
+      fld.item[f].writeBinTo(ws, -1, true); // only fields
     end;
   except
     result := nil;
@@ -128,15 +128,15 @@ var
 begin
   result := nil;
   fld := rec.field['panel'];
-  if (fld = nil) or (fld.baseType <> fld.TType.TList) or (fld.list.count = 0) then exit;
+  if (fld = nil) or (fld.baseType <> fld.TType.TList) or (fld.count = 0) then exit;
   ws := TSFSMemoryChunkStream.Create(nil, 0);
   try
-    SetLength(result, fld.list.count);
-    for f := 0 to fld.list.count-1 do
+    SetLength(result, fld.count);
+    for f := 0 to fld.count-1 do
     begin
       FillChar(result[f], sizeof(result[f]), 0);
       ws.setup(@result[f], sizeof(result[f]));
-      fld.list[f].writeBinTo(ws, -1, true); // only fields
+      fld.item[f].writeBinTo(ws, -1, true); // only fields
     end;
   except
     result := nil;
@@ -153,15 +153,15 @@ var
 begin
   result := nil;
   fld := rec.field['item'];
-  if (fld = nil) or (fld.baseType <> fld.TType.TList) or (fld.list.count = 0) then exit;
+  if (fld = nil) or (fld.baseType <> fld.TType.TList) or (fld.count = 0) then exit;
   ws := TSFSMemoryChunkStream.Create(nil, 0);
   try
-    SetLength(result, fld.list.count);
-    for f := 0 to fld.list.count-1 do
+    SetLength(result, fld.count);
+    for f := 0 to fld.count-1 do
     begin
       FillChar(result[f], sizeof(result[f]), 0);
       ws.setup(@result[f], sizeof(result[f]));
-      fld.list[f].writeBinTo(ws, -1, true); // only fields
+      fld.item[f].writeBinTo(ws, -1, true); // only fields
     end;
   except
     result := nil;
@@ -178,15 +178,15 @@ var
 begin
   result := nil;
   fld := rec.field['area'];
-  if (fld = nil) or (fld.baseType <> fld.TType.TList) or (fld.list.count = 0) then exit;
+  if (fld = nil) or (fld.baseType <> fld.TType.TList) or (fld.count = 0) then exit;
   ws := TSFSMemoryChunkStream.Create(nil, 0);
   try
-    SetLength(result, fld.list.count);
-    for f := 0 to fld.list.count-1 do
+    SetLength(result, fld.count);
+    for f := 0 to fld.count-1 do
     begin
       FillChar(result[f], sizeof(result[f]), 0);
       ws.setup(@result[f], sizeof(result[f]));
-      fld.list[f].writeBinTo(ws, -1, true); // only fields
+      fld.item[f].writeBinTo(ws, -1, true); // only fields
     end;
   except
     result := nil;
@@ -203,15 +203,15 @@ var
 begin
   result := nil;
   fld := rec.field['monster'];
-  if (fld = nil) or (fld.baseType <> fld.TType.TList) or (fld.list.count = 0) then exit;
+  if (fld = nil) or (fld.baseType <> fld.TType.TList) or (fld.count = 0) then exit;
   ws := TSFSMemoryChunkStream.Create(nil, 0);
   try
-    SetLength(result, fld.list.count);
-    for f := 0 to fld.list.count-1 do
+    SetLength(result, fld.count);
+    for f := 0 to fld.count-1 do
     begin
       FillChar(result[f], sizeof(result[f]), 0);
       ws.setup(@result[f], sizeof(result[f]));
-      fld.list[f].writeBinTo(ws, -1, true); // only fields
+      fld.item[f].writeBinTo(ws, -1, true); // only fields
     end;
   except
     result := nil;
@@ -230,17 +230,17 @@ var
 begin
   result := nil;
   fld := rec.field['trigger'];
-  if (fld = nil) or (fld.baseType <> fld.TType.TList) or (fld.list.count = 0) then exit;
+  if (fld = nil) or (fld.baseType <> fld.TType.TList) or (fld.count = 0) then exit;
   ws := TSFSMemoryChunkStream.Create(nil, 0);
   try
     //wr := TFileTextWriter.Create('z00.txt');
-    SetLength(result, fld.list.count);
-    for f := 0 to fld.list.count-1 do
+    SetLength(result, fld.count);
+    for f := 0 to fld.count-1 do
     begin
       FillChar(result[f], sizeof(result[f]), 0);
       //e_LogWritefln(': trigger #%s; TexturePanel=%s', [f, result[f].TexturePanel]);
       ws.setup(@result[f], sizeof(result[f]));
-      fld.list[f].writeBinTo(ws, -1, true); // only fields
+      fld.item[f].writeBinTo(ws, -1, true); // only fields
       {
       e_LogWritefln(': trigger #%s; X=%s; Y=%s; Width=%s; Height=%s; Enabled=%s; TexturePanel=%s; TriggerType=%s; ActivateType=%s; Keys=%s', [f,
        result[f].X,
@@ -254,7 +254,7 @@ begin
        result[f].Keys
        ]);
       //e_LogWritefln('***'#10'%s'#10'***', [);
-      fld.list[f].writeTo(wr);
+      fld.item[f].writeTo(wr);
       if (f = 0) then
       begin
         AssignFile(fo, 'z00.bin');
