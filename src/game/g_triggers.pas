@@ -2158,7 +2158,7 @@ begin
   end;
   gTriggers[find_id] := Trigger;
 
-  e_LogWritefln('created trigger with map index %s, findid=%s (%s)', [Trigger.mapIndex, find_id, Trigger.mapId]);
+  //e_LogWritefln('created trigger with map index %s, findid=%s (%s)', [Trigger.mapIndex, find_id, Trigger.mapId]);
 
   {
   writeln('trigger #', find_id, ': pos=(', Trigger.x, ',', Trigger.y, ')-(', Trigger.width, 'x', Trigger.height, ')',
@@ -2757,7 +2757,7 @@ begin
   // Количество триггеров:
   Mem.WriteInt(count);
 
-  e_LogWritefln('saving %s triggers (count=%s)', [Length(gTriggers), count]);
+  //e_LogWritefln('saving %s triggers (count=%s)', [Length(gTriggers), count]);
 
   if count = 0 then exit;
 
@@ -2770,7 +2770,7 @@ begin
     Mem.WriteByte(gTriggers[i].TriggerType);
     if (gTriggers[i].TriggerType = TRIGGER_NONE) then continue; // empty one
   // Специальные данные триггера: да в жопу, потом из карты опять вытащим; сохраним только индекс
-    e_LogWritefln('=== trigger #%s saved ===', [gTriggers[i].mapIndex]);
+    //e_LogWritefln('=== trigger #%s saved ===', [gTriggers[i].mapIndex]);
     Mem.WriteInt(gTriggers[i].mapIndex);
     //p := @gTriggers[i].Data;
     //Mem.WriteMemory(p, SizeOf(TTriggerData));
