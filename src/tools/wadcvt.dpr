@@ -38,6 +38,7 @@ uses
   sfsZipFS in '../sfs/sfsZipFS.pas',
   paszlib,
   wadreader in '../shared/wadreader.pas',
+  hashtable in '../shared/hashtable.pas',
   conbuf in '../shared/conbuf.pas',
   BinEditor in '../shared/BinEditor.pas',
   MAPDEF in '../shared/MAPDEF.pas',
