@@ -1,5 +1,7 @@
 {$INCLUDE ../shared/a_modes.inc}
-{$APPTYPE CONSOLE}
+{$IFDEF WINDOWS}
+  {$APPTYPE CONSOLE}
+{$ENDIF}
 
 uses
   SysUtils, Classes,
@@ -11,6 +13,7 @@ uses
   xdynrec in '../shared/xdynrec.pas',
   xprofiler in '../shared/xprofiler.pas',
   utils in '../shared/utils.pas',
+  hashtable in '../shared/hashtable.pas',
   conbuf in '../shared/conbuf.pas',
   e_log in '../engine/e_log.pas',
   wadreader in '../shared/wadreader.pas',
@@ -122,6 +125,8 @@ begin
     end;
     pr.Free();
   end;
+
+  {$IF DEFINED(D2D_DYNREC_PROFILER)}xdynDumpProfiles();{$ENDIF}
 
   assert(totext >= 0);
 

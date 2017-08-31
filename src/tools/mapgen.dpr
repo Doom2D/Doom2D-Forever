@@ -1,12 +1,16 @@
 {$INCLUDE ../shared/a_modes.inc}
-{$APPTYPE CONSOLE}
+{$IFDEF WINDOWS}
+  {$APPTYPE CONSOLE}
+{$ENDIF}
 
 uses
   SysUtils, Classes,
   xstreams in '../shared/xstreams.pas',
   xparser in '../shared/xparser.pas',
   xdynrec in '../shared/xdynrec.pas',
+  xprofiler in '../shared/xprofiler.pas',
   utils in '../shared/utils.pas',
+  hashtable in '../shared/hashtable.pas',
   conbuf in '../shared/conbuf.pas',
   e_log in '../engine/e_log.pas';
 

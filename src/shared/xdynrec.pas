@@ -273,10 +273,16 @@ type
   end;
 
 
+{$IF DEFINED(D2D_DYNREC_PROFILER)}
+procedure xdynDumpProfiles ();
+{$ENDIF}
+
+
 implementation
 
 uses
-  SysUtils, e_log;
+  SysUtils, e_log, hashtable
+  {$IF DEFINED(D2D_DYNREC_PROFILER)},xprofiler{$ENDIF};
 
 
 // ////////////////////////////////////////////////////////////////////////// //
@@ -2129,12 +2135,46 @@ begin
 end;
 
 
+{$IF DEFINED(D2D_DYNREC_PROFILER)}
+var
+  profCloneRec: UInt64 = 0;
+  profFindRecType: UInt64 = 0;
+  profFieldSearching: UInt64 = 0;
+  profListDupChecking: UInt64 = 0;
+  profAddRecByType: UInt64 = 0;
+  profFieldValParsing: UInt64 = 0;
+  profFixDefaults: UInt64 = 0;
+  profRecValParse: UInt64 = 0;
+
+procedure xdynDumpProfiles ();
+begin
+  writeln('=== XDYNREC PROFILES ===');
+  writeln('record cloning: ', profCloneRec div 1000, '.', profCloneRec mod 1000, ' milliseconds');
+  writeln('findRecType   : ', profFindRecType div 1000, '.', profFindRecType mod 1000, ' milliseconds');
+  writeln('field[]       : ', profFieldSearching div 1000, '.', profFieldSearching mod 1000, ' milliseconds');
+  writeln('list dup check: ', profListDupChecking div 1000, '.', profListDupChecking mod 1000, ' milliseconds');
+  writeln('addRecByType  : ', profAddRecByType div 1000, '.', profAddRecByType mod 1000, ' milliseconds');
+  writeln('field valparse: ', profFieldValParsing div 1000, '.', profFieldValParsing mod 1000, ' milliseconds');
+  writeln('fix defaults  : ', profFixDefaults div 1000, '.', profFixDefaults mod 1000, ' milliseconds');
+  writeln('recvalparse   : ', profRecValParse div 1000, '.', profRecValParse mod 1000, ' milliseconds');
+end;
+{$ENDIF}
+
+
 procedure TDynRecord.parseValue (pr: TTextParser; beginEaten: Boolean=false);
 var
   fld: TDynField;
-  rec, trc, rv: TDynRecord;
+  rec: TDynRecord = nil;
+  trc{, rv}: TDynRecord;
+  {$IF DEFINED(D2D_DYNREC_PROFILER)}
+  stt, stall: UInt64;
+  {$ENDIF}
+  ids: THashStrInt = nil;
+  idtmp: AnsiString = '';
 begin
   if (mOwner = nil) then raise Exception.Create(Format('can''t parse record ''%s'' value without owner', [mName]));
+
+  {$IF DEFINED(D2D_DYNREC_PROFILER)}stall := curTimeMicro();{$ENDIF}
 
   // not a header?
   if not mHeader then
@@ -2145,65 +2185,98 @@ begin
   else
   begin
     assert(mHeaderRec = self);
+    ids := hashNewStrInt();
   end;
 
-  //writeln('parsing record <', mName, '>');
-  if not beginEaten then pr.expectTT(pr.TTBegin);
-  while (pr.tokType <> pr.TTEnd) do
-  begin
-    if (pr.tokType <> pr.TTId) then raise Exception.Create('identifier expected');
-    //writeln('<', mName, '.', pr.tokStr, '>');
-
-    // records
-    if mHeader then
+  try
+    //writeln('parsing record <', mName, '>');
+    if not beginEaten then pr.expectTT(pr.TTBegin);
+    while (pr.tokType <> pr.TTEnd) do
     begin
-      // add records with this type (if any)
-      trc := mOwner.findRecType(pr.tokStr);
-      if (trc <> nil) then
+      if (pr.tokType <> pr.TTId) then raise Exception.Create('identifier expected');
+      //writeln('<', mName, '.', pr.tokStr, '>');
+
+      // records
+      if mHeader then
       begin
-        rec := trc.clone();
-        rec.mHeaderRec := mHeaderRec;
-        try
-          pr.skipToken();
-          rec.parseValue(pr);
-          if (Length(rec.mId) > 0) then
-          begin
-            fld := field[pr.tokStr];
-            if (fld <> nil) and (fld.mRVal <> nil) then
+        // add records with this type (if any)
+        {$IF DEFINED(D2D_DYNREC_PROFILER)}stt := curTimeMicro();{$ENDIF}
+        trc := mOwner.findRecType(pr.tokStr);
+        {$IF DEFINED(D2D_DYNREC_PROFILER)}profFindRecType := curTimeMicro()-stt;{$ENDIF}
+        if (trc <> nil) then
+        begin
+          {$IF DEFINED(D2D_DYNREC_PROFILER)}stt := curTimeMicro();{$ENDIF}
+          rec := trc.clone();
+          {$IF DEFINED(D2D_DYNREC_PROFILER)}profCloneRec := curTimeMicro()-stt;{$ENDIF}
+          rec.mHeaderRec := mHeaderRec;
+          try
+            pr.skipToken();
+            rec.parseValue(pr);
+            if (Length(rec.mId) > 0) then
             begin
-              for rv in fld.mRVal do
-              begin
-                if (Length(rv.mId) > 0) and StrEqu(rv.mId, rec.mId) then raise Exception.Create(Format('duplicate thing ''%s'' in record ''%s''', [fld.mName, mName]));
-              end;
+              {$IF DEFINED(D2D_DYNREC_PROFILER)}stt := curTimeMicro();{$ENDIF}
+              fld := field[pr.tokStr];
+              {$IF DEFINED(D2D_DYNREC_PROFILER)}profFieldSearching := curTimeMicro()-stt;{$ENDIF}
+              {$iF FALSE}
+                if (fld <> nil) and (fld.mRVal <> nil) then
+                begin
+                  {$IF DEFINED(D2D_DYNREC_PROFILER)}stt := curTimeMicro();{$ENDIF}
+                  for rv in fld.mRVal do
+                  begin
+                    if (Length(rv.mId) > 0) and StrEqu(rv.mId, rec.mId) then raise Exception.Create(Format('duplicate thing ''%s'' in record ''%s''', [fld.mName, mName]));
+                  end;
+                  {$IF DEFINED(D2D_DYNREC_PROFILER)}profListDupChecking := curTimeMicro()-stt;{$ENDIF}
+                end;
+              {$ELSE}
+                if (fld <> nil) and (fld.mRVal <> nil) then
+                begin
+                  {$IF DEFINED(D2D_DYNREC_PROFILER)}stt := curTimeMicro();{$ENDIF}
+                  idtmp := trc.mName+':'+rec.mId;
+                  if ids.put(idtmp, 1) then raise Exception.Create(Format('duplicate thing ''%s'' in record ''%s''', [fld.mName, mName]));
+                  {$IF DEFINED(D2D_DYNREC_PROFILER)}profListDupChecking := curTimeMicro()-stt;{$ENDIF}
+                end;
+              {$ENDIF}
             end;
+            {$IF DEFINED(D2D_DYNREC_PROFILER)}stt := curTimeMicro();{$ENDIF}
+            addRecordByType(rec.mName, rec);
+            {$IF DEFINED(D2D_DYNREC_PROFILER)}profAddRecByType := curTimeMicro()-stt;{$ENDIF}
+            rec := nil;
+          finally
+            rec.Free();
           end;
-          addRecordByType(rec.mName, rec);
-          rec := nil;
-        finally
-          rec.Free();
+          continue;
         end;
+      end;
+
+      // fields
+      {$IF DEFINED(D2D_DYNREC_PROFILER)}stt := curTimeMicro();{$ENDIF}
+      fld := field[pr.tokStr];
+      {$IF DEFINED(D2D_DYNREC_PROFILER)}profFieldSearching := curTimeMicro()-stt;{$ENDIF}
+      if (fld <> nil) then
+      begin
+        if fld.defined then raise Exception.Create(Format('duplicate field ''%s'' in record ''%s''', [fld.mName, mName]));
+        if fld.internal then raise Exception.Create(Format('internal field ''%s'' in record ''%s''', [fld.mName, mName]));
+        pr.skipToken();
+        {$IF DEFINED(D2D_DYNREC_PROFILER)}stt := curTimeMicro();{$ENDIF}
+        fld.parseValue(pr);
+        {$IF DEFINED(D2D_DYNREC_PROFILER)}profFieldValParsing := curTimeMicro()-stt;{$ENDIF}
         continue;
       end;
-    end;
 
-    // fields
-    fld := field[pr.tokStr];
-    if (fld <> nil) then
-    begin
-      if fld.defined then raise Exception.Create(Format('duplicate field ''%s'' in record ''%s''', [fld.mName, mName]));
-      if fld.internal then raise Exception.Create(Format('internal field ''%s'' in record ''%s''', [fld.mName, mName]));
-      pr.skipToken();
-      fld.parseValue(pr);
-      continue;
+      // something is wrong
+      raise Exception.Create(Format('unknown field ''%s'' in record ''%s''', [pr.tokStr, mName]));
     end;
-
-    // something is wrong
-    raise Exception.Create(Format('unknown field ''%s'' in record ''%s''', [pr.tokStr, mName]));
+    pr.expectTT(pr.TTEnd);
+    // fix field defaults
+    {$IF DEFINED(D2D_DYNREC_PROFILER)}stt := curTimeMicro();{$ENDIF}
+    for fld in mFields do fld.fixDefaultValue();
+    {$IF DEFINED(D2D_DYNREC_PROFILER)}profFixDefaults := curTimeMicro()-stt;{$ENDIF}
+    //writeln('done parsing record <', mName, '>');
+    //{$IF DEFINED(D2D_DYNREC_PROFILER)}writeln('stall: ', curTimeMicro()-stall);{$ENDIF}
+    {$IF DEFINED(D2D_DYNREC_PROFILER)}profRecValParse := curTimeMicro()-stall;{$ENDIF}
+  finally
+    ids.Free();
   end;
-  pr.expectTT(pr.TTEnd);
-  // fix field defaults
-  for fld in mFields do fld.fixDefaultValue();
-  //writeln('done parsing record <', mName, '>');
 end;
 
 
@@ -2587,11 +2660,8 @@ begin
     res.parseValue(pr);
     result := res;
     res := nil;
-  except on E: Exception do
-    begin
-      res.Free();
-      raise;
-    end;
+  finally
+    res.Free();
   end;
 end;
 
@@ -2607,11 +2677,8 @@ begin
     res.parseBinValue(st);
     result := res;
     res := nil;
-  except on E: Exception do
-    begin
-      res.Free();
-      raise;
-    end;
+  finally
+    res.Free();
   end;
 end;
 
