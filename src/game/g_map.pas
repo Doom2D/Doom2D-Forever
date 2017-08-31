@@ -1609,7 +1609,7 @@ begin
             Break;
           end;
         end;
-        {$IF DEFINED(D2F_DEBUG)}
+        {$IF DEFINED(D2F_DEBUG_TXLOAD)}
         e_WriteLog(Format('    Loading texture #%d: %s', [a, s]), MSG_NOTIFY);
         {$ENDIF}
         //if g_Map_IsSpecialTexture(s) then e_WriteLog('      SPECIAL!', MSG_NOTIFY);
