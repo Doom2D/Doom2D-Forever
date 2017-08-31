@@ -3990,7 +3990,7 @@ begin
         end;
     end;
 
-    ProcessLoading();
+    ProcessLoading(true);
 
     e_PollInput();
 
@@ -6758,7 +6758,7 @@ begin
 
   g_ActiveWindow := nil;
 
-  ProcessLoading;
+  ProcessLoading(true);
 end;
 
 procedure g_Game_StepLoading();
@@ -6770,7 +6770,7 @@ begin
     if (ShowCount > LOADING_SHOW_STEP) then
     begin
       ShowCount := 0;
-      ProcessLoading;
+      ProcessLoading();
     end;
   end;
 end;

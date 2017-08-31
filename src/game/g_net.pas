@@ -787,7 +787,7 @@ begin
       end;
     end;
 
-    ProcessLoading();
+    ProcessLoading(true);
 
     e_PollInput();
 
@@ -952,7 +952,7 @@ begin
         end;
     end;
 
-    ProcessLoading();
+    ProcessLoading(true);
 
     e_PollInput();
 

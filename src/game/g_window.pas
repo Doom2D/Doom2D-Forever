@@ -28,7 +28,7 @@ function  CreateGLWindow(Title: PChar): Boolean;
 procedure KillGLWindow();
 procedure PushExitEvent();
 function  ProcessMessage(): Boolean;
-procedure ProcessLoading();
+procedure ProcessLoading (forceUpdate: Boolean=false);
 procedure ReDrawWindow();
 procedure SwapBuffers();
 procedure Sleep(ms: LongWord);
@@ -49,7 +49,7 @@ uses
   SDL2, GL, GLExt, e_graphics, e_log, g_main,
   g_console, SysUtils, e_input, g_options, g_game,
   g_basic, g_textures, e_sound, g_sound, g_menu, ENet, g_net,
-  g_map, g_gfx, g_monsters, g_holmes;
+  g_map, g_gfx, g_monsters, g_holmes, xprofiler;
 
 var
   h_Wnd: PSDL_Window;
@@ -623,10 +623,15 @@ begin
   SDL_PushEvent(@ev);
 end;
 
-procedure ProcessLoading();
+
+var
+  prevLoadingUpdateTime: UInt64 = 0;
+
+procedure ProcessLoading (forceUpdate: Boolean=false);
 var
   ev: TSDL_Event;
   ID: DWORD;
+  stt: UInt64;
 begin
   FillChar(ev, SizeOf(ev), 0);
   //wNeedFree := False;
@@ -646,24 +651,48 @@ begin
 
   if not wMinimized then
   begin
-    if g_Texture_Get('INTER', ID) then
-      e_DrawSize(ID, 0, 0, 0, False, False, gScreenWidth, gScreenHeight)
+    if forceUpdate then
+    begin
+      prevLoadingUpdateTime := curTimeMilli();
+    end
     else
-      e_Clear(GL_COLOR_BUFFER_BIT, 0, 0, 0);
+    begin
+      stt := curTimeMilli();
+      if (stt < prevLoadingUpdateTime) or (stt-prevLoadingUpdateTime >= 400) then
+      begin
+        prevLoadingUpdateTime := stt;
+        forceUpdate := true;
+      end;
+    end;
 
-    DrawLoadingStat();
-    SwapBuffers();
+    if forceUpdate then
+    begin
+      if g_Texture_Get('INTER', ID) then
+      begin
+        e_DrawSize(ID, 0, 0, 0, False, False, gScreenWidth, gScreenHeight)
+      end
+      else
+      begin
+        e_Clear(GL_COLOR_BUFFER_BIT, 0, 0, 0);
+      end;
 
-    ReShowCursor();
+      DrawLoadingStat();
+      SwapBuffers();
+
+      ReShowCursor();
+    end;
   end;
 
   e_SoundUpdate();
 
   if NetMode = NET_SERVER then
-    g_Net_Host_Update
+  begin
+    g_Net_Host_Update();
+  end
   else
-    if (NetMode = NET_CLIENT) and (NetState <> NET_STATE_AUTH) then
-      g_Net_Client_UpdateWhileLoading;
+  begin
+    if (NetMode = NET_CLIENT) and (NetState <> NET_STATE_AUTH) then g_Net_Client_UpdateWhileLoading();
+  end;
   wLoadingProgress := False;
 end;
 
