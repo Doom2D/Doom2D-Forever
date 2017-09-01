@@ -70,7 +70,7 @@ implementation
 uses
   g_map, g_panel, g_basic, Math, e_graphics, GL, GLExt,
   g_options, g_console, SysUtils, g_triggers, MAPDEF,
-  g_game, g_language, g_net;
+  g_game, g_language, g_net, xprofiler;
 
 type
   PParticle = ^TParticle;
@@ -89,6 +89,12 @@ type
     liquidTopY: Integer; // don't float higher than this
     // for water
     stickDX: Integer;
+    // for blood
+    justSticked: Boolean;
+    stickEY: Integer;
+    // for all
+    onGround: Boolean;
+    awaken: Boolean;
 
     //k8: sorry, i have to emulate virtual methods this way, 'cause i haet `Object`
 
@@ -192,7 +198,33 @@ end;
 
 procedure g_Mark(x, y, Width, Height: Integer; t: Byte; st: Boolean);
 {$IF not DEFINED(HAS_COLLIDE_BITMAP)}
+var
+  part: PParticle;
+  f: Integer;
 begin
+  for f := 0 to High(Particles) do
+  begin
+    part := @Particles[f];
+    if part.alive and (part.onGround or (not part.justSticked and (part.State = STATE_STICK))) and
+       (part.X >= x-2) and (part.Y >= y-2) and (part.X < x+Width+4) and (part.Y < y+Height+4) then
+    begin
+      // wakup this particle
+      {
+      if (part.ParticleType = PARTICLE_SPARK) then
+      begin
+        e_LogWritefln('waking up particle of type %s; justSticked=%s; onGround=%s; VelY=%s; AccelY=%s', [part.ParticleType, part.justSticked, part.onGround, part.VelY, part.AccelY]);
+      end;
+      }
+      part.justSticked := true; // so sticked state will be re-evaluated
+      if part.onGround then
+      begin
+        if (part.VelY = 0) then part.VelY := 0.1;
+        if (part.AccelY = 0) then part.AccelY := 0.5;
+      end;
+      part.onGround := false; // so onground state will be re-evaluated
+      part.awaken := true;
+    end;
+  end;
 end;
 {$ELSE}
 var
@@ -385,7 +417,27 @@ begin
          (not isBlockedAt(X-1, Y)) and
          (not isBlockedAt(X+1, Y))
       {$ELSE}
-      if not g_Map_CollidePanel(X-1, Y-1, 3, 3, (PANEL_STEP or PANEL_WALL or PANEL_OPENDOOR or PANEL_CLOSEDOOR))
+      if justSticked then
+      begin
+        if not mapGrid.traceOrthoRayWhileIn(ex, ey, X+stickDX, Y, X+stickDX, mapGrid.gridY0+mapGrid.gridHeight, GridTagWall or GridTagDoor or GridTagStep) then
+        begin
+           // отлипла
+          State := STATE_NORMAL;
+          //e_LogWritefln('juststicked unsticked: X=%s; X+stickDX=%s; stickDX=%s; Y=%s', [X, X+stickDX, stickDX, Y]);
+        end
+        else
+        begin
+          stickEY := ey+1;
+          if (nil <> g_Map_traceToNearest(X, Y, X, stickEY, (GridTagWall or GridTagDoor or GridTagStep or GridTagAcid1 or GridTagAcid2 or GridTagWater), @ex, @ey)) then
+          begin
+            if (ey > stickEY) then stickEY := ey-1;
+          end;
+          justSticked := false;
+          //e_LogWritefln('juststicked: X=%s; X+stickDX=%s; stickDX=%s; Y=%s; stickEY=%s', [X, X+stickDX, stickDX, Y, stickEY]);
+        end;
+      end;
+      if (State <> STATE_STICK) or (Y >= stickEY)
+      //if not g_Map_CollidePanel(X-1, Y-1, 3, 3, (PANEL_STEP or PANEL_WALL or PANEL_OPENDOOR or PANEL_CLOSEDOOR))
       {$ENDIF}
       then
       begin // Отлипла - капает
@@ -490,6 +542,7 @@ begin
         AccelX := 0;
         AccelY := 0;
         State := STATE_STICK;
+        justSticked := true;
         if (dX > 0) then stickDX := 1 else stickDX := -1;
       end;
       if (X < 0) or (X >= w) then begin die(); exit; end;
@@ -497,27 +550,32 @@ begin
     // vertical
     if (dY <> 0) then
     begin
-      pan := g_Map_traceToNearest(X, Y, X, Y+dY, (GridTagWall or GridTagDoor or GridTagStep), @ex, @ey);
-      Y := ey;
-      // free to ride?
-      if (pan <> nil) then
+      if (dY < 0) or not onGround then
       begin
-        // Стена/дверь
-        VelX := 0;
-        VelY := 0;
-        AccelX := 0;
-        AccelY := 0;
-        if (dY > 0) and (State <> STATE_STICK) then
+        pan := g_Map_traceToNearest(X, Y, X, Y+dY, (GridTagWall or GridTagDoor or GridTagStep), @ex, @ey);
+        Y := ey;
+        // free to ride?
+        if (pan <> nil) then
         begin
-          State := STATE_NORMAL;
-        end
-        else
-        begin
-          State := STATE_STICK;
-               if (g_Map_PanelAtPoint(X-1, Y, (GridTagWall or GridTagDoor or GridTagStep)) <> nil) then stickDX := -1
-          else if (g_Map_PanelAtPoint(X+1, Y, (GridTagWall or GridTagDoor or GridTagStep)) <> nil) then stickDX := 1
-          else stickDX := 0;
+          // Стена/дверь
+          VelX := 0;
+          VelY := 0;
+          AccelX := 0;
+          AccelY := 0;
+          if (dY > 0) and (State <> STATE_STICK) then
+          begin
+            State := STATE_NORMAL;
+          end
+          else
+          begin
+            State := STATE_STICK;
+                 if (g_Map_PanelAtPoint(X-1, Y, (GridTagWall or GridTagDoor or GridTagStep)) <> nil) then stickDX := -1
+            else if (g_Map_PanelAtPoint(X+1, Y, (GridTagWall or GridTagDoor or GridTagStep)) <> nil) then stickDX := 1
+            else stickDX := 0;
+            justSticked := true;
+          end;
         end;
+        onGround := (VelY >= 0) and g_Map_HasAnyPanelAtPoint(X, Y+1, (PANEL_WALL or PANEL_CLOSEDOOR or PANEL_STEP));
       end;
       if (Y < 0) or (Y >= h) then begin die(); exit; end;
     end;
@@ -538,6 +596,7 @@ begin
           AccelX := 0;
           AccelY := 0;
           State := STATE_STICK;
+          justSticked := true;
           break;
         end;
         X := X+s;
@@ -559,6 +618,7 @@ begin
           AccelX := 0;
           AccelY := 0;
           if (s > 0) and (State <> STATE_STICK) then State := STATE_NORMAL else State := STATE_STICK;
+          justSticked := (State = STATE_STICK);
           break;
         end;
         Y := Y+s;
@@ -632,7 +692,30 @@ begin
     end
     else
     begin
-      if (g_Map_PanelAtPoint(X+stickDX, Y, (GridTagWall or GridTagDoor or GridTagStep)) = nil) then State := STATE_NORMAL;
+      if justSticked then
+      begin
+        if not mapGrid.traceOrthoRayWhileIn(ex, ey, X+stickDX, Y, X+stickDX, mapGrid.gridY0+mapGrid.gridHeight, GridTagWall or GridTagDoor or GridTagStep) then
+        begin
+           // отлипла
+          State := STATE_NORMAL;
+          //e_LogWritefln('juststicked unsticked: X=%s; X+stickDX=%s; stickDX=%s; Y=%s', [X, X+stickDX, stickDX, Y]);
+        end
+        else
+        begin
+          stickEY := ey+1;
+          justSticked := false;
+          if (nil <> g_Map_traceToNearest(X, Y, X, stickEY, (GridTagWall or GridTagDoor or GridTagStep or GridTagAcid1 or GridTagAcid2 or GridTagWater), @ex, @ey)) then
+          begin
+            if (ey > stickEY) then stickEY := ey-1;
+          end;
+          //e_LogWritefln('juststicked: X=%s; X+stickDX=%s; stickDX=%s; Y=%s; stickEY=%s', [X, X+stickDX, stickDX, Y, stickEY]);
+        end;
+      end
+      else
+      begin
+        if (Y >= stickEY) then State := STATE_NORMAL;
+      end;
+      //if not g_Map_CollidePanel(X-1, Y-1, 3, 3, (PANEL_STEP or PANEL_WALL or PANEL_OPENDOOR or PANEL_CLOSEDOOR))
     end;
     {$ENDIF}
     exit;
@@ -736,6 +819,7 @@ begin
         AccelX := 0;
         AccelY := 0;
         State := STATE_STICK;
+        justSticked := true;
         if (dX > 0) then stickDX := 1 else stickDX := -1;
       end;
     end;
@@ -744,32 +828,37 @@ begin
   // vertical
   if (dY <> 0) then
   begin
-    pan := g_Map_traceToNearest(X, Y, X, Y+dY, (GridTagWall or GridTagDoor or GridTagStep or GridTagAcid1 or GridTagAcid2 or GridTagWater), @ex, @ey);
-    Y := ey;
-    // free to ride?
-    if (pan <> nil) then
+    if (dY < 0) or not onGround then
     begin
-      // nope
-      if (dY > 0) and ((pan.tag and (GridTagAcid1 or GridTagAcid2 or GridTagWater)) <> 0) then begin die(); exit; end;
-      // Стена/дверь?
-      if ((pan.tag and (GridTagWall or GridTagDoor or GridTagStep)) <> 0) then
+      pan := g_Map_traceToNearest(X, Y, X, Y+dY, (GridTagWall or GridTagDoor or GridTagStep or GridTagAcid1 or GridTagAcid2 or GridTagWater), @ex, @ey);
+      Y := ey;
+      // free to ride?
+      if (pan <> nil) then
       begin
-        VelX := 0;
-        VelY := 0;
-        AccelX := 0;
-        AccelY := 0;
-        if (dY > 0) and (State <> STATE_STICK) then
+        // nope
+        if (dY > 0) and ((pan.tag and (GridTagAcid1 or GridTagAcid2 or GridTagWater)) <> 0) then begin die(); exit; end;
+        // Стена/дверь?
+        if ((pan.tag and (GridTagWall or GridTagDoor or GridTagStep)) <> 0) then
         begin
-          State := STATE_NORMAL;
-        end
-        else
-        begin
-          State := STATE_STICK;
-               if (g_Map_PanelAtPoint(X-1, Y, (GridTagWall or GridTagDoor or GridTagStep)) <> nil) then stickDX := -1
-          else if (g_Map_PanelAtPoint(X+1, Y, (GridTagWall or GridTagDoor or GridTagStep)) <> nil) then stickDX := 1
-          else stickDX := 0;
+          VelX := 0;
+          VelY := 0;
+          AccelX := 0;
+          AccelY := 0;
+          if (dY > 0) and (State <> STATE_STICK) then
+          begin
+            State := STATE_NORMAL;
+          end
+          else
+          begin
+            State := STATE_STICK;
+                 if (g_Map_PanelAtPoint(X-1, Y, (GridTagWall or GridTagDoor or GridTagStep)) <> nil) then stickDX := -1
+            else if (g_Map_PanelAtPoint(X+1, Y, (GridTagWall or GridTagDoor or GridTagStep)) <> nil) then stickDX := 1
+            else stickDX := 0;
+            justSticked := true;
+          end;
         end;
       end;
+      onGround := (VelY >= 0) and g_Map_HasAnyPanelAtPoint(X, Y+1, (PANEL_WALL or PANEL_CLOSEDOOR or PANEL_STEP));
     end;
     if (Y < 0) or (Y >= gMapInfo.Height) then begin die(); exit; end;
   end;
@@ -792,6 +881,7 @@ begin
         AccelX := 0;
         AccelY := 0;
         State := STATE_STICK;
+        justSticked := true;
         Break;
       end;
       X := X+s;
@@ -815,6 +905,7 @@ begin
         AccelX := 0;
         AccelY := 0;
         if (s > 0) and (State <> STATE_STICK) then State := STATE_NORMAL else State := STATE_STICK;
+        justSticked := (State = STATE_STICK);
         break;
       end;
       Y := Y+s;
@@ -903,37 +994,36 @@ begin
   if (dY <> 0) then
   begin
     {$IF DEFINED(D2F_NEW_SPARK_THINKER)}
-    pan := g_Map_traceToNearest(X, Y, X, Y+dY, (GridTagWall or GridTagDoor or GridTagStep or GridTagAcid1 or GridTagAcid2 or GridTagWater), @ex, @ey);
-    //e_WriteLog(Format('spark y-trace: (%d,%d)-(%d,%d); dy=%d; end=(%d,%d); hit=%d', [X, Y, X, Y+dY, dY, ex, ey, Integer(pan <> nil)]), MSG_NOTIFY);
-    (*
-    if (pan <> nil) then
+    if (dY < 0) or not onGround then
     begin
-      e_WriteLog(Format('spark y-trace: %08x (%d,%d)-(%d,%d); dy=%d; end=(%d,%d); hittag=%04x', [LongWord(@self), X, Y, X, Y+dY, dY, ex, ey, pan.tag]), MSG_NOTIFY);
-    end
-    else
-    begin
-      e_WriteLog(Format('spark y-trace: %08x (%d,%d)-(%d,%d); dy=%d; end=(%d,%d); hit=%d', [LongWord(@self), X, Y, X, Y+dY, dY, ex, ey, Integer(pan <> nil)]), MSG_NOTIFY);
-    end;
-    *)
-    Y := ey;
-    // free to ride?
-    if (pan <> nil) then
-    begin
-      //die(); exit;
-      // nope
-      if ((pan.tag and (GridTagAcid1 or GridTagAcid2 or GridTagWater)) <> 0) then begin die(); exit; end;
-      if (dY < 0) then
+      pan := g_Map_traceToNearest(X, Y, X, Y+dY, (GridTagWall or GridTagDoor or GridTagStep or GridTagAcid1 or GridTagAcid2 or GridTagWater), @ex, @ey);
+      Y := ey;
+      {
+      if awaken then
       begin
-        VelY := -VelY;
-        AccelY := abs(AccelY);
-      end
-      else
-      begin
-        VelX := 0;
-        AccelX := 0;
-        VelY := 0;
-        AccelY := 0.8;
+        awaken := false;
+        e_LogWritefln('AWAKEN particle of type %s; justSticked=%s; onGround=%s; VelY=%s; AccelY=%s; Y=%s; ey=%s', [ParticleType, justSticked, onGround, VelY, AccelY, Y, ey]);
       end;
+      }
+      // free to ride?
+      if (pan <> nil) then
+      begin
+        // nope
+        if ((pan.tag and (GridTagAcid1 or GridTagAcid2 or GridTagWater)) <> 0) then begin die(); exit; end;
+        if (dY < 0) then
+        begin
+          VelY := -VelY;
+          AccelY := abs(AccelY);
+        end
+        else
+        begin
+          VelX := 0;
+          AccelX := 0;
+          VelY := 0;
+          AccelY := 0.8;
+        end;
+      end;
+      onGround := (VelY >= 0) and g_Map_HasAnyPanelAtPoint(X, Y+1, (PANEL_WALL or PANEL_CLOSEDOOR or PANEL_STEP));
     end;
     if (Y < 0) or (Y >= gMapInfo.Height) then begin die(); exit; end;
     {$ELSE}
@@ -1073,6 +1163,9 @@ begin
       Time := 0;
       LiveTime := 30+Random(60);
       ParticleType := PARTICLE_SPARK;
+      justSticked := false;
+      onGround := (VelY >= 0) and g_Map_HasAnyPanelAtPoint(X, Y+1, (PANEL_WALL or PANEL_CLOSEDOOR or PANEL_STEP));
+      awaken := false;
     end;
 
     if CurrentParticle+2 > MaxParticles then
@@ -1169,6 +1262,10 @@ begin
       Time := 0;
       LiveTime := 120+Random(40);
       ParticleType := PARTICLE_BLOOD;
+      justSticked := false;
+      onGround := (VelY >= 0) and g_Map_HasAnyPanelAtPoint(X, Y+1, (PANEL_WALL or PANEL_CLOSEDOOR or PANEL_STEP));
+      awaken := false;
+      //stickEY := 0;
     end;
 
     if CurrentParticle >= MaxParticles-1 then
@@ -1230,6 +1327,9 @@ begin
       Time := 0;
       LiveTime := 30+Random(60);
       ParticleType := PARTICLE_SPARK;
+      justSticked := false;
+      onGround := (VelY >= 0) and g_Map_HasAnyPanelAtPoint(X, Y+1, (PANEL_WALL or PANEL_CLOSEDOOR or PANEL_STEP));
+      awaken := false;
     end;
 
     if CurrentParticle+2 > MaxParticles then
@@ -1311,6 +1411,9 @@ begin
       Time := 0;
       LiveTime := 60+Random(60);
       ParticleType := PARTICLE_WATER;
+      justSticked := false;
+      onGround := (VelY >= 0) and g_Map_HasAnyPanelAtPoint(X, Y+1, (PANEL_WALL or PANEL_CLOSEDOOR or PANEL_STEP));
+      awaken := false;
     end;
 
     if CurrentParticle+2 > MaxParticles then
@@ -1395,6 +1498,9 @@ begin
       Time := 0;
       LiveTime := 60+Random(60);
       ParticleType := PARTICLE_WATER;
+      justSticked := false;
+      onGround := (VelY >= 0) and g_Map_HasAnyPanelAtPoint(X, Y+1, (PANEL_WALL or PANEL_CLOSEDOOR or PANEL_STEP));
+      awaken := false;
     end;
 
     if CurrentParticle+2 > MaxParticles then
@@ -1405,12 +1511,17 @@ begin
 end;
 
 
+{.$DEFINE D2F_DEBUG_BUBBLES}
 procedure g_GFX_Bubbles(fX, fY: Integer; Count: Word; DevX, DevY: Byte);
 var
   a: Integer;
   DevX1, DevX2,
   DevY1, DevY2: Byte;
   l, liquidx: Integer;
+  {$IF DEFINED(D2F_DEBUG_BUBBLES)}
+  stt: UInt64;
+  nptr, ptr: Boolean;
+  {$ENDIF}
 begin
   if not gpart_dbg_enabled then Exit;
   l := Length(Particles);
@@ -1443,7 +1554,21 @@ begin
 
       // trace liquid, so we'll know where it ends; do it in 8px steps for speed
       // tracer will return `false` if we started outside of the liquid
+
+      {$IF DEFINED(D2F_DEBUG_BUBBLES)}
+      stt := curTimeMicro();
+      ptr := mapGrid.traceOrthoRayWhileIn(liquidx, liquidTopY, X, Y, X, 0, GridTagWater or GridTagAcid1 or GridTagAcid2);
+      stt := curTimeMicro()-stt;
+      e_LogWritefln('traceOrthoRayWhileIn: time=%s (%s); liquidTopY=%s', [Integer(stt), ptr, liquidTopY]);
+      //
+      stt := curTimeMicro();
+      nptr := g_Map_TraceLiquidNonPrecise(X, Y, 0, -8, liquidx, liquidTopY);
+      stt := curTimeMicro()-stt;
+      e_LogWritefln('g_Map_TraceLiquidNonPrecise: time=%s (%s); liquidTopY=%s', [Integer(stt), nptr, liquidTopY]);
+      if not nptr then continue;
+      {$ELSE}
       if not g_Map_TraceLiquidNonPrecise(X, Y, 0, -8, liquidx, liquidTopY) then continue;
+      {$ENDIF}
 
       VelX := 0;
       VelY := -1-Random;
@@ -1459,6 +1584,9 @@ begin
       Time := 0;
       LiveTime := 65535;
       ParticleType := PARTICLE_BUBBLES;
+      justSticked := false;
+      onGround := (VelY >= 0) and g_Map_HasAnyPanelAtPoint(X, Y+1, (PANEL_WALL or PANEL_CLOSEDOOR or PANEL_STEP));
+      awaken := false;
     end;
 
     if CurrentParticle+2 > MaxParticles then

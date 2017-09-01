@@ -197,8 +197,9 @@ type
     function traceRay (const x0, y0, x1, y1: Integer; cb: TGridRayQueryCB; tagmask: Integer=-1): ITP; overload;
     function traceRay (out ex, ey: Integer; const ax0, ay0, ax1, ay1: Integer; cb: TGridRayQueryCB; tagmask: Integer=-1): ITP;
 
-    //function traceOrthoRayWhileIn (const x0, y0, x1, y1: Integer; tagmask: Integer=-1): ITP; overload;
-    //function traceOrthoRayWhileIn (out ex, ey: Integer; const ax0, ay0, ax1, ay1: Integer; tagmask: Integer=-1): ITP;
+    // return `false` if we're still inside at the end
+    // line should be either strict horizontal, or strict vertical, otherwise an exception will be thrown
+    function traceOrthoRayWhileIn (out ex, ey: Integer; ax0, ay0, ax1, ay1: Integer; tagmask: Integer=-1): Boolean;
 
     //WARNING: don't modify grid while any query is in progress (no checks are made!)
     //         you can set enabled/disabled flag, tho (but iterator can still return objects disabled inside it)
@@ -240,7 +241,7 @@ function maxInt (a, b: Integer): Integer; inline;
 implementation
 
 uses
-  SysUtils, e_log, g_console;
+  SysUtils, e_log, g_console, utils;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
@@ -2438,6 +2439,137 @@ begin
   end;
 
   mInQuery := false;
+end;
+
+
+{.$DEFINE D2F_DEBUG_OTR}
+function TBodyGridBase.traceOrthoRayWhileIn (out ex, ey: Integer; ax0, ay0, ax1, ay1: Integer; tagmask: Integer=-1): Boolean;
+var
+  ccidx: Integer;
+  cc: PGridCell;
+  px: PBodyProxyRec;
+  ptag: Integer;
+  minx, miny: Integer;
+  f, c0, c1: Integer;
+  x0, y0, x1, y1: Integer;
+  celly0, celly1: Integer;
+  dy: Integer;
+  filled: array[0..mTileSize-1] of Byte;
+  {$IF DEFINED(D2F_DEBUG_OTR)}
+  s: AnsiString = '';
+  {$ENDIF}
+begin
+  result := false;
+  ex := ax1;
+  ey := ay1;
+  if not ((ax0 = ax1) or (ay0 = ay1)) then raise Exception.Create('orthoray is not orthogonal');
+
+  tagmask := tagmask and TagFullMask;
+  if (tagmask = 0) then exit;
+
+  if (forEachAtPoint(ax0, ay0, nil, tagmask) = nil) then exit;
+
+  minx := mMinX;
+  miny := mMinY;
+
+  // offset query coords to (0,0)-based
+  x0 := ax0-minx;
+  y0 := ay0-miny;
+  x1 := ax1-minx;
+  y1 := ay1-miny;
+
+  if (x0 = x1) then
+  begin
+    if (x0 < 0) or (x0 >= mWidth*mTileSize) then exit; // oops
+    // vertical
+    if (y0 < y1) then
+    begin
+      // down
+      if (y1 < 0) or (y0 >= mHeight*mTileSize) then exit;
+      //if (ay0 < 0) then ay0 := 0;
+      if (y0 < 0) then exit;
+      if (y1 >= mHeight*mTileSize) then y1 := mHeight*mTileSize-1;
+      dy := 1;
+    end
+    else
+    begin
+      // up
+      if (y0 < 0) or (y1 >= mHeight*mTileSize) then exit;
+      //if (ay1 < 0) then ay1 := 0;
+      if (y1 < 0) then exit;
+      if (y0 >= mHeight*mTileSize) then y0 := mHeight*mTileSize-1;
+      dy := -1;
+    end;
+    // check tile
+    while true do
+    begin
+      ccidx := mGrid[(y0 div mTileSize)*mWidth+(x0 div mTileSize)];
+      FillChar(filled, sizeof(filled), 0);
+      celly0 := y0 and (not (mTileSize-1));
+      celly1 := celly0+mTileSize-1;
+      while (ccidx <> -1) do
+      begin
+        cc := @mCells[ccidx];
+        for f := 0 to GridCellBucketSize-1 do
+        begin
+          if (cc.bodies[f] = -1) then break;
+          px := @mProxies[cc.bodies[f]];
+          ptag := px.mTag;
+          if ((ptag and TagDisabled) = 0) and ((ptag and tagmask) <> 0) and
+             (ax0 >= px.x0) and (ax0 <= px.x1) then
+          begin
+            // bound c0 and c1 to cell
+            c0 := nclamp(px.y0-miny, celly0, celly1);
+            c1 := nclamp(px.y1-miny, celly0, celly1);
+            // fill the thing
+            {$IF DEFINED(D2F_DEBUG_OTR)}
+            e_LogWritefln('**px.y0=%s; px.y1=%s; c0=%s; c1=%s; celly0=%s; celly1=%s; [%s..%s]', [px.y0-miny, px.y1-miny, c0, c1, celly0, celly1, c0-celly0, (c0-celly0)+(c1-c0)]);
+            {$ENDIF}
+            //assert(c0 <= c1);
+            FillChar(filled[c0-celly0], c1-c0+1, 1);
+          end;
+        end;
+        // next cell
+        ccidx := cc.next;
+      end;
+      {$IF DEFINED(D2F_DEBUG_OTR)}
+      s := formatstrf('  x=%s; ay0=%s; ay1=%s; y0=%s; celly0=%s; celly1=%s; dy=%s; [', [ax0, ay0, ay1, y0, celly0, celly1, dy]);
+      for f := 0 to High(filled) do if (filled[f] <> 0) then s += '1' else s += '0';
+      s += ']';
+      e_LogWriteln(s);
+      {$ENDIF}
+      // now go till we hit cell boundary or empty space
+      if (dy < 0) then
+      begin
+        // up
+        while (y0 >= celly0) and (filled[y0-celly0] <> 0) do
+        begin
+          {$IF DEFINED(D2F_DEBUG_OTR)}
+          e_LogWritefln('   filled: cdy=%s; y0=%s; celly0=%s; ay0=%s; ay1=%s', [y0-celly0, y0, celly0, ay0, ay1]);
+          {$ENDIF}
+          Dec(y0);
+          Dec(ay0);
+        end;
+        {$IF DEFINED(D2F_DEBUG_OTR)}
+        e_LogWritefln('   span done: cdy=%s; y0=%s; celly0=%s; ay0=%s; ay1=%s', [y0-celly0, y0, celly0, ay0, ay1]);
+        {$ENDIF}
+        if (ay0 <= ay1) then begin ey := ay1; result := false; exit; end;
+        if (y0 >= celly0) then begin ey := ay0+1; {assert(forEachAtPoint(ex, ey, nil, tagmask) <> nil);} result := true; exit; end;
+      end
+      else
+      begin
+        // down
+        while (y0 <= celly1) and (filled[y1-celly0] <> 0) do begin Inc(y0); Inc(ay0); end;
+        if (ay0 >= ay1) then begin ey := ay1; result := false; exit; end;
+        if (y0 <= celly1) then begin ey := ay0-1; result := true; exit; end;
+      end;
+    end;
+  end
+  else
+  begin
+    // horizontal
+    assert(false);
+  end;
 end;
 
 
