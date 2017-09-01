@@ -173,6 +173,11 @@ function joaatHash (constref buf; len: LongWord): LongWord;
 function nextPOT (x: LongWord): LongWord; inline;
 
 
+// for integer keys
+function hiiequ (constref a, b: Integer): Boolean;
+function hiihash (constref k: Integer): LongWord;
+
+
 implementation
 
 uses
@@ -204,7 +209,7 @@ function hsiequ (constref a, b: AnsiString): Boolean; begin result := (a = b); e
 {$RANGECHECKS OFF}
 function hiihash (constref k: Integer): LongWord;
 begin
-  result := k;
+  result := LongWord(k);
   result -= (result shl 6);
   result := result xor (result shr 17);
   result -= (result shl 9);

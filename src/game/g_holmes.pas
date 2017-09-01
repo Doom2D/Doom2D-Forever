@@ -1041,12 +1041,12 @@ procedure plrDebugDraw ();
 
   procedure drawTrigger (var trig: TTrigger);
 
-    procedure drawPanelDest (var parr: TPanelArray; idx: Integer);
+    procedure drawPanelDest (pguid: Integer);
     var
       pan: TPanel;
     begin
-      if (idx < 0) or (idx >= Length(parr)) then exit;
-      pan := parr[idx];
+      pan := g_Map_PanelByGUID(pguid);
+      if (pan = nil) then exit;
       drawLine(
         trig.trigCenter.x, trig.trigCenter.y,
         pan.x+pan.width div 2, pan.y+pan.height div 2,
@@ -1065,20 +1065,21 @@ procedure plrDebugDraw ();
     tx := trig.x+(trig.width-Length(trig.mapId)*6) div 2;
     darkenRect(tx-2, trig.y-20, Length(trig.mapId)*6+4, 10, 64);
     drawText6(tx, trig.y-19, trig.mapId, 255, 255, 0);
+    drawPanelDest(trig.trigPanelGUID);
     case trig.TriggerType of
       TRIGGER_NONE: begin end;
       TRIGGER_EXIT: begin end;
       TRIGGER_TELEPORT: begin end;
-      TRIGGER_OPENDOOR: begin drawPanelDest(gWalls, trig.trigPanelId); end;
-      TRIGGER_CLOSEDOOR: begin drawPanelDest(gWalls, trig.trigPanelId); end;
-      TRIGGER_DOOR: begin drawPanelDest(gWalls, trig.trigPanelId); end;
-      TRIGGER_DOOR5: begin drawPanelDest(gWalls, trig.trigPanelId); end;
-      TRIGGER_CLOSETRAP: begin drawPanelDest(gWalls, trig.trigPanelId); end;
-      TRIGGER_TRAP: begin drawPanelDest(gWalls, trig.trigPanelId); end;
+      TRIGGER_OPENDOOR: begin end;
+      TRIGGER_CLOSEDOOR: begin end;
+      TRIGGER_DOOR: begin end;
+      TRIGGER_DOOR5: begin end;
+      TRIGGER_CLOSETRAP: begin end;
+      TRIGGER_TRAP: begin end;
       TRIGGER_SECRET: begin end;
-      TRIGGER_LIFTUP: begin drawPanelDest(gLifts, trig.trigPanelId); end;
-      TRIGGER_LIFTDOWN: begin drawPanelDest(gLifts, trig.trigPanelId); end;
-      TRIGGER_LIFT: begin drawPanelDest(gLifts, trig.trigPanelId); end;
+      TRIGGER_LIFTUP: begin end;
+      TRIGGER_LIFTDOWN: begin end;
+      TRIGGER_LIFT: begin end;
       TRIGGER_TEXTURE: begin end;
       TRIGGER_ON, TRIGGER_OFF, TRIGGER_ONOFF, TRIGGER_PRESS:
         begin
@@ -1374,7 +1375,7 @@ procedure cbAtcurToggleWalls ();
   begin
     result := false; // don't stop
     //e_WriteLog(Format('wall #%d(%d); enabled=%d (%d); (%d,%d)-(%d,%d)', [pan.arrIdx, pan.proxyId, Integer(pan.Enabled), Integer(mapGrid.proxyEnabled[pan.proxyId]), pan.X, pan.Y, pan.Width, pan.Height]), MSG_NOTIFY);
-    if pan.Enabled then g_Map_DisableWall(pan.arrIdx) else g_Map_EnableWall(pan.arrIdx);
+    if pan.Enabled then g_Map_DisableWallGUID(pan.guid) else g_Map_EnableWallGUID(pan.guid);
   end;
 begin
   //e_WriteLog('=== TOGGLE WALL ===', MSG_NOTIFY);

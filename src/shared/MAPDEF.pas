@@ -122,6 +122,7 @@ type
 
     {$INCLUDE mapdef_help.inc}
     function trigMonsterId (): Integer; inline;
+    function trigPanelId (): Integer; inline; // panel index in list
 
   private
     // user fields
@@ -275,6 +276,16 @@ var
   fld: TDynField;
 begin
   fld := getFieldWithType('monsterid', TDynField.TType.TInt);
+  result := fld.recrefIndex;
+end;
+
+
+// panel index in list
+function TDynRecordHelper.trigPanelId (): Integer; inline;
+var
+  fld: TDynField;
+begin
+  fld := getFieldWithType('panelid', TDynField.TType.TInt);
   result := fld.recrefIndex;
 end;
 

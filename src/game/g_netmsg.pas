@@ -52,8 +52,8 @@ const
   NET_MSG_MSHOT  = 134;
   NET_MSG_MDEL   = 135;
 
-  NET_MSG_PSTATE = 141;
-  NET_MSG_PTEX   = 142;
+  NET_MSG_PSTATE   = 141;
+  NET_MSG_PTEX     = 142;
 
   NET_MSG_TSOUND = 151;
   NET_MSG_TMUSIC = 152;
@@ -168,8 +168,8 @@ procedure MH_SEND_PlayerSettings(PID: Word; Mdl: string = ''; ID: Integer = NET_
 procedure MH_SEND_ItemSpawn(Quiet: Boolean; IID: Word; ID: Integer = NET_EVERYONE);
 procedure MH_SEND_ItemDestroy(Quiet: Boolean; IID: Word; ID: Integer = NET_EVERYONE);
 // PANEL
-procedure MH_SEND_PanelTexture(PType: Word; PID: LongWord; AnimLoop: Byte; ID: Integer = NET_EVERYONE);
-procedure MH_SEND_PanelState(PType: Word; PID: LongWord; ID: Integer = NET_EVERYONE);
+procedure MH_SEND_PanelTexture(PType: Word; PGUID: Integer; AnimLoop: Byte; ID: Integer = NET_EVERYONE);
+procedure MH_SEND_PanelState(PType: Word; PGUID: Integer; ID: Integer = NET_EVERYONE);
 // MONSTER
 procedure MH_SEND_MonsterSpawn(UID: Word; ID: Integer = NET_EVERYONE);
 procedure MH_SEND_MonsterPos(UID: Word; ID: Integer = NET_EVERYONE);
@@ -1217,10 +1217,13 @@ end;
 
 // PANEL
 
-procedure MH_SEND_PanelTexture(PType: Word; PID: LongWord; AnimLoop: Byte; ID: Integer = NET_EVERYONE);
+procedure MH_SEND_PanelTexture(PType: Word; PGUID: Integer; AnimLoop: Byte; ID: Integer = NET_EVERYONE);
 var
   TP: TPanel;
 begin
+  TP := g_Map_PanelByGUID(PGUID);
+  if (TP = nil) then exit;
+  {
   case PType of
     PANEL_WALL, PANEL_OPENDOOR, PANEL_CLOSEDOOR:
       TP := gWalls[PID];
@@ -1239,12 +1242,13 @@ begin
     else
       Exit;
   end;
+  }
 
   with TP do
   begin
     NetOut.Write(Byte(NET_MSG_PTEX));
     NetOut.Write(PType);
-    NetOut.Write(PID);
+    NetOut.Write(LongWord(PGUID));
     NetOut.Write(FCurTexture);
     NetOut.Write(FCurFrame);
     NetOut.Write(FCurFrameCount);
@@ -1254,32 +1258,36 @@ begin
   g_Net_Host_Send(ID, True, NET_CHAN_LARGEDATA);
 end;
 
-procedure MH_SEND_PanelState(PType: Word; PID: LongWord; ID: Integer = NET_EVERYONE);
+procedure MH_SEND_PanelState(PType: Word; PGUID: Integer; ID: Integer = NET_EVERYONE);
 var
   TP: TPanel;
 begin
+  TP := g_Map_PanelByGUID(PGUID);
+  if (TP = nil) then exit;
   case PType of
-    PANEL_WALL, PANEL_OPENDOOR, PANEL_CLOSEDOOR:
-      TP := gWalls[PID];
-    PANEL_LIFTUP, PANEL_LIFTDOWN, PANEL_LIFTLEFT, PANEL_LIFTRIGHT:
-      TP := gLifts[PID];
+    {
+    PANEL_WALL, PANEL_OPENDOOR, PANEL_CLOSEDOOR: TP := gWalls[PID];
+    PANEL_LIFTUP, PANEL_LIFTDOWN, PANEL_LIFTLEFT, PANEL_LIFTRIGHT: TP := gLifts[PID];
+    }
     PANEL_BACK:
     begin
-      TP := gRenderBackgrounds[PID];
+      //TP := gRenderBackgrounds[PID];
       TP.Moved := True;
     end;
     PANEL_FORE:
     begin
-      TP := gRenderForegrounds[PID];
+      //TP := gRenderForegrounds[PID];
       TP.Moved := True;
     end;
+    {
     else
       Exit;
+    }
   end;
 
   NetOut.Write(Byte(NET_MSG_PSTATE));
   NetOut.Write(PType);
-  NetOut.Write(PID);
+  NetOut.Write(LongWord(PGUID));
   NetOut.Write(Byte(TP.Enabled));
   NetOut.Write(TP.LiftType);
   NetOut.Write(TP.X);
@@ -2403,67 +2411,62 @@ end;
 procedure MC_RECV_PanelTexture(var M: TMsg);
 var
   TP: TPanel;
-  PType: Word;
-  ID: LongWord;
+  //PType: Word;
+  PGUID: Integer;
   Tex, Fr: Integer;
   Loop, Cnt: Byte;
 begin
   if not gGameOn then Exit;
-  PType := M.ReadWord();
-  ID := M.ReadLongWord();
+  {PType :=} M.ReadWord();
+  PGUID := Integer(M.ReadLongWord());
   Tex := M.ReadLongInt();
   Fr := M.ReadLongInt();
   Cnt := M.ReadByte();
   Loop := M.ReadByte();
 
-  TP := nil;
+  TP := g_Map_PanelByGUID(PGUID);
 
+  {
   case PType of
-    PANEL_WALL, PANEL_OPENDOOR, PANEL_CLOSEDOOR:
-     if gWalls <> nil then
-      TP := gWalls[ID];
-    PANEL_FORE:
-     if gRenderForegrounds <> nil then
-      TP := gRenderForegrounds[ID];
-    PANEL_BACK:
-     if gRenderBackgrounds <> nil then
-      TP := gRenderBackgrounds[ID];
-    PANEL_WATER:
-     if gWater <> nil then
-      TP := gWater[ID];
-    PANEL_ACID1:
-     if gAcid1 <> nil then
-      TP := gAcid1[ID];
-    PANEL_ACID2:
-     if gAcid2 <> nil then
-      TP := gAcid2[ID];
-    PANEL_STEP:
-     if gSteps <> nil then
-      TP := gSteps[ID];
-    else
-      Exit;
+    PANEL_WALL, PANEL_OPENDOOR, PANEL_CLOSEDOOR: if gWalls <> nil then TP := gWalls[ID];
+    PANEL_FORE: if gRenderForegrounds <> nil then TP := gRenderForegrounds[ID];
+    PANEL_BACK: if gRenderBackgrounds <> nil then TP := gRenderBackgrounds[ID];
+    PANEL_WATER: if gWater <> nil then TP := gWater[ID];
+    PANEL_ACID1: if gAcid1 <> nil then TP := gAcid1[ID];
+    PANEL_ACID2: if gAcid2 <> nil then TP := gAcid2[ID];
+    PANEL_STEP: if gSteps <> nil then TP := gSteps[ID];
+    else Exit;
   end;
+  }
 
   if TP <> nil then
+  begin
     if Loop = 0 then
-    begin    // switch texture
+    begin
+      // switch texture
       TP.SetTexture(Tex, Loop);
       TP.SetFrame(Fr, Cnt);
-    end else // looped or non-looped animation
+    end
+    else
+    begin
+      // looped or non-looped animation
       TP.NextTexture(Loop);
+    end;
+  end;
 end;
 
 procedure MC_RECV_PanelState(var M: TMsg);
 var
-  ID: LongWord;
+  PGUID: Integer;
   E: Boolean;
   Lift: Byte;
   PType: Word;
   X, Y: Integer;
+  TP: TPanel;
 begin
   if not gGameOn then Exit;
   PType := M.ReadWord();
-  ID := M.ReadLongWord();
+  PGUID := Integer(M.ReadLongWord());
   E := (M.ReadByte() <> 0);
   Lift := M.ReadByte();
   X := M.ReadLongInt();
@@ -2471,25 +2474,33 @@ begin
 
   case PType of
     PANEL_WALL, PANEL_OPENDOOR, PANEL_CLOSEDOOR:
-      if E then
-        g_Map_EnableWall(ID)
-      else
-        g_Map_DisableWall(ID);
+      if E then g_Map_EnableWallGUID(PGUID) else g_Map_DisableWallGUID(PGUID);
 
     PANEL_LIFTUP, PANEL_LIFTDOWN, PANEL_LIFTLEFT, PANEL_LIFTRIGHT:
-      g_Map_SetLift(ID, Lift);
+      g_Map_SetLiftGUID(PGUID, Lift);
 
-    PANEL_BACK:
+    {PANEL_BACK,
+    PANEL_FORE:}
+    else
     begin
-      gRenderBackgrounds[ID].X := X;
-      gRenderBackgrounds[ID].Y := Y;
+      TP := g_Map_PanelByGUID(PGUID);
+      if (TP <> nil) then
+      begin
+        TP.X := X;
+        TP.Y := Y;
+        TP.positionChanged();
+      end;
+      //gRenderBackgrounds[ID].X := X;
+      //gRenderBackgrounds[ID].Y := Y;
     end;
 
+    {
     PANEL_FORE:
     begin
       gRenderForegrounds[ID].X := X;
       gRenderForegrounds[ID].Y := Y;
-    end;      
+    end;
+    }
   end;
 end;
 

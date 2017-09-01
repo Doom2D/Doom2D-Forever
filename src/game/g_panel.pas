@@ -31,6 +31,9 @@ type
 
   TPanel = Class (TObject)
   private
+    const
+  private
+    mGUID: Integer; // will be assigned in "g_map.pas"
     FTextureWidth:    Word;
     FTextureHeight:   Word;
     FAlpha:           Byte;
@@ -65,14 +68,17 @@ type
     FMoved:           Boolean;
     FLiftType:        Byte;
     FLastAnimLoop:    Byte;
+    // sorry, there fields are public to allow setting 'em in g_map; this should be fixed later
+    // for now, PLEASE, don't modify 'em, or all hell will break loose
     arrIdx:           Integer; // index in one of internal arrays; sorry
-    tag:              Integer; // used in coldets and such; sorry
+    tag:              Integer; // used in coldets and such; sorry; see g_map.GridTagXXX
     proxyId:          Integer; // proxy id in map grid (DO NOT USE!)
+    mapId:            AnsiString; // taken directly from map file; dunno why it is here
 
     constructor Create(PanelRec: TDynRecord;
                        AddTextures: TAddTextureArray;
                        CurTex: Integer;
-                       var Textures: TLevelTextureArray);
+                       var Textures: TLevelTextureArray; aguid: Integer);
     destructor  Destroy(); override;
 
     procedure   Draw();
@@ -87,10 +93,24 @@ type
     procedure   SaveState(var Mem: TBinMemoryWriter);
     procedure   LoadState(var Mem: TBinMemoryReader);
 
+    procedure positionChanged ();
+
+    function isGBack (): Boolean; inline; // gRenderBackgrounds
+    function isGStep (): Boolean; inline; // gSteps
+    function isGWall (): Boolean; inline; // gWalls
+    function isGAcid1 (): Boolean; inline; // gAcid1
+    function isGAcid2 (): Boolean; inline; // gAcid2
+    function isGWater (): Boolean; inline; // gWater
+    function isGFore (): Boolean; inline; // gRenderForegrounds
+    function isGLift (): Boolean; inline; // gLifts
+    function isGBlockMon (): Boolean; inline; // gBlockMon
+
+
   public
     property visvalid: Boolean read getvisvalid; // panel is "visvalid" when it's width and height are positive
 
   published
+    property guid: Integer read mGUID; // will be assigned in "g_map.pas"
     property x0: Integer read FX;
     property y0: Integer read FY;
     property x1: Integer read getx1; // inclusive!
@@ -131,7 +151,7 @@ const
 constructor TPanel.Create(PanelRec: TDynRecord;
                           AddTextures: TAddTextureArray;
                           CurTex: Integer;
-                          var Textures: TLevelTextureArray);
+                          var Textures: TLevelTextureArray; aguid: Integer);
 var
   i: Integer;
 begin
@@ -145,6 +165,9 @@ begin
   FCurFrameCount := 0;
   LastAnimLoop := 0;
   Moved := False;
+
+  mapId := PanelRec.id;
+  mGUID := aguid;
 
   mMovingSpeed := PanelRec.moveSpeed;
   mMovingStart := PanelRec.moveStart;
@@ -295,6 +318,16 @@ function TPanel.getx1 (): Integer; inline; begin result := X+Width-1; end;
 function TPanel.gety1 (): Integer; inline; begin result := Y+Height-1; end;
 function TPanel.getvisvalid (): Boolean; inline; begin result := (Width > 0) and (Height > 0); end;
 
+function TPanel.isGBack (): Boolean; inline; begin result := ((tag and GridTagBack) <> 0); end;
+function TPanel.isGStep (): Boolean; inline; begin result := ((tag and GridTagStep) <> 0); end;
+function TPanel.isGWall (): Boolean; inline; begin result := ((tag and (GridTagWall or GridTagDoor)) <> 0); end;
+function TPanel.isGAcid1 (): Boolean; inline; begin result := ((tag and GridTagAcid1) <> 0); end;
+function TPanel.isGAcid2 (): Boolean; inline; begin result := ((tag and GridTagAcid2) <> 0); end;
+function TPanel.isGWater (): Boolean; inline; begin result := ((tag and GridTagWater) <> 0); end;
+function TPanel.isGFore (): Boolean; inline; begin result := ((tag and GridTagFore) <> 0); end;
+function TPanel.isGLift (): Boolean; inline; begin result := ((tag and GridTagLift) <> 0); end;
+function TPanel.isGBlockMon (): Boolean; inline; begin result := ((tag and GridTagBlockMon) <> 0); end;
+
 procedure TPanel.Draw();
 var
   xx, yy: Integer;
@@ -403,6 +436,12 @@ begin
       drawLine(x,       y+height, x,       y); // left
     glEnd();
   end;
+end;
+
+
+procedure TPanel.positionChanged ();
+begin
+  if (proxyId >= 0) then mapGrid.moveBody(proxyId, X, Y);
 end;
 
 
@@ -518,7 +557,7 @@ begin
     Y := ny;
     g_Mark(nx, ny, Width, Height, MARK_WALL);
     // fix grid
-    if (proxyId >= 0) then mapGrid.moveBody(proxyId, nx, ny);
+    positionChanged();
     // notify moved monsters about their movement
     for f := 0 to monMoveListUsed-1 do monMoveList[f].positionChanged();
   end;

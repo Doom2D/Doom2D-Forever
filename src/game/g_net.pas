@@ -22,7 +22,7 @@ uses
   e_log, e_msg, ENet, Classes;
 
 const
-  NET_PROTOCOL_VER = 171;
+  NET_PROTOCOL_VER = 172;
 
   NET_MAXCLIENTS = 24;
   NET_CHANS = 11;

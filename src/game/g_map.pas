@@ -63,6 +63,8 @@ function  g_Map_Exist(Res: String): Boolean;
 procedure g_Map_Free(freeTextures: Boolean=true);
 procedure g_Map_Update();
 
+function g_Map_PanelByGUID (aguid: Integer): TPanel; inline;
+
 procedure g_Map_DrawPanels (PanelType: Word); // unaccelerated
 procedure g_Map_CollectDrawPanels (x0, y0, wdt, hgt: Integer);
 
@@ -70,10 +72,18 @@ procedure g_Map_DrawBack(dx, dy: Integer);
 function  g_Map_CollidePanel(X, Y: Integer; Width, Height: Word;
                              PanelType: Word; b1x3: Boolean=false): Boolean;
 function  g_Map_CollideLiquid_Texture(X, Y: Integer; Width, Height: Word): DWORD;
-procedure g_Map_EnableWall(ID: DWORD);
-procedure g_Map_DisableWall(ID: DWORD);
-procedure g_Map_SwitchTexture(PanelType: Word; ID: DWORD; AnimLoop: Byte = 0);
-procedure g_Map_SetLift(ID: DWORD; t: Integer);
+
+procedure g_Map_EnableWallGUID (pguid: Integer);
+procedure g_Map_DisableWallGUID (pguid: Integer);
+procedure g_Map_SetLiftGUID (pguid: Integer; t: Integer);
+
+// HACK!!!
+procedure g_Map_EnableWall_XXX (ID: DWORD);
+procedure g_Map_DisableWall_XXX (ID: DWORD);
+procedure g_Map_SetLift_XXX (ID: DWORD; t: Integer);
+
+procedure g_Map_SwitchTextureGUID (PanelType: Word; pguid: Integer; AnimLoop: Byte = 0);
+
 procedure g_Map_ReAdd_DieTriggers();
 function  g_Map_IsSpecialTexture(Texture: String): Boolean;
 
@@ -161,17 +171,17 @@ const
       PANEL_FORE
    *)
   // sorted by draw priority
-  GridTagBack = 1 shl 0;
-  GridTagStep = 1 shl 1;
-  GridTagWall = 1 shl 2;
-  GridTagDoor = 1 shl 3;
-  GridTagAcid1 = 1 shl 4;
-  GridTagAcid2 = 1 shl 5;
-  GridTagWater = 1 shl 6;
-  GridTagFore = 1 shl 7;
+  GridTagBack = 1 shl 0; // gRenderBackgrounds
+  GridTagStep = 1 shl 1; // gSteps
+  GridTagWall = 1 shl 2; // gWalls
+  GridTagDoor = 1 shl 3; // gWalls
+  GridTagAcid1 = 1 shl 4; // gAcid1
+  GridTagAcid2 = 1 shl 5; // gAcid2
+  GridTagWater = 1 shl 6; // gWater
+  GridTagFore = 1 shl 7; // gRenderForegrounds
   // the following are invisible
-  GridTagLift = 1 shl 8;
-  GridTagBlockMon = 1 shl 9;
+  GridTagLift = 1 shl 8; // gLifts
+  GridTagBlockMon = 1 shl 9; // gBlockMon
 
   GridDrawableMask = (GridTagBack or GridTagStep or GridTagWall or GridTagDoor or GridTagAcid1 or GridTagAcid2 or GridTagWater or GridTagFore);
 
@@ -231,6 +241,32 @@ const
   FLAG_SIGNATURE = $47414C46; // 'FLAG'
 
 
+{
+type
+  THashIntPanel = specialize THashBase<Integer, TPanel>;
+
+function hashNewIntPanel (): THashIntPanel;
+begin
+  result := THashIntPanel.Create(hiihash, hiiequ);
+end;
+}
+
+
+var
+  //panByGUID: THashIntPanel = nil;
+  panByGUID: array of TPanel = nil;
+  //panLastGUID: Integer = 0;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
+function g_Map_PanelByGUID (aguid: Integer): TPanel; inline;
+begin
+  //if (panByGUID = nil) or (not panByGUID.get(aguid, result)) then result := nil;
+  if (aguid >= 0) and (aguid < Length(panByGUID)) then result := panByGUID[aguid] else result := nil;
+end;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
 var
   dfmapdef: TDynMapDef = nil;
 
@@ -284,6 +320,7 @@ begin
 end;
 
 
+// ////////////////////////////////////////////////////////////////////////// //
 function g_Map_ParseMap (data: Pointer; dataLen: Integer): TDynRecord;
 var
   wst: TSFSMemoryChunkStream = nil;
@@ -331,6 +368,7 @@ begin
 end;
 
 
+// ////////////////////////////////////////////////////////////////////////// //
 var
   NNF_PureName: String; // Имя текстуры без цифр в конце
   NNF_FirstNum: Integer; // Число у начальной текстуры
@@ -395,6 +433,7 @@ begin
 end;
 
 
+// ////////////////////////////////////////////////////////////////////////// //
 function panelTypeToTag (panelType: Word): Integer;
 begin
   case panelType of
@@ -430,19 +469,12 @@ begin
 end;
 
 
-type
-  TPanelID = record
-    PWhere: ^TPanelArray;
-    PArrID: Integer;
-  end;
-
 var
-  PanelById:     array of TPanelID;
-  Textures:      TLevelTextureArray = nil;
+  Textures: TLevelTextureArray = nil;
   TextNameHash: THashStrInt = nil; // key: texture name; value: index in `Textures`
   BadTextNameHash: THashStrInt = nil; // set; so we won't spam with non-existing texture messages
-  RespawnPoints: Array of TRespawnPoint;
-  FlagPoints:    Array [FLAG_RED..FLAG_BLUE] of PFlagPoint;
+  RespawnPoints: array of TRespawnPoint;
+  FlagPoints: array[FLAG_RED..FLAG_BLUE] of PFlagPoint;
   //DOMFlagPoints: Array of TFlagPoint;
 
 
@@ -742,48 +774,41 @@ function CreatePanel(PanelRec: TDynRecord; AddTextures: TAddTextureArray;
 var
   len: Integer;
   panels: ^TPanelArray;
+  pan: TPanel;
+  pguid: Integer;
 begin
   Result := -1;
 
   case PanelRec.PanelType of
-    PANEL_WALL, PANEL_OPENDOOR, PANEL_CLOSEDOOR:
-      panels := @gWalls;
-    PANEL_BACK:
-      panels := @gRenderBackgrounds;
-    PANEL_FORE:
-      panels := @gRenderForegrounds;
-    PANEL_WATER:
-      panels := @gWater;
-    PANEL_ACID1:
-      panels := @gAcid1;
-    PANEL_ACID2:
-      panels := @gAcid2;
-    PANEL_STEP:
-      panels := @gSteps;
-    PANEL_LIFTUP, PANEL_LIFTDOWN, PANEL_LIFTLEFT, PANEL_LIFTRIGHT:
-      panels := @gLifts;
-    PANEL_BLOCKMON:
-      panels := @gBlockMon;
-    else
-      Exit;
+    PANEL_WALL, PANEL_OPENDOOR, PANEL_CLOSEDOOR: panels := @gWalls;
+    PANEL_BACK: panels := @gRenderBackgrounds;
+    PANEL_FORE: panels := @gRenderForegrounds;
+    PANEL_WATER: panels := @gWater;
+    PANEL_ACID1: panels := @gAcid1;
+    PANEL_ACID2: panels := @gAcid2;
+    PANEL_STEP: panels := @gSteps;
+    PANEL_LIFTUP, PANEL_LIFTDOWN, PANEL_LIFTLEFT, PANEL_LIFTRIGHT: panels := @gLifts;
+    PANEL_BLOCKMON: panels := @gBlockMon;
+    else exit;
   end;
 
   len := Length(panels^);
-  SetLength(panels^, len + 1);
+  SetLength(panels^, len+1);
 
-  panels^[len] := TPanel.Create(PanelRec, AddTextures, CurTex, Textures);
-  panels^[len].arrIdx := len;
-  panels^[len].proxyId := -1;
-  panels^[len].tag := panelTypeToTag(PanelRec.PanelType);
-  if sav then
-    panels^[len].SaveIt := True;
+  //Inc(panLastGUID);
+  pguid := Length(panByGUID);
+  SetLength(panByGUID, pguid+1); //FIXME!
+  pan := TPanel.Create(PanelRec, AddTextures, CurTex, Textures, pguid);
+  panels^[len] := pan;
+  pan.arrIdx := len;
+  pan.proxyId := -1;
+  pan.tag := panelTypeToTag(PanelRec.PanelType);
+  if sav then pan.SaveIt := True;
 
-  Result := len;
+  PanelRec.user['panel_guid'] := pan.guid;
+  //panByGUID.put(pan.guid, pan);
 
-  len := Length(PanelByID);
-  SetLength(PanelByID, len + 1);
-  PanelByID[len].PWhere := panels;
-  PanelByID[len].PArrID := Result;
+  result := len;
 end;
 
 
@@ -1265,13 +1290,13 @@ begin
     Height := Trigger.Height;
     Enabled := Trigger.Enabled;
     //TexturePanel := Trigger.TexturePanel;
-    TexturePanel := atpanid;
+    TexturePanelGUID := atpanid;
     TexturePanelType := fTexturePanel1Type;
     ShotPanelType := fTexturePanel2Type;
     TriggerType := Trigger.TriggerType;
     ActivateType := Trigger.ActivateType;
     Keys := Trigger.Keys;
-    trigPanelId := atrigpanid;
+    trigPanelGUID := atrigpanid;
     //trigShotPanelId := ashotpanid;
     //Data.Default := Trigger.DATA;
     if (Trigger.trigRec = nil) then
@@ -1537,11 +1562,13 @@ type
     LiftPanelIdx: Integer;
     DoorPanelIdx: Integer;
     ShotPanelIdx: Integer;
+    MPlatPanelIdx: Integer;
     trigrec: TDynRecord;
     texPan: TDynRecord;
     liftPan: TDynRecord;
     doorPan: TDynRecord;
     shotPan: TDynRecord;
+    mplatPan: TDynRecord;
   end;
 var
   WAD: TWADFile;
@@ -1573,6 +1600,11 @@ begin
 
   gCurrentMap.Free();
   gCurrentMap := nil;
+
+  //panByGUID.Free();
+  //panByGUID := hashNewIntPanel();
+  //panLastGUID := 0;
+  panByGUID := nil;
 
   Result := False;
   gMapInfo.Map := Res;
@@ -1739,10 +1771,12 @@ begin
         pttit.liftPan := nil;
         pttit.doorPan := nil;
         pttit.shotPan := nil;
+        pttit.mplatPan := nil;
         pttit.texPanIdx := -1;
         pttit.LiftPanelIdx := -1;
         pttit.DoorPanelIdx := -1;
         pttit.ShotPanelIdx := -1;
+        pttit.MPlatPanelIdx := -1;
         // Лифты
         if rec.TriggerType in [TRIGGER_LIFTUP, TRIGGER_LIFTDOWN, TRIGGER_LIFT] then
         begin
@@ -1758,11 +1792,17 @@ begin
         begin
           pttit.shotPan := mapReader.panel[rec.trigRec.tgShotPanelID];
         end;
+        //
+        if rec.TriggerType in [TRIGGER_PRESS, TRIGGER_ON, TRIGGER_OFF, TRIGGER_ONOFF] then
+        begin
+          pttit.mplatPan := mapReader.panel[rec.trigRec.tgPanelID];
+        end;
 
         if (pttit.texPan <> nil) then pttit.texPan.userPanelTrigRef := true;
         if (pttit.liftPan <> nil) then pttit.liftPan.userPanelTrigRef := true;
         if (pttit.doorPan <> nil) then pttit.doorPan.userPanelTrigRef := true;
         if (pttit.shotPan <> nil) then pttit.shotPan.userPanelTrigRef := true;
+        if (pttit.mplatPan <> nil) then pttit.mplatPan.userPanelTrigRef := true;
 
         g_Game_StepLoading();
       end;
@@ -1970,6 +2010,7 @@ begin
       if (TriggersTable[b].liftPan <> nil) then TriggersTable[b].LiftPanelIdx := TriggersTable[b].liftPan.userPanelId;
       if (TriggersTable[b].doorPan <> nil) then TriggersTable[b].DoorPanelIdx := TriggersTable[b].doorPan.userPanelId;
       if (TriggersTable[b].shotPan <> nil) then TriggersTable[b].ShotPanelIdx := TriggersTable[b].shotPan.userPanelId;
+      if (TriggersTable[b].mplatPan <> nil) then TriggersTable[b].MPlatPanelIdx := TriggersTable[b].mplatPan.userPanelId;
     end;
 
     // create map grid, init other grids (for monsters, for example)
@@ -1992,6 +2033,7 @@ begin
              if (TriggersTable[trignum].LiftPanelIdx <> -1) then tgpid := TriggersTable[trignum].LiftPanelIdx
         else if (TriggersTable[trignum].DoorPanelIdx <> -1) then tgpid := TriggersTable[trignum].DoorPanelIdx
         else if (TriggersTable[trignum].ShotPanelIdx <> -1) then tgpid := TriggersTable[trignum].ShotPanelIdx
+        else if (TriggersTable[trignum].MPlatPanelIdx <> -1) then tgpid := TriggersTable[trignum].MPlatPanelIdx
         else tgpid := -1;
         //e_LogWritefln('creating trigger #%s; texpantype=%s; shotpantype=%s (%d,%d)', [trignum, b, c, TriggersTable[trignum].texPanIdx, TriggersTable[trignum].ShotPanelIdx]);
         CreateTrigger(trignum, rec, TriggersTable[trignum].texPanIdx, tgpid, Word(b), Word(c));
@@ -2321,6 +2363,11 @@ begin
     BadTextNameHash := nil;
   end;
 
+  //panByGUID.Free();
+  //panByGUID := nil;
+  //panLastGUID := 0;
+  panByGUID := nil;
+
   FreePanelArray(gWalls);
   FreePanelArray(gRenderBackgrounds);
   FreePanelArray(gRenderForegrounds);
@@ -2352,8 +2399,6 @@ begin
 
   gDoorMap := nil;
   gLiftMap := nil;
-
-  PanelByID := nil;
 end;
 
 procedure g_Map_Update();
@@ -2798,11 +2843,18 @@ begin
 end;
 
 
-procedure g_Map_EnableWall(ID: DWORD);
+procedure g_Map_EnableWall_XXX (ID: DWORD); begin if (ID < Length(gWalls)) then g_Map_EnableWallGUID(gWalls[ID].guid); end;
+procedure g_Map_DisableWall_XXX (ID: DWORD); begin if (ID < Length(gWalls)) then g_Map_DisableWallGUID(gWalls[ID].guid); end;
+procedure g_Map_SetLift_XXX (ID: DWORD; t: Integer); begin if (ID < Length(gLifts)) then g_Map_SetLiftGUID(gLifts[ID].guid, t); end;
+
+
+procedure g_Map_EnableWallGUID (pguid: Integer);
 var
   pan: TPanel;
 begin
-  pan := gWalls[ID];
+  //pan := gWalls[ID];
+  pan := g_Map_PanelByGUID(pguid);
+  if (pan = nil) then exit;
   pan.Enabled := True;
   g_Mark(pan.X, pan.Y, pan.Width, pan.Height, MARK_DOOR, true);
 
@@ -2810,65 +2862,71 @@ begin
   //if (pan.proxyId >= 0) then mapGrid.proxyEnabled[pan.proxyId] := true
   //else pan.proxyId := mapGrid.insertBody(pan, pan.X, pan.Y, pan.Width, pan.Height, GridTagDoor);
 
-  if g_Game_IsServer and g_Game_IsNet then MH_SEND_PanelState(gWalls[ID].PanelType, ID);
+  if g_Game_IsServer and g_Game_IsNet then MH_SEND_PanelState({gWalls[ID]}pan.PanelType, pguid);
 
   {$IFDEF MAP_DEBUG_ENABLED_FLAG}
   //e_WriteLog(Format('ENABLE: wall #%d(%d) enabled (%d)  (%d,%d)-(%d,%d)', [Integer(ID), Integer(pan.proxyId), Integer(mapGrid.proxyEnabled[pan.proxyId]), pan.x, pan.y, pan.width, pan.height]), MSG_NOTIFY);
   {$ENDIF}
 end;
 
-procedure g_Map_DisableWall(ID: DWORD);
+
+procedure g_Map_DisableWallGUID (pguid: Integer);
 var
   pan: TPanel;
 begin
-  pan := gWalls[ID];
+  //pan := gWalls[ID];
+  pan := g_Map_PanelByGUID(pguid);
+  if (pan = nil) then exit;
   pan.Enabled := False;
   g_Mark(pan.X, pan.Y, pan.Width, pan.Height, MARK_DOOR, false);
 
   mapGrid.proxyEnabled[pan.proxyId] := false;
   //if (pan.proxyId >= 0) then begin mapGrid.removeBody(pan.proxyId); pan.proxyId := -1; end;
 
-  if g_Game_IsServer and g_Game_IsNet then MH_SEND_PanelState(pan.PanelType, ID);
+  if g_Game_IsServer and g_Game_IsNet then MH_SEND_PanelState(pan.PanelType, pguid);
 
   {$IFDEF MAP_DEBUG_ENABLED_FLAG}
   //e_WriteLog(Format('DISABLE: wall #%d(%d) disabled (%d)  (%d,%d)-(%d,%d)', [Integer(ID), Integer(pan.proxyId), Integer(mapGrid.proxyEnabled[pan.proxyId]), pan.x, pan.y, pan.width, pan.height]), MSG_NOTIFY);
   {$ENDIF}
 end;
 
-procedure g_Map_SwitchTexture(PanelType: Word; ID: DWORD; AnimLoop: Byte = 0);
+
+procedure g_Map_SwitchTextureGUID (PanelType: Word; pguid: Integer; AnimLoop: Byte = 0);
 var
   tp: TPanel;
 begin
+  tp := g_Map_PanelByGUID(pguid);
+  if (tp = nil) then exit;
+  {
   case PanelType of
-    PANEL_WALL, PANEL_OPENDOOR, PANEL_CLOSEDOOR:
-      tp := gWalls[ID];
-    PANEL_FORE:
-      tp := gRenderForegrounds[ID];
-    PANEL_BACK:
-      tp := gRenderBackgrounds[ID];
-    PANEL_WATER:
-      tp := gWater[ID];
-    PANEL_ACID1:
-      tp := gAcid1[ID];
-    PANEL_ACID2:
-      tp := gAcid2[ID];
-    PANEL_STEP:
-      tp := gSteps[ID];
-    else
-      Exit;
+    PANEL_WALL, PANEL_OPENDOOR, PANEL_CLOSEDOOR: tp := gWalls[ID];
+    PANEL_FORE: tp := gRenderForegrounds[ID];
+    PANEL_BACK: tp := gRenderBackgrounds[ID];
+    PANEL_WATER: tp := gWater[ID];
+    PANEL_ACID1: tp := gAcid1[ID];
+    PANEL_ACID2: tp := gAcid2[ID];
+    PANEL_STEP: tp := gSteps[ID];
+    else exit;
   end;
+  }
 
   tp.NextTexture(AnimLoop);
-  if g_Game_IsServer and g_Game_IsNet then
-    MH_SEND_PanelTexture(PanelType, ID, AnimLoop);
+  if g_Game_IsServer and g_Game_IsNet then MH_SEND_PanelTexture(PanelType, pguid, AnimLoop);
 end;
 
-procedure g_Map_SetLift(ID: DWORD; t: Integer);
-begin
-  if gLifts[ID].LiftType = t then
-    Exit;
 
-  with gLifts[ID] do
+procedure g_Map_SetLiftGUID (pguid: Integer; t: Integer);
+var
+  pan: TPanel;
+begin
+  //pan := gLifts[ID];
+  pan := g_Map_PanelByGUID(pguid);
+  if (pan = nil) then exit;
+  if not pan.isGLift then exit;
+
+  if ({gLifts[ID]}pan.LiftType = t) then exit; //!FIXME!TRIGANY!
+
+  with {gLifts[ID]} pan do
   begin
     LiftType := t;
 
@@ -2882,11 +2940,12 @@ begin
       3: g_Mark(X, Y, Width, Height, MARK_LIFTRIGHT);
     end;
 
-    if g_Game_IsServer and g_Game_IsNet then MH_SEND_PanelState(PanelType, ID);
+    if g_Game_IsServer and g_Game_IsNet then MH_SEND_PanelState(PanelType, pguid);
   end;
 end;
 
-function g_Map_GetPoint(PointType: Byte; var RespawnPoint: TRespawnPoint): Boolean;
+
+function g_Map_GetPoint (PointType: Byte; var RespawnPoint: TRespawnPoint): Boolean;
 var
   a: Integer;
   PointsArray: Array of TRespawnPoint;

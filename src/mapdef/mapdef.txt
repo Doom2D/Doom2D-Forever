@@ -404,8 +404,10 @@ TriggerData for (TRIGGER_PRESS, TRIGGER_ON, TRIGGER_OFF, TRIGGER_ONOFF) {
   Size is "size" type size offset 8 as twh;
   Wait is "wait" type ushort offset 12;
   Count is "count" type ushort offset 14;
-  MonsterID is "monsterid" type int offset 16 monster as monsterid;
+  MonsterID is "monsterid" type int offset 16 monster as monsterid default null;
   ExtRandom is "extrandom" type bool offset 20;
+  // this one is for moving platforms
+  PanelId is "panelid" type int panel default null omitdefault;
 }
 
 TriggerData for TRIGGER_SECRET {
