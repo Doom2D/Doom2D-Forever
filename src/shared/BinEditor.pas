@@ -44,7 +44,7 @@ Type
     Procedure   WriteInt(Var x: Integer);
     Procedure   WriteSingle(Var x: Single);
     Procedure   WriteBoolean(Var x: Boolean);
-    Procedure   WriteString(Var x: String; aMaxLen: Byte = 255);
+    Procedure   WriteString(const x: AnsiString; aMaxLen: Word=65535);
     Procedure   WriteMemory(Var x: Pointer; memSize: Cardinal);
     Procedure   Fill(aLen: Cardinal; aFillSym: Byte);
     Procedure   SaveToFile(Var aFile: File);
@@ -70,7 +70,7 @@ Type
     Procedure   ReadInt(Var x: Integer);
     Procedure   ReadSingle(Var x: Single);
     Procedure   ReadBoolean(Var x: Boolean);
-    Procedure   ReadString(Var x: String);
+    Procedure   ReadString(Var x: AnsiString);
     Procedure   ReadMemory(Var x: Pointer; Var memSize: Cardinal);
     Procedure   Skip(aLen: Cardinal);
     Procedure   LoadFromFile(Var aFile: File);
@@ -245,26 +245,22 @@ begin
   WriteVar(y, SizeOf(Byte));
 end;
 
-Procedure TBinMemoryWriter.WriteString(Var x: String; aMaxLen: Byte = 255);
+Procedure TBinMemoryWriter.WriteString (const x: AnsiString; aMaxLen: Word=65535);
 var
-  len: Byte;
-
+  len: Word;
 begin
-  len := Min(Length(x), aMaxLen);
+  if (Length(x) > aMaxLen) then len := aMaxLen else len := Word(Length(x));
 
-  if (FPosition + SizeOf(Byte) + len) > FSize then
-    ExtendMemory(SizeOf(Byte) + len);
+  if (FPosition+SizeOf(Byte)+len) > FSize then ExtendMemory(SizeOf(Byte)+len);
 
-// Длина строки:
-  CopyMemory(Pointer(NativeUInt(FData) + FPosition),
-             @len, SizeOf(Byte));
-  FPosition := FPosition + SizeOf(Byte);
-// Строка:
-  if len > 0 then
+  // Длина строки:
+  CopyMemory(Pointer(NativeUInt(FData)+FPosition), @len, SizeOf(len));
+  FPosition := FPosition+SizeOf(len);
+  // Строка:
+  if (len > 0) then
   begin
-    CopyMemory(Pointer(NativeUInt(FData) + FPosition),
-               @x[1], len);
-    FPosition := FPosition + len;
+    CopyMemory(Pointer(NativeUInt(FData) + FPosition), @x[1], len);
+    FPosition := FPosition+len;
   end;
 end;
 
@@ -410,38 +406,39 @@ begin
     x := False;
 end;
 
-Procedure TBinMemoryReader.ReadString(Var x: String);
+Procedure TBinMemoryReader.ReadString (Var x: AnsiString);
 var
-  len: Byte;
-
+  len: Word;
 begin
-  if (FPosition + SizeOf(Byte)) <= FSize then
-    begin
+  if (FPosition+SizeOf(len)) <= FSize then
+  begin
     // Длина строки:
-      CopyMemory(@len,
-                 Pointer(NativeUInt(FData) + FPosition),
-                 SizeOf(Byte));
-
-      if (FPosition + SizeOf(Byte) + len) <= FSize then
-        begin
-          FPosition := FPosition + SizeOf(Byte);
-        // Строка:
-          SetLength(x, len);
-          if len > 0 then
-            begin
-              CopyMemory(@x[1],
-                         Pointer(NativeUInt(FData) + FPosition),
-                         len);
-              FPosition := FPosition + len;
-            end
-          else
-            x := '';
-        end
+    CopyMemory(@len, Pointer(NativeUInt(FData)+FPosition), SizeOf(len));
+    if (FPosition+SizeOf(len)+len <= FSize) then
+    begin
+      FPosition := FPosition+SizeOf(len);
+      // Строка:
+      UniqueString(x);
+      SetLength(x, len);
+      if (len > 0) then
+      begin
+        CopyMemory(@x[1], Pointer(NativeUInt(FData) + FPosition), len);
+        FPosition := FPosition+len;
+      end
       else
-        raise EBinSizeError.Create('TBinMemoryReader.ReadString: Too Long String');
+      begin
+        x := '';
+      end;
     end
+    else
+    begin
+      raise EBinSizeError.Create('TBinMemoryReader.ReadString: Too Long String');
+    end;
+  end
   else
+  begin
     raise EBinSizeError.Create('TBinMemoryReader.ReadString: End of Memory');
+  end;
 end;
 
 Procedure TBinMemoryReader.ReadMemory(Var x: Pointer; Var memSize: Cardinal);

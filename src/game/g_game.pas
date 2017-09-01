@@ -70,7 +70,7 @@ function  g_Game_IsNet(): Boolean;
 function  g_Game_IsServer(): Boolean;
 function  g_Game_IsClient(): Boolean;
 procedure g_Game_Init();
-procedure g_Game_Free();
+procedure g_Game_Free (freeTextures: Boolean=true);
 procedure g_Game_LoadData();
 procedure g_Game_FreeData();
 procedure g_Game_Update();
@@ -95,7 +95,7 @@ procedure g_Game_RestartLevel();
 procedure g_Game_RestartRound(NoMapRestart: Boolean = False);
 procedure g_Game_ClientWAD(NewWAD: String; WHash: TMD5Digest);
 procedure g_Game_SaveOptions();
-function  g_Game_StartMap(Map: String; Force: Boolean = False): Boolean;
+function  g_Game_StartMap(Map: String; Force: Boolean = False; const oldMapPath: AnsiString=''): Boolean;
 procedure g_Game_ChangeMap(MapPath: String);
 procedure g_Game_ExitLevel(Map: Char16);
 function  g_Game_GetFirstMap(WAD: String): String;
@@ -1299,12 +1299,12 @@ begin
   end;
 end;
 
-procedure g_Game_Free();
+procedure g_Game_Free(freeTextures: Boolean=true);
 begin
   if NetMode = NET_CLIENT then g_Net_Disconnect();
   if NetMode = NET_SERVER then g_Net_Host_Die();
 
-  g_Map_Free();
+  g_Map_Free(freeTextures);
   g_Player_Free();
   g_Player_RemoveAllCorpses();
 
@@ -4050,15 +4050,15 @@ begin
   MessageTime := 0;
   gGameOn := False;
   g_Game_ClearLoading();
-  g_Game_StartMap(Map, True);
+  g_Game_StartMap(Map, True, gCurrentMapFileName);
 end;
 
-function g_Game_StartMap(Map: String; Force: Boolean = False): Boolean;
+function g_Game_StartMap(Map: String; Force: Boolean = False; const oldMapPath: AnsiString=''): Boolean;
 var
   NewWAD, ResName: String;
   I: Integer;
 begin
-  g_Map_Free();
+  g_Map_Free((Map <> gCurrentMapFileName) and (oldMapPath <> gCurrentMapFileName));
   g_Player_RemoveAllCorpses();
 
   if (not g_Game_IsClient) and

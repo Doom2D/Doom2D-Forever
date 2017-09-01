@@ -41,6 +41,7 @@ function DecodeIPV4 (ip: LongWord): string;
 procedure e_InitWritelnDriver ();
 
 procedure e_LogWritefln (const fmt: AnsiString; args: array of const; category: TRecordCategory=MSG_NOTIFY; writeTime: Boolean=true);
+procedure e_LogWriteln (const s: AnsiString; category: TRecordCategory=MSG_NOTIFY; writeTime: Boolean=true);
 
 
 var
@@ -67,6 +68,12 @@ end;
 procedure e_WriteLog (TextLine: String; RecordCategory: TRecordCategory; WriteTime: Boolean=True);
 begin
   e_LogWritefln('%s', [TextLine], RecordCategory, WriteTime);
+end;
+
+
+procedure e_LogWriteln (const s: AnsiString; category: TRecordCategory=MSG_NOTIFY; writeTime: Boolean=true);
+begin
+  e_LogWritefln('%s', [s], category, writeTime);
 end;
 
 

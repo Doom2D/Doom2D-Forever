@@ -36,7 +36,7 @@ type
     function getIsOpen (): Boolean;
     function isMapResource (idx: Integer): Boolean;
 
-    function GetResourceEx (name: AnsiString; wantMap: Boolean; var pData: Pointer; var Len: Integer): Boolean;
+    function GetResourceEx (name: AnsiString; wantMap: Boolean; var pData: Pointer; var Len: Integer; logError: Boolean=true): Boolean;
 
    public
     constructor Create ();
@@ -47,8 +47,8 @@ type
     function ReadFile (FileName: AnsiString): Boolean;
     function ReadMemory (Data: Pointer; Len: LongWord): Boolean;
 
-    function GetResource (name: AnsiString; var pData: Pointer; var Len: Integer): Boolean;
-    function GetMapResource (name: AnsiString; var pData: Pointer; var Len: Integer): Boolean;
+    function GetResource (name: AnsiString; var pData: Pointer; var Len: Integer; logError: Boolean=true): Boolean;
+    function GetMapResource (name: AnsiString; var pData: Pointer; var Len: Integer; logError: Boolean=true): Boolean;
     function GetMapResources (): SArray;
 
     // returns `nil` if file wasn't found
@@ -297,7 +297,7 @@ begin
 end;
 
 
-function TWADFile.GetResourceEx (name: AnsiString; wantMap: Boolean; var pData: Pointer; var Len: Integer): Boolean;
+function TWADFile.GetResourceEx (name: AnsiString; wantMap: Boolean; var pData: Pointer; var Len: Integer; logError: Boolean=true): Boolean;
 var
   f, lastSlash: Integer;
   fi: TSFSFileInfo;
@@ -355,7 +355,7 @@ begin
       if fs = nil then
       begin
         if wantMap then continue;
-        e_WriteLog(Format('DFWAD: can''t open file [%s] in [%s]', [name, fFileName]), MSG_WARNING);
+        if logError then e_WriteLog(Format('DFWAD: can''t open file [%s] in [%s]', [name, fFileName]), MSG_WARNING);
         break;
       end;
       // if we want only maps, check if this is map
@@ -431,17 +431,17 @@ begin
       exit;
     end;
   end;
-  e_WriteLog(Format('DFWAD: file [%s] not found in [%s]', [name, fFileName]), MSG_WARNING);
+  if logError then e_WriteLog(Format('DFWAD: file [%s] not found in [%s]', [name, fFileName]), MSG_WARNING);
 end;
 
-function TWADFile.GetResource (name: AnsiString; var pData: Pointer; var Len: Integer): Boolean;
+function TWADFile.GetResource (name: AnsiString; var pData: Pointer; var Len: Integer; logError: Boolean=true): Boolean;
 begin
-  result := GetResourceEx(name, false, pData, Len);
+  result := GetResourceEx(name, false, pData, Len, logError);
 end;
 
-function TWADFile.GetMapResource (name: AnsiString; var pData: Pointer; var Len: Integer): Boolean;
+function TWADFile.GetMapResource (name: AnsiString; var pData: Pointer; var Len: Integer; logError: Boolean=true): Boolean;
 begin
-  result := GetResourceEx(name, true, pData, Len);
+  result := GetResourceEx(name, true, pData, Len, logError);
 end;
 
 function TWADFile.GetMapResources (): SArray;

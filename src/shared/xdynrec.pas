@@ -249,6 +249,7 @@ type
 
     procedure setUserField (const fldname: AnsiString; v: LongInt);
     procedure setUserField (const fldname: AnsiString; v: AnsiString);
+    procedure setUserField (const fldname: AnsiString; v: Boolean);
 
   public
     property id: AnsiString read mId; // for map parser
@@ -1978,6 +1979,31 @@ begin
     fld := TDynField.Create(fldname, fld.TType.TString);
     fld.mOwner := self;
     fld.mSVal := v;
+    fld.mInternal := true;
+    fld.mDefined := true;
+    addField(fld);
+  end;
+end;
+
+
+procedure TDynRecord.setUserField (const fldname: AnsiString; v: Boolean);
+var
+  fld: TDynField;
+begin
+  if (Length(fldname) = 0) then exit;
+  fld := field[fldname];
+  if (fld <> nil) then
+  begin
+    if (fld.mType <> fld.TType.TBool) or (fld.mEBS <> fld.TEBS.TNone) then
+    begin
+      raise Exception.Create(Format('invalid user field ''%s'' type', [fld.name]));
+    end;
+  end
+  else
+  begin
+    fld := TDynField.Create(fldname, fld.TType.TBool);
+    fld.mOwner := self;
+    fld.mIVal := Integer(v);
     fld.mInternal := true;
     fld.mDefined := true;
     addField(fld);

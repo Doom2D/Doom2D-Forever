@@ -21,20 +21,12 @@ interface
 uses
   e_graphics, g_phys, g_textures, BinEditor;
 
+
 function g_GetSaveName(n: Integer): String;
 function g_SaveGame(n: Integer; Name: String): Boolean;
 function g_LoadGame(n: Integer): Boolean;
 procedure Obj_SaveState(o: PObj; var Mem: TBinMemoryWriter);
 procedure Obj_LoadState(o: PObj; var Mem: TBinMemoryReader);
-
-type
-  TLoadSaveHook = procedure ();
-
-procedure g_SetPreLoadHook (ahook: TLoadSaveHook);
-procedure g_SetPostLoadHook (ahook: TLoadSaveHook);
-
-procedure g_CallPreLoadHooks ();
-procedure g_CallPostLoadHooks ();
 
 
 implementation
@@ -47,47 +39,10 @@ uses
 
 const
   SAVE_SIGNATURE = $56534644; // 'DFSV'
-  SAVE_VERSION = $03;
+  SAVE_VERSION = $04;
   END_MARKER_STRING = 'END';
   PLAYER_VIEW_SIGNATURE = $57564C50; // 'PLVW'
   OBJ_SIGNATURE = $4A424F5F; // '_OBJ'
-
-
-var
-  preloadHooks: array of TLoadSaveHook = nil;
-  postloadHooks: array of TLoadSaveHook = nil;
-
-
-procedure g_SetPreLoadHook (ahook: TLoadSaveHook);
-begin
-  if not assigned(ahook) then exit;
-  SetLength(preloadHooks, Length(preloadHooks)+1);
-  preloadHooks[High(preloadHooks)] := ahook;
-end;
-
-
-procedure g_SetPostLoadHook (ahook: TLoadSaveHook);
-begin
-  if not assigned(ahook) then exit;
-  SetLength(postloadHooks, Length(postloadHooks)+1);
-  postloadHooks[High(postloadHooks)] := ahook;
-end;
-
-
-procedure g_CallPreLoadHooks ();
-var
-  f: Integer;
-begin
-  for f := 0 to High(preloadHooks) do preloadHooks[f]();
-end;
-
-
-procedure g_CallPostLoadHooks ();
-var
-  f: Integer;
-begin
-  for f := 0 to High(postloadHooks) do postloadHooks[f]();
-end;
 
 
 procedure Obj_SaveState(o: PObj; var Mem: TBinMemoryWriter);
@@ -211,6 +166,9 @@ begin
     bMem := TBinMemoryWriter.Create(256);
   // Имя игры:
     bMem.WriteString(Name, 32);
+  // Полный путь к ваду и карта
+    if (Length(gCurrentMapFileName) <> 0) then e_LogWritefln('SAVE: current map is ''%s''...', [gCurrentMapFileName]);
+    bMem.WriteString(gCurrentMapFileName);
   // Путь к карте:
     str := gGameSettings.WAD;
     bMem.WriteString(str, 128);
@@ -385,6 +343,8 @@ var
   Game_CoopTotalSecrets,
   PID1, PID2: Word;
   i: Integer;
+  gameCleared: Boolean = false;
+  curmapfile: AnsiString = '';
 begin
   Result := False;
   bMem := nil;
@@ -401,19 +361,27 @@ begin
     end;
 
     e_WriteLog('Loading saved game...', MSG_NOTIFY);
-    g_Game_Free();
+    //g_Game_Free(false); // don't free textures for the same map
 
     g_Game_ClearLoading();
     g_Game_SetLoadingText(_lc[I_LOAD_SAVE_FILE], 0, False);
     gLoadGameMode := True;
-
-    g_CallPreLoadHooks();
 
   ///// Загружаем состояние игры: /////
     bMem := TBinMemoryReader.Create();
     bFile.ReadMemory(bMem);
   // Имя игры:
     bMem.ReadString(str);
+
+  // Полный путь к ваду и карта
+    bMem.ReadString(curmapfile);
+
+    if (Length(gCurrentMapFileName) <> 0) then e_LogWritefln('LOAD: previous map was ''%s''...', [gCurrentMapFileName]);
+    if (Length(curmapfile) <> 0) then e_LogWritefln('LOAD: new map is ''%s''...', [curmapfile]);
+  // А вот тут, наконец, чистим ресурсы
+    g_Game_Free(curmapfile <> gCurrentMapFileName); // don't free textures for the same map
+    gameCleared := true;
+
   // Путь к карте:
     bMem.ReadString(WAD_Path);
   // Имя карты:
@@ -491,7 +459,7 @@ begin
     g_Game_SetupScreenSize();
 
   // Загрузка и запуск карты:
-    if not g_Game_StartMap(WAD_Path + ':\' + Map_Name, True) then
+    if not g_Game_StartMap(WAD_Path + ':\' + Map_Name, True, curmapfile) then
     begin
       g_FatalError(Format(_lc[I_GAME_ERROR_MAP_LOAD], [WAD_Path + ':\' + Map_Name]));
       Exit;
@@ -621,7 +589,6 @@ begin
   // Закрываем файл загрузки:
     bFile.Close();
     gLoadGameMode := False;
-    g_CallPostLoadHooks();
     Result := True;
 
   except
@@ -629,11 +596,13 @@ begin
       begin
         g_Console_Add(_lc[I_GAME_ERROR_LOAD]);
         e_WriteLog('LoadState I/O Error: '+E1.Message, MSG_WARNING);
+        if not gameCleared then g_Game_Free();
       end;
     on E2: EBinSizeError do
       begin
         g_Console_Add(_lc[I_GAME_ERROR_LOAD]);
         e_WriteLog('LoadState Size Error: '+E2.Message, MSG_WARNING);
+        if not gameCleared then g_Game_Free();
       end;
   end;
 

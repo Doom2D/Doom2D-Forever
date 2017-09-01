@@ -119,8 +119,11 @@ type
 
   private
     // user fields
-    function getGamePanelId (): Integer; inline;
-    procedure setGamePanelId (v: Integer); inline;
+    function getUserPanelId (): Integer; inline;
+    procedure setUserPanelId (v: Integer); inline;
+
+    function getUserTrigRef (): Boolean; inline;
+    procedure setUserTrigRef (v: Boolean); inline;
 
   public
     property panel[idx: Integer]: TDynRecord read getPanelByIdx;
@@ -130,7 +133,8 @@ type
     property tgShotPanelID: Integer read getPanelId {write setPanelId};
     property TexturePanel: Integer read getTexturePanel {write setTexturePanel}; // texturepanel, int
     // user fields
-    property gamePanelId: Integer read getGamePanelId write setGamePanelId;
+    property userPanelId: Integer read getUserPanelId write setUserPanelId;
+    property userPanelTrigRef: Boolean read getUserTrigRef write setUserTrigRef;
   end;
 
 implementation
@@ -144,18 +148,33 @@ constructor TDFPoint.Create (ax, ay: LongInt); begin X := ax; Y := ay; end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-function TDynRecordHelper.getGamePanelId (): Integer; inline;
+function TDynRecordHelper.getUserPanelId (): Integer; inline;
 var
   fld: TDynField;
 begin
-  fld := field['gamePanelId'];
+  fld := field['userPanelId'];
   if (fld = nil) or (fld.baseType <> TDynField.TType.TInt) then result := -1 else result := fld.ival;
 end;
 
 
-procedure TDynRecordHelper.setGamePanelId (v: Integer); inline;
+procedure TDynRecordHelper.setUserPanelId (v: Integer); inline;
 begin
-  setUserField('gamePanelId', Integer(v));
+  setUserField('userPanelId', Integer(v));
+end;
+
+
+function TDynRecordHelper.getUserTrigRef (): Boolean; inline;
+var
+  fld: TDynField;
+begin
+  fld := field['userPanelTrigRef'];
+  if (fld = nil) or (fld.baseType <> TDynField.TType.TBool) then result := false else result := (fld.ival <> 0);
+end;
+
+
+procedure TDynRecordHelper.setUserTrigRef (v: Boolean); inline;
+begin
+  setUserField('userPanelTrigRef', v);
 end;
 
 
