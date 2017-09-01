@@ -352,22 +352,6 @@ begin
 end;
 
 
-{
-procedure CorrectOffsets(id: Integer); inline;
-var
-  part: PParticle;
-begin
-  part := @Particles[id];
-  part.offsetX := 0;
-  part.offsetY := 0;
-  // check for upper wall
-  if isBlockedAt(part.X, part.Y-1) then part.offsetY := 1;
-  // check for left wall
-  if isBlockedAt(part.X-1, part.Y) then part.offsetX := 1;
-end;
-}
-
-
 // ////////////////////////////////////////////////////////////////////////// //
 procedure TParticle.thinkerBlood ();
 var
@@ -1089,8 +1073,6 @@ begin
       Time := 0;
       LiveTime := 30+Random(60);
       ParticleType := PARTICLE_SPARK;
-
-      {CorrectOffsets(CurrentParticle);}
     end;
 
     if CurrentParticle+2 > MaxParticles then
@@ -1187,8 +1169,6 @@ begin
       Time := 0;
       LiveTime := 120+Random(40);
       ParticleType := PARTICLE_BLOOD;
-
-      {CorrectOffsets(CurrentParticle);}
     end;
 
     if CurrentParticle >= MaxParticles-1 then
@@ -1250,8 +1230,6 @@ begin
       Time := 0;
       LiveTime := 30+Random(60);
       ParticleType := PARTICLE_SPARK;
-
-      {CorrectOffsets(CurrentParticle);}
     end;
 
     if CurrentParticle+2 > MaxParticles then
@@ -1333,8 +1311,6 @@ begin
       Time := 0;
       LiveTime := 60+Random(60);
       ParticleType := PARTICLE_WATER;
-
-      {CorrectOffsets(CurrentParticle);}
     end;
 
     if CurrentParticle+2 > MaxParticles then
@@ -1419,8 +1395,6 @@ begin
       Time := 0;
       LiveTime := 60+Random(60);
       ParticleType := PARTICLE_WATER;
-
-      {CorrectOffsets(CurrentParticle);}
     end;
 
     if CurrentParticle+2 > MaxParticles then
@@ -1485,8 +1459,6 @@ begin
       Time := 0;
       LiveTime := 65535;
       ParticleType := PARTICLE_BUBBLES;
-
-      {CorrectOffsets(CurrentParticle);}
     end;
 
     if CurrentParticle+2 > MaxParticles then
@@ -1582,7 +1554,6 @@ begin
           //if not alive then Continue;
           //e_WriteLog(Format('particle #%d: %d', [State, ParticleType]), MSG_NOTIFY);
           think();
-          {CorrectOffsets(a);}
         end; // with
       end; // if
     end; // for
