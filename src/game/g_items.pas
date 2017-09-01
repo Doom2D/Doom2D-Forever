@@ -630,7 +630,7 @@ begin
 
     with ggItems[i] do
     begin
-      if g_dbg_scale_05 or g_Collide(Obj.X, Obj.Y, Obj.Rect.Width, Obj.Rect.Height, sX, sY, sWidth, sHeight) then
+      if (g_dbg_scale <> 1.0) or g_Collide(Obj.X, Obj.Y, Obj.Rect.Width, Obj.Rect.Height, sX, sY, sWidth, sHeight) then
       begin
         if (Animation = nil) then
         begin

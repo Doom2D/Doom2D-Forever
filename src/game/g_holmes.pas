@@ -672,8 +672,8 @@ begin
 end;
 
 
-function pmsCurMapX (): Integer; inline; begin result := msX+vpx; end;
-function pmsCurMapY (): Integer; inline; begin result := msY+vpy; end;
+function pmsCurMapX (): Integer; inline; begin result := round(msX/g_dbg_scale)+vpx; end;
+function pmsCurMapY (): Integer; inline; begin result := round(msY/g_dbg_scale)+vpy; end;
 
 
 procedure plrDebugMouse (var ev: THMouseEvent);
@@ -1126,7 +1126,7 @@ begin
   glScissor(0, gWinSizeY-gPlayerScreenSize.Y-1, vpw, vph);
 
   glPushMatrix();
-  if g_dbg_scale_05 then glScalef(0.5, 0.5, 1.0);
+  glScalef(g_dbg_scale, g_dbg_scale, 1.0);
   glTranslatef(-vpx, -vpy, 0);
 
   if (showGrid) then drawTileGrid();

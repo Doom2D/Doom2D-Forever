@@ -21,35 +21,37 @@ interface
 uses
   wadreader; // for SArray
 
-procedure g_Console_Init();
-procedure g_Console_Update();
-procedure g_Console_Draw();
-procedure g_Console_Switch();
-procedure g_Console_Char(C: Char);
-procedure g_Console_Control(K: Word);
-procedure g_Console_Process(L: String; Quiet: Boolean = False);
-procedure g_Console_Add(L: String; Show: Boolean = False);
-procedure g_Console_Clear();
-function  g_Console_CommandBlacklisted(C: String): Boolean;
+procedure g_Console_Init ();
+procedure g_Console_Update ();
+procedure g_Console_Draw ();
+procedure g_Console_Switch ();
+procedure g_Console_Char (C: AnsiChar);
+procedure g_Console_Control (K: Word);
+procedure g_Console_Process (L: AnsiString; quiet: Boolean=false);
+procedure g_Console_Add (L: AnsiString; show: Boolean=false);
+procedure g_Console_Clear ();
+function  g_Console_CommandBlacklisted (C: AnsiString): Boolean;
 
 procedure conwriteln (const s: AnsiString; show: Boolean=false);
 procedure conwritefln (const s: AnsiString; args: array of const; show: Boolean=false);
 
 // <0: no arg; 0/1: true/false
-function conGetBoolArg (P: SArray; idx: Integer): Integer;
+function conGetBoolArg (p: SArray; idx: Integer): Integer;
 
-procedure g_Console_Chat_Switch(Team: Boolean = False);
+procedure g_Console_Chat_Switch (team: Boolean=false);
 
-procedure conRegVar (const conname: AnsiString; pvar: PBoolean; const ahelp: AnsiString; const amsg: AnsiString; acheat: Boolean=false);
+procedure conRegVar (const conname: AnsiString; pvar: PBoolean; const ahelp: AnsiString; const amsg: AnsiString; acheat: Boolean=false); overload;
+procedure conRegVar (const conname: AnsiString; pvar: PSingle; amin, amax: Single; const ahelp: AnsiString; const amsg: AnsiString; acheat: Boolean=false); overload;
 
 
 var
-  gConsoleShow: Boolean; // True - консоль открыта или открывается
-  gChatShow: Boolean;
-  gChatTeam: Boolean = False;
-  gAllowConsoleMessages: Boolean = True;
-  gChatEnter: Boolean = True;
-  gJustChatted: Boolean = False; // чтобы админ в интере чатясь не проматывал статистику
+  gConsoleShow: Boolean = false; // True - консоль открыта или открывается
+  gChatShow: Boolean = false;
+  gChatTeam: Boolean = false;
+  gAllowConsoleMessages: Boolean = true;
+  gChatEnter: Boolean = true;
+  gJustChatted: Boolean = false; // чтобы админ в интере чатясь не проматывал статистику
+
 
 implementation
 
@@ -58,17 +60,18 @@ uses
   SysUtils, g_basic, g_options, Math,
   g_menu, g_language, g_net, g_netmsg, e_log, conbuf, utils;
 
+
 type
   PCommand = ^TCommand;
 
-  TCmdProc = procedure (P: SArray);
-  TCmdProcEx = procedure (me: PCommand; P: SArray);
+  TCmdProc = procedure (p: SArray);
+  TCmdProcEx = procedure (me: PCommand; p: SArray);
 
   TCommand = record
-    Cmd: String;
-    Proc: TCmdProc;
-    ProcEx: TCmdProcEx;
-    help: String;
+    cmd: AnsiString;
+    proc: TCmdProc;
+    procEx: TCmdProcEx;
+    help: AnsiString;
     hidden: Boolean;
     ptr: Pointer; // various data
     msg: AnsiString; // message for var changes
@@ -76,8 +79,8 @@ type
   end;
 
   TAlias = record
-    Name: String;
-    Commands: SArray;
+    name: AnsiString;
+    commands: SArray;
   end;
 
 
@@ -95,66 +98,68 @@ var
   RecursionLimitHit: Boolean = False;
   Cons_Y: SmallInt;
   Cons_Shown: Boolean; // Рисовать ли консоль?
-  Line: String;
+  Line: AnsiString;
   CPos: Word;
   //ConsoleHistory: SArray;
   CommandHistory: SArray;
   Whitelist: SArray;
-  Commands: Array of TCommand = nil;
+  commands: Array of TCommand = nil;
   Aliases: Array of TAlias = nil;
   CmdIndex: Word;
   conSkipLines: Integer = 0;
   MsgArray: Array [0..4] of record
-                              Msg: String;
+                              Msg: AnsiString;
                               Time: Word;
                             end;
 
 
-// <0: no arg; 0/1: true/false
-function conGetBoolArg (P: SArray; idx: Integer): Integer;
+// ////////////////////////////////////////////////////////////////////////// //
+// <0: no arg; 0/1: true/false; 666: toggle
+function conGetBoolArg (p: SArray; idx: Integer): Integer;
 begin
-  if (idx < 0) or (idx > High(P)) then begin result := -1; exit; end;
+  if (idx < 0) or (idx > High(p)) then begin result := -1; exit; end;
   result := 0;
-  if (P[idx] = '1') or (CompareText(P[idx], 'on') = 0) or (CompareText(P[idx], 'true') = 0) or
-     (CompareText(P[idx], 'tan') = 0) or (CompareText(P[idx], 'yes') = 0) then result := 1;
+  if (p[idx] = '1') or (CompareText(p[idx], 'on') = 0) or (CompareText(p[idx], 'true') = 0) or
+     (CompareText(p[idx], 'tan') = 0) or (CompareText(p[idx], 'yes') = 0) then result := 1
+  else if (CompareText(p[idx], 'toggle') = 0) or (CompareText(p[idx], 'switch') = 0) or
+          (CompareText(p[idx], 't') = 0) then result := 666;
 end;
 
 
-procedure boolVarHandler (me: PCommand; P: SArray);
-
-  procedure binaryFlag (var flag: Boolean; msg: string);
+procedure boolVarHandler (me: PCommand; p: SArray);
+  procedure binaryFlag (var flag: Boolean; msg: AnsiString);
   begin
     if (Length(p) > 2) then
     begin
-      conwritefln('too many arguments to ''%s''', [P[0]]);
+      conwritefln('too many arguments to ''%s''', [p[0]]);
     end
     else
     begin
-      case conGetBoolArg(P, 1) of
+      case conGetBoolArg(p, 1) of
         -1: begin end;
          0: if conIsCheatsEnabled then flag := false else begin conwriteln('not available'); exit; end;
          1: if conIsCheatsEnabled then flag := true else begin conwriteln('not available'); exit; end;
+         666: if conIsCheatsEnabled then flag := not flag else begin conwriteln('not available'); exit; end;
       end;
       if flag then conwritefln('%s: tan', [msg]) else conwritefln('%s: ona', [msg]);
     end;
   end;
-
 begin
   binaryFlag(PBoolean(me.ptr)^, me.msg);
 end;
 
 
-procedure conRegVar (const conname: AnsiString; pvar: PBoolean; const ahelp: AnsiString; const amsg: AnsiString; acheat: Boolean=false);
+procedure conRegVar (const conname: AnsiString; pvar: PBoolean; const ahelp: AnsiString; const amsg: AnsiString; acheat: Boolean=false); overload;
 var
   f: Integer;
   cp: PCommand;
 begin
-  f := Length(Commands);
-  SetLength(Commands, f+1);
-  cp := @Commands[f];
-  cp.Cmd := LowerCase(conname);
-  cp.Proc := nil;
-  cp.ProcEx := boolVarHandler;
+  f := Length(commands);
+  SetLength(commands, f+1);
+  cp := @commands[f];
+  cp.cmd := LowerCase(conname);
+  cp.proc := nil;
+  cp.procEx := boolVarHandler;
   cp.help := ahelp;
   cp.hidden := false;
   cp.ptr := pvar;
@@ -163,7 +168,118 @@ begin
 end;
 
 
-function GetStrACmd(var Str: String): String;
+// ////////////////////////////////////////////////////////////////////////// //
+type
+  PVarSingle = ^TVarSingle;
+  TVarSingle = record
+    val: PSingle;
+    min, max, def: Single; // default will be starting value
+  end;
+
+
+procedure singleVarHandler (me: PCommand; p: SArray);
+  // poor man's floating literal parser; i'm sorry, but `StrToFloat()` sux cocks
+  function parseFloat (var res: Single; const s: AnsiString): Boolean;
+  var
+    pos: Integer = 1;
+    frac: Single = 1;
+    slen: Integer;
+  begin
+    result := false;
+    res := 0;
+    slen := Length(s);
+    while (slen > 0) and (s[slen] <= ' ') do Dec(slen);
+    while (pos <= slen) and (s[pos] <= ' ') do Inc(pos);
+    if (pos > slen) then exit;
+    if (slen-pos = 1) and (s[pos] = '.') then exit; // single dot
+    // integral part
+    while (pos <= slen) do
+    begin
+      if (s[pos] < '0') or (s[pos] > '9') then break;
+      res := res*10+Byte(s[pos])-48;
+      Inc(pos);
+    end;
+    if (pos <= slen) then
+    begin
+      // must be a dot
+      if (s[pos] <> '.') then exit;
+      Inc(pos);
+      while (pos <= slen) do
+      begin
+        if (s[pos] < '0') or (s[pos] > '9') then break;
+        frac := frac/10;
+        res += frac*(Byte(s[pos])-48);
+        Inc(pos);
+      end;
+    end;
+    if (pos <= slen) then exit; // oops
+    result := true;
+  end;
+var
+  pv: PVarSingle;
+  nv: Single;
+  msg: AnsiString;
+begin
+  if (Length(p) > 2) then
+  begin
+    conwritefln('too many arguments to ''%s''', [p[0]]);
+    exit;
+  end;
+  pv := PVarSingle(me.ptr);
+  if (Length(p) = 2) then
+  begin
+    if not conIsCheatsEnabled then begin conwriteln('not available'); exit; end;
+    if (CompareText(p[1], 'default') = 0) or (CompareText(p[1], 'def') = 0) or
+       (CompareText(p[1], 'd') = 0) or (CompareText(p[1], 'off') = 0) or
+       (CompareText(p[1], 'ona') = 0) then
+    begin
+      pv.val^ := pv.def;
+    end
+    else
+    begin
+      if not parseFloat(nv, p[1]) then
+      begin
+        conwritefln('%s: ''%s'' doesn''t look like a floating number', [p[0], p[1]]);
+        exit;
+      end;
+      if (nv < pv.min) then nv := pv.min;
+      if (nv > pv.max) then nv := pv.max;
+      pv.val^ := nv;
+    end;
+  end;
+  msg := me.msg;
+  if (Length(msg) = 0) then msg := p[0] else msg += ':';
+  conwritefln('%s %s', [msg, pv.val^]);
+end;
+
+
+procedure conRegVar (const conname: AnsiString; pvar: PSingle; amin, amax: Single; const ahelp: AnsiString; const amsg: AnsiString; acheat: Boolean=false); overload;
+var
+  f: Integer;
+  cp: PCommand;
+  pv: PVarSingle;
+begin
+  GetMem(pv, sizeof(pv^));
+  pv.val := pvar;
+  pv.min := amin;
+  pv.max := amax;
+  pv.def := pvar^;
+  f := Length(commands);
+  SetLength(commands, f+1);
+  cp := @commands[f];
+  cp.cmd := LowerCase(conname);
+  cp.proc := nil;
+  cp.procEx := singleVarHandler;
+  cp.help := ahelp;
+  cp.hidden := false;
+  cp.ptr := pv;
+  cp.msg := amsg;
+  cp.cheat := acheat;
+end;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
+function GetStrACmd(var Str: AnsiString): AnsiString;
 var
   a: Integer;
 begin
@@ -178,7 +294,7 @@ begin
     end;
 end;
 
-function ParseAlias(Str: String): SArray;
+function ParseAlias(Str: AnsiString): SArray;
 begin
   Result := nil;
 
@@ -194,16 +310,16 @@ begin
   end;
 end;
 
-procedure ConsoleCommands(P: SArray);
+procedure ConsoleCommands(p: SArray);
 var
-  Cmd, s: String;
+  cmd, s: AnsiString;
   a, b: Integer;
   F: TextFile;
 begin
-  Cmd := LowerCase(P[0]);
+  cmd := LowerCase(p[0]);
   s := '';
 
-  if Cmd = 'clear' then
+  if cmd = 'clear' then
   begin
     //ConsoleHistory := nil;
     cbufClear();
@@ -217,10 +333,10 @@ begin
       end;
   end;
 
-  if Cmd = 'clearhistory' then
+  if cmd = 'clearhistory' then
     CommandHistory := nil;
 
-  if Cmd = 'showhistory' then
+  if cmd = 'showhistory' then
     if CommandHistory <> nil then
     begin
       g_Console_Add('');
@@ -228,46 +344,46 @@ begin
         g_Console_Add('  '+CommandHistory[a]);
     end;
 
-  if Cmd = 'commands' then
+  if cmd = 'commands' then
   begin
     g_Console_Add('');
-    g_Console_Add('Commands list:');
-    for a := High(Commands) downto 0 do
+    g_Console_Add('commands list:');
+    for a := High(commands) downto 0 do
     begin
-      if (Length(Commands[a].help) > 0) then
+      if (Length(commands[a].help) > 0) then
       begin
-        g_Console_Add('  '+Commands[a].Cmd+' -- '+Commands[a].help);
+        g_Console_Add('  '+commands[a].cmd+' -- '+commands[a].help);
       end
       else
       begin
-        g_Console_Add('  '+Commands[a].Cmd);
+        g_Console_Add('  '+commands[a].cmd);
       end;
     end;
   end;
 
-  if Cmd = 'time' then
+  if cmd = 'time' then
     g_Console_Add(TimeToStr(Now), True);
 
-  if Cmd = 'date' then
+  if cmd = 'date' then
     g_Console_Add(DateToStr(Now), True);
 
-  if Cmd = 'echo' then
-    if Length(P) > 1 then
+  if cmd = 'echo' then
+    if Length(p) > 1 then
       begin
-        if P[1] = 'ololo' then
+        if p[1] = 'ololo' then
           gCheats := True
         else
         begin
           s := '';
-          for a := 1 to High(P) do
-            s := s + P[a] + ' ';
+          for a := 1 to High(p) do
+            s := s + p[a] + ' ';
           g_Console_Add(b_Text_Format(s), True);
         end;
       end
     else
       g_Console_Add('');
 
-  if Cmd = 'dump' then
+  if cmd = 'dump' then
   begin
     (*
     if ConsoleHistory <> nil then
@@ -297,12 +413,12 @@ begin
     *)
   end;
 
-  if Cmd = 'exec' then
+  if cmd = 'exec' then
   begin
     // exec <filename>
-    if Length(P) > 1 then
+    if Length(p) > 1 then
     begin
-      s := GameDir+'/'+P[1];
+      s := GameDir+'/'+p[1];
 
       {$I-}
       AssignFile(F, s);
@@ -347,56 +463,56 @@ begin
       g_Console_Add('exec <script file>');
   end;
 
-  if Cmd = 'alias' then
+  if cmd = 'alias' then
   begin
     // alias [alias_name] [commands]
-    if Length(P) > 1 then
+    if Length(p) > 1 then
     begin
       for a := 0 to High(Aliases) do
-        if Aliases[a].Name = P[1] then
+        if Aliases[a].name = p[1] then
         begin
-          if Length(P) > 2 then
-            Aliases[a].Commands := ParseAlias(P[2])
+          if Length(p) > 2 then
+            Aliases[a].commands := ParseAlias(p[2])
           else
-            for b := 0 to High(Aliases[a].Commands) do
-              g_Console_Add(Aliases[a].Commands[b]);
+            for b := 0 to High(Aliases[a].commands) do
+              g_Console_Add(Aliases[a].commands[b]);
           Exit;
         end;
       SetLength(Aliases, Length(Aliases)+1);
       a := High(Aliases);
-      Aliases[a].Name := P[1];
-      if Length(P) > 2 then
-        Aliases[a].Commands := ParseAlias(P[2])
+      Aliases[a].name := p[1];
+      if Length(p) > 2 then
+        Aliases[a].commands := ParseAlias(p[2])
       else
-        for b := 0 to High(Aliases[a].Commands) do
-          g_Console_Add(Aliases[a].Commands[b]);
+        for b := 0 to High(Aliases[a].commands) do
+          g_Console_Add(Aliases[a].commands[b]);
     end else
       for a := 0 to High(Aliases) do
-        if Aliases[a].Commands <> nil then
-          g_Console_Add(Aliases[a].Name);
+        if Aliases[a].commands <> nil then
+          g_Console_Add(Aliases[a].name);
   end;
 
-  if Cmd = 'call' then
+  if cmd = 'call' then
   begin
     // call <alias_name>
-    if Length(P) > 1 then
+    if Length(p) > 1 then
     begin
       if Aliases = nil then
         Exit;
       for a := 0 to High(Aliases) do
-        if Aliases[a].Name = P[1] then
+        if Aliases[a].name = p[1] then
         begin
-          if Aliases[a].Commands <> nil then
+          if Aliases[a].commands <> nil then
           begin
             // with this system proper endless loop detection seems either impossible
             // or very dirty to implement, so let's have this instead
             // prevents endless loops
-            for b := 0 to High(Aliases[a].Commands) do
+            for b := 0 to High(Aliases[a].commands) do
             begin
               Inc(RecursionDepth);
               RecursionLimitHit := (RecursionDepth > MaxScriptRecursion) or RecursionLimitHit;
               if not RecursionLimitHit then
-                g_Console_Process(Aliases[a].Commands[b], True);
+                g_Console_Process(Aliases[a].commands[b], True);
               Dec(RecursionDepth);
             end;
             if (RecursionDepth = 0) and RecursionLimitHit then
@@ -413,26 +529,26 @@ begin
   end;
 end;
 
-procedure WhitelistCommand(Cmd: string);
+procedure WhitelistCommand(cmd: AnsiString);
 var
   a: Integer;
 begin
   SetLength(Whitelist, Length(Whitelist)+1);
   a := High(Whitelist);
-  Whitelist[a] := LowerCase(Cmd);
+  Whitelist[a] := LowerCase(cmd);
 end;
 
-procedure AddCommand(Cmd: String; Proc: TCmdProc; ahelp: String=''; ahidden: Boolean=false; acheat: Boolean=false);
+procedure AddCommand(cmd: AnsiString; proc: TCmdProc; ahelp: AnsiString=''; ahidden: Boolean=false; acheat: Boolean=false);
 var
   a: Integer;
   cp: PCommand;
 begin
-  SetLength(Commands, Length(Commands)+1);
-  a := High(Commands);
-  cp := @Commands[a];
-  cp.Cmd := LowerCase(Cmd);
-  cp.Proc := Proc;
-  cp.ProcEx := nil;
+  SetLength(commands, Length(commands)+1);
+  a := High(commands);
+  cp := @commands[a];
+  cp.cmd := LowerCase(cmd);
+  cp.proc := proc;
+  cp.procEx := nil;
   cp.help := ahelp;
   cp.hidden := ahidden;
   cp.ptr := nil;
@@ -797,7 +913,7 @@ begin
   CPos := 1;
 end;
 
-procedure g_Console_Char(C: Char);
+procedure g_Console_Char(C: AnsiChar);
 begin
   if gChatShow and (not gChatEnter) then
     Exit;
@@ -807,29 +923,29 @@ end;
 
 
 var
-  tcomplist: array of string = nil;
+  tcomplist: array of AnsiString = nil;
   tcompidx: array of Integer = nil;
 
 procedure Complete ();
 var
   i, c: Integer;
   tused: Integer;
-  ll, lpfx, cmd: string;
+  ll, lpfx, cmd: AnsiString;
 begin
   if (Length(Line) = 0) then
   begin
     g_Console_Add('');
-    for i := 0 to High(Commands) do
+    for i := 0 to High(commands) do
     begin
-      if not Commands[i].hidden then
+      if not commands[i].hidden then
       begin
-        if (Length(Commands[i].help) > 0) then
+        if (Length(commands[i].help) > 0) then
         begin
-          g_Console_Add('  '+Commands[i].Cmd+' -- '+Commands[i].help);
+          g_Console_Add('  '+commands[i].cmd+' -- '+commands[i].help);
         end
         else
         begin
-          g_Console_Add('  '+Commands[i].Cmd);
+          g_Console_Add('  '+commands[i].cmd);
         end;
       end;
     end;
@@ -842,14 +958,14 @@ begin
   if (Length(ll) > 1) and (ll[Length(ll)] = ' ') then
   begin
     ll := Copy(ll, 0, Length(ll)-1);
-    for i := 0 to High(Commands) do
+    for i := 0 to High(commands) do
     begin
-      if Commands[i].hidden then continue;
-      if (Commands[i].Cmd = ll) then
+      if commands[i].hidden then continue;
+      if (commands[i].cmd = ll) then
       begin
-        if (Length(Commands[i].help) > 0) then
+        if (Length(commands[i].help) > 0) then
         begin
-          g_Console_Add('  '+Commands[i].Cmd+' -- '+Commands[i].help);
+          g_Console_Add('  '+commands[i].cmd+' -- '+commands[i].help);
         end;
       end;
     end;
@@ -858,10 +974,10 @@ begin
 
   // build completion list
   tused := 0;
-  for i := 0 to High(Commands) do
+  for i := 0 to High(commands) do
   begin
-    if Commands[i].hidden then continue;
-    cmd := Commands[i].Cmd;
+    if commands[i].hidden then continue;
+    cmd := commands[i].cmd;
     if (Length(cmd) >= Length(ll)) and (ll = Copy(cmd, 0, Length(ll))) then
     begin
       if (tused = Length(tcomplist)) then
@@ -907,9 +1023,9 @@ begin
       g_Console_Add('');
       for i := 0 to tused-1 do
       begin
-        if (Length(Commands[tcompidx[i]].help) > 0) then
+        if (Length(commands[tcompidx[i]].help) > 0) then
         begin
-          g_Console_Add('  '+tcomplist[i]+' -- '+Commands[tcompidx[i]].help);
+          g_Console_Add('  '+tcomplist[i]+' -- '+commands[tcompidx[i]].help);
         end
         else
         begin
@@ -953,7 +1069,7 @@ begin
               if g_Game_IsClient then
                 MC_SEND_Chat(b_Text_Format(Line), NET_CHAT_TEAM)
               else
-                MH_SEND_Chat('[' + gPlayer1Settings.Name + ']: ' + b_Text_Format(Line),
+                MH_SEND_Chat('[' + gPlayer1Settings.name + ']: ' + b_Text_Format(Line),
                   NET_CHAT_TEAM, gPlayer1Settings.Team);
             end
             else
@@ -961,7 +1077,7 @@ begin
               if g_Game_IsClient then
                 MC_SEND_Chat(b_Text_Format(Line), NET_CHAT_PLAYER)
               else
-                MH_SEND_Chat('[' + gPlayer1Settings.Name + ']: ' + b_Text_Format(Line),
+                MH_SEND_Chat('[' + gPlayer1Settings.name + ']: ' + b_Text_Format(Line),
                 NET_CHAT_PLAYER);
             end;
           end;
@@ -1006,7 +1122,7 @@ begin
   end;
 end;
 
-function GetStr(var Str: String): String;
+function GetStr(var Str: AnsiString): AnsiString;
 var
   a, b: Integer;
 begin
@@ -1033,7 +1149,7 @@ begin
     end;
 end;
 
-function ParseString(Str: String): SArray;
+function ParseString(Str: AnsiString): SArray;
 begin
   Result := nil;
 
@@ -1049,7 +1165,7 @@ begin
   end;
 end;
 
-procedure g_Console_Add (L: string; Show: Boolean=false);
+procedure g_Console_Add (L: AnsiString; show: Boolean=false);
 
   procedure conmsg (s: AnsiString);
   var
@@ -1084,8 +1200,8 @@ begin
   if (length(L) = 0) or ((L[length(L)] <> #10) and (L[length(L)] <> #13)) then cbufPut(#10);
 
   // now show 'em out of console too
-  Show := Show and gAllowConsoleMessages;
-  if Show and gShowMessages then
+  show := show and gAllowConsoleMessages;
+  if show and gShowMessages then
   begin
     // Вывод строк с переносами по очереди
     while length(L) > 0 do
@@ -1122,7 +1238,7 @@ begin
   begin
     if (b[0] <> 13) and (b[0] <> 10) then
     begin
-      cbufPut(Char(b[0]));
+      cbufPut(AnsiChar(b[0]));
     end
     else
     begin
@@ -1166,7 +1282,7 @@ begin
   conSkipLines := 0;
 end;
 
-procedure AddToHistory(L: String);
+procedure AddToHistory(L: AnsiString);
 var
   len: Integer;
 begin
@@ -1182,7 +1298,7 @@ begin
   CmdIndex := Length(CommandHistory);
 end;
 
-function g_Console_CommandBlacklisted(C: String): Boolean;
+function g_Console_CommandBlacklisted(C: AnsiString): Boolean;
 var
   Arr: SArray;
   i: Integer;
@@ -1203,7 +1319,7 @@ begin
       Result := False;
 end;
 
-procedure g_Console_Process(L: String; Quiet: Boolean = False);
+procedure g_Console_Process(L: AnsiString; quiet: Boolean = False);
 var
   Arr: SArray;
   i: Integer;
@@ -1224,7 +1340,7 @@ begin
     exit;
   end;
 
-  if not Quiet then
+  if not quiet then
   begin
     g_Console_Add('> '+L);
     Line := '';
@@ -1235,24 +1351,24 @@ begin
   if Arr = nil then
     Exit;
 
-  if Commands = nil then
+  if commands = nil then
     Exit;
 
-  if not Quiet then
+  if not quiet then
     AddToHistory(L);
 
-  for i := 0 to High(Commands) do
+  for i := 0 to High(commands) do
   begin
-    if Commands[i].Cmd = LowerCase(Arr[0]) then
+    if commands[i].cmd = LowerCase(Arr[0]) then
     begin
-      if assigned(Commands[i].ProcEx) then
+      if assigned(commands[i].procEx) then
       begin
-        Commands[i].ProcEx(@Commands[i], Arr);
+        commands[i].procEx(@commands[i], Arr);
         exit;
       end;
-      if assigned(Commands[i].Proc) then
+      if assigned(commands[i].proc) then
       begin
-        Commands[i].Proc(Arr);
+        commands[i].proc(Arr);
         exit;
       end;
     end;

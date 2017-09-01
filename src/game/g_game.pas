@@ -324,7 +324,7 @@ var
   g_rlayer_water: Boolean = true;
   g_rlayer_fore: Boolean = true;
 
-  g_dbg_scale_05: Boolean = false;
+  g_dbg_scale: Single = 1.0;
 
 
 procedure g_ResetDynlights ();
@@ -2796,9 +2796,9 @@ begin
   profileFrameDraw.sectionBegin('collect');
   if gdbg_map_use_accel_render then
   begin
-    if g_dbg_scale_05 then
+    if (g_dbg_scale <> 1.0) then
     begin
-      g_Map_CollectDrawPanels(sX, sY, sWidth*2, sHeight*2);
+      g_Map_CollectDrawPanels(sX, sY, round(sWidth/g_dbg_scale)+1, round(sHeight/g_dbg_scale)+1);
     end
     else
     begin
@@ -2811,17 +2811,10 @@ begin
   g_Map_DrawBack(backXOfs, backYOfs);
   profileFrameDraw.sectionEnd();
 
-  if (setTransMatrix) then
+  if setTransMatrix then
   begin
-    if g_dbg_scale_05 then
-    begin
-      glScalef(0.5, 0.5, 1.0);
-      glTranslatef(transX, transY, 0);
-    end
-    else
-    begin
-      glTranslatef(transX, transY, 0);
-    end;
+    glScalef(g_dbg_scale, g_dbg_scale, 1.0);
+    glTranslatef(transX, transY, 0);
   end;
 
   drawPanelType('*back', PANEL_BACK, g_rlayer_back);
@@ -7033,5 +7026,5 @@ begin
 
   conRegVar('dbg_holmes', @g_holmes_enabled, 'enable/disable Holmes', 'Holmes', true);
 
-  conRegVar('dbg_scale_half', @g_dbg_scale_05, 'experimental deBUG scale*0.5 mode', 'Scale0.5', true);
+  conRegVar('dbg_scale', @g_dbg_scale, 0.01, 5.0, 'experimental deBUG scale mode', '',  true);
 end.
