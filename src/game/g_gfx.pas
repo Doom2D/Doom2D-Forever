@@ -54,7 +54,7 @@ function  g_GFX_GetMax(): Integer;
 
 procedure g_GFX_OnceAnim(X, Y: Integer; Anim: TAnimation; AnimType: Byte = 0);
 
-procedure g_Mark(x, y, Width, Height: Integer; t: Byte; st: Boolean);
+procedure g_Mark(x, y, Width, Height: Integer; t: Byte; st: Boolean=true);
 
 procedure g_GFX_Update();
 procedure g_GFX_Draw();
@@ -196,7 +196,7 @@ begin
 end;
 
 
-procedure g_Mark(x, y, Width, Height: Integer; t: Byte; st: Boolean);
+procedure g_Mark(x, y, Width, Height: Integer; t: Byte; st: Boolean=true);
 {$IF not DEFINED(HAS_COLLIDE_BITMAP)}
 var
   part: PParticle;

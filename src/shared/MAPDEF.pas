@@ -40,6 +40,8 @@ type
 
   public
     constructor Create (ax, ay: LongInt);
+
+    function isZero (): Boolean; inline;
   end;
 
   Char16     = packed array[0..15] of Char;
@@ -89,6 +91,10 @@ type
     function PanelType (): Word; inline;
     function Alpha (): Byte; inline;
     function Flags (): Byte; inline;
+
+    function moveSpeed (): TDFPoint; inline;
+    function moveStart (): TDFPoint; inline;
+    function moveEnd (): TDFPoint; inline;
 
     // texture
     function Resource (): AnsiString; inline;
@@ -145,6 +151,7 @@ uses
 
 // ////////////////////////////////////////////////////////////////////////// //
 constructor TDFPoint.Create (ax, ay: LongInt); begin X := ax; Y := ay; end;
+function TDFPoint.isZero (): Boolean; inline; begin result := (X = 0) and (Y = 0); end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
@@ -178,6 +185,12 @@ procedure TDynRecordHelper.setUserTrigRef (v: Boolean); inline;
 begin
   user['userPanelTrigRef'] := v;
 end;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
+function TDynRecordHelper.moveSpeed (): TDFPoint; inline; begin result := getPointField('move_speed'); end;
+function TDynRecordHelper.moveStart (): TDFPoint; inline; begin result := getPointField('move_start'); end;
+function TDynRecordHelper.moveEnd (): TDFPoint; inline; begin result := getPointField('move_end'); end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //

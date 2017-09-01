@@ -895,7 +895,7 @@ var
   ainternal: Boolean;
   omitdef: Boolean;
   defstr: AnsiString;
-  defint: Integer;
+  defint, defint2: Integer;
   hasdefStr: Boolean;
   hasdefInt: Boolean;
   hasdefId: Boolean;
@@ -903,6 +903,7 @@ var
   lebs: TDynField.TEBS;
   unique: Boolean;
   asmonid: Boolean;
+  defech: AnsiChar;
 begin
   fldpasname := '';
   fldname := '';
@@ -916,6 +917,7 @@ begin
   omitdef := false;
   defstr := '';
   defint := 0;
+  defint2 := 0;
   hasdefStr := false;
   hasdefInt := false;
   hasdefId := false;
@@ -997,6 +999,14 @@ begin
             hasdefInt := true;
             defint := pr.expectInt();
           end;
+        pr.TTDelim:
+          begin
+            hasdefInt := true;
+            if pr.eatDelim('[') then defech := ']' else begin pr.expectDelim('('); defech := ')'; end;
+            defint := pr.expectInt();
+            defint2 := pr.expectInt();
+            pr.expectDelim(defech);
+          end;
         else
           raise Exception.Create(Format('field ''%s'' has invalid default', [fldname]));
       end;
@@ -1050,8 +1060,13 @@ begin
   end;
 
        if hasdefStr then self.mDefUnparsed := quoteStr(defstr)
-  else if hasdefInt then self.mDefUnparsed := Format('%d', [defint])
-  else if hasdefId then self.mDefUnparsed := defstr;
+  else if hasdefId then self.mDefUnparsed := defstr
+  else if hasdefInt then
+  begin
+         if (mType = TType.TPoint) then self.mDefUnparsed := Format('(%d %d)', [defint, defint2])
+    else if (mType = TType.TSize) then self.mDefUnparsed := Format('[%d %d]', [defint, defint2])
+    else self.mDefUnparsed := Format('%d', [defint]);
+  end;
 
   self.mHasDefault := (hasdefStr or hasdefId or hasdefInt);
   self.mPasName := fldpasname;

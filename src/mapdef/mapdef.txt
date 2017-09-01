@@ -52,6 +52,11 @@ TPanelRec_1 is "panel" size 18 bytes binblock 2 {
   PanelType is "type" type ushort offset 14 bitset unique PanelType;
   Alpha is "alpha" type ubyte offset 16 default 0 omitdefault;
   Flags is "flags" type ubyte offset 17 bitset PanelFlag default PANEL_FLAG_NONE omitdefault;
+  // moving platform options, not in binary
+  MoveSpeed is "move_speed" type point default (0 0) omitdefault;
+  MoveStart is "move_start" type point default (0 0) omitdefault;
+  MoveEnd is "move_end" type point default (0 0) omitdefault;
+  MoveActive is "move_active" type bool default false omitdefault;
   // not in binary
   //Id is "id" type string default "" omitdefault;
   // internals

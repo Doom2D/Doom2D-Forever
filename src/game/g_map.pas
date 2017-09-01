@@ -193,6 +193,7 @@ var
   gWADHash: TMD5Digest;
   BackID:  DWORD = DWORD(-1);
   gExternalResources: TStringList;
+  gMovingWallIds: array of Integer = nil;
 
   gdbg_map_use_accel_render: Boolean = true;
   gdbg_map_use_accel_coldet: Boolean = true;
@@ -1564,6 +1565,8 @@ var
   pttit: PTRec;
   pannum, trignum, cnt, tgpid: Integer;
   stt: UInt64;
+  moveSpeed{, moveStart, moveEnd}: TDFPoint;
+  //moveActive: Boolean;
 begin
   mapGrid.Free();
   mapGrid := nil;
@@ -1942,6 +1945,18 @@ begin
         // set 'gamePanelId' field to panel id
         rec.userPanelId := PanelID; // remember game panel id, we'll fix triggers later
 
+        // setup lifts
+        moveSpeed := rec.moveSpeed;
+        //moveStart := rec.moveStart;
+        //moveEnd := rec.moveEnd;
+        //moveActive := rec['move_active'].varvalue;
+        if not moveSpeed.isZero then
+        begin
+          SetLength(gMovingWallIds, Length(gMovingWallIds)+1);
+          gMovingWallIds[High(gMovingWallIds)] := PanelID;
+          //e_LogWritefln('found moving panel ''%s'' (idx=%s; id=%s)', [rec.id, pannum, PanelID]);
+        end;
+
         //e_LogWritefln('PANEND: pannum=%s', [pannum]);
 
         g_Game_StepLoading();
@@ -2315,6 +2330,7 @@ begin
   FreePanelArray(gSteps);
   FreePanelArray(gLifts);
   FreePanelArray(gBlockMon);
+  gMovingWallIds := nil;
 
   if BackID <> DWORD(-1) then
   begin
@@ -2351,9 +2367,7 @@ var
     i: Integer;
 
   begin
-    if panels <> nil then
-      for i := 0 to High(panels) do
-        panels[i].Update();
+    for i := 0 to High(panels) do panels[i].Update();
   end;
 
 begin

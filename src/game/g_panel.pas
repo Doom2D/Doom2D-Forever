@@ -42,6 +42,11 @@ type
                             True:  (AnTex: TAnimation);
                         end;
 
+    mMovingSpeed: TDFPoint;
+    mMovingStart: TDFPoint;
+    mMovingEnd: TDFPoint;
+    mMovingActive: Boolean;
+
   private
     function getx1 (): Integer; inline;
     function gety1 (): Integer; inline;
@@ -101,6 +106,13 @@ type
     property moved: Boolean read FMoved write FMoved; // Сохранять при SaveState?
     property liftType: Byte read FLiftType write FLiftType; // Сохранять при SaveState?
     property lastAnimLoop: Byte read FLastAnimLoop write FLastAnimLoop; // Сохранять при SaveState?
+
+    property movingActive: Boolean read mMovingActive write mMovingActive;
+
+  public
+    property movingSpeed: TDFPoint read mMovingSpeed write mMovingSpeed;
+    property movingStart: TDFPoint read mMovingStart write mMovingStart;
+    property movingEnd: TDFPoint read mMovingEnd write mMovingEnd;
   end;
 
   TPanelArray = Array of TPanel;
@@ -109,7 +121,7 @@ implementation
 
 uses
   SysUtils, g_basic, g_map, g_game, e_graphics,
-  g_console, g_language, e_log, GL;
+  g_console, g_language, g_monsters, g_player, e_log, GL;
 
 const
   PANEL_SIGNATURE = $4C4E4150; // 'PANL'
@@ -133,6 +145,11 @@ begin
   FCurFrameCount := 0;
   LastAnimLoop := 0;
   Moved := False;
+
+  mMovingSpeed := PanelRec.moveSpeed;
+  mMovingStart := PanelRec.moveStart;
+  mMovingEnd := PanelRec.moveEnd;
+  mMovingActive := PanelRec['move_active'].varvalue;
 
 // Тип панели:
   PanelType := PanelRec.PanelType;
@@ -388,7 +405,86 @@ begin
   end;
 end;
 
+
+var
+  monMoveList: array of TMonster = nil;
+  monMoveListUsed: Integer = 0;
+
 procedure TPanel.Update();
+var
+  nx, ny: Integer;
+  f: Integer;
+
+  function doPush (px, py, pw, ph: Integer; out dx, dy: Integer): Boolean;
+  begin
+    result := g_Collide(px, py, pw, ph, nx, ny, Width, Height);
+    if result then
+    begin
+      // need to push
+           if (mMovingSpeed.X < 0) then dx := nx-(px+pw)
+      else if (mMovingSpeed.X > 0) then dx := (nx+Width)-px
+      else dx := 0;
+           if (mMovingSpeed.Y < 0) then dy := ny-(py+ph)
+      else if (mMovingSpeed.Y > 0) then dy := (ny+Height)-py
+      else dy := 0;
+    end
+    else
+    begin
+      dx := 0;
+      dy := 0;
+    end;
+  end;
+
+  function monMove (mon: TMonster): Boolean;
+  begin
+    result := false; // don't stop
+    mon.GameX := mon.GameX+mMovingSpeed.X;
+    mon.GameY := mon.GameY+mMovingSpeed.Y;
+    if (monMoveListUsed >= Length(monMoveList)) then SetLength(monMoveList, monMoveListUsed+64);
+    monMoveList[monMoveListUsed] := mon;
+    Inc(monMoveListUsed);
+  end;
+
+  function monPush (mon: TMonster): Boolean;
+  var
+    px, py, pw, ph, dx, dy: Integer;
+  begin
+    result := false; // don't stop
+    mon.getMapBox(px, py, pw, ph);
+    if doPush(px, py, pw, ph, dx, dy) then
+    begin
+      mon.GameX := mon.GameX+dx;
+      mon.GameY := mon.GameY+dy;
+      if (monMoveListUsed >= Length(monMoveList)) then SetLength(monMoveList, monMoveListUsed+64);
+      monMoveList[monMoveListUsed] := mon;
+      Inc(monMoveListUsed);
+    end;
+  end;
+
+  procedure plrMove (plr: TPlayer);
+  var
+    px, py, pw, ph, dx, dy: Integer;
+  begin
+    if (plr = nil) then exit;
+    plr.getMapBox(px, py, pw, ph);
+    if (py+ph <> Y) then
+    begin
+      // push player
+      if doPush(px, py, pw, ph, dx, dy) then
+      begin
+        plr.GameX := plr.GameX+dx;
+        plr.GameY := plr.GameY+dy;
+        plr.positionChanged();
+      end;
+      exit;
+    end;
+    if (px+pw <= X) then exit;
+    if (px >= X+Width) then exit;
+    plr.GameX := plr.GameX+mMovingSpeed.X;
+    plr.GameY := plr.GameY+mMovingSpeed.Y;
+    plr.positionChanged();
+  end;
+
 begin
   if Enabled and (FCurTexture >= 0) and
     (FTextureIDs[FCurTexture].Anim) and
@@ -398,6 +494,26 @@ begin
     FTextureIDs[FCurTexture].AnTex.Update();
     FCurFrame := FTextureIDs[FCurTexture].AnTex.CurrentFrame;
     FCurFrameCount := FTextureIDs[FCurTexture].AnTex.CurrentCounter;
+  end;
+
+  if mMovingActive and (not mMovingSpeed.isZero) then
+  begin
+    monMoveListUsed := 0;
+    nx := X+mMovingSpeed.X;
+    ny := Y+mMovingSpeed.Y;
+    g_Mons_ForEachAt(X, Y-1, Width, 1, monMove);
+    g_Mons_ForEachAt(nx, ny, Width, Height, monPush);
+    for f := 0 to High(gPlayers) do plrMove(gPlayers[f]);
+         if (mMovingSpeed.X < 0) and (nx <= mMovingStart.X) then mMovingSpeed.X := -mMovingSpeed.X
+    else if (mMovingSpeed.X > 0) and (nx >= mMovingEnd.X) then mMovingSpeed.X := -mMovingSpeed.X;
+         if (mMovingSpeed.Y < 0) and (ny <= mMovingStart.Y) then mMovingSpeed.Y := -mMovingSpeed.Y
+    else if (mMovingSpeed.Y > 0) and (ny >= mMovingEnd.Y) then mMovingSpeed.Y := -mMovingSpeed.Y;
+    //!!!g_Mark(X, Y, Width, Height, MARK_FREE);
+    X := nx;
+    Y := ny;
+    //!!!g_Mark(X, Y, Width, Height, MARK_WALL);
+    if (proxyId >= 0) then mapGrid.moveBody(proxyId, nx, ny);
+    for f := 0 to monMoveListUsed-1 do monMoveList[f].positionChanged();
   end;
 end;
 
@@ -565,6 +681,14 @@ begin
 // Если да - сохраняем анимацию:
   if anim then
     FTextureIDs[FCurTexture].AnTex.SaveState(Mem);
+  // moving platform state
+  Mem.WriteInt(mMovingSpeed.X);
+  Mem.WriteInt(mMovingSpeed.Y);
+  Mem.WriteInt(mMovingStart.X);
+  Mem.WriteInt(mMovingStart.Y);
+  Mem.WriteInt(mMovingEnd.X);
+  Mem.WriteInt(mMovingEnd.Y);
+  Mem.WriteBoolean(mMovingActive);
 end;
 
 procedure TPanel.LoadState(var Mem: TBinMemoryReader);
@@ -601,6 +725,14 @@ begin
            'TPanel.LoadState: No animation object');
     FTextureIDs[FCurTexture].AnTex.LoadState(Mem);
   end;
+  // moving platform state
+  Mem.ReadInt(mMovingSpeed.X);
+  Mem.ReadInt(mMovingSpeed.Y);
+  Mem.ReadInt(mMovingStart.X);
+  Mem.ReadInt(mMovingStart.Y);
+  Mem.ReadInt(mMovingEnd.X);
+  Mem.ReadInt(mMovingEnd.Y);
+  Mem.ReadBoolean(mMovingActive);
 end;
 
 end.

@@ -40,13 +40,13 @@ type
 function g_CreateUID(UIDType: Byte): Word;
 function g_GetUIDType(UID: Word): Byte;
 function g_Collide(X1, Y1: Integer; Width1, Height1: Word;
-                   X2, Y2: Integer; Width2, Height2: Word): Boolean;
+                   X2, Y2: Integer; Width2, Height2: Word): Boolean; inline;
 function g_CollideLine(x1, y1, x2, y2, rX, rY: Integer; rWidth, rHeight: Word): Boolean;
-function g_CollidePoint(X, Y, X2, Y2: Integer; Width, Height: Word): Boolean;
-function g_CollideLevel(X, Y: Integer; Width, Height: Word): Boolean;
+function g_CollidePoint(X, Y, X2, Y2: Integer; Width, Height: Word): Boolean; inline;
+function g_CollideLevel(X, Y: Integer; Width, Height: Word): Boolean; inline;
 function g_CollideAround(X1, Y1: Integer; Width1, Height1: Word;
-                         X2, Y2: Integer; Width2, Height2: Word): Boolean;
-function g_CollidePlayer(X, Y: Integer; Width, Height: Word): Boolean;
+                         X2, Y2: Integer; Width2, Height2: Word): Boolean; inline;
+function g_CollidePlayer(X, Y: Integer; Width, Height: Word): Boolean; inline;
 function g_PatchLength(X1, Y1, X2, Y2: Integer): Word;
 function g_TraceVector(X1, Y1, X2, Y2: Integer): Boolean; // `true`: no wall hit
 function g_GetAcidHit(X, Y: Integer; Width, Height: Word): Byte;
@@ -103,7 +103,7 @@ begin
   Result := Min(Round(Hypot(Abs(X2-X1), Abs(Y2-Y1))), 65535);
 end;
 
-function g_CollideLevel(X, Y: Integer; Width, Height: Word): Boolean;
+function g_CollideLevel(X, Y: Integer; Width, Height: Word): Boolean; inline;
 begin
   result := g_Map_CollidePanel(X, Y, Width, Height, (PANEL_WALL or PANEL_CLOSEDOOR or PANEL_OPENDOOR), false);
 end;
@@ -129,7 +129,7 @@ begin
 end;
 *)
 
-function g_CollidePlayer(X, Y: Integer; Width, Height: Word): Boolean;
+function g_CollidePlayer(X, Y: Integer; Width, Height: Word): Boolean; inline;
 var
   a: Integer;
 begin
@@ -261,7 +261,7 @@ begin
 end;
 
 function g_Collide(X1, Y1: Integer; Width1, Height1: Word;
-                   X2, Y2: Integer; Width2, Height2: Word): Boolean;
+                   X2, Y2: Integer; Width2, Height2: Word): Boolean; inline;
 begin
   Result := not ( ((Y1 + Height1 <= Y2) or
                    (Y2 + Height2 <= Y1)) or
@@ -270,7 +270,7 @@ begin
 end;
 
 function g_CollideAround(X1, Y1: Integer; Width1, Height1: Word;
-                         X2, Y2: Integer; Width2, Height2: Word): Boolean;
+                         X2, Y2: Integer; Width2, Height2: Word): Boolean; inline;
 begin
   Result := g_Collide(X1, Y1, Width1, Height1, X2, Y2, Width2, Height2) or
             g_Collide(X1+1, Y1, Width1, Height1, X2, Y2, Width2, Height2) or
@@ -279,7 +279,7 @@ begin
             g_Collide(X1, Y1-1, Width1, Height1, X2, Y2, Width2, Height2);
 end;
 
-function c(X1, Y1, Width1, Height1, X2, Y2, Width2, Height2: Integer): Boolean;
+function c(X1, Y1, Width1, Height1, X2, Y2, Width2, Height2: Integer): Boolean; inline;
 begin
   Result := not (((Y1 + Height1 <= Y2) or
                   (Y1           >= Y2 + Height2)) or
@@ -287,13 +287,13 @@ begin
                    (X1          >= X2 + Width2)));
 end;
 
-function g_Collide2(X1, Y1, X2, Y2, X3, Y3, X4, Y4: Integer): Boolean;
+function g_Collide2(X1, Y1, X2, Y2, X3, Y3, X4, Y4: Integer): Boolean; inline;
 begin
   //Result :=  not (((Y2 <= Y3) or (Y1  >= Y4)) or ((X2 <= X3) or (X1  >= X4)));
   Result := c(X1, Y1, X2-X1, Y2-Y1, X3, Y3, X4-X3, Y4-Y3);
 end;
 
-function g_CollidePoint(X, Y, X2, Y2: Integer; Width, Height: Word): Boolean;
+function g_CollidePoint(X, Y, X2, Y2: Integer; Width, Height: Word): Boolean; inline;
 begin
   X := X-X2;
   Y := Y-Y2;
