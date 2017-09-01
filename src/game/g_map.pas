@@ -85,8 +85,6 @@ function  g_Map_HaveFlagPoints(): Boolean;
 procedure g_Map_ResetFlag(Flag: Byte);
 procedure g_Map_DrawFlags();
 
-function g_Map_PanelForPID(PanelID: Integer; var PanelArrayID: Integer): PPanel;
-
 procedure g_Map_SaveState(Var Mem: TBinMemoryWriter);
 procedure g_Map_LoadState(Var Mem: TBinMemoryReader);
 
@@ -3229,17 +3227,6 @@ begin
     Mem.ReadSmallInt(gTeamStat[TEAM_BLUE].Goals);
   end;
 ///// /////
-end;
-
-function g_Map_PanelForPID(PanelID: Integer; var PanelArrayID: Integer): PPanel;
-var
-  Arr: TPanelArray;
-begin
-  Result := nil;
-  if (PanelID < 0) or (PanelID > High(PanelByID)) then Exit;
-  Arr := PanelByID[PanelID].PWhere^;
-  PanelArrayID := PanelByID[PanelID].PArrID;
-  Result := Addr(Arr[PanelByID[PanelID].PArrID]);
 end;
 
 

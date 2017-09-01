@@ -14,6 +14,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *)
 {$INCLUDE ../shared/a_modes.inc}
+{$M+}
 unit g_playermodel;
 
 interface
@@ -114,11 +115,14 @@ type
     procedure   Update();
     procedure   Draw(X, Y: Integer; Alpha: Byte = 0);
 
+  published
     property    Fire: Boolean read FFire;
     property    Direction: TDirection read FDirection write FDirection;
     property    Animation: Byte read FCurrentAnimation;
     property    Weapon: Byte read FCurrentWeapon;
     property    Name: String read FName;
+
+  public
     property    Color: TRGB read FColor write FColor;
   end;
 

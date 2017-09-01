@@ -14,6 +14,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *)
 {$INCLUDE ../shared/a_modes.inc}
+{$M+}
 unit g_panel;
 
 interface
@@ -50,15 +51,15 @@ type
     FCurTexture:      Integer; // Номер текущей текстуры
     FCurFrame:        Integer;
     FCurFrameCount:   Byte;
-    X, Y:             Integer;
-    Width, Height:    Word;
-    PanelType:        Word;
-    SaveIt:           Boolean; // Сохранять при SaveState?
-    Enabled:          Boolean;
-    Door:             Boolean;
-    Moved:            Boolean;
-    LiftType:         Byte;
-    LastAnimLoop:     Byte;
+    FX, FY:           Integer;
+    FWidth, FHeight:  Word;
+    FPanelType:       Word;
+    FSaveIt:          Boolean; // Сохранять при SaveState?
+    FEnabled:         Boolean;
+    FDoor:            Boolean;
+    FMoved:           Boolean;
+    FLiftType:        Byte;
+    FLastAnimLoop:    Byte;
     arrIdx:           Integer; // index in one of internal arrays; sorry
     tag:              Integer; // used in coldets and such; sorry
     proxyId:          Integer; // proxy id in map grid (DO NOT USE!)
@@ -81,14 +82,27 @@ type
     procedure   SaveState(var Mem: TBinMemoryWriter);
     procedure   LoadState(var Mem: TBinMemoryReader);
 
-    property x0: Integer read X;
-    property y0: Integer read Y;
+  public
+    property visvalid: Boolean read getvisvalid; // panel is "visvalid" when it's width and height are positive
+
+  published
+    property x0: Integer read FX;
+    property y0: Integer read FY;
     property x1: Integer read getx1; // inclusive!
     property y1: Integer read gety1; // inclusive!
-    property visvalid: Boolean read getvisvalid; // panel is "visvalid" when it's width and height are positive
+    property x: Integer read FX write FX;
+    property y: Integer read FY write FY;
+    property width: Word read FWidth write FWidth;
+    property height: Word read FHeight write FHeight;
+    property panelType: Word read FPanelType write FPanelType;
+    property saveIt: Boolean read FSaveIt write FSaveIt; // Сохранять при SaveState?
+    property enabled: Boolean read FEnabled write FEnabled; // Сохранять при SaveState?
+    property door: Boolean read FDoor write FDoor; // Сохранять при SaveState?
+    property moved: Boolean read FMoved write FMoved; // Сохранять при SaveState?
+    property liftType: Byte read FLiftType write FLiftType; // Сохранять при SaveState?
+    property lastAnimLoop: Byte read FLastAnimLoop write FLastAnimLoop; // Сохранять при SaveState?
   end;
 
-  PPanel = ^TPanel;
   TPanelArray = Array of TPanel;
 
 implementation
@@ -530,14 +544,14 @@ begin
   sig := PANEL_SIGNATURE; // 'PANL'
   Mem.WriteDWORD(sig);
 // Открыта/закрыта, если дверь:
-  Mem.WriteBoolean(Enabled);
+  Mem.WriteBoolean(FEnabled);
 // Направление лифта, если лифт:
-  Mem.WriteByte(LiftType);
+  Mem.WriteByte(FLiftType);
 // Номер текущей текстуры:
   Mem.WriteInt(FCurTexture);
 // Коорды
-  Mem.WriteInt(X);
-  Mem.WriteInt(Y);
+  Mem.WriteInt(FX);
+  Mem.WriteInt(FY);
 // Анимированная ли текущая текстура:
   if (FCurTexture >= 0) and (FTextureIDs[FCurTexture].Anim) then
     begin
@@ -568,14 +582,14 @@ begin
     raise EBinSizeError.Create('TPanel.LoadState: Wrong Panel Signature');
   end;
 // Открыта/закрыта, если дверь:
-  Mem.ReadBoolean(Enabled);
+  Mem.ReadBoolean(FEnabled);
 // Направление лифта, если лифт:
-  Mem.ReadByte(LiftType);
+  Mem.ReadByte(FLiftType);
 // Номер текущей текстуры:
   Mem.ReadInt(FCurTexture);
 // Коорды
-  Mem.ReadInt(X);
-  Mem.ReadInt(Y);
+  Mem.ReadInt(FX);
+  Mem.ReadInt(FY);
 // Анимированная ли текущая текстура:
   Mem.ReadBoolean(anim);
 // Если да - загружаем анимацию:

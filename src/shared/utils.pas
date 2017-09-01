@@ -1361,7 +1361,7 @@ var
       xpos := High(strbuf);
       strbuf[xpos] := #0; Dec(xpos);
       repeat
-        if hex then
+        if not hex then
         begin
           strbuf[xpos] := AnsiChar((n mod 10)+48);
           Dec(xpos);
@@ -1391,7 +1391,7 @@ var
     xpos := High(strbuf);
     strbuf[xpos] := #0; Dec(xpos);
     repeat
-      if hex then
+      if not hex then
       begin
         strbuf[xpos] := AnsiChar((n mod 10)+48);
         Dec(xpos);

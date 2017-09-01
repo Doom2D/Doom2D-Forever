@@ -101,6 +101,7 @@ var
 implementation
 
 uses
+  {rttiobj,} typinfo,
   SysUtils, Classes, GL, SDL2,
   MAPDEF, g_main, g_options,
   utils, hashtable, xparser;
@@ -247,7 +248,86 @@ end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-//FIXME
+function typeKind2Str (t: TTypeKind): AnsiString;
+begin
+  case t of
+    tkUnknown: result := 'Unknown';
+    tkInteger: result := 'Integer';
+    tkChar: result := 'Char';
+    tkEnumeration: result := 'Enumeration';
+    tkFloat: result := 'Float';
+    tkSet: result := 'Set';
+    tkMethod: result := 'Method';
+    tkSString: result := 'SString';
+    tkLString: result := 'LString';
+    tkAString: result := 'AString';
+    tkWString: result := 'WString';
+    tkVariant: result := 'Variant';
+    tkArray: result := 'Array';
+    tkRecord: result := 'Record';
+    tkInterface: result := 'Interface';
+    tkClass: result := 'Class';
+    tkObject: result := 'Object';
+    tkWChar: result := 'WChar';
+    tkBool: result := 'Bool';
+    tkInt64: result := 'Int64';
+    tkQWord: result := 'QWord';
+    tkDynArray: result := 'DynArray';
+    tkInterfaceRaw: result := 'InterfaceRaw';
+    tkProcVar: result := 'ProcVar';
+    tkUString: result := 'UString';
+    tkUChar: result := 'UChar';
+    tkHelper: result := 'Helper';
+    tkFile: result := 'File';
+    tkClassRef: result := 'ClassRef';
+    tkPointer: result := 'Pointer';
+    else result := '<unknown>';
+  end;
+end;
+
+
+procedure dumpPublishedProperties (obj: TObject);
+var
+  pt: PTypeData;
+  pi: PTypeInfo;
+  i, j: Integer;
+  pp: PPropList;
+begin
+  if (obj = nil) then exit;
+  e_LogWritefln('Object of type ''%s'':', [obj.ClassName]);
+  pi := obj.ClassInfo;
+  pt := GetTypeData(pi);
+  e_LogWritefln('property count: %s', [pt.PropCount]);
+  GetMem(pp, pt^.PropCount*sizeof(Pointer));
+  try
+    j := GetPropList(pi, [tkInteger, tkBool, tkSString, tkLString, tkAString, tkSet, tkEnumeration], pp);
+    //e_LogWritefln('ordinal property count: %s', [j]);
+    for i := 0 to j-1 do
+    begin
+      if (typinfo.PropType(obj, pp^[i].name) in [tkSString, tkLString, tkAString]) then
+      begin
+        e_LogWritefln('  #%s: <%s>; type: %s; value: <%s>', [i+1, pp^[i].name, typeKind2Str(typinfo.PropType(obj, pp^[i].name)), GetStrProp(obj, pp^[i])]);
+      end
+      else if (typinfo.PropType(obj, pp^[i].name) = tkSet) then
+      begin
+        e_LogWritefln('  #%s: <%s>; type: %s; value: %s', [i+1, pp^[i].name, typeKind2Str(typinfo.PropType(obj, pp^[i].name)), GetSetProp(obj, pp^[i], true)]);
+      end
+      else if (typinfo.PropType(obj, pp^[i].name) = tkEnumeration) then
+      begin
+        e_LogWritefln('  #%s: <%s>; type: %s; value: <%s>', [i+1, pp^[i].name, typeKind2Str(typinfo.PropType(obj, pp^[i].name)), GetEnumProp(obj, pp^[i])]);
+      end
+      else
+      begin
+        e_LogWritefln('  #%s: <%s>; type: %s; value: %s', [i+1, pp^[i].name, typeKind2Str(typinfo.PropType(obj, pp^[i].name)), GetOrdProp(obj, pp^[i])]);
+      end;
+    end;
+  finally
+    FreeMem(pp);
+  end;
+end;
+
+
+//FIXME: autogenerate
 function trigType2Str (ttype: Integer): AnsiString;
 begin
   result := '<unknown>';
@@ -1223,9 +1303,25 @@ procedure cbAtcurSelectMonster ();
     result := true; // stop
     e_WriteLog(Format('monster #%d (UID:%u) (proxyid:%d)', [mon.arrIdx, mon.UID, mon.proxyId]), MSG_NOTIFY);
     monMarkedUID := mon.UID;
+    dumpPublishedProperties(mon);
   end;
+var
+  plr: TPlayer;
+  x, y, w, h: Integer;
 begin
   monMarkedUID := -1;
+  if (Length(gPlayers) > 0) then
+  begin
+    plr := gPlayers[0];
+    if (plr <> nil) then
+    begin
+      plr.getMapBox(x, y, w, h);
+      if (pmsCurMapX >= x) and (pmsCurMapY >= y) and (pmsCurMapX < x+w) and (pmsCurMapY < y+h) then
+      begin
+        dumpPublishedProperties(plr);
+      end;
+    end;
+  end;
   //e_WriteLog('===========================', MSG_NOTIFY);
   monsGrid.forEachAtPoint(pmsCurMapX, pmsCurMapY, monsAtDump);
   //e_WriteLog('---------------------------', MSG_NOTIFY);
@@ -1247,7 +1343,8 @@ procedure cbAtcurDumpWalls ();
   function wallToggle (pan: TPanel; tag: Integer): Boolean;
   begin
     result := false; // don't stop
-    e_WriteLog(Format('wall #%d(%d); enabled=%d (%d); (%d,%d)-(%d,%d)', [pan.arrIdx, pan.proxyId, Integer(pan.Enabled), Integer(mapGrid.proxyEnabled[pan.proxyId]), pan.X, pan.Y, pan.Width, pan.Height]), MSG_NOTIFY);
+    e_LogWritefln('wall #%d(%d); enabled=%d (%d); (%d,%d)-(%d,%d)', [pan.arrIdx, pan.proxyId, Integer(pan.Enabled), Integer(mapGrid.proxyEnabled[pan.proxyId]), pan.X, pan.Y, pan.Width, pan.Height]);
+    dumpPublishedProperties(pan);
   end;
 var
   hasTrigs: Boolean = false;

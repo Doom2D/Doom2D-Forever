@@ -14,6 +14,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *)
 {$INCLUDE ../shared/a_modes.inc}
+{$M+}
 {.$DEFINE D2F_DEBUG_MONS_MOVE}
 unit g_monsters;
 
@@ -136,6 +137,13 @@ type
 
     procedure getMapBox (out x, y, w, h: Integer); inline;
 
+  public
+    property Obj: TObj read FObj;
+
+    property proxyId: Integer read mProxyId;
+    property arrIdx: Integer read mArrIdx;
+
+  published
     property MonsterType: Byte read FMonsterType;
     property MonsterHealth: Integer read FHealth write FHealth;
     property MonsterAmmo: Integer read FAmmo write FAmmo;
@@ -148,7 +156,6 @@ type
     property MonsterPain: Integer read FPain write FPain;
     property MonsterAnim: Byte read FCurAnim write FCurAnim;
 
-    property Obj: TObj read FObj;
     property UID: Word read FUID write FUID;
     property SpawnTrigger: Integer read FSpawnTrigger write FSpawnTrigger;
 
@@ -161,9 +168,6 @@ type
     property GameDirection: TDirection read FDirection write FDirection;
 
     property StartID: Integer read FStartID;
-
-    property proxyId: Integer read mProxyId;
-    property arrIdx: Integer read mArrIdx;
   end;
 
 

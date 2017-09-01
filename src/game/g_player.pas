@@ -14,6 +14,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *)
 {$INCLUDE ../shared/a_modes.inc}
+{$M+}
 unit g_player;
 
 interface
@@ -321,6 +322,11 @@ type
 
     procedure getMapBox (out x, y, w, h: Integer); inline;
 
+  public
+    property    Vel: TPoint2i read FObj.Vel;
+    property    Obj: TObj read FObj;
+
+  published
     property    Name: String read FName write FName;
     property    Model: TPlayerModel read FModel;
     property    Health: Integer read FHealth write FHealth;
@@ -347,8 +353,6 @@ type
     property    GameVelY: Integer read FObj.Vel.Y write FObj.Vel.Y;
     property    GameAccelX: Integer read FObj.Accel.X write FObj.Accel.X;
     property    GameAccelY: Integer read FObj.Accel.Y write FObj.Accel.Y;
-    property    Vel: TPoint2i read FObj.Vel;
-    property    Obj: TObj read FObj;
     property    IncCam: Integer read FIncCam write FIncCam;
     property    UID: Word read FUID write FUID;
     property    JustTeleported: Boolean read FJustTeleported write FJustTeleported;
