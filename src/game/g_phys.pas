@@ -49,20 +49,20 @@ const
   MOVE_HITAIR     = 64;
   MOVE_BLOCK      = 128;
 
-procedure g_Obj_Init(Obj: PObj);
+procedure g_Obj_Init(Obj: PObj); inline;
 function  g_Obj_Move(Obj: PObj; Fallable: Boolean; Splash: Boolean; ClimbSlopes: Boolean = False): Word;
-function  g_Obj_Collide(Obj1, Obj2: PObj): Boolean; overload;
-function  g_Obj_Collide(X, Y: Integer; Width, Height: Word; Obj: PObj): Boolean; overload;
-function  g_Obj_CollidePoint(X, Y: Integer; Obj: PObj): Boolean;
-function  g_Obj_CollideLevel(Obj: PObj; XInc, YInc: Integer): Boolean;
-function  g_Obj_CollideStep(Obj: PObj; XInc, YInc: Integer): Boolean;
-function  g_Obj_CollideWater(Obj: PObj; XInc, YInc: Integer): Boolean;
-function  g_Obj_CollideLiquid(Obj: PObj; XInc, YInc: Integer): Boolean;
-function  g_Obj_CollidePanel(Obj: PObj; XInc, YInc: Integer; PanelType: Word): Boolean;
-function  g_Obj_StayOnStep(Obj: PObj): Boolean;
-procedure g_Obj_Push(Obj: PObj; VelX, VelY: Integer);
-procedure g_Obj_PushA(Obj: PObj; Vel: Integer; Angle: SmallInt);
-procedure g_Obj_SetSpeed(Obj: PObj; s: Integer);
+function  g_Obj_Collide(Obj1, Obj2: PObj): Boolean; inline; overload;
+function  g_Obj_Collide(X, Y: Integer; Width, Height: Word; Obj: PObj): Boolean; inline; overload;
+function  g_Obj_CollidePoint(X, Y: Integer; Obj: PObj): Boolean; inline;
+function  g_Obj_CollideLevel(Obj: PObj; XInc, YInc: Integer): Boolean; inline;
+function  g_Obj_CollideStep(Obj: PObj; XInc, YInc: Integer): Boolean; inline;
+function  g_Obj_CollideWater(Obj: PObj; XInc, YInc: Integer): Boolean; inline;
+function  g_Obj_CollideLiquid(Obj: PObj; XInc, YInc: Integer): Boolean; inline;
+function  g_Obj_CollidePanel(Obj: PObj; XInc, YInc: Integer; PanelType: Word): Boolean; inline;
+function  g_Obj_StayOnStep(Obj: PObj): Boolean; inline;
+procedure g_Obj_Push(Obj: PObj; VelX, VelY: Integer); inline;
+procedure g_Obj_PushA(Obj: PObj; Vel: Integer; Angle: SmallInt); inline;
+procedure g_Obj_SetSpeed(Obj: PObj; s: Integer); inline;
 function  z_dec(a, b: Integer): Integer; inline;
 function  z_fdec(a, b: Double): Double; inline;
 
@@ -80,7 +80,7 @@ const
   SmoothSlopeFrames = 4;
 
 
-function g_Obj_StayOnStep(Obj: PObj): Boolean;
+function g_Obj_StayOnStep(Obj: PObj): Boolean; inline;
 begin
   Result := not g_Map_CollidePanel(Obj^.X+Obj^.Rect.X, Obj^.Y+Obj^.Rect.Y+Obj^.Rect.Height-1,
                                    Obj^.Rect.Width, 1,
@@ -90,14 +90,14 @@ begin
                                    PANEL_STEP, False);
 end;
 
-function CollideLiquid(Obj: PObj; XInc, YInc: Integer): Boolean;
+function CollideLiquid(Obj: PObj; XInc, YInc: Integer): Boolean; inline;
 begin
   Result := g_Map_CollidePanel(Obj^.X+Obj^.Rect.X+XInc, Obj^.Y+Obj^.Rect.Y+YInc,
                                Obj^.Rect.Width, Obj^.Rect.Height*2 div 3,
                                PANEL_WATER or PANEL_ACID1 or PANEL_ACID2, False);
 end;
 
-function CollideLift(Obj: PObj; XInc, YInc: Integer): Integer;
+function CollideLift(Obj: PObj; XInc, YInc: Integer): Integer; inline;
 begin
   if g_Map_CollidePanel(Obj^.X+Obj^.Rect.X+XInc, Obj^.Y+Obj^.Rect.Y+YInc,
                         Obj^.Rect.Width, Obj^.Rect.Height,
@@ -111,7 +111,7 @@ begin
     Result := 0;
 end;
 
-function CollideHorLift(Obj: PObj; XInc, YInc: Integer): Integer;
+function CollideHorLift(Obj: PObj; XInc, YInc: Integer): Integer; inline;
 var
   left, right: Boolean;
 begin
@@ -153,42 +153,42 @@ begin
   end;
 end;
 
-function Blocked(Obj: PObj; XInc, YInc: Integer): Boolean;
+function Blocked(Obj: PObj; XInc, YInc: Integer): Boolean; inline;
 begin
   Result := g_Map_CollidePanel(Obj^.X+Obj^.Rect.X+XInc, Obj^.Y+Obj.Rect.Y+YInc,
                                Obj^.Rect.Width, Obj^.Rect.Height,
                                PANEL_BLOCKMON, False);
 end;
 
-function g_Obj_CollideLevel(Obj: PObj; XInc, YInc: Integer): Boolean;
+function g_Obj_CollideLevel(Obj: PObj; XInc, YInc: Integer): Boolean; inline;
 begin
   Result := g_Map_CollidePanel(Obj^.X+Obj^.Rect.X+XInc, Obj^.Y+Obj.Rect.Y+YInc,
                                Obj^.Rect.Width, Obj^.Rect.Height,
                                PANEL_WALL, False);
 end;
 
-function g_Obj_CollideStep(Obj: PObj; XInc, YInc: Integer): Boolean;
+function g_Obj_CollideStep(Obj: PObj; XInc, YInc: Integer): Boolean; inline;
 begin
   Result := g_Map_CollidePanel(Obj^.X+Obj^.Rect.X+XInc, Obj^.Y+Obj.Rect.Y+YInc,
                                Obj^.Rect.Width, Obj^.Rect.Height,
                                PANEL_STEP, False);
 end;
 
-function g_Obj_CollideWater(Obj: PObj; XInc, YInc: Integer): Boolean;
+function g_Obj_CollideWater(Obj: PObj; XInc, YInc: Integer): Boolean; inline;
 begin
   Result := g_Map_CollidePanel(Obj^.X+Obj^.Rect.X+XInc, Obj^.Y+Obj.Rect.Y+YInc,
                                Obj^.Rect.Width, Obj^.Rect.Height,
                                PANEL_WATER, False);
 end;
 
-function g_Obj_CollideLiquid(Obj: PObj; XInc, YInc: Integer): Boolean;
+function g_Obj_CollideLiquid(Obj: PObj; XInc, YInc: Integer): Boolean; inline;
 begin
   Result := g_Map_CollidePanel(Obj^.X+Obj^.Rect.X+XInc, Obj^.Y+Obj.Rect.Y+YInc,
                                Obj^.Rect.Width, Obj^.Rect.Height,
                                PANEL_WATER or PANEL_ACID1 or PANEL_ACID2, False);
 end;
 
-function g_Obj_CollidePanel(Obj: PObj; XInc, YInc: Integer; PanelType: Word): Boolean;
+function g_Obj_CollidePanel(Obj: PObj; XInc, YInc: Integer; PanelType: Word): Boolean; inline;
 begin
   Result := g_Map_CollidePanel(Obj^.X+Obj^.Rect.X+XInc, Obj^.Y+Obj.Rect.Y+YInc,
                                Obj^.Rect.Width, Obj^.Rect.Height,
@@ -352,7 +352,7 @@ begin
 end;
 
 
-procedure g_Obj_Init (Obj: PObj);
+procedure g_Obj_Init (Obj: PObj); inline;
 begin
   ZeroMemory(Obj, SizeOf(TObj));
 end;
@@ -514,7 +514,7 @@ _move:
 end;
 
 
-function g_Obj_Collide(Obj1, Obj2: PObj): Boolean;
+function g_Obj_Collide(Obj1, Obj2: PObj): Boolean; inline;
 begin
   Result := g_Collide(Obj1^.X+Obj1^.Rect.X, Obj1^.Y+Obj1^.Rect.Y,
                       Obj1^.Rect.Width, Obj1^.Rect.Height,
@@ -522,7 +522,7 @@ begin
                       Obj2^.Rect.Width, Obj2^.Rect.Height);
 end;
 
-function g_Obj_Collide(X, Y: Integer; Width, Height: Word; Obj: PObj): Boolean;
+function g_Obj_Collide(X, Y: Integer; Width, Height: Word; Obj: PObj): Boolean; inline;
 begin
   Result := g_Collide(X, Y,
                       Width, Height,
@@ -530,19 +530,19 @@ begin
                       Obj^.Rect.Width, Obj^.Rect.Height);
 end;
 
-function g_Obj_CollidePoint(X, Y: Integer; Obj: PObj): Boolean;
+function g_Obj_CollidePoint(X, Y: Integer; Obj: PObj): Boolean; inline;
 begin
   Result := g_CollidePoint(X, Y, Obj^.X+Obj^.Rect.X, Obj^.Y+Obj^.Rect.Y,
                            Obj^.Rect.Width, Obj^.Rect.Height);
 end;
 
-procedure g_Obj_Push(Obj: PObj; VelX, VelY: Integer);
+procedure g_Obj_Push(Obj: PObj; VelX, VelY: Integer); inline;
 begin
   Obj^.Vel.X := Obj^.Vel.X + VelX;
   Obj^.Vel.Y := Obj^.Vel.Y + VelY;
 end;
 
-procedure g_Obj_PushA(Obj: PObj; Vel: Integer; Angle: SmallInt);
+procedure g_Obj_PushA(Obj: PObj; Vel: Integer; Angle: SmallInt); inline;
 var
   s, c: Extended;
 
@@ -553,7 +553,7 @@ begin
   Obj^.Vel.Y := Obj^.Vel.Y + Round(Vel*s);
 end;
 
-procedure g_Obj_SetSpeed(Obj: PObj; s: Integer);
+procedure g_Obj_SetSpeed(Obj: PObj; s: Integer); inline;
 var
   m, vx, vy: Integer;
 begin
