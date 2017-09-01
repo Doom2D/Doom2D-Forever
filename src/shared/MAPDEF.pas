@@ -153,13 +153,14 @@ var
   fld: TDynField;
 begin
   fld := field['userPanelId'];
-  if (fld = nil) or (fld.baseType <> TDynField.TType.TInt) then result := -1 else result := fld.ival;
+  //if (fld = nil) or (fld.baseType <> TDynField.TType.TInt) then result := -1 else result := fld.ival;
+  if (fld = nil) then result := -1 else result := Integer(fld.varvalue);
 end;
 
 
 procedure TDynRecordHelper.setUserPanelId (v: Integer); inline;
 begin
-  setUserField('userPanelId', Integer(v));
+  user['userPanelId'] := v;
 end;
 
 
@@ -168,13 +169,14 @@ var
   fld: TDynField;
 begin
   fld := field['userPanelTrigRef'];
-  if (fld = nil) or (fld.baseType <> TDynField.TType.TBool) then result := false else result := (fld.ival <> 0);
+  if (fld = nil) then result := false else result := Boolean(fld.varvalue);
+  //if (fld = nil) or (fld.baseType <> TDynField.TType.TBool) then result := false else result := (fld.ival <> 0);
 end;
 
 
 procedure TDynRecordHelper.setUserTrigRef (v: Boolean); inline;
 begin
-  setUserField('userPanelTrigRef', v);
+  user['userPanelTrigRef'] := v;
 end;
 
 

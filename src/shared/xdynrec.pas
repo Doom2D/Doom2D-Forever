@@ -20,7 +20,7 @@ unit xdynrec;
 interface
 
 uses
-  Classes,
+  Variants, Classes,
   xparser, xstreams, utils, hashtable;
 
 
@@ -105,28 +105,17 @@ type
 
     procedure setIVal (v: Integer); inline;
 
+    function getVar (): Variant;
+    procedure setVar (val: Variant);
+
   protected
     // returns `true` for duplicate record id
     function addListItem (rec: TDynRecord): Boolean; inline;
 
   public
-    {
-    type
-      TListEnumerator = record
-      private
-        mList: TDynRecList;
-        mCurIdx: Integer;
-      public
-        constructor Create (alist: TDynRecList);
-        function MoveNext (): Boolean; inline;
-        function getCurrent (): TDynRecord; inline;
-        property Current: TDynRecord read getCurrent;
-      end;
-    }
-
-  public
     constructor Create (const aname: AnsiString; atype: TType);
     constructor Create (pr: TTextParser);
+    constructor Create (const aname: AnsiString; val: Variant);
     destructor Destroy (); override;
 
     class function getTypeName (t: TType): AnsiString;
@@ -176,6 +165,8 @@ type
     // userdata
     property tagInt: Integer read mTagInt write mTagInt;
     property tagPtr: Pointer read mTagPtr write mTagPtr;
+    //
+    property varvalue: Variant read getVar write setVar;
   end;
 
 
@@ -247,9 +238,12 @@ type
     // number of records of the given instance
     function instanceCount (const typename: AnsiString): Integer;
 
-    procedure setUserField (const fldname: AnsiString; v: LongInt);
-    procedure setUserField (const fldname: AnsiString; v: AnsiString);
-    procedure setUserField (const fldname: AnsiString; v: Boolean);
+    //procedure setUserField (const fldname: AnsiString; v: LongInt);
+    //procedure setUserField (const fldname: AnsiString; v: AnsiString);
+    //procedure setUserField (const fldname: AnsiString; v: Boolean);
+
+    function getUserVar (const aname: AnsiString): Variant;
+    procedure setUserVar (const aname: AnsiString; val: Variant);
 
   public
     property id: AnsiString read mId; // for map parser
@@ -270,6 +264,8 @@ type
     // userdata
     property tagInt: Integer read mTagInt write mTagInt;
     property tagPtr: Pointer read mTagPtr write mTagPtr;
+    // userfields
+    property user[const aname: AnsiString]: Variant read getUserVar write setUserVar;
   end;
 
   TDynEBS = class
@@ -364,28 +360,6 @@ function StrEqu (const a, b: AnsiString): Boolean; inline; begin result := (a = 
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-{
-constructor TDynField.TListEnumerator.Create (alist: TDynRecList);
-begin
-  mList := alist;
-  mCurIdx := -1;
-end;
-
-
-function TDynField.TListEnumerator.MoveNext (): Boolean; inline;
-begin
-  Inc(mCurIdx);
-  result := (mList <> nil) and (mCurIdx < mList.count);
-end;
-
-
-function TDynField.TListEnumerator.getCurrent (): TDynRecord; inline;
-begin
-  result := mList[mCurIdx];
-end;
-}
-
-
 function TDynField.GetEnumerator (): TDynRecList.TEnumerator; inline;
 begin
   //result := TListEnumerator.Create(mRVal);
@@ -414,6 +388,72 @@ constructor TDynField.Create (pr: TTextParser);
 begin
   cleanup();
   parseDef(pr);
+end;
+
+
+constructor TDynField.Create (const aname: AnsiString; val: Variant);
+  procedure setInt32 (v: LongInt);
+  begin
+    case mType of
+      TType.TBool:
+             if (v = 0) then mIVal := 0
+        else if (v = 1) then mIVal := 1
+        else raise Exception.Create('cannot convert shortint variant to field value');
+      TType.TByte:
+             if (v >= -128) and (v <= 127) then mIVal := v
+        else raise Exception.Create('cannot convert shortint variant to field value');
+      TType.TUByte:
+             if (v >= 0) and (v <= 255) then mIVal := v
+        else raise Exception.Create('cannot convert shortint variant to field value');
+      TType.TShort:
+             if (v >= -32768) and (v <= 32767) then mIVal := v
+        else raise Exception.Create('cannot convert shortint variant to field value');
+      TType.TUShort:
+             if (v >= 0) and (v <= 65535) then mIVal := v
+        else raise Exception.Create('cannot convert shortint variant to field value');
+      TType.TInt:
+        mIVal := v;
+      TType.TUInt:
+        mIVal := v;
+      TType.TString:
+        mSVal := formatstrf('%s', [v]);
+      else
+        raise Exception.Create('cannot convert integral variant to field value');
+    end;
+  end;
+begin
+  mRVal := nil;
+  mRecRef := nil;
+  mRHash := nil;
+  cleanup();
+  mName := aname;
+  case varType(val) of
+    varEmpty: raise Exception.Create('cannot convert empty variant to field value');
+    varNull: raise Exception.Create('cannot convert null variant to field value');
+    varSingle: raise Exception.Create('cannot convert single variant to field value');
+    varDouble: raise Exception.Create('cannot convert double variant to field value');
+    varDecimal: raise Exception.Create('cannot convert decimal variant to field value');
+    varCurrency: raise Exception.Create('cannot convert currency variant to field value');
+    varDate: raise Exception.Create('cannot convert date variant to field value');
+    varOleStr: raise Exception.Create('cannot convert olestr variant to field value');
+    varStrArg: raise Exception.Create('cannot convert stdarg variant to field value');
+    varString: mType := TType.TString;
+    varDispatch: raise Exception.Create('cannot convert dispatch variant to field value');
+    varBoolean: mType := TType.TBool;
+    varVariant: raise Exception.Create('cannot convert variant variant to field value');
+    varUnknown: raise Exception.Create('cannot convert unknown variant to field value');
+    varByte: mType := TType.TUByte;
+    varWord: mType := TType.TUShort;
+    varShortInt: mType := TType.TByte;
+    varSmallint: mType := TType.TShort;
+    varInteger: mType := TType.TInt;
+    varInt64: raise Exception.Create('cannot convert int64 variant to field value');
+    varLongWord: raise Exception.Create('cannot convert longword variant to field value');
+    varQWord: raise Exception.Create('cannot convert uint64 variant to field value');
+    varError: raise Exception.Create('cannot convert error variant to field value');
+    else raise Exception.Create('cannot convert undetermined variant to field value');
+  end;
+  varvalue := val;
 end;
 
 
@@ -510,6 +550,118 @@ procedure TDynField.setIVal (v: Integer); inline;
 begin
   //FIXME: check type
   mIVal := v;
+  mDefined := true;
+end;
+
+
+function TDynField.getVar (): Variant;
+begin
+  if (mEBS = TEBS.TRec) then begin result := LongInt(getRecRefIndex); exit; end;
+  case mType of
+    TType.TBool: result := (mIVal <> 0);
+    TType.TChar: result := mSVal;
+    TType.TByte: result := ShortInt(mIVal);
+    TType.TUByte: result := Byte(mIVal);
+    TType.TShort: result := SmallInt(mIVal);
+    TType.TUShort: result := Word(mIVal);
+    TType.TInt: result := LongInt(mIVal);
+    TType.TUInt: result := LongWord(mIVal);
+    TType.TString: result := mSVal;
+    TType.TPoint: raise Exception.Create('cannot convert point field to variant');
+    TType.TSize: raise Exception.Create('cannot convert size field to variant');
+    TType.TList: raise Exception.Create('cannot convert list field to variant');
+    TType.TTrigData: raise Exception.Create('cannot convert trigdata field to variant');
+    else result := Unassigned; raise Exception.Create('ketmar forgot to handle some field type');
+  end;
+end;
+
+
+procedure TDynField.setVar (val: Variant);
+  procedure setInt32 (v: LongInt);
+  begin
+    case mType of
+      TType.TBool:
+             if (v = 0) then mIVal := 0
+        else if (v = 1) then mIVal := 1
+        else raise Exception.Create('cannot convert shortint variant to field value');
+      TType.TByte:
+             if (v >= -128) and (v <= 127) then mIVal := v
+        else raise Exception.Create('cannot convert shortint variant to field value');
+      TType.TUByte:
+             if (v >= 0) and (v <= 255) then mIVal := v
+        else raise Exception.Create('cannot convert shortint variant to field value');
+      TType.TShort:
+             if (v >= -32768) and (v <= 32767) then mIVal := v
+        else raise Exception.Create('cannot convert shortint variant to field value');
+      TType.TUShort:
+             if (v >= 0) and (v <= 65535) then mIVal := v
+        else raise Exception.Create('cannot convert shortint variant to field value');
+      TType.TInt:
+        mIVal := v;
+      TType.TUInt:
+        mIVal := v;
+      TType.TString:
+        mSVal := formatstrf('%s', [v]);
+      else
+        raise Exception.Create('cannot convert integral variant to field value');
+    end;
+  end;
+begin
+  case varType(val) of
+    varEmpty: raise Exception.Create('cannot convert empty variant to field value');
+    varNull: raise Exception.Create('cannot convert null variant to field value');
+    varSingle: raise Exception.Create('cannot convert single variant to field value');
+    varDouble: raise Exception.Create('cannot convert double variant to field value');
+    varDecimal: raise Exception.Create('cannot convert decimal variant to field value');
+    varCurrency: raise Exception.Create('cannot convert currency variant to field value');
+    varDate: raise Exception.Create('cannot convert date variant to field value');
+    varOleStr: raise Exception.Create('cannot convert olestr variant to field value');
+    varStrArg: raise Exception.Create('cannot convert stdarg variant to field value');
+    varString:
+      if (mType = TType.TChar) or (mType = TType.TString) then
+      begin
+        mSVal := val;
+      end
+      else
+      begin
+        raise Exception.Create('cannot convert string variant to field value');
+      end;
+    varDispatch: raise Exception.Create('cannot convert dispatch variant to field value');
+    varBoolean:
+      case mType of
+        TType.TBool,
+        TType.TByte,
+        TType.TUByte,
+        TType.TShort,
+        TType.TUShort,
+        TType.TInt,
+        TType.TUInt:
+          if val then mIVal := 1 else mIVal := 0;
+        TType.TString:
+          if val then mSVal := 'true' else mSVal := 'false';
+        else
+          raise Exception.Create('cannot convert boolean variant to field value');
+      end;
+    varVariant: raise Exception.Create('cannot convert variant variant to field value');
+    varUnknown: raise Exception.Create('cannot convert unknown variant to field value');
+    varByte,
+    varWord,
+    varShortInt,
+    varSmallint,
+    varInteger:
+      setInt32(val);
+    varInt64:
+      if (val < Int64(LongInt($80000000))) or (val > LongInt($7FFFFFFF)) then
+        raise Exception.Create('cannot convert boolean variant to field value')
+      else
+        mIVal := LongInt(val);
+    varLongWord:
+      if (val > LongWord($7FFFFFFF)) then raise Exception.Create('cannot convert longword variant to field value')
+      else setInt32(Integer(val));
+    varQWord: raise Exception.Create('cannot convert uint64 variant to field value');
+    varError: raise Exception.Create('cannot convert error variant to field value');
+    else raise Exception.Create('cannot convert undetermined variant to field value');
+  end;
   mDefined := true;
 end;
 
@@ -1936,6 +2088,36 @@ begin
 end;
 
 
+function TDynRecord.getUserVar (const aname: AnsiString): Variant;
+var
+  fld: TDynField;
+begin
+  fld := getFieldByName(aname);
+  if (fld = nil) then result := Unassigned else result := fld.varvalue;
+end;
+
+
+procedure TDynRecord.setUserVar (const aname: AnsiString; val: Variant);
+var
+  fld: TDynField;
+begin
+  fld := getFieldByName(aname);
+  if (fld = nil) then
+  begin
+    if (Length(aname) = 0) then raise Exception.Create('cannot create nameless user field');
+    fld := TDynField.Create(aname, val);
+    fld.mOwner := self;
+    fld.mInternal := true;
+    addField(fld);
+  end
+  else
+  begin
+    fld.varvalue := val;
+  end;
+end;
+
+
+{
 procedure TDynRecord.setUserField (const fldname: AnsiString; v: LongInt);
 var
   fld: TDynField;
@@ -2009,6 +2191,7 @@ begin
     addField(fld);
   end;
 end;
+}
 
 
 procedure TDynRecord.parseDef (pr: TTextParser);
