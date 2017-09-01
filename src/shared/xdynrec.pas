@@ -143,7 +143,7 @@ type
     property name: AnsiString read mName;
     property baseType: TType read mType;
     property negbool: Boolean read mNegBool;
-    property defined: Boolean read mDefined write mDefined;
+    property defined: Boolean read mDefined;
     property internal: Boolean read mInternal write mInternal;
     property hasTPrefix: Boolean read mAsT;
     property separatePasFields: Boolean read mSepPosSize;
@@ -156,7 +156,7 @@ type
     property ebs: TEBS read mEBS;
     property ebstype: TObject read mEBSType;
     property ebstypename: AnsiString read mEBSTypeName; // enum/bitset name
-    property recref: TDynRecord read mRecRef write mRecRef; //FIXME: writing is a hack!
+    property recref: TDynRecord read mRecRef;
     property recrefIndex: Integer read getRecRefIndex; // search for this record in header; -1: not found
     // for lists
     property count: Integer read getListCount;
