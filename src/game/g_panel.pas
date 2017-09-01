@@ -653,8 +653,8 @@ var
   sig: DWORD;
   anim: Boolean;
 begin
-  if (not SaveIt) or (Mem = nil) then
-    Exit;
+  if (Mem = nil) then exit;
+  //if not SaveIt then exit;
 
 // Сигнатура панели:
   sig := PANEL_SIGNATURE; // 'PANL'
@@ -695,9 +695,10 @@ procedure TPanel.LoadState(var Mem: TBinMemoryReader);
 var
   sig: DWORD;
   anim: Boolean;
+  ox, oy: Integer;
 begin
-  if (not SaveIt) or (Mem = nil) then
-    Exit;
+  if (Mem = nil) then exit;
+  //if not SaveIt then exit;
 
 // Сигнатура панели:
   Mem.ReadDWORD(sig);
@@ -712,8 +713,11 @@ begin
 // Номер текущей текстуры:
   Mem.ReadInt(FCurTexture);
 // Коорды
+  ox := FX;
+  oy := FY;
   Mem.ReadInt(FX);
   Mem.ReadInt(FY);
+  //e_LogWritefln('panel %s(%s): old=(%s,%s); new=(%s,%s); delta=(%s,%s)', [arrIdx, proxyId, ox, oy, FX, FY, FX-ox, FY-oy]);
 // Анимированная ли текущая текстура:
   Mem.ReadBoolean(anim);
 // Если да - загружаем анимацию:
@@ -733,6 +737,8 @@ begin
   Mem.ReadInt(mMovingEnd.X);
   Mem.ReadInt(mMovingEnd.Y);
   Mem.ReadBoolean(mMovingActive);
+
+  if (proxyId >= 0) then mapGrid.moveBody(proxyId, X, Y);
 end;
 
 end.

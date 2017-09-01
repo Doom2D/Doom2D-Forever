@@ -3010,7 +3010,7 @@ var
     i := 0;
     while i < Length(panels) do
     begin
-      if panels[i].SaveIt then
+      if true{panels[i].SaveIt} then
       begin
       // ID панели:
         PAMem.WriteInt(i);
@@ -3128,7 +3128,7 @@ var
 
     for i := 0 to Length(panels)-1 do
     begin
-      if panels[i].SaveIt then
+      if true{panels[i].SaveIt} then
       begin
       // ID панели:
         PAMem.ReadInt(id);
