@@ -218,7 +218,7 @@ var
 implementation
 
 uses
-  g_main, e_log, SysUtils, g_items, g_gfx, g_console,
+  e_input, g_main, e_log, SysUtils, g_items, g_gfx, g_console,
   GL, GLExt, g_weapons, g_game, g_sound, e_sound, CONFIG,
   g_options, g_triggers, g_player,
   Math, g_monsters, g_saveload, g_language, g_netmsg,
@@ -2108,6 +2108,7 @@ begin
   finally
     sfsGCEnable(); // enable releasing unused volumes
     mapReader.Free();
+    e_ClearInputBuffer(); // why not?
   end;
 
   e_WriteLog('Done loading map.', MSG_NOTIFY);
