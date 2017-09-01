@@ -20,7 +20,7 @@
   {.$DEFINE D2F_DEBUG_XXQ}
   {.$DEFINE D2F_DEBUG_MOVER}
 {$ENDIF}
-{.$DEFINE GRID_USE_ORTHO_ACCEL}
+{$DEFINE GRID_USE_ORTHO_ACCEL}
 unit g_grid;
 
 interface
@@ -64,6 +64,9 @@ type
         function getEnabled (): Boolean; inline;
         procedure setEnabled (v: Boolean); inline;
 
+        function getX1 (): Integer; inline;
+        function getY1 (): Integer; inline;
+
       public
         property x: Integer read mX;
         property y: Integer read mY;
@@ -72,6 +75,11 @@ type
         property tag: Integer read getTag write setTag;
         property enabled: Boolean read getEnabled write setEnabled;
         property obj: ITP read mObj;
+
+        property x0: Integer read mX;
+        property y0: Integer read mY;
+        property x1: Integer read getX1;
+        property y1: Integer read getY1;
       end;
 
   private
@@ -436,6 +444,16 @@ end;
 procedure TBodyGridBase.TBodyProxyRec.setEnabled (v: Boolean); inline;
 begin
   if v then mTag := mTag and (not TagDisabled) else mTag := mTag or TagDisabled;
+end;
+
+function TBodyGridBase.TBodyProxyRec.getX1 (): Integer; inline;
+begin
+  result := mX+mWidth-1;
+end;
+
+function TBodyGridBase.TBodyProxyRec.getY1 (): Integer; inline;
+begin
+  result := mY+mHeight-1;
 end;
 
 
@@ -1654,8 +1672,6 @@ begin
     // one of those will never change
     x := xptr^+minx;
     y := yptr^+miny;
-    //prevx := x;
-    //prevy := y;
     while (wklen > 0) do
     begin
       {$IF DEFINED(D2F_DEBUG)}
@@ -1678,13 +1694,13 @@ begin
             ptag := px.mTag;
             if ((ptag and TagDisabled) = 0) and ((ptag and tagmask) <> 0) and (px.mQueryMark <> lq) and
                // constant coord should be inside
-               ((hopt and (y >= px.mY) and (y < px.mY+px.mHeight)) or
-                ((not hopt) and (x >= px.mX) and (x < px.mX+px.mWidth))) then
+               ((hopt and (y >= px.y0) and (y <= px.y1)) or
+                ((not hopt) and (x >= px.x0) and (x <= px.x1))) then
             begin
               px.mQueryMark := lq; // mark as processed
               // inside the proxy?
-              if (hopt and (x > px.mX) and (x < px.mX+px.mWidth-1)) or
-                 ((not hopt) and (y > px.mY) and (y < px.mY+px.mHeight-1)) then
+              if (hopt and (x > px.x0) and (x < px.x1)) or
+                 ((not hopt) and (y > px.y0) and (y < px.y1)) then
               begin
                 // setup prev[xy]
                 if assigned(cb) then
@@ -1725,16 +1741,16 @@ begin
                 if (stx < 0) then
                 begin
                   // going left
-                  if (x < px.mX+px.mWidth-1) then continue; // not on the right edge
-                  prevx := px.mX+px.mWidth;
-                  x := prevx-1;
+                  if (x < px.x1) then continue; // not on the right edge
+                  x := px.x1;
+                  prevx := x+1;
                 end
                 else
                 begin
                   // going right
-                  if (x > px.mX) then continue; // not on the left edge
-                  prevx := px.mX-1;
-                  x := prevx+1;
+                  if (x > px.x0) then continue; // not on the left edge
+                  x := px.x0;
+                  prevx := x-1;
                 end;
               end
               else
@@ -1745,16 +1761,16 @@ begin
                 if (stx < 0) then
                 begin
                   // going up
-                  if (y < px.mY+px.mHeight-1) then continue; // not on the bottom edge
-                  prevy := px.mY+px.mHeight;
-                  y := prevy-1;
+                  if (y < px.y1) then continue; // not on the bottom edge
+                  y := px.y1;
+                  prevy := x+1;
                 end
                 else
                 begin
                   // going down
-                  if (y > px.mY) then continue; // not on the top edge
-                  prevy := px.mY-1;
-                  y := prevy+1;
+                  if (y > px.y0) then continue; // not on the top edge
+                  y := px.y0;
+                  prevy := y-1;
                 end;
               end;
               if assigned(cb) then
@@ -1828,7 +1844,7 @@ begin
           {$ENDIF}
           if (wkstep >= wklen) then break;
           Inc(yptr^, wkstep);
-          Inc(ga, mHeight);
+          Inc(ga, mWidth);
         end
         else
         begin
@@ -1839,7 +1855,7 @@ begin
           {$ENDIF}
           if (wkstep >= wklen) then break;
           Dec(yptr^, wkstep);
-          Dec(ga, mHeight);
+          Dec(ga, mWidth);
         end;
       end;
       Dec(wklen, wkstep);
@@ -2319,7 +2335,7 @@ begin
           {$ENDIF}
           if (wkstep >= wklen) then break;
           Inc(yptr^, wkstep);
-          Inc(ga, mHeight);
+          Inc(ga, mWidth);
         end
         else
         begin
@@ -2330,7 +2346,7 @@ begin
           {$ENDIF}
           if (wkstep >= wklen) then break;
           Dec(yptr^, wkstep);
-          Dec(ga, mHeight);
+          Dec(ga, mWidth);
         end;
       end;
       Dec(wklen, wkstep);
