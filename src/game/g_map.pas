@@ -2804,7 +2804,7 @@ var
 begin
   pan := gWalls[ID];
   pan.Enabled := True;
-  g_Mark(pan.X, pan.Y, pan.Width, pan.Height, MARK_DOOR, True);
+  g_Mark(pan.X, pan.Y, pan.Width, pan.Height, MARK_DOOR, true);
 
   mapGrid.proxyEnabled[pan.proxyId] := true;
   //if (pan.proxyId >= 0) then mapGrid.proxyEnabled[pan.proxyId] := true
@@ -2823,7 +2823,7 @@ var
 begin
   pan := gWalls[ID];
   pan.Enabled := False;
-  g_Mark(pan.X, pan.Y, pan.Width, pan.Height, MARK_DOOR, False);
+  g_Mark(pan.X, pan.Y, pan.Width, pan.Height, MARK_DOOR, false);
 
   mapGrid.proxyEnabled[pan.proxyId] := false;
   //if (pan.proxyId >= 0) then begin mapGrid.removeBody(pan.proxyId); pan.proxyId := -1; end;
@@ -2872,17 +2872,15 @@ begin
   begin
     LiftType := t;
 
-    g_Mark(X, Y, Width, Height, MARK_LIFT, False);
+    g_Mark(X, Y, Width, Height, MARK_LIFT, false);
     //TODO: make separate lift tags, and change tag here
 
-    if LiftType = 0 then
-      g_Mark(X, Y, Width, Height, MARK_LIFTUP, True)
-    else if LiftType = 1 then
-      g_Mark(X, Y, Width, Height, MARK_LIFTDOWN, True)
-    else if LiftType = 2 then
-      g_Mark(X, Y, Width, Height, MARK_LIFTLEFT, True)
-    else if LiftType = 3 then
-      g_Mark(X, Y, Width, Height, MARK_LIFTRIGHT, True);
+    case LiftType of
+      0: g_Mark(X, Y, Width, Height, MARK_LIFTUP);
+      1: g_Mark(X, Y, Width, Height, MARK_LIFTDOWN);
+      2: g_Mark(X, Y, Width, Height, MARK_LIFTLEFT);
+      3: g_Mark(X, Y, Width, Height, MARK_LIFTRIGHT);
+    end;
 
     if g_Game_IsServer and g_Game_IsNet then MH_SEND_PanelState(PanelType, ID);
   end;

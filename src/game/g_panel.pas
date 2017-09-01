@@ -120,7 +120,7 @@ type
 implementation
 
 uses
-  SysUtils, g_basic, g_map, g_game, e_graphics,
+  SysUtils, g_basic, g_map, g_game, g_gfx, e_graphics,
   g_console, g_language, g_monsters, g_player, e_log, GL;
 
 const
@@ -501,18 +501,25 @@ begin
     monMoveListUsed := 0;
     nx := X+mMovingSpeed.X;
     ny := Y+mMovingSpeed.Y;
+    // move monsters on lifts
     g_Mons_ForEachAt(X, Y-1, Width, 1, monMove);
+    // push monsters
     g_Mons_ForEachAt(nx, ny, Width, Height, monPush);
+    // move and push players
     for f := 0 to High(gPlayers) do plrMove(gPlayers[f]);
+    // reverse moving direction, if necessary
          if (mMovingSpeed.X < 0) and (nx <= mMovingStart.X) then mMovingSpeed.X := -mMovingSpeed.X
     else if (mMovingSpeed.X > 0) and (nx >= mMovingEnd.X) then mMovingSpeed.X := -mMovingSpeed.X;
          if (mMovingSpeed.Y < 0) and (ny <= mMovingStart.Y) then mMovingSpeed.Y := -mMovingSpeed.Y
     else if (mMovingSpeed.Y > 0) and (ny >= mMovingEnd.Y) then mMovingSpeed.Y := -mMovingSpeed.Y;
-    //!!!g_Mark(X, Y, Width, Height, MARK_FREE);
+    // awake particles
+    g_Mark(X, Y, Width, Height, MARK_WALL, false);
     X := nx;
     Y := ny;
-    //!!!g_Mark(X, Y, Width, Height, MARK_WALL);
+    g_Mark(nx, ny, Width, Height, MARK_WALL);
+    // fix grid
     if (proxyId >= 0) then mapGrid.moveBody(proxyId, nx, ny);
+    // notify moved monsters about their movement
     for f := 0 to monMoveListUsed-1 do monMoveList[f].positionChanged();
   end;
 end;
@@ -695,7 +702,7 @@ procedure TPanel.LoadState(var Mem: TBinMemoryReader);
 var
   sig: DWORD;
   anim: Boolean;
-  ox, oy: Integer;
+  //ox, oy: Integer;
 begin
   if (Mem = nil) then exit;
   //if not SaveIt then exit;
@@ -713,8 +720,8 @@ begin
 // Номер текущей текстуры:
   Mem.ReadInt(FCurTexture);
 // Коорды
-  ox := FX;
-  oy := FY;
+  //ox := FX;
+  //oy := FY;
   Mem.ReadInt(FX);
   Mem.ReadInt(FY);
   //e_LogWritefln('panel %s(%s): old=(%s,%s); new=(%s,%s); delta=(%s,%s)', [arrIdx, proxyId, ox, oy, FX, FY, FX-ox, FY-oy]);

@@ -54,10 +54,10 @@ function  g_GFX_GetMax(): Integer;
 
 procedure g_GFX_OnceAnim(X, Y: Integer; Anim: TAnimation; AnimType: Byte = 0);
 
-procedure g_Mark(x, y, Width, Height: Integer; t: Byte; st: Boolean=true);
+procedure g_Mark (x, y, Width, Height: Integer; t: Byte; st: Boolean=true);
 
-procedure g_GFX_Update();
-procedure g_GFX_Draw();
+procedure g_GFX_Update ();
+procedure g_GFX_Draw ();
 
 
 var
@@ -103,6 +103,9 @@ type
     procedure thinkerBubble ();
     procedure thinkerWater ();
 
+    function isSleeping (): Boolean; inline;
+    procedure awake (); inline;
+
     function alive (): Boolean; inline;
     procedure die (); inline;
     procedure think (); inline;
@@ -128,14 +131,113 @@ var
   OnceAnims: array of TOnceAnim;
   MaxParticles: Integer;
   CurrentParticle: Integer;
+  // awakeMap has one bit for each map grid cell; on g_Mark,
+  // corresponding bits will be set, and in `think()` all particles
+  // in marked cells will be awaken
+  awakeMap: packed array of LongWord = nil;
+  awakeMapH: Integer = -1;
+  awakeMapW: Integer = -1;
+  awakeMinX, awakeMinY: Integer;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
+// HACK! using mapgrid
+procedure awmClear (); inline;
+begin
+  if (awakeMapW > 0) then FillDWord(awakeMap[0], Length(awakeMap), 0);
+end;
+
+
+procedure awmSetup ();
+begin
+  assert(mapGrid <> nil);
+  awakeMapW := (mapGrid.gridWidth+mapGrid.tileSize-1) div mapGrid.tileSize;
+  awakeMapW := (awakeMapW+31) div 32; // LongWord has 32 bits ;-)
+  awakeMapH := (mapGrid.gridHeight+mapGrid.tileSize-1) div mapGrid.tileSize;
+  awakeMinX := mapGrid.gridX0;
+  awakeMinY := mapGrid.gridY0;
+  SetLength(awakeMap, awakeMapW*awakeMapH);
+  {$IF DEFINED(D2F_DEBUG)}
+  e_LogWritefln('particle awake map: %sx%s (for grid of size %sx%s)', [awakeMapW, awakeMapH, mapGrid.gridWidth, mapGrid.gridHeight]);
+  {$ENDIF}
+  awmClear();
+end;
+
+
+function awmIsSet (x, y: Integer): Boolean; inline;
+begin
+  x := (x-awakeMinX) div mapGrid.tileSize;
+  y := (y-awakeMinY) div mapGrid.tileSize;
+  if (x >= 0) and (y >= 0) and (x div 32 < awakeMapW) and (y < awakeMapH) then
+  begin
+    {$IF DEFINED(D2F_DEBUG)}
+    assert(y*awakeMapW+x div 32 < Length(awakeMap));
+    {$ENDIF}
+    result := ((awakeMap[y*awakeMapW+x div 32] and (LongWord(1) shl (x mod 32))) <> 0);
+  end
+  else
+  begin
+    result := false;
+  end;
+end;
+
+
+procedure awmSet (x, y: Integer); inline;
+var
+  v: PLongWord;
+begin
+  x := (x-awakeMinX) div mapGrid.tileSize;
+  y := (y-awakeMinY) div mapGrid.tileSize;
+  if (x >= 0) and (y >= 0) and (x div 32 < awakeMapW) and (y < awakeMapH) then
+  begin
+    {$IF DEFINED(D2F_DEBUG)}
+    assert(y*awakeMapW+x div 32 < Length(awakeMap));
+    {$ENDIF}
+    v := @awakeMap[y*awakeMapW+x div 32];
+    v^ := v^ or (LongWord(1) shl (x mod 32));
+  end;
+end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
 function TParticle.alive (): Boolean; inline; begin result := (State <> STATE_FREE); end;
 procedure TParticle.die (); inline; begin State := STATE_FREE; end;
 
+function TParticle.isSleeping (): Boolean; inline;
+begin
+  result := alive and (onGround or (not justSticked and (State = STATE_STICK)));
+end;
+
+procedure TParticle.awake (); inline;
+begin
+  if {alive and} (onGround or (not justSticked and (State = STATE_STICK))) then
+  begin
+    // wakeup this particle
+    {
+    if (part.ParticleType = PARTICLE_SPARK) then
+    begin
+      e_LogWritefln('waking up particle of type %s; justSticked=%s; onGround=%s; VelY=%s; AccelY=%s', [part.ParticleType, part.justSticked, part.onGround, part.VelY, part.AccelY]);
+    end;
+    }
+    justSticked := true; // so sticked state will be re-evaluated
+    if onGround then
+    begin
+      if (VelY = 0) then VelY := 0.1;
+      if (AccelY = 0) then AccelY := 0.5;
+    end;
+    onGround := false; // so onground state will be re-evaluated
+    awaken := true;
+  end;
+end;
+
+
 procedure TParticle.think (); inline;
 begin
+  // awake sleeping particle, if necessary
+  if isSleeping then
+  begin
+    if awmIsSet(X, Y) then awake();
+  end;
   case ParticleType of
     PARTICLE_BLOOD: thinkerBlood();
     PARTICLE_SPARK: thinkerSpark();
@@ -196,86 +298,32 @@ begin
 end;
 
 
+// st: set mark
+// t: mark type
+// currently unused
 procedure g_Mark(x, y, Width, Height: Integer; t: Byte; st: Boolean=true);
-{$IF not DEFINED(HAS_COLLIDE_BITMAP)}
 var
-  part: PParticle;
-  f: Integer;
+  cx, ex, ey: Integer;
+  ts: Integer;
 begin
-  for f := 0 to High(Particles) do
+  if (Width < 1) or (Height < 1) then exit;
+  // make some border, so we'll hit particles lying around the panel
+  x -= 1; Width += 2;
+  y -= 1; Height += 2;
+  ex := x+Width;
+  ey := y+Height;
+  ts := mapGrid.tileSize;
+  while (y < ey) do
   begin
-    part := @Particles[f];
-    if part.alive and (part.onGround or (not part.justSticked and (part.State = STATE_STICK))) and
-       (part.X >= x-2) and (part.Y >= y-2) and (part.X < x+Width+4) and (part.Y < y+Height+4) then
+    cx := x;
+    while (cx < ex) do
     begin
-      // wakup this particle
-      {
-      if (part.ParticleType = PARTICLE_SPARK) then
-      begin
-        e_LogWritefln('waking up particle of type %s; justSticked=%s; onGround=%s; VelY=%s; AccelY=%s', [part.ParticleType, part.justSticked, part.onGround, part.VelY, part.AccelY]);
-      end;
-      }
-      part.justSticked := true; // so sticked state will be re-evaluated
-      if part.onGround then
-      begin
-        if (part.VelY = 0) then part.VelY := 0.1;
-        if (part.AccelY = 0) then part.AccelY := 0.5;
-      end;
-      part.onGround := false; // so onground state will be re-evaluated
-      part.awaken := true;
+      awmSet(cx, y);
+      Inc(cx, ts);
     end;
+    Inc(y, ts);
   end;
 end;
-{$ELSE}
-var
-  yy, y2, xx, x2: Integer;
-begin
-  if x < 0 then
-  begin
-    Width := Width + x;
-    x := 0;
-  end;
-
-  if Width < 0 then
-    Exit;
-
-  if y < 0 then
-  begin
-    Height := Height + y;
-    y := 0;
-  end;
-
-  if Height < 0 then
-    Exit;
-
-  if x > gMapInfo.Width then
-    Exit;
-  if y > gMapInfo.Height then
-    Exit;
-
-  y2 := y + Height - 1;
-  if y2 > gMapInfo.Height then
-    y2 := gMapInfo.Height;
-
-  x2 := x + Width - 1;
-  if x2 > gMapInfo.Width then
-    x2 := gMapInfo.Width;
-
-  if st then
-    begin // Установить признак
-      for yy := y to y2 do
-        for xx := x to x2 do
-          gCollideMap[yy][xx] := gCollideMap[yy][xx] or t;
-    end
-  else
-    begin // Убрать признак
-      t := not t;
-      for yy := y to y2 do
-        for xx := x to x2 do
-          gCollideMap[yy][xx] := gCollideMap[yy][xx] and t;
-    end;
-end;
-{$ENDIF}
 
 
 {$IF DEFINED(HAS_COLLIDE_BITMAP)}
@@ -283,75 +331,9 @@ procedure CreateCollideMap();
 var
   a: Integer;
 begin
-  g_Game_SetLoadingText(_lc[I_LOAD_COLLIDE_MAP]+' 1/6', 0, False);
-  SetLength(gCollideMap, gMapInfo.Height+1);
-  for a := 0 to High(gCollideMap) do
-    SetLength(gCollideMap[a], gMapInfo.Width+1);
-
-  if gWater <> nil then
-  begin
-    g_Game_SetLoadingText(_lc[I_LOAD_COLLIDE_MAP]+' 2/6', 0, True);
-    for a := 0 to High(gWater) do
-      with gWater[a] do
-        g_Mark(X, Y, Width, Height, MARK_WATER, True);
-  end;
-
-  if gAcid1 <> nil then
-  begin
-    g_Game_SetLoadingText(_lc[I_LOAD_COLLIDE_MAP]+' 3/6', 0, True);
-    for a := 0 to High(gAcid1) do
-      with gAcid1[a] do
-        g_Mark(X, Y, Width, Height, MARK_ACID, True);
-  end;
-
-  if gAcid2 <> nil then
-  begin
-    g_Game_SetLoadingText(_lc[I_LOAD_COLLIDE_MAP]+' 4/6', 0, True);
-    for a := 0 to High(gAcid2) do
-      with gAcid2[a] do
-        g_Mark(X, Y, Width, Height, MARK_ACID, True);
-  end;
-
-  if gLifts <> nil then
-  begin
-    g_Game_SetLoadingText(_lc[I_LOAD_COLLIDE_MAP]+' 5/6', 0, True);
-    for a := 0 to High(gLifts) do
-      with gLifts[a] do
-      begin
-        g_Mark(X, Y, Width, Height, MARK_LIFT, False);
-
-        if LiftType = 0 then
-          g_Mark(X, Y, Width, Height, MARK_LIFTUP, True)
-        else if LiftType = 1 then
-          g_Mark(X, Y, Width, Height, MARK_LIFTDOWN, True)
-        else if LiftType = 2 then
-          g_Mark(X, Y, Width, Height, MARK_LIFTLEFT, True)
-        else if LiftType = 3 then
-          g_Mark(X, Y, Width, Height, MARK_LIFTRIGHT, True)
-      end;
-  end;
-
-  if gWalls <> nil then
-  begin
-    g_Game_SetLoadingText(_lc[I_LOAD_COLLIDE_MAP]+' 6/6', 0, True);
-    for a := 0 to High(gWalls) do
-    begin
-      if gWalls[a].Door then
-        begin
-        // Закрытая дверь:
-          if gWalls[a].Enabled then
-            with gWalls[a] do
-              g_Mark(X, Y, Width, Height, MARK_DOOR, True)
-          else // Открытая дверь:
-            if gWalls[a].Enabled then
-              with gWalls[a] do
-                g_Mark(X, Y, Width, Height, MARK_DOOR, False);
-        end
-      else // Стена
-        with gWalls[a] do
-          g_Mark(X, Y, Width, Height, MARK_WALL, True);
-    end;
-  end;
+  //g_Game_SetLoadingText(_lc[I_LOAD_COLLIDE_MAP]+' 1/6', 0, False);
+  //SetLength(gCollideMap, gMapInfo.Height+1);
+  //for a := 0 to High(gCollideMap) do SetLength(gCollideMap[a], gMapInfo.Width+1);
 end;
 {$ENDIF}
 
@@ -359,6 +341,7 @@ end;
 procedure g_GFX_Init();
 begin
   //CreateCollideMap();
+  awmSetup();
 {$IFDEF HEADLESS}
   gpart_dbg_enabled := False;
 {$ENDIF}
@@ -374,13 +357,16 @@ begin
   for a := 0 to High(Particles) do Particles[a].die();
   CurrentParticle := 0;
 
-  if OnceAnims <> nil then
+  if (OnceAnims <> nil) then
   begin
-    for a := 0 to High(OnceAnims) do
-      OnceAnims[a].Animation.Free();
-
+    for a := 0 to High(OnceAnims) do OnceAnims[a].Animation.Free();
     OnceAnims := nil;
   end;
+
+  awakeMap := nil;
+  // why not?
+  awakeMapH := -1;
+  awakeMapW := -1;
 end;
 
 
@@ -1664,7 +1650,8 @@ var
   len: Integer;
 begin
   if not gpart_dbg_enabled then exit;
-  if Particles <> nil then
+
+  if (Particles <> nil) then
   begin
     w := gMapInfo.Width;
     h := gMapInfo.Height;
@@ -1686,6 +1673,9 @@ begin
       end; // if
     end; // for
   end; // Particles <> nil
+
+  // clear awake map
+  awmClear();
 
   if OnceAnims <> nil then
   begin
