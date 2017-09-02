@@ -93,7 +93,7 @@ type
     procedure   SaveState(var Mem: TBinMemoryWriter);
     procedure   LoadState(var Mem: TBinMemoryReader);
 
-    procedure positionChanged ();
+    procedure positionChanged (); inline;
 
     function isGBack (): Boolean; inline; // gRenderBackgrounds
     function isGStep (): Boolean; inline; // gSteps
@@ -439,7 +439,7 @@ begin
 end;
 
 
-procedure TPanel.positionChanged ();
+procedure TPanel.positionChanged (); inline;
 begin
   if (proxyId >= 0) then mapGrid.moveBody(proxyId, X, Y);
 end;
@@ -784,7 +784,8 @@ begin
   Mem.ReadInt(mMovingEnd.Y);
   Mem.ReadBoolean(mMovingActive);
 
-  if (proxyId >= 0) then mapGrid.moveBody(proxyId, X, Y);
+  positionChanged();
+  mapGrid.proxyEnabled[proxyId] := FEnabled;
 end;
 
 end.

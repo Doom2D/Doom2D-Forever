@@ -685,13 +685,13 @@ end;
 // ////////////////////////////////////////////////////////////////////////// //
 function TBodyGridBase.getProxyEnabled (pid: TBodyProxyId): Boolean; inline;
 begin
-  if (pid >= 0) then result := ((mProxies[pid].mTag and TagDisabled) = 0) else result := false;
+  if (pid >= 0) and (pid < Length(mProxies)) then result := ((mProxies[pid].mTag and TagDisabled) = 0) else result := false;
 end;
 
 
 procedure TBodyGridBase.setProxyEnabled (pid: TBodyProxyId; val: Boolean); inline;
 begin
-  if (pid >= 0) then
+  if (pid >= 0) and (pid < Length(mProxies)) then
   begin
     if val then
     begin
@@ -707,7 +707,7 @@ end;
 
 function TBodyGridBase.getProxyById (idx: TBodyProxyId): PBodyProxyRec; inline;
 begin
-  if (idx >= 0) and (idx < High(mProxies)) then result := @mProxies[idx] else result := nil;
+  if (idx >= 0) and (idx < Length(mProxies)) then result := @mProxies[idx] else result := nil;
 end;
 
 
