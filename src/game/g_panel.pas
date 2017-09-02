@@ -440,8 +440,20 @@ end;
 
 
 procedure TPanel.positionChanged (); inline;
+var
+  px, py, pw, ph: Integer;
 begin
-  if (proxyId >= 0) then mapGrid.moveBody(proxyId, X, Y);
+  if (proxyId >= 0) then
+  begin
+    monsGrid.getBodyDims(proxyId, px, py, pw, ph);
+    if (px <> x) or (py <> y) or (pw <> Width) or (ph <> Height) then
+    begin
+      g_Mark(px, py, pw, ph, MARK_WALL, false);
+      if (pw <> Width) or (ph <> Height) then mapGrid.moveResizeBody(proxyId, X, Y, Width, Height)
+      else mapGrid.moveBody(proxyId, X, Y);
+      g_Mark(X, Y, Width, Height, MARK_WALL);
+    end;
+  end;
 end;
 
 
@@ -552,10 +564,10 @@ begin
          if (mMovingSpeed.Y < 0) and (ny <= mMovingStart.Y) then mMovingSpeed.Y := -mMovingSpeed.Y
     else if (mMovingSpeed.Y > 0) and (ny >= mMovingEnd.Y) then mMovingSpeed.Y := -mMovingSpeed.Y;
     // awake particles
-    g_Mark(X, Y, Width, Height, MARK_WALL, false);
+    //g_Mark(X, Y, Width, Height, MARK_WALL, false);
     X := nx;
     Y := ny;
-    g_Mark(nx, ny, Width, Height, MARK_WALL);
+    //g_Mark(nx, ny, Width, Height, MARK_WALL);
     // fix grid
     positionChanged();
     // notify moved monsters about their movement
