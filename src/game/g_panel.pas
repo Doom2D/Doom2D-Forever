@@ -170,7 +170,7 @@ type
 implementation
 
 uses
-  SysUtils, g_basic, g_map, g_game, g_gfx, e_graphics,
+  SysUtils, g_basic, g_map, g_game, g_gfx, e_graphics, g_weapons,
   g_console, g_language, g_monsters, g_player, e_log, GL;
 
 const
@@ -509,7 +509,6 @@ var
 procedure TPanel.Update();
 var
   nx, ny: Integer;
-  f: Integer;
 
   function doPush (px, py, pw, ph: Integer; out dx, dy: Integer): Boolean;
   begin
@@ -573,6 +572,15 @@ var
         plr.GameX := plr.GameX+dx;
         plr.GameY := plr.GameY+dy;
         plr.positionChanged();
+        // check if we're squashed
+        if plr.live then
+        begin
+          plr.getMapBox(px, py, pw, ph);
+          if g_Map_CollidePanel(px, py, pw, ph, (PANEL_WALL or PANEL_OPENDOOR or PANEL_CLOSEDOOR)) then
+          begin
+            plr.Damage(15000, 0, 0, 0, HIT_TRAP);
+          end;
+        end;
       end;
       exit;
     end;
@@ -583,6 +591,10 @@ var
     plr.positionChanged();
   end;
 
+var
+  f: Integer;
+  mon: TMonster;
+  px, py, pw, ph: Integer;
 begin
   if Enabled and (FCurTexture >= 0) and
     (FTextureIDs[FCurTexture].Anim) and
@@ -601,6 +613,10 @@ begin
     ny := Y+mMovingSpeed.Y;
     // move monsters on lifts
     g_Mons_ForEachAt(X, Y-1, Width, 1, monMove);
+    X := nx;
+    Y := ny;
+    // fix grid
+    positionChanged();
     // push monsters
     g_Mons_ForEachAt(nx, ny, Width, Height, monPush);
     // move and push players
@@ -610,15 +626,24 @@ begin
     else if (mMovingSpeed.X > 0) and (nx >= mMovingEnd.X) then mMovingSpeed.X := -mMovingSpeed.X;
          if (mMovingSpeed.Y < 0) and (ny <= mMovingStart.Y) then mMovingSpeed.Y := -mMovingSpeed.Y
     else if (mMovingSpeed.Y > 0) and (ny >= mMovingEnd.Y) then mMovingSpeed.Y := -mMovingSpeed.Y;
-    // awake particles
-    //g_Mark(X, Y, Width, Height, MARK_WALL, false);
-    X := nx;
-    Y := ny;
-    //g_Mark(nx, ny, Width, Height, MARK_WALL);
-    // fix grid
-    positionChanged();
     // notify moved monsters about their movement
-    for f := 0 to monMoveListUsed-1 do monMoveList[f].positionChanged();
+    for f := 0 to monMoveListUsed-1 do
+    begin
+      monMoveList[f].positionChanged();
+    end;
+    for f := 0 to monMoveListUsed-1 do
+    begin
+      mon := monMoveList[f];
+      // check if it is squashed
+      if mon.live then
+      begin
+        mon.getMapBox(px, py, pw, ph);
+        if g_Map_CollidePanel(px, py, pw, ph, (PANEL_WALL or PANEL_OPENDOOR or PANEL_CLOSEDOOR)) then
+        begin
+          mon.Damage(15000, 0, 0, 0, HIT_TRAP);
+        end;
+      end;
+    end;
   end;
 end;
 
