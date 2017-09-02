@@ -2604,10 +2604,6 @@ begin
 
   with Mon do
   begin
-    GameX := X;
-    GameY := Y;
-    GameVelX := VX;
-    GameVelY := VY;
 
     MonsterAnim := MAnim;
     MonsterTargetUID := MTarg;
@@ -2619,7 +2615,10 @@ begin
 
     SetState(MState);
 
-    positionChanged(); // this updates spatial accelerators
+    setPosition(X, Y); // this will call positionChanged();
+    GameVelX := VX;
+    GameVelY := VY;
+    //positionChanged(); // this updates spatial accelerators
   end;
 end;
 
@@ -2627,6 +2626,7 @@ procedure MC_RECV_MonsterPos(var M: TMsg);
 var
   Mon: TMonster;
   ID: Word;
+  X, Y: Integer;
 begin
   ID := M.ReadWord();
   Mon := g_Monsters_ByUID(ID);
@@ -2635,12 +2635,13 @@ begin
 
   with Mon do
   begin
-    GameX := M.ReadLongInt();
-    GameY := M.ReadLongInt();
+    X := M.ReadLongInt();
+    Y := M.ReadLongInt();
+    Mon.setPosition(X, Y); // this will call `positionChanged()`
     GameVelX := M.ReadLongInt();
     GameVelY := M.ReadLongInt();
     GameDirection := TDirection(M.ReadByte());
-    positionChanged(); // this updates spatial accelerators
+    //positionChanged(); // this updates spatial accelerators
   end;
 end;
 

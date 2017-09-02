@@ -91,6 +91,9 @@ type
     function findNewPrey(): Boolean;
     procedure ActivateTriggers();
 
+    procedure setGameX (v: Integer); inline;
+    procedure setGameY (v: Integer); inline;
+
   public
     FNoRespawn: Boolean;
     FFireTime: Integer;
@@ -135,6 +138,8 @@ type
 
     procedure positionChanged (); //WARNING! call this after monster position was changed, or coldet will not work right!
 
+    procedure setPosition (ax, ay: Integer; callPosChanged: Boolean=true); inline;
+
     procedure getMapBox (out x, y, w, h: Integer); inline;
 
   public
@@ -159,8 +164,8 @@ type
     property UID: Word read FUID write FUID;
     property SpawnTrigger: Integer read FSpawnTrigger write FSpawnTrigger;
 
-    property GameX: Integer read FObj.X write FObj.X;
-    property GameY: Integer read FObj.Y write FObj.Y;
+    property GameX: Integer read FObj.X write setGameX;
+    property GameY: Integer read FObj.Y write setGameY;
     property GameVelX: Integer read FObj.Vel.X write FObj.Vel.X;
     property GameVelY: Integer read FObj.Vel.Y write FObj.Vel.Y;
     property GameAccelX: Integer read FObj.Accel.X write FObj.Accel.X;
@@ -254,6 +259,7 @@ uses
   g_weapons, g_triggers, MAPDEF, g_items, g_options,
   g_console, g_map, Math, SysUtils, g_menu, wadreader,
   g_language, g_netmsg, idpool;
+
 
 
 // ////////////////////////////////////////////////////////////////////////// //
@@ -1491,6 +1497,11 @@ end;
 
 { T M o n s t e r : }
 
+procedure TMonster.setGameX (v: Integer); inline; begin FObj.X := v; positionChanged(); end;
+procedure TMonster.setGameY (v: Integer); inline; begin FObj.Y := v; positionChanged(); end;
+procedure TMonster.setPosition (ax, ay: Integer; callPosChanged: Boolean=true); inline; begin FObj.X := ax; FObj.Y := ay; if callPosChanged then positionChanged(); end;
+
+
 procedure TMonster.ActionSound();
 begin
   case FMonsterType of
@@ -1679,8 +1690,8 @@ begin
   FObj.Accel.X := 0;
   FObj.Accel.Y := 0;
   FDirection := FStartDirection;
-  GameX := FStartX;
-  GameY := FStartY;
+  {GameX}FObj.X := FStartX;
+  {GameY}FObj.Y := FStartY;
   FObj.Rect := MONSTERTABLE[FMonsterType].Rect;
   FHealth := MONSTERTABLE[FMonsterType].Health;
   FAmmo := 0;

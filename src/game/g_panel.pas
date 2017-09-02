@@ -55,6 +55,21 @@ type
     function gety1 (): Integer; inline;
     function getvisvalid (): Boolean; inline;
 
+    function getMovingSpeedX (): Integer; inline;
+    procedure setMovingSpeedX (v: Integer); inline;
+    function getMovingSpeedY (): Integer; inline;
+    procedure setMovingSpeedY (v: Integer); inline;
+
+    function getMovingStartX (): Integer; inline;
+    procedure setMovingStartX (v: Integer); inline;
+    function getMovingStartY (): Integer; inline;
+    procedure setMovingStartY (v: Integer); inline;
+
+    function getMovingEndX (): Integer; inline;
+    procedure setMovingEndX (v: Integer); inline;
+    function getMovingEndY (): Integer; inline;
+    procedure setMovingEndY (v: Integer); inline;
+
   public
     FCurTexture:      Integer; // Номер текущей текстуры
     FCurFrame:        Integer;
@@ -95,16 +110,15 @@ type
 
     procedure positionChanged (); inline;
 
-    function isGBack (): Boolean; inline; // gRenderBackgrounds
-    function isGStep (): Boolean; inline; // gSteps
-    function isGWall (): Boolean; inline; // gWalls
-    function isGAcid1 (): Boolean; inline; // gAcid1
-    function isGAcid2 (): Boolean; inline; // gAcid2
-    function isGWater (): Boolean; inline; // gWater
-    function isGFore (): Boolean; inline; // gRenderForegrounds
-    function isGLift (): Boolean; inline; // gLifts
-    function isGBlockMon (): Boolean; inline; // gBlockMon
-
+    function getIsGBack (): Boolean; inline; // gRenderBackgrounds
+    function getIsGStep (): Boolean; inline; // gSteps
+    function getIsGWall (): Boolean; inline; // gWalls
+    function getIsGAcid1 (): Boolean; inline; // gAcid1
+    function getIsGAcid2 (): Boolean; inline; // gAcid2
+    function getIsGWater (): Boolean; inline; // gWater
+    function getIsGFore (): Boolean; inline; // gRenderForegrounds
+    function getIsGLift (): Boolean; inline; // gLifts
+    function getIsGBlockMon (): Boolean; inline; // gBlockMon
 
   public
     property visvalid: Boolean read getvisvalid; // panel is "visvalid" when it's width and height are positive
@@ -127,7 +141,23 @@ type
     property liftType: Byte read FLiftType write FLiftType; // Сохранять при SaveState?
     property lastAnimLoop: Byte read FLastAnimLoop write FLastAnimLoop; // Сохранять при SaveState?
 
+    property movingSpeedX: Integer read getMovingSpeedX write setMovingSpeedX;
+    property movingSpeedY: Integer read getMovingSpeedY write setMovingSpeedY;
+    property movingStartX: Integer read getMovingStartX write setMovingStartX;
+    property movingStartY: Integer read getMovingStartY write setMovingStartY;
+    property movingEndX: Integer read getMovingEndX write setMovingEndX;
+    property movingEndY: Integer read getMovingEndY write setMovingEndY;
     property movingActive: Boolean read mMovingActive write mMovingActive;
+
+    property isGBack: Boolean read getIsGBack;
+    property isGStep: Boolean read getIsGStep;
+    property isGWall: Boolean read getIsGWall;
+    property isGAcid1: Boolean read getIsGAcid1;
+    property isGAcid2: Boolean read getIsGAcid2;
+    property isGWater: Boolean read getIsGWater;
+    property isGFore: Boolean read getIsGFore;
+    property isGLift: Boolean read getIsGLift;
+    property isGBlockMon: Boolean read getIsGBlockMon;
 
   public
     property movingSpeed: TDFPoint read mMovingSpeed write mMovingSpeed;
@@ -318,15 +348,30 @@ function TPanel.getx1 (): Integer; inline; begin result := X+Width-1; end;
 function TPanel.gety1 (): Integer; inline; begin result := Y+Height-1; end;
 function TPanel.getvisvalid (): Boolean; inline; begin result := (Width > 0) and (Height > 0); end;
 
-function TPanel.isGBack (): Boolean; inline; begin result := ((tag and GridTagBack) <> 0); end;
-function TPanel.isGStep (): Boolean; inline; begin result := ((tag and GridTagStep) <> 0); end;
-function TPanel.isGWall (): Boolean; inline; begin result := ((tag and (GridTagWall or GridTagDoor)) <> 0); end;
-function TPanel.isGAcid1 (): Boolean; inline; begin result := ((tag and GridTagAcid1) <> 0); end;
-function TPanel.isGAcid2 (): Boolean; inline; begin result := ((tag and GridTagAcid2) <> 0); end;
-function TPanel.isGWater (): Boolean; inline; begin result := ((tag and GridTagWater) <> 0); end;
-function TPanel.isGFore (): Boolean; inline; begin result := ((tag and GridTagFore) <> 0); end;
-function TPanel.isGLift (): Boolean; inline; begin result := ((tag and GridTagLift) <> 0); end;
-function TPanel.isGBlockMon (): Boolean; inline; begin result := ((tag and GridTagBlockMon) <> 0); end;
+function TPanel.getMovingSpeedX (): Integer; inline; begin result := mMovingSpeed.X; end;
+procedure TPanel.setMovingSpeedX (v: Integer); inline; begin mMovingSpeed.X := v; end;
+function TPanel.getMovingSpeedY (): Integer; inline; begin result := mMovingSpeed.Y; end;
+procedure TPanel.setMovingSpeedY (v: Integer); inline; begin mMovingSpeed.Y := v; end;
+
+function TPanel.getMovingStartX (): Integer; inline; begin result := mMovingStart.X; end;
+procedure TPanel.setMovingStartX (v: Integer); inline; begin mMovingStart.X := v; end;
+function TPanel.getMovingStartY (): Integer; inline; begin result := mMovingStart.Y; end;
+procedure TPanel.setMovingStartY (v: Integer); inline; begin mMovingStart.Y := v; end;
+
+function TPanel.getMovingEndX (): Integer; inline; begin result := mMovingEnd.X; end;
+procedure TPanel.setMovingEndX (v: Integer); inline; begin mMovingEnd.X := v; end;
+function TPanel.getMovingEndY (): Integer; inline; begin result := mMovingEnd.Y; end;
+procedure TPanel.setMovingEndY (v: Integer); inline; begin mMovingEnd.Y := v; end;
+
+function TPanel.getIsGBack (): Boolean; inline; begin result := ((tag and GridTagBack) <> 0); end;
+function TPanel.getIsGStep (): Boolean; inline; begin result := ((tag and GridTagStep) <> 0); end;
+function TPanel.getIsGWall (): Boolean; inline; begin result := ((tag and (GridTagWall or GridTagDoor)) <> 0); end;
+function TPanel.getIsGAcid1 (): Boolean; inline; begin result := ((tag and GridTagAcid1) <> 0); end;
+function TPanel.getIsGAcid2 (): Boolean; inline; begin result := ((tag and GridTagAcid2) <> 0); end;
+function TPanel.getIsGWater (): Boolean; inline; begin result := ((tag and GridTagWater) <> 0); end;
+function TPanel.getIsGFore (): Boolean; inline; begin result := ((tag and GridTagFore) <> 0); end;
+function TPanel.getIsGLift (): Boolean; inline; begin result := ((tag and GridTagLift) <> 0); end;
+function TPanel.getIsGBlockMon (): Boolean; inline; begin result := ((tag and GridTagBlockMon) <> 0); end;
 
 procedure TPanel.Draw();
 var
@@ -489,8 +534,9 @@ var
   function monMove (mon: TMonster): Boolean;
   begin
     result := false; // don't stop
-    mon.GameX := mon.GameX+mMovingSpeed.X;
-    mon.GameY := mon.GameY+mMovingSpeed.Y;
+    //mon.GameX := mon.GameX+mMovingSpeed.X;
+    //mon.GameY := mon.GameY+mMovingSpeed.Y;
+    mon.setPosition(mon.GameX+mMovingSpeed.X, mon.GameY+mMovingSpeed.Y, false); // we can't call `positionChanged()` in grid callback
     if (monMoveListUsed >= Length(monMoveList)) then SetLength(monMoveList, monMoveListUsed+64);
     monMoveList[monMoveListUsed] := mon;
     Inc(monMoveListUsed);
@@ -504,8 +550,9 @@ var
     mon.getMapBox(px, py, pw, ph);
     if doPush(px, py, pw, ph, dx, dy) then
     begin
-      mon.GameX := mon.GameX+dx;
-      mon.GameY := mon.GameY+dy;
+      //mon.GameX := mon.GameX+dx;
+      //mon.GameY := mon.GameY+dy;
+      mon.setPosition(mon.GameX+dx, mon.GameY+dy, false); // we can't call `positionChanged()` in grid callback
       if (monMoveListUsed >= Length(monMoveList)) then SetLength(monMoveList, monMoveListUsed+64);
       monMoveList[monMoveListUsed] := mon;
       Inc(monMoveListUsed);
