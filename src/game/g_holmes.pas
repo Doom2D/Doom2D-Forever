@@ -1083,15 +1083,18 @@ procedure plrDebugDraw ();
       TRIGGER_TEXTURE: begin end;
       TRIGGER_ON, TRIGGER_OFF, TRIGGER_ONOFF, TRIGGER_PRESS:
         begin
-        fillRect(
-          trig.trigData.trigTX, trig.trigData.trigTY,
-          trig.trigData.trigTWidth, trig.trigData.trigTHeight,
-          0, 255, 255, 42);
-        drawLine(
-          trig.trigCenter.x, trig.trigCenter.y,
-          trig.trigData.trigTX+trig.trigData.trigTWidth div 2,
-          trig.trigData.trigTY+trig.trigData.trigTHeight div 2,
-          255, 0, 255, 220);
+          if (trig.trigData.trigTWidth > 0) and (trig.trigData.trigTHeight > 0) then
+          begin
+            fillRect(
+              trig.trigData.trigTX, trig.trigData.trigTY,
+              trig.trigData.trigTWidth, trig.trigData.trigTHeight,
+              0, 255, 255, 42);
+            drawLine(
+              trig.trigCenter.x, trig.trigCenter.y,
+              trig.trigData.trigTX+trig.trigData.trigTWidth div 2,
+              trig.trigData.trigTY+trig.trigData.trigTHeight div 2,
+              255, 0, 255, 220);
+          end;
         end;
       TRIGGER_SOUND: begin end;
       TRIGGER_SPAWNMONSTER: begin end;

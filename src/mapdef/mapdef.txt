@@ -398,14 +398,14 @@ TriggerData for (TRIGGER_OPENDOOR, TRIGGER_CLOSEDOOR, TRIGGER_DOOR, TRIGGER_DOOR
 TriggerData for (TRIGGER_PRESS, TRIGGER_ON, TRIGGER_OFF, TRIGGER_ONOFF) {
   //tX is "tx" type int offset 0;
   //tY is "ty" type int offset 4;
-  Pos is "position" type point offset 0 as txy;
+  Pos is "position" type point offset 0 as txy default (0 0);
   //tWidth is "width" type ushort offset 8;
   //tHeight is "height" type ushort offset 10;
-  Size is "size" type size offset 8 as twh;
-  Wait is "wait" type ushort offset 12;
-  Count is "count" type ushort offset 14;
+  Size is "size" type size offset 8 as twh default (0 0);
+  Wait is "wait" type ushort offset 12 default 0;
+  Count is "count" type ushort offset 14 default 0;
   MonsterID is "monsterid" type int offset 16 monster as monsterid default null;
-  ExtRandom is "extrandom" type bool offset 20;
+  ExtRandom is "extrandom" type bool offset 20 default false;
   // this one is for moving platforms
   PanelId is "panelid" type int panel default null omitdefault;
 }

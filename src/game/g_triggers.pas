@@ -2465,9 +2465,17 @@ begin
             end;
           end;
 
+          //HACK!
           // if we have panelid, assume that it will switch the moving platform
-          if (trigPanelGUID >= 0) then
+          pan := g_Map_PanelByGUID(trigPanelGUID);
+          if (pan <> nil) then
           begin
+            case TriggerType of
+              TRIGGER_PRESS: pan.movingActive := true; // what to do here?
+              TRIGGER_ON: pan.movingActive := true;
+              TRIGGER_OFF: pan.movingActive := false;
+              TRIGGER_ONOFF: pan.movingActive := not pan.movingActive;
+            end;
           end;
 
           // Выбираем один из триггеров для расширителя, если включен рандом:
