@@ -1059,12 +1059,13 @@ begin
   if (dX <> 0) then
   begin
     // has some horizontal velocity
-    pan := g_Map_traceToNearest(x, y, x+dX, y+dY, GridTagObstacle, @ex, @ey);
+    pan := g_Map_traceToNearest(x, y, x+dX, y+dY, (GridTagObstacle or GridTagLiquid), @ex, @ey);
     if (x <> ex) then begin floorY := Unknown; ceilingY := Unknown; end; // dunno yet
     x := ex;
     y := ey;
     if (pan <> nil) then
     begin
+      if ((pan.tag and GridTagLiquid) <> 0) then begin die(); exit; end; // die in liquid
       // hit the wall; falling down vertically
       velX := 0;
       accelX := 0;
