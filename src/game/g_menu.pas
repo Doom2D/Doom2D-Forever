@@ -506,12 +506,14 @@ end;
 
 procedure ProcSwitchMonstersCustom(Sender: TGUIControl);
 begin
-    // don't turn off monsters in DM
+  // don't turn off monsters in DM
+  {
   with TGUIMenu(g_ActiveWindow.GetControl('mCustomGameMenu')) do
     if TGUISwitch(GetControl('swGameMode')).GetText <> _lc[I_MENU_GAME_TYPE_CTF] then
       TGUISwitch(GetControl('swMonsters')).ItemIndex := 0
     else
       TGUISwitch(GetControl('swMonsters')).ItemIndex := 1;
+  }
   {
     if TGUISwitch(GetControl('swGameMode')).GetText = _lc[I_MENU_GAME_TYPE_COOP] then
       TGUISwitch(GetControl('swMonsters')).ItemIndex := 0
@@ -523,11 +525,13 @@ end;
 procedure ProcSwitchMonstersNet(Sender: TGUIControl);
 begin
   // don't turn off monsters in DM
+  {
   with TGUIMenu(g_ActiveWindow.GetControl('mNetServerMenu')) do
     if TGUISwitch(GetControl('swGameMode')).GetText <> _lc[I_MENU_GAME_TYPE_CTF] then
       TGUISwitch(GetControl('swMonsters')).ItemIndex := 0
     else
       TGUISwitch(GetControl('swMonsters')).ItemIndex := 1;
+  }
     {
     if TGUISwitch(GetControl('swGameMode')).GetText = _lc[I_MENU_GAME_TYPE_COOP] then
       TGUISwitch(GetControl('swMonsters')).ItemIndex := 0
