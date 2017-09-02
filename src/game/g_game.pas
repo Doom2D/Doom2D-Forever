@@ -3223,16 +3223,26 @@ begin
   begin
     if (gState = STATE_MENU) then
     begin
-      if  ((g_ActiveWindow = nil) or (g_ActiveWindow.BackTexture = '')) then
+      if (g_ActiveWindow = nil) or (g_ActiveWindow.BackTexture = '') then
       begin
-        if g_Texture_Get('MENU_BACKGROUND', ID) then
-          e_DrawSize(ID, 0, 0, 0, False, False, gScreenWidth, gScreenHeight)
+        if g_Texture_Get('MENU_BACKGROUND', ID) then e_DrawSize(ID, 0, 0, 0, False, False, gScreenWidth, gScreenHeight)
         else e_Clear(GL_COLOR_BUFFER_BIT, 0, 0, 0);
       end;
-      if g_ActiveWindow <> nil then
+      // F3 at menu will show game loading dialog
+      if e_KeyPressed(IK_F3) then g_Menu_Show_LoadMenu();
+      if (g_ActiveWindow <> nil) then
       begin
         //e_DrawFillQuad(0, 0, gScreenWidth-1, gScreenHeight-1, 48, 48, 48, 180);
         e_DarkenQuadWH(0, 0, gScreenWidth, gScreenHeight, 150);
+      end
+      else
+      begin
+        // F3 at titlepic will show game loading dialog
+        if e_KeyPressed(IK_F3) then
+        begin
+          g_Menu_Show_LoadMenu();
+          if (g_ActiveWindow <> nil) then e_DarkenQuadWH(0, 0, gScreenWidth, gScreenHeight, 150);
+        end;
       end;
     end;
 
