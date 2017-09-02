@@ -121,6 +121,8 @@ type
     procedure freeze (); inline; // remove velocities and acceleration
     procedure sleep (); inline; // switch to sleep mode
 
+    function checkAirStreams (): Boolean; // `true`: affected by air stream
+
     function alive (): Boolean; inline;
     procedure die (); inline;
     procedure think (); inline;
@@ -228,11 +230,50 @@ begin
 end;
 
 
+// `true`: affected by air stream
+function TParticle.checkAirStreams (): Boolean;
+var
+  pan: TPanel;
+begin
+  pan := g_Map_PanelAtPoint(x, y, GridTagLift);
+  result := (pan <> nil);
+  if result then
+  begin
+    if ((pan.PanelType and PANEL_LIFTUP) <> 0) then
+    begin
+      if (velY > -4-Random(3)) then velY -= 0.8;
+      if (abs(velX) > 0.1) then velX -= velX/10.0;
+      velX += (Random-Random)*0.2;
+      accelY := 0.15;
+    end
+    else if ((pan.PanelType and PANEL_LIFTLEFT) <> 0) then
+    begin
+      if (velX > -8-Random(3)) then velX -= 0.8;
+      accelY := 0.15;
+    end
+    else if ((pan.PanelType and PANEL_LIFTRIGHT) <> 0) then
+    begin
+      if (velX < 8+Random(3)) then velX += 0.8;
+      accelY := 0.15;
+    end
+    else
+    begin
+      result := false;
+    end;
+    // awake
+    if result and (state = TPartState.Sleeping) then state := TPartState.Normal;
+  end;
+end;
+
+
 // switch to sleep mode
 procedure TParticle.sleep (); inline;
 begin
-  state := TPartState.Sleeping;
-  freeze();
+  if not checkAirStreams() then
+  begin
+    state := TPartState.Sleeping;
+    freeze();
+  end;
 end;
 
 
@@ -383,41 +424,6 @@ procedure TParticle.thinkerBloodAndWater ();
     if result then begin velY := 0.5; accelY := 0.15; end;
   end;
 
-  // `true`: affected by air stream
-  function checkAirStreams (): Boolean;
-  var
-    pan: TPanel;
-  begin
-    pan := g_Map_PanelAtPoint(x, y, GridTagLift);
-    result := (pan <> nil);
-    if result then
-    begin
-      if ((pan.PanelType and PANEL_LIFTUP) <> 0) then
-      begin
-        if (velY > -4-Random(3)) then velY -= 0.8;
-        if (abs(velX) > 0.1) then velX -= velX/10.0;
-        velX += (Random-Random)*0.2;
-        accelY := 0.15;
-      end
-      else if ((pan.PanelType and PANEL_LIFTLEFT) <> 0) then
-      begin
-        if (velX > -8-Random(3)) then velX -= 0.8;
-        accelY := 0.15;
-      end
-      else if ((pan.PanelType and PANEL_LIFTRIGHT) <> 0) then
-      begin
-        if (velX < 8+Random(3)) then velX += 0.8;
-        accelY := 0.15;
-      end
-      else
-      begin
-        result := false;
-      end;
-      // awake
-      if result and (state = TPartState.Sleeping) then state := TPartState.Normal;
-    end;
-  end;
-
   // switch to freefall mode
   procedure freefall ();
   begin
@@ -453,8 +459,8 @@ begin
 
   if gAdvBlood then
   begin
-    // still check for air streams when sleeping
-    if (state = TPartState.Sleeping) then begin checkAirStreams(); goto _done; end; // so blood will dissolve
+    // still check for air streams when sleeping (no)
+    if (state = TPartState.Sleeping) then begin {checkAirStreams();} goto _done; end; // so blood will dissolve
 
     // process stuck particles
     if (state = TPartState.Stuck) then
@@ -524,6 +530,8 @@ begin
     // it is important to have it here
     dX := round(velX);
     dY := round(velY);
+
+    if (state = TPartState.Normal) then checkAirStreams();
 
     // gravity, if not stuck
     if (state <> TPartState.Stuck) and (abs(velX) < 0.1) and (abs(velY) < 0.1) then
@@ -856,7 +864,8 @@ begin
         // either in a wall, or in a liquid
         //if ((pan.tag and GridTagObstacle) <> 0) then continue; // don't spawn in walls
         //env := TEnvType.ELiquid;
-        continue;
+        //continue;
+        env := TEnvType.EAir;
       end
       else
       begin
