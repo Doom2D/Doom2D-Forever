@@ -3028,255 +3028,210 @@ begin
       end;
 end;
 
-procedure g_Map_SaveState(Var Mem: TBinMemoryWriter);
+
+procedure g_Map_SaveState (var Mem: TBinMemoryWriter);
 var
   dw: DWORD;
   b: Byte;
   str: String;
   boo: Boolean;
 
-  procedure SavePanelArray(var panels: TPanelArray);
+  procedure savePanels ();
   var
     PAMem: TBinMemoryWriter;
-    i: Integer;
+    pan: TPanel;
   begin
-  // Создаем новый список сохраняемых панелей:
-    PAMem := TBinMemoryWriter.Create((Length(panels)+1) * 40);
+    // Создаем новый список сохраняемых панелей
+    PAMem := TBinMemoryWriter.Create((Length(panByGUID)+1) * 40);
 
-    i := 0;
-    while i < Length(panels) do
+    for pan in panByGUID do
     begin
-      if true{panels[i].SaveIt} then
+      if true{pan.SaveIt} then
       begin
-      // ID панели:
-        PAMem.WriteInt(i);
-      // Сохраняем панель:
-        panels[i].SaveState(PAMem);
+        // ID панели
+        //PAMem.WriteInt(i);
+        // Сохраняем панель
+        pan.SaveState(PAMem);
       end;
-      Inc(i);
     end;
 
-  // Сохраняем этот список панелей:
+    // Сохраняем этот список панелей
     PAMem.SaveToMemory(Mem);
     PAMem.Free();
   end;
 
-  procedure SaveFlag(flag: PFlag);
+  procedure SaveFlag (flag: PFlag);
   begin
-  // Сигнатура флага:
+    // Сигнатура флага
     dw := FLAG_SIGNATURE; // 'FLAG'
     Mem.WriteDWORD(dw);
-  // Время перепоявления флага:
+    // Время перепоявления флага
     Mem.WriteByte(flag^.RespawnType);
-  // Состояние флага:
+    // Состояние флага
     Mem.WriteByte(flag^.State);
-  // Направление флага:
-    if flag^.Direction = D_LEFT then
-      b := 1
-    else // D_RIGHT
-      b := 2;
+    // Направление флага
+    if flag^.Direction = D_LEFT then b := 1 else b := 2; // D_RIGHT
     Mem.WriteByte(b);
-  // Объект флага:
+    // Объект флага
     Obj_SaveState(@flag^.Obj, Mem);
   end;
 
 begin
   Mem := TBinMemoryWriter.Create(1024 * 1024); // 1 MB
 
-///// Сохраняем списки панелей: /////
-// Сохраняем панели стен и дверей:
-  SavePanelArray(gWalls);
-// Сохраняем панели фона:
-  SavePanelArray(gRenderBackgrounds);
-// Сохраняем панели переднего плана:
-  SavePanelArray(gRenderForegrounds);
-// Сохраняем панели воды:
-  SavePanelArray(gWater);
-// Сохраняем панели кислоты-1:
-  SavePanelArray(gAcid1);
-// Сохраняем панели кислоты-2:
-  SavePanelArray(gAcid2);
-// Сохраняем панели ступеней:
-  SavePanelArray(gSteps);
-// Сохраняем панели лифтов:
-  SavePanelArray(gLifts);
-///// /////
+  ///// Сохраняем списки панелей: /////
+  savePanels();
+  ///// /////
 
-///// Сохраняем музыку: /////
-// Сигнатура музыки:
+  ///// Сохраняем музыку: /////
+  // Сигнатура музыки:
   dw := MUSIC_SIGNATURE; // 'MUSI'
   Mem.WriteDWORD(dw);
-// Название музыки:
+  // Название музыки:
   Assert(gMusic <> nil, 'g_Map_SaveState: gMusic = nil');
-  if gMusic.NoMusic then
-    str := ''
-  else
-    str := gMusic.Name;
+  if gMusic.NoMusic then str := '' else str := gMusic.Name;
   Mem.WriteString(str, 64);
-// Позиция проигрывания музыки:
+  // Позиция проигрывания музыки
   dw := gMusic.GetPosition();
   Mem.WriteDWORD(dw);
-// Стоит ли музыка на спец-паузе:
+  // Стоит ли музыка на спец-паузе
   boo := gMusic.SpecPause;
   Mem.WriteBoolean(boo);
-///// /////
+  ///// /////
 
-///// Сохраняем количество монстров: /////
+  ///// Сохраняем количество монстров: /////
   Mem.WriteInt(gTotalMonsters);
-///// /////
+  ///// /////
 
-//// Сохраняем флаги, если это CTF: /////
+  //// Сохраняем флаги, если это CTF: /////
   if gGameSettings.GameMode = GM_CTF then
   begin
-  // Флаг Красной команды:
+    // Флаг Красной команды
     SaveFlag(@gFlags[FLAG_RED]);
-  // Флаг Синей команды:
+    // Флаг Синей команды
     SaveFlag(@gFlags[FLAG_BLUE]);
   end;
-///// /////
+  ///// /////
 
-///// Сохраняем количество побед, если это TDM/CTF: /////
+  ///// Сохраняем количество побед, если это TDM/CTF: /////
   if gGameSettings.GameMode in [GM_TDM, GM_CTF] then
   begin
-  // Очки Красной команды:
+    // Очки Красной команды
     Mem.WriteSmallInt(gTeamStat[TEAM_RED].Goals);
-  // Очки Синей команды:
+    // Очки Синей команды
     Mem.WriteSmallInt(gTeamStat[TEAM_BLUE].Goals);
   end;
-///// /////
+  ///// /////
 end;
 
-procedure g_Map_LoadState(Var Mem: TBinMemoryReader);
+
+procedure g_Map_LoadState (var Mem: TBinMemoryReader);
 var
   dw: DWORD;
   b: Byte;
   str: String;
   boo: Boolean;
 
-  procedure LoadPanelArray(var panels: TPanelArray);
+  procedure loadPanels ();
   var
     PAMem: TBinMemoryReader;
-    i, id: Integer;
+    pan: TPanel;
   begin
-  // Загружаем текущий список панелей:
+    // Загружаем текущий список панелей
     PAMem := TBinMemoryReader.Create();
     PAMem.LoadFromMemory(Mem);
 
-    for i := 0 to Length(panels)-1 do
+    for pan in panByGUID do
     begin
-      if true{panels[i].SaveIt} then
+      if true{pan.SaveIt} then
       begin
-      // ID панели:
-        PAMem.ReadInt(id);
-        if id <> i then
-        begin
-          raise EBinSizeError.Create('g_Map_LoadState: LoadPanelArray: Wrong Panel ID');
-        end;
-      // Загружаем панель:
-        panels[i].LoadState(PAMem);
-        if (panels[i].arrIdx <> i) then raise Exception.Create('g_Map_LoadState: LoadPanelArray: Wrong Panel arrIdx');
-        if (panels[i].proxyId >= 0) then mapGrid.proxyEnabled[panels[i].proxyId] := panels[i].Enabled;
+        // ID панели:
+        //PAMem.ReadInt(id);
+        {
+        if id <> i then raise EBinSizeError.Create('g_Map_LoadState: LoadPanelArray: Wrong Panel ID');
+        }
+        // Загружаем панель
+        pan.LoadState(PAMem);
+        //if (panels[i].arrIdx <> i) then raise Exception.Create('g_Map_LoadState: LoadPanelArray: Wrong Panel arrIdx');
+        if (pan.proxyId >= 0) then mapGrid.proxyEnabled[pan.proxyId] := pan.Enabled;
       end;
     end;
 
-  // Этот список панелей загружен:
+    // Этот список панелей загружен
     PAMem.Free();
   end;
 
   procedure LoadFlag(flag: PFlag);
   begin
-  // Сигнатура флага:
+    // Сигнатура флага
     Mem.ReadDWORD(dw);
-    if dw <> FLAG_SIGNATURE then // 'FLAG'
-    begin
-      raise EBinSizeError.Create('g_Map_LoadState: LoadFlag: Wrong Flag Signature');
-    end;
-  // Время перепоявления флага:
+    // 'FLAG'
+    if dw <> FLAG_SIGNATURE then raise EBinSizeError.Create('g_Map_LoadState: LoadFlag: Wrong Flag Signature');
+    // Время перепоявления флага
     Mem.ReadByte(flag^.RespawnType);
-  // Состояние флага:
+    // Состояние флага
     Mem.ReadByte(flag^.State);
-  // Направление флага:
+    // Направление флага
     Mem.ReadByte(b);
-    if b = 1 then
-      flag^.Direction := D_LEFT
-    else // b = 2
-      flag^.Direction := D_RIGHT;
-  // Объект флага:
+    if b = 1 then flag^.Direction := D_LEFT else flag^.Direction := D_RIGHT; // b = 2
+    // Объект флага
     Obj_LoadState(@flag^.Obj, Mem);
   end;
 
 begin
-  if Mem = nil then
-    Exit;
+  if Mem = nil then Exit;
 
-///// Загружаем списки панелей: /////
-// Загружаем панели стен и дверей:
-  LoadPanelArray(gWalls);
-// Загружаем панели фона:
-  LoadPanelArray(gRenderBackgrounds);
-// Загружаем панели переднего плана:
-  LoadPanelArray(gRenderForegrounds);
-// Загружаем панели воды:
-  LoadPanelArray(gWater);
-// Загружаем панели кислоты-1:
-  LoadPanelArray(gAcid1);
-// Загружаем панели кислоты-2:
-  LoadPanelArray(gAcid2);
-// Загружаем панели ступеней:
-  LoadPanelArray(gSteps);
-// Загружаем панели лифтов:
-  LoadPanelArray(gLifts);
-///// /////
+  ///// Загружаем списки панелей: /////
+  loadPanels();
+  ///// /////
 
-// Обновляем карту столкновений и сетку:
+  // Обновляем карту столкновений и сетку
   g_GFX_Init();
   //mapCreateGrid();
 
-///// Загружаем музыку: /////
-// Сигнатура музыки:
+  ///// Загружаем музыку: /////
+  // Сигнатура музыки
   Mem.ReadDWORD(dw);
-  if dw <> MUSIC_SIGNATURE then // 'MUSI'
-  begin
-    raise EBinSizeError.Create('g_Map_LoadState: Wrong Music Signature');
-  end;
-// Название музыки:
+  // 'MUSI'
+  if dw <> MUSIC_SIGNATURE then raise EBinSizeError.Create('g_Map_LoadState: Wrong Music Signature');
+  // Название музыки
   Assert(gMusic <> nil, 'g_Map_LoadState: gMusic = nil');
   Mem.ReadString(str);
-// Позиция проигрывания музыки:
+  // Позиция проигрывания музыки
   Mem.ReadDWORD(dw);
-// Стоит ли музыка на спец-паузе:
+  // Стоит ли музыка на спец-паузе
   Mem.ReadBoolean(boo);
-// Запускаем эту музыку:
+  // Запускаем эту музыку
   gMusic.SetByName(str);
   gMusic.SpecPause := boo;
   gMusic.Play();
   gMusic.Pause(True);
   gMusic.SetPosition(dw);
-///// /////
+  ///// /////
 
-///// Загружаем количество монстров: /////
+  ///// Загружаем количество монстров: /////
   Mem.ReadInt(gTotalMonsters);
-///// /////
+  ///// /////
 
-//// Загружаем флаги, если это CTF: /////
+  //// Загружаем флаги, если это CTF: /////
   if gGameSettings.GameMode = GM_CTF then
   begin
-  // Флаг Красной команды:
+    // Флаг Красной команды
     LoadFlag(@gFlags[FLAG_RED]);
-  // Флаг Синей команды:
+    // Флаг Синей команды
     LoadFlag(@gFlags[FLAG_BLUE]);
   end;
-///// /////
+  ///// /////
 
-///// Загружаем количество побед, если это TDM/CTF: /////
+  ///// Загружаем количество побед, если это TDM/CTF: /////
   if gGameSettings.GameMode in [GM_TDM, GM_CTF] then
   begin
-  // Очки Красной команды:
+    // Очки Красной команды
     Mem.ReadSmallInt(gTeamStat[TEAM_RED].Goals);
-  // Очки Синей команды:
+    // Очки Синей команды
     Mem.ReadSmallInt(gTeamStat[TEAM_BLUE].Goals);
   end;
-///// /////
+  ///// /////
 end;
 
 

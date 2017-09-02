@@ -785,7 +785,7 @@ begin
   Mem.ReadBoolean(mMovingActive);
 
   positionChanged();
-  mapGrid.proxyEnabled[proxyId] := FEnabled;
+  //mapGrid.proxyEnabled[proxyId] := FEnabled; // done in g_map.pas
 end;
 
 end.
