@@ -113,14 +113,14 @@ var
   msY: Integer = -666;
   msB: Word = 0; // button state
   kbS: Word = 0; // keyboard modifiers state
-  showGrid: Boolean = true;
+  showGrid: Boolean = false;
   showMonsInfo: Boolean = false;
   showMonsLOS2Plr: Boolean = false;
   showAllMonsCells: Boolean = false;
   showMapCurPos: Boolean = false;
   showLayersWindow: Boolean = false;
   showOutlineWindow: Boolean = false;
-  showTriggers: Boolean = {$IF DEFINED(D2F_DEBUG)}true{$ELSE}false{$ENDIF};
+  showTriggers: Boolean = {$IF DEFINED(D2F_DEBUG)}false{$ELSE}false{$ENDIF};
 
 // ////////////////////////////////////////////////////////////////////////// //
 {$INCLUDE g_holmes.inc}

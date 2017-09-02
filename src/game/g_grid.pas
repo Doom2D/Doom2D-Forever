@@ -20,7 +20,7 @@
   {.$DEFINE D2F_DEBUG_XXQ}
   {.$DEFINE D2F_DEBUG_MOVER}
 {$ENDIF}
-{$DEFINE GRID_USE_ORTHO_ACCEL}
+{.$DEFINE GRID_USE_ORTHO_ACCEL}
 unit g_grid;
 
 interface
@@ -199,6 +199,8 @@ type
 
     // return `false` if we're still inside at the end
     // line should be either strict horizontal, or strict vertical, otherwise an exception will be thrown
+    // `true`: endpoint will point at the last "inside" pixel
+    // `false`: endpoint will be (ax1, ay1)
     function traceOrthoRayWhileIn (out ex, ey: Integer; ax0, ay0, ax1, ay1: Integer; tagmask: Integer=-1): Boolean;
 
     //WARNING: don't modify grid while any query is in progress (no checks are made!)
@@ -2559,7 +2561,7 @@ begin
       else
       begin
         // down
-        while (y0 <= celly1) and (filled[y1-celly0] <> 0) do begin Inc(y0); Inc(ay0); end;
+        while (y0 <= celly1) and (filled[y0-celly0] <> 0) do begin Inc(y0); Inc(ay0); end;
         if (ay0 >= ay1) then begin ey := ay1; result := false; exit; end;
         if (y0 <= celly1) then begin ey := ay0-1; result := true; exit; end;
       end;

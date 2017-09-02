@@ -125,6 +125,12 @@ procedure g_Map_ProfilersEnd ();
 
 function g_Map_ParseMap (data: Pointer; dataLen: Integer): TDynRecord;
 
+
+function g_Map_MinX (): Integer; inline;
+function g_Map_MinY (): Integer; inline;
+function g_Map_MaxX (): Integer; inline;
+function g_Map_MaxY (): Integer; inline;
+
 const
   NNF_NO_NAME         = 0;
   NNF_NAME_BEFORE     = 1;
@@ -182,6 +188,9 @@ const
   // the following are invisible
   GridTagLift = 1 shl 8; // gLifts
   GridTagBlockMon = 1 shl 9; // gBlockMon
+
+  GridTagObstacle = (GridTagStep or GridTagWall or GridTagDoor);
+  GridTagLiquid = (GridTagAcid1 or GridTagAcid2 or GridTagWater);
 
   GridDrawableMask = (GridTagBack or GridTagStep or GridTagWall or GridTagDoor or GridTagAcid1 or GridTagAcid2 or GridTagWater or GridTagFore);
 
@@ -251,6 +260,13 @@ begin
   //if (panByGUID = nil) or (not panByGUID.get(aguid, result)) then result := nil;
   if (aguid >= 0) and (aguid < Length(panByGUID)) then result := panByGUID[aguid] else result := nil;
 end;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
+function g_Map_MinX (): Integer; inline; begin if (mapGrid <> nil) then result := mapGrid.gridX0 else result := 0; end;
+function g_Map_MinY (): Integer; inline; begin if (mapGrid <> nil) then result := mapGrid.gridY0 else result := 0; end;
+function g_Map_MaxX (): Integer; inline; begin if (mapGrid <> nil) then result := mapGrid.gridX0+mapGrid.gridWidth-1 else result := 0; end;
+function g_Map_MaxY (): Integer; inline; begin if (mapGrid <> nil) then result := mapGrid.gridY0+mapGrid.gridHeight-1 else result := 0; end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
