@@ -241,21 +241,8 @@ const
   FLAG_SIGNATURE = $47414C46; // 'FLAG'
 
 
-{
-type
-  THashIntPanel = specialize THashBase<Integer, TPanel>;
-
-function hashNewIntPanel (): THashIntPanel;
-begin
-  result := THashIntPanel.Create(hiihash, hiiequ);
-end;
-}
-
-
 var
-  //panByGUID: THashIntPanel = nil;
   panByGUID: array of TPanel = nil;
-  //panLastGUID: Integer = 0;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
@@ -769,8 +756,7 @@ begin
   PanelArray := nil;
 end;
 
-function CreatePanel(PanelRec: TDynRecord; AddTextures: TAddTextureArray;
-                     CurTex: Integer; sav: Boolean): Integer;
+function CreatePanel (PanelRec: TDynRecord; AddTextures: TAddTextureArray; CurTex: Integer; sav: Boolean): Integer;
 var
   len: Integer;
   panels: ^TPanelArray;
@@ -795,20 +781,22 @@ begin
   len := Length(panels^);
   SetLength(panels^, len+1);
 
-  //Inc(panLastGUID);
   pguid := Length(panByGUID);
   SetLength(panByGUID, pguid+1); //FIXME!
   pan := TPanel.Create(PanelRec, AddTextures, CurTex, Textures, pguid);
+  assert(pguid >= 0);
+  assert(pguid < Length(panByGUID));
+  panByGUID[pguid] := pan;
   panels^[len] := pan;
   pan.arrIdx := len;
   pan.proxyId := -1;
   pan.tag := panelTypeToTag(PanelRec.PanelType);
   if sav then pan.SaveIt := True;
 
-  PanelRec.user['panel_guid'] := pan.guid;
-  //panByGUID.put(pan.guid, pan);
+  PanelRec.user['panel_guid'] := pguid;
 
-  result := len;
+  //result := len;
+  result := pguid;
 end;
 
 
@@ -1601,9 +1589,6 @@ begin
   gCurrentMap.Free();
   gCurrentMap := nil;
 
-  //panByGUID.Free();
-  //panByGUID := hashNewIntPanel();
-  //panLastGUID := 0;
   panByGUID := nil;
 
   Result := False;
@@ -1979,10 +1964,9 @@ begin
 
         //e_LogWritefln('PANADD: pannum=%s', [pannum]);
 
-        // Создаем панель и запоминаем ее номер
+        // Создаем панель и запоминаем ее GUID
         PanelID := CreatePanel(rec, AddTextures, CurTex, trigRef);
-        //e_LogWritefln('panel #%s of type %s got id #%s', [pannum, rec.PanelType, PanelID]);
-        // set 'gamePanelId' field to panel id
+        //e_LogWritefln('panel #%s of type %s got guid #%s', [pannum, rec.PanelType, PanelID]);
         rec.userPanelId := PanelID; // remember game panel id, we'll fix triggers later
 
         // setup lifts
@@ -2363,9 +2347,6 @@ begin
     BadTextNameHash := nil;
   end;
 
-  //panByGUID.Free();
-  //panByGUID := nil;
-  //panLastGUID := 0;
   panByGUID := nil;
 
   FreePanelArray(gWalls);
@@ -2427,21 +2408,21 @@ begin
   if gGameSettings.GameMode = GM_CTF then
   begin
     for a := FLAG_RED to FLAG_BLUE do
+    begin
       if not (gFlags[a].State in [FLAG_STATE_NONE, FLAG_STATE_CAPTURED]) then
+      begin
         with gFlags[a] do
         begin
-          if gFlags[a].Animation <> nil then
-            gFlags[a].Animation.Update();
+          if gFlags[a].Animation <> nil then gFlags[a].Animation.Update();
 
           m := g_Obj_Move(@Obj, True, True);
 
-          if gTime mod (GAME_TICK*2) <> 0 then
-            Continue;
+          if gTime mod (GAME_TICK*2) <> 0 then Continue;
 
-        // Сопротивление воздуха:
+          // Сопротивление воздуха
           Obj.Vel.X := z_dec(Obj.Vel.X, 1);
 
-        // Таймаут потерянного флага, либо он выпал за карту:
+          // Таймаут потерянного флага, либо он выпал за карту
           if ((Count = 0) or ByteBool(m and MOVE_FALLOUT)) and g_Game_IsServer then
           begin
             g_Map_ResetFlag(a);
@@ -2457,30 +2438,28 @@ begin
             Continue;
           end;
 
-          if Count > 0 then
-            Count := Count - 1;
+          if Count > 0 then Count -= 1;
 
-        // Игрок берет флаг:
+          // Игрок берет флаг
           if gPlayers <> nil then
           begin
             j := Random(Length(gPlayers)) - 1;
-
             for d := 0 to High(gPlayers) do
             begin
               Inc(j);
-              if j > High(gPlayers) then
-                j := 0;
-
+              if j > High(gPlayers) then j := 0;
               if gPlayers[j] <> nil then
-                if gPlayers[j].Live and
-                   g_Obj_Collide(@Obj, @gPlayers[j].Obj) then
+              begin
+                if gPlayers[j].Live and g_Obj_Collide(@Obj, @gPlayers[j].Obj) then
                 begin
-                  if gPlayers[j].GetFlag(a) then
-                    Break;
+                  if gPlayers[j].GetFlag(a) then Break;
                 end;
+              end;
             end;
           end;
         end;
+      end;
+    end;
   end;
 end;
 

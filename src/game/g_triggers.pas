@@ -89,26 +89,13 @@ procedure g_Triggers_Free();
 procedure g_Triggers_SaveState(var Mem: TBinMemoryWriter);
 procedure g_Triggers_LoadState(var Mem: TBinMemoryReader);
 
-function tr_Message(MKind: Integer; MText: string; MSendTo: Integer; MTime: Integer; ActivateUID: Integer): Boolean;
-
-{
-function tr_CloseDoor (PanelGUID: Integer; NoSound: Boolean; d2d: Boolean): Boolean;
-function tr_OpenDoor (PanelGUID: Integer; NoSound: Boolean; d2d: Boolean): Boolean;
-procedure tr_CloseTrap (PanelGUID: Integer; NoSound: Boolean; d2d: Boolean);
-function tr_SetLift (PanelGUID: Integer; d: Integer; NoSound: Boolean; d2d: Boolean): Boolean;
-
-function tr_Teleport (ActivateUID: Integer; TX, TY: Integer; TDir: Integer; Silent: Boolean; D2D: Boolean): Boolean;
-function tr_Push (ActivateUID: Integer; VX, VY: Integer; ResetVel: Boolean): Boolean;
-
-procedure tr_MakeEffect (X, Y, VX, VY: Integer; T, ST, CR, CG, CB: Byte; Silent, Send: Boolean);
-function tr_SpawnShot (ShotType: Integer; wx, wy, dx, dy: Integer; ShotSound: Boolean; ShotTarget: Word): Integer;
-}
 
 var
   gTriggerClientID: Integer = 0;
   gTriggers: array of TTrigger;
   gSecretsCount: Integer = 0;
   gMonstersSpawned: array of LongInt = nil;
+
 
 implementation
 
@@ -251,6 +238,16 @@ var
 
 begin
   pan := g_Map_PanelByGUID(PanelGUID);
+  {
+  if (pan = nil) then
+  begin
+    e_LogWritefln('tr_CloseTrap: pguid=%s; NO PANEL!', [PanelGUID], MSG_WARNING);
+  end
+  else
+  begin
+    e_LogWritefln('tr_CloseTrap: pguid=%s; isGWall=%s; arrIdx=%s', [PanelGUID, pan.isGWall, pan.arrIdx]);
+  end;
+  }
   if (pan = nil) or not pan.isGWall then exit; //!FIXME!TRIGANY!
   PanelID := pan.arrIdx;
 
