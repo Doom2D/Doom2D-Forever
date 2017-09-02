@@ -123,7 +123,7 @@ type
     function definition (): AnsiString;
     function pasdef (): AnsiString;
 
-    function clone (newOwner: TDynRecord=nil): TDynField;
+    function clone (newOwner: TDynRecord=nil; registerIn: TDynRecord=nil): TDynField;
 
     procedure parseValue (pr: TTextParser);
     procedure parseBinValue (st: TStream);
@@ -191,6 +191,8 @@ type
     mTagInt: Integer;
     mTagPtr: Pointer;
 
+    mRec2Free: TDynRecList;
+
   private
     procedure parseDef (pr: TTextParser); // parse definition
 
@@ -205,6 +207,8 @@ type
 
     function getForTrigCount (): Integer; inline;
     function getForTrigAt (idx: Integer): AnsiString; inline;
+
+    procedure regrec (rec: TDynRecord);
 
   protected
     function findRecordByTypeId (const atypename, aid: AnsiString): TDynRecord;
@@ -222,7 +226,7 @@ type
     function definition (): AnsiString;
     function pasdef (): AnsiString;
 
-    function clone (): TDynRecord;
+    function clone (registerIn: TDynRecord): TDynRecord;
 
     function isSimpleEqu (rec: TDynRecord): Boolean;
 
@@ -501,7 +505,7 @@ begin
 end;
 
 
-function TDynField.clone (newOwner: TDynRecord=nil): TDynField;
+function TDynField.clone (newOwner: TDynRecord=nil; registerIn: TDynRecord=nil): TDynField;
 var
   rec: TDynRecord;
 begin
@@ -518,7 +522,7 @@ begin
   begin
     if (result.mRVal = nil) then result.mRVal := TDynRecList.Create(mRVal.count);
     if (result.mRHash = nil) then result.mRHash := hashNewStrInt();
-    for rec in mRVal do result.addListItem(rec.clone());
+    for rec in mRVal do result.addListItem(rec.clone(registerIn));
   end;
   result.mRecRef := mRecRef;
   result.mMaxDim := mMaxDim;
@@ -1414,7 +1418,7 @@ begin
           if (tfld = nil) then raise Exception.Create(Format('triggerdata value for field ''%s'' in record ''%s'' without TriggerType field', [mName, rec.mName]));
           rc := mOwner.mOwner.findTrigFor(tfld.mSVal); // find in mapdef
           if (rc = nil) then raise Exception.Create(Format('triggerdata definition for field ''%s'' in record ''%s'' with type ''%s'' not found', [mName, rec.mName, tfld.mSVal]));
-          rc := rc.clone();
+          rc := rc.clone(mOwner.mHeaderRec);
           rc.mHeaderRec := mOwner.mHeaderRec;
           try
             rc.parseBinValue(st, true);
@@ -1616,7 +1620,7 @@ begin
             if (tfld = nil) then raise Exception.Create(Format('triggerdata value for field ''%s'' in record ''%s'' without ''type'' field', [mName, rec.mName]));
             rc := mOwner.mOwner.findTrigFor(tfld.mSVal); // find in mapdef
             if (rc = nil) then raise Exception.Create(Format('triggerdata definition for field ''%s'' in record ''%s'' with type ''%s'' not found', [mName, rec.mName, tfld.mSVal]));
-            rc := rc.clone();
+            rc := rc.clone(mOwner.mHeaderRec);
             rc.mHeaderRec := mOwner.mHeaderRec;
             //writeln(rc.definition);
             try
@@ -1655,7 +1659,7 @@ begin
           rec := nil;
           if (mEBSType <> nil) and (mEBSType is TDynRecord) then rec := (mEBSType as TDynRecord);
           if (rec = nil) then raise Exception.Create(Format('record type ''%s'' for field ''%s'' not found', [mEBSTypeName, mName]));
-          rc := rec.clone();
+          rc := rec.clone(mOwner.mHeaderRec);
           rc.mHeaderRec := mOwner.mHeaderRec;
           rc.parseValue(pr);
           mRecRef := rc;
@@ -1852,12 +1856,23 @@ begin
   mHeaderRec := nil;
   mTagInt := 0;
   mTagPtr := nil;
+  mRec2Free := nil;
 end;
 
 
 destructor TDynRecord.Destroy ();
+var
+  fld: TDynField;
+  rec: TDynRecord;
 begin
+  if (mRec2Free <> nil) then
+  begin
+    for rec in mRec2Free do if (rec <> self) then rec.Free();
+    mRec2Free.Free();
+    mRec2Free := nil;
+  end;
   mName := '';
+  for fld in mFields do fld.Free();
   mFields.Free();
   mFields := nil;
   {$IF DEFINED(XDYNREC_USE_FIELDHASH)}
@@ -1869,6 +1884,16 @@ begin
   mTagInt := 0;
   mTagPtr := nil;
   inherited;
+end;
+
+
+procedure TDynRecord.regrec (rec: TDynRecord);
+begin
+  if (rec <> nil) and (rec <> self) then
+  begin
+    if (mRec2Free = nil) then mRec2Free := TDynRecList.Create();
+    mRec2Free.append(rec);
+  end;
 end;
 
 
@@ -1967,7 +1992,7 @@ begin
 end;
 
 
-function TDynRecord.clone (): TDynRecord;
+function TDynRecord.clone (registerIn: TDynRecord): TDynRecord;
 var
   fld: TDynField;
   f: Integer;
@@ -1978,18 +2003,19 @@ begin
   result.mPasName := mPasName;
   result.mName := mName;
   result.mSize := mSize;
-  if (mFields.count > 0) then
-  begin
-    result.mFields.capacity := mFields.count;
-    for fld in mFields do result.addField(fld.clone(result));
-  end;
-  SetLength(result.mTrigTypes, Length(mTrigTypes));
-  for f := 0 to High(mTrigTypes) do result.mTrigTypes[f] := mTrigTypes[f];
   result.mHeader := mHeader;
   result.mBinBlock := mBinBlock;
   result.mHeaderRec := mHeaderRec;
   result.mTagInt := mTagInt;
   result.mTagPtr := mTagPtr;
+  if (mFields.count > 0) then
+  begin
+    result.mFields.capacity := mFields.count;
+    for fld in mFields do result.addField(fld.clone(result, registerIn));
+  end;
+  SetLength(result.mTrigTypes, Length(mTrigTypes));
+  for f := 0 to High(mTrigTypes) do result.mTrigTypes[f] := mTrigTypes[f];
+  if (registerIn <> nil) then registerIn.regrec(result);
 end;
 
 
@@ -2130,83 +2156,6 @@ begin
     fld.varvalue := val;
   end;
 end;
-
-
-{
-procedure TDynRecord.setUserField (const fldname: AnsiString; v: LongInt);
-var
-  fld: TDynField;
-begin
-  if (Length(fldname) = 0) then exit;
-  fld := field[fldname];
-  if (fld <> nil) then
-  begin
-    if (fld.mType <> fld.TType.TInt) or (fld.mEBS <> fld.TEBS.TNone) then
-    begin
-      raise Exception.Create(Format('invalid user field ''%s'' type', [fld.name]));
-    end;
-  end
-  else
-  begin
-    fld := TDynField.Create(fldname, fld.TType.TInt);
-    fld.mOwner := self;
-    fld.mIVal := v;
-    fld.mInternal := true;
-    fld.mDefined := true;
-    addField(fld);
-  end;
-end;
-
-
-procedure TDynRecord.setUserField (const fldname: AnsiString; v: AnsiString);
-var
-  fld: TDynField;
-begin
-  if (Length(fldname) = 0) then exit;
-  fld := field[fldname];
-  if (fld <> nil) then
-  begin
-    if (fld.mType <> fld.TType.TString) or (fld.mEBS <> fld.TEBS.TNone) then
-    begin
-      raise Exception.Create(Format('invalid user field ''%s'' type', [fld.name]));
-    end;
-  end
-  else
-  begin
-    fld := TDynField.Create(fldname, fld.TType.TString);
-    fld.mOwner := self;
-    fld.mSVal := v;
-    fld.mInternal := true;
-    fld.mDefined := true;
-    addField(fld);
-  end;
-end;
-
-
-procedure TDynRecord.setUserField (const fldname: AnsiString; v: Boolean);
-var
-  fld: TDynField;
-begin
-  if (Length(fldname) = 0) then exit;
-  fld := field[fldname];
-  if (fld <> nil) then
-  begin
-    if (fld.mType <> fld.TType.TBool) or (fld.mEBS <> fld.TEBS.TNone) then
-    begin
-      raise Exception.Create(Format('invalid user field ''%s'' type', [fld.name]));
-    end;
-  end
-  else
-  begin
-    fld := TDynField.Create(fldname, fld.TType.TBool);
-    fld.mOwner := self;
-    fld.mIVal := Integer(v);
-    fld.mInternal := true;
-    fld.mDefined := true;
-    addField(fld);
-  end;
-end;
-}
 
 
 procedure TDynRecord.parseDef (pr: TTextParser);
@@ -2441,7 +2390,7 @@ begin
             for f := 0 to (bsize div rec.mSize)-1 do
             begin
               mst.setup(buf+f*rec.mSize, rec.mSize);
-              rec := rect.clone();
+              rec := rect.clone(self);
               rec.mHeaderRec := self;
               rec.parseBinValue(mst);
               rec.mId := Format('%s%d', [rec.mName, f]);
@@ -2709,7 +2658,7 @@ begin
       if (trc <> nil) then
       begin
         {$IF DEFINED(D2D_DYNREC_PROFILER)}stt := curTimeMicro();{$ENDIF}
-        rec := trc.clone();
+        rec := trc.clone(mHeaderRec);
         {$IF DEFINED(D2D_DYNREC_PROFILER)}profCloneRec := curTimeMicro()-stt;{$ENDIF}
         rec.mHeaderRec := mHeaderRec;
         try
@@ -3147,7 +3096,7 @@ begin
   result := nil;
   try
     pr.expectId(headerType.name);
-    res := headerType.clone();
+    res := headerType.clone(nil);
     res.mHeaderRec := res;
     res.parseValue(pr);
     result := res;
@@ -3164,7 +3113,7 @@ var
 begin
   result := nil;
   try
-    res := headerType.clone();
+    res := headerType.clone(nil);
     res.mHeaderRec := res;
     res.parseBinValue(st);
     result := res;

@@ -868,6 +868,7 @@ begin
       begin
         pan := g_Map_PanelAtPoint(x, y, GridTagObstacle);
       end;
+      if (pan <> nil) then continue;
       env := TEnvType.EAir;
 
       // color

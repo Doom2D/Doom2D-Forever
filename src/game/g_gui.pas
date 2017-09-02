@@ -2810,61 +2810,66 @@ begin
   try
     map := g_Map_ParseMap(Data, Len);
   except
+    FreeMem(Data);
     map.Free();
-    raise;
+    //raise;
+    exit;
   end;
 
   FreeMem(Data);
 
-  panlist := map.field['panel'];
-  //header := GetMapHeader(map);
+  try
+    panlist := map.field['panel'];
+    //header := GetMapHeader(map);
 
-  FMapSize.X := map.Width div 16;
-  FMapSize.Y := map.Height div 16;
+    FMapSize.X := map.Width div 16;
+    FMapSize.Y := map.Height div 16;
 
-  rX := Ceil(map.Width / (MAPPREVIEW_WIDTH*256.0));
-  rY := Ceil(map.Height / (MAPPREVIEW_HEIGHT*256.0));
-  FScale := max(rX, rY);
+    rX := Ceil(map.Width / (MAPPREVIEW_WIDTH*256.0));
+    rY := Ceil(map.Height / (MAPPREVIEW_HEIGHT*256.0));
+    FScale := max(rX, rY);
 
-  FMapData := nil;
+    FMapData := nil;
 
-  if (panlist <> nil) then
-  begin
-    for pan in panlist do
+    if (panlist <> nil) then
     begin
-      if (pan.PanelType and (PANEL_WALL or PANEL_CLOSEDOOR or
-                                           PANEL_STEP or PANEL_WATER or
-                                           PANEL_ACID1 or PANEL_ACID2)) <> 0 then
+      for pan in panlist do
       begin
-        SetLength(FMapData, Length(FMapData)+1);
-        with FMapData[High(FMapData)] do
+        if (pan.PanelType and (PANEL_WALL or PANEL_CLOSEDOOR or
+                                             PANEL_STEP or PANEL_WATER or
+                                             PANEL_ACID1 or PANEL_ACID2)) <> 0 then
         begin
-          X1 := pan.X div 16;
-          Y1 := pan.Y div 16;
-
-          X2 := (pan.X + pan.Width) div 16;
-          Y2 := (pan.Y + pan.Height) div 16;
-
-          X1 := Trunc(X1/FScale + 0.5);
-          Y1 := Trunc(Y1/FScale + 0.5);
-          X2 := Trunc(X2/FScale + 0.5);
-          Y2 := Trunc(Y2/FScale + 0.5);
-
-          if (X1 <> X2) or (Y1 <> Y2) then
+          SetLength(FMapData, Length(FMapData)+1);
+          with FMapData[High(FMapData)] do
           begin
-            if X1 = X2 then
-              X2 := X2 + 1;
-            if Y1 = Y2 then
-              Y2 := Y2 + 1;
-          end;
+            X1 := pan.X div 16;
+            Y1 := pan.Y div 16;
 
-          PanelType := pan.PanelType;
+            X2 := (pan.X + pan.Width) div 16;
+            Y2 := (pan.Y + pan.Height) div 16;
+
+            X1 := Trunc(X1/FScale + 0.5);
+            Y1 := Trunc(Y1/FScale + 0.5);
+            X2 := Trunc(X2/FScale + 0.5);
+            Y2 := Trunc(Y2/FScale + 0.5);
+
+            if (X1 <> X2) or (Y1 <> Y2) then
+            begin
+              if X1 = X2 then
+                X2 := X2 + 1;
+              if Y1 = Y2 then
+                Y2 := Y2 + 1;
+            end;
+
+            PanelType := pan.PanelType;
+          end;
         end;
       end;
     end;
+  finally
+    //writeln('freeing map');
+    map.Free();
   end;
-
-  map.Free();
 end;
 
 procedure TGUIMapPreview.ClearMap();

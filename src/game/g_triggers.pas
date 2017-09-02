@@ -2128,7 +2128,7 @@ begin
   Trigger.mapIndex := mapidx;
   if (Trigger.trigData.trigRec <> nil) then
   begin
-    Trigger.trigData := Trigger.trigData.trigRec.clone();
+    Trigger.trigData := Trigger.trigData.trigRec.clone({Trigger.trigData.headerRec}nil);
   end
   else
   begin

@@ -273,6 +273,7 @@ function g_Map_MaxY (): Integer; inline; begin if (mapGrid <> nil) then result :
 var
   dfmapdef: TDynMapDef = nil;
 
+
 procedure loadMapDefinition ();
 var
   pr: TTextParser = nil;
@@ -280,13 +281,15 @@ var
   WAD: TWADFile = nil;
 begin
   if (dfmapdef <> nil) then exit;
+
   try
     e_LogWritefln('parsing "mapdef.txt"...', []);
     st := openDiskFileRO(DataDir+'mapdef.txt');
+    e_LogWritefln('found local "%smapdef.txt"', [DataDir]);
   except
     st := nil;
-    e_LogWritefln('local "%smapdef.txt" not found', [DataDir]);
   end;
+
   if (st = nil) then
   begin
     WAD := TWADFile.Create();
@@ -301,15 +304,22 @@ begin
     end;
   end;
 
-  if (st = nil) then
-  begin
-    //raise Exception.Create('cannot open "mapdef.txt"');
-    e_LogWritefln('using default "mapdef.txt"...', [], MSG_WARNING);
-    pr := TStrTextParser.Create(defaultMapDef);
-  end
-  else
-  begin
-    pr := TFileTextParser.Create(st);
+  try
+    if (st = nil) then
+    begin
+      //raise Exception.Create('cannot open "mapdef.txt"');
+      e_LogWriteln('using default "mapdef.txt"...');
+      pr := TStrTextParser.Create(defaultMapDef);
+    end
+    else
+    begin
+      pr := TFileTextParser.Create(st);
+    end;
+  except on e: Exception do
+    begin
+      e_LogWritefln('something is VERY wrong here! -- ', [e.message]);
+      raise;
+    end;
   end;
 
   try
@@ -331,6 +341,8 @@ var
 begin
   result := nil;
   if (dataLen < 4) then exit;
+
+  if (dfmapdef = nil) then writeln('need to load mapdef');
   loadMapDefinition();
   if (dfmapdef = nil) then raise Exception.Create('internal map loader error');
 
@@ -340,6 +352,7 @@ begin
   begin
     // binary map
     try
+      //e_LogWriteln('parsing binary map...');
       result := dfmapdef.parseBinMap(wst);
     except on e: Exception do
       begin
@@ -356,6 +369,7 @@ begin
     // text map
     pr := TFileTextParser.Create(wst);
     try
+      //e_LogWriteln('parsing text map...');
       result := dfmapdef.parseMap(pr);
     except on e: Exception do
       begin
@@ -368,6 +382,7 @@ begin
     end;
     pr.Free(); // will free `wst`
   end;
+  //e_LogWriteln('map parsed.');
 end;
 
 
@@ -1313,7 +1328,7 @@ begin
     end
     else
     begin
-      trigData := Trigger.trigRec.clone();
+      trigData := Trigger.trigRec.clone(nil);
     end;
   end;
 
@@ -2203,6 +2218,8 @@ begin
     mapReader := g_Map_ParseMap(Data, Len);
   except
     mapReader := nil;
+    FreeMem(Data);
+    exit;
   end;
 
   FreeMem(Data);
