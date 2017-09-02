@@ -447,6 +447,7 @@ var
   pan: TPanel;
   dX, dY: SmallInt;
   ex, ey: Integer;
+  checkEnv: Boolean;
 begin
   if not gpart_dbg_phys_enabled then goto _done;
 
@@ -562,15 +563,21 @@ begin
     begin
       // has some horizontal velocity
       pan := g_Map_traceToNearest(x, y, x+dX, y+dY, GridTagObstacle, @ex, @ey);
-      if (x <> ex) then begin floorY := Unknown; ceilingY := Unknown; end; // dunno yet
+      checkEnv := (x <> ex);
       x := ex;
       y := ey;
+      if checkEnv then
+      begin
+        // dunno yet
+        floorY := Unknown;
+        ceilingY := Unknown;
+        // check environment (air/liquid)
+        if (g_Map_PanelAtPoint(x, y, GridTagLiquid) <> nil) then env := TEnvType.ELiquid else env := TEnvType.EAir;
+      end;
       if (pan <> nil) then
       begin
         // we stuck
         // the only case when we can have both ceiling and wall is corner; stick to wall in this case
-        // check environment (air/liquid)
-        if (g_Map_PanelAtPoint(x, y, GridTagLiquid) <> nil) then env := TEnvType.ELiquid else env := TEnvType.EAir;
         // check if we stuck to a wall
         if (dX < 0) then dX := -1 else dX := 1;
         if (g_Map_PanelAtPoint(x+dX, y, GridTagObstacle) <> nil) then
@@ -602,6 +609,7 @@ begin
         begin
           // falling down
           if (floorY = Unknown) then findFloor(); // need to do this anyway
+          if (floorType = TFloorType.LiquidOut) then env := TEnvType.ELiquid else env := TEnvType.EAir;
           y += dY;
           //e_LogWritefln('floorY=%s; newy=%s; dY=%s; floorType=%s', [floorY, y, dY, floorType]);
           if (y >= floorY) then
@@ -670,16 +678,22 @@ _done:
       time += 1;
       if (liveTime <= 0) then begin die(); exit; end;
       ex := 255-trunc(255.0*time/liveTime);
-      if (ex >= 250) then begin die(); exit; end;
-      if (ex < 0) then ex := 0;
+      if (ex <= 10) then begin die(); exit; end;
+      if (ex > 250) then ex := 255;
       alpha := Byte(ex);
     end;
   end
   else
   begin
-    // water will disappear in water (?)
-    if (env = TEnvType.ELiquid) then die();
+    // water will disappear in any liquid
+    if (env = TEnvType.ELiquid) then begin die(); exit; end;
     time += 1;
+    // dry water
+    if (liveTime <= 0) then begin die(); exit; end;
+    ex := 255-trunc(255.0*time/liveTime);
+    if (ex <= 10) then begin die(); exit; end;
+    if (ex > 250) then ex := 255;
+    alpha := Byte(ex);
   end;
 end;
 
@@ -1466,7 +1480,7 @@ begin
         if alive and (x >= sX) and (y >= sY) and (x <= sX+sWidth) and (sY <= sY+sHeight) then
         begin
           glColor4ub(red, green, blue, alpha);
-          glVertex2i(x, y);
+          glVertex2f(x+0.37, y+0.37);
         end;
       end;
     end;
