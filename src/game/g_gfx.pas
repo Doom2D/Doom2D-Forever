@@ -857,20 +857,18 @@ begin
       // check for level bounds
       if (x < g_Map_MinX) or (y < g_Map_MinY) or (x > g_Map_MaxX) or (y > g_Map_MaxY) then continue;
 
-      // in what environment we are starting in?
-      pan := g_Map_PanelAtPoint(x, y, (GridTagObstacle or GridTagLiquid));
-      if (pan <> nil) then
+      // this hack will allow water spawned in water to fly out
+      // it can happen when player fell from a huge height (see "DOOM2D.WAD:\MAP03", for example)
+      if (fVelY >= 0) then
       begin
-        // either in a wall, or in a liquid
-        //if ((pan.tag and GridTagObstacle) <> 0) then continue; // don't spawn in walls
-        //env := TEnvType.ELiquid;
-        //continue;
-        env := TEnvType.EAir;
+        // in what environment we are starting in?
+        pan := g_Map_PanelAtPoint(x, y, (GridTagObstacle or GridTagLiquid));
       end
       else
       begin
-        env := TEnvType.EAir;
+        pan := g_Map_PanelAtPoint(x, y, GridTagObstacle);
       end;
+      env := TEnvType.EAir;
 
       // color
       case color of
