@@ -46,14 +46,14 @@ const
 procedure g_GFX_Init ();
 procedure g_GFX_Free ();
 
-procedure g_GFX_Blood (fX, fY: Integer; Count: Word; vx, vy: Integer;
-                      DevX, DevY: Word; CR, CG, CB: Byte; Kind: Byte = BLOOD_NORMAL);
-procedure g_GFX_Spark (fX, fY: Integer; Count: Word; Angle: SmallInt; DevX, DevY: Byte);
-procedure g_GFX_Water (fX, fY: Integer; Count: Word; fVelX, fVelY: Single; DevX, DevY, Color: Byte);
-procedure g_GFX_SimpleWater (fX, fY: Integer; Count: Word; fVelX, fVelY: Single; DefColor, CR, CG, CB: Byte);
-procedure g_GFX_Bubbles (fX, fY: Integer; Count: Word; DevX, DevY: Byte);
+procedure g_GFX_Blood (fX, fY: Integer; count: Word; vx, vy: Integer;
+                       devX, devY: Word; cr, cg, cb: Byte; kind: Byte=BLOOD_NORMAL);
+procedure g_GFX_Spark (fX, fY: Integer; count: Word; angle: SmallInt; devX, devY: Byte);
+procedure g_GFX_Water (fX, fY: Integer; count: Word; fVelX, fVelY: Single; devX, devY, Color: Byte);
+procedure g_GFX_SimpleWater (fX, fY: Integer; count: Word; fVelX, fVelY: Single; defColor, cr, cg, cb: Byte);
+procedure g_GFX_Bubbles (fX, fY: Integer; count: Word; devX, devY: Byte);
 
-procedure g_GFX_SetMax (Count: Integer);
+procedure g_GFX_SetMax (count: Integer);
 function  g_GFX_GetMax (): Integer;
 
 procedure g_GFX_OnceAnim (X, Y: Integer; Anim: TAnimation; AnimType: Byte = 0);
@@ -88,7 +88,10 @@ type
     // Wall: floorY is just before floor
     // LiquidIn: floorY is liquid *start* (i.e. just in a liquid)
     // LiquidOut: floorY is liquid *end* (i.e. just out of a liquid)
+  TEnvType = (EAir, ELiquid, EWall); // where particle is now
 
+  // note: this MUST be record, so we can keep it in
+  // dynamic array and has sequential memory access pattern
   PParticle = ^TParticle;
   TParticle = record
     x, y: Integer;
@@ -107,8 +110,9 @@ type
     justSticked: Boolean; // not used
     floorY: Integer; // actually, floor-1; `Unknown`: unknown
     floorType: TFloorType;
+    env: TEnvType; // where particle is now
     ceilingY: Integer; // actually, ceiling+1; `Unknown`: unknown
-    wallEndY: Integer; // if we stuck to a wall, this is where wall ends; will never be > floorY
+    wallEndY: Integer; // if we stuck to a wall, this is where wall ends
     // for all
     onGround: Boolean;
     awaken: Boolean;
@@ -122,6 +126,9 @@ type
 
     procedure findFloor (force: Boolean=false); // this updates `floorY` if forced or Unknown
     procedure findCeiling (force: Boolean=false); // this updates `ceilingY` if forced or Unknown
+
+    procedure freeze (); inline; // remove velocities and acceleration
+    procedure sleep (); inline; // switch to sleep mode
 
     function isSleeping (): Boolean; inline;
     procedure awake (); inline;
@@ -243,27 +250,57 @@ begin
 end;
 
 
+// remove velocities and acceleration
+procedure TParticle.freeze (); inline;
+begin
+  // stop right there, you criminal scum!
+  velX := 0;
+  velY := 0;
+  accelX := 0;
+  accelY := 0;
+end;
+
+
+// switch to sleep mode
+procedure TParticle.sleep (); inline;
+begin
+  state := TPartState.Sleeping;
+  freeze();
+end;
+
+
 procedure TParticle.findFloor (force: Boolean=false);
 var
   ex: Integer;
   pan: TPanel;
 begin
   if (not force) and (floorY <> Unknown) then exit;
-  // are we in a liquid?
-  pan := g_Map_PanelAtPoint(x, y, (GridTagObstacle or GridTagLiquid));
-  if (pan <> nil) then
+  // stuck in the wall? rescan, 'cause it can be mplat
+  if (env = TEnvType.EWall) then
   begin
-    // either in a wall, or in a liquid
-    if ((pan.tag and GridTagObstacle) <> 0) then
+    pan := g_Map_PanelAtPoint(x, y, (GridTagObstacle or GridTagLiquid));
+    if (pan <> nil) then
     begin
-      // we are in the wall, wtf?!
-      floorY := y;
-      floorType := TFloorType.Wall;
-      state := TPartState.Sleeping; // anyway
-      exit;
+      // either in a wall, or in a liquid
+      if ((pan.tag and GridTagObstacle) <> 0) then
+      begin
+        // we are in the wall, wtf?!
+        floorY := y;
+        env := TEnvType.EWall;
+        floorType := TFloorType.Wall;
+        state := TPartState.Sleeping; // anyway
+        exit;
+      end;
+      // we are in liquid, trace to liquid end
+      env := TEnvType.ELiquid;
     end;
-    // we are in liquid, trace to liquid end
-    floorType := TFloorType.LiquidOut; // exiting liquid
+  end;
+  // are we in a liquid?
+  if (env = TEnvType.ELiquid) then
+  begin
+    // trace out of the liquid
+    //env := TEnvType.ELiquid;
+    floorType := TFloorType.LiquidOut;
     //e_LogWritefln('tracing out of a liquid; floorY=%s; y=%s', [floorY, y]);
     mapGrid.traceOrthoRayWhileIn(ex, floorY, x, y, x, g_Map_MaxY, GridTagLiquid);
     floorY += 1; // so `floorY` is just out of a liquid
@@ -271,7 +308,9 @@ begin
   end
   else
   begin
-    // not in a wall
+    // in the air
+    assert(env = TEnvType.EAir);
+    //env := TEnvType.EAir;
     pan := g_Map_traceToNearest(x, y, x, g_Map_MaxY, (GridTagObstacle or GridTagLiquid), @ex, @floorY);
     if (pan <> nil) then
     begin
@@ -324,141 +363,12 @@ end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-function isBlockedAt (x, y: Integer): Boolean; inline;
-begin
-  if not gpart_dbg_phys_enabled then begin result := false; exit; end;
-  result := g_Map_HasAnyPanelAtPoint(x, y, (PANEL_WALL or PANEL_OPENDOOR or PANEL_CLOSEDOOR or PANEL_STEP));
-end;
-
-// ???
-function isWallAt (x, y: Integer): Boolean; inline;
-begin
-  if not gpart_dbg_phys_enabled then begin result := false; exit; end;
-  result := g_Map_HasAnyPanelAtPoint(x, y, (PANEL_WALL or PANEL_STEP));
-end;
-
-function isLiftUpAt (x, y: Integer): Boolean; inline;
-begin
-  if not gpart_dbg_phys_enabled then begin result := false; exit; end;
-  result := g_Map_HasAnyPanelAtPoint(x, y, PANEL_LIFTUP);
-end;
-
-function isLiftDownAt (x, y: Integer): Boolean; inline;
-begin
-  if not gpart_dbg_phys_enabled then begin result := false; exit; end;
-  result := g_Map_HasAnyPanelAtPoint(x, y, PANEL_LIFTDOWN);
-end;
-
-function isLiftLeftAt (x, y: Integer): Boolean; inline;
-begin
-  if not gpart_dbg_phys_enabled then begin result := false; exit; end;
-  result := g_Map_HasAnyPanelAtPoint(x, y, PANEL_LIFTLEFT);
-end;
-
-function isLiftRightAt (x, y: Integer): Boolean; inline;
-begin
-  if not gpart_dbg_phys_enabled then begin result := false; exit; end;
-  result := g_Map_HasAnyPanelAtPoint(x, y, PANEL_LIFTRIGHT);
-end;
-
-function isLiquidAt (x, y: Integer): Boolean; inline;
-begin
-  if not gpart_dbg_phys_enabled then begin result := false; exit; end;
-  result := g_Map_HasAnyPanelAtPoint(x, y, (PANEL_WATER or PANEL_ACID1 or PANEL_ACID2));
-end;
-
-function isAnythingAt (x, y: Integer): Boolean; inline;
-begin
-  if not gpart_dbg_phys_enabled then begin result := false; exit; end;
-  result := g_Map_HasAnyPanelAtPoint(x, y, (PANEL_WALL or PANEL_CLOSEDOOR or PANEL_OPENDOOR or PANEL_WATER or PANEL_ACID1 or PANEL_ACID2 or PANEL_STEP or PANEL_LIFTUP or PANEL_LIFTDOWN or PANEL_LIFTLEFT or PANEL_LIFTRIGHT));
-end;
-
-
-// ////////////////////////////////////////////////////////////////////////// //
-// st: set mark
-// t: mark type
-// currently unused
-procedure g_Mark(x, y, Width, Height: Integer; t: Byte; st: Boolean=true);
-var
-  cx, ex, ey: Integer;
-  ts: Integer;
-begin
-  if (Width < 1) or (Height < 1) then exit;
-  // make some border, so we'll hit particles lying around the panel
-  x -= 1; Width += 2;
-  y -= 1; Height += 2;
-  ex := x+Width;
-  ey := y+Height;
-  ts := mapGrid.tileSize;
-  while (y < ey) do
-  begin
-    cx := x;
-    while (cx < ex) do
-    begin
-      awmSet(cx, y);
-      Inc(cx, ts);
-    end;
-    Inc(y, ts);
-  end;
-end;
-
-
-// ////////////////////////////////////////////////////////////////////////// //
-{$IF DEFINED(HAS_COLLIDE_BITMAP)}
-procedure CreateCollideMap();
-var
-  a: Integer;
-begin
-  //g_Game_SetLoadingText(_lc[I_LOAD_COLLIDE_MAP]+' 1/6', 0, False);
-  //SetLength(gCollideMap, gMapInfo.Height+1);
-  //for a := 0 to High(gCollideMap) do SetLength(gCollideMap[a], gMapInfo.Width+1);
-end;
-{$ENDIF}
-
-
-procedure g_GFX_Init();
-begin
-  //CreateCollideMap();
-  awmSetup();
-{$IFDEF HEADLESS}
-  gpart_dbg_enabled := False;
-{$ENDIF}
-end;
-
-
-procedure g_GFX_Free();
-var
-  a: Integer;
-begin
-  Particles := nil;
-  SetLength(Particles, MaxParticles);
-  for a := 0 to High(Particles) do Particles[a].die();
-  CurrentParticle := 0;
-
-  if (OnceAnims <> nil) then
-  begin
-    for a := 0 to High(OnceAnims) do OnceAnims[a].Animation.Free();
-    OnceAnims := nil;
-  end;
-
-  awakeMap := nil;
-  // why not?
-  awakeMapH := -1;
-  awakeMapW := -1;
-end;
-
-
-// ////////////////////////////////////////////////////////////////////////// //
 procedure TParticle.thinkerBlood ();
   procedure stickToCeiling ();
   begin
     state := TPartState.Stuck;
     stickDX := 0;
-    // stop right there, you criminal scum!
-    velX := 0;
-    velY := 0;
-    accelX := 0;
-    accelY := 0;
+    freeze();
     ceilingY := y; // yep
   end;
 
@@ -468,11 +378,7 @@ procedure TParticle.thinkerBlood ();
   begin
     state := TPartState.Stuck;
     if (dX > 0) then stickDX := 1 else stickDX := -1;
-    // stop right there, you criminal scum!
-    velX := 0;
-    velY := 0;
-    accelX := 0;
-    accelY := 0;
+    freeze();
     // find next floor transition
     findFloor();
     // find `wallEndY`
@@ -483,11 +389,7 @@ procedure TParticle.thinkerBlood ();
   procedure hitAFloor ();
   begin
     state := TPartState.Sleeping; // we aren't moving anymore
-    // stop right there, you criminal scum!
-    velX := 0;
-    velY := 0;
-    accelX := 0;
-    accelY := 0;
+    freeze();
     floorY := y; // yep
     floorType := TFloorType.Wall; // yep
   end;
@@ -534,17 +436,6 @@ procedure TParticle.thinkerBlood ();
     end;
   end;
 
-  // switch to sleep mode
-  procedure sleep ();
-  begin
-    state := TPartState.Sleeping;
-    // stop right there, you criminal scum!
-    velX := 0;
-    velY := 0;
-    accelX := 0;
-    accelY := 0;
-  end;
-
   // switch to freefall mode
   procedure freefall ();
   begin
@@ -578,7 +469,7 @@ begin
   if gAdvBlood then
   begin
     // still check for air streams when sleeping
-    if (state = TPartState.Sleeping) and not checkAirStreams() then exit;
+    if (state = TPartState.Sleeping) then begin checkAirStreams(); goto _done; end; // so blood will dissolve
 
     // process stuck particles
     if (state = TPartState.Stuck) then
@@ -586,6 +477,7 @@ begin
       // stuck to a ceiling?
       if (stickDX = 0) then
       begin
+        // yeah, stuck to a ceiling
         assert(ceilingY <> Unknown);
         // dropped from a ceiling?
         if (y > ceilingY) then
@@ -679,85 +571,105 @@ begin
       end;
     end;
 
-    // horizontal movement
+    // trace movement
     if (dX <> 0) then
     begin
-      pan := g_Map_traceToNearest(x, y, x+dX, y, (GridTagWall or GridTagDoor or GridTagStep), @ex, @ey);
+      // has some horizontal velocity
+      pan := g_Map_traceToNearest(x, y, x+dX, y+dY, GridTagObstacle, @ex, @ey);
       if (x <> ex) then begin floorY := Unknown; ceilingY := Unknown; end; // dunno yet
       x := ex;
+      y := ey;
       if (x < g_Map_MinX) or (x > g_Map_MaxX) then begin die(); exit; end;
-      if (pan <> nil) then stickToWall(dX); // nope, we stuck
-    end;
-
-    // vertical movement
-    if (dY < 0) then
-    begin
-      // flying up
-      if (ceilingY = Unknown) then findCeiling(); // need to do this anyway
-      y += dY;
-      if (y <= ceilingY) then begin y := ceilingY; stickToCeiling(); end; // oops, hit a ceiling
-    end
-    else
-    begin
-      while (dY > 0) do
+      if (pan <> nil) then
       begin
-        // falling down
-        if (floorY = Unknown) then findFloor(); // need to do this anyway
-        y += dY;
-        //e_LogWritefln('floorY=%s; newy=%s; dY=%s; floorType=%s', [floorY, y, dY, floorType]);
-        if (y >= floorY) then
+        // we stuck
+        // the only case when we can have both ceiling and wall is corner; stick to wall in this case
+        // check environment (air/liquid)
+        if (g_Map_PanelAtPoint(x, y, GridTagLiquid) <> nil) then env := TEnvType.ELiquid else env := TEnvType.EAir;
+        // check if we stuck to a wall
+        if (dX < 0) then dX := -1 else dX := 1;
+        if (g_Map_PanelAtPoint(x+dX, y, GridTagObstacle) <> nil) then
         begin
-          // floor transition
-          dY := y-floorY;
-          y := floorY;
-          //e_LogWritefln('  HIT FLOORY: floorY=%s; newy=%s; dY=%s; floorType=%s', [floorY, y, dY, floorType]);
-          case floorType of
-            TFloorType.Wall: // hit the ground
-              begin
-                hitAFloor();
-                break; // done with vertical movement
-              end;
-            TFloorType.LiquidIn: // entering the liquid
-              begin
-                // rescan, so we'll know when we'll exit the liquid
-                findFloor(true); // force rescan
-              end;
-            TFloorType.LiquidOut: // exiting the liquid
-              begin
-                // rescan, so we'll know when we'll enter something interesting
-                findFloor(true); // force rescan
-                if (floorType = TFloorType.Wall) and (floorY = y) then
-                begin
-                  hitAFloor();
-                  break; // done with vertical movement
-                end;
-              end;
-          end;
+          // stuck to a wall
+          stickToWall(dX);
         end
         else
         begin
-          break; // done with vertical movement
+          // stuck to a ceiling
+          stickToCeiling();
+        end;
+      end;
+    end
+    else if (dY <> 0) then
+    begin
+      // has only vertical velocity
+      if (dY < 0) then
+      begin
+        // flying up
+        if (ceilingY = Unknown) then findCeiling(); // need to do this anyway
+        y += dY;
+        if (y <= ceilingY) then begin y := ceilingY; stickToCeiling(); end; // oops, hit a ceiling
+        // environmend didn't changed
+      end
+      else
+      begin
+        while (dY > 0) do
+        begin
+          // falling down
+          if (floorY = Unknown) then findFloor(); // need to do this anyway
+          y += dY;
+          //e_LogWritefln('floorY=%s; newy=%s; dY=%s; floorType=%s', [floorY, y, dY, floorType]);
+          if (y >= floorY) then
+          begin
+            // floor transition
+            dY := y-floorY;
+            y := floorY;
+            //e_LogWritefln('  HIT FLOORY: floorY=%s; newy=%s; dY=%s; floorType=%s', [floorY, y, dY, floorType]);
+            case floorType of
+              TFloorType.Wall: // hit the ground
+                begin
+                  // environmend didn't changed
+                  hitAFloor();
+                  break; // done with vertical movement
+                end;
+              TFloorType.LiquidIn: // entering the liquid
+                begin
+                  // we're entered the liquid
+                  env := TEnvType.ELiquid;
+                  // rescan, so we'll know when we'll exit the liquid
+                  findFloor(true); // force rescan
+                end;
+              TFloorType.LiquidOut: // exiting the liquid
+                begin
+                  // we're exited the liquid
+                  env := TEnvType.EAir;
+                  // rescan, so we'll know when we'll enter something interesting
+                  findFloor(true); // force rescan
+                  if (floorType = TFloorType.Wall) and (floorY = y) then
+                  begin
+                    hitAFloor();
+                    break; // done with vertical movement
+                  end;
+                end;
+            end;
+          end
+          else
+          begin
+            break; // done with vertical movement
+          end;
         end;
       end;
     end;
-    if (y < g_Map_MinY) or (y > g_Map_MaxY) then begin die(); exit; end;
   end // if gAdvBlood
   else
   begin
     // simple blood
     dX := Round(velX);
     dY := Round(velY);
-    if (x+dX > g_Map_MaxX) or (y+dY > g_Map_MaxY) or (x+dX < g_Map_MinX) or (y+dY < g_Map_MinY) or isBlockedAt(x+dX, y+dY) then
-    begin
-      // Стена/дверь/граница
-      die();
-      exit;
-    end
-    else
-    begin
-      y += dY;
-      x += dX;
-    end;
+    y += dY;
+    x += dX;
+    if (x > g_Map_MaxX) or (y > g_Map_MaxY) or (x < g_Map_MinX) or (y < g_Map_MinY) then begin die(); exit; end;
+    if (g_Map_PanelAtPoint(x, y, GridTagObstacle) <> nil) then begin die(); exit; end;
   end;
 
 _done:
@@ -765,64 +677,83 @@ _done:
   velY += accelY;
 
   // blood will dissolve in other liquids
-  if (floorType = TFloorType.LiquidOut) then
+  if (env = TEnvType.ELiquid) then
   begin
     time += 1;
-    alpha := 255-trunc((255.0*time)/liveTime);
+    ex := 255-trunc((255.0*time)/liveTime);
+    if (ex >= 255) then begin die(); exit; end;
+    if (ex < 0) then ex := 0;
+    alpha := Byte(ex);
   end;
-  (*
-  // Кровь растворяется в жидкости
-  if isLiquidAt(x, y) {ByteBool(gCollideMap[Y, X] and MARK_LIQUID)} then
-  begin
-    time += 1;
-    alpha := 255-trunc((255.0*time)/liveTime);
-  end;
-  *)
 end;
 
 
-procedure g_GFX_SparkVel (fX, fY: Integer; Count: Word; VX, VY: Integer; DevX, DevY: Byte); forward;
+procedure g_GFX_SparkVel (fX, fY: Integer; count: Word; VX, VY: Integer; devX, devY: Byte); forward;
 
-procedure g_GFX_Blood (fX, fY: Integer; Count: Word; vx, vy: Integer;
-                       DevX, DevY: Word; CR, CG, CB: Byte; Kind: Byte = BLOOD_NORMAL);
+procedure g_GFX_Blood (fX, fY: Integer; count: Word; vx, vy: Integer;
+                       devX, devY: Word; cr, cg, cb: Byte; kind: Byte = BLOOD_NORMAL);
+
+  function genColor (cbase, crnd: Integer; def: Byte=0): Byte;
+  begin
+    if (cbase > 0) then
+    begin
+      cbase += crnd;
+           if (cbase < 0) then result := 0
+      else if (cbase > 255) then result := 255
+      else result := Byte(cbase);
+    end
+    else
+    begin
+      result := def;
+    end;
+  end;
+
 var
   a: Integer;
-  DevX1, DevX2, DevY1, DevY2: Word;
+  devX1, devX2, devY1, devY2: Word;
   l: Integer;
-  CRnd: Byte;
-  CC: SmallInt;
+  crnd: Integer;
+  pan: TPanel;
 begin
   if not gpart_dbg_enabled then Exit;
 
-  if (Kind = BLOOD_SPARKS) then
+  if (kind = BLOOD_SPARKS) then
   begin
-    g_GFX_SparkVel(fX, fY, 2+Random(2), -VX div 2, -VY div 2, DevX, DevY);
+    g_GFX_SparkVel(fX, fY, 2+Random(2), -VX div 2, -VY div 2, devX, devY);
     exit;
   end;
 
   l := Length(Particles);
   if (l = 0) then exit;
-  if (Count > l) then Count := l;
+  if (count > l) then count := l;
 
-  DevX1 := DevX div 2;
-  DevX2 := DevX+1;
-  DevY1 := DevY div 2;
-  DevY2 := DevY+1;
+  devX1 := devX div 2;
+  devX2 := devX+1;
+  devY1 := devY div 2;
+  devY2 := devY+1;
 
-  for a := 1 to Count do
+  for a := 1 to count do
   begin
     with Particles[CurrentParticle] do
     begin
-      x := fX-DevX1+Random(DevX2);
-      y := fY-DevY1+Random(DevY2);
+      x := fX-devX1+Random(devX2);
+      y := fY-devY1+Random(devY2);
 
-      {
-      if (X < 0) or (X > gMapInfo.Width-1) or
-         (Y < 0) or (Y > gMapInfo.Height-1) or
-         ByteBool(gCollideMap[Y, X] and MARK_WALL) then
-        Continue;
-      }
-      if isWallAt(x, y) then continue;
+      // check for level bounds
+      if (x < g_Map_MinX) or (y < g_Map_MinY) or (x > g_Map_MaxX) or (y > g_Map_MaxY) then continue;
+
+      // in what environment we are starting in?
+      pan := g_Map_PanelAtPoint(x, y, (GridTagObstacle or GridTagLiquid));
+      if (pan <> nil) then
+      begin
+        // either in a wall, or in a liquid
+        if ((pan.tag and GridTagObstacle) <> 0) then continue; // don't spawn in walls
+        env := TEnvType.ELiquid;
+      end
+      else
+      begin
+        env := TEnvType.EAir;
+      end;
 
       velX := vx+(Random-Random)*3;
       velY := vy+(Random-Random)*3;
@@ -835,60 +766,74 @@ begin
       accelX := -sign(velX)*Random/100;
       accelY := 0.8;
 
-      CRnd := 20*Random(6);
-      if (CR > 0) then
-      begin
-        CC := CR+CRnd-50;
-             if (CC < 0) then CC := 0
-        else if (CC > 255) then CC := 255;
-        red := CC;
-      end
-      else
-      begin
-        red := 0;
-      end;
-      if CG > 0 then
-      begin
-        CC := CG+CRnd-50;
-             if (CC < 0) then CC := 0
-        else if (CC > 255) then CC := 255;
-        green := CC;
-      end
-      else
-      begin
-        green := 0;
-      end;
-      if (CB > 0) then
-      begin
-        CC := CB+CRnd-50;
-             if (CC < 0) then CC := 0
-        else if (CC > 255) then CC := 255;
-        blue := CC;
-      end
-      else
-      begin
-        blue := 0;
-      end;
+      crnd := 20*Random(6)-50;
 
+      red := genColor(cr, CRnd, 0);
+      green := genColor(cg, CRnd, 0);
+      blue := genColor(cb, CRnd, 0);
       alpha := 255;
 
+      particleType := TPartType.Blood;
       state := TPartState.Normal;
       time := 0;
       liveTime := 120+Random(40);
-      particleType := TPartType.Blood;
-      //justSticked := false;
-      //onGround := (velY >= 0) and g_Map_HasAnyPanelAtPoint(x, y+1, (PANEL_WALL or PANEL_CLOSEDOOR or PANEL_STEP));
-      //awaken := false;
-      //stickEY := 0;
       floorY := Unknown;
       ceilingY := Unknown;
     end;
 
-    if CurrentParticle >= MaxParticles-1 then
-      CurrentParticle := 0
-    else
-      CurrentParticle := CurrentParticle+1;
+    if (CurrentParticle >= MaxParticles-1) then CurrentParticle := 0 else CurrentParticle += 1;
   end;
+end;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
+function isBlockedAt (x, y: Integer): Boolean; inline;
+begin
+  if not gpart_dbg_phys_enabled then begin result := false; exit; end;
+  result := g_Map_HasAnyPanelAtPoint(x, y, (PANEL_WALL or PANEL_OPENDOOR or PANEL_CLOSEDOOR or PANEL_STEP));
+end;
+
+// ???
+function isWallAt (x, y: Integer): Boolean; inline;
+begin
+  if not gpart_dbg_phys_enabled then begin result := false; exit; end;
+  result := g_Map_HasAnyPanelAtPoint(x, y, (PANEL_WALL or PANEL_STEP));
+end;
+
+function isLiftUpAt (x, y: Integer): Boolean; inline;
+begin
+  if not gpart_dbg_phys_enabled then begin result := false; exit; end;
+  result := g_Map_HasAnyPanelAtPoint(x, y, PANEL_LIFTUP);
+end;
+
+function isLiftDownAt (x, y: Integer): Boolean; inline;
+begin
+  if not gpart_dbg_phys_enabled then begin result := false; exit; end;
+  result := g_Map_HasAnyPanelAtPoint(x, y, PANEL_LIFTDOWN);
+end;
+
+function isLiftLeftAt (x, y: Integer): Boolean; inline;
+begin
+  if not gpart_dbg_phys_enabled then begin result := false; exit; end;
+  result := g_Map_HasAnyPanelAtPoint(x, y, PANEL_LIFTLEFT);
+end;
+
+function isLiftRightAt (x, y: Integer): Boolean; inline;
+begin
+  if not gpart_dbg_phys_enabled then begin result := false; exit; end;
+  result := g_Map_HasAnyPanelAtPoint(x, y, PANEL_LIFTRIGHT);
+end;
+
+function isLiquidAt (x, y: Integer): Boolean; inline;
+begin
+  if not gpart_dbg_phys_enabled then begin result := false; exit; end;
+  result := g_Map_HasAnyPanelAtPoint(x, y, (PANEL_WATER or PANEL_ACID1 or PANEL_ACID2));
+end;
+
+function isAnythingAt (x, y: Integer): Boolean; inline;
+begin
+  if not gpart_dbg_phys_enabled then begin result := false; exit; end;
+  result := g_Map_HasAnyPanelAtPoint(x, y, (PANEL_WALL or PANEL_CLOSEDOOR or PANEL_OPENDOOR or PANEL_WATER or PANEL_ACID1 or PANEL_ACID2 or PANEL_STEP or PANEL_LIFTUP or PANEL_LIFTDOWN or PANEL_LIFTLEFT or PANEL_LIFTRIGHT));
 end;
 
 
@@ -1355,30 +1300,30 @@ end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-procedure g_GFX_SparkVel (fX, fY: Integer; Count: Word; VX, VY: Integer; DevX, DevY: Byte);
+procedure g_GFX_SparkVel (fX, fY: Integer; count: Word; VX, VY: Integer; devX, devY: Byte);
 var
   a: Integer;
-  DevX1, DevX2,
-  DevY1, DevY2: Byte;
+  devX1, devX2,
+  devY1, devY2: Byte;
   l: Integer;
 begin
   exit;
   if not gpart_dbg_enabled then Exit;
   l := Length(Particles);
   if l = 0 then exit;
-  if Count > l then Count := l;
+  if count > l then count := l;
 
-  DevX1 := DevX div 2;
-  DevX2 := DevX + 1;
-  DevY1 := DevY div 2;
-  DevY2 := DevY + 1;
+  devX1 := devX div 2;
+  devX2 := devX + 1;
+  devY1 := devY div 2;
+  devY2 := devY + 1;
 
-  for a := 1 to Count do
+  for a := 1 to count do
   begin
     with Particles[CurrentParticle] do
     begin
-      x := fX-DevX1+Random(DevX2);
-      y := fY-DevY1+Random(DevY2);
+      x := fX-devX1+Random(devX2);
+      y := fY-devY1+Random(devY2);
 
       velX := VX + (Random-Random)*3;
       velY := VY + (Random-Random)*3;
@@ -1414,12 +1359,12 @@ begin
 end;
 
 
-procedure g_GFX_Spark(fX, fY: Integer; Count: Word; Angle: SmallInt; DevX, DevY: Byte);
+procedure g_GFX_Spark(fX, fY: Integer; count: Word; angle: SmallInt; devX, devY: Byte);
 var
   a: Integer;
   b: Single;
-  DevX1, DevX2,
-  DevY1, DevY2: Byte;
+  devX1, devX2,
+  devY1, devY2: Byte;
   BaseVelX, BaseVelY: Single;
   l: Integer;
 begin
@@ -1428,29 +1373,29 @@ begin
   l := Length(Particles);
   if l = 0 then
     Exit;
-  if Count > l then
-    Count := l;
+  if count > l then
+    count := l;
 
-  Angle := 360 - Angle;
+  angle := 360 - angle;
 
-  DevX1 := DevX div 2;
-  DevX2 := DevX + 1;
-  DevY1 := DevY div 2;
-  DevY2 := DevY + 1;
+  devX1 := devX div 2;
+  devX2 := devX + 1;
+  devY1 := devY div 2;
+  devY2 := devY + 1;
 
-  b := DegToRad(Angle);
+  b := DegToRad(angle);
   BaseVelX := cos(b);
   BaseVelY := 1.6*sin(b);
   if Abs(BaseVelX) < 0.01 then
     BaseVelX := 0.0;
   if Abs(BaseVelY) < 0.01 then
     BaseVelY := 0.0;
-  for a := 1 to Count do
+  for a := 1 to count do
   begin
     with Particles[CurrentParticle] do
     begin
-      x := fX-DevX1+Random(DevX2);
-      y := fY-DevY1+Random(DevY2);
+      x := fX-devX1+Random(devX2);
+      y := fY-devY1+Random(devY2);
 
       velX := BaseVelX*Random;
       velY := BaseVelY-Random;
@@ -1479,11 +1424,11 @@ begin
 end;
 
 
-procedure g_GFX_Water(fX, fY: Integer; Count: Word; fVelX, fVelY: Single; DevX, DevY, Color: Byte);
+procedure g_GFX_Water(fX, fY: Integer; count: Word; fVelX, fVelY: Single; devX, devY, Color: Byte);
 var
   a: Integer;
-  DevX1, DevX2,
-  DevY1, DevY2: Byte;
+  devX1, devX2,
+  devY1, devY2: Byte;
   l: Integer;
 begin
   exit;
@@ -1491,23 +1436,23 @@ begin
   l := Length(Particles);
   if l = 0 then
     Exit;
-  if Count > l then
-    Count := l;
+  if count > l then
+    count := l;
 
   if Abs(fVelX) < 3.0 then
     fVelX := 3.0 - 6.0*Random;
 
-  DevX1 := DevX div 2;
-  DevX2 := DevX + 1;
-  DevY1 := DevY div 2;
-  DevY2 := DevY + 1;
+  devX1 := devX div 2;
+  devX2 := devX + 1;
+  devY1 := devY div 2;
+  devY2 := devY + 1;
 
-  for a := 1 to Count do
+  for a := 1 to count do
   begin
     with Particles[CurrentParticle] do
     begin
-      x := fX-DevX1+Random(DevX2);
-      y := fY-DevY1+Random(DevY2);
+      x := fX-devX1+Random(devX2);
+      y := fY-devY1+Random(devY2);
 
       if Abs(fVelX) < 0.5 then
         velX := 1.0 - 2.0*Random
@@ -1565,7 +1510,7 @@ begin
 end;
 
 
-procedure g_GFX_SimpleWater(fX, fY: Integer; Count: Word; fVelX, fVelY: Single; DefColor, CR, CG, CB: Byte);
+procedure g_GFX_SimpleWater(fX, fY: Integer; count: Word; fVelX, fVelY: Single; defColor, cr, cg, cb: Byte);
 var
   a: Integer;
   l: Integer;
@@ -1575,10 +1520,10 @@ begin
   l := Length(Particles);
   if l = 0 then
     Exit;
-  if Count > l then
-    Count := l;
+  if count > l then
+    count := l;
 
-  for a := 1 to Count do
+  for a := 1 to count do
   begin
     with Particles[CurrentParticle] do
     begin
@@ -1590,7 +1535,7 @@ begin
       accelX := 0.0;
       accelY := 0.8;
 
-      case DefColor of
+      case defColor of
         1: // Красный
           begin
             red := 155 + Random(9)*10;
@@ -1614,18 +1559,18 @@ begin
             red := 20 + Random(19)*10;
             green := red;
             blue := red;
-            red := Min(red + CR, 255);
-            green := Min(green + CG, 255);
-            blue := Min(blue + CB, 255);
+            red := Min(red + cr, 255);
+            green := Min(green + cg, 255);
+            blue := Min(blue + cb, 255);
           end;
         5: // Свой цвет, темнее
           begin
             red := 20 + Random(19)*10;
             green := red;
             blue := red;
-            red := Max(CR - red, 0);
-            green := Max(CG - green, 0);
-            blue := Max(CB - blue, 0);
+            red := Max(cr - red, 0);
+            green := Max(cg - green, 0);
+            blue := Max(cb - blue, 0);
           end;
         else // Серый
           begin
@@ -1655,11 +1600,11 @@ end;
 
 
 {.$DEFINE D2F_DEBUG_BUBBLES}
-procedure g_GFX_Bubbles(fX, fY: Integer; Count: Word; DevX, DevY: Byte);
+procedure g_GFX_Bubbles(fX, fY: Integer; count: Word; devX, devY: Byte);
 var
   a: Integer;
-  DevX1, DevX2,
-  DevY1, DevY2: Byte;
+  devX1, devX2,
+  devY1, devY2: Byte;
   l, liquidx: Integer;
   {$IF DEFINED(D2F_DEBUG_BUBBLES)}
   stt: UInt64;
@@ -1671,20 +1616,20 @@ begin
   l := Length(Particles);
   if l = 0 then
     Exit;
-  if Count > l then
-    Count := l;
+  if count > l then
+    count := l;
 
-  DevX1 := DevX div 2;
-  DevX2 := DevX + 1;
-  DevY1 := DevY div 2;
-  DevY2 := DevY + 1;
+  devX1 := devX div 2;
+  devX2 := devX + 1;
+  devY1 := devY div 2;
+  devY2 := devY + 1;
 
-  for a := 1 to Count do
+  for a := 1 to count do
   begin
     with Particles[CurrentParticle] do
     begin
-      x := fX-DevX1+Random(DevX2);
-      y := fY-DevY1+Random(DevY2);
+      x := fX-devX1+Random(devX2);
+      y := fY-devY1+Random(devY2);
 
       if (x >= gMapInfo.Width) or (x <= 0) or
          (y >= gMapInfo.Height) or (y <= 0) then
@@ -1742,16 +1687,16 @@ end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-procedure g_GFX_SetMax(Count: Integer);
+procedure g_GFX_SetMax(count: Integer);
 var
   a: Integer;
 begin
-  if Count > 50000 then Count := 50000;
-  if (Count < 1) then Count := 1;
+  if count > 50000 then count := 50000;
+  if (count < 1) then count := 1;
 
-  SetLength(Particles, Count);
+  SetLength(Particles, count);
   for a := 0 to High(Particles) do Particles[a].die();
-  MaxParticles := Count;
+  MaxParticles := count;
   //if CurrentParticle >= Count then
     CurrentParticle := 0;
 end;
@@ -1807,6 +1752,81 @@ begin
 end;
 
 
+// ////////////////////////////////////////////////////////////////////////// //
+// st: set mark
+// t: mark type
+// currently unused
+procedure g_Mark(x, y, Width, Height: Integer; t: Byte; st: Boolean=true);
+var
+  cx, ex, ey: Integer;
+  ts: Integer;
+begin
+  if (Width < 1) or (Height < 1) then exit;
+  // make some border, so we'll hit particles lying around the panel
+  x -= 1; Width += 2;
+  y -= 1; Height += 2;
+  ex := x+Width;
+  ey := y+Height;
+  ts := mapGrid.tileSize;
+  while (y < ey) do
+  begin
+    cx := x;
+    while (cx < ex) do
+    begin
+      awmSet(cx, y);
+      Inc(cx, ts);
+    end;
+    Inc(y, ts);
+  end;
+end;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
+{$IF DEFINED(HAS_COLLIDE_BITMAP)}
+procedure CreateCollideMap();
+var
+  a: Integer;
+begin
+  //g_Game_SetLoadingText(_lc[I_LOAD_COLLIDE_MAP]+' 1/6', 0, False);
+  //SetLength(gCollideMap, gMapInfo.Height+1);
+  //for a := 0 to High(gCollideMap) do SetLength(gCollideMap[a], gMapInfo.Width+1);
+end;
+{$ENDIF}
+
+
+procedure g_GFX_Init();
+begin
+  //CreateCollideMap();
+  awmSetup();
+{$IFDEF HEADLESS}
+  gpart_dbg_enabled := False;
+{$ENDIF}
+end;
+
+
+procedure g_GFX_Free();
+var
+  a: Integer;
+begin
+  Particles := nil;
+  SetLength(Particles, MaxParticles);
+  for a := 0 to High(Particles) do Particles[a].die();
+  CurrentParticle := 0;
+
+  if (OnceAnims <> nil) then
+  begin
+    for a := 0 to High(OnceAnims) do OnceAnims[a].Animation.Free();
+    OnceAnims := nil;
+  end;
+
+  awakeMap := nil;
+  // why not?
+  awakeMapH := -1;
+  awakeMapW := -1;
+end;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
 procedure g_GFX_Update ();
 var
   a: Integer;
