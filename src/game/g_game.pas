@@ -3229,7 +3229,7 @@ begin
         else e_Clear(GL_COLOR_BUFFER_BIT, 0, 0, 0);
       end;
       // F3 at menu will show game loading dialog
-      if e_KeyPressed(IK_F3) then g_Menu_Show_LoadMenu();
+      if e_KeyPressed(IK_F3) then g_Menu_Show_LoadMenu(true);
       if (g_ActiveWindow <> nil) then
       begin
         //e_DrawFillQuad(0, 0, gScreenWidth-1, gScreenHeight-1, 48, 48, 48, 180);
@@ -3240,7 +3240,7 @@ begin
         // F3 at titlepic will show game loading dialog
         if e_KeyPressed(IK_F3) then
         begin
-          g_Menu_Show_LoadMenu();
+          g_Menu_Show_LoadMenu(true);
           if (g_ActiveWindow <> nil) then e_DarkenQuadWH(0, 0, gScreenWidth, gScreenHeight, 150);
         end;
       end;

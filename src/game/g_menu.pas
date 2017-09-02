@@ -26,7 +26,7 @@ procedure LoadFont(txtres, fntres: string; var FontID: DWORD);
 procedure g_Menu_AskLanguage();
 
 procedure g_Menu_Show_SaveMenu();
-procedure g_Menu_Show_LoadMenu();
+procedure g_Menu_Show_LoadMenu(standalone: Boolean=false);
 procedure g_Menu_Show_GameSetGame();
 procedure g_Menu_Show_OptionsVideo();
 procedure g_Menu_Show_OptionsSound();
@@ -3088,19 +3088,18 @@ begin
   g_Sound_PlayEx('MENU_OPEN');
 end;
 
-procedure g_Menu_Show_LoadMenu();
+procedure g_Menu_Show_LoadMenu (standalone: Boolean=false);
 begin
+  if (g_ActiveWindow <> nil) and (g_ActiveWindow.name = 'LoadMenu') then exit; // nothing to do
   if gGameSettings.GameType = GT_SINGLE then
-    g_GUI_ShowWindow('GameSingleMenu')
+  begin
+    if not standalone then g_GUI_ShowWindow('GameSingleMenu')
+  end
   else
   begin
-    if g_Game_IsClient then
-      Exit
-    else
-      if g_Game_IsNet then
-        Exit
-      else
-        g_GUI_ShowWindow('GameCustomMenu');
+    if g_Game_IsClient then exit;
+    if g_Game_IsNet then exit;
+    if not standalone then g_GUI_ShowWindow('GameCustomMenu');
   end;
   g_GUI_ShowWindow('LoadMenu');
   g_Sound_PlayEx('MENU_OPEN');
