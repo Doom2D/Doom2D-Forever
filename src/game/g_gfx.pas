@@ -49,7 +49,8 @@ procedure g_GFX_Free ();
 procedure g_GFX_Blood (fX, fY: Integer; count: Word; vx, vy: Integer;
                        devX, devY: Word; cr, cg, cb: Byte; kind: Byte=BLOOD_NORMAL);
 procedure g_GFX_Spark (fX, fY: Integer; count: Word; angle: SmallInt; devX, devY: Byte);
-procedure g_GFX_Water (fX, fY: Integer; count: Word; fVelX, fVelY: Single; devX, devY, Color: Byte);
+procedure g_GFX_Water (fX, fY: Integer; count: Word; fVelX, fVelY: Single; devX, devY, color: Byte;
+                       simple: Boolean=false; cr: Byte=0; cg: Byte=0; cb: Byte=0);
 procedure g_GFX_SimpleWater (fX, fY: Integer; count: Word; fVelX, fVelY: Single; defColor, cr, cg, cb: Byte);
 procedure g_GFX_Bubbles (fX, fY: Integer; count: Word; devX, devY: Byte);
 
@@ -74,7 +75,7 @@ implementation
 uses
   g_map, g_panel, g_basic, Math, e_graphics, GL, GLExt,
   g_options, g_console, SysUtils, g_triggers, MAPDEF,
-  g_game, g_language, g_net, xprofiler;
+  g_game, g_language, g_net, utils, xprofiler;
 
 
 const
@@ -103,8 +104,6 @@ type
     state: TPartState;
     particleType: TPartType;
     offsetX, offsetY: ShortInt;
-    // for bubbles
-    liquidTopY: Integer; // don't float higher than this
     // for water
     stickDX: Integer; // STATE_STICK: -1,1: stuck to a wall; 0: stuck to ceiling
     justSticked: Boolean; // not used
@@ -119,10 +118,9 @@ type
     stickEY: Integer;
 
     //k8: sorry, i have to emulate virtual methods this way, 'cause i haet `Object`
-    procedure thinkerBlood ();
+    procedure thinkerBloodAndWater ();
     procedure thinkerSpark ();
     procedure thinkerBubble ();
-    procedure thinkerWater ();
 
     procedure findFloor (force: Boolean=false); // this updates `floorY` if forced or Unknown
     procedure findCeiling (force: Boolean=false); // this updates `ceilingY` if forced or Unknown
@@ -354,16 +352,15 @@ begin
   // awake sleeping particle, if necessary
   if (state = TPartState.Sleeping) and awmIsSet(x, y) then state := TPartState.Normal;
   case particleType of
-    TPartType.Blood: thinkerBlood();
+    TPartType.Blood, TPartType.Water: thinkerBloodAndWater();
     //TPartType.Spark: thinkerSpark();
-    //TPartType.Bubbles: thinkerBubble();
-    //TPartType.Water: thinkerWater();
+    TPartType.Bubbles: thinkerBubble();
   end;
 end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-procedure TParticle.thinkerBlood ();
+procedure TParticle.thinkerBloodAndWater ();
   procedure stickToCeiling ();
   begin
     state := TPartState.Stuck;
@@ -397,7 +394,11 @@ procedure TParticle.thinkerBlood ();
   // `true`: didn't, get outa thinker
   function drip (): Boolean;
   begin
-    result := (Random(200) = 100);
+    case particleType of
+      TPartType.Blood: result := (Random(200) = 100);
+      TPartType.Water: result := (Random(30) = 15);
+      else raise Exception.Create('internal error in particle engine: drip');
+    end;
     if result then begin velY := 0.5; accelY := 0.15; end;
   end;
 
@@ -677,17 +678,28 @@ _done:
   velY += accelY;
 
   // blood will dissolve in other liquids
-  if (env = TEnvType.ELiquid) then
+  if (particleType = TPartType.Blood) then
   begin
+    if (env = TEnvType.ELiquid) then
+    begin
+      time += 1;
+      if (liveTime <= 0) then begin die(); exit; end;
+      ex := 255-trunc(255.0*time/liveTime);
+      if (ex >= 250) then begin die(); exit; end;
+      if (ex < 0) then ex := 0;
+      alpha := Byte(ex);
+    end;
+  end
+  else
+  begin
+    // water will disappear in water (?)
+    if (env = TEnvType.ELiquid) then die();
     time += 1;
-    ex := 255-trunc((255.0*time)/liveTime);
-    if (ex >= 255) then begin die(); exit; end;
-    if (ex < 0) then ex := 0;
-    alpha := Byte(ex);
   end;
 end;
 
 
+// ////////////////////////////////////////////////////////////////////////// //
 procedure g_GFX_SparkVel (fX, fY: Integer; count: Word; VX, VY: Integer; devX, devY: Byte); forward;
 
 procedure g_GFX_Blood (fX, fY: Integer; count: Word; vx, vy: Integer;
@@ -710,7 +722,7 @@ procedure g_GFX_Blood (fX, fY: Integer; count: Word; vx, vy: Integer;
 
 var
   a: Integer;
-  devX1, devX2, devY1, devY2: Word;
+  devX1, devX2, devY1, devY2: Integer;
   l: Integer;
   crnd: Integer;
   pan: TPanel;
@@ -786,6 +798,243 @@ begin
 end;
 
 
+procedure g_GFX_Water (fX, fY: Integer; count: Word; fVelX, fVelY: Single; devX, devY, color: Byte;
+                       simple: Boolean=false; cr: Byte=0; cg: Byte=0; cb: Byte=0);
+var
+  a: Integer;
+  devX1, devX2, devY1, devY2: Integer;
+  l: Integer;
+  pan: TPanel;
+begin
+  if not gpart_dbg_enabled then Exit;
+
+  l := Length(Particles);
+  if (l = 0) then exit;
+  if (count > l) then count := l;
+
+  if (abs(fVelX) < 3.0) then fVelX := 3.0-6.0*Random;
+
+  devX1 := devX div 2;
+  devX2 := devX+1;
+  devY1 := devY div 2;
+  devY2 := devY+1;
+
+  if (not simple) and (color > 3) then color := 0;
+
+  for a := 1 to count do
+  begin
+    with Particles[CurrentParticle] do
+    begin
+      if not simple then
+      begin
+        x := fX-devX1+Random(devX2);
+        y := fY-devY1+Random(devY2);
+
+        if (abs(fVelX) < 0.5) then velX := 1.0-2.0*Random else velX := fVelX*Random;
+        if (Random(10) < 7) then velX := -velX;
+        velY := fVelY*Random;
+        accelX := 0.0;
+        accelY := 0.8;
+      end
+      else
+      begin
+        x := fX;
+        y := fY;
+
+        velX := fVelX;
+        velY := fVelY;
+        accelX := 0.0;
+        accelY := 0.8;
+      end;
+
+      // check for level bounds
+      if (x < g_Map_MinX) or (y < g_Map_MinY) or (x > g_Map_MaxX) or (y > g_Map_MaxY) then continue;
+
+      // in what environment we are starting in?
+      pan := g_Map_PanelAtPoint(x, y, (GridTagObstacle or GridTagLiquid));
+      if (pan <> nil) then
+      begin
+        // either in a wall, or in a liquid
+        //if ((pan.tag and GridTagObstacle) <> 0) then continue; // don't spawn in walls
+        //env := TEnvType.ELiquid;
+        continue;
+      end
+      else
+      begin
+        env := TEnvType.EAir;
+      end;
+
+      // color
+      case color of
+        1: // reddish
+          begin
+            red := 155+Random(9)*10;
+            green := trunc(150*Random);
+            blue := green;
+          end;
+        2: // greenish
+          begin
+            red := trunc(150*Random);
+            green := 175+Random(9)*10;
+            blue := red;
+          end;
+        3: // bluish
+          begin
+            red := trunc(200*Random);
+            green := red;
+            blue := 175+Random(9)*10;
+          end;
+        4: // Свой цвет, светлее
+          begin
+            red := 20+Random(19)*10;
+            green := red;
+            blue := red;
+            red := nmin(red+cr, 255);
+            green := nmin(green+cg, 255);
+            blue := nmin(blue+cb, 255);
+          end;
+        5: // Свой цвет, темнее
+          begin
+            red := 20+Random(19)*10;
+            green := red;
+            blue := red;
+            red := nmax(cr-red, 0);
+            green := nmax(cg-green, 0);
+            blue := nmax(cb-blue, 0);
+          end;
+        else // grayish
+          begin
+            red := 90+random(12)*10;
+            green := red;
+            blue := red;
+          end;
+      end;
+      alpha := 255;
+
+      particleType := TPartType.Water;
+      state := TPartState.Normal;
+      time := 0;
+      liveTime := 60+Random(60);
+      floorY := Unknown;
+      ceilingY := Unknown;
+    end;
+
+    if (CurrentParticle >= MaxParticles-1) then CurrentParticle := 0 else CurrentParticle += 1;
+  end;
+end;
+
+
+procedure g_GFX_SimpleWater (fX, fY: Integer; count: Word; fVelX, fVelY: Single; defColor, cr, cg, cb: Byte);
+begin
+  g_GFX_Water(fX, fY, count, 0, 0, 0, 0, defColor, true, cr, cg, cb);
+end;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
+procedure TParticle.thinkerBubble ();
+var
+  dY: Integer;
+begin
+  dY := round(velY);
+
+  if (dY <> 0) then
+  begin
+    y += dY;
+    if (dY < 0) then
+    begin
+      if (y <= ceilingY) then begin die(); exit; end;
+    end
+    else
+    begin
+      if (y >= floorY) then begin die(); exit; end;
+    end;
+    if (y < g_Map_MinY) or (y > g_Map_MaxY) then begin die(); exit; end;
+  end;
+
+  if (velY > -4) then velY += accelY;
+
+  time += 1;
+end;
+
+
+{.$DEFINE D2F_DEBUG_BUBBLES}
+procedure g_GFX_Bubbles (fX, fY: Integer; count: Word; devX, devY: Byte);
+var
+  a, liquidx: Integer;
+  devX1, devX2, devY1, devY2: Integer;
+  l: Integer;
+  {$IF DEFINED(D2F_DEBUG_BUBBLES)}
+  stt: UInt64;
+  nptr, ptr: Boolean;
+  {$ENDIF}
+begin
+  if not gpart_dbg_enabled then Exit;
+
+  l := Length(Particles);
+  if (l = 0) then exit;
+  if (count > l) then count := l;
+
+  devX1 := devX div 2;
+  devX2 := devX+1;
+  devY1 := devY div 2;
+  devY2 := devY+1;
+
+  for a := 1 to count do
+  begin
+    with Particles[CurrentParticle] do
+    begin
+      x := fX-devX1+Random(devX2);
+      y := fY-devY1+Random(devY2);
+
+      // check for level bounds
+      if (x < g_Map_MinX) or (y < g_Map_MinY) or (x > g_Map_MaxX) or (y > g_Map_MaxY) then continue;
+
+      (*
+      // don't spawn bubbles outside of the liquid
+      if not isLiquidAt(X, Y) {ByteBool(gCollideMap[Y, X] and MARK_LIQUID)} then
+        Continue;
+      *)
+
+      // trace liquid, so we'll know where it ends; do it in 8px steps for speed
+      // tracer will return `false` if we started outside of the liquid
+
+      {$IF DEFINED(D2F_DEBUG_BUBBLES)}
+      stt := curTimeMicro();
+      ptr := mapGrid.traceOrthoRayWhileIn(liquidx, liquidTopY, x, y, x, 0, GridTagWater or GridTagAcid1 or GridTagAcid2);
+      stt := curTimeMicro()-stt;
+      e_LogWritefln('traceOrthoRayWhileIn: time=%s (%s); liquidTopY=%s', [Integer(stt), ptr, liquidTopY]);
+      //
+      stt := curTimeMicro();
+      nptr := g_Map_TraceLiquidNonPrecise(x, y, 0, -8, liquidx, liquidTopY);
+      stt := curTimeMicro()-stt;
+      e_LogWritefln('g_Map_TraceLiquidNonPrecise: time=%s (%s); liquidTopY=%s', [Integer(stt), nptr, liquidTopY]);
+      if not nptr then continue;
+      {$ELSE}
+      if not g_Map_TraceLiquidNonPrecise(x, y, 0, -8, liquidx, ceilingY) then continue;
+      if not g_Map_TraceLiquidNonPrecise(x, y, 0, +8, liquidx, floorY) then continue;
+      {$ENDIF}
+
+      velX := 0;
+      velY := -1-Random;
+      accelX := 0;
+      accelY := velY/10;
+
+      red := 255;
+      green := 255;
+      blue := 255;
+      alpha := 255;
+
+      state := TPartState.Normal;
+      particleType := TPartType.Bubbles;
+      time := 0;
+      liveTime := 65535;
+    end;
+
+    if (CurrentParticle >= MaxParticles-1) then CurrentParticle := 0 else CurrentParticle += 1;
+  end;
+end;
+
+
 // ////////////////////////////////////////////////////////////////////////// //
 function isBlockedAt (x, y: Integer): Boolean; inline;
 begin
@@ -838,33 +1087,18 @@ end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
+(*
 procedure TParticle.thinkerWater ();
 var
   dX, dY: SmallInt;
-  {$IF not DEFINED(D2F_NEW_SPARK_THINKER)}
-  w, h: Integer;
-  b: Integer;
-  s: ShortInt;
-  {$ELSE}
   pan: TPanel;
   ex, ey: Integer;
-  {$ENDIF}
 begin
-  {$IF not DEFINED(D2F_NEW_SPARK_THINKER)}
-  w := gMapInfo.Width;
-  h := gMapInfo.Height;
-  {$ENDIF}
-
   //TODO: trace wall end when water becomes stick
   if (state = TPartState.Stuck) and (Random(30) = 15) then
   begin // Стекает/отлипает
     velY := 0.5;
     accelY := 0.15;
-    {$IF not DEFINED(D2F_NEW_SPARK_THINKER)}
-    if (not isBlockedAt(x-1, y) {ByteBool(gCollideMap[Y, X-1] and MARK_BLOCKED)}) and
-       (not isBlockedAt(x+1, y) {ByteBool(gCollideMap[Y, X+1] and MARK_BLOCKED)}) then
-      state := TPartState.Normal;
-    {$ELSE}
     if (stickDX = 0) then
     begin
       // no walls around, drop
@@ -897,36 +1131,9 @@ begin
       end;
       //if not g_Map_CollidePanel(X-1, Y-1, 3, 3, (PANEL_STEP or PANEL_WALL or PANEL_OPENDOOR or PANEL_CLOSEDOOR))
     end;
-    {$ENDIF}
     exit;
   end;
 
-  {$IF not DEFINED(D2F_NEW_SPARK_THINKER)}
-  if not isBlockedAt(x, y) {ByteBool(gCollideMap[Y, X] and MARK_BLOCKED)} then
-  begin
-    if isLiftUpAt(x, y) {ByteBool(gCollideMap[Y, X] and MARK_LIFTUP)} then
-    begin // Лифт вверх
-      if velY > -4-Random(3) then
-        velY := velY - 0.8;
-      if Abs(velX) > 0.1 then
-        velX := velX - velX/10.0;
-      velX := velX + (Random-Random)*0.2;
-      accelY := 0.15;
-    end;
-    if isLiftLeftAt(x, y) {ByteBool(gCollideMap[Y, X] and MARK_LIFTLEFT)} then
-    begin // Поток влево
-      if velX > -8-Random(3) then
-        velX := velX - 0.8;
-      accelY := 0.15;
-    end;
-    if isLiftRightAt(x, y) {ByteBool(gCollideMap[Y, X] and MARK_LIFTRIGHT)} then
-    begin // Поток вправо
-      if velX < 8+Random(3) then
-        velX := velX + 0.8;
-      accelY := 0.15;
-    end;
-  end;
-  {$ELSE}
   pan := g_Map_PanelAtPoint(x, y, (GridTagAcid1 or GridTagAcid2 or GridTagWater or GridTagLift));
   if (pan <> nil) then
   begin
@@ -949,25 +1156,10 @@ begin
       accelY := 0.15;
     end;
   end;
-  {$ENDIF}
 
   dX := Round(velX);
   dY := Round(velY);
 
-  {$IF not DEFINED(D2F_NEW_SPARK_THINKER)}
-  if (Abs(velX) < 0.1) and (Abs(velY) < 0.1) then
-  begin
-    if (state <> TPartState.Stuck) and
-       (not isBlockedAt(x, y-1) {ByteBool(gCollideMap[Y-1, X] and MARK_BLOCKED)}) and
-       (not isBlockedAt(x, y) {ByteBool(gCollideMap[Y, X] and MARK_BLOCKED)}) and
-       (not isBlockedAt(x, y+1) {ByteBool(gCollideMap[Y+1, X] and MARK_BLOCKED)}) then
-    begin // Висит в воздухе - капает
-      velY := 0.8;
-      accelY := 0.5;
-      state := TPartState.Normal;
-    end;
-  end;
-  {$ELSE}
   if (state <> TPartState.Stuck) and (Abs(velX) < 0.1) and (Abs(velY) < 0.1) then
   begin
     // Висит в воздухе - капает
@@ -978,9 +1170,7 @@ begin
       state := TPartState.Normal;
     end;
   end;
-  {$ENDIF}
 
-  {$IF DEFINED(D2F_NEW_SPARK_THINKER)}
   // horizontal
   if (dX <> 0) then
   begin
@@ -1043,62 +1233,13 @@ begin
     end;
     if (y < 0) or (y >= gMapInfo.Height) then begin die(); exit; end;
   end;
-  {$ELSE}
-  // horizontal
-  if (dX <> 0) then
-  begin
-    if (dX > 0) then s := 1 else s := -1;
-    for b := 1 to Abs(dX) do
-    begin
-      // Сбоку граница?
-      if (x+s >= w) or (x+s <= 0) then begin die(); break;end;
-      //c := gCollideMap[Y, X+s];
-      // Сбоку жидкость, а частица уже падает?
-      if isLiquidAt(x+s, y) {ByteBool(c and MARK_LIQUID)} and (dY > 0) then begin die(); break; end;
-      if isBlockedAt(x+s, y) {ByteBool(c and MARK_BLOCKED)} then
-      begin // Стена/дверь
-        velX := 0;
-        velY := 0;
-        accelX := 0;
-        accelY := 0;
-        state := TPartState.Stuck;
-        justSticked := true;
-        Break;
-      end;
-      x := x+s;
-    end;
-  end;
-  // vertical
-  if (dY <> 0) then
-  begin
-    if (dY > 0) then s := 1 else s := -1;
-    for b := 1 to Abs(dY) do
-    begin
-      // Снизу/сверху граница
-      if (y+s >= h) or (y+s <= 0) then begin die(); break; end;
-      //c := gCollideMap[Y+s, X];
-      // Снизу жидкость, а частица уже падает
-      if isLiquidAt(x, y+s) {ByteBool(c and MARK_LIQUID)} and (dY > 0) then begin die(); break; end;
-      if isBlockedAt(x, y+s) {ByteBool(c and MARK_BLOCKED)} then
-      begin // Стена/дверь
-        velX := 0;
-        velY := 0;
-        accelX := 0;
-        accelY := 0;
-        if (s > 0) and (state <> TPartState.Stuck) then state := TPartState.Normal else state := TPartState.Stuck;
-        justSticked := (state = TPartState.Stuck);
-        break;
-      end;
-      y := y+s;
-    end;
-  end;
-  {$ENDIF}
 
   velX += accelX;
   velY += accelY;
 
   time += 1;
 end;
+*)
 
 
 // ////////////////////////////////////////////////////////////////////////// //
@@ -1117,12 +1258,12 @@ begin
   dY := Round(velY);
 
   {$IF DEFINED(D2F_NEW_SPARK_THINKER)}
-  if (Abs(velX) < 0.1) and (Abs(velY) < 0.1) then
+  if (abs(velX) < 0.1) and (abs(velY) < 0.1) then
   begin
     pan := g_Map_traceToNearest(x, y-1, x, y+1, (GridTagWall or GridTagDoor or GridTagStep or GridTagAcid1 or GridTagAcid2 or GridTagWater), @ex, @ey);
   end;
   {$ELSE}
-  if (Abs(velX) < 0.1) and (Abs(velY) < 0.1) and
+  if (abs(velX) < 0.1) and (abs(velY) < 0.1) and
      (not isBlockedAt(x, y-1) {ByteBool(gCollideMap[Y-1, X] and MARK_BLOCKED)}) and
      (not isBlockedAt(x, y) {ByteBool(gCollideMap[Y, X] and MARK_BLOCKED)}) and
      (not isBlockedAt(x, y+1) {ByteBool(gCollideMap[Y+1, X] and MARK_BLOCKED)}) then
@@ -1150,7 +1291,7 @@ begin
     if (x < 0) or (x >= gMapInfo.Width) then begin die(); exit; end;
     {$ELSE}
     if (dX > 0) then s := 1 else s := -1;
-    dX := Abs(dX);
+    dX := abs(dX);
     for b := 1 to dX do
     begin
       if (x+s >= gMapInfo.Width) or (x+s <= 0) then begin die(); break; end;
@@ -1210,7 +1351,7 @@ begin
     if (y < 0) or (y >= gMapInfo.Height) then begin die(); exit; end;
     {$ELSE}
     if (dY > 0) then s := 1 else s := -1;
-    dY := Abs(dY);
+    dY := abs(dY);
     for b := 1 to dY do
     begin
       if (y+s >= gMapInfo.Height) or (y+s <= 0) then begin die(); break; end;
@@ -1220,7 +1361,7 @@ begin
           if s < 0 then
             begin
               velY := -velY;
-              accelY := Abs(accelY);
+              accelY := abs(accelY);
             end
           else // Или не падает
             begin
@@ -1253,49 +1394,6 @@ begin
   end;
 
   time += 1;
-end;
-
-// ////////////////////////////////////////////////////////////////////////// //
-procedure TParticle.thinkerBubble ();
-var
-  h: Integer;
-  dY: SmallInt;
-  b: Integer;
-  s: ShortInt;
-begin
-  h := gMapInfo.Height;
-
-  dY := Round(velY);
-
-  if dY <> 0 then
-  begin
-    if dY > 0 then
-      s := 1
-    else
-      s := -1;
-
-    for b := 1 to Abs(dY) do
-    begin
-      if (y+s >= h) or (y+s <= 0) then begin die(); break; end;
-
-      (*
-      if not isLiquidAt(X, Y+s) {ByteBool(gCollideMap[Y+s, X] and MARK_LIQUID)} then
-      begin // Уже не жидкость
-        State := STATE_FREE;
-        Break;
-      end;
-      *)
-      // we traced liquid before, so don't bother checking
-      if (y+s <= liquidTopY) then begin die(); break; end;
-
-      y := y+s;
-    end;
-  end;
-
-  if velY > -4 then
-    velY := velY + accelY;
-
-  time := time + 1;
 end;
 
 
@@ -1386,9 +1484,9 @@ begin
   b := DegToRad(angle);
   BaseVelX := cos(b);
   BaseVelY := 1.6*sin(b);
-  if Abs(BaseVelX) < 0.01 then
+  if abs(BaseVelX) < 0.01 then
     BaseVelX := 0.0;
-  if Abs(BaseVelY) < 0.01 then
+  if abs(BaseVelY) < 0.01 then
     BaseVelY := 0.0;
   for a := 1 to count do
   begin
@@ -1411,268 +1509,6 @@ begin
       time := 0;
       liveTime := 30+Random(60);
       particleType := TPartType.Spark;
-      justSticked := false;
-      onGround := (velY >= 0) and g_Map_HasAnyPanelAtPoint(x, y+1, (PANEL_WALL or PANEL_CLOSEDOOR or PANEL_STEP));
-      awaken := false;
-    end;
-
-    if CurrentParticle+2 > MaxParticles then
-      CurrentParticle := 0
-    else
-      CurrentParticle := CurrentParticle+1;
-  end;
-end;
-
-
-procedure g_GFX_Water(fX, fY: Integer; count: Word; fVelX, fVelY: Single; devX, devY, Color: Byte);
-var
-  a: Integer;
-  devX1, devX2,
-  devY1, devY2: Byte;
-  l: Integer;
-begin
-  exit;
-  if not gpart_dbg_enabled then Exit;
-  l := Length(Particles);
-  if l = 0 then
-    Exit;
-  if count > l then
-    count := l;
-
-  if Abs(fVelX) < 3.0 then
-    fVelX := 3.0 - 6.0*Random;
-
-  devX1 := devX div 2;
-  devX2 := devX + 1;
-  devY1 := devY div 2;
-  devY2 := devY + 1;
-
-  for a := 1 to count do
-  begin
-    with Particles[CurrentParticle] do
-    begin
-      x := fX-devX1+Random(devX2);
-      y := fY-devY1+Random(devY2);
-
-      if Abs(fVelX) < 0.5 then
-        velX := 1.0 - 2.0*Random
-      else
-        velX := fVelX*Random;
-      if Random(10) < 7 then
-        velX := -velX;
-      velY := fVelY*Random;
-      accelX := 0.0;
-      accelY := 0.8;
-
-      case Color of
-        1: // Красный
-          begin
-            red := 155 + Random(9)*10;
-            green := Trunc(150*Random);
-            blue := green;
-          end;
-        2: // Зеленый
-          begin
-            red := Trunc(150*Random);
-            green := 175 + Random(9)*10;
-            blue := red;
-          end;
-        3: // Синий
-          begin
-            red := Trunc(200*Random);
-            green := red;
-            blue := 175 + Random(9)*10;
-          end;
-        else // Серый
-          begin
-            red := 90 + Random(12)*10;
-            green := red;
-            blue := red;
-          end;
-      end;
-
-      alpha := 255;
-
-      state := TPartState.Normal;
-      time := 0;
-      liveTime := 60+Random(60);
-      particleType := TPartType.Water;
-      justSticked := false;
-      onGround := (velY >= 0) and g_Map_HasAnyPanelAtPoint(x, y+1, (PANEL_WALL or PANEL_CLOSEDOOR or PANEL_STEP));
-      awaken := false;
-    end;
-
-    if CurrentParticle+2 > MaxParticles then
-      CurrentParticle := 0
-    else
-      CurrentParticle := CurrentParticle+1;
-  end;
-end;
-
-
-procedure g_GFX_SimpleWater(fX, fY: Integer; count: Word; fVelX, fVelY: Single; defColor, cr, cg, cb: Byte);
-var
-  a: Integer;
-  l: Integer;
-begin
-  exit;
-  if not gpart_dbg_enabled then Exit;
-  l := Length(Particles);
-  if l = 0 then
-    Exit;
-  if count > l then
-    count := l;
-
-  for a := 1 to count do
-  begin
-    with Particles[CurrentParticle] do
-    begin
-      x := fX;
-      y := fY;
-
-      velX := fVelX;
-      velY := fVelY;
-      accelX := 0.0;
-      accelY := 0.8;
-
-      case defColor of
-        1: // Красный
-          begin
-            red := 155 + Random(9)*10;
-            green := Trunc(150*Random);
-            blue := green;
-          end;
-        2: // Зеленый
-          begin
-            red := Trunc(150*Random);
-            green := 175 + Random(9)*10;
-            blue := red;
-          end;
-        3: // Синий
-          begin
-            red := Trunc(200*Random);
-            green := red;
-            blue := 175 + Random(9)*10;
-          end;
-        4: // Свой цвет, светлее
-          begin
-            red := 20 + Random(19)*10;
-            green := red;
-            blue := red;
-            red := Min(red + cr, 255);
-            green := Min(green + cg, 255);
-            blue := Min(blue + cb, 255);
-          end;
-        5: // Свой цвет, темнее
-          begin
-            red := 20 + Random(19)*10;
-            green := red;
-            blue := red;
-            red := Max(cr - red, 0);
-            green := Max(cg - green, 0);
-            blue := Max(cb - blue, 0);
-          end;
-        else // Серый
-          begin
-            red := 90 + Random(12)*10;
-            green := red;
-            blue := red;
-          end;
-      end;
-
-      alpha := 255;
-
-      state := TPartState.Normal;
-      time := 0;
-      liveTime := 60+Random(60);
-      particleType := TPartType.Water;
-      justSticked := false;
-      onGround := (velY >= 0) and g_Map_HasAnyPanelAtPoint(x, y+1, (PANEL_WALL or PANEL_CLOSEDOOR or PANEL_STEP));
-      awaken := false;
-    end;
-
-    if CurrentParticle+2 > MaxParticles then
-      CurrentParticle := 0
-    else
-      CurrentParticle := CurrentParticle+1;
-  end;
-end;
-
-
-{.$DEFINE D2F_DEBUG_BUBBLES}
-procedure g_GFX_Bubbles(fX, fY: Integer; count: Word; devX, devY: Byte);
-var
-  a: Integer;
-  devX1, devX2,
-  devY1, devY2: Byte;
-  l, liquidx: Integer;
-  {$IF DEFINED(D2F_DEBUG_BUBBLES)}
-  stt: UInt64;
-  nptr, ptr: Boolean;
-  {$ENDIF}
-begin
-  exit;
-  if not gpart_dbg_enabled then Exit;
-  l := Length(Particles);
-  if l = 0 then
-    Exit;
-  if count > l then
-    count := l;
-
-  devX1 := devX div 2;
-  devX2 := devX + 1;
-  devY1 := devY div 2;
-  devY2 := devY + 1;
-
-  for a := 1 to count do
-  begin
-    with Particles[CurrentParticle] do
-    begin
-      x := fX-devX1+Random(devX2);
-      y := fY-devY1+Random(devY2);
-
-      if (x >= gMapInfo.Width) or (x <= 0) or
-         (y >= gMapInfo.Height) or (y <= 0) then
-        Continue;
-
-      (*
-      // don't spawn bubbles outside of the liquid
-      if not isLiquidAt(X, Y) {ByteBool(gCollideMap[Y, X] and MARK_LIQUID)} then
-        Continue;
-      *)
-
-      // trace liquid, so we'll know where it ends; do it in 8px steps for speed
-      // tracer will return `false` if we started outside of the liquid
-
-      {$IF DEFINED(D2F_DEBUG_BUBBLES)}
-      stt := curTimeMicro();
-      ptr := mapGrid.traceOrthoRayWhileIn(liquidx, liquidTopY, x, y, x, 0, GridTagWater or GridTagAcid1 or GridTagAcid2);
-      stt := curTimeMicro()-stt;
-      e_LogWritefln('traceOrthoRayWhileIn: time=%s (%s); liquidTopY=%s', [Integer(stt), ptr, liquidTopY]);
-      //
-      stt := curTimeMicro();
-      nptr := g_Map_TraceLiquidNonPrecise(x, y, 0, -8, liquidx, liquidTopY);
-      stt := curTimeMicro()-stt;
-      e_LogWritefln('g_Map_TraceLiquidNonPrecise: time=%s (%s); liquidTopY=%s', [Integer(stt), nptr, liquidTopY]);
-      if not nptr then continue;
-      {$ELSE}
-      if not g_Map_TraceLiquidNonPrecise(x, y, 0, -8, liquidx, liquidTopY) then continue;
-      {$ENDIF}
-
-      velX := 0;
-      velY := -1-Random;
-      accelX := 0;
-      accelY := velY/10;
-
-      red := 255;
-      green := 255;
-      blue := 255;
-      alpha := 255;
-
-      state := TPartState.Normal;
-      time := 0;
-      liveTime := 65535;
-      particleType := TPartType.Bubbles;
       justSticked := false;
       onGround := (velY >= 0) and g_Map_HasAnyPanelAtPoint(x, y+1, (PANEL_WALL or PANEL_CLOSEDOOR or PANEL_STEP));
       awaken := false;
