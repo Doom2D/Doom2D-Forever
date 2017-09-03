@@ -2430,6 +2430,8 @@ var
   end;
 
 begin
+  if g_dbgpan_mplat_step then g_dbgpan_mplat_active := true;
+
   UpdatePanelArray(gWalls);
   UpdatePanelArray(gRenderBackgrounds);
   UpdatePanelArray(gRenderForegrounds);
@@ -2437,6 +2439,8 @@ begin
   UpdatePanelArray(gAcid1);
   UpdatePanelArray(gAcid2);
   UpdatePanelArray(gSteps);
+
+  if g_dbgpan_mplat_step then begin g_dbgpan_mplat_step := false; g_dbgpan_mplat_active := false; end;
 
   if gGameSettings.GameMode = GM_CTF then
   begin

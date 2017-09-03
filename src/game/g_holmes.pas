@@ -114,7 +114,7 @@ var
   msY: Integer = -666;
   msB: Word = 0; // button state
   kbS: Word = 0; // keyboard modifiers state
-  showGrid: Boolean = false;
+  showGrid: Boolean = {$IF DEFINED(D2F_DEBUG)}true{$ELSE}false{$ENDIF};
   showMonsInfo: Boolean = false;
   showMonsLOS2Plr: Boolean = false;
   showAllMonsCells: Boolean = false;
@@ -122,6 +122,7 @@ var
   showLayersWindow: Boolean = false;
   showOutlineWindow: Boolean = false;
   showTriggers: Boolean = {$IF DEFINED(D2F_DEBUG)}false{$ELSE}false{$ENDIF};
+
 
 // ////////////////////////////////////////////////////////////////////////// //
 {$INCLUDE g_holmes.inc}
@@ -651,6 +652,7 @@ var
   laserSet: Boolean = false;
   laserX0, laserY0, laserX1, laserY1: Integer;
   monMarkedUID: Integer = -1;
+  platMarkedGUID: Integer = -1;
 
 
 procedure g_Holmes_plrView (viewPortX, viewPortY, viewPortW, viewPortH: Integer);
@@ -1040,6 +1042,17 @@ procedure plrDebugDraw ();
     monsGrid.forEachBodyCell(mon.proxyId, hilightCell);
   end;
 
+  procedure drawSelectedPlatformCells ();
+  var
+    pan: TPanel;
+  begin
+    if not showGrid then exit;
+    pan := g_Map_PanelByGUID(platMarkedGUID);
+    if (pan = nil) then exit;
+    mapGrid.forEachBodyCell(pan.proxyId, hilightCell);
+    drawRect(pan.x, pan.y, pan.width, pan.height, 0, 200, 0, 200);
+  end;
+
   procedure drawTrigger (var trig: TTrigger);
 
     procedure drawPanelDest (pguid: Integer);
@@ -1150,8 +1163,9 @@ begin
     end;
   end;
 
-  if showAllMonsCells then g_Mons_ForEach(highlightAllMonsterCells);
+  if showAllMonsCells and showGrid then g_Mons_ForEach(highlightAllMonsterCells);
   if showTriggers then drawTriggers();
+  if showGrid then drawSelectedPlatformCells();
 
   glPopMatrix();
 
@@ -1279,6 +1293,9 @@ end;
 
 // ////////////////////////////////////////////////////////////////////////// //
 procedure bcOneMonsterThinkStep (); begin gmon_debug_think := false; gmon_debug_one_think_step := true; end;
+procedure bcOneMPlatThinkStep (); begin g_dbgpan_mplat_active := false; g_dbgpan_mplat_step := true; end;
+procedure bcMPlatToggle (); begin g_dbgpan_mplat_active := not g_dbgpan_mplat_active; end;
+
 procedure bcToggleMonsterInfo (arg: Integer=-1); begin if (arg < 0) then showMonsInfo := not showMonsInfo else showMonsInfo := (arg > 0); end;
 procedure bcToggleMonsterLOSPlr (arg: Integer=-1); begin if (arg < 0) then showMonsLOS2Plr := not showMonsLOS2Plr else showMonsLOS2Plr := (arg > 0); end;
 procedure bcToggleMonsterCells (arg: Integer=-1); begin if (arg < 0) then showAllMonsCells := not showAllMonsCells else showAllMonsCells := (arg > 0); end;
@@ -1356,6 +1373,7 @@ procedure cbAtcurDumpWalls ();
   function wallToggle (pan: TPanel; tag: Integer): Boolean;
   begin
     result := false; // don't stop
+    if (platMarkedGUID = -1) then platMarkedGUID := pan.guid;
     e_LogWritefln('wall #%d(%d); enabled=%d (%d); (%d,%d)-(%d,%d)', [pan.arrIdx, pan.proxyId, Integer(pan.Enabled), Integer(mapGrid.proxyEnabled[pan.proxyId]), pan.X, pan.Y, pan.Width, pan.Height]);
     dumpPublishedProperties(pan);
   end;
@@ -1364,6 +1382,7 @@ var
   f: Integer;
   trig: PTrigger;
 begin
+  platMarkedGUID := -1;
   e_WriteLog('=== TOGGLE WALL ===', MSG_NOTIFY);
   mapGrid.forEachAtPoint(pmsCurMapX, pmsCurMapY, wallToggle, (GridTagWall or GridTagDoor));
   e_WriteLog('--- toggle wall ---', MSG_NOTIFY);
@@ -1411,6 +1430,9 @@ begin
   cmdAdd('mon_cells', bcToggleMonsterCells, 'toggle "show all cells occupied by monsters" (SLOW!)', 'monster control');
   cmdAdd('mon_wakeup', bcMonsterWakeup, 'toggle "show all cells occupied by monsters" (SLOW!)', 'monster control');
 
+  cmdAdd('mplat_step', bcOneMPlatThinkStep, 'one mplat think step', 'mplat control');
+  cmdAdd('mplat_toggle', bcMPlatToggle, 'activate/deactivate moving platforms', 'mplat control');
+
   cmdAdd('plr_teleport', bcPlayerTeleport, 'teleport player', 'player control');
 
   cmdAdd('dbg_curpos', bcToggleCurPos, 'toggle "show cursor position on the map"', 'various');
@@ -1446,6 +1468,9 @@ begin
     keybindAdd('M-L', 'mon_los_plr');
     keybindAdd('M-G', 'mon_cells');
     keybindAdd('M-A', 'mon_wakeup');
+
+    keybindAdd('M-P', 'mplat_step');
+    keybindAdd('M-O', 'mplat_toggle');
 
     keybindAdd('C-T', 'plr_teleport');
 

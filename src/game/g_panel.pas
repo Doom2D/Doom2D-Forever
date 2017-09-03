@@ -167,6 +167,11 @@ type
 
   TPanelArray = Array of TPanel;
 
+var
+  g_dbgpan_mplat_active: Boolean = {$IF DEFINED(D2F_DEBUG)}false{$ELSE}true{$ENDIF};
+  g_dbgpan_mplat_step: Boolean = false; // one step, and stop
+
+
 implementation
 
 uses
@@ -606,7 +611,7 @@ begin
     FCurFrameCount := FTextureIDs[FCurTexture].AnTex.CurrentCounter;
   end;
 
-  if mMovingActive and (not mMovingSpeed.isZero) then
+  if mMovingActive and (not mMovingSpeed.isZero) and g_dbgpan_mplat_active then
   begin
     monMoveListUsed := 0;
     nx := X+mMovingSpeed.X;
