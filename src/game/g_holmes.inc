@@ -434,6 +434,17 @@ begin
 end;
 
 
+// ////////////////////////////////////////////////////////////////////////// //
+procedure normRGBA (var r, g, b, a: Integer); inline;
+begin
+  if (a < 0) then a := 0 else if (a > 255) then a := 255;
+  if (r < 0) then r := 0 else if (r > 255) then r := 255;
+  if (g < 0) then g := 0 else if (g > 255) then g := 255;
+  if (b < 0) then b := 0 else if (b > 255) then b := 255;
+end;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
 function textWidth6 (const s: AnsiString): Integer;
 var
   f: Integer;
@@ -462,10 +473,7 @@ var
 begin
   result := 0;
   if (Length(s) = 0) then exit;
-  if (a < 0) then a := 0 else if (a > 255) then a := 255;
-  if (r < 0) then r := 0 else if (r > 255) then r := 255;
-  if (g < 0) then g := 0 else if (g > 255) then g := 255;
-  if (b < 0) then b := 0 else if (b > 255) then b := 255;
+  normRGBA(r, g, b, a);
 
   if (a < 255) then
   begin
@@ -517,10 +525,7 @@ end;
 // ////////////////////////////////////////////////////////////////////////// //
 procedure drawLine (x1, y1, x2, y2: Integer; r, g, b: Integer; a: Integer=255);
 begin
-  if (a < 0) then a := 0 else if (a > 255) then a := 255;
-  if (r < 0) then r := 0 else if (r > 255) then r := 255;
-  if (g < 0) then g := 0 else if (g > 255) then g := 255;
-  if (b < 0) then b := 0 else if (b > 255) then b := 255;
+  normRGBA(r, g, b, a);
 
   if (a < 255) then
   begin
@@ -558,10 +563,7 @@ end;
 procedure drawRect (x, y, w, h: Integer; r, g, b: Integer; a: Integer=255);
 begin
   if (w < 0) or (h < 0) then exit;
-  if (a < 0) then a := 0 else if (a > 255) then a := 255;
-  if (r < 0) then r := 0 else if (r > 255) then r := 255;
-  if (g < 0) then g := 0 else if (g > 255) then g := 255;
-  if (b < 0) then b := 0 else if (b > 255) then b := 255;
+  normRGBA(r, g, b, a);
   if (a < 255) then
   begin
     glEnable(GL_BLEND);
@@ -597,6 +599,12 @@ begin
 end;
 
 
+procedure drawRectUI (x, y, w, h: Integer; r, g, b: Integer; a: Integer=255);
+begin
+  drawRect(x, y, w, h, r, g, b, a);
+end;
+
+
 procedure darkenRect (x, y, w, h: Integer; a: Integer);
 begin
   if (w < 0) or (h < 0) then exit;
@@ -624,10 +632,7 @@ end;
 procedure fillRect (x, y, w, h: Integer; r, g, b: Integer; a: Integer=255);
 begin
   if (w < 0) or (h < 0) then exit;
-  if (a < 0) then a := 0 else if (a > 255) then a := 255;
-  if (r < 0) then r := 0 else if (r > 255) then r := 255;
-  if (g < 0) then g := 0 else if (g > 255) then g := 255;
-  if (b < 0) then b := 0 else if (b > 255) then b := 255;
+  normRGBA(r, g, b, a);
   if (a < 255) then
   begin
     glEnable(GL_BLEND);

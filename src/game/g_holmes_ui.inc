@@ -874,12 +874,12 @@ var
 begin
   if mDragging then
   begin
-    drawRect(mX+4, mY+4, mWidth-8, mHeight-8, r, g, b);
+    drawRectUI(mX+4, mY+4, mWidth-8, mHeight-8, r, g, b);
   end
   else
   begin
-    drawRect(mX+3, mY+3, mWidth-6, mHeight-6, r, g, b);
-    drawRect(mX+5, mY+5, mWidth-10, mHeight-10, r, g, b);
+    drawRectUI(mX+3, mY+3, mWidth-6, mHeight-6, r, g, b);
+    drawRectUI(mX+5, mY+5, mWidth-10, mHeight-10, r, g, b);
     setScissor(mFrameWidth, 0, 3*8, 8);
     fillRect(mX+mFrameWidth, mY, 3*8, 8, 0, 0, 128);
     drawText8(mX+mFrameWidth, mY, '[ ]', r, g, b);
