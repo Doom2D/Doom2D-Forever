@@ -358,20 +358,24 @@ end;
 
 
 procedure TParticle.think (); inline;
+  procedure awake ();
+  begin
+    state := TPartState.Normal;
+    floorY := Unknown;
+    ceilingY := Unknown;
+    if (velY = 0) then velY := 0.1;
+    if (accelY = 0) then accelY := 0.5;
+  end;
+
 begin
   // awake sleeping particle, if necessary
   if awakeDirty then
   begin
     case state of
       TPartState.Sleeping, TPartState.Stuck:
-        if awmIsSet(x, y) then
-        begin
-          state := TPartState.Normal;
-          floorY := Unknown;
-          ceilingY := Unknown;
-          if (velY = 0) then velY := 0.1;
-          if (accelY = 0) then accelY := 0.5;
-        end;
+        if awmIsSet(x, y) then awake();
+      else
+        if (env = TEnvType.EWall) and awmIsSet(x, y) then awake();
     end;
   end;
   case particleType of
