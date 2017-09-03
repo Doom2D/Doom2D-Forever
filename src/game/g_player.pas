@@ -139,7 +139,7 @@ type
     FUID:       Word;
     FName:      String;
     FTeam:      Byte;
-    FLive:      Boolean;
+    FAlive:     Boolean;
     FSpawned:   Boolean;
     FDirection: TDirection;
     FHealth:    Integer;
@@ -343,7 +343,7 @@ type
     property    GodMode: Boolean read FGodMode write FGodMode;
     property    NoTarget: Boolean read FNoTarget write FNoTarget;
     property    NoReload: Boolean read FNoReload write FNoReload;
-    property    Live: Boolean read FLive write FLive;
+    property    alive: Boolean read FAlive write FAlive;
     property    Flag: Byte read FFlag;
     property    Team: Byte read FTeam write FTeam;
     property    Direction: TDirection read FDirection;
@@ -414,7 +414,7 @@ type
   end;
 
   TGib = record
-    Live:     Boolean;
+    alive:     Boolean;
     ID:       DWORD;
     MaskID:   DWORD;
     RAngle:   Integer;
@@ -427,7 +427,7 @@ type
 
   TShell = record
     SpriteID: DWORD;
-    Live:     Boolean;
+    alive:     Boolean;
     SType:    Byte;
     RAngle:   Integer;
     Timeout:  Cardinal;
@@ -748,7 +748,7 @@ begin
     gPlayers[a].FModel.Color := Color;
 
   gPlayers[a].FUID := g_CreateUID(UID_PLAYER);
-  gPlayers[a].FLive := False;
+  gPlayers[a].FAlive := False;
 
   Result := gPlayers[a].FUID;
 end;
@@ -809,7 +809,7 @@ begin
   Mem.ReadByte(gPlayers[a].FTeam);
   gPlayers[a].FPreferredTeam := gPlayers[a].FTeam;
 // Жив ли:
-  Mem.ReadBoolean(gPlayers[a].FLive);
+  Mem.ReadBoolean(gPlayers[a].FAlive);
 // Израсходовал ли все жизни:
   Mem.ReadBoolean(gPlayers[a].FNoRespawn);
 // Направление:
@@ -1443,7 +1443,7 @@ var
   i: Integer;
 begin
   for i := Low(gPlayers) to High(gPlayers) do
-    if (gPlayers[i] <> nil) and gPlayers[i].Live then
+    if (gPlayers[i] <> nil) and gPlayers[i].alive then
       gPlayers[i].RememberState;
 end;
 
@@ -1477,7 +1477,7 @@ var
   find_id: DWORD;
   ok: Boolean;
 begin
-  if Player.Live then
+  if Player.alive then
     Exit;
   if Player.FObj.Y >= gMapInfo.Height+128 then
     Exit;
@@ -1544,7 +1544,7 @@ begin
       Obj.Rect.Height := 3;
     end;
     SType := T;
-    Live := True;
+    alive := True;
     Obj.X := fX;
     Obj.Y := fY;
     g_Obj_Push(@Obj, dX + Random(4)-Random(4), dY-Random(4));
@@ -1575,7 +1575,7 @@ begin
       Color := fColor;
       ID := GibsArray[a].ID;
       MaskID := GibsArray[a].MaskID;
-      Live := True;
+      alive := True;
       g_Obj_Init(@Obj);
       Obj.Rect := GibsArray[a].Rect;
       Obj.X := fX-GibsArray[a].Rect.X-(GibsArray[a].Rect.Width div 2);
@@ -1616,7 +1616,7 @@ begin
 // Куски мяса:
   if gGibs <> nil then
     for i := 0 to High(gGibs) do
-      if gGibs[i].Live then
+      if gGibs[i].alive then
         with gGibs[i] do
         begin
           vel := Obj.Vel;
@@ -1625,7 +1625,7 @@ begin
 
           if WordBool(mr and MOVE_FALLOUT) then
           begin
-            Live := False;
+            alive := False;
             Continue;
           end;
 
@@ -1666,7 +1666,7 @@ begin
 // Гильзы:
   if gShells <> nil then
     for i := 0 to High(gShells) do
-      if gShells[i].Live then
+      if gShells[i].alive then
         with gShells[i] do
         begin
           vel := Obj.Vel;
@@ -1675,7 +1675,7 @@ begin
 
           if WordBool(mr and MOVE_FALLOUT) or (gShells[i].Timeout < gTime) then
           begin
-            Live := False;
+            alive := False;
             Continue;
           end;
 
@@ -1719,7 +1719,7 @@ var
 begin
   if gGibs <> nil then
     for i := 0 to High(gGibs) do
-      if gGibs[i].Live then
+      if gGibs[i].alive then
         with gGibs[i] do
         begin
           if not g_Obj_Collide(sX, sY, sWidth, sHeight, @Obj) then
@@ -1750,7 +1750,7 @@ var
 begin
   if gShells <> nil then
     for i := 0 to High(gShells) do
-      if gShells[i].Live then
+      if gShells[i].alive then
         with gShells[i] do
         begin
           if not g_Obj_Collide(sX, sY, sWidth, sHeight, @Obj) then
@@ -1920,7 +1920,7 @@ begin
     Exit;
   if not (gGameSettings.GameMode in [GM_TDM, GM_CTF]) then Exit;
 
-  if gGameOn and FLive then
+  if gGameOn and FAlive then
     Kill(K_SIMPLEKILL, FUID, HIT_SELF);
 
   if FTeam = TEAM_RED then
@@ -1963,12 +1963,12 @@ var
   r: Boolean;
 begin
  if gItems = nil then Exit;
- if not FLive then Exit;
+ if not FAlive then Exit;
 
  for i := 0 to High(gItems) do
   with gItems[i] do
   begin
-   if (ItemType <> ITEM_NONE) and Live then
+   if (ItemType <> ITEM_NONE) and alive then
     if g_Obj_Collide(FObj.X+PLAYER_RECT.X, FObj.Y+PLAYER_RECT.Y, PLAYER_RECT.Width,
                      PLAYER_RECT.Height, @Obj) then
    begin
@@ -2054,7 +2054,7 @@ procedure TPlayer.Damage(value: Word; SpawnerUID: Word; vx, vy: Integer; t: Byte
 var
   c: Word;
 begin
-  if (not g_Game_IsClient) and (not FLive) then
+  if (not g_Game_IsClient) and (not FAlive) then
     Exit;
 
   FLastHit := t;
@@ -2123,7 +2123,7 @@ begin
     end;
 
   // Буфер урона:
-    if FLive then
+    if FAlive then
       Inc(FDamageBuffer, value);
 
   // Вспышка боли:
@@ -2144,7 +2144,7 @@ begin
   Result := False;
   if g_Game_IsClient then
     Exit;
-  if not FLive then
+  if not FAlive then
     Exit;
 
   if Soft and (FHealth < PLAYER_HP_SOFT) then
@@ -2267,7 +2267,7 @@ var
   w, h: Word;
   dr: Boolean;
 begin
-  if FLive then
+  if FAlive then
   begin
     if (FMegaRulez[MR_INVUL] > gTime) and (gPlayerDrawn <> Self) then
       if g_Texture_Get('TEXTURE_PLAYER_INVULPENTA', ID) then
@@ -2314,7 +2314,7 @@ begin
   if (gChatBubble > 0) and (FKeys[KEY_CHAT].Pressed) and not FGhost then
     DrawBubble();
  // e_DrawPoint(5, 335, 288, 255, 0, 0); // DL, UR, DL, UR
-  if gAimLine and Live and
+  if gAimLine and alive and
   ((Self = gPlayer1) or (Self = gPlayer2)) then
     DrawAim();
 end;
@@ -3055,13 +3055,13 @@ begin
   Srv := g_Game_IsServer;
   Netsrv := g_Game_IsServer and g_Game_IsNet;
   if Srv then FDeath := FDeath + 1;
-  if FLive then
+  if FAlive then
   begin
     if FGhost then
       FGhost := False;
     if not FPhysics then
       FPhysics := True;
-    FLive := False;
+    FAlive := False;
   end;
   FShellTimer := -1;
 
@@ -4001,7 +4001,7 @@ end;
 
 procedure TPlayer.Touch();
 begin
-  if not FLive then
+  if not FAlive then
     Exit;
   //FModel.PlaySound(MODELSOUND_PAIN, 1, FObj.X, FObj.Y);
   if FIamBot then
@@ -4025,7 +4025,7 @@ end;
 procedure TPlayer.Reset(Force: Boolean);
 begin
   if Force then
-    FLive := False;
+    FAlive := False;
 
   FSpawned := False;
   FTime[T_RESPAWN] := 0;
@@ -4235,7 +4235,7 @@ begin
   if Force then
   begin
     FTime[T_RESPAWN] := 0;
-    FLive := False;
+    FAlive := False;
   end;
   FNetTime := 0;
   // if server changes MaxLives we gotta be ready
@@ -4271,11 +4271,11 @@ begin
   SetFlag(FLAG_NONE);
 
 // Воскрешение без оружия:
-  if not FLive then
+  if not FAlive then
   begin
     FHealth := PLAYER_HP_SOFT;
     FArmor := 0;
-    FLive := True;
+    FAlive := True;
     FAir := AIR_DEF;
     FJetFuel := 0;
 
@@ -4381,7 +4381,7 @@ end;
 
 procedure TPlayer.Spectate(NoMove: Boolean = False);
 begin
-  if FLive then
+  if FAlive then
     Kill(K_EXTRAHARDKILL, FUID, HIT_SOME)
   else if (not NoMove) then
   begin
@@ -4391,7 +4391,7 @@ begin
   FXTo := GameX;
   FYTo := GameY;
 
-  FLive := False;
+  FAlive := False;
   FSpectator := True;
   FGhost := True;
   FPhysics := False;
@@ -4418,7 +4418,7 @@ end;
 
 procedure TPlayer.SwitchNoClip;
 begin
-  if not FLive then
+  if not FAlive then
     Exit;
   FGhost := not FGhost;
   FPhysics := not FGhost;
@@ -4457,7 +4457,7 @@ begin
     if b > 1 then b := b * (Random(8 div b) + 1);
     for a := 0 to High(gGibs) do
     begin
-      if gGibs[a].Live and
+      if gGibs[a].alive and
          g_Obj_Collide(FObj.X+FObj.Rect.X, FObj.Y+FObj.Rect.Y+FObj.Rect.Height-4,
                        FObj.Rect.Width, 8, @gGibs[a].Obj) and (Random(3) = 0) then
       begin
@@ -4569,7 +4569,7 @@ begin
 
   FObj.X := X-PLAYER_RECT.X;
   FObj.Y := Y-PLAYER_RECT.Y;
-  if FLive and FGhost then
+  if FAlive and FGhost then
   begin
     FXTo := FObj.X;
     FYTo := FObj.Y;
@@ -4659,7 +4659,7 @@ begin
       FLoss := 0;
     end;
 
-  if FLive and (gFly or FJetpack) then
+  if FAlive and (gFly or FJetpack) then
     FlySmoke();
 
   if FDirection = D_LEFT then
@@ -4667,7 +4667,7 @@ begin
   else
     FAngle := 0;
 
-  if FLive and (not FGhost) then
+  if FAlive and (not FGhost) then
   begin
     if FKeys[KEY_UP].Pressed then
       SeeUp();
@@ -4685,12 +4685,12 @@ begin
   end;
 
   // no need to do that each second frame, weapon queue will take care of it
-  if FLive and FKeys[KEY_NEXTWEAPON].Pressed and AnyServer then NextWeapon();
-  if FLive and FKeys[KEY_PREVWEAPON].Pressed and AnyServer then PrevWeapon();
+  if FAlive and FKeys[KEY_NEXTWEAPON].Pressed and AnyServer then NextWeapon();
+  if FAlive and FKeys[KEY_PREVWEAPON].Pressed and AnyServer then PrevWeapon();
 
   if gTime mod (GAME_TICK*2) <> 0 then
   begin
-    if (FObj.Vel.X = 0) and FLive then
+    if (FObj.Vel.X = 0) and FAlive then
     begin
       if FKeys[KEY_LEFT].Pressed then
         Run(D_LEFT);
@@ -4709,7 +4709,7 @@ begin
 
   FActionChanged := False;
 
-  if FLive then
+  if FAlive then
   begin
     // Let alive player do some actions
     if FKeys[KEY_LEFT].Pressed then Run(D_LEFT);
@@ -4748,7 +4748,7 @@ begin
         Respawn(False)
       else // Single
         if (FTime[T_RESPAWN] <= gTime) and
-          gGameOn and (not FLive) then
+          gGameOn and (not FAlive) then
         begin
           if (g_Player_GetCount() > 1) then
             Respawn(False)
@@ -4774,7 +4774,7 @@ begin
             SetSpect := False;
             for I := FSpectatePlayer + 1 to High(gPlayers) do
               if gPlayers[I] <> nil then
-                if gPlayers[I].Live then
+                if gPlayers[I].alive then
                   if gPlayers[I].UID <> FUID then
                   begin
                     FSpectatePlayer := I;
@@ -4836,7 +4836,7 @@ begin
     if FSpectator then
       if (FSpectatePlayer <= High(gPlayers)) and (FSpectatePlayer >= 0) then
         if gPlayers[FSpectatePlayer] <> nil then
-          if gPlayers[FSpectatePlayer].Live then
+          if gPlayers[FSpectatePlayer].alive then
           begin
             FXTo := gPlayers[FSpectatePlayer].GameX;
             FYTo := gPlayers[FSpectatePlayer].GameY;
@@ -4849,7 +4849,7 @@ begin
   headwater := HeadInLiquid(0, 0);
 
 // Сопротивление воздуха:
-  if (not FLive) or not (FKeys[KEY_LEFT].Pressed or FKeys[KEY_RIGHT].Pressed) then
+  if (not FAlive) or not (FKeys[KEY_LEFT].Pressed or FKeys[KEY_RIGHT].Pressed) then
     if FObj.Vel.X <> 0 then
       FObj.Vel.X := z_dec(FObj.Vel.X, 1);
 
@@ -4857,7 +4857,7 @@ begin
   DecMin(FPain, 5, 0);
   DecMin(FPickup, 1, 0);
 
-  if FLive and (FObj.Y > Integer(gMapInfo.Height)+128) and AnyServer then
+  if FAlive and (FObj.Y > Integer(gMapInfo.Height)+128) and AnyServer then
   begin
     // Обнулить действия примочек, чтобы фон пропал
     FMegaRulez[MR_SUIT] := 0;
@@ -4868,7 +4868,7 @@ begin
 
   i := 9;
 
-  if FLive then
+  if FAlive then
   begin
     if FCurrWeap = WEAPON_SAW then
       if not (FSawSound.IsPlaying() or FSawSoundHit.IsPlaying() or
@@ -5012,7 +5012,7 @@ begin
             else if FHealth > -50 then Kill(K_HARDKILL, FLastSpawnerUID, FLastHit)
               else Kill(K_EXTRAHARDKILL, FLastSpawnerUID, FLastHit);
 
-      if FLive then
+      if FAlive then
       begin
         if FDamageBuffer <= 20 then FModel.PlaySound(MODELSOUND_PAIN, 1, FObj.X, FObj.Y)
           else if FDamageBuffer <= 55 then FModel.PlaySound(MODELSOUND_PAIN, 2, FObj.X, FObj.Y)
@@ -5024,7 +5024,7 @@ begin
     end;
 
     {CollideItem();}
-  end; // if FLive then ...
+  end; // if FAlive then ...
 
   if (FActionAnim = A_PAIN) and (FModel.Animation <> A_PAIN) then
   begin
@@ -5130,7 +5130,7 @@ begin
 
   for a := 0 to High(gPlayers) do
     if (gPlayers[a] <> nil) and (gPlayers[a] <> Self) and
-       gPlayers[a].Live and SameTeam(FUID, gPlayers[a].FUID) and
+       gPlayers[a].alive and SameTeam(FUID, gPlayers[a].FUID) and
        g_Obj_Collide(FObj.X+FObj.Rect.X, FObj.Y+FObj.Rect.Y,
                      FObj.Rect.Width, FObj.Rect.Height, @gPlayers[a].FObj) then
     begin
@@ -5574,7 +5574,7 @@ begin
 // Команда:
   Mem.WriteByte(FTeam);
 // Жив ли:
-  Mem.WriteBoolean(FLive);
+  Mem.WriteBoolean(FAlive);
 // Израсходовал ли все жизни:
   Mem.WriteBoolean(FNoRespawn);
 // Направление:
@@ -5714,7 +5714,7 @@ begin
 // Команда:
   Mem.ReadByte(FTeam);
 // Жив ли:
-  Mem.ReadBoolean(FLive);
+  Mem.ReadBoolean(FAlive);
 // Израсходовал ли все жизни:
   Mem.ReadBoolean(FNoRespawn);
 // Направление:
@@ -6359,7 +6359,7 @@ var
   function monsUpdate (mon: TMonster): Boolean;
   begin
     result := false; // don't stop
-    if mon.Live and (mon.MonsterType <> MONSTER_BARREL) then
+    if mon.alive and (mon.MonsterType <> MONSTER_BARREL) then
     begin
       if not TargetOnScreen(mon.Obj.X+mon.Obj.Rect.X, mon.Obj.Y+mon.Obj.Rect.Y) then exit;
 
@@ -6482,7 +6482,7 @@ begin
   // Игроки:
     if vsPlayer then
       for a := 0 to High(gPlayers) do
-        if (gPlayers[a] <> nil) and (gPlayers[a].Live) and
+        if (gPlayers[a] <> nil) and (gPlayers[a].alive) and
            (gPlayers[a].FUID <> FUID) and
            (not SameTeam(FUID, gPlayers[a].FUID)) and
            (not gPlayers[a].NoTarget) and
@@ -6672,14 +6672,14 @@ begin
           if Target.IsPlayer then
             begin // Цель - игрок
               pla := g_Player_Get(Target.UID);
-              if (pla = nil) or (not pla.Live) or pla.NoTarget or
+              if (pla = nil) or (not pla.alive) or pla.NoTarget or
                  (pla.FMegaRulez[MR_INVIS] >= gTime) then
                 Target.UID := 0; // то забыть цель
             end
           else
             begin // Цель - монстр
               mon := g_Monsters_ByUID(Target.UID);
-              if (mon = nil) or (not mon.Live) then
+              if (mon = nil) or (not mon.alive) then
                 Target.UID := 0; // то забыть цель
             end;
         end;
@@ -6821,7 +6821,7 @@ procedure TBot.Update();
 var
   EnableAI: Boolean;
 begin
-  if not FLive then
+  if not FAlive then
   begin // Respawn
     ReleaseKeys();
     PressKey(KEY_UP);

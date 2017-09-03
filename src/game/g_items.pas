@@ -34,7 +34,7 @@ Type
     Respawnable:   Boolean;
     InitX, InitY:  Integer;
     RespawnTime:   Word;
-    Live:          Boolean;
+    alive:         Boolean;
     Fall:          Boolean;
     QuietRespawn:  Boolean;
     SpawnTrigger:  Integer;
@@ -342,7 +342,7 @@ begin
     it.Animation.Free();
     it.Animation := nil;
   end;
-  it.Live := False;
+  it.alive := False;
   it.SpawnTrigger := -1;
   it.ItemType := ITEM_NONE;
   freeIds.release(LongWord(idx));
@@ -365,7 +365,7 @@ begin
     it.arrIdx := i;
     it.ItemType := ITEM_NONE;
     it.Animation := nil;
-    it.Live := false;
+    it.alive := false;
     it.SpawnTrigger := -1;
     it.Respawnable := false;
     //if not freeIds.hasFree[LongWord(i)] then raise Exception.Create('internal error in item idx manager');
@@ -456,7 +456,7 @@ begin
   it.InitY := Y;
   it.RespawnTime := 0;
   it.Fall := Fall;
-  it.Live := True;
+  it.alive := True;
   it.QuietRespawn := False;
 
   g_Obj_Init(@it.Obj);
@@ -516,7 +516,7 @@ begin
     begin
       nxt := False;
 
-      if Live then
+      if alive then
       begin
         if Fall then
         begin
@@ -552,7 +552,7 @@ begin
             Inc(j);
             if j > High(gPlayers) then j := 0;
 
-            if (gPlayers[j] <> nil) and gPlayers[j].Live and g_Obj_Collide(@gPlayers[j].Obj, @Obj) then
+            if (gPlayers[j] <> nil) and gPlayers[j].alive and g_Obj_Collide(@gPlayers[j].Obj, @Obj) then
             begin
               if g_Game_IsClient then continue;
 
@@ -586,7 +586,7 @@ begin
       if Respawnable and g_Game_IsServer then
       begin
         DecMin(RespawnTime, 0);
-        if (RespawnTime = 0) and (not Live) then
+        if (RespawnTime = 0) and (not alive) then
         begin
           if not QuietRespawn then g_Sound_PlayExAt('SOUND_ITEM_RESPAWNITEM', InitX, InitY);
 
@@ -605,7 +605,7 @@ begin
           Obj.Accel.Y := 0;
           positionChanged(); // this updates spatial accelerators
 
-          Live := true;
+          alive := true;
 
           if g_Game_IsNet then MH_SEND_ItemSpawn(QuietRespawn, i);
           QuietRespawn := false;
@@ -626,7 +626,7 @@ begin
 
   for i := 0 to High(ggItems) do
   begin
-    if not ggItems[i].Live then continue;
+    if not ggItems[i].alive then continue;
 
     with ggItems[i] do
     begin
@@ -657,7 +657,7 @@ end;
 
 procedure g_Items_Pick (ID: DWORD);
 begin
-  ggItems[ID].Live := false;
+  ggItems[ID].alive := false;
   ggItems[ID].RespawnTime := ITEM_RESPAWNTIME;
 end;
 
@@ -716,7 +716,7 @@ begin
       // Время до респауна
       Mem.WriteWord(ggItems[i].RespawnTime);
       // Существует ли этот предмет
-      Mem.WriteBoolean(ggItems[i].Live);
+      Mem.WriteBoolean(ggItems[i].alive);
       // Может ли он падать
       Mem.WriteBoolean(ggItems[i].Fall);
       // Индекс триггера, создавшего предмет
@@ -760,7 +760,7 @@ begin
     // Время до респауна
     Mem.ReadWord(ggItems[i].RespawnTime);
     // Существует ли этот предмет
-    Mem.ReadBoolean(ggItems[i].Live);
+    Mem.ReadBoolean(ggItems[i].alive);
     // Может ли он падать
     Mem.ReadBoolean(ggItems[i].Fall);
     // Индекс триггера, создавшего предмет
@@ -804,7 +804,7 @@ begin
   begin
     for idx := High(ggItems) downto 0 do
     begin
-      if ggItems[idx].Live then
+      if ggItems[idx].alive then
       begin
         result := cb(@ggItems[idx]);
         if result then exit;
@@ -815,7 +815,7 @@ begin
   begin
     for idx := 0 to High(ggItems) do
     begin
-      if ggItems[idx].Live then
+      if ggItems[idx].alive then
       begin
         result := cb(@ggItems[idx]);
         if result then exit;
@@ -890,7 +890,7 @@ begin
   for f := 0 to High(ggItems) do
   begin
     it := @ggItems[f];
-    if not it.Live then continue;
+    if not it.alive then continue;
     case it.ItemType of
       ITEM_KEY_RED: g_AddDynLight(it.Obj.X+(it.Obj.Rect.Width div 2), it.Obj.Y+(it.Obj.Rect.Height div 2), 24,  1.0, 0.0, 0.0, 0.6);
       ITEM_KEY_GREEN: g_AddDynLight(it.Obj.X+(it.Obj.Rect.Width div 2), it.Obj.Y+(it.Obj.Rect.Height div 2), 24,  0.0, 1.0, 0.0, 0.6);

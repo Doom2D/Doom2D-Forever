@@ -1073,7 +1073,7 @@ begin
 
   with P do
   begin
-    NetOut.Write(Byte(Live));
+    NetOut.Write(Byte(alive));
     NetOut.Write(Byte(GodMode));
     NetOut.Write(Health);
     NetOut.Write(Armor);
@@ -2140,7 +2140,7 @@ begin
 
   with Pl do
   begin
-    Live := (M.ReadByte() <> 0);
+    alive := (M.ReadByte() <> 0);
     GodMode := (M.ReadByte() <> 0);
     Health := M.ReadLongInt();
     Armor := M.ReadLongInt();
@@ -2306,7 +2306,7 @@ begin
   SHID := M.ReadLongInt();
 
   with Pl do
-    if Live then NetFire(Weap, X, Y, AX, AY, SHID);
+    if alive then NetFire(Weap, X, Y, AX, AY, SHID);
 end;
 
 procedure MC_RECV_PlayerSettings(var M: TMsg);

@@ -338,7 +338,7 @@ var
   function monsWaterCheck (mon: TMonster): Boolean;
   begin
     result := false; // don't stop
-    if mon.Live and mon.Collide(gWater[WaterMap[a][c]]) and (not InWArray(monidx, chkTrap_mn)) and (i2 < 1023) then //FIXME
+    if mon.alive and mon.Collide(gWater[WaterMap[a][c]]) and (not InWArray(monidx, chkTrap_mn)) and (i2 < 1023) then //FIXME
     begin
       i2 += 1;
       chkTrap_mn[i2] := monidx;
@@ -385,7 +385,7 @@ begin
         pan := gWater[WaterMap[a][c]];
         for d := 0 to High(gPlayers) do
         begin
-          if (gPlayers[d] <> nil) and (gPlayers[d].Live) then
+          if (gPlayers[d] <> nil) and (gPlayers[d].alive) then
           begin
             if gPlayers[d].Collide(pan) then
             begin
@@ -499,7 +499,7 @@ procedure g_Weapon_BFG9000(X, Y: Integer; SpawnerUID: Word);
   function monsCheck (mon: TMonster): Boolean;
   begin
     result := false; // don't stop
-    if (mon.Live) and (mon.UID <> SpawnerUID) then
+    if (mon.alive) and (mon.UID <> SpawnerUID) then
     begin
       with mon do
       begin
@@ -547,7 +547,7 @@ begin
 
   if h <> -1 then
     for i := 0 to h do
-      if (gPlayers[i] <> nil) and (gPlayers[i].Live) and (gPlayers[i].UID <> SpawnerUID) then
+      if (gPlayers[i] <> nil) and (gPlayers[i].alive) and (gPlayers[i].UID <> SpawnerUID) then
         with gPlayers[i] do
           if (g_PatchLength(X, Y, GameX+PLAYER_RECT.X+(PLAYER_RECT.Width div 2),
                             GameY+PLAYER_RECT.Y+(PLAYER_RECT.Height div 2)) <= SHOT_BFG_RADIUS) and
@@ -802,7 +802,7 @@ var
 
     if h <> -1 then
       for i := 0 to h do
-        if (gPlayers[i] <> nil) and gPlayers[i].Live and g_Obj_Collide(obj, @gPlayers[i].Obj) then
+        if (gPlayers[i] <> nil) and gPlayers[i].alive and g_Obj_Collide(obj, @gPlayers[i].Obj) then
         begin
           ChkTeam := True;
           if (Team > 0) and (g_GetUIDType(SpawnerUID) = UID_PLAYER) then
@@ -829,7 +829,7 @@ var
   function monsCheckHit (monidx: Integer; mon: TMonster): Boolean;
   begin
     result := false; // don't stop
-    if mon.Live and g_Obj_Collide(obj, @mon.Obj) then
+    if mon.alive and g_Obj_Collide(obj, @mon.Obj) then
     begin
       if HitMonster(mon, d, obj^.Vel.X, obj^.Vel.Y, SpawnerUID, t) then
       begin
@@ -982,7 +982,7 @@ var
         mm := Max(abs(dx), abs(dy));
         if mm = 0 then mm := 1;
 
-        if mon.Live then
+        if mon.alive then
         begin
           HitMonster(mon, ((mon.Obj.Rect.Width div 4)*10*(rad-mm)) div rad, 0, 0, SpawnerUID, HIT_ROCKET);
         end;
@@ -1006,7 +1006,7 @@ begin
 
   if h <> -1 then
     for i := 0 to h do
-      if (gPlayers[i] <> nil) and gPlayers[i].Live then
+      if (gPlayers[i] <> nil) and gPlayers[i].alive then
         with gPlayers[i] do
         begin
           dx := Obj.X+Obj.Rect.X+(Obj.Rect.Width div 2)-X;
@@ -1060,7 +1060,7 @@ begin
 
   if gAdvGibs and (h <> -1) then
     for i := 0 to h do
-      if gGibs[i].Live then
+      if gGibs[i].alive then
         with gGibs[i] do
         begin
           dx := Obj.X+Obj.Rect.X+(Obj.Rect.Width div 2)-X;
@@ -1234,7 +1234,7 @@ begin
   result := false;
   for i := 0 to High(gPlayers) do
   begin
-    if (gPlayers[i] <> nil) and gPlayers[i].Live and gPlayers[i].Collide(X, Y) then
+    if (gPlayers[i] <> nil) and gPlayers[i].alive and gPlayers[i].Collide(X, Y) then
     begin
       if HitPlayer(gPlayers[i], dmg, vx*10, vy*10-3, SpawnerUID, HIT_SOME) then
       begin
@@ -1393,7 +1393,7 @@ var
   begin
     result := false;
     if (idx < 0) or (idx > High(gPlayers)) then exit;
-    if (gPlayers[idx] = nil) or not gPlayers[idx].Live then exit;
+    if (gPlayers[idx] = nil) or not gPlayers[idx].alive then exit;
     result := HitPlayer(gPlayers[idx], dmg, (xi*v)*10, (yi*v)*10-3, SpawnerUID, HIT_SOME);
     if result and (v <> 0) then gPlayers[idx].Push((xi*v), (yi*v));
     {$IF DEFINED(D2F_DEBUG)}
@@ -1426,7 +1426,7 @@ var
     for i := 0 to High(gPlayers) do
     begin
       plr := gPlayers[i];
-      if (plr <> nil) and plr.Live then
+      if (plr <> nil) and plr.alive then
       begin
         plr.getMapBox(px, py, pw, ph);
         if lineAABBIntersects(x, y, x2, y2, px, py, pw, ph, inx, iny) then

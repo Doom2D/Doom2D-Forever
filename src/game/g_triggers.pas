@@ -273,7 +273,7 @@ begin
       begin
         for a := 0 to High(gPlayers) do
         begin
-          if (gPlayers[a] <> nil) and gPlayers[a].Live and gPlayers[a].Collide(X, Y, Width, Height) then
+          if (gPlayers[a] <> nil) and gPlayers[a].alive and gPlayers[a].Collide(X, Y, Width, Height) then
           begin
             gPlayers[a].Damage(TRAP_DAMAGE, 0, 0, 0, HIT_TRAP);
           end;
@@ -334,7 +334,7 @@ begin
         begin
           for a := 0 to High(gPlayers) do
           begin
-            if (gPlayers[a] <> nil) and gPlayers[a].Live and gPlayers[a].Collide(X, Y, Width, Height) then
+            if (gPlayers[a] <> nil) and gPlayers[a].alive and gPlayers[a].Collide(X, Y, Width, Height) then
             begin
               gPlayers[a].Damage(TRAP_DAMAGE, 0, 0, 0, HIT_TRAP);
             end;
@@ -346,7 +346,7 @@ begin
         (*
         if gMonsters <> nil then
           for a := 0 to High(gMonsters) do
-            if (gMonsters[a] <> nil) and gMonsters[a].Live and
+            if (gMonsters[a] <> nil) and gMonsters[a].alive and
             g_Obj_Collide(X, Y, Width, Height, @gMonsters[a].Obj) then
               gMonsters[a].Damage(TRAP_DAMAGE, 0, 0, 0, HIT_TRAP);
         *)
@@ -1033,7 +1033,7 @@ var
   function monsShotTarget (mon: TMonster): Boolean;
   begin
     result := false; // don't stop
-    if mon.Live and tr_ShotAimCheck(Trigger, @(mon.Obj)) then
+    if mon.alive and tr_ShotAimCheck(Trigger, @(mon.Obj)) then
     begin
       xd := mon.GameX + mon.Obj.Rect.Width div 2;
       yd := mon.GameY + mon.Obj.Rect.Height div 2;
@@ -1045,7 +1045,7 @@ var
   function monsShotTargetMonPlr (mon: TMonster): Boolean;
   begin
     result := false; // don't stop
-    if mon.Live and tr_ShotAimCheck(Trigger, @(mon.Obj)) then
+    if mon.alive and tr_ShotAimCheck(Trigger, @(mon.Obj)) then
     begin
       xd := mon.GameX + mon.Obj.Rect.Width div 2;
       yd := mon.GameY + mon.Obj.Rect.Height div 2;
@@ -1057,7 +1057,7 @@ var
   function monShotTargetPlrMon (mon: TMonster): Boolean;
   begin
     result := false; // don't stop
-    if mon.Live and tr_ShotAimCheck(Trigger, @(mon.Obj)) then
+    if mon.alive and tr_ShotAimCheck(Trigger, @(mon.Obj)) then
     begin
       xd := mon.GameX + mon.Obj.Rect.Width div 2;
       yd := mon.GameY + mon.Obj.Rect.Height div 2;
@@ -1970,7 +1970,7 @@ begin
             TRIGGER_SHOT_TARGET_PLR: // players
               if gPlayers <> nil then
                 for idx := Low(gPlayers) to High(gPlayers) do
-                  if (gPlayers[idx] <> nil) and gPlayers[idx].Live and
+                  if (gPlayers[idx] <> nil) and gPlayers[idx].alive and
                      tr_ShotAimCheck(Trigger, @(gPlayers[idx].Obj)) then
                   begin
                     xd := gPlayers[idx].GameX + PLAYER_RECT_CX;
@@ -1982,7 +1982,7 @@ begin
             TRIGGER_SHOT_TARGET_RED: // red team
               if gPlayers <> nil then
                 for idx := Low(gPlayers) to High(gPlayers) do
-                  if (gPlayers[idx] <> nil) and gPlayers[idx].Live and
+                  if (gPlayers[idx] <> nil) and gPlayers[idx].alive and
                      (gPlayers[idx].Team = TEAM_RED) and
                      tr_ShotAimCheck(Trigger, @(gPlayers[idx].Obj)) then
                   begin
@@ -1995,7 +1995,7 @@ begin
             TRIGGER_SHOT_TARGET_BLUE: // blue team
               if gPlayers <> nil then
                 for idx := Low(gPlayers) to High(gPlayers) do
-                  if (gPlayers[idx] <> nil) and gPlayers[idx].Live and
+                  if (gPlayers[idx] <> nil) and gPlayers[idx].alive and
                      (gPlayers[idx].Team = TEAM_BLUE) and
                      tr_ShotAimCheck(Trigger, @(gPlayers[idx].Obj)) then
                   begin
@@ -2012,7 +2012,7 @@ begin
 
               if (TargetUID = 0) and (gPlayers <> nil) then
                 for idx := Low(gPlayers) to High(gPlayers) do
-                  if (gPlayers[idx] <> nil) and gPlayers[idx].Live and
+                  if (gPlayers[idx] <> nil) and gPlayers[idx].alive and
                      tr_ShotAimCheck(Trigger, @(gPlayers[idx].Obj)) then
                   begin
                     xd := gPlayers[idx].GameX + PLAYER_RECT_CX;
@@ -2026,7 +2026,7 @@ begin
             begin
               if gPlayers <> nil then
                 for idx := Low(gPlayers) to High(gPlayers) do
-                  if (gPlayers[idx] <> nil) and gPlayers[idx].Live and
+                  if (gPlayers[idx] <> nil) and gPlayers[idx].alive and
                      tr_ShotAimCheck(Trigger, @(gPlayers[idx].Obj)) then
                   begin
                     xd := gPlayers[idx].GameX + PLAYER_RECT_CX;
@@ -2551,7 +2551,7 @@ begin
               if gPlayers[b] <> nil then
                 with gPlayers[b] do
                 // Жив, есть нужные ключи и он рядом:
-                  if Live and ((gTriggers[a].Keys and GetKeys) = gTriggers[a].Keys) and
+                  if alive and ((gTriggers[a].Keys and GetKeys) = gTriggers[a].Keys) and
                      Collide(X, Y, Width, Height) then
                   begin
                     gTriggers[a].ActivateUID := UID;

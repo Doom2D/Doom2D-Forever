@@ -138,7 +138,7 @@ begin
   if gPlayers = nil then Exit;
 
   for a := 0 to High(gPlayers) do
-    if (gPlayers[a] <> nil) and gPlayers[a].Live then
+    if (gPlayers[a] <> nil) and gPlayers[a].alive then
       if gPlayers[a].Collide(X, Y, Width, Height) then
       begin
         Result := True;
@@ -959,7 +959,7 @@ begin
     begin
       p := g_Player_Get(UID);
       if p = nil then Exit;
-      if not p.Live then Exit;
+      if not p.alive then Exit;
 
       o^ := p.Obj;
     end;
@@ -968,7 +968,7 @@ begin
     begin
       m := g_Monsters_ByUID(UID);
       if m = nil then Exit;
-      if not m.Live then Exit;
+      if not m.alive then Exit;
 
       o^ := m.Obj;
     end;

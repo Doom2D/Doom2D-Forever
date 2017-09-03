@@ -1327,8 +1327,8 @@ var
 begin
   Enabled := True;
   if (gGameSettings.GameType = GT_SINGLE) and
-     ((gPlayer1 = nil) or (not gPlayer1.Live)) and
-     ((gPlayer2 = nil) or (not gPlayer2.Live)) then
+     ((gPlayer1 = nil) or (not gPlayer1.alive)) and
+     ((gPlayer2 = nil) or (not gPlayer2.alive)) then
     Enabled := False; // Один из игроков погиб в сингле
   if not gGameOn then
     Enabled := False; // Запретить сохранение в интермиссии (не реализовано)

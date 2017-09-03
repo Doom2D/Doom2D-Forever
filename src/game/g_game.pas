@@ -2495,7 +2495,7 @@ var
     result := false; // don't stop
     with mon do
     begin
-      if Live then
+      if alive then
       begin
         // Левый верхний угол
         aX := Obj.X div ScaleSz + 1;
@@ -2658,7 +2658,7 @@ begin
     // Рисуем игроков:
       for a := 0 to High(gPlayers) do
         if gPlayers[a] <> nil then with gPlayers[a] do
-          if Live then begin
+          if alive then begin
           // Левый верхний угол:
             aX := Obj.X div ScaleSz + 1;
             aY := Obj.Y div ScaleSz + 1;
@@ -5100,7 +5100,7 @@ begin
     end
     else if cmd = 'd_monster' then
     begin
-      if gGameOn and (gPlayer1 <> nil) and (gPlayer1.Live) and (not g_Game_IsNet) then
+      if gGameOn and (gPlayer1 <> nil) and (gPlayer1.alive) and (not g_Game_IsNet) then
         if Length(P) < 2 then
         begin
           g_Console_Add(cmd + ' [ID | Name] [behaviour]');

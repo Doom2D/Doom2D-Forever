@@ -2487,7 +2487,7 @@ begin
               if j > High(gPlayers) then j := 0;
               if gPlayers[j] <> nil then
               begin
-                if gPlayers[j].Live and g_Obj_Collide(@Obj, @gPlayers[j].Obj) then
+                if gPlayers[j].alive and g_Obj_Collide(@Obj, @gPlayers[j].Obj) then
                 begin
                   if gPlayers[j].GetFlag(a) then Break;
                 end;

@@ -138,7 +138,7 @@ begin
   for plr in gPlayers do
   begin
     if (plr = nil) then continue;
-    if not plr.Live then continue;
+    if not plr.alive then continue;
     with plr do
     begin
       if g_Collide(GameX+PLAYER_RECT.X, GameY+PLAYER_RECT.Y,

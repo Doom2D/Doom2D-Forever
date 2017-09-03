@@ -114,7 +114,7 @@ var
   msY: Integer = -666;
   msB: Word = 0; // button state
   kbS: Word = 0; // keyboard modifiers state
-  showGrid: Boolean = {$IF DEFINED(D2F_DEBUG)}true{$ELSE}false{$ENDIF};
+  showGrid: Boolean = {$IF DEFINED(D2F_DEBUG)}false{$ELSE}false{$ENDIF};
   showMonsInfo: Boolean = false;
   showMonsLOS2Plr: Boolean = false;
   showAllMonsCells: Boolean = false;

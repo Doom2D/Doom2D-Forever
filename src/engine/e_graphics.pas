@@ -167,7 +167,7 @@ type
     end;
    Space: ShortInt;
    Height: ShortInt;
-   Live: Boolean;
+   alive: Boolean;
   end;
 
   TSavedTexture = record
@@ -1051,7 +1051,7 @@ begin
 
  if e_CharFonts <> nil then
  for i := 0 to High(e_CharFonts) do
-  if not e_CharFonts[i].Live then
+  if not e_CharFonts[i].alive then
   begin
    id := i;
    Break;
@@ -1073,7 +1073,7 @@ begin
    end;
 
   Space := sp;
-  Live := True;
+  alive := True;
  end;
 
  Result := id;
@@ -1345,7 +1345,7 @@ begin
   for a := 0 to High(Chars) do
    if Chars[a].TextureID <> -1 then e_DeleteTexture(Chars[a].TextureID);
 
- e_CharFonts[FontID].Live := False;
+ e_CharFonts[FontID].alive := False;
 end;
 
 procedure e_CharFont_RemoveAll();

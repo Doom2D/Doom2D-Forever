@@ -571,7 +571,8 @@ var
   var
     px, py, pw, ph, dx, dy: Integer;
   begin
-    if (plr = nil) then exit;
+    // dead players leaves separate body entities, so don't move 'em
+    if (plr = nil) or not plr.alive then exit;
     plr.getMapBox(px, py, pw, ph);
     if (py+ph <> Y) then
     begin
@@ -582,7 +583,7 @@ var
         plr.GameY := plr.GameY+dy;
         plr.positionChanged();
         // check if we're squashed
-        if plr.live then
+        if plr.alive then
         begin
           plr.getMapBox(px, py, pw, ph);
           if g_Map_CollidePanel(px, py, pw, ph, (PANEL_WALL or PANEL_OPENDOOR or PANEL_CLOSEDOOR)) then
@@ -644,7 +645,7 @@ begin
     begin
       mon := monMoveList[f];
       // check if it is squashed
-      if mon.live then
+      if mon.alive then
       begin
         mon.getMapBox(px, py, pw, ph);
         if g_Map_CollidePanel(px, py, pw, ph, (PANEL_WALL or PANEL_OPENDOOR or PANEL_CLOSEDOOR)) then

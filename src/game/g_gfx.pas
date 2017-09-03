@@ -363,6 +363,7 @@ procedure TParticle.think (); inline;
     state := TPartState.Normal;
     floorY := Unknown;
     ceilingY := Unknown;
+    wallEndY := Unknown;
     if (velY = 0) then velY := 0.1;
     if (accelY = 0) then accelY := 0.5;
   end;
@@ -425,7 +426,13 @@ procedure TParticle.thinkerBloodAndWater ();
       TPartType.Water: result := (Random(30) = 15);
       else raise Exception.Create('internal error in particle engine: drip');
     end;
-    if result then begin velY := 0.5; accelY := 0.15; end;
+    if result then
+    begin
+      velY := 0.5;
+      accelY := 0.15;
+      // if we're falling from ceiling, switch to normal mode
+      if (state = TPartState.Stuck) and (stickDX = 0) then state := TPartState.Normal;
+    end;
   end;
 
   // switch to freefall mode
@@ -439,7 +446,7 @@ procedure TParticle.thinkerBloodAndWater ();
   procedure applyGravity (inLiquid: Boolean);
   begin
     state := TPartState.Normal;
-    if (inLiquid) then
+    if inLiquid then
     begin
       velY := 0.5;
       accelY := 0.15;
@@ -452,12 +459,13 @@ procedure TParticle.thinkerBloodAndWater ();
   end;
 
 label
-  _done;
+  _done, _gravityagain, _stuckagain;
 var
   pan: TPanel;
   dX, dY: SmallInt;
   ex, ey: Integer;
   checkEnv: Boolean;
+  floorJustTraced: Boolean;
 begin
   if not gpart_dbg_phys_enabled then goto _done;
 
@@ -491,7 +499,14 @@ begin
       else
       begin
         // stuck to a wall
-        assert(wallEndY <> Unknown);
+        if (wallEndY = Unknown) then
+        begin
+          // this can happen if mplat was moved out; find new `wallEndY`
+          findFloor(true); // force trace, just in case
+          if (floorType = TFloorType.LiquidOut) then env := TEnvType.ELiquid else env := TEnvType.EAir;
+          mapGrid.traceOrthoRayWhileIn(ex, wallEndY, x+stickDX, y, x+stickDX, floorY+1, (GridTagWall or GridTagDoor or GridTagStep));
+        end;
+       _stuckagain:
         // floor transition?
         if (wallEndY <= floorY) and (y >= floorY) then
         begin
@@ -499,8 +514,15 @@ begin
           case floorType of
             TFloorType.Wall: // hit the ground
               begin
-                sleep();
-                goto _done; // nothing to do anymore
+                // check if our ground wasn't moved since the last scan
+                findFloor(true); // force trace
+                if (y = floorY) then
+                begin
+                  sleep();
+                  goto _done; // nothing to do anymore
+                end;
+                // otherwise, do it again
+                goto _stuckagain;
               end;
             TFloorType.LiquidIn: // entering the liquid
               begin
@@ -540,14 +562,23 @@ begin
     // gravity, if not stuck
     if (state <> TPartState.Stuck) and (abs(velX) < 0.1) and (abs(velY) < 0.1) then
     begin
-      if (floorY = Unknown) then findFloor();
+      floorJustTraced := (floorY = Unknown);
+      if floorJustTraced then findFloor();
+     _gravityagain:
       // floor transition?
       if (y = floorY) then
       begin
         case floorType of
           TFloorType.Wall: // hit the ground
             begin
-              // nothing to do
+              // check if our ground wasn't moved since the last scan
+              if not floorJustTraced then
+              begin
+                findFloor(true); // force trace
+                if (floorType = TFloorType.LiquidOut) then env := TEnvType.ELiquid else env := TEnvType.EAir;
+                if (y <> floorY) then goto _gravityagain;
+              end;
+              // otherwise, nothing to do
             end;
           TFloorType.LiquidIn: // entering the liquid
             begin
@@ -620,7 +651,8 @@ begin
         while (dY > 0) do
         begin
           // falling down
-          if (floorY = Unknown) then findFloor(); // need to do this anyway
+          floorJustTraced := (floorY = Unknown);
+          if floorJustTraced then findFloor();
           if (floorType = TFloorType.LiquidOut) then env := TEnvType.ELiquid else env := TEnvType.EAir;
           y += dY;
           //e_LogWritefln('floorY=%s; newy=%s; dY=%s; floorType=%s', [floorY, y, dY, floorType]);
@@ -633,6 +665,15 @@ begin
             case floorType of
               TFloorType.Wall: // hit the ground
                 begin
+                  // check if our ground wasn't moved since the last scan
+                  if not floorJustTraced then
+                  begin
+                    e_LogWritefln('force rescanning vpart at (%d,%d); floorY=%d', [x, y, floorY]);
+                    findFloor(true); // force trace
+                    e_LogWritefln('  rescanned vpart at (%d,%d); floorY=%d', [x, y, floorY]);
+                    if (floorType = TFloorType.LiquidOut) then env := TEnvType.ELiquid else env := TEnvType.EAir;
+                    if (y <> floorY) then continue;
+                  end;
                   // environment didn't changed
                   hitAFloor();
                   break; // done with vertical movement
@@ -1472,6 +1513,7 @@ end;
 procedure g_GFX_Draw ();
 var
   a, len: Integer;
+  scaled: Boolean;
 begin
   if not gpart_dbg_enabled then exit;
 
@@ -1485,12 +1527,15 @@ begin
 
     glBegin(GL_POINTS);
 
+    scaled := (g_dbg_scale <> 1.0);
+
     len := High(Particles);
     for a := 0 to len do
     begin
       with Particles[a] do
       begin
-        if alive and (x >= sX) and (y >= sY) and (x <= sX+sWidth) and (sY <= sY+sHeight) then
+        if not alive then continue;
+        if scaled or ((x >= sX) and (y >= sY) and (x <= sX+sWidth) and (sY <= sY+sHeight)) then
         begin
           glColor4ub(red, green, blue, alpha);
           glVertex2f(x+0.37, y+0.37);

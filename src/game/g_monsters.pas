@@ -105,7 +105,7 @@ type
     function Collide(Panel: TPanel): Boolean; overload;
     function Collide(X, Y: Integer): Boolean; overload;
     function TeleportTo(X, Y: Integer; silent: Boolean; dir: Byte): Boolean;
-    function Live(): Boolean;
+    function alive(): Boolean;
     procedure SetHealth(aH: Integer);
     procedure Push(vx, vy: Integer);
     function Damage(aDamage: Word; VelX, VelY: Integer; SpawnerUID: Word; t: Byte): Boolean;
@@ -2002,7 +2002,7 @@ begin
   Result := False;
   if g_Game_IsClient then
     Exit;
-  if not Live then
+  if not alive then
     Exit;
 
   if FHealth < FMaxHealth then
@@ -2329,7 +2329,7 @@ begin
      (FObj.X > gMapInfo.Width+1000) or (FObj.Y < -1000) then
   begin
     FRemoved := True;
-    if Live and (gLMSRespawn = LMS_RESPAWN_NONE) then
+    if alive and (gLMSRespawn = LMS_RESPAWN_NONE) then
     begin
       Inc(gCoopMonstersKilled);
       if g_Game_IsNet then
@@ -2492,7 +2492,7 @@ begin
         // Если есть игрок рядом, просыпаемся и идем к нему:
           if (gPlayers <> nil) then
             for a := 0 to High(gPlayers) do
-              if (gPlayers[a] <> nil) and (gPlayers[a].Live)
+              if (gPlayers[a] <> nil) and (gPlayers[a].alive)
               and (not gPlayers[a].NoTarget) and (gPlayers[a].FMegaRulez[MR_INVIS] < gTime) then
                 with gPlayers[a] do
                   if g_Look(@FObj, @Obj, FDirection) then
@@ -2510,7 +2510,7 @@ begin
         // Если есть подходящий монстр рядом:
           if gMonsters <> nil then
             for a := 0 to High(gMonsters) do
-              if (gMonsters[a] <> nil) and (gMonsters[a].Live) and
+              if (gMonsters[a] <> nil) and (gMonsters[a].alive) and
                  (gMonsters[a].FUID <> FUID) then
               begin
                 // Маньяки нападают на всех монстров, кроме друзей
@@ -2712,7 +2712,7 @@ begin
               if b > 1 then b := b * (Random(8 div b) + 1);
               for a := 0 to High(gGibs) do
               begin
-                if gGibs[a].Live and
+                if gGibs[a].alive and
                    g_Obj_Collide(FObj.X+FObj.Rect.X, FObj.Y+FObj.Rect.Y+FObj.Rect.Height-4,
                                  FObj.Rect.Width, 8, @gGibs[a].Obj) and (Random(3) = 0) then
                 begin
@@ -3544,7 +3544,7 @@ begin
               if b > 1 then b := b * (Random(8 div b) + 1);
               for a := 0 to High(gGibs) do
               begin
-                if gGibs[a].Live and
+                if gGibs[a].alive and
                    g_Obj_Collide(FObj.X+FObj.Rect.X, FObj.Y+FObj.Rect.Y+FObj.Rect.Height-4,
                                  FObj.Rect.Width, 8, @gGibs[a].Obj) and (Random(3) = 0) then
                 begin
@@ -3996,7 +3996,7 @@ begin
   if (gPlayers <> nil) and (FBehaviour <> BH_INSANE) and
   (FBehaviour <> BH_CANNIBAL) and (FBehaviour <> BH_GOOD) then
     for a := 0 to High(gPlayers) do
-      if (gPlayers[a] <> nil) and (gPlayers[a].Live)
+      if (gPlayers[a] <> nil) and (gPlayers[a].alive)
       and (not gPlayers[a].NoTarget) and (gPlayers[a].FMegaRulez[MR_INVIS] < gTime) then
       begin
         if g_Look(@FObj, @gPlayers[a].Obj, FDirection) then
@@ -4016,7 +4016,7 @@ begin
   // Киллеры и добрые не трогают монстров
   if (gMonsters <> nil) and (FBehaviour <> BH_KILLER) and (FBehaviour <> BH_GOOD) then
     for a := 0 to High(gMonsters) do
-      if (gMonsters[a] <> nil) and (gMonsters[a].Live) and
+      if (gMonsters[a] <> nil) and (gMonsters[a].alive) and
          (gMonsters[a].FUID <> FUID) then
       begin
         if (FBehaviour = BH_CANNIBAL) and (gMonsters[a].FMonsterType <> FMonsterType) then
@@ -4269,7 +4269,7 @@ begin
   Result := True;
 end;
 
-function TMonster.Live(): Boolean;
+function TMonster.alive(): Boolean;
 begin
   Result := (FState <> MONSTATE_DIE) and (FState <> MONSTATE_DEAD) and (FHealth > 0);
 end;
@@ -4577,7 +4577,7 @@ begin
   for idx := 0 to High(gMonsters) do
   begin
     mon := gMonsters[idx];
-    if (mon <> nil) and mon.Live then
+    if (mon <> nil) and mon.alive then
     begin
       result := cb(mon);
       if result then exit;
@@ -4590,7 +4590,7 @@ function g_Mons_IsAnyAliveAt (x, y: Integer; width, height: Integer): Boolean;
 
   function monsCollCheck (mon: TMonster; atag: Integer): Boolean;
   begin
-    result := mon.Live;// and g_Obj_Collide(x, y, width, height, @mon.Obj));
+    result := mon.alive;// and g_Obj_Collide(x, y, width, height, @mon.Obj));
   end;
 
 var
@@ -4608,7 +4608,7 @@ begin
     for idx := 0 to High(gMonsters) do
     begin
       mon := gMonsters[idx];
-      if (mon <> nil) and mon.Live then
+      if (mon <> nil) and mon.alive then
       begin
         if g_Obj_Collide(x, y, width, height, @mon.Obj) then
         begin
@@ -4643,7 +4643,7 @@ begin
     for idx := 0 to High(gMonsters) do
     begin
       mon := gMonsters[idx];
-      if (mon <> nil) and mon.Live then
+      if (mon <> nil) and mon.alive then
       begin
         if g_Obj_Collide(x, y, width, height, @mon.Obj) then
         begin
@@ -4661,8 +4661,8 @@ function g_Mons_ForEachAliveAt (x, y: Integer; width, height: Integer; cb: TEach
   function monsCollCheck (mon: TMonster; atag: Integer): Boolean;
   begin
     //result := false;
-    //if mon.Live and g_Obj_Collide(x, y, width, height, @mon.Obj) then result := cb(mon);
-    if mon.Live then result := cb(mon) else result := false;
+    //if mon.alive and g_Obj_Collide(x, y, width, height, @mon.Obj) then result := cb(mon);
+    if mon.alive then result := cb(mon) else result := false;
   end;
 
 var
@@ -4687,7 +4687,7 @@ begin
     for idx := 0 to High(gMonsters) do
     begin
       mon := gMonsters[idx];
-      if (mon <> nil) and mon.Live then
+      if (mon <> nil) and mon.alive then
       begin
         if g_Obj_Collide(x, y, width, height, @mon.Obj) then
         begin
