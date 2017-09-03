@@ -881,6 +881,17 @@ begin
         Inc(idx);
       end;
     end;
+
+    {$IF DEFINED(D2F_DEBUG)}
+    if (arg = '--game-scale') or (arg = '-game-scale') then
+    begin
+      if (idx <= ParamCount) then
+      begin
+        if not conParseFloat(g_dbg_scale, ParamStr(idx)) then g_dbg_scale := 1.0;
+        Inc(idx);
+      end;
+    end;
+    {$ENDIF}
   end;
 
   e_WriteLog('Initializing OpenGL', MSG_NOTIFY);

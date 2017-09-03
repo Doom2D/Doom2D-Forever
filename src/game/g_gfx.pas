@@ -14,6 +14,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *)
 {$INCLUDE ../shared/a_modes.inc}
+{.$DEFINE D2F_DEBUG_FALL_MPLAT}
 unit g_gfx;
 
 interface
@@ -171,9 +172,9 @@ begin
   awakeMinX := mapGrid.gridX0;
   awakeMinY := mapGrid.gridY0;
   SetLength(awakeMap, awakeMapW*awakeMapH);
-  {$IF DEFINED(D2F_DEBUG)}
+  //{$IF DEFINED(D2F_DEBUG)}
   e_LogWritefln('particle awake map: %sx%s (for grid of size %sx%s)', [awakeMapW, awakeMapH, mapGrid.gridWidth, mapGrid.gridHeight]);
-  {$ENDIF}
+  //{$ENDIF}
   awakeDirty := true;
   awmClear();
 end;
@@ -466,6 +467,9 @@ var
   ex, ey: Integer;
   checkEnv: Boolean;
   floorJustTraced: Boolean;
+  {$IF DEFINED(D2F_DEBUG_FALL_MPLAT)}
+  oldFloorY: Integer;
+  {$ENDIF}
 begin
   if not gpart_dbg_phys_enabled then goto _done;
 
@@ -668,9 +672,16 @@ begin
                   // check if our ground wasn't moved since the last scan
                   if not floorJustTraced then
                   begin
-                    e_LogWritefln('force rescanning vpart at (%d,%d); floorY=%d', [x, y, floorY]);
+                    {$IF DEFINED(D2F_DEBUG_FALL_MPLAT)}
+                    oldFloorY := floorY;
+                    {$ENDIF}
                     findFloor(true); // force trace
-                    e_LogWritefln('  rescanned vpart at (%d,%d); floorY=%d', [x, y, floorY]);
+                    {$IF DEFINED(D2F_DEBUG_FALL_MPLAT)}
+                    if (floorY <> oldFloorY) then
+                    begin
+                      e_LogWritefln('force rescanning vpart at (%s,%s); oldFloorY=%s; floorY=%s', [x, y, oldFloorY, floorY]);
+                    end;
+                    {$ENDIF}
                     if (floorType = TFloorType.LiquidOut) then env := TEnvType.ELiquid else env := TEnvType.EAir;
                     if (y <> floorY) then continue;
                   end;

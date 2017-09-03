@@ -318,7 +318,7 @@ type
     procedure   CatchFire(Attacker: Word);
 
     //WARNING! this does nothing for now, but still call it!
-    procedure positionChanged (); //WARNING! call this after monster position was changed, or coldet will not work right!
+    procedure positionChanged (); //WARNING! call this after entity position was changed, or coldet will not work right!
 
     procedure getMapBox (out x, y, w, h: Integer); inline;
 
@@ -413,6 +413,7 @@ type
     procedure   LoadState(var Mem: TBinMemoryReader); override;
   end;
 
+  PGib = ^TGib;
   TGib = record
     alive:     Boolean;
     ID:       DWORD;
@@ -421,10 +422,13 @@ type
     Color:    TRGB;
     Obj:      TObj;
 
-    procedure positionChanged (); //WARNING! call this after monster position was changed, or coldet will not work right!
+    procedure getMapBox (out x, y, w, h: Integer); inline;
+
+    procedure positionChanged (); inline; //WARNING! call this after entity position was changed, or coldet will not work right!
   end;
 
 
+  PShell = ^TShell;
   TShell = record
     SpriteID: DWORD;
     alive:     Boolean;
@@ -434,7 +438,9 @@ type
     CX, CY:   Integer;
     Obj:      TObj;
 
-    procedure positionChanged (); //WARNING! call this after monster position was changed, or coldet will not work right!
+    procedure getMapBox (out x, y, w, h: Integer); inline;
+
+    procedure positionChanged ();  inline; //WARNING! call this after entity position was changed, or coldet will not work right!
   end;
 
   TCorpse = class (TObject)
@@ -457,7 +463,11 @@ type
     procedure   SaveState(var Mem: TBinMemoryWriter);
     procedure   LoadState(var Mem: TBinMemoryReader);
 
-    procedure positionChanged (); //WARNING! call this after monster position was changed, or coldet will not work right!
+    procedure getMapBox (out x, y, w, h: Integer); inline;
+
+    procedure moveBy (dx, dy: Integer); inline;
+
+    procedure positionChanged ();  inline; //WARNING! call this after entity position was changed, or coldet will not work right!
 
     property    Obj: TObj read FObj;
     property    State: Byte read FState;
@@ -614,10 +624,6 @@ var
   CurrentShell: Integer = 0;
   BotNames: Array of String;
   BotList: Array of TBotProfile;
-
-
-procedure TGib.positionChanged (); begin end;
-procedure TShell.positionChanged (); begin end;
 
 
 function Lerp(X, Y, Factor: Integer): Integer;
@@ -1712,6 +1718,27 @@ begin
         end;
 end;
 
+
+procedure TGib.getMapBox (out x, y, w, h: Integer); inline;
+begin
+  x := Obj.X+Obj.Rect.X;
+  y := Obj.Y+Obj.Rect.Y;
+  w := Obj.Rect.Width;
+  h := Obj.Rect.Height;
+end;
+
+procedure TShell.getMapBox (out x, y, w, h: Integer); inline;
+begin
+  x := Obj.X;
+  y := Obj.Y;
+  w := Obj.Rect.Width;
+  h := Obj.Rect.Height;
+end;
+
+
+procedure TGib.positionChanged (); inline; begin end;
+procedure TShell.positionChanged (); inline; begin end;
+
 procedure g_Player_DrawCorpses();
 var
   i: Integer;
@@ -2046,7 +2073,7 @@ begin
   resetWeaponQueue();
 end;
 
-procedure TPlayer.positionChanged ();
+procedure TPlayer.positionChanged (); inline;
 begin
 end;
 
@@ -6095,7 +6122,26 @@ begin
   inherited;
 end;
 
-procedure TCorpse.positionChanged (); begin end;
+procedure TCorpse.positionChanged (); inline; begin end;
+
+procedure TCorpse.moveBy (dx, dy: Integer); inline;
+begin
+  if (dx <> 0) or (dy <> 0) then
+  begin
+    FObj.X += dx;
+    FObj.Y += dy;
+    positionChanged();
+  end;
+end;
+
+
+procedure TCorpse.getMapBox (out x, y, w, h: Integer); inline;
+begin
+  x := FObj.X+PLAYER_CORPSERECT.X;
+  y := FObj.Y+PLAYER_CORPSERECT.Y;
+  w := PLAYER_CORPSERECT.Width;
+  h := PLAYER_CORPSERECT.Height;
+end;
 
 procedure TCorpse.Damage(Value: Word; vx, vy: Integer);
 var

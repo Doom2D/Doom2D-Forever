@@ -601,6 +601,55 @@ var
     plr.positionChanged();
   end;
 
+  procedure gibMove (gib: PGib);
+  var
+    px, py, pw, ph, dx, dy: Integer;
+  begin
+    if (gib = nil) or not gib.alive then exit;
+    gib.getMapBox(px, py, pw, ph);
+    {
+    writeln('gib: p=(', px, ',', py, '); obj=(', gib.Obj.X, ',', gib.Obj.Y, ')');
+    px := gib.Obj.X;
+    py := gib.Obj.Y;
+    }
+    if (py+ph <> Y) then
+    begin
+      // push gib
+      if doPush(px, py, pw, ph, dx, dy) then
+      begin
+        gib.Obj.X += dx;
+        gib.Obj.Y += dy;
+        gib.positionChanged();
+      end;
+      exit;
+    end;
+    if (px+pw <= X) then exit;
+    if (px >= X+Width) then exit;
+    gib.Obj.X += mMovingSpeed.X;
+    gib.Obj.Y += mMovingSpeed.Y;
+    gib.positionChanged();
+  end;
+
+  procedure corpseMove (cor: TCorpse);
+  var
+    px, py, pw, ph, dx, dy: Integer;
+  begin
+    if (cor = nil) then exit;
+    cor.getMapBox(px, py, pw, ph);
+    if (py+ph <> Y) then
+    begin
+      // push gib
+      if doPush(px, py, pw, ph, dx, dy) then
+      begin
+        cor.moveBy(dx, dy); // will call `positionChanged()` for us
+      end;
+      exit;
+    end;
+    if (px+pw <= X) then exit;
+    if (px >= X+Width) then exit;
+    cor.moveBy(mMovingSpeed.X, mMovingSpeed.Y); // will call `positionChanged()` for us
+  end;
+
 var
   f: Integer;
   mon: TMonster;
@@ -631,6 +680,10 @@ begin
     g_Mons_ForEachAt(nx, ny, Width, Height, monPush);
     // move and push players
     for f := 0 to High(gPlayers) do plrMove(gPlayers[f]);
+    // move and push gibs
+    for f := 0 to High(gGibs) do gibMove(@gGibs[f]);
+    // move and push corpses
+    for f := 0 to High(gCorpses) do corpseMove(gCorpses[f]);
     // reverse moving direction, if necessary
          if (mMovingSpeed.X < 0) and (nx <= mMovingStart.X) then mMovingSpeed.X := -mMovingSpeed.X
     else if (mMovingSpeed.X > 0) and (nx >= mMovingEnd.X) then mMovingSpeed.X := -mMovingSpeed.X;

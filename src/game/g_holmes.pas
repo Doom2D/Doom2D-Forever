@@ -1134,6 +1134,23 @@ procedure plrDebugDraw ();
     for f := 0 to High(gTriggers) do drawTrigger(gTriggers[f]);
   end;
 
+  procedure drawGibsBoxes ();
+  var
+    f: Integer;
+    px, py, pw, ph: Integer;
+    gib: PGib;
+  begin
+    for f := 0 to High(gGibs) do
+    begin
+      gib := @gGibs[f];
+      if gib.alive then
+      begin
+        gib.getMapBox(px, py, pw, ph);
+        drawRect(px, py, pw, ph, 255, 0, 255);
+      end;
+    end;
+  end;
+
 var
   mon: TMonster;
   mx, my, mw, mh: Integer;
@@ -1166,6 +1183,8 @@ begin
   if showAllMonsCells and showGrid then g_Mons_ForEach(highlightAllMonsterCells);
   if showTriggers then drawTriggers();
   if showGrid then drawSelectedPlatformCells();
+
+  //drawGibsBoxes();
 
   glPopMatrix();
 
