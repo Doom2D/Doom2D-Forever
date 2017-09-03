@@ -44,6 +44,9 @@ procedure e_LogWritefln (const fmt: AnsiString; args: array of const; category: 
 procedure e_LogWriteln (const s: AnsiString; category: TRecordCategory=MSG_NOTIFY; writeTime: Boolean=true);
 
 
+procedure e_WriteStackTrace (const msg: AnsiString);
+
+
 var
   e_WriteToStdOut: Boolean = False;
 
@@ -237,6 +240,24 @@ begin
     end;
   end;
   FirstRecord := true;
+end;
+
+
+{$I-}
+procedure e_WriteStackTrace (const msg: AnsiString);
+var
+  tfo: TextFile;
+begin
+  e_LogWriteln(msg, MSG_FATALERROR);
+  if (Length(FileName) > 0) then
+  begin
+    if xlogFileOpened then CloseFile(xlogFile);
+    xlogFileOpened := false;
+    AssignFile(tfo, FileName);
+    Append(tfo);
+    if (IOResult <> 0) then Rewrite(tfo);
+    if (IOResult = 0) then begin writeln(tfo, '====================='); DumpExceptionBackTrace(tfo); CloseFile(tfo); end;
+  end;
 end;
 
 

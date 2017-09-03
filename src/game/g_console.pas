@@ -561,6 +561,15 @@ begin
   cp.cheat := acheat;
 end;
 
+
+procedure segfault (p: SArray);
+var
+  pp: PByte = nil;
+begin
+  pp^ := 0;
+end;
+
+
 procedure g_Console_Init();
 var
   a: Integer;
@@ -578,6 +587,8 @@ begin
       Msg := '';
       Time := 0;
     end;
+
+  AddCommand('segfault', segfault, 'make segfault');
 
   AddCommand('clear', ConsoleCommands, 'clear console');
   AddCommand('clearhistory', ConsoleCommands);
@@ -1381,5 +1392,6 @@ begin
 
   g_Console_Add(Format(_lc[I_CONSOLE_UNKNOWN], [Arr[0]]));
 end;
+
 
 end.

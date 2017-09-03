@@ -117,6 +117,7 @@ uses
 var
   f: Integer;
   noct: Boolean = false;
+  tfo: Text;
 begin
   for f := 1 to ParamCount do
   begin
@@ -134,10 +135,21 @@ begin
       Main();
       e_WriteLog('Shutdown with no errors.', MSG_NOTIFY);
     except
-      on E: Exception do
-        e_WriteLog(Format(_lc[I_SYSTEM_ERROR_MSG], [E.Message]), MSG_FATALERROR);
+      on e: Exception do
+        begin
+          e_WriteStackTrace(e.message);
+          //e_WriteLog(Format(_lc[I_SYSTEM_ERROR_MSG], [E.Message]), MSG_FATALERROR);
+          AssignFile(tfo, GameDir+'/trace.log');
+          {$I-}
+          Append(tfo);
+          if (IOResult <> 0) then Rewrite(tfo);
+          if (IOResult = 0) then begin writeln(tfo, '====================='); DumpExceptionBackTrace(tfo); CloseFile(tfo); end;
+        end
       else
-        e_WriteLog(Format(_lc[I_SYSTEM_ERROR_UNKNOWN], [NativeUInt(ExceptAddr())]), MSG_FATALERROR);
+        begin
+          //e_WriteLog(Format(_lc[I_SYSTEM_ERROR_UNKNOWN], [NativeUInt(ExceptAddr())]), MSG_FATALERROR);
+          e_WriteStackTrace('FATAL ERROR');
+        end;
     end;
   end;
   e_DeinitLog();
