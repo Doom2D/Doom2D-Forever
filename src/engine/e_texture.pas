@@ -111,7 +111,7 @@ begin
     e_WriteLog(Format('NPOT: %u is %ux%u; gl is %ux%u; u=%f; v=%f', [tex.id, Width, Height, tex.glwidth, tex.glheight, tex.u, tex.v]), MSG_NOTIFY);
 
   // texture blends with object background
-  glTexEnvi( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+  glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
   // texture does NOT blend with object background
   //glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL);
 
