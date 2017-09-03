@@ -6125,6 +6125,21 @@ begin
         Exit;
       end;
   end
+  else if cmd = 'suicide' then
+  begin
+    if gGameOn then
+    begin
+      if g_Game_IsClient then
+        MC_SEND_CheatRequest(NET_CHEAT_SUICIDE)
+      else
+      begin
+        if gPlayer1 <> nil then
+          gPlayer1.Damage(SUICIDE_DAMAGE, gPlayer1.UID, 0, 0, HIT_SELF);
+        if gPlayer2 <> nil then
+          gPlayer2.Damage(SUICIDE_DAMAGE, gPlayer2.UID, 0, 0, HIT_SELF);
+      end;
+    end;
+  end
 // Команды Своей игры:
   else if gGameSettings.GameType in [GT_CUSTOM, GT_SERVER, GT_CLIENT] then
   begin
@@ -6141,21 +6156,6 @@ begin
         g_Bot_Add(TEAM_BLUE, StrToIntDef(P[1], 2))
       else
         g_Bot_Add(TEAM_BLUE, 2);
-    end
-    else if cmd = 'suicide' then
-    begin
-      if gGameOn then
-      begin
-        if g_Game_IsClient then
-          MC_SEND_CheatRequest(NET_CHEAT_SUICIDE)
-        else
-        begin
-          if gPlayer1 <> nil then
-            gPlayer1.Damage(SUICIDE_DAMAGE, gPlayer1.UID, 0, 0, HIT_SELF);
-          if gPlayer2 <> nil then
-            gPlayer2.Damage(SUICIDE_DAMAGE, gPlayer2.UID, 0, 0, HIT_SELF);
-        end;
-      end;
     end
     else if cmd = 'spectate' then
     begin
