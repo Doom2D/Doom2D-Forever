@@ -664,6 +664,10 @@ end;
 procedure THControl.setScissorGLInternal (x, y, w, h: Integer);
 begin
   if not scallowed then exit;
+  x := trunc(x*g_holmes_ui_scale);
+  y := trunc(y*g_holmes_ui_scale);
+  w := trunc(w*g_holmes_ui_scale);
+  h := trunc(h*g_holmes_ui_scale);
   y := gWinSizeY-(y+h);
   if not intersectRect(x, y, w, h, scxywh[0], scxywh[1], scxywh[2], scxywh[3]) then glScissor(0, 0, 0, 0) else glScissor(x, y, w, h);
 end;
@@ -849,8 +853,8 @@ procedure THTopWindow.centerInScreen ();
 begin
   if (mWidth > 0) and (mHeight > 0) then
   begin
-    mX := (gWinSizeX-mWidth) div 2;
-    mY := (gWinSizeY-mHeight) div 2;
+    mX := trunc((gWinSizeX/g_holmes_ui_scale-mWidth)/2);
+    mY := trunc((gWinSizeY/g_holmes_ui_scale-mHeight)/2);
   end;
 end;
 

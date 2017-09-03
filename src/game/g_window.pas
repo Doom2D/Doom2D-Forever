@@ -844,31 +844,43 @@ function SDLMain(): Integer;
 var
   idx: Integer;
   ltmp: Integer;
+  arg: AnsiString;
 begin
 {$IFDEF HEADLESS}
   e_NoGraphics := True;
 {$ENDIF}
 
-  for idx := 1 to ParamCount do
+  idx := 1;
+  while (idx <= ParamCount) do
   begin
-    if ParamStr(idx) = '--opengl-dump-exts' then gwin_dump_extensions := true;
-    if ParamStr(idx) = '--twinkletwinkle' then gwin_k8_enable_light_experiments := true;
-    if ParamStr(idx) = '--jah' then g_profile_history_size := 100;
-    if ParamStr(idx) = '--no-particles' then gpart_dbg_enabled := false;
-    if ParamStr(idx) = '--no-los' then gmon_dbg_los_enabled := false;
+    arg := ParamStr(idx);
+    Inc(idx);
+    if arg = '--opengl-dump-exts' then gwin_dump_extensions := true;
+    if arg = '--twinkletwinkle' then gwin_k8_enable_light_experiments := true;
+    if arg = '--jah' then g_profile_history_size := 100;
+    if arg = '--no-particles' then gpart_dbg_enabled := false;
+    if arg = '--no-los' then gmon_dbg_los_enabled := false;
 
-    if ParamStr(idx) = '--profile-render' then g_profile_frame_draw := true;
-    if ParamStr(idx) = '--profile-coldet' then g_profile_collision := true;
-    if ParamStr(idx) = '--profile-los' then g_profile_los := true;
+    if arg = '--profile-render' then g_profile_frame_draw := true;
+    if arg = '--profile-coldet' then g_profile_collision := true;
+    if arg = '--profile-los' then g_profile_los := true;
 
-    if ParamStr(idx) = '--no-part-phys' then gpart_dbg_phys_enabled := false;
-    if ParamStr(idx) = '--no-part-physics' then gpart_dbg_phys_enabled := false;
-    if ParamStr(idx) = '--no-particles-phys' then gpart_dbg_phys_enabled := false;
-    if ParamStr(idx) = '--no-particles-physics' then gpart_dbg_phys_enabled := false;
-    if ParamStr(idx) = '--no-particle-phys' then gpart_dbg_phys_enabled := false;
-    if ParamStr(idx) = '--no-particle-physics' then gpart_dbg_phys_enabled := false;
+    if arg = '--no-part-phys' then gpart_dbg_phys_enabled := false;
+    if arg = '--no-part-physics' then gpart_dbg_phys_enabled := false;
+    if arg = '--no-particles-phys' then gpart_dbg_phys_enabled := false;
+    if arg = '--no-particles-physics' then gpart_dbg_phys_enabled := false;
+    if arg = '--no-particle-phys' then gpart_dbg_phys_enabled := false;
+    if arg = '--no-particle-physics' then gpart_dbg_phys_enabled := false;
 
-    if ParamStr(idx) = '--holmes' then begin g_holmes_enabled := true; g_Game_SetDebugMode(); end;
+    if arg = '--holmes' then begin g_holmes_enabled := true; g_Game_SetDebugMode(); end;
+    if (arg = '--holmes-ui-scale') or (arg = '-holmes-ui-scale') then
+    begin
+      if (idx <= ParamCount) then
+      begin
+        if not conParseFloat(g_holmes_ui_scale, ParamStr(idx)) then g_holmes_ui_scale := 1.0;
+        Inc(idx);
+      end;
+    end;
   end;
 
   e_WriteLog('Initializing OpenGL', MSG_NOTIFY);

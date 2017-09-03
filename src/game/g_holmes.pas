@@ -96,6 +96,7 @@ operator = (const s: AnsiString; constref ev: THMouseEvent): Boolean;
 
 var
   g_holmes_enabled: Boolean = {$IF DEFINED(D2F_DEBUG)}true{$ELSE}false{$ENDIF};
+  g_holmes_ui_scale: Single = 1.0;
 
 
 implementation
@@ -1162,16 +1163,21 @@ end;
 
 // ////////////////////////////////////////////////////////////////////////// //
 function g_Holmes_MouseEvent (var ev: THMouseEvent): Boolean;
+var
+  he: THMouseEvent;
 begin
   holmesInitCommands();
   holmesInitBinds();
   result := true;
-  msX := ev.x;
-  msY := ev.y;
+  msX := trunc(ev.x/g_holmes_ui_scale);
+  msY := trunc(ev.y/g_holmes_ui_scale);
   msB := ev.bstate;
   kbS := ev.kstate;
   msB := msB;
-  if not uiMouseEvent(ev) then plrDebugMouse(ev);
+  he := ev;
+  he.x := trunc(he.x/g_holmes_ui_scale);
+  he.y := trunc(he.y/g_holmes_ui_scale);
+  if not uiMouseEvent(he) then plrDebugMouse(he);
 end;
 
 
@@ -1262,8 +1268,11 @@ end;
 procedure g_Holmes_DrawUI ();
 begin
   {$IF not DEFINED(HEADLESS)}
+  glPushMatrix();
+  glScalef(g_holmes_ui_scale, g_holmes_ui_scale, 1.0);
   uiDraw();
   drawCursor();
+  glPopMatrix();
   {$ENDIF}
 end;
 
@@ -1490,4 +1499,6 @@ begin
 end;
 
 
+begin
+  conRegVar('hlm_ui_scale', @g_holmes_ui_scale, 0.01, 5.0, 'Holmes UI scale', '', false);
 end.

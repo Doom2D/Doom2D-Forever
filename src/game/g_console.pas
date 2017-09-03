@@ -43,6 +43,9 @@ procedure g_Console_Chat_Switch (team: Boolean=false);
 procedure conRegVar (const conname: AnsiString; pvar: PBoolean; const ahelp: AnsiString; const amsg: AnsiString; acheat: Boolean=false); overload;
 procedure conRegVar (const conname: AnsiString; pvar: PSingle; amin, amax: Single; const ahelp: AnsiString; const amsg: AnsiString; acheat: Boolean=false); overload;
 
+// poor man's floating literal parser; i'm sorry, but `StrToFloat()` sux cocks
+function conParseFloat (var res: Single; const s: AnsiString): Boolean;
+
 
 var
   gConsoleShow: Boolean = false; // True - консоль открыта или открывается
@@ -113,6 +116,45 @@ var
                             end;
 
 
+// poor man's floating literal parser; i'm sorry, but `StrToFloat()` sux cocks
+function conParseFloat (var res: Single; const s: AnsiString): Boolean;
+var
+  pos: Integer = 1;
+  frac: Single = 1;
+  slen: Integer;
+begin
+  result := false;
+  res := 0;
+  slen := Length(s);
+  while (slen > 0) and (s[slen] <= ' ') do Dec(slen);
+  while (pos <= slen) and (s[pos] <= ' ') do Inc(pos);
+  if (pos > slen) then exit;
+  if (slen-pos = 1) and (s[pos] = '.') then exit; // single dot
+  // integral part
+  while (pos <= slen) do
+  begin
+    if (s[pos] < '0') or (s[pos] > '9') then break;
+    res := res*10+Byte(s[pos])-48;
+    Inc(pos);
+  end;
+  if (pos <= slen) then
+  begin
+    // must be a dot
+    if (s[pos] <> '.') then exit;
+    Inc(pos);
+    while (pos <= slen) do
+    begin
+      if (s[pos] < '0') or (s[pos] > '9') then break;
+      frac := frac/10;
+      res += frac*(Byte(s[pos])-48);
+      Inc(pos);
+    end;
+  end;
+  if (pos <= slen) then exit; // oops
+  result := true;
+end;
+
+
 // ////////////////////////////////////////////////////////////////////////// //
 // <0: no arg; 0/1: true/false; 666: toggle
 function conGetBoolArg (p: SArray; idx: Integer): Integer;
@@ -137,9 +179,9 @@ procedure boolVarHandler (me: PCommand; p: SArray);
     begin
       case conGetBoolArg(p, 1) of
         -1: begin end;
-         0: if conIsCheatsEnabled then flag := false else begin conwriteln('not available'); exit; end;
-         1: if conIsCheatsEnabled then flag := true else begin conwriteln('not available'); exit; end;
-         666: if conIsCheatsEnabled then flag := not flag else begin conwriteln('not available'); exit; end;
+         0: if not me.cheat or conIsCheatsEnabled then flag := false else begin conwriteln('not available'); exit; end;
+         1: if not me.cheat or conIsCheatsEnabled then flag := true else begin conwriteln('not available'); exit; end;
+         666: if not me.cheat or conIsCheatsEnabled then flag := not flag else begin conwriteln('not available'); exit; end;
       end;
       if flag then conwritefln('%s: tan', [msg]) else conwritefln('%s: ona', [msg]);
     end;
@@ -178,43 +220,6 @@ type
 
 
 procedure singleVarHandler (me: PCommand; p: SArray);
-  // poor man's floating literal parser; i'm sorry, but `StrToFloat()` sux cocks
-  function parseFloat (var res: Single; const s: AnsiString): Boolean;
-  var
-    pos: Integer = 1;
-    frac: Single = 1;
-    slen: Integer;
-  begin
-    result := false;
-    res := 0;
-    slen := Length(s);
-    while (slen > 0) and (s[slen] <= ' ') do Dec(slen);
-    while (pos <= slen) and (s[pos] <= ' ') do Inc(pos);
-    if (pos > slen) then exit;
-    if (slen-pos = 1) and (s[pos] = '.') then exit; // single dot
-    // integral part
-    while (pos <= slen) do
-    begin
-      if (s[pos] < '0') or (s[pos] > '9') then break;
-      res := res*10+Byte(s[pos])-48;
-      Inc(pos);
-    end;
-    if (pos <= slen) then
-    begin
-      // must be a dot
-      if (s[pos] <> '.') then exit;
-      Inc(pos);
-      while (pos <= slen) do
-      begin
-        if (s[pos] < '0') or (s[pos] > '9') then break;
-        frac := frac/10;
-        res += frac*(Byte(s[pos])-48);
-        Inc(pos);
-      end;
-    end;
-    if (pos <= slen) then exit; // oops
-    result := true;
-  end;
 var
   pv: PVarSingle;
   nv: Single;
@@ -228,7 +233,7 @@ begin
   pv := PVarSingle(me.ptr);
   if (Length(p) = 2) then
   begin
-    if not conIsCheatsEnabled then begin conwriteln('not available'); exit; end;
+    if me.cheat and (not conIsCheatsEnabled) then begin conwriteln('not available'); exit; end;
     if (CompareText(p[1], 'default') = 0) or (CompareText(p[1], 'def') = 0) or
        (CompareText(p[1], 'd') = 0) or (CompareText(p[1], 'off') = 0) or
        (CompareText(p[1], 'ona') = 0) then
@@ -237,7 +242,7 @@ begin
     end
     else
     begin
-      if not parseFloat(nv, p[1]) then
+      if not conParseFloat(nv, p[1]) then
       begin
         conwritefln('%s: ''%s'' doesn''t look like a floating number', [p[0], p[1]]);
         exit;
