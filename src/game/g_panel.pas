@@ -495,9 +495,13 @@ var
 begin
   if (proxyId >= 0) then
   begin
-    monsGrid.getBodyDims(proxyId, px, py, pw, ph);
+    mapGrid.getBodyDims(proxyId, px, py, pw, ph);
     if (px <> x) or (py <> y) or (pw <> Width) or (ph <> Height) then
     begin
+      {
+      e_LogWritefln('panel moved: arridx=%s; guid=%s; proxyid=%s; old:(%s,%s)-(%sx%s); new:(%s,%s)-(%sx%s)',
+        [arrIdx, mGUID, proxyId, px, py, pw, ph, x, y, width, height]);
+      }
       g_Mark(px, py, pw, ph, MARK_WALL, false);
       if (pw <> Width) or (ph <> Height) then mapGrid.moveResizeBody(proxyId, X, Y, Width, Height)
       else mapGrid.moveBody(proxyId, X, Y);
