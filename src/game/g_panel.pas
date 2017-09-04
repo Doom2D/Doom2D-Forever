@@ -168,7 +168,7 @@ type
   TPanelArray = Array of TPanel;
 
 var
-  g_dbgpan_mplat_active: Boolean = {$IF DEFINED(D2F_DEBUG)}false{$ELSE}true{$ENDIF};
+  g_dbgpan_mplat_active: Boolean = {$IF DEFINED(D2F_DEBUG)}true{$ELSE}true{$ENDIF};
   g_dbgpan_mplat_step: Boolean = false; // one step, and stop
 
 
@@ -528,10 +528,11 @@ var
     u0, u1: Single;
     tex, tey: Integer;
     pdx, pdy: Integer;
+    pan: TPanel;
   begin
     squash := false;
-    dx := 0;
-    dy := 0;
+    tex := px;
+    tey := py;
     pdx := mMovingSpeed.X;
     pdy := mMovingSpeed.Y;
     // standing on the platform?
@@ -539,12 +540,12 @@ var
     begin
       if (ontop <> nil) then ontop^ := true;
       // yes, move with it
-      mapGrid.traceBox(tex, tey, px, py, pw, ph, pdx, pdy, nil, GridTagObstacle);
-      //e_LogWritefln('entity on the platform; tracing=(%s,%s); endpoint=(%s,%s); mustbe=(%s,%s)', [px, py, tex, tey, px+pdx, py+pdy]);
-      // still in platform?
-      squash := g_Collide(tex, tey, pw, ph, nx, ny, mpw, mph);
-      dx := tex-px;
-      dy := tey-py;
+      pan := mapGrid.traceBox(tex, tey, px, py, pw, ph, pdx, pdy, nil, GridTagObstacle);
+      if (pan <> nil) then
+      begin
+        //e_LogWritefln('entity on the platform; tracing=(%s,%s); endpoint=(%s,%s); mustbe=(%s,%s)', [px, py, tex, tey, px+pdx, py+pdy]);
+        if (tex = px) and (tey = py) then squash := true;
+      end;
     end
     else
     begin
@@ -568,20 +569,10 @@ var
         if (pdx <> 0) or (pdy <> 0) then
         begin
           // has some path to go, trace the entity
-          mapGrid.traceBox(tex, tey, px, py, pw, ph, pdx, pdy, nil, GridTagObstacle);
+          pan := mapGrid.traceBox(tex, tey, px, py, pw, ph, pdx, pdy, nil, GridTagObstacle);
           //e_LogWritefln('  tracebox: te=(%s,%s)', [tex, tey]);
-        end
-        else
-        begin
-          // no movement
-          tex := px;
-          tey := py;
+          if (pan <> nil) and (tex = px) and (tey = py) then squash := true;
         end;
-        // free to push along the whole path, or path was corrected
-        // still in platform?
-        squash := g_Collide(tex, tey, pw, ph, nx, ny, mpw, mph);
-        dx := tex-px;
-        dy := tey-py;
       end
       else
       begin
@@ -590,7 +581,14 @@ var
         squash := (u1 >= 0.0);
       end;
     end;
+    dx := tex-px;
+    dy := tey-py;
     result := (dx <> 0) or (dy <> 0);
+    if result and (not squash) then
+    begin
+      squash := g_Collide(tex, tey, pw, ph, nx, ny, mpw, mph); // still in platform?
+      if not squash then squash := g_Map_CollidePanel(tex, tey, pw, ph, (PANEL_WALL or PANEL_OPENDOOR or PANEL_CLOSEDOOR));
+    end;
   end;
 
   function monCollect (mon: TMonster): Boolean;

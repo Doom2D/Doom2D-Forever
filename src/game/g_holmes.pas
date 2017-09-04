@@ -122,6 +122,7 @@ var
   showLayersWindow: Boolean = false;
   showOutlineWindow: Boolean = false;
   showTriggers: Boolean = {$IF DEFINED(D2F_DEBUG)}false{$ELSE}false{$ENDIF};
+  showTraceBox: Boolean = {$IF DEFINED(D2F_DEBUG)}false{$ELSE}false{$ENDIF};
 
 
 // ////////////////////////////////////////////////////////////////////////// //
@@ -924,6 +925,34 @@ procedure plrDebugDraw ();
     end;
   end;
 
+  procedure drawTraceBox ();
+  var
+    plr: TPlayer;
+    px, py, pw, ph: Integer;
+    pdx, pdy: Integer;
+    ex, ey: Integer;
+    pan: TPanel;
+  begin
+    if (Length(gPlayers) < 1) then exit;
+    plr := gPlayers[0];
+    if (plr = nil) then exit;
+    plr.getMapBox(px, py, pw, ph);
+    drawRect(px, py, pw, ph, 255, 0, 255, 200);
+    pdx := pmsCurMapX-(px+pw div 2);
+    pdy := pmsCurMapY-(py+ph div 2);
+    drawLine(px+pw div 2, py+ph div 2, px+pw div 2+pdx, py+ph div 2+pdy, 255, 0, 255, 200);
+    pan := mapGrid.traceBox(ex, ey, px, py, pw, ph, pdx, pdy, nil, GridTagObstacle);
+    if (pan = nil) then
+    begin
+      drawRect(px+pdx, py+pdy, pw, ph, 255, 255, 255, 180);
+    end
+    else
+    begin
+      drawRect(px+pdx, py+pdy, pw, ph, 255, 255, 0, 180);
+    end;
+    drawRect(ex, ey, pw, ph, 255, 127, 0, 180);
+  end;
+
   procedure hilightCell (cx, cy: Integer);
   begin
     fillRect(cx, cy, monsGrid.tileSize, monsGrid.tileSize, 0, 128, 0, 64);
@@ -1200,7 +1229,9 @@ begin
   if showTriggers then drawTriggers();
   if showGrid then drawSelectedPlatformCells();
 
-  drawAwakeCells();
+  //drawAwakeCells();
+
+  if showTraceBox then drawTraceBox();
 
   //drawGibsBoxes();
 
@@ -1378,6 +1409,8 @@ begin
   end;
 end;
 
+procedure dbgToggleTraceBox (arg: Integer=-1); begin if (arg < 0) then showTraceBox := not showTraceBox else showTraceBox := (arg > 0); end;
+
 procedure cbAtcurSelectMonster ();
   function monsAtDump (mon: TMonster; tag: Integer): Boolean;
   begin
@@ -1425,7 +1458,7 @@ procedure cbAtcurDumpWalls ();
   begin
     result := false; // don't stop
     if (platMarkedGUID = -1) then platMarkedGUID := pan.guid;
-    e_LogWritefln('wall #%d(%d); enabled=%d (%d); (%d,%d)-(%d,%d)', [pan.arrIdx, pan.proxyId, Integer(pan.Enabled), Integer(mapGrid.proxyEnabled[pan.proxyId]), pan.X, pan.Y, pan.Width, pan.Height]);
+    e_LogWritefln('wall ''%s'' #%d(%d); enabled=%d (%d); (%d,%d)-(%d,%d)', [pan.mapId, pan.arrIdx, pan.proxyId, Integer(pan.Enabled), Integer(mapGrid.proxyEnabled[pan.proxyId]), pan.X, pan.Y, pan.Width, pan.Height]);
     dumpPublishedProperties(pan);
   end;
 var
@@ -1479,7 +1512,7 @@ begin
   cmdAdd('mon_info', bcToggleMonsterInfo, 'toggle monster info', 'monster control');
   cmdAdd('mon_los_plr', bcToggleMonsterLOSPlr, 'toggle monster LOS to player', 'monster control');
   cmdAdd('mon_cells', bcToggleMonsterCells, 'toggle "show all cells occupied by monsters" (SLOW!)', 'monster control');
-  cmdAdd('mon_wakeup', bcMonsterWakeup, 'toggle "show all cells occupied by monsters" (SLOW!)', 'monster control');
+  cmdAdd('mon_wakeup', bcMonsterWakeup, 'wake up selected monster', 'monster control');
 
   cmdAdd('mon_spawn', bcMonsterSpawn, 'spawn monster', 'monster control');
 
@@ -1496,6 +1529,8 @@ begin
   cmdAdd('atcur_dump_monsters', cbAtcurDumpMonsters, 'dump monsters in cell', 'monster control');
   cmdAdd('atcur_dump_walls', cbAtcurDumpWalls, 'dump walls in cell', 'wall control');
   cmdAdd('atcur_disable_walls', cbAtcurToggleWalls, 'disable walls', 'wall control');
+
+  cmdAdd('dbg_tracebox', dbgToggleTraceBox, 'disable walls', 'wall control');
 end;
 
 
@@ -1526,6 +1561,7 @@ begin
     keybindAdd('M-O', 'mplat_toggle');
 
     keybindAdd('C-T', 'plr_teleport');
+    keybindAdd('M-T', 'dbg_tracebox');
 
     keybindAdd('C-P', 'dbg_curpos');
     keybindAdd('C-G', 'dbg_grid');

@@ -238,12 +238,10 @@ type
 function lineAABBIntersects (x0, y0, x1, y1: Integer; bx, by, bw, bh: Integer; out inx, iny: Integer): Boolean;
 
 // sweep two AABB's to see if and when they are overlapping
-// returns `true` if collision was detected (or boxes overlaps)
+// returns `true` if collision was detected (but boxes doesn't overlap)
+// u1 and u1 has no sense if no collision was detected
 // u0 = normalized time of first collision (i.e. collision starts at myMove*u0)
 // u1 = normalized time of second collision (i.e. collision stops after myMove*u1)
-// if no collision was detected:
-//   u1 < 0: no collision at all
-//   u1 >= 0: boxes are overlapping at the start; u0 has no meaning, u1 is exit time, hitedge is undefined
 // hitedge for `it`: 0: top; 1: right; 2: bottom; 3: left
 // enter/exit coords will form non-intersecting configuration (i.e. will be before/after the actual collision)
 function sweepAABB (mex0, mey0, mew, meh: Integer; medx, medy: Integer; itx0, ity0, itw, ith: Integer;
@@ -2552,7 +2550,7 @@ var
   lq: LongWord;
   f, ptag: Integer;
   minu0: Single = 100000.0;
-  u0: Single;
+  u0, u1: Single;
   hedge: Integer;
   cx0, cy0, cx1, cy1: Integer;
 begin
@@ -2591,13 +2589,11 @@ begin
   end;
   lq := mLastQuery;
 
-  gy := cy0;
-  while (gy <= cy1) do
+  for gy := cy0 div mTileSize to cy1 div mTileSize do
   begin
-    gx := cx0;
-    while (gx <= cx1) do
+    for gx := cx0 div mTileSize to cx1 div mTileSize do
     begin
-      cidx := mGrid[(gy div mTileSize)*mWidth+(gx div mTileSize)];
+      cidx := mGrid[gy*mWidth+gx];
       while (cidx <> -1) do
       begin
         cc := @mCells[cidx];
@@ -2613,8 +2609,19 @@ begin
             begin
               if not cb(px.mObj, ptag) then continue;
             end;
-            if not sweepAABB(cx0+mMinX, cy0+mMinY, aw, ah, dx, dy, px.mX, px.mY, px.mWidth, px.mHeight, @u0, @hedge) then
+            if not sweepAABB(ax0, ay0, aw, ah, dx, dy, px.mX, px.mY, px.mWidth, px.mHeight, @u0, @hedge, @u1) then
             begin
+              {
+              if (u1 >= 0) then
+              begin
+                // overlapping
+                ex := ax0;
+                ey := ay0;
+                result := px.mObj;
+                mInQuery := false;
+                exit;
+              end;
+              }
               continue;
             end;
             if (minu0 > u0) then
@@ -2623,8 +2630,8 @@ begin
               minu0 := u0;
               if (u0 = 0.0) then
               begin
-                ex := cx0+mMinX;
-                ey := cy0+mMinY;
+                ex := ax0;
+                ey := ay0;
                 mInQuery := false;
                 exit;
               end;
@@ -2634,9 +2641,7 @@ begin
         // next cell
         cidx := cc.next;
       end;
-      Inc(gx, mTileSize);
     end;
-    Inc(gy, mTileSize);
   end;
 
   if (minu0 <= 1.0) then
