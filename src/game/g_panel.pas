@@ -529,6 +529,7 @@ var
     tex, tey: Integer;
     pdx, pdy: Integer;
     pan: TPanel;
+    trtag: Integer;
   begin
     squash := false;
     tex := px;
@@ -539,12 +540,16 @@ var
     if (py+ph = oy) then
     begin
       if (ontop <> nil) then ontop^ := true;
-      // yes, move with it
-      pan := mapGrid.traceBox(tex, tey, px, py, pw, ph, pdx, pdy, nil, GridTagObstacle);
+      // yes, move with it; but skip steps
+      pan := mapGrid.traceBox(tex, tey, px, py, pw, ph, pdx, pdy, nil, (GridTagWall or GridTagDoor));
       if (pan <> nil) then
       begin
         //e_LogWritefln('entity on the platform; tracing=(%s,%s); endpoint=(%s,%s); mustbe=(%s,%s)', [px, py, tex, tey, px+pdx, py+pdy]);
-        if (tex = px) and (tey = py) then squash := true;
+        // if we cannot move, only walls should squash the entity
+        if ((tag and (GridTagWall or GridTagDoor)) <> 0) then
+        begin
+          if (tex = px) and (tey = py) then squash := true;
+        end;
       end;
     end
     else
@@ -569,9 +574,16 @@ var
         if (pdx <> 0) or (pdy <> 0) then
         begin
           // has some path to go, trace the entity
-          pan := mapGrid.traceBox(tex, tey, px, py, pw, ph, pdx, pdy, nil, GridTagObstacle);
+          trtag := (GridTagWall or GridTagDoor);
+          // if we're moving down, consider steps too
+          if (pdy > 0) then trtag := trtag or GridTagStep;
+          pan := mapGrid.traceBox(tex, tey, px, py, pw, ph, pdx, pdy, nil, trtag);
           //e_LogWritefln('  tracebox: te=(%s,%s)', [tex, tey]);
-          if (pan <> nil) and (tex = px) and (tey = py) then squash := true;
+          // if we cannot move, only walls should squash the entity
+          if ((tag and (GridTagWall or GridTagDoor)) <> 0) then
+          begin
+            if (pan <> nil) and (tex = px) and (tey = py) then squash := true;
+          end;
         end;
       end
       else
@@ -584,7 +596,7 @@ var
     dx := tex-px;
     dy := tey-py;
     result := (dx <> 0) or (dy <> 0);
-    if result and (not squash) then
+    if result and (not squash) and ((tag and (GridTagWall or GridTagDoor)) <> 0) then
     begin
       squash := g_Collide(tex, tey, pw, ph, nx, ny, mpw, mph); // still in platform?
       if not squash then squash := g_Map_CollidePanel(tex, tey, pw, ph, (PANEL_WALL or PANEL_OPENDOOR or PANEL_CLOSEDOOR));
