@@ -209,6 +209,10 @@ type
     //WARNING: don't change tags in callbacks here!
     function forEachAlongLine (ax0, ay0, ax1, ay1: Integer; cb: TGridQueryCB; tagmask: Integer=-1; log: Boolean=false): ITP;
 
+    // trace box with the given velocity; return object hit (if any)
+    // `cb` is used unconvetionally here: if it returns `false`, tracer will ignore the object
+    function traceBox (out ex, ey: Integer; const ax0, ay0, aw, ah: Integer; const dx, dy: Integer; cb: TGridQueryCB; tagmask: Integer=-1): ITP;
+
     // debug
     procedure forEachBodyCell (body: TBodyProxyId; cb: TCellQueryCB);
     function forEachInCell (x, y: Integer; cb: TGridQueryCB): ITP;
@@ -232,6 +236,18 @@ type
 // enter coords will be equal to (x0, y0) if starting point is inside the box
 // if result is `false`, `inx` and `iny` are undefined
 function lineAABBIntersects (x0, y0, x1, y1: Integer; bx, by, bw, bh: Integer; out inx, iny: Integer): Boolean;
+
+// sweep two AABB's to see if and when they are overlapping
+// returns `true` if collision was detected (or boxes overlaps)
+// u0 = normalized time of first collision (i.e. collision starts at myMove*u0)
+// u1 = normalized time of second collision (i.e. collision stops after myMove*u1)
+// if no collision was detected:
+//   u1 < 0: no collision at all
+//   u1 >= 0: boxes are overlapping at the start; u0 has no meaning, u1 is exit time, hitedge is undefined
+// hitedge for `it`: 0: top; 1: right; 2: bottom; 3: left
+// enter/exit coords will form non-intersecting configuration (i.e. will be before/after the actual collision)
+function sweepAABB (mex0, mey0, mew, meh: Integer; medx, medy: Integer; itx0, ity0, itw, ith: Integer;
+                    u0: PSingle=nil; hitedge: PInteger=nil; u1: PSingle=nil): Boolean;
 
 function distanceSq (x0, y0, x1, y1: Integer): Integer; inline;
 
@@ -412,6 +428,86 @@ begin
   inx := d0^;
   iny := d1^;
   result := true;
+end;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
+function sweepAABB (mex0, mey0, mew, meh: Integer; medx, medy: Integer; itx0, ity0, itw, ith: Integer;
+                    u0: PSingle=nil; hitedge: PInteger=nil; u1: PSingle=nil): Boolean;
+var
+  tin, tout: Single;
+
+  function axisOverlap (me0, me1, it0, it1, d, he0, he1: Integer): Boolean; inline;
+  var
+    t: Single;
+  begin
+    result := false;
+
+    if (me1 < it0) then
+    begin
+      if (d >= 0) then exit; // oops, no hit
+      t := (me1-it0+1)/d;
+      if (t > tin) then begin tin := t; hitedge^ := he1; end;
+    end
+    else if (it1 < me0) then
+    begin
+      if (d <= 0) then exit; // oops, no hit
+      t := (me0-it1-1)/d;
+      if (t > tin) then begin tin := t; hitedge^ := he0; end;
+    end;
+
+    if (d < 0) and (it1 > me0) then
+    begin
+      t := (me0-it1-1)/d;
+      if (t < tout) then tout := t;
+    end
+    else if (d > 0) and (me1 > it0) then
+    begin
+      t := (me1-it0+1)/d;
+      if (t < tout) then tout := t;
+    end;
+
+    result := true;
+  end;
+
+var
+  mex1, mey1, itx1, ity1, vx, vy: Integer;
+  htt: Integer = -1;
+begin
+  result := false;
+  if (u0 <> nil) then u0^ := -1.0;
+  if (u1 <> nil) then u1^ := -1.0;
+  if (hitedge = nil) then hitedge := @htt else hitedge^ := -1;
+
+  if (mew < 1) or (meh < 1) or (itw < 1) or (ith < 1) then exit;
+
+  mex1 := mex0+mew-1;
+  mey1 := mey0+meh-1;
+  itx1 := itx0+itw-1;
+  ity1 := ity0+ith-1;
+
+  // check if they are overlapping right now (SAT)
+  //if (mex1 >= itx0) and (mex0 <= itx1) and (mey1 >= ity0) and (mey0 <= ity1) then begin result := true; exit; end;
+
+  if (medx = 0) and (medy = 0) then exit; // both boxes are sationary
+
+  // treat b as stationary, so invert v to get relative velocity
+  vx := -medx;
+  vy := -medy;
+
+  tin := -100000000.0;
+  tout := 100000000.0;
+
+  if not axisOverlap(mex0, mex1, itx0, itx1, vx, 1, 3) then exit;
+  if not axisOverlap(mey0, mey1, ity0, ity1, vy, 2, 0) then exit;
+
+  if (u0 <> nil) then u0^ := tin;
+  if (u1 <> nil) then u1^ := tout;
+
+  if (tin <= tout) and (tin >= 0.0) and (tin <= 1.0) then
+  begin
+    result := true;
+  end;
 end;
 
 
@@ -2444,6 +2540,116 @@ begin
 end;
 
 
+// ////////////////////////////////////////////////////////////////////////// //
+// trace box with the given velocity; return object hit (if any)
+// `cb` is used unconvetionally here: if it returns `false`, tracer will ignore the object
+function TBodyGridBase.traceBox (out ex, ey: Integer; const ax0, ay0, aw, ah: Integer; const dx, dy: Integer; cb: TGridQueryCB; tagmask: Integer=-1): ITP;
+var
+  gx, gy: Integer;
+  cidx: Integer;
+  cc: PGridCell;
+  px: PBodyProxyRec;
+  lq: LongWord;
+  f, ptag: Integer;
+  minu0: Single = 100000.0;
+  u0: Single;
+  hedge: Integer;
+  cx0, cy0, cx1, cy1: Integer;
+begin
+  result := Default(ITP);
+  ex := ax0+dx;
+  ey := ay0+dy;
+  if (aw < 1) or (ah < 1) then exit;
+
+  if mInQuery then raise Exception.Create('recursive queries aren''t supported');
+  mInQuery := true;
+
+  cx0 := nmin(ax0, ax0+dx);
+  cy0 := nmin(ay0, ay0+dy);
+  cx1 := nmax(ax0+aw-1, ax0+aw-1+dx);
+  cy1 := nmax(ay0+ah-1, ay0+ah-1+dy);
+
+  cx0 -= mMinX; cy0 -= mMinY;
+  cx1 -= mMinX; cy1 -= mMinY;
+
+  if (cx1 < 0) or (cy1 < 0) or (cx0 >= mWidth*mTileSize) or (cy0 >= mHeight*mTileSize) then exit;
+
+  if (cx0 < 0) then cx0 := 0;
+  if (cy0 < 0) then cy0 := 0;
+  if (cx1 >= mWidth*mTileSize) then cx1 := mWidth*mTileSize-1;
+  if (cy1 >= mHeight*mTileSize) then cy1 := mHeight*mTileSize-1;
+  // just in case
+  if (cx0 > cx1) or (cy0 > cy1) then exit;
+
+  // increase query counter
+  Inc(mLastQuery);
+  if (mLastQuery = 0) then
+  begin
+    // just in case of overflow
+    mLastQuery := 1;
+    for f := 0 to High(mProxies) do mProxies[f].mQueryMark := 0;
+  end;
+  lq := mLastQuery;
+
+  gy := cy0;
+  while (gy <= cy1) do
+  begin
+    gx := cx0;
+    while (gx <= cx1) do
+    begin
+      cidx := mGrid[(gy div mTileSize)*mWidth+(gx div mTileSize)];
+      while (cidx <> -1) do
+      begin
+        cc := @mCells[cidx];
+        for f := 0 to GridCellBucketSize-1 do
+        begin
+          if (cc.bodies[f] = -1) then break;
+          px := @mProxies[cc.bodies[f]];
+          ptag := px.mTag;
+          if ((ptag and TagDisabled) = 0) and ((ptag and tagmask) <> 0) and (px.mQueryMark <> lq) then
+          begin
+            px.mQueryMark := lq; // mark as processed
+            if assigned(cb) then
+            begin
+              if not cb(px.mObj, ptag) then continue;
+            end;
+            if not sweepAABB(cx0+mMinX, cy0+mMinY, aw, ah, dx, dy, px.mX, px.mY, px.mWidth, px.mHeight, @u0, @hedge) then
+            begin
+              continue;
+            end;
+            if (minu0 > u0) then
+            begin
+              result := px.mObj;
+              minu0 := u0;
+              if (u0 = 0.0) then
+              begin
+                ex := cx0+mMinX;
+                ey := cy0+mMinY;
+                mInQuery := false;
+                exit;
+              end;
+            end;
+          end;
+        end;
+        // next cell
+        cidx := cc.next;
+      end;
+      Inc(gx, mTileSize);
+    end;
+    Inc(gy, mTileSize);
+  end;
+
+  if (minu0 <= 1.0) then
+  begin
+    ex := ax0+trunc(dx*minu0);
+    ey := ay0+trunc(dy*minu0);
+  end;
+
+  mInQuery := false;
+end;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
 {.$DEFINE D2F_DEBUG_OTR}
 function TBodyGridBase.traceOrthoRayWhileIn (out ex, ey: Integer; ax0, ay0, ax1, ay1: Integer; tagmask: Integer=-1): Boolean;
 var
