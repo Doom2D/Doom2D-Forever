@@ -471,7 +471,9 @@ type
 
     procedure positionChanged ();  inline; //WARNING! call this after entity position was changed, or coldet will not work right!
 
-    property    Obj: TObj read FObj;
+    function ObjPtr (): PObj; inline;
+
+    property    Obj: TObj read FObj; // copies object
     property    State: Byte read FState;
     property    Mess: Boolean read FMess;
   end;
@@ -6158,6 +6160,8 @@ begin
 
   inherited;
 end;
+
+function TCorpse.ObjPtr (): PObj; inline; begin result := @FObj; end;
 
 procedure TCorpse.positionChanged (); inline; begin end;
 

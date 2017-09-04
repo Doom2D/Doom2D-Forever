@@ -98,6 +98,7 @@ type
     FNoRespawn: Boolean;
     FFireTime: Integer;
     trapCheckFrameId: DWord; // for `g_weapons.CheckTrap()`
+    mplatCheckFrameId: LongWord;
 
     constructor Create(MonsterType: Byte; aID: Integer; ForcedUID: Integer = -1);
     destructor Destroy(); override;
@@ -139,6 +140,7 @@ type
     procedure positionChanged (); //WARNING! call this after monster position was changed, or coldet will not work right!
 
     procedure setPosition (ax, ay: Integer; callPosChanged: Boolean=true); inline;
+    procedure moveBy (dx, dy: Integer); inline;
 
     procedure getMapBox (out x, y, w, h: Integer); inline;
 
@@ -223,7 +225,8 @@ function g_Mons_ForEachAlive (cb: TEachMonsterCB): Boolean;
 function g_Mons_ForEachAt (x, y: Integer; width, height: Integer; cb: TEachMonsterCB): Boolean;
 function g_Mons_ForEachAliveAt (x, y: Integer; width, height: Integer; cb: TEachMonsterCB): Boolean;
 
-function g_Mons_getNewTrapFrameId (): DWord;
+function g_Mons_getNewTrapFrameId (): DWord; inline;
+function g_Mons_getNewMPlatFrameId (): LongWord; inline;
 
 
 type
@@ -299,7 +302,8 @@ end;
 
 // ////////////////////////////////////////////////////////////////////////// //
 var
-  monCheckTrapLastFrameId: DWord;
+  monCheckTrapLastFrameId: DWord = 0;
+  monCheckMPlatLastFrameId: LongWord = 0;
 
 
 procedure TMonster.getMapBox (out x, y, w, h: Integer); inline;
@@ -572,12 +576,12 @@ begin
 end;
 
 
-function g_Mons_getNewTrapFrameId (): DWord;
+function g_Mons_getNewTrapFrameId (): DWord; inline;
 var
   f: Integer;
 begin
   Inc(monCheckTrapLastFrameId);
-  if monCheckTrapLastFrameId = 0 then
+  if (monCheckTrapLastFrameId = 0) then
   begin
     // wraparound
     monCheckTrapLastFrameId := 1;
@@ -587,6 +591,24 @@ begin
     end;
   end;
   result := monCheckTrapLastFrameId;
+end;
+
+
+function g_Mons_getNewMPlatFrameId (): LongWord; inline;
+var
+  f: Integer;
+begin
+  Inc(monCheckMPlatLastFrameId);
+  if (monCheckMPlatLastFrameId = 0) then
+  begin
+    // wraparound
+    monCheckMPlatLastFrameId := 1;
+    for f := 0 to High(gMonsters) do
+    begin
+      if (gMonsters[f] <> nil) then gMonsters[f].mplatCheckFrameId := 0;
+    end;
+  end;
+  result := monCheckMPlatLastFrameId;
 end;
 
 
@@ -976,6 +998,7 @@ begin
   freeInds := TIdPool.Create();
   clearUidMap();
   monCheckTrapLastFrameId := 0;
+  monCheckMPlatLastFrameId := 0;
 end;
 
 procedure g_Monsters_FreeData();
@@ -1216,6 +1239,7 @@ begin
   gMonsters := nil;
   clearUidMap();
   monCheckTrapLastFrameId := 0;
+  monCheckMPlatLastFrameId := 0;
 end;
 
 
@@ -1535,7 +1559,18 @@ end;
 
 procedure TMonster.setGameX (v: Integer); inline; begin FObj.X := v; positionChanged(); end;
 procedure TMonster.setGameY (v: Integer); inline; begin FObj.Y := v; positionChanged(); end;
+
 procedure TMonster.setPosition (ax, ay: Integer; callPosChanged: Boolean=true); inline; begin FObj.X := ax; FObj.Y := ay; if callPosChanged then positionChanged(); end;
+
+procedure TMonster.moveBy (dx, dy: Integer); inline;
+begin
+  if (dx <> 0) or (dy <> 0) then
+  begin
+    FObj.X += dx;
+    FObj.Y += dy;
+    positionChanged();
+  end;
+end;
 
 
 procedure TMonster.ActionSound();
@@ -1787,6 +1822,7 @@ begin
   mProxyId := -1;
   mArrIdx := -1;
   trapCheckFrameId := 0;
+  mplatCheckFrameId := 0;
 
   if FMonsterType in [MONSTER_ROBO, MONSTER_BARREL] then
     FBloodKind := BLOOD_SPARKS
