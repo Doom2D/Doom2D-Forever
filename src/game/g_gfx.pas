@@ -15,6 +15,7 @@
  *)
 {$INCLUDE ../shared/a_modes.inc}
 {.$DEFINE D2F_DEBUG_FALL_MPLAT}
+{/$DEFINE D2F_DEBUG_PART_AWAKE}
 unit g_gfx;
 
 interface
@@ -68,6 +69,10 @@ procedure g_GFX_Draw ();
 var
   gpart_dbg_enabled: Boolean = true;
   gpart_dbg_phys_enabled: Boolean = true;
+
+
+//WARNING: only for Holmes!
+function awmIsSetHolmes (x, y: Integer): Boolean; inline;
 
 
 implementation
@@ -149,12 +154,50 @@ var
   awakeMapW: Integer = -1;
   awakeMinX, awakeMinY: Integer;
   awakeDirty: Boolean = false;
+  {$IF DEFINED(D2F_DEBUG_PART_AWAKE)}
+  awakeMapHlm: packed array of LongWord = nil;
+  {$ENDIF}
+
+
+// ////////////////////////////////////////////////////////////////////////// //
+function awmIsSetHolmes (x, y: Integer): Boolean; inline;
+begin
+{$IF DEFINED(D2F_DEBUG_PART_AWAKE)}
+  if (Length(awakeMapHlm) = 0) then begin result := false; exit; end;
+  x := (x-awakeMinX) div mapGrid.tileSize;
+  y := (y-awakeMinY) div mapGrid.tileSize;
+  if (x >= 0) and (y >= 0) and (x div 32 < awakeMapW) and (y < awakeMapH) then
+  begin
+    if (y*awakeMapW+x div 32 < Length(awakeMapHlm)) then
+    begin
+      result := ((awakeMapHlm[y*awakeMapW+x div 32] and (LongWord(1) shl (x mod 32))) <> 0);
+    end
+    else
+    begin
+      result := false;
+    end;
+  end
+  else
+  begin
+    result := false;
+  end;
+{$ELSE}
+  result := false;
+{$ENDIF}
+end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
 // HACK! using mapgrid
 procedure awmClear (); inline;
 begin
+  {$IF DEFINED(D2F_DEBUG_PART_AWAKE)}
+  if (Length(awakeMap) > 0) then
+  begin
+    if (Length(awakeMapHlm) <> Length(awakeMap)) then SetLength(awakeMapHlm, Length(awakeMap));
+    Move(awakeMap[0], awakeMapHlm[0], Length(awakeMap)*sizeof(awakeMap[0]));
+  end;
+  {$ENDIF}
   if awakeDirty and (awakeMapW > 0) then
   begin
     FillDWord(awakeMap[0], Length(awakeMap), 0);
@@ -172,6 +215,10 @@ begin
   awakeMinX := mapGrid.gridX0;
   awakeMinY := mapGrid.gridY0;
   SetLength(awakeMap, awakeMapW*awakeMapH);
+  {$IF DEFINED(D2F_DEBUG_PART_AWAKE)}
+  SetLength(awakeMapHlm, awakeMapW*awakeMapH);
+  FillDWord(awakeMapHlm[0], Length(awakeMapHlm), 0);
+  {$ENDIF}
   //{$IF DEFINED(D2F_DEBUG)}
   e_LogWritefln('particle awake map: %sx%s (for grid of size %sx%s)', [awakeMapW, awakeMapH, mapGrid.gridWidth, mapGrid.gridHeight]);
   //{$ENDIF}
@@ -212,6 +259,55 @@ begin
     v := @awakeMap[y*awakeMapW+x div 32];
     v^ := v^ or (LongWord(1) shl (x mod 32));
     awakeDirty := true;
+  end;
+end;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
+// st: set mark
+// t: mark type
+// currently unused
+procedure g_Mark (x, y, Width, Height: Integer; t: Byte; st: Boolean=true);
+const Extrude = 1;
+var
+  dx, dy, ex, ey: Integer;
+  v: PLongWord;
+begin
+  if (not gpart_dbg_enabled) or (not gpart_dbg_phys_enabled) then exit;
+  if (awakeMapW < 1) or (awakeMapH < 1) then exit;
+
+  if (Width < 1) or (Height < 1) then exit;
+
+  // make some border, so we'll hit particles around the panel
+  ex := x+Width+Extrude-1-awakeMinX;
+  ey := y+Height+Extrude-1-awakeMinY;
+  x := (x-Extrude)-awakeMinX;
+  y := (y-Extrude)-awakeMinY;
+
+  x := x div mapGrid.tileSize;
+  y := y div mapGrid.tileSize;
+  ex := ex div mapGrid.tileSize;
+  ey := ey div mapGrid.tileSize;
+
+  // has something to do?
+  if (ex < 0) or (ey < 0) or (x >= awakeMapW*32) or (y >= awakeMapH) then exit;
+  if (x < 0) then x := 0;
+  if (y < 0) then y := 0;
+  if (ex >= awakeMapW*32) then ex := awakeMapW*32-1;
+  if (ey >= awakeMapH) then ey := awakeMapH;
+
+  awakeDirty := true;
+  for dy := y to ey do
+  begin
+    for dx := x to ex do
+    begin
+      {$IF DEFINED(D2F_DEBUG)}
+      assert((dx >= 0) and (dy >= 0) and (dx div 32 < awakeMapW) and (dy < awakeMapH));
+      assert(dy*awakeMapW+dx div 32 < Length(awakeMap));
+      {$ENDIF}
+      v := @awakeMap[dy*awakeMapW+dx div 32];
+      v^ := v^ or (LongWord(1) shl (dx mod 32));
+    end;
   end;
 end;
 
@@ -361,24 +457,52 @@ end;
 procedure TParticle.think (); inline;
   procedure awake ();
   begin
-    state := TPartState.Normal;
+    if (state = TPartState.Stuck) then
+    begin
+      //writeln('awaking particle at (', x, ',', y, ')');
+      if (stickDX = 0) then
+      begin
+        state := TPartState.Normal; // stuck to a ceiling
+      end
+      else
+      begin
+        // stuck to a wall, check if wall is still there
+        if (wallEndY <> Unknown) then
+        begin
+          wallEndY := Unknown;
+          if (g_Map_PanelAtPoint(x+stickDX, y, GridTagObstacle) = nil) then
+          begin
+            // a wall was moved out, start falling
+            state := TPartState.Normal;
+            if (velY = 0) then velY := 0.1;
+            if (accelY = 0) then accelY := 0.5;
+          end;
+        end;
+      end;
+    end
+    else
+    begin
+      state := TPartState.Normal;
+      if (velY = 0) then velY := 0.1;
+      if (accelY = 0) then accelY := 0.5;
+    end;
     floorY := Unknown;
     ceilingY := Unknown;
-    wallEndY := Unknown;
-    if (velY = 0) then velY := 0.1;
-    if (accelY = 0) then accelY := 0.5;
   end;
 
 begin
   // awake sleeping particle, if necessary
   if awakeDirty then
   begin
+    if awmIsSet(x, y) then awake();
+    {
     case state of
       TPartState.Sleeping, TPartState.Stuck:
         if awmIsSet(x, y) then awake();
       else
         if (env = TEnvType.EWall) and awmIsSet(x, y) then awake();
     end;
+    }
   end;
   case particleType of
     TPartType.Blood, TPartType.Water: thinkerBloodAndWater();
@@ -485,7 +609,7 @@ begin
       if (stickDX = 0) then
       begin
         // yeah, stuck to a ceiling
-        assert(ceilingY <> Unknown);
+        if (ceilingY = Unknown) then findCeiling();
         // dropped from a ceiling?
         if (y > ceilingY) then
         begin
@@ -1392,37 +1516,6 @@ begin
   OnceAnims[find_id].Animation.alpha := Anim.alpha;
   OnceAnims[find_id].x := x;
   OnceAnims[find_id].y := y;
-end;
-
-
-// ////////////////////////////////////////////////////////////////////////// //
-// st: set mark
-// t: mark type
-// currently unused
-procedure g_Mark (x, y, Width, Height: Integer; t: Byte; st: Boolean=true);
-var
-  cx, ex, ey: Integer;
-  ts: Integer;
-begin
-  if not gpart_dbg_enabled then exit;
-
-  if (Width < 1) or (Height < 1) then exit;
-  // make some border, so we'll hit particles lying around the panel
-  x -= 1; Width += 2;
-  y -= 1; Height += 2;
-  ex := x+Width;
-  ey := y+Height;
-  ts := mapGrid.tileSize;
-  while (y < ey) do
-  begin
-    cx := x;
-    while (cx < ex) do
-    begin
-      awmSet(cx, y);
-      Inc(cx, ts);
-    end;
-    Inc(y, ts);
-  end;
 end;
 
 
