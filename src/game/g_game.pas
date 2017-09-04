@@ -5106,12 +5106,12 @@ begin
           g_Console_Add(cmd + ' [ID | Name] [behaviour]');
           g_Console_Add('ID | Name');
           for b := MONSTER_DEMON to MONSTER_MAN do
-            g_Console_Add(Format('%2d | %s', [b, g_Monsters_GetNameByID(b)]));
+            g_Console_Add(Format('%2d | %s', [b, g_Mons_NameByTypeId(b)]));
         end else
         begin
           a := StrToIntDef(P[1], 0);
           if (a < MONSTER_DEMON) or (a > MONSTER_MAN) then
-            a := g_Monsters_GetIDByName(P[1]);
+            a := g_Mons_TypeIdByName(P[1]);
 
           if (a < MONSTER_DEMON) or (a > MONSTER_MAN) then
             g_Console_Add(Format(_lc[I_MSG_NO_MONSTER], [P[1]]))

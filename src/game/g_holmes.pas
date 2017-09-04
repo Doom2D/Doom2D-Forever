@@ -21,7 +21,7 @@ interface
 uses
   e_log, e_input,
   g_textures, g_basic, e_graphics, g_phys, g_grid, g_player, g_monsters,
-  g_window, g_map, g_triggers, g_items, g_game, g_panel, g_console,
+  g_window, g_map, g_triggers, g_items, g_game, g_panel, g_console, g_gfx,
   xprofiler;
 
 
@@ -908,6 +908,22 @@ procedure plrDebugDraw ();
     end;
   end;
 
+  procedure drawAwakeCells ();
+  var
+    x, y: Integer;
+  begin
+    for y := 0 to (mapGrid.gridHeight div mapGrid.tileSize) do
+    begin
+      for x := 0 to (mapGrid.gridWidth div mapGrid.tileSize) do
+      begin
+        if awmIsSetHolmes(x*mapGrid.tileSize+mapGrid.gridX0+1, y*mapGrid.tileSize++mapGrid.gridY0+1) then
+        begin
+          fillRect(x*mapGrid.tileSize++mapGrid.gridX0, y*mapGrid.tileSize++mapGrid.gridY0, monsGrid.tileSize, monsGrid.tileSize, 128, 0, 128, 64);
+        end;
+      end;
+    end;
+  end;
+
   procedure hilightCell (cx, cy: Integer);
   begin
     fillRect(cx, cy, monsGrid.tileSize, monsGrid.tileSize, 0, 128, 0, 64);
@@ -1184,6 +1200,8 @@ begin
   if showTriggers then drawTriggers();
   if showGrid then drawSelectedPlatformCells();
 
+  drawAwakeCells();
+
   //drawGibsBoxes();
 
   glPopMatrix();
@@ -1323,6 +1341,20 @@ procedure bcToggleDrawTriggers (arg: Integer=-1); begin if (arg < 0) then showTr
 procedure bcToggleCurPos (arg: Integer=-1); begin if (arg < 0) then showMapCurPos := not showMapCurPos else showMapCurPos := (arg > 0); end;
 procedure bcToggleGrid (arg: Integer=-1); begin if (arg < 0) then showGrid := not showGrid else showGrid := (arg > 0); end;
 
+procedure bcMonsterSpawn (s: AnsiString);
+var
+  mon: TMonster;
+begin
+  if not gGameOn or g_Game_IsClient then
+  begin
+    conwriteln('cannot spawn monster in this mode');
+    exit;
+  end;
+  mon := g_Mons_SpawnAt(s, pmsCurMapX, pmsCurMapY);
+  if (mon = nil) then begin conwritefln('unknown monster id: ''%s''', [s]); exit; end;
+  monMarkedUID := mon.UID;
+end;
+
 procedure bcMonsterWakeup ();
 var
   mon: TMonster;
@@ -1449,6 +1481,8 @@ begin
   cmdAdd('mon_cells', bcToggleMonsterCells, 'toggle "show all cells occupied by monsters" (SLOW!)', 'monster control');
   cmdAdd('mon_wakeup', bcMonsterWakeup, 'toggle "show all cells occupied by monsters" (SLOW!)', 'monster control');
 
+  cmdAdd('mon_spawn', bcMonsterSpawn, 'spawn monster', 'monster control');
+
   cmdAdd('mplat_step', bcOneMPlatThinkStep, 'one mplat think step', 'mplat control');
   cmdAdd('mplat_toggle', bcMPlatToggle, 'activate/deactivate moving platforms', 'mplat control');
 
@@ -1496,6 +1530,8 @@ begin
     keybindAdd('C-P', 'dbg_curpos');
     keybindAdd('C-G', 'dbg_grid');
     keybindAdd('C-X', 'dbg_triggers');
+
+    keybindAdd('C-1', 'mon_spawn zombie');
 
     // mouse
     msbindAdd('LMB', 'atcur_select_monster');

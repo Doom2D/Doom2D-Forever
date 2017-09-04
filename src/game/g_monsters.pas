@@ -192,9 +192,16 @@ function  g_Monsters_ByUID (UID: Word): TMonster;
 procedure g_Monsters_killedp ();
 procedure g_Monsters_SaveState (var Mem: TBinMemoryWriter);
 procedure g_Monsters_LoadState (var Mem: TBinMemoryReader);
-function  g_Monsters_GetIDByName (name: String): Integer;
-function  g_Monsters_GetNameByID (MonsterType: Byte): String;
-function  g_Monsters_GetKilledBy (MonsterType: Byte): String;
+
+function g_Mons_SpawnAt (monType: Integer; x, y: Integer; dir: TDirection=D_LEFT): TMonster; overload;
+function g_Mons_SpawnAt (const typeName: AnsiString; x, y: Integer; dir: TDirection=D_LEFT): TMonster; overload;
+
+function g_Mons_TypeLo (): Integer; inline;
+function g_Mons_TypeHi (): Integer; inline;
+
+function g_Mons_TypeIdByName (const name: AnsiString): Integer;
+function g_Mons_NameByTypeId (monType: Integer): AnsiString;
+function g_Mons_GetKilledByTypeId (monType: Integer): AnsiString;
 
 
 type
@@ -549,6 +556,7 @@ const
   MAX_SOUL = 512; // Ограничение Lost_Soul'ов
 
 
+// ////////////////////////////////////////////////////////////////////////// //
 var
   gMonsters: array of TMonster;
   uidMap: array [0..65535] of TMonster; // monster knows it's index
@@ -1460,41 +1468,69 @@ begin
   end;
 end;
 
-function g_Monsters_GetIDByName(name: String): Integer;
+
+// ////////////////////////////////////////////////////////////////////////// //
+function g_Mons_SpawnAt (monType: Integer; x, y: Integer; dir: TDirection=D_LEFT): TMonster; overload;
+begin
+  result := nil;
+  if (monType >= MONSTER_DEMON) and (monType <= MONSTER_MAN) then
+  begin
+    result := g_Monsters_Create(monType, x, y, dir);
+  end;
+end;
+
+
+function g_Mons_SpawnAt (const typeName: AnsiString; x, y: Integer; dir: TDirection=D_LEFT): TMonster; overload;
+begin
+  result := g_Mons_SpawnAt(g_Mons_TypeIdByName(typeName), x, y, dir);
+end;
+
+
+
+// ////////////////////////////////////////////////////////////////////////// //
+function g_Mons_TypeLo (): Integer; inline; begin result := Low(MONSTERTABLE); end;
+function g_Mons_TypeHi (): Integer; inline; begin result := High(MONSTERTABLE); end;
+
+
+function g_Mons_TypeIdByName (const name: String): Integer;
 var
   i: Integer;
 begin
-  name := UpperCase(name);
   i := MONSTER_DEMON;
   while (i <= MONSTER_MAN) do
   begin
-    if name = MONSTERTABLE[i].Name then
+    if (CompareText(name, MONSTERTABLE[i].Name) = 0) then
     begin
-      Result := i;
-      Exit;
+      result := i;
+      exit;
     end;
     Inc(i);
   end;
-
-  Result := -1;
+  result := -1;
+  // HACK!
+  if (CompareText(name, 'zombie') = 0) then result := MONSTER_ZOMBY;
 end;
 
-function g_Monsters_GetNameByID(MonsterType: Byte): String;
+
+function g_Mons_NameByTypeId (monType: Integer): AnsiString;
 begin
-  if MonsterType in [MONSTER_DEMON..MONSTER_MAN] then
-    Result := MONSTERTABLE[MonsterType].Name
+  if (monType >= MONSTER_DEMON) and (monType <= MONSTER_MAN) then
+    result := MONSTERTABLE[monType].Name
+  else
+    result := '?';
+end;
+
+
+function g_Mons_GetKilledByTypeId (monType: Integer): AnsiString;
+begin
+  if (monType >= MONSTER_DEMON) and (monType <= MONSTER_MAN) then
+    Result := KilledByMonster[monType]
   else
     Result := '?';
 end;
 
-function g_Monsters_GetKilledBy(MonsterType: Byte): String;
-begin
-  if MonsterType in [MONSTER_DEMON..MONSTER_MAN] then
-    Result := KilledByMonster[MonsterType]
-  else
-    Result := '?';
-end;
 
+// ////////////////////////////////////////////////////////////////////////// //
 { T M o n s t e r : }
 
 procedure TMonster.setGameX (v: Integer); inline; begin FObj.X := v; positionChanged(); end;

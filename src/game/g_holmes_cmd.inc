@@ -17,11 +17,12 @@
 type
   TBindArgLessCB = procedure ();
   TBindToggleCB = procedure (arg: Integer); // -1: no arg
+  TBindStringCB = procedure (s: AnsiString);
 
   PHolmesCommand = ^THolmesCommand;
   THolmesCommand = record
   public
-    type TType = (TArgLess, TToggle);
+    type TType = (TArgLess, TToggle, TString);
 
   public
     name: AnsiString;
@@ -69,21 +70,40 @@ end;
 procedure THolmesCommand.execute (pr: TTextParser);
 var
   a: Integer = -1;
+  s: AnsiString = '';
 begin
   if not assigned(cb) then exit;
-  if (ctype = TType.TToggle) then
-  begin
-    if pr.skipBlanks() then
-    begin
-           if pr.eatId('true') or pr.eatId('tan') or pr.eatId('yes') then a := 1
-      else if pr.eatId('false') or pr.eatId('ona') or pr.eatId('no') then a := 0
-      else begin conwritefln('%s: invalid argument', [name]); exit; end;
-    end;
-  end;
-  if pr.skipBlanks() then begin conwritefln('%s: too many arguments', [name]); exit; end;
   case ctype of
-    TType.TArgLess: TBindArgLessCB(cb)();
-    TType.TToggle: TBindToggleCB(cb)(a);
+    TType.TToggle:
+      begin
+        if (pr.tokType <> pr.TTEOF) then
+        begin
+               if pr.eatId('true') or pr.eatId('tan') or pr.eatId('yes') then a := 1
+          else if pr.eatId('false') or pr.eatId('ona') or pr.eatId('no') then a := 0
+          else begin conwritefln('%s: invalid argument', [name]); exit; end;
+          if (pr.tokType <> pr.TTEOF) then begin conwritefln('%s: too many arguments', [name]); exit; end;
+        end;
+        TBindToggleCB(cb)(a);
+      end;
+    TType.TArgLess:
+      begin
+        if (pr.tokType <> pr.TTEOF) then begin conwritefln('%s: too many arguments', [name]); exit; end;
+        TBindArgLessCB(cb)();
+      end;
+    TType.TString:
+      begin
+        if (pr.tokType <> pr.TTEOF) then
+        begin
+          if (pr.tokType = pr.TTStr) then s := pr.expectStr(false) else s := pr.expectId;
+          if (pr.tokType <> pr.TTEOF) then begin conwritefln('%s: too many arguments', [name]); exit; end;
+        end
+        else
+        begin
+          conwritefln('%s: string argument expected', [name]);
+          exit;
+        end;
+        TBindStringCB(cb)(s);
+      end;
     else assert(false);
   end;
 end;
@@ -135,6 +155,7 @@ begin
 end;
 
 
+// ////////////////////////////////////////////////////////////////////////// //
 procedure cmdAdd (const aname: AnsiString; cb: TBindArgLessCB; const ahelp: AnsiString; const asection: AnsiString); overload;
 var
   cmd: PHolmesCommand;
@@ -157,6 +178,18 @@ begin
 end;
 
 
+procedure cmdAdd (const aname: AnsiString; cb: TBindStringCB; const ahelp: AnsiString; const asection: AnsiString); overload;
+var
+  cmd: PHolmesCommand;
+begin
+  if (Length(aname) = 0) or not assigned(cb) then exit;
+  cmd := cmdNewInternal(aname, ahelp, asection);
+  cmd.cb := Pointer(@cb);
+  cmd.ctype := cmd.TType.TString;
+end;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
 function getCommandHelp (const aname: AnsiString): AnsiString;
 var
   cmd: PHolmesCommand = nil;

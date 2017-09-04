@@ -176,7 +176,7 @@ implementation
 
 uses
   SysUtils, g_basic, g_map, g_game, g_gfx, e_graphics, g_weapons,
-  g_console, g_language, g_monsters, g_player, e_log, GL;
+  g_console, g_language, g_monsters, g_player, g_grid, e_log, GL, utils;
 
 const
   PANEL_SIGNATURE = $4C4E4150; // 'PANL'
@@ -511,13 +511,95 @@ begin
 end;
 
 
+{
 var
   monMoveList: array of TMonster = nil;
   monMoveListUsed: Integer = 0;
+}
 
 procedure TPanel.Update();
 var
+  ox, oy: Integer;
   nx, ny: Integer;
+  ex, ey, nex, ney: Integer;
+  cx0, cy0, cx1, cy1: Integer;
+
+  // return `true` if we should move by dx,dy
+  function tryMPlatMove (px, py, pw, ph: Integer; out dx, dy: Integer; out squash: Boolean): Boolean;
+  var
+    u0, u1: Single;
+    tex, tey: Integer;
+    pdx, pdy: Integer;
+  begin
+    squash := false;
+    dx := 0;
+    dy := 0;
+    pdx := mMovingSpeed.X;
+    pdy := mMovingSpeed.Y;
+    // standing on the platform?
+    if (py+ph = oy) then
+    begin
+      // yes, move with it
+      mapGrid.traceBox(tex, tey, px, py, pw, ph, pdx, pdy, nil, GridTagObstacle);
+      //e_LogWritefln('entity on the platform; tracing=(%s,%s); endpoint=(%s,%s); mustbe=(%s,%s)', [px, py, tex, tey, px+pdx, py+pdy]);
+      // still in platform?
+      squash := g_Collide(tex, tey, pw, ph, nx, ny, Width, Height);
+      dx := tex-px;
+      dy := tey-py;
+    end
+    else
+    begin
+      // not standing on the platform: trace platform to see if it hits the entity
+      // hitedge (for `it`): 0: top; 1: right; 2: bottom; 3: left
+      {
+      if g_Collide(px, py, pw, ph, ox, oy, Width, Height) then
+      begin
+        e_LogWritefln('entity is embedded: plr=(%s,%s)-(%s,%s); mpl=(%s,%s)-(%s,%s)', [px, py, px+pw-1, py+ph-1, ox, oy, ox+Width-1, oy+Height-1]);
+      end;
+      }
+      if sweepAABB(ox, oy, Width, Height, pdx, pdy, px, py, pw, ph, @u0, nil, @u1) then
+      begin
+        //e_LogWritefln('T: platsweep; u0=%s; u1=%s; hedge=%s; sweepAABB(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)', [u0, u1, hedge, ox, oy, Width, Height, pdx, pdy, px-1, py-1, pw+2, ph+2]);
+        // yes, platform hits the entity, push the entity in the direction of the platform
+        u0 := 1.0-u0; // how much path left?
+        pdx := trunc(pdx*u0);
+        pdy := trunc(pdy*u0);
+        //e_LogWritefln(' platsweep; uleft=%s; pd=(%s,%s)', [u0, pdx, pdy]);
+        if (pdx <> 0) or (pdy <> 0) then
+        begin
+          // has some path to go, trace the entity
+          mapGrid.traceBox(tex, tey, px, py, pw, ph, pdx, pdy, nil, GridTagObstacle);
+          //e_LogWritefln('  tracebox: te=(%s,%s)', [tex, tey]);
+        end
+        else
+        begin
+          // no movement
+          tex := px;
+          tey := py;
+        end;
+        // free to push along the whole path, or path was corrected
+        // still in platform?
+        squash := g_Collide(tex, tey, pw, ph, nx, ny, Width, Height);
+        dx := tex-px;
+        dy := tey-py;
+      end
+      else
+      begin
+        // no collistion, but may be embedded
+        //e_LogWritefln('F: platsweep; u0=%s; u1=%s; sweepAABB(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)', [u0, u1, ox, oy, Width, Height, pdx, pdy, px-1, py-1, pw+2, ph+2]);
+        squash := (u1 >= 0.0);
+      end;
+    end;
+    result := (dx <> 0) or (dy <> 0);
+  end;
+
+(*
+  function monCollect (mon: TMonster): Boolean;
+  begin
+    result := false; // don't stop
+    monMoveList[monMoveListUsed] := mon;
+    Inc(monMoveListUsed);
+  end;
 
   function doPush (px, py, pw, ph: Integer; out dx, dy: Integer): Boolean;
   begin
@@ -574,7 +656,7 @@ var
     // dead players leaves separate body entities, so don't move 'em
     if (plr = nil) or not plr.alive then exit;
     plr.getMapBox(px, py, pw, ph);
-    if (py+ph <> Y) then
+    if (py+ph <> oy) then
     begin
       // push player
       if doPush(px, py, pw, ph, dx, dy) then
@@ -594,8 +676,8 @@ var
       end;
       exit;
     end;
-    if (px+pw <= X) then exit;
-    if (px >= X+Width) then exit;
+    if (px+pw <= ox) then exit;
+    if (px >= ox+Width) then exit;
     plr.GameX := plr.GameX+mMovingSpeed.X;
     plr.GameY := plr.GameY+mMovingSpeed.Y;
     plr.positionChanged();
@@ -612,7 +694,7 @@ var
     px := gib.Obj.X;
     py := gib.Obj.Y;
     }
-    if (py+ph <> Y) then
+    if (py+ph <> oy) then
     begin
       // push gib
       if doPush(px, py, pw, ph, dx, dy) then
@@ -623,8 +705,8 @@ var
       end;
       exit;
     end;
-    if (px+pw <= X) then exit;
-    if (px >= X+Width) then exit;
+    if (px+pw <= ox) then exit;
+    if (px >= ox+Width) then exit;
     gib.Obj.X += mMovingSpeed.X;
     gib.Obj.Y += mMovingSpeed.Y;
     gib.positionChanged();
@@ -636,7 +718,7 @@ var
   begin
     if (cor = nil) then exit;
     cor.getMapBox(px, py, pw, ph);
-    if (py+ph <> Y) then
+    if (py+ph <> oy) then
     begin
       // push gib
       if doPush(px, py, pw, ph, dx, dy) then
@@ -645,33 +727,101 @@ var
       end;
       exit;
     end;
-    if (px+pw <= X) then exit;
-    if (px >= X+Width) then exit;
+    if (px+pw <= ox) then exit;
+    if (px >= ox+Width) then exit;
     cor.moveBy(mMovingSpeed.X, mMovingSpeed.Y); // will call `positionChanged()` for us
   end;
+*)
 
 var
   f: Integer;
+  plr: TPlayer;
+  px, py, pw, ph, pdx, pdy: Integer;
+  squash: Boolean;
+{
   mon: TMonster;
-  px, py, pw, ph: Integer;
+  sdx, sdy, he: Integer;
+  u0, u1: Single;
+}
 begin
-  if Enabled and (FCurTexture >= 0) and
+  if (not Enabled) or (Width < 1) or (Height < 1) then exit;
+
+  if (FCurTexture >= 0) and
     (FTextureIDs[FCurTexture].Anim) and
     (FTextureIDs[FCurTexture].AnTex <> nil) and
-    (Width > 0) and (Height > 0) and (FAlpha < 255) then
+    (FAlpha < 255) then
   begin
     FTextureIDs[FCurTexture].AnTex.Update();
     FCurFrame := FTextureIDs[FCurTexture].AnTex.CurrentFrame;
     FCurFrameCount := FTextureIDs[FCurTexture].AnTex.CurrentCounter;
   end;
 
+  // moving platform?
   if mMovingActive and (not mMovingSpeed.isZero) and g_dbgpan_mplat_active then
   begin
+    (*
+     * collect all monsters and players (aka entities) along the possible platform path
+     *   if entity is standing on a platform:
+     *     try to move it along the platform path, checking wall collisions
+     *   if entity is NOT standing on a platform, but hit with sweeped platform aabb:
+     *     try to push entity
+     *     if we can't push entity all the way, squash it
+     *)
+    // old rect
+    ox := X;
+    oy := Y;
+    ex := ox+Width-1;
+    ey := ox+Height-1;
+    // new rect
+    nx := ox+mMovingSpeed.X;
+    ny := oy+mMovingSpeed.Y;
+    nex := nx+Width-1;
+    ney := ny+Height-1;
+    // full rect
+    cx0 := nmin(ox, nx);
+    cy0 := nmin(oy, ny);
+    cx1 := nmax(ex, nex);
+    cy1 := nmax(ey, ney);
+
+    // temporarily turn off this panel, so it won't interfere with collision checks
+    mapGrid.proxyEnabled[proxyId] := false;
+
+    for f := 0 to High(gPlayers) do
+    begin
+      plr := gPlayers[f];
+      if (plr = nil) or (not plr.alive) then continue;
+      plr.getMapBox(px, py, pw, ph);
+      if tryMPlatMove(px, py, pw, ph, pdx, pdy, squash) then
+      begin
+        // set new position
+        plr.moveBy(pdx, pdy); // this will call `positionChanged()` for us
+        // squash player, if necessary
+        if squash then plr.Damage(15000, 0, 0, 0, HIT_TRAP);
+      end;
+    end;
+
+    // restore panel state
+    mapGrid.proxyEnabled[proxyId] := true;
+    // and really move it
+    X := nx;
+    Y := ny;
+    positionChanged();
+
+    // reverse moving direction, if necessary
+         if (mMovingSpeed.X < 0) and (nx <= mMovingStart.X) then mMovingSpeed.X := -mMovingSpeed.X
+    else if (mMovingSpeed.X > 0) and (nx >= mMovingEnd.X) then mMovingSpeed.X := -mMovingSpeed.X;
+         if (mMovingSpeed.Y < 0) and (ny <= mMovingStart.Y) then mMovingSpeed.Y := -mMovingSpeed.Y
+    else if (mMovingSpeed.Y > 0) and (ny >= mMovingEnd.Y) then mMovingSpeed.Y := -mMovingSpeed.Y;
+
+    (*
+    // collect monsters
     monMoveListUsed := 0;
-    nx := X+mMovingSpeed.X;
-    ny := Y+mMovingSpeed.Y;
+    g_Mons_ForEachAt(cx0, cy0, cx1-cx0+1, cy1-cy0+1, monCollect);
+    // process collected monsters
+
+
     // move monsters on lifts
-    g_Mons_ForEachAt(X, Y-1, Width, 1, monMove);
+    g_Mons_ForEachAt(ox, oy-1, Width, 1, monMove);
     X := nx;
     Y := ny;
     // fix grid
@@ -679,16 +829,30 @@ begin
     // push monsters
     g_Mons_ForEachAt(nx, ny, Width, Height, monPush);
     // move and push players
-    for f := 0 to High(gPlayers) do plrMove(gPlayers[f]);
+    for f := 0 to High(gPlayers) do
+    begin
+      gPlayers[f].getMapBox(px, py, pw, ph);
+      //if sweepAABB(ox, oy, Width, Height, mMovingSpeed.X, mMovingSpeed.Y, px, py, pw, ph, @u0, @u1) then
+      //if sweepAABB(ox, oy, Width, Height, mMovingSpeed.X, mMovingSpeed.Y, px, py, pw, ph, @u0, @u1) then
+      sdx := -mMovingSpeed.X;
+      sdy := -mMovingSpeed.Y;
+      if sweepAABB(ox, oy, Width, Height, mMovingSpeed.X, mMovingSpeed.Y, px, py, pw, ph, @u0, @he, @u1) then
+      begin
+        e_LogWritefln('player #%s sweep with platform %s: u0=%s; u1=%s; phe=%s', [f, mGUID, u0, u1, he]);
+        if (u1 > 0.0) then
+        begin
+          e_LogWritefln('  collide: %s', [g_Collide(px, py, pw, ph, nx, ny, Width, Height)]);
+          //gPlayers[f].GameX := gPlayers[f].GameX+trunc(sdx*(1.0-u0));
+          //gPlayers[f].GameY := gPlayers[f].GameY+trunc(mMovingSpeed.Y*(1.0-u0));
+          //gPlayers[f].positionChanged();
+        end;
+      end;
+      //plrMove(gPlayers[f]);
+    end;
     // move and push gibs
     for f := 0 to High(gGibs) do gibMove(@gGibs[f]);
     // move and push corpses
     for f := 0 to High(gCorpses) do corpseMove(gCorpses[f]);
-    // reverse moving direction, if necessary
-         if (mMovingSpeed.X < 0) and (nx <= mMovingStart.X) then mMovingSpeed.X := -mMovingSpeed.X
-    else if (mMovingSpeed.X > 0) and (nx >= mMovingEnd.X) then mMovingSpeed.X := -mMovingSpeed.X;
-         if (mMovingSpeed.Y < 0) and (ny <= mMovingStart.Y) then mMovingSpeed.Y := -mMovingSpeed.Y
-    else if (mMovingSpeed.Y > 0) and (ny >= mMovingEnd.Y) then mMovingSpeed.Y := -mMovingSpeed.Y;
     // notify moved monsters about their movement
     for f := 0 to monMoveListUsed-1 do
     begin
@@ -707,6 +871,7 @@ begin
         end;
       end;
     end;
+    *)
   end;
 end;
 

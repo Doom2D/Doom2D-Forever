@@ -321,6 +321,7 @@ type
     procedure positionChanged (); //WARNING! call this after entity position was changed, or coldet will not work right!
 
     procedure getMapBox (out x, y, w, h: Integer); inline;
+    procedure moveBy (dx, dy: Integer); inline;
 
   public
     property    Vel: TPoint2i read FObj.Vel;
@@ -423,6 +424,7 @@ type
     Obj:      TObj;
 
     procedure getMapBox (out x, y, w, h: Integer); inline;
+    procedure moveBy (dx, dy: Integer); inline;
 
     procedure positionChanged (); inline; //WARNING! call this after entity position was changed, or coldet will not work right!
   end;
@@ -439,6 +441,7 @@ type
     Obj:      TObj;
 
     procedure getMapBox (out x, y, w, h: Integer); inline;
+    procedure moveBy (dx, dy: Integer); inline;
 
     procedure positionChanged ();  inline; //WARNING! call this after entity position was changed, or coldet will not work right!
   end;
@@ -464,7 +467,6 @@ type
     procedure   LoadState(var Mem: TBinMemoryReader);
 
     procedure getMapBox (out x, y, w, h: Integer); inline;
-
     procedure moveBy (dx, dy: Integer); inline;
 
     procedure positionChanged ();  inline; //WARNING! call this after entity position was changed, or coldet will not work right!
@@ -1727,6 +1729,17 @@ begin
   h := Obj.Rect.Height;
 end;
 
+procedure TGib.moveBy (dx, dy: Integer); inline;
+begin
+  if (dx <> 0) or (dy <> 0) then
+  begin
+    Obj.X += dx;
+    Obj.Y += dy;
+    positionChanged();
+  end;
+end;
+
+
 procedure TShell.getMapBox (out x, y, w, h: Integer); inline;
 begin
   x := Obj.X;
@@ -1735,9 +1748,20 @@ begin
   h := Obj.Rect.Height;
 end;
 
+procedure TShell.moveBy (dx, dy: Integer); inline;
+begin
+  if (dx <> 0) or (dy <> 0) then
+  begin
+    Obj.X += dx;
+    Obj.Y += dy;
+    positionChanged();
+  end;
+end;
+
 
 procedure TGib.positionChanged (); inline; begin end;
 procedure TShell.positionChanged (); inline; begin end;
+
 
 procedure g_Player_DrawCorpses();
 var
@@ -3196,7 +3220,7 @@ begin
         if mon = nil then
           s := '?'
         else
-          s := g_Monsters_GetKilledBy(mon.MonsterType);
+          s := g_Mons_GetKilledByTypeId(mon.MonsterType);
 
         case KillType of
           K_HARDKILL:
@@ -5069,6 +5093,7 @@ begin
     if FKeys[b].Time = 0 then FKeys[b].Pressed := False else Dec(FKeys[b].Time);
 end;
 
+
 procedure TPlayer.getMapBox (out x, y, w, h: Integer); inline;
 begin
   x := FObj.X+PLAYER_RECT.X;
@@ -5076,6 +5101,18 @@ begin
   w := PLAYER_RECT.Width;
   h := PLAYER_RECT.Height;
 end;
+
+
+procedure TPlayer.moveBy (dx, dy: Integer); inline;
+begin
+  if (dx <> 0) or (dy <> 0) then
+  begin
+    FObj.X += dx;
+    FObj.Y += dy;
+    positionChanged();
+  end;
+end;
+
 
 function TPlayer.Collide(X, Y: Integer; Width, Height: Word): Boolean;
 begin
@@ -6142,6 +6179,7 @@ begin
   w := PLAYER_CORPSERECT.Width;
   h := PLAYER_CORPSERECT.Height;
 end;
+
 
 procedure TCorpse.Damage(Value: Word; vx, vy: Integer);
 var
