@@ -1597,6 +1597,8 @@ var
   tk: AnsiString;
   edim: AnsiChar;
 begin
+  if (pr.tokType = pr.TTEOF) then raise Exception.Create('field value expected');
+  if (pr.tokType = pr.TTSemi) then raise Exception.Create('extra semicolon');
   // if this field should contain struct, convert type and parse struct
   case mEBS of
     TEBS.TNone: begin end;
@@ -1867,7 +1869,14 @@ var
 begin
   if (mRec2Free <> nil) then
   begin
-    for rec in mRec2Free do if (rec <> self) then rec.Free();
+    for rec in mRec2Free do
+    begin
+      if (rec <> self) then
+      begin
+        //writeln('freeing: ', LongWord(rec));
+        rec.Free();
+      end;
+    end;
     mRec2Free.Free();
     mRec2Free := nil;
   end;
@@ -2694,13 +2703,17 @@ begin
 
     // fields
     {$IF DEFINED(D2D_DYNREC_PROFILER)}stt := curTimeMicro();{$ENDIF}
+    //writeln('0: <', mName, '.', pr.tokStr, '>');
     fld := field[pr.tokStr];
+    //writeln('1: <', mName, '.', pr.tokStr, '>');
     {$IF DEFINED(D2D_DYNREC_PROFILER)}profFieldSearching := curTimeMicro()-stt;{$ENDIF}
     if (fld <> nil) then
     begin
+      //writeln('2: <', mName, '.', pr.tokStr, '>');
       if fld.defined then raise Exception.Create(Format('duplicate field ''%s'' in record ''%s''', [fld.mName, mName]));
       if fld.internal then raise Exception.Create(Format('internal field ''%s'' in record ''%s''', [fld.mName, mName]));
-      pr.skipToken();
+      pr.skipToken(); // skip field name
+      //writeln('3: <', mName, '.', pr.tokStr, '>:', pr.tokType);
       {$IF DEFINED(D2D_DYNREC_PROFILER)}stt := curTimeMicro();{$ENDIF}
       fld.parseValue(pr);
       {$IF DEFINED(D2D_DYNREC_PROFILER)}profFieldValParsing := curTimeMicro()-stt;{$ENDIF}

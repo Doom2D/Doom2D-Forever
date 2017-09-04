@@ -373,7 +373,7 @@ begin
       result := dfmapdef.parseMap(pr);
     except on e: Exception do
       begin
-        if (pr <> nil) then e_LogWritefln('ERROR at (%s,%s): %s', [pr.line, pr.col, e.message])
+        if (pr <> nil) then e_LogWritefln('ERROR at (%s,%s): %s', [pr.tokLine, pr.tokCol, e.message])
         else e_LogWritefln('ERROR: %s', [e.message]);
         pr.Free(); // will free `wst`
         result := nil;
@@ -1677,6 +1677,12 @@ begin
 
     FreeMem(Data);
 
+    if (mapReader = nil) then
+    begin
+      e_LogWritefln('invalid map file: ''%s''', [mapResName]);
+      exit;
+    end;
+
     generateExternalResourcesList(mapReader);
     mapTextureList := mapReader['texture'];
     // get all other lists here too
@@ -2223,6 +2229,8 @@ begin
   end;
 
   FreeMem(Data);
+
+  if (mapReader = nil) then exit;
 
   if (mapReader.Width > 0) and (mapReader.Height > 0) then
   begin

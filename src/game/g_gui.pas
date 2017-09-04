@@ -2818,6 +2818,8 @@ begin
 
   FreeMem(Data);
 
+  if (map = nil) then exit;
+
   try
     panlist := map.field['panel'];
     //header := GetMapHeader(map);
