@@ -3980,15 +3980,17 @@ begin
         if not (R_BERSERK in FRulez) then
         begin
           Include(FRulez, R_BERSERK);
-          if FBFGFireCounter = -1 then
+          if gBerserkAutoswitch and (FBFGFireCounter = -1) then
           begin
             FCurrWeap := WEAPON_KASTET;
             resetWeaponQueue();
             FModel.SetWeapon(WEAPON_KASTET);
           end;
           if gFlash <> 0 then
+          begin
             Inc(FPain, 100);
             if gFlash = 2 then Inc(FPickup, 5);
+          end;
           FBerserk := gTime+30000;
           Result := True;
           remove := True;
