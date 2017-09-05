@@ -951,17 +951,17 @@ end;
 // ////////////////////////////////////////////////////////////////////////// //
 procedure TBodyGridBase.dumpStats ();
 var
-  idx, mcb, cidx, cnt: Integer;
+  idx, mcb, ccidx, cnt: Integer;
 begin
   mcb := 0;
   for idx := 0 to High(mGrid) do
   begin
-    cidx := mGrid[idx];
+    ccidx := mGrid[idx];
     cnt := 0;
-    while cidx >= 0 do
+    while ccidx >= 0 do
     begin
       Inc(cnt);
-      cidx := mCells[cidx].next;
+      ccidx := mCells[ccidx].next;
     end;
     if (mcb < cnt) then mcb := cnt;
   end;
@@ -971,23 +971,23 @@ end;
 
 procedure TBodyGridBase.forEachBodyCell (body: TBodyProxyId; cb: TCellQueryCB);
 var
-  g, f, cidx: Integer;
+  g, f, ccidx: Integer;
   cc: PGridCell;
 begin
   if (body < 0) or (body > High(mProxies)) or not assigned(cb) then exit;
   for g := 0 to High(mGrid) do
   begin
-    cidx := mGrid[g];
-    while (cidx <> -1) do
+    ccidx := mGrid[g];
+    while (ccidx <> -1) do
     begin
-      cc := @mCells[cidx];
+      cc := @mCells[ccidx];
       for f := 0 to GridCellBucketSize-1 do
       begin
         if (cc.bodies[f] = -1) then break;
         if (cc.bodies[f] = body) then cb((g mod mWidth)*mTileSize+mMinX, (g div mWidth)*mTileSize+mMinY);
       end;
       // next cell
-      cidx := cc.next;
+      ccidx := cc.next;
     end;
   end;
 end;
@@ -995,7 +995,7 @@ end;
 
 function TBodyGridBase.forEachInCell (x, y: Integer; cb: TGridQueryCB): ITP;
 var
-  f, cidx: Integer;
+  f, ccidx: Integer;
   cc: PGridCell;
 begin
   result := Default(ITP);
@@ -1003,17 +1003,17 @@ begin
   Dec(x, mMinX);
   Dec(y, mMinY);
   if (x < 0) or (y < 0) or (x >= mWidth*mTileSize) or (y > mHeight*mTileSize) then exit;
-  cidx := mGrid[(y div mTileSize)*mWidth+(x div mTileSize)];
-  while (cidx <> -1) do
+  ccidx := mGrid[(y div mTileSize)*mWidth+(x div mTileSize)];
+  while (ccidx <> -1) do
   begin
-    cc := @mCells[cidx];
+    cc := @mCells[ccidx];
     for f := 0 to GridCellBucketSize-1 do
     begin
       if (cc.bodies[f] = -1) then break;
       if cb(mProxies[cc.bodies[f]].mObj, mProxies[cc.bodies[f]].mTag) then begin result := mProxies[cc.bodies[f]].mObj; exit; end;
     end;
     // next cell
-    cidx := cc.next;
+    ccidx := cc.next;
   end;
 end;
 
@@ -1232,7 +1232,7 @@ end;
 // ////////////////////////////////////////////////////////////////////////// //
 function TBodyGridBase.inserter (grida: Integer; bodyId: TBodyProxyId): Boolean;
 var
-  cidx: Integer;
+  ccidx: Integer;
   pc: Integer;
   pi: PGridCell;
   f: Integer;
@@ -1243,22 +1243,22 @@ begin
   if (pc <> -1) then
   begin
     {$IF DEFINED(D2F_DEBUG)}
-    cidx := pc;
-    while (cidx <> -1) do
+    ccidx := pc;
+    while (ccidx <> -1) do
     begin
-      pi := @mCells[cidx];
+      pi := @mCells[ccidx];
       for f := 0 to GridCellBucketSize-1 do
       begin
         if (pi.bodies[f] = -1) then break;
         if (pi.bodies[f] = bodyId) then raise Exception.Create('trying to insert already inserted proxy');
       end;
-      cidx := pi.next;
+      ccidx := pi.next;
     end;
     {$ENDIF}
-    cidx := pc;
-    while (cidx <> -1) do
+    ccidx := pc;
+    while (ccidx <> -1) do
     begin
-      pi := @mCells[cidx];
+      pi := @mCells[ccidx];
       // check "has room" flag
       if (pi.bodies[GridCellBucketSize-1] = -1) then
       begin
@@ -1275,17 +1275,17 @@ begin
         raise Exception.Create('internal error in grid inserter');
       end;
       // no room, go to next cell in list (if there is any)
-      cidx := pi.next;
+      ccidx := pi.next;
     end;
     // no room in cells, add new cell to list
   end;
   // either no room, or no cell at all
-  cidx := allocCell();
-  pi := @mCells[cidx];
+  ccidx := allocCell();
+  pi := @mCells[ccidx];
   pi.bodies[0] := bodyId;
   pi.bodies[1] := -1;
   pi.next := pc;
-  mGrid[grida] := cidx;
+  mGrid[grida] := ccidx;
 end;
 
 procedure TBodyGridBase.insertInternal (body: TBodyProxyId);
@@ -1302,16 +1302,16 @@ end;
 function TBodyGridBase.remover (grida: Integer; bodyId: TBodyProxyId): Boolean;
 var
   f, c: Integer;
-  pidx, cidx: Integer;
+  pidx, ccidx: Integer;
   pc: PGridCell;
 begin
   result := false; // never stop
   // find and remove cell
   pidx := -1; // previous cell index
-  cidx := mGrid[grida]; // current cell index
-  while (cidx <> -1) do
+  ccidx := mGrid[grida]; // current cell index
+  while (ccidx <> -1) do
   begin
-    pc := @mCells[cidx];
+    pc := @mCells[ccidx];
     for f := 0 to GridCellBucketSize-1 do
     begin
       if (pc.bodies[f] = bodyId) then
@@ -1321,7 +1321,7 @@ begin
         begin
           // this cell contains no elements, remove it
           if (pidx = -1) then mGrid[grida] := pc.next else mCells[pidx].next := pc.next;
-          freeCell(cidx);
+          freeCell(ccidx);
           exit;
         end;
         // remove element from bucket
@@ -1334,8 +1334,8 @@ begin
         exit;
       end;
     end;
-    pidx := cidx;
-    cidx := pc.next;
+    pidx := ccidx;
+    ccidx := pc.next;
   end;
 end;
 
@@ -1584,12 +1584,12 @@ end;
 // ////////////////////////////////////////////////////////////////////////// //
 function TBodyGridBase.atCellInPoint (x, y: Integer): TAtPointEnumerator;
 var
-  cidx: Integer = -1;
+  ccidx: Integer = -1;
 begin
   Dec(x, mMinX);
   Dec(y, mMinY);
-  if (x >= 0) and (y >= 0) and (x < mWidth*mTileSize) and (y < mHeight*mTileSize) then cidx := mGrid[(y div mTileSize)*mWidth+(x div mTileSize)];
-  result := TAtPointEnumerator.Create(mCells, cidx, getProxyById);
+  if (x >= 0) and (y >= 0) and (x < mWidth*mTileSize) and (y < mHeight*mTileSize) then ccidx := mGrid[(y div mTileSize)*mWidth+(x div mTileSize)];
+  result := TAtPointEnumerator.Create(mCells, ccidx, getProxyById);
 end;
 
 
@@ -2849,15 +2849,15 @@ end;
 function TBodyGridBase.traceBox (out ex, ey: Integer; const ax0, ay0, aw, ah: Integer; const dx, dy: Integer; cb: TGridQueryCB; tagmask: Integer=-1): ITP;
 var
   gx, gy: Integer;
-  cidx: Integer;
+  ccidx: Integer;
   cc: PGridCell;
   px: PBodyProxyRec;
   lq: LongWord;
   f, ptag: Integer;
   minu0: Single = 100000.0;
-  u0, u1: Single;
-  hedge: Integer;
+  u0: Single;
   cx0, cy0, cx1, cy1: Integer;
+  hitpx: PBodyProxyRec = nil;
 begin
   result := Default(ITP);
   ex := ax0+dx;
@@ -2898,10 +2898,10 @@ begin
   begin
     for gx := cx0 div mTileSize to cx1 div mTileSize do
     begin
-      cidx := mGrid[gy*mWidth+gx];
-      while (cidx <> -1) do
+      ccidx := mGrid[gy*mWidth+gx];
+      while (ccidx <> -1) do
       begin
-        cc := @mCells[cidx];
+        cc := @mCells[ccidx];
         for f := 0 to GridCellBucketSize-1 do
         begin
           if (cc.bodies[f] = -1) then break;
@@ -2914,23 +2914,10 @@ begin
             begin
               if not cb(px.mObj, ptag) then continue;
             end;
-            if not sweepAABB(ax0, ay0, aw, ah, dx, dy, px.mX, px.mY, px.mWidth, px.mHeight, @u0, @hedge, @u1) then
-            begin
-              {
-              if (u1 >= 0) then
-              begin
-                // overlapping
-                ex := ax0;
-                ey := ay0;
-                result := px.mObj;
-                mInQuery := false;
-                exit;
-              end;
-              }
-              continue;
-            end;
+            if not sweepAABB(ax0, ay0, aw, ah, dx, dy, px.mX, px.mY, px.mWidth, px.mHeight, @u0) then continue;
             if (minu0 > u0) then
             begin
+              hitpx := px;
               result := px.mObj;
               minu0 := u0;
               if (u0 = 0.0) then
@@ -2944,15 +2931,21 @@ begin
           end;
         end;
         // next cell
-        cidx := cc.next;
+        ccidx := cc.next;
       end;
     end;
   end;
 
   if (minu0 <= 1.0) then
   begin
-    ex := ax0+trunc(dx*minu0);
-    ey := ay0+trunc(dy*minu0);
+    ex := ax0+round(dx*minu0);
+    ey := ay0+round(dy*minu0);
+    // just in case, compensate for floating point inexactness
+    if (ex >= hitpx.mX) and (ey >= hitpx.mY) and (ex < hitpx.mX+hitpx.mWidth) and (ey < hitpx.mY+hitpx.mHeight) then
+    begin
+      ex := ax0+trunc(dx*minu0);
+      ey := ay0+trunc(dy*minu0);
+    end;
   end;
 
   mInQuery := false;
