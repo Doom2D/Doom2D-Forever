@@ -358,69 +358,100 @@ begin
   result := (xd = term);
 end;
 
-// move to next tile; return `true` if the line is complete (and walker state is undefined then)
 function TLineWalker.stepToNextTile (): Boolean; inline;
 var
-  ex, ey, wklen, f: Integer;
+  ex, ey: Integer;
+  xwalk, ywalk, wklen: Integer; // to the respective edges
+  lstx, lsty, lterm: Integer;
+  le, ldx2, ldy2: Integer;
+  lxd, lyd: Integer;
+  f: Integer;
 begin
   result := false;
 
-  //writeln('stx=', stx, '; sty=', sty);
+  lstx := stx;
+  lsty := sty;
+  lterm := term;
+  lxd := xd;
 
   // ortho?
-  if (sty = 0) then
+  if (lsty = 0) then
   begin
     // only xd
-    assert(sty <> 0);
-    if (stx < 0) then
+    //assert(lsty <> 0);
+    if (lstx < 0) then
     begin
       // xd: to left edge
-      xd := (xd and (not (TileSize-1)))-1;
-      result := (xd <= term);
+      xd := (lxd and (not (TileSize-1)))-1;
+      result := (lxd <= lterm);
       exit;
     end
     else
     begin
       // xd: to right edge
-      xd := (xd or (TileSize-1))+1;
-      result := (xd >= term);
+      xd := (lxd or (TileSize-1))+1;
+      result := (lxd >= lterm);
       exit;
     end;
   end;
 
-  assert(stx <> 0); // invariant
-
   // not ortho
-  if (sty < 0) then ey := (yd and (not (TileSize-1)))-1 else ey := (yd or (TileSize-1))+1;
+  //assert(lstx <> 0); // invariant
 
-  //FIXME: do some math to avoid single-stepping
-  if (stx < 0) then
+  lyd := yd;
+  le := e;
+  ldx2 := dx2;
+  ldy2 := dy2;
+
+  // calculate xwalk
+  if (lstx < 0) then
   begin
-    // xd: to left edge
-    ex := (xd and (not (TileSize-1)))-1;
-    if (ex <= term) then begin result := true; exit; end;
-    wklen := xd-ex;
+    ex := (lxd and (not (TileSize-1)))-1;
+    xwalk := lxd-ex;
   end
   else
   begin
-    // xd: to right edge
-    ex := (xd or (TileSize-1))+1;
-    if (ex >= term) then begin result := true; exit; end;
-    wklen := ex-xd;
+    ex := (lxd or (TileSize-1))+1;
+    xwalk := ex-lxd;
   end;
 
-  //writeln('xd=', xd, '; yd=', yd, '; ex=', ex, '; ey=', ey, '; term=', term, '; wklen=', wklen);
-
-  for f := wklen downto 1 do
+  // calculate ywalk
+  if (lsty < 0) then
   begin
-    // do step
-    if (e >= 0) then begin yd += sty; e -= dx2; end else e += dy2;
-    xd += stx;
-    if (xd = term) then begin result := true; exit; end;
-    if (xd = ex) or (yd = ey) then exit; // done
+    ey := (lyd and (not (TileSize-1)))-1;
+    ywalk := lyd-ey;
+  end
+  else
+  begin
+    ey := (lyd or (TileSize-1))+1;
+    ywalk := ey-lyd;
   end;
 
-  raise Exception.Create('TLineWalker.stepToNextTile: the thing that should not be!');
+  while true do
+  begin
+    // in which dir we want to walk?
+    if (xwalk <= ywalk) then wklen := xwalk else wklen := ywalk;
+    // walk x
+    if (lstx < 0) then
+    begin
+      lxd -= wklen;
+      if (lxd <= lterm) then begin xd := lxd; result := true; exit; end;
+    end
+    else
+    begin
+      lxd += wklen;
+      if (lxd >= lterm) then begin xd := lxd; result := true; exit; end;
+    end;
+    // walk y
+    for f := 1 to wklen do if (le >= 0) then begin lyd += lsty; le -= ldx2; end else le += ldy2;
+    if (lxd = ex) or (lyd = ey) then break;
+    xwalk -= wklen; if (xwalk = 0) then xwalk := TileSize;
+    ywalk -= wklen; if (ywalk = 0) then ywalk := TileSize;
+  end;
+  //assert((xd div TileSize <> lxd div TileSize) or (yd div TileSize <> lyd div TileSize));
+  xd := lxd;
+  yd := lyd;
+  e := le;
 end;
 
 // NOT TESTED!
