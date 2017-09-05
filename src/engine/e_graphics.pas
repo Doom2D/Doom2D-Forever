@@ -710,12 +710,15 @@ end;
 procedure e_DrawFillX (id: DWORD; x, y, wdt, hgt: Integer; alpha: Integer; alphachannel: Boolean; blending: Boolean; scale: Single);
 var
   x2, y2: Integer;
+  {
   wassc: Boolean;
   scxywh: array[0..3] of GLint;
   vpxywh: array[0..3] of GLint;
-  w, h, dw: Integer;
-  u, v: Single;
+  }
+  w, h, dw, cw, ch: Integer;
+  u, v, cu, cv: Single;
 
+  {
   procedure setScissorGLInternal (x, y, w, h: Integer);
   begin
     //if not scallowed then exit;
@@ -724,8 +727,17 @@ var
     w := trunc(w*scale);
     h := trunc(h*scale);
     y := vpxywh[3]-(y+h);
-    if not intersectRect(x, y, w, h, scxywh[0], scxywh[1], scxywh[2], scxywh[3]) then glScissor(0, 0, 0, 0) else glScissor(x, y, w, h);
+    if not intersectRect(x, y, w, h, scxywh[0], scxywh[1], scxywh[2], scxywh[3]) then
+    begin
+      glScissor(0, 0, 0, 0);
+    end
+    else
+    begin
+      //writeln('  (', x, ',', y, ')-(', w, ',', h, ')');
+      glScissor(x, y, w, h);
+    end;
   end;
+  }
 
 begin
   if e_NoGraphics then exit;
@@ -770,12 +782,14 @@ begin
   else
   begin
     // hard day's night; setup scissor
+    {
     glGetIntegerv(GL_VIEWPORT, @vpxywh[0]);
     wassc := (glIsEnabled(GL_SCISSOR_TEST) <> 0);
     if wassc then glGetIntegerv(GL_SCISSOR_BOX, @scxywh[0]) else glGetIntegerv(GL_VIEWPORT, @scxywh[0]);
-    //conwritefln('(%d,%d)-(%d,%d)', [scxywh[0], scxywh[1], scxywh[2], scxywh[3]]);
-    glEnable(GL_SCISSOR_TEST);
+    //writeln('(', scxywh[0], ',', scxywh[1], ')-(', scxywh[2], ',', scxywh[3], ')');
+    //glEnable(GL_SCISSOR_TEST);
     setScissorGLInternal(x, y, wdt, hgt);
+    }
     // draw quads
     u := e_Textures[ID].tx.u;
     v := e_Textures[ID].tx.v;
@@ -785,23 +799,24 @@ begin
     glBegin(GL_QUADS);
     while (hgt > 0) do
     begin
+      if (hgt >= h) then begin ch := h; cv := v; end else begin ch := hgt; cv := v/(h/hgt) end;
       Dec(hgt, h);
       dw := wdt;
       x := x2;
       while (dw > 0) do
       begin
+        if (dw >= w) then begin cw := w; cu := u; end else begin cw := dw; cu := u/(w/dw) end;
         Dec(dw, w);
-        glTexCoord2f(0, v); glVertex2i(X,   Y);
-        glTexCoord2f(u, v); glVertex2i(X+w, Y);
-        glTexCoord2f(u, 0); glVertex2i(X+w, Y+h);
-        glTexCoord2f(0, 0); glVertex2i(X,   Y+h);
+        glTexCoord2f(0, cv); glVertex2i(X,   Y);
+        glTexCoord2f(cu, cv); glVertex2i(X+cw, Y);
+        glTexCoord2f(cu, 0); glVertex2i(X+cw, Y+ch);
+        glTexCoord2f(0, 0); glVertex2i(X,   Y+ch);
         Inc(X, w);
       end;
       Inc(Y, h);
-      Dec(hgt, h);
     end;
     glEnd();
-    if wassc then glEnable(GL_SCISSOR_TEST) else glDisable(GL_SCISSOR_TEST);
+    //if wassc then glEnable(GL_SCISSOR_TEST) else glDisable(GL_SCISSOR_TEST);
   end;
 
   glDisable(GL_BLEND);
