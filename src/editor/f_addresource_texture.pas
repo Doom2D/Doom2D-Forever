@@ -7,7 +7,8 @@ interface
 uses
   LCLIntf, LCLType, LMessages, SysUtils, Variants, Classes,
   Graphics, Controls, Forms, Dialogs, f_addresource,
-  StdCtrls, ExtCtrls, utils;
+  StdCtrls, ExtCtrls, utils, Imaging, ImagingTypes, ImagingUtility,
+  e_log;
 
 type
   TAddTextureForm = class (TAddResourceForm)
@@ -246,57 +247,62 @@ begin
   Result := True;
 end;
 
-function CreateBitMap(Data: Pointer): TBitMap;
+function CreateBitMap(Data: Pointer; DataSize: Cardinal): TBitMap;
+const
+  BG_R: Byte  = 255;
+  BG_G: Byte  = 0;
+  BG_B: Byte  = 255;
 var
-  TGAHeader:  TTGAHeader;
-  image:      Pointer;
+  img:        TImageData;
+  clr:        TColor32Rec;
+  ii:         PByte;
   Width,
   Height:     Integer;
   ColorDepth: Integer;
   ImageSize:  Integer;
-  i:          Integer;
+  i, x, y:    Integer;
   BitMap:     TBitMap;
 
 begin
   Result := nil;
 
-// Читаем заголовок TGA:
-  CopyMemory(@TGAHeader, Data, SizeOf(TGAHeader));
+  InitImage(img);
+  if not LoadImageFromMemory(Data, DataSize, img) then
+  begin
+    e_WriteLog('Invalid image format?', MSG_WARNING);
+    Exit;
+  end;
 
-  if TGAHeader.ImageType <> 2 then
-    Exit;
-  if TGAHeader.ColorMapType <> 0 then
-    Exit;
-  if TGAHeader.BPP < 24 then
-    Exit;
-
-  Width  := TGAHeader.Width[0]+TGAHeader.Width[1]*256;
-  Height := TGAHeader.Height[0]+TGAHeader.Height[1]*256;
-  ColorDepth := TGAHeader.BPP;
+  Width  := img.width;
+  Height := img.height;
+  ColorDepth := 24;
   ImageSize  := Width*Height*(ColorDepth div 8);
 
-// Само изображение:
-  GetMem(Image, ImageSize);
-
-  CopyMemory(Image, Pointer(Integer(Data)+SizeOf(TGAHeader)), ImageSize);
-
   BitMap := TBitMap.Create();
-
-  if TGAHeader.BPP = 24 then
-    BitMap.PixelFormat := pf24bit
-  else
-    BitMap.PixelFormat := pf32bit;
+  BitMap.PixelFormat := pf24bit;
   
   BitMap.Width := Width;
   BitMap.Height := Height;
 
 // Копируем в BitMap:
-  for I := Height-1 downto 0 do
-    CopyMemory(BitMap.ScanLine[Height-1-I],
-               Pointer(Integer(Image)+(Width*I*(TGAHeader.BPP div 8))),
-               Width*(TGAHeader.BPP div 8));
-
-  FreeMem(Image, ImageSize);
+  ii := BitMap.RawImage.Data;
+  for y := 0 to height-1 do
+  begin
+    for x := 0 to width-1 do
+    begin
+      clr := GetPixel32(img, x, y);
+      // HACK: Lazarus's TBitMap doesn't seem to have a working 32 bit mode, so
+      //       mix color with pink background. FUCK!
+      clr.r := ClampToByte(((255 - clr.a) * BG_R + clr.a * clr.r) div 255);
+      clr.g := ClampToByte(((255 - clr.a) * BG_G + clr.a * clr.g) div 255);
+      clr.b := ClampToByte(((255 - clr.a) * BG_B + clr.a * clr.b) div 255);
+      // TODO: check for ARGB/RGBA/BGRA/ABGR somehow?
+      ii^ := clr.b; Inc(ii);
+      ii^ := clr.g; Inc(ii);
+      ii^ := clr.r; Inc(ii);
+      // ii^ := clr.a; Inc(ii);
+    end;
+  end;
 
   Result := BitMap;
 end;
@@ -337,7 +343,7 @@ begin
      (WAD.GetLastError = DFWAD_NOERROR) then
   begin
   // Создаем BitMap из листа текстур:
-    Result := CreateBitMap(TextureData);
+    Result := CreateBitMap(TextureData, Len);
     
   // Размеры одного кадра - виден только первый кадр:
     Result.Height := config.ReadInt('', 'frameheight', 0);
@@ -380,9 +386,9 @@ begin
   WAD.Free();
 
 // Создаем на его основе BitMap:
-  Result := CreateBitMap(TextureData);
+  Result := CreateBitMap(TextureData, Len);
 
-  FreeMem(TextureData, Len);
+  FreeMem(TextureData);
 end;
 
 procedure TAddTextureForm.FormActivate(Sender: TObject);

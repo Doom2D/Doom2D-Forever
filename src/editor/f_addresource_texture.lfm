@@ -1,77 +1,82 @@
 inherited AddTextureForm: TAddTextureForm
   Left = 371
+  Height = 299
   Top = 194
+  Width = 466
   Caption = 'Выберите текстуру'
-  ClientHeight = 302
+  ClientHeight = 299
   ClientWidth = 466
-  PixelsPerInch = 96
   inherited bOK: TButton
     Left = 11
+    Height = 17
     Top = 272
     Width = 22
-    Height = 17
-    Visible = False
+    Default = False
     OnClick = nil
+    Visible = False
   end
   inherited bCancel: TButton
     Left = 35
+    Height = 18
     Top = 271
     Width = 22
-    Height = 18
     Visible = False
   end
   inherited lbResourcesList: TListBox
-    Top = 112
     Height = 150
+    Top = 112
+    ItemHeight = 0
   end
-  object PanelTexPreview: TPanel
+  object PanelTexPreview: TPanel[7]
     Left = 204
+    Height = 258
     Top = 4
     Width = 258
-    Height = 258
     BevelOuter = bvLowered
+    ClientHeight = 258
+    ClientWidth = 258
     TabOrder = 5
     object iPreview: TImage
       Left = 0
+      Height = 256
       Top = 0
       Width = 256
-      Height = 256
     end
   end
-  object eTextureName: TEdit
+  object eTextureName: TEdit[8]
     Left = 4
+    Height = 21
     Top = 88
     Width = 193
-    Height = 21
-    TabOrder = 6
     OnChange = eTextureNameChange
+    TabOrder = 6
   end
-  object bAddTexture: TButton
+  object bAddTexture: TButton[9]
     Left = 160
+    Height = 25
     Top = 272
     Width = 81
-    Height = 25
     Caption = 'Добавить'
     Default = True
-    TabOrder = 7
     OnClick = bAddTextureClick
+    TabOrder = 7
   end
-  object bClose: TButton
+  object bClose: TButton[10]
     Left = 248
+    Height = 25
     Top = 272
     Width = 81
-    Height = 25
     Caption = 'Закрыть'
-    TabOrder = 8
     OnClick = bCloseClick
+    TabOrder = 8
   end
-  object bAddClose: TButton
+  object bAddClose: TButton[11]
     Left = 336
+    Height = 25
     Top = 272
     Width = 121
-    Height = 25
     Caption = 'Добавить и закрыть'
-    TabOrder = 9
     OnClick = bAddCloseClick
+    TabOrder = 9
   end
 end
