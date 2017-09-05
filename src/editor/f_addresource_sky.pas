@@ -7,7 +7,7 @@ interface
 uses
   LCLIntf, LCLType, LMessages, SysUtils, Variants, Classes,
   Graphics, Controls, Forms, Dialogs, f_addresource,
-  ExtCtrls, StdCtrls, utils;
+  ExtCtrls, StdCtrls, utils, Imaging, ImagingTypes, ImagingUtility;
 
 type
   TAddSkyForm = class (TAddResourceForm)
@@ -37,24 +37,14 @@ uses
 
 function ShowTGATexture(ResourceStr: String): TBitMap;
 var
-  TGAHeader: packed record // Header type for TGA images
-    FileType:     Byte;
-    ColorMapType: Byte;
-    ImageType:    Byte;
-    ColorMapSpec: Array[0..4] of Byte;
-    OrigX:        Array [0..1] of Byte;
-    OrigY:        Array [0..1] of Byte;
-    Width:        Array [0..1] of Byte;
-    Height:       Array [0..1] of Byte;
-    BPP:          Byte;
-    ImageInfo:    Byte;
-  end;
-  image:      Pointer;    {or PRGBTRIPLE}
+  img:        TImageData;
+  clr:        TColor32Rec;
+  ii:         PByte;
   Width,
   Height:     Integer;
   ColorDepth: Integer;
   ImageSize:  Integer;
-  I:          Integer;
+  I, x, y:    Integer;
   BitMap:     TBitMap;
 
   TextureData:  Pointer;
@@ -76,44 +66,38 @@ begin
 
   WAD.Free();
 
-// Заголовок TGA:
-  CopyMemory(@TGAHeader, TextureData, SizeOf(TGAHeader));
-
-  if TGAHeader.ImageType <> 2 then
-    Exit;
-  if TGAHeader.ColorMapType <> 0 then
-    Exit;
-  if TGAHeader.BPP < 24 then
+  InitImage(img);
+  if not LoadImageFromMemory(TextureData, ImageSize, img) then
     Exit;
 
-  Width  := TGAHeader.Width[0]+TGAHeader.Width[1]*256;
-  Height := TGAHeader.Height[0]+TGAHeader.Height[1]*256;
-  ColorDepth := TGAHeader.BPP;
+  Width  := img.width;
+  Height := img.height;
+  ColorDepth := 24;
   ImageSize  := Width*Height*(ColorDepth div 8);
 
-// Само изображение:
-  GetMem(Image, ImageSize);
-
-  CopyMemory(Image, Pointer(Integer(TextureData)+SizeOf(TGAHeader)), ImageSize);
-
   BitMap := TBitMap.Create();
+  BitMap.PixelFormat := pf24bit;
 
-  if TGAHeader.BPP = 24 then
-    BitMap.PixelFormat := pf24bit
-  else
-    BitMap.PixelFormat := pf32bit;
-  
   BitMap.Width := Width;
   BitMap.Height := Height;
 
-// Копируем изображение в BitMap:
-  for I := Height-1 downto 0 do
-    CopyMemory(BitMap.ScanLine[Height-1-I],
-               Pointer(Integer(Image)+(Width*I*(TGAHeader.BPP div 8))),
-               Width*(TGAHeader.BPP div 8));
+// Копируем в BitMap:
+  ii := BitMap.RawImage.Data;
+  for y := 0 to height-1 do
+  begin
+    for x := 0 to width-1 do
+    begin
+      clr := GetPixel32(img, x, y);
+      // assuming sky has no alpha
+      // TODO: check for ARGB/RGBA/BGRA/ABGR somehow?
+      ii^ := clr.b; Inc(ii);
+      ii^ := clr.g; Inc(ii);
+      ii^ := clr.r; Inc(ii);
+    end;
+  end;
 
-  FreeMem(Image, ImageSize);
   FreeMem(TextureData);
+  FreeImage(img);
   Result := BitMap;
 end;
 

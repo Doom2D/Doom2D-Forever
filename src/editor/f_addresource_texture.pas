@@ -7,8 +7,7 @@ interface
 uses
   LCLIntf, LCLType, LMessages, SysUtils, Variants, Classes,
   Graphics, Controls, Forms, Dialogs, f_addresource,
-  StdCtrls, ExtCtrls, utils, Imaging, ImagingTypes, ImagingUtility,
-  e_log;
+  StdCtrls, ExtCtrls, utils, Imaging, ImagingTypes, ImagingUtility;
 
 type
   TAddTextureForm = class (TAddResourceForm)
@@ -268,10 +267,7 @@ begin
 
   InitImage(img);
   if not LoadImageFromMemory(Data, DataSize, img) then
-  begin
-    e_WriteLog('Invalid image format?', MSG_WARNING);
     Exit;
-  end;
 
   Width  := img.width;
   Height := img.height;
@@ -303,7 +299,7 @@ begin
       // ii^ := clr.a; Inc(ii);
     end;
   end;
-
+  FreeImage(img);
   Result := BitMap;
 end;
 
