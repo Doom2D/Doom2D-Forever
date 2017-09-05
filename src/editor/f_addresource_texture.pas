@@ -46,20 +46,6 @@ uses
   BinEditor, WADEDITOR, WADSTRUCT, f_main, g_textures, CONFIG, g_map,
   g_language;
 
-type
-  TTGAHeader = packed record
-    FileType:     Byte;
-    ColorMapType: Byte;
-    ImageType:    Byte;
-    ColorMapSpec: Array [0..4] of Byte;
-    OrigX:        Array [0..1] of Byte;
-    OrigY:        Array [0..1] of Byte;
-    Width:        Array [0..1] of Byte;
-    Height:       Array [0..1] of Byte;
-    BPP:          Byte;
-    ImageInfo:    Byte;
-  end;
-
 {$R *.lfm}
 
 function IsAnim(Res: String): Boolean;
@@ -247,13 +233,10 @@ begin
 end;
 
 function CreateBitMap(Data: Pointer; DataSize: Cardinal): TBitMap;
-const
-  BG_R: Byte  = 255;
-  BG_G: Byte  = 0;
-  BG_B: Byte  = 255;
 var
   img:        TImageData;
   clr:        TColor32Rec;
+  bgc:        Byte;
   ii:         PByte;
   Width,
   Height:     Integer;
@@ -288,15 +271,19 @@ begin
     begin
       clr := GetPixel32(img, x, y);
       // HACK: Lazarus's TBitMap doesn't seem to have a working 32 bit mode, so
-      //       mix color with pink background. FUCK!
-      clr.r := ClampToByte(((255 - clr.a) * BG_R + clr.a * clr.r) div 255);
-      clr.g := ClampToByte(((255 - clr.a) * BG_G + clr.a * clr.g) div 255);
-      clr.b := ClampToByte(((255 - clr.a) * BG_B + clr.a * clr.b) div 255);
-      // TODO: check for ARGB/RGBA/BGRA/ABGR somehow?
+      //       mix color with checkered background. Also, can't really read
+      //       CHECKERS.tga from here. FUCK!
+      if (((x shr 3) and 1) = 0) xor (((y shr 3) and 1) = 0) then
+        bgc := 255
+      else
+        bgc := 200;
+      clr.r := ClampToByte(((255 - clr.a) * bgc + clr.a * clr.r) div 255);
+      clr.g := ClampToByte(((255 - clr.a) * bgc + clr.a * clr.g) div 255);
+      clr.b := ClampToByte(((255 - clr.a) * bgc + clr.a * clr.b) div 255);
+      // TODO: check for RGB/BGR somehow?
       ii^ := clr.b; Inc(ii);
       ii^ := clr.g; Inc(ii);
       ii^ := clr.r; Inc(ii);
-      // ii^ := clr.a; Inc(ii);
     end;
   end;
   FreeImage(img);
