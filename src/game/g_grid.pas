@@ -327,6 +327,7 @@ uses
 
 // ////////////////////////////////////////////////////////////////////////// //
 procedure swapInt (var a: Integer; var b: Integer); inline; var t: Integer; begin t := a; a := b; b := t; end;
+procedure swapInt (var a: Integer; var b: Integer); inline; begin a := a xor b; b := b xor a; a := a xor b; end;
 //function minInt (a, b: Integer): Integer; inline; begin if (a < b) then result := a else result := b; end;
 //function maxInt (a, b: Integer): Integer; inline; begin if (a > b) then result := a else result := b; end;
 
@@ -446,7 +447,7 @@ function TLineWalker.dx (): Integer; inline; begin if xyswapped then result := s
 function TLineWalker.dy (): Integer; inline; begin if xyswapped then result := sty else result := stx; end;
 
 function TLineWalker.setup (x0, y0, x1, y1: Integer): Boolean;
-  procedure swapInt (var a: Integer; var b: Integer); inline; var t: Integer; begin t := a; a := b; b := t; end;
+  procedure swapInt (var a: Integer; var b: Integer); inline; begin a := a xor b; b := b xor a; a := a xor b; end;
 var
   dsx, dsy: Integer; // "lengthes" for x and y axes
   rem: Integer;
@@ -534,7 +535,8 @@ begin
     begin
       yd := wy0;
       e -= rem+dsx;
-      if (rem > 0) then begin Inc(xd); e += dy2; end;
+      //if (rem > 0) then begin Inc(xd); e += dy2; end; //BUGGY
+      if (xd < wx0) then begin xd += 1; e += dy2; end; //???
       xfixed := true;
     end;
   end;
@@ -691,7 +693,8 @@ begin
     begin
       yd := wy0;
       e -= rem+dsx;
-      if (rem > 0) then begin Inc(xd); e += dy2; end;
+      //if (rem > 0) then begin Inc(xd); e += dy2; end; //BUGGY
+      if (xd < wx0) then begin xd += 1; e += dy2; end; //???
       xfixed := true;
     end;
   end;
@@ -2406,7 +2409,8 @@ begin
     begin
       yd := wy0;
       e -= rem+dsx;
-      if (rem > 0) then begin Inc(xd); e += dy2; end;
+      //if (rem > 0) then begin Inc(xd); e += dy2; end; //BUGGY
+      if (xd < wx0) then begin xd += 1; e += dy2; end; //???
       xfixed := true;
     end;
   end;
