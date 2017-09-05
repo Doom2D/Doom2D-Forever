@@ -1722,12 +1722,13 @@ function TBodyGridBase.forEachInAABB (x, y, w, h: Integer; cb: TGridQueryCB; tag
 var
   idx: Integer;
   gx, gy: Integer;
+  sx, sy, ex, ey: Integer;
   curci: Integer;
   f: Integer;
   cc: PGridCell = nil;
   px: PBodyProxyRec;
   lq: LongWord;
-  gw: Integer;
+  gw, gh: Integer;
   x0, y0: Integer;
   ptag: Integer;
 begin
@@ -1744,11 +1745,24 @@ begin
   Dec(y, mMinY);
 
   gw := mWidth;
-  //tsize := mTileSize;
+  gh := mHeight;
 
   if (x+w <= 0) or (y+h <= 0) then exit;
-  if (x >= gw*mTileSize) or (y >= mHeight*mTileSize) then exit;
+  if (x >= gw*mTileSize) or (y >= gh*mTileSize) then exit;
 
+  sx := x div mTileSize;
+  sy := y div mTileSize;
+  ex := (x+w-1) div mTileSize;
+  ey := (y+h-1) div mTileSize;
+
+  // clip rect
+  if (sx < 0) then sx := 0 else if (sx >= gw) then sx := gw-1;
+  if (sy < 0) then sy := 0 else if (sy >= gh) then sy := gh-1;
+  if (ex < 0) then ex := 0 else if (ex >= gw) then ex := gw-1;
+  if (ey < 0) then ey := 0 else if (ey >= gh) then ey := gh-1;
+  if (sx > ex) or (sy > ey) then exit; // just in case
+
+  // has something to do
   if mInQuery then raise Exception.Create('recursive queries aren''t supported');
   mInQuery := true;
 
@@ -1764,14 +1778,10 @@ begin
   lq := mLastQuery;
 
   // go on
-  for gy := y div mTileSize to (y+h-1) div mTileSize do
+  for gy := sy to ey do
   begin
-    if (gy < 0) then continue;
-    if (gy >= mHeight) then break;
-    for gx := x div mTileSize to (x+w-1) div mTileSize do
+    for gx := sx to ex do
     begin
-      if (gx < 0) then continue;
-      if (gx >= gw) then break;
       // process cells
       curci := mGrid[gy*gw+gx];
       while (curci <> -1) do
@@ -1781,7 +1791,7 @@ begin
         begin
           if (cc.bodies[f] = -1) then break;
           px := @mProxies[cc.bodies[f]];
-          // shit. has to do it this way, so i can change tag in callback
+          // shit! has to do it this way, so i can change tag in callback
           if (px.mQueryMark = lq) then continue;
           px.mQueryMark := lq;
           ptag := px.mTag;
