@@ -323,8 +323,8 @@ uses
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-//procedure swapInt (var a: Integer; var b: Integer); inline; var t: Integer; begin t := a; a := b; b := t; end;
-procedure swapInt (var a: Integer; var b: Integer); inline; begin a := a xor b; b := b xor a; a := a xor b; end;
+procedure swapInt (var a: Integer; var b: Integer); inline; var t: Integer; begin t := a; a := b; b := t; end;
+//procedure swapInt (var a: Integer; var b: Integer); inline; begin a := a xor b; b := b xor a; a := a xor b; end;
 //function minInt (a, b: Integer): Integer; inline; begin if (a < b) then result := a else result := b; end;
 //function maxInt (a, b: Integer): Integer; inline; begin if (a > b) then result := a else result := b; end;
 
