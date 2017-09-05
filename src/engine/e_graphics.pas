@@ -67,8 +67,12 @@ procedure e_DrawSize(ID: DWORD; X, Y: Integer; Alpha: Byte; AlphaChannel: Boolea
                      Blending: Boolean; Width, Height: Word; Mirror: TMirrorType = M_NONE);
 procedure e_DrawSizeMirror(ID: DWORD; X, Y: Integer; Alpha: Byte; AlphaChannel: Boolean;
                            Blending: Boolean; Width, Height: Word; Mirror: TMirrorType = M_NONE);
+
 procedure e_DrawFill(ID: DWORD; X, Y: Integer; XCount, YCount: Word; Alpha: Integer;
                      AlphaChannel: Boolean; Blending: Boolean);
+
+procedure e_DrawFillX (id: DWORD; x, y, wdt, hgt: Integer; alpha: Integer; alphachannel: Boolean; blending: Boolean);
+
 procedure e_DrawPoint(Size: Byte; X, Y: Integer; Red, Green, Blue: Byte);
 procedure e_DrawLine(Width: Byte; X1, Y1, X2, Y2: Integer; Red, Green, Blue: Byte; Alpha: Byte = 0);
 procedure e_DrawQuad(X1, Y1, X2, Y2: Integer; Red, Green, Blue: Byte; Alpha: Byte = 0);
@@ -678,6 +682,85 @@ begin
 
   glDisable(GL_BLEND);
 end;
+
+procedure e_DrawFillX (id: DWORD; x, y, wdt, hgt: Integer; alpha: Integer; alphachannel: Boolean; blending: Boolean);
+var
+  x2, y2: Integer;
+  //dx, w, h: Integer;
+  //u, v: Single;
+begin
+  if e_NoGraphics then exit;
+
+  if (wdt < 1) or (hgt < 1) then exit;
+
+  if (wdt mod e_Textures[ID].tx.width = 0) and (hgt mod e_Textures[ID].tx.height = 0) then
+  begin
+    e_DrawFill(id, x, y, wdt div e_Textures[ID].tx.width, hgt div e_Textures[ID].tx.height, alpha, alphachannel, blending);
+    exit;
+  end;
+
+  glColor4ub(e_Colors.R, e_Colors.G, e_Colors.B, 255);
+
+  if (Alpha > 0) or AlphaChannel or Blending then
+    glEnable(GL_BLEND)
+  else
+    glDisable(GL_BLEND);
+
+  if AlphaChannel or (Alpha > 0) then glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+  if (Alpha > 0) then glColor4ub(e_Colors.R, e_Colors.G, e_Colors.B, 255-Alpha);
+
+  if Blending then glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+
+  glEnable(GL_TEXTURE_2D);
+  glBindTexture(GL_TEXTURE_2D, e_Textures[ID].tx.id);
+
+  x2 := x+wdt;
+  y2 := y+hgt;
+
+  //k8: this SHOULD work... i hope
+  if (e_Textures[ID].tx.width = e_Textures[ID].tx.glwidth) and (e_Textures[ID].tx.height = e_Textures[ID].tx.glheight) then
+  begin
+    glBegin(GL_QUADS);
+      glTexCoord2f(0, hgt/e_Textures[ID].tx.height); glVertex2i(x,  y);
+      glTexCoord2f(wdt/e_Textures[ID].tx.width, hgt/e_Textures[ID].tx.height); glVertex2i(x2, y);
+      glTexCoord2f(wdt/e_Textures[ID].tx.width, 0); glVertex2i(x2, y2);
+      glTexCoord2f(0, 0); glVertex2i(x, y2);
+    glEnd();
+  end
+  else
+  begin
+    {
+    glBegin(GL_QUADS);
+    // hard day's night
+    u := e_Textures[ID].tx.u;
+    v := e_Textures[ID].tx.v;
+    w := e_Textures[ID].tx.width;
+    h := e_Textures[ID].tx.height;
+    while YCount > 0 do
+    begin
+      dx := XCount;
+      x2 := X;
+      while dx > 0 do
+      begin
+        glTexCoord2f(0, v); glVertex2i(X,  Y);
+        glTexCoord2f(u, v); glVertex2i(X+w, Y);
+        glTexCoord2f(u, 0); glVertex2i(X+w, Y+h);
+        glTexCoord2f(0, 0); glVertex2i(X,  Y+h);
+        Inc(X, w);
+        Dec(dx);
+      end;
+      X := x2;
+      Inc(Y, h);
+      Dec(YCount);
+    end;
+    glEnd();
+    }
+  end;
+
+  glDisable(GL_BLEND);
+end;
+
 
 procedure e_DrawAdv(ID: DWORD; X, Y: Integer; Alpha: Byte; AlphaChannel: Boolean;
                     Blending: Boolean; Angle: Single; RC: PDFPoint; Mirror: TMirrorType = M_NONE);

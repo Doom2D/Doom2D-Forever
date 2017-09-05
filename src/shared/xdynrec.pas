@@ -3147,7 +3147,7 @@ end;
 function TDynMapDef.parseMap (pr: TTextParser): TDynRecord;
 var
   res: TDynRecord = nil;
-  fo: TextFile;
+  //fo: TextFile;
 begin
   result := nil;
   try
