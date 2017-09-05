@@ -1420,13 +1420,9 @@ begin
           if (rc = nil) then raise Exception.Create(Format('triggerdata definition for field ''%s'' in record ''%s'' with type ''%s'' not found', [mName, rec.mName, tfld.mSVal]));
           rc := rc.clone(mOwner.mHeaderRec);
           rc.mHeaderRec := mOwner.mHeaderRec;
-          try
-            rc.parseBinValue(st, true);
-            mRecRef := rc;
-            rc := nil;
-          finally
-            rc.Free();
-          end;
+          // on error, it will be freed be memowner
+          rc.parseBinValue(st, true);
+          mRecRef := rc;
           mDefined := true;
           exit;
         end
@@ -1625,13 +1621,9 @@ begin
             rc := rc.clone(mOwner.mHeaderRec);
             rc.mHeaderRec := mOwner.mHeaderRec;
             //writeln(rc.definition);
-            try
-              rc.parseValue(pr, true);
-              mRecRef := rc;
-              rc := nil;
-            finally
-              rc.Free();
-            end;
+            // on error, it will be freed be memowner
+            rc.parseValue(pr, true);
+            mRecRef := rc;
           end;
           mDefined := true;
           pr.eatTT(pr.TTSemi); // hack: allow (but don't require) semicolon after inline records
@@ -1881,7 +1873,7 @@ begin
     begin
       if (rec <> self) then
       begin
-        //writeln('freeing: ', LongWord(rec));
+        //writeln(formatstrf('freeing: 0x%08x; name=%s; id=%s', [Pointer(rec), rec.mName, rec.mId]));
         rec.Free();
       end;
     end;
@@ -2712,33 +2704,29 @@ begin
         rec := trc.clone(mHeaderRec);
         {$IF DEFINED(D2D_DYNREC_PROFILER)}profCloneRec := curTimeMicro()-stt;{$ENDIF}
         rec.mHeaderRec := mHeaderRec;
-        try
-          pr.skipToken();
-          rec.parseValue(pr);
+        // on error, it will be freed be memowner
+        pr.skipToken();
+        rec.parseValue(pr);
+        (*
+        if (Length(rec.mId) > 0) then
+        begin
+          {$IF DEFINED(D2D_DYNREC_PROFILER)}stt := curTimeMicro();{$ENDIF}
+          fld := field[pr.tokStr];
+          {$IF DEFINED(D2D_DYNREC_PROFILER)}profFieldSearching := curTimeMicro()-stt;{$ENDIF}
           (*
-          if (Length(rec.mId) > 0) then
+          if (fld <> nil) and (fld.mRVal <> nil) then
           begin
             {$IF DEFINED(D2D_DYNREC_PROFILER)}stt := curTimeMicro();{$ENDIF}
-            fld := field[pr.tokStr];
-            {$IF DEFINED(D2D_DYNREC_PROFILER)}profFieldSearching := curTimeMicro()-stt;{$ENDIF}
-            (*
-            if (fld <> nil) and (fld.mRVal <> nil) then
-            begin
-              {$IF DEFINED(D2D_DYNREC_PROFILER)}stt := curTimeMicro();{$ENDIF}
-              //idtmp := trc.mName+':'+rec.mId;
-              //if ids.put(idtmp, 1) then raise Exception.Create(Format('duplicate thing ''%s'' in record ''%s''', [fld.mName, mName]));
-              if fld.mRHash.has(rec.mId) then raise Exception.Create(Format('duplicate thing ''%s'' in record ''%s''', [fld.mName, mName]));
-              {$IF DEFINED(D2D_DYNREC_PROFILER)}profListDupChecking := curTimeMicro()-stt;{$ENDIF}
-            end;
+            //idtmp := trc.mName+':'+rec.mId;
+            //if ids.put(idtmp, 1) then raise Exception.Create(Format('duplicate thing ''%s'' in record ''%s''', [fld.mName, mName]));
+            if fld.mRHash.has(rec.mId) then raise Exception.Create(Format('duplicate thing ''%s'' in record ''%s''', [fld.mName, mName]));
+            {$IF DEFINED(D2D_DYNREC_PROFILER)}profListDupChecking := curTimeMicro()-stt;{$ENDIF}
           end;
-          *)
-          {$IF DEFINED(D2D_DYNREC_PROFILER)}stt := curTimeMicro();{$ENDIF}
-          addRecordByType(rec.mName, rec);
-          {$IF DEFINED(D2D_DYNREC_PROFILER)}profAddRecByType := curTimeMicro()-stt;{$ENDIF}
-          rec := nil;
-        finally
-          rec.Free();
         end;
+        *)
+        {$IF DEFINED(D2D_DYNREC_PROFILER)}stt := curTimeMicro();{$ENDIF}
+        addRecordByType(rec.mName, rec);
+        {$IF DEFINED(D2D_DYNREC_PROFILER)}profAddRecByType := curTimeMicro()-stt;{$ENDIF}
         continue;
       end;
     end;
@@ -2987,6 +2975,7 @@ var
   rec: TDynRecord;
   ebs: TDynEBS;
 begin
+  //!!!FIXME!!! check who owns trigs and recs!
   for rec in recTypes do rec.Free();
   for rec in trigTypes do rec.Free();
   for ebs in ebsTypes do ebs.Free();
@@ -3158,6 +3147,7 @@ end;
 function TDynMapDef.parseMap (pr: TTextParser): TDynRecord;
 var
   res: TDynRecord = nil;
+  fo: TextFile;
 begin
   result := nil;
   try
@@ -3168,7 +3158,18 @@ begin
     result := res;
     res := nil;
   finally
-    //TMP:segfaults! res.Free();
+    res.Free();
+  {
+  except on e: Exception do
+    begin
+      //TMP:segfaults!
+      AssignFile(fo, 'z.log');
+      Rewrite(fo);
+      DumpExceptionBackTrace(fo);
+      CloseFile(fo);
+      res.Free();
+    end;
+  }
   end;
 end;
 
