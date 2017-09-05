@@ -71,7 +71,7 @@ procedure e_DrawSizeMirror(ID: DWORD; X, Y: Integer; Alpha: Byte; AlphaChannel: 
 procedure e_DrawFill(ID: DWORD; X, Y: Integer; XCount, YCount: Word; Alpha: Integer;
                      AlphaChannel: Boolean; Blending: Boolean);
 
-procedure e_DrawFillX (id: DWORD; x, y, wdt, hgt: Integer; alpha: Integer; alphachannel: Boolean; blending: Boolean);
+procedure e_DrawFillX (id: DWORD; x, y, wdt, hgt: Integer; alpha: Integer; alphachannel: Boolean; blending: Boolean; scale: Single);
 
 procedure e_DrawPoint(Size: Byte; X, Y: Integer; Red, Green, Blue: Byte);
 procedure e_DrawLine(Width: Byte; X1, Y1, X2, Y2: Integer; Red, Green, Blue: Byte; Alpha: Byte = 0);
@@ -683,11 +683,50 @@ begin
   glDisable(GL_BLEND);
 end;
 
-procedure e_DrawFillX (id: DWORD; x, y, wdt, hgt: Integer; alpha: Integer; alphachannel: Boolean; blending: Boolean);
+
+//TODO: overflow checks
+function intersectRect (var x0, y0, w0, h0: Integer; const x1, y1, w1, h1: Integer): Boolean;
+var
+  ex0, ey0: Integer;
+begin
+  result := false;
+  if (w0 < 1) or (h0 < 1) or (w1 < 1) or (h1 < 1) then exit;
+  // check for intersection
+  if (x0+w0 <= x1) or (y0+h0 <= y1) or (x1+w1 <= x0) or (y1+h1 <= y0) then exit;
+  if (x0 >= x1+w1) or (y0 >= y1+h1) or (x1 >= x0+h0) or (y1 >= y0+h0) then exit;
+  // ok, intersects
+  ex0 := x0+w0;
+  ey0 := y0+h0;
+  if (x0 < x1) then x0 := x1;
+  if (y0 < y1) then y0 := y1;
+  if (ex0 > x1+w1) then ex0 := x1+w1;
+  if (ey0 > y1+h1) then ey0 := y1+h1;
+  w0 := ex0-x0;
+  h0 := ey0-y0;
+  result := (w0 > 0) and (h0 > 0);
+end;
+
+
+procedure e_DrawFillX (id: DWORD; x, y, wdt, hgt: Integer; alpha: Integer; alphachannel: Boolean; blending: Boolean; scale: Single);
 var
   x2, y2: Integer;
-  //dx, w, h: Integer;
-  //u, v: Single;
+  wassc: Boolean;
+  scxywh: array[0..3] of GLint;
+  vpxywh: array[0..3] of GLint;
+  w, h, dw: Integer;
+  u, v: Single;
+
+  procedure setScissorGLInternal (x, y, w, h: Integer);
+  begin
+    //if not scallowed then exit;
+    x := trunc(x*scale);
+    y := trunc(y*scale);
+    w := trunc(w*scale);
+    h := trunc(h*scale);
+    y := vpxywh[3]-(y+h);
+    if not intersectRect(x, y, w, h, scxywh[0], scxywh[1], scxywh[2], scxywh[3]) then glScissor(0, 0, 0, 0) else glScissor(x, y, w, h);
+  end;
+
 begin
   if e_NoGraphics then exit;
 
@@ -730,32 +769,39 @@ begin
   end
   else
   begin
-    {
-    glBegin(GL_QUADS);
-    // hard day's night
+    // hard day's night; setup scissor
+    glGetIntegerv(GL_VIEWPORT, @vpxywh[0]);
+    wassc := (glIsEnabled(GL_SCISSOR_TEST) <> 0);
+    if wassc then glGetIntegerv(GL_SCISSOR_BOX, @scxywh[0]) else glGetIntegerv(GL_VIEWPORT, @scxywh[0]);
+    //conwritefln('(%d,%d)-(%d,%d)', [scxywh[0], scxywh[1], scxywh[2], scxywh[3]]);
+    glEnable(GL_SCISSOR_TEST);
+    setScissorGLInternal(x, y, wdt, hgt);
+    // draw quads
     u := e_Textures[ID].tx.u;
     v := e_Textures[ID].tx.v;
     w := e_Textures[ID].tx.width;
     h := e_Textures[ID].tx.height;
-    while YCount > 0 do
+    x2 := x;
+    glBegin(GL_QUADS);
+    while (hgt > 0) do
     begin
-      dx := XCount;
-      x2 := X;
-      while dx > 0 do
+      Dec(hgt, h);
+      dw := wdt;
+      x := x2;
+      while (dw > 0) do
       begin
-        glTexCoord2f(0, v); glVertex2i(X,  Y);
+        Dec(dw, w);
+        glTexCoord2f(0, v); glVertex2i(X,   Y);
         glTexCoord2f(u, v); glVertex2i(X+w, Y);
         glTexCoord2f(u, 0); glVertex2i(X+w, Y+h);
-        glTexCoord2f(0, 0); glVertex2i(X,  Y+h);
+        glTexCoord2f(0, 0); glVertex2i(X,   Y+h);
         Inc(X, w);
-        Dec(dx);
       end;
-      X := x2;
       Inc(Y, h);
-      Dec(YCount);
+      Dec(hgt, h);
     end;
     glEnd();
-    }
+    if wassc then glEnable(GL_SCISSOR_TEST) else glDisable(GL_SCISSOR_TEST);
   end;
 
   glDisable(GL_BLEND);

@@ -453,7 +453,7 @@ begin
             if not mMovingActive then
               e_DrawFill(FTextureIDs[FCurTexture].Tex, X, Y, Width div FTextureWidth, Height div FTextureHeight, FAlpha, True, FBlending)
             else
-              e_DrawFillX(FTextureIDs[FCurTexture].Tex, X, Y, Width, Height, FAlpha, True, FBlending);
+              e_DrawFillX(FTextureIDs[FCurTexture].Tex, X, Y, Width, Height, FAlpha, True, FBlending, g_dbg_scale);
         end;
       end;
   end;
