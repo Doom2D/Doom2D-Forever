@@ -87,6 +87,8 @@ type
     FDieTriggers: Array of Integer;
     FSpawnTrigger: Integer;
 
+    mNeedSend: Boolean; // for networl
+
     procedure Turn();
     function findNewPrey(): Boolean;
     procedure ActivateTriggers();
@@ -143,6 +145,10 @@ type
     procedure moveBy (dx, dy: Integer); inline;
 
     procedure getMapBox (out x, y, w, h: Integer); inline;
+
+    // get-and-clear
+    function gncNeedSend (): Boolean; inline;
+    procedure setDirty (); inline; // why `dirty`? 'cause i may introduce property `needSend` later
 
   public
     property Obj: TObj read FObj;
@@ -314,6 +320,10 @@ begin
   h := FObj.Rect.Height;
 end;
 
+function TMonster.gncNeedSend (): Boolean; inline; begin result := mNeedSend; mNeedSend := false; end;
+
+procedure TMonster.setDirty (); inline; begin mNeedSend := true; end;
+
 
 // ////////////////////////////////////////////////////////////////////////// //
 function g_Mons_AlongLine (x0, y0, x1, y1: Integer; cb: TMonsAlongLineCB; log: Boolean=false): TMonster;
@@ -334,6 +344,7 @@ begin
   {$ENDIF}
   if (mProxyId = -1) then
   begin
+    mNeedSend := true;
     mProxyId := monsGrid.insertBody(self, FObj.X+FObj.Rect.X, FObj.Y+FObj.Rect.Y, FObj.Rect.Width, FObj.Rect.Height);
     {$IF DEFINED(D2F_DEBUG_MONS_MOVE)}
     monsGrid.getBodyXY(mProxyId, x, y);
@@ -347,6 +358,7 @@ begin
 
     if (w <> nw) or (h <> nh) then
     begin
+      mNeedSend := true;
       {$IF DEFINED(D2F_DEBUG_MONS_MOVE)}
       e_WriteLog(Format('monster #%d:(%u): resized; mProxyid=%d; gx=%d; gy=%d', [mArrIdx, UID, mProxyId, x-monsGrid.gridX0, y-monsGrid.gridY0]), MSG_NOTIFY);
       {$ENDIF}
@@ -354,6 +366,7 @@ begin
     end
     else if (x <> nx) or (y <> ny) then
     begin
+      mNeedSend := true;
       {$IF DEFINED(D2F_DEBUG_MONS_MOVE)}
       e_WriteLog(Format('monster #%d:(%u): updating grid; mProxyid=%d; gx=%d; gy=%d', [mArrIdx, UID, mProxyId, x-monsGrid.gridX0, y-monsGrid.gridY0]), MSG_NOTIFY);
       {$ENDIF}
@@ -1823,6 +1836,7 @@ begin
   mArrIdx := -1;
   trapCheckFrameId := 0;
   mplatCheckFrameId := 0;
+  mNeedSend := false;
 
   if FMonsterType in [MONSTER_ROBO, MONSTER_BARREL] then
     FBloodKind := BLOOD_SPARKS

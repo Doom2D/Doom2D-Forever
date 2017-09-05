@@ -551,19 +551,18 @@ var
 procedure TPanel.Update();
 var
   ox, oy: Integer;
-  nx, ny: Integer;
+  nx, ny, nw, nh: Integer;
   ex, ey, nex, ney: Integer;
   mpw, mph: Integer;
 
   // return `true` if we should move by dx,dy
   function tryMPlatMove (px, py, pw, ph: Integer; out dx, dy: Integer; out squash: Boolean; ontop: PBoolean=nil): Boolean;
   var
-    u0, u1: Single;
+    u0: Single;
     tex, tey: Integer;
     pdx, pdy: Integer;
-    pan: TPanel;
     trtag: Integer;
-    hedge: Integer;
+    szdx, szdy: Integer;
   begin
     squash := false;
     tex := px;
@@ -574,32 +573,41 @@ var
     if (py+ph = oy) then
     begin
       if (ontop <> nil) then ontop^ := true;
-      // yes, move with it; but skip steps
-      pan := mapGrid.traceBox(tex, tey, px, py, pw, ph, pdx, pdy, nil, (GridTagWall or GridTagDoor));
-      if (pan <> nil) then
-      begin
-        //e_LogWritefln('entity on the platform; tracing=(%s,%s); endpoint=(%s,%s); mustbe=(%s,%s)', [px, py, tex, tey, px+pdx, py+pdy]);
-        // if we cannot move, only walls should squash the entity
-        {
-        if ((tag and (GridTagWall or GridTagDoor)) <> 0) then
-        begin
-          if (tex = px) and (tey = py) then squash := true;
-        end;
-        }
-      end;
+      // yes, move with it; but skip steps (no need to process size change here, 'cause platform top cannot be changed with it)
+      mapGrid.traceBox(tex, tey, px, py, pw, ph, pdx, pdy, nil, (GridTagWall or GridTagDoor));
     end
     else
     begin
       if (ontop <> nil) then ontop^ := false;
       // not standing on the platform: trace platform to see if it hits the entity
-      // hitedge (for `it`): 0: top; 1: right; 2: bottom; 3: left
-      {
-      if g_Collide(px, py, pw, ph, ox, oy, mpw, mph) then
+      // first, process size change (as we cannot sweeptest both move and size change)
+      // but we don't have to check for pushing if the panel is shrinking
+      szdx := nw-mpw;
+      szdy := nh-mph;
+      if (szdx > 0) or (szdy > 0) then
       begin
-        e_LogWritefln('entity is embedded: plr=(%s,%s)-(%s,%s); mpl=(%s,%s)-(%s,%s)', [px, py, px+pw-1, py+ph-1, ox, oy, ox+mpw-1, oy+mph-1]);
+        // ignore shrinking dimension
+        if (szdx < 0) then szdx := 0;
+        if (szdy < 0) then szdy := 0;
+        // move platform by szd* back, and check for szd* movement
+        if sweepAABB(ox-szdx, oy-szdy, nw, nh, szdx, szdy, px, py, pw, ph, @u0) then
+        begin
+          // yes, platform hits the entity, push the entity in the resizing direction
+          u0 := 1.0-u0; // how much path left?
+          szdx := trunc(szdx*u0);
+          szdy := trunc(szdy*u0);
+          if (szdx <> 0) or (szdy <> 0) then
+          begin
+            // has some path to go, trace the entity
+            trtag := (GridTagWall or GridTagDoor);
+            // if we're moving down, consider steps too
+            if (szdy > 0) then trtag := trtag or GridTagStep;
+            mapGrid.traceBox(tex, tey, px, py, pw, ph, szdx, szdy, nil, trtag);
+          end;
+        end;
       end;
-      }
-      if sweepAABB(ox, oy, mpw, mph, pdx, pdy, px, py, pw, ph, @u0, @hedge, @u1) then
+      // second, process platform movement, using te* as entity starting point
+      if sweepAABB(ox, oy, nw, nh, pdx, pdy, tex, tey, pw, ph, @u0) then
       begin
         //e_LogWritefln('T: platsweep; u0=%s; u1=%s; hedge=%s; sweepAABB(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)', [u0, u1, hedge, ox, oy, mpw, mph, pdx, pdy, px-1, py-1, pw+2, ph+2]);
         // yes, platform hits the entity, push the entity in the direction of the platform
@@ -613,31 +621,18 @@ var
           trtag := (GridTagWall or GridTagDoor);
           // if we're moving down, consider steps too
           if (pdy > 0) then trtag := trtag or GridTagStep;
-          pan := mapGrid.traceBox(tex, tey, px, py, pw, ph, pdx, pdy, nil, trtag);
-          //e_LogWritefln('  tracebox: te=(%s,%s)', [tex, tey]);
-          // if we cannot move, only walls should squash the entity
-          {
-          if ((tag and (GridTagWall or GridTagDoor)) <> 0) then
-          begin
-            if (pan <> nil) and (tex = px) and (tey = py) then squash := true;
-          end;
-          }
+          mapGrid.traceBox(tex, tey, px, py, pw, ph, pdx, pdy, nil, trtag);
         end;
-      end
-      else
-      begin
-        // no collistion, but may be embedded
-        //e_LogWritefln('F: platsweep; u0=%s; u1=%s; sweepAABB(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)', [u0, u1, ox, oy, mpw, mph, pdx, pdy, px-1, py-1, pw+2, ph+2]);
-        //squash := (u1 >= 0.0);
       end;
     end;
+    // done with entity movement, new coords are in te*
     dx := tex-px;
     dy := tey-py;
     result := (dx <> 0) or (dy <> 0);
-    if (not squash) and ((tag and (GridTagWall or GridTagDoor)) <> 0) then
+    if ((tag and (GridTagWall or GridTagDoor)) <> 0) then
     begin
-      squash := g_Collide(tex, tey, pw, ph, nx, ny, mpw, mph); // still in platform?
-      //if not squash then squash := g_Map_CollidePanel(tex, tey, pw, ph, (PANEL_WALL or PANEL_OPENDOOR or PANEL_CLOSEDOOR));
+      // check for squashing; as entity cannot be pushed into a wall, check only collision with the platform itself
+      squash := g_Collide(tex, tey, pw, ph, nx, ny, nw, nh); // squash, if still in platform
     end;
   end;
 
@@ -692,141 +687,137 @@ begin
      *     try to push entity
      *     if we can't push entity all the way, squash it
      *)
+    ox := X;
+    oy := Y;
     mpw := Width;
     mph := Height;
 
-    // old rect
-    ox := X;
-    oy := Y;
-    ex := ox+mpw-1;
-    ey := ox+mph-1;
-    // new rect
+    nw := mpw+mSizeSpeed.w;
+    nh := mph+mSizeSpeed.h;
     nx := ox+mMovingSpeed.X;
     ny := oy+mMovingSpeed.Y;
-    nex := nx+mpw-1;
-    ney := ny+mph-1;
-    // full rect
-    cx0 := nmin(ox, nx);
-    cy0 := nmin(oy, ny);
-    cx1 := nmax(ex, nex);
-    cy1 := nmax(ey, ney);
-    // extrude
-    cx0 -= 1;
-    cy0 -= 1;
-    cx1 += 1;
-    cy1 += 1;
-    cw := cx1-cx0+1;
-    ch := cy1-cy0+1;
 
-    // process "obstacle" panels
-    if ((tag and GridTagObstacle) <> 0) then
+    // if pannel disappeared, we don't have to do anything
+    if (nw > 0) and (nh > 0) then
     begin
-      // temporarily turn off this panel, so it won't interfere with collision checks
-      mapGrid.proxyEnabled[proxyId] := false;
+      // old rect
+      ex := ox+mpw-1;
+      ey := ox+mph-1;
+      // new rect
+      nex := nx+nw-1;
+      ney := ny+nh-1;
+      // full rect
+      cx0 := nmin(ox, nx);
+      cy0 := nmin(oy, ny);
+      cx1 := nmax(ex, nex);
+      cy1 := nmax(ey, ney);
+      // extrude
+      cx0 -= 1;
+      cy0 -= 1;
+      cx1 += 1;
+      cy1 += 1;
+      cw := cx1-cx0+1;
+      ch := cy1-cy0+1;
 
-      // process players
-      for f := 0 to High(gPlayers) do
+      // process "obstacle" panels
+      if ((tag and GridTagObstacle) <> 0) then
       begin
-        plr := gPlayers[f];
-        if (plr = nil) or (not plr.alive) then continue;
-        plr.getMapBox(px, py, pw, ph);
-        if not g_Collide(px, py, pw, ph, cx0, cy0, cw, ch) then continue;
-        if tryMPlatMove(px, py, pw, ph, pdx, pdy, squash) then
-        begin
-          // set new position
-          plr.moveBy(pdx, pdy); // this will call `positionChanged()` for us
-        end;
-        // squash player, if necessary
-        if squash then plr.Damage(15000, 0, 0, 0, HIT_TRAP);
-      end;
+        // temporarily turn off this panel, so it won't interfere with collision checks
+        mapGrid.proxyEnabled[proxyId] := false;
 
-      // process gibs
-      for f := 0 to High(gGibs) do
-      begin
-        gib := @gGibs[f];
-        if not gib.alive then continue;
-        gib.getMapBox(px, py, pw, ph);
-        if not g_Collide(px, py, pw, ph, cx0, cy0, cw, ch) then continue;
-        if tryMPlatMove(px, py, pw, ph, pdx, pdy, squash, @ontop) then
+        // process players
+        for f := 0 to High(gPlayers) do
         begin
-          // set new position
-          gib.moveBy(pdx, pdy); // this will call `positionChanged()` for us
-          {
-          if ontop then
-          begin
-            gib.Obj.Vel.X += pdx;
-            gib.Obj.Vel.Y += pdy;
-          end;
-          }
-        end;
-      end;
-
-      // move and push corpses
-      for f := 0 to High(gCorpses) do
-      begin
-        cor := gCorpses[f];
-        if (cor = nil) then continue;
-        cor.getMapBox(px, py, pw, ph);
-        if not g_Collide(px, py, pw, ph, cx0, cy0, cw, ch) then continue;
-        if tryMPlatMove(px, py, pw, ph, pdx, pdy, squash, @ontop) then
-        begin
-          // set new position
-          cor.moveBy(pdx, pdy); // this will call `positionChanged()` for us
-          {
-          if ontop then
-          begin
-            cor.ObjPtr.Vel.X += pdx;
-            cor.ObjPtr.Vel.Y += pdy;
-          end;
-          }
-        end;
-      end;
-
-      // collect monsters
-      monCheckListUsed := 0;
-      g_Mons_ForEachAt(cx0, cy0, cw, ch, monCollect);
-
-      // process collected monsters
-      if (monCheckListUsed > 0) then
-      begin
-        mpfrid := g_Mons_getNewMPlatFrameId();
-        for f := 0 to monCheckListUsed do
-        begin
-          mon := monCheckList[f];
-          if (mon = nil) or (not mon.alive) or (mon.mplatCheckFrameId = mpfrid) then continue;
-          mon.mplatCheckFrameId := mpfrid;
-          mon.getMapBox(px, py, pw, ph);
-          //if not g_Collide(px, py, pw, ph, cx0, cy0, cw, ch) then continue;
+          plr := gPlayers[f];
+          if (plr = nil) or (not plr.alive) then continue;
+          plr.getMapBox(px, py, pw, ph);
+          if not g_Collide(px, py, pw, ph, cx0, cy0, cw, ch) then continue;
           if tryMPlatMove(px, py, pw, ph, pdx, pdy, squash) then
           begin
             // set new position
-            mon.moveBy(pdx, pdy); // this will call `positionChanged()` for us
+            plr.moveBy(pdx, pdy); // this will call `positionChanged()` for us
           end;
           // squash player, if necessary
-          if squash then mon.Damage(15000, 0, 0, 0, HIT_TRAP);
+          if not g_Game_IsClient and squash then plr.Damage(15000, 0, 0, 0, HIT_TRAP);
         end;
-      end;
 
-      // restore panel state
-      mapGrid.proxyEnabled[proxyId] := true;
+        // process gibs
+        for f := 0 to High(gGibs) do
+        begin
+          gib := @gGibs[f];
+          if not gib.alive then continue;
+          gib.getMapBox(px, py, pw, ph);
+          if not g_Collide(px, py, pw, ph, cx0, cy0, cw, ch) then continue;
+          if tryMPlatMove(px, py, pw, ph, pdx, pdy, squash, @ontop) then
+          begin
+            // set new position
+            gib.moveBy(pdx, pdy); // this will call `positionChanged()` for us
+          end;
+        end;
+
+        // move and push corpses
+        for f := 0 to High(gCorpses) do
+        begin
+          cor := gCorpses[f];
+          if (cor = nil) then continue;
+          cor.getMapBox(px, py, pw, ph);
+          if not g_Collide(px, py, pw, ph, cx0, cy0, cw, ch) then continue;
+          if tryMPlatMove(px, py, pw, ph, pdx, pdy, squash, @ontop) then
+          begin
+            // set new position
+            cor.moveBy(pdx, pdy); // this will call `positionChanged()` for us
+          end;
+        end;
+
+        // collect monsters
+        monCheckListUsed := 0;
+        g_Mons_ForEachAt(cx0, cy0, cw, ch, monCollect);
+
+        // process collected monsters
+        if (monCheckListUsed > 0) then
+        begin
+          mpfrid := g_Mons_getNewMPlatFrameId();
+          for f := 0 to monCheckListUsed do
+          begin
+            mon := monCheckList[f];
+            if (mon = nil) or (not mon.alive) or (mon.mplatCheckFrameId = mpfrid) then continue;
+            mon.mplatCheckFrameId := mpfrid;
+            mon.getMapBox(px, py, pw, ph);
+            //if not g_Collide(px, py, pw, ph, cx0, cy0, cw, ch) then continue;
+            if tryMPlatMove(px, py, pw, ph, pdx, pdy, squash) then
+            begin
+              // set new position
+              mon.moveBy(pdx, pdy); // this will call `positionChanged()` for us
+            end;
+            // squash player, if necessary
+            if not g_Game_IsClient and squash then mon.Damage(15000, 0, 0, 0, HIT_TRAP);
+          end;
+        end;
+
+        // restore panel state
+        mapGrid.proxyEnabled[proxyId] := true;
+      end;
     end;
 
     // move panel
     X := nx;
     Y := ny;
-    FWidth += mSizeSpeed.w;
-    FHeight += mSizeSpeed.h;
+    FWidth := nw;
+    FHeight := nh;
     positionChanged();
 
     actMoveTrig := false;
     actSizeTrig := false;
 
-    {
-    if not mSizeSpeed.isZero then
+    // check "size stop"
+    if not mSizeSpeed.isZero and (nw = mSizeEnd.w) and (nh = mSizeEnd.h) then
     begin
-      e_LogWritefln('ss: size_speed=(%s,%s); size=(%s,%s); move_speed=(%s,%s); oy=%s; ny=%s; etp:%s; ets:%s', [mSizeSpeed.w, mSizeSpeed.h, FWidth, FHeight, mMovingSpeed.X, mMovingSpeed.Y, oy, ny, mEndPosTrig, mEndSizeTrig]);
+      mSizeSpeed.w := 0;
+      mSizeSpeed.h := 0;
+      actSizeTrig := true;
+      if (nw < 1) or (nh < 1) then mMovingActive := false; //HACK!
+      //e_LogWritefln('FUUUUUUUUUUUUUU', []);
     end;
-    }
 
     // reverse moving direction, if necessary
     if ((mMovingSpeed.X < 0) and (nx <= mMovingStart.X)) or ((mMovingSpeed.X > 0) and (nx >= mMovingEnd.X)) then
@@ -841,28 +832,12 @@ begin
       actMoveTrig := true;
     end;
 
-    // check "size stop"
-    if not mSizeSpeed.isZero and (Width = mSizeEnd.w) and (Height = mSizeEnd.h) then
-    begin
-      mSizeSpeed.w := 0;
-      mSizeSpeed.h := 0;
-      actSizeTrig := true;
-      if (Width < 1) or (Height < 1) then mMovingActive := false; //HACK!
-      //e_LogWritefln('FUUUUUUUUUUUUUU', []);
-    end;
 
-
-    if actMoveTrig then
-    begin
-      g_Triggers_Press(mEndPosTrig, ACTIVATE_CUSTOM);
-    end;
-
-    if actSizeTrig then
-    begin
-      g_Triggers_Press(mEndSizeTrig, ACTIVATE_CUSTOM);
-    end;
+    if actMoveTrig then g_Triggers_Press(mEndPosTrig, ACTIVATE_CUSTOM);
+    if actSizeTrig then g_Triggers_Press(mEndSizeTrig, ACTIVATE_CUSTOM);
   end;
 end;
+
 
 procedure TPanel.SetFrame(Frame: Integer; Count: Byte);
 
