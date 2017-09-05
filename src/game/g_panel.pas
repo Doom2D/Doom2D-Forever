@@ -528,8 +528,15 @@ begin
       else
       begin
         mapGrid.proxyEnabled[proxyId] := Enabled;
-        if (pw <> Width) or (ph <> Height) then mapGrid.moveResizeBody(proxyId, X, Y, Width, Height)
-        else mapGrid.moveBody(proxyId, X, Y);
+        if (pw <> Width) or (ph <> Height) then
+        begin
+          //writeln('panel resize!');
+          mapGrid.moveResizeBody(proxyId, X, Y, Width, Height)
+        end
+        else
+        begin
+          mapGrid.moveBody(proxyId, X, Y);
+        end;
         g_Mark(X, Y, Width, Height, MARK_WALL);
       end;
     end;

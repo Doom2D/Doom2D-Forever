@@ -142,9 +142,6 @@ type
     function allocProxy (aX, aY, aWidth, aHeight: Integer; aObj: ITP; aTag: Integer): TBodyProxyId;
     procedure freeProxy (body: TBodyProxyId);
 
-    procedure insertInternal (body: TBodyProxyId);
-    procedure removeInternal (body: TBodyProxyId);
-
     function forGridRect (x, y, w, h: Integer; cb: TGridInternalCB; bodyId: TBodyProxyId): Boolean;
 
     function inserter (grida: Integer; bodyId: TBodyProxyId): Boolean;
@@ -1232,8 +1229,9 @@ end;
 // ////////////////////////////////////////////////////////////////////////// //
 function TBodyGridBase.forGridRect (x, y, w, h: Integer; cb: TGridInternalCB; bodyId: TBodyProxyId): Boolean;
 var
-  gx, gy: Integer;
   gw, gh: Integer;
+  ex, ey: Integer;
+  gx, gy: Integer;
 begin
   result := false;
   if (w < 1) or (h < 1) or not assigned(cb) then exit;
@@ -1244,16 +1242,22 @@ begin
   if (x+w <= 0) or (y+h <= 0) then exit;
   gw := mWidth;
   gh := mHeight;
-  //tsize := mTileSize;
   if (x >= gw*mTileSize) or (y >= gh*mTileSize) then exit;
-  for gy := y div mTileSize to (y+h-1) div mTileSize do
+  ex := (x+w-1) div mTileSize;
+  ey := (y+h-1) div mTileSize;
+  x := x div mTileSize;
+  y := y div mTileSize;
+  // clip rect
+  if (x < 0) then x := 0 else if (x >= gw) then x := gw-1;
+  if (y < 0) then y := 0 else if (y >= gh) then y := gh-1;
+  if (ex < 0) then ex := 0 else if (ex >= gw) then ex := gw-1;
+  if (ey < 0) then ey := 0 else if (ey >= gh) then ey := gh-1;
+  if (x > ex) or (y > ey) then exit; // just in case
+  // do the work
+  for gy := y to ey do
   begin
-    if (gy < 0) then continue;
-    if (gy >= gh) then break;
-    for gx := x div mTileSize to (x+w-1) div mTileSize do
+    for gx := x to ex do
     begin
-      if (gx < 0) then continue;
-      if (gx >= gw) then break;
       result := cb(gy*gw+gx, bodyId);
       if result then exit;
     end;
@@ -1320,15 +1324,6 @@ begin
   mGrid[grida] := ccidx;
 end;
 
-procedure TBodyGridBase.insertInternal (body: TBodyProxyId);
-var
-  px: PBodyProxyRec;
-begin
-  if (body < 0) or (body > High(mProxies)) then exit; // just in case
-  px := @mProxies[body];
-  forGridRect(px.mX, px.mY, px.mWidth, px.mHeight, inserter, body);
-end;
-
 
 // assume that we cannot have one object added to bucket twice
 function TBodyGridBase.remover (grida: Integer; bodyId: TBodyProxyId): Boolean;
@@ -1371,29 +1366,25 @@ begin
   end;
 end;
 
-procedure TBodyGridBase.removeInternal (body: TBodyProxyId);
-var
-  px: PBodyProxyRec;
-begin
-  if (body < 0) or (body > High(mProxies)) then exit; // just in case
-  px := @mProxies[body];
-  forGridRect(px.mX, px.mY, px.mWidth, px.mHeight, remover, body);
-end;
-
 
 // ////////////////////////////////////////////////////////////////////////// //
 function TBodyGridBase.insertBody (aObj: ITP; aX, aY, aWidth, aHeight: Integer; aTag: Integer=-1): TBodyProxyId;
 begin
   aTag := aTag and TagFullMask;
   result := allocProxy(aX, aY, aWidth, aHeight, aObj, aTag);
-  insertInternal(result);
+  //insertInternal(result);
+  forGridRect(aX, aY, aWidth, aHeight, inserter, result);
 end;
 
 
 procedure TBodyGridBase.removeBody (body: TBodyProxyId);
+var
+  px: PBodyProxyRec;
 begin
   if (body < 0) or (body > High(mProxies)) then exit; // just in case
-  removeInternal(body);
+  px := @mProxies[body];
+  //removeInternal(body);
+  forGridRect(px.mX, px.mY, px.mWidth, px.mHeight, remover, body);
   freeProxy(body);
 end;
 
@@ -1422,15 +1413,18 @@ begin
   // did any corner crossed tile boundary?
   if (x0 div mTileSize <> nx div mTileSize) or
      (y0 div mTileSize <> ny div mTileSize) or
-     ((x0+w) div mTileSize <> (nx+nw) div mTileSize) or
-     ((y0+h) div mTileSize <> (ny+nh) div mTileSize) then
+     ((x0+w-1) div mTileSize <> (nx+nw-1) div mTileSize) or
+     ((y0+h-1) div mTileSize <> (ny+nh-1) div mTileSize) then
   begin
-    removeInternal(body);
+    //writeln('moveResizeBody: cell occupation changed! old=(', x0, ',', y0, ')-(', x0+w-1, ',', y0+h-1, '); new=(', nx, ',', ny, ')-(', nx+nw-1, ',', ny+nh-1, ')');
+    //removeInternal(body);
+    forGridRect(px.mX, px.mY, px.mWidth, px.mHeight, remover, body);
     px.mX := nx+mMinX;
     px.mY := ny+mMinY;
     px.mWidth := nw;
     px.mHeight := nh;
-    insertInternal(body);
+    //insertInternal(body);
+    forGridRect(px.mX, px.mY, nw, nh, inserter, body);
   end
   else
   begin
@@ -1440,6 +1434,7 @@ begin
     px.mHeight := nh;
   end;
 end;
+
 
 //TODO: optimize for horizontal/vertical moves
 procedure TBodyGridBase.moveBody (body: TBodyProxyId; nx, ny: Integer);
@@ -1580,6 +1575,7 @@ begin
   px.mY := ny+mMinY;
 end;
 
+
 procedure TBodyGridBase.resizeBody (body: TBodyProxyId; nw, nh: Integer);
 var
   px: PBodyProxyRec;
@@ -1595,14 +1591,16 @@ begin
   {$IF DEFINED(D2F_DEBUG_MOVER)}
   e_WriteLog(Format('proxy #%d: RESIZE: xg=%d;yg=%d;w=%d;h=%d;nw=%d;nh=%d', [body, x0, y0, w, h, nw, nh]), MSG_NOTIFY);
   {$ENDIF}
-  if ((x0+w) div mTileSize <> (x0+nw) div mTileSize) or
-     ((y0+h) div mTileSize <> (y0+nh) div mTileSize) then
+  if ((x0+w-1) div mTileSize <> (x0+nw-1) div mTileSize) or
+     ((y0+h-1) div mTileSize <> (y0+nh-1) div mTileSize) then
   begin
     // crossed tile boundary, do heavy work
-    removeInternal(body);
+    //removeInternal(body);
+    forGridRect(px.mX, px.mY, px.mWidth, px.mHeight, remover, body);
     px.mWidth := nw;
     px.mHeight := nh;
-    insertInternal(body);
+    //insertInternal(body);
+    forGridRect(px.mX, px.mY, nw, nh, inserter, body);
   end
   else
   begin
