@@ -794,7 +794,7 @@ begin
 
   {$IF DEFINED(D2F_DEBUG)}
   if gPlayer1 <> nil then gPlayer1.NoTarget := True;
-  gAimLine := true;
+  gAimLine := g_dbg_aimline_on;
   {$ENDIF}
 end;
 

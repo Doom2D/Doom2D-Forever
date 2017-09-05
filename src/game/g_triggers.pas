@@ -2608,6 +2608,7 @@ end;
 
 procedure g_Triggers_Press(ID: DWORD; ActivateType: Byte; ActivateUID: Word = 0);
 begin
+  if (ID >= Length(gTriggers)) then exit;
   gTriggers[ID].ActivateUID := ActivateUID;
   ActivateTrigger(gTriggers[ID], ActivateType);
 end;

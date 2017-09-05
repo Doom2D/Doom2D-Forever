@@ -1293,10 +1293,11 @@ begin
   end;
 end;
 
-procedure CreateTrigger (amapIdx: Integer; Trigger: TDynRecord; atpanid, atrigpanid: Integer; fTexturePanel1Type, fTexturePanel2Type: Word);
+function CreateTrigger (amapIdx: Integer; Trigger: TDynRecord; atpanid, atrigpanid: Integer; fTexturePanel1Type, fTexturePanel2Type: Word): Integer;
 var
   _trigger: TTrigger;
 begin
+  result := -1;
   if g_Game_IsClient and not (Trigger.TriggerType in [TRIGGER_SOUND, TRIGGER_MUSIC]) then Exit;
 
   with _trigger do
@@ -1332,7 +1333,7 @@ begin
     end;
   end;
 
-  g_Triggers_Create(_trigger);
+  result := Integer(g_Triggers_Create(_trigger));
 end;
 
 procedure CreateMonster(monster: TDynRecord);
@@ -1577,6 +1578,8 @@ type
   PTRec = ^TTRec;
   TTRec = record
     //TexturePanel: Integer;
+    tnum: Integer;
+    id: Integer;
     texPanIdx: Integer;
     LiftPanelIdx: Integer;
     DoorPanelIdx: Integer;
@@ -1613,6 +1616,7 @@ var
   stt: UInt64;
   moveSpeed{, moveStart, moveEnd}: TDFPoint;
   //moveActive: Boolean;
+  pan: TPanel;
 begin
   mapGrid.Free();
   mapGrid := nil;
@@ -2057,7 +2061,21 @@ begin
         else if (TriggersTable[trignum].MPlatPanelIdx <> -1) then tgpid := TriggersTable[trignum].MPlatPanelIdx
         else tgpid := -1;
         //e_LogWritefln('creating trigger #%s; texpantype=%s; shotpantype=%s (%d,%d)', [trignum, b, c, TriggersTable[trignum].texPanIdx, TriggersTable[trignum].ShotPanelIdx]);
-        CreateTrigger(trignum, rec, TriggersTable[trignum].texPanIdx, tgpid, Word(b), Word(c));
+        TriggersTable[trignum].tnum := trignum;
+        TriggersTable[trignum].id := CreateTrigger(trignum, rec, TriggersTable[trignum].texPanIdx, tgpid, Word(b), Word(c));
+      end;
+    end;
+
+    //FIXME: use hashtable!
+    for pan in panByGUID do
+    begin
+      if (pan.endPosTrigId >= 0) and (pan.endPosTrigId < Length(TriggersTable)) then
+      begin
+        pan.endPosTrigId := TriggersTable[pan.endPosTrigId].id;
+      end;
+      if (pan.endSizeTrigId >= 0) and (pan.endSizeTrigId < Length(TriggersTable)) then
+      begin
+        pan.endSizeTrigId := TriggersTable[pan.endSizeTrigId].id;
       end;
     end;
 

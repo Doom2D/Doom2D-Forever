@@ -54,9 +54,14 @@ TPanelRec_1 is "panel" size 18 bytes binblock 2 {
   Flags is "flags" type ubyte offset 17 bitset PanelFlag default PANEL_FLAG_NONE omitdefault;
   // moving platform options, not in binary
   MoveSpeed is "move_speed" type point default (0 0) omitdefault;
+  SizeSpeed is "size_speed" type point default (0 0) omitdefault; // alas, `size` cannot be negative
   MoveStart is "move_start" type point default (0 0) omitdefault;
   MoveEnd is "move_end" type point default (0 0) omitdefault;
+  SizeEnd is "size_end" type size default (0 0) omitdefault;
   MoveActive is "move_active" type bool default false omitdefault;
+  MoveOnce is "move_once" type bool default false omitdefault;
+  EndPosTrigger is "end_pos_trigger" type int trigger default null omitdefault;
+  EndSizeTrigger is "end_size_trigger" type int trigger default null omitdefault;
   // not in binary
   //Id is "id" type string default "" omitdefault;
   // internals

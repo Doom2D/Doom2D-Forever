@@ -44,6 +44,17 @@ type
     function isZero (): Boolean; inline;
   end;
 
+  TDFSize = packed record
+  public
+    w, h: LongInt;
+
+  public
+    constructor Create (aw, ah: LongInt);
+
+    function isZero (): Boolean; inline;
+    function isValid (): Boolean; inline;
+  end;
+
   Char16     = packed array[0..15] of Char;
   Char32     = packed array[0..31] of Char;
   Char64     = packed array[0..63] of Char;
@@ -70,6 +81,7 @@ type
     function getPanelIndex (pan: TDynRecord): Integer;
 
     function getPointField (const aname: AnsiString): TDFPoint; inline;
+    function getSizeField (const aname: AnsiString): TDFSize; inline;
 
   public
     function panelCount (): Integer; inline;
@@ -95,6 +107,14 @@ type
     function moveSpeed (): TDFPoint; inline;
     function moveStart (): TDFPoint; inline;
     function moveEnd (): TDFPoint; inline;
+
+    function moveOnce (): Boolean; inline;
+
+    function sizeSpeed (): TDFSize; inline;
+    function sizeEnd (): TDFSize; inline;
+
+    function endPosTrig (): Integer; inline;
+    function endSizeTrig (): Integer; inline;
 
     // texture
     function Resource (): AnsiString; inline;
@@ -155,6 +175,11 @@ constructor TDFPoint.Create (ax, ay: LongInt); begin X := ax; Y := ay; end;
 function TDFPoint.isZero (): Boolean; inline; begin result := (X = 0) and (Y = 0); end;
 
 
+constructor TDFSize.Create (aw, ah: LongInt); begin w := aw; h := ah; end;
+function TDFSize.isZero (): Boolean; inline; begin result := (w = 0) and (h = 0); end;
+function TDFSize.isValid (): Boolean; inline; begin result := (w > 0) and (h > 0); end;
+
+
 // ////////////////////////////////////////////////////////////////////////// //
 function TDynRecordHelper.getUserPanelId (): Integer; inline;
 var
@@ -193,6 +218,28 @@ function TDynRecordHelper.moveSpeed (): TDFPoint; inline; begin result := getPoi
 function TDynRecordHelper.moveStart (): TDFPoint; inline; begin result := getPointField('move_start'); end;
 function TDynRecordHelper.moveEnd (): TDFPoint; inline; begin result := getPointField('move_end'); end;
 
+function TDynRecordHelper.sizeSpeed (): TDFSize; inline; begin result := getSizeField('size_speed'); end;
+function TDynRecordHelper.sizeEnd (): TDFSize; inline; begin result := getSizeField('size_end'); end;
+
+function TDynRecordHelper.moveOnce (): Boolean; inline; begin result := (getFieldWithType('move_once', TDynField.TType.TBool).ival <> 0); end;
+
+
+function TDynRecordHelper.endPosTrig (): Integer; inline;
+var
+  fld: TDynField;
+begin
+  fld := getFieldWithType('end_pos_trigger', TDynField.TType.TInt);
+  result := fld.recrefIndex;
+end;
+
+function TDynRecordHelper.endSizeTrig (): Integer; inline;
+var
+  fld: TDynField;
+begin
+  fld := getFieldWithType('end_size_trigger', TDynField.TType.TInt);
+  result := fld.recrefIndex;
+end;
+
 
 // ////////////////////////////////////////////////////////////////////////// //
 function TDynRecordHelper.getFieldWithType (const aname: AnsiString; atype: TDynField.TType): TDynField; inline;
@@ -211,6 +258,17 @@ begin
   if (fld = nil) then raise Exception.Create(Format('field ''%s'' not found in record ''%s'' of type ''%s''', [aname, name, id]));
   if (fld.baseType <> TPoint) then raise Exception.Create(Format('field ''%s'' in record ''%s'' of type ''%s'' has invalid data type', [aname, name, id]));
   result := TDFPoint.Create(fld.ival, fld.ival2);
+end;
+
+
+function TDynRecordHelper.getSizeField (const aname: AnsiString): TDFSize; inline;
+var
+  fld: TDynField;
+begin
+  fld := field[aname];
+  if (fld = nil) then raise Exception.Create(Format('field ''%s'' not found in record ''%s'' of type ''%s''', [aname, name, id]));
+  if (fld.baseType <> TSize) and (fld.baseType <> TPoint) then raise Exception.Create(Format('field ''%s'' in record ''%s'' of type ''%s'' has invalid data type', [aname, name, id]));
+  result := TDFSize.Create(fld.ival, fld.ival2);
 end;
 
 

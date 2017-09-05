@@ -1647,9 +1647,17 @@ begin
           else
           begin
             rec := mOwner.findRecordByTypeId(mEBSTypeName, pr.tokStr);
-            if (rec = nil) then raise Exception.Create(Format('record ''%s'' (%s) value for field ''%s'' not found', [pr.tokStr, mEBSTypeName, mName]));
+            if (rec = nil) then
+            begin
+              //raise Exception.Create(Format('record ''%s'' (%s) value for field ''%s'' not found', [pr.tokStr, mEBSTypeName, mName]));
+              mRecRefId := pr.tokStr;
+            end
+            else
+            begin
+              mRecRef := rec;
+              mRecRefId := '';
+            end;
             pr.expectId();
-            mRecRef := rec;
           end;
           mDefined := true;
           pr.expectTT(pr.TTSemi);
@@ -2634,6 +2642,40 @@ var
   {$IF DEFINED(D2D_DYNREC_PROFILER)}
   stt, stall: UInt64;
   {$ENDIF}
+
+  procedure linkNames (rec: TDynRecord);
+  var
+    fld: TDynField;
+    rt: TDynRecord;
+  begin
+    //writeln('*** rec: ', rec.mName, '.', rec.mId, ' (', rec.mFields.count, ')');
+    for fld in rec.mFields do
+    begin
+      if (fld.mType = TDynField.TType.TTrigData) then
+      begin
+        if (fld.mRecRef <> nil) then linkNames(fld.mRecRef);
+        continue;
+      end;
+      if (Length(fld.mRecRefId) = 0) then continue;
+      assert(fld.mEBSType <> nil);
+      rt := findRecordByTypeId(fld.mEBSTypeName, fld.mRecRefId);
+      if (rt = nil) then
+      begin
+        e_LogWritefln('record of type ''%s'' with id ''%s'' links to inexistant record of type ''%s'' with id ''%s''', [rec.mName, rec.mId, fld.mEBSTypeName, fld.mRecRefId], MSG_WARNING);
+        //raise Exception.Create(Format('record of type ''%s'' with id ''%s'' links to inexistant record of type ''%s'' with id ''%s''', [rec.mName, rec.mId, fld.mEBSTypeName, fld.mRecRefId]));
+      end;
+      //writeln(' ', rec.mName, '.', rec.mId, ':', fld.mName, ' -> ', rt.mName, '.', rt.mId, ' (', fld.mEBSTypeName, '.', fld.mRecRefId, ')');
+      fld.mRecRefId := '';
+      fld.mRecRef := rt;
+      fld.mDefined := true;
+    end;
+    for fld in rec.mFields do
+    begin
+      //writeln('  ', fld.mName);
+      fld.fixDefaultValue(); // just in case
+    end;
+  end;
+
 begin
   if (mOwner = nil) then raise Exception.Create(Format('can''t parse record ''%s'' value without owner', [mName]));
 
@@ -2724,6 +2766,17 @@ begin
     raise Exception.Create(Format('unknown field ''%s'' in record ''%s''', [pr.tokStr, mName]));
   end;
   pr.expectTT(pr.TTEnd);
+
+  if mHeader then
+  begin
+    // link fields
+    for fld in mFields do
+    begin
+      if (fld.mType <> TDynField.TType.TList) then continue;
+      for rec in fld.mRVal do linkNames(rec);
+    end;
+  end;
+
   // fix field defaults
   {$IF DEFINED(D2D_DYNREC_PROFILER)}stt := curTimeMicro();{$ENDIF}
   for fld in mFields do fld.fixDefaultValue();
@@ -3115,7 +3168,7 @@ begin
     result := res;
     res := nil;
   finally
-    res.Free();
+    //TMP:segfaults! res.Free();
   end;
 end;
 

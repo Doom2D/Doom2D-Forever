@@ -40,6 +40,7 @@ var
   gwin_dump_extensions: Boolean = false;
   gwin_has_stencil: Boolean = false;
   gwin_k8_enable_light_experiments: Boolean = false;
+  g_dbg_aimline_on: Boolean = false;
 
 
 implementation
@@ -871,6 +872,10 @@ begin
     if arg = '--no-particles-physics' then gpart_dbg_phys_enabled := false;
     if arg = '--no-particle-phys' then gpart_dbg_phys_enabled := false;
     if arg = '--no-particle-physics' then gpart_dbg_phys_enabled := false;
+
+    {$IF DEFINED(D2F_DEBUG)}
+    if arg = '--aimline' then g_dbg_aimline_on := false;
+    {$ENDIF}
 
     if arg = '--holmes' then begin g_holmes_enabled := true; g_Game_SetDebugMode(); end;
     if (arg = '--holmes-ui-scale') or (arg = '-holmes-ui-scale') then
