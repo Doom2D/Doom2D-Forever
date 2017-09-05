@@ -1530,7 +1530,7 @@ begin
   cmdAdd('atcur_dump_walls', cbAtcurDumpWalls, 'dump walls in cell', 'wall control');
   cmdAdd('atcur_disable_walls', cbAtcurToggleWalls, 'disable walls', 'wall control');
 
-  cmdAdd('dbg_tracebox', dbgToggleTraceBox, 'disable walls', 'wall control');
+  cmdAdd('dbg_tracebox', dbgToggleTraceBox, 'test traceBox()', 'player control');
 end;
 
 
