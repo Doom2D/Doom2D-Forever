@@ -25,6 +25,8 @@ unit g_grid;
 
 interface
 
+const
+  GridTileSize = 32; // must be power of two!
 
 type
   TBodyProxyId = Integer;
@@ -33,7 +35,6 @@ type
   public
     type TGridQueryCB = function (obj: ITP; tag: Integer): Boolean is nested; // return `true` to stop
     type TGridRayQueryCB = function (obj: ITP; tag: Integer; x, y, prevx, prevy: Integer): Boolean is nested; // return `true` to stop
-
     type TCellQueryCB = procedure (x, y: Integer) is nested; // top-left cell corner coords
 
     const TagDisabled = $40000000;
@@ -41,7 +42,6 @@ type
 
   private
     const
-      GridDefaultTileSize = 32; // must be power of two!
       GridCellBucketSize = 8; // WARNING! can't be less than 2!
 
   public
@@ -96,7 +96,7 @@ type
 
   private
     //mTileSize: Integer;
-    const mTileSize = GridDefaultTileSize;
+    const mTileSize = GridTileSize;
     type TGetProxyFn = function (pxidx: Integer): PBodyProxyRec of object;
 
   public
@@ -194,13 +194,24 @@ type
     // no callback: return object of the nearest hit or nil
     // if `inverted` is true, trace will register bodies *exluding* tagmask
     //WARNING: don't change tags in callbacks here!
-    function traceRay (const x0, y0, x1, y1: Integer; cb: TGridRayQueryCB; tagmask: Integer=-1): ITP; overload;
-    function traceRay (out ex, ey: Integer; const ax0, ay0, ax1, ay1: Integer; cb: TGridRayQueryCB; tagmask: Integer=-1): ITP;
+    function traceRayOld (const x0, y0, x1, y1: Integer; cb: TGridRayQueryCB; tagmask: Integer=-1): ITP; overload;
+    function traceRayOld (out ex, ey: Integer; const ax0, ay0, ax1, ay1: Integer; cb: TGridRayQueryCB; tagmask: Integer=-1): ITP;
+
+    //WARNING: don't modify grid while any query is in progress (no checks are made!)
+    //         you can set enabled/disabled flag, tho (but iterator can still return objects disabled inside it)
+    // cb with `(nil)` will be called before processing new tile
+    // no callback: return object of the nearest hit or nil
+    // if `inverted` is true, trace will register bodies *exluding* tagmask
+    // `cb` is used unconvetionally here: if it returns `false`, tracer will ignore the object
+    //WARNING: don't change tags in callbacks here!
+    function traceRay (const x0, y0, x1, y1: Integer; cb: TGridQueryCB; tagmask: Integer=-1): ITP; overload;
+    function traceRay (out ex, ey: Integer; const ax0, ay0, ax1, ay1: Integer; cb: TGridQueryCB; tagmask: Integer=-1): ITP;
 
     // return `false` if we're still inside at the end
     // line should be either strict horizontal, or strict vertical, otherwise an exception will be thrown
     // `true`: endpoint will point at the last "inside" pixel
     // `false`: endpoint will be (ax1, ay1)
+    //WARNING: don't change tags in callbacks here!
     function traceOrthoRayWhileIn (out ex, ey: Integer; ax0, ay0, ax1, ay1: Integer; tagmask: Integer=-1): Boolean;
 
     //WARNING: don't modify grid while any query is in progress (no checks are made!)
@@ -211,6 +222,7 @@ type
 
     // trace box with the given velocity; return object hit (if any)
     // `cb` is used unconvetionally here: if it returns `false`, tracer will ignore the object
+    //WARNING: don't change tags in callbacks here!
     function traceBox (out ex, ey: Integer; const ax0, ay0, aw, ah: Integer; const dx, dy: Integer; cb: TGridQueryCB; tagmask: Integer=-1): ITP;
 
     // debug
@@ -228,6 +240,59 @@ type
     property gridHeight: Integer read getGridHeightPx; // in pixels
 
     property proxy[idx: TBodyProxyId]: PBodyProxyRec read getProxyById;
+  end;
+
+
+type
+  // common structure for all line tracers
+  TLineWalker = record
+  public
+    const TileSize = GridTileSize;
+
+  private
+    wx0, wy0, wx1, wy1: Integer; // window coordinates
+    stx, sty: Integer; // "steps" for x and y axes
+    dx2, dy2: Integer; // "double lengthes" for x and y axes
+    xd, yd: Integer; // current coord
+    e: Integer; // "error" (as in bresenham algo)
+    term: Integer; // end for xd (xd = term: done)
+    //xptr, yptr: PInteger;
+    xyswapped: Boolean; // true: xd is y
+
+  public
+    // call `setyp` after this
+    constructor Create (minx, miny, maxx, maxy: Integer);
+
+    procedure setClip (minx, miny, maxx, maxy: Integer); inline;
+
+    // this will use `w[xy][01]` to clip coords
+    // return `false` if the whole line was clipped away
+    // on `true`, you should process first point, and go on
+    function setup (x0, y0, x1, y1: Integer): Boolean;
+
+    // call this *after* doing a step
+    // WARNING! if you will do a step when this returns `true`, you will fall into limbo
+    function done (): Boolean; inline;
+
+    // as you will prolly call `done()` after doing a step anyway, this will do it for you
+    // move to next point, return `true` when the line is complete (i.e. you should stop)
+    function step (): Boolean; inline;
+
+    // move to next tile; return `true` if the line is complete (and walker state is undefined then)
+    function stepToNextTile (): Boolean; inline;
+
+    // hack for line-vs-aabb; NOT PROPERLY TESTED!
+    procedure getPrevXY (out ox, oy: Integer); inline;
+
+    // current coords
+    function x (): Integer; inline;
+    function y (): Integer; inline;
+
+    procedure getXY (out ox, oy: Integer); inline;
+
+    // move directions; always [-1..1] (can be zero!)
+    function dx (): Integer; inline;
+    function dy (): Integer; inline;
   end;
 
 
@@ -250,8 +315,8 @@ function sweepAABB (mex0, mey0, mew, meh: Integer; medx, medy: Integer; itx0, it
 function distanceSq (x0, y0, x1, y1: Integer): Integer; inline;
 
 procedure swapInt (var a: Integer; var b: Integer); inline;
-function minInt (a, b: Integer): Integer; inline;
-function maxInt (a, b: Integer): Integer; inline;
+//function minInt (a, b: Integer): Integer; inline;
+//function maxInt (a, b: Integer): Integer; inline;
 
 
 implementation
@@ -262,10 +327,250 @@ uses
 
 // ////////////////////////////////////////////////////////////////////////// //
 procedure swapInt (var a: Integer; var b: Integer); inline; var t: Integer; begin t := a; a := b; b := t; end;
-function minInt (a, b: Integer): Integer; inline; begin if (a < b) then result := a else result := b; end;
-function maxInt (a, b: Integer): Integer; inline; begin if (a > b) then result := a else result := b; end;
+//function minInt (a, b: Integer): Integer; inline; begin if (a < b) then result := a else result := b; end;
+//function maxInt (a, b: Integer): Integer; inline; begin if (a > b) then result := a else result := b; end;
 
 function distanceSq (x0, y0, x1, y1: Integer): Integer; inline; begin result := (x1-x0)*(x1-x0)+(y1-y0)*(y1-y0); end;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
+constructor TLineWalker.Create (minx, miny, maxx, maxy: Integer);
+begin
+  setClip(minx, miny, maxx, maxy);
+end;
+
+procedure TLineWalker.setClip (minx, miny, maxx, maxy: Integer); inline;
+begin
+  // clip rectange
+  wx0 := minx;
+  wy0 := miny;
+  wx1 := maxx;
+  wy1 := maxy;
+end;
+
+function TLineWalker.done (): Boolean; inline; begin result := (xd = term); end;
+
+function TLineWalker.step (): Boolean; inline;
+begin
+  if (e >= 0) then begin yd += sty; e -= dx2; end else e += dy2;
+  xd += stx;
+  result := (xd = term);
+end;
+
+// move to next tile; return `true` if the line is complete (and walker state is undefined then)
+function TLineWalker.stepToNextTile (): Boolean; inline;
+var
+  ex, ey, wklen, f: Integer;
+begin
+  result := false;
+
+  //writeln('stx=', stx, '; sty=', sty);
+
+  // ortho?
+  if (sty = 0) then
+  begin
+    // only xd
+    assert(sty <> 0);
+    if (stx < 0) then
+    begin
+      // xd: to left edge
+      xd := (xd and (not (TileSize-1)))-1;
+      result := (xd <= term);
+      exit;
+    end
+    else
+    begin
+      // xd: to right edge
+      xd := (xd or (TileSize-1))+1;
+      result := (xd >= term);
+      exit;
+    end;
+  end;
+
+  assert(stx <> 0); // invariant
+
+  // not ortho
+  if (sty < 0) then ey := (yd and (not (TileSize-1)))-1 else ey := (yd or (TileSize-1))+1;
+
+  //FIXME: do some math to avoid single-stepping
+  if (stx < 0) then
+  begin
+    // xd: to left edge
+    ex := (xd and (not (TileSize-1)))-1;
+    if (ex <= term) then begin result := true; exit; end;
+    wklen := xd-ex;
+  end
+  else
+  begin
+    // xd: to right edge
+    ex := (xd or (TileSize-1))+1;
+    if (ex >= term) then begin result := true; exit; end;
+    wklen := ex-xd;
+  end;
+
+  //writeln('xd=', xd, '; yd=', yd, '; ex=', ex, '; ey=', ey, '; term=', term, '; wklen=', wklen);
+
+  for f := wklen downto 1 do
+  begin
+    // do step
+    if (e >= 0) then begin yd += sty; e -= dx2; end else e += dy2;
+    xd += stx;
+    if (xd = term) then begin result := true; exit; end;
+    if (xd = ex) or (yd = ey) then exit; // done
+  end;
+
+  raise Exception.Create('TLineWalker.stepToNextTile: the thing that should not be!');
+end;
+
+// NOT TESTED!
+procedure TLineWalker.getPrevXY (out ox, oy: Integer); inline;
+begin
+  //writeln('e=', e, '; dx2=', dx2, '; dy2=', dy2);
+  if xyswapped then
+  begin
+    if (e >= 0) then ox := yd-sty else ox := yd;
+    oy := xd-stx;
+  end
+  else
+  begin
+    if (e >= 0) then oy := yd-sty else oy := yd;
+    ox := xd-stx;
+  end;
+end;
+
+function TLineWalker.x (): Integer; inline; begin if xyswapped then result := yd else result := xd; end;
+function TLineWalker.y (): Integer; inline; begin if xyswapped then result := xd else result := yd; end;
+procedure TLineWalker.getXY (out ox, oy: Integer); inline; begin if xyswapped then begin ox := yd; oy := xd; end else begin ox := xd; oy := yd; end; end;
+
+function TLineWalker.dx (): Integer; inline; begin if xyswapped then result := stx else result := sty; end;
+function TLineWalker.dy (): Integer; inline; begin if xyswapped then result := sty else result := stx; end;
+
+function TLineWalker.setup (x0, y0, x1, y1: Integer): Boolean;
+  procedure swapInt (var a: Integer; var b: Integer); inline; var t: Integer; begin t := a; a := b; b := t; end;
+var
+  dsx, dsy: Integer; // "lengthes" for x and y axes
+  rem: Integer;
+  xfixed: Boolean;
+  temp: Integer;
+begin
+  result := false;
+  xyswapped := false;
+
+  // horizontal setup
+  if (x0 < x1) then
+  begin
+    // from left to right
+    if (x0 > wx1) or (x1 < wx0) then exit; // out of screen
+    stx := 1; // going right
+  end
+  else
+  begin
+    // from right to left
+    if (x1 > wx1) or (x0 < wx0) then exit; // out of screen
+    stx := -1; // going left
+    x0 := -x0;
+    x1 := -x1;
+    wx0 := -wx0;
+    wx1 := -wx1;
+    swapInt(wx0, wx1);
+  end;
+
+  // vertical setup
+  if (y0 < y1) then
+  begin
+    // from top to bottom
+    if (y0 > wy1) or (y1 < wy0) then exit; // out of screen
+    sty := 1; // going down
+  end
+  else
+  begin
+    // from bottom to top
+    if (y1 > wy1) or (y0 < wy0) then exit; // out of screen
+    sty := -1; // going up
+    y0 := -y0;
+    y1 := -y1;
+    wy0 := -wy0;
+    wy1 := -wy1;
+    swapInt(wy0, wy1);
+  end;
+
+  dsx := x1-x0;
+  dsy := y1-y0;
+
+  if (dsx < dsy) then
+  begin
+    xyswapped := true;
+    //xptr := @yd;
+    //yptr := @xd;
+    swapInt(x0, y0);
+    swapInt(x1, y1);
+    swapInt(dsx, dsy);
+    swapInt(wx0, wy0);
+    swapInt(wx1, wy1);
+    swapInt(stx, sty);
+  end
+  else
+  begin
+    //xptr := @xd;
+    //yptr := @yd;
+  end;
+
+  dx2 := 2*dsx;
+  dy2 := 2*dsy;
+  xd := x0;
+  yd := y0;
+  e := 2*dsy-dsx;
+  term := x1;
+
+  xfixed := false;
+  if (y0 < wy0) then
+  begin
+    // clip at top
+    temp := dx2*(wy0-y0)-dsx;
+    xd += temp div dy2;
+    rem := temp mod dy2;
+    if (xd > wx1) then exit; // x is moved out of clipping rect, nothing to do
+    if (xd+1 >= wx0) then
+    begin
+      yd := wy0;
+      e -= rem+dsx;
+      if (rem > 0) then begin Inc(xd); e += dy2; end;
+      xfixed := true;
+    end;
+  end;
+
+  if (not xfixed) and (x0 < wx0) then
+  begin
+    // clip at left
+    temp := dy2*(wx0-x0);
+    yd += temp div dx2;
+    rem := temp mod dx2;
+    if (yd > wy1) or (yd = wy1) and (rem >= dsx) then exit;
+    xd := wx0;
+    e += rem;
+    if (rem >= dsx) then begin Inc(yd); e -= dx2; end;
+  end;
+
+  if (y1 > wy1) then
+  begin
+    // clip at bottom
+    temp := dx2*(wy1-y0)+dsx;
+    term := x0+temp div dy2;
+    rem := temp mod dy2;
+    if (rem = 0) then Dec(term);
+  end;
+
+  if (term > wx1) then term := wx1; // clip at right
+
+  Inc(term); // draw last point (it is ok to inc here, as `term` sign will be changed later
+  //if (term = xd) then exit; // this is the only point, get out of here
+
+  if (sty = -1) then yd := -yd;
+  if (stx = -1) then begin xd := -xd; term := -term; end;
+  dx2 -= dy2;
+
+  result := true;
+end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
@@ -1478,17 +1783,17 @@ end;
 
 // ////////////////////////////////////////////////////////////////////////// //
 // no callback: return `true` on the nearest hit
-function TBodyGridBase.traceRay (const x0, y0, x1, y1: Integer; cb: TGridRayQueryCB; tagmask: Integer=-1): ITP;
+function TBodyGridBase.traceRayOld (const x0, y0, x1, y1: Integer; cb: TGridRayQueryCB; tagmask: Integer=-1): ITP;
 var
   ex, ey: Integer;
 begin
-  result := traceRay(ex, ey, x0, y0, x1, y1, cb, tagmask);
+  result := traceRayOld(ex, ey, x0, y0, x1, y1, cb, tagmask);
 end;
 
 
 // no callback: return `true` on the nearest hit
 // you are not supposed to understand this
-function TBodyGridBase.traceRay (out ex, ey: Integer; const ax0, ay0, ax1, ay1: Integer; cb: TGridRayQueryCB; tagmask: Integer=-1): ITP;
+function TBodyGridBase.traceRayOld (out ex, ey: Integer; const ax0, ay0, ax1, ay1: Integer; cb: TGridRayQueryCB; tagmask: Integer=-1): ITP;
 const
   tsize = mTileSize;
 var
@@ -2783,6 +3088,137 @@ begin
     // horizontal
     assert(false);
   end;
+end;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
+function TBodyGridBase.traceRay (const x0, y0, x1, y1: Integer; cb: TGridQueryCB; tagmask: Integer=-1): ITP;
+var
+  ex, ey: Integer;
+begin
+  result := traceRay(ex, ey, x0, y0, x1, y1, cb, tagmask);
+end;
+
+
+// no callback: return `true` on the nearest hit
+// you are not supposed to understand this
+function TBodyGridBase.traceRay (out ex, ey: Integer; const ax0, ay0, ax1, ay1: Integer; cb: TGridQueryCB; tagmask: Integer=-1): ITP;
+var
+  lw, sweepw: TLineWalker;
+  ccidx: Integer;
+  gw, gh, minx, miny: Integer;
+  cc: PGridCell;
+  px: PBodyProxyRec;
+  lq: LongWord;
+  f, ptag: Integer;
+  x0, y0, x1, y1, cx, cy, px0, py0, px1, py1: Integer;
+  lastDistSq, distSq, hx, hy: Integer;
+  firstCell: Boolean = true;
+  wasHit: Boolean;
+begin
+  result := Default(ITP);
+  tagmask := tagmask and TagFullMask;
+  if (tagmask = 0) then exit;
+
+  gw := mWidth;
+  gh := mHeight;
+  minx := mMinX;
+  miny := mMinY;
+
+  // make query coords to (0,0)-based
+  x0 := ax0-minx;
+  y0 := ay0-miny;
+  x1 := ax1-minx;
+  y1 := ay1-miny;
+
+  lw := TLineWalker.Create(0, 0, gw*mTileSize-1, gh*mTileSize-1);
+  if not lw.setup(x0, y0, x1, y1) then exit; // out of screen
+
+  sweepw := TLineWalker.Create(0, 0, 1, 1); // doesn't matter, just shut ups the compiler
+
+  lastDistSq := distanceSq(ax0, ay0, ax1, ay1)+1;
+
+  if mInQuery then raise Exception.Create('recursive queries aren''t supported');
+  mInQuery := true;
+
+  // increase query counter
+  Inc(mLastQuery);
+  if (mLastQuery = 0) then
+  begin
+    // just in case of overflow
+    mLastQuery := 1;
+    for f := 0 to High(mProxies) do mProxies[f].mQueryMark := 0;
+  end;
+  lq := mLastQuery;
+
+  ccidx := -1;
+  repeat
+    lw.getXY(cx, cy);
+    // check tile
+    ccidx := mGrid[(cy div mTileSize)*gw+(cx div mTileSize)];
+    // process cells
+    wasHit := false;
+    while (ccidx <> -1) do
+    begin
+      cc := @mCells[ccidx];
+      for f := 0 to GridCellBucketSize-1 do
+      begin
+        if (cc.bodies[f] = -1) then break;
+        px := @mProxies[cc.bodies[f]];
+        ptag := px.mTag;
+        if ((ptag and TagDisabled) = 0) and ((ptag and tagmask) <> 0) and (px.mQueryMark <> lq) then
+        begin
+          px.mQueryMark := lq; // mark as processed
+          if assigned(cb) then
+          begin
+            if not cb(px.mObj, ptag) then continue;
+          end;
+          // get adjusted proxy coords
+          px0 := px.mX-minx;
+          py0 := px.mY-miny;
+          px1 := px0+px.mWidth-1;
+          py1 := py0+px.mHeight-1;
+          // inside?
+          if firstCell and (x0 >= px0) and (y0 >= py0) and (x0 <= px1) and (y0 <= py1) then
+          begin
+            // oops
+            ex := ax0;
+            ey := ay0;
+            result := px.mObj;
+            mInQuery := false;
+            exit;
+          end;
+          // do line-vs-aabb test
+          sweepw.setClip(px0, py0, px1, py1);
+          if sweepw.setup(x0, y0, x1, y1) then
+          begin
+            // hit detected
+            sweepw.getPrevXY(hx, hy);
+            distSq := distanceSq(x0, y0, hx, hy);
+            if (distSq < lastDistSq) then
+            begin
+              lastDistSq := distSq;
+              ex := hx+minx;
+              ey := hy+miny;
+              result := px.mObj;
+              // if this is not a first cell, get outta here
+              if not firstCell then begin mInQuery := false; exit; end;
+              wasHit := true;
+            end;
+          end;
+        end;
+      end;
+      // next cell
+      ccidx := cc.next;
+    end;
+    // done processing cells; exit if we registered a hit
+    // next cells can't have better candidates, obviously
+    if wasHit then begin mInQuery := false; exit; end;
+    firstCell := false;
+    // move to next tile
+  until lw.stepToNextTile();
+
+  mInQuery := false;
 end;
 
 
