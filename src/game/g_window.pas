@@ -47,8 +47,9 @@ implementation
 
 uses
 {$IFDEF WINDOWS}Windows,{$ENDIF}
+  SysUtils, Classes, MAPDEF,
   SDL2, GL, GLExt, e_graphics, e_log, g_main,
-  g_console, SysUtils, e_input, g_options, g_game,
+  g_console, e_input, g_options, g_game,
   g_basic, g_textures, e_sound, g_sound, g_menu, ENet, g_net,
   g_map, g_gfx, g_monsters, g_holmes, xprofiler, utils;
 
@@ -822,6 +823,7 @@ var
   idx: Integer;
   ltmp: Integer;
   arg: AnsiString;
+  mdfo: TStream;
 begin
 {$IFDEF HEADLESS}
   e_NoGraphics := True;
@@ -873,6 +875,14 @@ begin
       end;
     end;
     {$ENDIF}
+
+    if (arg = '--write-mapdef') or (arg = '-write-mapdef') then
+    begin
+      mdfo := createDiskFile('mapdef.txt');
+      mdfo.WriteBuffer(defaultMapDef[1], Length(defaultMapDef));
+      mdfo.Free();
+      Halt(0);
+    end;
   end;
 
   e_WriteLog('Initializing OpenGL', MSG_NOTIFY);
