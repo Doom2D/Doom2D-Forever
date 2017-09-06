@@ -239,7 +239,7 @@ begin
   mMovingSpeed := PanelRec.moveSpeed;
   mMovingStart := PanelRec.moveStart;
   mMovingEnd := PanelRec.moveEnd;
-  mMovingActive := PanelRec['move_active'].varvalue;
+  mMovingActive := PanelRec['move_active'].value;
   mOldMovingActive := mMovingActive;
   mMoveOnce := PanelRec.moveOnce;
 

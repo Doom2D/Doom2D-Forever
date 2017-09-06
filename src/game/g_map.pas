@@ -358,8 +358,11 @@ begin
 
   try
     dfmapdef := TDynMapDef.Create(pr);
-  except on e: Exception do
-    raise Exception.Create(Format('ERROR in "mapdef.txt" at (%s,%s): %s', [pr.line, pr.col, e.message]));
+  except
+    on e: TDynParseException do
+      raise Exception.CreateFmt('ERROR in "mapdef.txt" at (%s,%s): %s', [e.tokLine, e.tokCol, e.message]);
+    on e: Exception do
+      raise Exception.CreateFmt('ERROR in "mapdef.txt" at (%s,%s): %s', [pr.tokLine, pr.tokCol, e.message]);
   end;
 
   st.Free();
@@ -371,7 +374,6 @@ end;
 function g_Map_ParseMap (data: Pointer; dataLen: Integer): TDynRecord;
 var
   wst: TSFSMemoryChunkStream = nil;
-  pr: TTextParser = nil;
 begin
   result := nil;
   if (dataLen < 4) then exit;
@@ -381,41 +383,25 @@ begin
   if (dfmapdef = nil) then raise Exception.Create('internal map loader error');
 
   wst := TSFSMemoryChunkStream.Create(data, dataLen);
-
-  if (PAnsiChar(data)[0] = 'M') and (PAnsiChar(data)[1] = 'A') and (PAnsiChar(data)[2] = 'P') and (PByte(data)[3] = 1) then
-  begin
-    // binary map
-    try
-      //e_LogWriteln('parsing binary map...');
-      result := dfmapdef.parseBinMap(wst);
-    except on e: Exception do
+  try
+    result := dfmapdef.parseMap(wst);
+  except
+    on e: TDynParseException do
+      begin
+        e_LogWritefln('ERROR at (%s,%s): %s', [e.tokLine, e.tokCol, e.message]);
+        wst.Free();
+        result := nil;
+        exit;
+      end;
+    on e: Exception do
       begin
         e_LogWritefln('ERROR: %s', [e.message]);
         wst.Free();
         result := nil;
         exit;
       end;
-    end;
-    wst.Free();
-  end
-  else
-  begin
-    // text map
-    pr := TFileTextParser.Create(wst);
-    try
-      //e_LogWriteln('parsing text map...');
-      result := dfmapdef.parseMap(pr);
-    except on e: Exception do
-      begin
-        if (pr <> nil) then e_LogWritefln('ERROR at (%s,%s): %s', [pr.tokLine, pr.tokCol, e.message])
-        else e_LogWritefln('ERROR: %s', [e.message]);
-        pr.Free(); // will free `wst`
-        result := nil;
-        exit;
-      end;
-    end;
-    pr.Free(); // will free `wst`
   end;
+
   //e_LogWriteln('map parsed.');
 end;
 
@@ -2034,7 +2020,7 @@ begin
         moveSpeed := rec.moveSpeed;
         //moveStart := rec.moveStart;
         //moveEnd := rec.moveEnd;
-        //moveActive := rec['move_active'].varvalue;
+        //moveActive := rec['move_active'].value;
         if not moveSpeed.isZero then
         begin
           SetLength(gMovingWallIds, Length(gMovingWallIds)+1);

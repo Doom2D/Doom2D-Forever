@@ -76,7 +76,7 @@ var
 implementation
 
 uses
-  SysUtils, e_log, utils, MAPDEF;
+  SysUtils, e_log, utils, MAPDEF, xdynrec;
 
 
 function findDiskWad (fname: AnsiString): AnsiString;
@@ -238,7 +238,7 @@ end;
 //FIXME: detect text maps properly here
 function TWADFile.isMapResource (idx: Integer): Boolean;
 var
-  sign: packed array [0..2] of Char;
+  //sign: packed array [0..2] of Char;
   fs: TStream = nil;
 begin
   result := false;
@@ -246,11 +246,15 @@ begin
   if (idx < 0) or (idx >= fIter.Count) then exit;
   try
     fs := fIter.volume.OpenFileByIndex(idx);
+    result := TDynMapDef.canBeMap(fs);
+    (*
     fs.readBuffer(sign, 3);
     result := (sign = MAP_SIGNATURE);
     if not result then result := (sign[0] = 'm') and (sign[1] = 'a') and (sign[2] = 'p');
+    *)
   except
-    if fs <> nil then fs.Free();
+    fs.Free();
+    result := false; // just in case
     exit;
   end;
   fs.Free();
@@ -304,8 +308,11 @@ var
   fs: TStream;
   fpp: Pointer;
   rpath, rname: AnsiString;
-  sign: packed array [0..2] of Char;
+  //sign: packed array [0..2] of Char;
   goodMap: Boolean;
+  {$IFNDEF SFS_MAPDETECT_FX}
+  wst: TSFSMemoryChunkStream;
+  {$ENDIF}
 begin
   Result := False;
   if not isOpen or (fIter = nil) then Exit;
@@ -367,9 +374,10 @@ begin
         e_LogWritefln('DFWAD: checking for good map in wad [%s], file [%s] (#%d)', [fFileName, fi.fname, f]);
         {$ENDIF}
         try
-          fs.readBuffer(sign, 3);
-          goodMap := (sign = MAP_SIGNATURE);
-          if not goodMap then goodMap := (sign[0] = 'm') and (sign[1] = 'a') and (sign[2] = 'p');
+          //fs.readBuffer(sign, 3);
+          //goodMap := (sign = MAP_SIGNATURE);
+          //if not goodMap then goodMap := (sign[0] = 'm') and (sign[1] = 'a') and (sign[2] = 'p');
+          goodMap := TDynMapDef.canBeMap(fs);
           {$IF DEFINED(D2D_NEW_MAP_READER_DBG)}
           if goodMap then
             e_LogWritefln('  GOOD map in wad [%s], file [%s] (#%d)', [fFileName, fi.fname, f])
@@ -410,8 +418,15 @@ begin
         goodMap := false;
         if Len >= 3 then
         begin
-          Move(pData^, sign, 3);
-          goodMap := (sign = MAP_SIGNATURE);
+          //Move(pData^, sign, 3);
+          //goodMap := (sign = MAP_SIGNATURE);
+          wst := TSFSMemoryChunkStream.Create(pData, Len);
+          try
+            goodMap := TDynMapDef.canBeMap(wst);
+          except
+            goodMap := false;
+          end;
+          wst.Free();
         end;
         if not goodMap then
         begin

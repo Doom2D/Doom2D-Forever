@@ -20,8 +20,26 @@ unit xdynrec;
 interface
 
 uses
-  Variants, Classes,
+  SysUtils, Variants, Classes,
   xparser, xstreams, utils, hashtable;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
+type
+  TDynRecException = class(Exception)
+  public
+    constructor Create (const amsg: AnsiString);
+    constructor CreateFmt (const afmt: AnsiString; const args: array of const);
+  end;
+
+  TDynParseException = class(TDynRecException)
+  public
+    tokLine, tokCol: Integer;
+
+  public
+    constructor Create (pr: TTextParser; const amsg: AnsiString);
+    constructor CreateFmt (pr: TTextParser; const afmt: AnsiString; const args: array of const);
+  end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
@@ -93,8 +111,6 @@ type
   private
     procedure cleanup ();
 
-    procedure parseDef (pr: TTextParser);
-
     procedure parseDefaultValue (); // parse `mDefUnparsed` to `mDefSVal`, `mDefIVal`, `mDefIVal2`, `mDefRecRef`
     procedure fixDefaultValue (); // this will NOT clone `mDefRecRef`
     function isDefaultValue (): Boolean;
@@ -105,75 +121,96 @@ type
 
     function getRecRefIndex (): Integer;
 
-    procedure setIVal (v: Integer); inline;
-
     function getVar (): Variant;
     procedure setVar (val: Variant);
+
+    procedure setRecRef (arec: TDynRecord);
+
+    procedure parseDef (pr: TTextParser); // parse mapdef definition
+    function definition (): AnsiString; // generate mapdef definition
 
   protected
     // returns `true` for duplicate record id
     function addListItem (rec: TDynRecord): Boolean; inline;
 
   public
-    constructor Create (const aname: AnsiString; atype: TType);
-    constructor Create (pr: TTextParser);
-    constructor Create (const aname: AnsiString; val: Variant);
-    destructor Destroy (); override;
-
+    // get string name for the given type
     class function getTypeName (t: TType): AnsiString;
 
-    // build "alias name" for pascal code
-    function palias (firstUp: Boolean=false): AnsiString;
+  public
+    constructor Create (const aname: AnsiString; atype: TType);
+    constructor Create (const aname: AnsiString; val: Variant);
+    constructor Create (pr: TTextParser);
+    destructor Destroy (); override;
 
-    function definition (): AnsiString;
-
+    // clone this field; register all list records in `registerIn`
+    // "registration" is required to manage record lifetime; use header record if in doubt
+    // owner will be set to `newOwner`, if it is not `nil`, or to `owner`
+    // for lists, cloning will clone all list members
     function clone (newOwner: TDynRecord=nil; registerIn: TDynRecord=nil): TDynField;
 
-    procedure parseValue (pr: TTextParser);
-    procedure parseBinValue (st: TStream);
-
-    procedure writeTo (wr: TTextWriter);
-    procedure writeBinTo (st: TStream);
-
-    // won't work for lists
+    // compare field values (including trigdata)
+    // WARNING: won't work for lists
     function isSimpleEqu (fld: TDynField): Boolean;
 
+    // parse string value to appropriate type and set new field value
     procedure setValue (const s: AnsiString);
 
+    // supports `for rec in field do` (for lists)
     function GetEnumerator (): TDynRecList.TEnumerator; inline;
 
   public
-    property name: AnsiString read mName;
-    property baseType: TType read mType;
+    // text parser and writer
+    procedure parseValue (pr: TTextParser);
+    procedure writeTo (wr: TTextWriter);
+
+    // binary parser and writer (DO NOT USE!)
+    procedure parseBinValue (st: TStream);
+    procedure writeBinTo (st: TStream);
+
+  public
+    // the following functions are here only for 'mapgen'! DO NOT USE!
+    // build "alias name" for pascal code
+    function palias (firstUp: Boolean=false): AnsiString;
+
+  public
+    property owner: TDynRecord read mOwner;
+    property name: AnsiString read mName; // field name
+    property baseType: TType read mType; // field type (base for arrays)
+    property defined: Boolean read mDefined; // was field value set to something by external code?
+    property internal: Boolean read mInternal write mInternal; // internal field?
+    property ival: Integer read mIVal; // integer value for int field (for speed), first field (x/w) for `TPoint` and `TSize`
+    property ival2: Integer read mIVal2; // for `TPoint` and `TSize`, this is second field (y/h)
+    property sval: AnsiString read mSVal; // string value for string field (for speed)
+    property hasDefault: Boolean read mHasDefault; // `true` if this field has default value in mapdef
+    property defsval: AnsiString read mDefSVal; // string representation of default value
+    property ebs: TEBS read mEBS; // what kind of reference is this? none, enum, bitset, record
+    property ebstype: TObject read mEBSType; // reference type (nil, TDynRecord, TDynEBS); WARNING: don't modify type!
+    property ebstypename: AnsiString read mEBSTypeName; // enum/bitset name
+    property recref: TDynRecord read mRecRef write setRecRef; // referenced record (actual one, you can modify it)
+    property recrefIndex: Integer read getRecRefIndex; // index of referenced record in header; -1: not found
+    // for record lists
+    property count: Integer read getListCount;
+    property itemAt[idx: Integer]: TDynRecord read getListItem;
+    property item[const aname: AnsiString]: TDynRecord read getListItem; default; // alas, FPC 3+ lost property overloading feature
+    // field value as Variant
+    property value: Variant read getVar write setVar;
+
+  public
+    // userdata (you can use these properties as you want to; they won't be written or read to files)
+    property tagInt: Integer read mTagInt write mTagInt;
+    property tagPtr: Pointer read mTagPtr write mTagPtr;
+
+  public
+    // the following properties are here only for 'mapgen'! DO NOT USE!
     property negbool: Boolean read mNegBool;
-    property defined: Boolean read mDefined;
-    property internal: Boolean read mInternal write mInternal;
     property hasTPrefix: Boolean read mAsT;
     property separatePasFields: Boolean read mSepPosSize;
     property binOfs: Integer read mBinOfs;
-    property ival: Integer read mIVal write setIVal;
-    property ival2: Integer read mIVal2;
-    property sval: AnsiString read mSVal;
-    property hasDefault: Boolean read mHasDefault;
-    property defsval: AnsiString read mDefSVal;
-    property ebs: TEBS read mEBS;
-    property ebstype: TObject read mEBSType;
-    property ebstypename: AnsiString read mEBSTypeName; // enum/bitset name
-    property recref: TDynRecord read mRecRef;
-    property recrefIndex: Integer read getRecRefIndex; // search for this record in header; -1: not found
-    // for lists
-    property count: Integer read getListCount;
-    property item[idx: Integer]: TDynRecord read getListItem;
-    property items[const aname: AnsiString]: TDynRecord read getListItem; default; // alas, FPC 3+ lost property overloading feature
-    // userdata
-    property tagInt: Integer read mTagInt write mTagInt;
-    property tagPtr: Pointer read mTagPtr write mTagPtr;
-    //
-    property varvalue: Variant read getVar write setVar;
   end;
 
 
-  // "value" header record contains TList fields, with name equal to record type
+  // record, either with actual values, or with type definitions
   TDynRecord = class
   private
     mOwner: TDynMapDef;
@@ -197,6 +234,7 @@ type
 
   private
     procedure parseDef (pr: TTextParser); // parse definition
+    function definition (): AnsiString;
 
     function findByName (const aname: AnsiString): Integer; inline;
     function hasByName (const aname: AnsiString): Boolean; inline;
@@ -212,6 +250,9 @@ type
 
     procedure regrec (rec: TDynRecord);
 
+    function getUserVar (const aname: AnsiString): Variant;
+    procedure setUserVar (const aname: AnsiString; val: Variant);
+
   protected
     function findRecordByTypeId (const atypename, aid: AnsiString): TDynRecord;
     function findRecordNumByType (const atypename: AnsiString; rc: TDynRecord): Integer;
@@ -225,49 +266,67 @@ type
     constructor Create (pr: TTextParser); // parse definition
     destructor Destroy (); override;
 
-    function definition (): AnsiString;
-
+    // clone this record; register all list records in `registerIn`
+    // "registration" is required to manage record lifetime; use header record if in doubt
+    // all fields are cloned too
     function clone (registerIn: TDynRecord): TDynRecord;
 
+    // compare records (values of all fields, including trigdata)
+    // WARNING: won't work for records with list fields
     function isSimpleEqu (rec: TDynRecord): Boolean;
-
-    procedure parseValue (pr: TTextParser; beginEaten: Boolean=false);
-    procedure parseBinValue (st: TStream; forceData: Boolean=false);
-
-    procedure writeTo (wr: TTextWriter; putHeader: Boolean=true);
-    procedure writeBinTo (st: TStream; trigbufsz: Integer=-1; onlyFields: Boolean=false);
 
     // find field with `TriggerType` type
     function trigTypeField (): TDynField;
 
     // number of records of the given instance
-    function instanceCount (const typename: AnsiString): Integer;
+    function instanceCount (const atypename: AnsiString): Integer;
 
-    function getUserVar (const aname: AnsiString): Variant;
-    procedure setUserVar (const aname: AnsiString; val: Variant);
+    // only for headers: create new record with the given type
+    // will return cloned record ready for use, or `nil` on unknown type name
+    function newTypedRecord (const atypename, aid: AnsiString): TDynRecord;
 
   public
-    property id: AnsiString read mId; // for map parser
-    property name: AnsiString read mName; // record name
-    property size: Integer read mSize; // size in bytes
-    //property fields: TDynFieldList read mFields;
-    property has[const aname: AnsiString]: Boolean read hasByName;
-    property count: Integer read getCount;
-    property field[const aname: AnsiString]: TDynField read getFieldByName; default;
-    property fieldAt[idx: Integer]: TDynField read getFieldAt;
-    property isTrigData: Boolean read getIsTrigData;
-    property isForTrig[const aname: AnsiString]: Boolean read getIsForTrig;
-    property forTrigCount: Integer read getForTrigCount;
-    property forTrigAt[idx: Integer]: AnsiString read getForTrigAt;
-    property headerRec: TDynRecord read mHeaderRec;
-    property isHeader: Boolean read mHeader;
-    // userdata
+    // text parser
+    // `beginEaten`: `true` if "{" was eaten
+    procedure parseValue (pr: TTextParser; beginEaten: Boolean=false);
+
+    // text writer
+    // `putHeader`: `true` to write complete header, otherwise only "{...}"
+    procedure writeTo (wr: TTextWriter; putHeader: Boolean=true);
+
+    // binary parser and writer (DO NOT USE!)
+    procedure parseBinValue (st: TStream; forceData: Boolean=false);
+    procedure writeBinTo (st: TStream; trigbufsz: Integer=-1; onlyFields: Boolean=false);
+
+  public
+    property mapdef: TDynMapDef read mOwner;
+    property id: AnsiString read mId; // record id in text map
+    property typeName: AnsiString read mName; // record type name (like "panel", or "trigger")
+    property has[const aname: AnsiString]: Boolean read hasByName; // do we have field with the given name?
+    property count: Integer read getCount; // number of fields in this record
+    property field[const aname: AnsiString]: TDynField read getFieldByName; default; // get field by name
+    property fieldAt[idx: Integer]: TDynField read getFieldAt; // get field at the given index
+    property isTrigData: Boolean read getIsTrigData; // is this special "TriggerData" record?
+    property isForTrig[const aname: AnsiString]: Boolean read getIsForTrig; // can this "TriggerData" be used for the trigger with the given type?
+    property forTrigCount: Integer read getForTrigCount; // number of trigger type names for "TriggerData"
+    property forTrigAt[idx: Integer]: AnsiString read getForTrigAt; // trigger type name at the given index for "TriggerData"
+    property headerRec: TDynRecord read mHeaderRec; // get header record for this one (header contains all other records, enums, bitsets, etc.)
+    property isHeader: Boolean read mHeader; // is this a header record?
+
+  public
+    // user fields; user can add arbitrary custom fields
+    // by default, any user field will be marked as "internal"
+    // note: you can use this to manipulate non-user fields too
+    property user[const aname: AnsiString]: Variant read getUserVar write setUserVar;
+
+  public
+    // userdata (you can use these properties as you want to; they won't be written or read to files)
     property tagInt: Integer read mTagInt write mTagInt;
     property tagPtr: Pointer read mTagPtr write mTagPtr;
-    // userfields
-    property user[const aname: AnsiString]: Variant read getUserVar write setUserVar;
   end;
 
+
+  // bitset/enum definition
   TDynEBS = class
   private
     mOwner: TDynMapDef;
@@ -287,24 +346,27 @@ type
     function hasByName (const aname: AnsiString): Boolean; inline;
     function getFieldByName (const aname: AnsiString): Integer; inline;
 
+    function definition (): AnsiString;
+    function pasdef (): AnsiString;
+
   public
     constructor Create (pr: TTextParser); // parse definition
     destructor Destroy (); override;
 
-    function definition (): AnsiString;
-    function pasdef (): AnsiString;
-
+    // find name for the given value
     // return empty string if not found
     function nameByValue (v: Integer): AnsiString;
 
   public
-    property name: AnsiString read mName; // record name
-    property isEnum: Boolean read mIsEnum;
+    property mapdef: TDynMapDef read mOwner;
+    property typeName: AnsiString read mName; // enum/bitset type name
+    property isEnum: Boolean read mIsEnum; // is this enum? `false` means "bitset"
     property has[const aname: AnsiString]: Boolean read hasByName;
     property field[const aname: AnsiString]: Integer read getFieldByName;
   end;
 
 
+  // parsed "mapdef.txt"
   TDynMapDef = class
   public
     recTypes: TDynRecList; // [0] is always header
@@ -316,8 +378,20 @@ type
 
     function getHeaderRecType (): TDynRecord; inline;
 
+    function getRecTypeCount (): Integer; inline;
+    function getRecTypeAt (idx: Integer): TDynRecord; inline;
+
+    function getEBSTypeCount (): Integer; inline;
+    function getEBSTypeAt (idx: Integer): TDynEBS; inline;
+
     function getTrigTypeCount (): Integer; inline;
     function getTrigTypeAt (idx: Integer): TDynRecord; inline;
+
+    // creates new header record
+    function parseTextMap (pr: TTextParser): TDynRecord;
+
+    // creates new header record
+    function parseBinMap (st: TStream): TDynRecord;
 
   public
     constructor Create (pr: TTextParser); // parses data definition
@@ -327,18 +401,34 @@ type
     function findTrigFor (const aname: AnsiString): TDynRecord;
     function findEBSType (const aname: AnsiString): TDynEBS;
 
+  public
+    // parse text or binary map, return new header record
+    // WARNING! stream must be seekable
+    function parseMap (st: TStream): TDynRecord;
+
+    // returns `true` if the given stream can be a map file
+    // stream position is 0 on return
+    // WARNING! stream must be seekable
+    class function canBeMap (st: TStream): Boolean;
+
+  public
+    // the following functions are here only for 'mapgen'! DO NOT USE!
     function pasdefconst (): AnsiString;
-
-    // creates new header record
-    function parseMap (pr: TTextParser): TDynRecord;
-
-    // creates new header record
-    function parseBinMap (st: TStream): TDynRecord;
 
   public
     property headerType: TDynRecord read getHeaderRecType;
+    // for record types
+    property recTypeCount: Integer read getRecTypeCount;
+    property recTypeAt[idx: Integer]: TDynRecord read getRecTypeAt;
+    property recType[const aname: AnsiString]: TDynRecord read findRecType;
+    // for enum/bitset types
+    property ebsTypeCount: Integer read getEBSTypeCount;
+    property ebsTypeAt[idx: Integer]: TDynEBS read getEBSTypeAt;
+    property ebsType[const aname: AnsiString]: TDynEBS read findEBSType;
+    // for trigtypes
     property trigTypeCount: Integer read getTrigTypeCount;
-    property trigType[idx: Integer]: TDynRecord read getTrigTypeAt;
+    property trigTypeAt[idx: Integer]: TDynRecord read getTrigTypeAt;
+    property trigTypeFor[const aname: AnsiString]: TDynRecord read findTrigFor;
   end;
 
 
@@ -350,12 +440,38 @@ procedure xdynDumpProfiles ();
 implementation
 
 uses
-  SysUtils, e_log
+  e_log
   {$IF DEFINED(D2D_DYNREC_PROFILER)},xprofiler{$ENDIF};
 
 
 // ////////////////////////////////////////////////////////////////////////// //
 function StrEqu (const a, b: AnsiString): Boolean; inline; begin result := (a = b); end;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
+constructor TDynRecException.Create (const amsg: AnsiString);
+begin
+  inherited Create(amsg);
+end;
+
+constructor TDynRecException.CreateFmt (const afmt: AnsiString; const args: array of const);
+begin
+  inherited Create(formatstrf(afmt, args));
+end;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
+constructor TDynParseException.Create (pr: TTextParser; const amsg: AnsiString);
+begin
+  if (pr <> nil) then begin tokLine := pr.tokLine; tokCol := pr.tokCol; end else begin tokLine := 0; tokCol := 0; end;
+  inherited Create(amsg);
+end;
+
+constructor TDynParseException.CreateFmt (pr: TTextParser; const afmt: AnsiString; const args: array of const);
+begin
+  if (pr <> nil) then begin tokLine := pr.tokLine; tokCol := pr.tokCol; end else begin tokLine := 0; tokCol := 0; end;
+  inherited Create(formatstrf(afmt, args));
+end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
@@ -397,19 +513,19 @@ constructor TDynField.Create (const aname: AnsiString; val: Variant);
       TType.TBool:
              if (v = 0) then mIVal := 0
         else if (v = 1) then mIVal := 1
-        else raise Exception.Create('cannot convert shortint variant to field value');
+        else raise TDynRecException.Create('cannot convert shortint variant to field value');
       TType.TByte:
              if (v >= -128) and (v <= 127) then mIVal := v
-        else raise Exception.Create('cannot convert shortint variant to field value');
+        else raise TDynRecException.Create('cannot convert shortint variant to field value');
       TType.TUByte:
              if (v >= 0) and (v <= 255) then mIVal := v
-        else raise Exception.Create('cannot convert shortint variant to field value');
+        else raise TDynRecException.Create('cannot convert shortint variant to field value');
       TType.TShort:
              if (v >= -32768) and (v <= 32767) then mIVal := v
-        else raise Exception.Create('cannot convert shortint variant to field value');
+        else raise TDynRecException.Create('cannot convert shortint variant to field value');
       TType.TUShort:
              if (v >= 0) and (v <= 65535) then mIVal := v
-        else raise Exception.Create('cannot convert shortint variant to field value');
+        else raise TDynRecException.Create('cannot convert shortint variant to field value');
       TType.TInt:
         mIVal := v;
       TType.TUInt:
@@ -417,7 +533,7 @@ constructor TDynField.Create (const aname: AnsiString; val: Variant);
       TType.TString:
         mSVal := formatstrf('%s', [v]);
       else
-        raise Exception.Create('cannot convert integral variant to field value');
+        raise TDynRecException.Create('cannot convert integral variant to field value');
     end;
   end;
 begin
@@ -427,32 +543,32 @@ begin
   cleanup();
   mName := aname;
   case varType(val) of
-    varEmpty: raise Exception.Create('cannot convert empty variant to field value');
-    varNull: raise Exception.Create('cannot convert null variant to field value');
-    varSingle: raise Exception.Create('cannot convert single variant to field value');
-    varDouble: raise Exception.Create('cannot convert double variant to field value');
-    varDecimal: raise Exception.Create('cannot convert decimal variant to field value');
-    varCurrency: raise Exception.Create('cannot convert currency variant to field value');
-    varDate: raise Exception.Create('cannot convert date variant to field value');
-    varOleStr: raise Exception.Create('cannot convert olestr variant to field value');
-    varStrArg: raise Exception.Create('cannot convert stdarg variant to field value');
+    varEmpty: raise TDynRecException.Create('cannot convert empty variant to field value');
+    varNull: raise TDynRecException.Create('cannot convert null variant to field value');
+    varSingle: raise TDynRecException.Create('cannot convert single variant to field value');
+    varDouble: raise TDynRecException.Create('cannot convert double variant to field value');
+    varDecimal: raise TDynRecException.Create('cannot convert decimal variant to field value');
+    varCurrency: raise TDynRecException.Create('cannot convert currency variant to field value');
+    varDate: raise TDynRecException.Create('cannot convert date variant to field value');
+    varOleStr: raise TDynRecException.Create('cannot convert olestr variant to field value');
+    varStrArg: raise TDynRecException.Create('cannot convert stdarg variant to field value');
     varString: mType := TType.TString;
-    varDispatch: raise Exception.Create('cannot convert dispatch variant to field value');
+    varDispatch: raise TDynRecException.Create('cannot convert dispatch variant to field value');
     varBoolean: mType := TType.TBool;
-    varVariant: raise Exception.Create('cannot convert variant variant to field value');
-    varUnknown: raise Exception.Create('cannot convert unknown variant to field value');
+    varVariant: raise TDynRecException.Create('cannot convert variant variant to field value');
+    varUnknown: raise TDynRecException.Create('cannot convert unknown variant to field value');
     varByte: mType := TType.TUByte;
     varWord: mType := TType.TUShort;
     varShortInt: mType := TType.TByte;
     varSmallint: mType := TType.TShort;
     varInteger: mType := TType.TInt;
-    varInt64: raise Exception.Create('cannot convert int64 variant to field value');
-    varLongWord: raise Exception.Create('cannot convert longword variant to field value');
-    varQWord: raise Exception.Create('cannot convert uint64 variant to field value');
-    varError: raise Exception.Create('cannot convert error variant to field value');
-    else raise Exception.Create('cannot convert undetermined variant to field value');
+    varInt64: raise TDynRecException.Create('cannot convert int64 variant to field value');
+    varLongWord: raise TDynRecException.Create('cannot convert longword variant to field value');
+    varQWord: raise TDynRecException.Create('cannot convert uint64 variant to field value');
+    varError: raise TDynRecException.Create('cannot convert error variant to field value');
+    else raise TDynRecException.Create('cannot convert undetermined variant to field value');
   end;
-  varvalue := val;
+  value := val;
 end;
 
 
@@ -569,11 +685,28 @@ begin
 end;
 
 
-procedure TDynField.setIVal (v: Integer); inline;
+procedure TDynField.setRecRef (arec: TDynRecord);
+var
+  trc: TDynRecord = nil;
 begin
-  //FIXME: check type
-  mIVal := v;
-  mDefined := true;
+  case mEBS of
+    TEBS.TNone: raise TDynRecException.CreateFmt('cannot set refrec for non-reference field ''%s''', [mName]);
+    TEBS.TRec:
+      begin
+        if (arec <> nil) then
+        begin
+          if (mEBSType <> nil) and (mEBSType is TDynRecord) then trc := (mEBSType as TDynRecord);
+          if (trc = nil) then raise TDynRecException.CreateFmt('cannot set refrec for field ''%s'' (type conflict: improperly initialized field)', [mName]);
+          if (trc.typeName <> arec.typeName) then raise TDynRecException.CreateFmt('cannot set refrec for field ''%s'' (type conflict: expected ''%s'' got ''%s'')', [mName, trc.typeName, arec.typeName]);
+        end;
+        mRecRef := arec;
+        mDefined := true;
+        exit;
+      end;
+    TEBS.TEnum: raise TDynRecException.CreateFmt('cannot set refrec for enum field ''%s''', [mName]);
+    TEBS.TBitSet: raise TDynRecException.CreateFmt('cannot set refrec for bitset field ''%s''', [mName]);
+    else raise TDynRecException.Create('ketmar forgot to process some reftypes');
+  end;
 end;
 
 
@@ -590,11 +723,11 @@ begin
     TType.TInt: result := LongInt(mIVal);
     TType.TUInt: result := LongWord(mIVal);
     TType.TString: result := mSVal;
-    TType.TPoint: raise Exception.Create('cannot convert point field to variant');
-    TType.TSize: raise Exception.Create('cannot convert size field to variant');
-    TType.TList: raise Exception.Create('cannot convert list field to variant');
-    TType.TTrigData: raise Exception.Create('cannot convert trigdata field to variant');
-    else result := Unassigned; raise Exception.Create('ketmar forgot to handle some field type');
+    TType.TPoint: raise TDynRecException.Create('cannot convert point field to variant');
+    TType.TSize: raise TDynRecException.Create('cannot convert size field to variant');
+    TType.TList: raise TDynRecException.Create('cannot convert list field to variant');
+    TType.TTrigData: raise TDynRecException.Create('cannot convert trigdata field to variant');
+    else result := Unassigned; raise TDynRecException.Create('ketmar forgot to handle some field type');
   end;
 end;
 
@@ -606,19 +739,19 @@ procedure TDynField.setVar (val: Variant);
       TType.TBool:
              if (v = 0) then mIVal := 0
         else if (v = 1) then mIVal := 1
-        else raise Exception.Create('cannot convert shortint variant to field value');
+        else raise TDynRecException.Create('cannot convert shortint variant to field value');
       TType.TByte:
              if (v >= -128) and (v <= 127) then mIVal := v
-        else raise Exception.Create('cannot convert shortint variant to field value');
+        else raise TDynRecException.Create('cannot convert shortint variant to field value');
       TType.TUByte:
              if (v >= 0) and (v <= 255) then mIVal := v
-        else raise Exception.Create('cannot convert shortint variant to field value');
+        else raise TDynRecException.Create('cannot convert shortint variant to field value');
       TType.TShort:
              if (v >= -32768) and (v <= 32767) then mIVal := v
-        else raise Exception.Create('cannot convert shortint variant to field value');
+        else raise TDynRecException.Create('cannot convert shortint variant to field value');
       TType.TUShort:
              if (v >= 0) and (v <= 65535) then mIVal := v
-        else raise Exception.Create('cannot convert shortint variant to field value');
+        else raise TDynRecException.Create('cannot convert shortint variant to field value');
       TType.TInt:
         mIVal := v;
       TType.TUInt:
@@ -626,20 +759,20 @@ procedure TDynField.setVar (val: Variant);
       TType.TString:
         mSVal := formatstrf('%s', [v]);
       else
-        raise Exception.Create('cannot convert integral variant to field value');
+        raise TDynRecException.Create('cannot convert integral variant to field value');
     end;
   end;
 begin
   case varType(val) of
-    varEmpty: raise Exception.Create('cannot convert empty variant to field value');
-    varNull: raise Exception.Create('cannot convert null variant to field value');
-    varSingle: raise Exception.Create('cannot convert single variant to field value');
-    varDouble: raise Exception.Create('cannot convert double variant to field value');
-    varDecimal: raise Exception.Create('cannot convert decimal variant to field value');
-    varCurrency: raise Exception.Create('cannot convert currency variant to field value');
-    varDate: raise Exception.Create('cannot convert date variant to field value');
-    varOleStr: raise Exception.Create('cannot convert olestr variant to field value');
-    varStrArg: raise Exception.Create('cannot convert stdarg variant to field value');
+    varEmpty: raise TDynRecException.Create('cannot convert empty variant to field value');
+    varNull: raise TDynRecException.Create('cannot convert null variant to field value');
+    varSingle: raise TDynRecException.Create('cannot convert single variant to field value');
+    varDouble: raise TDynRecException.Create('cannot convert double variant to field value');
+    varDecimal: raise TDynRecException.Create('cannot convert decimal variant to field value');
+    varCurrency: raise TDynRecException.Create('cannot convert currency variant to field value');
+    varDate: raise TDynRecException.Create('cannot convert date variant to field value');
+    varOleStr: raise TDynRecException.Create('cannot convert olestr variant to field value');
+    varStrArg: raise TDynRecException.Create('cannot convert stdarg variant to field value');
     varString:
       if (mType = TType.TChar) or (mType = TType.TString) then
       begin
@@ -647,9 +780,9 @@ begin
       end
       else
       begin
-        raise Exception.Create('cannot convert string variant to field value');
+        raise TDynRecException.Create('cannot convert string variant to field value');
       end;
-    varDispatch: raise Exception.Create('cannot convert dispatch variant to field value');
+    varDispatch: raise TDynRecException.Create('cannot convert dispatch variant to field value');
     varBoolean:
       case mType of
         TType.TBool,
@@ -663,10 +796,10 @@ begin
         TType.TString:
           if val then mSVal := 'true' else mSVal := 'false';
         else
-          raise Exception.Create('cannot convert boolean variant to field value');
+          raise TDynRecException.Create('cannot convert boolean variant to field value');
       end;
-    varVariant: raise Exception.Create('cannot convert variant variant to field value');
-    varUnknown: raise Exception.Create('cannot convert unknown variant to field value');
+    varVariant: raise TDynRecException.Create('cannot convert variant variant to field value');
+    varUnknown: raise TDynRecException.Create('cannot convert unknown variant to field value');
     varByte,
     varWord,
     varShortInt,
@@ -675,15 +808,15 @@ begin
       setInt32(val);
     varInt64:
       if (val < Int64(LongInt($80000000))) or (val > LongInt($7FFFFFFF)) then
-        raise Exception.Create('cannot convert boolean variant to field value')
+        raise TDynRecException.Create('cannot convert boolean variant to field value')
       else
         mIVal := LongInt(val);
     varLongWord:
-      if (val > LongWord($7FFFFFFF)) then raise Exception.Create('cannot convert longword variant to field value')
+      if (val > LongWord($7FFFFFFF)) then raise TDynRecException.Create('cannot convert longword variant to field value')
       else setInt32(Integer(val));
-    varQWord: raise Exception.Create('cannot convert uint64 variant to field value');
-    varError: raise Exception.Create('cannot convert error variant to field value');
-    else raise Exception.Create('cannot convert undetermined variant to field value');
+    varQWord: raise TDynRecException.Create('cannot convert uint64 variant to field value');
+    varError: raise TDynRecException.Create('cannot convert error variant to field value');
+    else raise TDynRecException.Create('cannot convert undetermined variant to field value');
   end;
   mDefined := true;
 end;
@@ -713,7 +846,7 @@ begin
         if (mRecRef = nil) then begin result := (fld.mRecRef = nil); exit; end;
         result := mRecRef.isSimpleEqu(fld.mRecRef);
       end;
-    else raise Exception.Create('ketmar forgot to handle some field type');
+    else raise TDynRecException.Create('ketmar forgot to handle some field type');
   end;
 end;
 
@@ -779,7 +912,7 @@ begin
   if not mHasDefault then
   begin
     if mInternal then exit;
-    raise Exception.Create(Format('field ''%s'' in record ''%s'' of record type ''%s'' is not set', [mName, mOwner.mId, mOwner.mName]));
+    raise TDynRecException.CreateFmt('field ''%s'' in record ''%s'' of record type ''%s'' is not set', [mName, mOwner.mId, mOwner.mName]);
   end;
   if (mEBS = TEBS.TRec) then mRecRef := mDefRecRef;
   mSVal := mDefSVal;
@@ -850,7 +983,7 @@ begin
     TType.TSize: result := 'size';
     TType.TList: result := 'array';
     TType.TTrigData: result := 'trigdata';
-    else raise Exception.Create('ketmar forgot to handle some field type');
+    else raise TDynRecException.Create('ketmar forgot to handle some field type');
   end;
 end;
 
@@ -929,7 +1062,7 @@ begin
   begin
     if pr.eatId('type') then
     begin
-      if (Length(fldtype) > 0) then raise Exception.Create(Format('duplicate type definition for field ''%s''', [fldname]));
+      if (Length(fldtype) > 0) then raise TDynParseException.CreateFmt(pr, 'duplicate type definition for field ''%s''', [fldname]);
       // field type
       fldtype := pr.expectId();
       // fixed-size array?
@@ -937,7 +1070,7 @@ begin
       begin
         lmaxdim := pr.expectInt();
         // arbitrary limits
-        if (lmaxdim < 1) or (lmaxdim > 32768) then raise Exception.Create(Format('invalid field ''%s'' array size', [fldname]));
+        if (lmaxdim < 1) or (lmaxdim > 32768) then raise TDynParseException.CreateFmt(pr, 'invalid field ''%s'' array size', [fldname]);
         pr.expectDelim(']');
       end;
       continue;
@@ -945,16 +1078,16 @@ begin
 
     if pr.eatId('alias') then
     begin
-      if (Length(xalias) > 0) then raise Exception.Create(Format('duplicate alias definition for field ''%s''', [fldname]));
+      if (Length(xalias) > 0) then raise TDynParseException.CreateFmt(pr, 'duplicate alias definition for field ''%s''', [fldname]);
       xalias := pr.expectId();
       continue;
     end;
 
     if pr.eatId('offset') then
     begin
-      if (fldofs >= 0) then raise Exception.Create(Format('duplicate field ''%s'' offset', [fldname]));
+      if (fldofs >= 0) then raise TDynParseException.CreateFmt(pr, 'duplicate field ''%s'' offset', [fldname]);
       fldofs := pr.expectInt();
-      if (fldofs < 0) then raise Exception.Create(Format('invalid field ''%s'' offset', [fldname]));
+      if (fldofs < 0) then raise TDynParseException.CreateFmt(pr, 'invalid field ''%s'' offset', [fldname]);
       continue;
     end;
 
@@ -965,14 +1098,14 @@ begin
       else if pr.eatId('txy') then begin asxy := true; ast := true; end
       else if pr.eatId('twh') then begin aswh := true; ast := true; end
       else if pr.eatId('monsterid') then begin asmonid := true; end
-      else raise Exception.Create(Format('invalid field ''%s'' as what?', [fldname]));
+      else raise TDynParseException.CreateFmt(pr, 'invalid field ''%s'' as what?', [fldname]);
       continue;
     end;
 
     if pr.eatId('enum') then
     begin
       lebs := TDynField.TEBS.TEnum;
-      if (Length(fldrecname) <> 0) then raise Exception.Create(Format('field ''%s'' already typed as ''%s''', [fldname, fldrecname]));
+      if (Length(fldrecname) <> 0) then raise TDynParseException.CreateFmt(pr, 'field ''%s'' already typed as ''%s''', [fldname, fldrecname]);
       fldrecname := pr.expectId();
       continue;
     end;
@@ -980,7 +1113,7 @@ begin
     if pr.eatId('bitset') then
     begin
       lebs := TDynField.TEBS.TBitSet;
-      if (Length(fldrecname) <> 0) then raise Exception.Create(Format('field ''%s'' already typed as ''%s''', [fldname, fldrecname]));
+      if (Length(fldrecname) <> 0) then raise TDynParseException.CreateFmt(pr, 'field ''%s'' already typed as ''%s''', [fldname, fldrecname]);
       unique := pr.eatId('unique');
       fldrecname := pr.expectId();
       continue;
@@ -988,7 +1121,7 @@ begin
 
     if pr.eatId('default') then
     begin
-      if hasdefStr or hasdefInt or hasdefId then raise Exception.Create(Format('field ''%s'' has duplicate default', [fldname]));
+      if hasdefStr or hasdefInt or hasdefId then raise TDynParseException.CreateFmt(pr, 'field ''%s'' has duplicate default', [fldname]);
       case pr.tokType of
         pr.TTStr:
           begin
@@ -1014,7 +1147,7 @@ begin
             pr.expectDelim(defech);
           end;
         else
-          raise Exception.Create(Format('field ''%s'' has invalid default', [fldname]));
+          raise TDynParseException.CreateFmt(pr, 'field ''%s'' has invalid default', [fldname]);
       end;
       continue;
     end;
@@ -1032,9 +1165,9 @@ begin
     end;
 
     // record type, no special modifiers
-    if (pr.tokType <> pr.TTId) then raise Exception.Create(Format('field ''%s'' has something unexpected in definition', [fldname]));
+    if (pr.tokType <> pr.TTId) then raise TDynParseException.CreateFmt(pr, 'field ''%s'' has something unexpected in definition', [fldname]);
 
-    if (Length(fldrecname) <> 0) then raise Exception.Create(Format('field ''%s'' already typed as ''%s''', [fldname, fldrecname]));
+    if (Length(fldrecname) <> 0) then raise TDynParseException.CreateFmt(pr, 'field ''%s'' already typed as ''%s''', [fldname, fldrecname]);
     fldrecname := pr.expectId();
     lebs := TDynField.TEBS.TRec;
   end;
@@ -1065,20 +1198,20 @@ begin
     end
     else
     begin
-      if (Length(fldtype) = 0) then raise Exception.Create(Format('field ''%s'' has no type', [fldname]))
-      else raise Exception.Create(Format('field ''%s'' has invalid type ''%s''', [fldname, fldtype]));
+      if (Length(fldtype) = 0) then raise TDynParseException.CreateFmt(pr, 'field ''%s'' has no type', [fldname])
+      else raise TDynParseException.CreateFmt(pr, 'field ''%s'' has invalid type ''%s''', [fldname, fldtype]);
     end;
   end;
 
   // check for valid arrays
-  if (lmaxdim > 0) and (mType <> TType.TChar) and (mType <> TType.TTrigData) then raise Exception.Create(Format('field ''%s'' of type ''%s'' cannot be array', [fldname, fldtype]));
+  if (lmaxdim > 0) and (mType <> TType.TChar) and (mType <> TType.TTrigData) then raise TDynParseException.CreateFmt(pr, 'field ''%s'' of type ''%s'' cannot be array', [fldname, fldtype]);
 
   // check for valid trigdata or record type
   if (mType = TType.TTrigData) then
   begin
     // trigdata
-    if (lmaxdim < 1) then raise Exception.Create(Format('field ''%s'' of type ''%s'' cannot be non-array', [fldname, 'trigdata']));
-    if (Length(fldrecname) > 0) then raise Exception.Create(Format('field ''%s'' of type ''%s'' cannot have another type', [fldname, 'trigdata']));
+    if (lmaxdim < 1) then raise TDynParseException.CreateFmt(pr, 'field ''%s'' of type ''%s'' cannot be non-array', [fldname, 'trigdata']);
+    if (Length(fldrecname) > 0) then raise TDynParseException.CreateFmt(pr, 'field ''%s'' of type ''%s'' cannot have another type', [fldname, 'trigdata']);
     lebs := TDynField.TEBS.TRec;
   end
   else if (Length(fldrecname) > 0) then
@@ -1086,7 +1219,7 @@ begin
     // record
     if not (mType in [TType.TByte, TType.TUByte, TType.TShort, TType.TUShort, TType.TInt, TType.TUInt]) then
     begin
-      raise Exception.Create(Format('field ''%s'' of record type ''%s'' cannot have type ''%s''', [fldname, fldrecname, fldtype]));
+      raise TDynParseException.CreateFmt(pr, 'field ''%s'' of record type ''%s'' cannot have type ''%s''', [fldname, fldrecname, fldtype]);
     end;
   end;
 
@@ -1139,11 +1272,11 @@ begin
           // this must be triggerdata
           if (mType <> TType.TTrigData) then
           begin
-            raise Exception.Create(Format('record reference type ''%s'' in field ''%s'' cannot be written', [mEBSTypeName, mName]));
+            raise TDynRecException.CreateFmt('record reference type ''%s'' in field ''%s'' cannot be written', [mEBSTypeName, mName]);
           end;
           // write triggerdata
           GetMem(buf, mMaxDim);
-          if (buf = nil) then raise Exception.Create(Format('record reference type ''%s'' in field ''%s'' cannot be written', [mEBSTypeName, mName]));
+          if (buf = nil) then raise TDynRecException.CreateFmt('record reference type ''%s'' in field ''%s'' cannot be written', [mEBSTypeName, mName]);
           try
             FillChar(buf^, mMaxDim, 0);
             if (mRecRef <> nil) then
@@ -1166,15 +1299,15 @@ begin
           TType.TUShort: maxv := 65534;
           TType.TInt: maxv := $7fffffff;
           TType.TUInt: maxv := $7fffffff;
-          else raise Exception.Create(Format('record reference type ''%s'' in field ''%s'' cannot be written', [mEBSTypeName, mName]));
+          else raise TDynRecException.CreateFmt('record reference type ''%s'' in field ''%s'' cannot be written', [mEBSTypeName, mName]);
         end;
         // find record number
         if (mRecRef <> nil) then
         begin
           f := mOwner.findRecordNumByType(mEBSTypeName, mRecRef);
-          if (f < 0) then raise Exception.Create(Format('record reference type ''%s'' in field ''%s'' not found in record list', [mEBSTypeName, mName]));
+          if (f < 0) then raise TDynRecException.CreateFmt('record reference type ''%s'' in field ''%s'' not found in record list', [mEBSTypeName, mName]);
           if mAsMonsterId then Inc(f);
-          if (f > maxv) then raise Exception.Create(Format('record reference type ''%s'' in field ''%s'' has too big index', [mEBSTypeName, mName]));
+          if (f > maxv) then raise TDynRecException.CreateFmt('record reference type ''%s'' in field ''%s'' has too big index', [mEBSTypeName, mName]);
         end
         else
         begin
@@ -1184,13 +1317,13 @@ begin
           TType.TByte, TType.TUByte: writeInt(st, Byte(f));
           TType.TShort, TType.TUShort: writeInt(st, SmallInt(f));
           TType.TInt, TType.TUInt: writeInt(st, LongWord(f));
-          else raise Exception.Create(Format('record reference type ''%s'' in field ''%s'' cannot be written', [mEBSTypeName, mName]));
+          else raise TDynRecException.CreateFmt('record reference type ''%s'' in field ''%s'' cannot be written', [mEBSTypeName, mName]);
         end;
         exit;
       end;
     TEBS.TEnum: begin end;
     TEBS.TBitSet: begin end;
-    else raise Exception.Create('ketmar forgot to handle some EBS type');
+    else raise TDynRecException.Create('ketmar forgot to handle some EBS type');
   end;
 
   case mType of
@@ -1208,15 +1341,15 @@ begin
       end;
     TType.TChar:
       begin
-        if (mMaxDim = 0) then raise Exception.Create(Format('invalid string size definition for field ''%s''', [mName]));
+        if (mMaxDim = 0) then raise TDynRecException.CreateFmt('invalid string size definition for field ''%s''', [mName]);
         if (mMaxDim < 0) then
         begin
-          if (Length(mSVal) <> 1) then raise Exception.Create(Format('invalid string size definition for field ''%s''', [mName]));
+          if (Length(mSVal) <> 1) then raise TDynRecException.CreateFmt('invalid string size definition for field ''%s''', [mName]);
           writeInt(st, Byte(mSVal[1]));
         end
         else
         begin
-          if (Length(mSVal) > mMaxDim) then raise Exception.Create(Format('invalid string size definition for field ''%s''', [mName]));
+          if (Length(mSVal) > mMaxDim) then raise TDynRecException.CreateFmt('invalid string size definition for field ''%s''', [mName]);
           s := utf2win(mSVal);
           if (Length(s) > 0) then st.WriteBuffer(PChar(s)^, Length(s));
           for f := Length(s) to mMaxDim do writeInt(st, Byte(0));
@@ -1227,38 +1360,38 @@ begin
     TType.TUByte:
       begin
         // triggerdata array was processed earlier
-        if (mMaxDim >= 0) then Exception.Create(Format('byte array in field ''%s'' cannot be written', [mName]));
+        if (mMaxDim >= 0) then TDynRecException.CreateFmt('byte array in field ''%s'' cannot be written', [mName]);
         writeInt(st, Byte(mIVal));
         exit;
       end;
     TType.TShort,
     TType.TUShort:
       begin
-        if (mMaxDim >= 0) then raise Exception.Create(Format('short array in field ''%s'' cannot be written', [mName]));
+        if (mMaxDim >= 0) then raise TDynRecException.CreateFmt('short array in field ''%s'' cannot be written', [mName]);
         writeInt(st, Word(mIVal));
         exit;
       end;
     TType.TInt,
     TType.TUInt:
       begin
-        if (mMaxDim >= 0) then raise Exception.Create(Format('int array in field ''%s'' cannot be written', [mName]));
+        if (mMaxDim >= 0) then raise TDynRecException.CreateFmt('int array in field ''%s'' cannot be written', [mName]);
         writeInt(st, LongWord(mIVal));
         exit;
       end;
     TType.TString:
       begin
-        raise Exception.Create(Format('cannot write string field ''%s''', [mName]));
+        raise TDynRecException.CreateFmt('cannot write string field ''%s''', [mName]);
       end;
     TType.TPoint:
       begin
-        if (mMaxDim >= 0) then raise Exception.Create(Format('pos/size array in field ''%s'' cannot be written', [mName]));
+        if (mMaxDim >= 0) then raise TDynRecException.CreateFmt('pos/size array in field ''%s'' cannot be written', [mName]);
         writeInt(st, LongInt(mIVal));
         writeInt(st, LongInt(mIVal2));
         exit;
       end;
     TType.TSize:
       begin
-        if (mMaxDim >= 0) then raise Exception.Create(Format('pos/size array in field ''%s'' cannot be written', [mName]));
+        if (mMaxDim >= 0) then raise TDynRecException.CreateFmt('pos/size array in field ''%s'' cannot be written', [mName]);
         writeInt(st, Word(mIVal));
         writeInt(st, Word(mIVal2));
         exit;
@@ -1273,7 +1406,7 @@ begin
         assert(false);
         exit;
       end;
-    else raise Exception.Create('ketmar forgot to handle some field type');
+    else raise TDynRecException.Create('ketmar forgot to handle some field type');
   end;
 end;
 
@@ -1308,10 +1441,10 @@ begin
     TEBS.TEnum:
       begin
         //def := mOwner.mOwner;
-        //es := def.findEBSType(mEBSTypeName);
+        //es := def.ebsType[mEBSTypeName];
         es := nil;
         if (mEBSType <> nil) and (mEBSType is TDynEBS) then es := (mEBSType as TDynEBS);
-        if (es = nil) or (not es.mIsEnum) then raise Exception.Create(Format('record enum type ''%s'' for field ''%s'' not found', [mEBSTypeName, mName]));
+        if (es = nil) or (not es.mIsEnum) then raise TDynRecException.CreateFmt('record enum type ''%s'' for field ''%s'' not found', [mEBSTypeName, mName]);
         for f := 0 to High(es.mVals) do
         begin
           if (es.mVals[f] = mIVal) then
@@ -1321,15 +1454,15 @@ begin
             exit;
           end;
         end;
-        raise Exception.Create(Format('value %d in record enum type ''%s'' for field ''%s'' not found', [mIVal, mEBSTypeName, mName]));
+        raise TDynRecException.CreateFmt('value %d in record enum type ''%s'' for field ''%s'' not found', [mIVal, mEBSTypeName, mName]);
       end;
     TEBS.TBitSet:
       begin
         //def := mOwner.mOwner;
-        //es := def.findEBSType(mEBSTypeName);
+        //es := def.ebsType[mEBSTypeName];
         es := nil;
         if (mEBSType <> nil) and (mEBSType is TDynEBS) then es := (mEBSType as TDynEBS);
-        if (es = nil) or es.mIsEnum then raise Exception.Create(Format('record bitset type ''%s'' for field ''%s'' not found', [mEBSTypeName, mName]));
+        if (es = nil) or es.mIsEnum then raise TDynRecException.CreateFmt('record bitset type ''%s'' for field ''%s'' not found', [mEBSTypeName, mName]);
         // none?
         if (mIVal = 0) then
         begin
@@ -1342,7 +1475,7 @@ begin
               exit;
             end;
           end;
-          raise Exception.Create(Format('value %d in record bitset type ''%s'' for field ''%s'' not found', [0, mEBSTypeName, mName]));
+          raise TDynRecException.CreateFmt('value %d in record bitset type ''%s'' for field ''%s'' not found', [0, mEBSTypeName, mName]);
         end;
         // not none
         mask := 1;
@@ -1362,14 +1495,14 @@ begin
                 break;
               end;
             end;
-            if not found then raise Exception.Create(Format('value %d in record bitset type ''%s'' for field ''%s'' not found', [mask, mEBSTypeName, mName]));
+            if not found then raise TDynRecException.CreateFmt('value %d in record bitset type ''%s'' for field ''%s'' not found', [mask, mEBSTypeName, mName]);
           end;
           mask := mask shl 1;
         end;
         wr.put(';'#10);
         exit;
       end;
-    else raise Exception.Create('ketmar forgot to handle some EBS type');
+    else raise TDynRecException.Create('ketmar forgot to handle some EBS type');
   end;
 
   case mType of
@@ -1380,7 +1513,7 @@ begin
       end;
     TType.TChar:
       begin
-        if (mMaxDim = 0) then raise Exception.Create(Format('invalid string size definition for field ''%s''', [mName]));
+        if (mMaxDim = 0) then raise TDynRecException.CreateFmt('invalid string size definition for field ''%s''', [mName]);
         wr.put(quoteStr(mSVal));
         wr.put(';'#10);
         exit;
@@ -1417,9 +1550,9 @@ begin
         assert(false);
         exit;
       end;
-    else raise Exception.Create('ketmar forgot to handle some field type');
+    else raise TDynRecException.Create('ketmar forgot to handle some field type');
   end;
-  raise Exception.Create(Format('cannot parse field ''%s'' yet', [mName]));
+  raise TDynRecException.CreateFmt('cannot parse field ''%s'' yet', [mName]);
 end;
 
 
@@ -1443,12 +1576,12 @@ begin
           rec := mOwner;
           // find trigger definition
           tfld := rec.trigTypeField();
-          if (tfld = nil) then raise Exception.Create(Format('triggerdata value for field ''%s'' in record ''%s'' without TriggerType field', [mName, rec.mName]));
-          rc := mOwner.mOwner.findTrigFor(tfld.mSVal); // find in mapdef
-          if (rc = nil) then raise Exception.Create(Format('triggerdata definition for field ''%s'' in record ''%s'' with type ''%s'' not found', [mName, rec.mName, tfld.mSVal]));
+          if (tfld = nil) then raise TDynRecException.CreateFmt('triggerdata value for field ''%s'' in record ''%s'' without TriggerType field', [mName, rec.mName]);
+          rc := mOwner.mOwner.trigTypeFor[tfld.mSVal]; // find in mapdef
+          if (rc = nil) then raise TDynRecException.CreateFmt('triggerdata definition for field ''%s'' in record ''%s'' with type ''%s'' not found', [mName, rec.mName, tfld.mSVal]);
           rc := rc.clone(mOwner.mHeaderRec);
           rc.mHeaderRec := mOwner.mHeaderRec;
-          // on error, it will be freed be memowner
+          // on error, it will be freed by memowner
           rc.parseBinValue(st, true);
           mRecRef := rc;
           mDefined := true;
@@ -1464,7 +1597,7 @@ begin
             TType.TUShort: f := readWord(st);
             TType.TInt: f := readLongInt(st);
             TType.TUInt: f := readLongWord(st);
-            else raise Exception.Create(Format('invalid non-numeric type ''%s'' for field ''%s'' of record ''%s''', [getTypeName(mType), mName, mEBSTypeName]));
+            else raise TDynRecException.CreateFmt('invalid non-numeric type ''%s'' for field ''%s'' of record ''%s''', [getTypeName(mType), mName, mEBSTypeName]);
           end;
           if mAsMonsterId then Dec(f);
           if (f < 0) then mRecRefId := '' else mRecRefId := Format('%s%d', [mEBSTypeName, f]);
@@ -1483,17 +1616,17 @@ begin
           TType.TUShort: f := readWord(st);
           TType.TInt: f := readLongInt(st);
           TType.TUInt: f := readLongWord(st);
-          else raise Exception.Create(Format('invalid non-numeric type ''%s'' for field ''%s'' of record ''%s''', [getTypeName(mType), mName, mEBSTypeName]));
+          else raise TDynRecException.CreateFmt('invalid non-numeric type ''%s'' for field ''%s'' of record ''%s''', [getTypeName(mType), mName, mEBSTypeName]);
         end;
         es := nil;
         if (mEBSType <> nil) and (mEBSType is TDynEBS) then es := (mEBSType as TDynEBS);
-        if (es = nil) or (es.mIsEnum <> (mEBS = TEBS.TEnum)) then raise Exception.Create(Format('record enum type ''%s'' for field ''%s'' not found', [mEBSTypeName, mName]));
+        if (es = nil) or (es.mIsEnum <> (mEBS = TEBS.TEnum)) then raise TDynRecException.CreateFmt('record enum type ''%s'' for field ''%s'' not found', [mEBSTypeName, mName]);
         mIVal := f;
         // build enum/bitfield values
         if (mEBS = TEBS.TEnum) then
         begin
           mSVal := es.nameByValue(mIVal);
-          if (Length(mSVal) = 0) then raise Exception.Create(Format('record enum type ''%s'' for field ''%s'' has invalid value %d', [mEBSTypeName, mName, mIVal]));
+          if (Length(mSVal) = 0) then raise TDynRecException.CreateFmt('record enum type ''%s'' for field ''%s'' has invalid value %d', [mEBSTypeName, mName, mIVal]);
         end
         else
         begin
@@ -1501,7 +1634,7 @@ begin
           if (mIVal = 0) then
           begin
             mSVal := es.nameByValue(mIVal);
-            if (Length(mSVal) = 0) then raise Exception.Create(Format('record bitset type ''%s'' for field ''%s'' has invalid value %d', [mEBSTypeName, mName, mIVal]));
+            if (Length(mSVal) = 0) then raise TDynRecException.CreateFmt('record bitset type ''%s'' for field ''%s'' has invalid value %d', [mEBSTypeName, mName, mIVal]);
           end
           else
           begin
@@ -1512,7 +1645,7 @@ begin
               if ((mIVal and mask) <> 0) then
               begin
                 s := es.nameByValue(mask);
-                if (Length(s) = 0) then raise Exception.Create(Format('record bitset type ''%s'' for field ''%s'' has invalid value %d', [mEBSTypeName, mName, mask]));
+                if (Length(s) = 0) then raise TDynRecException.CreateFmt('record bitset type ''%s'' for field ''%s'' has invalid value %d', [mEBSTypeName, mName, mask]);
                 if (Length(mSVal) <> 0) then mSVal += '+';
                 mSVal += s;
               end;
@@ -1524,7 +1657,7 @@ begin
         mDefined := true;
         exit;
       end;
-    else raise Exception.Create('ketmar forgot to handle some EBS type');
+    else raise TDynRecException.Create('ketmar forgot to handle some EBS type');
   end;
 
   case mType of
@@ -1572,7 +1705,7 @@ begin
     TType.TUInt: begin mIVal := readLongWord(st); mDefined := true; exit; end;
     TType.TString:
       begin
-        raise Exception.Create('cannot read strings from binaries yet');
+        raise TDynRecException.Create('cannot read strings from binaries yet');
         exit;
       end;
     TType.TPoint:
@@ -1599,9 +1732,9 @@ begin
         assert(false);
         exit;
       end;
-    else raise Exception.Create('ketmar forgot to handle some field type');
+    else raise TDynRecException.Create('ketmar forgot to handle some field type');
   end;
-  raise Exception.Create(Format('cannot parse field ''%s'' yet', [mName]));
+  raise TDynRecException.CreateFmt('cannot parse field ''%s'' yet', [mName]);
 end;
 
 
@@ -1610,7 +1743,7 @@ procedure TDynField.parseValue (pr: TTextParser);
   procedure parseInt (min, max: Integer);
   begin
     mIVal := pr.expectInt();
-    if (mIVal < min) or (mIVal > max) then raise Exception.Create(Format('invalid %s value for field ''%s''', [getTypeName(mType), mName]));
+    if (mIVal < min) or (mIVal > max) then raise TDynParseException.CreateFmt(pr, 'invalid %s value for field ''%s''', [getTypeName(mType), mName]);
     mDefined := true;
   end;
 
@@ -1621,8 +1754,8 @@ var
   tk: AnsiString;
   edim: AnsiChar;
 begin
-  if (pr.tokType = pr.TTEOF) then raise Exception.Create('field value expected');
-  if (pr.tokType = pr.TTSemi) then raise Exception.Create('extra semicolon');
+  if (pr.tokType = pr.TTEOF) then raise TDynParseException.Create(pr, 'field value expected');
+  if (pr.tokType = pr.TTSemi) then raise TDynParseException.Create(pr, 'extra semicolon');
   // if this field should contain struct, convert type and parse struct
   case mEBS of
     TEBS.TNone: begin end;
@@ -1643,13 +1776,13 @@ begin
             rec := mOwner;
             // find trigger definition
             tfld := rec.trigTypeField();
-            if (tfld = nil) then raise Exception.Create(Format('triggerdata value for field ''%s'' in record ''%s'' without ''type'' field', [mName, rec.mName]));
-            rc := mOwner.mOwner.findTrigFor(tfld.mSVal); // find in mapdef
-            if (rc = nil) then raise Exception.Create(Format('triggerdata definition for field ''%s'' in record ''%s'' with type ''%s'' not found', [mName, rec.mName, tfld.mSVal]));
+            if (tfld = nil) then raise TDynParseException.CreateFmt(pr, 'triggerdata value for field ''%s'' in record ''%s'' without ''type'' field', [mName, rec.mName]);
+            rc := mOwner.mOwner.trigTypeFor[tfld.mSVal]; // find in mapdef
+            if (rc = nil) then raise TDynParseException.CreateFmt(pr, 'triggerdata definition for field ''%s'' in record ''%s'' with type ''%s'' not found', [mName, rec.mName, tfld.mSVal]);
             rc := rc.clone(mOwner.mHeaderRec);
             rc.mHeaderRec := mOwner.mHeaderRec;
             //writeln(rc.definition);
-            // on error, it will be freed be memowner
+            // on error, it will be freed by memowner
             rc.parseValue(pr, true);
             mRecRef := rc;
           end;
@@ -1669,7 +1802,6 @@ begin
             rec := mOwner.findRecordByTypeId(mEBSTypeName, pr.tokStr);
             if (rec = nil) then
             begin
-              //raise Exception.Create(Format('record ''%s'' (%s) value for field ''%s'' not found', [pr.tokStr, mEBSTypeName, mName]));
               mRecRefId := pr.tokStr;
             end
             else
@@ -1685,10 +1817,10 @@ begin
         end
         else if (pr.tokType = pr.TTBegin) then
         begin
-          //rec := mOwner.mOwner.findRecType(mEBSTypeName); // find in mapdef
+          //rec := mOwner.mOwner.recType[mEBSTypeName]; // find in mapdef
           rec := nil;
           if (mEBSType <> nil) and (mEBSType is TDynRecord) then rec := (mEBSType as TDynRecord);
-          if (rec = nil) then raise Exception.Create(Format('record type ''%s'' for field ''%s'' not found', [mEBSTypeName, mName]));
+          if (rec = nil) then raise TDynParseException.CreateFmt(pr, 'record type ''%s'' for field ''%s'' not found', [mEBSTypeName, mName]);
           rc := rec.clone(mOwner.mHeaderRec);
           rc.mHeaderRec := mOwner.mHeaderRec;
           rc.parseValue(pr);
@@ -1696,8 +1828,7 @@ begin
           mDefined := true;
           if mOwner.addRecordByType(mEBSTypeName, rc) then
           begin
-            //raise Exception.Create(Format('record type ''%s'' for field ''%s'' not found', [mEBSTypeName, mName]));
-            e_LogWritefln('duplicate record with id ''%s'' for field ''%s'' in record ''%s''', [rc.mId, mName, mOwner.mName]);
+            raise TDynParseException.CreateFmt(pr, 'duplicate record with id ''%s'' for field ''%s'' in record ''%s''', [rc.mId, mName, mOwner.mName]);
           end;
           pr.eatTT(pr.TTSemi); // hack: allow (but don't require) semicolon after inline records
           exit;
@@ -1706,12 +1837,12 @@ begin
       end;
     TEBS.TEnum:
       begin
-        //es := mOwner.mOwner.findEBSType(mEBSTypeName); // find in mapdef
+        //es := mOwner.mOwner.ebsType[mEBSTypeName]; // find in mapdef
         es := nil;
         if (mEBSType <> nil) and (mEBSType is TDynEBS) then es := (mEBSType as TDynEBS);
-        if (es = nil) or (not es.mIsEnum) then raise Exception.Create(Format('record enum type ''%s'' for field ''%s'' not found', [mEBSTypeName, mName]));
+        if (es = nil) or (not es.mIsEnum) then raise TDynParseException.CreateFmt(pr, 'record enum type ''%s'' for field ''%s'' not found', [mEBSTypeName, mName]);
         tk := pr.expectId();
-        if not es.has[tk] then raise Exception.Create(Format('record enum value ''%s'' of type ''%s'' for field ''%s'' not found', [tk, mEBSTypeName, mName]));
+        if not es.has[tk] then raise TDynParseException.CreateFmt(pr, 'record enum value ''%s'' of type ''%s'' for field ''%s'' not found', [tk, mEBSTypeName, mName]);
         mIVal := es.field[tk];
         mSVal := tk;
         //writeln('ENUM ', mEBSName, '; element <', mSVal, '> with value ', mIVal);
@@ -1721,27 +1852,26 @@ begin
       end;
     TEBS.TBitSet:
       begin
-        //es := mOwner.mOwner.findEBSType(mEBSTypeName); // find in mapdef
+        //es := mOwner.mOwner.ebsType[mEBSTypeName]; // find in mapdef
         es := nil;
         if (mEBSType <> nil) and (mEBSType is TDynEBS) then es := (mEBSType as TDynEBS);
-        if (es = nil) or es.mIsEnum then raise Exception.Create(Format('record bitset type ''%s'' for field ''%s'' not found', [mEBSTypeName, mName]));
+        if (es = nil) or es.mIsEnum then raise TDynParseException.CreateFmt(pr, 'record bitset type ''%s'' for field ''%s'' not found', [mEBSTypeName, mName]);
         mIVal := 0;
         while true do
         begin
           tk := pr.expectId();
-          if not es.has[tk] then raise Exception.Create(Format('record bitset value ''%s'' of type ''%s'' for field ''%s'' not found', [tk, mEBSTypeName, mName]));
+          if not es.has[tk] then raise TDynParseException.CreateFmt(pr, 'record bitset value ''%s'' of type ''%s'' for field ''%s'' not found', [tk, mEBSTypeName, mName]);
           mIVal := mIVal or es.field[tk];
           mSVal := tk;
           if (pr.tokType <> pr.TTDelim) or ((pr.tokChar <> '|') and (pr.tokChar <> '+')) then break;
-          if mBitSetUnique then raise Exception.Create(Format('record bitset of type ''%s'' for field ''%s'' expects only one value', [tk, mEBSTypeName, mName]));
-          //pr.expectDelim('|');
+          if mBitSetUnique then raise TDynParseException.CreateFmt(pr, 'record bitset of type ''%s'' for field ''%s'' expects only one value', [tk, mEBSTypeName, mName]);
           pr.skipToken(); // plus or pipe
         end;
         mDefined := true;
         pr.expectTT(pr.TTSemi);
         exit;
       end;
-    else raise Exception.Create('ketmar forgot to handle some EBS type');
+    else raise TDynParseException.Create(pr, 'ketmar forgot to handle some EBS type');
   end;
 
   case mType of
@@ -1749,26 +1879,26 @@ begin
       begin
              if pr.eatId('true') or pr.eatId('tan') or pr.eatId('yes') then mIVal := 1
         else if pr.eatId('false') or pr.eatId('ona') or pr.eatId('no') then mIVal := 0
-        else raise Exception.Create(Format('invalid bool value for field ''%s''', [mName]));
+        else raise TDynParseException.CreateFmt(pr, 'invalid bool value for field ''%s''', [mName]);
         mDefined := true;
         pr.expectTT(pr.TTSemi);
         exit;
       end;
     TType.TChar:
       begin
-        if (mMaxDim = 0) then raise Exception.Create(Format('invalid string size definition for field ''%s''', [mName]));
+        if (mMaxDim = 0) then raise TDynParseException.CreateFmt(pr, 'invalid string size definition for field ''%s''', [mName]);
         mSVal := pr.expectStr(true);
         if (mMaxDim < 0) then
         begin
           // single char
-          if (Length(mSVal) <> 1) then raise Exception.Create(Format('invalid string size for field ''%s''', [mName]));
+          if (Length(mSVal) <> 1) then raise TDynParseException.CreateFmt(pr, 'invalid string size for field ''%s''', [mName]);
           mIVal := Integer(mSVal[1]);
           mSVal := '';
         end
         else
         begin
           // string
-          if (Length(mSVal) > mMaxDim) then raise Exception.Create(Format('invalid string size for field ''%s''', [mName]));
+          if (Length(mSVal) > mMaxDim) then raise TDynParseException.CreateFmt(pr, 'invalid string size for field ''%s''', [mName]);
         end;
         mDefined := true;
         pr.expectTT(pr.TTSemi);
@@ -1824,12 +1954,12 @@ begin
         mIVal := pr.expectInt();
         if (mType = TType.TSize) then
         begin
-          if (mIVal < 0) or (mIVal > 32767) then raise Exception.Create(Format('invalid %s value for field ''%s''', [getTypeName(mType), mName]));
+          if (mIVal < 0) or (mIVal > 32767) then raise TDynParseException.CreateFmt(pr, 'invalid %s value for field ''%s''', [getTypeName(mType), mName]);
         end;
         mIVal2 := pr.expectInt();
         if (mType = TType.TSize) then
         begin
-          if (mIVal2 < 0) or (mIVal2 > 32767) then raise Exception.Create(Format('invalid %s value for field ''%s''', [getTypeName(mType), mName]));
+          if (mIVal2 < 0) or (mIVal2 > 32767) then raise TDynParseException.CreateFmt(pr, 'invalid %s value for field ''%s''', [getTypeName(mType), mName]);
         end;
         mDefined := true;
         pr.expectDelim(edim);
@@ -1846,16 +1976,16 @@ begin
         assert(false);
         exit;
       end;
-    else raise Exception.Create('ketmar forgot to handle some field type');
+    else raise TDynParseException.Create(pr, 'ketmar forgot to handle some field type');
   end;
-  raise Exception.Create(Format('cannot parse field ''%s'' yet', [mName]));
+  raise TDynParseException.CreateFmt(pr, 'cannot parse field ''%s'' yet', [mName]);
 end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
 constructor TDynRecord.Create (pr: TTextParser);
 begin
-  if (pr = nil) then raise Exception.Create('cannot create record type without type definition');
+  if (pr = nil) then raise TDynParseException.Create(pr, 'cannot create record type without type definition');
   mId := '';
   mName := '';
   mSize := 0;
@@ -1936,7 +2066,7 @@ end;
 
 procedure TDynRecord.addField (fld: TDynField); inline;
 begin
-  if (fld = nil) then raise Exception.Create('cannot append nil field to record');
+  if (fld = nil) then raise TDynRecException.Create('cannot append nil field to record');
   mFields.append(fld);
   {$IF DEFINED(XDYNREC_USE_FIELDHASH)}
   if (Length(fld.mName) > 0) then mFieldsHash.put(fld.mName, mFields.count-1);
@@ -1947,7 +2077,7 @@ end;
 function TDynRecord.addFieldChecked (fld: TDynField): Boolean; inline; // `true`: duplicate name
 begin
   result := false;
-  if (fld = nil) then raise Exception.Create('cannot append nil field to record');
+  if (fld = nil) then raise TDynRecException.Create('cannot append nil field to record');
   {$IF not DEFINED(XDYNREC_USE_FIELDHASH)}
   if (Length(fld.mName) > 0) then result := hasByName(fld.mName);
   {$ENDIF}
@@ -2065,7 +2195,7 @@ begin
   // find record data
   fld := mHeaderRec.field[atypename];
   if (fld = nil) then exit;
-  if (fld.mType <> fld.TType.TList) then raise Exception.Create(Format('cannot get record of type ''%s'' due to name conflict with ordinary field', [atypename]));
+  if (fld.mType <> fld.TType.TList) then raise TDynRecException.CreateFmt('cannot get record of type ''%s'' due to name conflict with ordinary field', [atypename]);
   // find by id
   if (fld.mRVal <> nil) then
   begin
@@ -2084,7 +2214,7 @@ begin
   // find record data
   fld := mHeaderRec.field[atypename];
   if (fld = nil) then exit;
-  if (fld.mType <> fld.TType.TList) then raise Exception.Create(Format('cannot get record of type ''%s'' due to name conflict with ordinary field', [atypename]));
+  if (fld.mType <> fld.TType.TList) then raise TDynRecException.CreateFmt('cannot get record of type ''%s'' due to name conflict with ordinary field', [atypename]);
   // find by ref
   if (fld.mRVal <> nil) then
   begin
@@ -2110,7 +2240,7 @@ begin
     fld.mOwner := mHeaderRec;
     mHeaderRec.addField(fld);
   end;
-  if (fld.mType <> fld.TType.TList) then raise Exception.Create(Format('cannot append record of type ''%s'' due to name conflict with ordinary field', [atypename]));
+  if (fld.mType <> fld.TType.TList) then raise TDynRecException.CreateFmt('cannot append record of type ''%s'' due to name conflict with ordinary field', [atypename]);
   // append
   if (fld.mRVal = nil) then
   begin
@@ -2155,13 +2285,27 @@ end;
 
 
 // number of records of the given instance
-function TDynRecord.instanceCount (const typename: AnsiString): Integer;
+function TDynRecord.instanceCount (const atypename: AnsiString): Integer;
 var
   fld: TDynField;
 begin
   result := 0;
-  fld := field[typename];
+  fld := field[atypename];
   if (fld <> nil) and (fld.mType = fld.TType.TList) then result := fld.mRVal.count;
+end;
+
+
+function TDynRecord.newTypedRecord (const atypename, aid: AnsiString): TDynRecord;
+var
+  trc: TDynRecord;
+begin
+  if not mHeader then raise TDynRecException.Create('cannot create new records with non-header');
+  trc := mapdef.recType[atypename];
+  if (trc = nil) then begin result := nil; exit; end;
+  result := trc.clone(self);
+  result.mId := ''; // for now
+  addRecordByType(atypename, result);
+  result.mId := aid;
 end;
 
 
@@ -2170,7 +2314,7 @@ var
   fld: TDynField;
 begin
   fld := getFieldByName(aname);
-  if (fld = nil) then result := Unassigned else result := fld.varvalue;
+  if (fld = nil) then result := Unassigned else result := fld.value;
 end;
 
 
@@ -2181,7 +2325,7 @@ begin
   fld := getFieldByName(aname);
   if (fld = nil) then
   begin
-    if (Length(aname) = 0) then raise Exception.Create('cannot create nameless user field');
+    if (Length(aname) = 0) then raise TDynRecException.Create('cannot create nameless user field');
     fld := TDynField.Create(aname, val);
     fld.mOwner := self;
     fld.mInternal := true;
@@ -2189,7 +2333,7 @@ begin
   end
   else
   begin
-    fld.varvalue := val;
+    fld.value := val;
   end;
 end;
 
@@ -2209,7 +2353,7 @@ begin
         while pr.eatTT(pr.TTComma) do begin end;
         if pr.eatDelim(')') then break;
         tdn := pr.expectId();
-        if isForTrig[tdn] then raise Exception.Create(Format('duplicate trigdata ''%s'' trigtype ''%s''', [mName, tdn]));
+        if isForTrig[tdn] then raise TDynParseException.CreateFmt(pr, 'duplicate trigdata ''%s'' trigtype ''%s''', [mName, tdn]);
         SetLength(mTrigTypes, Length(mTrigTypes)+1);
         mTrigTypes[High(mTrigTypes)] := tdn;
       end;
@@ -2230,17 +2374,17 @@ begin
       if pr.eatId('header') then begin mHeader := true; continue; end;
       if pr.eatId('size') then
       begin
-        if (mSize > 0) then raise Exception.Create(Format('duplicate `size` in record ''%s''', [mName]));
+        if (mSize > 0) then raise TDynParseException.CreateFmt(pr, 'duplicate `size` in record ''%s''', [mName]);
         mSize := pr.expectInt();
-        if (mSize < 1) then raise Exception.Create(Format('invalid record ''%s'' size: %d', [mName, mSize]));
+        if (mSize < 1) then raise TDynParseException.CreateFmt(pr, 'invalid record ''%s'' size: %d', [mName, mSize]);
         pr.expectId('bytes');
         continue;
       end;
       if pr.eatId('binblock') then
       begin
-        if (mBinBlock >= 0) then raise Exception.Create(Format('duplicate `binblock` in record ''%s''', [mName]));
+        if (mBinBlock >= 0) then raise TDynParseException.CreateFmt(pr, 'duplicate `binblock` in record ''%s''', [mName]);
         mBinBlock := pr.expectInt();
-        if (mBinBlock < 1) then raise Exception.Create(Format('invalid record ''%s'' binblock: %d', [mName, mBinBlock]));
+        if (mBinBlock < 1) then raise TDynParseException.CreateFmt(pr, 'invalid record ''%s'' binblock: %d', [mName, mBinBlock]);
         continue;
       end;
     end;
@@ -2251,13 +2395,12 @@ begin
   while (pr.tokType <> pr.TTEnd) do
   begin
     fld := TDynField.Create(pr);
-    //if hasByName(fld.name) then begin fld.Free(); raise Exception.Create(Format('duplicate field ''%s''', [fld.name])); end;
     // append
     fld.mOwner := self;
     if addFieldChecked(fld) then
     begin
       fld.Free();
-      raise Exception.Create(Format('duplicate field ''%s''', [fld.name]));
+      raise TDynParseException.CreateFmt(pr, 'duplicate field ''%s''', [fld.name]);
     end;
     // done with field
   end;
@@ -2337,7 +2480,7 @@ var
       if (rt = nil) then
       begin
         e_LogWritefln('record of type ''%s'' with id ''%s'' links to inexistant record of type ''%s'' with id ''%s''', [rec.mName, rec.mId, fld.mEBSTypeName, fld.mRecRefId], MSG_WARNING);
-        //raise Exception.Create(Format('record of type ''%s'' with id ''%s'' links to inexistant record of type ''%s'' with id ''%s''', [rec.mName, rec.mId, fld.mEBSTypeName, fld.mRecRefId]));
+        //raise TDynRecException.CreateFmt('record of type ''%s'' with id ''%s'' links to inexistant record of type ''%s'' with id ''%s''', [rec.mName, rec.mId, fld.mEBSTypeName, fld.mRecRefId]);
       end;
       //writeln(' ', rec.mName, '.', rec.mId, ':', fld.mName, ' -> ', rt.mName, '.', rt.mId, ' (', fld.mEBSTypeName, '.', fld.mRecRefId, ')');
       fld.mRecRefId := '';
@@ -2360,7 +2503,7 @@ begin
       // parse map file as sequence of blocks
       sign[0] := #4;
       st.ReadBuffer(sign[1], 4);
-      if (sign <> 'MAP'#1) then raise Exception.Create('invalid binary map signature');
+      if (sign <> 'MAP'#1) then raise TDynRecException.Create('invalid binary map signature');
       // parse blocks
       while (st.position < st.size) do
       begin
@@ -2369,19 +2512,19 @@ begin
         readLongWord(st); // reserved
         bsize := readLongInt(st);
         {$IF DEFINED(D2D_XDYN_DEBUG)}writeln('btype=', btype, '; bsize=', bsize);{$ENDIF}
-        if (bsize < 0) or (bsize > $1fffffff) then raise Exception.Create(Format('block of type %d has invalid size %d', [btype, bsize]));
-        if loaded[btype] then raise Exception.Create(Format('block of type %d already loaded', [btype]));
+        if (bsize < 0) or (bsize > $1fffffff) then raise TDynRecException.CreateFmt('block of type %d has invalid size %d', [btype, bsize]);
+        if loaded[btype] then raise TDynRecException.CreateFmt('block of type %d already loaded', [btype]);
         loaded[btype] := true;
         // find record type for this block
         rect := nil;
         for rec in mOwner.recTypes do if (rec.mBinBlock = btype) then begin rect := rec; break; end;
-        if (rect = nil) then raise Exception.Create(Format('block of type %d has no corresponding record', [btype]));
+        if (rect = nil) then raise TDynRecException.CreateFmt('block of type %d has no corresponding record', [btype]);
         //writeln('found type ''', rec.mName, ''' for block type ', btype);
-        if (rec.mSize = 0) or ((bsize mod rec.mSize) <> 0) then raise Exception.Create(Format('block of type %d has invalid number of records', [btype]));
+        if (rec.mSize = 0) or ((bsize mod rec.mSize) <> 0) then raise TDynRecException.CreateFmt('block of type %d has invalid number of records', [btype]);
         // header?
         if (rect.mHeader) then
         begin
-          if (bsize <> mSize) then raise Exception.Create(Format('header block of type %d has invalid number of records', [btype]));
+          if (bsize <> mSize) then raise TDynRecException.CreateFmt('header block of type %d has invalid number of records', [btype]);
           GetMem(buf, bsize);
           st.ReadBuffer(buf^, bsize);
           mst.setup(buf, mSize);
@@ -2424,14 +2567,14 @@ begin
 
     // read fields
     if StrEqu(mName, 'TriggerData') then mSize := Integer(st.size-st.position);
-    if (mSize < 1) then raise Exception.Create(Format('cannot read record of type ''%s'' with unknown size', [mName]));
+    if (mSize < 1) then raise TDynRecException.CreateFmt('cannot read record of type ''%s'' with unknown size', [mName]);
     GetMem(buf, mSize);
     st.ReadBuffer(buf^, mSize);
     for fld in mFields do
     begin
       if fld.mInternal then continue;
       if (fld.mBinOfs < 0) then continue;
-      if (fld.mBinOfs >= st.size) then raise Exception.Create(Format('record of type ''%s'' has invalid field ''%s''', [fld.mName]));
+      if (fld.mBinOfs >= st.size) then raise TDynRecException.CreateFmt('record of type ''%s'' has invalid field ''%s''', [fld.mName]);
       mst.setup(buf+fld.mBinOfs, mSize-fld.mBinOfs);
       //writeln('parsing ''', mName, '.', fld.mName, '''...');
       fld.parseBinValue(mst);
@@ -2456,8 +2599,8 @@ var
 begin
   if (trigbufsz < 0) then
   begin
-    if (mBinBlock < 1) then raise Exception.Create('cannot write binary record without block number');
-    if (mSize < 1) then raise Exception.Create('cannot write binary record without size');
+    if (mBinBlock < 1) then raise TDynRecException.Create('cannot write binary record without block number');
+    if (mSize < 1) then raise TDynRecException.Create('cannot write binary record without size');
     bufsz := mSize;
   end
   else
@@ -2476,7 +2619,7 @@ begin
       if (fld.mType = fld.TType.TList) then continue; // later
       if fld.mInternal then continue;
       if (fld.mBinOfs < 0) then continue;
-      if (fld.mBinOfs >= bufsz) then raise Exception.Create('binary value offset is outside of the buffer');
+      if (fld.mBinOfs >= bufsz) then raise TDynRecException.Create('binary value offset is outside of the buffer');
       TSFSMemoryChunkStream(ws).setup(buf+fld.mBinOfs, bufsz-fld.mBinOfs);
       //writeln('writing field <', fld.mName, '>');
       fld.writeBinTo(ws);
@@ -2508,7 +2651,7 @@ begin
         if (fld.mType = fld.TType.TList) then
         begin
           if (fld.mRVal = nil) or (fld.mRVal.count = 0) then continue;
-          rec := mOwner.findRecType(fld.mName);
+          rec := mOwner.recType[fld.mName];
           if (rec = nil) then continue;
           if (rec.mBinBlock <= 0) then continue;
           if (blkmax < rec.mBinBlock) then blkmax := rec.mBinBlock;
@@ -2525,7 +2668,7 @@ begin
           if (fld.mType = fld.TType.TList) then
           begin
             if (fld.mRVal = nil) or (fld.mRVal.count = 0) then continue;
-            rec := mOwner.findRecType(fld.mName);
+            rec := mOwner.recType[fld.mName];
             if (rec = nil) then continue;
             if (rec.mBinBlock <> blk) then continue;
             if (ws = nil) then ws := TMemoryStream.Create();
@@ -2576,7 +2719,7 @@ begin
       // record list?
       if (fld.mType = fld.TType.TList) then
       begin
-        if not mHeader then raise Exception.Create('record list in non-header record');
+        if not mHeader then raise TDynRecException.Create('record list in non-header record');
         if (fld.mRVal <> nil) then
         begin
           for rec in fld.mRVal do
@@ -2654,8 +2797,8 @@ var
       rt := findRecordByTypeId(fld.mEBSTypeName, fld.mRecRefId);
       if (rt = nil) then
       begin
-        e_LogWritefln('record of type ''%s'' with id ''%s'' links to inexistant record of type ''%s'' with id ''%s''', [rec.mName, rec.mId, fld.mEBSTypeName, fld.mRecRefId], MSG_WARNING);
-        //raise Exception.Create(Format('record of type ''%s'' with id ''%s'' links to inexistant record of type ''%s'' with id ''%s''', [rec.mName, rec.mId, fld.mEBSTypeName, fld.mRecRefId]));
+        //e_LogWritefln('record of type ''%s'' with id ''%s'' links to inexistant record of type ''%s'' with id ''%s''', [rec.mName, rec.mId, fld.mEBSTypeName, fld.mRecRefId], MSG_WARNING);
+        raise TDynParseException.CreateFmt(pr, 'record of type ''%s'' with id ''%s'' links to inexistant record of type ''%s'' with id ''%s''', [rec.mName, rec.mId, fld.mEBSTypeName, fld.mRecRefId]);
       end;
       //writeln(' ', rec.mName, '.', rec.mId, ':', fld.mName, ' -> ', rt.mName, '.', rt.mId, ' (', fld.mEBSTypeName, '.', fld.mRecRefId, ')');
       fld.mRecRefId := '';
@@ -2670,7 +2813,7 @@ var
   end;
 
 begin
-  if (mOwner = nil) then raise Exception.Create(Format('can''t parse record ''%s'' value without owner', [mName]));
+  if (mOwner = nil) then raise TDynParseException.CreateFmt(pr, 'can''t parse record ''%s'' value without owner', [mName]);
 
   {$IF DEFINED(D2D_DYNREC_PROFILER)}stall := curTimeMicro();{$ENDIF}
 
@@ -2689,7 +2832,7 @@ begin
   if not beginEaten then pr.expectTT(pr.TTBegin);
   while (pr.tokType <> pr.TTEnd) do
   begin
-    if (pr.tokType <> pr.TTId) then raise Exception.Create('identifier expected');
+    if (pr.tokType <> pr.TTId) then raise TDynParseException.Create(pr, 'identifier expected');
     //writeln('<', mName, '.', pr.tokStr, '>');
 
     // records
@@ -2697,7 +2840,7 @@ begin
     begin
       // add records with this type (if any)
       {$IF DEFINED(D2D_DYNREC_PROFILER)}stt := curTimeMicro();{$ENDIF}
-      trc := mOwner.findRecType(pr.tokStr);
+      trc := mOwner.recType[pr.tokStr];
       {$IF DEFINED(D2D_DYNREC_PROFILER)}profFindRecType := curTimeMicro()-stt;{$ENDIF}
       if (trc <> nil) then
       begin
@@ -2705,26 +2848,9 @@ begin
         rec := trc.clone(mHeaderRec);
         {$IF DEFINED(D2D_DYNREC_PROFILER)}profCloneRec := curTimeMicro()-stt;{$ENDIF}
         rec.mHeaderRec := mHeaderRec;
-        // on error, it will be freed be memowner
+        // on error, it will be freed by memowner
         pr.skipToken();
         rec.parseValue(pr);
-        (*
-        if (Length(rec.mId) > 0) then
-        begin
-          {$IF DEFINED(D2D_DYNREC_PROFILER)}stt := curTimeMicro();{$ENDIF}
-          fld := field[pr.tokStr];
-          {$IF DEFINED(D2D_DYNREC_PROFILER)}profFieldSearching := curTimeMicro()-stt;{$ENDIF}
-          (*
-          if (fld <> nil) and (fld.mRVal <> nil) then
-          begin
-            {$IF DEFINED(D2D_DYNREC_PROFILER)}stt := curTimeMicro();{$ENDIF}
-            //idtmp := trc.mName+':'+rec.mId;
-            //if ids.put(idtmp, 1) then raise Exception.Create(Format('duplicate thing ''%s'' in record ''%s''', [fld.mName, mName]));
-            if fld.mRHash.has(rec.mId) then raise Exception.Create(Format('duplicate thing ''%s'' in record ''%s''', [fld.mName, mName]));
-            {$IF DEFINED(D2D_DYNREC_PROFILER)}profListDupChecking := curTimeMicro()-stt;{$ENDIF}
-          end;
-        end;
-        *)
         {$IF DEFINED(D2D_DYNREC_PROFILER)}stt := curTimeMicro();{$ENDIF}
         addRecordByType(rec.mName, rec);
         {$IF DEFINED(D2D_DYNREC_PROFILER)}profAddRecByType := curTimeMicro()-stt;{$ENDIF}
@@ -2741,8 +2867,8 @@ begin
     if (fld <> nil) then
     begin
       //writeln('2: <', mName, '.', pr.tokStr, '>');
-      if fld.defined then raise Exception.Create(Format('duplicate field ''%s'' in record ''%s''', [fld.mName, mName]));
-      if fld.internal then raise Exception.Create(Format('internal field ''%s'' in record ''%s''', [fld.mName, mName]));
+      if fld.defined then raise TDynParseException.CreateFmt(pr, 'duplicate field ''%s'' in record ''%s''', [fld.mName, mName]);
+      if fld.internal then raise TDynParseException.CreateFmt(pr, 'internal field ''%s'' in record ''%s''', [fld.mName, mName]);
       pr.skipToken(); // skip field name
       //writeln('3: <', mName, '.', pr.tokStr, '>:', pr.tokType);
       {$IF DEFINED(D2D_DYNREC_PROFILER)}stt := curTimeMicro();{$ENDIF}
@@ -2752,7 +2878,7 @@ begin
     end;
 
     // something is wrong
-    raise Exception.Create(Format('unknown field ''%s'' in record ''%s''', [pr.tokStr, mName]));
+    raise TDynParseException.CreateFmt(pr, 'unknown field ''%s'' in record ''%s''', [pr.tokStr, mName]);
   end;
   pr.expectTT(pr.TTEnd);
 
@@ -2905,9 +3031,9 @@ begin
     idname := pr.expectId();
     for f := 0 to High(mIds) do
     begin
-      if StrEqu(mIds[f], idname) then raise Exception.Create(Format('duplicate field ''%s'' in enum/bitset ''%s''', [idname, mName]));
+      if StrEqu(mIds[f], idname) then raise TDynParseException.CreateFmt(pr, 'duplicate field ''%s'' in enum/bitset ''%s''', [idname, mName]);
     end;
-    if StrEqu(mMaxName, idname) then raise Exception.Create(Format('duplicate field ''%s'' in enum/bitset ''%s''', [idname, mName]));
+    if StrEqu(mMaxName, idname) then raise TDynParseException.CreateFmt(pr, 'duplicate field ''%s'' in enum/bitset ''%s''', [idname, mName]);
     skipAdd := false;
     hasV := false;
     v := cv;
@@ -2916,7 +3042,7 @@ begin
     begin
       if pr.eatId('MAX') then
       begin
-        if (Length(mMaxName) > 0) then raise Exception.Create(Format('duplicate max field ''%s'' in enum/bitset ''%s''', [idname, mName]));
+        if (Length(mMaxName) > 0) then raise TDynParseException.CreateFmt(pr, 'duplicate max field ''%s'' in enum/bitset ''%s''', [idname, mName]);
         mMaxName := idname;
         skipAdd := true;
       end
@@ -2992,7 +3118,7 @@ end;
 
 function TDynMapDef.getHeaderRecType (): TDynRecord; inline;
 begin
-  if (recTypes.count = 0) then raise Exception.Create('no header in empty mapdef');
+  if (recTypes.count = 0) then raise TDynRecException.Create('no header in empty mapdef');
   result := recTypes[0];
 end;
 
@@ -3003,7 +3129,7 @@ var
 begin
   for rec in recTypes do
   begin
-    if StrEqu(rec.name, aname) then begin result := rec; exit; end;
+    if StrEqu(rec.typeName, aname) then begin result := rec; exit; end;
   end;
   result := nil;
 end;
@@ -3027,7 +3153,7 @@ var
 begin
   for ebs in ebsTypes do
   begin
-    if StrEqu(ebs.name, aname) then begin result := ebs; exit; end;
+    if StrEqu(ebs.typeName, aname) then begin result := ebs; exit; end;
   end;
   result := nil;
 end;
@@ -3053,14 +3179,14 @@ var
         TDynField.TEBS.TRec:
           begin
             fld.mEBSType := findRecType(fld.mEBSTypeName);
-            if (fld.mEBSType = nil) then raise Exception.Create(Format('field ''%s'' of type ''%s'' has no correcponding record definition', [fld.mName, fld.mEBSTypeName]));
+            if (fld.mEBSType = nil) then raise TDynParseException.CreateFmt(pr, 'field ''%s'' of type ''%s'' has no correcponding record definition', [fld.mName, fld.mEBSTypeName]);
           end;
         TDynField.TEBS.TEnum,
         TDynField.TEBS.TBitSet:
           begin
             fld.mEBSType := findEBSType(fld.mEBSTypeName);
-            if (fld.mEBSType = nil) then raise Exception.Create(Format('field ''%s'' of type ''%s'' has no correcponding enum/bitset', [fld.mName, fld.mEBSTypeName]));
-            if ((fld.mEBS = TDynField.TEBS.TEnum) <> (fld.mEBSType as TDynEBS).mIsEnum) then raise Exception.Create(Format('field ''%s'' of type ''%s'' enum/bitset type conflict', [fld.mName, fld.mEBSTypeName]));
+            if (fld.mEBSType = nil) then raise TDynParseException.CreateFmt(pr, 'field ''%s'' of type ''%s'' has no correcponding enum/bitset', [fld.mName, fld.mEBSTypeName]);
+            if ((fld.mEBS = TDynField.TEBS.TEnum) <> (fld.mEBSType as TDynEBS).mIsEnum) then raise TDynParseException.CreateFmt(pr, 'field ''%s'' of type ''%s'' enum/bitset type conflict', [fld.mName, fld.mEBSTypeName]);
           end;
       end;
     end;
@@ -3086,10 +3212,10 @@ begin
       if (pr.tokStr = 'enum') or (pr.tokStr = 'bitset') then
       begin
         eb := TDynEBS.Create(pr);
-        if (findEBSType(eb.name) <> nil) then
+        if (findEBSType(eb.typeName) <> nil) then
         begin
           eb.Free();
-          raise Exception.Create(Format('duplicate enum/bitset ''%s''', [eb.name]));
+          raise TDynParseException.CreateFmt(pr, 'duplicate enum/bitset ''%s''', [eb.typeName]);
         end;
         eb.mOwner := self;
         ebsTypes.append(eb);
@@ -3106,7 +3232,7 @@ begin
           if (findTrigFor(rec.mTrigTypes[f]) <> nil) then
           begin
             rec.Free();
-            raise Exception.Create(Format('duplicate trigdata ''%s''', [rec.mTrigTypes[f]]));
+            raise TDynParseException.CreateFmt(pr, 'duplicate trigdata ''%s''', [rec.mTrigTypes[f]]);
           end;
         end;
         rec.mOwner := self;
@@ -3118,12 +3244,12 @@ begin
 
     rec := TDynRecord.Create(pr);
     //writeln(dr.definition); writeln;
-    if (findRecType(rec.name) <> nil) then begin rec.Free(); raise Exception.Create(Format('duplicate record ''%s''', [rec.name])); end;
-    if (hdr <> nil) and StrEqu(rec.name, hdr.name) then begin rec.Free(); raise Exception.Create(Format('duplicate record ''%s''', [rec.name])); end;
+    if (findRecType(rec.typeName) <> nil) then begin rec.Free(); raise TDynParseException.CreateFmt(pr, 'duplicate record ''%s''', [rec.typeName]); end;
+    if (hdr <> nil) and StrEqu(rec.typeName, hdr.typeName) then begin rec.Free(); raise TDynParseException.CreateFmt(pr, 'duplicate record ''%s''', [rec.typeName]); end;
     rec.mOwner := self;
     if rec.mHeader then
     begin
-      if (hdr <> nil) then begin rec.Free(); raise Exception.Create(Format('duplicate header record ''%s'' (previous is ''%s'')', [rec.name, hdr.name])); end;
+      if (hdr <> nil) then begin rec.Free(); raise TDynParseException.CreateFmt(pr, 'duplicate header record ''%s'' (previous is ''%s'')', [rec.typeName, hdr.typeName]); end;
       hdr := rec;
     end
     else
@@ -3133,7 +3259,7 @@ begin
   end;
 
   // put header record to top
-  if (hdr = nil) then raise Exception.Create('header definition not found in mapdef');
+  if (hdr = nil) then raise TDynParseException.Create(pr, 'header definition not found in mapdef');
   recTypes.append(nil);
   for f := recTypes.count-1 downto 1 do recTypes[f] := recTypes[f-1];
   recTypes[0] := hdr;
@@ -3149,13 +3275,13 @@ end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-function TDynMapDef.parseMap (pr: TTextParser): TDynRecord;
+function TDynMapDef.parseTextMap (pr: TTextParser): TDynRecord;
 var
   res: TDynRecord = nil;
 begin
   result := nil;
   try
-    pr.expectId(headerType.name);
+    pr.expectId(headerType.typeName);
     res := headerType.clone(nil);
     res.mHeaderRec := res;
     res.parseValue(pr);
@@ -3184,6 +3310,66 @@ begin
 end;
 
 
+// WARNING! stream must be seekable
+function TDynMapDef.parseMap (st: TStream): TDynRecord;
+var
+  sign: packed array[0..3] of AnsiChar;
+  pr: TTextParser;
+begin
+  st.position := 0;
+  st.ReadBuffer(sign[0], 4);
+  st.position := 0;
+  if (sign[0] = 'M') and (sign[1] = 'A') and (sign[2] = 'P') then
+  begin
+    if (sign[3] = #1) then
+    begin
+      result := parseBinMap(st);
+      exit;
+    end;
+    raise TDynRecException.Create('invalid binary map version');
+  end
+  else
+  begin
+    pr := TFileTextParser.Create(st, false); // `st` is not owned
+    try
+      try
+        result := parseTextMap(pr);
+      except on e: Exception do
+        raise TDynParseException.Create(pr, e.message);
+      end;
+    finally
+      pr.Free();
+    end;
+  end;
+end;
+
+
+// returns `true` if the given stream can be a map file
+// stream position is 0 on return
+// WARNING! stream must be seekable
+class function TDynMapDef.canBeMap (st: TStream): Boolean;
+var
+  sign: packed array[0..3] of AnsiChar;
+  pr: TTextParser;
+begin
+  result := false;
+  st.position := 0;
+  st.ReadBuffer(sign[0], 4);
+  if (sign[0] = 'M') and (sign[1] = 'A') and (sign[2] = 'P') then
+  begin
+    result := (sign[3] = #1);
+  end
+  else
+  begin
+    st.position := 0;
+    pr := TFileTextParser.Create(st, false); // `st` is not owned
+    result := (pr.tokType = pr.TTId) and (pr.tokStr = 'map');
+    pr.Free();
+  end;
+  st.position := 0;
+end;
+
+
 function TDynMapDef.pasdefconst (): AnsiString;
 var
   ebs: TDynEBS;
@@ -3194,6 +3380,12 @@ begin
   for ebs in ebsTypes do result += #10+ebs.pasdef();
 end;
 
+
+function TDynMapDef.getRecTypeCount (): Integer; inline; begin result := recTypes.count; end;
+function TDynMapDef.getRecTypeAt (idx: Integer): TDynRecord; inline; begin if (idx >= 0) and (idx < recTypes.count) then result := recTypes[idx] else result := nil; end;
+
+function TDynMapDef.getEBSTypeCount (): Integer; inline; begin result := ebsTypes.count; end;
+function TDynMapDef.getEBSTypeAt (idx: Integer): TDynEBS; inline; begin if (idx >= 0) and (idx < ebsTypes.count) then result := ebsTypes[idx] else result := nil; end;
 
 function TDynMapDef.getTrigTypeCount (): Integer; inline; begin result := trigTypes.count; end;
 function TDynMapDef.getTrigTypeAt (idx: Integer): TDynRecord; inline; begin if (idx >= 0) and (idx < trigTypes.count) then result := trigTypes[idx] else result := nil; end;

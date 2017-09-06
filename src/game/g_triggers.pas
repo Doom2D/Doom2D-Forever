@@ -2140,7 +2140,7 @@ begin
   triggers := gCurrentMap['trigger'];
   if (triggers = nil) then raise Exception.Create('LOAD: map has no triggers');
   if (mapidx < 0) or (mapidx >= triggers.count) then raise Exception.Create('LOAD: invalid map trigger index');
-  Trigger.trigData := triggers.item[mapidx];
+  Trigger.trigData := triggers.itemAt[mapidx];
   if (Trigger.trigData = nil) then raise Exception.Create('LOAD: internal error in trigger loader');
   Trigger.mapId := Trigger.trigData.id;
   Trigger.mapIndex := mapidx;

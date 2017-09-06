@@ -179,7 +179,7 @@ type
   TFormatStrFCallback = procedure (constref buf; len: SizeUInt);
 
 // returns formatted string if `writerCB` is `nil`, empty string otherwise
-function formatstrf (const fmt: AnsiString; args: array of const; writerCB: TFormatStrFCallback=nil): AnsiString;
+function formatstrf (const fmt: AnsiString; const args: array of const; writerCB: TFormatStrFCallback=nil): AnsiString;
 
 function wchar2win (wc: WideChar): AnsiChar; inline;
 function utf2win (const s: AnsiString): AnsiString;
@@ -1252,7 +1252,7 @@ end;
 *)
 
 
-function formatstrf (const fmt: AnsiString; args: array of const; writerCB: TFormatStrFCallback=nil): AnsiString;
+function formatstrf (const fmt: AnsiString; const args: array of const; writerCB: TFormatStrFCallback=nil): AnsiString;
 const
   PadSpaces: AnsiString = '                                                                       ';
   PadZeroes: AnsiString = '00000000000000000000000000000000000000000000000000000000000000000000000';

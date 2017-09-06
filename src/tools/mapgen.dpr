@@ -101,7 +101,7 @@ function TDynRecordHelper.trigTlpDir (): Byte; inline; begin result := Byte(getF
     write(foimpl, #10'// ');
     write(fohlp, #10'// ');
     needComma := false;
-    trec := dfmapdef.trigType[tidx];
+    trec := dfmapdef.trigTypeAt[tidx];
     for nidx := 0 to trec.forTrigCount-1 do
     begin
       if needComma then write(fohlp, ', ');
@@ -129,8 +129,8 @@ function TDynRecordHelper.trigTlpDir (): Byte; inline; begin result := Byte(getF
       knownfld := nil;
       if fldknown.get(toLowerCase1251(palias), knownfld) then
       begin
-        if (fld.name <> knownfld.name) then raise Exception.Create(formatstrf('field ''%s'' of record ''%s'' conflicts with other field ''%s''', [fld.name, trec.name, knownfld.name]));
-        if (fld.baseType <> knownfld.baseType) then raise Exception.Create(formatstrf('field ''%s'' of record ''%s'' conflicts with other field ''%s'' by type', [fld.name, trec.name, knownfld.name]));
+        if (fld.name <> knownfld.name) then raise Exception.Create(formatstrf('field ''%s'' of record ''%s'' conflicts with other field ''%s''', [fld.name, trec.typeName, knownfld.name]));
+        if (fld.baseType <> knownfld.baseType) then raise Exception.Create(formatstrf('field ''%s'' of record ''%s'' conflicts with other field ''%s'' by type', [fld.name, trec.typeName, knownfld.name]));
         writeln('skipped duplicate field ''', fld.name, '''');
         continue;
       end;

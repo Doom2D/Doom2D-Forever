@@ -187,7 +187,7 @@ var
 begin
   fld := field['userPanelId'];
   //if (fld = nil) or (fld.baseType <> TDynField.TType.TInt) then result := -1 else result := fld.ival;
-  if (fld = nil) then result := -1 else result := Integer(fld.varvalue);
+  if (fld = nil) then result := -1 else result := Integer(fld.value);
 end;
 
 
@@ -202,7 +202,7 @@ var
   fld: TDynField;
 begin
   fld := field['userPanelTrigRef'];
-  if (fld = nil) then result := false else result := Boolean(fld.varvalue);
+  if (fld = nil) then result := false else result := Boolean(fld.value);
   //if (fld = nil) or (fld.baseType <> TDynField.TType.TBool) then result := false else result := (fld.ival <> 0);
 end;
 
@@ -245,8 +245,8 @@ end;
 function TDynRecordHelper.getFieldWithType (const aname: AnsiString; atype: TDynField.TType): TDynField; inline;
 begin
   result := field[aname];
-  if (result = nil) then raise Exception.Create(Format('field ''%s'' not found in record ''%s'' of type ''%s''', [aname, name, id]));
-  if (result.baseType <> atype) then raise Exception.Create(Format('field ''%s'' in record ''%s'' of type ''%s'' has invalid data type', [aname, name, id]));
+  if (result = nil) then raise Exception.Create(Format('field ''%s'' not found in record ''%s'' of type ''%s''', [aname, typeName, id]));
+  if (result.baseType <> atype) then raise Exception.Create(Format('field ''%s'' in record ''%s'' of type ''%s'' has invalid data type', [aname, typeName, id]));
 end;
 
 
@@ -255,8 +255,8 @@ var
   fld: TDynField;
 begin
   fld := field[aname];
-  if (fld = nil) then raise Exception.Create(Format('field ''%s'' not found in record ''%s'' of type ''%s''', [aname, name, id]));
-  if (fld.baseType <> TPoint) then raise Exception.Create(Format('field ''%s'' in record ''%s'' of type ''%s'' has invalid data type', [aname, name, id]));
+  if (fld = nil) then raise Exception.Create(Format('field ''%s'' not found in record ''%s'' of type ''%s''', [aname, typeName, id]));
+  if (fld.baseType <> TPoint) then raise Exception.Create(Format('field ''%s'' in record ''%s'' of type ''%s'' has invalid data type', [aname, typeName, id]));
   result := TDFPoint.Create(fld.ival, fld.ival2);
 end;
 
@@ -266,8 +266,8 @@ var
   fld: TDynField;
 begin
   fld := field[aname];
-  if (fld = nil) then raise Exception.Create(Format('field ''%s'' not found in record ''%s'' of type ''%s''', [aname, name, id]));
-  if (fld.baseType <> TSize) and (fld.baseType <> TPoint) then raise Exception.Create(Format('field ''%s'' in record ''%s'' of type ''%s'' has invalid data type', [aname, name, id]));
+  if (fld = nil) then raise Exception.Create(Format('field ''%s'' not found in record ''%s'' of type ''%s''', [aname, typeName, id]));
+  if (fld.baseType <> TSize) and (fld.baseType <> TPoint) then raise Exception.Create(Format('field ''%s'' in record ''%s'' of type ''%s'' has invalid data type', [aname, typeName, id]));
   result := TDFSize.Create(fld.ival, fld.ival2);
 end;
 
@@ -277,7 +277,7 @@ var
   fld: TDynField;
 begin
   fld := headerRec['panel'];
-  if (fld <> nil) then result := fld.item[idx] else result := nil;
+  if (fld <> nil) then result := fld.itemAt[idx] else result := nil;
 end;
 
 
@@ -292,7 +292,7 @@ begin
     fld := headerRec['panel'];
     if (fld <> nil) then
     begin
-      for f := 0 to fld.count-1 do if (fld.item[f] = pan) then begin result := f; exit; end;
+      for f := 0 to fld.count-1 do if (fld.itemAt[f] = pan) then begin result := f; exit; end;
     end;
   end;
 end;
