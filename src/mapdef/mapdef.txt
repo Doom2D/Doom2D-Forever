@@ -1,31 +1,29 @@
 // yes, this file serves both as format description and as template for code generation
-// the engine will use this description to populate the corresponding records from MAP*.pas
-// also, the engine will keep the loaded map as a list of these structures
+// the engine will use this description to parse legacy binary map format
 
 // notes:
-//   field without offset is not in binary format
-//   fields with `writedefault` won't be written when they contain default values
-//   fields with `internal` won't be written to any file ever (and won't be read)
-//   `ubyte` is unsigned byte, and `byte` is signed byte
-//   all strings are in utf-8
-//   struct with `header` flag will contain all other structs and it's own fields
-//     as top-level entities
-//   in binary, `size` is two ushorts
-//   `as xy` will use `X` and `Y` for points
-//   `as txy` will use `tX` and `tY` for points
-//   `as wh` will use `Width` and `Height` for size
-//   `as twh` will use `tWidth` and `tHeight` for size
-//   `as monsterid`: special hack for triggers: monster record number+1 in binary (so 0 means "none")
-
+//  * field without offset is not in binary format
+//  * fields with `writedefault` will be written even if they contain default values
+//  * fields with `internal` won't be written to any file ever (and won't be read)
+//  * `ubyte` is unsigned byte, and `byte` is signed byte
+//  * all strings are in utf-8
+//  * struct with `header` flag will contain all other structs and it's own fields as top-level entities
+//  * in binary, `size` is two ushorts
+//  * `as xy` will use `X` and `Y` for points
+//  * `as txy` will use `tX` and `tY` for points
+//  * `as wh` will use `Width` and `Height` for size
+//  * `as twh` will use `tWidth` and `tHeight` for size
+//  * `as monsterid`: special hack for triggers: monster record number+1 in binary (so 0 means "none")
+//  * `binblock` and `offset` (and `[]` arrays) are used to parse legacy binary format
 
 ////////////////////////////////////////////////////////////////////////////////
 // main blocks
 "map" size 452 bytes header binblock 7 {
   "name" type char[32] offset 0 writedefault;
-  "author" type char[32] offset 32 default "";
-  "description" type char[256] offset 64 default "";
-  "music" type char[64] offset 320 default 'Standart.wad:D2DMUS\ПРОСТОТА';
-  "sky" type char[64] offset 384 default 'Standart.wad:D2DSKY\RSKY1';
+  "author" type char[32] offset 32 default "" writedefault;
+  "description" type char[256] offset 64 default "" writedefault;
+  "music" type char[64] offset 320 default 'Standart.wad:D2DMUS\ПРОСТОТА' writedefault;
+  "sky" type char[64] offset 384 default 'Standart.wad:D2DSKY\RSKY1' writedefault;
   "size" type size offset 448 as wh writedefault;
 }
 
