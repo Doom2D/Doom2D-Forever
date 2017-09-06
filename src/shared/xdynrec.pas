@@ -132,6 +132,7 @@ type
   protected
     // returns `true` for duplicate record id
     function addListItem (rec: TDynRecord): Boolean; inline;
+    function removeListItem (const aid: AnsiString): TDynRecord; // returns nil or removed record
 
   public
     // get string name for the given type
@@ -215,7 +216,7 @@ type
   private
     mOwner: TDynMapDef;
     mId: AnsiString;
-    mName: AnsiString;
+    mTypeName: AnsiString;
     mSize: Integer;
     mFields: TDynFieldList;
     {$IF DEFINED(XDYNREC_USE_FIELDHASH)}
@@ -253,6 +254,8 @@ type
     function getUserVar (const aname: AnsiString): Variant;
     procedure setUserVar (const aname: AnsiString; val: Variant);
 
+    procedure clearRefRecs (rec: TDynRecord);
+
   protected
     function findRecordByTypeId (const atypename, aid: AnsiString): TDynRecord;
     function findRecordNumByType (const atypename: AnsiString; rc: TDynRecord): Integer;
@@ -283,7 +286,21 @@ type
 
     // only for headers: create new record with the given type
     // will return cloned record ready for use, or `nil` on unknown type name
+    // `aid` must not be empty, and must be unique
     function newTypedRecord (const atypename, aid: AnsiString): TDynRecord;
+
+    // remove record with the given type and id
+    // return `true` if record was successfully found and removed
+    // this will do all necessary recref cleanup too
+    // WARNING: not tested yet
+    function removeTypedRecord (const atypename, aid: AnsiString): Boolean;
+
+    //TODO:
+    //  [.] API to create triggers
+    //  [.] API to properly remove triggers (remove trigdata)
+    //  [.] check if `removeTypedRecord()` does the right thing with inline records
+    //  [.] for fields: assigning `recref` should remove previously assigned inline record (record without id)
+    //  [.] other API i forgot
 
   public
     // text parser
@@ -301,7 +318,7 @@ type
   public
     property mapdef: TDynMapDef read mOwner;
     property id: AnsiString read mId; // record id in text map
-    property typeName: AnsiString read mName; // record type name (like "panel", or "trigger")
+    property typeName: AnsiString read mTypeName; // record type name (like "panel", or "trigger")
     property has[const aname: AnsiString]: Boolean read hasByName; // do we have field with the given name?
     property count: Integer read getCount; // number of fields in this record
     property field[const aname: AnsiString]: TDynField read getFieldByName; default; // get field by name
@@ -331,7 +348,7 @@ type
   private
     mOwner: TDynMapDef;
     mIsEnum: Boolean;
-    mName: AnsiString;
+    mTypeName: AnsiString;
     mIds: array of AnsiString;
     mVals: array of Integer;
     mMaxName: AnsiString; // MAX field
@@ -359,7 +376,7 @@ type
 
   public
     property mapdef: TDynMapDef read mOwner;
-    property typeName: AnsiString read mName; // enum/bitset type name
+    property typeName: AnsiString read mTypeName; // enum/bitset type name
     property isEnum: Boolean read mIsEnum; // is this enum? `false` means "bitset"
     property has[const aname: AnsiString]: Boolean read hasByName;
     property field[const aname: AnsiString]: Integer read getFieldByName;
@@ -912,7 +929,7 @@ begin
   if not mHasDefault then
   begin
     if mInternal then exit;
-    raise TDynRecException.CreateFmt('field ''%s'' in record ''%s'' of record type ''%s'' is not set', [mName, mOwner.mId, mOwner.mName]);
+    raise TDynRecException.CreateFmt('field ''%s'' in record ''%s'' of record type ''%s'' is not set', [mName, mOwner.mId, mOwner.mTypeName]);
   end;
   if (mEBS = TEBS.TRec) then mRecRef := mDefRecRef;
   mSVal := mDefSVal;
@@ -963,6 +980,26 @@ begin
   begin
     mRVal.append(rec);
     if (Length(rec.mId) > 0) then result := mRHash.put(rec.mId, mRVal.count-1);
+  end;
+end;
+
+
+function TDynField.removeListItem (const aid: AnsiString): TDynRecord;
+var
+  f, idx: Integer;
+begin
+  result := nil;
+  if mRHash.get(aid, idx) then
+  begin
+    assert((idx >= 0) and (idx < mRVal.count));
+    result := mRVal[idx];
+    // fix hash and list
+    for f := idx+1 to mRVal.count-1 do
+    begin
+      if (Length(mRVal[f].mId) > 0) then mRHash.put(mRVal[f].mId, f-1);
+    end;
+    mRHash.del(aid);
+    mRVal.delete(idx);
   end;
 end;
 
@@ -1576,9 +1613,9 @@ begin
           rec := mOwner;
           // find trigger definition
           tfld := rec.trigTypeField();
-          if (tfld = nil) then raise TDynRecException.CreateFmt('triggerdata value for field ''%s'' in record ''%s'' without TriggerType field', [mName, rec.mName]);
+          if (tfld = nil) then raise TDynRecException.CreateFmt('triggerdata value for field ''%s'' in record ''%s'' without TriggerType field', [mName, rec.mTypeName]);
           rc := mOwner.mOwner.trigTypeFor[tfld.mSVal]; // find in mapdef
-          if (rc = nil) then raise TDynRecException.CreateFmt('triggerdata definition for field ''%s'' in record ''%s'' with type ''%s'' not found', [mName, rec.mName, tfld.mSVal]);
+          if (rc = nil) then raise TDynRecException.CreateFmt('triggerdata definition for field ''%s'' in record ''%s'' with type ''%s'' not found', [mName, rec.mTypeName, tfld.mSVal]);
           rc := rc.clone(mOwner.mHeaderRec);
           rc.mHeaderRec := mOwner.mHeaderRec;
           // on error, it will be freed by memowner
@@ -1776,9 +1813,9 @@ begin
             rec := mOwner;
             // find trigger definition
             tfld := rec.trigTypeField();
-            if (tfld = nil) then raise TDynParseException.CreateFmt(pr, 'triggerdata value for field ''%s'' in record ''%s'' without ''type'' field', [mName, rec.mName]);
+            if (tfld = nil) then raise TDynParseException.CreateFmt(pr, 'triggerdata value for field ''%s'' in record ''%s'' without ''type'' field', [mName, rec.mTypeName]);
             rc := mOwner.mOwner.trigTypeFor[tfld.mSVal]; // find in mapdef
-            if (rc = nil) then raise TDynParseException.CreateFmt(pr, 'triggerdata definition for field ''%s'' in record ''%s'' with type ''%s'' not found', [mName, rec.mName, tfld.mSVal]);
+            if (rc = nil) then raise TDynParseException.CreateFmt(pr, 'triggerdata definition for field ''%s'' in record ''%s'' with type ''%s'' not found', [mName, rec.mTypeName, tfld.mSVal]);
             rc := rc.clone(mOwner.mHeaderRec);
             rc.mHeaderRec := mOwner.mHeaderRec;
             //writeln(rc.definition);
@@ -1828,7 +1865,7 @@ begin
           mDefined := true;
           if mOwner.addRecordByType(mEBSTypeName, rc) then
           begin
-            raise TDynParseException.CreateFmt(pr, 'duplicate record with id ''%s'' for field ''%s'' in record ''%s''', [rc.mId, mName, mOwner.mName]);
+            raise TDynParseException.CreateFmt(pr, 'duplicate record with id ''%s'' for field ''%s'' in record ''%s''', [rc.mId, mName, mOwner.mTypeName]);
           end;
           pr.eatTT(pr.TTSemi); // hack: allow (but don't require) semicolon after inline records
           exit;
@@ -1987,7 +2024,7 @@ constructor TDynRecord.Create (pr: TTextParser);
 begin
   if (pr = nil) then raise TDynParseException.Create(pr, 'cannot create record type without type definition');
   mId := '';
-  mName := '';
+  mTypeName := '';
   mSize := 0;
   mFields := TDynFieldList.Create();
   {$IF DEFINED(XDYNREC_USE_FIELDHASH)}
@@ -2005,7 +2042,7 @@ end;
 
 constructor TDynRecord.Create ();
 begin
-  mName := '';
+  mTypeName := '';
   mSize := 0;
   mFields := TDynFieldList.Create();
   {$IF DEFINED(XDYNREC_USE_FIELDHASH)}
@@ -2038,7 +2075,7 @@ begin
     mRec2Free.Free();
     mRec2Free := nil;
   end;
-  mName := '';
+  mTypeName := '';
   for fld in mFields do fld.Free();
   mFields.Free();
   mFields := nil;
@@ -2167,7 +2204,7 @@ begin
   result := TDynRecord.Create();
   result.mOwner := mOwner;
   result.mId := mId;
-  result.mName := mName;
+  result.mTypeName := mTypeName;
   result.mSize := mSize;
   result.mHeader := mHeader;
   result.mBinBlock := mBinBlock;
@@ -2278,7 +2315,7 @@ begin
     if not (fld.mEBSType is TDynEBS) then continue;
     es := (fld.mEBSType as TDynEBS);
     assert(es <> nil);
-    if StrEqu(es.mName, 'TriggerType') then begin result := fld; exit; end;
+    if StrEqu(es.mTypeName, 'TriggerType') then begin result := fld; exit; end;
   end;
   result := nil;
 end;
@@ -2298,14 +2335,67 @@ end;
 function TDynRecord.newTypedRecord (const atypename, aid: AnsiString): TDynRecord;
 var
   trc: TDynRecord;
+  fld: TDynField;
 begin
   if not mHeader then raise TDynRecException.Create('cannot create new records with non-header');
+  if (Length(aid) = 0) then raise TDynRecException.CreateFmt('cannot create new record of type ''%s'' without id', [atypename]);
   trc := mapdef.recType[atypename];
   if (trc = nil) then begin result := nil; exit; end;
+  // check if aid is unique
+  fld := field[atypename];
+  if (fld <> nil) and (fld.getListItem(aid) <> nil) then raise TDynRecException.CreateFmt('cannot create record of type ''%s'' with duplicate id ''%s''', [atypename, aid]);
   result := trc.clone(self);
-  result.mId := ''; // for now
-  addRecordByType(atypename, result);
   result.mId := aid;
+  addRecordByType(atypename, result);
+end;
+
+
+procedure TDynRecord.clearRefRecs (rec: TDynRecord);
+  procedure clearRefs (fld: TDynField);
+  var
+    rc: TDynRecord;
+  begin
+    if (fld = nil) then exit;
+    if (fld.mRecRef = rec) then fld.mRecRef := nil;
+    if (fld.mType = fld.TType.TList) then for rc in fld.mRVal do rc.clearRefRecs(rec);
+  end;
+var
+  fld: TDynField;
+begin
+  if (rec = nil) or (mFields = nil) then exit;
+  for fld in mFields do clearRefs(fld);
+end;
+
+
+// remove record with the given type and id
+// return `true` if record was successfully found and removed
+// this will do all necessary recref cleanup too
+function TDynRecord.removeTypedRecord (const atypename, aid: AnsiString): Boolean;
+var
+  trc, rec: TDynRecord;
+  fld: TDynField;
+  f: Integer;
+  doFree: Boolean = false;
+begin
+  result := false;
+  if not mHeader then raise TDynRecException.Create('cannot remove records with non-header');
+  if (Length(aid) = 0) then exit;
+  trc := mapdef.recType[atypename];
+  if (trc = nil) then exit;
+  fld := field[atypename];
+  if (fld = nil) then exit;
+  rec := fld.removeListItem(aid);
+  if (rec = nil) then exit;
+  clearRefRecs(rec);
+  for f := 0 to mRec2Free.count-1 do
+  begin
+    if (mRec2Free[f] = rec) then
+    begin
+      mRec2Free[f] := nil;
+      doFree := true;
+    end;
+  end;
+  if doFree then rec.Free();
 end;
 
 
@@ -2353,7 +2443,7 @@ begin
         while pr.eatTT(pr.TTComma) do begin end;
         if pr.eatDelim(')') then break;
         tdn := pr.expectId();
-        if isForTrig[tdn] then raise TDynParseException.CreateFmt(pr, 'duplicate trigdata ''%s'' trigtype ''%s''', [mName, tdn]);
+        if isForTrig[tdn] then raise TDynParseException.CreateFmt(pr, 'duplicate trigdata ''%s'' trigtype ''%s''', [mTypeName, tdn]);
         SetLength(mTrigTypes, Length(mTrigTypes)+1);
         mTrigTypes[High(mTrigTypes)] := tdn;
       end;
@@ -2364,27 +2454,27 @@ begin
       SetLength(mTrigTypes, 1);
       mTrigTypes[0] := tdn;
     end;
-    mName := 'TriggerData';
+    mTypeName := 'TriggerData';
   end
   else
   begin
-    mName := pr.expectStrOrId();
+    mTypeName := pr.expectStrOrId();
     while (pr.tokType <> pr.TTBegin) do
     begin
       if pr.eatId('header') then begin mHeader := true; continue; end;
       if pr.eatId('size') then
       begin
-        if (mSize > 0) then raise TDynParseException.CreateFmt(pr, 'duplicate `size` in record ''%s''', [mName]);
+        if (mSize > 0) then raise TDynParseException.CreateFmt(pr, 'duplicate `size` in record ''%s''', [mTypeName]);
         mSize := pr.expectInt();
-        if (mSize < 1) then raise TDynParseException.CreateFmt(pr, 'invalid record ''%s'' size: %d', [mName, mSize]);
+        if (mSize < 1) then raise TDynParseException.CreateFmt(pr, 'invalid record ''%s'' size: %d', [mTypeName, mSize]);
         pr.expectId('bytes');
         continue;
       end;
       if pr.eatId('binblock') then
       begin
-        if (mBinBlock >= 0) then raise TDynParseException.CreateFmt(pr, 'duplicate `binblock` in record ''%s''', [mName]);
+        if (mBinBlock >= 0) then raise TDynParseException.CreateFmt(pr, 'duplicate `binblock` in record ''%s''', [mTypeName]);
         mBinBlock := pr.expectInt();
-        if (mBinBlock < 1) then raise TDynParseException.CreateFmt(pr, 'invalid record ''%s'' binblock: %d', [mName, mBinBlock]);
+        if (mBinBlock < 1) then raise TDynParseException.CreateFmt(pr, 'invalid record ''%s'' binblock: %d', [mTypeName, mBinBlock]);
         continue;
       end;
     end;
@@ -2434,7 +2524,7 @@ begin
   else
   begin
     // record
-    result := quoteStr(mName);
+    result := quoteStr(mTypeName);
     if (mSize >= 0) then result += Format(' size %d bytes', [mSize]);
     if mHeader then result += ' header';
   end;
@@ -2479,7 +2569,7 @@ var
       rt := findRecordByTypeId(fld.mEBSTypeName, fld.mRecRefId);
       if (rt = nil) then
       begin
-        e_LogWritefln('record of type ''%s'' with id ''%s'' links to inexistant record of type ''%s'' with id ''%s''', [rec.mName, rec.mId, fld.mEBSTypeName, fld.mRecRefId], MSG_WARNING);
+        e_LogWritefln('record of type ''%s'' with id ''%s'' links to inexistant record of type ''%s'' with id ''%s''', [rec.mTypeName, rec.mId, fld.mEBSTypeName, fld.mRecRefId], MSG_WARNING);
         //raise TDynRecException.CreateFmt('record of type ''%s'' with id ''%s'' links to inexistant record of type ''%s'' with id ''%s''', [rec.mName, rec.mId, fld.mEBSTypeName, fld.mRecRefId]);
       end;
       //writeln(' ', rec.mName, '.', rec.mId, ':', fld.mName, ' -> ', rt.mName, '.', rt.mId, ' (', fld.mEBSTypeName, '.', fld.mRecRefId, ')');
@@ -2533,7 +2623,7 @@ begin
         else
         begin
           // create list for this type
-          fld := TDynField.Create(rec.mName, TDynField.TType.TList);
+          fld := TDynField.Create(rec.mTypeName, TDynField.TType.TList);
           fld.mOwner := self;
           addField(fld);
           if (bsize > 0) then
@@ -2546,7 +2636,7 @@ begin
               rec := rect.clone(self);
               rec.mHeaderRec := self;
               rec.parseBinValue(mst);
-              rec.mId := Format('%s%d', [rec.mName, f]);
+              rec.mId := Format('%s%d', [rec.mTypeName, f]);
               fld.addListItem(rec);
               //writeln('parsed ''', rec.mId, '''...');
             end;
@@ -2566,8 +2656,8 @@ begin
     end;
 
     // read fields
-    if StrEqu(mName, 'TriggerData') then mSize := Integer(st.size-st.position);
-    if (mSize < 1) then raise TDynRecException.CreateFmt('cannot read record of type ''%s'' with unknown size', [mName]);
+    if StrEqu(mTypeName, 'TriggerData') then mSize := Integer(st.size-st.position);
+    if (mSize < 1) then raise TDynRecException.CreateFmt('cannot read record of type ''%s'' with unknown size', [mTypeName]);
     GetMem(buf, mSize);
     st.ReadBuffer(buf^, mSize);
     for fld in mFields do
@@ -2707,7 +2797,7 @@ var
 begin
   if putHeader then
   begin
-    wr.put(mName);
+    wr.put(mTypeName);
     if (Length(mId) > 0) then begin wr.put(' '); wr.put(mId); end;
     wr.put(' ');
   end;
@@ -2798,7 +2888,7 @@ var
       if (rt = nil) then
       begin
         //e_LogWritefln('record of type ''%s'' with id ''%s'' links to inexistant record of type ''%s'' with id ''%s''', [rec.mName, rec.mId, fld.mEBSTypeName, fld.mRecRefId], MSG_WARNING);
-        raise TDynParseException.CreateFmt(pr, 'record of type ''%s'' with id ''%s'' links to inexistant record of type ''%s'' with id ''%s''', [rec.mName, rec.mId, fld.mEBSTypeName, fld.mRecRefId]);
+        raise TDynParseException.CreateFmt(pr, 'record of type ''%s'' with id ''%s'' links to inexistant record of type ''%s'' with id ''%s''', [rec.mTypeName, rec.mId, fld.mEBSTypeName, fld.mRecRefId]);
       end;
       //writeln(' ', rec.mName, '.', rec.mId, ':', fld.mName, ' -> ', rt.mName, '.', rt.mId, ' (', fld.mEBSTypeName, '.', fld.mRecRefId, ')');
       fld.mRecRefId := '';
@@ -2813,7 +2903,7 @@ var
   end;
 
 begin
-  if (mOwner = nil) then raise TDynParseException.CreateFmt(pr, 'can''t parse record ''%s'' value without owner', [mName]);
+  if (mOwner = nil) then raise TDynParseException.CreateFmt(pr, 'can''t parse record ''%s'' value without owner', [mTypeName]);
 
   {$IF DEFINED(D2D_DYNREC_PROFILER)}stall := curTimeMicro();{$ENDIF}
 
@@ -2852,7 +2942,7 @@ begin
         pr.skipToken();
         rec.parseValue(pr);
         {$IF DEFINED(D2D_DYNREC_PROFILER)}stt := curTimeMicro();{$ENDIF}
-        addRecordByType(rec.mName, rec);
+        addRecordByType(rec.mTypeName, rec);
         {$IF DEFINED(D2D_DYNREC_PROFILER)}profAddRecByType := curTimeMicro()-stt;{$ENDIF}
         continue;
       end;
@@ -2867,8 +2957,8 @@ begin
     if (fld <> nil) then
     begin
       //writeln('2: <', mName, '.', pr.tokStr, '>');
-      if fld.defined then raise TDynParseException.CreateFmt(pr, 'duplicate field ''%s'' in record ''%s''', [fld.mName, mName]);
-      if fld.internal then raise TDynParseException.CreateFmt(pr, 'internal field ''%s'' in record ''%s''', [fld.mName, mName]);
+      if fld.defined then raise TDynParseException.CreateFmt(pr, 'duplicate field ''%s'' in record ''%s''', [fld.mName, mTypeName]);
+      if fld.internal then raise TDynParseException.CreateFmt(pr, 'internal field ''%s'' in record ''%s''', [fld.mName, mTypeName]);
       pr.skipToken(); // skip field name
       //writeln('3: <', mName, '.', pr.tokStr, '>:', pr.tokType);
       {$IF DEFINED(D2D_DYNREC_PROFILER)}stt := curTimeMicro();{$ENDIF}
@@ -2878,7 +2968,7 @@ begin
     end;
 
     // something is wrong
-    raise TDynParseException.CreateFmt(pr, 'unknown field ''%s'' in record ''%s''', [pr.tokStr, mName]);
+    raise TDynParseException.CreateFmt(pr, 'unknown field ''%s'' in record ''%s''', [pr.tokStr, mTypeName]);
   end;
   pr.expectTT(pr.TTEnd);
 
@@ -2920,7 +3010,7 @@ end;
 procedure TDynEBS.cleanup ();
 begin
   mIsEnum := false;
-  mName := '';
+  mTypeName := '';
   mIds := nil;
   mVals := nil;
   mMaxName := '';
@@ -2960,7 +3050,7 @@ var
   f, cv: Integer;
 begin
   if mIsEnum then result :='enum ' else result := 'bitset ';
-  result += mName;
+  result += mTypeName;
   result += ' {'#10;
   // fields
   if mIsEnum then cv := 0 else cv := 1;
@@ -2990,7 +3080,7 @@ function TDynEBS.pasdef (): AnsiString;
 var
   f: Integer;
 begin
-  result := '// '+mName+#10'const'#10;
+  result := '// '+mTypeName+#10'const'#10;
   // fields
   for f := 0 to High(mIds) do
   begin
@@ -3022,7 +3112,7 @@ begin
        if pr.eatId('enum') then mIsEnum := true
   else if pr.eatId('bitset') then mIsEnum := false
   else pr.expectId('enum');
-  mName := pr.expectId();
+  mTypeName := pr.expectId();
   mMaxVal := Integer($80000000);
   if mIsEnum then cv := 0 else cv := 1;
   pr.expectTT(pr.TTBegin);
@@ -3031,9 +3121,9 @@ begin
     idname := pr.expectId();
     for f := 0 to High(mIds) do
     begin
-      if StrEqu(mIds[f], idname) then raise TDynParseException.CreateFmt(pr, 'duplicate field ''%s'' in enum/bitset ''%s''', [idname, mName]);
+      if StrEqu(mIds[f], idname) then raise TDynParseException.CreateFmt(pr, 'duplicate field ''%s'' in enum/bitset ''%s''', [idname, mTypeName]);
     end;
-    if StrEqu(mMaxName, idname) then raise TDynParseException.CreateFmt(pr, 'duplicate field ''%s'' in enum/bitset ''%s''', [idname, mName]);
+    if StrEqu(mMaxName, idname) then raise TDynParseException.CreateFmt(pr, 'duplicate field ''%s'' in enum/bitset ''%s''', [idname, mTypeName]);
     skipAdd := false;
     hasV := false;
     v := cv;
@@ -3042,7 +3132,7 @@ begin
     begin
       if pr.eatId('MAX') then
       begin
-        if (Length(mMaxName) > 0) then raise TDynParseException.CreateFmt(pr, 'duplicate max field ''%s'' in enum/bitset ''%s''', [idname, mName]);
+        if (Length(mMaxName) > 0) then raise TDynParseException.CreateFmt(pr, 'duplicate max field ''%s'' in enum/bitset ''%s''', [idname, mTypeName]);
         mMaxName := idname;
         skipAdd := true;
       end

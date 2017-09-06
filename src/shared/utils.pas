@@ -235,6 +235,8 @@ type
     procedure clear (); inline;
 
     procedure append (constref it: ItemT); inline;
+    procedure delete (idx: Integer); inline;
+    function remove (idx: Integer): ItemT; inline;
 
   public
     property count: Integer read mCount;
@@ -328,13 +330,43 @@ end;
 
 
 procedure TSimpleList.append (constref it: ItemT); inline;
+var
+  newsz: Integer;
 begin
-  if (mCount = Length(mItems)) then
+  if (mCount >= Length(mItems)) then
   begin
-    if (mCount = 0) then SetLength(mItems, 128) else SetLength(mItems, mCount*2);
+    newsz := mCount+(mCount div 3)+128;
+    SetLength(mItems, newsz);
   end;
   mItems[mCount] := it;
   Inc(mCount);
+end;
+
+
+procedure TSimpleList.delete (idx: Integer); inline;
+var
+  f: Integer;
+begin
+  if (idx >= 0) and (idx < mCount) then
+  begin
+    for f := idx+1 to mCount-1 do mItems[f-1] := mItems[f];
+  end;
+end;
+
+
+function TSimpleList.remove (idx: Integer): ItemT; inline;
+var
+  f: Integer;
+begin
+  if (idx >= 0) and (idx < mCount) then
+  begin
+    result := mItems[idx];
+    for f := idx+1 to mCount-1 do mItems[f-1] := mItems[f];
+  end
+  else
+  begin
+    result := Default(ItemT);
+  end;
 end;
 
 
