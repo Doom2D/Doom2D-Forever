@@ -16,6 +16,9 @@ uses
 
 
 // ////////////////////////////////////////////////////////////////////////// //
+type
+  THashStrFld = specialize THashBase<AnsiString, TDynField>;
+
 var
   pr: TTextParser;
   dfmapdef: TDynMapDef;
@@ -28,7 +31,11 @@ var
   needComma: Boolean;
   trec: TDynRecord;
   fld: TDynField;
+  palias: AnsiString;
+  fldknown: THashStrFld = nil; // key: palias; value: prev field
+  knownfld: TDynField;
 begin
+  fldknown := THashStrFld.Create(hsihash, hsiequ);
   //writeln(getFilenamePath(ParamStr(0)), '|');
 
   e_InitWritelnDriver();
@@ -55,7 +62,7 @@ begin
     dfmapdef := TDynMapDef.Create(pr);
   except on e: Exception do
     begin
-      writeln('ERROR at (', pr.line, ',', pr.col, '): ', e.message);
+      writeln('ERROR at (', pr.tokLine, ',', pr.tokCol, '): ', e.message);
       Halt(1);
     end;
   end;
@@ -92,14 +99,18 @@ function TDynRecordHelper.trigTlpDir (): Byte; inline; begin result := Byte(getF
   begin
     // header comment
     write(foimpl, #10'// ');
+    write(fohlp, #10'// ');
     needComma := false;
     trec := dfmapdef.trigType[tidx];
     for nidx := 0 to trec.forTrigCount-1 do
     begin
+      if needComma then write(fohlp, ', ');
       if needComma then write(foimpl, ', ') else needComma := true;
+      write(fohlp, trec.forTrigAt[nidx]);
       write(foimpl, trec.forTrigAt[nidx]);
     end;
     write(foimpl, #10);
+    write(fohlp, #10);
     // fields
     for fidx := 0 to trec.count-1 do
     begin
@@ -109,13 +120,26 @@ function TDynRecordHelper.trigTlpDir (): Byte; inline; begin result := Byte(getF
       // HACK!
       if (fld.name = 'panelid') or (fld.name = 'monsterid') then
       begin
-        writeln('skipping ', fld.pasname, ' <', fld.name, '>');
+        writeln('skipping <', fld.name, '>');
         continue;
       end;
+      palias := fld.palias(true);
+      // check for known aliases
+      //writeln('<', palias, '> : <', toLowerCase1251(palias), '>');
+      knownfld := nil;
+      if fldknown.get(toLowerCase1251(palias), knownfld) then
+      begin
+        if (fld.name <> knownfld.name) then raise Exception.Create(formatstrf('field ''%s'' of record ''%s'' conflicts with other field ''%s''', [fld.name, trec.name, knownfld.name]));
+        if (fld.baseType <> knownfld.baseType) then raise Exception.Create(formatstrf('field ''%s'' of record ''%s'' conflicts with other field ''%s'' by type', [fld.name, trec.name, knownfld.name]));
+        writeln('skipped duplicate field ''', fld.name, '''');
+        continue;
+      end;
+      fldknown.put(toLowerCase1251(palias), fld);
+      // write it
       if (fld.baseType <> TDynField.TType.TPoint) and (fld.baseType <> TDynField.TType.TSize) then
       begin
-        write(foimpl, 'function TDynRecordHelper.trig', fld.pasname, ' (): ');
-        write(fohlp, 'function trig', fld.pasname, ' (): ');
+        write(foimpl, 'function TDynRecordHelper.trig', palias, ' (): ');
+        write(fohlp, 'function trig', palias, ' (): ');
       end;
       case fld.baseType of
         TDynField.TType.TBool:
@@ -182,8 +206,8 @@ function TDynRecordHelper.trigTlpDir (): Byte; inline; begin result := Byte(getF
             end
             else
             begin
-              write(fohlp, 'function trig', fld.pasname, ' (): TDFPoint; inline;'#10);
-              write(foimpl, 'function TDynRecordHelper.trig', fld.pasname, ' (): TDFPoint; inline; begin result := getPointField(''', fld.name, '''); end;'#10);
+              write(fohlp, 'function trig', palias, ' (): TDFPoint; inline;'#10);
+              write(foimpl, 'function TDynRecordHelper.trig', palias, ' (): TDFPoint; inline; begin result := getPointField(''', fld.name, '''); end;'#10);
             end;
           end;
         TDynField.TType.TSize:

@@ -75,6 +75,8 @@ type
     function expectStr (allowEmpty: Boolean=false): AnsiString;
     function expectInt (): Integer;
 
+    function expectStrOrId (allowEmpty: Boolean=false): AnsiString;
+
     procedure expectTT (ttype: Integer);
     function eatTT (ttype: Integer): Boolean;
 
@@ -539,6 +541,21 @@ function TTextParser.expectStr (allowEmpty: Boolean=false): AnsiString;
 begin
   if (mTokType <> TTStr) then raise Exception.Create('string expected');
   if (not allowEmpty) and (Length(mTokStr) = 0) then raise Exception.Create('non-empty string expected');
+  result := mTokStr;
+  skipToken();
+end;
+
+
+function TTextParser.expectStrOrId (allowEmpty: Boolean=false): AnsiString;
+begin
+  case mTokType of
+    TTStr:
+      if (not allowEmpty) and (Length(mTokStr) = 0) then raise Exception.Create('non-empty string expected');
+    TTId:
+      begin end;
+    else
+      raise Exception.Create('string or identifier expected');
+  end;
   result := mTokStr;
   skipToken();
 end;

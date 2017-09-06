@@ -872,7 +872,7 @@ begin
     if (mOldMovingActive <> mMovingActive) then mNeedSend := true;
     mOldMovingActive := mMovingActive;
 
-    if g_Game_IsServer and g_Game_IsNet then
+    if not g_Game_IsClient then
     begin
       if actMoveTrig then g_Triggers_Press(mEndPosTrig, ACTIVATE_CUSTOM);
       if actSizeTrig then g_Triggers_Press(mEndSizeTrig, ACTIVATE_CUSTOM);

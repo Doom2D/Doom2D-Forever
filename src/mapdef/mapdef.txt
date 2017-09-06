@@ -4,7 +4,7 @@
 
 // notes:
 //   field without offset is not in binary format
-//   fields with `omitdefault` won't be written when they contain default values
+//   fields with `writedefault` won't be written when they contain default values
 //   fields with `internal` won't be written to any file ever (and won't be read)
 //   `ubyte` is unsigned byte, and `byte` is signed byte
 //   all strings are in utf-8
@@ -20,120 +20,72 @@
 
 ////////////////////////////////////////////////////////////////////////////////
 // main blocks
-TMapHeaderRec_1 is "map" size 452 bytes header binblock 7 {
-  //_ is "version" type uint minvalue 1 maxvalue 1;
-  MapName is "name" type char[32] offset 0;
-  MapAuthor is "author" type char[32] offset 32 default "" omitdefault;
-  MapDescription is "description" type char[256] offset 64 default "" omitdefault;
-  MusicName is "music" type char[64] offset 320 default 'Standart.wad:D2DMUS\ПРОСТОТА' omitdefault;
-  SkyName is "sky" type char[64] offset 384 default 'Standart.wad:D2DSKY\RSKY1' omitdefault;
-  //Width is "width" type ushort offset 448;
-  //Height is "height" type ushort offset 450;
-  Size is "size" type size offset 448 as wh;
-  // not in binary
-  Title is "title" type string default ""  omitdefault;
+"map" size 452 bytes header binblock 7 {
+  "name" type char[32] offset 0 writedefault;
+  "author" type char[32] offset 32 default "";
+  "description" type char[256] offset 64 default "";
+  "music" type char[64] offset 320 default 'Standart.wad:D2DMUS\ПРОСТОТА';
+  "sky" type char[64] offset 384 default 'Standart.wad:D2DSKY\RSKY1';
+  "size" type size offset 448 as wh writedefault;
 }
 
-TTextureRec_1 is "texture" size 65 bytes binblock 1 {
-  Resource is "path" type char[64] offset 0;
-  Anim is "animated" type bool offset 64 default false omitdefault;
-  // internals
-  TexIdx is "texidx" type uint internal;
+"texture" size 65 bytes binblock 1 {
+  "path" type char[64] offset 0 writedefault;
+  "animated" type bool offset 64 default false;
 }
 
-TPanelRec_1 is "panel" size 18 bytes binblock 2 {
-  //X is "x" type int offset 0;
-  //Y is "y" type int offset 4;
-  Pos is "position" type point offset 0 as xy;
-  //Width is "width" type ushort offset 8;
-  //Height is "height" type ushort offset 10;
-  Size is "size" type size offset 8 as wh as wh;
-  TextureNum is "texture" type ushort offset 12 texture;
-  PanelType is "type" type ushort offset 14 bitset unique PanelType;
-  Alpha is "alpha" type ubyte offset 16 default 0 omitdefault;
-  Flags is "flags" type ubyte offset 17 bitset PanelFlag default PANEL_FLAG_NONE omitdefault;
+"panel" size 18 bytes binblock 2 {
+  "position" type point offset 0 as xy writedefault;
+  "size" type size offset 8 as wh as wh writedefault;
+  "texture" type ushort offset 12 texture writedefault;
+  "type" type ushort offset 14 bitset unique PanelType writedefault;
+  "alpha" type ubyte offset 16 default 0;
+  "flags" type ubyte offset 17 bitset PanelFlag default PANEL_FLAG_NONE;
   // moving platform options, not in binary
-  MoveSpeed is "move_speed" type point default (0 0) omitdefault;
-  SizeSpeed is "size_speed" type point default (0 0) omitdefault; // alas, `size` cannot be negative
-  MoveStart is "move_start" type point default (0 0) omitdefault;
-  MoveEnd is "move_end" type point default (0 0) omitdefault;
-  SizeEnd is "size_end" type size default (0 0) omitdefault;
-  MoveActive is "move_active" type bool default false omitdefault;
-  MoveOnce is "move_once" type bool default false omitdefault;
-  EndPosTrigger is "end_pos_trigger" type int trigger default null omitdefault;
-  EndSizeTrigger is "end_size_trigger" type int trigger default null omitdefault;
-  // not in binary
-  //Id is "id" type string default "" omitdefault;
-  // internals
-  PanIdx is "panidx" type uint internal;
+  "move_speed" type point default (0 0);
+  "size_speed" type point default (0 0); // alas, `size` cannot be negative
+  "move_start" type point default (0 0);
+  "move_end" type point default (0 0);
+  "size_end" type size default (0 0);
+  "move_active" type bool default false;
+  "move_once" type bool default false;
+  "end_pos_trigger" trigger default null;
+  "end_size_trigger" trigger default null;
 }
 
-TItemRec_1 is "item" size 10 bytes binblock 3 {
-  //X is "x" type int offset 0;
-  //Y is "y" type int offset 4;
-  Pos is "position" type point offset 0 as xy;
-  ItemType is "type" type ubyte offset 8 enum Item;
-  Options is "options" type ubyte offset 9 bitset ItemOption default ITEM_OPTION_NONE omitdefault;
-  // not in binary
-  //Id is "id" type string default "" omitdefault;
-  // internals
-  ItemIdx is "itemidx" type uint internal;
+"item" size 10 bytes binblock 3 {
+  "position" type point offset 0 as xy writedefault;
+  "type" type ubyte offset 8 enum Item writedefault;
+  "options" type ubyte offset 9 bitset ItemOption default ITEM_OPTION_NONE;
 }
 
-TMonsterRec_1 is "monster" size 10 bytes binblock 5 {
-  //X is "x" type int offset 0;
-  //Y is "y" type int offset 4;
-  Pos is "position" type point offset 0 as xy;
-  MonsterType is "type" type ubyte offset 8 enum Monster;
-  Direction is "direction" type ubyte offset 9 enum DirType default DIR_LEFT omitdefault;
-  // not in binary
-  //Id is "id" type string default "" omitdefault;
-  // internals
-  MonsIdx is "monsidx" type uint internal;
+"monster" size 10 bytes binblock 5 {
+  "position" type point offset 0 as xy writedefault;
+  "type" type ubyte offset 8 enum Monster writedefault;
+  "direction" type ubyte offset 9 enum DirType default DIR_LEFT;
 }
 
-TAreaRec_1 is "area" size 10 bytes binblock 4 {
-  //X is "x" type int offset 0;
-  //Y is "y" type int offset 4;
-  Pos is "position" type point offset 0 as xy;
-  AreaType is "type" type ubyte offset 8 enum AreaType;
-  Direction is "direction" type ubyte offset 9 enum DirType default DIR_LEFT omitdefault;
-  // not in binary
-  //Id is "id" type string default "" omitdefault;
-  // internals
-  AreaIdx is "areaidx" type uint internal;
+"area" size 10 bytes binblock 4 {
+  "position" type point offset 0 as xy writedefault;
+  "type" type ubyte offset 8 enum AreaType writedefault;
+  "direction" type ubyte offset 9 enum DirType default DIR_LEFT;
 }
 
-TTriggerRec_1 is "trigger" size 148 bytes binblock 6 {
-  //X is "x" type int offset 0;
-  //Y is "y" type int offset 4;
-  Pos is "position" type point offset 0 as xy;
-  //Width is "width" type ushort offset 8;
-  //Height is "height" type ushort offset 10;
-  Size is "size" type size offset 8 as wh;
-  Enabled is "enabled" type bool offset 12 default true omitdefault;
-  TexturePanel is "texturepanel" type int offset 13 panel default null omitdefault;
-  TriggerType is "type" type ubyte offset 17 enum TriggerType;
-  ActivateType is "activatetype" type ubyte offset 18 bitset ActivateType;
-  Keys is "keys" type ubyte offset 19 bitset Key default KEY_NONE omitdefault;
+"trigger" size 148 bytes binblock 6 {
+  "position" type point offset 0 as xy writedefault;
+  "size" type size offset 8 as wh writedefault;
+  "enabled" type bool offset 12 default true;
+  "texture_panel" type int offset 13 panel default null;
+  "type" type ubyte offset 17 enum TriggerType writedefault;
+  "activate_type" type ubyte offset 18 bitset ActivateType;
+  "keys" type ubyte offset 19 bitset Key default KEY_NONE;
   //WARNING: "trigdata" MUST be defined before "type", and "type" MUST be named "type" (for now, can be changed later)
-  DATA is "triggerdata" type trigdata[128] offset 20; // the only special nested structure
-  // not in binary
-  //Id is "id" type string default "" omitdefault;
-  // internals
-  TrigIdx is "trigidx" type uint internal;
+  "triggerdata" type trigdata[128] offset 20; // the only special nested structure
 }
 
 
 ////////////////////////////////////////////////////////////////////////////////
-/*
-enum {
-  TEXTURE_NAME_WATER = '_water_0',
-  TEXTURE_NAME_ACID1 = '_water_1',
-  TEXTURE_NAME_ACID2 = '_water_2',
-}
-*/
-
+// special texture identifiers, used to generate pascal sources
 enum TextureSpecial {
   TEXTURE_SPECIAL_WATER = -1,
   TEXTURE_SPECIAL_ACID1 = -2,
@@ -301,6 +253,17 @@ enum Monster {
   MONSTER_BARREL, // 18
   MONSTER_ROBO, // 19
   MONSTER_MAN, // 20
+  // aliases (fixme: it should be `MONSTER_ZOMBIE = MONSTER_ZOMBY`!)
+  MONSTER_ZOMBIE = 3,
+}
+
+enum MonsterBehaviour {
+  BH_NORMAL, // 0
+  BH_KILLER, // 1
+  BH_MANIAC, // 2
+  BH_INSANE, // 3
+  BH_CANNIBAL, // 4
+  BH_GOOD, // 5
 }
 
 enum TriggerShot {
@@ -360,6 +323,32 @@ enum TriggerEffectPos {
   TRIGGER_EFFECT_POS_AREA, // 1
 }
 
+enum TriggerMusicAction {
+  TRIGGER_MUSIC_ACTION_STOP, // 0
+  TRIGGER_MUSIC_ACTION_PLAY, // 1; unpause or restart
+}
+
+enum TriggerScoreAction {
+  TRIGGER_SCORE_ACTION_ADD, // 0
+  TRIGGER_SCORE_ACTION_SUB, // 1
+  TRIGGER_SCORE_ACTION_WIN, // 2
+  TRIGGER_SCORE_ACTION_LOOSE, // 3
+}
+
+enum TriggerMessageDest {
+  TRIGGER_MESSAGE_DEST_ME, // 0
+  TRIGGER_MESSAGE_DEST_MY_TEAM, // 1
+  TRIGGER_MESSAGE_DEST_ENEMY_TEAM, // 2
+  TRIGGER_MESSAGE_DEST_RED_TEAM, // 3
+  TRIGGER_MESSAGE_DEST_BLUE_TEAM, // 4
+  TRIGGER_MESSAGE_DEST_EVERYONE, // 5
+}
+
+enum TriggerMessageKind {
+  TRIGGER_MESSAGE_KIND_CHAT, // 0
+  TRIGGER_MESSAGE_KIND_GAME, // 1
+}
+
 bitset ActivateType {
   ACTIVATE_NONE = 0, // 0
   ACTIVATE_PLAYERCOLLIDE, // 1
@@ -384,144 +373,147 @@ bitset Key {
 ////////////////////////////////////////////////////////////////////////////////
 // various triggers
 TriggerData for TRIGGER_EXIT {
-  MapName is "map" type char[16] offset 0;
+  "map" type char[16] offset 0 writedefault;
 }
 
 TriggerData for TRIGGER_TELEPORT {
-  TargetPoint is "target" type point offset 0;
-  d2d_teleport is "d2d" type bool offset 8 default false omitdefault;
-  silent_teleport is "silent" type bool offset 9 default false omitdefault;
-  TlpDir is "direction" type ubyte offset 10 enum DirType default DIR_LEFT omitdefault;
+  "target" type point offset 0 writedefault;
+  "d2d" type bool offset 8 default false;
+  "silent" type bool offset 9 default false;
+  "direction" type ubyte offset 10 enum DirType default DIR_LEFT;
 }
 
 TriggerData for (TRIGGER_OPENDOOR, TRIGGER_CLOSEDOOR, TRIGGER_DOOR, TRIGGER_DOOR5, TRIGGER_CLOSETRAP, TRIGGER_TRAP, TRIGGER_LIFTUP, TRIGGER_LIFTDOWN, TRIGGER_LIFT) {
-  PanelID is "panelid" type int offset 0 panel;
-  NoSound is "silent" type bool offset 4 default false omitdefault;
-  d2d_doors is "d2d" type bool offset 5 default false omitdefault;
+  "panelid" type int offset 0 panel writedefault;
+  "silent" type bool offset 4 default false;
+  "d2d" type bool offset 5 default false;
 }
 
 TriggerData for (TRIGGER_PRESS, TRIGGER_ON, TRIGGER_OFF, TRIGGER_ONOFF) {
-  //tX is "tx" type int offset 0;
-  //tY is "ty" type int offset 4;
-  Pos is "position" type point offset 0 as txy default (0 0);
-  //tWidth is "width" type ushort offset 8;
-  //tHeight is "height" type ushort offset 10;
-  Size is "size" type size offset 8 as twh default (0 0);
-  Wait is "wait" type ushort offset 12 default 0;
-  Count is "count" type ushort offset 14 default 0;
-  MonsterID is "monsterid" type int offset 16 monster as monsterid default null;
-  ExtRandom is "extrandom" type bool offset 20 default false;
+  "position" type point offset 0 as txy default (0 0) writedefault;
+  "size" type size offset 8 as twh default (0 0);
+  "wait" type ushort offset 12 default 0;
+  "count" alias pressCount type ushort offset 14 default 0;
+  "monsterid" type int offset 16 monster as monsterid default null;
+  "ext_random" type bool offset 20 default false;
   // this one is for moving platforms
-  PanelId is "panelid" type int panel default null omitdefault;
+  "panelid" panel default null;
+}
+
+enum TriggerScoreTeam {
+  TRIGGER_SCORE_TEAM_MINE_RED, // 0
+  TRIGGER_SCORE_TEAM_MINE_BLUE, // 1
+  TRIGGER_SCORE_TEAM_FORCE_RED, // 2
+  TRIGGER_SCORE_TEAM_FORCE_BLUE, // 3
 }
 
 TriggerData for TRIGGER_SECRET {
 }
 
 TriggerData for TRIGGER_TEXTURE {
-  ActivateOnce is "activateonce" type bool offset 0;
-  AnimOnce is "animateonce" type bool offset 1;
+  "activate_once" type bool offset 0 default false writedefault;
+  "animate_once" type bool offset 1 default false writedefault;
 }
 
 TriggerData for TRIGGER_SOUND {
-  SoundName is "soundname" type char[64] offset 0;
-  Volume is "volume" type ubyte offset 64;
-  Pan is "pan" type ubyte offset 65;
-  Local is "local" type bool offset 66;
-  PlayCount is "playcount" type ubyte offset 67;
-  SoundSwitch is "soundswitch" type bool offset 68;
+  "sound_name" type char[64] offset 0 writedefault;
+  "volume" type ubyte offset 64 default 0 writedefault; //??? default ???
+  "pan" type ubyte offset 65 default 0;
+  "local" type bool offset 66 default true; //??? default ???
+  "play_count" type ubyte offset 67 default 1;
+  "sound_switch" type bool offset 68 default false; //??? default ???
 }
 
 TriggerData for TRIGGER_SPAWNMONSTER {
-  MonPos is "position" type point offset 0;
-  MonType is "type" type ubyte offset 8;
-  MonHealth is "health" type int offset 12;
-  MonDir is "direction" type ubyte offset 16 enum DirType;
-  MonActive is "active" type bool offset 17;
-  MonCount is "count" type int offset 20;
-  MonEffect is "effect" type ubyte offset 24;
-  MonMax is "max" type ushort offset 26;
-  MonDelay is "delay" type ushort offset 28;
-  MonBehav is "behaviour" type ubyte offset 30;
+  "position" type point offset 0 as txy writedefault;
+  "type" alias spawnMonsType type ubyte offset 8 enum Monster default MONSTER_IMP writedefault;
+  "health" type int offset 12 writedefault;
+  "direction" type ubyte offset 16 enum DirType default DIR_LEFT writedefault;
+  "active" type bool offset 17 default true;
+  "count" alias monsCount type int offset 20 default 1 writedefault;
+  "effect" type ubyte offset 24 enum EffectAction default EFFECT_NONE writedefault;
+  "max" type ushort offset 26 default 1 writedefault;
+  "delay" type ushort offset 28 default 1000 writedefault;
+  "behaviour" type ubyte offset 30 enum MonsterBehaviour default BH_NORMAL;
 }
 
 TriggerData for TRIGGER_SPAWNITEM {
-  ItemPos is "position" type point offset 0;
-  ItemType is "type" type ubyte offset 8;
-  ItemFalls is "gravity" type bool offset 9;
-  ItemOnlyDM is "dmonly" type bool offset 10;
-  ItemCount is "count" type int offset 12;
-  ItemEffect is "effect" type ubyte offset 16;
-  ItemMax is "max" type ushort offset 18;
-  ItemDelay is "delay" type ushort offset 20;
+  "position" type point offset 0 as txy writedefault;
+  "type" alias spawnItemType type ubyte offset 8 enum Item default ITEM_NONE writedefault;
+  "gravity" type bool offset 9 default true;
+  "dmonly" type bool offset 10 default false;
+  "count" alias itemCount type int offset 12 default 1;
+  "effect" type ubyte offset 16 enum EffectAction default EFFECT_NONE writedefault;
+  "max" type ushort offset 18 default 1;
+  "delay" type ushort offset 20 default 1000 writedefault;
 }
 
 TriggerData for TRIGGER_MUSIC {
-  MusicName is "name" type char[64] offset 0;
-  MusicAction is "action" type ubyte offset 64;
+  "name" alias musicName type char[64] offset 0 writedefault;
+  "action" alias musicAction type ubyte offset 64 enum TriggerMusicAction writedefault;
 }
 
 TriggerData for TRIGGER_PUSH {
-  PushAngle is "angle" type ushort offset 0;
-  PushForce is "force" type ubyte offset 2;
-  ResetVel is "resetvelocity" type bool offset 3;
+  "angle" type ushort offset 0 writedefault;
+  "force" type ubyte offset 2 writedefault;
+  "reset_velocity" type bool offset 3 default false writedefault;
 }
 
 TriggerData for TRIGGER_SCORE {
-  ScoreAction is "action" type ubyte offset 0;
-  ScoreCount is "count" type ubyte offset 1;
-  ScoreTeam is "team" type ubyte offset 2;
-  ScoreCon is "console" type bool offset 3;
-  ScoreMsg is "message" type bool offset 4;
+  "action" alias scoreAction type ubyte offset 0 enum TriggerScoreAction default TRIGGER_SCORE_ACTION_ADD writedefault;
+  "count" alias scoreCount type ubyte offset 1 default 1 writedefault;
+  "team" alias scoreTeam type ubyte offset 2 enum TriggerScoreTeam writedefault;
+  "console" alias scoreCon type bool offset 3 default false writedefault;
+  "message" alias scoreMsg type bool offset 4 default true writedefault;
 }
 
 TriggerData for TRIGGER_MESSAGE {
-  MessageKind is "kind" type ubyte offset 0;
-  MessageSendTo is "sendto" type ubyte offset 1;
-  MessageText is "text" type char[100] offset 2;
-  MessageTime is "time" type ushort offset 102;
+  "kind" type ubyte offset 0 enum TriggerMessageKind default TRIGGER_MESSAGE_KIND_GAME writedefault;
+  "dest" alias msgDest type ubyte enum TriggerMessageDest offset 1;
+  "text" type char[100] offset 2 writedefault;
+  "time" alias msgTime type ushort offset 102 writedefault;
 }
 
 TriggerData for TRIGGER_DAMAGE {
-  DamageValue is "amount" type ushort offset 0;
-  DamageInterval is "interval" type ushort offset 2;
+  "amount" type ushort offset 0 writedefault;
+  "interval" type ushort offset 2 writedefault;
 }
 
 TriggerData for TRIGGER_HEALTH {
-  HealValue is "amount" type ushort offset 0;
-  HealInterval is "interval" type ushort offset 2;
-  HealMax is "max" type bool offset 4;
-  HealSilent is "silent" type bool offset 5;
+  "amount" type ushort offset 0 writedefault;
+  "interval" type ushort offset 2 writedefault;
+  "max" alias healMax type bool offset 4 writedefault;
+  "silent" type bool offset 5 writedefault;
 }
 
 TriggerData for TRIGGER_SHOT {
-  ShotPos is "position" type point offset 0;
-  ShotType is "type" type ubyte offset 8 enum TriggerShot;
-  ShotTarget is "target" type ubyte offset 9 enum TriggerShotTarget;
-  ShotSound is "silent" type negbool offset 10; // negbool!
-  ShotAim is "aim" type byte offset 11;
-  ShotPanelID is "panelid" type int offset 12;
-  ShotIntSight is "sight" type ushort offset 16;
-  ShotAngle is "angle" type ushort offset 18;
-  ShotWait is "wait" type ushort offset 20;
-  ShotAccuracy is "accuracy" type ushort offset 22;
-  ShotAmmo is "ammo" type ushort offset 24;
-  ShotIntReload is "reload" type ushort offset 26;
+  "position" type point offset 0 as txy writedefault;
+  "type" alias shotType type ubyte offset 8 enum TriggerShot writedefault;
+  "target" alias shotTarget type ubyte offset 9 enum TriggerShotTarget writedefault;
+  "quiet" type negbool offset 10; // negbool!
+  "aim" type byte offset 11 enum TriggerShotAim default TRIGGER_SHOT_AIM_DEFAULT;
+  "panelid" type int offset 12 panel default null writedefault;
+  "sight" type ushort offset 16;
+  "angle" type ushort offset 18;
+  "wait" type ushort offset 20;
+  "accuracy" type ushort offset 22;
+  "ammo" type ushort offset 24;
+  "reload" type ushort offset 26;
 }
 
 TriggerData for TRIGGER_EFFECT {
-  FXCount is "count" type ubyte offset 0;
-  FXType is "type" type ubyte offset 1;
-  FXSubType is "subtype" type ubyte offset 2;
-  FXColorR is "colorr" type ubyte offset 3;
-  FXColorG is "colorg" type ubyte offset 4;
-  FXColorB is "colorb" type ubyte offset 5;
-  FXPos is "position" type ubyte offset 6;
-  FXWait is "wait" type ushort offset 8;
-  FXVelX is "velx" type byte offset 10;
-  FXVelY is "vely" type byte offset 11;
-  FXSpreadL is "spreadl" type ubyte offset 12;
-  FXSpreadR is "spreadr" type ubyte offset 13;
-  FXSpreadU is "spreadu" type ubyte offset 14;
-  FXSpreadD is "spreadd" type ubyte offset 15;
+  "count" alias FXCount type ubyte offset 0 writedefault;
+  "type" alias FXType type ubyte offset 1 enum TriggerEffect default TRIGGER_EFFECT_PARTICLE writedefault;
+  "subtype" alias FXSubType type ubyte offset 2 enum TriggerEffectType default TRIGGER_EFFECT_SPARK writedefault;
+  "red" alias FXRed type ubyte offset 3 writedefault;
+  "green" alias FXGreen type ubyte offset 4 writedefault;
+  "blue" alias FXBlue type ubyte offset 5 writedefault;
+  "pos" alias FXPos type ubyte offset 6 enum TriggerEffectPos default TRIGGER_EFFECT_POS_CENTER writedefault;
+  "wait" type ushort offset 8 writedefault;
+  "vel_x" type byte offset 10 writedefault;
+  "vel_y" type byte offset 11 writedefault;
+  "spread_l" type ubyte offset 12 writedefault;
+  "spread_r" type ubyte offset 13 writedefault;
+  "spread_u" type ubyte offset 14 writedefault;
+  "spread_d" type ubyte offset 15 writedefault;
 }

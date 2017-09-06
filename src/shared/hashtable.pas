@@ -161,9 +161,11 @@ type
 type
   THashIntInt = specialize THashBase<Integer, Integer>;
   THashStrInt = specialize THashBase<AnsiString, Integer>;
+  THashStrStr = specialize THashBase<AnsiString, AnsiString>;
 
 function hashNewIntInt (): THashIntInt;
 function hashNewStrInt (): THashStrInt;
+function hashNewStrStr (): THashStrStr;
 
 
 function u32Hash (a: LongWord): LongWord; inline;
@@ -176,6 +178,8 @@ function nextPOT (x: LongWord): LongWord; inline;
 // for integer keys
 function hiiequ (constref a, b: Integer): Boolean;
 function hiihash (constref k: Integer): LongWord;
+function hsiequ (constref a, b: AnsiString): Boolean;
+function hsihash (constref k: AnsiString): LongWord;
 
 
 implementation
@@ -235,6 +239,12 @@ end;
 function hashNewStrInt (): THashStrInt;
 begin
   result := THashStrInt.Create(hsihash, hsiequ);
+end;
+
+
+function hashNewStrStr (): THashStrStr;
+begin
+  result := THashStrStr.Create(hsihash, hsiequ);
 end;
 
 

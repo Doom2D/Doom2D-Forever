@@ -371,11 +371,11 @@ function TDynRecordHelper.Direction (): Byte; inline; begin result := Byte(getFi
 function TDynRecordHelper.AreaType (): Byte; inline; begin result := Byte(getFieldWithType('type', TDynField.TType.TUByte).ival); end;
 function TDynRecordHelper.Enabled (): Boolean; inline; begin result := (getFieldWithType('enabled', TDynField.TType.TBool).ival <> 0); end;
 function TDynRecordHelper.TriggerType (): Byte; inline; begin result := Byte(getFieldWithType('type', TDynField.TType.TUByte).ival); end;
-function TDynRecordHelper.ActivateType (): Byte; inline; begin result := Byte(getFieldWithType('activatetype', TDynField.TType.TUByte).ival); end;
+function TDynRecordHelper.ActivateType (): Byte; inline; begin result := Byte(getFieldWithType('activate_type', TDynField.TType.TUByte).ival); end;
 function TDynRecordHelper.Keys (): Byte; inline; begin result := Byte(getFieldWithType('keys', TDynField.TType.TUByte).ival); end;
 
 function TDynRecordHelper.getPanelId (): Integer; inline; begin result := getFieldWithType('panelid', TDynField.TType.TInt).recrefIndex; end;
-function TDynRecordHelper.getTexturePanel (): Integer; begin result := getFieldWithType('texturepanel', TDynField.TType.TInt).recrefIndex; end;
+function TDynRecordHelper.getTexturePanel (): Integer; begin result := getFieldWithType('texture_panel', TDynField.TType.TInt).recrefIndex; end;
 
 {$INCLUDE mapdef_impl.inc}
 

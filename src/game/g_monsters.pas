@@ -38,12 +38,14 @@ const
   MONSTATE_REVIVE = 10;
   MONSTATE_RUNOUT = 11;
 
+{ in mapdef now
   BH_NORMAL   = 0;
   BH_KILLER   = 1;
   BH_MANIAC   = 2;
   BH_INSANE   = 3;
   BH_CANNIBAL = 4;
   BH_GOOD     = 5;
+}
 
 type
   TMonster = Class (TObject)

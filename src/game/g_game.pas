@@ -5231,7 +5231,7 @@ begin
               g_Console_Add('player left the map');
               gExitByTrigger := True;
               //g_Game_ExitLevel(gTriggers[a].Data.MapName);
-              g_Game_ExitLevel(gTriggers[a].trigData.trigMapName);
+              g_Game_ExitLevel(gTriggers[a].trigData.trigMap);
               break;
             end;
           end;
@@ -6101,7 +6101,7 @@ begin
             begin
               gExitByTrigger := True;
               //gNextMap := gTriggers[a].Data.MapName;
-              gNextMap := gTriggers[a].trigData.trigMapName;
+              gNextMap := gTriggers[a].trigData.trigMap;
               Break;
             end;
         // »щем следующую карту в WAD файле

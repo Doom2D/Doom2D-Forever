@@ -303,7 +303,7 @@ begin
         begin
           gExitByTrigger := True;
           //g_Game_ExitLevel(gTriggers[a].Data.MapName);
-          g_Game_ExitLevel(gTriggers[a].trigData.trigMapName);
+          g_Game_ExitLevel(gTriggers[a].trigData.trigMap);
           Break;
         end;
     goto Cheated;
