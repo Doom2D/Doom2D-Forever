@@ -1487,20 +1487,30 @@ var
   function sendMonsPos (mon: TMonster): Boolean;
   begin
     result := false; // don't stop
-    if (mon.MonsterType = MONSTER_BARREL) then
+    // this will also reset "need-send" flag
+    if mon.gncNeedSend then
+    begin
+      MH_SEND_MonsterPos(mon.UID);
+    end
+    else if (mon.MonsterType = MONSTER_BARREL) then
     begin
       if (mon.GameVelX <> 0) or (mon.GameVelY <> 0) then MH_SEND_MonsterPos(mon.UID);
     end
-    else
-      if (mon.MonsterState <> MONSTATE_SLEEP) then
-      begin
-        if (mon.MonsterState <> MONSTATE_DEAD) or (mon.GameVelX <> 0) or (mon.GameVelY <> 0) then
-        begin
-          MH_SEND_MonsterPos(mon.UID);
-        end;
-      end;
+    else if (mon.MonsterState <> MONSTATE_SLEEP) then
+    begin
+      if (mon.MonsterState <> MONSTATE_DEAD) or (mon.GameVelX <> 0) or (mon.GameVelY <> 0) then MH_SEND_MonsterPos(mon.UID);
+    end;
   end;
 
+  function sendMonsPosUnexpected (mon: TMonster): Boolean;
+  begin
+    result := false; // don't stop
+    // this will also reset "need-send" flag
+    if mon.gncNeedSend then MH_SEND_MonsterPos(mon.UID);
+  end;
+
+var
+  reliableUpdate: Boolean;
 begin
   g_ResetDynlights();
 // Пора выключать игру:
@@ -1844,13 +1854,16 @@ begin
     g_GFX_Update();
     g_Player_UpdateAll();
     g_Player_UpdatePhysicalObjects();
-    if gGameSettings.GameType = GT_SERVER then
-      if Length(gMonstersSpawned) > 0 then
+
+    // server: send newly spawned monsters unconditionally
+    if (gGameSettings.GameType = GT_SERVER) then
+    begin
+      if (Length(gMonstersSpawned) > 0) then
       begin
-        for I := 0 to High(gMonstersSpawned) do
-          MH_SEND_MonsterSpawn(gMonstersSpawned[I]);
+        for I := 0 to High(gMonstersSpawned) do MH_SEND_MonsterSpawn(gMonstersSpawned[I]);
         SetLength(gMonstersSpawned, 0);
       end;
+    end;
 
     if (gSoundTriggerTime > 8) then
     begin
@@ -1858,49 +1871,65 @@ begin
       gSoundTriggerTime := 0;
     end
     else
+    begin
       Inc(gSoundTriggerTime);
+    end;
 
     if (NetMode = NET_SERVER) then
     begin
       Inc(NetTimeToUpdate);
       Inc(NetTimeToReliable);
-      if NetTimeToReliable >= NetRelupdRate then
+
+      // send monster updates
+      if (NetTimeToReliable >= NetRelupdRate) or (NetTimeToUpdate >= NetUpdateRate) then
       begin
+        // send all monsters (periodic sync)
+        reliableUpdate := (NetTimeToReliable >= NetRelupdRate);
+
         for I := 0 to High(gPlayers) do
-          if gPlayers[I] <> nil then
-            MH_SEND_PlayerPos(True, gPlayers[I].UID);
+        begin
+          if (gPlayers[I] <> nil) then MH_SEND_PlayerPos(reliableUpdate, gPlayers[I].UID);
+        end;
 
         g_Mons_ForEach(sendMonsPos);
 
-        NetTimeToReliable := 0;
-        NetTimeToUpdate := NetUpdateRate;
+        if reliableUpdate then
+        begin
+          NetTimeToReliable := 0;
+          NetTimeToUpdate := NetUpdateRate;
+        end
+        else
+        begin
+          NetTimeToUpdate := 0;
+        end;
       end
-      else if NetTimeToUpdate >= NetUpdateRate then
+      else
       begin
-        if gPlayers <> nil then
-          for I := 0 to High(gPlayers) do
-            if gPlayers[I] <> nil then
-              MH_SEND_PlayerPos(False, gPlayers[I].UID);
-
-        g_Mons_ForEach(sendMonsPos);
-
-        NetTimeToUpdate := 0;
+        // send only mosters with some unexpected changes
+        g_Mons_ForEach(sendMonsPosUnexpected);
       end;
 
+      // send unexpected platform changes
+      g_Map_NetSendInterestingPanels();
+
       if NetUseMaster then
+      begin
         if gTime >= NetTimeToMaster then
         begin
           if (NetMHost = nil) or (NetMPeer = nil) then
-            if not g_Net_Slist_Connect then
-              g_Console_Add(_lc[I_NET_MSG_ERROR] + _lc[I_NET_SLIST_ERROR]);
+          begin
+            if not g_Net_Slist_Connect then g_Console_Add(_lc[I_NET_MSG_ERROR] + _lc[I_NET_SLIST_ERROR]);
+          end;
 
           g_Net_Slist_Update;
           NetTimeToMaster := gTime + NetMasterRate;
         end;
+      end;
     end
-    else
-      if NetMode = NET_CLIENT then
-        MC_SEND_PlayerPos();
+    else if (NetMode = NET_CLIENT) then
+    begin
+      MC_SEND_PlayerPos();
+    end;
   end; // if gameOn ...
 
 // Активно окно интерфейса - передаем клавиши ему:

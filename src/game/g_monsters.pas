@@ -87,7 +87,7 @@ type
     FDieTriggers: Array of Integer;
     FSpawnTrigger: Integer;
 
-    mNeedSend: Boolean; // for networl
+    mNeedSend: Boolean; // for network
 
     procedure Turn();
     function findNewPrey(): Boolean;
@@ -344,7 +344,7 @@ begin
   {$ENDIF}
   if (mProxyId = -1) then
   begin
-    mNeedSend := true;
+    //mNeedSend := true;
     mProxyId := monsGrid.insertBody(self, FObj.X+FObj.Rect.X, FObj.Y+FObj.Rect.Y, FObj.Rect.Width, FObj.Rect.Height);
     {$IF DEFINED(D2F_DEBUG_MONS_MOVE)}
     monsGrid.getBodyXY(mProxyId, x, y);
@@ -358,7 +358,7 @@ begin
 
     if (w <> nw) or (h <> nh) then
     begin
-      mNeedSend := true;
+      //mNeedSend := true;
       {$IF DEFINED(D2F_DEBUG_MONS_MOVE)}
       e_WriteLog(Format('monster #%d:(%u): resized; mProxyid=%d; gx=%d; gy=%d', [mArrIdx, UID, mProxyId, x-monsGrid.gridX0, y-monsGrid.gridY0]), MSG_NOTIFY);
       {$ENDIF}
@@ -366,7 +366,7 @@ begin
     end
     else if (x <> nx) or (y <> ny) then
     begin
-      mNeedSend := true;
+      //mNeedSend := true;
       {$IF DEFINED(D2F_DEBUG_MONS_MOVE)}
       e_WriteLog(Format('monster #%d:(%u): updating grid; mProxyid=%d; gx=%d; gy=%d', [mArrIdx, UID, mProxyId, x-monsGrid.gridX0, y-monsGrid.gridY0]), MSG_NOTIFY);
       {$ENDIF}

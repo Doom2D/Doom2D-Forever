@@ -109,7 +109,7 @@ function g_Map_traceToNearestWall (x0, y0, x1, y1: Integer; hitx: PInteger=nil; 
 function g_Map_traceToNearest (x0, y0, x1, y1: Integer; tag: Integer; hitx: PInteger=nil; hity: PInteger=nil): TPanel;
 
 type
-  TForEachPanelCB = function (pan: TPanel): Boolean; // return `true` to stop
+  TForEachPanelCB = function (pan: TPanel): Boolean is nested; // return `true` to stop
 
 function g_Map_HasAnyPanelAtPoint (x, y: Integer; panelType: Word): Boolean;
 function g_Map_PanelAtPoint (x, y: Integer; tagmask: Integer=-1): TPanel;
@@ -117,6 +117,12 @@ function g_Map_PanelAtPoint (x, y: Integer; tagmask: Integer=-1): TPanel;
 // trace liquid, stepping by `dx` and `dy`
 // return last seen liquid coords, and `false` if we're started outside of the liquid
 function g_Map_TraceLiquidNonPrecise (x, y, dx, dy: Integer; out topx, topy: Integer): Boolean;
+
+
+// return `true` from `cb` to stop
+function g_Map_ForEachPanel (cb: TForEachPanelCB): TPanel;
+
+procedure g_Map_NetSendInterestingPanels (); // yay!
 
 
 procedure g_Map_ProfilersBegin ();
@@ -259,6 +265,34 @@ function g_Map_PanelByGUID (aguid: Integer): TPanel; inline;
 begin
   //if (panByGUID = nil) or (not panByGUID.get(aguid, result)) then result := nil;
   if (aguid >= 0) and (aguid < Length(panByGUID)) then result := panByGUID[aguid] else result := nil;
+end;
+
+
+// return `true` from `cb` to stop
+function g_Map_ForEachPanel (cb: TForEachPanelCB): TPanel;
+var
+  pan: TPanel;
+begin
+  result := nil;
+  if not assigned(cb) then exit;
+  for pan in panByGUID do
+  begin
+    if cb(pan) then begin result := pan; exit; end;
+  end;
+end;
+
+
+procedure g_Map_NetSendInterestingPanels ();
+var
+  pan: TPanel;
+begin
+  if g_Game_IsServer and g_Game_IsNet then
+  begin
+    for pan in panByGUID do
+    begin
+      if pan.gncNeedSend then MH_SEND_PanelState(pan.panelType, pan.guid);
+    end;
+  end;
 end;
 
 
@@ -2897,6 +2931,8 @@ begin
   //pan := gWalls[ID];
   pan := g_Map_PanelByGUID(pguid);
   if (pan = nil) then exit;
+  if pan.Enabled and mapGrid.proxyEnabled[pan.proxyId] then exit;
+
   pan.Enabled := True;
   g_Mark(pan.X, pan.Y, pan.Width, pan.Height, MARK_DOOR, true);
 
@@ -2904,7 +2940,9 @@ begin
   //if (pan.proxyId >= 0) then mapGrid.proxyEnabled[pan.proxyId] := true
   //else pan.proxyId := mapGrid.insertBody(pan, pan.X, pan.Y, pan.Width, pan.Height, GridTagDoor);
 
-  if g_Game_IsServer and g_Game_IsNet then MH_SEND_PanelState({gWalls[ID]}pan.PanelType, pguid);
+  //if g_Game_IsServer and g_Game_IsNet then MH_SEND_PanelState({gWalls[ID]}pan.PanelType, pguid);
+  // mark platform as interesting
+  pan.setDirty();
 
   {$IFDEF MAP_DEBUG_ENABLED_FLAG}
   //e_WriteLog(Format('ENABLE: wall #%d(%d) enabled (%d)  (%d,%d)-(%d,%d)', [Integer(ID), Integer(pan.proxyId), Integer(mapGrid.proxyEnabled[pan.proxyId]), pan.x, pan.y, pan.width, pan.height]), MSG_NOTIFY);
@@ -2919,13 +2957,17 @@ begin
   //pan := gWalls[ID];
   pan := g_Map_PanelByGUID(pguid);
   if (pan = nil) then exit;
+  if (not pan.Enabled) and (not mapGrid.proxyEnabled[pan.proxyId]) then exit;
+
   pan.Enabled := False;
   g_Mark(pan.X, pan.Y, pan.Width, pan.Height, MARK_DOOR, false);
 
   mapGrid.proxyEnabled[pan.proxyId] := false;
   //if (pan.proxyId >= 0) then begin mapGrid.removeBody(pan.proxyId); pan.proxyId := -1; end;
 
-  if g_Game_IsServer and g_Game_IsNet then MH_SEND_PanelState(pan.PanelType, pguid);
+  //if g_Game_IsServer and g_Game_IsNet then MH_SEND_PanelState(pan.PanelType, pguid);
+  // mark platform as interesting
+  pan.setDirty();
 
   {$IFDEF MAP_DEBUG_ENABLED_FLAG}
   //e_WriteLog(Format('DISABLE: wall #%d(%d) disabled (%d)  (%d,%d)-(%d,%d)', [Integer(ID), Integer(pan.proxyId), Integer(mapGrid.proxyEnabled[pan.proxyId]), pan.x, pan.y, pan.width, pan.height]), MSG_NOTIFY);
@@ -2982,7 +3024,9 @@ begin
       3: g_Mark(X, Y, Width, Height, MARK_LIFTRIGHT);
     end;
 
-    if g_Game_IsServer and g_Game_IsNet then MH_SEND_PanelState(PanelType, pguid);
+    //if g_Game_IsServer and g_Game_IsNet then MH_SEND_PanelState(PanelType, pguid);
+    // mark platform as interesting
+    pan.setDirty();
   end;
 end;
 

@@ -51,11 +51,15 @@ type
     mMovingActive: Boolean;
     mMoveOnce: Boolean;
 
+    mOldMovingActive: Boolean;
+
     mSizeSpeed: TDFSize;
     mSizeEnd: TDFSize;
 
     mEndPosTrig: Integer;
     mEndSizeTrig: Integer;
+
+    mNeedSend: Boolean; // for network
 
   private
     function getx1 (): Integer; inline;
@@ -76,6 +80,16 @@ type
     procedure setMovingEndX (v: Integer); inline;
     function getMovingEndY (): Integer; inline;
     procedure setMovingEndY (v: Integer); inline;
+
+    function getSizeSpeedX (): Integer; inline;
+    procedure setSizeSpeedX (v: Integer); inline;
+    function getSizeSpeedY (): Integer; inline;
+    procedure setSizeSpeedY (v: Integer); inline;
+
+    function getSizeEndX (): Integer; inline;
+    procedure setSizeEndX (v: Integer); inline;
+    function getSizeEndY (): Integer; inline;
+    procedure setSizeEndY (v: Integer); inline;
 
   public
     FCurTexture:      Integer; // Номер текущей текстуры
@@ -127,6 +141,10 @@ type
     function getIsGLift (): Boolean; inline; // gLifts
     function getIsGBlockMon (): Boolean; inline; // gBlockMon
 
+    // get-and-clear
+    function gncNeedSend (): Boolean; inline;
+    procedure setDirty (); inline; // why `dirty`? 'cause i may introduce property `needSend` later
+
   public
     property visvalid: Boolean read getvisvalid; // panel is "visvalid" when it's width and height are positive
 
@@ -157,6 +175,11 @@ type
     property movingActive: Boolean read mMovingActive write mMovingActive;
     property moveOnce: Boolean read mMoveOnce write mMoveOnce;
 
+    property sizeSpeedX: Integer read getSizeSpeedX write setSizeSpeedX;
+    property sizeSpeedY: Integer read getSizeSpeedY write setSizeSpeedY;
+    property sizeEndX: Integer read getSizeEndX write setSizeEndX;
+    property sizeEndY: Integer read getSizeEndY write setSizeEndY;
+
     property isGBack: Boolean read getIsGBack;
     property isGStep: Boolean read getIsGStep;
     property isGWall: Boolean read getIsGWall;
@@ -171,6 +194,9 @@ type
     property movingSpeed: TDFPoint read mMovingSpeed write mMovingSpeed;
     property movingStart: TDFPoint read mMovingStart write mMovingStart;
     property movingEnd: TDFPoint read mMovingEnd write mMovingEnd;
+
+    property sizeSpeed: TDFSize read mSizeSpeed write mSizeSpeed;
+    property sizeEnd: TDFSize read mSizeEnd write mSizeEnd;
 
     property endPosTrigId: Integer read mEndPosTrig write mEndPosTrig;
     property endSizeTrigId: Integer read mEndSizeTrig write mEndSizeTrig;
@@ -219,6 +245,7 @@ begin
   mMovingStart := PanelRec.moveStart;
   mMovingEnd := PanelRec.moveEnd;
   mMovingActive := PanelRec['move_active'].varvalue;
+  mOldMovingActive := mMovingActive;
   mMoveOnce := PanelRec.moveOnce;
 
   mSizeSpeed := PanelRec.sizeSpeed;
@@ -226,6 +253,8 @@ begin
 
   mEndPosTrig := PanelRec.endPosTrig;
   mEndSizeTrig := PanelRec.endSizeTrig;
+
+  mNeedSend := false;
 
 // Тип панели:
   PanelType := PanelRec.PanelType;
@@ -386,6 +415,16 @@ procedure TPanel.setMovingEndX (v: Integer); inline; begin mMovingEnd.X := v; en
 function TPanel.getMovingEndY (): Integer; inline; begin result := mMovingEnd.Y; end;
 procedure TPanel.setMovingEndY (v: Integer); inline; begin mMovingEnd.Y := v; end;
 
+function TPanel.getSizeSpeedX (): Integer; inline; begin result := mSizeSpeed.w; end;
+procedure TPanel.setSizeSpeedX (v: Integer); inline; begin mSizeSpeed.w := v; end;
+function TPanel.getSizeSpeedY (): Integer; inline; begin result := mSizeSpeed.h; end;
+procedure TPanel.setSizeSpeedY (v: Integer); inline; begin mSizeSpeed.h := v; end;
+
+function TPanel.getSizeEndX (): Integer; inline; begin result := mSizeEnd.w; end;
+procedure TPanel.setSizeEndX (v: Integer); inline; begin mSizeEnd.w := v; end;
+function TPanel.getSizeEndY (): Integer; inline; begin result := mSizeEnd.h; end;
+procedure TPanel.setSizeEndY (v: Integer); inline; begin mSizeEnd.h := v; end;
+
 function TPanel.getIsGBack (): Boolean; inline; begin result := ((tag and GridTagBack) <> 0); end;
 function TPanel.getIsGStep (): Boolean; inline; begin result := ((tag and GridTagStep) <> 0); end;
 function TPanel.getIsGWall (): Boolean; inline; begin result := ((tag and (GridTagWall or GridTagDoor)) <> 0); end;
@@ -396,7 +435,11 @@ function TPanel.getIsGFore (): Boolean; inline; begin result := ((tag and GridTa
 function TPanel.getIsGLift (): Boolean; inline; begin result := ((tag and GridTagLift) <> 0); end;
 function TPanel.getIsGBlockMon (): Boolean; inline; begin result := ((tag and GridTagBlockMon) <> 0); end;
 
-procedure TPanel.Draw();
+function TPanel.gncNeedSend (): Boolean; inline; begin result := mNeedSend; mNeedSend := false; end;
+procedure TPanel.setDirty (); inline; begin mNeedSend := true; end;
+
+
+procedure TPanel.Draw ();
 var
   xx, yy: Integer;
   NoTextureID: DWORD;
@@ -480,7 +523,8 @@ procedure TPanel.DrawShadowVolume(lightX: Integer; lightY: Integer; radius: Inte
 
 begin
   if radius < 4 then exit;
-  if Enabled and (FCurTexture >= 0) and (Width > 0) and (Height > 0) and (FAlpha < 255) and g_Collide(X, Y, Width, Height, sX, sY, sWidth, sHeight) then
+  if Enabled and (FCurTexture >= 0) and (Width > 0) and (Height > 0) and (FAlpha < 255) and
+     ((g_dbg_scale <> 1.0) or g_Collide(X, Y, Width, Height, sX, sY, sWidth, sHeight)) then
   begin
     if not FTextureIDs[FCurTexture].Anim then
     begin
@@ -672,6 +716,9 @@ begin
 
   if not g_dbgpan_mplat_active then exit;
 
+  if (mOldMovingActive <> mMovingActive) then mNeedSend := true;
+  mOldMovingActive := mMovingActive;
+
   if not mMovingActive then exit;
   if mMovingSpeed.isZero and mSizeSpeed.isZero then exit;
 
@@ -696,6 +743,21 @@ begin
     nh := mph+mSizeSpeed.h;
     nx := ox+mMovingSpeed.X;
     ny := oy+mMovingSpeed.Y;
+
+    // force network updates only if some sudden change happened
+    // set the flag here, so we can sync affected monsters
+    if not mSizeSpeed.isZero and (nw = mSizeEnd.w) and (nh = mSizeEnd.h) then
+    begin
+      mNeedSend := true;
+    end
+    else if ((mMovingSpeed.X < 0) and (nx <= mMovingStart.X)) or ((mMovingSpeed.X > 0) and (nx >= mMovingEnd.X)) then
+    begin
+      mNeedSend := true;
+    end
+    else if ((mMovingSpeed.Y < 0) and (ny <= mMovingStart.Y)) or ((mMovingSpeed.Y > 0) and (ny >= mMovingEnd.Y)) then
+    begin
+      mNeedSend := true;
+    end;
 
     // if pannel disappeared, we don't have to do anything
     if (nw > 0) and (nh > 0) then
@@ -788,8 +850,12 @@ begin
             begin
               // set new position
               mon.moveBy(pdx, pdy); // this will call `positionChanged()` for us
+              //???FIXME: do we really need to send monsters over the net?
+              //          i don't think so, as dead reckoning should take care of 'em
+              // ok, send new monster position only if platform is going to change it's direction
+              if mNeedSend then mon.setDirty();
             end;
-            // squash player, if necessary
+            // squash monster, if necessary
             if not g_Game_IsClient and squash then mon.Damage(15000, 0, 0, 0, HIT_TRAP);
           end;
         end;
@@ -809,6 +875,8 @@ begin
     actMoveTrig := false;
     actSizeTrig := false;
 
+    // `mNeedSend` was set above
+
     // check "size stop"
     if not mSizeSpeed.isZero and (nw = mSizeEnd.w) and (nh = mSizeEnd.h) then
     begin
@@ -816,7 +884,6 @@ begin
       mSizeSpeed.h := 0;
       actSizeTrig := true;
       if (nw < 1) or (nh < 1) then mMovingActive := false; //HACK!
-      //e_LogWritefln('FUUUUUUUUUUUUUU', []);
     end;
 
     // reverse moving direction, if necessary
@@ -832,9 +899,19 @@ begin
       actMoveTrig := true;
     end;
 
+    if (mOldMovingActive <> mMovingActive) then mNeedSend := true;
+    mOldMovingActive := mMovingActive;
 
-    if actMoveTrig then g_Triggers_Press(mEndPosTrig, ACTIVATE_CUSTOM);
-    if actSizeTrig then g_Triggers_Press(mEndSizeTrig, ACTIVATE_CUSTOM);
+    if g_Game_IsServer and g_Game_IsNet then
+    begin
+      if actMoveTrig then g_Triggers_Press(mEndPosTrig, ACTIVATE_CUSTOM);
+      if actSizeTrig then g_Triggers_Press(mEndSizeTrig, ACTIVATE_CUSTOM);
+    end;
+
+    // some triggers may activate this, don't delay sending
+    //TODO: when triggers will be able to control speed and size, check that here too
+    if (mOldMovingActive <> mMovingActive) then mNeedSend := true;
+    mOldMovingActive := mMovingActive;
   end;
 end;
 
@@ -970,10 +1047,14 @@ begin
        Result := Result + 100;
 end;
 
+const
+  PAN_SAVE_VERSION = 1;
+
 procedure TPanel.SaveState(Var Mem: TBinMemoryWriter);
 var
   sig: DWORD;
   anim: Boolean;
+  ver: Byte;
 begin
   if (Mem = nil) then exit;
   //if not SaveIt then exit;
@@ -981,6 +1062,8 @@ begin
 // Сигнатура панели:
   sig := PANEL_SIGNATURE; // 'PANL'
   Mem.WriteDWORD(sig);
+  ver := PAN_SAVE_VERSION;
+  Mem.WriteByte(ver);
 // Открыта/закрыта, если дверь:
   Mem.WriteBoolean(FEnabled);
 // Направление лифта, если лифт:
@@ -990,6 +1073,8 @@ begin
 // Коорды
   Mem.WriteInt(FX);
   Mem.WriteInt(FY);
+  Mem.WriteWord(FWidth);
+  Mem.WriteWord(FHeight);
 // Анимированная ли текущая текстура:
   if (FCurTexture >= 0) and (FTextureIDs[FCurTexture].Anim) then
     begin
@@ -1003,6 +1088,7 @@ begin
 // Если да - сохраняем анимацию:
   if anim then
     FTextureIDs[FCurTexture].AnTex.SaveState(Mem);
+
   // moving platform state
   Mem.WriteInt(mMovingSpeed.X);
   Mem.WriteInt(mMovingSpeed.Y);
@@ -1010,13 +1096,23 @@ begin
   Mem.WriteInt(mMovingStart.Y);
   Mem.WriteInt(mMovingEnd.X);
   Mem.WriteInt(mMovingEnd.Y);
+
+  Mem.WriteInt(mSizeSpeed.w);
+  Mem.WriteInt(mSizeSpeed.h);
+  Mem.WriteInt(mSizeEnd.w);
+  Mem.WriteInt(mSizeEnd.h);
   Mem.WriteBoolean(mMovingActive);
+  Mem.WriteBoolean(mMoveOnce);
+
+  Mem.WriteInt(mEndPosTrig);
+  Mem.WriteInt(mEndSizeTrig);
 end;
 
 procedure TPanel.LoadState(var Mem: TBinMemoryReader);
 var
   sig: DWORD;
   anim: Boolean;
+  ver: Byte;
   //ox, oy: Integer;
 begin
   if (Mem = nil) then exit;
@@ -1024,10 +1120,9 @@ begin
 
 // Сигнатура панели:
   Mem.ReadDWORD(sig);
-  if sig <> PANEL_SIGNATURE then // 'PANL'
-  begin
-    raise EBinSizeError.Create('TPanel.LoadState: Wrong Panel Signature');
-  end;
+  if (sig <> PANEL_SIGNATURE) then raise EBinSizeError.Create('TPanel.LoadState: wrong panel signature'); // 'PANL'
+  Mem.ReadByte(ver);
+  if (ver <> PAN_SAVE_VERSION) then raise EBinSizeError.Create('TPanel.LoadState: invalid panel version');
 // Открыта/закрыта, если дверь:
   Mem.ReadBoolean(FEnabled);
 // Направление лифта, если лифт:
@@ -1039,6 +1134,8 @@ begin
   //oy := FY;
   Mem.ReadInt(FX);
   Mem.ReadInt(FY);
+  Mem.ReadWord(FWidth);
+  Mem.ReadWord(FHeight);
   //e_LogWritefln('panel %s(%s): old=(%s,%s); new=(%s,%s); delta=(%s,%s)', [arrIdx, proxyId, ox, oy, FX, FY, FX-ox, FY-oy]);
 // Анимированная ли текущая текстура:
   Mem.ReadBoolean(anim);
@@ -1051,6 +1148,7 @@ begin
            'TPanel.LoadState: No animation object');
     FTextureIDs[FCurTexture].AnTex.LoadState(Mem);
   end;
+
   // moving platform state
   Mem.ReadInt(mMovingSpeed.X);
   Mem.ReadInt(mMovingSpeed.Y);
@@ -1058,7 +1156,15 @@ begin
   Mem.ReadInt(mMovingStart.Y);
   Mem.ReadInt(mMovingEnd.X);
   Mem.ReadInt(mMovingEnd.Y);
+  Mem.ReadInt(mSizeSpeed.w);
+  Mem.ReadInt(mSizeSpeed.h);
+  Mem.ReadInt(mSizeEnd.w);
+  Mem.ReadInt(mSizeEnd.h);
   Mem.ReadBoolean(mMovingActive);
+  Mem.ReadBoolean(mMoveOnce);
+
+  Mem.ReadInt(mEndPosTrig);
+  Mem.ReadInt(mEndSizeTrig);
 
   positionChanged();
   //mapGrid.proxyEnabled[proxyId] := FEnabled; // done in g_map.pas

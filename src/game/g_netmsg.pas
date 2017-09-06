@@ -640,6 +640,13 @@ procedure MH_SEND_Everything(CreatePlayers: Boolean = False; ID: Integer = NET_E
     MH_SEND_MonsterSpawn(mon.UID, ID);
   end;
 
+  function sendPanelState (pan: TPanel): Boolean;
+  begin
+    result := false; // don't stop
+    MH_SEND_PanelState(pan.PanelType, pan.guid, ID); // anyway, to sync mplats
+    if (pan.GetTextureCount > 1) then MH_SEND_PanelTexture(pan.PanelType, pan.guid, pan.LastAnimLoop, ID);
+  end;
+
 var
   I: Integer;
 begin
@@ -654,7 +661,9 @@ begin
         MH_SEND_PlayerStats(gPlayers[I].UID, ID);
 
         if (gPlayers[I].Flag <> FLAG_NONE) and (gGameSettings.GameMode = GM_CTF) then
+        begin
           MH_SEND_FlagEvent(FLAG_STATE_CAPTURED, gPlayers[I].Flag, gPlayers[I].UID, True, ID);
+        end;
       end;
     end;
   end;
@@ -662,12 +671,15 @@ begin
   g_Items_ForEachAlive(sendItemRespawn, true); // backwards
   g_Mons_ForEach(sendMonSpawn);
 
+  g_Map_ForEachPanel(sendPanelState);
+
+  (* replaced with the `g_Map_ForEachPanel()` call above
   if gWalls <> nil then
     for I := Low(gWalls) to High(gWalls) do
       if gWalls[I] <> nil then
         with gWalls[I] do
         begin
-          if Door then
+          {if Door then} // anyway, to sync mplats
             MH_SEND_PanelState(PanelType, I, ID);
 
           if GetTextureCount > 1 then
@@ -687,7 +699,7 @@ begin
         begin
           if (GetTextureCount > 1) then
             MH_SEND_PanelTexture(PanelType, I, LastAnimLoop, ID);
-          if Moved then
+          {if Moved then} // anyway, to sync mplats
             MH_SEND_PanelState(PanelType, I, ID);
         end;
   if gRenderBackgrounds <> nil then
@@ -697,33 +709,50 @@ begin
         begin
           if (GetTextureCount > 1) then
             MH_SEND_PanelTexture(PanelType, I, LastAnimLoop, ID);
-          if Moved then
+          {if Moved then} // anyway, to sync mplats
             MH_SEND_PanelState(PanelType, I, ID);
         end;
   if gWater <> nil then
     for I := Low(gWater) to High(gWater) do
       if gWater[I] <> nil then
         with gWater[I] do
+        begin
           if GetTextureCount > 1 then
             MH_SEND_PanelTexture(PanelType, I, LastAnimLoop, ID);
+          {if Moved then} // anyway, to sync mplats
+            MH_SEND_PanelState(PanelType, I, ID);
+        end;
   if gAcid1 <> nil then
     for I := Low(gAcid1) to High(gAcid1) do
       if gAcid1[I] <> nil then
         with gAcid1[I] do
+        begin
           if GetTextureCount > 1 then
             MH_SEND_PanelTexture(PanelType, I, LastAnimLoop, ID);
+          {if Moved then} // anyway, to sync mplats
+            MH_SEND_PanelState(PanelType, I, ID);
+        end;
   if gAcid2 <> nil then
     for I := Low(gAcid2) to High(gAcid2) do
       if gAcid2[I] <> nil then
         with gAcid2[I] do
+        begin
           if GetTextureCount > 1 then
             MH_SEND_PanelTexture(PanelType, I, LastAnimLoop, ID);
+          {if Moved then} // anyway, to sync mplats
+            MH_SEND_PanelState(PanelType, I, ID);
+        end;
   if gSteps <> nil then
     for I := Low(gSteps) to High(gSteps) do
       if gSteps[I] <> nil then
         with gSteps[I] do
+        begin
           if GetTextureCount > 1 then
             MH_SEND_PanelTexture(PanelType, I, LastAnimLoop, ID);
+          {if Moved then} // anyway, to sync mplats
+            MH_SEND_PanelState(PanelType, I, ID);
+        end;
+  *)
 
   if gTriggers <> nil then
     for I := Low(gTriggers) to High(gTriggers) do
@@ -1261,6 +1290,7 @@ end;
 procedure MH_SEND_PanelState(PType: Word; PGUID: Integer; ID: Integer = NET_EVERYONE);
 var
   TP: TPanel;
+  mpflags: Byte = 0;
 begin
   TP := g_Map_PanelByGUID(PGUID);
   if (TP = nil) then exit;
@@ -1292,6 +1322,22 @@ begin
   NetOut.Write(TP.LiftType);
   NetOut.Write(TP.X);
   NetOut.Write(TP.Y);
+  NetOut.Write(Word(TP.Width));
+  NetOut.Write(Word(TP.Height));
+  // mplats
+  NetOut.Write(LongInt(TP.movingSpeedX));
+  NetOut.Write(LongInt(TP.movingSpeedY));
+  NetOut.Write(LongInt(TP.movingStartX));
+  NetOut.Write(LongInt(TP.movingStartY));
+  NetOut.Write(LongInt(TP.movingEndX));
+  NetOut.Write(LongInt(TP.movingEndY));
+  NetOut.Write(LongInt(TP.sizeSpeedX));
+  NetOut.Write(LongInt(TP.sizeSpeedY));
+  NetOut.Write(LongInt(TP.sizeEndX));
+  NetOut.Write(LongInt(TP.sizeEndY));
+  if TP.movingActive then mpflags := mpflags or 1;
+  if TP.moveOnce then mpflags := mpflags or 2;
+  NetOut.Write(Byte(mpflags));
 
   g_Net_Host_Send(ID, True, NET_CHAN_LARGEDATA);
 end;
@@ -2439,7 +2485,7 @@ begin
   end;
   }
 
-  if TP <> nil then
+  if (TP <> nil) then
   begin
     if Loop = 0 then
     begin
@@ -2461,8 +2507,11 @@ var
   E: Boolean;
   Lift: Byte;
   PType: Word;
-  X, Y: Integer;
+  X, Y, W, H: Integer;
   TP: TPanel;
+  speedX, speedY, startX, startY, endX, endY: Integer;
+  sizeSpX, sizeSpY, sizeEX, sizeEY: Integer;
+  mpflags: Byte;
 begin
   if not gGameOn then Exit;
   PType := M.ReadWord();
@@ -2471,16 +2520,31 @@ begin
   Lift := M.ReadByte();
   X := M.ReadLongInt();
   Y := M.ReadLongInt();
+  W := M.ReadWord();
+  H := M.ReadWord();
+  // mplats
+  speedX := M.ReadLongInt();
+  speedY := M.ReadLongInt();
+  startX := M.ReadLongInt();
+  startY := M.ReadLongInt();
+  endX := M.ReadLongInt();
+  endY := M.ReadLongInt();
+  sizeSpX := M.ReadLongInt();
+  sizeSpY := M.ReadLongInt();
+  sizeEX := M.ReadLongInt();
+  sizeEY := M.ReadLongInt();
+  mpflags := M.ReadByte(); // bit0: TP.movingActive; bit1: TP.moveOnce
 
   case PType of
-    PANEL_WALL, PANEL_OPENDOOR, PANEL_CLOSEDOOR:
-      if E then g_Map_EnableWallGUID(PGUID) else g_Map_DisableWallGUID(PGUID);
+    {PANEL_WALL, PANEL_OPENDOOR, PANEL_CLOSEDOOR:
+      if E then g_Map_EnableWallGUID(PGUID) else g_Map_DisableWallGUID(PGUID);}
 
     PANEL_LIFTUP, PANEL_LIFTDOWN, PANEL_LIFTLEFT, PANEL_LIFTRIGHT:
       g_Map_SetLiftGUID(PGUID, Lift);
 
     {PANEL_BACK,
     PANEL_FORE:}
+    {
     else
     begin
       TP := g_Map_PanelByGUID(PGUID);
@@ -2493,6 +2557,7 @@ begin
       //gRenderBackgrounds[ID].X := X;
       //gRenderBackgrounds[ID].Y := Y;
     end;
+    }
 
     {
     PANEL_FORE:
@@ -2501,6 +2566,34 @@ begin
       gRenderForegrounds[ID].Y := Y;
     end;
     }
+  end;
+
+  // update enabled/disabled state for all panels
+  if E then g_Map_EnableWallGUID(PGUID) else g_Map_DisableWallGUID(PGUID);
+
+  // update panel position, as it can be moved
+  TP := g_Map_PanelByGUID(PGUID);
+  if (TP <> nil) then
+  begin
+    // mplat
+    TP.movingSpeedX := speedX;
+    TP.movingSpeedY := speedY;
+    TP.movingStartX := startX;
+    TP.movingStartY := startY;
+    TP.movingEndX := endX;
+    TP.movingEndY := endY;
+    TP.sizeSpeedX := sizeSpX;
+    TP.sizeSpeedY := sizeSpY;
+    TP.sizeEndX := sizeEX;
+    TP.sizeEndY := sizeEY;
+    TP.movingActive := ((mpflags and 1) <> 0);
+    TP.moveOnce := ((mpflags and 2) <> 0);
+    // position
+    TP.X := X;
+    TP.Y := Y;
+    TP.Width := W;
+    TP.Height := H;
+    TP.positionChanged();
   end;
 end;
 
