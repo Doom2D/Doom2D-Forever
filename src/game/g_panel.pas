@@ -98,10 +98,8 @@ type
     FX, FY:           Integer;
     FWidth, FHeight:  Word;
     FPanelType:       Word;
-    FSaveIt:          Boolean; // Сохранять при SaveState?
     FEnabled:         Boolean;
     FDoor:            Boolean;
-    FMoved:           Boolean;
     FLiftType:        Byte;
     FLastAnimLoop:    Byte;
     // sorry, there fields are public to allow setting 'em in g_map; this should be fixed later
@@ -159,10 +157,8 @@ type
     property width: Word read FWidth write FWidth;
     property height: Word read FHeight write FHeight;
     property panelType: Word read FPanelType write FPanelType;
-    property saveIt: Boolean read FSaveIt write FSaveIt; // Сохранять при SaveState?
     property enabled: Boolean read FEnabled write FEnabled; // Сохранять при SaveState?
     property door: Boolean read FDoor write FDoor; // Сохранять при SaveState?
-    property moved: Boolean read FMoved write FMoved; // Сохранять при SaveState?
     property liftType: Byte read FLiftType write FLiftType; // Сохранять при SaveState?
     property lastAnimLoop: Byte read FLastAnimLoop write FLastAnimLoop; // Сохранять при SaveState?
 
@@ -236,7 +232,6 @@ begin
   FCurFrame := 0;
   FCurFrameCount := 0;
   LastAnimLoop := 0;
-  Moved := False;
 
   mapId := PanelRec.id;
   mGUID := aguid;
@@ -261,37 +256,14 @@ begin
   Enabled := True;
   Door := False;
   LiftType := 0;
-  SaveIt := False;
 
   case PanelType of
-    PANEL_OPENDOOR:
-      begin
-        Enabled := False;
-        Door := True;
-        SaveIt := True;
-      end;
-    PANEL_CLOSEDOOR:
-      begin
-        Door := True;
-        SaveIt := True;
-      end;
-    PANEL_LIFTUP:
-      SaveIt := True;
-    PANEL_LIFTDOWN:
-      begin
-        LiftType := 1;
-        SaveIt := True;
-      end;
-    PANEL_LIFTLEFT:
-      begin
-        LiftType := 2;
-        SaveIt := True;
-      end;
-    PANEL_LIFTRIGHT:
-      begin
-        LiftType := 3;
-        SaveIt := True;
-      end;
+    PANEL_OPENDOOR: begin Enabled := False; Door := True; end;
+    PANEL_CLOSEDOOR: Door := True;
+    PANEL_LIFTUP: LiftType := 0; //???
+    PANEL_LIFTDOWN: LiftType := 1;
+    PANEL_LIFTLEFT: LiftType := 2;
+    PANEL_LIFTRIGHT: LiftType := 3;
   end;
 
 // Невидимая:
@@ -354,7 +326,6 @@ begin
                              True, Textures[AddTextures[i].Texture].Speed);
         FTextureIDs[i].AnTex.Blending := ByteBool(PanelRec.Flags and PANEL_FLAG_BLENDING);
         FTextureIDs[i].AnTex.Alpha := PanelRec.Alpha;
-        SaveIt := True;
       end
     else
       begin // Обычная текстура
@@ -363,8 +334,7 @@ begin
   end;
 
 // Текстур несколько - нужно сохранять текущую:
-  if Length(FTextureIDs) > 1 then
-    SaveIt := True;
+  //if Length(FTextureIDs) > 1 then SaveIt := True;
 
 // Если не спецтекстура, то задаем размеры:
   if PanelRec.TextureNum > High(Textures) then
@@ -1057,7 +1027,6 @@ var
   ver: Byte;
 begin
   if (Mem = nil) then exit;
-  //if not SaveIt then exit;
 
 // Сигнатура панели:
   sig := PANEL_SIGNATURE; // 'PANL'
@@ -1116,7 +1085,6 @@ var
   //ox, oy: Integer;
 begin
   if (Mem = nil) then exit;
-  //if not SaveIt then exit;
 
 // Сигнатура панели:
   Mem.ReadDWORD(sig);

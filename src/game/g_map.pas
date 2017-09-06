@@ -290,7 +290,7 @@ begin
   begin
     for pan in panByGUID do
     begin
-      if pan.gncNeedSend then MH_SEND_PanelState(pan.panelType, pan.guid);
+      if pan.gncNeedSend then MH_SEND_PanelState(pan.guid);
     end;
   end;
 end;
@@ -821,7 +821,7 @@ begin
   PanelArray := nil;
 end;
 
-function CreatePanel (PanelRec: TDynRecord; AddTextures: TAddTextureArray; CurTex: Integer; sav: Boolean): Integer;
+function CreatePanel (PanelRec: TDynRecord; AddTextures: TAddTextureArray; CurTex: Integer): Integer;
 var
   len: Integer;
   panels: ^TPanelArray;
@@ -856,7 +856,6 @@ begin
   pan.arrIdx := len;
   pan.proxyId := -1;
   pan.tag := panelTypeToTag(PanelRec.PanelType);
-  if sav then pan.SaveIt := True;
 
   PanelRec.user['panel_guid'] := pguid;
 
@@ -1642,7 +1641,7 @@ var
   FileName, mapResName, s, TexName: String;
   Data: Pointer;
   Len: Integer;
-  ok, isAnim, trigRef: Boolean;
+  ok, isAnim: Boolean;
   CurTex, ntn: Integer;
   rec, texrec: TDynRecord;
   pttit: PTRec;
@@ -1881,7 +1880,6 @@ begin
         //e_LogWritefln('PANSTART: pannum=%s', [pannum]);
         texrec := nil;
         SetLength(AddTextures, 0);
-        trigRef := False;
         CurTex := -1;
         ok := false;
 
@@ -1898,21 +1896,9 @@ begin
           ok := false;
           if (TriggersTable <> nil) and (mapTextureList <> nil) then
           begin
-            {
-            for b := 0 to High(TriggersTable) do
-            begin
-              if (TriggersTable[b].texPan = rec) or (TriggersTable[b].shotPan = rec) then
-              begin
-                trigRef := True;
-                ok := True;
-                break;
-              end;
-            end;
-            }
             if rec.userPanelTrigRef then
             begin
               // e_LogWritefln('trigref for panel %s', [pannum]);
-              trigRef := True;
               ok := True;
             end;
           end;
@@ -2040,7 +2026,7 @@ begin
         //e_LogWritefln('PANADD: pannum=%s', [pannum]);
 
         // Создаем панель и запоминаем ее GUID
-        PanelID := CreatePanel(rec, AddTextures, CurTex, trigRef);
+        PanelID := CreatePanel(rec, AddTextures, CurTex);
         //e_LogWritefln('panel #%s of type %s got guid #%s', [pannum, rec.PanelType, PanelID]);
         rec.userPanelId := PanelID; // remember game panel id, we'll fix triggers later
 
@@ -2940,7 +2926,7 @@ begin
   //if (pan.proxyId >= 0) then mapGrid.proxyEnabled[pan.proxyId] := true
   //else pan.proxyId := mapGrid.insertBody(pan, pan.X, pan.Y, pan.Width, pan.Height, GridTagDoor);
 
-  //if g_Game_IsServer and g_Game_IsNet then MH_SEND_PanelState({gWalls[ID]}pan.PanelType, pguid);
+  //if g_Game_IsServer and g_Game_IsNet then MH_SEND_PanelState(pguid);
   // mark platform as interesting
   pan.setDirty();
 
@@ -2965,7 +2951,7 @@ begin
   mapGrid.proxyEnabled[pan.proxyId] := false;
   //if (pan.proxyId >= 0) then begin mapGrid.removeBody(pan.proxyId); pan.proxyId := -1; end;
 
-  //if g_Game_IsServer and g_Game_IsNet then MH_SEND_PanelState(pan.PanelType, pguid);
+  //if g_Game_IsServer and g_Game_IsNet then MH_SEND_PanelState(pguid);
   // mark platform as interesting
   pan.setDirty();
 
@@ -2995,7 +2981,7 @@ begin
   }
 
   tp.NextTexture(AnimLoop);
-  if g_Game_IsServer and g_Game_IsNet then MH_SEND_PanelTexture(PanelType, pguid, AnimLoop);
+  if g_Game_IsServer and g_Game_IsNet then MH_SEND_PanelTexture(pguid, AnimLoop);
 end;
 
 
@@ -3024,7 +3010,7 @@ begin
       3: g_Mark(X, Y, Width, Height, MARK_LIFTRIGHT);
     end;
 
-    //if g_Game_IsServer and g_Game_IsNet then MH_SEND_PanelState(PanelType, pguid);
+    //if g_Game_IsServer and g_Game_IsNet then MH_SEND_PanelState(pguid);
     // mark platform as interesting
     pan.setDirty();
   end;
@@ -3147,20 +3133,15 @@ var
   var
     PAMem: TBinMemoryWriter;
     pan: TPanel;
+    count: Integer;
   begin
     // Создаем новый список сохраняемых панелей
     PAMem := TBinMemoryWriter.Create((Length(panByGUID)+1) * 40);
 
-    for pan in panByGUID do
-    begin
-      if true{pan.SaveIt} then
-      begin
-        // ID панели
-        //PAMem.WriteInt(i);
-        // Сохраняем панель
-        pan.SaveState(PAMem);
-      end;
-    end;
+    // Сохраняем панели
+    count := Length(panByGUID);
+    Mem.WriteInt(count);
+    for pan in panByGUID do pan.SaveState(PAMem);
 
     // Сохраняем этот список панелей
     PAMem.SaveToMemory(Mem);
@@ -3243,25 +3224,19 @@ var
   var
     PAMem: TBinMemoryReader;
     pan: TPanel;
+    count: LongInt;
   begin
     // Загружаем текущий список панелей
     PAMem := TBinMemoryReader.Create();
     PAMem.LoadFromMemory(Mem);
 
+    // Загружаем панели
+    PAMem.ReadInt(count);
+    if (count <> Length(panByGUID)) then raise EBinSizeError.Create('g_Map_LoadState: LoadPanelArray: invalid number of panels');
     for pan in panByGUID do
     begin
-      if true{pan.SaveIt} then
-      begin
-        // ID панели:
-        //PAMem.ReadInt(id);
-        {
-        if id <> i then raise EBinSizeError.Create('g_Map_LoadState: LoadPanelArray: Wrong Panel ID');
-        }
-        // Загружаем панель
-        pan.LoadState(PAMem);
-        //if (panels[i].arrIdx <> i) then raise Exception.Create('g_Map_LoadState: LoadPanelArray: Wrong Panel arrIdx');
-        if (pan.proxyId >= 0) then mapGrid.proxyEnabled[pan.proxyId] := pan.Enabled;
-      end;
+      pan.LoadState(PAMem);
+      if (pan.proxyId >= 0) then mapGrid.proxyEnabled[pan.proxyId] := pan.Enabled;
     end;
 
     // Этот список панелей загружен
