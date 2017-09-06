@@ -715,8 +715,9 @@ var
   scxywh: array[0..3] of GLint;
   vpxywh: array[0..3] of GLint;
   }
-  w, h, dw, cw, ch: Integer;
+  w, h, dw, cw, ch, yofs: Integer;
   u, v, cu, cv: Single;
+  onlyOneY: Boolean;
 
   {
   procedure setScissorGLInternal (x, y, w, h: Integer);
@@ -770,7 +771,7 @@ begin
   y2 := y+hgt;
 
   //k8: this SHOULD work... i hope
-  if (e_Textures[ID].tx.width = e_Textures[ID].tx.glwidth) and (e_Textures[ID].tx.height = e_Textures[ID].tx.glheight) then
+  if {false and} (e_Textures[ID].tx.width = e_Textures[ID].tx.glwidth) and (e_Textures[ID].tx.height = e_Textures[ID].tx.glheight) then
   begin
     glBegin(GL_QUADS);
       glTexCoord2f(0, hgt/e_Textures[ID].tx.height); glVertex2i(x,  y);
@@ -796,24 +797,26 @@ begin
     w := e_Textures[ID].tx.width;
     h := e_Textures[ID].tx.height;
     x2 := x;
+    if (hgt > h) then begin y += hgt-h; onlyOneY := false; end else onlyOneY := true;
     glBegin(GL_QUADS);
     while (hgt > 0) do
     begin
-      if (hgt >= h) then begin ch := h; cv := v; end else begin ch := hgt; cv := v/(h/hgt) end;
+      if (hgt >= h) then begin ch := h; cv := v; yofs := 0; end else begin ch := hgt; cv := v/(h/hgt); yofs := h-hgt; end;
+      if onlyOneY then yofs := 0;
       Dec(hgt, h);
       dw := wdt;
       x := x2;
       while (dw > 0) do
       begin
-        if (dw >= w) then begin cw := w; cu := u; end else begin cw := dw; cu := u/(w/dw) end;
+        if (dw >= w) then begin cw := w; cu := u; end else begin cw := dw; cu := u/(w/dw); end;
         Dec(dw, w);
-        glTexCoord2f(0, cv); glVertex2i(X,   Y);
-        glTexCoord2f(cu, cv); glVertex2i(X+cw, Y);
-        glTexCoord2f(cu, 0); glVertex2i(X+cw, Y+ch);
-        glTexCoord2f(0, 0); glVertex2i(X,   Y+ch);
+        glTexCoord2f(0, cv); glVertex2i(X,   Y+yofs);
+        glTexCoord2f(cu, cv); glVertex2i(X+cw, Y+yofs);
+        glTexCoord2f(cu, 0); glVertex2i(X+cw, Y+ch+yofs);
+        glTexCoord2f(0, 0); glVertex2i(X,   Y+ch+yofs);
         Inc(X, w);
       end;
-      Inc(Y, h);
+      Dec(Y, h);
     end;
     glEnd();
     //if wassc then glEnable(GL_SCISSOR_TEST) else glDisable(GL_SCISSOR_TEST);
