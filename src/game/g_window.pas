@@ -50,7 +50,7 @@ uses
   SDL2, GL, GLExt, e_graphics, e_log, g_main,
   g_console, SysUtils, e_input, g_options, g_game,
   g_basic, g_textures, e_sound, g_sound, g_menu, ENet, g_net,
-  g_map, g_gfx, g_monsters, g_holmes, xprofiler;
+  g_map, g_gfx, g_monsters, g_holmes, xprofiler, utils;
 
 var
   h_Wnd: PSDL_Window;
@@ -75,30 +75,6 @@ var
   curKbState: Word = 0;
   curMsX: Integer = 0;
   curMsY: Integer = 0;
-
-const
-  // TODO: move this to a separate file
-  CP1251: array [0..127] of Word = (
-    $0402,$0403,$201A,$0453,$201E,$2026,$2020,$2021,$20AC,$2030,$0409,$2039,$040A,$040C,$040B,$040F,
-    $0452,$2018,$2019,$201C,$201D,$2022,$2013,$2014,$003F,$2122,$0459,$203A,$045A,$045C,$045B,$045F,
-    $00A0,$040E,$045E,$0408,$00A4,$0490,$00A6,$00A7,$0401,$00A9,$0404,$00AB,$00AC,$00AD,$00AE,$0407,
-    $00B0,$00B1,$0406,$0456,$0491,$00B5,$00B6,$00B7,$0451,$2116,$0454,$00BB,$0458,$0405,$0455,$0457,
-    $0410,$0411,$0412,$0413,$0414,$0415,$0416,$0417,$0418,$0419,$041A,$041B,$041C,$041D,$041E,$041F,
-    $0420,$0421,$0422,$0423,$0424,$0425,$0426,$0427,$0428,$0429,$042A,$042B,$042C,$042D,$042E,$042F,
-    $0430,$0431,$0432,$0433,$0434,$0435,$0436,$0437,$0438,$0439,$043A,$043B,$043C,$043D,$043E,$043F,
-    $0440,$0441,$0442,$0443,$0444,$0445,$0446,$0447,$0448,$0449,$044A,$044B,$044C,$044D,$044E,$044F
-  );
-
-// TODO: make a transition table or something
-function WCharToCP1251(wc: Word): Word;
-var
-  n: Word;
-begin
-  Result := 0;
-  for n := 0 to 127 do
-    if CP1251[n] = wc then begin Result := n; break end;
-  Result := Result + 128;
-end;
 
 function g_Window_SetDisplay(PreserveGL: Boolean = False): Boolean;
 var
@@ -520,8 +496,8 @@ begin
       begin
         Utf8ToUnicode(@uc, PChar(ev.text.text), 1);
         keychr := Word(uc);
-        if (keychr > 127) then keychr := WCharToCP1251(keychr);
-        CharPress(Chr(keychr));
+        if (keychr > 127) then keychr := Word(wchar2win(WideChar(keychr)));
+        CharPress(AnsiChar(keychr));
       end;
 
     // other key presses and joysticks are handled in e_input
