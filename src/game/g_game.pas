@@ -96,8 +96,8 @@ procedure g_Game_RestartRound(NoMapRestart: Boolean = False);
 procedure g_Game_ClientWAD(NewWAD: String; WHash: TMD5Digest);
 procedure g_Game_SaveOptions();
 function  g_Game_StartMap(Map: String; Force: Boolean = False; const oldMapPath: AnsiString=''): Boolean;
-procedure g_Game_ChangeMap(MapPath: String);
-procedure g_Game_ExitLevel(Map: Char16);
+procedure g_Game_ChangeMap(const MapPath: String);
+procedure g_Game_ExitLevel(const Map: AnsiString);
 function  g_Game_GetFirstMap(WAD: String): String;
 function  g_Game_GetNextMap(): String;
 procedure g_Game_NextLevel();
@@ -4077,7 +4077,7 @@ begin
   g_Options_Write_Video(GameDir+'/'+CONFIG_FILENAME);
 end;
 
-procedure g_Game_ChangeMap(MapPath: String);
+procedure g_Game_ChangeMap(const MapPath: String);
 var
   Force: Boolean;
 begin
@@ -4261,7 +4261,7 @@ begin
   MapList := nil;
 end;
 
-procedure g_Game_ExitLevel(Map: Char16);
+procedure g_Game_ExitLevel(const Map: AnsiString);
 begin
   gNextMap := Map;
 
@@ -4496,7 +4496,7 @@ end;
 procedure g_Game_DeleteTestMap();
 var
   a: Integer;
-  MapName: Char16;
+  //MapName: AnsiString;
   WadName: string;
 {
   WAD: TWADFile;
@@ -4506,15 +4506,14 @@ var
 begin
   a := Pos('.wad:\', toLowerCase1251(gMapToDelete));
   if (a = 0) then a := Pos('.wad:/', toLowerCase1251(gMapToDelete));
-  if a = 0 then
-    Exit;
+  if (a = 0) then exit;
 
-// Выделяем имя wad-файла и имя карты:
-  WadName := Copy(gMapToDelete, 1, a + 3);
-  Delete(gMapToDelete, 1, a + 5);
+  // Выделяем имя wad-файла и имя карты
+  WadName := Copy(gMapToDelete, 1, a+3);
+  Delete(gMapToDelete, 1, a+5);
   gMapToDelete := UpperCase(gMapToDelete);
-  MapName := '';
-  CopyMemory(@MapName[0], @gMapToDelete[1], Min(16, Length(gMapToDelete)));
+  //MapName := '';
+  //CopyMemory(@MapName[0], @gMapToDelete[1], Min(16, Length(gMapToDelete)));
 
 {
 // Имя карты не стандартное тестовое:

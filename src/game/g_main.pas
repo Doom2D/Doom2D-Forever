@@ -250,7 +250,7 @@ label
   Cheated;
 var
   s, s2: string;
-  c: Char16;
+  c: ShortString;
   a: Integer;
 begin
   if (not gGameOn) or (not gCheats) or ((gGameSettings.GameType <> GT_SINGLE) and

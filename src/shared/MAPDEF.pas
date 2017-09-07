@@ -55,17 +55,30 @@ type
     function isValid (): Boolean; inline;
   end;
 
-  Char16     = packed array[0..15] of Char;
-  Char32     = packed array[0..31] of Char;
-  Char64     = packed array[0..63] of Char;
-  Char100    = packed array[0..99] of Char;
-  Char256    = packed array[0..255] of Char;
-  Byte128    = packed array[0..127] of Byte;
+  TDFColor = packed record
+  public
+    r, g, b, a: Byte; // a: 0 is transparent, 255 is opaque
+
+  public
+    constructor Create (ar, ag, ab: LongInt; aa: LongInt=0);
+
+    function isTransparent (): Boolean; inline;
+    function isOpaque (): Boolean; inline;
+  end;
 
 {$INCLUDE mapdef.inc}
 
 // various helpers to access map structures
 type
+  TDynFieldHelper = class helper for TDynField
+  public
+    function getRGBA (): TDFColor; inline;
+    procedure setRGBA (const v: TDFColor); inline;
+
+  public
+    property rgba: TDFColor read getRGBA write setRGBA; // for `TColor`
+  end;
+
   TDynRecordHelper = class helper for TDynRecord
   private
     function getFieldWithType (const aname: AnsiString; atype: TDynField.TType): TDynField; inline;
@@ -177,6 +190,21 @@ function TDFPoint.isZero (): Boolean; inline; begin result := (X = 0) and (Y = 0
 constructor TDFSize.Create (aw, ah: LongInt); begin w := aw; h := ah; end;
 function TDFSize.isZero (): Boolean; inline; begin result := (w = 0) and (h = 0); end;
 function TDFSize.isValid (): Boolean; inline; begin result := (w > 0) and (h > 0); end;
+
+constructor TDFColor.Create (ar, ag, ab: LongInt; aa: LongInt=0);
+begin
+  if (ar < 0) then r := 0 else if (ar > 255) then r := 255 else r := Byte(ar);
+  if (ag < 0) then g := 0 else if (ag > 255) then g := 255 else g := Byte(ag);
+  if (ab < 0) then b := 0 else if (ab > 255) then b := 255 else b := Byte(ab);
+  if (aa < 0) then a := 0 else if (aa > 255) then a := 255 else a := Byte(aa);
+end;
+function TDFColor.isTransparent (): Boolean; inline; begin result := (a = 0); end;
+function TDFColor.isOpaque (): Boolean; inline; begin result := (a = 255); end;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
+function TDynFieldHelper.getRGBA (): TDFColor; inline; begin result := TDFColor.Create(red, green, blue, alpha); end;
+procedure TDynFieldHelper.setRGBA (const v: TDFColor); inline; begin red := v.r; green := v.g; blue := v.b; alpha := v.a; end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //

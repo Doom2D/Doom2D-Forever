@@ -57,7 +57,7 @@ type
   TDynField = class
   public
     type
-      TType = (TBool, TChar, TByte, TUByte, TShort, TUShort, TInt, TUInt, TString, TPoint, TSize, TList, TTrigData);
+      TType = (TBool, TChar, TByte, TUByte, TShort, TUShort, TInt, TUInt, TString, TPoint, TSize, TColor, TList, TTrigData);
       // TPoint: pair of Integers
       // TSize: pair of UShorts
       // TList: actually, array of records
@@ -76,6 +76,8 @@ type
     mType: TType; // field type
     mIVal: Integer; // for all integer types
     mIVal2: Integer; // for point and size
+    mIVal3: Integer; // for TColor
+    mIVal4: Integer; // for TColor
     mSVal: AnsiString; // string; for byte and char arrays
     mRVal: TDynRecList; // for list
     mRHash: THashStrInt; // id -> index in mRVal
@@ -94,7 +96,7 @@ type
     // default value
     mDefUnparsed: AnsiString;
     mDefSVal: AnsiString; // default string value
-    mDefIVal, mDefIVal2: Integer; // default integer values
+    mDefIVal, mDefIVal2, mDefIVal3, mDefIVal4: Integer; // default integer values
     mDefRecRef: TDynRecord;
     mEBS: TEBS; // complex type type
     mEBSTypeName: AnsiString; // name of enum, bitset or record
@@ -162,6 +164,18 @@ type
     // supports `for rec in field do` (for lists)
     function GetEnumerator (): TDynRecList.TEnumerator; inline;
 
+    function getRed (): Integer; inline;
+    procedure setRed (v: Integer); inline;
+
+    function getGreen (): Integer; inline;
+    procedure setGreen (v: Integer); inline;
+
+    function getBlue (): Integer; inline;
+    procedure setBlue (v: Integer); inline;
+
+    function getAlpha (): Integer; inline;
+    procedure setAlpha (v: Integer); inline;
+
   public
     // text parser and writer
     procedure parseValue (pr: TTextParser);
@@ -184,6 +198,12 @@ type
     property internal: Boolean read mInternal write mInternal; // internal field?
     property ival: Integer read mIVal; // integer value for int field (for speed), first field (x/w) for `TPoint` and `TSize`
     property ival2: Integer read mIVal2; // for `TPoint` and `TSize`, this is second field (y/h)
+    property ival3: Integer read mIVal3; // for `TColor`: blue
+    property ival4: Integer read mIVal4; // for `TColor`: alpha
+    property red: Integer read getRed write setRed; // for `TColor`: red
+    property green: Integer read getGreen write setGreen; // for `TColor`: green
+    property blue: Integer read getBlue write setBlue; // for `TColor`: blue
+    property alpha: Integer read getAlpha write setAlpha; // for `TColor`: alpha
     property sval: AnsiString read mSVal; // string value for string field (for speed)
     property hasDefault: Boolean read mHasDefault; // `true` if this field has default value in mapdef
     property defsval: AnsiString read mDefSVal; // string representation of default value
@@ -620,6 +640,8 @@ begin
   mType := TType.TInt;
   mIVal := 0;
   mIVal2 := 0;
+  mIVal3 := 0;
+  mIVal4 := 0; // default alpha value
   mSVal := '';
   mRVal.Free();
   mRVal := nil;
@@ -638,6 +660,8 @@ begin
   mDefSVal := '';
   mDefIVal := 0;
   mDefIVal2 := 0;
+  mDefIVal3 := 0;
+  mDefIVal4 := 0; // default value for alpha
   mDefRecRef := nil;
   mEBS := TEBS.TNone;
   mEBSTypeName := '';
@@ -665,6 +689,8 @@ begin
   result.mType := mType;
   result.mIVal := mIVal;
   result.mIVal2 := mIVal2;
+  result.mIVal3 := mIVal3;
+  result.mIVal4 := mIVal4;
   result.mSVal := mSVal;
   if (mRVal <> nil) then
   begin
@@ -688,6 +714,8 @@ begin
   result.mDefSVal := mDefSVal;
   result.mDefIVal := mDefIVal;
   result.mDefIVal2 := mDefIVal2;
+  result.mDefIVal3 := mDefIVal3;
+  result.mDefIVal4 := mDefIVal4;
   result.mDefRecRef := mDefRecRef;
   result.mEBS := mEBS;
   result.mEBSTypeName := mEBSTypeName;
@@ -762,6 +790,7 @@ begin
     TType.TString: result := mSVal;
     TType.TPoint: raise TDynRecException.Create('cannot convert point field to variant');
     TType.TSize: raise TDynRecException.Create('cannot convert size field to variant');
+    TType.TColor: raise TDynRecException.Create('cannot convert color field to variant');
     TType.TList: raise TDynRecException.Create('cannot convert list field to variant');
     TType.TTrigData: raise TDynRecException.Create('cannot convert trigdata field to variant');
     else result := Unassigned; raise TDynRecException.Create('ketmar forgot to handle some field type');
@@ -877,6 +906,8 @@ begin
     TType.TPoint,
     TType.TSize:
       result := ((mIVal = fld.mIVal) and (mIVal2 = fld.mIVal2));
+    TType.TColor:
+      result := ((mIVal = fld.mIVal) and (mIVal2 = fld.mIVal2) and (mIVal3 = fld.mIVal3) and (mIVal4 = fld.mIVal4));
     TType.TList: result := false;
     TType.TTrigData:
       begin
@@ -901,11 +932,24 @@ begin
 end;
 
 
+function TDynField.getRed (): Integer; inline; begin result := mIVal; if (result < 0) then result := 0 else if (result > 255) then result := 255; end;
+procedure TDynField.setRed (v: Integer); inline; begin if (v < 0) then v := 0 else if (v > 255) then v := 255; mIVal := v; end;
+
+function TDynField.getGreen (): Integer; inline; begin result := mIVal2; if (result < 0) then result := 0 else if (result > 255) then result := 255; end;
+procedure TDynField.setGreen (v: Integer); inline; begin if (v < 0) then v := 0 else if (v > 255) then v := 255; mIVal2 := v; end;
+
+function TDynField.getBlue (): Integer; inline; begin result := mIVal3; if (result < 0) then result := 0 else if (result > 255) then result := 255; end;
+procedure TDynField.setBlue (v: Integer); inline; begin if (v < 0) then v := 0 else if (v > 255) then v := 255; mIVal3 := v; end;
+
+function TDynField.getAlpha (): Integer; inline; begin result := mIVal4; if (result < 0) then result := 0 else if (result > 255) then result := 255; end;
+procedure TDynField.setAlpha (v: Integer); inline; begin if (v < 0) then v := 0 else if (v > 255) then v := 255; mIVal4 := v; end;
+
+
 procedure TDynField.parseDefaultValue ();
 var
   stp: TTextParser = nil;
   oSVal: AnsiString;
-  oIVal, oIVal2: Integer;
+  oIVal, oIVal2, oIVal3, oIVal4: Integer;
   oRRef: TDynRecord;
   oDef: Boolean;
 begin
@@ -914,6 +958,8 @@ begin
     mDefSVal := '';
     mDefIVal := 0;
     mDefIVal2 := 0;
+    mDefIVal3 := 0;
+    mDefIVal4 := 0; // default value for alpha
     mDefRecRef := nil;
   end
   else
@@ -921,6 +967,8 @@ begin
     oSVal := mSVal;
     oIVal := mIVal;
     oIVal2 := mIVal2;
+    oIVal3 := mIVal3;
+    oIVal4 := mIVal4;
     oRRef := mRecRef;
     oDef := mDefined;
     try
@@ -929,11 +977,15 @@ begin
       mDefSVal := mSVal;
       mDefIVal := mIVal;
       mDefIVal2 := mIVal2;
+      mDefIVal3 := mIVal3;
+      mDefIVal4 := mIVal4;
       mDefRecRef := mRecRef;
     finally
       mSVal := oSVal;
       mIVal := oIVal;
       mIVal2 := oIVal2;
+      mIVal3 := oIVal3;
+      mIVal4 := oIVal4;
       mRecRef := oRRef;
       mDefined := oDef;
       stp.Free();
@@ -955,6 +1007,8 @@ begin
   mSVal := mDefSVal;
   mIVal := mDefIVal;
   mIVal2 := mDefIVal2;
+  mIVal3 := mDefIVal3;
+  mIVal4 := mDefIVal4;
   mDefined := true;
 end;
 
@@ -967,6 +1021,7 @@ begin
   case mType of
     TType.TChar, TType.TString: result := (mSVal = mDefSVal);
     TType.TPoint, TType.TSize: result := (mIVal = mDefIVal2) and (mIVal2 = mDefIVal2);
+    TType.TColor: result := (mIVal = mDefIVal2) and (mIVal2 = mDefIVal2) and (mIVal3 = mDefIVal3) and (mIVal4 = mDefIVal4);
     TType.TList, TType.TTrigData: result := false; // no default values for those types
     else result := (mIVal = mDefIVal);
   end;
@@ -1038,6 +1093,7 @@ begin
     TType.TString: result := 'string';
     TType.TPoint: result := 'point';
     TType.TSize: result := 'size';
+    TType.TColor: result := 'color';
     TType.TList: result := 'array';
     TType.TTrigData: result := 'trigdata';
     else raise TDynRecException.Create('ketmar forgot to handle some field type');
@@ -1080,7 +1136,7 @@ var
   ainternal: Boolean;
   writedef: Boolean;
   defstr: AnsiString;
-  defint, defint2: Integer;
+  defint, defint2, defint3, defint4: Integer;
   hasdefStr: Boolean;
   hasdefInt: Boolean;
   hasdefId: Boolean;
@@ -1104,6 +1160,8 @@ begin
   defstr := '';
   defint := 0;
   defint2 := 0;
+  defint3 := 0;
+  defint4 := 0;
   hasdefStr := false;
   hasdefInt := false;
   hasdefId := false;
@@ -1218,6 +1276,11 @@ begin
             if pr.eatDelim('[') then defech := ']' else begin pr.expectDelim('('); defech := ')'; end;
             defint := pr.expectInt();
             defint2 := pr.expectInt();
+            if (pr.tokType = pr.TTInt) then
+            begin
+              defint3 := pr.expectInt();
+              if (pr.tokType = pr.TTInt) then defint4 := pr.expectInt();
+            end;
             pr.expectDelim(defech);
           end;
         else
@@ -1262,6 +1325,7 @@ begin
   else if (fldtype = 'string') then mType := TType.TString
   else if (fldtype = 'point') then mType := TType.TPoint
   else if (fldtype = 'size') then mType := TType.TSize
+  else if (fldtype = 'color') then mType := TType.TColor
   else if (fldtype = 'trigdata') then mType := TType.TTrigData
   else
   begin
@@ -1304,6 +1368,7 @@ begin
   begin
          if (mType = TType.TPoint) then self.mDefUnparsed := Format('(%d %d)', [defint, defint2])
     else if (mType = TType.TSize) then self.mDefUnparsed := Format('[%d %d]', [defint, defint2])
+    else if (mType = TType.TColor) then self.mDefUnparsed := Format('(%d %d %d %d)', [defint, defint2, defint3, defint4])
     else self.mDefUnparsed := Format('%d', [defint]);
   end;
 
@@ -1472,6 +1537,16 @@ begin
         writeInt(st, Word(mIVal2));
         exit;
       end;
+    TType.TColor:
+      begin
+        if (mMaxDim >= 0) then raise TDynRecException.CreateFmt('color array in field ''%s'' cannot be written', [mName]);
+        writeInt(st, Byte(mIVal));
+        writeInt(st, Byte(mIVal2));
+        writeInt(st, Byte(mIVal3));
+        //writeInt(st, Byte(mIVal4)); // the only place we have RGB in binary map is effect trigger, and it has no alpha
+        if (mIVal4 <> 255) then hasLostData := true;
+        exit;
+      end;
     TType.TList:
       raise TDynRecException.Create('cannot write lists to binary format');
     TType.TTrigData:
@@ -1608,6 +1683,12 @@ begin
     TType.TSize:
       begin
         wr.put('(%d %d);'#10, [mIVal, mIVal2]);
+        exit;
+      end;
+    TType.TColor:
+      begin
+        if (mIVal3 = 255) then wr.put('(%d %d %d);'#10, [mIVal, mIVal2, mIVal3])
+        else wr.put('(%d %d %d %d);'#10, [mIVal, mIVal2, mIVal3, mIVal4]);
         exit;
       end;
     TType.TList:
@@ -1789,6 +1870,16 @@ begin
       begin
         mIVal := readWord(st);
         mIVal2 := readWord(st);
+        mDefined := true;
+        exit;
+      end;
+    TType.TColor:
+      begin
+        mIVal := readByte(st);
+        mIVal2 := readByte(st);
+        mIVal3 := readByte(st);
+        //mIVal4 := readByte(st); // the only place we have RGB in binary map is effect trigger, and it has no alpha
+        mIVal4 := 255;
         mDefined := true;
         exit;
       end;
@@ -2024,12 +2115,35 @@ begin
         mIVal := pr.expectInt();
         if (mType = TType.TSize) then
         begin
-          if (mIVal < 0) or (mIVal > 32767) then raise TDynParseException.CreateFmt(pr, 'invalid %s value for field ''%s''', [getTypeName(mType), mName]);
+          if (mIVal < 0) or (mIVal > 65535) then raise TDynParseException.CreateFmt(pr, 'invalid %s value for field ''%s''', [getTypeName(mType), mName]);
         end;
         mIVal2 := pr.expectInt();
         if (mType = TType.TSize) then
         begin
-          if (mIVal2 < 0) or (mIVal2 > 32767) then raise TDynParseException.CreateFmt(pr, 'invalid %s value for field ''%s''', [getTypeName(mType), mName]);
+          if (mIVal2 < 0) or (mIVal2 > 65535) then raise TDynParseException.CreateFmt(pr, 'invalid %s value for field ''%s''', [getTypeName(mType), mName]);
+        end;
+        mDefined := true;
+        pr.expectDelim(edim);
+        pr.expectTT(pr.TTSemi);
+        exit;
+      end;
+    TType.TColor:
+      begin
+        if pr.eatDelim('[') then edim := ']' else begin pr.expectDelim('('); edim := ')'; end;
+        mIVal := pr.expectInt();
+        if (mIVal < 0) or (mIVal > 255) then raise TDynParseException.CreateFmt(pr, 'invalid %s value for field ''%s''', [getTypeName(mType), mName]);
+        mIVal2 := pr.expectInt();
+        if (mIVal2 < 0) or (mIVal2 > 255) then raise TDynParseException.CreateFmt(pr, 'invalid %s value for field ''%s''', [getTypeName(mType), mName]);
+        mIVal3 := pr.expectInt();
+        if (mIVal3 < 0) or (mIVal3 > 255) then raise TDynParseException.CreateFmt(pr, 'invalid %s value for field ''%s''', [getTypeName(mType), mName]);
+        if (pr.tokType = pr.TTInt) then
+        begin
+          mIVal4 := pr.expectInt();
+          if (mIVal4 < 0) or (mIVal4 > 255) then raise TDynParseException.CreateFmt(pr, 'invalid %s value for field ''%s''', [getTypeName(mType), mName]);
+        end
+        else
+        begin
+          mIVal4 := 255;
         end;
         mDefined := true;
         pr.expectDelim(edim);
