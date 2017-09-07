@@ -1340,7 +1340,8 @@ begin
     //Data.Default := Trigger.DATA;
     if (Trigger.trigRec = nil) then
     begin
-      trigData := nil;
+      trigDataRec := nil;
+      //HACK!
       if (TriggerType <> TRIGGER_SECRET) then
       begin
         e_LogWritefln('trigger of type %s has no triggerdata; wtf?!', [TriggerType], MSG_WARNING);
@@ -1348,7 +1349,7 @@ begin
     end
     else
     begin
-      trigData := Trigger.trigRec.clone(nil);
+      trigDataRec := Trigger.trigRec.clone(nil);
     end;
   end;
 
@@ -1374,7 +1375,7 @@ begin
         if gTriggers[a].TriggerType in [TRIGGER_PRESS, TRIGGER_ON, TRIGGER_OFF, TRIGGER_ONOFF] then
         begin
           //if (gTriggers[a].Data.MonsterID-1) = Integer(mon.StartID) then mon.AddTrigger(a);
-          if (gTriggers[a].trigData.trigMonsterId) = Integer(mon.StartID) then mon.AddTrigger(a);
+          if (gTriggers[a].trigDataRec.trigMonsterId) = Integer(mon.StartID) then mon.AddTrigger(a);
         end;
       end;
     end;
@@ -1406,7 +1407,7 @@ procedure g_Map_ReAdd_DieTriggers();
           tw.Free();
         end;
         }
-        if (gTriggers[a].trigData.trigMonsterId) = Integer(mon.StartID) then mon.AddTrigger(a);
+        if (gTriggers[a].trigDataRec.trigMonsterId) = Integer(mon.StartID) then mon.AddTrigger(a);
       end;
     end;
   end;

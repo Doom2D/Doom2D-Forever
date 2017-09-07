@@ -2462,10 +2462,10 @@ begin
         begin
           if SPlaying then
           begin
-            if trigData.trigLocal then
-              Sound.PlayVolumeAt(X+(Width div 2), Y+(Height div 2), trigData.trigVolume/255.0)
+            if tgcLocal then
+              Sound.PlayVolumeAt(X+(Width div 2), Y+(Height div 2), tgcVolume/255.0)
             else
-              Sound.PlayPanVolume((trigData.trigPan-127.0)/128.0, trigData.trigVolume/255.0);
+              Sound.PlayPanVolume((tgcPan-127.0)/128.0, tgcVolume/255.0);
             Sound.SetPosition(SPos);
           end
           else

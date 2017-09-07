@@ -1148,16 +1148,16 @@ procedure plrDebugDraw ();
       TRIGGER_TEXTURE: begin end;
       TRIGGER_ON, TRIGGER_OFF, TRIGGER_ONOFF, TRIGGER_PRESS:
         begin
-          if (trig.trigData.trigTWidth > 0) and (trig.trigData.trigTHeight > 0) then
+          if (trig.trigDataRec.trigTWidth > 0) and (trig.trigDataRec.trigTHeight > 0) then
           begin
             fillRect(
-              trig.trigData.trigTX, trig.trigData.trigTY,
-              trig.trigData.trigTWidth, trig.trigData.trigTHeight,
+              trig.trigDataRec.trigTX, trig.trigDataRec.trigTY,
+              trig.trigDataRec.trigTWidth, trig.trigDataRec.trigTHeight,
               0, 255, 255, 42);
             drawLine(
               trig.trigCenter.x, trig.trigCenter.y,
-              trig.trigData.trigTX+trig.trigData.trigTWidth div 2,
-              trig.trigData.trigTY+trig.trigData.trigTHeight div 2,
+              trig.trigDataRec.trigTX+trig.trigDataRec.trigTWidth div 2,
+              trig.trigDataRec.trigTY+trig.trigDataRec.trigTHeight div 2,
               255, 0, 255, 220);
           end;
         end;

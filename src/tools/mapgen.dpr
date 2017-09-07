@@ -19,9 +19,217 @@ uses
 type
   THashStrFld = specialize THashBase<AnsiString, TDynField>;
 
+
+// ////////////////////////////////////////////////////////////////////////// //
+var
+  dfmapdef: TDynMapDef;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
+procedure genTrigCacheVars (const fname: AnsiString);
+var
+  fo: TextFile;
+  tidx, fidx, nidx: Integer;
+  trec: TDynRecord;
+  fld: TDynField;
+  palias: AnsiString;
+  fldknown: THashStrFld = nil; // key: palias; value: prev field
+begin
+  AssignFile(fo, fname);
+  {$I+}Rewrite(fo);{$I-}
+
+  fldknown := THashStrFld.Create(hsihash, hsiequ);
+
+  write(fo, '// trigger cache'#10);
+  for tidx := 0 to dfmapdef.trigTypeCount-1 do
+  begin
+    // header comment
+    write(fo, #10);
+    trec := dfmapdef.trigTypeAt[tidx];
+    for nidx := 0 to trec.forTrigCount-1 do
+    begin
+      write(fo, '//', trec.forTrigAt[nidx], #10);
+    end;
+    // fields
+    for fidx := 0 to trec.count-1 do
+    begin
+      fld := trec.fieldAt[fidx];
+      if fld.internal then continue;
+      // HACK!
+      if (fld.name = 'panelid') or (fld.name = 'monsterid') then
+      begin
+        //writeln('skipping <', fld.name, '>');
+        continue;
+      end;
+      palias := fld.palias(true);
+      // don't write duplicate fields
+      if fldknown.has(toLowerCase1251(palias)) then continue;
+      fldknown.put(toLowerCase1251(palias), fld);
+      // write field definition
+      case fld.baseType of
+        TDynField.TType.TBool: write(fo, 'tgc', palias, ': Boolean;'#10);
+        TDynField.TType.TChar: write(fo, 'tgc', palias, ': AnsiString;'#10);
+        TDynField.TType.TByte: write(fo, 'tgc', palias, ': SmallInt;'#10);
+        TDynField.TType.TUByte: write(fo, 'tgc', palias, ': Byte;'#10);
+        TDynField.TType.TShort: write(fo, 'tgc', palias, ': ShortInt;'#10);
+        TDynField.TType.TUShort: write(fo, 'tgc', palias, ': Word;'#10);
+        TDynField.TType.TInt: write(fo, 'tgc', palias, ': LongInt;'#10);
+        TDynField.TType.TUInt: write(fo, 'tgc', palias, ': LongWord;'#10);
+        TDynField.TType.TString: write(fo, 'tgc', palias, ': AnsiString;'#10);
+        TDynField.TType.TPoint:
+          begin
+            if fld.hasTPrefix then
+            begin
+              write(fo, 'tgcTX: LongInt;'#10);
+              write(fo, 'tgcTY: LongInt;'#10);
+            end
+            else if fld.separatePasFields then
+            begin
+              write(fo, 'tgcX: LongInt;'#10);
+              write(fo, 'tgcY: LongInt;'#10);
+            end
+            else
+            begin
+              write(fo, 'tgc', palias, ': TDFPoint;'#10);
+            end;
+          end;
+        TDynField.TType.TSize:
+          begin
+            if fld.hasTPrefix then
+            begin
+              write(fo, 'tgcTWidth: LongInt;'#10);
+              write(fo, 'tgcTHeight: LongInt;'#10);
+            end
+            else if fld.separatePasFields then
+            begin
+              write(fo, 'tgcWidth: LongInt;'#10);
+              write(fo, 'tgcHeight: LongInt;'#10);
+            end
+            else
+            begin
+              write(fo, 'tgc', palias, ': TDFSize;'#10);
+            end;
+          end;
+        TDynField.TType.TList:
+          raise Exception.Create('no lists in triggers, pelase');
+        TDynField.TType.TTrigData:
+          raise Exception.Create('no triggers in triggers, pelase');
+      end;
+    end;
+  end;
+
+  CloseFile(fo);
+  fldknown.Free();
+end;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
+procedure genTrigLoadCache (const fname: AnsiString);
+var
+  fo: TextFile;
+  tidx, fidx, nidx: Integer;
+  trec: TDynRecord;
+  fld: TDynField;
+  palias: AnsiString;
+  needComma: Boolean;
+begin
+  AssignFile(fo, fname);
+  {$I+}Rewrite(fo);{$I-}
+
+  write(fo, '// trigger cache loader'#10);
+  write(fo, '// set `TriggerType` in `tgt` before calling this'#10);
+  write(fo, 'procedure trigUpdateCacheData (var tgt: TTrigger; tdata: TDynRecord);'#10);
+  write(fo, 'begin'#10);
+  write(fo, '  case tgt.TriggerType of'#10);
+  for tidx := 0 to dfmapdef.trigTypeCount-1 do
+  begin
+    // case switch
+    needComma := false;
+    write(fo, '    ');
+    trec := dfmapdef.trigTypeAt[tidx];
+    for nidx := 0 to trec.forTrigCount-1 do
+    begin
+      if needComma then write(fo, ','#10'    ') else needComma := true;
+      write(fo, trec.forTrigAt[nidx]);
+    end;
+    write(fo, ':'#10);
+    write(fo, '      begin'#10);
+    // fields
+    for fidx := 0 to trec.count-1 do
+    begin
+      fld := trec.fieldAt[fidx];
+      if fld.internal then continue;
+      // HACK!
+      if (fld.name = 'panelid') or (fld.name = 'monsterid') then
+      begin
+        //writeln('skipping <', fld.name, '>');
+        continue;
+      end;
+      palias := fld.palias(true);
+      // write field definition
+      case fld.baseType of
+        TDynField.TType.TBool,
+        TDynField.TType.TChar,
+        TDynField.TType.TByte,
+        TDynField.TType.TUByte,
+        TDynField.TType.TShort,
+        TDynField.TType.TUShort,
+        TDynField.TType.TInt,
+        TDynField.TType.TUInt,
+        TDynField.TType.TString:
+          write(fo, '        tgt.tgc', palias, ' := tdata.trig', palias, ';'#10);
+        TDynField.TType.TPoint:
+          begin
+            if fld.hasTPrefix then
+            begin
+              write(fo, '        tgt.tgcTX := tdata.trigTX;'#10);
+              write(fo, '        tgt.tgcTY := tdata.trigTX;'#10);
+            end
+            else if fld.separatePasFields then
+            begin
+              write(fo, '        tgt.tgcX := tdata.trigX;'#10);
+              write(fo, '        tgt.tgcY := tdata.trigX;'#10);
+            end
+            else
+            begin
+              write(fo, '        tgt.tgc', palias, ' := tdata.trig', palias, ';'#10);
+            end;
+          end;
+        TDynField.TType.TSize:
+          begin
+            if fld.hasTPrefix then
+            begin
+              write(fo, '        tgt.tgcTWidth := tdata.trigTWidth;'#10);
+              write(fo, '        tgt.tgcTHeight := tdata.trigTHeight;'#10);
+            end
+            else if fld.separatePasFields then
+            begin
+              write(fo, '        tgt.tgcWidth := tdata.trigWidth;'#10);
+              write(fo, '        tgt.tgcHeight := tdata.trigHeight;'#10);
+            end
+            else
+            begin
+              write(fo, '        tgt.tgc', palias, ' := tdata.trig', palias, ';'#10);
+            end;
+          end;
+        TDynField.TType.TList:
+          raise Exception.Create('no lists in triggers, pelase');
+        TDynField.TType.TTrigData:
+          raise Exception.Create('no triggers in triggers, pelase');
+      end;
+    end;
+    write(fo, '      end;'#10);
+  end;
+  write(fo, '  end;'#10);
+  write(fo, 'end;'#10);
+
+  CloseFile(fo);
+end;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
 var
   pr: TTextParser;
-  dfmapdef: TDynMapDef;
   fo, fohlp, foimpl: TextFile;
   st: TStream = nil;
   ch: AnsiChar;
@@ -70,13 +278,13 @@ begin
 
   writeln('writing "mapdef.inc"...');
   AssignFile(fo, 'mapdef.inc');
-  Rewrite(fo);
+  {$I+}Rewrite(fo);{$I-}
 
   AssignFile(fohlp, 'mapdef_help.inc');
-  Rewrite(fohlp);
+  {$I+}Rewrite(fohlp);{$I-}
 
   AssignFile(foimpl, 'mapdef_impl.inc');
-  Rewrite(foimpl);
+  {$I+}Rewrite(foimpl);{$I-}
 
   write(fo, '// *** WARNING! ***'#10);
   write(fo, '//   regenerate this part directly from "mapdef.txt" with ''mapgen'', NEVER manually change anything here!'#10#10#10);
@@ -86,13 +294,6 @@ begin
   write(fohlp, '//   regenerate this part directly from "mapdef.txt" with ''mapgen'', NEVER manually change anything here!'#10#10);
 
   // generate trigger helpers
-{
-function TDynRecordHelper.trigTargetPoint (): TDFPoint; inline; begin result := getPointField('target'); end;
-function TDynRecordHelper.trigD2DTeleport (): Boolean; inline; begin result := (getFieldWithType('d2d', TDynField.TType.TBool).ival <> 0); end;
-function TDynRecordHelper.trigSilentTeleport (): Boolean; inline; begin result := (getFieldWithType('silent', TDynField.TType.TBool).ival <> 0); end;
-function TDynRecordHelper.trigTlpDir (): Byte; inline; begin result := Byte(getFieldWithType('direction', TDynField.TType.TUByte).ival); end;
-}
-
   write(foimpl, #10#10'// ////////////////////////////////////////////////////////////////////////// //'#10);
   write(foimpl, '// trigger helpers'#10);
   for tidx := 0 to dfmapdef.trigTypeCount-1 do
@@ -227,7 +428,9 @@ function TDynRecordHelper.trigTlpDir (): Byte; inline; begin result := Byte(getF
             end
             else
             begin
-              raise Exception.Create('no non-separate sizes in triggers, pelase');
+              //raise Exception.Create('no non-separate sizes in triggers, pelase');
+              write(fohlp, 'function trig', palias, ' (): TDFSize; inline;'#10);
+              write(foimpl, 'function TDynRecordHelper.trig', palias, ' (): TDFSize; inline; begin result := getSizeField(''', fld.name, '''); end;'#10);
             end;
           end;
         TDynField.TType.TList:
@@ -238,6 +441,8 @@ function TDynRecordHelper.trigTlpDir (): Byte; inline; begin result := Byte(getF
     end;
   end;
 
+  genTrigCacheVars('mapdef_tgc_def.inc');
+  genTrigLoadCache('mapdef_tgc_impl.inc');
 
   //st := openDiskFileRO('mapdef.txt');
   st.position := 0;
