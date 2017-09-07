@@ -21,6 +21,7 @@ function trigTHeight (): Word; inline;
 function trigWait (): Word; inline;
 function trigPressCount (): Word; inline;
 function trigExtRandom (): Boolean; inline;
+function trigSound (): AnsiString; inline;
 
 // TRIGGER_SECRET
 

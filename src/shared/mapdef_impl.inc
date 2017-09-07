@@ -22,6 +22,7 @@ function TDynRecordHelper.trigTHeight (): Word; inline; begin result := Word(get
 function TDynRecordHelper.trigWait (): Word; inline; begin result := Word(getFieldWithType('wait', TDynField.TType.TUShort).ival); end;
 function TDynRecordHelper.trigPressCount (): Word; inline; begin result := Word(getFieldWithType('count', TDynField.TType.TUShort).ival); end;
 function TDynRecordHelper.trigExtRandom (): Boolean; inline; begin result := (getFieldWithType('ext_random', TDynField.TType.TBool).ival <> 0); end;
+function TDynRecordHelper.trigSound (): AnsiString; inline; begin result := utf2win(getFieldWithType('sound', TDynField.TType.TString).sval); end;
 
 // TRIGGER_SECRET
 

@@ -396,6 +396,8 @@ TriggerData for (TRIGGER_PRESS, TRIGGER_ON, TRIGGER_OFF, TRIGGER_ONOFF) {
   "ext_random" type bool offset 20 default false;
   // this one is for moving platforms
   "panelid" panel default null;
+  "silent" type bool default true;
+  "sound" type string default "";
 }
 
 enum TriggerScoreTeam {

@@ -2494,6 +2494,11 @@ begin
               TRIGGER_OFF: pan.movingActive := false;
               TRIGGER_ONOFF: pan.movingActive := not pan.movingActive;
             end;
+            if not trigData.trigSilent and (Length(trigData.trigSound) > 0) then
+            begin
+              g_Sound_PlayExAt(trigData.trigSound, X, Y);
+              if g_Game_IsServer and g_Game_IsNet then MH_SEND_Sound(X, Y, trigData.trigSound);
+            end;
           end;
 
           // Выбираем один из триггеров для расширителя, если включен рандом:

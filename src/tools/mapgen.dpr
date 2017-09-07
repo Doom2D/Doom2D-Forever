@@ -116,7 +116,7 @@ function TDynRecordHelper.trigTlpDir (): Byte; inline; begin result := Byte(getF
     begin
       fld := trec.fieldAt[fidx];
       if fld.internal then continue;
-      if (fld.binOfs < 0) then continue;
+      //if (fld.binOfs < 0) then continue;
       // HACK!
       if (fld.name = 'panelid') or (fld.name = 'monsterid') then
       begin
@@ -187,7 +187,7 @@ function TDynRecordHelper.trigTlpDir (): Byte; inline; begin result := Byte(getF
         TDynField.TType.TString:
           begin
             write(fohlp, 'AnsiString; inline;'#10);
-            write(foimpl, 'AnsiString; inline; begin result := utf2win(getFieldWithType(''', fld.name, ''', TDynField.TType.TChar).sval); end;'#10);
+            write(foimpl, 'AnsiString; inline; begin result := utf2win(getFieldWithType(''', fld.name, ''', TDynField.TType.TString).sval); end;'#10);
           end;
         TDynField.TType.TPoint:
           begin
