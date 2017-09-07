@@ -914,7 +914,7 @@ begin
   NetOut.Write(EvStr);
   NetOut.Write(Byte(gLastMap));
   NetOut.Write(gTime);
-  if (EvType = NET_EV_MAPSTART) and (Pos(':\', EvStr) > 0) then
+  if (EvType = NET_EV_MAPSTART) and isWadPath(EvStr) then
   begin
     NetOut.Write(Byte(1));
     NetOut.Write(gWADHash);
@@ -1668,7 +1668,7 @@ begin
       gWADHash := EvHash;
       if not g_Game_StartMap(EvStr, True) then
       begin
-        if Pos(':\', EvStr) = 0 then
+        if not isWadPath(EvStr) then
           g_FatalError(Format(_lc[I_GAME_ERROR_MAP_LOAD], [gGameSettings.WAD + ':\' + EvStr]))
         else
           g_FatalError(Format(_lc[I_GAME_ERROR_MAP_LOAD], [EvStr]));

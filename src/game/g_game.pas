@@ -4106,7 +4106,7 @@ begin
 
   g_Player_ResetTeams();
 
-  if Pos(':\', Map) > 0 then
+  if isWadPath(Map) then
   begin
     NewWAD := g_ExtractWadName(Map);
     ResName := g_ExtractFileName(Map);
@@ -4481,7 +4481,8 @@ var
   time: Integer;
 }
 begin
-  a := Pos('.wad:\', gMapToDelete);
+  a := Pos('.wad:\', toLowerCase1251(gMapToDelete));
+  if (a = 0) then a := Pos('.wad:/', toLowerCase1251(gMapToDelete));
   if a = 0 then
     Exit;
 
@@ -6108,7 +6109,7 @@ begin
         if gNextMap = '' then
           gNextMap := g_Game_GetNextMap();
         // Проверяем, не задан ли WAD файл ресурсной строкой
-        if Pos(':\', gNextMap) = 0 then
+        if not isWadPath(gNextMap) then
           s := gGameSettings.WAD + ':\' + gNextMap
         else
           s := gNextMap;
@@ -7009,7 +7010,7 @@ begin
   s := Find_Param_Value(pars, '-exec');
   if s <> '' then
   begin
-    if Pos(':\', s) = 0 then
+    if not isWadPath(s) then
       s := GameDir + '/' + s;
 
     {$I-}

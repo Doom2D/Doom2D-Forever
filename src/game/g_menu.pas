@@ -47,7 +47,8 @@ uses
   e_log, SysUtils, CONFIG, g_playermodel, DateUtils,
   MAPDEF, wadreader, Math, g_saveload,
   e_texture, GL, GLExt, g_language,
-  g_net, g_netmsg, g_netmaster, g_items, e_input;
+  g_net, g_netmsg, g_netmaster, g_items, e_input,
+  utils;
 
 
 type TYNCallback = procedure (yes:Boolean);
@@ -551,7 +552,7 @@ begin
     Map := TGUILabel(GetControl('lbMap')).Text;
     if Map = '' then
       Exit;
-    if Pos(':\', Map) = 0 then
+    if not isWadPath(Map) then
       Exit;
 
     GameMode := TGUISwitch(GetControl('swGameMode')).ItemIndex+1;
@@ -611,7 +612,7 @@ begin
     Map := TGUILabel(GetControl('lbMap')).Text;
     if Map = '' then
       Exit;
-    if Pos(':\', Map) = 0 then
+    if not isWadPath(Map) then
       Exit;
 
     GameMode := TGUISwitch(GetControl('swGameMode')).ItemIndex+1;
