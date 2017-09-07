@@ -33,7 +33,7 @@ begin
     TRIGGER_ONOFF:
       begin
         tgt.tgcTX := tdata.trigTX;
-        tgt.tgcTY := tdata.trigTX;
+        tgt.tgcTY := tdata.trigTY;
         tgt.tgcTWidth := tdata.trigTWidth;
         tgt.tgcTHeight := tdata.trigTHeight;
         tgt.tgcWait := tdata.trigWait;
@@ -62,7 +62,7 @@ begin
     TRIGGER_SPAWNMONSTER:
       begin
         tgt.tgcTX := tdata.trigTX;
-        tgt.tgcTY := tdata.trigTX;
+        tgt.tgcTY := tdata.trigTY;
         tgt.tgcSpawnMonsType := tdata.trigSpawnMonsType;
         tgt.tgcHealth := tdata.trigHealth;
         tgt.tgcDirection := tdata.trigDirection;
@@ -76,7 +76,7 @@ begin
     TRIGGER_SPAWNITEM:
       begin
         tgt.tgcTX := tdata.trigTX;
-        tgt.tgcTY := tdata.trigTX;
+        tgt.tgcTY := tdata.trigTY;
         tgt.tgcSpawnItemType := tdata.trigSpawnItemType;
         tgt.tgcGravity := tdata.trigGravity;
         tgt.tgcDmonly := tdata.trigDmonly;
@@ -126,7 +126,7 @@ begin
     TRIGGER_SHOT:
       begin
         tgt.tgcTX := tdata.trigTX;
-        tgt.tgcTY := tdata.trigTX;
+        tgt.tgcTY := tdata.trigTY;
         tgt.tgcShotType := tdata.trigShotType;
         tgt.tgcShotTarget := tdata.trigShotTarget;
         tgt.tgcQuiet := tdata.trigQuiet;

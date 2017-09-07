@@ -2470,7 +2470,7 @@ begin
           // Определяем изменяемые им триггеры:
           for b := 0 to High(gTriggers) do
           begin
-            if g_Collide(tgctX, tgctY, tgctWidth, tgctHeight, gTriggers[b].X, gTriggers[b].Y,
+            if g_Collide(tgcTX, tgcTY, tgcTWidth, tgcTHeight, gTriggers[b].X, gTriggers[b].Y,
                gTriggers[b].Width, gTriggers[b].Height) and
                ((b <> a) or (tgcWait > 0)) then
             begin // Can be self-activated, if there is Data.Wait

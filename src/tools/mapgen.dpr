@@ -183,12 +183,12 @@ begin
             if fld.hasTPrefix then
             begin
               write(fo, '        tgt.tgcTX := tdata.trigTX;'#10);
-              write(fo, '        tgt.tgcTY := tdata.trigTX;'#10);
+              write(fo, '        tgt.tgcTY := tdata.trigTY;'#10);
             end
             else if fld.separatePasFields then
             begin
               write(fo, '        tgt.tgcX := tdata.trigX;'#10);
-              write(fo, '        tgt.tgcY := tdata.trigX;'#10);
+              write(fo, '        tgt.tgcY := tdata.trigY;'#10);
             end
             else
             begin
