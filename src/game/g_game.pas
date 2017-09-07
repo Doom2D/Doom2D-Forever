@@ -2750,17 +2750,17 @@ begin
   (*
    * light rendering: (INVALID!)
    *   glStencilFunc(GL_EQUAL, 0, $ff);
-   *   clear depth buffer
-   *   renderAmbientQuad()
    *   for each light:
+   *     glClear(GL_STENCIL_BUFFER_BIT);
    *     glStencilOp(GL_KEEP, GL_KEEP, GL_INCR);
    *     draw shadow volume into stencil buffer
    *     glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE); // modify color buffer
    *     glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP); // don't modify stencil buffer
    *     turn off blending
-   *     draw quad with light alpha
+   *     draw color-less quad with light alpha (WARNING! don't touch color!)
    *     glEnable(GL_BLEND);
-   *     gl.glBlendFunc(GL_DST_ALPHA, GL_ONE);
+   *     glBlendFunc(GL_DST_ALPHA, GL_ONE);
+   *     draw all geometry up to and including walls (with alpha-testing, probably) -- this does lighting
    *)
 
   wassc := (glIsEnabled(GL_SCISSOR_TEST) <> 0);

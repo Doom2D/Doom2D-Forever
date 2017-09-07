@@ -3638,6 +3638,16 @@ begin
 end;
 
 function TPlayer.PickItem(ItemType: Byte; arespawn: Boolean; var remove: Boolean): Boolean;
+
+  function allowBerserkSwitching (): Boolean;
+  begin
+    if (FBFGFireCounter <> -1) then begin result := false; exit; end;
+    result := true;
+    if gBerserkAutoswitch then exit;
+    if not (gDebugMode or gCheats) then exit;
+    result := false;
+  end;
+
 var
   a: Boolean;
 begin
@@ -3980,7 +3990,7 @@ begin
         if not (R_BERSERK in FRulez) then
         begin
           Include(FRulez, R_BERSERK);
-          if gBerserkAutoswitch and (gDebugMode or gCheats) and (FBFGFireCounter = -1) then
+          if allowBerserkSwitching then
           begin
             FCurrWeap := WEAPON_KASTET;
             resetWeaponQueue();
