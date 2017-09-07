@@ -167,7 +167,7 @@ type
 
     // binary parser and writer (DO NOT USE!)
     procedure parseBinValue (st: TStream);
-    procedure writeBinTo (st: TStream);
+    procedure writeBinTo (var hasLostData: Boolean; st: TStream);
 
   public
     // the following functions are here only for 'mapgen'! DO NOT USE!
@@ -208,6 +208,7 @@ type
     property hasTPrefix: Boolean read mAsT;
     property separatePasFields: Boolean read mSepPosSize;
     property binOfs: Integer read mBinOfs;
+    property equToDefault: Boolean read isDefaultValue;
   end;
 
 
@@ -313,7 +314,7 @@ type
 
     // binary parser and writer (DO NOT USE!)
     procedure parseBinValue (st: TStream; forceData: Boolean=false);
-    procedure writeBinTo (st: TStream; trigbufsz: Integer=-1; onlyFields: Boolean=false);
+    procedure writeBinTo (var hasLostData: Boolean; st: TStream; trigbufsz: Integer=-1; onlyFields: Boolean=false);
 
   public
     property mapdef: TDynMapDef read mOwner;
@@ -421,7 +422,7 @@ type
   public
     // parse text or binary map, return new header record
     // WARNING! stream must be seekable
-    function parseMap (st: TStream): TDynRecord;
+    function parseMap (st: TStream; wasBinary: PBoolean=nil): TDynRecord;
 
     // returns `true` if the given stream can be a map file
     // stream position is 0 on return
@@ -1292,7 +1293,7 @@ begin
 end;
 
 
-procedure TDynField.writeBinTo (st: TStream);
+procedure TDynField.writeBinTo (var hasLostData: Boolean; st: TStream);
 var
   s: AnsiString;
   f: Integer;
@@ -1319,7 +1320,7 @@ begin
             if (mRecRef <> nil) then
             begin
               ws := TSFSMemoryChunkStream.Create(buf, mMaxDim);
-              mRecRef.writeBinTo(ws, mMaxDim); // as trigdata
+              mRecRef.writeBinTo(hasLostData, ws, mMaxDim); // as trigdata
             end;
             st.WriteBuffer(buf^, mMaxDim);
           finally
@@ -1434,15 +1435,9 @@ begin
         exit;
       end;
     TType.TList:
-      begin
-        assert(false);
-        exit;
-      end;
+      raise TDynRecException.Create('cannot write lists to binary format');
     TType.TTrigData:
-      begin
-        assert(false);
-        exit;
-      end;
+      raise TDynRecException.Create('cannot write triggers to binary format (internal error)');
     else raise TDynRecException.Create('ketmar forgot to handle some field type');
   end;
 end;
@@ -1526,7 +1521,7 @@ begin
             begin
               if (es.mVals[f] = mask) then
               begin
-                if not first then wr.put('+') else first := false;
+                if not first then wr.put(' | ') else first := false;
                 wr.put(es.mIds[f]);
                 found := true;
                 break;
@@ -2676,14 +2671,13 @@ begin
 end;
 
 
-procedure TDynRecord.writeBinTo (st: TStream; trigbufsz: Integer=-1; onlyFields: Boolean=false);
+procedure TDynRecord.writeBinTo (var hasLostData: Boolean; st: TStream; trigbufsz: Integer=-1; onlyFields: Boolean=false);
 var
   fld: TDynField;
   rec, rv: TDynRecord;
   buf: PByte = nil;
   ws: TStream = nil;
   blk, blkmax: Integer;
-  //f, c: Integer;
   bufsz: Integer = 0;
   blksz: Integer;
 begin
@@ -2708,11 +2702,15 @@ begin
       // record list?
       if (fld.mType = fld.TType.TList) then continue; // later
       if fld.mInternal then continue;
-      if (fld.mBinOfs < 0) then continue;
+      if (fld.mBinOfs < 0) then
+      begin
+        if not fld.equToDefault then hasLostData := true;
+        continue;
+      end;
       if (fld.mBinOfs >= bufsz) then raise TDynRecException.Create('binary value offset is outside of the buffer');
       TSFSMemoryChunkStream(ws).setup(buf+fld.mBinOfs, bufsz-fld.mBinOfs);
       //writeln('writing field <', fld.mName, '>');
-      fld.writeBinTo(ws);
+      fld.writeBinTo(hasLostData, ws);
     end;
 
     // write block with normal fields
@@ -2762,7 +2760,7 @@ begin
             if (rec = nil) then continue;
             if (rec.mBinBlock <> blk) then continue;
             if (ws = nil) then ws := TMemoryStream.Create();
-            for rv in fld.mRVal do rv.writeBinTo(ws);
+            for rv in fld.mRVal do rv.writeBinTo(hasLostData, ws);
           end;
         end;
         // flush block
@@ -2794,6 +2792,8 @@ procedure TDynRecord.writeTo (wr: TTextWriter; putHeader: Boolean=true);
 var
   fld: TDynField;
   rec: TDynRecord;
+  putTypeComment: Boolean;
+  f: Integer;
 begin
   if putHeader then
   begin
@@ -2810,11 +2810,31 @@ begin
       if (fld.mType = fld.TType.TList) then
       begin
         if not mHeader then raise TDynRecException.Create('record list in non-header record');
-        if (fld.mRVal <> nil) then
+        if (fld.mRVal <> nil) and (fld.mRVal.count > 0) then
         begin
+          putTypeComment := true;
           for rec in fld.mRVal do
           begin
-            if (Length(rec.mId) = 0) then continue;
+            if (rec = nil) or (Length(rec.mId) = 0) then continue;
+            if putTypeComment then
+            begin
+              wr.put(#10);
+              if (80-wr.curIndent*2 >= 2) then
+              begin
+                wr.putIndent();
+                for f := wr.curIndent to 80-wr.curIndent do wr.put('/');
+                wr.put(#10);
+              end;
+              putTypeComment := false;
+              wr.putIndent();
+              wr.put('// ');
+              wr.put(fld.name);
+              wr.put(#10);
+            end
+            else
+            begin
+              wr.put(#10);
+            end;
             wr.putIndent();
             rec.writeTo(wr, true);
           end;
@@ -3401,11 +3421,12 @@ end;
 
 
 // WARNING! stream must be seekable
-function TDynMapDef.parseMap (st: TStream): TDynRecord;
+function TDynMapDef.parseMap (st: TStream; wasBinary: PBoolean=nil): TDynRecord;
 var
   sign: packed array[0..3] of AnsiChar;
   pr: TTextParser;
 begin
+  if (wasBinary <> nil) then wasBinary^ := false;
   st.position := 0;
   st.ReadBuffer(sign[0], 4);
   st.position := 0;
@@ -3413,6 +3434,7 @@ begin
   begin
     if (sign[3] = #1) then
     begin
+      if (wasBinary <> nil) then wasBinary^ := true;
       result := parseBinMap(st);
       exit;
     end;

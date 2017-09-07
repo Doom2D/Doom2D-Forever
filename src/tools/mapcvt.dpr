@@ -35,6 +35,8 @@ var
   wad: TWADFile = nil;
   waddata: Pointer;
   waddlen: Integer;
+  wasbin: Boolean = false;
+  lostdata: Boolean;
 begin
   if (ParamCount = 0) then
   begin
@@ -95,38 +97,32 @@ begin
     st := openDiskFileRO(inname);
   end;
 
-  st.ReadBuffer(sign, 4);
-  st.position := 0;
-  if (sign[0] = 'M') and (sign[1] = 'A') and (sign[2] = 'P') and (sign[3] = #1) then
-  begin
-    // binary map
-    if (totext < 0) then begin outname := forceFilenameExt(outname, '.txt'); totext := 1; end;
+  try
     stt := curTimeMicro();
-    map := dfmapdef.parseBinMap(st);
+    map := dfmapdef.parseMap(st, @wasbin);
     stt := curTimeMicro()-stt;
-    writeln('binary map parsed in ', stt div 1000, '.', stt mod 1000, ' milliseconds');
-    st.Free();
-  end
-  else
-  begin
-    // text map
-    if (totext < 0) then begin outname := forceFilenameExt(outname, '.map'); totext := 0; end;
-    pr := TFileTextParser.Create(st);
-    try
-      stt := curTimeMicro();
-      map := dfmapdef.parseMap(pr);
-      stt := curTimeMicro()-stt;
-      writeln('text map parsed in ', stt div 1000, '.', stt mod 1000, ' milliseconds');
-    except on e: Exception do
+    if wasbin then write('binary') else write('text');
+    writeln(' map parsed in ', stt div 1000, '.', stt mod 1000, ' milliseconds');
+  except
+    on e: TDynParseException do
       begin
-        writeln('ERROR at (', pr.line, ',', pr.col, '): ', e.message);
+        writeln('ERROR at (', e.tokLine, ',', e.tokCol, '): ', e.message);
         Halt(1);
       end;
-    end;
-    pr.Free();
+    on E: Exception do
+      begin
+        writeln('ERROR: ', e.message);
+        Halt(1);
+      end;
   end;
 
   {$IF DEFINED(D2D_DYNREC_PROFILER)}xdynDumpProfiles();{$ENDIF}
+
+  if (totext < 0) then
+  begin
+    if wasbin then begin outname := forceFilenameExt(outname, '.txt'); totext := 1; end
+    else begin outname := forceFilenameExt(outname, '.map'); totext := 0; end;
+  end;
 
   assert(totext >= 0);
 
@@ -135,10 +131,12 @@ begin
   if (totext = 0) then
   begin
     // write binary map
+    lostdata := false;
     stt := curTimeMicro();
-    map.writeBinTo(st);
+    map.writeBinTo(lostdata, st);
     stt := curTimeMicro()-stt;
-    writeln('binary map written in ', stt div 1000, '.', stt mod 1000, ' milliseconds');
+    if lostdata then writeln('***WARNING! some data was lost due to binary format limitations!');
+    write('binary');
   end
   else
   begin
@@ -147,7 +145,8 @@ begin
     stt := curTimeMicro();
     map.writeTo(wr);
     stt := curTimeMicro()-stt;
-    writeln('text map written in ', stt div 1000, '.', stt mod 1000, ' milliseconds');
     wr.Free();
+    write('text');
   end;
+  writeln(' map written in ', stt div 1000, '.', stt mod 1000, ' milliseconds');
 end.

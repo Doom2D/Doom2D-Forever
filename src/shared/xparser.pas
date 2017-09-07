@@ -158,6 +158,9 @@ type
     procedure putIndent ();
     procedure indent ();
     procedure unindent ();
+
+  public
+    property curIndent: Integer read mIndent;
   end;
 
 
