@@ -72,11 +72,8 @@ type
 
     function getPanelByIdx (idx: Integer): TDynRecord; inline;
 
-    //function getPanelId (): Integer; inline;
-    //procedure setPanelId (v: Integer); inline;
-
     function getTexturePanel (): Integer; inline;
-    //procedure setTexturePanel (v: Integer); inline;
+    function getTexturePanelRec (): TDynRecord; inline;
 
     function getPanelIndex (pan: TDynRecord): Integer;
 
@@ -143,6 +140,7 @@ type
     {$INCLUDE mapdef_help.inc}
     function trigMonsterId (): Integer; inline;
     function trigPanelId (): Integer; inline; // panel index in list
+    function trigPanelRec (): TDynRecord; inline;
 
   private
     // user fields
@@ -156,9 +154,10 @@ type
     property panel[idx: Integer]: TDynRecord read getPanelByIdx;
     property panelIndex[pan: TDynRecord]: Integer read getPanelIndex;
     // triggers
-    property tgPanelID: Integer read trigPanelId {write setPanelId};
-    property tgShotPanelID: Integer read trigPanelId {write setPanelId};
-    property TexturePanel: Integer read getTexturePanel {write setTexturePanel}; // texturepanel, int
+    property tgPanelId: Integer read trigPanelId;
+    property tgPanelRec: TDynRecord read trigPanelRec;
+    property TexturePanelId: Integer read getTexturePanel; // texturepanel, int
+    property TexturePanelRec: TDynRecord read getTexturePanelRec;
     // user fields
     property userPanelId: Integer read getUserPanelId write setUserPanelId;
     property userPanelTrigRef: Boolean read getUserTrigRef write setUserTrigRef;
@@ -328,7 +327,6 @@ begin
   if (fld <> nil) then result := fld.recref else result := nil;
 end;
 
-
 function TDynRecordHelper.trigMonsterId (): Integer; inline;
 var
   fld: TDynField;
@@ -341,6 +339,17 @@ begin
   result := fld.recrefIndex;
 end;
 
+function TDynRecordHelper.trigPanelRec (): TDynRecord; inline;
+var
+  fld: TDynField;
+begin
+  result := nil;
+  fld := field['panelid'];
+  if (fld = nil) then exit;
+  if (fld.baseType <> TDynField.TType.TInt) then exit;
+  result := fld.recref;
+  if (result <> nil) and (result.typeName <> 'panel') then result := nil;
+end;
 
 // panel index in list
 function TDynRecordHelper.trigPanelId (): Integer; inline;
@@ -352,6 +361,32 @@ begin
   if (fld = nil) then exit;
   if (fld.baseType <> TDynField.TType.TInt) then exit;
   if (fld.recref = nil) then exit;
+  if (fld.recref.typeName <> 'panel') then exit;
+  result := fld.recrefIndex;
+end;
+
+function TDynRecordHelper.getTexturePanelRec (): TDynRecord;
+var
+  fld: TDynField;
+begin
+  result := nil;
+  fld := field['texture_panel'];
+  if (fld = nil) then exit;
+  if (fld.baseType <> TDynField.TType.TInt) then exit;
+  result := fld.recref;
+  if (result <> nil) and (result.typeName <> 'panel') then result := nil;
+end;
+
+function TDynRecordHelper.getTexturePanel (): Integer;
+var
+  fld: TDynField;
+begin
+  result := -1;
+  fld := field['texture_panel'];
+  if (fld = nil) then exit;
+  if (fld.baseType <> TDynField.TType.TInt) then exit;
+  if (fld.recref = nil) then exit;
+  if (fld.recref.typeName <> 'panel') then exit;
   result := fld.recrefIndex;
 end;
 
@@ -381,9 +416,6 @@ function TDynRecordHelper.Enabled (): Boolean; inline; begin result := (getField
 function TDynRecordHelper.TriggerType (): Byte; inline; begin result := Byte(getFieldWithType('type', TDynField.TType.TUByte).ival); end;
 function TDynRecordHelper.ActivateType (): Byte; inline; begin result := Byte(getFieldWithType('activate_type', TDynField.TType.TUByte).ival); end;
 function TDynRecordHelper.Keys (): Byte; inline; begin result := Byte(getFieldWithType('keys', TDynField.TType.TUByte).ival); end;
-
-//function TDynRecordHelper.getPanelId (): Integer; inline; begin result := getFieldWithType('panelid', TDynField.TType.TInt).recrefIndex; end;
-function TDynRecordHelper.getTexturePanel (): Integer; begin result := getFieldWithType('texture_panel', TDynField.TType.TInt).recrefIndex; end;
 
 {$INCLUDE mapdef_impl.inc}
 

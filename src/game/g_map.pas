@@ -1600,17 +1600,13 @@ type
     //TexturePanel: Integer;
     tnum: Integer;
     id: Integer;
-    texPanIdx: Integer;
-    LiftPanelIdx: Integer;
-    DoorPanelIdx: Integer;
-    ShotPanelIdx: Integer;
-    MPlatPanelIdx: Integer;
     trigrec: TDynRecord;
-    texPan: TDynRecord;
-    liftPan: TDynRecord;
-    doorPan: TDynRecord;
-    shotPan: TDynRecord;
-    mplatPan: TDynRecord;
+    // texture pane;
+    texPanelIdx: Integer;
+    texPanel: TDynRecord;
+    // "action" panel
+    actPanelIdx: Integer;
+    actPanel: TDynRecord;
   end;
 var
   WAD: TWADFile;
@@ -1807,49 +1803,23 @@ begin
       //SetLength(TriggersTable, triggers.count);
       g_Game_SetLoadingText(_lc[I_LOAD_TRIGGERS_TABLE], triggers.count-1, False);
 
+      SetLength(TriggersTable, triggers.count);
+      trignum := -1;
       for rec in triggers do
       begin
-        SetLength(TriggersTable, Length(TriggersTable)+1);
-        pttit := @TriggersTable[High(TriggersTable)];
+        Inc(trignum);
+        pttit := @TriggersTable[trignum];
         pttit.trigrec := rec;
         // Смена текстуры (возможно, кнопки)
-        pttit.texPan := mapReader.panel[rec.TexturePanel];
-        pttit.liftPan := nil;
-        pttit.doorPan := nil;
-        pttit.shotPan := nil;
-        pttit.mplatPan := nil;
-        pttit.texPanIdx := -1;
-        pttit.LiftPanelIdx := -1;
-        pttit.DoorPanelIdx := -1;
-        pttit.ShotPanelIdx := -1;
-        pttit.MPlatPanelIdx := -1;
-        // Лифты
-        if rec.TriggerType in [TRIGGER_LIFTUP, TRIGGER_LIFTDOWN, TRIGGER_LIFT] then
-        begin
-          pttit.liftPan := mapReader.panel[rec.trigRec.tgPanelID];
-        end;
-        // Двери
-        if rec.TriggerType in [TRIGGER_OPENDOOR, TRIGGER_CLOSEDOOR, TRIGGER_DOOR, TRIGGER_DOOR5, TRIGGER_CLOSETRAP, TRIGGER_TRAP] then
-        begin
-          pttit.doorPan := mapReader.panel[rec.trigRec.tgPanelID];
-        end;
-        // Турель
-        if (rec.TriggerType = TRIGGER_SHOT) then
-        begin
-          pttit.shotPan := mapReader.panel[rec.trigRec.tgShotPanelID];
-        end;
-        //
-        if rec.TriggerType in [TRIGGER_PRESS, TRIGGER_ON, TRIGGER_OFF, TRIGGER_ONOFF] then
-        begin
-          pttit.mplatPan := mapReader.panel[rec.trigRec.tgPanelID];
-        end;
-
-        if (pttit.texPan <> nil) then pttit.texPan.userPanelTrigRef := true;
-        if (pttit.liftPan <> nil) then pttit.liftPan.userPanelTrigRef := true;
-        if (pttit.doorPan <> nil) then pttit.doorPan.userPanelTrigRef := true;
-        if (pttit.shotPan <> nil) then pttit.shotPan.userPanelTrigRef := true;
-        if (pttit.mplatPan <> nil) then pttit.mplatPan.userPanelTrigRef := true;
-
+        pttit.texPanelIdx := -1; // will be fixed later
+        pttit.texPanel := rec.TexturePanelRec;
+        // action panel
+        pttit.actPanelIdx := -1;
+        if (rec.trigRec <> nil) then pttit.actPanel := rec.trigRec.tgPanelRec else pttit.actPanel := nil;
+        // set flag
+        if (pttit.texPanel <> nil) then pttit.texPanel.userPanelTrigRef := true;
+        if (pttit.actPanel <> nil) then pttit.actPanel.userPanelTrigRef := true;
+        // update progress
         g_Game_StepLoading();
       end;
     end;
@@ -2038,11 +2008,8 @@ begin
     // Чиним ID'ы панелей, которые используются в триггерах
     for b := 0 to High(TriggersTable) do
     begin
-      if (TriggersTable[b].texPan <> nil) then TriggersTable[b].texPanIdx := TriggersTable[b].texPan.userPanelId;
-      if (TriggersTable[b].liftPan <> nil) then TriggersTable[b].LiftPanelIdx := TriggersTable[b].liftPan.userPanelId;
-      if (TriggersTable[b].doorPan <> nil) then TriggersTable[b].DoorPanelIdx := TriggersTable[b].doorPan.userPanelId;
-      if (TriggersTable[b].shotPan <> nil) then TriggersTable[b].ShotPanelIdx := TriggersTable[b].shotPan.userPanelId;
-      if (TriggersTable[b].mplatPan <> nil) then TriggersTable[b].MPlatPanelIdx := TriggersTable[b].mplatPan.userPanelId;
+      if (TriggersTable[b].texPanel <> nil) then TriggersTable[b].texPanelIdx := TriggersTable[b].texPanel.userPanelId;
+      if (TriggersTable[b].actPanel <> nil) then TriggersTable[b].actPanelIdx := TriggersTable[b].actPanel.userPanelId;
     end;
 
     // create map grid, init other grids (for monsters, for example)
@@ -2059,17 +2026,13 @@ begin
       for rec in triggers do
       begin
         Inc(trignum);
-        if (TriggersTable[trignum].texPan <> nil) then b := TriggersTable[trignum].texPan.PanelType else b := 0;
-        if (TriggersTable[trignum].shotPan <> nil) then c := TriggersTable[trignum].shotPan.PanelType else c := 0;
+        if (TriggersTable[trignum].texPanel <> nil) then b := TriggersTable[trignum].texPanel.PanelType else b := 0;
+        if (TriggersTable[trignum].actPanel <> nil) then c := TriggersTable[trignum].actPanel.PanelType else c := 0;
         // we can have only one of those
-             if (TriggersTable[trignum].LiftPanelIdx <> -1) then tgpid := TriggersTable[trignum].LiftPanelIdx
-        else if (TriggersTable[trignum].DoorPanelIdx <> -1) then tgpid := TriggersTable[trignum].DoorPanelIdx
-        else if (TriggersTable[trignum].ShotPanelIdx <> -1) then tgpid := TriggersTable[trignum].ShotPanelIdx
-        else if (TriggersTable[trignum].MPlatPanelIdx <> -1) then tgpid := TriggersTable[trignum].MPlatPanelIdx
-        else tgpid := -1;
+        tgpid := TriggersTable[trignum].actPanelIdx;
         //e_LogWritefln('creating trigger #%s; texpantype=%s; shotpantype=%s (%d,%d)', [trignum, b, c, TriggersTable[trignum].texPanIdx, TriggersTable[trignum].ShotPanelIdx]);
         TriggersTable[trignum].tnum := trignum;
-        TriggersTable[trignum].id := CreateTrigger(trignum, rec, TriggersTable[trignum].texPanIdx, tgpid, Word(b), Word(c));
+        TriggersTable[trignum].id := CreateTrigger(trignum, rec, TriggersTable[trignum].texPanelIdx, tgpid, Word(b), Word(c));
       end;
     end;
 

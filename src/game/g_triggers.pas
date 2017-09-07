@@ -66,16 +66,12 @@ type
     mapIndex: Integer; // index in fields['trigger'], used in save/load
     trigPanelGUID: Integer;
 
-    //TrigData:             TTriggerData;
-    trigDataRec: TDynRecord; // triggerdata; owned by trigger
+    trigDataRec: TDynRecord; // triggerdata; owned by trigger (cloned)
 
     {$INCLUDE ../shared/mapdef_tgc_def.inc}
 
   public
     function trigCenter (): TDFPoint; inline;
-
-  public
-    property trigShotPanelGUID: Integer read trigPanelGUID write trigPanelGUID;
   end;
 
 function g_Triggers_Create(Trigger: TTrigger; forceInternalIndex: Integer=-1): DWORD;
@@ -692,9 +688,9 @@ begin
   begin
     if (tgcAmmo = 0) or ((tgcAmmo > 0) and (ShotAmmoCount > 0)) then
     begin
-      if (trigShotPanelGUID <> -1) and (ShotPanelTime = 0) then
+      if (trigPanelGUID <> -1) and (ShotPanelTime = 0) then
       begin
-        g_Map_SwitchTextureGUID(ShotPanelType, trigShotPanelGUID);
+        g_Map_SwitchTextureGUID(ShotPanelType, trigPanelGUID);
         ShotPanelTime := 4; // тиков на вспышку выстрела
       end;
 
@@ -2395,7 +2391,7 @@ begin
           if ShotPanelTime > 0 then
           begin
             Dec(ShotPanelTime);
-            if ShotPanelTime = 0 then g_Map_SwitchTextureGUID(ShotPanelType, trigShotPanelGUID);
+            if ShotPanelTime = 0 then g_Map_SwitchTextureGUID(ShotPanelType, trigPanelGUID);
           end;
           if ShotSightTime > 0 then
           begin
