@@ -416,8 +416,8 @@ var
   NW, NH: Word;
 begin
   if {Enabled and} (FCurTexture >= 0) and
-     (Width > 0) and (Height > 0) and (FAlpha < 255) and
-     ((g_dbg_scale <> 1.0) or g_Collide(X, Y, Width, Height, sX, sY, sWidth, sHeight)) then
+     (Width > 0) and (Height > 0) and (FAlpha < 255) {and
+     g_Collide(X, Y, Width, Height, sX, sY, sWidth, sHeight)} then
   begin
     if FTextureIDs[FCurTexture].Anim then
       begin // Анимированная текстура
@@ -493,8 +493,8 @@ procedure TPanel.DrawShadowVolume(lightX: Integer; lightY: Integer; radius: Inte
 
 begin
   if radius < 4 then exit;
-  if Enabled and (FCurTexture >= 0) and (Width > 0) and (Height > 0) and (FAlpha < 255) and
-     ((g_dbg_scale <> 1.0) or g_Collide(X, Y, Width, Height, sX, sY, sWidth, sHeight)) then
+  if Enabled and (FCurTexture >= 0) and (Width > 0) and (Height > 0) and (FAlpha < 255) {and
+     g_Collide(X, Y, Width, Height, sX, sY, sWidth, sHeight)} then
   begin
     if not FTextureIDs[FCurTexture].Anim then
     begin

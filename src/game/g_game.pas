@@ -2780,9 +2780,29 @@ begin
 end;
 
 
+function fixViewportForScale (): Boolean;
+var
+  nx0, ny0, nw, nh: Integer;
+begin
+  result := false;
+  if (g_dbg_scale <> 1.0) then
+  begin
+    result := true;
+    nx0 := round(sX-(gPlayerScreenSize.X-(sWidth*g_dbg_scale))/2/g_dbg_scale);
+    ny0 := round(sY-(gPlayerScreenSize.Y-(sHeight*g_dbg_scale))/2/g_dbg_scale);
+    nw := round(sWidth/g_dbg_scale);
+    nh := round(sHeight/g_dbg_scale);
+    sX := nx0;
+    sY := ny0;
+    sWidth := nw;
+    sHeight := nh;
+  end;
+end;
+
+
 // setup sX, sY, sWidth, sHeight, and transformation matrix before calling this!
 // WARNING! this WILL CALL `glTranslatef()`, but won't restore matrices!
-procedure renderMapInternal (backXOfs, backYOfs: Integer; transX, transY: Integer; setTransMatrix: Boolean);
+procedure renderMapInternal (backXOfs, backYOfs: Integer; setTransMatrix: Boolean);
 type
   TDrawCB = procedure ();
 
@@ -2825,14 +2845,7 @@ begin
   profileFrameDraw.sectionBegin('collect');
   if gdbg_map_use_accel_render then
   begin
-    if (g_dbg_scale <> 1.0) then
-    begin
-      g_Map_CollectDrawPanels(sX, sY, round(sWidth/g_dbg_scale)+1, round(sHeight/g_dbg_scale)+1);
-    end
-    else
-    begin
-      g_Map_CollectDrawPanels(sX, sY, sWidth, sHeight);
-    end;
+    g_Map_CollectDrawPanels(sX, sY, sWidth, sHeight);
   end;
   profileFrameDraw.sectionEnd();
 
@@ -2843,7 +2856,7 @@ begin
   if setTransMatrix then
   begin
     glScalef(g_dbg_scale, g_dbg_scale, 1.0);
-    glTranslatef(transX, transY, 0);
+    glTranslatef(-sX, -sY, 0);
   end;
 
   drawPanelType('*back', PANEL_BACK, g_rlayer_back);
@@ -2889,7 +2902,8 @@ begin
   sWidth := w;
   sHeight := h;
 
-  renderMapInternal(-bx, -by, -x, -y, true);
+  fixViewportForScale();
+  renderMapInternal(-bx, -by, true);
 
   glPopMatrix();
 end;
@@ -2918,24 +2932,33 @@ begin
   px := p.GameX + PLAYER_RECT_CX;
   py := p.GameY + PLAYER_RECT_CY+p.Obj.slopeUpLeft;
 
-  if px > (gPlayerScreenSize.X div 2) then a := -px+(gPlayerScreenSize.X div 2) else a := 0;
-  if py > (gPlayerScreenSize.Y div 2) then b := -py+(gPlayerScreenSize.Y div 2) else b := 0;
-
-  if px > gMapInfo.Width-(gPlayerScreenSize.X div 2) then a := -gMapInfo.Width+gPlayerScreenSize.X;
-  if py > gMapInfo.Height-(gPlayerScreenSize.Y div 2) then b := -gMapInfo.Height+gPlayerScreenSize.Y;
-
-       if (gMapInfo.Width = gPlayerScreenSize.X) then a := 0
-  else if (gMapInfo.Width < gPlayerScreenSize.X) then
+  if (g_dbg_scale = 1.0) then
   begin
-    // hcenter
-    a := (gPlayerScreenSize.X-gMapInfo.Width) div 2;
-  end;
+    if (px > (gPlayerScreenSize.X div 2)) then a := -px+(gPlayerScreenSize.X div 2) else a := 0;
+    if (py > (gPlayerScreenSize.Y div 2)) then b := -py+(gPlayerScreenSize.Y div 2) else b := 0;
 
-       if (gMapInfo.Height = gPlayerScreenSize.Y) then b := 0
-  else if (gMapInfo.Height < gPlayerScreenSize.Y) then
+    if (px > gMapInfo.Width-(gPlayerScreenSize.X div 2)) then a := -gMapInfo.Width+gPlayerScreenSize.X;
+    if (py > gMapInfo.Height-(gPlayerScreenSize.Y div 2)) then b := -gMapInfo.Height+gPlayerScreenSize.Y;
+
+         if (gMapInfo.Width = gPlayerScreenSize.X) then a := 0
+    else if (gMapInfo.Width < gPlayerScreenSize.X) then
+    begin
+      // hcenter
+      a := (gPlayerScreenSize.X-gMapInfo.Width) div 2;
+    end;
+
+         if (gMapInfo.Height = gPlayerScreenSize.Y) then b := 0
+    else if (gMapInfo.Height < gPlayerScreenSize.Y) then
+    begin
+      // vcenter
+      b := (gPlayerScreenSize.Y-gMapInfo.Height) div 2;
+    end;
+  end
+  else
   begin
-    // vcenter
-    b := (gPlayerScreenSize.Y-gMapInfo.Height) div 2;
+    // scaled, ignore level bounds
+    a := -px+(gPlayerScreenSize.X div 2);
+    b := -py+(gPlayerScreenSize.Y div 2);
   end;
 
   if p.IncCam <> 0 then
@@ -2982,17 +3005,17 @@ begin
 
   //glTranslatef(a, b+p.IncCam, 0);
 
+  if (p = gPlayer1) then g_Holmes_plrViewSize(sWidth, sHeight);
+
+  fixViewportForScale();
   p.viewPortX := sX;
   p.viewPortY := sY;
   p.viewPortW := sWidth;
   p.viewPortH := sHeight;
 
-  if (p = gPlayer1) then
-  begin
-    g_Holmes_plrView(p.viewPortX, p.viewPortY, p.viewPortW, p.viewPortH);
-  end;
+  if (p = gPlayer1) then g_Holmes_plrViewPos(sX, sY);
 
-  renderMapInternal(-c, -d, a, b+p.IncCam, true);
+  renderMapInternal(-c, -d, true);
 
   if p.FSpectator then
     e_TextureFontPrintEx(p.GameX + PLAYER_RECT_CX - 4,

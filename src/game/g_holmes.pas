@@ -83,7 +83,8 @@ function g_Holmes_MouseEvent (var ev: THMouseEvent): Boolean; // returns `true` 
 function g_Holmes_KeyEvent (var ev: THKeyEvent): Boolean; // returns `true` if event was eaten
 
 // hooks for player
-procedure g_Holmes_plrView (viewPortX, viewPortY, viewPortW, viewPortH: Integer);
+procedure g_Holmes_plrViewPos (viewPortX, viewPortY: Integer);
+procedure g_Holmes_plrViewSize (viewPortW, viewPortH: Integer);
 procedure g_Holmes_plrLaser (ax0, ay0, ax1, ay1: Integer);
 
 
@@ -656,11 +657,16 @@ var
   platMarkedGUID: Integer = -1;
 
 
-procedure g_Holmes_plrView (viewPortX, viewPortY, viewPortW, viewPortH: Integer);
+procedure g_Holmes_plrViewPos (viewPortX, viewPortY: Integer);
 begin
   vpSet := true;
   vpx := viewPortX;
   vpy := viewPortY;
+end;
+
+procedure g_Holmes_plrViewSize (viewPortW, viewPortH: Integer);
+begin
+  vpSet := true;
   vpw := viewPortW;
   vph := viewPortH;
 end;

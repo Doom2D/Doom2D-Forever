@@ -2154,6 +2154,7 @@ begin
                       o.Y+o.Rect.Y+o.Rect.Height-128, M_NONE);
 
 // Не в области рисования не ресуем:
+//FIXME!
   if (g_dbg_scale = 1.0) then
   begin
     if not g_Collide(FObj.X+FObj.Rect.X, FObj.Y+FObj.Rect.Y, FObj.Rect.Width, FObj.Rect.Height,

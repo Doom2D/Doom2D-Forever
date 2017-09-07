@@ -40,8 +40,8 @@ function conGetBoolArg (p: SArray; idx: Integer): Integer;
 
 procedure g_Console_Chat_Switch (team: Boolean=false);
 
-procedure conRegVar (const conname: AnsiString; pvar: PBoolean; const ahelp: AnsiString; const amsg: AnsiString; acheat: Boolean=false); overload;
-procedure conRegVar (const conname: AnsiString; pvar: PSingle; amin, amax: Single; const ahelp: AnsiString; const amsg: AnsiString; acheat: Boolean=false); overload;
+procedure conRegVar (const conname: AnsiString; pvar: PBoolean; const ahelp: AnsiString; const amsg: AnsiString; acheat: Boolean=false; ahidden: Boolean=false); overload;
+procedure conRegVar (const conname: AnsiString; pvar: PSingle; amin, amax: Single; const ahelp: AnsiString; const amsg: AnsiString; acheat: Boolean=false; ahidden: Boolean=false); overload;
 
 // poor man's floating literal parser; i'm sorry, but `StrToFloat()` sux cocks
 function conParseFloat (var res: Single; const s: AnsiString): Boolean;
@@ -183,7 +183,8 @@ procedure boolVarHandler (me: PCommand; p: SArray);
          1: if not me.cheat or conIsCheatsEnabled then flag := true else begin conwriteln('not available'); exit; end;
          666: if not me.cheat or conIsCheatsEnabled then flag := not flag else begin conwriteln('not available'); exit; end;
       end;
-      if flag then conwritefln('%s: tan', [msg]) else conwritefln('%s: ona', [msg]);
+      if (Length(msg) = 0) then msg := p[0] else msg += ':';
+      if flag then conwritefln('%s tan', [msg]) else conwritefln('%s ona', [msg]);
     end;
   end;
 begin
@@ -191,7 +192,7 @@ begin
 end;
 
 
-procedure conRegVar (const conname: AnsiString; pvar: PBoolean; const ahelp: AnsiString; const amsg: AnsiString; acheat: Boolean=false); overload;
+procedure conRegVar (const conname: AnsiString; pvar: PBoolean; const ahelp: AnsiString; const amsg: AnsiString; acheat: Boolean=false; ahidden: Boolean=false); overload;
 var
   f: Integer;
   cp: PCommand;
@@ -203,7 +204,7 @@ begin
   cp.proc := nil;
   cp.procEx := boolVarHandler;
   cp.help := ahelp;
-  cp.hidden := false;
+  cp.hidden := ahidden;
   cp.ptr := pvar;
   cp.msg := amsg;
   cp.cheat := acheat;
@@ -227,7 +228,7 @@ var
 begin
   if (Length(p) > 2) then
   begin
-    conwritefln('too many arguments to ''%s''', [p[0]]);
+    conwritefln('too many arguments to ''%s''', [me.cmd]);
     exit;
   end;
   pv := PVarSingle(me.ptr);
@@ -244,7 +245,7 @@ begin
     begin
       if not conParseFloat(nv, p[1]) then
       begin
-        conwritefln('%s: ''%s'' doesn''t look like a floating number', [p[0], p[1]]);
+        conwritefln('%s: ''%s'' doesn''t look like a floating number', [me.cmd, p[1]]);
         exit;
       end;
       if (nv < pv.min) then nv := pv.min;
@@ -253,12 +254,12 @@ begin
     end;
   end;
   msg := me.msg;
-  if (Length(msg) = 0) then msg := p[0] else msg += ':';
+  if (Length(msg) = 0) then msg := me.cmd else msg += ':';
   conwritefln('%s %s', [msg, pv.val^]);
 end;
 
 
-procedure conRegVar (const conname: AnsiString; pvar: PSingle; amin, amax: Single; const ahelp: AnsiString; const amsg: AnsiString; acheat: Boolean=false); overload;
+procedure conRegVar (const conname: AnsiString; pvar: PSingle; amin, amax: Single; const ahelp: AnsiString; const amsg: AnsiString; acheat: Boolean=false; ahidden: Boolean=false); overload;
 var
   f: Integer;
   cp: PCommand;
@@ -276,7 +277,7 @@ begin
   cp.proc := nil;
   cp.procEx := singleVarHandler;
   cp.help := ahelp;
-  cp.hidden := false;
+  cp.hidden := ahidden;
   cp.ptr := pv;
   cp.msg := amsg;
   cp.cheat := acheat;
@@ -953,16 +954,15 @@ begin
     g_Console_Add('');
     for i := 0 to High(commands) do
     begin
-      if not commands[i].hidden then
+      // hidden commands are hidden when cheats aren't enabled
+      if commands[i].hidden and not conIsCheatsEnabled then continue;
+      if (Length(commands[i].help) > 0) then
       begin
-        if (Length(commands[i].help) > 0) then
-        begin
-          g_Console_Add('  '+commands[i].cmd+' -- '+commands[i].help);
-        end
-        else
-        begin
-          g_Console_Add('  '+commands[i].cmd);
-        end;
+        g_Console_Add('  '+commands[i].cmd+' -- '+commands[i].help);
+      end
+      else
+      begin
+        g_Console_Add('  '+commands[i].cmd);
       end;
     end;
     exit;
@@ -976,7 +976,8 @@ begin
     ll := Copy(ll, 0, Length(ll)-1);
     for i := 0 to High(commands) do
     begin
-      if commands[i].hidden then continue;
+      // hidden commands are hidden when cheats aren't enabled
+      if commands[i].hidden and not conIsCheatsEnabled then continue;
       if (commands[i].cmd = ll) then
       begin
         if (Length(commands[i].help) > 0) then
@@ -992,7 +993,8 @@ begin
   tused := 0;
   for i := 0 to High(commands) do
   begin
-    if commands[i].hidden then continue;
+    // hidden commands are hidden when cheats aren't enabled
+    if commands[i].hidden and not conIsCheatsEnabled then continue;
     cmd := commands[i].cmd;
     if (Length(cmd) >= Length(ll)) and (ll = Copy(cmd, 0, Length(ll))) then
     begin

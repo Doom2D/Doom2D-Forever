@@ -1617,7 +1617,6 @@ end;
 procedure g_GFX_Draw ();
 var
   a, len: Integer;
-  scaled: Boolean;
 begin
   if not gpart_dbg_enabled then exit;
 
@@ -1631,15 +1630,13 @@ begin
 
     glBegin(GL_POINTS);
 
-    scaled := (g_dbg_scale <> 1.0);
-
     len := High(Particles);
     for a := 0 to len do
     begin
       with Particles[a] do
       begin
         if not alive then continue;
-        if scaled or ((x >= sX) and (y >= sY) and (x <= sX+sWidth) and (sY <= sY+sHeight)) then
+        if (x >= sX) and (y >= sY) and (x <= sX+sWidth) and (sY <= sY+sHeight) then
         begin
           glColor4ub(red, green, blue, alpha);
           glVertex2f(x+0.37, y+0.37);

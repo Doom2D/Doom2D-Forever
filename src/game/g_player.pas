@@ -3980,7 +3980,7 @@ begin
         if not (R_BERSERK in FRulez) then
         begin
           Include(FRulez, R_BERSERK);
-          if gBerserkAutoswitch and (FBFGFireCounter = -1) then
+          if gBerserkAutoswitch and (gDebugMode or gCheats) and (FBFGFireCounter = -1) then
           begin
             FCurrWeap := WEAPON_KASTET;
             resetWeaponQueue();
@@ -7614,4 +7614,7 @@ begin
   FDifficult := TDifficult(p^);
 end;
 
+
+begin
+  conRegVar('cheat_berserk_autoswitch', @gBerserkAutoswitch, 'autoswitch to fist when berserk pack taken', '',  true, true);
 end.
