@@ -19,11 +19,11 @@
 ////////////////////////////////////////////////////////////////////////////////
 // main blocks
 "map" size 452 bytes header binblock 7 {
-  "name" type char[32] offset 0 writedefault;
-  "author" type char[32] offset 32 default "" writedefault;
-  "description" type char[256] offset 64 default "" writedefault;
-  "music" type char[64] offset 320 default 'Standart.wad:D2DMUS\ПРОСТОТА' writedefault;
-  "sky" type char[64] offset 384 default 'Standart.wad:D2DSKY\RSKY1' writedefault;
+  "name" type char[32] offset 0 writedefault tip "map name";
+  "author" type char[32] offset 32 default "" writedefault tip "map author";
+  "description" type char[256] offset 64 default "" writedefault tip "map description";
+  "music" type char[64] offset 320 default 'Standart.wad:D2DMUS\ПРОСТОТА' writedefault tip "music resource";
+  "sky" type char[64] offset 384 default 'Standart.wad:D2DSKY\RSKY1' writedefault tip "sky resource";
   "size" type size offset 448 as wh writedefault;
 }
 

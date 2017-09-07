@@ -71,6 +71,8 @@ type
   private
     mOwner: TDynRecord; // owner record
     mName: AnsiString; // field name
+    mTip: AnsiString; // short tip
+    mHelp: AnsiString; // long help
     mType: TType; // field type
     mIVal: Integer; // for all integer types
     mIVal2: Integer; // for point and size
@@ -197,6 +199,9 @@ type
     // field value as Variant
     property value: Variant read getVar write setVar;
 
+    property tip: AnsiString read mTip;
+    property help: AnsiString read mHelp;
+
   public
     // userdata (you can use these properties as you want to; they won't be written or read to files)
     property tagInt: Integer read mTagInt write mTagInt;
@@ -218,6 +223,8 @@ type
     mOwner: TDynMapDef;
     mId: AnsiString;
     mTypeName: AnsiString;
+    mTip: AnsiString; // short tip
+    mHelp: AnsiString; // long help
     mSize: Integer;
     mFields: TDynFieldList;
     {$IF DEFINED(XDYNREC_USE_FIELDHASH)}
@@ -331,6 +338,9 @@ type
     property headerRec: TDynRecord read mHeaderRec; // get header record for this one (header contains all other records, enums, bitsets, etc.)
     property isHeader: Boolean read mHeader; // is this a header record?
 
+    property tip: AnsiString read mTip;
+    property help: AnsiString read mHelp;
+
   public
     // user fields; user can add arbitrary custom fields
     // by default, any user field will be marked as "internal"
@@ -350,6 +360,8 @@ type
     mOwner: TDynMapDef;
     mIsEnum: Boolean;
     mTypeName: AnsiString;
+    mTip: AnsiString; // short tip
+    mHelp: AnsiString; // long help
     mIds: array of AnsiString;
     mVals: array of Integer;
     mMaxName: AnsiString; // MAX field
@@ -381,6 +393,9 @@ type
     property isEnum: Boolean read mIsEnum; // is this enum? `false` means "bitset"
     property has[const aname: AnsiString]: Boolean read hasByName;
     property field[const aname: AnsiString]: Integer read getFieldByName;
+
+    property tip: AnsiString read mTip;
+    property help: AnsiString read mHelp;
   end;
 
 
@@ -600,6 +615,8 @@ end;
 procedure TDynField.cleanup ();
 begin
   mName := '';
+  mTip := '';
+  mHelp := '';
   mType := TType.TInt;
   mIVal := 0;
   mIVal2 := 0;
@@ -643,6 +660,8 @@ begin
   result.mOwner := mOwner;
   if (newOwner <> nil) then result.mOwner := newOwner else result.mOwner := mOwner;
   result.mName := mName;
+  result.mTip := mTip;
+  result.mHelp := mHelp;
   result.mType := mType;
   result.mIVal := mIVal;
   result.mIVal2 := mIVal2;
@@ -1071,6 +1090,7 @@ var
   asmonid: Boolean;
   defech: AnsiChar;
   xalias: AnsiString;
+  atip, ahelp: AnsiString;
 begin
   fldname := '';
   fldtype := '';
@@ -1092,6 +1112,8 @@ begin
   lmaxdim := -1;
   lebs := TDynField.TEBS.TNone;
   xalias := '';
+  atip := '';
+  ahelp := '';
 
   // field name
   fldname := pr.expectStrOrId();
@@ -1118,6 +1140,20 @@ begin
     begin
       if (Length(xalias) > 0) then raise TDynParseException.CreateFmt(pr, 'duplicate alias definition for field ''%s''', [fldname]);
       xalias := pr.expectId();
+      continue;
+    end;
+
+    if pr.eatId('tip') then
+    begin
+      if (Length(atip) > 0) then raise TDynParseException.CreateFmt(pr, 'duplicate tip definition for field ''%s''', [fldname]);
+      atip := pr.expectStr(false);
+      continue;
+    end;
+
+    if pr.eatId('help') then
+    begin
+      if (Length(ahelp) > 0) then raise TDynParseException.CreateFmt(pr, 'duplicate tip definition for field ''%s''', [fldname]);
+      ahelp := pr.expectStr(false);
       continue;
     end;
 
@@ -1283,6 +1319,8 @@ begin
   self.mWriteDef := writedef;
   self.mInternal := ainternal;
   self.mAlias := xalias;
+  self.mTip := atip;
+  self.mHelp := ahelp;
 end;
 
 
@@ -2200,6 +2238,8 @@ begin
   result.mOwner := mOwner;
   result.mId := mId;
   result.mTypeName := mTypeName;
+  result.mTip := mTip;
+  result.mHelp := mHelp;
   result.mSize := mSize;
   result.mHeader := mHeader;
   result.mBinBlock := mBinBlock;
@@ -2470,6 +2510,18 @@ begin
         if (mBinBlock >= 0) then raise TDynParseException.CreateFmt(pr, 'duplicate `binblock` in record ''%s''', [mTypeName]);
         mBinBlock := pr.expectInt();
         if (mBinBlock < 1) then raise TDynParseException.CreateFmt(pr, 'invalid record ''%s'' binblock: %d', [mTypeName, mBinBlock]);
+        continue;
+      end;
+      if pr.eatId('tip') then
+      begin
+        if (Length(mTip) > 0) then raise TDynParseException.CreateFmt(pr, 'duplicate tip definition for record ''%s''', [mTypeName]);
+        mTip := pr.expectStr(false);
+        continue;
+      end;
+      if pr.eatId('help') then
+      begin
+        if (Length(mHelp) > 0) then raise TDynParseException.CreateFmt(pr, 'duplicate help definition for record ''%s''', [mTypeName]);
+        mHelp := pr.expectStr(false);
         continue;
       end;
     end;
@@ -3031,6 +3083,8 @@ procedure TDynEBS.cleanup ();
 begin
   mIsEnum := false;
   mTypeName := '';
+  mTip := '';
+  mHelp := '';
   mIds := nil;
   mVals := nil;
   mMaxName := '';
@@ -3135,6 +3189,22 @@ begin
   mTypeName := pr.expectId();
   mMaxVal := Integer($80000000);
   if mIsEnum then cv := 0 else cv := 1;
+  while (pr.tokType <> pr.TTBegin) do
+  begin
+    if pr.eatId('tip') then
+    begin
+      if (Length(mTip) > 0) then raise TDynParseException.CreateFmt(pr, 'duplicate tip definition for enum/bitset ''%s''', [mTypeName]);
+      mTip := pr.expectStr(false);
+      continue;
+    end;
+    if pr.eatId('help') then
+    begin
+      if (Length(mHelp) > 0) then raise TDynParseException.CreateFmt(pr, 'duplicate help definition for enum/bitset ''%s''', [mTypeName]);
+      mHelp := pr.expectStr(false);
+      continue;
+    end;
+    break;
+  end;
   pr.expectTT(pr.TTBegin);
   while (pr.tokType <> pr.TTEnd) do
   begin
