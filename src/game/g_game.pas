@@ -2715,14 +2715,20 @@ end;
 
 
 // setup sX, sY, sWidth, sHeight, and transformation matrix before calling this!
+//FIXME: broken for splitscreen mode
 procedure renderDynLightsInternal ();
 var
   lln: Integer;
   lx, ly, lrad: Integer;
+  scxywh: array[0..3] of GLint;
+  wassc: Boolean;
 begin
   //TODO: lights should be in separate grid, i think
   //      but on the other side: grid may be slower for dynlights, as their lifetime is short
   if not gwin_has_stencil or (g_dynLightCount < 1) then exit;
+
+  wassc := (glIsEnabled(GL_SCISSOR_TEST) <> 0);
+  if wassc then glGetIntegerv(GL_SCISSOR_BOX, @scxywh[0]) else glGetIntegerv(GL_VIEWPORT, @scxywh[0]);
 
   // setup OpenGL parameters
   glStencilMask($FFFFFFFF);
@@ -2737,17 +2743,24 @@ begin
     lx := g_dynLights[lln].x;
     ly := g_dynLights[lln].y;
     lrad := g_dynLights[lln].radius;
-    if lrad < 3 then continue;
+    if (lrad < 3) then continue;
 
-    if lx-sX+lrad < 0 then continue;
-    if ly-sY+lrad < 0 then continue;
-    if lx-sX-lrad >= gPlayerScreenSize.X then continue;
-    if ly-sY-lrad >= gPlayerScreenSize.Y then continue;
+    if (lx-sX+lrad < 0) then continue;
+    if (ly-sY+lrad < 0) then continue;
+    if (lx-sX-lrad >= gPlayerScreenSize.X) then continue;
+    if (ly-sY-lrad >= gPlayerScreenSize.Y) then continue;
 
     // set scissor to optimize drawing
-    //FIXME: broken for splitscreen mode
-    glScissor((lx-sX)-lrad+2, gPlayerScreenSize.Y-(ly-sY)-lrad-1+2, lrad*2-4, lrad*2-4);
-    // no need to clear stencil buffer, light blitting will do it for us
+    if (g_dbg_scale = 1.0) then
+    begin
+      glScissor((lx-sX)-lrad+2, gPlayerScreenSize.Y-(ly-sY)-lrad-1+2, lrad*2-4, lrad*2-4);
+    end
+    else
+    begin
+      glScissor(0, 0, gWinSizeX, gWinSizeY);
+    end;
+    // no need to clear stencil buffer, light blitting will do it for us... but only for normal scale
+    if (g_dbg_scale <> 1.0) then glClear(GL_STENCIL_BUFFER_BIT);
     glStencilOp(GL_KEEP, GL_KEEP, GL_INCR);
     // draw extruded panels
     glDisable(GL_TEXTURE_2D);
@@ -2776,7 +2789,10 @@ begin
   glDisable(GL_STENCIL_TEST);
   glDisable(GL_BLEND);
   glDisable(GL_SCISSOR_TEST);
-  glScissor(0, 0, sWidth, sHeight);
+  //glScissor(0, 0, sWidth, sHeight);
+
+  glScissor(scxywh[0], scxywh[1], scxywh[2], scxywh[3]);
+  if wassc then glEnable(GL_SCISSOR_TEST) else glDisable(GL_SCISSOR_TEST);
 end;
 
 
