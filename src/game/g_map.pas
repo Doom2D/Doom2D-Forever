@@ -65,7 +65,7 @@ procedure g_Map_Update();
 
 function g_Map_PanelByGUID (aguid: Integer): TPanel; inline;
 
-procedure g_Map_DrawPanels (PanelType: Word); // unaccelerated
+procedure g_Map_DrawPanels (PanelType: Word; hasAmbient: Boolean; constref ambColor: TDFColor); // unaccelerated
 procedure g_Map_CollectDrawPanels (x0, y0, wdt, hgt: Integer);
 
 procedure g_Map_DrawBack(dx, dy: Integer);
@@ -2498,7 +2498,7 @@ end;
 
 
 // old algo
-procedure g_Map_DrawPanels (PanelType: Word);
+procedure g_Map_DrawPanels (PanelType: Word; hasAmbient: Boolean; constref ambColor: TDFColor);
 
   procedure DrawPanels (constref panels: TPanelArray; drawDoors: Boolean=False);
   var
@@ -2509,7 +2509,7 @@ procedure g_Map_DrawPanels (PanelType: Word);
       // alas, no visible set
       for idx := 0 to High(panels) do
       begin
-        if not (drawDoors xor panels[idx].Door) then panels[idx].Draw();
+        if not (drawDoors xor panels[idx].Door) then panels[idx].Draw(hasAmbient, ambColor);
       end;
     end;
   end;

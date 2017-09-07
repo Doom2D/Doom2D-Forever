@@ -69,9 +69,12 @@ procedure e_DrawSizeMirror(ID: DWORD; X, Y: Integer; Alpha: Byte; AlphaChannel: 
                            Blending: Boolean; Width, Height: Word; Mirror: TMirrorType = M_NONE);
 
 procedure e_DrawFill(ID: DWORD; X, Y: Integer; XCount, YCount: Word; Alpha: Integer;
-                     AlphaChannel: Boolean; Blending: Boolean);
+                     AlphaChannel: Boolean; Blending: Boolean; ambientBlendMode: Boolean=false);
 
-procedure e_DrawFillX (id: DWORD; x, y, wdt, hgt: Integer; alpha: Integer; alphachannel: Boolean; blending: Boolean; scale: Single);
+procedure e_DrawFillX (id: DWORD; x, y, wdt, hgt: Integer; alpha: Integer; alphachannel: Boolean;
+                       blending: Boolean; scale: Single; ambientBlendMode: Boolean=false);
+
+procedure e_AmbientQuad (x, y, w, h: Integer; r, g, b, a: Byte);
 
 procedure e_DrawPoint(Size: Byte; X, Y: Integer; Red, Green, Blue: Byte);
 procedure e_DrawLine(Width: Byte; X1, Y1, X2, Y2: Integer; Red, Green, Blue: Byte; Alpha: Byte = 0);
@@ -608,39 +611,35 @@ begin
 end;
 
 procedure e_DrawFill(ID: DWORD; X, Y: Integer; XCount, YCount: Word; Alpha: Integer;
-                     AlphaChannel: Boolean; Blending: Boolean);
+                     AlphaChannel: Boolean; Blending: Boolean; ambientBlendMode: Boolean=false);
 var
   X2, Y2, dx, w, h: Integer;
   u, v: Single;
 begin
   if e_NoGraphics then Exit;
   glColor4ub(e_Colors.R, e_Colors.G, e_Colors.B, 255);
+  ambientBlendMode := false;
 
-  if (Alpha > 0) or (AlphaChannel) or (Blending) then
-    glEnable(GL_BLEND)
+  if (Alpha > 0) or AlphaChannel or Blending then
+  begin
+    glEnable(GL_BLEND);
+  end
   else
-    glDisable(GL_BLEND);
+  begin
+    if not ambientBlendMode then glDisable(GL_BLEND);
+  end;
+  if AlphaChannel or (Alpha > 0) then glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  if (Alpha > 0) then glColor4ub(e_Colors.R, e_Colors.G, e_Colors.B, 255-Alpha);
+  if Blending then glBlendFunc(GL_SRC_ALPHA, GL_ONE);
 
-  if (AlphaChannel) or (Alpha > 0) then
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-  if Alpha > 0 then
-    glColor4ub(e_Colors.R, e_Colors.G, e_Colors.B, 255-Alpha);
-
-  if Blending then
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE);
-
-  if XCount = 0 then
-    XCount := 1;
-
-  if YCount = 0 then
-    YCount := 1;
+  if (XCount = 0) then XCount := 1;
+  if (YCount = 0) then YCount := 1;
 
   glEnable(GL_TEXTURE_2D);
   glBindTexture(GL_TEXTURE_2D, e_Textures[ID].tx.id);
 
-  X2 := X + e_Textures[ID].tx.width * XCount;
-  Y2 := Y + e_Textures[ID].tx.height * YCount;
+  X2 := X+e_Textures[ID].tx.width*XCount;
+  Y2 := Y+e_Textures[ID].tx.height*YCount;
 
   //k8: this SHOULD work... i hope
   if (e_Textures[ID].tx.width = e_Textures[ID].tx.glwidth) and (e_Textures[ID].tx.height = e_Textures[ID].tx.glheight) then
@@ -707,7 +706,8 @@ begin
 end;
 
 
-procedure e_DrawFillX (id: DWORD; x, y, wdt, hgt: Integer; alpha: Integer; alphachannel: Boolean; blending: Boolean; scale: Single);
+procedure e_DrawFillX (id: DWORD; x, y, wdt, hgt: Integer; alpha: Integer; alphachannel: Boolean;
+                       blending: Boolean; scale: Single; ambientBlendMode: Boolean=false);
 var
   x2, y2: Integer;
   {
@@ -742,26 +742,28 @@ var
 
 begin
   if e_NoGraphics then exit;
+  ambientBlendMode := false;
 
   if (wdt < 1) or (hgt < 1) then exit;
 
   if (wdt mod e_Textures[ID].tx.width = 0) and (hgt mod e_Textures[ID].tx.height = 0) then
   begin
-    e_DrawFill(id, x, y, wdt div e_Textures[ID].tx.width, hgt div e_Textures[ID].tx.height, alpha, alphachannel, blending);
+    e_DrawFill(id, x, y, wdt div e_Textures[ID].tx.width, hgt div e_Textures[ID].tx.height, alpha, alphachannel, blending, ambientBlendMode);
     exit;
   end;
 
   glColor4ub(e_Colors.R, e_Colors.G, e_Colors.B, 255);
 
   if (Alpha > 0) or AlphaChannel or Blending then
-    glEnable(GL_BLEND)
+  begin
+    glEnable(GL_BLEND);
+  end
   else
-    glDisable(GL_BLEND);
-
+  begin
+    if not ambientBlendMode then glDisable(GL_BLEND);
+  end;
   if AlphaChannel or (Alpha > 0) then glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
   if (Alpha > 0) then glColor4ub(e_Colors.R, e_Colors.G, e_Colors.B, 255-Alpha);
-
   if Blending then glBlendFunc(GL_SRC_ALPHA, GL_ONE);
 
   glEnable(GL_TEXTURE_2D);
@@ -823,6 +825,37 @@ begin
   end;
 
   glDisable(GL_BLEND);
+end;
+
+
+procedure e_AmbientQuad (x, y, w, h: Integer; r, g, b, a: Byte);
+begin
+  if e_NoGraphics then exit;
+  if (w < 1) or (h < 1) then exit;
+  if (a <> 255) or ((r or g or b) <> 0) then
+  begin
+    glEnable(GL_BLEND);
+    glDisable(GL_TEXTURE_2D);
+    glColor4ub(r, g, b, a);
+    if ((r or g or b) <> 0) then
+    begin
+      glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+      glBegin(GL_QUADS);
+        glVertex2i(x, y);
+        glVertex2i(x+w, y);
+        glVertex2i(x+w, y+h);
+        glVertex2i(x, y+h);
+      glEnd();
+    end;
+    glBlendFunc(GL_ZERO, GL_SRC_ALPHA);
+    glBegin(GL_QUADS);
+      glVertex2i(x, y);
+      glVertex2i(x+w, y);
+      glVertex2i(x+w, y+h);
+      glVertex2i(x, y+h);
+    glEnd();
+    glDisable(GL_BLEND);
+  end;
 end;
 
 

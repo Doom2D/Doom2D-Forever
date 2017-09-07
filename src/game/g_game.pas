@@ -2714,18 +2714,54 @@ begin
 end;
 
 
+procedure renderAmbientQuad (hasAmbient: Boolean; constref ambColor: TDFColor);
+begin
+  if not hasAmbient then exit;
+  e_AmbientQuad(sX, sY, sWidth, sHeight, ambColor.r, ambColor.g, ambColor.b, ambColor.a);
+end;
+
+
 // setup sX, sY, sWidth, sHeight, and transformation matrix before calling this!
 //FIXME: broken for splitscreen mode
 procedure renderDynLightsInternal ();
 var
+  //hasAmbient: Boolean;
+  //ambColor: TDFColor;
   lln: Integer;
   lx, ly, lrad: Integer;
   scxywh: array[0..3] of GLint;
   wassc: Boolean;
 begin
+  if e_NoGraphics then exit;
+
   //TODO: lights should be in separate grid, i think
   //      but on the other side: grid may be slower for dynlights, as their lifetime is short
-  if not gwin_has_stencil or (g_dynLightCount < 1) then exit;
+  if (not g_playerLight) or (not gwin_has_stencil) or (g_dynLightCount < 1) then exit;
+
+  // rendering mode
+  //ambColor := gCurrentMap['light_ambient'].rgba;
+  //hasAmbient := (not ambColor.isOpaque) or (not ambColor.isBlack);
+
+  { // this will multiply incoming color to alpha from framebuffer
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_DST_ALPHA, GL_ONE);
+  }
+
+  (*
+   * light rendering: (INVALID!)
+   *   glStencilFunc(GL_EQUAL, 0, $ff);
+   *   clear depth buffer
+   *   renderAmbientQuad()
+   *   for each light:
+   *     glStencilOp(GL_KEEP, GL_KEEP, GL_INCR);
+   *     draw shadow volume into stencil buffer
+   *     glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE); // modify color buffer
+   *     glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP); // don't modify stencil buffer
+   *     turn off blending
+   *     draw quad with light alpha
+   *     glEnable(GL_BLEND);
+   *     gl.glBlendFunc(GL_DST_ALPHA, GL_ONE);
+   *)
 
   wassc := (glIsEnabled(GL_SCISSOR_TEST) <> 0);
   if wassc then glGetIntegerv(GL_SCISSOR_BOX, @scxywh[0]) else glGetIntegerv(GL_VIEWPORT, @scxywh[0]);
@@ -2822,6 +2858,11 @@ procedure renderMapInternal (backXOfs, backYOfs: Integer; setTransMatrix: Boolea
 type
   TDrawCB = procedure ();
 
+var
+  hasAmbient: Boolean;
+  ambColor: TDFColor;
+  doAmbient: Boolean = false;
+
   procedure drawPanelType (profname: AnsiString; panType: DWord; doDraw: Boolean);
   var
     tagmask: Integer;
@@ -2835,13 +2876,13 @@ type
       begin
         pan := TPanel(gDrawPanelList.front());
         if ((pan.tag and tagmask) = 0) then break;
-        if doDraw then pan.Draw();
+        if doDraw then pan.Draw(doAmbient, ambColor);
         gDrawPanelList.popFront();
       end;
     end
     else
     begin
-      if doDraw then g_Map_DrawPanels(panType);
+      if doDraw then g_Map_DrawPanels(panType, hasAmbient, ambColor);
     end;
     profileFrameDraw.sectionEnd();
   end;
@@ -2875,6 +2916,21 @@ begin
     glTranslatef(-sX, -sY, 0);
   end;
 
+  // rendering mode
+  ambColor := gCurrentMap['light_ambient'].rgba;
+  hasAmbient := (not ambColor.isOpaque) or (not ambColor.isBlack);
+
+  {
+  if hasAmbient then
+  begin
+    //writeln('color: (', ambColor.r, ',', ambColor.g, ',', ambColor.b, ',', ambColor.a, ')');
+    glColor4ub(ambColor.r, ambColor.g, ambColor.b, ambColor.a);
+    glClear(GL_COLOR_BUFFER_BIT);
+  end;
+  }
+  //writeln('color: (', ambColor.r, ',', ambColor.g, ',', ambColor.b, ',', ambColor.a, ')');
+
+
   drawPanelType('*back', PANEL_BACK, g_rlayer_back);
   drawPanelType('*step', PANEL_STEP, g_rlayer_step);
   drawOther('items', @g_Items_Draw);
@@ -2891,7 +2947,15 @@ begin
   drawPanelType('*acid2', PANEL_ACID2, g_rlayer_acid2);
   drawPanelType('*water', PANEL_WATER, g_rlayer_water);
   drawOther('dynlights', @renderDynLightsInternal);
+
+  if hasAmbient {and ((not g_playerLight) or (not gwin_has_stencil) or (g_dynLightCount < 1))} then
+  begin
+    renderAmbientQuad(hasAmbient, ambColor);
+  end;
+
+  doAmbient := true;
   drawPanelType('*fore', PANEL_FORE, g_rlayer_fore);
+
 
   if g_debug_HealthBar then
   begin

@@ -115,7 +115,7 @@ type
                        var Textures: TLevelTextureArray; aguid: Integer);
     destructor  Destroy(); override;
 
-    procedure   Draw();
+    procedure   Draw (hasAmbient: Boolean; constref ambColor: TDFColor);
     procedure   DrawShadowVolume(lightX: Integer; lightY: Integer; radius: Integer);
     procedure   Update();
     procedure   SetFrame(Frame: Integer; Count: Byte);
@@ -409,7 +409,7 @@ function TPanel.gncNeedSend (): Boolean; inline; begin result := mNeedSend; mNee
 procedure TPanel.setDirty (); inline; begin mNeedSend := true; end;
 
 
-procedure TPanel.Draw ();
+procedure TPanel.Draw (hasAmbient: Boolean; constref ambColor: TDFColor);
 var
   xx, yy: Integer;
   NoTextureID: DWORD;
@@ -433,40 +433,32 @@ begin
     else
       begin // Обычная текстура
         case FTextureIDs[FCurTexture].Tex of
-          LongWord(TEXTURE_SPECIAL_WATER):
-            e_DrawFillQuad(X, Y, X+Width-1, Y+Height-1,
-                           0, 0, 255, 0, B_FILTER);
-          LongWord(TEXTURE_SPECIAL_ACID1):
-            e_DrawFillQuad(X, Y, X+Width-1, Y+Height-1,
-                           0, 128, 0, 0, B_FILTER);
-          LongWord(TEXTURE_SPECIAL_ACID2):
-            e_DrawFillQuad(X, Y, X+Width-1, Y+Height-1,
-                           128, 0, 0, 0, B_FILTER);
+          LongWord(TEXTURE_SPECIAL_WATER): e_DrawFillQuad(X, Y, X+Width-1, Y+Height-1, 0, 0, 255, 0, B_FILTER);
+          LongWord(TEXTURE_SPECIAL_ACID1): e_DrawFillQuad(X, Y, X+Width-1, Y+Height-1, 0, 128, 0, 0, B_FILTER);
+          LongWord(TEXTURE_SPECIAL_ACID2): e_DrawFillQuad(X, Y, X+Width-1, Y+Height-1, 128, 0, 0, 0, B_FILTER);
           LongWord(TEXTURE_NONE):
             if g_Texture_Get('NOTEXTURE', NoTextureID) then
             begin
               e_GetTextureSize(NoTextureID, @NW, @NH);
-              e_DrawFill(NoTextureID, X, Y, Width div NW, Height div NH,
-                         0, False, False);
-            end else
+              e_DrawFill(NoTextureID, X, Y, Width div NW, Height div NH, 0, False, False);
+            end
+            else
             begin
               xx := X + (Width div 2);
               yy := Y + (Height div 2);
-              e_DrawFillQuad(X, Y, xx, yy,
-                             255, 0, 255, 0);
-              e_DrawFillQuad(xx, Y, X+Width-1, yy,
-                             255, 255, 0, 0);
-              e_DrawFillQuad(X, yy, xx, Y+Height-1,
-                             255, 255, 0, 0);
-              e_DrawFillQuad(xx, yy, X+Width-1, Y+Height-1,
-                             255, 0, 255, 0);
+              e_DrawFillQuad(X, Y, xx, yy, 255, 0, 255, 0);
+              e_DrawFillQuad(xx, Y, X+Width-1, yy, 255, 255, 0, 0);
+              e_DrawFillQuad(X, yy, xx, Y+Height-1, 255, 255, 0, 0);
+              e_DrawFillQuad(xx, yy, X+Width-1, Y+Height-1, 255, 0, 255, 0);
             end;
-
           else
+          begin
             if not mMovingActive then
-              e_DrawFill(FTextureIDs[FCurTexture].Tex, X, Y, Width div FTextureWidth, Height div FTextureHeight, FAlpha, True, FBlending)
+              e_DrawFill(FTextureIDs[FCurTexture].Tex, X, Y, Width div FTextureWidth, Height div FTextureHeight, FAlpha, True, FBlending, hasAmbient)
             else
-              e_DrawFillX(FTextureIDs[FCurTexture].Tex, X, Y, Width, Height, FAlpha, True, FBlending, g_dbg_scale);
+              e_DrawFillX(FTextureIDs[FCurTexture].Tex, X, Y, Width, Height, FAlpha, True, FBlending, g_dbg_scale, hasAmbient);
+            if hasAmbient then e_AmbientQuad(X, Y, Width, Height, ambColor.r, ambColor.g, ambColor.b, ambColor.a);
+          end;
         end;
       end;
   end;

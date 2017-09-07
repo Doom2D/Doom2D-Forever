@@ -974,6 +974,7 @@ begin
     try
       stp := TStrTextParser.Create(mDefUnparsed+';');
       parseValue(stp);
+      //if (mType = TType.TColor) then writeln('4=[', mIVal4, ']');
       mDefSVal := mSVal;
       mDefIVal := mIVal;
       mDefIVal2 := mIVal2;
@@ -1009,6 +1010,7 @@ begin
   mIVal2 := mDefIVal2;
   mIVal3 := mDefIVal3;
   mIVal4 := mDefIVal4;
+  //if (mType = TType.TColor) then writeln('4=[', mDefIVal4, ']');
   mDefined := true;
 end;
 
@@ -2740,7 +2742,7 @@ var
     end;
     for fld in rec.mFields do
     begin
-      //writeln('  ', fld.mName);
+      //if (fld.mName = 'ambient_color') then writeln('****', fld.mName);
       fld.fixDefaultValue(); // just in case
     end;
   end;
@@ -2829,6 +2831,12 @@ begin
       mst.setup(buf+fld.mBinOfs, mSize-fld.mBinOfs);
       //writeln('parsing ''', mName, '.', fld.mName, '''...');
       fld.parseBinValue(mst);
+    end;
+    // fix default values
+    for fld in mFields do
+    begin
+      if (fld.mType = TDynField.TType.TList) then continue;
+      fld.fixDefaultValue();
     end;
   finally
     mst.Free();

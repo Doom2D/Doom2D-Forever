@@ -64,6 +64,8 @@ type
 
     function isTransparent (): Boolean; inline;
     function isOpaque (): Boolean; inline;
+    function isBlack (): Boolean; inline;
+    function isWhite (): Boolean; inline;
   end;
 
 {$INCLUDE mapdef.inc}
@@ -200,6 +202,8 @@ begin
 end;
 function TDFColor.isTransparent (): Boolean; inline; begin result := (a = 0); end;
 function TDFColor.isOpaque (): Boolean; inline; begin result := (a = 255); end;
+function TDFColor.isBlack (): Boolean; inline; begin result := (r = 0) and (g = 0) and (b = 0); end;
+function TDFColor.isWhite (): Boolean; inline; begin result := (r = 255) and (g = 255) and (b = 255); end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
