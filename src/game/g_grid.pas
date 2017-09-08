@@ -604,164 +604,75 @@ end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
+// true: has something to draw
+// based on paper by S.R.Kodituwakku, K.R.Wijeweera, M.A.P.Chamikara
+function clipMY (var x0, y0, x1, y1: Single; minx, miny, maxx, maxy: Single): Boolean;
+var
+  m, c: Single;
+begin
+  // non vertical lines
+  if (x0 <> x1) then
+  begin
+    // non vertical and non horizontal lines
+    if (y0 <> y1) then
+    begin
+      m := (y0-y1)/(x0-x1); // gradient
+      c := (x0*y1-x1*y0)/(x0-x1); // y-intercept
+           if (x0 < minx) then begin x0 := minx; y0 := m*minx+c; end
+      else if (x0 > maxx) then begin x0 := maxx; y0 := m*maxx+c; end;
+           if (y0 < miny) then begin x0 := (miny-c)/m; y0 := miny; end
+      else if (y0 > maxy) then begin x0 := (maxy-c)/m; y0 := maxy; end;
+           if (x1 < minx) then begin x1 := minx; y1 := m*minx+c; end
+      else if (x1 > maxx) then begin x1 := maxx; y1 := m*maxx+c; end;
+           if (y1 < miny) then begin x1 := (miny-c)/m; y1 := miny; end
+      else if (y1 > maxy) then begin x1 := (maxy-c)/m; y1 := maxy; end;
+      result := not ((x0-x1 < 1) and (x1-x0 < 1)); // completely outside?
+    end
+    else
+    begin
+      // horizontal lines
+      if (y0 <= miny) or (y0 >= maxy) then begin result := false; exit; end; // completely outside
+      if (x0 < minx) then x0 := minx else if (x0 > maxx) then x0 := maxx;
+      if (x1 < minx) then x1 := minx else if (x1 > maxx) then x1 := maxx;
+      result := not ((x0-x1 < 1) and (x1-x0 < 1)); // completely outside?
+    end;
+  end
+  else
+  begin
+    // vertical lines
+    // initial line is just a point
+    if (y0 = y1) then
+    begin
+      result := not ((y0 <= miny) or (y0 >= maxy) or (x0 <= minx) or (x0 >= maxx));
+    end
+    else if (x0 <= minx) or (x0 >= maxx) then
+    begin
+      // completely outside
+      result := false;
+    end
+    else
+    begin
+      if (y0 < miny) then y0 := miny else if (y0 > maxy) then y0 := maxy;
+      if (y1 < miny) then y1 := miny else if (y1 > maxy) then y1 := maxy;
+      result := not ((y0-y1 < 1) and (y1-y0 < 1)); // completely outside?
+    end;
+  end;
+end;
+
 // you are not supposed to understand this
 // returns `true` if there is an intersection, and enter coords
 // enter coords will be equal to (x0, y0) if starting point is inside the box
 // if result is `false`, `inx` and `iny` are undefined
 function lineAABBIntersects (x0, y0, x1, y1: Integer; bx, by, bw, bh: Integer; out inx, iny: Integer): Boolean;
 var
-  wx0, wy0, wx1, wy1: Integer; // window coordinates
-  stx, sty: Integer; // "steps" for x and y axes
-  dsx, dsy: Integer; // "lengthes" for x and y axes
-  dx2, dy2: Integer; // "double lengthes" for x and y axes
-  xd, yd: Integer; // current coord
-  e: Integer; // "error" (as in bresenham algo)
-  rem: Integer;
-  //!term: Integer;
-  d0, d1: PInteger;
-  xfixed: Boolean;
-  temp: Integer;
+  sx0, sy0, sx1, sy1: Single;
 begin
-  result := false;
-  // why not
-  inx := x0;
-  iny := y0;
-  if (bw < 1) or (bh < 1) then exit; // impossible box
-
-  if (x0 = x1) and (y0 = y1) then
-  begin
-    // check this point
-    result := (x0 >= bx) and (y0 >= by) and (x0 < bx+bw) and (y0 < by+bh);
-    exit;
-  end;
-
-  // check if staring point is inside the box
-  if (x0 >= bx) and (y0 >= by) and (x0 < bx+bw) and (y0 < by+bh) then begin result := true; exit; end;
-
-  // clip rectange
-  wx0 := bx;
-  wy0 := by;
-  wx1 := bx+bw-1;
-  wy1 := by+bh-1;
-
-  // horizontal setup
-  if (x0 < x1) then
-  begin
-    // from left to right
-    if (x0 > wx1) or (x1 < wx0) then exit; // out of screen
-    stx := 1; // going right
-  end
-  else
-  begin
-    // from right to left
-    if (x1 > wx1) or (x0 < wx0) then exit; // out of screen
-    stx := -1; // going left
-    x0 := -x0;
-    x1 := -x1;
-    wx0 := -wx0;
-    wx1 := -wx1;
-    swapInt(wx0, wx1);
-  end;
-
-  // vertical setup
-  if (y0 < y1) then
-  begin
-    // from top to bottom
-    if (y0 > wy1) or (y1 < wy0) then exit; // out of screen
-    sty := 1; // going down
-  end
-  else
-  begin
-    // from bottom to top
-    if (y1 > wy1) or (y0 < wy0) then exit; // out of screen
-    sty := -1; // going up
-    y0 := -y0;
-    y1 := -y1;
-    wy0 := -wy0;
-    wy1 := -wy1;
-    swapInt(wy0, wy1);
-  end;
-
-  dsx := x1-x0;
-  dsy := y1-y0;
-
-  if (dsx < dsy) then
-  begin
-    d0 := @yd;
-    d1 := @xd;
-    swapInt(x0, y0);
-    swapInt(x1, y1);
-    swapInt(dsx, dsy);
-    swapInt(wx0, wy0);
-    swapInt(wx1, wy1);
-    swapInt(stx, sty);
-  end
-  else
-  begin
-    d0 := @xd;
-    d1 := @yd;
-  end;
-
-  dx2 := 2*dsx;
-  dy2 := 2*dsy;
-  xd := x0;
-  yd := y0;
-  e := 2*dsy-dsx;
-  //!term := x1;
-
-  xfixed := false;
-  if (y0 < wy0) then
-  begin
-    // clip at top
-    temp := dx2*(wy0-y0)-dsx;
-    xd += temp div dy2;
-    rem := temp mod dy2;
-    if (xd > wx1) then exit; // x is moved out of clipping rect, nothing to do
-    if (xd+1 >= wx0) then
-    begin
-      yd := wy0;
-      e -= rem+dsx;
-      //if (rem > 0) then begin Inc(xd); e += dy2; end; //BUGGY
-      if (xd < wx0) then begin xd += 1; e += dy2; end; //???
-      xfixed := true;
-    end;
-  end;
-
-  if (not xfixed) and (x0 < wx0) then
-  begin
-    // clip at left
-    temp := dy2*(wx0-x0);
-    yd += temp div dx2;
-    rem := temp mod dx2;
-    if (yd > wy1) or (yd = wy1) and (rem >= dsx) then exit;
-    xd := wx0;
-    e += rem;
-    if (rem >= dsx) then begin Inc(yd); e -= dx2; end;
-  end;
-
-  (*
-  if (y1 > wy1) then
-  begin
-    // clip at bottom
-    temp := dx2*(wy1-y0)+dsx;
-    term := x0+temp div dy2;
-    rem := temp mod dy2;
-    if (rem = 0) then Dec(term);
-  end;
-
-  if (term > wx1) then term := wx1; // clip at right
-
-  Inc(term); // draw last point
-  //if (term = xd) then exit; // this is the only point, get out of here
-  *)
-
-  if (sty = -1) then yd := -yd;
-  if (stx = -1) then begin xd := -xd; {!term := -term;} end;
-  //!dx2 -= dy2;
-
-  inx := d0^;
-  iny := d1^;
-  result := true;
+  if (bw < 1) or (bh < 1) then begin inx := x0; iny := y0; result := false; exit; end;
+  if (x0 >= bx) and (y0 >= by) and (x0 < bx+bw) and (y0 < by+bh) then begin inx := x0; iny := y0; result := true; exit; end;
+  sx0 := x0; sy0 := y0;
+  sx1 := x1; sy1 := y1;
+  result := clipMY(sx0, sy0, sx1, sy1, bx, by, bx+bw-1, by+bh-1);
+  if result then begin inx := trunc(sx0); iny := trunc(sy0); end else begin inx := x1; iny := y1; end;
 end;
 
 
