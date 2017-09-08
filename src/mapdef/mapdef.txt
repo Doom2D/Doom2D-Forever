@@ -82,6 +82,11 @@
   "keys" type ubyte offset 19 bitset Key default KEY_NONE;
   //WARNING: "trigdata" MUST be defined before "type", and "type" MUST be named "type" (for now, can be changed later)
   "triggerdata" type trigdata[128] offset 20; // the only special nested structure
+  //DO NOT USE! experimental feature! will be removed!
+  "exoma_init" type string default "" tip "will be called on trigger creation";
+  "exoma_think" type string default "" tip "will be called on each think step";
+  "exoma_check" type string default "" tip "will be called before activation";
+  "exoma_action" type string default "" tip "will be called on activation";
 }
 
 

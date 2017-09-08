@@ -1338,22 +1338,9 @@ begin
     trigPanelGUID := atrigpanid;
     //trigShotPanelId := ashotpanid;
     //Data.Default := Trigger.DATA;
-    if (Trigger.trigRec = nil) then
-    begin
-      trigDataRec := nil;
-      //HACK!
-      if (TriggerType <> TRIGGER_SECRET) then
-      begin
-        e_LogWritefln('trigger of type %s has no triggerdata; wtf?!', [TriggerType], MSG_WARNING);
-      end;
-    end
-    else
-    begin
-      trigDataRec := Trigger.trigRec.clone(nil);
-    end;
   end;
 
-  result := Integer(g_Triggers_Create(_trigger));
+  result := Integer(g_Triggers_Create(_trigger, Trigger));
 end;
 
 procedure CreateMonster(monster: TDynRecord);
@@ -3083,14 +3070,12 @@ var
   var
     PAMem: TBinMemoryWriter;
     pan: TPanel;
-    count: Integer;
   begin
     // Создаем новый список сохраняемых панелей
     PAMem := TBinMemoryWriter.Create((Length(panByGUID)+1) * 40);
 
     // Сохраняем панели
-    count := Length(panByGUID);
-    Mem.WriteInt(count);
+    //Mem.WriteInt(Length(panByGUID));
     for pan in panByGUID do pan.SaveState(PAMem);
 
     // Сохраняем этот список панелей
@@ -3174,15 +3159,16 @@ var
   var
     PAMem: TBinMemoryReader;
     pan: TPanel;
-    count: LongInt;
+    //count: LongInt;
   begin
     // Загружаем текущий список панелей
     PAMem := TBinMemoryReader.Create();
     PAMem.LoadFromMemory(Mem);
 
     // Загружаем панели
-    PAMem.ReadInt(count);
-    if (count <> Length(panByGUID)) then raise EBinSizeError.Create('g_Map_LoadState: LoadPanelArray: invalid number of panels');
+    //PAMem.ReadInt(count);
+    //if (count <> Length(panByGUID)) then raise EBinSizeError.Create('g_Map_LoadState: LoadPanelArray: invalid number of panels');
+    //if (count <> Length(panByGUID)) then raise EBinSizeError.Create(Format('g_Map_LoadState: LoadPanelArray: invalid number of panels (%d : %d)', [count, Length(panByGUID)]));
     for pan in panByGUID do
     begin
       pan.LoadState(PAMem);

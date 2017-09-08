@@ -54,6 +54,8 @@ type
     type
       TEntryArray = array of TEntry;
 
+  public
+    type
       TValEnumerator = record
       private
         mEntries: TEntryArray;
@@ -62,6 +64,7 @@ type
         constructor Create (const aents: TEntryArray; afirst, alast: Integer);
         function MoveNext (): Boolean; inline;
         function getCurrent (): ValueT; inline;
+        function GetEnumerator (): TValEnumerator; inline;
         property Current: ValueT read getCurrent;
       end;
 
@@ -73,6 +76,7 @@ type
         constructor Create (const aents: TEntryArray; afirst, alast: Integer);
         function MoveNext (): Boolean; inline;
         function getCurrent (): KeyT; inline;
+        function GetEnumerator (): TKeyEnumerator; inline;
         property Current: KeyT read getCurrent;
       end;
 
@@ -84,6 +88,7 @@ type
         constructor Create (const aents: TEntryArray; afirst, alast: Integer);
         function MoveNext (): Boolean; inline;
         function getCurrent (): PEntry; inline;
+        function GetEnumerator (): TKeyValEnumerator; inline;
         property Current: PEntry read getCurrent;
       end;
 
@@ -957,6 +962,11 @@ begin
   if (Length(mEntries) > 0) then result := TKeyValEnumerator.Create(mEntries, mFirstEntry, mLastEntry)
   else result := TKeyValEnumerator.Create(nil, -1, -1);
 end;
+
+
+function THashBase.TValEnumerator.GetEnumerator (): TValEnumerator; inline; begin result.mEntries := self.mEntries; result.mFirstEntry := self.mFirstEntry; result.mLastEntry := self.mLastEntry; result.cur := self.cur; end;
+function THashBase.TKeyEnumerator.GetEnumerator (): TKeyEnumerator; inline; begin result.mEntries := self.mEntries; result.mFirstEntry := self.mFirstEntry; result.mLastEntry := self.mLastEntry; result.cur := self.cur; end;
+function THashBase.TKeyValEnumerator.GetEnumerator (): TKeyValEnumerator; inline; begin result.mEntries := self.mEntries; result.mFirstEntry := self.mFirstEntry; result.mLastEntry := self.mLastEntry; result.cur := self.cur; end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //

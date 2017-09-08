@@ -19,14 +19,18 @@ unit g_triggers;
 interface
 
 uses
+  Variants,
   MAPDEF, e_graphics, g_basic, g_sound,
-  BinEditor, xdynrec;
+  BinEditor, xdynrec, hashtable, exoma;
 
 type
+  THashStrVariant = specialize THashBase<AnsiString, Variant>;
+
   TActivator = record
     UID:     Word;
     TimeOut: Word;
   end;
+
   PTrigger = ^TTrigger;
   TTrigger = record
   public
@@ -67,6 +71,9 @@ type
     trigPanelGUID: Integer;
 
     trigDataRec: TDynRecord; // triggerdata; owned by trigger (cloned)
+    exoInit, exoThink, exoCheck, exoAction: TExprBase;
+
+    userVars: THashStrVariant;
 
     {$INCLUDE ../shared/mapdef_tgc_def.inc}
 
@@ -74,7 +81,7 @@ type
     function trigCenter (): TDFPoint; inline;
   end;
 
-function g_Triggers_Create(Trigger: TTrigger; forceInternalIndex: Integer=-1): DWORD;
+function g_Triggers_Create(Trigger: TTrigger; trec: TDynRecord; forceInternalIndex: Integer=-1): DWORD;
 procedure g_Triggers_Update();
 procedure g_Triggers_Press(ID: DWORD; ActivateType: Byte; ActivateUID: Word = 0);
 function g_Triggers_PressR(X, Y: Integer; Width, Height: Word; UID: Word;
@@ -110,6 +117,101 @@ const
 
 {$INCLUDE ../shared/mapdef_tgc_impl.inc}
 
+
+// ////////////////////////////////////////////////////////////////////////// //
+type
+  TTrigScope = class(TExprScope)
+  private
+    plrprops: TPropHash;
+    monsprops: TPropHash;
+    platprops: TPropHash;
+
+  public
+    me: PTrigger;
+
+  public
+    constructor Create ();
+    destructor Destroy (); override;
+
+    function getObj (const aname: AnsiString): TObject; override;
+    function getField (obj: TObject; const afldname: AnsiString): Variant; override;
+    procedure setField (obj: TObject; const afldname: AnsiString; var aval: Variant); override;
+  end;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
+constructor TTrigScope.Create ();
+begin
+  plrprops := TPropHash.Create(TPlayer);
+  monsprops := TPropHash.Create(TMonster);
+  platprops := TPropHash.Create(TPanel);
+  me := nil;
+end;
+
+
+destructor TTrigScope.Destroy ();
+begin
+  platprops.Free();
+  monsprops.Free();
+  plrprops.Free();
+  inherited;
+end;
+
+
+function TTrigScope.getObj (const aname: AnsiString): TObject;
+begin
+       if (aname = 'player') then result := gPlayers[0] //FIXME
+  else if (aname = 'self') or (aname = 'this') then result := TObject(Pointer(PtrUInt(1)))
+  else result := inherited getObj(aname);
+end;
+
+
+function TTrigScope.getField (obj: TObject; const afldname: AnsiString): Variant;
+begin
+  if (obj = gPlayers[0]) then
+  begin
+    if plrprops.get(obj, afldname, result) then exit;
+  end
+  else if (obj = TObject(Pointer(PtrUInt(1)))) then
+  begin
+    if (me <> nil) and (me.userVars <> nil) then
+    begin
+      if me.userVars.get(afldname, result) then exit;
+    end;
+  end;
+  result := inherited getField(obj, afldname);
+end;
+
+
+procedure TTrigScope.setField (obj: TObject; const afldname: AnsiString; var aval: Variant);
+begin
+  if (obj = gPlayers[0]) then
+  begin
+    if plrprops.put(obj, afldname, aval) then exit;
+  end
+  else if (obj = TObject(Pointer(PtrUInt(1)))) then
+  begin
+    if (me <> nil) then
+    begin
+      if (Length(afldname) > 4) and (afldname[1] = 'u') and (afldname[2] = 's') and
+         (afldname[3] = 'e') and (afldname[4] = 'r') then
+      begin
+        if (me.userVars = nil) then me.userVars := THashStrVariant.Create(hsihash, hsiequ);
+        me.userVars.put(afldname, aval);
+        exit;
+      end;
+    end;
+  end;
+  inherited setField(obj, afldname, aval);
+end;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
+var
+  tgscope: TTrigScope = nil;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
 function TTrigger.trigCenter (): TDFPoint; inline;
 begin
   result := TDFPoint.Create(x+width div 2, y+height div 2);
@@ -118,23 +220,27 @@ end;
 
 function FindTrigger (): DWORD;
 var
-  i: Integer;
+  i, olen: Integer;
 begin
-  for i := 0 to High(gTriggers) do
+  olen := Length(gTriggers);
+
+  for i := 0 to olen-1 do
   begin
     if gTriggers[i].TriggerType = TRIGGER_NONE then begin result := i; exit; end;
   end;
 
-  if (gTriggers = nil) then
+  SetLength(gTriggers, olen+8);
+  result := olen;
+
+  for i := result to High(gTriggers) do
   begin
-    SetLength(gTriggers, 8);
-    result := 0;
-  end
-  else
-  begin
-    result := Length(gTriggers);
-    SetLength(gTriggers, result+8);
-    for i := result to High(gTriggers) do gTriggers[i].TriggerType := TRIGGER_NONE;
+    gTriggers[i].TriggerType := TRIGGER_NONE;
+    gTriggers[i].trigDataRec := nil;
+    gTriggers[i].exoInit := nil;
+    gTriggers[i].exoThink := nil;
+    gTriggers[i].exoCheck := nil;
+    gTriggers[i].exoAction := nil;
+    gTriggers[i].userVars := nil;
   end;
 end;
 
@@ -1065,17 +1171,48 @@ var
     end;
   end;
 
+var
+  tvval: Variant;
 begin
   result := false;
   if g_Game_IsClient then exit;
 
   if not Trigger.Enabled then exit;
   if (Trigger.TimeOut <> 0) and (actType <> ACTIVATE_CUSTOM) then exit;
-  if gLMSRespawn = LMS_RESPAWN_WARMUP then exit;
+  if (gLMSRespawn = LMS_RESPAWN_WARMUP) then exit;
+
+  if (Trigger.exoCheck <> nil) then
+  begin
+    //conwritefln('exocheck: [%s]', [Trigger.exoCheck.toString()]);
+    try
+      tgscope.me := @Trigger;
+      tvval := Trigger.exoCheck.value(tgscope);
+      tgscope.me := nil;
+      if not Boolean(tvval) then exit;
+    except
+      tgscope.me := nil;
+      conwritefln('trigger exocheck error: %s', [Trigger.exoCheck.toString()]);
+      exit;
+    end;
+  end;
 
   animonce := False;
 
   coolDown := (actType <> 0);
+
+  if (Trigger.exoAction <> nil) then
+  begin
+    //conwritefln('exoactivate: [%s]', [Trigger.exoAction.toString()]);
+    try
+      tgscope.me := @Trigger;
+      Trigger.exoAction.value(tgscope);
+      tgscope.me := nil;
+    except
+      tgscope.me := nil;
+      conwritefln('trigger exoactivate error: %s', [Trigger.exoAction.toString()]);
+      exit;
+    end;
+  end;
 
   with Trigger do
   begin
@@ -2139,10 +2276,11 @@ begin
   triggers := gCurrentMap['trigger'];
   if (triggers = nil) then raise Exception.Create('LOAD: map has no triggers');
   if (mapidx < 0) or (mapidx >= triggers.count) then raise Exception.Create('LOAD: invalid map trigger index');
-  Trigger.trigDataRec := triggers.itemAt[mapidx];
-  if (Trigger.trigDataRec = nil) then raise Exception.Create('LOAD: internal error in trigger loader');
-  Trigger.mapId := Trigger.trigDataRec.id;
+  //Trigger.trigDataRec := triggers.itemAt[mapidx];
+  //if (Trigger.trigDataRec = nil) then raise Exception.Create('LOAD: internal error in trigger loader');
+  //Trigger.mapId := Trigger.trigDataRec.id;
   Trigger.mapIndex := mapidx;
+  {
   if (Trigger.trigDataRec.trigRec <> nil) then
   begin
     Trigger.trigDataRec := Trigger.trigDataRec.trigRec.clone(nil);
@@ -2151,16 +2289,19 @@ begin
   begin
     Trigger.trigDataRec := nil;
   end;
-  result := g_Triggers_Create(Trigger, arridx);
+  }
+  result := g_Triggers_Create(Trigger, triggers.itemAt[mapidx], arridx);
 end;
 
 
-function g_Triggers_Create(Trigger: TTrigger; forceInternalIndex: Integer=-1): DWORD;
+function g_Triggers_Create(Trigger: TTrigger; trec: TDynRecord; forceInternalIndex: Integer=-1): DWORD;
 var
   find_id: DWORD;
   fn, mapw: AnsiString;
   f, olen: Integer;
 begin
+  if (tgscope = nil) then tgscope := TTrigScope.Create();
+
   // Не создавать выход, если игра без выхода
   if (Trigger.TriggerType = TRIGGER_EXIT) and
      (not LongBool(gGameSettings.Options and GAME_OPTION_ALLOWEXIT)) then
@@ -2185,11 +2326,49 @@ begin
     if (forceInternalIndex >= olen) then
     begin
       SetLength(gTriggers, forceInternalIndex+1);
-      for f := olen to High(gTriggers) do gTriggers[f].TriggerType := TRIGGER_NONE;
+      for f := olen to High(gTriggers) do
+      begin
+        gTriggers[f].TriggerType := TRIGGER_NONE;
+        gTriggers[f].trigDataRec := nil;
+        gTriggers[f].exoInit := nil;
+        gTriggers[f].exoThink := nil;
+        gTriggers[f].exoCheck := nil;
+        gTriggers[f].exoAction := nil;
+        gTriggers[f].userVars := nil;
+      end;
     end;
+    f := forceInternalIndex;
+    gTriggers[f].trigDataRec.Free();
+    gTriggers[f].exoInit.Free();
+    gTriggers[f].exoThink.Free();
+    gTriggers[f].exoCheck.Free();
+    gTriggers[f].exoAction.Free();
+    gTriggers[f].userVars.Free();
+    gTriggers[f].trigDataRec := nil;
+    gTriggers[f].exoInit := nil;
+    gTriggers[f].exoThink := nil;
+    gTriggers[f].exoCheck := nil;
+    gTriggers[f].exoAction := nil;
+    gTriggers[f].userVars := nil;
     find_id := DWORD(forceInternalIndex);
   end;
   gTriggers[find_id] := Trigger;
+
+  Trigger.mapId := trec.id;
+  // clone trigger data
+  if (trec.trigRec = nil) then
+  begin
+    gTriggers[find_id].trigDataRec := nil;
+    //HACK!
+    if (gTriggers[find_id].TriggerType <> TRIGGER_SECRET) then
+    begin
+      e_LogWritefln('trigger of type %s has no triggerdata; wtf?!', [gTriggers[find_id].TriggerType], MSG_WARNING);
+    end;
+  end
+  else
+  begin
+    gTriggers[find_id].trigDataRec := trec.trigRec.clone(nil);
+  end;
 
   with gTriggers[find_id] do
   begin
@@ -2220,6 +2399,47 @@ begin
 
   // update cached trigger variables
   trigUpdateCacheData(gTriggers[find_id], gTriggers[find_id].trigDataRec);
+
+  gTriggers[find_id].userVars := nil; //THashStrVariant.Create(hsihash, hsiequ);
+
+  try
+    gTriggers[find_id].exoThink := TExprBase.parseStatList(VarToStr(trec.user['exoma_think']));
+  except
+    conwritefln('*** ERROR parsing exoma_think: [%s]', [VarToStr(trec.user['exoma_think'])]);
+    gTriggers[find_id].exoThink := nil;
+  end;
+  try
+    gTriggers[find_id].exoCheck := TExprBase.parse(VarToStr(trec.user['exoma_check']));
+  except
+    conwritefln('*** ERROR parsing exoma_check: [%s]', [VarToStr(trec.user['exoma_check'])]);
+    gTriggers[find_id].exoCheck := nil;
+  end;
+  try
+    gTriggers[find_id].exoAction := TExprBase.parseStatList(VarToStr(trec.user['exoma_action']));
+  except
+    conwritefln('*** ERROR parsing exoma_action: [%s]', [VarToStr(trec.user['exoma_action'])]);
+    gTriggers[find_id].exoAction := nil;
+  end;
+  try
+    gTriggers[find_id].exoInit := TExprBase.parseStatList(VarToStr(trec.user['exoma_init']));
+  except
+    conwritefln('*** ERROR parsing exoma_init: [%s]', [VarToStr(trec.user['exoma_init'])]);
+    gTriggers[find_id].exoInit := nil;
+  end;
+
+  if (forceInternalIndex < 0) and (gTriggers[find_id].exoInit <> nil) then
+  begin
+    //conwritefln('executing trigger init: [%s]', [gTriggers[find_id].exoInit.toString()]);
+    try
+      tgscope.me := @gTriggers[find_id];
+      gTriggers[find_id].exoInit.value(tgscope);
+      tgscope.me := nil;
+    except
+      tgscope.me := nil;
+      conwritefln('*** trigger exoactivate error: %s', [gTriggers[find_id].exoInit.toString()]);
+      exit;
+    end;
+  end;
 
   // Загружаем звук, если это триггер "Звук"
   if (Trigger.TriggerType = TRIGGER_SOUND) and (Trigger.tgcSoundName <> '') then
@@ -2809,6 +3029,11 @@ begin
       SetLength(gTriggers[a].Activators, 0);
     end;
     gTriggers[a].trigDataRec.Free();
+
+    gTriggers[a].exoThink.Free();
+    gTriggers[a].exoCheck.Free();
+    gTriggers[a].exoAction.Free();
+    gTriggers[a].userVars.Free();
   end;
 
   gTriggers := nil;
@@ -2823,6 +3048,10 @@ var
   dw: DWORD;
   sg: Single;
   b: Boolean;
+  kv: THashStrVariant.PEntry;
+  //it: THashStrVariant.TKeyValEnumerator;
+  //uname: AnsiString;
+  t: LongInt;
 begin
   // Считаем количество существующих триггеров
   count := Length(gTriggers);
@@ -2906,6 +3135,35 @@ begin
       sg := gTriggers[i].Sound.GetPan();
       Mem.WriteSingle(sg);
     end;
+    // uservars
+    if (gTriggers[i].userVars = nil) then
+    begin
+      Mem.WriteInt(0);
+    end
+    else
+    begin
+      Mem.WriteInt(gTriggers[i].userVars.count);
+      for kv in gTriggers[i].userVars.byKeyValue do
+      begin
+        //writeln('<', kv.key, '>:<', VarToStr(kv.value), '>');
+        Mem.WriteString(kv.key);
+        t := LongInt(varType(kv.value));
+        Mem.WriteInt(t);
+        case t of
+          varString: Mem.WriteString(AnsiString(kv.value));
+          varBoolean: Mem.WriteBoolean(Boolean(kv.value));
+          varShortInt: Mem.WriteInt(Integer(kv.value));
+          varSmallint: Mem.WriteInt(Integer(kv.value));
+          varInteger: Mem.WriteInt(Integer(kv.value));
+          //varInt64: Mem.WriteInt(Integer(kv.value));
+          varByte: Mem.WriteInt(Integer(kv.value));
+          varWord: Mem.WriteInt(Integer(kv.value));
+          varLongWord: Mem.WriteInt(Integer(kv.value));
+          //varQWord:
+          else raise Exception.CreateFmt('cannot save uservar ''%s''', [kv.key]);
+        end;
+      end;
+    end;
   end;
 end;
 
@@ -2918,6 +3176,13 @@ var
   b: Boolean;
   Trig: TTrigger;
   mapIndex: Integer;
+  uvcount: Integer;
+  vt: LongInt;
+  vv: Variant;
+  uvname: AnsiString;
+  ustr: AnsiString;
+  uint: LongInt;
+  ubool: Boolean;
 begin
   if (Mem = nil) then exit;
 
@@ -2938,18 +3203,6 @@ begin
     if (Trig.TriggerType = TRIGGER_NONE) then continue; // empty one
     Mem.ReadInt(mapIndex);
     i := g_Triggers_CreateWithMapIndex(Trig, a, mapIndex);
-    {
-    if (gTriggers[i].trigData <> nil) then
-    begin
-      tw := TStrTextWriter.Create();
-      try
-        gTriggers[i].trigData.writeTo(tw);
-        e_LogWritefln('=== trigger #%s loaded ==='#10'%s'#10'---', [mapIndex, tw.str]);
-      finally
-        tw.Free();
-      end;
-    end;
-    }
   // Координаты левого верхнего угла:
     Mem.ReadInt(gTriggers[i].X);
     Mem.ReadInt(gTriggers[i].Y);
@@ -3019,7 +3272,36 @@ begin
         gTriggers[i].Sound.SetPosition(dw);
       end
     end;
+    // uservars
+    gTriggers[i].userVars.Free();
+    gTriggers[i].userVars := nil;
+    Mem.ReadInt(uvcount);
+    if (uvcount > 0) then
+    begin
+      gTriggers[i].userVars := THashStrVariant.Create(hsihash, hsiequ);
+      vv := Unassigned;
+      while (uvcount > 0) do
+      begin
+        Dec(uvcount);
+        uvname := '';
+        Mem.ReadString(uvname);
+        Mem.ReadInt(vt);
+        case vt of
+          varString: begin ustr := ''; Mem.ReadString(ustr); vv := ustr; end;
+          varBoolean: begin Mem.ReadBoolean(ubool); vv := ubool; end;
+          varShortInt: begin Mem.ReadInt(uint); vv := ShortInt(uint); end;
+          varSmallint: begin Mem.ReadInt(uint); vv := SmallInt(uint); end;
+          varInteger: begin Mem.ReadInt(uint); vv := LongInt(uint); end;
+          varByte: begin Mem.ReadInt(uint); vv := Byte(uint); end;
+          varWord: begin Mem.ReadInt(uint); vv := Word(uint); end;
+          varLongWord: begin Mem.ReadInt(uint); vv := LongWord(uint); end;
+          else raise Exception.CreateFmt('cannot load uservar ''%s''', [uvname]);
+        end;
+        gTriggers[i].userVars.put(uvname, vv);
+      end;
+    end;
   end;
 end;
+
 
 end.

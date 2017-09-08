@@ -101,6 +101,7 @@ uses
   idpool in '../shared/idpool.pas',
   xparser in '../shared/xparser.pas',
   xdynrec in '../shared/xdynrec.pas',
+  exoma in '../shared/exoma.pas',
   BinEditor in '../shared/BinEditor.pas',
   envvars in '../shared/envvars.pas',
   g_panel in 'g_panel.pas',

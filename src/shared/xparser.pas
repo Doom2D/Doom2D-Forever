@@ -39,6 +39,13 @@ type
       TTBegin = 8; // left curly
       TTEnd = 9; // right curly
       TTDelim = 10; // other delimiters
+      //
+      TTLogAnd = 11; // &&
+      TTLogOr = 12; // ||
+      TTLessEqu = 13; // <=
+      TTGreatEqu = 14; // >=
+      TTNotEqu = 15; // !=
+      TTEqu = 16; // ==
 
   private
     mLine, mCol: Integer;
@@ -67,6 +74,7 @@ type
     function skipBlanks (): Boolean; // ...and comments; returns `false` on eof
 
     function skipToken (): Boolean; // returns `false` on eof
+    //function skipToken1 (): Boolean;
 
     function expectId (): AnsiString;
     procedure expectId (const aid: AnsiString);
@@ -82,6 +90,9 @@ type
 
     function expectDelim (const ch: AnsiChar): AnsiChar;
     function eatDelim (const ch: AnsiChar): Boolean;
+
+  public
+    property allowSignedNumbers: Boolean read mAllowSignedNumbers write mAllowSignedNumbers;
 
   public
     property col: Integer read mCol;
@@ -336,6 +347,16 @@ begin
 end;
 
 
+{
+function TTextParser.skipToken (): Boolean;
+begin
+  writeln('getting token...');
+  result := skipToken1();
+  writeln('  got token: ', mTokType, ' <', mTokStr, '> : <', mTokChar, '>');
+end;
+}
+
+
 function TTextParser.skipToken (): Boolean;
 
   procedure parseInt ();
@@ -503,16 +524,27 @@ begin
   if (curChar = '_') or ((curChar >= 'A') and (curChar <= 'Z')) or ((curChar >= 'a') and (curChar <= 'z')) or (curChar >= #128) then begin parseId(); exit; end;
 
   // known delimiters?
-  case curChar of
+  mTokChar := curChar;
+  mTokType := TTDelim;
+  skipChar();
+  if (curChar = '=') then
+  begin
+    case mTokChar of
+      '<': begin mTokType := TTLessEqu; mTokStr := '<='; skipChar(); exit; end;
+      '>': begin mTokType := TTGreatEqu; mTokStr := '>='; skipChar(); exit; end;
+      '!': begin mTokType := TTNotEqu; mTokStr := '!='; skipChar(); exit; end;
+      '=': begin mTokType := TTEqu; mTokStr := '=='; skipChar(); exit; end;
+    end;
+  end;
+  case mTokChar of
     ',': mTokType := TTComma;
     ':': mTokType := TTColon;
     ';': mTokType := TTSemi;
     '{': mTokType := TTBegin;
     '}': mTokType := TTEnd;
-    else mTokType := TTDelim;
+    '&': if (curChar = '&') then begin mTokType := TTLogAnd; mTokStr := '&&'; skipChar(); exit; end;
+    '|': if (curChar = '|') then begin mTokType := TTLogOr; mTokStr := '||'; skipChar(); exit; end;
   end;
-  mTokChar := curChar;
-  skipChar();
 end;
 
 

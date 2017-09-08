@@ -265,14 +265,21 @@ begin
     writeln('FATAL: mapdef not found!');
   end;
 
+  writeln('parsing "mapdef.txt"...');
   pr := TFileTextParser.Create(st, false); // don't own
   try
     dfmapdef := TDynMapDef.Create(pr);
-  except on e: Exception do
-    begin
-      writeln('ERROR at (', pr.tokLine, ',', pr.tokCol, '): ', e.message);
-      Halt(1);
-    end;
+  except
+    on e: TDynParseException do
+      begin
+        writeln('ERROR at (', e.tokLine, ',', e.tokCol, '): ', e.message);
+        Halt(1);
+      end;
+    on e: Exception do
+      begin
+        writeln('ERROR: ', e.message);
+        Halt(1);
+      end;
   end;
   pr.Free();
 

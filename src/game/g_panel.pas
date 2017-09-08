@@ -1009,10 +1009,11 @@ begin
        Result := Result + 100;
 end;
 
+
 const
   PAN_SAVE_VERSION = 1;
 
-procedure TPanel.SaveState(Var Mem: TBinMemoryWriter);
+procedure TPanel.SaveState (var Mem: TBinMemoryWriter);
 var
   sig: DWORD;
   anim: Boolean;
@@ -1020,35 +1021,35 @@ var
 begin
   if (Mem = nil) then exit;
 
-// Сигнатура панели:
+  // Сигнатура панели
   sig := PANEL_SIGNATURE; // 'PANL'
   Mem.WriteDWORD(sig);
   ver := PAN_SAVE_VERSION;
   Mem.WriteByte(ver);
-// Открыта/закрыта, если дверь:
+  // Открыта/закрыта, если дверь
   Mem.WriteBoolean(FEnabled);
-// Направление лифта, если лифт:
+  // Направление лифта, если лифт
   Mem.WriteByte(FLiftType);
-// Номер текущей текстуры:
+  // Номер текущей текстуры
   Mem.WriteInt(FCurTexture);
-// Коорды
+  // Коорды
   Mem.WriteInt(FX);
   Mem.WriteInt(FY);
   Mem.WriteWord(FWidth);
   Mem.WriteWord(FHeight);
-// Анимированная ли текущая текстура:
+  // Анимированная ли текущая текстура
   if (FCurTexture >= 0) and (FTextureIDs[FCurTexture].Anim) then
-    begin
-      Assert(FTextureIDs[FCurTexture].AnTex <> nil,
-             'TPanel.SaveState: No animation object');
-      anim := True;
-    end
+  begin
+    assert(FTextureIDs[FCurTexture].AnTex <> nil, 'TPanel.SaveState: No animation object');
+    anim := True;
+  end
   else
+  begin
     anim := False;
+  end;
   Mem.WriteBoolean(anim);
-// Если да - сохраняем анимацию:
-  if anim then
-    FTextureIDs[FCurTexture].AnTex.SaveState(Mem);
+  // Если да - сохраняем анимацию
+  if anim then FTextureIDs[FCurTexture].AnTex.SaveState(Mem);
 
   // moving platform state
   Mem.WriteInt(mMovingSpeed.X);
@@ -1062,6 +1063,7 @@ begin
   Mem.WriteInt(mSizeSpeed.h);
   Mem.WriteInt(mSizeEnd.w);
   Mem.WriteInt(mSizeEnd.h);
+
   Mem.WriteBoolean(mMovingActive);
   Mem.WriteBoolean(mMoveOnce);
 
@@ -1069,37 +1071,35 @@ begin
   Mem.WriteInt(mEndSizeTrig);
 end;
 
-procedure TPanel.LoadState(var Mem: TBinMemoryReader);
+
+procedure TPanel.LoadState (var Mem: TBinMemoryReader);
 var
   sig: DWORD;
   anim: Boolean;
   ver: Byte;
-  //ox, oy: Integer;
 begin
   if (Mem = nil) then exit;
 
-// Сигнатура панели:
+  // Сигнатура панели
   Mem.ReadDWORD(sig);
   if (sig <> PANEL_SIGNATURE) then raise EBinSizeError.Create('TPanel.LoadState: wrong panel signature'); // 'PANL'
   Mem.ReadByte(ver);
   if (ver <> PAN_SAVE_VERSION) then raise EBinSizeError.Create('TPanel.LoadState: invalid panel version');
-// Открыта/закрыта, если дверь:
+  // Открыта/закрыта, если дверь
   Mem.ReadBoolean(FEnabled);
-// Направление лифта, если лифт:
+  // Направление лифта, если лифт
   Mem.ReadByte(FLiftType);
-// Номер текущей текстуры:
+  // Номер текущей текстуры
   Mem.ReadInt(FCurTexture);
-// Коорды
-  //ox := FX;
-  //oy := FY;
+  // Коорды
   Mem.ReadInt(FX);
   Mem.ReadInt(FY);
   Mem.ReadWord(FWidth);
   Mem.ReadWord(FHeight);
   //e_LogWritefln('panel %s(%s): old=(%s,%s); new=(%s,%s); delta=(%s,%s)', [arrIdx, proxyId, ox, oy, FX, FY, FX-ox, FY-oy]);
-// Анимированная ли текущая текстура:
+  // Анимированная ли текущая текстура
   Mem.ReadBoolean(anim);
-// Если да - загружаем анимацию:
+  // Если да - загружаем анимацию
   if anim then
   begin
     Assert((FCurTexture >= 0) and
@@ -1116,10 +1116,12 @@ begin
   Mem.ReadInt(mMovingStart.Y);
   Mem.ReadInt(mMovingEnd.X);
   Mem.ReadInt(mMovingEnd.Y);
+
   Mem.ReadInt(mSizeSpeed.w);
   Mem.ReadInt(mSizeSpeed.h);
   Mem.ReadInt(mSizeEnd.w);
   Mem.ReadInt(mSizeEnd.h);
+
   Mem.ReadBoolean(mMovingActive);
   Mem.ReadBoolean(mMoveOnce);
 

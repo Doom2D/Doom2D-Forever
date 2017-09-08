@@ -30,25 +30,26 @@ Type
     FData: Pointer;
     FPosition: Cardinal;
 
-    Procedure   WriteVar(Var x; varSize: Cardinal);
+    Procedure   WriteVar (var x; varSize: Cardinal);
     Procedure   ExtendMemory(addLen: Cardinal);
 
   Public
-    Constructor Create(aSize: Cardinal);
-    Destructor  Destroy(); Override;
-    Procedure   WriteByte(Var x: Byte);
-    Procedure   WriteWord(Var x: Word);
-    Procedure   WriteDWORD(Var x: DWORD);
-    Procedure   WriteShortInt(Var x: ShortInt);
-    Procedure   WriteSmallInt(Var x: SmallInt);
-    Procedure   WriteInt(Var x: Integer);
-    Procedure   WriteSingle(Var x: Single);
-    Procedure   WriteBoolean(Var x: Boolean);
-    Procedure   WriteString(const x: AnsiString; aMaxLen: Word=65535);
-    Procedure   WriteMemory(Var x: Pointer; memSize: Cardinal);
-    Procedure   Fill(aLen: Cardinal; aFillSym: Byte);
-    Procedure   SaveToFile(Var aFile: File);
-    Procedure   SaveToMemory(Var aMem: TBinMemoryWriter);
+    Constructor Create (aSize: Cardinal);
+    Destructor  Destroy (); Override;
+
+    Procedure   WriteByte (x: Byte);
+    Procedure   WriteWord (x: Word);
+    Procedure   WriteDWORD (x: DWORD);
+    Procedure   WriteShortInt (x: ShortInt);
+    Procedure   WriteSmallInt (x: SmallInt);
+    Procedure   WriteInt (x: Integer);
+    Procedure   WriteSingle (x: Single);
+    Procedure   WriteBoolean (x: Boolean);
+    Procedure   WriteString (const x: AnsiString; aMaxLen: Word=65535);
+    Procedure   WriteMemory (x: Pointer; memSize: Cardinal);
+    Procedure   Fill (aLen: Cardinal; aFillSym: Byte);
+    Procedure   SaveToFile (Var aFile: File);
+    Procedure   SaveToMemory (Var aMem: TBinMemoryWriter);
   End;
 
   TBinMemoryReader = Class (TObject)
@@ -161,14 +162,11 @@ begin
   Inherited;
 end;
 
-Procedure TBinMemoryWriter.WriteVar(Var x; varSize: Cardinal);
+Procedure TBinMemoryWriter.WriteVar (var x; varSize: Cardinal);
 begin
-  if (FPosition + varSize) > FSize then
-    ExtendMemory(varSize);
-
-  CopyMemory(Pointer(NativeUInt(FData) + FPosition),
-             @x, varSize);
-  FPosition := FPosition + varSize;
+  if (FPosition+varSize > FSize) then ExtendMemory(varSize);
+  CopyMemory(Pointer(PtrUInt(FData)+FPosition), @x, varSize);
+  FPosition := FPosition+varSize;
 end;
 
 Procedure TBinMemoryWriter.ExtendMemory(addLen: Cardinal);
@@ -197,51 +195,46 @@ begin
   e_WriteLog('Save Memory Extended: '+IntToStr(FSize), MSG_NOTIFY);
 end;
 
-Procedure TBinMemoryWriter.WriteByte(Var x: Byte);
+Procedure TBinMemoryWriter.WriteByte (x: Byte);
 begin
   WriteVar(x, SizeOf(Byte));
 end;
 
-Procedure TBinMemoryWriter.WriteWord(Var x: Word);
+Procedure TBinMemoryWriter.WriteWord (x: Word);
 begin
   WriteVar(x, SizeOf(Word));
 end;
 
-Procedure TBinMemoryWriter.WriteDWORD(Var x: DWORD);
+Procedure TBinMemoryWriter.WriteDWORD (x: DWORD);
 begin
   WriteVar(x, SizeOf(DWORD));
 end;
 
-Procedure TBinMemoryWriter.WriteShortInt(Var x: ShortInt);
+Procedure TBinMemoryWriter.WriteShortInt (x: ShortInt);
 begin
   WriteVar(x, SizeOf(ShortInt));
 end;
 
-Procedure TBinMemoryWriter.WriteSmallInt(Var x: SmallInt);
+Procedure TBinMemoryWriter.WriteSmallInt (x: SmallInt);
 begin
   WriteVar(x, SizeOf(SmallInt));
 end;
 
-Procedure TBinMemoryWriter.WriteInt(Var x: Integer);
+Procedure TBinMemoryWriter.WriteInt (x: Integer);
 begin
   WriteVar(x, SizeOf(Integer));
 end;
 
-Procedure TBinMemoryWriter.WriteSingle(Var x: Single);
+Procedure TBinMemoryWriter.WriteSingle (x: Single);
 begin
   WriteVar(x, SizeOf(Single));
 end;
 
-Procedure TBinMemoryWriter.WriteBoolean(Var x: Boolean);
+Procedure TBinMemoryWriter.WriteBoolean (x: Boolean);
 var
   y: Byte;
-
 begin
-  if x then
-    y := 1
-  else
-    y := 0;
-
+  if x then y := 1 else y := 0;
   WriteVar(y, SizeOf(Byte));
 end;
 
@@ -264,34 +257,27 @@ begin
   end;
 end;
 
-Procedure TBinMemoryWriter.WriteMemory(Var x: Pointer; memSize: Cardinal);
+Procedure TBinMemoryWriter.WriteMemory (x: Pointer; memSize: Cardinal);
 begin
-  if (FPosition + SizeOf(Cardinal) + memSize) > FSize then
-    ExtendMemory(SizeOf(Cardinal) + memSize);
-
-// Длина блока памяти:
-  CopyMemory(Pointer(NativeUInt(FData) + FPosition),
-             @memSize, SizeOf(Cardinal));
-  FPosition := FPosition + SizeOf(Cardinal);
-// Блок памяти:
-  if memSize > 0 then
+  if (FPosition+SizeOf(Cardinal)+memSize) > FSize then ExtendMemory(SizeOf(Cardinal)+memSize);
+  // Длина блока памяти
+  CopyMemory(Pointer(PtrUInt(FData)+FPosition), @memSize, SizeOf(Cardinal));
+  FPosition := FPosition+SizeOf(Cardinal);
+  // Блок памяти
+  if (memSize > 0) then
   begin
-    CopyMemory(Pointer(NativeUInt(FData) + FPosition),
-               x, memSize);
-    FPosition := FPosition + memSize;
+    CopyMemory(Pointer(PtrUInt(FData)+FPosition), x, memSize);
+    FPosition := FPosition+memSize;
   end;
 end;
 
-Procedure TBinMemoryWriter.Fill(aLen: Cardinal; aFillSym: Byte);
+Procedure TBinMemoryWriter.Fill (aLen: Cardinal; aFillSym: Byte);
 begin
-  if (FPosition + aLen) > FSize then
-    ExtendMemory(aLen);
-
-  if aLen > 0 then
+  if (FPosition+aLen > FSize) then ExtendMemory(aLen);
+  if (aLen > 0) then
   begin
-    FillMemory(Pointer(NativeUInt(FData) + FPosition),
-               aLen, aFillSym);
-    FPosition := FPosition + aLen;
+    FillMemory(Pointer(PtrUInt(FData) + FPosition), aLen, aFillSym);
+    FPosition := FPosition+aLen;
   end;
 end;
 
