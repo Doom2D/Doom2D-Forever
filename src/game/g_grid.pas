@@ -21,6 +21,7 @@
   {.$DEFINE D2F_DEBUG_MOVER}
 {$ENDIF}
 {.$DEFINE GRID_USE_ORTHO_ACCEL}
+{$DEFINE LINEAABB2}
 unit g_grid;
 
 interface
@@ -249,12 +250,10 @@ type
   private
     wx0, wy0, wx1, wy1: Integer; // window coordinates
     stx, sty: Integer; // "steps" for x and y axes
-    dx2, dy2: Integer; // "double lengthes" for x and y axes
+    stleft: Integer; // "steps left"
+    err, errinc, errmax: Integer;
     xd, yd: Integer; // current coord
-    e: Integer; // "error" (as in bresenham algo)
-    term: Integer; // end for xd (xd = term: done)
-    //xptr, yptr: PInteger;
-    xyswapped: Boolean; // true: xd is y
+    horiz: Boolean;
 
   public
     // call `setyp` after this
@@ -278,18 +277,12 @@ type
     // move to next tile; return `true` if the line is complete (and walker state is undefined then)
     function stepToNextTile (): Boolean; inline;
 
-    // hack for line-vs-aabb; NOT PROPERLY TESTED!
-    procedure getPrevXY (out ox, oy: Integer); inline;
-
-    // current coords
-    function x (): Integer; inline;
-    function y (): Integer; inline;
-
     procedure getXY (out ox, oy: Integer); inline;
 
-    // move directions; always [-1..1] (can be zero!)
-    function dx (): Integer; inline;
-    function dy (): Integer; inline;
+  public
+    // current coords
+    property x: Integer read xd;
+    property y: Integer read yd;
   end;
 
 
@@ -332,6 +325,103 @@ function distanceSq (x0, y0, x1, y1: Integer): Integer; inline; begin result := 
 
 
 // ////////////////////////////////////////////////////////////////////////// //
+function clipLine (var x0, y0, x1, y1: Single; xmin, ymin, xmax, ymax: Single): Boolean;
+const
+  Inside = 0;
+  Left = 1;
+  Right = 2;
+  Bottom = 4;
+  Top = 8;
+
+  function xcode (x, y: Single): Byte; inline;
+  begin
+    result := Inside;
+    if (x < xmin) then result := result or Left else if (x > xmax) then result := result or Right;
+    if (y < ymin) then result := result or Bottom else if (y > ymax) then result := result or Top;
+  end;
+
+var
+  outcode0, outcode1, outcodeOut: Byte;
+  x: Single = 0;
+  y: Single = 0;
+begin
+  result := false; // accept
+  outcode0 := xcode(x0, y0);
+  outcode1 := xcode(x1, y1);
+  while true do
+  begin
+    if ((outcode0 or outcode1) = 0) then begin result := true; exit; end; // accept
+    if ((outcode0 and outcode1) <> 0) then exit; // reject
+    outcodeOut := outcode0;
+    if (outcodeOut = 0) then outcodeOut := outcode1;
+    if ((outcodeOut and Top) <> 0) then
+    begin
+      x := x0+(x1-x0)*(ymax-y0)/(y1-y0);
+      y := ymax;
+    end
+    else if ((outcodeOut and Bottom) <> 0) then
+    begin
+      x := x0+(x1-x0)*(ymin-y0)/(y1-y0);
+      y := ymin;
+    end
+    else if ((outcodeOut and Right) <> 0) then
+    begin
+      y := y0+(y1-y0)*(xmax-x0)/(x1-x0);
+      x := xmax;
+    end
+    else if ((outcodeOut and Left) <> 0) then
+    begin
+      y := y0+(y1-y0)*(xmin-x0)/(x1-x0);
+      x := xmin;
+    end;
+    if (outcodeOut = outcode0) then
+    begin
+      x0 := x;
+      y0 := y;
+      outcode0 := xcode(x0, y0);
+    end
+    else
+    begin
+      x1 := x;
+      y1 := y;
+      outcode1 := xcode(x1, y1);
+    end;
+  end;
+end;
+
+
+// returns `true` if there is an intersection, and enter coords
+// enter coords will be equal to (x0, y0) if starting point is inside the box
+// if result is `false`, `inx` and `iny` are undefined
+function lineAABBIntersects (x0, y0, x1, y1: Integer; bx, by, bw, bh: Integer; out inx, iny: Integer): Boolean;
+var
+  sx0, sy0, sx1, sy1: Single;
+begin
+  inx := x0;
+  iny := y0;
+  result := false;
+  if (bw < 1) or (bh < 1) then exit;
+  if (x0 >= bx) and (y0 >= by) and (x0 < bx+bw) and (y0 < by+bh) then begin result := true; exit; end;
+  sx0 := x0; sy0 := y0;
+  sx1 := x1; sy1 := y1;
+  result := clipLine(sx0, sy0, sx1, sy1, bx, by, bx+bw-1, by+bh-1);
+  if result then
+  begin
+    inx := trunc(sx0);
+    iny := trunc(sy0);
+    // hack!
+    if (inx = bx) then Dec(inx) else if (inx = bx+bw-1) then Inc(inx);
+    if (iny = by) then Dec(iny) else if (iny = by+bh-1) then Inc(iny);
+  end
+  else
+  begin
+    inx := x1;
+    iny := y1;
+  end;
+end;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
 constructor TLineWalker.Create (minx, miny, maxx, maxy: Integer);
 begin
   setClip(minx, miny, maxx, maxy);
@@ -346,334 +436,225 @@ begin
   wy1 := maxy;
 end;
 
-function TLineWalker.done (): Boolean; inline; begin result := (xd = term); end;
-
-function TLineWalker.step (): Boolean; inline;
+function TLineWalker.setup (x0, y0, x1, y1: Integer): Boolean;
+var
+  sx0, sy0, sx1, sy1: Single;
 begin
-  if (e >= 0) then begin yd += sty; e -= dx2; end else e += dy2;
-  xd += stx;
-  result := (xd = term);
+  if (wx1 < wx0) or (wy1 < wy0) then begin stleft := 0; xd := x0; yd := y0; result := false; exit; end;
+
+  if (x0 >= wx0) and (y0 >= wy0) and (x0 <= wx1) and (y0 <= wy1) and
+     (x1 >= wx0) and (y1 >= wy0) and (x1 <= wx1) and (y1 <= wy1) then
+  begin
+    result := true;
+  end
+  else
+  begin
+    sx0 := x0; sy0 := y0;
+    sx1 := x1; sy1 := y1;
+    result := clipLine(sx0, sy0, sx1, sy1, wx0, wy0, wx1, wy1);
+    if not result then begin stleft := 0; xd := x0; yd := y0; exit; end;
+    x0 := trunc(sx0); y0 := trunc(sy0);
+    x1 := trunc(sx1); y1 := trunc(sy1);
+  end;
+
+  // check for ortho lines
+  if (y0 = y1) then
+  begin
+    // horizontal
+    horiz := true;
+    stleft := abs(x1-x0)+1;
+    if (x0 < x1) then stx := 1 else stx := -1;
+    sty := 0;
+    errinc := 0;
+    errmax := 10; // anything that is greater than zero
+  end
+  else if (x0 = x1) then
+  begin
+    // vertical
+    horiz := false;
+    stleft := abs(y1-y0)+1;
+    stx := 0;
+    if (y0 < y1) then sty := 1 else sty := -1;
+    errinc := 0;
+    errmax := 10; // anything that is greater than zero
+  end
+  else
+  begin
+    // diagonal
+    if (abs(x1-x0) >= abs(y1-y0)) then
+    begin
+      // horizontal
+      horiz := true;
+      stleft := abs(x1-x0)+1;
+      errinc := abs(y1-y0)+1;
+    end
+    else
+    begin
+      // vertical
+      horiz := false;
+      stleft := abs(y1-y0)+1;
+      errinc := abs(x1-x0)+1;
+    end;
+    if (x0 < x1) then stx := 1 else stx := -1;
+    if (y0 < y1) then sty := 1 else sty := -1;
+    errmax := stleft;
+  end;
+  xd := x0;
+  yd := y0;
+  err := -errmax;
 end;
 
+function TLineWalker.done (): Boolean; inline; begin result := (stleft <= 0); end;
+
+// true: done
+function TLineWalker.step (): Boolean; inline;
+begin
+  if horiz then
+  begin
+    xd += stx;
+    err += errinc;
+    if (err >= 0) then begin err -= errmax; yd += sty; end;
+  end
+  else
+  begin
+    yd += sty;
+    err += errinc;
+    if (err >= 0) then begin err -= errmax; xd += stx; end;
+  end;
+  Dec(stleft);
+  result := (stleft <= 0);
+end;
+
+// true: done
 function TLineWalker.stepToNextTile (): Boolean; inline;
 var
   ex, ey: Integer;
   xwalk, ywalk, wklen: Integer; // to the respective edges
-  lstx, lsty, lterm: Integer;
-  le, ldx2, ldy2: Integer;
-  lxd, lyd: Integer;
   f: Integer;
 begin
   result := false;
 
-  lstx := stx;
-  lsty := sty;
-  lterm := term;
-  lxd := xd;
+  if (stleft < 2) then begin result := true; exit; end; // max one pixel left, nothing to do
 
-  // ortho?
-  if (lsty = 0) then
+  // strictly horizontal?
+  if (sty = 0) then
   begin
     // only xd
-    //assert(lsty <> 0);
-    if (lstx < 0) then
+    if (stx < 0) then
     begin
       // xd: to left edge
-      xd := (lxd and (not (TileSize-1)))-1;
-      result := (lxd <= lterm);
-      exit;
+      ex := (xd and (not (TileSize-1)))-1;
+      stleft -= xd-ex;
     end
     else
     begin
       // xd: to right edge
-      xd := (lxd or (TileSize-1))+1;
-      result := (lxd >= lterm);
-      exit;
+      ex := (xd or (TileSize-1))+1;
+      stleft -= ex-xd;
     end;
+    result := (stleft <= 0);
+    xd := ex;
+    exit;
   end;
 
-  // not ortho
-  //assert(lstx <> 0); // invariant
+  // strictly vertical?
+  if (stx = 0) then
+  begin
+    // only xd
+    if (sty < 0) then
+    begin
+      // yd: to top edge
+      ey := (yd and (not (TileSize-1)))-1;
+      stleft -= yd-ey;
+    end
+    else
+    begin
+      // yd: to bottom edge
+      ey := (yd or (TileSize-1))+1;
+      stleft -= ey-yd;
+    end;
+    result := (stleft <= 0);
+    yd := ey;
+    exit;
+  end;
 
-  lyd := yd;
-  le := e;
-  ldx2 := dx2;
-  ldy2 := dy2;
+  // diagonal
 
   // calculate xwalk
-  if (lstx < 0) then
+  if (stx < 0) then
   begin
-    ex := (lxd and (not (TileSize-1)))-1;
-    xwalk := lxd-ex;
+    ex := (xd and (not (TileSize-1)))-1;
+    xwalk := xd-ex;
   end
   else
   begin
-    ex := (lxd or (TileSize-1))+1;
-    xwalk := ex-lxd;
+    ex := (xd or (TileSize-1))+1;
+    xwalk := ex-xd;
   end;
 
   // calculate ywalk
-  if (lsty < 0) then
+  if (sty < 0) then
   begin
-    ey := (lyd and (not (TileSize-1)))-1;
-    ywalk := lyd-ey;
+    ey := (yd and (not (TileSize-1)))-1;
+    ywalk := yd-ey;
   end
   else
   begin
-    ey := (lyd or (TileSize-1))+1;
-    ywalk := ey-lyd;
+    ey := (yd or (TileSize-1))+1;
+    ywalk := ey-yd;
   end;
 
+  {
+  while (xd <> ex) and (yd <> ey) do
+  begin
+    if horiz then
+    begin
+      xd += stx;
+      err += errinc;
+      if (err >= 0) then begin err -= errmax; yd += sty; end;
+    end
+    else
+    begin
+      yd += sty;
+      err += errinc;
+      if (err >= 0) then begin err -= errmax; xd += stx; end;
+    end;
+    Dec(stleft);
+    if (stleft < 1) then begin result := true; exit; end;
+  end;
+  }
+
+  if (xwalk <= ywalk) then wklen := xwalk else wklen := ywalk;
   while true do
   begin
     // in which dir we want to walk?
-    if (xwalk <= ywalk) then wklen := xwalk else wklen := ywalk;
-    // walk x
-    if (lstx < 0) then
+    stleft -= wklen;
+    if (stleft <= 0) then begin result := true; exit; end;
+    if horiz then
     begin
-      lxd -= wklen;
-      if (lxd <= lterm) then begin xd := lxd; result := true; exit; end;
+      xd += wklen*stx;
+      for f := 1 to wklen do
+      begin
+        err += errinc;
+        if (err >= 0) then begin err -= errmax; yd += sty; end;
+      end;
     end
     else
     begin
-      lxd += wklen;
-      if (lxd >= lterm) then begin xd := lxd; result := true; exit; end;
+      yd += wklen*sty;
+      for f := 1 to wklen do
+      begin
+        err += errinc;
+        if (err >= 0) then begin err -= errmax; xd += stx; end;
+      end;
     end;
-    // walk y
-    for f := 1 to wklen do if (le >= 0) then begin lyd += lsty; le -= ldx2; end else le += ldy2;
-    if (lxd = ex) or (lyd = ey) then break;
-    xwalk -= wklen; if (xwalk = 0) then xwalk := TileSize;
-    ywalk -= wklen; if (ywalk = 0) then ywalk := TileSize;
-  end;
-  //assert((xd div TileSize <> lxd div TileSize) or (yd div TileSize <> lyd div TileSize));
-  xd := lxd;
-  yd := lyd;
-  e := le;
-end;
-
-// NOT TESTED!
-procedure TLineWalker.getPrevXY (out ox, oy: Integer); inline;
-begin
-  //writeln('e=', e, '; dx2=', dx2, '; dy2=', dy2);
-  if xyswapped then
-  begin
-    if (e >= 0) then ox := yd-sty else ox := yd;
-    oy := xd-stx;
-  end
-  else
-  begin
-    if (e >= 0) then oy := yd-sty else oy := yd;
-    ox := xd-stx;
+    // check for walk completion
+    if (xd = ex) or (yd = ey) then exit;
+    wklen := 1;
   end;
 end;
 
-function TLineWalker.x (): Integer; inline; begin if xyswapped then result := yd else result := xd; end;
-function TLineWalker.y (): Integer; inline; begin if xyswapped then result := xd else result := yd; end;
-procedure TLineWalker.getXY (out ox, oy: Integer); inline; begin if xyswapped then begin ox := yd; oy := xd; end else begin ox := xd; oy := yd; end; end;
-
-function TLineWalker.dx (): Integer; inline; begin if xyswapped then result := stx else result := sty; end;
-function TLineWalker.dy (): Integer; inline; begin if xyswapped then result := sty else result := stx; end;
-
-function TLineWalker.setup (x0, y0, x1, y1: Integer): Boolean;
-  procedure swapInt (var a: Integer; var b: Integer); inline; begin a := a xor b; b := b xor a; a := a xor b; end;
-var
-  dsx, dsy: Integer; // "lengthes" for x and y axes
-  rem: Integer;
-  xfixed: Boolean;
-  temp: Integer;
-begin
-  result := false;
-  xyswapped := false;
-
-  // horizontal setup
-  if (x0 < x1) then
-  begin
-    // from left to right
-    if (x0 > wx1) or (x1 < wx0) then exit; // out of screen
-    stx := 1; // going right
-  end
-  else
-  begin
-    // from right to left
-    if (x1 > wx1) or (x0 < wx0) then exit; // out of screen
-    stx := -1; // going left
-    x0 := -x0;
-    x1 := -x1;
-    wx0 := -wx0;
-    wx1 := -wx1;
-    swapInt(wx0, wx1);
-  end;
-
-  // vertical setup
-  if (y0 < y1) then
-  begin
-    // from top to bottom
-    if (y0 > wy1) or (y1 < wy0) then exit; // out of screen
-    sty := 1; // going down
-  end
-  else
-  begin
-    // from bottom to top
-    if (y1 > wy1) or (y0 < wy0) then exit; // out of screen
-    sty := -1; // going up
-    y0 := -y0;
-    y1 := -y1;
-    wy0 := -wy0;
-    wy1 := -wy1;
-    swapInt(wy0, wy1);
-  end;
-
-  dsx := x1-x0;
-  dsy := y1-y0;
-
-  if (dsx < dsy) then
-  begin
-    xyswapped := true;
-    //xptr := @yd;
-    //yptr := @xd;
-    swapInt(x0, y0);
-    swapInt(x1, y1);
-    swapInt(dsx, dsy);
-    swapInt(wx0, wy0);
-    swapInt(wx1, wy1);
-    swapInt(stx, sty);
-  end
-  else
-  begin
-    //xptr := @xd;
-    //yptr := @yd;
-  end;
-
-  dx2 := 2*dsx;
-  dy2 := 2*dsy;
-  xd := x0;
-  yd := y0;
-  e := 2*dsy-dsx;
-  term := x1;
-
-  xfixed := false;
-  if (y0 < wy0) then
-  begin
-    // clip at top
-    temp := dx2*(wy0-y0)-dsx;
-    xd += temp div dy2;
-    rem := temp mod dy2;
-    if (xd > wx1) then exit; // x is moved out of clipping rect, nothing to do
-    if (xd+1 >= wx0) then
-    begin
-      yd := wy0;
-      e -= rem+dsx;
-      //if (rem > 0) then begin Inc(xd); e += dy2; end; //BUGGY
-      if (xd < wx0) then begin xd += 1; e += dy2; end; //???
-      xfixed := true;
-    end;
-  end;
-
-  if (not xfixed) and (x0 < wx0) then
-  begin
-    // clip at left
-    temp := dy2*(wx0-x0);
-    yd += temp div dx2;
-    rem := temp mod dx2;
-    if (yd > wy1) or (yd = wy1) and (rem >= dsx) then exit;
-    xd := wx0;
-    e += rem;
-    if (rem >= dsx) then begin Inc(yd); e -= dx2; end;
-  end;
-
-  if (y1 > wy1) then
-  begin
-    // clip at bottom
-    temp := dx2*(wy1-y0)+dsx;
-    term := x0+temp div dy2;
-    rem := temp mod dy2;
-    if (rem = 0) then Dec(term);
-  end;
-
-  if (term > wx1) then term := wx1; // clip at right
-
-  Inc(term); // draw last point (it is ok to inc here, as `term` sign will be changed later
-  //if (term = xd) then exit; // this is the only point, get out of here
-
-  if (sty = -1) then yd := -yd;
-  if (stx = -1) then begin xd := -xd; term := -term; end;
-  dx2 -= dy2;
-
-  result := true;
-end;
-
-
-// ////////////////////////////////////////////////////////////////////////// //
-// true: has something to draw
-// based on paper by S.R.Kodituwakku, K.R.Wijeweera, M.A.P.Chamikara
-function clipMY (var x0, y0, x1, y1: Single; minx, miny, maxx, maxy: Single): Boolean;
-var
-  m, c: Single;
-begin
-  // non vertical lines
-  if (x0 <> x1) then
-  begin
-    // non vertical and non horizontal lines
-    if (y0 <> y1) then
-    begin
-      m := (y0-y1)/(x0-x1); // gradient
-      c := (x0*y1-x1*y0)/(x0-x1); // y-intercept
-           if (x0 < minx) then begin x0 := minx; y0 := m*minx+c; end
-      else if (x0 > maxx) then begin x0 := maxx; y0 := m*maxx+c; end;
-           if (y0 < miny) then begin x0 := (miny-c)/m; y0 := miny; end
-      else if (y0 > maxy) then begin x0 := (maxy-c)/m; y0 := maxy; end;
-           if (x1 < minx) then begin x1 := minx; y1 := m*minx+c; end
-      else if (x1 > maxx) then begin x1 := maxx; y1 := m*maxx+c; end;
-           if (y1 < miny) then begin x1 := (miny-c)/m; y1 := miny; end
-      else if (y1 > maxy) then begin x1 := (maxy-c)/m; y1 := maxy; end;
-      result := not ((x0-x1 < 1) and (x1-x0 < 1)); // completely outside?
-    end
-    else
-    begin
-      // horizontal lines
-      if (y0 <= miny) or (y0 >= maxy) then begin result := false; exit; end; // completely outside
-      if (x0 < minx) then x0 := minx else if (x0 > maxx) then x0 := maxx;
-      if (x1 < minx) then x1 := minx else if (x1 > maxx) then x1 := maxx;
-      result := not ((x0-x1 < 1) and (x1-x0 < 1)); // completely outside?
-    end;
-  end
-  else
-  begin
-    // vertical lines
-    // initial line is just a point
-    if (y0 = y1) then
-    begin
-      result := not ((y0 <= miny) or (y0 >= maxy) or (x0 <= minx) or (x0 >= maxx));
-    end
-    else if (x0 <= minx) or (x0 >= maxx) then
-    begin
-      // completely outside
-      result := false;
-    end
-    else
-    begin
-      if (y0 < miny) then y0 := miny else if (y0 > maxy) then y0 := maxy;
-      if (y1 < miny) then y1 := miny else if (y1 > maxy) then y1 := maxy;
-      result := not ((y0-y1 < 1) and (y1-y0 < 1)); // completely outside?
-    end;
-  end;
-end;
-
-// you are not supposed to understand this
-// returns `true` if there is an intersection, and enter coords
-// enter coords will be equal to (x0, y0) if starting point is inside the box
-// if result is `false`, `inx` and `iny` are undefined
-function lineAABBIntersects (x0, y0, x1, y1: Integer; bx, by, bw, bh: Integer; out inx, iny: Integer): Boolean;
-var
-  sx0, sy0, sx1, sy1: Single;
-begin
-  if (bw < 1) or (bh < 1) then begin inx := x0; iny := y0; result := false; exit; end;
-  if (x0 >= bx) and (y0 >= by) and (x0 < bx+bw) and (y0 < by+bh) then begin inx := x0; iny := y0; result := true; exit; end;
-  sx0 := x0; sy0 := y0;
-  sx1 := x1; sy1 := y1;
-  result := clipMY(sx0, sy0, sx1, sy1, bx, by, bx+bw-1, by+bh-1);
-  if result then begin inx := trunc(sx0); iny := trunc(sy0); end else begin inx := x1; iny := y1; end;
-end;
+procedure TLineWalker.getXY (out ox, oy: Integer); inline; begin ox := xd; oy := yd; end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
@@ -2065,7 +2046,7 @@ end;
 // you are not supposed to understand this
 function TBodyGridBase.traceRay (out ex, ey: Integer; const ax0, ay0, ax1, ay1: Integer; cb: TGridQueryCB; tagmask: Integer=-1): ITP;
 var
-  lw, sweepw: TLineWalker;
+  lw: TLineWalker;
   ccidx: Integer;
   cc: PGridCell;
   px: PBodyProxyRec;
@@ -2098,9 +2079,11 @@ begin
   lw := TLineWalker.Create(0, 0, gw*mTileSize-1, gh*mTileSize-1);
   if not lw.setup(x0, y0, x1, y1) then exit; // out of screen
 
-  sweepw := TLineWalker.Create(0, 0, 1, 1); // doesn't matter, just shut ups the compiler
-
   lastDistSq := distanceSq(ax0, ay0, ax1, ay1)+1;
+
+  {$IF DEFINED(D2F_DEBUG)}
+  //if assigned(dbgRayTraceTileHitCB) then e_LogWritefln('*** traceRay: (%s,%s)-(%s,%s)', [x0, y0, x1, y1]);
+  {$ENDIF}
 
   if mInQuery then raise Exception.Create('recursive queries aren''t supported');
   mInQuery := true;
@@ -2117,6 +2100,9 @@ begin
 
   repeat
     lw.getXY(cx, cy);
+    {$IF DEFINED(D2F_DEBUG)}
+    if assigned(dbgRayTraceTileHitCB) then dbgRayTraceTileHitCB(cx+mMinX, cy+mMinY);
+    {$ENDIF}
     // check tile
     ccidx := mGrid[(cy div mTileSize)*gw+(cx div mTileSize)];
     // process cells
@@ -2141,6 +2127,9 @@ begin
           py0 := px.mY-miny;
           px1 := px0+px.mWidth-1;
           py1 := py0+px.mHeight-1;
+          {$IF DEFINED(D2F_DEBUG)}
+          //if assigned(dbgRayTraceTileHitCB) then e_LogWritefln(' cxy=(%s,%s); pan=(%s,%s)-(%s,%s)', [cx, cy, px0, py0, px1, py1]);
+          {$ENDIF}
           // inside?
           if firstCell and (x0 >= px0) and (y0 >= py0) and (x0 <= px1) and (y0 <= py1) then
           begin
@@ -2149,23 +2138,25 @@ begin
             ey := ay0;
             result := px.mObj;
             mInQuery := false;
+            {$IF DEFINED(D2F_DEBUG)}
+            if assigned(dbgRayTraceTileHitCB) then e_LogWriteln('  INSIDE!');
+            {$ENDIF}
             exit;
           end;
           // do line-vs-aabb test
-          sweepw.setClip(px0, py0, px1, py1);
-          if sweepw.setup(x0, y0, x1, y1) then
+          if lineAABBIntersects(x0, y0, x1, y1, px0, py0, px1-px0+1, py1-py0+1, hx, hy) then
           begin
             // hit detected
-            sweepw.getPrevXY(hx, hy);
             distSq := distanceSq(x0, y0, hx, hy);
+            {$IF DEFINED(D2F_DEBUG)}
+            //if assigned(dbgRayTraceTileHitCB) then e_LogWritefln('  hit=(%s,%s); distSq=%s; lastDistSq=%s', [hx, hy, distSq, lastDistSq]);
+            {$ENDIF}
             if (distSq < lastDistSq) then
             begin
               lastDistSq := distSq;
               ex := hx+minx;
               ey := hy+miny;
               result := px.mObj;
-              // if this is not a first cell, get outta here
-              if not firstCell then begin mInQuery := false; exit; end;
               wasHit := true;
             end;
           end;

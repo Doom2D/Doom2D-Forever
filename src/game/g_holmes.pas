@@ -967,6 +967,8 @@ procedure plrDebugDraw ();
   procedure hilightCell1 (cx, cy: Integer);
   begin
     //e_WriteLog(Format('h1: (%d,%d)', [cx, cy]), MSG_NOTIFY);
+    cx := cx and (not (monsGrid.tileSize-1));
+    cy := cy and (not (monsGrid.tileSize-1));
     fillRect(cx, cy, monsGrid.tileSize, monsGrid.tileSize, 255, 255, 0, 92);
   end;
 
@@ -1037,7 +1039,7 @@ procedure plrDebugDraw ();
       mon.getMapBox(mx, my, mw, mh);
       drawLine(mx+mw div 2, my+mh div 2, emx+emw div 2, emy+emh div 2, 255, 0, 0, 255);
       {$IF DEFINED(D2F_DEBUG)}
-      //mapGrid.dbgRayTraceTileHitCB := hilightCell1;
+      mapGrid.dbgRayTraceTileHitCB := hilightCell1;
       {$ENDIF}
       if (g_Map_traceToNearestWall(mx+mw div 2, my+mh div 2, emx+emw div 2, emy+emh div 2, @ex, @ey) <> nil) then
       //if (mapGrid.traceRay(ex, ey, mx+mw div 2, my+mh div 2, emx+emw div 2, emy+emh div 2, hilightWallTrc, (GridTagWall or GridTagDoor)) <> nil) then
@@ -1045,7 +1047,7 @@ procedure plrDebugDraw ();
         drawLine(mx+mw div 2, my+mh div 2, ex, ey, 0, 255, 0, 255);
       end;
       {$IF DEFINED(D2F_DEBUG)}
-      //mapGrid.dbgRayTraceTileHitCB := nil;
+      mapGrid.dbgRayTraceTileHitCB := nil;
       {$ENDIF}
     end;
 
@@ -1205,6 +1207,8 @@ procedure plrDebugDraw ();
 var
   mon: TMonster;
   mx, my, mw, mh: Integer;
+  //pan: TPanel;
+  //ex, ey: Integer;
 begin
   if (gPlayer1 = nil) then exit;
 
@@ -1240,6 +1244,22 @@ begin
   if showTraceBox then drawTraceBox();
 
   //drawGibsBoxes();
+
+
+  //pan := g_Map_traceToNearest(16, 608, 16, 8, (GridTagObstacle or GridTagLiquid), @ex, @ey);
+  (*
+  {$IF DEFINED(D2F_DEBUG)}
+  mapGrid.dbgRayTraceTileHitCB := hilightCell1;
+  {$ENDIF}
+  pan := mapGrid.traceRay(ex, ey, 16, 608, 16, 8, nil, (GridTagObstacle or GridTagLiquid));
+  if (pan <> nil) then writeln('end=(', ex, ',', ey, ')');
+  {$IF DEFINED(D2F_DEBUG)}
+  mapGrid.dbgRayTraceTileHitCB := nil;
+  {$ENDIF}
+
+  pan := g_Map_PanelAtPoint(16, 608, (GridTagObstacle or GridTagLiquid));
+  if (pan <> nil) then writeln('hit!');
+  *)
 
   glPopMatrix();
 

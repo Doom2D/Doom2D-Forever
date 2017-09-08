@@ -527,7 +527,7 @@ procedure TParticle.thinkerBloodAndWater ();
     ex: Integer;
   begin
     state := TPartState.Stuck;
-    if (dX > 0) then stickDX := 1 else stickDX := -1;
+    if (dx > 0) then stickDX := 1 else stickDX := -1;
     freeze();
     // find next floor transition
     findFloor();
@@ -587,7 +587,7 @@ label
   _done, _gravityagain, _stuckagain;
 var
   pan: TPanel;
-  dX, dY: SmallInt;
+  dx, dy: SmallInt;
   ex, ey: Integer;
   checkEnv: Boolean;
   floorJustTraced: Boolean;
@@ -595,7 +595,7 @@ var
   oldFloorY: Integer;
   {$ENDIF}
 begin
-  if not gpart_dbg_phys_enabled then goto _done;
+  if not gpart_dbg_phys_enabled then begin x += round(velX); y += round(velY); goto _done; end;
 
   if gAdvBlood then
   begin
@@ -682,8 +682,8 @@ begin
     end;
 
     // it is important to have it here
-    dX := round(velX);
-    dY := round(velY);
+    dx := round(velX);
+    dy := round(velY);
 
     if (state = TPartState.Normal) then checkAirStreams();
 
@@ -730,10 +730,10 @@ begin
     end;
 
     // trace movement
-    if (dX <> 0) then
+    if (dx <> 0) then
     begin
       // has some horizontal velocity
-      pan := g_Map_traceToNearest(x, y, x+dX, y+dY, GridTagObstacle, @ex, @ey);
+      pan := g_Map_traceToNearest(x, y, x+dx, y+dy, GridTagObstacle, @ex, @ey);
       checkEnv := (x <> ex);
       x := ex;
       y := ey;
@@ -750,11 +750,11 @@ begin
         // we stuck
         // the only case when we can have both ceiling and wall is corner; stick to wall in this case
         // check if we stuck to a wall
-        if (dX < 0) then dX := -1 else dX := 1;
-        if (g_Map_PanelAtPoint(x+dX, y, GridTagObstacle) <> nil) then
+        if (dx < 0) then dx := -1 else dx := 1;
+        if (g_Map_PanelAtPoint(x+dx, y, GridTagObstacle) <> nil) then
         begin
           // stuck to a wall
-          stickToWall(dX);
+          stickToWall(dx);
         end
         else
         begin
@@ -763,31 +763,31 @@ begin
         end;
       end;
     end
-    else if (dY <> 0) then
+    else if (dy <> 0) then
     begin
       // has only vertical velocity
-      if (dY < 0) then
+      if (dy < 0) then
       begin
         // flying up
         if (ceilingY = Unknown) then findCeiling(); // need to do this anyway
-        y += dY;
+        y += dy;
         if (y <= ceilingY) then begin y := ceilingY; stickToCeiling(); end; // oops, hit a ceiling
         // environment didn't changed
       end
       else
       begin
-        while (dY > 0) do
+        while (dy > 0) do
         begin
           // falling down
           floorJustTraced := (floorY = Unknown);
           if floorJustTraced then findFloor();
           if (floorType = TFloorType.LiquidOut) then env := TEnvType.ELiquid else env := TEnvType.EAir;
-          y += dY;
+          y += dy;
           //e_LogWritefln('floorY=%s; newy=%s; dY=%s; floorType=%s', [floorY, y, dY, floorType]);
           if (y >= floorY) then
           begin
             // floor transition
-            dY := y-floorY;
+            dy := y-floorY;
             y := floorY;
             //e_LogWritefln('  HIT FLOORY: floorY=%s; newy=%s; dY=%s; floorType=%s', [floorY, y, dY, floorType]);
             case floorType of
@@ -845,10 +845,10 @@ begin
   else
   begin
     // simple blood
-    dX := round(velX);
-    dY := round(velY);
-    y += dY;
-    x += dX;
+    dx := round(velX);
+    dy := round(velY);
+    y += dy;
+    x += dx;
     if (g_Map_PanelAtPoint(x, y, GridTagObstacle) <> nil) then begin die(); exit; end;
   end;
 
@@ -1120,14 +1120,14 @@ end;
 // ////////////////////////////////////////////////////////////////////////// //
 procedure TParticle.thinkerBubble ();
 var
-  dY: Integer;
+  dy: Integer;
 begin
-  dY := round(velY);
+  dy := round(velY);
 
-  if (dY <> 0) then
+  if (dy <> 0) then
   begin
-    y += dY;
-    if (dY < 0) then
+    y += dy;
+    if (dy < 0) then
     begin
       if (y <= ceilingY) then begin die(); exit; end;
     end
@@ -1227,14 +1227,16 @@ procedure TParticle.thinkerSpark ();
 label
   _done;
 var
-  dX, dY: SmallInt;
+  dx, dy: SmallInt;
   pan: TPanel;
   ex, ey: Integer;
 begin
-  if not gpart_dbg_phys_enabled then goto _done;
+  if not gpart_dbg_phys_enabled then begin x += round(velX); y += round(velY); goto _done; end;
 
-  dX := round(velX);
-  dY := round(velY);
+  dx := round(velX);
+  dy := round(velY);
+
+  //writeln('spark0: pos=(', x, ',', y, '); delta=(', dx, ',', dy, '); state=', state, '; ceilingY=', ceilingY, '; floorY=', floorY);
 
   // apply gravity
   if (abs(velX) < 0.1) and (abs(velY) < 0.1) then
@@ -1244,10 +1246,10 @@ begin
   end;
 
   // flying
-  if (dX <> 0) then
+  if (dx <> 0) then
   begin
     // has some horizontal velocity
-    pan := g_Map_traceToNearest(x, y, x+dX, y+dY, (GridTagObstacle or GridTagLiquid), @ex, @ey);
+    pan := g_Map_traceToNearest(x, y, x+dx, y+dy, (GridTagObstacle or GridTagLiquid), @ex, @ey);
     if (x <> ex) then begin floorY := Unknown; ceilingY := Unknown; end; // dunno yet
     x := ex;
     y := ey;
@@ -1259,14 +1261,14 @@ begin
       accelX := 0;
     end;
   end
-  else if (dY <> 0) then
+  else if (dy <> 0) then
   begin
     // has some vertical velocity
-    if (dY < 0) then
+    if (dy < 0) then
     begin
       // flying up
       if (ceilingY = Unknown) then findCeiling(); // need to do this anyway
-      y += dY;
+      y += dy;
       if (y <= ceilingY) then
       begin
         // oops, hit a ceiling
@@ -1280,7 +1282,7 @@ begin
     begin
       // falling down
       if (floorY = Unknown) then findFloor(); // need to do this anyway
-      y += dY;
+      y += dy;
       if (y >= floorY) then
       begin
         // hit something except a floor?
@@ -1303,6 +1305,8 @@ _done:
     if (accelY < 10) then accelY += 0.08;
     velY += accelY;
   end;
+
+  //writeln('spark1: pos=(', x, ',', y, '); delta=(', velX:6:3, ',', velY:6:3, '); state=', state, '; ceilingY=', ceilingY, '; floorY=', floorY);
 
   time += 1;
 end;
