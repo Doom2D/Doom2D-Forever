@@ -19,8 +19,25 @@ unit exoma;
 interface
 
 uses
-  typinfo, Variants, hashtable, xparser;
+  typinfo, SysUtils, Variants, hashtable, xparser;
 
+
+// ////////////////////////////////////////////////////////////////////////// //
+type
+  TExomaException = class(Exception)
+  public
+    constructor Create (const amsg: AnsiString);
+    constructor CreateFmt (const afmt: AnsiString; const args: array of const);
+  end;
+
+  TExomaParseException = class(TExomaException)
+  public
+    tokLine, tokCol: Integer;
+
+  public
+    constructor Create (pr: TTextParser; const amsg: AnsiString);
+    constructor CreateFmt (pr: TTextParser; const afmt: AnsiString; const args: array of const);
+  end;
 
 // ////////////////////////////////////////////////////////////////////////// //
 type
@@ -44,6 +61,9 @@ type
 type
   TExprScope = class
   public
+    class procedure error (const amsg: AnsiString);
+    class procedure errorfmt (const afmt: AnsiString; const args: array of const);
+
     function getObj (const aname: AnsiString): TObject; virtual;
     function getField (obj: TObject; const afldname: AnsiString): Variant; virtual;
     procedure setField (obj: TObject; const afldname: AnsiString; var aval: Variant); virtual;
@@ -54,10 +74,21 @@ type
     class function coerce2bool (var v0: Variant): Boolean;
     class function toInt (var v: Variant): LongInt;
   public
-    class procedure error ();
+    class procedure error (const amsg: AnsiString);
+    class procedure errorfmt (const afmt: AnsiString; const args: array of const);
+
+    class procedure parseError (pr: TTextParser; const amsg: AnsiString);
+    class procedure parseError (pr: TTextParser; const afmt: AnsiString; const args: array of const);
+
     class function parse (pr: TTextParser; allowAssign: Boolean=false): TExprBase;
     class function parse (const str: AnsiString; allowAssign: Boolean=false): TExprBase;
     class function parseStatList (const str: AnsiString): TExprBase;
+
+    class function isFloat (var v: Variant): Boolean; inline;
+    class function isInt (var v: Variant): Boolean; inline;
+    class function isBool (var v: Variant): Boolean; inline;
+    class function isStr (var v: Variant): Boolean; inline;
+
   public
     function value (scope: TExprScope): Variant; virtual; abstract;
     procedure assign (scope: TExprScope; var v: Variant); virtual;
@@ -108,8 +139,17 @@ type
     function clone (): TExprBase; override;
   end;
 
-  TUnExprNeg = class(TUnExpr) public function value (scope: TExprScope): Variant; override; function toString (): AnsiString; override; end;
-  TUnExprNot = class(TUnExpr) public function value (scope: TExprScope): Variant; override; function toString (): AnsiString; override; end;
+  TUnExprNeg = class(TUnExpr)
+  public
+    function value (scope: TExprScope): Variant; override;
+    function toString (): AnsiString; override;
+  end;
+
+  TUnExprNot = class(TUnExpr)
+  public
+    function value (scope: TExprScope): Variant; override;
+    function toString (): AnsiString; override;
+  end;
 
   TDotExpr = class(TExprBase)
   private
@@ -152,6 +192,17 @@ type
 
   TBinAssign = class(TBinExpr) public function value (scope: TExprScope): Variant; override; function toString (): AnsiString; override; end;
 
+  TExprCond = class(TExprBase)
+  private
+    mCond, mTrue, mFalse: TExprBase;
+  public
+    constructor Create ();
+    destructor Destroy (); override;
+    function value (scope: TExprScope): Variant; override;
+    function toString (): AnsiString; override;
+    function clone (): TExprBase; override;
+  end;
+
 
 // ////////////////////////////////////////////////////////////////////////// //
 function typeKind2Str (t: TTypeKind): AnsiString;
@@ -160,7 +211,33 @@ function typeKind2Str (t: TTypeKind): AnsiString;
 implementation
 
 uses
-  SysUtils, utils;
+  utils;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
+constructor TExomaException.Create (const amsg: AnsiString);
+begin
+  inherited Create(amsg);
+end;
+
+constructor TExomaException.CreateFmt (const afmt: AnsiString; const args: array of const);
+begin
+  inherited Create(formatstrf(afmt, args));
+end;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
+constructor TExomaParseException.Create (pr: TTextParser; const amsg: AnsiString);
+begin
+  if (pr <> nil) then begin tokLine := pr.tokLine; tokCol := pr.tokCol; end else begin tokLine := 0; tokCol := 0; end;
+  inherited Create(amsg);
+end;
+
+constructor TExomaParseException.CreateFmt (pr: TTextParser; const afmt: AnsiString; const args: array of const);
+begin
+  if (pr <> nil) then begin tokLine := pr.tokLine; tokCol := pr.tokCol; end else begin tokLine := 0; tokCol := 0; end;
+  inherited Create(formatstrf(afmt, args));
+end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
@@ -323,13 +400,20 @@ end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-function TExprScope.getObj (const aname: AnsiString): TObject; begin result := nil; TExprBase.error(); end;
-function TExprScope.getField (obj: TObject; const afldname: AnsiString): Variant; begin result := Unassigned; TExprBase.error(); end;
-procedure TExprScope.setField (obj: TObject; const afldname: AnsiString; var aval: Variant); begin TExprBase.error(); end;
+class procedure TExprScope.error (const amsg: AnsiString); begin raise TExomaException.Create(amsg); end;
+class procedure TExprScope.errorfmt (const afmt: AnsiString; const args: array of const); begin raise TExomaException.CreateFmt(afmt, args); end;
+
+function TExprScope.getObj (const aname: AnsiString): TObject; begin result := nil; errorfmt('unknown object ''%s''', [aname]); end;
+function TExprScope.getField (obj: TObject; const afldname: AnsiString): Variant; begin result := Unassigned; errorfmt('unknown field ''%s''', [afldname]); end;
+procedure TExprScope.setField (obj: TObject; const afldname: AnsiString; var aval: Variant); begin errorfmt('unknown field ''%s''', [afldname]); end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-class procedure TExprBase.error (); begin raise Exception.Create('math error'); end;
+class procedure TExprBase.error (const amsg: AnsiString); begin raise TExomaException.Create(amsg); end;
+class procedure TExprBase.errorfmt (const afmt: AnsiString; const args: array of const); begin raise TExomaException.CreateFmt(afmt, args); end;
+
+class procedure TExprBase.parseError (pr: TTextParser; const amsg: AnsiString); begin raise TExomaParseException.Create(pr, amsg); end;
+class procedure TExprBase.parseError (pr: TTextParser; const afmt: AnsiString; const args: array of const); begin raise TExomaParseException.CreateFmt(pr, afmt, args); end;
 
 class function TExprBase.coerce2bool (var v0: Variant): Boolean;
 begin
@@ -343,8 +427,34 @@ begin
     varShortInt, varSmallint, varInteger, varByte, varWord, varLongWord: result := (LongInt(v0) <> 0);
     varInt64: result := (Int64(v0) <> 0);
     varQWord: result := (UInt64(v0) <> 0);
-    else begin result := false; error(); end;
+    else begin result := false; error('can''t coerce type to boolean'); end;
   end;
+end;
+
+class function TExprBase.isFloat (var v: Variant): Boolean; inline;
+begin
+  case varType(v) of
+    varSingle, varDouble: result := true;
+    else result := false;
+  end;
+end;
+
+class function TExprBase.isInt (var v: Variant): Boolean; inline;
+begin
+  case varType(v) of
+    varShortInt, varSmallint, varInteger, varByte, varWord, varLongWord: result := true;
+    else result := false;
+  end;
+end;
+
+class function TExprBase.isBool (var v: Variant): Boolean; inline;
+begin
+  result := (varType(v) = varBoolean);
+end;
+
+class function TExprBase.isStr (var v: Variant): Boolean; inline;
+begin
+  result := (varType(v) = varString);
 end;
 
 class function TExprBase.toInt (var v: Variant): LongInt;
@@ -355,11 +465,11 @@ begin
     varBoolean: if Boolean(v) then result := 1 else result := 0;
     varShortInt, varSmallint, varInteger, varByte, varWord, varLongWord: result := LongInt(v);
     varInt64: result := LongInt(Int64(v));
-    else begin result := 0; TExprBase.error(); end;
+    else begin result := 0; TExprBase.error('can''t coerce type to integer'); end;
   end;
 end;
 
-procedure TExprBase.assign (scope: TExprScope; var v: Variant); begin error(); end;
+procedure TExprBase.assign (scope: TExprScope; var v: Variant); begin error('not an lvalue'); end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
@@ -398,6 +508,27 @@ end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
+constructor TExprCond.Create (); begin mCond := nil; mTrue := nil; mFalse := nil; end;
+destructor TExprCond.Destroy (); begin mFalse.Free(); mTrue.Free(); mCond.Free(); end;
+
+function TExprCond.value (scope: TExprScope): Variant;
+begin
+  result := mCond.value(scope);
+  if coerce2bool(result) then result := mTrue.value(scope) else result := mFalse.value(scope);
+end;
+
+function TExprCond.toString (): AnsiString; begin result := '('+mCond.toString()+'?'+mTrue.toString()+':'+mFalse.toString()+')'; end;
+
+function TExprCond.clone (): TExprBase;
+begin
+  result := TExprCond.Create();
+  TExprCond(result).mCond := mCond.clone();
+  TExprCond(result).mTrue := mTrue.clone();
+  TExprCond(result).mFalse := mFalse.clone();
+end;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
 constructor TObjExpr.Create (const aval: AnsiString); begin mName := aval; end;
 function TObjExpr.value (scope: TExprScope): Variant; begin result := UInt64(PtrUInt(Pointer(scope.getObj(mName)))); end;
 function TObjExpr.toString (): AnsiString; begin result := mName; end;
@@ -409,7 +540,7 @@ constructor TLitExpr.Create (aval: Boolean); begin mValue := aval; end;
 constructor TLitExpr.Create (aval: LongInt); begin mValue := aval; end;
 constructor TLitExpr.Create (const aval: AnsiString); begin mValue := aval; end;
 function TLitExpr.value (scope: TExprScope): Variant; begin result := mValue; end;
-function TLitExpr.toString (): AnsiString; begin result := VarToStr(mValue); end;
+function TLitExpr.toString (): AnsiString; begin result := VarToStr(mValue); if isStr(mValue) then result := quoteStr(result); end;
 function TLitExpr.clone (): TExprBase; begin result := TLitExpr.Create(0); (result as TLitExpr).mValue := mValue; end;
 
 
@@ -427,7 +558,7 @@ begin
     varShortInt, varSmallInt, varInteger, varByte, varWord: result := -LongInt(result);
     varInt64: result := -Int64(result);
     varLongWord: result := -LongInt(result);
-    else error();
+    else error('can''t negate non-number');
   end;
 end;
 
@@ -452,7 +583,7 @@ end;
 function TDotExpr.value (scope: TExprScope): Variant;
 begin
   result := mOp0.value(scope);
-  if (varType(result) <> varQWord) then error();
+  if (varType(result) <> varQWord) then errorfmt('can''t take field ''%s'' value of non-object', [mField]);
   result := scope.getField(TObject(PtrUInt(UInt64(result))), mField);
 end;
 
@@ -461,7 +592,7 @@ var
   o: Variant;
 begin
   o := mOp0.value(scope);
-  if (varType(o) <> varQWord) then error();
+  if (varType(o) <> varQWord) then errorfmt('can''t assign value to field ''%s'' of non-object', [mField]);
   scope.setField(TObject(PtrUInt(UInt64(o))), mField, v);
 end;
 
@@ -476,32 +607,6 @@ destructor TBinExpr.Destroy (); begin mOp1.Free(); mOp0.Free(); inherited; end;
 function TBinExpr.clone (): TExprBase; begin result := (self.ClassType.Create() as TBinExpr); (result as TBinExpr).mOp0 := mOp0.clone(); (result as TBinExpr).mOp1 := mOp1.clone(); end;
 
 class procedure TBinExpr.coerce (var v0, v1: Variant);
-  function isFloat (var v: Variant): Boolean; inline;
-  begin
-    case varType(v) of
-      varSingle, varDouble: result := true;
-      else result := false;
-    end;
-  end;
-
-  function isInt (var v: Variant): Boolean; inline;
-  begin
-    case varType(v) of
-      varShortInt, varSmallint, varInteger, varByte, varWord, varLongWord: result := true;
-      else result := false;
-    end;
-  end;
-
-  function isBool (var v: Variant): Boolean; inline;
-  begin
-    result := (varType(v) = varBoolean);
-  end;
-
-  function isStr (var v: Variant): Boolean; inline;
-  begin
-    result := (varType(v) = varString);
-  end;
-
 begin
   if (varType(v0) <> varType(v1)) then
   begin
@@ -511,36 +616,36 @@ begin
       else if isInt(v0) then v0 := formatstrf('%s', [LongInt(v0)])
       else if isBool(v0) then v0 := formatstrf('%s', [Boolean(v0)])
       else if isStr(v0) then begin end
-      else error();
+      else error('can''t coerce value to string');
            if isFloat(v1) then v1 := formatstrf('%s', [Double(v1)])
       else if isInt(v1) then v1 := formatstrf('%s', [LongInt(v1)])
       else if isBool(v1) then v1 := formatstrf('%s', [Boolean(v1)])
       else if isStr(v0) then begin end
-      else error();
+      else error('can''t coerce value to string');
     end
     else if isFloat(v0) or isFloat(v1) then
     begin
            if isFloat(v0) or isInt(v0) then v0 := Double(v0)
       else if isBool(v0) then begin if Boolean(v0) then v0 := Double(1.0) else v0 := Double(0.0); end
-      else error();
+      else error('can''t coerce value to float');
            if isFloat(v1) or isInt(v1) then v1 := Double(v1)
       else if isBool(v1) then begin if Boolean(v1) then v1 := Double(1.0) else v1 := Double(0.0); end
-      else error();
+      else error('can''t coerce value to float');
     end
     else if isInt(v0) or isInt(v1) then
     begin
            if isBool(v0) then begin if Boolean(v0) then v0 := LongInt(1) else v0 := LongInt(0); end
       else if isFloat(v0) then v0 := LongInt(trunc(Double(v0)))
       else if isInt(v0) then begin end
-      else error();
+      else error('can''t coerce value to integer');
            if isBool(v1) then begin if Boolean(v1) then v1 := LongInt(1) else v1 := LongInt(0); end
       else if isFloat(v1) then v1 := LongInt(trunc(Double(v1)))
       else if isInt(v1) then begin end
-      else error();
+      else error('can''t coerce value to integer');
     end
     else
     begin
-      error();
+      error('can''t operate with value of invalid type');
     end;
   end;
 end;
@@ -559,7 +664,7 @@ begin
     varString: result := AnsiString(result)+AnsiString(r1);
     varShortInt, varSmallint, varInteger, varByte, varWord, varLongWord: result := LongInt(result)+LongInt(r1);
     varInt64: result := Int64(result)+Int64(r1);
-    else error();
+    else error('can''t add non-numbers and non-strings');
   end;
 end;
 function TBinExprAdd.toString (): AnsiString; begin result := '('+mOp0.toString()+'+'+mOp1.toString+')'; end;
@@ -575,7 +680,7 @@ begin
     varSingle, varDouble: result := Double(result)-Double(r1);
     varShortInt, varSmallint, varInteger, varByte, varWord, varLongWord: result := LongInt(result)-LongInt(r1);
     varInt64: result := Int64(result)-Int64(r1);
-    else error();
+    else error('can''t subtract non-numbers');
   end;
 end;
 function TBinExprSub.toString (): AnsiString; begin result := '('+mOp0.toString()+'-'+mOp1.toString+')'; end;
@@ -591,7 +696,7 @@ begin
     varSingle, varDouble: result := Double(result)*Double(r1);
     varShortInt, varSmallint, varInteger, varByte, varWord, varLongWord: result := LongInt(result)*LongInt(r1);
     varInt64: result := Int64(result)*Int64(r1);
-    else error();
+    else error('can''t multiply non-numbers');
   end;
 end;
 function TBinExprMul.toString (): AnsiString; begin result := '('+mOp0.toString()+'*'+mOp1.toString+')'; end;
@@ -607,7 +712,7 @@ begin
     varSingle, varDouble: result := Double(result)/Double(r1);
     varShortInt, varSmallint, varInteger, varByte, varWord, varLongWord: result := LongInt(result) div LongInt(r1);
     varInt64: result := Int64(result) div Int64(r1);
-    else error();
+    else error('can''t divide non-numbers');
   end;
 end;
 function TBinExprDiv.toString (): AnsiString; begin result := '('+mOp0.toString()+'/'+mOp1.toString+')'; end;
@@ -622,7 +727,7 @@ begin
   case varType(result) of
     varShortInt, varSmallint, varInteger, varByte, varWord, varLongWord: result := LongInt(result) mod LongInt(r1);
     varInt64: result := Int64(result) mod Int64(r1);
-    else error();
+    else error('can''t do modulo on non-numbers');
   end;
 end;
 function TBinExprMod.toString (): AnsiString; begin result := '('+mOp0.toString()+'%'+mOp1.toString+')'; end;
@@ -657,7 +762,7 @@ begin
     varShortInt, varSmallint, varInteger, varByte, varWord, varLongWord: result := Boolean(LongInt(result) < LongInt(r1));
     varInt64: result := Boolean(Int64(result) < Int64(r1));
     varString: result := Boolean(AnsiString(result) < AnsiString(r1));
-    else error();
+    else error('can''t compare non-numbers and non-strings');
   end;
 end;
 function TBinExprCmpLess.toString (): AnsiString; begin result := '('+mOp0.toString()+'<'+mOp1.toString+')'; end;
@@ -674,7 +779,7 @@ begin
     varShortInt, varSmallint, varInteger, varByte, varWord, varLongWord: result := Boolean(LongInt(result) > LongInt(r1));
     varInt64: result := Boolean(Int64(result) > Int64(r1));
     varString: result := Boolean(AnsiString(result) > AnsiString(r1));
-    else error();
+    else error('can''t compare non-numbers and non-strings');
   end;
 end;
 function TBinExprCmpGreat.toString (): AnsiString; begin result := '('+mOp0.toString()+'>'+mOp1.toString+')'; end;
@@ -691,7 +796,7 @@ begin
     varShortInt, varSmallint, varInteger, varByte, varWord, varLongWord: result := Boolean(LongInt(result) <= LongInt(r1));
     varInt64: result := Boolean(Int64(result) <= Int64(r1));
     varString: result := Boolean(AnsiString(result) <= AnsiString(r1));
-    else error();
+    else error('can''t compare non-numbers and non-strings');
   end;
 end;
 function TBinExprCmpLessEqu.toString (): AnsiString; begin result := '('+mOp0.toString()+'<='+mOp1.toString+')'; end;
@@ -708,7 +813,7 @@ begin
     varShortInt, varSmallint, varInteger, varByte, varWord, varLongWord: result := Boolean(LongInt(result) >= LongInt(r1));
     varInt64: result := Boolean(Int64(result) >= Int64(r1));
     varString: result := Boolean(AnsiString(result) >= AnsiString(r1));
-    else error();
+    else error('can''t compare non-numbers and non-strings');
   end;
 end;
 function TBinExprCmpGreatEqu.toString (): AnsiString; begin result := '('+mOp0.toString()+'>='+mOp1.toString+')'; end;
@@ -727,7 +832,7 @@ begin
     varString: result := Boolean(AnsiString(result) = AnsiString(r1));
     varBoolean: result := (Boolean(result) = Boolean(r1));
     varQWord: result := (UInt64(result) = UInt64(r1));
-    else error();
+    else error('can''t compare non-numbers and non-strings');
   end;
 end;
 function TBinExprCmpEqu.toString (): AnsiString; begin result := '('+mOp0.toString()+'=='+mOp1.toString+')'; end;
@@ -746,7 +851,7 @@ begin
     varString: result := Boolean(AnsiString(result) <> AnsiString(r1));
     varBoolean: result := (Boolean(result) <> Boolean(r1));
     varQWord: result := (UInt64(result) <> UInt64(r1));
-    else error();
+    else error('can''t compare non-numbers and non-strings');
   end;
 end;
 function TBinExprCmpNotEqu.toString (): AnsiString; begin result := '('+mOp0.toString()+'<>'+mOp1.toString+')'; end;
@@ -770,7 +875,7 @@ begin
   pr := TStrTextParser.Create(str);
   try
     result := parse(pr, allowAssign);
-    if (pr.tokType <> pr.TTEOF) then begin result.Free(); error(); end;
+    if (pr.tokType <> pr.TTEOF) then begin result.Free(); parseError(pr, 'extra code in expression'); end;
   finally
     pr.Free();
   end;
@@ -816,16 +921,16 @@ class function TExprBase.parse (pr: TTextParser; allowAssign: Boolean=false): TE
     result := nil;
     try
       if pr.eatDelim('(') then begin result := expr(); pr.expectDelim(')'); exit; end;
-      if pr.eatDelim('!') then begin result := expr(); result := TUnExprNot.Create(result); exit; end;
-      if pr.eatDelim('-') then begin result := expr(); result := TUnExprNeg.Create(result); exit; end;
-      if pr.eatDelim('+') then begin result := expr(); exit; end;
+      if pr.eatDelim('!') then begin result := doTerm(); result := TUnExprNot.Create(result); exit; end;
+      if pr.eatDelim('+') then begin result := doTerm(); exit; end;
+      if pr.eatDelim('-') then begin result := doTerm(); result := TUnExprNeg.Create(result); exit; end;
       if (pr.tokType = pr.TTInt) then begin result := TLitExpr.Create(pr.expectInt()); exit; end;
       if (pr.tokType = pr.TTStr) then begin result := TLitExpr.Create(pr.expectStr(true)); exit; end;
       if (pr.tokType = pr.TTId) then
       begin
         if (pr.tokStr = 'true') then begin result := TLitExpr.Create(true); pr.skipToken(); exit; end;
         if (pr.tokStr = 'false') then begin result := TLitExpr.Create(false); pr.skipToken(); exit; end;
-        if (CompareText(pr.tokStr, 'true') = 0) or (CompareText(pr.tokStr, 'false') = 0) then error();
+        if (CompareText(pr.tokStr, 'true') = 0) or (CompareText(pr.tokStr, 'false') = 0) then parseError(pr, '`true` and `false` are case-sensitive');
         result := TObjExpr.Create(pr.expectId());
         while (pr.tokType = pr.TTDelim) and (pr.tokChar = '.') do
         begin
@@ -838,7 +943,7 @@ class function TExprBase.parse (pr: TTextParser; allowAssign: Boolean=false): TE
       result.Free();
       raise;
     end;
-    error();
+    parseError(pr, 'invalid term');
   end;
 
   function doMulDiv (): TExprBase;
@@ -959,22 +1064,56 @@ class function TExprBase.parse (pr: TTextParser; allowAssign: Boolean=false): TE
     if neg then result := TUnExprNeg.Create(result);
   end;
 
+  function exprMain (): TExprBase;
+  var
+    neg: Boolean = false;
+    c: TExprCond;
+  begin
+         if pr.eatDelim('-') then neg := true
+    else if pr.eatDelim('+') then neg := false;
+    result := doLogOr();
+    if neg then result := TUnExprNeg.Create(result);
+    // ternary
+    if pr.eatDelim('?') then
+    begin
+      c := TExprCond.Create();
+      c.mCond := result;
+      try
+        c.mTrue := exprMain();
+        pr.expectTT(pr.TTColon);
+        c.mFalse := exprMain();
+        result := c;
+      except
+        c.Free();
+      end;
+    end;
+  end;
+
 var
   oas: Boolean;
 begin
   if (pr = nil) or (pr.tokType = pr.TTEOF) then begin result := nil; exit; end;
   oas := pr.allowSignedNumbers;
-  pr.allowSignedNumbers := false;
   try
-    result := expr();
-    if allowAssign and pr.eatDelim('=') then
+    pr.allowSignedNumbers := false;
     try
-      result := TBinAssign.Create(result, expr());
-    except
-      result.Free();
+      result := exprMain();
+      if allowAssign and pr.eatDelim('=') then
+      try
+        result := TBinAssign.Create(result, expr());
+      except
+        result.Free();
+      end;
+    finally
+      pr.allowSignedNumbers := oas;
     end;
-  finally
-    pr.allowSignedNumbers := oas;
+  except
+    on e: TExomaException do
+      raise TExomaParseException.Create(pr, e.message);
+    on e: Exception do
+      raise TExomaParseException.Create(pr, e.message);
+    else
+      raise;
   end;
 end;
 
