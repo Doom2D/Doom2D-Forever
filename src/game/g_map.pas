@@ -1620,6 +1620,7 @@ var
   moveSpeed{, moveStart, moveEnd}: TDFPoint;
   //moveActive: Boolean;
   pan: TPanel;
+  mapOk: Boolean = false;
 begin
   mapGrid.Free();
   mapGrid := nil;
@@ -1689,6 +1690,8 @@ begin
       e_LogWritefln('invalid map file: ''%s''', [mapResName]);
       exit;
     end;
+
+    gCurrentMap := mapReader;
 
     generateExternalResourcesList(mapReader);
     mapTextureList := mapReader['texture'];
@@ -1778,6 +1781,8 @@ begin
         begin
           e_WriteLog('error loading map: invalid texture index for panel', MSG_FATALERROR);
           result := false;
+          gCurrentMap := nil;
+          gCurrentMapFileName := '';
           exit;
         end;
       end;
@@ -2156,10 +2161,16 @@ begin
 
     stt := curTimeMicro()-stt;
     e_LogWritefln('map loaded in %s.%s milliseconds', [Integer(stt div 1000), Integer(stt mod 1000)]);
+    mapOk := true;
   finally
     sfsGCEnable(); // enable releasing unused volumes
     mapReader.Free();
     e_ClearInputBuffer(); // why not?
+    if not mapOk then
+    begin
+      gCurrentMap := nil;
+      gCurrentMapFileName := '';
+    end;
   end;
 
   e_WriteLog('Done loading map.', MSG_NOTIFY);

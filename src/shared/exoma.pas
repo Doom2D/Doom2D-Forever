@@ -49,11 +49,20 @@ type
     pc: Integer;
 
   public
-    constructor Create (aklass: TClass);
+    constructor Create (aklass: TClass; const apfx: AnsiString='');
     destructor Destroy (); override;
 
     function get (obj: TObject; const fldname: AnsiString; out v: Variant): Boolean;
     function put (obj: TObject; const fldname: AnsiString; var v: Variant): Boolean;
+  end;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
+type
+  TExprConstList = class
+  public
+    function valid (const cname: AnsiString): Boolean; virtual; abstract;
+    function get (const cname: AnsiString; out v: Variant): Boolean; virtual; abstract;
   end;
 
 
@@ -78,11 +87,11 @@ type
     class procedure errorfmt (const afmt: AnsiString; const args: array of const);
 
     class procedure parseError (pr: TTextParser; const amsg: AnsiString);
-    class procedure parseError (pr: TTextParser; const afmt: AnsiString; const args: array of const);
+    class procedure parseErrorFmt (pr: TTextParser; const afmt: AnsiString; const args: array of const);
 
-    class function parse (pr: TTextParser; allowAssign: Boolean=false): TExprBase;
-    class function parse (const str: AnsiString; allowAssign: Boolean=false): TExprBase;
-    class function parseStatList (const str: AnsiString): TExprBase;
+    class function parse (clist: TExprConstList; pr: TTextParser; allowAssign: Boolean=false): TExprBase;
+    class function parse (clist: TExprConstList; const str: AnsiString; allowAssign: Boolean=false): TExprBase;
+    class function parseStatList (clist: TExprConstList; const str: AnsiString): TExprBase;
 
     class function isFloat (var v: Variant): Boolean; inline;
     class function isInt (var v: Variant): Boolean; inline;
@@ -101,6 +110,7 @@ type
   public
     constructor Create ();
     destructor Destroy (); override;
+    procedure append (e: TExprBase);
     function value (scope: TExprScope): Variant; override;
     function toString (): AnsiString; override;
     function clone (): TExprBase; override;
@@ -124,6 +134,7 @@ type
     constructor Create (aval: Boolean);
     constructor Create (aval: LongInt);
     constructor Create (const aval: AnsiString);
+    constructor Create (var v: Variant);
 
     function value (scope: TExprScope): Variant; override;
     function toString (): AnsiString; override;
@@ -326,11 +337,12 @@ end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-constructor TPropHash.Create (aklass: TClass);
+constructor TPropHash.Create (aklass: TClass; const apfx: AnsiString='');
 var
   pi: PTypeInfo;
   pt: PTypeData;
   idx: Integer;
+  n: AnsiString;
 begin
   mClass := aklass;
   mNames := hashNewStrInt();
@@ -338,7 +350,21 @@ begin
   pt := GetTypeData(pi);
   GetMem(pl, pt^.PropCount*sizeof(Pointer));
   pc := GetPropList(pi, [tkInteger, tkBool, tkSString, tkLString, tkAString, {tkSet,} tkEnumeration], pl);
-  for idx := 0 to pc-1 do mNames.put(pl^[idx].name, idx);
+  for idx := 0 to pc-1 do
+  begin
+    if (Length(apfx) > 0) then
+    begin
+      if (Length(pl^[idx].name) < Length(apfx)) then continue;
+      n := pl^[idx].name;
+      if (Copy(n, 1, Length(apfx)) <> apfx) then continue;
+      Delete(n, 1, Length(apfx));
+      mNames.put(n, idx);
+    end
+    else
+    begin
+      mNames.put(pl^[idx].name, idx);
+    end;
+  end;
 end;
 
 destructor TPropHash.Destroy ();
@@ -413,7 +439,7 @@ class procedure TExprBase.error (const amsg: AnsiString); begin raise TExomaExce
 class procedure TExprBase.errorfmt (const afmt: AnsiString; const args: array of const); begin raise TExomaException.CreateFmt(afmt, args); end;
 
 class procedure TExprBase.parseError (pr: TTextParser; const amsg: AnsiString); begin raise TExomaParseException.Create(pr, amsg); end;
-class procedure TExprBase.parseError (pr: TTextParser; const afmt: AnsiString; const args: array of const); begin raise TExomaParseException.CreateFmt(pr, afmt, args); end;
+class procedure TExprBase.parseErrorFmt (pr: TTextParser; const afmt: AnsiString; const args: array of const); begin raise TExomaParseException.CreateFmt(pr, afmt, args); end;
 
 class function TExprBase.coerce2bool (var v0: Variant): Boolean;
 begin
@@ -475,6 +501,15 @@ procedure TExprBase.assign (scope: TExprScope; var v: Variant); begin error('not
 // ////////////////////////////////////////////////////////////////////////// //
 constructor TExprStatList.Create (); begin mList := nil; end;
 destructor TExprStatList.Destroy (); var f: Integer; begin for f := 0 to High(mList) do mList[f].Free(); mList := nil; end;
+
+procedure TExprStatList.append (e: TExprBase);
+begin
+  if (e <> nil) then
+  begin
+    SetLength(mList, Length(mList)+1);
+    mList[High(mList)] := e;
+  end;
+end;
 
 function TExprStatList.value (scope: TExprScope): Variant;
 var
@@ -539,6 +574,7 @@ function TObjExpr.clone (): TExprBase; begin result := TObjExpr.Create(mName); e
 constructor TLitExpr.Create (aval: Boolean); begin mValue := aval; end;
 constructor TLitExpr.Create (aval: LongInt); begin mValue := aval; end;
 constructor TLitExpr.Create (const aval: AnsiString); begin mValue := aval; end;
+constructor TLitExpr.Create (var v: Variant); begin mValue := v; end;
 function TLitExpr.value (scope: TExprScope): Variant; begin result := mValue; end;
 function TLitExpr.toString (): AnsiString; begin result := VarToStr(mValue); if isStr(mValue) then result := quoteStr(result); end;
 function TLitExpr.clone (): TExprBase; begin result := TLitExpr.Create(0); (result as TLitExpr).mValue := mValue; end;
@@ -868,43 +904,54 @@ function TBinAssign.toString (): AnsiString; begin result := mOp0.toString()+'='
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-class function TExprBase.parse (const str: AnsiString; allowAssign: Boolean=false): TExprBase;
+class function TExprBase.parse (clist: TExprConstList; const str: AnsiString; allowAssign: Boolean=false): TExprBase;
 var
   pr: TTextParser;
 begin
   pr := TStrTextParser.Create(str);
   try
-    result := parse(pr, allowAssign);
+    result := parse(clist, pr, allowAssign);
     if (pr.tokType <> pr.TTEOF) then begin result.Free(); parseError(pr, 'extra code in expression'); end;
   finally
     pr.Free();
   end;
 end;
 
-class function TExprBase.parseStatList (const str: AnsiString): TExprBase;
+class function TExprBase.parseStatList (clist: TExprConstList; const str: AnsiString): TExprBase;
 var
-  pr: TTextParser;
-  r: TExprStatList;
-  e: TExprBase;
+  pr: TTextParser = nil;
+  r: TExprStatList = nil;
+  e: TExprBase = nil;
 begin
   pr := TStrTextParser.Create(str);
   if (pr.tokType = pr.TTEOF) then begin pr.Free(); result := nil; exit; end;
   r := TExprStatList.Create();
   result := nil;
   try
-    while true do
-    begin
-      while pr.eatTT(pr.TTSemi) do begin end;
-      if (pr.tokType = pr.TTEOF) then break;
-      e := parse(pr, true);
-      if (e = nil) then break;
-      SetLength(r.mList, Length(r.mList)+1);
-      r.mList[High(r.mList)] := e;
-      if (pr.tokType = pr.TTEOF) then break;
-      pr.expectTT(pr.TTSemi);
+    try
+      while true do
+      begin
+        while pr.eatTT(pr.TTSemi) do begin end;
+        if (pr.tokType = pr.TTEOF) then break;
+        e := parse(clist, pr, true);
+        if (e = nil) then break;
+        //writeln(': ', e.toString());
+        r.append(e);
+        if (pr.tokType = pr.TTEOF) then break;
+        //writeln('tt=', pr.tokType, ' <', pr.tokStr, '>');
+        //writeln(r.toString());
+        pr.expectTT(pr.TTSemi);
+      end;
+      result := r;
+      r := nil;
+    except
+      on e: TExomaException do
+        raise TExomaParseException.Create(pr, e.message);
+      on e: Exception do
+        raise TExomaParseException.Create(pr, e.message);
+      else
+        raise;
     end;
-    result := r;
-    r := nil;
   finally
     r.Free();
     pr.Free();
@@ -912,11 +959,14 @@ begin
 end;
 
 
-class function TExprBase.parse (pr: TTextParser; allowAssign: Boolean=false): TExprBase;
+class function TExprBase.parse (clist: TExprConstList; pr: TTextParser; allowAssign: Boolean=false): TExprBase;
 
   function expr (): TExprBase; forward;
 
   function doTerm (): TExprBase;
+  var
+    id: AnsiString;
+    v: Variant;
   begin
     result := nil;
     try
@@ -931,7 +981,17 @@ class function TExprBase.parse (pr: TTextParser; allowAssign: Boolean=false): TE
         if (pr.tokStr = 'true') then begin result := TLitExpr.Create(true); pr.skipToken(); exit; end;
         if (pr.tokStr = 'false') then begin result := TLitExpr.Create(false); pr.skipToken(); exit; end;
         if (CompareText(pr.tokStr, 'true') = 0) or (CompareText(pr.tokStr, 'false') = 0) then parseError(pr, '`true` and `false` are case-sensitive');
-        result := TObjExpr.Create(pr.expectId());
+        id := pr.expectId();
+        if (clist <> nil) then
+        begin
+          if clist.get(id, v) then
+          begin
+            result := TLitExpr.Create(v);
+            exit;
+          end;
+          if not clist.valid(id) then parseErrorFmt(pr, 'unknown identifier ''%s''', [id]);
+        end;
+        result := TObjExpr.Create(id);
         while (pr.tokType = pr.TTDelim) and (pr.tokChar = '.') do
         begin
           pr.skipToken();
@@ -1054,34 +1114,56 @@ class function TExprBase.parse (pr: TTextParser; allowAssign: Boolean=false): TE
   // &&
   // ||
 
-  function expr (): TExprBase;
+  function expr0 (): TExprBase;
   var
-    neg: Boolean = false;
+    neg: Boolean;
+    e: TExprBase = nil;
+    list: TExprStatList = nil;
   begin
-         if pr.eatDelim('-') then neg := true
-    else if pr.eatDelim('+') then neg := false;
-    result := doLogOr();
-    if neg then result := TUnExprNeg.Create(result);
+    result := nil;
+    try
+      while true do
+      begin
+             if pr.eatDelim('-') then neg := true
+        else if pr.eatDelim('+') then neg := false
+        else neg := false;
+        e := doLogOr();
+        if neg then e := TUnExprNeg.Create(e);
+        if allowAssign and pr.eatDelim('=') then e := TBinAssign.Create(e, expr());
+        if not pr.eatTT(pr.TTComma) then
+        begin
+          if (result = nil) then result := e else list.append(e);
+          break;
+        end;
+        //assert(false);
+        if (list = nil) then
+        begin
+          list := TExprStatList.Create();
+          result := list;
+        end;
+        list.append(e);
+        e := nil;
+      end;
+    except
+      e.Free();
+      list.Free();
+    end;
   end;
 
-  function exprMain (): TExprBase;
+  function expr (): TExprBase;
   var
-    neg: Boolean = false;
     c: TExprCond;
   begin
-         if pr.eatDelim('-') then neg := true
-    else if pr.eatDelim('+') then neg := false;
-    result := doLogOr();
-    if neg then result := TUnExprNeg.Create(result);
+    result := expr0();
     // ternary
     if pr.eatDelim('?') then
     begin
       c := TExprCond.Create();
       c.mCond := result;
       try
-        c.mTrue := exprMain();
+        c.mTrue := expr();
         pr.expectTT(pr.TTColon);
-        c.mFalse := exprMain();
+        c.mFalse := expr();
         result := c;
       except
         c.Free();
@@ -1097,13 +1179,7 @@ begin
   try
     pr.allowSignedNumbers := false;
     try
-      result := exprMain();
-      if allowAssign and pr.eatDelim('=') then
-      try
-        result := TBinAssign.Create(result, expr());
-      except
-        result.Free();
-      end;
+      result := expr();
     finally
       pr.allowSignedNumbers := oas;
     end;

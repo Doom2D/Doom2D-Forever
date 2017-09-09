@@ -19,7 +19,7 @@ unit g_net;
 interface
 
 uses
-  e_log, e_msg, ENet, Classes;
+  e_log, e_msg, ENet, Classes, MAPDEF;
 
 const
   NET_PROTOCOL_VER = 173;

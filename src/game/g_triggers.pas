@@ -140,11 +140,52 @@ type
 
 
 // ////////////////////////////////////////////////////////////////////////// //
+type
+  TMyConstList = class(TExprConstList)
+  public
+    function valid (const cname: AnsiString): Boolean; override;
+    function get (const cname: AnsiString; out v: Variant): Boolean; override;
+  end;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
+function TMyConstList.valid (const cname: AnsiString): Boolean;
+begin
+  //writeln('CHECK: ''', cname, '''');
+  result :=
+    (cname = 'player') or
+    (cname = 'self') or
+    false;
+end;
+
+function TMyConstList.get (const cname: AnsiString; out v: Variant): Boolean;
+var
+  eidx: Integer;
+  ebs: TDynEBS;
+begin
+  //if (cname = 'answer') then begin v := LongInt(42); result := true; exit; end;
+  result := false;
+  if (gCurrentMap = nil) then exit;
+  for eidx := 0 to gCurrentMap.mapdef.ebsTypeCount-1 do
+  begin
+    ebs := gCurrentMap.mapdef.ebsTypeAt[eidx];
+    if ebs.has[cname] then
+    begin
+      //writeln('FOUND: ''', cname, '''');
+      v := ebs[cname];
+      result := true;
+      exit;
+    end;
+  end;
+end;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
 constructor TTrigScope.Create ();
 begin
-  plrprops := TPropHash.Create(TPlayer);
-  monsprops := TPropHash.Create(TMonster);
-  platprops := TPropHash.Create(TPanel);
+  plrprops := TPropHash.Create(TPlayer, 'e');
+  monsprops := TPropHash.Create(TMonster, 'e');
+  platprops := TPropHash.Create(TPanel, 'e');
   me := nil;
 end;
 
@@ -209,6 +250,7 @@ end;
 // ////////////////////////////////////////////////////////////////////////// //
 var
   tgscope: TTrigScope = nil;
+  tgclist: TMyConstList = nil;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
@@ -1189,10 +1231,12 @@ begin
       tvval := Trigger.exoCheck.value(tgscope);
       tgscope.me := nil;
       if not Boolean(tvval) then exit;
-    except
-      tgscope.me := nil;
-      conwritefln('trigger exocheck error: %s', [Trigger.exoCheck.toString()]);
-      exit;
+    except on e: Exception do
+      begin
+        tgscope.me := nil;
+        conwritefln('trigger exocheck error: %s [%s]', [e.message, Trigger.exoCheck.toString()]);
+        exit;
+      end;
     end;
   end;
 
@@ -1207,10 +1251,12 @@ begin
       tgscope.me := @Trigger;
       Trigger.exoAction.value(tgscope);
       tgscope.me := nil;
-    except
-      tgscope.me := nil;
-      conwritefln('trigger exoactivate error: %s', [Trigger.exoAction.toString()]);
-      exit;
+    except on e: Exception do
+      begin
+        tgscope.me := nil;
+        conwritefln('trigger exoactivate error: %s [%s]', [e.message, Trigger.exoAction.toString()]);
+        exit;
+      end;
     end;
   end;
 
@@ -2301,6 +2347,7 @@ var
   f, olen: Integer;
 begin
   if (tgscope = nil) then tgscope := TTrigScope.Create();
+  if (tgclist = nil) then tgclist := TMyConstList.Create();
 
   // Ќе создавать выход, если игра без выхода
   if (Trigger.TriggerType = TRIGGER_EXIT) and
@@ -2403,28 +2450,48 @@ begin
   gTriggers[find_id].userVars := nil; //THashStrVariant.Create(hsihash, hsiequ);
 
   try
-    gTriggers[find_id].exoThink := TExprBase.parseStatList(VarToStr(trec.user['exoma_think']));
+    gTriggers[find_id].exoThink := TExprBase.parseStatList(tgclist, VarToStr(trec.user['exoma_think']));
   except
-    conwritefln('*** ERROR parsing exoma_think: [%s]', [VarToStr(trec.user['exoma_think'])]);
-    gTriggers[find_id].exoThink := nil;
+    on e: TExomaParseException do
+      begin
+        conwritefln('*** ERROR parsing exoma_think (%s,%s): %s [%s]', [e.tokLine, e.tokCol, e.message, VarToStr(trec.user['exoma_think'])]);
+        gTriggers[find_id].exoThink := nil;
+      end;
+    else
+      raise;
   end;
   try
-    gTriggers[find_id].exoCheck := TExprBase.parse(VarToStr(trec.user['exoma_check']));
+    gTriggers[find_id].exoCheck := TExprBase.parse(tgclist, VarToStr(trec.user['exoma_check']));
   except
-    conwritefln('*** ERROR parsing exoma_check: [%s]', [VarToStr(trec.user['exoma_check'])]);
-    gTriggers[find_id].exoCheck := nil;
+    on e: TExomaParseException do
+      begin
+        conwritefln('*** ERROR parsing exoma_check (%s,%s): %s [%s]', [e.tokLine, e.tokCol, e.message, VarToStr(trec.user['exoma_check'])]);
+        gTriggers[find_id].exoCheck := nil;
+      end;
+    else
+      raise;
   end;
   try
-    gTriggers[find_id].exoAction := TExprBase.parseStatList(VarToStr(trec.user['exoma_action']));
+    gTriggers[find_id].exoAction := TExprBase.parseStatList(tgclist, VarToStr(trec.user['exoma_action']));
   except
-    conwritefln('*** ERROR parsing exoma_action: [%s]', [VarToStr(trec.user['exoma_action'])]);
-    gTriggers[find_id].exoAction := nil;
+    on e: TExomaParseException do
+      begin
+        conwritefln('*** ERROR parsing exoma_action (%s,%s): %s [%s]', [e.tokLine, e.tokCol, e.message, VarToStr(trec.user['exoma_action'])]);
+        gTriggers[find_id].exoAction := nil;
+      end;
+    else
+      raise;
   end;
   try
-    gTriggers[find_id].exoInit := TExprBase.parseStatList(VarToStr(trec.user['exoma_init']));
+    gTriggers[find_id].exoInit := TExprBase.parseStatList(tgclist, VarToStr(trec.user['exoma_init']));
   except
-    conwritefln('*** ERROR parsing exoma_init: [%s]', [VarToStr(trec.user['exoma_init'])]);
-    gTriggers[find_id].exoInit := nil;
+    on e: TExomaParseException do
+      begin
+        conwritefln('*** ERROR parsing exoma_init (%s,%s): %s [%s]', [e.tokLine, e.tokCol, e.message, VarToStr(trec.user['exoma_init'])]);
+        gTriggers[find_id].exoInit := nil;
+      end;
+    else
+      raise;
   end;
 
   if (forceInternalIndex < 0) and (gTriggers[find_id].exoInit <> nil) then

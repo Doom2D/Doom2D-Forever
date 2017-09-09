@@ -91,12 +91,16 @@ type
 
     mNeedSend: Boolean; // for network
 
+    mEDamageType: Integer;
+
     procedure Turn();
     function findNewPrey(): Boolean;
     procedure ActivateTriggers();
 
     procedure setGameX (v: Integer); inline;
     procedure setGameY (v: Integer); inline;
+
+    procedure doDamage (v: Integer);
 
   public
     FNoRespawn: Boolean;
@@ -158,7 +162,6 @@ type
     property proxyId: Integer read mProxyId;
     property arrIdx: Integer read mArrIdx;
 
-  published
     property MonsterType: Byte read FMonsterType;
     property MonsterHealth: Integer read FHealth write FHealth;
     property MonsterAmmo: Integer read FAmmo write FAmmo;
@@ -183,6 +186,36 @@ type
     property GameDirection: TDirection read FDirection write FDirection;
 
     property StartID: Integer read FStartID;
+
+  published
+    property eMonsterType: Byte read FMonsterType;
+    property eMonsterHealth: Integer read FHealth write FHealth;
+    property eMonsterAmmo: Integer read FAmmo write FAmmo;
+    property eMonsterTargetUID: Word read FTargetUID write FTargetUID;
+    property eMonsterTargetTime: Integer read FTargetTime write FTargetTime;
+    property eMonsterBehaviour: Byte read FBehaviour write FBehaviour;
+    property eMonsterSleep: Integer read FSleep write FSleep;
+    property eMonsterState: Byte read FState write FState;
+    property eMonsterRemoved: Boolean read FRemoved;
+    property eMonsterPain: Integer read FPain write FPain;
+    property eMonsterAnim: Byte read FCurAnim;
+
+    property eUID: Word read FUID;
+    property eSpawnTrigger: Integer read FSpawnTrigger;
+
+    property eGameX: Integer read FObj.X write setGameX;
+    property eGameY: Integer read FObj.Y write setGameY;
+    property eGameVelX: Integer read FObj.Vel.X write FObj.Vel.X;
+    property eGameVelY: Integer read FObj.Vel.Y write FObj.Vel.Y;
+    property eGameAccelX: Integer read FObj.Accel.X write FObj.Accel.X;
+    property eGameAccelY: Integer read FObj.Accel.Y write FObj.Accel.Y;
+    property eGameDirection: TDirection read FDirection write FDirection;
+
+    property eStartID: Integer read FStartID;
+
+    // set this before assigning something to `eDamage`
+    property eDamageType: Integer read mEDamageType write mEDamageType;
+    property eDamage: Integer write doDamage;
   end;
 
 
@@ -1587,6 +1620,12 @@ begin
   end;
 end;
 
+procedure TMonster.doDamage (v: Integer);
+begin
+  if (v <= 0) then exit;
+  if (v > 32767) then v := 32767;
+  Damage(v, 0, 0, 0, mEDamageType);
+end;
 
 procedure TMonster.ActionSound();
 begin
@@ -1833,6 +1872,7 @@ begin
   FFireTime := 0;
   FFirePainTime := 0;
   FFireAttacker := 0;
+  mEDamageType := HIT_SOME;
 
   mProxyId := -1;
   mArrIdx := -1;

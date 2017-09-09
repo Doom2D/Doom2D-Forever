@@ -375,6 +375,20 @@ bitset Key {
   KEY_BLUETEAM, // 16
 }
 
+enum HitType {
+  HIT_SOME, // 0
+  HIT_ROCKET, // 1
+  HIT_BFG, // 2
+  HIT_TRAP, // 3
+  HIT_FALL, // 4
+  HIT_WATER, // 5
+  HIT_ACID, // 6
+  HIT_ELECTRO, // 7
+  HIT_FLAME, // 8
+  HIT_SELF, // 9
+  HIT_DISCON, // 10
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////
 // various triggers

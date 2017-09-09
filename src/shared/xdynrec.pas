@@ -412,7 +412,7 @@ type
     property typeName: AnsiString read mTypeName; // enum/bitset type name
     property isEnum: Boolean read mIsEnum; // is this enum? `false` means "bitset"
     property has[const aname: AnsiString]: Boolean read hasByName;
-    property field[const aname: AnsiString]: Integer read getFieldByName;
+    property field[const aname: AnsiString]: Integer read getFieldByName; default;
 
     property tip: AnsiString read mTip;
     property help: AnsiString read mHelp;

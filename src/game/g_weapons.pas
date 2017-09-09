@@ -22,6 +22,7 @@ interface
 uses
   g_textures, g_basic, e_graphics, g_phys, BinEditor, xprofiler;
 
+{
 const
   HIT_SOME    = 0;
   HIT_ROCKET  = 1;
@@ -34,6 +35,7 @@ const
   HIT_FLAME   = 8;
   HIT_SELF    = 9;
   HIT_DISCON  = 10;
+}
 
 type
   TShot = record

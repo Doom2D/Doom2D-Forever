@@ -195,33 +195,37 @@ type
     FNoReload:  Boolean;
     FJustTeleported: Boolean;
     FNetTime: LongWord;
+    mEDamageType: Integer;
 
-    function    CollideLevel(XInc, YInc: Integer): Boolean;
-    function    StayOnStep(XInc, YInc: Integer): Boolean;
-    function    HeadInLiquid(XInc, YInc: Integer): Boolean;
-    function    BodyInLiquid(XInc, YInc: Integer): Boolean;
-    function    BodyInAcid(XInc, YInc: Integer): Boolean;
-    function    FullInLift(XInc, YInc: Integer): Integer;
-    {procedure   CollideItem();}
-    procedure   FlySmoke(Times: DWORD = 1);
-    procedure   OnFireFlame(Times: DWORD = 1);
-    function    GetAmmoByWeapon(Weapon: Byte): Word;
-    procedure   SetAction(Action: Byte; Force: Boolean = False);
-    procedure   OnDamage(Angle: SmallInt); virtual;
-    function    firediry(): Integer;
 
-    procedure   Run(Direction: TDirection);
-    procedure   NextWeapon();
-    procedure   PrevWeapon();
-    procedure   SeeUp();
-    procedure   SeeDown();
-    procedure   Fire();
-    procedure   Jump();
-    procedure   Use();
+    function CollideLevel(XInc, YInc: Integer): Boolean;
+    function StayOnStep(XInc, YInc: Integer): Boolean;
+    function HeadInLiquid(XInc, YInc: Integer): Boolean;
+    function BodyInLiquid(XInc, YInc: Integer): Boolean;
+    function BodyInAcid(XInc, YInc: Integer): Boolean;
+    function FullInLift(XInc, YInc: Integer): Integer;
+    {procedure CollideItem();}
+    procedure FlySmoke(Times: DWORD = 1);
+    procedure OnFireFlame(Times: DWORD = 1);
+    function GetAmmoByWeapon(Weapon: Byte): Word;
+    procedure SetAction(Action: Byte; Force: Boolean = False);
+    procedure OnDamage(Angle: SmallInt); virtual;
+    function firediry(): Integer;
+
+    procedure Run(Direction: TDirection);
+    procedure NextWeapon();
+    procedure PrevWeapon();
+    procedure SeeUp();
+    procedure SeeDown();
+    procedure Fire();
+    procedure Jump();
+    procedure Use();
 
     function getNextWeaponIndex (): Byte; // return 255 for "no switch"
     procedure resetWeaponQueue ();
     function hasAmmoForWeapon (weapon: Byte): Boolean;
+
+    procedure doDamage (v: Integer);
 
   public
     FDamageBuffer:   Integer;
@@ -327,7 +331,6 @@ type
     property    Vel: TPoint2i read FObj.Vel;
     property    Obj: TObj read FObj;
 
-  published
     property    Name: String read FName write FName;
     property    Model: TPlayerModel read FModel;
     property    Health: Integer read FHealth write FHealth;
@@ -358,6 +361,41 @@ type
     property    UID: Word read FUID write FUID;
     property    JustTeleported: Boolean read FJustTeleported write FJustTeleported;
     property    NetTime: LongWord read FNetTime write FNetTime;
+
+  published
+    property eName: String read FName write FName;
+    property eHealth: Integer read FHealth write FHealth;
+    property eLives: Byte read FLives write FLives;
+    property eArmor: Integer read FArmor write FArmor;
+    property eAir:   Integer read FAir write FAir;
+    property eJetFuel: Integer read FJetFuel write FJetFuel;
+    property eFrags: Integer read FFrags write FFrags;
+    property eDeath: Integer read FDeath write FDeath;
+    property eKills: Integer read FKills write FKills;
+    property eCurrWeap: Byte read FCurrWeap write FCurrWeap;
+    property eMonsterKills: Integer read FMonsterKills write FMonsterKills;
+    property eSecrets: Integer read FSecrets write FSecrets;
+    property eGodMode: Boolean read FGodMode write FGodMode;
+    property eNoTarget: Boolean read FNoTarget write FNoTarget;
+    property eNoReload: Boolean read FNoReload write FNoReload;
+    property eAlive: Boolean read FAlive write FAlive;
+    property eFlag: Byte read FFlag;
+    property eTeam: Byte read FTeam write FTeam;
+    property eDirection: TDirection read FDirection;
+    property eGameX: Integer read FObj.X write FObj.X;
+    property eGameY: Integer read FObj.Y write FObj.Y;
+    property eGameVelX: Integer read FObj.Vel.X write FObj.Vel.X;
+    property eGameVelY: Integer read FObj.Vel.Y write FObj.Vel.Y;
+    property eGameAccelX: Integer read FObj.Accel.X write FObj.Accel.X;
+    property eGameAccelY: Integer read FObj.Accel.Y write FObj.Accel.Y;
+    property eIncCam: Integer read FIncCam write FIncCam;
+    property eUID: Word read FUID;
+    property eJustTeleported: Boolean read FJustTeleported;
+    property eNetTime: LongWord read FNetTime;
+
+    // set this before assigning something to `eDamage`
+    property eDamageType: Integer read mEDamageType write mEDamageType;
+    property eDamage: Integer write doDamage;
   end;
 
   TDifficult = record
@@ -2056,6 +2094,7 @@ begin
   viewPortY := 0;
   viewPortW := 0;
   viewPortH := 0;
+  mEDamageType := HIT_SOME;
 
   FIamBot := False;
   FDummy := False;
@@ -2101,6 +2140,13 @@ end;
 
 procedure TPlayer.positionChanged (); inline;
 begin
+end;
+
+procedure TPlayer.doDamage (v: Integer);
+begin
+  if (v <= 0) then exit;
+  if (v > 32767) then v := 32767;
+  Damage(v, 0, 0, 0, mEDamageType);
 end;
 
 procedure TPlayer.Damage(value: Word; SpawnerUID: Word; vx, vy: Integer; t: Byte);
