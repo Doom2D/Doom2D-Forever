@@ -1321,7 +1321,7 @@ begin
   //vy := (dy*10 div d)*yi;
 
   {$IF DEFINED(D2F_DEBUG)}
-  stt := curTimeMicro();
+  stt := getTimeMicro();
   {$ENDIF}
 
   xx := x;
@@ -1352,7 +1352,7 @@ begin
       begin
         _collide := True;
         {$IF DEFINED(D2F_DEBUG)}
-        stt := curTimeMicro()-stt;
+        stt := getTimeMicro()-stt;
         e_WriteLog(Format('*** old trace time: %u microseconds', [LongWord(stt)]), MSG_NOTIFY);
         showTime := false;
         {$ENDIF}
@@ -1372,7 +1372,7 @@ begin
   {$IF DEFINED(D2F_DEBUG)}
   if showTime then
   begin
-    stt := curTimeMicro()-stt;
+    stt := getTimeMicro()-stt;
     e_WriteLog(Format('*** old trace time: %u microseconds', [LongWord(stt)]), MSG_NOTIFY);
   end;
   {$ENDIF}
@@ -1511,7 +1511,7 @@ begin
 
   {$IF DEFINED(D2F_DEBUG)}
   e_WriteLog(Format('GUN TRACE: (%d,%d) to (%d,%d)', [x, y, x2, y2]), MSG_NOTIFY);
-  stt := curTimeMicro();
+  stt := getTimeMicro();
   {$ENDIF}
 
   wallHitFlag := (g_Map_traceToNearestWall(x, y, x2, y2, @wallHitX, @wallHitY) <> nil);
@@ -1565,7 +1565,7 @@ begin
   if wallHitFlag then
   begin
     {$IF DEFINED(D2F_DEBUG)}
-    stt := curTimeMicro()-stt;
+    stt := getTimeMicro()-stt;
     e_WriteLog(Format('*** new trace time: %u microseconds', [LongWord(stt)]), MSG_NOTIFY);
     {$ENDIF}
     g_GFX_Spark(wallHitX, wallHitY, 2+Random(2), 180+a, 0, 0);
@@ -1574,7 +1574,7 @@ begin
   else
   begin
     {$IF DEFINED(D2F_DEBUG)}
-    stt := curTimeMicro()-stt;
+    stt := getTimeMicro()-stt;
     e_WriteLog(Format('*** new trace time: %u microseconds', [LongWord(stt)]), MSG_NOTIFY);
     {$ENDIF}
   end;

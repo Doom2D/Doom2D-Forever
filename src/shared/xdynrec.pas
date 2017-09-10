@@ -3099,7 +3099,7 @@ var
 begin
   if (mOwner = nil) then raise TDynParseException.CreateFmt(pr, 'can''t parse record ''%s'' value without owner', [mTypeName]);
 
-  {$IF DEFINED(D2D_DYNREC_PROFILER)}stall := curTimeMicro();{$ENDIF}
+  {$IF DEFINED(D2D_DYNREC_PROFILER)}stall := getTimeMicro();{$ENDIF}
 
   // not a header?
   if not mHeader then
@@ -3123,31 +3123,31 @@ begin
     if mHeader then
     begin
       // add records with this type (if any)
-      {$IF DEFINED(D2D_DYNREC_PROFILER)}stt := curTimeMicro();{$ENDIF}
+      {$IF DEFINED(D2D_DYNREC_PROFILER)}stt := getTimeMicro();{$ENDIF}
       trc := mOwner.recType[pr.tokStr];
-      {$IF DEFINED(D2D_DYNREC_PROFILER)}profFindRecType := curTimeMicro()-stt;{$ENDIF}
+      {$IF DEFINED(D2D_DYNREC_PROFILER)}profFindRecType := getTimeMicro()-stt;{$ENDIF}
       if (trc <> nil) then
       begin
-        {$IF DEFINED(D2D_DYNREC_PROFILER)}stt := curTimeMicro();{$ENDIF}
+        {$IF DEFINED(D2D_DYNREC_PROFILER)}stt := getTimeMicro();{$ENDIF}
         rec := trc.clone(mHeaderRec);
-        {$IF DEFINED(D2D_DYNREC_PROFILER)}profCloneRec := curTimeMicro()-stt;{$ENDIF}
+        {$IF DEFINED(D2D_DYNREC_PROFILER)}profCloneRec := getTimeMicro()-stt;{$ENDIF}
         rec.mHeaderRec := mHeaderRec;
         // on error, it will be freed by memowner
         pr.skipToken();
         rec.parseValue(pr);
-        {$IF DEFINED(D2D_DYNREC_PROFILER)}stt := curTimeMicro();{$ENDIF}
+        {$IF DEFINED(D2D_DYNREC_PROFILER)}stt := getTimeMicro();{$ENDIF}
         addRecordByType(rec.mTypeName, rec);
-        {$IF DEFINED(D2D_DYNREC_PROFILER)}profAddRecByType := curTimeMicro()-stt;{$ENDIF}
+        {$IF DEFINED(D2D_DYNREC_PROFILER)}profAddRecByType := getTimeMicro()-stt;{$ENDIF}
         continue;
       end;
     end;
 
     // fields
-    {$IF DEFINED(D2D_DYNREC_PROFILER)}stt := curTimeMicro();{$ENDIF}
+    {$IF DEFINED(D2D_DYNREC_PROFILER)}stt := getTimeMicro();{$ENDIF}
     //writeln('0: <', mName, '.', pr.tokStr, '>');
     fld := field[pr.tokStr];
     //writeln('1: <', mName, '.', pr.tokStr, '>');
-    {$IF DEFINED(D2D_DYNREC_PROFILER)}profFieldSearching := curTimeMicro()-stt;{$ENDIF}
+    {$IF DEFINED(D2D_DYNREC_PROFILER)}profFieldSearching := getTimeMicro()-stt;{$ENDIF}
     if (fld <> nil) then
     begin
       //writeln('2: <', mName, '.', pr.tokStr, '>');
@@ -3155,9 +3155,9 @@ begin
       if fld.internal then raise TDynParseException.CreateFmt(pr, 'internal field ''%s'' in record ''%s''', [fld.mName, mTypeName]);
       pr.skipToken(); // skip field name
       //writeln('3: <', mName, '.', pr.tokStr, '>:', pr.tokType);
-      {$IF DEFINED(D2D_DYNREC_PROFILER)}stt := curTimeMicro();{$ENDIF}
+      {$IF DEFINED(D2D_DYNREC_PROFILER)}stt := getTimeMicro();{$ENDIF}
       fld.parseValue(pr);
-      {$IF DEFINED(D2D_DYNREC_PROFILER)}profFieldValParsing := curTimeMicro()-stt;{$ENDIF}
+      {$IF DEFINED(D2D_DYNREC_PROFILER)}profFieldValParsing := getTimeMicro()-stt;{$ENDIF}
       continue;
     end;
 
@@ -3177,12 +3177,12 @@ begin
   end;
 
   // fix field defaults
-  {$IF DEFINED(D2D_DYNREC_PROFILER)}stt := curTimeMicro();{$ENDIF}
+  {$IF DEFINED(D2D_DYNREC_PROFILER)}stt := getTimeMicro();{$ENDIF}
   for fld in mFields do fld.fixDefaultValue();
-  {$IF DEFINED(D2D_DYNREC_PROFILER)}profFixDefaults := curTimeMicro()-stt;{$ENDIF}
+  {$IF DEFINED(D2D_DYNREC_PROFILER)}profFixDefaults := getTimeMicro()-stt;{$ENDIF}
   //writeln('done parsing record <', mName, '>');
-  //{$IF DEFINED(D2D_DYNREC_PROFILER)}writeln('stall: ', curTimeMicro()-stall);{$ENDIF}
-  {$IF DEFINED(D2D_DYNREC_PROFILER)}profRecValParse := curTimeMicro()-stall;{$ENDIF}
+  //{$IF DEFINED(D2D_DYNREC_PROFILER)}writeln('stall: ', getTimeMicro()-stall);{$ENDIF}
+  {$IF DEFINED(D2D_DYNREC_PROFILER)}profRecValParse := getTimeMicro()-stall;{$ENDIF}
 end;
 
 

@@ -1672,7 +1672,7 @@ begin
     e_LogWritefln('Loading map: %s', [mapResName], MSG_NOTIFY);
     g_Game_SetLoadingText(_lc[I_LOAD_MAP], 0, False);
 
-    stt := curTimeMicro();
+    stt := getTimeMicro();
 
     try
       mapReader := g_Map_ParseMap(Data, Len);
@@ -2159,7 +2159,7 @@ begin
       gMusic.SetByName('');
     end;
 
-    stt := curTimeMicro()-stt;
+    stt := getTimeMicro()-stt;
     e_LogWritefln('map loaded in %s.%s milliseconds', [Integer(stt div 1000), Integer(stt mod 1000)]);
     mapOk := true;
   finally

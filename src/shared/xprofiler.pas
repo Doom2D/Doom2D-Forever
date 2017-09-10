@@ -143,8 +143,8 @@ type
   end;
 
 
-function curTimeMicro (): UInt64; inline;
-function curTimeMilli (): UInt64; inline;
+function getTimeMicro (): UInt64; inline;
+function getTimeMilli (): UInt64; inline;
 
 
 implementation
@@ -182,7 +182,7 @@ begin
 end;
 
 
-function curTimeMicro (): UInt64; inline;
+function getTimeMicro (): UInt64; inline;
 var
   r: THPTimeType;
 begin
@@ -197,9 +197,9 @@ begin
 end;
 
 
-function curTimeMilli (): UInt64; inline;
+function getTimeMilli (): UInt64; inline;
 begin
-  result := curTimeMicro div 1000;
+  result := getTimeMicro div 1000;
 end;
 
 
@@ -221,7 +221,7 @@ procedure TStopWatch.updateElapsed ();
 var
   e: UInt64;
 begin
-  e := curTimeMicro();
+  e := getTimeMicro();
   if (mStartPosition > e) then mStartPosition := e;
   Inc(mElapsed, e-mStartPosition);
   mStartPosition := e;
@@ -253,7 +253,7 @@ end;
 procedure TStopWatch.start (reset: Boolean=true);
 begin
   if mRunning and not reset then exit; // nothing to do
-  mStartPosition := curTimeMicro();
+  mStartPosition := getTimeMicro();
   mRunning := true;
   if (reset) then mElapsed := 0;
 end;

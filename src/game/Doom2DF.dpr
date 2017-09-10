@@ -40,6 +40,7 @@ program Doom2DF;
 
 uses
   conbuf in '../shared/conbuf.pas',
+  math,
   GL,
   GLExt,
   SDL2 in '../lib/sdl2/sdl2.pas',
@@ -118,8 +119,9 @@ uses
 var
   f: Integer;
   noct: Boolean = false;
-  tfo: Text;
+  //tfo: Text;
 begin
+  SetExceptionMask([exInvalidOp, exDenormalized, exZeroDivide, exOverflow, exUnderflow, exPrecision]); //k8: fuck off, that's why
   for f := 1 to ParamCount do
   begin
          if ParamStr(f) = '--gdb' then noct := true
@@ -140,11 +142,13 @@ begin
         begin
           e_WriteStackTrace(e.message);
           //e_WriteLog(Format(_lc[I_SYSTEM_ERROR_MSG], [E.Message]), MSG_FATALERROR);
+          (*
           AssignFile(tfo, GameDir+'/trace.log');
           {$I-}
           Append(tfo);
           if (IOResult <> 0) then Rewrite(tfo);
           if (IOResult = 0) then begin writeln(tfo, '====================='); DumpExceptionBackTrace(tfo); CloseFile(tfo); end;
+          *)
         end
       else
         begin

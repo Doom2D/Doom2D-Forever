@@ -631,11 +631,11 @@ begin
   begin
     if forceUpdate then
     begin
-      prevLoadingUpdateTime := curTimeMilli();
+      prevLoadingUpdateTime := getTimeMilli();
     end
     else
     begin
-      stt := curTimeMilli();
+      stt := getTimeMilli();
       if (stt < prevLoadingUpdateTime) or (stt-prevLoadingUpdateTime >= 400) then
       begin
         prevLoadingUpdateTime := stt;

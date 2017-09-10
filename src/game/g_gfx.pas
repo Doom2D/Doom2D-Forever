@@ -1186,14 +1186,14 @@ begin
       // tracer will return `false` if we started outside of the liquid
 
       {$IF DEFINED(D2F_DEBUG_BUBBLES)}
-      stt := curTimeMicro();
+      stt := getTimeMicro();
       ptr := mapGrid.traceOrthoRayWhileIn(liquidx, liquidTopY, x, y, x, 0, GridTagWater or GridTagAcid1 or GridTagAcid2);
-      stt := curTimeMicro()-stt;
+      stt := getTimeMicro()-stt;
       e_LogWritefln('traceOrthoRayWhileIn: time=%s (%s); liquidTopY=%s', [Integer(stt), ptr, liquidTopY]);
       //
-      stt := curTimeMicro();
+      stt := getTimeMicro();
       nptr := g_Map_TraceLiquidNonPrecise(x, y, 0, -8, liquidx, liquidTopY);
-      stt := curTimeMicro()-stt;
+      stt := getTimeMicro()-stt;
       e_LogWritefln('g_Map_TraceLiquidNonPrecise: time=%s (%s); liquidTopY=%s', [Integer(stt), nptr, liquidTopY]);
       if not nptr then continue;
       {$ELSE}
