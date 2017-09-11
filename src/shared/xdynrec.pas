@@ -3066,14 +3066,19 @@ var
   procedure linkNames (rec: TDynRecord);
   var
     fld: TDynField;
-    rt: TDynRecord;
+    rt, rvc: TDynRecord;
   begin
+    if (rec = nil) then exit;
     //writeln('*** rec: ', rec.mName, '.', rec.mId, ' (', rec.mFields.count, ')');
     for fld in rec.mFields do
     begin
+      if (fld.mType = TDynField.TType.TList) then
+      begin
+        for rvc in fld.mRVal do linkNames(rvc);
+      end;
       if (fld.mType = TDynField.TType.TTrigData) then
       begin
-        if (fld.mRecRef <> nil) then linkNames(fld.mRecRef);
+        //if (fld.mRecRef <> nil) then linkNames(fld.mRecRef);
         continue;
       end;
       if (Length(fld.mRecRefId) = 0) then continue;
@@ -3092,7 +3097,7 @@ var
     for fld in rec.mFields do
     begin
       //writeln('  ', fld.mName);
-      fld.fixDefaultValue(); // just in case
+      fld.fixDefaultValue();
     end;
   end;
 
@@ -3169,17 +3174,9 @@ begin
   if mHeader then
   begin
     // link fields
-    for fld in mFields do
-    begin
-      if (fld.mType <> TDynField.TType.TList) then continue;
-      for rec in fld.mRVal do linkNames(rec);
-    end;
+    linkNames(self);
+    for rec in mRec2Free do if (rec <> nil) then linkNames(rec);
   end;
-
-  // fix field defaults
-  {$IF DEFINED(D2D_DYNREC_PROFILER)}stt := getTimeMicro();{$ENDIF}
-  for fld in mFields do fld.fixDefaultValue();
-  {$IF DEFINED(D2D_DYNREC_PROFILER)}profFixDefaults := getTimeMicro()-stt;{$ENDIF}
   //writeln('done parsing record <', mName, '>');
   //{$IF DEFINED(D2D_DYNREC_PROFILER)}writeln('stall: ', getTimeMicro()-stall);{$ENDIF}
   {$IF DEFINED(D2D_DYNREC_PROFILER)}profRecValParse := getTimeMicro()-stall;{$ENDIF}
