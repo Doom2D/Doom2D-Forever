@@ -162,6 +162,10 @@ begin
 
   glBindTexture(GL_TEXTURE_2D, 0);
 
+  // so driver will really upload the texture (this is *sometimes* required for buggy videodrivers)
+  glFlush();
+  glFinish();
+
   Result := true;
 end;
 
@@ -192,7 +196,7 @@ begin
   imageSize := Width*Height*4;
   GetMem(image, imageSize);
   try
-    // it's slow, but i don't care for now
+    // it is slow, but i don't care for now
     ii := image;
     for y := height-1 downto 0 do
     begin
@@ -274,7 +278,7 @@ begin
     imageSize := img.width*img.height*4;
     GetMem(image, imageSize);
     try
-      // it's slow, but i don't care for now
+      // it is slow, but i don't care for now
       ii := image;
       for y := fY+fHeight-1 downto fY do
       begin
