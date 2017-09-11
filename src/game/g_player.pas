@@ -20,6 +20,7 @@ unit g_player;
 interface
 
 uses
+  mempool,
   e_graphics, g_playermodel, g_basic, g_textures,
   g_weapons, g_phys, g_sound, g_saveload, MAPDEF,
   BinEditor, g_panel;
@@ -133,7 +134,7 @@ type
     Time: Word;
   end;
 
-  TPlayer = class (TObject)
+  TPlayer = class(TPoolObject)
   private
     FIamBot:    Boolean;
     FUID:       Word;
@@ -415,7 +416,7 @@ type
     Value: String;
   end;
 
-  TBot = class (TPlayer)
+  TBot = class(TPlayer)
   private
     FSelectedWeapon:  Byte;
     FTargetUID:       Word;
@@ -484,7 +485,7 @@ type
     procedure positionChanged ();  inline; //WARNING! call this after entity position was changed, or coldet will not work right!
   end;
 
-  TCorpse = class (TObject)
+  TCorpse = class(TPoolObject)
   private
     FModelName:     String;
     FMess:          Boolean;

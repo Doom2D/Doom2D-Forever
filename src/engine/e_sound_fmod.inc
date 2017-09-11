@@ -19,6 +19,7 @@ uses
   fmod,
   fmodtypes,
   fmoderrors,
+  mempool,
   e_log,
   SysUtils;
 
@@ -30,7 +31,7 @@ type
     nRefs: Integer;
   end;
 
-  TBasicSound = class (TObject)
+  TBasicSound = class(TPoolObject)
   private
     FChannel: FMOD_CHANNEL;
 

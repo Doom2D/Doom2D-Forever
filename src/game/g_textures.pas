@@ -19,6 +19,7 @@ unit g_textures;
 interface
 
 uses
+  mempool,
   e_graphics, MAPDEF, BinEditor, ImagingTypes, Imaging, ImagingUtility;
 
 Type
@@ -35,7 +36,7 @@ Type
 
   TLevelTextureArray = Array of TLevelTexture;
 
-  TAnimation = class(TObject)
+  TAnimation = class(TPoolObject)
   private
     ID:            DWORD;
     FAlpha:        Byte;

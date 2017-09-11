@@ -21,7 +21,7 @@ interface
 
 uses
   SysUtils, Variants, Classes,
-  xparser, xstreams, utils, hashtable;
+  xparser, xstreams, utils, hashtable, mempool;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
@@ -54,7 +54,7 @@ type
   TDynEBSList = specialize TSimpleList<TDynEBS>;
 
   // this is base type for all scalars (and arrays)
-  TDynField = class
+  TDynField = class(TPoolObject)
   public
     type
       TType = (TBool, TChar, TByte, TUByte, TShort, TUShort, TInt, TUInt, TString, TPoint, TSize, TColor, TList, TTrigData);
@@ -238,7 +238,7 @@ type
 
 
   // record, either with actual values, or with type definitions
-  TDynRecord = class
+  TDynRecord = class(TPoolObject)
   private
     mOwner: TDynMapDef;
     mId: AnsiString;
@@ -375,7 +375,7 @@ type
 
 
   // bitset/enum definition
-  TDynEBS = class
+  TDynEBS = class(TPoolObject)
   private
     mOwner: TDynMapDef;
     mIsEnum: Boolean;
@@ -420,7 +420,7 @@ type
 
 
   // parsed "mapdef.txt"
-  TDynMapDef = class
+  TDynMapDef = class(TPoolObject)
   public
     recTypes: TDynRecList; // [0] is always header
     trigTypes: TDynRecList; // trigdata

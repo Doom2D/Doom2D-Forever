@@ -24,6 +24,9 @@ CONFIG.PAS бепяхъ нр 24.09.06
 
 interface
 
+uses
+  mempool;
+
 type
   TParam = record
    Param: ShortString;
@@ -31,7 +34,7 @@ type
    Section: Word;
   end;
 
-  TConfig = class(TObject)
+  TConfig = class(TPoolObject)
    private
     FParams: array of TParam;
     FSections: array of ShortString;

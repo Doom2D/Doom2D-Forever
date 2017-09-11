@@ -19,10 +19,14 @@ unit idpool;
 
 interface
 
+uses
+  mempool;
+
+
 // ////////////////////////////////////////////////////////////////////////// //
 type
   //TODO: implement getting n sequential ids
-  TIdPool = class(TObject)
+  TIdPool = class(TPoolObject)
   public
     const InvalidId = $ffffffff;
 

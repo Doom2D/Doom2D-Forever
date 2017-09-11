@@ -19,12 +19,12 @@ unit xparser;
 interface
 
 uses
-  Classes;
+  Classes, mempool;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
 type
-  TTextParser = class
+  TTextParser = class(TPoolObject)
   public
     const
       TTNone = -1;

@@ -39,6 +39,7 @@ program Doom2DF;
 {$ENDIF}
 
 uses
+  mempool in '../shared/mempool.pas',
   conbuf in '../shared/conbuf.pas',
   math,
   GL,

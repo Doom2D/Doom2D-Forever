@@ -21,6 +21,7 @@ unit g_monsters;
 interface
 
 uses
+  mempool,
   g_basic, e_graphics, g_phys, g_textures, g_grid,
   g_saveload, BinEditor, g_panel, xprofiler;
 
@@ -48,7 +49,7 @@ const
 }
 
 type
-  TMonster = Class (TObject)
+  TMonster = class(TPoolObject)
   private
     FMonsterType: Byte;
     FUID: Word;

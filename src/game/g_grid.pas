@@ -26,13 +26,16 @@ unit g_grid;
 
 interface
 
+uses
+  mempool;
+
 const
   GridTileSize = 32; // must be power of two!
 
 type
   TBodyProxyId = Integer;
 
-  generic TBodyGridBase<ITP> = class(TObject)
+  generic TBodyGridBase<ITP> = class(TPoolObject)
   public
     type TGridQueryCB = function (obj: ITP; tag: Integer): Boolean is nested; // return `true` to stop
     type TGridRayQueryCB = function (obj: ITP; tag: Integer; x, y, prevx, prevy: Integer): Boolean is nested; // return `true` to stop

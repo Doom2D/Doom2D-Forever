@@ -19,6 +19,7 @@ unit g_gui;
 interface
 
 uses
+  mempool,
   e_graphics, e_input, e_log, g_playermodel, g_basic, MAPDEF, wadreader;
 
 const
@@ -84,7 +85,7 @@ type
 
   TFontType = (FONT_TEXTURE, FONT_CHAR);
 
-  TFont = class(TObject)
+  TFont = class(TPoolObject)
   private
     ID: DWORD;
     FScale: Single;
@@ -108,7 +109,7 @@ type
   TOnChangeEvent = procedure(Sender: TGUIControl);
   TOnEnterEvent = procedure(Sender: TGUIControl);
 
-  TGUIControl = class
+  TGUIControl = class(TPoolObject)
   private
     FX, FY: Integer;
     FEnabled: Boolean;
@@ -133,7 +134,7 @@ type
     property RightAlign: Boolean read FRightAlign write FRightAlign; // for menu
   end;
 
-  TGUIWindow = class
+  TGUIWindow = class(TPoolObject)
   private
     FActiveControl: TGUIControl;
     FDefControl: string;
@@ -416,7 +417,7 @@ type
     property Font: TFont read FFont write FFont;
   end;
 
-  TGUIFileListBox = class (TGUIListBox)
+  TGUIFileListBox = class(TGUIListBox)
   private
     FBasePath: String;
     FPath: String;

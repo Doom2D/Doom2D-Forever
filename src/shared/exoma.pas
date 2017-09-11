@@ -19,7 +19,7 @@ unit exoma;
 interface
 
 uses
-  typinfo, SysUtils, Variants, hashtable, xparser;
+  typinfo, SysUtils, Variants, mempool, hashtable, xparser;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
@@ -41,7 +41,7 @@ type
 
 // ////////////////////////////////////////////////////////////////////////// //
 type
-  TPropHash = class
+  TPropHash = class(TPoolObject)
   private
     mClass: TClass;
     mNames: THashStrInt;
@@ -59,7 +59,7 @@ type
 
 // ////////////////////////////////////////////////////////////////////////// //
 type
-  TExprConstList = class
+  TExprConstList = class(TPoolObject)
   public
     function valid (const cname: AnsiString): Boolean; virtual; abstract;
     function get (const cname: AnsiString; out v: Variant): Boolean; virtual; abstract;
@@ -68,7 +68,7 @@ type
 
 // ////////////////////////////////////////////////////////////////////////// //
 type
-  TExprScope = class
+  TExprScope = class(TPoolObject)
   public
     class procedure error (const amsg: AnsiString);
     class procedure errorfmt (const afmt: AnsiString; const args: array of const);
@@ -78,7 +78,7 @@ type
     procedure setField (obj: TObject; const afldname: AnsiString; var aval: Variant); virtual;
   end;
 
-  TExprBase = class
+  TExprBase = class(TPoolObject)
   public
     class function coerce2bool (var v0: Variant): Boolean;
     class function toInt (var v: Variant): LongInt;

@@ -18,6 +18,7 @@ interface
 uses
   sdl2,
   SDL2_mixer,
+  mempool,
   e_log,
   SysUtils;
 
@@ -30,7 +31,7 @@ type
     nRefs: Integer;
   end;
 
-  TBasicSound = class (TObject)
+  TBasicSound = class(TPoolObject)
   private
     FChanNum: Integer; // <0: no channel allocated
 

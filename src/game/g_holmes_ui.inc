@@ -15,7 +15,7 @@
  *)
 // ////////////////////////////////////////////////////////////////////////// //
 type
-  THControl = class
+  THControl = class(TPoolObject)
   public
     type TActionCB = procedure (me: THControl; uinfo: Integer);
 

@@ -22,13 +22,13 @@ unit wadreader;
 interface
 
 uses
-  sfs, xstreams, Classes;
+  mempool, sfs, xstreams, Classes;
 
 
 type
   SArray = array of ShortString;
 
-  TWADFile = class
+  TWADFile = class(TPoolObject)
   private
     fFileName: AnsiString; // empty: not opened
     fIter: TSFSFileList;
