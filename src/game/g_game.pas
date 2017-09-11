@@ -7167,5 +7167,5 @@ begin
 
   conRegVar('dbg_holmes', @g_holmes_enabled, 'enable/disable Holmes', 'Holmes', true);
 
-  conRegVar('dbg_scale', @g_dbg_scale, 0.01, 5.0, 'experimental deBUG scale mode', '',  true);
+  conRegVar('dbg_scale', @g_dbg_scale, 0.01, 100.0, 'experimental deBUG scale mode', '',  false);
 end.
