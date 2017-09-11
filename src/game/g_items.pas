@@ -30,16 +30,17 @@ Type
     arrIdx: Integer; // in ggItems
 
   public
-    ItemType:      Byte;
-    Respawnable:   Boolean;
-    InitX, InitY:  Integer;
-    RespawnTime:   Word;
-    alive:         Boolean;
-    Fall:          Boolean;
-    QuietRespawn:  Boolean;
-    SpawnTrigger:  Integer;
-    Obj:           TObj;
-    Animation:     TAnimation;
+    ItemType: Byte;
+    Respawnable: Boolean;
+    InitX, InitY: Integer;
+    RespawnTime: Word;
+    alive: Boolean;
+    Fall: Boolean;
+    QuietRespawn: Boolean;
+    SpawnTrigger: Integer;
+    Obj: TObj;
+    Animation: TAnimation;
+    dropped: Boolean; // dropped from the monster? drops should be rendered after corpses, so zombie corpse will not obscure ammo container, for example
 
     procedure positionChanged (); //WARNING! call this after monster position was changed, or coldet will not work right!
 
@@ -52,8 +53,10 @@ procedure g_Items_Init();
 procedure g_Items_Free();
 function g_Items_Create(X, Y: Integer; ItemType: Byte;
            Fall, Respawnable: Boolean; AdjCoord: Boolean = False; ForcedID: Integer = -1): DWORD;
+procedure g_Items_SetDrop (ID: DWORD);
 procedure g_Items_Update();
 procedure g_Items_Draw();
+procedure g_Items_DrawDrop();
 procedure g_Items_Pick(ID: DWORD);
 procedure g_Items_Remove(ID: DWORD);
 procedure g_Items_SaveState(var Mem: TBinMemoryWriter);
@@ -458,6 +461,7 @@ begin
   it.Fall := Fall;
   it.alive := True;
   it.QuietRespawn := False;
+  it.dropped := false;
 
   g_Obj_Init(@it.Obj);
   it.Obj.X := X;
@@ -618,17 +622,20 @@ begin
 end;
 
 
-procedure g_Items_Draw ();
+procedure itemsDrawInternal (dropflag: Boolean);
 var
   i: Integer;
+  it: PItem;
 begin
   if (ggItems = nil) then exit;
 
   for i := 0 to High(ggItems) do
   begin
-    if not ggItems[i].alive then continue;
+    it := @ggItems[i];
+    if not it.alive then continue;
+    if (it.dropped <> dropflag) then continue;
 
-    with ggItems[i] do
+    with it^ do
     begin
       if g_Collide(Obj.X, Obj.Y, Obj.Rect.Width, Obj.Rect.Height, sX, sY, sWidth, sHeight) then
       begin
@@ -655,10 +662,33 @@ begin
 end;
 
 
+procedure g_Items_Draw ();
+begin
+  itemsDrawInternal(false);
+end;
+
+procedure g_Items_DrawDrop ();
+begin
+  itemsDrawInternal(true);
+end;
+
+
+procedure g_Items_SetDrop (ID: DWORD);
+begin
+  if (ID < Length(ggItems)) then
+  begin
+    ggItems[ID].dropped := true;
+  end;
+end;
+
+
 procedure g_Items_Pick (ID: DWORD);
 begin
-  ggItems[ID].alive := false;
-  ggItems[ID].RespawnTime := ITEM_RESPAWNTIME;
+  if (ID < Length(ggItems)) then
+  begin
+    ggItems[ID].alive := false;
+    ggItems[ID].RespawnTime := ITEM_RESPAWNTIME;
+  end;
 end;
 
 
@@ -684,6 +714,7 @@ procedure g_Items_SaveState (var Mem: TBinMemoryWriter);
 var
   count, i: Integer;
   sig: DWORD;
+  tt: Byte;
 begin
   // Считаем количество существующих предметов
   count := 0;
@@ -707,7 +738,9 @@ begin
       sig := ITEM_SIGNATURE; // 'ITEM'
       Mem.WriteDWORD(sig);
       // Тип предмета
-      Mem.WriteByte(ggItems[i].ItemType);
+      tt := ggItems[i].ItemType;
+      if ggItems[i].dropped then tt := tt or $80;
+      Mem.WriteByte(tt);
       // Есть ли респаун
       Mem.WriteBoolean(ggItems[i].Respawnable);
       // Координаты респуна
@@ -749,9 +782,10 @@ begin
     Mem.ReadDWORD(sig);
     if (sig <> ITEM_SIGNATURE) then raise EBinSizeError.Create('g_Items_LoadState: Wrong Item Signature'); // 'ITEM'
     // Тип предмета
-    Mem.ReadByte(b);
+    Mem.ReadByte(b); // bit7=1: monster drop
     // Создаем предмет
-    i := g_Items_Create(0, 0, b, False, False);
+    i := g_Items_Create(0, 0, b and $7F, False, False);
+    if ((b and $80) <> 0) then g_Items_SetDrop(i);
     // Есть ли респаун
     Mem.ReadBoolean(ggItems[i].Respawnable);
     // Координаты респуна

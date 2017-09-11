@@ -2939,6 +2939,7 @@ begin
   drawOther('corpses', @g_Player_DrawCorpses);
   drawPanelType('*wall', PANEL_WALL, g_rlayer_wall);
   drawOther('monsters', @g_Monsters_Draw);
+  drawOther('itemdrop', @g_Items_DrawDrop);
   drawPanelType('*door', PANEL_CLOSEDOOR, g_rlayer_door);
   drawOther('gfx', @g_GFX_Draw);
   drawOther('flags', @g_Map_DrawFlags);

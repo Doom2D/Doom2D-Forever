@@ -1148,13 +1148,16 @@ end;
 procedure MH_SEND_ItemSpawn(Quiet: Boolean; IID: Word; ID: Integer = NET_EVERYONE);
 var
   it: PItem;
+  tt: Byte;
 begin
   it := g_Items_ByIdx(IID);
 
   NetOut.Write(Byte(NET_MSG_ISPAWN));
   NetOut.Write(IID);
   NetOut.Write(Byte(Quiet));
-  NetOut.Write(it.ItemType);
+  tt := it.ItemType;
+  if it.dropped then tt := tt or $80;
+  NetOut.Write(tt);
   NetOut.Write(Byte(it.Fall));
   NetOut.Write(Byte(it.Respawnable));
   NetOut.Write(it.Obj.X);
@@ -2306,7 +2309,8 @@ begin
   VX := M.ReadLongInt();
   VY := M.ReadLongInt();
 
-  g_Items_Create(X, Y, T, Fall, False, False, ID);
+  g_Items_Create(X, Y, T and $7F, Fall, False, False, ID);
+  if ((T and $80) <> 0) then g_Items_SetDrop(ID);
 
   it := g_Items_ByIdx(ID);
   it.Obj.Vel.X := VX;
