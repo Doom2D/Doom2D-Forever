@@ -865,7 +865,6 @@ begin
       end;
     end;
 
-    {$IF DEFINED(D2F_DEBUG)}
     if (arg = '--game-scale') or (arg = '-game-scale') then
     begin
       if (idx <= ParamCount) then
@@ -874,7 +873,6 @@ begin
         Inc(idx);
       end;
     end;
-    {$ENDIF}
 
     if (arg = '--write-mapdef') or (arg = '-write-mapdef') then
     begin

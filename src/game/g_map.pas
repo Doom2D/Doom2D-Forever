@@ -1597,7 +1597,7 @@ type
   end;
 var
   WAD: TWADFile;
-  mapReader: TDynRecord = nil;
+  //mapReader: TDynRecord = nil;
   mapTextureList: TDynField = nil; //TTexturesRec1Array; tagInt: texture index
   panels: TDynField = nil; //TPanelsRec1Array;
   items: TDynField = nil; //TItemsRec1Array;
@@ -1625,82 +1625,91 @@ begin
   mapGrid.Free();
   mapGrid := nil;
 
-  gCurrentMap.Free();
-  gCurrentMap := nil;
+  //gCurrentMap.Free();
+  //gCurrentMap := nil;
 
   panByGUID := nil;
 
   Result := False;
   gMapInfo.Map := Res;
   TriggersTable := nil;
-  mapReader := nil;
+  //mapReader := nil;
 
   sfsGCDisable(); // temporary disable removing of temporary volumes
   try
-    // Загрузка WAD:
-    FileName := g_ExtractWadName(Res);
-    e_WriteLog('Loading map WAD: '+FileName, MSG_NOTIFY);
-    g_Game_SetLoadingText(_lc[I_LOAD_WAD_FILE], 0, False);
-
-    WAD := TWADFile.Create();
-    if not WAD.ReadFile(FileName) then
+    // Загрузка WAD (если у нас нет уже загруженой карты)
+    if (gCurrentMap = nil) then
     begin
-      g_FatalError(Format(_lc[I_GAME_ERROR_MAP_WAD], [FileName]));
+      FileName := g_ExtractWadName(Res);
+      e_WriteLog('Loading map WAD: '+FileName, MSG_NOTIFY);
+      g_Game_SetLoadingText(_lc[I_LOAD_WAD_FILE], 0, False);
+
+      WAD := TWADFile.Create();
+      if not WAD.ReadFile(FileName) then
+      begin
+        g_FatalError(Format(_lc[I_GAME_ERROR_MAP_WAD], [FileName]));
+        WAD.Free();
+        Exit;
+      end;
+
+      //k8: why loader ignores path here?
+      mapResName := g_ExtractFileName(Res);
+      if not WAD.GetMapResource(mapResName, Data, Len) then
+      begin
+        g_FatalError(Format(_lc[I_GAME_ERROR_MAP_RES], [mapResName]));
+        WAD.Free();
+        Exit;
+      end;
+
       WAD.Free();
-      Exit;
-    end;
 
-    //k8: why loader ignores path here?
-    mapResName := g_ExtractFileName(Res);
-    if not WAD.GetMapResource(mapResName, Data, Len) then
-    begin
-      g_FatalError(Format(_lc[I_GAME_ERROR_MAP_RES], [mapResName]));
-      WAD.Free();
-      Exit;
-    end;
+      if (Len < 4) then
+      begin
+        e_LogWritefln('invalid map file: ''%s''', [mapResName]);
+        FreeMem(Data);
+        exit;
+      end;
 
-    WAD.Free();
+      // Загрузка карты:
+      e_LogWritefln('Loading map: %s', [mapResName], MSG_NOTIFY);
+      g_Game_SetLoadingText(_lc[I_LOAD_MAP], 0, False);
 
-    if (Len < 4) then
-    begin
-      e_LogWritefln('invalid map file: ''%s''', [mapResName]);
+      stt := getTimeMicro();
+
+      try
+        gCurrentMap := g_Map_ParseMap(Data, Len);
+      except
+        gCurrentMap.Free();
+        g_FatalError(Format(_lc[I_GAME_ERROR_MAP_LOAD], [Res]));
+        FreeMem(Data);
+        gCurrentMapFileName := '';
+        Exit;
+      end;
+
       FreeMem(Data);
-      exit;
-    end;
 
-    // Загрузка карты:
-    e_LogWritefln('Loading map: %s', [mapResName], MSG_NOTIFY);
-    g_Game_SetLoadingText(_lc[I_LOAD_MAP], 0, False);
-
-    stt := getTimeMicro();
-
-    try
-      mapReader := g_Map_ParseMap(Data, Len);
-    except
-      mapReader.Free();
-      g_FatalError(Format(_lc[I_GAME_ERROR_MAP_LOAD], [Res]));
-      FreeMem(Data);
-      Exit;
-    end;
-
-    FreeMem(Data);
-
-    if (mapReader = nil) then
+      if (gCurrentMap = nil) then
+      begin
+        e_LogWritefln('invalid map file: ''%s''', [mapResName]);
+        gCurrentMapFileName := '';
+        exit;
+      end;
+    end
+    else
     begin
-      e_LogWritefln('invalid map file: ''%s''', [mapResName]);
-      exit;
+      stt := getTimeMicro();
     end;
 
-    gCurrentMap := mapReader;
+    //gCurrentMap := mapReader;
 
-    generateExternalResourcesList(mapReader);
-    mapTextureList := mapReader['texture'];
+    generateExternalResourcesList(gCurrentMap);
+    mapTextureList := gCurrentMap['texture'];
     // get all other lists here too
-    panels := mapReader['panel'];
-    triggers := mapReader['trigger'];
-    items := mapReader['item'];
-    areas := mapReader['area'];
-    monsters := mapReader['monster'];
+    panels := gCurrentMap['panel'];
+    triggers := gCurrentMap['trigger'];
+    items := gCurrentMap['item'];
+    areas := gCurrentMap['area'];
+    monsters := gCurrentMap['monster'];
 
     // Загрузка описания карты:
     e_WriteLog('  Reading map info...', MSG_NOTIFY);
@@ -1708,13 +1717,13 @@ begin
 
     with gMapInfo do
     begin
-      Name := mapReader.MapName;
-      Description := mapReader.MapDesc;
-      Author := mapReader.MapAuthor;
-      MusicName := mapReader.MusicName;
-      SkyName := mapReader.SkyName;
-      Height := mapReader.Height;
-      Width := mapReader.Width;
+      Name := gCurrentMap.MapName;
+      Description := gCurrentMap.MapDesc;
+      Author := gCurrentMap.MapAuthor;
+      MusicName := gCurrentMap.MusicName;
+      SkyName := gCurrentMap.SkyName;
+      Height := gCurrentMap.Height;
+      Width := gCurrentMap.Width;
     end;
 
     // Загрузка текстур:
@@ -1781,6 +1790,7 @@ begin
         begin
           e_WriteLog('error loading map: invalid texture index for panel', MSG_FATALERROR);
           result := false;
+          gCurrentMap.Free();
           gCurrentMap := nil;
           gCurrentMapFileName := '';
           exit;
@@ -2079,9 +2089,9 @@ begin
       for rec in monsters do CreateMonster(rec);
     end;
 
-    gCurrentMap := mapReader; // this will be our current map now
+    //gCurrentMap := mapReader; // this will be our current map now
     gCurrentMapFileName := Res;
-    mapReader := nil;
+    //mapReader := nil;
 
     // Загрузка неба
     if (gMapInfo.SkyName <> '') then
@@ -2166,10 +2176,11 @@ begin
     mapOk := true;
   finally
     sfsGCEnable(); // enable releasing unused volumes
-    mapReader.Free();
+    //mapReader.Free();
     e_ClearInputBuffer(); // why not?
     if not mapOk then
     begin
+      gCurrentMap.Free();
       gCurrentMap := nil;
       gCurrentMapFileName := '';
     end;
@@ -2346,6 +2357,7 @@ begin
   begin
     e_LogWritefln('g_Map_Free: no previous map.', []);
   end;
+
   if freeTextures then
   begin
     e_LogWritefln('g_Map_Free: clearing textures...', []);
@@ -2374,6 +2386,9 @@ begin
     TextNameHash := nil;
     BadTextNameHash.Free();
     BadTextNameHash := nil;
+    gCurrentMapFileName := '';
+    gCurrentMap.Free();
+    gCurrentMap := nil;
   end;
 
   panByGUID := nil;
