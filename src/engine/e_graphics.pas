@@ -144,6 +144,7 @@ var
   e_Colors: TRGB;
   e_NoGraphics: Boolean = False;
   e_FastScreenshots: Boolean = true; // it's REALLY SLOW with `false`
+  g_dbg_scale: Single = 1.0;
 
 
 implementation
@@ -468,7 +469,7 @@ begin
   e_SetViewPort(0, 0, Width, Height);
 end;
 
-procedure drawTxQuad (x0, y0, w, h: Integer; u, v: single; Mirror: TMirrorType);
+procedure drawTxQuad (x0, y0, w, h, tw, th: Integer; u, v: single; Mirror: TMirrorType);
 var
   x1, y1, tmp: Integer;
 begin
@@ -477,6 +478,12 @@ begin
   y1 := y0+h;
        if Mirror = M_HORIZONTAL then begin tmp := x1; x1 := x0; x0 := tmp; end
   else if Mirror = M_VERTICAL then begin tmp := y1; y1 := y0; y0 := tmp; end;
+  //HACK: make texture one pixel shorter, so it won't wrap
+  if (g_dbg_scale <> 1.0) then
+  begin
+    u := u*tw/(tw+1);
+    v := v*th/(th+1);
+  end;
   glTexCoord2f(0, v); glVertex2i(x0, y0);
   glTexCoord2f(0, 0); glVertex2i(x0, y1);
   glTexCoord2f(u, 0); glVertex2i(x1, y1);
@@ -507,7 +514,7 @@ begin
   glBindTexture(GL_TEXTURE_2D, e_Textures[ID].tx.id);
   glBegin(GL_QUADS);
 
-  drawTxQuad(X, Y, e_Textures[id].tx.width, e_Textures[id].tx.height, e_Textures[ID].tx.u, e_Textures[ID].tx.v, Mirror);
+  drawTxQuad(X, Y, e_Textures[id].tx.width, e_Textures[id].tx.height, e_Textures[id].tx.width, e_Textures[id].tx.height, e_Textures[ID].tx.u, e_Textures[ID].tx.v, Mirror);
 
   //u := e_Textures[ID].tx.u;
   //v := e_Textures[ID].tx.v;
@@ -604,7 +611,7 @@ begin
   glEnable(GL_TEXTURE_2D);
   glBindTexture(GL_TEXTURE_2D, e_Textures[ID].tx.id);
   glBegin(GL_QUADS);
-  drawTxQuad(X, Y, Width, Height, e_Textures[ID].tx.u, e_Textures[ID].tx.v, Mirror);
+  drawTxQuad(X, Y, Width, Height, e_Textures[id].tx.width, e_Textures[id].tx.height, e_Textures[ID].tx.u, e_Textures[ID].tx.v, Mirror);
   glEnd();
 
   glDisable(GL_BLEND);
@@ -892,7 +899,7 @@ begin
   glBindTexture(GL_TEXTURE_2D, e_Textures[id].tx.id);
   glBegin(GL_QUADS);                           //0-1        1-1
                                                //00         10
-  drawTxQuad(X, Y, e_Textures[id].tx.width, e_Textures[id].tx.height, e_Textures[ID].tx.u, e_Textures[ID].tx.v, Mirror);
+  drawTxQuad(X, Y, e_Textures[id].tx.width, e_Textures[id].tx.height, e_Textures[id].tx.width, e_Textures[id].tx.height, e_Textures[ID].tx.u, e_Textures[ID].tx.v, Mirror);
   glEnd();
 
   if Angle <> 0 then

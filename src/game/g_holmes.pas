@@ -103,7 +103,7 @@ var
 implementation
 
 uses
-  {rttiobj,} typinfo,
+  {rttiobj,} typinfo, e_texture,
   SysUtils, Classes, GL, SDL2,
   MAPDEF, g_main, g_options,
   utils, hashtable, xparser;

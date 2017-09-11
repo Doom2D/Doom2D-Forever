@@ -324,8 +324,6 @@ var
   g_rlayer_water: Boolean = true;
   g_rlayer_fore: Boolean = true;
 
-  g_dbg_scale: Single = 1.0;
-
 
 procedure g_ResetDynlights ();
 procedure g_AddDynLight (x, y, radius: Integer; r, g, b, a: Single);
@@ -337,7 +335,7 @@ function conIsCheatsEnabled (): Boolean;
 implementation
 
 uses
-  g_textures, g_main, g_window, g_menu,
+  e_texture, g_textures, g_main, g_window, g_menu,
   e_input, e_log, g_console, g_items, g_map, g_panel,
   g_playermodel, g_gfx, g_options, g_weapons, Math,
   g_triggers, g_monsters, e_sound, CONFIG,
@@ -2912,6 +2910,7 @@ begin
 
   if setTransMatrix then
   begin
+    //if (g_dbg_scale <> 1.0) then glTranslatef(0.0, -0.375/2, 0);
     glScalef(g_dbg_scale, g_dbg_scale, 1.0);
     glTranslatef(-sX, -sY, 0);
   end;

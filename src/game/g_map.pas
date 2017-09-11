@@ -242,7 +242,7 @@ var
 implementation
 
 uses
-  e_input, g_main, e_log, SysUtils, g_items, g_gfx, g_console,
+  e_input, g_main, e_log, e_texture, SysUtils, g_items, g_gfx, g_console,
   GL, GLExt, g_weapons, g_game, g_sound, e_sound, CONFIG,
   g_options, g_triggers, g_player,
   Math, g_monsters, g_saveload, g_language, g_netmsg,
@@ -878,6 +878,7 @@ var
   TextureData: Pointer;
   WADName: String;
   a, ResLength: Integer;
+  oldFilter: Integer;
 begin
   RecName := toLowerCase1251(RecName);
   if (TextNameHash = nil) then TextNameHash := hashNewStrInt();
@@ -947,32 +948,38 @@ begin
   end;
   }
 
-  if WAD.GetResource(g_ExtractFilePathName(RecName), TextureData, ResLength, log) then
-  begin
-    SetLength(Textures, Length(Textures)+1);
-    if not e_CreateTextureMem(TextureData, ResLength, Textures[High(Textures)].TextureID) then
+  oldFilter := TEXTUREFILTER;
+  TEXTUREFILTER := GL_NEAREST;
+  try
+    if WAD.GetResource(g_ExtractFilePathName(RecName), TextureData, ResLength, log) then
     begin
-      SetLength(Textures, Length(Textures)-1);
-      Exit;
-    end;
-    e_GetTextureSize(Textures[High(Textures)].TextureID, @Textures[High(Textures)].Width, @Textures[High(Textures)].Height);
-    FreeMem(TextureData);
-    Textures[High(Textures)].TextureName := RecName;
-    Textures[High(Textures)].Anim := False;
+      SetLength(Textures, Length(Textures)+1);
+      if not e_CreateTextureMem(TextureData, ResLength, Textures[High(Textures)].TextureID) then
+      begin
+        SetLength(Textures, Length(Textures)-1);
+        Exit;
+      end;
+      e_GetTextureSize(Textures[High(Textures)].TextureID, @Textures[High(Textures)].Width, @Textures[High(Textures)].Height);
+      FreeMem(TextureData);
+      Textures[High(Textures)].TextureName := RecName;
+      Textures[High(Textures)].Anim := False;
 
-    result := High(Textures);
-    TextNameHash.put(RecName, result);
-  end
-  else // Нет такого реусрса в WAD'е
-  begin
-    //e_WriteLog(Format('SHIT! Error loading texture %s : %s', [RecName, g_ExtractFilePathName(RecName)]), MSG_WARNING);
-    if (BadTextNameHash = nil) then BadTextNameHash := hashNewStrInt();
-    if log and (not BadTextNameHash.get(RecName, a)) then
+      result := High(Textures);
+      TextNameHash.put(RecName, result);
+    end
+    else // Нет такого реусрса в WAD'е
     begin
-      e_WriteLog(Format('Error loading texture %s', [RecName]), MSG_WARNING);
-      //e_WriteLog(Format('WAD Reader error: %s', [WAD.GetLastErrorStr]), MSG_WARNING);
+      //e_WriteLog(Format('SHIT! Error loading texture %s : %s', [RecName, g_ExtractFilePathName(RecName)]), MSG_WARNING);
+      if (BadTextNameHash = nil) then BadTextNameHash := hashNewStrInt();
+      if log and (not BadTextNameHash.get(RecName, a)) then
+      begin
+        e_WriteLog(Format('Error loading texture %s', [RecName]), MSG_WARNING);
+        //e_WriteLog(Format('WAD Reader error: %s', [WAD.GetLastErrorStr]), MSG_WARNING);
+      end;
+      BadTextNameHash.put(RecName, -1);
     end;
-    BadTextNameHash.put(RecName, -1);
+  finally
+    TEXTUREFILTER := oldFilter;
   end;
 
   WAD.Free();
@@ -2084,26 +2091,23 @@ begin
     mapReader := nil;
 
     // Загрузка неба
-    if gMapInfo.SkyName <> '' then
+    if (gMapInfo.SkyName <> '') then
     begin
       e_WriteLog('  Loading sky: ' + gMapInfo.SkyName, MSG_NOTIFY);
       g_Game_SetLoadingText(_lc[I_LOAD_SKY], 0, False);
       FileName := g_ExtractWadName(gMapInfo.SkyName);
 
-      if FileName <> '' then
-        FileName := GameDir+'/wads/'+FileName
-      else
-        begin
-          FileName := g_ExtractWadName(Res);
-        end;
+      if (FileName <> '') then FileName := GameDir+'/wads/'+FileName else FileName := g_ExtractWadName(Res);
 
       s := FileName+':'+g_ExtractFilePathName(gMapInfo.SkyName);
       if g_Texture_CreateWAD(BackID, s) then
-        begin
-          g_Game_SetupScreenSize();
-        end
+      begin
+        g_Game_SetupScreenSize();
+      end
       else
+      begin
         g_FatalError(Format(_lc[I_GAME_ERROR_SKY], [s]));
+      end;
     end;
 
     // Загрузка музыки

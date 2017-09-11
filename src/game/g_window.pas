@@ -48,7 +48,7 @@ implementation
 uses
 {$IFDEF WINDOWS}Windows,{$ENDIF}
   SysUtils, Classes, MAPDEF,
-  SDL2, GL, GLExt, e_graphics, e_log, g_main,
+  SDL2, GL, GLExt, e_graphics, e_log, e_texture, g_main,
   g_console, e_input, g_options, g_game,
   g_basic, g_textures, e_sound, g_sound, g_menu, ENet, g_net,
   g_map, g_gfx, g_monsters, g_holmes, xprofiler, utils;

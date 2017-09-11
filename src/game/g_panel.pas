@@ -208,7 +208,7 @@ var
 implementation
 
 uses
-  SysUtils, g_basic, g_map, g_game, g_gfx, e_graphics, g_weapons, g_triggers,
+  SysUtils, e_texture, g_basic, g_map, g_game, g_gfx, e_graphics, g_weapons, g_triggers,
   g_console, g_language, g_monsters, g_player, g_grid, e_log, GL, utils;
 
 const
