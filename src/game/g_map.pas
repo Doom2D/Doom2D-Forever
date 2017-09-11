@@ -878,7 +878,6 @@ var
   TextureData: Pointer;
   WADName: String;
   a, ResLength: Integer;
-  oldFilter: Integer;
 begin
   RecName := toLowerCase1251(RecName);
   if (TextNameHash = nil) then TextNameHash := hashNewStrInt();
@@ -948,38 +947,32 @@ begin
   end;
   }
 
-  oldFilter := TEXTUREFILTER;
-  TEXTUREFILTER := GL_NEAREST;
-  try
-    if WAD.GetResource(g_ExtractFilePathName(RecName), TextureData, ResLength, log) then
+  if WAD.GetResource(g_ExtractFilePathName(RecName), TextureData, ResLength, log) then
+  begin
+    SetLength(Textures, Length(Textures)+1);
+    if not e_CreateTextureMem(TextureData, ResLength, Textures[High(Textures)].TextureID) then
     begin
-      SetLength(Textures, Length(Textures)+1);
-      if not e_CreateTextureMem(TextureData, ResLength, Textures[High(Textures)].TextureID) then
-      begin
-        SetLength(Textures, Length(Textures)-1);
-        Exit;
-      end;
-      e_GetTextureSize(Textures[High(Textures)].TextureID, @Textures[High(Textures)].Width, @Textures[High(Textures)].Height);
-      FreeMem(TextureData);
-      Textures[High(Textures)].TextureName := RecName;
-      Textures[High(Textures)].Anim := False;
-
-      result := High(Textures);
-      TextNameHash.put(RecName, result);
-    end
-    else // Нет такого реусрса в WAD'е
-    begin
-      //e_WriteLog(Format('SHIT! Error loading texture %s : %s', [RecName, g_ExtractFilePathName(RecName)]), MSG_WARNING);
-      if (BadTextNameHash = nil) then BadTextNameHash := hashNewStrInt();
-      if log and (not BadTextNameHash.get(RecName, a)) then
-      begin
-        e_WriteLog(Format('Error loading texture %s', [RecName]), MSG_WARNING);
-        //e_WriteLog(Format('WAD Reader error: %s', [WAD.GetLastErrorStr]), MSG_WARNING);
-      end;
-      BadTextNameHash.put(RecName, -1);
+      SetLength(Textures, Length(Textures)-1);
+      Exit;
     end;
-  finally
-    TEXTUREFILTER := oldFilter;
+    e_GetTextureSize(Textures[High(Textures)].TextureID, @Textures[High(Textures)].Width, @Textures[High(Textures)].Height);
+    FreeMem(TextureData);
+    Textures[High(Textures)].TextureName := RecName;
+    Textures[High(Textures)].Anim := False;
+
+    result := High(Textures);
+    TextNameHash.put(RecName, result);
+  end
+  else // Нет такого реусрса в WAD'е
+  begin
+    //e_WriteLog(Format('SHIT! Error loading texture %s : %s', [RecName, g_ExtractFilePathName(RecName)]), MSG_WARNING);
+    if (BadTextNameHash = nil) then BadTextNameHash := hashNewStrInt();
+    if log and (not BadTextNameHash.get(RecName, a)) then
+    begin
+      e_WriteLog(Format('Error loading texture %s', [RecName]), MSG_WARNING);
+      //e_WriteLog(Format('WAD Reader error: %s', [WAD.GetLastErrorStr]), MSG_WARNING);
+    end;
+    BadTextNameHash.put(RecName, -1);
   end;
 
   WAD.Free();
@@ -2099,14 +2092,19 @@ begin
 
       if (FileName <> '') then FileName := GameDir+'/wads/'+FileName else FileName := g_ExtractWadName(Res);
 
-      s := FileName+':'+g_ExtractFilePathName(gMapInfo.SkyName);
-      if g_Texture_CreateWAD(BackID, s) then
-      begin
-        g_Game_SetupScreenSize();
-      end
-      else
-      begin
-        g_FatalError(Format(_lc[I_GAME_ERROR_SKY], [s]));
+      if gTextureFilter then TEXTUREFILTER := GL_LINEAR else TEXTUREFILTER := GL_NEAREST;
+      try
+        s := FileName+':'+g_ExtractFilePathName(gMapInfo.SkyName);
+        if g_Texture_CreateWAD(BackID, s) then
+        begin
+          g_Game_SetupScreenSize();
+        end
+        else
+        begin
+          g_FatalError(Format(_lc[I_GAME_ERROR_SKY], [s]));
+        end;
+      finally
+        TEXTUREFILTER := GL_NEAREST;
       end;
     end;
 

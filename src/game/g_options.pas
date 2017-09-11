@@ -529,10 +529,7 @@ begin
 
   config.Free();
 
-  if gTextureFilter then
-    TEXTUREFILTER := GL_LINEAR
-  else
-    TEXTUREFILTER := GL_NEAREST;
+  //if gTextureFilter then TEXTUREFILTER := GL_LINEAR else TEXTUREFILTER := GL_NEAREST;
 end;
 
 procedure g_Options_Write(FileName: String);
