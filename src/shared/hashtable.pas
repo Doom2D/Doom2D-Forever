@@ -19,7 +19,7 @@
 {.$DEFINE RBHASH_DEBUG_DELETE}
 {.$DEFINE RBHASH_DEBUG_COMPACT}
 {$IF DEFINED(D2F_DEBUG)}
-  {$DEFINE RBHASH_SANITY_CHECKS}
+  {.$DEFINE RBHASH_SANITY_CHECKS}
 {$ENDIF}
 // hash table (robin hood)
 unit hashtable;
@@ -31,13 +31,14 @@ type
   // WARNING! don't put structures into hash, use ponters or ids!
   generic THashBase<KeyT, ValueT> = class(TObject)
   private
-    const InitSize = {$IF DEFINED(D2F_DEBUG)}16{$ELSE}512{$ENDIF}; // *MUST* be power of two
+    const InitSize = {$IF DEFINED(RBHASH_SANITY_CHECKS)}16{$ELSE}256{$ENDIF}; // *MUST* be power of two
     const LoadFactorPrc = 90; // it is ok for robin hood hashes
 
   public
     type THashFn = function (constref o: KeyT): LongWord;
     type TEquFn = function (constref a, b: KeyT): Boolean;
     type TIteratorFn = function (constref k: KeyT; constref v: ValueT): Boolean is nested; // return `true` to stop
+    type TIteratorExFn = function (constref k: KeyT; constref v: ValueT; keyhash: LongWord): Boolean is nested; // return `true` to stop
 
     type
       PEntry = ^TEntry;
@@ -48,6 +49,8 @@ type
       private
         hash: LongWord; // key hash or 0
         nextFree: PEntry; // next free entry
+      public
+        property keyhash: LongWord read hash;
       end;
 
   private
@@ -125,13 +128,18 @@ type
     procedure rehash ();
     procedure compact (); // call this instead of `rehash()` after alot of deletions
 
-    function get (constref akey: KeyT; out rval: ValueT): Boolean; // `true`: found
-    function put (constref akey: KeyT; constref aval: ValueT): Boolean; // `true`: replaced
-    function has (constref akey: KeyT): Boolean; // `true`: found
-    function del (constref akey: KeyT): Boolean; // `true`: deleted
+    // you may pass `keyhash` to bypass hash calculation
+    function get (constref akey: KeyT; out rval: ValueT; keyhashin: PLongWord=nil): Boolean; // `true`: found
+    // the function may return calculated value hash in `keyhash`
+    function put (constref akey: KeyT; constref aval: ValueT; keyhashout: PLongWord=nil): Boolean; // `true`: replaced
+    // you may pass `keyhash` to bypass hash calculation
+    function has (constref akey: KeyT; keyhashin: PLongWord=nil): Boolean; // `true`: found
+    // you may pass `keyhash` to bypass hash calculation
+    function del (constref akey: KeyT; keyhashin: PLongWord=nil): Boolean; // `true`: deleted
 
     //WARNING! don't modify table in iterator (queries are ok, though)
-    function forEach (it: TIteratorFn): Boolean;
+    function forEach (it: TIteratorFn): Boolean; overload;
+    function forEach (it: TIteratorExFn): Boolean; overload;
 
     // default `for ... in` enums values
     function GetEnumerator (): TValEnumerator;
@@ -380,25 +388,7 @@ var
 begin
   SetLength(mBuckets, InitSize);
   for idx := 0 to High(mBuckets) do mBuckets[idx] := nil;
-
   SetLength(mEntries, Length(mBuckets));
-  {
-  for idx := 0 to High(mEntries)-1 do
-  begin
-    mEntries[idx].hash := 0;
-    mEntries[idx].nextFree := @mEntries[idx+1]; //idx+1;
-  end;
-  mEntries[High(mEntries)].hash := 0;
-  mEntries[High(mEntries)].nextFree := nil;
-  }
-  {
-  for idx := 0 to High(mEntries) do
-  begin
-    mEntries[idx].hash := 0;
-    mEntries[idx].nextFree := nil;
-  end;
-  }
-
   mBucketsUsed := 0;
   {$IFDEF RBHASH_SANITY_CHECKS}
   mEntriesUsed := 0;
@@ -416,26 +406,6 @@ begin
   if (mBucketsUsed > 0) then
   begin
     for idx := 0 to High(mBuckets) do mBuckets[idx] := nil;
-    {
-    for idx := 0 to High(mEntries)-1 do
-    begin
-      mEntries[idx].hash := 0;
-      mEntries[idx].nextFree := @mEntries[idx+1]; //idx+1;
-    end;
-    mEntries[High(mEntries)].hash := 0;
-    mEntries[High(mEntries)].nextFree := nil;
-    }
-    {
-    if (mFirstEntry >= 0) then
-    begin
-      for idx := mFirstEntry to mLastEntry do
-      begin
-        mEntries[idx].hash := 0;
-        mEntries[idx].nextFree := nil;
-      end;
-    end;
-    }
-
     mBucketsUsed := 0;
     {$IFDEF RBHASH_SANITY_CHECKS}
     mEntriesUsed := 0;
@@ -560,31 +530,43 @@ begin
   assert(idx < Length(mBuckets));
   assert(mBuckets[idx] <> nil);
   {$ENDIF}
-  result := mBuckets[idx].hash and High(mBuckets);
+  result := (mBuckets[idx].hash xor mSeed) and High(mBuckets);
   if (result <= idx) then result := idx-result else result := idx+(Length(mBuckets)-result);
 end;
 *)
 
 
-function THashBase.has (constref akey: KeyT): Boolean;
+function THashBase.has (constref akey: KeyT; keyhashin: PLongWord=nil): Boolean;
 var
   khash, idx: LongWord;
   dist, pdist: LongWord;
-  bhigh: LongWord;
+  bhigh, xseed: LongWord;
 begin
   result := false;
   if (mBucketsUsed = 0) then exit;
 
   bhigh := High(mBuckets);
-  khash := hashfn(akey) xor mSeed; if (khash = 0) then khash := $29a;
-  idx := khash and bhigh;
+  xseed := mSeed;
+
+  if (keyhashin <> nil) then
+  begin
+    khash := keyhashin^;
+    if (khash = 0) then khash := hashfn(akey);
+  end
+  else
+  begin
+    khash := hashfn(akey);
+  end;
+  if (khash = 0) then khash := $29a;
+
+  idx := (khash xor xseed) and bhigh;
   if (mBuckets[idx] = nil) then exit;
 
   for dist := 0 to bhigh do
   begin
     if (mBuckets[idx] = nil) then break;
     //pdist := distToStIdx(idx);
-    pdist := mBuckets[idx].hash and bhigh;
+    pdist := (mBuckets[idx].hash xor xseed) and bhigh;
     if (pdist <= idx) then pdist := idx-pdist else pdist := idx+((bhigh+1)-pdist);
     //
     if (dist > pdist) then break;
@@ -595,34 +577,41 @@ begin
 end;
 
 
-function THashBase.get (constref akey: KeyT; out rval: ValueT): Boolean;
+function THashBase.get (constref akey: KeyT; out rval: ValueT; keyhashin: PLongWord=nil): Boolean;
 var
   khash, idx: LongWord;
   dist, pdist: LongWord;
-  bhigh: LongWord;
+  bhigh, xseed: LongWord;
 begin
   result := false;
   if (mBucketsUsed = 0) then begin rval := Default(ValueT); exit; end;
 
   bhigh := High(mBuckets);
-  khash := hashfn(akey) xor mSeed; if (khash = 0) then khash := $29a;
-  idx := khash and bhigh;
-  if (mBuckets[idx] = nil) then begin rval := Default(ValueT); exit; end;
+  xseed := mSeed;
+
+  if (keyhashin <> nil) then
+  begin
+    khash := keyhashin^;
+    if (khash = 0) then khash := hashfn(akey);
+  end
+  else
+  begin
+    khash := hashfn(akey);
+  end;
+  if (khash = 0) then khash := $29a;
+
+  idx := (khash xor xseed) and bhigh;
 
   for dist := 0 to bhigh do
   begin
     if (mBuckets[idx] = nil) then break;
     //pdist := distToStIdx(idx);
-    pdist := mBuckets[idx].hash and bhigh;
+    pdist := (mBuckets[idx].hash xor xseed) and bhigh;
     if (pdist <= idx) then pdist := idx-pdist else pdist := idx+((bhigh+1)-pdist);
     //
     if (dist > pdist) then break;
     result := (mBuckets[idx].hash = khash) and equfn(mBuckets[idx].key, akey);
-    if result then
-    begin
-      rval := mBuckets[idx].value;
-      break;
-    end;
+    if result then begin rval := mBuckets[idx].value; break; end;
     idx := (idx+1) and bhigh;
   end;
 
@@ -634,10 +623,11 @@ procedure THashBase.putEntryInternal (swpe: PEntry);
 var
   idx, dist, pcur, pdist: LongWord;
   tmpe: PEntry; // current entry to swap (or nothing)
-  bhigh: LongWord;
+  bhigh, xseed: LongWord;
 begin
   bhigh := High(mBuckets);
-  idx := swpe.hash and bhigh;
+  xseed := mSeed;
+  idx := (swpe.hash xor xseed) and bhigh;
   {$IFDEF RBHASH_DEBUG_INSERT}writeln('inserting key ', swpe.key, '; value=', swpe.value, '; wantidx=', idx, '; bhigh=', bhigh);{$ENDIF}
   pcur := 0;
   for dist := 0 to bhigh do
@@ -651,7 +641,7 @@ begin
       break;
     end;
     //pdist := distToStIdx(idx);
-    pdist := mBuckets[idx].hash and bhigh;
+    pdist := (mBuckets[idx].hash xor xseed) and bhigh;
     if (pdist <= idx) then pdist := idx-pdist else pdist := idx+((bhigh+1)-pdist);
     //
     if (pcur > pdist) then
@@ -668,18 +658,21 @@ begin
 end;
 
 
-function THashBase.put (constref akey: KeyT; constref aval: ValueT): Boolean;
+function THashBase.put (constref akey: KeyT; constref aval: ValueT; keyhashout: PLongWord=nil): Boolean;
 var
   khash, idx, dist, pdist: LongWord;
   swpe: PEntry = nil; // current entry to swap (or nothing)
-  bhigh: LongWord;
+  bhigh, xseed: LongWord;
   newsz, eidx: Integer;
 begin
   result := false;
 
   bhigh := High(mBuckets);
-  khash := hashfn(akey) xor mSeed; if (khash = 0) then khash := $29a;
-  idx := khash and bhigh;
+  xseed := mSeed;
+  khash := hashfn(akey);
+  if (khash = 0) then khash := $29a;
+  if (keyhashout <> nil) then keyhashout^ := khash;
+  idx := (khash xor xseed) and bhigh;
 
   // check if we already have this key
   if (mBucketsUsed <> 0) and (mBuckets[idx] <> nil) then
@@ -688,7 +681,7 @@ begin
     begin
       if (mBuckets[idx] = nil) then break;
       //pdist := distToStIdx(idx);
-      pdist := mBuckets[idx].hash and bhigh;
+      pdist := (mBuckets[idx].hash xor xseed) and bhigh;
       if (pdist <= idx) then pdist := idx-pdist else pdist := idx+((bhigh+1)-pdist);
       //
       if (dist > pdist) then break;
@@ -721,8 +714,6 @@ begin
     // mFreeEntryHead will be fixed in `rehash()`
     // reinsert entries
     rehash();
-    // as seed was changed, recalc hash
-    khash := hashfn(akey) xor mSeed; if (khash = 0) then khash := $29a;
   end;
 
   // create new entry
@@ -736,17 +727,29 @@ end;
 
 
 // see http://codecapsule.com/2013/11/17/robin-hood-hashing-backward-shift-deletion/
-function THashBase.del (constref akey: KeyT): Boolean;
+function THashBase.del (constref akey: KeyT; keyhashin: PLongWord=nil): Boolean;
 var
   khash, idx, idxnext, pdist, dist: LongWord;
-  bhigh: LongWord;
+  bhigh, xseed: LongWord;
 begin
   result := false;
   if (mBucketsUsed = 0) then exit;
 
   bhigh := High(mBuckets);
-  khash := hashfn(akey) xor mSeed; if (khash = 0) then khash := $29a;
-  idx := khash and bhigh;
+  xseed := mSeed;
+
+  if (keyhashin <> nil) then
+  begin
+    khash := keyhashin^;
+    if (khash = 0) then khash := hashfn(akey);
+  end
+  else
+  begin
+    khash := hashfn(akey);
+  end;
+  if (khash = 0) then khash := $29a;
+
+  idx := (khash xor xseed) and bhigh;
 
   // find key
   if (mBuckets[idx] = nil) then exit; // no key
@@ -754,7 +757,7 @@ begin
   begin
     if (mBuckets[idx] = nil) then break;
     //pdist := distToStIdx(idxcur);
-    pdist := mBuckets[idx].hash and bhigh;
+    pdist := (mBuckets[idx].hash xor xseed) and bhigh;
     if (pdist <= idx) then pdist := idx-pdist else pdist := idx+((bhigh+1)-pdist);
     //
     if (dist > pdist) then break;
@@ -785,7 +788,7 @@ begin
     {$ENDIF}
     if (mBuckets[idxnext] = nil) then begin {$IFDEF RBHASH_DEBUG_DELETE}writeln('  idxnext nil');{$ENDIF} mBuckets[idx] := nil; break; end;
     //pdist := distToStIdx(idxnext);
-    pdist := mBuckets[idxnext].hash and bhigh;
+    pdist := (mBuckets[idxnext].hash xor xseed) and bhigh;
     if (pdist <= idxnext) then pdist := idxnext-pdist else pdist := idxnext+((bhigh+1)-pdist);
     //
     if (pdist = 0) then begin {$IFDEF RBHASH_DEBUG_DELETE}writeln('  pdist is zero');{$ENDIF} mBuckets[idx] := nil; break; end;
@@ -809,6 +812,7 @@ var
   {$ENDIF}
 begin
   // change seed, to minimize pathological cases
+  //TODO: use prng to generate new hash
   if (mSeed = 0) then mSeed := $29a;
   mSeed := u32Hash(mSeed);
   // clear buckets
@@ -828,7 +832,8 @@ begin
       Inc(cnt);
       if (cnt = mBucketsUsed) and (idx <> mLastEntry) then raise Exception.Create('internal error in rehash: inconsistent (2)');
       {$ENDIF}
-      e.hash := hashfn(e.key) xor mSeed; if (e.hash = 0) then e.hash := $29a;
+      // no need to recalculate hash
+      //e.hash := hashfn(e.key) xor mSeed; if (e.hash = 0) then e.hash := $29a;
       putEntryInternal(e);
     end
     else
@@ -918,7 +923,7 @@ begin
 end;
 
 
-function THashBase.forEach (it: TIteratorFn): Boolean;
+function THashBase.forEach (it: TIteratorFn): Boolean; overload;
 var
   i: Integer;
 begin
@@ -931,6 +936,25 @@ begin
     if (mEntries[i].hash <> 0) then
     begin
       result := it(mEntries[i].key, mEntries[i].value);
+      if result then exit;
+    end;
+    Inc(i);
+  end;
+end;
+
+function THashBase.forEach (it: TIteratorExFn): Boolean; overload;
+var
+  i: Integer;
+begin
+  result := false;
+  if not assigned(it) then exit;
+  i := mFirstEntry;
+  if (i < 0) then exit;
+  while (i <= mLastEntry) do
+  begin
+    if (mEntries[i].hash <> 0) then
+    begin
+      result := it(mEntries[i].key, mEntries[i].value, mEntries[i].hash);
       if result then exit;
     end;
     Inc(i);
