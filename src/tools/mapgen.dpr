@@ -5,6 +5,7 @@
 
 uses
   SysUtils, Classes,
+  mempool in '../shared/mempool.pas',
   xstreams in '../shared/xstreams.pas',
   xparser in '../shared/xparser.pas',
   xdynrec in '../shared/xdynrec.pas',

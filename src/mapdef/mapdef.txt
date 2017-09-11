@@ -175,6 +175,7 @@ enum EffectAction {
   EFFECT_FIRE, // 3
 }
 
+//WARNING! max allowed items types is 127
 enum Item {
   ITEM_NONE, // 0
   ITEM_MEDKIT_SMALL, // 1

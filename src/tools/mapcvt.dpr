@@ -8,6 +8,7 @@ uses
   sfs in '../sfs/sfs.pas',
   sfsPlainFS in '../sfs/sfsPlainFS.pas',
   sfsZipFS in '../sfs/sfsZipFS.pas',
+  mempool in '../shared/mempool.pas',
   xstreams in '../shared/xstreams.pas',
   xparser in '../shared/xparser.pas',
   xdynrec in '../shared/xdynrec.pas',
@@ -98,9 +99,9 @@ begin
   end;
 
   try
-    stt := curTimeMicro();
+    stt := getTimeMicro();
     map := dfmapdef.parseMap(st, @wasbin);
-    stt := curTimeMicro()-stt;
+    stt := getTimeMicro()-stt;
     if wasbin then write('binary') else write('text');
     writeln(' map parsed in ', stt div 1000, '.', stt mod 1000, ' milliseconds');
   except
@@ -132,9 +133,9 @@ begin
   begin
     // write binary map
     lostdata := false;
-    stt := curTimeMicro();
+    stt := getTimeMicro();
     map.writeBinTo(lostdata, st);
-    stt := curTimeMicro()-stt;
+    stt := getTimeMicro()-stt;
     if lostdata then writeln('***WARNING! some data was lost due to binary format limitations!');
     write('binary');
   end
@@ -142,9 +143,9 @@ begin
   begin
     // write text map
     wr := TFileTextWriter.Create(st);
-    stt := curTimeMicro();
+    stt := getTimeMicro();
     map.writeTo(wr);
-    stt := curTimeMicro()-stt;
+    stt := getTimeMicro()-stt;
     wr.Free();
     write('text');
   end;

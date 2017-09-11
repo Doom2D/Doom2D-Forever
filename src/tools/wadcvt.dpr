@@ -28,6 +28,7 @@ program __wadcvt__;
 uses
   SysUtils,
   Classes,
+  mempool in '../shared/mempool.pas',
   utils in '../shared/utils.pas',
   xstreams in '../shared/xstreams.pas',
   xparser in '../shared/xparser.pas',
