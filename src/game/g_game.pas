@@ -5165,6 +5165,19 @@ begin
   end;
 end;
 
+procedure PrintHeapStats();
+var
+  hs: TFPCHeapStatus;
+begin
+  hs := GetFPCHeapStatus();
+  e_LogWriteLn ('v===== heap status =====v');
+  e_LogWriteFln('max heap size = %d k', [hs.MaxHeapSize div 1024]);
+  e_LogWriteFln('max heap used = %d k', [hs.MaxHeapUsed div 1024]);
+  e_LogWriteFln('cur heap size = %d k', [hs.CurrHeapSize div 1024]);
+  e_LogWriteFln('cur heap used = %d k', [hs.CurrHeapUsed div 1024]);
+  e_LogWriteFln('cur heap free = %d k', [hs.CurrHeapFree div 1024]);
+  e_LogWriteLn ('^=======================^');
+end;
 
 procedure DebugCommands(P: SArray);
 var
@@ -5280,6 +5293,10 @@ begin
     begin
       for a := 1 to 8 do
         g_Console_Add(e_JoystickStateToString(a));
+    end
+    else if (cmd = 'd_mem') then
+    begin
+      PrintHeapStats();
     end;
   end
     else
