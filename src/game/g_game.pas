@@ -5252,6 +5252,7 @@ begin
           g_Console_Add('ID | Name');
           for b := MONSTER_DEMON to MONSTER_MAN do
             g_Console_Add(Format('%2d | %s', [b, g_Mons_NameByTypeId(b)]));
+          conwriteln('behav.   num'#10'normal    0'#10'killer    1'#10'maniac    2'#10'insane    3'#10'cannibal  4'#10'good      5');
         end else
         begin
           a := StrToIntDef(P[1], 0);
@@ -5270,7 +5271,17 @@ begin
                      gPlayer1.Direction, True);
               end;
               if (Length(P) > 2) and (mon <> nil) then
-                mon.MonsterBehaviour := Min(Max(StrToIntDef(P[2], BH_NORMAL), BH_NORMAL), BH_GOOD);
+              begin
+                     if (CompareText(P[2], 'normal') = 0) then mon.MonsterBehaviour := BH_NORMAL
+                else if (CompareText(P[2], 'killer') = 0) then mon.MonsterBehaviour := BH_KILLER
+                else if (CompareText(P[2], 'maniac') = 0) then mon.MonsterBehaviour := BH_MANIAC
+                else if (CompareText(P[2], 'insane') = 0) then mon.MonsterBehaviour := BH_INSANE
+                else if (CompareText(P[2], 'cannibal') = 0) then mon.MonsterBehaviour := BH_CANNIBAL
+                else if (CompareText(P[2], 'good') = 0) then mon.MonsterBehaviour := BH_GOOD
+                else if (CompareText(P[2], 'friend') = 0) then mon.MonsterBehaviour := BH_GOOD
+                else if (CompareText(P[2], 'friendly') = 0) then mon.MonsterBehaviour := BH_GOOD
+                else mon.MonsterBehaviour := Min(Max(StrToIntDef(P[2], BH_NORMAL), BH_NORMAL), BH_GOOD);
+              end;
             end;
         end;
     end
