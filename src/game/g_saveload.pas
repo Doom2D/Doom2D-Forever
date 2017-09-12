@@ -294,7 +294,9 @@ var
   i: Integer;
   gameCleared: Boolean = false;
   curmapfile: AnsiString = '';
+  {$IF DEFINED(D2F_DEBUG)}
   errpos: LongWord = 0;
+  {$ENDIF}
 begin
   result := false;
 
@@ -306,7 +308,7 @@ begin
 
       e_WriteLog('Loading saved game...', MSG_NOTIFY);
 
-      try
+      {$IF DEFINED(D2F_DEBUG)}try{$ENDIF}
         //g_Game_Free(false); // don't free textures for the same map
         g_Game_ClearLoading();
         g_Game_SetLoadingText(_lc[I_LOAD_SAVE_FILE], 0, False);
@@ -476,12 +478,14 @@ begin
         // done
         gLoadGameMode := false;
         result := true;
+      {$IF DEFINED(D2F_DEBUG)}
       except
         begin
           errpos := LongWord(st.position);
           raise;
         end;
       end;
+      {$ENDIF}
     finally
       st.Free();
     end;
