@@ -100,6 +100,15 @@ function openDiskFileRO (pathname: AnsiString): TStream;
 function createDiskFile (pathname: AnsiString): TStream;
 
 // little endian
+procedure writeSign (st: TStream; const sign: AnsiString);
+function checkSign (st: TStream; const sign: AnsiString): Boolean;
+
+procedure writeBool (st: TStream; b: Boolean);
+function readBool (st: TStream): Boolean;
+
+procedure writeStr (st: TStream; const str: AnsiString; maxlen: LongWord=65535);
+function readStr (st: TStream; maxlen: LongWord=65535): AnsiString;
+
 procedure writeInt (st: TStream; v: Byte); overload;
 procedure writeInt (st: TStream; v: ShortInt); overload;
 procedure writeInt (st: TStream; v: Word); overload;
@@ -245,7 +254,32 @@ type
   end;
 
 
+procedure FillMemory (Dest: Pointer; Len: LongWord; Ch: Byte); inline;
+procedure CopyMemory (Dest: Pointer; Src: Pointer; Len: LongWord); inline;
+procedure ZeroMemory (Dest: Pointer; Len: LongWord); inline;
+
+
 implementation
+
+uses
+  xstreams;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
+procedure CopyMemory (Dest: Pointer; Src: Pointer; Len: LongWord); inline;
+begin
+  Move(Src^, Dest^, Len);
+end;
+
+procedure FillMemory (Dest: Pointer; Len: LongWord; Ch: Byte); inline;
+begin
+  FillChar(Dest^, Len, Ch);
+end;
+
+procedure ZeroMemory (Dest: Pointer; Len: LongWord); inline;
+begin
+  FillChar(Dest^, Len, 0);
+end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
@@ -1140,6 +1174,36 @@ begin
 end;
 {$ENDIF}
 
+procedure writeSign (st: TStream; const sign: AnsiString);
+begin
+  if (Length(sign) > 0) then st.WriteBuffer(sign[1], Length(sign));
+end;
+
+function checkSign (st: TStream; const sign: AnsiString): Boolean;
+var
+  buf: packed array[0..7] of Char;
+  f: Integer;
+begin
+  result := false;
+  if (Length(sign) > 0) then
+  begin
+    if (Length(sign) <= 8) then
+    begin
+      st.ReadBuffer(buf[0], Length(sign));
+      for f := 1 to Length(sign) do if (buf[f-1] <> sign[f]) then exit;
+    end
+    else
+    begin
+      for f := 1 to Length(sign) do
+      begin
+        st.ReadBuffer(buf[0], 1);
+        if (buf[0] <> sign[f]) then exit;
+      end;
+    end;
+  end;
+  result := true;
+end;
+
 procedure writeInt (st: TStream; v: Byte); overload; begin writeIntegerLE(st, @v, 1); end;
 procedure writeInt (st: TStream; v: ShortInt); overload; begin writeIntegerLE(st, @v, 1); end;
 procedure writeInt (st: TStream; v: Word); overload; begin writeIntegerLE(st, @v, 2); end;
@@ -1157,6 +1221,31 @@ procedure writeIntBE (st: TStream; v: LongWord); overload; begin writeIntegerBE(
 procedure writeIntBE (st: TStream; v: LongInt); overload; begin writeIntegerBE(st, @v, 4); end;
 procedure writeIntBE (st: TStream; v: Int64); overload; begin writeIntegerBE(st, @v, 8); end;
 procedure writeIntBE (st: TStream; v: UInt64); overload; begin writeIntegerBE(st, @v, 8); end;
+
+procedure writeBool (st: TStream; b: Boolean); begin writeInt(st, Byte(b)); end;
+function readBool (st: TStream): Boolean; begin result := (readByte(st) <> 0); end;
+
+
+procedure writeStr (st: TStream; const str: AnsiString; maxlen: LongWord=65535);
+begin
+  if (Length(str) > maxlen) then raise XStreamError.Create('string too long');
+  if (maxlen <= 65535) then writeInt(st, Word(Length(str))) else writeInt(st, LongWord(Length(str)));
+  if (Length(str) > 0) then st.WriteBuffer(str[1], Length(str));
+end;
+
+function readStr (st: TStream; maxlen: LongWord=65535): AnsiString;
+var
+  len: Integer;
+begin
+  result := '';
+  if (maxlen <= 65535) then len := readWord(st) else len := Integer(readLongWord(st));
+  if (len < 0) or (len > maxlen) then raise XStreamError.Create('string too long');
+  if (len > 0) then
+  begin
+    SetLength(result, len);
+    st.ReadBuffer(result[1], len);
+  end;
+end;
 
 
 procedure readIntegerLE (st: TStream; vp: Pointer; size: Integer);

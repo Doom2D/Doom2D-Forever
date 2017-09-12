@@ -268,6 +268,7 @@ type
     FMiddleID: DWORD;
     FOnChangeEvent: TOnChangeEvent;
     FOnEnterEvent: TOnEnterEvent;
+    FInvalid: Boolean;
     procedure SetText(Text: string);
   public
     constructor Create(FontID: DWORD);
@@ -283,6 +284,7 @@ type
     property Text: string read FText write SetText;
     property Color: TRGB read FColor write FColor;
     property Font: TFont read FFont write FFont;
+    property Invalid: Boolean read FInvalid write FInvalid;
   end;
 
   TGUIKeyRead = class(TGUIControl)
@@ -2219,6 +2221,7 @@ begin
 
   FMaxLength := 0;
   FWidth := 0;
+  FInvalid := false;
 
   g_Texture_Get(EDIT_LEFT, FLeftID);
   g_Texture_Get(EDIT_RIGHT, FRightID);
@@ -2228,6 +2231,7 @@ end;
 procedure TGUIEdit.Draw;
 var
   c, w, h: Word;
+  r, g, b: Byte;
 begin
   inherited;
 
@@ -2237,9 +2241,13 @@ begin
   for c := 0 to FWidth-1 do
     e_Draw(FMiddleID, FX+8+c*16, FY, 0, True, False);
 
-  FFont.Draw(FX+8, FY, FText, FColor.R, FColor.G, FColor.B);
+  r := FColor.R;
+  g := FColor.G;
+  b := FColor.B;
+  if FInvalid then begin r := 128; g := 128; b := 128; end;
+  FFont.Draw(FX+8, FY, FText, r, g, b);
 
-  if FWindow.FActiveControl = Self then
+  if (FWindow.FActiveControl = self) then
   begin
     FFont.GetTextSize(Copy(FText, 1, FCaretPos), w, h);
     h := e_CharFont_GetMaxHeight(FFont.ID);

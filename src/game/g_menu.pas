@@ -1100,19 +1100,26 @@ end;
 procedure ProcLoadMenu();
 var
   a: Integer;
+  valid: Boolean;
 begin
   for a := 1 to 8 do
-    TGUIEdit(TGUIMenu(g_GUI_GetWindow('LoadMenu').GetControl('mmLoadMenu')).GetControl('edSlot'+IntToStr(a))).Text :=
-    g_GetSaveName(a);
+  begin
+    TGUIEdit(TGUIMenu(g_GUI_GetWindow('LoadMenu').GetControl('mmLoadMenu')).GetControl('edSlot'+IntToStr(a))).Text := g_GetSaveName(a, valid);
+    TGUIEdit(TGUIMenu(g_GUI_GetWindow('LoadMenu').GetControl('mmLoadMenu')).GetControl('edSlot'+IntToStr(a))).Invalid := not valid;
+    TGUIMenu(g_GUI_GetWindow('LoadMenu').GetControl('mmLoadMenu')).GetControl('edSlot'+IntToStr(a)).Enabled := valid;
+  end;
 end;
 
 procedure ProcSaveMenu();
 var
   a: Integer;
+  valid: Boolean;
 begin
   for a := 1 to 8 do
-    TGUIEdit(TGUIMenu(g_GUI_GetWindow('SaveMenu').GetControl('mmSaveMenu')).GetControl('edSlot'+IntToStr(a))).Text :=
-    g_GetSaveName(a);
+  begin
+    TGUIEdit(TGUIMenu(g_GUI_GetWindow('SaveMenu').GetControl('mmSaveMenu')).GetControl('edSlot'+IntToStr(a))).Text := g_GetSaveName(a, valid);
+    TGUIEdit(TGUIMenu(g_GUI_GetWindow('SaveMenu').GetControl('mmSaveMenu')).GetControl('edSlot'+IntToStr(a))).Invalid := not valid;
+  end;
 end;
 
 procedure ProcSaveGame(Sender: TGUIControl);

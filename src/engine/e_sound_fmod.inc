@@ -91,7 +91,7 @@ var
 implementation
 
 uses
-  g_window, g_options, BinEditor;
+  g_window, g_options, utils;
 
 const
   N_CHANNELS = 512;

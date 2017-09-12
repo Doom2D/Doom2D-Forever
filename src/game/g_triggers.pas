@@ -19,9 +19,9 @@ unit g_triggers;
 interface
 
 uses
-  Variants,
+  SysUtils, Variants, Classes,
   MAPDEF, e_graphics, g_basic, g_sound,
-  BinEditor, xdynrec, hashtable, exoma;
+  xdynrec, hashtable, exoma;
 
 type
   THashStrVariant = specialize THashBase<AnsiString, Variant>;
@@ -43,7 +43,7 @@ type
     ActivateType:     Byte;
     Keys:             Byte;
     TexturePanelGUID: Integer;
-    TexturePanelType: Word;
+    //TexturePanelType: Word;
 
     TimeOut:          Word;
     ActivateUID:      Word;
@@ -57,7 +57,7 @@ type
     AutoSpawn:        Boolean;
     SpawnCooldown:    Integer;
     SpawnedCount:     Integer;
-    ShotPanelType:    Word;
+    //ShotPanelType:    Word;
     ShotPanelTime:    Integer;
     ShotSightTime:    Integer;
     ShotSightTimeout: Integer;
@@ -91,8 +91,8 @@ procedure g_Triggers_PressC(CX, CY: Integer; Radius: Word; UID: Word; ActivateTy
 procedure g_Triggers_OpenAll();
 procedure g_Triggers_DecreaseSpawner(ID: DWORD);
 procedure g_Triggers_Free();
-procedure g_Triggers_SaveState(var Mem: TBinMemoryWriter);
-procedure g_Triggers_LoadState(var Mem: TBinMemoryReader);
+procedure g_Triggers_SaveState (st: TStream);
+procedure g_Triggers_LoadState (st: TStream);
 
 
 var
@@ -108,8 +108,8 @@ uses
   Math,
   g_player, g_map, g_panel, g_gfx, g_game, g_textures,
   g_console, g_monsters, g_items, g_phys, g_weapons,
-  wadreader, g_main, SysUtils, e_log, g_language,
-  g_options, g_net, g_netmsg, utils, xparser;
+  wadreader, g_main, e_log, g_language,
+  g_options, g_net, g_netmsg, utils, xparser, xstreams;
 
 const
   TRIGGER_SIGNATURE = $58475254; // 'TRGX'
@@ -838,7 +838,7 @@ begin
     begin
       if (trigPanelGUID <> -1) and (ShotPanelTime = 0) then
       begin
-        g_Map_SwitchTextureGUID(ShotPanelType, trigPanelGUID);
+        g_Map_SwitchTextureGUID({ShotPanelType,} trigPanelGUID);
         ShotPanelTime := 4; // тиков на вспышку выстрела
       end;
 
@@ -2310,7 +2310,7 @@ begin
 
   if Result {and (Trigger.TexturePanel <> -1)} then
   begin
-    g_Map_SwitchTextureGUID(Trigger.TexturePanelType, Trigger.TexturePanelGUID, IfThen(animonce, 2, 1));
+    g_Map_SwitchTextureGUID({Trigger.TexturePanelType,} Trigger.TexturePanelGUID, IfThen(animonce, 2, 1));
   end;
 end;
 
@@ -2678,7 +2678,7 @@ begin
           if ShotPanelTime > 0 then
           begin
             Dec(ShotPanelTime);
-            if ShotPanelTime = 0 then g_Map_SwitchTextureGUID(ShotPanelType, trigPanelGUID);
+            if ShotPanelTime = 0 then g_Map_SwitchTextureGUID({ShotPanelType,} trigPanelGUID);
           end;
           if ShotSightTime > 0 then
           begin
@@ -3109,123 +3109,120 @@ begin
 end;
 
 
-procedure g_Triggers_SaveState(var Mem: TBinMemoryWriter);
+procedure g_Triggers_SaveState (st: TStream);
 var
   count, actCount, i, j: Integer;
-  dw: DWORD;
   sg: Single;
   b: Boolean;
   kv: THashStrVariant.PEntry;
-  //it: THashStrVariant.TKeyValEnumerator;
-  //uname: AnsiString;
   t: LongInt;
 begin
   // Считаем количество существующих триггеров
   count := Length(gTriggers);
-  Mem := TBinMemoryWriter.Create((count+1)*200);
 
   // Количество триггеров
-  Mem.WriteInt(count);
+  utils.writeInt(st, LongInt(count));
   if (count = 0) then exit;
 
   for i := 0 to High(gTriggers) do
   begin
     // Сигнатура триггера
-    dw := TRIGGER_SIGNATURE; // 'TRGX'
-    Mem.WriteDWORD(dw);
+    utils.writeSign(st, 'TRGX');
+    utils.writeInt(st, Byte(0));
     // Тип триггера
-    Mem.WriteByte(gTriggers[i].TriggerType);
+    utils.writeInt(st, Byte(gTriggers[i].TriggerType));
     if (gTriggers[i].TriggerType = TRIGGER_NONE) then continue; // empty one
     // Специальные данные триггера: потом из карты опять вытащим; сохраним только индекс
-    Mem.WriteInt(gTriggers[i].mapIndex);
+    utils.writeInt(st, LongInt(gTriggers[i].mapIndex));
     // Координаты левого верхнего угла
-    Mem.WriteInt(gTriggers[i].X);
-    Mem.WriteInt(gTriggers[i].Y);
+    utils.writeInt(st, LongInt(gTriggers[i].X));
+    utils.writeInt(st, LongInt(gTriggers[i].Y));
     // Размеры
-    Mem.WriteWord(gTriggers[i].Width);
-    Mem.WriteWord(gTriggers[i].Height);
+    utils.writeInt(st, Word(gTriggers[i].Width));
+    utils.writeInt(st, Word(gTriggers[i].Height));
     // Включен ли триггер
-    Mem.WriteBoolean(gTriggers[i].Enabled);
+    utils.writeBool(st, gTriggers[i].Enabled);
     // Тип активации триггера
-    Mem.WriteByte(gTriggers[i].ActivateType);
+    utils.writeInt(st, Byte(gTriggers[i].ActivateType));
     // Ключи, необходимые для активации
-    Mem.WriteByte(gTriggers[i].Keys);
+    utils.writeInt(st, Byte(gTriggers[i].Keys));
     // ID панели, текстура которой изменится
-    Mem.WriteInt(gTriggers[i].TexturePanelGUID);
+    utils.writeInt(st, LongInt(gTriggers[i].TexturePanelGUID));
     // Тип этой панели
-    Mem.WriteWord(gTriggers[i].TexturePanelType);
+    //Mem.WriteWord(gTriggers[i].TexturePanelType);
     // Внутренний номер другой панели (по счастливой случайности он будет совпадать с тем, что создано при загрузке карты)
-    Mem.WriteInt(gTriggers[i].trigPanelGUID);
+    utils.writeInt(st, LongInt(gTriggers[i].trigPanelGUID));
     // Время до возможности активации
-    Mem.WriteWord(gTriggers[i].TimeOut);
+    utils.writeInt(st, Word(gTriggers[i].TimeOut));
     // UID того, кто активировал этот триггер
-    Mem.WriteWord(gTriggers[i].ActivateUID);
+    utils.writeInt(st, Word(gTriggers[i].ActivateUID));
     // Список UID-ов объектов, которые находились под воздействием
     actCount := Length(gTriggers[i].Activators);
-    Mem.WriteInt(actCount);
+    utils.writeInt(st, LongInt(actCount));
     for j := 0 to actCount-1 do
     begin
       // UID объекта
-      Mem.WriteWord(gTriggers[i].Activators[j].UID);
+      utils.writeInt(st, Word(gTriggers[i].Activators[j].UID));
       // Время ожидания
-      Mem.WriteWord(gTriggers[i].Activators[j].TimeOut);
+      utils.writeInt(st, Word(gTriggers[i].Activators[j].TimeOut));
     end;
     // Стоит ли игрок в области триггера
-    Mem.WriteBoolean(gTriggers[i].PlayerCollide);
+    utils.writeBool(st, gTriggers[i].PlayerCollide);
     // Время до закрытия двери
-    Mem.WriteInt(gTriggers[i].DoorTime);
+    utils.writeInt(st, LongInt(gTriggers[i].DoorTime));
     // Задержка активации
-    Mem.WriteInt(gTriggers[i].PressTime);
+    utils.writeInt(st, LongInt(gTriggers[i].PressTime));
     // Счетчик нажатий
-    Mem.WriteInt(gTriggers[i].PressCount);
+    utils.writeInt(st, LongInt(gTriggers[i].PressCount));
     // Спавнер активен
-    Mem.WriteBoolean(gTriggers[i].AutoSpawn);
+    utils.writeBool(st, gTriggers[i].AutoSpawn);
     // Задержка спавнера
-    Mem.WriteInt(gTriggers[i].SpawnCooldown);
+    utils.writeInt(st, LongInt(gTriggers[i].SpawnCooldown));
     // Счетчик создания объектов
-    Mem.WriteInt(gTriggers[i].SpawnedCount);
+    utils.writeInt(st, LongInt(gTriggers[i].SpawnedCount));
     // Сколько раз проигран звук
-    Mem.WriteInt(gTriggers[i].SoundPlayCount);
+    utils.writeInt(st, LongInt(gTriggers[i].SoundPlayCount));
     // Проигрывается ли звук?
     if (gTriggers[i].Sound <> nil) then b := gTriggers[i].Sound.IsPlaying() else b := false;
-    Mem.WriteBoolean(b);
+    utils.writeBool(st, b);
     if b then
     begin
       // Позиция проигрывания звука
-      dw := gTriggers[i].Sound.GetPosition();
-      Mem.WriteDWORD(dw);
+      utils.writeInt(st, LongWord(gTriggers[i].Sound.GetPosition()));
       // Громкость звука
       sg := gTriggers[i].Sound.GetVolume();
-      sg := sg / (gSoundLevel/255.0);
-      Mem.WriteSingle(sg);
+      sg := sg/(gSoundLevel/255.0);
+      //Mem.WriteSingle(sg);
+      st.WriteBuffer(sg, sizeof(sg)); // sorry
       // Стерео смещение звука
       sg := gTriggers[i].Sound.GetPan();
-      Mem.WriteSingle(sg);
+      //Mem.WriteSingle(sg);
+      st.WriteBuffer(sg, sizeof(sg)); // sorry
     end;
     // uservars
     if (gTriggers[i].userVars = nil) then
     begin
-      Mem.WriteInt(0);
+      utils.writeInt(st, LongInt(0));
     end
     else
     begin
-      Mem.WriteInt(gTriggers[i].userVars.count);
+      utils.writeInt(st, LongInt(gTriggers[i].userVars.count)); //FIXME: check for overflow
       for kv in gTriggers[i].userVars.byKeyValue do
       begin
         //writeln('<', kv.key, '>:<', VarToStr(kv.value), '>');
-        Mem.WriteString(kv.key);
+        utils.writeStr(st, kv.key);
         t := LongInt(varType(kv.value));
-        Mem.WriteInt(t);
+        utils.writeInt(st, LongInt(t));
         case t of
-          varString: Mem.WriteString(AnsiString(kv.value));
-          varBoolean: Mem.WriteBoolean(Boolean(kv.value));
-          varShortInt: Mem.WriteInt(Integer(kv.value));
-          varSmallint: Mem.WriteInt(Integer(kv.value));
-          varInteger: Mem.WriteInt(Integer(kv.value));
+          varString: utils.writeStr(st, AnsiString(kv.value));
+          varBoolean: utils.writeBool(st, Boolean(kv.value));
+          varShortInt: utils.writeInt(st, LongInt(kv.value));
+          varSmallint: utils.writeInt(st, LongInt(kv.value));
+          varInteger: utils.writeInt(st, LongInt(kv.value));
           //varInt64: Mem.WriteInt(Integer(kv.value));
-          varByte: Mem.WriteInt(Integer(kv.value));
-          varWord: Mem.WriteInt(Integer(kv.value));
-          varLongWord: Mem.WriteInt(Integer(kv.value));
+          varByte: utils.writeInt(st, LongInt(kv.value));
+          varWord: utils.writeInt(st, LongInt(kv.value));
+          varLongWord: utils.writeInt(st, LongInt(kv.value));
           //varQWord:
           else raise Exception.CreateFmt('cannot save uservar ''%s''', [kv.key]);
         end;
@@ -3235,7 +3232,7 @@ begin
 end;
 
 
-procedure g_Triggers_LoadState (var Mem: TBinMemoryReader);
+procedure g_Triggers_LoadState (st: TStream);
 var
   count, actCount, i, j, a: Integer;
   dw: DWORD;
@@ -3246,93 +3243,97 @@ var
   uvcount: Integer;
   vt: LongInt;
   vv: Variant;
-  uvname: AnsiString;
-  ustr: AnsiString;
+  uvname: AnsiString = '';
+  ustr: AnsiString = '';
   uint: LongInt;
   ubool: Boolean;
 begin
-  if (Mem = nil) then exit;
+  assert(st <> nil);
 
   g_Triggers_Free();
 
   // Количество триггеров
-  Mem.ReadInt(count);
+  count := utils.readLongInt(st);
   if (count = 0) then exit;
+  if (count < 0) or (count > 1024*1024) then raise XStreamError.Create('invalid trigger count');
 
   for a := 0 to count-1 do
   begin
     // Сигнатура триггера
-    Mem.ReadDWORD(dw); // 'TRGX'
-    if (dw <> TRIGGER_SIGNATURE) then raise EBinSizeError.Create('g_Triggers_LoadState: Wrong Trigger Signature');
+    if not utils.checkSign(st, 'TRGX') then raise XStreamError.Create('invalid trigger signature');
+    if (utils.readByte(st) <> 0) then raise XStreamError.Create('invalid trigger version');
     // Тип триггера
-    Mem.ReadByte(Trig.TriggerType);
-    // Специальные данные триггера: индекс в gCurrentMap.field['triggers']
+    Trig.TriggerType := utils.readByte(st);
     if (Trig.TriggerType = TRIGGER_NONE) then continue; // empty one
-    Mem.ReadInt(mapIndex);
+    // Специальные данные триггера: индекс в gCurrentMap.field['triggers']
+    mapIndex := utils.readLongInt(st);
     i := g_Triggers_CreateWithMapIndex(Trig, a, mapIndex);
-  // Координаты левого верхнего угла:
-    Mem.ReadInt(gTriggers[i].X);
-    Mem.ReadInt(gTriggers[i].Y);
-  // Размеры:
-    Mem.ReadWord(gTriggers[i].Width);
-    Mem.ReadWord(gTriggers[i].Height);
-  // Включен ли триггер:
-    Mem.ReadBoolean(gTriggers[i].Enabled);
-  // Тип активации триггера:
-    Mem.ReadByte(gTriggers[i].ActivateType);
-  // Ключи, необходимые для активации:
-    Mem.ReadByte(gTriggers[i].Keys);
-  // ID панели, текстура которой изменится:
-    Mem.ReadInt(gTriggers[i].TexturePanelGUID);
-  // Тип этой панели:
-    Mem.ReadWord(gTriggers[i].TexturePanelType);
-  // Внутренний номер другой панели (по счастливой случайности он будет совпадать с тем, что создано при загрузке карты)
-    Mem.ReadInt(gTriggers[i].trigPanelGUID);
-  // Время до возможности активации:
-    Mem.ReadWord(gTriggers[i].TimeOut);
-  // UID того, кто активировал этот триггер:
-    Mem.ReadWord(gTriggers[i].ActivateUID);
-  // Список UID-ов объектов, которые находились под воздействием:
-    Mem.ReadInt(actCount);
-    if actCount > 0 then
+    // Координаты левого верхнего угла
+    gTriggers[i].X := utils.readLongInt(st);
+    gTriggers[i].Y := utils.readLongInt(st);
+    // Размеры
+    gTriggers[i].Width := utils.readWord(st);
+    gTriggers[i].Height := utils.readWord(st);
+    // Включен ли триггер
+    gTriggers[i].Enabled := utils.readBool(st);
+    // Тип активации триггера
+    gTriggers[i].ActivateType := utils.readByte(st);
+    // Ключи, необходимые для активации
+    gTriggers[i].Keys := utils.readByte(st);
+    // ID панели, текстура которой изменится
+    gTriggers[i].TexturePanelGUID := utils.readLongInt(st);
+    // Тип этой панели
+    //Mem.ReadWord(gTriggers[i].TexturePanelType);
+    // Внутренний номер другой панели (по счастливой случайности он будет совпадать с тем, что создано при загрузке карты)
+    gTriggers[i].trigPanelGUID := utils.readLongInt(st);
+    // Время до возможности активации
+    gTriggers[i].TimeOut := utils.readWord(st);
+    // UID того, кто активировал этот триггер
+    gTriggers[i].ActivateUID := utils.readWord(st);
+    // Список UID-ов объектов, которые находились под воздействием
+    actCount := utils.readLongInt(st);
+    if (actCount < 0) or (actCount > 1024*1024) then raise XStreamError.Create('invalid activated object count');
+    if (actCount > 0) then
     begin
       SetLength(gTriggers[i].Activators, actCount);
       for j := 0 to actCount-1 do
       begin
         // UID объекта
-        Mem.ReadWord(gTriggers[i].Activators[j].UID);
+        gTriggers[i].Activators[j].UID := utils.readWord(st);
         // Время ожидания
-        Mem.ReadWord(gTriggers[i].Activators[j].TimeOut);
+        gTriggers[i].Activators[j].TimeOut := utils.readWord(st);
       end;
     end;
-  // Стоит ли игрок в области триггера:
-    Mem.ReadBoolean(gTriggers[i].PlayerCollide);
-  // Время до закрытия двери:
-    Mem.ReadInt(gTriggers[i].DoorTime);
-  // Задержка активации:
-    Mem.ReadInt(gTriggers[i].PressTime);
-  // Счетчик нажатий:
-    Mem.ReadInt(gTriggers[i].PressCount);
-  // Спавнер активен:
-    Mem.ReadBoolean(gTriggers[i].AutoSpawn);
-  // Задержка спавнера:
-    Mem.ReadInt(gTriggers[i].SpawnCooldown);
-  // Счетчик создания объектов:
-    Mem.ReadInt(gTriggers[i].SpawnedCount);
-  // Сколько раз проигран звук:
-    Mem.ReadInt(gTriggers[i].SoundPlayCount);
-  // Проигрывается ли звук?
-    Mem.ReadBoolean(b);
+    // Стоит ли игрок в области триггера
+    gTriggers[i].PlayerCollide := utils.readBool(st);
+    // Время до закрытия двери
+    gTriggers[i].DoorTime := utils.readLongInt(st);
+    // Задержка активации
+    gTriggers[i].PressTime := utils.readLongInt(st);
+    // Счетчик нажатий
+    gTriggers[i].PressCount := utils.readLongInt(st);
+    // Спавнер активен
+    gTriggers[i].AutoSpawn := utils.readBool(st);
+    // Задержка спавнера
+    gTriggers[i].SpawnCooldown := utils.readLongInt(st);
+    // Счетчик создания объектов
+    gTriggers[i].SpawnedCount := utils.readLongInt(st);
+    // Сколько раз проигран звук
+    gTriggers[i].SoundPlayCount := utils.readLongInt(st);
+    // Проигрывается ли звук?
+    b := utils.readBool(st);
     if b then
     begin
-    // Позиция проигрывания звука:
-      Mem.ReadDWORD(dw);
-    // Громкость звука:
-      Mem.ReadSingle(vol);
-    // Стерео смещение звука:
-      Mem.ReadSingle(pan);
-    // Запускаем звук, если есть:
-      if gTriggers[i].Sound <> nil then
+      // Позиция проигрывания звука
+      dw := utils.readLongWord(st);
+      // Громкость звука
+      //Mem.ReadSingle(vol);
+      st.ReadBuffer(vol, sizeof(vol)); // sorry
+      // Стерео смещение звука
+      //Mem.ReadSingle(pan);
+      st.ReadBuffer(pan, sizeof(pan)); // sorry
+      // Запускаем звук, если есть
+      if (gTriggers[i].Sound <> nil) then
       begin
         gTriggers[i].Sound.PlayPanVolume(pan, vol);
         gTriggers[i].Sound.Pause(True);
@@ -3342,7 +3343,8 @@ begin
     // uservars
     gTriggers[i].userVars.Free();
     gTriggers[i].userVars := nil;
-    Mem.ReadInt(uvcount);
+    uvcount := utils.readLongInt(st);
+    if (uvcount < 0) or (uvcount > 1024*1024) then raise XStreamError.Create('invalid number of user vars in trigger');
     if (uvcount > 0) then
     begin
       gTriggers[i].userVars := THashStrVariant.Create(hsihash, hsiequ);
@@ -3350,18 +3352,17 @@ begin
       while (uvcount > 0) do
       begin
         Dec(uvcount);
-        uvname := '';
-        Mem.ReadString(uvname);
-        Mem.ReadInt(vt);
+        uvname := utils.readStr(st);
+        vt := utils.readLongInt(st);
         case vt of
-          varString: begin ustr := ''; Mem.ReadString(ustr); vv := ustr; end;
-          varBoolean: begin Mem.ReadBoolean(ubool); vv := ubool; end;
-          varShortInt: begin Mem.ReadInt(uint); vv := ShortInt(uint); end;
-          varSmallint: begin Mem.ReadInt(uint); vv := SmallInt(uint); end;
-          varInteger: begin Mem.ReadInt(uint); vv := LongInt(uint); end;
-          varByte: begin Mem.ReadInt(uint); vv := Byte(uint); end;
-          varWord: begin Mem.ReadInt(uint); vv := Word(uint); end;
-          varLongWord: begin Mem.ReadInt(uint); vv := LongWord(uint); end;
+          varString: begin ustr := utils.readStr(st); vv := ustr; end;
+          varBoolean: begin ubool := utils.readBool(st); vv := ubool; end;
+          varShortInt: begin uint := utils.readLongInt(st); vv := ShortInt(uint); end;
+          varSmallint: begin uint := utils.readLongInt(st); vv := SmallInt(uint); end;
+          varInteger: begin uint := utils.readLongInt(st); vv := LongInt(uint); end;
+          varByte: begin uint := utils.readLongInt(st); vv := Byte(uint); end;
+          varWord: begin uint := utils.readLongInt(st); vv := Word(uint); end;
+          varLongWord: begin uint := utils.readLongInt(st); vv := LongWord(uint); end;
           else raise Exception.CreateFmt('cannot load uservar ''%s''', [uvname]);
         end;
         gTriggers[i].userVars.put(uvname, vv);

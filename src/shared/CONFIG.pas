@@ -61,7 +61,7 @@ type
 implementation
 
 uses
-  SysUtils, BinEditor;
+  SysUtils, utils;
 
 { TConfig }
 

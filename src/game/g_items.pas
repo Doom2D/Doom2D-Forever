@@ -19,7 +19,8 @@ unit g_items;
 interface
 
 uses
-  g_textures, g_phys, g_saveload, BinEditor, MAPDEF;
+  SysUtils, Classes,
+  MAPDEF, g_textures, g_phys, g_saveload;
 
 Type
   PItem = ^TItem;
@@ -59,8 +60,8 @@ procedure g_Items_Draw();
 procedure g_Items_DrawDrop();
 procedure g_Items_Pick(ID: DWORD);
 procedure g_Items_Remove(ID: DWORD);
-procedure g_Items_SaveState(var Mem: TBinMemoryWriter);
-procedure g_Items_LoadState(var Mem: TBinMemoryReader);
+procedure g_Items_SaveState (st: TStream);
+procedure g_Items_LoadState (st: TStream);
 
 procedure g_Items_RestartRound ();
 
@@ -88,10 +89,11 @@ var
 implementation
 
 uses
+  Math,
   g_basic, e_graphics, g_sound, g_main, g_gfx, g_map,
-  Math, g_game, g_triggers, g_console, SysUtils, g_player, g_net, g_netmsg,
+  g_game, g_triggers, g_console, g_player, g_net, g_netmsg,
   e_log,
-  g_grid, binheap, idpool;
+  g_grid, binheap, idpool, utils, xstreams;
 
 
 var
@@ -710,24 +712,17 @@ begin
 end;
 
 
-procedure g_Items_SaveState (var Mem: TBinMemoryWriter);
+procedure g_Items_SaveState (st: TStream);
 var
   count, i: Integer;
-  sig: DWORD;
   tt: Byte;
 begin
   // Считаем количество существующих предметов
   count := 0;
-  if (ggItems <> nil) then
-  begin
-    for i := 0 to High(ggItems) do if (ggItems[i].ItemType <> ITEM_NONE) then Inc(count);
-  end;
-
-  Mem := TBinMemoryWriter.Create((count+1) * 60);
+  for i := 0 to High(ggItems) do if (ggItems[i].ItemType <> ITEM_NONE) then Inc(count);
 
   // Количество предметов
-  Mem.WriteInt(count);
-
+  utils.writeInt(st, LongInt(count));
   if (count = 0) then exit;
 
   for i := 0 to High(ggItems) do
@@ -735,72 +730,71 @@ begin
     if (ggItems[i].ItemType <> ITEM_NONE) then
     begin
       // Сигнатура предмета
-      sig := ITEM_SIGNATURE; // 'ITEM'
-      Mem.WriteDWORD(sig);
+      utils.writeSign(st, 'ITEM');
+      utils.writeInt(st, Byte(0));
       // Тип предмета
       tt := ggItems[i].ItemType;
       if ggItems[i].dropped then tt := tt or $80;
-      Mem.WriteByte(tt);
+      utils.writeInt(st, Byte(tt));
       // Есть ли респаун
-      Mem.WriteBoolean(ggItems[i].Respawnable);
+      utils.writeBool(st, ggItems[i].Respawnable);
       // Координаты респуна
-      Mem.WriteInt(ggItems[i].InitX);
-      Mem.WriteInt(ggItems[i].InitY);
+      utils.writeInt(st, LongInt(ggItems[i].InitX));
+      utils.writeInt(st, LongInt(ggItems[i].InitY));
       // Время до респауна
-      Mem.WriteWord(ggItems[i].RespawnTime);
+      utils.writeInt(st, Word(ggItems[i].RespawnTime));
       // Существует ли этот предмет
-      Mem.WriteBoolean(ggItems[i].alive);
+      utils.writeBool(st, ggItems[i].alive);
       // Может ли он падать
-      Mem.WriteBoolean(ggItems[i].Fall);
+      utils.writeBool(st, ggItems[i].Fall);
       // Индекс триггера, создавшего предмет
-      Mem.WriteInt(ggItems[i].SpawnTrigger);
+      utils.writeInt(st, LongInt(ggItems[i].SpawnTrigger));
       // Объект предмета
-      Obj_SaveState(@ggItems[i].Obj, Mem);
+      Obj_SaveState(st, @ggItems[i].Obj);
     end;
   end;
 end;
 
 
-procedure g_Items_LoadState (var Mem: TBinMemoryReader);
+procedure g_Items_LoadState (st: TStream);
 var
   count, i, a: Integer;
-  sig: DWORD;
   b: Byte;
 begin
-  if (Mem = nil) then exit;
+  assert(st <> nil);
 
   g_Items_Free();
 
   // Количество предметов
-  Mem.ReadInt(count);
-
-  if (count = 0) then Exit;
+  count := utils.readLongInt(st);
+  if (count = 0) then exit;
+  if (count < 0) or (count > 1024*1024) then raise XStreamError.Create('invalid number of items');
 
   for a := 0 to count-1 do
   begin
     // Сигнатура предмета
-    Mem.ReadDWORD(sig);
-    if (sig <> ITEM_SIGNATURE) then raise EBinSizeError.Create('g_Items_LoadState: Wrong Item Signature'); // 'ITEM'
+    if not utils.checkSign(st, 'ITEM') then raise XStreamError.Create('invalid item signature');
+    if (utils.readByte(st) <> 0) then raise XStreamError.Create('invalid item version');
     // Тип предмета
-    Mem.ReadByte(b); // bit7=1: monster drop
+    b := utils.readByte(st); // bit7=1: monster drop
     // Создаем предмет
     i := g_Items_Create(0, 0, b and $7F, False, False);
     if ((b and $80) <> 0) then g_Items_SetDrop(i);
     // Есть ли респаун
-    Mem.ReadBoolean(ggItems[i].Respawnable);
+    ggItems[i].Respawnable := utils.readBool(st);
     // Координаты респуна
-    Mem.ReadInt(ggItems[i].InitX);
-    Mem.ReadInt(ggItems[i].InitY);
+    ggItems[i].InitX := utils.readLongInt(st);
+    ggItems[i].InitY := utils.readLongInt(st);
     // Время до респауна
-    Mem.ReadWord(ggItems[i].RespawnTime);
+    ggItems[i].RespawnTime := utils.readWord(st);
     // Существует ли этот предмет
-    Mem.ReadBoolean(ggItems[i].alive);
+    ggItems[i].alive := utils.readBool(st);
     // Может ли он падать
-    Mem.ReadBoolean(ggItems[i].Fall);
+    ggItems[i].Fall := utils.readBool(st);
     // Индекс триггера, создавшего предмет
-    Mem.ReadInt(ggItems[i].SpawnTrigger);
+    ggItems[i].SpawnTrigger := utils.readLongInt(st);
     // Объект предмета
-    Obj_LoadState(@ggItems[i].Obj, Mem);
+    Obj_LoadState(@ggItems[i].Obj, st);
   end;
 end;
 

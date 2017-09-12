@@ -19,8 +19,10 @@ unit g_game;
 interface
 
 uses
-  g_basic, g_player, e_graphics, Classes, g_res_downloader,
-  SysUtils, g_sound, g_gui, MAPDEF, wadreader, md5, xprofiler;
+  SysUtils, Classes,
+  MAPDEF,
+  g_basic, g_player, e_graphics, g_res_downloader,
+  g_sound, g_gui, wadreader, md5, xprofiler;
 
 type
   TGameSettings = record
@@ -339,7 +341,7 @@ uses
   e_input, e_log, g_console, g_items, g_map, g_panel,
   g_playermodel, g_gfx, g_options, g_weapons, Math,
   g_triggers, g_monsters, e_sound, CONFIG,
-  BinEditor, g_language, g_net, SDL,
+  g_language, g_net, SDL,
   ENet, e_msg, g_netmsg, g_netmaster, GL, GLExt,
   utils, sfs, g_holmes;
 

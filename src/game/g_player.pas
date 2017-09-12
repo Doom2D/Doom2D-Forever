@@ -20,10 +20,11 @@ unit g_player;
 interface
 
 uses
+  SysUtils, Classes,
   mempool,
   e_graphics, g_playermodel, g_basic, g_textures,
   g_weapons, g_phys, g_sound, g_saveload, MAPDEF,
-  BinEditor, g_panel;
+  g_panel;
 
 const
   KEY_LEFT       = 1;
@@ -310,8 +311,8 @@ type
     procedure   Update(); virtual;
     procedure   RememberState();
     procedure   RecallState();
-    procedure   SaveState(var Mem: TBinMemoryWriter); virtual;
-    procedure   LoadState(var Mem: TBinMemoryReader); virtual;
+    procedure   SaveState (st: TStream); virtual;
+    procedure   LoadState (st: TStream); virtual;
     procedure   PauseSounds(Enable: Boolean);
     procedure   NetFire(Wpn: Byte; X, Y, AX, AY: Integer; WID: Integer = -1);
     procedure   DoLerp(Level: Integer = 2);
@@ -400,15 +401,20 @@ type
   end;
 
   TDifficult = record
+  public
     DiagFire: Byte;
     InvisFire: Byte;
     DiagPrecision: Byte;
     FlyPrecision: Byte;
     Cover: Byte;
     CloseJump: Byte;
-    WeaponPrior: Array [WP_FIRST..WP_LAST] of Byte;
-    CloseWeaponPrior: Array [WP_FIRST..WP_LAST] of Byte;
+    WeaponPrior: packed array [WP_FIRST..WP_LAST] of Byte;
+    CloseWeaponPrior: packed array [WP_FIRST..WP_LAST] of Byte;
     //SafeWeaponPrior: Array [WP_FIRST..WP_LAST] of Byte;
+
+  public
+    procedure save (st: TStream);
+    procedure load (st: TStream);
   end;
 
   TAIFlag = record
@@ -449,8 +455,8 @@ type
     function    PickItem(ItemType: Byte; force: Boolean; var remove: Boolean): Boolean; override;
     function    Heal(value: Word; Soft: Boolean): Boolean; override;
     procedure   Update(); override;
-    procedure   SaveState(var Mem: TBinMemoryWriter); override;
-    procedure   LoadState(var Mem: TBinMemoryReader); override;
+    procedure   SaveState (st: TStream); override;
+    procedure   LoadState (st: TStream); override;
   end;
 
   PGib = ^TGib;
@@ -502,8 +508,8 @@ type
     procedure   Damage(Value: Word; vx, vy: Integer);
     procedure   Update();
     procedure   Draw();
-    procedure   SaveState(var Mem: TBinMemoryWriter);
-    procedure   LoadState(var Mem: TBinMemoryReader);
+    procedure   SaveState (st: TStream);
+    procedure   LoadState (st: TStream);
 
     procedure getMapBox (out x, y, w, h: Integer); inline;
     procedure moveBy (dx, dy: Integer); inline;
@@ -550,7 +556,7 @@ function  g_Shells_GetMax(): Word;
 procedure g_Player_Init();
 procedure g_Player_Free();
 function  g_Player_Create(ModelName: String; Color: TRGB; Team: Byte; Bot: Boolean): Word;
-function  g_Player_CreateFromState(var Mem: TBinMemoryReader): Word;
+function  g_Player_CreateFromState (st: TStream): Word;
 procedure g_Player_Remove(UID: Word);
 procedure g_Player_ResetTeams();
 procedure g_Player_UpdateAll();
@@ -570,8 +576,8 @@ procedure g_Player_UpdatePhysicalObjects();
 procedure g_Player_DrawCorpses();
 procedure g_Player_DrawShells();
 procedure g_Player_RemoveAllCorpses();
-procedure g_Player_Corpses_SaveState(var Mem: TBinMemoryWriter);
-procedure g_Player_Corpses_LoadState(var Mem: TBinMemoryReader);
+procedure g_Player_Corpses_SaveState (st: TStream);
+procedure g_Player_Corpses_LoadState (st: TStream);
 procedure g_Bot_Add(Team, Difficult: Byte);
 procedure g_Bot_AddList(Team: Byte; lname: ShortString; num: Integer = -1);
 procedure g_Bot_MixNames();
@@ -580,10 +586,13 @@ procedure g_Bot_RemoveAll();
 implementation
 
 uses
-  e_log, g_map, g_items, g_console, SysUtils, g_gfx, Math,
+  e_log, g_map, g_items, g_console, g_gfx, Math,
   g_options, g_triggers, g_menu, g_game, g_grid,
   wadreader, g_main, g_monsters, CONFIG, g_language,
-  g_net, g_netmsg, g_window, GL, g_holmes;
+  g_net, g_netmsg, g_window, GL, g_holmes,
+  utils, xstreams;
+
+const PLR_SAVE_VERSION = 0;
 
 type
   TBotProfile = record
@@ -802,47 +811,36 @@ begin
   Result := gPlayers[a].FUID;
 end;
 
-function g_Player_CreateFromState(var Mem: TBinMemoryReader): Word;
+function g_Player_CreateFromState (st: TStream): Word;
 var
   a, i: Integer;
   ok, Bot: Boolean;
-  sig: DWORD;
   b: Byte;
 begin
-  Result := 0;
-  if Mem = nil then
-    Exit;
+  result := 0;
+  if (st = nil) then exit; //???
 
-// Сигнатура игрока:
-  Mem.ReadDWORD(sig);
-  if sig <> PLAYER_SIGNATURE then // 'PLYR'
-  begin
-    raise EBinSizeError.Create('g_Player_CreateFromState: Wrong Player Signature');
-  end;
+  // Сигнатура игрока
+  if not utils.checkSign(st, 'PLYR') then raise XStreamError.Create('invalid player signature');
+  if (utils.readByte(st) <> PLR_SAVE_VERSION) then raise XStreamError.Create('invalid player version');
 
-// Бот или человек:
-  Mem.ReadBoolean(Bot);
+  // Бот или человек:
+  Bot := utils.readBool(st);
 
-  ok := False;
+  ok := false;
   a := 0;
 
-// Есть ли место в gPlayers:
-  if gPlayers <> nil then
-    for a := 0 to High(gPlayers) do
-      if gPlayers[a] = nil then
-      begin
-        ok := True;
-        Break;
-      end;
+  // Есть ли место в gPlayers:
+  for a := 0 to High(gPlayers) do if (gPlayers[a] = nil) then begin ok := true; break; end;
 
-// Нет места - расширяем gPlayers:
+  // Нет места - расширяем gPlayers
   if not ok then
   begin
     SetLength(gPlayers, Length(gPlayers)+1);
     a := High(gPlayers);
   end;
 
-// Создаем объект игрока:
+  // Создаем объект игрока
   if Bot then
     gPlayers[a] := TBot.Create()
   else
@@ -850,132 +848,114 @@ begin
   gPlayers[a].FIamBot := Bot;
   gPlayers[a].FPhysics := True;
 
-// UID игрока:
-  Mem.ReadWord(gPlayers[a].FUID);
-// Имя игрока:
-  Mem.ReadString(gPlayers[a].FName);
-// Команда:
-  Mem.ReadByte(gPlayers[a].FTeam);
+  // UID игрока
+  gPlayers[a].FUID := utils.readWord(st);
+  // Имя игрока
+  gPlayers[a].FName := utils.readStr(st);
+  // Команда
+  gPlayers[a].FTeam := utils.readByte(st);
   gPlayers[a].FPreferredTeam := gPlayers[a].FTeam;
-// Жив ли:
-  Mem.ReadBoolean(gPlayers[a].FAlive);
-// Израсходовал ли все жизни:
-  Mem.ReadBoolean(gPlayers[a].FNoRespawn);
-// Направление:
-  Mem.ReadByte(b);
-  if b = 1 then
-    gPlayers[a].FDirection := D_LEFT
-  else // b = 2
-    gPlayers[a].FDirection := D_RIGHT;
-// Здоровье:
-  Mem.ReadInt(gPlayers[a].FHealth);
-// Жизни:
-  Mem.ReadByte(gPlayers[a].FLives);
-// Броня:
-  Mem.ReadInt(gPlayers[a].FArmor);
-// Запас воздуха:
-  Mem.ReadInt(gPlayers[a].FAir);
-// Запас горючего:
-  Mem.ReadInt(gPlayers[a].FJetFuel);
-// Боль:
-  Mem.ReadInt(gPlayers[a].FPain);
-// Убил:
-  Mem.ReadInt(gPlayers[a].FKills);
-// Убил монстров:
-  Mem.ReadInt(gPlayers[a].FMonsterKills);
-// Фрагов:
-  Mem.ReadInt(gPlayers[a].FFrags);
-// Фрагов подряд:
-  Mem.ReadByte(gPlayers[a].FFragCombo);
-// Время последнего фрага:
-  Mem.ReadDWORD(gPlayers[a].FLastFrag);
-// Смертей:
-  Mem.ReadInt(gPlayers[a].FDeath);
-// Какой флаг несет:
-  Mem.ReadByte(gPlayers[a].FFlag);
-// Нашел секретов:
-  Mem.ReadInt(gPlayers[a].FSecrets);
-// Текущее оружие:
-  Mem.ReadByte(gPlayers[a].FCurrWeap);
-// Следующее желаемое оружие:
-  Mem.ReadWord(gPlayers[a].FNextWeap);
-// ...и пауза:
-  Mem.ReadByte(gPlayers[a].FNextWeapDelay);
-// Время зарядки BFG:
-  Mem.ReadSmallInt(gPlayers[a].FBFGFireCounter);
-// Буфер урона:
-  Mem.ReadInt(gPlayers[a].FDamageBuffer);
-// Последний ударивший:
-  Mem.ReadWord(gPlayers[a].FLastSpawnerUID);
-// Тип последнего полученного урона:
-  Mem.ReadByte(gPlayers[a].FLastHit);
-// Объект игрока:
-  Obj_LoadState(@gPlayers[a].FObj, Mem);
-// Текущее количество патронов:
-  for i := A_BULLETS to A_HIGH do
-    Mem.ReadWord(gPlayers[a].FAmmo[i]);
-// Максимальное количество патронов:
-  for i := A_BULLETS to A_HIGH do
-    Mem.ReadWord(gPlayers[a].FMaxAmmo[i]);
-// Наличие оружия:
-  for i := WP_FIRST to WP_LAST do
-    Mem.ReadBoolean(gPlayers[a].FWeapon[i]);
-// Время перезарядки оружия:
-  for i := WP_FIRST to WP_LAST do
-    Mem.ReadWord(gPlayers[a].FReloading[i]);
-// Наличие рюкзака:
-  Mem.ReadByte(b);
-  if b = 1 then
-    Include(gPlayers[a].FRulez, R_ITEM_BACKPACK);
-// Наличие красного ключа:
-  Mem.ReadByte(b);
-  if b = 1 then
-    Include(gPlayers[a].FRulez, R_KEY_RED);
-// Наличие зеленого ключа:
-  Mem.ReadByte(b);
-  if b = 1 then
-    Include(gPlayers[a].FRulez, R_KEY_GREEN);
-// Наличие синего ключа:
-  Mem.ReadByte(b);
-  if b = 1 then
-    Include(gPlayers[a].FRulez, R_KEY_BLUE);
-// Наличие берсерка:
-  Mem.ReadByte(b);
-  if b = 1 then
-    Include(gPlayers[a].FRulez, R_BERSERK);
-// Время действия специальных предметов:
-  for i := MR_SUIT to MR_MAX do
-    Mem.ReadDWORD(gPlayers[a].FMegaRulez[i]);
-// Время до повторного респауна, смены оружия, исользования, захвата флага:
-  for i := T_RESPAWN to T_FLAGCAP do
-    Mem.ReadDWORD(gPlayers[a].FTime[i]);
+  // Жив ли
+  gPlayers[a].FAlive := utils.readBool(st);
+  // Израсходовал ли все жизни
+  gPlayers[a].FNoRespawn := utils.readBool(st);
+  // Направление
+  b := utils.readByte(st);
+  if b = 1 then gPlayers[a].FDirection := D_LEFT else gPlayers[a].FDirection := D_RIGHT; // b = 2
+  // Здоровье
+  gPlayers[a].FHealth := utils.readLongInt(st);
+  // Жизни
+  gPlayers[a].FLives := utils.readByte(st);
+  // Броня
+  gPlayers[a].FArmor := utils.readLongInt(st);
+  // Запас воздуха
+  gPlayers[a].FAir := utils.readLongInt(st);
+  // Запас горючего
+  gPlayers[a].FJetFuel := utils.readLongInt(st);
+  // Боль
+  gPlayers[a].FPain := utils.readLongInt(st);
+  // Убил
+  gPlayers[a].FKills := utils.readLongInt(st);
+  // Убил монстров
+  gPlayers[a].FMonsterKills := utils.readLongInt(st);
+  // Фрагов
+  gPlayers[a].FFrags := utils.readLongInt(st);
+  // Фрагов подряд
+  gPlayers[a].FFragCombo := utils.readByte(st);
+  // Время последнего фрага
+  gPlayers[a].FLastFrag := utils.readLongWord(st);
+  // Смертей
+  gPlayers[a].FDeath := utils.readLongInt(st);
+  // Какой флаг несет
+  gPlayers[a].FFlag := utils.readByte(st);
+  // Нашел секретов
+  gPlayers[a].FSecrets := utils.readLongInt(st);
+  // Текущее оружие
+  gPlayers[a].FCurrWeap := utils.readByte(st);
+  // Следующее желаемое оружие
+  gPlayers[a].FNextWeap := utils.readWord(st);
+  // ...и пауза
+  gPlayers[a].FNextWeapDelay := utils.readByte(st);
+  // Время зарядки BFG
+  gPlayers[a].FBFGFireCounter := utils.readSmallInt(st);
+  // Буфер урона
+  gPlayers[a].FDamageBuffer := utils.readLongInt(st);
+  // Последний ударивший
+  gPlayers[a].FLastSpawnerUID := utils.readWord(st);
+  // Тип последнего полученного урона
+  gPlayers[a].FLastHit := utils.readByte(st);
+  // Объект игрока:
+  Obj_LoadState(@gPlayers[a].FObj, st);
+  // Текущее количество патронов
+  for i := A_BULLETS to A_HIGH do gPlayers[a].FAmmo[i] := utils.readWord(st);
+  // Максимальное количество патронов
+  for i := A_BULLETS to A_HIGH do gPlayers[a].FMaxAmmo[i] := utils.readWord(st);
+  // Наличие оружия
+  for i := WP_FIRST to WP_LAST do gPlayers[a].FWeapon[i] := utils.readBool(st);
+  // Время перезарядки оружия
+  for i := WP_FIRST to WP_LAST do gPlayers[a].FReloading[i] := utils.readWord(st);
+  // Наличие рюкзака
+  if utils.readBool(st) then Include(gPlayers[a].FRulez, R_ITEM_BACKPACK);
+  // Наличие красного ключа
+  if utils.readBool(st) then Include(gPlayers[a].FRulez, R_KEY_RED);
+  // Наличие зеленого ключа
+  if utils.readBool(st) then Include(gPlayers[a].FRulez, R_KEY_GREEN);
+  // Наличие синего ключа
+  if utils.readBool(st) then Include(gPlayers[a].FRulez, R_KEY_BLUE);
+  // Наличие берсерка
+  if utils.readBool(st) then Include(gPlayers[a].FRulez, R_BERSERK);
+  // Время действия специальных предметов
+  for i := MR_SUIT to MR_MAX do gPlayers[a].FMegaRulez[i] := utils.readLongWord(st);
+  // Время до повторного респауна, смены оружия, исользования, захвата флага
+  for i := T_RESPAWN to T_FLAGCAP do gPlayers[a].FTime[i] := utils.readLongWord(st);
 
-// Название модели:
-  Mem.ReadString(gPlayers[a].FActualModelName);
-// Цвет модели:
-  Mem.ReadByte(gPlayers[a].FColor.R);
-  Mem.ReadByte(gPlayers[a].FColor.G);
-  Mem.ReadByte(gPlayers[a].FColor.B);
-// Обновляем модель игрока:
+  // Название модели:
+  gPlayers[a].FActualModelName := utils.readStr(st);
+  // Цвет модели
+  gPlayers[a].FColor.R := utils.readByte(st);
+  gPlayers[a].FColor.G := utils.readByte(st);
+  gPlayers[a].FColor.B := utils.readByte(st);
+  // Обновляем модель игрока
   gPlayers[a].SetModel(gPlayers[a].FActualModelName);
 
-// Нет модели - создание не возможно:
-  if gPlayers[a].FModel = nil then
+  // Нет модели - создание невозможно
+  if (gPlayers[a].FModel = nil) then
   begin
     gPlayers[a].Free();
     gPlayers[a] := nil;
     g_FatalError(Format(_lc[I_GAME_ERROR_MODEL], [gPlayers[a].FActualModelName]));
-    Exit;
+    exit;
   end;
 
-// Если командная игра - красим модель в цвет команды:
+  // Если командная игра - красим модель в цвет команды
   if gGameSettings.GameMode in [GM_TDM, GM_CTF] then
     gPlayers[a].FModel.Color := TEAMCOLOR[gPlayers[a].FTeam]
   else
     gPlayers[a].FModel.Color := gPlayers[a].FColor;
 
-  Result := gPlayers[a].FUID;
+  result := gPlayers[a].FUID;
 end;
+
 
 procedure g_Player_ResetTeams();
 var
@@ -1874,75 +1854,65 @@ begin
   SetLength(gCorpses, MaxCorpses);
 end;
 
-procedure g_Player_Corpses_SaveState(var Mem: TBinMemoryWriter);
+procedure g_Player_Corpses_SaveState (st: TStream);
 var
   count, i: Integer;
-  b: Boolean;
 begin
-// Считаем количество существующих трупов:
+  // Считаем количество существующих трупов
   count := 0;
-  if gCorpses <> nil then
-    for i := 0 to High(gCorpses) do
-      if gCorpses[i] <> nil then
-        count := count + 1;
+  for i := 0 to High(gCorpses) do if (gCorpses[i] <> nil) then Inc(count);
 
-  Mem := TBinMemoryWriter.Create((count+1) * 128);
+  // Количество трупов
+  utils.writeInt(st, LongInt(count));
 
-// Количество трупов:
-  Mem.WriteInt(count);
+  if (count = 0) then exit;
 
-  if count = 0 then
-    Exit;
-
-// Сохраняем трупы:
+  // Сохраняем трупы
   for i := 0 to High(gCorpses) do
+  begin
     if gCorpses[i] <> nil then
     begin
-    // Название модели:
-      Mem.WriteString(gCorpses[i].FModelName);
-    // Тип смерти:
-      b := gCorpses[i].Mess;
-      Mem.WriteBoolean(b);
-    // Сохраняем данные трупа:
-      gCorpses[i].SaveState(Mem);
+      // Название модели
+      utils.writeStr(st, gCorpses[i].FModelName);
+      // Тип смерти
+      utils.writeBool(st, gCorpses[i].Mess);
+      // Сохраняем данные трупа:
+      gCorpses[i].SaveState(st);
     end;
+  end;
 end;
 
-procedure g_Player_Corpses_LoadState(var Mem: TBinMemoryReader);
+
+procedure g_Player_Corpses_LoadState (st: TStream);
 var
   count, i: Integer;
   str: String;
   b: Boolean;
 begin
-  if Mem = nil then
-    Exit;
+  assert(st <> nil);
 
   g_Player_RemoveAllCorpses();
 
-// Количество трупов:
-  Mem.ReadInt(count);
+  // Количество трупов:
+  count := utils.readLongInt(st);
+  if (count < 0) or (count > Length(gCorpses)) then raise XStreamError.Create('invalid number of corpses');
 
-  if count > Length(gCorpses) then
-  begin
-    raise EBinSizeError.Create('g_Player_Corpses_LoadState: Too Many Corpses');
-  end;
+  if (count = 0) then exit;
 
-  if count = 0 then
-    Exit;
-
-// Загружаем трупы:
+  // Загружаем трупы
   for i := 0 to count-1 do
   begin
-  // Название модели:
-    Mem.ReadString(str);
-  // Тип смерти:
-    Mem.ReadBoolean(b);
-  // Создаем труп:
+    // Название модели:
+    str := utils.readStr(st);
+    // Тип смерти
+    b := utils.readBool(st);
+    // Создаем труп
     gCorpses[i] := TCorpse.Create(0, 0, str, b);
-  // Загружаем данные трупа:
-    gCorpses[i].LoadState(Mem);
+    // Загружаем данные трупа
+    gCorpses[i].LoadState(st);
   end;
 end;
+
 
 { T P l a y e r : }
 
@@ -5673,286 +5643,221 @@ begin
     MH_SEND_PlayerStats(FUID);
 end;
 
-procedure TPlayer.SaveState(var Mem: TBinMemoryWriter);
+procedure TPlayer.SaveState (st: TStream);
 var
   i: Integer;
-  sig: DWORD;
-  str: String;
   b: Byte;
 begin
-  if FIamBot then
-    i := 512
-  else
-    i := 256;
-
-  Mem := TBinMemoryWriter.Create(i);
-
-// Сигнатура игрока:
-  sig := PLAYER_SIGNATURE; // 'PLYR'
-  Mem.WriteDWORD(sig);
-// Бот или человек:
-  Mem.WriteBoolean(FIamBot);
-// UID игрока:
-  Mem.WriteWord(FUID);
-// Имя игрока:
-  Mem.WriteString(FName, 32);
-// Команда:
-  Mem.WriteByte(FTeam);
-// Жив ли:
-  Mem.WriteBoolean(FAlive);
-// Израсходовал ли все жизни:
-  Mem.WriteBoolean(FNoRespawn);
-// Направление:
-  if FDirection = D_LEFT then
-    b := 1
-  else // D_RIGHT
-    b := 2;
-  Mem.WriteByte(b);
-// Здоровье:
-  Mem.WriteInt(FHealth);
-// Жизни:
-  Mem.WriteByte(FLives);
-// Броня:
-  Mem.WriteInt(FArmor);
-// Запас воздуха:
-  Mem.WriteInt(FAir);
-// Запас горючего:
-  Mem.WriteInt(FJetFuel);
-// Боль:
-  Mem.WriteInt(FPain);
-// Убил:
-  Mem.WriteInt(FKills);
-// Убил монстров:
-  Mem.WriteInt(FMonsterKills);
-// Фрагов:
-  Mem.WriteInt(FFrags);
-// Фрагов подряд:
-  Mem.WriteByte(FFragCombo);
-// Время последнего фрага:
-  Mem.WriteDWORD(FLastFrag);
-// Смертей:
-  Mem.WriteInt(FDeath);
-// Какой флаг несет:
-  Mem.WriteByte(FFlag);
-// Нашел секретов:
-  Mem.WriteInt(FSecrets);
-// Текущее оружие:
-  Mem.WriteByte(FCurrWeap);
-// Желаемое оружие:
-  Mem.WriteWord(FNextWeap);
-// ...и пауза
-  Mem.WriteByte(FNextWeapDelay);
-// Время зарядки BFG:
-  Mem.WriteSmallInt(FBFGFireCounter);
-// Буфер урона:
-  Mem.WriteInt(FDamageBuffer);
-// Последний ударивший:
-  Mem.WriteWord(FLastSpawnerUID);
-// Тип последнего полученного урона:
-  Mem.WriteByte(FLastHit);
-// Объект игрока:
-  Obj_SaveState(@FObj, Mem);
-// Текущее количество патронов:
-  for i := A_BULLETS to A_HIGH do
-    Mem.WriteWord(FAmmo[i]);
-// Максимальное количество патронов:
-  for i := A_BULLETS to A_HIGH do
-    Mem.WriteWord(FMaxAmmo[i]);
-// Наличие оружия:
-  for i := WP_FIRST to WP_LAST do
-    Mem.WriteBoolean(FWeapon[i]);
-// Время перезарядки оружия:
-  for i := WP_FIRST to WP_LAST do
-    Mem.WriteWord(FReloading[i]);
-// Наличие рюкзака:
-  if R_ITEM_BACKPACK in FRulez then
-    b := 1
-  else
-    b := 0;
-  Mem.WriteByte(b);
-// Наличие красного ключа:
-  if R_KEY_RED in FRulez then
-    b := 1
-  else
-    b := 0;
-  Mem.WriteByte(b);
-// Наличие зеленого ключа:
-  if R_KEY_GREEN in FRulez then
-    b := 1
-  else
-    b := 0;
-  Mem.WriteByte(b);
-// Наличие синего ключа:
-  if R_KEY_BLUE in FRulez then
-    b := 1
-  else
-    b := 0;
-  Mem.WriteByte(b);
-// Наличие берсерка:
-  if R_BERSERK in FRulez then
-    b := 1
-  else
-    b := 0;
-  Mem.WriteByte(b);
-// Время действия специальных предметов:
-  for i := MR_SUIT to MR_MAX do
-    Mem.WriteDWORD(FMegaRulez[i]);
-// Время до повторного респауна, смены оружия, исользования, захвата флага:
-  for i := T_RESPAWN to T_FLAGCAP do
-    Mem.WriteDWORD(FTime[i]);
-// Название модели:
-  str := FModel.Name;
-  Mem.WriteString(str);
-// Цвет модели:
-  b := FColor.R;
-  Mem.WriteByte(b);
-  b := FColor.G;
-  Mem.WriteByte(b);
-  b := FColor.B;
-  Mem.WriteByte(b);
+  // Сигнатура игрока
+  utils.writeSign(st, 'PLYR');
+  utils.writeInt(st, Byte(PLR_SAVE_VERSION)); // version
+  // Бот или человек
+  utils.writeBool(st, FIamBot);
+  // UID игрока
+  utils.writeInt(st, Word(FUID));
+  // Имя игрока
+  utils.writeStr(st, FName);
+  // Команда
+  utils.writeInt(st, Byte(FTeam));
+  // Жив ли
+  utils.writeBool(st, FAlive);
+  // Израсходовал ли все жизни
+  utils.writeBool(st, FNoRespawn);
+  // Направление
+  if FDirection = D_LEFT then b := 1 else b := 2; // D_RIGHT
+  utils.writeInt(st, Byte(b));
+  // Здоровье
+  utils.writeInt(st, LongInt(FHealth));
+  // Жизни
+  utils.writeInt(st, Byte(FLives));
+  // Броня
+  utils.writeInt(st, LongInt(FArmor));
+  // Запас воздуха
+  utils.writeInt(st, LongInt(FAir));
+  // Запас горючего
+  utils.writeInt(st, LongInt(FJetFuel));
+  // Боль
+  utils.writeInt(st, LongInt(FPain));
+  // Убил
+  utils.writeInt(st, LongInt(FKills));
+  // Убил монстров
+  utils.writeInt(st, LongInt(FMonsterKills));
+  // Фрагов
+  utils.writeInt(st, LongInt(FFrags));
+  // Фрагов подряд
+  utils.writeInt(st, Byte(FFragCombo));
+  // Время последнего фрага
+  utils.writeInt(st, LongWord(FLastFrag));
+  // Смертей
+  utils.writeInt(st, LongInt(FDeath));
+  // Какой флаг несет
+  utils.writeInt(st, Byte(FFlag));
+  // Нашел секретов
+  utils.writeInt(st, LongInt(FSecrets));
+  // Текущее оружие
+  utils.writeInt(st, Byte(FCurrWeap));
+  // Желаемое оружие
+  utils.writeInt(st, Word(FNextWeap));
+  // ...и пауза
+  utils.writeInt(st, Byte(FNextWeapDelay));
+  // Время зарядки BFG
+  utils.writeInt(st, SmallInt(FBFGFireCounter));
+  // Буфер урона
+  utils.writeInt(st, LongInt(FDamageBuffer));
+  // Последний ударивший
+  utils.writeInt(st, Word(FLastSpawnerUID));
+  // Тип последнего полученного урона
+  utils.writeInt(st, Byte(FLastHit));
+  // Объект игрока
+  Obj_SaveState(st, @FObj);
+  // Текущее количество патронов
+  for i := A_BULLETS to A_HIGH do utils.writeInt(st, Word(FAmmo[i]));
+  // Максимальное количество патронов
+  for i := A_BULLETS to A_HIGH do utils.writeInt(st, Word(FMaxAmmo[i]));
+  // Наличие оружия
+  for i := WP_FIRST to WP_LAST do utils.writeBool(st, FWeapon[i]);
+  // Время перезарядки оружия
+  for i := WP_FIRST to WP_LAST do utils.writeInt(st, Word(FReloading[i]));
+  // Наличие рюкзака
+  utils.writeBool(st, (R_ITEM_BACKPACK in FRulez));
+  // Наличие красного ключа
+  utils.writeBool(st, (R_KEY_RED in FRulez));
+  // Наличие зеленого ключа
+  utils.writeBool(st, (R_KEY_GREEN in FRulez));
+  // Наличие синего ключа
+  utils.writeBool(st, (R_KEY_BLUE in FRulez));
+  // Наличие берсерка
+  utils.writeBool(st, (R_BERSERK in FRulez));
+  // Время действия специальных предметов
+  for i := MR_SUIT to MR_MAX do utils.writeInt(st, LongWord(FMegaRulez[i]));
+  // Время до повторного респауна, смены оружия, исользования, захвата флага
+  for i := T_RESPAWN to T_FLAGCAP do utils.writeInt(st, LongWord(FTime[i]));
+  // Название модели
+  utils.writeStr(st, FModel.Name);
+  // Цвет модели
+  utils.writeInt(st, Byte(FColor.R));
+  utils.writeInt(st, Byte(FColor.G));
+  utils.writeInt(st, Byte(FColor.B));
 end;
 
-procedure TPlayer.LoadState(var Mem: TBinMemoryReader);
+
+procedure TPlayer.LoadState (st: TStream);
 var
   i: Integer;
-  sig: DWORD;
   str: String;
   b: Byte;
 begin
-  if Mem = nil then
-    Exit;
+  assert(st <> nil);
 
-// Сигнатура игрока:
-  Mem.ReadDWORD(sig);
-  if sig <> PLAYER_SIGNATURE then // 'PLYR'
-  begin
-    raise EBinSizeError.Create('TPlayer.LoadState: Wrong Player Signature');
-  end;
-// Бот или человек:
-  Mem.ReadBoolean(FIamBot);
-// UID игрока:
-  Mem.ReadWord(FUID);
-// Имя игрока:
-  Mem.ReadString(str);
-  if (Self <> gPlayer1) and (Self <> gPlayer2) then
-    FName := str;
-// Команда:
-  Mem.ReadByte(FTeam);
-// Жив ли:
-  Mem.ReadBoolean(FAlive);
-// Израсходовал ли все жизни:
-  Mem.ReadBoolean(FNoRespawn);
-// Направление:
-  Mem.ReadByte(b);
-  if b = 1 then
-    FDirection := D_LEFT
-  else // b = 2
-    FDirection := D_RIGHT;
-// Здоровье:
-  Mem.ReadInt(FHealth);
-// Жизни:
-  Mem.ReadByte(FLives);
-// Броня:
-  Mem.ReadInt(FArmor);
-// Запас воздуха:
-  Mem.ReadInt(FAir);
-// Запас горючего:
-  Mem.ReadInt(FJetFuel);
-// Боль:
-  Mem.ReadInt(FPain);
-// Убил:
-  Mem.ReadInt(FKills);
-// Убил монстров:
-  Mem.ReadInt(FMonsterKills);
-// Фрагов:
-  Mem.ReadInt(FFrags);
-// Фрагов подряд:
-  Mem.ReadByte(FFragCombo);
-// Время последнего фрага:
-  Mem.ReadDWORD(FLastFrag);
-// Смертей:
-  Mem.ReadInt(FDeath);
-// Какой флаг несет:
-  Mem.ReadByte(FFlag);
-// Нашел секретов:
-  Mem.ReadInt(FSecrets);
-// Текущее оружие:
-  Mem.ReadByte(FCurrWeap);
-// Желаемое оружие:
-  Mem.ReadWord(FNextWeap);
-// ...и пауза
-  Mem.ReadByte(FNextWeapDelay);
-// Время зарядки BFG:
-  Mem.ReadSmallInt(FBFGFireCounter);
-// Буфер урона:
-  Mem.ReadInt(FDamageBuffer);
-// Последний ударивший:
-  Mem.ReadWord(FLastSpawnerUID);
-// Тип последнего полученного урона:
-  Mem.ReadByte(FLastHit);
-// Объект игрока:
-  Obj_LoadState(@FObj, Mem);
-// Текущее количество патронов:
-  for i := A_BULLETS to A_HIGH do
-    Mem.ReadWord(FAmmo[i]);
-// Максимальное количество патронов:
-  for i := A_BULLETS to A_HIGH do
-    Mem.ReadWord(FMaxAmmo[i]);
-// Наличие оружия:
-  for i := WP_FIRST to WP_LAST do
-    Mem.ReadBoolean(FWeapon[i]);
-// Время перезарядки оружия:
-  for i := WP_FIRST to WP_LAST do
-    Mem.ReadWord(FReloading[i]);
-// Наличие рюкзака:
-  Mem.ReadByte(b);
-  if b = 1 then
-    Include(FRulez, R_ITEM_BACKPACK);
-// Наличие красного ключа:
-  Mem.ReadByte(b);
-  if b = 1 then
-    Include(FRulez, R_KEY_RED);
-// Наличие зеленого ключа:
-  Mem.ReadByte(b);
-  if b = 1 then
-    Include(FRulez, R_KEY_GREEN);
-// Наличие синего ключа:
-  Mem.ReadByte(b);
-  if b = 1 then
-    Include(FRulez, R_KEY_BLUE);
-// Наличие берсерка:
-  Mem.ReadByte(b);
-  if b = 1 then
-    Include(FRulez, R_BERSERK);
-// Время действия специальных предметов:
-  for i := MR_SUIT to MR_MAX do
-    Mem.ReadDWORD(FMegaRulez[i]);
-// Время до повторного респауна, смены оружия, исользования, захвата флага:
-  for i := T_RESPAWN to T_FLAGCAP do
-    Mem.ReadDWORD(FTime[i]);
-// Название модели:
-  Mem.ReadString(str);
-// Цвет модели:
-  Mem.ReadByte(FColor.R);
-  Mem.ReadByte(FColor.G);
-  Mem.ReadByte(FColor.B);
-  if Self = gPlayer1 then
+  // Сигнатура игрока
+  if not utils.checkSign(st, 'PLYR') then raise XStreamError.Create('invalid player signature');
+  if (utils.readByte(st) <> PLR_SAVE_VERSION) then raise XStreamError.Create('invalid player version');
+  // Бот или человек:
+  FIamBot := utils.readBool(st);
+  // UID игрока
+  FUID := utils.readWord(st);
+  // Имя игрока
+  str := utils.readStr(st);
+  if (self <> gPlayer1) and (self <> gPlayer2) then FName := str;
+  // Команда
+  FTeam := utils.readByte(st);
+  // Жив ли
+  FAlive := utils.readBool(st);
+  // Израсходовал ли все жизни
+  FNoRespawn := utils.readBool(st);
+  // Направление
+  b := utils.readByte(st);
+  if b = 1 then FDirection := D_LEFT else FDirection := D_RIGHT; // b = 2
+  // Здоровье
+  FHealth := utils.readLongInt(st);
+  // Жизни
+  FLives := utils.readByte(st);
+  // Броня
+  FArmor := utils.readLongInt(st);
+  // Запас воздуха
+  FAir := utils.readLongInt(st);
+  // Запас горючего
+  FJetFuel := utils.readLongInt(st);
+  // Боль
+  FPain := utils.readLongInt(st);
+  // Убил
+  FKills := utils.readLongInt(st);
+  // Убил монстров
+  FMonsterKills := utils.readLongInt(st);
+  // Фрагов
+  FFrags := utils.readLongInt(st);
+  // Фрагов подряд
+  FFragCombo := utils.readByte(st);
+  // Время последнего фрага
+  FLastFrag := utils.readLongWord(st);
+  // Смертей
+  FDeath := utils.readLongInt(st);
+  // Какой флаг несет
+  FFlag := utils.readByte(st);
+  // Нашел секретов
+  FSecrets := utils.readLongInt(st);
+  // Текущее оружие
+  FCurrWeap := utils.readByte(st);
+  // Желаемое оружие
+  FNextWeap := utils.readWord(st);
+  // ...и пауза
+  FNextWeapDelay := utils.readByte(st);
+  // Время зарядки BFG
+  FBFGFireCounter := utils.readSmallInt(st);
+  // Буфер урона
+  FDamageBuffer := utils.readLongInt(st);
+  // Последний ударивший
+  FLastSpawnerUID := utils.readWord(st);
+  // Тип последнего полученного урона
+  FLastHit := utils.readByte(st);
+  // Объект игрока
+  Obj_LoadState(@FObj, st);
+  // Текущее количество патронов
+  for i := A_BULLETS to A_HIGH do FAmmo[i] := utils.readWord(st);
+  // Максимальное количество патронов
+  for i := A_BULLETS to A_HIGH do FMaxAmmo[i] := utils.readWord(st);
+  // Наличие оружия
+  for i := WP_FIRST to WP_LAST do FWeapon[i] := utils.readBool(st);
+  // Время перезарядки оружия
+  for i := WP_FIRST to WP_LAST do FReloading[i] := utils.readWord(st);
+  // Наличие рюкзака
+  if utils.readBool(st) then Include(FRulez, R_ITEM_BACKPACK);
+  // Наличие красного ключа
+  if utils.readBool(st) then Include(FRulez, R_KEY_RED);
+  // Наличие зеленого ключа
+  if utils.readBool(st) then Include(FRulez, R_KEY_GREEN);
+  // Наличие синего ключа
+  if utils.readBool(st) then Include(FRulez, R_KEY_BLUE);
+  // Наличие берсерка
+  if utils.readBool(st) then Include(FRulez, R_BERSERK);
+  // Время действия специальных предметов
+  for i := MR_SUIT to MR_MAX do FMegaRulez[i] := utils.readLongWord(st);
+  // Время до повторного респауна, смены оружия, исользования, захвата флага
+  for i := T_RESPAWN to T_FLAGCAP do FTime[i] := utils.readLongWord(st);
+  // Название модели
+  str := utils.readStr(st);
+  // Цвет модели
+  FColor.R := utils.readByte(st);
+  FColor.G := utils.readByte(st);
+  FColor.B := utils.readByte(st);
+  if (self = gPlayer1) then
   begin
     str := gPlayer1Settings.Model;
     FColor := gPlayer1Settings.Color;
-  end;
-  if Self = gPlayer2 then
+  end
+  else if (self = gPlayer2) then
   begin
     str := gPlayer2Settings.Model;
     FColor := gPlayer2Settings.Color;
   end;
-// Обновляем модель игрока:
+  // Обновляем модель игрока
   SetModel(str);
   if gGameSettings.GameMode in [GM_TDM, GM_CTF] then
     FModel.Color := TEAMCOLOR[FTeam]
   else
     FModel.Color := FColor;
 end;
+
 
 procedure TPlayer.AllRulez(Health: Boolean);
 var
@@ -6332,80 +6237,73 @@ begin
     FAnimationMask.Update();
 end;
 
-procedure TCorpse.SaveState(var Mem: TBinMemoryWriter);
+
+procedure TCorpse.SaveState (st: TStream);
 var
-  sig: DWORD;
   anim: Boolean;
 begin
-  if Mem = nil then
-    Exit;
+  assert(st <> nil);
 
-// Сигнатура трупа:
-  sig := CORPSE_SIGNATURE; // 'CORP'
-  Mem.WriteDWORD(sig);
-// Состояние:
-  Mem.WriteByte(FState);
-// Накопленный урон:
-  Mem.WriteByte(FDamage);
-// Цвет:
-  Mem.WriteByte(FColor.R);
-  Mem.WriteByte(FColor.G);
-  Mem.WriteByte(FColor.B);
-// Объект трупа:
-  Obj_SaveState(@FObj, Mem);
-// Есть ли анимация:
-  anim := FAnimation <> nil;
-  Mem.WriteBoolean(anim);
-// Если есть - сохраняем:
-  if anim then
-    FAnimation.SaveState(Mem);
-// Есть ли маска анимации:
-  anim := FAnimationMask <> nil;
-  Mem.WriteBoolean(anim);
-// Если есть - сохраняем:
-  if anim then
-    FAnimationMask.SaveState(Mem);
+  // Сигнатура трупа
+  utils.writeSign(st, 'CORP');
+  utils.writeInt(st, Byte(0));
+  // Состояние
+  utils.writeInt(st, Byte(FState));
+  // Накопленный урон
+  utils.writeInt(st, Byte(FDamage));
+  // Цвет
+  utils.writeInt(st, Byte(FColor.R));
+  utils.writeInt(st, Byte(FColor.G));
+  utils.writeInt(st, Byte(FColor.B));
+  // Объект трупа
+  Obj_SaveState(st, @FObj);
+  // Есть ли анимация
+  anim := (FAnimation <> nil);
+  utils.writeBool(st, anim);
+  // Если есть - сохраняем
+  if anim then FAnimation.SaveState(st);
+  // Есть ли маска анимации
+  anim := (FAnimationMask <> nil);
+  utils.writeBool(st, anim);
+  // Если есть - сохраняем
+  if anim then FAnimationMask.SaveState(st);
 end;
 
-procedure TCorpse.LoadState(var Mem: TBinMemoryReader);
+
+procedure TCorpse.LoadState (st: TStream);
 var
-  sig: DWORD;
   anim: Boolean;
 begin
-  if Mem = nil then
-    Exit;
+  assert(st <> nil);
 
-// Сигнатура трупа:
-  Mem.ReadDWORD(sig);
-  if sig <> CORPSE_SIGNATURE then // 'CORP'
-  begin
-    raise EBinSizeError.Create('TCorpse.LoadState: Wrong Corpse Signature');
-  end;
-// Состояние:
-  Mem.ReadByte(FState);
-// Накопленный урон:
-  Mem.ReadByte(FDamage);
-// Цвет:
-  Mem.ReadByte(FColor.R);
-  Mem.ReadByte(FColor.G);
-  Mem.ReadByte(FColor.B);
-// Объект трупа:
-  Obj_LoadState(@FObj, Mem);
-// Есть ли анимация:
-  Mem.ReadBoolean(anim);
-// Если есть - загружаем:
+  // Сигнатура трупа
+  if not utils.checkSign(st, 'CORP') then raise XStreamError.Create('invalid corpse signature');
+  if (utils.readByte(st) <> 0) then raise XStreamError.Create('invalid corpse version');
+  // Состояние
+  FState := utils.readByte(st);
+  // Накопленный урон
+  FDamage := utils.readByte(st);
+  // Цвет
+  FColor.R := utils.readByte(st);
+  FColor.G := utils.readByte(st);
+  FColor.B := utils.readByte(st);
+  // Объект трупа
+  Obj_LoadState(@FObj, st);
+  // Есть ли анимация
+  anim := utils.readBool(st);
+  // Если есть - загружаем
   if anim then
   begin
     Assert(FAnimation <> nil, 'TCorpse.LoadState: no FAnimation');
-    FAnimation.LoadState(Mem);
+    FAnimation.LoadState(st);
   end;
-// Есть ли маска анимации:
-  Mem.ReadBoolean(anim);
-// Если есть - загружаем:
+  // Есть ли маска анимации
+  anim := utils.readBool(st);
+  // Если есть - загружаем
   if anim then
   begin
     Assert(FAnimationMask <> nil, 'TCorpse.LoadState: no FAnimationMask');
-    FAnimationMask.LoadState(Mem);
+    FAnimationMask.LoadState(st);
   end;
 end;
 
@@ -7611,64 +7509,84 @@ begin
   Result := Round((255-a)/255*radius*(Random(2)-1));
 end;
 
-procedure TBot.SaveState(var Mem: TBinMemoryWriter);
-var
-  i: Integer;
-  dw: DWORD;
-  p: Pointer;
-begin
-  inherited SaveState(Mem);
 
-// Выбранное оружие:
-  Mem.WriteByte(FSelectedWeapon);
-// UID цели:
-  Mem.WriteWord(FTargetUID);
-// Время потери цели:
-  Mem.WriteDWORD(FLastVisible);
-// Количество флагов ИИ:
-  dw := Length(FAIFlags);
-  Mem.WriteDWORD(dw);
-// Флаги ИИ:
-  for i := 0 to Integer(dw)-1 do
-  begin
-    Mem.WriteString(FAIFlags[i].Name, 20);
-    Mem.WriteString(FAIFlags[i].Value, 20);
-  end;
-// Настройки сложности:
-  p := @FDifficult;
-  Mem.WriteMemory(p, SizeOf(TDifficult));
+procedure TDifficult.save (st: TStream);
+begin
+  utils.writeInt(st, Byte(DiagFire));
+  utils.writeInt(st, Byte(InvisFire));
+  utils.writeInt(st, Byte(DiagPrecision));
+  utils.writeInt(st, Byte(FlyPrecision));
+  utils.writeInt(st, Byte(Cover));
+  utils.writeInt(st, Byte(CloseJump));
+  st.WriteBuffer(WeaponPrior[Low(WeaponPrior)], sizeof(WeaponPrior));
+  st.WriteBuffer(CloseWeaponPrior[Low(CloseWeaponPrior)], sizeof(CloseWeaponPrior));
 end;
 
-procedure TBot.LoadState(var Mem: TBinMemoryReader);
+procedure TDifficult.load (st: TStream);
+begin
+  DiagFire := utils.readByte(st);
+  InvisFire := utils.readByte(st);
+  DiagPrecision := utils.readByte(st);
+  FlyPrecision := utils.readByte(st);
+  Cover := utils.readByte(st);
+  CloseJump := utils.readByte(st);
+  st.ReadBuffer(WeaponPrior[Low(WeaponPrior)], sizeof(WeaponPrior));
+  st.ReadBuffer(CloseWeaponPrior[Low(CloseWeaponPrior)], sizeof(CloseWeaponPrior));
+end;
+
+
+procedure TBot.SaveState (st: TStream);
 var
   i: Integer;
-  dw: DWORD;
-  p: Pointer;
+  dw: Integer;
 begin
-  inherited LoadState(Mem);
+  inherited SaveState(st);
+  utils.writeSign(st, 'BOT0');
+  // Выбранное оружие
+  utils.writeInt(st, Byte(FSelectedWeapon));
+  // UID цели
+  utils.writeInt(st, Word(FTargetUID));
+  // Время потери цели
+  utils.writeInt(st, LongWord(FLastVisible));
+  // Количество флагов ИИ
+  dw := Length(FAIFlags);
+  utils.writeInt(st, LongInt(dw));
+  // Флаги ИИ
+  for i := 0 to dw-1 do
+  begin
+    utils.writeStr(st, FAIFlags[i].Name, 20);
+    utils.writeStr(st, FAIFlags[i].Value, 20);
+  end;
+  // Настройки сложности
+  FDifficult.save(st);
+end;
 
-// Выбранное оружие:
-  Mem.ReadByte(FSelectedWeapon);
-// UID цели:
-  Mem.ReadWord(FTargetUID);
-// Время потери цели:
-  Mem.ReadDWORD(FLastVisible);
-// Количество флагов ИИ:
-  Mem.ReadDWORD(dw);
+
+procedure TBot.LoadState (st: TStream);
+var
+  i: Integer;
+  dw: Integer;
+begin
+  inherited LoadState(st);
+  if not utils.checkSign(st, 'BOT0') then raise XStreamError.Create('invalid bot signature');
+  // Выбранное оружие
+  FSelectedWeapon := utils.readByte(st);
+  // UID цели
+  FTargetUID := utils.readWord(st);
+  // Время потери цели
+  FLastVisible := utils.readLongWord(st);
+  // Количество флагов ИИ
+  dw := utils.readLongInt(st);
+  if (dw < 0) or (dw > 16384) then raise XStreamError.Create('invalid number of bot AI flags');
   SetLength(FAIFlags, dw);
-// Флаги ИИ:
-  for i := 0 to Integer(dw)-1 do
+  // Флаги ИИ
+  for i := 0 to dw-1 do
   begin
-    Mem.ReadString(FAIFlags[i].Name);
-    Mem.ReadString(FAIFlags[i].Value);
+    FAIFlags[i].Name := utils.readStr(st, 20);
+    FAIFlags[i].Value := utils.readStr(st, 20);
   end;
-// Настройки сложности:
-  Mem.ReadMemory(p, dw);
-  if dw <> SizeOf(TDifficult) then
-  begin
-    raise EBinSizeError.Create('TBot.LoadState: Wrong FDifficult Size');
-  end;
-  FDifficult := TDifficult(p^);
+  // Настройки сложности
+  FDifficult.load(st);
 end;
 
 

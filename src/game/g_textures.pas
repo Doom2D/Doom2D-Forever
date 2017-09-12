@@ -19,8 +19,9 @@ unit g_textures;
 interface
 
 uses
+  SysUtils, Classes,
   mempool,
-  e_graphics, MAPDEF, BinEditor, ImagingTypes, Imaging, ImagingUtility;
+  e_graphics, MAPDEF, ImagingTypes, Imaging, ImagingUtility;
 
 Type
   TLevelTexture = record
@@ -63,8 +64,8 @@ Type
     procedure   Enable();
     procedure   Disable();
     procedure   Revert(r: Boolean);
-    procedure   SaveState(Var Mem: TBinMemoryWriter);
-    procedure   LoadState(Var Mem: TBinMemoryReader);
+    procedure   SaveState(st: TStream);
+    procedure   LoadState(st: TStream);
     function    TotalFrames(): Integer;
 
     property    Played: Boolean read FPlayed;
@@ -115,8 +116,8 @@ function g_Texture_Light(): Integer;
 implementation
 
 uses
-  g_game, e_log, g_basic, SysUtils, g_console, wadreader,
-  g_language, GL;
+  g_game, e_log, g_basic, g_console, wadreader,
+  g_language, GL, utils, xstreams;
 
 type
   _TTexture = record
@@ -821,71 +822,60 @@ begin
   Reset();
 end;
 
-procedure TAnimation.SaveState(Var Mem: TBinMemoryWriter);
-var
-  sig: DWORD;
+procedure TAnimation.SaveState (st: TStream);
 begin
-  if Mem = nil then
-    Exit;
+  if (st = nil) then exit;
 
-// Сигнатура анимации:
-  sig := ANIM_SIGNATURE; // 'ANIM'
-  Mem.WriteDWORD(sig);
-// Счетчик ожидания между кадрами:
-  Mem.WriteByte(FCounter);
-// Текущий кадр:
-  Mem.WriteInt(FCurrentFrame);
-// Проиграна ли анимация целиком:
-  Mem.WriteBoolean(FPlayed);
-// Alpha-канал всей текстуры:
-  Mem.WriteByte(FAlpha);
-// Размытие текстуры:
-  Mem.WriteBoolean(FBlending);
-// Время ожидания между кадрами:
-  Mem.WriteByte(FSpeed);
-// Зациклена ли анимация:
-  Mem.WriteBoolean(FLoop);
-// Включена ли:
-  Mem.WriteBoolean(FEnabled);
-// Ожидание после проигрывания:
-  Mem.WriteByte(FMinLength);
-// Обратный ли порядок кадров:
-  Mem.WriteBoolean(FRevert);
+  utils.writeSign(st, 'ANIM');
+  utils.writeInt(st, Byte(0)); // version
+  // Счетчик ожидания между кадрами
+  utils.writeInt(st, Byte(FCounter));
+  // Текущий кадр
+  utils.writeInt(st, LongInt(FCurrentFrame));
+  // Проиграна ли анимация целиком
+  utils.writeBool(st, FPlayed);
+  // Alpha-канал всей текстуры
+  utils.writeInt(st, Byte(FAlpha));
+  // Размытие текстуры
+  utils.writeInt(st, Byte(FBlending));
+  // Время ожидания между кадрами
+  utils.writeInt(st, Byte(FSpeed));
+  // Зациклена ли анимация
+  utils.writeBool(st, FLoop);
+  // Включена ли
+  utils.writeBool(st, FEnabled);
+  // Ожидание после проигрывания
+  utils.writeInt(st, Byte(FMinLength));
+  // Обратный ли порядок кадров
+  utils.writeBool(st, FRevert);
 end;
 
-procedure TAnimation.LoadState(Var Mem: TBinMemoryReader);
-var
-  sig: DWORD;
+procedure TAnimation.LoadState (st: TStream);
 begin
-  if Mem = nil then
-    Exit;
+  if (st = nil) then exit;
 
-// Сигнатура анимации:
-  Mem.ReadDWORD(sig);
-  if sig <> ANIM_SIGNATURE then // 'ANIM'
-  begin
-    raise EBinSizeError.Create('TAnimation.LoadState: Wrong Animation Signature');
-  end;
-// Счетчик ожидания между кадрами:
-  Mem.ReadByte(FCounter);
-// Текущий кадр:
-  Mem.ReadInt(FCurrentFrame);
-// Проиграна ли анимация целиком:
-  Mem.ReadBoolean(FPlayed);
-// Alpha-канал всей текстуры:
-  Mem.ReadByte(FAlpha);
-// Размытие текстуры:
-  Mem.ReadBoolean(FBlending);
-// Время ожидания между кадрами:
-  Mem.ReadByte(FSpeed);
-// Зациклена ли анимация:
-  Mem.ReadBoolean(FLoop);
-// Включена ли:
-  Mem.ReadBoolean(FEnabled);
-// Ожидание после проигрывания:
-  Mem.ReadByte(FMinLength);
-// Обратный ли порядок кадров:
-  Mem.ReadBoolean(FRevert);
+  if not utils.checkSign(st, 'ANIM') then raise XStreamError.Create('animation chunk expected');
+  if (utils.readByte(st) <> 0) then raise XStreamError.Create('invalid animation chunk version');
+  // Счетчик ожидания между кадрами
+  FCounter := utils.readByte(st);
+  // Текущий кадр
+  FCurrentFrame := utils.readLongInt(st);
+  // Проиграна ли анимация целиком
+  FPlayed := utils.readBool(st);
+  // Alpha-канал всей текстуры
+  FAlpha := utils.readByte(st);
+  // Размытие текстуры
+  FBlending := utils.readBool(st);
+  // Время ожидания между кадрами
+  FSpeed := utils.readByte(st);
+  // Зациклена ли анимация
+  FLoop := utils.readBool(st);
+  // Включена ли
+  FEnabled := utils.readBool(st);
+  // Ожидание после проигрывания
+  FMinLength := utils.readByte(st);
+  // Обратный ли порядок кадров
+  FRevert := utils.readBool(st);
 end;
 
 

@@ -20,8 +20,9 @@ unit g_map;
 interface
 
 uses
-  e_graphics, g_basic, MAPDEF, g_textures, Classes,
-  g_phys, wadreader, BinEditor, g_panel, g_grid, md5, binheap, xprofiler, xparser, xdynrec;
+  SysUtils, Classes,
+  e_graphics, g_basic, MAPDEF, g_textures,
+  g_phys, wadreader, g_panel, g_grid, md5, binheap, xprofiler, xparser, xdynrec;
 
 type
   TMapInfo = record
@@ -82,7 +83,7 @@ procedure g_Map_EnableWall_XXX (ID: DWORD);
 procedure g_Map_DisableWall_XXX (ID: DWORD);
 procedure g_Map_SetLift_XXX (ID: DWORD; t: Integer);
 
-procedure g_Map_SwitchTextureGUID (PanelType: Word; pguid: Integer; AnimLoop: Byte = 0);
+procedure g_Map_SwitchTextureGUID (pguid: Integer; AnimLoop: Byte = 0);
 
 procedure g_Map_ReAdd_DieTriggers();
 function  g_Map_IsSpecialTexture(Texture: String): Boolean;
@@ -95,8 +96,8 @@ function  g_Map_HaveFlagPoints(): Boolean;
 procedure g_Map_ResetFlag(Flag: Byte);
 procedure g_Map_DrawFlags();
 
-procedure g_Map_SaveState(Var Mem: TBinMemoryWriter);
-procedure g_Map_LoadState(Var Mem: TBinMemoryReader);
+procedure g_Map_SaveState (st: TStream);
+procedure g_Map_LoadState (st: TStream);
 
 procedure g_Map_DrawPanelShadowVolumes(lightX: Integer; lightY: Integer; radius: Integer);
 
@@ -242,7 +243,7 @@ var
 implementation
 
 uses
-  e_input, g_main, e_log, e_texture, SysUtils, g_items, g_gfx, g_console,
+  e_input, g_main, e_log, e_texture, g_items, g_gfx, g_console,
   GL, GLExt, g_weapons, g_game, g_sound, e_sound, CONFIG,
   g_options, g_triggers, g_player,
   Math, g_monsters, g_saveload, g_language, g_netmsg,
@@ -1312,7 +1313,7 @@ begin
   end;
 end;
 
-function CreateTrigger (amapIdx: Integer; Trigger: TDynRecord; atpanid, atrigpanid: Integer; fTexturePanel1Type, fTexturePanel2Type: Word): Integer;
+function CreateTrigger (amapIdx: Integer; Trigger: TDynRecord; atpanid, atrigpanid: Integer): Integer;
 var
   _trigger: TTrigger;
 begin
@@ -1328,16 +1329,11 @@ begin
     Width := Trigger.Width;
     Height := Trigger.Height;
     Enabled := Trigger.Enabled;
-    //TexturePanel := Trigger.TexturePanel;
     TexturePanelGUID := atpanid;
-    TexturePanelType := fTexturePanel1Type;
-    ShotPanelType := fTexturePanel2Type;
     TriggerType := Trigger.TriggerType;
     ActivateType := Trigger.ActivateType;
     Keys := Trigger.Keys;
     trigPanelGUID := atrigpanid;
-    //trigShotPanelId := ashotpanid;
-    //Data.Default := Trigger.DATA;
   end;
 
   result := Integer(g_Triggers_Create(_trigger, Trigger));
@@ -2028,13 +2024,10 @@ begin
       for rec in triggers do
       begin
         Inc(trignum);
-        if (TriggersTable[trignum].texPanel <> nil) then b := TriggersTable[trignum].texPanel.PanelType else b := 0;
-        if (TriggersTable[trignum].actPanel <> nil) then c := TriggersTable[trignum].actPanel.PanelType else c := 0;
-        // we can have only one of those
         tgpid := TriggersTable[trignum].actPanelIdx;
         //e_LogWritefln('creating trigger #%s; texpantype=%s; shotpantype=%s (%d,%d)', [trignum, b, c, TriggersTable[trignum].texPanIdx, TriggersTable[trignum].ShotPanelIdx]);
         TriggersTable[trignum].tnum := trignum;
-        TriggersTable[trignum].id := CreateTrigger(trignum, rec, TriggersTable[trignum].texPanelIdx, tgpid, Word(b), Word(c));
+        TriggersTable[trignum].id := CreateTrigger(trignum, rec, TriggersTable[trignum].texPanelIdx, tgpid);
       end;
     end;
 
@@ -2926,25 +2919,12 @@ begin
 end;
 
 
-procedure g_Map_SwitchTextureGUID (PanelType: Word; pguid: Integer; AnimLoop: Byte = 0);
+procedure g_Map_SwitchTextureGUID (pguid: Integer; AnimLoop: Byte = 0);
 var
   tp: TPanel;
 begin
   tp := g_Map_PanelByGUID(pguid);
   if (tp = nil) then exit;
-  {
-  case PanelType of
-    PANEL_WALL, PANEL_OPENDOOR, PANEL_CLOSEDOOR: tp := gWalls[ID];
-    PANEL_FORE: tp := gRenderForegrounds[ID];
-    PANEL_BACK: tp := gRenderBackgrounds[ID];
-    PANEL_WATER: tp := gWater[ID];
-    PANEL_ACID1: tp := gAcid1[ID];
-    PANEL_ACID2: tp := gAcid2[ID];
-    PANEL_STEP: tp := gSteps[ID];
-    else exit;
-  end;
-  }
-
   tp.NextTexture(AnimLoop);
   if g_Game_IsServer and g_Game_IsNet then MH_SEND_PanelTexture(pguid, AnimLoop);
 end;
@@ -3087,80 +3067,62 @@ begin
 end;
 
 
-procedure g_Map_SaveState (var Mem: TBinMemoryWriter);
+procedure g_Map_SaveState (st: TStream);
 var
-  dw: DWORD;
-  b: Byte;
   str: String;
-  boo: Boolean;
 
   procedure savePanels ();
   var
-    PAMem: TBinMemoryWriter;
     pan: TPanel;
   begin
-    // Создаем новый список сохраняемых панелей
-    PAMem := TBinMemoryWriter.Create((Length(panByGUID)+1) * 40);
-
     // Сохраняем панели
-    //Mem.WriteInt(Length(panByGUID));
-    for pan in panByGUID do pan.SaveState(PAMem);
-
-    // Сохраняем этот список панелей
-    PAMem.SaveToMemory(Mem);
-    PAMem.Free();
+    utils.writeInt(st, LongInt(Length(panByGUID)));
+    for pan in panByGUID do pan.SaveState(st);
   end;
 
-  procedure SaveFlag (flag: PFlag);
+  procedure saveFlag (flag: PFlag);
+  var
+    b: Byte;
   begin
-    // Сигнатура флага
-    dw := FLAG_SIGNATURE; // 'FLAG'
-    Mem.WriteDWORD(dw);
+    utils.writeSign(st, 'FLAG');
+    utils.writeInt(st, Byte(0)); // version
     // Время перепоявления флага
-    Mem.WriteByte(flag^.RespawnType);
+    utils.writeInt(st, Byte(flag^.RespawnType));
     // Состояние флага
-    Mem.WriteByte(flag^.State);
+    utils.writeInt(st, Byte(flag^.State));
     // Направление флага
     if flag^.Direction = D_LEFT then b := 1 else b := 2; // D_RIGHT
-    Mem.WriteByte(b);
+    utils.writeInt(st, Byte(b));
     // Объект флага
-    Obj_SaveState(@flag^.Obj, Mem);
+    Obj_SaveState(st, @flag^.Obj);
   end;
 
 begin
-  Mem := TBinMemoryWriter.Create(1024 * 1024); // 1 MB
-
-  ///// Сохраняем списки панелей: /////
   savePanels();
-  ///// /////
 
-  ///// Сохраняем музыку: /////
-  // Сигнатура музыки:
-  dw := MUSIC_SIGNATURE; // 'MUSI'
-  Mem.WriteDWORD(dw);
-  // Название музыки:
-  Assert(gMusic <> nil, 'g_Map_SaveState: gMusic = nil');
+  // Сохраняем музыку
+  utils.writeSign(st, 'MUSI');
+  utils.writeInt(st, Byte(0));
+  // Название музыки
+  assert(gMusic <> nil, 'g_Map_SaveState: gMusic = nil');
   if gMusic.NoMusic then str := '' else str := gMusic.Name;
-  Mem.WriteString(str, 64);
+  utils.writeStr(st, str);
   // Позиция проигрывания музыки
-  dw := gMusic.GetPosition();
-  Mem.WriteDWORD(dw);
+  utils.writeInt(st, LongWord(gMusic.GetPosition()));
   // Стоит ли музыка на спец-паузе
-  boo := gMusic.SpecPause;
-  Mem.WriteBoolean(boo);
-  ///// /////
+  utils.writeBool(st, gMusic.SpecPause);
 
   ///// Сохраняем количество монстров: /////
-  Mem.WriteInt(gTotalMonsters);
+  utils.writeInt(st, LongInt(gTotalMonsters));
   ///// /////
 
   //// Сохраняем флаги, если это CTF: /////
-  if gGameSettings.GameMode = GM_CTF then
+  if (gGameSettings.GameMode = GM_CTF) then
   begin
     // Флаг Красной команды
-    SaveFlag(@gFlags[FLAG_RED]);
+    saveFlag(@gFlags[FLAG_RED]);
     // Флаг Синей команды
-    SaveFlag(@gFlags[FLAG_BLUE]);
+    saveFlag(@gFlags[FLAG_BLUE]);
   end;
   ///// /////
 
@@ -3168,64 +3130,53 @@ begin
   if gGameSettings.GameMode in [GM_TDM, GM_CTF] then
   begin
     // Очки Красной команды
-    Mem.WriteSmallInt(gTeamStat[TEAM_RED].Goals);
+    utils.writeInt(st, SmallInt(gTeamStat[TEAM_RED].Goals));
     // Очки Синей команды
-    Mem.WriteSmallInt(gTeamStat[TEAM_BLUE].Goals);
+    utils.writeInt(st, SmallInt(gTeamStat[TEAM_BLUE].Goals));
   end;
   ///// /////
 end;
 
 
-procedure g_Map_LoadState (var Mem: TBinMemoryReader);
+procedure g_Map_LoadState (st: TStream);
 var
   dw: DWORD;
-  b: Byte;
   str: String;
   boo: Boolean;
 
   procedure loadPanels ();
   var
-    PAMem: TBinMemoryReader;
     pan: TPanel;
-    //count: LongInt;
   begin
-    // Загружаем текущий список панелей
-    PAMem := TBinMemoryReader.Create();
-    PAMem.LoadFromMemory(Mem);
-
     // Загружаем панели
-    //PAMem.ReadInt(count);
-    //if (count <> Length(panByGUID)) then raise EBinSizeError.Create('g_Map_LoadState: LoadPanelArray: invalid number of panels');
-    //if (count <> Length(panByGUID)) then raise EBinSizeError.Create(Format('g_Map_LoadState: LoadPanelArray: invalid number of panels (%d : %d)', [count, Length(panByGUID)]));
+    if (Length(panByGUID) <> utils.readLongInt(st)) then raise XStreamError.Create('invalid number of saved panels');
     for pan in panByGUID do
     begin
-      pan.LoadState(PAMem);
+      pan.LoadState(st);
       if (pan.proxyId >= 0) then mapGrid.proxyEnabled[pan.proxyId] := pan.Enabled;
     end;
-
-    // Этот список панелей загружен
-    PAMem.Free();
   end;
 
-  procedure LoadFlag(flag: PFlag);
+  procedure loadFlag (flag: PFlag);
+  var
+    b: Byte;
   begin
     // Сигнатура флага
-    Mem.ReadDWORD(dw);
-    // 'FLAG'
-    if dw <> FLAG_SIGNATURE then raise EBinSizeError.Create('g_Map_LoadState: LoadFlag: Wrong Flag Signature');
+    if not utils.checkSign(st, 'FLAG') then raise XStreamError.Create('invalid flag signature');
+    if (utils.readByte(st) <> 0) then raise XStreamError.Create('invalid flag version');
     // Время перепоявления флага
-    Mem.ReadByte(flag^.RespawnType);
+    flag^.RespawnType := utils.readByte(st);
     // Состояние флага
-    Mem.ReadByte(flag^.State);
+    flag^.State := utils.readByte(st);
     // Направление флага
-    Mem.ReadByte(b);
-    if b = 1 then flag^.Direction := D_LEFT else flag^.Direction := D_RIGHT; // b = 2
+    b := utils.readByte(st);
+    if (b = 1) then flag^.Direction := D_LEFT else flag^.Direction := D_RIGHT; // b = 2
     // Объект флага
-    Obj_LoadState(@flag^.Obj, Mem);
+    Obj_LoadState(@flag^.Obj, st);
   end;
 
 begin
-  if Mem = nil then Exit;
+  if (st = nil) then exit;
 
   ///// Загружаем списки панелей: /////
   loadPanels();
@@ -3236,36 +3187,34 @@ begin
   //mapCreateGrid();
 
   ///// Загружаем музыку: /////
-  // Сигнатура музыки
-  Mem.ReadDWORD(dw);
-  // 'MUSI'
-  if dw <> MUSIC_SIGNATURE then raise EBinSizeError.Create('g_Map_LoadState: Wrong Music Signature');
+  if not utils.checkSign(st, 'MUSI') then raise XStreamError.Create('invalid music signature');
+  if (utils.readByte(st) <> 0) then raise XStreamError.Create('invalid music version');
   // Название музыки
-  Assert(gMusic <> nil, 'g_Map_LoadState: gMusic = nil');
-  Mem.ReadString(str);
+  assert(gMusic <> nil, 'g_Map_LoadState: gMusic = nil');
+  str := utils.readStr(st);
   // Позиция проигрывания музыки
-  Mem.ReadDWORD(dw);
+  dw := utils.readLongWord(st);
   // Стоит ли музыка на спец-паузе
-  Mem.ReadBoolean(boo);
+  boo := utils.readBool(st);
   // Запускаем эту музыку
   gMusic.SetByName(str);
   gMusic.SpecPause := boo;
   gMusic.Play();
-  gMusic.Pause(True);
+  gMusic.Pause(true);
   gMusic.SetPosition(dw);
   ///// /////
 
   ///// Загружаем количество монстров: /////
-  Mem.ReadInt(gTotalMonsters);
+  gTotalMonsters := utils.readLongInt(st);
   ///// /////
 
   //// Загружаем флаги, если это CTF: /////
-  if gGameSettings.GameMode = GM_CTF then
+  if (gGameSettings.GameMode = GM_CTF) then
   begin
     // Флаг Красной команды
-    LoadFlag(@gFlags[FLAG_RED]);
+    loadFlag(@gFlags[FLAG_RED]);
     // Флаг Синей команды
-    LoadFlag(@gFlags[FLAG_BLUE]);
+    loadFlag(@gFlags[FLAG_BLUE]);
   end;
   ///// /////
 
@@ -3273,9 +3222,9 @@ begin
   if gGameSettings.GameMode in [GM_TDM, GM_CTF] then
   begin
     // Очки Красной команды
-    Mem.ReadSmallInt(gTeamStat[TEAM_RED].Goals);
+    gTeamStat[TEAM_RED].Goals := utils.readSmallInt(st);
     // Очки Синей команды
-    Mem.ReadSmallInt(gTeamStat[TEAM_BLUE].Goals);
+    gTeamStat[TEAM_BLUE].Goals := utils.readSmallInt(st);
   end;
   ///// /////
 end;

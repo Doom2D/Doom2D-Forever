@@ -20,22 +20,9 @@ unit g_weapons;
 interface
 
 uses
-  g_textures, g_basic, e_graphics, g_phys, BinEditor, xprofiler;
+  SysUtils, Classes,
+  g_textures, g_basic, e_graphics, g_phys, xprofiler;
 
-{
-const
-  HIT_SOME    = 0;
-  HIT_ROCKET  = 1;
-  HIT_BFG     = 2;
-  HIT_TRAP    = 3;
-  HIT_FALL    = 4;
-  HIT_WATER   = 5;
-  HIT_ACID    = 6;
-  HIT_ELECTRO = 7;
-  HIT_FLAME   = 8;
-  HIT_SELF    = 9;
-  HIT_DISCON  = 10;
-}
 
 type
   TShot = record
@@ -91,8 +78,8 @@ procedure g_Weapon_Draw();
 function g_Weapon_Danger(UID: Word; X, Y: Integer; Width, Height: Word; Time: Byte): Boolean;
 procedure g_Weapon_DestroyShot(I: Integer; X, Y: Integer; Loud: Boolean = True);
 
-procedure g_Weapon_SaveState(var Mem: TBinMemoryWriter);
-procedure g_Weapon_LoadState(var Mem: TBinMemoryReader);
+procedure g_Weapon_SaveState (st: TStream);
+procedure g_Weapon_LoadState (st: TStream);
 
 procedure g_Weapon_AddDynLights();
 
@@ -128,10 +115,10 @@ implementation
 
 uses
   Math, g_map, g_player, g_gfx, g_sound, g_main, g_panel,
-  g_console, SysUtils, g_options, g_game,
+  g_console, g_options, g_game,
   g_triggers, MAPDEF, e_log, g_monsters, g_saveload,
   g_language, g_netmsg, g_grid,
-  binheap, hashtable;
+  binheap, hashtable, utils, xstreams;
 
 type
   TWaterPanel = record
@@ -2570,93 +2557,82 @@ begin
         end;
 end;
 
-procedure g_Weapon_SaveState(var Mem: TBinMemoryWriter);
+procedure g_Weapon_SaveState (st: TStream);
 var
   count, i, j: Integer;
-  dw: DWORD;
 begin
-// Считаем количество существующих снарядов:
+  // Считаем количество существующих снарядов
   count := 0;
-  if Shots <> nil then
-    for i := 0 to High(Shots) do
-      if Shots[i].ShotType <> 0 then
-        count := count + 1;
+  for i := 0 to High(Shots) do if (Shots[i].ShotType <> 0) then Inc(count);
 
-  Mem := TBinMemoryWriter.Create((count+1) * 80);
+  // Количество снарядов
+  utils.WriteInt(st, count);
 
-// Количество снарядов:
-  Mem.WriteInt(count);
-
-  if count = 0 then
-    Exit;
+  if (count = 0) then exit;
 
   for i := 0 to High(Shots) do
+  begin
     if Shots[i].ShotType <> 0 then
     begin
-    // Сигнатура снаряда:
-      dw := SHOT_SIGNATURE; // 'SHOT'
-      Mem.WriteDWORD(dw);
-    // Тип снаряда:
-      Mem.WriteByte(Shots[i].ShotType);
-    // Цель:
-      Mem.WriteWord(Shots[i].Target);
-    // UID стрелявшего:
-      Mem.WriteWord(Shots[i].SpawnerUID);
-    // Размер поля Triggers:
-      dw := Length(Shots[i].Triggers);
-      Mem.WriteDWORD(dw);
-    // Триггеры, активированные выстрелом:
-      for j := 0 to Integer(dw)-1 do
-        Mem.WriteDWORD(Shots[i].Triggers[j]);
-    // Объект снаряда:
-      Obj_SaveState(@Shots[i].Obj, Mem);
-    // Костылина ебаная:
-      Mem.WriteByte(Shots[i].Stopped);
+      // Сигнатура снаряда
+      utils.writeSign(st, 'SHOT');
+      utils.writeInt(st, Byte(0)); // version
+      // Тип снаряда
+      utils.writeInt(st, Byte(Shots[i].ShotType));
+      // Цель
+      utils.writeInt(st, Word(Shots[i].Target));
+      // UID стрелявшего
+      utils.writeInt(st, Word(Shots[i].SpawnerUID));
+      // Размер поля Triggers
+      utils.writeInt(st, Integer(Length(Shots[i].Triggers)));
+      // Триггеры, активированные выстрелом
+      for j := 0 to Length(Shots[i].Triggers)-1 do utils.writeInt(st, LongWord(Shots[i].Triggers[j]));
+      // Объект снаряда
+      Obj_SaveState(st, @Shots[i].Obj);
+      // Костылина ебаная
+      utils.writeInt(st, Byte(Shots[i].Stopped));
     end;
+  end;
 end;
 
-procedure g_Weapon_LoadState(var Mem: TBinMemoryReader);
+procedure g_Weapon_LoadState (st: TStream);
 var
-  count, i, j: Integer;
-  dw: DWORD;
+  count, tc, i, j: Integer;
+  dw: LongWord;
 begin
-  if Mem = nil then
-    Exit;
+  if (st = nil) then exit;
 
-// Количество снарядов:
-  Mem.ReadInt(count);
+  // Количество снарядов
+  count := utils.readLongInt(st);
+  if (count < 0) or (count > 1024*1024) then raise XStreamError.Create('invalid shots counter');
 
   SetLength(Shots, count);
 
-  if count = 0 then
-    Exit;
+  if (count = 0) then exit;
 
   for i := 0 to count-1 do
   begin
-  // Сигнатура снаряда:
-    Mem.ReadDWORD(dw);
-    if dw <> SHOT_SIGNATURE then // 'SHOT'
-    begin
-      raise EBinSizeError.Create('g_Weapons_LoadState: Wrong Shot Signature');
-    end;
-  // Тип снаряда:
-    Mem.ReadByte(Shots[i].ShotType);
-  // Цель:
-    Mem.ReadWord(Shots[i].Target);
-  // UID стрелявшего:
-    Mem.ReadWord(Shots[i].SpawnerUID);
-  // Размер поля Triggers:
-    Mem.ReadDWORD(dw);
-    SetLength(Shots[i].Triggers, dw);
-  // Триггеры, активированные выстрелом:
-    for j := 0 to Integer(dw)-1 do
-      Mem.ReadDWORD(Shots[i].Triggers[j]);
-  // Объект предмета:
-    Obj_LoadState(@Shots[i].Obj, Mem);
-  // Костылина ебаная:
-    Mem.ReadByte(Shots[i].Stopped);
+    // Сигнатура снаряда
+    if not utils.checkSign(st, 'SHOT') then raise XStreamError.Create('invalid shot signature');
+    if (utils.readByte(st) <> 0) then raise XStreamError.Create('invalid shot version');
+    // Тип снаряда:
+    Shots[i].ShotType := utils.readByte(st);
+    // Цель
+    Shots[i].Target := utils.readWord(st);
+    // UID стрелявшего
+    Shots[i].SpawnerUID := utils.readWord(st);
+    // Размер поля Triggers
+    tc := utils.readLongInt(st);
+    if (tc < 0) or (tc > 1024*1024) then raise XStreamError.Create('invalid shot triggers counter');
+    SetLength(Shots[i].Triggers, tc);
+    // Триггеры, активированные выстрелом
+    for j := 0 to tc-1 do Shots[i].Triggers[j] := utils.readLongWord(st);
+    // Объект предмета
+    Obj_LoadState(@Shots[i].Obj, st);
+    // Костылина ебаная
+    Shots[i].Stopped := utils.readByte(st);
 
-  // Установка текстуры или анимации:
+    // Установка текстуры или анимации
     Shots[i].TextureID := DWORD(-1);
     Shots[i].Animation := nil;
 

@@ -54,7 +54,7 @@ function LoadTextureImg (var img: TImageData; var Texture: GLTexture; var pWidth
 implementation
 
 uses
-  Classes, BinEditor, g_options, utils;
+  Classes, g_options, utils;
 
 
 function AlignP2 (n: Word): Word;

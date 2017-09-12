@@ -73,7 +73,7 @@ implementation
 
 uses
   g_map, g_basic, Math, g_player, g_console, SysUtils,
-  g_sound, g_gfx, MAPDEF, g_monsters, g_game, BinEditor, utils;
+  g_sound, g_gfx, MAPDEF, g_monsters, g_game, utils;
 
 
 const

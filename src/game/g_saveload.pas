@@ -19,320 +19,269 @@ unit g_saveload;
 interface
 
 uses
-  e_graphics, g_phys, g_textures, BinEditor;
+  SysUtils, Classes,
+  e_graphics, g_phys, g_textures;
 
 
-function g_GetSaveName(n: Integer): String;
-function g_SaveGame(n: Integer; Name: String): Boolean;
-function g_LoadGame(n: Integer): Boolean;
-procedure Obj_SaveState(o: PObj; var Mem: TBinMemoryWriter);
-procedure Obj_LoadState(o: PObj; var Mem: TBinMemoryReader);
+function g_GetSaveName (n: Integer; out valid: Boolean): AnsiString;
+
+function g_SaveGameTo (const filename: AnsiString; const aname: AnsiString; deleteOnError: Boolean=true): Boolean;
+function g_LoadGameFrom (const filename: AnsiString): Boolean;
+
+function g_SaveGame (n: Integer; const aname: AnsiString): Boolean;
+function g_LoadGame (n: Integer): Boolean;
+
+procedure Obj_SaveState (st: TStream; o: PObj);
+procedure Obj_LoadState (o: PObj; st: TStream);
 
 
 implementation
 
 uses
+  MAPDEF, utils, xstreams,
   g_game, g_items, g_map, g_monsters, g_triggers,
-  g_basic, g_main, SysUtils, Math, wadreader,
-  MAPDEF, g_weapons, g_player, g_console,
+  g_basic, g_main, Math, wadreader,
+  g_weapons, g_player, g_console,
   e_log, g_language;
 
 const
   SAVE_SIGNATURE = $56534644; // 'DFSV'
-  SAVE_VERSION = $06;
+  SAVE_VERSION = $07;
   END_MARKER_STRING = 'END';
   PLAYER_VIEW_SIGNATURE = $57564C50; // 'PLVW'
   OBJ_SIGNATURE = $4A424F5F; // '_OBJ'
 
 
-procedure Obj_SaveState(o: PObj; var Mem: TBinMemoryWriter);
-var
-  sig: DWORD;
+procedure Obj_SaveState (st: TStream; o: PObj);
 begin
-  if Mem = nil then
-    Exit;
-
-// Сигнатура объекта:
-  sig := OBJ_SIGNATURE; // '_OBJ'
-  Mem.WriteDWORD(sig);
-// Положение по-горизонтали:
-  Mem.WriteInt(o^.X);
-// Положение по-вертикали:
-  Mem.WriteInt(o^.Y);
-// Ограничивающий прямоугольник:
-  Mem.WriteInt(o^.Rect.X);
-  Mem.WriteInt(o^.Rect.Y);
-  Mem.WriteWord(o^.Rect.Width);
-  Mem.WriteWord(o^.Rect.Height);
-// Скорость:
-  Mem.WriteInt(o^.Vel.X);
-  Mem.WriteInt(o^.Vel.Y);
-// Прибавка к скорости:
-  Mem.WriteInt(o^.Accel.X);
-  Mem.WriteInt(o^.Accel.Y);
+  if (st = nil) then exit;
+  // Сигнатура объекта
+  utils.writeSign(st, '_OBJ');
+  utils.writeInt(st, Byte(0)); // version
+  // Положение по-горизонтали
+  utils.writeInt(st, LongInt(o^.X));
+  // Положение по-вертикали
+  utils.writeInt(st, LongInt(o^.Y));
+  // Ограничивающий прямоугольник
+  utils.writeInt(st, LongInt(o^.Rect.X));
+  utils.writeInt(st, LongInt(o^.Rect.Y));
+  utils.writeInt(st, Word(o^.Rect.Width));
+  utils.writeInt(st, Word(o^.Rect.Height));
+  // Скорость
+  utils.writeInt(st, LongInt(o^.Vel.X));
+  utils.writeInt(st, LongInt(o^.Vel.Y));
+  // Ускорение
+  utils.writeInt(st, LongInt(o^.Accel.X));
+  utils.writeInt(st, LongInt(o^.Accel.Y));
 end;
 
-procedure Obj_LoadState(o: PObj; var Mem: TBinMemoryReader);
-var
-  sig: DWORD;
-begin
-  if Mem = nil then
-    Exit;
 
-// Сигнатура объекта:
-  Mem.ReadDWORD(sig);
-  if sig <> OBJ_SIGNATURE then // '_OBJ'
-  begin
-    raise EBinSizeError.Create('Obj_LoadState: Wrong Object Signature');
-  end;
-// Положение по-горизонтали:
-  Mem.ReadInt(o^.X);
-// Положение по-вертикали:
-  Mem.ReadInt(o^.Y);
-// Ограничивающий прямоугольник:
-  Mem.ReadInt(o^.Rect.X);
-  Mem.ReadInt(o^.Rect.Y);
-  Mem.ReadWord(o^.Rect.Width);
-  Mem.ReadWord(o^.Rect.Height);
-// Скорость:
-  Mem.ReadInt(o^.Vel.X);
-  Mem.ReadInt(o^.Vel.Y);
-// Прибавка к скорости:
-  Mem.ReadInt(o^.Accel.X);
-  Mem.ReadInt(o^.Accel.Y);
+procedure Obj_LoadState (o: PObj; st: TStream);
+begin
+  if (st = nil) then exit;
+  // Сигнатура объекта:
+  if not utils.checkSign(st, '_OBJ') then raise XStreamError.Create('invalid object signature');
+  if (utils.readByte(st) <> 0) then raise XStreamError.Create('invalid object version');
+  // Положение по-горизонтали
+  o^.X := utils.readLongInt(st);
+  // Положение по-вертикали
+  o^.Y := utils.readLongInt(st);
+  // Ограничивающий прямоугольник
+  o^.Rect.X := utils.readLongInt(st);
+  o^.Rect.Y := utils.readLongInt(st);
+  o^.Rect.Width := utils.readWord(st);
+  o^.Rect.Height := utils.readWord(st);
+  // Скорость
+  o^.Vel.X := utils.readLongInt(st);
+  o^.Vel.Y := utils.readLongInt(st);
+  // Ускорение
+  o^.Accel.X := utils.readLongInt(st);
+  o^.Accel.Y := utils.readLongInt(st);
 end;
 
-function g_GetSaveName(n: Integer): String;
-var
-  bFile: TBinFileReader;
-  bMem: TBinMemoryReader;
-  str: String;
-begin
-  Result := '';
-  str := '';
-  bMem := nil;
-  bFile := nil;
 
+function buildSaveName (n: Integer): AnsiString;
+begin
+  result := '';
+  if (n < 0) or (n > 65535) then exit;
+  result := formatstrf('%sSAVGAME%s.DAT', [DataDir, n]);
+end;
+
+
+function g_GetSaveName (n: Integer; out valid: Boolean): AnsiString;
+var
+  st: TStream = nil;
+  ver: Byte;
+  stlen: Word;
+begin
+  valid := false;
+  result := '';
+  if (n < 0) or (n > 65535) then exit;
   try
-  // Открываем файл сохранений:
-    bFile := TBinFileReader.Create();
-    if bFile.OpenFile(DataDir + 'SAVGAME' + IntToStr(n) + '.DAT',
-                      SAVE_SIGNATURE, SAVE_VERSION) then
-    begin
-    // Читаем первый блок - состояние игры:
-      bMem := TBinMemoryReader.Create();
-      bFile.ReadMemory(bMem);
-    // Имя игры:
-      bMem.ReadString(str);
-
-    // Закрываем файл:
-      bFile.Close();
+    // Открываем файл сохранений
+    st := openDiskFileRO(buildSaveName(n));
+    try
+      if not utils.checkSign(st, 'DFSV') then raise XStreamError.Create('invalid save game signature');
+      ver := utils.readByte(st);
+      if (ver < 7) then
+      begin
+        utils.readLongWord(st); // section size
+        stlen := utils.readWord(st);
+        if (stlen < 1) or (stlen > 64) then raise XStreamError.Create('invalid save game version');
+        // Имя сэйва
+        SetLength(result, stlen);
+        st.ReadBuffer(result[1], stlen);
+      end
+      else
+      begin
+        // 7+
+        // Имя сэйва
+        result := utils.readStr(st, 64);
+      end;
+      valid := (ver = SAVE_VERSION);
+      //if (utils.readByte(st) <> SAVE_VERSION) then raise XStreamError.Create('invalid save game version');
+    finally
+      st.Free();
     end;
-
   except
-    on E1: EInOutError do
-      e_WriteLog('GetSaveName I/O Error: '+E1.Message, MSG_WARNING);
-    on E2: EBinSizeError do
-      e_WriteLog('GetSaveName Size Error: '+E2.Message, MSG_WARNING);
+    on e: Exception do
+    begin
+      e_WriteLog('GetSaveName Error: '+e.message, MSG_WARNING);
+      {$IF DEFINED(D2F_DEBUG)}e_WriteStackTrace(e.message);{$ENDIF}
+      result := '';
+    end;
   end;
-
-  bMem.Free();
-  bFile.Free();
-
-  Result := str;
 end;
 
-function g_SaveGame(n: Integer; Name: String): Boolean;
+
+function g_SaveGameTo (const filename: AnsiString; const aname: AnsiString; deleteOnError: Boolean=true): Boolean;
 var
-  bFile: TBinFileWriter;
-  bMem: TBinMemoryWriter;
-  sig: DWORD;
-  str: String;
-  nPlayers: Byte;
+  st: TStream = nil;
   i, k: Integer;
   PID1, PID2: Word;
 begin
-  Result := False;
-  bMem := nil;
-  bFile := nil;
-
+  result := false;
   try
-  // Создаем файл сохранения:
-    bFile := TBinFileWriter.Create();
-    bFile.OpenFile(DataDir + 'SAVGAME' + IntToStr(n) + '.DAT',
-                   SAVE_SIGNATURE, SAVE_VERSION);
+    st := createDiskFile(filename);
+    try
+      utils.writeSign(st, 'DFSV');
+      utils.writeInt(st, Byte(SAVE_VERSION));
+      // Имя сэйва
+      utils.writeStr(st, aname, 64);
+      // Полный путь к ваду и карта
+      //if (Length(gCurrentMapFileName) <> 0) then e_LogWritefln('SAVE: current map is ''%s''...', [gCurrentMapFileName]);
+      utils.writeStr(st, gCurrentMapFileName);
+      // Путь к карте
+      utils.writeStr(st, gGameSettings.WAD);
+      // Имя карты
+      utils.writeStr(st, g_ExtractFileName(gMapInfo.Map));
+      // Количество игроков
+      utils.writeInt(st, Word(g_Player_GetCount));
+      // Игровое время
+      utils.writeInt(st, LongWord(gTime));
+      // Тип игры
+      utils.writeInt(st, Byte(gGameSettings.GameType));
+      // Режим игры
+      utils.writeInt(st, Byte(gGameSettings.GameMode));
+      // Лимит времени
+      utils.writeInt(st, Word(gGameSettings.TimeLimit));
+      // Лимит очков
+      utils.writeInt(st, Word(gGameSettings.GoalLimit));
+      // Лимит жизней
+      utils.writeInt(st, Byte(gGameSettings.MaxLives));
+      // Игровые опции
+      utils.writeInt(st, LongWord(gGameSettings.Options));
+      // Для коопа
+      utils.writeInt(st, Word(gCoopMonstersKilled));
+      utils.writeInt(st, Word(gCoopSecretsFound));
+      utils.writeInt(st, Word(gCoopTotalMonstersKilled));
+      utils.writeInt(st, Word(gCoopTotalSecretsFound));
+      utils.writeInt(st, Word(gCoopTotalMonsters));
+      utils.writeInt(st, Word(gCoopTotalSecrets));
 
-  ///// Получаем состояние игры: /////
-    bMem := TBinMemoryWriter.Create(256);
-  // Имя игры:
-    bMem.WriteString(Name, 32);
-  // Полный путь к ваду и карта
-    if (Length(gCurrentMapFileName) <> 0) then e_LogWritefln('SAVE: current map is ''%s''...', [gCurrentMapFileName]);
-    bMem.WriteString(gCurrentMapFileName);
-  // Путь к карте:
-    str := gGameSettings.WAD;
-    bMem.WriteString(str, 128);
-  // Имя карты:
-    str := g_ExtractFileName(gMapInfo.Map);
-    bMem.WriteString(str, 32);
-  // Количество игроков:
-    nPlayers := g_Player_GetCount();
-    bMem.WriteByte(nPlayers);
-  // Игровое время:
-    bMem.WriteDWORD(gTime);
-  // Тип игры:
-    bMem.WriteByte(gGameSettings.GameType);
-  // Режим игры:
-    bMem.WriteByte(gGameSettings.GameMode);
-  // Лимит времени:
-    bMem.WriteWord(gGameSettings.TimeLimit);
-  // Лимит очков:
-    bMem.WriteWord(gGameSettings.GoalLimit);
-  // Лимит жизней:
-    bMem.WriteByte(gGameSettings.MaxLives);
-  // Игровые опции:
-    bMem.WriteDWORD(gGameSettings.Options);
-  // Для коопа:
-    bMem.WriteWord(gCoopMonstersKilled);
-    bMem.WriteWord(gCoopSecretsFound);
-    bMem.WriteWord(gCoopTotalMonstersKilled);
-    bMem.WriteWord(gCoopTotalSecretsFound);
-    bMem.WriteWord(gCoopTotalMonsters);
-    bMem.WriteWord(gCoopTotalSecrets);
-  // Сохраняем состояние игры:
-    bFile.WriteMemory(bMem);
-    bMem.Free();
-    bMem := nil;
-  ///// /////
+      ///// Сохраняем состояние областей просмотра /////
+      utils.writeSign(st, 'PLVW');
+      utils.writeInt(st, Byte(0)); // version
+      PID1 := 0;
+      PID2 := 0;
+      if (gPlayer1 <> nil) then PID1 := gPlayer1.UID;
+      if (gPlayer2 <> nil) then PID2 := gPlayer2.UID;
+      utils.writeInt(st, Word(PID1));
+      utils.writeInt(st, Word(PID2));
+      ///// /////
 
-  ///// Сохраняем состояние областей просмотра: /////
-    bMem := TBinMemoryWriter.Create(8);
-    sig := PLAYER_VIEW_SIGNATURE;
-    bMem.WriteDWORD(sig); // 'PLVW'
-    PID1 := 0;
-    PID2 := 0;
-    if gPlayer1 <> nil then
-      PID1 := gPlayer1.UID;
-    if gPlayer2 <> nil then
-      PID2 := gPlayer2.UID;
-    bMem.WriteWord(PID1);
-    bMem.WriteWord(PID2);
-    bFile.WriteMemory(bMem);
-    bMem.Free();
-    bMem := nil;
-  ///// /////
+      ///// Состояние карты /////
+      g_Map_SaveState(st);
+      ///// /////
 
-  ///// Получаем состояние карты: /////
-    g_Map_SaveState(bMem);
-  // Сохраняем состояние карты:
-    bFile.WriteMemory(bMem);
-    bMem.Free();
-    bMem := nil;
-  ///// /////
+      ///// Состояние предметов /////
+      g_Items_SaveState(st);
+      ///// /////
 
-  ///// Получаем состояние предметов: /////
-    g_Items_SaveState(bMem);
-  // Сохраняем состояние предметов:
-    bFile.WriteMemory(bMem);
-    bMem.Free();
-    bMem := nil;
-  ///// /////
+      ///// Состояние триггеров /////
+      g_Triggers_SaveState(st);
+      ///// /////
 
-  ///// Получаем состояние триггеров: /////
-    g_Triggers_SaveState(bMem);
-  // Сохраняем состояние триггеров:
-    bFile.WriteMemory(bMem);
-    bMem.Free();
-    bMem := nil;
-  ///// /////
+      ///// Состояние оружия /////
+      g_Weapon_SaveState(st);
+      ///// /////
 
-  ///// Получаем состояние оружия: /////
-    g_Weapon_SaveState(bMem);
-  // Сохраняем состояние оружия:
-    bFile.WriteMemory(bMem);
-    bMem.Free();
-    bMem := nil;
-  ///// /////
+      ///// Состояние монстров /////
+      g_Monsters_SaveState(st);
+      ///// /////
 
-  ///// Получаем состояние монстров: /////
-    g_Monsters_SaveState(bMem);
-  // Сохраняем состояние монстров:
-    bFile.WriteMemory(bMem);
-    bMem.Free();
-    bMem := nil;
-  ///// /////
+      ///// Состояние трупов /////
+      g_Player_Corpses_SaveState(st);
+      ///// /////
 
-  ///// Получаем состояние трупов: /////
-    g_Player_Corpses_SaveState(bMem);
-  // Сохраняем состояние трупов:
-    bFile.WriteMemory(bMem);
-    bMem.Free();
-    bMem := nil;
-  ///// /////
-
-  ///// Сохраняем игроков (в том числе ботов): /////
-    if nPlayers > 0 then
-    begin
-      k := 0;
-      for i := 0 to High(gPlayers) do
-        if gPlayers[i] <> nil then
+      ///// Сохраняем игроков (в том числе ботов) /////
+      if (g_Player_GetCount > 0) then
+      begin
+        k := 0;
+        for i := 0 to High(gPlayers) do
         begin
-        // Получаем состояние игрока:
-          gPlayers[i].SaveState(bMem);
-        // Сохраняем состояние игрока:
-          bFile.WriteMemory(bMem);
-          bMem.Free();
-          bMem := nil;
-          Inc(k);
+          if (gPlayers[i] <> nil) then
+          begin
+            // Состояние игрока
+            gPlayers[i].SaveState(st);
+            Inc(k);
+          end;
         end;
 
-    // Все ли игроки на месте:
-      if k <> nPlayers then
-      begin
-        raise EInOutError.Create('g_SaveGame: Wrong Players Count');
+        // Все ли игроки на месте
+        if (k <> g_Player_GetCount) then raise XStreamError.Create('g_SaveGame: wrong players count');
       end;
+      ///// /////
+
+      ///// Маркер окончания /////
+      utils.writeSign(st, 'END');
+      utils.writeInt(st, Byte(0));
+      ///// /////
+      result := true;
+    finally
+      st.Free();
     end;
-  ///// /////
-
-  ///// Маркер окончания: /////
-    bMem := TBinMemoryWriter.Create(4);
-  // Строка - обозначение конца:
-    str := END_MARKER_STRING; // 'END'
-    bMem.WriteString(str, 3);
-  // Сохраняем маркер окончания:
-    bFile.WriteMemory(bMem);
-    bMem.Free();
-    bMem := nil;
-  ///// /////
-
-  // Закрываем файл сохранения:
-    bFile.Close();
-    Result := True;
 
   except
-    on E1: EInOutError do
+    on e: Exception do
       begin
+        st.Free();
         g_Console_Add(_lc[I_GAME_ERROR_SAVE]);
-        e_WriteLog('SaveState I/O Error: '+E1.Message, MSG_WARNING);
-      end;
-    on E2: EBinSizeError do
-      begin
-        g_Console_Add(_lc[I_GAME_ERROR_SAVE]);
-        e_WriteLog('SaveState Size Error: '+E2.Message, MSG_WARNING);
+        e_WriteLog('SaveState Error: '+e.message, MSG_WARNING);
+        if deleteOnError then DeleteFile(filename);
+        {$IF DEFINED(D2F_DEBUG)}e_WriteStackTrace(e.message);{$ENDIF}
+        result := false;
       end;
   end;
-
-  bMem.Free();
-  bFile.Free();
 end;
 
-function g_LoadGame(n: Integer): Boolean;
+
+function g_LoadGameFrom (const filename: AnsiString): Boolean;
 var
-  bFile: TBinFileReader;
-  bMem: TBinMemoryReader;
-  sig: DWORD;
-  str, WAD_Path, Map_Name: String;
-  nPlayers, Game_Type, Game_Mode, Game_MaxLives: Byte;
+  st: TStream = nil;
+  WAD_Path, Map_Name: AnsiString;
+  nPlayers: Integer;
+  Game_Type, Game_Mode, Game_MaxLives: Byte;
   Game_TimeLimit, Game_GoalLimit: Word;
   Game_Time, Game_Options: Cardinal;
   Game_CoopMonstersKilled,
@@ -345,269 +294,226 @@ var
   i: Integer;
   gameCleared: Boolean = false;
   curmapfile: AnsiString = '';
+  errpos: LongWord = 0;
 begin
-  Result := False;
-  bMem := nil;
-  bFile := nil;
+  result := false;
 
   try
-  // Открываем файл с сохранением:
-    bFile := TBinFileReader.Create();
-    if not bFile.OpenFile(DataDir + 'SAVGAME' + IntToStr(n) + '.DAT',
-                          SAVE_SIGNATURE, SAVE_VERSION) then
-    begin
-      bFile.Free();
-      Exit;
-    end;
+    st := openDiskFileRO(filename);
+    try
+      if not utils.checkSign(st, 'DFSV') then raise XStreamError.Create('invalid save game signature');
+      if (utils.readByte(st) <> SAVE_VERSION) then raise XStreamError.Create('invalid save game version');
 
-    e_WriteLog('Loading saved game...', MSG_NOTIFY);
-    //g_Game_Free(false); // don't free textures for the same map
+      e_WriteLog('Loading saved game...', MSG_NOTIFY);
 
-    g_Game_ClearLoading();
-    g_Game_SetLoadingText(_lc[I_LOAD_SAVE_FILE], 0, False);
-    gLoadGameMode := True;
+      try
+        //g_Game_Free(false); // don't free textures for the same map
+        g_Game_ClearLoading();
+        g_Game_SetLoadingText(_lc[I_LOAD_SAVE_FILE], 0, False);
+        gLoadGameMode := True;
 
-  ///// Загружаем состояние игры: /////
-    bMem := TBinMemoryReader.Create();
-    bFile.ReadMemory(bMem);
-  // Имя игры:
-    bMem.ReadString(str);
+        ///// Загружаем состояние игры /////
+        // Имя сэйва
+        {str :=} utils.readStr(st, 64);
 
-  // Полный путь к ваду и карта
-    bMem.ReadString(curmapfile);
+        // Полный путь к ваду и карта
+        curmapfile := utils.readStr(st);
 
-    if (Length(gCurrentMapFileName) <> 0) then e_LogWritefln('LOAD: previous map was ''%s''...', [gCurrentMapFileName]);
-    if (Length(curmapfile) <> 0) then e_LogWritefln('LOAD: new map is ''%s''...', [curmapfile]);
-  // А вот тут, наконец, чистим ресурсы
-    g_Game_Free(curmapfile <> gCurrentMapFileName); // don't free textures for the same map
-    gameCleared := true;
+        if (Length(gCurrentMapFileName) <> 0) then e_LogWritefln('LOAD: previous map was ''%s''...', [gCurrentMapFileName]);
+        if (Length(curmapfile) <> 0) then e_LogWritefln('LOAD: new map is ''%s''...', [curmapfile]);
+        // А вот тут, наконец, чистим ресурсы
+        g_Game_Free(curmapfile <> gCurrentMapFileName); // don't free textures for the same map
+        gameCleared := true;
 
-  // Путь к карте:
-    bMem.ReadString(WAD_Path);
-  // Имя карты:
-    bMem.ReadString(Map_Name);
-  // Количество игроков:
-    bMem.ReadByte(nPlayers);
-  // Игровое время:
-    bMem.ReadDWORD(Game_Time);
-  // Тип игры:
-    bMem.ReadByte(Game_Type);
-  // Режим игры:
-    bMem.ReadByte(Game_Mode);
-  // Лимит времени:
-    bMem.ReadWord(Game_TimeLimit);
-  // Лимит очков:
-    bMem.ReadWord(Game_GoalLimit);
-  // Лимит жизней:
-    bMem.ReadByte(Game_MaxLives);
-  // Игровые опции:
-    bMem.ReadDWORD(Game_Options);
-  // Для коопа:
-    bMem.ReadWord(Game_CoopMonstersKilled);
-    bMem.ReadWord(Game_CoopSecretsFound);
-    bMem.ReadWord(Game_CoopTotalMonstersKilled);
-    bMem.ReadWord(Game_CoopTotalSecretsFound);
-    bMem.ReadWord(Game_CoopTotalMonsters);
-    bMem.ReadWord(Game_CoopTotalSecrets);
-  // Cостояние игры загружено:
-    bMem.Free();
-    bMem := nil;
-  ///// /////
+        // Путь к карте
+        WAD_Path := utils.readStr(st);
+        // Имя карты
+        Map_Name := utils.readStr(st);
+        // Количество игроков
+        nPlayers := utils.readWord(st);
+        // Игровое время
+        Game_Time := utils.readLongWord(st);
+        // Тип игры
+        Game_Type := utils.readByte(st);
+        // Режим игры
+        Game_Mode := utils.readByte(st);
+        // Лимит времени
+        Game_TimeLimit := utils.readWord(st);
+        // Лимит очков
+        Game_GoalLimit := utils.readWord(st);
+        // Лимит жизней
+        Game_MaxLives := utils.readByte(st);
+        // Игровые опции
+        Game_Options := utils.readLongWord(st);
+        // Для коопа
+        Game_CoopMonstersKilled := utils.readWord(st);
+        Game_CoopSecretsFound := utils.readWord(st);
+        Game_CoopTotalMonstersKilled := utils.readWord(st);
+        Game_CoopTotalSecretsFound := utils.readWord(st);
+        Game_CoopTotalMonsters := utils.readWord(st);
+        Game_CoopTotalSecrets := utils.readWord(st);
+        ///// /////
 
-  ///// Загружаем состояние областей просмотра: /////
-    bMem := TBinMemoryReader.Create();
-    bFile.ReadMemory(bMem);
-    bMem.ReadDWORD(sig);
-    if sig <> PLAYER_VIEW_SIGNATURE then // 'PLVW'
-    begin
-      raise EInOutError.Create('g_LoadGame: Wrong Player View Signature');
-    end;
-    bMem.ReadWord(PID1);
-    bMem.ReadWord(PID2);
-    bMem.Free();
-    bMem := nil;
-  ///// /////
+        ///// Загружаем состояние областей просмотра /////
+        if not utils.checkSign(st, 'PLVW') then raise XStreamError.Create('invalid viewport signature');
+        if (utils.readByte(st) <> 0) then raise XStreamError.Create('invalid viewport version');
+        PID1 := utils.readWord(st);
+        PID2 := utils.readWord(st);
+        ///// /////
 
-  // Загружаем карту:
-    ZeroMemory(@gGameSettings, SizeOf(TGameSettings));
-    gAimLine := False;
-    gShowMap := False;
-    if (Game_Type = GT_NONE) or (Game_Type = GT_SINGLE) then
-    begin
-    // Настройки игры:
-      gGameSettings.GameType := GT_SINGLE;
-      gGameSettings.MaxLives := 0;
-      gGameSettings.Options := gGameSettings.Options + GAME_OPTION_ALLOWEXIT;
-      gGameSettings.Options := gGameSettings.Options + GAME_OPTION_MONSTERS;
-      gGameSettings.Options := gGameSettings.Options + GAME_OPTION_BOTVSMONSTER;
-      gSwitchGameMode := GM_SINGLE;
-    end
-    else
-    begin
-    // Настройки игры:
-      gGameSettings.GameType := GT_CUSTOM;
-      gGameSettings.GameMode := Game_Mode;
-      gSwitchGameMode := Game_Mode;
-      gGameSettings.TimeLimit := Game_TimeLimit;
-      gGameSettings.GoalLimit := Game_GoalLimit;
-      gGameSettings.MaxLives := IfThen(Game_Mode = GM_CTF, 0, Game_MaxLives);
-      gGameSettings.Options := Game_Options;
-    end;
-    g_Game_ExecuteEvent('ongamestart');
+        // Загружаем карту:
+        ZeroMemory(@gGameSettings, sizeof(TGameSettings));
+        gAimLine := false;
+        gShowMap := false;
+        if (Game_Type = GT_NONE) or (Game_Type = GT_SINGLE) then
+        begin
+          // Настройки игры
+          gGameSettings.GameType := GT_SINGLE;
+          gGameSettings.MaxLives := 0;
+          gGameSettings.Options := gGameSettings.Options+GAME_OPTION_ALLOWEXIT;
+          gGameSettings.Options := gGameSettings.Options+GAME_OPTION_MONSTERS;
+          gGameSettings.Options := gGameSettings.Options+GAME_OPTION_BOTVSMONSTER;
+          gSwitchGameMode := GM_SINGLE;
+        end
+        else
+        begin
+          // Настройки игры
+          gGameSettings.GameType := GT_CUSTOM;
+          gGameSettings.GameMode := Game_Mode;
+          gSwitchGameMode := Game_Mode;
+          gGameSettings.TimeLimit := Game_TimeLimit;
+          gGameSettings.GoalLimit := Game_GoalLimit;
+          gGameSettings.MaxLives := IfThen(Game_Mode = GM_CTF, 0, Game_MaxLives);
+          gGameSettings.Options := Game_Options;
+        end;
+        g_Game_ExecuteEvent('ongamestart');
 
-  // Установка размеров окон игроков:
-    g_Game_SetupScreenSize();
+        // Установка размеров окон игроков
+        g_Game_SetupScreenSize();
 
-  // Загрузка и запуск карты:
-    if not g_Game_StartMap(WAD_Path + ':\' + Map_Name, True, curmapfile) then
-    begin
-      g_FatalError(Format(_lc[I_GAME_ERROR_MAP_LOAD], [WAD_Path + ':\' + Map_Name]));
-      Exit;
-    end;
+        // Загрузка и запуск карты
+        if not g_Game_StartMap(WAD_Path+':\'+Map_Name, True, curmapfile) then
+        begin
+          g_FatalError(Format(_lc[I_GAME_ERROR_MAP_LOAD], [WAD_Path + ':\' + Map_Name]));
+          exit;
+        end;
 
-  // Настройки игроков и ботов:
-    g_Player_Init();
+        // Настройки игроков и ботов
+        g_Player_Init();
 
-  // Устанавливаем время:
-    gTime := Game_Time;
-  // Возвращаем статы:
-    gCoopMonstersKilled := Game_CoopMonstersKilled;
-    gCoopSecretsFound := Game_CoopSecretsFound;
-    gCoopTotalMonstersKilled := Game_CoopTotalMonstersKilled;
-    gCoopTotalSecretsFound := Game_CoopTotalSecretsFound;
-    gCoopTotalMonsters := Game_CoopTotalMonsters;
-    gCoopTotalSecrets := Game_CoopTotalSecrets;
+        // Устанавливаем время
+        gTime := Game_Time;
+        // Возвращаем статы
+        gCoopMonstersKilled := Game_CoopMonstersKilled;
+        gCoopSecretsFound := Game_CoopSecretsFound;
+        gCoopTotalMonstersKilled := Game_CoopTotalMonstersKilled;
+        gCoopTotalSecretsFound := Game_CoopTotalSecretsFound;
+        gCoopTotalMonsters := Game_CoopTotalMonsters;
+        gCoopTotalSecrets := Game_CoopTotalSecrets;
 
-  ///// Загружаем состояние карты: /////
-    bMem := TBinMemoryReader.Create();
-    bFile.ReadMemory(bMem);
-  // Состояние карты:
-    g_Map_LoadState(bMem);
-    bMem.Free();
-    bMem := nil;
-  ///// /////
+        ///// Загружаем состояние карты /////
+        g_Map_LoadState(st);
+        ///// /////
 
-  ///// Загружаем состояние предметов: /////
-    bMem := TBinMemoryReader.Create();
-    bFile.ReadMemory(bMem);
-  // Состояние предметов:
-    g_Items_LoadState(bMem);
-    bMem.Free();
-    bMem := nil;
-  ///// /////
+        ///// Загружаем состояние предметов /////
+        g_Items_LoadState(st);
+        ///// /////
 
-  ///// Загружаем состояние триггеров: /////
-    bMem := TBinMemoryReader.Create();
-    bFile.ReadMemory(bMem);
-  // Состояние триггеров:
-    g_Triggers_LoadState(bMem);
-    bMem.Free();
-    bMem := nil;
-  ///// /////
+        ///// Загружаем состояние триггеров /////
+        g_Triggers_LoadState(st);
+        ///// /////
 
-  ///// Загружаем состояние оружия: /////
-    bMem := TBinMemoryReader.Create();
-    bFile.ReadMemory(bMem);
-  // Состояние оружия:
-    g_Weapon_LoadState(bMem);
-    bMem.Free();
-    bMem := nil;
-  ///// /////
+        ///// Загружаем состояние оружия /////
+        g_Weapon_LoadState(st);
+        ///// /////
 
-  ///// Загружаем состояние монстров: /////
-    bMem := TBinMemoryReader.Create();
-    bFile.ReadMemory(bMem);
-  // Состояние монстров:
-    g_Monsters_LoadState(bMem);
-    bMem.Free();
-    bMem := nil;
-  ///// /////
+        ///// Загружаем состояние монстров /////
+        g_Monsters_LoadState(st);
+        ///// /////
 
-  ///// Загружаем состояние трупов: /////
-    bMem := TBinMemoryReader.Create();
-    bFile.ReadMemory(bMem);
-  // Состояние трупов:
-    g_Player_Corpses_LoadState(bMem);
-    bMem.Free();
-    bMem := nil;
-  ///// /////
+        ///// Загружаем состояние трупов /////
+        g_Player_Corpses_LoadState(st);
+        ///// /////
 
-  ///// Загружаем игроков (в том числе ботов): /////
-    if nPlayers > 0 then
-    begin
-    // Загружаем:
-      for i := 0 to nPlayers-1 do
-      begin
-      // Загружаем состояние игрока:
-        bMem := TBinMemoryReader.Create();
-        bFile.ReadMemory(bMem);
-      // Состояние игрока/бота:
-        g_Player_CreateFromState(bMem);
-        bMem.Free();
-        bMem := nil;
+        ///// Загружаем игроков (в том числе ботов) /////
+        if nPlayers > 0 then
+        begin
+          // Загружаем
+          for i := 0 to nPlayers-1 do g_Player_CreateFromState(st);
+        end;
+
+        // Привязываем основных игроков к областям просмотра
+        gPlayer1 := g_Player_Get(PID1);
+        gPlayer2 := g_Player_Get(PID2);
+
+        if (gPlayer1 <> nil) then
+        begin
+          gPlayer1.Name := gPlayer1Settings.Name;
+          gPlayer1.FPreferredTeam := gPlayer1Settings.Team;
+          gPlayer1.FActualModelName := gPlayer1Settings.Model;
+          gPlayer1.SetModel(gPlayer1.FActualModelName);
+          gPlayer1.SetColor(gPlayer1Settings.Color);
+        end;
+
+        if (gPlayer2 <> nil) then
+        begin
+          gPlayer2.Name := gPlayer2Settings.Name;
+          gPlayer2.FPreferredTeam := gPlayer2Settings.Team;
+          gPlayer2.FActualModelName := gPlayer2Settings.Model;
+          gPlayer2.SetModel(gPlayer2.FActualModelName);
+          gPlayer2.SetColor(gPlayer2Settings.Color);
+        end;
+        ///// /////
+
+        ///// Маркер окончания /////
+        if not utils.checkSign(st, 'END') then raise XStreamError.Create('no end marker');
+        if (utils.readByte(st) <> 0) then raise XStreamError.Create('invalid end marker');
+        ///// /////
+
+        // Ищем триггеры с условием смерти монстров
+        if (gTriggers <> nil) then g_Map_ReAdd_DieTriggers();
+
+        // done
+        gLoadGameMode := false;
+        result := true;
+      except
+        begin
+          errpos := LongWord(st.position);
+          raise;
+        end;
       end;
+    finally
+      st.Free();
     end;
-  // Привязываем основных игроков к областям просмотра:
-    gPlayer1 := g_Player_Get(PID1);
-    gPlayer2 := g_Player_Get(PID2);
-    if gPlayer1 <> nil then
-    begin
-      gPlayer1.Name := gPlayer1Settings.Name;
-      gPlayer1.FPreferredTeam := gPlayer1Settings.Team;
-      gPlayer1.FActualModelName := gPlayer1Settings.Model;
-      gPlayer1.SetModel(gPlayer1.FActualModelName);
-      gPlayer1.SetColor(gPlayer1Settings.Color);
-    end;
-    if gPlayer2 <> nil then
-    begin
-      gPlayer2.Name := gPlayer2Settings.Name;
-      gPlayer2.FPreferredTeam := gPlayer2Settings.Team;
-      gPlayer2.FActualModelName := gPlayer2Settings.Model;
-      gPlayer2.SetModel(gPlayer2.FActualModelName);
-      gPlayer2.SetColor(gPlayer2Settings.Color);
-    end;
-  ///// /////
-
-  ///// Маркер окончания: /////
-    bMem := TBinMemoryReader.Create();
-    bFile.ReadMemory(bMem);
-  // Строка - обозначение конца:
-    bMem.ReadString(str);
-    if str <> END_MARKER_STRING then // 'END'
-    begin
-      raise EInOutError.Create('g_LoadGame: No END Marker');
-    end;
-  // Маркер окончания загружен:
-    bMem.Free();
-    bMem := nil;
-  ///// /////
-
-  // Ищем триггеры с условием смерти монстров:
-    if {(gMonsters <> nil) and} (gTriggers <> nil) then
-      g_Map_ReAdd_DieTriggers();
-
-  // Закрываем файл загрузки:
-    bFile.Close();
-    gLoadGameMode := False;
-    Result := True;
-
   except
-    on E1: EInOutError do
+    on e: Exception do
       begin
         g_Console_Add(_lc[I_GAME_ERROR_LOAD]);
-        e_WriteLog('LoadState I/O Error: '+E1.Message, MSG_WARNING);
+        e_WriteLog('LoadState Error: '+e.message, MSG_WARNING);
+        {$IF DEFINED(D2F_DEBUG)}e_LogWritefln('stream error position: 0x%08x', [errpos], MSG_WARNING);{$ENDIF}
+        gLoadGameMode := false;
+        result := true;
         if not gameCleared then g_Game_Free();
-      end;
-    on E2: EBinSizeError do
-      begin
-        g_Console_Add(_lc[I_GAME_ERROR_LOAD]);
-        e_WriteLog('LoadState Size Error: '+E2.Message, MSG_WARNING);
-        if not gameCleared then g_Game_Free();
+        {$IF DEFINED(D2F_DEBUG)}e_WriteStackTrace(e.message);{$ENDIF}
       end;
   end;
-
-  bMem.Free();
-  bFile.Free();
 end;
+
+
+function g_SaveGame (n: Integer; const aname: AnsiString): Boolean;
+begin
+  result := false;
+  if (n < 0) or (n > 65535) then exit;
+  result := g_SaveGameTo(buildSaveName(n), aname, true);
+end;
+
+
+function g_LoadGame (n: Integer): Boolean;
+begin
+  result := false;
+  if (n < 0) or (n > 65535) then exit;
+  result := g_LoadGameFrom(buildSaveName(n));
+end;
+
 
 end.
