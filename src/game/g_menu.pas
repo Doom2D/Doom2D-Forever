@@ -1114,11 +1114,13 @@ procedure ProcSaveMenu();
 var
   a: Integer;
   valid: Boolean;
+  name: AnsiString;
 begin
   for a := 1 to 8 do
   begin
-    TGUIEdit(TGUIMenu(g_GUI_GetWindow('SaveMenu').GetControl('mmSaveMenu')).GetControl('edSlot'+IntToStr(a))).Text := g_GetSaveName(a, valid);
-    TGUIEdit(TGUIMenu(g_GUI_GetWindow('SaveMenu').GetControl('mmSaveMenu')).GetControl('edSlot'+IntToStr(a))).Invalid := not valid;
+    name := g_GetSaveName(a, valid);
+    TGUIEdit(TGUIMenu(g_GUI_GetWindow('SaveMenu').GetControl('mmSaveMenu')).GetControl('edSlot'+IntToStr(a))).Text := name;
+    TGUIEdit(TGUIMenu(g_GUI_GetWindow('SaveMenu').GetControl('mmSaveMenu')).GetControl('edSlot'+IntToStr(a))).Invalid := (name <> '') and (not valid);
   end;
 end;
 

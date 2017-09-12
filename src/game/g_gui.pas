@@ -2244,7 +2244,7 @@ begin
   r := FColor.R;
   g := FColor.G;
   b := FColor.B;
-  if FInvalid then begin r := 128; g := 128; b := 128; end;
+  if FInvalid and (FWindow.FActiveControl <> self) then begin r := 128; g := 128; b := 128; end;
   FFont.Draw(FX+8, FY, FText, r, g, b);
 
   if (FWindow.FActiveControl = self) then

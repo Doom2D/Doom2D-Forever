@@ -113,21 +113,33 @@ var
   st: TStream = nil;
   ver: Byte;
   stlen: Word;
+  filename: AnsiString;
 begin
   valid := false;
   result := '';
   if (n < 0) or (n > 65535) then exit;
   try
     // Открываем файл сохранений
-    st := openDiskFileRO(buildSaveName(n));
+    filename := buildSaveName(n);
+    st := openDiskFileRO(filename);
     try
-      if not utils.checkSign(st, 'DFSV') then raise XStreamError.Create('invalid save game signature');
+      if not utils.checkSign(st, 'DFSV') then
+      begin
+        e_LogWritefln('GetSaveName: not a save file: ''%s''', [st], MSG_WARNING);
+        //raise XStreamError.Create('invalid save game signature');
+        exit;
+      end;
       ver := utils.readByte(st);
       if (ver < 7) then
       begin
         utils.readLongWord(st); // section size
         stlen := utils.readWord(st);
-        if (stlen < 1) or (stlen > 64) then raise XStreamError.Create('invalid save game version');
+        if (stlen < 1) or (stlen > 64) then
+        begin
+          e_LogWritefln('GetSaveName: not a save file: ''%s''', [st], MSG_WARNING);
+          //raise XStreamError.Create('invalid save game version');
+          exit;
+        end;
         // Имя сэйва
         SetLength(result, stlen);
         st.ReadBuffer(result[1], stlen);
@@ -144,10 +156,9 @@ begin
       st.Free();
     end;
   except
-    on e: Exception do
     begin
-      e_WriteLog('GetSaveName Error: '+e.message, MSG_WARNING);
-      {$IF DEFINED(D2F_DEBUG)}e_WriteStackTrace(e.message);{$ENDIF}
+      //e_WriteLog('GetSaveName Error: '+e.message, MSG_WARNING);
+      //{$IF DEFINED(D2F_DEBUG)}e_WriteStackTrace(e.message);{$ENDIF}
       result := '';
     end;
   end;
