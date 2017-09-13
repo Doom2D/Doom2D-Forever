@@ -3661,7 +3661,7 @@ function TPlayer.PickItem(ItemType: Byte; arespawn: Boolean; var remove: Boolean
     if (FBFGFireCounter <> -1) then begin result := false; exit; end;
     result := true;
     if gBerserkAutoswitch then exit;
-    if not (gDebugMode or gCheats) then exit;
+    if not conIsCheatsEnabled then exit;
     result := false;
   end;
 

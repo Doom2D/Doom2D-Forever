@@ -253,9 +253,13 @@ var
   c: ShortString;
   a: Integer;
 begin
+  {
   if (not gGameOn) or (not gCheats) or ((gGameSettings.GameType <> GT_SINGLE) and
     (gGameSettings.GameMode <> GM_COOP) and (not gDebugMode))
     or g_Game_IsNet then Exit;
+  }
+  if not gGameOn then exit;
+  if not conIsCheatsEnabled then exit;
 
   s := 'SOUND_GAME_RADIO';
 

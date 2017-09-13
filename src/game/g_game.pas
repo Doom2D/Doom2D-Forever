@@ -360,9 +360,9 @@ begin
   if g_Game_IsNet then exit;
   if not gDebugMode then
   begin
-    if not gCheats then exit;
+    //if not gCheats then exit;
     if not (gGameSettings.GameType in [GT_SINGLE, GT_CUSTOM]) then exit;
-    if (gGameSettings.GameMode <> GM_COOP) then exit;
+    if not (gGameSettings.GameMode in [GM_COOP, GM_SINGLE]) then exit;
   end;
   result := true;
 end;
@@ -5205,7 +5205,7 @@ var
   mon: TMonster;
 begin
 // Команды отладочного режима:
-  if gDebugMode then
+  if {gDebugMode}conIsCheatsEnabled then
   begin
     cmd := LowerCase(P[0]);
     if cmd = 'd_window' then
@@ -5339,8 +5339,7 @@ var
   f, a: Integer;
   plr: TPlayer;
 begin
-  if (not gGameOn) or (not gCheats) or ((gGameSettings.GameType <> GT_SINGLE) and
-     (gGameSettings.GameMode <> GM_COOP) and (not gDebugMode)) or g_Game_IsNet then
+  if (not gGameOn) or (not conIsCheatsEnabled) then
   begin
     g_Console_Add('not available');
     exit;
