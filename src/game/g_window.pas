@@ -895,6 +895,12 @@ begin
 
   {EnumDisplayModes();}
 
+  {$IFDEF HEADLESS}
+  gwin_k8_enable_light_experiments = false;
+  gwin_has_stencil := false;
+  glLegacyNPOT := false;
+  gwin_dump_extensions := false;
+  {$ELSE}
   if gwin_k8_enable_light_experiments then
   begin
     SDL_GL_GetAttribute(SDL_GL_STENCIL_SIZE, @ltmp);
@@ -917,6 +923,7 @@ begin
     glLegacyNPOT := false;
   end;
   gwin_dump_extensions := false;
+  {$ENDIF}
 
   Init();
   Time_Old := GetTimer();
