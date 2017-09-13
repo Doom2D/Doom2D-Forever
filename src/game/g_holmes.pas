@@ -1275,6 +1275,7 @@ function g_Holmes_MouseEvent (var ev: THMouseEvent): Boolean;
 var
   he: THMouseEvent;
 begin
+  if g_Game_IsNet then begin result := false; exit; end;
   holmesInitCommands();
   holmesInitBinds();
   result := true;
@@ -1304,6 +1305,7 @@ var
   end;
 
 begin
+  if g_Game_IsNet then begin result := false; exit; end;
   holmesInitCommands();
   holmesInitBinds();
   result := false;
@@ -1354,6 +1356,7 @@ end;
 // ////////////////////////////////////////////////////////////////////////// //
 procedure g_Holmes_Draw ();
 begin
+  if g_Game_IsNet then exit;
   {$IF not DEFINED(HEADLESS)}
   holmesInitCommands();
   holmesInitBinds();
@@ -1364,10 +1367,7 @@ begin
   glDisable(GL_SCISSOR_TEST);
   glDisable(GL_TEXTURE_2D);
 
-  if gGameOn then
-  begin
-    plrDebugDraw();
-  end;
+  if gGameOn then plrDebugDraw();
   {$ENDIF}
 
   laserSet := false;
@@ -1376,6 +1376,7 @@ end;
 
 procedure g_Holmes_DrawUI ();
 begin
+  if g_Game_IsNet then exit;
   {$IF not DEFINED(HEADLESS)}
   glPushMatrix();
   glScalef(g_holmes_ui_scale, g_holmes_ui_scale, 1.0);
@@ -1437,6 +1438,8 @@ begin
 end;
 
 procedure dbgToggleTraceBox (arg: Integer=-1); begin if (arg < 0) then showTraceBox := not showTraceBox else showTraceBox := (arg > 0); end;
+
+procedure dbgToggleHolmesPause (arg: Integer=-1); begin if (arg < 0) then g_Game_HolmesPause(not gPauseHolmes) else g_Game_HolmesPause(arg > 0); end;
 
 procedure cbAtcurSelectMonster ();
   function monsAtDump (mon: TMonster; tag: Integer): Boolean;
@@ -1558,6 +1561,8 @@ begin
   cmdAdd('atcur_disable_walls', cbAtcurToggleWalls, 'disable walls', 'wall control');
 
   cmdAdd('dbg_tracebox', dbgToggleTraceBox, 'test traceBox()', 'player control');
+
+  cmdAdd('hlm_pause', dbgToggleHolmesPause, '"Holmes" pause mode', 'game control');
 end;
 
 
@@ -1595,6 +1600,8 @@ begin
     keybindAdd('C-X', 'dbg_triggers');
 
     keybindAdd('C-1', 'mon_spawn zombie');
+
+    keybindAdd('C-S-P', 'hlm_pause');
 
     // mouse
     msbindAdd('LMB', 'atcur_select_monster');

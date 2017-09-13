@@ -104,6 +104,7 @@ function  g_Game_GetFirstMap(WAD: String): String;
 function  g_Game_GetNextMap(): String;
 procedure g_Game_NextLevel();
 procedure g_Game_Pause(Enable: Boolean);
+procedure g_Game_HolmesPause(Enable: Boolean);
 procedure g_Game_InGameMenu(Show: Boolean);
 function  g_Game_IsWatchedPlayer(UID: Word): Boolean;
 function  g_Game_IsWatchedTeam(Team: Byte): Boolean;
@@ -231,7 +232,8 @@ var
   gServInterTime: Byte = 0;
   gGameStartTime: LongWord = 0;
   gTotalMonsters: Integer = 0;
-  gPause: Boolean;
+  gPauseMain: Boolean = false;
+  gPauseHolmes: Boolean = false;
   gShowTime: Boolean = True;
   gShowFPS: Boolean = False;
   gShowGoals: Boolean = True;
@@ -331,7 +333,8 @@ procedure g_ResetDynlights ();
 procedure g_AddDynLight (x, y, radius: Integer; r, g, b, a: Single);
 procedure g_DynLightExplosion (x, y, radius: Integer; r, g, b: Single);
 
-function conIsCheatsEnabled (): Boolean;
+function conIsCheatsEnabled (): Boolean; inline;
+function gPause (): Boolean; inline;
 
 
 implementation
@@ -347,11 +350,20 @@ uses
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-function conIsCheatsEnabled (): Boolean;
+function gPause (): Boolean; inline; begin result := gPauseMain or gPauseHolmes; end;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
+function conIsCheatsEnabled (): Boolean; inline;
 begin
   result := false;
-  if (not gGameOn) or (not gCheats) or ((gGameSettings.GameType <> GT_SINGLE) and
-     (gGameSettings.GameMode <> GM_COOP) and (not gDebugMode)) or g_Game_IsNet then exit;
+  if g_Game_IsNet then exit;
+  if not gDebugMode then
+  begin
+    if not gCheats then exit;
+    if not (gGameSettings.GameType in [GT_SINGLE, GT_CUSTOM]) then exit;
+    if (gGameSettings.GameMode <> GM_COOP) then exit;
+  end;
   result := true;
 end;
 
@@ -852,8 +864,9 @@ begin
     MH_SEND_GameEvent(NET_EV_MAPEND, Byte(gMissionFailed));
 
 // Стоп игра:
-  gPause := False;
-  gGameOn := False;
+  gPauseMain := false;
+  gPauseHolmes := false;
+  gGameOn := false;
 
   g_Game_StopAllSounds(False);
 
@@ -1260,8 +1273,9 @@ begin
       until FindNext(SR) <> 0;
     FindClose(SR);
 
-    gGameOn := False;
-    gPause := False;
+    gGameOn := false;
+    gPauseMain := false;
+    gPauseHolmes := false;
     gTime := 0;
     LastScreenShot := 0;
 
@@ -3343,7 +3357,7 @@ begin
     end;
   end;
 
-  if gPause and gGameOn and (g_ActiveWindow = nil) then
+  if gPauseMain and gGameOn and (g_ActiveWindow = nil) then
   begin
     //e_DrawFillQuad(0, 0, gScreenWidth-1, gScreenHeight-1, 48, 48, 48, 180);
     e_DarkenQuadWH(0, 0, gScreenWidth, gScreenHeight, 150);
@@ -4253,7 +4267,8 @@ begin
     end;
 
   gExit := 0;
-  gPause := False;
+  gPauseMain := false;
+  gPauseHolmes := false;
   gTime := 0;
   NetTimeToUpdate := 1;
   NetTimeToReliable := 0;
@@ -5559,7 +5574,7 @@ begin
   else if cmd = 'pause' then
   begin
     if (g_ActiveWindow = nil) then
-      g_Game_Pause(not gPause);
+      g_Game_Pause(not gPauseMain);
   end
   else if cmd = 'endgame' then
     gExit := EXIT_SIMPLE
@@ -6557,19 +6572,31 @@ begin
     end;
 end;
 
-procedure g_Game_Pause(Enable: Boolean);
+procedure g_Game_Pause (Enable: Boolean);
+var
+  oldPause: Boolean;
 begin
-  if not gGameOn then
-    Exit;
+  if not gGameOn then exit;
 
-  if gPause = Enable then
-    Exit;
+  if not (gGameSettings.GameType in [GT_SINGLE, GT_CUSTOM]) then exit;
 
-  if not (gGameSettings.GameType in [GT_SINGLE, GT_CUSTOM]) then
-    Exit;
+  oldPause := gPause;
+  gPauseMain := Enable;
 
-  gPause := Enable;
-  g_Game_PauseAllSounds(Enable);
+  if (gPause <> oldPause) then g_Game_PauseAllSounds(gPause);
+end;
+
+procedure g_Game_HolmesPause (Enable: Boolean);
+var
+  oldPause: Boolean;
+begin
+  if not gGameOn then exit;
+  if not (gGameSettings.GameType in [GT_SINGLE, GT_CUSTOM]) then exit;
+
+  oldPause := gPause;
+  gPauseHolmes := Enable;
+
+  if (gPause <> oldPause) then g_Game_PauseAllSounds(gPause);
 end;
 
 procedure g_Game_PauseAllSounds(Enable: Boolean);
