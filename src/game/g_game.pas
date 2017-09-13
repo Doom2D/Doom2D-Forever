@@ -2750,7 +2750,7 @@ begin
 
   //TODO: lights should be in separate grid, i think
   //      but on the other side: grid may be slower for dynlights, as their lifetime is short
-  if (not g_playerLight) or (not gwin_has_stencil) or (g_dynLightCount < 1) then exit;
+  if (not gwin_k8_enable_light_experiments) or (not gwin_has_stencil) or (g_dynLightCount < 1) then exit;
 
   // rendering mode
   //ambColor := gCurrentMap['light_ambient'].rgba;
@@ -7226,4 +7226,7 @@ begin
   conRegVar('dbg_holmes', @g_holmes_enabled, 'enable/disable Holmes', 'Holmes', true);
 
   conRegVar('dbg_scale', @g_dbg_scale, 0.01, 100.0, 'experimental deBUG scale mode', '',  false);
+
+  conRegVar('light_enabled', @gwin_k8_enable_light_experiments, 'enable/disable dynamic lighting', 'lighting');
+  conRegVar('light_player_halo', @g_playerLight, 'enable/disable player halo', 'player light halo');
 end.
