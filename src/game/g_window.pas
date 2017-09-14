@@ -896,7 +896,7 @@ begin
   {EnumDisplayModes();}
 
   {$IFDEF HEADLESS}
-  gwin_k8_enable_light_experiments = false;
+  gwin_k8_enable_light_experiments := false;
   gwin_has_stencil := false;
   glLegacyNPOT := false;
   gwin_dump_extensions := false;
