@@ -1704,7 +1704,7 @@ const
                                        ' лиент %s не числитс€ в списке забаненых.'),
 
     ('MSG BAD SAVE VERSION',           'Cannot load saved game. Probably due to invalid save file version.',
-                                       'Ќе удалось загрузить сохранение. —корее весего -- из-за неверной версии сохранени€.'),
+                                       'Ќе удалось загрузить сохранение. ¬еро€тно, из-за неверной версии сохранени€.'),
 
     ('TEXTURE ENDPIC',                 'ENDGAME_EN',
                                        'ENDGAME_RU'),
