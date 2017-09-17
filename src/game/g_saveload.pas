@@ -507,7 +507,7 @@ begin
         e_WriteLog('LoadState Error: '+e.message, TMsgType.Warning);
         {$IF DEFINED(D2F_DEBUG)}e_LogWritefln('stream error position: 0x%08x', [errpos], TMsgType.Warning);{$ENDIF}
         gLoadGameMode := false;
-        result := true;
+        result := false;
         if not gameCleared then g_Game_Free();
         {$IF DEFINED(D2F_DEBUG)}e_WriteStackTrace(e.message);{$ENDIF}
       end;

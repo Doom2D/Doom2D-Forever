@@ -1106,7 +1106,7 @@ begin
   begin
     TGUIEdit(TGUIMenu(g_GUI_GetWindow('LoadMenu').GetControl('mmLoadMenu')).GetControl('edSlot'+IntToStr(a))).Text := g_GetSaveName(a, valid);
     TGUIEdit(TGUIMenu(g_GUI_GetWindow('LoadMenu').GetControl('mmLoadMenu')).GetControl('edSlot'+IntToStr(a))).Invalid := not valid;
-    TGUIMenu(g_GUI_GetWindow('LoadMenu').GetControl('mmLoadMenu')).GetControl('edSlot'+IntToStr(a)).Enabled := valid;
+    //TGUIMenu(g_GUI_GetWindow('LoadMenu').GetControl('mmLoadMenu')).GetControl('edSlot'+IntToStr(a)).Enabled := valid;
   end;
 end;
 
@@ -1145,9 +1145,15 @@ begin
   if g_Game_IsNet then Exit;
   a := StrToInt(Copy(Sender.Name, Length(Sender.Name), 1));
   if g_LoadGame(a) then
+  begin
     g_Game_PauseAllSounds(False)
+  end
   else // Не загрузилось - возврат в меню
+  begin
+    g_Console_Add(_lc[I_MSG_BAD_SAVE_VERSION], true);
     g_GUI_GetWindow('LoadMenu').SetActive(g_GUI_GetWindow('LoadMenu').GetControl('mmLoadMenu'));
+    //g_ActiveWindow := nil;
+  end;
 end;
 
 procedure ProcSingle1Player();

@@ -587,6 +587,8 @@ type
     I_MSG_UNBAN_OK,
     I_MSG_UNBAN_FAIL,
 
+    I_MSG_BAD_SAVE_VERSION,
+
     I_TEXTURE_ENDPIC,
 
     I_VERSION,
@@ -1700,6 +1702,9 @@ const
                                        'Был снят бан с клиента %s.'),
     ('MSG UNBAN FAIL',                 'Client %s not found in the ban list.',
                                        'Клиент %s не числится в списке забаненых.'),
+
+    ('MSG BAD SAVE VERSION',           'Cannot load saved game. Probably due to invalid save file version.',
+                                       'Не удалось загрузить сохранение. Скорее весего -- из-за неверной версии сохранения.'),
 
     ('TEXTURE ENDPIC',                 'ENDGAME_EN',
                                        'ENDGAME_RU'),
