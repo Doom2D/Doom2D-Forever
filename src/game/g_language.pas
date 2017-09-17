@@ -1701,7 +1701,7 @@ const
     ('MSG UNBAN OK',                   'Client %s was unbanned.',
                                        'Был снят бан с клиента %s.'),
     ('MSG UNBAN FAIL',                 'Client %s not found in the ban list.',
-                                       'Клиент %s не числится в списке забаненных.'),
+                                       'Клиент %s не числится в списке забаненых.'),
 
     ('MSG BAD SAVE VERSION',           'Cannot load saved game. Probably due to invalid save file version.',
                                        'Не удалось загрузить сохранение. Вероятно, из-за неверной версии сохранения.'),
