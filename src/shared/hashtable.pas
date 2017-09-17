@@ -35,11 +35,6 @@ type
     const LoadFactorPrc = 90; // it is ok for robin hood hashes
 
   public
-    type THashFn = function (constref o: KeyT): LongWord;
-    type TEquFn = function (constref a, b: KeyT): Boolean;
-    type TIteratorFn = function (constref k: KeyT; constref v: ValueT): Boolean is nested; // return `true` to stop
-    type TIteratorExFn = function (constref k: KeyT; constref v: ValueT; keyhash: LongWord): Boolean is nested; // return `true` to stop
-
     type
       PEntry = ^TEntry;
       TEntry = record
@@ -49,9 +44,19 @@ type
       private
         hash: LongWord; // key hash or 0
         nextFree: PEntry; // next free entry
+      private
+        function getEmpty (): Boolean; inline;
       public
-        property keyhash: LongWord read hash;
+        property empty: Boolean read getEmpty;
+        property keyhash: LongWord read hash; // cannot be 0
       end;
+
+    type THashFn = function (constref o: KeyT): LongWord;
+    type TEquFn = function (constref a, b: KeyT): Boolean;
+    type TFreeKeyFn = procedure (var k: KeyT); // this may free key
+    type TFreeValueFn = procedure (var v: ValueT); // this may free value
+    type TIteratorFn = function (constref k: KeyT; constref v: ValueT): Boolean is nested; // return `true` to stop
+    type TIteratorExFn = function (constref k: KeyT; constref v: ValueT; keyhash: LongWord): Boolean is nested; // return `true` to stop
 
   private
     type
@@ -98,6 +103,8 @@ type
   private
     hashfn: THashFn;
     equfn: TEquFn;
+    freekeyfn: TFreeKeyFn;
+    freevalfn: TFreeValueFn;
     mBuckets: array of PEntry; // entries, points to mEntries elements
     mBucketsUsed: Integer;
     mEntries: TEntryArray;
@@ -112,14 +119,16 @@ type
     function allocEntry (): PEntry;
     procedure releaseEntry (e: PEntry);
 
-    //function distToStIdx (idx: LongWord): LongWord; inline;
+    function distToStIdx (idx: LongWord): LongWord; inline;
 
     procedure putEntryInternal (swpe: PEntry);
 
     function getCapacity (): Integer; inline;
 
+    procedure freeEntries ();
+
   public
-    constructor Create (ahashfn: THashFn; aequfn: TEquFn);
+    constructor Create (ahashfn: THashFn; aequfn: TEquFn; afreekeyfn: TFreeKeyFn=nil; afreevalfn: TFreeValueFn=nil);
     destructor Destroy (); override;
 
     procedure clear ();
@@ -174,10 +183,13 @@ type
 type
   THashIntInt = specialize THashBase<Integer, Integer>;
   THashStrInt = specialize THashBase<AnsiString, Integer>;
+  THashIntStr = specialize THashBase<Integer, AnsiString>;
   THashStrStr = specialize THashBase<AnsiString, AnsiString>;
+
 
 function hashNewIntInt (): THashIntInt;
 function hashNewStrInt (): THashStrInt;
+function hashNewIntStr (): THashIntStr;
 function hashNewStrStr (): THashStrStr;
 
 
@@ -189,10 +201,11 @@ function nextPOT (x: LongWord): LongWord; inline;
 
 
 // for integer keys
-function hiiequ (constref a, b: Integer): Boolean;
-function hiihash (constref k: Integer): LongWord;
-function hsiequ (constref a, b: AnsiString): Boolean;
-function hsihash (constref k: AnsiString): LongWord;
+function hashIntEqu (constref a, b: Integer): Boolean;
+function hashIntHash (constref k: Integer): LongWord;
+function hashStrEqu (constref a, b: AnsiString): Boolean;
+function hashStrHash (constref k: AnsiString): LongWord;
+procedure hashStrFree (var s: AnsiString);
 
 
 implementation
@@ -219,12 +232,13 @@ end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-function hiiequ (constref a, b: Integer): Boolean; begin result := (a = b); end;
-function hsiequ (constref a, b: AnsiString): Boolean; begin result := (a = b); end;
+function hashIntEqu (constref a, b: Integer): Boolean; begin result := (a = b); end;
+function hashStrEqu (constref a, b: AnsiString): Boolean; begin result := (a = b); end;
+procedure hashStrFree (var s: AnsiString); begin s := ''; end;
 
 {$PUSH}
 {$RANGECHECKS OFF}
-function hiihash (constref k: Integer): LongWord;
+function hashIntHash (constref k: Integer): LongWord;
 begin
   result := LongWord(k);
   result -= (result shl 6);
@@ -236,7 +250,7 @@ begin
   result := result xor (result shr 15);
 end;
 
-function hsihash (constref k: AnsiString): LongWord;
+function hashStrHash (constref k: AnsiString): LongWord;
 begin
   if (Length(k) > 0) then result := fnvHash(PAnsiChar(k)^, Length(k)) else result := 0;
 end;
@@ -245,19 +259,25 @@ end;
 
 function hashNewIntInt (): THashIntInt;
 begin
-  result := THashIntInt.Create(hiihash, hiiequ);
+  result := THashIntInt.Create(hashIntHash, hashIntEqu);
 end;
 
 
 function hashNewStrInt (): THashStrInt;
 begin
-  result := THashStrInt.Create(hsihash, hsiequ);
+  result := THashStrInt.Create(hashStrHash, hashStrEqu, hashStrFree);
+end;
+
+
+function hashNewIntStr (): THashIntStr;
+begin
+  result := THashIntStr.Create(hashIntHash, hashIntEqu, nil, hashStrFree);
 end;
 
 
 function hashNewStrStr (): THashStrStr;
 begin
-  result := THashStrStr.Create(hsihash, hsiequ);
+  result := THashStrStr.Create(hashStrHash, hashStrEqu, hashStrFree, hashStrFree);
 end;
 
 
@@ -361,15 +381,26 @@ end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-constructor THashBase.Create (ahashfn: THashFn; aequfn: TEquFn);
+function THashBase.TEntry.getEmpty (): Boolean; inline; begin result := (hash = 0); end;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
+function THashBase.getCapacity (): Integer; inline; begin result := Length(mBuckets); end;
+
+
+constructor THashBase.Create (ahashfn: THashFn; aequfn: TEquFn; afreekeyfn: TFreeKeyFn=nil; afreevalfn: TFreeValueFn=nil);
 begin
   if not assigned(ahashfn) then raise Exception.Create('cannot create hash without hash function');
   if not assigned(aequfn) then raise Exception.Create('cannot create hash without equality function');
 
   hashfn := ahashfn;
   equfn := aequfn;
+  freekeyfn := afreekeyfn;
+  freevalfn := afreevalfn;
   mSeed := u32Hash($29a);
 
+  mFirstEntry := -1;
+  mLastEntry := -1;
   clear();
 end;
 
@@ -382,42 +413,63 @@ begin
 end;
 
 
-procedure THashBase.clear ();
+procedure THashBase.freeEntries ();
 var
-  idx: Integer;
+  f: Integer;
+  e: PEntry;
 begin
-  SetLength(mBuckets, InitSize);
-  for idx := 0 to High(mBuckets) do mBuckets[idx] := nil;
-  SetLength(mEntries, Length(mBuckets));
-  mBucketsUsed := 0;
+  if (mFirstEntry >= 0) then
+  begin
+    for f := mFirstEntry to mLastEntry do
+    begin
+      e := @mEntries[f];
+      if not e.empty then
+      begin
+        if assigned(freekeyfn) then freekeyfn(e.key);
+        if assigned(freevalfn) then freevalfn(e.value);
+        e.key := Default(KeyT);
+        e.value := Default(ValueT);
+        e.hash := 0;
+      end;
+    end;
+  end
+  else if (Length(mEntries) > 0) then
+  begin
+    FillChar(mEntries[0], Length(mEntries)*sizeof(mEntries[0]), 0);
+  end;
+  mFreeEntryHead := nil;
+  mFirstEntry := -1;
+  mLastEntry := -1;
   {$IFDEF RBHASH_SANITY_CHECKS}
   mEntriesUsed := 0;
   {$ENDIF}
-  mFreeEntryHead := nil; //@mEntries[0];
-  mFirstEntry := -1;
-  mLastEntry := -1;
+end;
+
+
+procedure THashBase.clear ();
+//var idx: Integer;
+begin
+  freeEntries();
+  SetLength(mBuckets, InitSize);
+  FillChar(mBuckets[0], InitSize*sizeof(mBuckets[0]), 0);
+  //for idx := 0 to High(mBuckets) do mBuckets[idx] := nil;
+  SetLength(mEntries, InitSize);
+  FillChar(mEntries[0], InitSize*sizeof(mEntries[0]), 0);
+  mBucketsUsed := 0;
 end;
 
 
 procedure THashBase.reset ();
-var
-  idx: Integer;
+//var idx: Integer;
 begin
+  freeEntries();
   if (mBucketsUsed > 0) then
   begin
-    for idx := 0 to High(mBuckets) do mBuckets[idx] := nil;
+    //for idx := 0 to High(mBuckets) do mBuckets[idx] := nil;
+    FillChar(mBuckets[0], Length(mBuckets)*sizeof(mBuckets[0]), 0);
     mBucketsUsed := 0;
-    {$IFDEF RBHASH_SANITY_CHECKS}
-    mEntriesUsed := 0;
-    {$ENDIF}
-    mFreeEntryHead := nil; //@mEntries[0];
-    mFirstEntry := -1;
-    mLastEntry := -1;
   end;
 end;
-
-
-function THashBase.getCapacity (): Integer; inline; begin result := Length(mBuckets); end;
 
 
 function THashBase.allocEntry (): PEntry;
@@ -442,7 +494,7 @@ begin
   end;
   {$IFDEF RBHASH_SANITY_CHECKS}
   if (mFreeEntryHead = nil) then raise Exception.Create('internal error in hash entry allocator (0)');
-  if (mFreeEntryHead.hash <> 0) then raise Exception.Create('internal error in hash entry allocator (1)');
+  if (not mFreeEntryHead.empty) then raise Exception.Create('internal error in hash entry allocator (1)');
   {$ENDIF}
   result := mFreeEntryHead;
   mFreeEntryHead := result.nextFree;
@@ -469,19 +521,23 @@ begin
   if (mEntriesUsed = 0) then raise Exception.Create('internal error in hash entry allocator');
   if (mEntriesUsed <> mBucketsUsed) then raise Exception.Create('internal error in hash entry allocator (entry/bucket count mismatch)');
   if (e = nil) then raise Exception.Create('internal error in hash entry allocator (trying to release nil entry)');
-  if (e.hash = 0) then raise Exception.Create('internal error in hash entry allocator (trying to release unallocated entry)');
+  if (e.empty) then raise Exception.Create('internal error in hash entry allocator (trying to release unallocated entry)');
   {$ENDIF}
   idx := Integer((PtrUInt(e)-PtrUInt(@mEntries[0])) div sizeof(mEntries[0]));
   {$IFDEF RBHASH_SANITY_CHECKS}
   if (idx < 0) or (idx > High(mEntries)) then raise Exception.Create('internal error in hash entry allocator (invalid entry address)');
   if (e <> @mEntries[idx]) then raise Exception.Create('internal error in hash entry allocator (wtf?!)');
   {$ENDIF}
+  if assigned(freekeyfn) then freekeyfn(e.key);
+  if assigned(freevalfn) then freevalfn(e.value);
   {$IFDEF RBHASH_SANITY_CHECKS}
   Dec(mEntriesUsed);
   {$ENDIF}
+  e.key := Default(KeyT);
+  e.value := Default(ValueT);
   e.hash := 0;
   e.nextFree := mFreeEntryHead;
-  mFreeEntryHead := e; //idx;
+  mFreeEntryHead := e;
   // fix mFirstEntry and mLastEntry
   {$IFDEF RBHASH_SANITY_CHECKS}
   if (mFirstEntry < 0) or (mLastEntry < 0) then raise Exception.Create('internal error in hash entry allocator (invalid first/last range; 0)');
@@ -491,6 +547,7 @@ begin
     {$IFDEF RBHASH_SANITY_CHECKS}
     if (mEntriesUsed <> 0) then raise Exception.Create('internal error in hash entry allocator (invalid first/last range; 1)');
     {$ENDIF}
+    mFreeEntryHead := nil;
     mFirstEntry := -1;
     mLastEntry := -1;
   end
@@ -503,7 +560,7 @@ begin
     if (idx = mFirstEntry) then
     begin
       cidx := idx+1;
-      while (mEntries[cidx].hash = 0) do Inc(cidx);
+      while (mEntries[cidx].empty) do Inc(cidx);
       {$IFDEF RBHASH_SANITY_CHECKS}
       if (cidx > High(mEntries)) then raise Exception.Create('internal error in hash entry allocator (invalid first/last range; 3)');
       {$ENDIF}
@@ -513,7 +570,7 @@ begin
     if (idx = mLastEntry) then
     begin
       cidx := idx-1;
-      while (mEntries[cidx].hash = 0) do Dec(cidx);
+      while (mEntries[cidx].empty) do Dec(cidx);
       {$IFDEF RBHASH_SANITY_CHECKS}
       if (cidx < 0) then raise Exception.Create('internal error in hash entry allocator (invalid first/last range; 3)');
       {$ENDIF}
@@ -523,7 +580,6 @@ begin
 end;
 
 
-(*
 function THashBase.distToStIdx (idx: LongWord): LongWord; inline;
 begin
   {$IFDEF RBHASH_SANITY_CHECKS}
@@ -533,7 +589,6 @@ begin
   result := (mBuckets[idx].hash xor mSeed) and High(mBuckets);
   if (result <= idx) then result := idx-result else result := idx+(Length(mBuckets)-result);
 end;
-*)
 
 
 function THashBase.has (constref akey: KeyT; keyhashin: PLongWord=nil): Boolean;
@@ -565,10 +620,7 @@ begin
   for dist := 0 to bhigh do
   begin
     if (mBuckets[idx] = nil) then break;
-    //pdist := distToStIdx(idx);
-    pdist := (mBuckets[idx].hash xor xseed) and bhigh;
-    if (pdist <= idx) then pdist := idx-pdist else pdist := idx+((bhigh+1)-pdist);
-    //
+    pdist := distToStIdx(idx);
     if (dist > pdist) then break;
     result := (mBuckets[idx].hash = khash) and equfn(mBuckets[idx].key, akey);
     if result then break;
@@ -605,10 +657,7 @@ begin
   for dist := 0 to bhigh do
   begin
     if (mBuckets[idx] = nil) then break;
-    //pdist := distToStIdx(idx);
-    pdist := (mBuckets[idx].hash xor xseed) and bhigh;
-    if (pdist <= idx) then pdist := idx-pdist else pdist := idx+((bhigh+1)-pdist);
-    //
+    pdist := distToStIdx(idx);
     if (dist > pdist) then break;
     result := (mBuckets[idx].hash = khash) and equfn(mBuckets[idx].key, akey);
     if result then begin rval := mBuckets[idx].value; break; end;
@@ -622,7 +671,7 @@ end;
 procedure THashBase.putEntryInternal (swpe: PEntry);
 var
   idx, dist, pcur, pdist: LongWord;
-  tmpe: PEntry; // current entry to swap (or nothing)
+  tmpe: PEntry;
   bhigh, xseed: LongWord;
 begin
   bhigh := High(mBuckets);
@@ -640,10 +689,7 @@ begin
       Inc(mBucketsUsed);
       break;
     end;
-    //pdist := distToStIdx(idx);
-    pdist := (mBuckets[idx].hash xor xseed) and bhigh;
-    if (pdist <= idx) then pdist := idx-pdist else pdist := idx+((bhigh+1)-pdist);
-    //
+    pdist := distToStIdx(idx);
     if (pcur > pdist) then
     begin
       // swapping the current bucket with the one to insert
@@ -680,16 +726,15 @@ begin
     for dist := 0 to bhigh do
     begin
       if (mBuckets[idx] = nil) then break;
-      //pdist := distToStIdx(idx);
-      pdist := (mBuckets[idx].hash xor xseed) and bhigh;
-      if (pdist <= idx) then pdist := idx-pdist else pdist := idx+((bhigh+1)-pdist);
-      //
+      pdist := distToStIdx(idx);
       if (dist > pdist) then break;
       result := (mBuckets[idx].hash = khash) and equfn(mBuckets[idx].key, akey);
       if result then
       begin
         // replace element
-        //mBuckets[idx].key := akey;
+        if assigned(freekeyfn) then freekeyfn(mBuckets[idx].key);
+        if assigned(freevalfn) then freevalfn(mBuckets[idx].value);
+        mBuckets[idx].key := akey;
         mBuckets[idx].value := aval;
         exit;
       end;
@@ -756,10 +801,7 @@ begin
   for dist := 0 to bhigh do
   begin
     if (mBuckets[idx] = nil) then break;
-    //pdist := distToStIdx(idxcur);
-    pdist := (mBuckets[idx].hash xor xseed) and bhigh;
-    if (pdist <= idx) then pdist := idx-pdist else pdist := idx+((bhigh+1)-pdist);
-    //
+    pdist := distToStIdx(idx);
     if (dist > pdist) then break;
     result := (mBuckets[idx].hash = khash) and equfn(mBuckets[idx].key, akey);
     if result then break;
@@ -787,10 +829,7 @@ begin
     writeln(' dist=', dist, '; idx=', idx, '; idxnext=', idxnext, '; ce=', (mBuckets[idx] <> nil), '; ne=', (mBuckets[idxnext] <> nil));
     {$ENDIF}
     if (mBuckets[idxnext] = nil) then begin {$IFDEF RBHASH_DEBUG_DELETE}writeln('  idxnext nil');{$ENDIF} mBuckets[idx] := nil; break; end;
-    //pdist := distToStIdx(idxnext);
-    pdist := (mBuckets[idxnext].hash xor xseed) and bhigh;
-    if (pdist <= idxnext) then pdist := idxnext-pdist else pdist := idxnext+((bhigh+1)-pdist);
-    //
+    pdist := distToStIdx(idxnext);
     if (pdist = 0) then begin {$IFDEF RBHASH_DEBUG_DELETE}writeln('  pdist is zero');{$ENDIF} mBuckets[idx] := nil; break; end;
     {$IFDEF RBHASH_DEBUG_DELETE}writeln('  pdist=', pdist);{$ENDIF}
     mBuckets[idx] := mBuckets[idxnext];
@@ -816,7 +855,8 @@ begin
   if (mSeed = 0) then mSeed := $29a;
   mSeed := u32Hash(mSeed);
   // clear buckets
-  for idx := 0 to High(mBuckets) do mBuckets[idx] := nil;
+  //for idx := 0 to High(mBuckets) do mBuckets[idx] := nil;
+  FillChar(mBuckets[0], Length(mBuckets)*sizeof(mBuckets[0]), 0);
   mBucketsUsed := 0;
   // reinsert entries
   mFreeEntryHead := nil;
@@ -824,7 +864,7 @@ begin
   for idx := 0 to High(mEntries) do
   begin
     e := @mEntries[idx];
-    if (e.hash <> 0) then
+    if (not e.empty) then
     begin
       {$IFDEF RBHASH_SANITY_CHECKS}
       if (e.nextFree <> nil) then raise Exception.Create('internal error in rehash: inconsistent');
@@ -870,12 +910,12 @@ begin
     if (mBucketsUsed < 1) then raise Exception.Create('internal error in hash table (invalid bucket count; 0)');
     {$ENDIF}
     didx := 0;
-    while (didx < Length(mEntries)) do if (mEntries[didx].hash <> 0) then Inc(didx) else break;
+    while (didx < Length(mEntries)) do if (not mEntries[didx].empty) then Inc(didx) else break;
     f := didx+1;
     // copy entries
     while true do
     begin
-      if (mEntries[f].hash <> 0) then
+      if (not mEntries[f].empty) then
       begin
         {$IFDEF RBHASH_SANITY_CHECKS}
         if (didx >= f) then raise Exception.Create('internal error in hash: inconsistent');
@@ -884,7 +924,7 @@ begin
         mEntries[f].hash := 0;
         Inc(didx);
         if (f = mLastEntry) then break;
-        while (didx < Length(mEntries)) do if (mEntries[didx].hash <> 0) then Inc(didx) else break;
+        while (didx < Length(mEntries)) do if (not mEntries[didx].empty) then Inc(didx) else break;
       end;
       Inc(f);
     end;
@@ -897,14 +937,14 @@ begin
     cnt := 0;
     for f := mFirstEntry to mLastEntry do
     begin
-      if (mEntries[f].hash = 0) then raise Exception.Create('internal error in hash table (invalid first/last range; 2)');
+      if (mEntries[f].empty) then raise Exception.Create('internal error in hash table (invalid first/last range; 2)');
       Inc(cnt);
     end;
     if (cnt <> mBucketsUsed) then raise Exception.Create('internal error in hash table (invalid first/last range; 3)');
     if (cnt <> mEntriesUsed) then raise Exception.Create('internal error in hash table (invalid first/last range; 4)');
     for f := mLastEntry+1 to High(mEntries) do
     begin
-      if (mEntries[f].hash <> 0) then raise Exception.Create('internal error in hash table (invalid first/last range; 5)');
+      if (not mEntries[f].empty) then raise Exception.Create('internal error in hash table (invalid first/last range; 5)');
     end;
     {$ENDIF}
   end
@@ -925,39 +965,33 @@ end;
 
 function THashBase.forEach (it: TIteratorFn): Boolean; overload;
 var
-  i: Integer;
+  f: Integer;
 begin
   result := false;
-  if not assigned(it) then exit;
-  i := mFirstEntry;
-  if (i < 0) then exit;
-  while (i <= mLastEntry) do
+  if not assigned(it) or (mFirstEntry < 0) then exit;
+  for f := mFirstEntry to mLastEntry do
   begin
-    if (mEntries[i].hash <> 0) then
+    if (not mEntries[f].empty) then
     begin
-      result := it(mEntries[i].key, mEntries[i].value);
+      result := it(mEntries[f].key, mEntries[f].value);
       if result then exit;
     end;
-    Inc(i);
   end;
 end;
 
 function THashBase.forEach (it: TIteratorExFn): Boolean; overload;
 var
-  i: Integer;
+  f: Integer;
 begin
   result := false;
-  if not assigned(it) then exit;
-  i := mFirstEntry;
-  if (i < 0) then exit;
-  while (i <= mLastEntry) do
+  if not assigned(it) or (mFirstEntry < 0) then exit;
+  for f := mFirstEntry to mLastEntry do
   begin
-    if (mEntries[i].hash <> 0) then
+    if (not mEntries[f].empty) then
     begin
-      result := it(mEntries[i].key, mEntries[i].value, mEntries[i].hash);
+      result := it(mEntries[f].key, mEntries[f].value, mEntries[f].hash);
       if result then exit;
     end;
-    Inc(i);
   end;
 end;
 
@@ -1007,7 +1041,7 @@ begin
   Inc(cur);
   while (cur <= mLastEntry) do
   begin
-    if (mEntries[cur].hash <> 0) then begin result := true; exit; end;
+    if (not mEntries[cur].empty) then begin result := true; exit; end;
   end;
   result := false;
 end;
@@ -1032,7 +1066,7 @@ begin
   Inc(cur);
   while (cur <= mLastEntry) do
   begin
-    if (mEntries[cur].hash <> 0) then begin result := true; exit; end;
+    if (not mEntries[cur].empty) then begin result := true; exit; end;
   end;
   result := false;
 end;
@@ -1057,7 +1091,7 @@ begin
   Inc(cur);
   while (cur <= mLastEntry) do
   begin
-    if (mEntries[cur].hash <> 0) then begin result := true; exit; end;
+    if (not mEntries[cur].empty) then begin result := true; exit; end;
   end;
   result := false;
 end;

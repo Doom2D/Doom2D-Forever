@@ -237,7 +237,7 @@ begin
       if (Length(afldname) > 4) and (afldname[1] = 'u') and (afldname[2] = 's') and
          (afldname[3] = 'e') and (afldname[4] = 'r') then
       begin
-        if (me.userVars = nil) then me.userVars := THashStrVariant.Create(hsihash, hsiequ);
+        if (me.userVars = nil) then me.userVars := THashStrVariant.Create(hashStrHash, hashStrEqu);
         me.userVars.put(afldname, aval);
         exit;
       end;
@@ -2447,7 +2447,7 @@ begin
   // update cached trigger variables
   trigUpdateCacheData(gTriggers[find_id], gTriggers[find_id].trigDataRec);
 
-  gTriggers[find_id].userVars := nil; //THashStrVariant.Create(hsihash, hsiequ);
+  gTriggers[find_id].userVars := nil; //THashStrVariant.Create(hashStrHash, hashStrEqu);
 
   try
     gTriggers[find_id].exoThink := TExprBase.parseStatList(tgclist, VarToStr(trec.user['exoma_think']));
@@ -3347,7 +3347,7 @@ begin
     if (uvcount < 0) or (uvcount > 1024*1024) then raise XStreamError.Create('invalid number of user vars in trigger');
     if (uvcount > 0) then
     begin
-      gTriggers[i].userVars := THashStrVariant.Create(hsihash, hsiequ);
+      gTriggers[i].userVars := THashStrVariant.Create(hashStrHash, hashStrEqu);
       vv := Unassigned;
       while (uvcount > 0) do
       begin
