@@ -33,25 +33,37 @@ type
       TTInt = 2;
       //TTFloat = 3; // not yet
       TTStr = 4; // string
-      TTComma = 5; // ','
-      TTColon = 6; // ':'
-      TTSemi = 7; // ';'
-      TTBegin = 8; // left curly
-      TTEnd = 9; // right curly
-      TTDelim = 10; // other delimiters
+      TTDelim = 5; // one-char delimiters
       //
       TTLogAnd = 11; // &&
       TTLogOr = 12; // ||
       TTLessEqu = 13; // <=
       TTGreatEqu = 14; // >=
       TTNotEqu = 15; // !=
-      TTEqu = 16; // ==
+      TTEqu = 16; // == or <>
+      TTAss = 17; // :=
+      TTShl = 18; // <<
+      TTShr = 19; // >>
+      TTDotDot = 19; // ..
+
+  public
+    type
+      TOption = (
+        SignedNumbers, // allow signed numbers; otherwise sign will be TTDelim
+        DollarIsId, // allow dollar in identifiers; otherwise dollar will be TTDelim
+        DotIsId // allow dot in identifiers; otherwise dot will be TTDelim
+      );
+      TOptions = set of TOption;
+
+  private
+    type
+      TAnsiCharSet = set of AnsiChar;
 
   private
     mLine, mCol: Integer;
     mCurChar, mNextChar: AnsiChar;
 
-    mAllowSignedNumbers: Boolean; // internal control
+    mOptions: TOptions;
 
     mTokLine, mTokCol: Integer; // token start
     mTokType: Integer;
@@ -60,11 +72,11 @@ type
     mTokInt: Integer;
 
   protected
-    procedure warmup (); virtual; // called in constructor to warm up the system
+    procedure warmup (); // called in constructor to warm up the system
     procedure loadNextChar (); virtual; abstract; // loads next char into mNextChar; #0 means 'eof'
 
   public
-    constructor Create ();
+    constructor Create (aopts: TOptions=[TOption.SignedNumbers]);
     destructor Destroy (); override;
 
     function isEOF (): Boolean; inline;
@@ -88,11 +100,14 @@ type
     procedure expectTT (ttype: Integer);
     function eatTT (ttype: Integer): Boolean;
 
-    function expectDelim (const ch: AnsiChar): AnsiChar;
+    procedure expectDelim (const ch: AnsiChar);
+    function expectDelims (const ch: TAnsiCharSet): AnsiChar;
     function eatDelim (const ch: AnsiChar): Boolean;
 
+    function isDelim (const ch: AnsiChar): Boolean; inline;
+
   public
-    property allowSignedNumbers: Boolean read mAllowSignedNumbers write mAllowSignedNumbers;
+    property options: TOptions read mOptions write mOptions;
 
   public
     property col: Integer read mCol;
@@ -129,8 +144,8 @@ type
     procedure loadNextChar (); override; // loads next char into mNextChar; #0 means 'eof'
 
   public
-    constructor Create (const fname: AnsiString);
-    constructor Create (st: TStream; astOwned: Boolean=true); // will take ownership on st by default
+    constructor Create (const fname: AnsiString; aopts: TOptions=[TOption.SignedNumbers]);
+    constructor Create (st: TStream; astOwned: Boolean=true; aopts: TOptions=[TOption.SignedNumbers]);
     destructor Destroy (); override;
   end;
 
@@ -143,7 +158,7 @@ type
     procedure loadNextChar (); override; // loads next char into mNextChar; #0 means 'eof'
 
   public
-    constructor Create (const astr: AnsiString);
+    constructor Create (const astr: AnsiString; aopts: TOptions=[TOption.SignedNumbers]);
     destructor Destroy (); override;
   end;
 
@@ -220,11 +235,7 @@ uses
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-function StrEqu (const a, b: AnsiString): Boolean; inline; begin result := (a = b); end;
-
-
-// ////////////////////////////////////////////////////////////////////////// //
-constructor TTextParser.Create ();
+constructor TTextParser.Create (aopts: TOptions=[TOption.SignedNumbers]);
 begin
   mLine := 1;
   mCol := 1;
@@ -234,8 +245,8 @@ begin
   mTokStr := '';
   mTokChar := #0;
   mTokInt := 0;
-  mAllowSignedNumbers := true;
-  warmup(); // change `mAllowSignedNumbers` there, if necessary
+  mOptions := aopts;
+  warmup();
   skipToken();
 end;
 
@@ -339,6 +350,24 @@ begin
         end;
         continue;
       end;
+    end
+    else if (curChar = '(') and (nextChar = '*') then
+    begin
+      // pascal comment; skip comment start
+      skipChar();
+      skipChar();
+      while not isEOF do
+      begin
+        if (curChar = '*') and (nextChar = ')') then
+        begin
+          // skip comment end
+          skipChar();
+          skipChar();
+          break;
+        end;
+        skipChar();
+      end;
+      continue;
     end;
     if (curChar > ' ') then break;
     skipChar(); // skip blank
@@ -365,7 +394,7 @@ function TTextParser.skipToken (): Boolean;
     base: Integer = -1;
     n: Integer;
   begin
-    if mAllowSignedNumbers then
+    if (TOption.SignedNumbers in mOptions) then
     begin
       if (curChar = '+') or (curChar = '-') then
       begin
@@ -487,7 +516,9 @@ function TTextParser.skipToken (): Boolean;
     while (curChar = '_') or ((curChar >= '0') and (curChar <= '9')) or
           ((curChar >= 'A') and (curChar <= 'Z')) or
           ((curChar >= 'a') and (curChar <= 'z')) or
-          (curChar >= #128) do
+          (curChar >= #128) or
+          ((TOption.DollarIsId in mOptions) and (curChar = '$')) or
+          ((TOption.DotIsId in mOptions) and (curChar = '.') and (nextChar <> '.')) do
     begin
       mTokStr += curChar;
       skipChar();
@@ -514,7 +545,7 @@ begin
   result := true;
 
   // number?
-  if mAllowSignedNumbers and ((curChar = '+') or (curChar = '-')) then begin parseInt(); exit; end;
+  if (TOption.SignedNumbers in mOptions) and ((curChar = '+') or (curChar = '-')) then begin parseInt(); exit; end;
   if (curChar >= '0') and (curChar <= '9') then begin parseInt(); exit; end;
 
   // string?
@@ -522,6 +553,8 @@ begin
 
   // identifier?
   if (curChar = '_') or ((curChar >= 'A') and (curChar <= 'Z')) or ((curChar >= 'a') and (curChar <= 'z')) or (curChar >= #128) then begin parseId(); exit; end;
+  if (TOption.DollarIsId in mOptions) and (curChar = '$') then begin parseId(); exit; end;
+  if (TOption.DotIsId in mOptions) and (curChar = '.') and (nextChar <> '.') then begin parseId(); exit; end;
 
   // known delimiters?
   mTokChar := curChar;
@@ -534,16 +567,24 @@ begin
       '>': begin mTokType := TTGreatEqu; mTokStr := '>='; skipChar(); exit; end;
       '!': begin mTokType := TTNotEqu; mTokStr := '!='; skipChar(); exit; end;
       '=': begin mTokType := TTEqu; mTokStr := '=='; skipChar(); exit; end;
+      ':': begin mTokType := TTAss; mTokStr := ':='; skipChar(); exit; end;
     end;
-  end;
-  case mTokChar of
-    ',': mTokType := TTComma;
-    ':': mTokType := TTColon;
-    ';': mTokType := TTSemi;
-    '{': mTokType := TTBegin;
-    '}': mTokType := TTEnd;
-    '&': if (curChar = '&') then begin mTokType := TTLogAnd; mTokStr := '&&'; skipChar(); exit; end;
-    '|': if (curChar = '|') then begin mTokType := TTLogOr; mTokStr := '||'; skipChar(); exit; end;
+  end
+  else if (mTokChar = curChar) then
+  begin
+    case mTokChar of
+      '<': begin mTokType := TTShl; mTokStr := '<<'; skipChar(); exit; end;
+      '>': begin mTokType := TTShr; mTokStr := '>>'; skipChar(); exit; end;
+      '&': begin mTokType := TTLogAnd; mTokStr := '&&'; skipChar(); exit; end;
+      '|': begin mTokType := TTLogOr; mTokStr := '||'; skipChar(); exit; end;
+    end;
+  end
+  else
+  begin
+    case mTokChar of
+      '<': if (curChar = '>') then begin mTokType := TTNotEqu; mTokStr := '<>'; skipChar(); exit; end;
+      '.': if (curChar = '.') then begin mTokType := TTDotDot; mTokStr := '..'; skipChar(); exit; end;
+    end;
   end;
 end;
 
@@ -558,17 +599,15 @@ end;
 
 procedure TTextParser.expectId (const aid: AnsiString);
 begin
-  if (mTokType <> TTId) or (not StrEqu(mTokStr, aid)) then raise Exception.Create('identifier '''+aid+''' expected');
+  if (mTokType <> TTId) or (mTokStr <> aid) then raise Exception.Create('identifier '''+aid+''' expected');
   skipToken();
 end;
 
 
 function TTextParser.eatId (const aid: AnsiString): Boolean;
 begin
-  result := false;
-  if (mTokType <> TTId) or (not StrEqu(mTokStr, aid)) then exit;
-  result := true;
-  skipToken();
+  result := (mTokType = TTId) and (mTokStr = aid);
+  if result then skipToken();
 end;
 
 
@@ -618,9 +657,17 @@ begin
 end;
 
 
-function TTextParser.expectDelim (const ch: AnsiChar): AnsiChar;
+procedure TTextParser.expectDelim (const ch: AnsiChar);
 begin
-  if (mTokType <> TTDelim) then raise Exception.Create(Format('delimiter ''%s'' expected', [ch]));
+  if (mTokType <> TTDelim) or (mTokChar <> ch) then raise Exception.CreateFmt('delimiter ''%s'' expected', [ch]);
+  skipToken();
+end;
+
+
+function TTextParser.expectDelims (const ch: TAnsiCharSet): AnsiChar;
+begin
+  if (mTokType <> TTDelim) then raise Exception.Create('delimiter expected');
+  if not (mTokChar in ch) then raise Exception.Create('delimiter expected');
   result := mTokChar;
   skipToken();
 end;
@@ -628,15 +675,19 @@ end;
 
 function TTextParser.eatDelim (const ch: AnsiChar): Boolean;
 begin
-  result := false;
-  if (mTokType <> TTDelim) or (mTokChar <> ch) then exit;
-  result := true;
-  skipToken();
+  result := (mTokType = TTDelim) and (mTokChar = ch);
+  if result then skipToken();
+end;
+
+
+function TTextParser.isDelim (const ch: AnsiChar): Boolean; inline;
+begin
+  result := (mTokType = TTDelim) and (mTokChar = ch);
 end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-constructor TFileTextParser.Create (const fname: AnsiString);
+constructor TFileTextParser.Create (const fname: AnsiString; aopts: TOptions=[TOption.SignedNumbers]);
 begin
   mBuffer := nil;
   mFile := openDiskFileRO(fname);
@@ -645,11 +696,11 @@ begin
   mBufPos := 0;
   mBufLen := mFile.Read(mBuffer^, BufSize);
   if (mBufLen < 0) then raise Exception.Create('TFileTextParser: read error');
-  inherited Create();
+  inherited Create(aopts);
 end;
 
 
-constructor TFileTextParser.Create (st: TStream; astOwned: Boolean=true);
+constructor TFileTextParser.Create (st: TStream; astOwned: Boolean=true; aopts: TOptions=[TOption.SignedNumbers]);
 begin
   if (st = nil) then raise Exception.Create('cannot create parser for nil stream');
   mFile := st;
@@ -658,7 +709,7 @@ begin
   mBufPos := 0;
   mBufLen := mFile.Read(mBuffer^, BufSize);
   if (mBufLen < 0) then raise Exception.Create('TFileTextParser: read error');
-  inherited Create();
+  inherited Create(aopts);
 end;
 
 
@@ -692,11 +743,11 @@ end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-constructor TStrTextParser.Create (const astr: AnsiString);
+constructor TStrTextParser.Create (const astr: AnsiString; aopts: TOptions=[TOption.SignedNumbers]);
 begin
   mStr := astr;
   mPos := 1;
-  inherited Create();
+  inherited Create(aopts);
 end;
 
 

@@ -489,12 +489,15 @@ type
 procedure xdynDumpProfiles ();
 {$ENDIF}
 
+var
+  DynWarningCB: procedure (const msg: AnsiString; line, col: Integer) = nil;
 
 implementation
 
+{$IF DEFINED(D2D_DYNREC_PROFILER)}
 uses
-  e_log
-  {$IF DEFINED(D2D_DYNREC_PROFILER)},xprofiler{$ENDIF};
+  xprofiler;
+{$ENDIF}
 
 
 // ////////////////////////////////////////////////////////////////////////// //
@@ -1178,7 +1181,7 @@ begin
   // field name
   fldname := pr.expectStrOrId();
 
-  while (pr.tokType <> pr.TTSemi) do
+  while (not pr.isDelim(';')) do
   begin
     if pr.eatId('type') then
     begin
@@ -1311,7 +1314,7 @@ begin
     lebs := TDynField.TEBS.TRec;
   end;
 
-  pr.expectTT(pr.TTSemi);
+  pr.expectDelim(';');
 
   // create field
   mName := fldname;
@@ -1918,7 +1921,7 @@ var
   edim: AnsiChar;
 begin
   if (pr.tokType = pr.TTEOF) then raise TDynParseException.Create(pr, 'field value expected');
-  if (pr.tokType = pr.TTSemi) then raise TDynParseException.Create(pr, 'extra semicolon');
+  if (pr.isDelim(';')) then raise TDynParseException.Create(pr, 'extra semicolon');
   // if this field should contain struct, convert type and parse struct
   case mEBS of
     TEBS.TNone: begin end;
@@ -1927,12 +1930,11 @@ begin
         // ugly hack. sorry.
         if (mType = TType.TTrigData) then
         begin
-          pr.expectTT(pr.TTBegin);
-          if (pr.tokType = pr.TTEnd) then
+          pr.expectDelim('{');
+          if (pr.eatDelim('}')) then
           begin
             // '{}'
             mRecRef := nil;
-            pr.expectTT(pr.TTEnd);
           end
           else
           begin
@@ -1950,7 +1952,7 @@ begin
             mRecRef := rc;
           end;
           mDefined := true;
-          pr.eatTT(pr.TTSemi); // hack: allow (but don't require) semicolon after inline records
+          pr.eatDelim(';'); // hack: allow (but don't require) semicolon after inline records
           exit;
         end;
         // other record types
@@ -1975,10 +1977,10 @@ begin
             pr.expectId();
           end;
           mDefined := true;
-          pr.expectTT(pr.TTSemi);
+          pr.expectDelim(';');
           exit;
         end
-        else if (pr.tokType = pr.TTBegin) then
+        else if (pr.isDelim('{')) then
         begin
           //rec := mOwner.mOwner.recType[mEBSTypeName]; // find in mapdef
           rec := nil;
@@ -1993,10 +1995,10 @@ begin
           begin
             raise TDynParseException.CreateFmt(pr, 'duplicate record with id ''%s'' for field ''%s'' in record ''%s''', [rc.mId, mName, mOwner.mTypeName]);
           end;
-          pr.eatTT(pr.TTSemi); // hack: allow (but don't require) semicolon after inline records
+          pr.eatDelim(';'); // hack: allow (but don't require) semicolon after inline records
           exit;
         end;
-        pr.expectTT(pr.TTBegin);
+        pr.expectDelim('{');
       end;
     TEBS.TEnum:
       begin
@@ -2010,7 +2012,7 @@ begin
         mSVal := tk;
         //writeln('ENUM ', mEBSName, '; element <', mSVal, '> with value ', mIVal);
         mDefined := true;
-        pr.expectTT(pr.TTSemi);
+        pr.expectDelim(';');
         exit;
       end;
     TEBS.TBitSet:
@@ -2031,7 +2033,7 @@ begin
           pr.skipToken(); // plus or pipe
         end;
         mDefined := true;
-        pr.expectTT(pr.TTSemi);
+        pr.expectDelim(';');
         exit;
       end;
     else raise TDynParseException.Create(pr, 'ketmar forgot to handle some EBS type');
@@ -2044,7 +2046,7 @@ begin
         else if pr.eatId('false') or pr.eatId('ona') or pr.eatId('no') then mIVal := 0
         else raise TDynParseException.CreateFmt(pr, 'invalid bool value for field ''%s''', [mName]);
         mDefined := true;
-        pr.expectTT(pr.TTSemi);
+        pr.expectDelim(';');
         exit;
       end;
     TType.TChar:
@@ -2064,50 +2066,50 @@ begin
           if (Length(mSVal) > mMaxDim) then raise TDynParseException.CreateFmt(pr, 'invalid string size for field ''%s''', [mName]);
         end;
         mDefined := true;
-        pr.expectTT(pr.TTSemi);
+        pr.expectDelim(';');
         exit;
       end;
     TType.TByte:
       begin
         parseInt(-128, 127);
-        pr.expectTT(pr.TTSemi);
+        pr.expectDelim(';');
         exit;
       end;
     TType.TUByte:
       begin
         parseInt(0, 255);
-        pr.expectTT(pr.TTSemi);
+        pr.expectDelim(';');
         exit;
       end;
     TType.TShort:
       begin
         parseInt(-32768, 32768);
-        pr.expectTT(pr.TTSemi);
+        pr.expectDelim(';');
         exit;
       end;
     TType.TUShort:
       begin
         parseInt(0, 65535);
-        pr.expectTT(pr.TTSemi);
+        pr.expectDelim(';');
         exit;
       end;
     TType.TInt:
       begin
         parseInt(Integer($80000000), $7fffffff);
-        pr.expectTT(pr.TTSemi);
+        pr.expectDelim(';');
         exit;
       end;
     TType.TUInt:
       begin
         parseInt(0, $7fffffff); //FIXME
-        pr.expectTT(pr.TTSemi);
+        pr.expectDelim(';');
         exit;
       end;
     TType.TString:
       begin
         mSVal := pr.expectStr(true);
         mDefined := true;
-        pr.expectTT(pr.TTSemi);
+        pr.expectDelim(';');
         exit;
       end;
     TType.TPoint,
@@ -2126,7 +2128,7 @@ begin
         end;
         mDefined := true;
         pr.expectDelim(edim);
-        pr.expectTT(pr.TTSemi);
+        pr.expectDelim(';');
         exit;
       end;
     TType.TColor:
@@ -2149,7 +2151,7 @@ begin
         end;
         mDefined := true;
         pr.expectDelim(edim);
-        pr.expectTT(pr.TTSemi);
+        pr.expectDelim(';');
         exit;
       end;
     TType.TList:
@@ -2591,7 +2593,7 @@ begin
     begin
       while true do
       begin
-        while pr.eatTT(pr.TTComma) do begin end;
+        while (pr.eatDelim(',')) do begin end;
         if pr.eatDelim(')') then break;
         tdn := pr.expectId();
         if isForTrig[tdn] then raise TDynParseException.CreateFmt(pr, 'duplicate trigdata ''%s'' trigtype ''%s''', [mTypeName, tdn]);
@@ -2610,7 +2612,7 @@ begin
   else
   begin
     mTypeName := pr.expectStrOrId();
-    while (pr.tokType <> pr.TTBegin) do
+    while (not pr.isDelim('{')) do
     begin
       if pr.eatId('header') then begin mHeader := true; continue; end;
       if pr.eatId('size') then
@@ -2643,9 +2645,9 @@ begin
     end;
   end;
 
-  pr.expectTT(pr.TTBegin);
+  pr.expectDelim('{');
   // load fields
-  while (pr.tokType <> pr.TTEnd) do
+  while (not pr.isDelim('}')) do
   begin
     fld := TDynField.Create(pr);
     // append
@@ -2657,7 +2659,7 @@ begin
     end;
     // done with field
   end;
-  pr.expectTT(pr.TTEnd);
+  pr.expectDelim('}');
 end;
 
 
@@ -2732,7 +2734,10 @@ var
       rt := findRecordByTypeId(fld.mEBSTypeName, fld.mRecRefId);
       if (rt = nil) then
       begin
-        e_LogWritefln('record of type ''%s'' with id ''%s'' links to inexistant record of type ''%s'' with id ''%s''', [rec.mTypeName, rec.mId, fld.mEBSTypeName, fld.mRecRefId], TMsgType.Warning);
+        if assigned(DynWarningCB) then
+        begin
+          DynWarningCB(formatstrf('record of type ''%s'' with id ''%s'' links to inexistant record of type ''%s'' with id ''%s''', [rec.mTypeName, rec.mId, fld.mEBSTypeName, fld.mRecRefId]), -1, -1);
+        end;
         //raise TDynRecException.CreateFmt('record of type ''%s'' with id ''%s'' links to inexistant record of type ''%s'' with id ''%s''', [rec.mName, rec.mId, fld.mEBSTypeName, fld.mRecRefId]);
       end;
       //writeln(' ', rec.mName, '.', rec.mId, ':', fld.mName, ' -> ', rt.mName, '.', rt.mId, ' (', fld.mEBSTypeName, '.', fld.mRecRefId, ')');
@@ -3118,8 +3123,8 @@ begin
   end;
 
   //writeln('parsing record <', mName, '>');
-  if not beginEaten then pr.expectTT(pr.TTBegin);
-  while (pr.tokType <> pr.TTEnd) do
+  if not beginEaten then pr.expectDelim('{');
+  while (not pr.isDelim('}')) do
   begin
     if (pr.tokType <> pr.TTId) then raise TDynParseException.Create(pr, 'identifier expected');
     //writeln('<', mName, '.', pr.tokStr, '>');
@@ -3169,7 +3174,7 @@ begin
     // something is wrong
     raise TDynParseException.CreateFmt(pr, 'unknown field ''%s'' in record ''%s''', [pr.tokStr, mTypeName]);
   end;
-  pr.expectTT(pr.TTEnd);
+  pr.expectDelim('}');
 
   if mHeader then
   begin
@@ -3308,7 +3313,7 @@ begin
   mTypeName := pr.expectId();
   mMaxVal := Integer($80000000);
   if mIsEnum then cv := 0 else cv := 1;
-  while (pr.tokType <> pr.TTBegin) do
+  while (not pr.isDelim('{')) do
   begin
     if pr.eatId('tip') then
     begin
@@ -3324,8 +3329,8 @@ begin
     end;
     break;
   end;
-  pr.expectTT(pr.TTBegin);
-  while (pr.tokType <> pr.TTEnd) do
+  pr.expectDelim('{');
+  while (not pr.isDelim('}')) do
   begin
     idname := pr.expectId();
     for f := 0 to High(mIds) do
@@ -3370,11 +3375,11 @@ begin
         if mIsEnum then Inc(cv) else cv := cv shl 1;
       end;
     end;
-    if (pr.tokType = pr.TTEnd) then break;
-    pr.expectTT(pr.TTComma);
-    while pr.eatTT(pr.TTComma) do begin end;
+    if (pr.isDelim('}')) then break;
+    pr.expectDelim(',');
+    while (pr.eatDelim(',')) do begin end;
   end;
-  pr.expectTT(pr.TTEnd);
+  pr.expectDelim('}');
   // add max field
   if (Length(mMaxName) > 0) then
   begin

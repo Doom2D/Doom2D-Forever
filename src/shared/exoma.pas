@@ -931,7 +931,7 @@ begin
     try
       while true do
       begin
-        while pr.eatTT(pr.TTSemi) do begin end;
+        while pr.eatDelim(';') do begin end;
         if (pr.tokType = pr.TTEOF) then break;
         e := parse(clist, pr, true);
         if (e = nil) then break;
@@ -940,7 +940,7 @@ begin
         if (pr.tokType = pr.TTEOF) then break;
         //writeln('tt=', pr.tokType, ' <', pr.tokStr, '>');
         //writeln(r.toString());
-        pr.expectTT(pr.TTSemi);
+        pr.expectDelim(';');
       end;
       result := r;
       r := nil;
@@ -1130,7 +1130,7 @@ class function TExprBase.parse (clist: TExprConstList; pr: TTextParser; allowAss
         e := doLogOr();
         if neg then e := TUnExprNeg.Create(e);
         if allowAssign and pr.eatDelim('=') then e := TBinAssign.Create(e, expr());
-        if not pr.eatTT(pr.TTComma) then
+        if not pr.eatDelim(',') then
         begin
           if (result = nil) then result := e else list.append(e);
           break;
@@ -1162,7 +1162,7 @@ class function TExprBase.parse (clist: TExprConstList; pr: TTextParser; allowAss
       c.mCond := result;
       try
         c.mTrue := expr();
-        pr.expectTT(pr.TTColon);
+        pr.expectDelim(':');
         c.mFalse := expr();
         result := c;
       except
@@ -1172,16 +1172,16 @@ class function TExprBase.parse (clist: TExprConstList; pr: TTextParser; allowAss
   end;
 
 var
-  oas: Boolean;
+  oas: TTextParser.TOptions;
 begin
   if (pr = nil) or (pr.tokType = pr.TTEOF) then begin result := nil; exit; end;
-  oas := pr.allowSignedNumbers;
+  oas := pr.options;
   try
-    pr.allowSignedNumbers := false;
+    pr.options := pr.options-[pr.TOption.SignedNumbers];
     try
       result := expr();
     finally
-      pr.allowSignedNumbers := oas;
+      pr.options := oas;
     end;
   except
     on e: TExomaException do

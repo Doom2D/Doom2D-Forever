@@ -257,6 +257,21 @@ const
   FLAG_SIGNATURE = $47414C46; // 'FLAG'
 
 
+// ////////////////////////////////////////////////////////////////////////// //
+procedure mapWarningCB (const msg: AnsiString; line, col: Integer);
+begin
+  if (line > 0) then
+  begin
+    e_LogWritefln('parse error at (%s,%s): %s', [line, col, msg], TMsgType.Warning);
+  end
+  else
+  begin
+    e_LogWritefln('parse error: %s', [msg], TMsgType.Warning);
+  end;
+end;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
 var
   panByGUID: array of TPanel = nil;
 
@@ -3253,4 +3268,6 @@ begin
 end;
 
 
+begin
+  DynWarningCB := mapWarningCB;
 end.
