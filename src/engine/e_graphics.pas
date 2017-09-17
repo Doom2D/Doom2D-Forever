@@ -22,8 +22,8 @@ uses
   SysUtils, Classes, Math, e_log, e_texture, SDL2, GL, GLExt, MAPDEF, ImagingTypes, Imaging, ImagingUtility;
 
 type
-  TMirrorType=(M_NONE, M_HORIZONTAL, M_VERTICAL);
-  TBlending=(B_NONE, B_BLEND, B_FILTER, B_INVERT);
+  TMirrorType=(None, Horizontal, Vertical);
+  TBlending=(None, Blend, Filter, Invert);
 
   TPoint2i = record
     X, Y: Integer;
@@ -60,13 +60,13 @@ procedure e_SetViewPort(X, Y, Width, Height: Word);
 procedure e_ResizeWindow(Width, Height: Integer);
 
 procedure e_Draw(ID: DWORD; X, Y: Integer; Alpha: Byte; AlphaChannel: Boolean;
-                 Blending: Boolean; Mirror: TMirrorType = M_NONE);
+                 Blending: Boolean; Mirror: TMirrorType = TMirrorType.None);
 procedure e_DrawAdv(ID: DWORD; X, Y: Integer; Alpha: Byte; AlphaChannel: Boolean;
-                    Blending: Boolean; Angle: Single; RC: PDFPoint; Mirror: TMirrorType = M_NONE);
+                    Blending: Boolean; Angle: Single; RC: PDFPoint; Mirror: TMirrorType = TMirrorType.None);
 procedure e_DrawSize(ID: DWORD; X, Y: Integer; Alpha: Byte; AlphaChannel: Boolean;
-                     Blending: Boolean; Width, Height: Word; Mirror: TMirrorType = M_NONE);
+                     Blending: Boolean; Width, Height: Word; Mirror: TMirrorType = TMirrorType.None);
 procedure e_DrawSizeMirror(ID: DWORD; X, Y: Integer; Alpha: Byte; AlphaChannel: Boolean;
-                           Blending: Boolean; Width, Height: Word; Mirror: TMirrorType = M_NONE);
+                           Blending: Boolean; Width, Height: Word; Mirror: TMirrorType = TMirrorType.None);
 
 procedure e_DrawFill(ID: DWORD; X, Y: Integer; XCount, YCount: Word; Alpha: Integer;
                      AlphaChannel: Boolean; Blending: Boolean; ambientBlendMode: Boolean=false);
@@ -80,7 +80,7 @@ procedure e_DrawPoint(Size: Byte; X, Y: Integer; Red, Green, Blue: Byte);
 procedure e_DrawLine(Width: Byte; X1, Y1, X2, Y2: Integer; Red, Green, Blue: Byte; Alpha: Byte = 0);
 procedure e_DrawQuad(X1, Y1, X2, Y2: Integer; Red, Green, Blue: Byte; Alpha: Byte = 0);
 procedure e_DrawFillQuad(X1, Y1, X2, Y2: Integer; Red, Green, Blue, Alpha: Byte;
-                         Blending: TBlending = B_NONE);
+                         Blending: TBlending = TBlending.None);
 procedure e_DarkenQuad (x0, y0, x1, y1: Integer; a: Integer);
 procedure e_DarkenQuadWH (x, y, w, h: Integer; a: Integer);
 
@@ -286,7 +286,7 @@ var
 begin
  Result := False;
 
- e_WriteLog('Loading texture from '+FileName, MSG_NOTIFY);
+ e_WriteLog('Loading texture from '+FileName, TMsgType.Notify);
 
  find_id := FindTexture();
 
@@ -476,8 +476,8 @@ begin
   if (w < 1) or (h < 1) then exit;
   x1 := x0+w;
   y1 := y0+h;
-       if Mirror = M_HORIZONTAL then begin tmp := x1; x1 := x0; x0 := tmp; end
-  else if Mirror = M_VERTICAL then begin tmp := y1; y1 := y0; y0 := tmp; end;
+       if Mirror = TMirrorType.Horizontal then begin tmp := x1; x1 := x0; x0 := tmp; end
+  else if Mirror = TMirrorType.Vertical then begin tmp := y1; y1 := y0; y0 := tmp; end;
   //HACK: make texture one pixel shorter, so it won't wrap
   if (g_dbg_scale <> 1.0) then
   begin
@@ -491,7 +491,7 @@ begin
 end;
 
 procedure e_Draw(ID: DWORD; X, Y: Integer; Alpha: Byte; AlphaChannel: Boolean;
-                 Blending: Boolean; Mirror: TMirrorType = M_NONE);
+                 Blending: Boolean; Mirror: TMirrorType = TMirrorType.None);
 begin
   if e_NoGraphics then Exit;
   glColor4ub(e_Colors.R, e_Colors.G, e_Colors.B, 255);
@@ -551,7 +551,7 @@ begin
 end;
 
 procedure e_DrawSize(ID: DWORD; X, Y: Integer; Alpha: Byte; AlphaChannel: Boolean;
-                     Blending: Boolean; Width, Height: Word; Mirror: TMirrorType = M_NONE);
+                     Blending: Boolean; Width, Height: Word; Mirror: TMirrorType = TMirrorType.None);
 var
   u, v: Single;
 begin
@@ -589,7 +589,7 @@ begin
 end;
 
 procedure e_DrawSizeMirror(ID: DWORD; X, Y: Integer; Alpha: Byte; AlphaChannel: Boolean;
-                           Blending: Boolean; Width, Height: Word; Mirror: TMirrorType = M_NONE);
+                           Blending: Boolean; Width, Height: Word; Mirror: TMirrorType = TMirrorType.None);
 begin
   if e_NoGraphics then Exit;
   glColor4ub(e_Colors.R, e_Colors.G, e_Colors.B, 255);
@@ -867,7 +867,7 @@ end;
 
 
 procedure e_DrawAdv(ID: DWORD; X, Y: Integer; Alpha: Byte; AlphaChannel: Boolean;
-                    Blending: Boolean; Angle: Single; RC: PDFPoint; Mirror: TMirrorType = M_NONE);
+                    Blending: Boolean; Angle: Single; RC: PDFPoint; Mirror: TMirrorType = TMirrorType.None);
 begin
   if e_NoGraphics then Exit;
 
@@ -1009,21 +1009,21 @@ begin
 end;
 
 procedure e_DrawFillQuad(X1, Y1, X2, Y2: Integer; Red, Green, Blue, Alpha: Byte;
-                         Blending: TBlending = B_NONE);
+                         Blending: TBlending = TBlending.None);
 begin
   if e_NoGraphics then Exit;
-  if (Alpha > 0) or (Blending <> B_NONE) then
+  if (Alpha > 0) or (Blending <> TBlending.None) then
     glEnable(GL_BLEND)
   else
     glDisable(GL_BLEND);
 
-  if Blending = B_BLEND then
+  if Blending = TBlending.Blend then
     glBlendFunc(GL_SRC_ALPHA, GL_ONE)
   else
-    if Blending = B_FILTER then
+    if Blending = TBlending.Filter then
       glBlendFunc(GL_DST_COLOR, GL_SRC_COLOR)
     else
-      if Blending = B_INVERT then
+      if Blending = TBlending.Invert then
         glBlendFunc(GL_ONE_MINUS_DST_COLOR, GL_ZERO)
       else
         if Alpha > 0 then
@@ -1232,7 +1232,7 @@ function e_CharFont_Create(sp: ShortInt=0): DWORD;
 var
   i, id: DWORD;
 begin
- e_WriteLog('Creating CharFont...', MSG_NOTIFY);
+ e_WriteLog('Creating CharFont...', TMsgType.Notify);
 
  id := DWORD(-1);
 
@@ -1555,7 +1555,7 @@ var
   i, id: DWORD;
 begin
  if e_NoGraphics then Exit;
- e_WriteLog('Creating texture font...', MSG_NOTIFY);
+ e_WriteLog('Creating texture font...', TMsgType.Notify);
 
  id := DWORD(-1);
 

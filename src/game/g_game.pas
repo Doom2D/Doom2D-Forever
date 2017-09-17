@@ -1255,21 +1255,21 @@ begin
     if FindFirst(ModelsDir+'*.wad', faAnyFile, SR) = 0 then
       repeat
         if not g_PlayerModel_Load(ModelsDir+SR.Name) then
-          e_WriteLog(Format('Error loading model %s', [SR.Name]), MSG_WARNING);
+          e_WriteLog(Format('Error loading model %s', [SR.Name]), TMsgType.Warning);
       until FindNext(SR) <> 0;
     FindClose(SR);
 
     if FindFirst(ModelsDir+'*.pk3', faAnyFile, SR) = 0 then
       repeat
         if not g_PlayerModel_Load(ModelsDir+SR.Name) then
-          e_WriteLog(Format('Error loading model %s', [SR.Name]), MSG_WARNING);
+          e_WriteLog(Format('Error loading model %s', [SR.Name]), TMsgType.Warning);
       until FindNext(SR) <> 0;
     FindClose(SR);
 
     if FindFirst(ModelsDir+'*.zip', faAnyFile, SR) = 0 then
       repeat
         if not g_PlayerModel_Load(ModelsDir+SR.Name) then
-          e_WriteLog(Format('Error loading model %s', [SR.Name]), MSG_WARNING);
+          e_WriteLog(Format('Error loading model %s', [SR.Name]), TMsgType.Warning);
       until FindNext(SR) <> 0;
     FindClose(SR);
 
@@ -1443,16 +1443,16 @@ begin
       // new strafe mechanics
       if (strafeDir = 0) then strafeDir := MoveButton; // start strafing
       // now set direction according to strafe (reversed)
-           if (strafeDir = 2) then plr.SetDirection(D_LEFT)
-      else if (strafeDir = 1) then plr.SetDirection(D_RIGHT);
+           if (strafeDir = 2) then plr.SetDirection(TDirection.D_LEFT)
+      else if (strafeDir = 1) then plr.SetDirection(TDirection.D_RIGHT);
     end
     else
     begin
       strafeDir := 0; // not strafing anymore
       // Раньше была нажата "Вправо", а сейчас "Влево" => бежим вправо, смотрим влево:
-           if (MoveButton = 2) and isKeyPressed(KeyLeft, KeyLeft2) then plr.SetDirection(D_LEFT)
+           if (MoveButton = 2) and isKeyPressed(KeyLeft, KeyLeft2) then plr.SetDirection(TDirection.D_LEFT)
       // Раньше была нажата "Влево", а сейчас "Вправо" => бежим влево, смотрим вправо:
-      else if (MoveButton = 1) and isKeyPressed(KeyRight, KeyRight2) then plr.SetDirection(D_RIGHT)
+      else if (MoveButton = 1) and isKeyPressed(KeyRight, KeyRight2) then plr.SetDirection(TDirection.D_RIGHT)
       // Что-то было нажато и не изменилось => куда бежим, туда и смотрим:
       else if MoveButton <> 0 then plr.SetDirection(TDirection(MoveButton-1));
     end;
@@ -1965,7 +1965,7 @@ begin
   // Нужно сменить разрешение:
     if gResolutionChange then
     begin
-      e_WriteLog('Changing resolution', MSG_NOTIFY);
+      e_WriteLog('Changing resolution', TMsgType.Notify);
       g_Game_ChangeResolution(gRC_Width, gRC_Height, gRC_FullScreen, gRC_Maximized);
       gResolutionChange := False;
     end;
@@ -2046,7 +2046,7 @@ procedure g_Game_LoadData();
 begin
   if DataLoaded then Exit;
 
-  e_WriteLog('Loading game data...', MSG_NOTIFY);
+  e_WriteLog('Loading game data...', TMsgType.Notify);
 
   g_Texture_CreateWADEx('NOTEXTURE', GameWAD+':TEXTURES\NOTEXTURE');
   g_Texture_CreateWADEx('TEXTURE_PLAYER_HUD', GameWAD+':TEXTURES\HUD');
@@ -2122,7 +2122,7 @@ begin
   g_Weapon_FreeData();
   g_Monsters_FreeData();
 
-  e_WriteLog('Releasing game data...', MSG_NOTIFY);
+  e_WriteLog('Releasing game data...', TMsgType.Notify);
 
   g_Texture_Delete('NOTEXTURE');
   g_Texture_Delete('TEXTURE_PLAYER_HUD');
@@ -3539,7 +3539,7 @@ end;
 procedure g_FatalError(Text: String);
 begin
   g_Console_Add(Format(_lc[I_FATAL_ERROR], [Text]), True);
-  e_WriteLog(Format(_lc[I_FATAL_ERROR], [Text]), MSG_WARNING);
+  e_WriteLog(Format(_lc[I_FATAL_ERROR], [Text]), TMsgType.Warning);
 
   gExit := EXIT_SIMPLE;
 end;
@@ -3547,7 +3547,7 @@ end;
 procedure g_SimpleError(Text: String);
 begin
   g_Console_Add(Format(_lc[I_SIMPLE_ERROR], [Text]), True);
-  e_WriteLog(Format(_lc[I_SIMPLE_ERROR], [Text]), MSG_WARNING);
+  e_WriteLog(Format(_lc[I_SIMPLE_ERROR], [Text]), TMsgType.Warning);
 end;
 
 procedure g_Game_SetupScreenSize();
@@ -3731,7 +3731,7 @@ var
 begin
   g_Game_Free();
 
-  e_WriteLog('Starting singleplayer game...', MSG_NOTIFY);
+  e_WriteLog('Starting singleplayer game...', TMsgType.Notify);
 
   g_Game_ClearLoading();
 
@@ -3804,7 +3804,7 @@ var
 begin
   g_Game_Free();
 
-  e_WriteLog('Starting custom game...', MSG_NOTIFY);
+  e_WriteLog('Starting custom game...', TMsgType.Notify);
 
   g_Game_ClearLoading();
 
@@ -3902,7 +3902,7 @@ procedure g_Game_StartServer(Map: String; GameMode: Byte;
 begin
   g_Game_Free();
 
-  e_WriteLog('Starting net game (server)...', MSG_NOTIFY);
+  e_WriteLog('Starting net game (server)...', TMsgType.Notify);
 
   g_Game_ClearLoading();
 
@@ -4012,8 +4012,8 @@ begin
   g_Game_Free();
 
   State := 0;
-  e_WriteLog('Starting net game (client)...', MSG_NOTIFY);
-  e_WriteLog('NET: Trying to connect to ' + Addr + ':' + IntToStr(Port) + '...', MSG_NOTIFY);
+  e_WriteLog('Starting net game (client)...', TMsgType.Notify);
+  e_WriteLog('NET: Trying to connect to ' + Addr + ':' + IntToStr(Port) + '...', TMsgType.Notify);
 
   g_Game_ClearLoading();
 
@@ -4165,7 +4165,7 @@ begin
   g_Player_Init();
   NetState := NET_STATE_GAME;
   MC_SEND_FullStateRequest;
-  e_WriteLog('NET: Connection successful.', MSG_NOTIFY);
+  e_WriteLog('NET: Connection successful.', TMsgType.Notify);
 end;
 
 procedure g_Game_SaveOptions();
@@ -7137,7 +7137,7 @@ begin
     if (s <> '') then
     begin
       gMapToDelete := MapsDir + map;
-      e_WriteLog('"--testdelete" is deprecated, use --tempdelete.', MSG_FATALERROR);
+      e_WriteLog('"--testdelete" is deprecated, use --tempdelete.', TMsgType.Fatal);
       Halt(1);
     end;
 
@@ -7176,12 +7176,12 @@ begin
     Reset(F);
     if IOResult <> 0 then
     begin
-      e_WriteLog(Format(_lc[I_SIMPLE_ERROR], ['Failed to read file: ' + s]), MSG_WARNING);
+      e_WriteLog(Format(_lc[I_SIMPLE_ERROR], ['Failed to read file: ' + s]), TMsgType.Warning);
       g_Console_Add(Format(_lc[I_CONSOLE_ERROR_READ], [s]));
       CloseFile(F);
       Exit;
     end;
-    e_WriteLog('Executing script: ' + s, MSG_NOTIFY);
+    e_WriteLog('Executing script: ' + s, TMsgType.Notify);
     g_Console_Add(Format(_lc[I_CONSOLE_EXEC], [s]));
 
     while not EOF(F) do
@@ -7189,7 +7189,7 @@ begin
       ReadLn(F, s);
       if IOResult <> 0 then
       begin
-        e_WriteLog(Format(_lc[I_SIMPLE_ERROR], ['Failed to read file: ' + s]), MSG_WARNING);
+        e_WriteLog(Format(_lc[I_SIMPLE_ERROR], ['Failed to read file: ' + s]), TMsgType.Warning);
         g_Console_Add(Format(_lc[I_CONSOLE_ERROR_READ], [s]));
         CloseFile(F);
         Exit;

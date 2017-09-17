@@ -454,8 +454,8 @@ function g_Look(a, b: PObj; d: TDirection): Boolean;
 begin
   if not gmon_dbg_los_enabled then begin result := false; exit; end; // always "wall hit"
 
-  if ((b^.X > a^.X) and (d = D_LEFT)) or
-     ((b^.X < a^.X) and (d = D_RIGHT)) then
+  if ((b^.X > a^.X) and (d = TDirection.D_LEFT)) or
+     ((b^.X < a^.X) and (d = TDirection.D_RIGHT)) then
   begin
     Result := False;
     Exit;

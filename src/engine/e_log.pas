@@ -25,7 +25,7 @@ uses
 
 type
   TWriteMode = (WM_NEWFILE,  WM_OLDFILE);
-  TRecordCategory = (MSG_FATALERROR, MSG_WARNING, MSG_NOTIFY);
+  TMsgType = (Fatal, Warning, Notify);
 
 
 procedure e_InitLog (fFileName: String; fWriteMode: TWriteMode);
@@ -33,15 +33,15 @@ procedure e_DeinitLog ();
 
 procedure e_SetSafeSlowLog (slowAndSafe: Boolean);
 
-procedure e_WriteLog (TextLine: String; RecordCategory: TRecordCategory; WriteTime: Boolean=True);
+procedure e_WriteLog (TextLine: String; RecordCategory: TMsgType; WriteTime: Boolean=True);
 
 function DecodeIPV4 (ip: LongWord): string;
 
 // start Write/WriteLn driver. it will write everything to cbuf.
 procedure e_InitWritelnDriver ();
 
-procedure e_LogWritefln (const fmt: AnsiString; args: array of const; category: TRecordCategory=MSG_NOTIFY; writeTime: Boolean=true);
-procedure e_LogWriteln (const s: AnsiString; category: TRecordCategory=MSG_NOTIFY; writeTime: Boolean=true);
+procedure e_LogWritefln (const fmt: AnsiString; args: array of const; category: TMsgType=TMsgType.Notify; writeTime: Boolean=true);
+procedure e_LogWriteln (const s: AnsiString; category: TMsgType=TMsgType.Notify; writeTime: Boolean=true);
 
 
 procedure e_WriteStackTrace (const msg: AnsiString);
@@ -68,13 +68,13 @@ begin
 end;
 
 
-procedure e_WriteLog (TextLine: String; RecordCategory: TRecordCategory; WriteTime: Boolean=True);
+procedure e_WriteLog (TextLine: String; RecordCategory: TMsgType; WriteTime: Boolean=True);
 begin
   e_LogWritefln('%s', [TextLine], RecordCategory, WriteTime);
 end;
 
 
-procedure e_LogWriteln (const s: AnsiString; category: TRecordCategory=MSG_NOTIFY; writeTime: Boolean=true);
+procedure e_LogWriteln (const s: AnsiString; category: TMsgType=TMsgType.Notify; writeTime: Boolean=true);
 begin
   e_LogWritefln('%s', [s], category, writeTime);
 end;
@@ -167,7 +167,7 @@ begin
 end;
 
 
-procedure e_LogWritefln (const fmt: AnsiString; args: array of const; category: TRecordCategory=MSG_NOTIFY; writeTime: Boolean=true);
+procedure e_LogWritefln (const fmt: AnsiString; args: array of const; category: TMsgType=TMsgType.Notify; writeTime: Boolean=true);
 
   procedure xwrite (const s: AnsiString);
   begin
@@ -179,8 +179,8 @@ begin
   if driverInited and (length(fmt) > 0) then
   begin
     case category of
-      MSG_FATALERROR: write('FATAL: ');
-      MSG_WARNING: write('WARNING: ');
+      TMsgType.Fatal: write('FATAL: ');
+      TMsgType.Warning: write('WARNING: ');
     end;
     formatstrf(fmt, args, conwriter);
     writeln;
@@ -208,9 +208,9 @@ begin
   xlogPrefix := '';
   if writeTime then begin xlogPrefix += '['; xlogPrefix += TimeToStr(Time); xlogPrefix += '] '; end;
   case category of
-    MSG_FATALERROR: xlogPrefix += '!!!';
-    MSG_WARNING: xlogPrefix += '!  ';
-    MSG_NOTIFY: xlogPrefix += '***';
+    TMsgType.Fatal: xlogPrefix += '!!!';
+    TMsgType.Warning: xlogPrefix += '!  ';
+    TMsgType.Notify: xlogPrefix += '***';
   end;
   xlogLastWasEOL := true; // to output prefix
   xlogWantSpace := true; // after prefix
@@ -232,7 +232,7 @@ begin
   if xlogFileOpened then CloseFile(xlogFile);
   xlogFileOpened := false;
   FileName := fFileName;
-  if (fWriteMode = WM_NEWFILE) then
+  if (fWriteMode = TWriteMode.WM_NEWFILE) then
   begin
     try
       if FileExists(FileName) then DeleteFile(FileName);
@@ -248,7 +248,7 @@ procedure e_WriteStackTrace (const msg: AnsiString);
 var
   tfo: TextFile;
 begin
-  e_LogWriteln(msg, MSG_FATALERROR);
+  e_LogWriteln(msg, TMsgType.Fatal);
   if (Length(FileName) > 0) then
   begin
     if xlogFileOpened then CloseFile(xlogFile);

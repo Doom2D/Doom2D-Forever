@@ -626,7 +626,7 @@ end;
 // ////////////////////////////////////////////////////////////////////////// //
 procedure g_Holmes_VidModeChanged ();
 begin
-  e_WriteLog(Format('Holmes: videomode changed: %dx%d', [gScreenWidth, gScreenHeight]), MSG_NOTIFY);
+  e_WriteLog(Format('Holmes: videomode changed: %dx%d', [gScreenWidth, gScreenHeight]), TMsgType.Notify);
   // texture space is possibly lost here, idc
   curtexid := 0;
   font6texid := 0;
@@ -1445,7 +1445,7 @@ procedure cbAtcurSelectMonster ();
   function monsAtDump (mon: TMonster; tag: Integer): Boolean;
   begin
     result := true; // stop
-    e_WriteLog(Format('monster #%d (UID:%u) (proxyid:%d)', [mon.arrIdx, mon.UID, mon.proxyId]), MSG_NOTIFY);
+    e_WriteLog(Format('monster #%d (UID:%u) (proxyid:%d)', [mon.arrIdx, mon.UID, mon.proxyId]), TMsgType.Notify);
     monMarkedUID := mon.UID;
     dumpPublishedProperties(mon);
   end;
@@ -1475,12 +1475,12 @@ procedure cbAtcurDumpMonsters ();
   function monsAtDump (mon: TMonster; tag: Integer): Boolean;
   begin
     result := false; // don't stop
-    e_WriteLog(Format('monster #%d (UID:%u) (proxyid:%d)', [mon.arrIdx, mon.UID, mon.proxyId]), MSG_NOTIFY);
+    e_WriteLog(Format('monster #%d (UID:%u) (proxyid:%d)', [mon.arrIdx, mon.UID, mon.proxyId]), TMsgType.Notify);
   end;
 begin
-  e_WriteLog('===========================', MSG_NOTIFY);
+  e_WriteLog('===========================', TMsgType.Notify);
   monsGrid.forEachAtPoint(pmsCurMapX, pmsCurMapY, monsAtDump);
-  e_WriteLog('---------------------------', MSG_NOTIFY);
+  e_WriteLog('---------------------------', TMsgType.Notify);
 end;
 
 procedure cbAtcurDumpWalls ();
@@ -1497,9 +1497,9 @@ var
   trig: PTrigger;
 begin
   platMarkedGUID := -1;
-  e_WriteLog('=== TOGGLE WALL ===', MSG_NOTIFY);
+  e_WriteLog('=== TOGGLE WALL ===', TMsgType.Notify);
   mapGrid.forEachAtPoint(pmsCurMapX, pmsCurMapY, wallToggle, (GridTagWall or GridTagDoor));
-  e_WriteLog('--- toggle wall ---', MSG_NOTIFY);
+  e_WriteLog('--- toggle wall ---', TMsgType.Notify);
   if showTriggers then
   begin
     for f := 0 to High(gTriggers) do

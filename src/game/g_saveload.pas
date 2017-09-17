@@ -125,7 +125,7 @@ begin
     try
       if not utils.checkSign(st, 'DFSV') then
       begin
-        e_LogWritefln('GetSaveName: not a save file: ''%s''', [st], MSG_WARNING);
+        e_LogWritefln('GetSaveName: not a save file: ''%s''', [st], TMsgType.Warning);
         //raise XStreamError.Create('invalid save game signature');
         exit;
       end;
@@ -136,7 +136,7 @@ begin
         stlen := utils.readWord(st);
         if (stlen < 1) or (stlen > 64) then
         begin
-          e_LogWritefln('GetSaveName: not a save file: ''%s''', [st], MSG_WARNING);
+          e_LogWritefln('GetSaveName: not a save file: ''%s''', [st], TMsgType.Warning);
           //raise XStreamError.Create('invalid save game version');
           exit;
         end;
@@ -278,7 +278,7 @@ begin
       begin
         st.Free();
         g_Console_Add(_lc[I_GAME_ERROR_SAVE]);
-        e_WriteLog('SaveState Error: '+e.message, MSG_WARNING);
+        e_WriteLog('SaveState Error: '+e.message, TMsgType.Warning);
         if deleteOnError then DeleteFile(filename);
         {$IF DEFINED(D2F_DEBUG)}e_WriteStackTrace(e.message);{$ENDIF}
         result := false;
@@ -317,7 +317,7 @@ begin
       if not utils.checkSign(st, 'DFSV') then raise XStreamError.Create('invalid save game signature');
       if (utils.readByte(st) <> SAVE_VERSION) then raise XStreamError.Create('invalid save game version');
 
-      e_WriteLog('Loading saved game...', MSG_NOTIFY);
+      e_WriteLog('Loading saved game...', TMsgType.Notify);
 
       {$IF DEFINED(D2F_DEBUG)}try{$ENDIF}
         //g_Game_Free(false); // don't free textures for the same map
@@ -504,8 +504,8 @@ begin
     on e: Exception do
       begin
         g_Console_Add(_lc[I_GAME_ERROR_LOAD]);
-        e_WriteLog('LoadState Error: '+e.message, MSG_WARNING);
-        {$IF DEFINED(D2F_DEBUG)}e_LogWritefln('stream error position: 0x%08x', [errpos], MSG_WARNING);{$ENDIF}
+        e_WriteLog('LoadState Error: '+e.message, TMsgType.Warning);
+        {$IF DEFINED(D2F_DEBUG)}e_LogWritefln('stream error position: 0x%08x', [errpos], TMsgType.Warning);{$ENDIF}
         gLoadGameMode := false;
         result := true;
         if not gameCleared then g_Game_Free();

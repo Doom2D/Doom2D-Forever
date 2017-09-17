@@ -340,7 +340,7 @@ begin
 // Если не спецтекстура, то задаем размеры:
   if PanelRec.TextureNum > High(Textures) then
   begin
-    e_WriteLog(Format('WTF?! PanelRec.TextureNum is out of limits! (%d : %d)', [PanelRec.TextureNum, High(Textures)]), MSG_FATALERROR);
+    e_WriteLog(Format('WTF?! PanelRec.TextureNum is out of limits! (%d : %d)', [PanelRec.TextureNum, High(Textures)]), TMsgType.Fatal);
     FTextureWidth := 2;
     FTextureHeight := 2;
     FAlpha := 0;
@@ -429,14 +429,14 @@ begin
           for yy := 0 to (Height div FTextureHeight)-1 do
             FTextureIDs[FCurTexture].AnTex.Draw(
               X + xx*FTextureWidth,
-              Y + yy*FTextureHeight, M_NONE);
+              Y + yy*FTextureHeight, TMirrorType.None);
       end
     else
       begin // Обычная текстура
         case FTextureIDs[FCurTexture].Tex of
-          LongWord(TEXTURE_SPECIAL_WATER): e_DrawFillQuad(X, Y, X+Width-1, Y+Height-1, 0, 0, 255, 0, B_FILTER);
-          LongWord(TEXTURE_SPECIAL_ACID1): e_DrawFillQuad(X, Y, X+Width-1, Y+Height-1, 0, 128, 0, 0, B_FILTER);
-          LongWord(TEXTURE_SPECIAL_ACID2): e_DrawFillQuad(X, Y, X+Width-1, Y+Height-1, 128, 0, 0, 0, B_FILTER);
+          LongWord(TEXTURE_SPECIAL_WATER): e_DrawFillQuad(X, Y, X+Width-1, Y+Height-1, 0, 0, 255, 0, TBlending.Filter);
+          LongWord(TEXTURE_SPECIAL_ACID1): e_DrawFillQuad(X, Y, X+Width-1, Y+Height-1, 0, 128, 0, 0, TBlending.Filter);
+          LongWord(TEXTURE_SPECIAL_ACID2): e_DrawFillQuad(X, Y, X+Width-1, Y+Height-1, 128, 0, 0, 0, TBlending.Filter);
           LongWord(TEXTURE_NONE):
             if g_Texture_Get('NOTEXTURE', NoTextureID) then
             begin

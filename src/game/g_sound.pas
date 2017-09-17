@@ -139,7 +139,7 @@ begin
       Exit;
     end;
 
-  e_WriteLog(Format(_lc[I_GAME_ERROR_SOUND], [SoundName]), MSG_WARNING);
+  e_WriteLog(Format(_lc[I_GAME_ERROR_SOUND], [SoundName]), TMsgType.Warning);
 end;
 
 function g_Sound_PlayExPanVolume(SoundName: ShortString; Pan: Single; Volume: Single): Boolean;
@@ -157,7 +157,7 @@ begin
       Exit;
     end;
 
-  e_WriteLog(Format(_lc[I_GAME_ERROR_SOUND], [SoundName]), MSG_WARNING);
+  e_WriteLog(Format(_lc[I_GAME_ERROR_SOUND], [SoundName]), TMsgType.Warning);
 end;
 
 function PlaySoundAt(X, Y: Integer; var Pan: Single; var Volume: Single; InVolume: Single = 1.0): Boolean;
@@ -268,7 +268,7 @@ begin
       Exit;
     end;
 
-  e_WriteLog(Format(_lc[I_GAME_ERROR_SOUND], [SoundName]), MSG_WARNING);
+  e_WriteLog(Format(_lc[I_GAME_ERROR_SOUND], [SoundName]), TMsgType.Warning);
 end;
 
 function g_Sound_CreateFile(var ID: DWORD; FileName: string; isMusic: Boolean = False): Boolean;
@@ -327,9 +327,9 @@ begin
   begin
 {$IFNDEF HEADLESS}
     if isMusic then
-      e_WriteLog(Format('Error loading music %s', [Resource]), MSG_WARNING)
+      e_WriteLog(Format('Error loading music %s', [Resource]), TMsgType.Warning)
     else
-      e_WriteLog(Format('Error loading sound %s', [Resource]), MSG_WARNING);
+      e_WriteLog(Format('Error loading sound %s', [Resource]), TMsgType.Warning);
     Exit;
 {$ENDIF}
   end;
@@ -377,9 +377,9 @@ begin
   begin
 {$IFNDEF HEADLESS}
     if isMusic then
-      e_WriteLog(Format('Error loading music %s', [Resource]), MSG_WARNING)
+      e_WriteLog(Format('Error loading music %s', [Resource]), TMsgType.Warning)
     else
-      e_WriteLog(Format('Error loading sound %s', [Resource]), MSG_WARNING);
+      e_WriteLog(Format('Error loading sound %s', [Resource]), TMsgType.Warning);
     Exit;
 {$ENDIF}
   end;

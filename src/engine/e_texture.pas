@@ -108,7 +108,7 @@ begin
   glBindTexture(GL_TEXTURE_2D, Texture);
 
   if (tex.glwidth <> tex.width) or (tex.glheight <> tex.height) then
-    e_WriteLog(Format('NPOT: %u is %ux%u; gl is %ux%u; u=%f; v=%f', [tex.id, Width, Height, tex.glwidth, tex.glheight, tex.u, tex.v]), MSG_NOTIFY);
+    e_WriteLog(Format('NPOT: %u is %ux%u; gl is %ux%u; u=%f; v=%f', [tex.id, Width, Height, tex.glwidth, tex.glheight, tex.u, tex.v]), TMsgType.Notify);
 
   // texture blends with object background
   glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
@@ -185,7 +185,7 @@ begin
 
   if (img.width < 1) or (img.width > 32768) or (img.height < 1) or (img.height > 32768) then
   begin
-    e_WriteLog('Error loading texture: invalid image dimensions', MSG_WARNING);
+    e_WriteLog('Error loading texture: invalid image dimensions', TMsgType.Warning);
     exit;
   end;
   //ConvertImage(img, ifA8R8G8B8);
@@ -234,7 +234,7 @@ begin
   InitImage(img);
   if not LoadImageFromMemory(pData, dataSize, img) then
   begin
-    e_WriteLog('Error loading texture: unknown image format', MSG_WARNING);
+    e_WriteLog('Error loading texture: unknown image format', TMsgType.Warning);
     exit;
   end;
   try
@@ -260,13 +260,13 @@ begin
   InitImage(img);
   if not LoadImageFromMemory(pData, dataSize, img) then
   begin
-    e_WriteLog('Error loading texture: unknown image format', MSG_WARNING);
+    e_WriteLog('Error loading texture: unknown image format', TMsgType.Warning);
     exit;
   end;
   try
     if (img.width < 1) or (img.width > 32768) or (img.height < 1) or (img.height > 32768) then
     begin
-      e_WriteLog('Error loading texture: invalid image dimensions', MSG_WARNING);
+      e_WriteLog('Error loading texture: invalid image dimensions', TMsgType.Warning);
       exit;
     end;
     //ConvertImage(img, ifA8R8G8B8);
@@ -321,7 +321,7 @@ begin
   end;
   if fs = nil then
   begin
-    e_WriteLog('Texture "'+filename+'" not found', MSG_WARNING);
+    e_WriteLog('Texture "'+filename+'" not found', TMsgType.Warning);
     exit;
   end;
 
@@ -357,7 +357,7 @@ begin
   end;
   if fs = nil then
   begin
-    e_WriteLog('Texture "'+filename+'" not found', MSG_WARNING);
+    e_WriteLog('Texture "'+filename+'" not found', TMsgType.Warning);
     exit;
   end;
 

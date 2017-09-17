@@ -19,6 +19,7 @@
 //
 {.$DEFINE SFS_DEBUG_ZIPFS}
 {$INCLUDE ../shared/a_modes.inc}
+{$SCOPEDENUMS OFF}
 {.$R+}
 unit sfsZipFS;
 

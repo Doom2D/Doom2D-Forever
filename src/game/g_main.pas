@@ -58,9 +58,9 @@ begin
   ModelsDir := DataDir + 'models/';
   GameWAD := DataDir + 'Game.wad';
 
-  e_InitLog(GameDir + '/' + LOG_FILENAME, WM_NEWFILE);
+  e_InitLog(GameDir + '/' + LOG_FILENAME, TWriteMode.WM_NEWFILE);
 
-  e_WriteLog('Read config file', MSG_NOTIFY);
+  e_WriteLog('Read config file', TMsgType.Notify);
   g_Options_Read(GameDir + '/' + CONFIG_FILENAME);
 
 {$IFDEF HEADLESS}
@@ -72,7 +72,7 @@ begin
 
   //e_WriteLog('Read language file', MSG_NOTIFY);
   //g_Language_Load(DataDir + gLanguage + '.txt');
-  e_WriteLog(gLanguage, MSG_NOTIFY);
+  e_WriteLog(gLanguage, TMsgType.Notify);
   g_Language_Set(gLanguage);
 
 {$IFDEF HEADLESS}
@@ -97,7 +97,7 @@ begin
   SDL_StartTextInput();
 {$ENDIF}
 
-  e_WriteLog('Entering SDLMain', MSG_NOTIFY);
+  e_WriteLog('Entering SDLMain', TMsgType.Notify);
 
 {$WARNINGS OFF}
   SDLMain();
@@ -107,7 +107,7 @@ begin
   SDL_StopTextInput();
 {$ENDIF}
 
-  e_WriteLog('Releasing SDL', MSG_NOTIFY);
+  e_WriteLog('Releasing SDL', TMsgType.Notify);
   SDL_Quit();
 end;
 
@@ -128,21 +128,21 @@ begin
   NoSound := False;
 {$ENDIF}
 
-  e_WriteLog('Init Input', MSG_NOTIFY);
+  e_WriteLog('Init Input', TMsgType.Notify);
   e_InitInput();
 
   if (e_JoysticksAvailable > 0) then
-    e_WriteLog('Input: Joysticks available.', MSG_NOTIFY)
+    e_WriteLog('Input: Joysticks available.', TMsgType.Notify)
   else
-    e_WriteLog('Input: No Joysticks.', MSG_NOTIFY);
+    e_WriteLog('Input: No Joysticks.', TMsgType.Notify);
 
   if (not gNoSound) then
   begin
-    e_WriteLog('Initializing sound system', MSG_NOTIFY);
+    e_WriteLog('Initializing sound system', TMsgType.Notify);
     e_InitSoundSystem(NoSound);
   end;
 
-  e_WriteLog('Init game', MSG_NOTIFY);
+  e_WriteLog('Init game', TMsgType.Notify);
   g_Game_Init();
 
   for a := 0 to 15 do charbuff[a] := ' ';
@@ -150,15 +150,15 @@ end;
 
 procedure Release();
 begin
-  e_WriteLog('Releasing engine', MSG_NOTIFY);
+  e_WriteLog('Releasing engine', TMsgType.Notify);
   e_ReleaseEngine();
 
-  e_WriteLog('Releasing Input', MSG_NOTIFY);
+  e_WriteLog('Releasing Input', TMsgType.Notify);
   e_ReleaseInput();
 
   if not gNoSound then
   begin
-    e_WriteLog('Releasing FMOD', MSG_NOTIFY);
+    e_WriteLog('Releasing FMOD', TMsgType.Notify);
     e_ReleaseSoundSystem();
   end;
 end;

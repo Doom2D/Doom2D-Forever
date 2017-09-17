@@ -14,6 +14,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *)
 {$INCLUDE ../shared/a_modes.inc}
+{$SCOPEDENUMS OFF}
 unit g_language;
 
 interface
@@ -1855,7 +1856,7 @@ begin
       CloseFile(F);
     end
   else
-    e_WriteLog('Language file "'+fileName+'" not found!', MSG_WARNING);
+    e_WriteLog('Language file "'+fileName+'" not found!', TMsgType.Warning);
 
   SetupArrays();
 end;

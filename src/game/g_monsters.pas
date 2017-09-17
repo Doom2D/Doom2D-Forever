@@ -62,7 +62,7 @@ type
     FMaxHealth: Integer;
     FState: Byte;
     FCurAnim: Byte;
-    FAnim: Array of Array [D_LEFT..D_RIGHT] of TAnimation;
+    FAnim: Array of Array [TDirection.D_LEFT..TDirection.D_RIGHT] of TAnimation;
     FTargetUID: Word;
     FTargetTime: Integer;
     FBehaviour: Byte;
@@ -238,8 +238,8 @@ procedure g_Monsters_killedp ();
 procedure g_Monsters_SaveState (st: TStream);
 procedure g_Monsters_LoadState (st: TStream);
 
-function g_Mons_SpawnAt (monType: Integer; x, y: Integer; dir: TDirection=D_LEFT): TMonster; overload;
-function g_Mons_SpawnAt (const typeName: AnsiString; x, y: Integer; dir: TDirection=D_LEFT): TMonster; overload;
+function g_Mons_SpawnAt (monType: Integer; x, y: Integer; dir: TDirection=TDirection.D_LEFT): TMonster; overload;
+function g_Mons_SpawnAt (const typeName: AnsiString; x, y: Integer; dir: TDirection=TDirection.D_LEFT): TMonster; overload;
 
 function g_Mons_TypeLo (): Integer; inline;
 function g_Mons_TypeHi (): Integer; inline;
@@ -809,7 +809,7 @@ end;
 
 procedure g_Monsters_LoadData();
 begin
-  e_WriteLog('Loading monsters data...', MSG_NOTIFY);
+  e_WriteLog('Loading monsters data...', TMsgType.Notify);
 
   g_Game_SetLoadingText(_lc[I_LOAD_MONSTER_TEXTURES]+' 0%', 0, False);
   g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_BARREL_SLEEP', GameWAD+':MTEXTURES\BARREL_SLEEP', 64, 64, 3);
@@ -1053,7 +1053,7 @@ end;
 
 procedure g_Monsters_FreeData();
 begin
-  e_WriteLog('Releasing monsters data...', MSG_NOTIFY);
+  e_WriteLog('Releasing monsters data...', TMsgType.Notify);
 
   g_Frames_DeleteByName('FRAMES_MONSTER_BARREL_SLEEP');
   g_Frames_DeleteByName('FRAMES_MONSTER_BARREL_PAIN');
@@ -1523,7 +1523,7 @@ begin
     // Тип монстра
     b := utils.readByte(st);
     // Создаем монстра
-    mon := g_Monsters_Create(b, 0, 0, D_LEFT);
+    mon := g_Monsters_Create(b, 0, 0, TDirection.D_LEFT);
     if (mon = nil) then raise XStreamError.Create('g_Monsters_LoadState: ID = -1 (can''t create)');
     // Загружаем данные монстра
     mon.LoadState(st);
@@ -1532,7 +1532,7 @@ end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-function g_Mons_SpawnAt (monType: Integer; x, y: Integer; dir: TDirection=D_LEFT): TMonster; overload;
+function g_Mons_SpawnAt (monType: Integer; x, y: Integer; dir: TDirection=TDirection.D_LEFT): TMonster; overload;
 begin
   result := nil;
   if (monType >= MONSTER_DEMON) and (monType <= MONSTER_MAN) then
@@ -1542,7 +1542,7 @@ begin
 end;
 
 
-function g_Mons_SpawnAt (const typeName: AnsiString; x, y: Integer; dir: TDirection=D_LEFT): TMonster; overload;
+function g_Mons_SpawnAt (const typeName: AnsiString; x, y: Integer; dir: TDirection=TDirection.D_LEFT): TMonster; overload;
 begin
   result := g_Mons_SpawnAt(g_Mons_TypeIdByName(typeName), x, y, dir);
 end;
@@ -1897,8 +1897,8 @@ begin
 
   for a := 0 to High(FAnim) do
   begin
-    FAnim[a, D_LEFT] := nil;
-    FAnim[a, D_RIGHT] := nil;
+    FAnim[a, TDirection.D_LEFT] := nil;
+    FAnim[a, TDirection.D_RIGHT] := nil;
   end;
 
   for a := ANIM_SLEEP to ANIM_PAIN do
@@ -1923,15 +1923,15 @@ begin
         if g_Frames_Get(FramesID, 'FRAMES_MONSTER_'+MONSTERTABLE[MonsterType].Name+
                         '_'+ANIMTABLE[ANIM_DIE].name) then
         begin
-          FAnim[a, D_RIGHT] := TAnimation.Create(FramesID, ANIMTABLE[ANIM_DIE].loop,
+          FAnim[a, TDirection.D_RIGHT] := TAnimation.Create(FramesID, ANIMTABLE[ANIM_DIE].loop,
                                                  MONSTER_ANIMTABLE[MonsterType].AnimSpeed[ANIM_DIE]);
-          FAnim[a, D_LEFT] := TAnimation.Create(FramesID, ANIMTABLE[ANIM_DIE].loop,
+          FAnim[a, TDirection.D_LEFT] := TAnimation.Create(FramesID, ANIMTABLE[ANIM_DIE].loop,
                                                 MONSTER_ANIMTABLE[MonsterType].AnimSpeed[ANIM_DIE]);
           Continue;
         end;
       end;
 
-      FAnim[a, D_RIGHT] := TAnimation.Create(FramesID, ANIMTABLE[a].loop,
+      FAnim[a, TDirection.D_RIGHT] := TAnimation.Create(FramesID, ANIMTABLE[a].loop,
                                              MONSTER_ANIMTABLE[MonsterType].AnimSpeed[a]);
 
     // Если есть отдельная левая анимация - загружаем:
@@ -1943,7 +1943,7 @@ begin
           g_Frames_Get(FramesID, s);
       end;
 
-      FAnim[a, D_LEFT] := TAnimation.Create(FramesID, ANIMTABLE[a].loop,
+      FAnim[a, TDirection.D_LEFT] := TAnimation.Create(FramesID, ANIMTABLE[a].loop,
                                             MONSTER_ANIMTABLE[MonsterType].AnimSpeed[a]);
     end;
 
@@ -1972,10 +1972,7 @@ begin
   if (t = HIT_ELECTRO) and (FMonsterType = MONSTER_FISH) and g_Game_IsServer then
   begin
     FSleep := 20;
-    if Random(2) = 0 then
-      FDirection := D_RIGHT
-    else
-      FDirection := D_LEFT;
+    if Random(2) = 0 then FDirection := TDirection.D_RIGHT else FDirection := TDirection.D_LEFT;
     Result := True;
     SetState(MONSTATE_RUN);
     Exit;
@@ -2138,8 +2135,8 @@ var
 begin
   for a := 0 to High(FAnim) do
   begin
-    FAnim[a, D_LEFT].Free();
-    FAnim[a, D_RIGHT].Free();
+    FAnim[a, TDirection.D_LEFT].Free();
+    FAnim[a, TDirection.D_RIGHT].Free();
   end;
 
   vilefire.Free();
@@ -2182,7 +2179,7 @@ begin
     if FState = MONSTATE_SHOOT then
       if GetPos(FTargetUID, @o) then
         vilefire.Draw(o.X+o.Rect.X+(o.Rect.Width div 2)-32,
-                      o.Y+o.Rect.Y+o.Rect.Height-128, M_NONE);
+                      o.Y+o.Rect.Y+o.Rect.Height-128, TMirrorType.None);
 
 // Не в области рисования не ресуем:
 //FIXME!
@@ -2203,22 +2200,22 @@ begin
   if FAnim[FCurAnim, FDirection] <> nil then
   begin
   // Если нет левой анимации или она совпадает с правой => отражаем правую:
-    if (FDirection = D_LEFT) and
+    if (FDirection = TDirection.D_LEFT) and
        ((not MONSTER_ANIMTABLE[FMonsterType].LeftAnim) or
-        (FAnim[FCurAnim, D_LEFT].FramesID = FAnim[FCurAnim, D_RIGHT].FramesID)) and
+        (FAnim[FCurAnim, TDirection.D_LEFT].FramesID = FAnim[FCurAnim, TDirection.D_RIGHT].FramesID)) and
         (FMonsterType <> MONSTER_BARREL) then
-      m := M_HORIZONTAL
+      m := TMirrorType.Horizontal
     else
-      m := M_NONE;
+      m := TMirrorType.None;
 
   // Левая анимация => меняем смещение относительно центра:
-    if (FDirection = D_LEFT) and
+    if (FDirection = TDirection.D_LEFT) and
        (FMonsterType <> MONSTER_BARREL) then
       begin
         dx := MONSTER_ANIMTABLE[FMonsterType].AnimDeltaLeft[FCurAnim].X;
         dy := MONSTER_ANIMTABLE[FMonsterType].AnimDeltaLeft[FCurAnim].Y;
 
-        if m = M_HORIZONTAL then
+        if m = TMirrorType.Horizontal then
         begin // Нет отдельной левой анимации
         // Расстояние от края текстуры до края визуального положения объекта на текстуре:
           c := (MONSTERTABLE[FMonsterType].Rect.X - dx) + MONSTERTABLE[FMonsterType].Rect.Width;
@@ -2371,17 +2368,17 @@ begin
   positionChanged();
 
   if dir = 1 then
-    FDirection := D_LEFT
+    FDirection := TDirection.D_LEFT
   else
     if dir = 2 then
-      FDirection := D_RIGHT
+      FDirection := TDirection.D_RIGHT
     else
       if dir = 3 then
       begin // обратное
-        if FDirection = D_RIGHT then
-          FDirection := D_LEFT
+        if FDirection = TDirection.D_RIGHT then
+          FDirection := TDirection.D_LEFT
         else
-          FDirection := D_RIGHT;
+          FDirection := TDirection.D_RIGHT;
       end;
 
 // Эффект телепорта в точке назначения:
@@ -2720,9 +2717,9 @@ begin
 
       // Поворачиваемся в сторону цели:
         if sx > 0 then
-          FDirection := D_RIGHT
+          FDirection := TDirection.D_RIGHT
         else
-          FDirection := D_LEFT;
+          FDirection := TDirection.D_LEFT;
 
       // Если монстр умеет стрелять и есть по кому - стреляем:
         if canShoot(FMonsterType) and (FTargetUID <> 0) then
@@ -2737,9 +2734,9 @@ begin
             FSleep := 15;
             SetState(MONSTATE_RUN);
             if Random(2) = 0 then
-              FDirection := D_LEFT
+              FDirection := TDirection.D_LEFT
             else
-              FDirection := D_RIGHT;
+              FDirection := TDirection.D_RIGHT;
 
             goto _end;
           end;
@@ -2806,9 +2803,9 @@ begin
                         FObj.Vel.Y := 0;
                       // Плаваем туда-сюда:
                         if Random(2) = 0 then
-                          FDirection := D_LEFT
+                          FDirection := TDirection.D_LEFT
                         else
-                          FDirection := D_RIGHT;
+                          FDirection := TDirection.D_RIGHT;
                         FSleep := 20;
                         SetState(MONSTATE_RUN);
                       end;
@@ -2886,7 +2883,7 @@ begin
         end;
 
       // Бежим в выбранную сторону:
-        if FDirection = D_RIGHT then
+        if FDirection = TDirection.D_RIGHT then
           FObj.Vel.X := MONSTERTABLE[FMonsterType].RunVel
         else
           FObj.Vel.X := -MONSTERTABLE[FMonsterType].RunVel;
@@ -2927,7 +2924,7 @@ begin
         end;
 
       // Бежим в выбранную сторону:
-        if FDirection = D_RIGHT then
+        if FDirection = TDirection.D_RIGHT then
           FObj.Vel.X := MONSTERTABLE[FMonsterType].RunVel
         else
           FObj.Vel.X := -MONSTERTABLE[FMonsterType].RunVel;
@@ -2962,7 +2959,7 @@ begin
         end;
 
       // Бежим в выбранную сторону:
-        if FDirection = D_RIGHT then
+        if FDirection = TDirection.D_RIGHT then
           FObj.Vel.X := MONSTERTABLE[FMonsterType].RunVel
         else
           FObj.Vel.X := -MONSTERTABLE[FMonsterType].RunVel;
@@ -2994,7 +2991,7 @@ begin
         end;
 
       // Бежим в выбранную сторону:
-        if FDirection = D_RIGHT then
+        if FDirection = TDirection.D_RIGHT then
           FObj.Vel.X := MONSTERTABLE[FMonsterType].RunVel
         else
           FObj.Vel.X := -MONSTERTABLE[FMonsterType].RunVel;
@@ -3084,7 +3081,7 @@ _end:
       if (FMonsterType = MONSTER_PAIN) then
       begin
         mon := g_Monsters_Create(MONSTER_SOUL, FObj.X+FObj.Rect.X+(FObj.Rect.Width div 2)-30,
-                                 FObj.Y+FObj.Rect.Y+20, D_LEFT);
+                                 FObj.Y+FObj.Rect.Y+20, TDirection.D_LEFT);
         if mon <> nil then
         begin
           mon.SetState(MONSTATE_GO);
@@ -3094,7 +3091,7 @@ _end:
         end;
 
         mon := g_Monsters_Create(MONSTER_SOUL, FObj.X+FObj.Rect.X+(FObj.Rect.Width div 2),
-                                 FObj.Y+FObj.Rect.Y+20, D_RIGHT);
+                                 FObj.Y+FObj.Rect.Y+20, TDirection.D_RIGHT);
         if mon <> nil then
         begin
           mon.SetState(MONSTATE_GO);
@@ -3104,7 +3101,7 @@ _end:
         end;
 
         mon := g_Monsters_Create(MONSTER_SOUL, FObj.X+FObj.Rect.X+(FObj.Rect.Width div 2)-15,
-                                 FObj.Y+FObj.Rect.Y, D_RIGHT);
+                                 FObj.Y+FObj.Rect.Y, TDirection.D_RIGHT);
         if mon <> nil then
         begin
           mon.SetState(MONSTATE_GO);
@@ -3183,7 +3180,7 @@ _end:
                   if FCurAnim = ANIM_ATTACK2 then
                   begin
                     o := FObj;
-                    o.Vel.X := IfThen(FDirection = D_RIGHT, 1, -1)*IfThen(FMonsterType = MONSTER_CYBER, 60, 50);
+                    o.Vel.X := IfThen(FDirection = TDirection.D_RIGHT, 1, -1)*IfThen(FMonsterType = MONSTER_CYBER, 60, 50);
                     if g_Weapon_Hit(@o, IfThen(FMonsterType = MONSTER_CYBER, 33, 50), FUID, HIT_SOME) <> 0 then
                       g_Sound_PlayExAt('SOUND_MONSTER_SKEL_HIT', FObj.X, FObj.Y);
                   end;
@@ -3209,7 +3206,7 @@ _end:
             // Вычисляем координаты, откуда вылетит пуля:
               wx := MONSTER_ANIMTABLE[FMonsterType].wX;
 
-              if FDirection = D_LEFT then
+              if FDirection = TDirection.D_LEFT then
               begin
                 wx := MONSTER_ANIMTABLE[FMonsterType].wX-(MONSTERTABLE[FMonsterType].Rect.X+(MONSTERTABLE[FMonsterType].Rect.Width div 2));
                 wx := MONSTERTABLE[FMonsterType].Rect.X+(MONSTERTABLE[FMonsterType].Rect.Width div 2)-wx;
@@ -3713,7 +3710,7 @@ begin
         end;
 
       // Бежим в выбранную сторону:
-        if FDirection = D_RIGHT then
+        if FDirection = TDirection.D_RIGHT then
           FObj.Vel.X := MONSTERTABLE[FMonsterType].RunVel
         else
           FObj.Vel.X := -MONSTERTABLE[FMonsterType].RunVel;
@@ -3751,7 +3748,7 @@ begin
         end;
 
       // Бежим в выбранную сторону:
-        if FDirection = D_RIGHT then
+        if FDirection = TDirection.D_RIGHT then
           FObj.Vel.X := MONSTERTABLE[FMonsterType].RunVel
         else
           FObj.Vel.X := -MONSTERTABLE[FMonsterType].RunVel;
@@ -3784,7 +3781,7 @@ begin
         end;
 
       // Бежим в выбранную сторону:
-        if FDirection = D_RIGHT then
+        if FDirection = TDirection.D_RIGHT then
           FObj.Vel.X := MONSTERTABLE[FMonsterType].RunVel
         else
           FObj.Vel.X := -MONSTERTABLE[FMonsterType].RunVel;
@@ -3815,7 +3812,7 @@ begin
         end;
 
       // Бежим в выбранную сторону:
-        if FDirection = D_RIGHT then
+        if FDirection = TDirection.D_RIGHT then
           FObj.Vel.X := MONSTERTABLE[FMonsterType].RunVel
         else
           FObj.Vel.X := -MONSTERTABLE[FMonsterType].RunVel;
@@ -3963,7 +3960,7 @@ _end:
                   if FCurAnim = ANIM_ATTACK2 then
                   begin
                     o := FObj;
-                    o.Vel.X := IfThen(FDirection = D_RIGHT, 1, -1)*IfThen(FMonsterType = MONSTER_CYBER, 60, 50);
+                    o.Vel.X := IfThen(FDirection = TDirection.D_RIGHT, 1, -1)*IfThen(FMonsterType = MONSTER_CYBER, 60, 50);
                     g_Weapon_Hit(@o, IfThen(FMonsterType = MONSTER_CYBER, 33, 50), FUID, HIT_SOME);
                   end;
 
@@ -4084,13 +4081,10 @@ end;
 procedure TMonster.Turn();
 begin
 // Разворачиваемся:
-  if FDirection = D_LEFT then
-    FDirection := D_RIGHT
-  else
-    FDirection := D_LEFT;
+  if FDirection = TDirection.D_LEFT then FDirection := TDirection.D_RIGHT else FDirection := TDirection.D_LEFT;
 
 // Бежим в выбранную сторону:
-  if FDirection = D_RIGHT then
+  if FDirection = TDirection.D_RIGHT then
     FObj.Vel.X := MONSTERTABLE[FMonsterType].RunVel
   else
     FObj.Vel.X := -MONSTERTABLE[FMonsterType].RunVel;
@@ -4426,7 +4420,7 @@ begin
   // UID монстра:
   utils.writeInt(st, Word(FUID));
   // Направление
-  if FDirection = D_LEFT then b := 1 else b := 2; // D_RIGHT
+  if FDirection = TDirection.D_LEFT then b := 1 else b := 2; // D_RIGHT
   utils.writeInt(st, Byte(b));
   // Надо ли удалить его
   utils.writeBool(st, FRemoved);
@@ -4474,15 +4468,15 @@ begin
   for i := ANIM_SLEEP to ANIM_PAIN do
   begin
     // Есть ли левая анимация
-    anim := (FAnim[i, D_LEFT] <> nil);
+    anim := (FAnim[i, TDirection.D_LEFT] <> nil);
     utils.writeBool(st, anim);
     // Если есть - сохраняем
-    if anim then FAnim[i, D_LEFT].SaveState(st);
+    if anim then FAnim[i, TDirection.D_LEFT].SaveState(st);
     // Есть ли правая анимация
-    anim := (FAnim[i, D_RIGHT] <> nil);
+    anim := (FAnim[i, TDirection.D_RIGHT] <> nil);
     utils.writeBool(st, anim);
     // Если есть - сохраняем
-    if anim then FAnim[i, D_RIGHT].SaveState(st);
+    if anim then FAnim[i, TDirection.D_RIGHT].SaveState(st);
   end;
 end;
 
@@ -4507,7 +4501,7 @@ begin
   uidMap[FUID] := self;
   // Направление
   b := utils.readByte(st);
-  if b = 1 then FDirection := D_LEFT else FDirection := D_RIGHT; // b = 2
+  if b = 1 then FDirection := TDirection.D_LEFT else FDirection := TDirection.D_RIGHT; // b = 2
   // Надо ли удалить его
   FRemoved := utils.readBool(st);
   // Осталось здоровья
@@ -4561,16 +4555,16 @@ begin
     // Если есть - загружаем
     if anim then
     begin
-      Assert(FAnim[i, D_LEFT] <> nil, 'TMonster.LoadState: no '+IntToStr(i)+'_left anim');
-      FAnim[i, D_LEFT].LoadState(st);
+      Assert(FAnim[i, TDirection.D_LEFT] <> nil, 'TMonster.LoadState: no '+IntToStr(i)+'_left anim');
+      FAnim[i, TDirection.D_LEFT].LoadState(st);
     end;
     // Есть ли правая анимация
      anim := utils.readBool(st);
     // Если есть - загружаем
     if anim then
     begin
-      Assert(FAnim[i, D_RIGHT] <> nil, 'TMonster.LoadState: no '+IntToStr(i)+'_right anim');
-      FAnim[i, D_RIGHT].LoadState(st);
+      Assert(FAnim[i, TDirection.D_RIGHT] <> nil, 'TMonster.LoadState: no '+IntToStr(i)+'_right anim');
+      FAnim[i, TDirection.D_RIGHT].LoadState(st);
     end;
   end;
 end;

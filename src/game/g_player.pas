@@ -861,7 +861,7 @@ begin
   gPlayers[a].FNoRespawn := utils.readBool(st);
   // Направление
   b := utils.readByte(st);
-  if b = 1 then gPlayers[a].FDirection := D_LEFT else gPlayers[a].FDirection := D_RIGHT; // b = 2
+  if b = 1 then gPlayers[a].FDirection := TDirection.D_LEFT else gPlayers[a].FDirection := TDirection.D_RIGHT; // b = 2
   // Здоровье
   gPlayers[a].FHealth := utils.readLongInt(st);
   // Жизни
@@ -1800,10 +1800,10 @@ begin
           a.X := Obj.Rect.X+(Obj.Rect.Width div 2);
           a.y := Obj.Rect.Y+(Obj.Rect.Height div 2);
 
-          e_DrawAdv(ID, Obj.X, Obj.Y, 0, True, False, RAngle, @a, M_NONE);
+          e_DrawAdv(ID, Obj.X, Obj.Y, 0, True, False, RAngle, @a, TMirrorType.None);
 
           e_Colors := Color;
-          e_DrawAdv(MaskID, Obj.X, Obj.Y, 0, True, False, RAngle, @a, M_NONE);
+          e_DrawAdv(MaskID, Obj.X, Obj.Y, 0, True, False, RAngle, @a, TMirrorType.None);
           e_Colors.R := 255;
           e_Colors.G := 255;
           e_Colors.B := 255;
@@ -1831,7 +1831,7 @@ begin
           a.X := CX;
           a.Y := CY;
 
-          e_DrawAdv(SpriteID, Obj.X, Obj.Y, 0, True, False, RAngle, @a, M_NONE);
+          e_DrawAdv(SpriteID, Obj.X, Obj.Y, 0, True, False, RAngle, @a, TMirrorType.None);
         end;
 end;
 
@@ -2258,7 +2258,7 @@ var
   Rw, Gw, Bw: SmallInt;
   Dot: Byte;
 begin
-  bubX := FObj.X+FObj.Rect.X + IfThen(FDirection = D_LEFT, -4, 18);
+  bubX := FObj.X+FObj.Rect.X + IfThen(FDirection = TDirection.D_LEFT, -4, 18);
   bubY := FObj.Y+FObj.Rect.Y - 18;
   Rb := 64;
   Gb := 64;
@@ -2302,10 +2302,10 @@ begin
     4: // custom textured bubble
     begin
       if g_Texture_Get('TEXTURE_PLAYER_TALKBUBBLE', ID) then
-        if FDirection = D_RIGHT then
+        if FDirection = TDirection.D_RIGHT then
           e_Draw(ID, bubX - 6, bubY - 7, 0, True, False)
         else
-          e_Draw(ID, bubX - 6, bubY - 7, 0, True, False, M_HORIZONTAL);
+          e_Draw(ID, bubX - 6, bubY - 7, 0, True, False, TMirrorType.Horizontal);
       Exit;
     end;
   end;
@@ -2317,12 +2317,12 @@ begin
   e_DrawFillQuad(bubX + 1, bubY + 1, bubX + 18, bubY + 12, Rw, Gw, Bw, 0);
 
   // Tail
-  Dot := IfThen(FDirection = D_LEFT, 14, 5);
+  Dot := IfThen(FDirection = TDirection.D_LEFT, 14, 5);
   e_DrawLine(1, bubX + Dot, bubY + 14, bubX + Dot, bubY + 16, Rb, Gb, Bb);
-  e_DrawLine(1, bubX + IfThen(FDirection = D_LEFT, Dot - 1, Dot + 1), bubY + 13, bubX + IfThen(FDirection = D_LEFT, Dot - 1, Dot + 1), bubY + 15, Rw, Gw, Bw);
-  e_DrawLine(1, bubX + IfThen(FDirection = D_LEFT, Dot - 2, Dot + 2), bubY + 13, bubX + IfThen(FDirection = D_LEFT, Dot - 2, Dot + 2), bubY + 14, Rw, Gw, Bw);
-  e_DrawLine(1, bubX + IfThen(FDirection = D_LEFT, Dot - 3, Dot + 3), bubY + 13, bubX + IfThen(FDirection = D_LEFT, Dot - 3, Dot + 3), bubY + 13, Rw, Gw, Bw);
-  e_DrawLine(1, bubX + IfThen(FDirection = D_LEFT, Dot - 3, Dot + 3), bubY + 14, bubX + IfThen(FDirection = D_LEFT, Dot - 1, Dot + 1), bubY + 16, Rb, Gb, Bb);
+  e_DrawLine(1, bubX + IfThen(FDirection = TDirection.D_LEFT, Dot - 1, Dot + 1), bubY + 13, bubX + IfThen(FDirection = TDirection.D_LEFT, Dot - 1, Dot + 1), bubY + 15, Rw, Gw, Bw);
+  e_DrawLine(1, bubX + IfThen(FDirection = TDirection.D_LEFT, Dot - 2, Dot + 2), bubY + 13, bubX + IfThen(FDirection = TDirection.D_LEFT, Dot - 2, Dot + 2), bubY + 14, Rw, Gw, Bw);
+  e_DrawLine(1, bubX + IfThen(FDirection = TDirection.D_LEFT, Dot - 3, Dot + 3), bubY + 13, bubX + IfThen(FDirection = TDirection.D_LEFT, Dot - 3, Dot + 3), bubY + 13, Rw, Gw, Bw);
+  e_DrawLine(1, bubX + IfThen(FDirection = TDirection.D_LEFT, Dot - 3, Dot + 3), bubY + 14, bubX + IfThen(FDirection = TDirection.D_LEFT, Dot - 1, Dot + 1), bubY + 16, Rb, Gb, Bb);
 
   // Dots
   Dot := 6;
@@ -2343,7 +2343,7 @@ begin
       if g_Texture_Get('TEXTURE_PLAYER_INVULPENTA', ID) then
       begin
         e_GetTextureSize(ID, @w, @h);
-        if FDirection = D_LEFT then
+        if FDirection = TDirection.D_LEFT then
           e_Draw(ID, FObj.X+FObj.Rect.X+(FObj.Rect.Width div 2)-(w div 2)+4,
                      FObj.Y+FObj.Rect.Y+(FObj.Rect.Height div 2)-(h div 2)-7+FObj.slopeUpLeft, 0, True, False)
         else
@@ -2416,7 +2416,7 @@ var
   angle: SmallInt;
   sz, len: Word;
 begin
-  wx := FObj.X + WEAPONPOINT[FDirection].X + IfThen(FDirection = D_LEFT, 7, -7);
+  wx := FObj.X + WEAPONPOINT[FDirection].X + IfThen(FDirection = TDirection.D_LEFT, 7, -7);
   wy := FObj.Y + WEAPONPOINT[FDirection].Y;
   angle := FAngle;
   len := 1024;
@@ -2711,7 +2711,7 @@ begin
 
     if dr then
       e_DrawFillQuad(0, 0, gPlayerScreenSize.X-1, gPlayerScreenSize.Y-1,
-                     191, 191, 191, 0, B_INVERT);
+                     191, 191, 191, 0, TBlending.Invert);
   end;
 
   // При взятии защитного костюма рисуется зеленоватый фон
@@ -2724,14 +2724,14 @@ begin
 
     if dr then
       e_DrawFillQuad(0, 0, gPlayerScreenSize.X-1, gPlayerScreenSize.Y-1,
-                     0, 96, 0, 200, B_NONE);
+                     0, 96, 0, 200, TBlending.None);
   end;
 
   // При взятии берсерка рисуется красноватый фон
   if (FBerserk >= 0) and (LongWord(FBerserk) >= gTime) and (gFlash = 2) then
   begin
     e_DrawFillQuad(0, 0, gPlayerScreenSize.X-1, gPlayerScreenSize.Y-1,
-                     255, 0, 0, 200, B_NONE);
+                     255, 0, 0, 200, TBlending.None);
   end;
 end;
 
@@ -2796,7 +2796,7 @@ begin
   f := False;
   wx := FObj.X+WEAPONPOINT[FDirection].X;
   wy := FObj.Y+WEAPONPOINT[FDirection].Y;
-  xd := wx+IfThen(FDirection = D_LEFT, -30, 30);
+  xd := wx+IfThen(FDirection = TDirection.D_LEFT, -30, 30);
   yd := wy+firediry();
 
   case FCurrWeap of
@@ -4407,7 +4407,7 @@ begin
   FObj.Accel.Y := 0;
 
   FDirection := RespawnPoint.Direction;
-  if FDirection = D_LEFT then
+  if FDirection = TDirection.D_LEFT then
     FAngle := 180
   else
     FAngle := 0;
@@ -4523,7 +4523,7 @@ begin
     FlySmoke();
 
 // Бежим:
-  if Direction = D_LEFT then
+  if Direction = TDirection.D_LEFT then
     begin
       if FObj.Vel.X > -MAX_RUNVEL then
         FObj.Vel.X := FObj.Vel.X - (MAX_RUNVEL shr 3);
@@ -4564,7 +4564,7 @@ procedure TPlayer.SeeDown();
 begin
   SetAction(A_SEEDOWN);
 
-  if FDirection = D_LEFT then FAngle := ANGLE_LEFTDOWN else FAngle := ANGLE_RIGHTDOWN;
+  if FDirection = TDirection.D_LEFT then FAngle := ANGLE_LEFTDOWN else FAngle := ANGLE_RIGHTDOWN;
 
   if FIncCam > -120 then DecMin(FIncCam, 5, -120);
 end;
@@ -4573,7 +4573,7 @@ procedure TPlayer.SeeUp();
 begin
   SetAction(A_SEEUP);
 
-  if FDirection = D_LEFT then FAngle := ANGLE_LEFTUP else FAngle := ANGLE_RIGHTUP;
+  if FDirection = TDirection.D_LEFT then FAngle := ANGLE_LEFTUP else FAngle := ANGLE_RIGHTUP;
 
   if FIncCam < 120 then IncMax(FIncCam, 5, 120);
 end;
@@ -4661,26 +4661,26 @@ begin
   begin
     if dir = 1 then
     begin
-      SetDirection(D_LEFT);
+      SetDirection(TDirection.D_LEFT);
       FAngle := 180;
     end
     else
       if dir = 2 then
       begin
-        SetDirection(D_RIGHT);
+        SetDirection(TDirection.D_RIGHT);
         FAngle := 0;
       end
       else
         if dir = 3 then
         begin // обратное
-          if FDirection = D_RIGHT then
+          if FDirection = TDirection.D_RIGHT then
           begin
-            SetDirection(D_LEFT);
+            SetDirection(TDirection.D_LEFT);
             FAngle := 180;
           end
           else
           begin
-            SetDirection(D_RIGHT);
+            SetDirection(TDirection.D_RIGHT);
             FAngle := 0;
           end;
         end;
@@ -4744,7 +4744,7 @@ begin
   if FAlive and (gFly or FJetpack) then
     FlySmoke();
 
-  if FDirection = D_LEFT then
+  if FDirection = TDirection.D_LEFT then
     FAngle := 180
   else
     FAngle := 0;
@@ -4775,9 +4775,9 @@ begin
     if (FObj.Vel.X = 0) and FAlive then
     begin
       if FKeys[KEY_LEFT].Pressed then
-        Run(D_LEFT);
+        Run(TDirection.D_LEFT);
       if FKeys[KEY_RIGHT].Pressed then
-        Run(D_RIGHT);
+        Run(TDirection.D_RIGHT);
     end;
 
     if FPhysics then
@@ -4794,8 +4794,8 @@ begin
   if FAlive then
   begin
     // Let alive player do some actions
-    if FKeys[KEY_LEFT].Pressed then Run(D_LEFT);
-    if FKeys[KEY_RIGHT].Pressed then Run(D_RIGHT);
+    if FKeys[KEY_LEFT].Pressed then Run(TDirection.D_LEFT);
+    if FKeys[KEY_RIGHT].Pressed then Run(TDirection.D_RIGHT);
     //if FKeys[KEY_NEXTWEAPON].Pressed and AnyServer then NextWeapon();
     //if FKeys[KEY_PREVWEAPON].Pressed and AnyServer then PrevWeapon();
     if FKeys[KEY_FIRE].Pressed and AnyServer then Fire();
@@ -4995,7 +4995,7 @@ begin
         begin
           wx := FObj.X+WEAPONPOINT[FDirection].X;
           wy := FObj.Y+WEAPONPOINT[FDirection].Y;
-          xd := wx+IfThen(FDirection = D_LEFT, -30, 30);
+          xd := wx+IfThen(FDirection = TDirection.D_LEFT, -30, 30);
           yd := wy+firediry();
           g_Weapon_bfgshot(wx, wy, xd, yd, FUID);
           if NetServer then MH_SEND_PlayerFire(FUID, WEAPON_BFG, wx, wy, xd, yd);
@@ -5664,7 +5664,7 @@ begin
   // Израсходовал ли все жизни
   utils.writeBool(st, FNoRespawn);
   // Направление
-  if FDirection = D_LEFT then b := 1 else b := 2; // D_RIGHT
+  if FDirection = TDirection.D_LEFT then b := 1 else b := 2; // D_RIGHT
   utils.writeInt(st, Byte(b));
   // Здоровье
   utils.writeInt(st, LongInt(FHealth));
@@ -5767,7 +5767,7 @@ begin
   FNoRespawn := utils.readBool(st);
   // Направление
   b := utils.readByte(st);
-  if b = 1 then FDirection := D_LEFT else FDirection := D_RIGHT; // b = 2
+  if b = 1 then FDirection := TDirection.D_LEFT else FDirection := TDirection.D_RIGHT; // b = 2
   // Здоровье
   FHealth := utils.readLongInt(st);
   // Жизни
@@ -6193,12 +6193,12 @@ begin
     Exit;
 
   if FAnimation <> nil then
-    FAnimation.Draw(FObj.X, FObj.Y, M_NONE);
+    FAnimation.Draw(FObj.X, FObj.Y, TMirrorType.None);
 
   if FAnimationMask <> nil then
   begin
     e_Colors := FColor;
-    FAnimationMask.Draw(FObj.X, FObj.Y, M_NONE);
+    FAnimationMask.Draw(FObj.X, FObj.Y, TMirrorType.None);
     e_Colors.R := 255;
     e_Colors.G := 255;
     e_Colors.B := 255;
@@ -6585,16 +6585,16 @@ begin
 
         if (Healthy() = 3) or ((Healthy() = 2)) then
           begin // Если здоровы - догоняем
-            if ((RunDirection() = D_LEFT) and (Target.X > FObj.X)) then
+            if ((RunDirection() = TDirection.D_LEFT) and (Target.X > FObj.X)) then
               SetAIFlag('GORIGHT', '1');
-            if ((RunDirection() = D_RIGHT) and (Target.X < FObj.X)) then
+            if ((RunDirection() = TDirection.D_RIGHT) and (Target.X < FObj.X)) then
               SetAIFlag('GOLEFT', '1');
           end
         else
           begin // Если побиты - убегаем
-            if ((RunDirection() = D_LEFT) and (Target.X < FObj.X)) then
+            if ((RunDirection() = TDirection.D_LEFT) and (Target.X < FObj.X)) then
               SetAIFlag('GORIGHT', '1');
-            if ((RunDirection() = D_RIGHT) and (Target.X > FObj.X)) then
+            if ((RunDirection() = TDirection.D_RIGHT) and (Target.X > FObj.X)) then
               SetAIFlag('GOLEFT', '1');
           end;
 
@@ -6613,17 +6613,17 @@ begin
       begin // Цель сбежала с "экрана"
         if (Healthy() = 3) or ((Healthy() = 2)) then
           begin // Если здоровы - догоняем
-            if ((RunDirection() = D_LEFT) and (Target.X > FObj.X)) then
+            if ((RunDirection() = TDirection.D_LEFT) and (Target.X > FObj.X)) then
               SetAIFlag('GORIGHT', '1');
-            if ((RunDirection() = D_RIGHT) and (Target.X < FObj.X)) then
+            if ((RunDirection() = TDirection.D_RIGHT) and (Target.X < FObj.X)) then
               SetAIFlag('GOLEFT', '1');
           end
         else
           begin // Если побиты - забываем о цели и убегаем
             Target.UID := 0;
-            if ((RunDirection() = D_LEFT) and (Target.X < FObj.X)) then
+            if ((RunDirection() = TDirection.D_LEFT) and (Target.X < FObj.X)) then
               SetAIFlag('GORIGHT', '1');
-            if ((RunDirection() = D_RIGHT) and (Target.X > FObj.X)) then
+            if ((RunDirection() = TDirection.D_RIGHT) and (Target.X > FObj.X)) then
               SetAIFlag('GOLEFT', '1');
           end;
       end
@@ -6635,15 +6635,15 @@ begin
       // Если разница высот не велика, то догоняем:
         if (Abs(FObj.Y-Target.Y) <= 128) then
           begin
-            if ((RunDirection() = D_LEFT) and (Target.X > FObj.X)) then
+            if ((RunDirection() = TDirection.D_LEFT) and (Target.X > FObj.X)) then
               SetAIFlag('GORIGHT', '1');
-            if ((RunDirection() = D_RIGHT) and (Target.X < FObj.X)) then
+            if ((RunDirection() = TDirection.D_RIGHT) and (Target.X < FObj.X)) then
               SetAIFlag('GOLEFT', '1');
           end;
       end;
 
   // Выбираем угол вверх:
-    if FDirection = D_LEFT then
+    if FDirection = TDirection.D_LEFT then
       angle := ANGLE_LEFTUP
     else
       angle := ANGLE_RIGHTUP;
@@ -6663,7 +6663,7 @@ begin
       end;
 
   // Выбираем угол вниз:
-    if FDirection = D_LEFT then
+    if FDirection = TDirection.D_LEFT then
       angle := ANGLE_LEFTDOWN
     else
       angle := ANGLE_RIGHTDOWN;
@@ -6688,8 +6688,8 @@ begin
         (y1-4 > Target.Y+Target.Rect.Y) then
       begin
       // Если идем в сторону цели, то надо стрелять:
-        if ((FDirection = D_LEFT) and (Target.X < FObj.X)) or
-            ((FDirection = D_RIGHT) and (Target.X > FObj.X)) then
+        if ((FDirection = TDirection.D_LEFT) and (Target.X < FObj.X)) or
+            ((FDirection = TDirection.D_RIGHT) and (Target.X > FObj.X)) then
         begin // то нужно стрелять вперед
           SetAIFlag('NEEDFIRE', '1');
           SetAIFlag('NEEDSEEDOWN', '');
@@ -6741,7 +6741,7 @@ begin
 
         SetAIFlag('NEEDJUMP', '1');
 
-        if RunDirection() = D_RIGHT then
+        if RunDirection() = TDirection.D_RIGHT then
           begin // Идем не в ту сторону
             if (Healthy() > 1) and GetRnd(FDifficult.InvisFire) then
               begin // Если здоровы, то, возможно, стреляем бежим влево и стреляем
@@ -6764,7 +6764,7 @@ begin
 
           SetAIFlag('NEEDJUMP', '1');
 
-          if RunDirection() = D_LEFT then
+          if RunDirection() = TDirection.D_LEFT then
             begin // Идем не в ту сторону
               if (Healthy() > 1) and GetRnd(FDifficult.InvisFire) then
                 begin // Если здоровы, то, возможно, бежим вправо и стреляем
@@ -6793,7 +6793,7 @@ begin
         if GetRnd(FDifficult.DiagFire) then
           begin
           // Ищем цель сверху и стреляем, если есть:
-            if FDirection = D_LEFT then
+            if FDirection = TDirection.D_LEFT then
               angle := ANGLE_LEFTUP
             else
               angle := ANGLE_RIGHTUP;
@@ -6812,7 +6812,7 @@ begin
               end;
 
           // Ищем цель снизу и стреляем, если есть:
-            if FDirection = D_LEFT then
+            if FDirection = TDirection.D_LEFT then
               angle := ANGLE_LEFTDOWN
             else
               angle := ANGLE_RIGHTDOWN;
@@ -6833,8 +6833,8 @@ begin
 
       // Если цель "перед носом", то стреляем:
         if targets[a].Line and targets[a].Visible and
-            (((FDirection = D_LEFT) and (targets[a].X < FObj.X)) or
-            ((FDirection = D_RIGHT) and (targets[a].X > FObj.X))) then
+            (((FDirection = TDirection.D_LEFT) and (targets[a].X < FObj.X)) or
+            ((FDirection = TDirection.D_RIGHT) and (targets[a].X > FObj.X))) then
         begin
           SetAIFlag('NEEDFIRE', '1');
           Break;
@@ -6985,7 +6985,7 @@ procedure TBot.UpdateMove;
     ReleaseKey(KEY_LEFT);
     ReleaseKey(KEY_RIGHT);
     PressKey(KEY_LEFT, Time);
-    SetDirection(D_LEFT);
+    SetDirection(TDirection.D_LEFT);
   end;
 
   procedure GoRight(Time: Word = 1);
@@ -6993,7 +6993,7 @@ procedure TBot.UpdateMove;
     ReleaseKey(KEY_LEFT);
     ReleaseKey(KEY_RIGHT);
     PressKey(KEY_RIGHT, Time);
-    SetDirection(D_RIGHT);
+    SetDirection(TDirection.D_RIGHT);
   end;
 
   function Rnd(a: Word): Boolean;
@@ -7003,7 +7003,7 @@ procedure TBot.UpdateMove;
 
   procedure Turn(Time: Word = 1200);
   begin
-    if RunDirection() = D_LEFT then GoRight(Time) else GoLeft(Time);
+    if RunDirection() = TDirection.D_LEFT then GoRight(Time) else GoLeft(Time);
   end;
 
   procedure Stop();
@@ -7024,7 +7024,7 @@ procedure TBot.UpdateMove;
 
   function CanRun(): Boolean;
   begin
-    if RunDirection() = D_LEFT then Result := CanRunLeft() else Result := CanRunRight();
+    if RunDirection() = TDirection.D_LEFT then Result := CanRunLeft() else Result := CanRunRight();
   end;
 
   procedure Jump(Time: Word = 30);
@@ -7037,7 +7037,7 @@ procedure TBot.UpdateMove;
     x, sx: Integer;
   begin
     { TODO 5 : Лестницы }
-    sx := IfThen(RunDirection() = D_LEFT, -1, 1);
+    sx := IfThen(RunDirection() = TDirection.D_LEFT, -1, 1);
     for x := 1 to PLAYER_RECT.Width do
       if (not StayOnStep(x*sx, 0)) and
          (not CollideLevel(x*sx, PLAYER_RECT.Height)) and
@@ -7055,7 +7055,7 @@ procedure TBot.UpdateMove;
     x, sx, xx: Integer;
   begin
     { TODO 5 : Лестницы }
-    sx := IfThen(RunDirection() = D_LEFT, -1, 1);
+    sx := IfThen(RunDirection() = TDirection.D_LEFT, -1, 1);
     for x := 1 to PLAYER_RECT.Width do
       if (not StayOnStep(x*sx, 0)) and
          (not CollideLevel(x*sx, PLAYER_RECT.Height)) and
@@ -7078,7 +7078,7 @@ procedure TBot.UpdateMove;
   begin
     Result := False;
 
-    sx := IfThen(RunDirection() = D_LEFT, -1, 1);
+    sx := IfThen(RunDirection() = TDirection.D_LEFT, -1, 1);
     y := 3;
 
     for x := 1 to PLAYER_RECT.Width do
@@ -7124,18 +7124,18 @@ procedure TBot.UpdateMove;
 
   function BelowLadder(): Boolean;
   begin
-    Result := (FullInStep(IfThen(RunDirection() = D_LEFT, -1, 1)*(PLAYER_RECT.Width div 2), -PLAYER_RECT.Height) and
-              not CollideLevel(IfThen(RunDirection() = D_LEFT, -1, 1)*(PLAYER_RECT.Width div 2), -PLAYER_RECT.Height)) or
-              (FullInStep(IfThen(RunDirection() = D_LEFT, -1, 1)*(PLAYER_RECT.Width div 2), -BOT_MAXJUMP) and
-              not CollideLevel(IfThen(RunDirection() = D_LEFT, -1, 1)*(PLAYER_RECT.Width div 2), -BOT_MAXJUMP));
+    Result := (FullInStep(IfThen(RunDirection() = TDirection.D_LEFT, -1, 1)*(PLAYER_RECT.Width div 2), -PLAYER_RECT.Height) and
+              not CollideLevel(IfThen(RunDirection() = TDirection.D_LEFT, -1, 1)*(PLAYER_RECT.Width div 2), -PLAYER_RECT.Height)) or
+              (FullInStep(IfThen(RunDirection() = TDirection.D_LEFT, -1, 1)*(PLAYER_RECT.Width div 2), -BOT_MAXJUMP) and
+              not CollideLevel(IfThen(RunDirection() = TDirection.D_LEFT, -1, 1)*(PLAYER_RECT.Width div 2), -BOT_MAXJUMP));
   end;
 
   function BelowLiftUp(): Boolean;
   begin
-    Result := ((FullInLift(IfThen(RunDirection() = D_LEFT, -1, 1)*(PLAYER_RECT.Width div 2), -PLAYER_RECT.Height) = -1) and
-              not CollideLevel(IfThen(RunDirection() = D_LEFT, -1, 1)*(PLAYER_RECT.Width div 2), -PLAYER_RECT.Height)) or
-              ((FullInLift(IfThen(RunDirection() = D_LEFT, -1, 1)*(PLAYER_RECT.Width div 2), -BOT_MAXJUMP) = -1) and
-              not CollideLevel(IfThen(RunDirection() = D_LEFT, -1, 1)*(PLAYER_RECT.Width div 2), -BOT_MAXJUMP));
+    Result := ((FullInLift(IfThen(RunDirection() = TDirection.D_LEFT, -1, 1)*(PLAYER_RECT.Width div 2), -PLAYER_RECT.Height) = -1) and
+              not CollideLevel(IfThen(RunDirection() = TDirection.D_LEFT, -1, 1)*(PLAYER_RECT.Width div 2), -PLAYER_RECT.Height)) or
+              ((FullInLift(IfThen(RunDirection() = TDirection.D_LEFT, -1, 1)*(PLAYER_RECT.Width div 2), -BOT_MAXJUMP) = -1) and
+              not CollideLevel(IfThen(RunDirection() = TDirection.D_LEFT, -1, 1)*(PLAYER_RECT.Width div 2), -BOT_MAXJUMP));
   end;
 
   function OnTopLift(): Boolean;
@@ -7147,7 +7147,7 @@ procedure TBot.UpdateMove;
   var
     sx, y: Integer;
   begin
-    sx := IfThen(RunDirection() = D_LEFT, -1, 1);
+    sx := IfThen(RunDirection() = TDirection.D_LEFT, -1, 1);
 
     Result := False;
 
@@ -7313,7 +7313,7 @@ begin
 
 // Если на земле и можно подпрыгнуть, то, возможно, прыгаем:
   if OnGround() and
-      CanJumpUp(IfThen(RunDirection() = D_LEFT, -1, 1)*32) and
+      CanJumpUp(IfThen(RunDirection() = TDirection.D_LEFT, -1, 1)*32) and
       Rnd(8) then
     Jump();
 
@@ -7492,7 +7492,7 @@ function TBot.RunDirection(): TDirection;
 begin
   if Abs(Vel.X) >= 1 then
   begin
-    if Vel.X > 0 then Result := D_RIGHT else Result := D_LEFT;
+    if Vel.X > 0 then Result := TDirection.D_RIGHT else Result := TDirection.D_LEFT;
   end else
     Result := FDirection;
 end;

@@ -88,7 +88,7 @@ begin
 
   Result := False;
 
-  e_WriteLog('Setting display mode...', MSG_NOTIFY);
+  e_WriteLog('Setting display mode...', TMsgType.Notify);
 
   wFlags := SDL_WINDOW_OPENGL or SDL_WINDOW_RESIZABLE;
   if gFullscreen then wFlags := wFlags or SDL_WINDOW_FULLSCREEN;
@@ -157,7 +157,7 @@ begin
     pw := mode.w; ph := mode.h
   end;
 
-  e_WriteLog('SDL: Got ' + IntToStr(k) + ' resolutions.', MSG_NOTIFY);
+  e_WriteLog('SDL: Got ' + IntToStr(k) + ' resolutions.', TMsgType.Notify);
 end;
 
 procedure Sleep(ms: LongWord);
@@ -237,7 +237,7 @@ begin
         if g_debug_WinMsgs then
         begin
           g_Console_Add('Now minimized');
-          e_WriteLog('[DEBUG] WinMsgs: Now minimized', MSG_NOTIFY);
+          e_WriteLog('[DEBUG] WinMsgs: Now minimized', TMsgType.Notify);
         end;
         wDeactivate := True;
       end;
@@ -254,7 +254,7 @@ begin
       if g_debug_WinMsgs then
       begin
         g_Console_Add('Resized to ' + IntToStr(ev.data1) + 'x' + IntToStr(ev.data2));
-        e_WriteLog('[DEBUG] WinMsgs: Resized to ' + IntToStr(ev.data1) + 'x' + IntToStr(ev.data2), MSG_NOTIFY);
+        e_WriteLog('[DEBUG] WinMsgs: Resized to ' + IntToStr(ev.data1) + 'x' + IntToStr(ev.data2), TMsgType.Notify);
       end;
     end;
 
@@ -277,7 +277,7 @@ begin
         if g_debug_WinMsgs then
         begin
           g_Console_Add('Now maximized');
-          e_WriteLog('[DEBUG] WinMsgs: Now maximized', MSG_NOTIFY);
+          e_WriteLog('[DEBUG] WinMsgs: Now maximized', TMsgType.Notify);
         end;
       end;
     end;
@@ -297,7 +297,7 @@ begin
       if g_debug_WinMsgs then
       begin
         g_Console_Add('Now restored');
-        e_WriteLog('[DEBUG] WinMsgs: Now restored', MSG_NOTIFY);
+        e_WriteLog('[DEBUG] WinMsgs: Now restored', TMsgType.Notify);
       end;
     end;
 
@@ -325,7 +325,7 @@ begin
   begin
     if gWinActive then
     begin
-      e_WriteLog('deactivating window', MSG_NOTIFY);
+      e_WriteLog('deactivating window', TMsgType.Notify);
       e_EnableInput := False;
       e_ClearInputBuffer();
 
@@ -338,7 +338,7 @@ begin
       if g_debug_WinMsgs then
       begin
         g_Console_Add('Now inactive');
-        e_WriteLog('[DEBUG] WinMsgs: Now inactive', MSG_NOTIFY);
+        e_WriteLog('[DEBUG] WinMsgs: Now inactive', TMsgType.Notify);
       end;
 
       gWinActive := False;
@@ -360,7 +360,7 @@ begin
       if g_debug_WinMsgs then
       begin
         g_Console_Add('Now active');
-        e_WriteLog('[DEBUG] WinMsgs: Now active', MSG_NOTIFY);
+        e_WriteLog('[DEBUG] WinMsgs: Now active', TMsgType.Notify);
       end;
 
       gWinActive := True;
@@ -530,12 +530,12 @@ begin
   gWinSizeY := gScreenHeight;
 
   wTitle := Title;
-  e_WriteLog('Creating window', MSG_NOTIFY);
+  e_WriteLog('Creating window', TMsgType.Notify);
 
   if not g_Window_SetDisplay() then
   begin
     KillGLWindow();
-    e_WriteLog('Window creation error (resolution not supported?)', MSG_FATALERROR);
+    e_WriteLog('Window creation error (resolution not supported?)', TMsgType.Fatal);
     exit;
   end;
 
@@ -797,13 +797,13 @@ begin
       while (exts[i] <> #0) and (exts[i] <> ' ') do Inc(i);
       if i > 255 then
       begin
-        e_WriteLog('FUUUUUUUUUUUUU', MSG_WARNING);
+        e_WriteLog('FUUUUUUUUUUUUU', TMsgType.Warning);
       end
       else
       begin
         Move(exts^, extName[1], i);
         extName[0] := Char(i);
-        e_WriteLog(Format('EXT: %s', [extName]), MSG_NOTIFY);
+        e_WriteLog(Format('EXT: %s', [extName]), TMsgType.Notify);
       end;
     end;
     found := true;
@@ -883,10 +883,10 @@ begin
     end;
   end;
 
-  e_WriteLog('Initializing OpenGL', MSG_NOTIFY);
+  e_WriteLog('Initializing OpenGL', TMsgType.Notify);
   InitOpenGL(gVSync);
 
-  e_WriteLog('Creating GL window', MSG_NOTIFY);
+  e_WriteLog('Creating GL window', TMsgType.Notify);
   if not CreateGLWindow(PChar(Format('Doom 2D: Forever %s', [GAME_VERSION]))) then
   begin
     Result := 0;
@@ -904,7 +904,7 @@ begin
   if gwin_k8_enable_light_experiments then
   begin
     SDL_GL_GetAttribute(SDL_GL_STENCIL_SIZE, @ltmp);
-    e_WriteLog(Format('stencil buffer size: %d', [ltmp]), MSG_WARNING);
+    e_WriteLog(Format('stencil buffer size: %d', [ltmp]), TMsgType.Warning);
     gwin_has_stencil := (ltmp > 0);
   end
   else
@@ -914,12 +914,12 @@ begin
 
   if not glHasExtension('GL_ARB_texture_non_power_of_two') then
   begin
-    e_WriteLog('Driver DID''T advertised NPOT textures support', MSG_WARNING);
+    e_WriteLog('Driver DID''T advertised NPOT textures support', TMsgType.Warning);
     glLegacyNPOT := true;
   end
   else
   begin
-    e_WriteLog('Driver advertised NPOT textures support', MSG_NOTIFY);
+    e_WriteLog('Driver advertised NPOT textures support', TMsgType.Notify);
     glLegacyNPOT := false;
   end;
   gwin_dump_extensions := false;
@@ -936,7 +936,7 @@ begin
   if (not gGameOn) and gAskLanguage then
     g_Menu_AskLanguage();
 
-  e_WriteLog('Entering the main loop', MSG_NOTIFY);
+  e_WriteLog('Entering the main loop', TMsgType.Notify);
 
   while not ProcessMessage() do
     { Main Loop } ;

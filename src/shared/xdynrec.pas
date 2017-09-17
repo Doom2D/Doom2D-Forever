@@ -2732,7 +2732,7 @@ var
       rt := findRecordByTypeId(fld.mEBSTypeName, fld.mRecRefId);
       if (rt = nil) then
       begin
-        e_LogWritefln('record of type ''%s'' with id ''%s'' links to inexistant record of type ''%s'' with id ''%s''', [rec.mTypeName, rec.mId, fld.mEBSTypeName, fld.mRecRefId], MSG_WARNING);
+        e_LogWritefln('record of type ''%s'' with id ''%s'' links to inexistant record of type ''%s'' with id ''%s''', [rec.mTypeName, rec.mId, fld.mEBSTypeName, fld.mRecRefId], TMsgType.Warning);
         //raise TDynRecException.CreateFmt('record of type ''%s'' with id ''%s'' links to inexistant record of type ''%s'' with id ''%s''', [rec.mName, rec.mId, fld.mEBSTypeName, fld.mRecRefId]);
       end;
       //writeln(' ', rec.mName, '.', rec.mId, ':', fld.mName, ' -> ', rt.mName, '.', rt.mId, ' (', fld.mEBSTypeName, '.', fld.mRecRefId, ')');

@@ -217,7 +217,7 @@ end;
 
 procedure g_Items_LoadData();
 begin
-  e_WriteLog('Loading items data...', MSG_NOTIFY);
+  e_WriteLog('Loading items data...', TMsgType.Notify);
 
   g_Sound_CreateWADEx('SOUND_ITEM_RESPAWNITEM', GameWAD+':SOUNDS\RESPAWNITEM');
   g_Sound_CreateWADEx('SOUND_ITEM_GETRULEZ', GameWAD+':SOUNDS\GETRULEZ');
@@ -276,7 +276,7 @@ end;
 
 procedure g_Items_FreeData();
 begin
-  e_WriteLog('Releasing items data...', MSG_NOTIFY);
+  e_WriteLog('Releasing items data...', TMsgType.Notify);
 
   g_Sound_Delete('SOUND_ITEM_RESPAWNITEM');
   g_Sound_Delete('SOUND_ITEM_GETRULEZ');
@@ -647,7 +647,7 @@ begin
         end
         else
         begin
-          Animation.Draw(Obj.X, Obj.Y, M_NONE);
+          Animation.Draw(Obj.X, Obj.Y, TMirrorType.None);
         end;
 
         if g_debug_Frames then

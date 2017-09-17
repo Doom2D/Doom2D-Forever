@@ -1660,7 +1660,7 @@ begin
     begin
       if (OnceAnims[a].Animation <> nil) then
       begin
-        with OnceAnims[a] do Animation.Draw(x, y, M_NONE);
+        with OnceAnims[a] do Animation.Draw(x, y, TMirrorType.None);
       end;
     end;
   end;

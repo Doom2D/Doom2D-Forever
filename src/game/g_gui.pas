@@ -83,7 +83,7 @@ type
     lParam: LongInt;
   end;
 
-  TFontType = (FONT_TEXTURE, FONT_CHAR);
+  TFontType = (Texture, Character);
 
   TFont = class(TPoolObject)
   private
@@ -917,7 +917,7 @@ begin
   Self.Proc := aProc;
   ProcEx := nil;
 
-  FFont := TFont.Create(FontID, FONT_CHAR);
+  FFont := TFont.Create(FontID, TFontType.Character);
 
   FText := Text;
 end;
@@ -986,7 +986,7 @@ end;
 
 procedure TFont.Draw(X, Y: Integer; Text: string; R, G, B: Byte);
 begin
-  if FFontType = FONT_CHAR then e_CharFont_PrintEx(ID, X, Y, Text, _RGB(R, G, B), FScale)
+  if FFontType = TFontType.Character then e_CharFont_PrintEx(ID, X, Y, Text, _RGB(R, G, B), FScale)
   else e_TextureFontPrintEx(X, Y, Text, ID, R, G, B, FScale);
 end;
 
@@ -994,7 +994,7 @@ procedure TFont.GetTextSize(Text: string; var w, h: Word);
 var
   cw, ch: Byte;
 begin
-  if FFontType = FONT_CHAR then e_CharFont_GetSize(ID, Text, w, h)
+  if FFontType = TFontType.Character then e_CharFont_GetSize(ID, Text, w, h)
   else
   begin
     e_TextureFontGetSize(ID, cw, ch);
@@ -1217,7 +1217,7 @@ constructor TGUILabel.Create(Text: string; FontID: DWORD);
 begin
   inherited Create();
 
-  FFont := TFont.Create(FontID, FONT_CHAR);
+  FFont := TFont.Create(FontID, TFontType.Character);
 
   FText := Text;
   FFixedLen := 0;
@@ -2137,7 +2137,7 @@ begin
 
   FIndex := -1;
 
-  FFont := TFont.Create(FontID, FONT_CHAR);
+  FFont := TFont.Create(FontID, TFontType.Character);
 end;
 
 procedure TGUISwitch.Draw;
@@ -2217,7 +2217,7 @@ constructor TGUIEdit.Create(FontID: DWORD);
 begin
   inherited Create();
 
-  FFont := TFont.Create(FontID, FONT_CHAR);
+  FFont := TFont.Create(FontID, TFontType.Character);
 
   FMaxLength := 0;
   FWidth := 0;
@@ -2339,7 +2339,7 @@ begin
   FKey := 0;
   FIsQuery := false;
 
-  FFont := TFont.Create(FontID, FONT_CHAR);
+  FFont := TFont.Create(FontID, TFontType.Character);
 end;
 
 procedure TGUIKeyRead.Draw;
@@ -2462,7 +2462,7 @@ begin
   FIsQuery := False;
 
   FFontID := FontID;
-  FFont := TFont.Create(FontID, FONT_CHAR);
+  FFont := TFont.Create(FontID, TFontType.Character);
 
   FMaxKeyNameWdt := 0;
   for a := 0 to 255 do
@@ -2935,7 +2935,7 @@ constructor TGUIListBox.Create(FontID: DWORD; Width, Height: Word);
 begin
   inherited Create();
 
-  FFont := TFont.Create(FontID, FONT_CHAR);
+  FFont := TFont.Create(FontID, TFontType.Character);
 
   FWidth := Width;
   FHeight := Height;
@@ -3322,7 +3322,7 @@ constructor TGUIMemo.Create(FontID: DWORD; Width, Height: Word);
 begin
   inherited Create();
 
-  FFont := TFont.Create(FontID, FONT_CHAR);
+  FFont := TFont.Create(FontID, TFontType.Character);
 
   FWidth := Width;
   FHeight := Height;

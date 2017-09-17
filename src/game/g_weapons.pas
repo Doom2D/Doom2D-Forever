@@ -1094,7 +1094,7 @@ end;
 
 procedure g_Weapon_LoadData();
 begin
-  e_WriteLog('Loading weapons data...', MSG_NOTIFY);
+  e_WriteLog('Loading weapons data...', TMsgType.Notify);
 
   g_Sound_CreateWADEx('SOUND_WEAPON_HITPUNCH', GameWAD+':SOUNDS\HITPUNCH');
   g_Sound_CreateWADEx('SOUND_WEAPON_MISSPUNCH', GameWAD+':SOUNDS\MISSPUNCH');
@@ -1160,7 +1160,7 @@ end;
 
 procedure g_Weapon_FreeData();
 begin
-  e_WriteLog('Releasing weapons data...', MSG_NOTIFY);
+  e_WriteLog('Releasing weapons data...', TMsgType.Notify);
 
   g_Sound_Delete('SOUND_WEAPON_HITPUNCH');
   g_Sound_Delete('SOUND_WEAPON_MISSPUNCH');
@@ -1497,7 +1497,7 @@ begin
   if (dy > 0) then yi := 1 else if (dy < 0) then yi := -1 else yi := 0;
 
   {$IF DEFINED(D2F_DEBUG)}
-  e_WriteLog(Format('GUN TRACE: (%d,%d) to (%d,%d)', [x, y, x2, y2]), MSG_NOTIFY);
+  e_WriteLog(Format('GUN TRACE: (%d,%d) to (%d,%d)', [x, y, x2, y2]), TMsgType.Notify);
   stt := getTimeMicro();
   {$ENDIF}
 
@@ -1553,7 +1553,7 @@ begin
   begin
     {$IF DEFINED(D2F_DEBUG)}
     stt := getTimeMicro()-stt;
-    e_WriteLog(Format('*** new trace time: %u microseconds', [LongWord(stt)]), MSG_NOTIFY);
+    e_WriteLog(Format('*** new trace time: %u microseconds', [LongWord(stt)]), TMsgType.Notify);
     {$ENDIF}
     g_GFX_Spark(wallHitX, wallHitY, 2+Random(2), 180+a, 0, 0);
     if g_Game_IsServer and g_Game_IsNet then MH_SEND_Effect(wallHitX, wallHitY, 180+a, NET_GFX_SPARK);
@@ -1562,7 +1562,7 @@ begin
   begin
     {$IF DEFINED(D2F_DEBUG)}
     stt := getTimeMicro()-stt;
-    e_WriteLog(Format('*** new trace time: %u microseconds', [LongWord(stt)]), MSG_NOTIFY);
+    e_WriteLog(Format('*** new trace time: %u microseconds', [LongWord(stt)]), TMsgType.Notify);
     {$ENDIF}
   end;
 
@@ -2511,14 +2511,14 @@ begin
             if (Shots[i].ShotType = WEAPON_BARON_FIRE) or
                (Shots[i].ShotType = WEAPON_MANCUB_FIRE) or
                (Shots[i].ShotType = WEAPON_SKEL_FIRE) then
-              Animation.DrawEx(Obj.X, Obj.Y, M_NONE, p, a)
+              Animation.DrawEx(Obj.X, Obj.Y, TMirrorType.None, p, a)
             else
-              Animation.Draw(Obj.X, Obj.Y, M_NONE);
+              Animation.Draw(Obj.X, Obj.Y, TMirrorType.None);
           end
         else if TextureID <> 0 then
           begin
             if (Shots[i].ShotType = WEAPON_ROCKETLAUNCHER) then
-              e_DrawAdv(TextureID, Obj.X, Obj.Y, 0, True, False, a, @p, M_NONE)
+              e_DrawAdv(TextureID, Obj.X, Obj.Y, 0, True, False, a, @p, TMirrorType.None)
             else if (Shots[i].ShotType <> WEAPON_FLAMETHROWER) then
               e_Draw(TextureID, Obj.X, Obj.Y, 0, True, False);
           end;

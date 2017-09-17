@@ -161,7 +161,7 @@ begin
     begin
       Inc(c);
       e_WriteLog('Input: Opened SDL joystick ' + IntToStr(i) + ' (' + SDL_JoystickName(joy) +
-                 ') as joystick ' + IntToStr(c) + ':', MSG_NOTIFY);
+                 ') as joystick ' + IntToStr(c) + ':', TMsgType.Notify);
       SetLength(Joysticks, c);
       with Joysticks[c-1] do
       begin
@@ -173,7 +173,7 @@ begin
         // TODO: find proper solution for this xbox trigger shit
         for j := 0 to Axes do AxisZero[j] := SDL_JoystickGetAxis(joy, j);
         e_WriteLog('       ' + IntToStr(Axes) + ' axes, ' + IntToStr(Buttons) + ' buttons, ' +
-                   IntToStr(Hats) + ' hats.', MSG_NOTIFY);
+                   IntToStr(Hats) + ' hats.', TMsgType.Notify);
       end;
     end;
   end;

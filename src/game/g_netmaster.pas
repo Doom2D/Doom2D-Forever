@@ -125,7 +125,7 @@ begin
   if not g_Net_Slist_Connect then
     Exit;
 
-  e_WriteLog('Fetching serverlist...', MSG_NOTIFY);
+  e_WriteLog('Fetching serverlist...', TMsgType.Notify);
   g_Console_Add(_lc[I_NET_MSG] + _lc[I_NET_SLIST_FETCH]);
 
   NetOut.Clear();
@@ -376,7 +376,7 @@ begin
   begin
     enet_address_set_host(@NetSlistAddr, PChar(Addr(IP[1])));
     NetSlistAddr.Port := Port;
-    e_WriteLog('Masterserver address set to ' + IP + ':' + IntToStr(Port), MSG_NOTIFY);
+    e_WriteLog('Masterserver address set to ' + IP + ':' + IntToStr(Port), TMsgType.Notify);
   end;
 end;
 

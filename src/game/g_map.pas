@@ -970,7 +970,7 @@ begin
     if (BadTextNameHash = nil) then BadTextNameHash := hashNewStrInt();
     if log and (not BadTextNameHash.get(RecName, a)) then
     begin
-      e_WriteLog(Format('Error loading texture %s', [RecName]), MSG_WARNING);
+      e_WriteLog(Format('Error loading texture %s', [RecName]), TMsgType.Warning);
       //e_WriteLog(Format('WAD Reader error: %s', [WAD.GetLastErrorStr]), MSG_WARNING);
     end;
     BadTextNameHash.put(RecName, -1);
@@ -1030,7 +1030,7 @@ begin
       if (BadTextNameHash = nil) then BadTextNameHash := hashNewStrInt();
       if log and (not BadTextNameHash.get(RecName, f)) then
       begin
-        e_WriteLog(Format('Error loading animation texture %s', [RecName]), MSG_WARNING);
+        e_WriteLog(Format('Error loading animation texture %s', [RecName]), TMsgType.Warning);
         //e_WriteLog(Format('WAD Reader error: %s', [WAD.GetLastErrorStr]), MSG_WARNING);
       end;
       BadTextNameHash.put(RecName, -1);
@@ -1049,7 +1049,7 @@ begin
 
     if ResLength < 6 then
     begin
-      e_WriteLog(Format('Animated texture file "%s" too short', [RecName]), MSG_WARNING);
+      e_WriteLog(Format('Animated texture file "%s" too short', [RecName]), TMsgType.Warning);
       BadTextNameHash.put(RecName, -1);
       exit;
     end;
@@ -1061,7 +1061,7 @@ begin
       // нет, это супермен!
       if not WAD.ReadMemory(TextureWAD, ResLength) then
       begin
-        e_WriteLog(Format('Animated texture WAD file "%s" is invalid', [RecName]), MSG_WARNING);
+        e_WriteLog(Format('Animated texture WAD file "%s" is invalid', [RecName]), TMsgType.Warning);
         BadTextNameHash.put(RecName, -1);
         exit;
       end;
@@ -1069,7 +1069,7 @@ begin
       // Читаем INI-ресурс аним. текстуры и запоминаем его установки:
       if not WAD.GetResource('TEXT/ANIM', TextData, ResLength) then
       begin
-        e_WriteLog(Format('Animated texture file "%s" has invalid INI', [RecName]), MSG_WARNING);
+        e_WriteLog(Format('Animated texture file "%s" has invalid INI', [RecName]), TMsgType.Warning);
         BadTextNameHash.put(RecName, -1);
         exit;
       end;
@@ -1079,7 +1079,7 @@ begin
       TextureResource := cfg.ReadStr('', 'resource', '');
       if TextureResource = '' then
       begin
-        e_WriteLog(Format('Animated texture WAD file "%s" has no "resource"', [RecName]), MSG_WARNING);
+        e_WriteLog(Format('Animated texture WAD file "%s" has no "resource"', [RecName]), TMsgType.Warning);
         BadTextNameHash.put(RecName, -1);
         exit;
       end;
@@ -1096,7 +1096,7 @@ begin
       // Читаем ресурс текстур (кадров) аним. текстуры в память:
       if not WAD.GetResource('TEXTURES/'+TextureResource, TextureData, ResLength) then
       begin
-        e_WriteLog(Format('Animated texture WAD file "%s" has no texture "%s"', [RecName, 'TEXTURES/'+TextureResource]), MSG_WARNING);
+        e_WriteLog(Format('Animated texture WAD file "%s" has no texture "%s"', [RecName, 'TEXTURES/'+TextureResource]), TMsgType.Warning);
         BadTextNameHash.put(RecName, -1);
         exit;
       end;
@@ -1124,7 +1124,7 @@ begin
           if (BadTextNameHash = nil) then BadTextNameHash := hashNewStrInt();
           if log and (not BadTextNameHash.get(RecName, f)) then
           begin
-            e_WriteLog(Format('Error loading animation texture %s', [RecName]), MSG_WARNING);
+            e_WriteLog(Format('Error loading animation texture %s', [RecName]), TMsgType.Warning);
           end;
           BadTextNameHash.put(RecName, -1);
         end;
@@ -1145,13 +1145,13 @@ begin
       GlobalMetadata.ClearMetaItemsForSaving();
       if not LoadMultiImageFromMemory(TextureWAD, ResLength, ia) then
       begin
-        e_WriteLog(Format('Animated texture file "%s" cannot be loaded', [RecName]), MSG_WARNING);
+        e_WriteLog(Format('Animated texture file "%s" cannot be loaded', [RecName]), TMsgType.Warning);
         BadTextNameHash.put(RecName, -1);
         exit;
       end;
       if length(ia) = 0 then
       begin
-        e_WriteLog(Format('Animated texture file "%s" has no frames', [RecName]), MSG_WARNING);
+        e_WriteLog(Format('Animated texture file "%s" has no frames', [RecName]), TMsgType.Warning);
         BadTextNameHash.put(RecName, -1);
         exit;
       end;
@@ -1195,7 +1195,7 @@ begin
       //writeln(' creating animated texture with ', length(ia), ' frames (delay:', _speed, '; backloop:', _backanimation, ') from "', RecName, '"...');
       //for f := 0 to high(ia) do writeln('  frame #', f, ': ', ia[f].width, 'x', ia[f].height);
       f := ord(_backanimation);
-      e_WriteLog(Format('Animated texture file "%s": %d frames (delay:%d; back:%d; frdelay:%d; frloop:%d), %dx%d', [RecName, length(ia), _speed, f, frdelay, frloop, _width, _height]), MSG_NOTIFY);
+      e_WriteLog(Format('Animated texture file "%s": %d frames (delay:%d; back:%d; frdelay:%d; frloop:%d), %dx%d', [RecName, length(ia), _speed, f, frdelay, frloop, _width, _height]), TMsgType.Notify);
 
       SetLength(Textures, Length(Textures)+1);
       // cоздаем кадры аним. текстуры из картинок
@@ -1216,7 +1216,7 @@ begin
         if (BadTextNameHash = nil) then BadTextNameHash := hashNewStrInt();
         if log  and (not BadTextNameHash.get(RecName, f)) then
         begin
-          e_WriteLog(Format('Error loading animation texture "%s" images', [RecName]), MSG_WARNING);
+          e_WriteLog(Format('Error loading animation texture "%s" images', [RecName]), TMsgType.Warning);
         end;
         BadTextNameHash.put(RecName, -1);
       end;
@@ -1499,7 +1499,7 @@ var
       if (pan.proxyId <> -1) then
       begin
         {$IF DEFINED(D2F_DEBUG)}
-        e_WriteLog(Format('DUPLICATE wall #%d(%d) enabled (%d); type:%08x', [Integer(idx), Integer(pan.proxyId), Integer(mapGrid.proxyEnabled[pan.proxyId]), pan.PanelType]), MSG_NOTIFY);
+        e_WriteLog(Format('DUPLICATE wall #%d(%d) enabled (%d); type:%08x', [Integer(idx), Integer(pan.proxyId), Integer(mapGrid.proxyEnabled[pan.proxyId]), pan.PanelType]), TMsgType.Notify);
         {$ENDIF}
         continue;
       end;
@@ -1637,7 +1637,7 @@ begin
     if (gCurrentMap = nil) then
     begin
       FileName := g_ExtractWadName(Res);
-      e_WriteLog('Loading map WAD: '+FileName, MSG_NOTIFY);
+      e_WriteLog('Loading map WAD: '+FileName, TMsgType.Notify);
       g_Game_SetLoadingText(_lc[I_LOAD_WAD_FILE], 0, False);
 
       WAD := TWADFile.Create();
@@ -1667,7 +1667,7 @@ begin
       end;
 
       // Загрузка карты:
-      e_LogWritefln('Loading map: %s', [mapResName], MSG_NOTIFY);
+      e_LogWritefln('Loading map: %s', [mapResName], TMsgType.Notify);
       g_Game_SetLoadingText(_lc[I_LOAD_MAP], 0, False);
 
       stt := getTimeMicro();
@@ -1708,7 +1708,7 @@ begin
     monsters := gCurrentMap['monster'];
 
     // Загрузка описания карты:
-    e_WriteLog('  Reading map info...', MSG_NOTIFY);
+    e_WriteLog('  Reading map info...', TMsgType.Notify);
     g_Game_SetLoadingText(_lc[I_LOAD_MAP_HEADER], 0, False);
 
     with gMapInfo do
@@ -1727,7 +1727,7 @@ begin
     // Добавление текстур в Textures[]:
     if (mapTextureList <> nil) and (mapTextureList.count > 0) then
     begin
-      e_WriteLog('  Loading textures:', MSG_NOTIFY);
+      e_WriteLog('  Loading textures:', TMsgType.Notify);
       g_Game_SetLoadingText(_lc[I_LOAD_TEXTURES], mapTextureList.count-1, False);
 
       cnt := -1;
@@ -1736,7 +1736,7 @@ begin
         Inc(cnt);
         s := rec.Resource;
         {$IF DEFINED(D2F_DEBUG_TXLOAD)}
-        e_WriteLog(Format('    Loading texture #%d: %s', [cnt, s]), MSG_NOTIFY);
+        e_WriteLog(Format('    Loading texture #%d: %s', [cnt, s]), TMsgType.Notify);
         {$ENDIF}
         //if g_Map_IsSpecialTexture(s) then e_WriteLog('      SPECIAL!', MSG_NOTIFY);
         if rec.Anim then
@@ -1770,11 +1770,11 @@ begin
 
     // Загрузка триггеров
     gTriggerClientID := 0;
-    e_WriteLog('  Loading triggers...', MSG_NOTIFY);
+    e_WriteLog('  Loading triggers...', TMsgType.Notify);
     g_Game_SetLoadingText(_lc[I_LOAD_TRIGGERS], 0, False);
 
     // Загрузка панелей
-    e_WriteLog('  Loading panels...', MSG_NOTIFY);
+    e_WriteLog('  Loading panels...', TMsgType.Notify);
     g_Game_SetLoadingText(_lc[I_LOAD_PANELS], 0, False);
 
     // check texture numbers for panels
@@ -1784,7 +1784,7 @@ begin
       begin
         if (rec.tagInt < 0) then
         begin
-          e_WriteLog('error loading map: invalid texture index for panel', MSG_FATALERROR);
+          e_WriteLog('error loading map: invalid texture index for panel', TMsgType.Fatal);
           result := false;
           gCurrentMap.Free();
           gCurrentMap := nil;
@@ -1797,7 +1797,7 @@ begin
     // Создание таблицы триггеров (соответствие панелей триггерам)
     if (triggers <> nil) and (triggers.count > 0) then
     begin
-      e_WriteLog('  Setting up trigger table...', MSG_NOTIFY);
+      e_WriteLog('  Setting up trigger table...', TMsgType.Notify);
       //SetLength(TriggersTable, triggers.count);
       g_Game_SetLoadingText(_lc[I_LOAD_TRIGGERS_TABLE], triggers.count-1, False);
 
@@ -1825,7 +1825,7 @@ begin
     // Создаем панели
     if (panels <> nil) and (panels.count > 0) then
     begin
-      e_WriteLog('  Setting up trigger links...', MSG_NOTIFY);
+      e_WriteLog('  Setting up trigger links...', TMsgType.Notify);
       g_Game_SetLoadingText(_lc[I_LOAD_LINK_TRIGGERS], panels.count-1, False);
 
       pannum := -1;
@@ -2011,7 +2011,7 @@ begin
     end;
 
     // create map grid, init other grids (for monsters, for example)
-    e_WriteLog('Creating map grid', MSG_NOTIFY);
+    e_WriteLog('Creating map grid', TMsgType.Notify);
     mapCreateGrid();
 
     // Если не LoadState, то создаем триггеры
@@ -2045,31 +2045,31 @@ begin
     end;
 
     // Загрузка предметов
-    e_WriteLog('  Loading items...', MSG_NOTIFY);
+    e_WriteLog('  Loading items...', TMsgType.Notify);
     g_Game_SetLoadingText(_lc[I_LOAD_ITEMS], 0, False);
 
     // Если не LoadState, то создаем предметы
     if (items <> nil) and not gLoadGameMode then
     begin
-      e_WriteLog('  Spawning items...', MSG_NOTIFY);
+      e_WriteLog('  Spawning items...', TMsgType.Notify);
       g_Game_SetLoadingText(_lc[I_LOAD_CREATE_ITEMS], 0, False);
       for rec in items do CreateItem(rec);
     end;
 
     // Загрузка областей
-    e_WriteLog('  Loading areas...', MSG_NOTIFY);
+    e_WriteLog('  Loading areas...', TMsgType.Notify);
     g_Game_SetLoadingText(_lc[I_LOAD_AREAS], 0, False);
 
     // Если не LoadState, то создаем области
     if areas <> nil then
     begin
-      e_WriteLog('  Creating areas...', MSG_NOTIFY);
+      e_WriteLog('  Creating areas...', TMsgType.Notify);
       g_Game_SetLoadingText(_lc[I_LOAD_CREATE_AREAS], 0, False);
       for rec in areas do CreateArea(rec);
     end;
 
     // Загрузка монстров
-    e_WriteLog('  Loading monsters...', MSG_NOTIFY);
+    e_WriteLog('  Loading monsters...', TMsgType.Notify);
     g_Game_SetLoadingText(_lc[I_LOAD_MONSTERS], 0, False);
 
     gTotalMonsters := 0;
@@ -2077,7 +2077,7 @@ begin
     // Если не LoadState, то создаем монстров
     if (monsters <> nil) and not gLoadGameMode then
     begin
-      e_WriteLog('  Spawning monsters...', MSG_NOTIFY);
+      e_WriteLog('  Spawning monsters...', TMsgType.Notify);
       g_Game_SetLoadingText(_lc[I_LOAD_CREATE_MONSTERS], 0, False);
       for rec in monsters do CreateMonster(rec);
     end;
@@ -2089,7 +2089,7 @@ begin
     // Загрузка неба
     if (gMapInfo.SkyName <> '') then
     begin
-      e_WriteLog('  Loading sky: ' + gMapInfo.SkyName, MSG_NOTIFY);
+      e_WriteLog('  Loading sky: ' + gMapInfo.SkyName, TMsgType.Notify);
       g_Game_SetLoadingText(_lc[I_LOAD_SKY], 0, False);
       FileName := g_ExtractWadName(gMapInfo.SkyName);
 
@@ -2115,7 +2115,7 @@ begin
     ok := False;
     if gMapInfo.MusicName <> '' then
     begin
-      e_WriteLog('  Loading music: ' + gMapInfo.MusicName, MSG_NOTIFY);
+      e_WriteLog('  Loading music: ' + gMapInfo.MusicName, TMsgType.Notify);
       g_Game_SetLoadingText(_lc[I_LOAD_MUSIC], 0, False);
       FileName := g_ExtractWadName(gMapInfo.MusicName);
 
@@ -2179,7 +2179,7 @@ begin
     end;
   end;
 
-  e_WriteLog('Done loading map.', MSG_NOTIFY);
+  e_WriteLog('Done loading map.', TMsgType.Notify);
   Result := True;
 end;
 
@@ -3014,7 +3014,7 @@ begin
     Obj.Y := -1000;
     Obj.Vel.X := 0;
     Obj.Vel.Y := 0;
-    Direction := D_LEFT;
+    Direction := TDirection.D_LEFT;
     State := FLAG_STATE_NONE;
     if FlagPoints[Flag] <> nil then
     begin
@@ -3042,14 +3042,14 @@ begin
         if State = FLAG_STATE_NONE then
           continue;
 
-        if Direction = D_LEFT then
+        if Direction = TDirection.D_LEFT then
           begin
-            Mirror := M_HORIZONTAL;
+            Mirror := TMirrorType.Horizontal;
             dx := -1;
           end
         else
           begin
-            Mirror := M_NONE;
+            Mirror := TMirrorType.None;
             dx := 1;
           end;
 
@@ -3091,7 +3091,7 @@ var
     // Состояние флага
     utils.writeInt(st, Byte(flag^.State));
     // Направление флага
-    if flag^.Direction = D_LEFT then b := 1 else b := 2; // D_RIGHT
+    if flag^.Direction = TDirection.D_LEFT then b := 1 else b := 2; // D_RIGHT
     utils.writeInt(st, Byte(b));
     // Объект флага
     Obj_SaveState(st, @flag^.Obj);
@@ -3170,7 +3170,7 @@ var
     flag^.State := utils.readByte(st);
     // Направление флага
     b := utils.readByte(st);
-    if (b = 1) then flag^.Direction := D_LEFT else flag^.Direction := D_RIGHT; // b = 2
+    if (b = 1) then flag^.Direction := TDirection.D_LEFT else flag^.Direction := TDirection.D_RIGHT; // b = 2
     // Объект флага
     Obj_LoadState(@flag^.Obj, st);
   end;

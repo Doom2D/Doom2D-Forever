@@ -287,7 +287,7 @@ var
 begin
   fld := field[aname];
   if (fld = nil) then raise Exception.Create(Format('field ''%s'' not found in record ''%s'' of type ''%s''', [aname, typeName, id]));
-  if (fld.baseType <> TPoint) then raise Exception.Create(Format('field ''%s'' in record ''%s'' of type ''%s'' has invalid data type', [aname, typeName, id]));
+  if (fld.baseType <> fld.TType.TPoint) then raise Exception.Create(Format('field ''%s'' in record ''%s'' of type ''%s'' has invalid data type', [aname, typeName, id]));
   result := TDFPoint.Create(fld.ival, fld.ival2);
 end;
 
@@ -298,7 +298,7 @@ var
 begin
   fld := field[aname];
   if (fld = nil) then raise Exception.Create(Format('field ''%s'' not found in record ''%s'' of type ''%s''', [aname, typeName, id]));
-  if (fld.baseType <> TSize) and (fld.baseType <> TPoint) then raise Exception.Create(Format('field ''%s'' in record ''%s'' of type ''%s'' has invalid data type', [aname, typeName, id]));
+  if (fld.baseType <> fld.TType.TSize) and (fld.baseType <> fld.TType.TPoint) then raise Exception.Create(Format('field ''%s'' in record ''%s'' of type ''%s'' has invalid data type', [aname, typeName, id]));
   result := TDFSize.Create(fld.ival, fld.ival2);
 end;
 

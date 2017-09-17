@@ -414,7 +414,7 @@ begin
   NetMode := NET_NONE;
 
   g_Net_Cleanup;
-  e_WriteLog('NET: Server stopped', MSG_NOTIFY);
+  e_WriteLog('NET: Server stopped', TMsgType.Notify);
 end;
 
 
@@ -582,7 +582,7 @@ begin
           TP.Lives := 0;
           TP.Kill(K_SIMPLEKILL, 0, HIT_DISCON);
           g_Console_Add(Format(_lc[I_PLAYER_LEAVE], [TP.Name]), True);
-          e_WriteLog('NET: Client ' + TP.Name + ' [' + IntToStr(ID) + '] disconnected.', MSG_NOTIFY);
+          e_WriteLog('NET: Client ' + TP.Name + ' [' + IntToStr(ID) + '] disconnected.', TMsgType.Notify);
           g_Player_Remove(TP.UID);
         end;
 
@@ -636,7 +636,7 @@ begin
   end
   else
   begin
-    e_WriteLog('NET: Kicked from server: ' + IntToStr(NetEvent.data), MSG_NOTIFY);
+    e_WriteLog('NET: Kicked from server: ' + IntToStr(NetEvent.data), TMsgType.Notify);
     if (NetEvent.data <= NET_DISC_MAX) then
       g_Console_Add(_lc[I_NET_MSG] + _lc[I_NET_MSG_KICK] +
         _lc[TStrings_Locale(Cardinal(I_NET_DISC_NONE) + NetEvent.data)], True);
@@ -650,7 +650,7 @@ begin
   g_Console_Add(_lc[I_NET_MSG] + _lc[I_NET_MSG_CLIENT_DISC]);
 
   g_Net_Cleanup;
-  e_WriteLog('NET: Disconnected', MSG_NOTIFY);
+  e_WriteLog('NET: Disconnected', TMsgType.Notify);
 end;
 
 procedure g_Net_Client_Send(Reliable: Boolean; Chan: Byte = NET_CHAN_GAME);

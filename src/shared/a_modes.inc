@@ -46,7 +46,7 @@
 {$POINTERMATH ON}
 {$RANGECHECKS OFF}
 {$SAFEFPUEXCEPTIONS OFF}
-{$SCOPEDENUMS OFF} // this may be changed later
+{$SCOPEDENUMS ON} // this may be changed later
 {$SMARTLINK ON}
 {$TYPEDADDRESS ON}
 {$TYPEINFO ON}

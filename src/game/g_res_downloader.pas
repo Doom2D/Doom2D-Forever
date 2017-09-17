@@ -131,7 +131,7 @@ var
 begin
   SetLength(mapData.ExternalResources, 0);
   g_Console_Add(Format(_lc[I_NET_MAP_DL], [FileName]));
-  e_WriteLog('Downloading map `' + FileName + '` from server', MSG_NOTIFY);
+  e_WriteLog('Downloading map `' + FileName + '` from server', TMsgType.Notify);
   MC_SEND_MapRequest();
 
   msgStream := g_Net_Wait_Event(NET_MSG_MAP_RESPONSE);
@@ -150,7 +150,7 @@ begin
       g_Console_Add(Format(_lc[I_NET_WAD_DL],
                            [mapData.ExternalResources[i].Name]));
       e_WriteLog('Downloading Wad `' + mapData.ExternalResources[i].Name +
-                 '` from server', MSG_NOTIFY);
+                 '` from server', TMsgType.Notify);
       MC_SEND_ResRequest(mapData.ExternalResources[i].Name);
 
       msgStream := g_Net_Wait_Event(NET_MSG_RES_RESPONSE);

@@ -974,7 +974,7 @@ end;
 
 procedure MenuLoadData();
 begin
-  e_WriteLog('Loading menu data...', MSG_NOTIFY);
+  e_WriteLog('Loading menu data...', TMsgType.Notify);
 
   g_Texture_CreateWADEx('MAINMENU_MARKER1', GameWAD+':TEXTURES\MARKER1');
   g_Texture_CreateWADEx('MAINMENU_MARKER2', GameWAD+':TEXTURES\MARKER2');
@@ -1300,7 +1300,9 @@ var
 begin
   if g_ActiveWindow.Name = 'OptionsPlayersP1Menu' then s := 'P1' else s := 'P2';
   with TGUIModelView(g_ActiveWindow.GetControl('mv'+s+'Model')).Model do
-    if Direction = D_LEFT then Direction := D_RIGHT else Direction := D_LEFT;
+  begin
+    if Direction = TDirection.D_LEFT then Direction := TDirection.D_RIGHT else Direction := TDirection.D_LEFT;
+  end;
 end;
 
 procedure ProcDefaultMenuKeyDown (yes: Boolean);
@@ -3197,7 +3199,7 @@ procedure g_Menu_Free();
 begin
   g_GUI_Destroy();
 
-  e_WriteLog('Releasing menu data...', MSG_NOTIFY);
+  e_WriteLog('Releasing menu data...', TMsgType.Notify);
 
   MenuFreeData();
 end;
@@ -3211,7 +3213,7 @@ begin
 
   if ex then
   begin
-    e_WriteLog('Recreating menu...', MSG_NOTIFY);
+    e_WriteLog('Recreating menu...', TMsgType.Notify);
 
     CreateAllMenus();
 

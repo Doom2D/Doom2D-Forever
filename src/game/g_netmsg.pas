@@ -384,7 +384,7 @@ begin
 
   g_Console_Add(Format(_lc[I_PLAYER_JOIN], [PName]), True);
   e_WriteLog('NET: Client ' + PName + ' [' + IntToStr(C^.ID) +
-             '] connected. Assigned player #' + IntToStr(PID) + '.', MSG_NOTIFY);
+             '] connected. Assigned player #' + IntToStr(PID) + '.', TMsgType.Notify);
 
   MH_SEND_Info(C^.ID);
 
@@ -777,7 +777,7 @@ begin
     if Mode = NET_CHAT_PLAYER then
     begin
       g_Console_Add(Txt, True);
-      e_WriteLog('[Chat] ' + b_Text_Unformat(Txt), MSG_NOTIFY);
+      e_WriteLog('[Chat] ' + b_Text_Unformat(Txt), TMsgType.Notify);
       g_Sound_PlayEx('SOUND_GAME_RADIO');
     end
     else
@@ -787,13 +787,13 @@ begin
         if (gPlayer1.Team = TEAM_RED) and (Team = TEAM_RED) then
         begin
           g_Console_Add(#18'[Team] '#2 + Txt, True);
-          e_WriteLog('[Team Chat] ' + b_Text_Unformat(Txt), MSG_NOTIFY);
+          e_WriteLog('[Team Chat] ' + b_Text_Unformat(Txt), TMsgType.Notify);
           g_Sound_PlayEx('SOUND_GAME_RADIO');
         end
         else if (gPlayer1.Team = TEAM_BLUE) and (Team = TEAM_BLUE) then
         begin
           g_Console_Add(#20'[Team] '#2 + Txt, True);
-          e_WriteLog('[Team Chat] ' + b_Text_Unformat(Txt), MSG_NOTIFY);
+          e_WriteLog('[Team Chat] ' + b_Text_Unformat(Txt), TMsgType.Notify);
           g_Sound_PlayEx('SOUND_GAME_RADIO');
         end;
       end;
@@ -802,7 +802,7 @@ begin
   begin
     Name := g_Net_ClientName_ByID(ID);
     g_Console_Add('-> ' + Name + ': ' + Txt, True);
-    e_WriteLog('[Tell ' + Name + '] ' + b_Text_Unformat(Txt), MSG_NOTIFY);
+    e_WriteLog('[Tell ' + Name + '] ' + b_Text_Unformat(Txt), TMsgType.Notify);
     g_Sound_PlayEx('SOUND_GAME_RADIO');
   end;
 end;
@@ -1007,7 +1007,7 @@ begin
     end;
 
     NetOut.Write(kByte);
-    if Direction = D_LEFT then NetOut.Write(Byte(0)) else NetOut.Write(Byte(1));
+    if Direction = TDirection.D_LEFT then NetOut.Write(Byte(0)) else NetOut.Write(Byte(1));
     NetOut.Write(GameX);
     NetOut.Write(GameY);
     NetOut.Write(GameVelX);
@@ -1409,7 +1409,7 @@ begin
     if Mode = NET_CHAT_PLAYER then
     begin
       g_Console_Add(Txt, True);
-      e_WriteLog('[Chat] ' + b_Text_Unformat(Txt), MSG_NOTIFY);
+      e_WriteLog('[Chat] ' + b_Text_Unformat(Txt), TMsgType.Notify);
       g_Sound_PlayEx('SOUND_GAME_RADIO');
     end else
     if (Mode = NET_CHAT_TEAM) and (gPlayer1 <> nil) then
@@ -1418,7 +1418,7 @@ begin
         g_Console_Add(b_Text_Format('\r[Team] ') + Txt, True);
       if gPlayer1.Team = TEAM_BLUE then
         g_Console_Add(b_Text_Format('\b[Team] ') + Txt, True);
-      e_WriteLog('[Team Chat] ' + b_Text_Unformat(Txt), MSG_NOTIFY);
+      e_WriteLog('[Team Chat] ' + b_Text_Unformat(Txt), TMsgType.Notify);
       g_Sound_PlayEx('SOUND_GAME_RADIO');
     end;
   end else
@@ -1996,7 +1996,7 @@ begin
   end;
 
   g_Console_Add(Format(_lc[I_PLAYER_JOIN], [PName]), True);
-  e_WriteLog('NET: Player ' + PName + ' [' + IntToStr(PID) + '] added.', MSG_NOTIFY);
+  e_WriteLog('NET: Player ' + PName + ' [' + IntToStr(PID) + '] added.', TMsgType.Notify);
   Result := PID;
 end;
 
@@ -2214,7 +2214,7 @@ begin
   if Pl = nil then Exit;
 
   g_Console_Add(Format(_lc[I_PLAYER_LEAVE], [Pl.Name]), True);
-  e_WriteLog('NET: Player ' + Pl.Name + ' [' + IntToStr(PID) + '] removed.', MSG_NOTIFY);
+  e_WriteLog('NET: Player ' + Pl.Name + ' [' + IntToStr(PID) + '] removed.', TMsgType.Notify);
 
   g_Player_Remove(PID);
 
@@ -2753,13 +2753,13 @@ begin
         // new strafe mechanics
         if (strafeDir = 0) then strafeDir := P1MoveButton; // start strafing
         // now set direction according to strafe (reversed)
-             if (strafeDir = 2) then gPlayer1.SetDirection(D_LEFT)
-        else if (strafeDir = 1) then gPlayer1.SetDirection(D_RIGHT);
+             if (strafeDir = 2) then gPlayer1.SetDirection(TDirection.D_LEFT)
+        else if (strafeDir = 1) then gPlayer1.SetDirection(TDirection.D_RIGHT);
       end
       else
       begin
-             if (P1MoveButton = 2) and isKeyPressed(KeyLeft, KeyLeft2) then gPlayer1.SetDirection(D_LEFT)
-        else if (P1MoveButton = 1) and isKeyPressed(KeyRight, KeyRight2) then gPlayer1.SetDirection(D_RIGHT)
+             if (P1MoveButton = 2) and isKeyPressed(KeyLeft, KeyLeft2) then gPlayer1.SetDirection(TDirection.D_LEFT)
+        else if (P1MoveButton = 1) and isKeyPressed(KeyRight, KeyRight2) then gPlayer1.SetDirection(TDirection.D_RIGHT)
         else if P1MoveButton <> 0 then gPlayer1.SetDirection(TDirection(P1MoveButton-1));
       end;
 
@@ -2872,15 +2872,15 @@ var
   FileStream : TStream;
   fname: string;
 begin
-  e_WriteLog(Format('NETWORK: looking for file "%s"', [FileName]), MSG_NOTIFY);
+  e_WriteLog(Format('NETWORK: looking for file "%s"', [FileName]), TMsgType.Notify);
   fname := findDiskWad(FileName);
   if length(fname) = 0 then
   begin
-    e_WriteLog(Format('NETWORK: file "%s" not found!', [FileName]), MSG_FATALERROR);
+    e_WriteLog(Format('NETWORK: file "%s" not found!', [FileName]), TMsgType.Fatal);
     SetLength(Result, 0);
     exit;
   end;
-  e_WriteLog(Format('NETWORK: found file "%s"', [fname]), MSG_NOTIFY);
+  e_WriteLog(Format('NETWORK: found file "%s"', [fname]), TMsgType.Notify);
   Result := nil;
   FileStream := openDiskFileRO(fname);
   try
@@ -3019,7 +3019,7 @@ var
   mapDataMsg: TMapDataMsg;
 begin
   e_WriteLog('NET: Received map request from ' +
-             DecodeIPV4(C.Peer.address.host), MSG_NOTIFY);
+             DecodeIPV4(C.Peer.address.host), TMsgType.Notify);
 
   mapDataMsg := CreateMapDataMsg(MapsDir + gGameSettings.WAD, gExternalResources);
   peer := NetClients[C.ID].Peer;
@@ -3041,11 +3041,11 @@ var
 begin
   FileName := ExtractFileName(M.ReadString());
   e_WriteLog('NET: Received res request: ' + FileName +
-             ' from ' + DecodeIPV4(C.Peer.address.host), MSG_NOTIFY);
+             ' from ' + DecodeIPV4(C.Peer.address.host), TMsgType.Notify);
 
   if not IsValidFilePath(FileName) then
   begin
-    e_WriteLog('Invalid filename: ' + FileName, MSG_WARNING);
+    e_WriteLog('Invalid filename: ' + FileName, TMsgType.Warning);
     exit;
   end;
 

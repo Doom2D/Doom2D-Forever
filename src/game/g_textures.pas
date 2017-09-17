@@ -186,7 +186,7 @@ begin
   end
   else
   begin
-    e_WriteLog(Format('Error loading texture %s', [Resource]), MSG_WARNING);
+    e_WriteLog(Format('Error loading texture %s', [Resource]), TMsgType.Warning);
     //e_WriteLog(Format('WAD Reader error: %s', [WAD.GetLastErrorStr]), MSG_WARNING);
   end;
   WAD.Free();
@@ -197,7 +197,7 @@ begin
   Result := True;
   if not e_CreateTexture(FileName, ID) then
   begin
-    e_WriteLog(Format('Error loading texture %s', [FileName]), MSG_WARNING);
+    e_WriteLog(Format('Error loading texture %s', [FileName]), TMsgType.Warning);
     Result := False;
   end;
 end;
@@ -234,7 +234,7 @@ begin
   begin
     if showmsg then
     begin
-      e_WriteLog(Format('Error loading texture %s', [Resource]), MSG_WARNING);
+      e_WriteLog(Format('Error loading texture %s', [Resource]), TMsgType.Warning);
     end;
     //e_WriteLog(Format('WAD Reader error: %s', [WAD.GetLastErrorStr]), MSG_WARNING);
     result := false;
@@ -265,7 +265,7 @@ begin
     e_GetTextureSize(TexturesArray[find_id].ID, @TexturesArray[find_id].Width,
                      @TexturesArray[find_id].Height);
   end
-  else e_WriteLog(Format('Error loading texture %s', [FileName]), MSG_WARNING);
+  else e_WriteLog(Format('Error loading texture %s', [FileName]), TMsgType.Warning);
 end;
 
 function g_Texture_Get(TextureName: ShortString; var ID: DWORD): Boolean;
@@ -489,7 +489,7 @@ begin
   if not WAD.GetResource(g_ExtractFilePathName(Resource), TextureData, ResourceLength) then
   begin
     WAD.Free();
-    e_WriteLog(Format('Error loading texture %s', [Resource]), MSG_WARNING);
+    e_WriteLog(Format('Error loading texture %s', [Resource]), TMsgType.Warning);
     //e_WriteLog(Format('WAD Reader error: %s', [WAD.GetLastErrorStr]), MSG_WARNING);
     Exit;
   end;
@@ -685,15 +685,15 @@ procedure DumpTextureNames();
 var
   i: Integer;
 begin
-  e_WriteLog('BEGIN Textures:', MSG_NOTIFY);
+  e_WriteLog('BEGIN Textures:', TMsgType.Notify);
   for i := 0 to High(TexturesArray) do
-    e_WriteLog('   '+IntToStr(i)+'. '+TexturesArray[i].Name, MSG_NOTIFY);
-  e_WriteLog('END Textures.', MSG_NOTIFY);
+    e_WriteLog('   '+IntToStr(i)+'. '+TexturesArray[i].Name, TMsgType.Notify);
+  e_WriteLog('END Textures.', TMsgType.Notify);
 
-  e_WriteLog('BEGIN Frames:', MSG_NOTIFY);
+  e_WriteLog('BEGIN Frames:', TMsgType.Notify);
   for i := 0 to High(FramesArray) do
-    e_WriteLog('   '+IntToStr(i)+'. '+FramesArray[i].Name, MSG_NOTIFY);
-  e_WriteLog('END Frames.', MSG_NOTIFY);
+    e_WriteLog('   '+IntToStr(i)+'. '+FramesArray[i].Name, TMsgType.Notify);
+  e_WriteLog('END Frames.', TMsgType.Notify);
 end;
 
 { TAnimation }

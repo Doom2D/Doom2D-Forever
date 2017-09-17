@@ -362,7 +362,7 @@ begin
       if fs = nil then
       begin
         if wantMap then continue;
-        if logError then e_WriteLog(Format('DFWAD: can''t open file [%s] in [%s]', [name, fFileName]), MSG_WARNING);
+        if logError then e_WriteLog(Format('DFWAD: can''t open file [%s] in [%s]', [name, fFileName]), TMsgType.Warning);
         break;
       end;
       // if we want only maps, check if this is map
@@ -441,12 +441,12 @@ begin
       result := true;
       {$IFDEF SFS_DFWAD_DEBUG}
       if wadoptDebug then
-        e_WriteLog(Format('DFWAD: file [%s] FOUND in [%s]; size is %d bytes', [name, fFileName, Len]), MSG_NOTIFY);
+        e_WriteLog(Format('DFWAD: file [%s] FOUND in [%s]; size is %d bytes', [name, fFileName, Len]), TMsgType.Notify);
       {$ENDIF}
       exit;
     end;
   end;
-  if logError then e_WriteLog(Format('DFWAD: file [%s] not found in [%s]', [name, fFileName]), MSG_WARNING);
+  if logError then e_WriteLog(Format('DFWAD: file [%s] not found in [%s]', [name, fFileName]), TMsgType.Warning);
 end;
 
 function TWADFile.GetResource (name: AnsiString; var pData: Pointer; var Len: Integer; logError: Boolean=true): Boolean;
@@ -506,11 +506,11 @@ begin
   rfn := findDiskWad(FileName);
   if length(rfn) = 0 then
   begin
-    e_WriteLog(Format('TWADFile.ReadFile: error looking for [%s]', [FileName]), MSG_NOTIFY);
+    e_WriteLog(Format('TWADFile.ReadFile: error looking for [%s]', [FileName]), TMsgType.Notify);
     exit;
   end;
   {$IFDEF SFS_DFWAD_DEBUG}
-  if wadoptDebug then e_WriteLog(Format('TWADFile.ReadFile: FOUND [%s]', [rfn]), MSG_NOTIFY);
+  if wadoptDebug then e_WriteLog(Format('TWADFile.ReadFile: FOUND [%s]', [rfn]), TMsgType.Notify);
   {$ENDIF}
   // cache this wad
   try
@@ -529,7 +529,7 @@ begin
   if fIter = nil then Exit;
   fFileName := rfn;
   {$IFDEF SFS_DFWAD_DEBUG}
-  if wadoptDebug then e_WriteLog(Format('TWADFile.ReadFile: [%s] opened', [fFileName]), MSG_NOTIFY);
+  if wadoptDebug then e_WriteLog(Format('TWADFile.ReadFile: [%s] opened', [fFileName]), TMsgType.Notify);
   {$ENDIF}
   Result := True;
 end;
@@ -549,14 +549,14 @@ begin
   FreeWAD();
   if (Data = nil) or (Len = 0) then
   begin
-    e_WriteLog('TWADFile.ReadMemory: EMPTY SUBWAD!', MSG_WARNING);
+    e_WriteLog('TWADFile.ReadMemory: EMPTY SUBWAD!', TMsgType.Warning);
     Exit;
   end;
 
   fn := Format(' -- memwad %d -- ', [uniqueCounter]);
   Inc(uniqueCounter);
   {$IFDEF SFS_DFWAD_DEBUG}
-  if wadoptDebug then e_WriteLog(Format('TWADFile.ReadMemory: [%s]', [fn]), MSG_NOTIFY);
+  if wadoptDebug then e_WriteLog(Format('TWADFile.ReadMemory: [%s]', [fn]), TMsgType.Notify);
   {$ENDIF}
 
   try
@@ -576,7 +576,7 @@ begin
 
   fFileName := fn;
   {$IFDEF SFS_DFWAD_DEBUG}
-  if wadoptDebug then e_WriteLog(Format('TWADFile.ReadMemory: [%s] opened', [fFileName]), MSG_NOTIFY);
+  if wadoptDebug then e_WriteLog(Format('TWADFile.ReadMemory: [%s] opened', [fFileName]), TMsgType.Notify);
   {$ENDIF}
 
   {

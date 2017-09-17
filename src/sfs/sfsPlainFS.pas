@@ -18,6 +18,7 @@
 //   SiN .SIN (SPAK)
 //
 {$INCLUDE ../shared/a_modes.inc}
+{$SCOPEDENUMS OFF}
 {.$R+}
 unit sfsPlainFS;
 

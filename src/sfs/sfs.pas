@@ -15,6 +15,7 @@
  *)
 // streaming file system (virtual)
 {$INCLUDE ../shared/a_modes.inc}
+{$SCOPEDENUMS OFF}
 {.$R+}
 {.$DEFINE SFS_VOLDEBUG}
 unit sfs;

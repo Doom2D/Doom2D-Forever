@@ -261,11 +261,11 @@ var
   i: Integer;
 begin
   gAskLanguage := True;
-  e_WriteLog('Reading config', MSG_NOTIFY);
+  e_WriteLog('Reading config', TMsgType.Notify);
 
   if not FileExists(FileName) then
   begin
-    e_WriteLog('Config file '+FileName+' not found', MSG_WARNING);
+    e_WriteLog('Config file '+FileName+' not found', TMsgType.Warning);
     g_Options_SetDefault();
 
   // Default video options:
@@ -537,7 +537,7 @@ var
   config: TConfig;
   i: Integer;
 begin
-  e_WriteLog('Writing config', MSG_NOTIFY);
+  e_WriteLog('Writing config', TMsgType.Notify);
 
   config := TConfig.CreateFile(FileName);
 
@@ -726,7 +726,7 @@ procedure g_Options_Write_Language(FileName: String);
 var
   config: TConfig;
 begin
-  e_WriteLog('Writing language config', MSG_NOTIFY);
+  e_WriteLog('Writing language config', TMsgType.Notify);
 
   config := TConfig.CreateFile(FileName);
   config.WriteStr('Game', 'Language', gLanguage);
@@ -739,7 +739,7 @@ var
   config: TConfig;
   sW, sH: Integer;
 begin
-  e_WriteLog('Writing resolution to config', MSG_NOTIFY);
+  e_WriteLog('Writing resolution to config', TMsgType.Notify);
 
   config := TConfig.CreateFile(FileName);
 
@@ -769,7 +769,7 @@ procedure g_Options_Write_Gameplay_Custom(FileName: String);
 var
   config: TConfig;
 begin
-  e_WriteLog('Writing custom gameplay config', MSG_NOTIFY);
+  e_WriteLog('Writing custom gameplay config', TMsgType.Notify);
 
   config := TConfig.CreateFile(FileName);
 
@@ -793,7 +793,7 @@ procedure g_Options_Write_Gameplay_Net(FileName: String);
 var
   config: TConfig;
 begin
-  e_WriteLog('Writing network gameplay config', MSG_NOTIFY);
+  e_WriteLog('Writing network gameplay config', TMsgType.Notify);
 
   config := TConfig.CreateFile(FileName);
 
@@ -817,7 +817,7 @@ procedure g_Options_Write_Net_Server(FileName: String);
 var
   config: TConfig;
 begin
-  e_WriteLog('Writing server config', MSG_NOTIFY);
+  e_WriteLog('Writing server config', TMsgType.Notify);
 
   config := TConfig.CreateFile(FileName);
 
@@ -835,7 +835,7 @@ procedure g_Options_Write_Net_Client(FileName: String);
 var
   config: TConfig;
 begin
-  e_WriteLog('Writing client config', MSG_NOTIFY);
+  e_WriteLog('Writing client config', TMsgType.Notify);
 
   config := TConfig.CreateFile(FileName);
 

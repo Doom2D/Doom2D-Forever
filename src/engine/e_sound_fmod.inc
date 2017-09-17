@@ -133,19 +133,19 @@ end;
 
 function TryInitWithOutput(Output: FMOD_OUTPUTTYPE; OutputName: String): FMOD_RESULT;
 begin
-  e_WriteLog('Trying with ' + OutputName + '...', MSG_WARNING);
+  e_WriteLog('Trying with ' + OutputName + '...', TMsgType.Warning);
   Result := FMOD_System_SetOutput(F_System, Output);
   if Result <> FMOD_OK then
   begin
-    e_WriteLog('Error setting FMOD output to ' + OutputName + '!', MSG_WARNING);
-    e_WriteLog(FMOD_ErrorString(Result), MSG_WARNING);
+    e_WriteLog('Error setting FMOD output to ' + OutputName + '!', TMsgType.Warning);
+    e_WriteLog(FMOD_ErrorString(Result), TMsgType.Warning);
     Exit;
   end;
   Result := FMOD_System_Init(F_System, N_CHANNELS, FMOD_INIT_NORMAL, nil);
   if Result <> FMOD_OK then
   begin
-    e_WriteLog('Error initializing FMOD system!', MSG_WARNING);
-    e_WriteLog(FMOD_ErrorString(Result), MSG_WARNING);
+    e_WriteLog('Error initializing FMOD system!', TMsgType.Warning);
+    e_WriteLog(FMOD_ErrorString(Result), TMsgType.Warning);
     Exit;
   end;
 end;
@@ -159,35 +159,35 @@ var
 
 begin
   Result := False;
-  e_WriteLog(Format('Trying to initialize FMOD with %d', [Freq]), MSG_NOTIFY);
+  e_WriteLog(Format('Trying to initialize FMOD with %d', [Freq]), TMsgType.Notify);
 
   res := FMOD_System_Create(F_System);
   if res <> FMOD_OK then
   begin
-    e_WriteLog('Error creating FMOD system:', MSG_FATALERROR);
-    e_WriteLog(FMOD_ErrorString(res), MSG_FATALERROR);
+    e_WriteLog('Error creating FMOD system:', TMsgType.Fatal);
+    e_WriteLog(FMOD_ErrorString(res), TMsgType.Fatal);
     Exit;
   end;
 
   res := FMOD_System_GetVersion(F_System, ver);
   if res <> FMOD_OK then
   begin
-    e_WriteLog('Error getting FMOD version:', MSG_FATALERROR);
-    e_WriteLog(FMOD_ErrorString(res), MSG_FATALERROR);
+    e_WriteLog('Error getting FMOD version:', TMsgType.Fatal);
+    e_WriteLog(FMOD_ErrorString(res), TMsgType.Fatal);
     Exit;
   end;
 
   if ver < FMOD_VERSION then
   begin
-    e_WriteLog('FMOD library version is too old! Need '+IntToStr(FMOD_VERSION), MSG_FATALERROR);
+    e_WriteLog('FMOD library version is too old! Need '+IntToStr(FMOD_VERSION), TMsgType.Fatal);
     Exit;
   end;
 
   res := FMOD_System_SetSoftwareFormat(F_System, Freq, FMOD_SOUND_FORMAT_PCM16, 0, 0, FMOD_DSP_RESAMPLER_LINEAR);
   if res <> FMOD_OK then
   begin
-    e_WriteLog('Error setting FMOD software format!', MSG_FATALERROR);
-    e_WriteLog(FMOD_ErrorString(res), MSG_FATALERROR);
+    e_WriteLog('Error setting FMOD software format!', TMsgType.Fatal);
+    e_WriteLog(FMOD_ErrorString(res), TMsgType.Fatal);
     Exit;
   end;
 
@@ -196,7 +196,7 @@ begin
     res := TryInitWithOutput(FMOD_OUTPUTTYPE_NOSOUND, 'OUTPUTTYPE_NOSOUND');
     if res <> FMOD_OK then
     begin
-      e_WriteLog('FMOD: Giving up, can''t init with NOSOUND.', MSG_FATALERROR);
+      e_WriteLog('FMOD: Giving up, can''t init with NOSOUND.', TMsgType.Fatal);
       Exit;
     end;
   end
@@ -205,8 +205,8 @@ begin
     res := FMOD_System_Init(F_System, N_CHANNELS, FMOD_INIT_NORMAL, nil);
     if res <> FMOD_OK then
     begin
-      e_WriteLog('Error initializing FMOD system!', MSG_WARNING);
-      e_WriteLog(FMOD_ErrorString(res), MSG_WARNING);
+      e_WriteLog('Error initializing FMOD system!', TMsgType.Warning);
+      e_WriteLog(FMOD_ErrorString(res), TMsgType.Warning);
 
       {$IFDEF LINUX}
       res := TryInitWithOutput(FMOD_OUTPUTTYPE_ALSA, 'OUTPUTTYPE_ALSA');
@@ -218,7 +218,7 @@ begin
         res := TryInitWithOutput(FMOD_OUTPUTTYPE_NOSOUND, 'OUTPUTTYPE_NOSOUND');
       if res <> FMOD_OK then
       begin
-        e_WriteLog('FMOD: Giving up, can''t init any output.', MSG_FATALERROR);
+        e_WriteLog('FMOD: Giving up, can''t init any output.', TMsgType.Fatal);
         Exit;
       end;
     end;
@@ -226,26 +226,26 @@ begin
 
   res := FMOD_System_GetOutput(F_System, output);
   if res <> FMOD_OK then
-    e_WriteLog('Error getting FMOD output!', MSG_WARNING)
+    e_WriteLog('Error getting FMOD output!', TMsgType.Warning)
   else
     case output of
-      FMOD_OUTPUTTYPE_NOSOUND: e_WriteLog('FMOD Output Method: NOSOUND', MSG_NOTIFY);
-      FMOD_OUTPUTTYPE_NOSOUND_NRT: e_WriteLog('FMOD Output Method: NOSOUND_NRT', MSG_NOTIFY);
-      FMOD_OUTPUTTYPE_DSOUND: e_WriteLog('FMOD Output Method: DSOUND', MSG_NOTIFY);
-      FMOD_OUTPUTTYPE_WINMM: e_WriteLog('FMOD Output Method: WINMM', MSG_NOTIFY);
-      FMOD_OUTPUTTYPE_OPENAL: e_WriteLog('FMOD Output Method: OPENAL', MSG_NOTIFY);
-      FMOD_OUTPUTTYPE_WASAPI: e_WriteLog('FMOD Output Method: WASAPI', MSG_NOTIFY);
-      FMOD_OUTPUTTYPE_ASIO: e_WriteLog('FMOD Output Method: ASIO', MSG_NOTIFY);
-      FMOD_OUTPUTTYPE_OSS:  e_WriteLog('FMOD Output Method: OSS', MSG_NOTIFY);
-      FMOD_OUTPUTTYPE_ALSA: e_Writelog('FMOD Output Method: ALSA', MSG_NOTIFY);
-      else e_WriteLog('FMOD Output Method: Unknown', MSG_NOTIFY);
+      FMOD_OUTPUTTYPE_NOSOUND: e_WriteLog('FMOD Output Method: NOSOUND', TMsgType.Notify);
+      FMOD_OUTPUTTYPE_NOSOUND_NRT: e_WriteLog('FMOD Output Method: NOSOUND_NRT', TMsgType.Notify);
+      FMOD_OUTPUTTYPE_DSOUND: e_WriteLog('FMOD Output Method: DSOUND', TMsgType.Notify);
+      FMOD_OUTPUTTYPE_WINMM: e_WriteLog('FMOD Output Method: WINMM', TMsgType.Notify);
+      FMOD_OUTPUTTYPE_OPENAL: e_WriteLog('FMOD Output Method: OPENAL', TMsgType.Notify);
+      FMOD_OUTPUTTYPE_WASAPI: e_WriteLog('FMOD Output Method: WASAPI', TMsgType.Notify);
+      FMOD_OUTPUTTYPE_ASIO: e_WriteLog('FMOD Output Method: ASIO', TMsgType.Notify);
+      FMOD_OUTPUTTYPE_OSS:  e_WriteLog('FMOD Output Method: OSS', TMsgType.Notify);
+      FMOD_OUTPUTTYPE_ALSA: e_Writelog('FMOD Output Method: ALSA', TMsgType.Notify);
+      else e_WriteLog('FMOD Output Method: Unknown', TMsgType.Notify);
     end;
 
   res := FMOD_System_GetDriver(F_System, drv);
   if res <> FMOD_OK then
-    e_WriteLog('Error getting FMOD driver!', MSG_WARNING)
+    e_WriteLog('Error getting FMOD driver!', TMsgType.Warning)
   else
-    e_WriteLog('FMOD driver id: '+IntToStr(drv), MSG_NOTIFY);
+    e_WriteLog('FMOD driver id: '+IntToStr(drv), TMsgType.Notify);
 
   Result := True;
 end;
@@ -296,7 +296,7 @@ var
 begin
   Result := False;
 
-  e_WriteLog('Loading sound '+FileName+'...', MSG_NOTIFY);
+  e_WriteLog('Loading sound '+FileName+'...', TMsgType.Notify);
 
   find_id := FindESound();
 
@@ -586,8 +586,8 @@ begin
   res := FMOD_Sound_Release(e_SoundsArray[ID].Sound);
   if res <> FMOD_OK then
   begin
-    e_WriteLog('Error releasing sound:', MSG_WARNING);
-    e_WriteLog(FMOD_ErrorString(res), MSG_WARNING);
+    e_WriteLog('Error releasing sound:', TMsgType.Warning);
+    e_WriteLog(FMOD_ErrorString(res), TMsgType.Warning);
   end;
 
   e_SoundsArray[ID].Sound := nil;
@@ -702,16 +702,16 @@ begin
   res := FMOD_System_Close(F_System);
   if res <> FMOD_OK then
   begin
-    e_WriteLog('Error closing FMOD system!', MSG_FATALERROR);
-    e_WriteLog(FMOD_ErrorString(res), MSG_FATALERROR);
+    e_WriteLog('Error closing FMOD system!', TMsgType.Fatal);
+    e_WriteLog(FMOD_ErrorString(res), TMsgType.Fatal);
     Exit;
   end;
 
   res := FMOD_System_Release(F_System);
   if res <> FMOD_OK then
   begin
-    e_WriteLog('Error releasing FMOD system!', MSG_FATALERROR);
-    e_WriteLog(FMOD_ErrorString(res), MSG_FATALERROR);
+    e_WriteLog('Error releasing FMOD system!', TMsgType.Fatal);
+    e_WriteLog(FMOD_ErrorString(res), TMsgType.Fatal);
   end;
 end;
 

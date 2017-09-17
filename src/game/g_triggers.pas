@@ -2409,7 +2409,7 @@ begin
     //HACK!
     if (gTriggers[find_id].TriggerType <> TRIGGER_SECRET) then
     begin
-      e_LogWritefln('trigger of type %s has no triggerdata; wtf?!', [gTriggers[find_id].TriggerType], MSG_WARNING);
+      e_LogWritefln('trigger of type %s has no triggerdata; wtf?!', [gTriggers[find_id].TriggerType], TMsgType.Warning);
     end;
   end
   else

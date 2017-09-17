@@ -80,7 +80,7 @@ type
   TGibsArray = Array of TGibSprite;
   TWeaponPoints = Array [WP_FIRST + 1..WP_LAST] of
                   Array [A_STAND..A_LAST] of
-                  Array [D_LEFT..D_RIGHT] of Array of TDFPoint;
+                  Array [TDirection.D_LEFT..TDirection.D_RIGHT] of Array of TDFPoint;
 
   TPlayerModel = class(TPoolObject)
   private
@@ -88,8 +88,8 @@ type
     FDirection:        TDirection;
     FColor:            TRGB;
     FCurrentAnimation: Byte;
-    FAnim:             Array [D_LEFT..D_RIGHT] of Array [A_STAND..A_LAST] of TAnimation;
-    FMaskAnim:         Array [D_LEFT..D_RIGHT] of Array [A_STAND..A_LAST] of TAnimation;
+    FAnim:             Array [TDirection.D_LEFT..TDirection.D_RIGHT] of Array [A_STAND..A_LAST] of TAnimation;
+    FMaskAnim:         Array [TDirection.D_LEFT..TDirection.D_RIGHT] of Array [A_STAND..A_LAST] of TAnimation;
     FWeaponPoints:     TWeaponPoints;
     FPainSounds:       TModelSoundArray;
     FDieSounds:        TModelSoundArray;
@@ -259,7 +259,7 @@ begin
     begin
       X := X - WEAPONBASE[weapon].X;
       Y := Y - WEAPONBASE[weapon].Y;
-      if dir = D_LEFT then
+      if dir = TDirection.D_LEFT then
         X := -X;
     end;
   end;
@@ -306,7 +306,7 @@ begin
   begin
     for W := WP_FIRST + 1 to WP_LAST do
     begin
-      for D := D_LEFT to D_RIGHT do
+      for D := TDirection.D_LEFT to TDirection.D_RIGHT do
       begin
         SetLength(WeaponPoints[W, AIdx, D], Length(WeaponPoints[W, OIdx, D]));
         for I := 0 to High(WeaponPoints[W, AIdx, D]) do
@@ -328,7 +328,7 @@ var
   prefix: string;
   ok, chk: Boolean;
 begin
-  e_WriteLog(Format('Loading player model: %s', [ExtractFileName(FileName)]), MSG_NOTIFY);
+  e_WriteLog(Format('Loading player model: %s', [ExtractFileName(FileName)]), TMsgType.Notify);
 
   Result := False;
 
@@ -398,7 +398,7 @@ begin
 
     for aa := WP_FIRST + 1 to WP_LAST do
       for bb := A_STAND to A_LAST do
-        for cc := D_LEFT to D_RIGHT do
+        for cc := TDirection.D_LEFT to TDirection.D_RIGHT do
         begin
           f := config.ReadInt(AnimNames[bb], 'frames', 1);
           if config.ReadBool(AnimNames[bb], 'backanim', False) then
@@ -479,69 +479,69 @@ begin
       for bb := A_STAND to A_LAST do
         if not (bb in [A_DIE1, A_DIE2, A_PAIN]) then
         begin
-          chk := GetWeapPoints(config.ReadStr(AnimNames[bb], WeapNames[aa]+'_points', ''), aa, bb, D_RIGHT,
+          chk := GetWeapPoints(config.ReadStr(AnimNames[bb], WeapNames[aa]+'_points', ''), aa, bb, TDirection.D_RIGHT,
                                config.ReadInt(AnimNames[bb], 'frames', 0),
                                config.ReadBool(AnimNames[bb], 'backanim', False),
                                WeaponPoints);
           if ok and (not chk) and (aa = WEAPON_FLAMETHROWER) then
           begin
             // workaround for flamethrower
-            chk := GetWeapPoints(config.ReadStr(AnimNames[bb], WeapNames[WEAPON_PLASMA]+'_points', ''), aa, bb, D_RIGHT,
+            chk := GetWeapPoints(config.ReadStr(AnimNames[bb], WeapNames[WEAPON_PLASMA]+'_points', ''), aa, bb, TDirection.D_RIGHT,
                                  config.ReadInt(AnimNames[bb], 'frames', 0),
                                  config.ReadBool(AnimNames[bb], 'backanim', False),
                                  WeaponPoints);
             if chk then
-            for f := 0 to High(WeaponPoints[aa, bb, D_RIGHT]) do
+            for f := 0 to High(WeaponPoints[aa, bb, TDirection.D_RIGHT]) do
             begin
               case bb of
                 A_STAND, A_PAIN:
                 begin
-                  Dec(WeaponPoints[aa, bb, D_RIGHT, f].X, 6);
-                  Dec(WeaponPoints[aa, bb, D_RIGHT, f].Y, 8);
+                  Dec(WeaponPoints[aa, bb, TDirection.D_RIGHT, f].X, 6);
+                  Dec(WeaponPoints[aa, bb, TDirection.D_RIGHT, f].Y, 8);
                 end;
                 A_WALKATTACK, A_WALK:
                 begin
-                  Dec(WeaponPoints[aa, bb, D_RIGHT, f].X, 9);
-                  Dec(WeaponPoints[aa, bb, D_RIGHT, f].Y, 9);
+                  Dec(WeaponPoints[aa, bb, TDirection.D_RIGHT, f].X, 9);
+                  Dec(WeaponPoints[aa, bb, TDirection.D_RIGHT, f].Y, 9);
                 end;
                 A_ATTACK:
                 begin
-                  Dec(WeaponPoints[aa, bb, D_RIGHT, f].X, 5);
-                  Dec(WeaponPoints[aa, bb, D_RIGHT, f].Y, 8);
+                  Dec(WeaponPoints[aa, bb, TDirection.D_RIGHT, f].X, 5);
+                  Dec(WeaponPoints[aa, bb, TDirection.D_RIGHT, f].Y, 8);
                 end;
                 A_WALKSEEUP, A_SEEUP:
                 begin
-                  Dec(WeaponPoints[aa, bb, D_RIGHT, f].X, 5);
-                  Dec(WeaponPoints[aa, bb, D_RIGHT, f].Y, 16);
+                  Dec(WeaponPoints[aa, bb, TDirection.D_RIGHT, f].X, 5);
+                  Dec(WeaponPoints[aa, bb, TDirection.D_RIGHT, f].Y, 16);
                 end;
                 A_WALKSEEDOWN, A_SEEDOWN:
                 begin
-                  Dec(WeaponPoints[aa, bb, D_RIGHT, f].X, 6);
-                  Dec(WeaponPoints[aa, bb, D_RIGHT, f].Y, 5);
+                  Dec(WeaponPoints[aa, bb, TDirection.D_RIGHT, f].X, 6);
+                  Dec(WeaponPoints[aa, bb, TDirection.D_RIGHT, f].Y, 5);
                 end;
                 A_WALKATTACKUP, A_ATTACKUP:
                 begin
-                  Dec(WeaponPoints[aa, bb, D_RIGHT, f].X, 5);
-                  Dec(WeaponPoints[aa, bb, D_RIGHT, f].Y, 16);
+                  Dec(WeaponPoints[aa, bb, TDirection.D_RIGHT, f].X, 5);
+                  Dec(WeaponPoints[aa, bb, TDirection.D_RIGHT, f].Y, 16);
                 end;
                 A_WALKATTACKDOWN, A_ATTACKDOWN:
                 begin
-                  Dec(WeaponPoints[aa, bb, D_RIGHT, f].X, 6);
-                  Dec(WeaponPoints[aa, bb, D_RIGHT, f].Y, 4);
+                  Dec(WeaponPoints[aa, bb, TDirection.D_RIGHT, f].X, 6);
+                  Dec(WeaponPoints[aa, bb, TDirection.D_RIGHT, f].Y, 4);
                 end;
               end;
             end;
           end;
           ok := ok and (chk or (bb > A_LASTBASE));
 
-          if not GetWeapPoints(config.ReadStr(AnimNames[bb], WeapNames[aa]+'2_points', ''), aa, bb, D_LEFT,
+          if not GetWeapPoints(config.ReadStr(AnimNames[bb], WeapNames[aa]+'2_points', ''), aa, bb, TDirection.D_LEFT,
                                config.ReadInt(AnimNames[bb], 'frames', 0),
                                config.ReadBool(AnimNames[bb], 'backanim', False),
                                WeaponPoints) then
-            for f := 0 to High(WeaponPoints[aa, bb, D_RIGHT]) do
+            for f := 0 to High(WeaponPoints[aa, bb, TDirection.D_RIGHT]) do
             begin
-              WeaponPoints[aa, bb, D_LEFT, f].X := -WeaponPoints[aa, bb, D_RIGHT, f].X;
-              WeaponPoints[aa, bb, D_LEFT, f].Y := WeaponPoints[aa, bb, D_RIGHT, f].Y;
+              WeaponPoints[aa, bb, TDirection.D_LEFT, f].X := -WeaponPoints[aa, bb, TDirection.D_RIGHT, f].X;
+              WeaponPoints[aa, bb, TDirection.D_LEFT, f].Y := WeaponPoints[aa, bb, TDirection.D_RIGHT, f].Y;
             end;
 
           if not ok then Break;
@@ -591,18 +591,18 @@ begin
             Exit;
           end;
 
-          Result.FAnim[D_RIGHT][b] := TAnimation.Create(ID, b in [A_STAND, A_WALK], ModelSpeed[b]);
+          Result.FAnim[TDirection.D_RIGHT][b] := TAnimation.Create(ID, b in [A_STAND, A_WALK], ModelSpeed[b]);
 
-          Result.FMaskAnim[D_RIGHT][b] := TAnimation.Create(ID2, b in [A_STAND, A_WALK], ModelSpeed[b]);
+          Result.FMaskAnim[TDirection.D_RIGHT][b] := TAnimation.Create(ID2, b in [A_STAND, A_WALK], ModelSpeed[b]);
 
           if g_Frames_Exists(Info.Name+'_LEFTANIM'+IntToStr(b)) and
              g_Frames_Exists(Info.Name+'_LEFTANIM'+IntToStr(b)+'_MASK') then
           if g_Frames_Get(ID, Info.Name+'_LEFTANIM'+IntToStr(b)) and
              g_Frames_Get(ID2, Info.Name+'_LEFTANIM'+IntToStr(b)+'_MASK') then
           begin
-            Result.FAnim[D_LEFT][b] := TAnimation.Create(ID, b in [A_STAND, A_WALK], ModelSpeed[b]);
+            Result.FAnim[TDirection.D_LEFT][b] := TAnimation.Create(ID, b in [A_STAND, A_WALK], ModelSpeed[b]);
 
-            Result.FMaskAnim[D_LEFT][b] := TAnimation.Create(ID2, b in [A_STAND, A_WALK], ModelSpeed[b]);
+            Result.FMaskAnim[TDirection.D_LEFT][b] := TAnimation.Create(ID2, b in [A_STAND, A_WALK], ModelSpeed[b]);
           end;
         end;
 
@@ -732,7 +732,7 @@ begin
       for c := W_ACT_NORMAL to W_ACT_FIRE do
         e_DeleteTexture(WeaponID[a][b][c]);
 
-  e_WriteLog('Releasing models...', MSG_NOTIFY);
+  e_WriteLog('Releasing models...', TMsgType.Notify);
 
   if PlayerModelsArray = nil then Exit;
 
@@ -774,17 +774,17 @@ begin
 
   FCurrentAnimation := Animation;
 
-  if (FDirection = D_LEFT) and
-     (FAnim[D_LEFT][FCurrentAnimation] <> nil) and
-     (FMaskAnim[D_LEFT][FCurrentAnimation] <> nil) then
+  if (FDirection = TDirection.D_LEFT) and
+     (FAnim[TDirection.D_LEFT][FCurrentAnimation] <> nil) and
+     (FMaskAnim[TDirection.D_LEFT][FCurrentAnimation] <> nil) then
   begin
-    FAnim[D_LEFT][FCurrentAnimation].Reset;
-    FMaskAnim[D_LEFT][FCurrentAnimation].Reset;
+    FAnim[TDirection.D_LEFT][FCurrentAnimation].Reset;
+    FMaskAnim[TDirection.D_LEFT][FCurrentAnimation].Reset;
   end
   else
   begin
-    FAnim[D_RIGHT][FCurrentAnimation].Reset;
-    FMaskAnim[D_RIGHT][FCurrentAnimation].Reset;
+    FAnim[TDirection.D_RIGHT][FCurrentAnimation].Reset;
+    FMaskAnim[TDirection.D_RIGHT][FCurrentAnimation].Reset;
   end;
 end;
 
@@ -794,10 +794,10 @@ var
 begin
   for a := A_STAND to A_LAST do
   begin
-    FAnim[D_LEFT][a].Free();
-    FMaskAnim[D_LEFT][a].Free();
-    FAnim[D_RIGHT][a].Free();
-    FMaskAnim[D_RIGHT][a].Free();
+    FAnim[TDirection.D_LEFT][a].Free();
+    FMaskAnim[TDirection.D_LEFT][a].Free();
+    FAnim[TDirection.D_RIGHT][a].Free();
+    FMaskAnim[TDirection.D_RIGHT][a].Free();
   end;
 
   inherited;
@@ -810,29 +810,29 @@ var
   p: TDFPoint;
 begin
 // Флаги:
-  if Direction = D_LEFT then
-    Mirror := M_NONE
+  if Direction = TDirection.D_LEFT then
+    Mirror := TMirrorType.None
   else
-    Mirror := M_HORIZONTAL;
+    Mirror := TMirrorType.Horizontal;
 
   if (FFlag <> FLAG_NONE) and (FFlagAnim <> nil) and
      (not (FCurrentAnimation in [A_DIE1, A_DIE2])) then
   begin
-    p.X := IfThen(Direction = D_LEFT,
+    p.X := IfThen(Direction = TDirection.D_LEFT,
                   FLAG_BASEPOINT.X,
                   64-FLAG_BASEPOINT.X);
     p.Y := FLAG_BASEPOINT.Y;
 
-    FFlagAnim.DrawEx(X+IfThen(Direction = D_LEFT, FFlagPoint.X-1, 2*FLAG_BASEPOINT.X-FFlagPoint.X+1)-FLAG_BASEPOINT.X,
+    FFlagAnim.DrawEx(X+IfThen(Direction = TDirection.D_LEFT, FFlagPoint.X-1, 2*FLAG_BASEPOINT.X-FFlagPoint.X+1)-FLAG_BASEPOINT.X,
                      Y+FFlagPoint.Y-FLAG_BASEPOINT.Y+1, Mirror, p,
-                     IfThen(FDirection = D_RIGHT, FFlagAngle, -FFlagAngle));
+                     IfThen(FDirection = TDirection.D_RIGHT, FFlagAngle, -FFlagAngle));
   end;
 
 // Оружие:
-  if Direction = D_RIGHT then
-    Mirror := M_NONE
+  if Direction = TDirection.D_RIGHT then
+    Mirror := TMirrorType.None
   else
-    Mirror := M_HORIZONTAL;
+    Mirror := TMirrorType.Horizontal;
 
   if FDrawWeapon and
     (not (FCurrentAnimation in [A_DIE1, A_DIE2, A_PAIN])) and
@@ -855,38 +855,38 @@ begin
     if Alpha < 201 then
       e_Draw(WeaponID[FCurrentWeapon][pos][act],
              X+FWeaponPoints[FCurrentWeapon, FCurrentAnimation, FDirection,
-                             FAnim[D_RIGHT][FCurrentAnimation].CurrentFrame].X,
+                             FAnim[TDirection.D_RIGHT][FCurrentAnimation].CurrentFrame].X,
              Y+FWeaponPoints[FCurrentWeapon, FCurrentAnimation, FDirection,
-                             FAnim[D_RIGHT][FCurrentAnimation].CurrentFrame].Y,
+                             FAnim[TDirection.D_RIGHT][FCurrentAnimation].CurrentFrame].Y,
              0, True, False, Mirror);
   end;
 
 // Модель:
-  if (FDirection = D_LEFT) and
-     (FAnim[D_LEFT][FCurrentAnimation] <> nil) then
+  if (FDirection = TDirection.D_LEFT) and
+     (FAnim[TDirection.D_LEFT][FCurrentAnimation] <> nil) then
   begin
-    FAnim[D_LEFT][FCurrentAnimation].Alpha := Alpha;
-    FAnim[D_LEFT][FCurrentAnimation].Draw(X, Y, M_NONE);
+    FAnim[TDirection.D_LEFT][FCurrentAnimation].Alpha := Alpha;
+    FAnim[TDirection.D_LEFT][FCurrentAnimation].Draw(X, Y, TMirrorType.None);
   end
   else
   begin
-    FAnim[D_RIGHT][FCurrentAnimation].Alpha := Alpha;
-    FAnim[D_RIGHT][FCurrentAnimation].Draw(X, Y, Mirror);
+    FAnim[TDirection.D_RIGHT][FCurrentAnimation].Alpha := Alpha;
+    FAnim[TDirection.D_RIGHT][FCurrentAnimation].Draw(X, Y, Mirror);
   end;
 
 // Маска модели:
   e_Colors := FColor;
 
-  if (FDirection = D_LEFT) and
-     (FMaskAnim[D_LEFT][FCurrentAnimation] <> nil) then
+  if (FDirection = TDirection.D_LEFT) and
+     (FMaskAnim[TDirection.D_LEFT][FCurrentAnimation] <> nil) then
   begin
-    FMaskAnim[D_LEFT][FCurrentAnimation].Alpha := Alpha;
-    FMaskAnim[D_LEFT][FCurrentAnimation].Draw(X, Y, M_NONE);
+    FMaskAnim[TDirection.D_LEFT][FCurrentAnimation].Alpha := Alpha;
+    FMaskAnim[TDirection.D_LEFT][FCurrentAnimation].Draw(X, Y, TMirrorType.None);
   end
   else
   begin
-    FMaskAnim[D_RIGHT][FCurrentAnimation].Alpha := Alpha;
-    FMaskAnim[D_RIGHT][FCurrentAnimation].Draw(X, Y, Mirror);
+    FMaskAnim[TDirection.D_RIGHT][FCurrentAnimation].Alpha := Alpha;
+    FMaskAnim[TDirection.D_RIGHT][FCurrentAnimation].Draw(X, Y, Mirror);
   end;
 
   e_Colors.R := 255;
@@ -896,18 +896,18 @@ end;
 
 function TPlayerModel.GetCurrentAnimation: TAnimation;
 begin
-  if (FDirection = D_LEFT) and (FAnim[D_LEFT][FCurrentAnimation] <> nil) then
-    Result := FAnim[D_LEFT][FCurrentAnimation]
+  if (FDirection = TDirection.D_LEFT) and (FAnim[TDirection.D_LEFT][FCurrentAnimation] <> nil) then
+    Result := FAnim[TDirection.D_LEFT][FCurrentAnimation]
   else
-    Result := FAnim[D_RIGHT][FCurrentAnimation];
+    Result := FAnim[TDirection.D_RIGHT][FCurrentAnimation];
 end;
 
 function TPlayerModel.GetCurrentAnimationMask: TAnimation;
 begin
-  if (FDirection = D_LEFT) and (FMaskAnim[D_LEFT][FCurrentAnimation] <> nil) then
-    Result := FMaskAnim[D_LEFT][FCurrentAnimation]
+  if (FDirection = TDirection.D_LEFT) and (FMaskAnim[TDirection.D_LEFT][FCurrentAnimation] <> nil) then
+    Result := FMaskAnim[TDirection.D_LEFT][FCurrentAnimation]
   else
-    Result := FMaskAnim[D_RIGHT][FCurrentAnimation];
+    Result := FMaskAnim[TDirection.D_RIGHT][FCurrentAnimation];
 end;
 
 function TPlayerModel.PlaySound(SoundType, Level: Byte; X, Y: Integer): Boolean;
@@ -974,7 +974,7 @@ procedure TPlayerModel.SetFire(Fire: Boolean);
 begin
   FFire := Fire;
 
-  if FFire then FFireCounter := FAnim[D_RIGHT, A_ATTACK].Speed*FAnim[D_RIGHT, A_ATTACK].TotalFrames
+  if FFire then FFireCounter := FAnim[TDirection.D_RIGHT, A_ATTACK].Speed*FAnim[TDirection.D_RIGHT, A_ATTACK].TotalFrames
   else FFireCounter := 0;
 end;
 
@@ -1003,11 +1003,11 @@ end;
 
 procedure TPlayerModel.Update();
 begin
-  if (FDirection = D_LEFT) and (FAnim[D_LEFT][FCurrentAnimation] <> nil) then
-    FAnim[D_LEFT][FCurrentAnimation].Update else FAnim[D_RIGHT][FCurrentAnimation].Update;
+  if (FDirection = TDirection.D_LEFT) and (FAnim[TDirection.D_LEFT][FCurrentAnimation] <> nil) then
+    FAnim[TDirection.D_LEFT][FCurrentAnimation].Update else FAnim[TDirection.D_RIGHT][FCurrentAnimation].Update;
 
-  if (FDirection = D_LEFT) and (FMaskAnim[D_LEFT][FCurrentAnimation] <> nil) then
-    FMaskAnim[D_LEFT][FCurrentAnimation].Update else FMaskAnim[D_RIGHT][FCurrentAnimation].Update;
+  if (FDirection = TDirection.D_LEFT) and (FMaskAnim[TDirection.D_LEFT][FCurrentAnimation] <> nil) then
+    FMaskAnim[TDirection.D_LEFT][FCurrentAnimation].Update else FMaskAnim[TDirection.D_RIGHT][FCurrentAnimation].Update;
 
   if FFlagAnim <> nil then FFlagAnim.Update;
 

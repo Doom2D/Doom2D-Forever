@@ -136,7 +136,7 @@ begin
   begin
     try
       Main();
-      e_WriteLog('Shutdown with no errors.', MSG_NOTIFY);
+      e_WriteLog('Shutdown with no errors.', TMsgType.Notify);
     except
       on e: Exception do
         begin
