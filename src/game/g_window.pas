@@ -72,10 +72,12 @@ var
   ticksOverflow: Int64 = -1;
   lastTicks: Uint32 = 0; // to detect overflow
 {$ENDIF}
+{$IF not DEFINED(HEADLESS)}
   curMsButState: Word = 0;
   curKbState: Word = 0;
   curMsX: Integer = 0;
   curMsY: Integer = 0;
+{$ENDIF}
 
 function g_Window_SetDisplay(PreserveGL: Boolean = False): Boolean;
 var
@@ -206,6 +208,14 @@ begin
   end;
 end;
 
+procedure resetKMState ();
+begin
+{$IF not DEFINED(HEADLESS)}
+  curMsButState := 0;
+  curKbState := 0;
+{$ENDIF}
+end;
+
 function WindowEventHandler(ev: TSDL_WindowEvent): Boolean;
 var
   wActivate, wDeactivate: Boolean;
@@ -226,8 +236,7 @@ begin
 
     SDL_WINDOWEVENT_MINIMIZED:
     begin
-      curMsButState := 0;
-      curKbState := 0;
+      resetKMState();
       e_UnpressAllKeys();
       if not wMinimized then
       begin
@@ -245,8 +254,7 @@ begin
 
     SDL_WINDOWEVENT_RESIZED:
     begin
-      curMsButState := 0;
-      curKbState := 0;
+      resetKMState();
       gScreenWidth := ev.data1;
       gScreenHeight := ev.data2;
       ChangeWindowSize();
@@ -263,8 +271,7 @@ begin
 
     SDL_WINDOWEVENT_MAXIMIZED:
     begin
-      curMsButState := 0;
-      curKbState := 0;
+      resetKMState();
       if wMinimized then
       begin
         e_ResizeWindow(gScreenWidth, gScreenHeight);
@@ -284,8 +291,7 @@ begin
 
     SDL_WINDOWEVENT_RESTORED:
     begin
-      curMsButState := 0;
-      curKbState := 0;
+      resetKMState();
       if wMinimized then
       begin
         e_ResizeWindow(gScreenWidth, gScreenHeight);
@@ -303,8 +309,7 @@ begin
 
     SDL_WINDOWEVENT_FOCUS_GAINED:
     begin
-      curMsButState := 0;
-      curKbState := 0;
+      resetKMState();
       wActivate := True;
       //e_WriteLog('window gained focus!', MSG_NOTIFY);
       g_Holmes_WindowFocused();
@@ -312,8 +317,7 @@ begin
 
     SDL_WINDOWEVENT_FOCUS_LOST:
     begin
-      curMsButState := 0;
-      curKbState := 0;
+      resetKMState();
       wDeactivate := True;
       e_UnpressAllKeys();
       //e_WriteLog('window lost focus!', MSG_NOTIFY);
@@ -373,8 +377,10 @@ var
   key, keychr: Word;
   uc: UnicodeChar;
   //joy: Integer;
+  {$IF not DEFINED(HEADLESS)}
   msev: THMouseEvent;
   kbev: THKeyEvent;
+  {$ENDIF}
 
   function buildBut (b: Byte): Word;
   begin
@@ -386,6 +392,7 @@ var
     end;
   end;
 
+  {$IF not DEFINED(HEADLESS)}
   procedure updateKBState ();
   var
     kbstate: PUint8;
@@ -396,10 +403,13 @@ var
     if (kbstate[SDL_SCANCODE_LALT] <> 0) or (kbstate[SDL_SCANCODE_RALT] <> 0) then curKbState := curKbState or THKeyEvent.ModAlt;
     if (kbstate[SDL_SCANCODE_LSHIFT] <> 0) or (kbstate[SDL_SCANCODE_RSHIFT] <> 0) then curKbState := curKbState or THKeyEvent.ModShift;
   end;
+  {$ENDIF}
 
 begin
   Result := False;
+  {$IF not DEFINED(HEADLESS)}
   updateKBState();
+  {$ENDIF}
 
   case ev.type_ of
     SDL_WINDOWEVENT:
@@ -423,6 +433,7 @@ begin
     SDL_KEYDOWN, SDL_KEYUP:
       begin
         key := ev.key.keysym.scancode;
+        {$IF not DEFINED(HEADLESS)}
         if (g_holmes_enabled) then
         begin
           if (ev.type_ = SDL_KEYDOWN) then kbev.kind := THKeyEvent.Press else kbev.kind := THKeyEvent.Release;
@@ -430,14 +441,13 @@ begin
           kbev.sym := ev.key.keysym.sym;
           kbev.bstate := curMsButState;
           kbev.kstate := curKbState;
-          {$IF not DEFINED(HEADLESS)}
           if g_Holmes_keyEvent(kbev) then
           begin
             if (ev.type_ <> SDL_KEYDOWN) then e_KeyUpDown(ev.key.keysym.scancode, false);
             exit;
           end;
-          {$ENDIF}
         end;
+        {$ENDIF}
         if (ev.type_ = SDL_KEYDOWN) then KeyPress(key);
         e_KeyUpDown(ev.key.keysym.scancode, (ev.type_ = SDL_KEYDOWN));
       end;
@@ -507,8 +517,9 @@ end;
 
 procedure SwapBuffers();
 begin
-  {$IFDEF HEADLESS}Exit;{$ENDIF}
+  {$IF not DEFINED(HEADLESS)}
   SDL_GL_SwapWindow(h_Wnd);
+  {$ENDIF}
 end;
 
 procedure KillGLWindow();
@@ -821,7 +832,9 @@ end;
 function SDLMain(): Integer;
 var
   idx: Integer;
+  {$IF not DEFINED(HEADLESS)}
   ltmp: Integer;
+  {$ENDIF}
   arg: AnsiString;
   mdfo: TStream;
 begin
