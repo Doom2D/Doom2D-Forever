@@ -118,7 +118,7 @@ uses
   g_console, g_options, g_game,
   g_triggers, MAPDEF, e_log, g_monsters, g_saveload,
   g_language, g_netmsg, g_grid,
-  binheap, hashtable, utils, xstreams;
+  geom, binheap, hashtable, utils, xstreams;
 
 type
   TWaterPanel = record

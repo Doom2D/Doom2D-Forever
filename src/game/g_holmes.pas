@@ -19,7 +19,7 @@ unit g_holmes;
 interface
 
 uses
-  mempool,
+  mempool, geom,
   e_log, e_input,
   g_textures, g_basic, e_graphics, g_phys, g_grid, g_player, g_monsters,
   g_window, g_map, g_triggers, g_items, g_game, g_panel, g_console, g_gfx,

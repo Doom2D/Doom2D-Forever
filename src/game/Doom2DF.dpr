@@ -41,6 +41,7 @@ program Doom2DF;
 uses
   mempool in '../shared/mempool.pas',
   conbuf in '../shared/conbuf.pas',
+  geom in '../shared/geom.pas',
   math,
   GL,
   GLExt,

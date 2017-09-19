@@ -95,7 +95,7 @@ var
 implementation
 
 uses
-  Math, e_log, g_map, g_gfx, g_player, SysUtils, MAPDEF,
+  Math, geom, e_log, g_map, g_gfx, g_player, SysUtils, MAPDEF,
   StrUtils, e_graphics, g_monsters, g_items, g_game;
 
 function g_PatchLength(X1, Y1, X2, Y2: Integer): Word;
@@ -559,13 +559,17 @@ begin
 end;}
 
 function g_CollideLine(x1, y1, x2, y2, rX, rY: Integer; rWidth, rHeight: Word): Boolean;
+{
 var
   i: Integer;
   dx, dy: Integer;
   Xerr, Yerr: Integer;
   incX, incY: Integer;
   x, y, d: Integer;
+}
 begin
+  result := lineAABBIntersects(x1, y1, x2, y2, rX, rY, rWidth, rHeight);
+{
   Result := True;
 
   Xerr := 0;
@@ -604,6 +608,7 @@ begin
   end;
 
   Result := False;
+}
 end;
 
 function GetStr(var Str: string): string;
