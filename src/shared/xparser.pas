@@ -14,6 +14,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *)
 {$INCLUDE a_modes.inc}
+{.$DEFINE XPARSER_DEBUG}
 unit xparser;
 
 interface
@@ -51,7 +52,8 @@ type
       TOption = (
         SignedNumbers, // allow signed numbers; otherwise sign will be TTDelim
         DollarIsId, // allow dollar in identifiers; otherwise dollar will be TTDelim
-        DotIsId // allow dot in identifiers; otherwise dot will be TTDelim
+        DotIsId, // allow dot in identifiers; otherwise dot will be TTDelim
+        PascalComments // allow `{}` pascal comments
       );
       TOptions = set of TOption;
 
@@ -86,7 +88,9 @@ type
     function skipBlanks (): Boolean; // ...and comments; returns `false` on eof
 
     function skipToken (): Boolean; // returns `false` on eof
-    //function skipToken1 (): Boolean;
+    {$IFDEF XPARSER_DEBUG}
+    function skipToken1 (): Boolean;
+    {$ENDIF}
 
     function expectId (): AnsiString;
     procedure expectId (const aid: AnsiString);
@@ -368,6 +372,22 @@ begin
         skipChar();
       end;
       continue;
+    end
+    else if (curChar = '{') and (TOption.PascalComments in mOptions) then
+    begin
+      // pascal comment; skip comment start
+      skipChar();
+      while not isEOF do
+      begin
+        if (curChar = '}') then
+        begin
+          // skip comment end
+          skipChar();
+          break;
+        end;
+        skipChar();
+      end;
+      continue;
     end;
     if (curChar > ' ') then break;
     skipChar(); // skip blank
@@ -376,18 +396,18 @@ begin
 end;
 
 
-{
+{$IFDEF XPARSER_DEBUG}
 function TTextParser.skipToken (): Boolean;
 begin
   writeln('getting token...');
   result := skipToken1();
   writeln('  got token: ', mTokType, ' <', mTokStr, '> : <', mTokChar, '>');
 end;
-}
 
-
+function TTextParser.skipToken1 (): Boolean;
+{$ELSE}
 function TTextParser.skipToken (): Boolean;
-
+{$ENDIF}
   procedure parseInt ();
   var
     neg: Boolean = false;
