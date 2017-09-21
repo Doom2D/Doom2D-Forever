@@ -2304,6 +2304,7 @@ begin
             Dec(idx);
           end;
           TimeOut := tgcWait;
+          result := true;
         end;
     end;
   end;
