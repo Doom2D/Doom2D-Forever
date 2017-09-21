@@ -1627,7 +1627,10 @@ begin
   if (Particles <> nil) then
   begin
     glDisable(GL_TEXTURE_2D);
-    glPointSize(2);
+         if (g_dbg_scale < 0.6) then glPointSize(1)
+    else if (g_dbg_scale > 1.3) then glPointSize(g_dbg_scale+1)
+    else glPointSize(2);
+    glDisable(GL_POINT_SMOOTH);
 
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
