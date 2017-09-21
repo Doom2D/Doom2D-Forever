@@ -81,7 +81,7 @@ type
     function trigCenter (): TDFPoint; inline;
   end;
 
-function g_Triggers_Create(Trigger: TTrigger; trec: TDynRecord; forceInternalIndex: Integer=-1): DWORD;
+function g_Triggers_Create (aTrigger: TTrigger; trec: TDynRecord; forceInternalIndex: Integer=-1): DWORD;
 procedure g_Triggers_Update();
 procedure g_Triggers_Press(ID: DWORD; ActivateType: Byte; ActivateUID: Word = 0);
 function g_Triggers_PressR(X, Y: Integer; Width, Height: Word; UID: Word;
@@ -2315,53 +2315,45 @@ begin
 end;
 
 
-function g_Triggers_CreateWithMapIndex (Trigger: TTrigger; arridx, mapidx: Integer): DWORD;
+function g_Triggers_CreateWithMapIndex (aTrigger: TTrigger; arridx, mapidx: Integer): DWORD;
 var
   triggers: TDynField;
 begin
   triggers := gCurrentMap['trigger'];
   if (triggers = nil) then raise Exception.Create('LOAD: map has no triggers');
   if (mapidx < 0) or (mapidx >= triggers.count) then raise Exception.Create('LOAD: invalid map trigger index');
-  //Trigger.trigDataRec := triggers.itemAt[mapidx];
-  //if (Trigger.trigDataRec = nil) then raise Exception.Create('LOAD: internal error in trigger loader');
-  //Trigger.mapId := Trigger.trigDataRec.id;
-  Trigger.mapIndex := mapidx;
-  {
-  if (Trigger.trigDataRec.trigRec <> nil) then
-  begin
-    Trigger.trigDataRec := Trigger.trigDataRec.trigRec.clone(nil);
-  end
-  else
-  begin
-    Trigger.trigDataRec := nil;
-  end;
-  }
-  result := g_Triggers_Create(Trigger, triggers.itemAt[mapidx], arridx);
+  aTrigger.mapIndex := mapidx;
+  result := g_Triggers_Create(aTrigger, triggers.itemAt[mapidx], arridx);
 end;
 
 
-function g_Triggers_Create(Trigger: TTrigger; trec: TDynRecord; forceInternalIndex: Integer=-1): DWORD;
+function g_Triggers_Create (aTrigger: TTrigger; trec: TDynRecord; forceInternalIndex: Integer=-1): DWORD;
 var
   find_id: DWORD;
   fn, mapw: AnsiString;
   f, olen: Integer;
+  ptg: PTrigger;
 begin
   if (tgscope = nil) then tgscope := TTrigScope.Create();
   if (tgclist = nil) then tgclist := TMyConstList.Create();
 
   // Не создавать выход, если игра без выхода
-  if (Trigger.TriggerType = TRIGGER_EXIT) and
+  if (aTrigger.TriggerType = TRIGGER_EXIT) and
      (not LongBool(gGameSettings.Options and GAME_OPTION_ALLOWEXIT)) then
-    Trigger.TriggerType := TRIGGER_NONE;
+  begin
+    aTrigger.TriggerType := TRIGGER_NONE;
+  end;
 
   // Если монстры запрещены, отменяем триггер
-  if (Trigger.TriggerType = TRIGGER_SPAWNMONSTER) and
+  if (aTrigger.TriggerType = TRIGGER_SPAWNMONSTER) and
      (not LongBool(gGameSettings.Options and GAME_OPTION_MONSTERS)) and
      (gGameSettings.GameType <> GT_SINGLE) then
-    Trigger.TriggerType := TRIGGER_NONE;
+  begin
+    aTrigger.TriggerType := TRIGGER_NONE;
+  end;
 
   // Считаем количество секретов на карте
-  if Trigger.TriggerType = TRIGGER_SECRET then gSecretsCount += 1;
+  if (aTrigger.TriggerType = TRIGGER_SECRET) then gSecretsCount += 1;
 
   if (forceInternalIndex < 0) then
   begin
@@ -2399,37 +2391,35 @@ begin
     gTriggers[f].userVars := nil;
     find_id := DWORD(forceInternalIndex);
   end;
-  gTriggers[find_id] := Trigger;
+  gTriggers[find_id] := aTrigger;
+  ptg := @gTriggers[find_id];
 
-  Trigger.mapId := trec.id;
+  ptg.mapId := trec.id;
   // clone trigger data
   if (trec.trigRec = nil) then
   begin
-    gTriggers[find_id].trigDataRec := nil;
+    ptg.trigDataRec := nil;
     //HACK!
-    if (gTriggers[find_id].TriggerType <> TRIGGER_SECRET) then
+    if (ptg.TriggerType <> TRIGGER_SECRET) then
     begin
-      e_LogWritefln('trigger of type %s has no triggerdata; wtf?!', [gTriggers[find_id].TriggerType], TMsgType.Warning);
+      e_LogWritefln('trigger of type %s has no triggerdata; wtf?!', [ptg.TriggerType], TMsgType.Warning);
     end;
   end
   else
   begin
-    gTriggers[find_id].trigDataRec := trec.trigRec.clone(nil);
+    ptg.trigDataRec := trec.trigRec.clone(nil);
   end;
 
-  with gTriggers[find_id] do
+  with ptg^ do
   begin
     ID := find_id;
     // if this type of trigger exists both on the client and on the server
     // use an uniform numeration
-    if Trigger.TriggerType = TRIGGER_SOUND then
+    ClientID := 0;
+    if (ptg.TriggerType = TRIGGER_SOUND) then
     begin
       Inc(gTriggerClientID);
       ClientID := gTriggerClientID;
-    end
-    else
-    begin
-      ClientID := 0;
     end;
     TimeOut := 0;
     ActivateUID := 0;
@@ -2445,97 +2435,98 @@ begin
   end;
 
   // update cached trigger variables
-  trigUpdateCacheData(gTriggers[find_id], gTriggers[find_id].trigDataRec);
+  trigUpdateCacheData(ptg^, ptg.trigDataRec);
 
-  gTriggers[find_id].userVars := nil; //THashStrVariant.Create(hashStrHash, hashStrEqu);
+  ptg.userVars := nil; //THashStrVariant.Create(hashStrHash, hashStrEqu);
 
   try
-    gTriggers[find_id].exoThink := TExprBase.parseStatList(tgclist, VarToStr(trec.user['exoma_think']));
+    ptg.exoThink := TExprBase.parseStatList(tgclist, VarToStr(trec.user['exoma_think']));
   except
     on e: TExomaParseException do
       begin
         conwritefln('*** ERROR parsing exoma_think (%s,%s): %s [%s]', [e.tokLine, e.tokCol, e.message, VarToStr(trec.user['exoma_think'])]);
-        gTriggers[find_id].exoThink := nil;
+        ptg.exoThink := nil;
       end;
     else
       raise;
   end;
   try
-    gTriggers[find_id].exoCheck := TExprBase.parse(tgclist, VarToStr(trec.user['exoma_check']));
+    ptg.exoCheck := TExprBase.parse(tgclist, VarToStr(trec.user['exoma_check']));
   except
     on e: TExomaParseException do
       begin
         conwritefln('*** ERROR parsing exoma_check (%s,%s): %s [%s]', [e.tokLine, e.tokCol, e.message, VarToStr(trec.user['exoma_check'])]);
-        gTriggers[find_id].exoCheck := nil;
+        ptg.exoCheck := nil;
       end;
     else
       raise;
   end;
   try
-    gTriggers[find_id].exoAction := TExprBase.parseStatList(tgclist, VarToStr(trec.user['exoma_action']));
+    ptg.exoAction := TExprBase.parseStatList(tgclist, VarToStr(trec.user['exoma_action']));
   except
     on e: TExomaParseException do
       begin
         conwritefln('*** ERROR parsing exoma_action (%s,%s): %s [%s]', [e.tokLine, e.tokCol, e.message, VarToStr(trec.user['exoma_action'])]);
-        gTriggers[find_id].exoAction := nil;
+        ptg.exoAction := nil;
       end;
     else
       raise;
   end;
   try
-    gTriggers[find_id].exoInit := TExprBase.parseStatList(tgclist, VarToStr(trec.user['exoma_init']));
+    ptg.exoInit := TExprBase.parseStatList(tgclist, VarToStr(trec.user['exoma_init']));
   except
     on e: TExomaParseException do
       begin
         conwritefln('*** ERROR parsing exoma_init (%s,%s): %s [%s]', [e.tokLine, e.tokCol, e.message, VarToStr(trec.user['exoma_init'])]);
-        gTriggers[find_id].exoInit := nil;
+        ptg.exoInit := nil;
       end;
     else
       raise;
   end;
 
-  if (forceInternalIndex < 0) and (gTriggers[find_id].exoInit <> nil) then
+  if (forceInternalIndex < 0) and (ptg.exoInit <> nil) then
   begin
     //conwritefln('executing trigger init: [%s]', [gTriggers[find_id].exoInit.toString()]);
     try
-      tgscope.me := @gTriggers[find_id];
-      gTriggers[find_id].exoInit.value(tgscope);
+      tgscope.me := ptg;
+      ptg.exoInit.value(tgscope);
       tgscope.me := nil;
     except
       tgscope.me := nil;
-      conwritefln('*** trigger exoactivate error: %s', [gTriggers[find_id].exoInit.toString()]);
+      conwritefln('*** trigger exoactivate error: %s', [ptg.exoInit.toString()]);
       exit;
     end;
   end;
 
   // Загружаем звук, если это триггер "Звук"
-  if (Trigger.TriggerType = TRIGGER_SOUND) and (Trigger.tgcSoundName <> '') then
+  if (ptg.TriggerType = TRIGGER_SOUND) and (ptg.tgcSoundName <> '') then
   begin
     // Еще нет такого звука
-    if not g_Sound_Exists(Trigger.tgcSoundName) then
+    if not g_Sound_Exists(ptg.tgcSoundName) then
     begin
-      fn := g_ExtractWadName(Trigger.tgcSoundName);
-      if fn = '' then
+      fn := g_ExtractWadName(ptg.tgcSoundName);
+      if (fn = '') then
       begin // Звук в файле с картой
         mapw := g_ExtractWadName(gMapInfo.Map);
-        fn := mapw+':'+g_ExtractFilePathName(Trigger.tgcSoundName);
+        fn := mapw+':'+g_ExtractFilePathName(ptg.tgcSoundName);
       end
       else // Звук в отдельном файле
       begin
-        fn := GameDir + '/wads/' + Trigger.tgcSoundName;
+        fn := GameDir + '/wads/' + ptg.tgcSoundName;
       end;
 
-      if not g_Sound_CreateWADEx(Trigger.tgcSoundName, fn) then
+      //e_LogWritefln('loading trigger sound ''%s''', [fn]);
+      if not g_Sound_CreateWADEx(ptg.tgcSoundName, fn) then
       begin
-        g_FatalError(Format(_lc[I_GAME_ERROR_TR_SOUND], [fn, Trigger.tgcSoundName]));
+        g_FatalError(Format(_lc[I_GAME_ERROR_TR_SOUND], [fn, ptg.tgcSoundName]));
       end;
     end;
 
     // Создаем объект звука
-    with gTriggers[find_id] do
+    with ptg^ do
     begin
       Sound := TPlayableSound.Create();
-      if not Sound.SetByName(Trigger.tgcSoundName) then
+      if not Sound.SetByName(ptg.tgcSoundName) then
       begin
         Sound.Free();
         Sound := nil;
@@ -2544,41 +2535,41 @@ begin
   end;
 
   // Загружаем музыку, если это триггер "Музыка"
-  if (Trigger.TriggerType = TRIGGER_MUSIC) and (Trigger.tgcMusicName <> '') then
+  if (ptg.TriggerType = TRIGGER_MUSIC) and (ptg.tgcMusicName <> '') then
   begin
     // Еще нет такой музыки
-    if not g_Sound_Exists(Trigger.tgcMusicName) then
+    if not g_Sound_Exists(ptg.tgcMusicName) then
     begin
-      fn := g_ExtractWadName(Trigger.tgcMusicName);
+      fn := g_ExtractWadName(ptg.tgcMusicName);
 
       if fn = '' then
       begin // Музыка в файле с картой
         mapw := g_ExtractWadName(gMapInfo.Map);
-        fn := mapw+':'+g_ExtractFilePathName(Trigger.tgcMusicName);
+        fn := mapw+':'+g_ExtractFilePathName(ptg.tgcMusicName);
       end
       else // Музыка в файле с картой
       begin
-        fn := GameDir+'/wads/'+Trigger.tgcMusicName;
+        fn := GameDir+'/wads/'+ptg.tgcMusicName;
       end;
 
-      if not g_Sound_CreateWADEx(Trigger.tgcMusicName, fn, True) then
+      if not g_Sound_CreateWADEx(ptg.tgcMusicName, fn, True) then
       begin
-        g_FatalError(Format(_lc[I_GAME_ERROR_TR_SOUND], [fn, Trigger.tgcMusicName]));
+        g_FatalError(Format(_lc[I_GAME_ERROR_TR_SOUND], [fn, ptg.tgcMusicName]));
       end;
     end;
   end;
 
   // Загружаем данные триггера "Турель"
-  if Trigger.TriggerType = TRIGGER_SHOT then
+  if (ptg.TriggerType = TRIGGER_SHOT) then
   begin
-    with gTriggers[find_id] do
+    with ptg^ do
     begin
       ShotPanelTime := 0;
       ShotSightTime := 0;
       ShotSightTimeout := 0;
       ShotSightTarget := 0;
       ShotSightTargetN := 0;
-      ShotAmmoCount := Trigger.tgcAmmo;
+      ShotAmmoCount := ptg.tgcAmmo;
       ShotReloadTime := 0;
     end;
   end;

@@ -864,9 +864,9 @@ begin
     if arg = '--no-particle-phys' then gpart_dbg_phys_enabled := false;
     if arg = '--no-particle-physics' then gpart_dbg_phys_enabled := false;
 
-    {$IF DEFINED(D2F_DEBUG)}
-    if arg = '--aimline' then g_dbg_aimline_on := false;
-    {$ENDIF}
+    {.$IF DEFINED(D2F_DEBUG)}
+    if arg = '--aimline' then g_dbg_aimline_on := true;
+    {.$ENDIF}
 
     if arg = '--holmes' then begin g_holmes_enabled := true; g_Game_SetDebugMode(); end;
     if (arg = '--holmes-ui-scale') or (arg = '-holmes-ui-scale') then
