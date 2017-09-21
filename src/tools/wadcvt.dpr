@@ -41,7 +41,6 @@ uses
   wadreader in '../shared/wadreader.pas',
   hashtable in '../shared/hashtable.pas',
   conbuf in '../shared/conbuf.pas',
-  BinEditor in '../shared/BinEditor.pas',
   MAPDEF in '../shared/MAPDEF.pas',
   CONFIG in '../shared/CONFIG.pas',
   e_log in '../engine/e_log.pas',
