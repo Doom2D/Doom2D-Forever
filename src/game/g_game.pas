@@ -3305,6 +3305,9 @@ begin
         e_DrawLine(2, 0, gScreenHeight div 2, gScreenWidth, gScreenHeight div 2, 0, 0, 0);
     end;
 
+    // draw inspector
+    if (g_holmes_enabled) then g_Holmes_Draw();
+
     if MessageText <> '' then
     begin
       w := 0;
@@ -3494,9 +3497,6 @@ begin
     end;
     g_ActiveWindow.Draw();
   end;
-
-  // draw inspector
-  if (g_holmes_enabled) then g_Holmes_Draw();
 
   g_Console_Draw();
 
