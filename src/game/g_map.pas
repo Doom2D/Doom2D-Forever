@@ -900,7 +900,7 @@ begin
   if TextNameHash.get(RecName, result) then
   begin
     // i found her!
-    //e_LogWritefln('texture ''%s'' already loaded', [RecName]);
+    //e_LogWritefln('texture ''%s'' already loaded (%s)', [RecName, result]);
     exit;
   end;
 
@@ -968,7 +968,9 @@ begin
     SetLength(Textures, Length(Textures)+1);
     if not e_CreateTextureMem(TextureData, ResLength, Textures[High(Textures)].TextureID) then
     begin
+      e_WriteLog(Format('Error loading texture %s', [RecName]), TMsgType.Warning);
       SetLength(Textures, Length(Textures)-1);
+      result := -1;
       Exit;
     end;
     e_GetTextureSize(Textures[High(Textures)].TextureID, @Textures[High(Textures)].Width, @Textures[High(Textures)].Height);
@@ -1016,7 +1018,7 @@ begin
   if TextNameHash.get(RecName, result) then
   begin
     // i found her!
-    //e_LogWritefln('animated texture ''%s'' already loaded', [RecName]);
+    //e_LogWritefln('animated texture ''%s'' already loaded (%s)', [RecName, result]);
     exit;
   end;
 
@@ -1996,6 +1998,7 @@ begin
         //e_LogWritefln('PANADD: pannum=%s', [pannum]);
 
         // Создаем панель и запоминаем ее GUID
+        //e_LogWritefln('new panel; tcount=%s; curtex=%s', [Length(AddTextures), CurTex]);
         PanelID := CreatePanel(rec, AddTextures, CurTex);
         //e_LogWritefln('panel #%s of type %s got guid #%s', [pannum, rec.PanelType, PanelID]);
         rec.userPanelId := PanelID; // remember game panel id, we'll fix triggers later

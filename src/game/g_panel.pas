@@ -223,6 +223,7 @@ constructor TPanel.Create(PanelRec: TDynRecord;
                           var Textures: TLevelTextureArray; aguid: Integer);
 var
   i: Integer;
+  tnum: Integer;
 begin
   X := PanelRec.X;
   Y := PanelRec.Y;
@@ -337,19 +338,22 @@ begin
 // Текстур несколько - нужно сохранять текущую:
   //if Length(FTextureIDs) > 1 then SaveIt := True;
 
+  if (PanelRec.TextureRec = nil) then tnum := -1 else tnum := PanelRec.tagInt;
+  if (tnum < 0) then tnum := Length(Textures);
+
 // Если не спецтекстура, то задаем размеры:
-  if PanelRec.TextureNum > High(Textures) then
+  if ({PanelRec.TextureNum}tnum > High(Textures)) then
   begin
-    e_WriteLog(Format('WTF?! PanelRec.TextureNum is out of limits! (%d : %d)', [PanelRec.TextureNum, High(Textures)]), TMsgType.Fatal);
+    e_WriteLog(Format('WTF?! tnum is out of limits! (%d : %d)', [tnum, High(Textures)]), TMsgType.Warning);
     FTextureWidth := 2;
     FTextureHeight := 2;
     FAlpha := 0;
     FBlending := ByteBool(0);
   end
-  else if not g_Map_IsSpecialTexture(Textures[PanelRec.TextureNum].TextureName) then
+  else if not g_Map_IsSpecialTexture(Textures[{PanelRec.TextureNum}tnum].TextureName) then
   begin
-    FTextureWidth := Textures[PanelRec.TextureNum].Width;
-    FTextureHeight := Textures[PanelRec.TextureNum].Height;
+    FTextureWidth := Textures[{PanelRec.TextureNum}tnum].Width;
+    FTextureHeight := Textures[{PanelRec.TextureNum}tnum].Height;
     FAlpha := PanelRec.Alpha;
     FBlending := ByteBool(PanelRec.Flags and PANEL_FLAG_BLENDING);
   end;
