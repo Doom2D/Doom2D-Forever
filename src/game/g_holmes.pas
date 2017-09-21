@@ -130,6 +130,7 @@ var
 // ////////////////////////////////////////////////////////////////////////// //
 {$INCLUDE g_holmes.inc}
 {$INCLUDE g_holmes_ui.inc}
+{$INCLUDE g_holmes_ol.inc} // outliner
 
 
 // ////////////////////////////////////////////////////////////////////////// //
@@ -697,6 +698,7 @@ begin
 end;
 
 
+{$IFDEF HOLMES_OLD_OUTLINES}
 var
   edgeBmp: array of Byte = nil;
 
@@ -898,6 +900,155 @@ begin
   if g_ol_rlayer_water then doWallsOld(gWater, PANEL_WATER, 0, 255, 255);
   if g_ol_rlayer_fore then doWallsOld(gRenderForegrounds, PANEL_FORE, 210, 210, 210);
 end;
+
+{$ELSE}
+var
+  oliner: TOutliner = nil;
+
+procedure drawOutlines ();
+var
+  r, g, b: Integer;
+
+  procedure clearOliner ();
+  begin
+    //if (oliner <> nil) and ((oliner.height <> vph+2) or (oliner.width <> vpw+2)) then begin oliner.Free(); oliner := nil; end;
+    if (oliner = nil) then oliner := TOutliner.Create(vpw+2, vph+2) else oliner.setup(vpw+2, vph+2);
+  end;
+
+  procedure drawOutline (ol: TOutliner; sx, sy: Integer);
+    procedure xline (x0, x1, y: Integer);
+    var
+      x: Integer;
+    begin
+      if (g_dbg_scale < 1.0) then
+      begin
+        glBegin(GL_POINTS);
+          for x := x0 to x1 do glVertex2f(sx+x+0.375, sy+y+0.375);
+        glEnd();
+      end
+      else
+      begin
+        glBegin(GL_QUADS);
+          glVertex2f(sx+x0+0, sy+y+0);
+          glVertex2f(sx+x1+1, sy+y+0);
+          glVertex2f(sx+x1+1, sy+y+1);
+          glVertex2f(sx+x0+0, sy+y+1);
+        glEnd();
+      end;
+    end;
+  var
+    y: Integer;
+    sp: TOutliner.TSpanX;
+  begin
+    if (ol = nil) then exit;
+    glPointSize(1);
+    glDisable(GL_POINT_SMOOTH);
+    for y := 0 to ol.height-1 do
+    begin
+      for sp in ol.eachSpanAtY(y) do
+      begin
+        if (g_dbg_scale <= 1.0) then
+        begin
+          glBegin(GL_POINTS);
+            glVertex2f(sx+sp.x0+0.375, sy+y+0.375);
+            glVertex2f(sx+sp.x1+0.375, sy+y+0.375);
+          glEnd();
+        end
+        else
+        begin
+          glBegin(GL_QUADS);
+            glVertex2f(sx+sp.x0+0, sy+y+0);
+            glVertex2f(sx+sp.x0+1, sy+y+0);
+            glVertex2f(sx+sp.x0+1, sy+y+1);
+            glVertex2f(sx+sp.x0+0, sy+y+1);
+
+            glVertex2f(sx+sp.x1+0, sy+y+0);
+            glVertex2f(sx+sp.x1+1, sy+y+0);
+            glVertex2f(sx+sp.x1+1, sy+y+1);
+            glVertex2f(sx+sp.x1+0, sy+y+1);
+          glEnd();
+        end;
+      end;
+      for sp in ol.eachSpanEdgeAtY(y, -1) do
+      begin
+        xline(sp.x0, sp.x1, y);
+        {
+        glBegin(GL_QUADS);
+          glVertex2f(sx+sp.x0+0, sy+y+0);
+          glVertex2f(sx+sp.x1+1, sy+y+0);
+          glVertex2f(sx+sp.x1+1, sy+y+1);
+          glVertex2f(sx+sp.x0+0, sy+y+1);
+        glEnd();
+        }
+      end;
+      for sp in ol.eachSpanEdgeAtY(y, +1) do
+      begin
+        xline(sp.x0, sp.x1, y);
+        {
+        glBegin(GL_QUADS);
+          glVertex2f(sx+sp.x0+0, sy+y+0);
+          glVertex2f(sx+sp.x1+1, sy+y+0);
+          glVertex2f(sx+sp.x1+1, sy+y+1);
+          glVertex2f(sx+sp.x0+0, sy+y+1);
+        glEnd();
+        }
+      end;
+    end;
+  end;
+
+  procedure doWallsOld (parr: array of TPanel; ptype: Word; ar, ag, ab: Integer);
+  var
+    f: Integer;
+    pan: TPanel;
+  begin
+    r := ar;
+    g := ag;
+    b := ab;
+    if g_ol_nice then clearOliner();
+    for f := 0 to High(parr) do
+    begin
+      pan := parr[f];
+      if (pan = nil) or not pan.Enabled or (pan.Width < 1) or (pan.Height < 1) then continue;
+      if ((pan.PanelType and ptype) = 0) then continue;
+      if (pan.X > vpx+vpw+41) or (pan.Y > vpy+vph+41) then continue;
+      if (pan.X+pan.Width < vpx-41) then continue;
+      if (pan.Y+pan.Height < vpy-41) then continue;
+      if g_ol_nice then
+      begin
+        oliner.addRect(pan.X-(vpx+1), pan.Y-(vpy+1), pan.Width, pan.Height);
+      end;
+      if g_ol_fill_walls then
+      begin
+        fillRect(pan.X, pan.Y, pan.Width, pan.Height, r, g, b);
+      end
+      else if not g_ol_nice then
+      begin
+        drawRect(pan.X, pan.Y, pan.Width, pan.Height, r, g, b);
+      end;
+    end;
+    if g_ol_nice then
+    begin
+      glColor4f(r/255.0, g/255.0, b/255.0, 1.0);
+      drawOutline(oliner, vpx+1, vpy+1);
+    end;
+  end;
+
+begin
+  if (vpw < 2) or (vph < 2) then exit;
+  glScissor(0, gScreenHeight-gPlayerScreenSize.Y, gPlayerScreenSize.X, gPlayerScreenSize.Y);
+  glEnable(GL_SCISSOR_TEST);
+  if g_ol_rlayer_back then doWallsOld(gRenderBackgrounds, PANEL_BACK, 255, 127, 0);
+  if g_ol_rlayer_step then doWallsOld(gSteps, PANEL_STEP, 192, 192, 192);
+  if g_ol_rlayer_wall then doWallsOld(gWalls, PANEL_WALL, 255, 255, 255);
+  if g_ol_rlayer_door then doWallsOld(gWalls, PANEL_OPENDOOR or PANEL_CLOSEDOOR, 0, 255, 0);
+  if g_ol_rlayer_acid1 then doWallsOld(gAcid1, PANEL_ACID1, 255, 0, 0);
+  if g_ol_rlayer_acid2 then doWallsOld(gAcid2, PANEL_ACID2, 198, 198, 0);
+  if g_ol_rlayer_water then doWallsOld(gWater, PANEL_WATER, 0, 255, 255);
+  if g_ol_rlayer_fore then doWallsOld(gRenderForegrounds, PANEL_FORE, 210, 210, 210);
+  glScissor(0, 0, gScreenWidth, gScreenHeight);
+  glDisable(GL_SCISSOR_TEST);
+end;
+{$ENDIF}
 
 
 procedure plrDebugDraw ();

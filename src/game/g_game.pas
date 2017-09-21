@@ -3101,15 +3101,21 @@ begin
 
   //glTranslatef(a, b+p.IncCam, 0);
 
-  if (p = gPlayer1) then g_Holmes_plrViewSize(sWidth, sHeight);
+  //if (p = gPlayer1) and (g_dbg_scale >= 1.0) then g_Holmes_plrViewSize(sWidth, sHeight);
 
+  //conwritefln('OLD: (%s,%s)-(%s,%s)', [sX, sY, sWidth, sHeight]);
   fixViewportForScale();
+  //conwritefln('     (%s,%s)-(%s,%s)', [sX, sY, sWidth, sHeight]);
   p.viewPortX := sX;
   p.viewPortY := sY;
   p.viewPortW := sWidth;
   p.viewPortH := sHeight;
 
-  if (p = gPlayer1) then g_Holmes_plrViewPos(sX, sY);
+  if (p = gPlayer1) then
+  begin
+    g_Holmes_plrViewPos(sX, sY);
+    g_Holmes_plrViewSize(sWidth, sHeight);
+  end;
 
   renderMapInternal(-c, -d, true);
 
