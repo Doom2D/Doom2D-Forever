@@ -110,12 +110,9 @@ end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-function ansistrEquCB (constref a, b: AnsiString): Boolean; begin result := (a = b); end;
-function ansistrHashCB (constref a: AnsiString): LongWord; begin if (Length(a) > 0) then result := fnvHash(PChar(a)^, Length(a)) else result := 0; end;
-
 function hashNewCommand (): TCmdHash;
 begin
-  result := TCmdHash.Create(ansistrHashCB, ansistrEquCB);
+  result := TCmdHash.Create(hashStrHash, hashStrEqu, hashStrFree);
 end;
 
 

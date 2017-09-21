@@ -185,12 +185,14 @@ type
   THashStrInt = specialize THashBase<AnsiString, Integer>;
   THashIntStr = specialize THashBase<Integer, AnsiString>;
   THashStrStr = specialize THashBase<AnsiString, AnsiString>;
+  THashStrVariant = specialize THashBase<AnsiString, Variant>;
 
 
-function hashNewIntInt (): THashIntInt;
-function hashNewStrInt (): THashStrInt;
-function hashNewIntStr (): THashIntStr;
-function hashNewStrStr (): THashStrStr;
+function hashNewIntInt (): THashIntInt; inline;
+function hashNewStrInt (): THashStrInt; inline;
+function hashNewIntStr (): THashIntStr; inline;
+function hashNewStrStr (): THashStrStr; inline;
+function hashNewStrVariant (): THashStrVariant; inline;
 
 
 function u32Hash (a: LongWord): LongWord; inline;
@@ -206,12 +208,13 @@ function hashIntHash (constref k: Integer): LongWord;
 function hashStrEqu (constref a, b: AnsiString): Boolean;
 function hashStrHash (constref k: AnsiString): LongWord;
 procedure hashStrFree (var s: AnsiString);
+procedure hashVariantFree (var v: Variant);
 
 
 implementation
 
 uses
-  SysUtils;
+  SysUtils, Variants;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
@@ -235,6 +238,7 @@ end;
 function hashIntEqu (constref a, b: Integer): Boolean; begin result := (a = b); end;
 function hashStrEqu (constref a, b: AnsiString): Boolean; begin result := (a = b); end;
 procedure hashStrFree (var s: AnsiString); begin s := ''; end;
+procedure hashVariantFree (var v: Variant); begin v := Unassigned; end;
 
 {$PUSH}
 {$RANGECHECKS OFF}
@@ -257,27 +261,33 @@ end;
 {$POP}
 
 
-function hashNewIntInt (): THashIntInt;
+function hashNewIntInt (): THashIntInt; inline;
 begin
   result := THashIntInt.Create(hashIntHash, hashIntEqu);
 end;
 
 
-function hashNewStrInt (): THashStrInt;
+function hashNewStrInt (): THashStrInt; inline;
 begin
   result := THashStrInt.Create(hashStrHash, hashStrEqu, hashStrFree);
 end;
 
 
-function hashNewIntStr (): THashIntStr;
+function hashNewIntStr (): THashIntStr; inline;
 begin
   result := THashIntStr.Create(hashIntHash, hashIntEqu, nil, hashStrFree);
 end;
 
 
-function hashNewStrStr (): THashStrStr;
+function hashNewStrStr (): THashStrStr; inline;
 begin
   result := THashStrStr.Create(hashStrHash, hashStrEqu, hashStrFree, hashStrFree);
+end;
+
+
+function hashNewStrVariant (): THashStrVariant; inline;
+begin
+  result := THashStrVariant.Create(hashStrHash, hashStrEqu, hashStrFree, hashVariantFree);
 end;
 
 

@@ -24,8 +24,6 @@ uses
   xdynrec, hashtable, exoma;
 
 type
-  THashStrVariant = specialize THashBase<AnsiString, Variant>;
-
   TActivator = record
     UID:     Word;
     TimeOut: Word;
@@ -237,7 +235,7 @@ begin
       if (Length(afldname) > 4) and (afldname[1] = 'u') and (afldname[2] = 's') and
          (afldname[3] = 'e') and (afldname[4] = 'r') then
       begin
-        if (me.userVars = nil) then me.userVars := THashStrVariant.Create(hashStrHash, hashStrEqu);
+        if (me.userVars = nil) then me.userVars := hashNewStrVariant();
         me.userVars.put(afldname, aval);
         exit;
       end;
@@ -2438,7 +2436,7 @@ begin
   // update cached trigger variables
   trigUpdateCacheData(ptg^, ptg.trigDataRec);
 
-  ptg.userVars := nil; //THashStrVariant.Create(hashStrHash, hashStrEqu);
+  ptg.userVars := nil;
 
   try
     ptg.exoThink := TExprBase.parseStatList(tgclist, VarToStr(trec.user['exoma_think']));
@@ -3339,7 +3337,7 @@ begin
     if (uvcount < 0) or (uvcount > 1024*1024) then raise XStreamError.Create('invalid number of user vars in trigger');
     if (uvcount > 0) then
     begin
-      gTriggers[i].userVars := THashStrVariant.Create(hashStrHash, hashStrEqu);
+      gTriggers[i].userVars := hashNewStrVariant();
       vv := Unassigned;
       while (uvcount > 0) do
       begin

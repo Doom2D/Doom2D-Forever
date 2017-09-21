@@ -154,6 +154,34 @@ end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
+type
+  TScissorSave = record
+  public
+    wassc: Boolean;
+    scxywh: packed array[0..3] of GLint;
+
+  public
+    procedure save (enableScissoring: Boolean);
+    procedure restore ();
+  end;
+
+procedure TScissorSave.save (enableScissoring: Boolean);
+begin
+  wassc := (glIsEnabled(GL_SCISSOR_TEST) <> 0);
+  if wassc then glGetIntegerv(GL_SCISSOR_BOX, @scxywh[0]) else glGetIntegerv(GL_VIEWPORT, @scxywh[0]);
+  //conwritefln('(%d,%d)-(%d,%d)', [scxywh[0], scxywh[1], scxywh[2], scxywh[3]]);
+  if enableScissoring then glEnable(GL_SCISSOR_TEST);
+end;
+
+
+procedure TScissorSave.restore ();
+begin
+  glScissor(scxywh[0], scxywh[1], scxywh[2], scxywh[3]);
+  if wassc then glEnable(GL_SCISSOR_TEST) else glDisable(GL_SCISSOR_TEST);
+end;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
 // fonts
 const kgiFont6: array[0..256*8-1] of Byte  = (
 $00,$00,$00,$00,$00,$00,$00,$00,$3c,$42,$a5,$81,$a5,$99,$42,$3c,$3c,$7e,$db,$ff,$ff,$db,$66,$3c,$6c,$fe,

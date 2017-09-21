@@ -1035,8 +1035,6 @@ var
 
 begin
   if (vpw < 2) or (vph < 2) then exit;
-  glScissor(0, gScreenHeight-gPlayerScreenSize.Y, gPlayerScreenSize.X, gPlayerScreenSize.Y);
-  glEnable(GL_SCISSOR_TEST);
   if g_ol_rlayer_back then doWallsOld(gRenderBackgrounds, PANEL_BACK, 255, 127, 0);
   if g_ol_rlayer_step then doWallsOld(gSteps, PANEL_STEP, 192, 192, 192);
   if g_ol_rlayer_wall then doWallsOld(gWalls, PANEL_WALL, 255, 255, 255);
@@ -1045,8 +1043,6 @@ begin
   if g_ol_rlayer_acid2 then doWallsOld(gAcid2, PANEL_ACID2, 198, 198, 0);
   if g_ol_rlayer_water then doWallsOld(gWater, PANEL_WATER, 0, 255, 255);
   if g_ol_rlayer_fore then doWallsOld(gRenderForegrounds, PANEL_FORE, 210, 210, 210);
-  glScissor(0, 0, gScreenWidth, gScreenHeight);
-  glDisable(GL_SCISSOR_TEST);
 end;
 {$ENDIF}
 
@@ -1357,6 +1353,7 @@ procedure plrDebugDraw ();
   end;
 
 var
+  scisave: TScissorSave;
   mon: TMonster;
   mx, my, mw, mh: Integer;
   //pan: TPanel;
@@ -1364,58 +1361,61 @@ var
 begin
   if (gPlayer1 = nil) then exit;
 
-  glEnable(GL_SCISSOR_TEST);
-  glScissor(0, gWinSizeY-gPlayerScreenSize.Y-1, vpw, vph);
-
+  scisave.save(true); // enable scissoring
   glPushMatrix();
-  glScalef(g_dbg_scale, g_dbg_scale, 1.0);
-  glTranslatef(-vpx, -vpy, 0);
+  try
+    //glScissor(0, gWinSizeY-gPlayerScreenSize.Y-1, vpw, vph);
+    glScissor(0, gScreenHeight-gPlayerScreenSize.Y-1, gPlayerScreenSize.X, gPlayerScreenSize.Y);
 
-  if (showGrid) then drawTileGrid();
-  drawOutlines();
+    glScalef(g_dbg_scale, g_dbg_scale, 1.0);
+    glTranslatef(-vpx, -vpy, 0);
 
-  if (laserSet) then g_Mons_AlongLine(laserX0, laserY0, laserX1, laserY1, monsCollector, true);
+    if (showGrid) then drawTileGrid();
+    drawOutlines();
 
-  if (monMarkedUID <> -1) then
-  begin
-    mon := g_Monsters_ByUID(monMarkedUID);
-    if (mon <> nil) then
+    if (laserSet) then g_Mons_AlongLine(laserX0, laserY0, laserX1, laserY1, monsCollector, true);
+
+    if (monMarkedUID <> -1) then
     begin
-      mon.getMapBox(mx, my, mw, mh);
-      e_DrawQuad(mx, my, mx+mw-1, my+mh-1, 255, 0, 0, 30);
-      drawMonsterInfo(mon);
+      mon := g_Monsters_ByUID(monMarkedUID);
+      if (mon <> nil) then
+      begin
+        mon.getMapBox(mx, my, mw, mh);
+        e_DrawQuad(mx, my, mx+mw-1, my+mh-1, 255, 0, 0, 30);
+        drawMonsterInfo(mon);
+      end;
     end;
+
+    if showAllMonsCells and showGrid then g_Mons_ForEach(highlightAllMonsterCells);
+    if showTriggers then drawTriggers();
+    if showGrid then drawSelectedPlatformCells();
+
+    //drawAwakeCells();
+
+    if showTraceBox then drawTraceBox();
+
+    //drawGibsBoxes();
+
+
+    //pan := g_Map_traceToNearest(16, 608, 16, 8, (GridTagObstacle or GridTagLiquid), @ex, @ey);
+    (*
+    {$IF DEFINED(D2F_DEBUG)}
+    mapGrid.dbgRayTraceTileHitCB := hilightCell1;
+    {$ENDIF}
+    pan := mapGrid.traceRay(ex, ey, 16, 608, 16, 8, nil, (GridTagObstacle or GridTagLiquid));
+    if (pan <> nil) then writeln('end=(', ex, ',', ey, ')');
+    {$IF DEFINED(D2F_DEBUG)}
+    mapGrid.dbgRayTraceTileHitCB := nil;
+    {$ENDIF}
+
+    pan := g_Map_PanelAtPoint(16, 608, (GridTagObstacle or GridTagLiquid));
+    if (pan <> nil) then writeln('hit!');
+    *)
+
+  finally
+    glPopMatrix();
+    scisave.restore();
   end;
-
-  if showAllMonsCells and showGrid then g_Mons_ForEach(highlightAllMonsterCells);
-  if showTriggers then drawTriggers();
-  if showGrid then drawSelectedPlatformCells();
-
-  //drawAwakeCells();
-
-  if showTraceBox then drawTraceBox();
-
-  //drawGibsBoxes();
-
-
-  //pan := g_Map_traceToNearest(16, 608, 16, 8, (GridTagObstacle or GridTagLiquid), @ex, @ey);
-  (*
-  {$IF DEFINED(D2F_DEBUG)}
-  mapGrid.dbgRayTraceTileHitCB := hilightCell1;
-  {$ENDIF}
-  pan := mapGrid.traceRay(ex, ey, 16, 608, 16, 8, nil, (GridTagObstacle or GridTagLiquid));
-  if (pan <> nil) then writeln('end=(', ex, ',', ey, ')');
-  {$IF DEFINED(D2F_DEBUG)}
-  mapGrid.dbgRayTraceTileHitCB := nil;
-  {$ENDIF}
-
-  pan := g_Map_PanelAtPoint(16, 608, (GridTagObstacle or GridTagLiquid));
-  if (pan <> nil) then writeln('hit!');
-  *)
-
-  glPopMatrix();
-
-  glDisable(GL_SCISSOR_TEST);
 
   if showMapCurPos then drawText8(4, gWinSizeY-10, Format('mappos:(%d,%d)', [pmsCurMapX, pmsCurMapY]), 255, 255, 0);
 end;
