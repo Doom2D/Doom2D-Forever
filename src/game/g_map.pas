@@ -1621,7 +1621,7 @@ var
   PanelID: DWORD;
   AddTextures: TAddTextureArray;
   TriggersTable: array of TTRec;
-  FileName, mapResName, s, TexName: String;
+  FileName, mapResName, TexName, s: AnsiString;
   Data: Pointer;
   Len: Integer;
   ok, isAnim: Boolean;
@@ -1634,6 +1634,7 @@ var
   //moveActive: Boolean;
   pan: TPanel;
   mapOk: Boolean = false;
+  usedTextures: THashStrInt = nil; // key: mapTextureList
 begin
   mapGrid.Free();
   mapGrid := nil;
@@ -1747,31 +1748,53 @@ begin
       e_WriteLog('  Loading textures:', TMsgType.Notify);
       g_Game_SetLoadingText(_lc[I_LOAD_TEXTURES], mapTextureList.count-1, False);
 
-      cnt := -1;
-      for rec in mapTextureList do
-      begin
-        Inc(cnt);
-        s := rec.Resource;
-        {$IF DEFINED(D2F_DEBUG_TXLOAD)}
-        e_WriteLog(Format('    Loading texture #%d: %s', [cnt, s]), TMsgType.Notify);
-        {$ENDIF}
-        //if g_Map_IsSpecialTexture(s) then e_WriteLog('      SPECIAL!', MSG_NOTIFY);
-        if rec.Anim then
+      // find used textures
+      usedTextures := hashNewStrInt();
+      try
+        if (panels <> nil) and (panels.count > 0) then
         begin
-          // Анимированная текстура
-          ntn := CreateAnimTexture(rec.Resource, FileName, True);
-          if (ntn < 0) then g_SimpleError(Format(_lc[I_GAME_ERROR_TEXTURE_ANIM], [s]));
-        end
-        else
-        begin
-          // Обычная текстура
-          ntn := CreateTexture(rec.Resource, FileName, True);
-          if (ntn < 0) then g_SimpleError(Format(_lc[I_GAME_ERROR_TEXTURE_SIMPLE], [s]));
+          for rec in panels do
+          begin
+            texrec := rec.TextureRec;
+            if (texrec <> nil) then usedTextures.put(toLowerCase1251(texrec.Resource), 42);
+          end;
         end;
-        if (ntn < 0) then ntn := CreateNullTexture(rec.Resource);
 
-        rec.tagInt := ntn; // remember texture number
-        g_Game_StepLoading();
+        cnt := -1;
+        for rec in mapTextureList do
+        begin
+          Inc(cnt);
+          if not usedTextures.has(toLowerCase1251(rec.Resource)) then
+          begin
+            rec.tagInt := -1; // just in case
+            e_LogWritefln('    Unused texture #%d: %s', [cnt, rec.Resource]);
+          end
+          else
+          begin
+            {$IF DEFINED(D2F_DEBUG_TXLOAD)}
+            e_LogWritefln('    Loading texture #%d: %s', [cnt, rec.Resource]);
+            {$ENDIF}
+            //if g_Map_IsSpecialTexture(s) then e_WriteLog('      SPECIAL!', MSG_NOTIFY);
+            if rec.Anim then
+            begin
+              // Анимированная текстура
+              ntn := CreateAnimTexture(rec.Resource, FileName, True);
+              if (ntn < 0) then g_SimpleError(Format(_lc[I_GAME_ERROR_TEXTURE_ANIM], [rec.Resource]));
+            end
+            else
+            begin
+              // Обычная текстура
+              ntn := CreateTexture(rec.Resource, FileName, True);
+              if (ntn < 0) then g_SimpleError(Format(_lc[I_GAME_ERROR_TEXTURE_SIMPLE], [rec.Resource]));
+            end;
+            if (ntn < 0) then ntn := CreateNullTexture(rec.Resource);
+
+            rec.tagInt := ntn; // remember texture number
+          end;
+          g_Game_StepLoading();
+        end;
+      finally
+        usedTextures.Free();
       end;
 
       // set panel tagInt to texture index
@@ -1784,6 +1807,7 @@ begin
         end;
       end;
     end;
+
 
     // Загрузка триггеров
     gTriggerClientID := 0;
