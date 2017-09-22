@@ -64,20 +64,28 @@ uses
   hashtable;
 
 type
-  THashPtrPtr = specialize THashBase<Pointer, PMemPool>; // key: TClass; value: PMemPool
+  THashKeyPtr = class
+  public
+    class function hash (const k: Pointer): LongWord; inline;
+    class function equ (const a, b: Pointer): Boolean; inline;
+    class procedure freekey (k: Pointer); inline;
+  end;
+
+  THashPtrPtr = specialize THashBase<Pointer, PMemPool, THashKeyPtr>; // key: TClass; value: PMemPool
 
 var
   pools: THashPtrPtr = nil;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-function hashequ (constref a, b: Pointer): Boolean; begin result := (a = b); end;
-function hashhash (constref a: Pointer): LongWord; begin result := fnvHash(PByte(@a)^, sizeof(a)); end;
+class function THashKeyPtr.hash (const k: Pointer): LongWord; inline; begin result := fnvHash(PByte(@k)^, sizeof(k)); end;
+class function THashKeyPtr.equ (const a, b: Pointer): Boolean; inline; begin result := (a = b); end;
+class procedure THashKeyPtr.freekey (k: Pointer); inline; begin end;
 
 
 function getPoolFor (c: TClass): PMemPool;
 begin
-  if (pools = nil) then pools := THashPtrPtr.Create(hashhash, hashequ);
+  if (pools = nil) then pools := THashPtrPtr.Create();
   if not pools.get(Pointer(c), result) then
   begin
     GetMem(result, sizeof(TMemPool));

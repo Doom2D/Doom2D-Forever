@@ -26,10 +26,15 @@ unit hashtable;
 
 interface
 
-
+(*
+ * HashObjT: class that contains class methods:
+ *   class function hash (const[ref] k: KeyT): LongWord;
+ *   class function equ (const[ref] a, b: KeyT): Boolean;
+ *   class procedure freekey (var k: KeyT); // this may free key
+ *)
 type
   // WARNING! don't put structures into hash, use ponters or ids!
-  generic THashBase<KeyT, ValueT> = class(TObject)
+  generic THashBase<KeyT, ValueT, HashObjT> = class(TObject)
   private
     const InitSize = {$IF DEFINED(RBHASH_SANITY_CHECKS)}16{$ELSE}256{$ENDIF}; // *MUST* be power of two
     const LoadFactorPrc = 90; // it is ok for robin hood hashes
@@ -51,9 +56,6 @@ type
         property keyhash: LongWord read hash; // cannot be 0
       end;
 
-    type THashFn = function (constref o: KeyT): LongWord;
-    type TEquFn = function (constref a, b: KeyT): Boolean;
-    type TFreeKeyFn = procedure (var k: KeyT); // this may free key
     type TFreeValueFn = procedure (var v: ValueT); // this may free value
     type TIteratorFn = function (constref k: KeyT; constref v: ValueT): Boolean is nested; // return `true` to stop
     type TIteratorExFn = function (constref k: KeyT; constref v: ValueT; keyhash: LongWord): Boolean is nested; // return `true` to stop
@@ -101,9 +103,6 @@ type
       end;
 
   private
-    hashfn: THashFn;
-    equfn: TEquFn;
-    freekeyfn: TFreeKeyFn;
     freevalfn: TFreeValueFn;
     mBuckets: array of PEntry; // entries, points to mEntries elements
     mBucketsUsed: Integer;
@@ -128,7 +127,7 @@ type
     procedure freeEntries ();
 
   public
-    constructor Create (ahashfn: THashFn; aequfn: TEquFn; afreekeyfn: TFreeKeyFn=nil; afreevalfn: TFreeValueFn=nil);
+    constructor Create (afreevalfn: TFreeValueFn=nil);
     destructor Destroy (); override;
 
     procedure clear ();
@@ -181,34 +180,34 @@ type
 
 
 type
-  THashIntInt = specialize THashBase<Integer, Integer>;
-  THashStrInt = specialize THashBase<AnsiString, Integer>;
-  THashIntStr = specialize THashBase<Integer, AnsiString>;
-  THashStrStr = specialize THashBase<AnsiString, AnsiString>;
-  THashStrVariant = specialize THashBase<AnsiString, Variant>;
+  THashKeyInt = class
+  public
+    class function hash (const k: Integer): LongWord; inline;
+    class function equ (const a, b: Integer): Boolean; inline;
+    class procedure freekey (k: Integer); inline;
+  end;
 
+  THashKeyStr = class
+  public
+    class function hash (const k: AnsiString): LongWord; inline;
+    class function equ (const a, b: AnsiString): Boolean; inline;
+    class procedure freekey (var k: AnsiString); inline;
+  end;
 
-function hashNewIntInt (): THashIntInt; inline;
-function hashNewStrInt (): THashStrInt; inline;
-function hashNewIntStr (): THashIntStr; inline;
-function hashNewStrStr (): THashStrStr; inline;
-function hashNewStrVariant (): THashStrVariant; inline;
+type
+  THashIntInt = specialize THashBase<Integer, Integer, THashKeyInt>;
+  THashStrInt = specialize THashBase<AnsiString, Integer, THashKeyStr>;
+  THashIntStr = specialize THashBase<Integer, AnsiString, THashKeyInt>;
+  THashStrStr = specialize THashBase<AnsiString, AnsiString, THashKeyStr>;
+  THashStrVariant = specialize THashBase<AnsiString, Variant, THashKeyStr>;
 
 
 function u32Hash (a: LongWord): LongWord; inline;
 function fnvHash (constref buf; len: LongWord): LongWord;
 function joaatHash (constref buf; len: LongWord): LongWord;
 
-function nextPOT (x: LongWord): LongWord; inline;
-
-
-// for integer keys
-function hashIntEqu (constref a, b: Integer): Boolean;
-function hashIntHash (constref k: Integer): LongWord;
-function hashStrEqu (constref a, b: AnsiString): Boolean;
-function hashStrHash (constref k: AnsiString): LongWord;
-procedure hashStrFree (var s: AnsiString);
-procedure hashVariantFree (var v: Variant);
+// has to be public due to FPC generics limitation
+function nextPOTU32 (x: LongWord): LongWord; inline;
 
 
 implementation
@@ -220,7 +219,7 @@ uses
 // ////////////////////////////////////////////////////////////////////////// //
 {$PUSH}
 {$RANGECHECKS OFF}
-function nextPOT (x: LongWord): LongWord; inline;
+function nextPOTU32 (x: LongWord): LongWord; inline;
 begin
   result := x;
   result := result or (result shr 1);
@@ -235,63 +234,6 @@ end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-function hashIntEqu (constref a, b: Integer): Boolean; begin result := (a = b); end;
-function hashStrEqu (constref a, b: AnsiString): Boolean; begin result := (a = b); end;
-procedure hashStrFree (var s: AnsiString); begin s := ''; end;
-procedure hashVariantFree (var v: Variant); begin v := Unassigned; end;
-
-{$PUSH}
-{$RANGECHECKS OFF}
-function hashIntHash (constref k: Integer): LongWord;
-begin
-  result := LongWord(k);
-  result -= (result shl 6);
-  result := result xor (result shr 17);
-  result -= (result shl 9);
-  result := result xor (result shl 4);
-  result -= (result shl 3);
-  result := result xor (result shl 10);
-  result := result xor (result shr 15);
-end;
-
-function hashStrHash (constref k: AnsiString): LongWord;
-begin
-  if (Length(k) > 0) then result := fnvHash(PAnsiChar(k)^, Length(k)) else result := 0;
-end;
-{$POP}
-
-
-function hashNewIntInt (): THashIntInt; inline;
-begin
-  result := THashIntInt.Create(hashIntHash, hashIntEqu);
-end;
-
-
-function hashNewStrInt (): THashStrInt; inline;
-begin
-  result := THashStrInt.Create(hashStrHash, hashStrEqu, hashStrFree);
-end;
-
-
-function hashNewIntStr (): THashIntStr; inline;
-begin
-  result := THashIntStr.Create(hashIntHash, hashIntEqu, nil, hashStrFree);
-end;
-
-
-function hashNewStrStr (): THashStrStr; inline;
-begin
-  result := THashStrStr.Create(hashStrHash, hashStrEqu, hashStrFree, hashStrFree);
-end;
-
-
-function hashNewStrVariant (): THashStrVariant; inline;
-begin
-  result := THashStrVariant.Create(hashStrHash, hashStrEqu, hashStrFree, hashVariantFree);
-end;
-
-
-// ////////////////////////////////////////////////////////////////////////// //
 {$PUSH}
 {$RANGECHECKS OFF}
 constructor TJoaatHasher.Create (aseed: LongWord);
@@ -299,19 +241,16 @@ begin
   reset(aseed);
 end;
 
-
 procedure TJoaatHasher.reset (); inline; overload;
 begin
   hash := seed;
 end;
-
 
 procedure TJoaatHasher.reset (aseed: LongWord); inline; overload;
 begin
   seed := aseed;
   hash := aseed;
 end;
-
 
 procedure TJoaatHasher.put (constref buf; len: LongWord);
 var
@@ -331,7 +270,6 @@ begin
   end;
   hash := h;
 end;
-
 
 function TJoaatHasher.value: LongWord; inline;
 begin
@@ -391,6 +329,31 @@ end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
+// THashKeyInt
+class function THashKeyInt.hash (const k: Integer): LongWord; inline;
+begin
+  result := LongWord(k);
+  result -= (result shl 6);
+  result := result xor (result shr 17);
+  result -= (result shl 9);
+  result := result xor (result shl 4);
+  result -= (result shl 3);
+  result := result xor (result shl 10);
+  result := result xor (result shr 15);
+end;
+
+class function THashKeyInt.equ (const a, b: Integer): Boolean; inline; begin result := (a = b); end;
+class procedure THashKeyInt.freekey (k: Integer); inline; begin end;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
+// THashKeyStr
+class function THashKeyStr.hash (const k: AnsiString): LongWord; inline; begin if (Length(k) > 0) then result := fnvHash((@k[1])^, Length(k)) else result := 0; end;
+class function THashKeyStr.equ (const a, b: AnsiString): Boolean; inline; begin result := (a = b); end;
+class procedure THashKeyStr.freekey (var k: AnsiString); inline; begin k := ''; end;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
 function THashBase.TEntry.getEmpty (): Boolean; inline; begin result := (hash = 0); end;
 
 
@@ -398,14 +361,8 @@ function THashBase.TEntry.getEmpty (): Boolean; inline; begin result := (hash = 
 function THashBase.getCapacity (): Integer; inline; begin result := Length(mBuckets); end;
 
 
-constructor THashBase.Create (ahashfn: THashFn; aequfn: TEquFn; afreekeyfn: TFreeKeyFn=nil; afreevalfn: TFreeValueFn=nil);
+constructor THashBase.Create (afreevalfn: TFreeValueFn=nil);
 begin
-  if not assigned(ahashfn) then raise Exception.Create('cannot create hash without hash function');
-  if not assigned(aequfn) then raise Exception.Create('cannot create hash without equality function');
-
-  hashfn := ahashfn;
-  equfn := aequfn;
-  freekeyfn := afreekeyfn;
   freevalfn := afreevalfn;
   mSeed := u32Hash($29a);
 
@@ -435,8 +392,8 @@ begin
       e := @mEntries[f];
       if not e.empty then
       begin
-        if assigned(freekeyfn) then freekeyfn(e.key);
-        if assigned(freevalfn) then freevalfn(e.value);
+        HashObjT.freekey(e.key);
+        if assigned(freevalfn) then freevalfn(e.value) else e.value := Default(ValueT);
         e.key := Default(KeyT);
         e.value := Default(ValueT);
         e.hash := 0;
@@ -538,8 +495,8 @@ begin
   if (idx < 0) or (idx > High(mEntries)) then raise Exception.Create('internal error in hash entry allocator (invalid entry address)');
   if (e <> @mEntries[idx]) then raise Exception.Create('internal error in hash entry allocator (wtf?!)');
   {$ENDIF}
-  if assigned(freekeyfn) then freekeyfn(e.key);
-  if assigned(freevalfn) then freevalfn(e.value);
+  HashObjT.freekey(e.key);
+  if assigned(freevalfn) then freevalfn(e.value) else e.value := Default(ValueT);
   {$IFDEF RBHASH_SANITY_CHECKS}
   Dec(mEntriesUsed);
   {$ENDIF}
@@ -616,11 +573,11 @@ begin
   if (keyhashin <> nil) then
   begin
     khash := keyhashin^;
-    if (khash = 0) then khash := hashfn(akey);
+    if (khash = 0) then khash := HashObjT.hash(akey);
   end
   else
   begin
-    khash := hashfn(akey);
+    khash := HashObjT.hash(akey);
   end;
   if (khash = 0) then khash := $29a;
 
@@ -632,7 +589,7 @@ begin
     if (mBuckets[idx] = nil) then break;
     pdist := distToStIdx(idx);
     if (dist > pdist) then break;
-    result := (mBuckets[idx].hash = khash) and equfn(mBuckets[idx].key, akey);
+    result := (mBuckets[idx].hash = khash) and HashObjT.equ(mBuckets[idx].key, akey);
     if result then break;
     idx := (idx+1) and bhigh;
   end;
@@ -654,11 +611,11 @@ begin
   if (keyhashin <> nil) then
   begin
     khash := keyhashin^;
-    if (khash = 0) then khash := hashfn(akey);
+    if (khash = 0) then khash := HashObjT.hash(akey);
   end
   else
   begin
-    khash := hashfn(akey);
+    khash := HashObjT.hash(akey);
   end;
   if (khash = 0) then khash := $29a;
 
@@ -669,7 +626,7 @@ begin
     if (mBuckets[idx] = nil) then break;
     pdist := distToStIdx(idx);
     if (dist > pdist) then break;
-    result := (mBuckets[idx].hash = khash) and equfn(mBuckets[idx].key, akey);
+    result := (mBuckets[idx].hash = khash) and HashObjT.equ(mBuckets[idx].key, akey);
     if result then begin rval := mBuckets[idx].value; break; end;
     idx := (idx+1) and bhigh;
   end;
@@ -725,7 +682,7 @@ begin
 
   bhigh := High(mBuckets);
   xseed := mSeed;
-  khash := hashfn(akey);
+  khash := HashObjT.hash(akey);
   if (khash = 0) then khash := $29a;
   if (keyhashout <> nil) then keyhashout^ := khash;
   idx := (khash xor xseed) and bhigh;
@@ -738,12 +695,12 @@ begin
       if (mBuckets[idx] = nil) then break;
       pdist := distToStIdx(idx);
       if (dist > pdist) then break;
-      result := (mBuckets[idx].hash = khash) and equfn(mBuckets[idx].key, akey);
+      result := (mBuckets[idx].hash = khash) and HashObjT.equ(mBuckets[idx].key, akey);
       if result then
       begin
         // replace element
-        if assigned(freekeyfn) then freekeyfn(mBuckets[idx].key);
-        if assigned(freevalfn) then freevalfn(mBuckets[idx].value);
+        HashObjT.freekey(mBuckets[idx].key);
+        if assigned(freevalfn) then freevalfn(mBuckets[idx].value) else mBuckets[idx].value := Default(ValueT);
         mBuckets[idx].key := akey;
         mBuckets[idx].value := aval;
         exit;
@@ -796,11 +753,11 @@ begin
   if (keyhashin <> nil) then
   begin
     khash := keyhashin^;
-    if (khash = 0) then khash := hashfn(akey);
+    if (khash = 0) then khash := HashObjT.hash(akey);
   end
   else
   begin
-    khash := hashfn(akey);
+    khash := HashObjT.hash(akey);
   end;
   if (khash = 0) then khash := $29a;
 
@@ -813,7 +770,7 @@ begin
     if (mBuckets[idx] = nil) then break;
     pdist := distToStIdx(idx);
     if (dist > pdist) then break;
-    result := (mBuckets[idx].hash = khash) and equfn(mBuckets[idx].key, akey);
+    result := (mBuckets[idx].hash = khash) and HashObjT.equ(mBuckets[idx].key, akey);
     if result then break;
     idx := (idx+1) and bhigh;
   end;
@@ -883,7 +840,6 @@ begin
       if (cnt = mBucketsUsed) and (idx <> mLastEntry) then raise Exception.Create('internal error in rehash: inconsistent (2)');
       {$ENDIF}
       // no need to recalculate hash
-      //e.hash := hashfn(e.key) xor mSeed; if (e.hash = 0) then e.hash := $29a;
       putEntryInternal(e);
     end
     else
@@ -907,7 +863,7 @@ var
   cnt: Integer;
   {$ENDIF}
 begin
-  newsz := nextPOT(LongWord(mBucketsUsed));
+  newsz := nextPOTU32(LongWord(mBucketsUsed));
   if (newsz >= 1024*1024*1024) then exit;
   if (newsz*2 >= Length(mBuckets)) then exit;
   if (newsz*2 < 128) then exit;

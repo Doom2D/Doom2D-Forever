@@ -44,7 +44,7 @@ type
     function cmdName (): AnsiString;
   end;
 
-  TCmdHash = specialize THashBase<AnsiString, PHolmesCommand>;
+  TCmdHash = specialize THashBase<AnsiString, PHolmesCommand, THashKeyStr>;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
@@ -112,7 +112,7 @@ end;
 // ////////////////////////////////////////////////////////////////////////// //
 function hashNewCommand (): TCmdHash;
 begin
-  result := TCmdHash.Create(hashStrHash, hashStrEqu, hashStrFree);
+  result := TCmdHash.Create();
 end;
 
 

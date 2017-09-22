@@ -345,7 +345,7 @@ var
   n: AnsiString;
 begin
   mClass := aklass;
-  mNames := hashNewStrInt();
+  mNames := THashStrInt.Create();
   pi := aklass.ClassInfo;
   pt := GetTypeData(pi);
   GetMem(pl, pt^.PropCount*sizeof(Pointer));

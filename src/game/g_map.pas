@@ -869,7 +869,7 @@ end;
 function CreateNullTexture(RecName: String): Integer;
 begin
   RecName := toLowerCase1251(RecName);
-  if (TextNameHash = nil) then TextNameHash := hashNewStrInt();
+  if (TextNameHash = nil) then TextNameHash := THashStrInt.Create();
   if TextNameHash.get(RecName, result) then exit; // i found her!
 
   SetLength(Textures, Length(Textures)+1);
@@ -896,7 +896,7 @@ var
   a, ResLength: Integer;
 begin
   RecName := toLowerCase1251(RecName);
-  if (TextNameHash = nil) then TextNameHash := hashNewStrInt();
+  if (TextNameHash = nil) then TextNameHash := THashStrInt.Create();
   if TextNameHash.get(RecName, result) then
   begin
     // i found her!
@@ -984,7 +984,7 @@ begin
   else // Нет такого реусрса в WAD'е
   begin
     //e_WriteLog(Format('SHIT! Error loading texture %s : %s', [RecName, g_ExtractFilePathName(RecName)]), MSG_WARNING);
-    if (BadTextNameHash = nil) then BadTextNameHash := hashNewStrInt();
+    if (BadTextNameHash = nil) then BadTextNameHash := THashStrInt.Create();
     if log and (not BadTextNameHash.get(RecName, a)) then
     begin
       e_WriteLog(Format('Error loading texture %s', [RecName]), TMsgType.Warning);
@@ -1014,7 +1014,7 @@ var
   f, c, frdelay, frloop: Integer;
 begin
   RecName := toLowerCase1251(RecName);
-  if (TextNameHash = nil) then TextNameHash := hashNewStrInt();
+  if (TextNameHash = nil) then TextNameHash := THashStrInt.Create();
   if TextNameHash.get(RecName, result) then
   begin
     // i found her!
@@ -1026,7 +1026,7 @@ begin
 
   //e_LogWritefln('*** Loading animated texture "%s"', [RecName]);
 
-  if (BadTextNameHash = nil) then BadTextNameHash := hashNewStrInt();
+  if (BadTextNameHash = nil) then BadTextNameHash := THashStrInt.Create();
   if BadTextNameHash.get(RecName, f) then
   begin
     //e_WriteLog(Format('no animation texture %s (don''t worry)', [RecName]), MSG_NOTIFY);
@@ -1044,7 +1044,7 @@ begin
 
     if not WAD.GetResource(g_ExtractFilePathName(RecName), TextureWAD, ResLength, log) then
     begin
-      if (BadTextNameHash = nil) then BadTextNameHash := hashNewStrInt();
+      if (BadTextNameHash = nil) then BadTextNameHash := THashStrInt.Create();
       if log and (not BadTextNameHash.get(RecName, f)) then
       begin
         e_WriteLog(Format('Error loading animation texture %s', [RecName]), TMsgType.Warning);
@@ -1138,7 +1138,7 @@ begin
         end
         else
         begin
-          if (BadTextNameHash = nil) then BadTextNameHash := hashNewStrInt();
+          if (BadTextNameHash = nil) then BadTextNameHash := THashStrInt.Create();
           if log and (not BadTextNameHash.get(RecName, f)) then
           begin
             e_WriteLog(Format('Error loading animation texture %s', [RecName]), TMsgType.Warning);
@@ -1230,7 +1230,7 @@ begin
       end
       else
       begin
-        if (BadTextNameHash = nil) then BadTextNameHash := hashNewStrInt();
+        if (BadTextNameHash = nil) then BadTextNameHash := THashStrInt.Create();
         if log  and (not BadTextNameHash.get(RecName, f)) then
         begin
           e_WriteLog(Format('Error loading animation texture "%s" images', [RecName]), TMsgType.Warning);
@@ -1749,7 +1749,7 @@ begin
       g_Game_SetLoadingText(_lc[I_LOAD_TEXTURES], mapTextureList.count-1, False);
 
       // find used textures
-      usedTextures := hashNewStrInt();
+      usedTextures := THashStrInt.Create();
       try
         if (panels <> nil) and (panels.count > 0) then
         begin

@@ -550,7 +550,7 @@ begin
   if (mType = TType.TList) then
   begin
     mRVal := TDynRecList.Create();
-    mRHash := hashNewStrInt();
+    mRHash := THashStrInt.Create();
   end;
 end;
 
@@ -698,7 +698,7 @@ begin
   if (mRVal <> nil) then
   begin
     if (result.mRVal = nil) then result.mRVal := TDynRecList.Create(mRVal.count);
-    if (result.mRHash = nil) then result.mRHash := hashNewStrInt();
+    if (result.mRHash = nil) then result.mRHash := THashStrInt.Create();
     for rec in mRVal do result.addListItem(rec.clone(registerIn));
   end;
   result.mRecRef := mRecRef;
@@ -2435,7 +2435,7 @@ begin
   if (fld.mRVal = nil) then
   begin
     fld.mRVal := TDynRecList.Create();
-    fld.mRHash := hashNewStrInt();
+    fld.mRHash := THashStrInt.Create();
   end;
   result := fld.addListItem(rc);
 end;

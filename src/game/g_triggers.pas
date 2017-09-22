@@ -235,7 +235,7 @@ begin
       if (Length(afldname) > 4) and (afldname[1] = 'u') and (afldname[2] = 's') and
          (afldname[3] = 'e') and (afldname[4] = 'r') then
       begin
-        if (me.userVars = nil) then me.userVars := hashNewStrVariant();
+        if (me.userVars = nil) then me.userVars := THashStrVariant.Create();
         me.userVars.put(afldname, aval);
         exit;
       end;
@@ -3337,7 +3337,7 @@ begin
     if (uvcount < 0) or (uvcount > 1024*1024) then raise XStreamError.Create('invalid number of user vars in trigger');
     if (uvcount > 0) then
     begin
-      gTriggers[i].userVars := hashNewStrVariant();
+      gTriggers[i].userVars := THashStrVariant.Create();
       vv := Unassigned;
       while (uvcount > 0) do
       begin
