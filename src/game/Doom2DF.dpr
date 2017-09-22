@@ -113,6 +113,7 @@ uses
   ImagingUtility,
   sdlcarcass in '../gx/sdlcarcass.pas',
   glgfx in '../gx/glgfx.pas',
+  gh_ui_common in '../gx/gh_ui_common.pas',
   gh_ui in '../gx/gh_ui.pas';
 
 {$IFDEF WINDOWS}
