@@ -21,20 +21,22 @@ interface
 uses
   utils;
 
-function  SDLMain(): Integer;
-function  GetTimer(): Int64;
-procedure ResetTimer();
-function  CreateGLWindow(Title: PChar): Boolean;
-procedure KillGLWindow();
-procedure PushExitEvent();
-function  ProcessMessage(): Boolean;
+function SDLMain (): Integer;
+function GetTimer (): Int64;
+procedure ResetTimer ();
+function CreateGLWindow (Title: PChar): Boolean;
+procedure KillGLWindow ();
+procedure PushExitEvent ();
+function ProcessMessage (): Boolean;
+procedure ReDrawWindow ();
+procedure SwapBuffers ();
+procedure Sleep (ms: LongWord);
+function GetDisplayModes (dbpp: LongWord; var selres: LongWord): SSArray;
+function g_Window_SetDisplay (preserveGL: Boolean=false): Boolean;
+function g_Window_SetSize (w, h: Word; fullscreen: Boolean): Boolean;
+
 procedure ProcessLoading (forceUpdate: Boolean=false);
-procedure ReDrawWindow();
-procedure SwapBuffers();
-procedure Sleep(ms: LongWord);
-function  GetDisplayModes(dBPP: DWORD; var SelRes: DWORD): SSArray;
-function  g_Window_SetDisplay(PreserveGL: Boolean = False): Boolean;
-function  g_Window_SetSize(W, H: Word; FScreen: Boolean): Boolean;
+
 
 var
   gwin_dump_extensions: Boolean = false;
@@ -53,17 +55,21 @@ uses
   g_basic, g_textures, e_sound, g_sound, g_menu, ENet, g_net,
   g_map, g_gfx, g_monsters, g_holmes, xprofiler;
 
+
+const
+  ProgressUpdateMSecs = 100;
+
 var
-  h_Wnd: PSDL_Window;
-  h_GL: TSDL_GLContext;
+  h_Wnd: PSDL_Window = nil;
+  h_GL: TSDL_GLContext = nil;
   wFlags: LongWord = 0;
   Time, Time_Delta, Time_Old: Int64;
   flag: Boolean;
   wTitle: PChar = nil;
-  wNeedTimeReset: Boolean = False;
-  wMinimized: Boolean = False;
-  wLoadingProgress: Boolean = False;
-  wLoadingQuit: Boolean = False;
+  wNeedTimeReset: Boolean = false;
+  wMinimized: Boolean = false;
+  wLoadingProgress: Boolean = false;
+  wLoadingQuit: Boolean = false;
 {$IFNDEF WINDOWS}
   ticksOverflow: Int64 = -1;
   lastTicks: Uint32 = 0; // to detect overflow
@@ -75,16 +81,15 @@ var
   curMsY: Integer = 0;
 {$ENDIF}
 
-function g_Window_SetDisplay(PreserveGL: Boolean = False): Boolean;
+
+function g_Window_SetDisplay (preserveGL: Boolean = false): Boolean;
+{$IF not DEFINED(HEADLESS)}
 var
   mode, cmode: TSDL_DisplayMode;
-begin
-{$IFDEF HEADLESS}
-  Result := True;
-  Exit;
 {$ENDIF}
-
-  Result := False;
+begin
+{$IF not DEFINED(HEADLESS)}
+  result := false;
 
   e_WriteLog('Setting display mode...', TMsgType.Notify);
 
@@ -92,7 +97,7 @@ begin
   if gFullscreen then wFlags := wFlags or SDL_WINDOW_FULLSCREEN;
   if gWinMaximized then wFlags := wFlags or SDL_WINDOW_MAXIMIZED;
 
-  if h_Wnd <> nil then
+  if (h_Wnd <> nil) then
   begin
     SDL_DestroyWindow(h_Wnd);
     h_Wnd := nil;
@@ -105,7 +110,7 @@ begin
     mode.format := 0;
     mode.refresh_rate := 0;
     mode.driverdata := nil;
-    if SDL_GetClosestDisplayMode(0, @mode, @cmode) = nil then
+    if (SDL_GetClosestDisplayMode(0, @mode, @cmode) = nil) then
     begin
       gScreenWidth := 800;
       gScreenHeight := 600;
@@ -118,27 +123,24 @@ begin
   end;
 
   h_Wnd := SDL_CreateWindow(PChar(wTitle), gWinRealPosX, gWinRealPosY, gScreenWidth, gScreenHeight, wFlags);
-  if h_Wnd = nil then Exit;
+  if (h_Wnd = nil) then exit;
 
   SDL_GL_MakeCurrent(h_Wnd, h_GL);
   SDL_ShowCursor(SDL_DISABLE);
+{$ENDIF}
 
-  Result := True;
+  result := true;
 end;
 
-procedure ReShowCursor();
-begin
-  // TODO: what was this for?
-end;
 
-function GetDisplayModes(dBPP: DWORD; var SelRes: DWORD): SSArray;
+function GetDisplayModes(dbpp: LongWord; var selres: LongWord): SSArray;
 var
   mode: TSDL_DisplayMode;
   res, i, k, n, pw, ph: Integer;
 begin
-  SetLength(Result, 0);
-  {$IFDEF HEADLESS}Exit;{$ENDIF}
-  k := 0; SelRes := 0;
+  SetLength(result, 0);
+  {$IFDEF HEADLESS}exit;{$ENDIF}
+  k := 0; selres := 0;
   n := SDL_GetNumDisplayModes(0);
   pw := 0; ph := 0;
   for i := 0 to n do
@@ -148,61 +150,67 @@ begin
     if SDL_BITSPERPIXEL(mode.format) = gBPP then continue;
     if (mode.w = pw) and (mode.h = ph) then continue;
     if (mode.w = gScreenWidth) and (mode.h = gScreenHeight) then
-      SelRes := k;
+      selres := k;
     Inc(k);
-    SetLength(Result, k);
-    Result[k-1] := IntToStr(mode.w) + 'x' + IntToStr(mode.h);
+    SetLength(result, k);
+    result[k-1] := IntToStr(mode.w) + 'x' + IntToStr(mode.h);
     pw := mode.w; ph := mode.h
   end;
 
   e_WriteLog('SDL: Got ' + IntToStr(k) + ' resolutions.', TMsgType.Notify);
 end;
 
-procedure Sleep(ms: LongWord);
+
+procedure Sleep (ms: LongWord);
 begin
   SDL_Delay(ms);
 end;
 
-procedure ChangeWindowSize();
+
+procedure ChangeWindowSize ();
 begin
   gWinSizeX := gScreenWidth;
   gWinSizeY := gScreenHeight;
-  {$IFDEF HEADLESS}Exit;{$ENDIF}
+{$IF not DEFINED(HEADLESS)}
   e_ResizeWindow(gScreenWidth, gScreenHeight);
   g_Game_SetupScreenSize();
   g_Menu_Reset();
   g_Game_ClearLoading();
   g_Holmes_VidModeChanged();
+{$ENDIF}
 end;
 
-function g_Window_SetSize(W, H: Word; FScreen: Boolean): Boolean;
+
+function g_Window_SetSize (w, h: Word; fullscreen: Boolean): Boolean;
 var
-  Preserve: Boolean;
+  preserve: Boolean;
 begin
-  Result := False;
-  {$IFDEF HEADLESS}Exit;{$ENDIF}
-  Preserve := False;
+  result := false;
+{$IF not DEFINED(HEADLESS)}
+  preserve := false;
 
-  if (gScreenWidth <> W) or (gScreenHeight <> H) then
+  if (gScreenWidth <> w) or (gScreenHeight <> h) then
   begin
-    Result := True;
-    gScreenWidth := W;
-    gScreenHeight := H;
+    result := true;
+    gScreenWidth := w;
+    gScreenHeight := h;
   end;
 
-  if gFullscreen <> FScreen then
+  if (gFullscreen <> fullscreen) then
   begin
-    Result := True;
-    gFullscreen := FScreen;
-    Preserve := True;
+    result := true;
+    gFullscreen := fullscreen;
+    preserve := true;
   end;
 
-  if Result then
+  if result then
   begin
-    g_Window_SetDisplay(Preserve);
+    g_Window_SetDisplay(preserve);
     ChangeWindowSize();
   end;
+{$ENDIF}
 end;
+
 
 procedure resetKMState ();
 begin
@@ -212,13 +220,14 @@ begin
 {$ENDIF}
 end;
 
-function WindowEventHandler(ev: TSDL_WindowEvent): Boolean;
+
+function WindowEventHandler (constref ev: TSDL_WindowEvent): Boolean;
 var
   wActivate, wDeactivate: Boolean;
 begin
-  Result := False;
-  wActivate := False;
-  wDeactivate := False;
+  result := false;
+  wActivate := false;
+  wDeactivate := false;
 
   case ev.event of
     SDL_WINDOWEVENT_MOVED:
@@ -237,14 +246,13 @@ begin
       if not wMinimized then
       begin
         e_ResizeWindow(0, 0);
-        wMinimized := True;
-
+        wMinimized := true;
         if g_debug_WinMsgs then
         begin
           g_Console_Add('Now minimized');
           e_WriteLog('[DEBUG] WinMsgs: Now minimized', TMsgType.Notify);
         end;
-        wDeactivate := True;
+        wDeactivate := true;
       end;
     end;
 
@@ -271,12 +279,12 @@ begin
       if wMinimized then
       begin
         e_ResizeWindow(gScreenWidth, gScreenHeight);
-        wMinimized := False;
-        wActivate := True;
+        wMinimized := false;
+        wActivate := true;
       end;
       if not gWinMaximized then
       begin
-        gWinMaximized := True;
+        gWinMaximized := true;
         if g_debug_WinMsgs then
         begin
           g_Console_Add('Now maximized');
@@ -291,11 +299,11 @@ begin
       if wMinimized then
       begin
         e_ResizeWindow(gScreenWidth, gScreenHeight);
-        wMinimized := False;
-        wActivate := True;
+        wMinimized := false;
+        wActivate := true;
       end;
       if gWinMaximized then
-        gWinMaximized := False;
+        gWinMaximized := false;
       if g_debug_WinMsgs then
       begin
         g_Console_Add('Now restored');
@@ -306,7 +314,7 @@ begin
     SDL_WINDOWEVENT_FOCUS_GAINED:
     begin
       resetKMState();
-      wActivate := True;
+      wActivate := true;
       //e_WriteLog('window gained focus!', MSG_NOTIFY);
       g_Holmes_WindowFocused();
     end;
@@ -314,7 +322,7 @@ begin
     SDL_WINDOWEVENT_FOCUS_LOST:
     begin
       resetKMState();
-      wDeactivate := True;
+      wDeactivate := true;
       e_UnpressAllKeys();
       //e_WriteLog('window lost focus!', MSG_NOTIFY);
       g_Holmes_WindowBlured();
@@ -326,13 +334,13 @@ begin
     if gWinActive then
     begin
       e_WriteLog('deactivating window', TMsgType.Notify);
-      e_EnableInput := False;
+      e_EnableInput := false;
       e_ClearInputBuffer();
 
       if gMuteWhenInactive then
       begin
         //e_WriteLog('deactivating sounds', MSG_NOTIFY);
-        e_MuteChannels(True);
+        e_MuteChannels(true);
       end;
 
       if g_debug_WinMsgs then
@@ -341,7 +349,7 @@ begin
         e_WriteLog('[DEBUG] WinMsgs: Now inactive', TMsgType.Notify);
       end;
 
-      gWinActive := False;
+      gWinActive := false;
     end;
   end
   else if wActivate then
@@ -349,12 +357,12 @@ begin
     if not gWinActive then
     begin
       //e_WriteLog('activating window', MSG_NOTIFY);
-      e_EnableInput := True;
+      e_EnableInput := true;
 
       if gMuteWhenInactive then
       begin
         //e_WriteLog('activating sounds', MSG_NOTIFY);
-        e_MuteChannels(False);
+        e_MuteChannels(false);
       end;
 
       if g_debug_WinMsgs then
@@ -363,16 +371,16 @@ begin
         e_WriteLog('[DEBUG] WinMsgs: Now active', TMsgType.Notify);
       end;
 
-      gWinActive := True;
+      gWinActive := true;
     end;
   end;
 end;
 
-function EventHandler(ev: TSDL_Event): Boolean;
+
+function EventHandler (var ev: TSDL_Event): Boolean;
 var
   key, keychr: Word;
   uc: UnicodeChar;
-  //joy: Integer;
   {$IF not DEFINED(HEADLESS)}
   msev: THMouseEvent;
   kbev: THKeyEvent;
@@ -402,14 +410,14 @@ var
   {$ENDIF}
 
 begin
-  Result := False;
+  result := false;
   {$IF not DEFINED(HEADLESS)}
   updateKBState();
   {$ENDIF}
 
   case ev.type_ of
     SDL_WINDOWEVENT:
-      Result := WindowEventHandler(ev.window);
+      result := WindowEventHandler(ev.window);
 
     SDL_QUITEV:
       begin
@@ -421,9 +429,9 @@ begin
             g_Game_Quit();
           end
           else
-            wLoadingQuit := True;
+            wLoadingQuit := true;
         end;
-        Result := True;
+        result := true;
       end;
 
     SDL_KEYDOWN, SDL_KEYUP:
@@ -511,26 +519,27 @@ begin
   end;
 end;
 
-procedure SwapBuffers();
+
+procedure SwapBuffers ();
 begin
   {$IF not DEFINED(HEADLESS)}
   SDL_GL_SwapWindow(h_Wnd);
   {$ENDIF}
 end;
 
+
 procedure KillGLWindow();
 begin
-  if h_Wnd <> nil then SDL_DestroyWindow(h_Wnd);
-  if h_GL <> nil then SDL_GL_DeleteContext(h_GL);
+  if (h_Wnd <> nil) then SDL_DestroyWindow(h_Wnd);
+  if (h_GL <> nil) then SDL_GL_DeleteContext(h_GL);
   h_Wnd := nil;
   h_GL := nil;
 end;
 
-function CreateGLWindow(Title: PChar): Boolean;
-//var
-//  flags: LongWord;
+
+function CreateGLWindow (Title: PChar): Boolean;
 begin
-  Result := False;
+  result := false;
 
   gWinSizeX := gScreenWidth;
   gWinSizeY := gScreenHeight;
@@ -545,42 +554,43 @@ begin
     exit;
   end;
 
-{$IFNDEF HEADLESS}
+{$IF not DEFINED(HEADLESS)}
   h_Gl := SDL_GL_CreateContext(h_Wnd);
-  if h_Gl = nil then Exit;
+  if (h_Gl = nil) then exit;
 {$ENDIF}
 
   e_ResizeWindow(gScreenWidth, gScreenHeight);
   e_InitGL();
 
-  Result := True;
+  result := true;
 end;
+
 
 {$IFDEF WINDOWS}
 // windoze sux; in headless mode `GetTickCount()` (and SDL) returns shit
-function GetTimer(): Int64;
+function GetTimer (): Int64;
 var
   F, C: Int64;
 begin
   QueryPerformanceFrequency(F);
   QueryPerformanceCounter(C);
-  Result := Round(C/F*1000{000});
+  result := Round(C/F*1000{000});
 end;
 {$ELSE}
-function GetTimer(): Int64;
+function GetTimer (): Int64;
 var
   t: Uint32;
   tt: Int64;
 begin
-  t := SDL_GetTicks() {* 1000}; // TODO: do we really need microseconds here? k8: NOPE!
-  if ticksOverflow = -1 then
+  t := SDL_GetTicks();
+  if (ticksOverflow = -1) then
   begin
     ticksOverflow := 0;
     lastTicks := t;
   end
   else
   begin
-    if lastTicks > t then
+    if (lastTicks > t) then
     begin
       // overflow, increment overflow ;-)
       ticksOverflow := ticksOverflow+(Int64($ffffffff)+Int64(1));
@@ -593,12 +603,14 @@ begin
 end;
 {$ENDIF}
 
-procedure ResetTimer();
+
+procedure ResetTimer ();
 begin
-  wNeedTimeReset := True;
+  wNeedTimeReset := true;
 end;
 
-procedure PushExitEvent();
+
+procedure PushExitEvent ();
 var
   ev: TSDL_Event;
 begin
@@ -613,20 +625,20 @@ var
 procedure ProcessLoading (forceUpdate: Boolean=false);
 var
   ev: TSDL_Event;
-  ID: DWORD;
+  ID: LongWord;
   stt: UInt64;
 begin
-  FillChar(ev, SizeOf(ev), 0);
-  wLoadingProgress := True;
-  while SDL_PollEvent(@ev) > 0 do
+  FillChar(ev, sizeof(ev), 0);
+  wLoadingProgress := true;
+
+  while (SDL_PollEvent(@ev) > 0) do
   begin
-    if (ev.type_ = SDL_QUITEV) then
-      break;
+    if (ev.type_ = SDL_QUITEV) then break;
   end;
 
   if (ev.type_ = SDL_QUITEV) or (gExit = EXIT_QUIT) then
   begin
-    wLoadingProgress := False;
+    wLoadingProgress := false;
     exit;
   end;
 
@@ -639,7 +651,7 @@ begin
     else
     begin
       stt := getTimeMilli();
-      if (stt < prevLoadingUpdateTime) or (stt-prevLoadingUpdateTime >= 400) then
+      if (stt < prevLoadingUpdateTime) or (stt-prevLoadingUpdateTime >= ProgressUpdateMSecs) then
       begin
         prevLoadingUpdateTime := stt;
         forceUpdate := true;
@@ -650,7 +662,7 @@ begin
     begin
       if g_Texture_Get('INTER', ID) then
       begin
-        e_DrawSize(ID, 0, 0, 0, False, False, gScreenWidth, gScreenHeight)
+        e_DrawSize(ID, 0, 0, 0, false, false, gScreenWidth, gScreenHeight)
       end
       else
       begin
@@ -659,8 +671,6 @@ begin
 
       DrawLoadingStat();
       SwapBuffers();
-
-      ReShowCursor();
     end;
   end;
 
@@ -674,52 +684,54 @@ begin
   begin
     if (NetMode = NET_CLIENT) and (NetState <> NET_STATE_AUTH) then g_Net_Client_UpdateWhileLoading();
   end;
-  wLoadingProgress := False;
+
+  wLoadingProgress := false;
 end;
 
-function ProcessMessage(): Boolean;
+
+function ProcessMessage (): Boolean;
 var
   i, t: Integer;
   ev: TSDL_Event;
 begin
-  Result := False;
+  result := false;
   FillChar(ev, SizeOf(ev), 0);
 
-  while SDL_PollEvent(@ev) > 0 do
+  while (SDL_PollEvent(@ev) > 0) do
   begin
-    Result := EventHandler(ev);
-    if ev.type_ = SDL_QUITEV then exit;
+    result := EventHandler(ev);
+    if (ev.type_ = SDL_QUITEV) then exit;
   end;
 
   Time := GetTimer();
-  Time_Delta := Time - Time_Old;
+  Time_Delta := Time-Time_Old;
 
-  flag := False;
+  flag := false;
 
   if wNeedTimeReset then
   begin
     Time_Delta := 28;
-    wNeedTimeReset := False;
+    wNeedTimeReset := false;
   end;
 
   g_Map_ProfilersBegin();
   g_Mons_ProfilersBegin();
 
   t := Time_Delta div 28;
-  if t > 0 then
+  if (t > 0) then
   begin
-    flag := True;
+    flag := true;
     for i := 1 to t do
     begin
-      if NetMode = NET_SERVER then g_Net_Host_Update()
-      else if NetMode = NET_CLIENT then g_Net_Client_Update();
+           if (NetMode = NET_SERVER) then g_Net_Host_Update()
+      else if (NetMode = NET_CLIENT) then g_Net_Client_Update();
       Update();
     end;
   end
   else
   begin
-    if NetMode = NET_SERVER then g_Net_Host_Update()
-    else if NetMode = NET_CLIENT then g_Net_Client_Update();
+         if (NetMode = NET_SERVER) then g_Net_Host_Update()
+    else if (NetMode = NET_CLIENT) then g_Net_Client_Update();
   end;
 
   g_Map_ProfilersEnd();
@@ -731,13 +743,13 @@ begin
     g_Game_Quit();
   end;
 
-  if gExit = EXIT_QUIT then
+  if (gExit = EXIT_QUIT) then
   begin
-    Result := True;
-    Exit;
+    result := true;
+    exit;
   end;
 
-// Время предыдущего обновления:
+  // Время предыдущего обновления
   if flag then
   begin
     Time_Old := Time-(Time_Delta mod 28);
@@ -745,27 +757,31 @@ begin
     begin
       Draw();
       SwapBuffers();
-      ReShowCursor();
     end;
   end
   else
-    Sleep(1);
+  begin
+    Sleep(1); // release time slice, so we won't eat 100% CPU
+  end;
 
   e_SoundUpdate();
 end;
 
-procedure ReDrawWindow;
+
+procedure ReDrawWindow ();
 begin
   SwapBuffers();
-  ReShowCursor();
 end;
 
-procedure InitOpenGL(VSync: Boolean);
+
+procedure InitOpenGL (vsync: Boolean);
+{$IF not DEFINED(HEADLESS)}
 var
   v: Byte;
+{$ENDIF}
 begin
-  {$IFDEF HEADLESS}Exit;{$ENDIF}
-  if VSync then v := 1 else v := 0;
+{$IF not DEFINED(HEADLESS)}
+  if vsync then v := 1 else v := 0;
   SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
   SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
   SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 8);
@@ -773,14 +789,13 @@ begin
   SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 8);
   SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 16);
   SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
-  if gwin_k8_enable_light_experiments then
-  begin
-    SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 1); // lights; it is enough to have 1-bit stencil buffer for lighting
-  end;
+  SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8); // lights; it is enough to have 1-bit stencil buffer for lighting, but...
   SDL_GL_SetSwapInterval(v);
+{$ENDIF}
 end;
 
-function glHasExtension (name: AnsiString): Boolean;
+
+function glHasExtension (const name: AnsiString): Boolean;
 var
   exts: PChar;
   i: Integer;
@@ -788,11 +803,11 @@ var
   extName: ShortString;
 begin
   result := false;
-  if length(name) = 0 then exit;
+  if (Length(name) = 0) then exit;
   exts := glGetString(GL_EXTENSIONS);
-  if exts = nil then exit;
+  if (exts = nil) then exit;
   while (exts[0] <> #0) and (exts[0] = ' ') do Inc(exts);
-  while exts[0] <> #0 do
+  while (exts[0] <> #0) do
   begin
     if gwin_dump_extensions then
     begin
@@ -812,16 +827,17 @@ begin
     found := true;
     for i := 0 to length(name)-1 do
     begin
-      if exts[i] = #0 then begin found := false; break; end;
-      if exts[i] <> name[i+1] then begin found := false; break; end;
+      if (exts[i] = #0) then begin found := false; break; end;
+      if (exts[i] <> name[i+1]) then begin found := false; break; end;
     end;
-    if found and ((exts[length(name)] = #0) or (exts[length(name)] = ' ')) then begin result := true; exit; end;
+    if found and ((exts[Length(name)] = #0) or (exts[Length(name)] = ' ')) then begin result := true; exit; end;
     while (exts[0] <> #0) and (exts[0] <> ' ') do Inc(exts);
     while (exts[0] <> #0) and (exts[0] = ' ') do Inc(exts);
   end;
 end;
 
-function SDLMain(): Integer;
+
+function SDLMain (): Integer;
 var
   idx: Integer;
   {$IF not DEFINED(HEADLESS)}
@@ -831,7 +847,7 @@ var
   mdfo: TStream;
 begin
 {$IFDEF HEADLESS}
-  e_NoGraphics := True;
+  e_NoGraphics := true;
 {$ENDIF}
 
   idx := 1;
@@ -840,7 +856,7 @@ begin
     arg := ParamStr(idx);
     Inc(idx);
     if arg = '--opengl-dump-exts' then gwin_dump_extensions := true;
-    if arg = '--twinkletwinkle' then gwin_k8_enable_light_experiments := true;
+    //if arg = '--twinkletwinkle' then gwin_k8_enable_light_experiments := true;
     if arg = '--jah' then g_profile_history_size := 100;
     if arg = '--no-particles' then gpart_dbg_enabled := false;
     if arg = '--no-los' then gmon_dbg_los_enabled := false;
@@ -894,28 +910,21 @@ begin
   e_WriteLog('Creating GL window', TMsgType.Notify);
   if not CreateGLWindow(PChar(Format('Doom 2D: Forever %s', [GAME_VERSION]))) then
   begin
-    Result := 0;
+    result := 0;
     exit;
   end;
 
   {EnumDisplayModes();}
 
-  {$IFDEF HEADLESS}
-  gwin_k8_enable_light_experiments := false;
+{$IFDEF HEADLESS}
+  //gwin_k8_enable_light_experiments := false;
   gwin_has_stencil := false;
   glLegacyNPOT := false;
   gwin_dump_extensions := false;
-  {$ELSE}
-  if gwin_k8_enable_light_experiments then
-  begin
-    SDL_GL_GetAttribute(SDL_GL_STENCIL_SIZE, @ltmp);
-    e_WriteLog(Format('stencil buffer size: %d', [ltmp]), TMsgType.Warning);
-    gwin_has_stencil := (ltmp > 0);
-  end
-  else
-  begin
-    gwin_has_stencil := false;
-  end;
+{$ELSE}
+  SDL_GL_GetAttribute(SDL_GL_STENCIL_SIZE, @ltmp);
+  e_LogWritefln('stencil buffer size: %s', [ltmp]);
+  gwin_has_stencil := (ltmp > 0);
 
   if not glHasExtension('GL_ARB_texture_non_power_of_two') then
   begin
@@ -928,28 +937,27 @@ begin
     glLegacyNPOT := false;
   end;
   gwin_dump_extensions := false;
-  {$ENDIF}
+{$ENDIF}
 
   Init();
   Time_Old := GetTimer();
 
-// Командная строка:
-  if ParamCount > 0 then
-    g_Game_Process_Params();
+  // Командная строка
+  if (ParamCount > 0) then g_Game_Process_Params();
 
-// Запрос языка:
-  if (not gGameOn) and gAskLanguage then
-    g_Menu_AskLanguage();
+  // Запрос языка
+  if (not gGameOn) and gAskLanguage then g_Menu_AskLanguage();
 
   e_WriteLog('Entering the main loop', TMsgType.Notify);
 
-  while not ProcessMessage() do
-    { Main Loop } ;
+  // main loop
+  while not ProcessMessage() do begin end;
 
   Release();
   KillGLWindow();
 
-  Result := 0;
+  result := 0;
 end;
+
 
 end.

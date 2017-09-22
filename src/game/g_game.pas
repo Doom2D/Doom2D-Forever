@@ -2503,13 +2503,60 @@ begin
 end;
 
 procedure DrawLoadingStat();
+  procedure drawRect (x, y, w, h: Integer);
+  begin
+    if (w < 1) or (h < 1) then exit;
+    glBegin(GL_QUADS);
+      glVertex2f(x+0.375, y+0.375);
+      glVertex2f(x+w+0.375, y+0.375);
+      glVertex2f(x+w+0.375, y+h+0.375);
+      glVertex2f(x+0.375, y+h+0.375);
+    glEnd();
+  end;
+
+  procedure drawPBar (cur, total: Integer);
+  var
+    rectW, rectH: Integer;
+    x0, y0: Integer;
+    wdt: Integer;
+  begin
+    if (total < 1) then exit;
+    if (cur < 1) then exit; // don't blink
+    if (cur >= total) then exit; // don't blink
+    //if (cur < 0) then cur := 0;
+    //if (cur > total) then cur := total;
+
+    rectW := gScreenWidth-64;
+    rectH := 16;
+
+    x0 := (gScreenWidth-rectW) div 2;
+    y0 := gScreenHeight-rectH-64;
+    if (y0 < 2) then y0 := 2;
+
+    glDisable(GL_BLEND);
+    glDisable(GL_TEXTURE_2D);
+
+    //glClearColor(0, 0, 0, 0);
+    //glClear(GL_COLOR_BUFFER_BIT);
+
+    glColor4ub(127, 127, 127, 255);
+    drawRect(x0-2, y0-2, rectW+4, rectH+4);
+
+    glColor4ub(0, 0, 0, 255);
+    drawRect(x0-1, y0-1, rectW+2, rectH+2);
+
+    glColor4ub(127, 127, 127, 255);
+    wdt := rectW*cur div total;
+    if (wdt > rectW) then wdt := rectW;
+    drawRect(x0, y0, wdt, rectH);
+  end;
+
 var
   ww, hh: Word;
   xx, yy, i: Integer;
   s: String;
 begin
-  if Length(LoadingStat.Msgs) = 0 then
-    Exit;
+  if (Length(LoadingStat.Msgs) = 0) then exit;
 
   e_CharFont_GetSize(gMenuFont, _lc[I_MENU_LOADING], ww, hh);
   yy := (gScreenHeight div 3);
@@ -2517,16 +2564,19 @@ begin
   xx := (gScreenWidth div 3);
 
   with LoadingStat do
+  begin
     for i := 0 to NextMsg-1 do
-      begin
-        if (i = (NextMsg-1)) and (MaxValue > 0) then
-          s := Format('%s:  %d/%d', [Msgs[i], CurValue, MaxValue])
-        else
-          s := Msgs[i];
+    begin
+      if (i = (NextMsg-1)) and (MaxValue > 0) then
+        s := Format('%s:  %d/%d', [Msgs[i], CurValue, MaxValue])
+      else
+        s := Msgs[i];
 
-        e_CharFont_PrintEx(gMenuSmallFont, xx, yy, s, _RGB(255, 0, 0));
-        yy := yy + LOADING_INTERLINE;
-      end;
+      e_CharFont_PrintEx(gMenuSmallFont, xx, yy, s, _RGB(255, 0, 0));
+      yy := yy + LOADING_INTERLINE;
+      drawPBar(CurValue, MaxValue);
+    end;
+  end;
 end;
 
 procedure DrawMinimap(p: TPlayer; RenderRect: e_graphics.TRect);
