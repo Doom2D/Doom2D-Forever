@@ -1051,12 +1051,12 @@ begin
       b := 255;
       if (Length(it.title) = 0) then
       begin
-        drawLine(sx+4, sy+3, sx+mWidth-8, sy+3, r, g, b);
+        drawHLine(sx+4, sy+3, mWidth-8, r, g, b);
       end
       else if (tx-3 > sx+4) then
       begin
-        drawLine(sx+4, sy+3, tx-3, sy+3, r, g, b);
-        drawLine(tx+Length(it.title)*8, sy+3, sx+mWidth-4, sy+3, r, g, b);
+        drawHLine(sx+4, sy+3, tx-3-(sx+3), r, g, b);
+        drawHLine(tx+Length(it.title)*8, sy+3, mWidth-4, r, g, b);
       end;
     end;
     drawText8(tx, sy, it.title, r, g, b);
@@ -1135,14 +1135,14 @@ begin
       tx := sx+(mWidth-Length(it.title)*8) div 2;
       if (tx-3 > sx+4) then
       begin
-        drawLine(sx+4, sy+3, tx-3, sy+3, 255, 255, 255);
-        drawLine(tx+Length(it.title)*8, sy+3, sx+mWidth-4, sy+3, 255, 255, 255);
+        drawHLine(sx+4, sy+3, tx-3-(sx+3), 255, 255, 255);
+        drawHLine(tx+Length(it.title)*8, sy+3, mWidth-4, 255, 255, 255);
       end;
       drawText8(tx, sy, it.title, 255, 255, 255);
     end
     else
     begin
-      drawLine(sx+4, sy+3, sx+mWidth-8, sy+3, 255, 255, 255);
+      drawHLine(sx+4, sy+3, mWidth-8, 255, 255, 255);
     end;
     Inc(sy, 8);
   end;

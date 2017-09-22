@@ -471,6 +471,32 @@ begin
   if (b < 0) then b := 0 else if (b > 255) then b := 255;
 end;
 
+// returns `false` if the color is transparent
+function setupGLColor (r, g, b, a: Integer): Boolean;
+begin
+  normRGBA(r, g, b, a);
+  if (a < 255) then
+  begin
+    if (a = 0) then begin result := false; exit; end;
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  end
+  else
+  begin
+    glDisable(GL_BLEND);
+  end;
+  glColor4ub(Byte(r), Byte(g), Byte(b), Byte(a));
+  result := true;
+end;
+
+function isScaled (): Boolean;
+var
+  mt: packed array [0..15] of Double;
+begin
+  glGetDoublev(GL_MODELVIEW_MATRIX, @mt[0]);
+  result := (mt[0] <> 1.0) or (mt[1*4+1] <> 1.0);
+end;
+
 
 // ////////////////////////////////////////////////////////////////////////// //
 function textWidth6 (const s: AnsiString): Integer;
@@ -501,22 +527,11 @@ var
 begin
   result := 0;
   if (Length(s) = 0) then exit;
-  normRGBA(r, g, b, a);
-
-  if (a < 255) then
-  begin
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-  end
-  else
-  begin
-    glDisable(GL_BLEND);
-  end;
+  if not setupGLColor(r, g, b, a) then exit;
   glEnable(GL_ALPHA_TEST);
   glAlphaFunc(GL_NOTEQUAL, 0.0);
   glEnable(GL_TEXTURE_2D);
   // color and opacity
-  glColor4f(r/255.0, g/255.0, b/255.0, a/255.0);
   glBindTexture(GL_TEXTURE_2D, tid);
 
   for f := 1 to Length(s) do
@@ -551,22 +566,59 @@ end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-procedure drawLine (x1, y1, x2, y2: Integer; r, g, b: Integer; a: Integer=255);
+procedure drawHLine (x, y, len: Integer; r, g, b: Integer; a: Integer=255);
 begin
-  normRGBA(r, g, b, a);
-
-  if (a < 255) then
+  if (len < 1) then exit;
+  if not setupGLColor(r, g, b, a) then exit;
+  glDisable(GL_TEXTURE_2D);
+  if (not isScaled) then
   begin
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glBegin(GL_LINES);
+      glVertex2f(x+0.375, y+0.375);
+      glVertex2f(x+len+0.375, y+0.375);
+    glEnd();
   end
   else
   begin
-    glDisable(GL_BLEND);
+    glBegin(GL_QUADS);
+      glVertex2i(x, y);
+      glVertex2i(x+len, y);
+      glVertex2i(x+len, y+1);
+      glVertex2i(x, y+1);
+    glEnd();
   end;
+end;
+
+
+procedure drawVLine (x, y, len: Integer; r, g, b: Integer; a: Integer=255);
+begin
+  if (len < 1) then exit;
+  if not setupGLColor(r, g, b, a) then exit;
+  glDisable(GL_TEXTURE_2D);
+  if (not isScaled) then
+  begin
+    glBegin(GL_LINES);
+      glVertex2f(x+0.375, y+0.375);
+      glVertex2f(x+0.375, y+len+0.375);
+    glEnd();
+  end
+  else
+  begin
+    glBegin(GL_QUADS);
+      glVertex2i(x, y);
+      glVertex2i(x, y+len);
+      glVertex2i(x+1, y+len);
+      glVertex2i(x+1, y);
+    glEnd();
+  end;
+end;
+
+
+procedure drawLine (x1, y1, x2, y2: Integer; r, g, b: Integer; a: Integer=255);
+begin
+  if not setupGLColor(r, g, b, a) then exit;
 
   glDisable(GL_TEXTURE_2D);
-  glColor4f(r/255.0, g/255.0, b/255.0, a/255.0);
 
   glLineWidth(1);
   glPointSize(1);
@@ -591,21 +643,11 @@ end;
 procedure drawRect (x, y, w, h: Integer; r, g, b: Integer; a: Integer=255);
 begin
   if (w < 0) or (h < 0) then exit;
-  normRGBA(r, g, b, a);
-  if (a < 255) then
-  begin
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-  end
-  else
-  begin
-    glDisable(GL_BLEND);
-  end;
+  if not setupGLColor(r, g, b, a) then exit;
   glDisable(GL_TEXTURE_2D);
   glLineWidth(1);
   glDisable(GL_LINE_SMOOTH);
   glDisable(GL_POLYGON_SMOOTH);
-  glColor4f(r/255.0, g/255.0, b/255.0, a/255.0);
   if (w = 1) and (h = 1) then
   begin
     glBegin(GL_POINTS);
@@ -628,8 +670,66 @@ end;
 
 
 procedure drawRectUI (x, y, w, h: Integer; r, g, b: Integer; a: Integer=255);
+  procedure hline (x, y, len: Integer);
+  begin
+    if (len < 1) then exit;
+    glBegin(GL_QUADS);
+      glVertex2i(x, y);
+      glVertex2i(x+len, y);
+      glVertex2i(x+len, y+1);
+      glVertex2i(x, y+1);
+    glEnd();
+  end;
+
+  procedure vline (x, y, len: Integer);
+  begin
+    if (len < 1) then exit;
+    glBegin(GL_QUADS);
+      glVertex2i(x, y);
+      glVertex2i(x, y+len);
+      glVertex2i(x+1, y+len);
+      glVertex2i(x+1, y);
+    glEnd();
+  end;
+
+var
+  scaled: Boolean;
 begin
-  drawRect(x, y, w, h, r, g, b, a);
+  if (w < 0) or (h < 0) then exit;
+  if not setupGLColor(r, g, b, a) then exit;
+  glDisable(GL_TEXTURE_2D);
+  glLineWidth(1);
+  glDisable(GL_LINE_SMOOTH);
+  glDisable(GL_POLYGON_SMOOTH);
+  scaled := isScaled();
+  if (w = 1) and (h = 1) then
+  begin
+    glBegin(GL_POINTS);
+      if scaled then glVertex2i(x, y) else glVertex2f(x+0.375, y+0.375);
+    glEnd();
+  end
+  else
+  begin
+    if not scaled then
+    begin
+      glBegin(GL_LINES);
+        glVertex2i(x, y); glVertex2i(x+w, y); // top
+        glVertex2i(x, y+h-1); glVertex2i(x+w, y+h-1); // bottom
+        glVertex2f(x+0.375, y+1); glVertex2f(x+0.375, y+h-1); // left
+        glVertex2f(x+w-1+0.375, y+1); glVertex2f(x+w-1+0.375, y+h-1); // right
+      glEnd();
+    end
+    else
+    begin
+      hline(x, y, w);
+      hline(x, y+h-1, w);
+      vline(x, y+1, h-2);
+      vline(x+w-1, y+1, h-2);
+    end;
+  end;
+  //glRect(x, y, x+w, y+h);
+  glColor4f(1, 1, 1, 1);
+  glDisable(GL_BLEND);
 end;
 
 
@@ -637,13 +737,13 @@ procedure darkenRect (x, y, w, h: Integer; a: Integer);
 begin
   if (w < 0) or (h < 0) then exit;
   if (a < 0) then a := 0;
-  if (a > 255) then a := 255;
+  if (a >= 255) then exit;
   glEnable(GL_BLEND);
   glBlendFunc(GL_ZERO, GL_SRC_ALPHA);
   glDisable(GL_LINE_SMOOTH);
   glDisable(GL_POLYGON_SMOOTH);
   glDisable(GL_TEXTURE_2D);
-  glColor4f(0.0, 0.0, 0.0, a/255.0);
+  glColor4ub(0, 0, 0, Byte(a));
   glBegin(GL_QUADS);
     glVertex2i(x, y);
     glVertex2i(x+w, y);
@@ -660,20 +760,10 @@ end;
 procedure fillRect (x, y, w, h: Integer; r, g, b: Integer; a: Integer=255);
 begin
   if (w < 0) or (h < 0) then exit;
-  normRGBA(r, g, b, a);
-  if (a < 255) then
-  begin
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-  end
-  else
-  begin
-    glDisable(GL_BLEND);
-  end;
+  if not setupGLColor(r, g, b, a) then exit;
   glDisable(GL_LINE_SMOOTH);
   glDisable(GL_POLYGON_SMOOTH);
   glDisable(GL_TEXTURE_2D);
-  glColor4f(r/255.0, g/255.0, b/255.0, a/255.0);
   glBegin(GL_QUADS);
     glVertex2f(x, y);
     glVertex2f(x+w, y);
