@@ -45,10 +45,10 @@ uses
   g_gui, g_textures, e_graphics, g_main, g_window, g_game, g_map,
   g_basic, g_console, g_sound, g_gfx, g_player, g_options, g_weapons,
   e_log, SysUtils, CONFIG, g_playermodel, DateUtils,
-  MAPDEF, wadreader, Math, g_saveload,
+  MAPDEF, Math, g_saveload,
   e_texture, GL, GLExt, g_language,
   g_net, g_netmsg, g_netmaster, g_items, e_input,
-  utils;
+  utils, wadreader;
 
 
 type TYNCallback = procedure (yes:Boolean);
@@ -790,7 +790,7 @@ end;
 procedure ProcSelectWAD(Sender: TGUIControl);
 var
   wad: String;
-  list: SArray;
+  list: SSArray;
 begin
   with TGUIMenu(g_GUI_GetWindow('SelectMapMenu').GetControl('mSelectMapMenu')) do
   begin
@@ -1698,7 +1698,7 @@ end;
 procedure ProcVideoOptionsRes();
 var
   menu: TGUIMenu;
-  list: SArray;
+  list: SSArray;
   SR: DWORD;
 begin
   menu := TGUIMenu(g_GUI_GetWindow('OptionsVideoResMenu').GetControl('mOptionsVideoResMenu'));
@@ -1880,7 +1880,7 @@ var
   Menu: TGUIWindow;
   //SR: TSearchRec;
   a, cx, _y, i: Integer;
-  //list: SArray;
+  //list: SSArray;
 begin
   Menu := TGUIWindow.Create('MainMenu');
   with TGUIMainMenu(Menu.AddChild(TGUIMainMenu.Create(gMenuFont, _lc[I_MENU_MAIN_MENU]))) do

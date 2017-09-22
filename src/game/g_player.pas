@@ -987,7 +987,7 @@ end;
 
 procedure g_Bot_Add(Team, Difficult: Byte);
 var
-  m: SArray;
+  m: SSArray;
   _name, _model: String;
   a, tr, tb: Integer;
 begin
@@ -1084,7 +1084,7 @@ end;
 
 procedure g_Bot_AddList(Team: Byte; lName: ShortString; num: Integer = -1);
 var
-  m: SArray;
+  m: SSArray;
   _name, _model: String;
   a: Integer;
 begin
@@ -1221,7 +1221,7 @@ var
   s: String;
   a, b: Integer;
   config: TConfig;
-  sa: SArray;
+  sa: SSArray;
 begin
   BotNames := nil;
 

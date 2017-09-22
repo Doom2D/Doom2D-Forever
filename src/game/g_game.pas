@@ -22,7 +22,7 @@ uses
   SysUtils, Classes,
   MAPDEF,
   g_basic, g_player, e_graphics, g_res_downloader,
-  g_sound, g_gui, wadreader, md5, xprofiler;
+  g_sound, g_gui, utils, md5, xprofiler;
 
 type
   TGameSettings = record
@@ -123,10 +123,10 @@ procedure g_FatalError(Text: String);
 procedure g_SimpleError(Text: String);
 function  g_Game_IsTestMap(): Boolean;
 procedure g_Game_DeleteTestMap();
-procedure GameCVars(P: SArray);
-procedure GameCommands(P: SArray);
-procedure GameCheats(P: SArray);
-procedure DebugCommands(P: SArray);
+procedure GameCVars(P: SSArray);
+procedure GameCommands(P: SSArray);
+procedure GameCheats(P: SSArray);
+procedure DebugCommands(P: SSArray);
 procedure g_Game_Process_Params;
 procedure g_Game_SetLoadingText(Text: String; Max: Integer; reWrite: Boolean);
 procedure g_Game_StepLoading();
@@ -346,7 +346,7 @@ uses
   g_triggers, g_monsters, e_sound, CONFIG,
   g_language, g_net, SDL,
   ENet, e_msg, g_netmsg, g_netmaster, GL, GLExt,
-  utils, sfs, g_holmes;
+  sfs, wadreader, g_holmes;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
@@ -540,7 +540,7 @@ var
   EndingGameCounter: Byte = 0;
   MessageText: String;
   MessageTime: Word;
-  MapList: SArray = nil;
+  MapList: SSArray = nil;
   MapIndex: Integer = -1;
   MegaWAD: record
     info: TMegaWADInfo;
@@ -563,7 +563,7 @@ var
   end;
   //InterPic: String;
   InterText: record
-    lines: SArray;
+    lines: SSArray;
     img: String;
     cur_line: Integer;
     cur_char: Integer;
@@ -4603,7 +4603,7 @@ var
   WadName: string;
 {
   WAD: TWADFile;
-  MapList: SArray;
+  MapList: SSArray;
   time: Integer;
 }
 begin
@@ -4656,7 +4656,7 @@ begin
   if gTempDelete then DeleteFile(WadName);
 end;
 
-procedure GameCVars(P: SArray);
+procedure GameCVars(P: SSArray);
 var
   a, b: Integer;
   stat: TPlayerStatArray;
@@ -5203,7 +5203,7 @@ begin
   e_LogWriteLn ('^=======================^');
 end;
 
-procedure DebugCommands(P: SArray);
+procedure DebugCommands(P: SSArray);
 var
   a, b: Integer;
   cmd: string;
@@ -5339,7 +5339,7 @@ begin
 end;
 
 
-procedure GameCheats(P: SArray);
+procedure GameCheats(P: SSArray);
 var
   cmd: string;
   f, a: Integer;
@@ -5554,7 +5554,7 @@ begin
   end;
 end;
 
-procedure GameCommands(P: SArray);
+procedure GameCommands(P: SSArray);
 var
   a, b: Integer;
   s, pw: String;

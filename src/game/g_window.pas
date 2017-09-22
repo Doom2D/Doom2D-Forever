@@ -19,7 +19,7 @@ unit g_window;
 interface
 
 uses
-  wadreader;
+  utils;
 
 function  SDLMain(): Integer;
 function  GetTimer(): Int64;
@@ -32,7 +32,7 @@ procedure ProcessLoading (forceUpdate: Boolean=false);
 procedure ReDrawWindow();
 procedure SwapBuffers();
 procedure Sleep(ms: LongWord);
-function  GetDisplayModes(dBPP: DWORD; var SelRes: DWORD): SArray;
+function  GetDisplayModes(dBPP: DWORD; var SelRes: DWORD): SSArray;
 function  g_Window_SetDisplay(PreserveGL: Boolean = False): Boolean;
 function  g_Window_SetSize(W, H: Word; FScreen: Boolean): Boolean;
 
@@ -51,7 +51,7 @@ uses
   SDL2, GL, GLExt, e_graphics, e_log, e_texture, g_main,
   g_console, e_input, g_options, g_game,
   g_basic, g_textures, e_sound, g_sound, g_menu, ENet, g_net,
-  g_map, g_gfx, g_monsters, g_holmes, xprofiler, utils;
+  g_map, g_gfx, g_monsters, g_holmes, xprofiler;
 
 var
   h_Wnd: PSDL_Window;
@@ -61,13 +61,9 @@ var
   flag: Boolean;
   wTitle: PChar = nil;
   wNeedTimeReset: Boolean = False;
-  //wWindowCreated: Boolean = False;
-  //wCursorShown: Boolean = False;
   wMinimized: Boolean = False;
-  //wNeedFree: Boolean = True;
   wLoadingProgress: Boolean = False;
   wLoadingQuit: Boolean = False;
-  {wWinPause: Byte = 0;}
 {$IFNDEF WINDOWS}
   ticksOverflow: Int64 = -1;
   lastTicks: Uint32 = 0; // to detect overflow
@@ -135,7 +131,7 @@ begin
   // TODO: what was this for?
 end;
 
-function GetDisplayModes(dBPP: DWORD; var SelRes: DWORD): SArray;
+function GetDisplayModes(dBPP: DWORD; var SelRes: DWORD): SSArray;
 var
   mode: TSDL_DisplayMode;
   res, i, k, n, pw, ph: Integer;
@@ -528,7 +524,6 @@ begin
   if h_GL <> nil then SDL_GL_DeleteContext(h_GL);
   h_Wnd := nil;
   h_GL := nil;
-  //wWindowCreated := False;
 end;
 
 function CreateGLWindow(Title: PChar): Boolean;
@@ -554,7 +549,6 @@ begin
   h_Gl := SDL_GL_CreateContext(h_Wnd);
   if h_Gl = nil then Exit;
 {$ENDIF}
-  //wWindowCreated := True;
 
   e_ResizeWindow(gScreenWidth, gScreenHeight);
   e_InitGL();
@@ -623,14 +617,12 @@ var
   stt: UInt64;
 begin
   FillChar(ev, SizeOf(ev), 0);
-  //wNeedFree := False;
   wLoadingProgress := True;
   while SDL_PollEvent(@ev) > 0 do
   begin
     if (ev.type_ = SDL_QUITEV) then
       break;
   end;
-  //wNeedFree := True;
 
   if (ev.type_ = SDL_QUITEV) or (gExit = EXIT_QUIT) then
   begin
@@ -706,14 +698,14 @@ begin
 
   if wNeedTimeReset then
   begin
-    Time_Delta := 28{(27777 div 1000)};
+    Time_Delta := 28;
     wNeedTimeReset := False;
   end;
 
   g_Map_ProfilersBegin();
   g_Mons_ProfilersBegin();
 
-  t := Time_Delta div 28{(27777 div 1000)};
+  t := Time_Delta div 28;
   if t > 0 then
   begin
     flag := True;
@@ -748,7 +740,7 @@ begin
 // Время предыдущего обновления:
   if flag then
   begin
-    Time_Old := Time - (Time_Delta mod 28{(27777 div 1000)});
+    Time_Old := Time-(Time_Delta mod 28);
     if (not wMinimized) then
     begin
       Draw();

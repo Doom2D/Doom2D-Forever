@@ -19,7 +19,7 @@ unit g_console;
 interface
 
 uses
-  wadreader; // for SArray
+  utils; // for SSArray
 
 procedure g_Console_Init ();
 procedure g_Console_Update ();
@@ -36,7 +36,7 @@ procedure conwriteln (const s: AnsiString; show: Boolean=false);
 procedure conwritefln (const s: AnsiString; args: array of const; show: Boolean=false);
 
 // <0: no arg; 0/1: true/false
-function conGetBoolArg (p: SArray; idx: Integer): Integer;
+function conGetBoolArg (p: SSArray; idx: Integer): Integer;
 
 procedure g_Console_Chat_Switch (team: Boolean=false);
 
@@ -61,14 +61,14 @@ implementation
 uses
   g_textures, g_main, e_graphics, e_input, g_game,
   SysUtils, g_basic, g_options, Math,
-  g_menu, g_language, g_net, g_netmsg, e_log, conbuf, utils;
+  g_menu, g_language, g_net, g_netmsg, e_log, conbuf;
 
 
 type
   PCommand = ^TCommand;
 
-  TCmdProc = procedure (p: SArray);
-  TCmdProcEx = procedure (me: PCommand; p: SArray);
+  TCmdProc = procedure (p: SSArray);
+  TCmdProcEx = procedure (me: PCommand; p: SSArray);
 
   TCommand = record
     cmd: AnsiString;
@@ -83,7 +83,7 @@ type
 
   TAlias = record
     name: AnsiString;
-    commands: SArray;
+    commands: SSArray;
   end;
 
 
@@ -103,9 +103,9 @@ var
   Cons_Shown: Boolean; // Рисовать ли консоль?
   Line: AnsiString;
   CPos: Word;
-  //ConsoleHistory: SArray;
-  CommandHistory: SArray;
-  Whitelist: SArray;
+  //ConsoleHistory: SSArray;
+  CommandHistory: SSArray;
+  Whitelist: SSArray;
   commands: Array of TCommand = nil;
   Aliases: Array of TAlias = nil;
   CmdIndex: Word;
@@ -157,7 +157,7 @@ end;
 
 // ////////////////////////////////////////////////////////////////////////// //
 // <0: no arg; 0/1: true/false; 666: toggle
-function conGetBoolArg (p: SArray; idx: Integer): Integer;
+function conGetBoolArg (p: SSArray; idx: Integer): Integer;
 begin
   if (idx < 0) or (idx > High(p)) then begin result := -1; exit; end;
   result := 0;
@@ -168,7 +168,7 @@ begin
 end;
 
 
-procedure boolVarHandler (me: PCommand; p: SArray);
+procedure boolVarHandler (me: PCommand; p: SSArray);
   procedure binaryFlag (var flag: Boolean; msg: AnsiString);
   begin
     if (Length(p) > 2) then
@@ -220,7 +220,7 @@ type
   end;
 
 
-procedure singleVarHandler (me: PCommand; p: SArray);
+procedure singleVarHandler (me: PCommand; p: SSArray);
 var
   pv: PVarSingle;
   nv: Single;
@@ -300,7 +300,7 @@ begin
     end;
 end;
 
-function ParseAlias(Str: AnsiString): SArray;
+function ParseAlias(Str: AnsiString): SSArray;
 begin
   Result := nil;
 
@@ -316,7 +316,7 @@ begin
   end;
 end;
 
-procedure ConsoleCommands(p: SArray);
+procedure ConsoleCommands(p: SSArray);
 var
   cmd, s: AnsiString;
   a, b: Integer;
@@ -563,7 +563,7 @@ begin
 end;
 
 
-procedure segfault (p: SArray);
+procedure segfault (p: SSArray);
 var
   pp: PByte = nil;
 begin
@@ -1168,7 +1168,7 @@ begin
     end;
 end;
 
-function ParseString(Str: AnsiString): SArray;
+function ParseString(Str: AnsiString): SSArray;
 begin
   Result := nil;
 
@@ -1319,7 +1319,7 @@ end;
 
 function g_Console_CommandBlacklisted(C: AnsiString): Boolean;
 var
-  Arr: SArray;
+  Arr: SSArray;
   i: Integer;
 begin
   Result := True;
@@ -1340,7 +1340,7 @@ end;
 
 procedure g_Console_Process(L: AnsiString; quiet: Boolean = False);
 var
-  Arr: SArray;
+  Arr: SSArray;
   i: Integer;
 begin
   Arr := nil;

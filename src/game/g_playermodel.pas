@@ -21,7 +21,7 @@ interface
 
 uses
   mempool,
-  MAPDEF, g_textures, g_basic, g_weapons, e_graphics, wadreader;
+  MAPDEF, g_textures, g_basic, g_weapons, e_graphics, utils;
 
 const
   A_STAND      = 0;
@@ -130,17 +130,18 @@ type
 procedure g_PlayerModel_LoadData();
 procedure g_PlayerModel_FreeData();
 function  g_PlayerModel_Load(FileName: String): Boolean;
-function  g_PlayerModel_GetNames(): SArray;
+function  g_PlayerModel_GetNames(): SSArray;
 function  g_PlayerModel_GetInfo(ModelName: String): TModelInfo;
 function  g_PlayerModel_Get(ModelName: String): TPlayerModel;
 function  g_PlayerModel_GetAnim(ModelName: String; Anim: Byte; var _Anim, _Mask: TAnimation): Boolean;
 function  g_PlayerModel_GetGibs(ModelName: String; var Gibs: TGibsArray): Boolean;
 
+
 implementation
 
 uses
   g_main, g_sound, g_console, SysUtils, g_player, CONFIG,
-  GL, GLExt, e_sound, g_options, g_map, Math, e_log;
+  GL, GLExt, e_sound, g_options, g_map, Math, e_log, wadreader;
 
 type
   TPlayerModelInfo = record
@@ -692,7 +693,7 @@ begin
     end;
 end;
 
-function g_PlayerModel_GetNames(): SArray;
+function g_PlayerModel_GetNames(): SSArray;
 var
   i: DWORD;
 begin

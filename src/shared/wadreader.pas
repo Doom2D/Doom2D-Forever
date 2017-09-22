@@ -22,12 +22,11 @@ unit wadreader;
 interface
 
 uses
-  mempool, sfs, xstreams, Classes;
+  Classes,
+  mempool, sfs, xstreams, utils;
 
 
 type
-  SArray = array of ShortString;
-
   TWADFile = class(TPoolObject)
   private
     fFileName: AnsiString; // empty: not opened
@@ -49,7 +48,7 @@ type
 
     function GetResource (name: AnsiString; var pData: Pointer; var Len: Integer; logError: Boolean=true): Boolean;
     function GetMapResource (name: AnsiString; var pData: Pointer; var Len: Integer; logError: Boolean=true): Boolean;
-    function GetMapResources (): SArray;
+    function GetMapResources (): SSArray;
 
     // returns `nil` if file wasn't found
     function openFileStream (name: AnsiString): TStream;
@@ -76,7 +75,7 @@ var
 implementation
 
 uses
-  SysUtils, e_log, utils, MAPDEF, xdynrec;
+  SysUtils, e_log, MAPDEF, xdynrec;
 
 
 function findDiskWad (fname: AnsiString): AnsiString;
@@ -459,7 +458,7 @@ begin
   result := GetResourceEx(name, true, pData, Len, logError);
 end;
 
-function TWADFile.GetMapResources (): SArray;
+function TWADFile.GetMapResources (): SSArray;
 var
   f, c: Integer;
   fi: TSFSFileInfo;

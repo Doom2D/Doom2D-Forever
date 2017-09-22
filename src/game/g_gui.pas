@@ -20,7 +20,7 @@ interface
 
 uses
   mempool,
-  e_graphics, e_input, e_log, g_playermodel, g_basic, MAPDEF, wadreader;
+  e_graphics, e_input, e_log, g_playermodel, g_basic, MAPDEF, utils;
 
 const
   MAINMENU_HEADER_COLOR: TRGB = (R:255; G:255; B:255);
@@ -381,7 +381,7 @@ type
 
   TGUIListBox = class(TGUIControl)
   private
-    FItems: SArray;
+    FItems: SSArray;
     FActiveColor: TRGB;
     FUnActiveColor: TRGB;
     FFont: TFont;
@@ -394,7 +394,7 @@ type
     FDrawScroll: Boolean;
     FOnChangeEvent: TOnChangeEvent;
 
-    procedure FSetItems(Items: SArray);
+    procedure FSetItems(Items: SSArray);
     procedure FSetIndex(aIndex: Integer);
 
   public
@@ -411,7 +411,7 @@ type
     property OnChange: TOnChangeEvent read FOnChangeEvent write FOnChangeEvent;
     property Sort: Boolean read FSort write FSort;
     property ItemIndex: Integer read FIndex write FSetIndex;
-    property Items: SArray read FItems write FSetItems;
+    property Items: SSArray read FItems write FSetItems;
     property DrawBack: Boolean read FDrawBack write FDrawBack;
     property DrawScrollBar: Boolean read FDrawScroll write FDrawScroll;
     property ActiveColor: TRGB read FActiveColor write FActiveColor;
@@ -441,7 +441,7 @@ type
 
   TGUIMemo = class(TGUIControl)
   private
-    FLines: SArray;
+    FLines: SSArray;
     FFont: TFont;
     FStartLine: Integer;
     FWidth: Word;
@@ -545,16 +545,19 @@ function  g_GUI_Destroy(): Boolean;
 procedure g_GUI_SaveMenuPos();
 procedure g_GUI_LoadMenuPos();
 
+
 implementation
 
 uses
   GL, GLExt, g_textures, g_sound, SysUtils,
   g_game, Math, StrUtils, g_player, g_options,
-  g_map, g_weapons, xdynrec;
+  g_map, g_weapons, xdynrec, wadreader;
+
 
 var
   Box: Array [0..8] of DWORD;
-  Saved_Windows: SArray;
+  Saved_Windows: SSArray;
+
 
 procedure g_GUI_Init();
 begin
@@ -1321,7 +1324,7 @@ end;
 procedure TGUIMenu.AddText(fText: string; MaxWidth: Word);
 var
   a, i: Integer;
-  l: SArray;
+  l: SSArray;
 begin
   l := GetLines(fText, FFontID, MaxWidth);
 
@@ -3057,7 +3060,7 @@ begin
   Result := FItems[FIndex];
 end;
 
-procedure TGUIListBox.FSetItems(Items: SArray);
+procedure TGUIListBox.FSetItems(Items: SSArray);
 begin
   if FItems <> nil then
     FItems := nil;

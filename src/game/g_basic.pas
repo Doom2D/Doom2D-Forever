@@ -19,7 +19,7 @@ unit g_basic;
 interface
 
 uses
-  wadreader, g_phys;
+  utils, g_phys;
 
 const
   GAME_VERSION  = '0.667';
@@ -72,19 +72,19 @@ function Sign(A: Single): ShortInt; overload;
 function PointToRect(X, Y, X1, Y1: Integer; Width, Height: Word): Integer;
 function GetAngle(baseX, baseY, pointX, PointY: Integer): SmallInt;
 function GetAngle2(vx, vy: Integer): SmallInt;
-function GetLines(Text: string; FontID: DWORD; MaxWidth: Word): SArray;
-procedure Sort(var a: SArray);
+function GetLines(Text: string; FontID: DWORD; MaxWidth: Word): SSArray;
+procedure Sort(var a: SSArray);
 function Sscanf(const s: string; const fmt: string;
                 const Pointers: array of Pointer): Integer;
 function InDWArray(a: DWORD; arr: DWArray): Boolean;
 function InWArray(a: Word; arr: WArray): Boolean;
-function InSArray(a: string; arr: SArray): Boolean;
+function InSArray(a: string; arr: SSArray): Boolean;
 function GetPos(UID: Word; o: PObj): Boolean;
-function parse(s: string): SArray;
-function parse2(s: string; delim: Char): SArray;
+function parse(s: string): SSArray;
+function parse2(s: string; delim: Char): SSArray;
 function g_GetFileTime(fileName: String): Integer;
 function g_SetFileTime(fileName: String; time: Integer): Boolean;
-procedure SortSArray(var S: SArray);
+procedure SortSArray(var S: SSArray);
 function b_Text_Format(S: string): string;
 function b_Text_Unformat(S: string): string;
 
@@ -626,7 +626,7 @@ begin
     end;
 end;
 
-{function GetLines(Text: string; MaxChars: Word): SArray;
+{function GetLines(Text: string; MaxChars: Word): SSArray;
 var
   a: Integer;
   b: array of string;
@@ -673,7 +673,7 @@ begin
  end;
 end;}
 
-function GetLines(Text: string; FontID: DWORD; MaxWidth: Word): SArray;
+function GetLines(Text: string; FontID: DWORD; MaxWidth: Word): SSArray;
 
 function TextLen(Text: string): Word;
 var
@@ -741,7 +741,7 @@ begin
   end;
 end;
 
-procedure Sort(var a: SArray);
+procedure Sort(var a: SSArray);
 var
   i, j: Integer;
   s: string;
@@ -934,7 +934,7 @@ begin
     end;
 end;
 
-function InSArray(a: string; arr: SArray): Boolean;
+function InSArray(a: string; arr: SSArray): Boolean;
 var
   b: Integer;
 begin
@@ -983,7 +983,7 @@ begin
   Result := True;
 end;
 
-function parse(s: String): SArray;
+function parse(s: String): SSArray;
 var
   a: Integer;
 begin
@@ -1009,7 +1009,7 @@ begin
   end;
 end;
 
-function parse2(s: string; delim: Char): SArray;
+function parse2(s: string; delim: Char): SSArray;
 var
   a: Integer;
 begin
@@ -1064,7 +1064,7 @@ begin
   CloseFile(F);
 end;
 
-procedure SortSArray(var S: SArray);
+procedure SortSArray(var S: SSArray);
 var
   b: Boolean;
   i: Integer;

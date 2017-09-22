@@ -22,7 +22,7 @@ interface
 uses
   SysUtils, Classes,
   e_graphics, g_basic, MAPDEF, g_textures,
-  g_phys, wadreader, g_panel, g_grid, md5, binheap, xprofiler, xparser, xdynrec;
+  g_phys, utils, g_panel, g_grid, md5, binheap, xprofiler, xparser, xdynrec;
 
 type
   TMapInfo = record
@@ -59,7 +59,7 @@ type
 
 function  g_Map_Load(Res: String): Boolean;
 function  g_Map_GetMapInfo(Res: String): TMapInfo;
-function  g_Map_GetMapsList(WADName: String): SArray;
+function  g_Map_GetMapsList(WADName: String): SSArray;
 function  g_Map_Exist(Res: String): Boolean;
 procedure g_Map_Free(freeTextures: Boolean=true);
 procedure g_Map_Update();
@@ -247,7 +247,7 @@ uses
   GL, GLExt, g_weapons, g_game, g_sound, e_sound, CONFIG,
   g_options, g_triggers, g_player,
   Math, g_monsters, g_saveload, g_language, g_netmsg,
-  utils, sfs, xstreams, hashtable,
+  sfs, xstreams, hashtable, wadreader,
   ImagingTypes, Imaging, ImagingUtility,
   ImagingGif, ImagingNetworkGraphics;
 
@@ -2290,11 +2290,11 @@ begin
   mapReader.Free();
 end;
 
-function g_Map_GetMapsList(WADName: string): SArray;
+function g_Map_GetMapsList(WADName: string): SSArray;
 var
   WAD: TWADFile;
   a: Integer;
-  ResList: SArray;
+  ResList: SSArray;
 begin
   Result := nil;
   WAD := TWADFile.Create();
@@ -2319,7 +2319,7 @@ function g_Map_Exist(Res: string): Boolean;
 var
   WAD: TWADFile;
   FileName, mnn: string;
-  ResList: SArray;
+  ResList: SSArray;
   a: Integer;
 begin
   Result := False;
