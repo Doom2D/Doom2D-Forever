@@ -157,8 +157,13 @@ type
     x, y: Integer;
   end;
 
+  TBinHeapKeyHitTime = class
+  public
+    class function less (const a, b: Integer): Boolean; inline;
+  end;
+
   // indicies in `wgunHitTime` array
-  TBinaryHeapHitTimes = specialize TBinaryHeapBase<Integer>;
+  TBinaryHeapHitTimes = specialize TBinaryHeapBase<Integer, TBinHeapKeyHitTime>;
 
 var
   WaterMap: array of array of DWORD = nil;
@@ -168,7 +173,7 @@ var
   wgunHitTimeUsed: Integer = 0;
 
 
-function hitTimeLess (a, b: Integer): Boolean;
+class function TBinHeapKeyHitTime.less (const a, b: Integer): Boolean;
 var
   hta, htb: PHitTime;
 begin
@@ -1155,7 +1160,7 @@ begin
   g_Texture_CreateWADEx('TEXTURE_SHELL_SHELL', GameWAD+':TEXTURES\ESHELL');
 
   //wgunMonHash := hashNewIntInt();
-  wgunHitHeap := TBinaryHeapHitTimes.Create(hitTimeLess);
+  wgunHitHeap := TBinaryHeapHitTimes.Create();
 end;
 
 procedure g_Weapon_FreeData();

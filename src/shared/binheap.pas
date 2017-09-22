@@ -20,23 +20,22 @@ unit binheap;
 interface
 
 
+(*
+ * CmpObjT: class that contains class methods:
+ *   class function less (const[ref] a, b: KeyT): Boolean;
+ *)
 type
   // WARNING! don't put structures into heap, use ponters or ids!
-  generic TBinaryHeapBase<ITP> = class(TObject)
-  private
-    type
-      TBinaryHeapLessFn = function (a, b: ITP): Boolean;
-
+  generic TBinaryHeapBase<ITP, CmpObjT> = class(TObject)
   private
     elem: array of ITP;
     elemUsed: Integer;
-    lessfn: TBinaryHeapLessFn;
 
   private
     procedure heapify (root: Integer);
 
   public
-    constructor Create (alessfn: TBinaryHeapLessFn);
+    constructor Create ();
     destructor Destroy (); override;
 
     procedure clear ();
@@ -51,12 +50,20 @@ type
 
 
 type
-  TBinaryHeapObj = specialize TBinaryHeapBase<TObject>;
-  TBinaryHeapInt = specialize TBinaryHeapBase<Integer>;
+  TBinHeapKeyIntLess = class
+  public
+    class function less (const a, b: Integer): Boolean; inline;
+  end;
+
+  TBinHeapKeyIntGreat = class
+  public
+    class function less (const a, b: Integer): Boolean; inline;
+  end;
 
 
-function binHeapNewIntLess (): TBinaryHeapInt;
-function binHeapNewIntGreat (): TBinaryHeapInt;
+type
+  TBinaryHeapIntLess = specialize TBinaryHeapBase<Integer, TBinHeapKeyIntLess>;
+  TBinaryHeapIntGreat = specialize TBinaryHeapBase<Integer, TBinHeapKeyIntGreat>;
 
 
 implementation
@@ -66,19 +73,13 @@ uses
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-function intLess (a, b: Integer): Boolean; begin result := (a < b); end;
-function intGreat (a, b: Integer): Boolean; begin result := (a > b); end;
-
-
-function binHeapNewIntLess (): TBinaryHeapInt; begin result := TBinaryHeapInt.Create(@intLess); end;
-function binHeapNewIntGreat (): TBinaryHeapInt; begin result := TBinaryHeapInt.Create(@intGreat); end;
+class function TBinHeapKeyIntLess.less (const a, b: Integer): Boolean; inline; begin result := (a < b); end;
+class function TBinHeapKeyIntGreat.less (const a, b: Integer): Boolean; inline; begin result := (a > b); end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-constructor TBinaryHeapBase.Create (alessfn: TBinaryHeapLessFn);
+constructor TBinaryHeapBase.Create ();
 begin
-  if not assigned(alessfn) then raise Exception.Create('wutafuck?!');
-  lessfn := alessfn;
   SetLength(elem, 128); // 'cause why not?
   elemUsed := 0;
 end;
@@ -107,8 +108,8 @@ begin
     smallest := 2*root+1; // left child
     if (smallest >= elemUsed) then break; // anyway
     right := smallest+1; // right child
-    if not lessfn(elem[smallest], elem[root]) then smallest := root;
-    if (right < elemUsed) and (lessfn(elem[right], elem[smallest])) then smallest := right;
+    if not CmpObjT.less(elem[smallest], elem[root]) then smallest := root;
+    if (right < elemUsed) and (CmpObjT.less(elem[right], elem[smallest])) then smallest := right;
     if (smallest = root) then break;
     // swap
     tmp := elem[root];
@@ -137,7 +138,7 @@ begin
   while (i <> 0) do
   begin
     par := (i-1) div 2; // parent
-    if not lessfn(val, elem[par]) then break;
+    if not CmpObjT.less(val, elem[par]) then break;
     elem[i] := elem[par];
     i := par;
   end;

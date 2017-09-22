@@ -202,6 +202,14 @@ const
   GridDrawableMask = (GridTagBack or GridTagStep or GridTagWall or GridTagDoor or GridTagAcid1 or GridTagAcid2 or GridTagWater or GridTagFore);
 
 
+type
+  TBinHeapPanelDrawCmp = class
+  public
+    class function less (const a, b: TPanel): Boolean; inline;
+  end;
+
+  TBinHeapPanelDraw = specialize TBinaryHeapBase<TPanel, TBinHeapPanelDrawCmp>;
+
 var
   gWalls: TPanelArray;
   gRenderBackgrounds: TPanelArray;
@@ -224,7 +232,7 @@ var
   gdbg_map_use_accel_render: Boolean = true;
   gdbg_map_use_accel_coldet: Boolean = true;
   profMapCollision: TProfiler = nil; //WARNING: FOR DEBUGGING ONLY!
-  gDrawPanelList: TBinaryHeapObj = nil; // binary heap of all walls we have to render, populated by `g_Map_CollectDrawPanels()`
+  gDrawPanelList: TBinHeapPanelDraw = nil; // binary heap of all walls we have to render, populated by `g_Map_CollectDrawPanels()`
 
   gCurrentMap: TDynRecord = nil;
   gCurrentMapFileName: AnsiString = ''; // so we can skip texture reloading
@@ -506,20 +514,16 @@ begin
 end;
 
 
-function dplLess (a, b: TObject): Boolean;
-var
-  pa, pb: TPanel;
+class function TBinHeapPanelDrawCmp.less (const a, b: TPanel): Boolean; inline;
 begin
-  pa := TPanel(a);
-  pb := TPanel(b);
-  if (pa.tag < pb.tag) then begin result := true; exit; end;
-  if (pa.tag > pb.tag) then begin result := false; exit; end;
-  result := (pa.arrIdx < pb.arrIdx);
+  if (a.tag < b.tag) then begin result := true; exit; end;
+  if (a.tag > b.tag) then begin result := false; exit; end;
+  result := (a.arrIdx < b.arrIdx);
 end;
 
 procedure dplClear ();
 begin
-  if (gDrawPanelList = nil) then gDrawPanelList := TBinaryHeapObj.Create(@dplLess) else gDrawPanelList.clear();
+  if (gDrawPanelList = nil) then gDrawPanelList := TBinHeapPanelDraw.Create() else gDrawPanelList.clear();
 end;
 
 
