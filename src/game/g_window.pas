@@ -62,10 +62,11 @@ const
 var
   h_Wnd: PSDL_Window = nil;
   h_GL: TSDL_GLContext = nil;
-  wFlags: LongWord = 0;
   Time, Time_Delta, Time_Old: Int64;
   flag: Boolean;
+{$IF not DEFINED(HEADLESS)}
   wTitle: PChar = nil;
+{$ENDIF}
   wNeedTimeReset: Boolean = false;
   wMinimized: Boolean = false;
   wLoadingProgress: Boolean = false;
@@ -86,6 +87,7 @@ function g_Window_SetDisplay (preserveGL: Boolean = false): Boolean;
 {$IF not DEFINED(HEADLESS)}
 var
   mode, cmode: TSDL_DisplayMode;
+  wFlags: LongWord = 0;
 {$ENDIF}
 begin
 {$IF not DEFINED(HEADLESS)}
@@ -182,8 +184,10 @@ end;
 
 
 function g_Window_SetSize (w, h: Word; fullscreen: Boolean): Boolean;
+{$IF not DEFINED(HEADLESS)}
 var
   preserve: Boolean;
+{$ENDIF}
 begin
   result := false;
 {$IF not DEFINED(HEADLESS)}
@@ -544,7 +548,9 @@ begin
   gWinSizeX := gScreenWidth;
   gWinSizeY := gScreenHeight;
 
+{$IF not DEFINED(HEADLESS)}
   wTitle := Title;
+{$ENDIF}
   e_WriteLog('Creating window', TMsgType.Notify);
 
   if not g_Window_SetDisplay() then
