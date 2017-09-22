@@ -18,7 +18,7 @@ uses
 
 // ////////////////////////////////////////////////////////////////////////// //
 type
-  THashStrFld = specialize THashBase<AnsiString, TDynField>;
+  THashStrFld = specialize THashBase<AnsiString, TDynField, THashKeyStr>;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
@@ -39,7 +39,7 @@ begin
   AssignFile(fo, fname);
   {$I+}Rewrite(fo);{$I-}
 
-  fldknown := THashStrFld.Create(hashStrHash, hashStrEqu);
+  fldknown := THashStrFld.Create();
 
   write(fo, '// trigger cache'#10);
   for tidx := 0 to dfmapdef.trigTypeCount-1 do
@@ -244,7 +244,7 @@ var
   fldknown: THashStrFld = nil; // key: palias; value: prev field
   knownfld: TDynField;
 begin
-  fldknown := THashStrFld.Create(hashStrHash, hashStrEqu);
+  fldknown := THashStrFld.Create();
   //writeln(getFilenamePath(ParamStr(0)), '|');
 
   e_InitWritelnDriver();

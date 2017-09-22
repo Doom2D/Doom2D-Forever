@@ -9,18 +9,6 @@ const
   MaxItems = 16384;
 
 
-{
-function hequ (constref a, b: Integer): Boolean; begin result := (a = b); end;
-
-function hhash (constref k: Integer): LongWord;
-begin
-  //result := fnvHash(k, sizeof(k));
-  //result := u32Hash(LongWord(k));
-  result := joaatHash(k, sizeof(k));
-end;
-}
-
-
 var
   its: array [0..MaxItems-1] of Integer;
   marks: array [0..MaxItems-1] of Boolean;
@@ -98,8 +86,7 @@ var
 begin
   for i := 0 to High(its) do its[i] := -1;
 
-  //hash := THashInt.Create(hhash, hequ);
-  hash := hashNewIntInt();
+  hash := THashIntInt.Create();
 
   Randomize();
 
