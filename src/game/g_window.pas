@@ -53,7 +53,8 @@ uses
   SDL2, GL, GLExt, e_graphics, e_log, e_texture, g_main,
   g_console, e_input, g_options, g_game,
   g_basic, g_textures, e_sound, g_sound, g_menu, ENet, g_net,
-  g_map, g_gfx, g_monsters, g_holmes, xprofiler;
+  g_map, g_gfx, g_monsters, g_holmes, xprofiler,
+  sdlcarcass, gh_ui;
 
 
 const
@@ -75,12 +76,19 @@ var
   ticksOverflow: Int64 = -1;
   lastTicks: Uint32 = 0; // to detect overflow
 {$ENDIF}
-{$IF not DEFINED(HEADLESS)}
-  curMsButState: Word = 0;
-  curKbState: Word = 0;
-  curMsX: Integer = 0;
-  curMsY: Integer = 0;
-{$ENDIF}
+
+
+procedure KillGLWindow ();
+begin
+  if (h_Wnd <> nil) then
+  begin
+    if assigned(oglDeinitCB) then oglDeinitCB();
+  end;
+  if (h_Wnd <> nil) then SDL_DestroyWindow(h_Wnd);
+  if (h_GL <> nil) then SDL_GL_DeleteContext(h_GL);
+  h_Wnd := nil;
+  h_GL := nil;
+end;
 
 
 function g_Window_SetDisplay (preserveGL: Boolean = false): Boolean;
@@ -99,11 +107,7 @@ begin
   if gFullscreen then wFlags := wFlags or SDL_WINDOW_FULLSCREEN;
   if gWinMaximized then wFlags := wFlags or SDL_WINDOW_MAXIMIZED;
 
-  if (h_Wnd <> nil) then
-  begin
-    SDL_DestroyWindow(h_Wnd);
-    h_Wnd := nil;
-  end;
+  KillGLWindow();
 
   if gFullscreen then
   begin
@@ -129,13 +133,17 @@ begin
 
   SDL_GL_MakeCurrent(h_Wnd, h_GL);
   SDL_ShowCursor(SDL_DISABLE);
+  if (h_GL <> nil) then
+  begin
+    if assigned(oglInitCB) then oglInitCB();
+  end;
 {$ENDIF}
 
   result := true;
 end;
 
 
-function GetDisplayModes(dbpp: LongWord; var selres: LongWord): SSArray;
+function GetDisplayModes (dbpp: LongWord; var selres: LongWord): SSArray;
 var
   mode: TSDL_DisplayMode;
   res, i, k, n, pw, ph: Integer;
@@ -178,7 +186,6 @@ begin
   g_Game_SetupScreenSize();
   g_Menu_Reset();
   g_Game_ClearLoading();
-  g_Holmes_VidModeChanged();
 {$ENDIF}
 end;
 
@@ -216,15 +223,6 @@ begin
 end;
 
 
-procedure resetKMState ();
-begin
-{$IF not DEFINED(HEADLESS)}
-  curMsButState := 0;
-  curKbState := 0;
-{$ENDIF}
-end;
-
-
 function WindowEventHandler (constref ev: TSDL_WindowEvent): Boolean;
 var
   wActivate, wDeactivate: Boolean;
@@ -245,7 +243,6 @@ begin
 
     SDL_WINDOWEVENT_MINIMIZED:
     begin
-      resetKMState();
       e_UnpressAllKeys();
       if not wMinimized then
       begin
@@ -262,7 +259,6 @@ begin
 
     SDL_WINDOWEVENT_RESIZED:
     begin
-      resetKMState();
       gScreenWidth := ev.data1;
       gScreenHeight := ev.data2;
       ChangeWindowSize();
@@ -279,7 +275,6 @@ begin
 
     SDL_WINDOWEVENT_MAXIMIZED:
     begin
-      resetKMState();
       if wMinimized then
       begin
         e_ResizeWindow(gScreenWidth, gScreenHeight);
@@ -299,15 +294,13 @@ begin
 
     SDL_WINDOWEVENT_RESTORED:
     begin
-      resetKMState();
       if wMinimized then
       begin
         e_ResizeWindow(gScreenWidth, gScreenHeight);
         wMinimized := false;
         wActivate := true;
       end;
-      if gWinMaximized then
-        gWinMaximized := false;
+      if gWinMaximized then gWinMaximized := false;
       if g_debug_WinMsgs then
       begin
         g_Console_Add('Now restored');
@@ -317,19 +310,15 @@ begin
 
     SDL_WINDOWEVENT_FOCUS_GAINED:
     begin
-      resetKMState();
       wActivate := true;
       //e_WriteLog('window gained focus!', MSG_NOTIFY);
-      g_Holmes_WindowFocused();
     end;
 
     SDL_WINDOWEVENT_FOCUS_LOST:
     begin
-      resetKMState();
       wDeactivate := true;
       e_UnpressAllKeys();
       //e_WriteLog('window lost focus!', MSG_NOTIFY);
-      g_Holmes_WindowBlured();
     end;
   end;
 
@@ -354,6 +343,8 @@ begin
       end;
 
       gWinActive := false;
+
+      if assigned(winBlurCB) then winBlurCB();
     end;
   end
   else if wActivate then
@@ -376,6 +367,7 @@ begin
       end;
 
       gWinActive := true;
+      if assigned(winFocusCB) then winFocusCB();
     end;
   end;
 end;
@@ -385,39 +377,9 @@ function EventHandler (var ev: TSDL_Event): Boolean;
 var
   key, keychr: Word;
   uc: UnicodeChar;
-  {$IF not DEFINED(HEADLESS)}
-  msev: THMouseEvent;
-  kbev: THKeyEvent;
-  {$ENDIF}
-
-  function buildBut (b: Byte): Word;
-  begin
-    result := 0;
-    case b of
-      SDL_BUTTON_LEFT: result := result or THMouseEvent.Left;
-      SDL_BUTTON_MIDDLE: result := result or THMouseEvent.Middle;
-      SDL_BUTTON_RIGHT: result := result or THMouseEvent.Right;
-    end;
-  end;
-
-  {$IF not DEFINED(HEADLESS)}
-  procedure updateKBState ();
-  var
-    kbstate: PUint8;
-  begin
-    curKbState := 0;
-    kbstate := SDL_GetKeyboardState(nil);
-    if (kbstate[SDL_SCANCODE_LCTRL] <> 0) or (kbstate[SDL_SCANCODE_RCTRL] <> 0) then curKbState := curKbState or THKeyEvent.ModCtrl;
-    if (kbstate[SDL_SCANCODE_LALT] <> 0) or (kbstate[SDL_SCANCODE_RALT] <> 0) then curKbState := curKbState or THKeyEvent.ModAlt;
-    if (kbstate[SDL_SCANCODE_LSHIFT] <> 0) or (kbstate[SDL_SCANCODE_RSHIFT] <> 0) then curKbState := curKbState or THKeyEvent.ModShift;
-  end;
-  {$ENDIF}
-
+  down: Boolean;
 begin
   result := false;
-  {$IF not DEFINED(HEADLESS)}
-  updateKBState();
-  {$ENDIF}
 
   case ev.type_ of
     SDL_WINDOWEVENT:
@@ -425,7 +387,7 @@ begin
 
     SDL_QUITEV:
       begin
-        if gExit <> EXIT_QUIT then
+        if (gExit <> EXIT_QUIT) then
         begin
           if not wLoadingProgress then
           begin
@@ -433,7 +395,9 @@ begin
             g_Game_Quit();
           end
           else
+          begin
             wLoadingQuit := true;
+          end;
         end;
         result := true;
       end;
@@ -441,74 +405,22 @@ begin
     SDL_KEYDOWN, SDL_KEYUP:
       begin
         key := ev.key.keysym.scancode;
+        down := (ev.type_ = SDL_KEYDOWN);
         {$IF not DEFINED(HEADLESS)}
-        if (g_holmes_enabled) then
+        if evSDLCB(ev) then
         begin
-          if (ev.type_ = SDL_KEYDOWN) then kbev.kind := THKeyEvent.Press else kbev.kind := THKeyEvent.Release;
-          kbev.scan := ev.key.keysym.scancode;
-          kbev.sym := ev.key.keysym.sym;
-          kbev.bstate := curMsButState;
-          kbev.kstate := curKbState;
-          if g_Holmes_keyEvent(kbev) then
-          begin
-            if (ev.type_ <> SDL_KEYDOWN) then e_KeyUpDown(ev.key.keysym.scancode, false);
-            exit;
-          end;
+          // event eaten, but...
+          if not down then e_KeyUpDown(key, false);
+          exit;
         end;
         {$ENDIF}
-        if (ev.type_ = SDL_KEYDOWN) then KeyPress(key);
-        e_KeyUpDown(ev.key.keysym.scancode, (ev.type_ = SDL_KEYDOWN));
+        if down then KeyPress(key);
+        e_KeyUpDown(key, down);
       end;
 
     {$IF not DEFINED(HEADLESS)}
-    SDL_MOUSEBUTTONDOWN, SDL_MOUSEBUTTONUP:
-      begin
-        msev.dx := ev.button.x-curMsX;
-        msev.dy := ev.button.y-curMsY;
-        curMsX := ev.button.x;
-        curMsY := ev.button.y;
-        if (ev.type_ = SDL_MOUSEBUTTONDOWN) then msev.kind := THMouseEvent.Press else msev.kind := THMouseEvent.Release;
-        msev.but := buildBut(ev.button.button);
-        msev.x := curMsX;
-        msev.y := curMsY;
-        if (msev.but <> 0) then
-        begin
-          // ev.button.clicks: Byte
-          if (ev.type_ = SDL_MOUSEBUTTONDOWN) then curMsButState := curMsButState or msev.but else curMsButState := curMsButState and (not msev.but);
-          msev.bstate := curMsButState;
-          msev.kstate := curKbState;
-          if (g_holmes_enabled) then g_Holmes_mouseEvent(msev);
-        end;
-      end;
-    SDL_MOUSEWHEEL:
-      begin
-        if (ev.wheel.y <> 0) then
-        begin
-          msev.dx := 0;
-          msev.dy := ev.wheel.y;
-          msev.kind := THMouseEvent.Press;
-          if (ev.wheel.y < 0) then msev.but := THMouseEvent.WheelUp else msev.but := THMouseEvent.WheelDown;
-          msev.x := curMsX;
-          msev.y := curMsY;
-          msev.bstate := curMsButState;
-          msev.kstate := curKbState;
-          if (g_holmes_enabled) then g_Holmes_mouseEvent(msev);
-        end;
-      end;
-    SDL_MOUSEMOTION:
-      begin
-        msev.dx := ev.button.x-curMsX;
-        msev.dy := ev.button.y-curMsY;
-        curMsX := ev.button.x;
-        curMsY := ev.button.y;
-        msev.kind := THMouseEvent.Motion;
-        msev.but := 0;
-        msev.x := curMsX;
-        msev.y := curMsY;
-        msev.bstate := curMsButState;
-        msev.kstate := curKbState;
-        if (g_holmes_enabled) then g_Holmes_mouseEvent(msev);
-      end;
+    SDL_MOUSEBUTTONDOWN, SDL_MOUSEBUTTONUP, SDL_MOUSEWHEEL, SDL_MOUSEMOTION:
+      evSDLCB(ev);
     {$ENDIF}
 
     SDL_TEXTINPUT:
@@ -529,15 +441,6 @@ begin
   {$IF not DEFINED(HEADLESS)}
   SDL_GL_SwapWindow(h_Wnd);
   {$ENDIF}
-end;
-
-
-procedure KillGLWindow();
-begin
-  if (h_Wnd <> nil) then SDL_DestroyWindow(h_Wnd);
-  if (h_GL <> nil) then SDL_GL_DeleteContext(h_GL);
-  h_Wnd := nil;
-  h_GL := nil;
 end;
 
 
@@ -563,6 +466,7 @@ begin
 {$IF not DEFINED(HEADLESS)}
   h_Gl := SDL_GL_CreateContext(h_Wnd);
   if (h_Gl = nil) then exit;
+  if assigned(oglInitCB) then oglInitCB();
 {$ENDIF}
 
   e_ResizeWindow(gScreenWidth, gScreenHeight);
@@ -887,7 +791,7 @@ begin
     begin
       if (idx <= ParamCount) then
       begin
-        if not conParseFloat(g_holmes_ui_scale, ParamStr(idx)) then g_holmes_ui_scale := 1.0;
+        if not conParseFloat(gh_ui_scale, ParamStr(idx)) then gh_ui_scale := 1.0;
         Inc(idx);
       end;
     end;

@@ -110,7 +110,10 @@ uses
   g_language in 'g_language.pas',
   ImagingTypes,
   Imaging,
-  ImagingUtility;
+  ImagingUtility,
+  sdlcarcass in '../gx/sdlcarcass.pas',
+  glgfx in '../gx/glgfx.pas',
+  gh_ui in '../gx/gh_ui.pas';
 
 {$IFDEF WINDOWS}
   {$R *.res}

@@ -23,59 +23,9 @@ uses
   e_log, e_input,
   g_textures, g_basic, e_graphics, g_phys, g_grid, g_player, g_monsters,
   g_window, g_map, g_triggers, g_items, g_game, g_panel, g_console, g_gfx,
-  xprofiler;
+  xprofiler,
+  sdlcarcass, glgfx, gh_ui;
 
-
-type
-  THMouseEvent = record
-  public
-    const
-      // both for but and for bstate
-      Left = $0001;
-      Right = $0002;
-      Middle = $0004;
-      WheelUp = $0008;
-      WheelDown = $0010;
-
-      // event types
-      Release = 0;
-      Press = 1;
-      Motion = 2;
-
-  public
-    kind: Byte; // motion, press, release
-    x, y: Integer;
-    dx, dy: Integer; // for wheel this is wheel motion, otherwise this is relative mouse motion
-    but: Word; // current pressed/released button, or 0 for motion
-    bstate: Word; // button state
-    kstate: Word; // keyboard state (see THKeyEvent);
-  end;
-
-  THKeyEvent = record
-  public
-    const
-      // modifiers
-      ModCtrl = $0001;
-      ModAlt = $0002;
-      ModShift = $0004;
-
-      // event types
-      Release = 0;
-      Press = 1;
-
-  public
-    kind: Byte;
-    scan: Word; // SDL_SCANCODE_XXX
-    sym: Word; // SDLK_XXX
-    bstate: Word; // button state
-    kstate: Word; // keyboard state
-
-  public
-  end;
-
-procedure g_Holmes_VidModeChanged ();
-procedure g_Holmes_WindowFocused ();
-procedure g_Holmes_WindowBlured ();
 
 procedure g_Holmes_Draw ();
 procedure g_Holmes_DrawUI ();
@@ -89,16 +39,8 @@ procedure g_Holmes_plrViewSize (viewPortW, viewPortH: Integer);
 procedure g_Holmes_plrLaser (ax0, ay0, ax1, ay1: Integer);
 
 
-operator = (constref ev: THKeyEvent; const s: AnsiString): Boolean;
-operator = (const s: AnsiString; constref ev: THKeyEvent): Boolean;
-
-operator = (constref ev: THMouseEvent; const s: AnsiString): Boolean;
-operator = (const s: AnsiString; constref ev: THMouseEvent): Boolean;
-
-
 var
   g_holmes_enabled: Boolean = {$IF DEFINED(D2F_DEBUG)}true{$ELSE}false{$ENDIF};
-  g_holmes_ui_scale: Single = 1.0;
 
 
 implementation
@@ -129,247 +71,8 @@ var
 
 // ////////////////////////////////////////////////////////////////////////// //
 {$INCLUDE g_holmes.inc}
-{$INCLUDE g_holmes_ui.inc}
 {$INCLUDE g_holmes_ol.inc} // outliner
 
-
-// ////////////////////////////////////////////////////////////////////////// //
-// any mods = 255: nothing was defined
-function parseModKeys (const s: AnsiString; out kmods: Byte; out mbuts: Byte): AnsiString;
-var
-  pos, epos: Integer;
-begin
-  kmods := 255;
-  mbuts := 255;
-  pos := 1;
-  //while (pos <= Length(s)) and (s[pos] <= ' ') do Inc(pos);
-  if (pos < Length(s)) and ((s[pos] = '+') or (s[pos] = '-') or (s[pos] = '*')) then Inc(pos);
-  while (pos < Length(s)) do
-  begin
-    if (Length(s)-pos >= 2) and (s[pos+1] = '-') then
-    begin
-      case s[pos] of
-        'C', 'c': begin if (kmods = 255) then kmods := 0; kmods := kmods or THKeyEvent.ModCtrl; Inc(pos, 2); continue; end;
-        'M', 'm': begin if (kmods = 255) then kmods := 0; kmods := kmods or THKeyEvent.ModAlt; Inc(pos, 2); continue; end;
-        'S', 's': begin if (kmods = 255) then kmods := 0; kmods := kmods or THKeyEvent.ModShift; Inc(pos, 2); continue; end;
-      end;
-      break;
-    end;
-    if (Length(s)-pos >= 4) and ((s[pos+1] = 'M') or (s[pos+1] = 'm')) and ((s[pos+2] = 'B') or (s[pos+1] = 'b')) and (s[pos+3] = '-') then
-    begin
-      case s[pos] of
-        'L', 'l': begin if (mbuts = 255) then mbuts := 0; mbuts := mbuts or THMouseEvent.Left; Inc(pos, 4); continue; end;
-        'R', 'r': begin if (mbuts = 255) then mbuts := 0; mbuts := mbuts or THMouseEvent.Right; Inc(pos, 4); continue; end;
-        'M', 'm': begin if (mbuts = 255) then mbuts := 0; mbuts := mbuts or THMouseEvent.Middle; Inc(pos, 4); continue; end;
-      end;
-      break;
-    end;
-    break;
-  end;
-  epos := Length(s)+1;
-  while (epos > pos) and (s[epos-1] <= ' ') do Dec(epos);
-  if (epos > pos) then result := Copy(s, pos, epos-pos) else result := '';
-end;
-
-
-operator = (constref ev: THKeyEvent; const s: AnsiString): Boolean;
-var
-  f: Integer;
-  kmods: Byte = 255;
-  mbuts: Byte = 255;
-  kname: AnsiString;
-begin
-  result := false;
-  if (Length(s) > 0) then
-  begin
-         if (s[1] = '+') then begin if (ev.kind <> ev.Press) then exit; end
-    else if (s[1] = '-') then begin if (ev.kind <> ev.Release) then exit; end
-    else if (s[1] = '*') then begin end
-    else if (ev.kind <> ev.Press) then exit;
-  end;
-  kname := parseModKeys(s, kmods, mbuts);
-  if (kmods = 255) then kmods := 0;
-  if (ev.kstate <> kmods) then exit;
-  if (mbuts <> 255) and (ev.bstate <> mbuts) then exit;
-  for f := 1 to High(e_KeyNames) do
-  begin
-    if (CompareText(kname, e_KeyNames[f]) = 0) then
-    begin
-      result := (ev.scan = f);
-      exit;
-    end;
-  end;
-end;
-
-
-operator = (const s: AnsiString; constref ev: THKeyEvent): Boolean;
-begin
-  result := (ev = s);
-end;
-
-
-operator = (constref ev: THMouseEvent; const s: AnsiString): Boolean;
-var
-  kmods: Byte = 255;
-  mbuts: Byte = 255;
-  kname: AnsiString;
-  but: Integer = -1;
-begin
-  result := false;
-
-  if (Length(s) > 0) then
-  begin
-         if (s[1] = '+') then begin if (ev.kind <> ev.Press) then exit; end
-    else if (s[1] = '-') then begin if (ev.kind <> ev.Release) then exit; end
-    else if (s[1] = '*') then begin if (ev.kind <> ev.Motion) then exit; end
-    else if (ev.kind <> ev.Press) then exit;
-  end;
-
-  kname := parseModKeys(s, kmods, mbuts);
-       if (CompareText(kname, 'LMB') = 0) then but := THMouseEvent.Left
-  else if (CompareText(kname, 'RMB') = 0) then but := THMouseEvent.Right
-  else if (CompareText(kname, 'MMB') = 0) then but := THMouseEvent.Middle
-  else if (CompareText(kname, 'None') = 0) then but := 0
-  else exit;
-
-  //conwritefln('s=[%s]; kname=[%s]; kmods=%s; mbuts=%s; but=%s', [s, kname, kmods, mbuts, but]);
-
-  if (mbuts = 255) then mbuts := 0;
-  if (kmods = 255) then kmods := 0;
-  if (ev.kstate <> kmods) then exit;
-
-       if (ev.kind = ev.Press) then mbuts := mbuts or but
-  else if (ev.kind = ev.Release) then mbuts := mbuts and (not but);
-
-  //conwritefln('  ev.bstate=%s; ev.but=%s; mbuts=%s', [ev.bstate, ev.but, mbuts]);
-
-  result := (ev.bstate = mbuts) and (ev.but = but);
-end;
-
-
-operator = (const s: AnsiString; constref ev: THMouseEvent): Boolean;
-begin
-  result := (ev = s);
-end;
-
-
-// ////////////////////////////////////////////////////////////////////////// //
-function typeKind2Str (t: TTypeKind): AnsiString;
-begin
-  case t of
-    tkUnknown: result := 'Unknown';
-    tkInteger: result := 'Integer';
-    tkChar: result := 'Char';
-    tkEnumeration: result := 'Enumeration';
-    tkFloat: result := 'Float';
-    tkSet: result := 'Set';
-    tkMethod: result := 'Method';
-    tkSString: result := 'SString';
-    tkLString: result := 'LString';
-    tkAString: result := 'AString';
-    tkWString: result := 'WString';
-    tkVariant: result := 'Variant';
-    tkArray: result := 'Array';
-    tkRecord: result := 'Record';
-    tkInterface: result := 'Interface';
-    tkClass: result := 'Class';
-    tkObject: result := 'Object';
-    tkWChar: result := 'WChar';
-    tkBool: result := 'Bool';
-    tkInt64: result := 'Int64';
-    tkQWord: result := 'QWord';
-    tkDynArray: result := 'DynArray';
-    tkInterfaceRaw: result := 'InterfaceRaw';
-    tkProcVar: result := 'ProcVar';
-    tkUString: result := 'UString';
-    tkUChar: result := 'UChar';
-    tkHelper: result := 'Helper';
-    tkFile: result := 'File';
-    tkClassRef: result := 'ClassRef';
-    tkPointer: result := 'Pointer';
-    else result := '<unknown>';
-  end;
-end;
-
-
-procedure dumpPublishedProperties (obj: TObject);
-var
-  pt: PTypeData;
-  pi: PTypeInfo;
-  i, j: Integer;
-  pp: PPropList;
-begin
-  if (obj = nil) then exit;
-  e_LogWritefln('Object of type ''%s'':', [obj.ClassName]);
-  pi := obj.ClassInfo;
-  pt := GetTypeData(pi);
-  e_LogWritefln('property count: %s', [pt.PropCount]);
-  GetMem(pp, pt^.PropCount*sizeof(Pointer));
-  try
-    j := GetPropList(pi, [tkInteger, tkBool, tkSString, tkLString, tkAString, tkSet, tkEnumeration], pp);
-    //e_LogWritefln('ordinal property count: %s', [j]);
-    for i := 0 to j-1 do
-    begin
-      if (typinfo.PropType(obj, pp^[i].name) in [tkSString, tkLString, tkAString]) then
-      begin
-        e_LogWritefln('  #%s: <%s>; type: %s; value: <%s>', [i+1, pp^[i].name, typeKind2Str(typinfo.PropType(obj, pp^[i].name)), GetStrProp(obj, pp^[i])]);
-      end
-      else if (typinfo.PropType(obj, pp^[i].name) = tkSet) then
-      begin
-        e_LogWritefln('  #%s: <%s>; type: %s; value: %s', [i+1, pp^[i].name, typeKind2Str(typinfo.PropType(obj, pp^[i].name)), GetSetProp(obj, pp^[i], true)]);
-      end
-      else if (typinfo.PropType(obj, pp^[i].name) = tkEnumeration) then
-      begin
-        e_LogWritefln('  #%s: <%s>; type: %s; value: <%s>', [i+1, pp^[i].name, typeKind2Str(typinfo.PropType(obj, pp^[i].name)), GetEnumProp(obj, pp^[i])]);
-      end
-      else
-      begin
-        e_LogWritefln('  #%s: <%s>; type: %s; value: %s', [i+1, pp^[i].name, typeKind2Str(typinfo.PropType(obj, pp^[i].name)), GetOrdProp(obj, pp^[i])]);
-      end;
-    end;
-  finally
-    FreeMem(pp);
-  end;
-end;
-
-
-//FIXME: autogenerate
-function trigType2Str (ttype: Integer): AnsiString;
-begin
-  result := '<unknown>';
-  case ttype of
-    TRIGGER_NONE: result := 'none';
-    TRIGGER_EXIT: result := 'exit';
-    TRIGGER_TELEPORT: result := 'teleport';
-    TRIGGER_OPENDOOR: result := 'opendoor';
-    TRIGGER_CLOSEDOOR: result := 'closedoor';
-    TRIGGER_DOOR: result := 'door';
-    TRIGGER_DOOR5: result := 'door5';
-    TRIGGER_CLOSETRAP: result := 'closetrap';
-    TRIGGER_TRAP: result := 'trap';
-    TRIGGER_PRESS: result := 'press';
-    TRIGGER_SECRET: result := 'secret';
-    TRIGGER_LIFTUP: result := 'liftup';
-    TRIGGER_LIFTDOWN: result := 'liftdown';
-    TRIGGER_LIFT: result := 'lift';
-    TRIGGER_TEXTURE: result := 'texture';
-    TRIGGER_ON: result := 'on';
-    TRIGGER_OFF: result := 'off';
-    TRIGGER_ONOFF: result := 'onoff';
-    TRIGGER_SOUND: result := 'sound';
-    TRIGGER_SPAWNMONSTER: result := 'spawnmonster';
-    TRIGGER_SPAWNITEM: result := 'spawnitem';
-    TRIGGER_MUSIC: result := 'music';
-    TRIGGER_PUSH: result := 'push';
-    TRIGGER_SCORE: result := 'score';
-    TRIGGER_MESSAGE: result := 'message';
-    TRIGGER_DAMAGE: result := 'damage';
-    TRIGGER_HEALTH: result := 'health';
-    TRIGGER_SHOT: result := 'shot';
-    TRIGGER_EFFECT: result := 'effect';
-    TRIGGER_SCRIPT: result := 'script';
-  end;
-end;
 
 // ////////////////////////////////////////////////////////////////////////// //
 {$INCLUDE g_holmes_cmd.inc}
@@ -601,50 +304,30 @@ end;
 
 procedure toggleLayersWindow (arg: Integer=-1);
 begin
-  showLayersWindow := not showLayersWindow;
+  if (arg < 0) then showLayersWindow := not showLayersWindow else showLayersWindow := (arg > 0);
   toggleLayersWindowCB(nil, 0);
 end;
 
 procedure toggleOutlineWindow (arg: Integer=-1);
 begin
-  showOutlineWindow := not showOutlineWindow;
+  if (arg < 0) then showOutlineWindow := not showOutlineWindow else showOutlineWindow := (arg > 0);
   toggleOutlineWindowCB(nil, 0);
 end;
 
 procedure toggleHelpWindow (arg: Integer=-1);
 begin
   if (winHelp = nil) then createHelpWindow();
-  if not uiVisibleWindow(winHelp) then uiAddWindow(winHelp) else uiRemoveWindow(winHelp);
+       if (arg < 0) then begin if not uiVisibleWindow(winHelp) then uiAddWindow(winHelp) else uiRemoveWindow(winHelp); end
+  else if (arg = 0) then begin if uiVisibleWindow(winHelp) then uiRemoveWindow(winHelp); end
+  else begin if not uiVisibleWindow(winHelp) then uiAddWindow(winHelp); end
 end;
 
 procedure toggleOptionsWindow (arg: Integer=-1);
 begin
   if (winOptions = nil) then createOptionsWindow();
-  if not uiVisibleWindow(winOptions) then uiAddWindow(winOptions) else uiRemoveWindow(winOptions);
-end;
-
-
-// ////////////////////////////////////////////////////////////////////////// //
-procedure g_Holmes_VidModeChanged ();
-begin
-  e_WriteLog(Format('Holmes: videomode changed: %dx%d', [gScreenWidth, gScreenHeight]), TMsgType.Notify);
-  // texture space is possibly lost here, idc
-  curtexid := 0;
-  font6texid := 0;
-  font8texid := 0;
-  prfont6texid := 0;
-  prfont8texid := 0;
-  //createCursorTexture();
-end;
-
-procedure g_Holmes_WindowFocused ();
-begin
-  msB := 0;
-  kbS := 0;
-end;
-
-procedure g_Holmes_WindowBlured ();
-begin
+       if (arg < 0) then begin if not uiVisibleWindow(winOptions) then uiAddWindow(winOptions) else uiRemoveWindow(winOptions); end
+  else if (arg = 0) then begin if uiVisibleWindow(winOptions) then uiRemoveWindow(winOptions); end
+  else begin if not uiVisibleWindow(winOptions) then uiAddWindow(winOptions); end
 end;
 
 
@@ -1427,17 +1110,19 @@ var
   he: THMouseEvent;
 begin
   if g_Game_IsNet then begin result := false; exit; end;
+  if not g_holmes_enabled then begin result := false; exit; end;
+
   holmesInitCommands();
   holmesInitBinds();
   result := true;
-  msX := trunc(ev.x/g_holmes_ui_scale);
-  msY := trunc(ev.y/g_holmes_ui_scale);
+  msX := ev.x;
+  msY := ev.y;
   msB := ev.bstate;
   kbS := ev.kstate;
   msB := msB;
   he := ev;
-  he.x := trunc(he.x/g_holmes_ui_scale);
-  he.y := trunc(he.y/g_holmes_ui_scale);
+  he.x := he.x;
+  he.y := he.y;
   if not uiMouseEvent(he) then plrDebugMouse(he);
 end;
 
@@ -1457,6 +1142,8 @@ var
 
 begin
   if g_Game_IsNet then begin result := false; exit; end;
+  if not g_holmes_enabled then begin result := false; exit; end;
+
   holmesInitCommands();
   holmesInitBinds();
   result := false;
@@ -1471,7 +1158,7 @@ begin
   if uiKeyEvent(ev) then begin result := true; exit; end;
   if keybindExecute(ev) then begin result := true; exit; end;
   // press
-  if (ev.kind = THKeyEvent.Press) then
+  if (ev.press) then
   begin
     {$IF DEFINED(D2F_DEBUG)}
     // C-UP, C-DOWN, C-LEFT, C-RIGHT: trace 10 pixels from cursor in the respective direction
@@ -1508,6 +1195,7 @@ end;
 procedure g_Holmes_Draw ();
 begin
   if g_Game_IsNet then exit;
+
   {$IF not DEFINED(HEADLESS)}
   holmesInitCommands();
   holmesInitBinds();
@@ -1528,12 +1216,19 @@ end;
 procedure g_Holmes_DrawUI ();
 begin
   if g_Game_IsNet then exit;
+  if not g_holmes_enabled then exit;
   {$IF not DEFINED(HEADLESS)}
-  glPushMatrix();
-  glScalef(g_holmes_ui_scale, g_holmes_ui_scale, 1.0);
+  gGfxDoClear := false;
+  //if assigned(prerenderFrameCB) then prerenderFrameCB();
   uiDraw();
-  drawCursor();
-  glPopMatrix();
+  glMatrixMode(GL_MODELVIEW);
+  glPushMatrix();
+  try
+    //glLoadIdentity();
+    if assigned(postrenderFrameCB) then postrenderFrameCB();
+  finally
+    glPopMatrix();
+  end;
   {$ENDIF}
 end;
 
@@ -1800,6 +1495,21 @@ begin
 end;
 
 
+function onMouseEvent (var ev: THMouseEvent): Boolean;
 begin
-  conRegVar('hlm_ui_scale', @g_holmes_ui_scale, 0.01, 5.0, 'Holmes UI scale', '', false);
+  result := g_Holmes_MouseEvent(ev);
+end;
+
+function onKeyEvent (var ev: THKeyEvent): Boolean;
+begin
+  if not g_holmes_enabled then begin result := false; exit; end;
+  result := g_Holmes_keyEvent(ev);
+end;
+
+
+begin
+  evMouseCB := onMouseEvent;
+  evKeyCB := onKeyEvent;
+
+  conRegVar('hlm_ui_scale', @gh_ui_scale, 0.01, 5.0, 'Holmes UI scale', '', false);
 end.

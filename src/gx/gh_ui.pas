@@ -13,9 +13,20 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *)
+{$INCLUDE ../shared/a_modes.inc}
+unit gh_ui;
+
+interface
+
+uses
+  SysUtils, Classes,
+  GL, GLExt, SDL2,
+  sdlcarcass, glgfx;
+
+
 // ////////////////////////////////////////////////////////////////////////// //
 type
-  THControl = class(TPoolObject)
+  THControl = class
   public
     type TActionCB = procedure (me: THControl; uinfo: Integer);
 
@@ -34,8 +45,8 @@ type
     mDrawShadow: Boolean;
 
   private
+    scis: TScissorSave;
     scallowed: Boolean;
-    scxywh: array[0..3] of GLint;
 
   protected
     function getEnabled (): Boolean;
@@ -63,11 +74,6 @@ type
 
     // DO NOT USE!
     procedure setScissorGLInternal (x, y, w, h: Integer);
-
-  public
-    // return `false` if destination rect is empty
-    // modifies rect0
-    class function intersectRect (var x0, y0, w0, h0: Integer; const x1, y1, w1, h1: Integer): Boolean;
 
   public
     actionCB: TActionCB;
@@ -195,19 +201,39 @@ type
   end;
 
 
+function uiMouseEvent (ev: THMouseEvent): Boolean;
+function uiKeyEvent (ev: THKeyEvent): Boolean;
+procedure uiDraw ();
+
+procedure uiAddWindow (ctl: THControl);
+procedure uiRemoveWindow (ctl: THControl);
+function uiVisibleWindow (ctl: THControl): Boolean;
+
+
+var
+  gh_ui_scale: Single = 1.0;
+
+
+implementation
+
+
 // ////////////////////////////////////////////////////////////////////////// //
 var
   uiTopList: array of THControl = nil;
 
 
-function uiMouseEvent (var ev: THMouseEvent): Boolean;
+function uiMouseEvent (ev: THMouseEvent): Boolean;
 var
   f, c: Integer;
   lx, ly: Integer;
   ctmp: THControl;
 begin
+  ev.x := trunc(ev.x/gh_ui_scale);
+  ev.y := trunc(ev.y/gh_ui_scale);
+  ev.dx := trunc(ev.dx/gh_ui_scale); //FIXME
+  ev.dy := trunc(ev.dy/gh_ui_scale); //FIXME
   if (Length(uiTopList) = 0) then result := false else result := uiTopList[High(uiTopList)].mouseEvent(ev);
-  if not result and (ev.kind = ev.Press) then
+  if not result and (ev.press) then
   begin
     for f := High(uiTopList) downto 0 do
     begin
@@ -233,10 +259,12 @@ begin
 end;
 
 
-function uiKeyEvent (var ev: THKeyEvent): Boolean;
+function uiKeyEvent (ev: THKeyEvent): Boolean;
 begin
+  ev.x := trunc(ev.x/gh_ui_scale);
+  ev.y := trunc(ev.y/gh_ui_scale);
   if (Length(uiTopList) = 0) then result := false else result := uiTopList[High(uiTopList)].keyEvent(ev);
-  if (ev.kind = ev.Release) then begin result := true; exit; end;
+  if (ev.release) then begin result := true; exit; end;
 end;
 
 
@@ -245,11 +273,20 @@ var
   f: Integer;
   ctl: THControl;
 begin
-  for f := 0 to High(uiTopList) do
-  begin
-    ctl := uiTopList[f];
-    ctl.draw();
-    if (f <> High(uiTopList)) then darkenRect(ctl.x0, ctl.y0, ctl.width, ctl.height, 128);
+  glMatrixMode(GL_MODELVIEW);
+  glPushMatrix();
+  try
+    glLoadIdentity();
+    glScalef(gh_ui_scale, gh_ui_scale, 1);
+    for f := 0 to High(uiTopList) do
+    begin
+      ctl := uiTopList[f];
+      ctl.draw();
+      if (f <> High(uiTopList)) then darkenRect(ctl.x0, ctl.y0, ctl.width, ctl.height, 128);
+    end;
+  finally
+    glMatrixMode(GL_MODELVIEW);
+    glPopMatrix();
   end;
 end;
 
@@ -638,38 +675,15 @@ begin
 end;
 
 
-//TODO: overflow checks
-class function THControl.intersectRect (var x0, y0, w0, h0: Integer; const x1, y1, w1, h1: Integer): Boolean;
-var
-  ex0, ey0: Integer;
-begin
-  result := false;
-  if (w0 < 1) or (h0 < 1) or (w1 < 1) or (h1 < 1) then exit;
-  // check for intersection
-  if (x0+w0 <= x1) or (y0+h0 <= y1) or (x1+w1 <= x0) or (y1+h1 <= y0) then exit;
-  if (x0 >= x1+w1) or (y0 >= y1+h1) or (x1 >= x0+h0) or (y1 >= y0+h0) then exit;
-  // ok, intersects
-  ex0 := x0+w0;
-  ey0 := y0+h0;
-  if (x0 < x1) then x0 := x1;
-  if (y0 < y1) then y0 := y1;
-  if (ex0 > x1+w1) then ex0 := x1+w1;
-  if (ey0 > y1+h1) then ey0 := y1+h1;
-  w0 := ex0-x0;
-  h0 := ey0-y0;
-  result := (w0 > 0) and (h0 > 0);
-end;
-
-
 procedure THControl.setScissorGLInternal (x, y, w, h: Integer);
 begin
   if not scallowed then exit;
-  x := trunc(x*g_holmes_ui_scale);
-  y := trunc(y*g_holmes_ui_scale);
-  w := trunc(w*g_holmes_ui_scale);
-  h := trunc(h*g_holmes_ui_scale);
-  y := gWinSizeY-(y+h);
-  if not intersectRect(x, y, w, h, scxywh[0], scxywh[1], scxywh[2], scxywh[3]) then glScissor(0, 0, 0, 0) else glScissor(x, y, w, h);
+  x := trunc(x*gh_ui_scale);
+  y := trunc(y*gh_ui_scale);
+  w := trunc(w*gh_ui_scale);
+  h := trunc(h*gh_ui_scale);
+  //y := gWinSizeY-(y+h);
+  scis.setRect(x, y, w, h);
 end;
 
 
@@ -702,7 +716,6 @@ procedure THControl.draw ();
 var
   f: Integer;
   x, y: Integer;
-  wassc: Boolean;
 begin
   if (mWidth < 1) or (mHeight < 1) then exit;
   x := 0;
@@ -710,27 +723,20 @@ begin
   toGlobal(x, y);
   //conwritefln('[%s]: (%d,%d)-(%d,%d)  (%d,%d)', [ClassName, mX, mY, mWidth, mHeight, x, y]);
 
-  scxywh[0] := 0;
-  scxywh[1] := 0;
-  scxywh[2] := 0;
-  scxywh[3] := 0;
-
-  wassc := (glIsEnabled(GL_SCISSOR_TEST) <> 0);
-  if wassc then glGetIntegerv(GL_SCISSOR_BOX, @scxywh[0]) else glGetIntegerv(GL_VIEWPORT, @scxywh[0]);
-  //conwritefln('(%d,%d)-(%d,%d)', [scxywh[0], scxywh[1], scxywh[2], scxywh[3]]);
-  glEnable(GL_SCISSOR_TEST);
-  scallowed := true;
-
-  resetScissor();
-  drawControl(x, y);
-  if (mFrameWidth <> 0) or (mFrameHeight <> 0) then setScissor(mFrameWidth, mFrameHeight, mWidth-mFrameWidth*2, mHeight-mFrameHeight*2);
-  for f := 0 to High(mChildren) do mChildren[f].draw();
-  if (mFrameWidth <> 0) or (mFrameHeight <> 0) then resetScissor();
-  drawControlPost(x, y);
-  glScissor(scxywh[0], scxywh[1], scxywh[2], scxywh[3]);
-
-  if wassc then glEnable(GL_SCISSOR_TEST) else glDisable(GL_SCISSOR_TEST);
-  scallowed := false;
+  scis.save(true); // scissoring enabled
+  try
+    //glEnable(GL_SCISSOR_TEST);
+    scallowed := true;
+    resetScissor();
+    drawControl(x, y);
+    if (mFrameWidth <> 0) or (mFrameHeight <> 0) then setScissor(mFrameWidth, mFrameHeight, mWidth-mFrameWidth*2, mHeight-mFrameHeight*2);
+    for f := 0 to High(mChildren) do mChildren[f].draw();
+    if (mFrameWidth <> 0) or (mFrameHeight <> 0) then resetScissor();
+    drawControlPost(x, y);
+  finally
+    scis.restore();
+    scallowed := false;
+  end;
 end;
 
 
@@ -762,7 +768,7 @@ begin
     if (mGrab <> nil) then
     begin
       result := mGrab.mouseEvent(ev);
-      if (ev.kind = ev.Release) then mGrab := nil;
+      if (ev.release) then mGrab := nil;
       exit;
     end;
   end;
@@ -789,35 +795,29 @@ begin
   if (topLevel.mFocused <> self) and isMyChild(topLevel.mFocused) and topLevel.mFocused.mEnabled then result := topLevel.mFocused.keyEvent(ev);
   if (mParent = nil) then
   begin
-    if (ev.kind = ev.Press) and (ev = 'S-Tab') then
+    if (ev = 'S-Tab') then
     begin
       result := true;
-      if (ev.kind = ev.Press) then
+      ctl := findPrevFocus(mFocused);
+      if (ctl <> mFocused) then
       begin
-        ctl := findPrevFocus(mFocused);
-        if (ctl <> mFocused) then
-        begin
-          mGrab := nil;
-          mFocused := ctl;
-        end;
+        mGrab := nil;
+        mFocused := ctl;
       end;
       exit;
     end;
-    if (ev.kind = ev.Press) and (ev = 'Tab') then
+    if (ev = 'Tab') then
     begin
       result := true;
-      if (ev.kind = ev.Press) then
+      ctl := findNextFocus(mFocused);
+      if (ctl <> mFocused) then
       begin
-        ctl := findNextFocus(mFocused);
-        if (ctl <> mFocused) then
-        begin
-          mGrab := nil;
-          mFocused := ctl;
-        end;
+        mGrab := nil;
+        mFocused := ctl;
       end;
       exit;
     end;
-    if mEscClose and (ev.kind = ev.Press) and (ev = 'Escape') then
+    if mEscClose and (ev = 'Escape') then
     begin
       result := true;
       uiRemoveWindow(self);
@@ -853,8 +853,8 @@ procedure THTopWindow.centerInScreen ();
 begin
   if (mWidth > 0) and (mHeight > 0) then
   begin
-    mX := trunc((gWinSizeX/g_holmes_ui_scale-mWidth)/2);
-    mY := trunc((gWinSizeY/g_holmes_ui_scale-mHeight)/2);
+    mX := trunc((gScrWidth/gh_ui_scale-mWidth)/2);
+    mY := trunc((gScrHeight/gh_ui_scale-mHeight)/2);
   end;
 end;
 
@@ -910,7 +910,7 @@ function THTopWindow.keyEvent (var ev: THKeyEvent): Boolean;
 begin
   result := inherited keyEvent(ev);
   if not getFocused then exit;
-  if (ev.kind = ev.Press) and (ev = 'M-F3') then
+  if (ev = 'M-F3') then
   begin
     uiRemoveWindow(self);
     result := true;
@@ -933,7 +933,7 @@ begin
     mY += ev.y-mDragStartY;
     mDragStartX := ev.x;
     mDragStartY := ev.y;
-    if (ev.kind = ev.Release) then mDragging := false;
+    if (ev.release) then mDragging := false;
     result := true;
     exit;
   end;
@@ -942,7 +942,7 @@ begin
   ly := ev.y;
   if toLocal(lx, ly) then
   begin
-    if (ev.kind = ev.Press) then
+    if (ev.press) then
     begin
       if (ly < 8) then
       begin
@@ -971,7 +971,7 @@ begin
       end;
     end;
 
-    if (ev.kind = ev.Release) then
+    if (ev.release) then
     begin
       if mWaitingClose and (lx >= mFrameWidth) and (lx < mFrameWidth+3*8) then
       begin
@@ -983,7 +983,7 @@ begin
       mInClose := false;
     end;
 
-    if (ev.kind = ev.Motion) then
+    if (ev.motion) then
     begin
       if mWaitingClose then
       begin
@@ -996,7 +996,7 @@ begin
   else
   begin
     mInClose := false;
-    if (ev.kind <> ev.Motion) then mWaitingClose := false;
+    if (not ev.motion) then mWaitingClose := false;
   end;
 
   result := inherited mouseEvent(ev);
@@ -1160,7 +1160,7 @@ begin
   if not result and toLocal(lx, ly) then
   begin
     result := true;
-    if (ev.kind = ev.Press) and (ev = 'lmb') then
+    if (ev = 'lmb') then
     begin
       ly := ly div 8;
       if (ly >= 0) and (ly < Length(mItems)) then
@@ -1186,62 +1186,62 @@ begin
   result := inherited keyEvent(ev);
   if not getFocused then exit;
   //result := true;
-  if (ev.kind = ev.Press) then
+  if (ev = 'Home') or (ev = 'PageUp') then
   begin
-    if (ev = 'Home') or (ev = 'PageUp') then
+    result := true;
+    mCurIndex := 0;
+  end;
+  if (ev = 'End') or (ev = 'PageDown') then
+  begin
+    result := true;
+    mCurIndex := High(mItems);
+  end;
+  if (ev = 'Up') then
+  begin
+    result := true;
+    if (Length(mItems) > 0) then
     begin
-      result := true;
-      mCurIndex := 0;
-    end;
-    if (ev = 'End') or (ev = 'PageDown') then
-    begin
-      result := true;
-      mCurIndex := High(mItems);
-    end;
-    if (ev = 'Up') then
-    begin
-      result := true;
-      if (Length(mItems) > 0) then
+      if (mCurIndex < 0) then mCurIndex := Length(mItems);
+      while (mCurIndex > 0) do
       begin
-        if (mCurIndex < 0) then mCurIndex := Length(mItems);
-        while (mCurIndex > 0) do
-        begin
-          Dec(mCurIndex);
-          if (mItems[mCurIndex].varp <> nil) then break;
-        end;
-      end
-      else
-      begin
-        mCurIndex := -1;
+        Dec(mCurIndex);
+        if (mItems[mCurIndex].varp <> nil) then break;
       end;
-    end;
-    if (ev = 'Down') then
+    end
+    else
     begin
-      result := true;
-      if (Length(mItems) > 0) then
-      begin
-        if (mCurIndex < 0) then mCurIndex := -1;
-        while (mCurIndex < High(mItems)) do
-        begin
-          Inc(mCurIndex);
-          if (mItems[mCurIndex].varp <> nil) then break;
-        end;
-      end
-      else
-      begin
-        mCurIndex := -1;
-      end;
+      mCurIndex := -1;
     end;
-    if (ev = 'Space') or (ev = 'Return') then
+  end;
+  if (ev = 'Down') then
+  begin
+    result := true;
+    if (Length(mItems) > 0) then
     begin
-      result := true;
-      if (mCurIndex >= 0) and (mCurIndex < Length(mItems)) and (mItems[mCurIndex].varp <> nil) then
+      if (mCurIndex < 0) then mCurIndex := -1;
+      while (mCurIndex < High(mItems)) do
       begin
-        it := @mItems[mCurIndex];
-        it.varp^ := not it.varp^;
-        if assigned(it.actionCB) then it.actionCB(self, Integer(it.varp^));
-        if assigned(actionCB) then actionCB(self, mCurIndex);
+        Inc(mCurIndex);
+        if (mItems[mCurIndex].varp <> nil) then break;
       end;
+    end
+    else
+    begin
+      mCurIndex := -1;
+    end;
+  end;
+  if (ev = 'Space') or (ev = 'Enter') then
+  begin
+    result := true;
+    if (mCurIndex >= 0) and (mCurIndex < Length(mItems)) and (mItems[mCurIndex].varp <> nil) then
+    begin
+      it := @mItems[mCurIndex];
+      it.varp^ := not it.varp^;
+      if assigned(it.actionCB) then it.actionCB(self, Integer(it.varp^));
+      if assigned(actionCB) then actionCB(self, mCurIndex);
     end;
   end;
 end;
+
+
+end.
