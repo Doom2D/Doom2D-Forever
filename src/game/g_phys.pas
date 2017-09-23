@@ -60,6 +60,7 @@ function  g_Obj_CollideWater(Obj: PObj; XInc, YInc: Integer): Boolean; inline;
 function  g_Obj_CollideLiquid(Obj: PObj; XInc, YInc: Integer): Boolean; inline;
 function  g_Obj_CollidePanel(Obj: PObj; XInc, YInc: Integer; PanelType: Word): Boolean; inline;
 function  g_Obj_StayOnStep(Obj: PObj): Boolean; inline;
+function  g_Obj_CanMoveY(Obj: PObj; YInc: Integer): Boolean; inline;
 procedure g_Obj_Push(Obj: PObj; VelX, VelY: Integer); inline;
 procedure g_Obj_PushA(Obj: PObj; Vel: Integer; Angle: SmallInt); inline;
 procedure g_Obj_SetSpeed(Obj: PObj; s: Integer); inline;
@@ -88,6 +89,13 @@ begin
             and g_Map_CollidePanel(Obj^.X+Obj^.Rect.X, Obj^.Y+Obj^.Rect.Y+Obj^.Rect.Height,
                                    Obj^.Rect.Width, 1,
                                    PANEL_STEP, False);
+end;
+
+function g_Obj_CanMoveY(Obj: PObj; YInc: Integer): Boolean; inline;
+begin
+  // Если шагнуть в по вертикали, а там стена => шагать нельзя
+  // Или если шагнуть вниз, а там ступень => шагать нельзя
+  Result := not(g_Obj_CollideLevel(Obj, 0, YInc) or ((YInc > 0) and g_Obj_StayOnStep(Obj)));
 end;
 
 function CollideLiquid(Obj: PObj; XInc, YInc: Integer): Boolean; inline;
@@ -257,7 +265,7 @@ var
       begin
         result := true;
         if (not g_Obj_CollideLevel(Obj, sx, -12)) and // забираемся на 12 пикселей влево/вправо
-           g_Obj_CollidePanel(Obj, 0, 1, PANEL_WALL or PANEL_STEP) then // только если есть земля под ногами
+           (sy >= 0) and (not g_Obj_CanMoveY(Obj, sy)) then // только если есть земля под ногами
         begin
           slope(-1);
         end
@@ -299,9 +307,8 @@ var
       if Blocked(Obj, 0, sy) then st := st or MOVE_BLOCK;
     end;
 
-    // Если шагнуть в по вертикали, а там стена => шагать нельзя
-    // Или если шагнуть вниз, а там ступень => шагать нельзя
-    if g_Obj_CollideLevel(Obj, 0, sy) or ((sy > 0) and g_Obj_StayOnStep(Obj)) then
+    // Если шагать нельзя
+    if not g_Obj_CanMoveY(Obj, sy) then
     begin
       if sy > 0 then
         st := st or MOVE_HITLAND
