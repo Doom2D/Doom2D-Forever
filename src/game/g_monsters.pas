@@ -3222,7 +3222,7 @@ _end:
                 MONSTER_ZOMBY:
                   begin
                     g_Sound_PlayExAt('SOUND_WEAPON_FIREPISTOL', wx, wy);
-                    g_Weapon_gun(wx, wy, tx, ty, 1, 3, FUID, False);
+                    g_Weapon_gun(wx, wy, tx, ty, 1, 3, FUID, True);
                     g_Player_CreateShell(wx, wy, 0, -2, SHELL_BULLET);
                   end;
                 MONSTER_SERG:
