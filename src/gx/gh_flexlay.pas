@@ -139,11 +139,14 @@ type
         function lineStart (): Boolean; inline;
         function canWrap (): Boolean; inline;
         function inGroup (): Boolean; inline;
-        function expand (): Boolean; inline;
         function firstInLine (): Boolean; inline;
+
+        function getExpand (): Boolean; inline;
+        procedure setExpand (v: Boolean); inline;
 
       public
         property didWrap: Boolean read getDidWrap write setDidWrap;
+        property expand: Boolean read getExpand write setExpand;
       end;
 
       PLayGroup = ^TLayGroup;
@@ -236,11 +239,13 @@ function TFlexLayouterBase.TLayControl.horizBox (): Boolean; inline; begin resul
 function TFlexLayouterBase.TLayControl.lineStart (): Boolean; inline; begin result := ((flags and FlagLineStart) <> 0); end;
 function TFlexLayouterBase.TLayControl.canWrap (): Boolean; inline; begin result := ((flags and FlagLineCanWrap) <> 0); end;
 function TFlexLayouterBase.TLayControl.inGroup (): Boolean; inline; begin result := ((flags and FlagInGroup) <> 0); end;
-function TFlexLayouterBase.TLayControl.expand (): Boolean; inline; begin result := ((flags and FlagExpand) <> 0); end;
 function TFlexLayouterBase.TLayControl.firstInLine (): Boolean; inline; begin result := ((flags and FlagLineFirst) <> 0); end;
 
 function TFlexLayouterBase.TLayControl.getDidWrap (): Boolean; inline; begin result := ((flags and FlagLineDidWrap) <> 0); end;
 procedure TFlexLayouterBase.TLayControl.setDidWrap (v: Boolean); inline; begin if (v) then flags := flags or FlagLineDidWrap else flags := flags and (not FlagLineDidWrap); end;
+
+function TFlexLayouterBase.TLayControl.getExpand (): Boolean; inline; begin result := ((flags and FlagExpand) <> 0); end;
+procedure TFlexLayouterBase.TLayControl.setExpand (v: Boolean); inline; begin if (v) then flags := flags or FlagExpand else flags := flags and (not FlagExpand); end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
@@ -782,6 +787,7 @@ var
   grp: PLayGroup;
   f, c: Integer;
   cidx: LayControlIdx;
+  ct: PLayControl;
 begin
   while true do
   begin
@@ -800,14 +806,17 @@ begin
           for c := 0 to High(grp.ctls) do
           begin
             cidx := grp.ctls[c];
-            if (maxsz < ctlist[cidx].startsize[gtype]) then maxsz := ctlist[cidx].startsize[gtype];
+            ct := @ctlist[cidx];
+            ct.expand := false; // don't expand grouped controls anymore
+            if (maxsz < ct.startsize[gtype]) then maxsz := ct.startsize[gtype];
           end;
           for c := 0 to High(grp.ctls) do
           begin
             cidx := grp.ctls[c];
-            ctlist[cidx].startsize[gtype] := maxsz;
-            ctlist[cidx].desiredsize[gtype] := maxsz;
-            ctlist[cidx].tempFlex := 0; // don't change control size anymore
+            ct := @ctlist[cidx];
+            ct.startsize[gtype] := maxsz;
+            ct.desiredsize[gtype] := maxsz;
+            ct.tempFlex := 0; // don't change control size anymore
           end;
         end;
       end;
@@ -816,15 +825,21 @@ begin
     begin
       for f := 0 to High(ctlist) do
       begin
+        ct := @ctlist[f];
+        if (ct.inGroup) then
+        begin
+          ct.expand := false; // don't expand grouped controls anymore
+          ct.tempFlex := 0; // don't change control size anymore
+        end;
         for c := 0 to 1 do
         begin
-          if (ctlist[f].maxsize[c] <= 0) then continue;
-          if (ctlist[f].desiredsize[c] > ctlist[f].maxsize[c]) then
+          if (ct.maxsize[c] <= 0) then continue;
+          if (ct.desiredsize[c] > ct.maxsize[c]) then
           begin
             //writeln('ctl #', f, '; dimension #', c, ': desired=', ctlist[f].desiredsize[c], '; max=', ctlist[f].maxsize[c]);
-            ctlist[f].startsize[c] := ctlist[f].maxsize[c];
-            ctlist[f].desiredsize[c] := ctlist[f].maxsize[c];
-            ctlist[f].tempFlex := 0; // don't change control size anymore
+            ct.startsize[c] := ct.maxsize[c];
+            ct.desiredsize[c] := ct.maxsize[c];
+            ct.tempFlex := 0; // don't change control size anymore
             secondAgain := true;
           end;
         end;

@@ -71,6 +71,8 @@ type
     function vert (): Integer; inline;
   end;
 
+
+
 implementation
 
 uses
