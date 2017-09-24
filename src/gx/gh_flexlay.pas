@@ -5,13 +5,13 @@ unit gh_flexlay;
 first pass:
   set all 'temp-flex' flags for controls to 'flex'
   reset all 'laywrap' flags for controls
-  build group arrays; for each group: find max size for group, adjust 'wantsize' controls to group max size
+  build group arrays; for each group: find max size for group, adjust 'startsize' controls to group max size
   call 'calc max size' for top-level control
   flags set:
     'firsttime'
 
 second pass:
-  calcluate desired sizes (process flexes) using 'wantsize', set 'desiredsize' and 'desiredpos'
+  calcluate desired sizes (process flexes) using 'startsize', set 'desiredsize' and 'desiredpos'
     if control has children, call 'second pass' recursively with this control as parent
   flags set:
     'group-element-changed', if any group element size was changed
@@ -19,8 +19,8 @@ second pass:
 
 third pass:
   if 'group-element-changed':
-    for each group: adjust controls to max desired size (wantsize), set 'temp-flex' flags to 0 for 'em, set 'second-again' flag
-  for other controls: if 'desiredsize' > 'maxsize', set 'wantsize' to 'maxsize', set 'temp-flex' flag to 0, set 'second-again' flag
+    for each group: adjust controls to max desired size (startsize), set 'temp-flex' flags to 0 for 'em, set 'second-again' flag
+  for other controls: if 'desiredsize' > 'maxsize', set 'startsize' to 'maxsize', set 'temp-flex' flag to 0, set 'second-again' flag
   if 'second-again' or 'wrapping-changed':
     reset 'second-again'
     reset 'wrapping-changed'
@@ -32,17 +32,17 @@ fourth pass:
   return
 
 calc max size:
-  set 'wantsize' to max(size, maxsize, 0)
+  set 'startsize' to max(size, maxsize, 0)
   if 'size' is negative:
     set 'temp-flex' flag to 0
   if has children:
     call 'calc max size' for each child
-    set 'desiredmax' to 'wantsize'
+    set 'desiredmax' to 'startsize'
     do lines, don't distribute space (i.e. calc only wrapping),
       for each complete line, set 'desiredmax' to max(desiredmax, linesize)
     if 'maxsize' >= 0:
       set 'desiredmax' to min(desiredmax, maxsize)
-    set 'wantsize' to 'desiredmax'
+    set 'startsize' to 'desiredmax'
   return
 
 
@@ -62,8 +62,12 @@ for wrapping:
 
 
 (*
+  control default size will be increased by margins
+  negative margins are ignored
 ControlT:
+  procedure layPrepare (); // called before registering control in layouter
   function getDefSize (): TLaySize; // default size; <0: use max size
+  function getMargins (): TLayMargins;
   function getMaxSize (): TLaySize; // max size; <0: set to some huge value
   function getFlex (): Integer; // <=0: not flexible
   function isHorizBox (): Boolean; // horizontal layout for children?
@@ -114,7 +118,10 @@ type
         tempFlex: Integer;
         flags: LongWord; // see below
         aligndir: Integer;
-        wantsize, desiredsize, maxsize: TLaySize;
+        startsize: TLaySize; // current
+        desiredsize: TLaySize;
+        maxsize: TLaySize;
+        margins: TLayMargins; // can never be negative
         desiredpos: TLayPos;
         ctl: ControlT;
         parent: LayControlIdx; // = -1;
@@ -327,8 +334,10 @@ begin
   assert(ctlist[parent].firstChild = -1);
   while (child <> nil) do
   begin
+    child.layPrepare;
     SetLength(ctlist, Length(ctlist)+1);
     lc := @ctlist[High(ctlist)];
+    lc.initialize();
     if (cidx = -1) then
     begin
       cidx := LayControlIdx(High(ctlist));
@@ -396,8 +405,10 @@ procedure TFlexLayouterBase.setup (root: ControlT);
 begin
   clear();
   if (root = nil) then exit;
+  root.layPrepare;
   try
     SetLength(ctlist, 1);
+    ctlist[0].initialize();
     ctlist[0].myidx := 0;
     ctlist[0].ctl := root;
     fixFlags(0);
@@ -416,7 +427,7 @@ procedure TFlexLayouterBase.calcMaxSizeInternal (cidx: LayControlIdx);
 var
   lc, c: PLayControl;
   msz: TLaySize;
-  negw{, negh}: Boolean;
+  negw, negh: Boolean;
   curwdt, curhgt, totalhgt: Integer;
   doWrap: Boolean;
 begin
@@ -424,14 +435,8 @@ begin
 
   lc := @ctlist[cidx];
   msz := lc.ctl.getMaxSize;
-  //lc.wantsize := lc.ctl.getDefSize;
-  negw := (lc.wantsize.w <= 0);
-  //negh := (lc.wantsize.h <= 0);
-
-  //if (lc.wantsize.w < msz.w) lc.wantsize.w := msz.w;
-  //if (lc.wantsize.h < msz.h) lc.wantsize.h := msz.h;
-
-  //writeln('calcsize #', cidx, '; wantsize=', lc.wantsize, '; ctl.maxsize=', msz);
+  negw := (lc.startsize.w <= 0);
+  negh := (lc.startsize.h <= 0);
 
   lc.tempFlex := lc.ctl.getFlex;
 
@@ -441,45 +446,46 @@ begin
   begin
     // horizontal boxes
     if (negw) then lc.tempFlex := 0; // size is negative: don't expand
-    curwdt := 0;
-    curhgt := 0;
+    curwdt := lc.margins.horiz;
+    curhgt := lc.margins.vert;
     totalhgt := 0;
     for c in forChildren(cidx) do
     begin
       // new line?
       doWrap := (not c.firstInLine) and (c.lineStart);
       // need to wrap?
-      if (not doWrap) and (lc.canWrap) and (c.canWrap) and (msz.w > 0) and (curwdt+c.wantsize.w > lc.wantsize.w) then doWrap := true;
+      if (not doWrap) and (lc.canWrap) and (c.canWrap) and (msz.w > 0) and (curwdt+c.startsize.w > lc.startsize.w) then doWrap := true;
       if (doWrap) then
       begin
         totalhgt += curhgt;
-        if (lc.wantsize.w < curwdt) then lc.wantsize.w := curwdt;
+        if (lc.startsize.w < curwdt) then lc.startsize.w := curwdt;
         curwdt := 0;
         curhgt := 0;
       end;
-      curwdt += c.wantsize.w;
-      if (curhgt < c.wantsize.h) then curhgt := c.wantsize.h;
+      curwdt += c.startsize.w;
+      if (curhgt < c.startsize.h) then curhgt := c.startsize.h;
     end;
     totalhgt += curhgt;
-    if (lc.wantsize.w < curwdt) then lc.wantsize.w := curwdt;
-    if (lc.wantsize.h < totalhgt) then lc.wantsize.h := totalhgt;
+    if (lc.startsize.w < curwdt) then lc.startsize.w := curwdt;
+    if (lc.startsize.h < totalhgt) then lc.startsize.h := totalhgt;
   end
   else
   begin
     // vertical boxes
-    curhgt := 0;
+    if (negh) then lc.tempFlex := 0; // size is negative: don't expand
+    curhgt := lc.margins.vert;
     for c in forChildren(cidx) do
     begin
-      if (lc.wantsize.w < c.wantsize.w) then lc.wantsize.w := c.wantsize.w;
-      curhgt += c.wantsize.h;
+      if (lc.startsize.w < c.startsize.w+lc.margins.horiz) then lc.startsize.w := c.startsize.w+lc.margins.horiz;
+      curhgt += c.startsize.h;
     end;
-    if (lc.wantsize.h < curhgt) then lc.wantsize.h := curhgt;
+    if (lc.startsize.h < curhgt) then lc.startsize.h := curhgt;
   end;
-  if (lc.wantsize.w < 1) then lc.wantsize.w := 1;
-  if (lc.wantsize.h < 1) then lc.wantsize.h := 1;
+  if (lc.startsize.w < 0) then lc.startsize.w := 0;
+  if (lc.startsize.h < 0) then lc.startsize.h := 0;
   lc.maxsize := msz;
-  if (lc.maxsize.w < lc.wantsize.w) then lc.maxsize.w := lc.wantsize.w;
-  if (lc.maxsize.h < lc.wantsize.h) then lc.maxsize.h := lc.wantsize.h;
+  if (lc.maxsize.w < lc.startsize.w) then lc.maxsize.w := lc.startsize.w;
+  if (lc.maxsize.h < lc.startsize.h) then lc.maxsize.h := lc.startsize.h;
 end;
 
 
@@ -491,16 +497,21 @@ var
   grp: PLayGroup;
   maxsz: Integer;
   cidx: LayControlIdx;
+  mr: TLayMargins;
 begin
-  // reset all 'laywrap' flags for controls, set initial 'wantsize'
+  // reset all 'laywrap' flags for controls, set initial 'startsize'
   for f := 0 to High(ctlist) do
   begin
     ctlist[f].didWrap := false;
-    ctlist[f].wantsize := ctlist[f].ctl.getDefSize;
+    ctlist[f].startsize := ctlist[f].ctl.getDefSize;
+    mr := ctlist[f].ctl.getMargins;
+    ctlist[f].margins := mr;
+    ctlist[f].startsize.w += mr.horiz;
+    ctlist[f].startsize.h += mr.vert;
   end;
   // setup sizes
   calcMaxSizeInternal(0); // this also sets `tempFlex`
-  // find max size for group, adjust 'wantsize' controls to group max size
+  // find max size for group, adjust 'startsize' controls to group max size
   needRecalcMaxSize := false;
   for gtype := 0 to 1 do
   begin
@@ -511,23 +522,27 @@ begin
       for c := 0 to High(grp.ctls) do
       begin
         cidx := grp.ctls[c];
-        if (maxsz < ctlist[cidx].wantsize[gtype]) then maxsz := ctlist[cidx].wantsize[gtype];
+        if (maxsz < ctlist[cidx].startsize[gtype]) then maxsz := ctlist[cidx].startsize[gtype];
       end;
       for c := 0 to High(grp.ctls) do
       begin
         cidx := grp.ctls[c];
-        if (maxsz <> ctlist[cidx].wantsize[gtype]) then
+        if (maxsz <> ctlist[cidx].startsize[gtype]) then
         begin
           needRecalcMaxSize := true;
-          ctlist[cidx].wantsize[gtype] := maxsz;
+          ctlist[cidx].startsize[gtype] := maxsz;
         end;
       end;
     end;
   end;
   // recalc maxsize if necessary
   if (needRecalcMaxSize) then calcMaxSizeInternal(0);
+  // set "desired size" to "start size"
+  for f := 0 to High(ctlist) do ctlist[f].desiredsize := ctlist[f].startsize;
   // set flags
   firstTime := true;
+  //writeln('=== calculated max size ===');
+  //dump();
 end;
 
 
@@ -537,13 +552,26 @@ var
   lc: PLayControl;
   osz: TLaySize;
   toadd: Integer;
+  sti0: Integer;
+  lineh: Integer;
 begin
-  curx := 0;
+  curx := me.margins.left;
+  sti0 := i0;
+  // calc minimal line height
+  lineh := 0;
+  while (i0 <> i1) do
+  begin
+    lc := @ctlist[i0];
+    lineh := nmax(lineh, lc.startsize.h);
+    i0 := lc.nextSibling;
+  end;
+  // distribute space, expand/align
+  i0 := sti0;
   while (i0 <> i1) do
   begin
     lc := @ctlist[i0];
     osz := lc.desiredsize;
-    lc.desiredsize := lc.wantsize;
+    lc.desiredsize := lc.startsize;
     lc.desiredpos.x := curx;
     lc.desiredpos.y := cury;
     curx += lc.desiredsize.w;
@@ -557,17 +585,26 @@ begin
         lc.desiredsize.w += toadd;
         curx += toadd;
         // compensate (crudely) rounding errors
-        if (curx > me.desiredsize.w) then begin lc.desiredsize.w -= 1; curx -= 1; end;
+        if (curx > me.desiredsize.w-me.margins.horiz) then begin lc.desiredsize.w -= 1; curx -= 1; end;
         // relayout children
         layBox(lc.firstChild);
       end;
     end;
-    if (lc.inGroup) and (not lc.desiredsize.equals(osz)) then groupElementChanged := true;
+    // expand or align
+         if (lc.expand) then lc.desiredsize.h := nmin(lc.maxsize.h, lineh) // expand
+    else if (lc.aligndir > 0) then lc.desiredpos.y := cury+(lineh-lc.desiredsize.h) // bottom align
+    else if (lc.aligndir = 0) then lc.desiredpos.y := cury+(lineh-lc.desiredsize.h) div 2; // center
+    if (not osz.equals(lc.desiredsize)) then
+    begin
+      if (lc.inGroup) then groupElementChanged := true;
+      // relayout children
+      layBox(lc.firstChild);
+    end;
     i0 := lc.nextSibling;
   end;
   flexTotal := 0;
   flexBoxCount := 0;
-  spaceLeft := me.wantsize.w;
+  spaceLeft := me.desiredsize.w-me.margins.horiz;
 end;
 
 
@@ -584,22 +621,22 @@ var
   lc: PLayControl;
   doWrap: Boolean;
   toadd: Integer;
+  osz: TLaySize;
 begin
   if (boxidx < 0) or (boxidx >= Length(ctlist)) then exit;
   me := @ctlist[boxidx];
 
-  // if we have no children, just set desired size and exit
-  me.desiredsize := me.wantsize;
+  // if we have no children, there's nothing to do
   if (me.firstChild = -1) then exit;
 
-  // first, layout all children; also, gather some flex data
+  // first, layout all children
   for lc in forChildren(boxidx) do layBox(lc.myidx);
 
   // second, layout lines, distribute flex data
   if (me.horizBox) then
   begin
     // horizontal boxes
-    cury := 0;
+    cury := me.margins.top;
     maxhgt := 0;
 
     fixLine(me, -1, -1, cury, spaceLeft, flexTotal, flexBoxCount); //HACK!
@@ -649,7 +686,7 @@ begin
     maxwdt := 0;
     flexTotal := 0;
     flexBoxCount := 0;
-    spaceLeft := me.wantsize.h;
+    spaceLeft := me.desiredsize.h-me.margins.vert;
 
     // calc flex
     for lc in forChildren(boxidx) do
@@ -664,11 +701,13 @@ begin
     end;
 
     // distribute space
-    cury := 0;
+    cury := me.margins.top;
+    //writeln('me: ', boxidx, '; margins: ', me.margins.toString);
     for lc in forChildren(boxidx) do
     begin
-      lc.desiredsize := lc.wantsize;
-      lc.desiredpos.x := 0;
+      osz := lc.desiredsize;
+      lc.desiredsize := lc.startsize;
+      lc.desiredpos.x := me.margins.left;
       lc.desiredpos.y := cury;
       cury += lc.desiredsize.h;
       // fix flexbox size
@@ -681,10 +720,18 @@ begin
           lc.desiredsize.h += toadd;
           cury += toadd;
           // compensate (crudely) rounding errors
-          if (cury > me.desiredsize.h) then begin lc.desiredsize.h -= 1; cury -= 1; end;
-          // relayout children
-          layBox(lc.firstChild);
+          if (cury > me.desiredsize.h-me.margins.vert) then begin lc.desiredsize.h -= 1; cury -= 1; end;
         end;
+      end;
+      // expand or align
+           if (lc.expand) then lc.desiredsize.w := nmin(lc.maxsize.w, me.desiredsize.w-me.margins.vert) // expand
+      else if (lc.aligndir > 0) then lc.desiredpos.x := me.desiredsize.w-me.margins.right-lc.desiredsize.w // right align
+      else if (lc.aligndir = 0) then lc.desiredpos.x := (me.desiredsize.w-me.margins.horiz-lc.desiredsize.w) div 2; // center
+      if (not osz.equals(lc.desiredsize)) then
+      begin
+        if (lc.inGroup) then groupElementChanged := true;
+        // relayout children
+        layBox(lc.firstChild);
       end;
     end;
   end;
@@ -693,7 +740,7 @@ end;
 
 (*
 second pass:
-  calcluate desired sizes (process flexes) using 'wantsize', set 'desiredsize' and 'desiredpos'
+  calcluate desired sizes (process flexes) using 'startsize', set 'desiredsize' and 'desiredpos'
     if control has children, call 'second pass' recursively with this control as parent
   flags set:
     'group-element-changed', if any group element size was changed
@@ -719,8 +766,8 @@ end;
 (*
 third pass:
   if 'group-element-changed':
-    for each group: adjust controls to max desired size (wantsize), set 'temp-flex' flags to 0 for 'em, set 'second-again' flag
-  for other controls: if 'desiredsize' > 'maxsize', set 'wantsize' to 'maxsize', set 'temp-flex' flag to 0, set 'second-again' flag
+    for each group: adjust controls to max desired size (startsize), set 'temp-flex' flags to 0 for 'em, set 'second-again' flag
+  for other controls: if 'desiredsize' > 'maxsize', set 'startsize' to 'maxsize', set 'temp-flex' flag to 0, set 'second-again' flag
   if 'second-again' or 'wrapping-changed':
     reset 'second-again'
     reset 'wrapping-changed'
@@ -730,17 +777,61 @@ third pass:
 procedure TFlexLayouterBase.thirdPass ();
 var
   secondAgain: Boolean;
+  gtype: Integer;
+  maxsz: Integer;
+  grp: PLayGroup;
+  f, c: Integer;
+  cidx: LayControlIdx;
 begin
   while true do
   begin
+    secondPass();
     secondAgain := false;
     if (groupElementChanged) then
     begin
-      // do it
+      secondAgain := true;
+      // find max size for group, adjust 'startsize' controls to group max size
+      for gtype := 0 to 1 do
+      begin
+        for f := 0 to High(groups[gtype]) do
+        begin
+          grp := @groups[gtype][f];
+          maxsz := 0;
+          for c := 0 to High(grp.ctls) do
+          begin
+            cidx := grp.ctls[c];
+            if (maxsz < ctlist[cidx].startsize[gtype]) then maxsz := ctlist[cidx].startsize[gtype];
+          end;
+          for c := 0 to High(grp.ctls) do
+          begin
+            cidx := grp.ctls[c];
+            ctlist[cidx].startsize[gtype] := maxsz;
+            ctlist[cidx].desiredsize[gtype] := maxsz;
+            ctlist[cidx].tempFlex := 0; // don't change control size anymore
+          end;
+        end;
+      end;
+    end
+    else
+    begin
+      for f := 0 to High(ctlist) do
+      begin
+        for c := 0 to 1 do
+        begin
+          if (ctlist[f].maxsize[c] <= 0) then continue;
+          if (ctlist[f].desiredsize[c] > ctlist[f].maxsize[c]) then
+          begin
+            //writeln('ctl #', f, '; dimension #', c, ': desired=', ctlist[f].desiredsize[c], '; max=', ctlist[f].maxsize[c]);
+            ctlist[f].startsize[c] := ctlist[f].maxsize[c];
+            ctlist[f].desiredsize[c] := ctlist[f].maxsize[c];
+            ctlist[f].tempFlex := 0; // don't change control size anymore
+            secondAgain := true;
+          end;
+        end;
+      end;
     end;
     if (not secondAgain) and (not wrappingChanged) then break;
     firstTime := false;
-    secondPass();
   end;
 end;
 
@@ -781,7 +872,7 @@ begin
     lc := @ctlist[f];
     ds := lc.ctl.getDefSize;
     ms := lc.ctl.getMaxSize;
-    writeln(lc.myidx, ': wantsize:', lc.wantsize.toString(), '; desiredsize=', lc.desiredsize.toString(), '; maxsize=', lc.maxsize.toString(), '; tempFlex=', lc.tempFlex, '; flags=', lc.flags,
+    writeln(lc.myidx, ': startsize:', lc.startsize.toString(), '; desiredsize=', lc.desiredsize.toString(), '; maxsize=', lc.maxsize.toString(), '; tempFlex=', lc.tempFlex, '; flags=', lc.flags,
       '; parent=', lc.parent, '; next=', lc.nextSibling, '; child=', lc.firstChild, '; ctl.size=', ds.toString(), '; ctl.maxsize=', ms.toString());
   end;
 end;
@@ -795,8 +886,8 @@ begin
   while (cidx >= 0) do
   begin
     lc := @ctlist[cidx];
-    for f := 0 to High(indent) do write(' ');
-    writeln(lc.myidx, ': wantsize:', lc.wantsize.toString, '; desiredsize=', lc.desiredsize.toString, '; maxsize=', lc.maxsize.toString, '; tempFlex=', lc.tempFlex, '; despos=', lc.desiredpos.toString);
+    for f := 0 to indent do write(' ');
+    writeln(lc.myidx, ': startsize:', lc.startsize.toString, '; desiredsize=', lc.desiredsize.toString, '; maxsize=', lc.maxsize.toString, '; tempFlex=', lc.tempFlex, '; despos=', lc.desiredpos.toString);
     dumpList(lc.firstChild, indent+2);
     cidx := lc.nextSibling;
   end;

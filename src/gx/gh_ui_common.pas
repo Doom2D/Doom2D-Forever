@@ -58,6 +58,18 @@ type
     property item[idx: Integer]: Integer read getIdx write setIdx; default;
   end;
 
+  TLayMargins = record
+  public
+    top, right, bottom, left: Integer;
+
+  public
+    constructor Create (atop, aright, abottom, aleft: Integer);
+
+    function toString (): AnsiString;
+
+    function horiz (): Integer; inline;
+    function vert (): Integer; inline;
+  end;
 
 implementation
 
@@ -77,6 +89,21 @@ function TLayPos.getIdx (idx: Integer): Integer; inline; begin if (idx = 0) then
 procedure TLayPos.setIdx (idx, v: Integer); inline; begin if (idx = 0) then x := v else if (idx = 1) then y := v; end;
 function TLayPos.toString (): AnsiString; begin result := formatstrf('(%d,%d)', [x, y]); end;
 function TLayPos.equals (constref a: TLayPos): Boolean; inline; begin result := (x = a.x) and (y = a.y); end;
+
+constructor TLayMargins.Create (atop, aright, abottom, aleft: Integer);
+begin
+  if (atop < 0) then atop := 0;
+  if (aright < 0) then aright := 0;
+  if (abottom < 0) then abottom := 0;
+  if (aleft < 0) then aleft := 0;
+  left := aleft;
+  right := aright;
+  top := atop;
+  bottom := abottom;
+end;
+function TLayMargins.toString (): AnsiString; begin result := formatstrf('(%s,%s,%s,%s)', [top, right, bottom, left]); end;
+function TLayMargins.horiz (): Integer; inline; begin result := left+right; end;
+function TLayMargins.vert (): Integer; inline; begin result := top+bottom; end;
 
 
 end.

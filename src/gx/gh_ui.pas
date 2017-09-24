@@ -14,6 +14,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *)
 {$INCLUDE ../shared/a_modes.inc}
+{$M+}
 unit gh_ui;
 
 interface
@@ -22,11 +23,14 @@ uses
   SysUtils, Classes,
   GL, GLExt, SDL2,
   gh_ui_common,
-  sdlcarcass, glgfx;
+  sdlcarcass, glgfx,
+  xparser;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
 type
+  THControlClass = class of THControl;
+
   THControl = class
   public
     type TActionCB = procedure (me: THControl; uinfo: Integer);
@@ -82,8 +86,6 @@ type
   private
     mDefSize: TLaySize; // default size
     mMaxSize: TLaySize; // maximum size
-    mActSize: TLaySize; // actual (calculated) size
-    mActPos: TLayPos; // actual (calculated) position
     mFlex: Integer;
     mHoriz: Boolean;
     mCanWrap: Boolean;
@@ -92,13 +94,16 @@ type
     mVGroup: AnsiString;
     mAlign: Integer;
     mExpand: Boolean;
+    mLayDefSize: TLaySize;
+    mLayMaxSize: TLaySize;
 
   public
     // layouter interface
     function getDefSize (): TLaySize; inline; // default size; <0: use max size
-    procedure setDefSize (const sz: TLaySize); inline; // default size; <0: use max size
+    //procedure setDefSize (const sz: TLaySize); inline; // default size; <0: use max size
+    function getMargins (): TLayMargins; inline;
     function getMaxSize (): TLaySize; inline; // max size; <0: set to some huge value
-    procedure setMaxSize (const sz: TLaySize); inline; // max size; <0: set to some huge value
+    //procedure setMaxSize (const sz: TLaySize); inline; // max size; <0: set to some huge value
     function getFlex (): Integer; inline; // <=0: not flexible
     function isHorizBox (): Boolean; inline; // horizontal layout for children?
     procedure setHorizBox (v: Boolean); inline; // horizontal layout for children?
@@ -110,15 +115,19 @@ type
     procedure setAlign (v: Integer); inline; // aligning in non-main direction: <0: left/up; 0: center; >0: right/down
     function getExpand (): Boolean; inline; // expanding in non-main direction: `true` will ignore align and eat all available space
     procedure setExpand (v: Boolean); inline; // expanding in non-main direction: `true` will ignore align and eat all available space
-    procedure setActualSizePos (constref apos: TLayPos; constref asize: TLaySize); inline;
     function getHGroup (): AnsiString; inline; // empty: not grouped
     procedure setHGroup (const v: AnsiString); inline; // empty: not grouped
     function getVGroup (): AnsiString; inline; // empty: not grouped
     procedure setVGroup (const v: AnsiString); inline; // empty: not grouped
 
+    procedure setActualSizePos (constref apos: TLayPos; constref asize: TLaySize); inline;
+
+    procedure layPrepare (); virtual; // called before registering control in layouter
+
+  public
     property flex: Integer read mFlex write mFlex;
-    property flDefaultSize: TLaySize read getDefSize write setDefSize;
-    property flMaxSize: TLaySize read getMaxSize write setMaxSize;
+    property flDefaultSize: TLaySize read mDefSize write mDefSize;
+    property flMaxSize: TLaySize read mMaxSize write mMaxSize;
     property flHoriz: Boolean read isHorizBox write setHorizBox;
     property flCanWrap: Boolean read canWrap write setCanWrap;
     property flLineStart: Boolean read isLineStart write setLineStart;
@@ -126,10 +135,31 @@ type
     property flExpand: Boolean read getExpand write setExpand;
     property flHGroup: AnsiString read getHGroup write setHGroup;
     property flVGroup: AnsiString read getVGroup write setVGroup;
-    property flActualSize: TLaySize read mActSize write mActSize;
-    property flActualPos: TLayPos read mActPos write mActPos;
+
+  protected
+    function parsePos (par: TTextParser): TLayPos;
+    function parseSize (par: TTextParser): TLaySize;
+    function parseBool (par: TTextParser): Boolean;
+    function parseAnyAlign (par: TTextParser): Integer;
+    function parseHAlign (par: TTextParser): Integer;
+    function parseVAlign (par: TTextParser): Integer;
+    procedure parseTextAlign (par: TTextParser; var h, v: Integer);
+    procedure parseChildren (par: TTextParser); // par should be on '{'; final '}' is eaten
 
   public
+    // par is on property data
+    // there may be more data in text stream, don't eat it!
+    // return `true` if property name is valid and value was parsed
+    // return `false` if property name is invalid; don't advance parser in this case
+    // throw on property data errors
+    function parseProperty (const prname: AnsiString; par: TTextParser): Boolean; virtual;
+
+    // par should be on '{'; final '}' is eaten
+    procedure parseProperties (par: TTextParser);
+
+  public
+    constructor Create ();
+    constructor Create (aparent: THControl);
     constructor Create (ax, ay, aw, ah: Integer; aparent: THControl=nil);
     destructor Destroy (); override;
 
@@ -180,6 +210,7 @@ type
     mDragStartX, mDragStartY: Integer;
     mWaitingClose: Boolean;
     mInClose: Boolean;
+    mFreeOnClose: Boolean; // default: false
 
   protected
     procedure blurred (); override;
@@ -190,6 +221,8 @@ type
   public
     constructor Create (const atitle: AnsiString; ax, ay: Integer; aw: Integer=-1; ah: Integer=-1);
 
+    function parseProperty (const prname: AnsiString; par: TTextParser): Boolean; override;
+
     procedure centerInScreen ();
 
     // `sx` and `sy` are screen coordinates
@@ -198,6 +231,9 @@ type
 
     function keyEvent (var ev: THKeyEvent): Boolean; override; // returns `true` if event was eaten
     function mouseEvent (var ev: THMouseEvent): Boolean; override; // returns `true` if event was eaten
+
+  public
+    property freeOnClose: Boolean read mFreeOnClose write mFreeOnClose;
   end;
 
 
@@ -251,20 +287,72 @@ type
     function keyEvent (var ev: THKeyEvent): Boolean; override;
   end;
 
+  // ////////////////////////////////////////////////////////////////////// //
+  THCtlBox = class(THControl)
+  private
+    mHasFrame: Boolean;
+    mCaption: AnsiString;
 
+  public
+    constructor Create (ahoriz: Boolean; aparent: THControl=nil);
+    //destructor Destroy (); override;
+
+    function parseProperty (const prname: AnsiString; par: TTextParser): Boolean; override;
+
+    procedure drawControl (sx, sy: Integer); override;
+
+    function mouseEvent (var ev: THMouseEvent): Boolean; override;
+    function keyEvent (var ev: THKeyEvent): Boolean; override;
+  end;
+
+  THCtlHBox = class(THCtlBox)
+  public
+    constructor Create (aparent: THControl=nil);
+  end;
+
+  THCtlVBox = class(THCtlBox)
+  public
+    constructor Create (aparent: THControl=nil);
+  end;
+
+
+  THCtlTextLabel = class(THControl)
+  private
+    mText: AnsiString;
+    mHAlign: Integer; // -1: left; 0: center; 1: right; default: left
+    mVAlign: Integer; // -1: top; 0: center; 1: bottom; default: center
+
+  public
+    constructor Create (const atext: AnsiString; aparent: THControl=nil);
+    //destructor Destroy (); override;
+
+    function parseProperty (const prname: AnsiString; par: TTextParser): Boolean; override;
+
+    procedure drawControl (sx, sy: Integer); override;
+
+    function mouseEvent (var ev: THMouseEvent): Boolean; override;
+    function keyEvent (var ev: THKeyEvent): Boolean; override;
+  end;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
 function uiMouseEvent (ev: THMouseEvent): Boolean;
 function uiKeyEvent (ev: THKeyEvent): Boolean;
 procedure uiDraw ();
 
+
+// ////////////////////////////////////////////////////////////////////////// //
 procedure uiAddWindow (ctl: THControl);
-procedure uiRemoveWindow (ctl: THControl);
+procedure uiRemoveWindow (ctl: THControl); // will free window if `mFreeOnClose` is `true`
 function uiVisibleWindow (ctl: THControl): Boolean;
 
 
+// ////////////////////////////////////////////////////////////////////////// //
 // do layouting
 procedure uiLayoutCtl (ctl: THControl);
 
 
+// ////////////////////////////////////////////////////////////////////////// //
 var
   gh_ui_scale: Single = 1.0;
 
@@ -272,7 +360,42 @@ var
 implementation
 
 uses
-  gh_flexlay;
+  gh_flexlay,
+  utils;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
+var
+  knownCtlClasses: array of record
+    klass: THControlClass;
+    name: AnsiString;
+  end = nil;
+
+
+procedure registerCtlClass (aklass: THControlClass; const aname: AnsiString);
+begin
+  assert(aklass <> nil);
+  assert(Length(aname) > 0);
+  SetLength(knownCtlClasses, Length(knownCtlClasses)+1);
+  knownCtlClasses[High(knownCtlClasses)].klass := aklass;
+  knownCtlClasses[High(knownCtlClasses)].name := aname;
+end;
+
+
+function findCtlClass (const aname: AnsiString): THControlClass;
+var
+  f: Integer;
+begin
+  for f := 0 to High(knownCtlClasses) do
+  begin
+    if (strEquCI1251(aname, knownCtlClasses[f].name)) then
+    begin
+      result := knownCtlClasses[f].klass;
+      exit;
+    end;
+  end;
+  result := nil;
+end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
@@ -287,7 +410,29 @@ begin
   lay := TFlexLayouter.Create();
   try
     lay.setup(ctl);
+    //lay.layout();
+
+    writeln('============================');
+    lay.dumpFlat();
+
+    writeln('=== initial ===');
+    lay.dump();
+
+    //lay.calcMaxSizeInternal(0);
+    {
+    lay.firstPass();
+    writeln('=== after first pass ===');
+    lay.dump();
+
+    lay.secondPass();
+    writeln('=== after second pass ===');
+    lay.dump();
+    }
+
     lay.layout();
+    writeln('=== final ===');
+    lay.dump();
+
   finally
     FreeAndNil(lay);
   end;
@@ -374,6 +519,7 @@ var
 begin
   if (ctl = nil) then exit;
   ctl := ctl.topLevel;
+  if not (ctl is THTopWindow) then exit; // alas
   for f := 0 to High(uiTopList) do
   begin
     if (uiTopList[f] = ctl) then
@@ -395,13 +541,13 @@ begin
 end;
 
 
-// won't free object
 procedure uiRemoveWindow (ctl: THControl);
 var
   f, c: Integer;
 begin
   if (ctl = nil) then exit;
   ctl := ctl.topLevel;
+  if not (ctl is THTopWindow) then exit; // alas
   for f := 0 to High(uiTopList) do
   begin
     if (uiTopList[f] = ctl) then
@@ -411,7 +557,11 @@ begin
       SetLength(uiTopList, Length(uiTopList)-1);
       if (ctl is THTopWindow) then
       begin
-        if assigned(THTopWindow(ctl).closeCB) then THTopWindow(ctl).closeCB(ctl, 0);
+        try
+          if assigned(THTopWindow(ctl).closeCB) then THTopWindow(ctl).closeCB(ctl, 0);
+        finally
+          if (THTopWindow(ctl).mFreeOnClose) then FreeAndNil(ctl);
+        end;
       end;
       exit;
     end;
@@ -426,6 +576,7 @@ begin
   result := false;
   if (ctl = nil) then exit;
   ctl := ctl.topLevel;
+  if not (ctl is THTopWindow) then exit; // alas
   for f := 0 to High(uiTopList) do
   begin
     if (uiTopList[f] = ctl) then begin result := true; exit; end;
@@ -434,13 +585,13 @@ end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-constructor THControl.Create (ax, ay, aw, ah: Integer; aparent: THControl=nil);
+constructor THControl.Create ();
 begin
-  mParent := aparent;
-  mX := ax;
-  mY := ay;
-  mWidth := aw;
-  mHeight := ah;
+  mParent := nil;
+  mX := 0;
+  mY := 0;
+  mWidth := 64;
+  mHeight := 8;
   mFrameWidth := 0;
   mFrameHeight := 0;
   mEnabled := true;
@@ -454,10 +605,8 @@ begin
   mDrawShadow := false;
   actionCB := nil;
   // layouter interface
-  mDefSize := TLaySize.Create(64, 10); // default size
+  mDefSize := TLaySize.Create(64, 8); // default size
   mMaxSize := TLaySize.Create(-1, -1); // maximum size
-  mActSize := TLaySize.Create(0, 0); // actual (calculated) size
-  mActPos := TLayPos.Create(0, 0); // actual (calculated) position
   mFlex := 0;
   mHoriz := true;
   mCanWrap := false;
@@ -466,6 +615,23 @@ begin
   mVGroup := '';
   mAlign := -1; // left/top
   mExpand := false;
+end;
+
+
+constructor THControl.Create (ax, ay, aw, ah: Integer; aparent: THControl=nil);
+begin
+  Create(aparent);
+  mX := ax;
+  mY := ay;
+  mWidth := aw;
+  mHeight := ah;
+end;
+
+
+constructor THControl.Create (aparent: THControl);
+begin
+  Create();
+  mParent := aparent;
 end;
 
 
@@ -494,10 +660,9 @@ begin
 end;
 
 
-function THControl.getDefSize (): TLaySize; inline; begin result := mDefSize; end;
-procedure THControl.setDefSize (const sz: TLaySize); inline; begin mDefSize := sz; end;
-function THControl.getMaxSize (): TLaySize; inline; begin result := mMaxSize; end;
-procedure THControl.setMaxSize (const sz: TLaySize); inline; begin mMaxSize := sz; end;
+// ////////////////////////////////////////////////////////////////////////// //
+function THControl.getDefSize (): TLaySize; inline; begin result := mLayDefSize; end;
+function THControl.getMaxSize (): TLaySize; inline; begin result := mLayMaxSize; end;
 function THControl.getFlex (): Integer; inline; begin result := mFlex; end;
 function THControl.isHorizBox (): Boolean; inline; begin result := mHoriz; end;
 procedure THControl.setHorizBox (v: Boolean); inline; begin mHoriz := v; end;
@@ -509,13 +674,233 @@ function THControl.getAlign (): Integer; inline; begin result := mAlign; end;
 procedure THControl.setAlign (v: Integer); inline; begin mAlign := v; end;
 function THControl.getExpand (): Boolean; inline; begin result := mExpand; end;
 procedure THControl.setExpand (v: Boolean); inline; begin mExpand := v; end;
-procedure THControl.setActualSizePos (constref apos: TLayPos; constref asize: TLaySize); inline; begin mActPos := apos; mActSize := asize; end;
 function THControl.getHGroup (): AnsiString; inline; begin result := mHGroup; end;
 procedure THControl.setHGroup (const v: AnsiString); inline; begin mHGroup := v; end;
 function THControl.getVGroup (): AnsiString; inline; begin result := mVGroup; end;
 procedure THControl.setVGroup (const v: AnsiString); inline; begin mVGroup := v; end;
 
+function THControl.getMargins (): TLayMargins; inline;
+begin
+  result := TLayMargins.Create(mFrameHeight, mFrameWidth, mFrameHeight, mFrameWidth);
+end;
 
+procedure THControl.setActualSizePos (constref apos: TLayPos; constref asize: TLaySize); inline; begin
+  if (mParent <> nil) then
+  begin
+    mX := apos.x;
+    mY := apos.y;
+  end;
+  mWidth := asize.w;
+  mHeight := asize.h;
+end;
+
+procedure THControl.layPrepare ();
+begin
+  mLayDefSize := mDefSize;
+  mLayMaxSize := mMaxSize;
+  if (mLayMaxSize.w >= 0) then mLayMaxSize.w += mFrameWidth*2;
+  if (mLayMaxSize.h >= 0) then mLayMaxSize.h += mFrameHeight*2;
+end;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
+function THControl.parsePos (par: TTextParser): TLayPos;
+var
+  ech: AnsiChar = ')';
+begin
+  if (par.eatDelim('[')) then ech := ']' else par.expectDelim('(');
+  result.x := par.expectInt();
+  par.eatDelim(','); // optional comma
+  result.y := par.expectInt();
+  par.eatDelim(','); // optional comma
+  par.expectDelim(ech);
+end;
+
+function THControl.parseSize (par: TTextParser): TLaySize;
+var
+  ech: AnsiChar = ')';
+begin
+  if (par.eatDelim('[')) then ech := ']' else par.expectDelim('(');
+  result.h := par.expectInt();
+  par.eatDelim(','); // optional comma
+  result.w := par.expectInt();
+  par.eatDelim(','); // optional comma
+  par.expectDelim(ech);
+end;
+
+function THControl.parseBool (par: TTextParser): Boolean;
+begin
+  result :=
+    par.eatIdOrStr('true', false) or
+    par.eatIdOrStr('yes', false) or
+    par.eatIdOrStr('tan', false);
+  if not result then
+  begin
+    if (not par.eatIdOrStr('false', false)) and (not par.eatIdOrStr('no', false)) and (not par.eatIdOrStr('ona', false)) then
+    begin
+      par.error('boolean value expected');
+    end;
+  end;
+end;
+
+function THControl.parseAnyAlign (par: TTextParser): Integer;
+begin
+       if (par.eatIdOrStr('left', false)) or (par.eatIdOrStr('top', false)) then result := -1
+  else if (par.eatIdOrStr('right', false)) or (par.eatIdOrStr('bottom', false)) then result := 1
+  else if (par.eatIdOrStr('center', false)) then result := 0
+  else par.error('invalid align value');
+end;
+
+function THControl.parseHAlign (par: TTextParser): Integer;
+begin
+       if (par.eatIdOrStr('left', false)) then result := -1
+  else if (par.eatIdOrStr('right', false)) then result := 1
+  else if (par.eatIdOrStr('center', false)) then result := 0
+  else par.error('invalid horizontal align value');
+end;
+
+function THControl.parseVAlign (par: TTextParser): Integer;
+begin
+       if (par.eatIdOrStr('top', false)) then result := -1
+  else if (par.eatIdOrStr('bottom', false)) then result := 1
+  else if (par.eatIdOrStr('center', false)) then result := 0
+  else par.error('invalid vertical align value');
+end;
+
+procedure THControl.parseTextAlign (par: TTextParser; var h, v: Integer);
+var
+  wasH: Boolean = false;
+  wasV: Boolean = false;
+begin
+  while true do
+  begin
+    if (par.eatIdOrStr('left', false)) then
+    begin
+      if wasH then par.error('too many align directives');
+      wasH := true;
+      h := -1;
+      continue;
+    end;
+    if (par.eatIdOrStr('right', false)) then
+    begin
+      if wasH then par.error('too many align directives');
+      wasH := true;
+      h := 1;
+      continue;
+    end;
+    if (par.eatIdOrStr('hcenter', false)) then
+    begin
+      if wasH then par.error('too many align directives');
+      wasH := true;
+      h := 0;
+      continue;
+    end;
+    if (par.eatIdOrStr('top', false)) then
+    begin
+      if wasV then par.error('too many align directives');
+      wasV := true;
+      v := -1;
+      continue;
+    end;
+    if (par.eatIdOrStr('bottom', false)) then
+    begin
+      if wasV then par.error('too many align directives');
+      wasV := true;
+      v := 1;
+      continue;
+    end;
+    if (par.eatIdOrStr('vcenter', false)) then
+    begin
+      if wasV then par.error('too many align directives');
+      wasV := true;
+      v := 0;
+      continue;
+    end;
+    if (par.eatIdOrStr('center', false)) then
+    begin
+      if wasV or wasH then par.error('too many align directives');
+      wasV := true;
+      wasH := true;
+      h := 0;
+      v := 0;
+      continue;
+    end;
+    break;
+  end;
+  if not wasV and not wasH then par.error('invalid align value');
+end;
+
+// par should be on '{'; final '}' is eaten
+procedure THControl.parseProperties (par: TTextParser);
+var
+  pn: AnsiString;
+begin
+  if (not par.eatDelim('{')) then exit;
+  while (not par.eatDelim('}')) do
+  begin
+    if (par.tokType <> par.TTId) and (par.tokType <> par.TTStr) then par.error('property name expected');
+    pn := par.tokStr;
+    par.skipToken();
+    par.eatDelim(':'); // optional
+    if not parseProperty(pn, par) then par.errorfmt('invalid property name ''%s''', [pn]);
+    par.eatDelim(','); // optional
+  end;
+end;
+
+// par should be on '{'
+procedure THControl.parseChildren (par: TTextParser);
+var
+  cc: THControlClass;
+  ctl: THControl;
+begin
+  par.expectDelim('{');
+  while (not par.eatDelim('}')) do
+  begin
+    if (par.tokType <> par.TTId) then par.error('control name expected');
+    cc := findCtlClass(par.tokStr);
+    if (cc = nil) then par.errorfmt('unknown control name: ''%s''', [par.tokStr]);
+    //writeln('children for <', par.tokStr, '>: <', cc.className, '>');
+    par.skipToken();
+    par.eatDelim(':'); // optional
+    ctl := cc.Create(nil);
+    try
+      ctl.parseProperties(par);
+    except
+      FreeAndNil(ctl);
+      raise;
+    end;
+    //writeln(': ', ctl.mDefSize.toString);
+    appendChild(ctl);
+    par.eatDelim(','); // optional
+  end;
+end;
+
+
+function THControl.parseProperty (const prname: AnsiString; par: TTextParser): Boolean;
+begin
+  result := true;
+  if (strEquCI1251(prname, 'flex')) then begin flex := par.expectInt(); exit; end;
+  // sizes
+  if (strEquCI1251(prname, 'defsize')) then begin mDefSize := parseSize(par); exit; end;
+  if (strEquCI1251(prname, 'maxsize')) then begin mMaxSize := parseSize(par); exit; end;
+  if (strEquCI1251(prname, 'wrap')) then begin mCanWrap := parseBool(par); exit; end;
+  if (strEquCI1251(prname, 'linestart')) then begin mLineStart := parseBool(par); exit; end;
+  if (strEquCI1251(prname, 'expand')) then begin mExpand := parseBool(par); exit; end;
+  // align
+  if (strEquCI1251(prname, 'align')) then begin mAlign := parseAnyAlign(par); exit; end;
+  if (strEquCI1251(prname, 'hgroup')) then begin mHGroup := par.expectStrOrId(true); exit; end; // allow empty strings
+  if (strEquCI1251(prname, 'vgroup')) then begin mVGroup := par.expectStrOrId(true); exit; end; // allow empty strings
+  // other
+  if (strEquCI1251(prname, 'canfocus')) then begin mCanFocus := parseBool(par); exit; end;
+  if (strEquCI1251(prname, 'enabled')) then begin mEnabled := parseBool(par); exit; end;
+  if (strEquCI1251(prname, 'disabled')) then begin mEnabled := not parseBool(par); exit; end;
+  if (strEquCI1251(prname, 'escclose')) then begin mEscClose := not parseBool(par); exit; end;
+  if (strEquCI1251(prname, 'eatkeys')) then begin mEatKeys := not parseBool(par); exit; end;
+  result := false;
+end;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
 procedure THControl.activated ();
 begin
 end;
@@ -961,6 +1346,32 @@ begin
 end;
 
 
+function THTopWindow.parseProperty (const prname: AnsiString; par: TTextParser): Boolean;
+begin
+  if (strEquCI1251(prname, 'title')) or (strEquCI1251(prname, 'caption')) then
+  begin
+    mTitle := par.expectStrOrId(true);
+    result := true;
+    exit;
+  end;
+  if (strEquCI1251(prname, 'children')) then
+  begin
+    parseChildren(par);
+    result := true;
+    exit;
+  end;
+  if (strEquCI1251(prname, 'orientation')) or (strEquCI1251(prname, 'orient')) then
+  begin
+         if (par.eatIdOrStr('horizontal', false)) or (par.eatIdOrStr('horiz', false)) then mHoriz := true
+    else if (par.eatIdOrStr('vertical', false)) or (par.eatIdOrStr('vert', false)) then mHoriz := false
+    else par.error('`horizontal` or `vertical` expected');
+    result := true;
+    exit;
+  end;
+  result := inherited parseProperty(prname, par);
+end;
+
+
 procedure THTopWindow.centerInScreen ();
 begin
   if (mWidth > 0) and (mHeight > 0) then
@@ -1356,4 +1767,179 @@ begin
 end;
 
 
+// ////////////////////////////////////////////////////////////////////////// //
+constructor THCtlBox.Create (ahoriz: Boolean; aparent: THControl=nil);
+begin
+  inherited Create(aparent);
+  mHoriz := ahoriz;
+end;
+
+
+function THCtlBox.parseProperty (const prname: AnsiString; par: TTextParser): Boolean;
+begin
+  if (strEquCI1251(prname, 'orientation')) or (strEquCI1251(prname, 'orient')) then
+  begin
+         if (par.eatIdOrStr('horizontal', false)) or (par.eatIdOrStr('horiz', false)) then mHoriz := true
+    else if (par.eatIdOrStr('vertical', false)) or (par.eatIdOrStr('vert', false)) then mHoriz := false
+    else par.error('`horizontal` or `vertical` expected');
+    result := true;
+    exit;
+  end;
+  if (strEquCI1251(prname, 'frame')) then
+  begin
+    mHasFrame := parseBool(par);
+    if (mHasFrame) then begin mFrameWidth := 8; mFrameHeight := 8; end else begin mFrameWidth := 0; mFrameHeight := 0; end;
+    result := true;
+    exit;
+  end;
+  if (strEquCI1251(prname, 'title')) or (strEquCI1251(prname, 'caption')) then
+  begin
+    mCaption := par.expectStrOrId(true);
+    mDefSize := TLaySize.Create(Length(mCaption)*8+2+8*2, 8*2+2);
+    result := true;
+    exit;
+  end;
+  if (strEquCI1251(prname, 'children')) then
+  begin
+    parseChildren(par);
+    result := true;
+    exit;
+  end;
+  result := inherited parseProperty(prname, par);
+end;
+
+
+procedure THCtlBox.drawControl (sx, sy: Integer);
+var
+  r, g, b: Integer;
+  tx: Integer;
+begin
+  if focused then begin r := 255; g := 255; b := 255; end else begin r := 255; g := 255; b := 0; end;
+  if mHasFrame then
+  begin
+    // draw frame
+    drawRectUI(mX+3, mY+3, mWidth-6, mHeight-6, r, g, b);
+  end;
+  if (Length(mCaption) > 0) then
+  begin
+    setScissor(mFrameWidth+1, 0, mWidth-mFrameWidth-2, 8);
+    tx := mX+((mWidth-Length(mCaption)*8) div 2)-1;
+    if mHasFrame then fillRect(tx, mY, Length(mCaption)*8+2, 8, 0, 0, 128);
+    drawText8(tx+1, mY, mCaption, r, g, b);
+  end;
+end;
+
+function THCtlBox.mouseEvent (var ev: THMouseEvent): Boolean;
+var
+  lx, ly: Integer;
+begin
+  result := inherited mouseEvent(ev);
+  lx := ev.x;
+  ly := ev.y;
+  if not result and toLocal(lx, ly) then
+  begin
+    result := true;
+  end;
+end;
+
+
+//TODO: navigation with arrow keys, according to box orientation
+function THCtlBox.keyEvent (var ev: THKeyEvent): Boolean;
+begin
+  result := inherited keyEvent(ev);
+end;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
+constructor THCtlHBox.Create (aparent: THControl=nil);
+begin
+  inherited Create(true, aparent);
+end;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
+constructor THCtlVBox.Create (aparent: THControl=nil);
+begin
+  inherited Create(false, aparent);
+end;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
+constructor THCtlTextLabel.Create (const atext: AnsiString; aparent: THControl=nil);
+begin
+  inherited Create(aparent);
+  mHAlign := -1;
+  mVAlign := 0;
+  mText := atext;
+  mDefSize := TLaySize.Create(Length(atext)*8, 8);
+end;
+
+
+function THCtlTextLabel.parseProperty (const prname: AnsiString; par: TTextParser): Boolean;
+begin
+  if (strEquCI1251(prname, 'title')) or (strEquCI1251(prname, 'caption')) then
+  begin
+    mText := par.expectStrOrId(true);
+    mDefSize := TLaySize.Create(Length(mText)*8, 8);
+    result := true;
+    exit;
+  end;
+  if (strEquCI1251(prname, 'textalign')) then
+  begin
+    parseTextAlign(par, mHAlign, mVAlign);
+    result := true;
+    exit;
+  end;
+  result := inherited parseProperty(prname, par);
+end;
+
+
+procedure THCtlTextLabel.drawControl (sx, sy: Integer);
+var
+  xpos, ypos: Integer;
+begin
+  // debug
+  fillRect(sx, sy, mWidth, mHeight, 96, 96, 0);
+  drawRectUI(sx, sy, mWidth, mHeight, 96, 96, 96);
+
+  if (Length(mText) > 0) then
+  begin
+         if (mHAlign < 0) then xpos := 0
+    else if (mHAlign > 0) then xpos := mWidth-Length(mText)*8
+    else xpos := (mWidth-Length(mText)*8) div 2;
+
+         if (mVAlign < 0) then ypos := 0
+    else if (mVAlign > 0) then ypos := mHeight-8
+    else ypos := (mHeight-8) div 2;
+
+    drawText8(sx+xpos, sy+ypos, mText, 255, 255, 255);
+  end;
+end;
+
+
+function THCtlTextLabel.mouseEvent (var ev: THMouseEvent): Boolean;
+var
+  lx, ly: Integer;
+begin
+  result := inherited mouseEvent(ev);
+  lx := ev.x;
+  ly := ev.y;
+  if not result and toLocal(lx, ly) then
+  begin
+    result := true;
+  end;
+end;
+
+
+function THCtlTextLabel.keyEvent (var ev: THKeyEvent): Boolean;
+begin
+  result := inherited keyEvent(ev);
+end;
+
+
+initialization
+  registerCtlClass(THCtlBox, 'box');
+  registerCtlClass(THCtlHBox, 'hbox');
+  registerCtlClass(THCtlVBox, 'vbox');
+  registerCtlClass(THCtlTextLabel, 'label');
 end.

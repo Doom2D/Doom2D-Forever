@@ -20,11 +20,22 @@ unit xparser;
 interface
 
 uses
-  Classes{$IFDEF USE_MEMPOOL}, mempool{$ENDIF};
+  SysUtils, Classes{$IFDEF USE_MEMPOOL}, mempool{$ENDIF};
 
 
 // ////////////////////////////////////////////////////////////////////////// //
 type
+  TTextParser = class;
+
+  TParserException = class(Exception)
+  public
+    tokLine, tokCol: Integer;
+
+  public
+    constructor Create (pr: TTextParser; const amsg: AnsiString);
+    constructor CreateFmt (pr: TTextParser; const afmt: AnsiString; const args: array of const);
+  end;
+
   TTextParser = class{$IFDEF USE_MEMPOOL}(TPoolObject){$ENDIF}
   public
     const
@@ -81,6 +92,9 @@ type
     constructor Create (aopts: TOptions=[TOption.SignedNumbers]);
     destructor Destroy (); override;
 
+    procedure error (const amsg: AnsiString); noreturn;
+    procedure errorfmt (const afmt: AnsiString; const args: array of const); noreturn;
+
     function isEOF (): Boolean; inline;
 
     function skipChar (): Boolean; // returns `false` on eof
@@ -93,8 +107,9 @@ type
     {$ENDIF}
 
     function expectId (): AnsiString;
-    procedure expectId (const aid: AnsiString);
-    function eatId (const aid: AnsiString): Boolean;
+    procedure expectId (const aid: AnsiString; caseSens: Boolean=true);
+    function eatId (const aid: AnsiString; caseSens: Boolean=true): Boolean;
+    function eatIdOrStr (const aid: AnsiString; caseSens: Boolean=true): Boolean;
 
     function expectStr (allowEmpty: Boolean=false): AnsiString;
     function expectInt (): Integer;
@@ -235,7 +250,21 @@ type
 implementation
 
 uses
-  SysUtils, utils;
+  utils;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
+constructor TParserException.Create (pr: TTextParser; const amsg: AnsiString);
+begin
+  if (pr <> nil) then begin tokLine := pr.tokLine; tokCol := pr.tokCol; end;
+  inherited Create(amsg);
+end;
+
+constructor TParserException.CreateFmt (pr: TTextParser; const afmt: AnsiString; const args: array of const);
+begin
+  if (pr <> nil) then begin tokLine := pr.tokLine; tokCol := pr.tokCol; end;
+  inherited Create(formatstrf(afmt, args));
+end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
@@ -258,6 +287,18 @@ end;
 destructor TTextParser.Destroy ();
 begin
   inherited;
+end;
+
+
+procedure TTextParser.error (const amsg: AnsiString); noreturn;
+begin
+  raise TParserException.Create(self, amsg);
+end;
+
+
+procedure TTextParser.errorfmt (const afmt: AnsiString; const args: array of const); noreturn;
+begin
+  raise TParserException.CreateFmt(self, afmt, args);
 end;
 
 
@@ -617,16 +658,46 @@ begin
 end;
 
 
-procedure TTextParser.expectId (const aid: AnsiString);
+procedure TTextParser.expectId (const aid: AnsiString; caseSens: Boolean=true);
 begin
-  if (mTokType <> TTId) or (mTokStr <> aid) then raise Exception.Create('identifier '''+aid+''' expected');
+  if caseSens then
+  begin
+    if (mTokType <> TTId) or (mTokStr <> aid) then raise Exception.Create('identifier '''+aid+''' expected');
+  end
+  else
+  begin
+    if (mTokType <> TTId) or (not strEquCI1251(mTokStr, aid)) then raise Exception.Create('identifier '''+aid+''' expected');
+  end;
   skipToken();
 end;
 
 
-function TTextParser.eatId (const aid: AnsiString): Boolean;
+function TTextParser.eatId (const aid: AnsiString; caseSens: Boolean=true): Boolean;
 begin
-  result := (mTokType = TTId) and (mTokStr = aid);
+  if caseSens then
+  begin
+    result := (mTokType = TTId) and (mTokStr = aid);
+  end
+  else
+  begin
+    result := (mTokType = TTId) and strEquCI1251(mTokStr, aid);
+  end;
+  if result then skipToken();
+end;
+
+
+function TTextParser.eatIdOrStr (const aid: AnsiString; caseSens: Boolean=true): Boolean;
+begin
+  if caseSens then
+  begin
+    result := (mTokType = TTId) and (mTokStr = aid);
+    if not result then result := (mTokType = TTStr) and (mTokStr = aid);
+  end
+  else
+  begin
+    result := (mTokType = TTId) and strEquCI1251(mTokStr, aid);
+    if not result then result := (mTokType = TTStr) and strEquCI1251(mTokStr, aid);
+  end;
   if result then skipToken();
 end;
 
