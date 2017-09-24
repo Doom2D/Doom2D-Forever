@@ -20,7 +20,7 @@ interface
 
 uses
   SysUtils, Classes,
-  mempool,
+  {$IFDEF USE_MEMPOOL}mempool,{$ENDIF}
   e_graphics, MAPDEF, ImagingTypes, Imaging, ImagingUtility;
 
 Type
@@ -37,7 +37,7 @@ Type
 
   TLevelTextureArray = Array of TLevelTexture;
 
-  TAnimation = class(TPoolObject)
+  TAnimation = class{$IFDEF USE_MEMPOOL}(TPoolObject){$ENDIF}
   private
     ID:            DWORD;
     FAlpha:        Byte;

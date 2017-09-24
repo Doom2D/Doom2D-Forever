@@ -19,7 +19,9 @@ unit exoma;
 interface
 
 uses
-  typinfo, SysUtils, Variants, mempool, hashtable, xparser;
+  {$IFDEF USE_MEMPOOL}mempool,{$ENDIF}
+  typinfo, SysUtils, Variants,
+  hashtable, xparser;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
@@ -41,7 +43,7 @@ type
 
 // ////////////////////////////////////////////////////////////////////////// //
 type
-  TPropHash = class(TPoolObject)
+  TPropHash = class{$IFDEF USE_MEMPOOL}(TPoolObject){$ENDIF}
   private
     mClass: TClass;
     mNames: THashStrInt;
@@ -59,7 +61,7 @@ type
 
 // ////////////////////////////////////////////////////////////////////////// //
 type
-  TExprConstList = class(TPoolObject)
+  TExprConstList = class{$IFDEF USE_MEMPOOL}(TPoolObject){$ENDIF}
   public
     function valid (const cname: AnsiString): Boolean; virtual; abstract;
     function get (const cname: AnsiString; out v: Variant): Boolean; virtual; abstract;
@@ -68,7 +70,7 @@ type
 
 // ////////////////////////////////////////////////////////////////////////// //
 type
-  TExprScope = class(TPoolObject)
+  TExprScope = class{$IFDEF USE_MEMPOOL}(TPoolObject){$ENDIF}
   public
     class procedure error (const amsg: AnsiString);
     class procedure errorfmt (const afmt: AnsiString; const args: array of const);
@@ -78,7 +80,7 @@ type
     procedure setField (obj: TObject; const afldname: AnsiString; var aval: Variant); virtual;
   end;
 
-  TExprBase = class(TPoolObject)
+  TExprBase = class{$IFDEF USE_MEMPOOL}(TPoolObject){$ENDIF}
   public
     class function coerce2bool (var v0: Variant): Boolean;
     class function toInt (var v: Variant): LongInt;

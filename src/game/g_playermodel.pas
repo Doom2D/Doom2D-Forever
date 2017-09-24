@@ -20,7 +20,7 @@ unit g_playermodel;
 interface
 
 uses
-  mempool,
+  {$IFDEF USE_MEMPOOL}mempool,{$ENDIF}
   MAPDEF, g_textures, g_basic, g_weapons, e_graphics, utils;
 
 const
@@ -82,7 +82,7 @@ type
                   Array [A_STAND..A_LAST] of
                   Array [TDirection.D_LEFT..TDirection.D_RIGHT] of Array of TDFPoint;
 
-  TPlayerModel = class(TPoolObject)
+  TPlayerModel = class{$IFDEF USE_MEMPOOL}(TPoolObject){$ENDIF}
   private
     FName:             String;
     FDirection:        TDirection;

@@ -26,8 +26,10 @@ unit g_grid;
 
 interface
 
+{$IFDEF USE_MEMPOOL}
 uses
   mempool;
+{$ENDIF}
 
 const
   GridTileSize = 32; // must be power of two!
@@ -35,7 +37,7 @@ const
 type
   TBodyProxyId = Integer;
 
-  generic TBodyGridBase<ITP> = class(TPoolObject)
+  generic TBodyGridBase<ITP> = class{$IFDEF USE_MEMPOOL}(TPoolObject){$ENDIF}
   public
     type TGridQueryCB = function (obj: ITP; tag: Integer): Boolean is nested; // return `true` to stop
     type TGridRayQueryCB = function (obj: ITP; tag: Integer; x, y, prevx, prevy: Integer): Boolean is nested; // return `true` to stop

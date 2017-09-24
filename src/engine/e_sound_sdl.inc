@@ -18,7 +18,7 @@ interface
 uses
   sdl2,
   SDL2_mixer,
-  mempool,
+  {$IFDEF USE_MEMPOOL}mempool,{$ENDIF}
   e_log,
   SysUtils;
 
@@ -31,7 +31,7 @@ type
     nRefs: Integer;
   end;
 
-  TBasicSound = class(TPoolObject)
+  TBasicSound = class{$IFDEF USE_MEMPOOL}(TPoolObject){$ENDIF}
   private
     FChanNum: Integer; // <0: no channel allocated
 

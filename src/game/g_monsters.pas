@@ -22,7 +22,7 @@ interface
 
 uses
   SysUtils, Classes,
-  mempool,
+  {$IFDEF USE_MEMPOOL}mempool,{$ENDIF}
   g_basic, e_graphics, g_phys, g_textures, g_grid,
   g_saveload, g_panel, xprofiler;
 
@@ -50,7 +50,7 @@ const
 }
 
 type
-  TMonster = class(TPoolObject)
+  TMonster = class{$IFDEF USE_MEMPOOL}(TPoolObject){$ENDIF}
   private
     FMonsterType: Byte;
     FUID: Word;

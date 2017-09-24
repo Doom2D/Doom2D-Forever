@@ -19,7 +19,7 @@ unit g_gui;
 interface
 
 uses
-  mempool,
+  {$IFDEF USE_MEMPOOL}mempool,{$ENDIF}
   e_graphics, e_input, e_log, g_playermodel, g_basic, MAPDEF, utils;
 
 const
@@ -85,7 +85,7 @@ type
 
   TFontType = (Texture, Character);
 
-  TFont = class(TPoolObject)
+  TFont = class{$IFDEF USE_MEMPOOL}(TPoolObject){$ENDIF}
   private
     ID: DWORD;
     FScale: Single;
@@ -109,7 +109,7 @@ type
   TOnChangeEvent = procedure(Sender: TGUIControl);
   TOnEnterEvent = procedure(Sender: TGUIControl);
 
-  TGUIControl = class(TPoolObject)
+  TGUIControl = class{$IFDEF USE_MEMPOOL}(TPoolObject){$ENDIF}
   private
     FX, FY: Integer;
     FEnabled: Boolean;
@@ -134,7 +134,7 @@ type
     property RightAlign: Boolean read FRightAlign write FRightAlign; // for menu
   end;
 
-  TGUIWindow = class(TPoolObject)
+  TGUIWindow = class{$IFDEF USE_MEMPOOL}(TPoolObject){$ENDIF}
   private
     FActiveControl: TGUIControl;
     FDefControl: string;

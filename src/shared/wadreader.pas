@@ -23,11 +23,12 @@ interface
 
 uses
   Classes,
-  mempool, sfs, xstreams, utils;
+  {$IFDEF USE_MEMPOOL}mempool,{$ENDIF}
+  sfs, xstreams, utils;
 
 
 type
-  TWADFile = class(TPoolObject)
+  TWADFile = class{$IFDEF USE_MEMPOOL}(TPoolObject){$ENDIF}
   private
     fFileName: AnsiString; // empty: not opened
     fIter: TSFSFileList;

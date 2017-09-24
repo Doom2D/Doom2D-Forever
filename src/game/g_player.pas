@@ -21,7 +21,7 @@ interface
 
 uses
   SysUtils, Classes,
-  mempool,
+  {$IFDEF USE_MEMPOOL}mempool,{$ENDIF}
   e_graphics, g_playermodel, g_basic, g_textures,
   g_weapons, g_phys, g_sound, g_saveload, MAPDEF,
   g_panel;
@@ -135,7 +135,7 @@ type
     Time: Word;
   end;
 
-  TPlayer = class(TPoolObject)
+  TPlayer = class{$IFDEF USE_MEMPOOL}(TPoolObject){$ENDIF}
   private
     FIamBot:    Boolean;
     FUID:       Word;
@@ -491,7 +491,7 @@ type
     procedure positionChanged ();  inline; //WARNING! call this after entity position was changed, or coldet will not work right!
   end;
 
-  TCorpse = class(TPoolObject)
+  TCorpse = class{$IFDEF USE_MEMPOOL}(TPoolObject){$ENDIF}
   private
     FModelName:     String;
     FMess:          Boolean;

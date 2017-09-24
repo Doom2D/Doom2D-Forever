@@ -16,16 +16,12 @@
 {$INCLUDE a_modes.inc}
 unit CONFIG;
 
-{
------------------------------------
-CONFIG.PAS бепяхъ нр 24.09.06
------------------------------------
-}
-
 interface
 
+{$IFDEF USE_MEMPOOL}
 uses
   mempool;
+{$ENDIF}
 
 type
   TParam = record
@@ -34,7 +30,7 @@ type
    Section: Word;
   end;
 
-  TConfig = class(TPoolObject)
+  TConfig = class{$IFDEF USE_MEMPOOL}(TPoolObject){$ENDIF}
    private
     FParams: array of TParam;
     FSections: array of ShortString;

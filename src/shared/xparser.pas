@@ -20,12 +20,12 @@ unit xparser;
 interface
 
 uses
-  Classes, mempool;
+  Classes{$IFDEF USE_MEMPOOL}, mempool{$ENDIF};
 
 
 // ////////////////////////////////////////////////////////////////////////// //
 type
-  TTextParser = class(TPoolObject)
+  TTextParser = class{$IFDEF USE_MEMPOOL}(TPoolObject){$ENDIF}
   public
     const
       TTNone = -1;

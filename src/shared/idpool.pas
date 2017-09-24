@@ -19,14 +19,16 @@ unit idpool;
 
 interface
 
+{$IFDEF USE_MEMPOOL}
 uses
   mempool;
+{$ENDIF}
 
 
 // ////////////////////////////////////////////////////////////////////////// //
 type
   //TODO: implement getting n sequential ids
-  TIdPool = class(TPoolObject)
+  TIdPool = class{$IFDEF USE_MEMPOOL}(TPoolObject){$ENDIF}
   public
     const InvalidId = $ffffffff;
 

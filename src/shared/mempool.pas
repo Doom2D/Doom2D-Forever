@@ -19,6 +19,7 @@ unit mempool;
 
 interface
 
+{$IFDEF USE_MEMPOOL}
 uses
   SysUtils;
 
@@ -56,10 +57,11 @@ type
     public procedure FreeInstance (); override;
     {$ENDIF}
   end;
-
+{$ENDIF}
 
 implementation
 
+{$IFDEF USE_MEMPOOL}
 uses
   hashtable;
 
@@ -189,4 +191,5 @@ finalization
   {$IF DEFINED(D2F_DEBUG) and NOT DEFINED(MEM_DISABLE_ACCOUNTING)}
   dumpPools();
   {$ENDIF}
+{$ENDIF} // USE_MEMPOOL
 end.
