@@ -6058,7 +6058,7 @@ begin
         if P[2] = '' then
           g_Console_Add(Format(_lc[I_MSG_NO_MAPS], [P[1]]))
         else
-          g_Console_Add(Format(_lc[I_MSG_NO_MAP], [UpperCase(P[2])]));
+          g_Console_Add(Format(_lc[I_MSG_NO_MAP_FALLBACK], [UpperCase(P[2]), P[1]]));
     end else
       g_Console_Add(Format(_lc[I_MSG_NO_WAD], [P[1]]));
   end
@@ -6112,7 +6112,7 @@ begin
         if P[4] = '' then
           g_Console_Add(Format(_lc[I_MSG_NO_MAPS], [P[3]]))
         else
-          g_Console_Add(Format(_lc[I_MSG_NO_MAP], [UpperCase(P[4])]));
+          g_Console_Add(Format(_lc[I_MSG_NO_MAP_FALLBACK], [UpperCase(P[4]), P[3]]));
     end else
       g_Console_Add(Format(_lc[I_MSG_NO_WAD], [P[3]]));
   end
@@ -6146,9 +6146,9 @@ begin
               g_Game_ChangeMap(s);
           end else
           begin
-            g_Console_Add(Format(_lc[I_MSG_NO_MAP], [s]));
             // Такой карты нет, ищем WAD файл
             P[1] := addWadExtension(P[1]);
+            g_Console_Add(Format(_lc[I_MSG_NO_MAP_FALLBACK], [s, P[1]]));
             if FileExists(MapsDir + P[1]) then
             begin
               // Параметра карты нет, поэтому ставим первую из файла
@@ -6235,9 +6235,9 @@ begin
               nm := True;
             end else
             begin
-              g_Console_Add(Format(_lc[I_MSG_NO_MAP], [s]));
               // Такой карты нет, ищем WAD файл
               P[1] := addWadExtension(P[1]);
+              g_Console_Add(Format(_lc[I_MSG_NO_MAP_FALLBACK], [s, P[1]]));
               if FileExists(MapsDir + P[1]) then
               begin
                 // Параметра карты нет, поэтому ставим первую из файла
