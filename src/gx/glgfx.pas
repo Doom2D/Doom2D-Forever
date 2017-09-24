@@ -119,7 +119,7 @@ type
     procedure restore ();
 
     // set new scissor rect, bounded by the saved scissor rect
-    procedure setRect (x, y, w, h: Integer);
+    procedure combineRect (x, y, w, h: Integer);
   end;
 
 
@@ -1072,11 +1072,21 @@ begin
   if wassc then glEnable(GL_SCISSOR_TEST) else glDisable(GL_SCISSOR_TEST);
 end;
 
-procedure TScissorSave.setRect (x, y, w, h: Integer);
+procedure TScissorSave.combineRect (x, y, w, h: Integer);
+//var ox, oy, ow, oh: Integer;
 begin
   if (w < 1) or (h < 1) then begin glScissor(0, 0, 0, 0); exit; end;
   y := gScrHeight-(y+h);
-  if not intersectRect(x, y, w, h, scxywh[0], scxywh[1], scxywh[2], scxywh[3]) then glScissor(0, 0, 0, 0) else glScissor(x, y, w, h);
+  //ox := x; oy := y; ow := w; oh := h;
+  if not intersectRect(x, y, w, h, scxywh[0], scxywh[1], scxywh[2], scxywh[3]) then
+  begin
+    //writeln('oops: COMBINE: old=(', ox, ',', oy, ')-(', ox+ow-1, ',', oy+oh-1, '); sci: (', scxywh[0], ',', scxywh[1], ')-(', scxywh[0]+scxywh[2]-1, ',', scxywh[1]+scxywh[3]-1, ')');
+    glScissor(0, 0, 0, 0);
+  end
+  else
+  begin
+    glScissor(x, y, w, h);
+  end;
 end;
 
 //TODO: overflow checks
@@ -1087,11 +1097,11 @@ begin
   result := false;
   if (w0 < 1) or (h0 < 1) or (w1 < 1) or (h1 < 1) then exit;
   // check for intersection
-  if (x0+w0 <= x1) or (y0+h0 <= y1) or (x1+w1 <= x0) or (y1+h1 <= y0) then exit;
-  if (x0 >= x1+w1) or (y0 >= y1+h1) or (x1 >= x0+h0) or (y1 >= y0+h0) then exit;
-  // ok, intersects
   ex0 := x0+w0;
   ey0 := y0+h0;
+  if (ex0 <= x1) or (ey0 <= y1) or (x1+w1 <= x0) or (y1+h1 <= y0) then exit;
+  if (x0 >= x1+w1) or (y0 >= y1+h1) or (x1 >= ex0) or (y1 >= ey0) then exit;
+  // ok, intersects
   if (x0 < x1) then x0 := x1;
   if (y0 < y1) then y0 := y1;
   if (ex0 > x1+w1) then ex0 := x1+w1;

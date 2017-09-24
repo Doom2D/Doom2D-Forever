@@ -106,6 +106,8 @@ type
     function skipToken1 (): Boolean;
     {$ENDIF}
 
+    function isIdOrStr (): Boolean; inline;
+
     function expectId (): AnsiString;
     procedure expectId (const aid: AnsiString; caseSens: Boolean=true);
     function eatId (const aid: AnsiString; caseSens: Boolean=true): Boolean;
@@ -647,6 +649,12 @@ begin
       '.': if (curChar = '.') then begin mTokType := TTDotDot; mTokStr := '..'; skipChar(); exit; end;
     end;
   end;
+end;
+
+
+function TTextParser.isIdOrStr (): Boolean; inline;
+begin
+  result := (mTokType = TTId) or (mTokType = TTStr);
 end;
 
 

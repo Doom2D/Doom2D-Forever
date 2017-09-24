@@ -37,6 +37,7 @@ type
 
   private
     mParent: THControl;
+    mId: AnsiString;
     mX, mY: Integer;
     mWidth, mHeight: Integer;
     mFrameWidth, mFrameHeight: Integer;
@@ -159,8 +160,7 @@ type
 
   public
     constructor Create ();
-    constructor Create (aparent: THControl);
-    constructor Create (ax, ay, aw, ah: Integer; aparent: THControl=nil);
+    constructor Create (ax, ay, aw, ah: Integer);
     destructor Destroy (); override;
 
     // `sx` and `sy` are screen coordinates
@@ -191,6 +191,7 @@ type
     procedure appendChild (ctl: THControl); virtual;
 
   public
+    property id: AnsiString read mId;
     property x0: Integer read mX;
     property y0: Integer read mY;
     property height: Integer read mHeight;
@@ -250,7 +251,7 @@ type
     mItems: array of TItem;
 
   public
-    constructor Create (ax, ay: Integer; aparent: THControl=nil);
+    constructor Create (ax, ay: Integer);
     destructor Destroy (); override;
 
     procedure appendItem (const atext: AnsiString; acentered: Boolean=false; ahline: Boolean=false);
@@ -276,7 +277,7 @@ type
     mCurIndex: Integer;
 
   public
-    constructor Create (ax, ay: Integer; aparent: THControl=nil);
+    constructor Create (ax, ay: Integer);
     destructor Destroy (); override;
 
     procedure appendItem (const atext: AnsiString; bv: PBoolean; aaction: TActionCB=nil);
@@ -294,8 +295,7 @@ type
     mCaption: AnsiString;
 
   public
-    constructor Create (ahoriz: Boolean; aparent: THControl=nil);
-    //destructor Destroy (); override;
+    constructor Create (ahoriz: Boolean);
 
     function parseProperty (const prname: AnsiString; par: TTextParser): Boolean; override;
 
@@ -307,12 +307,12 @@ type
 
   THCtlHBox = class(THCtlBox)
   public
-    constructor Create (aparent: THControl=nil);
+    procedure AfterConstruction (); override; // so it will be correctly initialized when created from parser
   end;
 
   THCtlVBox = class(THCtlBox)
   public
-    constructor Create (aparent: THControl=nil);
+    procedure AfterConstruction (); override; // so it will be correctly initialized when created from parser
   end;
 
 
@@ -323,7 +323,7 @@ type
     mVAlign: Integer; // -1: top; 0: center; 1: bottom; default: center
 
   public
-    constructor Create (const atext: AnsiString; aparent: THControl=nil);
+    constructor Create (const atext: AnsiString);
     //destructor Destroy (); override;
 
     function parseProperty (const prname: AnsiString; par: TTextParser): Boolean; override;
@@ -618,20 +618,13 @@ begin
 end;
 
 
-constructor THControl.Create (ax, ay, aw, ah: Integer; aparent: THControl=nil);
+constructor THControl.Create (ax, ay, aw, ah: Integer);
 begin
-  Create(aparent);
+  Create();
   mX := ax;
   mY := ay;
   mWidth := aw;
   mHeight := ah;
-end;
-
-
-constructor THControl.Create (aparent: THControl);
-begin
-  Create();
-  mParent := aparent;
 end;
 
 
@@ -685,6 +678,7 @@ begin
 end;
 
 procedure THControl.setActualSizePos (constref apos: TLayPos; constref asize: TLaySize); inline; begin
+  //writeln(self.className, '; pos=', apos.toString, '; size=', asize.toString);
   if (mParent <> nil) then
   begin
     mX := apos.x;
@@ -838,7 +832,7 @@ begin
   if (not par.eatDelim('{')) then exit;
   while (not par.eatDelim('}')) do
   begin
-    if (par.tokType <> par.TTId) and (par.tokType <> par.TTStr) then par.error('property name expected');
+    if (not par.isIdOrStr) then par.error('property name expected');
     pn := par.tokStr;
     par.skipToken();
     par.eatDelim(':'); // optional
@@ -856,13 +850,14 @@ begin
   par.expectDelim('{');
   while (not par.eatDelim('}')) do
   begin
-    if (par.tokType <> par.TTId) then par.error('control name expected');
+    if (not par.isIdOrStr) then par.error('control name expected');
     cc := findCtlClass(par.tokStr);
     if (cc = nil) then par.errorfmt('unknown control name: ''%s''', [par.tokStr]);
     //writeln('children for <', par.tokStr, '>: <', cc.className, '>');
     par.skipToken();
     par.eatDelim(':'); // optional
-    ctl := cc.Create(nil);
+    ctl := cc.Create();
+    //writeln('  mHoriz=', ctl.mHoriz);
     try
       ctl.parseProperties(par);
     except
@@ -879,6 +874,7 @@ end;
 function THControl.parseProperty (const prname: AnsiString; par: TTextParser): Boolean;
 begin
   result := true;
+  if (strEquCI1251(prname, 'id')) then begin mId := par.expectStrOrId(true); exit; end; // allow empty strings
   if (strEquCI1251(prname, 'flex')) then begin flex := par.expectInt(); exit; end;
   // sizes
   if (strEquCI1251(prname, 'defsize')) then begin mDefSize := parseSize(par); exit; end;
@@ -1179,8 +1175,7 @@ begin
   y := trunc(y*gh_ui_scale);
   w := trunc(w*gh_ui_scale);
   h := trunc(h*gh_ui_scale);
-  //y := gWinSizeY-(y+h);
-  scis.setRect(x, y, w, h);
+  scis.combineRect(x, y, w, h);
 end;
 
 
@@ -1199,9 +1194,16 @@ end;
 procedure THControl.setScissor (lx, ly, lw, lh: Integer);
 var
   x, y: Integer;
+  //ox, oy, ow, oh: Integer;
 begin
   if not scallowed then exit;
-  if not intersectRect(lx, ly, lw, lh, 0, 0, mWidth, mHeight) then begin glScissor(0, 0, 0, 0); exit; end;
+  //ox := lx; oy := ly; ow := lw; oh := lh;
+  if not intersectRect(lx, ly, lw, lh, 0, 0, mWidth, mHeight) then
+  begin
+    //writeln('oops: <', self.className, '>: old=(', ox, ',', oy, ')-[', ow, ',', oh, ']');
+    glScissor(0, 0, 0, 0);
+    exit;
+  end;
   x := lx;
   y := ly;
   toGlobal(x, y);
@@ -1245,6 +1247,7 @@ end;
 
 procedure THControl.drawControlPost (sx, sy: Integer);
 begin
+  // shadow
   if mDrawShadow and (mWidth > 0) and (mHeight > 0) then
   begin
     setScissorGLInternal(sx+8, sy+8, mWidth, mHeight);
@@ -1328,7 +1331,7 @@ end;
 // ////////////////////////////////////////////////////////////////////////// //
 constructor THTopWindow.Create (const atitle: AnsiString; ax, ay: Integer; aw: Integer=-1; ah: Integer=-1);
 begin
-  inherited Create(ax, ay, aw, ah, nil);
+  inherited Create(ax, ay, aw, ah);
   mFrameWidth := 8;
   mFrameHeight := 8;
   mTitle := atitle;
@@ -1527,7 +1530,7 @@ end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-constructor THCtlSimpleText.Create (ax, ay: Integer; aparent: THControl=nil);
+constructor THCtlSimpleText.Create (ax, ay: Integer);
 begin
   mItems := nil;
   inherited Create(ax, ay, 4, 4);
@@ -1609,7 +1612,7 @@ end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-constructor THCtlCBListBox.Create (ax, ay: Integer; aparent: THControl=nil);
+constructor THCtlCBListBox.Create (ax, ay: Integer);
 begin
   mItems := nil;
   mCurIndex := -1;
@@ -1768,9 +1771,9 @@ end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-constructor THCtlBox.Create (ahoriz: Boolean; aparent: THControl=nil);
+constructor THCtlBox.Create (ahoriz: Boolean);
 begin
-  inherited Create(aparent);
+  inherited Create();
   mHoriz := ahoriz;
 end;
 
@@ -1829,6 +1832,7 @@ begin
   end;
 end;
 
+
 function THCtlBox.mouseEvent (var ev: THMouseEvent): Boolean;
 var
   lx, ly: Integer;
@@ -1851,23 +1855,24 @@ end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-constructor THCtlHBox.Create (aparent: THControl=nil);
+procedure THCtlHBox.AfterConstruction ();
 begin
-  inherited Create(true, aparent);
+  inherited AfterConstruction();
+  mHoriz := true;
 end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-constructor THCtlVBox.Create (aparent: THControl=nil);
+procedure THCtlVBox.AfterConstruction ();
 begin
-  inherited Create(false, aparent);
+  inherited AfterConstruction();
+  mHoriz := false;
 end;
 
-
 // ////////////////////////////////////////////////////////////////////////// //
-constructor THCtlTextLabel.Create (const atext: AnsiString; aparent: THControl=nil);
+constructor THCtlTextLabel.Create (const atext: AnsiString);
 begin
-  inherited Create(aparent);
+  inherited Create();
   mHAlign := -1;
   mVAlign := 0;
   mText := atext;

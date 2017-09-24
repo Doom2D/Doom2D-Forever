@@ -502,6 +502,7 @@ var
   grp: PLayGroup;
   maxsz: Integer;
   cidx: LayControlIdx;
+  ct: PLayControl;
   mr: TLayMargins;
 begin
   // reset all 'laywrap' flags for controls, set initial 'startsize'
@@ -527,15 +528,17 @@ begin
       for c := 0 to High(grp.ctls) do
       begin
         cidx := grp.ctls[c];
-        if (maxsz < ctlist[cidx].startsize[gtype]) then maxsz := ctlist[cidx].startsize[gtype];
+        ct := @ctlist[cidx];
+        if (maxsz < ct.startsize[gtype]) then maxsz := ct.startsize[gtype];
       end;
       for c := 0 to High(grp.ctls) do
       begin
         cidx := grp.ctls[c];
-        if (maxsz <> ctlist[cidx].startsize[gtype]) then
+        ct := @ctlist[cidx];
+        if (maxsz <> ct.startsize[gtype]) then
         begin
           needRecalcMaxSize := true;
-          ctlist[cidx].startsize[gtype] := maxsz;
+          ct.startsize[gtype] := maxsz;
         end;
       end;
     end;
@@ -731,7 +734,7 @@ begin
       // expand or align
            if (lc.expand) then lc.desiredsize.w := nmin(lc.maxsize.w, me.desiredsize.w-me.margins.vert) // expand
       else if (lc.aligndir > 0) then lc.desiredpos.x := me.desiredsize.w-me.margins.right-lc.desiredsize.w // right align
-      else if (lc.aligndir = 0) then lc.desiredpos.x := (me.desiredsize.w-me.margins.horiz-lc.desiredsize.w) div 2; // center
+      else if (lc.aligndir = 0) then lc.desiredpos.x := (me.desiredsize.w-lc.desiredsize.w) div 2; // center
       if (not osz.equals(lc.desiredsize)) then
       begin
         if (lc.inGroup) then groupElementChanged := true;
@@ -833,7 +836,7 @@ begin
         end;
         for c := 0 to 1 do
         begin
-          if (ct.maxsize[c] <= 0) then continue;
+          if (ct.maxsize[c] < 0) then continue;
           if (ct.desiredsize[c] > ct.maxsize[c]) then
           begin
             //writeln('ctl #', f, '; dimension #', c, ': desired=', ctlist[f].desiredsize[c], '; max=', ctlist[f].maxsize[c]);
