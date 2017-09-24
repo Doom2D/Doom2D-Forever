@@ -26,6 +26,26 @@ uses
 
 // ////////////////////////////////////////////////////////////////////////// //
 type
+  TGxRGBA = packed record
+  public
+    r, g, b, a: Byte;
+
+  public
+    constructor Create (ar, ag, ab: Integer; aa: Integer=255);
+
+    function asUInt (): LongWord; inline;
+    function isOpaque (): Boolean; inline;
+    function isTransparent (): Boolean; inline;
+
+    // WARNING! This function does blending in RGB space, and RGB space is not linear!
+    // alpha value of `self` doesn't matter
+    // `aa` means: 255 for replace color, 0 for keep `self`
+    function blend (ar, ag, ab, aa: Integer): TGxRGBA; inline;
+  end;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
+type
   THMouseEvent = record
   public
     const
@@ -217,6 +237,45 @@ function THMouseEvent.motion (): Boolean; inline; begin result := (kind = TKind.
 
 function THKeyEvent.press (): Boolean; inline; begin result := (kind = TKind.Press); end;
 function THKeyEvent.release (): Boolean; inline; begin result := (kind = TKind.Release); end;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
+constructor TGxRGBA.Create (ar, ag, ab: Integer; aa: Integer=255);
+begin
+  if (ar < 0) then r := 0 else if (ar > 255) then r := 255 else r := Byte(ar);
+  if (ag < 0) then g := 0 else if (ag > 255) then g := 255 else g := Byte(ag);
+  if (ab < 0) then b := 0 else if (ab > 255) then b := 255 else b := Byte(ab);
+  if (aa < 0) then a := 0 else if (aa > 255) then a := 255 else a := Byte(aa);
+end;
+
+function TGxRGBA.asUInt (): LongWord; inline; begin result := LongWord(r) or (LongWord(g) shl 8) or (LongWord(b) shl 16) or (LongWord(a) shl 24); end;
+
+function TGxRGBA.isOpaque (): Boolean; inline; begin result := (a = 255); end;
+function TGxRGBA.isTransparent (): Boolean; inline; begin result := (a = 0); end;
+
+function TGxRGBA.blend (ar, ag, ab, aa: Integer): TGxRGBA; inline;
+var
+  me, it, a_tmp_, dc_tmp_, srb_tmp_, sg_tmp_, drb_tmp_, dg_tmp_, orb_tmp_, og_tmp_: LongWord;
+begin
+  if (aa <= 0) then begin result := self; exit; end;
+  result := TGxRGBA.Create(ar, ag, ab, aa);
+  if (aa >= 255) then begin result.a := a; exit; end;
+  me := asUInt;
+  it := result.asUInt;
+  a_tmp_ := (256-(255-(it shr 24))) and (-(1-(((255-(it shr 24))+1) shr 8))); // to not loose bits, but 255 should become 0
+  dc_tmp_ := me and $ffffff;
+  srb_tmp_ := (it and $ff00ff);
+  sg_tmp_ := (it and $00ff00);
+  drb_tmp_ := (dc_tmp_ and $ff00ff);
+  dg_tmp_ := (dc_tmp_ and $00ff00);
+  orb_tmp_ := (drb_tmp_+(((srb_tmp_-drb_tmp_)*a_tmp_+$800080) shr 8)) and $ff00ff;
+  og_tmp_ := (dg_tmp_+(((sg_tmp_-dg_tmp_)*a_tmp_+$008000) shr 8)) and $00ff00;
+  me := (orb_tmp_ or og_tmp_); // or $ff000000; /* and $ffffff;*/
+  result.r := Byte(me and $ff);
+  result.g := Byte((me shr 8) and $ff);
+  result.b := Byte((me shr 16) and $ff);
+  result.a := a;
+end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //

@@ -80,7 +80,7 @@ type
     actionCB: TActionCB;
 
   private
-    mSize: TLaySize; // default size
+    mDefSize: TLaySize; // default size
     mMaxSize: TLaySize; // maximum size
     mActSize: TLaySize; // actual (calculated) size
     mActPos: TLayPos; // actual (calculated) position
@@ -90,13 +90,15 @@ type
     mLineStart: Boolean;
     mHGroup: AnsiString;
     mVGroup: AnsiString;
+    mAlign: Integer;
+    mExpand: Boolean;
 
   public
     // layouter interface
-    function getSize (): TLaySize; inline; // default size; <0: use max size
-    procedure setSize (constref sz: TLaySize); inline; // default size; <0: use max size
+    function getDefSize (): TLaySize; inline; // default size; <0: use max size
+    procedure setDefSize (const sz: TLaySize); inline; // default size; <0: use max size
     function getMaxSize (): TLaySize; inline; // max size; <0: set to some huge value
-    procedure setMaxSize (constref sz: TLaySize); inline; // max size; <0: set to some huge value
+    procedure setMaxSize (const sz: TLaySize); inline; // max size; <0: set to some huge value
     function getFlex (): Integer; inline; // <=0: not flexible
     function isHorizBox (): Boolean; inline; // horizontal layout for children?
     procedure setHorizBox (v: Boolean); inline; // horizontal layout for children?
@@ -104,17 +106,28 @@ type
     procedure setCanWrap (v: Boolean); inline; // for horizontal boxes: can wrap children? for child: `false` means 'nonbreakable at *next* ctl'
     function isLineStart (): Boolean; inline; // `true` if this ctl should start a new line; ignored for vertical boxes
     procedure setLineStart (v: Boolean); inline; // `true` if this ctl should start a new line; ignored for vertical boxes
+    function getAlign (): Integer; inline; // aligning in non-main direction: <0: left/up; 0: center; >0: right/down
+    procedure setAlign (v: Integer); inline; // aligning in non-main direction: <0: left/up; 0: center; >0: right/down
+    function getExpand (): Boolean; inline; // expanding in non-main direction: `true` will ignore align and eat all available space
+    procedure setExpand (v: Boolean); inline; // expanding in non-main direction: `true` will ignore align and eat all available space
     procedure setActualSizePos (constref apos: TLayPos; constref asize: TLaySize); inline;
     function getHGroup (): AnsiString; inline; // empty: not grouped
     procedure setHGroup (const v: AnsiString); inline; // empty: not grouped
     function getVGroup (): AnsiString; inline; // empty: not grouped
     procedure setVGroup (const v: AnsiString); inline; // empty: not grouped
-    function hasSibling (): Boolean; inline;
-    //function nextSibling (): THControl; inline;
-    function hasChildren (): Boolean; inline;
-    //function firstChild (): THControl; inline;
 
     property flex: Integer read mFlex write mFlex;
+    property flDefaultSize: TLaySize read getDefSize write setDefSize;
+    property flMaxSize: TLaySize read getMaxSize write setMaxSize;
+    property flHoriz: Boolean read isHorizBox write setHorizBox;
+    property flCanWrap: Boolean read canWrap write setCanWrap;
+    property flLineStart: Boolean read isLineStart write setLineStart;
+    property flAlign: Integer read getAlign write setAlign;
+    property flExpand: Boolean read getExpand write setExpand;
+    property flHGroup: AnsiString read getHGroup write setHGroup;
+    property flVGroup: AnsiString read getVGroup write setVGroup;
+    property flActualSize: TLaySize read mActSize write mActSize;
+    property flActualPos: TLayPos read mActPos write mActPos;
 
   public
     constructor Create (ax, ay, aw, ah: Integer; aparent: THControl=nil);
@@ -248,11 +261,37 @@ procedure uiRemoveWindow (ctl: THControl);
 function uiVisibleWindow (ctl: THControl): Boolean;
 
 
+// do layouting
+procedure uiLayoutCtl (ctl: THControl);
+
+
 var
   gh_ui_scale: Single = 1.0;
 
 
 implementation
+
+uses
+  gh_flexlay;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
+type
+  TFlexLayouter = specialize TFlexLayouterBase<THControl>;
+
+procedure uiLayoutCtl (ctl: THControl);
+var
+  lay: TFlexLayouter;
+begin
+  if (ctl = nil) then exit;
+  lay := TFlexLayouter.Create();
+  try
+    lay.setup(ctl);
+    lay.layout();
+  finally
+    FreeAndNil(lay);
+  end;
+end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
@@ -415,7 +454,7 @@ begin
   mDrawShadow := false;
   actionCB := nil;
   // layouter interface
-  mSize := TLaySize.Create(64, 10); // default size
+  mDefSize := TLaySize.Create(64, 10); // default size
   mMaxSize := TLaySize.Create(-1, -1); // maximum size
   mActSize := TLaySize.Create(0, 0); // actual (calculated) size
   mActPos := TLayPos.Create(0, 0); // actual (calculated) position
@@ -425,6 +464,8 @@ begin
   mLineStart := false;
   mHGroup := '';
   mVGroup := '';
+  mAlign := -1; // left/top
+  mExpand := false;
 end;
 
 
@@ -453,10 +494,10 @@ begin
 end;
 
 
-function THControl.getSize (): TLaySize; inline; begin result := mSize; end;
-procedure THControl.setSize (constref sz: TLaySize); inline; begin mSize := sz; end;
+function THControl.getDefSize (): TLaySize; inline; begin result := mDefSize; end;
+procedure THControl.setDefSize (const sz: TLaySize); inline; begin mDefSize := sz; end;
 function THControl.getMaxSize (): TLaySize; inline; begin result := mMaxSize; end;
-procedure THControl.setMaxSize (constref sz: TLaySize); inline; begin mMaxSize := sz; end;
+procedure THControl.setMaxSize (const sz: TLaySize); inline; begin mMaxSize := sz; end;
 function THControl.getFlex (): Integer; inline; begin result := mFlex; end;
 function THControl.isHorizBox (): Boolean; inline; begin result := mHoriz; end;
 procedure THControl.setHorizBox (v: Boolean); inline; begin mHoriz := v; end;
@@ -464,15 +505,15 @@ function THControl.canWrap (): Boolean; inline; begin result := mCanWrap; end;
 procedure THControl.setCanWrap (v: Boolean); inline; begin mCanWrap := v; end;
 function THControl.isLineStart (): Boolean; inline; begin result := mLineStart; end;
 procedure THControl.setLineStart (v: Boolean); inline; begin mLineStart := v; end;
+function THControl.getAlign (): Integer; inline; begin result := mAlign; end;
+procedure THControl.setAlign (v: Integer); inline; begin mAlign := v; end;
+function THControl.getExpand (): Boolean; inline; begin result := mExpand; end;
+procedure THControl.setExpand (v: Boolean); inline; begin mExpand := v; end;
 procedure THControl.setActualSizePos (constref apos: TLayPos; constref asize: TLaySize); inline; begin mActPos := apos; mActSize := asize; end;
 function THControl.getHGroup (): AnsiString; inline; begin result := mHGroup; end;
 procedure THControl.setHGroup (const v: AnsiString); inline; begin mHGroup := v; end;
 function THControl.getVGroup (): AnsiString; inline; begin result := mVGroup; end;
 procedure THControl.setVGroup (const v: AnsiString); inline; begin mVGroup := v; end;
-function THControl.hasSibling (): Boolean; inline; begin result := (nextSibling <> nil) end;
-//function THControl.nextSibling (): THControl; inline; begin result := nextSibling; end;
-function THControl.hasChildren (): Boolean; inline; begin result := (firstChild <> nil); end;
-//function THControl.firstChild (): THControl; inline; begin result := firstChild; end;
 
 
 procedure THControl.activated ();
