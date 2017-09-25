@@ -145,6 +145,7 @@ type
     function parseAnyAlign (par: TTextParser): Integer;
     function parseHAlign (par: TTextParser): Integer;
     function parseVAlign (par: TTextParser): Integer;
+    function parseOrientation (const prname: AnsiString; par: TTextParser): Boolean;
     procedure parseTextAlign (par: TTextParser; var h, v: Integer);
     procedure parseChildren (par: TTextParser); // par should be on '{'; final '}' is eaten
 
@@ -321,13 +322,29 @@ type
   // ////////////////////////////////////////////////////////////////////// //
   THCtlSpan = class(THControl)
   public
-    constructor Create ();
-
     procedure AfterConstruction (); override; // so it will be correctly initialized when created from parser
 
     function parseProperty (const prname: AnsiString; par: TTextParser): Boolean; override;
 
     procedure drawControl (gx, gy: Integer); override;
+  end;
+
+  // ////////////////////////////////////////////////////////////////////// //
+  THCtlLine = class(THControl)
+  public
+    function parseProperty (const prname: AnsiString; par: TTextParser): Boolean; override;
+
+    procedure drawControl (gx, gy: Integer); override;
+  end;
+
+  THCtlHLine = class(THCtlLine)
+  public
+    procedure AfterConstruction (); override; // so it will be correctly initialized when created from parser
+  end;
+
+  THCtlVLine = class(THCtlLine)
+  public
+    procedure AfterConstruction (); override; // so it will be correctly initialized when created from parser
   end;
 
   // ////////////////////////////////////////////////////////////////////// //
@@ -339,7 +356,8 @@ type
 
   public
     constructor Create (const atext: AnsiString);
-    //destructor Destroy (); override;
+
+    procedure AfterConstruction (); override; // so it will be correctly initialized when created from parser
 
     function parseProperty (const prname: AnsiString; par: TTextParser): Boolean; override;
 
@@ -833,6 +851,21 @@ begin
     break;
   end;
   if not wasV and not wasH then par.error('invalid align value');
+end;
+
+function THControl.parseOrientation (const prname: AnsiString; par: TTextParser): Boolean;
+begin
+  if (strEquCI1251(prname, 'orientation')) or (strEquCI1251(prname, 'orient')) then
+  begin
+         if (par.eatIdOrStr('horizontal', false)) or (par.eatIdOrStr('horiz', false)) then mHoriz := true
+    else if (par.eatIdOrStr('vertical', false)) or (par.eatIdOrStr('vert', false)) then mHoriz := false
+    else par.error('`horizontal` or `vertical` expected');
+    result := true;
+  end
+  else
+  begin
+    result := false;
+  end;
 end;
 
 // par should be on '{'; final '}' is eaten
@@ -1386,14 +1419,7 @@ begin
     result := true;
     exit;
   end;
-  if (strEquCI1251(prname, 'orientation')) or (strEquCI1251(prname, 'orient')) then
-  begin
-         if (par.eatIdOrStr('horizontal', false)) or (par.eatIdOrStr('horiz', false)) then mHoriz := true
-    else if (par.eatIdOrStr('vertical', false)) or (par.eatIdOrStr('vert', false)) then mHoriz := false
-    else par.error('`horizontal` or `vertical` expected');
-    result := true;
-    exit;
-  end;
+  if (parseOrientation(prname, par)) then begin result := true; exit; end;
   result := inherited parseProperty(prname, par);
 end;
 
@@ -1792,19 +1818,13 @@ constructor THCtlBox.Create (ahoriz: Boolean);
 begin
   inherited Create();
   mHoriz := ahoriz;
+  mCanFocus := false;
 end;
 
 
 function THCtlBox.parseProperty (const prname: AnsiString; par: TTextParser): Boolean;
 begin
-  if (strEquCI1251(prname, 'orientation')) or (strEquCI1251(prname, 'orient')) then
-  begin
-         if (par.eatIdOrStr('horizontal', false)) or (par.eatIdOrStr('horiz', false)) then mHoriz := true
-    else if (par.eatIdOrStr('vertical', false)) or (par.eatIdOrStr('vert', false)) then mHoriz := false
-    else par.error('`horizontal` or `vertical` expected');
-    result := true;
-    exit;
-  end;
+  if (parseOrientation(prname, par)) then begin result := true; exit; end;
   if (strEquCI1251(prname, 'frame')) then
   begin
     mHasFrame := parseBool(par);
@@ -1883,39 +1903,69 @@ procedure THCtlVBox.AfterConstruction ();
 begin
   inherited AfterConstruction();
   mHoriz := false;
+  mCanFocus := false;
 end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-constructor THCtlSpan.Create ();
+procedure THCtlSpan.AfterConstruction ();
 begin
-  inherited Create();
+  inherited AfterConstruction();
   mExpand := true;
+  mCanFocus := false;
 end;
+
 
 function THCtlSpan.parseProperty (const prname: AnsiString; par: TTextParser): Boolean;
 begin
-  if (strEquCI1251(prname, 'orientation')) or (strEquCI1251(prname, 'orient')) then
-  begin
-         if (par.eatIdOrStr('horizontal', false)) or (par.eatIdOrStr('horiz', false)) then mHoriz := true
-    else if (par.eatIdOrStr('vertical', false)) or (par.eatIdOrStr('vert', false)) then mHoriz := false
-    else par.error('`horizontal` or `vertical` expected');
-    result := true;
-    exit;
-  end;
+  if (parseOrientation(prname, par)) then begin result := true; exit; end;
   result := inherited parseProperty(prname, par);
 end;
+
 
 procedure THCtlSpan.drawControl (gx, gy: Integer);
 begin
 end;
 
 
-procedure THCtlSpan.AfterConstruction ();
+// ////////////////////////////////////////////////////////////////////// //
+function THCtlLine.parseProperty (const prname: AnsiString; par: TTextParser): Boolean;
 begin
-  inherited AfterConstruction();
-  //mDefSize := TLaySize.Create(0, 8);
+  if (parseOrientation(prname, par)) then begin result := true; exit; end;
+  result := inherited parseProperty(prname, par);
+end;
+
+
+procedure THCtlLine.drawControl (gx, gy: Integer);
+begin
+  if mHoriz then
+  begin
+    drawHLine(gx, gy+(mHeight div 2), mWidth, 255, 255, 255);
+  end
+  else
+  begin
+    drawVLine(gx+(mWidth div 2), gy, mHeight, 255, 255, 255);
+  end;
+  //fillRect(gx, gy, mWidth, mHeight, 255, 0, 0);
+end;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
+procedure THCtlHLine.AfterConstruction ();
+begin
+  mHoriz := true;
   mExpand := true;
+  mDefSize.h := 1;
+end;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
+procedure THCtlVLine.AfterConstruction ();
+begin
+  mHoriz := false;
+  mExpand := true;
+  mDefSize.w := 1;
+  //mDefSize.h := 8;
 end;
 
 
@@ -1923,10 +1973,18 @@ end;
 constructor THCtlTextLabel.Create (const atext: AnsiString);
 begin
   inherited Create();
-  mHAlign := -1;
-  mVAlign := 0;
   mText := atext;
   mDefSize := TLaySize.Create(Length(atext)*8, 8);
+end;
+
+
+procedure THCtlTextLabel.AfterConstruction ();
+begin
+  inherited AfterConstruction();
+  mHAlign := -1;
+  mVAlign := 0;
+  mCanFocus := false;
+  if (mDefSize.h <= 0) then mDefSize.h := 8;
 end;
 
 
@@ -1991,9 +2049,10 @@ end;
 
 
 initialization
-  registerCtlClass(THCtlBox, 'box');
   registerCtlClass(THCtlHBox, 'hbox');
   registerCtlClass(THCtlVBox, 'vbox');
   registerCtlClass(THCtlSpan, 'span');
+  registerCtlClass(THCtlHLine, 'hline');
+  registerCtlClass(THCtlVLine, 'vline');
   registerCtlClass(THCtlTextLabel, 'label');
 end.

@@ -98,6 +98,9 @@ type
     type LayControlIdx = Integer;
 
   private
+    class function nminX (a, b: Integer): Integer; inline;
+
+  private
     // flags
     const
       FlagHorizBox = LongWord(1) shl 0; // horizontal layout for children
@@ -230,6 +233,15 @@ implementation
 
 uses
   utils;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
+class function TFlexLayouterBase.nminX (a, b: Integer): Integer; inline;
+begin
+       if (a < 0) then begin if (b < 0) then result := 0 else result := b; end
+  else if (b < 0) or (a < b) then result := a
+  else result := b;
+end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
@@ -505,8 +517,8 @@ begin
   if (lc.startsize.w < 0) then lc.startsize.w := 0;
   if (lc.startsize.h < 0) then lc.startsize.h := 0;
   lc.maxsize := msz;
-  if (lc.maxsize.w < lc.startsize.w) then lc.maxsize.w := lc.startsize.w;
-  if (lc.maxsize.h < lc.startsize.h) then lc.maxsize.h := lc.startsize.h;
+  if (lc.maxsize.w < lc.startsize.w) then begin if (lc.maxsize.w >= 0) then lc.maxsize.w := lc.startsize.w; end;
+  if (lc.maxsize.h < lc.startsize.h) then begin if (lc.maxsize.h >= 0) then lc.maxsize.h := lc.startsize.h; end;
 end;
 
 
@@ -618,7 +630,7 @@ begin
       end;
     end;
     // expand or align
-         if (lc.expand) then lc.desiredsize.h := nmin(lc.maxsize.h, lineh) // expand
+         if (lc.expand) then lc.desiredsize.h := nminX(lc.maxsize.h, lineh) // expand
     else if (lc.alignBottom) then lc.desiredpos.y := cury+(lineh-lc.desiredsize.h) // bottom align
     else if (lc.alignCenter) then lc.desiredpos.y := cury+(lineh-lc.desiredsize.h) div 2; // center
     if (not osz.equals(lc.desiredsize)) then
@@ -733,7 +745,7 @@ begin
         end;
       end;
       // expand or align
-           if (lc.expand) then lc.desiredsize.w := nmin(lc.maxsize.w, me.desiredsize.w-me.margins.vert) // expand
+           if (lc.expand) then lc.desiredsize.w := nminX(lc.maxsize.w, me.desiredsize.w-me.margins.vert) // expand
       else if (lc.alignRight) then lc.desiredpos.x := me.desiredsize.w-me.margins.right-lc.desiredsize.w // right align
       else if (lc.alignCenter) then lc.desiredpos.x := (me.desiredsize.w-lc.desiredsize.w) div 2; // center
       if (not osz.equals(lc.desiredsize)) then
