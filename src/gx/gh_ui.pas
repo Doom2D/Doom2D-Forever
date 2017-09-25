@@ -318,7 +318,19 @@ type
     procedure AfterConstruction (); override; // so it will be correctly initialized when created from parser
   end;
 
+  // ////////////////////////////////////////////////////////////////////// //
+  THCtlSpan = class(THControl)
+  public
+    constructor Create ();
 
+    procedure AfterConstruction (); override; // so it will be correctly initialized when created from parser
+
+    function parseProperty (const prname: AnsiString; par: TTextParser): Boolean; override;
+
+    procedure drawControl (gx, gy: Integer); override;
+  end;
+
+  // ////////////////////////////////////////////////////////////////////// //
   THCtlTextLabel = class(THControl)
   private
     mText: AnsiString;
@@ -714,9 +726,9 @@ var
   ech: AnsiChar = ')';
 begin
   if (par.eatDelim('[')) then ech := ']' else par.expectDelim('(');
-  result.h := par.expectInt();
-  par.eatDelim(','); // optional comma
   result.w := par.expectInt();
+  par.eatDelim(','); // optional comma
+  result.h := par.expectInt();
   par.eatDelim(','); // optional comma
   par.expectDelim(ech);
 end;
@@ -1868,6 +1880,40 @@ begin
   mHoriz := false;
 end;
 
+
+// ////////////////////////////////////////////////////////////////////////// //
+constructor THCtlSpan.Create ();
+begin
+  inherited Create();
+  mExpand := true;
+end;
+
+function THCtlSpan.parseProperty (const prname: AnsiString; par: TTextParser): Boolean;
+begin
+  if (strEquCI1251(prname, 'orientation')) or (strEquCI1251(prname, 'orient')) then
+  begin
+         if (par.eatIdOrStr('horizontal', false)) or (par.eatIdOrStr('horiz', false)) then mHoriz := true
+    else if (par.eatIdOrStr('vertical', false)) or (par.eatIdOrStr('vert', false)) then mHoriz := false
+    else par.error('`horizontal` or `vertical` expected');
+    result := true;
+    exit;
+  end;
+  result := inherited parseProperty(prname, par);
+end;
+
+procedure THCtlSpan.drawControl (gx, gy: Integer);
+begin
+end;
+
+
+procedure THCtlSpan.AfterConstruction ();
+begin
+  inherited AfterConstruction();
+  //mDefSize := TLaySize.Create(0, 8);
+  mExpand := true;
+end;
+
+
 // ////////////////////////////////////////////////////////////////////////// //
 constructor THCtlTextLabel.Create (const atext: AnsiString);
 begin
@@ -1943,5 +1989,6 @@ initialization
   registerCtlClass(THCtlBox, 'box');
   registerCtlClass(THCtlHBox, 'hbox');
   registerCtlClass(THCtlVBox, 'vbox');
+  registerCtlClass(THCtlSpan, 'span');
   registerCtlClass(THCtlTextLabel, 'label');
 end.
