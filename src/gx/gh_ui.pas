@@ -415,11 +415,9 @@ begin
     lay.setup(ctl);
     //lay.layout();
 
-    writeln('============================');
-    lay.dumpFlat();
+    //writeln('============================'); lay.dumpFlat();
 
-    writeln('=== initial ===');
-    lay.dump();
+    //writeln('=== initial ==='); lay.dump();
 
     //lay.calcMaxSizeInternal(0);
     {
@@ -433,8 +431,7 @@ begin
     }
 
     lay.layout();
-    writeln('=== final ===');
-    lay.dump();
+    //writeln('=== final ==='); lay.dump();
 
   finally
     FreeAndNil(lay);
@@ -606,7 +603,8 @@ begin
   mDrawShadow := false;
   actionCB := nil;
   // layouter interface
-  mDefSize := TLaySize.Create(64, 8); // default size
+  //mDefSize := TLaySize.Create(64, 8); // default size
+  mDefSize := TLaySize.Create(0, 0); // default size
   mMaxSize := TLaySize.Create(-1, -1); // maximum size
   mFlex := 0;
   mHoriz := true;
@@ -1800,7 +1798,7 @@ begin
   if (strEquCI1251(prname, 'title')) or (strEquCI1251(prname, 'caption')) then
   begin
     mCaption := par.expectStrOrId(true);
-    mDefSize := TLaySize.Create(Length(mCaption)*8+2+8*2, 8*2+2);
+    mDefSize := TLaySize.Create(Length(mCaption)*8+2, 8);
     result := true;
     exit;
   end;

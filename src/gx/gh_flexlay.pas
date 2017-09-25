@@ -144,6 +144,12 @@ type
         function getExpand (): Boolean; inline;
         procedure setExpand (v: Boolean); inline;
 
+        function alignLeft (): Boolean; inline;
+        function alignTop (): Boolean; inline;
+        function alignRight (): Boolean; inline;
+        function alignBottom (): Boolean; inline;
+        function alignCenter (): Boolean; inline;
+
       public
         property didWrap: Boolean read getDidWrap write setDidWrap;
         property expand: Boolean read getExpand write setExpand;
@@ -175,7 +181,7 @@ type
     // this also sets `tempFlex`
     procedure calcMaxSizeInternal (cidx: LayControlIdx);
 
-    procedure fixLine (me: PLayControl; i0, i1: LayControlIdx; cury: Integer; var spaceLeft: Single; var flexTotal: Integer; var flexBoxCount: Integer);
+    procedure fixLine (me: PLayControl; i0, i1: LayControlIdx; var cury: Integer; var spaceLeft: Single);
     // do box layouting; call `layBox()` recursively if necessary
     procedure layBox (boxidx: LayControlIdx);
 
@@ -246,6 +252,12 @@ procedure TFlexLayouterBase.TLayControl.setDidWrap (v: Boolean); inline; begin i
 
 function TFlexLayouterBase.TLayControl.getExpand (): Boolean; inline; begin result := ((flags and FlagExpand) <> 0); end;
 procedure TFlexLayouterBase.TLayControl.setExpand (v: Boolean); inline; begin if (v) then flags := flags or FlagExpand else flags := flags and (not FlagExpand); end;
+
+function TFlexLayouterBase.TLayControl.alignLeft (): Boolean; inline; begin result := (aligndir < 0); end;
+function TFlexLayouterBase.TLayControl.alignTop (): Boolean; inline; begin result := (aligndir < 0); end;
+function TFlexLayouterBase.TLayControl.alignRight (): Boolean; inline; begin result := (aligndir > 0); end;
+function TFlexLayouterBase.TLayControl.alignBottom (): Boolean; inline; begin result := (aligndir > 0); end;
+function TFlexLayouterBase.TLayControl.alignCenter (): Boolean; inline; begin result := (aligndir = 0); end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
@@ -433,6 +445,7 @@ var
   lc, c: PLayControl;
   msz: TLaySize;
   negw, negh: Boolean;
+  zerow: Boolean;
   curwdt, curhgt, totalhgt: Integer;
   doWrap: Boolean;
 begin
@@ -440,8 +453,9 @@ begin
 
   lc := @ctlist[cidx];
   msz := lc.ctl.getMaxSize;
-  negw := (lc.startsize.w <= 0);
-  negh := (lc.startsize.h <= 0);
+  negw := (lc.startsize.w < 0);
+  negh := (lc.startsize.h < 0);
+  zerow := (lc.startsize.w = 0);
 
   lc.tempFlex := lc.ctl.getFlex;
 
@@ -452,14 +466,14 @@ begin
     // horizontal boxes
     if (negw) then lc.tempFlex := 0; // size is negative: don't expand
     curwdt := lc.margins.horiz;
-    curhgt := lc.margins.vert;
-    totalhgt := 0;
+    curhgt := 0;
+    totalhgt := lc.margins.vert;
     for c in forChildren(cidx) do
     begin
       // new line?
       doWrap := (not c.firstInLine) and (c.lineStart);
       // need to wrap?
-      if (not doWrap) and (lc.canWrap) and (c.canWrap) and (msz.w > 0) and (curwdt+c.startsize.w > lc.startsize.w) then doWrap := true;
+      if (not doWrap) and zerow and (lc.canWrap) and (c.canWrap) and (msz.w > 0) and (curwdt+c.startsize.w > lc.startsize.w) then doWrap := true;
       if (doWrap) then
       begin
         totalhgt += curhgt;
@@ -470,7 +484,9 @@ begin
       curwdt += c.startsize.w;
       if (curhgt < c.startsize.h) then curhgt := c.startsize.h;
     end;
+    //writeln('00: ', cidx, ': totalhgt=', totalhgt);
     totalhgt += curhgt;
+    //writeln('01: ', cidx, ': totalhgt=', totalhgt);
     if (lc.startsize.w < curwdt) then lc.startsize.w := curwdt;
     if (lc.startsize.h < totalhgt) then lc.startsize.h := totalhgt;
   end
@@ -512,11 +528,12 @@ begin
     ctlist[f].startsize := ctlist[f].ctl.getDefSize;
     mr := ctlist[f].ctl.getMargins;
     ctlist[f].margins := mr;
-    ctlist[f].startsize.w += mr.horiz;
-    ctlist[f].startsize.h += mr.vert;
+    //ctlist[f].startsize.w += mr.horiz;
+    //ctlist[f].startsize.h += mr.vert;
   end;
   // setup sizes
   calcMaxSizeInternal(0); // this also sets `tempFlex`
+  //writeln('=== calculated max size (0) ==='); dump();
   // find max size for group, adjust 'startsize' controls to group max size
   needRecalcMaxSize := false;
   for gtype := 0 to 1 do
@@ -549,13 +566,14 @@ begin
   for f := 0 to High(ctlist) do ctlist[f].desiredsize := ctlist[f].startsize;
   // set flags
   firstTime := true;
-  //writeln('=== calculated max size ===');
-  //dump();
+  //writeln('=== calculated max size (final) ==='); dump();
 end;
 
 
-procedure TFlexLayouterBase.fixLine (me: PLayControl; i0, i1: LayControlIdx; cury: Integer; var spaceLeft: Single; var flexTotal: Integer; var flexBoxCount: Integer);
+procedure TFlexLayouterBase.fixLine (me: PLayControl; i0, i1: LayControlIdx; var cury: Integer; var spaceLeft: Single);
 var
+  flexTotal: Integer = 0; // total sum of flex fields
+  flexBoxCount: Integer = 0; // number of boxes
   curx: Integer;
   lc: PLayControl;
   osz: TLaySize;
@@ -565,12 +583,13 @@ var
 begin
   curx := me.margins.left;
   sti0 := i0;
-  // calc minimal line height
+  // calc minimal line height, count flexboxes
   lineh := 0;
   while (i0 <> i1) do
   begin
     lc := @ctlist[i0];
     lineh := nmax(lineh, lc.startsize.h);
+    if (lc.tempFlex > 0) then begin flexTotal += lc.tempFlex; flexBoxCount += 1; end;
     i0 := lc.nextSibling;
   end;
   // distribute space, expand/align
@@ -600,8 +619,8 @@ begin
     end;
     // expand or align
          if (lc.expand) then lc.desiredsize.h := nmin(lc.maxsize.h, lineh) // expand
-    else if (lc.aligndir > 0) then lc.desiredpos.y := cury+(lineh-lc.desiredsize.h) // bottom align
-    else if (lc.aligndir = 0) then lc.desiredpos.y := cury+(lineh-lc.desiredsize.h) div 2; // center
+    else if (lc.alignBottom) then lc.desiredpos.y := cury+(lineh-lc.desiredsize.h) // bottom align
+    else if (lc.alignCenter) then lc.desiredpos.y := cury+(lineh-lc.desiredsize.h) div 2; // center
     if (not osz.equals(lc.desiredsize)) then
     begin
       if (lc.inGroup) then groupElementChanged := true;
@@ -613,6 +632,7 @@ begin
   flexTotal := 0;
   flexBoxCount := 0;
   spaceLeft := me.desiredsize.w-me.margins.horiz;
+  cury += lineh;
 end;
 
 
@@ -624,7 +644,7 @@ var
   flexBoxCount: Integer; // number of boxes
   spaceLeft: Single;
   cury: Integer;
-  maxwdt, maxhgt: Integer;
+  maxwdt: Integer;
   lineStartIdx: LayControlIdx;
   lc: PLayControl;
   doWrap: Boolean;
@@ -645,12 +665,10 @@ begin
   begin
     // horizontal boxes
     cury := me.margins.top;
-    maxhgt := 0;
 
-    fixLine(me, -1, -1, cury, spaceLeft, flexTotal, flexBoxCount); //HACK!
+    fixLine(me, -1, -1, cury, spaceLeft); //HACK!
 
     lineStartIdx := me.firstChild;
-
     for lc in forChildren(boxidx) do
     begin
       // new line?
@@ -660,33 +678,20 @@ begin
       if (doWrap) then
       begin
         // new line, fix this one
-        if (not lc.didWrap) then
-        begin
-          wrappingChanged := true;
-          lc.didWrap := true;
-        end;
-        fixLine(me, lineStartIdx, lc.myidx, cury, spaceLeft, flexTotal, flexBoxCount);
-        cury += maxhgt;
+        if (not lc.didWrap) then begin wrappingChanged := true; lc.didWrap := true; end;
+        fixLine(me, lineStartIdx, lc.myidx, cury, spaceLeft);
         lineStartIdx := lc.myidx;
       end
       else
       begin
-        if (lc.didWrap) then
-        begin
-          wrappingChanged := true;
-          lc.didWrap := false;
-        end;
+        if (lc.didWrap) then begin wrappingChanged := true; lc.didWrap := false; end;
       end;
       spaceLeft -= lc.desiredsize.w;
-      if (maxhgt < lc.desiredsize.h) then maxhgt := lc.desiredsize.h;
-      if (lc.tempFlex > 0) then
-      begin
-        flexTotal += lc.tempFlex;
-        flexBoxCount += 1;
-      end;
+      //if (maxhgt < lc.desiredsize.h) then maxhgt := lc.desiredsize.h;
+      //if (lc.tempFlex > 0) then begin flexTotal += lc.tempFlex; flexBoxCount += 1; end;
     end;
     // fix last line
-    fixLine(me, lineStartIdx, -1, cury, spaceLeft, flexTotal, flexBoxCount);
+    fixLine(me, lineStartIdx, -1, cury, spaceLeft);
   end
   else
   begin
@@ -701,11 +706,7 @@ begin
     begin
       spaceLeft -= lc.desiredsize.h;
       if (maxwdt < lc.desiredsize.w) then maxwdt := lc.desiredsize.w;
-      if (lc.tempFlex > 0) then
-      begin
-        flexTotal += lc.tempFlex;
-        flexBoxCount += 1;
-      end;
+      if (lc.tempFlex > 0) then begin flexTotal += lc.tempFlex; flexBoxCount += 1; end;
     end;
 
     // distribute space
@@ -733,8 +734,8 @@ begin
       end;
       // expand or align
            if (lc.expand) then lc.desiredsize.w := nmin(lc.maxsize.w, me.desiredsize.w-me.margins.vert) // expand
-      else if (lc.aligndir > 0) then lc.desiredpos.x := me.desiredsize.w-me.margins.right-lc.desiredsize.w // right align
-      else if (lc.aligndir = 0) then lc.desiredpos.x := (me.desiredsize.w-lc.desiredsize.w) div 2; // center
+      else if (lc.alignRight) then lc.desiredpos.x := me.desiredsize.w-me.margins.right-lc.desiredsize.w // right align
+      else if (lc.alignCenter) then lc.desiredpos.x := (me.desiredsize.w-lc.desiredsize.w) div 2; // center
       if (not osz.equals(lc.desiredsize)) then
       begin
         if (lc.inGroup) then groupElementChanged := true;
