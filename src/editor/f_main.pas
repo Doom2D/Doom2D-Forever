@@ -2599,6 +2599,14 @@ begin
 
   config := TConfig.CreateFile(EditorDir+'Editor.cfg');
 
+  if config.ReadInt('Editor', 'XPos', -1) = -1 then
+    Position := poDesktopCenter
+  else begin
+    Left := config.ReadInt('Editor', 'XPos', Left);
+    Top := config.ReadInt('Editor', 'YPos', Top);
+    Width := config.ReadInt('Editor', 'Width', Width);
+    Height := config.ReadInt('Editor', 'Height', Height);
+  end;
   if config.ReadBool('Editor', 'Maximize', False) then
     WindowState := wsMaximized;
   ShowMap := config.ReadBool('Editor', 'Minimap', False);
@@ -4024,6 +4032,10 @@ var
 begin
   config := TConfig.CreateFile(EditorDir+'Editor.cfg');
 
+  config.WriteInt('Editor', 'XPos', Left);
+  config.WriteInt('Editor', 'YPos', Top);
+  config.WriteInt('Editor', 'Width', Width);
+  config.WriteInt('Editor', 'Height', Height);
   config.WriteBool('Editor', 'Maximize', WindowState = wsMaximized);
   config.WriteBool('Editor', 'Minimap', ShowMap);
   config.WriteInt('Editor', 'PanelProps', PanelProps.ClientWidth);
