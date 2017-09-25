@@ -888,8 +888,13 @@ begin
   if (strEquCI1251(prname, 'id')) then begin mId := par.expectStrOrId(true); exit; end; // allow empty strings
   if (strEquCI1251(prname, 'flex')) then begin flex := par.expectInt(); exit; end;
   // sizes
-  if (strEquCI1251(prname, 'defsize')) then begin mDefSize := parseSize(par); exit; end;
+  if (strEquCI1251(prname, 'defsize')) or (strEquCI1251(prname, 'size')) then begin mDefSize := parseSize(par); exit; end;
   if (strEquCI1251(prname, 'maxsize')) then begin mMaxSize := parseSize(par); exit; end;
+  if (strEquCI1251(prname, 'defwidth')) or (strEquCI1251(prname, 'width')) then begin mDefSize.w := par.expectInt(); exit; end;
+  if (strEquCI1251(prname, 'defheight')) or (strEquCI1251(prname, 'height')) then begin mDefSize.h := par.expectInt(); exit; end;
+  if (strEquCI1251(prname, 'maxwidth')) then begin mMaxSize.w := par.expectInt(); exit; end;
+  if (strEquCI1251(prname, 'maxheight')) then begin mMaxSize.h := par.expectInt(); exit; end;
+  // flags
   if (strEquCI1251(prname, 'wrap')) then begin mCanWrap := parseBool(par); exit; end;
   if (strEquCI1251(prname, 'linestart')) then begin mLineStart := parseBool(par); exit; end;
   if (strEquCI1251(prname, 'expand')) then begin mExpand := parseBool(par); exit; end;
