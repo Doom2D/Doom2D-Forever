@@ -132,28 +132,29 @@ function intersectRect (var x0, y0, w0, h0: Integer; const x1, y1, w1, h1: Integ
 
 procedure normRGBA (var r, g, b, a: Integer); inline;
 function setupGLColor (r, g, b, a: Integer): Boolean;
+function setupGLColor (constref clr: TGxRGBA): Boolean;
 function isScaled (): Boolean;
 
 function textWidth6 (const s: AnsiString): Integer;
 function textWidth8 (const s: AnsiString): Integer;
 // return width (including last empty pixel)
-function drawTextInternal (wdt, x, y: Integer; const s: AnsiString; r, g, b: Integer; a: Integer; tid: GLuint; constref fontwdt: array of Byte; prop: Boolean): Integer;
-procedure drawLine (x1, y1, x2, y2: Integer; r, g, b: Integer; a: Integer=255);
-procedure drawVLine (x, y, len: Integer; r, g, b: Integer; a: Integer=255);
-procedure drawHLine (x, y, len: Integer; r, g, b: Integer; a: Integer=255);
-procedure drawRect (x, y, w, h: Integer; r, g, b: Integer; a: Integer=255);
-procedure drawRectUI (x, y, w, h: Integer; r, g, b: Integer; a: Integer=255);
+function drawTextInternal (wdt, x, y: Integer; const s: AnsiString; constref clr: TGxRGBA; tid: GLuint; constref fontwdt: array of Byte; prop: Boolean): Integer;
+procedure drawLine (x1, y1, x2, y2: Integer; constref clr: TGxRGBA);
+procedure drawVLine (x, y, len: Integer; constref clr: TGxRGBA);
+procedure drawHLine (x, y, len: Integer; constref clr: TGxRGBA);
+procedure drawRect (x, y, w, h: Integer; constref clr: TGxRGBA);
+procedure drawRectUI (x, y, w, h: Integer; constref clr: TGxRGBA);
 procedure darkenRect (x, y, w, h: Integer; a: Integer);
-procedure fillRect (x, y, w, h: Integer; r, g, b: Integer; a: Integer=255);
-function drawText6 (x, y: Integer; const s: AnsiString; r, g, b: Integer; a: Integer=255): Integer;
-function drawText8 (x, y: Integer; const s: AnsiString; r, g, b: Integer; a: Integer=255): Integer;
-function drawText6Prop (x, y: Integer; const s: AnsiString; r, g, b: Integer; a: Integer=255): Integer;
-function drawText8Prop (x, y: Integer; const s: AnsiString; r, g, b: Integer; a: Integer=255): Integer;
+procedure fillRect (x, y, w, h: Integer; constref clr: TGxRGBA);
+function drawText6 (x, y: Integer; const s: AnsiString; constref clr: TGxRGBA): Integer;
+function drawText8 (x, y: Integer; const s: AnsiString; constref clr: TGxRGBA): Integer;
+function drawText6Prop (x, y: Integer; const s: AnsiString; constref clr: TGxRGBA): Integer;
+function drawText8Prop (x, y: Integer; const s: AnsiString; constref clr: TGxRGBA): Integer;
 // x-centered at `x`
-function drawText6XC (x, y: Integer; const s: AnsiString; r, g, b: Integer; a: Integer=255): Integer;
-function drawText8XC (x, y: Integer; const s: AnsiString; r, g, b: Integer; a: Integer=255): Integer;
-function drawText6PropXC (x, y: Integer; const s: AnsiString; r, g, b: Integer; a: Integer=255): Integer;
-function drawText8PropXC (x, y: Integer; const s: AnsiString; r, g, b: Integer; a: Integer=255): Integer;
+function drawText6XC (x, y: Integer; const s: AnsiString; constref clr: TGxRGBA): Integer;
+function drawText8XC (x, y: Integer; const s: AnsiString; constref clr: TGxRGBA): Integer;
+function drawText6PropXC (x, y: Integer; const s: AnsiString; constref clr: TGxRGBA): Integer;
+function drawText8PropXC (x, y: Integer; const s: AnsiString; constref clr: TGxRGBA): Integer;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
@@ -1143,6 +1144,23 @@ begin
   result := true;
 end;
 
+// returns `false` if the color is transparent
+function setupGLColor (constref clr: TGxRGBA): Boolean;
+begin
+  if (clr.a < 255) then
+  begin
+    if (clr.a = 0) then begin result := false; exit; end;
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  end
+  else
+  begin
+    glDisable(GL_BLEND);
+  end;
+  glColor4ub(clr.r, clr.g, clr.b, clr.a);
+  result := true;
+end;
+
 function isScaled (): Boolean;
 var
   mt: packed array [0..15] of Double;
@@ -1174,14 +1192,14 @@ end;
 
 
 // return width (including last empty pixel)
-function drawTextInternal (wdt, x, y: Integer; const s: AnsiString; r, g, b: Integer; a: Integer; tid: GLuint; constref fontwdt: array of Byte; prop: Boolean): Integer;
+function drawTextInternal (wdt, x, y: Integer; const s: AnsiString; constref clr: TGxRGBA; tid: GLuint; constref fontwdt: array of Byte; prop: Boolean): Integer;
 var
   f, c: Integer;
   tx, ty: Integer;
 begin
   result := 0;
   if (Length(s) = 0) then exit;
-  if not setupGLColor(r, g, b, a) then exit;
+  if not setupGLColor(clr) then exit;
 
   glEnable(GL_ALPHA_TEST);
   glAlphaFunc(GL_NOTEQUAL, 0.0);
@@ -1220,10 +1238,10 @@ end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-procedure drawHLine (x, y, len: Integer; r, g, b: Integer; a: Integer=255);
+procedure drawHLine (x, y, len: Integer; constref clr: TGxRGBA);
 begin
   if (len < 1) then exit;
-  if not setupGLColor(r, g, b, a) then exit;
+  if not setupGLColor(clr) then exit;
   glDisable(GL_TEXTURE_2D);
   if (not isScaled) then
   begin
@@ -1244,10 +1262,10 @@ begin
 end;
 
 
-procedure drawVLine (x, y, len: Integer; r, g, b: Integer; a: Integer=255);
+procedure drawVLine (x, y, len: Integer; constref clr: TGxRGBA);
 begin
   if (len < 1) then exit;
-  if not setupGLColor(r, g, b, a) then exit;
+  if not setupGLColor(clr) then exit;
   glDisable(GL_TEXTURE_2D);
   if (not isScaled) then
   begin
@@ -1268,9 +1286,9 @@ begin
 end;
 
 
-procedure drawLine (x1, y1, x2, y2: Integer; r, g, b: Integer; a: Integer=255);
+procedure drawLine (x1, y1, x2, y2: Integer; constref clr: TGxRGBA);
 begin
-  if not setupGLColor(r, g, b, a) then exit;
+  if not setupGLColor(clr) then exit;
 
   glDisable(GL_TEXTURE_2D);
 
@@ -1307,10 +1325,10 @@ begin
 end;
 
 
-procedure drawRect (x, y, w, h: Integer; r, g, b: Integer; a: Integer=255);
+procedure drawRect (x, y, w, h: Integer; constref clr: TGxRGBA);
 begin
   if (w < 0) or (h < 0) then exit;
-  if not setupGLColor(r, g, b, a) then exit;
+  if not setupGLColor(clr) then exit;
   glDisable(GL_TEXTURE_2D);
   glLineWidth(1);
   glDisable(GL_LINE_SMOOTH);
@@ -1336,7 +1354,7 @@ begin
 end;
 
 
-procedure drawRectUI (x, y, w, h: Integer; r, g, b: Integer; a: Integer=255);
+procedure drawRectUI (x, y, w, h: Integer; constref clr: TGxRGBA);
   procedure hline (x, y, len: Integer);
   begin
     if (len < 1) then exit;
@@ -1363,7 +1381,7 @@ var
   scaled: Boolean;
 begin
   if (w < 0) or (h < 0) then exit;
-  if not setupGLColor(r, g, b, a) then exit;
+  if not setupGLColor(clr) then exit;
   glDisable(GL_TEXTURE_2D);
   glLineWidth(1);
   glDisable(GL_LINE_SMOOTH);
@@ -1424,10 +1442,10 @@ begin
 end;
 
 
-procedure fillRect (x, y, w, h: Integer; r, g, b: Integer; a: Integer=255);
+procedure fillRect (x, y, w, h: Integer; constref clr: TGxRGBA);
 begin
   if (w < 0) or (h < 0) then exit;
-  if not setupGLColor(r, g, b, a) then exit;
+  if not setupGLColor(clr) then exit;
   glDisable(GL_LINE_SMOOTH);
   glDisable(GL_POLYGON_SMOOTH);
   glDisable(GL_TEXTURE_2D);
@@ -1443,63 +1461,63 @@ end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-function drawText6 (x, y: Integer; const s: AnsiString; r, g, b: Integer; a: Integer=255): Integer;
+function drawText6 (x, y: Integer; const s: AnsiString; constref clr: TGxRGBA): Integer;
 begin
   if (font6texid = 0) then createFonts();
-  drawTextInternal(6, x, y, s, r, g, b, a, font6texid, kgiFont6PropWidth, false);
+  drawTextInternal(6, x, y, s, clr, font6texid, kgiFont6PropWidth, false);
   result := Length(s)*6;
 end;
 
-function drawText8 (x, y: Integer; const s: AnsiString; r, g, b: Integer; a: Integer=255): Integer;
+function drawText8 (x, y: Integer; const s: AnsiString; constref clr: TGxRGBA): Integer;
 begin
   if (font8texid = 0) then createFonts();
-  drawTextInternal(8, x, y, s, r, g, b, a, font8texid, kgiFont8PropWidth, false);
+  drawTextInternal(8, x, y, s, clr, font8texid, kgiFont8PropWidth, false);
   result := Length(s)*8;
 end;
 
-function drawText6Prop (x, y: Integer; const s: AnsiString; r, g, b: Integer; a: Integer=255): Integer;
+function drawText6Prop (x, y: Integer; const s: AnsiString; constref clr: TGxRGBA): Integer;
 begin
   if (prfont6texid = 0) then createFonts();
-  result := drawTextInternal(6, x, y, s, r, g, b, a, prfont6texid, kgiFont6PropWidth, true);
+  result := drawTextInternal(6, x, y, s, clr, prfont6texid, kgiFont6PropWidth, true);
 end;
 
-function drawText8Prop (x, y: Integer; const s: AnsiString; r, g, b: Integer; a: Integer=255): Integer;
+function drawText8Prop (x, y: Integer; const s: AnsiString; constref clr: TGxRGBA): Integer;
 begin
   if (prfont8texid = 0) then createFonts();
-  result := drawTextInternal(8, x, y, s, r, g, b, a, prfont8texid, kgiFont8PropWidth, true);
+  result := drawTextInternal(8, x, y, s, clr, prfont8texid, kgiFont8PropWidth, true);
 end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
 // x-centered at `x`
-function drawText6XC (x, y: Integer; const s: AnsiString; r, g, b: Integer; a: Integer=255): Integer;
+function drawText6XC (x, y: Integer; const s: AnsiString; constref clr: TGxRGBA): Integer;
 begin
   if (font6texid = 0) then createFonts();
   x -= Length(s)*6 div 2;
-  drawTextInternal(6, x, y, s, r, g, b, a, font6texid, kgiFont6PropWidth, false);
+  drawTextInternal(6, x, y, s, clr, font6texid, kgiFont6PropWidth, false);
   result := Length(s)*6;
 end;
 
-function drawText8XC (x, y: Integer; const s: AnsiString; r, g, b: Integer; a: Integer=255): Integer;
+function drawText8XC (x, y: Integer; const s: AnsiString; constref clr: TGxRGBA): Integer;
 begin
   if (font8texid = 0) then createFonts();
   x -= Length(s)*8 div 2;
-  drawTextInternal(8, x, y, s, r, g, b, a, font8texid, kgiFont8PropWidth, false);
+  drawTextInternal(8, x, y, s, clr, font8texid, kgiFont8PropWidth, false);
   result := Length(s)*8;
 end;
 
-function drawText6PropXC (x, y: Integer; const s: AnsiString; r, g, b: Integer; a: Integer=255): Integer;
+function drawText6PropXC (x, y: Integer; const s: AnsiString; constref clr: TGxRGBA): Integer;
 begin
   if (prfont6texid = 0) then createFonts();
   x -= textWidth6(s) div 2;
-  result := drawTextInternal(6, x, y, s, r, g, b, a, prfont6texid, kgiFont6PropWidth, true);
+  result := drawTextInternal(6, x, y, s, clr, prfont6texid, kgiFont6PropWidth, true);
 end;
 
-function drawText8PropXC (x, y: Integer; const s: AnsiString; r, g, b: Integer; a: Integer=255): Integer;
+function drawText8PropXC (x, y: Integer; const s: AnsiString; constref clr: TGxRGBA): Integer;
 begin
   if (prfont8texid = 0) then createFonts();
   x -= textWidth8(s) div 2;
-  result := drawTextInternal(8, x, y, s, r, g, b, a, prfont8texid, kgiFont8PropWidth, true);
+  result := drawTextInternal(8, x, y, s, clr, prfont8texid, kgiFont8PropWidth, true);
 end;
 
 

@@ -1436,7 +1436,7 @@ end;
 
 procedure THTopWindow.drawControl (gx, gy: Integer);
 begin
-  fillRect(gx, gy, mWidth, mHeight, 0, 0, 128);
+  fillRect(gx, gy, mWidth, mHeight, TGxRGBA.Create(0, 0, 128));
 end;
 
 
@@ -1449,24 +1449,24 @@ var
 begin
   if mDragging then
   begin
-    drawRectUI(mX+4, mY+4, mWidth-8, mHeight-8, r, g, b);
+    drawRectUI(mX+4, mY+4, mWidth-8, mHeight-8, TGxRGBA.Create(r, g, b));
   end
   else
   begin
-    drawRectUI(mX+3, mY+3, mWidth-6, mHeight-6, r, g, b);
-    drawRectUI(mX+5, mY+5, mWidth-10, mHeight-10, r, g, b);
+    drawRectUI(mX+3, mY+3, mWidth-6, mHeight-6, TGxRGBA.Create(r, g, b));
+    drawRectUI(mX+5, mY+5, mWidth-10, mHeight-10, TGxRGBA.Create(r, g, b));
     setScissor(mFrameWidth, 0, 3*8, 8);
-    fillRect(mX+mFrameWidth, mY, 3*8, 8, 0, 0, 128);
-    drawText8(mX+mFrameWidth, mY, '[ ]', r, g, b);
-    if mInClose then drawText8(mX+mFrameWidth+7, mY, '#', 0, 255, 0)
-    else drawText8(mX+mFrameWidth+7, mY, '*', 0, 255, 0);
+    fillRect(mX+mFrameWidth, mY, 3*8, 8, TGxRGBA.Create(0, 0, 128));
+    drawText8(mX+mFrameWidth, mY, '[ ]', TGxRGBA.Create(r, g, b));
+    if mInClose then drawText8(mX+mFrameWidth+7, mY, '#', TGxRGBA.Create(0, 255, 0))
+    else drawText8(mX+mFrameWidth+7, mY, '*', TGxRGBA.Create(0, 255, 0));
   end;
   if (Length(mTitle) > 0) then
   begin
     setScissor(mFrameWidth+3*8, 0, mWidth-mFrameWidth*2-3*8, 8);
     tx := (mX+3*8)+((mWidth-3*8)-Length(mTitle)*8) div 2;
-    fillRect(tx-3, mY, Length(mTitle)*8+3+2, 8, 0, 0, 128);
-    drawText8(tx, mY, mTitle, r, g, b);
+    fillRect(tx-3, mY, Length(mTitle)*8+3+2, 8, TGxRGBA.Create(0, 0, 128));
+    drawText8(tx, mY, mTitle, TGxRGBA.Create(r, g, b));
   end;
   inherited drawControlPost(gx, gy);
 end;
@@ -1624,15 +1624,15 @@ begin
       b := 255;
       if (Length(it.title) = 0) then
       begin
-        drawHLine(gx+4, gy+3, mWidth-8, r, g, b);
+        drawHLine(gx+4, gy+3, mWidth-8, TGxRGBA.Create(r, g, b));
       end
       else if (tx-3 > gx+4) then
       begin
-        drawHLine(gx+4, gy+3, tx-3-(gx+3), r, g, b);
-        drawHLine(tx+Length(it.title)*8, gy+3, mWidth-4, r, g, b);
+        drawHLine(gx+4, gy+3, tx-3-(gx+3), TGxRGBA.Create(r, g, b));
+        drawHLine(tx+Length(it.title)*8, gy+3, mWidth-4, TGxRGBA.Create(r, g, b));
       end;
     end;
-    drawText8(tx, gy, it.title, r, g, b);
+    drawText8(tx, gy, it.title, TGxRGBA.Create(r, g, b));
     Inc(gy, 8);
   end;
 end;
@@ -1695,25 +1695,25 @@ begin
   for f := 0 to High(mItems) do
   begin
     it := @mItems[f];
-    if (mCurIndex = f) then fillRect(gx, gy, mWidth, 8, 0, 128, 0);
+    if (mCurIndex = f) then fillRect(gx, gy, mWidth, 8, TGxRGBA.Create(0, 128, 0));
     if (it.varp <> nil) then
     begin
-      if it.varp^ then drawText8(gx, gy, '[x]', 255, 255, 255) else drawText8(gx, gy, '[ ]', 255, 255, 255);
-      drawText8(gx+3*8+2, gy, it.title, 255, 255, 0);
+      if it.varp^ then drawText8(gx, gy, '[x]', TGxRGBA.Create(255, 255, 255)) else drawText8(gx, gy, '[ ]', TGxRGBA.Create(255, 255, 255));
+      drawText8(gx+3*8+2, gy, it.title, TGxRGBA.Create(255, 255, 0));
     end
     else if (Length(it.title) > 0) then
     begin
       tx := gx+(mWidth-Length(it.title)*8) div 2;
       if (tx-3 > gx+4) then
       begin
-        drawHLine(gx+4, gy+3, tx-3-(gx+3), 255, 255, 255);
-        drawHLine(tx+Length(it.title)*8, gy+3, mWidth-4, 255, 255, 255);
+        drawHLine(gx+4, gy+3, tx-3-(gx+3), TGxRGBA.Create(255, 255, 255));
+        drawHLine(tx+Length(it.title)*8, gy+3, mWidth-4, TGxRGBA.Create(255, 255, 255));
       end;
-      drawText8(tx, gy, it.title, 255, 255, 255);
+      drawText8(tx, gy, it.title, TGxRGBA.Create(255, 255, 255));
     end
     else
     begin
-      drawHLine(gx+4, gy+3, mWidth-8, 255, 255, 255);
+      drawHLine(gx+4, gy+3, mWidth-8, TGxRGBA.Create(255, 255, 255));
     end;
     Inc(gy, 8);
   end;
@@ -1858,15 +1858,15 @@ begin
   if mHasFrame then
   begin
     // draw frame
-    drawRectUI(gx+3, gy+3, mWidth-6, mHeight-6, r, g, b);
+    drawRectUI(gx+3, gy+3, mWidth-6, mHeight-6, TGxRGBA.Create(r, g, b));
   end;
   // draw caption
   if (Length(mCaption) > 0) then
   begin
     setScissor(mFrameWidth+1, 0, mWidth-mFrameWidth-2, 8);
     tx := gx+((mWidth-Length(mCaption)*8) div 2);
-    if mHasFrame then fillRect(tx-2, gy, Length(mCaption)*8+3, 8, 0, 0, 128);
-    drawText8(tx, gy, mCaption, r, g, b);
+    if mHasFrame then fillRect(tx-2, gy, Length(mCaption)*8+3, 8, TGxRGBA.Create(0, 0, 128));
+    drawText8(tx, gy, mCaption, TGxRGBA.Create(r, g, b));
   end;
 end;
 
@@ -1940,13 +1940,12 @@ procedure THCtlLine.drawControl (gx, gy: Integer);
 begin
   if mHoriz then
   begin
-    drawHLine(gx, gy+(mHeight div 2), mWidth, 255, 255, 255);
+    drawHLine(gx, gy+(mHeight div 2), mWidth, TGxRGBA.Create(255, 255, 255));
   end
   else
   begin
-    drawVLine(gx+(mWidth div 2), gy, mHeight, 255, 255, 255);
+    drawVLine(gx+(mWidth div 2), gy, mHeight, TGxRGBA.Create(255, 255, 255));
   end;
-  //fillRect(gx, gy, mWidth, mHeight, 255, 0, 0);
 end;
 
 
@@ -2012,8 +2011,8 @@ var
   xpos, ypos: Integer;
 begin
   // debug
-  fillRect(gx, gy, mWidth, mHeight, 96, 96, 0);
-  drawRectUI(gx, gy, mWidth, mHeight, 96, 96, 96);
+  fillRect(gx, gy, mWidth, mHeight, TGxRGBA.Create(96, 96, 0));
+  drawRectUI(gx, gy, mWidth, mHeight, TGxRGBA.Create(96, 96, 96));
 
   if (Length(mText) > 0) then
   begin
@@ -2025,7 +2024,7 @@ begin
     else if (mVAlign > 0) then ypos := mHeight-8
     else ypos := (mHeight-8) div 2;
 
-    drawText8(gx+xpos, gy+ypos, mText, 255, 255, 255);
+    drawText8(gx+xpos, gy+ypos, mText, TGxRGBA.Create(255, 255, 255));
   end;
 end;
 

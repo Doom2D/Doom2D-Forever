@@ -702,11 +702,11 @@ var
       end;
       if g_ol_fill_walls then
       begin
-        fillRect(pan.X, pan.Y, pan.Width, pan.Height, r, g, b);
+        fillRect(pan.X, pan.Y, pan.Width, pan.Height, TGxRGBA.Create(r, g, b));
       end
       else if not g_ol_nice then
       begin
-        drawRect(pan.X, pan.Y, pan.Width, pan.Height, r, g, b);
+        drawRect(pan.X, pan.Y, pan.Width, pan.Height, TGxRGBA.Create(r, g, b));
       end;
     end;
     if g_ol_nice then
@@ -737,12 +737,12 @@ procedure plrDebugDraw ();
   begin
     for y := 0 to (mapGrid.gridHeight div mapGrid.tileSize) do
     begin
-      drawLine(mapGrid.gridX0, mapGrid.gridY0+y*mapGrid.tileSize, mapGrid.gridX0+mapGrid.gridWidth, mapGrid.gridY0+y*mapGrid.tileSize, 96, 96, 96, 255);
+      drawLine(mapGrid.gridX0, mapGrid.gridY0+y*mapGrid.tileSize, mapGrid.gridX0+mapGrid.gridWidth, mapGrid.gridY0+y*mapGrid.tileSize, TGxRGBA.Create(96, 96, 96));
     end;
 
     for x := 0 to (mapGrid.gridWidth div mapGrid.tileSize) do
     begin
-      drawLine(mapGrid.gridX0+x*mapGrid.tileSize, mapGrid.gridY0, mapGrid.gridX0+x*mapGrid.tileSize, mapGrid.gridY0+y*mapGrid.gridHeight, 96, 96, 96, 255);
+      drawLine(mapGrid.gridX0+x*mapGrid.tileSize, mapGrid.gridY0, mapGrid.gridX0+x*mapGrid.tileSize, mapGrid.gridY0+y*mapGrid.gridHeight, TGxRGBA.Create(96, 96, 96));
     end;
   end;
 
@@ -756,7 +756,7 @@ procedure plrDebugDraw ();
       begin
         if awmIsSetHolmes(x*mapGrid.tileSize+mapGrid.gridX0+1, y*mapGrid.tileSize++mapGrid.gridY0+1) then
         begin
-          fillRect(x*mapGrid.tileSize++mapGrid.gridX0, y*mapGrid.tileSize++mapGrid.gridY0, monsGrid.tileSize, monsGrid.tileSize, 128, 0, 128, 64);
+          fillRect(x*mapGrid.tileSize++mapGrid.gridX0, y*mapGrid.tileSize++mapGrid.gridY0, monsGrid.tileSize, monsGrid.tileSize, TGxRGBA.Create(128, 0, 128, 64));
         end;
       end;
     end;
@@ -774,25 +774,25 @@ procedure plrDebugDraw ();
     plr := gPlayers[0];
     if (plr = nil) then exit;
     plr.getMapBox(px, py, pw, ph);
-    drawRect(px, py, pw, ph, 255, 0, 255, 200);
+    drawRect(px, py, pw, ph, TGxRGBA.Create(255, 0, 255, 200));
     pdx := pmsCurMapX-(px+pw div 2);
     pdy := pmsCurMapY-(py+ph div 2);
-    drawLine(px+pw div 2, py+ph div 2, px+pw div 2+pdx, py+ph div 2+pdy, 255, 0, 255, 200);
+    drawLine(px+pw div 2, py+ph div 2, px+pw div 2+pdx, py+ph div 2+pdy, TGxRGBA.Create(255, 0, 255, 200));
     pan := mapGrid.traceBox(ex, ey, px, py, pw, ph, pdx, pdy, nil, GridTagObstacle);
     if (pan = nil) then
     begin
-      drawRect(px+pdx, py+pdy, pw, ph, 255, 255, 255, 180);
+      drawRect(px+pdx, py+pdy, pw, ph, TGxRGBA.Create(255, 255, 255, 180));
     end
     else
     begin
-      drawRect(px+pdx, py+pdy, pw, ph, 255, 255, 0, 180);
+      drawRect(px+pdx, py+pdy, pw, ph, TGxRGBA.Create(255, 255, 0, 180));
     end;
-    drawRect(ex, ey, pw, ph, 255, 127, 0, 180);
+    drawRect(ex, ey, pw, ph, TGxRGBA.Create(255, 127, 0, 180));
   end;
 
   procedure hilightCell (cx, cy: Integer);
   begin
-    fillRect(cx, cy, monsGrid.tileSize, monsGrid.tileSize, 0, 128, 0, 64);
+    fillRect(cx, cy, monsGrid.tileSize, monsGrid.tileSize, TGxRGBA.Create(0, 128, 0, 64));
   end;
 
   procedure hilightCell1 (cx, cy: Integer);
@@ -800,7 +800,7 @@ procedure plrDebugDraw ();
     //e_WriteLog(Format('h1: (%d,%d)', [cx, cy]), MSG_NOTIFY);
     cx := cx and (not (monsGrid.tileSize-1));
     cy := cy and (not (monsGrid.tileSize-1));
-    fillRect(cx, cy, monsGrid.tileSize, monsGrid.tileSize, 255, 255, 0, 92);
+    fillRect(cx, cy, monsGrid.tileSize, monsGrid.tileSize, TGxRGBA.Create(255, 255, 0, 92));
   end;
 
   function hilightWallTrc (pan: TPanel; tag: Integer; x, y, prevx, prevy: Integer): Boolean;
@@ -808,7 +808,7 @@ procedure plrDebugDraw ();
     result := false; // don't stop
     if (pan = nil) then exit; // cell completion, ignore
     //e_WriteLog(Format('h1: (%d,%d)', [cx, cy]), MSG_NOTIFY);
-    fillRect(pan.X, pan.Y, pan.Width, pan.Height, 0, 128, 128, 64);
+    fillRect(pan.X, pan.Y, pan.Width, pan.Height, TGxRGBA.Create(0, 128, 128, 64));
   end;
 
   function monsCollector (mon: TMonster; tag: Integer): Boolean;
@@ -851,10 +851,10 @@ procedure plrDebugDraw ();
         exit;
       end;
       mon.getMapBox(mx, my, mw, mh);
-      drawLine(mx+mw div 2, my+mh div 2, emx+emw div 2, emy+emh div 2, 255, 0, 0, 255);
+      drawLine(mx+mw div 2, my+mh div 2, emx+emw div 2, emy+emh div 2, TGxRGBA.Create(255, 0, 0));
       if (g_Map_traceToNearestWall(mx+mw div 2, my+mh div 2, emx+emw div 2, emy+emh div 2, @ex, @ey) <> nil) then
       begin
-        drawLine(mx+mw div 2, my+mh div 2, ex, ey, 0, 255, 0, 255);
+        drawLine(mx+mw div 2, my+mh div 2, ex, ey, TGxRGBA.Create(0, 255, 0));
       end;
     end;
 
@@ -868,14 +868,14 @@ procedure plrDebugDraw ();
       if (eplr = nil) then exit;
       eplr.getMapBox(emx, emy, emw, emh);
       mon.getMapBox(mx, my, mw, mh);
-      drawLine(mx+mw div 2, my+mh div 2, emx+emw div 2, emy+emh div 2, 255, 0, 0, 255);
+      drawLine(mx+mw div 2, my+mh div 2, emx+emw div 2, emy+emh div 2, TGxRGBA.Create(255, 0, 0));
       {$IF DEFINED(D2F_DEBUG)}
       mapGrid.dbgRayTraceTileHitCB := hilightCell1;
       {$ENDIF}
       if (g_Map_traceToNearestWall(mx+mw div 2, my+mh div 2, emx+emw div 2, emy+emh div 2, @ex, @ey) <> nil) then
       //if (mapGrid.traceRay(ex, ey, mx+mw div 2, my+mh div 2, emx+emw div 2, emy+emh div 2, hilightWallTrc, (GridTagWall or GridTagDoor)) <> nil) then
       begin
-        drawLine(mx+mw div 2, my+mh div 2, ex, ey, 0, 255, 0, 255);
+        drawLine(mx+mw div 2, my+mh div 2, ex, ey, TGxRGBA.Create(0, 255, 0));
       end;
       {$IF DEFINED(D2F_DEBUG)}
       mapGrid.dbgRayTraceTileHitCB := nil;
@@ -897,18 +897,18 @@ procedure plrDebugDraw ();
       my -= 2;
 
       // type
-      drawText6(mx, my, Format('%s(U:%u)', [monsTypeToString(mon.MonsterType), mon.UID]), 255, 127, 0); my -= 8;
+      drawText6(mx, my, Format('%s(U:%u)', [monsTypeToString(mon.MonsterType), mon.UID]), TGxRGBA.Create(255, 127, 0)); my -= 8;
       // beh
-      drawText6(mx, my, Format('Beh: %s', [monsBehToString(mon.MonsterBehaviour)]), 255, 127, 0); my -= 8;
+      drawText6(mx, my, Format('Beh: %s', [monsBehToString(mon.MonsterBehaviour)]), TGxRGBA.Create(255, 127, 0)); my -= 8;
       // state
-      drawText6(mx, my, Format('State:%s (%d)', [monsStateToString(mon.MonsterState), mon.MonsterSleep]), 255, 127, 0); my -= 8;
+      drawText6(mx, my, Format('State:%s (%d)', [monsStateToString(mon.MonsterState), mon.MonsterSleep]), TGxRGBA.Create(255, 127, 0)); my -= 8;
       // health
-      drawText6(mx, my, Format('Health:%d', [mon.MonsterHealth]), 255, 127, 0); my -= 8;
+      drawText6(mx, my, Format('Health:%d', [mon.MonsterHealth]), TGxRGBA.Create(255, 127, 0)); my -= 8;
       // ammo
-      drawText6(mx, my, Format('Ammo:%d', [mon.MonsterAmmo]), 255, 127, 0); my -= 8;
+      drawText6(mx, my, Format('Ammo:%d', [mon.MonsterAmmo]), TGxRGBA.Create(255, 127, 0)); my -= 8;
       // target
-      drawText6(mx, my, Format('TgtUID:%u', [mon.MonsterTargetUID]), 255, 127, 0); my -= 8;
-      drawText6(mx, my, Format('TgtTime:%d', [mon.MonsterTargetTime]), 255, 127, 0); my -= 8;
+      drawText6(mx, my, Format('TgtUID:%u', [mon.MonsterTargetUID]), TGxRGBA.Create(255, 127, 0)); my -= 8;
+      drawText6(mx, my, Format('TgtTime:%d', [mon.MonsterTargetTime]), TGxRGBA.Create(255, 127, 0)); my -= 8;
     end;
 
     drawMonsterTargetLine();
@@ -934,7 +934,7 @@ procedure plrDebugDraw ();
     pan := g_Map_PanelByGUID(platMarkedGUID);
     if (pan = nil) then exit;
     mapGrid.forEachBodyCell(pan.proxyId, hilightCell);
-    drawRect(pan.x, pan.y, pan.width, pan.height, 0, 200, 0, 200);
+    drawRect(pan.x, pan.y, pan.width, pan.height, TGxRGBA.Create(0, 200, 0, 200));
   end;
 
   procedure drawTrigger (var trig: TTrigger);
@@ -948,21 +948,21 @@ procedure plrDebugDraw ();
       drawLine(
         trig.trigCenter.x, trig.trigCenter.y,
         pan.x+pan.width div 2, pan.y+pan.height div 2,
-        255, 0, 255, 220);
+        TGxRGBA.Create(255, 0, 255, 220));
     end;
 
   var
     tts: AnsiString;
     tx: Integer;
   begin
-    fillRect(trig.x, trig.y, trig.width, trig.height, 255, 0, 255, 96);
+    fillRect(trig.x, trig.y, trig.width, trig.height, TGxRGBA.Create(255, 0, 255, 96));
     tts := trigType2Str(trig.TriggerType);
     tx := trig.x+(trig.width-Length(tts)*6) div 2;
     darkenRect(tx-2, trig.y-10, Length(tts)*6+4, 10, 64);
-    drawText6(tx, trig.y-9, tts, 255, 127, 0);
+    drawText6(tx, trig.y-9, tts, TGxRGBA.Create(255, 127, 0));
     tx := trig.x+(trig.width-Length(trig.mapId)*6) div 2;
     darkenRect(tx-2, trig.y-20, Length(trig.mapId)*6+4, 10, 64);
-    drawText6(tx, trig.y-19, trig.mapId, 255, 255, 0);
+    drawText6(tx, trig.y-19, trig.mapId, TGxRGBA.Create(255, 255, 0));
     drawPanelDest(trig.trigPanelGUID);
     case trig.TriggerType of
       TRIGGER_NONE: begin end;
@@ -986,12 +986,12 @@ procedure plrDebugDraw ();
             fillRect(
               trig.trigDataRec.trigTX, trig.trigDataRec.trigTY,
               trig.trigDataRec.trigTWidth, trig.trigDataRec.trigTHeight,
-              0, 255, 255, 42);
+              TGxRGBA.Create(0, 255, 255, 42));
             drawLine(
               trig.trigCenter.x, trig.trigCenter.y,
               trig.trigDataRec.trigTX+trig.trigDataRec.trigTWidth div 2,
               trig.trigDataRec.trigTY+trig.trigDataRec.trigTHeight div 2,
-              255, 0, 255, 220);
+              TGxRGBA.Create(255, 0, 255, 220));
           end;
         end;
       TRIGGER_SOUND: begin end;
@@ -1030,7 +1030,7 @@ procedure plrDebugDraw ();
       if gib.alive then
       begin
         gib.getMapBox(px, py, pw, ph);
-        drawRect(px, py, pw, ph, 255, 0, 255);
+        drawRect(px, py, pw, ph, TGxRGBA.Create(255, 0, 255));
       end;
     end;
   end;
@@ -1100,7 +1100,7 @@ begin
     scisave.restore();
   end;
 
-  if showMapCurPos then drawText8(4, gWinSizeY-10, Format('mappos:(%d,%d)', [pmsCurMapX, pmsCurMapY]), 255, 255, 0);
+  if showMapCurPos then drawText8(4, gWinSizeY-10, Format('mappos:(%d,%d)', [pmsCurMapX, pmsCurMapY]), TGxRGBA.Create(255, 255, 0));
 end;
 
 
