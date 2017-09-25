@@ -1815,7 +1815,7 @@ begin
   if (strEquCI1251(prname, 'title')) or (strEquCI1251(prname, 'caption')) then
   begin
     mCaption := par.expectStrOrId(true);
-    mDefSize := TLaySize.Create(Length(mCaption)*8+2, 8);
+    mDefSize := TLaySize.Create(Length(mCaption)*8+3, 8);
     result := true;
     exit;
   end;
@@ -1844,9 +1844,9 @@ begin
   if (Length(mCaption) > 0) then
   begin
     setScissor(mFrameWidth+1, 0, mWidth-mFrameWidth-2, 8);
-    tx := gx+((mWidth-Length(mCaption)*8) div 2)-1;
-    if mHasFrame then fillRect(tx, gy, Length(mCaption)*8+2, 8, 0, 0, 128);
-    drawText8(tx+1, gy, mCaption, r, g, b);
+    tx := gx+((mWidth-Length(mCaption)*8) div 2);
+    if mHasFrame then fillRect(tx-2, gy, Length(mCaption)*8+3, 8, 0, 0, 128);
+    drawText8(tx, gy, mCaption, r, g, b);
   end;
 end;
 
