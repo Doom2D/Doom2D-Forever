@@ -1795,6 +1795,7 @@ procedure FullClear();
 begin
   RemoveSelectFromObjects();
   ClearMap();
+  LoadSky(gMapInfo.SkyName);
   UndoBuffer := nil;
   slInvalidTextures.Clear();
   MapCheckForm.lbErrorList.Clear();
