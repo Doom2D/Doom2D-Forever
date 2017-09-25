@@ -838,12 +838,12 @@ begin
 
   if not glHasExtension('GL_ARB_texture_non_power_of_two') then
   begin
-    e_WriteLog('Driver DID''T advertised NPOT textures support', TMsgType.Warning);
+    e_WriteLog('NPOT textures: NO', TMsgType.Warning);
     glLegacyNPOT := true;
   end
   else
   begin
-    e_WriteLog('Driver advertised NPOT textures support', TMsgType.Notify);
+    e_WriteLog('NPOT textures: YES', TMsgType.Notify);
     glLegacyNPOT := false;
   end;
   gwin_dump_extensions := false;
