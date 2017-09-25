@@ -6107,6 +6107,8 @@ begin
 
   PreviewMode := not PreviewMode;
   (Sender as TMenuItem).Checked := PreviewMode;
+
+  FormResize(Self);
 end;
 
 procedure TMainForm.miLayer1Click(Sender: TObject);
