@@ -1063,7 +1063,7 @@ begin
   wassc := (glIsEnabled(GL_SCISSOR_TEST) <> 0);
   if wassc then glGetIntegerv(GL_SCISSOR_BOX, @scxywh[0]) else glGetIntegerv(GL_VIEWPORT, @scxywh[0]);
   //conwritefln('(%d,%d)-(%d,%d)', [scxywh[0], scxywh[1], scxywh[2], scxywh[3]]);
-  if enableScissoring then glEnable(GL_SCISSOR_TEST);
+  if enableScissoring and (not wassc) then glEnable(GL_SCISSOR_TEST);
 end;
 
 procedure TScissorSave.restore ();
@@ -1081,6 +1081,7 @@ begin
   if not intersectRect(x, y, w, h, scxywh[0], scxywh[1], scxywh[2], scxywh[3]) then
   begin
     //writeln('oops: COMBINE: old=(', ox, ',', oy, ')-(', ox+ow-1, ',', oy+oh-1, '); sci: (', scxywh[0], ',', scxywh[1], ')-(', scxywh[0]+scxywh[2]-1, ',', scxywh[1]+scxywh[3]-1, ')');
+    //writeln('oops: COMBINE: oldx=<', ox, '-', ox+ow-1, '>; oldy=<', oy, ',', oy+oh-1, '> : scix=<', scxywh[0], '-', scxywh[0]+scxywh[2]-1, '>; sciy=<', scxywh[1], '-', scxywh[1]+scxywh[3]-1, '>');
     glScissor(0, 0, 0, 0);
   end
   else
@@ -1093,19 +1094,22 @@ end;
 function intersectRect (var x0, y0, w0, h0: Integer; const x1, y1, w1, h1: Integer): Boolean;
 var
   ex0, ey0: Integer;
+  ex1, ey1: Integer;
 begin
   result := false;
-  if (w0 < 1) or (h0 < 1) or (w1 < 1) or (h1 < 1) then exit;
+  if (w0 < 1) or (h0 < 1) or (w1 < 1) or (h1 < 1) then exit; // at least one rect is null
   // check for intersection
   ex0 := x0+w0;
   ey0 := y0+h0;
-  if (ex0 <= x1) or (ey0 <= y1) or (x1+w1 <= x0) or (y1+h1 <= y0) then exit;
-  if (x0 >= x1+w1) or (y0 >= y1+h1) or (x1 >= ex0) or (y1 >= ey0) then exit;
+  ex1 := x1+w1;
+  ey1 := y1+h1;
+  if (ex0 <= x1) or (ey0 <= y1) or (ex1 <= x0) or (ey1 <= y0) then exit;
+  if (x0 >= ex1) or (y0 >= ey1) or (x1 >= ex0) or (y1 >= ey0) then exit;
   // ok, intersects
   if (x0 < x1) then x0 := x1;
   if (y0 < y1) then y0 := y1;
-  if (ex0 > x1+w1) then ex0 := x1+w1;
-  if (ey0 > y1+h1) then ey0 := y1+h1;
+  if (ex0 > ex1) then ex0 := ex1;
+  if (ey0 > ey1) then ey0 := ey1;
   w0 := ex0-x0;
   h0 := ey0-y0;
   result := (w0 > 0) and (h0 > 0);

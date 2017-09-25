@@ -73,12 +73,13 @@ type
     procedure blurred (); virtual;
 
     //WARNING! do not call scissor functions outside `.draw*()` API!
-    // reset scissor to whole control
-    procedure resetScissor ();
-    // set scissor to this internal rect (in local coords)
+    // set scissor to this rect (in local coords)
     procedure setScissor (lx, ly, lw, lh: Integer);
+    // reset scissor to whole control
+    procedure resetScissor (fullArea: Boolean); inline; // "full area" means "with frame"
 
     // DO NOT USE!
+    // set scissor to this rect (in global coords)
     procedure setScissorGLInternal (x, y, w, h: Integer);
 
   public
@@ -164,10 +165,10 @@ type
     destructor Destroy (); override;
 
     // `sx` and `sy` are screen coordinates
-    procedure drawControl (sx, sy: Integer); virtual;
+    procedure drawControl (gx, gy: Integer); virtual;
 
     // called after all children drawn
-    procedure drawControlPost (sx, sy: Integer); virtual;
+    procedure drawControlPost (gx, gy: Integer); virtual;
 
     procedure draw (); virtual;
 
@@ -175,7 +176,9 @@ type
 
     // returns `true` if global coords are inside this control
     function toLocal (var x, y: Integer): Boolean;
+    function toLocal (gx, gy: Integer; out x, y: Integer): Boolean; inline;
     procedure toGlobal (var x, y: Integer);
+    procedure toGlobal (lx, ly: Integer; out x, y: Integer); inline;
 
     // x and y are global coords
     function controlAtXY (x, y: Integer): THControl;
@@ -227,8 +230,8 @@ type
     procedure centerInScreen ();
 
     // `sx` and `sy` are screen coordinates
-    procedure drawControl (sx, sy: Integer); override;
-    procedure drawControlPost (sx, sy: Integer); override;
+    procedure drawControl (gx, gy: Integer); override;
+    procedure drawControlPost (gx, gy: Integer); override;
 
     function keyEvent (var ev: THKeyEvent): Boolean; override; // returns `true` if event was eaten
     function mouseEvent (var ev: THMouseEvent): Boolean; override; // returns `true` if event was eaten
@@ -256,7 +259,7 @@ type
 
     procedure appendItem (const atext: AnsiString; acentered: Boolean=false; ahline: Boolean=false);
 
-    procedure drawControl (sx, sy: Integer); override;
+    procedure drawControl (gx, gy: Integer); override;
 
     function mouseEvent (var ev: THMouseEvent): Boolean; override;
     function keyEvent (var ev: THKeyEvent): Boolean; override;
@@ -282,7 +285,7 @@ type
 
     procedure appendItem (const atext: AnsiString; bv: PBoolean; aaction: TActionCB=nil);
 
-    procedure drawControl (sx, sy: Integer); override;
+    procedure drawControl (gx, gy: Integer); override;
 
     function mouseEvent (var ev: THMouseEvent): Boolean; override;
     function keyEvent (var ev: THKeyEvent): Boolean; override;
@@ -299,7 +302,7 @@ type
 
     function parseProperty (const prname: AnsiString; par: TTextParser): Boolean; override;
 
-    procedure drawControl (sx, sy: Integer); override;
+    procedure drawControl (gx, gy: Integer); override;
 
     function mouseEvent (var ev: THMouseEvent): Boolean; override;
     function keyEvent (var ev: THKeyEvent): Boolean; override;
@@ -328,7 +331,7 @@ type
 
     function parseProperty (const prname: AnsiString; par: TTextParser): Boolean; override;
 
-    procedure drawControl (sx, sy: Integer); override;
+    procedure drawControl (gx, gy: Integer); override;
 
     function mouseEvent (var ev: THMouseEvent): Boolean; override;
     function keyEvent (var ev: THKeyEvent): Boolean; override;
@@ -459,9 +462,7 @@ begin
   begin
     for f := High(uiTopList) downto 0 do
     begin
-      lx := ev.x;
-      ly := ev.y;
-      if uiTopList[f].toLocal(lx, ly) then
+      if uiTopList[f].toLocal(ev.x, ev.y, lx, ly) then
       begin
         result := true;
         if uiTopList[f].mEnabled and (f <> High(uiTopList)) then
@@ -998,6 +999,12 @@ begin
   result := (x >= 0) and (y >= 0) and (x < mWidth) and (y < mHeight);
 end;
 
+function THControl.toLocal (gx, gy: Integer; out x, y: Integer): Boolean; inline;
+begin
+  x := gx;
+  y := gy;
+  result := toLocal(x, y);
+end;
 
 procedure THControl.toGlobal (var x, y: Integer);
 var
@@ -1012,6 +1019,13 @@ begin
   end;
 end;
 
+procedure THControl.toGlobal (lx, ly: Integer; out x, y: Integer); inline;
+begin
+  x := lx;
+  y := ly;
+  toGlobal(x, y);
+end;
+
 
 // x and y are global coords
 function THControl.controlAtXY (x, y: Integer): THControl;
@@ -1021,9 +1035,7 @@ var
 begin
   result := nil;
   if (not mEnabled) or (mWidth < 1) or (mHeight < 1) then exit;
-  lx := x;
-  ly := y;
-  if not toLocal(lx, ly) then exit;
+  if not toLocal(x, y, lx, ly) then exit;
   for f := High(mChildren) downto 0 do
   begin
     result := mChildren[f].controlAtXY(x, y);
@@ -1168,6 +1180,7 @@ begin
 end;
 
 
+// ////////////////////////////////////////////////////////////////////////// //
 procedure THControl.setScissorGLInternal (x, y, w, h: Integer);
 begin
   if not scallowed then exit;
@@ -1178,22 +1191,9 @@ begin
   scis.combineRect(x, y, w, h);
 end;
 
-
-procedure THControl.resetScissor ();
-var
-  x, y: Integer;
-begin
-  if not scallowed then exit;
-  x := 0;
-  y := 0;
-  toGlobal(x, y);
-  setScissorGLInternal(x, y, mWidth, mHeight);
-end;
-
-
 procedure THControl.setScissor (lx, ly, lw, lh: Integer);
 var
-  x, y: Integer;
+  gx, gy: Integer;
   //ox, oy, ow, oh: Integer;
 begin
   if not scallowed then exit;
@@ -1204,59 +1204,67 @@ begin
     glScissor(0, 0, 0, 0);
     exit;
   end;
-  x := lx;
-  y := ly;
-  toGlobal(x, y);
-  setScissorGLInternal(x, y, lw, lh);
+  toGlobal(lx, ly, gx, gy);
+  setScissorGLInternal(gx, gy, lw, lh);
+end;
+
+procedure THControl.resetScissor (fullArea: Boolean); inline;
+begin
+  if not scallowed then exit;
+  if (fullArea) then
+  begin
+    setScissor(0, 0, mWidth, mHeight);
+  end
+  else
+  begin
+    setScissor(mFrameWidth, mFrameHeight, mWidth-mFrameWidth*2, mHeight-mFrameHeight*2);
+  end;
 end;
 
 
+// ////////////////////////////////////////////////////////////////////////// //
 procedure THControl.draw ();
 var
   f: Integer;
-  x, y: Integer;
+  gx, gy: Integer;
 begin
   if (mWidth < 1) or (mHeight < 1) then exit;
-  x := 0;
-  y := 0;
-  toGlobal(x, y);
+  toGlobal(0, 0, gx, gy);
   //conwritefln('[%s]: (%d,%d)-(%d,%d)  (%d,%d)', [ClassName, mX, mY, mWidth, mHeight, x, y]);
 
   scis.save(true); // scissoring enabled
   try
-    //glEnable(GL_SCISSOR_TEST);
     scallowed := true;
-    resetScissor();
-    drawControl(x, y);
-    if (mFrameWidth <> 0) or (mFrameHeight <> 0) then setScissor(mFrameWidth, mFrameHeight, mWidth-mFrameWidth*2, mHeight-mFrameHeight*2);
+    resetScissor(true); // full area
+    drawControl(gx, gy);
+    resetScissor(false); // client area
     for f := 0 to High(mChildren) do mChildren[f].draw();
-    if (mFrameWidth <> 0) or (mFrameHeight <> 0) then resetScissor();
-    drawControlPost(x, y);
+    resetScissor(true); // full area
+    drawControlPost(gx, gy);
   finally
     scis.restore();
     scallowed := false;
   end;
 end;
 
-
-procedure THControl.drawControl (sx, sy: Integer);
+procedure THControl.drawControl (gx, gy: Integer);
 begin
-  if (mParent = nil) then darkenRect(sx, sy, mWidth, mHeight, 64);
+  if (mParent = nil) then darkenRect(gx, gy, mWidth, mHeight, 64);
 end;
 
-
-procedure THControl.drawControlPost (sx, sy: Integer);
+procedure THControl.drawControlPost (gx, gy: Integer);
 begin
   // shadow
   if mDrawShadow and (mWidth > 0) and (mHeight > 0) then
   begin
-    setScissorGLInternal(sx+8, sy+8, mWidth, mHeight);
-    darkenRect(sx+mWidth, sy+8, 8, mHeight, 128);
-    darkenRect(sx+8, sy+mHeight, mWidth-8, 8, 128);
+    setScissorGLInternal(gx+8, gy+8, mWidth, mHeight);
+    darkenRect(gx+mWidth, gy+8, 8, mHeight, 128);
+    darkenRect(gx+8, gy+mHeight, mWidth-8, 8, 128);
   end;
 end;
 
 
+// ////////////////////////////////////////////////////////////////////////// //
 function THControl.mouseEvent (var ev: THMouseEvent): Boolean;
 var
   ctl: THControl;
@@ -1385,13 +1393,13 @@ begin
 end;
 
 
-procedure THTopWindow.drawControl (sx, sy: Integer);
+procedure THTopWindow.drawControl (gx, gy: Integer);
 begin
-  fillRect(sx, sy, mWidth, mHeight, 0, 0, 128);
+  fillRect(gx, gy, mWidth, mHeight, 0, 0, 128);
 end;
 
 
-procedure THTopWindow.drawControlPost (sx, sy: Integer);
+procedure THTopWindow.drawControlPost (gx, gy: Integer);
 const r = 255;
 const g = 255;
 const b = 255;
@@ -1419,7 +1427,7 @@ begin
     fillRect(tx-3, mY, Length(mTitle)*8+3+2, 8, 0, 0, 128);
     drawText8(tx, mY, mTitle, r, g, b);
   end;
-  inherited drawControlPost(sx, sy);
+  inherited drawControlPost(gx, gy);
 end;
 
 
@@ -1464,9 +1472,7 @@ begin
     exit;
   end;
 
-  lx := ev.x;
-  ly := ev.y;
-  if toLocal(lx, ly) then
+  if toLocal(ev.x, ev.y, lx, ly) then
   begin
     if (ev.press) then
     begin
@@ -1558,7 +1564,7 @@ begin
 end;
 
 
-procedure THCtlSimpleText.drawControl (sx, sy: Integer);
+procedure THCtlSimpleText.drawControl (gx, gy: Integer);
 var
   f, tx: Integer;
   it: PItem;
@@ -1567,26 +1573,26 @@ begin
   for f := 0 to High(mItems) do
   begin
     it := @mItems[f];
-    tx := sx;
+    tx := gx;
     r := 255;
     g := 255;
     b := 0;
-    if it.centered then begin b := 255; tx := sx+(mWidth-Length(it.title)*8) div 2; end;
+    if it.centered then begin b := 255; tx := gx+(mWidth-Length(it.title)*8) div 2; end;
     if it.hline then
     begin
       b := 255;
       if (Length(it.title) = 0) then
       begin
-        drawHLine(sx+4, sy+3, mWidth-8, r, g, b);
+        drawHLine(gx+4, gy+3, mWidth-8, r, g, b);
       end
-      else if (tx-3 > sx+4) then
+      else if (tx-3 > gx+4) then
       begin
-        drawHLine(sx+4, sy+3, tx-3-(sx+3), r, g, b);
-        drawHLine(tx+Length(it.title)*8, sy+3, mWidth-4, r, g, b);
+        drawHLine(gx+4, gy+3, tx-3-(gx+3), r, g, b);
+        drawHLine(tx+Length(it.title)*8, gy+3, mWidth-4, r, g, b);
       end;
     end;
-    drawText8(tx, sy, it.title, r, g, b);
-    Inc(sy, 8);
+    drawText8(tx, gy, it.title, r, g, b);
+    Inc(gy, 8);
   end;
 end;
 
@@ -1596,9 +1602,7 @@ var
   lx, ly: Integer;
 begin
   result := inherited mouseEvent(ev);
-  lx := ev.x;
-  ly := ev.y;
-  if not result and toLocal(lx, ly) then
+  if not result and toLocal(ev.x, ev.y, lx, ly) then
   begin
     result := true;
   end;
@@ -1642,7 +1646,7 @@ begin
 end;
 
 
-procedure THCtlCBListBox.drawControl (sx, sy: Integer);
+procedure THCtlCBListBox.drawControl (gx, gy: Integer);
 var
   f, tx: Integer;
   it: PItem;
@@ -1650,27 +1654,27 @@ begin
   for f := 0 to High(mItems) do
   begin
     it := @mItems[f];
-    if (mCurIndex = f) then fillRect(sx, sy, mWidth, 8, 0, 128, 0);
+    if (mCurIndex = f) then fillRect(gx, gy, mWidth, 8, 0, 128, 0);
     if (it.varp <> nil) then
     begin
-      if it.varp^ then drawText8(sx, sy, '[x]', 255, 255, 255) else drawText8(sx, sy, '[ ]', 255, 255, 255);
-      drawText8(sx+3*8+2, sy, it.title, 255, 255, 0);
+      if it.varp^ then drawText8(gx, gy, '[x]', 255, 255, 255) else drawText8(gx, gy, '[ ]', 255, 255, 255);
+      drawText8(gx+3*8+2, gy, it.title, 255, 255, 0);
     end
     else if (Length(it.title) > 0) then
     begin
-      tx := sx+(mWidth-Length(it.title)*8) div 2;
-      if (tx-3 > sx+4) then
+      tx := gx+(mWidth-Length(it.title)*8) div 2;
+      if (tx-3 > gx+4) then
       begin
-        drawHLine(sx+4, sy+3, tx-3-(sx+3), 255, 255, 255);
-        drawHLine(tx+Length(it.title)*8, sy+3, mWidth-4, 255, 255, 255);
+        drawHLine(gx+4, gy+3, tx-3-(gx+3), 255, 255, 255);
+        drawHLine(tx+Length(it.title)*8, gy+3, mWidth-4, 255, 255, 255);
       end;
-      drawText8(tx, sy, it.title, 255, 255, 255);
+      drawText8(tx, gy, it.title, 255, 255, 255);
     end
     else
     begin
-      drawHLine(sx+4, sy+3, mWidth-8, 255, 255, 255);
+      drawHLine(gx+4, gy+3, mWidth-8, 255, 255, 255);
     end;
-    Inc(sy, 8);
+    Inc(gy, 8);
   end;
 end;
 
@@ -1681,9 +1685,7 @@ var
   it: PItem;
 begin
   result := inherited mouseEvent(ev);
-  lx := ev.x;
-  ly := ev.y;
-  if not result and toLocal(lx, ly) then
+  if not result and toLocal(ev.x, ev.y, lx, ly) then
   begin
     result := true;
     if (ev = 'lmb') then
@@ -1812,7 +1814,7 @@ begin
 end;
 
 
-procedure THCtlBox.drawControl (sx, sy: Integer);
+procedure THCtlBox.drawControl (gx, gy: Integer);
 var
   r, g, b: Integer;
   tx: Integer;
@@ -1821,14 +1823,15 @@ begin
   if mHasFrame then
   begin
     // draw frame
-    drawRectUI(mX+3, mY+3, mWidth-6, mHeight-6, r, g, b);
+    drawRectUI(gx+3, gy+3, mWidth-6, mHeight-6, r, g, b);
   end;
+  // draw caption
   if (Length(mCaption) > 0) then
   begin
     setScissor(mFrameWidth+1, 0, mWidth-mFrameWidth-2, 8);
-    tx := mX+((mWidth-Length(mCaption)*8) div 2)-1;
-    if mHasFrame then fillRect(tx, mY, Length(mCaption)*8+2, 8, 0, 0, 128);
-    drawText8(tx+1, mY, mCaption, r, g, b);
+    tx := gx+((mWidth-Length(mCaption)*8) div 2)-1;
+    if mHasFrame then fillRect(tx, gy, Length(mCaption)*8+2, 8, 0, 0, 128);
+    drawText8(tx+1, gy, mCaption, r, g, b);
   end;
 end;
 
@@ -1838,9 +1841,7 @@ var
   lx, ly: Integer;
 begin
   result := inherited mouseEvent(ev);
-  lx := ev.x;
-  ly := ev.y;
-  if not result and toLocal(lx, ly) then
+  if not result and toLocal(ev.x, ev.y, lx, ly) then
   begin
     result := true;
   end;
@@ -1899,13 +1900,13 @@ begin
 end;
 
 
-procedure THCtlTextLabel.drawControl (sx, sy: Integer);
+procedure THCtlTextLabel.drawControl (gx, gy: Integer);
 var
   xpos, ypos: Integer;
 begin
   // debug
-  fillRect(sx, sy, mWidth, mHeight, 96, 96, 0);
-  drawRectUI(sx, sy, mWidth, mHeight, 96, 96, 96);
+  fillRect(gx, gy, mWidth, mHeight, 96, 96, 0);
+  drawRectUI(gx, gy, mWidth, mHeight, 96, 96, 96);
 
   if (Length(mText) > 0) then
   begin
@@ -1917,7 +1918,7 @@ begin
     else if (mVAlign > 0) then ypos := mHeight-8
     else ypos := (mHeight-8) div 2;
 
-    drawText8(sx+xpos, sy+ypos, mText, 255, 255, 255);
+    drawText8(gx+xpos, gy+ypos, mText, 255, 255, 255);
   end;
 end;
 
@@ -1927,9 +1928,7 @@ var
   lx, ly: Integer;
 begin
   result := inherited mouseEvent(ev);
-  lx := ev.x;
-  ly := ev.y;
-  if not result and toLocal(lx, ly) then
+  if not result and toLocal(ev.x, ev.y, lx, ly) then
   begin
     result := true;
   end;
