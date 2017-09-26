@@ -218,6 +218,7 @@ type
     mFreeOnClose: Boolean; // default: false
 
   protected
+    procedure activated (); override;
     procedure blurred (); override;
 
   public
@@ -1012,7 +1013,7 @@ begin
   if (not mEnabled) or (not mCanFocus) then exit;
   if (tl.mFocused <> self) then
   begin
-    tl.mFocused.blurred();
+    if (tl.mFocused <> nil) then tl.mFocused.blurred();
     tl.mFocused := self;
     if (tl.mGrab <> self) then tl.mGrab := nil;
     activated();
@@ -1224,7 +1225,7 @@ begin
     if (mWidth+mFrameWidth < ctl.mX+ctl.mWidth) then mWidth := ctl.mX+ctl.mWidth+mFrameWidth;
     if (mHeight+mFrameHeight < ctl.mY+ctl.mHeight) then mHeight := ctl.mY+ctl.mHeight+mFrameHeight;
   end;
-  if (mFocused = nil) and ctl.mEnabled and ctl.mCanFocus and (ctl.mWidth > 0) and (ctl.mHeight > 0) then mFocused := ctl;
+  //if (mFocused = nil) and ctl.mEnabled and ctl.mCanFocus and (ctl.mWidth > 0) and (ctl.mHeight > 0) then mFocused := ctl;
 end;
 
 
@@ -1469,6 +1470,17 @@ begin
     drawText8(tx, mY, mTitle, TGxRGBA.Create(r, g, b));
   end;
   inherited drawControlPost(gx, gy);
+end;
+
+
+procedure THTopWindow.activated ();
+begin
+  if (mFocused = nil) or (mFocused = self) then
+  begin
+    mFocused := findFirstFocus();
+    if (mFocused <> nil) and (mFocused <> self) then mFocused.activated();
+  end;
+  inherited;
 end;
 
 
