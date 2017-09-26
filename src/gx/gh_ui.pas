@@ -1,4 +1,5 @@
-(* Copyright (C)  DooM 2D:Forever Developers
+(* coded by Ketmar // Invisible Vector <ketmar@ketmar.no-ip.org>
+ * Understanding is not required. Only obedience.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -11,7 +12,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  *)
 {$INCLUDE ../shared/a_modes.inc}
 {$M+}
@@ -29,23 +30,23 @@ uses
 
 // ////////////////////////////////////////////////////////////////////////// //
 type
-  THControlClass = class of THControl;
+  TUIControlClass = class of TUIControl;
 
-  THControl = class
+  TUIControl = class
   public
-    type TActionCB = procedure (me: THControl; uinfo: Integer);
+    type TActionCB = procedure (me: TUIControl; uinfo: Integer);
 
   private
-    mParent: THControl;
+    mParent: TUIControl;
     mId: AnsiString;
     mX, mY: Integer;
     mWidth, mHeight: Integer;
     mFrameWidth, mFrameHeight: Integer;
     mEnabled: Boolean;
     mCanFocus: Boolean;
-    mChildren: array of THControl;
-    mFocused: THControl; // valid only for top-level controls
-    mGrab: THControl; // valid only for top-level controls
+    mChildren: array of TUIControl;
+    mFocused: TUIControl; // valid only for top-level controls
+    mGrab: TUIControl; // valid only for top-level controls
     mEscClose: Boolean; // valid only for top-level controls
     mEatKeys: Boolean;
     mDrawShadow: Boolean;
@@ -61,13 +62,13 @@ type
     function getFocused (): Boolean; inline;
     procedure setFocused (v: Boolean); inline;
 
-    function isMyChild (ctl: THControl): Boolean;
+    function isMyChild (ctl: TUIControl): Boolean;
 
-    function findFirstFocus (): THControl;
-    function findLastFocus (): THControl;
+    function findFirstFocus (): TUIControl;
+    function findLastFocus (): TUIControl;
 
-    function findNextFocus (cur: THControl): THControl;
-    function findPrevFocus (cur: THControl): THControl;
+    function findNextFocus (cur: TUIControl): TUIControl;
+    function findPrevFocus (cur: TUIControl): TUIControl;
 
     procedure activated (); virtual;
     procedure blurred (); virtual;
@@ -173,7 +174,7 @@ type
 
     procedure draw (); virtual;
 
-    function topLevel (): THControl; inline;
+    function topLevel (): TUIControl; inline;
 
     // returns `true` if global coords are inside this control
     function toLocal (var x, y: Integer): Boolean;
@@ -182,17 +183,17 @@ type
     procedure toGlobal (lx, ly: Integer; out x, y: Integer); inline;
 
     // x and y are global coords
-    function controlAtXY (x, y: Integer): THControl;
+    function controlAtXY (x, y: Integer): TUIControl;
 
     function mouseEvent (var ev: THMouseEvent): Boolean; virtual; // returns `true` if event was eaten
     function keyEvent (var ev: THKeyEvent): Boolean; virtual; // returns `true` if event was eaten
 
-    function prevSibling (): THControl;
-    function nextSibling (): THControl;
-    function firstChild (): THControl; inline;
-    function lastChild (): THControl; inline;
+    function prevSibling (): TUIControl;
+    function nextSibling (): TUIControl;
+    function firstChild (): TUIControl; inline;
+    function lastChild (): TUIControl; inline;
 
-    procedure appendChild (ctl: THControl); virtual;
+    procedure appendChild (ctl: TUIControl); virtual;
 
   public
     property id: AnsiString read mId;
@@ -201,14 +202,14 @@ type
     property height: Integer read mHeight;
     property width: Integer read mWidth;
     property enabled: Boolean read getEnabled write setEnabled;
-    property parent: THControl read mParent;
+    property parent: TUIControl read mParent;
     property focused: Boolean read getFocused write setFocused;
     property escClose: Boolean read mEscClose write mEscClose;
     property eatKeys: Boolean read mEatKeys write mEatKeys;
   end;
 
 
-  THTopWindow = class(THControl)
+  TUITopWindow = class(TUIControl)
   private
     mTitle: AnsiString;
     mDragging: Boolean;
@@ -244,7 +245,7 @@ type
   end;
 
 
-  THCtlSimpleText = class(THControl)
+  TUISimpleText = class(TUIControl)
   private
     type
       PItem = ^TItem;
@@ -269,7 +270,7 @@ type
   end;
 
 
-  THCtlCBListBox = class(THControl)
+  TUICBListBox = class(TUIControl)
   private
     type
       PItem = ^TItem;
@@ -295,7 +296,7 @@ type
   end;
 
   // ////////////////////////////////////////////////////////////////////// //
-  THCtlBox = class(THControl)
+  TUIBox = class(TUIControl)
   private
     mHasFrame: Boolean;
     mCaption: AnsiString;
@@ -311,18 +312,18 @@ type
     function keyEvent (var ev: THKeyEvent): Boolean; override;
   end;
 
-  THCtlHBox = class(THCtlBox)
+  TUIHBox = class(TUIBox)
   public
     procedure AfterConstruction (); override; // so it will be correctly initialized when created from parser
   end;
 
-  THCtlVBox = class(THCtlBox)
+  TUIVBox = class(TUIBox)
   public
     procedure AfterConstruction (); override; // so it will be correctly initialized when created from parser
   end;
 
   // ////////////////////////////////////////////////////////////////////// //
-  THCtlSpan = class(THControl)
+  TUISpan = class(TUIControl)
   public
     procedure AfterConstruction (); override; // so it will be correctly initialized when created from parser
 
@@ -332,25 +333,25 @@ type
   end;
 
   // ////////////////////////////////////////////////////////////////////// //
-  THCtlLine = class(THControl)
+  TUILine = class(TUIControl)
   public
     function parseProperty (const prname: AnsiString; par: TTextParser): Boolean; override;
 
     procedure drawControl (gx, gy: Integer); override;
   end;
 
-  THCtlHLine = class(THCtlLine)
+  TUIHLine = class(TUILine)
   public
     procedure AfterConstruction (); override; // so it will be correctly initialized when created from parser
   end;
 
-  THCtlVLine = class(THCtlLine)
+  TUIVLine = class(TUILine)
   public
     procedure AfterConstruction (); override; // so it will be correctly initialized when created from parser
   end;
 
   // ////////////////////////////////////////////////////////////////////// //
-  THCtlTextLabel = class(THControl)
+  TUITextLabel = class(TUIControl)
   private
     mText: AnsiString;
     mHAlign: Integer; // -1: left; 0: center; 1: right; default: left
@@ -377,14 +378,14 @@ procedure uiDraw ();
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-procedure uiAddWindow (ctl: THControl);
-procedure uiRemoveWindow (ctl: THControl); // will free window if `mFreeOnClose` is `true`
-function uiVisibleWindow (ctl: THControl): Boolean;
+procedure uiAddWindow (ctl: TUIControl);
+procedure uiRemoveWindow (ctl: TUIControl); // will free window if `mFreeOnClose` is `true`
+function uiVisibleWindow (ctl: TUIControl): Boolean;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
 // do layouting
-procedure uiLayoutCtl (ctl: THControl);
+procedure uiLayoutCtl (ctl: TUIControl);
 
 
 // ////////////////////////////////////////////////////////////////////////// //
@@ -402,12 +403,12 @@ uses
 // ////////////////////////////////////////////////////////////////////////// //
 var
   knownCtlClasses: array of record
-    klass: THControlClass;
+    klass: TUIControlClass;
     name: AnsiString;
   end = nil;
 
 
-procedure registerCtlClass (aklass: THControlClass; const aname: AnsiString);
+procedure registerCtlClass (aklass: TUIControlClass; const aname: AnsiString);
 begin
   assert(aklass <> nil);
   assert(Length(aname) > 0);
@@ -417,7 +418,7 @@ begin
 end;
 
 
-function findCtlClass (const aname: AnsiString): THControlClass;
+function findCtlClass (const aname: AnsiString): TUIControlClass;
 var
   f: Integer;
 begin
@@ -435,9 +436,9 @@ end;
 
 // ////////////////////////////////////////////////////////////////////////// //
 type
-  TFlexLayouter = specialize TFlexLayouterBase<THControl>;
+  TFlexLayouter = specialize TFlexLayouterBase<TUIControl>;
 
-procedure uiLayoutCtl (ctl: THControl);
+procedure uiLayoutCtl (ctl: TUIControl);
 var
   lay: TFlexLayouter;
 begin
@@ -465,9 +466,9 @@ begin
     lay.layout();
     //writeln('=== final ==='); lay.dump();
 
-    if (ctl.mParent = nil) and (ctl is THTopWindow) and (THTopWindow(ctl).mDoCenter) then
+    if (ctl.mParent = nil) and (ctl is TUITopWindow) and (TUITopWindow(ctl).mDoCenter) then
     begin
-      THTopWindow(ctl).centerInScreen();
+      TUITopWindow(ctl).centerInScreen();
     end;
 
   finally
@@ -478,14 +479,14 @@ end;
 
 // ////////////////////////////////////////////////////////////////////////// //
 var
-  uiTopList: array of THControl = nil;
+  uiTopList: array of TUIControl = nil;
 
 
 function uiMouseEvent (ev: THMouseEvent): Boolean;
 var
   f, c: Integer;
   lx, ly: Integer;
-  ctmp: THControl;
+  ctmp: TUIControl;
 begin
   ev.x := trunc(ev.x/gh_ui_scale);
   ev.y := trunc(ev.y/gh_ui_scale);
@@ -528,7 +529,7 @@ end;
 procedure uiDraw ();
 var
   f: Integer;
-  ctl: THControl;
+  ctl: TUIControl;
 begin
   glMatrixMode(GL_MODELVIEW);
   glPushMatrix();
@@ -548,13 +549,13 @@ begin
 end;
 
 
-procedure uiAddWindow (ctl: THControl);
+procedure uiAddWindow (ctl: TUIControl);
 var
   f, c: Integer;
 begin
   if (ctl = nil) then exit;
   ctl := ctl.topLevel;
-  if not (ctl is THTopWindow) then exit; // alas
+  if not (ctl is TUITopWindow) then exit; // alas
   for f := 0 to High(uiTopList) do
   begin
     if (uiTopList[f] = ctl) then
@@ -576,13 +577,13 @@ begin
 end;
 
 
-procedure uiRemoveWindow (ctl: THControl);
+procedure uiRemoveWindow (ctl: TUIControl);
 var
   f, c: Integer;
 begin
   if (ctl = nil) then exit;
   ctl := ctl.topLevel;
-  if not (ctl is THTopWindow) then exit; // alas
+  if not (ctl is TUITopWindow) then exit; // alas
   for f := 0 to High(uiTopList) do
   begin
     if (uiTopList[f] = ctl) then
@@ -590,12 +591,12 @@ begin
       ctl.blurred();
       for c := f+1 to High(uiTopList) do uiTopList[c-1] := uiTopList[c];
       SetLength(uiTopList, Length(uiTopList)-1);
-      if (ctl is THTopWindow) then
+      if (ctl is TUITopWindow) then
       begin
         try
-          if assigned(THTopWindow(ctl).closeCB) then THTopWindow(ctl).closeCB(ctl, 0);
+          if assigned(TUITopWindow(ctl).closeCB) then TUITopWindow(ctl).closeCB(ctl, 0);
         finally
-          if (THTopWindow(ctl).mFreeOnClose) then FreeAndNil(ctl);
+          if (TUITopWindow(ctl).mFreeOnClose) then FreeAndNil(ctl);
         end;
       end;
       exit;
@@ -604,14 +605,14 @@ begin
 end;
 
 
-function uiVisibleWindow (ctl: THControl): Boolean;
+function uiVisibleWindow (ctl: TUIControl): Boolean;
 var
   f: Integer;
 begin
   result := false;
   if (ctl = nil) then exit;
   ctl := ctl.topLevel;
-  if not (ctl is THTopWindow) then exit; // alas
+  if not (ctl is TUITopWindow) then exit; // alas
   for f := 0 to High(uiTopList) do
   begin
     if (uiTopList[f] = ctl) then begin result := true; exit; end;
@@ -620,7 +621,7 @@ end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-constructor THControl.Create ();
+constructor TUIControl.Create ();
 begin
   mParent := nil;
   mX := 0;
@@ -654,7 +655,7 @@ begin
 end;
 
 
-constructor THControl.Create (ax, ay, aw, ah: Integer);
+constructor TUIControl.Create (ax, ay, aw, ah: Integer);
 begin
   Create();
   mX := ax;
@@ -664,7 +665,7 @@ begin
 end;
 
 
-destructor THControl.Destroy ();
+destructor TUIControl.Destroy ();
 var
   f, c: Integer;
 begin
@@ -690,30 +691,30 @@ end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-function THControl.getDefSize (): TLaySize; inline; begin result := mLayDefSize; end;
-function THControl.getMaxSize (): TLaySize; inline; begin result := mLayMaxSize; end;
-function THControl.getFlex (): Integer; inline; begin result := mFlex; end;
-function THControl.isHorizBox (): Boolean; inline; begin result := mHoriz; end;
-procedure THControl.setHorizBox (v: Boolean); inline; begin mHoriz := v; end;
-function THControl.canWrap (): Boolean; inline; begin result := mCanWrap; end;
-procedure THControl.setCanWrap (v: Boolean); inline; begin mCanWrap := v; end;
-function THControl.isLineStart (): Boolean; inline; begin result := mLineStart; end;
-procedure THControl.setLineStart (v: Boolean); inline; begin mLineStart := v; end;
-function THControl.getAlign (): Integer; inline; begin result := mAlign; end;
-procedure THControl.setAlign (v: Integer); inline; begin mAlign := v; end;
-function THControl.getExpand (): Boolean; inline; begin result := mExpand; end;
-procedure THControl.setExpand (v: Boolean); inline; begin mExpand := v; end;
-function THControl.getHGroup (): AnsiString; inline; begin result := mHGroup; end;
-procedure THControl.setHGroup (const v: AnsiString); inline; begin mHGroup := v; end;
-function THControl.getVGroup (): AnsiString; inline; begin result := mVGroup; end;
-procedure THControl.setVGroup (const v: AnsiString); inline; begin mVGroup := v; end;
+function TUIControl.getDefSize (): TLaySize; inline; begin result := mLayDefSize; end;
+function TUIControl.getMaxSize (): TLaySize; inline; begin result := mLayMaxSize; end;
+function TUIControl.getFlex (): Integer; inline; begin result := mFlex; end;
+function TUIControl.isHorizBox (): Boolean; inline; begin result := mHoriz; end;
+procedure TUIControl.setHorizBox (v: Boolean); inline; begin mHoriz := v; end;
+function TUIControl.canWrap (): Boolean; inline; begin result := mCanWrap; end;
+procedure TUIControl.setCanWrap (v: Boolean); inline; begin mCanWrap := v; end;
+function TUIControl.isLineStart (): Boolean; inline; begin result := mLineStart; end;
+procedure TUIControl.setLineStart (v: Boolean); inline; begin mLineStart := v; end;
+function TUIControl.getAlign (): Integer; inline; begin result := mAlign; end;
+procedure TUIControl.setAlign (v: Integer); inline; begin mAlign := v; end;
+function TUIControl.getExpand (): Boolean; inline; begin result := mExpand; end;
+procedure TUIControl.setExpand (v: Boolean); inline; begin mExpand := v; end;
+function TUIControl.getHGroup (): AnsiString; inline; begin result := mHGroup; end;
+procedure TUIControl.setHGroup (const v: AnsiString); inline; begin mHGroup := v; end;
+function TUIControl.getVGroup (): AnsiString; inline; begin result := mVGroup; end;
+procedure TUIControl.setVGroup (const v: AnsiString); inline; begin mVGroup := v; end;
 
-function THControl.getMargins (): TLayMargins; inline;
+function TUIControl.getMargins (): TLayMargins; inline;
 begin
   result := TLayMargins.Create(mFrameHeight, mFrameWidth, mFrameHeight, mFrameWidth);
 end;
 
-procedure THControl.setActualSizePos (constref apos: TLayPos; constref asize: TLaySize); inline; begin
+procedure TUIControl.setActualSizePos (constref apos: TLayPos; constref asize: TLaySize); inline; begin
   //writeln(self.className, '; pos=', apos.toString, '; size=', asize.toString);
   if (mParent <> nil) then
   begin
@@ -724,7 +725,7 @@ procedure THControl.setActualSizePos (constref apos: TLayPos; constref asize: TL
   mHeight := asize.h;
 end;
 
-procedure THControl.layPrepare ();
+procedure TUIControl.layPrepare ();
 begin
   mLayDefSize := mDefSize;
   mLayMaxSize := mMaxSize;
@@ -734,7 +735,7 @@ end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-function THControl.parsePos (par: TTextParser): TLayPos;
+function TUIControl.parsePos (par: TTextParser): TLayPos;
 var
   ech: AnsiChar = ')';
 begin
@@ -746,7 +747,7 @@ begin
   par.expectDelim(ech);
 end;
 
-function THControl.parseSize (par: TTextParser): TLaySize;
+function TUIControl.parseSize (par: TTextParser): TLaySize;
 var
   ech: AnsiChar = ')';
 begin
@@ -758,95 +759,95 @@ begin
   par.expectDelim(ech);
 end;
 
-function THControl.parseBool (par: TTextParser): Boolean;
+function TUIControl.parseBool (par: TTextParser): Boolean;
 begin
   result :=
-    par.eatIdOrStr('true', false) or
-    par.eatIdOrStr('yes', false) or
-    par.eatIdOrStr('tan', false);
+    par.eatIdOrStrCI('true') or
+    par.eatIdOrStrCI('yes') or
+    par.eatIdOrStrCI('tan');
   if not result then
   begin
-    if (not par.eatIdOrStr('false', false)) and (not par.eatIdOrStr('no', false)) and (not par.eatIdOrStr('ona', false)) then
+    if (not par.eatIdOrStrCI('false')) and (not par.eatIdOrStrCI('no')) and (not par.eatIdOrStrCI('ona')) then
     begin
       par.error('boolean value expected');
     end;
   end;
 end;
 
-function THControl.parseAnyAlign (par: TTextParser): Integer;
+function TUIControl.parseAnyAlign (par: TTextParser): Integer;
 begin
-       if (par.eatIdOrStr('left', false)) or (par.eatIdOrStr('top', false)) then result := -1
-  else if (par.eatIdOrStr('right', false)) or (par.eatIdOrStr('bottom', false)) then result := 1
-  else if (par.eatIdOrStr('center', false)) then result := 0
+       if (par.eatIdOrStrCI('left')) or (par.eatIdOrStrCI('top')) then result := -1
+  else if (par.eatIdOrStrCI('right')) or (par.eatIdOrStrCI('bottom')) then result := 1
+  else if (par.eatIdOrStrCI('center')) then result := 0
   else par.error('invalid align value');
 end;
 
-function THControl.parseHAlign (par: TTextParser): Integer;
+function TUIControl.parseHAlign (par: TTextParser): Integer;
 begin
-       if (par.eatIdOrStr('left', false)) then result := -1
-  else if (par.eatIdOrStr('right', false)) then result := 1
-  else if (par.eatIdOrStr('center', false)) then result := 0
+       if (par.eatIdOrStrCI('left')) then result := -1
+  else if (par.eatIdOrStrCI('right')) then result := 1
+  else if (par.eatIdOrStrCI('center')) then result := 0
   else par.error('invalid horizontal align value');
 end;
 
-function THControl.parseVAlign (par: TTextParser): Integer;
+function TUIControl.parseVAlign (par: TTextParser): Integer;
 begin
-       if (par.eatIdOrStr('top', false)) then result := -1
-  else if (par.eatIdOrStr('bottom', false)) then result := 1
-  else if (par.eatIdOrStr('center', false)) then result := 0
+       if (par.eatIdOrStrCI('top')) then result := -1
+  else if (par.eatIdOrStrCI('bottom')) then result := 1
+  else if (par.eatIdOrStrCI('center')) then result := 0
   else par.error('invalid vertical align value');
 end;
 
-procedure THControl.parseTextAlign (par: TTextParser; var h, v: Integer);
+procedure TUIControl.parseTextAlign (par: TTextParser; var h, v: Integer);
 var
   wasH: Boolean = false;
   wasV: Boolean = false;
 begin
   while true do
   begin
-    if (par.eatIdOrStr('left', false)) then
+    if (par.eatIdOrStrCI('left')) then
     begin
       if wasH then par.error('too many align directives');
       wasH := true;
       h := -1;
       continue;
     end;
-    if (par.eatIdOrStr('right', false)) then
+    if (par.eatIdOrStrCI('right')) then
     begin
       if wasH then par.error('too many align directives');
       wasH := true;
       h := 1;
       continue;
     end;
-    if (par.eatIdOrStr('hcenter', false)) then
+    if (par.eatIdOrStrCI('hcenter')) then
     begin
       if wasH then par.error('too many align directives');
       wasH := true;
       h := 0;
       continue;
     end;
-    if (par.eatIdOrStr('top', false)) then
+    if (par.eatIdOrStrCI('top')) then
     begin
       if wasV then par.error('too many align directives');
       wasV := true;
       v := -1;
       continue;
     end;
-    if (par.eatIdOrStr('bottom', false)) then
+    if (par.eatIdOrStrCI('bottom')) then
     begin
       if wasV then par.error('too many align directives');
       wasV := true;
       v := 1;
       continue;
     end;
-    if (par.eatIdOrStr('vcenter', false)) then
+    if (par.eatIdOrStrCI('vcenter')) then
     begin
       if wasV then par.error('too many align directives');
       wasV := true;
       v := 0;
       continue;
     end;
-    if (par.eatIdOrStr('center', false)) then
+    if (par.eatIdOrStrCI('center')) then
     begin
       if wasV or wasH then par.error('too many align directives');
       wasV := true;
@@ -860,12 +861,12 @@ begin
   if not wasV and not wasH then par.error('invalid align value');
 end;
 
-function THControl.parseOrientation (const prname: AnsiString; par: TTextParser): Boolean;
+function TUIControl.parseOrientation (const prname: AnsiString; par: TTextParser): Boolean;
 begin
   if (strEquCI1251(prname, 'orientation')) or (strEquCI1251(prname, 'orient')) then
   begin
-         if (par.eatIdOrStr('horizontal', false)) or (par.eatIdOrStr('horiz', false)) then mHoriz := true
-    else if (par.eatIdOrStr('vertical', false)) or (par.eatIdOrStr('vert', false)) then mHoriz := false
+         if (par.eatIdOrStrCI('horizontal')) or (par.eatIdOrStrCI('horiz')) then mHoriz := true
+    else if (par.eatIdOrStrCI('vertical')) or (par.eatIdOrStrCI('vert')) then mHoriz := false
     else par.error('`horizontal` or `vertical` expected');
     result := true;
   end
@@ -876,7 +877,7 @@ begin
 end;
 
 // par should be on '{'; final '}' is eaten
-procedure THControl.parseProperties (par: TTextParser);
+procedure TUIControl.parseProperties (par: TTextParser);
 var
   pn: AnsiString;
 begin
@@ -893,10 +894,10 @@ begin
 end;
 
 // par should be on '{'
-procedure THControl.parseChildren (par: TTextParser);
+procedure TUIControl.parseChildren (par: TTextParser);
 var
-  cc: THControlClass;
-  ctl: THControl;
+  cc: TUIControlClass;
+  ctl: TUIControl;
 begin
   par.expectDelim('{');
   while (not par.eatDelim('}')) do
@@ -922,7 +923,7 @@ begin
 end;
 
 
-function THControl.parseProperty (const prname: AnsiString; par: TTextParser): Boolean;
+function TUIControl.parseProperty (const prname: AnsiString; par: TTextParser): Boolean;
 begin
   result := true;
   if (strEquCI1251(prname, 'id')) then begin mId := par.expectStrOrId(true); exit; end; // allow empty strings
@@ -953,27 +954,27 @@ end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-procedure THControl.activated ();
+procedure TUIControl.activated ();
 begin
 end;
 
 
-procedure THControl.blurred ();
+procedure TUIControl.blurred ();
 begin
   mGrab := nil;
 end;
 
 
-function THControl.topLevel (): THControl; inline;
+function TUIControl.topLevel (): TUIControl; inline;
 begin
   result := self;
   while (result.mParent <> nil) do result := result.mParent;
 end;
 
 
-function THControl.getEnabled (): Boolean;
+function TUIControl.getEnabled (): Boolean;
 var
-  ctl: THControl;
+  ctl: TUIControl;
 begin
   result := false;
   if (not mEnabled) or (mWidth < 1) or (mHeight < 1) then exit;
@@ -987,7 +988,7 @@ begin
 end;
 
 
-procedure THControl.setEnabled (v: Boolean); inline;
+procedure TUIControl.setEnabled (v: Boolean); inline;
 begin
   if (mEnabled = v) then exit;
   mEnabled := v;
@@ -995,15 +996,15 @@ begin
 end;
 
 
-function THControl.getFocused (): Boolean; inline;
+function TUIControl.getFocused (): Boolean; inline;
 begin
   if (mParent = nil) then result := (Length(uiTopList) > 0) and (uiTopList[High(uiTopList)] = self) else result := (topLevel.mFocused = self);
 end;
 
 
-procedure THControl.setFocused (v: Boolean); inline;
+procedure TUIControl.setFocused (v: Boolean); inline;
 var
-  tl: THControl;
+  tl: TUIControl;
 begin
   tl := topLevel;
   if not v then
@@ -1027,7 +1028,7 @@ begin
 end;
 
 
-function THControl.isMyChild (ctl: THControl): Boolean;
+function TUIControl.isMyChild (ctl: TUIControl): Boolean;
 begin
   result := true;
   while (ctl <> nil) do
@@ -1040,9 +1041,9 @@ end;
 
 
 // returns `true` if global coords are inside this control
-function THControl.toLocal (var x, y: Integer): Boolean;
+function TUIControl.toLocal (var x, y: Integer): Boolean;
 var
-  ctl: THControl;
+  ctl: TUIControl;
 begin
   ctl := self;
   while (ctl <> nil) do
@@ -1054,16 +1055,16 @@ begin
   result := (x >= 0) and (y >= 0) and (x < mWidth) and (y < mHeight);
 end;
 
-function THControl.toLocal (gx, gy: Integer; out x, y: Integer): Boolean; inline;
+function TUIControl.toLocal (gx, gy: Integer; out x, y: Integer): Boolean; inline;
 begin
   x := gx;
   y := gy;
   result := toLocal(x, y);
 end;
 
-procedure THControl.toGlobal (var x, y: Integer);
+procedure TUIControl.toGlobal (var x, y: Integer);
 var
-  ctl: THControl;
+  ctl: TUIControl;
 begin
   ctl := self;
   while (ctl <> nil) do
@@ -1074,7 +1075,7 @@ begin
   end;
 end;
 
-procedure THControl.toGlobal (lx, ly: Integer; out x, y: Integer); inline;
+procedure TUIControl.toGlobal (lx, ly: Integer; out x, y: Integer); inline;
 begin
   x := lx;
   y := ly;
@@ -1083,7 +1084,7 @@ end;
 
 
 // x and y are global coords
-function THControl.controlAtXY (x, y: Integer): THControl;
+function TUIControl.controlAtXY (x, y: Integer): TUIControl;
 var
   lx, ly: Integer;
   f: Integer;
@@ -1100,7 +1101,7 @@ begin
 end;
 
 
-function THControl.prevSibling (): THControl;
+function TUIControl.prevSibling (): TUIControl;
 var
   f: Integer;
 begin
@@ -1114,7 +1115,7 @@ begin
   result := nil;
 end;
 
-function THControl.nextSibling (): THControl;
+function TUIControl.nextSibling (): TUIControl;
 var
   f: Integer;
 begin
@@ -1128,18 +1129,18 @@ begin
   result := nil;
 end;
 
-function THControl.firstChild (): THControl; inline;
+function TUIControl.firstChild (): TUIControl; inline;
 begin
   if (Length(mChildren) <> 0) then result := mChildren[0] else result := nil;
 end;
 
-function THControl.lastChild (): THControl; inline;
+function TUIControl.lastChild (): TUIControl; inline;
 begin
   if (Length(mChildren) <> 0) then result := mChildren[High(mChildren)] else result := nil;
 end;
 
 
-function THControl.findFirstFocus (): THControl;
+function TUIControl.findFirstFocus (): TUIControl;
 var
   f: Integer;
 begin
@@ -1156,7 +1157,7 @@ begin
 end;
 
 
-function THControl.findLastFocus (): THControl;
+function TUIControl.findLastFocus (): TUIControl;
 var
   f: Integer;
 begin
@@ -1173,7 +1174,7 @@ begin
 end;
 
 
-function THControl.findNextFocus (cur: THControl): THControl;
+function TUIControl.findNextFocus (cur: TUIControl): TUIControl;
 begin
   result := nil;
   if enabled then
@@ -1194,7 +1195,7 @@ begin
 end;
 
 
-function THControl.findPrevFocus (cur: THControl): THControl;
+function TUIControl.findPrevFocus (cur: TUIControl): TUIControl;
 begin
   result := nil;
   if enabled then
@@ -1216,7 +1217,7 @@ begin
 end;
 
 
-procedure THControl.appendChild (ctl: THControl);
+procedure TUIControl.appendChild (ctl: TUIControl);
 begin
   if (ctl = nil) then exit;
   if (ctl.mParent <> nil) then exit;
@@ -1236,7 +1237,7 @@ end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-procedure THControl.setScissorGLInternal (x, y, w, h: Integer);
+procedure TUIControl.setScissorGLInternal (x, y, w, h: Integer);
 begin
   if not scallowed then exit;
   x := trunc(x*gh_ui_scale);
@@ -1246,7 +1247,7 @@ begin
   scis.combineRect(x, y, w, h);
 end;
 
-procedure THControl.setScissor (lx, ly, lw, lh: Integer);
+procedure TUIControl.setScissor (lx, ly, lw, lh: Integer);
 var
   gx, gy: Integer;
   //ox, oy, ow, oh: Integer;
@@ -1263,7 +1264,7 @@ begin
   setScissorGLInternal(gx, gy, lw, lh);
 end;
 
-procedure THControl.resetScissor (fullArea: Boolean); inline;
+procedure TUIControl.resetScissor (fullArea: Boolean); inline;
 begin
   if not scallowed then exit;
   if (fullArea) then
@@ -1278,7 +1279,7 @@ end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-procedure THControl.draw ();
+procedure TUIControl.draw ();
 var
   f: Integer;
   gx, gy: Integer;
@@ -1302,12 +1303,12 @@ begin
   end;
 end;
 
-procedure THControl.drawControl (gx, gy: Integer);
+procedure TUIControl.drawControl (gx, gy: Integer);
 begin
   if (mParent = nil) then darkenRect(gx, gy, mWidth, mHeight, 64);
 end;
 
-procedure THControl.drawControlPost (gx, gy: Integer);
+procedure TUIControl.drawControlPost (gx, gy: Integer);
 begin
   // shadow
   if mDrawShadow and (mWidth > 0) and (mHeight > 0) then
@@ -1320,9 +1321,9 @@ end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-function THControl.mouseEvent (var ev: THMouseEvent): Boolean;
+function TUIControl.mouseEvent (var ev: THMouseEvent): Boolean;
 var
-  ctl: THControl;
+  ctl: TUIControl;
 begin
   result := false;
   if not mEnabled then exit;
@@ -1349,9 +1350,9 @@ begin
 end;
 
 
-function THControl.keyEvent (var ev: THKeyEvent): Boolean;
+function TUIControl.keyEvent (var ev: THKeyEvent): Boolean;
 var
-  ctl: THControl;
+  ctl: TUIControl;
 begin
   result := false;
   if not mEnabled then exit;
@@ -1392,7 +1393,7 @@ end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-constructor THTopWindow.Create (const atitle: AnsiString; ax, ay: Integer; aw: Integer=-1; ah: Integer=-1);
+constructor TUITopWindow.Create (const atitle: AnsiString; ax, ay: Integer; aw: Integer=-1; ah: Integer=-1);
 begin
   inherited Create(ax, ay, aw, ah);
   mFrameWidth := 8;
@@ -1412,7 +1413,7 @@ begin
 end;
 
 
-function THTopWindow.parseProperty (const prname: AnsiString; par: TTextParser): Boolean;
+function TUITopWindow.parseProperty (const prname: AnsiString; par: TTextParser): Boolean;
 begin
   if (strEquCI1251(prname, 'title')) or (strEquCI1251(prname, 'caption')) then
   begin
@@ -1428,8 +1429,8 @@ begin
   end;
   if (strEquCI1251(prname, 'position')) then
   begin
-         if (par.eatIdOrStr('default', false)) then mDoCenter := false
-    else if (par.eatIdOrStr('center', false)) then mDoCenter := true
+         if (par.eatIdOrStrCI('default')) then mDoCenter := false
+    else if (par.eatIdOrStrCI('center')) then mDoCenter := true
     else par.error('`center` or `default` expected');
     result := true;
     exit;
@@ -1439,7 +1440,7 @@ begin
 end;
 
 
-procedure THTopWindow.centerInScreen ();
+procedure TUITopWindow.centerInScreen ();
 begin
   if (mWidth > 0) and (mHeight > 0) then
   begin
@@ -1449,13 +1450,13 @@ begin
 end;
 
 
-procedure THTopWindow.drawControl (gx, gy: Integer);
+procedure TUITopWindow.drawControl (gx, gy: Integer);
 begin
   fillRect(gx, gy, mWidth, mHeight, TGxRGBA.Create(0, 0, 128));
 end;
 
 
-procedure THTopWindow.drawControlPost (gx, gy: Integer);
+procedure TUITopWindow.drawControlPost (gx, gy: Integer);
 const r = 255;
 const g = 255;
 const b = 255;
@@ -1487,7 +1488,7 @@ begin
 end;
 
 
-procedure THTopWindow.activated ();
+procedure TUITopWindow.activated ();
 begin
   if (mFocused = nil) or (mFocused = self) then
   begin
@@ -1498,7 +1499,7 @@ begin
 end;
 
 
-procedure THTopWindow.blurred ();
+procedure TUITopWindow.blurred ();
 begin
   mDragging := false;
   mWaitingClose := false;
@@ -1507,7 +1508,7 @@ begin
 end;
 
 
-function THTopWindow.keyEvent (var ev: THKeyEvent): Boolean;
+function TUITopWindow.keyEvent (var ev: THKeyEvent): Boolean;
 begin
   result := inherited keyEvent(ev);
   if not getFocused then exit;
@@ -1520,7 +1521,7 @@ begin
 end;
 
 
-function THTopWindow.mouseEvent (var ev: THMouseEvent): Boolean;
+function TUITopWindow.mouseEvent (var ev: THMouseEvent): Boolean;
 var
   lx, ly: Integer;
 begin
@@ -1603,21 +1604,21 @@ end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-constructor THCtlSimpleText.Create (ax, ay: Integer);
+constructor TUISimpleText.Create (ax, ay: Integer);
 begin
   mItems := nil;
   inherited Create(ax, ay, 4, 4);
 end;
 
 
-destructor THCtlSimpleText.Destroy ();
+destructor TUISimpleText.Destroy ();
 begin
   mItems := nil;
   inherited;
 end;
 
 
-procedure THCtlSimpleText.appendItem (const atext: AnsiString; acentered: Boolean=false; ahline: Boolean=false);
+procedure TUISimpleText.appendItem (const atext: AnsiString; acentered: Boolean=false; ahline: Boolean=false);
 var
   it: PItem;
 begin
@@ -1631,7 +1632,7 @@ begin
 end;
 
 
-procedure THCtlSimpleText.drawControl (gx, gy: Integer);
+procedure TUISimpleText.drawControl (gx, gy: Integer);
 var
   f, tx: Integer;
   it: PItem;
@@ -1664,7 +1665,7 @@ begin
 end;
 
 
-function THCtlSimpleText.mouseEvent (var ev: THMouseEvent): Boolean;
+function TUISimpleText.mouseEvent (var ev: THMouseEvent): Boolean;
 var
   lx, ly: Integer;
 begin
@@ -1676,14 +1677,14 @@ begin
 end;
 
 
-function THCtlSimpleText.keyEvent (var ev: THKeyEvent): Boolean;
+function TUISimpleText.keyEvent (var ev: THKeyEvent): Boolean;
 begin
   result := inherited keyEvent(ev);
 end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-constructor THCtlCBListBox.Create (ax, ay: Integer);
+constructor TUICBListBox.Create (ax, ay: Integer);
 begin
   mItems := nil;
   mCurIndex := -1;
@@ -1691,14 +1692,14 @@ begin
 end;
 
 
-destructor THCtlCBListBox.Destroy ();
+destructor TUICBListBox.Destroy ();
 begin
   mItems := nil;
   inherited;
 end;
 
 
-procedure THCtlCBListBox.appendItem (const atext: AnsiString; bv: PBoolean; aaction: TActionCB=nil);
+procedure TUICBListBox.appendItem (const atext: AnsiString; bv: PBoolean; aaction: TActionCB=nil);
 var
   it: PItem;
 begin
@@ -1713,7 +1714,7 @@ begin
 end;
 
 
-procedure THCtlCBListBox.drawControl (gx, gy: Integer);
+procedure TUICBListBox.drawControl (gx, gy: Integer);
 var
   f, tx: Integer;
   it: PItem;
@@ -1746,7 +1747,7 @@ begin
 end;
 
 
-function THCtlCBListBox.mouseEvent (var ev: THMouseEvent): Boolean;
+function TUICBListBox.mouseEvent (var ev: THMouseEvent): Boolean;
 var
   lx, ly: Integer;
   it: PItem;
@@ -1774,7 +1775,7 @@ begin
 end;
 
 
-function THCtlCBListBox.keyEvent (var ev: THKeyEvent): Boolean;
+function TUICBListBox.keyEvent (var ev: THKeyEvent): Boolean;
 var
   it: PItem;
 begin
@@ -1840,7 +1841,7 @@ end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-constructor THCtlBox.Create (ahoriz: Boolean);
+constructor TUIBox.Create (ahoriz: Boolean);
 begin
   inherited Create();
   mHoriz := ahoriz;
@@ -1848,7 +1849,7 @@ begin
 end;
 
 
-function THCtlBox.parseProperty (const prname: AnsiString; par: TTextParser): Boolean;
+function TUIBox.parseProperty (const prname: AnsiString; par: TTextParser): Boolean;
 begin
   if (parseOrientation(prname, par)) then begin result := true; exit; end;
   if (strEquCI1251(prname, 'frame')) then
@@ -1875,7 +1876,7 @@ begin
 end;
 
 
-procedure THCtlBox.drawControl (gx, gy: Integer);
+procedure TUIBox.drawControl (gx, gy: Integer);
 var
   r, g, b: Integer;
   tx: Integer;
@@ -1897,7 +1898,7 @@ begin
 end;
 
 
-function THCtlBox.mouseEvent (var ev: THMouseEvent): Boolean;
+function TUIBox.mouseEvent (var ev: THMouseEvent): Boolean;
 var
   lx, ly: Integer;
 begin
@@ -1910,14 +1911,14 @@ end;
 
 
 //TODO: navigation with arrow keys, according to box orientation
-function THCtlBox.keyEvent (var ev: THKeyEvent): Boolean;
+function TUIBox.keyEvent (var ev: THKeyEvent): Boolean;
 begin
   result := inherited keyEvent(ev);
 end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-procedure THCtlHBox.AfterConstruction ();
+procedure TUIHBox.AfterConstruction ();
 begin
   inherited AfterConstruction();
   mHoriz := true;
@@ -1925,7 +1926,7 @@ end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-procedure THCtlVBox.AfterConstruction ();
+procedure TUIVBox.AfterConstruction ();
 begin
   inherited AfterConstruction();
   mHoriz := false;
@@ -1934,7 +1935,7 @@ end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-procedure THCtlSpan.AfterConstruction ();
+procedure TUISpan.AfterConstruction ();
 begin
   inherited AfterConstruction();
   mExpand := true;
@@ -1942,27 +1943,27 @@ begin
 end;
 
 
-function THCtlSpan.parseProperty (const prname: AnsiString; par: TTextParser): Boolean;
+function TUISpan.parseProperty (const prname: AnsiString; par: TTextParser): Boolean;
 begin
   if (parseOrientation(prname, par)) then begin result := true; exit; end;
   result := inherited parseProperty(prname, par);
 end;
 
 
-procedure THCtlSpan.drawControl (gx, gy: Integer);
+procedure TUISpan.drawControl (gx, gy: Integer);
 begin
 end;
 
 
 // ////////////////////////////////////////////////////////////////////// //
-function THCtlLine.parseProperty (const prname: AnsiString; par: TTextParser): Boolean;
+function TUILine.parseProperty (const prname: AnsiString; par: TTextParser): Boolean;
 begin
   if (parseOrientation(prname, par)) then begin result := true; exit; end;
   result := inherited parseProperty(prname, par);
 end;
 
 
-procedure THCtlLine.drawControl (gx, gy: Integer);
+procedure TUILine.drawControl (gx, gy: Integer);
 begin
   if mHoriz then
   begin
@@ -1976,7 +1977,7 @@ end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-procedure THCtlHLine.AfterConstruction ();
+procedure TUIHLine.AfterConstruction ();
 begin
   mHoriz := true;
   mExpand := true;
@@ -1985,7 +1986,7 @@ end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-procedure THCtlVLine.AfterConstruction ();
+procedure TUIVLine.AfterConstruction ();
 begin
   mHoriz := false;
   mExpand := true;
@@ -1995,7 +1996,7 @@ end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-constructor THCtlTextLabel.Create (const atext: AnsiString);
+constructor TUITextLabel.Create (const atext: AnsiString);
 begin
   inherited Create();
   mText := atext;
@@ -2003,7 +2004,7 @@ begin
 end;
 
 
-procedure THCtlTextLabel.AfterConstruction ();
+procedure TUITextLabel.AfterConstruction ();
 begin
   inherited AfterConstruction();
   mHAlign := -1;
@@ -2013,7 +2014,7 @@ begin
 end;
 
 
-function THCtlTextLabel.parseProperty (const prname: AnsiString; par: TTextParser): Boolean;
+function TUITextLabel.parseProperty (const prname: AnsiString; par: TTextParser): Boolean;
 begin
   if (strEquCI1251(prname, 'title')) or (strEquCI1251(prname, 'caption')) then
   begin
@@ -2032,7 +2033,7 @@ begin
 end;
 
 
-procedure THCtlTextLabel.drawControl (gx, gy: Integer);
+procedure TUITextLabel.drawControl (gx, gy: Integer);
 var
   xpos, ypos: Integer;
 begin
@@ -2055,7 +2056,7 @@ begin
 end;
 
 
-function THCtlTextLabel.mouseEvent (var ev: THMouseEvent): Boolean;
+function TUITextLabel.mouseEvent (var ev: THMouseEvent): Boolean;
 var
   lx, ly: Integer;
 begin
@@ -2067,17 +2068,17 @@ begin
 end;
 
 
-function THCtlTextLabel.keyEvent (var ev: THKeyEvent): Boolean;
+function TUITextLabel.keyEvent (var ev: THKeyEvent): Boolean;
 begin
   result := inherited keyEvent(ev);
 end;
 
 
 initialization
-  registerCtlClass(THCtlHBox, 'hbox');
-  registerCtlClass(THCtlVBox, 'vbox');
-  registerCtlClass(THCtlSpan, 'span');
-  registerCtlClass(THCtlHLine, 'hline');
-  registerCtlClass(THCtlVLine, 'vline');
-  registerCtlClass(THCtlTextLabel, 'label');
+  registerCtlClass(TUIHBox, 'hbox');
+  registerCtlClass(TUIVBox, 'vbox');
+  registerCtlClass(TUISpan, 'span');
+  registerCtlClass(TUIHLine, 'hline');
+  registerCtlClass(TUIVLine, 'vline');
+  registerCtlClass(TUITextLabel, 'label');
 end.

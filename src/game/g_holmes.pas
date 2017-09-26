@@ -96,10 +96,10 @@ var
 
 // ////////////////////////////////////////////////////////////////////////// //
 var
-  winHelp: THTopWindow = nil;
-  winOptions: THTopWindow = nil;
-  winLayers: THTopWindow = nil;
-  winOutlines: THTopWindow = nil;
+  winHelp: TUITopWindow = nil;
+  winOptions: TUITopWindow = nil;
+  winLayers: TUITopWindow = nil;
+  winOutlines: TUITopWindow = nil;
 
 
 procedure createHelpWindow (); forward;
@@ -108,7 +108,7 @@ procedure createLayersWindow (); forward;
 procedure createOutlinesWindow (); forward;
 
 
-procedure toggleLayersWindowCB (me: THControl; checked: Integer);
+procedure toggleLayersWindowCB (me: TUIControl; checked: Integer);
 begin
   if showLayersWindow then
   begin
@@ -122,7 +122,7 @@ begin
 end;
 
 
-procedure toggleOutlineWindowCB (me: THControl; checked: Integer);
+procedure toggleOutlineWindowCB (me: TUIControl; checked: Integer);
 begin
   if showOutlineWindow then
   begin
@@ -138,7 +138,7 @@ end;
 
 procedure createHelpWindow ();
 var
-  llb: THCtlSimpleText;
+  llb: TUISimpleText;
   slist: array of AnsiString = nil;
   cmd: PHolmesCommand;
   bind: THolmesBinding;
@@ -174,7 +174,7 @@ begin
     end;
   end;
 
-  llb := THCtlSimpleText.Create(0, 0);
+  llb := TUISimpleText.Create(0, 0);
   for f := 0 to High(slist) do
   begin
     if (f > 0) then llb.appendItem('');
@@ -228,21 +228,21 @@ begin
     end;
   end;
 
-  winHelp := THTopWindow.Create('Holmes Help', 10, 10);
+  winHelp := TUITopWindow.Create('Holmes Help', 10, 10);
   winHelp.escClose := true;
   winHelp.appendChild(llb);
   winHelp.centerInScreen();
 end;
 
 
-procedure winLayersClosed (me: THControl; dummy: Integer); begin showLayersWindow := false; end;
-procedure winOutlinesClosed (me: THControl; dummy: Integer); begin showOutlineWindow := false; end;
+procedure winLayersClosed (me: TUIControl; dummy: Integer); begin showLayersWindow := false; end;
+procedure winOutlinesClosed (me: TUIControl; dummy: Integer); begin showOutlineWindow := false; end;
 
 procedure createLayersWindow ();
 var
-  llb: THCtlCBListBox;
+  llb: TUICBListBox;
 begin
-  llb := THCtlCBListBox.Create(0, 0);
+  llb := TUICBListBox.Create(0, 0);
   llb.appendItem('background', @g_rlayer_back);
   llb.appendItem('steps', @g_rlayer_step);
   llb.appendItem('walls', @g_rlayer_wall);
@@ -251,7 +251,7 @@ begin
   llb.appendItem('acid2', @g_rlayer_acid2);
   llb.appendItem('water', @g_rlayer_water);
   llb.appendItem('foreground', @g_rlayer_fore);
-  winLayers := THTopWindow.Create('layers', 10, 10);
+  winLayers := TUITopWindow.Create('layers', 10, 10);
   winLayers.escClose := true;
   winLayers.appendChild(llb);
   winLayers.closeCB := winLayersClosed;
@@ -260,9 +260,9 @@ end;
 
 procedure createOutlinesWindow ();
 var
-  llb: THCtlCBListBox;
+  llb: TUICBListBox;
 begin
-  llb := THCtlCBListBox.Create(0, 0);
+  llb := TUICBListBox.Create(0, 0);
   llb.appendItem('background', @g_ol_rlayer_back);
   llb.appendItem('steps', @g_ol_rlayer_step);
   llb.appendItem('walls', @g_ol_rlayer_wall);
@@ -274,7 +274,7 @@ begin
   llb.appendItem('OPTIONS', nil);
   llb.appendItem('fill walls', @g_ol_fill_walls);
   llb.appendItem('contours', @g_ol_nice);
-  winOutlines := THTopWindow.Create('outlines', 100, 10);
+  winOutlines := TUITopWindow.Create('outlines', 100, 10);
   winOutlines.escClose := true;
   winOutlines.appendChild(llb);
   winOutlines.closeCB := winOutlinesClosed;
@@ -283,9 +283,9 @@ end;
 
 procedure createOptionsWindow ();
 var
-  llb: THCtlCBListBox;
+  llb: TUICBListBox;
 begin
-  llb := THCtlCBListBox.Create(0, 0);
+  llb := TUICBListBox.Create(0, 0);
   llb.appendItem('map grid', @showGrid);
   llb.appendItem('cursor position on map', @showMapCurPos);
   llb.appendItem('monster info', @showMonsInfo);
@@ -295,7 +295,7 @@ begin
   llb.appendItem('WINDOWS', nil);
   llb.appendItem('layers window', @showLayersWindow, toggleLayersWindowCB);
   llb.appendItem('outline window', @showOutlineWindow, toggleOutlineWindowCB);
-  winOptions := THTopWindow.Create('Holmes Options', 100, 100);
+  winOptions := TUITopWindow.Create('Holmes Options', 100, 100);
   winOptions.escClose := true;
   winOptions.appendChild(llb);
   winOptions.centerInScreen();
