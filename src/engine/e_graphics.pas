@@ -37,7 +37,7 @@ type
     X, Y: Double;
   end;
 
-  TRect = record
+  TRectE = record
     Left, Top, Right, Bottom: Integer;
   end;
 
@@ -52,7 +52,7 @@ type
 
   PPoint = ^TPoint;
   PPoint2f = ^TPoint2f;
-  PRect = ^TRect;
+  PRect = ^TRectE;
   PRectWH = ^TRectWH;
 
 
@@ -126,7 +126,7 @@ procedure e_EndRender();
 function _RGB(Red, Green, Blue: Byte): TRGB;
 function _Point(X, Y: Integer): TPoint2i;
 function _Rect(X, Y: Integer; Width, Height: Word): TRectWH;
-function _TRect(L, T, R, B: LongInt): TRect;
+function _TRect(L, T, R, B: LongInt): TRectE;
 
 //function e_getTextGLId (ID: DWORD): GLuint;
 
@@ -1522,7 +1522,7 @@ begin
  Result.Height := Height;
 end;
 
-function _TRect(L, T, R, B: LongInt): TRect;
+function _TRect(L, T, R, B: LongInt): TRectE;
 begin
  Result.Top := T;
  Result.Left := L;

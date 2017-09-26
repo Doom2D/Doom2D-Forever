@@ -207,6 +207,8 @@ type
     procedure FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
     procedure FormResize(Sender: TObject);
     procedure lbTextureListClick(Sender: TObject);
+    procedure lbTextureListDrawItem(Control: TWinControl; Index: Integer;
+      ARect: TRect; State: TOwnerDrawState);
     procedure RenderPanelMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
     procedure RenderPanelMouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer);
     procedure RenderPanelMouseUp(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
@@ -258,8 +260,6 @@ type
     procedure OnIdle(Sender: TObject; var Done: Boolean);
   public
     procedure RefreshRecentMenu();
-    { procedure lbTextureListDrawItem(Control: TWinControl; Index: Integer;
-                                    Rect: TRect; State: TOwnerDrawState); }
   end;
 
 const
@@ -4377,6 +4377,27 @@ begin
     end;
 end;
 
+procedure TMainForm.lbTextureListDrawItem(Control: TWinControl; Index: Integer;
+  ARect: TRect; State: TOwnerDrawState);
+begin
+  with Control as TListBox do
+  begin
+    if LCLType.odSelected in State then
+    begin
+      Canvas.Brush.Color := clHighlight;
+      Canvas.Font.Color := clHighlightText;
+    end else
+      if (Items <> nil) and (Index >= 0) then
+        if slInvalidTextures.IndexOf(Items[Index]) > -1 then
+        begin
+          Canvas.Brush.Color := clRed;
+          Canvas.Font.Color := clWhite;
+        end;
+    Canvas.FillRect(ARect);
+    Canvas.TextRect(ARect, ARect.Left, ARect.Top, Items[Index]);
+  end;
+end;
+
 procedure TMainForm.vleObjectPropertyGetPickList(Sender: TObject;
   const KeyName: String; Values: TStrings);
 begin
@@ -6411,26 +6432,4 @@ begin
   end;
 end;
 
-{
-procedure TMainForm.lbTextureListDrawItem(Control: TWinControl; Index: Integer;
-      Rect: TRect; State: LCLType.TOwnerDrawState);
-begin
-  with Control as TListBox do
-  begin
-    if LCLType.odSelected in State then
-    begin
-      Canvas.Brush.Color := clHighlight;
-      Canvas.Font.Color := clHighlightText;
-    end else
-      if (Items <> nil) and (Index >= 0) then
-        if slInvalidTextures.IndexOf(Items[Index]) > -1 then
-        begin
-          Canvas.Brush.Color := clRed;
-          Canvas.Font.Color := clWhite;
-        end;
-    Canvas.FillRect(Rect);
-    Canvas.TextRect(Rect, Rect.Left, Rect.Top, Items[Index]);
-  end;
-end;
-}
 end.

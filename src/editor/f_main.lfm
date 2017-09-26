@@ -247,6 +247,7 @@ object MainForm: TMainForm
           Constraints.MinHeight = 70
           ItemHeight = 13
           OnClick = lbTextureListClick
+          OnDrawItem = lbTextureListDrawItem
           Style = lbOwnerDrawFixed
           TabOrder = 0
         end
