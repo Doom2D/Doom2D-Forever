@@ -4033,10 +4033,13 @@ var
 begin
   config := TConfig.CreateFile(EditorDir+'Editor.cfg');
 
-  config.WriteInt('Editor', 'XPos', Left);
-  config.WriteInt('Editor', 'YPos', Top);
-  config.WriteInt('Editor', 'Width', Width);
-  config.WriteInt('Editor', 'Height', Height);
+  if WindowState <> wsMaximized then
+  begin
+    config.WriteInt('Editor', 'XPos', Left);
+    config.WriteInt('Editor', 'YPos', Top);
+    config.WriteInt('Editor', 'Width', Width);
+    config.WriteInt('Editor', 'Height', Height);
+  end;
   config.WriteBool('Editor', 'Maximize', WindowState = wsMaximized);
   config.WriteBool('Editor', 'Minimap', ShowMap);
   config.WriteInt('Editor', 'PanelProps', PanelProps.ClientWidth);
