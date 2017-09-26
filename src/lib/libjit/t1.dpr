@@ -36,7 +36,6 @@ var
   res: jit_int;
 begin
   if (jit_type_int = nil) then raise Exception.Create('fuuuuu (0)');
-  //if (PPointer(jit_type_int)^ = nil) then raise Exception.Create('fuuuuu (1)');
 
   (* Create a context to hold the JIT's primary state *)
   writeln('creating context...');

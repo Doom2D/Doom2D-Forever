@@ -34,13 +34,14 @@ interface
 
 const
   {$IFDEF MSWINDOWS}
-  LIBJIT_LIBNAME = 'libjit.dll';
-  {$DEFINE libraryLibJITDecl := cdecl}
-  {$DEFINE libraryLibJITImp := cdecl; external LIBJIT_LIBNAME}
+    //{$LINKLIB libjit.dll.a}
+    LIBJIT_LIBNAME = 'libjit-0.dll';
+    {$DEFINE libraryLibJITDecl := cdecl}
+    {$DEFINE libraryLibJITImp := cdecl; external LIBJIT_LIBNAME}
   {$ELSE}
-  LIBJIT_LIBNAME = 'jit';
-  {$DEFINE libraryLibJITDecl := cdecl}
-  {$DEFINE libraryLibJITImp := cdecl; external LIBJIT_LIBNAME}
+    LIBJIT_LIBNAME = 'jit';
+    {$DEFINE libraryLibJITDecl := cdecl}
+    {$DEFINE libraryLibJITImp := cdecl; external LIBJIT_LIBNAME}
   {$ENDIF}
 
 
