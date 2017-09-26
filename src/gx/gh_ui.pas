@@ -216,6 +216,7 @@ type
     mWaitingClose: Boolean;
     mInClose: Boolean;
     mFreeOnClose: Boolean; // default: false
+    mDoCenter: Boolean; // after layouting
 
   protected
     procedure activated (); override;
@@ -463,6 +464,11 @@ begin
 
     lay.layout();
     //writeln('=== final ==='); lay.dump();
+
+    if (ctl.mParent = nil) and (ctl is THTopWindow) and (THTopWindow(ctl).mDoCenter) then
+    begin
+      THTopWindow(ctl).centerInScreen();
+    end;
 
   finally
     FreeAndNil(lay);
@@ -1417,6 +1423,14 @@ begin
   if (strEquCI1251(prname, 'children')) then
   begin
     parseChildren(par);
+    result := true;
+    exit;
+  end;
+  if (strEquCI1251(prname, 'position')) then
+  begin
+         if (par.eatIdOrStr('default', false)) then mDoCenter := false
+    else if (par.eatIdOrStr('center', false)) then mDoCenter := true
+    else par.error('`center` or `default` expected');
     result := true;
     exit;
   end;

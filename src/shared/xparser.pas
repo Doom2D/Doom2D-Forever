@@ -112,6 +112,7 @@ type
     procedure expectId (const aid: AnsiString; caseSens: Boolean=true);
     function eatId (const aid: AnsiString; caseSens: Boolean=true): Boolean;
     function eatIdOrStr (const aid: AnsiString; caseSens: Boolean=true): Boolean;
+    function eatIdOrStrCI (const aid: AnsiString): Boolean; inline;
 
     function expectStr (allowEmpty: Boolean=false): AnsiString;
     function expectInt (): Integer;
@@ -707,6 +708,12 @@ begin
     if not result then result := (mTokType = TTStr) and strEquCI1251(mTokStr, aid);
   end;
   if result then skipToken();
+end;
+
+
+function TTextParser.eatIdOrStrCI (const aid: AnsiString): Boolean; inline;
+begin
+  result := eatIdOrStr(aid, false);
 end;
 
 
