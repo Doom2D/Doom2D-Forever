@@ -8,7 +8,7 @@ uses
   LCLIntf, LCLType, LMessages, SysUtils, Variants, Classes, Graphics,
   Controls, Forms, Dialogs, ImgList, StdCtrls, Buttons,
   ComCtrls, ValEdit, Types, ToolWin, Menus, ExtCtrls,
-  CheckLst, Grids, OpenGLContext, utils;
+  CheckLst, Grids, OpenGLContext, utils, UTF8Process;
 
 type
 
@@ -4039,6 +4039,13 @@ begin
     config.WriteInt('Editor', 'YPos', Top);
     config.WriteInt('Editor', 'Width', Width);
     config.WriteInt('Editor', 'Height', Height);
+  end
+  else
+  begin
+    config.WriteInt('Editor', 'XPos', RestoredLeft);
+    config.WriteInt('Editor', 'YPos', RestoredTop);
+    config.WriteInt('Editor', 'Width', RestoredWidth);
+    config.WriteInt('Editor', 'Height', RestoredHeight);
   end;
   config.WriteBool('Editor', 'Maximize', WindowState = wsMaximized);
   config.WriteBool('Editor', 'Minimap', ShowMap);
@@ -6248,6 +6255,8 @@ var
   cmd, mapWAD, mapToRun: String;
   opt: LongWord;
   time: Integer;
+  proc: TProcessUTF8;
+  res: Boolean;
 begin
   // Сохраняем временную карту:
   time := 0;
@@ -6287,13 +6296,27 @@ begin
   cmd := cmd + ' --tempdelete';
 
 // Запускаем:
-  Application.Minimize();
-  if ExecuteProcess(TestD2dExe, cmd) < 0 then
+  proc := TProcessUTF8.Create(nil);
+  proc.Executable := TestD2dExe;
+  proc.Parameters.Add(cmd);
+  res := True;
+  try
+    proc.Execute();
+  except
+    res := False;
+  end;
+  if res then
+  begin
+    Application.Minimize();
+    proc.WaitOnExit();
+  end;
+  if (not res) or (proc.ExitCode < 0) then
   begin
     MessageBox(0, 'FIXME',
                PChar(_lc[I_MSG_EXEC_ERROR]),
                MB_OK or MB_ICONERROR);
   end;
+  proc.Free();
 
   SysUtils.DeleteFile(mapWAD);
   Application.Restore();
