@@ -23,95 +23,96 @@ uses
   {$IFDEF USE_MEMPOOL}mempool,{$ENDIF}
   e_graphics, MAPDEF, ImagingTypes, Imaging, ImagingUtility;
 
-Type
+type
   TLevelTexture = record
-    TextureName: String;
-    Width,
-    Height:      Word;
-    case Anim: Boolean of
-      False: (TextureID:   DWORD;);
-      True:  (FramesID:    DWORD;
-              FramesCount: Byte;
-              Speed:       Byte);
+    textureName: AnsiString;
+    width, height: Word;
+    case anim: Boolean of
+      false: (textureID: LongWord);
+      true: (framesID: LongWord; framesCount: Byte; speed: Byte);
   end;
 
-  TLevelTextureArray = Array of TLevelTexture;
+  TLevelTextureArray = array of TLevelTexture;
 
   TAnimation = class{$IFDEF USE_MEMPOOL}(TPoolObject){$ENDIF}
   private
-    ID:            DWORD;
-    FAlpha:        Byte;
-    FBlending:     Boolean;
-    FCounter:      Byte;    // Счетчик ожидания между кадрами
-    FSpeed:        Byte;    // Время ожидания между кадрами
-    FCurrentFrame: Integer; // Текущий кадр (начиная с 0)
-    FLoop:         Boolean; // Переходить на первый кадр после последнего?
-    FEnabled:      Boolean; // Работа разрешена?
-    FPlayed:       Boolean; // Проиграна вся хотя бы раз?
-    FHeight:       Word;
-    FWidth:        Word;
-    FMinLength:    Byte;    // Ожидание после проигрывания
-    FRevert:       Boolean; // Смена кадров обратная?
+    mId: LongWord;
+    mAlpha: Byte;
+    mBlending: Boolean;
+    mCounter: Byte; // Счетчик ожидания между кадрами
+    mSpeed: Byte; // Время ожидания между кадрами
+    mCurrentFrame: Integer; // Текущий кадр (начиная с 0)
+    mLoop: Boolean; // Переходить на первый кадр после последнего?
+    mEnabled: Boolean; // Работа разрешена?
+    mPlayed: Boolean; // Проиграна вся хотя бы раз?
+    mHeight: Word;
+    mWidth: Word;
+    mMinLength: Byte; // Ожидание после проигрывания
+    mRevert: Boolean; // Смена кадров обратная?
 
   public
-    constructor Create(FramesID: DWORD; Loop: Boolean; Speed: Byte);
-    destructor  Destroy(); override;
-    procedure   Draw(X, Y: Integer; Mirror: TMirrorType);
-    procedure   DrawEx(X, Y: Integer; Mirror: TMirrorType; RPoint: TDFPoint;
-                       Angle: SmallInt);
-    procedure   Reset();
-    procedure   Update();
-    procedure   Enable();
-    procedure   Disable();
-    procedure   Revert(r: Boolean);
-    procedure   SaveState(st: TStream);
-    procedure   LoadState(st: TStream);
-    function    TotalFrames(): Integer;
+    constructor Create (aframesID: LongWord; aloop: Boolean; aspeed: Byte);
+    destructor  Destroy (); override;
 
-    property    Played: Boolean read FPlayed;
-    property    Enabled: Boolean read FEnabled;
-    property    IsReverse: Boolean read FRevert;
-    property    Loop: Boolean read FLoop write FLoop;
-    property    Speed: Byte read FSpeed write FSpeed;
-    property    MinLength: Byte read FMinLength write FMinLength;
-    property    CurrentFrame: Integer read FCurrentFrame write FCurrentFrame;
-    property    CurrentCounter: Byte read FCounter write FCounter;
-    property    Counter: Byte read FCounter;
-    property    Blending: Boolean read FBlending write FBlending;
-    property    Alpha: Byte read FAlpha write FAlpha;
-    property    FramesID: DWORD read ID;
-    property    Width: Word read FWidth;
-    property    Height: Word read FHeight;
+    procedure draw (x, y: Integer; mirror: TMirrorType);
+    procedure drawEx (x, y: Integer; mirror: TMirrorType; rpoint: TDFPoint; angle: SmallInt);
+
+    procedure reset ();
+    procedure update ();
+    procedure enable ();
+    procedure disable ();
+    procedure revert (r: Boolean);
+
+    procedure saveState (st: TStream);
+    procedure loadState (st: TStream);
+
+    function totalFrames (): Integer; inline;
+
+  public
+    property played: Boolean read mPlayed;
+    property enabled: Boolean read mEnabled;
+    property isReverse: Boolean read mRevert;
+    property loop: Boolean read mLoop write mLoop;
+    property speed: Byte read mSpeed write mSpeed;
+    property minLength: Byte read mMinLength write mMinLength;
+    property currentFrame: Integer read mCurrentFrame write mCurrentFrame;
+    property currentCounter: Byte read mCounter write mCounter;
+    property counter: Byte read mCounter;
+    property blending: Boolean read mBlending write mBlending;
+    property alpha: Byte read mAlpha write mAlpha;
+    property framesId: LongWord read mId;
+    property width: Word read mWidth;
+    property height: Word read mHeight;
   end;
 
-function g_Texture_CreateWAD(var ID: DWORD; Resource: String): Boolean;
-function g_Texture_CreateFile(var ID: DWORD; FileName: String): Boolean;
-function g_Texture_CreateWADEx(TextureName: ShortString; Resource: String; altrsrc: AnsiString=''): Boolean;
-function g_Texture_CreateFileEx(TextureName: ShortString; FileName: String): Boolean;
-function g_Texture_Get(TextureName: ShortString; var ID: DWORD): Boolean;
-procedure g_Texture_Delete(TextureName: ShortString);
-procedure g_Texture_DeleteAll();
 
-function g_CreateFramesImg (ia: TDynImageDataArray; ID: PDWORD; Name: ShortString; BackAnimation: Boolean = False): Boolean;
+function g_Texture_CreateWAD (var ID: LongWord; const Resource: AnsiString): Boolean;
+function g_Texture_CreateFile (var ID: LongWord; const FileName: AnsiString): Boolean;
+function g_Texture_CreateWADEx (const textureName, Resource: AnsiString; const altrsrc: AnsiString=''): Boolean;
+function g_Texture_CreateFileEx (const textureName, FileName: AnsiString): Boolean;
+function g_Texture_Get (const textureName: AnsiString; var ID: LongWord): Boolean;
+procedure g_Texture_Delete (const textureName: AnsiString);
+procedure g_Texture_DeleteAll ();
 
-function g_Frames_CreateWAD(ID: PDWORD; Name: ShortString; Resource: String;
-                            FWidth, FHeight, FCount: Word; BackAnimation: Boolean = False): Boolean;
-function g_Frames_CreateFile(ID: PDWORD; Name: ShortString; FileName: String;
-                             FWidth, FHeight, FCount: Word; BackAnimation: Boolean = False): Boolean;
-function g_Frames_CreateMemory(ID: PDWORD; Name: ShortString; pData: Pointer; dataSize: LongInt;
-                               FWidth, FHeight, FCount: Word; BackAnimation: Boolean = False): Boolean;
-function g_Frames_Dup(NewName, OldName: ShortString): Boolean;
+function g_CreateFramesImg (ia: TDynImageDataArray; ID: PDWORD; const Name: AnsiString; BackAnimation: Boolean=false): Boolean;
+
+function g_Frames_CreateWAD (ID: PDWORD; const Name, Resource: AnsiString; mWidth, mHeight, mCount: Word; BackAnimation: Boolean=false): Boolean;
+function g_Frames_CreateFile (ID: PDWORD; const Name, FileName: AnsiString; mWidth, mHeight, mCount: Word; BackAnimation: Boolean=false): Boolean;
+function g_Frames_CreateMemory (ID: PDWORD; const Name: AnsiString; pData: Pointer; dataSize: LongInt;
+                                mWidth, mHeight, mCount: Word; BackAnimation: Boolean=false): Boolean;
+function g_Frames_Dup (const NewName, OldName: AnsiString): Boolean;
 //function g_Frames_CreateRevert(ID: PDWORD; Name: ShortString; Frames: string): Boolean;
-function g_Frames_Get(out ID: DWORD; FramesName: ShortString): Boolean;
-function g_Frames_GetTexture(out ID: DWORD; FramesName: ShortString; Frame: Word): Boolean;
-function g_Frames_Exists(FramesName: String): Boolean;
-procedure g_Frames_DeleteByName(FramesName: ShortString);
-procedure g_Frames_DeleteByID(ID: DWORD);
-procedure g_Frames_DeleteAll();
+function g_Frames_Get (out ID: LongWord; const FramesName: AnsiString): Boolean;
+function g_Frames_GetTexture (out ID: LongWord; const FramesName: AnsiString; Frame: Word): Boolean;
+function g_Frames_Exists (const FramesName: AnsiString): Boolean;
+procedure g_Frames_DeleteByName (const FramesName: AnsiString);
+procedure g_Frames_DeleteByID (ID: LongWord);
+procedure g_Frames_DeleteAll ();
 
-procedure DumpTextureNames();
+procedure DumpTextureNames ();
 
-function g_Texture_Light(): Integer;
+function g_Texture_Light (): Integer;
+
 
 implementation
 
@@ -121,57 +122,95 @@ uses
 
 type
   _TTexture = record
-    Name: ShortString;
-    ID: DWORD;
-    Width, Height: Word;
+    name: AnsiString;
+    id: LongWord;
+    width, height: Word;
+    used: Boolean;
   end;
 
   TFrames = record
-    TexturesID: Array of DWORD;
-    Name: ShortString;
-    FrameWidth,
-    FrameHeight: Word;
+    texturesID: array of LongWord;
+    name: AnsiString;
+    frameWidth, frameHeight: Word;
+    used: Boolean;
   end;
 
 var
-  TexturesArray: Array of _TTexture = nil;
-  FramesArray: Array of TFrames = nil;
+  texturesArray: array of _TTexture = nil;
+  framesArray: array of TFrames = nil;
+
 
 const
   ANIM_SIGNATURE = $4D494E41; // 'ANIM'
 
-function FindTexture(): DWORD;
-var
-  i: integer;
-begin
-  if TexturesArray <> nil then
-  for i := 0 to High(TexturesArray) do
-    if TexturesArray[i].Name = '' then
-    begin
-      Result := i;
-      Exit;
-    end;
 
-  if TexturesArray = nil then
+function allocTextureSlot (): LongWord;
+var
+  f: integer;
+begin
+  for f := 0 to High(texturesArray) do
   begin
-    SetLength(TexturesArray, 8);
-    Result := 0;
-  end
-  else
+    if (not texturesArray[f].used) then
+    begin
+      result := f;
+      exit;
+    end;
+  end;
+
+  result := Length(texturesArray);
+  SetLength(texturesArray, result+64);
+  for f := result to High(texturesArray) do
   begin
-    Result := High(TexturesArray) + 1;
-    SetLength(TexturesArray, Length(TexturesArray) + 8);
+    with texturesArray[f] do
+    begin
+      name := '';
+      id := 0;
+      width := 0;
+      height := 0;
+      used := false;
+    end;
   end;
 end;
 
-function g_Texture_CreateWAD(var ID: DWORD; Resource: String): Boolean;
+
+function allocFrameSlot (): LongWord;
+var
+  f: integer;
+begin
+  for f := 0 to High(framesArray) do
+  begin
+    if (not framesArray[f].used) then
+    begin
+      result := f;
+      exit;
+    end;
+  end;
+
+  result := Length(framesArray);
+  SetLength(framesArray, result+64);
+  for f := result to High(framesArray) do
+  begin
+    with framesArray[f] do
+    begin
+      texturesID := nil;
+      name := '';
+      frameWidth := 0;
+      frameHeight := 0;
+      used := false;
+    end;
+  end;
+end;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
+function g_Texture_CreateWAD (var ID: LongWord; const Resource: AnsiString): Boolean;
 var
   WAD: TWADFile;
-  FileName: String;
+  FileName: AnsiString;
   TextureData: Pointer;
   ResourceLength: Integer;
 begin
-  Result := False;
+  result := false;
   FileName := g_ExtractWadName(Resource);
 
   WAD := TWADFile.Create;
@@ -180,9 +219,13 @@ begin
   if WAD.GetResource(g_ExtractFilePathName(Resource), TextureData, ResourceLength) then
   begin
     if e_CreateTextureMem(TextureData, ResourceLength, ID) then
-      Result := True
+    begin
+      result := true;
+    end
     else
+    begin
       FreeMem(TextureData);
+    end;
   end
   else
   begin
@@ -192,38 +235,41 @@ begin
   WAD.Free();
 end;
 
-function g_Texture_CreateFile(var ID: DWORD; FileName: String): Boolean;
+
+function g_Texture_CreateFile (var ID: LongWord; const FileName: AnsiString): Boolean;
 begin
-  Result := True;
+  result := true;
   if not e_CreateTexture(FileName, ID) then
   begin
     e_WriteLog(Format('Error loading texture %s', [FileName]), TMsgType.Warning);
-    Result := False;
+    result := false;
   end;
 end;
 
-function texture_CreateWADExInternal (TextureName: ShortString; Resource: String; showmsg: Boolean): Boolean;
+
+function texture_CreateWADExInternal (const textureName, Resource: AnsiString; showmsg: Boolean): Boolean;
 var
   WAD: TWADFile;
-  FileName: String;
+  FileName: AnsiString;
   TextureData: Pointer;
-  find_id: DWORD;
+  find_id: LongWord;
   ResourceLength: Integer;
 begin
   FileName := g_ExtractWadName(Resource);
 
-  find_id := FindTexture();
+  find_id := allocTextureSlot();
 
   WAD := TWADFile.Create;
   WAD.ReadFile(FileName);
 
   if WAD.GetResource(g_ExtractFilePathName(Resource), TextureData, ResourceLength) then
   begin
-    result := e_CreateTextureMem(TextureData, ResourceLength, TexturesArray[find_id].ID);
+    result := e_CreateTextureMem(TextureData, ResourceLength, texturesArray[find_id].ID);
     if result then
     begin
-      e_GetTextureSize(TexturesArray[find_id].ID, @TexturesArray[find_id].Width, @TexturesArray[find_id].Height);
-      TexturesArray[find_id].Name := LowerCase(TextureName);
+      e_GetTextureSize(texturesArray[find_id].ID, @texturesArray[find_id].width, @texturesArray[find_id].height);
+      texturesArray[find_id].used := true;
+      texturesArray[find_id].Name := textureName;
     end
     else
     begin
@@ -242,241 +288,210 @@ begin
   WAD.Free();
 end;
 
-function g_Texture_CreateWADEx(TextureName: ShortString; Resource: String; altrsrc: AnsiString=''): Boolean;
+
+function g_Texture_CreateWADEx (const textureName, Resource: AnsiString; const altrsrc: AnsiString=''): Boolean;
 begin
   if (Length(altrsrc) > 0) then
   begin
-    result := texture_CreateWADExInternal(TextureName, altrsrc, false);
+    result := texture_CreateWADExInternal(textureName, altrsrc, false);
     if result then exit;
   end;
-  result := texture_CreateWADExInternal(TextureName, Resource, true);
+  result := texture_CreateWADExInternal(textureName, Resource, true);
 end;
 
-function g_Texture_CreateFileEx(TextureName: ShortString; FileName: String): Boolean;
-var
-  find_id: DWORD;
-begin
-  find_id := FindTexture;
 
-  Result := e_CreateTexture(FileName, TexturesArray[find_id].ID);
-  if Result then
+function g_Texture_CreateFileEx (const textureName, FileName: AnsiString): Boolean;
+var
+  find_id: LongWord;
+begin
+  find_id := allocTextureSlot();
+  result := e_CreateTexture(FileName, texturesArray[find_id].ID);
+  if result then
   begin
-    TexturesArray[find_id].Name := LowerCase(TextureName);
-    e_GetTextureSize(TexturesArray[find_id].ID, @TexturesArray[find_id].Width,
-                     @TexturesArray[find_id].Height);
+    texturesArray[find_id].used := true;
+    texturesArray[find_id].Name := textureName;
+    e_GetTextureSize(texturesArray[find_id].ID, @texturesArray[find_id].width, @texturesArray[find_id].height);
   end
   else e_WriteLog(Format('Error loading texture %s', [FileName]), TMsgType.Warning);
 end;
 
-function g_Texture_Get(TextureName: ShortString; var ID: DWORD): Boolean;
+
+function g_Texture_Get (const textureName: AnsiString; var id: LongWord): Boolean;
 var
-  a: DWORD;
+  a: Integer;
 begin
-  Result := False;
-
-  if TexturesArray = nil then Exit;
-
-  if TextureName = '' then Exit;
-
-  TextureName := LowerCase(TextureName);
-
-  for a := 0 to High(TexturesArray) do
-    if TexturesArray[a].Name = TextureName then
+  result := false;
+  if (Length(texturesArray) = 0) or (Length(textureName) = 0) then exit;
+  for a := 0 to High(texturesArray) do
+  begin
+    if (StrEquCI1251(texturesArray[a].name, textureName)) then
     begin
-      ID := TexturesArray[a].ID;
-      Result := True;
-      Break;
+      id := texturesArray[a].id;
+      result := true;
+      break;
     end;
-
+  end;
   //if not Result then g_ConsoleAdd('Texture '+TextureName+' not found');
 end;
 
-procedure g_Texture_Delete(TextureName: ShortString);
+
+procedure g_Texture_Delete (const textureName: AnsiString);
 var
-  a: DWORD;
+  a: Integer;
 begin
-  if TexturesArray = nil then Exit;
-
-  TextureName := LowerCase(TextureName);
-
-  for a := 0 to High(TexturesArray) do
-    if TexturesArray[a].Name = TextureName then
+  if (Length(texturesArray) = 0) or (Length(textureName) = 0) then exit;
+  for a := 0 to High(texturesArray) do
+  begin
+    if (StrEquCI1251(texturesArray[a].name, textureName)) then
     begin
-      e_DeleteTexture(TexturesArray[a].ID);
-      TexturesArray[a].Name := '';
-      TexturesArray[a].ID := 0;
-      TexturesArray[a].Width := 0;
-      TexturesArray[a].Height := 0;
+      e_DeleteTexture(texturesArray[a].ID);
+      texturesArray[a].used := false;
+      texturesArray[a].name := '';
+      texturesArray[a].id := 0;
+      texturesArray[a].width := 0;
+      texturesArray[a].height := 0;
     end;
-end;
-
-procedure g_Texture_DeleteAll();
-var
-  a: DWORD;
-begin
-  if TexturesArray = nil then Exit;
-
-  for a := 0 to High(TexturesArray) do
-    if TexturesArray[a].Name <> '' then
-      e_DeleteTexture(TexturesArray[a].ID);
-
-  TexturesArray := nil;
-end;
-
-function FindFrame(): DWORD;
-var
-  i: integer;
-begin
-  if FramesArray <> nil then
-    for i := 0 to High(FramesArray) do
-      if FramesArray[i].TexturesID = nil then
-      begin
-        Result := i;
-        Exit;
-      end;
-
-  if FramesArray = nil then
-  begin
-    SetLength(FramesArray, 64);
-    Result := 0;
-  end
-  else
-  begin
-    Result := High(FramesArray) + 1;
-    SetLength(FramesArray, Length(FramesArray) + 64);
   end;
 end;
 
-function g_Frames_CreateFile(ID: PDWORD; Name: ShortString; FileName: String;
-                             FWidth, FHeight, FCount: Word; BackAnimation: Boolean = False): Boolean;
+
+procedure g_Texture_DeleteAll ();
 var
   a: Integer;
-  find_id: DWORD;
 begin
-  Result := False;
-
-  find_id := FindFrame;
-
-  if FCount <= 2 then BackAnimation := False;
-
-  if BackAnimation then SetLength(FramesArray[find_id].TexturesID, FCount+FCount-2)
-    else SetLength(FramesArray[find_id].TexturesID, FCount);
-
-  for a := 0 to FCount-1 do
-    if not e_CreateTextureEx(FileName, FramesArray[find_id].TexturesID[a],
-                             a*FWidth, 0, FWidth, FHeight) then Exit;
-
-  if BackAnimation then
-    for a := 1 to FCount-2 do
-      FramesArray[find_id].TexturesID[FCount+FCount-2-a] := FramesArray[find_id].TexturesID[a];
-
-  FramesArray[find_id].FrameWidth := FWidth;
-  FramesArray[find_id].FrameHeight := FHeight;
-  if Name <> '' then
-    FramesArray[find_id].Name := LowerCase(Name)
-  else
-    FramesArray[find_id].Name := '<noname>';
-
-  if ID <> nil then ID^ := find_id;
-
-  Result := True;
+  for a := 0 to High(texturesArray) do
+  begin
+    if (texturesArray[a].used) then e_DeleteTexture(texturesArray[a].ID);
+  end;
+  texturesArray := nil;
 end;
 
-function CreateFramesMem(pData: Pointer; dataSize: LongInt; ID: PDWORD; Name: ShortString;
-                         FWidth, FHeight, FCount: Word; BackAnimation: Boolean = False): Boolean;
+
+function g_Frames_CreateFile (ID: PDWORD; const Name, FileName: AnsiString;
+                              mWidth, mHeight, mCount: Word; BackAnimation: Boolean = false): Boolean;
 var
-  find_id: DWORD;
+  a: Integer;
+  find_id: LongWord;
+begin
+  result := false;
+
+  find_id := allocFrameSlot();
+
+  if (mCount <= 2) then BackAnimation := false;
+
+  if BackAnimation then SetLength(framesArray[find_id].TexturesID, mCount+mCount-2)
+  else SetLength(framesArray[find_id].TexturesID, mCount);
+
+  for a := 0 to mCount-1 do
+  begin
+    if not e_CreateTextureEx(FileName, framesArray[find_id].TexturesID[a], a*mWidth, 0, mWidth, mHeight) then exit;
+  end;
+
+  if BackAnimation then
+  begin
+    for a := 1 to mCount-2 do framesArray[find_id].TexturesID[mCount+mCount-2-a] := framesArray[find_id].TexturesID[a];
+  end;
+
+  framesArray[find_id].used := true;
+  framesArray[find_id].FrameWidth := mWidth;
+  framesArray[find_id].FrameHeight := mHeight;
+  if (Name <> '') then framesArray[find_id].Name := Name else framesArray[find_id].Name := '<noname>';
+
+  if (ID <> nil) then ID^ := find_id;
+
+  result := true;
+end;
+
+
+function CreateFramesMem (pData: Pointer; dataSize: LongInt; ID: PDWORD; Name: AnsiString;
+                          mWidth, mHeight, mCount: Word; BackAnimation: Boolean = false): Boolean;
+var
+  find_id: LongWord;
   a: Integer;
 begin
-  Result := False;
+  result := false;
 
-  find_id := FindFrame();
+  find_id := allocFrameSlot();
 
-  if FCount <= 2 then BackAnimation := False;
+  if (mCount <= 2) then BackAnimation := false;
 
-  if BackAnimation then SetLength(FramesArray[find_id].TexturesID, FCount+FCount-2)
-    else SetLength(FramesArray[find_id].TexturesID, FCount);
+  if BackAnimation then SetLength(framesArray[find_id].TexturesID, mCount+mCount-2)
+  else SetLength(framesArray[find_id].TexturesID, mCount);
 
-  for a := 0 to FCount-1 do
-    if not e_CreateTextureMemEx(pData, dataSize, FramesArray[find_id].TexturesID[a],
-                                a*FWidth, 0, FWidth, FHeight) then
+  for a := 0 to mCount-1 do
+    if not e_CreateTextureMemEx(pData, dataSize, framesArray[find_id].TexturesID[a], a*mWidth, 0, mWidth, mHeight) then
     begin
       //!!!FreeMem(pData);
-      Exit;
+      exit;
     end;
 
   if BackAnimation then
-    for a := 1 to FCount-2 do
-      FramesArray[find_id].TexturesID[FCount+FCount-2-a] := FramesArray[find_id].TexturesID[a];
+  begin
+    for a := 1 to mCount-2 do framesArray[find_id].TexturesID[mCount+mCount-2-a] := framesArray[find_id].TexturesID[a];
+  end;
 
-  FramesArray[find_id].FrameWidth := FWidth;
-  FramesArray[find_id].FrameHeight := FHeight;
-  if Name <> '' then
-    FramesArray[find_id].Name := LowerCase(Name)
-  else
-    FramesArray[find_id].Name := '<noname>';
+  framesArray[find_id].used := true;
+  framesArray[find_id].FrameWidth := mWidth;
+  framesArray[find_id].FrameHeight := mHeight;
+  if (Name <> '') then framesArray[find_id].Name := Name else framesArray[find_id].Name := '<noname>';
 
-  if ID <> nil then ID^ := find_id;
+  if (ID <> nil) then ID^ := find_id;
 
-  Result := True;
+  result := true;
 end;
 
-function g_CreateFramesImg (ia: TDynImageDataArray; ID: PDWORD; Name: ShortString; BackAnimation: Boolean = False): Boolean;
+
+function g_CreateFramesImg (ia: TDynImageDataArray; ID: PDWORD; const Name: AnsiString; BackAnimation: Boolean = false): Boolean;
 var
-  find_id: DWORD;
-  a, FCount: Integer;
+  find_id: LongWord;
+  a, mCount: Integer;
 begin
   result := false;
-  find_id := FindFrame();
+  find_id := allocFrameSlot();
 
-  FCount := length(ia);
+  mCount := Length(ia);
 
   //e_WriteLog(Format('+++ creating %d frames [%s]', [FCount, Name]), MSG_NOTIFY);
 
-  if FCount < 1 then exit;
-  if FCount <= 2 then BackAnimation := False;
-  if BackAnimation then
-    SetLength(FramesArray[find_id].TexturesID, FCount+FCount-2)
-  else
-    SetLength(FramesArray[find_id].TexturesID, FCount);
+  if (mCount < 1) then exit;
+  if (mCount <= 2) then BackAnimation := false;
+
+  if BackAnimation then SetLength(framesArray[find_id].TexturesID, mCount+mCount-2)
+  else SetLength(framesArray[find_id].TexturesID, mCount);
 
   //e_WriteLog(Format('+++ creating %d frames, %dx%d', [FCount, ia[0].width, ia[0].height]), MSG_NOTIFY);
 
-  for a := 0 to FCount-1 do
+  for a := 0 to mCount-1 do
   begin
-    if not e_CreateTextureImg(ia[a], FramesArray[find_id].TexturesID[a]) then exit;
+    if not e_CreateTextureImg(ia[a], framesArray[find_id].TexturesID[a]) then exit;
     //e_WriteLog(Format('+++   frame %d, %dx%d', [a, ia[a].width, ia[a].height]), MSG_NOTIFY);
   end;
 
   if BackAnimation then
   begin
-    for a := 1 to FCount-2 do
-    begin
-      FramesArray[find_id].TexturesID[FCount+FCount-2-a] := FramesArray[find_id].TexturesID[a];
-    end;
+    for a := 1 to mCount-2 do framesArray[find_id].TexturesID[mCount+mCount-2-a] := framesArray[find_id].TexturesID[a];
   end;
 
-  FramesArray[find_id].FrameWidth := ia[0].width;
-  FramesArray[find_id].FrameHeight := ia[0].height;
-  if Name <> '' then
-    FramesArray[find_id].Name := LowerCase(Name)
-  else
-    FramesArray[find_id].Name := '<noname>';
+  framesArray[find_id].used := true;
+  framesArray[find_id].FrameWidth := ia[0].width;
+  framesArray[find_id].FrameHeight := ia[0].height;
+  if (Name <> '') then framesArray[find_id].Name := Name else framesArray[find_id].Name := '<noname>';
 
-  if ID <> nil then ID^ := find_id;
+  if (ID <> nil) then ID^ := find_id;
 
   result := true;
 end;
 
-function g_Frames_CreateWAD(ID: PDWORD; Name: ShortString; Resource: string;
-                            FWidth, FHeight, FCount: Word; BackAnimation: Boolean = False): Boolean;
+
+function g_Frames_CreateWAD (ID: PDWORD; const Name, Resource: AnsiString;
+                             mWidth, mHeight, mCount: Word; BackAnimation: Boolean=false): Boolean;
 var
   WAD: TWADFile;
-  FileName: string;
+  FileName: AnsiString;
   TextureData: Pointer;
   ResourceLength: Integer;
 begin
-  Result := False;
+  result := false;
 
   // models without "advanced" animations asks for "nothing" like this; don't spam log
   if (Length(Resource) > 0) and ((Resource[Length(Resource)] = '/') or (Resource[Length(Resource)] = '\')) then exit;
@@ -491,25 +506,27 @@ begin
     WAD.Free();
     e_WriteLog(Format('Error loading texture %s', [Resource]), TMsgType.Warning);
     //e_WriteLog(Format('WAD Reader error: %s', [WAD.GetLastErrorStr]), MSG_WARNING);
-    Exit;
+    exit;
   end;
 
-  if not CreateFramesMem(TextureData, ResourceLength, ID, Name, FWidth, FHeight, FCount, BackAnimation) then
+  if not CreateFramesMem(TextureData, ResourceLength, ID, Name, mWidth, mHeight, mCount, BackAnimation) then
   begin
     WAD.Free();
-    Exit;
+    exit;
   end;
 
   WAD.Free();
 
-  Result := True;
+  result := true;
 end;
 
-function g_Frames_CreateMemory(ID: PDWORD; Name: ShortString; pData: Pointer; dataSize: LongInt;
-                               FWidth, FHeight, FCount: Word; BackAnimation: Boolean = False): Boolean;
+
+function g_Frames_CreateMemory (ID: PDWORD; const Name: AnsiString; pData: Pointer; dataSize: LongInt;
+                                mWidth, mHeight, mCount: Word; BackAnimation: Boolean = false): Boolean;
 begin
-  Result := CreateFramesMem(pData, dataSize, ID, Name, FWidth, FHeight, FCount, BackAnimation);
+  result := CreateFramesMem(pData, dataSize, ID, Name, mWidth, mHeight, mCount, BackAnimation);
 end;
+
 
 {function g_Frames_CreateRevert(ID: PDWORD; Name: ShortString; Frames: string): Boolean;
 var
@@ -534,355 +551,341 @@ begin
  Result := True;
 end;}
 
-function g_Frames_Dup(NewName, OldName: ShortString): Boolean;
+
+function g_Frames_Dup (const NewName, OldName: AnsiString): Boolean;
 var
-  find_id, b: DWORD;
+  find_id, b: LongWord;
   a, c: Integer;
 begin
-  Result := False;
+  result := false;
 
-  if not g_Frames_Get(b, OldName) then Exit;
+  if not g_Frames_Get(b, OldName) then exit;
 
-  find_id := FindFrame();
+  find_id := allocFrameSlot();
 
-  FramesArray[find_id].Name := LowerCase(NewName);
-  FramesArray[find_id].FrameWidth := FramesArray[b].FrameWidth;
-  FramesArray[find_id].FrameHeight := FramesArray[b].FrameHeight;
+  framesArray[find_id].used := true;
+  framesArray[find_id].Name := NewName;
+  framesArray[find_id].FrameWidth := framesArray[b].FrameWidth;
+  framesArray[find_id].FrameHeight := framesArray[b].FrameHeight;
 
-  c := High(FramesArray[b].TexturesID);
-  SetLength(FramesArray[find_id].TexturesID, c+1);
+  c := High(framesArray[b].TexturesID);
+  SetLength(framesArray[find_id].TexturesID, c+1);
 
-  for a := 0 to c do
-    FramesArray[find_id].TexturesID[a] := FramesArray[b].TexturesID[a];
+  for a := 0 to c do framesArray[find_id].TexturesID[a] := framesArray[b].TexturesID[a];
 
-  Result := True;
+  result := true;
 end;
 
-procedure g_Frames_DeleteByName(FramesName: ShortString);
+
+procedure g_Frames_DeleteByName (const FramesName: AnsiString);
 var
-  a: DWORD;
+  a, b: Integer;
+begin
+  if (Length(framesArray) = 0) then exit;
+  for a := 0 to High(framesArray) do
+  begin
+    if (StrEquCI1251(framesArray[a].Name, FramesName)) then
+    begin
+      if framesArray[a].TexturesID <> nil then
+      begin
+        for b := 0 to High(framesArray[a].TexturesID) do e_DeleteTexture(framesArray[a].TexturesID[b]);
+      end;
+      framesArray[a].used := false;
+      framesArray[a].TexturesID := nil;
+      framesArray[a].Name := '';
+      framesArray[a].FrameWidth := 0;
+      framesArray[a].FrameHeight := 0;
+    end;
+  end;
+end;
+
+
+procedure g_Frames_DeleteByID (ID: LongWord);
+var
   b: Integer;
 begin
-  if FramesArray = nil then Exit;
+  if (Length(framesArray) = 0) then exit;
+  if (framesArray[ID].TexturesID <> nil) then
+  begin
+    for b := 0 to High(framesArray[ID].TexturesID) do e_DeleteTexture(framesArray[ID].TexturesID[b]);
+  end;
+  framesArray[ID].used := false;
+  framesArray[ID].TexturesID := nil;
+  framesArray[ID].Name := '';
+  framesArray[ID].FrameWidth := 0;
+  framesArray[ID].FrameHeight := 0;
+end;
 
-  FramesName := LowerCase(FramesName);
 
-  for a := 0 to High(FramesArray) do
-    if FramesArray[a].Name = FramesName then
+procedure g_Frames_DeleteAll ();
+var
+  a, b: Integer;
+begin
+  for a := 0 to High(framesArray) do
+  begin
+    if (framesArray[a].used) then
     begin
-      if FramesArray[a].TexturesID <> nil then
-        for b := 0 to High(FramesArray[a].TexturesID) do
-          e_DeleteTexture(FramesArray[a].TexturesID[b]);
-      FramesArray[a].TexturesID := nil;
-      FramesArray[a].Name := '';
-      FramesArray[a].FrameWidth := 0;
-      FramesArray[a].FrameHeight := 0;
+      for b := 0 to High(framesArray[a].TexturesID) do e_DeleteTexture(framesArray[a].TexturesID[b]);
     end;
+    framesArray[a].used := false;
+    framesArray[a].TexturesID := nil;
+    framesArray[a].Name := '';
+    framesArray[a].FrameWidth := 0;
+    framesArray[a].FrameHeight := 0;
+  end;
+  framesArray := nil;
 end;
 
-procedure g_Frames_DeleteByID(ID: DWORD);
+
+function g_Frames_Get (out ID: LongWord; const FramesName: AnsiString): Boolean;
 var
-  b: Integer;
+  a: Integer;
 begin
-  if FramesArray = nil then Exit;
-
-  if FramesArray[ID].TexturesID <> nil then
-    for b := 0 to High(FramesArray[ID].TexturesID) do
-      e_DeleteTexture(FramesArray[ID].TexturesID[b]);
-  FramesArray[ID].TexturesID := nil;
-  FramesArray[ID].Name := '';
-  FramesArray[ID].FrameWidth := 0;
-  FramesArray[ID].FrameHeight := 0;
-end;
-
-procedure g_Frames_DeleteAll;
-var
-  a: DWORD;
-  b: DWORD;
-begin
-  if FramesArray = nil then Exit;
-
-  for a := 0 to High(FramesArray) do
-    if FramesArray[a].TexturesID <> nil then
-    begin
-      for b := 0 to High(FramesArray[a].TexturesID) do
-        e_DeleteTexture(FramesArray[a].TexturesID[b]);
-      FramesArray[a].TexturesID := nil;
-      FramesArray[a].Name := '';
-      FramesArray[a].FrameWidth := 0;
-      FramesArray[a].FrameHeight := 0;
-    end;
-
-  FramesArray := nil;
-end;
-
-function g_Frames_Get(out ID: DWORD; FramesName: ShortString): Boolean;
-var
-  a: DWORD;
-begin
-  Result := False;
-
-  if FramesArray = nil then
-    Exit;
-
-  FramesName := LowerCase(FramesName);
-
-  for a := 0 to High(FramesArray) do
-    if FramesArray[a].Name = FramesName then
+  result := false;
+  if (Length(framesArray) = 0) then exit;
+  for a := 0 to High(framesArray) do
+  begin
+    if (StrEquCI1251(framesArray[a].Name, FramesName)) then
     begin
       ID := a;
-      Result := True;
-      Break;
+      result := true;
+      break;
     end;
-
-  if not Result then
-    g_FatalError(Format(_lc[I_GAME_ERROR_FRAMES], [FramesName]));
+  end;
+  if not result then g_FatalError(Format(_lc[I_GAME_ERROR_FRAMES], [FramesName]));
 end;
 
-function g_Frames_GetTexture(out ID: DWORD; FramesName: ShortString; Frame: Word): Boolean;
+
+function g_Frames_GetTexture (out ID: LongWord; const FramesName: AnsiString; Frame: Word): Boolean;
 var
-  a: DWORD;
+  a: Integer;
 begin
-  Result := False;
-
-  if FramesArray = nil then
-    Exit;
-
-  FramesName := LowerCase(FramesName);
-
-  for a := 0 to High(FramesArray) do
-    if FramesArray[a].Name = FramesName then
-      if Frame <= High(FramesArray[a].TexturesID) then
-      begin
-        ID := FramesArray[a].TexturesID[Frame];
-        Result := True;
-        Break;
-      end;
-
-  if not Result then
-    g_FatalError(Format(_lc[I_GAME_ERROR_FRAMES], [FramesName]));
-end;
-
-function g_Frames_Exists(FramesName: string): Boolean;
-var
-  a: DWORD;
-begin
-  Result := False;
-
-  if FramesArray = nil then Exit;
-
-  FramesName := LowerCase(FramesName);
-
-  for a := 0 to High(FramesArray) do
-    if FramesArray[a].Name = FramesName then
+  result := false;
+  if (Length(framesArray) = 0) then exit;
+  for a := 0 to High(framesArray) do
+  begin
+    if (StrEquCI1251(framesArray[a].Name, FramesName)) then
     begin
-      Result := True;
-      Exit;
+      if (Frame < Length(framesArray[a].TexturesID)) then
+      begin
+        ID := framesArray[a].TexturesID[Frame];
+        result := true;
+        break;
+      end;
     end;
+  end;
+  if not result then g_FatalError(Format(_lc[I_GAME_ERROR_FRAMES], [FramesName]));
 end;
 
-procedure DumpTextureNames();
+
+function g_Frames_Exists (const FramesName: AnsiString): Boolean;
+var
+  a: Integer;
+begin
+  result := false;
+  if (Length(framesArray) = 0) then exit;
+  for a := 0 to High(framesArray) do
+  begin
+    if (StrEquCI1251(framesArray[a].Name, FramesName)) then
+    begin
+      result := true;
+      exit;
+    end;
+  end;
+end;
+
+
+procedure DumpTextureNames ();
 var
   i: Integer;
 begin
   e_WriteLog('BEGIN Textures:', TMsgType.Notify);
-  for i := 0 to High(TexturesArray) do
-    e_WriteLog('   '+IntToStr(i)+'. '+TexturesArray[i].Name, TMsgType.Notify);
+  for i := 0 to High(texturesArray) do e_WriteLog('   '+IntToStr(i)+'. '+texturesArray[i].Name, TMsgType.Notify);
   e_WriteLog('END Textures.', TMsgType.Notify);
 
   e_WriteLog('BEGIN Frames:', TMsgType.Notify);
-  for i := 0 to High(FramesArray) do
-    e_WriteLog('   '+IntToStr(i)+'. '+FramesArray[i].Name, TMsgType.Notify);
+  for i := 0 to High(framesArray) do e_WriteLog('   '+IntToStr(i)+'. '+framesArray[i].Name, TMsgType.Notify);
   e_WriteLog('END Frames.', TMsgType.Notify);
 end;
 
+
 { TAnimation }
 
-constructor TAnimation.Create(FramesID: DWORD; Loop: Boolean; Speed: Byte);
+constructor TAnimation.Create (aframesID: LongWord; aloop: Boolean; aspeed: Byte);
 begin
-  ID := FramesID;
-
-  FMinLength := 0;
-  FLoop := Loop;
-  FSpeed := Speed;
-  FEnabled := True;
-  FCurrentFrame := 0;
-  FPlayed := False;
-  FAlpha := 0;
-  FWidth := FramesArray[ID].FrameWidth;
-  FHeight := FramesArray[ID].FrameHeight;
+  if (aframesID >= Length(framesArray)) then raise Exception.Create('trying to create inexisting frame: something is very wrong here');
+  mId := aframesID;
+  mMinLength := 0;
+  mLoop := aloop;
+  mSpeed := aspeed;
+  mEnabled := true;
+  mCurrentFrame := 0;
+  mPlayed := false;
+  mAlpha := 0;
+  mWidth := framesArray[mId].FrameWidth;
+  mHeight := framesArray[mId].FrameHeight;
 end;
 
-destructor TAnimation.Destroy;
+
+destructor TAnimation.Destroy ();
 begin
   inherited;
 end;
 
-procedure TAnimation.Draw(X, Y: Integer; Mirror: TMirrorType);
-begin
-  if not FEnabled then
-    Exit;
 
-  e_DrawAdv(FramesArray[ID].TexturesID[FCurrentFrame], X, Y, FAlpha,
-            True, FBlending, 0, nil, Mirror);
+procedure TAnimation.draw (x, y: Integer; mirror: TMirrorType);
+begin
+  if (not mEnabled) then exit;
+  e_DrawAdv(framesArray[mId].TexturesID[mCurrentFrame], x, y, mAlpha, true, mBlending, 0, nil, mirror);
   //e_DrawQuad(X, Y, X+FramesArray[ID].FrameWidth-1, Y+FramesArray[ID].FrameHeight-1, 0, 255, 0);
 end;
 
-procedure TAnimation.Update();
+
+procedure TAnimation.update ();
 begin
-  if not FEnabled then
-    Exit;
+  if (not mEnabled) then exit;
 
-  FCounter := FCounter + 1;
+  mCounter += 1;
 
-  if FCounter >= FSpeed then
-  begin // Ожидание между кадрами закончилось
-    if FRevert then
-      begin // Обратный порядок кадров
-      // Дошли до конца анимации. Возможно, ждем еще:
-        if FCurrentFrame = 0 then
-          if Length(FramesArray[ID].TexturesID) * FSpeed +
-               FCounter < FMinLength then
-            Exit;
-
-        FCurrentFrame := FCurrentFrame - 1;
-        FPlayed := FCurrentFrame < 0;
-
-      // Повторять ли анимацию по кругу:
-        if FPlayed then
-          if FLoop then
-            FCurrentFrame := High(FramesArray[ID].TexturesID)
-          else
-            FCurrentFrame := FCurrentFrame + 1;
-
-        FCounter := 0;
-      end
-    else
-      begin // Прямой порядок кадров
-      // Дошли до конца анимации. Возможно, ждем еще:
-        if FCurrentFrame = High(FramesArray[ID].TexturesID) then
-          if Length(FramesArray[ID].TexturesID) * FSpeed +
-               FCounter < FMinLength then
-            Exit;
-
-        FCurrentFrame := FCurrentFrame + 1;
-        FPlayed := (FCurrentFrame > High(FramesArray[ID].TexturesID));
-
-      // Повторять ли анимацию по кругу:
-        if FPlayed then
-          if FLoop then
-            FCurrentFrame := 0
-          else
-            FCurrentFrame := FCurrentFrame - 1;
-
-        FCounter := 0;
+  if (mCounter >= mSpeed) then
+  begin
+    // Ожидание между кадрами закончилось
+    // Обратный порядок кадров?
+    if mRevert then
+    begin
+      // Дошли до конца анимации. Возможно, ждем еще
+      if (mCurrentFrame = 0) then
+      begin
+        if (Length(framesArray[mId].TexturesID)*mSpeed+mCounter < mMinLength) then exit;
       end;
+
+      mCurrentFrame -= 1;
+      mPlayed := (mCurrentFrame < 0);
+
+      // Повторять ли анимацию по кругу?
+      if mPlayed then
+      begin
+        if mLoop then mCurrentFrame := High(framesArray[mId].TexturesID) else mCurrentFrame += 1;
+      end;
+
+      mCounter := 0;
+    end
+    else
+    begin
+      // Прямой порядок кадров
+      // Дошли до конца анимации. Возможно, ждем еще
+      if (mCurrentFrame = High(framesArray[mId].TexturesID)) then
+      begin
+        if (Length(framesArray[mId].TexturesID)*mSpeed+mCounter < mMinLength) then exit;
+      end;
+
+      mCurrentFrame += 1;
+      mPlayed := (mCurrentFrame > High(framesArray[mId].TexturesID));
+
+      // Повторять ли анимацию по кругу?
+      if mPlayed then
+      begin
+        if mLoop then mCurrentFrame := 0 else mCurrentFrame -= 1;
+      end;
+
+      mCounter := 0;
+    end;
   end;
 end;
 
-procedure TAnimation.Reset();
-begin
-  if FRevert then
-    FCurrentFrame := High(FramesArray[ID].TexturesID)
-  else
-    FCurrentFrame := 0;
 
-  FCounter := 0;
-  FPlayed := False;
+procedure TAnimation.reset ();
+begin
+  if mRevert then mCurrentFrame := High(framesArray[mId].TexturesID) else mCurrentFrame := 0;
+  mCounter := 0;
+  mPlayed := false;
 end;
 
-procedure TAnimation.Disable;
+
+procedure TAnimation.disable (); begin mEnabled := false; end;
+procedure TAnimation.enable (); begin mEnabled := true; end;
+
+
+procedure TAnimation.drawEx (x, y: Integer; mirror: TMirrorType; rpoint: TDFPoint; angle: SmallInt);
 begin
-  FEnabled := False;
+  if (not mEnabled) then exit;
+  e_DrawAdv(framesArray[mId].TexturesID[mCurrentFrame], x, y, mAlpha, true, mBlending, angle, @rpoint, mirror);
 end;
 
-procedure TAnimation.Enable;
+
+function TAnimation.totalFrames (): Integer; inline; begin result := Length(framesArray[mId].TexturesID); end;
+
+
+procedure TAnimation.revert (r: Boolean);
 begin
-  FEnabled := True;
+  mRevert := r;
+  reset();
 end;
 
-procedure TAnimation.DrawEx(X, Y: Integer; Mirror: TMirrorType; RPoint: TDFPoint;
-                            Angle: SmallInt);
-begin
-  if not FEnabled then
-    Exit;
 
-  e_DrawAdv(FramesArray[ID].TexturesID[FCurrentFrame], X, Y, FAlpha,
-            True, FBlending, Angle, @RPoint, Mirror);
-end;
-
-function TAnimation.TotalFrames(): Integer;
-begin
-  Result := Length(FramesArray[ID].TexturesID);
-end;
-
-procedure TAnimation.Revert(r: Boolean);
-begin
-  FRevert := r;
-  Reset();
-end;
-
-procedure TAnimation.SaveState (st: TStream);
+procedure TAnimation.saveState (st: TStream);
 begin
   if (st = nil) then exit;
 
   utils.writeSign(st, 'ANIM');
   utils.writeInt(st, Byte(0)); // version
   // Счетчик ожидания между кадрами
-  utils.writeInt(st, Byte(FCounter));
+  utils.writeInt(st, Byte(mCounter));
   // Текущий кадр
-  utils.writeInt(st, LongInt(FCurrentFrame));
+  utils.writeInt(st, LongInt(mCurrentFrame));
   // Проиграна ли анимация целиком
-  utils.writeBool(st, FPlayed);
+  utils.writeBool(st, mPlayed);
   // Alpha-канал всей текстуры
-  utils.writeInt(st, Byte(FAlpha));
+  utils.writeInt(st, Byte(mAlpha));
   // Размытие текстуры
-  utils.writeInt(st, Byte(FBlending));
+  utils.writeInt(st, Byte(mBlending));
   // Время ожидания между кадрами
-  utils.writeInt(st, Byte(FSpeed));
+  utils.writeInt(st, Byte(mSpeed));
   // Зациклена ли анимация
-  utils.writeBool(st, FLoop);
+  utils.writeBool(st, mLoop);
   // Включена ли
-  utils.writeBool(st, FEnabled);
+  utils.writeBool(st, mEnabled);
   // Ожидание после проигрывания
-  utils.writeInt(st, Byte(FMinLength));
+  utils.writeInt(st, Byte(mMinLength));
   // Обратный ли порядок кадров
-  utils.writeBool(st, FRevert);
+  utils.writeBool(st, mRevert);
 end;
 
-procedure TAnimation.LoadState (st: TStream);
+
+procedure TAnimation.loadState (st: TStream);
 begin
   if (st = nil) then exit;
 
   if not utils.checkSign(st, 'ANIM') then raise XStreamError.Create('animation chunk expected');
   if (utils.readByte(st) <> 0) then raise XStreamError.Create('invalid animation chunk version');
   // Счетчик ожидания между кадрами
-  FCounter := utils.readByte(st);
+  mCounter := utils.readByte(st);
   // Текущий кадр
-  FCurrentFrame := utils.readLongInt(st);
+  mCurrentFrame := utils.readLongInt(st);
   // Проиграна ли анимация целиком
-  FPlayed := utils.readBool(st);
+  mPlayed := utils.readBool(st);
   // Alpha-канал всей текстуры
-  FAlpha := utils.readByte(st);
+  mAlpha := utils.readByte(st);
   // Размытие текстуры
-  FBlending := utils.readBool(st);
+  mBlending := utils.readBool(st);
   // Время ожидания между кадрами
-  FSpeed := utils.readByte(st);
+  mSpeed := utils.readByte(st);
   // Зациклена ли анимация
-  FLoop := utils.readBool(st);
+  mLoop := utils.readBool(st);
   // Включена ли
-  FEnabled := utils.readBool(st);
+  mEnabled := utils.readBool(st);
   // Ожидание после проигрывания
-  FMinLength := utils.readByte(st);
+  mMinLength := utils.readByte(st);
   // Обратный ли порядок кадров
-  FRevert := utils.readBool(st);
+  mRevert := utils.readBool(st);
 end;
 
 
+// ////////////////////////////////////////////////////////////////////////// //
 var
   ltexid: GLuint = 0;
 
-function g_Texture_Light(): Integer;
+function g_Texture_Light (): Integer;
 const
   Radius: Integer = 128;
 var
@@ -937,5 +940,6 @@ begin
 
   result := ltexid;
 end;
+
 
 end.
