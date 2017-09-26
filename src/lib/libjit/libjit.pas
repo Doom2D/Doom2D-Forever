@@ -155,7 +155,7 @@ type jit_on_demand_driver_func = function (func: jit_function_t): Pointer; libra
 function jit_context_create (): jit_context_t; libraryLibJITDecl;
 procedure jit_context_destroy (context: jit_context_t); libraryLibJITDecl;
 
-procedure jit_context_build_start (context: jit_context_t);
+procedure jit_context_build_start (context: jit_context_t); libraryLibJITDecl;
 procedure jit_context_build_end (context: jit_context_t); libraryLibJITDecl;
 
 procedure jit_context_set_on_demand_driver (context: jit_context_t; driver: jit_on_demand_driver_func); libraryLibJITDecl;
