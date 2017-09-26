@@ -701,6 +701,7 @@ var
 
 begin
   Result := False;
+  PanelID := DWORD(-1);
 
   case ObjectType of
     OBJECT_PANEL:
@@ -1065,6 +1066,14 @@ var
 
 begin
   WAD := nil;
+  textures := nil;
+  panels := nil;
+  items := nil;
+  areas := nil;
+  monsters := nil;
+  triggers := nil;
+  PanelTable := nil;
+  MonsterTable := nil;
 
 // Открываем WAD, если надо:
   if Res <> '' then

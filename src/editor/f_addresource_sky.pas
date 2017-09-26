@@ -44,7 +44,7 @@ var
   Height:     Integer;
   ColorDepth: Integer;
   ImageSize:  Integer;
-  I, x, y:    Integer;
+  x, y:       Integer;
   BitMap:     TBitMap;
 
   TextureData:  Pointer;

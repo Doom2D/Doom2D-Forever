@@ -6248,7 +6248,6 @@ var
   cmd, mapWAD, mapToRun: String;
   opt: LongWord;
   time: Integer;
-  lpMsgBuf: PChar;
 begin
   // Сохраняем временную карту:
   time := 0;

@@ -240,9 +240,7 @@ var
   ii:         PByte;
   Width,
   Height:     Integer;
-  ColorDepth: Integer;
-  ImageSize:  Integer;
-  i, x, y:    Integer;
+  x, y:       Integer;
   BitMap:     TBitMap;
 
 begin
@@ -254,8 +252,6 @@ begin
 
   Width  := img.width;
   Height := img.height;
-  ColorDepth := 24;
-  ImageSize  := Width*Height*(ColorDepth div 8);
 
   BitMap := TBitMap.Create();
   BitMap.PixelFormat := pf24bit;

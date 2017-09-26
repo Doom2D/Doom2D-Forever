@@ -76,8 +76,6 @@ function CreateTexture (var tex: GLTexture; Width, Height, aFormat: Word; pData:
 var
   Texture: GLuint;
   fmt: GLenum;
-  buf: PByte;
-  f, c: Integer;
 begin
   tex.width := Width;
   tex.height := Height;
@@ -216,12 +214,7 @@ end;
 
 function LoadTextureMem (pData: Pointer; dataSize: LongInt; var Texture: GLTexture; var pWidth, pHeight: Word; Fmt: PWord=nil): Boolean;
 var
-  image, ii: PByte;
-  width, height: Integer;
-  imageSize: Integer;
   img: TImageData;
-  x, y: Integer;
-  clr: TColor32Rec;
 begin
   result := false;
   pWidth := 0;
@@ -245,7 +238,6 @@ end;
 function LoadTextureMemEx (pData: Pointer; dataSize: LongInt; var Texture: GLTexture; fX, fY, fWidth, fHeight: Word; Fmt: PWord=nil): Boolean;
 var
   image, ii: PByte;
-  width, height: Integer;
   imageSize: Integer;
   img: TImageData;
   x, y: Integer;
