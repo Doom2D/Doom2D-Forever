@@ -7188,6 +7188,11 @@ begin
     if (s <> '') then
       gMapOnce := True;
 
+  // Override map to test:
+    s := LowerCase(Find_Param_Value(pars, '-testmap'));
+    if s <> '' then
+      gTestMap := MapsDir + s;
+
   // Delete test map after play:
     s := Find_Param_Value(pars, '--testdelete');
     if (s <> '') then
@@ -7199,9 +7204,9 @@ begin
 
   // Delete temporary WAD after play:
     s := Find_Param_Value(pars, '--tempdelete');
-    if (s <> '') then
+    if (s <> '') and (gTestMap <> '') then
     begin
-      gMapToDelete := MapsDir + map;
+      gMapToDelete := gTestMap;
       gTempDelete := True;
     end;
 

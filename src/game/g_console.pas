@@ -265,7 +265,7 @@ var
   cp: PCommand;
   pv: PVarSingle;
 begin
-  GetMem(pv, sizeof(pv^));
+  GetMem(pv, sizeof(TVarSingle));
   pv.val := pvar;
   pv.min := amin;
   pv.max := amax;

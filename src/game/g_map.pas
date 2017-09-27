@@ -236,6 +236,7 @@ var
 
   gCurrentMap: TDynRecord = nil;
   gCurrentMapFileName: AnsiString = ''; // so we can skip texture reloading
+  gTestMap: String = '';
 
 
 function panelTypeToTag (panelType: Word): Integer; // returns GridTagXXX
@@ -1613,7 +1614,7 @@ type
     actPanel: TDynRecord;
   end;
 var
-  WAD: TWADFile;
+  WAD, TestWAD: TWADFile;
   //mapReader: TDynRecord = nil;
   mapTextureList: TDynField = nil; //TTexturesRec1Array; tagInt: texture index
   panels: TDynField = nil; //TPanelsRec1Array;
@@ -1642,6 +1643,8 @@ var
 begin
   mapGrid.Free();
   mapGrid := nil;
+  TestWAD := nil;
+  Data := nil;
 
   //gCurrentMap.Free();
   //gCurrentMap := nil;
@@ -1670,13 +1673,41 @@ begin
         Exit;
       end;
 
-      //k8: why loader ignores path here?
-      mapResName := g_ExtractFileName(Res);
-      if not WAD.GetMapResource(mapResName, Data, Len) then
+      if gTestMap <> '' then
       begin
-        g_FatalError(Format(_lc[I_GAME_ERROR_MAP_RES], [mapResName]));
-        WAD.Free();
-        Exit;
+        s := g_ExtractWadName(gTestMap);
+        TestWAD := TWADFile.Create();
+        if not TestWAD.ReadFile(s) then
+        begin
+          g_SimpleError(Format(_lc[I_GAME_ERROR_MAP_WAD], [s]));
+          TestWAD.Free();
+          TestWAD := nil;
+        end;
+      end;
+
+      if TestWAD <> nil then
+      begin
+        mapResName := g_ExtractFileName(gTestMap);
+        if not TestWAD.GetMapResource(mapResName, Data, Len) then
+        begin
+          g_SimpleError(Format(_lc[I_GAME_ERROR_MAP_RES], [mapResName]));
+          Data := nil;
+        end else
+          e_WriteLog('Using test map: '+gTestMap, TMsgType.Notify);
+        TestWAD.Free();
+        TestWAD := nil;
+      end;
+
+      if Data = nil then
+      begin
+        //k8: why loader ignores path here?
+        mapResName := g_ExtractFileName(Res);
+        if not WAD.GetMapResource(mapResName, Data, Len) then
+        begin
+          g_FatalError(Format(_lc[I_GAME_ERROR_MAP_RES], [mapResName]));
+          WAD.Free();
+          Exit;
+        end;
       end;
 
       WAD.Free();
