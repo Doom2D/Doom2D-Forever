@@ -6273,22 +6273,33 @@ end;
 
 procedure TMainForm.miTestMapClick(Sender: TObject);
 var
-  cmd, mapWAD, mapToRun: String;
+  cmd, mapWAD, mapToRun, tempWAD: String;
   opt: LongWord;
   time: Integer;
   proc: TProcessUTF8;
   res: Boolean;
 begin
+  mapToRun := '';
+  if OpenedMap <> '' then
+  begin
+    // Указываем текущую карту для теста:
+    g_ProcessResourceStr(OpenedMap, @mapWAD, nil, @mapToRun);
+    mapToRun := mapWAD + ':\' + mapToRun;
+    mapToRun := ExtractRelativePath(ExtractFilePath(TestD2dExe) + 'maps/', mapToRun);
+  end;
   // Сохраняем временную карту:
   time := 0;
   repeat
     mapWAD := ExtractFilePath(TestD2dExe) + Format('maps/temp%.4d.wad', [time]);
     Inc(time);
   until not FileExists(mapWAD);
-  mapToRun := mapWAD + ':\' + TEST_MAP_NAME;
-  SaveMap(mapToRun);
+  tempWAD := mapWAD + ':\' + TEST_MAP_NAME;
+  SaveMap(tempWAD);
 
-  mapToRun := ExtractRelativePath(ExtractFilePath(TestD2dExe) + 'maps/', mapToRun);
+  tempWAD := ExtractRelativePath(ExtractFilePath(TestD2dExe) + 'maps/', tempWAD);
+// Если карта не была открыта, указываем временную в качестве текущей:
+  if mapToRun = '' then
+    mapToRun := tempWAD;
 
 // Опции игры:
   opt := 32 + 64;
@@ -6304,7 +6315,8 @@ begin
     opt := opt + 16;
 
 // Составляем командную строку:
-  cmd := ' -map "' + mapToRun + '"';
+  cmd := '-map "' + mapToRun + '"';
+  cmd := cmd + ' -testmap "' + tempWAD + '"';
   cmd := cmd + ' -gm ' + TestGameMode;
   cmd := cmd + ' -limt ' + TestLimTime;
   cmd := cmd + ' -lims ' + TestLimScore;
@@ -6314,7 +6326,6 @@ begin
     cmd := cmd + ' --close';
 
   cmd := cmd + ' --debug';
-  cmd := cmd + ' --tempdelete';
 
 // Запускаем:
   proc := TProcessUTF8.Create(nil);
