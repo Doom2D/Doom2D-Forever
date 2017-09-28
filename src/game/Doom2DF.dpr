@@ -114,6 +114,7 @@ uses
   sdlcarcass in '../gx/sdlcarcass.pas',
   glgfx in '../gx/glgfx.pas',
   gh_ui_common in '../gx/gh_ui_common.pas',
+  gh_ui_style in '../gx/gh_ui_style.pas',
   gh_ui in '../gx/gh_ui.pas',
   gh_flexlay in '../gx/gh_flexlay.pas';
 

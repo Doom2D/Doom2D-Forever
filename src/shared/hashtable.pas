@@ -194,6 +194,14 @@ type
     class procedure freekey (var k: AnsiString); inline;
   end;
 
+  // case-insensitive (ansi)
+  THashKeyStrAnsiCI = class
+  public
+    class function hash (const k: AnsiString): LongWord; inline;
+    class function equ (const a, b: AnsiString): Boolean; inline;
+    class procedure freekey (var k: AnsiString); inline;
+  end;
+
 type
   THashIntInt = specialize THashBase<Integer, Integer, THashKeyInt>;
   THashStrInt = specialize THashBase<AnsiString, Integer, THashKeyStr>;
@@ -204,7 +212,7 @@ type
 
 function u32Hash (a: LongWord): LongWord; inline;
 function fnvHash (constref buf; len: LongWord): LongWord;
-function joaatHash (constref buf; len: LongWord): LongWord;
+function joaatHash (constref buf; len: LongWord; seed: LongWord=0): LongWord;
 
 // has to be public due to FPC generics limitation
 function nextPOTU32 (x: LongWord): LongWord; inline;
@@ -281,17 +289,30 @@ end;
 {$POP}
 
 
-function joaatHash (constref buf; len: LongWord): LongWord;
-var
-  h: TJoaatHasher;
-begin
-  h := TJoaatHasher.Create(0);
-  h.put(PByte(@buf)^, len);
-  result := h.value;
-end;
-
-
 // ////////////////////////////////////////////////////////////////////////// //
+{$PUSH}
+{$RANGECHECKS OFF}
+function joaatHash (constref buf; len: LongWord; seed: LongWord=0): LongWord;
+var
+  b: PByte;
+  f: LongWord;
+begin
+  result := seed;
+  b := PByte(@buf);
+  for f := 1 to len do
+  begin
+    result += b^;
+    result += (result shl 10);
+    result := result xor (result shr 6);
+    Inc(b);
+  end;
+  // finalize
+  result += (result shl 3);
+  result := result xor (result shr 11);
+  result += (result shl 15);
+end;
+{$POP}
+
 {$PUSH}
 {$RANGECHECKS OFF}
 // fnv-1a: http://www.isthe.com/chongo/tech/comp/fnv/
@@ -311,7 +332,6 @@ begin
 end;
 {$POP}
 
-
 {$PUSH}
 {$RANGECHECKS OFF}
 function u32Hash (a: LongWord): LongWord; inline;
@@ -326,6 +346,29 @@ begin
   result := result xor (result shr 15);
 end;
 {$POP}
+
+function locase1251 (ch: AnsiChar): AnsiChar; inline;
+begin
+  if ch < #128 then
+  begin
+    if (ch >= 'A') and (ch <= 'Z') then Inc(ch, 32);
+  end
+  else
+  begin
+    if (ch >= #192) and (ch <= #223) then
+    begin
+      Inc(ch, 32);
+    end
+    else
+    begin
+      case ch of
+        #168, #170, #175: Inc(ch, 16);
+        #161, #178: Inc(ch);
+      end;
+    end;
+  end;
+  result := ch;
+end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
@@ -354,6 +397,42 @@ class procedure THashKeyStr.freekey (var k: AnsiString); inline; begin k := ''; 
 
 
 // ////////////////////////////////////////////////////////////////////////// //
+// case-insensitive (ansi)
+{$PUSH}
+{$RANGECHECKS OFF}
+// fnv-1a: http://www.isthe.com/chongo/tech/comp/fnv/
+function fnvHashLo (constref buf; len: LongWord): LongWord;
+var
+  b: PAnsiChar;
+begin
+  b := @buf;
+  result := 2166136261; // fnv offset basis
+  while (len > 0) do
+  begin
+    result := result xor Byte(locase1251(b^));
+    result := result*16777619; // 32-bit fnv prime
+    Inc(b);
+    Dec(len);
+  end;
+end;
+{$POP}
+
+class function THashKeyStrAnsiCI.hash (const k: AnsiString): LongWord; inline; begin if (Length(k) > 0) then result := fnvHash((@k[1])^, Length(k)) else result := 0; end;
+class function THashKeyStrAnsiCI.equ (const a, b: AnsiString): Boolean; inline;
+var
+  f: Integer;
+begin
+  result := false;
+  if (Length(a) = Length(b)) then
+  begin
+    for f := 1 to Length(a) do if (locase1251(a[f]) <> locase1251(b[f])) then exit;
+  end;
+  result := true;
+end;
+class procedure THashKeyStrAnsiCI.freekey (var k: AnsiString); inline; begin k := ''; end;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
 function THashBase.TEntry.getEmpty (): Boolean; inline; begin result := (hash = 0); end;
 
 
@@ -366,6 +445,7 @@ begin
   freevalfn := afreevalfn;
   mSeed := u32Hash($29a);
 
+  mFreeEntryHead := nil;
   mFirstEntry := -1;
   mLastEntry := -1;
   clear();
@@ -374,6 +454,7 @@ end;
 
 destructor THashBase.Destroy ();
 begin
+  freeEntries();
   mBuckets := nil;
   mEntries := nil;
   inherited;
@@ -414,14 +495,19 @@ end;
 
 
 procedure THashBase.clear ();
-//var idx: Integer;
 begin
   freeEntries();
+  {
   SetLength(mBuckets, InitSize);
   FillChar(mBuckets[0], InitSize*sizeof(mBuckets[0]), 0);
-  //for idx := 0 to High(mBuckets) do mBuckets[idx] := nil;
   SetLength(mEntries, InitSize);
   FillChar(mEntries[0], InitSize*sizeof(mEntries[0]), 0);
+  }
+  mFreeEntryHead := nil;
+  mBuckets := nil;
+  mEntries := nil;
+  mFirstEntry := -1;
+  mLastEntry := -1;
   mBucketsUsed := 0;
 end;
 
@@ -445,6 +531,21 @@ var
 begin
   if (mFreeEntryHead = nil) then
   begin
+    // nothing was allocated, so allocate something now
+    if (Length(mBuckets) = 0) then
+    begin
+      assert(Length(mEntries) = 0);
+      assert(mFirstEntry = -1);
+      assert(mLastEntry = -1);
+      assert(mBucketsUsed = 0);
+      {$IFDEF RBHASH_SANITY_CHECKS}
+      mEntriesUsed := 0;
+      {$ENDIF}
+      SetLength(mBuckets, InitSize);
+      FillChar(mBuckets[0], InitSize*sizeof(mBuckets[0]), 0);
+      SetLength(mEntries, InitSize);
+      FillChar(mEntries[0], InitSize*sizeof(mEntries[0]), 0);
+    end;
     if (mLastEntry = High(mEntries)) then raise Exception.Create('internal error in hash entry allocator (0.0)');
     Inc(mLastEntry);
     if (mFirstEntry = -1) then

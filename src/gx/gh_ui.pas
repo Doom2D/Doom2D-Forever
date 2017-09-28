@@ -24,6 +24,7 @@ uses
   SysUtils, Classes,
   GL, GLExt, SDL2,
   gh_ui_common,
+  gh_ui_style,
   sdlcarcass, glgfx,
   xparser;
 
@@ -36,9 +37,16 @@ type
   public
     type TActionCB = procedure (me: TUIControl; uinfo: Integer);
 
+  public
+    const ClrIdxActive = 0;
+    const ClrIdxDisabled = 1;
+    const ClrIdxInactive = 2;
+    const ClrIdxMax = 2;
+
   private
     mParent: TUIControl;
     mId: AnsiString;
+    mStyleId: AnsiString;
     mX, mY: Integer;
     mWidth, mHeight: Integer;
     mFrameWidth, mFrameHeight: Integer;
@@ -50,10 +58,23 @@ type
     mEscClose: Boolean; // valid only for top-level controls
     mEatKeys: Boolean;
     mDrawShadow: Boolean;
+    // colors
+    mCtl4Style: AnsiString;
+    mBackColor: array[0..ClrIdxMax] of TGxRGBA;
+    mTextColor: array[0..ClrIdxMax] of TGxRGBA;
+    mFrameColor: array[0..ClrIdxMax] of TGxRGBA;
+    mFrameTextColor: array[0..ClrIdxMax] of TGxRGBA;
+    mFrameIconColor: array[0..ClrIdxMax] of TGxRGBA;
+    mDarken: array[0..ClrIdxMax] of Integer; // -1: none
 
   private
     scis: TScissorSave;
     scallowed: Boolean;
+
+  protected
+    procedure updateStyle (); virtual;
+    procedure cacheStyle (root: TUIStyle); virtual;
+    function getColorIndex (): Integer; inline;
 
   protected
     function getEnabled (): Boolean;
@@ -197,6 +218,7 @@ type
 
   public
     property id: AnsiString read mId;
+    property styleId: AnsiString read mStyleId;
     property x0: Integer read mX;
     property y0: Integer read mY;
     property height: Integer read mHeight;
@@ -220,6 +242,9 @@ type
     mDoCenter: Boolean; // after layouting
 
   protected
+    procedure cacheStyle (root: TUIStyle); override;
+
+  protected
     procedure activated (); override;
     procedure blurred (); override;
 
@@ -228,6 +253,8 @@ type
 
   public
     constructor Create (const atitle: AnsiString; ax, ay: Integer; aw: Integer=-1; ah: Integer=-1);
+
+    procedure AfterConstruction (); override; // so it will be correctly initialized when created from parser
 
     function parseProperty (const prname: AnsiString; par: TTextParser): Boolean; override;
 
@@ -304,6 +331,8 @@ type
   public
     constructor Create (ahoriz: Boolean);
 
+    procedure AfterConstruction (); override; // so it will be correctly initialized when created from parser
+
     function parseProperty (const prname: AnsiString; par: TTextParser): Boolean; override;
 
     procedure drawControl (gx, gy: Integer); override;
@@ -335,6 +364,8 @@ type
   // ////////////////////////////////////////////////////////////////////// //
   TUILine = class(TUIControl)
   public
+    procedure AfterConstruction (); override; // so it will be correctly initialized when created from parser
+
     function parseProperty (const prname: AnsiString; par: TTextParser): Boolean; override;
 
     procedure drawControl (gx, gy: Integer); override;
@@ -381,6 +412,8 @@ procedure uiDraw ();
 procedure uiAddWindow (ctl: TUIControl);
 procedure uiRemoveWindow (ctl: TUIControl); // will free window if `mFreeOnClose` is `true`
 function uiVisibleWindow (ctl: TUIControl): Boolean;
+
+procedure uiUpdateStyles ();
 
 
 // ////////////////////////////////////////////////////////////////////////// //
@@ -482,6 +515,14 @@ var
   uiTopList: array of TUIControl = nil;
 
 
+procedure uiUpdateStyles ();
+var
+  ctl: TUIControl;
+begin
+  for ctl in uiTopList do ctl.updateStyle();
+end;
+
+
 function uiMouseEvent (ev: THMouseEvent): Boolean;
 var
   f, c: Integer;
@@ -528,7 +569,7 @@ end;
 
 procedure uiDraw ();
 var
-  f: Integer;
+  f, cidx: Integer;
   ctl: TUIControl;
 begin
   glMatrixMode(GL_MODELVIEW);
@@ -540,7 +581,9 @@ begin
     begin
       ctl := uiTopList[f];
       ctl.draw();
-      if (f <> High(uiTopList)) then darkenRect(ctl.x0, ctl.y0, ctl.width, ctl.height, 128);
+      cidx := ctl.getColorIndex;
+      //if (f <> High(uiTopList)) then darkenRect(ctl.x0, ctl.y0, ctl.width, ctl.height, 128);
+      if (ctl.mDarken[cidx] > 0) then darkenRect(ctl.x0, ctl.y0, ctl.width, ctl.height, ctl.mDarken[cidx]);
     end;
   finally
     glMatrixMode(GL_MODELVIEW);
@@ -573,6 +616,7 @@ begin
   if (Length(uiTopList) > 0) then uiTopList[High(uiTopList)].blurred();
   SetLength(uiTopList, Length(uiTopList)+1);
   uiTopList[High(uiTopList)] := ctl;
+  ctl.updateStyle();
   ctl.activated();
 end;
 
@@ -624,6 +668,7 @@ end;
 constructor TUIControl.Create ();
 begin
   mParent := nil;
+  mId := '';
   mX := 0;
   mY := 0;
   mWidth := 64;
@@ -650,6 +695,8 @@ begin
   mLineStart := false;
   mHGroup := '';
   mVGroup := '';
+  mStyleId := '';
+  mCtl4Style := '';
   mAlign := -1; // left/top
   mExpand := false;
 end;
@@ -687,6 +734,63 @@ begin
     mChildren[f].Free();
   end;
   mChildren := nil;
+end;
+
+
+function TUIControl.getColorIndex (): Integer; inline;
+begin
+  if (not mEnabled) then begin result := ClrIdxDisabled; exit; end;
+  if (getFocused) then begin result := ClrIdxActive; exit; end;
+  result := ClrIdxInactive;
+end;
+
+procedure TUIControl.updateStyle ();
+var
+  stl: TUIStyle = nil;
+  ctl: TUIControl;
+begin
+  ctl := self;
+  while (ctl <> nil) do
+  begin
+    if (Length(ctl.mStyleId) <> 0) then begin stl := uiFindStyle(ctl.mStyleId); break; end;
+    ctl := ctl.mParent;
+  end;
+  if (stl = nil) then stl := uiFindStyle(''); // default
+  cacheStyle(stl);
+  for ctl in mChildren do ctl.updateStyle();
+end;
+
+procedure TUIControl.cacheStyle (root: TUIStyle);
+var
+  cst: AnsiString = '';
+begin
+  //writeln('caching style for <', className, '> (', mCtl4Style, ')...');
+  if (Length(mCtl4Style) > 0) then
+  begin
+    cst := mCtl4Style;
+    if (cst[1] <> '@') then cst := '@'+cst;
+  end;
+  // active
+  mBackColor[ClrIdxActive] := root['back-color'+cst].asRGBADef(TGxRGBA.Create(0, 0, 128));
+  mTextColor[ClrIdxActive] := root['text-color'+cst].asRGBADef(TGxRGBA.Create(255, 255, 255));
+  mFrameColor[ClrIdxActive] := root['frame-color'+cst].asRGBADef(TGxRGBA.Create(255, 255, 255));
+  mFrameTextColor[ClrIdxActive] := root['frame-text-color'+cst].asRGBADef(TGxRGBA.Create(255, 255, 255));
+  mFrameIconColor[ClrIdxActive] := root['frame-icon-color'+cst].asRGBADef(TGxRGBA.Create(0, 255, 0));
+  mDarken[ClrIdxActive] := root['darken'+cst].asIntDef(-1);
+  // disabled
+  mBackColor[ClrIdxDisabled] := root['back-color#disabled'+cst].asRGBADef(TGxRGBA.Create(0, 0, 128));
+  mTextColor[ClrIdxDisabled] := root['text-color#disabled'+cst].asRGBADef(TGxRGBA.Create(127, 127, 127));
+  mFrameColor[ClrIdxDisabled] := root['frame-color#disabled'+cst].asRGBADef(TGxRGBA.Create(127, 127, 127));
+  mFrameTextColor[ClrIdxDisabled] := root['frame-text-color#disabled'+cst].asRGBADef(TGxRGBA.Create(127, 127, 127));
+  mFrameIconColor[ClrIdxDisabled] := root['frame-icon-color#disabled'+cst].asRGBADef(TGxRGBA.Create(0, 127, 0));
+  mDarken[ClrIdxDisabled] := root['darken#disabled'+cst].asIntDef(128);
+  // inactive
+  mBackColor[ClrIdxInactive] := root['back-color#inactive'+cst].asRGBADef(TGxRGBA.Create(0, 0, 128));
+  mTextColor[ClrIdxInactive] := root['text-color#inactive'+cst].asRGBADef(TGxRGBA.Create(255, 255, 255));
+  mFrameColor[ClrIdxInactive] := root['frame-color#inactive'+cst].asRGBADef(TGxRGBA.Create(255, 255, 255));
+  mFrameTextColor[ClrIdxInactive] := root['frame-text-color#inactive'+cst].asRGBADef(TGxRGBA.Create(255, 255, 255));
+  mFrameIconColor[ClrIdxInactive] := root['frame-icon-color#inactive'+cst].asRGBADef(TGxRGBA.Create(0, 255, 0));
+  mDarken[ClrIdxInactive] := root['darken#inactive'+cst].asIntDef(128);
 end;
 
 
@@ -926,7 +1030,8 @@ end;
 function TUIControl.parseProperty (const prname: AnsiString; par: TTextParser): Boolean;
 begin
   result := true;
-  if (strEquCI1251(prname, 'id')) then begin mId := par.expectStrOrId(true); exit; end; // allow empty strings
+  if (strEquCI1251(prname, 'id')) then begin mId := par.expectIdOrStr(true); exit; end; // allow empty strings
+  if (strEquCI1251(prname, 'style')) then begin mStyleId := par.expectIdOrStr(); exit; end; // no empty strings
   if (strEquCI1251(prname, 'flex')) then begin flex := par.expectInt(); exit; end;
   // sizes
   if (strEquCI1251(prname, 'defsize')) or (strEquCI1251(prname, 'size')) then begin mDefSize := parseSize(par); exit; end;
@@ -941,8 +1046,8 @@ begin
   if (strEquCI1251(prname, 'expand')) then begin mExpand := parseBool(par); exit; end;
   // align
   if (strEquCI1251(prname, 'align')) then begin mAlign := parseAnyAlign(par); exit; end;
-  if (strEquCI1251(prname, 'hgroup')) then begin mHGroup := par.expectStrOrId(true); exit; end; // allow empty strings
-  if (strEquCI1251(prname, 'vgroup')) then begin mVGroup := par.expectStrOrId(true); exit; end; // allow empty strings
+  if (strEquCI1251(prname, 'hgroup')) then begin mHGroup := par.expectIdOrStr(true); exit; end; // allow empty strings
+  if (strEquCI1251(prname, 'vgroup')) then begin mVGroup := par.expectIdOrStr(true); exit; end; // allow empty strings
   // other
   if (strEquCI1251(prname, 'canfocus')) then begin mCanFocus := parseBool(par); exit; end;
   if (strEquCI1251(prname, 'enabled')) then begin mEnabled := parseBool(par); exit; end;
@@ -998,7 +1103,15 @@ end;
 
 function TUIControl.getFocused (): Boolean; inline;
 begin
-  if (mParent = nil) then result := (Length(uiTopList) > 0) and (uiTopList[High(uiTopList)] = self) else result := (topLevel.mFocused = self);
+  if (mParent = nil) then
+  begin
+    result := (Length(uiTopList) > 0) and (uiTopList[High(uiTopList)] = self);
+  end
+  else
+  begin
+    result := (topLevel.mFocused = self);
+    if (result) then result := (Length(uiTopList) > 0) and (uiTopList[High(uiTopList)] = topLevel);
+  end;
 end;
 
 
@@ -1305,7 +1418,7 @@ end;
 
 procedure TUIControl.drawControl (gx, gy: Integer);
 begin
-  if (mParent = nil) then darkenRect(gx, gy, mWidth, mHeight, 64);
+  //if (mParent = nil) then darkenRect(gx, gy, mWidth, mHeight, 64);
 end;
 
 procedure TUIControl.drawControlPost (gx, gy: Integer);
@@ -1399,6 +1512,11 @@ begin
   mFrameWidth := 8;
   mFrameHeight := 8;
   mTitle := atitle;
+end;
+
+procedure TUITopWindow.AfterConstruction ();
+begin
+  inherited AfterConstruction();
   if (mWidth < mFrameWidth*2+3*8) then mWidth := mFrameWidth*2+3*8;
   if (mHeight < mFrameHeight*2) then mHeight := mFrameHeight*2;
   if (Length(mTitle) > 0) then
@@ -1410,6 +1528,7 @@ begin
   mWaitingClose := false;
   mInClose := false;
   closeCB := nil;
+  mCtl4Style := '';
 end;
 
 
@@ -1417,7 +1536,7 @@ function TUITopWindow.parseProperty (const prname: AnsiString; par: TTextParser)
 begin
   if (strEquCI1251(prname, 'title')) or (strEquCI1251(prname, 'caption')) then
   begin
-    mTitle := par.expectStrOrId(true);
+    mTitle := par.expectIdOrStr(true);
     result := true;
     exit;
   end;
@@ -1440,6 +1559,12 @@ begin
 end;
 
 
+procedure TUITopWindow.cacheStyle (root: TUIStyle);
+begin
+  inherited cacheStyle(root);
+end;
+
+
 procedure TUITopWindow.centerInScreen ();
 begin
   if (mWidth > 0) and (mHeight > 0) then
@@ -1452,37 +1577,36 @@ end;
 
 procedure TUITopWindow.drawControl (gx, gy: Integer);
 begin
-  fillRect(gx, gy, mWidth, mHeight, TGxRGBA.Create(0, 0, 128));
+  fillRect(gx, gy, mWidth, mHeight, mBackColor[getColorIndex]);
 end;
 
 
 procedure TUITopWindow.drawControlPost (gx, gy: Integer);
-const r = 255;
-const g = 255;
-const b = 255;
 var
+  cidx: Integer;
   tx: Integer;
 begin
+  cidx := getColorIndex;
   if mDragging then
   begin
-    drawRectUI(mX+4, mY+4, mWidth-8, mHeight-8, TGxRGBA.Create(r, g, b));
+    drawRectUI(mX+4, mY+4, mWidth-8, mHeight-8, mFrameColor[cidx]);
   end
   else
   begin
-    drawRectUI(mX+3, mY+3, mWidth-6, mHeight-6, TGxRGBA.Create(r, g, b));
-    drawRectUI(mX+5, mY+5, mWidth-10, mHeight-10, TGxRGBA.Create(r, g, b));
+    drawRectUI(mX+3, mY+3, mWidth-6, mHeight-6, mFrameColor[cidx]);
+    drawRectUI(mX+5, mY+5, mWidth-10, mHeight-10, mFrameColor[cidx]);
     setScissor(mFrameWidth, 0, 3*8, 8);
-    fillRect(mX+mFrameWidth, mY, 3*8, 8, TGxRGBA.Create(0, 0, 128));
-    drawText8(mX+mFrameWidth, mY, '[ ]', TGxRGBA.Create(r, g, b));
-    if mInClose then drawText8(mX+mFrameWidth+7, mY, '#', TGxRGBA.Create(0, 255, 0))
-    else drawText8(mX+mFrameWidth+7, mY, '*', TGxRGBA.Create(0, 255, 0));
+    fillRect(mX+mFrameWidth, mY, 3*8, 8, mBackColor[cidx]);
+    drawText8(mX+mFrameWidth, mY, '[ ]', mFrameColor[cidx]);
+    if mInClose then drawText8(mX+mFrameWidth+7, mY, '#', mFrameIconColor[cidx])
+    else drawText8(mX+mFrameWidth+7, mY, '*', mFrameIconColor[cidx]);
   end;
   if (Length(mTitle) > 0) then
   begin
     setScissor(mFrameWidth+3*8, 0, mWidth-mFrameWidth*2-3*8, 8);
     tx := (mX+3*8)+((mWidth-3*8)-Length(mTitle)*8) div 2;
-    fillRect(tx-3, mY, Length(mTitle)*8+3+2, 8, TGxRGBA.Create(0, 0, 128));
-    drawText8(tx, mY, mTitle, TGxRGBA.Create(r, g, b));
+    fillRect(tx-3, mY, Length(mTitle)*8+3+2, 8, mBackColor[cidx]);
+    drawText8(tx, mY, mTitle, mFrameTextColor[cidx]);
   end;
   inherited drawControlPost(gx, gy);
 end;
@@ -1845,7 +1969,14 @@ constructor TUIBox.Create (ahoriz: Boolean);
 begin
   inherited Create();
   mHoriz := ahoriz;
+end;
+
+
+procedure TUIBox.AfterConstruction ();
+begin
+  inherited AfterConstruction();
   mCanFocus := false;
+  mCtl4Style := 'box';
 end;
 
 
@@ -1861,7 +1992,7 @@ begin
   end;
   if (strEquCI1251(prname, 'title')) or (strEquCI1251(prname, 'caption')) then
   begin
-    mCaption := par.expectStrOrId(true);
+    mCaption := par.expectIdOrStr(true);
     mDefSize := TLaySize.Create(Length(mCaption)*8+3, 8);
     result := true;
     exit;
@@ -1878,22 +2009,23 @@ end;
 
 procedure TUIBox.drawControl (gx, gy: Integer);
 var
-  r, g, b: Integer;
+  cidx: Integer;
   tx: Integer;
 begin
-  if focused then begin r := 255; g := 255; b := 255; end else begin r := 255; g := 255; b := 0; end;
+  cidx := getColorIndex;
+  fillRect(gx, gy, mWidth, mHeight, mBackColor[cidx]);
   if mHasFrame then
   begin
     // draw frame
-    drawRectUI(gx+3, gy+3, mWidth-6, mHeight-6, TGxRGBA.Create(r, g, b));
+    drawRectUI(gx+3, gy+3, mWidth-6, mHeight-6, mFrameColor[cidx]);
   end;
   // draw caption
   if (Length(mCaption) > 0) then
   begin
     setScissor(mFrameWidth+1, 0, mWidth-mFrameWidth-2, 8);
     tx := gx+((mWidth-Length(mCaption)*8) div 2);
-    if mHasFrame then fillRect(tx-2, gy, Length(mCaption)*8+3, 8, TGxRGBA.Create(0, 0, 128));
-    drawText8(tx, gy, mCaption, TGxRGBA.Create(r, g, b));
+    if mHasFrame then fillRect(tx-2, gy, Length(mCaption)*8+3, 8, mBackColor[cidx]);
+    drawText8(tx, gy, mCaption, mFrameTextColor[cidx]);
   end;
 end;
 
@@ -1930,7 +2062,6 @@ procedure TUIVBox.AfterConstruction ();
 begin
   inherited AfterConstruction();
   mHoriz := false;
-  mCanFocus := false;
 end;
 
 
@@ -1940,6 +2071,7 @@ begin
   inherited AfterConstruction();
   mExpand := true;
   mCanFocus := false;
+  mCtl4Style := 'span';
 end;
 
 
@@ -1956,6 +2088,15 @@ end;
 
 
 // ////////////////////////////////////////////////////////////////////// //
+procedure TUILine.AfterConstruction ();
+begin
+  inherited AfterConstruction();
+  mExpand := true;
+  mCanFocus := false;
+  mCtl4Style := 'line';
+end;
+
+
 function TUILine.parseProperty (const prname: AnsiString; par: TTextParser): Boolean;
 begin
   if (parseOrientation(prname, par)) then begin result := true; exit; end;
@@ -1964,14 +2105,17 @@ end;
 
 
 procedure TUILine.drawControl (gx, gy: Integer);
+var
+  cidx: Integer;
 begin
+  cidx := getColorIndex;
   if mHoriz then
   begin
-    drawHLine(gx, gy+(mHeight div 2), mWidth, TGxRGBA.Create(255, 255, 255));
+    drawHLine(gx, gy+(mHeight div 2), mWidth, mTextColor[cidx]);
   end
   else
   begin
-    drawVLine(gx+(mWidth div 2), gy, mHeight, TGxRGBA.Create(255, 255, 255));
+    drawVLine(gx+(mWidth div 2), gy, mHeight, mTextColor[cidx]);
   end;
 end;
 
@@ -1979,8 +2123,8 @@ end;
 // ////////////////////////////////////////////////////////////////////////// //
 procedure TUIHLine.AfterConstruction ();
 begin
+  inherited AfterConstruction();
   mHoriz := true;
-  mExpand := true;
   mDefSize.h := 1;
 end;
 
@@ -1988,10 +2132,9 @@ end;
 // ////////////////////////////////////////////////////////////////////////// //
 procedure TUIVLine.AfterConstruction ();
 begin
+  inherited AfterConstruction();
   mHoriz := false;
-  mExpand := true;
   mDefSize.w := 1;
-  //mDefSize.h := 8;
 end;
 
 
@@ -2011,6 +2154,7 @@ begin
   mVAlign := 0;
   mCanFocus := false;
   if (mDefSize.h <= 0) then mDefSize.h := 8;
+  mCtl4Style := 'label';
 end;
 
 
@@ -2018,7 +2162,7 @@ function TUITextLabel.parseProperty (const prname: AnsiString; par: TTextParser)
 begin
   if (strEquCI1251(prname, 'title')) or (strEquCI1251(prname, 'caption')) then
   begin
-    mText := par.expectStrOrId(true);
+    mText := par.expectIdOrStr(true);
     mDefSize := TLaySize.Create(Length(mText)*8, 8);
     result := true;
     exit;
@@ -2036,11 +2180,10 @@ end;
 procedure TUITextLabel.drawControl (gx, gy: Integer);
 var
   xpos, ypos: Integer;
+  cidx: Integer;
 begin
-  // debug
-  fillRect(gx, gy, mWidth, mHeight, TGxRGBA.Create(96, 96, 0));
-  drawRectUI(gx, gy, mWidth, mHeight, TGxRGBA.Create(96, 96, 96));
-
+  cidx := getColorIndex;
+  fillRect(gx, gy, mWidth, mHeight, mBackColor[cidx]);
   if (Length(mText) > 0) then
   begin
          if (mHAlign < 0) then xpos := 0
@@ -2051,7 +2194,7 @@ begin
     else if (mVAlign > 0) then ypos := mHeight-8
     else ypos := (mHeight-8) div 2;
 
-    drawText8(gx+xpos, gy+ypos, mText, TGxRGBA.Create(255, 255, 255));
+    drawText8(gx+xpos, gy+ypos, mText, mTextColor[cidx]);
   end;
 end;
 

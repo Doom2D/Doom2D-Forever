@@ -1180,7 +1180,7 @@ begin
   ahelp := '';
 
   // field name
-  fldname := pr.expectStrOrId();
+  fldname := pr.expectIdOrStr();
 
   while (not pr.isDelim(';')) do
   begin
@@ -2612,7 +2612,7 @@ begin
   end
   else
   begin
-    mTypeName := pr.expectStrOrId();
+    mTypeName := pr.expectIdOrStr();
     while (not pr.isDelim('{')) do
     begin
       if pr.eatId('header') then begin mHeader := true; continue; end;

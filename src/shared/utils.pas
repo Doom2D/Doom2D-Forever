@@ -81,15 +81,15 @@ function isWadPath (const fn: AnsiString): Boolean;
 function addWadExtension (const fn: AnsiString): AnsiString;
 
 // convert number to strig with nice commas
-function Int64ToStrComma (i: Int64): AnsiString;
+function int64ToStrComma (i: Int64): AnsiString;
 
-function UpCase1251 (ch: Char): Char;
-function LoCase1251 (ch: Char): Char;
+function upcase1251 (ch: AnsiChar): AnsiChar; inline;
+function locase1251 (ch: AnsiChar): AnsiChar; inline;
 
 function toLowerCase1251 (const s: AnsiString): AnsiString;
 
 // `true` if strings are equal; ignoring case for cp1251
-function StrEquCI1251 (const s0, s1: AnsiString): Boolean;
+function strEquCI1251 (const s0, s1: AnsiString): Boolean;
 
 function utf8Valid (const s: AnsiString): Boolean;
 
@@ -537,25 +537,25 @@ var
     if (code < 0) or (code > $10FFFF) then begin result := '?'; exit; end;
     if (code <= $7f) then
     begin
-      result := Char(code and $ff);
+      result := AnsiChar(code and $ff);
     end
     else if (code <= $7FF) then
     begin
-      result := Char($C0 or (code shr 6));
-      result += Char($80 or (code and $3F));
+      result := AnsiChar($C0 or (code shr 6));
+      result += AnsiChar($80 or (code and $3F));
     end
     else if (code <= $FFFF) then
     begin
-      result := Char($E0 or (code shr 12));
-      result += Char($80 or ((code shr 6) and $3F));
-      result += Char($80 or (code and $3F));
+      result := AnsiChar($E0 or (code shr 12));
+      result += AnsiChar($80 or ((code shr 6) and $3F));
+      result += AnsiChar($80 or (code and $3F));
     end
     else if (code <= $10FFFF) then
     begin
-      result := Char($F0 or (code shr 18));
-      result += Char($80 or ((code shr 12) and $3F));
-      result += Char($80 or ((code shr 6) and $3F));
-      result += Char($80 or (code and $3F));
+      result := AnsiChar($F0 or (code shr 18));
+      result += AnsiChar($80 or ((code shr 12) and $3F));
+      result += AnsiChar($80 or ((code shr 6) and $3F));
+      result += AnsiChar($80 or (code and $3F));
     end
     else
     begin
@@ -844,7 +844,7 @@ begin
 end;
 
 
-function Int64ToStrComma (i: Int64): AnsiString;
+function int64ToStrComma (i: Int64): AnsiString;
 var
   f: Integer;
 begin
@@ -857,7 +857,7 @@ begin
 end;
 
 
-function UpCase1251 (ch: Char): Char;
+function upcase1251 (ch: AnsiChar): AnsiChar; inline;
 begin
   if ch < #128 then
   begin
@@ -881,7 +881,7 @@ begin
 end;
 
 
-function LoCase1251 (ch: Char): Char;
+function locase1251 (ch: AnsiChar): AnsiChar; inline;
 begin
   if ch < #128 then
   begin
@@ -905,7 +905,7 @@ begin
 end;
 
 
-function StrEquCI1251 (const s0, s1: AnsiString): Boolean;
+function strEquCI1251 (const s0, s1: AnsiString): Boolean;
 var
   i: Integer;
 begin
@@ -991,7 +991,7 @@ const
   );
 
 
-function decodeUtf8Char (s: AnsiString; var pos: Integer): char;
+function decodeUtf8Char (s: AnsiString; var pos: Integer): AnsiChar;
 var
   b, c: Integer;
 begin
@@ -1009,7 +1009,7 @@ begin
 
   b := Byte(s[pos]);
   Inc(pos);
-  if b < $80 then begin result := char(b); exit; end;
+  if b < $80 then begin result := AnsiChar(b); exit; end;
 
   // mask out unused bits
        if (b and $FE) = $FC then b := b and $01
@@ -1030,7 +1030,7 @@ begin
   end;
 
   // done, try 1251
-  for c := 128 to 255 do if uni2wint[c] = b then begin result := char(c and $FF); exit; end;
+  for c := 128 to 255 do if uni2wint[c] = b then begin result := AnsiChar(c and $FF); exit; end;
   // alas
 end;
 
@@ -1186,7 +1186,7 @@ end;
 
 function checkSign (st: TStream; const sign: AnsiString): Boolean;
 var
-  buf: packed array[0..7] of Char;
+  buf: packed array[0..7] of AnsiChar;
   f: Integer;
 begin
   result := false;
