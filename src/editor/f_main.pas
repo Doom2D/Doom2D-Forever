@@ -2047,7 +2047,7 @@ begin
     lbTextureList.Sorted := True;
     lbTextureList.Sorted := False;
 
-    UpdateCaption(gMapInfo.Name, ExtractFileName(FileName), MapName);
+    UpdateCaption(win2utf(gMapInfo.Name), ExtractFileName(FileName), MapName);
   end;
 end;
 
@@ -4090,7 +4090,7 @@ begin
   while (Pos(':\', ResName) > 0) do
     Delete(ResName, 1, Pos(':\', ResName) + 1);
 
-  UpdateCaption(gMapInfo.Name, ExtractFileName(OpenedWAD), ResName);
+  UpdateCaption(win2utf(gMapInfo.Name), ExtractFileName(OpenedWAD), ResName);
 end;
 
 procedure TMainForm.aAboutExecute(Sender: TObject);
@@ -6050,7 +6050,7 @@ begin
 
   gMapInfo.FileName := SaveDialog.FileName;
   gMapInfo.MapName := SaveMapForm.eMapName.Text;
-  UpdateCaption(gMapInfo.Name, ExtractFileName(gMapInfo.FileName), gMapInfo.MapName);
+  UpdateCaption(win2utf(gMapInfo.Name), ExtractFileName(gMapInfo.FileName), gMapInfo.MapName);
 end;
 
 procedure TMainForm.aSelectAllExecute(Sender: TObject);
