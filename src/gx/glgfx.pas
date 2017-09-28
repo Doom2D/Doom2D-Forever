@@ -1246,6 +1246,7 @@ begin
   glDisable(GL_TEXTURE_2D);
   if (not isScaled) then
   begin
+    glLineWidth(1);
     glBegin(GL_LINES);
       glVertex2f(x+0.375, y+0.375);
       glVertex2f(x+len+0.375, y+0.375);
@@ -1270,6 +1271,7 @@ begin
   glDisable(GL_TEXTURE_2D);
   if (not isScaled) then
   begin
+    glLineWidth(1);
     glBegin(GL_LINES);
       glVertex2f(x+0.375, y+0.375);
       glVertex2f(x+0.375, y+len+0.375);
@@ -1298,6 +1300,7 @@ begin
 
   if (not isScaled) then
   begin
+    glLineWidth(1);
     glBegin(GL_LINES);
       glVertex2f(x1+0.375, y1+0.375);
       glVertex2f(x2+0.375, y2+0.375);
@@ -1312,6 +1315,7 @@ begin
   end
   else
   begin
+    glLineWidth(1);
     glBegin(GL_LINES);
       glVertex2i(x1, y1);
       glVertex2i(x2, y2);
@@ -1342,6 +1346,7 @@ begin
   end
   else
   begin
+    glLineWidth(1);
     glBegin(GL_LINES);
       glVertex2i(x, y); glVertex2i(x+w, y); // top
       glVertex2i(x, y+h-1); glVertex2i(x+w, y+h-1); // bottom
@@ -1398,6 +1403,7 @@ begin
   begin
     if not scaled then
     begin
+      glLineWidth(1);
       glBegin(GL_LINES);
         glVertex2i(x, y); glVertex2i(x+w, y); // top
         glVertex2i(x, y+h-1); glVertex2i(x+w, y+h-1); // bottom
