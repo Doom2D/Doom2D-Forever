@@ -69,7 +69,7 @@ object MainForm: TMainForm
       Font.Name = 'MS Sans Serif'
       ParentFont = False
       RowCount = 2
-      ScrollBars = ssVertical
+      ScrollBars = ssAutoVertical
       TabOrder = 0
       TitleFont.Color = clWindowText
       TitleFont.Height = -12
@@ -89,8 +89,8 @@ object MainForm: TMainForm
       )
       OnGetPickList = vleObjectPropertyGetPickList
       ColWidths = (
-        62
-        62
+        70
+        71
       )
     end
     object PanelPropApply: TPanel
