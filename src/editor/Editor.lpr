@@ -52,6 +52,7 @@ uses
 {$R *.res}
 
 begin
+  Application.ExceptionDialog := aedOkMessageBox;
   Application.Initialize();
 
   Application.CreateForm(TMainForm, MainForm);
