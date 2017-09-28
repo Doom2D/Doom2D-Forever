@@ -62,6 +62,10 @@ type
     type
       TKind = (Release, Press, Motion);
 
+  private
+    mEaten: Boolean;
+    mCancelled: Boolean;
+
   public
     kind: TKind; // motion, press, release
     x, y: Integer; // current mouse position
@@ -71,9 +75,17 @@ type
     kstate: Word; // keyboard state (see THKeyEvent);
 
   public
+    procedure intrInit (); inline; // init hidden fields
+
     function press (): Boolean; inline;
     function release (): Boolean; inline;
     function motion (): Boolean; inline;
+    procedure eat (); inline;
+    procedure cancel (); inline;
+
+  public
+    property eaten: Boolean read mEaten;
+    property cancelled: Boolean read mCancelled;
   end;
 
   THKeyEvent = record
@@ -89,6 +101,10 @@ type
     type
       TKind = (Release, Press);
 
+  private
+    mEaten: Boolean;
+    mCancelled: Boolean;
+
   public
     kind: TKind;
     scan: Word; // SDL_SCANCODE_XXX
@@ -98,9 +114,18 @@ type
     kstate: Word; // keyboard state BEFORE event (i.e. press/release modifications aren't done yet)
 
   public
+    procedure intrInit (); inline; // init hidden fields
+
     function press (): Boolean; inline;
     function release (): Boolean; inline;
+    procedure eat (); inline;
+    procedure cancel (); inline;
+
+  public
+    property eaten: Boolean read mEaten;
+    property cancelled: Boolean read mCancelled;
   end;
+
 
 
 // ////////////////////////////////////////////////////////////////////////// //
@@ -161,8 +186,8 @@ function drawText8PropXC (x, y: Integer; const s: AnsiString; constref clr: TGxR
 // ////////////////////////////////////////////////////////////////////////// //
 // event handlers
 var
-  evMouseCB: function (var ev: THMouseEvent): Boolean = nil; // `true`: event eaten
-  evKeyCB: function (var ev: THKeyEvent): Boolean = nil; // `true`: event eaten
+  evMouseCB: procedure (var ev: THMouseEvent) = nil;
+  evKeyCB: procedure (var ev: THKeyEvent) = nil;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
@@ -233,12 +258,18 @@ function getModState (): Word; inline; begin result := curModState; end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
+procedure THMouseEvent.intrInit (); inline; begin mEaten := false; mCancelled := false; end;
 function THMouseEvent.press (): Boolean; inline; begin result := (kind = TKind.Press); end;
 function THMouseEvent.release (): Boolean; inline; begin result := (kind = TKind.Release); end;
 function THMouseEvent.motion (): Boolean; inline; begin result := (kind = TKind.Motion); end;
+procedure THMouseEvent.eat (); inline; begin mEaten := true; end;
+procedure THMouseEvent.cancel (); inline; begin mCancelled := true; end;
 
+procedure THKeyEvent.intrInit (); inline; begin mEaten := false; mCancelled := false; end;
 function THKeyEvent.press (): Boolean; inline; begin result := (kind = TKind.Press); end;
 function THKeyEvent.release (): Boolean; inline; begin result := (kind = TKind.Release); end;
+procedure THKeyEvent.eat (); inline; begin mEaten := true; end;
+procedure THKeyEvent.cancel (); inline; begin mCancelled := true; end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
@@ -291,9 +322,9 @@ begin
   pos := 1;
   //while (pos <= Length(s)) and (s[pos] <= ' ') do Inc(pos);
   if (pos < Length(s)) and ((s[pos] = '+') or (s[pos] = '-') or (s[pos] = '*')) then Inc(pos);
-  while (pos < Length(s)) do
+  while (pos <= Length(s)) do
   begin
-    if (Length(s)-pos >= 2) and (s[pos+1] = '-') then
+    if (Length(s)-pos >= 1) and (s[pos+1] = '-') then
     begin
       case s[pos] of
         'C', 'c': begin if (kmods = 255) then kmods := 0; kmods := kmods or THKeyEvent.ModCtrl; Inc(pos, 2); continue; end;
@@ -302,7 +333,7 @@ begin
       end;
       break;
     end;
-    if (Length(s)-pos >= 4) and ((s[pos+1] = 'M') or (s[pos+1] = 'm')) and ((s[pos+2] = 'B') or (s[pos+1] = 'b')) and (s[pos+3] = '-') then
+    if (Length(s)-pos >= 3) and (s[pos+3] = '-') and ((s[pos+1] = 'M') or (s[pos+1] = 'm')) and ((s[pos+2] = 'B') or (s[pos+2] = 'b')) then
     begin
       case s[pos] of
         'L', 'l': begin if (mbuts = 255) then mbuts := 0; mbuts := mbuts or THMouseEvent.Left; Inc(pos, 4); continue; end;
@@ -364,13 +395,14 @@ var
   mbuts: Byte = 255;
   kname: AnsiString;
   but: Integer = -1;
+  modch: AnsiChar = ' ';
 begin
   result := false;
 
   if (Length(s) > 0) then
   begin
-         if (s[1] = '+') then begin if (not ev.press) then exit; end
-    else if (s[1] = '-') then begin if (not ev.release) then exit; end
+         if (s[1] = '+') then begin if (not ev.press) then exit; modch := '+'; end
+    else if (s[1] = '-') then begin if (not ev.release) then exit; modch := '-'; end
     else if (s[1] = '*') then begin if (not ev.motion) then exit; end
     else if (not ev.press) then exit;
   end;
@@ -387,6 +419,7 @@ begin
   if (mbuts = 255) then mbuts := 0;
   if (kmods = 255) then kmods := 0;
   if (ev.kstate <> kmods) then exit;
+  if (modch = '-') then mbuts := mbuts or but else if (modch = '+') then mbuts := mbuts and (not but);
 
   result := (ev.bstate = mbuts) and (ev.but = but);
 end;
@@ -416,6 +449,8 @@ begin
         // checked each time, 'cause `evMouseCB` can be changed from the handler
         if ((curButState and mask) <> 0) and assigned(evMouseCB) then
         begin
+          FillChar(mev, sizeof(mev), 0);
+          mev.intrInit();
           mev.kind := mev.TKind.Release;
           mev.x := curMsX;
           mev.y := curMsY;
@@ -444,6 +479,8 @@ begin
         // checked each time, 'cause `evMouseCB` can be changed from the handler
         if ((curModState and mask) <> 0) and assigned(evKeyCB) then
         begin
+          FillChar(kev, sizeof(kev), 0);
+          kev.intrInit();
           kev.kind := kev.TKind.Release;
           case mask of
             THKeyEvent.ModCtrl: begin kev.scan := SDL_SCANCODE_LCTRL; kev.sym := SDLK_LCTRL;{arbitrary} end;
@@ -489,6 +526,8 @@ begin
     SDL_KEYDOWN, SDL_KEYUP:
       begin
         // fix left/right modifiers
+        FillChar(kev, sizeof(kev), 0);
+        kev.intrInit();
         if (ev.type_ = SDL_KEYDOWN) then kev.kind := THKeyEvent.TKind.Press else kev.kind := THKeyEvent.TKind.Release;
         kev.scan := ev.key.keysym.scancode;
         kev.sym := ev.key.keysym.sym;
@@ -514,16 +553,22 @@ begin
           SDL_SCANCODE_LSHIFT: if (kev.press) then curModState := curModState or THKeyEvent.ModShift else curModState := curModState and (not THKeyEvent.ModShift);
         end;
 
-        if assigned(evKeyCB) then result := evKeyCB(kev);
+        if assigned(evKeyCB) then
+        begin
+          evKeyCB(kev);
+          result := kev.eaten;
+        end;
       end;
 
     SDL_MOUSEBUTTONDOWN, SDL_MOUSEBUTTONUP:
       begin
+        FillChar(mev, sizeof(mev), 0);
+        mev.intrInit();
+        if (ev.type_ = SDL_MOUSEBUTTONDOWN) then mev.kind := THMouseEvent.TKind.Press else mev.kind := THMouseEvent.TKind.Release;
         mev.dx := ev.button.x-curMsX;
         mev.dy := ev.button.y-curMsY;
         curMsX := ev.button.x;
         curMsY := ev.button.y;
-        if (ev.type_ = SDL_MOUSEBUTTONDOWN) then mev.kind := THMouseEvent.TKind.Press else mev.kind := THMouseEvent.TKind.Release;
         mev.but := buildBut(ev.button.button);
         mev.x := curMsX;
         mev.y := curMsY;
@@ -533,37 +578,53 @@ begin
         begin
           // ev.button.clicks: Byte
           if (ev.type_ = SDL_MOUSEBUTTONDOWN) then curButState := curButState or mev.but else curButState := curButState and (not mev.but);
-          if assigned(evMouseCB) then result := evMouseCB(mev);
+          if assigned(evMouseCB) then
+          begin
+            evMouseCB(mev);
+            result := mev.eaten;
+          end;
         end;
       end;
     SDL_MOUSEWHEEL:
       begin
         if (ev.wheel.y <> 0) then
         begin
+          FillChar(mev, sizeof(mev), 0);
+          mev.intrInit();
+          mev.kind := THMouseEvent.TKind.Press;
           mev.dx := 0;
           mev.dy := ev.wheel.y;
-          mev.kind := THMouseEvent.TKind.Press;
           if (ev.wheel.y < 0) then mev.but := THMouseEvent.WheelUp else mev.but := THMouseEvent.WheelDown;
           mev.x := curMsX;
           mev.y := curMsY;
           mev.bstate := curButState;
           mev.kstate := curModState;
-          if assigned(evMouseCB) then result := evMouseCB(mev);
+          if assigned(evMouseCB) then
+          begin
+            evMouseCB(mev);
+            result := mev.eaten;
+          end;
         end;
       end;
     SDL_MOUSEMOTION:
       begin
+        FillChar(mev, sizeof(mev), 0);
+        mev.intrInit();
+        mev.kind := THMouseEvent.TKind.Motion;
         mev.dx := ev.button.x-curMsX;
         mev.dy := ev.button.y-curMsY;
         curMsX := ev.button.x;
         curMsY := ev.button.y;
-        mev.kind := THMouseEvent.TKind.Motion;
         mev.but := 0;
         mev.x := curMsX;
         mev.y := curMsY;
         mev.bstate := curButState;
         mev.kstate := curModState;
-        if assigned(evMouseCB) then result := evMouseCB(mev);
+        if assigned(evMouseCB) then
+        begin
+          evMouseCB(mev);
+          result := mev.eaten;
+        end;
       end;
 
     {

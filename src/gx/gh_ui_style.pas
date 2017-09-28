@@ -69,14 +69,14 @@ type
   private
     // "text-color#inactive@label"
     function getValue (const path: AnsiString): TStyleValue;
-    procedure putValue (const path: AnsiString; const val: TStyleValue);
+    procedure setValue (const path: AnsiString; const val: TStyleValue);
 
   public
     constructor Create ();
     destructor Destroy (); override;
 
   public
-    property value[const path: AnsiString]: TStyleValue read getValue write putValue; default;
+    property value[const path: AnsiString]: TStyleValue read getValue write setValue; default;
   end;
 
   TUIStyle = class
@@ -88,7 +88,7 @@ type
     procedure parse (par: TTextParser);
 
     function getValue (const path: AnsiString): TStyleValue; inline;
-    procedure putValue (const path: AnsiString; const val: TStyleValue); inline;
+    procedure setValue (const path: AnsiString; const val: TStyleValue); inline;
 
   public
     constructor Create (const aid: AnsiString);
@@ -98,7 +98,7 @@ type
 
   public
     property id: AnsiString read mId;
-    property value[const path: AnsiString]: TStyleValue read getValue write putValue; default;
+    property value[const path: AnsiString]: TStyleValue read getValue write setValue; default;
   end;
 
 
@@ -128,23 +128,41 @@ begin
   result['frame-icon-color'] := TStyleValue.Create(TGxRGBA.Create(0, 255, 0));
 
   // disabled is always inactive too
-  result['back-color#disabled'] := TStyleValue.Create(TGxRGBA.Create(0, 0, 128));
+
+  // main colors
+  result['back-color#disabled'] := TStyleValue.Create(TGxRGBA.Create(0, 0, 127));
   result['text-color#disabled'] := TStyleValue.Create(TGxRGBA.Create(127, 127, 127));
   result['frame-text-color#disabled'] := TStyleValue.Create(TGxRGBA.Create(127, 127, 127));
   result['frame-icon-color#disabled'] := TStyleValue.Create(TGxRGBA.Create(0, 127, 0));
   result['darken#disabled'] := TStyleValue.Create(128, false); // darken inactive windows, no-inherit
   result['darken#inactive'] := TStyleValue.Create(128, false); // darken inactive windows, no-inherit
 
+  // label
   result['text-color@label'] := TStyleValue.Create(TGxRGBA.Create(255, 255, 255));
   result['text-color#disabled@label'] := TStyleValue.Create(TGxRGBA.Create(127, 127, 127));
 
+  // box
   result['frame-color@box'] := TStyleValue.Create(TGxRGBA.Create(255, 255, 0));
   result['frame-text-color@box'] := TStyleValue.Create(TGxRGBA.Create(255, 255, 0));
   result['frame-icon-color@box'] := TStyleValue.Create(TGxRGBA.Create(0, 255, 0));
 
+  result['frame-color#inactive@box'] := TStyleValue.Create(TGxRGBA.Create(255, 255, 255));
+  result['frame-text-color#inactive@box'] := TStyleValue.Create(TGxRGBA.Create(255, 255, 255));
+  result['frame-icon-color#inactive@box'] := TStyleValue.Create(TGxRGBA.Create(0, 255, 0));
+
   result['frame-color#disabled@box'] := TStyleValue.Create(TGxRGBA.Create(127, 127, 127));
   result['frame-text-color#disabled@box'] := TStyleValue.Create(TGxRGBA.Create(127, 127, 127));
   result['frame-icon-color#disabled@box'] := TStyleValue.Create(TGxRGBA.Create(127, 127, 127));
+
+  // button
+  result['back-color@button'] := TStyleValue.Create(TGxRGBA.Create(0, 96, 255));
+  result['text-color@button'] := TStyleValue.Create(TGxRGBA.Create(255, 255, 255));
+
+  result['back-color#inactive@button'] := TStyleValue.Create(TGxRGBA.Create(0, 0, 127));
+  result['text-color#inactive@button'] := TStyleValue.Create(TGxRGBA.Create(196, 196, 196));
+
+  result['back-color#disabled@button'] := TStyleValue.Create(TGxRGBA.Create(0, 0, 127));
+  result['text-color#disabled@button'] := TStyleValue.Create(TGxRGBA.Create(96, 96, 96));
 end;
 
 
@@ -390,7 +408,7 @@ begin
 end;
 
 
-procedure TStyleSection.putValue (const path: AnsiString; const val: TStyleValue);
+procedure TStyleSection.setValue (const path: AnsiString; const val: TStyleValue);
 var
   name, hash, ctl: AnsiString;
   sect: TStyleSection = nil;
@@ -421,7 +439,7 @@ begin
     begin
       // create new section
       s1 := TStyleSection.Create();
-      mHashVals.put(hash, s1);
+      sect.mHashVals.put(hash, s1);
     end;
   end
   else
@@ -490,9 +508,9 @@ begin
   result := mMain[path];
 end;
 
-procedure TUIStyle.putValue (const path: AnsiString; const val: TStyleValue); inline;
+procedure TUIStyle.setValue (const path: AnsiString; const val: TStyleValue); inline;
 begin
-  mMain.putValue(path, val);
+  mMain.setValue(path, val);
 end;
 
 

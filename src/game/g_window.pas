@@ -431,7 +431,7 @@ begin
         Utf8ToUnicode(@uc, PChar(ev.text.text), 1);
         keychr := Word(uc);
         if (keychr > 127) then keychr := Word(wchar2win(WideChar(keychr)));
-        CharPress(AnsiChar(keychr));
+        if (keychr > 0) and (keychr <= 255) then CharPress(AnsiChar(keychr));
       end;
 
     // other key presses and joysticks are handled in e_input

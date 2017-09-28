@@ -30,8 +30,8 @@ uses
 procedure g_Holmes_Draw ();
 procedure g_Holmes_DrawUI ();
 
-function g_Holmes_MouseEvent (var ev: THMouseEvent): Boolean; // returns `true` if event was eaten
-function g_Holmes_KeyEvent (var ev: THKeyEvent): Boolean; // returns `true` if event was eaten
+procedure g_Holmes_MouseEvent (var ev: THMouseEvent);
+procedure g_Holmes_KeyEvent (var ev: THKeyEvent);
 
 // hooks for player
 procedure g_Holmes_plrViewPos (viewPortX, viewPortY: Integer);
@@ -1105,16 +1105,15 @@ end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-function g_Holmes_MouseEvent (var ev: THMouseEvent): Boolean;
+procedure g_Holmes_MouseEvent (var ev: THMouseEvent);
 var
   he: THMouseEvent;
 begin
-  if g_Game_IsNet then begin result := false; exit; end;
-  if not g_holmes_enabled then begin result := false; exit; end;
+  if g_Game_IsNet then exit;
+  if not g_holmes_enabled then exit;
 
   holmesInitCommands();
   holmesInitBinds();
-  result := true;
   msX := ev.x;
   msY := ev.y;
   msB := ev.bstate;
@@ -1123,14 +1122,17 @@ begin
   he := ev;
   he.x := he.x;
   he.y := he.y;
-  if not uiMouseEvent(he) then plrDebugMouse(he);
+  uiMouseEvent(he);
+  if (not he.eaten) then plrDebugMouse(he);
+  ev.eat();
 end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-function g_Holmes_KeyEvent (var ev: THKeyEvent): Boolean;
-{$IF DEFINED(D2F_DEBUG)}
+procedure g_Holmes_KeyEvent (var ev: THKeyEvent);
 var
+  doeat: Boolean = false;
+{$IF DEFINED(D2F_DEBUG)}
   pan: TPanel;
   ex, ey: Integer;
   dx, dy: Integer;
@@ -1141,22 +1143,24 @@ var
   end;
 
 begin
-  if g_Game_IsNet then begin result := false; exit; end;
-  if not g_holmes_enabled then begin result := false; exit; end;
+  if g_Game_IsNet then exit;
+  if not g_holmes_enabled then exit;
 
   holmesInitCommands();
   holmesInitBinds();
-  result := false;
+
   msB := ev.bstate;
   kbS := ev.kstate;
   case ev.scan of
     SDL_SCANCODE_LCTRL, SDL_SCANCODE_RCTRL,
     SDL_SCANCODE_LALT, SDL_SCANCODE_RALT,
     SDL_SCANCODE_LSHIFT, SDL_SCANCODE_RSHIFT:
-      result := true;
+      doeat := true;
   end;
-  if uiKeyEvent(ev) then begin result := true; exit; end;
-  if keybindExecute(ev) then begin result := true; exit; end;
+
+  uiKeyEvent(ev);
+  if (ev.eaten) then exit;
+  if keybindExecute(ev) then begin ev.eat(); exit; end;
   // press
   if (ev.press) then
   begin
@@ -1165,7 +1169,7 @@ begin
     if ((ev.scan = SDL_SCANCODE_UP) or (ev.scan = SDL_SCANCODE_DOWN) or (ev.scan = SDL_SCANCODE_LEFT) or (ev.scan = SDL_SCANCODE_RIGHT)) and
        ((ev.kstate and THKeyEvent.ModCtrl) <> 0) then
     begin
-      result := true;
+      ev.eat();
       dx := pmsCurMapX;
       dy := pmsCurMapY;
       case ev.scan of
@@ -1188,6 +1192,7 @@ begin
     end;
     {$ENDIF}
   end;
+  if (doeat) then ev.eat();
 end;
 
 
@@ -1495,15 +1500,16 @@ begin
 end;
 
 
-function onMouseEvent (var ev: THMouseEvent): Boolean;
+procedure onMouseEvent (var ev: THMouseEvent);
 begin
-  result := g_Holmes_MouseEvent(ev);
+  if not g_holmes_enabled then exit;
+  g_Holmes_MouseEvent(ev);
 end;
 
-function onKeyEvent (var ev: THKeyEvent): Boolean;
+procedure onKeyEvent (var ev: THKeyEvent);
 begin
-  if not g_holmes_enabled then begin result := false; exit; end;
-  result := g_Holmes_keyEvent(ev);
+  if not g_holmes_enabled then exit;
+  g_Holmes_KeyEvent(ev);
 end;
 
 

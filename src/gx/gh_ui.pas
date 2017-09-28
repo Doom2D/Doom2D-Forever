@@ -36,6 +36,7 @@ type
   TUIControl = class
   public
     type TActionCB = procedure (me: TUIControl; uinfo: Integer);
+    type TCloseRequestCB = function (me: TUIControl): Boolean; // top-level windows will call this before closing with icon/keyboard
 
   public
     const ClrIdxActive = 0;
@@ -54,10 +55,11 @@ type
     mCanFocus: Boolean;
     mChildren: array of TUIControl;
     mFocused: TUIControl; // valid only for top-level controls
-    mGrab: TUIControl; // valid only for top-level controls
     mEscClose: Boolean; // valid only for top-level controls
     mEatKeys: Boolean;
     mDrawShadow: Boolean;
+    mCancel: Boolean;
+    mDefault: Boolean;
     // colors
     mCtl4Style: AnsiString;
     mBackColor: array[0..ClrIdxMax] of TGxRGBA;
@@ -83,6 +85,8 @@ type
     function getFocused (): Boolean; inline;
     procedure setFocused (v: Boolean); inline;
 
+    function getCanFocus (): Boolean; inline;
+
     function isMyChild (ctl: TUIControl): Boolean;
 
     function findFirstFocus (): TUIControl;
@@ -90,6 +94,11 @@ type
 
     function findNextFocus (cur: TUIControl): TUIControl;
     function findPrevFocus (cur: TUIControl): TUIControl;
+
+    function findCancelControl (): TUIControl;
+    function findDefaulControl (): TUIControl;
+
+    function findControlById (const aid: AnsiString): TUIControl;
 
     procedure activated (); virtual;
     procedure blurred (); virtual;
@@ -106,6 +115,7 @@ type
 
   public
     actionCB: TActionCB;
+    closeRequestCB: TCloseRequestCB;
 
   private
     mDefSize: TLaySize; // default size
@@ -204,10 +214,12 @@ type
     procedure toGlobal (lx, ly: Integer; out x, y: Integer); inline;
 
     // x and y are global coords
-    function controlAtXY (x, y: Integer): TUIControl;
+    function controlAtXY (x, y: Integer; allowDisabled: Boolean=false): TUIControl;
 
-    function mouseEvent (var ev: THMouseEvent): Boolean; virtual; // returns `true` if event was eaten
-    function keyEvent (var ev: THKeyEvent): Boolean; virtual; // returns `true` if event was eaten
+    procedure doAction ();
+
+    procedure mouseEvent (var ev: THMouseEvent); virtual; // returns `true` if event was eaten
+    procedure keyEvent (var ev: THKeyEvent); virtual; // returns `true` if event was eaten
 
     function prevSibling (): TUIControl;
     function nextSibling (): TUIControl;
@@ -215,6 +227,8 @@ type
     function lastChild (): TUIControl; inline;
 
     procedure appendChild (ctl: TUIControl); virtual;
+
+    procedure close (); // this closes *top-level* control
 
   public
     property id: AnsiString read mId;
@@ -228,6 +242,10 @@ type
     property focused: Boolean read getFocused write setFocused;
     property escClose: Boolean read mEscClose write mEscClose;
     property eatKeys: Boolean read mEatKeys write mEatKeys;
+    property cancel: Boolean read mCancel write mCancel;
+    property defctl: Boolean read mDefault write mDefault;
+    property canFocus: Boolean read getCanFocus write mCanFocus;
+    property ctlById[const aid: AnsiString]: TUIControl read findControlById; default;
   end;
 
 
@@ -264,8 +282,8 @@ type
     procedure drawControl (gx, gy: Integer); override;
     procedure drawControlPost (gx, gy: Integer); override;
 
-    function keyEvent (var ev: THKeyEvent): Boolean; override; // returns `true` if event was eaten
-    function mouseEvent (var ev: THMouseEvent): Boolean; override; // returns `true` if event was eaten
+    procedure keyEvent (var ev: THKeyEvent); override; // returns `true` if event was eaten
+    procedure mouseEvent (var ev: THMouseEvent); override; // returns `true` if event was eaten
 
   public
     property freeOnClose: Boolean read mFreeOnClose write mFreeOnClose;
@@ -292,8 +310,7 @@ type
 
     procedure drawControl (gx, gy: Integer); override;
 
-    function mouseEvent (var ev: THMouseEvent): Boolean; override;
-    function keyEvent (var ev: THKeyEvent): Boolean; override;
+    procedure mouseEvent (var ev: THMouseEvent); override;
   end;
 
 
@@ -318,8 +335,8 @@ type
 
     procedure drawControl (gx, gy: Integer); override;
 
-    function mouseEvent (var ev: THMouseEvent): Boolean; override;
-    function keyEvent (var ev: THKeyEvent): Boolean; override;
+    procedure mouseEvent (var ev: THMouseEvent); override;
+    procedure keyEvent (var ev: THKeyEvent); override;
   end;
 
   // ////////////////////////////////////////////////////////////////////// //
@@ -337,8 +354,8 @@ type
 
     procedure drawControl (gx, gy: Integer); override;
 
-    function mouseEvent (var ev: THMouseEvent): Boolean; override;
-    function keyEvent (var ev: THKeyEvent): Boolean; override;
+    procedure mouseEvent (var ev: THMouseEvent); override;
+    procedure keyEvent (var ev: THKeyEvent); override;
   end;
 
   TUIHBox = class(TUIBox)
@@ -397,14 +414,28 @@ type
 
     procedure drawControl (gx, gy: Integer); override;
 
-    function mouseEvent (var ev: THMouseEvent): Boolean; override;
-    function keyEvent (var ev: THKeyEvent): Boolean; override;
+    procedure mouseEvent (var ev: THMouseEvent); override;
+  end;
+
+  // ////////////////////////////////////////////////////////////////////// //
+  TUIButton = class(TUITextLabel)
+  public
+    constructor Create (const atext: AnsiString);
+
+    procedure AfterConstruction (); override; // so it will be correctly initialized when created from parser
+
+    function parseProperty (const prname: AnsiString; par: TTextParser): Boolean; override;
+
+    procedure drawControl (gx, gy: Integer); override;
+
+    procedure mouseEvent (var ev: THMouseEvent); override;
+    procedure keyEvent (var ev: THKeyEvent); override;
   end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-function uiMouseEvent (ev: THMouseEvent): Boolean;
-function uiKeyEvent (ev: THKeyEvent): Boolean;
+procedure uiMouseEvent (var evt: THMouseEvent);
+procedure uiKeyEvent (var evt: THKeyEvent);
 procedure uiDraw ();
 
 
@@ -431,6 +462,43 @@ implementation
 uses
   gh_flexlay,
   utils;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
+var
+  ctlsToKill: array of TUIControl = nil;
+
+
+procedure scheduleKill (ctl: TUIControl);
+var
+  f: Integer;
+begin
+  if (ctl = nil) then exit;
+  ctl := ctl.topLevel;
+  for f := 0 to High(ctlsToKill) do
+  begin
+    if (ctlsToKill[f] = ctl) then exit;
+    if (ctlsToKill[f] = nil) then begin ctlsToKill[f] := ctl; exit; end;
+  end;
+  SetLength(ctlsToKill, Length(ctlsToKill)+1);
+  ctlsToKill[High(ctlsToKill)] := ctl;
+end;
+
+
+procedure processKills ();
+var
+  f: Integer;
+  ctl: TUIControl;
+begin
+  for f := 0 to High(ctlsToKill) do
+  begin
+    ctl := ctlsToKill[f];
+    if (ctl = nil) then break;
+    ctlsToKill[f] := nil;
+    FreeAndNil(ctl);
+  end;
+  if (Length(ctlsToKill) > 0) then ctlsToKill[0] := nil; // just in case
+end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
@@ -513,6 +581,7 @@ end;
 // ////////////////////////////////////////////////////////////////////////// //
 var
   uiTopList: array of TUIControl = nil;
+  uiGrabCtl: TUIControl = nil;
 
 
 procedure uiUpdateStyles ();
@@ -523,47 +592,73 @@ begin
 end;
 
 
-function uiMouseEvent (ev: THMouseEvent): Boolean;
+procedure uiMouseEvent (var evt: THMouseEvent);
 var
+  ev: THMouseEvent;
   f, c: Integer;
   lx, ly: Integer;
   ctmp: TUIControl;
 begin
+  processKills();
+  if (evt.eaten) or (evt.cancelled) then exit;
+  ev := evt;
   ev.x := trunc(ev.x/gh_ui_scale);
   ev.y := trunc(ev.y/gh_ui_scale);
   ev.dx := trunc(ev.dx/gh_ui_scale); //FIXME
   ev.dy := trunc(ev.dy/gh_ui_scale); //FIXME
-  if (Length(uiTopList) = 0) then result := false else result := uiTopList[High(uiTopList)].mouseEvent(ev);
-  if not result and (ev.press) then
-  begin
-    for f := High(uiTopList) downto 0 do
+  try
+    if (uiGrabCtl <> nil) then
     begin
-      if uiTopList[f].toLocal(ev.x, ev.y, lx, ly) then
+      uiGrabCtl.mouseEvent(ev);
+      if (ev.release) then uiGrabCtl := nil;
+      ev.eat();
+      exit;
+    end;
+    if (Length(uiTopList) > 0) and (uiTopList[High(uiTopList)].mEnabled) then uiTopList[High(uiTopList)].mouseEvent(ev);
+    if (not ev.eaten) and (not ev.cancelled) and (ev.press) then
+    begin
+      for f := High(uiTopList) downto 0 do
       begin
-        result := true;
-        if uiTopList[f].mEnabled and (f <> High(uiTopList)) then
+        if uiTopList[f].toLocal(ev.x, ev.y, lx, ly) then
         begin
-          uiTopList[High(uiTopList)].blurred();
-          ctmp := uiTopList[f];
-          ctmp.mGrab := nil;
-          for c := f+1 to High(uiTopList) do uiTopList[c-1] := uiTopList[c];
-          uiTopList[High(uiTopList)] := ctmp;
-          ctmp.activated();
-          result := ctmp.mouseEvent(ev);
+          if (uiTopList[f].mEnabled) and (f <> High(uiTopList)) then
+          begin
+            uiTopList[High(uiTopList)].blurred();
+            ctmp := uiTopList[f];
+            uiGrabCtl := nil;
+            for c := f+1 to High(uiTopList) do uiTopList[c-1] := uiTopList[c];
+            uiTopList[High(uiTopList)] := ctmp;
+            ctmp.activated();
+            ctmp.mouseEvent(ev);
+          end;
+          ev.eat();
+          exit;
         end;
-        exit;
       end;
     end;
+  finally
+    if (ev.eaten) then evt.eat();
+    if (ev.cancelled) then evt.cancel();
   end;
 end;
 
 
-function uiKeyEvent (ev: THKeyEvent): Boolean;
+procedure uiKeyEvent (var evt: THKeyEvent);
+var
+  ev: THKeyEvent;
 begin
+  processKills();
+  if (evt.eaten) or (evt.cancelled) then exit;
+  ev := evt;
   ev.x := trunc(ev.x/gh_ui_scale);
   ev.y := trunc(ev.y/gh_ui_scale);
-  if (Length(uiTopList) = 0) then result := false else result := uiTopList[High(uiTopList)].keyEvent(ev);
-  if (ev.release) then begin result := true; exit; end;
+  try
+    if (Length(uiTopList) > 0) and (uiTopList[High(uiTopList)].mEnabled) then uiTopList[High(uiTopList)].keyEvent(ev);
+    //if (ev.release) then begin ev.eat(); exit; end;
+  finally
+    if (ev.eaten) then evt.eat();
+    if (ev.cancelled) then evt.cancel();
+  end;
 end;
 
 
@@ -572,6 +667,7 @@ var
   f, cidx: Integer;
   ctl: TUIControl;
 begin
+  processKills();
   glMatrixMode(GL_MODELVIEW);
   glPushMatrix();
   try
@@ -640,7 +736,7 @@ begin
         try
           if assigned(TUITopWindow(ctl).closeCB) then TUITopWindow(ctl).closeCB(ctl, 0);
         finally
-          if (TUITopWindow(ctl).mFreeOnClose) then FreeAndNil(ctl);
+          if (TUITopWindow(ctl).mFreeOnClose) then scheduleKill(ctl);
         end;
       end;
       exit;
@@ -679,7 +775,6 @@ begin
   mCanFocus := true;
   mChildren := nil;
   mFocused := nil;
-  mGrab := nil;
   mEscClose := false;
   mEatKeys := false;
   scallowed := false;
@@ -1054,6 +1149,8 @@ begin
   if (strEquCI1251(prname, 'disabled')) then begin mEnabled := not parseBool(par); exit; end;
   if (strEquCI1251(prname, 'escclose')) then begin mEscClose := not parseBool(par); exit; end;
   if (strEquCI1251(prname, 'eatkeys')) then begin mEatKeys := not parseBool(par); exit; end;
+  if (strEquCI1251(prname, 'default')) then begin mDefault := true; exit; end;
+  if (strEquCI1251(prname, 'cancel')) then begin mCancel := true; exit; end;
   result := false;
 end;
 
@@ -1066,7 +1163,7 @@ end;
 
 procedure TUIControl.blurred ();
 begin
-  mGrab := nil;
+  if (uiGrabCtl = self) then uiGrabCtl := nil;
 end;
 
 
@@ -1082,11 +1179,11 @@ var
   ctl: TUIControl;
 begin
   result := false;
-  if (not mEnabled) or (mWidth < 1) or (mHeight < 1) then exit;
+  if (not mEnabled) then exit;
   ctl := mParent;
   while (ctl <> nil) do
   begin
-    if (not ctl.mEnabled) or (ctl.mWidth < 1) or (ctl.mHeight < 1) then exit;
+    if (not ctl.mEnabled) then exit;
     ctl := ctl.mParent;
   end;
   result := true;
@@ -1097,7 +1194,7 @@ procedure TUIControl.setEnabled (v: Boolean); inline;
 begin
   if (mEnabled = v) then exit;
   mEnabled := v;
-  if not v and focused then setFocused(false);
+  if (not v) and focused then setFocused(false);
 end;
 
 
@@ -1130,14 +1227,20 @@ begin
     end;
     exit;
   end;
-  if (not mEnabled) or (not mCanFocus) then exit;
+  if (not mEnabled) or (not canFocus) then exit;
   if (tl.mFocused <> self) then
   begin
-    if (tl.mFocused <> nil) then tl.mFocused.blurred();
+    if (tl.mFocused <> nil) and (tl.mFocused <> nil) then tl.mFocused.blurred();
     tl.mFocused := self;
-    if (tl.mGrab <> self) then tl.mGrab := nil;
+    if (uiGrabCtl <> self) then uiGrabCtl := nil;
     activated();
   end;
+end;
+
+
+function TUIControl.getCanFocus (): Boolean; inline;
+begin
+  result := (mCanFocus) and (mWidth > 0) and (mHeight > 0);
 end;
 
 
@@ -1197,17 +1300,18 @@ end;
 
 
 // x and y are global coords
-function TUIControl.controlAtXY (x, y: Integer): TUIControl;
+function TUIControl.controlAtXY (x, y: Integer; allowDisabled: Boolean=false): TUIControl;
 var
   lx, ly: Integer;
   f: Integer;
 begin
   result := nil;
-  if (not mEnabled) or (mWidth < 1) or (mHeight < 1) then exit;
+  if (not allowDisabled) and (not mEnabled) then exit;
+  if (mWidth < 1) or (mHeight < 1) then exit;
   if not toLocal(x, y, lx, ly) then exit;
   for f := High(mChildren) downto 0 do
   begin
-    result := mChildren[f].controlAtXY(x, y);
+    result := mChildren[f].controlAtXY(x, y, allowDisabled);
     if (result <> nil) then exit;
   end;
   result := self;
@@ -1265,7 +1369,7 @@ begin
       result := mChildren[f].findFirstFocus();
       if (result <> nil) then exit;
     end;
-    if mCanFocus then result := self;
+    if canFocus then result := self;
   end;
 end;
 
@@ -1282,7 +1386,7 @@ begin
       result := mChildren[f].findLastFocus();
       if (result <> nil) then exit;
     end;
-    if mCanFocus then result := self;
+    if canFocus then result := self;
   end;
 end;
 
@@ -1330,6 +1434,47 @@ begin
 end;
 
 
+function TUIControl.findDefaulControl (): TUIControl;
+var
+  ctl: TUIControl;
+begin
+  if mDefault then begin result := self; exit; end;
+  for ctl in mChildren do
+  begin
+    result := ctl.findDefaulControl();
+    if (result <> nil) then exit;
+  end;
+  result := nil;
+end;
+
+function TUIControl.findCancelControl (): TUIControl;
+var
+  ctl: TUIControl;
+begin
+  if mCancel then begin result := self; exit; end;
+  for ctl in mChildren do
+  begin
+    result := ctl.findCancelControl();
+    if (result <> nil) then exit;
+  end;
+  result := nil;
+end;
+
+
+function TUIControl.findControlById (const aid: AnsiString): TUIControl;
+var
+  ctl: TUIControl;
+begin
+  if (strEquCI1251(aid, mId)) then begin result := self; exit; end;
+  for ctl in mChildren do
+  begin
+    result := ctl.findControlById(aid);
+    if (result <> nil) then exit;
+  end;
+  result := nil;
+end;
+
+
 procedure TUIControl.appendChild (ctl: TUIControl);
 begin
   if (ctl = nil) then exit;
@@ -1345,7 +1490,22 @@ begin
     if (mWidth+mFrameWidth < ctl.mX+ctl.mWidth) then mWidth := ctl.mX+ctl.mWidth+mFrameWidth;
     if (mHeight+mFrameHeight < ctl.mY+ctl.mHeight) then mHeight := ctl.mY+ctl.mHeight+mFrameHeight;
   end;
-  //if (mFocused = nil) and ctl.mEnabled and ctl.mCanFocus and (ctl.mWidth > 0) and (ctl.mHeight > 0) then mFocused := ctl;
+end;
+
+
+procedure TUIControl.close (); // this closes *top-level* control
+var
+  ctl: TUIControl;
+begin
+  ctl := topLevel;
+  uiRemoveWindow(ctl);
+  if (ctl is TUITopWindow) and (TUITopWindow(ctl).mFreeOnClose) then scheduleKill(ctl); // just in case
+end;
+
+
+procedure TUIControl.doAction ();
+begin
+  if assigned(actionCB) then actionCB(self, 0);
 end;
 
 
@@ -1434,74 +1594,82 @@ end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-function TUIControl.mouseEvent (var ev: THMouseEvent): Boolean;
+procedure TUIControl.mouseEvent (var ev: THMouseEvent);
 var
   ctl: TUIControl;
 begin
-  result := false;
-  if not mEnabled then exit;
-  if (mParent = nil) then
-  begin
-    if (mGrab <> nil) then
-    begin
-      result := mGrab.mouseEvent(ev);
-      if (ev.release) then mGrab := nil;
-      exit;
-    end;
-  end;
+  if (not mEnabled) then exit;
   if (mWidth < 1) or (mHeight < 1) then exit;
   ctl := controlAtXY(ev.x, ev.y);
-  if (ctl <> nil) and (ctl <> self) then
+  if (ctl = nil) then exit;
+  if (ctl.canFocus) and (ev.press) then
   begin
     if (ctl <> topLevel.mFocused) then ctl.setFocused(true);
-    result := ctl.mouseEvent(ev);
-  end
-  else if (ctl = self) and assigned(actionCB) then
-  begin
-    actionCB(self, 0);
+    uiGrabCtl := ctl;
   end;
+  if (ctl <> self) then ctl.mouseEvent(ev);
+  //ev.eat();
 end;
 
 
-function TUIControl.keyEvent (var ev: THKeyEvent): Boolean;
+procedure TUIControl.keyEvent (var ev: THKeyEvent);
 var
   ctl: TUIControl;
 begin
-  result := false;
-  if not mEnabled then exit;
-  if (topLevel.mFocused <> self) and isMyChild(topLevel.mFocused) and topLevel.mFocused.mEnabled then result := topLevel.mFocused.keyEvent(ev);
-  if (mParent = nil) then
+  if (not mEnabled) then exit;
+  // focused control should process keyboard first
+  if (topLevel.mFocused <> self) and isMyChild(topLevel.mFocused) and (topLevel.mFocused.mEnabled) then
+  begin
+    topLevel.mFocused.keyEvent(ev);
+  end;
+  // for top-level controls
+  if (mParent = nil) and (not ev.eaten) and (not ev.cancelled) then
   begin
     if (ev = 'S-Tab') then
     begin
-      result := true;
       ctl := findPrevFocus(mFocused);
-      if (ctl <> mFocused) then
-      begin
-        mGrab := nil;
-        mFocused := ctl;
-      end;
+      if (ctl <> mFocused) then ctl.setFocused(true);
+      ev.eat();
       exit;
     end;
     if (ev = 'Tab') then
     begin
-      result := true;
       ctl := findNextFocus(mFocused);
-      if (ctl <> mFocused) then
-      begin
-        mGrab := nil;
-        mFocused := ctl;
-      end;
+      if (ctl <> mFocused) then ctl.setFocused(true);
+      ev.eat();
       exit;
+    end;
+    if (ev = 'Enter') or (ev = 'C-Enter') then
+    begin
+      ctl := findDefaulControl();
+      if (ctl <> nil) then
+      begin
+        ev.eat();
+        ctl.doAction();
+        exit;
+      end;
+    end;
+    if (ev = 'Escape') then
+    begin
+      ctl := findCancelControl();
+      if (ctl <> nil) then
+      begin
+        ev.eat();
+        ctl.doAction();
+        exit;
+      end;
     end;
     if mEscClose and (ev = 'Escape') then
     begin
-      result := true;
-      uiRemoveWindow(self);
+      if (not assigned(closeRequestCB)) or (closeRequestCB(self)) then
+      begin
+        uiRemoveWindow(self);
+      end;
+      ev.eat();
       exit;
     end;
   end;
-  if mEatKeys then result := true;
+  if mEatKeys then ev.eat();
 end;
 
 
@@ -1632,25 +1800,27 @@ begin
 end;
 
 
-function TUITopWindow.keyEvent (var ev: THKeyEvent): Boolean;
+procedure TUITopWindow.keyEvent (var ev: THKeyEvent);
 begin
-  result := inherited keyEvent(ev);
-  if not getFocused then exit;
+  inherited keyEvent(ev);
+  if (ev.eaten) or (ev.cancelled) or (not mEnabled) or (not getFocused) then exit;
   if (ev = 'M-F3') then
   begin
-    uiRemoveWindow(self);
-    result := true;
+    if (not assigned(closeRequestCB)) or (closeRequestCB(self)) then
+    begin
+      uiRemoveWindow(self);
+    end;
+    ev.eat();
     exit;
   end;
 end;
 
 
-function TUITopWindow.mouseEvent (var ev: THMouseEvent): Boolean;
+procedure TUITopWindow.mouseEvent (var ev: THMouseEvent);
 var
   lx, ly: Integer;
 begin
-  result := false;
-  if not mEnabled then exit;
+  if (not mEnabled) then exit;
   if (mWidth < 1) or (mHeight < 1) then exit;
 
   if mDragging then
@@ -1660,7 +1830,7 @@ begin
     mDragStartX := ev.x;
     mDragStartY := ev.y;
     if (ev.release) then mDragging := false;
-    result := true;
+    ev.eat();
     exit;
   end;
 
@@ -1670,6 +1840,7 @@ begin
     begin
       if (ly < 8) then
       begin
+        uiGrabCtl := self;
         if (lx >= mFrameWidth) and (lx < mFrameWidth+3*8) then
         begin
           //uiRemoveWindow(self);
@@ -1682,29 +1853,36 @@ begin
           mDragStartX := ev.x;
           mDragStartY := ev.y;
         end;
-        result := true;
+        ev.eat();
         exit;
       end;
       if (lx < mFrameWidth) or (lx >= mWidth-mFrameWidth) or (ly >= mHeight-mFrameHeight) then
       begin
+        uiGrabCtl := self;
         mDragging := true;
         mDragStartX := ev.x;
         mDragStartY := ev.y;
-        result := true;
+        ev.eat();
         exit;
       end;
     end;
 
     if (ev.release) then
     begin
-      if mWaitingClose and (lx >= mFrameWidth) and (lx < mFrameWidth+3*8) then
+      if mWaitingClose then
       begin
-        uiRemoveWindow(self);
-        result := true;
+        if (lx >= mFrameWidth) and (lx < mFrameWidth+3*8) then
+        begin
+          if (not assigned(closeRequestCB)) or (closeRequestCB(self)) then
+          begin
+            uiRemoveWindow(self);
+          end;
+        end;
+        mWaitingClose := false;
+        mInClose := false;
+        ev.eat();
         exit;
       end;
-      mWaitingClose := false;
-      mInClose := false;
     end;
 
     if (ev.motion) then
@@ -1712,18 +1890,18 @@ begin
       if mWaitingClose then
       begin
         mInClose := (lx >= mFrameWidth) and (lx < mFrameWidth+3*8);
-        result := true;
+        ev.eat();
         exit;
       end;
     end;
+
+    inherited mouseEvent(ev);
   end
   else
   begin
     mInClose := false;
-    if (not ev.motion) then mWaitingClose := false;
+    if (not ev.motion) and (mWaitingClose) then begin ev.eat(); mWaitingClose := false; exit; end;
   end;
-
-  result := inherited mouseEvent(ev);
 end;
 
 
@@ -1789,21 +1967,15 @@ begin
 end;
 
 
-function TUISimpleText.mouseEvent (var ev: THMouseEvent): Boolean;
+procedure TUISimpleText.mouseEvent (var ev: THMouseEvent);
 var
   lx, ly: Integer;
 begin
-  result := inherited mouseEvent(ev);
-  if not result and toLocal(ev.x, ev.y, lx, ly) then
+  inherited mouseEvent(ev);
+  if (not ev.eaten) and (not ev.cancelled) and (mEnabled) and toLocal(ev.x, ev.y, lx, ly) then
   begin
-    result := true;
+    ev.eat();
   end;
-end;
-
-
-function TUISimpleText.keyEvent (var ev: THKeyEvent): Boolean;
-begin
-  result := inherited keyEvent(ev);
 end;
 
 
@@ -1871,15 +2043,15 @@ begin
 end;
 
 
-function TUICBListBox.mouseEvent (var ev: THMouseEvent): Boolean;
+procedure TUICBListBox.mouseEvent (var ev: THMouseEvent);
 var
   lx, ly: Integer;
   it: PItem;
 begin
-  result := inherited mouseEvent(ev);
-  if not result and toLocal(ev.x, ev.y, lx, ly) then
+  inherited mouseEvent(ev);
+  if (not ev.eaten) and (not ev.cancelled) and (mEnabled) and toLocal(ev.x, ev.y, lx, ly) then
   begin
-    result := true;
+    ev.eat();
     if (ev = 'lmb') then
     begin
       ly := ly div 8;
@@ -1899,26 +2071,26 @@ begin
 end;
 
 
-function TUICBListBox.keyEvent (var ev: THKeyEvent): Boolean;
+procedure TUICBListBox.keyEvent (var ev: THKeyEvent);
 var
   it: PItem;
 begin
-  result := inherited keyEvent(ev);
-  if not getFocused then exit;
+  inherited keyEvent(ev);
+  if (ev.eaten) or (ev.cancelled) or (not mEnabled) or (not getFocused) then exit;
   //result := true;
   if (ev = 'Home') or (ev = 'PageUp') then
   begin
-    result := true;
+    ev.eat();
     mCurIndex := 0;
   end;
   if (ev = 'End') or (ev = 'PageDown') then
   begin
-    result := true;
+    ev.eat();
     mCurIndex := High(mItems);
   end;
   if (ev = 'Up') then
   begin
-    result := true;
+    ev.eat();
     if (Length(mItems) > 0) then
     begin
       if (mCurIndex < 0) then mCurIndex := Length(mItems);
@@ -1935,7 +2107,7 @@ begin
   end;
   if (ev = 'Down') then
   begin
-    result := true;
+    ev.eat();
     if (Length(mItems) > 0) then
     begin
       if (mCurIndex < 0) then mCurIndex := -1;
@@ -1952,7 +2124,7 @@ begin
   end;
   if (ev = 'Space') or (ev = 'Enter') then
   begin
-    result := true;
+    ev.eat();
     if (mCurIndex >= 0) and (mCurIndex < Length(mItems)) and (mItems[mCurIndex].varp <> nil) then
     begin
       it := @mItems[mCurIndex];
@@ -2030,22 +2202,23 @@ begin
 end;
 
 
-function TUIBox.mouseEvent (var ev: THMouseEvent): Boolean;
+procedure TUIBox.mouseEvent (var ev: THMouseEvent);
 var
   lx, ly: Integer;
 begin
-  result := inherited mouseEvent(ev);
-  if not result and toLocal(ev.x, ev.y, lx, ly) then
+  inherited mouseEvent(ev);
+  if (not ev.eaten) and (not ev.cancelled) and (mEnabled) and toLocal(ev.x, ev.y, lx, ly) then
   begin
-    result := true;
+    ev.eat();
   end;
 end;
 
 
 //TODO: navigation with arrow keys, according to box orientation
-function TUIBox.keyEvent (var ev: THKeyEvent): Boolean;
+procedure TUIBox.keyEvent (var ev: THKeyEvent);
 begin
-  result := inherited keyEvent(ev);
+  inherited keyEvent(ev);
+  if (ev.eaten) or (ev.cancelled) or (not mEnabled) or (not getFocused) then exit;
 end;
 
 
@@ -2199,21 +2372,109 @@ begin
 end;
 
 
-function TUITextLabel.mouseEvent (var ev: THMouseEvent): Boolean;
+procedure TUITextLabel.mouseEvent (var ev: THMouseEvent);
 var
   lx, ly: Integer;
 begin
-  result := inherited mouseEvent(ev);
-  if not result and toLocal(ev.x, ev.y, lx, ly) then
+  inherited mouseEvent(ev);
+  if (not ev.eaten) and (not ev.cancelled) and (mEnabled) and toLocal(ev.x, ev.y, lx, ly) then
   begin
-    result := true;
+    ev.eat();
   end;
 end;
 
 
-function TUITextLabel.keyEvent (var ev: THKeyEvent): Boolean;
+// ////////////////////////////////////////////////////////////////////////// //
+constructor TUIButton.Create (const atext: AnsiString);
 begin
-  result := inherited keyEvent(ev);
+  inherited Create(atext);
+end;
+
+
+procedure TUIButton.AfterConstruction ();
+begin
+  inherited AfterConstruction();
+  mHAlign := -1;
+  mVAlign := 0;
+  mCanFocus := true;
+  mDefSize := TLaySize.Create(Length(mText)*8+8, 8);
+  mCtl4Style := 'button';
+end;
+
+
+function TUIButton.parseProperty (const prname: AnsiString; par: TTextParser): Boolean;
+begin
+  result := inherited parseProperty(prname, par);
+  if result then
+  begin
+    mDefSize := TLaySize.Create(Length(mText)*8+8*2, 8);
+  end;
+end;
+
+
+procedure TUIButton.drawControl (gx, gy: Integer);
+var
+  xpos, ypos: Integer;
+  cidx: Integer;
+  lch, rch: AnsiChar;
+begin
+  cidx := getColorIndex;
+  fillRect(gx, gy, mWidth, mHeight, mBackColor[cidx]);
+
+       if (mDefault) then begin lch := '<'; rch := '>'; end
+  else if (mCancel) then begin lch := '{'; rch := '}'; end
+  else begin lch := '['; rch := ']'; end;
+
+       if (mVAlign < 0) then ypos := 0
+  else if (mVAlign > 0) then ypos := mHeight-8
+  else ypos := (mHeight-8) div 2;
+
+  drawText8(gx, gy+ypos, lch, mTextColor[cidx]);
+  drawText8(gx+mWidth-8, gy+ypos, rch, mTextColor[cidx]);
+
+  if (Length(mText) > 0) then
+  begin
+         if (mHAlign < 0) then xpos := 0
+    else if (mHAlign > 0) then xpos := mWidth-Length(mText)*8
+    else xpos := (mWidth-Length(mText)*8) div 2;
+
+    setScissor(8, 0, mWidth-16, mHeight);
+    drawText8(gx+xpos+8, gy+ypos, mText, mTextColor[cidx]);
+  end;
+end;
+
+
+procedure TUIButton.mouseEvent (var ev: THMouseEvent);
+var
+  lx, ly: Integer;
+begin
+  inherited mouseEvent(ev);
+  if (uiGrabCtl = self) then
+  begin
+    ev.eat();
+    if (ev = '-lmb') and focused and toLocal(ev.x, ev.y, lx, ly) then
+    begin
+      doAction();
+    end;
+    exit;
+  end;
+  if (ev.eaten) or (ev.cancelled) or (not mEnabled) or not focused then exit;
+  ev.eat();
+end;
+
+
+procedure TUIButton.keyEvent (var ev: THKeyEvent);
+begin
+  inherited keyEvent(ev);
+  if (not ev.eaten) and (not ev.cancelled) and (mEnabled) then
+  begin
+    if (ev = 'Enter') or (ev = 'Space') then
+    begin
+      ev.eat();
+      doAction();
+      exit;
+    end;
+  end;
 end;
 
 
@@ -2224,4 +2485,5 @@ initialization
   registerCtlClass(TUIHLine, 'hline');
   registerCtlClass(TUIVLine, 'vline');
   registerCtlClass(TUITextLabel, 'label');
+  registerCtlClass(TUIButton, 'button');
 end.

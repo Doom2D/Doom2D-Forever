@@ -18,13 +18,13 @@ unit g_main;
 
 interface
 
-procedure Main();
-procedure Init();
-procedure Release();
-procedure Update();
-procedure Draw();
-procedure KeyPress(K: Word);
-procedure CharPress(C: Char);
+procedure Main ();
+procedure Init ();
+procedure Release ();
+procedure Update ();
+procedure Draw ();
+procedure KeyPress (K: Word);
+procedure CharPress (C: AnsiChar);
 
 var
   GameDir: string;
@@ -32,6 +32,7 @@ var
   MapsDir: string;
   ModelsDir: string;
   GameWAD: string;
+
 
 implementation
 
@@ -43,8 +44,9 @@ uses
   g_menu, g_language, g_net,
   utils, conbuf, envvars;
 
+
 var
-  charbuff: Array [0..15] of Char;
+  charbuff: packed array [0..15] of AnsiChar;
 
 procedure Main();
 var
@@ -113,7 +115,6 @@ end;
 
 procedure Init();
 var
-  a: Integer;
   NoSound: Boolean;
 begin
   Randomize;
@@ -145,8 +146,9 @@ begin
   e_WriteLog('Init game', TMsgType.Notify);
   g_Game_Init();
 
-  for a := 0 to 15 do charbuff[a] := ' ';
+  FillChar(charbuff, sizeof(charbuff), ' ');
 end;
+
 
 procedure Release();
 begin
@@ -163,22 +165,26 @@ begin
   end;
 end;
 
-procedure Update();
+
+procedure Update ();
 begin
   g_Game_Update();
 end;
 
-procedure Draw();
+
+procedure Draw ();
 begin
   g_Game_Draw();
 end;
 
-function Translit(S: String): String;
+
+function Translit (const S: AnsiString): AnsiString;
 var
   i: Integer;
 begin
   Result := S;
   for i := 1 to Length(Result) do
+  begin
     case Result[i] of
       'É': Result[i] := 'Q';
       'Ö': Result[i] := 'W';
@@ -213,6 +219,7 @@ begin
       'Á': Result[i] := ','; //Chr(188);
       'Þ': Result[i] := '.'; //Chr(190);
     end;
+  end;
 end;
 
 
@@ -243,7 +250,7 @@ begin
 end;
 
 
-procedure Cheat();
+procedure Cheat ();
 const
   CHEAT_DAMAGE = 500;
 label
@@ -408,15 +415,15 @@ Cheated:
   g_Sound_PlayEx(s);
 end;
 
-procedure KeyPress(K: Word);
+
+procedure KeyPress (K: Word);
 var
   Msg: g_gui.TMessage;
 begin
   case K of
     IK_PAUSE: // <Pause/Break>:
       begin
-        if (g_ActiveWindow = nil) then
-          g_Game_Pause(not gPause);
+        if (g_ActiveWindow = nil) then g_Game_Pause(not gPause);
       end;
 
     IK_BACKQUOTE: // <`/~/¨/¸>:
@@ -433,63 +440,53 @@ begin
         end;
 
         if gConsoleShow then
-          g_Console_Switch()
-        else
-          if g_ActiveWindow <> nil then
+        begin
+          g_Console_Switch();
+        end
+        else if (g_ActiveWindow <> nil) then
+        begin
+          Msg.Msg := WM_KEYDOWN;
+          Msg.WParam := IK_ESCAPE;
+          g_ActiveWindow.OnMessage(Msg);
+        end
+        else if (gState <> STATE_FOLD) then
+        begin
+          if gGameOn or (gState = STATE_INTERSINGLE) or (gState = STATE_INTERCUSTOM) then
+          begin
+            g_Game_InGameMenu(True);
+          end
+          else if (gExit = 0) and (gState <> STATE_SLIST) then
+          begin
+            if (gState <> STATE_MENU) then
             begin
-              Msg.Msg := WM_KEYDOWN;
-              Msg.WParam := IK_ESCAPE;
-              g_ActiveWindow.OnMessage(Msg);
-            end
-          else
-            if gState <> STATE_FOLD then
-              if gGameOn
-              or (gState = STATE_INTERSINGLE)
-              or (gState = STATE_INTERCUSTOM)
-              then
-                g_Game_InGameMenu(True)
-              else
-                if (gExit = 0) and (gState <> STATE_SLIST) then
-                  begin
-                    if gState <> STATE_MENU then
-                      if NetMode <> NET_NONE then
-                      begin
-                        g_Game_StopAllSounds(True);
-                        g_Game_Free;
-                        gState := STATE_MENU;
-                        Exit;
-                      end;
-
-                    g_GUI_ShowWindow('MainMenu');
-                    g_Sound_PlayEx('MENU_OPEN');
-                  end;
+              if (NetMode <> NET_NONE) then
+              begin
+                g_Game_StopAllSounds(True);
+                g_Game_Free;
+                gState := STATE_MENU;
+                Exit;
+              end;
+            end;
+            g_GUI_ShowWindow('MainMenu');
+            g_Sound_PlayEx('MENU_OPEN');
+          end;
+        end;
       end;
 
     IK_F2, IK_F3, IK_F4, IK_F5, IK_F6, IK_F7, IK_F10:
       begin // <F2> .. <F6> ï¿½ <F12>
         if gGameOn and (not gConsoleShow) and (not gChatShow) then
         begin
-          while g_ActiveWindow <> nil do
-            g_GUI_HideWindow(False);
-
-          if (not g_Game_IsNet) then
-            g_Game_Pause(True);
-
+          while g_ActiveWindow <> nil do g_GUI_HideWindow(False);
+          if (not g_Game_IsNet) then g_Game_Pause(True);
           case K of
-            IK_F2:
-              g_Menu_Show_SaveMenu();
-            IK_F3:
-              g_Menu_Show_LoadMenu();
-            IK_F4:
-              g_Menu_Show_GameSetGame();
-            IK_F5:
-              g_Menu_Show_OptionsVideo();
-            IK_F6:
-              g_Menu_Show_OptionsSound();
-            IK_F7:
-              g_Menu_Show_EndGameMenu();
-            IK_F10:
-              g_Menu_Show_QuitGameMenu();
+            IK_F2: g_Menu_Show_SaveMenu();
+            IK_F3: g_Menu_Show_LoadMenu();
+            IK_F4: g_Menu_Show_GameSetGame();
+            IK_F5: g_Menu_Show_OptionsVideo();
+            IK_F6: g_Menu_Show_OptionsSound();
+            IK_F7: g_Menu_Show_EndGameMenu();
+            IK_F10: g_Menu_Show_QuitGameMenu();
           end;
         end;
       end;
@@ -498,49 +495,49 @@ begin
       begin
         gJustChatted := False;
         if gConsoleShow or gChatShow then
-          g_Console_Control(K)
-        else
-          if g_ActiveWindow <> nil then
-          begin
-            Msg.Msg := WM_KEYDOWN;
-            Msg.WParam := K;
-            g_ActiveWindow.OnMessage(Msg);
-          end
-          else
-          begin
-            if (gState = STATE_MENU) then
-            begin
-              g_GUI_ShowWindow('MainMenu');
-              g_Sound_PlayEx('MENU_OPEN');
-            end;
-          end;
+        begin
+          g_Console_Control(K);
+        end
+        else if (g_ActiveWindow <> nil) then
+        begin
+          Msg.Msg := WM_KEYDOWN;
+          Msg.WParam := K;
+          g_ActiveWindow.OnMessage(Msg);
+        end
+        else if (gState = STATE_MENU) then
+        begin
+          g_GUI_ShowWindow('MainMenu');
+          g_Sound_PlayEx('MENU_OPEN');
+        end;
       end;
   end;
 end;
 
-procedure CharPress(C: Char);
+
+procedure CharPress (C: AnsiChar);
 var
   Msg: g_gui.TMessage;
   a: Integer;
 begin
-  if (not gChatShow) and ((C = '`') or (C = '~') or (C = '¸') or (C = '¨')) then
-    Exit;
+  if (not gChatShow) and ((C = '`') or (C = '~') or (C = '¸') or (C = '¨')) then Exit;
 
   if gConsoleShow or gChatShow then
-    g_Console_Char(C)
+  begin
+    g_Console_Char(C);
+  end
+  else if (g_ActiveWindow <> nil) then
+  begin
+    Msg.Msg := WM_CHAR;
+    Msg.WParam := Ord(C);
+    g_ActiveWindow.OnMessage(Msg);
+  end
   else
-    if g_ActiveWindow <> nil then
-    begin
-      Msg.Msg := WM_CHAR;
-      Msg.WParam := Ord(C);
-      g_ActiveWindow.OnMessage(Msg);
-    end
-    else
-    begin
-      for a := 0 to 14 do charbuff[a] := charbuff[a+1];
-      charbuff[15] := UpCase1251(C);
-      Cheat();
-    end;
+  begin
+    for a := 0 to 14 do charbuff[a] := charbuff[a+1];
+    charbuff[15] := upcase1251(C);
+    Cheat();
+  end;
 end;
+
 
 end.
