@@ -2501,6 +2501,7 @@ procedure TMainForm.aRecentFileExecute(Sender: TObject);
 var
   n, pw: Integer;
   s, fn: String;
+  b: Boolean;
 begin
   s := LowerCase((Sender as TMenuItem).Caption);
   Delete(s, Pos('&', s), 1);
@@ -2512,17 +2513,31 @@ begin
 
   s := RecentFiles[n];
   pw := Pos('.wad:\', LowerCase(s));
+  b := False;
   
   if pw > 0 then
     begin // Map name included
       fn := Copy(s, 1, pw + 3);
       Delete(s, 1, pw + 5);
       if (FileExists(fn)) then
+      begin
         OpenMap(fn, s);
+        b := True;
+      end;
     end
   else // Only wad name
     if (FileExists(s)) then
+    begin
       OpenMap(s, '');
+      b := True;
+    end;
+
+  if (not b) and (MessageBox(0, PChar(_lc[I_MSG_DEL_RECENT_PROMT]),
+    PChar(_lc[I_MSG_DEL_RECENT]), MB_ICONQUESTION or MB_YESNO) = idYes) then
+  begin
+    RecentFiles.Delete(n);
+    RefreshRecentMenu();
+  end;
 end;
 
 procedure TMainForm.aEditorOptionsExecute(Sender: TObject);
