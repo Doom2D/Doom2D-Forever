@@ -27,10 +27,54 @@
       <CharSet Value="04E3"/>
       <StringTable CompanyName="www.doom2d.org" FileDescription="Doom 2D: Forever Map Editor" InternalName="Редактор карт Doom 2D: Forever" LegalCopyright="All rights reserved." OriginalFilename="Editor" ProductName="Doom 2D: Forever Map Editor" ProductVersion=""/>
     </VersionInfo>
-    <BuildModes Count="1">
-      <Item1 Name="Default" Default="True"/>
+    <BuildModes Count="2">
+      <Item1 Name="Debug" Default="True"/>
+      <Item2 Name="Release">
+        <CompilerOptions>
+          <Version Value="11"/>
+          <Target>
+            <Filename Value="../../bin/editor"/>
+          </Target>
+          <SearchPaths>
+            <IncludeFiles Value="..;../engine;../shared;../lib/fmod;../lib/vampimg;../lib/vampimg/JpegLib;../lib/vampimg/ZLib;$(ProjOutDir)"/>
+            <OtherUnitFiles Value="..;../engine;../shared;../lib/fmod;../lib/vampimg;../lib/vampimg/JpegLib;../lib/vampimg/ZLib"/>
+            <UnitOutputDirectory Value="../../tmp"/>
+            <ObjectPath Value=".."/>
+          </SearchPaths>
+          <Parsing>
+            <SyntaxOptions>
+              <SyntaxMode Value="Delphi"/>
+            </SyntaxOptions>
+          </Parsing>
+          <CodeGeneration>
+            <SmartLinkUnit Value="True"/>
+            <Optimizations>
+              <OptimizationLevel Value="3"/>
+            </Optimizations>
+          </CodeGeneration>
+          <Linking>
+            <Debugging>
+              <GenerateDebugInfo Value="False"/>
+              <DebugInfoType Value="dsDwarf2Set"/>
+              <UseValgrind Value="True"/>
+              <StripSymbols Value="True"/>
+            </Debugging>
+            <LinkSmart Value="True"/>
+            <Options>
+              <Win32>
+                <GraphicApplication Value="True"/>
+              </Win32>
+            </Options>
+          </Linking>
+          <Other>
+            <Verbosity>
+              <ShoLineNum Value="True"/>
+            </Verbosity>
+          </Other>
+        </CompilerOptions>
+      </Item2>
       <SharedMatrixOptions Count="1">
-        <Item1 ID="104550030988" Targets="" Modes="Default"/>
+        <Item1 ID="186720661341" Value="-dNOSOUND"/>
       </SharedMatrixOptions>
     </BuildModes>
     <PublishOptions>
@@ -247,15 +291,36 @@
     <Parsing>
       <SyntaxOptions>
         <SyntaxMode Value="Delphi"/>
+        <IncludeAssertionCode Value="True"/>
       </SyntaxOptions>
     </Parsing>
+    <CodeGeneration>
+      <Checks>
+        <IOChecks Value="True"/>
+        <OverflowChecks Value="True"/>
+        <StackChecks Value="True"/>
+      </Checks>
+    </CodeGeneration>
     <Linking>
+      <Debugging>
+        <DebugInfoType Value="dsDwarf2Set"/>
+        <UseHeaptrc Value="True"/>
+        <TrashVariables Value="True"/>
+        <UseValgrind Value="True"/>
+      </Debugging>
       <Options>
         <Win32>
           <GraphicApplication Value="True"/>
         </Win32>
       </Options>
     </Linking>
+    <Other>
+      <Verbosity>
+        <ShoLineNum Value="True"/>
+        <ShowHintsForUnusedUnitsInMainSrc Value="True"/>
+        <ShowHintsForSenderNotUsed Value="True"/>
+      </Verbosity>
+    </Other>
   </CompilerOptions>
   <Debugging>
     <Exceptions Count="3">
