@@ -1538,8 +1538,8 @@ begin
       Exit;
   end;
 
-// Читаем клавиатуру и джойстик, если окно активно:
-  e_PollInput();
+  // Читаем клавиатуру и джойстик, если окно активно
+  // no need to, as we'll do it in event handler
 
 // Обновляем консоль (движение и сообщения):
   g_Console_Update();
@@ -2182,7 +2182,8 @@ var
 begin
   e_TextureFontGetSize(gStdFont, ww2, hh2);
 
-  e_PollInput();
+  g_ProcessMessages();
+
   if e_KeyPressed(IK_TAB) then
   begin
     if not gStatsPressed then
@@ -4186,6 +4187,7 @@ begin
           enet_packet_destroy(NetEvent.packet);
       end
       else
+      begin
         if (NetEvent.kind = ENET_EVENT_TYPE_DISCONNECT) then
         begin
           State := 0;
@@ -4195,11 +4197,10 @@ begin
           OuterLoop := False;
           Break;
         end;
+      end;
     end;
 
     ProcessLoading(true);
-
-    e_PollInput();
 
     if e_KeyPressed(IK_ESCAPE) or e_KeyPressed(IK_SPACE) then
     begin

@@ -94,7 +94,8 @@ const
 function  e_InitInput(): Boolean;
 procedure e_ReleaseInput();
 procedure e_ClearInputBuffer();
-function  e_PollInput(): Boolean;
+//function  e_PollInput(): Boolean;
+procedure e_PollJoysticks(); // call this from message loop to update joysticks
 function  e_KeyPressed(Key: Word): Boolean;
 function  e_AnyKeyPressed(): Boolean;
 function  e_GetFirstKeyPressed(): Word;
@@ -226,21 +227,20 @@ begin
   }
 end;
 
-function PollJoysticks(): Boolean;
+procedure e_PollJoysticks();
 var
   i, j: Word;
   hat: Byte;
 begin
-  Result := False;
+  //Result := False;
   if (Joysticks = nil) or (e_JoysticksAvailable = 0) then Exit;
   SDL_JoystickUpdate();
   for j := Low(Joysticks) to High(Joysticks) do
+  begin
     with Joysticks[j] do
     begin
-      for i := 0 to Buttons do
-        ButtBuf[i] := SDL_JoystickGetButton(Handle, i) <> 0;
-      for i := 0 to Axes do
-        AxisBuf[i] := SDL_JoystickGetAxis(Handle, i);
+      for i := 0 to Buttons do ButtBuf[i] := SDL_JoystickGetButton(Handle, i) <> 0;
+      for i := 0 to Axes do AxisBuf[i] := SDL_JoystickGetAxis(Handle, i);
       for i := 0 to Hats do
       begin
         hat := SDL_JoystickGetHat(Handle, i);
@@ -250,6 +250,7 @@ begin
         HatBuf[i, HAT_RIGHT] := LongBool(hat and SDL_HAT_RIGHT);
       end;
     end;
+  end;
 end;
 
 procedure GenerateKeyNames();
@@ -322,15 +323,17 @@ begin
   end;
 end;
 
+{
 function e_PollInput(): Boolean;
 var
   kb, js: Boolean;
 begin
   kb := PollKeyboard();
-  js := PollJoysticks();
+  js := e_PollJoysticks();
 
   Result := kb or js;
 end;
+}
 
 function e_KeyPressed(Key: Word): Boolean;
 var

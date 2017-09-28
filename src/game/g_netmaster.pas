@@ -505,13 +505,15 @@ begin
 end;
 
 procedure g_Serverlist_Control(var SL: TNetServerList);
+var
+  qm: Boolean;
 begin
   if gConsoleShow or gChatShow then
     Exit;
 
-  e_PollInput();
+  qm := g_ProcessMessages(); // this updates kbd
 
-  if e_KeyPressed(IK_ESCAPE) then
+  if qm or e_KeyPressed(IK_ESCAPE) then
   begin
     SL := nil;
     gState := STATE_MENU;

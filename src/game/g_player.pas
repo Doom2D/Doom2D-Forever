@@ -2821,10 +2821,12 @@ begin
         else
           g_Sound_PlayExAt('SOUND_WEAPON_MISSBERSERK', FObj.X, FObj.Y);
 
-        if gFlash = 1 then
-          if FPain < 50 then
-            FPain := min(FPain + 25, 50);
-      end else g_Weapon_punch(FObj.X+FObj.Rect.X, FObj.Y+FObj.Rect.Y, 3, FUID);
+        if (gFlash = 1) and (FPain < 50) then FPain := min(FPain + 25, 50);
+      end
+      else
+      begin
+        g_Weapon_punch(FObj.X+FObj.Rect.X, FObj.Y+FObj.Rect.Y, 3, FUID);
+      end;
 
       DidFire := True;
       FReloading[FCurrWeap] := WEAPON_RELOAD[FCurrWeap];

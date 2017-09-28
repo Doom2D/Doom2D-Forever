@@ -789,8 +789,6 @@ begin
 
     ProcessLoading(true);
 
-    e_PollInput();
-
     if e_KeyPressed(IK_ESCAPE) or e_KeyPressed(IK_SPACE) then
       OuterLoop := False;
   end;
@@ -953,8 +951,6 @@ begin
     end;
 
     ProcessLoading(true);
-
-    e_PollInput();
 
     if e_KeyPressed(IK_ESCAPE) or e_KeyPressed(IK_SPACE) then
       break;

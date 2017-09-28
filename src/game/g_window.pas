@@ -37,6 +37,9 @@ function g_Window_SetSize (w, h: Word; fullscreen: Boolean): Boolean;
 
 procedure ProcessLoading (forceUpdate: Boolean=false);
 
+// returns `true` if quit event was received
+function g_ProcessMessages (): Boolean;
+
 
 var
   gwin_dump_extensions: Boolean = false;
@@ -543,8 +546,10 @@ begin
 
   while (SDL_PollEvent(@ev) > 0) do
   begin
+    EventHandler(ev);
     if (ev.type_ = SDL_QUITEV) then break;
   end;
+  e_PollJoysticks();
 
   if (ev.type_ = SDL_QUITEV) or (gExit = EXIT_QUIT) then
   begin
@@ -599,19 +604,26 @@ begin
 end;
 
 
-function ProcessMessage (): Boolean;
+function g_ProcessMessages (): Boolean;
 var
-  i, t: Integer;
   ev: TSDL_Event;
 begin
   result := false;
   FillChar(ev, SizeOf(ev), 0);
-
   while (SDL_PollEvent(@ev) > 0) do
   begin
     result := EventHandler(ev);
     if (ev.type_ = SDL_QUITEV) then exit;
   end;
+  e_PollJoysticks();
+end;
+
+
+function ProcessMessage (): Boolean;
+var
+  i, t: Integer;
+begin
+  result := g_ProcessMessages();
 
   Time := GetTimer();
   Time_Delta := Time-Time_Old;
