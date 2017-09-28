@@ -1909,7 +1909,7 @@ begin
     else
       begin // Внешний WAD
         FileName := EditorDir+'wads/'+aWAD;
-        ResourceName := aWAD+':'+SectionName+'\'+aTex;
+        ResourceName := utf2win(aWAD)+':'+SectionName+'\'+aTex;
       end;
 
   ok := True;

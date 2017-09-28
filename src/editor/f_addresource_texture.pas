@@ -488,7 +488,7 @@ begin
   for i := 0 to lbResourcesList.Count-1 do
     if lbResourcesList.Selected[i] then
     begin
-      AddTexture(utf2win(cbWADlist.Text), utf2win(cbSectionsList.Text),
+      AddTexture(cbWADlist.Text, utf2win(cbSectionsList.Text),
                  utf2win(lbResourcesList.Items[i]), False);
       lbResourcesList.Selected[i] := False;
     end;

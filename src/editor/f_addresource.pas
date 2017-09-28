@@ -114,7 +114,7 @@ begin
 
 // Внешний WAD:
   if cbWADList.Text <> _lc[I_WAD_SPECIAL_MAP] then
-     FileName := EditorDir+'wads/'+utf2win(cbWADList.Text)
+     FileName := EditorDir+'wads/'+cbWADList.Text
   else // WAD карты:
     begin
       g_ProcessResourceStr(OpenedMap, fn, sn, rn);
@@ -149,7 +149,7 @@ begin
 
 // Внешний WAD:
   if cbWADList.Text <> _lc[I_WAD_SPECIAL_MAP] then
-    FileName := EditorDir+'wads/'+utf2win(cbWADList.Text)
+    FileName := EditorDir+'wads/'+cbWADList.Text
   else // WAD карты:
     begin
       g_ProcessResourceStr(OpenedMap, fn, sn, rn);
@@ -197,7 +197,7 @@ begin
     SectionName := utf2win(cbSectionsList.Text);
 
   if cbWADList.Text[1] <> '<' then
-    FileName := utf2win(cbWADList.Text)
+    FileName := cbWADList.Text
   else
     FileName := '';
 
