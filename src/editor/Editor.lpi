@@ -9,14 +9,21 @@
       <SessionStorage Value="InProjectDir"/>
       <MainUnit Value="0"/>
       <Title Value="Editor"/>
-      <UseAppBundle Value="False"/>
       <ResourceType Value="res"/>
+      <UseXPManifest Value="True"/>
+      <Icon Value="0"/>
     </General>
     <i18n>
       <EnableI18N LFM="False"/>
     </i18n>
     <VersionInfo>
-      <StringTable ProductVersion=""/>
+      <UseVersionInfo Value="True"/>
+      <MajorVersionNr Value="2"/>
+      <MinorVersionNr Value="1"/>
+      <RevisionNr Value="5"/>
+      <Language Value="0419"/>
+      <CharSet Value="04E3"/>
+      <StringTable CompanyName="www.doom2d.org" FileDescription="Doom 2D: Forever Map Editor" InternalName="Редактор карт Doom 2D: Forever" LegalCopyright="All rights reserved." OriginalFilename="Editor" ProductName="Doom 2D: Forever Map Editor"/>
     </VersionInfo>
     <BuildModes Count="1">
       <Item1 Name="Default" Default="True"/>
