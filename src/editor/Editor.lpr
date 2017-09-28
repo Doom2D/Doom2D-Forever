@@ -52,7 +52,8 @@ uses
 {$R *.res}
 
 begin
-  Application.Initialize;
+  Application.Initialize();
+
   Application.CreateForm(TMainForm, MainForm);
   Application.CreateForm(TOptionsForm, OptionsForm);
   Application.CreateForm(TAboutForm, AboutForm);
@@ -72,7 +73,7 @@ begin
   Application.CreateForm(TMapTestForm, MapTestForm);
   Application.CreateForm(TChooseTypeForm, ChooseTypeForm);
   Application.CreateForm(TSelectLanguageForm, SelectLanguageForm);
-  if ParamStr(1) <> '' then OpenMap(ParamStr(1), '');
 
-  Application.Run;
+  if ParamStr(1) <> '' then OpenMap(ParamStr(1), '');
+  Application.Run();
 end.
