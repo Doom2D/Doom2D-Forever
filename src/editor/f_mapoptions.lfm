@@ -664,7 +664,7 @@ object MapOptionsForm: TMapOptionsForm
     Width = 23
     Caption = '...'
     OnClick = bSelectBackClick
-    TabOrder = 5
+    TabOrder = 6
   end
   object bSelectMusic: TButton
     Left = 311
@@ -674,7 +674,7 @@ object MapOptionsForm: TMapOptionsForm
     Width = 23
     Caption = '...'
     OnClick = bSelectMusicClick
-    TabOrder = 8
+    TabOrder = 9
   end
   object eAuthor: TEdit
     Left = 3
@@ -692,7 +692,7 @@ object MapOptionsForm: TMapOptionsForm
     Top = 146
     Width = 23
     OnClick = bRemoveBackClick
-    TabOrder = 6
+    TabOrder = 5
   end
   object bRemoveMusic: TButton
     Left = 285
@@ -701,6 +701,6 @@ object MapOptionsForm: TMapOptionsForm
     Top = 186
     Width = 23
     OnClick = bRemoveMusicClick
-    TabOrder = 9
+    TabOrder = 8
   end
 end

@@ -40,7 +40,7 @@ object AddResourceForm: TAddResourceForm
     Default = True
     ModalResult = 1
     OnClick = bOKClick
-    TabOrder = 0
+    TabOrder = 3
   end
   object bCancel: TButton
     Left = 124
@@ -50,7 +50,7 @@ object AddResourceForm: TAddResourceForm
     Cancel = True
     Caption = 'Отмена'
     ModalResult = 2
-    TabOrder = 1
+    TabOrder = 4
   end
   object cbWADList: TComboBox
     Left = 4
@@ -60,7 +60,7 @@ object AddResourceForm: TAddResourceForm
     ItemHeight = 13
     OnChange = cbWADListChange
     Style = csDropDownList
-    TabOrder = 2
+    TabOrder = 0
   end
   object lbResourcesList: TListBox
     Left = 4
@@ -70,7 +70,7 @@ object AddResourceForm: TAddResourceForm
     ItemHeight = 0
     MultiSelect = True
     OnClick = lbResourcesListClick
-    TabOrder = 3
+    TabOrder = 2
   end
   object cbSectionsList: TComboBox
     Left = 4
@@ -81,6 +81,6 @@ object AddResourceForm: TAddResourceForm
     OnChange = cbSectionsListChange
     Sorted = True
     Style = csDropDownList
-    TabOrder = 4
+    TabOrder = 1
   end
 end

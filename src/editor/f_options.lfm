@@ -127,7 +127,7 @@ object OptionsForm: TOptionsForm
       Max = 255
       Min = 2
       Position = 16
-      TabOrder = 6
+      TabOrder = 4
       Wrap = False
     end
     object eDotStepOne: TEdit
@@ -135,7 +135,7 @@ object OptionsForm: TOptionsForm
       Height = 21
       Top = 74
       Width = 57
-      TabOrder = 1
+      TabOrder = 3
       Text = '16'
     end
     object bGrid: TButton
@@ -145,7 +145,7 @@ object OptionsForm: TOptionsForm
       Width = 11
       Caption = '..'
       OnClick = bGridClick
-      TabOrder = 2
+      TabOrder = 10
     end
     object bBack: TButton
       Left = 402
@@ -154,7 +154,7 @@ object OptionsForm: TOptionsForm
       Width = 11
       Caption = '..'
       OnClick = bBackClick
-      TabOrder = 3
+      TabOrder = 11
     end
     object bPreview: TButton
       Left = 402
@@ -163,7 +163,7 @@ object OptionsForm: TOptionsForm
       Width = 11
       Caption = '..'
       OnClick = bPreviewClick
-      TabOrder = 4
+      TabOrder = 12
     end
     object cbScale: TComboBox
       Left = 344
@@ -177,7 +177,7 @@ object OptionsForm: TOptionsForm
         '2x'
       )
       Style = csDropDownList
-      TabOrder = 5
+      TabOrder = 13
       Text = '1x'
     end
     object cbShowTexture: TCheckBox
@@ -186,7 +186,7 @@ object OptionsForm: TOptionsForm
       Top = 18
       Width = 167
       Caption = 'Показывать текстуру панели'
-      TabOrder = 7
+      TabOrder = 1
     end
     object cbShowSize: TCheckBox
       Left = 6
@@ -194,14 +194,14 @@ object OptionsForm: TOptionsForm
       Top = 34
       Width = 169
       Caption = 'Показывать размеры панели'
-      TabOrder = 8
+      TabOrder = 2
     end
     object eRecent: TEdit
       Left = 344
       Height = 21
       Top = 184
       Width = 57
-      TabOrder = 9
+      TabOrder = 14
       Text = '5'
     end
     object UpDown3: TUpDown
@@ -213,7 +213,7 @@ object OptionsForm: TOptionsForm
       Max = 10
       Min = 2
       Position = 5
-      TabOrder = 10
+      TabOrder = 15
       Wrap = False
     end
     object eDotStepTwo: TEdit
@@ -221,7 +221,7 @@ object OptionsForm: TOptionsForm
       Height = 21
       Top = 98
       Width = 57
-      TabOrder = 11
+      TabOrder = 5
       Text = '8'
     end
     object UpDown2: TUpDown
@@ -233,7 +233,7 @@ object OptionsForm: TOptionsForm
       Max = 255
       Min = 2
       Position = 8
-      TabOrder = 12
+      TabOrder = 6
       Wrap = False
     end
     object rbRussian: TRadioButton
@@ -243,7 +243,7 @@ object OptionsForm: TOptionsForm
       Width = 60
       Caption = 'Русский'
       Checked = True
-      TabOrder = 13
+      TabOrder = 8
       TabStop = True
     end
     object rbEnglish: TRadioButton
@@ -252,7 +252,7 @@ object OptionsForm: TOptionsForm
       Top = 186
       Width = 52
       Caption = 'English'
-      TabOrder = 14
+      TabOrder = 9
     end
     object cbDotSize: TComboBox
       Left = 82
@@ -265,7 +265,7 @@ object OptionsForm: TOptionsForm
         '1'
         '2'
       )
-      TabOrder = 15
+      TabOrder = 7
       Text = '1'
     end
   end

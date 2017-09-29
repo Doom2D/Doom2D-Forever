@@ -8,9 +8,11 @@ inherited AddSkyForm: TAddSkyForm
   ClientWidth = 529
   inherited bOK: TButton
     Top = 220
+    TabOrder = 4
   end
   inherited bCancel: TButton
     Top = 220
+    TabOrder = 5
   end
   inherited lbResourcesList: TListBox
     Height = 127
@@ -23,7 +25,7 @@ inherited AddSkyForm: TAddSkyForm
     BevelOuter = bvLowered
     ClientHeight = 242
     ClientWidth = 322
-    TabOrder = 5
+    TabOrder = 3
     object iPreview: TImage
       Left = 0
       Height = 240

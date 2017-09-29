@@ -24,7 +24,7 @@ object MapTestForm: TMapTestForm
     Caption = 'OK'
     Default = True
     OnClick = bOKClick
-    TabOrder = 0
+    TabOrder = 1
   end
   object bCancel: TButton
     Left = 286
@@ -34,7 +34,7 @@ object MapTestForm: TMapTestForm
     Cancel = True
     Caption = 'Отмена'
     OnClick = bCancelClick
-    TabOrder = 1
+    TabOrder = 2
   end
   object GroupBox1: TGroupBox
     Left = 8
@@ -43,7 +43,7 @@ object MapTestForm: TMapTestForm
     Width = 353
     ClientHeight = 215
     ClientWidth = 349
-    TabOrder = 2
+    TabOrder = 0
     object LabelTime: TLabel
       Left = 14
       Height = 13
@@ -177,7 +177,7 @@ object MapTestForm: TMapTestForm
       Max = 1000
       Min = 0
       Position = 0
-      TabOrder = 11
+      TabOrder = 12
       Wrap = False
     end
     object UpDown1: TUpDown
@@ -189,7 +189,7 @@ object MapTestForm: TMapTestForm
       Max = 28800
       Min = 0
       Position = 0
-      TabOrder = 12
+      TabOrder = 11
       Wrap = False
     end
     object edD2dexe: TEdit
@@ -197,7 +197,7 @@ object MapTestForm: TMapTestForm
       Height = 21
       Top = 186
       Width = 297
-      TabOrder = 13
+      TabOrder = 14
       Text = 'Doom2DF.exe'
     end
     object bChooseD2d: TButton
@@ -212,7 +212,7 @@ object MapTestForm: TMapTestForm
       Font.Style = [fsBold]
       OnClick = bChooseD2dClick
       ParentFont = False
-      TabOrder = 14
+      TabOrder = 15
     end
     object cbMapOnce: TCheckBox
       Left = 14
@@ -220,7 +220,7 @@ object MapTestForm: TMapTestForm
       Top = 146
       Width = 209
       Caption = 'Закрыть игру после выхода из карты'
-      TabOrder = 15
+      TabOrder = 13
     end
   end
   object FindD2dDialog: TOpenDialog

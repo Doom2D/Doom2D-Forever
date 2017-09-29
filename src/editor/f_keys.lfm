@@ -46,7 +46,7 @@ object KeysForm: TKeysForm
     Caption = 'OK'
     Default = True
     ModalResult = 1
-    TabOrder = 3
+    TabOrder = 5
   end
   object cbRedTeam: TCheckBox
     Left = 2
@@ -54,7 +54,7 @@ object KeysForm: TKeysForm
     Top = 48
     Width = 108
     Caption = 'Красная команда'
-    TabOrder = 4
+    TabOrder = 3
   end
   object cbBlueTeam: TCheckBox
     Left = 2
@@ -62,6 +62,6 @@ object KeysForm: TKeysForm
     Top = 64
     Width = 96
     Caption = 'Синяя команда'
-    TabOrder = 5
+    TabOrder = 4
   end
 end

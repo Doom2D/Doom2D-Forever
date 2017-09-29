@@ -46,7 +46,7 @@ object ActivationTypeForm: TActivationTypeForm
     Caption = 'OK'
     Default = True
     ModalResult = 1
-    TabOrder = 3
+    TabOrder = 6
   end
   object cbMonsterPress: TCheckBox
     Left = 2
@@ -54,7 +54,7 @@ object ActivationTypeForm: TActivationTypeForm
     Top = 48
     Width = 91
     Caption = 'Монстр нажал'
-    TabOrder = 4
+    TabOrder = 3
   end
   object cbShot: TCheckBox
     Left = 2
@@ -62,7 +62,7 @@ object ActivationTypeForm: TActivationTypeForm
     Top = 64
     Width = 62
     Caption = 'Выстрел'
-    TabOrder = 5
+    TabOrder = 4
   end
   object cbNoMonster: TCheckBox
     Left = 2
@@ -70,6 +70,6 @@ object ActivationTypeForm: TActivationTypeForm
     Top = 80
     Width = 88
     Caption = 'Монстров нет'
-    TabOrder = 6
+    TabOrder = 5
   end
 end

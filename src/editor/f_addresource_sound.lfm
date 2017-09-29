@@ -7,6 +7,12 @@ inherited AddSoundForm: TAddSoundForm
   OnClose = FormClose
   OnCreate = FormCreate
   OnDestroy = FormDestroy
+  inherited bOK: TButton
+    TabOrder = 6
+  end
+  inherited bCancel: TButton
+    TabOrder = 7
+  end
   object pSpectrum: TPanel[7]
     Left = 204
     Height = 61
@@ -36,7 +42,7 @@ inherited AddSoundForm: TAddSoundForm
     }
     NumGlyphs = 2
     OnClick = bbPlayClick
-    TabOrder = 6
+    TabOrder = 3
   end
   object bbStop: TBitBtn[9]
     Left = 229
@@ -59,7 +65,7 @@ inherited AddSoundForm: TAddSoundForm
     }
     NumGlyphs = 2
     OnClick = bbStopClick
-    TabOrder = 7
+    TabOrder = 4
   end
   object bEmpty: TButton[10]
     Left = 216

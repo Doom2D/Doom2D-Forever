@@ -13,6 +13,7 @@ inherited AddTextureForm: TAddTextureForm
     Width = 22
     Default = False
     OnClick = nil
+    TabOrder = 4
     Visible = False
   end
   inherited bCancel: TButton
@@ -20,11 +21,13 @@ inherited AddTextureForm: TAddTextureForm
     Height = 18
     Top = 271
     Width = 22
+    TabOrder = 5
     Visible = False
   end
   inherited lbResourcesList: TListBox
     Height = 150
     Top = 112
+    TabOrder = 3
   end
   object PanelTexPreview: TPanel[7]
     Left = 204
@@ -34,7 +37,7 @@ inherited AddTextureForm: TAddTextureForm
     BevelOuter = bvLowered
     ClientHeight = 258
     ClientWidth = 258
-    TabOrder = 5
+    TabOrder = 6
     object iPreview: TImage
       Left = 0
       Height = 256
@@ -48,7 +51,7 @@ inherited AddTextureForm: TAddTextureForm
     Top = 88
     Width = 193
     OnChange = eTextureNameChange
-    TabOrder = 6
+    TabOrder = 2
   end
   object bAddTexture: TButton[9]
     Left = 160
