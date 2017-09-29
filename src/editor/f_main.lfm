@@ -21,7 +21,7 @@ object MainForm: TMainForm
   OnKeyDown = FormKeyDown
   OnKeyUp = FormKeyUp
   OnResize = FormResize
-  LCLVersion = '1.6.0.4'
+  LCLVersion = '1.6.4.0'
   object Splitter1: TSplitter
     Left = 518
     Height = 289
@@ -64,6 +64,7 @@ object MainForm: TMainForm
       Constraints.MinWidth = 145
       DefaultColWidth = 60
       DefaultRowHeight = 16
+      FixedCols = 0
       Font.Color = clWindowText
       Font.Height = -12
       Font.Name = 'MS Sans Serif'
@@ -295,9 +296,9 @@ object MainForm: TMainForm
           end
           object cbPreview: TCheckBox
             Left = 35
-            Height = 19
+            Height = 17
             Top = 54
-            Width = 165
+            Width = 163
             Caption = 'Предварительный просмотр'
             TabOrder = 0
           end
@@ -586,7 +587,7 @@ object MainForm: TMainForm
             'Выстрел'
             'Монстров нет'
           )
-          ItemHeight = 17
+          ItemHeight = 15
           TabOrder = 1
           Data = {
             06000000000000000000
@@ -606,7 +607,7 @@ object MainForm: TMainForm
             'Красная команда'
             'Синяя команда'
           )
-          ItemHeight = 17
+          ItemHeight = 15
           TabOrder = 2
           Data = {
             050000000000000000

@@ -25,7 +25,6 @@ inherited AddTextureForm: TAddTextureForm
   inherited lbResourcesList: TListBox
     Height = 150
     Top = 112
-    ItemHeight = 0
   end
   object PanelTexPreview: TPanel[7]
     Left = 204

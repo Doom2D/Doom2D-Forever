@@ -15,7 +15,7 @@ object MapOptionsForm: TMapOptionsForm
   OnActivate = FormActivate
   Position = poScreenCenter
   ShowHint = True
-  LCLVersion = '1.6.0.4'
+  LCLVersion = '1.6.4.0'
   object LabelDesc: TLabel
     Left = 3
     Height = 13
@@ -606,9 +606,9 @@ object MapOptionsForm: TMapOptionsForm
     end
     object cbSnapping: TCheckBox
       Left = 128
-      Height = 19
+      Height = 17
       Top = 50
-      Width = 123
+      Width = 121
       Alignment = taLeftJustify
       Caption = 'Сохранять привязку'
       Checked = True

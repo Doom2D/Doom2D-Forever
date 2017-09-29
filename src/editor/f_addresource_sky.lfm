@@ -1,10 +1,11 @@
 inherited AddSkyForm: TAddSkyForm
   Left = 225
+  Height = 250
   Top = 145
+  Width = 529
   Caption = 'Выберите текстуру для неба'
   ClientHeight = 250
   ClientWidth = 529
-  PixelsPerInch = 96
   inherited bOK: TButton
     Top = 220
   end
@@ -14,18 +15,20 @@ inherited AddSkyForm: TAddSkyForm
   inherited lbResourcesList: TListBox
     Height = 127
   end
-  object PanelTexPreview: TPanel
+  object PanelTexPreview: TPanel[7]
     Left = 204
+    Height = 242
     Top = 4
     Width = 322
-    Height = 242
     BevelOuter = bvLowered
+    ClientHeight = 242
+    ClientWidth = 322
     TabOrder = 5
     object iPreview: TImage
       Left = 0
+      Height = 240
       Top = 0
       Width = 320
-      Height = 240
     end
   end
 end

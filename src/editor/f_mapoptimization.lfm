@@ -1,161 +1,169 @@
 object MapOptimizationForm: TMapOptimizationForm
   Left = 268
+  Height = 275
   Top = 189
+  Width = 433
   BorderIcons = [biSystemMenu]
   BorderStyle = bsToolWindow
   Caption = 'Оптимизация карты'
   ClientHeight = 275
   ClientWidth = 433
   Color = clBtnFace
-  Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
   Font.Height = -11
   Font.Name = 'MS Sans Serif'
-  Font.Style = []
   FormStyle = fsStayOnTop
-  Position = poScreenCenter
   OnActivate = FormActivate
-  PixelsPerInch = 96
+  Position = poScreenCenter
+  LCLVersion = '1.6.4.0'
   object GroupBoxOpt: TGroupBox
     Left = 0
+    Height = 193
     Top = 0
     Width = 257
-    Height = 193
     Caption = 'Оптимизация'
+    ClientHeight = 175
+    ClientWidth = 253
     TabOrder = 0
     object Bevel1: TBevel
       Left = 6
+      Height = 105
       Top = 66
       Width = 241
-      Height = 105
     end
     object lOptimizationDescription: TLabel
       Left = 10
+      Height = 93
       Top = 70
       Width = 232
-      Height = 93
       AutoSize = False
+      ParentColor = False
       WordWrap = True
     end
     object rbTexturesOptimization: TRadioButton
       Left = 6
-      Top = 10
-      Width = 137
       Height = 17
+      Top = 10
+      Width = 129
       Caption = 'Оптимизация текстур'
-      TabOrder = 0
       OnClick = rbTexturesOptimizationClick
+      TabOrder = 0
     end
     object rbPanelsOptimization: TRadioButton
       Left = 6
-      Top = 34
-      Width = 137
       Height = 17
+      Top = 34
+      Width = 132
       Caption = 'Оптимизация панелей'
-      TabOrder = 1
       OnClick = rbPanelsOptimizationClick
+      TabOrder = 1
     end
   end
   object pcOptimizationOptions: TPageControl
     Left = 264
+    Height = 190
     Top = 3
     Width = 169
-    Height = 190
     ActivePage = tsTextureOptimization
+    TabIndex = 0
     TabOrder = 1
     object tsTextureOptimization: TTabSheet
+      ClientHeight = 164
+      ClientWidth = 161
       TabVisible = False
       object bBeginTextureOptimization: TButton
         Left = 8
+        Height = 25
         Top = 8
         Width = 145
-        Height = 25
         Caption = 'Начать'
-        TabOrder = 0
         OnClick = bBeginTextureOptimizationClick
+        TabOrder = 0
       end
     end
     object tsPanelOptimization: TTabSheet
+      ClientHeight = 0
+      ClientWidth = 0
       ImageIndex = 1
       TabVisible = False
       object cbOptimizeWalls: TCheckBox
         Left = 8
+        Height = 17
         Top = 0
         Width = 97
-        Height = 17
         Caption = 'Стены'
         TabOrder = 0
       end
       object bBeginPanelsOptimization: TButton
         Left = 8
+        Height = 25
         Top = 152
         Width = 145
-        Height = 25
         Caption = 'Начать'
-        TabOrder = 1
         OnClick = bBeginPanelsOptimizationClick
+        TabOrder = 1
       end
       object cbOptimizeForeGround: TCheckBox
         Left = 8
+        Height = 17
         Top = 16
         Width = 97
-        Height = 17
         Caption = 'Передний план'
         TabOrder = 2
       end
       object cbOptimizeBackGround: TCheckBox
         Left = 8
+        Height = 17
         Top = 32
         Width = 97
-        Height = 17
         Caption = 'Задний план'
         TabOrder = 3
       end
       object cbOptimizeSteps: TCheckBox
         Left = 8
+        Height = 17
         Top = 48
         Width = 97
-        Height = 17
         Caption = 'Ступени'
         TabOrder = 4
       end
       object cbOptimizeWater: TCheckBox
         Left = 8
+        Height = 17
         Top = 64
         Width = 97
-        Height = 17
         Caption = 'Вода'
         TabOrder = 5
       end
       object cbOptimizeAcid1: TCheckBox
         Left = 8
+        Height = 17
         Top = 80
         Width = 97
-        Height = 17
         Caption = 'Кислота 1'
         TabOrder = 6
       end
       object cbOptimizeAcid2: TCheckBox
         Left = 8
+        Height = 17
         Top = 96
         Width = 97
-        Height = 17
         Caption = 'Кислота 2'
         TabOrder = 7
       end
       object cbOptimizeLift: TCheckBox
         Left = 8
+        Height = 17
         Top = 112
         Width = 97
-        Height = 17
         Caption = 'Лифты'
         TabOrder = 8
       end
       object cbOptimizeBlockMon: TCheckBox
         Left = 8
+        Height = 17
         Top = 128
         Width = 145
-        Height = 17
         Caption = 'Блокиратор монстров'
         TabOrder = 9
       end
@@ -163,9 +171,9 @@ object MapOptimizationForm: TMapOptimizationForm
   end
   object mOptimizationResult: TMemo
     Left = 0
+    Height = 73
     Top = 200
     Width = 433
-    Height = 73
     ReadOnly = True
     ScrollBars = ssVertical
     TabOrder = 2

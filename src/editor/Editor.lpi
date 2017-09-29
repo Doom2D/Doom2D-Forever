@@ -145,12 +145,16 @@
       <Unit12>
         <Filename Value="f_about.pas"/>
         <IsPartOfProject Value="True"/>
+        <ComponentName Value="AboutForm"/>
         <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
       </Unit12>
       <Unit13>
         <Filename Value="f_options.pas"/>
         <IsPartOfProject Value="True"/>
+        <ComponentName Value="OptionsForm"/>
         <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
       </Unit13>
       <Unit14>
         <Filename Value="f_main.pas"/>
@@ -166,32 +170,44 @@
       <Unit16>
         <Filename Value="f_mapoptions.pas"/>
         <IsPartOfProject Value="True"/>
+        <ComponentName Value="MapOptionsForm"/>
         <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
       </Unit16>
       <Unit17>
         <Filename Value="f_activationtype.pas"/>
         <IsPartOfProject Value="True"/>
+        <ComponentName Value="ActivationTypeForm"/>
         <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
       </Unit17>
       <Unit18>
         <Filename Value="f_addresource.pas"/>
         <IsPartOfProject Value="True"/>
+        <ComponentName Value="AddResourceForm"/>
         <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
       </Unit18>
       <Unit19>
         <Filename Value="f_keys.pas"/>
         <IsPartOfProject Value="True"/>
+        <ComponentName Value="KeysForm"/>
         <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
       </Unit19>
       <Unit20>
         <Filename Value="f_mapcheck.pas"/>
         <IsPartOfProject Value="True"/>
+        <ComponentName Value="MapCheckForm"/>
         <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
       </Unit20>
       <Unit21>
         <Filename Value="f_mapoptimization.pas"/>
         <IsPartOfProject Value="True"/>
+        <ComponentName Value="MapOptimizationForm"/>
         <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
       </Unit21>
       <Unit22>
         <Filename Value="g_basic.pas"/>
@@ -204,27 +220,37 @@
       <Unit24>
         <Filename Value="f_addresource_texture.pas"/>
         <IsPartOfProject Value="True"/>
+        <ComponentName Value="AddTextureForm"/>
         <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
       </Unit24>
       <Unit25>
         <Filename Value="f_savemap.pas"/>
         <IsPartOfProject Value="True"/>
+        <ComponentName Value="SaveMapForm"/>
         <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
       </Unit25>
       <Unit26>
         <Filename Value="f_selectmap.pas"/>
         <IsPartOfProject Value="True"/>
+        <ComponentName Value="SelectMapForm"/>
         <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
       </Unit26>
       <Unit27>
         <Filename Value="f_addresource_sky.pas"/>
         <IsPartOfProject Value="True"/>
+        <ComponentName Value="AddSkyForm"/>
         <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
       </Unit27>
       <Unit28>
         <Filename Value="f_addresource_sound.pas"/>
         <IsPartOfProject Value="True"/>
+        <ComponentName Value="AddSoundForm"/>
         <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
       </Unit28>
       <Unit29>
         <Filename Value="spectrum.pas"/>
@@ -233,22 +259,30 @@
       <Unit30>
         <Filename Value="f_saveminimap.pas"/>
         <IsPartOfProject Value="True"/>
+        <ComponentName Value="SaveMiniMapForm"/>
         <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
       </Unit30>
       <Unit31>
         <Filename Value="f_packmap.pas"/>
         <IsPartOfProject Value="True"/>
+        <ComponentName Value="PackMapForm"/>
         <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
       </Unit31>
       <Unit32>
         <Filename Value="f_maptest.pas"/>
         <IsPartOfProject Value="True"/>
+        <ComponentName Value="MapTestForm"/>
         <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
       </Unit32>
       <Unit33>
         <Filename Value="f_choosetype.pas"/>
         <IsPartOfProject Value="True"/>
+        <ComponentName Value="ChooseTypeForm"/>
         <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
       </Unit33>
       <Unit34>
         <Filename Value="../lib/fmod/fmod.pas"/>
@@ -273,7 +307,9 @@
       <Unit39>
         <Filename Value="f_selectlang.pas"/>
         <IsPartOfProject Value="True"/>
+        <ComponentName Value="SelectLanguageForm"/>
         <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
       </Unit39>
     </Units>
   </ProjectOptions>

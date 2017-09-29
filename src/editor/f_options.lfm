@@ -14,7 +14,7 @@ object OptionsForm: TOptionsForm
   Font.Name = 'MS Sans Serif'
   OnActivate = FormActivate
   Position = poScreenCenter
-  LCLVersion = '1.6.0.4'
+  LCLVersion = '1.6.4.0'
   object GroupBox1: TGroupBox
     Left = 8
     Height = 225
@@ -112,9 +112,9 @@ object OptionsForm: TOptionsForm
     end
     object cbShowDots: TCheckBox
       Left = 6
-      Height = 19
+      Height = 17
       Top = 2
-      Width = 114
+      Width = 112
       Caption = 'Показывать сетку'
       TabOrder = 0
     end
@@ -182,17 +182,17 @@ object OptionsForm: TOptionsForm
     end
     object cbShowTexture: TCheckBox
       Left = 6
-      Height = 19
+      Height = 17
       Top = 18
-      Width = 169
+      Width = 167
       Caption = 'Показывать текстуру панели'
       TabOrder = 7
     end
     object cbShowSize: TCheckBox
       Left = 6
-      Height = 19
+      Height = 17
       Top = 34
-      Width = 171
+      Width = 169
       Caption = 'Показывать размеры панели'
       TabOrder = 8
     end
@@ -238,9 +238,9 @@ object OptionsForm: TOptionsForm
     end
     object rbRussian: TRadioButton
       Left = 86
-      Height = 19
+      Height = 17
       Top = 162
-      Width = 62
+      Width = 60
       Caption = 'Русский'
       Checked = True
       TabOrder = 13
@@ -248,9 +248,9 @@ object OptionsForm: TOptionsForm
     end
     object rbEnglish: TRadioButton
       Left = 86
-      Height = 19
+      Height = 17
       Top = 186
-      Width = 54
+      Width = 52
       Caption = 'English'
       TabOrder = 14
     end

@@ -1,50 +1,52 @@
 object AddResourceForm: TAddResourceForm
   Left = 271
+  Height = 268
   Top = 208
+  Width = 204
   BorderIcons = [biSystemMenu]
   BorderStyle = bsSingle
   ClientHeight = 268
   ClientWidth = 204
   Color = clBtnFace
-  Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
   Font.Height = -11
   Font.Name = 'MS Sans Serif'
-  Font.Style = []
+  OnActivate = FormActivate
   Position = poScreenCenter
   ShowHint = True
-  OnActivate = FormActivate
-  PixelsPerInch = 96
+  LCLVersion = '1.6.4.0'
   object LabelWADs: TLabel
     Left = 4
+    Height = 13
     Top = 4
     Width = 110
-    Height = 13
     Caption = 'Список WAD-файлов:'
+    ParentColor = False
   end
   object LabelSections: TLabel
     Left = 4
+    Height = 13
     Top = 44
     Width = 143
-    Height = 13
     Caption = 'Список секций WAD-файла:'
+    ParentColor = False
   end
   object bOK: TButton
     Left = 36
+    Height = 25
     Top = 236
     Width = 75
-    Height = 25
     Caption = 'ОК'
     Default = True
     ModalResult = 1
-    TabOrder = 0
     OnClick = bOKClick
+    TabOrder = 0
   end
   object bCancel: TButton
     Left = 124
+    Height = 25
     Top = 236
     Width = 75
-    Height = 25
     Cancel = True
     Caption = 'Отмена'
     ModalResult = 2
@@ -52,35 +54,33 @@ object AddResourceForm: TAddResourceForm
   end
   object cbWADList: TComboBox
     Left = 4
+    Height = 21
     Top = 20
     Width = 193
-    Height = 21
-    AutoComplete = False
-    Style = csDropDownList
     ItemHeight = 13
-    TabOrder = 2
     OnChange = cbWADListChange
+    Style = csDropDownList
+    TabOrder = 2
   end
   object lbResourcesList: TListBox
     Left = 4
+    Height = 145
     Top = 84
     Width = 193
-    Height = 145
-    ItemHeight = 13
+    ItemHeight = 0
     MultiSelect = True
-    TabOrder = 3
     OnClick = lbResourcesListClick
+    TabOrder = 3
   end
   object cbSectionsList: TComboBox
     Left = 4
+    Height = 21
     Top = 60
     Width = 193
-    Height = 21
-    AutoComplete = False
-    Style = csDropDownList
     ItemHeight = 13
-    Sorted = True
-    TabOrder = 4
     OnChange = cbSectionsListChange
+    Sorted = True
+    Style = csDropDownList
+    TabOrder = 4
   end
 end

@@ -1,73 +1,77 @@
 object SaveMapForm: TSaveMapForm
   Left = 368
+  Height = 239
   Top = 298
+  Width = 152
   BorderIcons = []
   BorderStyle = bsSingle
   Caption = 'Сохранить карту'
   ClientHeight = 239
   ClientWidth = 152
   Color = clBtnFace
-  Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
   Font.Height = -11
   Font.Name = 'MS Sans Serif'
-  Font.Style = []
-  Position = poScreenCenter
   OnActivate = FormActivate
-  PixelsPerInch = 96
+  Position = poScreenCenter
+  LCLVersion = '1.6.4.0'
   object lbMapList: TListBox
     Left = 0
+    Height = 186
     Top = 25
     Width = 152
-    Height = 186
     Align = alClient
-    ItemHeight = 13
+    ItemHeight = 0
+    OnClick = lbMapListClick
     Sorted = True
     TabOrder = 0
-    OnClick = lbMapListClick
   end
   object Panel2: TPanel
     Left = 0
+    Height = 25
     Top = 0
     Width = 152
-    Height = 25
     Align = alTop
     BevelOuter = bvNone
+    ClientHeight = 25
+    ClientWidth = 152
     TabOrder = 1
     object eMapName: TEdit
       Left = 0
+      Height = 21
       Top = 0
       Width = 153
-      Height = 21
-      CharCase = ecUpperCase
+      CharCase = ecUppercase
       MaxLength = 16
-      TabOrder = 0
       OnChange = eMapNameChange
+      TabOrder = 0
     end
   end
   object Panel1: TPanel
     Left = 0
+    Height = 28
     Top = 211
     Width = 152
-    Height = 28
     Align = alBottom
     BevelOuter = bvNone
+    ClientHeight = 28
+    ClientWidth = 152
     TabOrder = 2
     object bOK: TButton
       Left = 0
+      Height = 25
       Top = 0
       Width = 72
-      Height = 25
       Caption = 'OK'
       Default = True
-      TabOrder = 0
       OnClick = bOKClick
+      TabOrder = 0
     end
     object bCancel: TButton
       Left = 77
+      Height = 25
       Top = 0
       Width = 72
-      Height = 25
       Cancel = True
       Caption = 'Отмена'
       ModalResult = 2
