@@ -5,9 +5,9 @@ unit f_main;
 interface
 
 uses
-  LCLIntf, LCLType, LMessages, SysUtils, Variants, Classes, Graphics,
-  Controls, Forms, Dialogs, ImgList, StdCtrls, Buttons,
-  ComCtrls, ValEdit, Types, ToolWin, Menus, ExtCtrls,
+  LCLIntf, LCLType, SysUtils, Variants, Classes, Graphics,
+  Controls, Forms, Dialogs, StdCtrls, Buttons,
+  ComCtrls, ValEdit, Types, Menus, ExtCtrls,
   CheckLst, Grids, OpenGLContext, utils, UTF8Process;
 
 type
@@ -214,7 +214,9 @@ type
     procedure RenderPanelMouseUp(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
     procedure RenderPanelPaint(Sender: TObject);
     procedure RenderPanelResize(Sender: TObject);
+    procedure Splitter1Moved(Sender: TObject);
     procedure vleObjectPropertyEditButtonClick(Sender: TObject);
+    procedure vleObjectPropertyApply(Sender: TObject);
     procedure vleObjectPropertyGetPickList(Sender: TObject; const KeyName: String; Values: TStrings);
     procedure vleObjectPropertyKeyDown(Sender: TObject; var Key: Word;
                                        Shift: TShiftState);
@@ -323,10 +325,10 @@ procedure ChangeShownProperty(Name: String; NewValue: String);
 implementation
 
 uses
-  f_options, e_graphics, e_log, GL, GLExt, Math,
+  f_options, e_graphics, e_log, GL, Math,
   f_mapoptions, g_basic, f_about, f_mapoptimization,
   f_mapcheck, f_addresource_texture, g_textures,
-  f_activationtype, f_keys, MAPWRITER, MAPSTRUCT,
+  f_activationtype, f_keys,
   MAPREADER, f_selectmap, f_savemap, WADEDITOR, WADSTRUCT, MAPDEF,
   g_map, f_saveminimap, f_addresource, CONFIG, f_packmap,
   f_addresource_sound, f_maptest, f_choosetype,
@@ -951,7 +953,8 @@ begin
           case TriggerType of
             TRIGGER_EXIT:
               begin
-                with ItemProps[InsertRow(_lc[I_PROP_TR_NEXT_MAP], Data.MapName, True)] do
+                str := win2utf(Data.MapName);
+                with ItemProps[InsertRow(_lc[I_PROP_TR_NEXT_MAP], str, True)] do
                 begin
                   EditStyle := esEllipsis;
                   ReadOnly := True;
@@ -1105,7 +1108,8 @@ begin
 
             TRIGGER_SOUND:
               begin
-                with ItemProps[InsertRow(_lc[I_PROP_TR_SOUND_NAME], Data.SoundName, True)] do
+                str := win2utf(Data.SoundName);
+                with ItemProps[InsertRow(_lc[I_PROP_TR_SOUND_NAME], str, True)] do
                 begin
                   EditStyle := esEllipsis;
                   ReadOnly := True;
@@ -1268,7 +1272,8 @@ begin
 
            TRIGGER_MUSIC:
              begin
-               with ItemProps[InsertRow(_lc[I_PROP_TR_MUSIC_NAME], Data.MusicName, True)] do
+               str := win2utf(Data.MusicName);
+               with ItemProps[InsertRow(_lc[I_PROP_TR_MUSIC_NAME], str, True)] do
                begin
                  EditStyle := esEllipsis;
                  ReadOnly := True;
@@ -1370,7 +1375,8 @@ begin
                   EditStyle := esPickList;
                   ReadOnly := True;
                 end;
-                with ItemProps[InsertRow(_lc[I_PROP_TR_MESSAGE_TEXT], Data.MessageText, True)] do
+                str := win2utf(Data.MessageText);
+                with ItemProps[InsertRow(_lc[I_PROP_TR_MESSAGE_TEXT], str, True)] do
                 begin
                   EditStyle := esSimple;
                   MaxLength := 100;
@@ -1881,13 +1887,17 @@ var
   ok: Boolean;
   FileName: String;
   ResourceName: String;
-  UResourceName: String;
   FullResourceName: String;
   SectionName: String;
   Data: Pointer;
   Width, Height: Word;
   fn: String;
 begin
+  Data := nil;
+  FrameLen := 0;
+  Width := 0;
+  Height := 0;
+
   if aSection = '..' then
     SectionName := ''
   else
@@ -1909,19 +1919,18 @@ begin
     else
       begin // Внешний WAD
         FileName := EditorDir+'wads/'+aWAD;
-        ResourceName := utf2win(aWAD)+':'+SectionName+'\'+aTex;
+        ResourceName := aWAD+':'+SectionName+'\'+aTex;
       end;
 
   ok := True;
-  UResourceName := win2utf(ResourceName);
 
 // Есть ли уже такая текстура:
   for a := 0 to MainForm.lbTextureList.Items.Count-1 do
-    if UResourceName = MainForm.lbTextureList.Items[a] then
+    if ResourceName = MainForm.lbTextureList.Items[a] then
     begin
       if not silent then
         ErrorMessageBox(Format(_lc[I_MSG_TEXTURE_ALREADY],
-                               [UResourceName]));
+                               [ResourceName]));
       ok := False;
     end;
 
@@ -1930,7 +1939,7 @@ begin
   begin
     if not silent then
       ErrorMessageBox(Format(_lc[I_MSG_RES_NAME_64],
-                             [UResourceName]));
+                             [ResourceName]));
     ok := False;
   end;
 
@@ -1939,7 +1948,7 @@ begin
     a := -1;
     if aWAD = _lc[I_WAD_SPECIAL_TEXS] then
     begin
-      a := MainForm.lbTextureList.Items.Add(UResourceName);
+      a := MainForm.lbTextureList.Items.Add(ResourceName);
       if not silent then
         SelectTexture(a);
       Result := True;
@@ -1953,12 +1962,12 @@ begin
         GetFrame(FullResourceName, Data, FrameLen, Width, Height);
 
         if g_CreateTextureMemorySize(Data, FrameLen, ResourceName, 0, 0, Width, Height, 1) then
-          a := MainForm.lbTextureList.Items.Add(UResourceName);
+          a := MainForm.lbTextureList.Items.Add(ResourceName);
       end
     else // Обычная текстура
       begin
         if g_CreateTextureWAD(ResourceName, FullResourceName) then
-          a := MainForm.lbTextureList.Items.Add(UResourceName);
+          a := MainForm.lbTextureList.Items.Add(ResourceName);
       end;
     if (a > -1) and (not silent) then
       SelectTexture(a);
@@ -2047,7 +2056,7 @@ begin
     lbTextureList.Sorted := True;
     lbTextureList.Sorted := False;
 
-    UpdateCaption(win2utf(gMapInfo.Name), ExtractFileName(FileName), MapName);
+    UpdateCaption(gMapInfo.Name, ExtractFileName(FileName), MapName);
   end;
 end;
 
@@ -2213,7 +2222,7 @@ end;
 function SelectedTexture(): String;
 begin
   if MainForm.lbTextureList.ItemIndex <> -1 then
-    Result := utf2win(MainForm.lbTextureList.Items[MainForm.lbTextureList.ItemIndex])
+    Result := MainForm.lbTextureList.Items[MainForm.lbTextureList.ItemIndex]
   else
     Result := '';
 end;
@@ -2221,7 +2230,7 @@ end;
 function IsSpecialTextureSel(): Boolean;
 begin
   Result := (MainForm.lbTextureList.ItemIndex <> -1) and
-            IsSpecialTexture(utf2win(MainForm.lbTextureList.Items[MainForm.lbTextureList.ItemIndex]));
+            IsSpecialTexture(MainForm.lbTextureList.Items[MainForm.lbTextureList.ItemIndex]);
 end;
 
 function CopyBufferToString(var CopyBuf: TCopyRecArray): String;
@@ -2555,7 +2564,9 @@ var
   cfglen: Integer;
   config: TConfig;
 begin
+  cfgdata := nil;
   cfglen := 0;
+  ID := 0;
 
   wad := TWADEditor_1.Create;
   if wad.ReadFile(EditorDir+'data/Game.wad') then
@@ -2712,6 +2723,11 @@ var
   ObjCount: Word;
   aX, aY, aX2, aY2, XX, ScaleSz: Integer;
 begin
+  ID := 0;
+  PID := 0;
+  Width := 0;
+  Height := 0;
+
   e_BeginRender();
 
   e_Clear(GL_COLOR_BUFFER_BIT,
@@ -4095,6 +4111,11 @@ begin
     MainForm.Resize();
 end;
 
+procedure TMainForm.Splitter1Moved(Sender: TObject);
+begin
+  FormResize(Sender);
+end;
+
 procedure TMainForm.aMapOptionsExecute(Sender: TObject);
 var
   ResName: String;
@@ -4105,7 +4126,7 @@ begin
   while (Pos(':\', ResName) > 0) do
     Delete(ResName, 1, Pos(':\', ResName) + 1);
 
-  UpdateCaption(win2utf(gMapInfo.Name), ExtractFileName(OpenedWAD), ResName);
+  UpdateCaption(gMapInfo.Name, ExtractFileName(OpenedWAD), ResName);
 end;
 
 procedure TMainForm.aAboutExecute(Sender: TObject);
@@ -4270,6 +4291,7 @@ begin
         DrawPressRect := False;
         Exit;
       end;
+      i := -1;
 
     // Выбор области воздействия, в зависимости от типа триггера
       vleObjectProperty.FindRow(_lc[I_PROP_TR_EX_AREA], i);
@@ -4326,11 +4348,11 @@ begin
       begin
         AddSoundForm.OKFunction := nil;
         AddSoundForm.lbResourcesList.MultiSelect := False;
-        AddSoundForm.SetResource := utf2win(vleObjectProperty.Cells[1, i]);
+        AddSoundForm.SetResource := vleObjectProperty.Cells[1, i];
 
         if (AddSoundForm.ShowModal() = mrOk) then
         begin
-          vleObjectProperty.Cells[1, i] := win2utf(AddSoundForm.ResourceName);
+          vleObjectProperty.Cells[1, i] := AddSoundForm.ResourceName;
           bApplyProperty.Click();
         end;
         Exit;
@@ -4370,6 +4392,9 @@ var
   TextureID: DWORD;
   TextureWidth, TextureHeight: Word;
 begin
+  TextureID := 0;
+  TextureWidth := 0;
+  TextureHeight := 0;
   if (lbTextureList.ItemIndex <> -1) and
      (not IsSpecialTextureSel()) then
     begin
@@ -4523,6 +4548,10 @@ var
   NoTextureID: DWORD;
   NW, NH: Word;
 begin
+  NoTextureID := 0;
+  NW := 0;
+  NH := 0;
+
   if SelectedObjectCount() <> 1 then
     Exit;
   if not SelectedObjects[GetFirstSelected()].Live then
@@ -4720,10 +4749,10 @@ begin
           case TriggerType of
             TRIGGER_EXIT:
               begin
-                s := vleObjectProperty.Values[_lc[I_PROP_TR_NEXT_MAP]];
+                s := utf2win(vleObjectProperty.Values[_lc[I_PROP_TR_NEXT_MAP]]);
                 FillByte(Data.MapName[0], 16, 0);
                 if s <> '' then
-                  Move(Data.MapName[0], s[1], Min(Length(s), 16));
+                  Move(s[1], Data.MapName[0], Min(Length(s), 16));
               end;
 
             TRIGGER_TEXTURE:
@@ -4759,10 +4788,10 @@ begin
 
             TRIGGER_SOUND:
               begin
-                s := vleObjectProperty.Values[_lc[I_PROP_TR_SOUND_NAME]];
+                s := utf2win(vleObjectProperty.Values[_lc[I_PROP_TR_SOUND_NAME]]);
                 FillByte(Data.SoundName[0], 64, 0);
                 if s <> '' then
-                  Move(Data.SoundName[0], s[1], Min(Length(s), 64));
+                  Move(s[1], Data.SoundName[0], Min(Length(s), 64));
 
                 Data.Volume := Min(StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_SOUND_VOLUME]], 0), 255);
                 Data.Pan := Min(StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_SOUND_PAN]], 0), 255);
@@ -4813,10 +4842,10 @@ begin
 
             TRIGGER_MUSIC:
               begin
-                s := vleObjectProperty.Values[_lc[I_PROP_TR_MUSIC_NAME]];
+                s := utf2win(vleObjectProperty.Values[_lc[I_PROP_TR_MUSIC_NAME]]);
                 FillByte(Data.MusicName[0], 64, 0);
                 if s <> '' then
-                  Move(Data.MusicName[0], s[1], Min(Length(s), 64));
+                  Move(s[1], Data.MusicName[0], Min(Length(s), 64));
 
                 if vleObjectProperty.Values[_lc[I_PROP_TR_MUSIC_ACT]] = _lc[I_PROP_TR_MUSIC_ON] then
                   Data.MusicAction := 1
@@ -4873,10 +4902,10 @@ begin
                 else if vleObjectProperty.Values[_lc[I_PROP_TR_MESSAGE_TO]] = _lc[I_PROP_TR_MESSAGE_TO_5] then
                   Data.MessageSendTo := 5;
 
-                s := vleObjectProperty.Values[_lc[I_PROP_TR_MESSAGE_TEXT]];
+                s := utf2win(vleObjectProperty.Values[_lc[I_PROP_TR_MESSAGE_TEXT]]);
                 FillByte(Data.MessageText[0], 100, 0);
                 if s <> '' then
-                  Move(Data.MessageText[0], s[1], Min(Length(s), 100));
+                  Move(s[1], Data.MessageText[0], Min(Length(s), 100));
 
                 Data.MessageTime := Min(Max(
                   StrToIntDef(vleObjectProperty.Values[_lc[I_PROP_TR_MESSAGE_TIME]], 0), 0), 65535);
@@ -5342,8 +5371,8 @@ begin
                   begin
                     Panel^.TextureID := SpecialTextureID(Panel^.TextureName);
                     with MainForm.lbTextureList.Items do
-                      if IndexOf(win2utf(Panel^.TextureName)) = -1 then
-                        Add(win2utf(Panel^.TextureName));
+                      if IndexOf(Panel^.TextureName) = -1 then
+                        Add(Panel^.TextureName);
                   end;
               end;
 
@@ -5461,7 +5490,7 @@ begin
         begin
           b := lbTypeSelect.ItemIndex;
           Values[Key] := PANELNAMES[b];
-          bApplyProperty.Click();
+          vleObjectPropertyApply(Sender);
         end;
       end
     end
@@ -5496,7 +5525,7 @@ begin
       if SelectMapForm.ShowModal() = mrOK then
       begin
         vleObjectProperty.Values[Key] := SelectMapForm.lbMapList.Items[SelectMapForm.lbMapList.ItemIndex];
-        bApplyProperty.Click();
+        vleObjectPropertyApply(Sender);
       end;
     end
   else if (Key = _lc[I_PROP_TR_SOUND_NAME]) or
@@ -5504,12 +5533,12 @@ begin
     begin // Выбор файла звука/музыки:
       AddSoundForm.OKFunction := nil;
       AddSoundForm.lbResourcesList.MultiSelect := False;
-      AddSoundForm.SetResource := utf2win(vleObjectProperty.Values[Key]);
+      AddSoundForm.SetResource := vleObjectProperty.Values[Key];
 
       if (AddSoundForm.ShowModal() = mrOk) then
       begin
-        vleObjectProperty.Values[Key] := utf2win(AddSoundForm.ResourceName);
-        bApplyProperty.Click();
+        vleObjectProperty.Values[Key] := AddSoundForm.ResourceName;
+        vleObjectPropertyApply(Sender);
       end;
     end
   else if Key = _lc[I_PROP_TR_ACTIVATION] then
@@ -5539,7 +5568,7 @@ begin
           b := b or ACTIVATE_NOMONSTER;
 
         Values[Key] := ActivateToStr(b);
-        bApplyProperty.Click();
+        vleObjectPropertyApply(Sender);
       end;
     end
   else if Key = _lc[I_PROP_TR_KEYS] then
@@ -5566,7 +5595,7 @@ begin
           b := b or KEY_BLUETEAM;
 
         Values[Key] := KeyToStr(b);
-        bApplyProperty.Click();
+        vleObjectPropertyApply(Sender);
       end;
     end
   else if Key = _lc[I_PROP_TR_FX_TYPE] then
@@ -5584,7 +5613,7 @@ begin
       begin
         b := lbTypeSelect.ItemIndex;
         Values[Key] := EffectToStr(b);
-        bApplyProperty.Click();
+        vleObjectPropertyApply(Sender);
       end;
     end
   else if Key = _lc[I_PROP_TR_MONSTER_TYPE] then
@@ -5602,7 +5631,7 @@ begin
       begin
         b := lbTypeSelect.ItemIndex + MONSTER_DEMON;
         Values[Key] := MonsterToStr(b);
-        bApplyProperty.Click();
+        vleObjectPropertyApply(Sender);
       end;
     end
   else if Key = _lc[I_PROP_TR_ITEM_TYPE] then
@@ -5631,7 +5660,7 @@ begin
         if b >= ITEM_WEAPON_KASTET then
           b := b + 2;
         Values[Key] := ItemToStr(b);
-        bApplyProperty.Click();
+        vleObjectPropertyApply(Sender);
       end;
     end
   else if Key = _lc[I_PROP_TR_SHOT_TYPE] then
@@ -5649,7 +5678,7 @@ begin
       begin
         b := lbTypeSelect.ItemIndex;
         Values[Key] := ShotToStr(b);
-        bApplyProperty.Click();
+        vleObjectPropertyApply(Sender);
       end;
     end
   else if Key = _lc[I_PROP_TR_EFFECT_TYPE] then
@@ -5672,7 +5701,7 @@ begin
           Values[Key] := _lc[I_PROP_TR_EFFECT_PARTICLE]
         else
           Values[Key] := _lc[I_PROP_TR_EFFECT_ANIMATION];
-        bApplyProperty.Click();
+        vleObjectPropertyApply(Sender);
       end;
     end
   else if Key = _lc[I_PROP_TR_EFFECT_SUBTYPE] then
@@ -5728,7 +5757,7 @@ begin
             Values[Key] := _lc[I_PROP_TR_EFFECT_BUBBLE];
         end;
 
-        bApplyProperty.Click();
+        vleObjectPropertyApply(Sender);
       end;
     end
   else if Key = _lc[I_PROP_TR_EFFECT_COLOR] then
@@ -5738,14 +5767,22 @@ begin
       if ColorDialog.Execute then
       begin
         Values[Key] := IntToStr(ColorDialog.Color);
-        bApplyProperty.Click();
+        vleObjectPropertyApply(Sender);
       end;
     end
   else if Key = _lc[I_PROP_PANEL_TEX] then
     begin // Смена текстуры:
       vleObjectProperty.Values[Key] := SelectedTexture();
-      bApplyProperty.Click();
+      vleObjectPropertyApply(Sender);
     end;
+end;
+
+procedure TMainForm.vleObjectPropertyApply(Sender: TObject);
+begin
+  // hack to prevent empty ID in list
+  RenderPanel.SetFocus();
+  bApplyProperty.Click();
+  vleObjectProperty.SetFocus();
 end;
 
 procedure TMainForm.aSaveMapExecute(Sender: TObject);
@@ -5852,13 +5889,13 @@ begin
 
   if MapList <> nil then
     for a := 0 to High(MapList) do
-      SelectMapForm.lbMapList.Items.Add(MapList[a]);
+      SelectMapForm.lbMapList.Items.Add(win2utf(MapList[a]));
 
   if (SelectMapForm.ShowModal() = mrOK) then
   begin
     str := SelectMapForm.lbMapList.Items[SelectMapForm.lbMapList.ItemIndex];
     MapName := '';
-    Move(MapName[0], str[1], Min(16, Length(str)));
+    Move(str[1], MapName[0], Min(16, Length(str)));
 
     if MessageBox(0, PChar(Format(_lc[I_MSG_DELETE_MAP_PROMT],
                            [MapName, OpenDialog.FileName])),
@@ -5867,7 +5904,7 @@ begin
                   MB_DEFBUTTON2) <> mrYes then
       Exit;
 
-    WAD.RemoveResource('', MapName);
+    WAD.RemoveResource('', utf2win(MapName));
     
     MessageBox(0, PChar(Format(_lc[I_MSG_MAP_DELETED_PROMT],
                                [MapName])),
@@ -5893,7 +5930,7 @@ procedure TMainForm.vleObjectPropertyKeyDown(Sender: TObject;
             var Key: Word; Shift: TShiftState);
 begin
   if Key = VK_RETURN then
-    bApplyProperty.Click();
+    vleObjectPropertyApply(Sender);
 end;
 
 procedure MovePanel(var ID: DWORD; MoveType: Byte);
@@ -6065,7 +6102,7 @@ begin
 
   gMapInfo.FileName := SaveDialog.FileName;
   gMapInfo.MapName := SaveMapForm.eMapName.Text;
-  UpdateCaption(win2utf(gMapInfo.Name), ExtractFileName(gMapInfo.FileName), gMapInfo.MapName);
+  UpdateCaption(gMapInfo.Name, ExtractFileName(gMapInfo.FileName), gMapInfo.MapName);
 end;
 
 procedure TMainForm.aSelectAllExecute(Sender: TObject);

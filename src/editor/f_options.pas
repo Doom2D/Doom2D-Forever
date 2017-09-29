@@ -5,7 +5,7 @@ unit f_options;
 interface
 
 uses
-  LCLIntf, LCLType, LMessages, Messages, SysUtils, Variants, Classes,
+  LCLIntf, LCLType, SysUtils, Variants, Classes,
   Graphics, Controls, Forms, Dialogs, StdCtrls,
   ExtCtrls, ComCtrls, Registry;
 

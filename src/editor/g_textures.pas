@@ -4,7 +4,7 @@ unit g_textures;
 
 interface
 
-uses LCLIntf, LCLType, LMessages, e_graphics;
+uses LCLIntf, LCLType, LMessages, e_graphics, utils;
 
 function g_SimpleCreateTextureWAD(var ID: DWORD; Resource: string): Boolean;
 function g_SimpleCreateTextureWADSize(var ID: DWORD; Resource: string;
@@ -80,7 +80,7 @@ begin
  WAD := TWADEditor_1.Create;
  WAD.ReadFile(FileName);
 
- if WAD.GetResource(SectionName, ResourceName, TextureData, ResourceLength) then
+ if WAD.GetResource(utf2win(SectionName), utf2win(ResourceName), TextureData, ResourceLength) then
  begin
   if e_CreateTextureMem(TextureData, ResourceLength, ID) then Result := True;
   FreeMem(TextureData);
@@ -137,7 +137,7 @@ begin
  WAD := TWADEditor_1.Create;
  WAD.ReadFile(FileName);
 
- if WAD.GetResource(SectionName, ResourceName, TextureData, ResourceLength) then
+ if WAD.GetResource(utf2win(SectionName), utf2win(ResourceName), TextureData, ResourceLength) then
  begin
   Result := e_CreateTextureMem(TextureData, ResourceLength, TexturesArray[find_id].ID);
   FreeMem(TextureData);
@@ -174,7 +174,7 @@ begin
  WAD := TWADEditor_1.Create;
  WAD.ReadFile(FileName);
 
- if WAD.GetResource(SectionName, ResourceName, TextureData, ResourceLength) then
+ if WAD.GetResource(utf2win(SectionName), utf2win(ResourceName), TextureData, ResourceLength) then
  begin
   if e_CreateTextureMemEx(TextureData, ResourceLength, ID, X, Y, Width, Height) then Result := True;
   FreeMem(TextureData);
@@ -205,7 +205,7 @@ begin
  WAD := TWADEditor_1.Create;
  WAD.ReadFile(FileName);
 
- if WAD.GetResource(SectionName, ResourceName, TextureData, ResourceLength) then
+ if WAD.GetResource(utf2win(SectionName), utf2win(ResourceName), TextureData, ResourceLength) then
  begin
   Result := e_CreateTextureMemEx(TextureData, ResourceLength, TexturesArray[find_id].ID, X, Y, Width, Height);
   FreeMem(TextureData);

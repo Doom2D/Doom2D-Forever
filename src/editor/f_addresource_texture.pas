@@ -5,7 +5,7 @@ unit f_addresource_texture;
 interface
 
 uses
-  LCLIntf, LCLType, LMessages, SysUtils, Variants, Classes,
+  LCLIntf, LCLType, SysUtils, Variants, Classes,
   Graphics, Controls, Forms, Dialogs, f_addresource,
   StdCtrls, ExtCtrls, utils, Imaging, ImagingTypes, ImagingUtility;
 
@@ -64,6 +64,8 @@ var
 
 begin
   Result := False;
+  Data := nil;
+  Size := 0;
 
 // Читаем файл и ресурс в нем:
   g_ProcessResourceStr(Res, WADName, SectionName, ResourceName);
@@ -71,7 +73,7 @@ begin
   WAD := TWADEditor_1.Create();
 
   if (not WAD.ReadFile(WADName)) or
-     (not WAD.GetResource(SectionName, ResourceName, Data, Size)) then
+     (not WAD.GetResource(utf2win(SectionName), utf2win(ResourceName), Data, Size)) then
   begin
     WAD.Free();
     Exit;
@@ -169,6 +171,9 @@ var
 
 begin
   Result := False;
+  AnimWAD := nil;
+  Len := 0;
+  TextData := nil;
 
 // Читаем WAD:
   g_ProcessResourceStr(Res, WADName, SectionName, ResourceName);
@@ -182,7 +187,7 @@ begin
   end;
 
 // Читаем WAD-ресурс из WAD:
-  if not WAD.GetResource(SectionName, ResourceName, AnimWAD, Len) then
+  if not WAD.GetResource(utf2win(SectionName), utf2win(ResourceName), AnimWAD, Len) then
   begin
     WAD.Free();
     Exit;
@@ -273,9 +278,9 @@ begin
         bgc := 255
       else
         bgc := 200;
-      clr.r := ClampToByte(((255 - clr.a) * bgc + clr.a * clr.r) div 255);
-      clr.g := ClampToByte(((255 - clr.a) * bgc + clr.a * clr.g) div 255);
-      clr.b := ClampToByte(((255 - clr.a) * bgc + clr.a * clr.b) div 255);
+      clr.r := ClampToByte((Byte(255 - clr.a) * bgc + clr.a * clr.r) div 255);
+      clr.g := ClampToByte((Byte(255 - clr.a) * bgc + clr.a * clr.g) div 255);
+      clr.b := ClampToByte((Byte(255 - clr.a) * bgc + clr.a * clr.b) div 255);
       // TODO: check for RGB/BGR somehow?
       ii^ := clr.b; Inc(ii);
       ii^ := clr.g; Inc(ii);
@@ -300,13 +305,17 @@ var
   
 begin
   Result := nil;
+  AnimWAD := nil;
+  Len := 0;
+  TextData := nil;
+  TextureData := nil;
 
 // Читаем WAD файл и ресурс в нем:
   g_ProcessResourceStr(Res, WADName, SectionName, ResourceName);
 
   WAD := TWADEditor_1.Create();
   WAD.ReadFile(WADName);
-  WAD.GetResource(SectionName, ResourceName, AnimWAD, Len);
+  WAD.GetResource(utf2win(SectionName), utf2win(ResourceName), AnimWAD, Len);
   WAD.FreeWAD();
 
 // Читаем описание анимации:
@@ -348,6 +357,8 @@ var
 
 begin
   Result := nil;
+  TextureData := nil;
+  Len := 0;
 
 // Читаем WAD:
   g_ProcessResourceStr(ResourceStr, WADName, SectionName, ResourceName);
@@ -360,7 +371,7 @@ begin
   end;
 
 // Читаем ресурс текстуры в нем:
-  WAD.GetResource(SectionName, ResourceName, TextureData, Len);
+  WAD.GetResource(utf2win(SectionName), utf2win(ResourceName), TextureData, Len);
 
   WAD.Free();
 
@@ -488,8 +499,8 @@ begin
   for i := 0 to lbResourcesList.Count-1 do
     if lbResourcesList.Selected[i] then
     begin
-      AddTexture(cbWADlist.Text, utf2win(cbSectionsList.Text),
-                 utf2win(lbResourcesList.Items[i]), False);
+      AddTexture(cbWADlist.Text, cbSectionsList.Text,
+                 lbResourcesList.Items[i], False);
       lbResourcesList.Selected[i] := False;
     end;
 end;

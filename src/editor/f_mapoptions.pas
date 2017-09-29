@@ -112,13 +112,13 @@ uses
 // Callbacks to receive results from resource choosing dialogs
 function SetSky: Boolean;
 begin
-  MapOptionsForm.eBack.Text := win2utf(AddSkyForm.ResourceName);
+  MapOptionsForm.eBack.Text := AddSkyForm.ResourceName;
   Result := True;
 end;
 
 function SetMusic: Boolean;
 begin
-  MapOptionsForm.eMusic.Text := win2utf(AddSoundForm.ResourceName);
+  MapOptionsForm.eMusic.Text := AddSoundForm.ResourceName;
   Result := True;
 end;
 
@@ -128,12 +128,12 @@ var
   a, b: Integer;
 begin
   // General map options
-  eMapName.Text := win2utf(gMapInfo.Name);
-  eMapDescription.Text := win2utf(gMapInfo.Description);
-  eAuthor.Text := win2utf(gMapInfo.Author);
+  eMapName.Text := gMapInfo.Name;
+  eMapDescription.Text := gMapInfo.Description;
+  eAuthor.Text := gMapInfo.Author;
 
-  eBack.Text := win2utf(gMapInfo.SkyName);
-  eMusic.Text := win2utf(gMapInfo.MusicName);
+  eBack.Text := gMapInfo.SkyName;
+  eMusic.Text := gMapInfo.MusicName;
 
   eMapWidth.Text := IntToStr(gMapInfo.Width);
   eMapHeight.Text := IntToStr(gMapInfo.Height);
@@ -191,11 +191,11 @@ begin
               
   with gMapInfo do
   begin
-    Name := utf2win(eMapName.Text);
-    Description := utf2win(eMapDescription.Text);
-    Author := utf2win(eAuthor.Text);
-    SkyName := utf2win(eBack.Text);
-    MusicName := utf2win(eMusic.Text);
+    Name := eMapName.Text;
+    Description := eMapDescription.Text;
+    Author := eAuthor.Text;
+    SkyName := eBack.Text;
+    MusicName := eMusic.Text;
 
     if Width > newWidth then
       MapOffset.X := 0;
@@ -236,7 +236,7 @@ procedure TMapOptionsForm.bSelectBackClick(Sender: TObject);
 begin
   AddSkyForm.OKFunction := SetSky;
   AddSkyForm.lbResourcesList.MultiSelect := False;
-  AddSkyForm.SetResource := utf2win(eBack.Text);
+  AddSkyForm.SetResource := eBack.Text;
   AddSkyForm.ShowModal();
 end;
 
@@ -244,7 +244,7 @@ procedure TMapOptionsForm.bSelectMusicClick(Sender: TObject);
 begin
   AddSoundForm.OKFunction := SetMusic;
   AddSoundForm.lbResourcesList.MultiSelect := False;
-  AddSoundForm.SetResource := utf2win(eMusic.Text);
+  AddSoundForm.SetResource := eMusic.Text;
   AddSoundForm.ShowModal();
 end;
 

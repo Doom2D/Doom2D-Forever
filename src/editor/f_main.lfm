@@ -31,6 +31,7 @@ object MainForm: TMainForm
     Beveled = True
     MinSize = 64
     OnCanResize = Splitter1CanResize
+    OnMoved = Splitter1Moved
     ResizeAnchor = akRight
   end
   object Splitter2: TSplitter
@@ -42,6 +43,7 @@ object MainForm: TMainForm
     Align = alBottom
     MinSize = 64
     OnCanResize = Splitter2CanResize
+    OnMoved = Splitter1Moved
     ResizeAnchor = akBottom
   end
   object PanelProps: TPanel

@@ -6,7 +6,7 @@ interface
 
 uses
   LCLIntf, LCLType, LMessages, SysUtils, Variants, Classes,
-  Graphics, Controls, Forms, Dialogs, StdCtrls, ExtCtrls;
+  Graphics, Controls, Forms, Dialogs, StdCtrls, ExtCtrls, utils;
 
 type
   TSaveMapForm = class (TForm)
@@ -113,7 +113,7 @@ begin
    
       if Sign = MAP_SIGNATURE then
       begin
-        nm := ResList[a];
+        nm := win2utf(ResList[a]);
         lbMapList.Items.Add(nm);
 
         if placeName then

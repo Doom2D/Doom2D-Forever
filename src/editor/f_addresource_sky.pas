@@ -62,7 +62,7 @@ begin
   WAD := TWADEditor_1.Create();
   WAD.ReadFile(WADName);
 
-  WAD.GetResource(SectionName, ResourceName, TextureData, ImageSize);
+  WAD.GetResource(utf2win(SectionName), utf2win(ResourceName), TextureData, ImageSize);
 
   WAD.Free();
 
@@ -152,7 +152,7 @@ begin
       SectionName := '..';
 
   // WAD файл:
-    a := cbWADList.Items.IndexOf(win2utf(FileName));
+    a := cbWADList.Items.IndexOf(FileName);
     if a <> -1 then
     begin
       cbWADList.ItemIndex := a;
@@ -160,7 +160,7 @@ begin
     end;
 
   // Секция:
-    a := cbSectionsList.Items.IndexOf(win2utf(SectionName));
+    a := cbSectionsList.Items.IndexOf(SectionName);
     if a <> -1 then
     begin
       cbSectionsList.ItemIndex := a;
@@ -168,7 +168,7 @@ begin
     end;
 
   // Ресурс:
-    a := lbResourcesList.Items.IndexOf(win2utf(ResourceName));
+    a := lbResourcesList.Items.IndexOf(ResourceName);
     if a <> -1 then
     begin
       lbResourcesList.ItemIndex := a;

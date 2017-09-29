@@ -6,7 +6,7 @@ interface
 
 uses
   LCLIntf, LCLType, LMessages, SysUtils, Variants, Classes,
-  Graphics, Controls, Forms, Dialogs, StdCtrls, ExtCtrls;
+  Graphics, Controls, Forms, Dialogs, StdCtrls, ExtCtrls, utils;
 
 type
   TPackMapForm = class (TForm)
@@ -98,7 +98,7 @@ begin
     Exit;
   end;
 
-  if not wad2.GetResource(section, resource, data, reslen) then
+  if not wad2.GetResource(utf2win(section), utf2win(resource), data, reslen) then
   begin
     MessageBox(0, PChar(Format(_lc[I_MSG_RES_ERROR],
                                    [filename, section, resource])),
@@ -109,22 +109,22 @@ begin
 
   wad2.Free();
 
- {if wad_to.HaveResource(section_to, resource) then
+ {if wad_to.HaveResource(utf2win(section_to), utf2win(resource)) then
  begin
   for a := 2 to 256 do
   begin
    s := IntToStr(a);
-   if not wad_to.HaveResource(section_to, resource+s) then Break;
+   if not wad_to.HaveResource(utf2win(section_to), utf2win(resource+s)) then Break;
   end;
   resource := resource+s;
  end;}
 
 // Если такого ресурса нет в WAD-файле-назначении, то копируем:
-  if not wad_to.HaveResource(section_to, resource) then
+  if not wad_to.HaveResource(utf2win(section_to), utf2win(resource)) then
   begin
-    if not wad_to.HaveSection(section_to) then
-      wad_to.AddSection(section_to);
-    wad_to.AddResource(data, reslen, resource, section_to);
+    if not wad_to.HaveSection(utf2win(section_to)) then
+      wad_to.AddSection(utf2win(section_to));
+    wad_to.AddResource(data, reslen, utf2win(resource), utf2win(section_to));
   end;
 
   FreeMem(data);
@@ -178,7 +178,7 @@ begin
   if cbTextrures.Checked and (textures <> nil) then
     for a := 0 to High(textures) do
     begin
-      res := textures[a].Resource;
+      res := win2utf(textures[a].Resource);
       if IsSpecialTexture(res) then
         Continue;
 
@@ -198,7 +198,7 @@ begin
         end;
 
       // Переименовываем ресурс текстуры:
-        res := Format(':%s\%s', [tsection, resource]);
+        res := utf2win(Format(':%s\%s', [tsection, resource]));
         ZeroMemory(@textures[a].Resource[0], 64);
         CopyMemory(@textures[a].Resource[0], @res[1], Min(Length(res), 64));
       end;
@@ -210,7 +210,7 @@ begin
 // Нужно копировать небо:
   if cbSky.Checked then
   begin
-    res := header.SkyName;
+    res := win2utf(header.SkyName);
     g_ProcessResourceStr(res, @filename, @section, @resource);
 
   // Не записывать стандартное небо:
@@ -227,7 +227,7 @@ begin
       end;
 
     // Переименовываем ресурс неба:
-      res := Format(':%s\%s', [ssection, resource]);
+      res := utf2win(Format(':%s\%s', [ssection, resource]));
       ZeroMemory(@header.SkyName[0], 64);
       CopyMemory(@header.SkyName[0], @res[1], Min(Length(res), 64));
     end;
@@ -236,7 +236,7 @@ begin
 // Нужно копировать музыку:
   if cbMusic.Checked then
   begin
-    res := header.MusicName;
+    res := win2utf(header.MusicName);
     g_ProcessResourceStr(res, @filename, @section, @resource);
 
   // Не записывать стандартную музыку:
@@ -253,7 +253,7 @@ begin
       end;
 
     // Переименовываем ресурс музыки:
-      res := Format(':%s\%s', [msection, resource]);
+      res := utf2win(Format(':%s\%s', [msection, resource]));
       ZeroMemory(@header.MusicName[0], 64);
       CopyMemory(@header.MusicName[0], @res[1], Min(Length(res), 64));
     end;
@@ -311,7 +311,7 @@ begin
 
               Нужно проверять есть такая текстура textures и есть ли она вообще?
             // Переименовываем ресурс текстуры:
-              res := Format(':%s\%s', [tsection, resource]);
+              res := utf2win(Format(':%s\%s', [tsection, resource]));
               ZeroMemory(@textures[a].Resource[0], 64);
               CopyMemory(@textures[a].Resource[0], @res[1], Min(Length(res), 64));
 

@@ -6,7 +6,7 @@ interface
 
 uses
   LCLIntf, LCLType, LMessages, SysUtils, Variants, Classes, Graphics,
-  Controls, Forms, Dialogs, StdCtrls, ExtCtrls;
+  Controls, Forms, Dialogs, StdCtrls, ExtCtrls, utils;
 
 type
   TSelectMapForm = class (TForm)
@@ -84,7 +84,7 @@ begin
       FreeMem(Data);
 
       if Sign = MAP_SIGNATURE then
-        lbMapList.Items.Add(ResList[a]);
+        lbMapList.Items.Add(win2utf(ResList[a]));
       Sign := '';
     end;
 

@@ -160,12 +160,12 @@ begin
   WAD.ReadFile(FileName);
 
   if cbSectionsList.Text <> '..' then
-    SectionName := utf2win(cbSectionsList.Text)
+    SectionName := cbSectionsList.Text
   else
     SectionName := '';
 
 // Читаем ресурсы выбранной секции:
-  ResourceList := WAD.GetResourcesList(SectionName);
+  ResourceList := WAD.GetResourcesList(utf2win(SectionName));
 
   WAD.Free();
 
@@ -194,14 +194,14 @@ begin
   if cbSectionsList.Text = '..' then
     SectionName := ''
   else
-    SectionName := utf2win(cbSectionsList.Text);
+    SectionName := cbSectionsList.Text;
 
   if cbWADList.Text[1] <> '<' then
     FileName := cbWADList.Text
   else
     FileName := '';
 
-  FResourceName := FileName+':'+SectionName+'\'+utf2win(lbResourcesList.Items[lbResourcesList.ItemIndex]);
+  FResourceName := FileName+':'+SectionName+'\'+lbResourcesList.Items[lbResourcesList.ItemIndex];
 
   if FileName <> '' then
     FFullResourceName := EditorDir+'wads/'+FResourceName

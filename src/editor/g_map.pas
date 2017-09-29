@@ -5,7 +5,7 @@ Unit g_map;
 Interface
 
 Uses
-  LCLIntf, LCLType, LMessages, g_basic, e_graphics, MAPREADER, MAPSTRUCT,
+  LCLIntf, LCLType, g_basic, e_graphics, MAPREADER, MAPSTRUCT,
   MAPWRITER, e_log, MAPDEF, utils;
 
 Type
@@ -240,12 +240,11 @@ procedure FreeData();
 
 procedure ShiftMapObjects(dx, dy: Integer);
 
-Implementation
+implementation
 
-Uses
+uses
   BinEditor, g_textures, Dialogs, SysUtils, CONFIG, f_main,
-  Forms, Math, f_addresource_texture, WADEDITOR,
-  Masks, g_Language;
+  Forms, Math, f_addresource_texture, WADEDITOR, g_language;
 
 const
   OLD_ITEM_MEDKIT_SMALL          = 1;
@@ -1074,6 +1073,8 @@ begin
   triggers := nil;
   PanelTable := nil;
   MonsterTable := nil;
+  Data := nil;
+  Len := 0;
 
 // Открываем WAD, если надо:
   if Res <> '' then
@@ -1093,20 +1094,25 @@ begin
   begin
     ZeroMemory(@header, SizeOf(TMapHeaderRec_1));
 
-    if gMapInfo.Name <> '' then
-      CopyMemory(@MapName[0], @gMapInfo.Name[1], Min(32, Length(gMapInfo.Name)));
+    s := utf2win(gMapInfo.Name);
+    if s <> '' then
+      CopyMemory(@MapName[0], @s[1], Min(32, Length(s)));
 
-    if gMapInfo.Description <> '' then
-      CopyMemory(@MapDescription[0], @gMapInfo.Description[1], Min(256, Length(gMapInfo.Description)));
+    s := utf2win(gMapInfo.Description);
+    if s <> '' then
+      CopyMemory(@MapDescription[0], @s[1], Min(256, Length(s)));
 
-    if gMapInfo.Author <> '' then
-      CopyMemory(@MapAuthor[0], @gMapInfo.Author[1], Min(32, Length(gMapInfo.Author)));
+    s := utf2win(gMapInfo.Author);
+    if s <> '' then
+      CopyMemory(@MapAuthor[0], @s[1], Min(32, Length(s)));
 
-    if gMapInfo.MusicName <> '' then
-      CopyMemory(@MusicName[0], @gMapInfo.MusicName[1], Min(64, Length(gMapInfo.MusicName)));
+    s := utf2win(gMapInfo.MusicName);
+    if s <> '' then
+      CopyMemory(@MusicName[0], @s[1], Min(64, Length(s)));
 
-    if gMapInfo.SkyName <> '' then
-      CopyMemory(@SkyName[0], @gMapInfo.SkyName[1], Min(64, Length(gMapInfo.SkyName)));
+    s := utf2win(gMapInfo.SkyName);
+    if s <> '' then
+      CopyMemory(@SkyName[0], @s[1], Min(64, Length(s)));
 
     Width := gMapInfo.Width;
     Height := gMapInfo.Height;
@@ -1122,7 +1128,7 @@ begin
       SetLength(textures, Length(textures)+1);
       s := utf2win(MainForm.lbTextureList.Items[a]);
       CopyMemory(@textures[High(textures)].Resource[0], @s[1], Min(64, Length(s)));
-      if g_GetTextureFlagByName(s) = 1 then
+      if g_GetTextureFlagByName(MainForm.lbTextureList.Items[a]) = 1 then
         textures[High(textures)].Anim := 1
       else
         textures[High(textures)].Anim := 0;
@@ -1174,7 +1180,7 @@ begin
           // Номер текстуры в списке текстур:
             if gPanels[a].TextureID <> TEXTURE_SPECIAL_NONE then
               for b := 0 to High(textures) do
-                if gPanels[a].TextureName = textures[b].Resource then
+                if utf2win(gPanels[a].TextureName) = textures[b].Resource then
                 begin
                   TextureNum := b;
                   Break;
@@ -1338,9 +1344,9 @@ begin
 // Записываем в WAD, если надо:
   if Res <> '' then
     begin
-      e_WriteLog('Fuck me (A) ' + ResName, MSG_NOTIFY);
-      WAD.RemoveResource('', ResName);
-      WAD.AddResource(Data, Len, ResName, '');
+      s := utf2win(ResName);
+      WAD.RemoveResource('', s);
+      WAD.AddResource(Data, Len, s, '');
       WAD.SaveTo(FileName);
 
       FreeMem(Data);
@@ -1355,18 +1361,16 @@ end;
 procedure AddTexture(res: String; Error: Boolean);
 var
   a: Integer;
-  ures: String;
 begin
-  ures := win2utf(res);
   with MainForm.lbTextureList do
   begin
     for a := 0 to Count-1 do
-      if Items[a] = ures then
+      if Items[a] = res then
         Exit;
 
-    if Error and (slInvalidTextures.IndexOf(ures) = -1) then
-      slInvalidTextures.Add(ures);
-    Items.Add(ures);
+    if Error and (slInvalidTextures.IndexOf(res) = -1) then
+      slInvalidTextures.Add(res);
+    Items.Add(res);
   end;
 end;
 
@@ -1390,7 +1394,7 @@ var
   Data: Pointer;
   Width, Height, m: Word;
   FileName, SectionName, ResName, _fn: String;
-  TextureRes: String;
+  TextureRes, ustr: String;
   pData: Pointer;
   Len, FrameLen: Integer;
   Error: Boolean;
@@ -1398,6 +1402,15 @@ var
   NW, NH: Word;
 begin
   Result := False;
+  pData := nil;
+  Len := 0;
+  Data := nil;
+  FrameLen := 0;
+  Width := 0;
+  Height := 0;
+  NoTextureID := 0;
+  NW := 0;
+  NH := 0;
 
   MainForm.pbLoad.Position := 0;
   MainForm.lLoad.Caption := _lc[I_LOAD_WAD];
@@ -1414,7 +1427,7 @@ begin
   end;
 
 // Читаем ресурс карты:
-  if not WAD.GetResource('', ResName, pData, Len) then
+  if not WAD.GetResource('', utf2win(ResName), pData, Len) then
   begin
     WAD.Free();
     Exit;
@@ -1442,50 +1455,51 @@ begin
     begin
       MainForm.pbLoad.StepIt();
       Application.ProcessMessages();
+      ustr := win2utf(textures[a].Resource);
 
-      if IsSpecialTexture(textures[a].Resource) then
+      if IsSpecialTexture(ustr) then
       begin
-        AddTexture(textures[a].Resource, False);
+        AddTexture(ustr, False);
         Continue;
       end;
 
-      g_ProcessResourceStr(textures[a].Resource, @_fn, nil, nil);
+      g_ProcessResourceStr(ustr, @_fn, nil, nil);
 
       if _fn = '' then
-        TextureRes := FileName + textures[a].Resource
+        TextureRes := FileName + ustr
       else
-        TextureRes := EditorDir+'wads/'+textures[a].Resource;
+        TextureRes := EditorDir+'wads/'+ustr;
 
       Error := False;
 
       if not ByteBool(textures[a].Anim) then
         begin // Обычная текстура
-          if not g_CreateTextureWAD(textures[a].Resource, TextureRes) then
+          if not g_CreateTextureWAD(ustr, TextureRes) then
           begin
             e_WriteLog(Format('g_CreateTextureWAD() error, res=%s',
-                              [textures[a].Resource]), MSG_WARNING);
+                              [ustr]), MSG_WARNING);
             Error := True;
           end;
 
-          AddTexture(textures[a].Resource, Error);
+          AddTexture(ustr, Error);
         end
       else // Anim
         begin // Анимированная текстура
           if not GetFrame(TextureRes, Data, FrameLen, Width, Height) then
           begin // Кадры
             e_WriteLog(Format('GetFrame() error, res=%s',
-                              [textures[a].Resource]), MSG_WARNING);
+                              [ustr]), MSG_WARNING);
             Error := True;
           end;
 
-          if not g_CreateTextureMemorySize(Data, FrameLen, textures[a].Resource, 0, 0, Width, Height, 1) then
+          if not g_CreateTextureMemorySize(Data, FrameLen, ustr, 0, 0, Width, Height, 1) then
           begin // Сама текстура
             e_WriteLog(Format('g_CreateTextureMemorySize() error, res=%s',
-                              [textures[a].Resource]), MSG_WARNING);
+                              [ustr]), MSG_WARNING);
             Error := True;
           end;
 
-          AddTexture(textures[a].Resource, Error);
+          AddTexture(ustr, Error);
         end;
     end;
   end;
@@ -1528,9 +1542,10 @@ begin
       if WordBool(panel.PanelType and m) and
          (not (ByteBool(panels[a].Flags and PANEL_FLAG_HIDE))) then
       begin
-        if not IsSpecialTexture(textures[panels[a].TextureNum].Resource) then
+        ustr := win2utf(textures[panels[a].TextureNum].Resource);
+        if not IsSpecialTexture(ustr) then
           begin // Текстура
-            if g_GetTexture(textures[panels[a].TextureNum].Resource, panel.TextureID) then
+            if g_GetTexture(ustr, panel.TextureID) then
               g_GetTextureSizeByID(panel.TextureID, panel.TextureWidth, panel.TextureHeight)
             else begin
               panel.TextureWidth := 1;
@@ -1545,9 +1560,9 @@ begin
             end;
           end
         else // Спец. текстура
-          panel.TextureID := SpecialTextureID(textures[panels[a].TextureNum].Resource);
+          panel.TextureID := SpecialTextureID(ustr);
 
-        panel.TextureName := textures[panels[a].TextureNum].Resource;
+        panel.TextureName := ustr;
       end;
 
     // Жидкость без текстуры:
@@ -1676,11 +1691,11 @@ begin
   with gMapInfo do
   begin
     MapName := ResName;
-    Name := Header.MapName;
-    Description := Header.MapDescription;
-    Author := Header.MapAuthor;
-    MusicName := Header.MusicName;
-    SkyName := Header.SkyName;
+    Name := win2utf(Header.MapName);
+    Description := win2utf(Header.MapDescription);
+    Author := win2utf(Header.MapAuthor);
+    MusicName := win2utf(Header.MusicName);
+    SkyName := win2utf(Header.SkyName);
     Height := Header.Height;
     Width := Header.Width;
   end;
@@ -1708,7 +1723,7 @@ const
 var
   map: TConfig;
   i, a: Integer;
-  s, us, section: String;
+  s, section: String;
   panel: TPanel;
   item: TItem;
   area: TArea;
@@ -1747,13 +1762,13 @@ begin
     begin
       s := ExtractFileName(_FileName);
       Delete(s, Length(s)-3, 4);
-      s := UpperCase(s) + '.WAD:TEXTURES\'+ UpperCase(map.ReadStr('Textures', 'TextureName'+IntToStr(a), ''));
+      s := UpperCase(s) + '.WAD:TEXTURES\'+ UpperCase(win2utf(map.ReadStr('Textures', 'TextureName'+IntToStr(a), '')));
 
       if not g_CreateTextureWAD(s, EditorDir+'wads/'+s) then
         Continue;
     end;
 
-    MainForm.lbTextureList.Items.Add(win2utf(s));
+    MainForm.lbTextureList.Items.Add(s);
   end;
 
 // Чтение панелей:
@@ -1803,7 +1818,7 @@ begin
           begin
             s := ExtractFileName(_FileName);
             Delete(s, Length(s)-3, 4);
-            s := UpperCase(s) + '.WAD:TEXTURES\' + UpperCase(map.ReadStr(section, 'TextureName', ''));
+            s := UpperCase(s) + '.WAD:TEXTURES\' + UpperCase(win2utf(map.ReadStr(section, 'TextureName', '')));
 
             if g_GetTexture(s, panel.TextureID) then
               begin
@@ -1834,10 +1849,9 @@ begin
             end;
         end;
 
-        us := win2utf(s);
         with MainForm.lbTextureList.Items do
-          if IndexOf(us) = -1 then
-            Add(us);
+          if IndexOf(s) = -1 then
+            Add(s);
         panel.TextureName := s;
         panel.TextureWidth := 1;
         panel.TextureHeight := 1;
@@ -1963,8 +1977,8 @@ begin
   begin
     if Items.Count > 0 then
       for a := Items.Count-1 downto 0 do
-        if not IsSpecialTexture(utf2win(Items[a])) then
-          g_DeleteTexture(utf2win(Items[a]));
+        if not IsSpecialTexture(Items[a]) then
+          g_DeleteTexture(Items[a]);
 
     Clear();
   end;
@@ -1980,6 +1994,9 @@ procedure DrawPanels(fPanelType: Word);
     NoTextureID: DWORD;
     NW, NH: Word;
   begin
+    NoTextureID := 0;
+    NW := 0;
+    NH := 0;
     with gPanels[a] do
     begin
       case TextureID of
@@ -2091,6 +2108,7 @@ var
   r: TRectWH;
 
 begin
+  ID := 0;
 // В режиме Превью рисуем небо:
   if PreviewMode then
   begin

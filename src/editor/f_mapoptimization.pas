@@ -105,7 +105,7 @@ begin
 
     for i := 0 to High(gPanels) do
       if (gPanels[i].PanelType <> 0) and
-         (gPanels[i].TextureName = utf2win(MainForm.lbTextureList.Items[a])) then
+         (gPanels[i].TextureName = MainForm.lbTextureList.Items[a]) then
       begin
         ok := False;
         Break;
@@ -114,7 +114,7 @@ begin
   // Нашли неиспользуемую текстуру:
     if ok then
       begin
-        g_DeleteTexture(utf2win(MainForm.lbTextureList.Items[a]));
+        g_DeleteTexture(MainForm.lbTextureList.Items[a]);
         if not b then
         begin
           mOptimizationResult.Lines.Add(_lc[I_OPT_DELETED_TEXTURES]);
