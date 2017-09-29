@@ -1996,6 +1996,7 @@ var
   MapName: String;
   idx: Integer;
 begin
+  SelectMapForm.Caption := _lc[I_CAP_OPEN];
   SelectMapForm.GetMaps(FileName);
 
   if (FileName = OpenedWAD) and
@@ -4332,6 +4333,7 @@ begin
       if i > 0 then
       begin
         g_ProcessResourceStr(OpenedMap, @FileName, nil, nil);
+        SelectMapForm.Caption := _lc[I_CAP_SELECT];
         SelectMapForm.GetMaps(FileName);
 
         if SelectMapForm.ShowModal() = mrOK then
@@ -5520,6 +5522,7 @@ begin
   else if Key = _lc[I_PROP_TR_NEXT_MAP] then
     begin // Выбор следующей карты:
       g_ProcessResourceStr(OpenedMap, @FileName, nil, nil);
+      SelectMapForm.Caption := _lc[I_CAP_SELECT];
       SelectMapForm.GetMaps(FileName);
 
       if SelectMapForm.ShowModal() = mrOK then
@@ -5885,6 +5888,7 @@ begin
 
   MapList := WAD.GetResourcesList('');
 
+  SelectMapForm.Caption := _lc[I_CAP_REMOVE];
   SelectMapForm.lbMapList.Items.Clear();
 
   if MapList <> nil then

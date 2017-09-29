@@ -412,7 +412,9 @@ Type
     I_CAP_SAVE,
     I_CAP_MINI,
     I_CAP_SELECT,
-    
+    I_CAP_OPEN,
+    I_CAP_REMOVE,
+
     I_CTRL_PROP_KEY,
     I_CTRL_PROP_VALUE,
     I_CTRL_PANELS,
@@ -1423,6 +1425,10 @@ Const
                                        'Сохранить мини-карту'),
     ('CAP SELECT',                     'Select Map',
                                        'Выберите карту'),
+    ('CAP OPEN',                       'Open Map',
+                                       'Открыть карту'),
+    ('CAP REMOVE',                     'Remove Map',
+                                       'Удалить карту'),
 
     ('CTRL PROP KEY',                  'Property',
                                        'Свойство'),
