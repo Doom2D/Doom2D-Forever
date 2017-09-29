@@ -2001,7 +2001,7 @@ procedure DrawPanels(fPanelType: Word);
     begin
       case TextureID of
         TEXTURE_SPECIAL_NONE:
-          if not PreviewMode then
+          if PreviewMode = 0 then
             e_DrawFillQuad(X+MapOffset.X, Y+MapOffset.Y,
                            X+MapOffset.X+Width-1, Y+MapOffset.Y+Height-1,
                            64, 64, 64, 127);
@@ -2015,7 +2015,7 @@ procedure DrawPanels(fPanelType: Word);
           end;
 
         TEXTURE_SPECIAL_WATER:
-          if PreviewMode then
+          if PreviewMode > 0 then
             e_DrawFillQuad(X+MapOffset.X, Y+MapOffset.Y,
                            X+MapOffset.X+Width-1, Y+MapOffset.Y+Height-1,
                            0, 0, 255, 0, B_FILTER)
@@ -2025,7 +2025,7 @@ procedure DrawPanels(fPanelType: Word);
                            0, 0, 255, 127);
 
         TEXTURE_SPECIAL_ACID1:
-          if PreviewMode then
+          if PreviewMode > 0 then
             e_DrawFillQuad(X+MapOffset.X, Y+MapOffset.Y,
                            X+MapOffset.X+Width-1, Y+MapOffset.Y+Height-1,
                            0, 127, 0, 0, B_FILTER)
@@ -2035,7 +2035,7 @@ procedure DrawPanels(fPanelType: Word);
                            0, 255, 0, 127);
 
         TEXTURE_SPECIAL_ACID2:
-          if PreviewMode then
+          if PreviewMode > 0 then
             e_DrawFillQuad(X+MapOffset.X, Y+MapOffset.Y,
                            X+MapOffset.X+Width-1, Y+MapOffset.Y+Height-1,
                            127, 0, 0, 0, B_FILTER)
@@ -2070,27 +2070,27 @@ begin
               DrawTexture(a);
 
             PANEL_LIFTUP:
-              if not PreviewMode then
+              if PreviewMode = 0 then
                 e_DrawFillQuad(X+MapOffset.X, Y+MapOffset.Y,
                                X+MapOffset.X+Width-1, Y+MapOffset.Y+Height-1,
                                128, 64, 0, 0);
             PANEL_LIFTDOWN:
-              if not PreviewMode then
+              if PreviewMode = 0 then
                 e_DrawFillQuad(X+MapOffset.X, Y+MapOffset.Y,
                                X+MapOffset.X+Width-1, Y+MapOffset.Y+Height-1,
                                90, 154, 138, 0);
             PANEL_LIFTLEFT:
-              if not PreviewMode then
+              if PreviewMode = 0 then
                 e_DrawFillQuad(X+MapOffset.X, Y+MapOffset.Y,
                                X+MapOffset.X+Width-1, Y+MapOffset.Y+Height-1,
                                200, 80,  4, 0);
             PANEL_LIFTRIGHT:
-              if not PreviewMode then
+              if PreviewMode = 0 then
                 e_DrawFillQuad(X+MapOffset.X, Y+MapOffset.Y,
                                X+MapOffset.X+Width-1, Y+MapOffset.Y+Height-1,
                                252, 140, 56, 0);
             PANEL_BLOCKMON:
-              if not PreviewMode then
+              if PreviewMode = 0 then
                 e_DrawFillQuad(X+MapOffset.X, Y+MapOffset.Y,
                                X+MapOffset.X+Width-1, Y+MapOffset.Y+Height-1,
                                192, 0, 192, 0);
@@ -2110,7 +2110,7 @@ var
 begin
   ID := 0;
 // В режиме Превью рисуем небо:
-  if PreviewMode then
+  if PreviewMode > 0 then
   begin
     w := Max(MainForm.RenderPanel.Width, MainForm.RenderPanel.Height);
     if MainForm.RenderPanel.Height > MainForm.RenderPanel.Width*3/4 then
@@ -2124,21 +2124,21 @@ begin
   end;
 
 // Рисуем панели (если Превью или если включен слой):
-  if LayerEnabled[LAYER_BACK] or PreviewMode then
+  if LayerEnabled[LAYER_BACK] or (PreviewMode = 1) then
     DrawPanels(PANEL_BACK);
-  if PreviewMode then
+  if PreviewMode > 0 then
     DrawPanels(PANEL_LIFTUP or PANEL_LIFTDOWN or PANEL_LIFTLEFT or PANEL_LIFTRIGHT)
   else
     if LayerEnabled[LAYER_WATER] then
       DrawPanels(PANEL_LIFTUP or PANEL_LIFTDOWN or PANEL_LIFTLEFT or PANEL_LIFTRIGHT or
                  PANEL_OPENDOOR or PANEL_CLOSEDOOR or PANEL_BLOCKMON);
-  if LayerEnabled[LAYER_WALLS] or PreviewMode then
+  if LayerEnabled[LAYER_WALLS] or (PreviewMode = 1) then
     DrawPanels(PANEL_WALL);
-  if LayerEnabled[LAYER_STEPS] or PreviewMode then
+  if LayerEnabled[LAYER_STEPS] or (PreviewMode = 1) then
     DrawPanels(PANEL_STEP);
 
 // Рисуем предметы:
-  if (LayerEnabled[LAYER_ITEMS] or PreviewMode) and
+  if (LayerEnabled[LAYER_ITEMS] or (PreviewMode = 1)) and
      (gItems <> nil) then
     for a := 0 to High(gItems) do
       if gItems[a].ItemType <> ITEM_NONE then
@@ -2191,7 +2191,7 @@ begin
         end;
 
 // Рисуем монстров:
-  if (LayerEnabled[LAYER_MONSTERS] or PreviewMode) and
+  if (LayerEnabled[LAYER_MONSTERS] or (PreviewMode = 1)) and
      (gMonsters <> nil) then
     for a := 0 to High(gMonsters) do
       if gMonsters[a].MonsterType <> MONSTER_NONE then
@@ -2252,7 +2252,7 @@ begin
               end;
 
         // Рамка:
-          if not PreviewMode then
+          if PreviewMode = 0 then
           begin
             e_DrawQuad(MapOffset.X+gMonsters[a].X, MapOffset.Y+gMonsters[a].Y,
                        MapOffset.X+gMonsters[a].X+Width-1, MapOffset.Y+gMonsters[a].Y+Height-1,
@@ -2261,11 +2261,12 @@ begin
         end;
 
 // Рисуем закрытые двери после монстров:
-  if PreviewMode then
+  if ((PreviewMode = 2) and LayerEnabled[LAYER_WATER])
+  or (PreviewMode = 1) then
     DrawPanels(PANEL_CLOSEDOOR);
 
 // Рисуем области:
-  if (LayerEnabled[LAYER_AREAS] or PreviewMode) and
+  if (LayerEnabled[LAYER_AREAS] or (PreviewMode = 1)) and
      (gAreas <> nil) then
     for a := 0 to High(gAreas) do
       if gAreas[a].AreaType <> AREA_NONE then
@@ -2284,7 +2285,7 @@ begin
             AREA_BLUETEAMPOINT: g_GetTexture('AREA_BLUEPOINT', ID);
           end;
 
-          if (not PreviewMode) or
+          if (PreviewMode = 0) or
              (gAreas[a].AreaType = AREA_REDFLAG) or
              (gAreas[a].AreaType = AREA_BLUEFLAG) or
              (gAreas[a].AreaType = AREA_DOMFLAG) then
@@ -2297,7 +2298,7 @@ begin
                        0, True, False);
 
         // Рамка:
-          if not PreviewMode then
+          if PreviewMode = 0 then
           begin
             e_DrawQuad(MapOffset.X+gAreas[a].X, MapOffset.Y+gAreas[a].Y,
                        MapOffset.X+gAreas[a].X+Width-1, MapOffset.Y+gAreas[a].Y+Height-1,
@@ -2308,14 +2309,14 @@ begin
         end;
 
 // Рисуем жидкости и передний план после областей:
-  if LayerEnabled[LAYER_WATER] or PreviewMode then
+  if LayerEnabled[LAYER_WATER] or (PreviewMode = 1) then
     DrawPanels(PANEL_WATER or PANEL_ACID1 or PANEL_ACID2);
-  if LayerEnabled[LAYER_FOREGROUND] or PreviewMode then
+  if LayerEnabled[LAYER_FOREGROUND] or (PreviewMode = 1) then
     DrawPanels(PANEL_FORE);
 
 // Рисуем триггеры:
   if LayerEnabled[LAYER_TRIGGERS] and
-     (not PreviewMode) and (gTriggers <> nil) then
+     (PreviewMode = 0) and (gTriggers <> nil) then
     for a := 0 to High(gTriggers) do
       with gTriggers[a] do
         if TriggerType <> TRIGGER_NONE then
@@ -2648,7 +2649,7 @@ begin
         end;
 
 // Границы карты:
-  if not PreviewMode then
+  if PreviewMode = 0 then
   begin
     e_DrawFillQuad(-32+MapOffset.X,
                    -32+MapOffset.Y,

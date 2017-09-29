@@ -311,7 +311,7 @@ var
 
   LayerEnabled: Array [LAYER_BACK..LAYER_TRIGGERS] of Boolean =
     (True, True, True, True, True, True, True, True, True);
-  PreviewMode: Boolean = False;
+  PreviewMode: Byte = 0;
   gLanguage: String;
 
   FormCaption: String;
@@ -2773,7 +2773,7 @@ begin
   end;
 
 // Рисуем сетку:
-  if DotEnable and (not PreviewMode) then
+  if DotEnable and (PreviewMode = 0) then
   begin
     if DotSize = 2 then
       a := -1
@@ -2790,7 +2790,7 @@ begin
 
 // Превью текстуры:
   if (lbTextureList.ItemIndex <> -1) and (cbPreview.Checked) and
-     (not IsSpecialTextureSel()) and (not PreviewMode) then
+     (not IsSpecialTextureSel()) and (PreviewMode = 0) then
   begin
     if not g_GetTexture(SelectedTexture(), ID) then
       g_GetTexture('NOTEXTURE', ID);
@@ -4203,6 +4203,13 @@ begin
 
     if not (ssCtrl in Shift) then
     begin
+    // Быстрое превью карты:
+      if Key = Ord('E') then
+      begin
+        if PreviewMode = 0 then
+          PreviewMode := 2;
+      end;
+
     // Вертикальный скролл карты:
       with sbVertical do
       begin
@@ -6170,7 +6177,10 @@ end;
 
 procedure TMainForm.miMapPreviewClick(Sender: TObject);
 begin
-  if not PreviewMode then
+  if PreviewMode = 2 then
+    Exit;
+
+  if PreviewMode = 0 then
     begin
       Splitter2.Visible := False;
       Splitter1.Visible := False;
@@ -6193,8 +6203,8 @@ begin
       sbVertical.Visible := True;
     end;
 
-  PreviewMode := not PreviewMode;
-  (Sender as TMenuItem).Checked := PreviewMode;
+  PreviewMode := PreviewMode xor 1;
+  (Sender as TMenuItem).Checked := PreviewMode > 0;
 
   FormResize(Self);
 end;
@@ -6496,6 +6506,12 @@ begin
        (Key = VK_NUMPAD5) or
        (Key = Ord('V')) then
       FillProperty();
+  end;
+// Быстрое превью карты:
+  if Key = Ord('E') then
+  begin
+    if PreviewMode = 2 then
+      PreviewMode := 0;
   end;
 end;
 
