@@ -5,7 +5,7 @@ object MapTestForm: TMapTestForm
   Width = 367
   BorderIcons = [biSystemMenu]
   BorderStyle = bsSingle
-  Caption = 'Настройки теста карты в D2D:F'
+  Caption = 'Настройки теста в игре'
   ClientHeight = 270
   ClientWidth = 367
   Color = clBtnFace
@@ -224,7 +224,7 @@ object MapTestForm: TMapTestForm
     end
   end
   object FindD2dDialog: TOpenDialog
-    Title = 'Выберите файл игры Doom 2D:Forever'
+    Title = 'Выберите файл игры Doom 2D: Forever'
     DefaultExt = '.exe'
     Filter = 'Doom2DF.exe|Doom2DF.exe'
     Options = [ofHideReadOnly, ofNoChangeDir, ofEnableSizing]
