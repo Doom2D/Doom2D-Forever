@@ -3,6 +3,7 @@ object MainForm: TMainForm
   Height = 480
   Top = 255
   Width = 672
+  AllowDropFiles = True
   Caption = '2'
   ClientHeight = 460
   ClientWidth = 672
@@ -18,6 +19,7 @@ object MainForm: TMainForm
   OnCloseQuery = FormCloseQuery
   OnCreate = FormCreate
   OnDestroy = FormDestroy
+  OnDropFiles = FormDropFiles
   OnKeyDown = FormKeyDown
   OnKeyUp = FormKeyUp
   OnResize = FormResize

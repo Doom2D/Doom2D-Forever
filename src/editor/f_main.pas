@@ -204,6 +204,7 @@ type
     procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
+    procedure FormDropFiles(Sender: TObject; const FileNames: array of String);
     procedure FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
     procedure FormResize(Sender: TObject);
     procedure lbTextureListClick(Sender: TObject);
@@ -262,6 +263,7 @@ type
     procedure OnIdle(Sender: TObject; var Done: Boolean);
   public
     procedure RefreshRecentMenu();
+    procedure OpenMapFile(FileName: String);
   end;
 
 const
@@ -4111,6 +4113,15 @@ begin
   slInvalidTextures.Free;
 end;
 
+procedure TMainForm.FormDropFiles(Sender: TObject;
+  const FileNames: array of String);
+begin
+  if Length(FileNames) <> 1 then
+    Exit;
+
+  OpenMapFile(FileNames[0]);
+end;
+
 procedure TMainForm.RenderPanelResize(Sender: TObject);
 begin
   if MainForm.Visible then
@@ -5841,31 +5852,35 @@ begin
 
   if OpenDialog.Execute() then
   begin
-    if (Pos('.ini', LowerCase(ExtractFileName(OpenDialog.FileName))) > 0) then
-      begin // INI карты:
-        FullClear();
-
-        pLoadProgress.Left := (RenderPanel.Width div 2)-(pLoadProgress.Width div 2);
-        pLoadProgress.Top := (RenderPanel.Height div 2)-(pLoadProgress.Height div 2);
-        pLoadProgress.Show();
-
-        OpenedMap := '';
-        OpenedWAD := '';
-
-        LoadMapOld(OpenDialog.FileName);
-
-        MainForm.Caption := Format('%s - %s', [FormCaption, ExtractFileName(OpenDialog.FileName)]);
-
-        pLoadProgress.Hide();
-        MainForm.FormResize(Self);
-      end
-    else // Карты из WAD:
-      begin
-        OpenMap(OpenDialog.FileName, '');
-      end;
-
+    OpenMapFile(OpenDialog.FileName);
     OpenDialog.InitialDir := ExtractFileDir(OpenDialog.FileName);
   end;
+end;
+
+procedure TMainForm.OpenMapFile(FileName: String);
+begin
+  if (Pos('.ini', LowerCase(ExtractFileName(FileName))) > 0) then
+    begin // INI карты:
+      FullClear();
+
+      pLoadProgress.Left := (RenderPanel.Width div 2)-(pLoadProgress.Width div 2);
+      pLoadProgress.Top := (RenderPanel.Height div 2)-(pLoadProgress.Height div 2);
+      pLoadProgress.Show();
+
+      OpenedMap := '';
+      OpenedWAD := '';
+
+      LoadMapOld(FileName);
+
+      MainForm.Caption := Format('%s - %s', [FormCaption, ExtractFileName(FileName)]);
+
+      pLoadProgress.Hide();
+      MainForm.FormResize(Self);
+    end
+  else // Карты из WAD:
+    begin
+      OpenMap(FileName, '');
+    end;
 end;
 
 procedure TMainForm.FormActivate(Sender: TObject);
