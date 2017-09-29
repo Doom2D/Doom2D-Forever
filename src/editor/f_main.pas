@@ -435,6 +435,7 @@ var
   MouseRDown: Boolean;
   MouseLDownPos: Types.TPoint;
   MouseRDownPos: Types.TPoint;
+  WASDOffset: TPoint;
 
   SelectFlag: Byte = SELECTFLAG_NONE;
   MouseAction: Byte = MOUSEACTION_NONE;
@@ -3982,8 +3983,10 @@ begin
       if MouseAction = MOUSEACTION_MOVEOBJ then
         begin
           MoveSelectedObjects(ssShift in Shift, ssCtrl in Shift,
-                              MousePos.X-LastMovePoint.X,
-                              MousePos.Y-LastMovePoint.Y);
+                              MousePos.X-LastMovePoint.X+WASDOffset.X,
+                              MousePos.Y-LastMovePoint.Y+WASDOffset.Y);
+          WASDOffset.X := 0;
+          WASDOffset.Y := 0;
         end
       else
       // Меняем размер выделенного объекта:
@@ -3992,8 +3995,10 @@ begin
           if (SelectedObjectCount = 1) and
              (SelectedObjects[GetFirstSelected].Live) then
           begin
-            dWidth := MousePos.X-LastMovePoint.X;
-            dHeight := MousePos.Y-LastMovePoint.Y;
+            dWidth := MousePos.X-LastMovePoint.X+WASDOffset.X;
+            dHeight := MousePos.Y-LastMovePoint.Y+WASDOffset.Y;
+            WASDOffset.X := 0;
+            WASDOffset.Y := 0;
 
             case ResizeType of
               RESIZETYPE_VERTICAL: dWidth := 0;
@@ -4215,12 +4220,22 @@ begin
       begin
         if Key = Ord('W') then
         begin
+          if (MouseLDown or MouseRDown) and (Position >= DotStep) then
+          begin
+            Dec(WASDOffset.Y, DotStep);
+            RenderPanelMouseMove(Sender, Shift, LastMovePoint.X, LastMovePoint.Y);
+          end;
           Position := IfThen(Position > DotStep, Position-DotStep, 0);
           MapOffset.Y := -Round(Position/16) * 16;
         end;
 
         if Key = Ord('S') then
         begin
+          if (MouseLDown or MouseRDown) and (Position+DotStep <= Max) then
+          begin
+            Inc(WASDOffset.Y, DotStep);
+            RenderPanelMouseMove(Sender, Shift, LastMovePoint.X, LastMovePoint.Y);
+          end;
           Position := IfThen(Position+DotStep < Max, Position+DotStep, Max);
           MapOffset.Y := -Round(Position/16) * 16;
         end;
@@ -4231,12 +4246,22 @@ begin
       begin
         if Key = Ord('A') then
         begin
+          if (MouseLDown or MouseRDown) and (Position >= DotStep) then
+          begin
+            Dec(WASDOffset.X, DotStep);
+            RenderPanelMouseMove(Sender, Shift, LastMovePoint.X, LastMovePoint.Y);
+          end;
           Position := IfThen(Position > DotStep, Position-DotStep, 0);
           MapOffset.X := -Round(Position/16) * 16;
         end;
 
         if Key = Ord('D') then
         begin
+          if (MouseLDown or MouseRDown) and (Position+DotStep <= Max) then
+          begin
+            Inc(WASDOffset.X, DotStep);
+            RenderPanelMouseMove(Sender, Shift, LastMovePoint.X, LastMovePoint.Y);
+          end;
           Position := IfThen(Position+DotStep < Max, Position+DotStep, Max);
           MapOffset.X := -Round(Position/16) * 16;
         end;
