@@ -295,6 +295,7 @@ var
   DrawPanelSize: Boolean;
   BackColor: TColor;
   PreviewColor: TColor;
+  UseCheckerboard: Boolean;
   Scale: Byte;
   RecentCount: Integer;
   RecentFiles: TStringList;
@@ -2655,6 +2656,7 @@ begin
   DrawPanelSize := config.ReadBool('Editor', 'DrawPanelSize', True);
   BackColor := config.ReadInt('Editor', 'BackColor', $7F6040);
   PreviewColor := config.ReadInt('Editor', 'PreviewColor', $00FF00);
+  UseCheckerboard := config.ReadBool('Editor', 'UseCheckerboard', True);
   gColorEdge := config.ReadInt('Editor', 'EdgeColor', COLOR_EDGE);
   gAlphaEdge := config.ReadInt('Editor', 'EdgeAlpha', ALPHA_EDGE);
   if gAlphaEdge = 255 then
@@ -2798,8 +2800,14 @@ begin
     if not g_GetTexture(SelectedTexture(), ID) then
       g_GetTexture('NOTEXTURE', ID);
     g_GetTextureSizeByID(ID, Width, Height);
-    if g_GetTexture('PREVIEW', PID) then
-       e_DrawFill(PID, RenderPanel.Width-Width, RenderPanel.Height-Height, Width div 16 + 1, Height div 16 + 1, 0, True, False);
+    if UseCheckerboard then
+    begin
+      if g_GetTexture('PREVIEW', PID) then
+        e_DrawFill(PID, RenderPanel.Width-Width, RenderPanel.Height-Height, Width div 16 + 1, Height div 16 + 1, 0, True, False);
+    end else
+      e_DrawFillQuad(RenderPanel.Width-Width-2, RenderPanel.Height-Height-2,
+                     RenderPanel.Width-1, RenderPanel.Height-1,
+                     GetRValue(PreviewColor), GetGValue(PreviewColor), GetBValue(PreviewColor), 0);
     e_Draw(ID, RenderPanel.Width-Width, RenderPanel.Height-Height, 0, True, False);
   end;
 

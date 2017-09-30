@@ -13,6 +13,7 @@ type
   TOptionsForm = class (TForm)
     bOK: TButton;
     bCancel: TButton;
+    cbCheckerboard: TCheckBox;
     ColorDialog: TColorDialog;
     GroupBox1: TGroupBox;
   // Общие настройки:
@@ -115,6 +116,7 @@ begin
   eDotStepTwo.Text := IntToStr(DotStepTwo);
   sBackColor.Brush.Color := BackColor;
   sPreviewColor.Brush.Color := PreviewColor;
+  cbCheckerboard.Checked := UseCheckerboard;
   if Scale = 2 then
     cbScale.ItemIndex := 1
   else
@@ -184,6 +186,7 @@ begin
   DrawPanelSize := cbShowSize.Checked;
   BackColor := sBackColor.Brush.Color;
   PreviewColor := sPreviewColor.Brush.Color;
+  UseCheckerboard := cbCheckerboard.Checked;
 
   if cbScale.ItemIndex = 1 then
     Scale := 2
@@ -207,6 +210,7 @@ begin
   config.WriteBool('Editor', 'DrawPanelSize', DrawPanelSize);
   config.WriteInt('Editor', 'BackColor', BackColor);
   config.WriteInt('Editor', 'PreviewColor', PreviewColor);
+  config.WriteBool('Editor', 'UseCheckerboard', UseCheckerboard);
   config.WriteInt('Editor', 'Scale', cbScale.ItemIndex);
   config.WriteInt('Editor', 'RecentCount', re);
   config.WriteStr('Editor', 'Language', gLanguage);

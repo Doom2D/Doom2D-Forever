@@ -483,6 +483,7 @@ Type
     I_CTRL_ES_GRID,
     I_CTRL_ES_TEXTURE,
     I_CTRL_ES_PANEL_SIZE,
+    I_CTRL_ES_CHECKERBOARD,
 
     I_CTRL_PACK_TEXTURES,
     I_CTRL_PACK_SKY,
@@ -1558,6 +1559,8 @@ Const
                                        'Показывать текстуру панели'),
     ('CTRL ES PANEL SIZE',             'Show Panel Size',
                                        'Показывать размеры панели '),
+    ('CTRL ES CHECKERBOARD',           'Use Checkerboard',
+                                       'Использовать шахматку'),
 
     ('CTRL PACK TEXTURES',             'Textures',
                                        'Текстуры'),
@@ -2303,6 +2306,7 @@ begin
     cbShowDots.Caption := _lc[I_CTRL_ES_GRID];
     cbShowTexture.Caption := _lc[I_CTRL_ES_TEXTURE];
     cbShowSize.Caption := _lc[I_CTRL_ES_PANEL_SIZE];
+    cbCheckerboard.Caption := _lc[I_CTRL_ES_CHECKERBOARD];
     LabelGrid.Caption := _lc[I_LAB_ES_GRID];
     LabelGridCol.Caption := _lc[I_LAB_ES_GRID_COLOR];
     LabelBack.Caption := _lc[I_LAB_ES_BACK];

@@ -79,7 +79,7 @@ object OptionsForm: TOptionsForm
     object LabelMinimap: TLabel
       Left = 190
       Height = 13
-      Top = 131
+      Top = 129
       Width = 112
       Caption = 'Масштаб мини-карты:'
       ParentColor = False
@@ -163,12 +163,12 @@ object OptionsForm: TOptionsForm
       Width = 11
       Caption = '..'
       OnClick = bPreviewClick
-      TabOrder = 12
+      TabOrder = 13
     end
     object cbScale: TComboBox
       Left = 344
       Height = 21
-      Top = 131
+      Top = 129
       Width = 70
       ItemHeight = 13
       ItemIndex = 0
@@ -177,7 +177,7 @@ object OptionsForm: TOptionsForm
         '2x'
       )
       Style = csDropDownList
-      TabOrder = 13
+      TabOrder = 14
       Text = '1x'
     end
     object cbShowTexture: TCheckBox
@@ -199,21 +199,21 @@ object OptionsForm: TOptionsForm
     object eRecent: TEdit
       Left = 344
       Height = 21
-      Top = 184
+      Top = 180
       Width = 57
-      TabOrder = 14
+      TabOrder = 15
       Text = '5'
     end
     object UpDown3: TUpDown
       Left = 401
       Height = 21
-      Top = 184
+      Top = 180
       Width = 12
       Associate = eRecent
       Max = 10
       Min = 2
       Position = 5
-      TabOrder = 15
+      TabOrder = 16
       Wrap = False
     end
     object eDotStepTwo: TEdit
@@ -267,6 +267,16 @@ object OptionsForm: TOptionsForm
       )
       TabOrder = 7
       Text = '1'
+    end
+    object cbCheckerboard: TCheckBox
+      Left = 190
+      Height = 17
+      Top = 94
+      Width = 145
+      Caption = 'Использовать шахматку'
+      Checked = True
+      State = cbChecked
+      TabOrder = 12
     end
   end
   object bOK: TButton

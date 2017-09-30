@@ -241,7 +241,7 @@ function CreateBitMap(Data: Pointer; DataSize: Cardinal): TBitMap;
 var
   img:        TImageData;
   clr:        TColor32Rec;
-  bgc:        Byte;
+  bgc:        TColor32Rec;
   ii:         PByte;
   Width,
   Height:     Integer;
@@ -274,13 +274,22 @@ begin
       // HACK: Lazarus's TBitMap doesn't seem to have a working 32 bit mode, so
       //       mix color with checkered background. Also, can't really read
       //       CHECKERS.tga from here. FUCK!
-      if (((x shr 3) and 1) = 0) xor (((y shr 3) and 1) = 0) then
-        bgc := 255
+      if UseCheckerboard then
+        begin
+          if (((x shr 3) and 1) = 0) xor (((y shr 3) and 1) = 0) then
+            bgc.Color := $FDFDFD
+          else
+            bgc.Color := $CBCBCB;
+        end
       else
-        bgc := 200;
-      clr.r := ClampToByte((Byte(255 - clr.a) * bgc + clr.a * clr.r) div 255);
-      clr.g := ClampToByte((Byte(255 - clr.a) * bgc + clr.a * clr.g) div 255);
-      clr.b := ClampToByte((Byte(255 - clr.a) * bgc + clr.a * clr.b) div 255);
+        begin
+          bgc.r := GetRValue(PreviewColor);
+          bgc.g := GetGValue(PreviewColor);
+          bgc.b := GetBValue(PreviewColor);
+        end;
+      clr.r := ClampToByte((Byte(255 - clr.a) * bgc.r + clr.a * clr.r) div 255);
+      clr.g := ClampToByte((Byte(255 - clr.a) * bgc.g + clr.a * clr.g) div 255);
+      clr.b := ClampToByte((Byte(255 - clr.a) * bgc.b + clr.a * clr.b) div 255);
       // TODO: check for RGB/BGR somehow?
       ii^ := clr.b; Inc(ii);
       ii^ := clr.g; Inc(ii);
