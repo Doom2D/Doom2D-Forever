@@ -65,13 +65,15 @@ object MainForm: TMainForm
       Top = 2
       Width = 145
       Align = alClient
+      AutoAdvance = aaNone
       Constraints.MinWidth = 145
       DefaultColWidth = 60
-      DefaultRowHeight = 16
-      FixedCols = 0
+      DefaultRowHeight = 20
+      Flat = True
       Font.Color = clWindowText
       Font.Height = -12
       Font.Name = 'MS Sans Serif'
+      MouseWheelOption = mwGrid
       ParentFont = False
       RowCount = 2
       ScrollBars = ssAutoVertical
@@ -85,6 +87,7 @@ object MainForm: TMainForm
       OnKeyDown = vleObjectPropertyKeyDown
       DisplayOptions = [doColumnTitles, doAutoColResize]
       DropDownRows = 11
+      Options = [goFixedVertLine, goFixedHorzLine, goVertLine, goHorzLine, goEditing, goAlwaysShowEditor, goThumbTracking]
       Strings.Strings = (
         ''
       )
@@ -94,8 +97,8 @@ object MainForm: TMainForm
       )
       OnGetPickList = vleObjectPropertyGetPickList
       ColWidths = (
-        70
-        71
+        72
+        72
       )
     end
     object PanelPropApply: TPanel
