@@ -2076,8 +2076,12 @@ end;
 
 
 procedure TUITopWindow.flFitToScreen ();
+var
+  nsz: TLaySize;
 begin
-  flMaxSize := TLaySize.Create(trunc(gxScreenWidth/gh_ui_scale)-mFrameWidth*2-6, trunc(gxScreenHeight/gh_ui_scale)-mFrameHeight*2-6);
+  nsz := TLaySize.Create(trunc(gxScreenWidth/gh_ui_scale)-mFrameWidth*2-6, trunc(gxScreenHeight/gh_ui_scale)-mFrameHeight*2-6);
+  if (mMaxSize.w < 1) then mMaxSize.w := nsz.w;
+  if (mMaxSize.h < 1) then mMaxSize.h := nsz.h;
 end;
 
 
