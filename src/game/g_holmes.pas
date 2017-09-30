@@ -326,7 +326,6 @@ begin
 
   //winHelp.appendChild(llb);
 
-  winHelp.flMaxSize := TLaySize.Create(trunc(getScrWdt/gh_ui_scale), trunc(getScrHgt/gh_ui_scale));
   uiLayoutCtl(winHelp);
   winHelp.centerInScreen();
 end;
@@ -363,6 +362,7 @@ var
   box: TUIVBox;
 begin
   winLayers := TUITopWindow.Create('layers');
+  winLayers.flHoriz := false;
   winLayers.x0 := 10;
   winLayers.y0 := 10;
   winLayers.flHoriz := false;
@@ -380,7 +380,6 @@ begin
     addCheckBox(box, '~foreground', @g_rlayer_fore);
   winLayers.appendChild(box);
 
-  winLayers.flMaxSize := TLaySize.Create(trunc(getScrWdt/gh_ui_scale), trunc(getScrHgt/gh_ui_scale));
   uiLayoutCtl(winLayers);
 end;
 
@@ -390,6 +389,7 @@ var
   box: TUIVBox;
 begin
   winOutlines := TUITopWindow.Create('outlines');
+  winOutlines.flHoriz := false;
   winOutlines.x0 := 100;
   winOutlines.y0 := 30;
   winOutlines.flHoriz := false;
@@ -416,7 +416,6 @@ begin
     addCheckBox(box, 'con~tours', @g_ol_nice);
   winOutlines.appendChild(box);
 
-  winOutlines.flMaxSize := TLaySize.Create(trunc(getScrWdt/gh_ui_scale), trunc(getScrHgt/gh_ui_scale));
   uiLayoutCtl(winOutlines);
 end;
 
@@ -427,6 +426,7 @@ var
   span: TUISpan;
 begin
   winOptions := TUITopWindow.Create('Holmes Options');
+  winOptions.flHoriz := false;
   winOptions.flHoriz := false;
   winOptions.escClose := true;
 
@@ -454,7 +454,6 @@ begin
     addButton(box, '~outline', toggleOutlineWindowCB);
   winOptions.appendChild(box);
 
-  winOptions.flMaxSize := TLaySize.Create(trunc(getScrWdt/gh_ui_scale), trunc(getScrHgt/gh_ui_scale));
   uiLayoutCtl(winOptions);
   winOptions.centerInScreen();
 end;

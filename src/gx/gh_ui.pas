@@ -287,6 +287,7 @@ type
     mInClose: Boolean;
     mFreeOnClose: Boolean; // default: false
     mDoCenter: Boolean; // after layouting
+    mFitToScreen: Boolean;
 
   protected
     procedure activated (); override;
@@ -302,6 +303,8 @@ type
 
     function parseProperty (const prname: AnsiString; par: TTextParser): Boolean; override;
 
+    procedure flFitToScreen (); // call this before layouting
+
     procedure centerInScreen ();
 
     // `sx` and `sy` are screen coordinates
@@ -313,6 +316,7 @@ type
 
   public
     property freeOnClose: Boolean read mFreeOnClose write mFreeOnClose;
+    property fitToScreen: Boolean read mFitToScreen write mFitToScreen;
   end;
 
   // ////////////////////////////////////////////////////////////////////// //
@@ -436,6 +440,8 @@ type
 
     function parseProperty (const prname: AnsiString; par: TTextParser): Boolean; override;
 
+    procedure doAction (); override;
+
     procedure drawControl (gx, gy: Integer); override;
 
     procedure mouseEvent (var ev: THMouseEvent); override;
@@ -459,7 +465,6 @@ type
 
     procedure mouseEvent (var ev: THMouseEvent); override;
     procedure keyEvent (var ev: THKeyEvent); override;
-    procedure keyEventPost (var ev: THKeyEvent); override;
   end;
 
   // ////////////////////////////////////////////////////////////////////// //
@@ -488,7 +493,6 @@ type
 
     procedure mouseEvent (var ev: THMouseEvent); override;
     procedure keyEvent (var ev: THKeyEvent); override;
-    procedure keyEventPost (var ev: THKeyEvent); override;
 
     procedure setVar (pvar: PBoolean);
 
@@ -638,6 +642,8 @@ begin
   if (ctl = nil) then exit;
   lay := TFlexLayouter.Create();
   try
+    if (ctl is TUITopWindow) and (TUITopWindow(ctl).fitToScreen) then TUITopWindow(ctl).flFitToScreen();
+
     lay.setup(ctl);
     //lay.layout();
 
@@ -2023,6 +2029,7 @@ end;
 procedure TUITopWindow.AfterConstruction ();
 begin
   inherited;
+  mFitToScreen := true;
   mFrameWidth := 8;
   mFrameHeight := 8;
   if (mWidth < mFrameWidth*2+3*8) then mWidth := mFrameWidth*2+3*8;
@@ -2065,6 +2072,12 @@ begin
   end;
   if (parseOrientation(prname, par)) then begin result := true; exit; end;
   result := inherited parseProperty(prname, par);
+end;
+
+
+procedure TUITopWindow.flFitToScreen ();
+begin
+  flMaxSize := TLaySize.Create(trunc(getScrWdt/gh_ui_scale)-mFrameWidth*2-6, trunc(getScrHgt/gh_ui_scale)-mFrameHeight*2-6);
 end;
 
 
@@ -2756,20 +2769,35 @@ begin
 end;
 
 
-procedure TUITextLabel.keyEventPost (var ev: THKeyEvent);
+procedure TUITextLabel.doAction ();
 var
   ctl: TUIControl;
 begin
-  if (not enabled) then exit;
-  if (mHotChar = #0) or (Length(mLinkId) = 0) then exit;
-  if (ev.eaten) or (ev.cancelled) or (not ev.press) then exit;
-  if (not ev.isHot(mHotChar)) then exit;
-  ctl := topLevel[mLinkId];
-  if (ctl <> nil) then
+  if (assigned(actionCB)) then
   begin
-    ev.eat();
-    if (ctl.canFocus) then ctl.focused := true;
+    actionCB(self);
+  end
+  else
+  begin
+    ctl := topLevel[mLinkId];
+    if (ctl <> nil) then
+    begin
+      if (ctl.canFocus) then ctl.focused := true;
+    end;
   end;
+end;
+
+
+procedure TUITextLabel.keyEventPost (var ev: THKeyEvent);
+begin
+  if (not enabled) then exit;
+  if (mHotChar = #0) then exit;
+  if (ev.eaten) or (ev.cancelled) or (not ev.press) then exit;
+  if (ev.kstate <> ev.ModAlt) then exit;
+  if (not ev.isHot(mHotChar)) then exit;
+  ev.eat();
+  if (canFocus) then focused := true;
+  doAction();
 end;
 
 
@@ -2852,19 +2880,6 @@ begin
       exit;
     end;
   end;
-end;
-
-
-procedure TUIButton.keyEventPost (var ev: THKeyEvent);
-begin
-  if (not enabled) then exit;
-  if (mHotChar = #0) then exit;
-  if (ev.eaten) or (ev.cancelled) or (not ev.press) then exit;
-  if (not ev.isHot(mHotChar)) then exit;
-  if (not canFocus) then exit;
-  ev.eat();
-  focused := true;
-  doAction();
 end;
 
 
@@ -3003,19 +3018,6 @@ begin
       exit;
     end;
   end;
-end;
-
-
-procedure TUISwitchBox.keyEventPost (var ev: THKeyEvent);
-begin
-  if (not enabled) then exit;
-  if (mHotChar = #0) then exit;
-  if (ev.eaten) or (ev.cancelled) or (not ev.press) then exit;
-  if (not ev.isHot(mHotChar)) then exit;
-  if (not canFocus) then exit;
-  ev.eat();
-  focused := true;
-  doAction();
 end;
 
 
