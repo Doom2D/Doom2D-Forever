@@ -203,6 +203,9 @@ function getMouseY (): Integer; inline;
 function getButState (): Word; inline;
 function getModState (): Word; inline;
 
+function gxScreenWidth (): Integer; inline;
+function gxScreenHeight (): Integer; inline;
+
 
 // ////////////////////////////////////////////////////////////////////////// //
 property
@@ -234,6 +237,11 @@ var
   curModState: Word = 0;
   curMsX: Integer = 0;
   curMsY: Integer = 0;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
+function gxScreenWidth (): Integer; inline; begin result := gScrWidth; end;
+function gxScreenHeight (): Integer; inline; begin result := gScrHeight; end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
