@@ -266,6 +266,7 @@ type
   public
     procedure RefreshRecentMenu();
     procedure OpenMapFile(FileName: String);
+    function RenderMousePos(): TPoint;
   end;
 
 const
@@ -3962,6 +3963,11 @@ begin
   Draw();
 end;
 
+function TMainForm.RenderMousePos(): Types.TPoint;
+begin
+  Result := RenderPanel.ScreenToClient(Mouse.CursorPos);
+end;
+
 procedure TMainForm.RenderPanelMouseMove(Sender: TObject;
   Shift: TShiftState; X, Y: Integer);
 var
@@ -4293,7 +4299,7 @@ begin
           if (MouseLDown or MouseRDown) and (Position >= DotStep) then
           begin
             Dec(WASDOffset.Y, DotStep);
-            RenderPanelMouseMove(Sender, Shift, LastMovePoint.X, LastMovePoint.Y);
+            RenderPanelMouseMove(Sender, Shift, RenderMousePos().X, RenderMousePos().Y);
           end;
           Position := IfThen(Position > DotStep, Position-DotStep, 0);
           MapOffset.Y := -Round(Position/16) * 16;
@@ -4304,7 +4310,7 @@ begin
           if (MouseLDown or MouseRDown) and (Position+DotStep <= Max) then
           begin
             Inc(WASDOffset.Y, DotStep);
-            RenderPanelMouseMove(Sender, Shift, LastMovePoint.X, LastMovePoint.Y);
+            RenderPanelMouseMove(Sender, Shift, RenderMousePos().X, RenderMousePos().Y);
           end;
           Position := IfThen(Position+DotStep < Max, Position+DotStep, Max);
           MapOffset.Y := -Round(Position/16) * 16;
@@ -4319,7 +4325,7 @@ begin
           if (MouseLDown or MouseRDown) and (Position >= DotStep) then
           begin
             Dec(WASDOffset.X, DotStep);
-            RenderPanelMouseMove(Sender, Shift, LastMovePoint.X, LastMovePoint.Y);
+            RenderPanelMouseMove(Sender, Shift, RenderMousePos().X, RenderMousePos().Y);
           end;
           Position := IfThen(Position > DotStep, Position-DotStep, 0);
           MapOffset.X := -Round(Position/16) * 16;
@@ -4330,7 +4336,7 @@ begin
           if (MouseLDown or MouseRDown) and (Position+DotStep <= Max) then
           begin
             Inc(WASDOffset.X, DotStep);
-            RenderPanelMouseMove(Sender, Shift, LastMovePoint.X, LastMovePoint.Y);
+            RenderPanelMouseMove(Sender, Shift, RenderMousePos().X, RenderMousePos().Y);
           end;
           Position := IfThen(Position+DotStep < Max, Position+DotStep, Max);
           MapOffset.X := -Round(Position/16) * 16;
