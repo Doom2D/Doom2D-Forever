@@ -2948,8 +2948,9 @@ begin
       g_GetTexture('NOTEXTURE', ID);
     g_GetTextureSizeByID(ID, Width, Height);
     with DrawRect^ do
-      e_DrawFill(ID, Min(Left, Right), Min(Top, Bottom), Abs(Right-Left) div Width,
-                 Abs(Bottom-Top) div Height, 0, True, False);
+      if (Abs(Right-Left) >= Width) and (Abs(Bottom-Top) >= Height) then
+        e_DrawFill(ID, Min(Left, Right), Min(Top, Bottom), Abs(Right-Left) div Width,
+                   Abs(Bottom-Top) div Height, 64, True, False);
   end;
 
 // Прямоугольник выделения:
@@ -2958,7 +2959,8 @@ begin
       e_DrawQuad(Left, Top, Right-1, Bottom-1, 255, 255, 255);
 
 // Чертим мышью панель/триггер или меняем мышью их размер:
-  if (MouseAction in [MOUSEACTION_DRAWPANEL, MOUSEACTION_DRAWTRIGGER, MOUSEACTION_RESIZE]) and
+  if (((MouseAction in [MOUSEACTION_DRAWPANEL, MOUSEACTION_DRAWTRIGGER]) and
+     not(ssCtrl in GetKeyShiftState())) or (MouseAction = MOUSEACTION_RESIZE)) and
      (DrawPanelSize) then
   begin
     e_DrawFillQuad(MousePos.X, MousePos.Y, MousePos.X+88, MousePos.Y+33, 192, 192, 192, 127);
@@ -2968,7 +2970,7 @@ begin
       begin // Чертим новый
         PrintBlack(MousePos.X+2, MousePos.Y+2, Format(_glc[I_HINT_WIDTH],
                           [Abs(MousePos.X-MouseLDownPos.X)]), gEditorFont);
-        PrintBlack(MousePos.X+2, MousePos.Y+14, Format(_glc[I_HINT_HEIGHT],
+        PrintBlack(MousePos.X+2, MousePos.Y+16, Format(_glc[I_HINT_HEIGHT],
                           [Abs(MousePos.Y-MouseLDownPos.Y)]), gEditorFont);
       end
     else // Растягиваем существующий
@@ -2987,7 +2989,7 @@ begin
 
         PrintBlack(MousePos.X+2, MousePos.Y+2, Format(_glc[I_HINT_WIDTH], [Width]),
                           gEditorFont);
-        PrintBlack(MousePos.X+2, MousePos.Y+14, Format(_glc[I_HINT_HEIGHT], [Height]),
+        PrintBlack(MousePos.X+2, MousePos.Y+16, Format(_glc[I_HINT_HEIGHT], [Height]),
                           gEditorFont);
       end;
   end;
@@ -3611,6 +3613,8 @@ var
   IDArray: DWArray;
   rRect: TRectWH;
   rSelectRect: Boolean;
+  wWidth, wHeight: Word;
+  TextureID: DWORD;
 begin
   if Button = mbLeft then
     MouseLDown := False;
@@ -3619,14 +3623,18 @@ begin
 
   DrawRect := nil;
   ResizeType := RESIZETYPE_NONE;
+  TextureID := 0;
 
   if Button = mbLeft then // Left Mouse Button
     begin
       if MouseAction <> MOUSEACTION_NONE then
       begin // Было действие мышью
-      // Мышь сдвинулась во время удержания клавиши:
-        if (MousePos.X <> MouseLDownPos.X) and
-           (MousePos.Y <> MouseLDownPos.Y) then
+      // Мышь сдвинулась во время удержания клавиши,
+      // либо активирован режим быстрого рисования:
+        if ((MousePos.X <> MouseLDownPos.X) and
+           (MousePos.Y <> MouseLDownPos.Y)) or
+           ((MouseAction in [MOUSEACTION_DRAWPANEL, MOUSEACTION_DRAWTRIGGER]) and
+           (ssCtrl in Shift)) then
           case MouseAction of
           // Рисовали панель:
             MOUSEACTION_DRAWPANEL:
@@ -3656,8 +3664,25 @@ begin
 
                     Panel.X := Min(MousePos.X-MapOffset.X, MouseLDownPos.X-MapOffset.X);
                     Panel.Y := Min(MousePos.Y-MapOffset.Y, MouseLDownPos.Y-MapOffset.Y);
-                    Panel.Width := Abs(MousePos.X-MouseLDownPos.X);
-                    Panel.Height := Abs(MousePos.Y-MouseLDownPos.Y);
+                    if ssCtrl in Shift then
+                      begin
+                        wWidth := DotStep;
+                        wHeight := DotStep;
+                        if (lbTextureList.ItemIndex <> -1) and
+                           (not IsSpecialTextureSel()) then
+                        begin
+                          if not g_GetTexture(SelectedTexture(), TextureID) then
+                            g_GetTexture('NOTEXTURE', TextureID);
+                          g_GetTextureSizeByID(TextureID, wWidth, wHeight);
+                        end;
+                        Panel.Width := wWidth;
+                        Panel.Height := wHeight;
+                      end
+                    else
+                      begin
+                        Panel.Width := Abs(MousePos.X-MouseLDownPos.X);
+                        Panel.Height := Abs(MousePos.Y-MouseLDownPos.Y);
+                      end;
 
                   // Лифты, блокМон или отсутствие текстуры - пустая текстура:
                     if (lbPanelType.ItemIndex in [9, 10, 11, 12, 13]) or
@@ -3699,8 +3724,18 @@ begin
               begin
                 trigger.X := Min(MousePos.X-MapOffset.X, MouseLDownPos.X-MapOffset.X);
                 trigger.Y := Min(MousePos.Y-MapOffset.Y, MouseLDownPos.Y-MapOffset.Y);
-                trigger.Width := Abs(MousePos.X-MouseLDownPos.X);
-                trigger.Height := Abs(MousePos.Y-MouseLDownPos.Y);
+                if ssCtrl in Shift then
+                  begin
+                    wWidth := DotStep;
+                    wHeight := DotStep;
+                    trigger.Width := wWidth;
+                    trigger.Height := wHeight;
+                  end
+                else
+                  begin
+                    trigger.Width := Abs(MousePos.X-MouseLDownPos.X);
+                    trigger.Height := Abs(MousePos.Y-MouseLDownPos.Y);
+                  end;
 
                 trigger.Enabled := True;
                 trigger.TriggerType := lbTriggersList.ItemIndex+1;
@@ -3974,8 +4009,11 @@ var
   sX, sY: Integer;
   dWidth, dHeight: Integer;
   _id: Integer;
+  TextureID: DWORD;
+  wWidth, wHeight: Word;
 begin
   _id := GetFirstSelected();
+  TextureID := 0;
 
 // Рисуем панель с текстурой, сетка - размеры текстуры:
   if (MouseAction = MOUSEACTION_DRAWPANEL) and
@@ -4096,10 +4134,29 @@ begin
       begin
         if DrawRect = nil then
           New(DrawRect);
-        DrawRect.Top := MouseLDownPos.y;
-        DrawRect.Left := MouseLDownPos.x;
-        DrawRect.Bottom := MousePos.y;
-        DrawRect.Right := MousePos.x;
+        if ssCtrl in Shift then
+          begin
+            wWidth := DotStep;
+            wHeight := DotStep;
+            if (lbTextureList.ItemIndex <> -1) and (not IsSpecialTextureSel()) and
+               (MouseAction = MOUSEACTION_DRAWPANEL) then
+            begin
+              if not g_GetTexture(SelectedTexture(), TextureID) then
+                g_GetTexture('NOTEXTURE', TextureID);
+              g_GetTextureSizeByID(TextureID, wWidth, wHeight);
+            end;
+            DrawRect.Top := MouseLDownPos.y;
+            DrawRect.Left := MouseLDownPos.x;
+            DrawRect.Bottom := DrawRect.Top + wHeight;
+            DrawRect.Right := DrawRect.Left + wWidth;
+          end
+        else
+          begin
+            DrawRect.Top := MouseLDownPos.y;
+            DrawRect.Left := MouseLDownPos.x;
+            DrawRect.Bottom := MousePos.y;
+            DrawRect.Right := MousePos.x;
+          end;
       end
     else // Двигаем карту:
       if MouseAction = MOUSEACTION_MOVEMAP then
@@ -4351,6 +4408,7 @@ begin
         if Key = Ord('V') then
           aPasteObjectExecute(Sender);
       end;
+      RenderPanelMouseMove(Sender, Shift, RenderMousePos().X, RenderMousePos().Y);
     end;
   end;
 
@@ -6704,6 +6762,7 @@ begin
     if PreviewMode = 2 then
       PreviewMode := 0;
   end;
+  RenderPanelMouseMove(Sender, Shift, RenderMousePos().X, RenderMousePos().Y);
 end;
 
 end.
