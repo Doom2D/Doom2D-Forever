@@ -2341,7 +2341,8 @@ begin
   Result := Res;
 end;
 
-procedure StringToCopyBuffer(Str: String; var CopyBuf: TCopyRecArray);
+procedure StringToCopyBuffer(Str: String; var CopyBuf: TCopyRecArray;
+  var pmin: TPoint);
 var
   i, j, t: Integer;
 
@@ -2423,6 +2424,8 @@ begin
             PanelType := StrToIntDef(GetNext(), PANEL_WALL);
             X := StrToIntDef(GetNext(), 0);
             Y := StrToIntDef(GetNext(), 0);
+            pmin.X := Min(X, pmin.X);
+            pmin.Y := Min(Y, pmin.Y);
             Width := StrToIntDef(GetNext(), 16);
             Height := StrToIntDef(GetNext(), 16);
             TextureName := GetNext();
@@ -2437,6 +2440,8 @@ begin
           ItemType := StrToIntDef(GetNext(), ITEM_MEDKIT_SMALL);
           X := StrToIntDef(GetNext(), 0);
           Y := StrToIntDef(GetNext(), 0);
+          pmin.X := Min(X, pmin.X);
+          pmin.Y := Min(Y, pmin.Y);
           OnlyDM := (GetNext() = '1');
           Fall := (GetNext() = '1');
         end;
@@ -2447,6 +2452,8 @@ begin
           MonsterType := StrToIntDef(GetNext(), MONSTER_DEMON);
           X := StrToIntDef(GetNext(), 0);
           Y := StrToIntDef(GetNext(), 0);
+          pmin.X := Min(X, pmin.X);
+          pmin.Y := Min(Y, pmin.Y);
 
           if GetNext() = '1' then
             Direction := D_LEFT
@@ -2460,6 +2467,8 @@ begin
           AreaType := StrToIntDef(GetNext(), AREA_PLAYERPOINT1);
           X := StrToIntDef(GetNext(), 0);
           Y := StrToIntDef(GetNext(), 0);
+          pmin.X := Min(X, pmin.X);
+          pmin.Y := Min(Y, pmin.Y);
           if GetNext() = '1' then
             Direction := D_LEFT
           else
@@ -2472,6 +2481,8 @@ begin
           TriggerType := StrToIntDef(GetNext(), TRIGGER_EXIT);
           X := StrToIntDef(GetNext(), 0);
           Y := StrToIntDef(GetNext(), 0);
+          pmin.X := Min(X, pmin.X);
+          pmin.Y := Min(Y, pmin.Y);
           Width := StrToIntDef(GetNext(), 16);
           Height := StrToIntDef(GetNext(), 16);
           ActivateType := StrToIntDef(GetNext(), 0);
@@ -2481,6 +2492,34 @@ begin
 
           for j := 0 to 127 do
             Data.Default[j] := StrToIntDef(GetNext(), 0);
+
+          case TriggerType of
+            TRIGGER_TELEPORT:
+              begin
+                pmin.X := Min(Data.TargetPoint.X, pmin.X);
+                pmin.Y := Min(Data.TargetPoint.Y, pmin.Y);
+              end;
+            TRIGGER_PRESS, TRIGGER_ON, TRIGGER_OFF, TRIGGER_ONOFF:
+              begin
+                pmin.X := Min(Data.tX, pmin.X);
+                pmin.Y := Min(Data.tY, pmin.Y);
+              end;
+            TRIGGER_SPAWNMONSTER:
+              begin
+                pmin.X := Min(Data.MonPos.X, pmin.X);
+                pmin.Y := Min(Data.MonPos.Y, pmin.Y);
+              end;
+            TRIGGER_SPAWNITEM:
+              begin
+                pmin.X := Min(Data.ItemPos.X, pmin.X);
+                pmin.Y := Min(Data.ItemPos.Y, pmin.Y);
+              end;
+            TRIGGER_SHOT:
+              begin
+                pmin.X := Min(Data.ShotPos.X, pmin.X);
+                pmin.Y := Min(Data.ShotPos.Y, pmin.Y);
+              end;
+          end;
         end;
     end;
   end;
@@ -4295,6 +4334,15 @@ begin
           MapOffset.X := -Round(Position/16) * 16;
         end;
       end;
+    end
+    else // ssCtrl in Shift
+    begin
+      if ssShift in Shift then
+      begin
+      // Вставка по абсолютному смещению:
+        if Key = Ord('V') then
+          aPasteObjectExecute(Sender);
+      end;
     end;
   end;
 
@@ -5375,14 +5423,18 @@ procedure TMainForm.aPasteObjectExecute(Sender: TObject);
 var
   a, h: Integer;
   CopyBuffer: TCopyRecArray;
-  res: Boolean;
+  res, rel: Boolean;
   swad, ssec, sres: String;
   NoTextureID: DWORD;
+  pmin: TPoint;
 begin
   CopyBuffer := nil;
   NoTextureID := 0;
+  pmin.X := High(pmin.X);
+  pmin.Y := High(pmin.Y);
 
-  StringToCopyBuffer(ClipBoard.AsText, CopyBuffer);
+  StringToCopyBuffer(ClipBoard.AsText, CopyBuffer, pmin);
+  rel := not(ssShift in GetKeyShiftState());
 
   if CopyBuffer = nil then
     Exit;
@@ -5397,8 +5449,11 @@ begin
         OBJECT_PANEL:
           if Panel <> nil then
           begin
-            Panel^.X := Panel^.X + 16;
-            Panel^.Y := Panel^.Y + 16;
+            if rel then
+            begin
+              Panel^.X := Panel^.X - pmin.X - MapOffset.X + 32;
+              Panel^.Y := Panel^.Y - pmin.Y - MapOffset.Y + 32;
+            end;
 
             Panel^.TextureID := TEXTURE_SPECIAL_NONE;
             Panel^.TextureWidth := 1;
@@ -5453,8 +5508,11 @@ begin
 
         OBJECT_ITEM:
           begin
-            Item.X := Item.X + 16;
-            Item.Y := Item.Y + 16;
+            if rel then
+            begin
+              Item.X := Item.X - pmin.X - MapOffset.X + 32;
+              Item.Y := Item.Y - pmin.Y - MapOffset.Y + 32;
+            end;
 
             ID := AddItem(Item);
             Undo_Add(OBJECT_ITEM, ID, a > 0);
@@ -5463,8 +5521,11 @@ begin
 
         OBJECT_MONSTER:
           begin
-            Monster.X := Monster.X + 16;
-            Monster.Y := Monster.Y + 16;
+            if rel then
+            begin
+              Monster.X := Monster.X - pmin.X - MapOffset.X + 32;
+              Monster.Y := Monster.Y - pmin.Y - MapOffset.Y + 32;
+            end;
 
             ID := AddMonster(Monster);
             Undo_Add(OBJECT_MONSTER, ID, a > 0);
@@ -5473,8 +5534,11 @@ begin
 
         OBJECT_AREA:
           begin
-            Area.X := Area.X + 16;
-            Area.Y := Area.Y + 16;
+            if rel then
+            begin
+              Area.X := Area.X - pmin.X - MapOffset.X + 32;
+              Area.Y := Area.Y - pmin.Y - MapOffset.Y + 32;
+            end;
 
             ID := AddArea(Area);
             Undo_Add(OBJECT_AREA, ID, a > 0);
@@ -5483,8 +5547,48 @@ begin
 
         OBJECT_TRIGGER:
           begin
-            Trigger.X := Trigger.X + 16;
-            Trigger.Y := Trigger.Y + 16;
+            if rel then
+              with Trigger do
+              begin
+                X := X - pmin.X - MapOffset.X + 32;
+                Y := Y - pmin.Y - MapOffset.Y + 32;
+
+                case TriggerType of
+                  TRIGGER_TELEPORT:
+                    begin
+                      Data.TargetPoint.X :=
+                      Data.TargetPoint.X - pmin.X - MapOffset.X + 32;
+                      Data.TargetPoint.Y :=
+                      Data.TargetPoint.Y - pmin.Y - MapOffset.Y + 32;
+                    end;
+                  TRIGGER_PRESS, TRIGGER_ON, TRIGGER_OFF, TRIGGER_ONOFF:
+                    begin
+                      Data.tX := Data.tX - pmin.X - MapOffset.X + 32;
+                      Data.tY := Data.tY - pmin.Y - MapOffset.Y + 32;
+                    end;
+                  TRIGGER_SPAWNMONSTER:
+                    begin
+                      Data.MonPos.X :=
+                      Data.MonPos.X - pmin.X - MapOffset.X + 32;
+                      Data.MonPos.Y :=
+                      Data.MonPos.Y - pmin.Y - MapOffset.Y + 32;
+                    end;
+                  TRIGGER_SPAWNITEM:
+                    begin
+                      Data.ItemPos.X :=
+                      Data.ItemPos.X - pmin.X - MapOffset.X + 32;
+                      Data.ItemPos.Y :=
+                      Data.ItemPos.Y - pmin.Y - MapOffset.Y + 32;
+                    end;
+                  TRIGGER_SHOT:
+                    begin
+                      Data.ShotPos.X :=
+                      Data.ShotPos.X - pmin.X - MapOffset.X + 32;
+                      Data.ShotPos.Y :=
+                      Data.ShotPos.Y - pmin.Y - MapOffset.Y + 32;
+                    end;
+                end;
+              end;
 
             ID := AddTrigger(Trigger);
             Undo_Add(OBJECT_TRIGGER, ID, a > 0);
