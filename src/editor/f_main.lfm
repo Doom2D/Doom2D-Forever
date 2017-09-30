@@ -1944,6 +1944,12 @@ object MainForm: TMainForm
       object miLine1: TMenuItem
         Caption = '-'
       end
+      object miReopenMap: TMenuItem
+        Caption = 'Открыть заново'
+        ImageIndex = 1
+        ShortCut = 116
+        OnClick = miReopenMapClick
+      end
       object miSaveMiniMap: TMenuItem
         Caption = 'Сохранить мини-карту'
         Bitmap.Data = {

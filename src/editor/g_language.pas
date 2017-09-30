@@ -312,6 +312,7 @@ Type
     I_MSG_DELETE_MAP_PROMT,
     I_MSG_MAP_DELETED,
     I_MSG_MAP_DELETED_PROMT,
+    I_MSG_REOPEN_MAP_PROMT,
     I_MSG_EXEC_ERROR,
     I_MSG_SOUND_ERROR,
     I_MSG_WAD_ERROR,
@@ -337,6 +338,7 @@ Type
     I_MENU_FILE_SAVE,
     I_MENU_FILE_SAVE_AS,
     I_MENU_FILE_OPEN_WAD,
+    I_MENU_FILE_REOPEN,
     I_MENU_FILE_SAVE_MINI,
     I_MENU_FILE_DELETE,
     I_MENU_FILE_PACK_MAP,
@@ -1237,6 +1239,8 @@ Const
                                        'Карта удалена'),
     ('MSG MAP DELETED PROMT',          'Map "%s" is deleted',
                                        'Карта "%s" удалена'),
+    ('MSG REOPEN MAP PROMT',           'Reopen this map?',
+                                       'Загрузить карту заново?'),
     ('MSG EXEC ERROR',                 'Game start error',
                                        'Ошибка запуска игры'),
     ('MSG SOUND ERROR',                'Can''t play sound',
@@ -1285,6 +1289,8 @@ Const
                                        'Сохранить карту как...'),
     ('MENU FILE OPEN WAD',             'Select Map',
                                        'Выбрать карту'),
+    ('MENU FILE REOPEN',               'Reopen Map',
+                                       'Открыть заново'),
     ('MENU FILE SAVE MINI',            'Save Mini-map',
                                        'Сохранить мини-карту'),
     ('MENU FILE DELETE',               'Delete Map from WAD...',
@@ -2025,6 +2031,7 @@ begin
     miSaveMap.Caption := _lc[I_MENU_FILE_SAVE];
     miSaveMapAs.Caption := _lc[I_MENU_FILE_SAVE_AS];
     miOpenWadMap.Caption := _lc[I_MENU_FILE_OPEN_WAD];
+    miReopenMap.Caption := _lc[I_MENU_FILE_REOPEN];
     miSaveMiniMap.Caption := _lc[I_MENU_FILE_SAVE_MINI];
     miDeleteMap.Caption := _lc[I_MENU_FILE_DELETE];
     miPackMap.Caption := _lc[I_MENU_FILE_PACK_MAP];

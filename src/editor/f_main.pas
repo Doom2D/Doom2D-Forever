@@ -26,6 +26,7 @@ type
     miSaveMapAs: TMenuItem;
     miOpenWadMap: TMenuItem;
     miLine1: TMenuItem;
+    miReopenMap: TMenuItem;
     miSaveMiniMap: TMenuItem;
     miDeleteMap: TMenuItem;
     miPackMap: TMenuItem;
@@ -210,6 +211,7 @@ type
     procedure lbTextureListClick(Sender: TObject);
     procedure lbTextureListDrawItem(Control: TWinControl; Index: Integer;
       ARect: TRect; State: TOwnerDrawState);
+    procedure miReopenMapClick(Sender: TObject);
     procedure RenderPanelMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
     procedure RenderPanelMouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer);
     procedure RenderPanelMouseUp(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
@@ -385,7 +387,7 @@ const
   SELECTFLAG_SHOTPANEL  = 7;
   SELECTFLAG_SELECTED   = 8;
 
-  RECENT_FILES_MENU_START = 11;
+  RECENT_FILES_MENU_START = 12;
 
   CLIPBOARD_SIG         = 'DF:ED';
 
@@ -4547,6 +4549,21 @@ begin
     Canvas.FillRect(ARect);
     Canvas.TextRect(ARect, ARect.Left, ARect.Top, Items[Index]);
   end;
+end;
+
+procedure TMainForm.miReopenMapClick(Sender: TObject);
+var
+  FileName, Resource: String;
+begin
+  if OpenedMap = '' then
+    Exit;
+
+  if MessageBox(0, PChar(_lc[I_MSG_REOPEN_MAP_PROMT]),
+  PChar(_lc[I_MENU_FILE_REOPEN]), MB_ICONQUESTION or MB_YESNO) <> idYes then
+    Exit;
+
+  g_ProcessResourceStr(OpenedMap, @FileName, nil, @Resource);
+  OpenMap(FileName, Resource);
 end;
 
 procedure TMainForm.vleObjectPropertyGetPickList(Sender: TObject;
