@@ -341,6 +341,7 @@ type
   public
     property caption: AnsiString read mCaption write setCaption;
     property hasFrame: Boolean read mHasFrame write setHasFrame;
+    property captionAlign: Integer read mHAlign write mHAlign;
   end;
 
   TUIHBox = class(TUIBox)

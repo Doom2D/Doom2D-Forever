@@ -380,6 +380,7 @@ begin
     addCheckBox(box, '~foreground', @g_rlayer_fore);
   winLayers.appendChild(box);
 
+  winLayers.flMaxSize := TLaySize.Create(trunc(getScrWdt/gh_ui_scale), trunc(getScrHgt/gh_ui_scale));
   uiLayoutCtl(winLayers);
 end;
 
@@ -415,6 +416,7 @@ begin
     addCheckBox(box, 'con~tours', @g_ol_nice);
   winOutlines.appendChild(box);
 
+  winOutlines.flMaxSize := TLaySize.Create(trunc(getScrWdt/gh_ui_scale), trunc(getScrHgt/gh_ui_scale));
   uiLayoutCtl(winOutlines);
 end;
 
@@ -442,6 +444,7 @@ begin
   box := TUIHBox.Create();
   box.hasFrame := true;
   box.caption := 'windows';
+  box.captionAlign := 0;
   box.flAlign := 0;
     addButton(box, '~layers', toggleLayersWindowCB);
     span := TUISpan.Create();
@@ -451,6 +454,7 @@ begin
     addButton(box, '~outline', toggleOutlineWindowCB);
   winOptions.appendChild(box);
 
+  winOptions.flMaxSize := TLaySize.Create(trunc(getScrWdt/gh_ui_scale), trunc(getScrHgt/gh_ui_scale));
   uiLayoutCtl(winOptions);
   winOptions.centerInScreen();
 end;
