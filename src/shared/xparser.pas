@@ -66,6 +66,7 @@ type
         DollarIsId, // allow dollar in identifiers; otherwise dollar will be TTDelim
         DotIsId, // allow dot in identifiers; otherwise dot will be TTDelim
         DashIsId, // '-' can be part of identifier (but identifier cannot start with '-')
+        HtmlColors, // #rgb or #rrggbb colors
         PascalComments // allow `{}` pascal comments
       );
       TOptions = set of TOption;
@@ -73,10 +74,16 @@ type
   private
     type
       TAnsiCharSet = set of AnsiChar;
+    const
+      CharBufSize = 8;
 
   private
     mLine, mCol: Integer;
-    mCurChar, mNextChar: AnsiChar;
+    // chars for 'unget'
+    mCharBuf: packed array [0..CharBufSize-1] of AnsiChar;
+    mCharBufUsed: Integer;
+    mCharBufPos: Integer;
+    mEofHit: Boolean; // no more chars to load into mCharBuf
 
     mOptions: TOptions;
 
@@ -86,9 +93,19 @@ type
     mTokChar: AnsiChar; // for delimiters
     mTokInt: Integer;
 
+  private
+    procedure fillCharBuf ();
+    function popFrontChar (): AnsiChar; inline; // never drains char buffer (except on "total EOF")
+    function peekCurChar (): AnsiChar; inline;
+    function peekNextChar (): AnsiChar; inline;
+    function peekChar (dest: Integer): AnsiChar; inline;
+
   protected
-    procedure warmup (); // called in constructor to warm up the system
-    procedure loadNextChar (); virtual; abstract; // loads next char into mNextChar; #0 means 'eof'
+    function loadChar (): AnsiChar; virtual; abstract; // loads next char; #0 means 'eof'
+
+  public
+    function isIdStartChar (ch: AnsiChar): Boolean; inline;
+    function isIdMidChar (ch: AnsiChar): Boolean; inline;
 
   public
     constructor Create (aopts: TOptions=[TOption.SignedNumbers]);
@@ -96,8 +113,6 @@ type
 
     procedure error (const amsg: AnsiString); noreturn;
     procedure errorfmt (const afmt: AnsiString; const args: array of const); noreturn;
-
-    function isEOF (): Boolean; inline;
 
     function skipChar (): Boolean; // returns `false` on eof
 
@@ -108,6 +123,11 @@ type
     function skipToken1 (): Boolean;
     {$ENDIF}
 
+    function isEOF (): Boolean; inline;
+    function isId (): Boolean; inline;
+    function isInt (): Boolean; inline;
+    function isStr (): Boolean; inline;
+    function isDelim (): Boolean; inline;
     function isIdOrStr (): Boolean; inline;
 
     function expectId (): AnsiString;
@@ -137,8 +157,8 @@ type
     property col: Integer read mCol;
     property line: Integer read mLine;
 
-    property curChar: AnsiChar read mCurChar;
-    property nextChar: AnsiChar read mNextChar;
+    property curChar: AnsiChar read peekCurChar;
+    property nextChar: AnsiChar read peekNextChar;
 
     // token start
     property tokCol: Integer read mTokCol;
@@ -165,7 +185,7 @@ type
     mBufPos: Integer;
 
   protected
-    procedure loadNextChar (); override; // loads next char into mNextChar; #0 means 'eof'
+    function loadChar (): AnsiChar; override; // loads next char; #0 means 'eof'
 
   public
     constructor Create (const fname: AnsiString; aopts: TOptions=[TOption.SignedNumbers]);
@@ -179,7 +199,7 @@ type
     mPos: Integer;
 
   protected
-    procedure loadNextChar (); override; // loads next char into mNextChar; #0 means 'eof'
+    function loadChar (): AnsiChar; override; // loads next char; #0 means 'eof'
 
   public
     constructor Create (const astr: AnsiString; aopts: TOptions=[TOption.SignedNumbers]);
@@ -277,14 +297,14 @@ constructor TTextParser.Create (aopts: TOptions=[TOption.SignedNumbers]);
 begin
   mLine := 1;
   mCol := 1;
-  mCurChar := #0;
-  mNextChar := #0;
+  mCharBufUsed := 0;
+  mCharBufPos := 0;
+  mEofHit := false;
   mTokType := TTNone;
   mTokStr := '';
   mTokChar := #0;
   mTokInt := 0;
   mOptions := aopts;
-  warmup();
   skipToken();
 end;
 
@@ -307,32 +327,98 @@ begin
 end;
 
 
-function TTextParser.isEOF (): Boolean; inline; begin {result := (mCurChar = #0);} result := (mTokType = TTEOF); end;
-
-
-procedure TTextParser.warmup ();
+function TTextParser.isIdStartChar (ch: AnsiChar): Boolean; inline;
 begin
-  mNextChar := ' ';
-  loadNextChar();
-  mCurChar := mNextChar;
-  if (mNextChar <> #0) then loadNextChar();
+  result :=
+    (ch = '_') or
+    ((ch >= 'A') and (ch <= 'Z')) or
+    ((ch >= 'a') and (ch <= 'z')) or
+    (ch >= #128) or
+    ((ch = '$') and (TOption.DollarIsId in mOptions)) or
+    ((ch = '.') and (TOption.DotIsId in mOptions));
+end;
+
+function TTextParser.isIdMidChar (ch: AnsiChar): Boolean; inline;
+begin
+  result :=
+    ((ch >= '0') and (ch <= '9')) or
+    ((ch = '-') and (TOption.DashIsId in mOptions)) or
+    isIdStartChar(ch);
+end;
+
+
+procedure TTextParser.fillCharBuf ();
+var
+  ch: AnsiChar;
+begin
+  if (mEofHit) then begin mCharBuf[mCharBufPos] := #0; exit; end;
+  while (not mEofHit) and (mCharBufUsed < CharBufSize) do
+  begin
+    ch := loadChar();
+    mCharBuf[(mCharBufPos+mCharBufUsed) mod CharBufSize] := ch;
+    if (ch = #0) then begin mEofHit := true; break; end;
+    Inc(mCharBufUsed);
+  end;
+end;
+
+
+// never drains char buffer (except on "total EOF")
+function TTextParser.popFrontChar (): AnsiChar; inline;
+begin
+  if (mEofHit) and (mCharBufUsed = 0) then begin result := #0; exit; end;
+  assert(mCharBufUsed > 0);
+  result := mCharBuf[mCharBufPos];
+  mCharBufPos := (mCharBufPos+1) mod CharBufSize;
+  Dec(mCharBufUsed);
+  if (not mEofHit) and (mCharBufUsed = 0) then fillCharBuf();
+end;
+
+function TTextParser.peekCurChar (): AnsiChar; inline;
+begin
+  if (mCharBufUsed = 0) and (not mEofHit) then fillCharBuf();
+  result := mCharBuf[mCharBufPos]; // it is safe, 'cause `fillCharBuf()` will put #0 on "total EOF"
+end;
+
+function TTextParser.peekNextChar (): AnsiChar; inline;
+begin
+  if (mCharBufUsed < 2) and (not mEofHit) then fillCharBuf();
+  if (mCharBufUsed < 2) then result := #0 else result := mCharBuf[(mCharBufPos+1) mod CharBufSize];
+end;
+
+function TTextParser.peekChar (dest: Integer): AnsiChar; inline;
+begin
+  if (dest < 0) or (dest >= CharBufSize) then error('internal text parser error');
+  if (mCharBufUsed < dest+1) then fillCharBuf();
+  if (mCharBufUsed < dest+1) then result := #0 else result := mCharBuf[(mCharBufPos+dest) mod CharBufSize];
 end;
 
 
 function TTextParser.skipChar (): Boolean;
+var
+  ch: AnsiChar;
 begin
-  if (mCurChar = #0) then begin result := false; exit; end;
-  if (mCurChar = #10) then begin mCol := 1; Inc(mLine); end else Inc(mCol);
-  mCurChar := mNextChar;
-  if (mCurChar = #0) then begin result := false; exit; end;
-  loadNextChar();
-  // skip CR in CR/LF
-  if (mCurChar = #13) then
-  begin
-    if (mNextChar = #10) then loadNextChar();
-    mCurChar := #10;
-  end;
+  ch := popFrontChar();
+  if (ch = #0) then begin result := false; exit; end;
   result := true;
+  // CR?
+  case ch of
+    #10:
+      begin
+        mCol := 1;
+        Inc(mLine);
+      end;
+    #13:
+      begin
+        mCol := 1;
+        Inc(mLine);
+        if (mCharBufUsed > 0) and (mCharBuf[0] = #10) then
+        begin
+          if (popFrontChar() = #0) then result := false;
+        end;
+      end;
+    else
+      Inc(mCol);
+  end;
 end;
 
 
@@ -340,26 +426,29 @@ function TTextParser.skipBlanks (): Boolean;
 var
   level: Integer;
 begin
-  while (mCurChar <> #0) do
+  while (curChar <> #0) do
   begin
-    if (mCurChar = '/') then
+    if (curChar = '/') then
     begin
       // single-line comment
-      if (mNextChar = '/') then
+      if (nextChar = '/') then
       begin
-        while (mCurChar <> #0) and (mCurChar <> #10) do skipChar();
+        //writeln('spos=(', mLine, ',', mCol, ')');
+        while (curChar <> #0) and (curChar <> #10) and (curChar <> #13) do skipChar();
         skipChar(); // skip EOL
+        //writeln('{', curChar, '}');
+        //writeln('epos=(', mLine, ',', mCol, ')');
         continue;
       end;
       // multline comment
-      if (mNextChar = '*') then
+      if (nextChar = '*') then
       begin
         // skip comment start
         skipChar();
         skipChar();
-        while (mCurChar <> #0) do
+        while (curChar <> #0) do
         begin
-          if (mCurChar = '*') and (mNextChar = '/') then
+          if (curChar = '*') and (nextChar = '/') then
           begin
             // skip comment end
             skipChar();
@@ -371,15 +460,15 @@ begin
         continue;
       end;
       // nesting multline comment
-      if (mNextChar = '+') then
+      if (nextChar = '+') then
       begin
         // skip comment start
         skipChar();
         skipChar();
         level := 1;
-        while (mCurChar <> #0) do
+        while (curChar <> #0) do
         begin
-          if (mCurChar = '+') and (mNextChar = '/') then
+          if (curChar = '+') and (nextChar = '/') then
           begin
             // skip comment end
             skipChar();
@@ -388,7 +477,7 @@ begin
             if (level = 0) then break;
             continue;
           end;
-          if (mCurChar = '/') and (mNextChar = '+') then
+          if (curChar = '/') and (nextChar = '+') then
           begin
             // skip comment start
             skipChar();
@@ -401,14 +490,14 @@ begin
         continue;
       end;
     end
-    else if (mCurChar = '(') and (mNextChar = '*') then
+    else if (curChar = '(') and (nextChar = '*') then
     begin
       // pascal comment; skip comment start
       skipChar();
       skipChar();
-      while (mCurChar <> #0) do
+      while (curChar <> #0) do
       begin
-        if (mCurChar = '*') and (mNextChar = ')') then
+        if (curChar = '*') and (nextChar = ')') then
         begin
           // skip comment end
           skipChar();
@@ -419,13 +508,13 @@ begin
       end;
       continue;
     end
-    else if (mCurChar = '{') and (TOption.PascalComments in mOptions) then
+    else if (curChar = '{') and (TOption.PascalComments in mOptions) then
     begin
       // pascal comment; skip comment start
       skipChar();
-      while (mCurChar <> #0) do
+      while (curChar <> #0) do
       begin
-        if (mCurChar = '}') then
+        if (curChar = '}') then
         begin
           // skip comment end
           skipChar();
@@ -435,10 +524,10 @@ begin
       end;
       continue;
     end;
-    if (mCurChar > ' ') then break;
+    if (curChar > ' ') then break;
     skipChar(); // skip blank
   end;
-  result := (mCurChar <> #0);
+  result := (curChar <> #0);
 end;
 
 
@@ -462,11 +551,11 @@ function TTextParser.skipToken (): Boolean;
   begin
     if (TOption.SignedNumbers in mOptions) then
     begin
-      if (mCurChar = '+') or (mCurChar = '-') then
+      if (curChar = '+') or (curChar = '-') then
       begin
-        neg := (mCurChar = '-');
+        neg := (curChar = '-');
         skipChar();
-        if (mCurChar < '0') or (mCurChar > '9') then
+        if (curChar < '0') or (curChar > '9') then
         begin
           mTokType := TTDelim;
           if (neg) then mTokChar := '-' else mTokChar := '+';
@@ -474,9 +563,9 @@ function TTextParser.skipToken (): Boolean;
         end;
       end;
     end;
-    if (mCurChar = '0') then
+    if (curChar = '0') then
     begin
-      case mNextChar of
+      case nextChar of
         'b','B': base := 2;
         'o','O': base := 8;
         'd','D': base := 10;
@@ -491,26 +580,28 @@ function TTextParser.skipToken (): Boolean;
     end;
     // default base
     if (base < 0) then base := 10;
-    if (digitInBase(mCurChar, base) < 0) then raise Exception.Create('invalid number');
+    if (digitInBase(curChar, base) < 0) then error('invalid number');
     mTokType := TTInt;
     mTokInt := 0; // just in case
-    while (mCurChar <> #0) do
+    while (curChar <> #0) do
     begin
-      n := digitInBase(mCurChar, base);
+      if (curChar = '_') then
+      begin
+        skipChar();
+        if (curChar = #0) then break;
+      end;
+      n := digitInBase(curChar, base);
       if (n < 0) then break;
       n := mTokInt*10+n;
-      if (n < 0) or (n < mTokInt) then raise Exception.Create('integer overflow');
+      if (n < 0) or (n < mTokInt) then error('integer overflow');
       mTokInt := n;
       skipChar();
     end;
     // check for valid number end
-    if (mCurChar <> #0) then
+    if (curChar <> #0) then
     begin
-      if (mCurChar = '.') then raise Exception.Create('floating numbers aren''t supported yet');
-      if (mCurChar = '_') or ((mCurChar >= 'A') and (mCurChar <= 'Z')) or ((mCurChar >= 'a') and (mCurChar <= 'z')) or (mCurChar >= #128) then
-      begin
-        raise Exception.Create('invalid number');
-      end;
+      if (curChar = '.') then error('floating numbers aren''t supported yet');
+      if (isIdMidChar(curChar)) then error('invalid number');
     end;
     if neg then mTokInt := -mTokInt;
   end;
@@ -522,15 +613,15 @@ function TTextParser.skipToken (): Boolean;
   begin
     mTokType := TTStr;
     mTokStr := ''; // just in case
-    qch := mCurChar;
+    qch := curChar;
     skipChar(); // skip starting quote
-    while (mCurChar <> #0) do
+    while (curChar <> #0) do
     begin
       // escape
-      if (qch = '"') and (mCurChar = '\') then
+      if (qch = '"') and (curChar = '\') then
       begin
-        if (mNextChar = #0) then raise Exception.Create('unterminated string escape');
-        ch := mNextChar;
+        if (nextChar = #0) then error('unterminated string escape');
+        ch := nextChar;
         // skip backslash and escape type
         skipChar();
         skipChar();
@@ -542,12 +633,12 @@ function TTextParser.skipToken (): Boolean;
           'e': mTokStr += #27;
           'x', 'X': // hex escape
             begin
-              n := digitInBase(mCurChar, 16);
-              if (n < 0) then raise Exception.Create('invalid hexstr escape');
+              n := digitInBase(curChar, 16);
+              if (n < 0) then error('invalid hexstr escape');
               skipChar();
-              if (digitInBase(mCurChar, 16) > 0) then
+              if (digitInBase(curChar, 16) > 0) then
               begin
-                n := n*16+digitInBase(mCurChar, 16);
+                n := n*16+digitInBase(curChar, 16);
                 skipChar();
               end;
               mTokStr += AnsiChar(n);
@@ -557,7 +648,7 @@ function TTextParser.skipToken (): Boolean;
         continue;
       end;
       // duplicate single quote (pascal style)
-      if (qch = '''') and (mCurChar = '''') and (mNextChar = '''') then
+      if (qch = '''') and (curChar = '''') and (nextChar = '''') then
       begin
         // skip both quotes
         skipChar();
@@ -565,12 +656,12 @@ function TTextParser.skipToken (): Boolean;
         mTokStr += '''';
         continue;
       end;
-      if (mCurChar = qch) then
+      if (curChar = qch) then
       begin
         skipChar(); // skip ending quote
         break;
       end;
-      mTokStr += mCurChar;
+      mTokStr += curChar;
       skipChar();
     end;
   end;
@@ -579,19 +670,16 @@ function TTextParser.skipToken (): Boolean;
   begin
     mTokType := TTId;
     mTokStr := ''; // just in case
-    while (mCurChar = '_') or ((mCurChar >= '0') and (mCurChar <= '9')) or
-          ((mCurChar >= 'A') and (mCurChar <= 'Z')) or
-          ((mCurChar >= 'a') and (mCurChar <= 'z')) or
-          (mCurChar >= #128) or
-          ((TOption.DollarIsId in mOptions) and (mCurChar = '$')) or
-          ((TOption.DotIsId in mOptions) and (mCurChar = '.') and (mNextChar <> '.')) or
-          ((TOption.DashIsId in mOptions) and (mCurChar = '-')) do
+    while (isIdMidChar(curChar)) do
     begin
-      mTokStr += mCurChar;
+      if (curChar = '.') and (nextChar = '.') then break; // dotdot is a token by itself
+      mTokStr += curChar;
       skipChar();
     end;
   end;
 
+var
+  xpos: Integer;
 begin
   mTokType := TTNone;
   mTokStr := '';
@@ -613,22 +701,52 @@ begin
   result := true;
 
   // number?
-  if (TOption.SignedNumbers in mOptions) and ((mCurChar = '+') or (mCurChar = '-')) then begin parseInt(); exit; end;
-  if (mCurChar >= '0') and (mCurChar <= '9') then begin parseInt(); exit; end;
+  if (TOption.SignedNumbers in mOptions) and ((curChar = '+') or (curChar = '-')) then begin parseInt(); exit; end;
+  if (curChar >= '0') and (curChar <= '9') then begin parseInt(); exit; end;
 
   // string?
-  if (mCurChar = '"') or (mCurChar = '''') then begin parseString(); exit; end;
+  if (curChar = '"') or (curChar = '''') or (curChar = '`') then begin parseString(); exit; end;
+
+  // html color?
+  if (curChar = '#') and (TOption.HtmlColors in mOptions) then
+  begin
+    if (digitInBase(peekChar(1), 16) >= 0) and (digitInBase(peekChar(2), 16) >= 0) and (digitInBase(peekChar(3), 16) >= 0) then
+    begin
+      if (digitInBase(peekChar(4), 16) >= 0) and (digitInBase(peekChar(5), 16) >= 0) and (digitInBase(peekChar(6), 16) >= 0) then xpos := 7 else xpos := 4;
+      if (not isIdMidChar(peekChar(xpos))) then
+      begin
+        mTokType := TTId;
+        mTokStr := '';
+        while (xpos > 0) do
+        begin
+          mTokStr += curChar;
+          skipChar();
+          Dec(xpos);
+        end;
+        exit;
+      end;
+    end;
+  end;
 
   // identifier?
-  if (mCurChar = '_') or ((mCurChar >= 'A') and (mCurChar <= 'Z')) or ((mCurChar >= 'a') and (mCurChar <= 'z')) or (mCurChar >= #128) then begin parseId(); exit; end;
-  if (TOption.DollarIsId in mOptions) and (mCurChar = '$') then begin parseId(); exit; end;
-  if (TOption.DotIsId in mOptions) and (mCurChar = '.') and (mNextChar <> '.') then begin parseId(); exit; end;
+  if (isIdStartChar(curChar)) then
+  begin
+    if (curChar = '.') and (nextChar = '.') then
+    begin
+      // nothing to do here, as dotdot is a token by itself
+    end
+    else
+    begin
+      parseId();
+      exit;
+    end;
+  end;
 
   // known delimiters?
-  mTokChar := mCurChar;
+  mTokChar := curChar;
   mTokType := TTDelim;
   skipChar();
-  if (mCurChar = '=') then
+  if (curChar = '=') then
   begin
     case mTokChar of
       '<': begin mTokType := TTLessEqu; mTokStr := '<='; skipChar(); exit; end;
@@ -638,7 +756,7 @@ begin
       ':': begin mTokType := TTAss; mTokStr := ':='; skipChar(); exit; end;
     end;
   end
-  else if (mTokChar = mCurChar) then
+  else if (mTokChar = curChar) then
   begin
     case mTokChar of
       '<': begin mTokType := TTShl; mTokStr := '<<'; skipChar(); exit; end;
@@ -650,22 +768,24 @@ begin
   else
   begin
     case mTokChar of
-      '<': if (mCurChar = '>') then begin mTokType := TTNotEqu; mTokStr := '<>'; skipChar(); exit; end;
-      '.': if (mCurChar = '.') then begin mTokType := TTDotDot; mTokStr := '..'; skipChar(); exit; end;
+      '<': if (curChar = '>') then begin mTokType := TTNotEqu; mTokStr := '<>'; skipChar(); exit; end;
+      '.': if (curChar = '.') then begin mTokType := TTDotDot; mTokStr := '..'; skipChar(); exit; end;
     end;
   end;
 end;
 
 
-function TTextParser.isIdOrStr (): Boolean; inline;
-begin
-  result := (mTokType = TTId) or (mTokType = TTStr);
-end;
+function TTextParser.isEOF (): Boolean; inline; begin result := (mTokType = TTEOF); end;
+function TTextParser.isId (): Boolean; inline; begin result := (mTokType = TTId); end;
+function TTextParser.isInt (): Boolean; inline; begin result := (mTokType = TTInt); end;
+function TTextParser.isStr (): Boolean; inline; begin result := (mTokType = TTStr); end;
+function TTextParser.isDelim (): Boolean; inline; begin result := (mTokType = TTDelim); end;
+function TTextParser.isIdOrStr (): Boolean; inline; begin result := (mTokType = TTId) or (mTokType = TTStr); end;
 
 
 function TTextParser.expectId (): AnsiString;
 begin
-  if (mTokType <> TTId) then raise Exception.Create('identifier expected');
+  if (mTokType <> TTId) then error('identifier expected');
   result := mTokStr;
   skipToken();
 end;
@@ -675,11 +795,11 @@ procedure TTextParser.expectId (const aid: AnsiString; caseSens: Boolean=true);
 begin
   if caseSens then
   begin
-    if (mTokType <> TTId) or (mTokStr <> aid) then raise Exception.Create('identifier '''+aid+''' expected');
+    if (mTokType <> TTId) or (mTokStr <> aid) then error('identifier '''+aid+''' expected');
   end
   else
   begin
-    if (mTokType <> TTId) or (not strEquCI1251(mTokStr, aid)) then raise Exception.Create('identifier '''+aid+''' expected');
+    if (mTokType <> TTId) or (not strEquCI1251(mTokStr, aid)) then error('identifier '''+aid+''' expected');
   end;
   skipToken();
 end;
@@ -723,8 +843,8 @@ end;
 
 function TTextParser.expectStr (allowEmpty: Boolean=false): AnsiString;
 begin
-  if (mTokType <> TTStr) then raise Exception.Create('string expected');
-  if (not allowEmpty) and (Length(mTokStr) = 0) then raise Exception.Create('non-empty string expected');
+  if (mTokType <> TTStr) then error('string expected');
+  if (not allowEmpty) and (Length(mTokStr) = 0) then error('non-empty string expected');
   result := mTokStr;
   skipToken();
 end;
@@ -734,11 +854,11 @@ function TTextParser.expectIdOrStr (allowEmpty: Boolean=false): AnsiString;
 begin
   case mTokType of
     TTStr:
-      if (not allowEmpty) and (Length(mTokStr) = 0) then raise Exception.Create('non-empty string expected');
+      if (not allowEmpty) and (Length(mTokStr) = 0) then error('non-empty string expected');
     TTId:
       begin end;
     else
-      raise Exception.Create('string or identifier expected');
+      error('string or identifier expected');
   end;
   result := mTokStr;
   skipToken();
@@ -747,7 +867,7 @@ end;
 
 function TTextParser.expectInt (): Integer;
 begin
-  if (mTokType <> TTInt) then raise Exception.Create('string expected');
+  if (mTokType <> TTInt) then error('string expected');
   result := mTokInt;
   skipToken();
 end;
@@ -755,7 +875,7 @@ end;
 
 procedure TTextParser.expectTT (ttype: Integer);
 begin
-  if (mTokType <> ttype) then raise Exception.Create('unexpected token');
+  if (mTokType <> ttype) then error('unexpected token');
   skipToken();
 end;
 
@@ -769,15 +889,15 @@ end;
 
 procedure TTextParser.expectDelim (const ch: AnsiChar);
 begin
-  if (mTokType <> TTDelim) or (mTokChar <> ch) then raise Exception.CreateFmt('delimiter ''%s'' expected', [ch]);
+  if (mTokType <> TTDelim) or (mTokChar <> ch) then errorfmt('delimiter ''%s'' expected', [ch]);
   skipToken();
 end;
 
 
 function TTextParser.expectDelims (const ch: TAnsiCharSet): AnsiChar;
 begin
-  if (mTokType <> TTDelim) then raise Exception.Create('delimiter expected');
-  if not (mTokChar in ch) then raise Exception.Create('delimiter expected');
+  if (mTokType <> TTDelim) then error('delimiter expected');
+  if not (mTokChar in ch) then error('delimiter expected');
   result := mTokChar;
   skipToken();
 end;
@@ -805,20 +925,20 @@ begin
   GetMem(mBuffer, BufSize);
   mBufPos := 0;
   mBufLen := mFile.Read(mBuffer^, BufSize);
-  if (mBufLen < 0) then raise Exception.Create('TFileTextParser: read error');
+  if (mBufLen < 0) then error('TFileTextParser: read error');
   inherited Create(aopts);
 end;
 
 
 constructor TFileTextParser.Create (st: TStream; astOwned: Boolean=true; aopts: TOptions=[TOption.SignedNumbers]);
 begin
-  if (st = nil) then raise Exception.Create('cannot create parser for nil stream');
+  if (st = nil) then error('cannot create parser for nil stream');
   mFile := st;
   mStreamOwned := astOwned;
   GetMem(mBuffer, BufSize);
   mBufPos := 0;
   mBufLen := mFile.Read(mBuffer^, BufSize);
-  if (mBufLen < 0) then raise Exception.Create('TFileTextParser: read error');
+  if (mBufLen < 0) then error('TFileTextParser: read error');
   inherited Create(aopts);
 end;
 
@@ -829,26 +949,25 @@ begin
   mBuffer := nil;
   mBufPos := 0;
   mBufLen := 0;
-  if mStreamOwned then mFile.Free();
-  mFile := nil;
+  if (mStreamOwned) then FreeAndNil(mFile) else mFile := nil;
   inherited;
 end;
 
 
-procedure TFileTextParser.loadNextChar ();
+function TFileTextParser.loadChar (): AnsiChar;
 begin
-  if (mBufLen = 0) then begin mNextChar := #0; exit; end;
+  if (mBufLen = 0) then begin result := #0; exit; end;
   if (mBufPos >= mBufLen) then
   begin
     mBufLen := mFile.Read(mBuffer^, BufSize);
-    if (mBufLen < 0) then raise Exception.Create('TFileTextParser: read error');
-    if (mBufLen = 0) then begin mNextChar := #0; exit; end;
+    if (mBufLen < 0) then error('TFileTextParser: read error');
+    if (mBufLen = 0) then begin result := #0; exit; end;
     mBufPos := 0;
   end;
   assert(mBufPos < mBufLen);
-  mNextChar := mBuffer[mBufPos];
+  result := mBuffer[mBufPos];
   Inc(mBufPos);
-  if (mNextChar = #0) then mNextChar := ' ';
+  if (result = #0) then result := ' ';
 end;
 
 
@@ -868,12 +987,13 @@ begin
 end;
 
 
-procedure TStrTextParser.loadNextChar ();
+function TStrTextParser.loadChar (): AnsiChar;
 begin
-  mNextChar := #0;
+  result := #0;
   if (mPos > Length(mStr)) then exit;
-  mNextChar := mStr[mPos]; Inc(mPos);
-  if (mNextChar = #0) then mNextChar := ' ';
+  result := mStr[mPos];
+  Inc(mPos);
+  if (result = #0) then result := ' ';
 end;
 
 

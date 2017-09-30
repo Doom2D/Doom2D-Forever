@@ -16,68 +16,6 @@
  *)
 {$INCLUDE ../shared/a_modes.inc}
 unit gh_flexlay;
-
-(* WARNING! OUT OF DATE! will be fixed later.
-
-first pass:
-  set all 'temp-flex' flags for controls to 'flex'
-  reset all 'laywrap' flags for controls
-  build group arrays; for each group: find max size for group, adjust 'startsize' controls to group max size
-  call 'calc max size' for top-level control
-  flags set:
-    'firsttime'
-
-second pass:
-  calcluate desired sizes (process flexes) using 'startsize', set 'desiredsize' and 'desiredpos'
-    if control has children, call 'second pass' recursively with this control as parent
-  flags set:
-    'group-element-changed', if any group element size was changed
-    'wrapping-changed', if not 'firsttime', and wrapping was changed (i.e. first pass will not set the flag)
-
-third pass:
-  if 'group-element-changed':
-    for each group: adjust controls to max desired size (startsize), set 'temp-flex' flags to 0 for 'em, set 'second-again' flag
-  for other controls: if 'desiredsize' > 'maxsize', set 'startsize' to 'maxsize', set 'temp-flex' flag to 0, set 'second-again' flag
-  if 'second-again' or 'wrapping-changed':
-    reset 'second-again'
-    reset 'wrapping-changed'
-    reset 'firsttime'
-    goto second pass
-
-fourth pass:
-  set 'actualsize' and 'actualpos' to 'desiredsize' and 'desiredpos'
-  return
-
-calc max size:
-  set 'startsize' to max(size, maxsize, 0)
-  if 'size' is negative:
-    set 'temp-flex' flag to 0
-  if has children:
-    call 'calc max size' for each child
-    set 'desiredmax' to 'startsize'
-    do lines, don't distribute space (i.e. calc only wrapping),
-      for each complete line, set 'desiredmax' to max(desiredmax, linesize)
-    if 'maxsize' >= 0:
-      set 'desiredmax' to min(desiredmax, maxsize)
-    set 'startsize' to 'desiredmax'
-  return
-
-
-wrapping lines:
-  try to stuff controls in line until line width is less or equal to maxsize
-  distribute flex for filled line
-  continue until we still has something to stuff
-
-
-for wrapping:
-  we'll hold 'laywrap' flag for each control; it will be set if this control
-  starts a new line (even if this is the first control in line, as it is obviously
-  starts a new line)
-
-  on redoing second pass, if 'laywrap' flag changed, set 'wrapping-changed' flag
-*)
-
-
 (*
   control default size will be increased by margins
   negative margins are ignored
@@ -113,9 +51,6 @@ type
 
   private
     type LayControlIdx = Integer;
-
-  private
-    class function nminX (a, b: Integer): Integer; inline;
 
   private
     // flags
@@ -250,15 +185,6 @@ implementation
 
 uses
   utils;
-
-
-// ////////////////////////////////////////////////////////////////////////// //
-class function TFlexLayouterBase.nminX (a, b: Integer): Integer; inline;
-begin
-       if (a < 0) then begin if (b < 0) then result := 0 else result := b; end
-  else if (b < 0) or (a < b) then result := a
-  else result := b;
-end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
@@ -533,9 +459,14 @@ begin
   end;
   if (lc.startsize.w < 0) then lc.startsize.w := 0;
   if (lc.startsize.h < 0) then lc.startsize.h := 0;
+  {
   lc.maxsize := msz;
   if (lc.maxsize.w < lc.startsize.w) then begin if (lc.maxsize.w >= 0) then lc.maxsize.w := lc.startsize.w; end;
   if (lc.maxsize.h < lc.startsize.h) then begin if (lc.maxsize.h >= 0) then lc.maxsize.h := lc.startsize.h; end;
+  }
+  if (msz.w < 0) then msz.w := lc.startsize.w;
+  if (msz.h < 0) then msz.h := lc.startsize.h;
+  lc.maxsize := msz;
 end;
 
 
@@ -647,7 +578,7 @@ begin
       end;
     end;
     // expand or align
-         if (lc.expand) then lc.desiredsize.h := nminX(lc.maxsize.h, lineh) // expand
+         if (lc.expand) then lc.desiredsize.h := nmax(1, lineh) // expand
     else if (lc.alignBottom) then lc.desiredpos.y := cury+(lineh-lc.desiredsize.h) // bottom align
     else if (lc.alignCenter) then lc.desiredpos.y := cury+(lineh-lc.desiredsize.h) div 2; // center
     if (not osz.equals(lc.desiredsize)) then
@@ -684,106 +615,102 @@ begin
   me := @ctlist[boxidx];
 
   // if we have no children, there's nothing to do
-  if (me.firstChild = -1) then exit;
-
-  // first, layout all children
-  for lc in forChildren(boxidx) do layBox(lc.myidx);
-
-  // second, layout lines, distribute flex data
-  if (me.horizBox) then
+  if (me.firstChild <> -1) then
   begin
-    // horizontal boxes
-    cury := me.margins.top;
+    // first, layout all children
+    for lc in forChildren(boxidx) do layBox(lc.myidx);
 
-    fixLine(me, -1, -1, cury, spaceLeft); //HACK!
-
-    lineStartIdx := me.firstChild;
-    for lc in forChildren(boxidx) do
+    // second, layout lines, distribute flex data
+    if (me.horizBox) then
     begin
-      // new line?
-      doWrap := (not lc.firstInLine) and (lc.lineStart);
-      // need to wrap?
-      if (not doWrap) and (lc.canWrap) and (lc.canWrap) and (lc.desiredsize.w > 0) and (spaceLeft < lc.desiredsize.w) then doWrap := true;
-      if (doWrap) then
-      begin
-        // new line, fix this one
-        if (not lc.didWrap) then begin wrappingChanged := true; lc.didWrap := true; end;
-        fixLine(me, lineStartIdx, lc.myidx, cury, spaceLeft);
-        lineStartIdx := lc.myidx;
-      end
-      else
-      begin
-        if (lc.didWrap) then begin wrappingChanged := true; lc.didWrap := false; end;
-      end;
-      spaceLeft -= lc.desiredsize.w;
-      //if (maxhgt < lc.desiredsize.h) then maxhgt := lc.desiredsize.h;
-      //if (lc.tempFlex > 0) then begin flexTotal += lc.tempFlex; flexBoxCount += 1; end;
-    end;
-    // fix last line
-    fixLine(me, lineStartIdx, -1, cury, spaceLeft);
-  end
-  else
-  begin
-    // vertical boxes
-    maxwdt := 0;
-    flexTotal := 0;
-    flexBoxCount := 0;
-    spaceLeft := me.desiredsize.h-me.margins.vert;
+      // horizontal boxes
+      cury := me.margins.top;
 
-    // calc flex
-    for lc in forChildren(boxidx) do
-    begin
-      spaceLeft -= lc.desiredsize.h;
-      if (maxwdt < lc.desiredsize.w) then maxwdt := lc.desiredsize.w;
-      if (lc.tempFlex > 0) then begin flexTotal += lc.tempFlex; flexBoxCount += 1; end;
-    end;
+      fixLine(me, -1, -1, cury, spaceLeft); //HACK!
 
-    // distribute space
-    cury := me.margins.top;
-    //writeln('me: ', boxidx, '; margins: ', me.margins.toString);
-    for lc in forChildren(boxidx) do
-    begin
-      osz := lc.desiredsize;
-      lc.desiredsize := lc.startsize;
-      lc.desiredpos.x := me.margins.left;
-      lc.desiredpos.y := cury;
-      cury += lc.desiredsize.h;
-      // fix flexbox size
-      if (lc.tempFlex > 0) and (spaceLeft > 0) then
+      lineStartIdx := me.firstChild;
+      for lc in forChildren(boxidx) do
       begin
-        toadd := trunc(spaceLeft*lc.tempFlex/flexTotal+0.5);
-        if (toadd > 0) then
+        // new line?
+        doWrap := (not lc.firstInLine) and (lc.lineStart);
+        // need to wrap?
+        if (not doWrap) and (lc.canWrap) and (lc.canWrap) and (lc.desiredsize.w > 0) and (spaceLeft < lc.desiredsize.w) then doWrap := true;
+        if (doWrap) then
         begin
-          // size changed
-          lc.desiredsize.h += toadd;
-          cury += toadd;
-          // compensate (crudely) rounding errors
-          if (cury > me.desiredsize.h-me.margins.vert) then begin lc.desiredsize.h -= 1; cury -= 1; end;
+          // new line, fix this one
+          if (not lc.didWrap) then begin wrappingChanged := true; lc.didWrap := true; end;
+          fixLine(me, lineStartIdx, lc.myidx, cury, spaceLeft);
+          lineStartIdx := lc.myidx;
+        end
+        else
+        begin
+          if (lc.didWrap) then begin wrappingChanged := true; lc.didWrap := false; end;
         end;
+        spaceLeft -= lc.desiredsize.w;
+        //if (maxhgt < lc.desiredsize.h) then maxhgt := lc.desiredsize.h;
+        //if (lc.tempFlex > 0) then begin flexTotal += lc.tempFlex; flexBoxCount += 1; end;
       end;
-      // expand or align
-           if (lc.expand) then lc.desiredsize.w := nminX(lc.maxsize.w, me.desiredsize.w-me.margins.vert) // expand
-      else if (lc.alignRight) then lc.desiredpos.x := me.desiredsize.w-me.margins.right-lc.desiredsize.w // right align
-      else if (lc.alignCenter) then lc.desiredpos.x := (me.desiredsize.w-lc.desiredsize.w) div 2; // center
-      if (not osz.equals(lc.desiredsize)) then
+      // fix last line
+      fixLine(me, lineStartIdx, -1, cury, spaceLeft);
+    end
+    else
+    begin
+      // vertical boxes
+      maxwdt := 0;
+      flexTotal := 0;
+      flexBoxCount := 0;
+      spaceLeft := me.desiredsize.h-me.margins.vert;
+
+      // calc flex
+      for lc in forChildren(boxidx) do
       begin
-        if (lc.inGroup) then groupElementChanged := true;
-        // relayout children
-        layBox(lc.firstChild);
+        spaceLeft -= lc.desiredsize.h;
+        if (maxwdt < lc.desiredsize.w) then maxwdt := lc.desiredsize.w;
+        if (lc.tempFlex > 0) then begin flexTotal += lc.tempFlex; flexBoxCount += 1; end;
+      end;
+
+      // distribute space
+      cury := me.margins.top;
+      //writeln('me: ', boxidx, '; margins: ', me.margins.toString);
+      for lc in forChildren(boxidx) do
+      begin
+        osz := lc.desiredsize;
+        lc.desiredsize := lc.startsize;
+        lc.desiredpos.x := me.margins.left;
+        lc.desiredpos.y := cury;
+        cury += lc.desiredsize.h;
+        // fix flexbox size
+        if (lc.tempFlex > 0) and (spaceLeft > 0) then
+        begin
+          toadd := trunc(spaceLeft*lc.tempFlex/flexTotal+0.5);
+          if (toadd > 0) then
+          begin
+            // size changed
+            lc.desiredsize.h += toadd;
+            cury += toadd;
+            // compensate (crudely) rounding errors
+            if (cury > me.desiredsize.h-me.margins.vert) then begin lc.desiredsize.h -= 1; cury -= 1; end;
+          end;
+        end;
+        // expand or align
+             if (lc.expand) then lc.desiredsize.w := nmax(1, me.desiredsize.w-me.margins.vert) // expand
+        else if (lc.alignRight) then lc.desiredpos.x := me.desiredsize.w-me.margins.right-lc.desiredsize.w // right align
+        else if (lc.alignCenter) then lc.desiredpos.x := (me.desiredsize.w-lc.desiredsize.w) div 2; // center
+        if (not osz.equals(lc.desiredsize)) then
+        begin
+          if (lc.inGroup) then groupElementChanged := true;
+          // relayout children
+          layBox(lc.firstChild);
+        end;
       end;
     end;
   end;
+
+  if (me.maxsize.w >= 0) and (me.desiredsize.w > me.maxsize.w) then me.desiredsize.w := me.maxsize.w;
+  if (me.maxsize.h >= 0) and (me.desiredsize.h > me.maxsize.h) then me.desiredsize.h := me.maxsize.h;
 end;
 
 
-(*
-second pass:
-  calcluate desired sizes (process flexes) using 'startsize', set 'desiredsize' and 'desiredpos'
-    if control has children, call 'second pass' recursively with this control as parent
-  flags set:
-    'group-element-changed', if any group element size was changed
-    'wrapping-changed', if not 'firsttime', and wrapping was changed (i.e. first pass will not set the flag)
-*)
 procedure TFlexLayouterBase.secondPass ();
 begin
   // reset flags
@@ -801,17 +728,6 @@ begin
 end;
 
 
-(*
-third pass:
-  if 'group-element-changed':
-    for each group: adjust controls to max desired size (startsize), set 'temp-flex' flags to 0 for 'em, set 'second-again' flag
-  for other controls: if 'desiredsize' > 'maxsize', set 'startsize' to 'maxsize', set 'temp-flex' flag to 0, set 'second-again' flag
-  if 'second-again' or 'wrapping-changed':
-    reset 'second-again'
-    reset 'wrapping-changed'
-    reset 'firsttime'
-    goto second pass
-*)
 procedure TFlexLayouterBase.thirdPass ();
 var
   secondAgain: Boolean;
@@ -864,6 +780,7 @@ begin
           ct.expand := false; // don't expand grouped controls anymore
           ct.tempFlex := 0; // don't change control size anymore
         end;
+        (*
         for c := 0 to 1 do
         begin
           if (ct.maxsize[c] < 0) then continue;
@@ -876,6 +793,7 @@ begin
             secondAgain := true;
           end;
         end;
+        *)
       end;
     end;
     if (not secondAgain) and (not wrappingChanged) then break;

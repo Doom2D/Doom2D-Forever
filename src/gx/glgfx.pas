@@ -121,6 +121,8 @@ type
     procedure eat (); inline;
     procedure cancel (); inline;
 
+    function isHot (ch: AnsiChar): Boolean;
+
   public
     property eaten: Boolean read mEaten;
     property cancelled: Boolean read mCancelled;
@@ -131,6 +133,11 @@ type
 // ////////////////////////////////////////////////////////////////////////// //
 // setup 2D OpenGL mode; will be called automatically in `glInit()`
 procedure oglSetup2D (winWidth, winHeight: Integer; upsideDown: Boolean=false);
+
+// the following calls MUST be paired AT ALL COSTS!
+procedure gxBeginUIDraw (scale: Single=1.0);
+procedure gxEndUIDraw ();
+
 
 type
   TScissorSave = record
@@ -270,6 +277,69 @@ function THKeyEvent.press (): Boolean; inline; begin result := (kind = TKind.Pre
 function THKeyEvent.release (): Boolean; inline; begin result := (kind = TKind.Release); end;
 procedure THKeyEvent.eat (); inline; begin mEaten := true; end;
 procedure THKeyEvent.cancel (); inline; begin mCancelled := true; end;
+
+function THKeyEvent.isHot (ch: AnsiChar): Boolean;
+begin
+  case scan of
+    SDL_SCANCODE_A: result := (ch = 'A') or (ch = 'a') or (ch = 'Ô') or (ch = 'ô');
+    SDL_SCANCODE_B: result := (ch = 'B') or (ch = 'b') or (ch = 'È') or (ch = 'è');
+    SDL_SCANCODE_C: result := (ch = 'C') or (ch = 'c') or (ch = 'Ñ') or (ch = 'ñ');
+    SDL_SCANCODE_D: result := (ch = 'D') or (ch = 'd') or (ch = 'Â') or (ch = 'â');
+    SDL_SCANCODE_E: result := (ch = 'E') or (ch = 'e') or (ch = 'Ó') or (ch = 'ó');
+    SDL_SCANCODE_F: result := (ch = 'F') or (ch = 'f') or (ch = 'À') or (ch = 'à');
+    SDL_SCANCODE_G: result := (ch = 'G') or (ch = 'g') or (ch = 'Ï') or (ch = 'ï');
+    SDL_SCANCODE_H: result := (ch = 'H') or (ch = 'h') or (ch = 'Ð') or (ch = 'ð');
+    SDL_SCANCODE_I: result := (ch = 'I') or (ch = 'i') or (ch = 'Ø') or (ch = 'ø');
+    SDL_SCANCODE_J: result := (ch = 'J') or (ch = 'j') or (ch = 'Î') or (ch = 'î');
+    SDL_SCANCODE_K: result := (ch = 'K') or (ch = 'k') or (ch = 'Ë') or (ch = 'ë');
+    SDL_SCANCODE_L: result := (ch = 'L') or (ch = 'l') or (ch = 'Ä') or (ch = 'ä');
+    SDL_SCANCODE_M: result := (ch = 'M') or (ch = 'm') or (ch = 'Ü') or (ch = 'ü');
+    SDL_SCANCODE_N: result := (ch = 'N') or (ch = 'n') or (ch = 'Ò') or (ch = 'ò');
+    SDL_SCANCODE_O: result := (ch = 'O') or (ch = 'o') or (ch = 'Ù') or (ch = 'ù');
+    SDL_SCANCODE_P: result := (ch = 'P') or (ch = 'p') or (ch = 'Ç') or (ch = 'ç');
+    SDL_SCANCODE_Q: result := (ch = 'Q') or (ch = 'q') or (ch = 'É') or (ch = 'é');
+    SDL_SCANCODE_R: result := (ch = 'R') or (ch = 'r') or (ch = 'Ê') or (ch = 'ê');
+    SDL_SCANCODE_S: result := (ch = 'S') or (ch = 's') or (ch = 'Û') or (ch = 'û');
+    SDL_SCANCODE_T: result := (ch = 'T') or (ch = 't') or (ch = 'Å') or (ch = 'å');
+    SDL_SCANCODE_U: result := (ch = 'U') or (ch = 'u') or (ch = 'Ã') or (ch = 'ã');
+    SDL_SCANCODE_V: result := (ch = 'V') or (ch = 'v') or (ch = 'Ì') or (ch = 'ì');
+    SDL_SCANCODE_W: result := (ch = 'W') or (ch = 'w') or (ch = 'Ö') or (ch = 'ö');
+    SDL_SCANCODE_X: result := (ch = 'X') or (ch = 'x') or (ch = '×') or (ch = '÷');
+    SDL_SCANCODE_Y: result := (ch = 'Y') or (ch = 'y') or (ch = 'Í') or (ch = 'í');
+    SDL_SCANCODE_Z: result := (ch = 'Z') or (ch = 'z') or (ch = 'ß') or (ch = 'ÿ');
+
+    SDL_SCANCODE_1: result := (ch = '1') or (ch = '!');
+    SDL_SCANCODE_2: result := (ch = '2') or (ch = '@');
+    SDL_SCANCODE_3: result := (ch = '3') or (ch = '#');
+    SDL_SCANCODE_4: result := (ch = '4') or (ch = '$');
+    SDL_SCANCODE_5: result := (ch = '5') or (ch = '%');
+    SDL_SCANCODE_6: result := (ch = '6') or (ch = '^');
+    SDL_SCANCODE_7: result := (ch = '7') or (ch = '&');
+    SDL_SCANCODE_8: result := (ch = '8') or (ch = '*');
+    SDL_SCANCODE_9: result := (ch = '9') or (ch = '(');
+    SDL_SCANCODE_0: result := (ch = '0') or (ch = ')');
+
+    SDL_SCANCODE_RETURN: result := (ch = #13) or (ch = #10);
+    SDL_SCANCODE_ESCAPE: result := (ch = #27);
+    SDL_SCANCODE_BACKSPACE: result := (ch = #8);
+    SDL_SCANCODE_TAB: result := (ch = #9);
+    SDL_SCANCODE_SPACE: result := (ch = ' ');
+
+    SDL_SCANCODE_MINUS: result := (ch = '-');
+    SDL_SCANCODE_EQUALS: result := (ch = '=');
+    SDL_SCANCODE_LEFTBRACKET: result := (ch = '[') or (ch = '{');
+    SDL_SCANCODE_RIGHTBRACKET: result := (ch = ']') or (ch = '}');
+    SDL_SCANCODE_BACKSLASH, SDL_SCANCODE_NONUSHASH: result := (ch = '\') or (ch = '|');
+    SDL_SCANCODE_SEMICOLON: result := (ch = ';') or (ch = ':');
+    SDL_SCANCODE_APOSTROPHE: result := (ch = '''') or (ch = '"');
+    SDL_SCANCODE_GRAVE: result := (ch = '`') or (ch = '~');
+    SDL_SCANCODE_COMMA: result := (ch = ',') or (ch = '<');
+    SDL_SCANCODE_PERIOD: result := (ch = '.') or (ch = '>');
+    SDL_SCANCODE_SLASH: result := (ch = '/') or (ch = '?');
+
+    else result := false;
+  end;
+end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
@@ -673,6 +743,21 @@ begin
 
   glClearColor(0, 0, 0, 0);
   glColor4f(1, 1, 1, 1);
+end;
+
+
+procedure gxBeginUIDraw (scale: Single=1.0);
+begin
+  glMatrixMode(GL_MODELVIEW);
+  glPushMatrix();
+  glLoadIdentity();
+  glScalef(scale, scale, 1);
+end;
+
+procedure gxEndUIDraw ();
+begin
+  glMatrixMode(GL_MODELVIEW);
+  glPopMatrix();
 end;
 
 

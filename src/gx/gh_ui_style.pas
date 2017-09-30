@@ -15,6 +15,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  *)
 {$INCLUDE ../../shared/a_modes.inc}
+{.$DEFINE UI_STYLE_DEBUG_SEARCH}
 unit gh_ui_style;
 
 interface
@@ -26,57 +27,64 @@ uses
 
 
 type
+  TStyleSection = class;
+
   TStyleValue = packed record
   public
-    type TType = (Empty, Bool, Int, Color);
+    type TType = (Empty, Bool, Int, Color, Str);
 
   public
-    constructor Create (v: Boolean; okToInherit: Boolean=true);
-    constructor Create (v: Integer; okToInherit: Boolean=true);
-    constructor Create (ar, ag, ab: Integer; okToInherit: Boolean=true);
-    constructor Create (ar, ag, ab, aa: Integer; okToInherit: Boolean=true);
-    constructor Create (const v: TGxRGBA; okToInherit: Boolean=true);
+    constructor Create (v: Boolean);
+    constructor Create (v: Integer);
+    constructor Create (ar, ag, ab: Integer; aa: Integer=255);
+    constructor Create (const v: TGxRGBA);
+    constructor Create (const v: AnsiString);
 
     function isEmpty (): Boolean; inline;
-    function canInherit (): Boolean; inline;
 
     function toString (): AnsiString;
     function asRGBA: TGxRGBA; inline;
     function asRGBADef (const def: TGxRGBA): TGxRGBA; inline;
-    function asIntDef (const def: Integer): Integer; inline;
-    function asBoolDef (const def: Boolean): Boolean; inline;
+    function asInt (const def: Integer=0): Integer; inline;
+    function asBool (const def: Boolean=false): Boolean; inline;
+    function asStr (const def: AnsiString=''): AnsiString; inline;
 
   public
     vtype: TType;
-    allowInherit: Boolean;
     case TType of
       TType.Bool: (bval: Boolean);
       TType.Int: (ival: Integer);
       TType.Color: (r, g, b, a: Byte);
+      TType.Str: (sval: Pointer); // AnsiString
   end;
-
-  TStyleSection = class;
 
   THashStrStyleVal = specialize THashBase<AnsiString, TStyleValue, THashKeyStrAnsiCI>;
   THashStrSection = specialize THashBase<AnsiString, TStyleSection, THashKeyStrAnsiCI>;
 
   TStyleSection = class
   private
+    mParent: TStyleSection; // for inheritance
+    mInherits: AnsiString;
+    mHashName: AnsiString; // for this section
+    mCtlName: AnsiString; // for this section
     mVals: THashStrStyleVal;
-    mHashVals: THashStrSection; // "#..."
-    mCtlVals: THashStrSection;
+    mHashes: THashStrSection;
+    mCtls: THashStrSection;
 
   private
+    function getTopLevel (): TStyleSection; inline;
     // "text-color#inactive@label"
     function getValue (const path: AnsiString): TStyleValue;
-    procedure setValue (const path: AnsiString; const val: TStyleValue);
 
   public
     constructor Create ();
     destructor Destroy (); override;
 
+    function get (name, hash, ctl: AnsiString): TStyleValue;
+
   public
-    property value[const path: AnsiString]: TStyleValue read getValue write setValue; default;
+    property value[const path: AnsiString]: TStyleValue read getValue; default;
+    property topLevel: TStyleSection read getTopLevel;
   end;
 
   TUIStyle = class
@@ -85,10 +93,11 @@ type
     mMain: TStyleSection;
 
   private
+    procedure createMain ();
+
     procedure parse (par: TTextParser);
 
     function getValue (const path: AnsiString): TStyleValue; inline;
-    procedure setValue (const path: AnsiString; const val: TStyleValue); inline;
 
   public
     constructor Create (const aid: AnsiString);
@@ -96,9 +105,11 @@ type
     constructor CreateFromFile (const fname: AnsiString);
     destructor Destroy (); override;
 
+    function get (name, hash, ctl: AnsiString): TStyleValue;
+
   public
     property id: AnsiString read mId;
-    property value[const path: AnsiString]: TStyleValue read getValue write setValue; default;
+    property value[const path: AnsiString]: TStyleValue read getValue; default;
   end;
 
 
@@ -113,56 +124,38 @@ implementation
 
 
 // ////////////////////////////////////////////////////////////////////////// //
+const
+  defaultStyleStr =
+    'default {'#10+
+    '  back-color: #008;'#10+
+    '  #active: { text-color: #fff; frame-color: #fff; frame-text-color: #fff; frame-icon-color: #0f0; }'#10+
+    '  #inactive: { text-color: #aaa; frame-color: #aaa; frame-text-color: #aaa; frame-icon-color: #0a0; }'#10+
+    '  #disabled: { text-color: #666; frame-color: #888; frame-text-color: #888; frame-icon-color: #080; }'#10+
+    '  @simple_text: { text-color: #ff0; #inactive(#active); }'#10+
+    '  @cb_listbox: { current-item-back-color: #080; text-color: #ff0; #inactive(#active) { current-item-back-color: #000; } }'#10+
+    '  @window: { #inactive(#active): { darken: 128; } }'#10+
+    '  @button: { back-color: #999; text-color: #000; hot-color: #600; #active: { back-color: #fff; hot-color: #c00; } #disabled: { back-color: #444; text-color: #333; hot-color: #333; } }'#10+
+    '  @label: { #active: {back-color: #440;} #inactive(#active); }'#10+
+    '  @static: { text-color: #ff0; #inactive(#active); }'#10+
+    '  @box: { #inactive(#active); }'#10+
+    '}'#10+
+    '';
 var
   styles: array of TUIStyle = nil;
 
 
 function createDefaultStyle (): TUIStyle;
+var
+  st: TStream;
 begin
-  result := TUIStyle.Create('default');
-
-  result['back-color'] := TStyleValue.Create(TGxRGBA.Create(0, 0, 128));
-  result['text-color'] := TStyleValue.Create(TGxRGBA.Create(255, 255, 255));
-  result['frame-color'] := TStyleValue.Create(TGxRGBA.Create(255, 255, 255));
-  result['frame-text-color'] := TStyleValue.Create(TGxRGBA.Create(255, 255, 255));
-  result['frame-icon-color'] := TStyleValue.Create(TGxRGBA.Create(0, 255, 0));
-
-  // disabled is always inactive too
-
-  // main colors
-  result['back-color#disabled'] := TStyleValue.Create(TGxRGBA.Create(0, 0, 127));
-  result['text-color#disabled'] := TStyleValue.Create(TGxRGBA.Create(127, 127, 127));
-  result['frame-text-color#disabled'] := TStyleValue.Create(TGxRGBA.Create(127, 127, 127));
-  result['frame-icon-color#disabled'] := TStyleValue.Create(TGxRGBA.Create(0, 127, 0));
-  result['darken#disabled'] := TStyleValue.Create(128, false); // darken inactive windows, no-inherit
-  result['darken#inactive'] := TStyleValue.Create(128, false); // darken inactive windows, no-inherit
-
-  // label
-  result['text-color@label'] := TStyleValue.Create(TGxRGBA.Create(255, 255, 255));
-  result['text-color#disabled@label'] := TStyleValue.Create(TGxRGBA.Create(127, 127, 127));
-
-  // box
-  result['frame-color@box'] := TStyleValue.Create(TGxRGBA.Create(255, 255, 0));
-  result['frame-text-color@box'] := TStyleValue.Create(TGxRGBA.Create(255, 255, 0));
-  result['frame-icon-color@box'] := TStyleValue.Create(TGxRGBA.Create(0, 255, 0));
-
-  result['frame-color#inactive@box'] := TStyleValue.Create(TGxRGBA.Create(255, 255, 255));
-  result['frame-text-color#inactive@box'] := TStyleValue.Create(TGxRGBA.Create(255, 255, 255));
-  result['frame-icon-color#inactive@box'] := TStyleValue.Create(TGxRGBA.Create(0, 255, 0));
-
-  result['frame-color#disabled@box'] := TStyleValue.Create(TGxRGBA.Create(127, 127, 127));
-  result['frame-text-color#disabled@box'] := TStyleValue.Create(TGxRGBA.Create(127, 127, 127));
-  result['frame-icon-color#disabled@box'] := TStyleValue.Create(TGxRGBA.Create(127, 127, 127));
-
-  // button
-  result['back-color@button'] := TStyleValue.Create(TGxRGBA.Create(0, 96, 255));
-  result['text-color@button'] := TStyleValue.Create(TGxRGBA.Create(255, 255, 255));
-
-  result['back-color#inactive@button'] := TStyleValue.Create(TGxRGBA.Create(0, 0, 127));
-  result['text-color#inactive@button'] := TStyleValue.Create(TGxRGBA.Create(196, 196, 196));
-
-  result['back-color#disabled@button'] := TStyleValue.Create(TGxRGBA.Create(0, 0, 127));
-  result['text-color#disabled@button'] := TStyleValue.Create(TGxRGBA.Create(96, 96, 96));
+  result := nil;
+  st := TStringStream.Create(defaultStyleStr);
+  st.position := 0;
+  try
+    result := TUIStyle.Create(st);
+  finally
+    FreeAndNil(st);
+  end;
 end;
 
 
@@ -202,7 +195,7 @@ var
   f: Integer;
 begin
   if (st = nil) then raise Exception.Create('cannot load UI styles from nil stream');
-  par := TFileTextParser.Create(st, false, [par.TOption.SignedNumbers, par.TOption.DollarIsId, par.TOption.DashIsId]);
+  par := TFileTextParser.Create(st, false, [par.TOption.SignedNumbers, par.TOption.DollarIsId, par.TOption.DashIsId, par.TOption.HtmlColors]);
   styles := nil;
   try
     while (not par.isEOF) do
@@ -237,33 +230,30 @@ end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-constructor TStyleValue.Create (v: Boolean; okToInherit: Boolean=true); begin vtype := TType.Bool; allowInherit := okToInherit; bval := v; end;
-constructor TStyleValue.Create (v: Integer; okToInherit: Boolean=true); begin vtype := TType.Int; allowInherit := okToInherit; ival := v; end;
-
-constructor TStyleValue.Create (ar, ag, ab: Integer; okToInherit: Boolean=true);
-begin
-  vtype := TType.Color;
-  allowInherit := okToInherit;
-  r := nmax(0, nmin(ar, 255));
-  g := nmax(0, nmin(ag, 255));
-  b := nmax(0, nmin(ab, 255));
-  a := 255;
+procedure freeValueCB (var v: TStyleValue); begin
+  if (v.vtype = v.TType.Str) then
+  begin
+    AnsiString(v.sval) := '';
+  end;
+  v.vtype := v.TType.Empty;
 end;
 
-constructor TStyleValue.Create (ar, ag, ab, aa: Integer; okToInherit: Boolean=true);
+constructor TStyleValue.Create (v: Boolean); begin vtype := TType.Bool; bval := v; end;
+constructor TStyleValue.Create (v: Integer); begin vtype := TType.Int; ival := v; end;
+constructor TStyleValue.Create (const v: AnsiString); begin vtype := TType.Str; sval := Pointer(v); end;
+
+constructor TStyleValue.Create (ar, ag, ab: Integer; aa: Integer=255);
 begin
   vtype := TType.Color;
-  allowInherit := okToInherit;
   r := nmax(0, nmin(ar, 255));
   g := nmax(0, nmin(ag, 255));
   b := nmax(0, nmin(ab, 255));
   a := nmax(0, nmin(aa, 255));
 end;
 
-constructor TStyleValue.Create (const v: TGxRGBA; okToInherit: Boolean=true);
+constructor TStyleValue.Create (const v: TGxRGBA);
 begin
   vtype := TType.Color;
-  allowInherit := okToInherit;
   r := v.r;
   g := v.g;
   b := v.b;
@@ -271,12 +261,11 @@ begin
 end;
 
 function TStyleValue.isEmpty (): Boolean; inline; begin result := (vtype = TType.Empty); end;
-function TStyleValue.canInherit (): Boolean; inline; begin result := allowInherit; end;
 function TStyleValue.asRGBA: TGxRGBA; inline; begin if (vtype = TType.Color) then result := TGxRGBA.Create(r, g, b, a) else result := TGxRGBA.Create(0, 0, 0, 0); end;
 function TStyleValue.asRGBADef (const def: TGxRGBA): TGxRGBA; inline; begin if (vtype = TType.Color) then result := TGxRGBA.Create(r, g, b, a) else result := def; end;
-function TStyleValue.asIntDef (const def: Integer): Integer; inline; begin  if (vtype = TType.Int) then result := ival else if (vtype = TType.Bool) then begin if (bval) then result := 1 else result := 0; end else result := def; end;
-function TStyleValue.asBoolDef (const def: Boolean): Boolean; inline; begin  if (vtype = TType.Bool) then result := bval else if (vtype = TType.Int) then result := (ival <> 0) else result := def; end;
-
+function TStyleValue.asInt (const def: Integer=0): Integer; inline; begin if (vtype = TType.Int) then result := ival else if (vtype = TType.Bool) then begin if (bval) then result := 1 else result := 0; end else result := def; end;
+function TStyleValue.asBool (const def: Boolean=false): Boolean; inline; begin if (vtype = TType.Bool) then result := bval else if (vtype = TType.Int) then result := (ival <> 0) else result := def; end;
+function TStyleValue.asStr (const def: AnsiString=''): AnsiString; inline; begin if (vtype = TType.Str) then result := AnsiString(sval) else result := def; end;
 
 function TStyleValue.toString (): AnsiString;
 begin
@@ -311,18 +300,32 @@ begin
     if (hashPos > 0) then
     begin
       // has ctl and hash
-      if (atPos < hashPos) then exit; // alas
-      if (hashPos > 1) then name := Copy(path, 1, hashPos-1);
-      Inc(hashPos); // skip hash
-      if (hashPos < atPos) then hash := Copy(path, hashPos, atPos-hashPos);
+      if (atPos < hashPos) then
+      begin
+        // @ctl#hash
+        if (atPos > 1) then name := Copy(path, 1, atPos-1);
+        Inc(atPos); // skip "at"
+        if (atPos < hashPos) then ctl := Copy(path, atPos, hashPos-atPos);
+        Inc(hashPos); // skip hash
+        if (hashPos <= Length(path)) then hash := Copy(path, hashPos, Length(path)-hashPos+1);
+      end
+      else
+      begin
+        // #hash@ctl
+        if (hashPos > 1) then name := Copy(path, 1, hashPos-1);
+        Inc(hashPos); // skip hash
+        if (hashPos < atPos) then hash := Copy(path, hashPos, atPos-hashPos);
+        Inc(atPos); // skip "at"
+        if (atPos <= Length(path)) then ctl := Copy(path, atPos, Length(path)-atPos+1);
+      end;
     end
     else
     begin
       // has only ctl
       if (atPos > 1) then name := Copy(path, 1, atPos-1);
+      Inc(atPos); // skip "at"
+      if (atPos <= Length(path)) then ctl := Copy(path, atPos, Length(path)-atPos+1);
     end;
-    Inc(atPos); // skip "at"
-    if (atPos <= Length(path)) then ctl := Copy(path, atPos, Length(path)-atPos+1);
   end
   else if (hashPos > 0) then
   begin
@@ -343,18 +346,179 @@ end;
 // ////////////////////////////////////////////////////////////////////////// //
 constructor TStyleSection.Create ();
 begin
-  mVals := THashStrStyleVal.Create();
-  mHashVals := THashStrSection.Create();
-  mCtlVals := THashStrSection.Create(freeSectionCB);
+  mParent := nil;
+  mInherits := '';
+  mHashName := '';
+  mCtlName := '';
+  mVals := THashStrStyleVal.Create(freeValueCB);
+  mHashes := THashStrSection.Create(freeSectionCB);
+  mCtls := THashStrSection.Create(freeSectionCB);
 end;
 
 
 destructor TStyleSection.Destroy ();
 begin
   FreeAndNil(mVals);
-  FreeAndNil(mHashVals);
-  FreeAndNil(mCtlVals);
+  FreeAndNil(mHashes);
+  FreeAndNil(mCtls);
+  mParent := nil;
+  mInherits := '';
+  mHashName := '';
+  mCtlName := '';
   inherited;
+end;
+
+
+function TStyleSection.getTopLevel (): TStyleSection; inline;
+begin
+  result := self;
+  while (result.mParent <> nil) do result := result.mParent;
+end;
+
+
+function TStyleSection.get (name, hash, ctl: AnsiString): TStyleValue;
+var
+  tmp: AnsiString;
+  sect, s1, so: TStyleSection;
+  jumpsLeft: Integer = 32; // max inheritance level
+  skipInherits: Boolean = false;
+begin
+  result.vtype := result.TType.Empty;
+  if (Length(name) = 0) then exit; // alas
+  {$IFDEF UI_STYLE_DEBUG_SEARCH}writeln('***GET: <', name, '#', hash, '@', ctl, '>');{$ENDIF}
+  // try control
+  sect := self;
+  if (Length(ctl) > 0) then
+  begin
+    if (not strEquCI1251(ctl, mCtlName)) then
+    begin
+      // has ctl section?
+      if (not topLevel.mCtls.get(ctl, sect)) then sect := topLevel;
+    end;
+  end;
+  // has hash?
+  if (Length(hash) > 0) then
+  begin
+    if (not strEquCI1251(hash, sect.mHashName)) then
+    begin
+      if (sect.mHashes.get(hash, s1)) then sect := s1;
+    end;
+  end;
+  // try name, go up with inheritance
+  while (jumpsLeft > 0) do
+  begin
+    if (sect.mVals.get(name, result)) then
+    begin
+      if (not result.isEmpty) then exit; // i found her!
+    end;
+    // go up
+    if (skipInherits) or (Length(sect.mInherits) = 0) then
+    begin
+      skipInherits := false;
+      // for hash section: try parent section first
+      if (Length(sect.mHashName) > 0) then
+      begin
+        {$IFDEF UI_STYLE_DEBUG_SEARCH}writeln('search for <#', hash, '@', ctl, '> at <#', sect.mHashName, '@', sect.mCtlName, '>: hash up');{$ENDIF}
+        sect := sect.mParent;
+        if (sect = nil) then break; // alas
+        {$IFDEF UI_STYLE_DEBUG_SEARCH}writeln(' hash up: trying <#', sect.mHashName, '@', sect.mCtlName, '>');{$ENDIF}
+        if (sect.mVals.get(name, result)) then
+        begin
+          if (not result.isEmpty) then exit; // i found her!
+        end;
+        // move another parent up
+        sect := sect.mParent;
+        if (sect = nil) then break; // alas
+        {$IFDEF UI_STYLE_DEBUG_SEARCH}writeln(' hash up: jumped up twice to <#', sect.mHashName, '@', sect.mCtlName, '>');{$ENDIF}
+      end
+      else
+      begin
+        // one parent up
+        {$IFDEF UI_STYLE_DEBUG_SEARCH}writeln('search for <#', hash, '@', ctl, '> at <#', sect.mHashName, '@', sect.mCtlName, '>: jump up');{$ENDIF}
+        sect := sect.mParent;
+        if (sect = nil) then break; // alas
+      end;
+      // here, we should have non-hash section
+      assert(Length(sect.mHashName) = 0);
+      // if we want hash, try to find it, otherwise do nothing
+      if (Length(hash) > 0) then
+      begin
+        {$IFDEF UI_STYLE_DEBUG_SEARCH}writeln(' search for <#', hash, '@', ctl, '> at <#', sect.mHashName, '@', sect.mCtlName, '>: hash down');{$ENDIF}
+        if (sect.mHashes.get(hash, s1)) then
+        begin
+          sect := s1;
+          {$IFDEF UI_STYLE_DEBUG_SEARCH}writeln('  found <#', sect.mHashName, '@', sect.mCtlName, '>');{$ENDIF}
+        end;
+      end;
+    end
+    else
+    begin
+      // inheritance
+      Dec(jumpsLeft);
+      if (jumpsLeft < 1) then break; // alas
+      {$IFDEF UI_STYLE_DEBUG_SEARCH}writeln('inherits: <', sect.mInherits, '>');{$ENDIF}
+      // parse inherit string
+      if (not splitPath(sect.mInherits, tmp, hash, ctl)) then exit; // alas
+      {$IFDEF UI_STYLE_DEBUG_SEARCH}writeln('inherits: <', hash, '>:<', ctl, '>');{$ENDIF}
+      // find section
+      if (Length(ctl) > 0) then
+      begin
+        // ctl
+             if (strEquCI1251(ctl, '$main$')) then sect := topLevel
+        else if (strEquCI1251(ctl, '$up$')) then begin if (Length(sect.mHashName) <> 0) then sect := sect.mParent.mParent else sect := sect.mParent; end
+        else if (not topLevel.mCtls.get(ctl, sect)) then sect := topLevel;
+        if (sect = nil) then break; // alas
+        if (Length(hash) > 0) then
+        begin
+          if (sect.mHashes.get(hash, s1)) then sect := s1;
+        end;
+      end
+      else
+      begin
+        // hash
+        assert(Length(hash) > 0);
+        // dummy loop, so i can use `break`
+        repeat
+          // get out of hash section
+          if (Length(sect.mHashName) > 0) then
+          begin
+            {$IFDEF UI_STYLE_DEBUG_SEARCH}writeln('hash-jump-up: <#', sect.mHashName, '@', sect.mCtlName, '>');{$ENDIF}
+            sect := sect.mParent;
+            if (sect = nil) then break; // alas
+            // check for hash section in parent; use parent if there is no such hash section
+            {$IFDEF UI_STYLE_DEBUG_SEARCH}writeln(' checking parent: <#', sect.mHashName, '@', sect.mCtlName, '> for <#', hash, '>');{$ENDIF}
+            so := sect;
+            if (sect.mHashes.get(hash, s1)) then
+            begin
+              if (s1 <> sect) and (s1 <> so) then
+              begin
+                {$IFDEF UI_STYLE_DEBUG_SEARCH}writeln('  found in parent: <#', sect.mHashName, '@', sect.mCtlName, '> for <#', hash, '>');{$ENDIF}
+                sect := s1;
+              end;
+            end;
+          end
+          else
+          begin
+            // we're in parent, try to find hash section
+            {$IFDEF UI_STYLE_DEBUG_SEARCH}writeln(' checking: <#', sect.mHashName, '@', sect.mCtlName, '> for <#', hash, '>');{$ENDIF}
+            if (sect.mHashes.get(hash, s1)) then
+            begin
+              {$IFDEF UI_STYLE_DEBUG_SEARCH}writeln('  found: <#', sect.mHashName, '@', sect.mCtlName, '> for <#', hash, '>');{$ENDIF}
+              sect := s1;
+            end
+            else
+            begin
+              // reuse current parent, but don't follow inheritance for it
+              skipInherits := true;
+            end;
+          end;
+        until true;
+        if (sect = nil) then break;
+      end;
+    end;
+  end;
+  // alas
+  result.vtype := result.TType.Empty;
 end;
 
 
@@ -362,92 +526,11 @@ end;
 function TStyleSection.getValue (const path: AnsiString): TStyleValue;
 var
   name, hash, ctl: AnsiString;
-  sect: TStyleSection = nil;
-  s1: TStyleSection = nil;
-  checkInheritance: Boolean = false;
 begin
   result.vtype := result.TType.Empty;
   if (not splitPath(path, name, hash, ctl)) then exit; // alas
   //writeln('name:<', name, '>; hash:<', hash, '>; ctl:<', ctl, '>');
-  if (Length(name) = 0) then exit; // alas
-  // try control
-  if (Length(ctl) > 0) then
-  begin
-    // has ctl section?
-    if not mCtlVals.get(ctl, sect) then
-    begin
-      sect := self;
-      checkInheritance := true;
-    end;
-  end
-  else
-  begin
-    sect := self;
-  end;
-  // has hash?
-  if (Length(hash) > 0) then
-  begin
-    if sect.mHashVals.get(hash, s1) then
-    begin
-      if s1.mVals.get(name, result) then
-      begin
-        //writeln('hash: <', hash, '>: val=', result.toString);
-        if (not result.isEmpty) and ((not checkInheritance) or (result.canInherit)) then exit;
-      end;
-    end;
-    //writeln('NO hash: <', hash, '>: val=', result.toString);
-    checkInheritance := true;
-  end;
-  // try just a name
-  if sect.mVals.get(name, result) then
-  begin
-    if (not result.isEmpty) and ((not checkInheritance) or (result.canInherit)) then exit;
-  end;
-  // alas
-  result.vtype := result.TType.Empty;
-end;
-
-
-procedure TStyleSection.setValue (const path: AnsiString; const val: TStyleValue);
-var
-  name, hash, ctl: AnsiString;
-  sect: TStyleSection = nil;
-  s1: TStyleSection = nil;
-begin
-  if (not splitPath(path, name, hash, ctl)) then exit; // alas
-  // has name?
-  if (Length(name) = 0) then exit; // no name -> nothing to do
-  // has ctl?
-  if (Length(ctl) > 0) then
-  begin
-    if not mCtlVals.get(ctl, sect) then
-    begin
-      // create new section
-      sect := TStyleSection.Create();
-      mCtlVals.put(ctl, sect);
-    end;
-  end
-  else
-  begin
-    // no ctl, use default section
-    sect := self;
-  end;
-  // has hash?
-  if (Length(hash) > 0) then
-  begin
-    if not sect.mHashVals.get(hash, s1) then
-    begin
-      // create new section
-      s1 := TStyleSection.Create();
-      sect.mHashVals.put(hash, s1);
-    end;
-  end
-  else
-  begin
-    // no hash, use default section
-    s1 := sect;
-  end;
-  s1.mVals.put(name, val);
+  result := get(name, hash, ctl);
 end;
 
 
@@ -455,7 +538,7 @@ end;
 constructor TUIStyle.Create (const aid: AnsiString);
 begin
   mId := aid;
-  mMain := TStyleSection.Create();
+  createMain();
 end;
 
 
@@ -464,9 +547,9 @@ var
   par: TTextParser;
 begin
   mId := '';
-  mMain := TStyleSection.Create();
+  createMain();
   if (st = nil) then exit;
-  par := TFileTextParser.Create(st, false, [par.TOption.SignedNumbers, par.TOption.DollarIsId, par.TOption.DashIsId]);
+  par := TFileTextParser.Create(st, false, [par.TOption.SignedNumbers, par.TOption.DollarIsId, par.TOption.DashIsId, par.TOption.HtmlColors]);
   try
     parse(par);
   finally
@@ -477,19 +560,11 @@ end;
 
 constructor TUIStyle.CreateFromFile (const fname: AnsiString);
 var
-  par: TTextParser;
   st: TStream;
 begin
-  mId := '';
-  mMain := TStyleSection.Create();
   st := openDiskFileRO(fname);
   try
-    par := TFileTextParser.Create(st, false, [par.TOption.SignedNumbers, par.TOption.DollarIsId, par.TOption.DashIsId]);
-    try
-      parse(par);
-    finally
-      par.Free();
-    end;
+    Create(st);
   finally
     st.Free();
   end;
@@ -503,14 +578,21 @@ begin
 end;
 
 
+procedure TUIStyle.createMain ();
+begin
+  mMain := TStyleSection.Create();
+  mMain.mCtlName := '$main$';
+end;
+
+
 function TUIStyle.getValue (const path: AnsiString): TStyleValue; inline;
 begin
   result := mMain[path];
 end;
 
-procedure TUIStyle.setValue (const path: AnsiString; const val: TStyleValue); inline;
+function TUIStyle.get (name, hash, ctl: AnsiString): TStyleValue;
 begin
-  mMain.setValue(path, val);
+  result := mMain.get(name, hash, ctl);
 end;
 
 
@@ -525,48 +607,100 @@ procedure TUIStyle.parse (par: TTextParser);
 
   procedure parseSection (sect: TStyleSection; ctlAllowed: Boolean; hashAllowed: Boolean);
   var
-    s: AnsiString;
+    s, inh: AnsiString;
     sc: TStyleSection = nil;
     v: TStyleValue;
+
+    procedure parseInherit ();
+    begin
+      inh := '';
+      if (par.eatDelim('(')) then
+      begin
+        if (par.eatDelim(')')) then par.error('empty inheritance is not allowed');
+        if (par.eatDelim('#')) then
+        begin
+          inh := '#';
+          inh += par.expectId();
+        end;
+        if (par.eatDelim('@')) then
+        begin
+          inh += '#';
+          inh += par.expectId();
+        end;
+        par.expectDelim(')');
+      end;
+    end;
+
+    function nib2c (n: Integer): Byte; inline;
+    begin
+           if (n < 0) then result := 0
+      else if (n > 15) then result := 255
+      else result := Byte(255*n div 15);
+    end;
+
   begin
+    s := '';
+    inh := '';
     par.expectDelim('{');
     while (not par.isDelim('}')) do
     begin
       while (par.eatDelim(';')) do begin end;
-      // hash
-      if hashAllowed and (par.eatDelim('#')) then
-      begin
-        s := par.expectIdOrStr();
-        //writeln('hash: <', s, '>');
-        par.eatDelim(':'); // optional
-        if not sect.mHashVals.get(s, sc) then
-        begin
-          // create new section
-          sc := TStyleSection.Create();
-          sect.mHashVals.put(s, sc);
-        end;
-        parseSection(sc, false, false);
-        continue;
-      end;
       // ctl
       if ctlAllowed and (par.eatDelim('@')) then
       begin
-        s := par.expectIdOrStr();
-        //writeln('ctl: <', s, '>');
+        s := par.expectId();
+        parseInherit();
         par.eatDelim(':'); // optional
-        if not sect.mCtlVals.get(s, sc) then
+        if (not sect.mCtls.get(s, sc)) then
         begin
           // create new section
           sc := TStyleSection.Create();
-          sect.mCtlVals.put(s, sc);
+          sc.mParent := sect;
+          sc.mInherits := inh;
+          sc.mHashName := '';
+          sc.mCtlName := s;
+          sect.mCtls.put(s, sc);
+        end
+        else
+        begin
+          assert(sc.mParent = sect);
+          assert(sc.mHashName = '');
+          assert(sc.mCtlName = s);
+          if (Length(sc.mInherits) <> 0) and (Length(inh) <> 0) then par.error('double inheritance');
+          sc.mInherits := inh;
         end;
-        parseSection(sc, false, true);
+        if (not par.eatDelim(';')) then parseSection(sc, false, true);
+        continue;
+      end;
+      // hash
+      if hashAllowed and (par.eatDelim('#')) then
+      begin
+        s := par.expectId();
+        parseInherit();
+        par.eatDelim(':'); // optional
+        if (not sect.mHashes.get(s, sc)) then
+        begin
+          // create new section
+          sc := TStyleSection.Create();
+          sc.mParent := sect;
+          sc.mInherits := inh;
+          sc.mHashName := s;
+          sc.mCtlName := '';
+          sect.mHashes.put(s, sc);
+        end
+        else
+        begin
+          assert(sc.mParent = sect);
+          assert(sc.mHashName = s);
+          assert(sc.mCtlName = '');
+          if (Length(sc.mInherits) <> 0) and (Length(inh) <> 0) then par.error('double inheritance');
+          sc.mInherits := inh;
+        end;
+        if (not par.eatDelim(';')) then parseSection(sc, false, false);
         continue;
       end;
       // name
-      s := par.expectIdOrStr();
-      //writeln('name: <', s, '>');
-      v.allowInherit := true;
+      s := par.expectId();
       par.expectDelim(':');
       if (par.eatId('rgb')) or (par.eatId('rgba')) then
       begin
@@ -586,6 +720,30 @@ procedure TUIStyle.parse (par: TTextParser);
         end;
         par.expectDelim(')');
       end
+      else if (par.isId) and (par.tokStr[1] = '#') then
+      begin
+        // html color
+        assert((Length(par.tokStr) = 4) or (Length(par.tokStr) = 7));
+        //writeln('<', par.tokStr, '>; {', par.curChar, '}');
+        v.vtype := v.TType.Color;
+        if (Length(par.tokStr) = 4) then
+        begin
+          // #rgb
+          v.r := nib2c(digitInBase(par.tokStr[2], 16));
+          v.g := nib2c(digitInBase(par.tokStr[3], 16));
+          v.b := nib2c(digitInBase(par.tokStr[4], 16));
+        end
+        else
+        begin
+         // #rrggbb
+          v.r := Byte(digitInBase(par.tokStr[2], 16)*16+digitInBase(par.tokStr[3], 16));
+          v.g := Byte(digitInBase(par.tokStr[4], 16)*16+digitInBase(par.tokStr[5], 16));
+          v.b := Byte(digitInBase(par.tokStr[6], 16)*16+digitInBase(par.tokStr[7], 16));
+        end;
+        v.a := 255;
+        //writeln('  r=', v.r, '; g=', v.g, '; b=', v.b);
+        par.skipToken();
+      end
       else if (par.eatId('true')) or (par.eatId('tan')) then
       begin
         v.vtype := v.TType.Bool;
@@ -596,17 +754,21 @@ procedure TUIStyle.parse (par: TTextParser);
         v.vtype := v.TType.Bool;
         v.bval := false;
       end
+      else if (par.isStr) then
+      begin
+        // string value
+        v := TStyleValue.Create(par.tokStr);
+        par.skipToken();
+      end
+      else if (par.eatId('inherit')) then
+      begin
+        v.vtype := v.TType.Empty;
+      end
       else
       begin
         // should be int
         v.vtype := v.TType.Int;
         v.ival := par.expectInt();
-      end;
-      // '!' flags
-      while (par.eatDelim('!')) do
-      begin
-        if (par.eatId('no-inherit')) then v.allowInherit := false
-        else par.error('unknown flag');
       end;
       par.expectDelim(';');
       sect.mVals.put(s, v);
@@ -626,7 +788,7 @@ begin
   end;
   if (Length(mId) = 0) then mId := 'default';
   par.skipToken();
-  parseSection(mMain, true, true);
+  if (not par.eatDelim(';')) then parseSection(mMain, true, true);
 end;
 
 

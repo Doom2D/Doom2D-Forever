@@ -24,7 +24,7 @@ uses
   g_textures, g_basic, e_graphics, g_phys, g_grid, g_player, g_monsters,
   g_window, g_map, g_triggers, g_items, g_game, g_panel, g_console, g_gfx,
   xprofiler,
-  sdlcarcass, glgfx, gh_ui;
+  sdlcarcass, glgfx, gh_ui_common, gh_ui;
 
 
 procedure g_Holmes_Draw ();
@@ -137,17 +137,102 @@ end;
 
 
 procedure createHelpWindow ();
+  procedure addHelpEmptyLine ();
+  var
+    stx: TUIStaticText;
+  begin
+    stx := TUIStaticText.Create();
+    stx.flExpand := true;
+    stx.halign := 0; // center
+    stx.text := '';
+    stx.header := false;
+    stx.line := false;
+    winHelp.appendChild(stx);
+  end;
+
+  procedure addHelpCaptionLine (const txt: AnsiString);
+  var
+    stx: TUIStaticText;
+  begin
+    stx := TUIStaticText.Create();
+    stx.flExpand := true;
+    stx.halign := 0; // center
+    stx.text := txt;
+    stx.header := true;
+    stx.line := true;
+    winHelp.appendChild(stx);
+  end;
+
+  procedure addHelpCaption (const txt: AnsiString);
+  var
+    stx: TUIStaticText;
+  begin
+    stx := TUIStaticText.Create();
+    stx.flExpand := true;
+    stx.halign := 0; // center
+    stx.text := txt;
+    stx.header := true;
+    stx.line := false;
+    winHelp.appendChild(stx);
+  end;
+
+  procedure addHelpKeyMouse (const key, txt, grp: AnsiString);
+  var
+    box: TUIHBox;
+    span: TUISpan;
+    stx: TUIStaticText;
+  begin
+    box := TUIHBox.Create();
+    box.flExpand := true;
+      // key
+      stx := TUIStaticText.Create();
+      stx.flExpand := true;
+      stx.halign := 1; // right
+      stx.valign := 0; // center
+      stx.text := key;
+      stx.header := true;
+      stx.line := false;
+      stx.flHGroup := grp;
+      box.appendChild(stx);
+      // span
+      span := TUISpan.Create();
+      span.flDefaultSize := TLaySize.Create(4, 1);
+      span.flExpand := true;
+      box.appendChild(span);
+      // text
+      stx := TUIStaticText.Create();
+      stx.flExpand := true;
+      stx.halign := -1; // left
+      stx.valign := 0; // center
+      stx.text := txt;
+      stx.header := false;
+      stx.line := false;
+      box.appendChild(stx);
+    winHelp.appendChild(box);
+  end;
+
+  procedure addHelpKey (const key, txt: AnsiString); begin addHelpKeyMouse(key, txt, 'help-keys'); end;
+  procedure addHelpMouse (const key, txt: AnsiString); begin addHelpKeyMouse(key, txt, 'help-mouse'); end;
+
 var
-  llb: TUISimpleText;
   slist: array of AnsiString = nil;
   cmd: PHolmesCommand;
   bind: THolmesBinding;
-  f, maxkeylen: Integer;
+  f: Integer;
+  {
+  llb: TUISimpleText;
+  maxkeylen: Integer;
   s: AnsiString;
+  }
 begin
+  winHelp := TUITopWindow.Create('Holmes Help', 10, 10);
+  winHelp.escClose := true;
+  winHelp.flHoriz := false;
+
+  // keyboard
   for cmd in cmdlist do cmd.helpmark := false;
 
-  maxkeylen := 0;
+  //maxkeylen := 0;
   for bind in keybinds do
   begin
     if (Length(bind.key) = 0) then continue;
@@ -156,7 +241,7 @@ begin
       if (Length(cmd.help) > 0) then
       begin
         cmd.helpmark := true;
-        if (maxkeylen < Length(bind.key)) then maxkeylen := Length(bind.key);
+        //if (maxkeylen < Length(bind.key)) then maxkeylen := Length(bind.key);
       end;
     end;
   end;
@@ -164,7 +249,7 @@ begin
   for cmd in cmdlist do
   begin
     if not cmd.helpmark then continue;
-    if (Length(cmd.help) = 0) then continue;
+    if (Length(cmd.help) = 0) then begin cmd.helpmark := false; continue; end;
     f := 0;
     while (f < Length(slist)) and (CompareText(slist[f], cmd.section) <> 0) do Inc(f);
     if (f = Length(slist)) then
@@ -174,11 +259,14 @@ begin
     end;
   end;
 
-  llb := TUISimpleText.Create(0, 0);
+  addHelpCaptionLine('KEYBOARD');
+  //llb := TUISimpleText.Create(0, 0);
   for f := 0 to High(slist) do
   begin
-    if (f > 0) then llb.appendItem('');
-    llb.appendItem(slist[f], true, true);
+    //if (f > 0) then llb.appendItem('');
+    if (f > 0) then addHelpEmptyLine();
+    //llb.appendItem(slist[f], true, true);
+    addHelpCaption(slist[f]);
     for cmd in cmdlist do
     begin
       if not cmd.helpmark then continue;
@@ -188,16 +276,20 @@ begin
         if (Length(bind.key) = 0) then continue;
         if (cmd.name = bind.cmdName) then
         begin
-          s := bind.key;
-          while (Length(s) < maxkeylen) do s += ' ';
-          s := '  '+s+' -- '+cmd.help;
-          llb.appendItem(s);
+          //s := bind.key;
+          //while (Length(s) < maxkeylen) do s += ' ';
+          //s := '  '+s+' -- '+cmd.help;
+          //llb.appendItem(s);
+          addHelpMouse(bind.key, cmd.help);
         end;
       end;
     end;
   end;
 
-  maxkeylen := 0;
+  // mouse
+  for cmd in cmdlist do cmd.helpmark := false;
+
+  //maxkeylen := 0;
   for bind in msbinds do
   begin
     if (Length(bind.key) = 0) then continue;
@@ -206,13 +298,15 @@ begin
       if (Length(cmd.help) > 0) then
       begin
         cmd.helpmark := true;
-        if (maxkeylen < Length(bind.key)) then maxkeylen := Length(bind.key);
+        //if (maxkeylen < Length(bind.key)) then maxkeylen := Length(bind.key);
       end;
     end;
   end;
 
-  llb.appendItem('');
-  llb.appendItem('mouse', true, true);
+  //llb.appendItem('');
+  //llb.appendItem('mouse', true, true);
+  if (f > 0) then addHelpEmptyLine();
+  addHelpCaptionLine('MOUSE');
   for bind in msbinds do
   begin
     if (Length(bind.key) = 0) then continue;
@@ -220,17 +314,19 @@ begin
     begin
       if (Length(cmd.help) > 0) then
       begin
-        s := bind.key;
-        while (Length(s) < maxkeylen) do s += ' ';
-        s := '  '+s+' -- '+cmd.help;
-        llb.appendItem(s);
+        //s := bind.key;
+        //while (Length(s) < maxkeylen) do s += ' ';
+        //s := '  '+s+' -- '+cmd.help;
+        //llb.appendItem(s);
+        addHelpKey(bind.key, cmd.help);
       end;
     end;
   end;
 
-  winHelp := TUITopWindow.Create('Holmes Help', 10, 10);
-  winHelp.escClose := true;
-  winHelp.appendChild(llb);
+  //winHelp.appendChild(llb);
+
+  winHelp.flMaxSize := TLaySize.Create(trunc(getScrWdt/gh_ui_scale), trunc(getScrHgt/gh_ui_scale));
+  uiLayoutCtl(winHelp);
   winHelp.centerInScreen();
 end;
 
