@@ -416,6 +416,8 @@ Type
     I_CAP_SELECT,
     I_CAP_OPEN,
     I_CAP_REMOVE,
+    I_CAP_TEXTURE,
+    I_CAP_ANIMATION,
 
     I_CTRL_PROP_KEY,
     I_CTRL_PROP_VALUE,
@@ -1436,6 +1438,10 @@ Const
                                        'Открыть карту'),
     ('CAP REMOVE',                     'Remove Map',
                                        'Удалить карту'),
+    ('CAP TEXTURE',                    'Texture: %dx%d',
+                                       'Текстура: %dx%d'),
+    ('CAP ANIMATION',                  'Animation: %dx%d, %d frames',
+                                       'Анимация: %dx%d, %d кадров'),
 
     ('CTRL PROP KEY',                  'Property',
                                        'Свойство'),

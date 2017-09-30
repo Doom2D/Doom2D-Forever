@@ -10,7 +10,11 @@ uses
   StdCtrls, ExtCtrls, utils, Imaging, ImagingTypes, ImagingUtility;
 
 type
+
+  { TAddTextureForm }
+
   TAddTextureForm = class (TAddResourceForm)
+    lStats: TLabel;
     PanelTexPreview: TPanel;
     iPreview: TImage;
     eTextureName: TEdit;
@@ -35,6 +39,7 @@ type
 
 var
   AddTextureForm: TAddTextureForm;
+  NumFrames: Integer = 0;
 
 function IsAnim(Res: String): Boolean;
 function GetFrame(Res: String; var Data: Pointer; var DataLen: Integer;
@@ -142,7 +147,7 @@ begin
     Exit;
   end;
 
-// Ищем в них описание анимации - "AINM": 
+// Ищем в них описание анимации - "ANIM":
   ok := False;
   for a := 0 to High(Resources) do
     if Resources[a] = 'ANIM' then
@@ -335,6 +340,7 @@ begin
 
 // Читаем лист текстур:
   WAD.GetResource('TEXTURES', config.ReadStr('', 'resource', ''), TextureData, Len);
+  NumFrames := config.ReadInt('', 'framecount', 0);
 
   if (TextureData <> nil) and
      (WAD.GetLastError = DFWAD_NOERROR) then
@@ -394,6 +400,7 @@ procedure TAddTextureForm.FormActivate(Sender: TObject);
 begin
   Inherited;
 
+  lStats.Caption := '';
   cbWADList.Items.Add(_lc[I_WAD_SPECIAL_TEXS]);
 
   eTextureName.Text := '';
@@ -407,10 +414,12 @@ procedure TAddTextureForm.lbResourcesListClick(Sender: TObject);
 var
   Texture: TBitMap;
   wad: String;
+  Anim: Boolean;
 
 begin
   Inherited;
 
+  lStats.Caption := '';
   if lbResourcesList.ItemIndex = -1 then
     Exit;
   if FResourceName = '' then
@@ -422,13 +431,20 @@ begin
   if wad = _lc[I_WAD_SPECIAL_TEXS] then
     Exit;
 
-  if IsAnim(FFullResourceName) then
+  Anim := IsAnim(FFullResourceName);
+  if Anim then
     Texture := ShowAnim(FFullResourceName)
   else
     Texture := ShowTGATexture(FFullResourceName);
 
   if Texture = nil then
     Exit;
+
+  if Anim then
+    lStats.Caption := Format(_lc[I_CAP_ANIMATION], [Texture.Width, Texture.Height, NumFrames])
+  else
+    lStats.Caption := Format(_lc[I_CAP_TEXTURE], [Texture.Width, Texture.Height]);
+
   iPreview.Canvas.FillRect(iPreview.Canvas.ClipRect);
   iPreview.Canvas.CopyRect(Texture.Canvas.ClipRect, Texture.Canvas, Texture.Canvas.ClipRect);
   Texture.Free();
