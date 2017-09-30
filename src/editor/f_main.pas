@@ -1907,6 +1907,9 @@ begin
   else
     SectionName := aSection;
 
+  if aWAD = '' then
+    aWAD := _lc[I_WAD_SPECIAL_MAP];
+
   if aWAD = _lc[I_WAD_SPECIAL_MAP] then
     begin // Файл карты
       g_ProcessResourceStr(OpenedMap, @fn, nil, nil);
@@ -1965,14 +1968,21 @@ begin
       begin // Аним. текстура
         GetFrame(FullResourceName, Data, FrameLen, Width, Height);
 
-        if g_CreateTextureMemorySize(Data, FrameLen, ResourceName, 0, 0, Width, Height, 1) then
-          a := MainForm.lbTextureList.Items.Add(ResourceName);
+        if not g_CreateTextureMemorySize(Data, FrameLen, ResourceName, 0, 0, Width, Height, 1) then
+          ok := False;
+        a := MainForm.lbTextureList.Items.Add(ResourceName);
       end
     else // Обычная текстура
       begin
-        if g_CreateTextureWAD(ResourceName, FullResourceName) then
-          a := MainForm.lbTextureList.Items.Add(ResourceName);
+        if not g_CreateTextureWAD(ResourceName, FullResourceName) then
+          ok := False;
+        a := MainForm.lbTextureList.Items.Add(ResourceName);
       end;
+    if (not ok) and (slInvalidTextures.IndexOf(ResourceName) = -1) then
+    begin
+      slInvalidTextures.Add(ResourceName);
+      ok := True;
+    end;
     if (a > -1) and (not silent) then
       SelectTexture(a);
   end;
@@ -5367,8 +5377,10 @@ var
   CopyBuffer: TCopyRecArray;
   res: Boolean;
   swad, ssec, sres: String;
+  NoTextureID: DWORD;
 begin
   CopyBuffer := nil;
+  NoTextureID := 0;
 
   StringToCopyBuffer(ClipBoard.AsText, CopyBuffer);
 
@@ -5418,7 +5430,11 @@ begin
                       g_GetTextureSizeByName(Panel^.TextureName,
                         Panel^.TextureWidth, Panel^.TextureHeight)
                     else
-                      Panel^.TextureName := '';
+                      if g_GetTexture('NOTEXTURE', NoTextureID) then
+                      begin
+                        Panel^.TextureID := TEXTURE_SPECIAL_NOTEXTURE;
+                        g_GetTextureSizeByID(NoTextureID, Panel^.TextureWidth, Panel^.TextureHeight);
+                      end;
                   end
                 else // Спец.текстура:
                   begin
