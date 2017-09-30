@@ -108,8 +108,9 @@ procedure createLayersWindow (); forward;
 procedure createOutlinesWindow (); forward;
 
 
-procedure toggleLayersWindowCB (me: TUIControl; checked: Integer);
+procedure toggleLayersWindowCB (me: TUIControl);
 begin
+  showLayersWindow := not showLayersWindow;
   if showLayersWindow then
   begin
     if (winLayers = nil) then createLayersWindow();
@@ -121,9 +122,9 @@ begin
   end;
 end;
 
-
-procedure toggleOutlineWindowCB (me: TUIControl; checked: Integer);
+procedure toggleOutlineWindowCB (me: TUIControl);
 begin
+  showOutlineWindow := not showOutlineWindow;
   if showOutlineWindow then
   begin
     if (winOutlines = nil) then createOutlinesWindow();
@@ -225,7 +226,7 @@ var
   s: AnsiString;
   }
 begin
-  winHelp := TUITopWindow.Create('Holmes Help', 10, 10);
+  winHelp := TUITopWindow.Create('Holmes Help');
   winHelp.escClose := true;
   winHelp.flHoriz := false;
 
@@ -331,69 +332,126 @@ begin
 end;
 
 
-procedure winLayersClosed (me: TUIControl; dummy: Integer); begin showLayersWindow := false; end;
-procedure winOutlinesClosed (me: TUIControl; dummy: Integer); begin showOutlineWindow := false; end;
+procedure winLayersClosed (me: TUIControl); begin showLayersWindow := false; end;
+procedure winOutlinesClosed (me: TUIControl); begin showOutlineWindow := false; end;
+
+procedure addCheckBox (parent: TUIControl; const text: AnsiString; pvar: PBoolean);
+var
+  cb: TUICheckBox;
+begin
+  cb := TUICheckBox.Create();
+  cb.flExpand := true;
+  cb.setVar(pvar);
+  cb.text := text;
+  parent.appendChild(cb);
+end;
+
+procedure addButton (parent: TUIControl; const text: AnsiString; cb: TUIControl.TActionCB);
+var
+  but: TUIButton;
+begin
+  but := TUIButton.Create();
+  //but.flExpand := true;
+  but.actionCB := cb;
+  but.text := text;
+  parent.appendChild(but);
+end;
+
 
 procedure createLayersWindow ();
 var
-  llb: TUICBListBox;
+  box: TUIVBox;
 begin
-  llb := TUICBListBox.Create(0, 0);
-  llb.appendItem('background', @g_rlayer_back);
-  llb.appendItem('steps', @g_rlayer_step);
-  llb.appendItem('walls', @g_rlayer_wall);
-  llb.appendItem('doors', @g_rlayer_door);
-  llb.appendItem('acid1', @g_rlayer_acid1);
-  llb.appendItem('acid2', @g_rlayer_acid2);
-  llb.appendItem('water', @g_rlayer_water);
-  llb.appendItem('foreground', @g_rlayer_fore);
-  winLayers := TUITopWindow.Create('layers', 10, 10);
+  winLayers := TUITopWindow.Create('layers');
+  winLayers.x0 := 10;
+  winLayers.y0 := 10;
+  winLayers.flHoriz := false;
   winLayers.escClose := true;
-  winLayers.appendChild(llb);
   winLayers.closeCB := winLayersClosed;
+
+  box := TUIVBox.Create();
+    addCheckBox(box, '~background', @g_rlayer_back);
+    addCheckBox(box, '~steps', @g_rlayer_step);
+    addCheckBox(box, '~walls', @g_rlayer_wall);
+    addCheckBox(box, '~doors', @g_rlayer_door);
+    addCheckBox(box, 'acid~1', @g_rlayer_acid1);
+    addCheckBox(box, 'acid~2', @g_rlayer_acid2);
+    addCheckBox(box, 'wate~r', @g_rlayer_water);
+    addCheckBox(box, '~foreground', @g_rlayer_fore);
+  winLayers.appendChild(box);
+
+  uiLayoutCtl(winLayers);
 end;
 
 
 procedure createOutlinesWindow ();
 var
-  llb: TUICBListBox;
+  box: TUIVBox;
 begin
-  llb := TUICBListBox.Create(0, 0);
-  llb.appendItem('background', @g_ol_rlayer_back);
-  llb.appendItem('steps', @g_ol_rlayer_step);
-  llb.appendItem('walls', @g_ol_rlayer_wall);
-  llb.appendItem('doors', @g_ol_rlayer_door);
-  llb.appendItem('acid1', @g_ol_rlayer_acid1);
-  llb.appendItem('acid2', @g_ol_rlayer_acid2);
-  llb.appendItem('water', @g_ol_rlayer_water);
-  llb.appendItem('foreground', @g_ol_rlayer_fore);
-  llb.appendItem('OPTIONS', nil);
-  llb.appendItem('fill walls', @g_ol_fill_walls);
-  llb.appendItem('contours', @g_ol_nice);
-  winOutlines := TUITopWindow.Create('outlines', 100, 10);
+  winOutlines := TUITopWindow.Create('outlines');
+  winOutlines.x0 := 100;
+  winOutlines.y0 := 30;
+  winOutlines.flHoriz := false;
   winOutlines.escClose := true;
-  winOutlines.appendChild(llb);
   winOutlines.closeCB := winOutlinesClosed;
+
+  box := TUIVBox.Create();
+  box.hasFrame := true;
+  box.caption := 'layers';
+    addCheckBox(box, '~background', @g_ol_rlayer_back);
+    addCheckBox(box, '~steps', @g_ol_rlayer_step);
+    addCheckBox(box, '~walls', @g_ol_rlayer_wall);
+    addCheckBox(box, '~doors', @g_ol_rlayer_door);
+    addCheckBox(box, 'acid~1', @g_ol_rlayer_acid1);
+    addCheckBox(box, 'acid~2', @g_ol_rlayer_acid2);
+    addCheckBox(box, 'wate~r', @g_ol_rlayer_water);
+    addCheckBox(box, '~foreground', @g_ol_rlayer_fore);
+  winOutlines.appendChild(box);
+
+  box := TUIVBox.Create();
+  box.hasFrame := true;
+  box.caption := 'options';
+    addCheckBox(box, 'fi~ll walls', @g_ol_fill_walls);
+    addCheckBox(box, 'con~tours', @g_ol_nice);
+  winOutlines.appendChild(box);
+
+  uiLayoutCtl(winOutlines);
 end;
 
 
 procedure createOptionsWindow ();
 var
-  llb: TUICBListBox;
+  box: TUIBox;
+  span: TUISpan;
 begin
-  llb := TUICBListBox.Create(0, 0);
-  llb.appendItem('map grid', @showGrid);
-  llb.appendItem('cursor position on map', @showMapCurPos);
-  llb.appendItem('monster info', @showMonsInfo);
-  llb.appendItem('monster LOS to player', @showMonsLOS2Plr);
-  llb.appendItem('monster cells (SLOW!)', @showAllMonsCells);
-  llb.appendItem('draw triggers (SLOW!)', @showTriggers);
-  llb.appendItem('WINDOWS', nil);
-  llb.appendItem('layers window', @showLayersWindow, toggleLayersWindowCB);
-  llb.appendItem('outline window', @showOutlineWindow, toggleOutlineWindowCB);
-  winOptions := TUITopWindow.Create('Holmes Options', 100, 100);
+  winOptions := TUITopWindow.Create('Holmes Options');
+  winOptions.flHoriz := false;
   winOptions.escClose := true;
-  winOptions.appendChild(llb);
+
+  box := TUIVBox.Create();
+  box.hasFrame := true;
+  box.caption := 'visual';
+    addCheckBox(box, 'map ~grid', @showGrid);
+    addCheckBox(box, 'cursor ~position on map', @showMapCurPos);
+    addCheckBox(box, '~monster info', @showMonsInfo);
+    addCheckBox(box, 'monster LO~S to player', @showMonsLOS2Plr);
+    addCheckBox(box, 'monster ~cells (SLOW!)', @showAllMonsCells);
+    addCheckBox(box, 'draw ~triggers (SLOW!)', @showTriggers);
+  winOptions.appendChild(box);
+
+  box := TUIHBox.Create();
+  box.hasFrame := true;
+  box.caption := 'windows';
+  box.flAlign := 0;
+    addButton(box, '~layers', toggleLayersWindowCB);
+    span := TUISpan.Create();
+      span.flExpand := true;
+      span.flDefaultSize := TLaySize.Create(4, 1);
+      box.appendChild(span);
+    addButton(box, '~outline', toggleOutlineWindowCB);
+  winOptions.appendChild(box);
+
+  uiLayoutCtl(winOptions);
   winOptions.centerInScreen();
 end;
 
@@ -401,13 +459,15 @@ end;
 procedure toggleLayersWindow (arg: Integer=-1);
 begin
   if (arg < 0) then showLayersWindow := not showLayersWindow else showLayersWindow := (arg > 0);
-  toggleLayersWindowCB(nil, 0);
+  showLayersWindow := not showLayersWindow; // hack for callback
+  toggleLayersWindowCB(nil);
 end;
 
 procedure toggleOutlineWindow (arg: Integer=-1);
 begin
   if (arg < 0) then showOutlineWindow := not showOutlineWindow else showOutlineWindow := (arg > 0);
-  toggleOutlineWindowCB(nil, 0);
+  showOutlineWindow := not showOutlineWindow; // hack for callback
+  toggleOutlineWindowCB(nil);
 end;
 
 procedure toggleHelpWindow (arg: Integer=-1);

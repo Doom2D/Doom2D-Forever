@@ -35,7 +35,7 @@ type
 
   TUIControl = class
   public
-    type TActionCB = procedure (me: TUIControl; uinfo: Integer);
+    type TActionCB = procedure (me: TUIControl);
     type TCloseRequestCB = function (me: TUIControl): Boolean; // top-level windows will call this before closing with icon/keyboard
 
     // return `true` to stop
@@ -97,8 +97,8 @@ type
     function findFirstFocus (): TUIControl;
     function findLastFocus (): TUIControl;
 
-    function findNextFocus (cur: TUIControl): TUIControl;
-    function findPrevFocus (cur: TUIControl): TUIControl;
+    function findNextFocus (cur: TUIControl; wrap: Boolean): TUIControl;
+    function findPrevFocus (cur: TUIControl; wrap: Boolean): TUIControl;
 
     function findCancelControl (): TUIControl;
     function findDefaulControl (): TUIControl;
@@ -203,8 +203,9 @@ type
 
   public
     constructor Create ();
-    constructor Create (ax, ay, aw, ah: Integer);
     destructor Destroy (); override;
+
+    procedure AfterConstruction (); override; // so it will be correctly initialized when created from parser
 
     // `sx` and `sy` are screen coordinates
     procedure drawControl (gx, gy: Integer); virtual;
@@ -229,6 +230,8 @@ type
 
     function parentScrollX (): Integer; inline;
     function parentScrollY (): Integer; inline;
+
+    procedure makeVisibleInParent ();
 
     procedure doAction (); virtual; // so user controls can override it
 
@@ -256,10 +259,10 @@ type
     property styleId: AnsiString read mStyleId;
     property scrollX: Integer read mScrollX write mScrollX;
     property scrollY: Integer read mScrollY write mScrollY;
-    property x0: Integer read mX;
-    property y0: Integer read mY;
-    property height: Integer read mHeight;
-    property width: Integer read mWidth;
+    property x0: Integer read mX write mX;
+    property y0: Integer read mY write mY;
+    property width: Integer read mWidth write mWidth;
+    property height: Integer read mHeight write mHeight;
     property enabled: Boolean read getEnabled write setEnabled;
     property parent: TUIControl read mParent;
     property focused: Boolean read getFocused write setFocused;
@@ -286,9 +289,6 @@ type
     mDoCenter: Boolean; // after layouting
 
   protected
-    procedure cacheStyle (root: TUIStyle); override;
-
-  protected
     procedure activated (); override;
     procedure blurred (); override;
 
@@ -296,7 +296,7 @@ type
     closeCB: TActionCB; // called after window was removed from ui window list
 
   public
-    constructor Create (const atitle: AnsiString; ax, ay: Integer; aw: Integer=-1; ah: Integer=-1);
+    constructor Create (const atitle: AnsiString);
 
     procedure AfterConstruction (); override; // so it will be correctly initialized when created from parser
 
@@ -316,69 +316,15 @@ type
   end;
 
   // ////////////////////////////////////////////////////////////////////// //
-  TUISimpleText = class(TUIControl)
-  private
-    type
-      PItem = ^TItem;
-      TItem = record
-        title: AnsiString;
-        centered: Boolean;
-        hline: Boolean;
-      end;
-
-  private
-    mItems: array of TItem;
-
-  public
-    constructor Create (ax, ay: Integer);
-    destructor Destroy (); override;
-
-    procedure AfterConstruction (); override; // so it will be correctly initialized when created from parser
-
-    procedure appendItem (const atext: AnsiString; acentered: Boolean=false; ahline: Boolean=false);
-
-    procedure drawControl (gx, gy: Integer); override;
-
-    procedure mouseEvent (var ev: THMouseEvent); override;
-  end;
-
-  TUICBListBox = class(TUIControl)
-  private
-    type
-      PItem = ^TItem;
-      TItem = record
-        title: AnsiString;
-        varp: PBoolean;
-        actionCB: TActionCB;
-      end;
-
-  private
-    mItems: array of TItem;
-    mCurIndex: Integer;
-    mCurItemBack: array[0..ClrIdxMax] of TGxRGBA;
-
-  protected
-    procedure cacheStyle (root: TUIStyle); override;
-
-  public
-    constructor Create (ax, ay: Integer);
-    destructor Destroy (); override;
-
-    procedure AfterConstruction (); override; // so it will be correctly initialized when created from parser
-
-    procedure appendItem (const atext: AnsiString; bv: PBoolean; aaction: TActionCB=nil);
-
-    procedure drawControl (gx, gy: Integer); override;
-
-    procedure mouseEvent (var ev: THMouseEvent); override;
-    procedure keyEvent (var ev: THKeyEvent); override;
-  end;
-
-  // ////////////////////////////////////////////////////////////////////// //
   TUIBox = class(TUIControl)
   private
     mHasFrame: Boolean;
     mCaption: AnsiString;
+    mHAlign: Integer; // -1: left; 0: center; 1: right; default: left
+
+  protected
+    procedure setCaption (const acap: AnsiString);
+    procedure setHasFrame (v: Boolean);
 
   public
     constructor Create (ahoriz: Boolean);
@@ -393,8 +339,8 @@ type
     procedure keyEvent (var ev: THKeyEvent); override;
 
   public
-    property caption: AnsiString read mCaption write mCaption;
-    property hasFrame: Boolean read mHasFrame write mHasFrame;
+    property caption: AnsiString read mCaption write setCaption;
+    property hasFrame: Boolean read mHasFrame write setHasFrame;
   end;
 
   TUIHBox = class(TUIBox)
@@ -482,7 +428,7 @@ type
   protected
     procedure cacheStyle (root: TUIStyle); override;
 
-    procedure setText (const s: AnsiString);
+    procedure setText (const s: AnsiString); virtual;
 
   public
     procedure AfterConstruction (); override; // so it will be correctly initialized when created from parser
@@ -502,6 +448,36 @@ type
 
   // ////////////////////////////////////////////////////////////////////// //
   TUIButton = class(TUITextLabel)
+  protected
+    procedure setText (const s: AnsiString); override;
+
+  public
+    procedure AfterConstruction (); override; // so it will be correctly initialized when created from parser
+
+    procedure drawControl (gx, gy: Integer); override;
+
+    procedure mouseEvent (var ev: THMouseEvent); override;
+    procedure keyEvent (var ev: THKeyEvent); override;
+    procedure keyEventPost (var ev: THKeyEvent); override;
+  end;
+
+  // ////////////////////////////////////////////////////////////////////// //
+  TUISwitchBox = class(TUITextLabel)
+  protected
+    mBoolVar: PBoolean;
+    mChecked: Boolean;
+    mCheckedStr: AnsiString;
+    mUncheckedStr: AnsiString;
+    mSwitchColor: array[0..ClrIdxMax] of TGxRGBA;
+
+  protected
+    procedure cacheStyle (root: TUIStyle); override;
+
+    procedure setText (const s: AnsiString); override;
+
+    function getChecked (): Boolean; virtual;
+    procedure setChecked (v: Boolean); virtual; abstract;
+
   public
     procedure AfterConstruction (); override; // so it will be correctly initialized when created from parser
 
@@ -512,6 +488,39 @@ type
     procedure mouseEvent (var ev: THMouseEvent); override;
     procedure keyEvent (var ev: THKeyEvent); override;
     procedure keyEventPost (var ev: THKeyEvent); override;
+
+    procedure setVar (pvar: PBoolean);
+
+  public
+    property checked: Boolean read getChecked write setChecked;
+  end;
+
+  TUICheckBox = class(TUISwitchBox)
+  protected
+    procedure setChecked (v: Boolean); override;
+
+  public
+    procedure AfterConstruction (); override; // so it will be correctly initialized when created from parser
+
+    procedure doAction (); override;
+  end;
+
+  TUIRadioBox = class(TUISwitchBox)
+  private
+    mRadioGroup: AnsiString;
+
+  protected
+    procedure setChecked (v: Boolean); override;
+
+  public
+    procedure AfterConstruction (); override; // so it will be correctly initialized when created from parser
+
+    function parseProperty (const prname: AnsiString; par: TTextParser): Boolean; override;
+
+    procedure doAction (); override;
+
+  public
+    property radioGroup: AnsiString read mRadioGroup write mRadioGroup; //FIXME
   end;
 
 
@@ -657,6 +666,15 @@ begin
     // calculate full size
     ctl.calcFullClientSize();
 
+    // fix focus
+    if (ctl.mParent = nil) then
+    begin
+      if (ctl.mFocused = nil) or (ctl.mFocused = ctl) or (not ctl.mFocused.enabled) then
+      begin
+        ctl.mFocused := ctl.findFirstFocus();
+      end;
+    end;
+
   finally
     FreeAndNil(lay);
   end;
@@ -699,14 +717,14 @@ begin
       ev.eat();
       exit;
     end;
-    if (Length(uiTopList) > 0) and (uiTopList[High(uiTopList)].mEnabled) then uiTopList[High(uiTopList)].mouseEvent(ev);
+    if (Length(uiTopList) > 0) and (uiTopList[High(uiTopList)].enabled) then uiTopList[High(uiTopList)].mouseEvent(ev);
     if (not ev.eaten) and (not ev.cancelled) and (ev.press) then
     begin
       for f := High(uiTopList) downto 0 do
       begin
         if uiTopList[f].toLocal(ev.x, ev.y, lx, ly) then
         begin
-          if (uiTopList[f].mEnabled) and (f <> High(uiTopList)) then
+          if (uiTopList[f].enabled) and (f <> High(uiTopList)) then
           begin
             uiTopList[High(uiTopList)].blurred();
             ctmp := uiTopList[f];
@@ -738,7 +756,7 @@ begin
   ev.x := trunc(ev.x/gh_ui_scale);
   ev.y := trunc(ev.y/gh_ui_scale);
   try
-    if (Length(uiTopList) > 0) and (uiTopList[High(uiTopList)].mEnabled) then uiTopList[High(uiTopList)].keyEvent(ev);
+    if (Length(uiTopList) > 0) and (uiTopList[High(uiTopList)].enabled) then uiTopList[High(uiTopList)].keyEvent(ev);
     //if (ev.release) then begin ev.eat(); exit; end;
   finally
     if (ev.eaten) then evt.eat();
@@ -759,9 +777,11 @@ begin
     begin
       ctl := uiTopList[f];
       ctl.draw();
-      cidx := ctl.getColorIndex;
-      //if (f <> High(uiTopList)) then darkenRect(ctl.x0, ctl.y0, ctl.width, ctl.height, 128);
-      if (ctl.mDarken[cidx] > 0) then darkenRect(ctl.x0, ctl.y0, ctl.width, ctl.height, ctl.mDarken[cidx]);
+      if (f <> High(uiTopList)) then
+      begin
+        cidx := ctl.getColorIndex;
+        if (ctl.mDarken[cidx] > 0) then darkenRect(ctl.x0, ctl.y0, ctl.width, ctl.height, ctl.mDarken[cidx]);
+      end;
     end;
   finally
     gxEndUIDraw();
@@ -815,7 +835,7 @@ begin
       if (ctl is TUITopWindow) then
       begin
         try
-          if assigned(TUITopWindow(ctl).closeCB) then TUITopWindow(ctl).closeCB(ctl, 0);
+          if assigned(TUITopWindow(ctl).closeCB) then TUITopWindow(ctl).closeCB(ctl);
         finally
           if (TUITopWindow(ctl).mFreeOnClose) then scheduleKill(ctl);
         end;
@@ -844,6 +864,12 @@ end;
 // ////////////////////////////////////////////////////////////////////////// //
 constructor TUIControl.Create ();
 begin
+end;
+
+
+procedure TUIControl.AfterConstruction ();
+begin
+  inherited;
   mParent := nil;
   mId := '';
   mX := 0;
@@ -877,16 +903,6 @@ begin
 end;
 
 
-constructor TUIControl.Create (ax, ay, aw, ah: Integer);
-begin
-  Create();
-  mX := ax;
-  mY := ay;
-  mWidth := aw;
-  mHeight := ah;
-end;
-
-
 destructor TUIControl.Destroy ();
 var
   f, c: Integer;
@@ -914,9 +930,17 @@ end;
 
 function TUIControl.getColorIndex (): Integer; inline;
 begin
-  if (not mEnabled) then begin result := ClrIdxDisabled; exit; end;
-  // if control cannot be focused, take "active" color scheme for it (it is easier this way)
-  if (not canFocus) or (getActive) then begin result := ClrIdxActive; exit; end;
+  if (not enabled) then begin result := ClrIdxDisabled; exit; end;
+  // top windows: no focus hack
+  if (self is TUITopWindow) then
+  begin
+    if (getActive) then begin result := ClrIdxActive; exit; end;
+  end
+  else
+  begin
+    // if control cannot be focused, take "active" color scheme for it (it is easier this way)
+    if (not canFocus) or (getActive) then begin result := ClrIdxActive; exit; end;
+  end;
   result := ClrIdxInactive;
 end;
 
@@ -1236,6 +1260,7 @@ end;
 // ////////////////////////////////////////////////////////////////////////// //
 procedure TUIControl.activated ();
 begin
+  makeVisibleInParent();
 end;
 
 
@@ -1330,20 +1355,22 @@ var
   tl: TUIControl;
 begin
   tl := topLevel;
-  if not v then
+  if (not v) then
   begin
     if (tl.mFocused = self) then
     begin
-      tl.blurred();
-      tl.mFocused := tl.findNextFocus(self);
+      blurred(); // this will reset grab, but still...
+      if (uiGrabCtl = self) then uiGrabCtl := nil;
+      tl.mFocused := tl.findNextFocus(self, true);
       if (tl.mFocused = self) then tl.mFocused := nil;
+      if (tl.mFocused <> nil) then tl.mFocused.activated();
     end;
     exit;
   end;
-  if (not mEnabled) or (not canFocus) then exit;
+  if (not canFocus) then exit;
   if (tl.mFocused <> self) then
   begin
-    if (tl.mFocused <> nil) and (tl.mFocused <> nil) then tl.mFocused.blurred();
+    if (tl.mFocused <> nil) then tl.mFocused.blurred();
     tl.mFocused := self;
     if (uiGrabCtl <> self) then uiGrabCtl := nil;
     activated();
@@ -1353,7 +1380,7 @@ end;
 
 function TUIControl.getCanFocus (): Boolean; inline;
 begin
-  result := (mCanFocus) and (mWidth > 0) and (mHeight > 0);
+  result := (getEnabled) and (mCanFocus) and (mWidth > 0) and (mHeight > 0);
 end;
 
 
@@ -1376,27 +1403,18 @@ begin
   begin
     Dec(x, mX);
     Dec(y, mY);
-    result := (x >= 0) and (y >= 0) and (x < mWidth) and (y < mHeight);
+    result := true; // hack
   end
   else
   begin
     result := mParent.toLocal(x, y);
-    if result then
-    begin
-      Inc(x, mParent.mScrollX);
-      Inc(y, mParent.mScrollY);
-      result := (x >= 0) and (y >= 0) and (x < mParent.mWidth) and (y < mParent.mHeight);
-      Dec(x, mX);
-      Dec(y, mY);
-    end
-    else
-    begin
-      Inc(x, mParent.mScrollX);
-      Inc(y, mParent.mScrollY);
-      Dec(x, mX);
-      Dec(y, mY);
-    end;
+    Inc(x, mParent.mScrollX);
+    Inc(y, mParent.mScrollY);
+    Dec(x, mX);
+    Dec(y, mY);
+    if result then result := (x >= 0) and (y >= 0) and (x < mParent.mWidth) and (y < mParent.mHeight);
   end;
+  if result then result := (x >= 0) and (y >= 0) and (x < mWidth) and (y < mHeight);
 end;
 
 function TUIControl.toLocal (gx, gy: Integer; out x, y: Integer): Boolean; inline;
@@ -1460,7 +1478,7 @@ var
   f: Integer;
 begin
   result := nil;
-  if (not allowDisabled) and (not mEnabled) then exit;
+  if (not allowDisabled) and (not enabled) then exit;
   if (mWidth < 1) or (mHeight < 1) then exit;
   if not toLocal(x, y, lx, ly) then exit;
   for f := High(mChildren) downto 0 do
@@ -1474,6 +1492,35 @@ end;
 
 function TUIControl.parentScrollX (): Integer; inline; begin if (mParent <> nil) then result := mParent.mScrollX else result := 0; end;
 function TUIControl.parentScrollY (): Integer; inline; begin if (mParent <> nil) then result := mParent.mScrollY else result := 0; end;
+
+
+procedure TUIControl.makeVisibleInParent ();
+var
+  sy, ey, cy: Integer;
+  p: TUIControl;
+begin
+  if (mWidth < 1) or (mHeight < 1) then exit;
+  p := mParent;
+  if (p = nil) then exit;
+  if (p.mFullSize.w < 1) or (p.mFullSize.h < 1) then
+  begin
+    p.mScrollX := 0;
+    p.mScrollY := 0;
+    exit;
+  end;
+  p.makeVisibleInParent();
+  cy := mY-p.mFrameHeight;
+  sy := p.mScrollY;
+  ey := sy+(p.mHeight-p.mFrameHeight*2);
+  if (cy < sy) then
+  begin
+    p.mScrollY := nmax(0, cy);
+  end
+  else if (cy+mHeight > ey) then
+  begin
+    p.mScrollY := nmax(0, cy+mHeight-(p.mHeight-p.mFrameHeight*2));
+  end;
+end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
@@ -1528,7 +1575,7 @@ begin
       result := mChildren[f].findFirstFocus();
       if (result <> nil) then exit;
     end;
-    if canFocus then result := self;
+    if (canFocus) then result := self;
   end;
 end;
 
@@ -1545,50 +1592,77 @@ begin
       result := mChildren[f].findLastFocus();
       if (result <> nil) then exit;
     end;
-    if canFocus then result := self;
+    if (canFocus) then result := self;
   end;
 end;
 
 
-function TUIControl.findNextFocus (cur: TUIControl): TUIControl;
+function TUIControl.findNextFocus (cur: TUIControl; wrap: Boolean): TUIControl;
+var
+  curHit: Boolean = false;
+
+  function checkFocus (ctl: TUIControl): Boolean;
+  begin
+    if curHit then
+    begin
+      result := (ctl.canFocus);
+    end
+    else
+    begin
+      curHit := (ctl = cur);
+      result := false; // don't stop
+    end;
+  end;
+
 begin
   result := nil;
   if enabled then
   begin
-    if not isMyChild(cur) then cur := nil;
-    if (cur = nil) then begin result := findFirstFocus(); exit; end;
-    result := cur.findFirstFocus();
-    if (result <> nil) and (result <> cur) then exit;
-    while true do
+    if not isMyChild(cur) then
     begin
-      cur := cur.nextSibling;
-      if (cur = nil) then break;
-      result := cur.findFirstFocus();
-      if (result <> nil) then exit;
+      result := findFirstFocus();
+    end
+    else
+    begin
+      result := forEachControl(checkFocus);
+      if (result = nil) and (wrap) then result := findFirstFocus();
     end;
-    result := findFirstFocus();
   end;
 end;
 
 
-function TUIControl.findPrevFocus (cur: TUIControl): TUIControl;
+function TUIControl.findPrevFocus (cur: TUIControl; wrap: Boolean): TUIControl;
+var
+  lastCtl: TUIControl = nil;
+
+  function checkFocus (ctl: TUIControl): Boolean;
+  begin
+    if (ctl = cur) then
+    begin
+      result := true;
+    end
+    else
+    begin
+      result := false;
+      if (ctl.canFocus) then lastCtl := ctl;
+    end;
+  end;
+
 begin
   result := nil;
   if enabled then
   begin
-    if not isMyChild(cur) then cur := nil;
-    if (cur = nil) then begin result := findLastFocus(); exit; end;
-    //FIXME!
-    result := cur.findLastFocus();
-    if (result <> nil) and (result <> cur) then exit;
-    while true do
+    if not isMyChild(cur) then
     begin
-      cur := cur.prevSibling;
-      if (cur = nil) then break;
-      result := cur.findLastFocus();
-      if (result <> nil) then exit;
+      result := findLastFocus();
+    end
+    else
+    begin
+      forEachControl(checkFocus);
+      if (lastCtl = nil) and (wrap) then lastCtl := findLastFocus();
+      result := lastCtl;
+      //if (lastCtl <> nil) then writeln('ctl<', lastCtl.className, '>: {', lastCtl.id, '}');
     end;
-    result := findLastFocus();
   end;
 end;
 
@@ -1597,7 +1671,7 @@ function TUIControl.findDefaulControl (): TUIControl;
 var
   ctl: TUIControl;
 begin
-  if (mEnabled) then
+  if (enabled) then
   begin
     if (mDefault) then begin result := self; exit; end;
     for ctl in mChildren do
@@ -1613,7 +1687,7 @@ function TUIControl.findCancelControl (): TUIControl;
 var
   ctl: TUIControl;
 begin
-  if (mEnabled) then
+  if (enabled) then
   begin
     if (mCancel) then begin result := self; exit; end;
     for ctl in mChildren do
@@ -1723,7 +1797,7 @@ end;
 
 procedure TUIControl.doAction ();
 begin
-  if assigned(actionCB) then actionCB(self, 0);
+  if assigned(actionCB) then actionCB(self);
 end;
 
 
@@ -1821,7 +1895,7 @@ procedure TUIControl.mouseEvent (var ev: THMouseEvent);
 var
   ctl: TUIControl;
 begin
-  if (not mEnabled) then exit;
+  if (not enabled) then exit;
   if (mWidth < 1) or (mHeight < 1) then exit;
   ctl := controlAtXY(ev.x, ev.y);
   if (ctl = nil) then exit;
@@ -1839,14 +1913,14 @@ procedure TUIControl.keyEvent (var ev: THKeyEvent);
 
   function doPreKey (ctl: TUIControl): Boolean;
   begin
-    if (not ctl.mEnabled) then begin result := false; exit; end;
+    if (not ctl.enabled) then begin result := false; exit; end;
     ctl.keyEventPre(ev);
     result := (ev.eaten) or (ev.cancelled); // stop if event was consumed
   end;
 
   function doPostKey (ctl: TUIControl): Boolean;
   begin
-    if (not ctl.mEnabled) then begin result := false; exit; end;
+    if (not ctl.enabled) then begin result := false; exit; end;
     ctl.keyEventPost(ev);
     result := (ev.eaten) or (ev.cancelled); // stop if event was consumed
   end;
@@ -1854,7 +1928,7 @@ procedure TUIControl.keyEvent (var ev: THKeyEvent);
 var
   ctl: TUIControl;
 begin
-  if (not mEnabled) then exit;
+  if (not enabled) then exit;
   if (ev.eaten) or (ev.cancelled) then exit;
   // call pre-key
   if (mParent = nil) then
@@ -1863,8 +1937,9 @@ begin
     if (ev.eaten) or (ev.cancelled) then exit;
   end;
   // focused control should process keyboard first
-  if (topLevel.mFocused <> self) and isMyChild(topLevel.mFocused) and (topLevel.mFocused.mEnabled) then
+  if (topLevel.mFocused <> self) and isMyChild(topLevel.mFocused) and (topLevel.mFocused.enabled) then
   begin
+    // bubble keyboard event
     ctl := topLevel.mFocused;
     while (ctl <> nil) and (ctl <> self) do
     begin
@@ -1878,15 +1953,15 @@ begin
   begin
     if (ev = 'S-Tab') then
     begin
-      ctl := findPrevFocus(mFocused);
-      if (ctl <> mFocused) then ctl.setFocused(true);
+      ctl := findPrevFocus(mFocused, true);
+      if (ctl <> nil) and (ctl <> mFocused) then ctl.setFocused(true);
       ev.eat();
       exit;
     end;
     if (ev = 'Tab') then
     begin
-      ctl := findNextFocus(mFocused);
-      if (ctl <> mFocused) then ctl.setFocused(true);
+      ctl := findNextFocus(mFocused, true);
+      if (ctl <> nil) and (ctl <> mFocused) then ctl.setFocused(true);
       ev.eat();
       exit;
     end;
@@ -1937,24 +2012,25 @@ end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-constructor TUITopWindow.Create (const atitle: AnsiString; ax, ay: Integer; aw: Integer=-1; ah: Integer=-1);
+constructor TUITopWindow.Create (const atitle: AnsiString);
 begin
-  inherited Create(ax, ay, aw, ah);
-  mFrameWidth := 8;
-  mFrameHeight := 8;
+  inherited Create();
   mTitle := atitle;
 end;
 
 
 procedure TUITopWindow.AfterConstruction ();
 begin
-  inherited AfterConstruction();
+  inherited;
+  mFrameWidth := 8;
+  mFrameHeight := 8;
   if (mWidth < mFrameWidth*2+3*8) then mWidth := mFrameWidth*2+3*8;
   if (mHeight < mFrameHeight*2) then mHeight := mFrameHeight*2;
   if (Length(mTitle) > 0) then
   begin
     if (mWidth < Length(mTitle)*8+mFrameWidth*2+3*8) then mWidth := Length(mTitle)*8+mFrameWidth*2+3*8;
   end;
+  mCanFocus := false;
   mDragScroll := TXMode.None;
   mDrawShadow := true;
   mWaitingClose := false;
@@ -1988,12 +2064,6 @@ begin
   end;
   if (parseOrientation(prname, par)) then begin result := true; exit; end;
   result := inherited parseProperty(prname, par);
-end;
-
-
-procedure TUITopWindow.cacheStyle (root: TUIStyle);
-begin
-  inherited cacheStyle(root);
 end;
 
 
@@ -2068,8 +2138,8 @@ begin
   if (mFocused = nil) or (mFocused = self) then
   begin
     mFocused := findFirstFocus();
-    if (mFocused <> nil) and (mFocused <> self) then mFocused.activated();
   end;
+  if (mFocused <> nil) and (mFocused <> self) then mFocused.activated();
   inherited;
 end;
 
@@ -2079,6 +2149,7 @@ begin
   mDragScroll := TXMode.None;
   mWaitingClose := false;
   mInClose := false;
+  if (mFocused <> nil) and (mFocused <> self) then mFocused.blurred();
   inherited;
 end;
 
@@ -2086,7 +2157,7 @@ end;
 procedure TUITopWindow.keyEvent (var ev: THKeyEvent);
 begin
   inherited keyEvent(ev);
-  if (ev.eaten) or (ev.cancelled) or (not mEnabled) {or (not getFocused)} then exit;
+  if (ev.eaten) or (ev.cancelled) or (not enabled) {or (not getFocused)} then exit;
   if (ev = 'M-F3') then
   begin
     if (not assigned(closeRequestCB)) or (closeRequestCB(self)) then
@@ -2104,7 +2175,7 @@ var
   lx, ly: Integer;
   hgt, sbhgt: Integer;
 begin
-  if (not mEnabled) then exit;
+  if (not enabled) then exit;
   if (mWidth < 1) or (mHeight < 1) then exit;
 
   if (mDragScroll = TXMode.Drag) then
@@ -2231,271 +2302,6 @@ end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-constructor TUISimpleText.Create (ax, ay: Integer);
-begin
-  mItems := nil;
-  inherited Create(ax, ay, 4, 4);
-  mDefSize := TLaySize.Create(mWidth, mHeight);
-end;
-
-
-destructor TUISimpleText.Destroy ();
-begin
-  mItems := nil;
-  inherited;
-end;
-
-
-procedure TUISimpleText.AfterConstruction ();
-begin
-  inherited;
-  mCanFocus := false;
-  mCtl4Style := 'simple_text';
-end;
-
-
-procedure TUISimpleText.appendItem (const atext: AnsiString; acentered: Boolean=false; ahline: Boolean=false);
-var
-  it: PItem;
-begin
-  if (Length(atext)*8+3*8+2 > mWidth) then mWidth := Length(atext)*8+3*8+2;
-  SetLength(mItems, Length(mItems)+1);
-  it := @mItems[High(mItems)];
-  it.title := atext;
-  it.centered := acentered;
-  it.hline := ahline;
-  if (Length(mItems)*8 > mHeight) then mHeight := Length(mItems)*8;
-  mDefSize := TLaySize.Create(mWidth, mHeight);
-end;
-
-
-procedure TUISimpleText.drawControl (gx, gy: Integer);
-var
-  cidx: Integer;
-  f, xofs: Integer;
-  it: PItem;
-begin
-  cidx := getColorIndex;
-  for f := 0 to High(mItems) do
-  begin
-    it := @mItems[f];
-    xofs := 0;
-    if it.centered then begin xofs := (mWidth-Length(it.title)*8) div 2; end;
-    if it.hline then
-    begin
-      if (Length(it.title) = 0) then
-      begin
-        drawHLine(gx+4, gy+3, mWidth-8, mFrameColor[cidx]);
-      end
-      else
-      begin
-        drawHLine(gx+4, gy+3, gx+xofs-3-(gx+3), mFrameColor[cidx]);
-        drawHLine(gx+xofs+Length(it.title)*8, gy+3, mWidth-(xofs+Length(it.title)*8)-4, mFrameColor[cidx]);
-        drawText8(gx+xofs, gy, it.title, mFrameTextColor[cidx]);
-      end;
-    end
-    else
-    begin
-      drawText8(gx+xofs, gy, it.title, mTextColor[cidx]);
-    end;
-    Inc(gy, 8);
-  end;
-end;
-
-
-procedure TUISimpleText.mouseEvent (var ev: THMouseEvent);
-var
-  lx, ly: Integer;
-begin
-  inherited mouseEvent(ev);
-  if (not ev.eaten) and (not ev.cancelled) and (mEnabled) and toLocal(ev.x, ev.y, lx, ly) then
-  begin
-    ev.eat();
-  end;
-end;
-
-
-// ////////////////////////////////////////////////////////////////////////// //
-constructor TUICBListBox.Create (ax, ay: Integer);
-begin
-  inherited Create(ax, ay, 4, 4);
-  mDefSize := TLaySize.Create(mWidth, mHeight);
-end;
-
-
-destructor TUICBListBox.Destroy ();
-begin
-  mItems := nil;
-  inherited;
-end;
-
-
-procedure TUICBListBox.AfterConstruction ();
-begin
-  inherited;
-  mItems := nil;
-  mCurIndex := -1;
-  mCtl4Style := 'cb_listbox';
-end;
-
-
-procedure TUICBListBox.cacheStyle (root: TUIStyle);
-begin
-  inherited cacheStyle(root);
-  // active
-  mCurItemBack[ClrIdxActive] := root.get('current-item-back-color', 'active', mCtl4Style).asRGBADef(TGxRGBA.Create(0, 128, 0));
-  // disabled
-  mCurItemBack[ClrIdxDisabled] := root.get('current-item-back-color', 'disabled', mCtl4Style).asRGBADef(TGxRGBA.Create(0, 64, 0));
-  // inactive
-  mCurItemBack[ClrIdxInactive] := root.get('current-item-back-color', 'inactive', mCtl4Style).asRGBADef(TGxRGBA.Create(0, 64, 0));
-end;
-
-
-procedure TUICBListBox.appendItem (const atext: AnsiString; bv: PBoolean; aaction: TActionCB=nil);
-var
-  it: PItem;
-begin
-  if (Length(atext)*8+3*8+2 > mWidth) then mWidth := Length(atext)*8+3*8+2;
-  SetLength(mItems, Length(mItems)+1);
-  it := @mItems[High(mItems)];
-  it.title := atext;
-  it.varp := bv;
-  it.actionCB := aaction;
-  if (Length(mItems)*8 > mHeight) then mHeight := Length(mItems)*8;
-  if (mCurIndex < 0) then mCurIndex := 0;
-  mDefSize := TLaySize.Create(mWidth, mHeight);
-end;
-
-
-procedure TUICBListBox.drawControl (gx, gy: Integer);
-var
-  cidx: Integer;
-  f, tx: Integer;
-  it: PItem;
-begin
-  cidx := getColorIndex;
-  for f := 0 to High(mItems) do
-  begin
-    it := @mItems[f];
-    if (mCurIndex = f) then fillRect(gx, gy, mWidth, 8, mCurItemBack[cidx]);
-    if (it.varp <> nil) then
-    begin
-      if it.varp^ then drawText8(gx, gy, '[x]', mFrameTextColor[cidx]) else drawText8(gx, gy, '[ ]', mFrameTextColor[cidx]);
-      drawText8(gx+3*8+2, gy, it.title, mTextColor[cidx]);
-    end
-    else if (Length(it.title) > 0) then
-    begin
-      tx := gx+(mWidth-Length(it.title)*8) div 2;
-      if (tx-3 > gx+4) then
-      begin
-        drawHLine(gx+4, gy+3, tx-3-(gx+3), mFrameColor[cidx]);
-        drawHLine(tx+Length(it.title)*8, gy+3, mWidth-4, mFrameColor[cidx]);
-      end;
-      drawText8(tx, gy, it.title, mFrameTextColor[cidx]);
-    end
-    else
-    begin
-      drawHLine(gx+4, gy+3, mWidth-8, mFrameColor[cidx]);
-    end;
-    Inc(gy, 8);
-  end;
-end;
-
-
-procedure TUICBListBox.mouseEvent (var ev: THMouseEvent);
-var
-  lx, ly: Integer;
-  it: PItem;
-begin
-  inherited mouseEvent(ev);
-  if (not ev.eaten) and (not ev.cancelled) and (mEnabled) and toLocal(ev.x, ev.y, lx, ly) then
-  begin
-    ev.eat();
-    if (ev = 'lmb') then
-    begin
-      ly := ly div 8;
-      if (ly >= 0) and (ly < Length(mItems)) then
-      begin
-        it := @mItems[ly];
-        if (it.varp <> nil) then
-        begin
-          mCurIndex := ly;
-          it.varp^ := not it.varp^;
-          if assigned(it.actionCB) then it.actionCB(self, Integer(it.varp^));
-          if assigned(actionCB) then actionCB(self, ly);
-        end;
-      end;
-    end;
-  end;
-end;
-
-
-procedure TUICBListBox.keyEvent (var ev: THKeyEvent);
-var
-  it: PItem;
-begin
-  inherited keyEvent(ev);
-  if (ev.eaten) or (ev.cancelled) or (not mEnabled) or (not getFocused) then exit;
-  //result := true;
-  if (ev = 'Home') or (ev = 'PageUp') then
-  begin
-    ev.eat();
-    mCurIndex := 0;
-  end;
-  if (ev = 'End') or (ev = 'PageDown') then
-  begin
-    ev.eat();
-    mCurIndex := High(mItems);
-  end;
-  if (ev = 'Up') then
-  begin
-    ev.eat();
-    if (Length(mItems) > 0) then
-    begin
-      if (mCurIndex < 0) then mCurIndex := Length(mItems);
-      while (mCurIndex > 0) do
-      begin
-        Dec(mCurIndex);
-        if (mItems[mCurIndex].varp <> nil) then break;
-      end;
-    end
-    else
-    begin
-      mCurIndex := -1;
-    end;
-  end;
-  if (ev = 'Down') then
-  begin
-    ev.eat();
-    if (Length(mItems) > 0) then
-    begin
-      if (mCurIndex < 0) then mCurIndex := -1;
-      while (mCurIndex < High(mItems)) do
-      begin
-        Inc(mCurIndex);
-        if (mItems[mCurIndex].varp <> nil) then break;
-      end;
-    end
-    else
-    begin
-      mCurIndex := -1;
-    end;
-  end;
-  if (ev = 'Space') or (ev = 'Enter') then
-  begin
-    ev.eat();
-    if (mCurIndex >= 0) and (mCurIndex < Length(mItems)) and (mItems[mCurIndex].varp <> nil) then
-    begin
-      it := @mItems[mCurIndex];
-      it.varp^ := not it.varp^;
-      if assigned(it.actionCB) then it.actionCB(self, Integer(it.varp^));
-      if assigned(actionCB) then actionCB(self, mCurIndex);
-    end;
-  end;
-end;
-
-
-// ////////////////////////////////////////////////////////////////////////// //
 constructor TUIBox.Create (ahoriz: Boolean);
 begin
   inherited Create();
@@ -2505,9 +2311,24 @@ end;
 
 procedure TUIBox.AfterConstruction ();
 begin
-  inherited AfterConstruction();
+  inherited;
   mCanFocus := false;
+  mHAlign := -1; // left
   mCtl4Style := 'box';
+end;
+
+
+procedure TUIBox.setCaption (const acap: AnsiString);
+begin
+  mCaption := acap;
+  mDefSize := TLaySize.Create(Length(mCaption)*8+3, 8);
+end;
+
+
+procedure TUIBox.setHasFrame (v: Boolean);
+begin
+  mHasFrame := v;
+  if (mHasFrame) then begin mFrameWidth := 8; mFrameHeight := 8; end else begin mFrameWidth := 0; mFrameHeight := 0; end;
 end;
 
 
@@ -2516,15 +2337,19 @@ begin
   if (parseOrientation(prname, par)) then begin result := true; exit; end;
   if (strEquCI1251(prname, 'frame')) then
   begin
-    mHasFrame := parseBool(par);
-    if (mHasFrame) then begin mFrameWidth := 8; mFrameHeight := 8; end else begin mFrameWidth := 0; mFrameHeight := 0; end;
+    setHasFrame(parseBool(par));
     result := true;
     exit;
   end;
   if (strEquCI1251(prname, 'title')) or (strEquCI1251(prname, 'caption')) then
   begin
-    mCaption := par.expectIdOrStr(true);
-    mDefSize := TLaySize.Create(Length(mCaption)*8+3, 8);
+    setCaption(par.expectIdOrStr(true));
+    result := true;
+    exit;
+  end;
+  if (strEquCI1251(prname, 'textalign')) or (strEquCI1251(prname, 'text-align')) then
+  begin
+    mHAlign := parseHAlign(par);
     result := true;
     exit;
   end;
@@ -2541,7 +2366,7 @@ end;
 procedure TUIBox.drawControl (gx, gy: Integer);
 var
   cidx: Integer;
-  tx: Integer;
+  xpos: Integer;
 begin
   cidx := getColorIndex;
   fillRect(gx, gy, mWidth, mHeight, mBackColor[cidx]);
@@ -2553,10 +2378,14 @@ begin
   // draw caption
   if (Length(mCaption) > 0) then
   begin
+         if (mHAlign < 0) then xpos := 3
+    else if (mHAlign > 0) then xpos := mWidth-mFrameWidth*2-Length(mCaption)*8
+    else xpos := (mWidth-mFrameWidth*2-Length(mCaption)*8) div 2;
+    xpos += gx+mFrameWidth;
+
     setScissor(mFrameWidth+1, 0, mWidth-mFrameWidth-2, 8);
-    tx := gx+((mWidth-Length(mCaption)*8) div 2);
-    if mHasFrame then fillRect(tx-2, gy, Length(mCaption)*8+3, 8, mBackColor[cidx]);
-    drawText8(tx, gy, mCaption, mFrameTextColor[cidx]);
+    if mHasFrame then fillRect(xpos-3, gy, Length(mCaption)*8+4, 8, mBackColor[cidx]);
+    drawText8(xpos, gy, mCaption, mFrameTextColor[cidx]);
   end;
 end;
 
@@ -2566,21 +2395,20 @@ var
   lx, ly: Integer;
 begin
   inherited mouseEvent(ev);
-  if (not ev.eaten) and (not ev.cancelled) and (mEnabled) and toLocal(ev.x, ev.y, lx, ly) then
+  if (not ev.eaten) and (not ev.cancelled) and (enabled) and toLocal(ev.x, ev.y, lx, ly) then
   begin
     ev.eat();
   end;
 end;
 
 
-//TODO: navigation with arrow keys, according to box orientation
 procedure TUIBox.keyEvent (var ev: THKeyEvent);
 var
   dir: Integer = 0;
   cur, ctl: TUIControl;
 begin
   inherited keyEvent(ev);
-  if (ev.eaten) or (ev.cancelled) or (not ev.press) or (not mEnabled) or (not getActive) then exit;
+  if (ev.eaten) or (ev.cancelled) or (not ev.press) or (not enabled) or (not getActive) then exit;
   if (Length(mChildren) = 0) then exit;
        if (mHoriz) and (ev = 'Left') then dir := -1
   else if (mHoriz) and (ev = 'Right') then dir := 1
@@ -2591,7 +2419,7 @@ begin
   cur := topLevel.mFocused;
   while (cur <> nil) and (cur.mParent <> self) do cur := cur.mParent;
   //if (cur = nil) then writeln('CUR: nil') else writeln('CUR: ', cur.className, '#', cur.id);
-  if (dir < 0) then ctl := findPrevFocus(cur) else ctl := findNextFocus(cur);
+  if (dir < 0) then ctl := findPrevFocus(cur, true) else ctl := findNextFocus(cur, true);
   //if (ctl = nil) then writeln('CTL: nil') else writeln('CTL: ', ctl.className, '#', ctl.id);
   if (ctl <> nil) and (ctl <> self) then
   begin
@@ -2608,7 +2436,7 @@ end;
 
 procedure TUIHBox.AfterConstruction ();
 begin
-  inherited AfterConstruction();
+  inherited;
   mHoriz := true;
 end;
 
@@ -2621,15 +2449,16 @@ end;
 
 procedure TUIVBox.AfterConstruction ();
 begin
-  inherited AfterConstruction();
+  inherited;
   mHoriz := false;
+  writeln('VBOX: ', canFocus, ':', enabled);
 end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
 procedure TUISpan.AfterConstruction ();
 begin
-  inherited AfterConstruction();
+  inherited;
   mExpand := true;
   mCanFocus := false;
   mCtl4Style := 'span';
@@ -2651,7 +2480,7 @@ end;
 // ////////////////////////////////////////////////////////////////////// //
 procedure TUILine.AfterConstruction ();
 begin
-  inherited AfterConstruction();
+  inherited;
   mCanFocus := false;
   mExpand := true;
   mCanFocus := false;
@@ -2685,7 +2514,7 @@ end;
 // ////////////////////////////////////////////////////////////////////////// //
 procedure TUIHLine.AfterConstruction ();
 begin
-  inherited AfterConstruction();
+  inherited;
   mHoriz := true;
   mDefSize.h := 7;
 end;
@@ -2694,7 +2523,7 @@ end;
 // ////////////////////////////////////////////////////////////////////////// //
 procedure TUIVLine.AfterConstruction ();
 begin
-  inherited AfterConstruction();
+  inherited;
   mHoriz := false;
   mDefSize.w := 7;
 end;
@@ -2730,7 +2559,7 @@ begin
     result := true;
     exit;
   end;
-  if (strEquCI1251(prname, 'textalign')) then
+  if (strEquCI1251(prname, 'textalign')) or (strEquCI1251(prname, 'text-align')) then
   begin
     parseTextAlign(par, mHAlign, mVAlign);
     result := true;
@@ -2801,7 +2630,7 @@ end;
 // ////////////////////////////////////////////////////////////////////////// //
 procedure TUITextLabel.AfterConstruction ();
 begin
-  inherited AfterConstruction();
+  inherited;
   mHAlign := -1;
   mVAlign := 0;
   mCanFocus := false;
@@ -2859,6 +2688,7 @@ begin
       Inc(f);
     end;
   end;
+  mDefSize := TLaySize.Create(Length(mText)*8, 8);
 end;
 
 
@@ -2867,7 +2697,6 @@ begin
   if (strEquCI1251(prname, 'title')) or (strEquCI1251(prname, 'caption')) or (strEquCI1251(prname, 'text')) then
   begin
     setText(par.expectIdOrStr(true));
-    mDefSize := TLaySize.Create(Length(mText)*8, 8);
     result := true;
     exit;
   end;
@@ -2877,7 +2706,7 @@ begin
     result := true;
     exit;
   end;
-  if (strEquCI1251(prname, 'textalign')) then
+  if (strEquCI1251(prname, 'textalign')) or (strEquCI1251(prname, 'text-align')) then
   begin
     parseTextAlign(par, mHAlign, mVAlign);
     result := true;
@@ -2919,7 +2748,7 @@ var
   lx, ly: Integer;
 begin
   inherited mouseEvent(ev);
-  if (not ev.eaten) and (not ev.cancelled) and (mEnabled) and toLocal(ev.x, ev.y, lx, ly) then
+  if (not ev.eaten) and (not ev.cancelled) and (enabled) and toLocal(ev.x, ev.y, lx, ly) then
   begin
     ev.eat();
   end;
@@ -2930,7 +2759,7 @@ procedure TUITextLabel.keyEventPost (var ev: THKeyEvent);
 var
   ctl: TUIControl;
 begin
-  if (not mEnabled) then exit;
+  if (not enabled) then exit;
   if (mHotChar = #0) or (Length(mLinkId) = 0) then exit;
   if (ev.eaten) or (ev.cancelled) or (not ev.press) then exit;
   if (not ev.isHot(mHotChar)) then exit;
@@ -2946,7 +2775,7 @@ end;
 // ////////////////////////////////////////////////////////////////////////// //
 procedure TUIButton.AfterConstruction ();
 begin
-  inherited AfterConstruction();
+  inherited;
   mHAlign := -1;
   mVAlign := 0;
   mCanFocus := true;
@@ -2955,15 +2784,10 @@ begin
 end;
 
 
-function TUIButton.parseProperty (const prname: AnsiString; par: TTextParser): Boolean;
+procedure TUIButton.setText (const s: AnsiString);
 begin
-  if (strEquCI1251(prname, 'title')) or (strEquCI1251(prname, 'caption')) then
-  begin
-    result := inherited parseProperty(prname, par);
-    if result then mDefSize := TLaySize.Create(Length(mText)*8+8*2, 10);
-    exit;
-  end;
-  result := inherited parseProperty(prname, par);
+  inherited setText(s);
+  mDefSize := TLaySize.Create(Length(mText)*8+8*2, 10);
 end;
 
 
@@ -2973,10 +2797,6 @@ var
   cidx: Integer;
 begin
   cidx := getColorIndex;
-
-       if (mVAlign < 0) then ypos := 0
-  else if (mVAlign > 0) then ypos := mHeight-8
-  else ypos := (mHeight-8) div 2;
 
   fillRect(gx+1, gy, mWidth-2, mHeight, mBackColor[cidx]);
   fillRect(gx, gy+1, 1, mHeight-2, mBackColor[cidx]);
@@ -2988,13 +2808,14 @@ begin
     else if (mHAlign > 0) then xpos := mWidth-Length(mText)*8
     else xpos := (mWidth-Length(mText)*8) div 2;
 
+         if (mVAlign < 0) then ypos := 0
+    else if (mVAlign > 0) then ypos := mHeight-8
+    else ypos := (mHeight-8) div 2;
+
     setScissor(8, 0, mWidth-16, mHeight);
     drawText8(gx+xpos+8, gy+ypos, mText, mTextColor[cidx]);
 
-    if (mHotChar <> #0) and (mHotChar <> ' ') then
-    begin
-      drawText8(gx+xpos+8+mHotOfs, gy+ypos, mHotChar, mHotColor[cidx]);
-    end;
+    if (mHotChar <> #0) and (mHotChar <> ' ') then drawText8(gx+xpos+8+mHotOfs, gy+ypos, mHotChar, mHotColor[cidx]);
   end;
 end;
 
@@ -3013,7 +2834,7 @@ begin
     end;
     exit;
   end;
-  if (ev.eaten) or (ev.cancelled) or (not mEnabled) or not focused then exit;
+  if (ev.eaten) or (ev.cancelled) or (not enabled) or not focused then exit;
   ev.eat();
 end;
 
@@ -3021,7 +2842,7 @@ end;
 procedure TUIButton.keyEvent (var ev: THKeyEvent);
 begin
   inherited keyEvent(ev);
-  if (not ev.eaten) and (not ev.cancelled) and (mEnabled) then
+  if (not ev.eaten) and (not ev.cancelled) and (enabled) then
   begin
     if (ev = 'Enter') or (ev = 'Space') then
     begin
@@ -3035,7 +2856,7 @@ end;
 
 procedure TUIButton.keyEventPost (var ev: THKeyEvent);
 begin
-  if (not mEnabled) then exit;
+  if (not enabled) then exit;
   if (mHotChar = #0) then exit;
   if (ev.eaten) or (ev.cancelled) or (not ev.press) then exit;
   if (not ev.isHot(mHotChar)) then exit;
@@ -3046,6 +2867,249 @@ begin
 end;
 
 
+// ////////////////////////////////////////////////////////////////////////// //
+procedure TUISwitchBox.AfterConstruction ();
+begin
+  inherited;
+  mHAlign := -1;
+  mVAlign := 0;
+  mCanFocus := true;
+  mDefSize := TLaySize.Create(Length(mText)*8+8*3, 8);
+  mCtl4Style := 'switchbox';
+  mChecked := false;
+  mBoolVar := @mChecked;
+end;
+
+
+procedure TUISwitchBox.cacheStyle (root: TUIStyle);
+begin
+  inherited cacheStyle(root);
+  // active
+  mSwitchColor[ClrIdxActive] := root.get('switch-color', 'active', mCtl4Style).asRGBADef(TGxRGBA.Create(255, 255, 255));
+  // disabled
+  mSwitchColor[ClrIdxDisabled] := root.get('switch-color', 'disabled', mCtl4Style).asRGBADef(TGxRGBA.Create(255, 255, 255));
+  // inactive
+  mSwitchColor[ClrIdxInactive] := root.get('switch-color', 'inactive', mCtl4Style).asRGBADef(TGxRGBA.Create(255, 255, 255));
+end;
+
+
+procedure TUISwitchBox.setText (const s: AnsiString);
+begin
+  inherited setText(s);
+  mDefSize := TLaySize.Create(Length(mText)*8+8*3, 8);
+end;
+
+
+function TUISwitchBox.parseProperty (const prname: AnsiString; par: TTextParser): Boolean;
+begin
+  if (strEquCI1251(prname, 'checked')) then
+  begin
+    result := true;
+    setChecked(true);
+    exit;
+  end;
+  result := inherited parseProperty(prname, par);
+end;
+
+
+function TUISwitchBox.getChecked (): Boolean;
+begin
+  if (mBoolVar <> nil) then result := mBoolVar^ else result := false;
+end;
+
+
+procedure TUISwitchBox.setVar (pvar: PBoolean);
+begin
+  if (pvar = nil) then pvar := @mChecked;
+  if (pvar <> mBoolVar) then
+  begin
+    mBoolVar := pvar;
+    setChecked(mBoolVar^);
+  end;
+end;
+
+
+procedure TUISwitchBox.drawControl (gx, gy: Integer);
+var
+  xpos, ypos: Integer;
+  cidx: Integer;
+begin
+  cidx := getColorIndex;
+
+       if (mHAlign < 0) then xpos := 0
+  else if (mHAlign > 0) then xpos := mWidth-(Length(mText)+4)*8
+  else xpos := (mWidth-(Length(mText)+4)*8) div 2;
+
+       if (mVAlign < 0) then ypos := 0
+  else if (mVAlign > 0) then ypos := mHeight-8
+  else ypos := (mHeight-8) div 2;
+
+
+  fillRect(gx, gy, mWidth, mHeight, mBackColor[cidx]);
+
+  if (checked) then
+  begin
+    if (Length(mCheckedStr) <> 3) or (mCheckedStr[2] <> '*') then
+    begin
+      drawText8(gx+xpos, gy+ypos, mCheckedStr, mSwitchColor[cidx]);
+    end
+    else
+    begin
+      drawText8(gx+xpos, gy+ypos, mCheckedStr[1], mSwitchColor[cidx]);
+      drawText8(gx+xpos+2*8, gy+ypos, mCheckedStr[3], mSwitchColor[cidx]);
+      drawText8(gx+xpos+7, gy+ypos, '*', mSwitchColor[cidx]);
+    end;
+  end
+  else
+  begin
+    drawText8(gx+xpos, gy+ypos, mUncheckedStr, mSwitchColor[cidx]);
+  end;
+
+  drawText8(gx+xpos+8*3, gy+ypos, mText, mTextColor[cidx]);
+
+  if (mHotChar <> #0) and (mHotChar <> ' ') then drawText8(gx+xpos+8*3+mHotOfs, gy+ypos, mHotChar, mHotColor[cidx]);
+end;
+
+
+procedure TUISwitchBox.mouseEvent (var ev: THMouseEvent);
+var
+  lx, ly: Integer;
+begin
+  inherited mouseEvent(ev);
+  if (uiGrabCtl = self) then
+  begin
+    ev.eat();
+    if (ev = '-lmb') and focused and toLocal(ev.x, ev.y, lx, ly) then
+    begin
+      doAction();
+    end;
+    exit;
+  end;
+  if (ev.eaten) or (ev.cancelled) or (not enabled) or not focused then exit;
+  ev.eat();
+end;
+
+
+procedure TUISwitchBox.keyEvent (var ev: THKeyEvent);
+begin
+  inherited keyEvent(ev);
+  if (not ev.eaten) and (not ev.cancelled) and (enabled) then
+  begin
+    if (ev = 'Space') then
+    begin
+      ev.eat();
+      doAction();
+      exit;
+    end;
+  end;
+end;
+
+
+procedure TUISwitchBox.keyEventPost (var ev: THKeyEvent);
+begin
+  if (not enabled) then exit;
+  if (mHotChar = #0) then exit;
+  if (ev.eaten) or (ev.cancelled) or (not ev.press) then exit;
+  if (not ev.isHot(mHotChar)) then exit;
+  if (not canFocus) then exit;
+  ev.eat();
+  focused := true;
+  doAction();
+end;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
+procedure TUICheckBox.AfterConstruction ();
+begin
+  inherited;
+  mChecked := false;
+  mBoolVar := @mChecked;
+  mCheckedStr := '[x]';
+  mUncheckedStr := '[ ]';
+end;
+
+
+procedure TUICheckBox.setChecked (v: Boolean);
+begin
+  mBoolVar^ := v;
+end;
+
+
+procedure TUICheckBox.doAction ();
+begin
+  if (assigned(actionCB)) then
+  begin
+    actionCB(self);
+  end
+  else
+  begin
+    setChecked(not getChecked);
+  end;
+end;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
+procedure TUIRadioBox.AfterConstruction ();
+begin
+  inherited;
+  mChecked := false;
+  mBoolVar := @mChecked;
+  mCheckedStr := '(*)';
+  mUncheckedStr := '( )';
+  mRadioGroup := '';
+end;
+
+
+function TUIRadioBox.parseProperty (const prname: AnsiString; par: TTextParser): Boolean;
+begin
+  if (strEquCI1251(prname, 'group')) then
+  begin
+    mRadioGroup := par.expectIdOrStr(true);
+    if (getChecked) then setChecked(true);
+    result := true;
+    exit;
+  end;
+  if (strEquCI1251(prname, 'checked')) then
+  begin
+    result := true;
+    setChecked(true);
+    exit;
+  end;
+  result := inherited parseProperty(prname, par);
+end;
+
+
+procedure TUIRadioBox.setChecked (v: Boolean);
+
+  function resetGroup (ctl: TUIControl): Boolean;
+  begin
+    result := false;
+    if (ctl <> self) and (ctl is TUIRadioBox) and (TUIRadioBox(ctl).mRadioGroup = mRadioGroup) then
+    begin
+      TUIRadioBox(ctl).mBoolVar^ := false;
+    end;
+  end;
+
+begin
+  mBoolVar^ := v;
+  if v then topLevel.forEachControl(resetGroup);
+end;
+
+
+procedure TUIRadioBox.doAction ();
+begin
+  if (assigned(actionCB)) then
+  begin
+    actionCB(self);
+  end
+  else
+  begin
+    setChecked(true);
+  end;
+end;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
 initialization
   registerCtlClass(TUIHBox, 'hbox');
   registerCtlClass(TUIVBox, 'vbox');
@@ -3055,4 +3119,6 @@ initialization
   registerCtlClass(TUITextLabel, 'label');
   registerCtlClass(TUIStaticText, 'static');
   registerCtlClass(TUIButton, 'button');
+  registerCtlClass(TUICheckBox, 'checkbox');
+  registerCtlClass(TUIRadioBox, 'radiobox');
 end.
