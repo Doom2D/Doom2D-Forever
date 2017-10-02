@@ -70,6 +70,7 @@ begin
   //SDL_Quit();
   result := true;
   fuiWinActive := fuiWinActive;
+  SDL_StartTextInput();
 end;
 
 

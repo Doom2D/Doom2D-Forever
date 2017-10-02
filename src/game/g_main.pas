@@ -95,7 +95,7 @@ begin
   if SDL_Init(sdlflags) < 0 then
     raise Exception.Create('SDL: Init failed: ' + SDL_GetError());
 
-{$IFDEF HEADLESS}
+{$IFNDEF HEADLESS}
   SDL_StartTextInput();
 {$ENDIF}
 

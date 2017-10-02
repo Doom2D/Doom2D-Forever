@@ -86,7 +86,7 @@ type
 
   public
     kind: TKind;
-    scan: Word; // SDL_SCANCODE_XXX
+    scan: Word; // SDL_SCANCODE_XXX or 0 for character event
     //sym: LongWord; // SDLK_XXX
     ch: AnsiChar; // converted to 1251; can be #0
     x, y: Integer; // current mouse position
@@ -194,7 +194,7 @@ function THMouseEvent.motion (): Boolean; inline; begin result := (kind = TKind.
 procedure THMouseEvent.eat (); inline; begin mEaten := true; end;
 procedure THMouseEvent.cancel (); inline; begin mCancelled := true; end;
 
-procedure THKeyEvent.intrInit (); inline; begin mEaten := false; mCancelled := false; end;
+procedure THKeyEvent.intrInit (); inline; begin mEaten := false; mCancelled := false; ch := #0; scan := 0; end;
 function THKeyEvent.press (): Boolean; inline; begin result := (kind = TKind.Press); end;
 function THKeyEvent.release (): Boolean; inline; begin result := (kind = TKind.Release); end;
 procedure THKeyEvent.eat (); inline; begin mEaten := true; end;
