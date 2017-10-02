@@ -22,20 +22,13 @@ program Doom2DF;
 {$ENDIF}
 {$HINTS OFF}
 
-{$UNDEF XXX}
 {$IFDEF USE_SDLMIXER}
- {$DEFINE XXX}
-{$ENDIF}
-{$IFDEF USE_FMOD}
- {$IFDEF XXX}
-  {$ERROR define one of USE_SDLMIXER or USE_FMOD}
- {$ELSE}
-  {$DEFINE XXX}
+ {$IFDEF USE_FMOD}
+  {$ERROR define only one of USE_SDLMIXER or USE_FMOD}
  {$ENDIF}
-{$ENDIF}
-
-{$IFNDEF XXX}
-  {$ERROR define USE_SDLMIXER or USE_FMOD}
+{$ELSE}
+ {$UNDEF USE_SDLMIXER}
+ {$DEFINE USE_FMOD}
 {$ENDIF}
 
 uses
