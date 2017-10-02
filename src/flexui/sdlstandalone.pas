@@ -108,9 +108,10 @@ begin
   FillChar(ev, sizeof(ev), 0);
   while (SDL_PollEvent(@ev) > 0) do
   begin
-    if fuiOnSDLEvent(ev) then result := true;
+    fuiOnSDLEvent(ev);
     //if (ev.type_ = SDL_QUITEV) then exit;
   end;
+  if fuiQuitReceived then result := true;
 end;
 
 
