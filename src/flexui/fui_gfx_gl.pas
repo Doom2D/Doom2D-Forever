@@ -114,6 +114,11 @@ type
 
     function combineClip (constref aclip: TGxRect): TGxRect; // returns previous clip
 
+  public //HACK!
+    procedure glSetScale (ascale: Single);
+    procedure glSetTrans (ax, ay: Single);
+    procedure glSetScaleTrans (ascale, ax, ay: Single);
+
   public
     property active: Boolean read mActive;
     property color: TGxRGBA read mColor write setColor;
@@ -125,10 +130,12 @@ type
 
 // set active context; `ctx` can be `nil`
 procedure gxSetContext (ctx: TGxContext; ascale: Single=1.0);
+procedure gxSetContextNoMatrix (ctx: TGxContext);
 
 
 // setup 2D OpenGL mode; will be called automatically in `glInit()`
 procedure oglSetup2D (winWidth, winHeight: Integer; upsideDown: Boolean=false);
+procedure oglSetup2DState (); // don't modify viewports and matrices
 
 procedure oglDrawCursor ();
 procedure oglDrawCursorAt (msX, msY: Integer);
@@ -141,6 +148,33 @@ var
 
 
 implementation
+
+
+// ////////////////////////////////////////////////////////////////////////// //
+// returns `false` if the color is transparent
+// returns `false` if the color is transparent
+function setupGLColor (constref clr: TGxRGBA): Boolean;
+begin
+  if (clr.a < 255) then
+  begin
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  end
+  else
+  begin
+    glDisable(GL_BLEND);
+  end;
+  glColor4ub(clr.r, clr.g, clr.b, clr.a);
+  result := (clr.a <> 0);
+end;
+
+function isScaled (): Boolean;
+var
+  mt: packed array [0..15] of Double;
+begin
+  glGetDoublev(GL_MODELVIEW_MATRIX, @mt[0]);
+  result := (mt[0] <> 1.0) or (mt[1*4+1] <> 1.0);
+end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
@@ -209,7 +243,9 @@ var
 
 // ////////////////////////////////////////////////////////////////////////// //
 // set active context; `ctx` can be `nil`
-procedure gxSetContext (ctx: TGxContext; ascale: Single=1.0);
+procedure gxSetContextInternal (ctx: TGxContext; ascale: Single; domatrix: Boolean);
+var
+  mt: packed array [0..15] of Double;
 begin
   if (savedGLState.saved) then savedGLState.restore();
 
@@ -224,13 +260,28 @@ begin
   begin
     ctx.mActive := true;
     savedGLState.save();
-    oglSetup2D(fuiScrWdt, fuiScrHgt);
-    glScalef(ascale, ascale, 1.0);
-    ctx.mScaled := (ascale <> 1.0);
-    ctx.mScale := ascale;
+    if (domatrix) then
+    begin
+      oglSetup2D(fuiScrWdt, fuiScrHgt);
+      glScalef(ascale, ascale, 1.0);
+      ctx.mScaled := (ascale <> 1.0);
+      ctx.mScale := ascale;
+    end
+    else
+    begin
+      // assume uniform scale
+      glGetDoublev(GL_MODELVIEW_MATRIX, @mt[0]);
+      ctx.mScaled := (mt[0] <> 1.0) or (mt[1*4+1] <> 1.0);
+      ctx.mScale := mt[0];
+      oglSetup2DState();
+    end;
     ctx.onActivate();
   end;
 end;
+
+
+procedure gxSetContext (ctx: TGxContext; ascale: Single=1.0); begin gxSetContextInternal(ctx, ascale, true); end;
+procedure gxSetContextNoMatrix (ctx: TGxContext); begin gxSetContextInternal(ctx, 1, false); end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
@@ -509,10 +560,8 @@ end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-procedure oglSetup2D (winWidth, winHeight: Integer; upsideDown: Boolean=false);
+procedure oglSetup2DState ();
 begin
-  glViewport(0, 0, winWidth, winHeight);
-
   glDisable(GL_BLEND);
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   glDisable(GL_LINE_SMOOTH);
@@ -526,6 +575,17 @@ begin
   glDisable(GL_SCISSOR_TEST);
   glDisable(GL_CULL_FACE);
   glDisable(GL_ALPHA_TEST);
+
+  glClearColor(0, 0, 0, 0);
+  glColor4f(1, 1, 1, 1);
+end;
+
+
+procedure oglSetup2D (winWidth, winHeight: Integer; upsideDown: Boolean=false);
+begin
+  glViewport(0, 0, winWidth, winHeight);
+
+  oglSetup2DState();
 
   glMatrixMode(GL_TEXTURE);
   glLoadIdentity();
@@ -546,9 +606,6 @@ begin
 
   glMatrixMode(GL_MODELVIEW);
   glLoadIdentity();
-
-  glClearColor(0, 0, 0, 0);
-  glColor4f(1, 1, 1, 1);
 end;
 
 
@@ -556,33 +613,6 @@ end;
 {$INCLUDE fui_gfx_gl_cursor.inc}
 
 procedure oglDrawCursor (); begin oglDrawCursorAt(fuiMouseX, fuiMouseY); end;
-
-
-// ////////////////////////////////////////////////////////////////////////// //
-// returns `false` if the color is transparent
-// returns `false` if the color is transparent
-function setupGLColor (constref clr: TGxRGBA): Boolean;
-begin
-  if (clr.a < 255) then
-  begin
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-  end
-  else
-  begin
-    glDisable(GL_BLEND);
-  end;
-  glColor4ub(clr.r, clr.g, clr.b, clr.a);
-  result := (clr.a <> 0);
-end;
-
-function mScaled (): Boolean;
-var
-  mt: packed array [0..15] of Double;
-begin
-  glGetDoublev(GL_MODELVIEW_MATRIX, @mt[0]);
-  result := (mt[0] <> 1.0) or (mt[1*4+1] <> 1.0);
-end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
@@ -768,13 +798,20 @@ begin
       glVertex2f(x+len+0.375, y+0.375);
     glEnd();
   end
-  else
+  else if (mScale > 1.0) then
   begin
     glBegin(GL_QUADS);
       glVertex2i(x, y);
       glVertex2i(x+len, y);
       glVertex2i(x+len, y+1);
       glVertex2i(x, y+1);
+    glEnd();
+  end
+  else
+  begin
+    glPointSize(1);
+    glBegin(GL_POINTS);
+      while (len > 0) do begin glVertex2i(x, y); Inc(x); Dec(len); end;
     glEnd();
   end;
 end;
@@ -792,41 +829,26 @@ begin
       glVertex2f(x+0.375, y+len+0.375);
     glEnd();
   end
-  else
+  else if (mScale > 1.0) then
   begin
     glBegin(GL_QUADS);
       glVertex2i(x, y);
       glVertex2i(x, y+len);
       glVertex2i(x+1, y+len);
       glVertex2i(x+1, y);
+    glEnd();
+  end
+  else
+  begin
+    glPointSize(1);
+    glBegin(GL_POINTS);
+      while (len > 0) do begin glVertex2i(x, y); Inc(y); Dec(len); end;
     glEnd();
   end;
 end;
 
 
 procedure TGxContext.rect (x, y, w, h: Integer);
-  procedure hlinex (x, y, len: Integer);
-  begin
-    if (len < 1) then exit;
-    glBegin(GL_QUADS);
-      glVertex2i(x, y);
-      glVertex2i(x+len, y);
-      glVertex2i(x+len, y+1);
-      glVertex2i(x, y+1);
-    glEnd();
-  end;
-
-  procedure vlinex (x, y, len: Integer);
-  begin
-    if (len < 1) then exit;
-    glBegin(GL_QUADS);
-      glVertex2i(x, y);
-      glVertex2i(x, y+len);
-      glVertex2i(x+1, y+len);
-      glVertex2i(x+1, y);
-    glEnd();
-  end;
-
 begin
   if (not mActive) or (mClipRect.w < 1) or (mClipRect.h < 1) or (mColor.a = 0) then exit;
   if (w < 0) or (h < 0) then exit;
@@ -851,10 +873,10 @@ begin
     end
     else
     begin
-      hlinex(x, y, w);
-      hlinex(x, y+h-1, w);
-      vlinex(x, y+1, h-2);
-      vlinex(x+w-1, y+1, h-2);
+      hline(x, y, w);
+      hline(x, y+h-1, w);
+      vline(x, y+1, h-2);
+      vline(x+w-1, y+1, h-2);
     end;
   end;
 end;
@@ -990,6 +1012,30 @@ begin
     vline(x+1+f, y+f, 1);
     vline(x+1+6-f, y+f, 1);
   end;
+end;
+
+
+procedure TGxContext.glSetScale (ascale: Single);
+begin
+  if (ascale < 0.01) then ascale := 0.01;
+  glLoadIdentity();
+  glScalef(ascale, ascale, 1.0);
+  mScale := ascale;
+  mScaled := (ascale <> 1.0);
+end;
+
+procedure TGxContext.glSetTrans (ax, ay: Single);
+begin
+  glLoadIdentity();
+  glScalef(mScale, mScale, 1.0);
+  glTranslatef(ax, ay, 0);
+end;
+
+
+procedure TGxContext.glSetScaleTrans (ascale, ax, ay: Single);
+begin
+  glSetScale(ascale);
+  glTranslatef(ax, ay, 0);
 end;
 
 

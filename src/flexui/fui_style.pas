@@ -128,15 +128,15 @@ const
   defaultStyleStr =
     'default {'#10+
     '  back-color: #008;'#10+
-    '  #active: { text-color: #fff; hot-color: #f00; frame-color: #fff; frame-text-color: #fff; frame-icon-color: #0f0; }'#10+
-    '  #inactive: { text-color: #aaa; hot-color: #a00; frame-color: #aaa; frame-text-color: #aaa; frame-icon-color: #0a0; }'#10+
-    '  #disabled: { text-color: #666; frame-color: #888; frame-text-color: #888; frame-icon-color: #080; }'#10+
+    '  #active: { text-color: #fff; hot-color: #f00; switch-color: #fff; frame-color: #fff; frame-text-color: #fff; frame-icon-color: #0f0; }'#10+
+    '  #inactive: { text-color: #aaa; hot-color: #a00; switch-color: #aaa; frame-color: #aaa; frame-text-color: #aaa; frame-icon-color: #0a0; }'#10+
+    '  #disabled: { text-color: #666; hot-color: #600; switch-color: #666; frame-color: #888; frame-text-color: #888; frame-icon-color: #080; }'#10+
     '  @window: { #inactive(#active): { darken: 128; } }'#10+
     '  @button: { back-color: #999; text-color: #000; hot-color: #600; #active: { back-color: #fff; hot-color: #c00; } #disabled: { back-color: #444; text-color: #333; hot-color: #333; } }'#10+
     '  @label: { #inactive(#active); }'#10+
     '  @static: { text-color: #ff0; #inactive(#active); }'#10+
     '  @box: { #inactive(#active); }'#10+
-    '  @switchbox: { switch-color: #fff; #active: { back-color: #080; } }'#10+
+    '  @switchbox: { #active: { back-color: #080; } #inactive: { switch-color: #fff; } }'#10+
     '  @checkbox(@switchbox): {}'#10+
     '  @radiobox(@switchbox): {}'#10+
     '}'#10+

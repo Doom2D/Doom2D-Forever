@@ -249,7 +249,7 @@ type
     procedure close (); // this closes *top-level* control
 
   public
-    property id: AnsiString read mId;
+    property id: AnsiString read mId write mId;
     property styleId: AnsiString read mStyleId;
     property scrollX: Integer read mScrollX write mScrollX;
     property scrollY: Integer read mScrollY write mScrollY;
