@@ -138,29 +138,26 @@ type
     mLayDefSize: TLaySize;
     mLayMaxSize: TLaySize;
     mFullSize: TLaySize;
+    mNoPad: Boolean;
+    mPadding: TLaySize;
 
   public
     // layouter interface
     function getDefSize (): TLaySize; inline; // default size; <0: use max size
     //procedure setDefSize (const sz: TLaySize); inline; // default size; <0: use max size
     function getMargins (): TLayMargins; inline;
+    function getPadding (): TLaySize; inline; // children padding (each non-first child will get this on left/top)
     function getMaxSize (): TLaySize; inline; // max size; <0: set to some huge value
     //procedure setMaxSize (const sz: TLaySize); inline; // max size; <0: set to some huge value
     function getFlex (): Integer; inline; // <=0: not flexible
     function isHorizBox (): Boolean; inline; // horizontal layout for children?
-    procedure setHorizBox (v: Boolean); inline; // horizontal layout for children?
     function canWrap (): Boolean; inline; // for horizontal boxes: can wrap children? for child: `false` means 'nonbreakable at *next* ctl'
-    procedure setCanWrap (v: Boolean); inline; // for horizontal boxes: can wrap children? for child: `false` means 'nonbreakable at *next* ctl'
+    function noPad (): Boolean; inline; // ignore padding in box direction for this control
     function isLineStart (): Boolean; inline; // `true` if this ctl should start a new line; ignored for vertical boxes
-    procedure setLineStart (v: Boolean); inline; // `true` if this ctl should start a new line; ignored for vertical boxes
     function getAlign (): Integer; inline; // aligning in non-main direction: <0: left/up; 0: center; >0: right/down
-    procedure setAlign (v: Integer); inline; // aligning in non-main direction: <0: left/up; 0: center; >0: right/down
     function getExpand (): Boolean; inline; // expanding in non-main direction: `true` will ignore align and eat all available space
-    procedure setExpand (v: Boolean); inline; // expanding in non-main direction: `true` will ignore align and eat all available space
     function getHGroup (): AnsiString; inline; // empty: not grouped
-    procedure setHGroup (const v: AnsiString); inline; // empty: not grouped
     function getVGroup (): AnsiString; inline; // empty: not grouped
-    procedure setVGroup (const v: AnsiString); inline; // empty: not grouped
 
     procedure setActualSizePos (constref apos: TLayPos; constref asize: TLaySize); inline;
 
@@ -170,18 +167,23 @@ type
     property flex: Integer read mFlex write mFlex;
     property flDefaultSize: TLaySize read mDefSize write mDefSize;
     property flMaxSize: TLaySize read mMaxSize write mMaxSize;
-    property flHoriz: Boolean read isHorizBox write setHorizBox;
-    property flCanWrap: Boolean read canWrap write setCanWrap;
-    property flLineStart: Boolean read isLineStart write setLineStart;
-    property flAlign: Integer read getAlign write setAlign;
-    property flExpand: Boolean read getExpand write setExpand;
-    property flHGroup: AnsiString read getHGroup write setHGroup;
-    property flVGroup: AnsiString read getVGroup write setVGroup;
+    property flPadding: TLaySize read mPadding write mPadding;
+    property flHoriz: Boolean read mHoriz write mHoriz;
+    property flCanWrap: Boolean read mCanWrap write mCanWrap;
+    property flLineStart: Boolean read mLineStart write mLineStart;
+    property flAlign: Integer read mAlign write mAlign;
+    property flExpand: Boolean read mExpand write mExpand;
+    property flHGroup: AnsiString read mHGroup write mHGroup;
+    property flVGroup: AnsiString read mVGroup write mVGroup;
+    property flNoPad: Boolean read mNoPad write mNoPad;
     property fullSize: TLaySize read mFullSize;
 
   protected
     function parsePos (par: TTextParser): TLayPos;
     function parseSize (par: TTextParser): TLaySize;
+    function parsePadding (par: TTextParser): TLaySize;
+    function parseHPadding (par: TTextParser; def: Integer): TLaySize;
+    function parseVPadding (par: TTextParser; def: Integer): TLaySize;
     function parseBool (par: TTextParser): Boolean;
     function parseAnyAlign (par: TTextParser): Integer;
     function parseHAlign (par: TTextParser): Integer;
@@ -897,6 +899,8 @@ begin
   //mDefSize := TLaySize.Create(64, 8); // default size
   mDefSize := TLaySize.Create(0, 0); // default size
   mMaxSize := TLaySize.Create(-1, -1); // maximum size
+  mPadding := TLaySize.Create(0, 0);
+  mNoPad := false;
   mFlex := 0;
   mHoriz := true;
   mCanWrap := false;
@@ -1000,26 +1004,17 @@ end;
 // ////////////////////////////////////////////////////////////////////////// //
 function TUIControl.getDefSize (): TLaySize; inline; begin result := mLayDefSize; end;
 function TUIControl.getMaxSize (): TLaySize; inline; begin result := mLayMaxSize; end;
+function TUIControl.getPadding (): TLaySize; inline; begin result := mPadding; end;
 function TUIControl.getFlex (): Integer; inline; begin result := mFlex; end;
 function TUIControl.isHorizBox (): Boolean; inline; begin result := mHoriz; end;
-procedure TUIControl.setHorizBox (v: Boolean); inline; begin mHoriz := v; end;
 function TUIControl.canWrap (): Boolean; inline; begin result := mCanWrap; end;
-procedure TUIControl.setCanWrap (v: Boolean); inline; begin mCanWrap := v; end;
+function TUIControl.noPad (): Boolean; inline; begin result := mNoPad; end;
 function TUIControl.isLineStart (): Boolean; inline; begin result := mLineStart; end;
-procedure TUIControl.setLineStart (v: Boolean); inline; begin mLineStart := v; end;
 function TUIControl.getAlign (): Integer; inline; begin result := mAlign; end;
-procedure TUIControl.setAlign (v: Integer); inline; begin mAlign := v; end;
 function TUIControl.getExpand (): Boolean; inline; begin result := mExpand; end;
-procedure TUIControl.setExpand (v: Boolean); inline; begin mExpand := v; end;
 function TUIControl.getHGroup (): AnsiString; inline; begin result := mHGroup; end;
-procedure TUIControl.setHGroup (const v: AnsiString); inline; begin mHGroup := v; end;
 function TUIControl.getVGroup (): AnsiString; inline; begin result := mVGroup; end;
-procedure TUIControl.setVGroup (const v: AnsiString); inline; begin mVGroup := v; end;
-
-function TUIControl.getMargins (): TLayMargins; inline;
-begin
-  result := TLayMargins.Create(mFrameHeight, mFrameWidth, mFrameHeight, mFrameWidth);
-end;
+function TUIControl.getMargins (): TLayMargins; inline; begin result := TLayMargins.Create(mFrameHeight, mFrameWidth, mFrameHeight, mFrameWidth); end;
 
 procedure TUIControl.setActualSizePos (constref apos: TLayPos; constref asize: TLaySize); inline;
 begin
@@ -1065,6 +1060,37 @@ begin
   result.h := par.expectInt();
   par.eatDelim(','); // optional comma
   par.expectDelim(ech);
+end;
+
+function TUIControl.parsePadding (par: TTextParser): TLaySize;
+begin
+  result := parseSize(par);
+end;
+
+function TUIControl.parseHPadding (par: TTextParser; def: Integer): TLaySize;
+begin
+  if (par.isInt) then
+  begin
+    result.h := def;
+    result.w := par.expectInt();
+  end
+  else
+  begin
+    result := parsePadding(par);
+  end;
+end;
+
+function TUIControl.parseVPadding (par: TTextParser; def: Integer): TLaySize;
+begin
+  if (par.isInt) then
+  begin
+    result.w := def;
+    result.h := par.expectInt();
+  end
+  else
+  begin
+    result := parsePadding(par);
+  end;
 end;
 
 function TUIControl.parseBool (par: TTextParser): Boolean;
@@ -1244,6 +1270,9 @@ begin
   if (strEquCI1251(prname, 'defheight')) or (strEquCI1251(prname, 'height')) then begin mDefSize.h := par.expectInt(); exit; end;
   if (strEquCI1251(prname, 'maxwidth')) then begin mMaxSize.w := par.expectInt(); exit; end;
   if (strEquCI1251(prname, 'maxheight')) then begin mMaxSize.h := par.expectInt(); exit; end;
+  // padding
+  if (strEquCI1251(prname, 'padding')) then begin mPadding := parsePadding(par); exit; end;
+  if (strEquCI1251(prname, 'nopad')) then begin mNoPad := true; exit; end;
   // flags
   if (strEquCI1251(prname, 'wrap')) then begin mCanWrap := parseBool(par); exit; end;
   if (strEquCI1251(prname, 'linestart')) then begin mLineStart := parseBool(par); exit; end;
@@ -2347,12 +2376,19 @@ procedure TUIBox.setHasFrame (v: Boolean);
 begin
   mHasFrame := v;
   if (mHasFrame) then begin mFrameWidth := 8; mFrameHeight := 8; end else begin mFrameWidth := 0; mFrameHeight := 0; end;
+  if (mHasFrame) then mNoPad := true;
 end;
 
 
 function TUIBox.parseProperty (const prname: AnsiString; par: TTextParser): Boolean;
 begin
   if (parseOrientation(prname, par)) then begin result := true; exit; end;
+  if (strEquCI1251(prname, 'padding')) then
+  begin
+    if (mHoriz) then mPadding := parseHPadding(par, 0) else mPadding := parseVPadding(par, 0);
+    result := true;
+    exit;
+  end;
   if (strEquCI1251(prname, 'frame')) then
   begin
     setHasFrame(parseBool(par));
@@ -2478,6 +2514,7 @@ begin
   inherited;
   mExpand := true;
   mCanFocus := false;
+  mNoPad := true;
   mCtl4Style := 'span';
 end;
 

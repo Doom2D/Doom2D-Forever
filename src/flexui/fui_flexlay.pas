@@ -23,10 +23,12 @@ ControlT:
   procedure layPrepare (); // called before registering control in layouter
   function getDefSize (): TLaySize; // default size; <0: use max size
   function getMargins (): TLayMargins;
+  function getPadding (): TLaySize; // children padding (each non-first child will get this on left/top)
   function getMaxSize (): TLaySize; // max size; <0: set to some huge value
   function getFlex (): Integer; // <=0: not flexible
   function isHorizBox (): Boolean; // horizontal layout for children?
   function canWrap (): Boolean; // for horizontal boxes: can wrap children? for child: `false` means 'nonbreakable at *next* ctl'
+  function noPad (): Boolean; // ignore padding in box direction for this control
   function isLineStart (): Boolean; // `true` if this ctl should start a new line; ignored for vertical boxes
   function getAlign (): Integer; // aligning in non-main direction: <0: left/up; 0: center; >0: right/down
   function getExpand (): Boolean; // expanding in non-main direction: `true` will ignore align and eat all available space
@@ -58,11 +60,12 @@ type
       FlagHorizBox = LongWord(1) shl 0; // horizontal layout for children
       FlagLineStart = LongWord(1) shl 1;
       FlagLineCanWrap = LongWord(1) shl 2;
+      FlagNoPad = LongWord(1) shl 3;
       // internal
-      FlagLineDidWrap = LongWord(1) shl 3; // will be set when line was wrapped
-      FlagInGroup = LongWord(1) shl 4; // set if this control is a member of any group
-      FlagExpand = LongWord(1) shl 5;
-      FlagLineFirst = LongWord(1) shl 6;
+      FlagLineDidWrap = LongWord(1) shl 8; // will be set when line was wrapped
+      FlagInGroup = LongWord(1) shl 9; // set if this control is a member of any group
+      FlagExpand = LongWord(1) shl 10;
+      FlagLineFirst = LongWord(1) shl 11;
 
   private
     type
@@ -71,12 +74,13 @@ type
       public
         myidx: LayControlIdx;
         tempFlex: Integer;
-        flags: LongWord; // see below
+        flags: LongWord; // see above
         aligndir: Integer;
         startsize: TLaySize; // current
         desiredsize: TLaySize;
         maxsize: TLaySize;
         margins: TLayMargins; // can never be negative
+        padding: TLaySize;
         desiredpos: TLayPos;
         ctl: ControlT;
         parent: LayControlIdx; // = -1;
@@ -95,6 +99,7 @@ type
         function canWrap (): Boolean; inline;
         function inGroup (): Boolean; inline;
         function firstInLine (): Boolean; inline;
+        function noPad (): Boolean; inline;
 
         function getExpand (): Boolean; inline;
         procedure setExpand (v: Boolean); inline;
@@ -136,7 +141,7 @@ type
     // this also sets `tempFlex`
     procedure calcMaxSizeInternal (cidx: LayControlIdx);
 
-    procedure fixLine (me: PLayControl; i0, i1: LayControlIdx; var cury: Integer; var spaceLeft: Single);
+    procedure fixLine (me: PLayControl; i0, i1: LayControlIdx; ypad: Integer; var cury: Integer; var spaceLeft: Single);
     // do box layouting; call `layBox()` recursively if necessary
     procedure layBox (boxidx: LayControlIdx);
 
@@ -201,6 +206,7 @@ function TFlexLayouterBase.TLayControl.lineStart (): Boolean; inline; begin resu
 function TFlexLayouterBase.TLayControl.canWrap (): Boolean; inline; begin result := ((flags and FlagLineCanWrap) <> 0); end;
 function TFlexLayouterBase.TLayControl.inGroup (): Boolean; inline; begin result := ((flags and FlagInGroup) <> 0); end;
 function TFlexLayouterBase.TLayControl.firstInLine (): Boolean; inline; begin result := ((flags and FlagLineFirst) <> 0); end;
+function TFlexLayouterBase.TLayControl.noPad (): Boolean; inline; begin result := ((flags and FlagNoPad) <> 0); end;
 
 function TFlexLayouterBase.TLayControl.getDidWrap (): Boolean; inline; begin result := ((flags and FlagLineDidWrap) <> 0); end;
 procedure TFlexLayouterBase.TLayControl.setDidWrap (v: Boolean); inline; begin if (v) then flags := flags or FlagLineDidWrap else flags := flags and (not FlagLineDidWrap); end;
@@ -293,6 +299,7 @@ begin
   if (lc.ctl.isLineStart) then lc.flags := lc.flags or FlagLineStart;
   if (lc.ctl.canWrap) then lc.flags := lc.flags or FlagLineCanWrap;
   if (lc.ctl.getExpand) then lc.flags := lc.flags or FlagExpand;
+  if (lc.ctl.noPad) then lc.flags := lc.flags or FlagNoPad;
   lc.aligndir := lc.ctl.getAlign;
 end;
 
@@ -403,6 +410,9 @@ var
   zerow: Boolean;
   curwdt, curhgt, totalhgt: Integer;
   doWrap: Boolean;
+  xpad, ypad: Integer;
+  realpad: Integer;
+  dopad: Boolean = false;
 begin
   if (cidx < 0) or (cidx >= Length(ctlist)) then exit;
 
@@ -423,21 +433,27 @@ begin
     curwdt := lc.margins.horiz;
     curhgt := 0;
     totalhgt := lc.margins.vert;
+    xpad := nmax(0, lc.padding.w);
+    ypad := 0;
     for c in forChildren(cidx) do
     begin
+      if (dopad) then realpad := xpad else realpad := 0;
       // new line?
       doWrap := (not c.firstInLine) and (c.lineStart);
       // need to wrap?
-      if (not doWrap) and zerow and (lc.canWrap) and (c.canWrap) and (msz.w > 0) and (curwdt+c.startsize.w > lc.startsize.w) then doWrap := true;
+      if (not doWrap) and (not zerow) and (not negw) and (lc.canWrap) and (c.canWrap) and (msz.w > 0) and (curwdt+c.startsize.w+realpad > lc.startsize.w) then doWrap := true;
       if (doWrap) then
       begin
         totalhgt += curhgt;
         if (lc.startsize.w < curwdt) then lc.startsize.w := curwdt;
         curwdt := 0;
         curhgt := 0;
+        ypad := nmax(0, lc.padding.h);
+        realpad := 0;
       end;
-      curwdt += c.startsize.w;
-      if (curhgt < c.startsize.h) then curhgt := c.startsize.h;
+      curwdt += c.startsize.w+realpad;
+      if (curhgt < c.startsize.h+ypad) then curhgt := c.startsize.h+ypad;
+      dopad := (xpad > 0) and (not lc.noPad);
     end;
     //writeln('00: ', cidx, ': totalhgt=', totalhgt);
     totalhgt += curhgt;
@@ -450,10 +466,13 @@ begin
     // vertical boxes
     if (negh) then lc.tempFlex := 0; // size is negative: don't expand
     curhgt := lc.margins.vert;
+    ypad := nmax(0, lc.padding.h);
     for c in forChildren(cidx) do
     begin
       if (lc.startsize.w < c.startsize.w+lc.margins.horiz) then lc.startsize.w := c.startsize.w+lc.margins.horiz;
       curhgt += c.startsize.h;
+      if (dopad) then curhgt += ypad;
+      dopad := (not c.noPad);
     end;
     if (lc.startsize.h < curhgt) then lc.startsize.h := curhgt;
   end;
@@ -479,17 +498,14 @@ var
   maxsz: Integer;
   cidx: LayControlIdx;
   ct: PLayControl;
-  mr: TLayMargins;
 begin
   // reset all 'laywrap' flags for controls, set initial 'startsize'
   for f := 0 to High(ctlist) do
   begin
     ctlist[f].didWrap := false;
     ctlist[f].startsize := ctlist[f].ctl.getDefSize;
-    mr := ctlist[f].ctl.getMargins;
-    ctlist[f].margins := mr;
-    //ctlist[f].startsize.w += mr.horiz;
-    //ctlist[f].startsize.h += mr.vert;
+    ctlist[f].margins := ctlist[f].ctl.getMargins;
+    ctlist[f].padding := ctlist[f].ctl.getPadding;
   end;
   // setup sizes
   calcMaxSizeInternal(0); // this also sets `tempFlex`
@@ -530,7 +546,7 @@ begin
 end;
 
 
-procedure TFlexLayouterBase.fixLine (me: PLayControl; i0, i1: LayControlIdx; var cury: Integer; var spaceLeft: Single);
+procedure TFlexLayouterBase.fixLine (me: PLayControl; i0, i1: LayControlIdx; ypad: Integer; var cury: Integer; var spaceLeft: Single);
 var
   flexTotal: Integer = 0; // total sum of flex fields
   flexBoxCount: Integer = 0; // number of boxes
@@ -540,7 +556,9 @@ var
   toadd: Integer;
   sti0: Integer;
   lineh: Integer;
+  xpad: Integer;
 begin
+  if (ypad < 0) then ypad := 0;
   curx := me.margins.left;
   sti0 := i0;
   // calc minimal line height, count flexboxes
@@ -548,11 +566,12 @@ begin
   while (i0 <> i1) do
   begin
     lc := @ctlist[i0];
-    lineh := nmax(lineh, lc.startsize.h);
+    lineh := nmax(lineh, lc.startsize.h+ypad);
     if (lc.tempFlex > 0) then begin flexTotal += lc.tempFlex; flexBoxCount += 1; end;
     i0 := lc.nextSibling;
   end;
   // distribute space, expand/align
+  xpad := nmax(0, me.padding.w);
   i0 := sti0;
   while (i0 <> i1) do
   begin
@@ -562,6 +581,7 @@ begin
     lc.desiredpos.x := curx;
     lc.desiredpos.y := cury;
     curx += lc.desiredsize.w;
+    if (xpad > 0) and (not lc.noPad) then curx += xpad;
     // fix flexbox size
     if (lc.tempFlex > 0) and (spaceLeft > 0) then
     begin
@@ -610,6 +630,8 @@ var
   doWrap: Boolean;
   toadd: Integer;
   osz: TLaySize;
+  xpad, ypad, realpad: Integer;
+  dopad: Boolean = false;
 begin
   if (boxidx < 0) or (boxidx >= Length(ctlist)) then exit;
   me := @ctlist[boxidx];
@@ -625,33 +647,39 @@ begin
     begin
       // horizontal boxes
       cury := me.margins.top;
+      xpad := nmax(0, me.padding.w);
+      ypad := 0;
 
-      fixLine(me, -1, -1, cury, spaceLeft); //HACK!
+      fixLine(me, -1, -1, 0, cury, spaceLeft); //HACK!
 
       lineStartIdx := me.firstChild;
       for lc in forChildren(boxidx) do
       begin
+        if (dopad) then realpad := xpad else realpad := 0;
         // new line?
         doWrap := (not lc.firstInLine) and (lc.lineStart);
         // need to wrap?
-        if (not doWrap) and (lc.canWrap) and (lc.canWrap) and (lc.desiredsize.w > 0) and (spaceLeft < lc.desiredsize.w) then doWrap := true;
+        if (not doWrap) and (lc.canWrap) and (lc.canWrap) and (lc.desiredsize.w > 0) and (spaceLeft-realpad < lc.desiredsize.w) then doWrap := true;
         if (doWrap) then
         begin
           // new line, fix this one
           if (not lc.didWrap) then begin wrappingChanged := true; lc.didWrap := true; end;
-          fixLine(me, lineStartIdx, lc.myidx, cury, spaceLeft);
+          fixLine(me, lineStartIdx, lc.myidx, ypad, cury, spaceLeft);
           lineStartIdx := lc.myidx;
+          ypad := nmax(0, me.padding.h);
+          realpad := 0;
         end
         else
         begin
           if (lc.didWrap) then begin wrappingChanged := true; lc.didWrap := false; end;
         end;
-        spaceLeft -= lc.desiredsize.w;
+        spaceLeft -= lc.desiredsize.w+realpad;
+        dopad := (xpad > 0) and (not lc.noPad);
         //if (maxhgt < lc.desiredsize.h) then maxhgt := lc.desiredsize.h;
         //if (lc.tempFlex > 0) then begin flexTotal += lc.tempFlex; flexBoxCount += 1; end;
       end;
       // fix last line
-      fixLine(me, lineStartIdx, -1, cury, spaceLeft);
+      fixLine(me, lineStartIdx, -1, ypad, cury, spaceLeft);
     end
     else
     begin
@@ -660,6 +688,7 @@ begin
       flexTotal := 0;
       flexBoxCount := 0;
       spaceLeft := me.desiredsize.h-me.margins.vert;
+      ypad := nmax(0, me.padding.h);
 
       // calc flex
       for lc in forChildren(boxidx) do
@@ -679,6 +708,7 @@ begin
         lc.desiredpos.x := me.margins.left;
         lc.desiredpos.y := cury;
         cury += lc.desiredsize.h;
+        if (ypad > 0) and (not lc.noPad) then cury += ypad;
         // fix flexbox size
         if (lc.tempFlex > 0) and (spaceLeft > 0) then
         begin
