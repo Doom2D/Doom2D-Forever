@@ -57,7 +57,7 @@ uses
   g_console, e_input, g_options, g_game,
   g_basic, g_textures, e_sound, g_sound, g_menu, ENet, g_net,
   g_map, g_gfx, g_monsters, g_holmes, xprofiler,
-  sdlcarcass, gh_ui;
+  sdlcarcass, fui_ctls;
 
 
 const
@@ -410,7 +410,7 @@ begin
         key := ev.key.keysym.scancode;
         down := (ev.type_ = SDL_KEYDOWN);
         {$IF not DEFINED(HEADLESS)}
-        if evSDLCB(ev) then
+        if fuiOnSDLEvent(ev) then
         begin
           // event eaten, but...
           if not down then e_KeyUpDown(key, false);
@@ -423,7 +423,7 @@ begin
 
     {$IF not DEFINED(HEADLESS)}
     SDL_MOUSEBUTTONDOWN, SDL_MOUSEBUTTONUP, SDL_MOUSEWHEEL, SDL_MOUSEMOTION:
-      evSDLCB(ev);
+      fuiOnSDLEvent(ev);
     {$ENDIF}
 
     SDL_TEXTINPUT:
@@ -803,7 +803,7 @@ begin
     begin
       if (idx <= ParamCount) then
       begin
-        if not conParseFloat(gh_ui_scale, ParamStr(idx)) then gh_ui_scale := 1.0;
+        if not conParseFloat(fuiRenderScale, ParamStr(idx)) then fuiRenderScale := 1.0;
         Inc(idx);
       end;
     end;

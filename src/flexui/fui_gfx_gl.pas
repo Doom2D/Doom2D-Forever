@@ -15,119 +15,15 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  *)
 {$INCLUDE ../shared/a_modes.inc}
-unit glgfx;
+unit fui_gfx_gl;
 
 interface
 
 uses
   SysUtils, Classes,
   GL, GLExt, SDL2,
-  sdlcarcass;
-
-
-// ////////////////////////////////////////////////////////////////////////// //
-type
-  TGxRGBA = packed record
-  public
-    r, g, b, a: Byte;
-
-  public
-    constructor Create (ar, ag, ab: Integer; aa: Integer=255);
-
-    function asUInt (): LongWord; inline;
-    function isOpaque (): Boolean; inline;
-    function isTransparent (): Boolean; inline;
-
-    // WARNING! This function does blending in RGB space, and RGB space is not linear!
-    // alpha value of `self` doesn't matter
-    // `aa` means: 255 for replace color, 0 for keep `self`
-    function blend (ar, ag, ab, aa: Integer): TGxRGBA; inline;
-  end;
-
-
-// ////////////////////////////////////////////////////////////////////////// //
-type
-  THMouseEvent = record
-  public
-    const
-      // both for but and for bstate
-      None = 0;
-      Left = $0001;
-      Right = $0002;
-      Middle = $0004;
-      WheelUp = $0008;
-      WheelDown = $0010;
-
-    // event types
-    type
-      TKind = (Release, Press, Motion);
-
-  private
-    mEaten: Boolean;
-    mCancelled: Boolean;
-
-  public
-    kind: TKind; // motion, press, release
-    x, y: Integer; // current mouse position
-    dx, dy: Integer; // for wheel this is wheel motion, otherwise this is relative mouse motion
-    but: Word; // current pressed/released button, or 0 for motion
-    bstate: Word; // button state BEFORE event (i.e. press/release modifications aren't done yet)
-    kstate: Word; // keyboard state (see THKeyEvent);
-
-  public
-    procedure intrInit (); inline; // init hidden fields
-
-    function press (): Boolean; inline;
-    function release (): Boolean; inline;
-    function motion (): Boolean; inline;
-    procedure eat (); inline;
-    procedure cancel (); inline;
-
-  public
-    property eaten: Boolean read mEaten;
-    property cancelled: Boolean read mCancelled;
-  end;
-
-  THKeyEvent = record
-  public
-    const
-      // modifiers
-      ModCtrl = $0001;
-      ModAlt = $0002;
-      ModShift = $0004;
-      ModHyper = $0008;
-
-    // event types
-    type
-      TKind = (Release, Press);
-
-  private
-    mEaten: Boolean;
-    mCancelled: Boolean;
-
-  public
-    kind: TKind;
-    scan: Word; // SDL_SCANCODE_XXX
-    sym: LongWord; // SDLK_XXX
-    x, y: Integer; // current mouse position
-    bstate: Word; // button state
-    kstate: Word; // keyboard state BEFORE event (i.e. press/release modifications aren't done yet)
-
-  public
-    procedure intrInit (); inline; // init hidden fields
-
-    function press (): Boolean; inline;
-    function release (): Boolean; inline;
-    procedure eat (); inline;
-    procedure cancel (); inline;
-
-    function isHot (ch: AnsiChar): Boolean;
-
-  public
-    property eaten: Boolean read mEaten;
-    property cancelled: Boolean read mCancelled;
-  end;
-
+  sdlcarcass,
+  fui_common, fui_events;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
@@ -159,11 +55,6 @@ type
 procedure oglDrawCursor ();
 procedure oglDrawCursorAt (msX, msY: Integer);
 
-// return `false` if destination rect is empty
-// modifies rect0
-function intersectRect (var x0, y0, w0, h0: Integer; const x1, y1, w1, h1: Integer): Boolean;
-
-procedure normRGBA (var r, g, b, a: Integer); inline;
 function setupGLColor (r, g, b, a: Integer): Boolean;
 function setupGLColor (constref clr: TGxRGBA): Boolean;
 function isScaled (): Boolean;
@@ -191,531 +82,11 @@ function drawText8PropXC (x, y: Integer; const s: AnsiString; constref clr: TGxR
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-// event handlers
-var
-  evMouseCB: procedure (var ev: THMouseEvent) = nil;
-  evKeyCB: procedure (var ev: THKeyEvent) = nil;
-
-
-// ////////////////////////////////////////////////////////////////////////// //
-function getMouseX (): Integer; inline;
-function getMouseY (): Integer; inline;
-function getButState (): Word; inline;
-function getModState (): Word; inline;
-
-function gxScreenWidth (): Integer; inline;
-function gxScreenHeight (): Integer; inline;
-
-
-// ////////////////////////////////////////////////////////////////////////// //
-property
-  gMouseX: Integer read getMouseX;
-  gMouseY: Integer read getMouseY;
-  gButState: Word read getButState;
-  gModState: Word read getModState;
-
 var
   gGfxDoClear: Boolean = true;
 
 
-// ////////////////////////////////////////////////////////////////////////// //
-// any mods = 255: nothing was defined
-function parseModKeys (const s: AnsiString; out kmods: Byte; out mbuts: Byte): AnsiString;
-
-operator = (constref ev: THKeyEvent; const s: AnsiString): Boolean;
-operator = (const s: AnsiString; constref ev: THKeyEvent): Boolean;
-
-operator = (constref ev: THMouseEvent; const s: AnsiString): Boolean;
-operator = (const s: AnsiString; constref ev: THMouseEvent): Boolean;
-
-
 implementation
-
-
-var
-  curButState: Word = 0;
-  curModState: Word = 0;
-  curMsX: Integer = 0;
-  curMsY: Integer = 0;
-
-
-// ////////////////////////////////////////////////////////////////////////// //
-function gxScreenWidth (): Integer; inline; begin result := gScrWidth; end;
-function gxScreenHeight (): Integer; inline; begin result := gScrHeight; end;
-
-
-// ////////////////////////////////////////////////////////////////////////// //
-function strEquCI (const s0, s1: AnsiString): Boolean;
-var
-  f: Integer;
-  c0, c1: AnsiChar;
-begin
-  result := (Length(s0) = Length(s1));
-  if result then
-  begin
-    for f := 1 to Length(s0) do
-    begin
-      c0 := s0[f];
-      if (c0 >= 'a') and (c0 <= 'z') then Dec(c0, 32); // poor man's `toupper()`
-      c1 := s1[f];
-      if (c1 >= 'a') and (c1 <= 'z') then Dec(c1, 32); // poor man's `toupper()`
-      if (c0 <> c1) then begin result := false; exit; end;
-    end;
-  end;
-end;
-
-
-// ////////////////////////////////////////////////////////////////////////// //
-function getMouseX (): Integer; inline; begin result := curMsX; end;
-function getMouseY (): Integer; inline; begin result := curMsY; end;
-function getButState (): Word; inline; begin result := curButState; end;
-function getModState (): Word; inline; begin result := curModState; end;
-
-
-// ////////////////////////////////////////////////////////////////////////// //
-procedure THMouseEvent.intrInit (); inline; begin mEaten := false; mCancelled := false; end;
-function THMouseEvent.press (): Boolean; inline; begin result := (kind = TKind.Press); end;
-function THMouseEvent.release (): Boolean; inline; begin result := (kind = TKind.Release); end;
-function THMouseEvent.motion (): Boolean; inline; begin result := (kind = TKind.Motion); end;
-procedure THMouseEvent.eat (); inline; begin mEaten := true; end;
-procedure THMouseEvent.cancel (); inline; begin mCancelled := true; end;
-
-procedure THKeyEvent.intrInit (); inline; begin mEaten := false; mCancelled := false; end;
-function THKeyEvent.press (): Boolean; inline; begin result := (kind = TKind.Press); end;
-function THKeyEvent.release (): Boolean; inline; begin result := (kind = TKind.Release); end;
-procedure THKeyEvent.eat (); inline; begin mEaten := true; end;
-procedure THKeyEvent.cancel (); inline; begin mCancelled := true; end;
-
-function THKeyEvent.isHot (ch: AnsiChar): Boolean;
-begin
-  case scan of
-    SDL_SCANCODE_A: result := (ch = 'A') or (ch = 'a') or (ch = 'Ô') or (ch = 'ô');
-    SDL_SCANCODE_B: result := (ch = 'B') or (ch = 'b') or (ch = 'È') or (ch = 'è');
-    SDL_SCANCODE_C: result := (ch = 'C') or (ch = 'c') or (ch = 'Ñ') or (ch = 'ñ');
-    SDL_SCANCODE_D: result := (ch = 'D') or (ch = 'd') or (ch = 'Â') or (ch = 'â');
-    SDL_SCANCODE_E: result := (ch = 'E') or (ch = 'e') or (ch = 'Ó') or (ch = 'ó');
-    SDL_SCANCODE_F: result := (ch = 'F') or (ch = 'f') or (ch = 'À') or (ch = 'à');
-    SDL_SCANCODE_G: result := (ch = 'G') or (ch = 'g') or (ch = 'Ï') or (ch = 'ï');
-    SDL_SCANCODE_H: result := (ch = 'H') or (ch = 'h') or (ch = 'Ð') or (ch = 'ð');
-    SDL_SCANCODE_I: result := (ch = 'I') or (ch = 'i') or (ch = 'Ø') or (ch = 'ø');
-    SDL_SCANCODE_J: result := (ch = 'J') or (ch = 'j') or (ch = 'Î') or (ch = 'î');
-    SDL_SCANCODE_K: result := (ch = 'K') or (ch = 'k') or (ch = 'Ë') or (ch = 'ë');
-    SDL_SCANCODE_L: result := (ch = 'L') or (ch = 'l') or (ch = 'Ä') or (ch = 'ä');
-    SDL_SCANCODE_M: result := (ch = 'M') or (ch = 'm') or (ch = 'Ü') or (ch = 'ü');
-    SDL_SCANCODE_N: result := (ch = 'N') or (ch = 'n') or (ch = 'Ò') or (ch = 'ò');
-    SDL_SCANCODE_O: result := (ch = 'O') or (ch = 'o') or (ch = 'Ù') or (ch = 'ù');
-    SDL_SCANCODE_P: result := (ch = 'P') or (ch = 'p') or (ch = 'Ç') or (ch = 'ç');
-    SDL_SCANCODE_Q: result := (ch = 'Q') or (ch = 'q') or (ch = 'É') or (ch = 'é');
-    SDL_SCANCODE_R: result := (ch = 'R') or (ch = 'r') or (ch = 'Ê') or (ch = 'ê');
-    SDL_SCANCODE_S: result := (ch = 'S') or (ch = 's') or (ch = 'Û') or (ch = 'û');
-    SDL_SCANCODE_T: result := (ch = 'T') or (ch = 't') or (ch = 'Å') or (ch = 'å');
-    SDL_SCANCODE_U: result := (ch = 'U') or (ch = 'u') or (ch = 'Ã') or (ch = 'ã');
-    SDL_SCANCODE_V: result := (ch = 'V') or (ch = 'v') or (ch = 'Ì') or (ch = 'ì');
-    SDL_SCANCODE_W: result := (ch = 'W') or (ch = 'w') or (ch = 'Ö') or (ch = 'ö');
-    SDL_SCANCODE_X: result := (ch = 'X') or (ch = 'x') or (ch = '×') or (ch = '÷');
-    SDL_SCANCODE_Y: result := (ch = 'Y') or (ch = 'y') or (ch = 'Í') or (ch = 'í');
-    SDL_SCANCODE_Z: result := (ch = 'Z') or (ch = 'z') or (ch = 'ß') or (ch = 'ÿ');
-
-    SDL_SCANCODE_1: result := (ch = '1') or (ch = '!');
-    SDL_SCANCODE_2: result := (ch = '2') or (ch = '@');
-    SDL_SCANCODE_3: result := (ch = '3') or (ch = '#');
-    SDL_SCANCODE_4: result := (ch = '4') or (ch = '$');
-    SDL_SCANCODE_5: result := (ch = '5') or (ch = '%');
-    SDL_SCANCODE_6: result := (ch = '6') or (ch = '^');
-    SDL_SCANCODE_7: result := (ch = '7') or (ch = '&');
-    SDL_SCANCODE_8: result := (ch = '8') or (ch = '*');
-    SDL_SCANCODE_9: result := (ch = '9') or (ch = '(');
-    SDL_SCANCODE_0: result := (ch = '0') or (ch = ')');
-
-    SDL_SCANCODE_RETURN: result := (ch = #13) or (ch = #10);
-    SDL_SCANCODE_ESCAPE: result := (ch = #27);
-    SDL_SCANCODE_BACKSPACE: result := (ch = #8);
-    SDL_SCANCODE_TAB: result := (ch = #9);
-    SDL_SCANCODE_SPACE: result := (ch = ' ');
-
-    SDL_SCANCODE_MINUS: result := (ch = '-');
-    SDL_SCANCODE_EQUALS: result := (ch = '=');
-    SDL_SCANCODE_LEFTBRACKET: result := (ch = '[') or (ch = '{');
-    SDL_SCANCODE_RIGHTBRACKET: result := (ch = ']') or (ch = '}');
-    SDL_SCANCODE_BACKSLASH, SDL_SCANCODE_NONUSHASH: result := (ch = '\') or (ch = '|');
-    SDL_SCANCODE_SEMICOLON: result := (ch = ';') or (ch = ':');
-    SDL_SCANCODE_APOSTROPHE: result := (ch = '''') or (ch = '"');
-    SDL_SCANCODE_GRAVE: result := (ch = '`') or (ch = '~');
-    SDL_SCANCODE_COMMA: result := (ch = ',') or (ch = '<');
-    SDL_SCANCODE_PERIOD: result := (ch = '.') or (ch = '>');
-    SDL_SCANCODE_SLASH: result := (ch = '/') or (ch = '?');
-
-    else result := false;
-  end;
-end;
-
-
-// ////////////////////////////////////////////////////////////////////////// //
-constructor TGxRGBA.Create (ar, ag, ab: Integer; aa: Integer=255);
-begin
-  if (ar < 0) then r := 0 else if (ar > 255) then r := 255 else r := Byte(ar);
-  if (ag < 0) then g := 0 else if (ag > 255) then g := 255 else g := Byte(ag);
-  if (ab < 0) then b := 0 else if (ab > 255) then b := 255 else b := Byte(ab);
-  if (aa < 0) then a := 0 else if (aa > 255) then a := 255 else a := Byte(aa);
-end;
-
-function TGxRGBA.asUInt (): LongWord; inline; begin result := LongWord(r) or (LongWord(g) shl 8) or (LongWord(b) shl 16) or (LongWord(a) shl 24); end;
-
-function TGxRGBA.isOpaque (): Boolean; inline; begin result := (a = 255); end;
-function TGxRGBA.isTransparent (): Boolean; inline; begin result := (a = 0); end;
-
-function TGxRGBA.blend (ar, ag, ab, aa: Integer): TGxRGBA; inline;
-var
-  me, it, a_tmp_, dc_tmp_, srb_tmp_, sg_tmp_, drb_tmp_, dg_tmp_, orb_tmp_, og_tmp_: LongWord;
-begin
-  if (aa <= 0) then begin result := self; exit; end;
-  result := TGxRGBA.Create(ar, ag, ab, aa);
-  if (aa >= 255) then begin result.a := a; exit; end;
-  me := asUInt;
-  it := result.asUInt;
-  a_tmp_ := (256-(255-(it shr 24))) and (-(1-(((255-(it shr 24))+1) shr 8))); // to not loose bits, but 255 should become 0
-  dc_tmp_ := me and $ffffff;
-  srb_tmp_ := (it and $ff00ff);
-  sg_tmp_ := (it and $00ff00);
-  drb_tmp_ := (dc_tmp_ and $ff00ff);
-  dg_tmp_ := (dc_tmp_ and $00ff00);
-  orb_tmp_ := (drb_tmp_+(((srb_tmp_-drb_tmp_)*a_tmp_+$800080) shr 8)) and $ff00ff;
-  og_tmp_ := (dg_tmp_+(((sg_tmp_-dg_tmp_)*a_tmp_+$008000) shr 8)) and $00ff00;
-  me := (orb_tmp_ or og_tmp_); // or $ff000000; /* and $ffffff;*/
-  result.r := Byte(me and $ff);
-  result.g := Byte((me shr 8) and $ff);
-  result.b := Byte((me shr 16) and $ff);
-  result.a := a;
-end;
-
-
-// ////////////////////////////////////////////////////////////////////////// //
-// any mods = 255: nothing was defined
-function parseModKeys (const s: AnsiString; out kmods: Byte; out mbuts: Byte): AnsiString;
-var
-  pos, epos: Integer;
-begin
-  kmods := 255;
-  mbuts := 255;
-  pos := 1;
-  //while (pos <= Length(s)) and (s[pos] <= ' ') do Inc(pos);
-  if (pos < Length(s)) and ((s[pos] = '+') or (s[pos] = '-') or (s[pos] = '*')) then Inc(pos);
-  while (pos <= Length(s)) do
-  begin
-    if (Length(s)-pos >= 1) and (s[pos+1] = '-') then
-    begin
-      case s[pos] of
-        'C', 'c': begin if (kmods = 255) then kmods := 0; kmods := kmods or THKeyEvent.ModCtrl; Inc(pos, 2); continue; end;
-        'M', 'm': begin if (kmods = 255) then kmods := 0; kmods := kmods or THKeyEvent.ModAlt; Inc(pos, 2); continue; end;
-        'S', 's': begin if (kmods = 255) then kmods := 0; kmods := kmods or THKeyEvent.ModShift; Inc(pos, 2); continue; end;
-      end;
-      break;
-    end;
-    if (Length(s)-pos >= 3) and (s[pos+3] = '-') and ((s[pos+1] = 'M') or (s[pos+1] = 'm')) and ((s[pos+2] = 'B') or (s[pos+2] = 'b')) then
-    begin
-      case s[pos] of
-        'L', 'l': begin if (mbuts = 255) then mbuts := 0; mbuts := mbuts or THMouseEvent.Left; Inc(pos, 4); continue; end;
-        'R', 'r': begin if (mbuts = 255) then mbuts := 0; mbuts := mbuts or THMouseEvent.Right; Inc(pos, 4); continue; end;
-        'M', 'm': begin if (mbuts = 255) then mbuts := 0; mbuts := mbuts or THMouseEvent.Middle; Inc(pos, 4); continue; end;
-      end;
-      break;
-    end;
-    break;
-  end;
-  epos := Length(s)+1;
-  while (epos > pos) and (s[epos-1] <= ' ') do Dec(epos);
-  if (epos > pos) then result := Copy(s, pos, epos-pos) else result := '';
-end;
-
-
-operator = (constref ev: THKeyEvent; const s: AnsiString): Boolean;
-var
-  f: Integer;
-  kmods: Byte = 255;
-  mbuts: Byte = 255;
-  kname: AnsiString;
-begin
-  result := false;
-  if (Length(s) > 0) then
-  begin
-         if (s[1] = '+') then begin if (not ev.press) then exit; end
-    else if (s[1] = '-') then begin if (not ev.release) then exit; end
-    else if (s[1] = '*') then begin end
-    else if (not ev.press) then exit;
-  end;
-  kname := parseModKeys(s, kmods, mbuts);
-  if (kmods = 255) then kmods := 0;
-  if (ev.kstate <> kmods) then exit;
-  if (mbuts <> 255) and (ev.bstate <> mbuts) then exit;
-
-  if (strEquCI(kname, 'Enter')) then kname := 'RETURN';
-
-  for f := 0 to SDL_NUM_SCANCODES-1 do
-  begin
-    if strEquCI(kname, SDL_GetScancodeName(f)) then
-    begin
-      result := (ev.scan = f);
-      exit;
-    end;
-  end;
-end;
-
-
-operator = (const s: AnsiString; constref ev: THKeyEvent): Boolean;
-begin
-  result := (ev = s);
-end;
-
-
-operator = (constref ev: THMouseEvent; const s: AnsiString): Boolean;
-var
-  kmods: Byte = 255;
-  mbuts: Byte = 255;
-  kname: AnsiString;
-  but: Integer = -1;
-  modch: AnsiChar = ' ';
-begin
-  result := false;
-
-  if (Length(s) > 0) then
-  begin
-         if (s[1] = '+') then begin if (not ev.press) then exit; modch := '+'; end
-    else if (s[1] = '-') then begin if (not ev.release) then exit; modch := '-'; end
-    else if (s[1] = '*') then begin if (not ev.motion) then exit; end
-    else if (not ev.press) then exit;
-  end;
-
-  kname := parseModKeys(s, kmods, mbuts);
-       if strEquCI(kname, 'LMB') then but := THMouseEvent.Left
-  else if strEquCI(kname, 'RMB') then but := THMouseEvent.Right
-  else if strEquCI(kname, 'MMB') then but := THMouseEvent.Middle
-  else if strEquCI(kname, 'WheelUp') or strEquCI(kname, 'WUP') then but := THMouseEvent.WheelUp
-  else if strEquCI(kname, 'WheelDown') or strEquCI(kname, 'WDN') or strEquCI(kname, 'WDOWN') then but := THMouseEvent.WheelDown
-  else if strEquCI(kname, 'None') then but := 0
-  else exit;
-
-  if (mbuts = 255) then mbuts := 0;
-  if (kmods = 255) then kmods := 0;
-  if (ev.kstate <> kmods) then exit;
-  if (modch = '-') then mbuts := mbuts or but else if (modch = '+') then mbuts := mbuts and (not but);
-
-  result := (ev.bstate = mbuts) and (ev.but = but);
-end;
-
-
-operator = (const s: AnsiString; constref ev: THMouseEvent): Boolean;
-begin
-  result := (ev = s);
-end;
-
-
-// ////////////////////////////////////////////////////////////////////////// //
-procedure resetKMState (sendEvents: Boolean=true);
-var
-  mask: Word;
-  mev: THMouseEvent;
-  kev: THKeyEvent;
-begin
-  // generate mouse release events
-  if (curButState <> 0) then
-  begin
-    if sendEvents then
-    begin
-      mask := 1;
-      while (mask <> 0) do
-      begin
-        // checked each time, 'cause `evMouseCB` can be changed from the handler
-        if ((curButState and mask) <> 0) and assigned(evMouseCB) then
-        begin
-          FillChar(mev, sizeof(mev), 0);
-          mev.intrInit();
-          mev.kind := mev.TKind.Release;
-          mev.x := curMsX;
-          mev.y := curMsY;
-          mev.dx := 0;
-          mev.dy := 0;
-          mev.but := mask;
-          mev.bstate := curButState;
-          mev.kstate := curModState;
-          curButState := curButState and (not mask);
-          evMouseCB(mev);
-        end;
-        mask := mask shl 1;
-      end;
-    end;
-    curButState := 0;
-  end;
-
-  // generate modifier release events
-  if (curModState <> 0) then
-  begin
-    if sendEvents then
-    begin
-      mask := 1;
-      while (mask <= 8) do
-      begin
-        // checked each time, 'cause `evMouseCB` can be changed from the handler
-        if ((curModState and mask) <> 0) and assigned(evKeyCB) then
-        begin
-          FillChar(kev, sizeof(kev), 0);
-          kev.intrInit();
-          kev.kind := kev.TKind.Release;
-          case mask of
-            THKeyEvent.ModCtrl: begin kev.scan := SDL_SCANCODE_LCTRL; kev.sym := SDLK_LCTRL;{arbitrary} end;
-            THKeyEvent.ModAlt: begin kev.scan := SDL_SCANCODE_LALT; kev.sym := SDLK_LALT;{arbitrary} end;
-            THKeyEvent.ModShift: begin kev.scan := SDL_SCANCODE_LSHIFT; kev.sym := SDLK_LSHIFT;{arbitrary} end;
-            THKeyEvent.ModHyper: begin kev.scan := SDL_SCANCODE_LGUI; kev.sym := SDLK_LGUI;{arbitrary} end;
-            else assert(false);
-          end;
-          kev.x := curMsX;
-          kev.y := curMsY;
-          mev.bstate := 0{curMsButState}; // anyway
-          mev.kstate := curModState;
-          curModState := curModState and (not mask);
-          evKeyCB(kev);
-        end;
-        mask := mask shl 1;
-      end;
-    end;
-    curModState := 0;
-  end;
-end;
-
-
-function onSDLEvent (var ev: TSDL_Event): Boolean;
-var
-  mev: THMouseEvent;
-  kev: THKeyEvent;
-
-  function buildBut (b: Byte): Word;
-  begin
-    result := 0;
-    case b of
-      SDL_BUTTON_LEFT: result := result or THMouseEvent.Left;
-      SDL_BUTTON_MIDDLE: result := result or THMouseEvent.Middle;
-      SDL_BUTTON_RIGHT: result := result or THMouseEvent.Right;
-    end;
-  end;
-
-begin
-  result := false;
-
-  case ev.type_ of
-    SDL_KEYDOWN, SDL_KEYUP:
-      begin
-        // fix left/right modifiers
-        FillChar(kev, sizeof(kev), 0);
-        kev.intrInit();
-        if (ev.type_ = SDL_KEYDOWN) then kev.kind := THKeyEvent.TKind.Press else kev.kind := THKeyEvent.TKind.Release;
-        kev.scan := ev.key.keysym.scancode;
-        kev.sym := ev.key.keysym.sym;
-
-        if (kev.scan = SDL_SCANCODE_RCTRL) then kev.scan := SDL_SCANCODE_LCTRL;
-        if (kev.scan = SDL_SCANCODE_RALT) then kev.scan := SDL_SCANCODE_LALT;
-        if (kev.scan = SDL_SCANCODE_RSHIFT) then kev.scan := SDL_SCANCODE_LSHIFT;
-        if (kev.scan = SDL_SCANCODE_RGUI) then kev.scan := SDL_SCANCODE_LGUI;
-
-        if (kev.sym = SDLK_RCTRL) then kev.sym := SDLK_LCTRL;
-        if (kev.sym = SDLK_RALT) then kev.sym := SDLK_LALT;
-        if (kev.sym = SDLK_RSHIFT) then kev.sym := SDLK_LSHIFT;
-        if (kev.sym = SDLK_RGUI) then kev.sym := SDLK_LGUI;
-
-        kev.x := curMsX;
-        kev.y := curMsY;
-        kev.bstate := curButState;
-        kev.kstate := curModState;
-
-        case kev.scan of
-          SDL_SCANCODE_LCTRL: if (kev.press) then curModState := curModState or THKeyEvent.ModCtrl else curModState := curModState and (not THKeyEvent.ModCtrl);
-          SDL_SCANCODE_LALT: if (kev.press) then curModState := curModState or THKeyEvent.ModAlt else curModState := curModState and (not THKeyEvent.ModAlt);
-          SDL_SCANCODE_LSHIFT: if (kev.press) then curModState := curModState or THKeyEvent.ModShift else curModState := curModState and (not THKeyEvent.ModShift);
-        end;
-
-        if assigned(evKeyCB) then
-        begin
-          evKeyCB(kev);
-          result := kev.eaten;
-        end;
-      end;
-
-    SDL_MOUSEBUTTONDOWN, SDL_MOUSEBUTTONUP:
-      begin
-        FillChar(mev, sizeof(mev), 0);
-        mev.intrInit();
-        if (ev.type_ = SDL_MOUSEBUTTONDOWN) then mev.kind := THMouseEvent.TKind.Press else mev.kind := THMouseEvent.TKind.Release;
-        mev.dx := ev.button.x-curMsX;
-        mev.dy := ev.button.y-curMsY;
-        curMsX := ev.button.x;
-        curMsY := ev.button.y;
-        mev.but := buildBut(ev.button.button);
-        mev.x := curMsX;
-        mev.y := curMsY;
-        mev.bstate := curButState;
-        mev.kstate := curModState;
-        if (mev.but <> 0) then
-        begin
-          // ev.button.clicks: Byte
-          if (ev.type_ = SDL_MOUSEBUTTONDOWN) then curButState := curButState or mev.but else curButState := curButState and (not mev.but);
-          if assigned(evMouseCB) then
-          begin
-            evMouseCB(mev);
-            result := mev.eaten;
-          end;
-        end;
-      end;
-    SDL_MOUSEWHEEL:
-      begin
-        if (ev.wheel.y <> 0) then
-        begin
-          FillChar(mev, sizeof(mev), 0);
-          mev.intrInit();
-          mev.kind := THMouseEvent.TKind.Press;
-          mev.dx := 0;
-          mev.dy := ev.wheel.y;
-          if (ev.wheel.y < 0) then mev.but := THMouseEvent.WheelUp else mev.but := THMouseEvent.WheelDown;
-          mev.x := curMsX;
-          mev.y := curMsY;
-          mev.bstate := curButState;
-          mev.kstate := curModState;
-          if assigned(evMouseCB) then
-          begin
-            evMouseCB(mev);
-            result := mev.eaten;
-          end;
-        end;
-      end;
-    SDL_MOUSEMOTION:
-      begin
-        FillChar(mev, sizeof(mev), 0);
-        mev.intrInit();
-        mev.kind := THMouseEvent.TKind.Motion;
-        mev.dx := ev.button.x-curMsX;
-        mev.dy := ev.button.y-curMsY;
-        curMsX := ev.button.x;
-        curMsY := ev.button.y;
-        mev.but := 0;
-        mev.x := curMsX;
-        mev.y := curMsY;
-        mev.bstate := curButState;
-        mev.kstate := curModState;
-        if assigned(evMouseCB) then
-        begin
-          evMouseCB(mev);
-          result := mev.eaten;
-        end;
-      end;
-
-    {
-    SDL_TEXTINPUT:
-      begin
-        Utf8ToUnicode(@uc, PChar(ev.text.text), 1);
-        keychr := Word(uc);
-        if (keychr > 127) then keychr := Word(wchar2win(WideChar(keychr)));
-        CharPress(AnsiChar(keychr));
-      end;
-    }
-  end;
-end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
@@ -915,7 +286,7 @@ begin
   glBindTexture(GL_TEXTURE_2D, 0);
 end;
 
-procedure oglDrawCursor (); begin oglDrawCursorAt(curMsX, curMsY); end;
+procedure oglDrawCursor (); begin oglDrawCursorAt(fuiMouseX, fuiMouseY); end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
@@ -1232,7 +603,7 @@ procedure TScissorSave.combineRect (x, y, w, h: Integer);
 //var ox, oy, ow, oh: Integer;
 begin
   if (w < 1) or (h < 1) then begin glScissor(0, 0, 0, 0); exit; end;
-  y := gScrHeight-(y+h);
+  y := fuiScrHgt-(y+h);
   //ox := x; oy := y; ow := w; oh := h;
   if not intersectRect(x, y, w, h, scxywh[0], scxywh[1], scxywh[2], scxywh[3]) then
   begin
@@ -1246,41 +617,8 @@ begin
   end;
 end;
 
-//TODO: overflow checks
-function intersectRect (var x0, y0, w0, h0: Integer; const x1, y1, w1, h1: Integer): Boolean;
-var
-  ex0, ey0: Integer;
-  ex1, ey1: Integer;
-begin
-  result := false;
-  if (w0 < 1) or (h0 < 1) or (w1 < 1) or (h1 < 1) then exit; // at least one rect is null
-  // check for intersection
-  ex0 := x0+w0;
-  ey0 := y0+h0;
-  ex1 := x1+w1;
-  ey1 := y1+h1;
-  if (ex0 <= x1) or (ey0 <= y1) or (ex1 <= x0) or (ey1 <= y0) then exit;
-  if (x0 >= ex1) or (y0 >= ey1) or (x1 >= ex0) or (y1 >= ey0) then exit;
-  // ok, intersects
-  if (x0 < x1) then x0 := x1;
-  if (y0 < y1) then y0 := y1;
-  if (ex0 > ex1) then ex0 := ex1;
-  if (ey0 > ey1) then ey0 := ey1;
-  w0 := ex0-x0;
-  h0 := ey0-y0;
-  result := (w0 > 0) and (h0 > 0);
-end;
-
 
 // ////////////////////////////////////////////////////////////////////////// //
-procedure normRGBA (var r, g, b, a: Integer); inline;
-begin
-  if (a < 0) then a := 0 else if (a > 255) then a := 255;
-  if (r < 0) then r := 0 else if (r > 255) then r := 255;
-  if (g < 0) then g := 0 else if (g > 255) then g := 255;
-  if (b < 0) then b := 0 else if (b > 255) then b := 255;
-end;
-
 // returns `false` if the color is transparent
 function setupGLColor (r, g, b, a: Integer): Boolean;
 begin
@@ -1685,8 +1023,8 @@ end;
 // ////////////////////////////////////////////////////////////////////////// //
 procedure oglRestoreMode (doClear: Boolean);
 begin
-  oglSetup2D(gScrWidth, gScrHeight);
-  glScissor(0, 0, gScrWidth, gScrHeight);
+  oglSetup2D(fuiScrWdt, fuiScrHgt);
+  glScissor(0, 0, fuiScrWdt, fuiScrHgt);
 
   glBindTexture(GL_TEXTURE_2D, 0);
   glDisable(GL_BLEND);
@@ -1715,9 +1053,8 @@ begin
 end;
 
 
-procedure onWinFocus (); begin end;
-
-procedure onWinBlur (); begin resetKMState(true); end;
+//procedure onWinFocus (); begin end;
+//procedure onWinBlur (); begin fuiResetKMState(true); end;
 
 procedure onPreRender (); begin oglRestoreMode(gGfxDoClear); end;
 
@@ -1725,7 +1062,7 @@ procedure onPostRender (); begin oglRestoreMode(false); oglDrawCursor(); end;
 
 procedure onInit ();
 begin
-  oglSetup2D(gScrWidth, gScrHeight);
+  oglSetup2D(fuiScrWdt, fuiScrHgt);
 
   createCursorTexture();
   createFonts();
@@ -1733,22 +1070,21 @@ end;
 
 procedure onDeinit ();
 begin
-  resetKMState(false);
+  fuiResetKMState(false);
   if (curtexid <> 0) then glDeleteTextures(1, @curtexid);
   curtexid := 0;
   deleteFonts();
-  curButState := 0;
-  curModState := 0;
-  curMsX := 0;
-  curMsY := 0;
+  fuiSetButState(0);
+  fuiSetModState(0);
+  fuiSetMouseX(0);
+  fuiSetMouseY(0);
 end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
 begin
-  evSDLCB := onSDLEvent;
-  winFocusCB := onWinFocus;
-  winBlurCB := onWinBlur;
+  //winFocusCB := onWinFocus;
+  //winBlurCB := onWinBlur;
   prerenderFrameCB := onPreRender;
   postrenderFrameCB := onPostRender;
   oglInitCB := onInit;

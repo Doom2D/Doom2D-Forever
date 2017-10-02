@@ -16,13 +16,13 @@
  *)
 {$INCLUDE ../../shared/a_modes.inc}
 {.$DEFINE UI_STYLE_DEBUG_SEARCH}
-unit gh_ui_style;
+unit fui_style;
 
 interface
 
 uses
   SysUtils, Classes,
-  glgfx,
+  fui_common, // for TGxRGBA
   xstreams, xparser, utils, hashtable;
 
 

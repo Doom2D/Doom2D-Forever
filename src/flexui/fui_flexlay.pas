@@ -15,7 +15,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  *)
 {$INCLUDE ../shared/a_modes.inc}
-unit gh_flexlay;
+unit fui_flexlay;
 (*
   control default size will be increased by margins
   negative margins are ignored
@@ -40,7 +40,7 @@ ControlT:
 interface
 
 uses
-  gh_ui_common;
+  fui_common;
 
 
 // ////////////////////////////////////////////////////////////////////////// //

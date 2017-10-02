@@ -16,16 +16,16 @@
  *)
 {$INCLUDE ../shared/a_modes.inc}
 {$M+}
-unit gh_ui;
+unit fui_ctls;
 
 interface
 
 uses
   SysUtils, Classes,
   SDL2,
-  gh_ui_common,
-  gh_ui_style,
-  sdlcarcass, glgfx,
+  sdlcarcass,
+  fui_common, fui_events, fui_style,
+  fui_gfx_gl,
   xparser;
 
 
@@ -550,13 +550,13 @@ procedure uiLayoutCtl (ctl: TUIControl);
 
 // ////////////////////////////////////////////////////////////////////////// //
 var
-  gh_ui_scale: Single = 1.0;
+  fuiRenderScale: Single = 1.0;
 
 
 implementation
 
 uses
-  gh_flexlay,
+  fui_flexlay,
   utils;
 
 
@@ -712,10 +712,10 @@ begin
   processKills();
   if (evt.eaten) or (evt.cancelled) then exit;
   ev := evt;
-  ev.x := trunc(ev.x/gh_ui_scale);
-  ev.y := trunc(ev.y/gh_ui_scale);
-  ev.dx := trunc(ev.dx/gh_ui_scale); //FIXME
-  ev.dy := trunc(ev.dy/gh_ui_scale); //FIXME
+  ev.x := trunc(ev.x/fuiRenderScale);
+  ev.y := trunc(ev.y/fuiRenderScale);
+  ev.dx := trunc(ev.dx/fuiRenderScale); //FIXME
+  ev.dy := trunc(ev.dy/fuiRenderScale); //FIXME
   try
     if (uiGrabCtl <> nil) then
     begin
@@ -760,8 +760,8 @@ begin
   processKills();
   if (evt.eaten) or (evt.cancelled) then exit;
   ev := evt;
-  ev.x := trunc(ev.x/gh_ui_scale);
-  ev.y := trunc(ev.y/gh_ui_scale);
+  ev.x := trunc(ev.x/fuiRenderScale);
+  ev.y := trunc(ev.y/fuiRenderScale);
   try
     if (Length(uiTopList) > 0) and (uiTopList[High(uiTopList)].enabled) then uiTopList[High(uiTopList)].keyEvent(ev);
     //if (ev.release) then begin ev.eat(); exit; end;
@@ -778,7 +778,7 @@ var
   ctl: TUIControl;
 begin
   processKills();
-  gxBeginUIDraw(gh_ui_scale);
+  gxBeginUIDraw(fuiRenderScale);
   try
     for f := 0 to High(uiTopList) do
     begin
@@ -1812,10 +1812,10 @@ end;
 procedure TUIControl.setScissorGLInternal (x, y, w, h: Integer);
 begin
   if not scallowed then exit;
-  x := trunc(x*gh_ui_scale);
-  y := trunc(y*gh_ui_scale);
-  w := trunc(w*gh_ui_scale);
-  h := trunc(h*gh_ui_scale);
+  x := trunc(x*fuiRenderScale);
+  y := trunc(y*fuiRenderScale);
+  w := trunc(w*fuiRenderScale);
+  h := trunc(h*fuiRenderScale);
   scis.combineRect(x, y, w, h);
 end;
 
@@ -2079,7 +2079,7 @@ procedure TUITopWindow.flFitToScreen ();
 var
   nsz: TLaySize;
 begin
-  nsz := TLaySize.Create(trunc(gxScreenWidth/gh_ui_scale)-mFrameWidth*2-6, trunc(gxScreenHeight/gh_ui_scale)-mFrameHeight*2-6);
+  nsz := TLaySize.Create(trunc(fuiScrWdt/fuiRenderScale)-mFrameWidth*2-6, trunc(fuiScrHgt/fuiRenderScale)-mFrameHeight*2-6);
   if (mMaxSize.w < 1) then mMaxSize.w := nsz.w;
   if (mMaxSize.h < 1) then mMaxSize.h := nsz.h;
 end;
@@ -2089,8 +2089,8 @@ procedure TUITopWindow.centerInScreen ();
 begin
   if (mWidth > 0) and (mHeight > 0) then
   begin
-    mX := trunc((gScrWidth/gh_ui_scale-mWidth)/2);
-    mY := trunc((gScrHeight/gh_ui_scale-mHeight)/2);
+    mX := trunc((fuiScrWdt/fuiRenderScale-mWidth)/2);
+    mY := trunc((fuiScrHgt/fuiRenderScale-mHeight)/2);
   end;
 end;
 
@@ -2469,7 +2469,6 @@ procedure TUIVBox.AfterConstruction ();
 begin
   inherited;
   mHoriz := false;
-  writeln('VBOX: ', canFocus, ':', enabled);
 end;
 
 

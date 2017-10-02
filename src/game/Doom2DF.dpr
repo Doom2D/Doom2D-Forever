@@ -108,15 +108,20 @@ uses
   envvars in '../shared/envvars.pas',
   g_panel in 'g_panel.pas',
   g_language in 'g_language.pas',
+
+  sdlcarcass in '../flexui/sdlcarcass.pas',
+  //sdlstandalone in '../flexui/sdlstandalone.pas',
+
+  fui_common in '../flexui/fui_common.pas',
+  fui_gfx_gl in '../flexui/fui_gfx_gl.pas',
+  fui_events in '../flexui/fui_events.pas',
+  fui_style in '../flexui/fui_style.pas',
+  fui_flexlay in '../flexui/fui_flexlay.pas',
+  fui_ctls in '../flexui/fui_ctls.pas',
+
   ImagingTypes,
   Imaging,
-  ImagingUtility,
-  sdlcarcass in '../gx/sdlcarcass.pas',
-  glgfx in '../gx/glgfx.pas',
-  gh_ui_common in '../gx/gh_ui_common.pas',
-  gh_ui_style in '../gx/gh_ui_style.pas',
-  gh_ui in '../gx/gh_ui.pas',
-  gh_flexlay in '../gx/gh_flexlay.pas';
+  ImagingUtility;
 
 {$IFDEF WINDOWS}
   {$R *.res}
