@@ -2,7 +2,6 @@
 <CONFIG>
   <ProjectOptions>
     <Version Value="10"/>
-    <PathDelim Value="\"/>
     <General>
       <Flags>
         <MainUnitHasUsesSectionForAllUnits Value="False"/>
@@ -28,8 +27,48 @@
       <CharSet Value="04E3"/>
       <StringTable CompanyName="www.doom2d.org" FileDescription="Doom 2D: Forever" InternalName="Doom 2D: Forever" LegalCopyright="All rights reserved." OriginalFilename="Doom2DF" ProductName="Doom 2D: Forever" ProductVersion=""/>
     </VersionInfo>
-    <BuildModes Count="1">
-      <Item1 Name="Default" Default="True"/>
+    <BuildModes Count="2">
+      <Item1 Name="Debug" Default="True"/>
+      <Item2 Name="Release">
+        <CompilerOptions>
+          <Version Value="11"/>
+          <PathDelim Value="\"/>
+          <Target>
+            <Filename Value="..\..\bin\Doom2DF"/>
+          </Target>
+          <SearchPaths>
+            <IncludeFiles Value="..\lib\vampimg;..\lib\vampimg\JpegLib;..\lib\vampimg\ZLib;$(ProjOutDir)"/>
+            <OtherUnitFiles Value="..\lib\vampimg;..\lib\vampimg\JpegLib;..\lib\vampimg\ZLib"/>
+            <UnitOutputDirectory Value="..\..\tmp"/>
+          </SearchPaths>
+          <CodeGeneration>
+            <SmartLinkUnit Value="True"/>
+            <Optimizations>
+              <OptimizationLevel Value="3"/>
+            </Optimizations>
+          </CodeGeneration>
+          <Linking>
+            <Debugging>
+              <GenerateDebugInfo Value="False"/>
+              <StripSymbols Value="True"/>
+            </Debugging>
+            <LinkSmart Value="True"/>
+            <Options>
+              <Win32>
+                <GraphicApplication Value="True"/>
+              </Win32>
+            </Options>
+          </Linking>
+          <Other>
+            <Verbosity>
+              <ShoLineNum Value="True"/>
+            </Verbosity>
+          </Other>
+        </CompilerOptions>
+      </Item2>
+      <SharedMatrixOptions Count="1">
+        <Item1 ID="807313141795" Modes="Debug,Release" Value="-dUSE_FMOD"/>
+      </SharedMatrixOptions>
     </BuildModes>
     <PublishOptions>
       <Version Value="2"/>
@@ -57,12 +96,23 @@
       <OtherUnitFiles Value="..\lib\vampimg;..\lib\vampimg\JpegLib;..\lib\vampimg\ZLib"/>
       <UnitOutputDirectory Value="..\..\tmp"/>
     </SearchPaths>
+    <Parsing>
+      <SyntaxOptions>
+        <IncludeAssertionCode Value="True"/>
+      </SyntaxOptions>
+    </Parsing>
     <CodeGeneration>
-      <Optimizations>
-        <OptimizationLevel Value="2"/>
-      </Optimizations>
+      <Checks>
+        <IOChecks Value="True"/>
+        <OverflowChecks Value="True"/>
+        <StackChecks Value="True"/>
+      </Checks>
     </CodeGeneration>
     <Linking>
+      <Debugging>
+        <TrashVariables Value="True"/>
+        <UseValgrind Value="True"/>
+      </Debugging>
       <Options>
         <Win32>
           <GraphicApplication Value="True"/>
@@ -70,7 +120,11 @@
       </Options>
     </Linking>
     <Other>
-      <CustomOptions Value="-dUSE_FMOD"/>
+      <Verbosity>
+        <ShoLineNum Value="True"/>
+        <ShowHintsForUnusedUnitsInMainSrc Value="True"/>
+        <ShowHintsForSenderNotUsed Value="True"/>
+      </Verbosity>
     </Other>
   </CompilerOptions>
   <Debugging>
