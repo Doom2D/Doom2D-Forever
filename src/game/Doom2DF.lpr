@@ -125,7 +125,6 @@ uses
 
 {$IFDEF WINDOWS}
   {$R *.res}
-  {$R CustomRes.res}
 {$ENDIF}
 
 var
