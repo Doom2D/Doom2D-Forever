@@ -92,6 +92,29 @@ type
     function blend (ar, ag, ab, aa: Integer): TGxRGBA; inline;
   end;
 
+  TGxRect = packed record
+  public
+    x, y, w, h: Integer;
+
+  public
+    constructor Create (ax, ay, aw, ah: Integer);
+
+    function empty (): Boolean; inline; // invalid rects are empty too
+    function valid (): Boolean; inline;
+
+    // modifies this rect, so it won't be bigger than `r`
+    // returns `false` if this rect becomes empty
+    function intersect (constref r: TGxRect): Boolean; inline;
+  end;
+
+  TGxOfs = packed record
+  public
+    xofs, yofs: Integer;
+
+  public
+    constructor Create (axofs, ayofs: Integer);
+  end;
+
 
 // ////////////////////////////////////////////////////////////////////////// //
 // return `false` if destination rect is empty
@@ -104,7 +127,6 @@ implementation
 
 uses
   utils;
-
 
 // ////////////////////////////////////////////////////////////////////////// //
 constructor TLaySize.Create (aw, ah: Integer); begin w := aw; h := ah; end;
@@ -172,6 +194,22 @@ begin
   result.b := Byte((me shr 16) and $ff);
   result.a := a;
 end;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
+constructor TGxRect.Create (ax, ay, aw, ah: Integer); begin x := ax; y := ay; w := aw; h := ah; end;
+
+function TGxRect.empty (): Boolean; inline; begin result := (w <= 0) or (h <= 0); end;
+function TGxRect.valid (): Boolean; inline; begin result := (w < 0) or (h < 0); end;
+
+function TGxRect.intersect (constref r: TGxRect): Boolean; inline;
+begin
+  result := intersectRect(x, y, w, h, r.x, r.y, r.w, r.h);
+end;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
+constructor TGxOfs.Create (axofs, ayofs: Integer); begin xofs := axofs; yofs := ayofs; end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //

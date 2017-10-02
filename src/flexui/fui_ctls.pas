@@ -70,11 +70,7 @@ type
     mFrameColor: array[0..ClrIdxMax] of TGxRGBA;
     mFrameTextColor: array[0..ClrIdxMax] of TGxRGBA;
     mFrameIconColor: array[0..ClrIdxMax] of TGxRGBA;
-    mDarken: array[0..ClrIdxMax] of Integer; // -1: none
-
-  private
-    scis: TScissorSave;
-    scallowed: Boolean;
+    mDarken: array[0..ClrIdxMax] of Integer; // >255: none
 
   protected
     procedure updateStyle (); virtual;
@@ -110,15 +106,11 @@ type
 
     procedure calcFullClientSize ();
 
+  protected
+    var savedClip: TGxRect; // valid only in `draw*()` calls
     //WARNING! do not call scissor functions outside `.draw*()` API!
     // set scissor to this rect (in local coords)
-    procedure setScissor (lx, ly, lw, lh: Integer);
-    // reset scissor to whole control
-    procedure resetScissor (fullArea: Boolean); inline; // "full area" means "with frame"
-
-    // DO NOT USE!
-    // set scissor to this rect (in global coords)
-    procedure setScissorGLInternal (x, y, w, h: Integer);
+    procedure setScissor (lx, ly, lw, lh: Integer); // valid only in `draw*()` calls
 
   public
     actionCB: TActionCB;
@@ -474,8 +466,7 @@ type
   protected
     mBoolVar: PBoolean;
     mChecked: Boolean;
-    mCheckedStr: AnsiString;
-    mUncheckedStr: AnsiString;
+    mIcon: TGxContext.TMarkIcon;
     mSwitchColor: array[0..ClrIdxMax] of TGxRGBA;
 
   protected
@@ -553,6 +544,7 @@ procedure uiLayoutCtl (ctl: TUIControl);
 // ////////////////////////////////////////////////////////////////////////// //
 var
   fuiRenderScale: Single = 1.0;
+  uiContext: TGxContext = nil;
 
 
 implementation
@@ -780,7 +772,9 @@ var
   ctl: TUIControl;
 begin
   processKills();
-  gxBeginUIDraw(fuiRenderScale);
+  //if (uiContext = nil) then uiContext := TGxContext.Create();
+  gxSetContext(uiContext, fuiRenderScale);
+  uiContext.resetClip();
   try
     for f := 0 to High(uiTopList) do
     begin
@@ -789,11 +783,11 @@ begin
       if (f <> High(uiTopList)) then
       begin
         cidx := ctl.getColorIndex;
-        if (ctl.mDarken[cidx] > 0) then darkenRect(ctl.x0, ctl.y0, ctl.width, ctl.height, ctl.mDarken[cidx]);
+        uiContext.darkenRect(ctl.x0, ctl.y0, ctl.width, ctl.height, ctl.mDarken[cidx]);
       end;
     end;
   finally
-    gxEndUIDraw();
+    gxSetContext(nil);
   end;
 end;
 
@@ -884,7 +878,7 @@ begin
   mX := 0;
   mY := 0;
   mWidth := 64;
-  mHeight := 8;
+  mHeight := uiContext.charHeight(' ');
   mFrameWidth := 0;
   mFrameHeight := 0;
   mEnabled := true;
@@ -892,11 +886,10 @@ begin
   mChildren := nil;
   mFocused := nil;
   mEscClose := false;
-  scallowed := false;
   mDrawShadow := false;
   actionCB := nil;
   // layouter interface
-  //mDefSize := TLaySize.Create(64, 8); // default size
+  //mDefSize := TLaySize.Create(64, uiContext.charHeight(' ')); // default size
   mDefSize := TLaySize.Create(0, 0); // default size
   mMaxSize := TLaySize.Create(-1, -1); // maximum size
   mPadding := TLaySize.Create(0, 0);
@@ -983,21 +976,21 @@ begin
   mFrameColor[ClrIdxActive] := root.get('frame-color', 'active', cst).asRGBADef(TGxRGBA.Create(255, 255, 255));
   mFrameTextColor[ClrIdxActive] := root.get('frame-text-color', 'active', cst).asRGBADef(TGxRGBA.Create(255, 255, 255));
   mFrameIconColor[ClrIdxActive] := root.get('frame-icon-color', 'active', cst).asRGBADef(TGxRGBA.Create(0, 255, 0));
-  mDarken[ClrIdxActive] := root.get('darken', 'active', cst).asInt(-1);
+  mDarken[ClrIdxActive] := root.get('darken', 'active', cst).asInt(666);
   // disabled
   mBackColor[ClrIdxDisabled] := root.get('back-color', 'disabled', cst).asRGBADef(TGxRGBA.Create(0, 0, 128));
   mTextColor[ClrIdxDisabled] := root.get('text-color', 'disabled', cst).asRGBADef(TGxRGBA.Create(127, 127, 127));
   mFrameColor[ClrIdxDisabled] := root.get('frame-color', 'disabled', cst).asRGBADef(TGxRGBA.Create(127, 127, 127));
   mFrameTextColor[ClrIdxDisabled] := root.get('frame-text-color', 'disabled', cst).asRGBADef(TGxRGBA.Create(127, 127, 127));
   mFrameIconColor[ClrIdxDisabled] := root.get('frame-icon-color', 'disabled', cst).asRGBADef(TGxRGBA.Create(0, 127, 0));
-  mDarken[ClrIdxDisabled] := root.get('darken', 'disabled', cst).asInt(-1);
+  mDarken[ClrIdxDisabled] := root.get('darken', 'disabled', cst).asInt(666);
   // inactive
   mBackColor[ClrIdxInactive] := root.get('back-color', 'inactive', cst).asRGBADef(TGxRGBA.Create(0, 0, 128));
   mTextColor[ClrIdxInactive] := root.get('text-color', 'inactive', cst).asRGBADef(TGxRGBA.Create(255, 255, 255));
   mFrameColor[ClrIdxInactive] := root.get('frame-color', 'inactive', cst).asRGBADef(TGxRGBA.Create(255, 255, 255));
   mFrameTextColor[ClrIdxInactive] := root.get('frame-text-color', 'inactive', cst).asRGBADef(TGxRGBA.Create(255, 255, 255));
   mFrameIconColor[ClrIdxInactive] := root.get('frame-icon-color', 'inactive', cst).asRGBADef(TGxRGBA.Create(0, 255, 0));
-  mDarken[ClrIdxInactive] := root.get('darken', 'inactive', cst).asInt(-1);
+  mDarken[ClrIdxInactive] := root.get('darken', 'inactive', cst).asInt(666);
 end;
 
 
@@ -1838,51 +1831,30 @@ end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-procedure TUIControl.setScissorGLInternal (x, y, w, h: Integer);
-begin
-  if not scallowed then exit;
-  x := trunc(x*fuiRenderScale);
-  y := trunc(y*fuiRenderScale);
-  w := trunc(w*fuiRenderScale);
-  h := trunc(h*fuiRenderScale);
-  scis.combineRect(x, y, w, h);
-end;
-
 procedure TUIControl.setScissor (lx, ly, lw, lh: Integer);
 var
   gx, gy, wdt, hgt, cgx, cgy: Integer;
 begin
-  if not scallowed then exit;
-
-  if not intersectRect(lx, ly, lw, lh, 0, 0, mWidth, mHeight) then
+  if (not intersectRect(lx, ly, lw, lh, 0, 0, mWidth, mHeight)) then
   begin
-    scis.combineRect(0, 0, 0, 0);
+    uiContext.clip := TGxRect.Create(0, 0, 0, 0);
     exit;
   end;
 
   getDrawRect(gx, gy, wdt, hgt);
+
   toGlobal(lx, ly, cgx, cgy);
-  if not intersectRect(gx, gy, wdt, hgt, cgx, cgy, lw, lh) then
+  if (not intersectRect(gx, gy, wdt, hgt, cgx, cgy, lw, lh)) then
   begin
-    scis.combineRect(0, 0, 0, 0);
+    uiContext.clip := TGxRect.Create(0, 0, 0, 0);
     exit;
   end;
 
-  setScissorGLInternal(gx, gy, wdt, hgt);
+  uiContext.clip := savedClip;
+  uiContext.combineClip(TGxRect.Create(gx, gy, wdt, hgt));
+  //uiContext.clip := TGxRect.Create(gx, gy, wdt, hgt);
 end;
 
-procedure TUIControl.resetScissor (fullArea: Boolean); inline;
-begin
-  if not scallowed then exit;
-  if (fullArea) then
-  begin
-    setScissor(0, 0, mWidth, mHeight);
-  end
-  else
-  begin
-    setScissor(mFrameWidth, mFrameHeight, mWidth-mFrameWidth*2, mHeight-mFrameHeight*2);
-  end;
-end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
@@ -1890,13 +1862,26 @@ procedure TUIControl.draw ();
 var
   f: Integer;
   gx, gy: Integer;
+
+  procedure resetScissor (fullArea: Boolean); inline;
+  begin
+    uiContext.clip := savedClip;
+    if (fullArea) then
+    begin
+      setScissor(0, 0, mWidth, mHeight);
+    end
+    else
+    begin
+      setScissor(mFrameWidth, mFrameHeight, mWidth-mFrameWidth*2, mHeight-mFrameHeight*2);
+    end;
+  end;
+
 begin
-  if (mWidth < 1) or (mHeight < 1) then exit;
+  if (mWidth < 1) or (mHeight < 1) or (uiContext = nil) or (not uiContext.active) then exit;
   toGlobal(0, 0, gx, gy);
 
-  scis.save(true); // scissoring enabled
+  savedClip := uiContext.clip;
   try
-    scallowed := true;
     resetScissor(true); // full area
     drawControl(gx, gy);
     resetScissor(false); // client area
@@ -1904,8 +1889,7 @@ begin
     resetScissor(true); // full area
     drawControlPost(gx, gy);
   finally
-    scis.restore();
-    scallowed := false;
+    uiContext.clip := savedClip;
   end;
 end;
 
@@ -1917,11 +1901,12 @@ end;
 procedure TUIControl.drawControlPost (gx, gy: Integer);
 begin
   // shadow
-  if mDrawShadow and (mWidth > 0) and (mHeight > 0) then
+  if (mParent = nil) and (mDrawShadow) and (mWidth > 0) and (mHeight > 0) then
   begin
-    setScissorGLInternal(gx+8, gy+8, mWidth, mHeight);
-    darkenRect(gx+mWidth, gy+8, 8, mHeight, 128);
-    darkenRect(gx+8, gy+mHeight, mWidth-8, 8, 128);
+    //setScissorGLInternal(gx+8, gy+8, mWidth, mHeight);
+    uiContext.resetClip();
+    uiContext.darkenRect(gx+mWidth, gy+8, 8, mHeight, 128);
+    uiContext.darkenRect(gx+8, gy+mHeight, mWidth-8, 8, 128);
   end;
 end;
 
@@ -2061,11 +2046,14 @@ begin
   mFitToScreen := true;
   mFrameWidth := 8;
   mFrameHeight := 8;
-  if (mWidth < mFrameWidth*2+3*8) then mWidth := mFrameWidth*2+3*8;
+  if (mWidth < mFrameWidth*2+uiContext.iconWinWidth(TGxContext.TWinIcon.Close)) then mWidth := mFrameWidth*2+uiContext.iconWinWidth(TGxContext.TWinIcon.Close);
   if (mHeight < mFrameHeight*2) then mHeight := mFrameHeight*2;
   if (Length(mTitle) > 0) then
   begin
-    if (mWidth < Length(mTitle)*8+mFrameWidth*2+3*8) then mWidth := Length(mTitle)*8+mFrameWidth*2+3*8;
+    if (mWidth < uiContext.textWidth(mTitle)+mFrameWidth*2+uiContext.iconWinWidth(TGxContext.TWinIcon.Close)) then
+    begin
+      mWidth := uiContext.textWidth(mTitle)+mFrameWidth*2+uiContext.iconWinWidth(TGxContext.TWinIcon.Close);
+    end;
   end;
   mCanFocus := false;
   mDragScroll := TXMode.None;
@@ -2126,54 +2114,61 @@ end;
 
 procedure TUITopWindow.drawControl (gx, gy: Integer);
 begin
-  fillRect(gx, gy, mWidth, mHeight, mBackColor[getColorIndex]);
+  uiContext.color := mBackColor[getColorIndex];
+  uiContext.fillRect(gx, gy, mWidth, mHeight);
 end;
 
 
 procedure TUITopWindow.drawControlPost (gx, gy: Integer);
 var
   cidx: Integer;
-  tx, hgt, sbhgt: Integer;
+  tx, hgt, sbhgt, iwdt: Integer;
 begin
   cidx := getColorIndex;
   if (mDragScroll = TXMode.Drag) then
   begin
-    drawRectUI(gx+4, gy+4, mWidth-8, mHeight-8, mFrameColor[cidx]);
+    uiContext.color := mFrameColor[cidx];
+    uiContext.rect(gx+4, gy+4, mWidth-8, mHeight-8);
   end
   else
   begin
-    drawRectUI(gx+3, gy+3, mWidth-6, mHeight-6, mFrameColor[cidx]);
-    drawRectUI(gx+5, gy+5, mWidth-10, mHeight-10, mFrameColor[cidx]);
+    uiContext.color := mFrameColor[cidx];
+    uiContext.rect(gx+3, gy+3, mWidth-6, mHeight-6);
+    uiContext.rect(gx+5, gy+5, mWidth-10, mHeight-10);
     // vertical scroll bar
     hgt := mHeight-mFrameHeight*2;
     if (hgt > 0) and (mFullSize.h > hgt) then
     begin
       //writeln(mTitle, ': height=', mHeight-mFrameHeight*2, '; fullsize=', mFullSize.toString);
       sbhgt := mHeight-mFrameHeight*2+2;
-      fillRect(gx+mWidth-mFrameWidth+1, gy+7, mFrameWidth-3, sbhgt, mFrameColor[cidx]);
+      uiContext.fillRect(gx+mWidth-mFrameWidth+1, gy+7, mFrameWidth-3, sbhgt);
       hgt += mScrollY;
       if (hgt > mFullSize.h) then hgt := mFullSize.h;
       hgt := sbhgt*hgt div mFullSize.h;
       if (hgt > 0) then
       begin
         setScissor(mWidth-mFrameWidth+1, 7, mFrameWidth-3, sbhgt);
-        darkenRect(gx+mWidth-mFrameWidth+1, gy+7+hgt, mFrameWidth-3, sbhgt, 128);
+        uiContext.darkenRect(gx+mWidth-mFrameWidth+1, gy+7+hgt, mFrameWidth-3, sbhgt, 128);
       end;
     end;
     // frame icon
-    setScissor(mFrameWidth, 0, 3*8, 8);
-    fillRect(gx+mFrameWidth, gy, 3*8, 8, mBackColor[cidx]);
-    drawText8(gx+mFrameWidth, gy, '[ ]', mFrameColor[cidx]);
-    if mInClose then drawText8(gx+mFrameWidth+7, gy, '#', mFrameIconColor[cidx])
-    else drawText8(gx+mFrameWidth+7, gy, '*', mFrameIconColor[cidx]);
+    iwdt := uiContext.iconWinWidth(TGxContext.TWinIcon.Close);
+    setScissor(mFrameWidth, 0, iwdt, 8);
+    uiContext.color := mBackColor[cidx];
+    uiContext.fillRect(gx+mFrameWidth, gy, iwdt, 8);
+    uiContext.color := mFrameIconColor[cidx];
+    uiContext.drawIconWin(TGxContext.TWinIcon.Close, gx+mFrameWidth, gy, mInClose);
   end;
   // title
   if (Length(mTitle) > 0) then
   begin
-    setScissor(mFrameWidth+3*8, 0, mWidth-mFrameWidth*2-3*8, 8);
-    tx := (gx+3*8)+((mWidth-3*8)-Length(mTitle)*8) div 2;
-    fillRect(tx-3, gy, Length(mTitle)*8+3+2, 8, mBackColor[cidx]);
-    drawText8(tx, gy, mTitle, mFrameTextColor[cidx]);
+    iwdt := uiContext.iconWinWidth(TGxContext.TWinIcon.Close);
+    setScissor(mFrameWidth+iwdt, 0, mWidth-mFrameWidth*2-iwdt, 8);
+    tx := (gx+iwdt)+((mWidth-iwdt)-uiContext.textWidth(mTitle)) div 2;
+    uiContext.color := mBackColor[cidx];
+    uiContext.fillRect(tx-3, gy, uiContext.textWidth(mTitle)+3+2, 8);
+    uiContext.color := mFrameTextColor[cidx];
+    uiContext.drawText(tx, gy, mTitle);
   end;
   // shadow
   inherited drawControlPost(gx, gy);
@@ -2268,7 +2263,7 @@ begin
       if (ly < 8) then
       begin
         uiGrabCtl := self;
-        if (lx >= mFrameWidth) and (lx < mFrameWidth+3*8) then
+        if (lx >= mFrameWidth) and (lx < mFrameWidth+uiContext.iconWinWidth(TGxContext.TWinIcon.Close)) then
         begin
           //uiRemoveWindow(self);
           mWaitingClose := true;
@@ -2314,7 +2309,7 @@ begin
     begin
       if mWaitingClose then
       begin
-        if (lx >= mFrameWidth) and (lx < mFrameWidth+3*8) then
+        if (lx >= mFrameWidth) and (lx < mFrameWidth+uiContext.iconWinWidth(TGxContext.TWinIcon.Close)) then
         begin
           if (not assigned(closeRequestCB)) or (closeRequestCB(self)) then
           begin
@@ -2332,7 +2327,7 @@ begin
     begin
       if mWaitingClose then
       begin
-        mInClose := (lx >= mFrameWidth) and (lx < mFrameWidth+3*8);
+        mInClose := (lx >= mFrameWidth) and (lx < mFrameWidth+uiContext.iconWinWidth(TGxContext.TWinIcon.Close));
         ev.eat();
         exit;
       end;
@@ -2368,7 +2363,7 @@ end;
 procedure TUIBox.setCaption (const acap: AnsiString);
 begin
   mCaption := acap;
-  mDefSize := TLaySize.Create(Length(mCaption)*8+3, 8);
+  mDefSize := TLaySize.Create(uiContext.textWidth(mCaption)+3, uiContext.textHeight(mCaption));
 end;
 
 
@@ -2423,23 +2418,30 @@ var
   xpos: Integer;
 begin
   cidx := getColorIndex;
-  fillRect(gx, gy, mWidth, mHeight, mBackColor[cidx]);
+  uiContext.color := mBackColor[cidx];
+  uiContext.fillRect(gx, gy, mWidth, mHeight);
   if mHasFrame then
   begin
     // draw frame
-    drawRectUI(gx+3, gy+3, mWidth-6, mHeight-6, mFrameColor[cidx]);
+    uiContext.color := mFrameColor[cidx];
+    uiContext.rect(gx+3, gy+3, mWidth-6, mHeight-6);
   end;
   // draw caption
   if (Length(mCaption) > 0) then
   begin
          if (mHAlign < 0) then xpos := 3
-    else if (mHAlign > 0) then xpos := mWidth-mFrameWidth*2-Length(mCaption)*8
-    else xpos := (mWidth-mFrameWidth*2-Length(mCaption)*8) div 2;
+    else if (mHAlign > 0) then xpos := mWidth-mFrameWidth*2-uiContext.textWidth(mCaption)
+    else xpos := (mWidth-mFrameWidth*2-uiContext.textWidth(mCaption)) div 2;
     xpos += gx+mFrameWidth;
 
     setScissor(mFrameWidth+1, 0, mWidth-mFrameWidth-2, 8);
-    if mHasFrame then fillRect(xpos-3, gy, Length(mCaption)*8+4, 8, mBackColor[cidx]);
-    drawText8(xpos, gy, mCaption, mFrameTextColor[cidx]);
+    if mHasFrame then
+    begin
+      uiContext.color := mBackColor[cidx];
+      uiContext.fillRect(xpos-3, gy, uiContext.textWidth(mCaption)+4, 8);
+    end;
+    uiContext.color := mFrameTextColor[cidx];
+    uiContext.drawText(xpos, gy, mCaption);
   end;
 end;
 
@@ -2554,14 +2556,9 @@ var
   cidx: Integer;
 begin
   cidx := getColorIndex;
-  if mHoriz then
-  begin
-    drawHLine(gx, gy+(mHeight div 2), mWidth, mTextColor[cidx]);
-  end
-  else
-  begin
-    drawVLine(gx+(mWidth div 2), gy, mHeight, mTextColor[cidx]);
-  end;
+  uiContext.color := mTextColor[cidx];
+  if mHoriz then uiContext.hline(gx, gy+(mHeight div 2), mWidth)
+  else uiContext.vline(gx+(mWidth div 2), gy, mHeight);
 end;
 
 
@@ -2593,7 +2590,7 @@ begin
   mHoriz := true; // nobody cares
   mHeader := false;
   mLine := false;
-  mDefSize.h := 8;
+  mDefSize.h := uiContext.charHeight(' ');
   mCtl4Style := 'static';
 end;
 
@@ -2601,7 +2598,7 @@ end;
 procedure TUIStaticText.setText (const atext: AnsiString);
 begin
   mText := atext;
-  mDefSize := TLaySize.Create(Length(mText)*8, 8);
+  mDefSize := TLaySize.Create(uiContext.textWidth(mText), uiContext.textHeight(mText));
 end;
 
 
@@ -2639,29 +2636,29 @@ procedure TUIStaticText.drawControl (gx, gy: Integer);
 var
   xpos, ypos: Integer;
   cidx: Integer;
-  clr: TGxRGBA;
 begin
   cidx := getColorIndex;
-  fillRect(gx, gy, mWidth, mHeight, mBackColor[cidx]);
+  uiContext.color := mBackColor[cidx];
+  uiContext.fillRect(gx, gy, mWidth, mHeight);
 
        if (mHAlign < 0) then xpos := 0
-  else if (mHAlign > 0) then xpos := mWidth-Length(mText)*8
-  else xpos := (mWidth-Length(mText)*8) div 2;
+  else if (mHAlign > 0) then xpos := mWidth-uiContext.textWidth(mText)
+  else xpos := (mWidth-uiContext.textWidth(mText)) div 2;
 
   if (Length(mText) > 0) then
   begin
-    if (mHeader) then clr := mFrameTextColor[cidx] else clr := mTextColor[cidx];
+    if (mHeader) then uiContext.color := mFrameTextColor[cidx] else uiContext.color := mTextColor[cidx];
 
          if (mVAlign < 0) then ypos := 0
-    else if (mVAlign > 0) then ypos := mHeight-8
-    else ypos := (mHeight-8) div 2;
+    else if (mVAlign > 0) then ypos := mHeight-uiContext.textHeight(mText)
+    else ypos := (mHeight-uiContext.textHeight(mText)) div 2;
 
-    drawText8(gx+xpos, gy+ypos, mText, clr);
+    uiContext.drawText(gx+xpos, gy+ypos, mText);
   end;
 
   if (mLine) then
   begin
-    if (mHeader) then clr := mFrameColor[cidx] else clr := mTextColor[cidx];
+    if (mHeader) then uiContext.color := mFrameColor[cidx] else uiContext.color := mTextColor[cidx];
 
          if (mVAlign < 0) then ypos := 0
     else if (mVAlign > 0) then ypos := mHeight-1
@@ -2670,12 +2667,12 @@ begin
 
     if (Length(mText) = 0) then
     begin
-      drawHLine(gx, ypos, mWidth, clr);
+      uiContext.hline(gx, ypos, mWidth);
     end
     else
     begin
-      drawHLine(gx, ypos, xpos-1, clr);
-      drawHLine(gx+xpos+Length(mText)*8, ypos, mWidth, clr);
+      uiContext.hline(gx, ypos, xpos-1);
+      uiContext.hline(gx+xpos+uiContext.textWidth(mText), ypos, mWidth);
     end;
   end;
 end;
@@ -2688,7 +2685,7 @@ begin
   mHAlign := -1;
   mVAlign := 0;
   mCanFocus := false;
-  mDefSize := TLaySize.Create(Length(mText)*8, 8);
+  mDefSize := TLaySize.Create(uiContext.textWidth(mText), uiContext.textHeight(mText));
   mCtl4Style := 'label';
   mLinkId := '';
 end;
@@ -2730,7 +2727,7 @@ begin
         if (mHotChar = #0) then
         begin
           mHotChar := s[f];
-          mHotOfs := Length(mText)*8;
+          mHotOfs := Length(mText);
         end;
         mText += s[f];
       end;
@@ -2742,7 +2739,13 @@ begin
       Inc(f);
     end;
   end;
-  mDefSize := TLaySize.Create(Length(mText)*8, 8);
+  // fix hotchar offset
+  if (mHotChar <> #0) and (mHotOfs > 0) then
+  begin
+    mHotOfs := uiContext.textWidth(Copy(mText, 1, mHotOfs+1))-uiContext.charWidth(mText[mHotOfs+1]);
+  end;
+  // fix size
+  mDefSize := TLaySize.Create(uiContext.textWidth(mText), uiContext.textHeight(mText));
 end;
 
 
@@ -2776,22 +2779,25 @@ var
   cidx: Integer;
 begin
   cidx := getColorIndex;
-  fillRect(gx, gy, mWidth, mHeight, mBackColor[cidx]);
+  uiContext.color := mBackColor[cidx];
+  uiContext.fillRect(gx, gy, mWidth, mHeight);
   if (Length(mText) > 0) then
   begin
          if (mHAlign < 0) then xpos := 0
-    else if (mHAlign > 0) then xpos := mWidth-Length(mText)*8
-    else xpos := (mWidth-Length(mText)*8) div 2;
+    else if (mHAlign > 0) then xpos := mWidth-uiContext.textWidth(mText)
+    else xpos := (mWidth-uiContext.textWidth(mText)) div 2;
 
          if (mVAlign < 0) then ypos := 0
-    else if (mVAlign > 0) then ypos := mHeight-8
-    else ypos := (mHeight-8) div 2;
+    else if (mVAlign > 0) then ypos := mHeight-uiContext.textHeight(mText)
+    else ypos := (mHeight-uiContext.textHeight(mText)) div 2;
 
-    drawText8(gx+xpos, gy+ypos, mText, mTextColor[cidx]);
+    uiContext.color := mTextColor[cidx];
+    uiContext.drawText(gx+xpos, gy+ypos, mText);
 
     if (Length(mLinkId) > 0) and (mHotChar <> #0) and (mHotChar <> ' ') then
     begin
-      drawText8(gx+xpos+8+mHotOfs, gy+ypos, mHotChar, mHotColor[cidx]);
+      uiContext.color := mHotColor[cidx];
+      uiContext.drawChar(gx+xpos+mHotOfs, gy+ypos, mHotChar);
     end;
   end;
 end;
@@ -2848,7 +2854,7 @@ begin
   mHAlign := -1;
   mVAlign := 0;
   mCanFocus := true;
-  mDefSize := TLaySize.Create(Length(mText)*8+8, 10);
+  mDefSize := TLaySize.Create(uiContext.textWidth(mText)+8*2, uiContext.textHeight(mText)+2);
   mCtl4Style := 'button';
 end;
 
@@ -2856,7 +2862,7 @@ end;
 procedure TUIButton.setText (const s: AnsiString);
 begin
   inherited setText(s);
-  mDefSize := TLaySize.Create(Length(mText)*8+8*2, 10);
+  mDefSize := TLaySize.Create(uiContext.textWidth(mText)+8*2, uiContext.textHeight(mText)+2);
 end;
 
 
@@ -2867,24 +2873,30 @@ var
 begin
   cidx := getColorIndex;
 
-  fillRect(gx+1, gy, mWidth-2, mHeight, mBackColor[cidx]);
-  fillRect(gx, gy+1, 1, mHeight-2, mBackColor[cidx]);
-  fillRect(gx+mWidth-1, gy+1, 1, mHeight-2, mBackColor[cidx]);
+  uiContext.color := mBackColor[cidx];
+  uiContext.fillRect(gx+1, gy, mWidth-2, mHeight);
+  uiContext.fillRect(gx, gy+1, 1, mHeight-2);
+  uiContext.fillRect(gx+mWidth-1, gy+1, 1, mHeight-2);
 
   if (Length(mText) > 0) then
   begin
          if (mHAlign < 0) then xpos := 0
-    else if (mHAlign > 0) then xpos := mWidth-Length(mText)*8
-    else xpos := (mWidth-Length(mText)*8) div 2;
+    else if (mHAlign > 0) then xpos := mWidth-uiContext.textWidth(mText)
+    else xpos := (mWidth-uiContext.textWidth(mText)) div 2;
 
          if (mVAlign < 0) then ypos := 0
-    else if (mVAlign > 0) then ypos := mHeight-8
-    else ypos := (mHeight-8) div 2;
+    else if (mVAlign > 0) then ypos := mHeight-uiContext.textHeight(mText)
+    else ypos := (mHeight-uiContext.textHeight(mText)) div 2;
 
     setScissor(8, 0, mWidth-16, mHeight);
-    drawText8(gx+xpos+8, gy+ypos, mText, mTextColor[cidx]);
+    uiContext.color := mTextColor[cidx];
+    uiContext.drawText(gx+xpos+8, gy+ypos, mText);
 
-    if (mHotChar <> #0) and (mHotChar <> ' ') then drawText8(gx+xpos+8+mHotOfs, gy+ypos, mHotChar, mHotColor[cidx]);
+    if (mHotChar <> #0) and (mHotChar <> ' ') then
+    begin
+      uiContext.color := mHotColor[cidx];
+      uiContext.drawChar(gx+xpos+8+mHotOfs, gy+ypos, mHotChar);
+    end;
   end;
 end;
 
@@ -2930,7 +2942,8 @@ begin
   mHAlign := -1;
   mVAlign := 0;
   mCanFocus := true;
-  mDefSize := TLaySize.Create(Length(mText)*8+8*3, 8);
+  mIcon := TGxContext.TMarkIcon.Checkbox;
+  mDefSize := TLaySize.Create(uiContext.textWidth(mText)+3+uiContext.iconMarkWidth(mIcon), uiContext.iconMarkHeight(mIcon));
   mCtl4Style := 'switchbox';
   mChecked := false;
   mBoolVar := @mChecked;
@@ -2952,7 +2965,7 @@ end;
 procedure TUISwitchBox.setText (const s: AnsiString);
 begin
   inherited setText(s);
-  mDefSize := TLaySize.Create(Length(mText)*8+8*3, 8);
+  mDefSize := TLaySize.Create(uiContext.textWidth(mText)+3+uiContext.iconMarkWidth(mIcon), uiContext.iconMarkHeight(mIcon));
 end;
 
 
@@ -2993,37 +3006,31 @@ begin
   cidx := getColorIndex;
 
        if (mHAlign < 0) then xpos := 0
-  else if (mHAlign > 0) then xpos := mWidth-(Length(mText)+4)*8
-  else xpos := (mWidth-(Length(mText)+4)*8) div 2;
+  else if (mHAlign > 0) then xpos := mWidth-(uiContext.textWidth(mText)+3+uiContext.iconMarkWidth(mIcon))
+  else xpos := (mWidth-(uiContext.textWidth(mText)+3+uiContext.iconMarkWidth(mIcon))) div 2;
 
        if (mVAlign < 0) then ypos := 0
-  else if (mVAlign > 0) then ypos := mHeight-8
-  else ypos := (mHeight-8) div 2;
+  else if (mVAlign > 0) then ypos := mHeight-uiContext.iconMarkHeight(mIcon)
+  else ypos := (mHeight-uiContext.iconMarkHeight(mIcon)) div 2;
 
+  uiContext.color := mBackColor[cidx];
+  uiContext.fillRect(gx, gy, mWidth, mHeight);
 
-  fillRect(gx, gy, mWidth, mHeight, mBackColor[cidx]);
+  uiContext.color := mSwitchColor[cidx];
+  uiContext.drawIconMark(mIcon, gx, gy, checked);
 
-  if (checked) then
+       if (mVAlign < 0) then ypos := 0
+  else if (mVAlign > 0) then ypos := mHeight-uiContext.textHeight(mText)
+  else ypos := (mHeight-uiContext.textHeight(mText)) div 2;
+
+  uiContext.color := mTextColor[cidx];
+  uiContext.drawText(gx+xpos+3+uiContext.iconMarkWidth(mIcon), gy+ypos, mText);
+
+  if (mHotChar <> #0) and (mHotChar <> ' ') then
   begin
-    if (Length(mCheckedStr) <> 3) or (mCheckedStr[2] <> '*') then
-    begin
-      drawText8(gx+xpos, gy+ypos, mCheckedStr, mSwitchColor[cidx]);
-    end
-    else
-    begin
-      drawText8(gx+xpos, gy+ypos, mCheckedStr[1], mSwitchColor[cidx]);
-      drawText8(gx+xpos+2*8, gy+ypos, mCheckedStr[3], mSwitchColor[cidx]);
-      drawText8(gx+xpos+7, gy+ypos, '*', mSwitchColor[cidx]);
-    end;
-  end
-  else
-  begin
-    drawText8(gx+xpos, gy+ypos, mUncheckedStr, mSwitchColor[cidx]);
+    uiContext.color := mHotColor[cidx];
+    uiContext.drawChar(gx+xpos+3+uiContext.iconMarkWidth(mIcon)+mHotOfs, gy+ypos, mHotChar);
   end;
-
-  drawText8(gx+xpos+8*3, gy+ypos, mText, mTextColor[cidx]);
-
-  if (mHotChar <> #0) and (mHotChar <> ' ') then drawText8(gx+xpos+8*3+mHotOfs, gy+ypos, mHotChar, mHotColor[cidx]);
 end;
 
 
@@ -3067,8 +3074,8 @@ begin
   inherited;
   mChecked := false;
   mBoolVar := @mChecked;
-  mCheckedStr := '[x]';
-  mUncheckedStr := '[ ]';
+  mIcon := TGxContext.TMarkIcon.Checkbox;
+  setText('');
 end;
 
 
@@ -3097,9 +3104,9 @@ begin
   inherited;
   mChecked := false;
   mBoolVar := @mChecked;
-  mCheckedStr := '(*)';
-  mUncheckedStr := '( )';
   mRadioGroup := '';
+  mIcon := TGxContext.TMarkIcon.Radiobox;
+  setText('');
 end;
 
 
@@ -3164,4 +3171,6 @@ initialization
   registerCtlClass(TUIButton, 'button');
   registerCtlClass(TUICheckBox, 'checkbox');
   registerCtlClass(TUIRadioBox, 'radiobox');
+
+  uiContext := TGxContext.Create();
 end.
