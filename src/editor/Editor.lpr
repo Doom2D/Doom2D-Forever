@@ -49,7 +49,9 @@ uses
   g_language in 'g_language.pas',
   f_selectlang in 'f_selectlang.pas' {SelectLanguageForm};
 
-{$R *.res}
+{$IFDEF WINDOWS}
+  {$R *.res}
+{$ENDIF}
 
 begin
   Application.ExceptionDialog := aedOkMessageBox;
