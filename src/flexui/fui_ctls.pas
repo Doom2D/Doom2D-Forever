@@ -3040,6 +3040,10 @@ begin
       mDefSize.w += ww+mShadowSize;
       mDefSize.h += mShadowSize;
     end;
+  end
+  else
+  begin
+    ods := TLaySize.Create(0, 0); // fpc is dumb!
   end;
   inherited layPrepare();
   if (not mSkipLayPrepare) then mDefSize := ods;

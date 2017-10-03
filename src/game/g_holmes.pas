@@ -42,6 +42,7 @@ procedure g_Holmes_plrLaser (ax0, ay0, ax1, ay1: Integer);
 
 
 var
+  g_holmes_imfunctional: Boolean = false;
   g_holmes_enabled: Boolean = {$IF DEFINED(D2F_DEBUG)}true{$ELSE}false{$ENDIF};
 
 
@@ -1322,6 +1323,7 @@ var
 begin
   if g_Game_IsNet then exit;
   if not g_holmes_enabled then exit;
+  if g_holmes_imfunctional then exit;
 
   holmesInitCommands();
   holmesInitBinds();
@@ -1356,6 +1358,7 @@ var
 begin
   if g_Game_IsNet then exit;
   if not g_holmes_enabled then exit;
+  if g_holmes_imfunctional then exit;
 
   holmesInitCommands();
   holmesInitBinds();
@@ -1433,6 +1436,7 @@ procedure g_Holmes_DrawUI ();
 begin
   if g_Game_IsNet then exit;
   if not g_holmes_enabled then exit;
+  if g_holmes_imfunctional then exit;
   {$IF not DEFINED(HEADLESS)}
   gGfxDoClear := false;
   //if assigned(prerenderFrameCB) then prerenderFrameCB();
@@ -1714,12 +1718,14 @@ end;
 procedure onMouseEvent (var ev: THMouseEvent);
 begin
   if not g_holmes_enabled then exit;
+  if g_holmes_imfunctional then exit;
   g_Holmes_MouseEvent(ev);
 end;
 
 procedure onKeyEvent (var ev: THKeyEvent);
 begin
   if not g_holmes_enabled then exit;
+  if g_holmes_imfunctional then exit;
   g_Holmes_KeyEvent(ev);
 end;
 

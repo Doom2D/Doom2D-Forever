@@ -122,29 +122,15 @@ function uiFindStyle (const stname: AnsiString): TUIStyle;
 
 implementation
 
+uses
+  fui_wadread;
 
-// ////////////////////////////////////////////////////////////////////////// //
-const
-  defaultStyleStr =
-    'default {'#10+
-    '  back-color: #008;'#10+
-    '  #active: { text-color: #fff; hot-color: #f00; switch-color: #fff; frame-color: #fff; frame-text-color: #fff; frame-icon-color: #0f0; }'#10+
-    '  #inactive: { text-color: #aaa; hot-color: #a00; switch-color: #aaa; frame-color: #aaa; frame-text-color: #aaa; frame-icon-color: #0a0; }'#10+
-    '  #disabled: { text-color: #666; hot-color: #600; switch-color: #666; frame-color: #888; frame-text-color: #888; frame-icon-color: #080; }'#10+
-    '  @window: { #inactive(#active): { darken: 128; } }'#10+
-    '  @button: { back-color: #999; text-color: #000; hot-color: #600; #active: { back-color: #fff; hot-color: #c00; } #disabled: { back-color: #444; text-color: #333; hot-color: #333; } }'#10+
-    '  @label: { #inactive(#active); }'#10+
-    '  @static: { text-color: #ff0; #inactive(#active); }'#10+
-    '  @box: { #inactive(#active); }'#10+
-    '  @switchbox: { #active: { back-color: #080; } #inactive: { switch-color: #fff; } }'#10+
-    '  @checkbox(@switchbox): {}'#10+
-    '  @radiobox(@switchbox): {}'#10+
-    '}'#10+
-    '';
+
 var
   styles: array of TUIStyle = nil;
 
 
+{
 function createDefaultStyle (): TUIStyle;
 var
   st: TStream;
@@ -158,6 +144,7 @@ begin
     FreeAndNil(st);
   end;
 end;
+}
 
 
 function uiFindStyle (const stname: AnsiString): TUIStyle;
@@ -169,10 +156,13 @@ begin
     for stl in styles do if (strEquCI1251(stl.mId, stname)) then begin result := stl; exit; end;
   end;
   for stl in styles do if (strEquCI1251(stl.mId, 'default')) then begin result := stl; exit; end;
+  raise Exception.Create('FlexUI FATAL: no "default" style in stylesheet');
+  {
   stl := createDefaultStyle();
   SetLength(styles, Length(styles)+1);
   styles[High(styles)] := stl;
   result := stl;
+  }
 end;
 
 
@@ -180,7 +170,8 @@ procedure uiLoadStyles (const fname: AnsiString);
 var
   st: TStream;
 begin
-  st := openDiskFileRO(fname);
+  st := fuiOpenFile(fname);
+  if (st = nil) then raise Exception.Create('FlexUI file '''+fname+''' not found!');
   try
     uiLoadStyles(st);
   finally
@@ -224,9 +215,12 @@ begin
   end;
   // we should have "default" style
   for f := 0 to High(styles) do if (strEquCI1251(styles[f].mId, 'default')) then exit;
+  raise Exception.Create('FlexUI FATAL: no "default" style in stylesheet');
+  {
   stl := createDefaultStyle();
   SetLength(styles, Length(styles)+1);
   styles[High(styles)] := stl;
+  }
 end;
 
 

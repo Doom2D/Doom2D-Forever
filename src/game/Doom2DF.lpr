@@ -105,6 +105,7 @@ uses
   sdlcarcass in '../flexui/sdlcarcass.pas',
   //sdlstandalone in '../flexui/sdlstandalone.pas',
 
+  fui_wadread in '../flexui/fui_wadread.pas',
   fui_common in '../flexui/fui_common.pas',
   fui_gfx_gl in '../flexui/fui_gfx_gl.pas',
   fui_events in '../flexui/fui_events.pas',

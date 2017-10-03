@@ -41,8 +41,9 @@ uses
   e_graphics, e_input, g_game, g_console, g_gui,
   e_sound, g_options, g_sound, g_player,
   g_weapons, SysUtils, g_triggers, MAPDEF, g_map,
-  g_menu, g_language, g_net,
-  utils, conbuf, envvars;
+  g_menu, g_language, g_net, g_holmes,
+  utils, conbuf, envvars, fui_wadread, fui_style,
+  xparser;
 
 
 var
@@ -99,13 +100,35 @@ begin
   SDL_StartTextInput();
 {$ENDIF}
 
+{$IFNDEF HEADLESS}
+  if not fuiAddWad('flexui.wad') then
+  begin
+    if not fuiAddWad('./data/flexui.wad') then fuiAddWad('./flexui.wad');
+  end;
+  g_holmes_imfunctional := true;
+  try
+    e_LogWriteln('FlexUI: loading stylesheet...');
+    uiLoadStyles('flexui/widgets.wgs');
+    g_holmes_imfunctional := false;
+  except on e: TParserException do
+    begin
+      writeln('ERROR at (', e.tokLine, ',', e.tokCol, '): ', e.message);
+      //raise;
+    end;
+  else
+    begin
+      //raise;
+    end;
+  end;
+{$ENDIF}
+
   e_WriteLog('Entering SDLMain', TMsgType.Notify);
 
 {$WARNINGS OFF}
   SDLMain();
 {$WARNINGS ON}
 
-{$IFDEF HEADLESS}
+{$IFNDEF HEADLESS}
   SDL_StopTextInput();
 {$ENDIF}
 

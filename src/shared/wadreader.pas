@@ -64,9 +64,6 @@ function g_ExtractFilePath (resourceStr: AnsiString): AnsiString;
 function g_ExtractFileName (resourceStr: AnsiString): AnsiString; // without path
 function g_ExtractFilePathName (resourceStr: AnsiString): AnsiString;
 
-// return fixed AnsiString or empty AnsiString
-function findDiskWad (fname: AnsiString): AnsiString;
-
 
 var
   wadoptDebug: Boolean = false;
@@ -77,33 +74,6 @@ implementation
 
 uses
   SysUtils, e_log, MAPDEF, xdynrec;
-
-
-function findDiskWad (fname: AnsiString): AnsiString;
-begin
-  result := '';
-  if not findFileCI(fname) then
-  begin
-    //e_WriteLog(Format('findDiskWad: error looking for [%s]', [fname]), MSG_NOTIFY);
-    if StrEquCI1251(ExtractFileExt(fname), '.wad') then
-    begin
-      fname := ChangeFileExt(fname, '.pk3');
-      //e_WriteLog(Format('  looking for [%s]', [fname]), MSG_NOTIFY);
-      if not findFileCI(fname) then
-      begin
-        fname := ChangeFileExt(fname, '.zip');
-        //e_WriteLog(Format('  looking for [%s]', [fname]), MSG_NOTIFY);
-        if not findFileCI(fname) then exit;
-      end;
-    end
-    else
-    begin
-      exit;
-    end;
-  end;
-  //e_WriteLog(Format('findDiskWad: FOUND [%s]', [fname]), MSG_NOTIFY);
-  result := fname;
-end;
 
 
 function normSlashes (s: AnsiString): AnsiString;

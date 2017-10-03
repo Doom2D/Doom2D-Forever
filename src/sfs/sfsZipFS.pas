@@ -417,7 +417,8 @@ begin
   result :=
     StrEquCI1251(prefix, 'zip') or
     StrEquCI1251(prefix, 'pk3') or
-    StrEquCI1251(prefix, 'dfwad');
+    StrEquCI1251(prefix, 'dfwad') or
+    StrEquCI1251(prefix, 'dfzip');
 end;
 
 procedure TSFSZipVolumeFactory.Recycle (vol: TSFSVolume);

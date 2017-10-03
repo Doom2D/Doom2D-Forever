@@ -100,6 +100,9 @@ function utf8to1251 (s: AnsiString): AnsiString;
 // nobody cares about shitdoze, so i'll use the same code path for it
 function findFileCI (var pathname: AnsiString; lastIsDir: Boolean=false): Boolean;
 
+// return fixed AnsiString or empty AnsiString
+function findDiskWad (fname: AnsiString): AnsiString;
+
 // they throws
 function openDiskFileRO (pathname: AnsiString): TStream;
 function createDiskFile (pathname: AnsiString): TStream;
@@ -1119,6 +1122,34 @@ begin
     if not foundher then begin newname := ''; result := false; break; end;
   end;
   if result then pathname := newname;
+end;
+
+
+const fileExtensions: array [0..5] of AnsiString = ('.wad', '.dfzip', '.dfwad', '.pk3', '.pak', '.zip');
+
+function findDiskWad (fname: AnsiString): AnsiString;
+var
+  origExt: AnsiString = '';
+  newExt: AnsiString = '';
+begin
+  result := '';
+  //writeln('findDiskWad00: fname=<', fname, '>');
+  if (findFileCI(fname)) then begin result := fname; exit; end;
+  origExt := getFilenameExt(fname);
+  fname := forceFilenameExt(fname, '');
+  //writeln(' findDiskWad01: fname=<', fname, '>; origExt=<', origExt, '>');
+  for newExt in fileExtensions do
+  begin
+    //writeln(' findDiskWad02: fname=<', fname, '>; origExt=<', origExt, '>; newExt=<', newExt, '>');
+    if (StrEquCI1251(newExt, origExt)) then
+    begin
+      //writeln('   SKIP');
+      continue;
+    end;
+    result := fname+newExt;
+    if (findFileCI(result)) then exit;
+  end;
+  result := '';
 end;
 
 
