@@ -25,7 +25,7 @@
       <RevisionNr Value="5"/>
       <Language Value="0419"/>
       <CharSet Value="04E3"/>
-      <StringTable CompanyName="www.doom2d.org" FileDescription="Doom 2D: Forever Map Editor" InternalName="Редактор карт Doom 2D: Forever" LegalCopyright="All rights reserved." OriginalFilename="Editor" ProductName="Doom 2D: Forever Map Editor" ProductVersion=""/>
+      <StringTable CompanyName="www.doom2d.org" FileDescription="Doom 2D: Forever Map Editor" InternalName="Редактор карт Doom 2D: Forever" LegalCopyright="All rights reserved." OriginalFilename="Editor" ProductName="Doom 2D: Forever Map Editor" ProductVersion="2.1.5.0"/>
     </VersionInfo>
     <BuildModes Count="2">
       <Item1 Name="Debug" Default="True"/>
