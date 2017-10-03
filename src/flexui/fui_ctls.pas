@@ -106,6 +106,8 @@ type
 
     procedure calcFullClientSize ();
 
+    procedure drawFrame (gx, gy, resx, thalign: Integer; const text: AnsiString; dbl: Boolean);
+
   protected
     var savedClip: TGxRect; // valid only in `draw*()` calls
     //WARNING! do not call scissor functions outside `.draw*()` API!
@@ -121,8 +123,6 @@ type
     mMaxSize: TLaySize; // maximum size
     mFlex: Integer;
     mHoriz: Boolean;
-    mCanWrap: Boolean;
-    mLineStart: Boolean;
     mHGroup: AnsiString;
     mVGroup: AnsiString;
     mAlign: Integer;
@@ -143,9 +143,7 @@ type
     //procedure setMaxSize (const sz: TLaySize); inline; // max size; <0: set to some huge value
     function getFlex (): Integer; inline; // <=0: not flexible
     function isHorizBox (): Boolean; inline; // horizontal layout for children?
-    function canWrap (): Boolean; inline; // for horizontal boxes: can wrap children? for child: `false` means 'nonbreakable at *next* ctl'
     function noPad (): Boolean; inline; // ignore padding in box direction for this control
-    function isLineStart (): Boolean; inline; // `true` if this ctl should start a new line; ignored for vertical boxes
     function getAlign (): Integer; inline; // aligning in non-main direction: <0: left/up; 0: center; >0: right/down
     function getExpand (): Boolean; inline; // expanding in non-main direction: `true` will ignore align and eat all available space
     function getHGroup (): AnsiString; inline; // empty: not grouped
@@ -161,8 +159,6 @@ type
     property flMaxSize: TLaySize read mMaxSize write mMaxSize;
     property flPadding: TLaySize read mPadding write mPadding;
     property flHoriz: Boolean read mHoriz write mHoriz;
-    property flCanWrap: Boolean read mCanWrap write mCanWrap;
-    property flLineStart: Boolean read mLineStart write mLineStart;
     property flAlign: Integer read mAlign write mAlign;
     property flExpand: Boolean read mExpand write mExpand;
     property flHGroup: AnsiString read mHGroup write mHGroup;
@@ -373,17 +369,9 @@ type
 
     function parseProperty (const prname: AnsiString; par: TTextParser): Boolean; override;
 
+    procedure layPrepare (); override; // called before registering control in layouter
+
     procedure drawControl (gx, gy: Integer); override;
-  end;
-
-  TUIHLine = class(TUILine)
-  public
-    procedure AfterConstruction (); override; // so it will be correctly initialized when created from parser
-  end;
-
-  TUIVLine = class(TUILine)
-  public
-    procedure AfterConstruction (); override; // so it will be correctly initialized when created from parser
   end;
 
   // ////////////////////////////////////////////////////////////////////// //
@@ -890,14 +878,12 @@ begin
   actionCB := nil;
   // layouter interface
   //mDefSize := TLaySize.Create(64, uiContext.charHeight(' ')); // default size
-  mDefSize := TLaySize.Create(0, 0); // default size
+  mDefSize := TLaySize.Create(0, 0); // default size: hidden control
   mMaxSize := TLaySize.Create(-1, -1); // maximum size
   mPadding := TLaySize.Create(0, 0);
   mNoPad := false;
   mFlex := 0;
   mHoriz := true;
-  mCanWrap := false;
-  mLineStart := false;
   mHGroup := '';
   mVGroup := '';
   mStyleId := '';
@@ -1000,9 +986,7 @@ function TUIControl.getMaxSize (): TLaySize; inline; begin result := mLayMaxSize
 function TUIControl.getPadding (): TLaySize; inline; begin result := mPadding; end;
 function TUIControl.getFlex (): Integer; inline; begin result := mFlex; end;
 function TUIControl.isHorizBox (): Boolean; inline; begin result := mHoriz; end;
-function TUIControl.canWrap (): Boolean; inline; begin result := mCanWrap; end;
 function TUIControl.noPad (): Boolean; inline; begin result := mNoPad; end;
-function TUIControl.isLineStart (): Boolean; inline; begin result := mLineStart; end;
 function TUIControl.getAlign (): Integer; inline; begin result := mAlign; end;
 function TUIControl.getExpand (): Boolean; inline; begin result := mExpand; end;
 function TUIControl.getHGroup (): AnsiString; inline; begin result := mHGroup; end;
@@ -1019,14 +1003,23 @@ begin
   end;
   mWidth := asize.w;
   mHeight := asize.h;
+  if (mLayMaxSize.w >= 0) then mWidth := nmin(mWidth, mLayMaxSize.w);
+  if (mLayMaxSize.h >= 0) then mHeight := nmin(mHeight, mLayMaxSize.h);
 end;
 
 procedure TUIControl.layPrepare ();
 begin
   mLayDefSize := mDefSize;
-  mLayMaxSize := mMaxSize;
-  if (mLayMaxSize.w >= 0) then mLayMaxSize.w += mFrameWidth*2;
-  if (mLayMaxSize.h >= 0) then mLayMaxSize.h += mFrameHeight*2;
+  if (mLayDefSize.w <> 0) and (mLayDefSize.h <> 0) then
+  begin
+    mLayMaxSize := mMaxSize;
+    if (mLayMaxSize.w >= 0) then begin mLayDefSize.w += mFrameWidth*2; mLayMaxSize.w += mFrameWidth*2; end;
+    if (mLayMaxSize.h >= 0) then begin mLayDefSize.h += mFrameHeight*2; mLayMaxSize.h += mFrameHeight*2; end;
+  end
+  else
+  begin
+    mLayMaxSize := TLaySize.Create(0, 0);
+  end;
 end;
 
 
@@ -1267,8 +1260,6 @@ begin
   if (strEquCI1251(prname, 'padding')) then begin mPadding := parsePadding(par); exit; end;
   if (strEquCI1251(prname, 'nopad')) then begin mNoPad := true; exit; end;
   // flags
-  if (strEquCI1251(prname, 'wrap')) then begin mCanWrap := parseBool(par); exit; end;
-  if (strEquCI1251(prname, 'linestart')) then begin mLineStart := parseBool(par); exit; end;
   if (strEquCI1251(prname, 'expand')) then begin mExpand := parseBool(par); exit; end;
   // align
   if (strEquCI1251(prname, 'align')) then begin mAlign := parseAnyAlign(par); exit; end;
@@ -1490,7 +1481,7 @@ begin
     mParent.getDrawRect(gx, gy, wdt, hgt);
     if (wdt > 0) and (hgt > 0) then
     begin
-      if not intersectRect(gx, gy, wdt, hgt, cgx, cgy, mWidth, mHeight) then
+      if (not intersectRect(gx, gy, wdt, hgt, cgx, cgy, mWidth, mHeight)) then
       begin
         wdt := 0;
         hgt := 0;
@@ -1858,6 +1849,79 @@ end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
+procedure TUIControl.drawFrame (gx, gy, resx, thalign: Integer; const text: AnsiString; dbl: Boolean);
+var
+  cidx, tx, tw: Integer;
+begin
+  if (mFrameWidth < 1) or (mFrameHeight < 1) then exit;
+  cidx := getColorIndex;
+  uiContext.color := mFrameColor[cidx];
+  case mFrameHeight of
+    8:
+      begin
+        if dbl then
+        begin
+          uiContext.rect(gx+3, gy+3, mWidth-6, mHeight-6);
+          uiContext.rect(gx+5, gy+5, mWidth-10, mHeight-10);
+        end
+        else
+        begin
+          uiContext.rect(gx+4, gy+4, mWidth-8, mHeight-8);
+        end;
+      end;
+    14:
+      begin
+        if dbl then
+        begin
+          uiContext.rect(gx+3, gy+3+3, mWidth-6, mHeight-6-6);
+          uiContext.rect(gx+5, gy+5+3, mWidth-10, mHeight-10-6);
+        end
+        else
+        begin
+          uiContext.rect(gx+4, gy+4+3, mWidth-8, mHeight-8-6);
+        end;
+      end;
+    16:
+      begin
+        if dbl then
+        begin
+          uiContext.rect(gx+3, gy+3+4, mWidth-6, mHeight-6-8);
+          uiContext.rect(gx+5, gy+5+4, mWidth-10, mHeight-10-8);
+        end
+        else
+        begin
+          uiContext.rect(gx+4, gy+4+4, mWidth-8, mHeight-8-8);
+        end;
+      end;
+    else
+      begin
+        //TODO!
+        if dbl then
+        begin
+        end
+        else
+        begin
+        end;
+      end;
+  end;
+
+  // title
+  if (Length(text) > 0) then
+  begin
+    if (resx < 0) then resx := 0;
+    tw := uiContext.textWidth(text);
+    setScissor(mFrameWidth+resx, 0, mWidth-mFrameWidth*2-resx, mFrameHeight);
+         if (thalign < 0) then tx := gx+resx+mFrameWidth+2
+    else if (thalign > 0) then tx := gx+mWidth-mFrameWidth-1-tw
+    else tx := (gx+resx+mFrameWidth)+(mWidth-mFrameWidth*2-resx-tw) div 2;
+    uiContext.color := mBackColor[cidx];
+    uiContext.fillRect(tx-2, gy, tw+4, mFrameHeight);
+    uiContext.color := mFrameTextColor[cidx];
+    uiContext.drawText(tx, gy, text);
+  end;
+end;
+
+
 procedure TUIControl.draw ();
 var
   f: Integer;
@@ -1866,12 +1930,13 @@ var
   procedure resetScissor (fullArea: Boolean); inline;
   begin
     uiContext.clip := savedClip;
-    if (fullArea) then
+    if (fullArea) or ((mFrameWidth = 0) and (mFrameHeight = 0)) then
     begin
       setScissor(0, 0, mWidth, mHeight);
     end
     else
     begin
+      //writeln('frm: (', mFrameWidth, 'x', mFrameHeight, ')');
       setScissor(mFrameWidth, mFrameHeight, mWidth-mFrameWidth*2, mHeight-mFrameHeight*2);
     end;
   end;
@@ -1887,6 +1952,28 @@ begin
     resetScissor(false); // client area
     for f := 0 to High(mChildren) do mChildren[f].draw();
     resetScissor(true); // full area
+    if (self is TUISwitchBox) then
+    begin
+      uiContext.color := TGxRGBA.Create(255, 0, 0, 255);
+      //uiContext.fillRect(gx, gy, mWidth, mHeight);
+      //writeln('frm: (', mFrameWidth, 'x', mFrameHeight, '); sz=(', mWidth, 'x', mHeight, '); clip=', uiContext.clip.toString);
+    end;
+    if false and (mId = 'cbtest') then
+    begin
+      uiContext.color := TGxRGBA.Create(255, 127, 0, 96);
+      uiContext.fillRect(gx, gy, mWidth, mHeight);
+      if (mFrameWidth > 0) and (mFrameHeight > 0) then
+      begin
+        uiContext.color := TGxRGBA.Create(255, 255, 0, 96);
+        uiContext.fillRect(gx+mFrameWidth, gy+mFrameHeight, mWidth-mFrameWidth*2, mHeight-mFrameHeight*2);
+      end;
+    end
+    else if false and (self is TUISwitchBox) then
+    begin
+      uiContext.color := TGxRGBA.Create(255, 0, 0, 255);
+      uiContext.fillRect(gx, gy, mWidth, mHeight);
+      //writeln('frm: (', mFrameWidth, 'x', mFrameHeight, ')');
+    end;
     drawControlPost(gx, gy);
   finally
     uiContext.clip := savedClip;
@@ -2045,7 +2132,7 @@ begin
   inherited;
   mFitToScreen := true;
   mFrameWidth := 8;
-  mFrameHeight := 8;
+  mFrameHeight := uiContext.charHeight(#184);
   if (mWidth < mFrameWidth*2+uiContext.iconWinWidth(TGxContext.TWinIcon.Close)) then mWidth := mFrameWidth*2+uiContext.iconWinWidth(TGxContext.TWinIcon.Close);
   if (mHeight < mFrameHeight*2) then mHeight := mFrameHeight*2;
   if (Length(mTitle) > 0) then
@@ -2062,6 +2149,8 @@ begin
   mInClose := false;
   closeCB := nil;
   mCtl4Style := 'window';
+  mDefSize.w := nmax(1, mDefSize.w);
+  mDefSize.h := nmax(1, mDefSize.h);
 end;
 
 
@@ -2118,57 +2207,45 @@ begin
   uiContext.fillRect(gx, gy, mWidth, mHeight);
 end;
 
-
 procedure TUITopWindow.drawControlPost (gx, gy: Integer);
 var
   cidx: Integer;
-  tx, hgt, sbhgt, iwdt: Integer;
+  hgt, sbhgt, iwdt, ihgt: Integer;
 begin
   cidx := getColorIndex;
+  iwdt := uiContext.iconWinWidth(TGxContext.TWinIcon.Close);
   if (mDragScroll = TXMode.Drag) then
   begin
-    uiContext.color := mFrameColor[cidx];
-    uiContext.rect(gx+4, gy+4, mWidth-8, mHeight-8);
+    //uiContext.color := mFrameColor[cidx];
+    drawFrame(gx, gy, iwdt, 0, mTitle, false);
   end
   else
   begin
-    uiContext.color := mFrameColor[cidx];
-    uiContext.rect(gx+3, gy+3, mWidth-6, mHeight-6);
-    uiContext.rect(gx+5, gy+5, mWidth-10, mHeight-10);
+    ihgt := uiContext.iconWinHeight(TGxContext.TWinIcon.Close);
+    //uiContext.color := mFrameColor[cidx];
+    drawFrame(gx, gy, iwdt, 0, mTitle, true);
     // vertical scroll bar
     hgt := mHeight-mFrameHeight*2;
     if (hgt > 0) and (mFullSize.h > hgt) then
     begin
       //writeln(mTitle, ': height=', mHeight-mFrameHeight*2, '; fullsize=', mFullSize.toString);
       sbhgt := mHeight-mFrameHeight*2+2;
-      uiContext.fillRect(gx+mWidth-mFrameWidth+1, gy+7, mFrameWidth-3, sbhgt);
+      uiContext.fillRect(gx+mWidth-mFrameWidth+1, gy+mFrameHeight-1, mFrameWidth-3, sbhgt);
       hgt += mScrollY;
       if (hgt > mFullSize.h) then hgt := mFullSize.h;
       hgt := sbhgt*hgt div mFullSize.h;
       if (hgt > 0) then
       begin
-        setScissor(mWidth-mFrameWidth+1, 7, mFrameWidth-3, sbhgt);
-        uiContext.darkenRect(gx+mWidth-mFrameWidth+1, gy+7+hgt, mFrameWidth-3, sbhgt, 128);
+        setScissor(mWidth-mFrameWidth+1, mFrameHeight-1, mFrameWidth-3, sbhgt);
+        uiContext.darkenRect(gx+mWidth-mFrameWidth+1, gy+mFrameHeight-1+hgt, mFrameWidth-3, sbhgt, 128);
       end;
     end;
     // frame icon
-    iwdt := uiContext.iconWinWidth(TGxContext.TWinIcon.Close);
-    setScissor(mFrameWidth, 0, iwdt, 8);
+    setScissor(mFrameWidth, 0, iwdt, ihgt);
     uiContext.color := mBackColor[cidx];
-    uiContext.fillRect(gx+mFrameWidth, gy, iwdt, 8);
+    uiContext.fillRect(gx+mFrameWidth, gy, iwdt, ihgt);
     uiContext.color := mFrameIconColor[cidx];
     uiContext.drawIconWin(TGxContext.TWinIcon.Close, gx+mFrameWidth, gy, mInClose);
-  end;
-  // title
-  if (Length(mTitle) > 0) then
-  begin
-    iwdt := uiContext.iconWinWidth(TGxContext.TWinIcon.Close);
-    setScissor(mFrameWidth+iwdt, 0, mWidth-mFrameWidth*2-iwdt, 8);
-    tx := (gx+iwdt)+((mWidth-iwdt)-uiContext.textWidth(mTitle)) div 2;
-    uiContext.color := mBackColor[cidx];
-    uiContext.fillRect(tx-3, gy, uiContext.textWidth(mTitle)+3+2, 8);
-    uiContext.color := mFrameTextColor[cidx];
-    uiContext.drawText(tx, gy, mTitle);
   end;
   // shadow
   inherited drawControlPost(gx, gy);
@@ -2260,7 +2337,7 @@ begin
   begin
     if (ev.press) then
     begin
-      if (ly < 8) then
+      if (ly < mFrameHeight) then
       begin
         uiGrabCtl := self;
         if (lx >= mFrameWidth) and (lx < mFrameWidth+uiContext.iconWinWidth(TGxContext.TWinIcon.Close)) then
@@ -2357,6 +2434,7 @@ begin
   mCanFocus := false;
   mHAlign := -1; // left
   mCtl4Style := 'box';
+  mDefSize := TLaySize.Create(-1, -1);
 end;
 
 
@@ -2370,7 +2448,7 @@ end;
 procedure TUIBox.setHasFrame (v: Boolean);
 begin
   mHasFrame := v;
-  if (mHasFrame) then begin mFrameWidth := 8; mFrameHeight := 8; end else begin mFrameWidth := 0; mFrameHeight := 0; end;
+  if (mHasFrame) then begin mFrameWidth := 8; mFrameHeight := uiContext.charHeight(#184); end else begin mFrameWidth := 0; mFrameHeight := 0; end;
   if (mHasFrame) then mNoPad := true;
 end;
 
@@ -2420,26 +2498,29 @@ begin
   cidx := getColorIndex;
   uiContext.color := mBackColor[cidx];
   uiContext.fillRect(gx, gy, mWidth, mHeight);
-  if mHasFrame then
+  if (mHasFrame) then
   begin
     // draw frame
-    uiContext.color := mFrameColor[cidx];
-    uiContext.rect(gx+3, gy+3, mWidth-6, mHeight-6);
-  end;
-  // draw caption
-  if (Length(mCaption) > 0) then
+    drawFrame(gx, gy, 0, -1, mCaption, false);
+    //uiContext.color := mFrameColor[cidx];
+    //uiContext.rect(gx+3, gy+3, mWidth-6, mHeight-6);
+  end
+  else if (Length(mCaption) > 0) then
   begin
+    // draw caption
          if (mHAlign < 0) then xpos := 3
     else if (mHAlign > 0) then xpos := mWidth-mFrameWidth*2-uiContext.textWidth(mCaption)
     else xpos := (mWidth-mFrameWidth*2-uiContext.textWidth(mCaption)) div 2;
     xpos += gx+mFrameWidth;
 
-    setScissor(mFrameWidth+1, 0, mWidth-mFrameWidth-2, 8);
-    if mHasFrame then
+    setScissor(mFrameWidth+1, 0, mWidth-mFrameWidth-2, uiContext.textHeight(mCaption));
+    {
+    if (mHasFrame) then
     begin
       uiContext.color := mBackColor[cidx];
       uiContext.fillRect(xpos-3, gy, uiContext.textWidth(mCaption)+4, 8);
     end;
+    }
     uiContext.color := mFrameTextColor[cidx];
     uiContext.drawText(xpos, gy, mCaption);
   end;
@@ -2518,6 +2599,7 @@ begin
   mCanFocus := false;
   mNoPad := true;
   mCtl4Style := 'span';
+  mDefSize := TLaySize.Create(-1, -1);
 end;
 
 
@@ -2541,6 +2623,7 @@ begin
   mExpand := true;
   mCanFocus := false;
   mCtl4Style := 'line';
+  mDefSize := TLaySize.Create(-1, -1);
 end;
 
 
@@ -2548,6 +2631,23 @@ function TUILine.parseProperty (const prname: AnsiString; par: TTextParser): Boo
 begin
   if (parseOrientation(prname, par)) then begin result := true; exit; end;
   result := inherited parseProperty(prname, par);
+end;
+
+
+procedure TUILine.layPrepare ();
+begin
+  inherited layPrepare();
+  if (mParent <> nil) then mHoriz := not mParent.mHoriz;
+  if (mHoriz) then
+  begin
+    if (mLayDefSize.w < 0) then mLayDefSize.w := 1;
+    if (mLayDefSize.h < 0) then mLayDefSize.h := 7;
+  end
+  else
+  begin
+    if (mLayDefSize.w < 0) then mLayDefSize.w := 7;
+    if (mLayDefSize.h < 0) then mLayDefSize.h := 1;
+  end;
 end;
 
 
@@ -2563,24 +2663,6 @@ end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-procedure TUIHLine.AfterConstruction ();
-begin
-  inherited;
-  mHoriz := true;
-  mDefSize.h := 7;
-end;
-
-
-// ////////////////////////////////////////////////////////////////////////// //
-procedure TUIVLine.AfterConstruction ();
-begin
-  inherited;
-  mHoriz := false;
-  mDefSize.w := 7;
-end;
-
-
-// ////////////////////////////////////////////////////////////////////////// //
 procedure TUIStaticText.AfterConstruction ();
 begin
   inherited;
@@ -2590,7 +2672,6 @@ begin
   mHoriz := true; // nobody cares
   mHeader := false;
   mLine := false;
-  mDefSize.h := uiContext.charHeight(' ');
   mCtl4Style := 'static';
 end;
 
@@ -2685,7 +2766,6 @@ begin
   mHAlign := -1;
   mVAlign := 0;
   mCanFocus := false;
-  mDefSize := TLaySize.Create(uiContext.textWidth(mText), uiContext.textHeight(mText));
   mCtl4Style := 'label';
   mLinkId := '';
 end;
@@ -2943,7 +3023,7 @@ begin
   mVAlign := 0;
   mCanFocus := true;
   mIcon := TGxContext.TMarkIcon.Checkbox;
-  mDefSize := TLaySize.Create(uiContext.textWidth(mText)+3+uiContext.iconMarkWidth(mIcon), uiContext.iconMarkHeight(mIcon));
+  mDefSize := TLaySize.Create(uiContext.textWidth(mText)+3+uiContext.iconMarkWidth(mIcon), nmax(uiContext.iconMarkHeight(mIcon), uiContext.textHeight(mText)));
   mCtl4Style := 'switchbox';
   mChecked := false;
   mBoolVar := @mChecked;
@@ -2965,7 +3045,7 @@ end;
 procedure TUISwitchBox.setText (const s: AnsiString);
 begin
   inherited setText(s);
-  mDefSize := TLaySize.Create(uiContext.textWidth(mText)+3+uiContext.iconMarkWidth(mIcon), uiContext.iconMarkHeight(mIcon));
+  mDefSize := TLaySize.Create(uiContext.textWidth(mText)+3+uiContext.iconMarkWidth(mIcon), nmax(uiContext.iconMarkHeight(mIcon), uiContext.textHeight(mText)));
 end;
 
 
@@ -3000,36 +3080,45 @@ end;
 
 procedure TUISwitchBox.drawControl (gx, gy: Integer);
 var
-  xpos, ypos: Integer;
+  xpos, ypos, iwdt, dy: Integer;
   cidx: Integer;
 begin
   cidx := getColorIndex;
 
+  iwdt := uiContext.iconMarkWidth(mIcon);
        if (mHAlign < 0) then xpos := 0
-  else if (mHAlign > 0) then xpos := mWidth-(uiContext.textWidth(mText)+3+uiContext.iconMarkWidth(mIcon))
-  else xpos := (mWidth-(uiContext.textWidth(mText)+3+uiContext.iconMarkWidth(mIcon))) div 2;
-
-       if (mVAlign < 0) then ypos := 0
-  else if (mVAlign > 0) then ypos := mHeight-uiContext.iconMarkHeight(mIcon)
-  else ypos := (mHeight-uiContext.iconMarkHeight(mIcon)) div 2;
-
-  uiContext.color := mBackColor[cidx];
-  uiContext.fillRect(gx, gy, mWidth, mHeight);
-
-  uiContext.color := mSwitchColor[cidx];
-  uiContext.drawIconMark(mIcon, gx, gy, checked);
+  else if (mHAlign > 0) then xpos := mWidth-(uiContext.textWidth(mText)+3+iwdt)
+  else xpos := (mWidth-(uiContext.textWidth(mText)+3+iwdt)) div 2;
 
        if (mVAlign < 0) then ypos := 0
   else if (mVAlign > 0) then ypos := mHeight-uiContext.textHeight(mText)
   else ypos := (mHeight-uiContext.textHeight(mText)) div 2;
 
+  uiContext.color := mBackColor[cidx];
+  uiContext.fillRect(gx, gy, mWidth, mHeight);
+
+  uiContext.color := mSwitchColor[cidx];
+  if (uiContext.iconMarkHeight(mIcon) < uiContext.textHeight(mText)) then
+  begin
+    case uiContext.textHeight(mText) of
+      14: dy := 2;
+      16: dy := 3;
+      else dy := 1;
+    end;
+    uiContext.drawIconMark(mIcon, gx, gy+ypos+uiContext.textHeight(mText)-uiContext.iconMarkHeight(mIcon)-dy, checked);
+  end
+  else
+  begin
+    uiContext.drawIconMark(mIcon, gx, gy, checked);
+  end;
+
   uiContext.color := mTextColor[cidx];
-  uiContext.drawText(gx+xpos+3+uiContext.iconMarkWidth(mIcon), gy+ypos, mText);
+  uiContext.drawText(gx+xpos+3+iwdt, gy+ypos, mText);
 
   if (mHotChar <> #0) and (mHotChar <> ' ') then
   begin
     uiContext.color := mHotColor[cidx];
-    uiContext.drawChar(gx+xpos+3+uiContext.iconMarkWidth(mIcon)+mHotOfs, gy+ypos, mHotChar);
+    uiContext.drawChar(gx+xpos+3+iwdt+mHotOfs, gy+ypos, mHotChar);
   end;
 end;
 
@@ -3164,8 +3253,7 @@ initialization
   registerCtlClass(TUIHBox, 'hbox');
   registerCtlClass(TUIVBox, 'vbox');
   registerCtlClass(TUISpan, 'span');
-  registerCtlClass(TUIHLine, 'hline');
-  registerCtlClass(TUIVLine, 'vline');
+  registerCtlClass(TUILine, 'line');
   registerCtlClass(TUITextLabel, 'label');
   registerCtlClass(TUIStaticText, 'static');
   registerCtlClass(TUIButton, 'button');

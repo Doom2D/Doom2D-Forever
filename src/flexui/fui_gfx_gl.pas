@@ -408,7 +408,7 @@ end;
 
 procedure TGxBmpFont.oglCreateTexture ();
 begin
-  mTexId := createFontTexture(mFontBmp, mFontWdt, (mWidth <= 0));
+  mTexId := createFontTexture(mFontBmp, mFontWdt, mHeight, (mWidth <= 0));
 end;
 
 
@@ -462,12 +462,12 @@ begin
   for ch in s do
   begin
     tx := (Integer(ch) mod 16)*8;
-    ty := (Integer(ch) div 16)*8;
+    ty := (Integer(ch) div 16)*16;
     glBegin(GL_QUADS);
-      glTexCoord2f((tx+0)/128.0, (ty+0)/128.0); glVertex2i(x+0, y+0); // top-left
-      glTexCoord2f((tx+8)/128.0, (ty+0)/128.0); glVertex2i(x+8, y+0); // top-right
-      glTexCoord2f((tx+8)/128.0, (ty+8)/128.0); glVertex2i(x+8, y+8); // bottom-right
-      glTexCoord2f((tx+0)/128.0, (ty+8)/128.0); glVertex2i(x+0, y+8); // bottom-left
+      glTexCoord2f((tx+0)/128.0, (ty+0)/256.0); glVertex2i(x+0, y+0); // top-left
+      glTexCoord2f((tx+8)/128.0, (ty+0)/256.0); glVertex2i(x+8, y+0); // top-right
+      glTexCoord2f((tx+8)/128.0, (ty+mHeight)/256.0); glVertex2i(x+8, y+mHeight); // bottom-right
+      glTexCoord2f((tx+0)/128.0, (ty+mHeight)/256.0); glVertex2i(x+0, y+mHeight); // bottom-left
     glEnd();
     x += (mFontWdt[Byte(ch)] and $0f)+1;
     result += (mFontWdt[Byte(ch)] and $0f)+1;
@@ -535,11 +535,17 @@ end;
 procedure createFonts ();
 begin
   deleteFonts();
-  SetLength(fontList, 4);
+  SetLength(fontList, 10);
   fontList[0] := TGxBmpFont.Create('dos', 8, 8, @kgiFont8[0], @kgiFont8PropWidth[0]);
   fontList[1] := TGxBmpFont.Create('dos-prop', 0, 8, @kgiFont8[0], @kgiFont8PropWidth[0]);
   fontList[2] := TGxBmpFont.Create('msx', 6, 8, @kgiFont6[0], @kgiFont6PropWidth[0]);
   fontList[3] := TGxBmpFont.Create('msx-prop', 0, 8, @kgiFont6[0], @kgiFont6PropWidth[0]);
+  fontList[4] := TGxBmpFont.Create('win8', 8, 8, @kgiWFont8[0], @kgiWFont8Wdt[0]);
+  fontList[5] := TGxBmpFont.Create('win8-prop', 0, 8, @kgiWFont8[0], @kgiWFont8Wdt[0]);
+  fontList[6] := TGxBmpFont.Create('win14', 8, 14, @kgiFont14[0], @kgiFont14Wdt[0]);
+  fontList[7] := TGxBmpFont.Create('win14-prop', 9, 14, @kgiFont14[0], @kgiFont14Wdt[0]);
+  fontList[8] := TGxBmpFont.Create('win16', 8, 16, @kgiFont16[0], @kgiFont16Wdt[0]);
+  fontList[9] := TGxBmpFont.Create('win16-prop', 0, 16, @kgiFont16[0], @kgiFont16Wdt[0]);
 end;
 
 

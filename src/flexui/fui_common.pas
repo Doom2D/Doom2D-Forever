@@ -86,6 +86,8 @@ type
     function isOpaque (): Boolean; inline;
     function isTransparent (): Boolean; inline;
 
+    function toString (): AnsiString;
+
     // WARNING! This function does blending in RGB space, and RGB space is not linear!
     // alpha value of `self` doesn't matter
     // `aa` means: 255 for replace color, 0 for keep `self`
@@ -101,6 +103,8 @@ type
 
     function empty (): Boolean; inline; // invalid rects are empty too
     function valid (): Boolean; inline;
+
+    function toString (): AnsiString;
 
     // modifies this rect, so it won't be bigger than `r`
     // returns `false` if this rect becomes empty
@@ -195,6 +199,9 @@ begin
   result.a := a;
 end;
 
+function TGxRGBA.toString (): AnsiString; begin result := formatstrf('rgba(%s,%s,%s,%s)', [r, g, b, a]); end;
+
+
 
 // ////////////////////////////////////////////////////////////////////////// //
 constructor TGxRect.Create (ax, ay, aw, ah: Integer); begin x := ax; y := ay; w := aw; h := ah; end;
@@ -206,6 +213,8 @@ function TGxRect.intersect (constref r: TGxRect): Boolean; inline;
 begin
   result := intersectRect(x, y, w, h, r.x, r.y, r.w, r.h);
 end;
+
+function TGxRect.toString (): AnsiString; begin result := formatstrf('(%s,%s;%sx%s)', [x, y, w, h]); end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
