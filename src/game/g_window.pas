@@ -767,6 +767,8 @@ var
   {$ENDIF}
   arg: AnsiString;
   mdfo: TStream;
+  itmp: Integer;
+  valres: Word;
 begin
 {$IFDEF HEADLESS}
   e_NoGraphics := true;
@@ -799,11 +801,30 @@ begin
     {.$ENDIF}
 
     if arg = '--holmes' then begin g_holmes_enabled := true; g_Game_SetDebugMode(); end;
+
     if (arg = '--holmes-ui-scale') or (arg = '-holmes-ui-scale') then
     begin
       if (idx <= ParamCount) then
       begin
         if not conParseFloat(fuiRenderScale, ParamStr(idx)) then fuiRenderScale := 1.0;
+        Inc(idx);
+      end;
+    end;
+
+    if (arg = '--holmes-font') or (arg = '-holmes-font') then
+    begin
+      if (idx <= ParamCount) then
+      begin
+        itmp := 0;
+        val(ParamStr(idx), itmp, valres);
+        if (valres = 0) then
+        begin
+          case itmp of
+            8: uiContext.font := 'win8';
+            14: uiContext.font := 'win14';
+            16: uiContext.font := 'win16';
+          end;
+        end;
         Inc(idx);
       end;
     end;
