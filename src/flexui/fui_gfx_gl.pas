@@ -15,6 +15,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  *)
 {$INCLUDE ../shared/a_modes.inc}
+{$DEFINE FUI_TEXT_ICONS}
 unit fui_gfx_gl;
 
 interface
@@ -148,6 +149,9 @@ var
 
 
 implementation
+
+uses
+  utils;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
@@ -351,6 +355,10 @@ type
     procedure oglCreateTexture ();
     procedure oglDestroyTexture ();
 
+    procedure initDrawText ();
+    procedure doneDrawText ();
+    function drawCharInterim (x, y: Integer; const ch: AnsiChar): Integer; // return width (not including last empty pixel)
+    function drawCharInternal (x, y: Integer; const ch: AnsiChar): Integer; // return width (not including last empty pixel)
     function drawTextInternal (x, y: Integer; const s: AnsiString): Integer; // return width (not including last empty pixel)
 
   public
@@ -444,38 +452,62 @@ begin
 end;
 
 
-// return width (not including last empty pixel)
-function TGxBmpFont.drawTextInternal (x, y: Integer; const s: AnsiString): Integer;
-var
-  ch: AnsiChar;
-  tx, ty: Integer;
+procedure TGxBmpFont.initDrawText ();
 begin
-  if (Length(s) = 0) then begin result := 0; exit; end;
-
-  result := -1;
-
   glEnable(GL_ALPHA_TEST);
   glAlphaFunc(GL_NOTEQUAL, 0.0);
   glEnable(GL_TEXTURE_2D);
   glBindTexture(GL_TEXTURE_2D, mTexId);
+end;
 
-  for ch in s do
-  begin
-    tx := (Integer(ch) mod 16)*8;
-    ty := (Integer(ch) div 16)*16;
-    glBegin(GL_QUADS);
-      glTexCoord2f((tx+0)/128.0, (ty+0)/256.0); glVertex2i(x+0, y+0); // top-left
-      glTexCoord2f((tx+8)/128.0, (ty+0)/256.0); glVertex2i(x+8, y+0); // top-right
-      glTexCoord2f((tx+8)/128.0, (ty+mHeight)/256.0); glVertex2i(x+8, y+mHeight); // bottom-right
-      glTexCoord2f((tx+0)/128.0, (ty+mHeight)/256.0); glVertex2i(x+0, y+mHeight); // bottom-left
-    glEnd();
-    x += (mFontWdt[Byte(ch)] and $0f)+1;
-    result += (mFontWdt[Byte(ch)] and $0f)+1;
-  end;
 
+procedure TGxBmpFont.doneDrawText ();
+begin
   glDisable(GL_ALPHA_TEST);
   glDisable(GL_TEXTURE_2D);
   glBindTexture(GL_TEXTURE_2D, 0);
+end;
+
+
+function TGxBmpFont.drawCharInterim (x, y: Integer; const ch: AnsiChar): Integer;
+var
+  tx, ty: Integer;
+begin
+  tx := (Integer(ch) mod 16)*8;
+  ty := (Integer(ch) div 16)*16;
+  glBegin(GL_QUADS);
+    glTexCoord2f((tx+0)/128.0, (ty+0)/256.0); glVertex2i(x+0, y+0); // top-left
+    glTexCoord2f((tx+8)/128.0, (ty+0)/256.0); glVertex2i(x+8, y+0); // top-right
+    glTexCoord2f((tx+8)/128.0, (ty+mHeight)/256.0); glVertex2i(x+8, y+mHeight); // bottom-right
+    glTexCoord2f((tx+0)/128.0, (ty+mHeight)/256.0); glVertex2i(x+0, y+mHeight); // bottom-left
+  glEnd();
+  result := (mFontWdt[Byte(ch)] and $0f);
+end;
+
+
+function TGxBmpFont.drawCharInternal (x, y: Integer; const ch: AnsiChar): Integer;
+begin
+  initDrawText();
+  result := drawCharInterim(x, y, ch);
+  doneDrawText();
+end;
+
+
+function TGxBmpFont.drawTextInternal (x, y: Integer; const s: AnsiString): Integer;
+var
+  ch: AnsiChar;
+  wdt: Integer;
+begin
+  if (Length(s) = 0) then begin result := 0; exit; end;
+  result := -1;
+  initDrawText();
+  for ch in s do
+  begin
+    wdt := drawCharInterim(x, y, ch)+1;
+    x += wdt;
+    result += wdt;
+  end;
+  doneDrawText();
 end;
 
 
@@ -945,7 +977,7 @@ function TGxContext.drawChar (x, y: Integer; const ch: AnsiChar): Integer; // re
 begin
   result := mFont.charWidth(ch);
   if (not mActive) or (mClipRect.w < 1) or (mClipRect.h < 1) or (mColor.a = 0) then exit;
-  TGxBmpFont(mFont).drawTextInternal(x, y, ch);
+  TGxBmpFont(mFont).drawCharInternal(x, y, ch);
 end;
 
 function TGxContext.drawText (x, y: Integer; const s: AnsiString): Integer; // returns text width
@@ -956,14 +988,57 @@ begin
 end;
 
 
-function TGxContext.iconMarkWidth (ic: TMarkIcon): Integer; begin result := 11; end;
-function TGxContext.iconMarkHeight (ic: TMarkIcon): Integer; begin result := 8; end;
+function TGxContext.iconMarkWidth (ic: TMarkIcon): Integer;
+begin
+  {$IFDEF FUI_TEXT_ICONS}
+  case ic of
+    TMarkIcon.Checkbox: result := textWidth('[x]');
+    TMarkIcon.Radiobox: result := textWidth('(*)');
+    else result := textWidth('[x]');
+  end;
+  {$ELSE}
+  result := 11;
+  {$ENDIF}
+end;
+
+function TGxContext.iconMarkHeight (ic: TMarkIcon): Integer;
+begin
+  {$IFDEF FUI_TEXT_ICONS}
+  case ic of
+    TMarkIcon.Checkbox: result := textHeight('[x]');
+    TMarkIcon.Radiobox: result := textHeight('(*)');
+    else result := textHeight('[x]');
+  end;
+  {$ELSE}
+  result := 8;
+  {$ENDIF}
+end;
 
 procedure TGxContext.drawIconMark (ic: TMarkIcon; x, y: Integer; marked: Boolean);
 var
+  {$IFDEF FUI_TEXT_ICONS}
+  xstr: AnsiString;
+  {$ELSE}
   f: Integer;
+  {$ENDIF}
 begin
   if (not mActive) or (mClipRect.w < 1) or (mClipRect.h < 1) or (mColor.a = 0) then exit;
+  {$IFDEF FUI_TEXT_ICONS}
+  case ic of
+    TMarkIcon.Checkbox: xstr := '[x]';
+    TMarkIcon.Radiobox: xstr := '(*)';
+    else exit;
+  end;
+  if (marked) then
+  begin
+    drawText(x, y, xstr);
+  end
+  else
+  begin
+    drawChar(x, y, xstr[1]);
+    drawChar(x+textWidth(xstr)-charWidth(xstr[3]), y, xstr[3]);
+  end;
+  {$ELSE}
   if (ic = TMarkIcon.Checkbox) then
   begin
     vline(x, y, 7);
@@ -1001,23 +1076,61 @@ begin
         hline(x+4, y+5, 3);
       end;
   end;
+  {$ENDIF}
 end;
 
 
-function TGxContext.iconWinWidth (ic: TWinIcon): Integer; begin result := 9; end;
-function TGxContext.iconWinHeight (ic: TWinIcon): Integer; begin result := 8; end;
+function TGxContext.iconWinWidth (ic: TWinIcon): Integer;
+begin
+  {$IFDEF FUI_TEXT_ICONS}
+  case ic of
+    TWinIcon.Close: result := nmax(textWidth('[x]'), textWidth('[#]'));
+    else result := nmax(textWidth('[x]'), textWidth('[#]'));
+  end;
+  {$ELSE}
+  result := 9;
+  {$ENDIF}
+end;
+
+function TGxContext.iconWinHeight (ic: TWinIcon): Integer;
+begin
+  {$IFDEF FUI_TEXT_ICONS}
+  case ic of
+    TWinIcon.Close: result := nmax(textHeight('[x]'), textHeight('[#]'));
+    else result := nmax(textHeight('[x]'), textHeight('[#]'));
+  end;
+  {$ELSE}
+  result := 8;
+  {$ENDIF}
+end;
 
 procedure TGxContext.drawIconWin (ic: TWinIcon; x, y: Integer; pressed: Boolean);
 var
+  {$IFDEF FUI_TEXT_ICONS}
+  xstr: AnsiString;
+  wdt: Integer;
+  {$ELSE}
   f: Integer;
+  {$ENDIF}
 begin
   if (not mActive) or (mClipRect.w < 1) or (mClipRect.h < 1) or (mColor.a = 0) then exit;
+  {$IFDEF FUI_TEXT_ICONS}
+  case ic of
+    TWinIcon.Close: if (pressed) then xstr := '[#]' else xstr := '[x]';
+    else exit;
+  end;
+  wdt := nmax(textWidth('[x]'), textWidth('[#]'));
+  drawChar(x, y, xstr[1]);
+  drawChar(x+wdt-charWidth(xstr[3]), y, xstr[3]);
+  drawChar(x+((wdt-charWidth(xstr[2])) div 2), y, xstr[2]);
+  {$ELSE}
   if pressed then rect(x, y, 9, 8);
   for f := 1 to 5 do
   begin
     vline(x+1+f, y+f, 1);
     vline(x+1+6-f, y+f, 1);
   end;
+  {$ENDIF}
 end;
 
 
