@@ -64,6 +64,7 @@ type
     mCancel: Boolean;
     mDefault: Boolean;
     // colors
+    mStyleLoaded: Boolean;
     mCtl4Style: AnsiString;
     mBackColor: array[0..ClrIdxMax] of TGxRGBA;
     mTextColor: array[0..ClrIdxMax] of TGxRGBA;
@@ -438,15 +439,39 @@ type
   // ////////////////////////////////////////////////////////////////////// //
   TUIButton = class(TUITextLabel)
   protected
+    mSkipLayPrepare: Boolean;
+    mShadowSize: Integer;
+    mAddMarkers: Boolean;
+    mHideMarkers: Boolean;
+    mPushed: Boolean;
+
+  protected
     procedure setText (const s: AnsiString); override;
+
+    procedure cacheStyle (root: TUIStyle); override;
 
   public
     procedure AfterConstruction (); override; // so it will be correctly initialized when created from parser
+
+    procedure layPrepare (); override; // called before registering control in layouter
 
     procedure drawControl (gx, gy: Integer); override;
 
     procedure mouseEvent (var ev: THMouseEvent); override;
     procedure keyEvent (var ev: THKeyEvent); override;
+  end;
+
+  // ////////////////////////////////////////////////////////////////////// //
+  TUIButtonRound = class(TUIButton)
+  protected
+    procedure setText (const s: AnsiString); override;
+
+  public
+    procedure AfterConstruction (); override; // so it will be correctly initialized when created from parser
+
+    procedure layPrepare (); override; // called before registering control in layouter
+
+    procedure drawControl (gx, gy: Integer); override;
   end;
 
   // ////////////////////////////////////////////////////////////////////// //
@@ -624,6 +649,7 @@ begin
   if (ctl = nil) then exit;
   lay := TFlexLayouter.Create();
   try
+    if (not ctl.mStyleLoaded) then ctl.updateStyle();
     if (ctl is TUITopWindow) and (TUITopWindow(ctl).fitToScreen) then TUITopWindow(ctl).flFitToScreen();
 
     lay.setup(ctl);
@@ -804,7 +830,7 @@ begin
   if (Length(uiTopList) > 0) then uiTopList[High(uiTopList)].blurred();
   SetLength(uiTopList, Length(uiTopList)+1);
   uiTopList[High(uiTopList)] := ctl;
-  ctl.updateStyle();
+  if (not ctl.mStyleLoaded) then ctl.updateStyle();
   ctl.activated();
 end;
 
@@ -890,6 +916,7 @@ begin
   mCtl4Style := '';
   mAlign := -1; // left/top
   mExpand := false;
+  mStyleLoaded := false;
 end;
 
 
@@ -948,6 +975,7 @@ begin
   if (stl = nil) then stl := uiFindStyle(''); // default
   cacheStyle(stl);
   for ctl in mChildren do ctl.updateStyle();
+  mStyleLoaded := true;
 end;
 
 procedure TUIControl.cacheStyle (root: TUIStyle);
@@ -1010,7 +1038,7 @@ end;
 procedure TUIControl.layPrepare ();
 begin
   mLayDefSize := mDefSize;
-  if (mLayDefSize.w <> 0) and (mLayDefSize.h <> 0) then
+  if (mLayDefSize.w <> 0) or (mLayDefSize.h <> 0) then
   begin
     mLayMaxSize := mMaxSize;
     if (mLayMaxSize.w >= 0) then begin mLayDefSize.w += mFrameWidth*2; mLayMaxSize.w += mFrameWidth*2; end;
@@ -2931,22 +2959,255 @@ end;
 procedure TUIButton.AfterConstruction ();
 begin
   inherited;
-  mHAlign := -1;
+  mHAlign := 0;
   mVAlign := 0;
+  mShadowSize := 0;
   mCanFocus := true;
-  mDefSize := TLaySize.Create(uiContext.textWidth(mText)+8*2, uiContext.textHeight(mText)+2);
+  mDefSize := TLaySize.Create(uiContext.textWidth(mText)+uiContext.textWidth('[  ]'), uiContext.textHeight(mText));
   mCtl4Style := 'button';
+  mSkipLayPrepare := false;
+  mAddMarkers := false;
+  mHideMarkers := false;
+end;
+
+
+procedure TUIButton.cacheStyle (root: TUIStyle);
+var
+  sz: Integer = 0;
+begin
+  inherited cacheStyle(root);
+  // shadow size
+  sz := nmax(0, root.get('shadow-size', 'active', mCtl4Style).asInt(0));
+  sz := nmax(sz, root.get('shadow-size', 'disabled', mCtl4Style).asInt(0));
+  sz := nmax(sz, root.get('shadow-size', 'inactive', mCtl4Style).asInt(0));
+  mShadowSize := sz;
+  // markers mode
+  mAddMarkers := root.get('add-markers', 'active', mCtl4Style).asBool(false);
+  mAddMarkers := mAddMarkers or root.get('add-markers', 'disabled', mCtl4Style).asBool(false);
+  mAddMarkers := mAddMarkers or root.get('add-markers', 'inactive', mCtl4Style).asBool(false);
+  // hide markers?
+  mHideMarkers := root.get('hide-markers', 'active', mCtl4Style).asBool(false);
+  mHideMarkers := mHideMarkers or root.get('hide-markers', 'disabled', mCtl4Style).asBool(false);
+  mHideMarkers := mHideMarkers or root.get('hide-markers', 'inactive', mCtl4Style).asBool(false);
 end;
 
 
 procedure TUIButton.setText (const s: AnsiString);
 begin
   inherited setText(s);
-  mDefSize := TLaySize.Create(uiContext.textWidth(mText)+8*2, uiContext.textHeight(mText)+2);
+  if (mHideMarkers) then
+  begin
+    mDefSize := TLaySize.Create(uiContext.textWidth(mText)+10, uiContext.textHeight(mText));
+  end
+  else if (mAddMarkers) then
+  begin
+    mDefSize := TLaySize.Create(uiContext.textWidth(mText)+uiContext.textWidth('[<>]'), uiContext.textHeight(mText));
+  end
+  else
+  begin
+    mDefSize := TLaySize.Create(uiContext.textWidth(mText)+uiContext.textWidth('<>'), uiContext.textHeight(mText));
+  end;
+end;
+
+
+procedure TUIButton.layPrepare ();
+var
+  ods: TLaySize;
+  ww: Integer;
+begin
+  if (not mSkipLayPrepare) then
+  begin
+    ods := mDefSize;
+    if (ods.w <> 0) or (ods.h <> 0) then
+    begin
+      mDefSize := TLaySize.Create(uiContext.textWidth(mText), uiContext.textHeight(mText));
+      if (mHideMarkers) then
+      begin
+        ww := 10;
+      end
+      else if (mAddMarkers) then
+      begin
+             if (mDefault) then ww := uiContext.textWidth('[<  >]')
+        else if (mCancel) then ww := uiContext.textWidth('[{  }]')
+        else ww := uiContext.textWidth('[  ]');
+      end
+      else
+      begin
+        ww := nmax(0, uiContext.textWidth('<  >'));
+        ww := nmax(ww, uiContext.textWidth('{  }'));
+        ww := nmax(ww, uiContext.textWidth('[  ]'));
+      end;
+      mDefSize.w += ww+mShadowSize;
+      mDefSize.h += mShadowSize;
+    end;
+  end;
+  inherited layPrepare();
+  if (not mSkipLayPrepare) then mDefSize := ods;
 end;
 
 
 procedure TUIButton.drawControl (gx, gy: Integer);
+var
+  wdt, hgt: Integer;
+  xpos, ypos, xofsl, xofsr{, sofs}: Integer;
+  cidx: Integer;
+  lch, rch: AnsiChar;
+  lstr, rstr: AnsiString;
+begin
+  cidx := getColorIndex;
+
+  wdt := mWidth-mShadowSize;
+  hgt := mHeight-mShadowSize;
+  if (mPushed) {or (cidx = ClrIdxActive)} then
+  begin
+    //sofs := mShadowSize;
+    gx += mShadowSize;
+    gy += mShadowSize;
+  end
+  else
+  begin
+    //sofs := 0;
+    if (mShadowSize > 0) then
+    begin
+      uiContext.darkenRect(gx+mShadowSize, gy+hgt, wdt, mShadowSize, 96);
+      uiContext.darkenRect(gx+wdt, gy+mShadowSize, mShadowSize, hgt-mShadowSize, 96);
+    end;
+  end;
+
+  uiContext.color := mBackColor[cidx];
+  //setScissor(sofs, sofs, wdt, hgt);
+  uiContext.fillRect(gx, gy, wdt, hgt);
+
+       if (mVAlign < 0) then ypos := 0
+  else if (mVAlign > 0) then ypos := hgt-uiContext.textHeight(mText)
+  else ypos := (hgt-uiContext.textHeight(mText)) div 2;
+  ypos += gy;
+
+  uiContext.color := mTextColor[cidx];
+
+  if (mHideMarkers) then
+  begin
+    xofsl := 5;
+    xofsr := 5;
+  end
+  else
+  begin
+    if (mAddMarkers) then
+    begin
+           if (mDefault) then begin lstr := '[< '; rstr := ' >]'; end
+      else if (mCancel) then begin lstr := '[{ '; rstr := ' }]'; end
+      else begin lstr := '[ '; rstr := ' ]'; end;
+      xofsl := uiContext.textWidth(lstr);
+      xofsr := uiContext.textWidth(rstr);
+      uiContext.drawText(gx, ypos, lstr);
+      uiContext.drawText(gx+wdt-uiContext.textWidth(rstr), ypos, rstr);
+    end
+    else
+    begin
+      xofsl := nmax(0, uiContext.textWidth('< '));
+      xofsl := nmax(xofsl, uiContext.textWidth('{ '));
+      xofsl := nmax(xofsl, uiContext.textWidth('[ '));
+      xofsr := nmax(0, uiContext.textWidth(' >'));
+      xofsr := nmax(xofsr, uiContext.textWidth(' }'));
+      xofsr := nmax(xofsr, uiContext.textWidth(' ]'));
+           if (mDefault) then begin lch := '<'; rch := '>'; end
+      else if (mCancel) then begin lch := '{'; rch := '}'; end
+      else begin lch := '['; rch := ']'; end;
+      uiContext.drawChar(gx, ypos, lch);
+      uiContext.drawChar(gx+wdt-uiContext.charWidth(rch), ypos, rch);
+    end;
+  end;
+
+  if (Length(mText) > 0) then
+  begin
+    if (mHAlign < 0) then xpos := 0
+    else begin xpos := wdt-xofsl-xofsr-uiContext.textWidth(mText); if (mHAlign = 0) then xpos := xpos div 2; end;
+    xpos += xofsl;
+
+    //setScissor(xofsl+sofs, sofs, wdt-xofsl-xofsr, hgt);
+    uiContext.drawText(gx+xpos, ypos, mText);
+
+    if (mHotChar <> #0) and (mHotChar <> ' ') then
+    begin
+      uiContext.color := mHotColor[cidx];
+      uiContext.drawChar(gx+xpos+mHotOfs, ypos, mHotChar);
+    end;
+  end;
+end;
+
+
+procedure TUIButton.mouseEvent (var ev: THMouseEvent);
+var
+  lx, ly: Integer;
+begin
+  inherited mouseEvent(ev);
+  if (uiGrabCtl = self) then
+  begin
+    ev.eat();
+    mPushed := toLocal(ev.x, ev.y, lx, ly);
+    if (ev = '-lmb') and focused and mPushed then
+    begin
+      mPushed := false;
+      doAction();
+    end;
+    exit;
+  end;
+  if (ev.eaten) or (ev.cancelled) or (not enabled) or not focused then exit;
+  mPushed := true;
+  ev.eat();
+end;
+
+
+procedure TUIButton.keyEvent (var ev: THKeyEvent);
+begin
+  inherited keyEvent(ev);
+  if (not ev.eaten) and (not ev.cancelled) and (enabled) then
+  begin
+    if (ev = 'Enter') or (ev = 'Space') then
+    begin
+      ev.eat();
+      doAction();
+      exit;
+    end;
+  end;
+end;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
+procedure TUIButtonRound.AfterConstruction ();
+begin
+  inherited;
+  mHAlign := -1;
+  mVAlign := 0;
+  mCanFocus := true;
+  mDefSize := TLaySize.Create(uiContext.textWidth(mText)+8*2, uiContext.textHeight(mText)+2);
+  mCtl4Style := 'button-round';
+  mSkipLayPrepare := true;
+end;
+
+
+procedure TUIButtonRound.setText (const s: AnsiString);
+begin
+  inherited setText(s);
+  mDefSize := TLaySize.Create(uiContext.textWidth(mText)+8*2, uiContext.textHeight(mText)+2);
+end;
+
+
+procedure TUIButtonRound.layPrepare ();
+var
+  ods: TLaySize;
+begin
+  ods := mDefSize;
+  if (ods.w <> 0) or (ods.h <> 0) then
+  begin
+    mDefSize := TLaySize.Create(uiContext.textWidth(mText)+8*2, uiContext.textHeight(mText)+2);
+  end;
+  inherited layPrepare();
+  mDefSize := ods;
+end;
+
+
+procedure TUIButtonRound.drawControl (gx, gy: Integer);
 var
   xpos, ypos: Integer;
   cidx: Integer;
@@ -2976,40 +3237,6 @@ begin
     begin
       uiContext.color := mHotColor[cidx];
       uiContext.drawChar(gx+xpos+8+mHotOfs, gy+ypos, mHotChar);
-    end;
-  end;
-end;
-
-
-procedure TUIButton.mouseEvent (var ev: THMouseEvent);
-var
-  lx, ly: Integer;
-begin
-  inherited mouseEvent(ev);
-  if (uiGrabCtl = self) then
-  begin
-    ev.eat();
-    if (ev = '-lmb') and focused and toLocal(ev.x, ev.y, lx, ly) then
-    begin
-      doAction();
-    end;
-    exit;
-  end;
-  if (ev.eaten) or (ev.cancelled) or (not enabled) or not focused then exit;
-  ev.eat();
-end;
-
-
-procedure TUIButton.keyEvent (var ev: THKeyEvent);
-begin
-  inherited keyEvent(ev);
-  if (not ev.eaten) and (not ev.cancelled) and (enabled) then
-  begin
-    if (ev = 'Enter') or (ev = 'Space') then
-    begin
-      ev.eat();
-      doAction();
-      exit;
     end;
   end;
 end;
@@ -3256,6 +3483,7 @@ initialization
   registerCtlClass(TUILine, 'line');
   registerCtlClass(TUITextLabel, 'label');
   registerCtlClass(TUIStaticText, 'static');
+  registerCtlClass(TUIButtonRound, 'round-button');
   registerCtlClass(TUIButton, 'button');
   registerCtlClass(TUICheckBox, 'checkbox');
   registerCtlClass(TUIRadioBox, 'radiobox');

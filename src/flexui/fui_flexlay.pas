@@ -59,7 +59,8 @@ type
       FlagNoPad = LongWord(1) shl 1;
       FlagExpand = LongWord(1) shl 2;
       // internal
-      FlagInGroup = LongWord(1) shl 8; // set if this control is a member of any group
+      FlagInGroupH = LongWord(1) shl 8; // set if this control is a member of any group
+      FlagInGroupV = LongWord(1) shl 9; // set if this control is a member of any group
 
   private
     type
@@ -85,7 +86,7 @@ type
         procedure initialize (); inline;
 
         function horizBox (): Boolean; inline;
-        function inGroup (): Boolean; inline;
+        function inGroup (idx: Integer): Boolean; inline;
         function noPad (): Boolean; inline;
 
         function getExpand (): Boolean; inline;
@@ -121,6 +122,7 @@ type
     procedure firstTimeSetup (cidx: LayControlIdx);
     procedure doChildren (parent: LayControlIdx; child: ControlT);
     procedure appendToGroup (const gname: AnsiString;cidx: LayControlIdx;gidx: Integer);
+    procedure clearGroups ();
     procedure setupGroups ();
 
     procedure distributeChildren (boxidx: LayControlIdx; maindir: Integer);
@@ -185,7 +187,7 @@ begin
 end;
 
 function TFlexLayouterBase.TLayControl.horizBox (): Boolean; inline; begin result := ((flags and FlagHorizBox) <> 0); end;
-function TFlexLayouterBase.TLayControl.inGroup (): Boolean; inline; begin result := ((flags and FlagInGroup) <> 0); end;
+function TFlexLayouterBase.TLayControl.inGroup (idx: Integer): Boolean; inline; begin if (idx = 0) then result := ((flags and FlagInGroupH) <> 0) else if (idx = 1) then result := ((flags and FlagInGroupV) <> 0) else result := false; end;
 function TFlexLayouterBase.TLayControl.noPad (): Boolean; inline; begin result := ((flags and FlagNoPad) <> 0); end;
 
 function TFlexLayouterBase.TLayControl.getExpand (): Boolean; inline; begin result := ((flags and FlagExpand) <> 0); end;
@@ -272,9 +274,8 @@ end;
 
 procedure TFlexLayouterBase.clear ();
 begin
+  clearGroups();
   ctlist := nil;
-  groups[0] := nil;
-  groups[1] := nil;
 end;
 
 
@@ -314,11 +315,13 @@ end;
 procedure TFlexLayouterBase.appendToGroup (const gname: AnsiString; cidx: LayControlIdx; gidx: Integer);
 var
   f: Integer;
+  gflg: LongWord;
 begin
   if (Length(gname) = 0) then exit;
   assert((cidx >= 0) and (cidx < Length(ctlist)));
   assert((gidx = 0) or (gidx = 1));
-  ctlist[cidx].flags := ctlist[cidx].flags or FlagInGroup;
+  if (gidx = 0) then gflg := FlagInGroupH else gflg := FlagInGroupV;
+  ctlist[cidx].flags := ctlist[cidx].flags or gflg;
   for f := 0 to High(groups[gidx]) do
   begin
     if (groups[gidx][f].name = gname) then
@@ -337,16 +340,58 @@ begin
 end;
 
 
+procedure TFlexLayouterBase.clearGroups ();
+var
+  gidx, f: Integer;
+begin
+  for gidx := 0 to 1 do
+  begin
+    for f := 0 to High(groups[gidx]) do groups[gidx][f].ctls := nil;
+    groups[gidx] := nil;
+  end;
+end;
+
+
 procedure TFlexLayouterBase.setupGroups ();
 var
-  idx: Integer;
+  gflg: LongWord;
+  idx, gidx, f, c: Integer;
   lc: PLayControl;
 begin
+  clearGroups();
   for idx := 0 to High(ctlist) do
   begin
     lc := @ctlist[idx];
     appendToGroup(lc.ctl.getHGroup, LayControlIdx(idx), 0);
     appendToGroup(lc.ctl.getVGroup, LayControlIdx(idx), 1);
+  end;
+  // if control is only one in a group, mark is as "not grouped"
+  for gidx := 0 to 1 do
+  begin
+    if (gidx = 0) then gflg := not LongWord(FlagInGroupH) else gflg := not LongWord(FlagInGroupV);
+    f := 0;
+    while (f < Length(groups[gidx])) do
+    begin
+      if (Length(groups[gidx][f].ctls) < 2) then
+      begin
+        // unmark controls
+        for c := 0 to High(groups[gidx][f].ctls) do
+        begin
+          lc := @ctlist[groups[gidx][f].ctls[c]];
+          lc.flags := lc.flags and gflg;
+        end;
+        // remove this group
+        groups[gidx][f].ctls := nil;
+        for c := f+1 to High(groups[gidx]) do groups[gidx][c-1] := groups[gidx][c];
+        c := High(groups[gidx]);
+        groups[gidx][c].ctls := nil;
+        SetLength(groups[gidx], c);
+      end
+      else
+      begin
+        Inc(f);
+      end;
+    end;
   end;
 end;
 
@@ -363,7 +408,6 @@ begin
     ctlist[0].myidx := 0;
     ctlist[0].ctl := root;
     doChildren(0, root.firstChild);
-    setupGroups();
   except
     clear();
     raise;
@@ -407,6 +451,7 @@ var
   gtype: Integer;
 begin
   groupElementChanged := false;
+  setupGroups();
   for f := 0 to High(ctlist) do firstTimeSetup(f);
   // if we have any groups, set "group element changed" flag, so third pass will fix 'em
   for gtype := 0 to 1 do
@@ -519,7 +564,7 @@ begin
     // relayout children if size was changed
     if (not osz.equals(lc.desiredsize)) then
     begin
-      if (lc.inGroup) then groupElementChanged := true;
+      if (lc.inGroup(0)) or (lc.inGroup(1)) then groupElementChanged := true;
       layBox(lc.myidx);
     end;
   end;
@@ -547,7 +592,7 @@ begin
       if (me.horizBox) then distributeChildren(me.myidx, 0) else distributeChildren(me.myidx, 1);
       // relayout children if size was changed
       if (osz.equals(me.desiredsize)) then break;
-      if (me.inGroup) then groupElementChanged := true;
+      if (me.inGroup(0)) or (me.inGroup(1)) then groupElementChanged := true;
     end;
   end;
 end;
@@ -560,6 +605,7 @@ var
   maxsz: Integer;
   grp: PLayGroup;
   f, c: Integer;
+  maindir: Integer;
   cidx: LayControlIdx;
   ct: PLayControl;
   loopsLeft: Integer = 64;
@@ -599,11 +645,16 @@ begin
     for f := 0 to High(ctlist) do
     begin
       ct := @ctlist[f];
-      if (ct.inGroup) then
+      if (ct.parent <> -1) then
       begin
-        ct.expand := false; // don't expand grouped controls anymore
-        ct.tempFlex := 0; // don't change control size anymore
+        if (ctlist[ct.parent].horizBox) then maindir := 0 else maindir := 1;
+      end
+      else
+      begin
+        maindir := 0; // arbitrary
       end;
+      if (ct.inGroup(maindir)) then ct.tempFlex := 0; // don't change control size anymore
+      if (ct.inGroup(1-maindir)) then ct.expand := false; // don't expand grouped controls anymore
     end;
     if (not secondAgain) then break;
   end;

@@ -543,7 +543,7 @@ begin
   fontList[4] := TGxBmpFont.Create('win8', 8, 8, @kgiWFont8[0], @kgiWFont8Wdt[0]);
   fontList[5] := TGxBmpFont.Create('win8-prop', 0, 8, @kgiWFont8[0], @kgiWFont8Wdt[0]);
   fontList[6] := TGxBmpFont.Create('win14', 8, 14, @kgiFont14[0], @kgiFont14Wdt[0]);
-  fontList[7] := TGxBmpFont.Create('win14-prop', 9, 14, @kgiFont14[0], @kgiFont14Wdt[0]);
+  fontList[7] := TGxBmpFont.Create('win14-prop', 0, 14, @kgiFont14[0], @kgiFont14Wdt[0]);
   fontList[8] := TGxBmpFont.Create('win16', 8, 16, @kgiFont16[0], @kgiFont16Wdt[0]);
   fontList[9] := TGxBmpFont.Create('win16-prop', 0, 16, @kgiFont16[0], @kgiFont16Wdt[0]);
 end;
