@@ -555,6 +555,11 @@ procedure uiLayoutCtl (ctl: TUIControl);
 
 
 // ////////////////////////////////////////////////////////////////////////// //
+procedure uiInitialize ();
+procedure uiDeinitialize ();
+
+
+// ////////////////////////////////////////////////////////////////////////// //
 var
   fuiRenderScale: Single = 1.0;
   uiContext: TGxContext = nil;
@@ -565,6 +570,20 @@ implementation
 uses
   fui_flexlay,
   utils;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
+procedure uiDeinitialize ();
+begin
+  FreeAndNil(uiContext);
+end;
+
+
+procedure uiInitialize ();
+begin
+  if (uiContext <> nil) then raise Exception.Create('FlexUI already initialized');
+  uiContext := TGxContext.Create();
+end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
@@ -3491,6 +3510,4 @@ initialization
   registerCtlClass(TUIButton, 'button');
   registerCtlClass(TUICheckBox, 'checkbox');
   registerCtlClass(TUIRadioBox, 'radiobox');
-
-  uiContext := TGxContext.Create();
 end.

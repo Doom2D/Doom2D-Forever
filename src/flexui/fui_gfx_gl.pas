@@ -142,6 +142,9 @@ procedure oglDrawCursor ();
 procedure oglDrawCursorAt (msX, msY: Integer);
 
 
+procedure fuiGfxLoadFont (const fontname: AnsiString; const fontFile: AnsiString; proportional: Boolean=false);
+procedure fuiGfxLoadFont (const fontname: AnsiString; st: TStream; proportional: Boolean=false);
+
 
 // ////////////////////////////////////////////////////////////////////////// //
 var
@@ -151,6 +154,7 @@ var
 implementation
 
 uses
+  fui_wadread,
   utils;
 
 
@@ -340,8 +344,6 @@ end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-{$INCLUDE fui_gfx_gl_fonts.inc}
-
 type
   TGxBmpFont = class(TGxFont)
   private
@@ -350,6 +352,7 @@ type
     mFontBmp: PByte;
     mFontWdt: PByte;
     mFreeFontWdt: Boolean;
+    mFreeFontBmp: Boolean;
 
   protected
     procedure oglCreateTexture ();
@@ -362,7 +365,7 @@ type
     function drawTextInternal (x, y: Integer; const s: AnsiString): Integer; // return width (not including last empty pixel)
 
   public
-    constructor Create (const aname: AnsiString; awdt, ahgt: Integer; const afont: PByte; const awdtable: PByte=nil);
+    constructor Create (const aname: AnsiString; st: TStream; proportional: Boolean);
     destructor Destroy (); override;
 
     function charWidth (const ch: AnsiChar): Integer; override;
@@ -370,37 +373,77 @@ type
   end;
 
 
-constructor TGxBmpFont.Create (const aname: AnsiString; awdt, ahgt: Integer; const afont: PByte; const awdtable: PByte=nil);
+constructor TGxBmpFont.Create (const aname: AnsiString; st: TStream; proportional: Boolean);
 var
-  c: Integer;
+  sign: packed array [0..7] of AnsiChar;
+  enc: packed array [0..16] of AnsiChar;
+  b: Byte;
+  wdt, hgt, elen: Integer;
+  ch, dy: Integer;
+  fntbwdt: Integer;
+  wrd: Word;
 begin
-  if (afont = nil) then raise Exception.Create('internal error in font creation');
-  if (ahgt < 1) then raise Exception.Create('internal error in font creation');
-  if (awdt > 0) then
+  mFreeFontBmp := true;
+  mFreeFontWdt := true;
+  mName := aname;
+  mTexId := 0;
+  // signature
+  st.ReadBuffer(sign[0], 8);
+  if (sign <> 'FUIFONT0') then raise Exception.Create('FlexUI: invalid font file signature');
+  // encoding length and width
+  st.ReadBuffer(b, 1);
+  wdt := (b and $0f)+1; // 16 is not supported
+  if (wdt = 16) then raise Exception.Create('FlexUI: 16-wdt fonts aren''t supported yet');
+  elen := ((b shr 4) and $0f);
+  if (elen = 0) then raise Exception.CreateFmt('FlexUI: invalid font encoding length: %d', [elen]);
+  // height
+  st.ReadBuffer(b, 1);
+  hgt := b;
+  if (hgt < 2) then raise Exception.CreateFmt('FlexUI: invalid font height: %d', [hgt]);
+  // encoding
+  st.ReadBuffer(enc[0], elen);
+  // check for 'cp1251' here (it can also be 'koi8')
+  if (wdt <= 8) then fntbwdt := 1 else fntbwdt := 2;
+  // shift and width table (hi nibble: left shift for proportional print; lo nibble: shifted character width for proportional print)
+  GetMem(mFontWdt, 256);
+  st.ReadBuffer(mFontWdt^, 256);
+  // font bitmap
+  GetMem(mFontBmp, (hgt*fntbwdt)*256);
+  st.ReadBuffer(mFontBmp^, (hgt*fntbwdt)*256);
+  mWidth := wdt;
+  mHeight := hgt;
+  mBaseLine := hgt-1; //FIXME
+  if (proportional) then
   begin
-    //if (awdtable <> nil) then raise Exception.Create('internal error in font creation');
-    mFreeFontWdt := true;
-    // create width table
-    GetMem(mFontWdt, 256);
-    for c := 0 to 255 do mFontWdt[c] := awdt-1;
+    // shift font
+    for ch := 0 to 255 do
+    begin
+      for dy := 0 to hgt-1 do
+      begin
+        if (fntbwdt = 1) then
+        begin
+          mFontBmp[ch*hgt+dy] := mFontBmp[ch*hgt+dy] shl (mFontWdt[ch] shr 4);
+        end
+        else
+        begin
+          wrd := mFontBmp[ch*(hgt*2)+(dy*2)]+256*mFontBmp[ch*(hgt*2)+(dy*2)+1];
+          wrd := wrd shl (mFontWdt[ch] shr 4);
+          mFontBmp[ch*(hgt*2)+(dy*2)+0] := (wrd and $ff);
+          mFontBmp[ch*(hgt*2)+(dy*2)+1] := ((wrd shr 16) and $ff);
+        end;
+      end;
+    end;
   end
   else
   begin
-    if (awdtable = nil) then raise Exception.Create('internal error in font creation');
-    awdt := 0;
-    mFontWdt := awdtable;
+    FillChar(mFontWdt^, 256, wdt);
   end;
-  mName := aname;
-  mWidth := awdt;
-  mHeight := ahgt;
-  mBaseLine := ahgt-1; //FIXME
-  mFontBmp := afont;
-  mTexId := 0;
 end;
 
 
 destructor TGxBmpFont.Destroy ();
 begin
+  if (mFreeFontBmp) and (mFontBmp <> nil) then FreeMem(mFontBmp);
   if (mFreeFontWdt) and (mFontWdt <> nil) then FreeMem(mFontWdt);
   mName := '';
   mWidth := 0;
@@ -409,14 +452,91 @@ begin
   mFontBmp := nil;
   mFontWdt := nil;
   mFreeFontWdt := false;
+  mFreeFontBmp := false;
   mTexId := 0;
   inherited;
 end;
 
 
 procedure TGxBmpFont.oglCreateTexture ();
+const
+  TxWidth = 16*16;
+  TxHeight = 16*16;
+var
+  tex, tpp: PByte;
+  b: Byte;
+  cc: Integer;
+  x, y, dx, dy: Integer;
 begin
-  mTexId := createFontTexture(mFontBmp, mFontWdt, mHeight, (mWidth <= 0));
+  GetMem(tex, TxWidth*TxHeight*4);
+  FillChar(tex^, TxWidth*TxHeight*4, 0);
+
+  for cc := 0 to 255 do
+  begin
+    x := (cc mod 16)*16;
+    y := (cc div 16)*16;
+    for dy := 0 to mHeight-1 do
+    begin
+      if (mWidth <= 8) then b := mFontBmp[cc*mHeight+dy] else b := mFontBmp[cc*(mHeight*2)+(dy*2)+1];
+      //if prop then b := b shl (fontwdt[cc] shr 4);
+      tpp := tex+((y+dy)*(TxWidth*4))+x*4;
+      for dx := 0 to 7 do
+      begin
+        if ((b and $80) <> 0) then
+        begin
+          tpp^ := 255; Inc(tpp);
+          tpp^ := 255; Inc(tpp);
+          tpp^ := 255; Inc(tpp);
+          tpp^ := 255; Inc(tpp);
+        end
+        else
+        begin
+          tpp^ := 0; Inc(tpp);
+          tpp^ := 0; Inc(tpp);
+          tpp^ := 0; Inc(tpp);
+          tpp^ := 0; Inc(tpp);
+        end;
+        b := (b and $7f) shl 1;
+      end;
+      if (mWidth > 8) then
+      begin
+        b := mFontBmp[cc*(mHeight*2)+(dy*2)+0];
+        for dx := 0 to 7 do
+        begin
+          if ((b and $80) <> 0) then
+          begin
+            tpp^ := 255; Inc(tpp);
+            tpp^ := 255; Inc(tpp);
+            tpp^ := 255; Inc(tpp);
+            tpp^ := 255; Inc(tpp);
+          end
+          else
+          begin
+            tpp^ := 0; Inc(tpp);
+            tpp^ := 0; Inc(tpp);
+            tpp^ := 0; Inc(tpp);
+            tpp^ := 0; Inc(tpp);
+          end;
+          b := (b and $7f) shl 1;
+        end;
+      end;
+    end;
+  end;
+
+  glGenTextures(1, @mTexId);
+  if (mTexId = 0) then raise Exception.Create('can''t create FlexUI font texture');
+
+  glBindTexture(GL_TEXTURE_2D, mTexId);
+  glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+  glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, TxWidth, TxHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, tex);
+  glFinish();
+
+  glBindTexture(GL_TEXTURE_2D, 0);
+  FreeMem(tex);
 end;
 
 
@@ -473,13 +593,13 @@ function TGxBmpFont.drawCharInterim (x, y: Integer; const ch: AnsiChar): Integer
 var
   tx, ty: Integer;
 begin
-  tx := (Integer(ch) mod 16)*8;
+  tx := (Integer(ch) mod 16)*16;
   ty := (Integer(ch) div 16)*16;
   glBegin(GL_QUADS);
-    glTexCoord2f((tx+0)/128.0, (ty+0)/256.0); glVertex2i(x+0, y+0); // top-left
-    glTexCoord2f((tx+8)/128.0, (ty+0)/256.0); glVertex2i(x+8, y+0); // top-right
-    glTexCoord2f((tx+8)/128.0, (ty+mHeight)/256.0); glVertex2i(x+8, y+mHeight); // bottom-right
-    glTexCoord2f((tx+0)/128.0, (ty+mHeight)/256.0); glVertex2i(x+0, y+mHeight); // bottom-left
+    glTexCoord2f((tx+0)/256.0, (ty+0)/256.0); glVertex2i(x+0, y+0); // top-left
+    glTexCoord2f((tx+mWidth)/256.0, (ty+0)/256.0); glVertex2i(x+mWidth, y+0); // top-right
+    glTexCoord2f((tx+mWidth)/256.0, (ty+mHeight)/256.0); glVertex2i(x+mWidth, y+mHeight); // bottom-right
+    glTexCoord2f((tx+0)/256.0, (ty+mHeight)/256.0); glVertex2i(x+0, y+mHeight); // bottom-left
   glEnd();
   result := (mFontWdt[Byte(ch)] and $0f);
 end;
@@ -514,7 +634,7 @@ end;
 // ////////////////////////////////////////////////////////////////////////// //
 var
   fontList: array of TGxBmpFont = nil;
-  defaultFontName: AnsiString = 'dos';
+  defaultFontName: AnsiString = 'win14';
 
 
 function strEquCI (const s0, s1: AnsiString): Boolean;
@@ -555,6 +675,7 @@ begin
 end;
 
 
+{
 procedure deleteFonts ();
 var
   f: Integer;
@@ -562,22 +683,55 @@ begin
   for f := 0 to High(fontList) do freeAndNil(fontList[f]);
   fontList := nil;
 end;
+}
 
 
-procedure createFonts ();
+procedure fuiGfxLoadFont (const fontname: AnsiString; const fontFile: AnsiString; proportional: Boolean=false);
+var
+  st: TStream;
 begin
-  deleteFonts();
-  SetLength(fontList, 10);
-  fontList[0] := TGxBmpFont.Create('dos', 8, 8, @kgiFont8[0], @kgiFont8PropWidth[0]);
-  fontList[1] := TGxBmpFont.Create('dos-prop', 0, 8, @kgiFont8[0], @kgiFont8PropWidth[0]);
-  fontList[2] := TGxBmpFont.Create('msx', 6, 8, @kgiFont6[0], @kgiFont6PropWidth[0]);
-  fontList[3] := TGxBmpFont.Create('msx-prop', 0, 8, @kgiFont6[0], @kgiFont6PropWidth[0]);
-  fontList[4] := TGxBmpFont.Create('win8', 8, 8, @kgiWFont8[0], @kgiWFont8Wdt[0]);
-  fontList[5] := TGxBmpFont.Create('win8-prop', 0, 8, @kgiWFont8[0], @kgiWFont8Wdt[0]);
-  fontList[6] := TGxBmpFont.Create('win14', 8, 14, @kgiFont14[0], @kgiFont14Wdt[0]);
-  fontList[7] := TGxBmpFont.Create('win14-prop', 0, 14, @kgiFont14[0], @kgiFont14Wdt[0]);
-  fontList[8] := TGxBmpFont.Create('win16', 8, 16, @kgiFont16[0], @kgiFont16Wdt[0]);
-  fontList[9] := TGxBmpFont.Create('win16-prop', 0, 16, @kgiFont16[0], @kgiFont16Wdt[0]);
+  if (Length(fontname) = 0) then raise Exception.Create('FlexUI: cannot load nameless font '''+fontFile+'''');
+  st := fuiOpenFile(fontFile);
+  if (st = nil) then raise Exception.Create('FlexUI: cannot load font '''+fontFile+'''');
+  try
+    fuiGfxLoadFont(fontname, st, proportional);
+  except on e: Exception do
+    begin
+      writeln('FlexUI font loadin error: ', e.message);
+      FreeAndNil(st);
+      raise Exception.Create('FlexUI: cannot load font '''+fontFile+'''');
+    end;
+  else
+    raise;
+  end;
+  FreeAndNil(st);
+end;
+
+
+procedure fuiGfxLoadFont (const fontname: AnsiString; st: TStream; proportional: Boolean=false);
+var
+  fnt: TGxBmpFont = nil;
+  f: Integer;
+begin
+  if (Length(fontname) = 0) then raise Exception.Create('FlexUI: cannot load nameless font');
+  fnt := TGxBmpFont.Create(fontname, st, proportional);
+  try
+    for f := 0 to High(fontList) do
+    begin
+      if (strEquCI(fontList[f].name, fontname)) then
+      begin
+        if (fontList[f].mTexId <> 0) then raise Exception.Create('FlexUI: cannot reload generated font named '''+fontname+'''');
+        FreeAndNil(fontList[f]);
+        fontList[f] := fnt;
+        exit;
+      end;
+    end;
+    SetLength(fontList, Length(fontList)+1);
+    fontList[High(fontList)] := fnt;
+  except
+    FreeAndNil(fnt);
+    raise;
+  end;
 end;
 
 
@@ -1222,7 +1376,7 @@ end;
 // ////////////////////////////////////////////////////////////////////////// //
 initialization
   savedGLState := TSavedGLState.Create(false);
-  createFonts();
+  //createFonts();
   //winFocusCB := onWinFocus;
   //winBlurCB := onWinBlur;
   //prerenderFrameCB := onPreRender;

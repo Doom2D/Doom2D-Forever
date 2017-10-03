@@ -772,6 +772,9 @@ var
 begin
 {$IFDEF HEADLESS}
   e_NoGraphics := true;
+{$ELSE}
+  uiInitialize();
+  uiContext.font := 'win14';
 {$ENDIF}
 
   idx := 1;
@@ -817,7 +820,8 @@ begin
       begin
         itmp := 0;
         val(ParamStr(idx), itmp, valres);
-        if (valres = 0) then
+        {$IFNDEF HEADLESS}
+        if (valres = 0) and (not g_holmes_imfunctional) then
         begin
           case itmp of
             8: uiContext.font := 'win8';
@@ -825,6 +829,11 @@ begin
             16: uiContext.font := 'win16';
           end;
         end;
+        {$ELSE}
+        // fuck off, fpc!
+        itmp := itmp;
+        valres := valres;
+        {$ENDIF}
         Inc(idx);
       end;
     end;

@@ -43,7 +43,7 @@ uses
   g_weapons, SysUtils, g_triggers, MAPDEF, g_map,
   g_menu, g_language, g_net, g_holmes,
   utils, conbuf, envvars, fui_wadread, fui_style,
-  xparser;
+  fui_gfx_gl, xparser;
 
 
 var
@@ -109,10 +109,24 @@ begin
   try
     e_LogWriteln('FlexUI: loading stylesheet...');
     uiLoadStyles('flexui/widgets.wgs');
-    g_holmes_imfunctional := false;
   except on e: TParserException do
     begin
       writeln('ERROR at (', e.tokLine, ',', e.tokCol, '): ', e.message);
+      //raise;
+    end;
+  else
+    begin
+      //raise;
+    end;
+  end;
+  try
+    fuiGfxLoadFont('win8', 'flexui/fonts/win8.fuifont');
+    fuiGfxLoadFont('win14', 'flexui/fonts/win14.fuifont');
+    fuiGfxLoadFont('win16', 'flexui/fonts/win16.fuifont');
+    g_holmes_imfunctional := false;
+  except on e: Exception do
+    begin
+      writeln('ERROR loading FlexUI fonts');
       //raise;
     end;
   else

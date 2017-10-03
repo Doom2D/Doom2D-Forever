@@ -1733,7 +1733,7 @@ end;
 begin
   evMouseCB := onMouseEvent;
   evKeyCB := onKeyEvent;
-  uiContext.font := 'win14';
+  //uiContext.font := 'win14';
 
   conRegVar('hlm_ui_scale', @fuiRenderScale, 0.01, 5.0, 'Holmes UI scale', '', false);
 end.
