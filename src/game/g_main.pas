@@ -485,6 +485,7 @@ begin
           Msg.Msg := WM_KEYDOWN;
           Msg.WParam := IK_ESCAPE;
           g_ActiveWindow.OnMessage(Msg);
+          if (not g_Game_IsNet) and (g_ActiveWindow = nil) then g_Game_Pause(false); //Fn loves to do this
         end
         else if (gState <> STATE_FOLD) then
         begin
@@ -514,7 +515,7 @@ begin
       begin // <F2> .. <F6> � <F12>
         if gGameOn and (not gConsoleShow) and (not gChatShow) then
         begin
-          while g_ActiveWindow <> nil do g_GUI_HideWindow(False);
+          while (g_ActiveWindow <> nil) do g_GUI_HideWindow(False);
           if (not g_Game_IsNet) then g_Game_Pause(True);
           case K of
             IK_F2: g_Menu_Show_SaveMenu();
