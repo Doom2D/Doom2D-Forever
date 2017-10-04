@@ -88,7 +88,7 @@ type
 
 function g_Texture_CreateWAD (var ID: LongWord; const Resource: AnsiString): Boolean;
 function g_Texture_CreateFile (var ID: LongWord; const FileName: AnsiString): Boolean;
-function g_Texture_CreateWADEx (const textureName, Resource: AnsiString; const altrsrc: AnsiString=''): Boolean;
+function g_Texture_CreateWADEx (const textureName, Resource: AnsiString): Boolean;
 function g_Texture_CreateFileEx (const textureName, FileName: AnsiString): Boolean;
 function g_Texture_Get (const textureName: AnsiString; var ID: LongWord): Boolean;
 procedure g_Texture_Delete (const textureName: AnsiString);
@@ -247,7 +247,7 @@ begin
 end;
 
 
-function texture_CreateWADExInternal (const textureName, Resource: AnsiString; showmsg: Boolean): Boolean;
+function g_Texture_CreateWADEx (const textureName, Resource: AnsiString): Boolean;
 var
   WAD: TWADFile;
   FileName: AnsiString;
@@ -278,25 +278,11 @@ begin
   end
   else
   begin
-    if showmsg then
-    begin
-      e_WriteLog(Format('Error loading texture %s', [Resource]), TMsgType.Warning);
-    end;
+    e_WriteLog(Format('Error loading texture %s', [Resource]), TMsgType.Warning);
     //e_WriteLog(Format('WAD Reader error: %s', [WAD.GetLastErrorStr]), MSG_WARNING);
     result := false;
   end;
   WAD.Free();
-end;
-
-
-function g_Texture_CreateWADEx (const textureName, Resource: AnsiString; const altrsrc: AnsiString=''): Boolean;
-begin
-  if (Length(altrsrc) > 0) then
-  begin
-    result := texture_CreateWADExInternal(textureName, altrsrc, false);
-    if result then exit;
-  end;
-  result := texture_CreateWADExInternal(textureName, Resource, true);
 end;
 
 
