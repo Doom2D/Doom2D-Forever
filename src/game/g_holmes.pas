@@ -32,8 +32,7 @@ uses
 procedure g_Holmes_Draw ();
 procedure g_Holmes_DrawUI ();
 
-procedure g_Holmes_MouseEvent (var ev: TFUIMouseEvent);
-procedure g_Holmes_KeyEvent (var ev: TFUIKeyEvent);
+procedure g_Holmes_OnEvent (var ev: TFUIEvent);
 
 // hooks for player
 procedure g_Holmes_plrViewPos (viewPortX, viewPortY: Integer);
@@ -331,6 +330,7 @@ begin
   //winHelp.appendChild(llb);
 
   uiLayoutCtl(winHelp);
+  winHelp.escClose := true;
   winHelp.centerInScreen();
 end;
 
@@ -541,16 +541,6 @@ end;
 
 function pmsCurMapX (): Integer; inline; begin result := round(msX/g_dbg_scale)+vpx; end;
 function pmsCurMapY (): Integer; inline; begin result := round(msY/g_dbg_scale)+vpy; end;
-
-
-procedure plrDebugMouse (var ev: TFUIMouseEvent);
-begin
-  //e_WriteLog(Format('mouse: x=%d; y=%d; but=%d; bstate=%d', [msx, msy, but, bstate]), MSG_NOTIFY);
-  if (gPlayer1 = nil) or not vpSet then exit;
-  //if (ev.kind <> TFUIMouseEvent.Press) then exit;
-  //e_WriteLog(Format('mev: %d', [Integer(ev.kind)]), MSG_NOTIFY);
-  msbindExecute(ev);
-end;
 
 
 {$IFDEF HOLMES_OLD_OUTLINES}
@@ -1317,35 +1307,9 @@ end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-procedure g_Holmes_MouseEvent (var ev: TFUIMouseEvent);
-var
-  he: TFUIMouseEvent;
-begin
-  if g_Game_IsNet then exit;
-  if not g_holmes_enabled then exit;
-  if g_holmes_imfunctional then exit;
-
-  holmesInitCommands();
-  holmesInitBinds();
-  msX := ev.x;
-  msY := ev.y;
-  msB := ev.bstate;
-  kbS := ev.kstate;
-  msB := msB;
-  he := ev;
-  he.x := he.x;
-  he.y := he.y;
-  uiMouseEvent(he);
-  if (he.alive) then plrDebugMouse(he);
-  ev.eat();
-end;
-
-
-// ////////////////////////////////////////////////////////////////////////// //
-procedure g_Holmes_KeyEvent (var ev: TFUIKeyEvent);
-var
-  doeat: Boolean = false;
+procedure onKeyEvent (var ev: TFUIEvent);
 {$IF DEFINED(D2F_DEBUG)}
+var
   pan: TPanel;
   ex, ey: Integer;
   dx, dy: Integer;
@@ -1356,32 +1320,13 @@ var
   end;
 
 begin
-  if g_Game_IsNet then exit;
-  if not g_holmes_enabled then exit;
-  if g_holmes_imfunctional then exit;
-
-  holmesInitCommands();
-  holmesInitBinds();
-
-  msB := ev.bstate;
-  kbS := ev.kstate;
-  case ev.scan of
-    SDL_SCANCODE_LCTRL, SDL_SCANCODE_RCTRL,
-    SDL_SCANCODE_LALT, SDL_SCANCODE_RALT,
-    SDL_SCANCODE_LSHIFT, SDL_SCANCODE_RSHIFT:
-      doeat := true;
-  end;
-
-  uiKeyEvent(ev);
-  if (not ev.alive) then exit;
-  if keybindExecute(ev) then begin ev.eat(); exit; end;
   // press
   if (ev.press) then
   begin
     {$IF DEFINED(D2F_DEBUG)}
     // C-UP, C-DOWN, C-LEFT, C-RIGHT: trace 10 pixels from cursor in the respective direction
     if ((ev.scan = SDL_SCANCODE_UP) or (ev.scan = SDL_SCANCODE_DOWN) or (ev.scan = SDL_SCANCODE_LEFT) or (ev.scan = SDL_SCANCODE_RIGHT)) and
-       ((ev.kstate and TFUIKeyEvent.ModCtrl) <> 0) then
+       ((ev.kstate and TFUIEvent.ModCtrl) <> 0) then
     begin
       ev.eat();
       dx := pmsCurMapX;
@@ -1406,7 +1351,61 @@ begin
     end;
     {$ENDIF}
   end;
+end;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
+procedure g_Holmes_OnEvent (var ev: TFUIEvent);
+{$IF not DEFINED(HEADLESS)}
+var
+  doeat: Boolean = false;
+{$ENDIF}
+begin
+{$IF not DEFINED(HEADLESS)}
+  if g_Game_IsNet then exit;
+  if not g_holmes_enabled then exit;
+  if g_holmes_imfunctional then exit;
+
+  holmesInitCommands();
+  holmesInitBinds();
+
+  msB := ev.bstate;
+  kbS := ev.kstate;
+
+  if (ev.key) then
+  begin
+    case ev.scan of
+      SDL_SCANCODE_LCTRL, SDL_SCANCODE_RCTRL,
+      SDL_SCANCODE_LALT, SDL_SCANCODE_RALT,
+      SDL_SCANCODE_LSHIFT, SDL_SCANCODE_RSHIFT:
+        doeat := true;
+    end;
+  end
+  else if (ev.mouse) then
+  begin
+    msX := ev.x;
+    msY := ev.y;
+    msB := ev.bstate;
+    kbS := ev.kstate;
+    msB := msB;
+  end;
+
+  uiDispatchEvent(ev);
+  if (not ev.alive) then exit;
+
+  if (ev.mouse) then
+  begin
+    if (gPlayer1 <> nil) and (vpSet) then msbindExecute(ev);
+    ev.eat();
+  end
+  else
+  begin
+    if keybindExecute(ev) then ev.eat();
+    if (ev.alive) then onKeyEvent(ev);
+  end;
+
   if (doeat) then ev.eat();
+{$ENDIF}
 end;
 
 
@@ -1414,6 +1413,8 @@ end;
 procedure g_Holmes_Draw ();
 begin
   if g_Game_IsNet then exit;
+  if not g_holmes_enabled then exit;
+  if g_holmes_imfunctional then exit;
 
   {$IF not DEFINED(HEADLESS)}
   holmesInitCommands();
@@ -1437,6 +1438,7 @@ begin
   if g_Game_IsNet then exit;
   if not g_holmes_enabled then exit;
   if g_holmes_imfunctional then exit;
+
   {$IF not DEFINED(HEADLESS)}
   gGfxDoClear := false;
   //if assigned(prerenderFrameCB) then prerenderFrameCB();
@@ -1715,24 +1717,12 @@ begin
 end;
 
 
-procedure onMouseEvent (var ev: TFUIMouseEvent);
 begin
-  if not g_holmes_enabled then exit;
-  if g_holmes_imfunctional then exit;
-  g_Holmes_MouseEvent(ev);
-end;
+  // shut up, fpc!
+  msB := msB;
+  vpSet := vpSet;
 
-procedure onKeyEvent (var ev: TFUIKeyEvent);
-begin
-  if not g_holmes_enabled then exit;
-  if g_holmes_imfunctional then exit;
-  g_Holmes_KeyEvent(ev);
-end;
-
-
-begin
-  evMouseCB := onMouseEvent;
-  evKeyCB := onKeyEvent;
+  fuiEventCB := g_Holmes_OnEvent;
   //uiContext.font := 'win14';
 
   conRegVar('hlm_ui_scale', @fuiRenderScale, 0.01, 5.0, 'Holmes UI scale', '', false);

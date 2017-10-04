@@ -230,10 +230,15 @@ type
 
     procedure doAction (); virtual; // so user controls can override it
 
-    procedure mouseEvent (var ev: TFUIMouseEvent); virtual; // returns `true` if event was eaten
-    procedure keyEvent (var ev: TFUIKeyEvent); virtual; // returns `true` if event was eaten
-    procedure keyEventPre (var ev: TFUIKeyEvent); virtual; // will be called before dispatching the event
-    procedure keyEventPost (var ev: TFUIKeyEvent); virtual; // will be called after if nobody processed the event
+    procedure onEvent (var ev: TFUIEvent); virtual; // general dispatcher
+
+    procedure mouseEvent (var ev: TFUIEvent); virtual;
+    procedure mouseEventSink (var ev: TFUIEvent); virtual;
+    procedure mouseEventBubble (var ev: TFUIEvent); virtual;
+
+    procedure keyEvent (var ev: TFUIEvent); virtual;
+    procedure keyEventSink (var ev: TFUIEvent); virtual;
+    procedure keyEventBubble (var ev: TFUIEvent); virtual;
 
     function prevSibling (): TUIControl;
     function nextSibling (): TUIControl;
@@ -306,8 +311,8 @@ type
     procedure drawControl (gx, gy: Integer); override;
     procedure drawControlPost (gx, gy: Integer); override;
 
-    procedure keyEvent (var ev: TFUIKeyEvent); override; // returns `true` if event was eaten
-    procedure mouseEvent (var ev: TFUIMouseEvent); override; // returns `true` if event was eaten
+    procedure keyEventBubble (var ev: TFUIEvent); override; // returns `true` if event was eaten
+    procedure mouseEvent (var ev: TFUIEvent); override; // returns `true` if event was eaten
 
   public
     property freeOnClose: Boolean read mFreeOnClose write mFreeOnClose;
@@ -334,8 +339,8 @@ type
 
     procedure drawControl (gx, gy: Integer); override;
 
-    procedure mouseEvent (var ev: TFUIMouseEvent); override;
-    procedure keyEvent (var ev: TFUIKeyEvent); override;
+    procedure mouseEvent (var ev: TFUIEvent); override;
+    procedure keyEvent (var ev: TFUIEvent); override;
 
   public
     property caption: AnsiString read mCaption write setCaption;
@@ -429,8 +434,8 @@ type
 
     procedure drawControl (gx, gy: Integer); override;
 
-    procedure mouseEvent (var ev: TFUIMouseEvent); override;
-    procedure keyEventPost (var ev: TFUIKeyEvent); override;
+    procedure mouseEvent (var ev: TFUIEvent); override;
+    procedure keyEventBubble (var ev: TFUIEvent); override;
 
   public
     property text: AnsiString read mText write setText;
@@ -461,8 +466,8 @@ type
 
     procedure drawControl (gx, gy: Integer); override;
 
-    procedure mouseEvent (var ev: TFUIMouseEvent); override;
-    procedure keyEvent (var ev: TFUIKeyEvent); override;
+    procedure mouseEvent (var ev: TFUIEvent); override;
+    procedure keyEvent (var ev: TFUIEvent); override;
   end;
 
   // ////////////////////////////////////////////////////////////////////// //
@@ -501,8 +506,8 @@ type
 
     procedure drawControl (gx, gy: Integer); override;
 
-    procedure mouseEvent (var ev: TFUIMouseEvent); override;
-    procedure keyEvent (var ev: TFUIKeyEvent); override;
+    procedure mouseEvent (var ev: TFUIEvent); override;
+    procedure keyEvent (var ev: TFUIEvent); override;
 
     procedure setVar (pvar: PBoolean);
 
@@ -540,8 +545,7 @@ type
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-procedure uiMouseEvent (var evt: TFUIMouseEvent);
-procedure uiKeyEvent (var evt: TFUIKeyEvent);
+procedure uiDispatchEvent (var evt: TFUIEvent);
 procedure uiDraw ();
 
 procedure uiFocus ();
@@ -552,6 +556,9 @@ procedure uiBlur ();
 procedure uiAddWindow (ctl: TUIControl);
 procedure uiRemoveWindow (ctl: TUIControl); // will free window if `mFreeOnClose` is `true`
 function uiVisibleWindow (ctl: TUIControl): Boolean;
+
+// this can return `nil` or disabled control
+function uiGetFocusedCtl (): TUIControl;
 
 procedure uiUpdateStyles ();
 
@@ -577,6 +584,11 @@ implementation
 uses
   fui_flexlay,
   utils;
+
+
+var
+  uiTopList: array of TUIControl = nil;
+  uiGrabCtl: TUIControl = nil;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
@@ -623,6 +635,7 @@ begin
   begin
     ctl := ctlsToKill[f];
     if (ctl = nil) then break;
+    if (uiGrabCtl <> nil) and (ctl.isMyChild(uiGrabCtl)) then uiGrabCtl := nil; // just in case
     ctlsToKill[f] := nil;
     FreeAndNil(ctl);
   end;
@@ -723,11 +736,6 @@ end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-var
-  uiTopList: array of TUIControl = nil;
-  uiGrabCtl: TUIControl = nil;
-
-
 procedure uiUpdateStyles ();
 var
   ctl: TUIControl;
@@ -736,75 +744,166 @@ begin
 end;
 
 
-procedure uiMouseEvent (var evt: TFUIMouseEvent);
+procedure uiDispatchEvent (var evt: TFUIEvent);
 var
-  ev: TFUIMouseEvent;
-  f, c: Integer;
-  lx, ly: Integer;
-  ctmp: TUIControl;
-begin
-  processKills();
-  if (not evt.alive) then exit;
-  ev := evt;
-  ev.x := trunc(ev.x/fuiRenderScale);
-  ev.y := trunc(ev.y/fuiRenderScale);
-  ev.dx := trunc(ev.dx/fuiRenderScale); //FIXME
-  ev.dy := trunc(ev.dy/fuiRenderScale); //FIXME
-  try
+  ev: TFUIEvent;
+  destCtl: TUIControl;
+
+  procedure doSink (ctl: TUIControl);
+  begin
+    if (ctl = nil) or (not ev.alive) then exit;
+    if (ctl.mParent <> nil) then
+    begin
+      doSink(ctl.mParent);
+      if (not ev.alive) then exit;
+    end;
+    //if (ctl = destCtl) then writeln(' SINK: MINE! <', ctl.className, '>');
+    ev.setSinking();
+    ctl.onEvent(ev);
+    if (ctl = destCtl) and (ev.alive) then
+    begin
+      ev.setMine();
+      ctl.onEvent(ev);
+    end;
+  end;
+
+  procedure dispatchTo (ctl: TUIControl);
+  begin
+    if (ctl = nil) then exit;
+    destCtl := ctl;
+    // sink
+    doSink(ctl);
+    // bubble
+    //ctl := ctl.mParent; // 'cause "mine" is processed in `doSink()`
+    while (ctl <> nil) and (ev.alive) do
+    begin
+      ev.setBubbling();
+      ctl.onEvent(ev);
+      ctl := ctl.mParent;
+    end;
+  end;
+
+  procedure doMouseEvent ();
+  var
+    doUngrab: Boolean;
+    ctl: TUIControl;
+    win: TUIControl;
+    lx, ly: Integer;
+    f, c: Integer;
+  begin
+    // pass mouse events to control with grab, if there is any
     if (uiGrabCtl <> nil) then
     begin
-      uiGrabCtl.mouseEvent(ev);
-      if (ev.release) and ((ev.bstate and (not ev.but)) = 0) then uiGrabCtl := nil;
+      //writeln('GRABBED: ', uiGrabCtl.className);
+      doUngrab := (ev.release) and ((ev.bstate and (not ev.but)) = 0);
+      dispatchTo(uiGrabCtl);
+      //FIXME: create API to get grabs, so control can regrab itself event on release
+      if (doUngrab) and (uiGrabCtl = destCtl) then uiGrabCtl := nil;
       ev.eat();
       exit;
     end;
-    if (Length(uiTopList) > 0) and (uiTopList[High(uiTopList)].enabled) then uiTopList[High(uiTopList)].mouseEvent(ev);
-    if (ev.alive) and (ev.press) then
+    // get top window
+    if (Length(uiTopList) > 0) then win := uiTopList[High(uiTopList)] else win := nil;
+    // check if we're still in top window
+    if (ev.press) and (win <> nil) and (not win.toLocal(0, 0, lx, ly)) then
     begin
-      for f := High(uiTopList) downto 0 do
+      // we have other windows too; check for window switching
+      for f := High(uiTopList)-1 downto 0 do
       begin
-        if uiTopList[f].toLocal(ev.x, ev.y, lx, ly) then
+        if (uiTopList[f].enabled) and (uiTopList[f].toLocal(ev.x, ev.y, lx, ly)) then
         begin
-          if (uiTopList[f].enabled) and (f <> High(uiTopList)) then
-          begin
-            if (Length(uiTopList) > 0) and (uiTopList[High(uiTopList)].enabled) then uiTopList[High(uiTopList)].blurred();
-            ctmp := uiTopList[f];
-            uiGrabCtl := nil;
-            for c := f+1 to High(uiTopList) do uiTopList[c-1] := uiTopList[c];
-            uiTopList[High(uiTopList)] := ctmp;
-            ctmp.activated();
-            ctmp.mouseEvent(ev);
-          end;
-          ev.eat();
-          exit;
+          // switch
+          win.blurred();
+          win := uiTopList[f];
+          for c := f+1 to High(uiTopList) do uiTopList[c-1] := uiTopList[c];
+          uiTopList[High(uiTopList)] := win;
+          win.activated();
+          break;
         end;
       end;
     end;
-  finally
-    if (ev.eaten) then evt.eat();
-    if (ev.cancelled) then evt.cancel();
+    // dispatch event
+    if (win <> nil) and (win.toLocal(ev.x, ev.y, lx, ly)) then
+    begin
+      ctl := win.controlAtXY(ev.x, ev.y); // don't allow disabled controls
+      if (ctl = nil) or (not ctl.canFocus) or (not ctl.enabled) then ctl := win;
+      // pass focus to another event and set grab, if necessary
+      if (ev.press) then
+      begin
+        // pass focus, if necessary
+        if (win.mFocused <> ctl) then
+        begin
+          if (win.mFocused <> nil) then win.mFocused.blurred();
+          uiGrabCtl := ctl;
+          win.mFocused := ctl;
+          if (ctl <> win) then ctl.activated();
+        end
+        else
+        begin
+          uiGrabCtl := ctl;
+        end;
+      end;
+      dispatchTo(ctl);
+    end;
   end;
-end;
 
-
-procedure uiKeyEvent (var evt: TFUIKeyEvent);
 var
-  ev: TFUIKeyEvent;
+  svx, svy, svdx, svdy: Integer;
+  svscale: Single;
 begin
   processKills();
   if (not evt.alive) then exit;
+  //writeln('ENTER: FUI DISPATCH');
   ev := evt;
-  ev.x := trunc(ev.x/fuiRenderScale);
-  ev.y := trunc(ev.y/fuiRenderScale);
+  // normalize mouse coordinates
+  svscale := fuiRenderScale;
+  ev.x := trunc(ev.x/svscale);
+  ev.y := trunc(ev.y/svscale);
+  ev.dx := trunc(ev.dx/svscale); //FIXME
+  ev.dy := trunc(ev.dy/svscale); //FIXME
+  svx := ev.x;
+  svy := ev.y;
+  svdx := ev.dx;
+  svdy := ev.dy;
   try
-    if (Length(uiTopList) > 0) and (uiTopList[High(uiTopList)].enabled) then uiTopList[High(uiTopList)].keyEvent(ev);
-    //if (ev.release) then begin ev.eat(); exit; end;
+    // "event grab" eats only mouse events
+    if (ev.mouse) then
+    begin
+      // we need to so some special processing here
+      doMouseEvent();
+    end
+    else
+    begin
+      // simply dispatch to focused control
+      dispatchTo(uiGetFocusedCtl);
+    end;
   finally
-    if (ev.eaten) then evt.eat();
-    if (ev.cancelled) then evt.cancel();
+    if (ev.x = svx) and (ev.y = svy) and (ev.dx = svdx) and (ev.dy = svdy) then
+    begin
+      // due to possible precision loss
+      svx := evt.x;
+      svy := evt.y;
+      svdx := evt.dx;
+      svdy := evt.dy;
+      evt := ev;
+      evt.x := svx;
+      evt.y := svy;
+      evt.dx := svdx;
+      evt.dy := svdy;
+    end
+    else
+    begin
+      // scale back
+      evt := ev;
+      evt.x := trunc(evt.x*svscale);
+      evt.y := trunc(evt.y*svscale);
+      evt.dx := trunc(evt.dx*svscale);
+      evt.dy := trunc(evt.dy*svscale);
+    end;
   end;
+  processKills();
+  //writeln('EXIT: FUI DISPATCH');
 end;
-
 
 procedure uiFocus ();
 begin
@@ -841,6 +940,12 @@ begin
   finally
     gxSetContext(nil);
   end;
+end;
+
+
+function uiGetFocusedCtl (): TUIControl;
+begin
+  if (Length(uiTopList) > 0) and (uiTopList[High(uiTopList)].enabled) then result := uiTopList[High(uiTopList)].mFocused else result := nil;
 end;
 
 
@@ -2050,122 +2155,102 @@ end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-procedure TUIControl.mouseEvent (var ev: TFUIMouseEvent);
-var
-  ctl: TUIControl;
+procedure TUIControl.onEvent (var ev: TFUIEvent);
 begin
-  if (not enabled) then exit;
-  if (mWidth < 1) or (mHeight < 1) then exit;
-  ctl := controlAtXY(ev.x, ev.y);
-  if (ctl = nil) then exit;
-  if (ctl.canFocus) and (ev.press) then
+  if (not ev.alive) or (not enabled) then exit;
+  //if (ev.mine) then writeln(' MINE: <', className, '>');
+  if (ev.key) then
   begin
-    if (ctl <> topLevel.mFocused) then ctl.setFocused(true);
-    uiGrabCtl := ctl;
+         if (ev.sinking) then keyEventSink(ev)
+    else if (ev.bubbling) then keyEventBubble(ev)
+    else if (ev.mine) then keyEvent(ev);
+  end
+  else if (ev.mouse) then
+  begin
+         if (ev.sinking) then mouseEventSink(ev)
+    else if (ev.bubbling) then mouseEventBubble(ev)
+    else if (ev.mine) then mouseEvent(ev);
   end;
-  if (ctl <> self) then ctl.mouseEvent(ev);
-  //ev.eat();
 end;
 
 
-procedure TUIControl.keyEvent (var ev: TFUIKeyEvent);
+procedure TUIControl.mouseEventSink (var ev: TFUIEvent);
+begin
+end;
 
-  function doPreKey (ctl: TUIControl): Boolean;
-  begin
-    if (not ctl.enabled) then begin result := false; exit; end;
-    ctl.keyEventPre(ev);
-    result := (not ev.alive); // stop if event was consumed
-  end;
+procedure TUIControl.mouseEventBubble (var ev: TFUIEvent);
+begin
+end;
 
-  function doPostKey (ctl: TUIControl): Boolean;
-  begin
-    if (not ctl.enabled) then begin result := false; exit; end;
-    ctl.keyEventPost(ev);
-    result := (not ev.alive); // stop if event was consumed
-  end;
+procedure TUIControl.mouseEvent (var ev: TFUIEvent);
+begin
+end;
 
+
+procedure TUIControl.keyEventSink (var ev: TFUIEvent);
 var
   ctl: TUIControl;
 begin
   if (not enabled) then exit;
   if (not ev.alive) then exit;
-  // call pre-key
-  if (mParent = nil) then
-  begin
-    forEachControl(doPreKey);
-    if (not ev.alive) then exit;
-  end;
-  // focused control should process keyboard first
-  if (topLevel.mFocused <> self) and isMyChild(topLevel.mFocused) and (topLevel.mFocused.enabled) then
-  begin
-    // bubble keyboard event
-    ctl := topLevel.mFocused;
-    while (ctl <> nil) and (ctl <> self) do
-    begin
-      ctl.keyEvent(ev);
-      if (not ev.alive) then exit;
-      ctl := ctl.mParent;
-    end;
-  end;
   // for top-level controls
-  if (mParent = nil) then
+  if (mParent <> nil) then exit;
+  if (mEscClose) and (ev = 'Escape') then
   begin
-    if (ev = 'S-Tab') then
+    if (not assigned(closeRequestCB)) or (closeRequestCB(self)) then
     begin
-      ctl := findPrevFocus(mFocused, true);
-      if (ctl <> nil) and (ctl <> mFocused) then ctl.setFocused(true);
+      uiRemoveWindow(self);
+    end;
+    ev.eat();
+    exit;
+  end;
+  if (ev = 'Enter') or (ev = 'C-Enter') then
+  begin
+    ctl := findDefaulControl();
+    if (ctl <> nil) then
+    begin
       ev.eat();
+      ctl.doAction();
       exit;
     end;
-    if (ev = 'Tab') then
+  end;
+  if (ev = 'Escape') then
+  begin
+    ctl := findCancelControl();
+    if (ctl <> nil) then
     begin
-      ctl := findNextFocus(mFocused, true);
-      if (ctl <> nil) and (ctl <> mFocused) then ctl.setFocused(true);
       ev.eat();
+      ctl.doAction();
       exit;
     end;
-    if (ev = 'Enter') or (ev = 'C-Enter') then
-    begin
-      ctl := findDefaulControl();
-      if (ctl <> nil) then
-      begin
-        ev.eat();
-        ctl.doAction();
-        exit;
-      end;
-    end;
-    if (ev = 'Escape') then
-    begin
-      ctl := findCancelControl();
-      if (ctl <> nil) then
-      begin
-        ev.eat();
-        ctl.doAction();
-        exit;
-      end;
-    end;
-    if mEscClose and (ev = 'Escape') then
-    begin
-      if (not assigned(closeRequestCB)) or (closeRequestCB(self)) then
-      begin
-        uiRemoveWindow(self);
-      end;
-      ev.eat();
-      exit;
-    end;
-    // call post-keys
-    if (not ev.alive) then exit;
-    forEachControl(doPostKey);
   end;
 end;
 
-
-procedure TUIControl.keyEventPre (var ev: TFUIKeyEvent);
+procedure TUIControl.keyEventBubble (var ev: TFUIEvent);
+var
+  ctl: TUIControl;
 begin
+  if (not enabled) then exit;
+  if (not ev.alive) then exit;
+  // for top-level controls
+  if (mParent <> nil) then exit;
+  if (ev = 'S-Tab') then
+  begin
+    ctl := findPrevFocus(mFocused, true);
+    if (ctl <> nil) and (ctl <> mFocused) then ctl.setFocused(true);
+    ev.eat();
+    exit;
+  end;
+  if (ev = 'Tab') then
+  begin
+    ctl := findNextFocus(mFocused, true);
+    if (ctl <> nil) and (ctl <> mFocused) then ctl.setFocused(true);
+    ev.eat();
+    exit;
+  end;
 end;
 
-
-procedure TUIControl.keyEventPost (var ev: TFUIKeyEvent);
+procedure TUIControl.keyEvent (var ev: TFUIEvent);
 begin
 end;
 
@@ -2324,7 +2409,7 @@ begin
 end;
 
 
-procedure TUITopWindow.keyEvent (var ev: TFUIKeyEvent);
+procedure TUITopWindow.keyEventBubble (var ev: TFUIEvent);
 begin
   inherited keyEvent(ev);
   if (not ev.alive) or (not enabled) {or (not getFocused)} then exit;
@@ -2340,7 +2425,7 @@ begin
 end;
 
 
-procedure TUITopWindow.mouseEvent (var ev: TFUIMouseEvent);
+procedure TUITopWindow.mouseEvent (var ev: TFUIEvent);
 var
   lx, ly: Integer;
   vhgt, ytop: Integer;
@@ -2583,7 +2668,7 @@ begin
 end;
 
 
-procedure TUIBox.mouseEvent (var ev: TFUIMouseEvent);
+procedure TUIBox.mouseEvent (var ev: TFUIEvent);
 var
   lx, ly: Integer;
 begin
@@ -2595,7 +2680,7 @@ begin
 end;
 
 
-procedure TUIBox.keyEvent (var ev: TFUIKeyEvent);
+procedure TUIBox.keyEvent (var ev: TFUIEvent);
 var
   dir: Integer = 0;
   cur, ctl: TUIControl;
@@ -2934,7 +3019,7 @@ begin
 end;
 
 
-procedure TUITextLabel.mouseEvent (var ev: TFUIMouseEvent);
+procedure TUITextLabel.mouseEvent (var ev: TFUIEvent);
 var
   lx, ly: Integer;
 begin
@@ -2965,7 +3050,7 @@ begin
 end;
 
 
-procedure TUITextLabel.keyEventPost (var ev: TFUIKeyEvent);
+procedure TUITextLabel.keyEventBubble (var ev: TFUIEvent);
 begin
   if (not enabled) then exit;
   if (mHotChar = #0) then exit;
@@ -3168,7 +3253,7 @@ begin
 end;
 
 
-procedure TUIButton.mouseEvent (var ev: TFUIMouseEvent);
+procedure TUIButton.mouseEvent (var ev: TFUIEvent);
 var
   lx, ly: Integer;
 begin
@@ -3177,7 +3262,7 @@ begin
   begin
     ev.eat();
     mPushed := toLocal(ev.x, ev.y, lx, ly);
-    if (ev = '-lmb') and focused and mPushed then
+    if (ev = '-lmb') and (focused) and (mPushed) then
     begin
       mPushed := false;
       doAction();
@@ -3190,7 +3275,7 @@ begin
 end;
 
 
-procedure TUIButton.keyEvent (var ev: TFUIKeyEvent);
+procedure TUIButton.keyEvent (var ev: TFUIEvent);
 begin
   inherited keyEvent(ev);
   if (ev.alive) and (enabled) then
@@ -3397,7 +3482,7 @@ begin
 end;
 
 
-procedure TUISwitchBox.mouseEvent (var ev: TFUIMouseEvent);
+procedure TUISwitchBox.mouseEvent (var ev: TFUIEvent);
 var
   lx, ly: Integer;
 begin
@@ -3416,7 +3501,7 @@ begin
 end;
 
 
-procedure TUISwitchBox.keyEvent (var ev: TFUIKeyEvent);
+procedure TUISwitchBox.keyEvent (var ev: TFUIEvent);
 begin
   inherited keyEvent(ev);
   if (ev.alive) and (enabled) then

@@ -182,8 +182,7 @@ end;
 // ////////////////////////////////////////////////////////////////////////// //
 function fuiOnSDLEvent (var ev: TSDL_Event): Boolean;
 var
-  mev: TFUIMouseEvent;
-  kev: TFUIKeyEvent;
+  fev: TFUIEvent;
   uc: UnicodeChar;
   keychr: Word;
 
@@ -191,9 +190,9 @@ var
   begin
     result := 0;
     case b of
-      SDL_BUTTON_LEFT: result := result or TFUIMouseEvent.Left;
-      SDL_BUTTON_MIDDLE: result := result or TFUIMouseEvent.Middle;
-      SDL_BUTTON_RIGHT: result := result or TFUIMouseEvent.Right;
+      SDL_BUTTON_LEFT: result := result or TFUIEvent.Left;
+      SDL_BUTTON_MIDDLE: result := result or TFUIEvent.Middle;
+      SDL_BUTTON_RIGHT: result := result or TFUIEvent.Right;
     end;
   end;
 
@@ -226,64 +225,66 @@ begin
     SDL_KEYDOWN, SDL_KEYUP:
       begin
         // fix left/right modifiers
-        FillChar(kev, sizeof(kev), 0);
-        kev.intrInit();
-        if (ev.type_ = SDL_KEYDOWN) then kev.kind := TFUIKeyEvent.TKind.Press else kev.kind := TFUIKeyEvent.TKind.Release;
-        kev.scan := ev.key.keysym.scancode;
-        //kev.sym := ev.key.keysym.sym;
+        if (ev.type_ = SDL_KEYDOWN) then
+        begin
+          fev := TFUIEvent.Create(TFUIEvent.TType.Key, TFUIEvent.TKind.Press);
+        end
+        else
+        begin
+          fev := TFUIEvent.Create(TFUIEvent.TType.Key, TFUIEvent.TKind.Release);
+        end;
+        fev.scan := ev.key.keysym.scancode;
 
-        if (kev.scan = SDL_SCANCODE_RCTRL) then kev.scan := SDL_SCANCODE_LCTRL;
-        if (kev.scan = SDL_SCANCODE_RALT) then kev.scan := SDL_SCANCODE_LALT;
-        if (kev.scan = SDL_SCANCODE_RSHIFT) then kev.scan := SDL_SCANCODE_LSHIFT;
-        if (kev.scan = SDL_SCANCODE_RGUI) then kev.scan := SDL_SCANCODE_LGUI;
+        if (fev.scan = SDL_SCANCODE_RCTRL) then fev.scan := SDL_SCANCODE_LCTRL;
+        if (fev.scan = SDL_SCANCODE_RALT) then fev.scan := SDL_SCANCODE_LALT;
+        if (fev.scan = SDL_SCANCODE_RSHIFT) then fev.scan := SDL_SCANCODE_LSHIFT;
+        if (fev.scan = SDL_SCANCODE_RGUI) then fev.scan := SDL_SCANCODE_LGUI;
 
-        {
-        if (kev.sym = SDLK_RCTRL) then kev.sym := SDLK_LCTRL;
-        if (kev.sym = SDLK_RALT) then kev.sym := SDLK_LALT;
-        if (kev.sym = SDLK_RSHIFT) then kev.sym := SDLK_LSHIFT;
-        if (kev.sym = SDLK_RGUI) then kev.sym := SDLK_LGUI;
-        }
+        fev.x := fuiMouseX;
+        fev.y := fuiMouseY;
+        fev.bstate := fuiButState;
+        fev.kstate := fuiModState;
 
-        kev.x := fuiMouseX;
-        kev.y := fuiMouseY;
-        kev.bstate := fuiButState;
-        kev.kstate := fuiModState;
-
-        case kev.scan of
-          SDL_SCANCODE_LCTRL: if (kev.press) then fuiSetModState(fuiModState or TFUIKeyEvent.ModCtrl) else fuiSetModState(fuiModState and (not TFUIKeyEvent.ModCtrl));
-          SDL_SCANCODE_LALT: if (kev.press) then fuiSetModState(fuiModState or TFUIKeyEvent.ModAlt) else fuiSetModState(fuiModState and (not TFUIKeyEvent.ModAlt));
-          SDL_SCANCODE_LSHIFT: if (kev.press) then fuiSetModState(fuiModState or TFUIKeyEvent.ModShift) else fuiSetModState(fuiModState and (not TFUIKeyEvent.ModShift));
+        case fev.scan of
+          SDL_SCANCODE_LCTRL: if (fev.press) then fuiSetModState(fuiModState or TFUIEvent.ModCtrl) else fuiSetModState(fuiModState and (not TFUIEvent.ModCtrl));
+          SDL_SCANCODE_LALT: if (fev.press) then fuiSetModState(fuiModState or TFUIEvent.ModAlt) else fuiSetModState(fuiModState and (not TFUIEvent.ModAlt));
+          SDL_SCANCODE_LSHIFT: if (fev.press) then fuiSetModState(fuiModState or TFUIEvent.ModShift) else fuiSetModState(fuiModState and (not TFUIEvent.ModShift));
         end;
 
-        if assigned(evKeyCB) then
+        if (assigned(fuiEventCB)) then
         begin
-          evKeyCB(kev);
-          result := kev.eaten;
+          fuiEventCB(fev);
+          result := fev.eaten;
         end;
       end;
 
     SDL_MOUSEBUTTONDOWN, SDL_MOUSEBUTTONUP:
       begin
-        FillChar(mev, sizeof(mev), 0);
-        mev.intrInit();
-        if (ev.type_ = SDL_MOUSEBUTTONDOWN) then mev.kind := TFUIMouseEvent.TKind.Press else mev.kind := TFUIMouseEvent.TKind.Release;
-        mev.dx := ev.button.x-fuiMouseX;
-        mev.dy := ev.button.y-fuiMouseY;
+        if (ev.type_ = SDL_MOUSEBUTTONDOWN) then
+        begin
+          fev := TFUIEvent.Create(TFUIEvent.TType.Mouse, TFUIEvent.TKind.Press);
+        end
+        else
+        begin
+          fev := TFUIEvent.Create(TFUIEvent.TType.Mouse, TFUIEvent.TKind.Release);
+        end;
+        fev.dx := ev.button.x-fuiMouseX;
+        fev.dy := ev.button.y-fuiMouseY;
         fuiSetMouseX(ev.button.x);
         fuiSetMouseY(ev.button.y);
-        mev.but := buildBut(ev.button.button);
-        mev.x := fuiMouseX;
-        mev.y := fuiMouseY;
-        mev.bstate := fuiButState;
-        mev.kstate := fuiModState;
-        if (mev.but <> 0) then
+        fev.but := buildBut(ev.button.button);
+        fev.x := fuiMouseX;
+        fev.y := fuiMouseY;
+        fev.bstate := fuiButState;
+        fev.kstate := fuiModState;
+        if (fev.but <> 0) then
         begin
           // ev.button.clicks: Byte
-          if (ev.type_ = SDL_MOUSEBUTTONDOWN) then fuiSetButState(fuiButState or mev.but) else fuiSetButState(fuiButState and (not mev.but));
-          if assigned(evMouseCB) then
+          if (ev.type_ = SDL_MOUSEBUTTONDOWN) then fuiSetButState(fuiButState or fev.but) else fuiSetButState(fuiButState and (not fev.but));
+          if (assigned(fuiEventCB)) then
           begin
-            evMouseCB(mev);
-            result := mev.eaten;
+            fuiEventCB(fev);
+            result := fev.eaten;
           end;
         end;
       end;
@@ -291,63 +292,56 @@ begin
       begin
         if (ev.wheel.y <> 0) then
         begin
-          FillChar(mev, sizeof(mev), 0);
-          mev.intrInit();
-          mev.kind := TFUIMouseEvent.TKind.Press;
-          mev.dx := 0;
-          mev.dy := ev.wheel.y;
-          if (ev.wheel.y < 0) then mev.but := TFUIMouseEvent.WheelUp else mev.but := TFUIMouseEvent.WheelDown;
-          mev.x := fuiMouseX;
-          mev.y := fuiMouseY;
-          mev.bstate := fuiButState;
-          mev.kstate := fuiModState;
-          if assigned(evMouseCB) then
+          fev := TFUIEvent.Create(TFUIEvent.TType.Mouse, TFUIEvent.TKind.Press);
+          fev.dx := 0;
+          fev.dy := ev.wheel.y;
+          if (ev.wheel.y < 0) then fev.but := TFUIEvent.WheelUp else fev.but := TFUIEvent.WheelDown;
+          fev.x := fuiMouseX;
+          fev.y := fuiMouseY;
+          fev.bstate := fuiButState;
+          fev.kstate := fuiModState;
+          if (assigned(fuiEventCB)) then
           begin
-            evMouseCB(mev);
-            result := mev.eaten;
+            fuiEventCB(fev);
+            result := fev.eaten;
           end;
         end;
       end;
     SDL_MOUSEMOTION:
       begin
-        FillChar(mev, sizeof(mev), 0);
-        mev.intrInit();
-        mev.kind := TFUIMouseEvent.TKind.Motion;
-        mev.dx := ev.button.x-fuiMouseX;
-        mev.dy := ev.button.y-fuiMouseY;
+        fev := TFUIEvent.Create(TFUIEvent.TType.Mouse, TFUIEvent.TKind.Motion);
+        fev.dx := ev.button.x-fuiMouseX;
+        fev.dy := ev.button.y-fuiMouseY;
         fuiSetMouseX(ev.button.x);
         fuiSetMouseY(ev.button.y);
-        mev.but := 0;
-        mev.x := fuiMouseX;
-        mev.y := fuiMouseY;
-        mev.bstate := fuiButState;
-        mev.kstate := fuiModState;
-        if assigned(evMouseCB) then
+        fev.but := 0;
+        fev.x := fuiMouseX;
+        fev.y := fuiMouseY;
+        fev.bstate := fuiButState;
+        fev.kstate := fuiModState;
+        if (assigned(fuiEventCB)) then
         begin
-          evMouseCB(mev);
-          result := mev.eaten;
+          fuiEventCB(fev);
+          result := fev.eaten;
         end;
       end;
 
     SDL_TEXTINPUT:
-      if ((fuiModState and (not TFUIKeyEvent.ModShift)) = 0) then
+      if ((fuiModState and (not TFUIEvent.ModShift)) = 0) then
       begin
         Utf8ToUnicode(@uc, PChar(ev.text.text), 1);
         keychr := Word(uc);
         if (keychr > 127) then keychr := Word(wchar2win(WideChar(keychr)));
-        if (keychr > 0) and assigned(evKeyCB) then
+        if (keychr > 0) and (assigned(fuiEventCB)) then
         begin
-          FillChar(kev, sizeof(kev), 0);
-          kev.intrInit();
-          kev.kind := TFUIKeyEvent.TKind.Press;
-          kev.scan := 0;
-          kev.ch := AnsiChar(keychr);
-          kev.x := fuiMouseX;
-          kev.y := fuiMouseY;
-          kev.bstate := fuiButState;
-          kev.kstate := fuiModState;
-          evKeyCB(kev);
-          result := kev.eaten;
+          fev := TFUIEvent.Create(TFUIEvent.TType.Key, TFUIEvent.TKind.SimpleChar);
+          fev.ch := AnsiChar(keychr);
+          fev.x := fuiMouseX;
+          fev.y := fuiMouseY;
+          fev.bstate := fuiButState;
+          fev.kstate := fuiModState;
+          fuiEventCB(fev);
+          result := fev.eaten;
         end;
       end;
   end;
