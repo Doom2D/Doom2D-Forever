@@ -1084,7 +1084,7 @@ procedure plrDebugDraw ();
     if showMonsInfo then
     begin
       //fillRect(mx-4, my-7*8-6, 110, 7*8+6, 0, 0, 94, 250);
-      hlmContext.font := 'msx';
+      hlmContext.font := 'msx6';
       hlmContext.color := TGxRGBA.Create(255, 127, 0);
 
       hlmContext.darkenRect(mx-4, my-7*hlmContext.charWidth(' ')-6, 110, 7*hlmContext.charWidth(' ')+6, 128);
@@ -1149,7 +1149,7 @@ procedure plrDebugDraw ();
     tts: AnsiString;
     tx: Integer;
   begin
-    hlmContext.font := 'msx';
+    hlmContext.font := 'msx6';
     hlmContext.color := TGxRGBA.Create(255, 0, 255, 96);
     hlmContext.fillRect(trig.x, trig.y, trig.width, trig.height);
     tts := trigType2Str(trig.TriggerType);
@@ -1308,7 +1308,7 @@ begin
   if showMapCurPos then
   begin
     gxSetContext(hlmContext);
-    hlmContext.font := 'dos';
+    hlmContext.font := 'win8';
     hlmContext.color := TGxRGBA.Create(255, 255, 0);
     hlmContext.drawText(4, gWinSizeY-10, Format('mappos:(%d,%d)', [pmsCurMapX, pmsCurMapY]));
     gxSetContext(nil);

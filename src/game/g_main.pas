@@ -52,6 +52,9 @@ var
 procedure Main();
 var
   sdlflags: LongWord;
+{$IFNDEF HEADLESS}
+  flexloaded: Boolean;
+{$ENDIF}
 begin
   e_InitWritelnDriver();
 
@@ -101,39 +104,48 @@ begin
 {$ENDIF}
 
 {$IFNDEF HEADLESS}
+  flexloaded := true;
   if not fuiAddWad('flexui.wad') then
   begin
     if not fuiAddWad('./data/flexui.wad') then fuiAddWad('./flexui.wad');
-  end;
-  g_holmes_imfunctional := true;
-  try
-    e_LogWriteln('FlexUI: loading stylesheet...');
-    uiLoadStyles('flexui/widgets.wgs');
-  except on e: TParserException do
-    begin
-      writeln('ERROR at (', e.tokLine, ',', e.tokCol, '): ', e.message);
-      //raise;
-    end;
-  else
-    begin
-      //raise;
-    end;
   end;
   try
     fuiGfxLoadFont('win8', 'flexui/fonts/win8.fuifont');
     fuiGfxLoadFont('win14', 'flexui/fonts/win14.fuifont');
     fuiGfxLoadFont('win16', 'flexui/fonts/win16.fuifont');
-    g_holmes_imfunctional := false;
+    fuiGfxLoadFont('dos8', 'flexui/fonts/dos8.fuifont');
+    fuiGfxLoadFont('msx6', 'flexui/fonts/msx6.fuifont');
   except on e: Exception do
     begin
       writeln('ERROR loading FlexUI fonts');
+      flexloaded := false;
       //raise;
     end;
   else
     begin
+      flexloaded := false;
       //raise;
     end;
   end;
+  if (flexloaded) then
+  begin
+    try
+      e_LogWriteln('FlexUI: loading stylesheet...');
+      uiLoadStyles('flexui/widgets.wgs');
+    except on e: TParserException do
+      begin
+        writeln('ERROR at (', e.tokLine, ',', e.tokCol, '): ', e.message);
+        //raise;
+        flexloaded := false;
+      end;
+    else
+      begin
+        //raise;
+        flexloaded := false;
+      end;
+    end;
+  end;
+  g_holmes_imfunctional := not flexloaded;
 {$ENDIF}
 
   e_WriteLog('Entering SDLMain', TMsgType.Notify);

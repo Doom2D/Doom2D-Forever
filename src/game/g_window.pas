@@ -767,8 +767,11 @@ begin
 {$IFDEF HEADLESS}
   e_NoGraphics := true;
 {$ELSE}
-  uiInitialize();
-  uiContext.font := 'win14';
+  if (not g_holmes_imfunctional) then
+  begin
+    uiInitialize();
+    uiContext.font := 'win14';
+  end;
 {$ENDIF}
 
   idx := 1;
