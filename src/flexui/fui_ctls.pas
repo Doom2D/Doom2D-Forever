@@ -116,6 +116,8 @@ type
     //WARNING! do not call scissor functions outside `.draw*()` API!
     // set scissor to this rect (in local coords)
     procedure setScissor (lx, ly, lw, lh: Integer); // valid only in `draw*()` calls
+    procedure resetScissor (); inline; // only client area, w/o frame
+    procedure resetScissorNC (); inline; // full drawing area, with frame
 
   public
     actionCB: TActionCB;
@@ -361,8 +363,6 @@ type
     procedure AfterConstruction (); override; // so it will be correctly initialized when created from parser
 
     function parseProperty (const prname: AnsiString; par: TTextParser): Boolean; override;
-
-    procedure drawControl (gx, gy: Integer); override;
   end;
 
   // ////////////////////////////////////////////////////////////////////// //
@@ -1919,6 +1919,22 @@ begin
   //uiContext.clip := TGxRect.Create(gx, gy, wdt, hgt);
 end;
 
+procedure TUIControl.resetScissorNC (); inline;
+begin
+  setScissor(0, 0, mWidth, mHeight);
+end;
+
+procedure TUIControl.resetScissor (); inline;
+begin
+  if ((mFrameWidth <= 0) and (mFrameHeight <= 0)) then
+  begin
+    resetScissorNC();
+  end
+  else
+  begin
+    setScissor(mFrameWidth, mFrameHeight, mWidth-mFrameWidth*2, mHeight-mFrameHeight*2);
+  end;
+end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
@@ -2000,53 +2016,17 @@ var
   f: Integer;
   gx, gy: Integer;
 
-  procedure resetScissor (fullArea: Boolean); inline;
-  begin
-    uiContext.clip := savedClip;
-    if (fullArea) or ((mFrameWidth = 0) and (mFrameHeight = 0)) then
-    begin
-      setScissor(0, 0, mWidth, mHeight);
-    end
-    else
-    begin
-      //writeln('frm: (', mFrameWidth, 'x', mFrameHeight, ')');
-      setScissor(mFrameWidth, mFrameHeight, mWidth-mFrameWidth*2, mHeight-mFrameHeight*2);
-    end;
-  end;
-
 begin
   if (mWidth < 1) or (mHeight < 1) or (uiContext = nil) or (not uiContext.active) then exit;
   toGlobal(0, 0, gx, gy);
 
   savedClip := uiContext.clip;
   try
-    resetScissor(true); // full area
+    resetScissorNC();
     drawControl(gx, gy);
-    resetScissor(false); // client area
+    resetScissor();
     for f := 0 to High(mChildren) do mChildren[f].draw();
-    resetScissor(true); // full area
-    if (self is TUISwitchBox) then
-    begin
-      uiContext.color := TGxRGBA.Create(255, 0, 0, 255);
-      //uiContext.fillRect(gx, gy, mWidth, mHeight);
-      //writeln('frm: (', mFrameWidth, 'x', mFrameHeight, '); sz=(', mWidth, 'x', mHeight, '); clip=', uiContext.clip.toString);
-    end;
-    if false and (mId = 'cbtest') then
-    begin
-      uiContext.color := TGxRGBA.Create(255, 127, 0, 96);
-      uiContext.fillRect(gx, gy, mWidth, mHeight);
-      if (mFrameWidth > 0) and (mFrameHeight > 0) then
-      begin
-        uiContext.color := TGxRGBA.Create(255, 255, 0, 96);
-        uiContext.fillRect(gx+mFrameWidth, gy+mFrameHeight, mWidth-mFrameWidth*2, mHeight-mFrameHeight*2);
-      end;
-    end
-    else if false and (self is TUISwitchBox) then
-    begin
-      uiContext.color := TGxRGBA.Create(255, 0, 0, 255);
-      uiContext.fillRect(gx, gy, mWidth, mHeight);
-      //writeln('frm: (', mFrameWidth, 'x', mFrameHeight, ')');
-    end;
+    resetScissorNC();
     drawControlPost(gx, gy);
   finally
     uiContext.clip := savedClip;
@@ -2055,15 +2035,13 @@ end;
 
 procedure TUIControl.drawControl (gx, gy: Integer);
 begin
-  //if (mParent = nil) then darkenRect(gx, gy, mWidth, mHeight, 64);
 end;
 
 procedure TUIControl.drawControlPost (gx, gy: Integer);
 begin
-  // shadow
+  // shadow for top-level controls
   if (mParent = nil) and (mDrawShadow) and (mWidth > 0) and (mHeight > 0) then
   begin
-    //setScissorGLInternal(gx+8, gy+8, mWidth, mHeight);
     uiContext.resetClip();
     uiContext.darkenRect(gx+mWidth, gy+8, 8, mHeight, 128);
     uiContext.darkenRect(gx+8, gy+mHeight, mWidth-8, 8, 128);
@@ -2274,6 +2252,7 @@ begin
 end;
 
 
+// ////////////////////////////////////////////////////////////////////////// //
 procedure TUITopWindow.drawControl (gx, gy: Integer);
 begin
   uiContext.color := mBackColor[getColorIndex];
@@ -2289,20 +2268,18 @@ begin
   iwdt := uiContext.iconWinWidth(TGxContext.TWinIcon.Close);
   if (mDragScroll = TXMode.Drag) then
   begin
-    //uiContext.color := mFrameColor[cidx];
     drawFrame(gx, gy, iwdt, 0, mTitle, false);
   end
   else
   begin
     ihgt := uiContext.iconWinHeight(TGxContext.TWinIcon.Close);
-    //uiContext.color := mFrameColor[cidx];
     drawFrame(gx, gy, iwdt, 0, mTitle, true);
     // vertical scroll bar
     vhgt := mHeight-mFrameHeight*2;
     if (mFullSize.h > vhgt) then
     begin
       ybot := mScrollY+vhgt;
-      setScissor(0, 0, mWidth, mHeight);
+      resetScissorNC();
       uiContext.drawVSBar(gx+mWidth-mFrameWidth+1, gy+mFrameHeight-1, mFrameWidth-3, vhgt+2, ybot, 0, mFullSize.h, mSBarFullColor[cidx], mSBarEmptyColor[cidx]);
     end;
     // horizontal scroll bar
@@ -2310,7 +2287,7 @@ begin
     if (mFullSize.w > vwdt) then
     begin
       xend := mScrollX+vwdt;
-      setScissor(0, 0, mWidth, mHeight);
+      resetScissorNC();
       uiContext.drawHSBar(gx+mFrameWidth+1, gy+mHeight-mFrameHeight+1, vwdt-2, mFrameHeight-3, xend, 0, mFullSize.w, mSBarFullColor[cidx], mSBarEmptyColor[cidx]);
     end;
     // frame icon
@@ -2320,11 +2297,12 @@ begin
     uiContext.color := mFrameIconColor[cidx];
     uiContext.drawIconWin(TGxContext.TWinIcon.Close, gx+mFrameWidth, gy, mInClose);
   end;
-  // shadow
+  // shadow (no need to reset scissor, as draw should do it)
   inherited drawControlPost(gx, gy);
 end;
 
 
+// ////////////////////////////////////////////////////////////////////////// //
 procedure TUITopWindow.activated ();
 begin
   if (mFocused = nil) or (mFocused = self) then
@@ -2577,7 +2555,7 @@ end;
 procedure TUIBox.drawControl (gx, gy: Integer);
 var
   cidx: Integer;
-  xpos: Integer;
+  //xpos: Integer;
 begin
   cidx := getColorIndex;
   uiContext.color := mBackColor[cidx];
@@ -2585,10 +2563,10 @@ begin
   if (mHasFrame) then
   begin
     // draw frame
-    drawFrame(gx, gy, 0, -1, mCaption, false);
-    //uiContext.color := mFrameColor[cidx];
-    //uiContext.rect(gx+3, gy+3, mWidth-6, mHeight-6);
-  end
+    drawFrame(gx, gy, 0, mHAlign, mCaption, false);
+  end;
+  // no frame -- no caption
+  {
   else if (Length(mCaption) > 0) then
   begin
     // draw caption
@@ -2598,16 +2576,10 @@ begin
     xpos += gx+mFrameWidth;
 
     setScissor(mFrameWidth+1, 0, mWidth-mFrameWidth-2, uiContext.textHeight(mCaption));
-    {
-    if (mHasFrame) then
-    begin
-      uiContext.color := mBackColor[cidx];
-      uiContext.fillRect(xpos-3, gy, uiContext.textWidth(mCaption)+4, 8);
-    end;
-    }
     uiContext.color := mFrameTextColor[cidx];
     uiContext.drawText(xpos, gy, mCaption);
   end;
+  }
 end;
 
 
@@ -2691,11 +2663,6 @@ function TUISpan.parseProperty (const prname: AnsiString; par: TTextParser): Boo
 begin
   if (parseOrientation(prname, par)) then begin result := true; exit; end;
   result := inherited parseProperty(prname, par);
-end;
-
-
-procedure TUISpan.drawControl (gx, gy: Integer);
-begin
 end;
 
 
@@ -3115,7 +3082,7 @@ end;
 procedure TUIButton.drawControl (gx, gy: Integer);
 var
   wdt, hgt: Integer;
-  xpos, ypos, xofsl, xofsr{, sofs}: Integer;
+  xpos, ypos, xofsl, xofsr, sofs: Integer;
   cidx: Integer;
   lch, rch: AnsiChar;
   lstr, rstr: AnsiString;
@@ -3126,13 +3093,13 @@ begin
   hgt := mHeight-mShadowSize;
   if (mPushed) {or (cidx = ClrIdxActive)} then
   begin
-    //sofs := mShadowSize;
+    sofs := mShadowSize;
     gx += mShadowSize;
     gy += mShadowSize;
   end
   else
   begin
-    //sofs := 0;
+    sofs := 0;
     if (mShadowSize > 0) then
     begin
       uiContext.darkenRect(gx+mShadowSize, gy+hgt, wdt, mShadowSize, 96);
@@ -3141,7 +3108,6 @@ begin
   end;
 
   uiContext.color := mBackColor[cidx];
-  //setScissor(sofs, sofs, wdt, hgt);
   uiContext.fillRect(gx, gy, wdt, hgt);
 
        if (mVAlign < 0) then ypos := 0
@@ -3190,7 +3156,7 @@ begin
     else begin xpos := wdt-xofsl-xofsr-uiContext.textWidth(mText); if (mHAlign = 0) then xpos := xpos div 2; end;
     xpos += xofsl;
 
-    //setScissor(xofsl+sofs, sofs, wdt-xofsl-xofsr, hgt);
+    setScissor(sofs+xofsl, sofs, wdt-xofsl-xofsr, hgt);
     uiContext.drawText(gx+xpos, ypos, mText);
 
     if (mHotChar <> #0) and (mHotChar <> ' ') then
