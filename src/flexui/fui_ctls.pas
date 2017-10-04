@@ -71,6 +71,8 @@ type
     mFrameColor: array[0..ClrIdxMax] of TGxRGBA;
     mFrameTextColor: array[0..ClrIdxMax] of TGxRGBA;
     mFrameIconColor: array[0..ClrIdxMax] of TGxRGBA;
+    mSBarFullColor: array[0..ClrIdxMax] of TGxRGBA;
+    mSBarEmptyColor: array[0..ClrIdxMax] of TGxRGBA;
     mDarken: array[0..ClrIdxMax] of Integer; // >255: none
 
   protected
@@ -268,7 +270,7 @@ type
 
   TUITopWindow = class(TUIControl)
   private
-    type TXMode = (None, Drag, Scroll);
+    type TXMode = (None, Drag, VScroll, HScroll);
 
   private
     mTitle: AnsiString;
@@ -450,6 +452,8 @@ type
 
     procedure cacheStyle (root: TUIStyle); override;
 
+    procedure blurred (); override;
+
   public
     procedure AfterConstruction (); override; // so it will be correctly initialized when created from parser
 
@@ -539,6 +543,9 @@ type
 procedure uiMouseEvent (var evt: THMouseEvent);
 procedure uiKeyEvent (var evt: THKeyEvent);
 procedure uiDraw ();
+
+procedure uiFocus ();
+procedure uiBlur ();
 
 
 // ////////////////////////////////////////////////////////////////////////// //
@@ -760,7 +767,7 @@ begin
         begin
           if (uiTopList[f].enabled) and (f <> High(uiTopList)) then
           begin
-            uiTopList[High(uiTopList)].blurred();
+            if (Length(uiTopList) > 0) and (uiTopList[High(uiTopList)].enabled) then uiTopList[High(uiTopList)].blurred();
             ctmp := uiTopList[f];
             uiGrabCtl := nil;
             for c := f+1 to High(uiTopList) do uiTopList[c-1] := uiTopList[c];
@@ -796,6 +803,18 @@ begin
     if (ev.eaten) then evt.eat();
     if (ev.cancelled) then evt.cancel();
   end;
+end;
+
+
+procedure uiFocus ();
+begin
+  if (Length(uiTopList) > 0) and (uiTopList[High(uiTopList)].enabled) then uiTopList[High(uiTopList)].activated();
+end;
+
+
+procedure uiBlur ();
+begin
+  if (Length(uiTopList) > 0) and (uiTopList[High(uiTopList)].enabled) then uiTopList[High(uiTopList)].blurred();
 end;
 
 
@@ -838,7 +857,7 @@ begin
     begin
       if (f <> High(uiTopList)) then
       begin
-        uiTopList[High(uiTopList)].blurred();
+        if (Length(uiTopList) > 0) and (uiTopList[High(uiTopList)].enabled) then uiTopList[High(uiTopList)].blurred();
         for c := f+1 to High(uiTopList) do uiTopList[c-1] := uiTopList[c];
         uiTopList[High(uiTopList)] := ctl;
         ctl.activated();
@@ -846,7 +865,7 @@ begin
       exit;
     end;
   end;
-  if (Length(uiTopList) > 0) then uiTopList[High(uiTopList)].blurred();
+  if (Length(uiTopList) > 0) and (uiTopList[High(uiTopList)].enabled) then uiTopList[High(uiTopList)].blurred();
   SetLength(uiTopList, Length(uiTopList)+1);
   uiTopList[High(uiTopList)] := ctl;
   if (not ctl.mStyleLoaded) then ctl.updateStyle();
@@ -868,6 +887,7 @@ begin
       ctl.blurred();
       for c := f+1 to High(uiTopList) do uiTopList[c-1] := uiTopList[c];
       SetLength(uiTopList, Length(uiTopList)-1);
+      if (Length(uiTopList) > 0) and (uiTopList[High(uiTopList)].enabled) then uiTopList[High(uiTopList)].activated();
       if (ctl is TUITopWindow) then
       begin
         try
@@ -1009,6 +1029,8 @@ begin
   mFrameColor[ClrIdxActive] := root.get('frame-color', 'active', cst).asRGBADef(TGxRGBA.Create(255, 255, 255));
   mFrameTextColor[ClrIdxActive] := root.get('frame-text-color', 'active', cst).asRGBADef(TGxRGBA.Create(255, 255, 255));
   mFrameIconColor[ClrIdxActive] := root.get('frame-icon-color', 'active', cst).asRGBADef(TGxRGBA.Create(0, 255, 0));
+  mSBarFullColor[ClrIdxActive] := root.get('scrollbar-full-color', 'active', cst).asRGBADef(TGxRGBA.Create(255, 255, 255));
+  mSBarEmptyColor[ClrIdxActive] := root.get('scrollbar-empty-color', 'active', cst).asRGBADef(TGxRGBA.Create(128, 128, 128));
   mDarken[ClrIdxActive] := root.get('darken', 'active', cst).asInt(666);
   // disabled
   mBackColor[ClrIdxDisabled] := root.get('back-color', 'disabled', cst).asRGBADef(TGxRGBA.Create(0, 0, 128));
@@ -1016,6 +1038,8 @@ begin
   mFrameColor[ClrIdxDisabled] := root.get('frame-color', 'disabled', cst).asRGBADef(TGxRGBA.Create(127, 127, 127));
   mFrameTextColor[ClrIdxDisabled] := root.get('frame-text-color', 'disabled', cst).asRGBADef(TGxRGBA.Create(127, 127, 127));
   mFrameIconColor[ClrIdxDisabled] := root.get('frame-icon-color', 'disabled', cst).asRGBADef(TGxRGBA.Create(0, 127, 0));
+  mSBarFullColor[ClrIdxDisabled] := root.get('scrollbar-full-color', 'disabled', cst).asRGBADef(TGxRGBA.Create(127, 127, 127));
+  mSBarEmptyColor[ClrIdxDisabled] := root.get('scrollbar-empty-color', 'disabled', cst).asRGBADef(TGxRGBA.Create(98, 98, 98));
   mDarken[ClrIdxDisabled] := root.get('darken', 'disabled', cst).asInt(666);
   // inactive
   mBackColor[ClrIdxInactive] := root.get('back-color', 'inactive', cst).asRGBADef(TGxRGBA.Create(0, 0, 128));
@@ -1023,6 +1047,8 @@ begin
   mFrameColor[ClrIdxInactive] := root.get('frame-color', 'inactive', cst).asRGBADef(TGxRGBA.Create(255, 255, 255));
   mFrameTextColor[ClrIdxInactive] := root.get('frame-text-color', 'inactive', cst).asRGBADef(TGxRGBA.Create(255, 255, 255));
   mFrameIconColor[ClrIdxInactive] := root.get('frame-icon-color', 'inactive', cst).asRGBADef(TGxRGBA.Create(0, 255, 0));
+  mSBarFullColor[ClrIdxInactive] := root.get('scrollbar-full-color', 'inactive', cst).asRGBADef(TGxRGBA.Create(255, 255, 255));
+  mSBarEmptyColor[ClrIdxInactive] := root.get('scrollbar-empty-color', 'inactive', cst).asRGBADef(TGxRGBA.Create(128, 128, 128));
   mDarken[ClrIdxInactive] := root.get('darken', 'inactive', cst).asInt(666);
 end;
 
@@ -2256,8 +2282,8 @@ end;
 
 procedure TUITopWindow.drawControlPost (gx, gy: Integer);
 var
-  cidx: Integer;
-  hgt, sbhgt, iwdt, ihgt: Integer;
+  cidx, iwdt, ihgt: Integer;
+  ybot, xend, vhgt, vwdt: Integer;
 begin
   cidx := getColorIndex;
   iwdt := uiContext.iconWinWidth(TGxContext.TWinIcon.Close);
@@ -2272,20 +2298,20 @@ begin
     //uiContext.color := mFrameColor[cidx];
     drawFrame(gx, gy, iwdt, 0, mTitle, true);
     // vertical scroll bar
-    hgt := mHeight-mFrameHeight*2;
-    if (hgt > 0) and (mFullSize.h > hgt) then
+    vhgt := mHeight-mFrameHeight*2;
+    if (mFullSize.h > vhgt) then
     begin
-      //writeln(mTitle, ': height=', mHeight-mFrameHeight*2, '; fullsize=', mFullSize.toString);
-      sbhgt := mHeight-mFrameHeight*2+2;
-      uiContext.fillRect(gx+mWidth-mFrameWidth+1, gy+mFrameHeight-1, mFrameWidth-3, sbhgt);
-      hgt += mScrollY;
-      if (hgt > mFullSize.h) then hgt := mFullSize.h;
-      hgt := sbhgt*hgt div mFullSize.h;
-      if (hgt > 0) then
-      begin
-        setScissor(mWidth-mFrameWidth+1, mFrameHeight-1, mFrameWidth-3, sbhgt);
-        uiContext.darkenRect(gx+mWidth-mFrameWidth+1, gy+mFrameHeight-1+hgt, mFrameWidth-3, sbhgt, 128);
-      end;
+      ybot := mScrollY+vhgt;
+      setScissor(0, 0, mWidth, mHeight);
+      uiContext.drawVSBar(gx+mWidth-mFrameWidth+1, gy+mFrameHeight-1, mFrameWidth-3, vhgt+2, ybot, 0, mFullSize.h, mSBarFullColor[cidx], mSBarEmptyColor[cidx]);
+    end;
+    // horizontal scroll bar
+    vwdt := mWidth-mFrameWidth*2;
+    if (mFullSize.w > vwdt) then
+    begin
+      xend := mScrollX+vwdt;
+      setScissor(0, 0, mWidth, mHeight);
+      uiContext.drawHSBar(gx+mFrameWidth+1, gy+mHeight-mFrameHeight+1, vwdt-2, mFrameHeight-3, xend, 0, mFullSize.w, mSBarFullColor[cidx], mSBarEmptyColor[cidx]);
     end;
     // frame icon
     setScissor(mFrameWidth, 0, iwdt, ihgt);
@@ -2339,7 +2365,8 @@ end;
 procedure TUITopWindow.mouseEvent (var ev: THMouseEvent);
 var
   lx, ly: Integer;
-  hgt, sbhgt: Integer;
+  vhgt, ytop: Integer;
+  vwdt, xend: Integer;
 begin
   if (not enabled) then exit;
   if (mWidth < 1) or (mHeight < 1) then exit;
@@ -2355,26 +2382,23 @@ begin
     exit;
   end;
 
-  if (mDragScroll = TXMode.Scroll) then
+  if (mDragScroll = TXMode.VScroll) then
   begin
-    // check for vertical scrollbar
     ly := ev.y-mY;
-    if (ly < 7) then
-    begin
-      mScrollY := 0;
-    end
-    else
-    begin
-      sbhgt := mHeight-mFrameHeight*2+2;
-      hgt := mHeight-mFrameHeight*2;
-      if (hgt > 0) and (mFullSize.h > hgt) then
-      begin
-        hgt := (mFullSize.h*(ly-7) div (sbhgt-1))-(mHeight-mFrameHeight*2);
-        mScrollY := nmax(0, hgt);
-        hgt := mHeight-mFrameHeight*2;
-        if (mScrollY+hgt > mFullSize.h) then mScrollY := nmax(0, mFullSize.h-hgt);
-      end;
-    end;
+    vhgt := mHeight-mFrameHeight*2;
+    ytop := uiContext.sbarPos(ly, mFrameHeight-1, vhgt+2, 0, mFullSize.h)-vhgt;
+    mScrollY := nmax(0, ytop);
+    if (ev.release) and (ev.but = ev.Left) then mDragScroll := TXMode.None;
+    ev.eat();
+    exit;
+  end;
+
+  if (mDragScroll = TXMode.HScroll) then
+  begin
+    lx := ev.x-mX;
+    vwdt := mWidth-mFrameWidth*2;
+    xend := uiContext.sbarPos(lx, mFrameWidth+1, vwdt-2, 0, mFullSize.w)-vwdt;
+    mScrollX := nmax(0, xend);
     if (ev.release) and (ev.but = ev.Left) then mDragScroll := TXMode.None;
     ev.eat();
     exit;
@@ -2403,17 +2427,30 @@ begin
         exit;
       end;
       // check for vertical scrollbar
-      if (lx >= mWidth-mFrameWidth+1) and (ly >= 7) and (ly < mHeight-mFrameHeight+1) then
+      if (lx >= mWidth-mFrameWidth+1) and (ly >= mFrameHeight-1) and (ly < mHeight-mFrameHeight+2) then
       begin
-        sbhgt := mHeight-mFrameHeight*2+2;
-        hgt := mHeight-mFrameHeight*2;
-        if (hgt > 0) and (mFullSize.h > hgt) then
+        vhgt := mHeight-mFrameHeight*2;
+        if (mFullSize.h > vhgt) then
         begin
-          hgt := (mFullSize.h*(ly-7) div (sbhgt-1))-(mHeight-mFrameHeight*2);
-          mScrollY := nmax(0, hgt);
           uiGrabCtl := self;
-          mDragScroll := TXMode.Scroll;
+          mDragScroll := TXMode.VScroll;
           ev.eat();
+          ytop := uiContext.sbarPos(ly, mFrameHeight-1, vhgt+2, 0, mFullSize.h)-vhgt;
+          mScrollY := nmax(0, ytop);
+          exit;
+        end;
+      end;
+      // check for horizontal scrollbar
+      if (ly >= mHeight-mFrameHeight+1) and (lx >= mFrameWidth+1) and (lx < mWidth-mFrameWidth-1) then
+      begin
+        vwdt := mWidth-mFrameWidth*2;
+        if (mFullSize.w > vwdt) then
+        begin
+          uiGrabCtl := self;
+          mDragScroll := TXMode.HScroll;
+          ev.eat();
+          xend := uiContext.sbarPos(lx, mFrameWidth+1, vwdt-2, 0, mFullSize.w)-vwdt;
+          mScrollX := nmax(0, xend);
           exit;
         end;
       end;
@@ -3069,6 +3106,12 @@ begin
 end;
 
 
+procedure TUIButton.blurred ();
+begin
+  mPushed := false;
+end;
+
+
 procedure TUIButton.drawControl (gx, gy: Integer);
 var
   wdt, hgt: Integer;
@@ -3186,10 +3229,25 @@ begin
   inherited keyEvent(ev);
   if (not ev.eaten) and (not ev.cancelled) and (enabled) then
   begin
-    if (ev = 'Enter') or (ev = 'Space') then
+    if (ev = '+Enter') or (ev = '+Space') then
     begin
+      focused := true;
+      mPushed := true;
       ev.eat();
-      doAction();
+      exit;
+    end;
+    if (focused) and ((ev = '-Enter') or (ev = '-Space')) then
+    begin
+      if (mPushed) then
+      begin
+        mPushed := false;
+        ev.eat();
+        doAction();
+      end
+      else
+      begin
+        ev.eat();
+      end;
       exit;
     end;
   end;
@@ -3499,6 +3557,13 @@ end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
+var
+  oldFocus: procedure () = nil;
+  oldBlur: procedure () = nil;
+
+procedure onWinFocus (); begin uiFocus(); if (assigned(oldFocus)) then oldFocus(); end;
+procedure onWinBlur (); begin fuiResetKMState(true); uiBlur(); if (assigned(oldBlur)) then oldBlur(); end;
+
 initialization
   registerCtlClass(TUIHBox, 'hbox');
   registerCtlClass(TUIVBox, 'vbox');
@@ -3510,4 +3575,9 @@ initialization
   registerCtlClass(TUIButton, 'button');
   registerCtlClass(TUICheckBox, 'checkbox');
   registerCtlClass(TUIRadioBox, 'radiobox');
+
+  oldFocus := winFocusCB;
+  oldBlur := winBlurCB;
+  winFocusCB := onWinFocus;
+  winBlurCB := onWinBlur;
 end.

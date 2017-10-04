@@ -115,6 +115,14 @@ type
 
     function combineClip (constref aclip: TGxRect): TGxRect; // returns previous clip
 
+    // vertical scrollbar
+    procedure drawVSBar (x, y, wdt, hgt: Integer; cur, min, max: Integer; constref clrfull, clrempty: TGxRGBA);
+    // horizontal scrollbar
+    procedure drawHSBar (x, y, wdt, hgt: Integer; cur, min, max: Integer; constref clrfull, clrempty: TGxRGBA);
+
+    class function sbarFilled (wh: Integer; cur, min, max: Integer): Integer;
+    class function sbarPos (cxy: Integer; xy, wh: Integer; min, max: Integer): Integer;
+
   public //HACK!
     procedure glSetScale (ascale: Single);
     procedure glSetTrans (ax, ay: Single);
@@ -1312,6 +1320,61 @@ begin
 end;
 
 
+// vertical scroll bar
+procedure TGxContext.drawVSBar (x, y, wdt, hgt: Integer; cur, min, max: Integer; constref clrfull, clrempty: TGxRGBA);
+var
+  filled: Integer;
+begin
+  if (wdt < 1) or (hgt < 1) then exit;
+  filled := sbarFilled(hgt, cur, min, max);
+  color := clrfull;
+  fillRect(x, y, wdt, filled);
+  color := clrempty;
+  fillRect(x, y+filled, wdt, hgt-filled);
+end;
+
+
+// horizontal scrollbar
+procedure TGxContext.drawHSBar (x, y, wdt, hgt: Integer; cur, min, max: Integer; constref clrfull, clrempty: TGxRGBA);
+var
+  filled: Integer;
+begin
+  if (wdt < 1) or (hgt < 1) then exit;
+  filled := sbarFilled(wdt, cur, min, max);
+  color := clrfull;
+  fillRect(x, y, filled, hgt);
+  color := clrempty;
+  fillRect(x+filled, y, wdt-filled, hgt);
+end;
+
+
+class function TGxContext.sbarFilled (wh: Integer; cur, min, max: Integer): Integer;
+begin
+       if (wh < 1) then result := 0
+  else if (min > max) then result := 0
+  else if (min = max) then result := wh
+  else
+  begin
+    if (cur < min) then cur := min else if (cur > max) then cur := max;
+    result := wh*(cur-min) div (max-min);
+  end;
+end;
+
+
+class function TGxContext.sbarPos (cxy: Integer; xy, wh: Integer; min, max: Integer): Integer;
+begin
+  if (wh < 1) then begin result := 0; exit; end;
+  if (min > max) then begin result := 0; exit; end;
+  if (min = max) then begin result := max; exit; end;
+  if (cxy < xy) then begin result := min; exit; end;
+  if (cxy >= xy+wh) then begin result := max; exit; end;
+  result := min+((max-min)*(cxy-xy) div wh);
+  assert((result >= min) and (result <= max));
+end;
+
+
+
+
 // ////////////////////////////////////////////////////////////////////////// //
 (*
 procedure oglRestoreMode (doClear: Boolean);
@@ -1347,8 +1410,8 @@ end;
 *)
 
 
-//procedure onWinFocus (); begin end;
-//procedure onWinBlur (); begin fuiResetKMState(true); end;
+//procedure onWinFocus (); begin uiFocus(); end;
+//procedure onWinBlur (); begin fuiResetKMState(true); uiBlur(); end;
 
 //procedure onPreRender (); begin oglRestoreMode(gGfxDoClear); end;
 procedure onPostRender (); begin oglDrawCursor(); end;

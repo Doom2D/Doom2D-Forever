@@ -199,8 +199,11 @@ begin
   result.a := a;
 end;
 
-function TGxRGBA.toString (): AnsiString; begin result := formatstrf('rgba(%s,%s,%s,%s)', [r, g, b, a]); end;
-
+function TGxRGBA.toString (): AnsiString;
+begin
+  if (a = 255) then result := formatstrf('rgb(%s,%s,%s)', [r, g, b])
+  else result := formatstrf('rgba(%s,%s,%s,%s)', [r, g, b, a]);
+end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
