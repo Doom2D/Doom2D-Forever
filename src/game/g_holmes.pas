@@ -200,7 +200,7 @@ procedure createHelpWindow ();
       box.appendChild(stx);
       // span
       span := TUISpan.Create();
-      span.flDefaultSize := TLaySize.Create(4, 1);
+      span.flDefaultSize := TLaySize.Create(12, 1);
       span.flExpand := true;
       box.appendChild(span);
       // text
