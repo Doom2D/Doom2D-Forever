@@ -83,10 +83,7 @@ var
 
 procedure KillGLWindow ();
 begin
-  if (h_Wnd <> nil) then
-  begin
-    if assigned(oglDeinitCB) then oglDeinitCB();
-  end;
+  if (h_GL <> nil) then begin if (assigned(oglDeinitCB)) then oglDeinitCB(); end;
   if (h_Wnd <> nil) then SDL_DestroyWindow(h_Wnd);
   if (h_GL <> nil) then SDL_GL_DeleteContext(h_GL);
   h_Wnd := nil;
@@ -136,10 +133,7 @@ begin
 
   SDL_GL_MakeCurrent(h_Wnd, h_GL);
   SDL_ShowCursor(SDL_DISABLE);
-  if (h_GL <> nil) then
-  begin
-    if assigned(oglInitCB) then oglInitCB();
-  end;
+  if (h_GL <> nil) then begin if (assigned(oglInitCB)) then oglInitCB(); end;
 {$ENDIF}
 
   result := true;
@@ -469,7 +463,7 @@ begin
 {$IF not DEFINED(HEADLESS)}
   h_Gl := SDL_GL_CreateContext(h_Wnd);
   if (h_Gl = nil) then exit;
-  if assigned(oglInitCB) then oglInitCB();
+  if (assigned(oglInitCB)) then oglInitCB();
 {$ENDIF}
 
   e_ResizeWindow(gScreenWidth, gScreenHeight);
