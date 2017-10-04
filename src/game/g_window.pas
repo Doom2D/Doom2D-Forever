@@ -133,6 +133,8 @@ begin
 
   SDL_GL_MakeCurrent(h_Wnd, h_GL);
   SDL_ShowCursor(SDL_DISABLE);
+  fuiScrWdt := gScreenWidth;
+  fuiScrHgt := gScreenHeight;
   if (h_GL <> nil) then begin if (assigned(oglInitCB)) then oglInitCB(); end;
 {$ENDIF}
 
@@ -179,6 +181,8 @@ begin
   gWinSizeX := gScreenWidth;
   gWinSizeY := gScreenHeight;
 {$IF not DEFINED(HEADLESS)}
+  fuiScrWdt := gScreenWidth;
+  fuiScrHgt := gScreenHeight;
   e_ResizeWindow(gScreenWidth, gScreenHeight);
   g_Game_SetupScreenSize();
   g_Menu_Reset();
@@ -463,6 +467,8 @@ begin
 {$IF not DEFINED(HEADLESS)}
   h_Gl := SDL_GL_CreateContext(h_Wnd);
   if (h_Gl = nil) then exit;
+  fuiScrWdt := gScreenWidth;
+  fuiScrHgt := gScreenHeight;
   if (assigned(oglInitCB)) then oglInitCB();
 {$ENDIF}
 

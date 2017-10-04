@@ -488,10 +488,15 @@ end;
 
 procedure toggleHelpWindow (arg: Integer=-1);
 begin
-  if (winHelp = nil) then createHelpWindow();
+  if (winHelp = nil) then
+  begin
+    if (arg = 0) then exit;
+    createHelpWindow();
+  end;
        if (arg < 0) then begin if not uiVisibleWindow(winHelp) then uiAddWindow(winHelp) else uiRemoveWindow(winHelp); end
   else if (arg = 0) then begin if uiVisibleWindow(winHelp) then uiRemoveWindow(winHelp); end
-  else begin if not uiVisibleWindow(winHelp) then uiAddWindow(winHelp); end
+  else begin if (not uiVisibleWindow(winHelp)) then uiAddWindow(winHelp); end;
+  if (not uiVisibleWindow(winHelp)) then FreeAndNil(winHelp);
 end;
 
 procedure toggleOptionsWindow (arg: Integer=-1);

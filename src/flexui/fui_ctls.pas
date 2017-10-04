@@ -587,6 +587,7 @@ uses
 
 
 var
+  uiInsideDispatcher: Boolean = false;
   uiTopList: array of TUIControl = nil;
   uiGrabCtl: TUIControl = nil;
 
@@ -850,9 +851,12 @@ var
 var
   svx, svy, svdx, svdy: Integer;
   svscale: Single;
+  odp: Boolean;
 begin
   processKills();
   if (not evt.alive) then exit;
+  odp := uiInsideDispatcher;
+  uiInsideDispatcher := true;
   //writeln('ENTER: FUI DISPATCH');
   ev := evt;
   // normalize mouse coordinates
@@ -878,6 +882,7 @@ begin
       dispatchTo(uiGetFocusedCtl);
     end;
   finally
+    uiInsideDispatcher := odp;
     if (ev.x = svx) and (ev.y = svy) and (ev.dx = svdx) and (ev.dy = svdy) then
     begin
       // due to possible precision loss
@@ -945,7 +950,12 @@ end;
 
 function uiGetFocusedCtl (): TUIControl;
 begin
-  if (Length(uiTopList) > 0) and (uiTopList[High(uiTopList)].enabled) then result := uiTopList[High(uiTopList)].mFocused else result := nil;
+  result := nil;
+  if (Length(uiTopList) > 0) and (uiTopList[High(uiTopList)].enabled) then
+  begin
+    result := uiTopList[High(uiTopList)].mFocused;
+    if (result = nil) then result := uiTopList[High(uiTopList)];
+  end;
 end;
 
 
@@ -1067,7 +1077,27 @@ end;
 destructor TUIControl.Destroy ();
 var
   f, c: Integer;
+  doActivateOtherWin: Boolean = false;
 begin
+  if (uiInsideDispatcher) then raise Exception.Create('FlexUI: cannot destroy objects in event dispatcher');
+  if (uiGrabCtl = self) then uiGrabCtl := nil;
+  // just in case, check if this is top-level shit
+  for f := 0 to High(uiTopList) do
+  begin
+    if (uiTopList[f] = self) then
+    begin
+      if (uiGrabCtl <> nil) and (isMyChild(uiGrabCtl)) then uiGrabCtl := nil;
+      for c := f+1 to High(uiTopList) do uiTopList[c-1] := uiTopList[c];
+      SetLength(uiTopList, Length(uiTopList)-1);
+      doActivateOtherWin := true;
+      break;
+    end;
+  end;
+  if (doActivateOtherWin) and (Length(uiTopList) > 0) and (uiTopList[High(uiTopList)].enabled) then
+  begin
+    uiTopList[High(uiTopList)].activated();
+  end;
+  // other checks
   if (mParent <> nil) then
   begin
     setFocused(false);
