@@ -26,7 +26,7 @@ uses
 
 // ////////////////////////////////////////////////////////////////////////// //
 type
-  THMouseEvent = record
+  TFUIMouseEvent = record
   public
     const
       // both for but and for bstate
@@ -51,7 +51,7 @@ type
     dx, dy: Integer; // for wheel this is wheel motion, otherwise this is relative mouse motion
     but: Word; // current pressed/released button, or 0 for motion
     bstate: Word; // button state BEFORE event (i.e. press/release modifications aren't done yet)
-    kstate: Word; // keyboard state (see THKeyEvent);
+    kstate: Word; // keyboard state (see TFUIKeyEvent);
 
   public
     procedure intrInit (); inline; // init hidden fields
@@ -59,15 +59,17 @@ type
     function press (): Boolean; inline;
     function release (): Boolean; inline;
     function motion (): Boolean; inline;
+    function isAlive (): Boolean; inline;
     procedure eat (); inline;
     procedure cancel (); inline;
 
   public
     property eaten: Boolean read mEaten;
     property cancelled: Boolean read mCancelled;
+    property alive: Boolean read isAlive; // not eaten and not cancelled
   end;
 
-  THKeyEvent = record
+  TFUIKeyEvent = record
   public
     const
       // modifiers
@@ -98,6 +100,7 @@ type
 
     function press (): Boolean; inline;
     function release (): Boolean; inline;
+    function isAlive (): Boolean; inline;
     procedure eat (); inline;
     procedure cancel (); inline;
 
@@ -106,6 +109,7 @@ type
   public
     property eaten: Boolean read mEaten;
     property cancelled: Boolean read mCancelled;
+    property alive: Boolean read isAlive; // not eaten and not cancelled
   end;
 
 
@@ -117,8 +121,8 @@ procedure fuiResetKMState (sendEvents: Boolean=true);
 // ////////////////////////////////////////////////////////////////////////// //
 // event handlers
 var
-  evMouseCB: procedure (var ev: THMouseEvent) = nil;
-  evKeyCB: procedure (var ev: THKeyEvent) = nil;
+  evMouseCB: procedure (var ev: TFUIMouseEvent) = nil;
+  evKeyCB: procedure (var ev: TFUIKeyEvent) = nil;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
@@ -137,11 +141,11 @@ procedure fuiSetModState (v: Word); inline;
 // any mods = 255: nothing was defined
 function parseModKeys (const s: AnsiString; out kmods: Byte; out mbuts: Byte): AnsiString;
 
-operator = (constref ev: THKeyEvent; const s: AnsiString): Boolean;
-operator = (const s: AnsiString; constref ev: THKeyEvent): Boolean;
+operator = (constref ev: TFUIKeyEvent; const s: AnsiString): Boolean;
+operator = (const s: AnsiString; constref ev: TFUIKeyEvent): Boolean;
 
-operator = (constref ev: THMouseEvent; const s: AnsiString): Boolean;
-operator = (const s: AnsiString; constref ev: THMouseEvent): Boolean;
+operator = (constref ev: TFUIMouseEvent; const s: AnsiString): Boolean;
+operator = (const s: AnsiString; constref ev: TFUIMouseEvent): Boolean;
 
 
 implementation
@@ -187,20 +191,22 @@ procedure fuiSetModState (v: Word); inline; begin curModState := v; end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-procedure THMouseEvent.intrInit (); inline; begin mEaten := false; mCancelled := false; end;
-function THMouseEvent.press (): Boolean; inline; begin result := (kind = TKind.Press); end;
-function THMouseEvent.release (): Boolean; inline; begin result := (kind = TKind.Release); end;
-function THMouseEvent.motion (): Boolean; inline; begin result := (kind = TKind.Motion); end;
-procedure THMouseEvent.eat (); inline; begin mEaten := true; end;
-procedure THMouseEvent.cancel (); inline; begin mCancelled := true; end;
+procedure TFUIMouseEvent.intrInit (); inline; begin mEaten := false; mCancelled := false; end;
+function TFUIMouseEvent.press (): Boolean; inline; begin result := (kind = TKind.Press); end;
+function TFUIMouseEvent.release (): Boolean; inline; begin result := (kind = TKind.Release); end;
+function TFUIMouseEvent.motion (): Boolean; inline; begin result := (kind = TKind.Motion); end;
+function TFUIMouseEvent.isAlive (): Boolean; inline; begin result := (not mEaten) and (not mCancelled); end;
+procedure TFUIMouseEvent.eat (); inline; begin mEaten := true; end;
+procedure TFUIMouseEvent.cancel (); inline; begin mCancelled := true; end;
 
-procedure THKeyEvent.intrInit (); inline; begin mEaten := false; mCancelled := false; ch := #0; scan := 0; end;
-function THKeyEvent.press (): Boolean; inline; begin result := (kind = TKind.Press); end;
-function THKeyEvent.release (): Boolean; inline; begin result := (kind = TKind.Release); end;
-procedure THKeyEvent.eat (); inline; begin mEaten := true; end;
-procedure THKeyEvent.cancel (); inline; begin mCancelled := true; end;
+procedure TFUIKeyEvent.intrInit (); inline; begin mEaten := false; mCancelled := false; ch := #0; scan := 0; end;
+function TFUIKeyEvent.press (): Boolean; inline; begin result := (kind = TKind.Press); end;
+function TFUIKeyEvent.release (): Boolean; inline; begin result := (kind = TKind.Release); end;
+function TFUIKeyEvent.isAlive (): Boolean; inline; begin result := (not mEaten) and (not mCancelled); end;
+procedure TFUIKeyEvent.eat (); inline; begin mEaten := true; end;
+procedure TFUIKeyEvent.cancel (); inline; begin mCancelled := true; end;
 
-function THKeyEvent.isHot (c: AnsiChar): Boolean;
+function TFUIKeyEvent.isHot (c: AnsiChar): Boolean;
 begin
   if (c = #0) or (scan = 0) or (scan = $FFFF) then begin result := false; exit; end;
   case scan of
@@ -281,18 +287,18 @@ begin
     if (Length(s)-pos >= 1) and (s[pos+1] = '-') then
     begin
       case s[pos] of
-        'C', 'c': begin if (kmods = 255) then kmods := 0; kmods := kmods or THKeyEvent.ModCtrl; Inc(pos, 2); continue; end;
-        'M', 'm': begin if (kmods = 255) then kmods := 0; kmods := kmods or THKeyEvent.ModAlt; Inc(pos, 2); continue; end;
-        'S', 's': begin if (kmods = 255) then kmods := 0; kmods := kmods or THKeyEvent.ModShift; Inc(pos, 2); continue; end;
+        'C', 'c': begin if (kmods = 255) then kmods := 0; kmods := kmods or TFUIKeyEvent.ModCtrl; Inc(pos, 2); continue; end;
+        'M', 'm': begin if (kmods = 255) then kmods := 0; kmods := kmods or TFUIKeyEvent.ModAlt; Inc(pos, 2); continue; end;
+        'S', 's': begin if (kmods = 255) then kmods := 0; kmods := kmods or TFUIKeyEvent.ModShift; Inc(pos, 2); continue; end;
       end;
       break;
     end;
     if (Length(s)-pos >= 3) and (s[pos+3] = '-') and ((s[pos+1] = 'M') or (s[pos+1] = 'm')) and ((s[pos+2] = 'B') or (s[pos+2] = 'b')) then
     begin
       case s[pos] of
-        'L', 'l': begin if (mbuts = 255) then mbuts := 0; mbuts := mbuts or THMouseEvent.Left; Inc(pos, 4); continue; end;
-        'R', 'r': begin if (mbuts = 255) then mbuts := 0; mbuts := mbuts or THMouseEvent.Right; Inc(pos, 4); continue; end;
-        'M', 'm': begin if (mbuts = 255) then mbuts := 0; mbuts := mbuts or THMouseEvent.Middle; Inc(pos, 4); continue; end;
+        'L', 'l': begin if (mbuts = 255) then mbuts := 0; mbuts := mbuts or TFUIMouseEvent.Left; Inc(pos, 4); continue; end;
+        'R', 'r': begin if (mbuts = 255) then mbuts := 0; mbuts := mbuts or TFUIMouseEvent.Right; Inc(pos, 4); continue; end;
+        'M', 'm': begin if (mbuts = 255) then mbuts := 0; mbuts := mbuts or TFUIMouseEvent.Middle; Inc(pos, 4); continue; end;
       end;
       break;
     end;
@@ -304,7 +310,7 @@ begin
 end;
 
 
-operator = (constref ev: THKeyEvent; const s: AnsiString): Boolean;
+operator = (constref ev: TFUIKeyEvent; const s: AnsiString): Boolean;
 var
   f: Integer;
   kmods: Byte = 255;
@@ -337,13 +343,13 @@ begin
 end;
 
 
-operator = (const s: AnsiString; constref ev: THKeyEvent): Boolean;
+operator = (const s: AnsiString; constref ev: TFUIKeyEvent): Boolean;
 begin
   result := (ev = s);
 end;
 
 
-operator = (constref ev: THMouseEvent; const s: AnsiString): Boolean;
+operator = (constref ev: TFUIMouseEvent; const s: AnsiString): Boolean;
 var
   kmods: Byte = 255;
   mbuts: Byte = 255;
@@ -362,11 +368,11 @@ begin
   end;
 
   kname := parseModKeys(s, kmods, mbuts);
-       if strEquCI(kname, 'LMB') then but := THMouseEvent.Left
-  else if strEquCI(kname, 'RMB') then but := THMouseEvent.Right
-  else if strEquCI(kname, 'MMB') then but := THMouseEvent.Middle
-  else if strEquCI(kname, 'WheelUp') or strEquCI(kname, 'WUP') then but := THMouseEvent.WheelUp
-  else if strEquCI(kname, 'WheelDown') or strEquCI(kname, 'WDN') or strEquCI(kname, 'WDOWN') then but := THMouseEvent.WheelDown
+       if strEquCI(kname, 'LMB') then but := TFUIMouseEvent.Left
+  else if strEquCI(kname, 'RMB') then but := TFUIMouseEvent.Right
+  else if strEquCI(kname, 'MMB') then but := TFUIMouseEvent.Middle
+  else if strEquCI(kname, 'WheelUp') or strEquCI(kname, 'WUP') then but := TFUIMouseEvent.WheelUp
+  else if strEquCI(kname, 'WheelDown') or strEquCI(kname, 'WDN') or strEquCI(kname, 'WDOWN') then but := TFUIMouseEvent.WheelDown
   else if strEquCI(kname, 'None') then but := 0
   else exit;
 
@@ -379,7 +385,7 @@ begin
 end;
 
 
-operator = (const s: AnsiString; constref ev: THMouseEvent): Boolean;
+operator = (const s: AnsiString; constref ev: TFUIMouseEvent): Boolean;
 begin
   result := (ev = s);
 end;
@@ -389,8 +395,8 @@ end;
 procedure fuiResetKMState (sendEvents: Boolean=true);
 var
   mask: Word;
-  mev: THMouseEvent;
-  kev: THKeyEvent;
+  mev: TFUIMouseEvent;
+  kev: TFUIKeyEvent;
 begin
   // generate mouse release events
   if (curButState <> 0) then
@@ -437,10 +443,10 @@ begin
           kev.intrInit();
           kev.kind := kev.TKind.Release;
           case mask of
-            THKeyEvent.ModCtrl: begin kev.scan := SDL_SCANCODE_LCTRL; {kev.sym := SDLK_LCTRL;}{arbitrary} end;
-            THKeyEvent.ModAlt: begin kev.scan := SDL_SCANCODE_LALT; {kev.sym := SDLK_LALT;}{arbitrary} end;
-            THKeyEvent.ModShift: begin kev.scan := SDL_SCANCODE_LSHIFT; {kev.sym := SDLK_LSHIFT;}{arbitrary} end;
-            THKeyEvent.ModHyper: begin kev.scan := SDL_SCANCODE_LGUI; {kev.sym := SDLK_LGUI;}{arbitrary} end;
+            TFUIKeyEvent.ModCtrl: begin kev.scan := SDL_SCANCODE_LCTRL; {kev.sym := SDLK_LCTRL;}{arbitrary} end;
+            TFUIKeyEvent.ModAlt: begin kev.scan := SDL_SCANCODE_LALT; {kev.sym := SDLK_LALT;}{arbitrary} end;
+            TFUIKeyEvent.ModShift: begin kev.scan := SDL_SCANCODE_LSHIFT; {kev.sym := SDLK_LSHIFT;}{arbitrary} end;
+            TFUIKeyEvent.ModHyper: begin kev.scan := SDL_SCANCODE_LGUI; {kev.sym := SDLK_LGUI;}{arbitrary} end;
             else assert(false);
           end;
           kev.x := curMsX;

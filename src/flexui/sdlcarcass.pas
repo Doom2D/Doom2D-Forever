@@ -182,8 +182,8 @@ end;
 // ////////////////////////////////////////////////////////////////////////// //
 function fuiOnSDLEvent (var ev: TSDL_Event): Boolean;
 var
-  mev: THMouseEvent;
-  kev: THKeyEvent;
+  mev: TFUIMouseEvent;
+  kev: TFUIKeyEvent;
   uc: UnicodeChar;
   keychr: Word;
 
@@ -191,9 +191,9 @@ var
   begin
     result := 0;
     case b of
-      SDL_BUTTON_LEFT: result := result or THMouseEvent.Left;
-      SDL_BUTTON_MIDDLE: result := result or THMouseEvent.Middle;
-      SDL_BUTTON_RIGHT: result := result or THMouseEvent.Right;
+      SDL_BUTTON_LEFT: result := result or TFUIMouseEvent.Left;
+      SDL_BUTTON_MIDDLE: result := result or TFUIMouseEvent.Middle;
+      SDL_BUTTON_RIGHT: result := result or TFUIMouseEvent.Right;
     end;
   end;
 
@@ -228,7 +228,7 @@ begin
         // fix left/right modifiers
         FillChar(kev, sizeof(kev), 0);
         kev.intrInit();
-        if (ev.type_ = SDL_KEYDOWN) then kev.kind := THKeyEvent.TKind.Press else kev.kind := THKeyEvent.TKind.Release;
+        if (ev.type_ = SDL_KEYDOWN) then kev.kind := TFUIKeyEvent.TKind.Press else kev.kind := TFUIKeyEvent.TKind.Release;
         kev.scan := ev.key.keysym.scancode;
         //kev.sym := ev.key.keysym.sym;
 
@@ -250,9 +250,9 @@ begin
         kev.kstate := fuiModState;
 
         case kev.scan of
-          SDL_SCANCODE_LCTRL: if (kev.press) then fuiSetModState(fuiModState or THKeyEvent.ModCtrl) else fuiSetModState(fuiModState and (not THKeyEvent.ModCtrl));
-          SDL_SCANCODE_LALT: if (kev.press) then fuiSetModState(fuiModState or THKeyEvent.ModAlt) else fuiSetModState(fuiModState and (not THKeyEvent.ModAlt));
-          SDL_SCANCODE_LSHIFT: if (kev.press) then fuiSetModState(fuiModState or THKeyEvent.ModShift) else fuiSetModState(fuiModState and (not THKeyEvent.ModShift));
+          SDL_SCANCODE_LCTRL: if (kev.press) then fuiSetModState(fuiModState or TFUIKeyEvent.ModCtrl) else fuiSetModState(fuiModState and (not TFUIKeyEvent.ModCtrl));
+          SDL_SCANCODE_LALT: if (kev.press) then fuiSetModState(fuiModState or TFUIKeyEvent.ModAlt) else fuiSetModState(fuiModState and (not TFUIKeyEvent.ModAlt));
+          SDL_SCANCODE_LSHIFT: if (kev.press) then fuiSetModState(fuiModState or TFUIKeyEvent.ModShift) else fuiSetModState(fuiModState and (not TFUIKeyEvent.ModShift));
         end;
 
         if assigned(evKeyCB) then
@@ -266,7 +266,7 @@ begin
       begin
         FillChar(mev, sizeof(mev), 0);
         mev.intrInit();
-        if (ev.type_ = SDL_MOUSEBUTTONDOWN) then mev.kind := THMouseEvent.TKind.Press else mev.kind := THMouseEvent.TKind.Release;
+        if (ev.type_ = SDL_MOUSEBUTTONDOWN) then mev.kind := TFUIMouseEvent.TKind.Press else mev.kind := TFUIMouseEvent.TKind.Release;
         mev.dx := ev.button.x-fuiMouseX;
         mev.dy := ev.button.y-fuiMouseY;
         fuiSetMouseX(ev.button.x);
@@ -293,10 +293,10 @@ begin
         begin
           FillChar(mev, sizeof(mev), 0);
           mev.intrInit();
-          mev.kind := THMouseEvent.TKind.Press;
+          mev.kind := TFUIMouseEvent.TKind.Press;
           mev.dx := 0;
           mev.dy := ev.wheel.y;
-          if (ev.wheel.y < 0) then mev.but := THMouseEvent.WheelUp else mev.but := THMouseEvent.WheelDown;
+          if (ev.wheel.y < 0) then mev.but := TFUIMouseEvent.WheelUp else mev.but := TFUIMouseEvent.WheelDown;
           mev.x := fuiMouseX;
           mev.y := fuiMouseY;
           mev.bstate := fuiButState;
@@ -312,7 +312,7 @@ begin
       begin
         FillChar(mev, sizeof(mev), 0);
         mev.intrInit();
-        mev.kind := THMouseEvent.TKind.Motion;
+        mev.kind := TFUIMouseEvent.TKind.Motion;
         mev.dx := ev.button.x-fuiMouseX;
         mev.dy := ev.button.y-fuiMouseY;
         fuiSetMouseX(ev.button.x);
@@ -330,7 +330,7 @@ begin
       end;
 
     SDL_TEXTINPUT:
-      if ((fuiModState and (not THKeyEvent.ModShift)) = 0) then
+      if ((fuiModState and (not TFUIKeyEvent.ModShift)) = 0) then
       begin
         Utf8ToUnicode(@uc, PChar(ev.text.text), 1);
         keychr := Word(uc);
@@ -339,7 +339,7 @@ begin
         begin
           FillChar(kev, sizeof(kev), 0);
           kev.intrInit();
-          kev.kind := THKeyEvent.TKind.Press;
+          kev.kind := TFUIKeyEvent.TKind.Press;
           kev.scan := 0;
           kev.ch := AnsiChar(keychr);
           kev.x := fuiMouseX;

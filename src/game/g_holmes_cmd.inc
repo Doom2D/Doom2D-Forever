@@ -280,7 +280,7 @@ begin
 end;
 
 
-function keybindExecute (var ev: THKeyEvent): Boolean;
+function keybindExecute (var ev: TFUIKeyEvent): Boolean;
 var
   f: Integer;
 begin
@@ -298,7 +298,7 @@ begin
 end;
 
 
-function msbindExecute (var ev: THMouseEvent): Boolean;
+function msbindExecute (var ev: TFUIMouseEvent): Boolean;
 var
   f: Integer;
 begin

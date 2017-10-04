@@ -32,8 +32,8 @@ uses
 procedure g_Holmes_Draw ();
 procedure g_Holmes_DrawUI ();
 
-procedure g_Holmes_MouseEvent (var ev: THMouseEvent);
-procedure g_Holmes_KeyEvent (var ev: THKeyEvent);
+procedure g_Holmes_MouseEvent (var ev: TFUIMouseEvent);
+procedure g_Holmes_KeyEvent (var ev: TFUIKeyEvent);
 
 // hooks for player
 procedure g_Holmes_plrViewPos (viewPortX, viewPortY: Integer);
@@ -543,11 +543,11 @@ function pmsCurMapX (): Integer; inline; begin result := round(msX/g_dbg_scale)+
 function pmsCurMapY (): Integer; inline; begin result := round(msY/g_dbg_scale)+vpy; end;
 
 
-procedure plrDebugMouse (var ev: THMouseEvent);
+procedure plrDebugMouse (var ev: TFUIMouseEvent);
 begin
   //e_WriteLog(Format('mouse: x=%d; y=%d; but=%d; bstate=%d', [msx, msy, but, bstate]), MSG_NOTIFY);
   if (gPlayer1 = nil) or not vpSet then exit;
-  //if (ev.kind <> THMouseEvent.Press) then exit;
+  //if (ev.kind <> TFUIMouseEvent.Press) then exit;
   //e_WriteLog(Format('mev: %d', [Integer(ev.kind)]), MSG_NOTIFY);
   msbindExecute(ev);
 end;
@@ -1317,9 +1317,9 @@ end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-procedure g_Holmes_MouseEvent (var ev: THMouseEvent);
+procedure g_Holmes_MouseEvent (var ev: TFUIMouseEvent);
 var
-  he: THMouseEvent;
+  he: TFUIMouseEvent;
 begin
   if g_Game_IsNet then exit;
   if not g_holmes_enabled then exit;
@@ -1336,13 +1336,13 @@ begin
   he.x := he.x;
   he.y := he.y;
   uiMouseEvent(he);
-  if (not he.eaten) then plrDebugMouse(he);
+  if (he.alive) then plrDebugMouse(he);
   ev.eat();
 end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-procedure g_Holmes_KeyEvent (var ev: THKeyEvent);
+procedure g_Holmes_KeyEvent (var ev: TFUIKeyEvent);
 var
   doeat: Boolean = false;
 {$IF DEFINED(D2F_DEBUG)}
@@ -1373,7 +1373,7 @@ begin
   end;
 
   uiKeyEvent(ev);
-  if (ev.eaten) then exit;
+  if (not ev.alive) then exit;
   if keybindExecute(ev) then begin ev.eat(); exit; end;
   // press
   if (ev.press) then
@@ -1381,7 +1381,7 @@ begin
     {$IF DEFINED(D2F_DEBUG)}
     // C-UP, C-DOWN, C-LEFT, C-RIGHT: trace 10 pixels from cursor in the respective direction
     if ((ev.scan = SDL_SCANCODE_UP) or (ev.scan = SDL_SCANCODE_DOWN) or (ev.scan = SDL_SCANCODE_LEFT) or (ev.scan = SDL_SCANCODE_RIGHT)) and
-       ((ev.kstate and THKeyEvent.ModCtrl) <> 0) then
+       ((ev.kstate and TFUIKeyEvent.ModCtrl) <> 0) then
     begin
       ev.eat();
       dx := pmsCurMapX;
@@ -1715,14 +1715,14 @@ begin
 end;
 
 
-procedure onMouseEvent (var ev: THMouseEvent);
+procedure onMouseEvent (var ev: TFUIMouseEvent);
 begin
   if not g_holmes_enabled then exit;
   if g_holmes_imfunctional then exit;
   g_Holmes_MouseEvent(ev);
 end;
 
-procedure onKeyEvent (var ev: THKeyEvent);
+procedure onKeyEvent (var ev: TFUIKeyEvent);
 begin
   if not g_holmes_enabled then exit;
   if g_holmes_imfunctional then exit;

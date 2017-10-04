@@ -230,10 +230,10 @@ type
 
     procedure doAction (); virtual; // so user controls can override it
 
-    procedure mouseEvent (var ev: THMouseEvent); virtual; // returns `true` if event was eaten
-    procedure keyEvent (var ev: THKeyEvent); virtual; // returns `true` if event was eaten
-    procedure keyEventPre (var ev: THKeyEvent); virtual; // will be called before dispatching the event
-    procedure keyEventPost (var ev: THKeyEvent); virtual; // will be called after if nobody processed the event
+    procedure mouseEvent (var ev: TFUIMouseEvent); virtual; // returns `true` if event was eaten
+    procedure keyEvent (var ev: TFUIKeyEvent); virtual; // returns `true` if event was eaten
+    procedure keyEventPre (var ev: TFUIKeyEvent); virtual; // will be called before dispatching the event
+    procedure keyEventPost (var ev: TFUIKeyEvent); virtual; // will be called after if nobody processed the event
 
     function prevSibling (): TUIControl;
     function nextSibling (): TUIControl;
@@ -306,8 +306,8 @@ type
     procedure drawControl (gx, gy: Integer); override;
     procedure drawControlPost (gx, gy: Integer); override;
 
-    procedure keyEvent (var ev: THKeyEvent); override; // returns `true` if event was eaten
-    procedure mouseEvent (var ev: THMouseEvent); override; // returns `true` if event was eaten
+    procedure keyEvent (var ev: TFUIKeyEvent); override; // returns `true` if event was eaten
+    procedure mouseEvent (var ev: TFUIMouseEvent); override; // returns `true` if event was eaten
 
   public
     property freeOnClose: Boolean read mFreeOnClose write mFreeOnClose;
@@ -334,8 +334,8 @@ type
 
     procedure drawControl (gx, gy: Integer); override;
 
-    procedure mouseEvent (var ev: THMouseEvent); override;
-    procedure keyEvent (var ev: THKeyEvent); override;
+    procedure mouseEvent (var ev: TFUIMouseEvent); override;
+    procedure keyEvent (var ev: TFUIKeyEvent); override;
 
   public
     property caption: AnsiString read mCaption write setCaption;
@@ -429,8 +429,8 @@ type
 
     procedure drawControl (gx, gy: Integer); override;
 
-    procedure mouseEvent (var ev: THMouseEvent); override;
-    procedure keyEventPost (var ev: THKeyEvent); override;
+    procedure mouseEvent (var ev: TFUIMouseEvent); override;
+    procedure keyEventPost (var ev: TFUIKeyEvent); override;
 
   public
     property text: AnsiString read mText write setText;
@@ -461,8 +461,8 @@ type
 
     procedure drawControl (gx, gy: Integer); override;
 
-    procedure mouseEvent (var ev: THMouseEvent); override;
-    procedure keyEvent (var ev: THKeyEvent); override;
+    procedure mouseEvent (var ev: TFUIMouseEvent); override;
+    procedure keyEvent (var ev: TFUIKeyEvent); override;
   end;
 
   // ////////////////////////////////////////////////////////////////////// //
@@ -501,8 +501,8 @@ type
 
     procedure drawControl (gx, gy: Integer); override;
 
-    procedure mouseEvent (var ev: THMouseEvent); override;
-    procedure keyEvent (var ev: THKeyEvent); override;
+    procedure mouseEvent (var ev: TFUIMouseEvent); override;
+    procedure keyEvent (var ev: TFUIKeyEvent); override;
 
     procedure setVar (pvar: PBoolean);
 
@@ -540,8 +540,8 @@ type
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-procedure uiMouseEvent (var evt: THMouseEvent);
-procedure uiKeyEvent (var evt: THKeyEvent);
+procedure uiMouseEvent (var evt: TFUIMouseEvent);
+procedure uiKeyEvent (var evt: TFUIKeyEvent);
 procedure uiDraw ();
 
 procedure uiFocus ();
@@ -736,15 +736,15 @@ begin
 end;
 
 
-procedure uiMouseEvent (var evt: THMouseEvent);
+procedure uiMouseEvent (var evt: TFUIMouseEvent);
 var
-  ev: THMouseEvent;
+  ev: TFUIMouseEvent;
   f, c: Integer;
   lx, ly: Integer;
   ctmp: TUIControl;
 begin
   processKills();
-  if (evt.eaten) or (evt.cancelled) then exit;
+  if (not evt.alive) then exit;
   ev := evt;
   ev.x := trunc(ev.x/fuiRenderScale);
   ev.y := trunc(ev.y/fuiRenderScale);
@@ -759,7 +759,7 @@ begin
       exit;
     end;
     if (Length(uiTopList) > 0) and (uiTopList[High(uiTopList)].enabled) then uiTopList[High(uiTopList)].mouseEvent(ev);
-    if (not ev.eaten) and (not ev.cancelled) and (ev.press) then
+    if (ev.alive) and (ev.press) then
     begin
       for f := High(uiTopList) downto 0 do
       begin
@@ -787,12 +787,12 @@ begin
 end;
 
 
-procedure uiKeyEvent (var evt: THKeyEvent);
+procedure uiKeyEvent (var evt: TFUIKeyEvent);
 var
-  ev: THKeyEvent;
+  ev: TFUIKeyEvent;
 begin
   processKills();
-  if (evt.eaten) or (evt.cancelled) then exit;
+  if (not evt.alive) then exit;
   ev := evt;
   ev.x := trunc(ev.x/fuiRenderScale);
   ev.y := trunc(ev.y/fuiRenderScale);
@@ -2050,7 +2050,7 @@ end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-procedure TUIControl.mouseEvent (var ev: THMouseEvent);
+procedure TUIControl.mouseEvent (var ev: TFUIMouseEvent);
 var
   ctl: TUIControl;
 begin
@@ -2068,32 +2068,32 @@ begin
 end;
 
 
-procedure TUIControl.keyEvent (var ev: THKeyEvent);
+procedure TUIControl.keyEvent (var ev: TFUIKeyEvent);
 
   function doPreKey (ctl: TUIControl): Boolean;
   begin
     if (not ctl.enabled) then begin result := false; exit; end;
     ctl.keyEventPre(ev);
-    result := (ev.eaten) or (ev.cancelled); // stop if event was consumed
+    result := (not ev.alive); // stop if event was consumed
   end;
 
   function doPostKey (ctl: TUIControl): Boolean;
   begin
     if (not ctl.enabled) then begin result := false; exit; end;
     ctl.keyEventPost(ev);
-    result := (ev.eaten) or (ev.cancelled); // stop if event was consumed
+    result := (not ev.alive); // stop if event was consumed
   end;
 
 var
   ctl: TUIControl;
 begin
   if (not enabled) then exit;
-  if (ev.eaten) or (ev.cancelled) then exit;
+  if (not ev.alive) then exit;
   // call pre-key
   if (mParent = nil) then
   begin
     forEachControl(doPreKey);
-    if (ev.eaten) or (ev.cancelled) then exit;
+    if (not ev.alive) then exit;
   end;
   // focused control should process keyboard first
   if (topLevel.mFocused <> self) and isMyChild(topLevel.mFocused) and (topLevel.mFocused.enabled) then
@@ -2103,7 +2103,7 @@ begin
     while (ctl <> nil) and (ctl <> self) do
     begin
       ctl.keyEvent(ev);
-      if (ev.eaten) or (ev.cancelled) then exit;
+      if (not ev.alive) then exit;
       ctl := ctl.mParent;
     end;
   end;
@@ -2154,18 +2154,18 @@ begin
       exit;
     end;
     // call post-keys
-    if (ev.eaten) or (ev.cancelled) then exit;
+    if (not ev.alive) then exit;
     forEachControl(doPostKey);
   end;
 end;
 
 
-procedure TUIControl.keyEventPre (var ev: THKeyEvent);
+procedure TUIControl.keyEventPre (var ev: TFUIKeyEvent);
 begin
 end;
 
 
-procedure TUIControl.keyEventPost (var ev: THKeyEvent);
+procedure TUIControl.keyEventPost (var ev: TFUIKeyEvent);
 begin
 end;
 
@@ -2324,10 +2324,10 @@ begin
 end;
 
 
-procedure TUITopWindow.keyEvent (var ev: THKeyEvent);
+procedure TUITopWindow.keyEvent (var ev: TFUIKeyEvent);
 begin
   inherited keyEvent(ev);
-  if (ev.eaten) or (ev.cancelled) or (not enabled) {or (not getFocused)} then exit;
+  if (not ev.alive) or (not enabled) {or (not getFocused)} then exit;
   if (ev = 'M-F3') then
   begin
     if (not assigned(closeRequestCB)) or (closeRequestCB(self)) then
@@ -2340,7 +2340,7 @@ begin
 end;
 
 
-procedure TUITopWindow.mouseEvent (var ev: THMouseEvent);
+procedure TUITopWindow.mouseEvent (var ev: TFUIMouseEvent);
 var
   lx, ly: Integer;
   vhgt, ytop: Integer;
@@ -2583,25 +2583,25 @@ begin
 end;
 
 
-procedure TUIBox.mouseEvent (var ev: THMouseEvent);
+procedure TUIBox.mouseEvent (var ev: TFUIMouseEvent);
 var
   lx, ly: Integer;
 begin
   inherited mouseEvent(ev);
-  if (not ev.eaten) and (not ev.cancelled) and (enabled) and toLocal(ev.x, ev.y, lx, ly) then
+  if (ev.alive) and (enabled) and toLocal(ev.x, ev.y, lx, ly) then
   begin
     ev.eat();
   end;
 end;
 
 
-procedure TUIBox.keyEvent (var ev: THKeyEvent);
+procedure TUIBox.keyEvent (var ev: TFUIKeyEvent);
 var
   dir: Integer = 0;
   cur, ctl: TUIControl;
 begin
   inherited keyEvent(ev);
-  if (ev.eaten) or (ev.cancelled) or (not ev.press) or (not enabled) or (not getActive) then exit;
+  if (not ev.alive) or (not ev.press) or (not enabled) or (not getActive) then exit;
   if (Length(mChildren) = 0) then exit;
        if (mHoriz) and (ev = 'Left') then dir := -1
   else if (mHoriz) and (ev = 'Right') then dir := 1
@@ -2934,12 +2934,12 @@ begin
 end;
 
 
-procedure TUITextLabel.mouseEvent (var ev: THMouseEvent);
+procedure TUITextLabel.mouseEvent (var ev: TFUIMouseEvent);
 var
   lx, ly: Integer;
 begin
   inherited mouseEvent(ev);
-  if (not ev.eaten) and (not ev.cancelled) and (enabled) and toLocal(ev.x, ev.y, lx, ly) then
+  if (ev.alive) and (enabled) and toLocal(ev.x, ev.y, lx, ly) then
   begin
     ev.eat();
   end;
@@ -2965,11 +2965,11 @@ begin
 end;
 
 
-procedure TUITextLabel.keyEventPost (var ev: THKeyEvent);
+procedure TUITextLabel.keyEventPost (var ev: TFUIKeyEvent);
 begin
   if (not enabled) then exit;
   if (mHotChar = #0) then exit;
-  if (ev.eaten) or (ev.cancelled) or (not ev.press) then exit;
+  if (not ev.alive) or (not ev.press) then exit;
   if (ev.kstate <> ev.ModAlt) then exit;
   if (not ev.isHot(mHotChar)) then exit;
   ev.eat();
@@ -3168,7 +3168,7 @@ begin
 end;
 
 
-procedure TUIButton.mouseEvent (var ev: THMouseEvent);
+procedure TUIButton.mouseEvent (var ev: TFUIMouseEvent);
 var
   lx, ly: Integer;
 begin
@@ -3184,16 +3184,16 @@ begin
     end;
     exit;
   end;
-  if (ev.eaten) or (ev.cancelled) or (not enabled) or not focused then exit;
+  if (not ev.alive) or (not enabled) or (not focused) then exit;
   mPushed := true;
   ev.eat();
 end;
 
 
-procedure TUIButton.keyEvent (var ev: THKeyEvent);
+procedure TUIButton.keyEvent (var ev: TFUIKeyEvent);
 begin
   inherited keyEvent(ev);
-  if (not ev.eaten) and (not ev.cancelled) and (enabled) then
+  if (ev.alive) and (enabled) then
   begin
     if (ev = '+Enter') or (ev = '+Space') then
     begin
@@ -3397,7 +3397,7 @@ begin
 end;
 
 
-procedure TUISwitchBox.mouseEvent (var ev: THMouseEvent);
+procedure TUISwitchBox.mouseEvent (var ev: TFUIMouseEvent);
 var
   lx, ly: Integer;
 begin
@@ -3411,15 +3411,15 @@ begin
     end;
     exit;
   end;
-  if (ev.eaten) or (ev.cancelled) or (not enabled) or not focused then exit;
+  if (not ev.alive) or (not enabled) or not focused then exit;
   ev.eat();
 end;
 
 
-procedure TUISwitchBox.keyEvent (var ev: THKeyEvent);
+procedure TUISwitchBox.keyEvent (var ev: TFUIKeyEvent);
 begin
   inherited keyEvent(ev);
-  if (not ev.eaten) and (not ev.cancelled) and (enabled) then
+  if (ev.alive) and (enabled) then
   begin
     if (ev = 'Space') then
     begin
