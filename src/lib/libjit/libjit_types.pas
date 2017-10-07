@@ -18,113 +18,55 @@
  * License along with the libjit library.  If not, see
  * <http://www.gnu.org/licenses/>.
  *)
-unit libjit_types;
-
-{$IFDEF WIN32}
-  {$DEFINE MSWINDOWS}
-{$ENDIF}
-
 {$MODE OBJFPC}
-{$PACKRECORDS C}
-{$MACRO ON}
-
-{$Z4} // Force four-byte enums
+{$INCLUDE libjit_opts.inc}
+unit libjit_types;
 
 interface
 
 uses
   libjit;
 
-//LIBJIT_LIBNAME = 'libjit.dll';
-{$IF not DEFINED(MSWINDOWS)}
-(*const*) var jit_opcodes: packed array [0..JIT_OP_NUM_OPCODES-1] of jit_opcode_info_t; cvar; external LIBJIT_LIBNAME;
+(*const*) var jit_opcodes: packed array [0..JIT_OP_NUM_OPCODES-1] of jit_opcode_info_t; libraryLibJITVar;
 
 (*
  * Pre-defined type descriptors.
  *)
-(*const*) var jit_type_void: jit_type_t; cvar; external LIBJIT_LIBNAME;
-(*const*) var jit_type_sbyte: jit_type_t; cvar; external LIBJIT_LIBNAME;
-(*const*) var jit_type_ubyte: jit_type_t; cvar; external LIBJIT_LIBNAME;
-(*const*) var jit_type_short: jit_type_t; cvar; external LIBJIT_LIBNAME;
-(*const*) var jit_type_ushort: jit_type_t; cvar; external LIBJIT_LIBNAME;
-(*const*) var jit_type_int: jit_type_t; cvar; external LIBJIT_LIBNAME;
-(*const*) var jit_type_uint: jit_type_t; cvar; external LIBJIT_LIBNAME;
-(*const*) var jit_type_nint: jit_type_t; cvar; external LIBJIT_LIBNAME;
-(*const*) var jit_type_nuint: jit_type_t; cvar; external LIBJIT_LIBNAME;
-(*const*) var jit_type_long: jit_type_t; cvar; external LIBJIT_LIBNAME;
-(*const*) var jit_type_ulong: jit_type_t; cvar; external LIBJIT_LIBNAME;
-(*const*) var jit_type_float32: jit_type_t; cvar; external LIBJIT_LIBNAME;
-(*const*) var jit_type_float64: jit_type_t; cvar; external LIBJIT_LIBNAME;
-(*const*) var jit_type_nfloat: jit_type_t; cvar; external LIBJIT_LIBNAME;
-(*const*) var jit_type_void_ptr: jit_type_t; cvar; external LIBJIT_LIBNAME;
+(*const*) var jit_type_void: jit_type_t; libraryLibJITVar;
+(*const*) var jit_type_sbyte: jit_type_t; libraryLibJITVar;
+(*const*) var jit_type_ubyte: jit_type_t; libraryLibJITVar;
+(*const*) var jit_type_short: jit_type_t; libraryLibJITVar;
+(*const*) var jit_type_ushort: jit_type_t; libraryLibJITVar;
+(*const*) var jit_type_int: jit_type_t; libraryLibJITVar;
+(*const*) var jit_type_uint: jit_type_t; libraryLibJITVar;
+(*const*) var jit_type_nint: jit_type_t; libraryLibJITVar;
+(*const*) var jit_type_nuint: jit_type_t; libraryLibJITVar;
+(*const*) var jit_type_long: jit_type_t; libraryLibJITVar;
+(*const*) var jit_type_ulong: jit_type_t; libraryLibJITVar;
+(*const*) var jit_type_float32: jit_type_t; libraryLibJITVar;
+(*const*) var jit_type_float64: jit_type_t; libraryLibJITVar;
+(*const*) var jit_type_nfloat: jit_type_t; libraryLibJITVar;
+(*const*) var jit_type_void_ptr: jit_type_t; libraryLibJITVar;
 
 (*
  * Type descriptors for the system "char", "int", "long", etc types.
  * These are defined to one of the above values.
  *)
-(*const*) var jit_type_sys_bool: jit_type_t; cvar; external LIBJIT_LIBNAME;
-(*const*) var jit_type_sys_char: jit_type_t; cvar; external LIBJIT_LIBNAME;
-(*const*) var jit_type_sys_schar: jit_type_t; cvar; external LIBJIT_LIBNAME;
-(*const*) var jit_type_sys_uchar: jit_type_t; cvar; external LIBJIT_LIBNAME;
-(*const*) var jit_type_sys_short: jit_type_t; cvar; external LIBJIT_LIBNAME;
-(*const*) var jit_type_sys_ushort: jit_type_t; cvar; external LIBJIT_LIBNAME;
-(*const*) var jit_type_sys_int: jit_type_t; cvar; external LIBJIT_LIBNAME;
-(*const*) var jit_type_sys_uint: jit_type_t; cvar; external LIBJIT_LIBNAME;
-(*const*) var jit_type_sys_long: jit_type_t; cvar; external LIBJIT_LIBNAME;
-(*const*) var jit_type_sys_ulong: jit_type_t; cvar; external LIBJIT_LIBNAME;
-(*const*) var jit_type_sys_longlong: jit_type_t; cvar; external LIBJIT_LIBNAME;
-(*const*) var jit_type_sys_ulonglong: jit_type_t; cvar; external LIBJIT_LIBNAME;
-(*const*) var jit_type_sys_float: jit_type_t; cvar; external LIBJIT_LIBNAME;
-(*const*) var jit_type_sys_double: jit_type_t; cvar; external LIBJIT_LIBNAME;
-(*const*) var jit_type_sys_long_double: jit_type_t; cvar; external LIBJIT_LIBNAME;
-
-{$ELSE}
-
-{ external LIBNAME name 'var_name' would've been more correct here }
-{ because just external is case insensitive, but fuck it           }
-
-(*const*) var jit_opcodes: packed array [0..JIT_OP_NUM_OPCODES-1] of jit_opcode_info_t; external LIBJIT_LIBNAME;
-
-(*
- * Pre-defined type descriptors.
- *)
-(*const*) var jit_type_void: jit_type_t; external LIBJIT_LIBNAME;
-(*const*) var jit_type_sbyte: jit_type_t; external LIBJIT_LIBNAME;
-(*const*) var jit_type_ubyte: jit_type_t; external LIBJIT_LIBNAME;
-(*const*) var jit_type_short: jit_type_t; external LIBJIT_LIBNAME;
-(*const*) var jit_type_ushort: jit_type_t; external LIBJIT_LIBNAME;
-(*const*) var jit_type_int: jit_type_t; external LIBJIT_LIBNAME;
-(*const*) var jit_type_uint: jit_type_t; external LIBJIT_LIBNAME;
-(*const*) var jit_type_nint: jit_type_t; external LIBJIT_LIBNAME;
-(*const*) var jit_type_nuint: jit_type_t; external LIBJIT_LIBNAME;
-(*const*) var jit_type_long: jit_type_t; external LIBJIT_LIBNAME;
-(*const*) var jit_type_ulong: jit_type_t; external LIBJIT_LIBNAME;
-(*const*) var jit_type_float32: jit_type_t; external LIBJIT_LIBNAME;
-(*const*) var jit_type_float64: jit_type_t; external LIBJIT_LIBNAME;
-(*const*) var jit_type_nfloat: jit_type_t; external LIBJIT_LIBNAME;
-(*const*) var jit_type_void_ptr: jit_type_t; external LIBJIT_LIBNAME;
-
-(*
- * Type descriptors for the system "char", "int", "long", etc types.
- * These are defined to one of the above values.
- *)
-(*const*) var jit_type_sys_bool: jit_type_t; external LIBJIT_LIBNAME;
-(*const*) var jit_type_sys_char: jit_type_t; external LIBJIT_LIBNAME;
-(*const*) var jit_type_sys_schar: jit_type_t; external LIBJIT_LIBNAME;
-(*const*) var jit_type_sys_uchar: jit_type_t; external LIBJIT_LIBNAME;
-(*const*) var jit_type_sys_short: jit_type_t; external LIBJIT_LIBNAME;
-(*const*) var jit_type_sys_ushort: jit_type_t; external LIBJIT_LIBNAME;
-(*const*) var jit_type_sys_int: jit_type_t; external LIBJIT_LIBNAME;
-(*const*) var jit_type_sys_uint: jit_type_t; external LIBJIT_LIBNAME;
-(*const*) var jit_type_sys_long: jit_type_t; external LIBJIT_LIBNAME;
-(*const*) var jit_type_sys_ulong: jit_type_t; external LIBJIT_LIBNAME;
-(*const*) var jit_type_sys_longlong: jit_type_t; external LIBJIT_LIBNAME;
-(*const*) var jit_type_sys_ulonglong: jit_type_t; external LIBJIT_LIBNAME;
-(*const*) var jit_type_sys_float: jit_type_t; external LIBJIT_LIBNAME;
-(*const*) var jit_type_sys_double: jit_type_t; external LIBJIT_LIBNAME;
-(*const*) var jit_type_sys_long_double: jit_type_t; external LIBJIT_LIBNAME;
-
-{$ENDIF}
+(*const*) var jit_type_sys_bool: jit_type_t; libraryLibJITVar;
+(*const*) var jit_type_sys_char: jit_type_t; libraryLibJITVar;
+(*const*) var jit_type_sys_schar: jit_type_t; libraryLibJITVar;
+(*const*) var jit_type_sys_uchar: jit_type_t; libraryLibJITVar;
+(*const*) var jit_type_sys_short: jit_type_t; libraryLibJITVar;
+(*const*) var jit_type_sys_ushort: jit_type_t; libraryLibJITVar;
+(*const*) var jit_type_sys_int: jit_type_t; libraryLibJITVar;
+(*const*) var jit_type_sys_uint: jit_type_t; libraryLibJITVar;
+(*const*) var jit_type_sys_long: jit_type_t; libraryLibJITVar;
+(*const*) var jit_type_sys_ulong: jit_type_t; libraryLibJITVar;
+(*const*) var jit_type_sys_longlong: jit_type_t; libraryLibJITVar;
+(*const*) var jit_type_sys_ulonglong: jit_type_t; libraryLibJITVar;
+(*const*) var jit_type_sys_float: jit_type_t; libraryLibJITVar;
+(*const*) var jit_type_sys_double: jit_type_t; libraryLibJITVar;
+(*const*) var jit_type_sys_long_double: jit_type_t; libraryLibJITVar;
 
 
 implementation

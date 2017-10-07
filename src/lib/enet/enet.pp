@@ -1,8 +1,46 @@
+{.$DEFINE LIBENET_WINDOZE_STATIC}
+
 {$MODE OBJFPC}
 {$PACKRECORDS C}
 
+{$IFDEF WIN32}
+  {$DEFINE MSWINDOWS}
+{$ENDIF}
+
 {$LONGSTRINGS ON}
 {$MACRO ON}
+
+{$Z4} // Force four-byte enums
+
+
+{$IFDEF MSWINDOWS}
+  {$IFDEF LIBENET_WINDOZE_STATIC}
+    {$LINKLIB libenet.a}
+    {$LINKLIB libwinmm.a}
+    {$LINKLIB libws2_32.a}
+    {$LINKLIB libkernel32.a}
+    {$LINKLIB libm.a}
+    {$LINKLIB libmingwex.a}
+    {$LINKLIB libmingw32.a}
+    {$LINKLIB libmsvcrt.a}
+    {$LINKLIB libgcc.a}
+    {$DEFINE libraryLibENetDecl := cdecl}
+    {$DEFINE libraryLibENetImp := cdecl; external}
+    {$DEFINE libraryLibENetVar := cvar; external}
+  {$ELSE}
+    {$DEFINE libraryLibENetDecl := cdecl}
+    {$DEFINE libraryLibENetImp := cdecl; external 'enet.dll'}
+    {.$DEFINE libraryLibENetVar := cvar; external}
+    {$DEFINE libraryLibENetVar := external 'enet.dll'}
+    // external LIBNAME name 'var_name' would've been more correct here
+    // because just external is case insensitive, but fuck it
+  {$ENDIF}
+{$ELSE}
+  {$DEFINE libraryLibENetDecl := cdecl}
+  {$DEFINE libraryLibENetImp := cdecl; external 'enet'}
+  {$DEFINE libraryLibENetVar := cvar; external 'enet'}
+{$ENDIF}
+
 
 unit ENet;
 
@@ -341,8 +379,6 @@ function ENET_TIME_DIFFERENCE( const a, b: cint ): cint; inline;
 // enet.h
 ////////////////////////////////////////////////////////////////////////////////
 
-{$DEFINE libraryENet := cdecl; external 'enet'}
-
 const
   { defines }
   ENET_VERSION_MAJOR = 1;
@@ -596,65 +632,65 @@ function ENET_VERSION_GET_PATCH( const version: ENetVersion ): cint; inline;
 function ENET_VERSION(): ENetVersion; inline;
 
 { library functions }
-function enet_initialize(): cint; libraryENet;
-function enet_initialize_with_callbacks( version: ENetVersion; const inits: pENetCallbacks ): cint; libraryENet;
-procedure enet_deinitialize(); libraryENet;
-function enet_linked_version(): ENetVersion; libraryENet;
+function enet_initialize(): cint; libraryLibENetImp;
+function enet_initialize_with_callbacks( version: ENetVersion; const inits: pENetCallbacks ): cint; libraryLibENetImp;
+procedure enet_deinitialize(); libraryLibENetImp;
+function enet_linked_version(): ENetVersion; libraryLibENetImp;
 
-function enet_time_get(): enet_uint32; libraryENet;
-procedure enet_time_set( newTimeBase: enet_uint32 ); libraryENet;
+function enet_time_get(): enet_uint32; libraryLibENetImp;
+procedure enet_time_set( newTimeBase: enet_uint32 ); libraryLibENetImp;
 
-function enet_socket_create( kind: ENetSocketType ): ENetSocket; libraryENet;
-function enet_socket_bind( socket: ENetSocket; const address: pENetAddress ): cint; libraryENet;
-function enet_socket_get_address( socket: ENetSocket; address: pENetAddress ): cint; libraryENet;
-function enet_socket_listen( socket: ENetSocket; backlog: cint ): cint; libraryENet;
-function enet_socket_accept( socket: ENetSocket; address: pENetAddress ): ENetSocket; libraryENet;
-function enet_socket_connect( socket: ENetSocket; const address: pENetAddress ): cint; libraryENet;
-function enet_socket_send( socket: ENetSocket; const address: pENetAddress; const buffers: pENetBuffer; bufferCount: csize_t ): cint; libraryENet;
-function enet_socket_receive( socket: ENetSocket; address: pENetAddress; buffers: pENetBuffer; bufferCount: csize_t ): cint; libraryENet;
-function enet_socket_wait( socket: ENetSocket; condition: penet_uint32; timeout: enet_uint32 ): cint; libraryENet;
-function enet_socket_set_option( socket: ENetSocket; option: ENetSocketOption; value: cint ): cint; libraryENet;
-function enet_socket_get_option( socket: ENetSocket; option: ENetSocketOption; value: pcint ): cint; libraryENet;
-function enet_socket_shutdown( socket: ENetSocket; how: ENetSocketShutdown ): cint; libraryENet;
-procedure enet_socket_destroy( socket: ENetSocket ); libraryENet;
-function enet_socketset_select( maxSocket: ENetSocket; readSet: pENetSocketSet; writeSet: pENetSocketSet; timeout: enet_uint32 ): cint; libraryENet;
+function enet_socket_create( kind: ENetSocketType ): ENetSocket; libraryLibENetImp;
+function enet_socket_bind( socket: ENetSocket; const address: pENetAddress ): cint; libraryLibENetImp;
+function enet_socket_get_address( socket: ENetSocket; address: pENetAddress ): cint; libraryLibENetImp;
+function enet_socket_listen( socket: ENetSocket; backlog: cint ): cint; libraryLibENetImp;
+function enet_socket_accept( socket: ENetSocket; address: pENetAddress ): ENetSocket; libraryLibENetImp;
+function enet_socket_connect( socket: ENetSocket; const address: pENetAddress ): cint; libraryLibENetImp;
+function enet_socket_send( socket: ENetSocket; const address: pENetAddress; const buffers: pENetBuffer; bufferCount: csize_t ): cint; libraryLibENetImp;
+function enet_socket_receive( socket: ENetSocket; address: pENetAddress; buffers: pENetBuffer; bufferCount: csize_t ): cint; libraryLibENetImp;
+function enet_socket_wait( socket: ENetSocket; condition: penet_uint32; timeout: enet_uint32 ): cint; libraryLibENetImp;
+function enet_socket_set_option( socket: ENetSocket; option: ENetSocketOption; value: cint ): cint; libraryLibENetImp;
+function enet_socket_get_option( socket: ENetSocket; option: ENetSocketOption; value: pcint ): cint; libraryLibENetImp;
+function enet_socket_shutdown( socket: ENetSocket; how: ENetSocketShutdown ): cint; libraryLibENetImp;
+procedure enet_socket_destroy( socket: ENetSocket ); libraryLibENetImp;
+function enet_socketset_select( maxSocket: ENetSocket; readSet: pENetSocketSet; writeSet: pENetSocketSet; timeout: enet_uint32 ): cint; libraryLibENetImp;
 
-function enet_address_set_host( address: pENetAddress; const hostName: PChar ): cint; libraryENet;
-function enet_address_get_host_ip( const address: pENetAddress; hostName: PChar; nameLength: csize_t ): cint; libraryENet;
-function enet_address_get_host( const address: pENetAddress; hostName: PChar; nameLength: csize_t ): cint; libraryENet;
+function enet_address_set_host( address: pENetAddress; const hostName: PChar ): cint; libraryLibENetImp;
+function enet_address_get_host_ip( const address: pENetAddress; hostName: PChar; nameLength: csize_t ): cint; libraryLibENetImp;
+function enet_address_get_host( const address: pENetAddress; hostName: PChar; nameLength: csize_t ): cint; libraryLibENetImp;
 
-function enet_packet_create( const data: Pointer; dataLength: csize_t; flags: enet_uint32 ): pENetPacket; libraryENet;
-procedure enet_packet_destroy( packet: pENetPacket ); libraryENet;
-function enet_packet_resize( packet: pENetPacket; dataLength: csize_t ): cint; libraryENet;
-function enet_crc32( const buffers: pENetBuffer; bufferCount: csize_t ): enet_uint32; libraryENet;
+function enet_packet_create( const data: Pointer; dataLength: csize_t; flags: enet_uint32 ): pENetPacket; libraryLibENetImp;
+procedure enet_packet_destroy( packet: pENetPacket ); libraryLibENetImp;
+function enet_packet_resize( packet: pENetPacket; dataLength: csize_t ): cint; libraryLibENetImp;
+function enet_crc32( const buffers: pENetBuffer; bufferCount: csize_t ): enet_uint32; libraryLibENetImp;
 
-function enet_host_create( const address: pENetAddress; peerCount, channelLimit: csize_t; incomingBandwidth, outgoingBandwidth: enet_uint32 ): pENetHost; libraryENet;
-procedure enet_host_destroy( host: pENetHost ); libraryENet;
-function enet_host_connect( host: pENetHost; const address: pENetAddress; channelCount: csize_t; data: enet_uint32 ): pENetPeer; libraryENet;
-function enet_host_check_events( host: pENetHost; event: pENetEvent ): cint; libraryENet;
-function enet_host_service( host: pENetHost; event: pENetEvent; timeout: enet_uint32 ): cint; libraryENet;
-procedure enet_host_flush( host: pENetHost ); libraryENet;
-procedure enet_host_broadcast( host: pENetHost; channelID: enet_uint8; packet: pENetPacket ); libraryENet;
-procedure enet_host_compress( host: pENetHost; const compressor: pENetCompressor ); libraryENet;
-function enet_host_compress_with_range_coder( host: pENetHost ): cint; libraryENet;
-procedure enet_host_channel_limit( host: pENetHost; channelLimit: csize_t ); libraryENet;
-procedure enet_host_bandwidth_limit( host: pENetHost; incomingBandwidth, outgoingBandwidth: enet_uint32 ); libraryENet;
+function enet_host_create( const address: pENetAddress; peerCount, channelLimit: csize_t; incomingBandwidth, outgoingBandwidth: enet_uint32 ): pENetHost; libraryLibENetImp;
+procedure enet_host_destroy( host: pENetHost ); libraryLibENetImp;
+function enet_host_connect( host: pENetHost; const address: pENetAddress; channelCount: csize_t; data: enet_uint32 ): pENetPeer; libraryLibENetImp;
+function enet_host_check_events( host: pENetHost; event: pENetEvent ): cint; libraryLibENetImp;
+function enet_host_service( host: pENetHost; event: pENetEvent; timeout: enet_uint32 ): cint; libraryLibENetImp;
+procedure enet_host_flush( host: pENetHost ); libraryLibENetImp;
+procedure enet_host_broadcast( host: pENetHost; channelID: enet_uint8; packet: pENetPacket ); libraryLibENetImp;
+procedure enet_host_compress( host: pENetHost; const compressor: pENetCompressor ); libraryLibENetImp;
+function enet_host_compress_with_range_coder( host: pENetHost ): cint; libraryLibENetImp;
+procedure enet_host_channel_limit( host: pENetHost; channelLimit: csize_t ); libraryLibENetImp;
+procedure enet_host_bandwidth_limit( host: pENetHost; incomingBandwidth, outgoingBandwidth: enet_uint32 ); libraryLibENetImp;
 
-function enet_peer_send( peer: pENetPeer; channelID: enet_uint8; packet: pENetPacket ): cint; libraryENet;
-function enet_peer_receive( peer: pENetPeer; channelID: penet_uint8 ): pENetPacket; libraryENet;
-procedure enet_peer_ping( peer: pENetPeer ); libraryENet;
-procedure enet_peer_ping_interval( peer: pENetPeer; pingInterval: enet_uint32 ); libraryENet;
-procedure enet_peer_timeout( peer: pENetPeer; timeoutLimit, timeoutMinimum, timeoutMaximum: enet_uint32 ); libraryENet;
-procedure enet_peer_reset( peer: pENetPeer ); libraryENet;
-procedure enet_peer_disconnect( peer: pENetPeer; data: enet_uint32 ); libraryENet;
-procedure enet_peer_disconnect_now( peer: pENetPeer; data: enet_uint32 ); libraryENet;
-procedure enet_peer_disconnect_later( peer: pENetPeer; data: enet_uint32 ); libraryENet;
-procedure enet_peer_throttle_configure( peer: pENetPeer; interval, acceleration, deceleration: enet_uint32 ); libraryENet;
+function enet_peer_send( peer: pENetPeer; channelID: enet_uint8; packet: pENetPacket ): cint; libraryLibENetImp;
+function enet_peer_receive( peer: pENetPeer; channelID: penet_uint8 ): pENetPacket; libraryLibENetImp;
+procedure enet_peer_ping( peer: pENetPeer ); libraryLibENetImp;
+procedure enet_peer_ping_interval( peer: pENetPeer; pingInterval: enet_uint32 ); libraryLibENetImp;
+procedure enet_peer_timeout( peer: pENetPeer; timeoutLimit, timeoutMinimum, timeoutMaximum: enet_uint32 ); libraryLibENetImp;
+procedure enet_peer_reset( peer: pENetPeer ); libraryLibENetImp;
+procedure enet_peer_disconnect( peer: pENetPeer; data: enet_uint32 ); libraryLibENetImp;
+procedure enet_peer_disconnect_now( peer: pENetPeer; data: enet_uint32 ); libraryLibENetImp;
+procedure enet_peer_disconnect_later( peer: pENetPeer; data: enet_uint32 ); libraryLibENetImp;
+procedure enet_peer_throttle_configure( peer: pENetPeer; interval, acceleration, deceleration: enet_uint32 ); libraryLibENetImp;
 
-function enet_range_coder_create(): Pointer; libraryENet;
-procedure enet_range_coder_destroy( context: Pointer ); libraryENet;
-function enet_range_coder_compress( context: Pointer; const inBuffers: pENetBuffer; inBufferCount, inLiit: csize_t; outData: penet_uint8; outLimit: csize_t ): csize_t; libraryENet;
-function enet_range_coder_decompress( context: Pointer; const inData: penet_uint8; inLimit: csize_t; outData: penet_uint8; outLimit: csize_t ): csize_t; libraryENet;
+function enet_range_coder_create(): Pointer; libraryLibENetImp;
+procedure enet_range_coder_destroy( context: Pointer ); libraryLibENetImp;
+function enet_range_coder_compress( context: Pointer; const inBuffers: pENetBuffer; inBufferCount, inLiit: csize_t; outData: penet_uint8; outLimit: csize_t ): csize_t; libraryLibENetImp;
+function enet_range_coder_decompress( context: Pointer; const inData: penet_uint8; inLimit: csize_t; outData: penet_uint8; outLimit: csize_t ): csize_t; libraryLibENetImp;
 
 implementation
 

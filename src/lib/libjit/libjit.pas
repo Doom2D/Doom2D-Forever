@@ -18,32 +18,11 @@
  * License along with the libjit library.  If not, see
  * <http://www.gnu.org/licenses/>.
  *)
+{$MODE DELPHI}
+{$INCLUDE libjit_opts.inc}
 unit libjit;
 
-{$IFDEF WIN32}
-  {$DEFINE MSWINDOWS}
-{$ENDIF}
-
-{$MODE DELPHI}
-{$PACKRECORDS C}
-{$MACRO ON}
-
-{$Z4} // Force four-byte enums
-
 interface
-
-const
-  {$IFDEF MSWINDOWS}
-    //{$LINKLIB libjit.dll.a}
-    LIBJIT_LIBNAME = 'libjit-0.dll';
-    {$DEFINE libraryLibJITDecl := cdecl}
-    {$DEFINE libraryLibJITImp := cdecl; external LIBJIT_LIBNAME}
-  {$ELSE}
-    LIBJIT_LIBNAME = 'jit';
-    {$DEFINE libraryLibJITDecl := cdecl}
-    {$DEFINE libraryLibJITImp := cdecl; external LIBJIT_LIBNAME}
-  {$ENDIF}
-
 
 type
   jit_sbyte = ShortInt; pjit_sbyte = ^jit_sbyte;
@@ -2174,6 +2153,7 @@ Pointer _jit_get_return_address(Pointer frame; Pointer frame0; Pointer return0);
 
 
 implementation
+
 
 function jit_context_create; libraryLibJITImp;
 procedure jit_context_destroy; libraryLibJITImp;
