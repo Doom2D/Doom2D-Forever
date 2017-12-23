@@ -212,7 +212,6 @@ begin
   g_Texture_Get('ITEM_KEY_BLUE',         gItemsTexturesID[ITEM_KEY_BLUE]);
   g_Texture_Get('ITEM_WEAPON_KASTET',    gItemsTexturesID[ITEM_WEAPON_KASTET]);
   g_Texture_Get('ITEM_WEAPON_PISTOL',    gItemsTexturesID[ITEM_WEAPON_PISTOL]);
-  g_Texture_Get('ITEM_JETPACK',          gItemsTexturesID[ITEM_JETPACK]);
 end;
 
 procedure g_Items_LoadData();
@@ -228,6 +227,7 @@ begin
   g_Frames_CreateWAD(nil, 'FRAMES_ITEM_WHITESPHERE', GameWAD+':TEXTURES\SWHITE', 32, 32, 4, True);
   g_Frames_CreateWAD(nil, 'FRAMES_ITEM_ARMORGREEN', GameWAD+':TEXTURES\ARMORGREEN', 32, 16, 3, True);
   g_Frames_CreateWAD(nil, 'FRAMES_ITEM_ARMORBLUE', GameWAD+':TEXTURES\ARMORBLUE', 32, 16, 3, True);
+  g_Frames_CreateWAD(nil, 'FRAMES_ITEM_JETPACK', GameWAD+':TEXTURES\JETPACK', 32, 32, 3, True);
   g_Frames_CreateWAD(nil, 'FRAMES_ITEM_INVUL', GameWAD+':TEXTURES\INVUL', 32, 32, 4, True);
   g_Frames_CreateWAD(nil, 'FRAMES_ITEM_INVIS', GameWAD+':TEXTURES\INVIS', 32, 32, 4, True);
   g_Frames_CreateWAD(nil, 'FRAMES_ITEM_RESPAWN', GameWAD+':TEXTURES\ITEMRESPAWN', 32, 32, 5, True);
@@ -266,7 +266,6 @@ begin
   g_Texture_CreateWADEx('ITEM_SUIT', GameWAD+':TEXTURES\SUIT');
   g_Texture_CreateWADEx('ITEM_WEAPON_KASTET', GameWAD+':TEXTURES\KASTET');
   g_Texture_CreateWADEx('ITEM_MEDKIT_BLACK', GameWAD+':TEXTURES\BMED');
-  g_Texture_CreateWADEx('ITEM_JETPACK', GameWAD+':TEXTURES\JETPACK');
 
   InitTextures();
 
@@ -287,6 +286,7 @@ begin
   g_Frames_DeleteByName('FRAMES_ITEM_WHITESPHERE');
   g_Frames_DeleteByName('FRAMES_ITEM_ARMORGREEN');
   g_Frames_DeleteByName('FRAMES_ITEM_ARMORBLUE');
+  g_Frames_DeleteByName('FRAMES_ITEM_JETPACK');
   g_Frames_DeleteByName('FRAMES_ITEM_INVUL');
   g_Frames_DeleteByName('FRAMES_ITEM_INVIS');
   g_Frames_DeleteByName('FRAMES_ITEM_RESPAWN');
@@ -325,7 +325,6 @@ begin
   g_Texture_Delete('ITEM_SUIT');
   g_Texture_Delete('ITEM_WEAPON_KASTET');
   g_Texture_Delete('ITEM_MEDKIT_BLACK');
-  g_Texture_Delete('ITEM_JETPACK');
 
   freeIds.Free();
   freeIds := nil;
@@ -490,6 +489,7 @@ begin
   case it.ItemType of
     ITEM_ARMOR_GREEN: if g_Frames_Get(ID, 'FRAMES_ITEM_ARMORGREEN') then it.Animation := TAnimation.Create(ID, True, 20);
     ITEM_ARMOR_BLUE: if g_Frames_Get(ID, 'FRAMES_ITEM_ARMORBLUE') then it.Animation := TAnimation.Create(ID, True, 20);
+    ITEM_JETPACK: if g_Frames_Get(ID, 'FRAMES_ITEM_JETPACK') then it.Animation := TAnimation.Create(ID, True, 15);
     ITEM_SPHERE_BLUE: if g_Frames_Get(ID, 'FRAMES_ITEM_BLUESPHERE') then it.Animation := TAnimation.Create(ID, True, 15);
     ITEM_SPHERE_WHITE: if g_Frames_Get(ID, 'FRAMES_ITEM_WHITESPHERE') then it.Animation := TAnimation.Create(ID, True, 20);
     ITEM_INVUL: if g_Frames_Get(ID, 'FRAMES_ITEM_INVUL') then it.Animation := TAnimation.Create(ID, True, 20);
@@ -925,6 +925,7 @@ begin
       ITEM_KEY_BLUE: g_AddDynLight(it.Obj.X+(it.Obj.Rect.Width div 2), it.Obj.Y+(it.Obj.Rect.Height div 2), 24,  0.0, 0.0, 1.0, 0.6);
       ITEM_ARMOR_GREEN: g_AddDynLight(it.Obj.X+(it.Obj.Rect.Width div 2), it.Obj.Y+(it.Obj.Rect.Height div 2), 42,  0.0, 1.0, 0.0, 0.6);
       ITEM_ARMOR_BLUE: g_AddDynLight(it.Obj.X+(it.Obj.Rect.Width div 2), it.Obj.Y+(it.Obj.Rect.Height div 2), 42,  0.0, 0.0, 1.0, 0.6);
+      ITEM_JETPACK: g_AddDynLight(it.Obj.X+(it.Obj.Rect.Width div 2), it.Obj.Y+(it.Obj.Rect.Height div 2), 32,  1.0, 1.0, 1.0, 0.6);
       ITEM_SPHERE_BLUE: g_AddDynLight(it.Obj.X+(it.Obj.Rect.Width div 2), it.Obj.Y+(it.Obj.Rect.Height div 2), 32,  0.0, 1.0, 0.0, 0.6);
       ITEM_SPHERE_WHITE: g_AddDynLight(it.Obj.X+(it.Obj.Rect.Width div 2), it.Obj.Y+(it.Obj.Rect.Height div 2), 32,  1.0, 1.0, 1.0, 0.6);
       ITEM_INVUL: g_AddDynLight(it.Obj.X+(it.Obj.Rect.Width div 2), it.Obj.Y+(it.Obj.Rect.Height div 2), 32,  1.0, 0.0, 0.0, 0.6);
