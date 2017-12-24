@@ -534,11 +534,11 @@ const
      AnimDeltaRight: ((X:  8; Y: -4), (X:  8; Y: -4), (X: -2; Y: -1), (X:  3; Y: -2), (X: 14; Y: -4), (X: 14; Y: -4), (X: -5; Y: -4));
      AnimDeltaLeft:  ((X:  8; Y: -4), (X:  8; Y: -4), (X: -2; Y: -1), (X:  3; Y: -2), (X: 14; Y: -4), (X: 14; Y: -4), (X: -5; Y: -4))),
 
-    (LeftAnim: False; wX: 32; wY: 32; AnimSpeed:(3, 2, 3, 2, 3, 0, 4); //ZOMBY
+    (LeftAnim: True; wX: 32; wY: 32; AnimSpeed:(3, 2, 3, 2, 3, 0, 4); //ZOMBY
      AnimDeltaRight: ((X:  1; Y: -4), (X:  1; Y: -4), (X:  3; Y: -1), (X:  2; Y: -1), (X:  2; Y: -4), (X:  2; Y: -4), (X:  1; Y: -4));
      AnimDeltaLeft:  ((X:  1; Y: -4), (X:  1; Y: -4), (X:  3; Y: -1), (X:  2; Y: -1), (X:  2; Y: -4), (X:  2; Y: -4), (X:  1; Y: -4))),
 
-    (LeftAnim: False; wX: 32; wY: 32; AnimSpeed:(3, 2, 3, 2, 3, 0, 4); //SERG
+    (LeftAnim: True; wX: 32; wY: 32; AnimSpeed:(3, 2, 3, 2, 3, 0, 4); //SERG
      AnimDeltaRight: ((X:  0; Y: -4), (X:  0; Y: -4), (X: -3; Y: -1), (X: -4; Y: -1), (X:  1; Y: -4), (X:  1; Y: -4), (X:  0; Y: -4));
      AnimDeltaLeft:  ((X:  0; Y: -4), (X:  0; Y: -4), (X: -3; Y: -1), (X: -4; Y: -1), (X:  1; Y: -4), (X:  1; Y: -4), (X:  0; Y: -4))),
 
@@ -821,6 +821,7 @@ begin
   g_Game_SetLoadingText(_lc[I_LOAD_MONSTER_TEXTURES]+' 5%', 0, True);
   g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_ZOMBY_MESS', GameWAD+':MTEXTURES\ZOMBY_MESS', 64, 64, 9);
   g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_ZOMBY_ATTACK', GameWAD+':MTEXTURES\ZOMBY_ATTACK', 64, 64, 2);
+  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_ZOMBY_ATTACK_L', GameWAD+':MTEXTURES\ZOMBY_ATTACK_L', 64, 64, 2);
   g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_ZOMBY_PAIN', GameWAD+':MTEXTURES\ZOMBY_PAIN', 64, 64, 1);
   g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_SERG_SLEEP', GameWAD+':MTEXTURES\SERG_SLEEP', 64, 64, 2);
   g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_SERG_GO', GameWAD+':MTEXTURES\SERG_GO', 64, 64, 4);
@@ -828,6 +829,7 @@ begin
   g_Game_SetLoadingText(_lc[I_LOAD_MONSTER_TEXTURES]+' 10%', 0, True);
   g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_SERG_MESS', GameWAD+':MTEXTURES\SERG_MESS', 64, 64, 9);
   g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_SERG_ATTACK', GameWAD+':MTEXTURES\SERG_ATTACK', 64, 64, 2);
+  g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_SERG_ATTACK_L', GameWAD+':MTEXTURES\SERG_ATTACK_L', 64, 64, 2);
   g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_SERG_PAIN', GameWAD+':MTEXTURES\SERG_PAIN', 64, 64, 1);
   g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_MAN_SLEEP', GameWAD+':MTEXTURES\MAN_SLEEP', 64, 64, 2);
   g_Frames_CreateWAD(nil, 'FRAMES_MONSTER_MAN_GO', GameWAD+':MTEXTURES\MAN_GO', 64, 64, 4);
@@ -1063,12 +1065,14 @@ begin
   g_Frames_DeleteByName('FRAMES_MONSTER_ZOMBY_DIE');
   g_Frames_DeleteByName('FRAMES_MONSTER_ZOMBY_MESS');
   g_Frames_DeleteByName('FRAMES_MONSTER_ZOMBY_ATTACK');
+  g_Frames_DeleteByName('FRAMES_MONSTER_ZOMBY_ATTACK_L');
   g_Frames_DeleteByName('FRAMES_MONSTER_ZOMBY_PAIN');
   g_Frames_DeleteByName('FRAMES_MONSTER_SERG_SLEEP');
   g_Frames_DeleteByName('FRAMES_MONSTER_SERG_GO');
   g_Frames_DeleteByName('FRAMES_MONSTER_SERG_DIE');
   g_Frames_DeleteByName('FRAMES_MONSTER_SERG_MESS');
   g_Frames_DeleteByName('FRAMES_MONSTER_SERG_ATTACK');
+  g_Frames_DeleteByName('FRAMES_MONSTER_SERG_ATTACK_L');
   g_Frames_DeleteByName('FRAMES_MONSTER_SERG_PAIN');
   g_Frames_DeleteByName('FRAMES_MONSTER_MAN_SLEEP');
   g_Frames_DeleteByName('FRAMES_MONSTER_MAN_GO');
