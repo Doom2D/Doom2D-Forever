@@ -3785,6 +3785,7 @@ end;
 procedure g_Game_StartSingle(Map: String; TwoPlayers: Boolean; nPlayers: Byte);
 var
   i, nPl: Integer;
+  tmps: AnsiString;
 begin
   g_Game_Free();
 
@@ -3840,7 +3841,8 @@ begin
 // Загрузка и запуск карты:
   if not g_Game_StartMap(MAP, True) then
   begin
-    g_FatalError(Format(_lc[I_GAME_ERROR_MAP_LOAD], [gGameSettings.WAD + ':\' + MAP]));
+    if (Pos(':\', Map) > 0) or (Pos(':/', Map) > 0) then tmps := Map else tmps := gGameSettings.WAD + ':\' + MAP;
+    g_FatalError(Format(_lc[I_GAME_ERROR_MAP_LOAD], [tmps]));
     Exit;
   end;
 

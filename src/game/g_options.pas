@@ -436,7 +436,7 @@ begin
   gSFSFastMode := config.ReadBool('Game', 'SFSFastMode', False);
   wadoptFast := gSFSFastMode;
   e_FastScreenshots := config.ReadBool('Game', 'FastScreenshots', True);
-  gDefaultMegawadStart := config.ReadStr('Game', 'DefaultMegawadStart', 'megawads/DOOM2D.WAD:\MAP01');
+  gDefaultMegawadStart := config.ReadStr('Game', 'DefaultMegawadStart', DF_Default_Megawad_Start);
   gBerserkAutoswitch := config.ReadBool('Game', 'BerserkAutoswitching', True);
 
 // Геймплей в своей игре
