@@ -374,9 +374,7 @@ begin
   begin
     if g_Map_Exist(MapsDir+gGameSettings.WAD+':\MAP'+s2) then
     begin
-      c := 'MAP00';
-      c[3] := s2[1];
-      c[4] := s2[2];
+      c := 'MAP'+s2;
       g_Game_ExitLevel(c);
     end;
     goto Cheated;
