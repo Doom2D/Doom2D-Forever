@@ -349,6 +349,10 @@ uses
   sfs, wadreader, g_holmes;
 
 
+var
+  hasPBarGfx: Boolean = false;
+
+
 // ////////////////////////////////////////////////////////////////////////// //
 function gPause (): Boolean; inline; begin result := gPauseMain or gPauseHolmes; end;
 
@@ -513,6 +517,7 @@ type
     ShowCount: Integer;
     Msgs: Array of String;
     NextMsg: Word;
+    PBarWasHere: Boolean; // did we draw a progress bar for this message?
   end;
 
   TParamStrValue = record
@@ -2043,6 +2048,11 @@ begin
 end;
 
 procedure g_Game_LoadData();
+var
+  wl, hl: Integer;
+  wr, hr: Integer;
+  wb, hb: Integer;
+  wm, hm: Integer;
 begin
   if DataLoaded then Exit;
 
@@ -2062,6 +2072,29 @@ begin
   g_Texture_CreateWADEx('TEXTURE_PLAYER_BLUEFLAG_D', GameWAD+':TEXTURES\FLAGHUD_B_DROP');
   g_Texture_CreateWADEx('TEXTURE_PLAYER_TALKBUBBLE', GameWAD+':TEXTURES\TALKBUBBLE');
   g_Texture_CreateWADEx('TEXTURE_PLAYER_INVULPENTA', GameWAD+':TEXTURES\PENTA');
+
+  hasPBarGfx := true;
+  if not g_Texture_CreateWADEx('UI_GFX_PBAR_LEFT', GameWAD+':TEXTURES\LLEFT') then hasPBarGfx := false;
+  if not g_Texture_CreateWADEx('UI_GFX_PBAR_MARKER', GameWAD+':TEXTURES\LMARKER') then hasPBarGfx := false;
+  if not g_Texture_CreateWADEx('UI_GFX_PBAR_MIDDLE', GameWAD+':TEXTURES\LMIDDLE') then hasPBarGfx := false;
+  if not g_Texture_CreateWADEx('UI_GFX_PBAR_RIGHT', GameWAD+':TEXTURES\LRIGHT') then hasPBarGfx := false;
+
+  if hasPBarGfx then
+  begin
+    g_Texture_GetSize('UI_GFX_PBAR_LEFT', wl, hl);
+    g_Texture_GetSize('UI_GFX_PBAR_RIGHT', wr, hr);
+    g_Texture_GetSize('UI_GFX_PBAR_MIDDLE', wb, hb);
+    g_Texture_GetSize('UI_GFX_PBAR_MARKER', wm, hm);
+    if (wl > 0) and (hl > 0) and (wr > 0) and (hr = hl) and (wb > 0) and (hb = hl) and (wm > 0) and (hm > 0) and (hm <= hl) then
+    begin
+      // yay!
+    end
+    else
+    begin
+      hasPBarGfx := false;
+    end;
+  end;
+
   g_Frames_CreateWAD(nil, 'FRAMES_TELEPORT', GameWAD+':TEXTURES\TELEPORT', 64, 64, 10, False);
   g_Sound_CreateWADEx('SOUND_GAME_TELEPORT', GameWAD+':SOUNDS\TELEPORT');
   g_Sound_CreateWADEx('SOUND_GAME_NOTELEPORT', GameWAD+':SOUNDS\NOTELEPORT');
@@ -2515,41 +2548,111 @@ procedure DrawLoadingStat();
     glEnd();
   end;
 
-  procedure drawPBar (cur, total: Integer);
+  function drawPBar (cur, total: Integer; washere: Boolean): Boolean;
   var
     rectW, rectH: Integer;
     x0, y0: Integer;
     wdt: Integer;
+    wl, hl: Integer;
+    wr, hr: Integer;
+    wb, hb: Integer;
+    wm, hm: Integer;
+    idl, idr, idb, idm: LongWord;
+    f, my: Integer;
   begin
+    result := false;
     if (total < 1) then exit;
     if (cur < 1) then exit; // don't blink
-    if (cur >= total) then exit; // don't blink
+    if (not washere) and (cur >= total) then exit; // don't blink
     //if (cur < 0) then cur := 0;
     //if (cur > total) then cur := total;
+    result := true;
 
-    rectW := gScreenWidth-64;
-    rectH := 16;
+    if (hasPBarGfx) then
+    begin
+      g_Texture_Get('UI_GFX_PBAR_LEFT', idl);
+      g_Texture_GetSize('UI_GFX_PBAR_LEFT', wl, hl);
+      g_Texture_Get('UI_GFX_PBAR_RIGHT', idr);
+      g_Texture_GetSize('UI_GFX_PBAR_RIGHT', wr, hr);
+      g_Texture_Get('UI_GFX_PBAR_MIDDLE', idb);
+      g_Texture_GetSize('UI_GFX_PBAR_MIDDLE', wb, hb);
+      g_Texture_Get('UI_GFX_PBAR_MARKER', idm);
+      g_Texture_GetSize('UI_GFX_PBAR_MARKER', wm, hm);
 
-    x0 := (gScreenWidth-rectW) div 2;
-    y0 := gScreenHeight-rectH-64;
-    if (y0 < 2) then y0 := 2;
+      rectW := gScreenWidth-64;
+      rectH := hl;
 
-    glDisable(GL_BLEND);
-    glDisable(GL_TEXTURE_2D);
+      x0 := (gScreenWidth-rectW) div 2;
+      y0 := gScreenHeight-rectH-64;
+      if (y0 < 2) then y0 := 2;
 
-    //glClearColor(0, 0, 0, 0);
-    //glClear(GL_COLOR_BUFFER_BIT);
+      glEnable(GL_SCISSOR_TEST);
 
-    glColor4ub(127, 127, 127, 255);
-    drawRect(x0-2, y0-2, rectW+4, rectH+4);
+      // left and right
+      glScissor(x0, gScreenHeight-y0-rectH, rectW, rectH);
+      e_DrawSize(idl, x0, y0, 0, true, false, wl, hl);
+      e_DrawSize(idr, x0+rectW-wr, y0, 0, true, false, wr, hr);
 
-    glColor4ub(0, 0, 0, 255);
-    drawRect(x0-1, y0-1, rectW+2, rectH+2);
+      // body
+      glScissor(x0+wl, gScreenHeight-y0-rectH, rectW-wl-wr, rectH);
+      f := x0+wl;
+      while (f < x0+rectW) do
+      begin
+        e_DrawSize(idb, f, y0, 0, true, false, wb, hb);
+        f += wb;
+      end;
 
-    glColor4ub(127, 127, 127, 255);
-    wdt := rectW*cur div total;
-    if (wdt > rectW) then wdt := rectW;
-    drawRect(x0, y0, wdt, rectH);
+      // filled part
+      wdt := (rectW-wl-wr)*cur div total;
+      if (wdt > rectW-wl-wr) then wdt := rectW-wr-wr;
+      if (wdt > 0) then
+      begin
+        my := y0+(rectH-wm) div 2;
+        glScissor(x0+wl, gScreenHeight-my-rectH, wdt, hm);
+        f := x0+wl;
+        while (wdt > 0) do
+        begin
+          e_DrawSize(idm, f, y0, 0, true, false, wm, hm);
+          f += wm;
+          wdt -= wm;
+        end;
+      end;
+
+      glScissor(0, 0, gScreenWidth, gScreenHeight);
+
+{
+procedure e_DrawSize(ID: DWORD; X, Y: Integer; Alpha: Byte; AlphaChannel: Boolean;
+                     Blending: Boolean; Width, Height: Word; Mirror: TMirrorType = TMirrorType.None);
+        if g_Texture_Get('MENU_BACKGROUND', ID) then e_DrawSize(ID, 0, 0, 0, False, False, gScreenWidth, gScreenHeight)
+        else e_Clear(GL_COLOR_BUFFER_BIT, 0, 0, 0);
+}
+    end
+    else
+    begin
+      rectW := gScreenWidth-64;
+      rectH := 16;
+
+      x0 := (gScreenWidth-rectW) div 2;
+      y0 := gScreenHeight-rectH-64;
+      if (y0 < 2) then y0 := 2;
+
+      glDisable(GL_BLEND);
+      glDisable(GL_TEXTURE_2D);
+
+      //glClearColor(0, 0, 0, 0);
+      //glClear(GL_COLOR_BUFFER_BIT);
+
+      glColor4ub(127, 127, 127, 255);
+      drawRect(x0-2, y0-2, rectW+4, rectH+4);
+
+      glColor4ub(0, 0, 0, 255);
+      drawRect(x0-1, y0-1, rectW+2, rectH+2);
+
+      glColor4ub(127, 127, 127, 255);
+      wdt := rectW*cur div total;
+      if (wdt > rectW) then wdt := rectW;
+      drawRect(x0, y0, wdt, rectH);
+    end;
   end;
 
 var
@@ -2575,7 +2678,7 @@ begin
 
       e_CharFont_PrintEx(gMenuSmallFont, xx, yy, s, _RGB(255, 0, 0));
       yy := yy + LOADING_INTERLINE;
-      drawPBar(CurValue, MaxValue);
+      PBarWasHere := drawPBar(CurValue, MaxValue, PBarWasHere);
     end;
   end;
 end;
@@ -7004,6 +7107,7 @@ begin
     CurValue := 0;
     MaxValue := Max;
     ShowCount := 0;
+    PBarWasHere := false;
   end;
 
   g_ActiveWindow := nil;
@@ -7040,6 +7144,7 @@ begin
     for len := Low(Msgs) to High(Msgs) do
       Msgs[len] := '';
     NextMsg := 0;
+    PBarWasHere := false;
   end;
 end;
 

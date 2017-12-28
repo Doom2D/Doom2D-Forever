@@ -91,6 +91,8 @@ function g_Texture_CreateFile (var ID: LongWord; const FileName: AnsiString): Bo
 function g_Texture_CreateWADEx (const textureName, Resource: AnsiString): Boolean;
 function g_Texture_CreateFileEx (const textureName, FileName: AnsiString): Boolean;
 function g_Texture_Get (const textureName: AnsiString; var ID: LongWord): Boolean;
+function g_Texture_GetSize (const textureName: AnsiString; var w, h: Integer): Boolean; overload;
+function g_Texture_GetSize (ID: LongWord; var w, h: Integer): Boolean; overload;
 procedure g_Texture_Delete (const textureName: AnsiString);
 procedure g_Texture_DeleteAll ();
 
@@ -318,6 +320,48 @@ begin
     end;
   end;
   //if not Result then g_ConsoleAdd('Texture '+TextureName+' not found');
+end;
+
+
+function g_Texture_GetSize (const textureName: AnsiString; var w, h: Integer): Boolean; overload;
+var
+  a: Integer;
+begin
+  result := false;
+  w := 0;
+  h := 0;
+  if (Length(texturesArray) = 0) or (Length(textureName) = 0) then exit;
+  for a := 0 to High(texturesArray) do
+  begin
+    if (StrEquCI1251(texturesArray[a].name, textureName)) then
+    begin
+      w := texturesArray[a].width;
+      h := texturesArray[a].height;
+      result := true;
+      break;
+    end;
+  end;
+end;
+
+
+function g_Texture_GetSize (ID: LongWord; var w, h: Integer): Boolean; overload;
+var
+  a: Integer;
+begin
+  result := false;
+  w := 0;
+  h := 0;
+  if (Length(texturesArray) = 0) then exit;
+  for a := 0 to High(texturesArray) do
+  begin
+    if (texturesArray[a].id = ID) then
+    begin
+      w := texturesArray[a].width;
+      h := texturesArray[a].height;
+      result := true;
+      break;
+    end;
+  end;
 end;
 
 
