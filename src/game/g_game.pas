@@ -2579,7 +2579,8 @@ procedure DrawLoadingStat();
       g_Texture_Get('UI_GFX_PBAR_MARKER', idm);
       g_Texture_GetSize('UI_GFX_PBAR_MARKER', wm, hm);
 
-      rectW := gScreenWidth-64;
+      //rectW := gScreenWidth-360;
+      rectW := trunc(624.0*gScreenWidth/1024.0);
       rectH := hl;
 
       x0 := (gScreenWidth-rectW) div 2;
@@ -2607,7 +2608,7 @@ procedure DrawLoadingStat();
       if (wdt > rectW-wl-wr) then wdt := rectW-wr-wr;
       if (wdt > 0) then
       begin
-        my := y0+(rectH-wm) div 2;
+        my := y0; // don't be so smart, ketmar: +(rectH-wm) div 2;
         glScissor(x0+wl, gScreenHeight-my-rectH, wdt, hm);
         f := x0+wl;
         while (wdt > 0) do
@@ -2619,13 +2620,6 @@ procedure DrawLoadingStat();
       end;
 
       glScissor(0, 0, gScreenWidth, gScreenHeight);
-
-{
-procedure e_DrawSize(ID: DWORD; X, Y: Integer; Alpha: Byte; AlphaChannel: Boolean;
-                     Blending: Boolean; Width, Height: Word; Mirror: TMirrorType = TMirrorType.None);
-        if g_Texture_Get('MENU_BACKGROUND', ID) then e_DrawSize(ID, 0, 0, 0, False, False, gScreenWidth, gScreenHeight)
-        else e_Clear(GL_COLOR_BUFFER_BIT, 0, 0, 0);
-}
     end
     else
     begin
