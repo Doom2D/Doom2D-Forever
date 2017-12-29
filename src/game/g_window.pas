@@ -578,7 +578,7 @@ begin
       if g_Texture_Get('INTER', ID) then
       begin
         e_DrawSize(ID, 0, 0, 0, false, false, gScreenWidth, gScreenHeight);
-        e_DarkenQuadWH(0, 0, gScreenWidth, gScreenHeight, 100);
+        e_DarkenQuadWH(0, 0, gScreenWidth, gScreenHeight, 150);
       end
       else
       begin
