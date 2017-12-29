@@ -61,7 +61,7 @@ uses
 
 
 const
-  ProgressUpdateMSecs = 100;
+  ProgressUpdateMSecs = 1;//100;
 
 var
   h_Wnd: PSDL_Window = nil;
@@ -577,7 +577,8 @@ begin
     begin
       if g_Texture_Get('INTER', ID) then
       begin
-        e_DrawSize(ID, 0, 0, 0, false, false, gScreenWidth, gScreenHeight)
+        e_DrawSize(ID, 0, 0, 0, false, false, gScreenWidth, gScreenHeight);
+        e_DarkenQuadWH(0, 0, gScreenWidth, gScreenHeight, 100);
       end
       else
       begin
