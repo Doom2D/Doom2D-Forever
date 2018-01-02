@@ -95,7 +95,7 @@ var
 implementation
 
 uses
-  g_window, g_options, BinEditor;
+  g_window, g_options;
 
 const
   N_CHANNELS = 512;
@@ -118,7 +118,7 @@ var
 
 procedure chanFinished (chan: Integer); cdecl;
 begin
-  //e_WriteLog(Format('chanFinished: %d', [chan]), MSG_NOTIFY);
+  //e_WriteLog(Format('chanFinished: %d', [chan]), TMsgType.Notify);
   if (chan >= 0) and (chan < N_CHANNELS) then
   begin
     if ChanSIds[chan].id <> NO_SOUND_ID then
@@ -137,33 +137,33 @@ procedure dumpMusicType (ms: PMix_Music);
 begin
   if ms = nil then
   begin
-    e_WriteLog('MUSIC FORMAT: NONE', MSG_NOTIFY);
+    e_WriteLog('MUSIC FORMAT: NONE', TMsgType.Notify);
   end
   else
   begin
     case Mix_GetMusicType(ms^) of
       TMix_MusicType.MUS_NONE:
-        e_WriteLog('MUSIC FORMAT: NONE', MSG_NOTIFY);
+        e_WriteLog('MUSIC FORMAT: NONE', TMsgType.Notify);
       TMix_MusicType.MUS_CMD:
-        e_WriteLog('MUSIC FORMAT: CMD', MSG_NOTIFY);
+        e_WriteLog('MUSIC FORMAT: CMD', TMsgType.Notify);
       TMix_MusicType.MUS_WAV:
-        e_WriteLog('MUSIC FORMAT: WAV', MSG_NOTIFY);
+        e_WriteLog('MUSIC FORMAT: WAV', TMsgType.Notify);
       TMix_MusicType.MUS_MOD:
-        e_WriteLog('MUSIC FORMAT: MOD', MSG_NOTIFY);
+        e_WriteLog('MUSIC FORMAT: MOD', TMsgType.Notify);
       TMix_MusicType.MUS_MID:
-        e_WriteLog('MUSIC FORMAT: MID', MSG_NOTIFY);
+        e_WriteLog('MUSIC FORMAT: MID', TMsgType.Notify);
       TMix_MusicType.MUS_OGG:
-        e_WriteLog('MUSIC FORMAT: OGG', MSG_NOTIFY);
+        e_WriteLog('MUSIC FORMAT: OGG', TMsgType.Notify);
       TMix_MusicType.MUS_MP3:
-        e_WriteLog('MUSIC FORMAT: MP3', MSG_NOTIFY);
+        e_WriteLog('MUSIC FORMAT: MP3', TMsgType.Notify);
       TMix_MusicType.MUS_MP3_MAD:
-        e_WriteLog('MUSIC FORMAT: MP3_MAD', MSG_NOTIFY);
+        e_WriteLog('MUSIC FORMAT: MP3_MAD', TMsgType.Notify);
       TMix_MusicType.MUS_FLAC:
-        e_WriteLog('MUSIC FORMAT: FLAC', MSG_NOTIFY);
+        e_WriteLog('MUSIC FORMAT: FLAC', TMsgType.Notify);
       TMix_MusicType.MUS_MODPLUG:
-        e_WriteLog('MUSIC FORMAT: MODPLUG', MSG_NOTIFY);
+        e_WriteLog('MUSIC FORMAT: MODPLUG', TMsgType.Notify);
       otherwise
-        e_WriteLog('MUSIC FORMAT: UNKNOWN', MSG_NOTIFY);
+        e_WriteLog('MUSIC FORMAT: UNKNOWN', TMsgType.Notify);
     end;
   end;
 end;
@@ -185,35 +185,35 @@ begin
   // wow, this is actually MIDI player!
   // we need module player
   res := Mix_Init(MIX_INIT_FLAC or MIX_INIT_MOD or MIX_INIT_MODPLUG or MIX_INIT_MP3 or MIX_INIT_OGG or MIX_INIT_FLUIDSYNTH);
-  e_WriteLog(Format('SDL: res=0x%x', [res]), MSG_NOTIFY);
-  if (res and MIX_INIT_FLAC) <> 0 then e_WriteLog('SDL: FLAC playback is active', MSG_NOTIFY);
-  if (res and MIX_INIT_MOD) <> 0 then e_WriteLog('SDL: MOD playback is active', MSG_NOTIFY);
-  if (res and MIX_INIT_MODPLUG) <> 0 then e_WriteLog('SDL: MODPLUG playback is active', MSG_NOTIFY);
-  if (res and MIX_INIT_MP3) <> 0 then e_WriteLog('SDL: MP3 playback is active', MSG_NOTIFY);
-  if (res and MIX_INIT_OGG) <> 0 then e_WriteLog('SDL: OGG playback is active', MSG_NOTIFY);
-  if (res and MIX_INIT_FLUIDSYNTH) <> 0 then e_WriteLog('SDL: FLUIDSYNTH playback is active', MSG_NOTIFY);
+  e_WriteLog(Format('SDL: res=0x%x', [res]), TMsgType.Notify);
+  if (res and MIX_INIT_FLAC) <> 0 then e_WriteLog('SDL: FLAC playback is active', TMsgType.Notify);
+  if (res and MIX_INIT_MOD) <> 0 then e_WriteLog('SDL: MOD playback is active', TMsgType.Notify);
+  if (res and MIX_INIT_MODPLUG) <> 0 then e_WriteLog('SDL: MODPLUG playback is active', TMsgType.Notify);
+  if (res and MIX_INIT_MP3) <> 0 then e_WriteLog('SDL: MP3 playback is active', TMsgType.Notify);
+  if (res and MIX_INIT_OGG) <> 0 then e_WriteLog('SDL: OGG playback is active', TMsgType.Notify);
+  if (res and MIX_INIT_FLUIDSYNTH) <> 0 then e_WriteLog('SDL: FLUIDSYNTH playback is active', TMsgType.Notify);
 
-  e_WriteLog(Format('SDL: initializing mixer at %d with buffer %d', [gsSDLSampleRate, gsSDLBufferSize]), MSG_NOTIFY);
+  e_WriteLog(Format('SDL: initializing mixer at %d with buffer %d', [gsSDLSampleRate, gsSDLBufferSize]), TMsgType.Notify);
   res := Mix_OpenAudio(gsSDLSampleRate, AUDIO_S16LSB, 2, gsSDLBufferSize);
   if res = -1 then
   begin
-    e_WriteLog('Error initializing SDL mixer:', MSG_FATALERROR);
-    e_WriteLog(Mix_GetError(), MSG_FATALERROR);
+    e_WriteLog('Error initializing SDL mixer:', TMsgType.Fatal);
+    e_WriteLog(Mix_GetError(), TMsgType.Fatal);
     Exit;
   end;
 
   if Mix_QuerySpec(@rfreq, @rformat, @rchans) > 0 then
   begin
-    e_WriteLog(Format('SDL: frequency=%d; format=%u; channels=%d', [rfreq, rformat, rchans]), MSG_NOTIFY);
+    e_WriteLog(Format('SDL: frequency=%d; format=%u; channels=%d', [rfreq, rformat, rchans]), TMsgType.Notify);
   end;
 
   for i := 0 to Mix_GetNumChunkDecoders()-1 do
   begin
-    e_WriteLog(Format('SDL: chunk decoder %s is avalable', [Mix_GetChunkDecoder(i)]), MSG_NOTIFY);
+    e_WriteLog(Format('SDL: chunk decoder %s is avalable', [Mix_GetChunkDecoder(i)]), TMsgType.Notify);
   end;
   for i := 0 to Mix_GetNumMusicDecoders()-1 do
   begin
-    e_WriteLog(Format('SDL: music decoder %s is avalable', [Mix_GetMusicDecoder(i)]), MSG_NOTIFY);
+    e_WriteLog(Format('SDL: music decoder %s is avalable', [Mix_GetMusicDecoder(i)]), TMsgType.Notify);
   end;
 
   Mix_AllocateChannels(N_CHANNELS);
@@ -291,13 +291,13 @@ begin
   Result := False;
   if not SoundInitialized then Exit;
 
-  if isMusic then e_WriteLog('Loading music '+FileName+'...', MSG_NOTIFY)
-  else e_WriteLog('Loading sound '+FileName+'...', MSG_NOTIFY);
+  if isMusic then e_WriteLog('Loading music '+FileName+'...', TMsgType.Notify)
+  else e_WriteLog('Loading sound '+FileName+'...', TMsgType.Notify);
 
   {
   if isMusic then
   begin
-    e_WriteLog('IGNORING MUSIC FROM FILE', MSG_WARNING);
+    e_WriteLog('IGNORING MUSIC FROM FILE', TMsgType.Warning);
     Exit;
   end;
   }
@@ -310,12 +310,12 @@ begin
 
   if isMusic then
   begin
-    e_WriteLog(Format('  MUSIC SLOT: %u', [find_id]), MSG_NOTIFY);
+    e_WriteLog(Format('  MUSIC SLOT: %u', [find_id]), TMsgType.Notify);
     e_SoundsArray[find_id].Music := Mix_LoadMUS(PAnsiChar(FileName));
     if e_SoundsArray[find_id].Music = nil then
     begin
-      e_WriteLog(Format('ERROR LOADING MUSIC:', [find_id]), MSG_WARNING);
-      e_WriteLog(Mix_GetError(), MSG_WARNING);
+      e_WriteLog(Format('ERROR LOADING MUSIC:', [find_id]), TMsgType.Warning);
+      e_WriteLog(Mix_GetError(), TMsgType.Warning);
       Exit;
     end;
     dumpMusicType(e_SoundsArray[find_id].Music);
@@ -346,7 +346,7 @@ begin
   {
   if isMusic then
   begin
-    e_WriteLog('IGNORING MUSIC FROM MEMORY', MSG_WARNING);
+    e_WriteLog('IGNORING MUSIC FROM MEMORY', TMsgType.Warning);
     Exit;
   end;
   }
@@ -360,7 +360,7 @@ begin
     Inc(pc, $400);
     pData := Pointer(pc);
     Dec(Length, $400);
-    e_WriteLog('MUSIC: MP3 ID3 WORKAROUND APPLIED!', MSG_WARNING);
+    e_WriteLog('MUSIC: MP3 ID3 WORKAROUND APPLIED!', TMsgType.Warning);
   end;
   }
 
@@ -376,12 +376,12 @@ begin
 
   if isMusic then
   begin
-    e_WriteLog(Format('  MUSIC SLOT: %u', [find_id]), MSG_NOTIFY);
+    e_WriteLog(Format('  MUSIC SLOT: %u', [find_id]), TMsgType.Notify);
     e_SoundsArray[find_id].Music := Mix_LoadMUS_RW(rw, 0);
     if e_SoundsArray[find_id].Music = nil then
     begin
-      e_WriteLog(Format('ERROR LOADING MUSIC:', [find_id]), MSG_WARNING);
-      e_WriteLog(Mix_GetError(), MSG_WARNING);
+      e_WriteLog(Format('ERROR LOADING MUSIC:', [find_id]), TMsgType.Warning);
+      e_WriteLog(Mix_GetError(), TMsgType.Warning);
     end
     else
     begin
@@ -575,7 +575,7 @@ begin
     end;
     if vol < 0 then vol := 0 else if vol > 1 then vol := 1;
     ChanSIds[i].oldvol := trunc(vol*MIX_MAX_VOLUME);
-    //if i = 0 then e_WriteLog(Format('modifying volumes: vol=%f; newvol=%d', [vol, ChanSIds[i].oldvol]), MSG_WARNING);
+    //if i = 0 then e_WriteLog(Format('modifying volumes: vol=%f; newvol=%d', [vol, ChanSIds[i].oldvol]), TMsgType.Warning);
     if ChanSIds[i].muted then Mix_Volume(i, 0) else Mix_Volume(i, ChanSIds[i].oldvol);
   end;
   ovol := Mix_VolumeMusic(-1);
@@ -607,11 +607,11 @@ begin
     if ChanSIds[i].muted <> SoundMuted then
     begin
       ChanSIds[i].muted := SoundMuted;
-      //e_WriteLog(Format('gmuting sound for channel %d', [i]), MSG_WARNING);
+      //e_WriteLog(Format('gmuting sound for channel %d', [i]), TMsgType.Warning);
       if ChanSIds[i].muted then Mix_Volume(i, 0) else Mix_Volume(i, ChanSIds[i].oldvol);
     end;
   end;
-  //if SoundMuted then e_WriteLog('muting music', MSG_NOTIFY) else e_WriteLog(Format('unmuting music (%d)', [MusVolume]), MSG_NOTIFY);
+  //if SoundMuted then e_WriteLog('muting music', TMsgType.Notify) else e_WriteLog(Format('unmuting music (%d)', [MusVolume]), TMsgType.Notify);
   if SoundMuted then Mix_VolumeMusic(0) else Mix_VolumeMusic(MusVolume);
 end;
 
@@ -698,7 +698,7 @@ begin
   if (FID = NO_SOUND_ID) or not SoundInitialized then Exit;
   FChanNum := e_PlaySoundPanVolume(FID, Pan, Volume);
   Result := (FChanNum >= 0);
-  //if e_isMusic(FID) then e_WriteLog(Format('playing music (%u)', [FID]), MSG_NOTIFY);
+  //if e_isMusic(FID) then e_WriteLog(Format('playing music (%u)', [FID]), TMsgType.Notify);
   //TODO: aPos
 end;
 
@@ -720,15 +720,15 @@ begin
   Result := False;
   if e_isSound(FID) then
   begin
-    //e_WriteLog(Format('IsPlaying: FID=%u; FChanNum=%d', [FID, FChanNum]), MSG_WARNING);
+    //e_WriteLog(Format('IsPlaying: FID=%u; FChanNum=%d', [FID, FChanNum]), TMsgType.Warning);
     chan := Channel;
     if chan < 0 then
     begin
-      //e_WriteLog(Format('IsPlaying: FID=%u; ONA', [FID]), MSG_WARNING);
+      //e_WriteLog(Format('IsPlaying: FID=%u; ONA', [FID]), TMsgType.Warning);
       Exit;
     end;
     //Result := (Mix_Playing(chan) > 0)
-    //e_WriteLog(Format('IsPlaying: FID=%u; TAN', [FID]), MSG_WARNING);
+    //e_WriteLog(Format('IsPlaying: FID=%u; TAN', [FID]), TMsgType.Warning);
     Result := True;
   end
   else if e_isMusic(FID) then
@@ -834,12 +834,12 @@ begin
   begin
     chan := Channel;
     if chan < 0 then Exit;
-    //e_WriteLog(Format('SetVolume: chan=%d; Volume=%f', [chan, Volume]), MSG_WARNING);
+    //e_WriteLog(Format('SetVolume: chan=%d; Volume=%f', [chan, Volume]), TMsgType.Warning);
     e_chanSetVol(chan, Volume);
   end
   else if e_isMusic(FID) then
   begin
-    //e_WriteLog(Format('SetVolume: chan=MUSIC; Volume=%f', [Volume]), MSG_WARNING);
+    //e_WriteLog(Format('SetVolume: chan=MUSIC; Volume=%f', [Volume]), TMsgType.Warning);
     e_chanSetVol(N_MUSCHAN, Volume);
   end;
 end;
@@ -896,7 +896,7 @@ begin
     if chan < 0 then Exit;
     if ChanSIds[chan].muted <> Enable then
     begin
-      //e_WriteLog(Format('muting sound for channel %d', [cnan]), MSG_WARNING);
+      //e_WriteLog(Format('muting sound for channel %d', [cnan]), TMsgType.Warning);
       ChanSIds[chan].muted := Enable;
       if ChanSIds[chan].muted then Mix_Volume(chan, 0) else Mix_Volume(chan, ChanSIds[chan].oldvol);
     end;
