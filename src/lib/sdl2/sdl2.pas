@@ -137,10 +137,12 @@ interface
       Windows;
   {$ENDIF}
 
-  {$IFDEF UNIX}
-    uses
-      X,
-      XLib;
+  {$IF DEFINED(UNIX)}
+    {$IF NOT DEFINED(HAIKU)}
+      uses
+        X,
+        XLib;
+    {$ENDIF}
   {$ENDIF}
 
   {$IFDEF DARWIN}
@@ -156,7 +158,9 @@ const
     SDL_LibName = 'SDL2.dll';
   {$ENDIF}
 
-  {$IFDEF UNIX}
+  {$IF DEFINED(HAIKU)}
+    SDL_LibName = 'libSDL2.so.0';
+  {$ELSEIF DEFINED(UNIX)}
     {$IFDEF DARWIN}
       SDL_LibName = 'libSDL2.dylib';
     {$ELSE}

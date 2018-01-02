@@ -91,7 +91,8 @@ begin
  {$ENDIF}
 {$ELSE}
  {$IFDEF USE_SDLMIXER}
-  sdlflags := SDL_INIT_EVERYTHING;
+  {*sdlflags := SDL_INIT_EVERYTHING;*}
+  sdlflags := SDL_INIT_JOYSTICK or SDL_INIT_TIMER or SDL_INIT_VIDEO;
  {$ELSE}
   sdlflags := SDL_INIT_JOYSTICK or SDL_INIT_TIMER or SDL_INIT_VIDEO;
  {$ENDIF}

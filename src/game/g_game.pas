@@ -344,7 +344,7 @@ uses
   e_input, e_log, g_console, g_items, g_map, g_panel,
   g_playermodel, g_gfx, g_options, g_weapons, Math,
   g_triggers, g_monsters, e_sound, CONFIG,
-  g_language, g_net, SDL,
+  g_language, g_net,
   ENet, e_msg, g_netmsg, g_netmaster, GL, GLExt,
   sfs, wadreader, g_holmes;
 

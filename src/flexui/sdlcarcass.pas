@@ -74,6 +74,8 @@ uses
     unixtype, linux
   {$ELSEIF DEFINED(WINDOWS)}
     Windows
+  {$ELSEIF DEFINED(HAIKU)}
+    unixtype
   {$ELSE}
     {$WARNING You suck!}
   {$ENDIF}
@@ -111,7 +113,7 @@ begin
     if not mHasHPTimer then raise Exception.Create('profiler error: hires timer is not available');
     mFrequency := 1; // just a flag
     if (r.tv_nsec <> 0) then mFrequency := 1000000000000000000 div r.tv_nsec;
-{$ELSE}
+{$ELSEIF DEFINED(WINDOWS)}
     mHasHPTimer := QueryPerformanceFrequency(r);
     if not mHasHPTimer then raise Exception.Create('profiler error: hires timer is not available');
     mFrequency := r;
@@ -128,7 +130,7 @@ begin
   {$IF DEFINED(LINUX)}
   clock_gettime(CLOCK_MONOTONIC, @r);
   result := UInt64(r.tv_sec)*1000000+UInt64(r.tv_nsec) div 1000; // microseconds
-  {$ELSE}
+  {$ELSEIF DEFINED(WINDOWS)}
   QueryPerformanceCounter(r);
   result := UInt64(r)*1000000 div mFrequency;
   {$ENDIF}
