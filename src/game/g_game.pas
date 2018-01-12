@@ -2091,7 +2091,7 @@ begin
     gChatSounds[i].Sound.SetByName('SOUND_CHAT_MACRO' + IntToStr(i));
     SetLength(gChatSounds[i].Tags, tags);
     for j := 0 to tags - 1 do
-      gChatSounds[i].Tags[j] := AnsiLowerCase(cfg.ReadStr(IntToStr(i), 'Tag' + IntToStr(j), ''));
+      gChatSounds[i].Tags[j] := toLowerCase1251(cfg.ReadStr(IntToStr(i), 'Tag' + IntToStr(j), ''));
     gChatSounds[i].FullWord := cfg.ReadBool(IntToStr(i), 'FullWord', False);
   end;
 
@@ -6981,7 +6981,7 @@ begin
     // remove player name
     Delete(Text, 1, Pos(': ', Text) + 2 - 1);
     // for FullWord check
-    Text := AnsiLowerCase(' ' + Text + ' ');
+    Text := toLowerCase1251(' ' + Text + ' ');
     fpText := FilterPunctuation(Text);
 
     for i := 0 to Length(gChatSounds) - 1 do
