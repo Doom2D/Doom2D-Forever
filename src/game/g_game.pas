@@ -49,6 +49,12 @@ type
     DEStr: String;
   end;
 
+  TChatSound = record
+    Sound: TPlayableSound;
+    Tags: Array of String;
+    FullWord: Boolean;
+  end;
+
   TPlayerSettings = record
     Name: String;
     Model: String;
@@ -114,6 +120,7 @@ procedure g_Game_PauseAllSounds(Enable: Boolean);
 procedure g_Game_StopAllSounds(all: Boolean);
 procedure g_Game_UpdateTriggerSounds();
 function  g_Game_GetMegaWADInfo(WAD: String): TMegaWADInfo;
+procedure g_Game_ChatSound(Text: String; Taunt: Boolean = True);
 procedure g_Game_Announce_GoodShot(SpawnerUID: Word);
 procedure g_Game_Announce_KillCombo(Param: Integer);
 procedure g_Game_StartVote(Command, Initiator: string);
@@ -303,6 +310,7 @@ var
   gVotesEnabled: Boolean = True;
   gEvents: Array of TGameEvent;
   gDelayedEvents: Array of TDelayedEvent;
+  gChatSounds: Array of TChatSound;
 
   // move button values:
   // bits 0-1: l/r state:
@@ -2047,6 +2055,63 @@ begin
   end;
 end;
 
+procedure g_Game_LoadChatSounds(Resource: string);
+var
+  WAD: TWADFile;
+  FileName, Snd: string;
+  p: Pointer;
+  len, cnt, tags, i, j: Integer;
+  cfg: TConfig;
+begin
+  FileName := g_ExtractWadName(Resource);
+
+  WAD := TWADFile.Create();
+  WAD.ReadFile(FileName);
+
+  if not WAD.GetResource(g_ExtractFilePathName(Resource), p, len) then
+  begin
+    gChatSounds := nil;
+    WAD.Free();
+    Exit;
+  end;
+
+  cfg := TConfig.CreateMem(p, len);
+  cnt := cfg.ReadInt('ChatSounds', 'Count', 0);
+
+  SetLength(gChatSounds, cnt);
+  for i := 0 to Length(gChatSounds) - 1 do
+  begin
+    gChatSounds[i].Sound := nil;
+    Snd := Trim(cfg.ReadStr(IntToStr(i), 'Sound', ''));
+    tags := cfg.ReadInt(IntToStr(i), 'Tags', 0);
+    if (Snd = '') or (Tags <= 0) then
+      continue;
+    g_Sound_CreateWADEx('SOUND_CHAT_MACRO' + IntToStr(i), GameWAD+':'+Snd);
+    gChatSounds[i].Sound := TPlayableSound.Create();
+    gChatSounds[i].Sound.SetByName('SOUND_CHAT_MACRO' + IntToStr(i));
+    SetLength(gChatSounds[i].Tags, tags);
+    for j := 0 to tags - 1 do
+      gChatSounds[i].Tags[j] := LowerCase(cfg.ReadStr(IntToStr(i), 'Tag' + IntToStr(j), ''));
+    gChatSounds[i].FullWord := cfg.ReadBool(IntToStr(i), 'FullWord', False);
+  end;
+
+  cfg.Free();
+  WAD.Free();
+end;
+
+procedure g_Game_FreeChatSounds();
+var
+  i: Integer;
+begin
+  for i := 0 to Length(gChatSounds) - 1 do
+  begin
+    gChatSounds[i].Sound.Free();
+    g_Sound_Delete('SOUND_CHAT_MACRO' + IntToStr(i));
+  end;
+  SetLength(gChatSounds, 0);
+  gChatSounds := nil;
+end;
+
 procedure g_Game_LoadData();
 var
   wl, hl: Integer;
@@ -2136,6 +2201,8 @@ begin
   killsnd[2].SetByName('SOUND_ANNOUNCER_KILL4X');
   killsnd[3].SetByName('SOUND_ANNOUNCER_KILLMX');
 
+  g_Game_LoadChatSounds(GameWAD+':CHATSND\SNDCFG');
+
   g_Game_SetLoadingText(_lc[I_LOAD_ITEMS_DATA], 0, False);
   g_Items_LoadData();
 
@@ -2200,6 +2267,8 @@ begin
   g_Sound_Delete('SOUND_ANNOUNCER_KILL3X');
   g_Sound_Delete('SOUND_ANNOUNCER_KILL4X');
   g_Sound_Delete('SOUND_ANNOUNCER_KILLMX');
+
+  g_Game_FreeChatSounds();
 
   DataLoaded := False;
 end;
@@ -6886,6 +6955,57 @@ procedure g_Game_Message(Msg: string; Time: Word);
 begin
   MessageText := b_Text_Format(Msg);
   MessageTime := Time;
+end;
+
+procedure g_Game_ChatSound(Text: String; Taunt: Boolean = True);
+var
+  i, j: Integer;
+  ok: Boolean;
+  fpText: String;
+
+  function FilterPunctuation(S: String): String;
+  begin
+    S := StringReplace(S, '.', ' ', [rfReplaceAll]);
+    S := StringReplace(S, ',', ' ', [rfReplaceAll]);
+    S := StringReplace(S, ':', ' ', [rfReplaceAll]);
+    S := StringReplace(S, ';', ' ', [rfReplaceAll]);
+    S := StringReplace(S, '!', ' ', [rfReplaceAll]);
+    S := StringReplace(S, '?', ' ', [rfReplaceAll]);
+    Result := S;
+  end;
+begin
+  g_Sound_PlayEx('SOUND_GAME_RADIO');
+
+  if Taunt and (gChatSounds <> nil) and (Pos(': ', Text) > 0) then
+  begin
+    // remove player name
+    Delete(Text, 1, Pos(': ', Text) + 2 - 1);
+    // for FullWord check
+    Text := LowerCase(' ' + Text + ' ');
+    fpText := FilterPunctuation(Text);
+
+    for i := 0 to Length(gChatSounds) - 1 do
+    begin
+      ok := True;
+      for j := 0 to Length(gChatSounds[i].Tags) - 1 do
+      begin
+        if gChatSounds[i].FullWord and
+        (gChatSounds[i].Tags[j] <> '.') and (gChatSounds[i].Tags[j] <> ',') and
+        (gChatSounds[i].Tags[j] <> ':') and (gChatSounds[i].Tags[j] <> ';') and
+        (gChatSounds[i].Tags[j] <> '!') and (gChatSounds[i].Tags[j] <> '?') then
+          ok := Pos(' ' + gChatSounds[i].Tags[j] + ' ', fpText) > 0
+        else
+          ok := Pos(gChatSounds[i].Tags[j], Text) > 0;
+        if not ok then
+          break;
+      end;
+      if ok then
+      begin
+        gChatSounds[i].Sound.Play();
+        break;
+      end;
+    end;
+  end;
 end;
 
 procedure g_Game_Announce_GoodShot(SpawnerUID: Word);

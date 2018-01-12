@@ -778,7 +778,7 @@ begin
     begin
       g_Console_Add(Txt, True);
       e_WriteLog('[Chat] ' + b_Text_Unformat(Txt), TMsgType.Notify);
-      g_Sound_PlayEx('SOUND_GAME_RADIO');
+      g_Game_ChatSound(b_Text_Unformat(Txt));
     end
     else
     if Mode = NET_CHAT_TEAM then
@@ -788,13 +788,13 @@ begin
         begin
           g_Console_Add(#18'[Team] '#2 + Txt, True);
           e_WriteLog('[Team Chat] ' + b_Text_Unformat(Txt), TMsgType.Notify);
-          g_Sound_PlayEx('SOUND_GAME_RADIO');
+          g_Game_ChatSound(b_Text_Unformat(Txt));
         end
         else if (gPlayer1.Team = TEAM_BLUE) and (Team = TEAM_BLUE) then
         begin
           g_Console_Add(#20'[Team] '#2 + Txt, True);
           e_WriteLog('[Team Chat] ' + b_Text_Unformat(Txt), TMsgType.Notify);
-          g_Sound_PlayEx('SOUND_GAME_RADIO');
+          g_Game_ChatSound(b_Text_Unformat(Txt));
         end;
       end;
   end
@@ -803,7 +803,7 @@ begin
     Name := g_Net_ClientName_ByID(ID);
     g_Console_Add('-> ' + Name + ': ' + Txt, True);
     e_WriteLog('[Tell ' + Name + '] ' + b_Text_Unformat(Txt), TMsgType.Notify);
-    g_Sound_PlayEx('SOUND_GAME_RADIO');
+    g_Game_ChatSound(b_Text_Unformat(Txt), False);
   end;
 end;
 
@@ -1410,7 +1410,7 @@ begin
     begin
       g_Console_Add(Txt, True);
       e_WriteLog('[Chat] ' + b_Text_Unformat(Txt), TMsgType.Notify);
-      g_Sound_PlayEx('SOUND_GAME_RADIO');
+      g_Game_ChatSound(b_Text_Unformat(Txt));
     end else
     if (Mode = NET_CHAT_TEAM) and (gPlayer1 <> nil) then
     begin
@@ -1419,7 +1419,7 @@ begin
       if gPlayer1.Team = TEAM_BLUE then
         g_Console_Add(b_Text_Format('\b[Team] ') + Txt, True);
       e_WriteLog('[Team Chat] ' + b_Text_Unformat(Txt), TMsgType.Notify);
-      g_Sound_PlayEx('SOUND_GAME_RADIO');
+      g_Game_ChatSound(b_Text_Unformat(Txt));
     end;
   end else
     g_Console_Add(Txt, True);
