@@ -310,6 +310,7 @@ var
   gVotesEnabled: Boolean = True;
   gEvents: Array of TGameEvent;
   gDelayedEvents: Array of TDelayedEvent;
+  gUseChatSounds: Boolean = True;
   gChatSounds: Array of TChatSound;
 
   // move button values:
@@ -6958,25 +6959,40 @@ begin
 end;
 
 procedure g_Game_ChatSound(Text: String; Taunt: Boolean = True);
+const
+  punct: Array[0..13] of String =
+  ('.', ',', ':', ';', '!', '?', '(', ')', '''', '"', '/', '\', '*', '^');
 var
   i, j: Integer;
   ok: Boolean;
   fpText: String;
 
-  function FilterPunctuation(S: String): String;
+  function IsPunctuation(S: String): Boolean;
+  var
+    i: Integer;
   begin
-    S := StringReplace(S, '.', ' ', [rfReplaceAll]);
-    S := StringReplace(S, ',', ' ', [rfReplaceAll]);
-    S := StringReplace(S, ':', ' ', [rfReplaceAll]);
-    S := StringReplace(S, ';', ' ', [rfReplaceAll]);
-    S := StringReplace(S, '!', ' ', [rfReplaceAll]);
-    S := StringReplace(S, '?', ' ', [rfReplaceAll]);
+    Result := False;
+    if Length(S) <> 1 then
+      Exit;
+    for i := Low(punct) to High(punct) do
+      if S = punct[i] then
+      begin
+        Result := True;
+        break;
+      end;
+  end;
+  function FilterPunctuation(S: String): String;
+  var
+    i: Integer;
+  begin
+    for i := Low(punct) to High(punct) do
+      S := StringReplace(S, punct[i], ' ', [rfReplaceAll]);
     Result := S;
   end;
 begin
-  g_Sound_PlayEx('SOUND_GAME_RADIO');
+  ok := False;
 
-  if Taunt and (gChatSounds <> nil) and (Pos(': ', Text) > 0) then
+  if gUseChatSounds and Taunt and (gChatSounds <> nil) and (Pos(': ', Text) > 0) then
   begin
     // remove player name
     Delete(Text, 1, Pos(': ', Text) + 2 - 1);
@@ -6989,10 +7005,7 @@ begin
       ok := True;
       for j := 0 to Length(gChatSounds[i].Tags) - 1 do
       begin
-        if gChatSounds[i].FullWord and
-        (gChatSounds[i].Tags[j] <> '.') and (gChatSounds[i].Tags[j] <> ',') and
-        (gChatSounds[i].Tags[j] <> ':') and (gChatSounds[i].Tags[j] <> ';') and
-        (gChatSounds[i].Tags[j] <> '!') and (gChatSounds[i].Tags[j] <> '?') then
+        if gChatSounds[i].FullWord and (not IsPunctuation(gChatSounds[i].Tags[j])) then
           ok := Pos(' ' + gChatSounds[i].Tags[j] + ' ', fpText) > 0
         else
           ok := Pos(gChatSounds[i].Tags[j], Text) > 0;
@@ -7006,6 +7019,8 @@ begin
       end;
     end;
   end;
+  if not ok then
+    g_Sound_PlayEx('SOUND_GAME_RADIO');
 end;
 
 procedure g_Game_Announce_GoodShot(SpawnerUID: Word);

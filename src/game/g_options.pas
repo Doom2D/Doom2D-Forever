@@ -147,6 +147,7 @@ begin
   gMuteWhenInactive := False;
   gAnnouncer := ANNOUNCE_MEPLUS;
   gSoundEffectsDF := True;
+  gUseChatSounds := True;
   g_GFX_SetMax(2000);
   g_Gibs_SetMax(150);
   g_Corpses_SetMax(20);
@@ -312,6 +313,7 @@ begin
   gMuteWhenInactive := config.ReadBool('Sound', 'MuteInactive', False);
   gAnnouncer := Min(Max(config.ReadInt('Sound', 'Announcer', ANNOUNCE_MEPLUS), ANNOUNCE_NONE), ANNOUNCE_ALL);
   gSoundEffectsDF := config.ReadBool('Sound', 'SoundEffectsDF', True);
+  gUseChatSounds := config.ReadBool('Sound', 'ChatSounds', True);
   gsSDLSampleRate := Min(Max(config.ReadInt('Sound', 'SDLSampleRate', 44100), 11025), 96000);
   gsSDLBufferSize := Min(Max(config.ReadInt('Sound', 'SDLBufferSize', 2048), 64), 16384);
 
@@ -559,6 +561,7 @@ begin
   config.WriteBool('Sound', 'MuteInactive', gMuteWhenInactive);
   config.WriteInt('Sound', 'Announcer', gAnnouncer);
   config.WriteBool('Sound', 'SoundEffectsDF', gSoundEffectsDF);
+  config.WriteBool('Sound', 'ChatSounds', gUseChatSounds);
   config.WriteInt('Sound', 'SDLSampleRate', gsSDLSampleRate);
   config.WriteInt('Sound', 'SDLBufferSize', gsSDLBufferSize);
 

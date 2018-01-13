@@ -128,6 +128,7 @@ begin
   gMuteWhenInactive := TGUISwitch(menu.GetControl('swInactiveSounds')).ItemIndex = 1;
   gAnnouncer := TGUISwitch(menu.GetControl('swAnnouncer')).ItemIndex;
   gSoundEffectsDF := TGUISwitch(menu.GetControl('swSoundEffects')).ItemIndex = 1;
+  gUseChatSounds := TGUISwitch(menu.GetControl('swChatSpeech')).ItemIndex = 0;
 
   menu := TGUIMenu(g_GUI_GetWindow('OptionsGameMenu').GetControl('mOptionsGameMenu'));
 
@@ -345,6 +346,12 @@ begin
       ItemIndex := 1
     else
       ItemIndex := 0;
+
+  with TGUISwitch(menu.GetControl('swChatSpeech')) do
+    if gUseChatSounds then
+      ItemIndex := 0
+    else
+      ItemIndex := 1;
 
   menu := TGUIMenu(g_GUI_GetWindow('OptionsControlsP1Menu').GetControl('mOptionsControlsP1Menu'));
   with menu, gGameControls.P1Control do
@@ -2543,6 +2550,13 @@ begin
       Name := 'swSoundEffects';
       AddItem(_lc[I_MENU_COMPAT_DOOM2]);
       AddItem(_lc[I_MENU_COMPAT_DF]);
+    end;
+    // Переключатель звуков чата
+    with AddSwitch (_lc[I_MENU_SOUND_CHAT]) do
+    begin;
+      Name := 'swChatSpeech';
+      AddItem(_lc[I_MENU_YES]);
+      AddItem(_lc[I_MENU_NO]);
     end;
     with AddSwitch(_lc[I_MENU_SOUND_INACTIVE_SOUNDS]) do
     begin
