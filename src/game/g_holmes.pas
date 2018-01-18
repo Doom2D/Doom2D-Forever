@@ -972,6 +972,25 @@ procedure plrDebugDraw ();
     hlmContext.fillRect(cx, cy, monsGrid.tileSize, monsGrid.tileSize);
   end;
 
+  procedure hilightBodyCells (proxyId: Integer);
+  var
+    pmark: PoolMark;
+    hitcount: Integer;
+    pcellxy: PGridCellCoord;
+  begin
+    //monsGrid.forEachBodyCell(mon.proxyId, hilightCell);
+    pmark := framePool.mark();
+    hitcount := monsGrid.forEachBodyCell(proxyId);
+    pcellxy := PGridCellCoord(framePool.getPtr(pmark));
+    while (hitcount > 0) do
+    begin
+      hilightCell(pcellxy^.x, pcellxy^.y);
+      Inc(pcellxy);
+      Dec(hitcount);
+    end;
+    framePool.release(pmark);
+  end;
+
   procedure hilightCell1 (cx, cy: Integer);
   begin
     //e_WriteLog(Format('h1: (%d,%d)', [cx, cy]), MSG_NOTIFY);
@@ -990,12 +1009,11 @@ procedure plrDebugDraw ();
     hlmContext.fillRect(pan.X, pan.Y, pan.Width, pan.Height);
   end;
 
-  function monsCollector (mon: TMonster; tag: Integer): Boolean;
+  procedure monsCollector (mon: TMonster);
   var
     ex, ey: Integer;
     mx, my, mw, mh: Integer;
   begin
-    result := false;
     mon.getMapBox(mx, my, mw, mh);
     hlmContext.color := TGxRGBA.Create(255, 255, 0, 160);
     hlmContext.rect(mx, my, mw, mh);
@@ -1074,7 +1092,8 @@ procedure plrDebugDraw ();
     mon.getMapBox(mx, my, mw, mh);
     //mx += mw div 2;
 
-    monsGrid.forEachBodyCell(mon.proxyId, hilightCell);
+    //monsGrid.forEachBodyCell(mon.proxyId, hilightCell);
+    hilightBodyCells(mon.proxyId);
 
     if showMonsInfo then
     begin
@@ -1113,7 +1132,8 @@ procedure plrDebugDraw ();
   function highlightAllMonsterCells (mon: TMonster): Boolean;
   begin
     result := false; // don't stop
-    monsGrid.forEachBodyCell(mon.proxyId, hilightCell);
+    //monsGrid.forEachBodyCell(mon.proxyId, hilightCell);
+    hilightBodyCells(mon.proxyId);
   end;
 
   procedure drawSelectedPlatformCells ();
@@ -1123,7 +1143,8 @@ procedure plrDebugDraw ();
     if not showGrid then exit;
     pan := g_Map_PanelByGUID(platMarkedGUID);
     if (pan = nil) then exit;
-    mapGrid.forEachBodyCell(pan.proxyId, hilightCell);
+    //mapGrid.forEachBodyCell(pan.proxyId, hilightCell);
+    hilightBodyCells(pan.proxyId);
     hlmContext.color := TGxRGBA.Create(0, 200, 0, 200);
     hlmContext.rect(pan.x, pan.y, pan.width, pan.height);
   end;
@@ -1234,6 +1255,9 @@ var
   mx, my, mw, mh: Integer;
   //pan: TPanel;
   //ex, ey: Integer;
+  pmark: PoolMark;
+  hitcount: Integer;
+  pmon: PMonster;
 begin
   if (gPlayer1 = nil) then exit;
 
@@ -1255,7 +1279,20 @@ begin
     if (showGrid) then drawTileGrid();
     drawOutlines();
 
-    if (laserSet) then g_Mons_AlongLine(laserX0, laserY0, laserX1, laserY1, monsCollector, true);
+    if (laserSet) then
+    begin
+      //g_Mons_AlongLine(laserX0, laserY0, laserX1, laserY1, monsCollector, true);
+      pmark := framePool.mark();
+      hitcount := monsGrid.forEachAlongLine(laserX0, laserY0, laserX1, laserY1, -1, true);
+      pmon := PMonster(framePool.getPtr(pmark));
+      while (hitcount > 0) do
+      begin
+        monsCollector(pmon^);
+        Inc(pmon);
+        Dec(hitcount);
+      end;
+      framePool.release(pmark);
+    end;
 
     if (monMarkedUID <> -1) then
     begin

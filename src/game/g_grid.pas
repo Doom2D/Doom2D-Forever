@@ -44,13 +44,19 @@ const
   GridTileSize = 32; // must be power of two!
 
 type
+  PGridCellCoord = ^TGridCellCoord;
+  TGridCellCoord = record
+    x, y: Integer;
+  end;
+
+type
   TBodyProxyId = Integer;
 
   generic TBodyGridBase<ITP> = class{$IFDEF USE_MEMPOOL}(TPoolObject){$ENDIF}
   public
     type PITP = ^ITP;
 
-    type TGridQueryCB = function (obj: ITP; tag: Integer): Boolean is nested; // return `true` to stop
+    //type TGridQueryCB = function (obj: ITP; tag: Integer): Boolean is nested; // return `true` to stop
     //type TGridRayQueryCB = function (obj: ITP; tag: Integer; x, y, prevx, prevy: Integer): Boolean is nested; // return `true` to stop
     type TCellQueryCB = procedure (x, y: Integer) is nested; // top-left cell corner coords
 
@@ -235,7 +241,8 @@ type
     //         you can set enabled/disabled flag, tho (but iterator can still return objects disabled inside it)
     // trace line along the grid, calling `cb` for all objects in passed cells, in no particular order
     //WARNING: don't change tags in callbacks here!
-    function forEachAlongLine (ax0, ay0, ax1, ay1: Integer; cb: TGridQueryCB; tagmask: Integer=-1; log: Boolean=false): ITP;
+    //function forEachAlongLine (ax0, ay0, ax1, ay1: Integer; cb: TGridQueryCB; tagmask: Integer=-1; log: Boolean=false): ITP;
+    function forEachAlongLine (ax0, ay0, ax1, ay1: Integer; tagmask: Integer=-1; log: Boolean=false): Integer;
 
     // trace box with the given velocity; return object hit (if any)
     // `cb` is used unconvetionally here: if it returns `false`, tracer will ignore the object
@@ -243,8 +250,8 @@ type
     function traceBox (out ex, ey: Integer; const ax0, ay0, aw, ah: Integer; const dx, dy: Integer; tagmask: Integer=-1): ITP;
 
     // debug
-    procedure forEachBodyCell (body: TBodyProxyId; cb: TCellQueryCB);
-    function forEachInCell (x, y: Integer; cb: TGridQueryCB): ITP;
+    function forEachBodyCell (body: TBodyProxyId): Integer; // this puts `TGridCellCoord` into frame pool for each cell
+    function forEachInCell (x, y: Integer): Integer;
     procedure dumpStats ();
 
   public
@@ -714,12 +721,14 @@ begin
 end;
 
 
-procedure TBodyGridBase.forEachBodyCell (body: TBodyProxyId; cb: TCellQueryCB);
+function TBodyGridBase.forEachBodyCell (body: TBodyProxyId): Integer;
 var
   g, f, ccidx: Integer;
   cc: PGridCell;
+  presobj: PGridCellCoord;
 begin
-  if (body < 0) or (body > High(mProxies)) or not assigned(cb) then exit;
+  result := 0;
+  if (body < 0) or (body > High(mProxies)) then exit;
   for g := 0 to High(mGrid) do
   begin
     ccidx := mGrid[g];
@@ -729,7 +738,14 @@ begin
       for f := 0 to GridCellBucketSize-1 do
       begin
         if (cc.bodies[f] = -1) then break;
-        if (cc.bodies[f] = body) then cb((g mod mWidth)*mTileSize+mMinX, (g div mWidth)*mTileSize+mMinY);
+        if (cc.bodies[f] = body) then
+        begin
+          presobj := PGridCellCoord(framePool.alloc(sizeof(TGridCellCoord)));
+          presobj^.x := (g mod mWidth)*mTileSize+mMinX;
+          presobj^.y := (g div mWidth)*mTileSize+mMinY;
+          Inc(result);
+          //cb((g mod mWidth)*mTileSize+mMinX, (g div mWidth)*mTileSize+mMinY);
+        end;
       end;
       // next cell
       ccidx := cc.next;
@@ -738,13 +754,13 @@ begin
 end;
 
 
-function TBodyGridBase.forEachInCell (x, y: Integer; cb: TGridQueryCB): ITP;
+function TBodyGridBase.forEachInCell (x, y: Integer): Integer;
 var
   f, ccidx: Integer;
   cc: PGridCell;
+  presobj: PITP;
 begin
-  result := Default(ITP);
-  if not assigned(cb) then exit;
+  result := 0;
   Dec(x, mMinX);
   Dec(y, mMinY);
   if (x < 0) or (y < 0) or (x >= mWidth*mTileSize) or (y > mHeight*mTileSize) then exit;
@@ -755,7 +771,11 @@ begin
     for f := 0 to GridCellBucketSize-1 do
     begin
       if (cc.bodies[f] = -1) then break;
-      if cb(mProxies[cc.bodies[f]].mObj, mProxies[cc.bodies[f]].mTag) then begin result := mProxies[cc.bodies[f]].mObj; exit; end;
+      //if cb(mProxies[cc.bodies[f]].mObj, mProxies[cc.bodies[f]].mTag) then begin result := mProxies[cc.bodies[f]].mObj; exit; end;
+      presobj := PITP(framePool.alloc(sizeof(ITP)));
+      //presobj^ := mProxies[cc.bodies[f]].mObj;
+      Move(mProxies[cc.bodies[f]].mObj, presobj^, sizeof(ITP));
+      Inc(result);
     end;
     // next cell
     ccidx := cc.next;
@@ -1536,7 +1556,7 @@ end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-function TBodyGridBase.forEachAlongLine (ax0, ay0, ax1, ay1: Integer; cb: TGridQueryCB; tagmask: Integer=-1; log: Boolean=false): ITP;
+function TBodyGridBase.forEachAlongLine (ax0, ay0, ax1, ay1: Integer; tagmask: Integer=-1; log: Boolean=false): Integer;
 var
   lw: TLineWalker;
   ccidx: Integer;
@@ -1549,11 +1569,12 @@ var
   x1, y1: Integer;
   cx, cy: Integer;
   //px0, py0, px1, py1: Integer;
+  presobj: PITP;
 begin
   log := false;
-  result := Default(ITP);
+  result := 0;
   tagmask := tagmask and TagFullMask;
-  if (tagmask = 0) or not assigned(cb) then exit;
+  if (tagmask = 0) then exit;
 
   gw := mWidth;
   gh := mHeight;
@@ -1598,12 +1619,17 @@ begin
         if ((ptag and TagDisabled) = 0) and ((ptag and tagmask) <> 0) and (px.mQueryMark <> lq) then
         begin
           px.mQueryMark := lq; // mark as processed
+          presobj := PITP(framePool.alloc(sizeof(ITP)));
+          Move(px.mObj, presobj^, sizeof(ITP));
+          Inc(result);
+          {
           if cb(px.mObj, ptag) then
           begin
             result := px.mObj;
             //mInQuery := false;
             exit;
           end;
+          }
         end;
       end;
       // next cell

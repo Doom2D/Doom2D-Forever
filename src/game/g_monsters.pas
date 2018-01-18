@@ -273,10 +273,12 @@ function g_Mons_getNewTrapFrameId (): DWord; inline;
 function g_Mons_getNewMPlatFrameId (): LongWord; inline;
 
 
+{
 type
   TMonsAlongLineCB = function (mon: TMonster; tag: Integer): Boolean is nested;
 
 function g_Mons_AlongLine (x0, y0, x1, y1: Integer; cb: TMonsAlongLineCB; log: Boolean=false): TMonster;
+}
 
 
 var
@@ -364,11 +366,13 @@ procedure TMonster.setDirty (); inline; begin mNeedSend := true; end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
+{
 function g_Mons_AlongLine (x0, y0, x1, y1: Integer; cb: TMonsAlongLineCB; log: Boolean=false): TMonster;
 begin
   if not assigned(cb) then begin result := nil; exit; end;
   result := monsGrid.forEachAlongLine(x0, y0, x1, y1, cb, -1, log);
 end;
+}
 
 
 //WARNING! call this after monster position was changed, or coldet will not work right!
