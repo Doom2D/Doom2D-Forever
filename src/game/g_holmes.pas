@@ -19,7 +19,7 @@ unit g_holmes;
 interface
 
 uses
-  {$IFDEF USE_MEMPOOL}mempool,{$ENDIF} geom,
+  mempool, geom,
   e_log, e_input,
   g_textures, g_basic, e_graphics, g_phys, g_grid, g_player, g_monsters,
   g_window, g_map, g_triggers, g_items, g_game, g_panel, g_console, g_gfx,
@@ -1515,7 +1515,7 @@ procedure dbgToggleTraceBox (arg: Integer=-1); begin if (arg < 0) then showTrace
 procedure dbgToggleHolmesPause (arg: Integer=-1); begin if (arg < 0) then g_Game_HolmesPause(not gPauseHolmes) else g_Game_HolmesPause(arg > 0); end;
 
 procedure cbAtcurSelectMonster ();
-  function monsAtDump (mon: TMonster; tag: Integer): Boolean;
+  function monsAtDump (mon: TMonster{; tag: Integer}): Boolean;
   begin
     result := true; // stop
     e_WriteLog(Format('monster #%d (UID:%u) (proxyid:%d)', [mon.arrIdx, mon.UID, mon.proxyId]), TMsgType.Notify);
@@ -1525,6 +1525,9 @@ procedure cbAtcurSelectMonster ();
 var
   plr: TPlayer;
   x, y, w, h: Integer;
+  pmark: PoolMark;
+  hitcount: Integer;
+  pmon: PMonster;
 begin
   monMarkedUID := -1;
   if (Length(gPlayers) > 0) then
@@ -1540,24 +1543,49 @@ begin
     end;
   end;
   //e_WriteLog('===========================', MSG_NOTIFY);
-  monsGrid.forEachAtPoint(pmsCurMapX, pmsCurMapY, monsAtDump);
+  pmark := framePool.mark();
+  hitcount := monsGrid.forEachAtPoint(pmsCurMapX, pmsCurMapY);
+  pmon := PMonster(framePool.getPtr(pmark));
+  while (hitcount > 0) do
+  begin
+    monsAtDump(pmon^);
+    Inc(pmon);
+    Dec(hitcount);
+  end;
+  framePool.release(pmark);
   //e_WriteLog('---------------------------', MSG_NOTIFY);
 end;
 
 procedure cbAtcurDumpMonsters ();
-  function monsAtDump (mon: TMonster; tag: Integer): Boolean;
+  function monsAtDump (mon: TMonster{; tag: Integer}): Boolean;
   begin
     result := false; // don't stop
     e_WriteLog(Format('monster #%d (UID:%u) (proxyid:%d)', [mon.arrIdx, mon.UID, mon.proxyId]), TMsgType.Notify);
   end;
+var
+  pmark: PoolMark;
+  hitcount: Integer;
+  pmon: PMonster;
 begin
-  e_WriteLog('===========================', TMsgType.Notify);
-  monsGrid.forEachAtPoint(pmsCurMapX, pmsCurMapY, monsAtDump);
-  e_WriteLog('---------------------------', TMsgType.Notify);
+  pmark := framePool.mark();
+  hitcount := monsGrid.forEachAtPoint(pmsCurMapX, pmsCurMapY);
+  if (hitcount > 0) then
+  begin
+    e_WriteLog('===========================', TMsgType.Notify);
+    pmon := PMonster(framePool.getPtr(pmark));
+    while (hitcount > 0) do
+    begin
+      monsAtDump(pmon^);
+      Inc(pmon);
+      Dec(hitcount);
+    end;
+    e_WriteLog('---------------------------', TMsgType.Notify);
+  end;
+  framePool.release(pmark);
 end;
 
 procedure cbAtcurDumpWalls ();
-  function wallToggle (pan: TPanel; tag: Integer): Boolean;
+  function wallToggle (pan: TPanel{; tag: Integer}): Boolean;
   begin
     result := false; // don't stop
     if (platMarkedGUID = -1) then platMarkedGUID := pan.guid;
@@ -1568,11 +1596,26 @@ var
   hasTrigs: Boolean = false;
   f: Integer;
   trig: PTrigger;
+  pmark: PoolMark;
+  hitcount: Integer;
+  ppan: PPanel;
 begin
   platMarkedGUID := -1;
-  e_WriteLog('=== TOGGLE WALL ===', TMsgType.Notify);
-  mapGrid.forEachAtPoint(pmsCurMapX, pmsCurMapY, wallToggle, (GridTagWall or GridTagDoor));
-  e_WriteLog('--- toggle wall ---', TMsgType.Notify);
+  pmark := framePool.mark();
+  hitcount := mapGrid.forEachAtPoint(pmsCurMapX, pmsCurMapY, (GridTagWall or GridTagDoor));
+  if (hitcount > 0) then
+  begin
+    e_WriteLog('=== TOGGLE WALL ===', TMsgType.Notify);
+    ppan := PPanel(framePool.getPtr(pmark));
+    while (hitcount > 0) do
+    begin
+      wallToggle(ppan^);
+      Inc(ppan);
+      Dec(hitcount);
+    end;
+    e_WriteLog('--- toggle wall ---', TMsgType.Notify);
+  end;
+  framePool.release(pmark);
   if showTriggers then
   begin
     for f := 0 to High(gTriggers) do
@@ -1589,16 +1632,29 @@ begin
 end;
 
 procedure cbAtcurToggleWalls ();
-  function wallToggle (pan: TPanel; tag: Integer): Boolean;
+  function wallToggle (pan: TPanel{; tag: Integer}): Boolean;
   begin
     result := false; // don't stop
     //e_WriteLog(Format('wall #%d(%d); enabled=%d (%d); (%d,%d)-(%d,%d)', [pan.arrIdx, pan.proxyId, Integer(pan.Enabled), Integer(mapGrid.proxyEnabled[pan.proxyId]), pan.X, pan.Y, pan.Width, pan.Height]), MSG_NOTIFY);
     if pan.Enabled then g_Map_DisableWallGUID(pan.guid) else g_Map_EnableWallGUID(pan.guid);
   end;
+var
+  pmark: PoolMark;
+  hitcount: Integer;
+  ppan: PPanel;
 begin
   //e_WriteLog('=== TOGGLE WALL ===', MSG_NOTIFY);
-  mapGrid.forEachAtPoint(pmsCurMapX, pmsCurMapY, wallToggle, (GridTagWall or GridTagDoor));
   //e_WriteLog('--- toggle wall ---', MSG_NOTIFY);
+  pmark := framePool.mark();
+  hitcount := mapGrid.forEachAtPoint(pmsCurMapX, pmsCurMapY, (GridTagWall or GridTagDoor));
+  ppan := PPanel(framePool.getPtr(pmark));
+  while (hitcount > 0) do
+  begin
+    wallToggle(ppan^);
+    Inc(ppan);
+    Dec(hitcount);
+  end;
+  framePool.release(pmark);
 end;
 
 

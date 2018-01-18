@@ -144,7 +144,7 @@ type
     mProxyFree: TBodyProxyId; // free
     mProxyCount: Integer; // currently used
     mProxyMaxCount: Integer;
-    mInQuery: Boolean;
+    //mInQuery: Boolean;
 
   public
     dbgShowTraceLog: Boolean;
@@ -200,7 +200,8 @@ type
     //WARNING: don't modify grid while any query is in progress (no checks are made!)
     //         you can set enabled/disabled flag, tho (but iterator can still return objects disabled inside it)
     // no callback: return object on the first hit or nil
-    function forEachAtPoint (x, y: Integer; cb: TGridQueryCB; tagmask: Integer=-1; exittag: PInteger=nil): ITP;
+    //function forEachAtPoint (x, y: Integer; cb: TGridQueryCB; tagmask: Integer=-1{; exittag: PInteger=nil}): ITP;
+    function forEachAtPoint (x, y: Integer; tagmask: Integer=-1; allowDisabled: Boolean=false; firstHit: Boolean=false): Integer;
 
     function atCellInPoint (x, y: Integer): TAtPointEnumerator;
 
@@ -1340,7 +1341,7 @@ end;
 
 // ////////////////////////////////////////////////////////////////////////// //
 // no callback: return `true` on the first hit
-function TBodyGridBase.forEachAtPoint (x, y: Integer; cb: TGridQueryCB; tagmask: Integer=-1; exittag: PInteger=nil): ITP;
+function TBodyGridBase.forEachAtPoint (x, y: Integer; tagmask: Integer=-1; allowDisabled: Boolean=false; firstHit: Boolean=false): Integer;
 var
   f: Integer;
   idx, curci: Integer;
@@ -1348,9 +1349,9 @@ var
   px: PBodyProxyRec;
   lq: LongWord;
   ptag: Integer;
+  presobj: PITP;
 begin
-  result := Default(ITP);
-  if (exittag <> nil) then exittag^ := 0;
+  result := 0;
   tagmask := tagmask and TagFullMask;
   if (tagmask = 0) then exit;
 
@@ -1390,7 +1391,7 @@ begin
   while (curci <> -1) do
   begin
     {$IF DEFINED(D2F_DEBUG_XXQ)}
-    if (assigned(cb)) then e_WriteLog(Format(' cell #%d', [curci]), MSG_NOTIFY);
+    //if (assigned(cb)) then e_WriteLog(Format(' cell #%d', [curci]), MSG_NOTIFY);
     {$ENDIF}
     cc := @mCells[curci];
     for f := 0 to GridCellBucketSize-1 do
@@ -1398,32 +1399,19 @@ begin
       if (cc.bodies[f] = -1) then break;
       px := @mProxies[cc.bodies[f]];
       {$IF DEFINED(D2F_DEBUG_XXQ)}
-      if (assigned(cb)) then e_WriteLog(Format('  proxy #%d; qm:%u; tag:%08x; tagflag:%d  %u', [cc.bodies[f], px.mQueryMark, px.mTag, (px.mTag and tagmask), LongWord(px.mObj)]), MSG_NOTIFY);
+      //if (assigned(cb)) then e_WriteLog(Format('  proxy #%d; qm:%u; tag:%08x; tagflag:%d  %u', [cc.bodies[f], px.mQueryMark, px.mTag, (px.mTag and tagmask), LongWord(px.mObj)]), MSG_NOTIFY);
       {$ENDIF}
-      // shit. has to do it this way, so i can change tag in callback
-      if (px.mQueryMark <> lq) then
+      if (px.mQueryMark = lq) then continue;
+      px.mQueryMark := lq;
+      ptag := px.mTag;
+      if (not allowDisabled) and ((ptag and TagDisabled) <> 0) then continue;
+      if ((ptag and tagmask) = 0) then continue;
+      if (x >= px.mX) and (y >= px.mY) and (x < px.mX+px.mWidth) and (y < px.mY+px.mHeight) then
       begin
-        px.mQueryMark := lq;
-        ptag := px.mTag;
-        if ((ptag and TagDisabled) = 0) and ((ptag and tagmask) <> 0) and
-           (x >= px.mX) and (y >= px.mY) and (x < px.mX+px.mWidth) and (y < px.mY+px.mHeight) then
-        begin
-          if assigned(cb) then
-          begin
-            if cb(px.mObj, ptag) then
-            begin
-              result := px.mObj;
-              if (exittag <> nil) then exittag^ := ptag;
-              exit;
-            end;
-          end
-          else
-          begin
-            result := px.mObj;
-            if (exittag <> nil) then exittag^ := ptag;
-            exit;
-          end;
-        end;
+        presobj := PITP(framePool.alloc(sizeof(ITP)));
+        Move(px.mObj, presobj^, sizeof(ITP));
+        Inc(result);
+        if (firstHit) then begin {mInQuery := false;} exit; end;
       end;
     end;
     curci := cc.next;
@@ -1451,6 +1439,13 @@ var
 begin
   result := 0;
   if (w < 1) or (h < 1) then exit;
+
+  if (w = 1) and (h = 1) then
+  begin
+    result := forEachAtPoint(x, y, tagmask, allowDisabled, firstHit);
+    exit;
+  end;
+
   tagmask := tagmask and TagFullMask;
   if (tagmask = 0) then exit;
 
@@ -1480,8 +1475,8 @@ begin
   if (sx > ex) or (sy > ey) then exit; // just in case
 
   // has something to do
-  if mInQuery then raise Exception.Create('recursive queries aren''t supported');
-  mInQuery := true;
+  //if mInQuery then raise Exception.Create('recursive queries aren''t supported');
+  //mInQuery := true;
 
   // increase query counter
   Inc(mLastQuery);
@@ -1519,7 +1514,7 @@ begin
           presobj := PITP(framePool.alloc(sizeof(ITP)));
           Move(px.mObj, presobj^, sizeof(ITP));
           Inc(result);
-          if (firstHit) then begin mInQuery := false; exit; end;
+          if (firstHit) then begin {mInQuery := false;} exit; end;
           (*
           if assigned(cb) then
           begin
@@ -1538,7 +1533,7 @@ begin
     end;
   end;
 
-  mInQuery := false;
+  //mInQuery := false;
 end;
 
 
@@ -1576,8 +1571,8 @@ begin
   lw := TLineWalker.Create(0, 0, gw*mTileSize-1, gh*mTileSize-1);
   if not lw.setup(x0, y0, x1, y1) then exit; // out of screen
 
-  if mInQuery then raise Exception.Create('recursive queries aren''t supported');
-  mInQuery := true;
+  //if mInQuery then raise Exception.Create('recursive queries aren''t supported');
+  //mInQuery := true;
 
   // increase query counter
   Inc(mLastQuery);
@@ -1608,7 +1603,7 @@ begin
           if cb(px.mObj, ptag) then
           begin
             result := px.mObj;
-            mInQuery := false;
+            //mInQuery := false;
             exit;
           end;
         end;
@@ -1619,7 +1614,7 @@ begin
     // done processing cells, move to next tile
   until lw.stepToNextTile();
 
-  mInQuery := false;
+  //mInQuery := false;
 end;
 
 
@@ -1661,8 +1656,8 @@ begin
   // just in case
   if (cx0 > cx1) or (cy0 > cy1) then exit;
 
-  if mInQuery then raise Exception.Create('recursive queries aren''t supported');
-  mInQuery := true;
+  //if mInQuery then raise Exception.Create('recursive queries aren''t supported');
+  //mInQuery := true;
 
   // increase query counter
   Inc(mLastQuery);
@@ -1704,7 +1699,7 @@ begin
               begin
                 ex := ax0;
                 ey := ay0;
-                mInQuery := false;
+                //mInQuery := false;
                 exit;
               end;
             end;
@@ -1728,7 +1723,7 @@ begin
     end;
   end;
 
-  mInQuery := false;
+  //mInQuery := false;
 end;
 
 
@@ -1749,6 +1744,7 @@ var
   {$IF DEFINED(D2F_DEBUG_OTR)}
   s: AnsiString = '';
   {$ENDIF}
+  pmark: PoolMark;
 begin
   result := false;
   ex := ax1;
@@ -1758,7 +1754,9 @@ begin
   tagmask := tagmask and TagFullMask;
   if (tagmask = 0) then exit;
 
-  if (forEachAtPoint(ax0, ay0, nil, tagmask) = nil) then exit;
+  pmark := framePool.mark();
+  if (forEachAtPoint(ax0, ay0, tagmask, false, true) = 0) then exit;
+  framePool.release(pmark);
 
   minx := mMinX;
   miny := mMinY;
@@ -1916,8 +1914,8 @@ begin
   //if assigned(dbgRayTraceTileHitCB) then e_LogWritefln('*** traceRay: (%s,%s)-(%s,%s)', [x0, y0, x1, y1]);
   {$ENDIF}
 
-  if mInQuery then raise Exception.Create('recursive queries aren''t supported');
-  mInQuery := true;
+  //if mInQuery then raise Exception.Create('recursive queries aren''t supported');
+  //mInQuery := true;
 
   // increase query counter
   Inc(mLastQuery);
@@ -1968,7 +1966,7 @@ begin
             ex := ax0;
             ey := ay0;
             result := px.mObj;
-            mInQuery := false;
+            //mInQuery := false;
             {$IF DEFINED(D2F_DEBUG)}
             if assigned(dbgRayTraceTileHitCB) then e_LogWriteln('  INSIDE!');
             {$ENDIF}
@@ -1998,12 +1996,12 @@ begin
     end;
     // done processing cells; exit if we registered a hit
     // next cells can't have better candidates, obviously
-    if wasHit then begin mInQuery := false; exit; end;
+    if wasHit then begin {mInQuery := false;} exit; end;
     firstCell := false;
     // move to next tile
   until lw.stepToNextTile();
 
-  mInQuery := false;
+  //mInQuery := false;
 end;
 
 

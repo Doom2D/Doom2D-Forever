@@ -594,6 +594,21 @@ begin
 end;
 
 
+function xxPanAtPointChecker (pan: TPanel; panelType: Word): Boolean; inline;
+begin
+  if ((pan.tag and GridTagLift) <> 0) then
+  begin
+    // stop if the lift of the right type
+    result :=
+      ((WordBool(PanelType and PANEL_LIFTUP) and (pan.LiftType = 0)) or
+       (WordBool(PanelType and PANEL_LIFTDOWN) and (pan.LiftType = 1)) or
+       (WordBool(PanelType and PANEL_LIFTLEFT) and (pan.LiftType = 2)) or
+       (WordBool(PanelType and PANEL_LIFTRIGHT) and (pan.LiftType = 3)));
+    exit;
+  end;
+  result := true; // otherwise, stop anyway, 'cause `forEachAtPoint()` is guaranteed to call this only for correct panels
+end;
+
 function g_Map_HasAnyPanelAtPoint (x, y: Integer; panelType: Word): Boolean;
 
   function checker (pan: TPanel; tag: Integer): Boolean;
@@ -622,6 +637,9 @@ function g_Map_HasAnyPanelAtPoint (x, y: Integer; panelType: Word): Boolean;
 
 var
   tagmask: Integer = 0;
+  pmark: PoolMark;
+  hitcount: Integer;
+  ppan: PPanel;
 begin
   result := false;
 
@@ -634,24 +652,41 @@ begin
   if WordBool(PanelType and PANEL_BLOCKMON) then tagmask := tagmask or GridTagBlockMon;
 
   if (tagmask = 0) then exit;// just in case
+
+  pmark := framePool.mark();
   if ((tagmask and GridTagLift) <> 0) then
   begin
     // slow
-    result := (mapGrid.forEachAtPoint(x, y, checker, tagmask) <> nil);
+    hitcount := mapGrid.forEachAtPoint(x, y, tagmask);
+    ppan := PPanel(framePool.getPtr(pmark));
+    while (hitcount > 0) do
+    begin
+      if (xxPanAtPointChecker(ppan^, PanelType)) then begin result := true; break; end;
+      Inc(ppan);
+      Dec(hitcount);
+    end;
   end
   else
   begin
     // fast
-    result := (mapGrid.forEachAtPoint(x, y, nil, tagmask) <> nil);
+    result := (mapGrid.forEachAtPoint(x, y, tagmask, false, true) <> 0); // firsthit
   end;
+  framePool.release(pmark);
 end;
 
 
 function g_Map_PanelAtPoint (x, y: Integer; tagmask: Integer=-1): TPanel;
+var
+  pmark: PoolMark;
+  hitcount: Integer;
 begin
   result := nil;
   if (tagmask = 0) then exit;
-  result := mapGrid.forEachAtPoint(x, y, nil, tagmask);
+  //result := mapGrid.forEachAtPoint(x, y, nil, tagmask);
+  pmark := framePool.mark();
+  hitcount := mapGrid.forEachAtPoint(x, y, tagmask, false, true); // firsthit
+  if (hitcount <> 0) then result := PPanel(framePool.getPtr(pmark))^;
+  framePool.release(pmark);
 end;
 
 
@@ -3433,14 +3468,16 @@ begin
   topx := x;
   topy := y;
   // started outside of the liquid?
-  if (mapGrid.forEachAtPoint(x, y, nil, MaskLiquid) = nil) then begin result := false; exit; end;
+  //if (mapGrid.forEachAtPoint(x, y, nil, MaskLiquid) = nil) then begin result := false; exit; end;
+  if (g_Map_PanelAtPoint(x, y, MaskLiquid) = nil) then begin result := false; exit; end;
   if (dx = 0) and (dy = 0) then begin result := false; exit; end; // sanity check
   result := true;
   while true do
   begin
     Inc(x, dx);
     Inc(y, dy);
-    if (mapGrid.forEachAtPoint(x, y, nil, MaskLiquid) = nil) then exit; // out of the water, just exit
+    //if (mapGrid.forEachAtPoint(x, y, nil, MaskLiquid) = nil) then exit; // out of the water, just exit
+    if (g_Map_PanelAtPoint(x, y, MaskLiquid) = nil) then exit; // out of the water, just exit
     topx := x;
     topy := y;
   end;
