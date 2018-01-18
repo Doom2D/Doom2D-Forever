@@ -468,8 +468,8 @@ begin
     begin
       if (xpsecs[idx].name = aName) then
       begin
-        if (idx = xpscur) then raise Exception.Create('profiler error(0): dobule resume: "'+aName+'"');
-        if (xpsecs[idx].prevAct <> -1) then raise Exception.Create('profiler error(1): dobule resume: "'+aName+'"');
+        if (idx = xpscur) then raise Exception.Create('profiler error(0): double resume: "'+aName+'"');
+        if (xpsecs[idx].prevAct <> -1) then raise Exception.Create('profiler error(1): double resume: "'+aName+'"');
         xpsecs[idx].prevAct := xpscur;
         xpscur := idx;
         xpsecs[idx].timer.resume();

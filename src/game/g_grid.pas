@@ -48,6 +48,8 @@ type
 
   generic TBodyGridBase<ITP> = class{$IFDEF USE_MEMPOOL}(TPoolObject){$ENDIF}
   public
+    type PITP = ^ITP;
+
     type TGridQueryCB = function (obj: ITP; tag: Integer): Boolean is nested; // return `true` to stop
     type TGridRayQueryCB = function (obj: ITP; tag: Integer; x, y, prevx, prevy: Integer): Boolean is nested; // return `true` to stop
     type TCellQueryCB = procedure (x, y: Integer) is nested; // top-left cell corner coords
@@ -191,7 +193,9 @@ type
     //WARNING: don't modify grid while any query is in progress (no checks are made!)
     //         you can set enabled/disabled flag, tho (but iterator can still return objects disabled inside it)
     // no callback: return `true` on the first hit
-    function forEachInAABB (x, y, w, h: Integer; cb: TGridQueryCB; tagmask: Integer=-1; allowDisabled: Boolean=false): ITP;
+    //function forEachInAABB (x, y, w, h: Integer; cb: TGridQueryCB; tagmask: Integer=-1; allowDisabled: Boolean=false): ITP;
+    // return number of ITP thingys put into frame pool
+    function forEachInAABB (x, y, w, h: Integer; tagmask: Integer=-1; allowDisabled: Boolean=false; firstHit: Boolean=false): Integer;
 
     //WARNING: don't modify grid while any query is in progress (no checks are made!)
     //         you can set enabled/disabled flag, tho (but iterator can still return objects disabled inside it)
@@ -1429,7 +1433,8 @@ end;
 
 // ////////////////////////////////////////////////////////////////////////// //
 // no callback: return `true` on the first hit
-function TBodyGridBase.forEachInAABB (x, y, w, h: Integer; cb: TGridQueryCB; tagmask: Integer=-1; allowDisabled: Boolean=false): ITP;
+// return number of ITP thingys put into frame pool
+function TBodyGridBase.forEachInAABB (x, y, w, h: Integer; tagmask: Integer=-1; allowDisabled: Boolean=false; firstHit: Boolean=false): Integer;
 var
   idx: Integer;
   gx, gy: Integer;
@@ -1442,8 +1447,9 @@ var
   gw, gh: Integer;
   x0, y0: Integer;
   ptag: Integer;
+  presobj: PITP;
 begin
-  result := Default(ITP);
+  result := 0;
   if (w < 1) or (h < 1) then exit;
   tagmask := tagmask and TagFullMask;
   if (tagmask = 0) then exit;
@@ -1510,6 +1516,11 @@ begin
           if ((ptag and tagmask) = 0) then continue;
           if (x0 >= px.mX+px.mWidth) or (y0 >= px.mY+px.mHeight) then continue;
           if (x0+w <= px.mX) or (y0+h <= px.mY) then continue;
+          presobj := PITP(framePool.alloc(sizeof(ITP)));
+          Move(px.mObj, presobj^, sizeof(ITP));
+          Inc(result);
+          if (firstHit) then begin mInQuery := false; exit; end;
+          (*
           if assigned(cb) then
           begin
             if cb(px.mObj, ptag) then begin result := px.mObj; mInQuery := false; exit; end;
@@ -1520,6 +1531,7 @@ begin
             mInQuery := false;
             exit;
           end;
+          *)
         end;
         curci := cc.next;
       end;

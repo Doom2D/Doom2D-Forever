@@ -59,8 +59,141 @@ type
   end;
 {$ENDIF}
 
+(* Simple "mark/release" allocator *)
+type
+  PoolMark = Integer;
+
+  TPoolMarkRelease = record
+  private
+    mMemory: Pointer;
+    mSize: Integer;
+    mUsed: Integer;
+
+  public
+    constructor Create (aInitSize: Integer);
+
+    // free all allocated memory
+    procedure kill ();
+
+    // forget everything
+    procedure reset ();
+
+    // mark current position
+    function mark (): PoolMark; inline;
+    // forget everything from the given mark
+    procedure release (amark: PoolMark); inline;
+
+    // allocate some memory
+    // WARNING! pool can realloc it's internal storage and invalidate all previous pointers!
+    function alloc (size: Integer): Pointer; inline;
+
+    // get pointer for the given mark
+    // WARNING! pointer can become invalid after next call to `alloc()`!
+    function getPtr (amark: PoolMark): Pointer; inline;
+  end;
+
+
+var
+  framePool: TPoolMarkRelease; // temporary per-frame allocation pool
+
+
 implementation
 
+uses
+  SysUtils
+{$IFDEF USE_MEMPOOL}
+  , hashtable
+{$ENDIF}
+  ;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
+constructor TPoolMarkRelease.Create (aInitSize: Integer);
+begin
+  if (aInitSize > 0) then
+  begin
+    mSize := aInitSize;
+    GetMem(mMemory, mSize);
+  end
+  else
+  begin
+    mMemory := nil;
+    mSize := 0;
+  end;
+  mUsed := 0;
+end;
+
+
+// free all allocated memory
+procedure TPoolMarkRelease.kill ();
+begin
+  if (mMemory <> nil) then FreeMem(mMemory);
+  mMemory := nil;
+  mSize := 0;
+  mUsed := 0;
+end;
+
+
+// forget everything
+procedure TPoolMarkRelease.reset ();
+begin
+  mUsed := 0;
+end;
+
+
+// mark current position
+function TPoolMarkRelease.mark (): PoolMark; inline;
+begin
+  result := mUsed;
+end;
+
+
+// forget everything from the given mark
+procedure TPoolMarkRelease.release (amark: PoolMark); inline;
+begin
+  if (amark < 0) or (amark > mUsed) then raise Exception.Create('MarkReleasePool is fucked (release)');
+  mUsed := amark;
+end;
+
+
+// allocate some memory
+// WARNING! pool can realloc it's internal storage and invalidate all previous pointers!
+function TPoolMarkRelease.alloc (size: Integer): Pointer; inline;
+begin
+  if (size < 0) then raise Exception.Create('MarkReleasePool: cannot allocate negative amount of bytes');
+  if (size > 1024*1024) then raise Exception.Create('MarkReleasePool: why do you need to allocate more than 1MB?');
+  // do we need to get more memory?
+  if (mUsed+size > mSize) then
+  begin
+    if (mUsed+size > 1024*1024*64) then raise Exception.Create('MarkReleasePool: more than 64MB in MarkReleasePool is insanity!');
+    while (mUsed+size > mSize) do
+    begin
+      // less than 256KB: 64KB steps
+      if (mSize < 256*1024) then mSize += 64*1024
+      // less than 1MB: 128KB steps
+      else if (mSize < 1024*1024) then mSize += 128*1024
+      // otherwise, 1MB steps
+      else mSize += 1024*1024;
+    end;
+    ReallocMem(mMemory, mSize);
+    if (mMemory = nil) then raise Exception.Create('MarkReleasePool: out of memory!');
+  end;
+  result := Pointer(PAnsiChar(mMemory)+mUsed);
+  mUsed += size;
+  assert(mUsed <= mSize);
+end;
+
+
+// get pointer for the given mark
+// WARNING! pointer can become invalid after next call to `alloc()`!
+function TPoolMarkRelease.getPtr (amark: PoolMark): Pointer; inline;
+begin
+  if (amark < 0) or (amark > mUsed) then raise Exception.Create('MarkReleasePool is fucked (getPtr)');
+  result := Pointer(PAnsiChar(mMemory)+amark);
+end;
+
+
+// ////////////////////////////////////////////////////////////////////////// //
 {$IFDEF USE_MEMPOOL}
 uses
   hashtable;
@@ -187,6 +320,7 @@ end;
 
 initialization
   //mpoolMap := TMemPool.Create('textmap', 64);
+  framePool := TPoolMarkRelease.Create(65536);
 finalization
   {$IF DEFINED(D2F_DEBUG) and NOT DEFINED(MEM_DISABLE_ACCOUNTING)}
   dumpPools();

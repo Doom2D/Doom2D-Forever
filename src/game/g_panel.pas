@@ -30,6 +30,7 @@ type
       Anim: Boolean;
     end;
 
+  PPanel = ^TPanel;
   TPanel = Class (TObject)
   private
     const

@@ -22,7 +22,7 @@ interface
 
 uses
   SysUtils, Classes,
-  {$IFDEF USE_MEMPOOL}mempool,{$ENDIF}
+  mempool,
   g_basic, e_graphics, g_phys, g_textures, g_grid,
   g_saveload, g_panel, xprofiler;
 
@@ -50,6 +50,7 @@ const
 }
 
 type
+  PMonster = ^TMonster;
   TMonster = class{$IFDEF USE_MEMPOOL}(TPoolObject){$ENDIF}
   private
     FMonsterType: Byte;
@@ -757,6 +758,7 @@ end;
 
 function isCorpse (o: PObj; immediately: Boolean): Integer;
 
+  (*
   function monsCollCheck (mon: TMonster; atag: Integer): Boolean;
   begin
     atag := atag; // shut up, fpc!
@@ -771,10 +773,14 @@ function isCorpse (o: PObj; immediately: Boolean): Integer;
       result := true;
     end;
   end;
+  *)
 
 var
   a: Integer;
-  mon: TMonster;
+  mon: TMonster = nil;
+  pmark: PoolMark;
+  phit: PMonster;
+  hitcount: Integer;
 begin
   result := -1;
 
@@ -784,7 +790,25 @@ begin
   // Ищем мертвых монстров поблизости
   if gmon_debug_use_sqaccel then
   begin
-    mon := monsGrid.forEachInAABB(o.X+o.Rect.X, o.Y+o.Rect.Y, o.Rect.Width, o.Rect.Height, monsCollCheck);
+    //mon := monsGrid.forEachInAABB(o.X+o.Rect.X, o.Y+o.Rect.Y, o.Rect.Width, o.Rect.Height, monsCollCheck);
+    //if (mon <> nil) then result := mon.mArrIdx;
+    pmark := framePool.mark();
+    hitcount := monsGrid.forEachInAABB(o.X+o.Rect.X, o.Y+o.Rect.Y, o.Rect.Width, o.Rect.Height);
+    if (hitcount = 0) then exit;
+    phit := PMonster(framePool.getPtr(pmark));
+    while (hitcount > 0) do
+    begin
+      mon := phit^;
+      Inc(phit);
+      Dec(hitcount);
+      case mon.FMonsterType of // Не воскресить:
+        MONSTER_SOUL, MONSTER_PAIN, MONSTER_CYBER, MONSTER_SPIDER,
+        MONSTER_VILE, MONSTER_BARREL, MONSTER_ROBO: mon := nil;
+        // Остальных можно воскресить
+      end;
+      if (mon <> nil) then break;
+    end;
+    framePool.release(pmark);
     if (mon <> nil) then result := mon.mArrIdx;
   end
   else
@@ -4688,21 +4712,36 @@ end;
 
 
 function g_Mons_IsAnyAliveAt (x, y: Integer; width, height: Integer): Boolean;
-
+  (*
   function monsCollCheck (mon: TMonster; atag: Integer): Boolean;
   begin
     result := mon.alive;// and g_Obj_Collide(x, y, width, height, @mon.Obj));
   end;
-
+  *)
 var
   idx: Integer;
   mon: TMonster;
+  pmark: PoolMark;
+  phit: PMonster;
+  hitcount: Integer;
 begin
   result := false;
   if (width < 1) or (height < 1) then exit;
   if gmon_debug_use_sqaccel then
   begin
-    result := (monsGrid.forEachInAABB(x, y, width, height, monsCollCheck) <> nil);
+    //result := (monsGrid.forEachInAABB(x, y, width, height, monsCollCheck) <> nil);
+    pmark := framePool.mark();
+    hitcount := monsGrid.forEachInAABB(x, y, width, height);
+    if (hitcount = 0) then exit;
+    phit := PMonster(framePool.getPtr(pmark));
+    while (hitcount > 0) do
+    begin
+      mon := phit^;
+      Inc(phit);
+      Dec(hitcount);
+      if (mon.alive) then begin result := true; break; end;
+    end;
+    framePool.release(pmark);
   end
   else
   begin
@@ -4723,21 +4762,36 @@ end;
 
 
 function g_Mons_ForEachAt (x, y: Integer; width, height: Integer; cb: TEachMonsterCB): Boolean;
-
+  (*
   function monsCollCheck (mon: TMonster; atag: Integer): Boolean;
   begin
     result := cb(mon);
   end;
-
+  *)
 var
   idx: Integer;
   mon: TMonster;
+  pmark: PoolMark;
+  phit: PMonster;
+  hitcount: Integer;
 begin
   result := false;
   if (width < 1) or (height < 1) then exit;
   if gmon_debug_use_sqaccel then
   begin
-    result := (monsGrid.forEachInAABB(x, y, width, height, monsCollCheck) <> nil);
+    //result := (monsGrid.forEachInAABB(x, y, width, height, monsCollCheck) <> nil);
+    pmark := framePool.mark();
+    hitcount := monsGrid.forEachInAABB(x, y, width, height);
+    if (hitcount = 0) then exit;
+    phit := PMonster(framePool.getPtr(pmark));
+    while (hitcount > 0) do
+    begin
+      mon := phit^;
+      Inc(phit);
+      Dec(hitcount);
+      if (cb(mon)) then begin result := true; break; end;
+    end;
+    framePool.release(pmark);
   end
   else
   begin
@@ -4758,22 +4812,26 @@ end;
 
 
 function g_Mons_ForEachAliveAt (x, y: Integer; width, height: Integer; cb: TEachMonsterCB): Boolean;
-
+  (*
   function monsCollCheck (mon: TMonster; atag: Integer): Boolean;
   begin
     //result := false;
     //if mon.alive and g_Obj_Collide(x, y, width, height, @mon.Obj) then result := cb(mon);
     if mon.alive then result := cb(mon) else result := false;
   end;
-
+  *)
 var
   idx: Integer;
   mon: TMonster;
+  pmark: PoolMark;
+  phit: PMonster;
+  hitcount: Integer;
 begin
   result := false;
   if (width < 1) or (height < 1) then exit;
   if gmon_debug_use_sqaccel then
   begin
+    {
     if (width = 1) and (height = 1) then
     begin
       result := (monsGrid.forEachAtPoint(x, y, monsCollCheck) <> nil);
@@ -4782,6 +4840,22 @@ begin
     begin
       result := (monsGrid.forEachInAABB(x, y, width, height, monsCollCheck) <> nil);
     end;
+    }
+    pmark := framePool.mark();
+    hitcount := monsGrid.forEachInAABB(x, y, width, height);
+    if (hitcount = 0) then exit;
+    phit := PMonster(framePool.getPtr(pmark));
+    while (hitcount > 0) do
+    begin
+      mon := phit^;
+      Inc(phit);
+      Dec(hitcount);
+      if (mon.alive) then
+      begin
+        if (cb(mon)) then begin result := true; break; end;
+      end;
+    end;
+    framePool.release(pmark);
   end
   else
   begin

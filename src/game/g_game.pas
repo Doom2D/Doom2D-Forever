@@ -22,7 +22,7 @@ uses
   SysUtils, Classes,
   MAPDEF,
   g_basic, g_player, e_graphics, g_res_downloader,
-  g_sound, g_gui, utils, md5, xprofiler;
+  g_sound, g_gui, utils, md5, mempool, xprofiler;
 
 type
   TGameSettings = record
@@ -1541,6 +1541,8 @@ var
   reliableUpdate: Boolean;
 begin
   g_ResetDynlights();
+  framePool.reset();
+
 // Пора выключать игру:
   if gExit = EXIT_QUIT then
     Exit;
