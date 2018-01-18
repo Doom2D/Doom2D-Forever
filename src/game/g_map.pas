@@ -610,31 +610,6 @@ begin
 end;
 
 function g_Map_HasAnyPanelAtPoint (x, y: Integer; panelType: Word): Boolean;
-
-  function checker (pan: TPanel; tag: Integer): Boolean;
-  begin
-    {
-    if ((tag and (GridTagWall or GridTagDoor)) <> 0) then
-    begin
-      result := pan.Enabled; // stop if wall is enabled
-      exit;
-    end;
-    }
-
-    if ((tag and GridTagLift) <> 0) then
-    begin
-      // stop if the lift of the right type
-      result :=
-        ((WordBool(PanelType and PANEL_LIFTUP) and (pan.LiftType = 0)) or
-         (WordBool(PanelType and PANEL_LIFTDOWN) and (pan.LiftType = 1)) or
-         (WordBool(PanelType and PANEL_LIFTLEFT) and (pan.LiftType = 2)) or
-         (WordBool(PanelType and PANEL_LIFTRIGHT) and (pan.LiftType = 3)));
-      exit;
-    end;
-
-    result := true; // otherwise, stop anyway, 'cause `forEachAtPoint()` is guaranteed to call this only for correct panels
-  end;
-
 var
   tagmask: Integer = 0;
   pmark: PoolMark;
@@ -682,7 +657,6 @@ var
 begin
   result := nil;
   if (tagmask = 0) then exit;
-  //result := mapGrid.forEachAtPoint(x, y, nil, tagmask);
   pmark := framePool.mark();
   hitcount := mapGrid.forEachAtPoint(x, y, tagmask, false, true); // firsthit
   if (hitcount <> 0) then result := PPanel(framePool.getPtr(pmark))^;
@@ -2650,35 +2624,19 @@ end;
 
 // new algo
 procedure g_Map_CollectDrawPanels (x0, y0, wdt, hgt: Integer);
-  (*
-  function checker (pan: TPanel; tag: Integer): Boolean;
-  begin
-    result := false; // don't stop, ever
-    if ((tag and GridTagDoor) <> 0) <> pan.Door then exit;
-    gDrawPanelList.insert(pan);
-  end;
-  *)
 var
   pmark: PoolMark;
   phit: PPanel;
   hitcount: Integer;
 begin
   dplClear();
-  //tagmask := panelTypeToTag(PanelType);
-  //mapGrid.forEachInAABB(x0, y0, wdt, hgt, checker, GridDrawableMask);
   pmark := framePool.mark();
   hitcount := mapGrid.forEachInAABB(x0, y0, wdt, hgt, GridDrawableMask);
   if (hitcount = 0) then exit;
   phit := PPanel(framePool.getPtr(pmark));
   while (hitcount > 0) do
   begin
-    if ((phit^.tag and GridTagDoor) <> 0) <> phit^.Door then
-    begin
-    end
-    else
-    begin
-      gDrawPanelList.insert(phit^);
-    end;
+    if (((phit^.tag and GridTagDoor) <> 0) = phit^.Door) then gDrawPanelList.insert(phit^);
     Inc(phit);
     Dec(hitcount);
   end;
@@ -2688,19 +2646,11 @@ end;
 
 
 procedure g_Map_DrawPanelShadowVolumes (lightX: Integer; lightY: Integer; radius: Integer);
-  (*
-  function checker (pan: TPanel; tag: Integer): Boolean;
-  begin
-    result := false; // don't stop, ever
-    pan.DrawShadowVolume(lightX, lightY, radius);
-  end;
-  *)
 var
   pmark: PoolMark;
   phit: PPanel;
   hitcount: Integer;
 begin
-  //mapGrid.forEachInAABB(lightX-radius, lightY-radius, radius*2, radius*2, checker, (GridTagWall or GridTagDoor));
   pmark := framePool.mark();
   hitcount := mapGrid.forEachInAABB(lightX-radius, lightY-radius, radius*2, radius*2, (GridTagWall or GridTagDoor));
   if (hitcount = 0) then exit;
@@ -2931,64 +2881,45 @@ begin
   if (profMapCollision <> nil) then profMapCollision.sectionBeginAccum('*solids');
   if gdbg_map_use_accel_coldet then
   begin
-    {if (Width = 1) and (Height = 1) then
+    pmark := framePool.mark();
+    if ((tagmask and SlowMask) <> 0) then
     begin
-      if ((tagmask and SlowMask) <> 0) then
+      // slow
+      hitcount := mapGrid.forEachInAABB(X, Y, Width, Height, tagmask);
+      phit := PPanel(framePool.getPtr(pmark));
+      while (hitcount > 0) do
       begin
-        // slow
-        result := (mapGrid.forEachAtPoint(X, Y, checker, tagmask) <> nil);
-      end
-      else
-      begin
-        // fast
-        result := (mapGrid.forEachAtPoint(X, Y, nil, tagmask) <> nil);
+        pan := phit^;
+        if ((pan.tag and GridTagLift) <> 0) then
+        begin
+          result :=
+            ((WordBool(PanelType and PANEL_LIFTUP) and (pan.LiftType = 0)) or
+             (WordBool(PanelType and PANEL_LIFTDOWN) and (pan.LiftType = 1)) or
+             (WordBool(PanelType and PANEL_LIFTLEFT) and (pan.LiftType = 2)) or
+             (WordBool(PanelType and PANEL_LIFTRIGHT) and (pan.LiftType = 3))) {and
+             g_Collide(X, Y, Width, Height, pan.X, pan.Y, pan.Width, pan.Height)};
+        end
+        else if ((pan.tag and GridTagBlockMon) <> 0) then
+        begin
+          result := ((not b1x3) or (pan.Width+pan.Height >= 64)); //and g_Collide(X, Y, Width, Height, pan.X, pan.Y, pan.Width, pan.Height);
+        end
+        else
+        begin
+          // other shit
+          result := true; // i found her!
+        end;
+        if (result) then break;
+        Inc(phit);
+        Dec(hitcount);
       end;
     end
-    else}
+    else
     begin
-      pmark := framePool.mark();
-      if ((tagmask and SlowMask) <> 0) then
-      begin
-        // slow
-        //result := (mapGrid.forEachInAABB(X, Y, Width, Height, checker, tagmask) <> nil);
-        hitcount := mapGrid.forEachInAABB(X, Y, Width, Height, tagmask);
-        //if (hitcount = 0) then exit;
-        phit := PPanel(framePool.getPtr(pmark));
-        while (hitcount > 0) do
-        begin
-          pan := phit^;
-          if ((pan.tag and GridTagLift) <> 0) then
-          begin
-            result :=
-              ((WordBool(PanelType and PANEL_LIFTUP) and (pan.LiftType = 0)) or
-               (WordBool(PanelType and PANEL_LIFTDOWN) and (pan.LiftType = 1)) or
-               (WordBool(PanelType and PANEL_LIFTLEFT) and (pan.LiftType = 2)) or
-               (WordBool(PanelType and PANEL_LIFTRIGHT) and (pan.LiftType = 3))) {and
-               g_Collide(X, Y, Width, Height, pan.X, pan.Y, pan.Width, pan.Height)};
-          end
-          else if ((pan.tag and GridTagBlockMon) <> 0) then
-          begin
-            result := ((not b1x3) or (pan.Width+pan.Height >= 64)); //and g_Collide(X, Y, Width, Height, pan.X, pan.Y, pan.Width, pan.Height);
-          end
-          else
-          begin
-            // other shit
-            result := true; // i found her!
-          end;
-          if (result) then break;
-          Inc(phit);
-          Dec(hitcount);
-        end;
-      end
-      else
-      begin
-        // fast
-        //result := (mapGrid.forEachInAABB(X, Y, Width, Height, nil, tagmask) <> nil);
-        hitcount := mapGrid.forEachInAABB(X, Y, Width, Height, tagmask, false, true); // return first hit
-        result := (hitcount > 0);
-      end;
-      framePool.release(pmark);
+      // fast
+      hitcount := mapGrid.forEachInAABB(X, Y, Width, Height, tagmask, false, true); // return first hit
+      result := (hitcount > 0);
     end;
+    framePool.release(pmark);
   end
   else
   begin
@@ -3024,33 +2955,6 @@ end;
 function g_Map_CollideLiquid_Texture(X, Y: Integer; Width, Height: Word): DWORD;
 var
   cctype: Integer = 3; // priority: 0: water was hit, 1: acid1 was hit, 2: acid2 was hit; 3: nothing was hit
-  //texid: DWORD;
-
-  (*
-  // slightly different from the old code, but meh...
-  function checker (pan: TPanel; tag: Integer): Boolean;
-  begin
-    result := false; // don't stop, ever
-    //if ((tag and (GridTagWater or GridTagAcid1 or GridTagAcid2)) = 0) then exit;
-    // check priorities
-    case cctype of
-      0: if ((tag and GridTagWater) = 0) then exit; // allowed: water
-      1: if ((tag and (GridTagWater or GridTagAcid1)) = 0) then exit; // allowed: water, acid1
-      //2: if ((tag and (GridTagWater or GridTagAcid1 or GridTagAcid2) = 0) then exit; // allowed: water, acid1, acid2
-    end;
-    // collision?
-    //if not g_Collide(X, Y, Width, Height, pan.X, pan.Y, pan.Width, pan.Height) then exit;
-    // yeah
-    texid := pan.GetTextureID();
-    // water? water has the highest priority, so stop right here
-    if ((tag and GridTagWater) <> 0) then begin cctype := 0; result := true; exit; end;
-    // acid2?
-    if ((tag and GridTagAcid2) <> 0) then cctype := 2;
-    // acid1?
-    if ((tag and GridTagAcid1) <> 0) then cctype := 1;
-  end;
-  *)
-var
   pmark: PoolMark;
   phit: PPanel;
   hitcount: Integer;
@@ -3059,17 +2963,7 @@ begin
   if (profMapCollision <> nil) then profMapCollision.sectionBeginAccum('liquids');
   if gdbg_map_use_accel_coldet then
   begin
-    {texid}result := LongWord(TEXTURE_NONE);
-    {
-    if (Width = 1) and (Height = 1) then
-    begin
-      mapGrid.forEachAtPoint(X, Y, checker, (GridTagWater or GridTagAcid1 or GridTagAcid2));
-    end
-    else
-    begin
-      mapGrid.forEachInAABB(X, Y, Width, Height, checker, (GridTagWater or GridTagAcid1 or GridTagAcid2));
-    end;
-    }
+    result := LongWord(TEXTURE_NONE);
     pmark := framePool.mark();
     hitcount := mapGrid.forEachInAABB(X, Y, Width, Height, (GridTagWater or GridTagAcid1 or GridTagAcid2));
     if (hitcount = 0) then exit;
@@ -3082,7 +2976,6 @@ begin
       if (liquidChecker(pan, result, cctype)) then break;
     end;
     framePool.release(pmark);
-    //result := texid;
   end
   else
   begin

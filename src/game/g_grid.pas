@@ -55,9 +55,6 @@ type
   generic TBodyGridBase<ITP> = class{$IFDEF USE_MEMPOOL}(TPoolObject){$ENDIF}
   public
     type PITP = ^ITP;
-
-    //type TGridQueryCB = function (obj: ITP; tag: Integer): Boolean is nested; // return `true` to stop
-    //type TGridRayQueryCB = function (obj: ITP; tag: Integer; x, y, prevx, prevy: Integer): Boolean is nested; // return `true` to stop
     type TCellQueryCB = procedure (x, y: Integer) is nested; // top-left cell corner coords
 
     const TagDisabled = $40000000;
@@ -150,7 +147,6 @@ type
     mProxyFree: TBodyProxyId; // free
     mProxyCount: Integer; // currently used
     mProxyMaxCount: Integer;
-    //mInQuery: Boolean;
 
   public
     dbgShowTraceLog: Boolean;
@@ -196,37 +192,17 @@ type
     function getBodyWH (body: TBodyProxyId; out rw, rh: Integer): Boolean; inline;
     function getBodyDims (body: TBodyProxyId; out rx, ry, rw, rh: Integer): Boolean; inline;
 
-    //WARNING: don't modify grid while any query is in progress (no checks are made!)
-    //         you can set enabled/disabled flag, tho (but iterator can still return objects disabled inside it)
-    // no callback: return `true` on the first hit
-    //function forEachInAABB (x, y, w, h: Integer; cb: TGridQueryCB; tagmask: Integer=-1; allowDisabled: Boolean=false): ITP;
     // return number of ITP thingys put into frame pool
+    // if `firstHit` is `true`, return on first hit (obviously)
     function forEachInAABB (x, y, w, h: Integer; tagmask: Integer=-1; allowDisabled: Boolean=false; firstHit: Boolean=false): Integer;
 
-    //WARNING: don't modify grid while any query is in progress (no checks are made!)
-    //         you can set enabled/disabled flag, tho (but iterator can still return objects disabled inside it)
-    // no callback: return object on the first hit or nil
-    //function forEachAtPoint (x, y: Integer; cb: TGridQueryCB; tagmask: Integer=-1{; exittag: PInteger=nil}): ITP;
+    // return number of ITP thingys put into frame pool
+    // if `firstHit` is `true`, return on first hit (obviously)
     function forEachAtPoint (x, y: Integer; tagmask: Integer=-1; allowDisabled: Boolean=false; firstHit: Boolean=false): Integer;
 
     function atCellInPoint (x, y: Integer): TAtPointEnumerator;
 
-    //WARNING: don't modify grid while any query is in progress (no checks are made!)
-    //         you can set enabled/disabled flag, tho (but iterator can still return objects disabled inside it)
-    // cb with `(nil)` will be called before processing new tile
-    // no callback: return object of the nearest hit or nil
-    // if `inverted` is true, trace will register bodies *exluding* tagmask
-    //WARNING: don't change tags in callbacks here!
-    {
-    function traceRayOld (const x0, y0, x1, y1: Integer; cb: TGridRayQueryCB; tagmask: Integer=-1): ITP; overload;
-    function traceRayOld (out ex, ey: Integer; const ax0, ay0, ax1, ay1: Integer; cb: TGridRayQueryCB; tagmask: Integer=-1): ITP;
-    }
-
-    //WARNING: don't modify grid while any query is in progress (no checks are made!)
-    //         you can set enabled/disabled flag, tho (but iterator can still return objects disabled inside it)
     // return object of the nearest hit or nil
-    // if `inverted` is true, trace will register bodies *exluding* tagmask
-    //WARNING: don't change tags in callbacks here!
     function traceRay (const x0, y0, x1, y1: Integer; tagmask: Integer=-1): ITP; overload;
     function traceRay (out ex, ey: Integer; const ax0, ay0, ax1, ay1: Integer; tagmask: Integer=-1): ITP;
 
@@ -234,14 +210,10 @@ type
     // line should be either strict horizontal, or strict vertical, otherwise an exception will be thrown
     // `true`: endpoint will point at the last "inside" pixel
     // `false`: endpoint will be (ax1, ay1)
-    //WARNING: don't change tags in callbacks here!
     function traceOrthoRayWhileIn (out ex, ey: Integer; ax0, ay0, ax1, ay1: Integer; tagmask: Integer=-1): Boolean;
 
-    //WARNING: don't modify grid while any query is in progress (no checks are made!)
-    //         you can set enabled/disabled flag, tho (but iterator can still return objects disabled inside it)
-    // trace line along the grid, calling `cb` for all objects in passed cells, in no particular order
-    //WARNING: don't change tags in callbacks here!
-    //function forEachAlongLine (ax0, ay0, ax1, ay1: Integer; cb: TGridQueryCB; tagmask: Integer=-1; log: Boolean=false): ITP;
+    // trace line along the grid, put all objects from passed cells into frame pool, in no particular order
+    // return number of ITP thingys put into frame pool
     function forEachAlongLine (ax0, ay0, ax1, ay1: Integer; tagmask: Integer=-1; log: Boolean=false): Integer;
 
     // trace box with the given velocity; return object hit (if any)
@@ -251,7 +223,7 @@ type
 
     // debug
     function forEachBodyCell (body: TBodyProxyId): Integer; // this puts `TGridCellCoord` into frame pool for each cell
-    function forEachInCell (x, y: Integer): Integer;
+    function forEachInCell (x, y: Integer): Integer; // this puts `ITP` into frame pool
     procedure dumpStats ();
 
   public
@@ -1429,7 +1401,7 @@ begin
         presobj := PITP(framePool.alloc(sizeof(ITP)));
         Move(px.mObj, presobj^, sizeof(ITP));
         Inc(result);
-        if (firstHit) then begin {mInQuery := false;} exit; end;
+        if (firstHit) then exit;
       end;
     end;
     curci := cc.next;
@@ -1493,8 +1465,6 @@ begin
   if (sx > ex) or (sy > ey) then exit; // just in case
 
   // has something to do
-  //if mInQuery then raise Exception.Create('recursive queries aren''t supported');
-  //mInQuery := true;
 
   // increase query counter
   Inc(mLastQuery);
@@ -1532,26 +1502,12 @@ begin
           presobj := PITP(framePool.alloc(sizeof(ITP)));
           Move(px.mObj, presobj^, sizeof(ITP));
           Inc(result);
-          if (firstHit) then begin {mInQuery := false;} exit; end;
-          (*
-          if assigned(cb) then
-          begin
-            if cb(px.mObj, ptag) then begin result := px.mObj; mInQuery := false; exit; end;
-          end
-          else
-          begin
-            result := px.mObj;
-            mInQuery := false;
-            exit;
-          end;
-          *)
+          if (firstHit) then exit;
         end;
         curci := cc.next;
       end;
     end;
   end;
-
-  //mInQuery := false;
 end;
 
 
@@ -1590,9 +1546,6 @@ begin
   lw := TLineWalker.Create(0, 0, gw*mTileSize-1, gh*mTileSize-1);
   if not lw.setup(x0, y0, x1, y1) then exit; // out of screen
 
-  //if mInQuery then raise Exception.Create('recursive queries aren''t supported');
-  //mInQuery := true;
-
   // increase query counter
   Inc(mLastQuery);
   if (mLastQuery = 0) then
@@ -1622,14 +1575,6 @@ begin
           presobj := PITP(framePool.alloc(sizeof(ITP)));
           Move(px.mObj, presobj^, sizeof(ITP));
           Inc(result);
-          {
-          if cb(px.mObj, ptag) then
-          begin
-            result := px.mObj;
-            //mInQuery := false;
-            exit;
-          end;
-          }
         end;
       end;
       // next cell
@@ -1637,8 +1582,6 @@ begin
     end;
     // done processing cells, move to next tile
   until lw.stepToNextTile();
-
-  //mInQuery := false;
 end;
 
 
@@ -1680,9 +1623,6 @@ begin
   // just in case
   if (cx0 > cx1) or (cy0 > cy1) then exit;
 
-  //if mInQuery then raise Exception.Create('recursive queries aren''t supported');
-  //mInQuery := true;
-
   // increase query counter
   Inc(mLastQuery);
   if (mLastQuery = 0) then
@@ -1719,7 +1659,6 @@ begin
               begin
                 ex := ax0;
                 ey := ay0;
-                //mInQuery := false;
                 exit;
               end;
             end;
@@ -1742,8 +1681,6 @@ begin
       ey := ay0+trunc(dy*minu0);
     end;
   end;
-
-  //mInQuery := false;
 end;
 
 
@@ -1934,9 +1871,6 @@ begin
   //if assigned(dbgRayTraceTileHitCB) then e_LogWritefln('*** traceRay: (%s,%s)-(%s,%s)', [x0, y0, x1, y1]);
   {$ENDIF}
 
-  //if mInQuery then raise Exception.Create('recursive queries aren''t supported');
-  //mInQuery := true;
-
   // increase query counter
   Inc(mLastQuery);
   if (mLastQuery = 0) then
@@ -1982,7 +1916,6 @@ begin
             ex := ax0;
             ey := ay0;
             result := px.mObj;
-            //mInQuery := false;
             {$IF DEFINED(D2F_DEBUG)}
             if assigned(dbgRayTraceTileHitCB) then e_LogWriteln('  INSIDE!');
             {$ENDIF}
@@ -2012,661 +1945,11 @@ begin
     end;
     // done processing cells; exit if we registered a hit
     // next cells can't have better candidates, obviously
-    if wasHit then begin {mInQuery := false;} exit; end;
+    if wasHit then exit;
     firstCell := false;
     // move to next tile
   until lw.stepToNextTile();
-
-  //mInQuery := false;
 end;
-
-
-// ////////////////////////////////////////////////////////////////////////// //
-// no callback: return `true` on the nearest hit
-(*
-function TBodyGridBase.traceRayOld (const x0, y0, x1, y1: Integer; cb: TGridRayQueryCB; tagmask: Integer=-1): ITP;
-var
-  ex, ey: Integer;
-begin
-  result := traceRayOld(ex, ey, x0, y0, x1, y1, cb, tagmask);
-end;
-
-
-// no callback: return `true` on the nearest hit
-// you are not supposed to understand this
-function TBodyGridBase.traceRayOld (out ex, ey: Integer; const ax0, ay0, ax1, ay1: Integer; cb: TGridRayQueryCB; tagmask: Integer=-1): ITP;
-var
-  wx0, wy0, wx1, wy1: Integer; // window coordinates
-  stx, sty: Integer; // "steps" for x and y axes
-  dsx, dsy: Integer; // "lengthes" for x and y axes
-  dx2, dy2: Integer; // "double lengthes" for x and y axes
-  xd, yd: Integer; // current coord
-  e: Integer; // "error" (as in bresenham algo)
-  rem: Integer;
-  term: Integer;
-  xptr, yptr: PInteger;
-  xfixed: Boolean;
-  temp: Integer;
-  prevx, prevy: Integer;
-  lastDistSq: Integer;
-  ccidx, curci: Integer;
-  hasUntried: Boolean;
-  lastGA: Integer = -1;
-  ga, x, y: Integer;
-  lastObj: ITP;
-  wasHit: Boolean = false;
-  gw, gh, minx, miny, maxx, maxy: Integer;
-  cc: PGridCell;
-  px: PBodyProxyRec;
-  lq: LongWord;
-  f, ptag, distSq: Integer;
-  x0, y0, x1, y1: Integer;
-  //swapped: Boolean = false; // true: xd is yd, and vice versa
-  // horizontal walker
-  {$IFDEF GRID_USE_ORTHO_ACCEL}
-  wklen, wkstep: Integer;
-  //wksign: Integer;
-  hopt: Boolean;
-  {$ENDIF}
-  // skipper
-  xdist, ydist: Integer;
-begin
-  result := Default(ITP);
-  lastObj := Default(ITP);
-  tagmask := tagmask and TagFullMask;
-  ex := ax1; // why not?
-  ey := ay1; // why not?
-  if (tagmask = 0) then exit;
-
-  if (ax0 = ax1) and (ay0 = ay1) then
-  begin
-    result := forEachAtPoint(ax0, ay0, nil, tagmask, @ptag);
-    if (result <> nil) then
-    begin
-      if assigned(cb) and not cb(result, ptag, ax0, ay0, ax0, ay0) then result := Default(ITP);
-    end;
-    exit;
-  end;
-
-  lastDistSq := distanceSq(ax0, ay0, ax1, ay1)+1;
-
-  gw := mWidth;
-  gh := mHeight;
-  minx := mMinX;
-  miny := mMinY;
-  maxx := gw*mTileSize-1;
-  maxy := gh*mTileSize-1;
-
-  {$IF DEFINED(D2F_DEBUG_RAYTRACE)}
-  if assigned(dbgRayTraceTileHitCB) then e_WriteLog(Format('TRACING: (%d,%d)-(%d,%d) [(%d,%d)-(%d,%d)]; maxdistsq=%d', [ax0, ay0, ax1, ay1, minx, miny, maxx, maxy, lastDistSq]), MSG_NOTIFY);
-  {$ENDIF}
-
-  x0 := ax0;
-  y0 := ay0;
-  x1 := ax1;
-  y1 := ay1;
-
-  // offset query coords to (0,0)-based
-  Dec(x0, minx);
-  Dec(y0, miny);
-  Dec(x1, minx);
-  Dec(y1, miny);
-
-  // clip rectange
-  wx0 := 0;
-  wy0 := 0;
-  wx1 := maxx;
-  wy1 := maxy;
-
-  // horizontal setup
-  if (x0 < x1) then
-  begin
-    // from left to right
-    if (x0 > wx1) or (x1 < wx0) then exit; // out of screen
-    stx := 1; // going right
-  end
-  else
-  begin
-    // from right to left
-    if (x1 > wx1) or (x0 < wx0) then exit; // out of screen
-    stx := -1; // going left
-    x0 := -x0;
-    x1 := -x1;
-    wx0 := -wx0;
-    wx1 := -wx1;
-    swapInt(wx0, wx1);
-  end;
-
-  // vertical setup
-  if (y0 < y1) then
-  begin
-    // from top to bottom
-    if (y0 > wy1) or (y1 < wy0) then exit; // out of screen
-    sty := 1; // going down
-  end
-  else
-  begin
-    // from bottom to top
-    if (y1 > wy1) or (y0 < wy0) then exit; // out of screen
-    sty := -1; // going up
-    y0 := -y0;
-    y1 := -y1;
-    wy0 := -wy0;
-    wy1 := -wy1;
-    swapInt(wy0, wy1);
-  end;
-
-  dsx := x1-x0;
-  dsy := y1-y0;
-
-  if (dsx < dsy) then
-  begin
-    //swapped := true;
-    xptr := @yd;
-    yptr := @xd;
-    swapInt(x0, y0);
-    swapInt(x1, y1);
-    swapInt(dsx, dsy);
-    swapInt(wx0, wy0);
-    swapInt(wx1, wy1);
-    swapInt(stx, sty);
-  end
-  else
-  begin
-    xptr := @xd;
-    yptr := @yd;
-  end;
-
-  dx2 := 2*dsx;
-  dy2 := 2*dsy;
-  xd := x0;
-  yd := y0;
-  e := 2*dsy-dsx;
-  term := x1;
-
-  xfixed := false;
-  if (y0 < wy0) then
-  begin
-    // clip at top
-    temp := dx2*(wy0-y0)-dsx;
-    xd += temp div dy2;
-    rem := temp mod dy2;
-    if (xd > wx1) then exit; // x is moved out of clipping rect, nothing to do
-    if (xd+1 >= wx0) then
-    begin
-      yd := wy0;
-      e -= rem+dsx;
-      //if (rem > 0) then begin Inc(xd); e += dy2; end; //BUGGY
-      if (xd < wx0) then begin xd += 1; e += dy2; end; //???
-      xfixed := true;
-    end;
-  end;
-
-  if (not xfixed) and (x0 < wx0) then
-  begin
-    // clip at left
-    temp := dy2*(wx0-x0);
-    yd += temp div dx2;
-    rem := temp mod dx2;
-    if (yd > wy1) or (yd = wy1) and (rem >= dsx) then exit;
-    xd := wx0;
-    e += rem;
-    if (rem >= dsx) then begin Inc(yd); e -= dx2; end;
-  end;
-
-  if (y1 > wy1) then
-  begin
-    // clip at bottom
-    temp := dx2*(wy1-y0)+dsx;
-    term := x0+temp div dy2;
-    rem := temp mod dy2;
-    if (rem = 0) then Dec(term);
-  end;
-
-  if (term > wx1) then term := wx1; // clip at right
-
-  Inc(term); // draw last point
-  //if (term = xd) then exit; // this is the only point, get out of here
-
-  if (sty = -1) then yd := -yd;
-  if (stx = -1) then begin xd := -xd; term := -term; end;
-  dx2 -= dy2;
-
-  // first move, to skip starting point
-  // DON'T DO THIS! loop will take care of that
-  if (xd = term) then
-  begin
-    //FIXME!
-    result := forEachAtPoint(ax0, ay0, nil, tagmask, @ptag);
-    if (result <> nil) then
-    begin
-      if assigned(cb) then
-      begin
-        if cb(result, ptag, ax0, ay0, ax0, ay0) then
-        begin
-          ex := ax0;
-          ey := ay0;
-        end
-        else
-        begin
-          result := nil;
-        end;
-      end
-      else
-      begin
-        ex := ax0;
-        ey := ay0;
-      end;
-    end;
-    exit;
-  end;
-
-  prevx := xptr^+minx;
-  prevy := yptr^+miny;
-  ( *
-  // move coords
-  if (e >= 0) then begin yd += sty; e -= dx2; end else e += dy2;
-  xd += stx;
-  // done?
-  if (xd = term) then exit;
-  * )
-
-  {$IF DEFINED(D2F_DEBUG)}
-  if (xptr^ < 0) or (yptr^ < 0) or (xptr^ >= gw*mTileSize) and (yptr^ >= gh*mTileSize) then raise Exception.Create('raycaster internal error (0)');
-  {$ENDIF}
-  // DON'T DO THIS! loop will take care of that
-  //lastGA := (yptr^ div tsize)*gw+(xptr^ div tsize);
-  //ccidx := mGrid[lastGA];
-
-  {$IF DEFINED(D2F_DEBUG_RAYTRACE)}
-  //if assigned(dbgRayTraceTileHitCB) then e_WriteLog('1:TRACING!', MSG_NOTIFY);
-  {$ENDIF}
-
-  //if (dbgShowTraceLog) then e_WriteLog(Format('raycast start: (%d,%d)-(%d,%d); xptr^=%d; yptr^=%d', [ax0, ay0, ax1, ay1, xptr^, yptr^]), MSG_NOTIFY);
-
-  if mInQuery then raise Exception.Create('recursive queries aren''t supported');
-  mInQuery := true;
-
-  // increase query counter
-  Inc(mLastQuery);
-  if (mLastQuery = 0) then
-  begin
-    // just in case of overflow
-    mLastQuery := 1;
-    for f := 0 to High(mProxies) do mProxies[f].mQueryMark := 0;
-  end;
-  lq := mLastQuery;
-
-  {$IFDEF GRID_USE_ORTHO_ACCEL}
-  // if this is strict horizontal/vertical trace, use optimized codepath
-  if (ax0 = ax1) or (ay0 = ay1) then
-  begin
-    // horizontal trace: walk the whole tiles, calculating mindist once for each proxy in cell
-    //   stx < 0: going left, otherwise `stx` is > 0, and we're going right
-    // vertical trace: walk the whole tiles, calculating mindist once for each proxy in cell
-    //   stx < 0: going up, otherwise `stx` is > 0, and we're going down
-    hopt := (ay0 = ay1); // horizontal?
-    if (stx < 0) then begin {wksign := -1;} wklen := -(term-xd); end else begin {wksign := 1;} wklen := term-xd; end;
-    {$IF DEFINED(D2F_DEBUG)}
-    if dbgShowTraceLog then e_LogWritefln('optimized htrace; wklen=%d', [wklen]);
-    {$ENDIF}
-    ga := (yptr^ div mTileSize)*gw+(xptr^ div mTileSize);
-    // one of those will never change
-    x := xptr^+minx;
-    y := yptr^+miny;
-    while (wklen > 0) do
-    begin
-      {$IF DEFINED(D2F_DEBUG)}
-      if dbgShowTraceLog then e_LogWritefln('  htrace; ga=%d; x=%d, y=%d; y=%d; y=%d', [ga, xptr^+minx, yptr^+miny, y, ay0]);
-      {$ENDIF}
-      // new tile?
-      if (ga <> lastGA) then
-      begin
-        lastGA := ga;
-        ccidx := mGrid[lastGA];
-        // convert coords to map (to avoid ajdusting coords inside the loop)
-        if hopt then x := xptr^+minx else y := yptr^+miny;
-        while (ccidx <> -1) do
-        begin
-          cc := @mCells[ccidx];
-          for f := 0 to GridCellBucketSize-1 do
-          begin
-            if (cc.bodies[f] = -1) then break;
-            px := @mProxies[cc.bodies[f]];
-            ptag := px.mTag;
-            if ((ptag and TagDisabled) = 0) and ((ptag and tagmask) <> 0) and (px.mQueryMark <> lq) and
-               // constant coord should be inside
-               ((hopt and (y >= px.y0) and (y <= px.y1)) or
-                ((not hopt) and (x >= px.x0) and (x <= px.x1))) then
-            begin
-              px.mQueryMark := lq; // mark as processed
-              // inside the proxy?
-              if (hopt and (x > px.x0) and (x < px.x1)) or
-                 ((not hopt) and (y > px.y0) and (y < px.y1)) then
-              begin
-                // setup prev[xy]
-                if assigned(cb) then
-                begin
-                  if cb(px.mObj, ptag, x, y, x, y) then
-                  begin
-                    result := px.mObj;
-                    ex := x;
-                    ey := y;
-                    mInQuery := false;
-                    exit;
-                  end;
-                end
-                else
-                begin
-                  distSq := distanceSq(ax0, ay0, x, y);
-                  {$IF DEFINED(D2F_DEBUG)}
-                  if dbgShowTraceLog then e_LogWritefln('  EMBEDDED hhit(%d): a=(%d,%d), h=(%d,%d), distsq=%d; lastsq=%d', [cc.bodies[f], ax0, ay0, x, y, distSq, lastDistSq]);
-                  {$ENDIF}
-                  if (distSq < lastDistSq) then
-                  begin
-                    ex := x;
-                    ey := y;
-                    result := px.mObj;
-                    mInQuery := false;
-                    exit;
-                  end;
-                end;
-                continue;
-              end;
-              // remember this hitpoint if it is nearer than an old one
-              // setup prev[xy]
-              if hopt then
-              begin
-                // horizontal trace
-                prevy := y;
-                y := yptr^+miny;
-                if (stx < 0) then
-                begin
-                  // going left
-                  if (x < px.x1) then continue; // not on the right edge
-                  x := px.x1;
-                  prevx := x+1;
-                end
-                else
-                begin
-                  // going right
-                  if (x > px.x0) then continue; // not on the left edge
-                  x := px.x0;
-                  prevx := x-1;
-                end;
-              end
-              else
-              begin
-                // vertical trace
-                prevx := x;
-                x := xptr^+minx;
-                if (stx < 0) then
-                begin
-                  // going up
-                  if (y < px.y1) then continue; // not on the bottom edge
-                  y := px.y1;
-                  prevy := x+1;
-                end
-                else
-                begin
-                  // going down
-                  if (y > px.y0) then continue; // not on the top edge
-                  y := px.y0;
-                  prevy := y-1;
-                end;
-              end;
-              if assigned(cb) then
-              begin
-                if cb(px.mObj, ptag, x, y, prevx, prevy) then
-                begin
-                  result := px.mObj;
-                  ex := prevx;
-                  ey := prevy;
-                  mInQuery := false;
-                  exit;
-                end;
-              end
-              else
-              begin
-                distSq := distanceSq(ax0, ay0, prevx, prevy);
-                {$IF DEFINED(D2F_DEBUG)}
-                if dbgShowTraceLog then e_LogWritefln('  hhit(%d): a=(%d,%d), h=(%d,%d), p=(%d,%d), distsq=%d; lastsq=%d', [cc.bodies[f], ax0, ay0, x, y, prevx, prevy, distSq, lastDistSq]);
-                {$ENDIF}
-                if (distSq < lastDistSq) then
-                begin
-                  wasHit := true;
-                  lastDistSq := distSq;
-                  ex := prevx;
-                  ey := prevy;
-                  lastObj := px.mObj;
-                end;
-              end;
-            end;
-          end;
-          // next cell
-          ccidx := cc.next;
-        end;
-        if wasHit and not assigned(cb) then begin result := lastObj; mInQuery := false; exit; end;
-        if assigned(cb) and cb(nil, 0, x, y, x, y) then begin result := lastObj; mInQuery := false; exit; end;
-      end;
-      // skip to next tile
-      if hopt then
-      begin
-        if (stx > 0) then
-        begin
-          // to the right
-          wkstep := ((xptr^ or (mTileSize-1))+1)-xptr^;
-          {$IF DEFINED(D2F_DEBUG)}
-          if dbgShowTraceLog then e_LogWritefln('  right step: wklen=%d; wkstep=%d', [wklen, wkstep]);
-          {$ENDIF}
-          if (wkstep >= wklen) then break;
-          Inc(xptr^, wkstep);
-          Inc(ga);
-        end
-        else
-        begin
-          // to the left
-          wkstep := xptr^-((xptr^ and (not (mTileSize-1)))-1);
-          {$IF DEFINED(D2F_DEBUG)}
-          if dbgShowTraceLog then e_LogWritefln('  left step: wklen=%d; wkstep=%d', [wklen, wkstep]);
-          {$ENDIF}
-          if (wkstep >= wklen) then break;
-          Dec(xptr^, wkstep);
-          Dec(ga);
-        end;
-      end
-      else
-      begin
-        if (stx > 0) then
-        begin
-          // to the down
-          wkstep := ((yptr^ or (mTileSize-1))+1)-yptr^;
-          {$IF DEFINED(D2F_DEBUG)}
-          if dbgShowTraceLog then e_LogWritefln('  down step: wklen=%d; wkstep=%d', [wklen, wkstep]);
-          {$ENDIF}
-          if (wkstep >= wklen) then break;
-          Inc(yptr^, wkstep);
-          Inc(ga, mWidth);
-        end
-        else
-        begin
-          // to the up
-          wkstep := yptr^-((yptr^ and (not (mTileSize-1)))-1);
-          {$IF DEFINED(D2F_DEBUG)}
-          if dbgShowTraceLog then e_LogWritefln('  up step: wklen=%d; wkstep=%d', [wklen, wkstep]);
-          {$ENDIF}
-          if (wkstep >= wklen) then break;
-          Dec(yptr^, wkstep);
-          Dec(ga, mWidth);
-        end;
-      end;
-      Dec(wklen, wkstep);
-    end;
-    // we can travel less than one cell
-    if wasHit and not assigned(cb) then result := lastObj else begin ex := ax1; ey := ay1; end;
-    mInQuery := false;
-    exit;
-  end;
-  {$ENDIF}
-
-  {$IF DEFINED(D2F_DEBUG_RAYTRACE)}
-  if assigned(dbgRayTraceTileHitCB) then dbgRayTraceTileHitCB((xptr^ div mTileSize*mTileSize)+minx, (yptr^ div mTileSize*mTileSize)+miny);
-  {$ENDIF}
-
-  //e_LogWritefln('*********************', []);
-  ccidx := -1;
-  //  can omit checks
-  while (xd <> term) do
-  begin
-    // check cell(s)
-    {$IF DEFINED(D2F_DEBUG)}
-    if (xptr^ < 0) or (yptr^ < 0) or (xptr^ >= gw*mTileSize) and (yptr^ >= gh*mTileSize) then raise Exception.Create('raycaster internal error (0)');
-    {$ENDIF}
-    // new tile?
-    ga := (yptr^ div mTileSize)*gw+(xptr^ div mTileSize);
-    {$IF DEFINED(D2F_DEBUG_RAYTRACE)}
-    if assigned(dbgRayTraceTileHitCB) then e_WriteLog(Format(' xd=%d; term=%d; gx=%d; gy=%d; ga=%d; lastga=%d', [xd, term, xptr^, yptr^, ga, lastGA]), MSG_NOTIFY);
-    {$ENDIF}
-    if (ga <> lastGA) then
-    begin
-      // yes
-      {$IF DEFINED(D2F_DEBUG)}
-      if assigned(dbgRayTraceTileHitCB) then dbgRayTraceTileHitCB((xptr^ div mTileSize*mTileSize)+minx, (yptr^ div mTileSize*mTileSize)+miny);
-      {$ENDIF}
-      if (ccidx <> -1) then
-      begin
-        // signal cell completion
-        if assigned(cb) then
-        begin
-          if cb(nil, 0, xptr^+minx, yptr^+miny, prevx, prevy) then begin result := lastObj; mInQuery := false; exit; end;
-        end
-        else if wasHit then
-        begin
-          result := lastObj;
-          mInQuery := false;
-          exit;
-        end;
-      end;
-      lastGA := ga;
-      ccidx := mGrid[lastGA];
-    end;
-    // has something to process in this tile?
-    if (ccidx <> -1) then
-    begin
-      // process cell
-      curci := ccidx;
-      hasUntried := false; // this will be set to `true` if we have some proxies we still want to process at the next step
-      // convert coords to map (to avoid ajdusting coords inside the loop)
-      x := xptr^+minx;
-      y := yptr^+miny;
-      // process cell list
-      while (curci <> -1) do
-      begin
-        cc := @mCells[curci];
-        for f := 0 to GridCellBucketSize-1 do
-        begin
-          if (cc.bodies[f] = -1) then break;
-          px := @mProxies[cc.bodies[f]];
-          ptag := px.mTag;
-          if ((ptag and TagDisabled) = 0) and ((ptag and tagmask) <> 0) and (px.mQueryMark <> lq) then
-          begin
-            // can we process this proxy?
-            if (x >= px.mX) and (y >= px.mY) and (x < px.mX+px.mWidth) and (y < px.mY+px.mHeight) then
-            begin
-              px.mQueryMark := lq; // mark as processed
-              if assigned(cb) then
-              begin
-                if cb(px.mObj, ptag, x, y, prevx, prevy) then
-                begin
-                  result := px.mObj;
-                  ex := prevx;
-                  ey := prevy;
-                  mInQuery := false;
-                  exit;
-                end;
-              end
-              else
-              begin
-                // remember this hitpoint if it is nearer than an old one
-                distSq := distanceSq(ax0, ay0, prevx, prevy);
-                {$IF DEFINED(D2F_DEBUG_RAYTRACE)}
-                if assigned(dbgRayTraceTileHitCB) then e_WriteLog(Format('  hit(%d): a=(%d,%d), h=(%d,%d), p=(%d,%d); distsq=%d; lastsq=%d', [cc.bodies[f], ax0, ay0, x, y, prevx, prevy, distSq, lastDistSq]), MSG_NOTIFY);
-                {$ENDIF}
-                if (distSq < lastDistSq) then
-                begin
-                  wasHit := true;
-                  lastDistSq := distSq;
-                  ex := prevx;
-                  ey := prevy;
-                  lastObj := px.mObj;
-                end;
-              end;
-            end
-            else
-            begin
-              // this is possibly interesting proxy, set "has more to check" flag
-              hasUntried := true;
-            end;
-          end;
-        end;
-        // next cell
-        curci := cc.next;
-      end;
-      // still has something interesting in this cell?
-      if not hasUntried then
-      begin
-        // nope, don't process this cell anymore; signal cell completion
-        ccidx := -1;
-        if assigned(cb) then
-        begin
-          if cb(nil, 0, x, y, prevx, prevy) then begin result := lastObj; mInQuery := false; exit; end;
-        end
-        else if wasHit then
-        begin
-          result := lastObj;
-          mInQuery := false;
-          exit;
-        end;
-      end;
-    end;
-    if (ccidx = -1) then
-    begin
-      // move to cell edge, as we have nothing to trace here anymore
-      if (stx < 0) then xdist := xd and (not (mTileSize-1)) else xdist := xd or (mTileSize-1);
-      if (sty < 0) then ydist := yd and (not (mTileSize-1)) else ydist := yd or (mTileSize-1);
-      //e_LogWritefln('0: swapped=%d; xd=%d; yd=%d; stx=%d; sty=%d; e=%d; dx2=%d; dy2=%d; term=%d; xdist=%d; ydist=%d', [swapped, xd, yd, stx, sty, e, dx2, dy2, term, xdist, ydist]);
-      while (xd <> xdist) and (yd <> ydist) do
-      begin
-        // step
-        xd += stx;
-        if (e >= 0) then begin yd += sty; e -= dx2; end else e += dy2;
-        //e_LogWritefln('  xd=%d; yd=%d', [xd, yd]);
-        if (xd = term) then break;
-      end;
-      //e_LogWritefln('1: swapped=%d; xd=%d; yd=%d; stx=%d; sty=%d; e=%d; dx2=%d; dy2=%d; term=%d; xdist=%d; ydist=%d', [swapped, xd, yd, stx, sty, e, dx2, dy2, term, xdist, ydist]);
-      if (xd = term) then break;
-    end;
-    //putPixel(xptr^, yptr^);
-    // move coords
-    prevx := xptr^+minx;
-    prevy := yptr^+miny;
-    if (e >= 0) then begin yd += sty; e -= dx2; end else e += dy2;
-    xd += stx;
-  end;
-  // we can travel less than one cell
-  if wasHit and not assigned(cb) then
-  begin
-    result := lastObj;
-  end
-  else
-  begin
-    ex := ax1; // why not?
-    ey := ay1; // why not?
-  end;
-
-  mInQuery := false;
-end;
-*)
 
 
 end.
