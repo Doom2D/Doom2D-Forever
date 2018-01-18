@@ -51,7 +51,7 @@ type
     type PITP = ^ITP;
 
     type TGridQueryCB = function (obj: ITP; tag: Integer): Boolean is nested; // return `true` to stop
-    type TGridRayQueryCB = function (obj: ITP; tag: Integer; x, y, prevx, prevy: Integer): Boolean is nested; // return `true` to stop
+    //type TGridRayQueryCB = function (obj: ITP; tag: Integer; x, y, prevx, prevy: Integer): Boolean is nested; // return `true` to stop
     type TCellQueryCB = procedure (x, y: Integer) is nested; // top-left cell corner coords
 
     const TagDisabled = $40000000;
