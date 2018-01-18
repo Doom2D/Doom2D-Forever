@@ -218,13 +218,11 @@ type
 
     //WARNING: don't modify grid while any query is in progress (no checks are made!)
     //         you can set enabled/disabled flag, tho (but iterator can still return objects disabled inside it)
-    // cb with `(nil)` will be called before processing new tile
-    // no callback: return object of the nearest hit or nil
+    // return object of the nearest hit or nil
     // if `inverted` is true, trace will register bodies *exluding* tagmask
-    // `cb` is used unconvetionally here: if it returns `false`, tracer will ignore the object
     //WARNING: don't change tags in callbacks here!
-    function traceRay (const x0, y0, x1, y1: Integer; cb: TGridQueryCB; tagmask: Integer=-1): ITP; overload;
-    function traceRay (out ex, ey: Integer; const ax0, ay0, ax1, ay1: Integer; cb: TGridQueryCB; tagmask: Integer=-1): ITP;
+    function traceRay (const x0, y0, x1, y1: Integer; tagmask: Integer=-1): ITP; overload;
+    function traceRay (out ex, ey: Integer; const ax0, ay0, ax1, ay1: Integer; tagmask: Integer=-1): ITP;
 
     // return `false` if we're still inside at the end
     // line should be either strict horizontal, or strict vertical, otherwise an exception will be thrown
@@ -1859,17 +1857,17 @@ end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-function TBodyGridBase.traceRay (const x0, y0, x1, y1: Integer; cb: TGridQueryCB; tagmask: Integer=-1): ITP;
+function TBodyGridBase.traceRay (const x0, y0, x1, y1: Integer; tagmask: Integer=-1): ITP;
 var
   ex, ey: Integer;
 begin
-  result := traceRay(ex, ey, x0, y0, x1, y1, cb, tagmask);
+  result := traceRay(ex, ey, x0, y0, x1, y1, tagmask);
 end;
 
 
 // no callback: return `true` on the nearest hit
 // you are not supposed to understand this
-function TBodyGridBase.traceRay (out ex, ey: Integer; const ax0, ay0, ax1, ay1: Integer; cb: TGridQueryCB; tagmask: Integer=-1): ITP;
+function TBodyGridBase.traceRay (out ex, ey: Integer; const ax0, ay0, ax1, ay1: Integer; tagmask: Integer=-1): ITP;
 var
   lw: TLineWalker;
   ccidx: Integer;
@@ -1943,10 +1941,6 @@ begin
         if ((ptag and TagDisabled) = 0) and ((ptag and tagmask) <> 0) and (px.mQueryMark <> lq) then
         begin
           px.mQueryMark := lq; // mark as processed
-          if assigned(cb) then
-          begin
-            if not cb(px.mObj, ptag) then continue;
-          end;
           // get adjusted proxy coords
           px0 := px.mX-minx;
           py0 := px.mY-miny;

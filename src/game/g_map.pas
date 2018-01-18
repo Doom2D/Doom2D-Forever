@@ -562,7 +562,7 @@ function g_Map_traceToNearestWall (x0, y0, x1, y1: Integer; hitx: PInteger=nil; 
 var
   ex, ey: Integer;
 begin
-  result := mapGrid.traceRay(ex, ey, x0, y0, x1, y1, nil, (GridTagWall or GridTagDoor));
+  result := mapGrid.traceRay(ex, ey, x0, y0, x1, y1, (GridTagWall or GridTagDoor));
   if (result <> nil) then
   begin
     if (hitx <> nil) then hitx^ := ex;
@@ -580,7 +580,7 @@ function g_Map_traceToNearest (x0, y0, x1, y1: Integer; tag: Integer; hitx: PInt
 var
   ex, ey: Integer;
 begin
-  result := mapGrid.traceRay(ex, ey, x0, y0, x1, y1, nil, tag);
+  result := mapGrid.traceRay(ex, ey, x0, y0, x1, y1, tag);
   if (result <> nil) then
   begin
     if (hitx <> nil) then hitx^ := ex;
