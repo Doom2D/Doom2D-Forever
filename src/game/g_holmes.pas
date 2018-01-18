@@ -951,7 +951,7 @@ procedure plrDebugDraw ();
     pdy := pmsCurMapY-(py+ph div 2);
     hlmContext.color := TGxRGBA.Create(255, 0, 255, 200);
     hlmContext.line(px+pw div 2, py+ph div 2, px+pw div 2+pdx, py+ph div 2+pdy);
-    pan := mapGrid.traceBox(ex, ey, px, py, pw, ph, pdx, pdy, nil, GridTagObstacle);
+    pan := mapGrid.traceBox(ex, ey, px, py, pw, ph, pdx, pdy, GridTagObstacle);
     if (pan = nil) then
     begin
       hlmContext.color := TGxRGBA.Create(255, 255, 255, 180);

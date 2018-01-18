@@ -242,7 +242,7 @@ type
     // trace box with the given velocity; return object hit (if any)
     // `cb` is used unconvetionally here: if it returns `false`, tracer will ignore the object
     //WARNING: don't change tags in callbacks here!
-    function traceBox (out ex, ey: Integer; const ax0, ay0, aw, ah: Integer; const dx, dy: Integer; cb: TGridQueryCB; tagmask: Integer=-1): ITP;
+    function traceBox (out ex, ey: Integer; const ax0, ay0, aw, ah: Integer; const dx, dy: Integer; tagmask: Integer=-1): ITP;
 
     // debug
     procedure forEachBodyCell (body: TBodyProxyId; cb: TCellQueryCB);
@@ -1621,7 +1621,7 @@ end;
 // ////////////////////////////////////////////////////////////////////////// //
 // trace box with the given velocity; return object hit (if any)
 // `cb` is used unconvetionally here: if it returns `false`, tracer will ignore the object
-function TBodyGridBase.traceBox (out ex, ey: Integer; const ax0, ay0, aw, ah: Integer; const dx, dy: Integer; cb: TGridQueryCB; tagmask: Integer=-1): ITP;
+function TBodyGridBase.traceBox (out ex, ey: Integer; const ax0, ay0, aw, ah: Integer; const dx, dy: Integer; tagmask: Integer=-1): ITP;
 var
   gx, gy: Integer;
   ccidx: Integer;
@@ -1685,10 +1685,6 @@ begin
           if ((ptag and TagDisabled) = 0) and ((ptag and tagmask) <> 0) and (px.mQueryMark <> lq) then
           begin
             px.mQueryMark := lq; // mark as processed
-            if assigned(cb) then
-            begin
-              if not cb(px.mObj, ptag) then continue;
-            end;
             if not sweepAABB(ax0, ay0, aw, ah, dx, dy, px.mX, px.mY, px.mWidth, px.mHeight, @u0) then continue;
             if (minu0 > u0) then
             begin

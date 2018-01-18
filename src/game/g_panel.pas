@@ -586,7 +586,7 @@ var
     begin
       if (ontop <> nil) then ontop^ := true;
       // yes, move with it; but skip steps (no need to process size change here, 'cause platform top cannot be changed with it)
-      mapGrid.traceBox(tex, tey, px, py, pw, ph, pdx, pdy, nil, (GridTagWall or GridTagDoor));
+      mapGrid.traceBox(tex, tey, px, py, pw, ph, pdx, pdy, (GridTagWall or GridTagDoor));
     end
     else
     begin
@@ -614,7 +614,7 @@ var
             trtag := (GridTagWall or GridTagDoor);
             // if we're moving down, consider steps too
             if (szdy > 0) then trtag := trtag or GridTagStep;
-            mapGrid.traceBox(tex, tey, px, py, pw, ph, szdx, szdy, nil, trtag);
+            mapGrid.traceBox(tex, tey, px, py, pw, ph, szdx, szdy, trtag);
           end;
         end;
       end;
@@ -633,7 +633,7 @@ var
           trtag := (GridTagWall or GridTagDoor);
           // if we're moving down, consider steps too
           if (pdy > 0) then trtag := trtag or GridTagStep;
-          mapGrid.traceBox(tex, tey, px, py, pw, ph, pdx, pdy, nil, trtag);
+          mapGrid.traceBox(tex, tey, px, py, pw, ph, pdx, pdy, trtag);
         end;
       end;
     end;
