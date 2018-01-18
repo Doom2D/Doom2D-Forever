@@ -26,10 +26,19 @@ unit g_grid;
 
 interface
 
-{$IFDEF USE_MEMPOOL}
 uses
   mempool;
-{$ENDIF}
+
+(*
+ * In order to make this usable for kind-of-recursive calls,
+ * we'll use "frame memory pool" to return results. That is,
+ * we will allocate a memory pool that will be cleared on
+ * frame start, and then used as a simple "no-free" allocator.
+ * Grid will put results into this pool, and will never bother
+ * to free it. Caller should call "release" on result, and
+ * the pool will throw away everything.
+ * No more callbacks, of course.
+ *)
 
 const
   GridTileSize = 32; // must be power of two!
@@ -197,8 +206,10 @@ type
     // no callback: return object of the nearest hit or nil
     // if `inverted` is true, trace will register bodies *exluding* tagmask
     //WARNING: don't change tags in callbacks here!
+    {
     function traceRayOld (const x0, y0, x1, y1: Integer; cb: TGridRayQueryCB; tagmask: Integer=-1): ITP; overload;
     function traceRayOld (out ex, ey: Integer; const ax0, ay0, ax1, ay1: Integer; cb: TGridRayQueryCB; tagmask: Integer=-1): ITP;
+    }
 
     //WARNING: don't modify grid while any query is in progress (no checks are made!)
     //         you can set enabled/disabled flag, tho (but iterator can still return objects disabled inside it)
@@ -1986,6 +1997,7 @@ end;
 
 // ////////////////////////////////////////////////////////////////////////// //
 // no callback: return `true` on the nearest hit
+(*
 function TBodyGridBase.traceRayOld (const x0, y0, x1, y1: Integer; cb: TGridRayQueryCB; tagmask: Integer=-1): ITP;
 var
   ex, ey: Integer;
@@ -2225,13 +2237,13 @@ begin
 
   prevx := xptr^+minx;
   prevy := yptr^+miny;
-  (*
+  ( *
   // move coords
   if (e >= 0) then begin yd += sty; e -= dx2; end else e += dy2;
   xd += stx;
   // done?
   if (xd = term) then exit;
-  *)
+  * )
 
   {$IF DEFINED(D2F_DEBUG)}
   if (xptr^ < 0) or (yptr^ < 0) or (xptr^ >= gw*mTileSize) and (yptr^ >= gh*mTileSize) then raise Exception.Create('raycaster internal error (0)');
@@ -2628,6 +2640,7 @@ begin
 
   mInQuery := false;
 end;
+*)
 
 
 end.
