@@ -90,6 +90,39 @@ type
     // get pointer for the given mark
     // WARNING! pointer can become invalid after next call to `alloc()`!
     function getPtr (amark: PoolMark): Pointer; inline;
+    function curPtr (): Pointer; inline;
+  end;
+
+
+type
+  generic PoolIter<T> = record
+  public
+    type Ptr = ^T;
+    type MyType = specialize PoolIter<T>;
+
+  private
+    mMark: PoolMark;
+    mCount: Integer;
+    mCurrent: Integer;
+    mFinished: Boolean;
+
+  public
+    constructor Create (dummy: Boolean); // idiotic FPC doesn't support arg-less ctors for rectord
+    procedure startIt (); inline; // automatically called by ctor; does NO checks!
+    procedure finishIt (); inline; // sets count
+
+    procedure rewind (); inline;
+    function length (): Integer; inline;
+    procedure release (); inline; // reset pool
+
+    function moveNext (): Boolean; inline;
+    function getCurrent (): Ptr; inline;
+    function getEnumerator (): MyType; inline;
+
+    function first (): Ptr; inline;
+
+  public
+    property current: Ptr read getCurrent;
   end;
 
 
@@ -190,6 +223,94 @@ function TPoolMarkRelease.getPtr (amark: PoolMark): Pointer; inline;
 begin
   if (amark < 0) or (amark > mUsed) then raise Exception.Create('MarkReleasePool is fucked (getPtr)');
   result := Pointer(PAnsiChar(mMemory)+amark);
+end;
+
+
+function TPoolMarkRelease.curPtr (): Pointer; inline;
+begin
+  result := Pointer(PAnsiChar(mMemory)+mUsed);
+end;
+
+
+
+// ////////////////////////////////////////////////////////////////////////// //
+constructor PoolIter.Create (dummy: Boolean);
+begin
+  startIt();
+end;
+
+
+procedure PoolIter.startIt (); inline; // automatically called by ctor; does NO checks!
+begin
+  mMark := framePool.mark();
+  mCount := 0;
+  mCurrent := -1;
+  mFinished := false;
+end;
+
+
+procedure PoolIter.finishIt (); inline; // sets count
+begin
+  if (mFinished) then raise Exception.Create('double fatality');
+  if (mMark = -1) then raise Exception.Create('void fatality');
+  mFinished := true;
+  mCount := Integer(PtrUInt(framePool.curPtr)-PtrUInt(framePool.getPtr(mMark))) div Integer(sizeof(T));
+  if (mCount < 0) then raise Exception.Create('wutafu?');
+end;
+
+
+procedure PoolIter.rewind (); inline;
+begin
+  if (mMark = -1) then raise Exception.Create('void rewind');
+  mCurrent := -1;
+end;
+
+
+function PoolIter.length (): Integer; inline;
+begin
+  //if (mCurrent+1 >= 0) and (mCurrent+1 < mCount) then result := mCount-(mCurrent+1) else result := 0;
+  result := mCount;
+end;
+
+
+procedure PoolIter.release (); inline; // reset pool
+begin
+  if (mMark = -1) then raise Exception.Create('double release');
+  framePool.release(mMark);
+  mMark := -1;
+  mCount := 0;
+  mCurrent := -1;
+  mFinished := false;
+end;
+
+
+function PoolIter.moveNext (): Boolean; inline;
+begin
+  if (mMark = -1) then raise Exception.Create('void moveNext()');
+  if (not mFinished) then raise Exception.Create('moveNext() on unfinished');
+  Inc(mCurrent);
+  result := (mCurrent < mCount);
+end;
+
+
+function PoolIter.getCurrent (): Ptr; inline;
+begin
+  if (mCurrent < 0) or (mCurrent >= mCount) then raise Exception.Create('getCurrent() range error');
+  result := Ptr(framePool.getPtr(mMark+mCurrent*Integer(sizeof(T))));
+end;
+
+
+function PoolIter.getEnumerator (): PoolIter; inline;
+begin
+  result := self;
+end;
+
+
+function PoolIter.first (): Ptr; inline;
+begin
+  if (mMark = -1) then raise Exception.Create('void moveNext()');
+  if (not mFinished) then raise Exception.Create('moveNext() on unfinished');
+  result := Ptr(framePool.getPtr(mMark));
 end;
 
 

@@ -781,10 +781,9 @@ function isCorpse (o: PObj; immediately: Boolean): Integer;
 
 var
   a: Integer;
-  mon: TMonster = nil;
-  pmark: PoolMark;
-  phit: PMonster;
-  hitcount: Integer;
+  mon: PMonster;
+  mres: TMonster = nil;
+  it: TMonsterGrid.Iter;
 begin
   result := -1;
 
@@ -796,24 +795,19 @@ begin
   begin
     //mon := monsGrid.forEachInAABB(o.X+o.Rect.X, o.Y+o.Rect.Y, o.Rect.Width, o.Rect.Height, monsCollCheck);
     //if (mon <> nil) then result := mon.mArrIdx;
-    pmark := framePool.mark();
-    hitcount := monsGrid.forEachInAABB(o.X+o.Rect.X, o.Y+o.Rect.Y, o.Rect.Width, o.Rect.Height);
-    if (hitcount = 0) then exit;
-    phit := PMonster(framePool.getPtr(pmark));
-    while (hitcount > 0) do
+    it := monsGrid.forEachInAABB(o.X+o.Rect.X, o.Y+o.Rect.Y, o.Rect.Width, o.Rect.Height);
+    for mon in it do
     begin
-      mon := phit^;
-      Inc(phit);
-      Dec(hitcount);
       case mon.FMonsterType of // Не воскресить:
         MONSTER_SOUL, MONSTER_PAIN, MONSTER_CYBER, MONSTER_SPIDER,
-        MONSTER_VILE, MONSTER_BARREL, MONSTER_ROBO: mon := nil;
+        MONSTER_VILE, MONSTER_BARREL, MONSTER_ROBO: begin end;
         // Остальных можно воскресить
+        else mres := mon^;
       end;
-      if (mon <> nil) then break;
+      if (mres <> nil) then break;
     end;
-    framePool.release(pmark);
-    if (mon <> nil) then result := mon.mArrIdx;
+    it.release();
+    if (mres <> nil) then result := mres.mArrIdx;
   end
   else
   begin
@@ -4725,27 +4719,17 @@ function g_Mons_IsAnyAliveAt (x, y: Integer; width, height: Integer): Boolean;
 var
   idx: Integer;
   mon: TMonster;
-  pmark: PoolMark;
-  phit: PMonster;
-  hitcount: Integer;
+  mit: PMonster;
+  it: TMonsterGrid.Iter;
 begin
   result := false;
   if (width < 1) or (height < 1) then exit;
   if gmon_debug_use_sqaccel then
   begin
     //result := (monsGrid.forEachInAABB(x, y, width, height, monsCollCheck) <> nil);
-    pmark := framePool.mark();
-    hitcount := monsGrid.forEachInAABB(x, y, width, height);
-    if (hitcount = 0) then exit;
-    phit := PMonster(framePool.getPtr(pmark));
-    while (hitcount > 0) do
-    begin
-      mon := phit^;
-      Inc(phit);
-      Dec(hitcount);
-      if (mon.alive) then begin result := true; break; end;
-    end;
-    framePool.release(pmark);
+    it := monsGrid.forEachInAABB(x, y, width, height);
+    for mit in it do if (mit.alive) then begin result := true; break; end;
+    it.release();
   end
   else
   begin
@@ -4775,27 +4759,17 @@ function g_Mons_ForEachAt (x, y: Integer; width, height: Integer; cb: TEachMonst
 var
   idx: Integer;
   mon: TMonster;
-  pmark: PoolMark;
-  phit: PMonster;
-  hitcount: Integer;
+  mit: PMonster;
+  it: TMonsterGrid.Iter;
 begin
   result := false;
   if (width < 1) or (height < 1) then exit;
   if gmon_debug_use_sqaccel then
   begin
     //result := (monsGrid.forEachInAABB(x, y, width, height, monsCollCheck) <> nil);
-    pmark := framePool.mark();
-    hitcount := monsGrid.forEachInAABB(x, y, width, height);
-    if (hitcount = 0) then exit;
-    phit := PMonster(framePool.getPtr(pmark));
-    while (hitcount > 0) do
-    begin
-      mon := phit^;
-      Inc(phit);
-      Dec(hitcount);
-      if (cb(mon)) then begin result := true; break; end;
-    end;
-    framePool.release(pmark);
+    it := monsGrid.forEachInAABB(x, y, width, height);
+    for mit in it do if (cb(mit^)) then begin result := true; break; end;
+    it.release();
   end
   else
   begin
@@ -4827,9 +4801,8 @@ function g_Mons_ForEachAliveAt (x, y: Integer; width, height: Integer; cb: TEach
 var
   idx: Integer;
   mon: TMonster;
-  pmark: PoolMark;
-  phit: PMonster;
-  hitcount: Integer;
+  mit: PMonster;
+  it: TMonsterGrid.Iter;
 begin
   result := false;
   if (width < 1) or (height < 1) then exit;
@@ -4845,21 +4818,15 @@ begin
       result := (monsGrid.forEachInAABB(x, y, width, height, monsCollCheck) <> nil);
     end;
     }
-    pmark := framePool.mark();
-    hitcount := monsGrid.forEachInAABB(x, y, width, height);
-    if (hitcount = 0) then exit;
-    phit := PMonster(framePool.getPtr(pmark));
-    while (hitcount > 0) do
+    it := monsGrid.forEachInAABB(x, y, width, height);
+    for mit in it do
     begin
-      mon := phit^;
-      Inc(phit);
-      Dec(hitcount);
-      if (mon.alive) then
+      if (mit^.alive) then
       begin
-        if (cb(mon)) then begin result := true; break; end;
+        if (cb(mit^)) then begin result := true; break; end;
       end;
     end;
-    framePool.release(pmark);
+    it.release();
   end
   else
   begin

@@ -974,21 +974,13 @@ procedure plrDebugDraw ();
 
   procedure hilightBodyCells (proxyId: Integer);
   var
-    pmark: PoolMark;
-    hitcount: Integer;
+    it: CellCoordIter;
     pcellxy: PGridCellCoord;
   begin
     //monsGrid.forEachBodyCell(mon.proxyId, hilightCell);
-    pmark := framePool.mark();
-    hitcount := monsGrid.forEachBodyCell(proxyId);
-    pcellxy := PGridCellCoord(framePool.getPtr(pmark));
-    while (hitcount > 0) do
-    begin
-      hilightCell(pcellxy^.x, pcellxy^.y);
-      Inc(pcellxy);
-      Dec(hitcount);
-    end;
-    framePool.release(pmark);
+    it := monsGrid.forEachBodyCell(proxyId);
+    for pcellxy in it do hilightCell(pcellxy^.x, pcellxy^.y);
+    it.release();
   end;
 
   procedure hilightCell1 (cx, cy: Integer);
@@ -1252,12 +1244,11 @@ procedure plrDebugDraw ();
 
 var
   mon: TMonster;
+  mit: PMonster;
+  it: TMonsterGrid.Iter;
   mx, my, mw, mh: Integer;
   //pan: TPanel;
   //ex, ey: Integer;
-  pmark: PoolMark;
-  hitcount: Integer;
-  pmon: PMonster;
 begin
   if (gPlayer1 = nil) then exit;
 
@@ -1282,16 +1273,9 @@ begin
     if (laserSet) then
     begin
       //g_Mons_AlongLine(laserX0, laserY0, laserX1, laserY1, monsCollector, true);
-      pmark := framePool.mark();
-      hitcount := monsGrid.forEachAlongLine(laserX0, laserY0, laserX1, laserY1, -1, true);
-      pmon := PMonster(framePool.getPtr(pmark));
-      while (hitcount > 0) do
-      begin
-        monsCollector(pmon^);
-        Inc(pmon);
-        Dec(hitcount);
-      end;
-      framePool.release(pmark);
+      it := monsGrid.forEachAlongLine(laserX0, laserY0, laserX1, laserY1, -1, true);
+      for mit in it do monsCollector(mit^);
+      it.release();
     end;
 
     if (monMarkedUID <> -1) then
@@ -1562,9 +1546,8 @@ procedure cbAtcurSelectMonster ();
 var
   plr: TPlayer;
   x, y, w, h: Integer;
-  pmark: PoolMark;
-  hitcount: Integer;
-  pmon: PMonster;
+  mit: PMonster;
+  it: TMonsterGrid.Iter;
 begin
   monMarkedUID := -1;
   if (Length(gPlayers) > 0) then
@@ -1580,16 +1563,9 @@ begin
     end;
   end;
   //e_WriteLog('===========================', MSG_NOTIFY);
-  pmark := framePool.mark();
-  hitcount := monsGrid.forEachAtPoint(pmsCurMapX, pmsCurMapY);
-  pmon := PMonster(framePool.getPtr(pmark));
-  while (hitcount > 0) do
-  begin
-    monsAtDump(pmon^);
-    Inc(pmon);
-    Dec(hitcount);
-  end;
-  framePool.release(pmark);
+  it := monsGrid.forEachAtPoint(pmsCurMapX, pmsCurMapY);
+  for mit in it do monsAtDump(mit^);
+  it.release();
   //e_WriteLog('---------------------------', MSG_NOTIFY);
 end;
 
@@ -1600,25 +1576,17 @@ procedure cbAtcurDumpMonsters ();
     e_WriteLog(Format('monster #%d (UID:%u) (proxyid:%d)', [mon.arrIdx, mon.UID, mon.proxyId]), TMsgType.Notify);
   end;
 var
-  pmark: PoolMark;
-  hitcount: Integer;
-  pmon: PMonster;
+  mit: PMonster;
+  it: TMonsterGrid.Iter;
 begin
-  pmark := framePool.mark();
-  hitcount := monsGrid.forEachAtPoint(pmsCurMapX, pmsCurMapY);
-  if (hitcount > 0) then
+  it := monsGrid.forEachAtPoint(pmsCurMapX, pmsCurMapY);
+  if (it.length > 0) then
   begin
     e_WriteLog('===========================', TMsgType.Notify);
-    pmon := PMonster(framePool.getPtr(pmark));
-    while (hitcount > 0) do
-    begin
-      monsAtDump(pmon^);
-      Inc(pmon);
-      Dec(hitcount);
-    end;
+    for mit in it do monsAtDump(mit^);
     e_WriteLog('---------------------------', TMsgType.Notify);
   end;
-  framePool.release(pmark);
+  it.release();
 end;
 
 procedure cbAtcurDumpWalls ();
@@ -1633,26 +1601,18 @@ var
   hasTrigs: Boolean = false;
   f: Integer;
   trig: PTrigger;
-  pmark: PoolMark;
-  hitcount: Integer;
-  ppan: PPanel;
+  mwit: PPanel;
+  it: TPanelGrid.Iter;
 begin
   platMarkedGUID := -1;
-  pmark := framePool.mark();
-  hitcount := mapGrid.forEachAtPoint(pmsCurMapX, pmsCurMapY, (GridTagWall or GridTagDoor));
-  if (hitcount > 0) then
+  it := mapGrid.forEachAtPoint(pmsCurMapX, pmsCurMapY, (GridTagWall or GridTagDoor));
+  if (it.length > 0) then
   begin
     e_WriteLog('=== TOGGLE WALL ===', TMsgType.Notify);
-    ppan := PPanel(framePool.getPtr(pmark));
-    while (hitcount > 0) do
-    begin
-      wallToggle(ppan^);
-      Inc(ppan);
-      Dec(hitcount);
-    end;
+    for mwit in it do wallToggle(mwit^);
     e_WriteLog('--- toggle wall ---', TMsgType.Notify);
   end;
-  framePool.release(pmark);
+  it.release();
   if showTriggers then
   begin
     for f := 0 to High(gTriggers) do
@@ -1676,22 +1636,14 @@ procedure cbAtcurToggleWalls ();
     if pan.Enabled then g_Map_DisableWallGUID(pan.guid) else g_Map_EnableWallGUID(pan.guid);
   end;
 var
-  pmark: PoolMark;
-  hitcount: Integer;
-  ppan: PPanel;
+  mwit: PPanel;
+  it: TPanelGrid.Iter;
 begin
   //e_WriteLog('=== TOGGLE WALL ===', MSG_NOTIFY);
   //e_WriteLog('--- toggle wall ---', MSG_NOTIFY);
-  pmark := framePool.mark();
-  hitcount := mapGrid.forEachAtPoint(pmsCurMapX, pmsCurMapY, (GridTagWall or GridTagDoor));
-  ppan := PPanel(framePool.getPtr(pmark));
-  while (hitcount > 0) do
-  begin
-    wallToggle(ppan^);
-    Inc(ppan);
-    Dec(hitcount);
-  end;
-  framePool.release(pmark);
+  it := mapGrid.forEachAtPoint(pmsCurMapX, pmsCurMapY, (GridTagWall or GridTagDoor));
+  for mwit in it do wallToggle(mwit^);
+  it.release();
 end;
 
 

@@ -49,6 +49,9 @@ type
     x, y: Integer;
   end;
 
+  CellCoordIter = specialize PoolIter<TGridCellCoord>;
+
+
 type
   TBodyProxyId = Integer;
 
@@ -56,6 +59,8 @@ type
   public
     type PITP = ^ITP;
     type TCellQueryCB = procedure (x, y: Integer) is nested; // top-left cell corner coords
+
+    type Iter = specialize PoolIter<ITP>;
 
     const TagDisabled = $40000000;
     const TagFullMask = $3fffffff;
@@ -194,11 +199,11 @@ type
 
     // return number of ITP thingys put into frame pool
     // if `firstHit` is `true`, return on first hit (obviously)
-    function forEachInAABB (x, y, w, h: Integer; tagmask: Integer=-1; allowDisabled: Boolean=false; firstHit: Boolean=false): Integer;
+    function forEachInAABB (x, y, w, h: Integer; tagmask: Integer=-1; allowDisabled: Boolean=false; firstHit: Boolean=false): Iter;
 
     // return number of ITP thingys put into frame pool
     // if `firstHit` is `true`, return on first hit (obviously)
-    function forEachAtPoint (x, y: Integer; tagmask: Integer=-1; allowDisabled: Boolean=false; firstHit: Boolean=false): Integer;
+    function forEachAtPoint (x, y: Integer; tagmask: Integer=-1; allowDisabled: Boolean=false; firstHit: Boolean=false): Iter;
 
     function atCellInPoint (x, y: Integer): TAtPointEnumerator;
 
@@ -214,7 +219,7 @@ type
 
     // trace line along the grid, put all objects from passed cells into frame pool, in no particular order
     // return number of ITP thingys put into frame pool
-    function forEachAlongLine (ax0, ay0, ax1, ay1: Integer; tagmask: Integer=-1; log: Boolean=false): Integer;
+    function forEachAlongLine (ax0, ay0, ax1, ay1: Integer; tagmask: Integer=-1; log: Boolean=false): Iter;
 
     // trace box with the given velocity; return object hit (if any)
     // `cb` is used unconvetionally here: if it returns `false`, tracer will ignore the object
@@ -222,8 +227,8 @@ type
     function traceBox (out ex, ey: Integer; const ax0, ay0, aw, ah: Integer; const dx, dy: Integer; tagmask: Integer=-1): ITP;
 
     // debug
-    function forEachBodyCell (body: TBodyProxyId): Integer; // this puts `TGridCellCoord` into frame pool for each cell
-    function forEachInCell (x, y: Integer): Integer; // this puts `ITP` into frame pool
+    function forEachBodyCell (body: TBodyProxyId): CellCoordIter; // this puts `TGridCellCoord` into frame pool for each cell
+    function forEachInCell (x, y: Integer): Iter; // this puts `ITP` into frame pool
     procedure dumpStats ();
 
   public
@@ -693,14 +698,14 @@ begin
 end;
 
 
-function TBodyGridBase.forEachBodyCell (body: TBodyProxyId): Integer;
+function TBodyGridBase.forEachBodyCell (body: TBodyProxyId): CellCoordIter;
 var
   g, f, ccidx: Integer;
   cc: PGridCell;
   presobj: PGridCellCoord;
 begin
-  result := 0;
-  if (body < 0) or (body > High(mProxies)) then exit;
+  result := CellCoordIter.Create(true);
+  if (body < 0) or (body > High(mProxies)) then begin result.finishIt(); exit; end;
   for g := 0 to High(mGrid) do
   begin
     ccidx := mGrid[g];
@@ -715,7 +720,6 @@ begin
           presobj := PGridCellCoord(framePool.alloc(sizeof(TGridCellCoord)));
           presobj^.x := (g mod mWidth)*mTileSize+mMinX;
           presobj^.y := (g div mWidth)*mTileSize+mMinY;
-          Inc(result);
           //cb((g mod mWidth)*mTileSize+mMinX, (g div mWidth)*mTileSize+mMinY);
         end;
       end;
@@ -723,19 +727,20 @@ begin
       ccidx := cc.next;
     end;
   end;
+  result.finishIt();
 end;
 
 
-function TBodyGridBase.forEachInCell (x, y: Integer): Integer;
+function TBodyGridBase.forEachInCell (x, y: Integer): Iter;
 var
   f, ccidx: Integer;
   cc: PGridCell;
   presobj: PITP;
 begin
-  result := 0;
+  result := Iter.Create(true);
   Dec(x, mMinX);
   Dec(y, mMinY);
-  if (x < 0) or (y < 0) or (x >= mWidth*mTileSize) or (y > mHeight*mTileSize) then exit;
+  if (x < 0) or (y < 0) or (x >= mWidth*mTileSize) or (y > mHeight*mTileSize) then begin result.finishIt(); exit; end;
   ccidx := mGrid[(y div mTileSize)*mWidth+(x div mTileSize)];
   while (ccidx <> -1) do
   begin
@@ -747,11 +752,11 @@ begin
       presobj := PITP(framePool.alloc(sizeof(ITP)));
       //presobj^ := mProxies[cc.bodies[f]].mObj;
       Move(mProxies[cc.bodies[f]].mObj, presobj^, sizeof(ITP));
-      Inc(result);
     end;
     // next cell
     ccidx := cc.next;
   end;
+  result.finishIt();
 end;
 
 
@@ -1331,7 +1336,7 @@ end;
 
 // ////////////////////////////////////////////////////////////////////////// //
 // no callback: return `true` on the first hit
-function TBodyGridBase.forEachAtPoint (x, y: Integer; tagmask: Integer=-1; allowDisabled: Boolean=false; firstHit: Boolean=false): Integer;
+function TBodyGridBase.forEachAtPoint (x, y: Integer; tagmask: Integer=-1; allowDisabled: Boolean=false; firstHit: Boolean=false): Iter;
 var
   f: Integer;
   idx, curci: Integer;
@@ -1341,9 +1346,9 @@ var
   ptag: Integer;
   presobj: PITP;
 begin
-  result := 0;
+  result := Iter.Create(true);
   tagmask := tagmask and TagFullMask;
-  if (tagmask = 0) then exit;
+  if (tagmask = 0) then begin result.finishIt(); exit; end;
 
   {$IF DEFINED(D2F_DEBUG_XXQ)}
   if (assigned(cb)) then e_WriteLog(Format('0: grid pointquery: (%d,%d)', [x, y]), MSG_NOTIFY);
@@ -1352,7 +1357,7 @@ begin
   // make coords (0,0)-based
   Dec(x, mMinX);
   Dec(y, mMinY);
-  if (x < 0) or (y < 0) or (x >= mWidth*mTileSize) or (y >= mHeight*mTileSize) then exit;
+  if (x < 0) or (y < 0) or (x >= mWidth*mTileSize) or (y >= mHeight*mTileSize) then begin result.finishIt(); exit; end;
 
   curci := mGrid[(y div mTileSize)*mWidth+(x div mTileSize)];
 
@@ -1400,19 +1405,19 @@ begin
       begin
         presobj := PITP(framePool.alloc(sizeof(ITP)));
         Move(px.mObj, presobj^, sizeof(ITP));
-        Inc(result);
-        if (firstHit) then exit;
+        if (firstHit) then begin result.finishIt(); exit; end;
       end;
     end;
     curci := cc.next;
   end;
+  result.finishIt();
 end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
 // no callback: return `true` on the first hit
 // return number of ITP thingys put into frame pool
-function TBodyGridBase.forEachInAABB (x, y, w, h: Integer; tagmask: Integer=-1; allowDisabled: Boolean=false; firstHit: Boolean=false): Integer;
+function TBodyGridBase.forEachInAABB (x, y, w, h: Integer; tagmask: Integer=-1; allowDisabled: Boolean=false; firstHit: Boolean=false): Iter;
 var
   idx: Integer;
   gx, gy: Integer;
@@ -1427,17 +1432,17 @@ var
   ptag: Integer;
   presobj: PITP;
 begin
-  result := 0;
-  if (w < 1) or (h < 1) then exit;
-
   if (w = 1) and (h = 1) then
   begin
     result := forEachAtPoint(x, y, tagmask, allowDisabled, firstHit);
     exit;
   end;
 
+  result := Iter.Create(true);
+  if (w < 1) or (h < 1) then begin result.finishIt(); exit; end;
+
   tagmask := tagmask and TagFullMask;
-  if (tagmask = 0) then exit;
+  if (tagmask = 0) then begin result.finishIt(); exit; end;
 
   x0 := x;
   y0 := y;
@@ -1449,8 +1454,8 @@ begin
   gw := mWidth;
   gh := mHeight;
 
-  if (x+w <= 0) or (y+h <= 0) then exit;
-  if (x >= gw*mTileSize) or (y >= gh*mTileSize) then exit;
+  if (x+w <= 0) or (y+h <= 0) then begin result.finishIt(); exit; end;
+  if (x >= gw*mTileSize) or (y >= gh*mTileSize) then begin result.finishIt(); exit; end;
 
   sx := x div mTileSize;
   sy := y div mTileSize;
@@ -1462,7 +1467,7 @@ begin
   if (sy < 0) then sy := 0 else if (sy >= gh) then sy := gh-1;
   if (ex < 0) then ex := 0 else if (ex >= gw) then ex := gw-1;
   if (ey < 0) then ey := 0 else if (ey >= gh) then ey := gh-1;
-  if (sx > ex) or (sy > ey) then exit; // just in case
+  if (sx > ex) or (sy > ey) then begin result.finishIt(); exit; end; // just in case
 
   // has something to do
 
@@ -1501,18 +1506,18 @@ begin
           if (x0+w <= px.mX) or (y0+h <= px.mY) then continue;
           presobj := PITP(framePool.alloc(sizeof(ITP)));
           Move(px.mObj, presobj^, sizeof(ITP));
-          Inc(result);
-          if (firstHit) then exit;
+          if (firstHit) then begin result.finishIt(); exit; end;
         end;
         curci := cc.next;
       end;
     end;
   end;
+  result.finishIt();
 end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-function TBodyGridBase.forEachAlongLine (ax0, ay0, ax1, ay1: Integer; tagmask: Integer=-1; log: Boolean=false): Integer;
+function TBodyGridBase.forEachAlongLine (ax0, ay0, ax1, ay1: Integer; tagmask: Integer=-1; log: Boolean=false): Iter;
 var
   lw: TLineWalker;
   ccidx: Integer;
@@ -1528,9 +1533,9 @@ var
   presobj: PITP;
 begin
   log := false;
-  result := 0;
+  result := Iter.Create(true);
   tagmask := tagmask and TagFullMask;
-  if (tagmask = 0) then exit;
+  if (tagmask = 0) then begin result.finishIt(); exit; end;
 
   gw := mWidth;
   gh := mHeight;
@@ -1544,7 +1549,7 @@ begin
   y1 := ay1-miny;
 
   lw := TLineWalker.Create(0, 0, gw*mTileSize-1, gh*mTileSize-1);
-  if not lw.setup(x0, y0, x1, y1) then exit; // out of screen
+  if not lw.setup(x0, y0, x1, y1) then begin result.finishIt(); exit; end; // out of screen
 
   // increase query counter
   Inc(mLastQuery);
@@ -1574,7 +1579,6 @@ begin
           px.mQueryMark := lq; // mark as processed
           presobj := PITP(framePool.alloc(sizeof(ITP)));
           Move(px.mObj, presobj^, sizeof(ITP));
-          Inc(result);
         end;
       end;
       // next cell
@@ -1582,12 +1586,12 @@ begin
     end;
     // done processing cells, move to next tile
   until lw.stepToNextTile();
+  result.finishIt();
 end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
 // trace box with the given velocity; return object hit (if any)
-// `cb` is used unconvetionally here: if it returns `false`, tracer will ignore the object
 function TBodyGridBase.traceBox (out ex, ey: Integer; const ax0, ay0, aw, ah: Integer; const dx, dy: Integer; tagmask: Integer=-1): ITP;
 var
   gx, gy: Integer;
@@ -1701,7 +1705,7 @@ var
   {$IF DEFINED(D2F_DEBUG_OTR)}
   s: AnsiString = '';
   {$ENDIF}
-  pmark: PoolMark;
+  it: Iter;
 begin
   result := false;
   ex := ax1;
@@ -1711,9 +1715,9 @@ begin
   tagmask := tagmask and TagFullMask;
   if (tagmask = 0) then exit;
 
-  pmark := framePool.mark();
-  if (forEachAtPoint(ax0, ay0, tagmask, false, true) = 0) then exit;
-  framePool.release(pmark);
+  it := forEachAtPoint(ax0, ay0, tagmask, false, true);
+  if (it.length = 0) then begin it.release(); exit; end;
+  it.release();
 
   minx := mMinX;
   miny := mMinY;
@@ -1828,7 +1832,6 @@ begin
 end;
 
 
-// no callback: return `true` on the nearest hit
 // you are not supposed to understand this
 function TBodyGridBase.traceRay (out ex, ey: Integer; const ax0, ay0, ax1, ay1: Integer; tagmask: Integer=-1): ITP;
 var

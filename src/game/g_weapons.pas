@@ -1467,9 +1467,8 @@ var
   {$IF DEFINED(D2F_DEBUG)}
   stt: UInt64;
   {$ENDIF}
-  pmark: PoolMark;
-  hitcount: Integer;
-  pmon: PMonster;
+  mit: PMonster;
+  it: TMonsterGrid.Iter;
 begin
   (*
   if not gwep_debug_fast_trace then
@@ -1526,16 +1525,9 @@ begin
   // collect monsters
   //g_Mons_AlongLine(x, y, x2, y2, sqchecker);
 
-  pmark := framePool.mark();
-  hitcount := monsGrid.forEachAlongLine(x, y, x2, y2, -1);
-  pmon := PMonster(framePool.getPtr(pmark));
-  while (hitcount > 0) do
-  begin
-    sqchecker(pmon^);
-    Inc(pmon);
-    Dec(hitcount);
-  end;
-  framePool.release(pmark);
+  it := monsGrid.forEachAlongLine(x, y, x2, y2, -1);
+  for mit in it do sqchecker(mit^);
+  it.release();
 
   // here, we collected all monsters and players in `wgunHitHeap` and `wgunHitTime`
   // also, if `wallWasHit` is `true`, then `wallHitX` and `wallHitY` contains spark coords

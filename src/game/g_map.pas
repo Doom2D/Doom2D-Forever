@@ -612,9 +612,8 @@ end;
 function g_Map_HasAnyPanelAtPoint (x, y: Integer; panelType: Word): Boolean;
 var
   tagmask: Integer = 0;
-  pmark: PoolMark;
-  hitcount: Integer;
-  ppan: PPanel;
+  mwit: PPanel;
+  it: TPanelGrid.Iter;
 begin
   result := false;
 
@@ -628,39 +627,31 @@ begin
 
   if (tagmask = 0) then exit;// just in case
 
-  pmark := framePool.mark();
   if ((tagmask and GridTagLift) <> 0) then
   begin
     // slow
-    hitcount := mapGrid.forEachAtPoint(x, y, tagmask);
-    ppan := PPanel(framePool.getPtr(pmark));
-    while (hitcount > 0) do
-    begin
-      if (xxPanAtPointChecker(ppan^, PanelType)) then begin result := true; break; end;
-      Inc(ppan);
-      Dec(hitcount);
-    end;
+    it := mapGrid.forEachAtPoint(x, y, tagmask);
+    for mwit in it do if (xxPanAtPointChecker(mwit^, PanelType)) then begin result := true; break; end;
   end
   else
   begin
     // fast
-    result := (mapGrid.forEachAtPoint(x, y, tagmask, false, true) <> 0); // firsthit
+    it := mapGrid.forEachAtPoint(x, y, tagmask, false, true);
+    result := (it.length <> 0); // firsthit
   end;
-  framePool.release(pmark);
+  it.release();
 end;
 
 
 function g_Map_PanelAtPoint (x, y: Integer; tagmask: Integer=-1): TPanel;
 var
-  pmark: PoolMark;
-  hitcount: Integer;
+  it: TPanelGrid.Iter;
 begin
   result := nil;
   if (tagmask = 0) then exit;
-  pmark := framePool.mark();
-  hitcount := mapGrid.forEachAtPoint(x, y, tagmask, false, true); // firsthit
-  if (hitcount <> 0) then result := PPanel(framePool.getPtr(pmark))^;
-  framePool.release(pmark);
+  it := mapGrid.forEachAtPoint(x, y, tagmask, false, true); // firsthit
+  if (it.length <> 0) then result := it.first^;
+  it.release();
 end;
 
 
@@ -2625,43 +2616,25 @@ end;
 // new algo
 procedure g_Map_CollectDrawPanels (x0, y0, wdt, hgt: Integer);
 var
-  pmark: PoolMark;
-  phit: PPanel;
-  hitcount: Integer;
+  mwit: PPanel;
+  it: TPanelGrid.Iter;
 begin
   dplClear();
-  pmark := framePool.mark();
-  hitcount := mapGrid.forEachInAABB(x0, y0, wdt, hgt, GridDrawableMask);
-  if (hitcount = 0) then exit;
-  phit := PPanel(framePool.getPtr(pmark));
-  while (hitcount > 0) do
-  begin
-    if (((phit^.tag and GridTagDoor) <> 0) = phit^.Door) then gDrawPanelList.insert(phit^);
-    Inc(phit);
-    Dec(hitcount);
-  end;
-  framePool.release(pmark);
+  it := mapGrid.forEachInAABB(x0, y0, wdt, hgt, GridDrawableMask);
+  for mwit in it do if (((mwit^.tag and GridTagDoor) <> 0) = mwit^.Door) then gDrawPanelList.insert(mwit^);
+  it.release();
   // list will be rendered in `g_game.DrawPlayer()`
 end;
 
 
 procedure g_Map_DrawPanelShadowVolumes (lightX: Integer; lightY: Integer; radius: Integer);
 var
-  pmark: PoolMark;
-  phit: PPanel;
-  hitcount: Integer;
+  mwit: PPanel;
+  it: TPanelGrid.Iter;
 begin
-  pmark := framePool.mark();
-  hitcount := mapGrid.forEachInAABB(lightX-radius, lightY-radius, radius*2, radius*2, (GridTagWall or GridTagDoor));
-  if (hitcount = 0) then exit;
-  phit := PPanel(framePool.getPtr(pmark));
-  while (hitcount > 0) do
-  begin
-    phit^.DrawShadowVolume(lightX, lightY, radius);
-    Inc(phit);
-    Dec(hitcount);
-  end;
-  framePool.release(pmark);
+  it := mapGrid.forEachInAABB(lightX-radius, lightY-radius, radius*2, radius*2, (GridTagWall or GridTagDoor));
+  for mwit in it do mwit^.DrawShadowVolume(lightX, lightY, radius);
+  it.release();
 end;
 
 
@@ -2862,9 +2835,8 @@ const
 
 var
   tagmask: Integer = 0;
-  pmark: PoolMark;
-  phit: PPanel;
-  hitcount: Integer;
+  mwit: PPanel;
+  it: TPanelGrid.Iter;
   pan: TPanel;
 begin
   result := false;
@@ -2881,15 +2853,13 @@ begin
   if (profMapCollision <> nil) then profMapCollision.sectionBeginAccum('*solids');
   if gdbg_map_use_accel_coldet then
   begin
-    pmark := framePool.mark();
     if ((tagmask and SlowMask) <> 0) then
     begin
       // slow
-      hitcount := mapGrid.forEachInAABB(X, Y, Width, Height, tagmask);
-      phit := PPanel(framePool.getPtr(pmark));
-      while (hitcount > 0) do
+      it := mapGrid.forEachInAABB(X, Y, Width, Height, tagmask);
+      for mwit in it do
       begin
-        pan := phit^;
+        pan := mwit^;
         if ((pan.tag and GridTagLift) <> 0) then
         begin
           result :=
@@ -2909,17 +2879,15 @@ begin
           result := true; // i found her!
         end;
         if (result) then break;
-        Inc(phit);
-        Dec(hitcount);
       end;
     end
     else
     begin
       // fast
-      hitcount := mapGrid.forEachInAABB(X, Y, Width, Height, tagmask, false, true); // return first hit
-      result := (hitcount > 0);
+      it := mapGrid.forEachInAABB(X, Y, Width, Height, tagmask, false, true); // return first hit
+      result := (it.length > 0);
     end;
-    framePool.release(pmark);
+    it.release();
   end
   else
   begin
@@ -2955,27 +2923,16 @@ end;
 function g_Map_CollideLiquid_Texture(X, Y: Integer; Width, Height: Word): DWORD;
 var
   cctype: Integer = 3; // priority: 0: water was hit, 1: acid1 was hit, 2: acid2 was hit; 3: nothing was hit
-  pmark: PoolMark;
-  phit: PPanel;
-  hitcount: Integer;
-  pan: TPanel;
+  mwit: PPanel;
+  it: TPanelGrid.Iter;
 begin
   if (profMapCollision <> nil) then profMapCollision.sectionBeginAccum('liquids');
   if gdbg_map_use_accel_coldet then
   begin
     result := LongWord(TEXTURE_NONE);
-    pmark := framePool.mark();
-    hitcount := mapGrid.forEachInAABB(X, Y, Width, Height, (GridTagWater or GridTagAcid1 or GridTagAcid2));
-    if (hitcount = 0) then exit;
-    phit := PPanel(framePool.getPtr(pmark));
-    while (hitcount > 0) do
-    begin
-      pan := phit^;
-      Inc(phit);
-      Dec(hitcount);
-      if (liquidChecker(pan, result, cctype)) then break;
-    end;
-    framePool.release(pmark);
+    it := mapGrid.forEachInAABB(X, Y, Width, Height, (GridTagWater or GridTagAcid1 or GridTagAcid2));
+    for mwit in it do if (liquidChecker(mwit^, result, cctype)) then break;
+    it.release();
   end
   else
   begin
