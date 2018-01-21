@@ -176,6 +176,7 @@ type
     FSavedState: TPlayerSavedState;
 
     FModel:     TPlayerModel;
+    FPunchAnim: TAnimation;
     FActionPrior:    Byte;
     FActionAnim:     Byte;
     FActionForce:    Boolean;
@@ -213,6 +214,7 @@ type
     procedure SetAction(Action: Byte; Force: Boolean = False);
     procedure OnDamage(Angle: SmallInt); virtual;
     function firediry(): Integer;
+    procedure DoPunch();
 
     procedure Run(Direction: TDirection);
     procedure NextWeapon();
@@ -2246,6 +2248,8 @@ begin
   FJetSoundOn.Free();
   FJetSoundOff.Free();
   FModel.Free();
+  if FPunchAnim <> nil then
+    FPunchAnim.Free();
 
   inherited;
 end;
@@ -2336,9 +2340,19 @@ var
   ID: DWORD;
   w, h: Word;
   dr: Boolean;
+  Mirror: TMirrorType;
 begin
   if FAlive then
   begin
+    if Direction = TDirection.D_RIGHT then
+      Mirror := TMirrorType.None
+    else
+      Mirror := TMirrorType.Horizontal;
+
+    if FPunchAnim <> nil then
+      FPunchAnim.Draw(FObj.X+IfThen(Direction = TDirection.D_LEFT, 15-FObj.Rect.X, FObj.Rect.X-15),
+                      FObj.Y+FObj.Rect.Y-11, Mirror);
+
     if (FMegaRulez[MR_INVUL] > gTime) and (gPlayerDrawn <> Self) then
       if g_Texture_Get('TEXTURE_PLAYER_INVULPENTA', ID) then
       begin
@@ -2773,6 +2787,17 @@ begin
   e_DrawFillQuad(0, 0, gPlayerScreenSize.X-1, gPlayerScreenSize.Y-1, 150, 200, 150, 255-h*50);
 end;
 
+procedure TPlayer.DoPunch();
+var
+  id: DWORD;
+begin
+  if FPunchAnim = nil then begin
+    g_Frames_Get(id, 'FRAMES_PUNCH');
+    FPunchAnim := TAnimation.Create(id, False, 1);
+  end else
+    FPunchAnim.reset();
+end;
+
 procedure TPlayer.Fire();
 var
   f, DidFire: Boolean;
@@ -2815,6 +2840,8 @@ begin
         locobj.Vel.Y := (yd-wy) div 2;
         locobj.Accel.X := xd-wx;
         locobj.Accel.y := yd-wy;
+
+        DoPunch();
 
         if g_Weapon_Hit(@locobj, 50, FUID, HIT_SOME) <> 0 then
           g_Sound_PlayExAt('SOUND_WEAPON_HITBERSERK', FObj.X, FObj.Y)
@@ -4743,6 +4770,9 @@ begin
       FLoss := 0;
     end;
 
+  if FAlive and (FPunchAnim <> nil) then
+    FPunchAnim.Update();
+
   if FAlive and (gFly or FJetpack) then
     FlySmoke();
 
@@ -5267,6 +5297,8 @@ begin
         locobj.Vel.Y := (yd-wy) div 2;
         locobj.Accel.X := xd-wx;
         locobj.Accel.y := yd-wy;
+
+        DoPunch();
 
         if g_Weapon_Hit(@locobj, 50, FUID, HIT_SOME) <> 0 then
           g_Sound_PlayExAt('SOUND_WEAPON_HITBERSERK', FObj.X, FObj.Y)

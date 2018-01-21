@@ -2164,6 +2164,7 @@ begin
   end;
 
   g_Frames_CreateWAD(nil, 'FRAMES_TELEPORT', GameWAD+':TEXTURES\TELEPORT', 64, 64, 10, False);
+  g_Frames_CreateWAD(nil, 'FRAMES_PUNCH', GameWAD+':TEXTURES\PUNCH', 64, 64, 4, False);
   g_Sound_CreateWADEx('SOUND_GAME_TELEPORT', GameWAD+':SOUNDS\TELEPORT');
   g_Sound_CreateWADEx('SOUND_GAME_NOTELEPORT', GameWAD+':SOUNDS\NOTELEPORT');
   g_Sound_CreateWADEx('SOUND_GAME_DOOROPEN', GameWAD+':SOUNDS\DOOROPEN');
@@ -2240,6 +2241,7 @@ begin
   g_Texture_Delete('TEXTURE_PLAYER_TALKBUBBLE');
   g_Texture_Delete('TEXTURE_PLAYER_INVULPENTA');
   g_Frames_DeleteByName('FRAMES_TELEPORT');
+  g_Frames_DeleteByName('FRAMES_PUNCH');
   g_Sound_Delete('SOUND_GAME_TELEPORT');
   g_Sound_Delete('SOUND_GAME_NOTELEPORT');
   g_Sound_Delete('SOUND_GAME_DOOROPEN');
