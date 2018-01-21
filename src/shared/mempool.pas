@@ -63,6 +63,7 @@ type
 type
   PoolMark = Integer;
 
+  PPoolMarkRelease = ^TPoolMarkRelease;
   TPoolMarkRelease = record
   private
     mMemory: Pointer;
@@ -101,14 +102,14 @@ type
     type MyType = specialize PoolIter<T>;
 
   private
+    mPool: PPoolMarkRelease;
     mMark: PoolMark;
     mCount: Integer;
     mCurrent: Integer;
     mFinished: Boolean;
 
   public
-    constructor Create (dummy: Boolean); // idiotic FPC doesn't support arg-less ctors for rectord
-    procedure startIt (); inline; // automatically called by ctor; does NO checks!
+    constructor Create (var apool: TPoolMarkRelease); // idiotic FPC doesn't support arg-less ctors for rectord
     procedure finishIt (); inline; // sets count
 
     procedure rewind (); inline;
@@ -234,15 +235,10 @@ end;
 
 
 // ////////////////////////////////////////////////////////////////////////// //
-constructor PoolIter.Create (dummy: Boolean);
+constructor PoolIter.Create (var apool: TPoolMarkRelease);
 begin
-  startIt();
-end;
-
-
-procedure PoolIter.startIt (); inline; // automatically called by ctor; does NO checks!
-begin
-  mMark := framePool.mark();
+  mPool := @apool;
+  mMark := mPool^.mark();
   mCount := 0;
   mCurrent := -1;
   mFinished := false;
@@ -252,16 +248,16 @@ end;
 procedure PoolIter.finishIt (); inline; // sets count
 begin
   if (mFinished) then raise Exception.Create('double fatality');
-  if (mMark = -1) then raise Exception.Create('void fatality');
+  if (mPool = nil) then raise Exception.Create('void fatality');
   mFinished := true;
-  mCount := Integer(PtrUInt(framePool.curPtr)-PtrUInt(framePool.getPtr(mMark))) div Integer(sizeof(T));
+  mCount := Integer(PtrUInt(mPool^.curPtr)-PtrUInt(mPool^.getPtr(mMark))) div Integer(sizeof(T));
   if (mCount < 0) then raise Exception.Create('wutafu?');
 end;
 
 
 procedure PoolIter.rewind (); inline;
 begin
-  if (mMark = -1) then raise Exception.Create('void rewind');
+  if (mPool = nil) then raise Exception.Create('void rewind');
   mCurrent := -1;
 end;
 
@@ -275,9 +271,9 @@ end;
 
 procedure PoolIter.release (); inline; // reset pool
 begin
-  if (mMark = -1) then raise Exception.Create('double release');
-  framePool.release(mMark);
-  mMark := -1;
+  if (mPool = nil) then raise Exception.Create('double release');
+  mPool^.release(mMark);
+  mPool := nil;
   mCount := 0;
   mCurrent := -1;
   mFinished := false;
@@ -286,7 +282,7 @@ end;
 
 function PoolIter.moveNext (): Boolean; inline;
 begin
-  if (mMark = -1) then raise Exception.Create('void moveNext()');
+  if (mPool = nil) then raise Exception.Create('void moveNext()');
   if (not mFinished) then raise Exception.Create('moveNext() on unfinished');
   Inc(mCurrent);
   result := (mCurrent < mCount);
@@ -295,8 +291,9 @@ end;
 
 function PoolIter.getCurrent (): Ptr; inline;
 begin
+  if (mPool = nil) then raise Exception.Create('getCurrent() on nothing');
   if (mCurrent < 0) or (mCurrent >= mCount) then raise Exception.Create('getCurrent() range error');
-  result := Ptr(framePool.getPtr(mMark+mCurrent*Integer(sizeof(T))));
+  result := Ptr(mPool^.getPtr(mMark+mCurrent*Integer(sizeof(T))));
 end;
 
 
@@ -308,9 +305,9 @@ end;
 
 function PoolIter.first (): Ptr; inline;
 begin
-  if (mMark = -1) then raise Exception.Create('void moveNext()');
+  if (mPool = nil) then raise Exception.Create('void moveNext()');
   if (not mFinished) then raise Exception.Create('moveNext() on unfinished');
-  result := Ptr(framePool.getPtr(mMark));
+  result := Ptr(mPool^.getPtr(mMark));
 end;
 
 

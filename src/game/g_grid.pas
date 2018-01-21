@@ -704,7 +704,7 @@ var
   cc: PGridCell;
   presobj: PGridCellCoord;
 begin
-  result := CellCoordIter.Create(true);
+  result := CellCoordIter.Create(framePool);
   if (body < 0) or (body > High(mProxies)) then begin result.finishIt(); exit; end;
   for g := 0 to High(mGrid) do
   begin
@@ -737,7 +737,7 @@ var
   cc: PGridCell;
   presobj: PITP;
 begin
-  result := Iter.Create(true);
+  result := Iter.Create(framePool);
   Dec(x, mMinX);
   Dec(y, mMinY);
   if (x < 0) or (y < 0) or (x >= mWidth*mTileSize) or (y > mHeight*mTileSize) then begin result.finishIt(); exit; end;
@@ -1346,7 +1346,7 @@ var
   ptag: Integer;
   presobj: PITP;
 begin
-  result := Iter.Create(true);
+  result := Iter.Create(framePool);
   tagmask := tagmask and TagFullMask;
   if (tagmask = 0) then begin result.finishIt(); exit; end;
 
@@ -1438,7 +1438,7 @@ begin
     exit;
   end;
 
-  result := Iter.Create(true);
+  result := Iter.Create(framePool);
   if (w < 1) or (h < 1) then begin result.finishIt(); exit; end;
 
   tagmask := tagmask and TagFullMask;
@@ -1533,7 +1533,7 @@ var
   presobj: PITP;
 begin
   log := false;
-  result := Iter.Create(true);
+  result := Iter.Create(framePool);
   tagmask := tagmask and TagFullMask;
   if (tagmask = 0) then begin result.finishIt(); exit; end;
 
