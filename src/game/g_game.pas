@@ -313,6 +313,8 @@ var
   gUseChatSounds: Boolean = True;
   gChatSounds: Array of TChatSound;
 
+  g_dbg_ignore_bounds: Boolean = false;
+
   // move button values:
   // bits 0-1: l/r state:
   //   0: neither left, nor right pressed
@@ -3250,7 +3252,7 @@ begin
   px := p.GameX + PLAYER_RECT_CX;
   py := p.GameY + PLAYER_RECT_CY+p.Obj.slopeUpLeft;
 
-  if (g_dbg_scale = 1.0) then
+  if (g_dbg_scale = 1.0) and (not g_dbg_ignore_bounds) then
   begin
     if (px > (gPlayerScreenSize.X div 2)) then a := -px+(gPlayerScreenSize.X div 2) else a := 0;
     if (py > (gPlayerScreenSize.Y div 2)) then b := -py+(gPlayerScreenSize.Y div 2) else b := 0;
@@ -3328,6 +3330,13 @@ begin
   //conwritefln('OLD: (%s,%s)-(%s,%s)', [sX, sY, sWidth, sHeight]);
   fixViewportForScale();
   //conwritefln('     (%s,%s)-(%s,%s)', [sX, sY, sWidth, sHeight]);
+  if (g_dbg_scale <> 1.0) and (not g_dbg_ignore_bounds) then
+  begin
+    if (sX+sWidth > gMapInfo.Width) then sX := gMapInfo.Width-sWidth;
+    if (sY+sHeight > gMapInfo.Height) then sY := gMapInfo.Height-sHeight;
+    if (sX < 0) then sX := 0;
+    if (sY < 0) then sY := 0;
+  end;
   p.viewPortX := sX;
   p.viewPortY := sY;
   p.viewPortW := sWidth;
@@ -7526,7 +7535,9 @@ begin
 
   conRegVar('dbg_holmes', @g_holmes_enabled, 'enable/disable Holmes', 'Holmes', true);
 
-  conRegVar('dbg_scale', @g_dbg_scale, 0.01, 100.0, 'experimental deBUG scale mode', '',  false);
+  conRegVar('dbg_ignore_level_bounds', @g_dbg_ignore_bounds, 'ignore level bounds', '',  false);
+
+  conRegVar('r_scale', @g_dbg_scale, 0.01, 100.0, 'render scale', '',  false);
 
   conRegVar('light_enabled', @gwin_k8_enable_light_experiments, 'enable/disable dynamic lighting', 'lighting');
   conRegVar('light_player_halo', @g_playerLight, 'enable/disable player halo', 'player light halo');
