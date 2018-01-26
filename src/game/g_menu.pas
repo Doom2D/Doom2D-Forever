@@ -44,7 +44,7 @@ implementation
 uses
   g_gui, g_textures, e_graphics, g_main, g_window, g_game, g_map,
   g_basic, g_console, g_sound, g_gfx, g_player, g_options, g_weapons,
-  e_log, SysUtils, CONFIG, g_playermodel, DateUtils,
+  e_log, SysUtils, CONFIG, g_playermodel, DateUtils, sdl2,
   MAPDEF, Math, g_saveload,
   e_texture, GL, GLExt, g_language,
   g_net, g_netmsg, g_netmaster, g_items, e_input,
@@ -106,6 +106,8 @@ procedure ProcApplyOptions();
 var
   menu: TGUIMenu;
   i: Integer;
+  ovs: Boolean;
+  v: Byte;
 begin
   menu := TGUIMenu(g_GUI_GetWindow('OptionsVideoMenu').GetControl('mOptionsVideoMenu'));
 
@@ -113,7 +115,18 @@ begin
     gBPP := 16
   else
     gBPP := 32;
+
+  ovs := gVSync;
   gVSync := TGUISwitch(menu.GetControl('swVSync')).ItemIndex = 0;
+  {$IF not DEFINED(HEADLESS)}
+  if (ovs <> gVSync) then
+  begin
+    if (gVSync) then v := 1 else v := 0;
+    if (SDL_GL_SetSwapInterval(v) <> 0) then writeln('oops; can''t change vsync option, restart required')
+    else writeln('vsync changed');
+  end;
+  {$ENDIF}
+
   gTextureFilter := TGUISwitch(menu.GetControl('swTextureFilter')).ItemIndex = 0;
   glLegacyNPOT := not (TGUISwitch(menu.GetControl('swLegacyNPOT')).ItemIndex = 0);
 
