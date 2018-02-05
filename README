@@ -19,11 +19,13 @@ cd src/game
 fpc -O3 -Fi../lib/vampimg -Fi../lib/vampimg/JpegLib -Fi../lib/vampimg/ZLib -Fu../lib/vampimg -Fu../lib/vampimg/JpegLib -Fu../lib/vampimg/ZLib -FE../../bin -FU../../tmp Doom2DF.lpr
 
 If you want SDL_mixer instead of FMOD, add -dUSE_MIXER.
+If you want the server to be able to forward ports via UPNP, add -dUSE_MINIUPNPC.
 To build a headless (no video/audio, for dedicated servers) executable, add -dHEADLESS.
 Replace -O3 with -g -gl to enable debugging features. Run the game with --gdb when using a debugger to
 prevent it from eating exceptions.
 
-Windows binaries will require the appropriate DLLs (SDL2.dll, SDL2_mixer.dll or FMODEx.dll, ENet.dll).
+Windows binaries will require the appropriate DLLs (SDL2.dll, SDL2_mixer.dll or FMODEx.dll, ENet.dll, miniupnpc.dll),
+unless you choose to static link them (see below).
 
 
 Static Linking
@@ -35,8 +37,9 @@ It is now possible to link windoze LibJIT and ENet as static libs.
 
 First, you need to clone ( http://repo.or.cz/d2df-binlib.git ) (repo with prebuilt windoze libs).
 Then, you can use:
-  -dLIBJIT_WINDOZE_STATIC  -- static LibJIT
-  -dLIBENET_WINDOZE_STATIC -- static ENet
+  -dLIBJIT_WINDOZE_STATIC       -- static LibJIT
+  -dLIBENET_WINDOZE_STATIC      -- static ENet
+  -dLIBMINIUPNPC_WINDOZE_STATIC -- static MiniUPNPC
 
 Don't forget to specify lib*.a location with -Fi<...>
 

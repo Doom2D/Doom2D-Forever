@@ -38,7 +38,9 @@ uses
   math,
   GL,
   GLExt,
+{$IFDEF USE_MINIUPNPC}
   miniupnpc in '../lib/miniupnpc/miniupnpc.pas',
+{$ENDIF}
   SDL2 in '../lib/sdl2/sdl2.pas',
 {$IFDEF USE_SDLMIXER}
   SDL2_mixer in '../lib/sdl2/SDL2_mixer.pas',

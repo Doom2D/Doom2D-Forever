@@ -19,7 +19,7 @@ unit g_net;
 interface
 
 uses
-  e_log, e_msg, ENet, miniupnpc, Classes, MAPDEF;
+  e_log, e_msg, ENet, Classes, MAPDEF{$IFDEF USE_MINIUPNPC}, miniupnpc;{$ELSE};{$ENDIF}
 
 const
   NET_PROTOCOL_VER = 173;
@@ -141,10 +141,12 @@ var
   NetGotEverything: Boolean = False;
   NetGotKeys:       Boolean = False;
 
+{$IFDEF USE_MINIUPNPC}
   NetPortForwarded: Word = 0;
   NetPongForwarded: Boolean = False;
   NetIGDControl: AnsiString;
   NetIGDService: TURLStr;
+{$ENDIF}
 
   NetDumpFile: TStream;
 
@@ -1111,6 +1113,7 @@ begin
 end;
 
 function g_Net_ForwardPorts(ForwardPongPort: Boolean = True): Boolean;
+{$IFDEF USE_MINIUPNPC}
 var
   DevList: PUPNPDev;
   Urls: TUPNPUrls;
@@ -1203,8 +1206,14 @@ begin
   FreeUPNPUrls(@Urls);
   Result := True;
 end;
+{$ELSE}
+begin
+  Result := False;
+end;
+{$ENDIF}
 
 procedure g_Net_UnforwardPorts();
+{$IFDEF USE_MINIUPNPC}
 var
   I: Integer;
   StrPort: AnsiString;
@@ -1233,6 +1242,10 @@ begin
 
   NetPortForwarded := 0;
 end;
+{$ELSE}
+begin
+end;
+{$ENDIF}
 
 initialization
 
