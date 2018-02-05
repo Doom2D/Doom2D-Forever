@@ -699,7 +699,12 @@ var
   it: PItem;
   trig: Integer;
 begin
-  if not g_Items_ValidId(ID) then raise Exception.Create('g_Items_Remove: invalid item id');
+  if not g_Items_ValidId(ID) then
+  begin
+    //raise Exception.Create('g_Items_Remove: invalid item id');
+    writeln('g_Items_Remove: invalid item id: ', ID);
+    exit;
+  end;
 
   it := @ggItems[ID];
   if (it.arrIdx <> Integer(ID)) then raise Exception.Create('g_Items_Remove: arrIdx desync');
