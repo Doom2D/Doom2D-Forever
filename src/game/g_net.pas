@@ -146,8 +146,9 @@ var
   NetPongForwarded: Boolean = False;
   NetIGDControl: AnsiString;
   NetIGDService: TURLStr;
-  NetPortThread: TThreadID = 0;
 {$ENDIF}
+
+  NetPortThread: TThreadID = 0;
 
   NetDumpFile: TStream;
 
