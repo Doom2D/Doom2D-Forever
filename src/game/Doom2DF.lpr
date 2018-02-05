@@ -32,6 +32,9 @@ program Doom2DF;
 {$ENDIF}
 
 uses
+{$IFDEF UNIX}
+  cthreads,
+{$ENDIF}
   mempool in '../shared/mempool.pas',
   conbuf in '../shared/conbuf.pas',
   geom in '../shared/geom.pas',
