@@ -95,6 +95,7 @@ function upnpDiscover(
       minissdpdsock:pchar;
       sameport:integer;
 	  IPV6:integer;
+    ttl:shortint;
 	  error:pinteger):PUPNPDev; MINIUPNPC_IMPL;
 
 

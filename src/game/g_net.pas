@@ -1145,7 +1145,7 @@ begin
   NetPongForwarded := False;
   NetPortForwarded := 0;
 
-  DevList := upnpDiscover(1000, nil, nil, 0, 0, Addr(Err));
+  DevList := upnpDiscover(1000, nil, nil, 0, 0, 2, Addr(Err));
   if DevList = nil then
   begin
     conwritefln('port forwarding failed: upnpDiscover() failed: %d', [Err]);
