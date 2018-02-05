@@ -19,7 +19,7 @@ unit g_net;
 interface
 
 uses
-  e_log, e_msg, ENet, Classes, MAPDEF;
+  e_log, e_msg, ENet, miniupnpc, Classes, MAPDEF;
 
 const
   NET_PROTOCOL_VER = 173;
@@ -136,9 +136,15 @@ var
 
   NetForcePlayerUpdate: Boolean = False;
   NetPredictSelf:       Boolean = True;
-  NetGotKeys:           Boolean = False;
+  NetForwardPorts:      Boolean = False;
 
   NetGotEverything: Boolean = False;
+  NetGotKeys:       Boolean = False;
+
+  NetPortForwarded: Word = 0;
+  NetPongForwarded: Boolean = False;
+  NetIGDControl: AnsiString;
+  NetIGDService: TURLStr;
 
   NetDumpFile: TStream;
 
@@ -180,6 +186,9 @@ procedure g_Net_DumpStart();
 procedure g_Net_DumpSendBuffer();
 procedure g_Net_DumpRecvBuffer(Buf: penet_uint8; Len: LongWord);
 procedure g_Net_DumpEnd();
+
+function g_Net_ForwardPorts(ForwardPongPort: Boolean = True): Boolean;
+procedure g_Net_UnforwardPorts();
 
 implementation
 
@@ -305,6 +314,8 @@ begin
 
   NetMode := NET_NONE;
 
+  g_Net_UnforwardPorts();
+
   if NetDump then
     g_Net_DumpEnd();
 end;
@@ -347,6 +358,8 @@ begin
 
   NetAddr.host := IPAddr;
   NetAddr.port := Port;
+
+  if NetForwardPorts then g_Net_ForwardPorts();
 
   NetHost := enet_host_create(@NetAddr, NET_MAXCLIENTS, NET_CHANS, 0, 0);
 
@@ -1095,6 +1108,130 @@ procedure g_Net_DumpEnd();
 begin
   NetDumpFile.Free();
   NetDumpFile := nil;
+end;
+
+function g_Net_ForwardPorts(ForwardPongPort: Boolean = True): Boolean;
+var
+  DevList: PUPNPDev;
+  Urls: TUPNPUrls;
+  Data: TIGDDatas;
+  LanAddr: array [0..255] of Char;
+  ExtAddr: array [0..40] of Char;
+  StrPort: AnsiString;
+  Err, I: Integer;
+begin
+  Result := False;
+
+  if NetPortForwarded = NetPort then
+  begin
+    Result := True;
+    exit;
+  end;
+
+  conwriteln('trying to forward server ports...');
+
+  NetPongForwarded := False;
+  NetPortForwarded := 0;
+
+  DevList := upnpDiscover(2000, nil, nil, 0, 0, Addr(Err));
+  if DevList = nil then
+  begin
+    conwritefln('  upnpDiscover() failed: %d', [Err]);
+    exit;
+  end;
+
+  I := UPNP_GetValidIGD(DevList, @Urls, @Data, Addr(LanAddr[0]), 256);
+
+  if I = 0 then
+  begin
+    conwriteln('  could not find an IGD device on this LAN, aborting');
+    FreeUPNPDevList(DevList);
+    FreeUPNPUrls(@Urls);
+    exit;
+  end
+  else if I = 1 then
+    conwritefln('  found IGD @ %s', [Urls.controlURL])
+  else
+    conwritefln('  found some kind of UPNP device @ %s, maybe it''ll work', [Urls.controlURL]);
+
+  UPNP_GetExternalIPAddress(Urls.controlURL, Addr(data.first.servicetype[1]), Addr(ExtAddr[0]));
+  if ExtAddr[0] <> #0 then
+    conwritefln('  external IP address: %s', [Addr(ExtAddr[0])]);
+
+  StrPort := IntToStr(NetPort);
+  I := UPNP_AddPortMapping(
+    Urls.controlURL, Addr(data.first.servicetype[1]),
+    PChar(StrPort), PChar(StrPort), Addr(LanAddr[0]), PChar('D2DF'),
+    PChar('UDP'), nil, PChar('0')
+  );
+
+  if I <> 0 then
+  begin
+    conwritefln('  forwarding port %d failed: error %d', [NetPort, I]);
+    FreeUPNPDevList(DevList);
+    FreeUPNPUrls(@Urls);
+    exit;
+  end;
+
+  if ForwardPongPort then
+  begin
+    StrPort := IntToStr(NetPort + 1);
+    I := UPNP_AddPortMapping(
+      Urls.controlURL, Addr(data.first.servicetype[1]),
+      PChar(StrPort), PChar(StrPort), Addr(LanAddr[0]), PChar('D2DF'),
+      PChar('UDP'), nil, PChar('0')
+    );
+
+    if I <> 0 then
+    begin
+      conwritefln('  forwarding port %d failed: error %d', [NetPort + 1, I]);
+      NetPongForwarded := False;
+    end
+    else
+    begin
+      conwritefln('  forwarded port %d successfully', [NetPort + 1]);
+      NetPongForwarded := True;
+    end;
+  end;
+
+  conwritefln('  forwarded port %d successfully', [NetPort]);
+  NetIGDControl := AnsiString(Urls.controlURL);
+  NetIGDService := data.first.servicetype;
+  NetPortForwarded := NetPort;
+
+  FreeUPNPDevList(DevList);
+  FreeUPNPUrls(@Urls);
+  Result := True;
+end;
+
+procedure g_Net_UnforwardPorts();
+var
+  I: Integer;
+  StrPort: AnsiString;
+begin
+  if NetPortForwarded = 0 then Exit;
+
+  conwriteln('unforwarding ports...');
+
+  StrPort := IntToStr(NetPortForwarded);
+  I := UPNP_DeletePortMapping(
+    PChar(NetIGDControl), Addr(NetIGDService[1]),
+    PChar(StrPort), PChar('UDP'), nil
+  );
+  conwritefln('  port %d: %d', [NetPortForwarded, I]);
+
+  if NetPongForwarded then
+  begin
+    NetPongForwarded := False;
+    StrPort := IntToStr(NetPortForwarded + 1);
+    I := UPNP_DeletePortMapping(
+      PChar(NetIGDControl), Addr(NetIGDService[1]),
+      PChar(StrPort), PChar('UDP'), nil
+    );
+    conwritefln('  port %d: %d', [NetPortForwarded + 1, I]);
+  end;
+
+  NetPortForwarded := 0;
 end;
 
 initialization
