@@ -517,6 +517,7 @@ begin
   for i := 0 to High(ggItems) do
   begin
     if (ggItems[i].ItemType = ITEM_NONE) then continue;
+    if not ggItems[i].slotIsUsed then continue; // just in case
 
     with ggItems[i] do
     begin
@@ -634,6 +635,7 @@ begin
   for i := 0 to High(ggItems) do
   begin
     it := @ggItems[i];
+    if (not it.slotIsUsed) or (it.ItemType = ITEM_NONE) then continue; // just in case
     if not it.alive then continue;
     if (it.dropped <> dropflag) then continue;
 
@@ -701,9 +703,9 @@ var
 begin
   if not g_Items_ValidId(ID) then
   begin
-    //raise Exception.Create('g_Items_Remove: invalid item id');
-    writeln('g_Items_Remove: invalid item id: ', ID);
-    exit;
+    //writeln('g_Items_Remove: invalid item id: ', ID);
+    raise Exception.Create('g_Items_Remove: invalid item id');
+    //exit;
   end;
 
   it := @ggItems[ID];
@@ -724,7 +726,7 @@ var
 begin
   // Считаем количество существующих предметов
   count := 0;
-  for i := 0 to High(ggItems) do if (ggItems[i].ItemType <> ITEM_NONE) then Inc(count);
+  for i := 0 to High(ggItems) do if (ggItems[i].ItemType <> ITEM_NONE) and (ggItems[i].slotIsUsed) then Inc(count);
 
   // Количество предметов
   utils.writeInt(st, LongInt(count));
@@ -732,7 +734,7 @@ begin
 
   for i := 0 to High(ggItems) do
   begin
-    if (ggItems[i].ItemType <> ITEM_NONE) then
+    if (ggItems[i].ItemType <> ITEM_NONE) and (ggItems[i].slotIsUsed) then
     begin
       // Сигнатура предмета
       utils.writeSign(st, 'ITEM');
@@ -812,7 +814,8 @@ begin
   for i := 0 to High(ggItems) do
   begin
     it := @ggItems[i];
-    if it.Respawnable then
+    if not it.slotIsUsed then continue;
+    if it.Respawnable and (it.ItemType <> ITEM_NONE) then
     begin
       it.QuietRespawn := True;
       it.RespawnTime := 0;
@@ -837,7 +840,7 @@ begin
   begin
     for idx := High(ggItems) downto 0 do
     begin
-      if ggItems[idx].alive then
+      if ggItems[idx].alive and ggItems[idx].slotIsUsed then
       begin
         result := cb(@ggItems[idx]);
         if result then exit;
@@ -848,7 +851,7 @@ begin
   begin
     for idx := 0 to High(ggItems) do
     begin
-      if ggItems[idx].alive then
+      if ggItems[idx].alive and ggItems[idx].slotIsUsed then
       begin
         result := cb(@ggItems[idx]);
         if result then exit;
