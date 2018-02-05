@@ -146,6 +146,7 @@ var
   NetPongForwarded: Boolean = False;
   NetIGDControl: AnsiString;
   NetIGDService: TURLStr;
+  NetPortThread: TThreadID = 0;
 {$ENDIF}
 
   NetDumpFile: TStream;
@@ -316,6 +317,10 @@ begin
 
   NetMode := NET_NONE;
 
+  if NetPortThread <> 0 then
+    WaitForThreadTerminate(NetPortThread, 66666);
+
+  NetPortThread := 0;
   g_Net_UnforwardPorts();
 
   if NetDump then
@@ -333,6 +338,12 @@ end;
 
 { /// SERVER FUNCTIONS /// }
 
+
+function ForwardThread(Param: Pointer): PtrInt;
+begin
+  Result := 0;
+  if not g_Net_ForwardPorts() then Result := -1;
+end;
 
 function g_Net_Host(IPAddr: LongWord; Port: enet_uint16; MaxClients: Cardinal = 16): Boolean;
 begin
@@ -361,7 +372,7 @@ begin
   NetAddr.host := IPAddr;
   NetAddr.port := Port;
 
-  if NetForwardPorts then g_Net_ForwardPorts();
+  if NetForwardPorts then NetPortThread := BeginThread(ForwardThread);
 
   NetHost := enet_host_create(@NetAddr, NET_MAXCLIENTS, NET_CHANS, 0, 0);
 
@@ -1119,7 +1130,6 @@ var
   Urls: TUPNPUrls;
   Data: TIGDDatas;
   LanAddr: array [0..255] of Char;
-  ExtAddr: array [0..40] of Char;
   StrPort: AnsiString;
   Err, I: Integer;
 begin
@@ -1131,15 +1141,13 @@ begin
     exit;
   end;
 
-  conwriteln('trying to forward server ports...');
-
   NetPongForwarded := False;
   NetPortForwarded := 0;
 
   DevList := upnpDiscover(1000, nil, nil, 0, 0, Addr(Err));
   if DevList = nil then
   begin
-    conwritefln('  upnpDiscover() failed: %d', [Err]);
+    conwritefln('port forwarding failed: upnpDiscover() failed: %d', [Err]);
     exit;
   end;
 
@@ -1147,19 +1155,11 @@ begin
 
   if I = 0 then
   begin
-    conwriteln('  could not find an IGD device on this LAN, aborting');
+    conwriteln('port forwarding failed: could not find an IGD device on this LAN');
     FreeUPNPDevList(DevList);
     FreeUPNPUrls(@Urls);
     exit;
-  end
-  else if I = 1 then
-    conwritefln('  found IGD @ %s', [Urls.controlURL])
-  else
-    conwritefln('  found some kind of UPNP device @ %s, maybe it''ll work', [Urls.controlURL]);
-
-  UPNP_GetExternalIPAddress(Urls.controlURL, Addr(data.first.servicetype[1]), Addr(ExtAddr[0]));
-  if ExtAddr[0] <> #0 then
-    conwritefln('  external IP address: %s', [Addr(ExtAddr[0])]);
+  end;
 
   StrPort := IntToStr(NetPort);
   I := UPNP_AddPortMapping(
@@ -1170,7 +1170,7 @@ begin
 
   if I <> 0 then
   begin
-    conwritefln('  forwarding port %d failed: error %d', [NetPort, I]);
+    conwritefln('forwarding port %d failed: error %d', [NetPort, I]);
     FreeUPNPDevList(DevList);
     FreeUPNPUrls(@Urls);
     exit;
@@ -1187,17 +1187,17 @@ begin
 
     if I <> 0 then
     begin
-      conwritefln('  forwarding port %d failed: error %d', [NetPort + 1, I]);
+      conwritefln('forwarding port %d failed: error %d', [NetPort + 1, I]);
       NetPongForwarded := False;
     end
     else
     begin
-      conwritefln('  forwarded port %d successfully', [NetPort + 1]);
+      conwritefln('forwarded port %d successfully', [NetPort + 1]);
       NetPongForwarded := True;
     end;
   end;
 
-  conwritefln('  forwarded port %d successfully', [NetPort]);
+  conwritefln('forwarded port %d successfully', [NetPort]);
   NetIGDControl := AnsiString(Urls.controlURL);
   NetIGDService := data.first.servicetype;
   NetPortForwarded := NetPort;
