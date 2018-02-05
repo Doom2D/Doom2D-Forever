@@ -520,6 +520,8 @@ type
     I_LOAD_SEND_INFO,
     I_LOAD_WAIT_INFO,
     I_LOAD_DL_RES,
+    I_LOAD_HOST,
+    I_LOAD_PORTS,
 
     I_CREDITS_CAP_1,
     I_CREDITS_CAP_2,
@@ -1574,6 +1576,10 @@ const
                                        'Ожидание ответа ([ESC] - отменить)'),
     ('LOAD DL RES',                    'Downloading resources...',
                                        'Скачивание ресурсов...'),
+    ('LOAD HOST',                      'Initializing server...',
+                                       'Ининциализация сервера...'),
+    ('LOAD PORTS',                     'Forwarding ports via UPnP...',
+                                       'Проброс портов через UPnP...'),
 
     ('CREDITS CAP 1',                  'Doom 2D: Forever',
                                        'Doom 2D: Forever'),

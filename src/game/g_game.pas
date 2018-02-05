@@ -4206,6 +4206,10 @@ begin
     gPlayer2.Name := gPlayer2Settings.Name;
   end;
 
+  g_Game_SetLoadingText(_lc[I_LOAD_HOST], 0, False);
+  if NetForwardPorts then
+    g_Game_SetLoadingText(_lc[I_LOAD_PORTS], 0, False);
+
 // Стартуем сервер
   if not g_Net_Host(IPAddr, Port, NetMaxClients) then
   begin
