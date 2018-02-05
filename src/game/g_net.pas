@@ -1136,7 +1136,7 @@ begin
   NetPongForwarded := False;
   NetPortForwarded := 0;
 
-  DevList := upnpDiscover(2000, nil, nil, 0, 0, Addr(Err));
+  DevList := upnpDiscover(1000, nil, nil, 0, 0, Addr(Err));
   if DevList = nil then
   begin
     conwritefln('  upnpDiscover() failed: %d', [Err]);

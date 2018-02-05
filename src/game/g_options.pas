@@ -252,6 +252,7 @@ begin
   end;
 
   NetUseMaster := True;
+  NetForwardPorts := False;
   g_Net_Slist_Set('mpms.doom2d.org', 25665);
 end;
 
@@ -510,6 +511,7 @@ begin
   NetUpdateRate := Max(0, config.ReadInt('Server', 'UpdateInterval', 0));
   NetRelupdRate := Max(0, config.ReadInt('Server', 'ReliableUpdateInterval', 18));
   NetMasterRate := Max(1, config.ReadInt('Server', 'MasterSyncInterval', 60000));
+  NetForwardPorts := config.ReadBool('Server', 'ForwardPorts', False);
 
 // Клиент
   NetInterpLevel := Max(0, config.ReadInt('Client', 'InterpolationSteps', 2));
@@ -711,6 +713,7 @@ begin
   config.WriteBool('Server', 'RCON', NetAllowRCON);
   config.WriteStr ('Server', 'RCONPassword', NetRCONPassword);
   config.WriteBool('Server', 'SyncWithMaster', NetUseMaster);
+  config.WriteBool('Server', 'ForwardPorts', NetForwardPorts);
   config.WriteInt ('Server', 'UpdateInterval', NetUpdateRate);
   config.WriteInt ('Server', 'ReliableUpdateInterval', NetRelupdRate);
   config.WriteInt ('Server', 'MasterSyncInterval', NetMasterRate);
@@ -829,6 +832,7 @@ begin
   config.WriteInt ('Server', 'Port', NetPort);
   config.WriteInt ('Server', 'MaxClients', NetMaxClients);
   config.WriteBool('Server', 'SyncWithMaster', NetUseMaster);
+  config.WriteBool('Server', 'ForwardPorts', NetForwardPorts);
 
   config.SaveFile(FileName);
   config.Free();
