@@ -24,8 +24,6 @@ uses
 function SDLMain (): Integer;
 function GetTimer (): Int64;
 procedure ResetTimer ();
-function CreateGLWindow (Title: PChar): Boolean;
-procedure KillGLWindow ();
 procedure PushExitEvent ();
 function ProcessMessage (): Boolean;
 procedure ReDrawWindow ();
@@ -81,13 +79,13 @@ var
 {$ENDIF}
 
 
-procedure KillGLWindow ();
+procedure KillGLWindow (preserveGL: Boolean);
 begin
-  if (h_GL <> nil) then begin if (assigned(oglDeinitCB)) then oglDeinitCB(); end;
+  if (h_GL <> nil) and (not preserveGL) then begin if (assigned(oglDeinitCB)) then oglDeinitCB(); end;
   if (h_Wnd <> nil) then SDL_DestroyWindow(h_Wnd);
-  if (h_GL <> nil) then SDL_GL_DeleteContext(h_GL);
+  if (h_GL <> nil) and (not preserveGL) then SDL_GL_DeleteContext(h_GL);
   h_Wnd := nil;
-  h_GL := nil;
+  if (not preserveGL) then h_GL := nil;
 end;
 
 
@@ -96,6 +94,7 @@ function g_Window_SetDisplay (preserveGL: Boolean = false): Boolean;
 var
   mode, cmode: TSDL_DisplayMode;
   wFlags: LongWord = 0;
+  nw, nh: Integer;
 {$ENDIF}
 begin
 {$IF not DEFINED(HEADLESS)}
@@ -103,11 +102,9 @@ begin
 
   e_WriteLog('Setting display mode...', TMsgType.Notify);
 
-  wFlags := SDL_WINDOW_OPENGL or SDL_WINDOW_RESIZABLE;
-  if gFullscreen then wFlags := wFlags or SDL_WINDOW_FULLSCREEN;
-  if gWinMaximized then wFlags := wFlags or SDL_WINDOW_MAXIMIZED;
-
-  KillGLWindow();
+  wFlags := SDL_WINDOW_OPENGL; // or SDL_WINDOW_RESIZABLE;
+  if gFullscreen then wFlags := wFlags or SDL_WINDOW_FULLSCREEN or SDL_WINDOW_BORDERLESS else wFlags := wFlags or SDL_WINDOW_RESIZABLE;
+  //if gWinMaximized then wFlags := wFlags or SDL_WINDOW_MAXIMIZED;
 
   if gFullscreen then
   begin
@@ -118,24 +115,44 @@ begin
     mode.driverdata := nil;
     if (SDL_GetClosestDisplayMode(0, @mode, @cmode) = nil) then
     begin
+      e_WriteLog('SDL: cannot find display mode for '+IntToStr(gScreenWidth), TMsgType.Notify);
       gScreenWidth := 800;
       gScreenHeight := 600;
     end
     else
     begin
+      e_WriteLog('SDL: found display mode for '+IntToStr(gScreenWidth)+'x'+IntToStr(gScreenHeight)+': '+IntToStr(cmode.w)+'x'+IntToStr(cmode.h), TMsgType.Notify);
       gScreenWidth := cmode.w;
       gScreenHeight := cmode.h;
     end;
   end;
+
+  KillGLWindow(preserveGL);
 
   h_Wnd := SDL_CreateWindow(PChar(wTitle), gWinRealPosX, gWinRealPosY, gScreenWidth, gScreenHeight, wFlags);
   if (h_Wnd = nil) then exit;
 
   SDL_GL_MakeCurrent(h_Wnd, h_GL);
   SDL_ShowCursor(SDL_DISABLE);
+  if (gFullscreen) then
+  begin
+    nw := 0;
+    nh := 0;
+    SDL_GetWindowSize(h_Wnd, @nw, @nh);
+    if (nw > 128) and (nh > 128) then
+    begin
+      e_WriteLog('SDL: fullscreen window got size '+IntToStr(nw)+'x'+IntToStr(nh)+': '+IntToStr(gScreenWidth)+'x'+IntToStr(gScreenHeight), TMsgType.Notify);
+      gScreenWidth := nw;
+      gScreenHeight := nh;
+    end
+    else
+    begin
+      e_WriteLog('SDL: fullscreen window got invalid size: '+IntToStr(nw)+'x'+IntToStr(nh), TMsgType.Notify);
+    end;
+  end;
   fuiScrWdt := gScreenWidth;
   fuiScrHgt := gScreenHeight;
-  if (h_GL <> nil) then begin if (assigned(oglInitCB)) then oglInitCB(); end;
+  if (h_GL <> nil) and (not preserveGL) then begin if (assigned(oglInitCB)) then oglInitCB(); end;
 {$ENDIF}
 
   result := true;
@@ -204,6 +221,7 @@ begin
   if (gScreenWidth <> w) or (gScreenHeight <> h) then
   begin
     result := true;
+    preserve := true;
     gScreenWidth := w;
     gScreenHeight := h;
   end;
@@ -211,6 +229,7 @@ begin
   if (gFullscreen <> fullscreen) then
   begin
     result := true;
+    preserve := true;
     gFullscreen := fullscreen;
     preserve := true;
   end;
@@ -459,14 +478,14 @@ begin
 
   if not g_Window_SetDisplay() then
   begin
-    KillGLWindow();
+    KillGLWindow(false);
     e_WriteLog('Window creation error (resolution not supported?)', TMsgType.Fatal);
     exit;
   end;
 
 {$IF not DEFINED(HEADLESS)}
-  h_Gl := SDL_GL_CreateContext(h_Wnd);
-  if (h_Gl = nil) then exit;
+  h_GL := SDL_GL_CreateContext(h_Wnd);
+  if (h_GL = nil) then exit;
   fuiScrWdt := gScreenWidth;
   fuiScrHgt := gScreenHeight;
   if (assigned(oglInitCB)) then oglInitCB();
@@ -910,7 +929,7 @@ begin
   while not ProcessMessage() do begin end;
 
   Release();
-  KillGLWindow();
+  KillGLWindow(false);
 
   result := 0;
 end;

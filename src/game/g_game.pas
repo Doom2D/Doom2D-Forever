@@ -1986,6 +1986,7 @@ begin
       e_WriteLog('Changing resolution', TMsgType.Notify);
       g_Game_ChangeResolution(gRC_Width, gRC_Height, gRC_FullScreen, gRC_Maximized);
       gResolutionChange := False;
+      g_ActiveWindow := nil;
     end;
 
   // Нужно сменить язык:
@@ -3764,7 +3765,7 @@ begin
   g_PlayerModel_FreeData();
   g_Texture_DeleteAll();
   g_Frames_DeleteAll();
-  g_Menu_Free();
+  //g_Menu_Free(); //k8: this segfaults after resolution change; who cares?
 
   if NetInitDone then g_Net_Free;
 
