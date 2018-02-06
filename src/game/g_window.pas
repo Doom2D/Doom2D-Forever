@@ -68,6 +68,8 @@ var
   flag: Boolean;
 {$IF not DEFINED(HEADLESS)}
   wTitle: PChar = nil;
+  wasFullscreen: Boolean = true; // so we need to recreate the window
+  wMaximized: Boolean = false;
 {$ENDIF}
   wNeedTimeReset: Boolean = false;
   wMinimized: Boolean = false;
@@ -104,7 +106,7 @@ begin
 
   wFlags := SDL_WINDOW_OPENGL {or SDL_WINDOW_RESIZABLE};
   if gFullscreen then wFlags := wFlags or SDL_WINDOW_FULLSCREEN else wFlags := wFlags or SDL_WINDOW_RESIZABLE;
-  if (not gFullscreen) and gWinMaximized then wFlags := wFlags or SDL_WINDOW_MAXIMIZED;
+  if (not gFullscreen) and (not preserveGL) and gWinMaximized then wFlags := wFlags or SDL_WINDOW_MAXIMIZED else gWinMaximized := false;
 
   if gFullscreen then
   begin
@@ -127,27 +129,24 @@ begin
     end;
   end;
 
-  (*if (preserveGL) and (h_Wnd <> nil) {and (gFullscreen)} then
+  if (preserveGL) and (h_Wnd <> nil) and (not gFullscreen) and (not wasFullscreen) then
   begin
-    e_WriteLog('SDL: going fullscreen...', TMsgType.Notify);
     //SDL_SetWindowMaximumSize(h_Wnd, gScreenWidth, gScreenHeight);
-    SDL_SetWindowDisplayMode(h_Wnd, @cmode);
+    //SDL_SetWindowDisplayMode(h_Wnd, @cmode);
+    if (wMaximized) then SDL_RestoreWindow(h_Wnd);
+    wMaximized := false;
+    gWinMaximized := false;
     SDL_SetWindowSize(h_Wnd, gScreenWidth, gScreenHeight);
-    if (gFullscreen) then
-    begin
-      SDL_SetWindowFullscreen(h_Wnd, SDL_WINDOW_FULLSCREEN);
-    end
-    else
-    begin
-      SDL_SetWindowFullscreen(h_Wnd, 0);
-    end;
+    //SDL_SetWindowFullscreen(h_Wnd, SDL_WINDOW_FULLSCREEN);
+    //SDL_SetWindowFullscreen(h_Wnd, 0);
   end
-  else*)
+  else
   begin
     KillGLWindow(preserveGL);
     h_Wnd := SDL_CreateWindow(PChar(wTitle), gWinRealPosX, gWinRealPosY, gScreenWidth, gScreenHeight, wFlags);
     if (h_Wnd = nil) then exit;
   end;
+  wasFullscreen := gFullscreen;
 
   SDL_GL_MakeCurrent(h_Wnd, h_GL);
   SDL_ShowCursor(SDL_DISABLE);
@@ -325,6 +324,7 @@ begin
 
     SDL_WINDOWEVENT_MAXIMIZED:
     begin
+      wMaximized := true;
       if wMinimized then
       begin
         e_ResizeWindow(gScreenWidth, gScreenHeight);
@@ -344,6 +344,7 @@ begin
 
     SDL_WINDOWEVENT_RESTORED:
     begin
+      wMaximized := false;
       if wMinimized then
       begin
         e_ResizeWindow(gScreenWidth, gScreenHeight);
