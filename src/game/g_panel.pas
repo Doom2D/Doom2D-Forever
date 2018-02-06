@@ -957,22 +957,8 @@ end;
 
 procedure TPanel.SetTexture(ID: Integer; AnimLoop: Byte = 0);
 begin
-// Нет текстур:
-  if Length(FTextureIDs) = 0 then
-    FCurTexture := -1
-  else
-  // Только одна текстура:
-    if Length(FTextureIDs) = 1 then
-      begin
-        if (ID = 0) or (ID = -1) then
-          FCurTexture := ID;
-      end
-    else
-    // Больше одной текстуры:
-      begin
-        if (ID >= -1) and (ID <= High(FTextureIDs)) then
-          FCurTexture := ID;
-      end;
+  if (ID >= -1) and (ID < Length(FTextureIDs)) then
+    FCurTexture := ID;
 
 // Переключились на видимую аним. текстуру:
   if (FCurTexture >= 0) and FTextureIDs[FCurTexture].Anim then
