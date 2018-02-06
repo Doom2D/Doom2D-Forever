@@ -164,12 +164,12 @@ end;
 
 procedure TMsg.Write(V: ShortInt); overload;
 begin
-  WriteData(@V, 2);
+  WriteData(@V, 1);
 end;
 
 procedure TMsg.Write(V: SmallInt); overload;
 begin
-  WriteData(@V, 1);
+  WriteData(@V, 2);
 end;
 
 procedure TMsg.Write(V: LongInt); overload;
@@ -248,13 +248,13 @@ end;
 function TMsg.ReadShortInt(): ShortInt;
 begin
   Result := 0;
-  ReadData(@Result, 2);
+  ReadData(@Result, 1);
 end;
 
 function TMsg.ReadSmallInt(): SmallInt;
 begin
   Result := 0;
-  ReadData(@Result, 1);
+  ReadData(@Result, 2);
 end;
 
 function TMsg.ReadLongInt(): LongInt;
