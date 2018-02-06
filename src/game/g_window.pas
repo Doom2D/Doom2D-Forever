@@ -102,9 +102,9 @@ begin
 
   e_WriteLog('Setting display mode...', TMsgType.Notify);
 
-  wFlags := SDL_WINDOW_OPENGL; // or SDL_WINDOW_RESIZABLE;
-  if gFullscreen then wFlags := wFlags or SDL_WINDOW_FULLSCREEN or SDL_WINDOW_BORDERLESS else wFlags := wFlags or SDL_WINDOW_RESIZABLE;
-  //if gWinMaximized then wFlags := wFlags or SDL_WINDOW_MAXIMIZED;
+  wFlags := SDL_WINDOW_OPENGL {or SDL_WINDOW_RESIZABLE};
+  if gFullscreen then wFlags := wFlags or SDL_WINDOW_FULLSCREEN else wFlags := wFlags or SDL_WINDOW_RESIZABLE;
+  if (not gFullscreen) and gWinMaximized then wFlags := wFlags or SDL_WINDOW_MAXIMIZED;
 
   if gFullscreen then
   begin
@@ -127,10 +127,27 @@ begin
     end;
   end;
 
-  KillGLWindow(preserveGL);
-
-  h_Wnd := SDL_CreateWindow(PChar(wTitle), gWinRealPosX, gWinRealPosY, gScreenWidth, gScreenHeight, wFlags);
-  if (h_Wnd = nil) then exit;
+  (*if (preserveGL) and (h_Wnd <> nil) {and (gFullscreen)} then
+  begin
+    e_WriteLog('SDL: going fullscreen...', TMsgType.Notify);
+    //SDL_SetWindowMaximumSize(h_Wnd, gScreenWidth, gScreenHeight);
+    SDL_SetWindowDisplayMode(h_Wnd, @cmode);
+    SDL_SetWindowSize(h_Wnd, gScreenWidth, gScreenHeight);
+    if (gFullscreen) then
+    begin
+      SDL_SetWindowFullscreen(h_Wnd, SDL_WINDOW_FULLSCREEN);
+    end
+    else
+    begin
+      SDL_SetWindowFullscreen(h_Wnd, 0);
+    end;
+  end
+  else*)
+  begin
+    KillGLWindow(preserveGL);
+    h_Wnd := SDL_CreateWindow(PChar(wTitle), gWinRealPosX, gWinRealPosY, gScreenWidth, gScreenHeight, wFlags);
+    if (h_Wnd = nil) then exit;
+  end;
 
   SDL_GL_MakeCurrent(h_Wnd, h_GL);
   SDL_ShowCursor(SDL_DISABLE);
@@ -195,6 +212,7 @@ end;
 
 procedure ChangeWindowSize ();
 begin
+  e_LogWritefln('  ChangeWindowSize: (ws=%dx%d) (ss=%dx%d)', [gWinSizeX, gWinSizeY, gScreenWidth, gScreenHeight]);
   gWinSizeX := gScreenWidth;
   gWinSizeY := gScreenHeight;
 {$IF not DEFINED(HEADLESS)}
@@ -279,8 +297,20 @@ begin
 
     SDL_WINDOWEVENT_RESIZED:
     begin
-      gScreenWidth := ev.data1;
-      gScreenHeight := ev.data2;
+      e_LogWritefln('Resize: (os=%dx%d) (ns=%dx%d)', [gScreenWidth, gScreenHeight, Integer(ev.data1), Integer(ev.data2)]);
+      {if (gFullscreen) then
+      begin
+        e_LogWriteln('  fullscreen fix applied.');
+        if (gScreenWidth <> ev.data1) or (gScreenHeight <> ev.data2) then
+        begin
+          SDL_SetWindowSize(h_Wnd, gScreenWidth, gScreenHeight);
+        end;
+      end
+      else}
+      begin
+        gScreenWidth := ev.data1;
+        gScreenHeight := ev.data2;
+      end;
       ChangeWindowSize();
       SwapBuffers();
       if g_debug_WinMsgs then
@@ -301,7 +331,7 @@ begin
         wMinimized := false;
         wActivate := true;
       end;
-      if not gWinMaximized then
+      if (not gWinMaximized) and (not gFullscreen) then
       begin
         gWinMaximized := true;
         if g_debug_WinMsgs then
@@ -320,7 +350,7 @@ begin
         wMinimized := false;
         wActivate := true;
       end;
-      if gWinMaximized then gWinMaximized := false;
+      gWinMaximized := false;
       if g_debug_WinMsgs then
       begin
         g_Console_Add('Now restored');

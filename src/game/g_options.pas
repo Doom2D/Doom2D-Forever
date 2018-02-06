@@ -759,6 +759,7 @@ begin
       sW := gScreenWidth;
       sH := gScreenHeight;
     end;
+  e_LogWritefln('  (ws=%dx%d) (ss=%dx%d)', [gWinSizeX, gWinSizeY, gScreenWidth, gScreenHeight]);
 
   config.WriteInt('Video', 'ScreenWidth', sW);
   config.WriteInt('Video', 'ScreenHeight', sH);
