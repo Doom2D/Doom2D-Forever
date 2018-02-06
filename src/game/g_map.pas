@@ -1338,6 +1338,7 @@ end;
 function CreateTrigger (amapIdx: Integer; Trigger: TDynRecord; atpanid, atrigpanid: Integer): Integer;
 var
   _trigger: TTrigger;
+  tp: TPanel;
 begin
   result := -1;
   if g_Game_IsClient and not (Trigger.TriggerType in [TRIGGER_SOUND, TRIGGER_MUSIC]) then Exit;
@@ -1356,6 +1357,12 @@ begin
     ActivateType := Trigger.ActivateType;
     Keys := Trigger.Keys;
     trigPanelGUID := atrigpanid;
+    // HACK: used in TPanel.CanChangeTexture. maybe there's a better way?
+    if TexturePanelGUID <> -1 then
+    begin
+      tp := g_Map_PanelByGUID(TexturePanelGUID);
+      if (tp <> nil) then tp.hasTexTrigger := True;
+    end;
   end;
 
   result := Integer(g_Triggers_Create(_trigger, Trigger));

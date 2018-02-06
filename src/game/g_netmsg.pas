@@ -644,7 +644,7 @@ procedure MH_SEND_Everything(CreatePlayers: Boolean = False; ID: Integer = NET_E
   begin
     result := false; // don't stop
     MH_SEND_PanelState(pan.guid, ID); // anyway, to sync mplats
-    if (pan.GetTextureCount > 1) then MH_SEND_PanelTexture(pan.guid, pan.LastAnimLoop, ID);
+    if (pan.CanChangeTexture) then MH_SEND_PanelTexture(pan.guid, pan.LastAnimLoop, ID);
   end;
 
 var

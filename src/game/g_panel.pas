@@ -110,6 +110,7 @@ type
     tag:              Integer; // used in coldets and such; sorry; see g_map.GridTagXXX
     proxyId:          Integer; // proxy id in map grid (DO NOT USE!)
     mapId:            AnsiString; // taken directly from map file; dunno why it is here
+    hasTexTrigger:    Boolean; // HACK: true when there's a trigger than can change my texture
 
     constructor Create(PanelRec: TDynRecord;
                        AddTextures: TAddTextureArray;
@@ -125,6 +126,7 @@ type
     procedure   SetTexture(ID: Integer; AnimLoop: Byte = 0);
     function    GetTextureID(): Cardinal;
     function    GetTextureCount(): Integer;
+    function    CanChangeTexture(): Boolean;
 
     procedure   SaveState (st: TStream);
     procedure   LoadState (st: TStream);
@@ -259,6 +261,7 @@ begin
   Enabled := True;
   Door := False;
   LiftType := 0;
+  hasTexTrigger := False;
 
   case PanelType of
     PANEL_OPENDOOR: begin Enabled := False; Door := True; end;
@@ -1015,6 +1018,10 @@ begin
        Result := Result + 100;
 end;
 
+function TPanel.CanChangeTexture(): Boolean;
+begin
+  Result := (GetTextureCount() > 1) or hasTexTrigger;
+end;
 
 const
   PAN_SAVE_VERSION = 1;
