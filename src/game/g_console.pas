@@ -469,6 +469,13 @@ begin
       g_Console_Add('exec <script file>');
   end;
 
+  if (cmd = 'ver') or (cmd = 'version') then
+  begin
+    conwriteln('Doom 2D: Forever v. ' + GAME_VERSION);
+    conwritefln('Net protocol v. %d', [NET_PROTOCOL_VER]);
+    conwritefln('Build date: %s at %s', [GAME_BUILDDATE, GAME_BUILDTIME]);
+  end;
+
   if cmd = 'alias' then
   begin
     // alias [alias_name] [commands]
@@ -602,6 +609,8 @@ begin
   AddCommand('exec', ConsoleCommands);
   AddCommand('alias', ConsoleCommands);
   AddCommand('call', ConsoleCommands);
+  AddCommand('ver', ConsoleCommands);
+  AddCommand('version', ConsoleCommands);
 
   AddCommand('d_window', DebugCommands);
   AddCommand('d_sounds', DebugCommands);
