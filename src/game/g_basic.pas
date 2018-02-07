@@ -23,6 +23,8 @@ uses
 
 const
   GAME_VERSION  = '0.667';
+  GAME_BUILDDATE = {$I %DATE%};
+  GAME_BUILDTIME = {$I %TIME%};
   UID_GAME    = 1;
   UID_PLAYER  = 2;
   UID_MONSTER = 3;

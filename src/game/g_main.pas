@@ -39,7 +39,7 @@ implementation
 uses
   SDL2, GL, GLExt, wadreader, e_log, g_window,
   e_graphics, e_input, g_game, g_console, g_gui,
-  e_sound, g_options, g_sound, g_player,
+  e_sound, g_options, g_sound, g_player, g_basic,
   g_weapons, SysUtils, g_triggers, MAPDEF, g_map,
   g_menu, g_language, g_net, g_holmes,
   utils, conbuf, envvars, fui_wadread, fui_style,
@@ -65,6 +65,16 @@ begin
   GameWAD := DataDir + 'Game.wad';
 
   e_InitLog(GameDir + '/' + LOG_FILENAME, TWriteMode.WM_NEWFILE);
+
+  e_WriteLog(
+    'Doom 2D: Forever version ' + GAME_VERSION +
+    ' proto ' + IntToStr(NET_PROTOCOL_VER),
+    TMsgType.Notify
+  );
+  e_WriteLog(
+    'Build date: ' + GAME_BUILDDATE + ' ' + GAME_BUILDTIME,
+    TMsgType.Notify
+  );
 
   e_WriteLog('Read config file', TMsgType.Notify);
   g_Options_Read(GameDir + '/' + CONFIG_FILENAME);
