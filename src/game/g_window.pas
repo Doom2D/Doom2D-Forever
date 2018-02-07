@@ -105,7 +105,7 @@ begin
   e_WriteLog('Setting display mode...', TMsgType.Notify);
 
   wFlags := SDL_WINDOW_OPENGL {or SDL_WINDOW_RESIZABLE};
-  if gFullscreen then wFlags := wFlags or SDL_WINDOW_FULLSCREEN else wFlags := wFlags or SDL_WINDOW_RESIZABLE;
+  if gFullscreen then wFlags := wFlags {or SDL_WINDOW_FULLSCREEN} else wFlags := wFlags or SDL_WINDOW_RESIZABLE;
   if (not gFullscreen) and (not preserveGL) and gWinMaximized then wFlags := wFlags or SDL_WINDOW_MAXIMIZED else gWinMaximized := false;
 
   if gFullscreen then
@@ -144,6 +144,8 @@ begin
   begin
     KillGLWindow(preserveGL);
     h_Wnd := SDL_CreateWindow(PChar(wTitle), gWinRealPosX, gWinRealPosY, gScreenWidth, gScreenHeight, wFlags);
+    if gFullscreen then
+      SDL_SetWindowFullscreen(h_Wnd, SDL_WINDOW_FULLSCREEN);
     if (h_Wnd = nil) then exit;
   end;
   wasFullscreen := gFullscreen;
