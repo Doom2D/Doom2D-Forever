@@ -89,7 +89,7 @@ function g_SetFileTime(fileName: String; time: Integer): Boolean;
 procedure SortSArray(var S: SSArray);
 function b_Text_Format(S: string): string;
 function b_Text_Unformat(S: string): string;
-
+function b_Text_Wrap(S: string; LineLen: Integer): string;
 
 var
   gmon_dbg_los_enabled: Boolean = true;
@@ -1173,6 +1173,11 @@ begin
     end else
       Result := Result + S[I];
   end;
+end;
+
+function b_Text_Wrap(S: string; LineLen: Integer): string;
+begin
+  Result := WrapText(S, ''#10, [#10, ' ', '-'], LineLen);
 end;
 
 end.

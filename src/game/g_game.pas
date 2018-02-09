@@ -556,6 +556,7 @@ var
   EndingGameCounter: Byte = 0;
   MessageText: String;
   MessageTime: Word;
+  MessageLineLength: Integer = 80;
   MapList: SSArray = nil;
   MapIndex: Integer = -1;
   MegaWAD: record
@@ -6975,7 +6976,8 @@ end;
 
 procedure g_Game_Message(Msg: string; Time: Word);
 begin
-  MessageText := b_Text_Format(Msg);
+  MessageLineLength := (gScreenWidth - 204) div e_CharFont_GetMaxWidth(gMenuFont);
+  MessageText := b_Text_Wrap(b_Text_Format(Msg), MessageLineLength);
   MessageTime := Time;
 end;
 

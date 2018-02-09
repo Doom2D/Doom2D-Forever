@@ -1447,11 +1447,12 @@ end;
 procedure e_CharFont_GetSizeFmt(FontID: DWORD; Text: string; var w, h: Word);
 var
   a, lines, len: Integer;
-  h2, w2: Word;
+  h2, w2, tw, th: Word;
 begin
   w2 := 0;
-  w := 0;
-  h := 0;
+  h2 := 0;
+  tw := 0;
+  th := 0;
 
   if Text = '' then Exit;
   if e_CharFonts = nil then Exit;
@@ -1467,29 +1468,26 @@ begin
       if Text[a] = #10 then
       begin
         Inc(lines);
-        if w2 > w then
-        begin
-          w := w2;
-          w2 := 0;
-        end;
+        if w2 > tw then tw := w2;
+        w2 := 0;
         continue;
-      end
-      else if Text[a] in [#1, #2, #3, #4, #18, #19, #20, #21] then
-        continue;
+      end;
 
       with Chars[Ord(Text[a])] do
-      if TextureID <> -1 then
-      begin
-        w2 := w2 + Width + IfThen(a = len, 0, Space);
-        e_GetTextureSize(TextureID, nil, @h2);
-        if h2 > h then h := h2;
-      end;
+        if TextureID <> -1 then
+        begin
+          w2 := w2 + Width + IfThen(a = len, 0, Space);
+          e_GetTextureSize(TextureID, nil, @h2);
+          if h2 > th then th := h2;
+        end;
     end;
   end;
 
-  if w2 > w then
-    w := w2;
-  h := h * lines;
+  if w2 > tw then
+    tw := w2;
+
+  w := tw;
+  h := th * lines;
 end;
 
 function e_CharFont_GetMaxWidth(FontID: DWORD): Word;
