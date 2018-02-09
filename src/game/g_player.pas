@@ -4479,6 +4479,11 @@ begin
   FSpectatePlayer := -1;
   FSpawned := True;
 
+  if (gPlayer1 = nil) and (gLMSPID1 = FUID) then
+    gPlayer1 := self;
+  if (gPlayer2 = nil) and (gLMSPID2 = FUID) then
+    gPlayer2 := self;
+
   if g_Game_IsNet then
   begin
     MH_SEND_PlayerPos(True, FUID, NET_EVERYONE);
