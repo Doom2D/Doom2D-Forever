@@ -68,7 +68,7 @@
       </Item2>
       <SharedMatrixOptions Count="3">
         <Item1 ID="807313141795" Modes="Debug,Release" Value="-dUSE_FMOD"/>
-        <Item2 ID="016314037829" Value="-dUSE_MIXER"/>
+        <Item2 ID="016314037829" Value="-dUSE_SDLMIXER"/>
         <Item3 ID="493642144362" Value="-dHEADLESS"/>
       </SharedMatrixOptions>
     </BuildModes>

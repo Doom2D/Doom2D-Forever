@@ -18,7 +18,7 @@ Create the "tmp" and "bin" directories beforehand if they don't exist already. T
 cd src/game
 fpc -O3 -Fi../lib/vampimg -Fi../lib/vampimg/JpegLib -Fi../lib/vampimg/ZLib -Fu../lib/vampimg -Fu../lib/vampimg/JpegLib -Fu../lib/vampimg/ZLib -FE../../bin -FU../../tmp Doom2DF.lpr
 
-If you want SDL_mixer instead of FMOD, add -dUSE_MIXER.
+If you want SDL_mixer instead of FMOD, add -dUSE_SDLMIXER.
 If you want the server to be able to forward ports via UPNP, add -dUSE_MINIUPNPC.
 To build a headless (no video/audio, for dedicated servers) executable, add -dHEADLESS.
 Replace -O3 with -g -gl to enable debugging features. Run the game with --gdb when using a debugger to
