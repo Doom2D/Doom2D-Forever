@@ -69,10 +69,10 @@ var
 {$IF not DEFINED(HEADLESS)}
   wTitle: PChar = nil;
   wasFullscreen: Boolean = true; // so we need to recreate the window
-  wMaximized: Boolean = false;
 {$ENDIF}
   wNeedTimeReset: Boolean = false;
   wMinimized: Boolean = false;
+  wMaximized: Boolean = false;
   wLoadingProgress: Boolean = false;
   wLoadingQuit: Boolean = false;
 {$IFNDEF WINDOWS}
