@@ -153,6 +153,7 @@ begin
 
   SDL_GL_MakeCurrent(h_Wnd, h_GL);
   SDL_ShowCursor(SDL_DISABLE);
+  if (h_GL <> nil) then g_SetVSync(gVSync);
   if (gFullscreen) then
   begin
     nw := 0;
@@ -523,7 +524,8 @@ begin
   fuiScrWdt := gScreenWidth;
   fuiScrHgt := gScreenHeight;
   if (assigned(oglInitCB)) then oglInitCB();
-  g_SetVSync(gVSync);
+  SDL_GL_MakeCurrent(h_Wnd, h_GL);
+  if (h_GL <> nil) then g_SetVSync(gVSync);
 {$ENDIF}
 
   e_ResizeWindow(gScreenWidth, gScreenHeight);
