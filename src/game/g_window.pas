@@ -32,6 +32,7 @@ procedure Sleep (ms: LongWord);
 function GetDisplayModes (dbpp: LongWord; var selres: LongWord): SSArray;
 function g_Window_SetDisplay (preserveGL: Boolean=false): Boolean;
 function g_Window_SetSize (w, h: Word; fullscreen: Boolean): Boolean;
+procedure g_SetVSync (vsync: Boolean);
 
 procedure ProcessLoading (forceUpdate: Boolean=false);
 
@@ -522,6 +523,7 @@ begin
   fuiScrWdt := gScreenWidth;
   fuiScrHgt := gScreenHeight;
   if (assigned(oglInitCB)) then oglInitCB();
+  g_SetVSync(gVSync);
 {$ENDIF}
 
   e_ResizeWindow(gScreenWidth, gScreenHeight);
@@ -749,7 +751,7 @@ begin
 end;
 
 
-procedure InitOpenGL (vsync: Boolean);
+procedure g_SetVSync (vsync: Boolean);
 {$IF not DEFINED(HEADLESS)}
 var
   v: Byte;
@@ -757,6 +759,21 @@ var
 begin
 {$IF not DEFINED(HEADLESS)}
   if vsync then v := 1 else v := 0;
+  if (SDL_GL_SetSwapInterval(v) <> 0) then
+  begin
+    e_WriteLog('oops; can''t change vsync option, restart required', TMsgType.Warning);
+  end
+  else
+  begin
+    if vsync then e_WriteLog('VSync: ON', TMsgType.Notify) else e_WriteLog('VSync: OFF', TMsgType.Notify);
+  end;
+{$ENDIF}
+end;
+
+
+procedure InitOpenGL ();
+begin
+{$IF not DEFINED(HEADLESS)}
   SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
   SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
   SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 8);
@@ -765,7 +782,6 @@ begin
   SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 16);
   SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
   SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8); // lights; it is enough to have 1-bit stencil buffer for lighting, but...
-  SDL_GL_SetSwapInterval(v);
 {$ENDIF}
 end;
 
@@ -913,7 +929,7 @@ begin
   end;
 
   e_WriteLog('Initializing OpenGL', TMsgType.Notify);
-  InitOpenGL(gVSync);
+  InitOpenGL();
 
   e_WriteLog('Creating GL window', TMsgType.Notify);
   if not CreateGLWindow(PChar(Format('Doom 2D: Forever %s', [GAME_VERSION]))) then

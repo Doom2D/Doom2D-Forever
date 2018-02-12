@@ -107,7 +107,6 @@ var
   menu: TGUIMenu;
   i: Integer;
   ovs: Boolean;
-  v: Byte;
 begin
   menu := TGUIMenu(g_GUI_GetWindow('OptionsVideoMenu').GetControl('mOptionsVideoMenu'));
 
@@ -118,14 +117,7 @@ begin
 
   ovs := gVSync;
   gVSync := TGUISwitch(menu.GetControl('swVSync')).ItemIndex = 0;
-  {$IF not DEFINED(HEADLESS)}
-  if (ovs <> gVSync) then
-  begin
-    if (gVSync) then v := 1 else v := 0;
-    if (SDL_GL_SetSwapInterval(v) <> 0) then writeln('oops; can''t change vsync option, restart required')
-    else writeln('vsync changed');
-  end;
-  {$ENDIF}
+  if (ovs <> gVSync) then g_SetVSync(gVSync);
 
   gTextureFilter := TGUISwitch(menu.GetControl('swTextureFilter')).ItemIndex = 0;
   glLegacyNPOT := not (TGUISwitch(menu.GetControl('swLegacyNPOT')).ItemIndex = 0);
