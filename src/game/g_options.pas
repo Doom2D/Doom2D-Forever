@@ -293,12 +293,12 @@ begin
   gScreenHeight := config.ReadInt('Video', 'ScreenHeight', 600);
   if gScreenHeight < 480 then
     gScreenHeight := 480;
-  gWinRealPosX := config.ReadInt('Video', 'WinPosX', 0);
+  gWinRealPosX := config.ReadInt('Video', 'WinPosX', 60);
   if gWinRealPosX < 0 then
-    gWinRealPosX := 0;
-  gWinRealPosY := config.ReadInt('Video', 'WinPosY', 0);
+    gWinRealPosX := 60;
+  gWinRealPosY := config.ReadInt('Video', 'WinPosY', 60);
   if gWinRealPosY < 0 then
-    gWinRealPosY := 0;
+    gWinRealPosY := 60;
   gFullScreen := config.ReadBool('Video', 'Fullscreen', False);
   gWinMaximized := config.ReadBool('Video', 'Maximized', False);
   gBPP := config.ReadInt('Video', 'BPP', 32);
