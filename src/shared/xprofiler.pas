@@ -22,7 +22,7 @@ interface
 
 uses
   SysUtils,
-  {$IF DEFINED(LINUX)}
+  {$IF DEFINED(LINUX) OR DEFINED(ANDROID)}
     {$DEFINE STOPWATCH_IS_HERE}
     unixtype, linux
   {$ELSEIF DEFINED(WINDOWS)}

@@ -39,8 +39,12 @@ uses
   conbuf in '../shared/conbuf.pas',
   geom in '../shared/geom.pas',
   math,
+{$IFDEF USE_NANOGL}
+  nanoGL in '../lib/nanogl/nanoGL.pas',
+{$ELSE}
   GL,
   GLExt,
+{$ENDIF}
 {$IFDEF USE_MINIUPNPC}
   miniupnpc in '../lib/miniupnpc/miniupnpc.pas',
 {$ENDIF}

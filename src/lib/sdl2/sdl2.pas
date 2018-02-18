@@ -138,7 +138,7 @@ interface
   {$ENDIF}
 
   {$IF DEFINED(UNIX)}
-    {$IF NOT DEFINED(HAIKU)}
+    {$IF NOT DEFINED(HAIKU) AND NOT DEFINED(ANDROID)}
       uses
         X,
         XLib;

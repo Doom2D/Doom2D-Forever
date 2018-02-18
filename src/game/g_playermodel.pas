@@ -140,8 +140,13 @@ function  g_PlayerModel_GetGibs(ModelName: String; var Gibs: TGibsArray): Boolea
 implementation
 
 uses
+{$IFDEF USE_NANOGL}
+  nanoGL,
+{$ELSE}
+  GL, GLExt,
+{$ENDIF}
   g_main, g_sound, g_console, SysUtils, g_player, CONFIG,
-  GL, GLExt, e_sound, g_options, g_map, Math, e_log, wadreader;
+  e_sound, g_options, g_map, Math, e_log, wadreader;
 
 type
   TPlayerModelInfo = record

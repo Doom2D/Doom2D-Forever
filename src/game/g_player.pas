@@ -588,10 +588,15 @@ procedure g_Bot_RemoveAll();
 implementation
 
 uses
+{$IFDEF USE_NANOGL}
+  nanoGL,
+{$ELSE}
+  GL,
+{$ENDIF}
   e_log, g_map, g_items, g_console, g_gfx, Math,
   g_options, g_triggers, g_menu, g_game, g_grid,
   wadreader, g_main, g_monsters, CONFIG, g_language,
-  g_net, g_netmsg, g_window, GL, g_holmes,
+  g_net, g_netmsg, g_window, g_holmes,
   utils, xstreams;
 
 const PLR_SAVE_VERSION = 0;

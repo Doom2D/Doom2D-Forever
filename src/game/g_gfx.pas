@@ -78,7 +78,12 @@ function awmIsSetHolmes (x, y: Integer): Boolean; inline;
 implementation
 
 uses
-  g_map, g_panel, g_basic, Math, e_graphics, GL, GLExt,
+{$IFDEF USE_NANOGL}
+  nanoGL,
+{$ELSE}
+  GL, GLExt,
+{$ENDIF}
+  g_map, g_panel, g_basic, Math, e_graphics,
   g_options, g_console, SysUtils, g_triggers, MAPDEF,
   g_game, g_language, g_net, utils, xprofiler;
 

@@ -119,8 +119,13 @@ function g_Texture_Light (): Integer;
 implementation
 
 uses
+{$IFDEF USE_NANOGL}
+  nanoGL,
+{$ELSE}
+  GL,
+{$ENDIF}
   g_game, e_log, g_basic, g_console, wadreader,
-  g_language, GL, utils, xstreams;
+  g_language, utils, xstreams;
 
 type
   _TTexture = record

@@ -19,7 +19,12 @@ unit e_graphics;
 interface
 
 uses
-  SysUtils, Classes, Math, e_log, e_texture, SDL2, GL, GLExt, MAPDEF, ImagingTypes, Imaging, ImagingUtility;
+{$IFDEF USE_NANOGL}
+  nanoGL,
+{$ELSE}
+  GL, GLExt,
+{$ENDIF}
+  SysUtils, Classes, Math, e_log, e_texture, SDL2, MAPDEF, ImagingTypes, Imaging, ImagingUtility;
 
 type
   TMirrorType=(None, Horizontal, Vertical);
@@ -380,6 +385,7 @@ begin
  Result.Width := w;
  Result.Height := h;
 
+{$IFNDEF USE_NANOGL}
  if e_NoGraphics then Exit;
 
  data := GetMemory(w*h*4);
@@ -460,6 +466,7 @@ begin
  end;
 
  FreeMemory(data);
+{$ENDIF USE_NANOGL}
 end;
 
 procedure e_ResizeWindow(Width, Height: Integer);
@@ -1571,6 +1578,7 @@ begin
   id := High(e_TextureFonts);
  end;
 
+{$IFNDEF USE_NANOGL}
  with e_TextureFonts[id] do
  begin
   Base := glGenLists(XCount*YCount);
@@ -1606,6 +1614,7 @@ begin
    glTranslated((e_Textures[Tex].tx.Width div XCount)+Space, 0, 0);
   glEndList();
  end;
+{$ENDIF}
 
  FontID := id;
 end;
@@ -1613,7 +1622,9 @@ end;
 procedure e_TextureFontKill(FontID: DWORD);
 begin
   if e_NoGraphics then Exit;
+{$IFNDEF USE_NANOGL}
   glDeleteLists(e_TextureFonts[FontID].Base, 256);
+{$ENDIF}
   e_TextureFonts[FontID].Base := 0;
 end;
 
@@ -1628,6 +1639,7 @@ begin
 
   glColor4ub(e_Colors.R, e_Colors.G, e_Colors.B, 255);
 
+{$IFNDEF USE_NANOGL}
   glPushMatrix;
   glBindTexture(GL_TEXTURE_2D, e_TextureFonts[FontID].TextureID);
   glEnable(GL_TEXTURE_2D);
@@ -1636,6 +1648,7 @@ begin
   glCallLists(Length(Text), GL_UNSIGNED_BYTE, PChar(Text));
   glDisable(GL_TEXTURE_2D);
   glPopMatrix;
+{$ENDIF}
 
   glDisable(GL_BLEND);
 end;
@@ -1646,6 +1659,7 @@ begin
   if e_NoGraphics then Exit;
   glPushMatrix;
 
+{$IFNDEF USE_NANOGL}
   if Shadow then
   begin
    glColor4ub(0, 0, 0, 128);
@@ -1658,6 +1672,7 @@ begin
   glColor4ub(e_Colors.R, e_Colors.G, e_Colors.B, 255);
   glTranslated(X, Y, 0);
   glCallLists(1, GL_UNSIGNED_BYTE, @Ch);
+{$ENDIF}
 
   glPopMatrix;
 end;
@@ -1680,7 +1695,7 @@ begin
   result := e_TextureFonts[FontID].CharWidth;
 end;
 
-procedure e_TextureFontPrintFmt(X, Y: Integer; Text: string; FontID: DWORD; Shadow: Boolean = False);
+procedure e_TextureFontPrintFmt(X, Y: GLint; Text: string; FontID: DWORD; Shadow: Boolean = False);
 var
   a, TX, TY, len: Integer;
   tc, c: TRGB;
@@ -1701,6 +1716,7 @@ begin
 
   w := e_TextureFonts[FontID].CharWidth;
 
+{$IFNDEF USE_NANOGL}
   with e_TextureFonts[FontID] do
   begin
     glBindTexture(GL_TEXTURE_2D, e_TextureFonts[FontID].TextureID);
@@ -1771,6 +1787,7 @@ begin
     glDisable(GL_TEXTURE_2D);
     glDisable(GL_BLEND);
   end;
+{$ENDIF}
 end;
 
 procedure e_TextureFontPrintEx(X, Y: GLint; Text: string; FontID: DWORD; Red, Green,
@@ -1779,6 +1796,7 @@ begin
   if e_NoGraphics then Exit;
   if Text = '' then Exit;
 
+{$IFNDEF USE_NANOGL}
   glPushMatrix;
   glBindTexture(GL_TEXTURE_2D, e_TextureFonts[FontID].TextureID);
   glEnable(GL_TEXTURE_2D);
@@ -1806,6 +1824,7 @@ begin
   glPopMatrix;
   glColor3ub(e_Colors.R, e_Colors.G, e_Colors.B);
   glDisable(GL_BLEND);
+{$ENDIF}
 end;
 
 procedure e_TextureFontGetSize(ID: DWORD; out CharWidth, CharHeight: Byte);
@@ -1829,7 +1848,9 @@ begin
  for i := 0 to High(e_TextureFonts) do
   if e_TextureFonts[i].Base <> 0 then
   begin
+{$IFNDEF USE_NANOGL}
    glDeleteLists(e_TextureFonts[i].Base, 256);
+{$ENDIF}
    e_TextureFonts[i].Base := 0;
   end;
 

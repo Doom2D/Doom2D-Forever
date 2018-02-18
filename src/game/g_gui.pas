@@ -549,7 +549,12 @@ procedure g_GUI_LoadMenuPos();
 implementation
 
 uses
-  GL, GLExt, g_textures, g_sound, SysUtils,
+{$IFDEF USE_NANOGL}
+  nanoGL,
+{$ELSE}
+  GL, GLExt,
+{$ENDIF}
+  g_textures, g_sound, SysUtils,
   g_game, Math, StrUtils, g_player, g_options,
   g_map, g_weapons, xdynrec, wadreader;
 

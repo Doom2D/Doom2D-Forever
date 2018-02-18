@@ -351,12 +351,17 @@ function gPause (): Boolean; inline;
 implementation
 
 uses
+{$IFDEF USE_NANOGL}
+  nanoGL,
+{$ELSE}
+  GL, GLExt,
+{$ENDIF}
   e_texture, g_textures, g_main, g_window, g_menu,
   e_input, e_log, g_console, g_items, g_map, g_panel,
   g_playermodel, g_gfx, g_options, g_weapons, Math,
   g_triggers, g_monsters, e_sound, CONFIG,
   g_language, g_net,
-  ENet, e_msg, g_netmsg, g_netmaster, GL, GLExt,
+  ENet, e_msg, g_netmsg, g_netmaster,
   sfs, wadreader, g_holmes;
 
 
@@ -3002,8 +3007,11 @@ begin
    *     glBlendFunc(GL_DST_ALPHA, GL_ONE);
    *     draw all geometry up to and including walls (with alpha-testing, probably) -- this does lighting
    *)
-
+{$IFDEF USE_NANOGL}
+  wassc := false; // FIXIT
+{$ELSE}
   wassc := (glIsEnabled(GL_SCISSOR_TEST) <> 0);
+{$ENDIF}
   if wassc then glGetIntegerv(GL_SCISSOR_BOX, @scxywh[0]) else glGetIntegerv(GL_VIEWPORT, @scxywh[0]);
 
   // setup OpenGL parameters

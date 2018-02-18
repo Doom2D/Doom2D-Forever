@@ -37,7 +37,12 @@ var
 implementation
 
 uses
-  SDL2, GL, GLExt, wadreader, e_log, g_window,
+{$IFDEF USE_NANOGL}
+  nanoGL,
+{$ELSE}
+  GL, GLExt,
+{$ENDIF}
+  SDL2, wadreader, e_log, g_window,
   e_graphics, e_input, g_game, g_console, g_gui,
   e_sound, g_options, g_sound, g_player, g_basic,
   g_weapons, SysUtils, g_triggers, MAPDEF, g_map,

@@ -23,7 +23,12 @@ unit e_texture;
 interface
 
 uses
-  GL, GLExt, SysUtils, e_log,
+{$IFDEF USE_NANOGL}
+  nanoGL,
+{$ELSE}
+  GL, GLExt,
+{$ENDIF}
+  SysUtils, e_log,
   ImagingTypes, Imaging, ImagingUtility;
 
 type

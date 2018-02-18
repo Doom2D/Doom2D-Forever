@@ -1,4 +1,4 @@
-(* Copyright (C)  Doom 2D: Forever Developers
+ (* Copyright (C)  Doom 2D: Forever Developers
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -51,8 +51,13 @@ implementation
 
 uses
 {$IFDEF WINDOWS}Windows,{$ENDIF}
+{$IFDEF USE_NANOGL}
+  nanoGL,
+{$ELSE}
+  GL, GLExt,
+{$ENDIF}
   SysUtils, Classes, MAPDEF,
-  SDL2, GL, GLExt, e_graphics, e_log, e_texture, g_main,
+  SDL2, e_graphics, e_log, e_texture, g_main,
   g_console, e_input, g_options, g_game,
   g_basic, g_textures, e_sound, g_sound, g_menu, ENet, g_net,
   g_map, g_gfx, g_monsters, g_holmes, xprofiler,
@@ -86,7 +91,13 @@ procedure KillGLWindow (preserveGL: Boolean);
 begin
   if (h_GL <> nil) and (not preserveGL) then begin if (assigned(oglDeinitCB)) then oglDeinitCB(); end;
   if (h_Wnd <> nil) then SDL_DestroyWindow(h_Wnd);
-  if (h_GL <> nil) and (not preserveGL) then SDL_GL_DeleteContext(h_GL);
+  if (h_GL <> nil) and (not preserveGL) then
+  begin
+    {$IFDEF USE_NANOGL}
+      nanoGL_Destroy;
+    {$ENDIF USE_NANOGL}
+    SDL_GL_DeleteContext(h_GL);
+  end;
   h_Wnd := nil;
   if (not preserveGL) then h_GL := nil;
 end;
@@ -523,8 +534,16 @@ begin
   if (h_GL = nil) then exit;
   fuiScrWdt := gScreenWidth;
   fuiScrHgt := gScreenHeight;
-  if (assigned(oglInitCB)) then oglInitCB();
   SDL_GL_MakeCurrent(h_Wnd, h_GL);
+{$IFDEF USE_NANOGL}
+  if nanoGL_Init() = 0 then
+  begin
+    KillGLWindow(false);
+    e_WriteLog('nanoGL initialization error', TMsgType.Fatal);
+    exit;
+  end;
+{$ENDIF USE_NANOGL}
+  if (assigned(oglInitCB)) then oglInitCB();
   if (h_GL <> nil) then g_SetVSync(gVSync);
 {$ENDIF}
 
@@ -776,14 +795,20 @@ end;
 procedure InitOpenGL ();
 begin
 {$IF not DEFINED(HEADLESS)}
-  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
-  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
-  SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 8);
-  SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 8);
-  SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 8);
-  SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 16);
+  {$IFDEF USE_NANOGL}
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 1);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);    
+  {$ELSE}
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
+    SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 8);
+    SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 8);
+    SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 8);
+    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 16);
+    SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8); // lights; it is enough to have 1-bit stencil buffer for lighting, but...
+  {$ENDIF}
   SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
-  SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8); // lights; it is enough to have 1-bit stencil buffer for lighting, but...
 {$ENDIF}
 end;
 
@@ -937,6 +962,7 @@ begin
   if not CreateGLWindow(PChar(Format('Doom 2D: Forever %s', [GAME_VERSION]))) then
   begin
     result := 0;
+    e_WriteLog('Unable to create GL window: ' + SDL_GetError(), TMsgType.Fatal);
     exit;
   end;
 

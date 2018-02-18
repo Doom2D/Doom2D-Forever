@@ -165,7 +165,9 @@ function nmin (a, b: Int64): Int64; inline; overload;
 function nmin (a, b: UInt64): UInt64; inline; overload;
 function nmin (a, b: Single): Single; inline; overload;
 function nmin (a, b: Double): Double; inline; overload;
+{$IF DEFINED(CPU386) OR DEFINED(CPUAMD)}
 function nmin (a, b: Extended): Extended; inline; overload;
+{$ENDIF}
 
 function nmax (a, b: Byte): Byte; inline; overload;
 function nmax (a, b: ShortInt): ShortInt; inline; overload;
@@ -177,8 +179,9 @@ function nmax (a, b: Int64): Int64; inline; overload;
 function nmax (a, b: UInt64): UInt64; inline; overload;
 function nmax (a, b: Single): Single; inline; overload;
 function nmax (a, b: Double): Double; inline; overload;
+{$IF DEFINED(CPU386) OR DEFINED(CPUAMD)}
 function nmax (a, b: Extended): Extended; inline; overload;
-
+{$ENDIF}
 function nclamp (v, a, b: Byte): Byte; inline; overload;
 function nclamp (v, a, b: ShortInt): ShortInt; inline; overload;
 function nclamp (v, a, b: Word): Word; inline; overload;
@@ -189,8 +192,9 @@ function nclamp (v, a, b: Int64): Int64; inline; overload;
 function nclamp (v, a, b: UInt64): UInt64; inline; overload;
 function nclamp (v, a, b: Single): Single; inline; overload;
 function nclamp (v, a, b: Double): Double; inline; overload;
+{$IF DEFINED(CPU386) OR DEFINED(CPUAMD)}
 function nclamp (v, a, b: Extended): Extended; inline; overload;
-
+{$ENDIF}
 
 type
   TFormatStrFCallback = procedure (constref buf; len: SizeUInt);
@@ -1352,7 +1356,9 @@ function nmin (a, b: Int64): Int64; inline; overload; begin if (a < b) then resu
 function nmin (a, b: UInt64): UInt64; inline; overload; begin if (a < b) then result := a else result := b; end;
 function nmin (a, b: Single): Single; inline; overload; begin if (a < b) then result := a else result := b; end;
 function nmin (a, b: Double): Double; inline; overload; begin if (a < b) then result := a else result := b; end;
+{$IF DEFINED(CPU386) OR DEFINED(CPUAMD)}
 function nmin (a, b: Extended): Extended; inline; overload; begin if (a < b) then result := a else result := b; end;
+{$ENDIF}
 
 function nmax (a, b: Byte): Byte; inline; overload; begin if (a > b) then result := a else result := b; end;
 function nmax (a, b: ShortInt): ShortInt; inline; overload; begin if (a > b) then result := a else result := b; end;
@@ -1364,7 +1370,9 @@ function nmax (a, b: Int64): Int64; inline; overload; begin if (a > b) then resu
 function nmax (a, b: UInt64): UInt64; inline; overload; begin if (a > b) then result := a else result := b; end;
 function nmax (a, b: Single): Single; inline; overload; begin if (a > b) then result := a else result := b; end;
 function nmax (a, b: Double): Double; inline; overload; begin if (a > b) then result := a else result := b; end;
+{$IF DEFINED(CPU386) OR DEFINED(CPUAMD)}
 function nmax (a, b: Extended): Extended; inline; overload; begin if (a > b) then result := a else result := b; end;
+{$ENDIF}
 
 function nclamp (v, a, b: Byte): Byte; inline; overload; begin if (v < a) then result := a else if (v > b) then result := b else result := v; end;
 function nclamp (v, a, b: ShortInt): ShortInt; inline; overload; begin if (v < a) then result := a else if (v > b) then result := b else result := v; end;
@@ -1376,8 +1384,9 @@ function nclamp (v, a, b: Int64): Int64; inline; overload; begin if (v < a) then
 function nclamp (v, a, b: UInt64): UInt64; inline; overload; begin if (v < a) then result := a else if (v > b) then result := b else result := v; end;
 function nclamp (v, a, b: Single): Single; inline; overload; begin if (v < a) then result := a else if (v > b) then result := b else result := v; end;
 function nclamp (v, a, b: Double): Double; inline; overload; begin if (v < a) then result := a else if (v > b) then result := b else result := v; end;
+{$IF DEFINED(CPU386) OR DEFINED(CPUAMD)}
 function nclamp (v, a, b: Extended): Extended; inline; overload; begin if (v < a) then result := a else if (v > b) then result := b else result := v; end;
-
+{$ENDIF}
 
 // ////////////////////////////////////////////////////////////////////////// //
 {$IFDEF WINDOWS}

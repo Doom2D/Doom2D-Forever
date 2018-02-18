@@ -212,8 +212,13 @@ var
 implementation
 
 uses
+{$IFDEF USE_NANOGL}
+  nanoGL,
+{$ELSE}
+  GL,
+{$ENDIF}
   e_texture, g_basic, g_map, g_game, g_gfx, e_graphics, g_weapons, g_triggers,
-  g_console, g_language, g_monsters, g_player, g_grid, e_log, GL, geom, utils, xstreams;
+  g_console, g_language, g_monsters, g_player, g_grid, e_log, geom, utils, xstreams;
 
 const
   PANEL_SIGNATURE = $4C4E4150; // 'PANL'
