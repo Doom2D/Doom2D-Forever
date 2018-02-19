@@ -14,7 +14,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *)
 {$INCLUDE ../shared/a_modes.inc}
-program Doom2DF;
+{$IFDEF ANDROID}library{$ELSE}program{$ENDIF} Doom2DF;
 {$IFNDEF HEADLESS}
   {$IFDEF WINDOWS}
     {$APPTYPE GUI}
@@ -32,6 +32,9 @@ program Doom2DF;
 {$ENDIF}
 
 uses
+{$IFDEF ANDROID}
+  ctypes,
+{$ENDIF}
 {$IFDEF UNIX}
   cthreads,
 {$ENDIF}
@@ -131,12 +134,34 @@ uses
   {$R *.res}
 {$ENDIF}
 
+{$IFDEF ANDROID}
+function SDL_main(argc: CInt; argv: PPChar): CInt; cdecl;
+{$ENDIF ANDROID}
+
 var
   f: Integer;
   noct: Boolean = false;
   //tfo: Text;
 begin
   SetExceptionMask([exInvalidOp, exDenormalized, exZeroDivide, exOverflow, exUnderflow, exPrecision]); //k8: fuck off, that's why
+
+{$IFDEF ANDROID}
+{$I-}
+  e_SetSafeSlowLog(true);
+  Chdir('/sdcard/D2DF');
+  if IOresult <> 0 then
+  begin
+    Mkdir('/sdcard/D2DF');
+    Chdir('/sdcard/D2DF');
+    if IOresult <> 0 then
+    begin
+      e_WriteLog('Fail: cant chdir /sdcard/D2DF', TMsgType.Fatal);
+      result := 1;
+      exit;
+    end;
+  end;
+{$ENDIF ANDROID}
+
   for f := 1 to ParamCount do
   begin
          if ParamStr(f) = '--gdb' then noct := true
@@ -173,4 +198,10 @@ begin
     end;
   end;
   e_DeinitLog();
+
+{$IFDEF ANDROID}
+  result := 0;
+end; // SDL_main
+exports SDL_main;
+{$ENDIF ANDROID}
 end.

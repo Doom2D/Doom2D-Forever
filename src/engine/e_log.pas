@@ -54,7 +54,7 @@ var
 implementation
 
 uses
-  conbuf, utils;
+  SDL2, conbuf, utils;
 
 var
   FirstRecord: Boolean;
@@ -89,9 +89,20 @@ var
   ss: ShortString;
   slen: Integer;
   b: PByte;
+  cstr: PChar;
 begin
   if (len < 1) then exit;
   b := PByte(@buf);
+
+{$IFDEF ANDROID}
+  cstr := GetMem(len + 1);
+  for slen := 0 to len - 1 do
+    cstr[slen] := Char(b[slen]);
+  cstr[slen + 1] := #0;
+  SDL_Log(cstr, []);
+  Dispose(cstr);
+{$ENDIF ANDROID}
+
   while (len > 0) do
   begin
     if (len > 255) then slen := 255 else slen := Integer(len);
