@@ -191,11 +191,9 @@ end;
 
 function isScaled (): Boolean;
 var
-  mt: packed array [0..15] of Double;
+  mt: packed array [0..15] of GLfloat;
 begin
-{$IFNDEF USE_NANOGL}
-  glGetDoublev(GL_MODELVIEW_MATRIX, @mt[0]);
-{$ENDIF}
+  glGetFloatv(GL_MODELVIEW_MATRIX, @mt[0]);
   result := (mt[0] <> 1.0) or (mt[1*4+1] <> 1.0);
 end;
 
@@ -237,7 +235,7 @@ begin
   glMatrixMode(GL_MODELVIEW); glPushMatrix();
   glMatrixMode(GL_TEXTURE); glPushMatrix();
   glMatrixMode(GL_COLOR); glPushMatrix();
-{$IFNDEF USE_NANOGL}
+{$IFNDEF USE_NANOGL} // FIXIT: nanoGL doesn't support glPushAttrib
   glPushAttrib({GL_ENABLE_BIT|GL_COLOR_BUFFER_BIT|GL_CURRENT_BIT}GL_ALL_ATTRIB_BITS); // let's play safe
 {$ENDIF}
   saved := true;
@@ -246,7 +244,7 @@ end;
 procedure TSavedGLState.restore ();
 begin
   if (not saved) then raise Exception.Create('cannot restore unsaved OpenGL state');
-{$IFNDEF USE_NANOGL}
+{$IFNDEF USE_NANOGL} // FIXIT: nanoGL doesn't support glPopAttrib
   glPopAttrib({GL_ENABLE_BIT});
 {$ENDIF}
   glMatrixMode(GL_PROJECTION); glPopMatrix();
@@ -272,7 +270,7 @@ var
 // set active context; `ctx` can be `nil`
 procedure gxSetContextInternal (ctx: TGxContext; ascale: Single; domatrix: Boolean);
 var
-  mt: packed array [0..15] of Double;
+  mt: packed array [0..15] of GLfloat;
 begin
   if (savedGLState.saved) then savedGLState.restore();
 
@@ -297,9 +295,7 @@ begin
     else
     begin
       // assume uniform scale
-{$IFNDEF USE_NANOGL}
-      glGetDoublev(GL_MODELVIEW_MATRIX, @mt[0]);
-{$ENDIF}
+      glGetFloatv(GL_MODELVIEW_MATRIX, @mt[0]);
       ctx.mScaled := (mt[0] <> 1.0) or (mt[1*4+1] <> 1.0);
       ctx.mScale := mt[0];
       oglSetup2DState();
@@ -333,8 +329,8 @@ type
 
 procedure TScissorSave.save (enableScissoring: Boolean);
 begin
-{$IFDEF USE_NANOGL}
-  wassc := false; // FIXIT
+{$IFDEF USE_NANOGL} // FIXIT: nanoGL doesn't support glIsEnabled
+  wassc := false;
 {$ELSE}
   wassc := (glIsEnabled(GL_SCISSOR_TEST) <> 0);
 {$ENDIF}

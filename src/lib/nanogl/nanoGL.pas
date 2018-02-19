@@ -790,7 +790,7 @@ end;
 
 procedure glTexCoord2i(s, t: GLint);
 begin
-  glTexCoord2f(1 / s, 1 / t);
+  glTexCoord2f(s, t);
 end;
 
 end.

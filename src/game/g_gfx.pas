@@ -1469,6 +1469,9 @@ procedure g_GFX_SetMax (count: Integer);
 var
   a: Integer;
 begin
+{$IFDEF USE_NANOGL} // FIXIT: nanoGL doesn't support glBegin(GL_POINTS)
+  count := 0;
+{$ENDIF}
   if count > 50000 then count := 50000;
   if (count < 1) then count := 1;
   SetLength(Particles, count);

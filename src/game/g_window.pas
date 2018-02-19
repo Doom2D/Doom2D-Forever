@@ -93,9 +93,9 @@ begin
   if (h_Wnd <> nil) then SDL_DestroyWindow(h_Wnd);
   if (h_GL <> nil) and (not preserveGL) then
   begin
-    {$IFDEF USE_NANOGL}
-      nanoGL_Destroy;
-    {$ENDIF USE_NANOGL}
+{$IFDEF USE_NANOGL}
+    nanoGL_Destroy;
+{$ENDIF USE_NANOGL}
     SDL_GL_DeleteContext(h_GL);
   end;
   h_Wnd := nil;
@@ -542,7 +542,7 @@ begin
     e_WriteLog('nanoGL initialization error', TMsgType.Fatal);
     exit;
   end;
-{$ENDIF USE_NANOGL}
+{$ENDIF}
   if (assigned(oglInitCB)) then oglInitCB();
   if (h_GL <> nil) then g_SetVSync(gVSync);
 {$ENDIF}

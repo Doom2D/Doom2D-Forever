@@ -89,7 +89,9 @@ var
   ss: ShortString;
   slen: Integer;
   b: PByte;
+{$IFDEF ANDROID}
   cstr: PChar;
+{$ENDIF}
 begin
   if (len < 1) then exit;
   b := PByte(@buf);
@@ -101,7 +103,7 @@ begin
   cstr[slen + 1] := #0;
   SDL_Log(cstr, []);
   Dispose(cstr);
-{$ENDIF ANDROID}
+{$ENDIF}
 
   while (len > 0) do
   begin

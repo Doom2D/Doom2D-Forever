@@ -385,7 +385,7 @@ begin
  Result.Width := w;
  Result.Height := h;
 
-{$IFNDEF USE_NANOGL}
+{$IFNDEF USE_NANOGL} // FIXIT: nanoGL doesn't support glGetTexImage
  if e_NoGraphics then Exit;
 
  data := GetMemory(w*h*4);
@@ -466,7 +466,7 @@ begin
  end;
 
  FreeMemory(data);
-{$ENDIF USE_NANOGL}
+{$ENDIF}
 end;
 
 procedure e_ResizeWindow(Width, Height: Integer);
@@ -958,6 +958,7 @@ procedure e_DrawQuad(X1, Y1, X2, Y2: Integer; Red, Green, Blue: Byte; Alpha: Byt
 var
   nX1, nY1, nX2, nY2: Integer;
 begin
+{$IFNDEF USE_NANOGL} // FIXIT: nanoGL doesn't support glBegin(GL_LINES)
   if e_NoGraphics then Exit;
   // Only top-left/bottom-right quad
   if X1 > X2 then
@@ -1013,6 +1014,7 @@ begin
   glColor4ub(e_Colors.R, e_Colors.G, e_Colors.B, 255);
 
   glDisable(GL_BLEND);
+{$ENDIF}
 end;
 
 procedure e_DrawFillQuad(X1, Y1, X2, Y2: Integer; Red, Green, Blue, Alpha: Byte;
@@ -1084,6 +1086,7 @@ end;
 
 procedure e_DrawLine(Width: Byte; X1, Y1, X2, Y2: Integer; Red, Green, Blue: Byte; Alpha: Byte = 0);
 begin
+{$IFNDEF USE_NANOGL} // FIXIT: nanoGL doesn't support glBegin(GL_LINES)
   if e_NoGraphics then Exit;
   // Pixel-perfect lines
   if Width = 1 then
@@ -1108,6 +1111,7 @@ begin
   glColor4ub(e_Colors.R, e_Colors.G, e_Colors.B, 255);
 
   glDisable(GL_BLEND);
+{$ENDIF}
 end;
 
 //------------------------------------------------------------------
@@ -1578,7 +1582,7 @@ begin
   id := High(e_TextureFonts);
  end;
 
-{$IFNDEF USE_NANOGL}
+{$IFNDEF USE_NANOGL} // FIXIT: nanoGL doesn't support gl-lists
  with e_TextureFonts[id] do
  begin
   Base := glGenLists(XCount*YCount);
@@ -1622,7 +1626,7 @@ end;
 procedure e_TextureFontKill(FontID: DWORD);
 begin
   if e_NoGraphics then Exit;
-{$IFNDEF USE_NANOGL}
+{$IFNDEF USE_NANOGL} // FIXIT: nanoGL doesn't support gl-lists
   glDeleteLists(e_TextureFonts[FontID].Base, 256);
 {$ENDIF}
   e_TextureFonts[FontID].Base := 0;
@@ -1630,6 +1634,7 @@ end;
 
 procedure e_TextureFontPrint(X, Y: GLint; Text: string; FontID: DWORD);
 begin
+{$IFNDEF USE_NANOGL} // FIXIT: nanoGL doesn't support gl-lists
   if e_NoGraphics then Exit;
   if Integer(FontID) > High(e_TextureFonts) then Exit;
   if Text = '' then Exit;
@@ -1639,7 +1644,6 @@ begin
 
   glColor4ub(e_Colors.R, e_Colors.G, e_Colors.B, 255);
 
-{$IFNDEF USE_NANOGL}
   glPushMatrix;
   glBindTexture(GL_TEXTURE_2D, e_TextureFonts[FontID].TextureID);
   glEnable(GL_TEXTURE_2D);
@@ -1648,18 +1652,18 @@ begin
   glCallLists(Length(Text), GL_UNSIGNED_BYTE, PChar(Text));
   glDisable(GL_TEXTURE_2D);
   glPopMatrix;
-{$ENDIF}
 
   glDisable(GL_BLEND);
+{$ENDIF}
 end;
 
 // god forgive me for this, but i cannot figure out how to do it without lists
 procedure e_TextureFontPrintChar(X, Y: Integer; Ch: Char; FontID: DWORD; Shadow: Boolean = False);
 begin
+{$IFNDEF USE_NANOGL} // FIXIT: nanoGL doesn't support gl-lists
   if e_NoGraphics then Exit;
   glPushMatrix;
 
-{$IFNDEF USE_NANOGL}
   if Shadow then
   begin
    glColor4ub(0, 0, 0, 128);
@@ -1672,9 +1676,9 @@ begin
   glColor4ub(e_Colors.R, e_Colors.G, e_Colors.B, 255);
   glTranslated(X, Y, 0);
   glCallLists(1, GL_UNSIGNED_BYTE, @Ch);
-{$ENDIF}
 
   glPopMatrix;
+{$ENDIF}
 end;
 
 procedure e_TextureFontPrintCharEx (X, Y: Integer; Ch: Char; FontID: DWORD; Shadow: Boolean = False);
@@ -1701,6 +1705,7 @@ var
   tc, c: TRGB;
   w: Word;
 begin
+{$IFNDEF USE_NANOGL} // FIXIT: nanoGL doesn't support gl-lists
   if e_NoGraphics then Exit;
   if Text = '' then Exit;
   if e_TextureFonts = nil then Exit;
@@ -1716,7 +1721,6 @@ begin
 
   w := e_TextureFonts[FontID].CharWidth;
 
-{$IFNDEF USE_NANOGL}
   with e_TextureFonts[FontID] do
   begin
     glBindTexture(GL_TEXTURE_2D, e_TextureFonts[FontID].TextureID);
@@ -1793,10 +1797,10 @@ end;
 procedure e_TextureFontPrintEx(X, Y: GLint; Text: string; FontID: DWORD; Red, Green,
                     Blue: Byte; Scale: Single; Shadow: Boolean = False);
 begin
+{$IFNDEF USE_NANOGL} // FIXIT: nanoGL doesn't support gl-lists
   if e_NoGraphics then Exit;
   if Text = '' then Exit;
 
-{$IFNDEF USE_NANOGL}
   glPushMatrix;
   glBindTexture(GL_TEXTURE_2D, e_TextureFonts[FontID].TextureID);
   glEnable(GL_TEXTURE_2D);
@@ -1848,7 +1852,7 @@ begin
  for i := 0 to High(e_TextureFonts) do
   if e_TextureFonts[i].Base <> 0 then
   begin
-{$IFNDEF USE_NANOGL}
+{$IFNDEF USE_NANOGL} // FIXIT: nanoGL doesn't support gl-lists
    glDeleteLists(e_TextureFonts[i].Base, 256);
 {$ENDIF}
    e_TextureFonts[i].Base := 0;
