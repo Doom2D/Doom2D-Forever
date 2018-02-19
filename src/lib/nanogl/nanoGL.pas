@@ -34,24 +34,23 @@ const
 {$ENDIF}
 
 type
-  GLenum     = Cardinal;      PGLenum     = ^GLenum;
-  GLboolean  = Byte;          PGLboolean  = ^GLboolean;
-  GLbitfield = Cardinal;      PGLbitfield = ^GLbitfield;
-  GLbyte     = ShortInt;      PGLbyte     = ^GLbyte;
-  GLshort    = SmallInt;      PGLshort    = ^GLshort;
-  GLint      = Integer;       PGLint      = ^GLint;
-  GLsizei    = Integer;       PGLsizei    = ^GLsizei;
-  GLubyte    = Byte;          PGLubyte    = ^GLubyte;
-  GLushort   = Word;          PGLushort   = ^GLushort;
-  GLuint     = Cardinal;      PGLuint     = ^GLuint;
-  GLfloat    = Single;        PGLfloat    = ^GLfloat;
-  GLclampf   = Single;        PGLclampf   = ^GLclampf;
-  GLdouble   = Double;        PGLdouble   = ^GLdouble;
-  GLclampd   = Double;        PGLclampd   = ^GLclampd;
-{ GLvoid     = void; }        PGLvoid     = Pointer;
-                              PPGLvoid    = ^PGLvoid;
-  GLfixed    = Integer;       PGLfixed    = ^Integer;
-  GLclampx   = Integer;       PGLclampx   = ^Integer;
+  GLenum     = cuint;   PGLenum     = ^GLenum;
+  GLboolean  = cuchar;  PGLboolean  = ^GLboolean;
+  GLbitfield = cuint;   PGLbitfield = ^GLbitfield;
+  GLbyte     = cschar;  PGLbyte     = ^GLbyte;
+  GLshort    = cshort;  PGLshort    = ^GLshort;
+  GLint      = cint;    PGLint      = ^GLint;
+  GLsizei    = cint;    PGLsizei    = ^GLsizei;
+  GLubyte    = cuchar;  PGLubyte    = ^GLubyte;
+  GLushort   = cushort; PGLushort   = ^GLushort;
+  GLuint     = cuint;   PGLuint     = ^GLuint;
+  GLfloat    = cfloat;  PGLfloat    = ^GLfloat;
+  GLclampf   = cfloat;  PGLclampf   = ^GLclampf;
+  GLdouble   = cdouble; PGLdouble   = ^GLdouble;
+  GLclampd   = cdouble; PGLclampd   = ^GLclampd;
+{ GLvoid     = void; }  PGLvoid     = Pointer;     PPGLvoid = ^PGLvoid;
+  GLfixed    = cint;    PGLfixed    = ^Integer;
+  GLclampx   = cint;    PGLclampx   = ^Integer;
 
   TGLenum     = GLenum;
   TGLboolean  = GLboolean;
