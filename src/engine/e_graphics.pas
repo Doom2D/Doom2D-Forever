@@ -1085,8 +1085,11 @@ end;
 
 
 procedure e_DrawLine(Width: Byte; X1, Y1, X2, Y2: Integer; Red, Green, Blue: Byte; Alpha: Byte = 0);
+{$IFDEF USE_NANOGL}
+  var
+    v: array [0..3] of GLfloat;
+{$ENDIF}
 begin
-{$IFNDEF USE_NANOGL} // FIXIT: nanoGL doesn't support glBegin(GL_LINES)
   if e_NoGraphics then Exit;
   // Pixel-perfect lines
   if Width = 1 then
@@ -1103,15 +1106,24 @@ begin
   glColor4ub(Red, Green, Blue, 255-Alpha);
   glLineWidth(Width);
 
+{$IFDEF USE_NANOGL}
+  v[0] := X1; v[1] := Y1; v[2] := X2; v[3] := Y2;
+  glVertexPointer(2, GL_FLOAT, 0, @v[0]);
+  glEnableClientState(GL_VERTEX_ARRAY);
+  glDisableClientState(GL_COLOR_ARRAY);
+  glDisableClientState(GL_NORMAL_ARRAY);
+  glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+  glDrawArrays(GL_LINES, 0, 4);
+{$ELSE}
   glBegin(GL_LINES);
     glVertex2i(X1, Y1);
     glVertex2i(X2, Y2);
   glEnd();
+{$ENDIF}
 
   glColor4ub(e_Colors.R, e_Colors.G, e_Colors.B, 255);
 
   glDisable(GL_BLEND);
-{$ENDIF}
 end;
 
 //------------------------------------------------------------------
