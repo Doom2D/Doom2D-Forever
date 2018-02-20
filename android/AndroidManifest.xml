@@ -21,6 +21,10 @@
     <!-- if you want to capture audio, uncomment this. -->
     <!-- <uses-permission android:name="android.permission.RECORD_AUDIO" /> -->
 
+    <!-- Allow networking -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
     <application android:label="Doom2D Forever"
                  android:icon="@drawable/ic_launcher"
                  android:allowBackup="true"
