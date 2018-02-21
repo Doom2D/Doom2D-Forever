@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  *)
 
-(* Sources: https://github.com/FWGS/nanogl *)
+(* Sources: https://github.com/DeaDDooMER/nanogl *)
 unit nanoGL;
 
 interface
@@ -752,6 +752,9 @@ procedure glGenBuffersARB(count: Gluint; indexes: PGLuint); cdecl; external nano
 procedure glDeleteBuffersARB(count: GLuint; indexes: PGLuint); cdecl; external nanoGL_LibName;
 procedure glBufferDataARB(target: GLuint; size: GLuint; buffer: PGLvoid; _type: GLuint); cdecl; external nanoGL_LibName;
 procedure glBufferSubDataARB(target: GLuint; offset: GLsizei; size: GLsizei; buffer: PGLvoid); cdecl; external nanoGL_LibName;
+function  glIsEnabled(cap: GLenum): GLboolean; external nanoGL_LibName;
+procedure glPushAttrib(mask: GLbitfield); external nanoGL_LibName;
+procedure glPopAttrib; external nanoGL_LibName;
 
 function nanoGL_Init(): CInt; cdecl; external nanoGL_LibName;
 procedure nanoGL_Destroy; cdecl; external nanoGL_LibName;

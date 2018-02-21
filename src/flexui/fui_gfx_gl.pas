@@ -235,18 +235,14 @@ begin
   glMatrixMode(GL_MODELVIEW); glPushMatrix();
   glMatrixMode(GL_TEXTURE); glPushMatrix();
   glMatrixMode(GL_COLOR); glPushMatrix();
-{$IFNDEF USE_NANOGL} // FIXIT: nanoGL doesn't support glPushAttrib
   glPushAttrib({GL_ENABLE_BIT|GL_COLOR_BUFFER_BIT|GL_CURRENT_BIT}GL_ALL_ATTRIB_BITS); // let's play safe
-{$ENDIF}
   saved := true;
 end;
 
 procedure TSavedGLState.restore ();
 begin
   if (not saved) then raise Exception.Create('cannot restore unsaved OpenGL state');
-{$IFNDEF USE_NANOGL} // FIXIT: nanoGL doesn't support glPopAttrib
   glPopAttrib({GL_ENABLE_BIT});
-{$ENDIF}
   glMatrixMode(GL_PROJECTION); glPopMatrix();
   glMatrixMode(GL_MODELVIEW); glPopMatrix();
   glMatrixMode(GL_TEXTURE); glPopMatrix();
@@ -329,11 +325,7 @@ type
 
 procedure TScissorSave.save (enableScissoring: Boolean);
 begin
-{$IFDEF USE_NANOGL} // FIXIT: nanoGL doesn't support glIsEnabled
-  wassc := false;
-{$ELSE}
   wassc := (glIsEnabled(GL_SCISSOR_TEST) <> 0);
-{$ENDIF}
   if wassc then glGetIntegerv(GL_SCISSOR_BOX, @scxywh[0]) else glGetIntegerv(GL_VIEWPORT, @scxywh[0]);
   //conwritefln('(%d,%d)-(%d,%d)', [scxywh[0], scxywh[1], scxywh[2], scxywh[3]]);
   if enableScissoring and (not wassc) then glEnable(GL_SCISSOR_TEST);

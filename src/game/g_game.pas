@@ -3007,11 +3007,7 @@ begin
    *     glBlendFunc(GL_DST_ALPHA, GL_ONE);
    *     draw all geometry up to and including walls (with alpha-testing, probably) -- this does lighting
    *)
-{$IFDEF USE_NANOGL} // FIXIT: nanoGL doesn't support glIsEnabled
-  wassc := false;
-{$ELSE}
   wassc := (glIsEnabled(GL_SCISSOR_TEST) <> 0);
-{$ENDIF}
   if wassc then glGetIntegerv(GL_SCISSOR_BOX, @scxywh[0]) else glGetIntegerv(GL_VIEWPORT, @scxywh[0]);
 
   // setup OpenGL parameters
