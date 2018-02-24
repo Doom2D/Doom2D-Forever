@@ -60,7 +60,7 @@ implementation
 
 uses
   g_textures, g_main, e_graphics, e_input, g_game,
-  SysUtils, g_basic, g_options, Math,
+  SysUtils, g_basic, g_options, Math, g_touch,
   g_menu, g_language, g_net, g_netmsg, e_log, conbuf;
 
 
@@ -926,6 +926,7 @@ begin
   if gChatShow then Exit;
   gConsoleShow := not gConsoleShow;
   Cons_Shown := True;
+  g_Touch_ShowKeyboard(gConsoleShow or gChatShow);
 end;
 
 procedure g_Console_Chat_Switch(Team: Boolean = False);
@@ -938,6 +939,7 @@ begin
     gChatEnter := False;
   Line := '';
   CPos := 1;
+  g_Touch_ShowKeyboard(gConsoleShow or gChatShow);
 end;
 
 procedure g_Console_Char(C: AnsiChar);
@@ -1114,6 +1116,7 @@ begin
           CPos := 1;
           gChatShow := False;
           gJustChatted := True;
+          g_Touch_ShowKeyboard(gConsoleShow or gChatShow);
         end;
     end;
     IK_TAB:

@@ -99,8 +99,8 @@ begin
 {$IFDEF ANDROID}
   cstr := GetMem(len + 1);
   for slen := 0 to len - 1 do
-    cstr[slen] := Char(b[slen]);
-  cstr[slen + 1] := #0;
+    cstr[slen] := Chr(b[slen]);
+  cstr[len] := #0;
   SDL_Log(cstr, []);
   Dispose(cstr);
 {$ENDIF}

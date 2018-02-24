@@ -1,4 +1,4 @@
- (* Copyright (C)  Doom 2D: Forever Developers
+(* Copyright (C)  Doom 2D: Forever Developers
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -61,7 +61,8 @@ uses
   g_console, e_input, g_options, g_game,
   g_basic, g_textures, e_sound, g_sound, g_menu, ENet, g_net,
   g_map, g_gfx, g_monsters, g_holmes, xprofiler,
-  sdlcarcass, fui_ctls;
+  sdlcarcass, fui_ctls,
+  g_touch;
 
 
 const
@@ -471,6 +472,8 @@ begin
     SDL_KEYDOWN, SDL_KEYUP:
       begin
         key := ev.key.keysym.scancode;
+        if key = SDL_SCANCODE_AC_BACK then
+          key := SDL_SCANCODE_ESCAPE;
         down := (ev.type_ = SDL_KEYDOWN);
         {$IF not DEFINED(HEADLESS)}
         if fuiOnSDLEvent(ev) then
@@ -496,6 +499,9 @@ begin
         if (keychr > 127) then keychr := Word(wchar2win(WideChar(keychr)));
         if (keychr > 0) and (keychr <= 255) then CharPress(AnsiChar(keychr));
       end;
+
+    SDL_FINGERMOTION, SDL_FINGERDOWN, SDL_FINGERUP:
+      g_Touch_HandleEvent(ev.tfinger);
 
     // other key presses and joysticks are handled in e_input
   end;

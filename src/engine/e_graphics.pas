@@ -958,8 +958,10 @@ end;
 procedure e_DrawQuad(X1, Y1, X2, Y2: Integer; Red, Green, Blue: Byte; Alpha: Byte = 0);
 var
   nX1, nY1, nX2, nY2: Integer;
+{$IFDEF USE_NANOGL}
+  v: array [0..15] of GLfloat;
+{$ENDIF}
 begin
-{$IFNDEF USE_NANOGL} // FIXIT: nanoGL doesn't support glBegin(GL_LINES)
   if e_NoGraphics then Exit;
   // Only top-left/bottom-right quad
   if X1 > X2 then
@@ -985,7 +987,34 @@ begin
   glDisable(GL_TEXTURE_2D);
   glColor4ub(Red, Green, Blue, 255-Alpha);
   glLineWidth(1);
+{$IFDEF USE_NANOGL}
+  nX1 := X1; nY1 := Y1;
+  nX2 := X2; nY2 := Y1;
+  e_LineCorrection(nX1, nY1, nX2, nY2);
+  v[0] := nX1; v[1] := nY1; v[2] := nX2; v[3] := nY2;
 
+  nX1 := X2; nY1 := Y1;
+  nX2 := X2; nY2 := Y2;
+  e_LineCorrection(nX1, nY1, nX2, nY2);
+  v[4] := nX1; v[5] := nY1; v[6] := nX2; v[7] := nY2;
+
+  nX1 := X2; nY1 := Y2;
+  nX2 := X1; nY2 := Y2;
+  e_LineCorrection(nX1, nY1, nX2, nY2);
+  v[8] := nX1; v[9] := nY1; v[10] := nX2; v[11] := nY2;
+
+  nX1 := X1; nY1 := Y2;
+  nX2 := X1; nY2 := Y1;
+  e_LineCorrection(nX1, nY1, nX2, nY2);
+  v[12] := nX1; v[13] := nY1; v[14] := nX2; v[15] := nY2;
+
+  glVertexPointer(2, GL_FLOAT, 0, @v[0]);
+  glEnableClientState(GL_VERTEX_ARRAY);
+  glDisableClientState(GL_COLOR_ARRAY);
+  glDisableClientState(GL_NORMAL_ARRAY);
+  glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+  glDrawArrays(GL_LINES, 0, 16);
+{$ELSE}
   glBegin(GL_LINES);
     nX1 := X1; nY1 := Y1;
     nX2 := X2; nY2 := Y1;
@@ -1011,11 +1040,11 @@ begin
     glVertex2i(nX1, nY1);
     glVertex2i(nX2, nY2);
   glEnd();
+{$ENDIF}
 
   glColor4ub(e_Colors.R, e_Colors.G, e_Colors.B, 255);
 
   glDisable(GL_BLEND);
-{$ENDIF}
 end;
 
 procedure e_DrawFillQuad(X1, Y1, X2, Y2: Integer; Red, Green, Blue, Alpha: Byte;

@@ -22,7 +22,8 @@ uses
   SysUtils, Classes,
   MAPDEF,
   g_basic, g_player, e_graphics, g_res_downloader,
-  g_sound, g_gui, utils, md5, mempool, xprofiler;
+  g_sound, g_gui, utils, md5, mempool, xprofiler,
+  g_touch;
 
 type
   TGameSettings = record
@@ -3759,6 +3760,8 @@ begin
   if gGameOn then drawProfilers();
 
   g_Holmes_DrawUI();
+
+  g_Touch_Draw;
 end;
 
 procedure g_Game_Quit();

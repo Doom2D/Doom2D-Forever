@@ -116,7 +116,9 @@ begin
     raise Exception.Create('SDL: Init failed: ' + SDL_GetError());
 
 {$IFNDEF HEADLESS}
+{$IFNDEF ANDROID}
   SDL_StartTextInput();
+{$ENDIF}
 {$ENDIF}
 
 {$IFNDEF HEADLESS}

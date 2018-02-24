@@ -190,7 +190,10 @@ begin
     KeyPrevWeapon := 71;
     KeyOpen := 54;
     KeyStrafe := 0;
-    for i := 0 to High(KeyWeapon) do
+    for i := 0 to 9 do
+      KeyWeapon[i] := 30 + i;
+    KeyWeapon[10] := 45;
+    for i := 10 to High(KeyWeapon) do
       KeyWeapon[i] := 0;
 
     KeyRight2 := 0;
