@@ -1628,14 +1628,13 @@ procedure g_GFX_Draw ();
     a, len: Integer;
 {$IFDEF USE_NANOGL}
   type
-    PVertex = ^Vertex;
     Vertex = record
       x, y: GLfloat;
       r, g, b, a: GLfloat;
     end;
   var
     count: Integer;
-    v: PVertex;
+    v: array of Vertex;
 {$ENDIF}
 begin
   if not gpart_dbg_enabled then exit;
@@ -1652,10 +1651,9 @@ begin
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 {$IFDEF USE_NANOGL}
-    len := High(Particles);
-    v := GetMem(len * SizeOf(Vertex) + 1);
     count := 0;
-    for a := 0 to len do
+    SetLength(v, Length(Particles));
+    for a := 0 to High(Particles) do
     begin
       with Particles[a] do
       begin
@@ -1672,15 +1670,13 @@ begin
       end;
     end;
 
-    glVertexPointer(2, GL_FLOAT, SizeOf(Vertex), @v.x);
-    glColorPointer(4, GL_FLOAT, SizeOf(Vertex), @v.r);
+    glVertexPointer(2, GL_FLOAT, SizeOf(Vertex), @v[0].x);
+    glColorPointer(4, GL_FLOAT, SizeOf(Vertex), @v[0].r);
     glEnableClientState(GL_VERTEX_ARRAY);
     glEnableClientState(GL_COLOR_ARRAY);
     glDisableClientState(GL_NORMAL_ARRAY);
     glDisableClientState(GL_TEXTURE_COORD_ARRAY);
-    glDrawArrays(GL_POINTS, 0, count - 1);
-
-    Dispose(v);
+    glDrawArrays(GL_POINTS, 0, count);
 {$ELSE}
     glBegin(GL_POINTS);
 
