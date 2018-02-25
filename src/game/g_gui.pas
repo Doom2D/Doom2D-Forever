@@ -20,7 +20,7 @@ interface
 
 uses
   {$IFDEF USE_MEMPOOL}mempool,{$ENDIF}
-  e_graphics, e_input, e_log, g_playermodel, g_basic, MAPDEF, utils;
+  e_graphics, e_input, e_log, g_playermodel, g_basic, g_touch, MAPDEF, utils;
 
 const
   MAINMENU_HEADER_COLOR: TRGB = (R:255; G:255; B:255);
@@ -2325,6 +2325,8 @@ begin
             end;
         end;
     end;
+
+  g_Touch_ShowKeyboard(FWindow.FActiveControl = Self);
 end;
 
 procedure TGUIEdit.SetText(Text: string);
