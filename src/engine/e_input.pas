@@ -29,14 +29,16 @@ const
   e_MaxJoyBtns  = 32;
   e_MaxJoyAxes  = 8;
   e_MaxJoyHats  = 8;
+  e_MaxVirtKeys = 32;
 
   e_MaxJoyKeys = e_MaxJoyBtns + e_MaxJoyAxes*2 + e_MaxJoyHats*4;
 
-  e_MaxInputKeys = e_MaxKbdKeys + e_MaxJoys*e_MaxJoyKeys - 1;
+  e_MaxInputKeys = e_MaxKbdKeys + e_MaxJoys*e_MaxJoyKeys + e_MaxVirtKeys - 1;
   // $$$..$$$ -  321 Keyboard buttons/keys
   // $$$..$$$ - 4*32 Joystick buttons
   // $$$..$$$ -  8*2 Joystick axes (- and +)
   // $$$..$$$ -  4*4 Joystick hats (L U R D)
+  // $$$..$$$ -   32 Virtual buttons/keys
 
   // these are apparently used in g_gui and g_game and elsewhere
   IK_INVALID = 65535;
@@ -84,6 +86,40 @@ const
   // TODO: think of something better than this shit
   IK_LASTKEY = SDL_NUM_SCANCODES-1;
 
+  VK_FIRSTKEY = e_MaxKbdKeys + e_MaxJoys*e_MaxJoyKeys;
+  VK_LEFT     = VK_FIRSTKEY + 0;
+  VK_RIGHT    = VK_FIRSTKEY + 1;
+  VK_UP       = VK_FIRSTKEY + 2;
+  VK_DOWN     = VK_FIRSTKEY + 3;
+  VK_FIRE     = VK_FIRSTKEY + 4;
+  VK_OPEN     = VK_FIRSTKEY + 5;
+  VK_JUMP     = VK_FIRSTKEY + 6;
+  VK_CHAT     = VK_FIRSTKEY + 7;
+  VK_ESCAPE   = VK_FIRSTKEY + 8;
+  VK_0        = VK_FIRSTKEY + 9;
+  VK_1        = VK_FIRSTKEY + 10;
+  VK_2        = VK_FIRSTKEY + 11;
+  VK_3        = VK_FIRSTKEY + 12;
+  VK_4        = VK_FIRSTKEY + 13;
+  VK_5        = VK_FIRSTKEY + 14;
+  VK_6        = VK_FIRSTKEY + 15;
+  VK_7        = VK_FIRSTKEY + 16;
+  VK_8        = VK_FIRSTKEY + 17;
+  VK_9        = VK_FIRSTKEY + 18;
+  VK_A        = VK_FIRSTKEY + 19;
+  VK_B        = VK_FIRSTKEY + 20;
+  VK_C        = VK_FIRSTKEY + 21;
+  VK_D        = VK_FIRSTKEY + 22;
+  VK_E        = VK_FIRSTKEY + 23;
+  VK_F        = VK_FIRSTKEY + 24;
+  VK_CONSOLE  = VK_FIRSTKEY + 25;
+  VK_STATUS   = VK_FIRSTKEY + 26;
+  VK_TEAM     = VK_FIRSTKEY + 27;
+  VK_PREV     = VK_FIRSTKEY + 28;
+  VK_NEXT     = VK_FIRSTKEY + 29;
+  VK_STRAFE   = VK_FIRSTKEY + 30;
+  VK_LASTKEY  = e_MaxKbdKeys + e_MaxJoys*e_MaxJoyKeys + e_MaxVirtKeys - 1;
+
   AX_MINUS  = 0;
   AX_PLUS   = 1;
   HAT_LEFT  = 0;
@@ -128,6 +164,8 @@ const
   JOYA_END = JOYA_BEG + e_MaxJoyAxes*2*e_MaxJoys;
   JOYH_BEG = JOYA_END;
   JOYH_END = JOYH_BEG + e_MaxJoyHats*4*e_MaxJoys;
+  VIRT_BEG = JOYH_END;
+  VIRT_END = VIRT_BEG + e_MaxVirtKeys;
 
 type
   TJoystick = record
@@ -144,6 +182,7 @@ type
 
 var
   KeyBuffer: array [0..e_MaxKbdKeys] of Boolean;
+  VirtBuffer: array [0..e_MaxVirtKeys] of Boolean;
   Joysticks: array of TJoystick = nil;
 
 function OpenJoysticks(): Byte;
@@ -198,12 +237,14 @@ var
   i: Integer;
 begin
   for i := 0 to High(KeyBuffer) do KeyBuffer[i] := False;
+  for i := 0 to High(VirtBuffer) do VirtBuffer[i] := False;
 end;
 
 
 procedure e_KeyUpDown (key: Word; down: Boolean);
 begin
-  if (key > 0) and (key < Length(KeyBuffer)) then KeyBuffer[key] := down;
+  if (key > 0) and (key < Length(KeyBuffer)) then KeyBuffer[key] := down
+  else if (key >= VIRT_BEG) and (key < VIRT_END) then VirtBuffer[key - VIRT_BEG] := down
 end;
 
 
@@ -285,6 +326,10 @@ begin
       e_KeyNames[k + i*4 + 3] := Format('JOY%d D%dD', [j, i]);
     end;
   end;
+
+  // vitrual keys
+  for i := 0 to e_MaxVirtKeys-1 do
+    e_KeyNames[VIRT_BEG + i] := 'VIRTUAL ' + IntToStr(i);
 end;
 
 function e_InitInput(): Boolean;
@@ -321,6 +366,8 @@ begin
       for d := Low(Joysticks[i].HatBuf[j]) to High(Joysticks[i].HatBuf[j]) do
         Joysticks[i].HatBuf[j, d] := False;
   end;
+  for i := Low(VirtBuffer) to High(VirtBuffer) do
+    VirtBuffer[i] := False;
 end;
 
 {
@@ -388,7 +435,10 @@ begin
       dir := Key mod 4;
       Result := Joysticks[JoyI].HatBuf[Key div 4, dir];
     end;
-  end;
+  end
+
+  else if (Key >= VIRT_BEG) and (Key < VIRT_END) then
+    Result := VirtBuffer[Key - VIRT_BEG]
 end;
 
 procedure e_SetKeyState(key: Word; state: Integer);
@@ -437,7 +487,10 @@ begin
       dir := Key mod 4;
       Joysticks[JoyI].HatBuf[Key div 4, dir] := (state <> 0);
     end;
-  end;
+  end
+
+  else if (Key >= VIRT_BEG) and (Key < VIRT_END) then
+    VirtBuffer[Key - VIRT_BEG] := (state <> 0)
 end;
 
 function e_AnyKeyPressed(): Boolean;

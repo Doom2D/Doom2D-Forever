@@ -1596,7 +1596,10 @@ begin
         if (not g_Game_IsClient) and
         (
           (
-            (e_KeyPressed(IK_RETURN) or e_KeyPressed(IK_KPRETURN) or e_KeyPressed(IK_SPACE))
+            (
+              e_KeyPressed(IK_RETURN) or e_KeyPressed(IK_KPRETURN) or e_KeyPressed(IK_SPACE) or
+              e_KeyPressed(VK_FIRE) or e_KeyPressed(VK_OPEN)
+            )
             and (not gJustChatted) and (not gConsoleShow) and (not gChatShow)
             and (g_ActiveWindow = nil)
           )
@@ -2301,7 +2304,7 @@ begin
 
   g_ProcessMessages();
 
-  if e_KeyPressed(IK_TAB) then
+  if e_KeyPressed(IK_TAB) or e_KeyPressed(VK_STATUS) then
   begin
     if not gStatsPressed then
     begin
@@ -4400,7 +4403,7 @@ begin
 
     ProcessLoading(true);
 
-    if e_KeyPressed(IK_ESCAPE) or e_KeyPressed(IK_SPACE) then
+    if e_KeyPressed(IK_ESCAPE) or e_KeyPressed(IK_SPACE) or e_KeyPressed(VK_ESCAPE) then
     begin
       State := 0;
       break;

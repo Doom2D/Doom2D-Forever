@@ -196,18 +196,18 @@ begin
     for i := 10 to High(KeyWeapon) do
       KeyWeapon[i] := 0;
 
-    KeyRight2 := 0;
-    KeyLeft2 := 0;
-    KeyUp2 := 0;
-    KeyDown2 := 0;
-    KeyFire2 := 0;
-    KeyJump2 := 0;
-    KeyNextWeapon2 := 0;
-    KeyPrevWeapon2 := 0;
-    KeyOpen2 := 0;
-    KeyStrafe2 := 0;
+    KeyRight2 := VK_RIGHT;
+    KeyLeft2 := VK_LEFT;
+    KeyUp2 := VK_UP;
+    KeyDown2 := VK_DOWN;
+    KeyFire2 := VK_FIRE;
+    KeyJump2 := VK_JUMP;
+    KeyNextWeapon2 := VK_NEXT;
+    KeyPrevWeapon2 := VK_PREV;
+    KeyOpen2 := VK_OPEN;
+    KeyStrafe2 := VK_STRAFE;
     for i := 0 to High(KeyWeapon2) do
-      KeyWeapon2[i] := 0;
+      KeyWeapon2[i] := VK_0 + i;
   end;
 
   with gGameControls.P2Control do

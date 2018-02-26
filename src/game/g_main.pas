@@ -491,12 +491,12 @@ begin
         if (g_ActiveWindow = nil) then g_Game_Pause(not gPause);
       end;
 
-    IK_BACKQUOTE: // <`/~/¨/¸>:
+    IK_BACKQUOTE, VK_CONSOLE: // <`/~/¨/¸>:
       begin
         g_Console_Switch();
       end;
 
-    IK_ESCAPE: // <Esc>:
+    IK_ESCAPE, VK_ESCAPE: // <Esc>:
       begin
         if gChatShow then
         begin

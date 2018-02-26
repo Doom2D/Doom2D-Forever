@@ -513,7 +513,7 @@ begin
 
   qm := g_ProcessMessages(); // this updates kbd
 
-  if qm or e_KeyPressed(IK_ESCAPE) then
+  if qm or e_KeyPressed(IK_ESCAPE) or e_KeyPressed(VK_ESCAPE) then
   begin
     SL := nil;
     gState := STATE_MENU;
@@ -524,7 +524,7 @@ begin
     Exit;
   end;
 
-  if e_KeyPressed(IK_SPACE) then
+  if e_KeyPressed(IK_SPACE) or e_KeyPressed(VK_JUMP) then
   begin
     if not slFetched then
     begin
@@ -549,7 +549,7 @@ begin
 
   if SL = nil then Exit;
 
-  if e_KeyPressed(IK_RETURN) or e_KeyPressed(IK_KPRETURN) then
+  if e_KeyPressed(IK_RETURN) or e_KeyPressed(IK_KPRETURN) or e_KeyPressed(VK_FIRE) or e_KeyPressed(VK_OPEN) then
   begin
     if not slReturnPressed then
     begin
@@ -573,7 +573,7 @@ begin
   else
     slReturnPressed := False;
 
-  if e_KeyPressed(IK_DOWN) or e_KeyPressed(IK_KPDOWN) then
+  if e_KeyPressed(IK_DOWN) or e_KeyPressed(IK_KPDOWN) or e_KeyPressed(VK_DOWN) then
   begin
     if not slDirPressed then
     begin
@@ -583,7 +583,7 @@ begin
     end;
   end;
 
-  if e_KeyPressed(IK_UP) or e_KeyPressed(IK_KPUP) then
+  if e_KeyPressed(IK_UP) or e_KeyPressed(IK_KPUP) or e_KeyPressed(VK_UP) then
   begin
     if not slDirPressed then
     begin
@@ -594,7 +594,7 @@ begin
     end;
   end;
 
-  if (not e_KeyPressed(IK_DOWN)) and (not e_KeyPressed(IK_UP)) and (not e_KeyPressed(IK_KPDOWN)) and (not e_KeyPressed(IK_KPUP)) then
+  if (not e_KeyPressed(IK_DOWN)) and (not e_KeyPressed(IK_UP)) and (not e_KeyPressed(IK_KPDOWN)) and (not e_KeyPressed(IK_KPUP)) and (not e_KeyPressed(VK_DOWN)) and (not e_KeyPressed(VK_UP)) then
     slDirPressed := False;
 end;
 
