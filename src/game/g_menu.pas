@@ -164,6 +164,7 @@ begin
   gShowMessages := TGUISwitch(menu.GetControl('swMessages')).ItemIndex = 0;
   gRevertPlayers := TGUISwitch(menu.GetControl('swRevertPlayers')).ItemIndex = 0;
   gChatBubble := TGUISwitch(menu.GetControl('swChatBubble')).ItemIndex;
+  g_dbg_scale := TGUIScroll(menu.GetControl('swScaleFactor')).Value + 1;
 
   menu := TGUIMenu(g_GUI_GetWindow('OptionsControlsMenu').GetControl('mOptionsControlsMenu'));
 
@@ -494,6 +495,8 @@ begin
 
   with TGUISwitch(menu.GetControl('swChatBubble')) do
     ItemIndex := gChatBubble;
+
+  TGUIScroll(menu.GetControl('swScaleFactor')).Value := Round(g_dbg_scale - 1);
 
   menu := TGUIMenu(g_GUI_GetWindow('OptionsPlayersP1Menu').GetControl('mOptionsPlayersP1Menu'));
 
@@ -1257,6 +1260,14 @@ begin
     Min(TGUIScroll(menu.GetControl('scSoundLevel')).Value*16, 255),
     Min(TGUIScroll(menu.GetControl('scMusicLevel')).Value*16, 255)
   );
+end;
+
+procedure ProcChangeGameSettings(Sender: TGUIControl);
+var
+  menu: TGUIMenu;
+begin
+  menu := TGUIMenu(g_GUI_GetWindow('OptionsGameMenu').GetControl('mOptionsGameMenu'));
+  g_dbg_scale := TGUIScroll(menu.GetControl('swScaleFactor')).Value + 1;
 end;
 
 procedure ProcOptionsPlayersMIMenu();
@@ -2672,6 +2683,12 @@ begin
       AddItem(_lc[I_MENU_GAME_CHAT_TYPE_ADV]);
       AddItem(_lc[I_MENU_GAME_CHAT_TYPE_COLOR]);
       AddItem(_lc[I_MENU_GAME_CHAT_TYPE_TEXTURE]);
+    end;
+    with AddScroll(_lc[I_MENU_GAME_SCALE_FACTOR]) do
+    begin
+      Name := 'swScaleFactor';
+      Max := 10;
+      OnChange := ProcChangeGameSettings;
     end;
     ReAlign();
   end;

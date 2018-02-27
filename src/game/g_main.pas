@@ -112,6 +112,9 @@ begin
   sdlflags := SDL_INIT_JOYSTICK or SDL_INIT_TIMER or SDL_INIT_VIDEO;
  {$ENDIF}
 {$ENDIF}
+
+  SDL_SetHint(SDL_HINT_ACCELEROMETER_AS_JOYSTICK, '0');
+
   if SDL_Init(sdlflags) < 0 then
     raise Exception.Create('SDL: Init failed: ' + SDL_GetError());
 

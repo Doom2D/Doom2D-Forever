@@ -253,6 +253,7 @@ type
     I_MENU_GAME_CHAT_TYPE_ADV,
     I_MENU_GAME_CHAT_TYPE_COLOR,
     I_MENU_GAME_CHAT_TYPE_TEXTURE,
+    I_MENU_GAME_SCALE_FACTOR,
 
     I_MENU_VIDEO_RESOLUTION,
     I_MENU_VIDEO_BPP,
@@ -1072,6 +1073,8 @@ const
                                        'Цветная'),
     ('MENU GAME CHAT TYPE TEXTURE',    'Textured',
                                        'Текстура'),
+    ('MENU GAME SCALE FACTOR',         'Scale:',
+                                       'Масштаб:'),
 
     ('MENU VIDEO RESOLUTION',          'Set video mode',
                                        'Установка видеорежима'),
