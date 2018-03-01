@@ -52,7 +52,7 @@ uses
   e_log, SysUtils, CONFIG, g_playermodel, DateUtils, sdl2,
   MAPDEF, Math, g_saveload,
   e_texture, g_language,
-  g_net, g_netmsg, g_netmaster, g_items, e_input,
+  g_net, g_netmsg, g_netmaster, g_items, e_input, g_touch,
   utils, wadreader;
 
 
@@ -164,7 +164,7 @@ begin
   gShowMessages := TGUISwitch(menu.GetControl('swMessages')).ItemIndex = 0;
   gRevertPlayers := TGUISwitch(menu.GetControl('swRevertPlayers')).ItemIndex = 0;
   gChatBubble := TGUISwitch(menu.GetControl('swChatBubble')).ItemIndex;
-  g_dbg_scale := TGUIScroll(menu.GetControl('swScaleFactor')).Value + 1;
+  g_dbg_scale := TGUIScroll(menu.GetControl('scScaleFactor')).Value + 1;
 
   menu := TGUIMenu(g_GUI_GetWindow('OptionsControlsMenu').GetControl('mOptionsControlsMenu'));
 
@@ -256,6 +256,13 @@ begin
       for i := 0 to e_JoysticksAvailable-1 do
         e_JoystickDeadzones[i] := TGUIScroll(menu.GetControl('scDeadzone' + IntToStr(i))).Value*(32767 div 20);
     end;
+  end;
+
+  if SDL_GetNumTouchDevices() > 0 then
+  begin
+    menu := TGUIMenu(g_GUI_GetWindow('OptionsControlsTouchMenu').GetControl('mOptionsControlsTouchMenu'));
+    g_touch_size := TGUIScroll(menu.GetControl('scTouchSize')).Value / 10 + 0.5;
+    g_touch_fire := TGUISwitch(menu.GetControl('swTouchFire')).ItemIndex = 1;
   end;
 
   menu := TGUIMenu(g_GUI_GetWindow('OptionsPlayersP1Menu').GetControl('mOptionsPlayersP1Menu'));
@@ -446,6 +453,14 @@ begin
     end;
   end;
 
+  if SDL_GetNumTouchDevices() > 0 then
+  begin
+    menu := TGUIMenu(g_GUI_GetWindow('OptionsControlsTouchMenu').GetControl('mOptionsControlsTouchMenu'));
+    TGUIScroll(menu.GetControl('scTouchSize')).Value := Round((g_touch_size - 0.5) * 10);
+    with TGUISwitch(menu.GetControl('swTouchFire')) do
+      if g_touch_fire then ItemIndex := 1 else ItemIndex := 0;
+  end;
+
   menu := TGUIMenu(g_GUI_GetWindow('OptionsControlsMenu').GetControl('mOptionsControlsMenu'));
   with menu, gGameControls.GameControls do
   begin
@@ -496,7 +511,7 @@ begin
   with TGUISwitch(menu.GetControl('swChatBubble')) do
     ItemIndex := gChatBubble;
 
-  TGUIScroll(menu.GetControl('swScaleFactor')).Value := Round(g_dbg_scale - 1);
+  TGUIScroll(menu.GetControl('scScaleFactor')).Value := Round(g_dbg_scale - 1);
 
   menu := TGUIMenu(g_GUI_GetWindow('OptionsPlayersP1Menu').GetControl('mOptionsPlayersP1Menu'));
 
@@ -1267,7 +1282,15 @@ var
   menu: TGUIMenu;
 begin
   menu := TGUIMenu(g_GUI_GetWindow('OptionsGameMenu').GetControl('mOptionsGameMenu'));
-  g_dbg_scale := TGUIScroll(menu.GetControl('swScaleFactor')).Value + 1;
+  g_dbg_scale := TGUIScroll(menu.GetControl('scScaleFactor')).Value + 1;
+end;
+
+procedure ProcChangeTouchSettings(Sender: TGUIControl);
+var
+  menu: TGUIMenu;
+begin
+  menu := TGUIMenu(g_GUI_GetWindow('OptionsControlsTouchMenu').GetControl('mOptionsControlsTouchMenu'));
+  g_touch_size := TGUIScroll(menu.GetControl('scTouchSize')).Value / 10 + 0.5;
 end;
 
 procedure ProcOptionsPlayersMIMenu();
@@ -2686,7 +2709,7 @@ begin
     end;
     with AddScroll(_lc[I_MENU_GAME_SCALE_FACTOR]) do
     begin
-      Name := 'swScaleFactor';
+      Name := 'scScaleFactor';
       Max := 10;
       OnChange := ProcChangeGameSettings;
     end;
@@ -2711,9 +2734,16 @@ begin
     AddButton(nil, _lc[I_MENU_PLAYER_2_KBD], 'OptionsControlsP2Menu');
     {AddButton(nil, _lc[I_MENU_PLAYER_2_ALT], 'OptionsControlsP2MenuAlt');}
     AddButton(nil, _lc[I_MENU_PLAYER_2_WEAPONS], 'OptionsControlsP2MenuWeapons');
-    AddSpace();
     if e_JoysticksAvailable <> 0 then
+    begin
+      AddSpace();
       AddButton(nil, _lc[I_MENU_CONTROL_JOYSTICKS], 'OptionsControlsJoystickMenu');
+    end;
+    if SDL_GetNumTouchDevices() > 0 then
+    begin
+      AddSpace();
+      AddButton(nil, _lc[I_MENU_CONTROL_TOUCH], 'OptionsControlsTouchMenu');
+    end;
   end;
   Menu.DefControl := 'mOptionsControlsMenu';
   g_GUI_AddWindow(Menu);
@@ -2788,6 +2818,26 @@ begin
       end;
   end;
   Menu.DefControl := 'mOptionsControlsJoystickMenu';
+  g_GUI_AddWindow(Menu);
+
+  Menu := TGUIWindow.Create('OptionsControlsTouchMenu');
+  with TGUIMenu(Menu.AddChild(TGUIMenu.Create(gMenuFont, gMenuSmallFont, _lc[I_MENU_CONTROL_TOUCH]))) do
+  begin
+    Name := 'mOptionsControlsTouchMenu';
+    with AddScroll(_lc[I_MENU_CONTROL_TOUCH_SIZE]) do
+    begin
+      Name := 'scTouchSize';
+      Max := 20;
+      OnChange := ProcChangeTouchSettings;
+    end;
+    with AddSwitch(_lc[I_MENU_CONTROL_TOUCH_FIRE]) do
+    begin
+      Name := 'swTouchFire';
+      AddItem(_lc[I_MENU_NO]);
+      AddItem(_lc[I_MENU_YES]);
+    end;
+  end;
+  Menu.DefControl := 'mOptionsControlsTouchMenu';
   g_GUI_AddWindow(Menu);
 
   Menu := TGUIWindow.Create('OptionsPlayersMenu');

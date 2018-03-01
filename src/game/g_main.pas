@@ -46,7 +46,7 @@ uses
   e_graphics, e_input, g_game, g_console, g_gui,
   e_sound, g_options, g_sound, g_player, g_basic,
   g_weapons, SysUtils, g_triggers, MAPDEF, g_map,
-  g_menu, g_language, g_net, g_holmes,
+  g_menu, g_language, g_net, g_holmes, g_touch,
   utils, conbuf, envvars, fui_wadread, fui_style,
   fui_gfx_gl, xparser;
 
@@ -201,6 +201,7 @@ begin
 
   e_WriteLog('Init Input', TMsgType.Notify);
   e_InitInput();
+  g_Touch_Init;
 
   if (e_JoysticksAvailable > 0) then
     e_WriteLog('Input: Joysticks available.', TMsgType.Notify)

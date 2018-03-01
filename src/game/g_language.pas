@@ -206,6 +206,10 @@ type
     I_MENU_CONTROL_JOYSTICKS,
     I_MENU_CONTROL_DEADZONE,
 
+    I_MENU_CONTROL_TOUCH,
+    I_MENU_CONTROL_TOUCH_FIRE,
+    I_MENU_CONTROL_TOUCH_SIZE,
+
     I_MENU_CONTROL_GLOBAL,
     I_MENU_CONTROL_SCREENSHOT,
     I_MENU_CONTROL_STAT,
@@ -980,6 +984,13 @@ const
                                        'Настройки джойстиков'),
     ('MENU CONTROL DEADZONE',          'Joystick %d Deadzone',
                                        'Мёртвая зона джойстика %d'),
+
+    ('MENU CONTROL TOCUH',             'Touchscreen Settings',
+                                       'Настройки сенсрного экрана'),
+    ('MENU CONTROL TOUCH FIRE',        'Shoot Up/Down:',
+                                       'Стрелять вверх/вниз:'),
+    ('MENU CONTROL TOUCH SIZE',        'Button size:',
+                                       'Размер кнопок:'),
 
     ('MENU CONTROL GLOBAL',            'Global Controls',
                                        'ОБЩЕЕ УПРАВЛЕНИЕ'),

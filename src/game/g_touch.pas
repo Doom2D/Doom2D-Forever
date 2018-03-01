@@ -21,6 +21,11 @@ interface
   uses
     SDL2;
 
+  var
+    g_touch_size: Single;
+    g_touch_fire: Boolean;
+
+  procedure g_Touch_Init;
   procedure g_Touch_ShowKeyboard(yes: Boolean);
   procedure g_Touch_HandleEvent(const ev: TSDL_TouchFingerEvent);
   procedure g_Touch_Draw;
@@ -33,9 +38,8 @@ implementation
 
   var
     jab: Boolean;
-    size: Single;
     enabled: Boolean;
-    angleFireEnabled, angleFire: Boolean;
+    angleFire: Boolean;
     keyFinger: array [VK_FIRSTKEY..VK_LASTKEY] of Integer;
 
   procedure GetKeyRect(key: Word; out x, y, w, h: Integer; out founded: Boolean);
@@ -47,7 +51,7 @@ implementation
       dpi := 96;
 
     founded := true;
-    sz := Trunc(size * dpi);
+    sz := Trunc(g_touch_size * dpi);
     sw := gScreenWidth; sh := gScreenHeight;
     if jab then
     begin
@@ -176,6 +180,13 @@ implementation
     result := founded and (xx >= x) and (yy >= y) and (xx <= x + w) and (yy <= y + h);
   end;
 
+  procedure g_Touch_Init;
+  begin
+{$IFNDEF HEADLESS}
+    enabled := SDL_GetNumTouchDevices() > 0
+{$ENDIF}
+  end;
+
   procedure g_Touch_ShowKeyboard(yes: Boolean);
   begin
 {$IFNDEF HEADLESS}
@@ -228,7 +239,7 @@ implementation
     end;
 
     (* emulate up+fire / donw+fire *)
-    if angleFireEnabled and (gGameSettings.GameType <> GT_NONE) then
+    if g_touch_fire and (gGameSettings.GameType <> GT_NONE) then
     begin
       if keyFinger[VK_UP] <> 0 then
       begin
@@ -303,14 +314,9 @@ implementation
   end;
 
 initialization
-{$IFDEF ANDROID}
-  enabled := true;
-{$ENDIF}
-  size := 1;
-  angleFire := true;
   conRegVar('touch_enable', @enabled, 'enable/disable virtual buttons', 'draw buttons');
-  conRegVar('touch_anglefire', @angleFireEnabled, 'enable/disable fire when press virtual up/down', 'fire when press up/down');
-  conRegVar('touch_size', @size, 0.1, 10, 'size of virtual buttons', 'button size');
+  conRegVar('touch_fire', @g_touch_fire, 'enable/disable fire when press virtual up/down', 'fire when press up/down');
+  conRegVar('touch_size', @g_touch_size, 0.1, 10, 'size of virtual buttons', 'button size');
   conRegVar('touch_alt', @jab, 'althernative virtual buttons layout', 'althernative layout');
 end.
 

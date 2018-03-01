@@ -141,7 +141,7 @@ uses
 {$ENDIF}
   e_log, e_input, g_window, g_sound, g_gfx, g_player, Math,
   g_map, g_net, g_netmaster, SysUtils, CONFIG, g_game, g_main, e_texture,
-  g_items, wadreader, e_graphics;
+  g_items, wadreader, e_graphics, g_touch;
 
 procedure g_Options_SetDefault();
 var
@@ -167,6 +167,8 @@ begin
   gShowMessages := True;
   gRevertPlayers := False;
   g_dbg_scale := 1.0;
+  g_touch_size := 1.0;
+  g_touch_fire := True;
 
   for i := 0 to e_MaxJoys-1 do
     e_JoystickDeadzones[i] := 8192;
@@ -420,6 +422,9 @@ begin
   for i := 0 to e_MaxJoys-1 do
     e_JoystickDeadzones[i] := config.ReadInt('Joysticks', 'Deadzone' + IntToStr(i), 8192);
 
+  g_touch_size := Max(config.ReadInt('Touch', 'Size', 10) / 10, 0.1);
+  g_touch_fire := config.ReadBool('Touch', 'Fire', True);
+
   g_GFX_SetMax(Min(config.ReadInt('Game', 'MaxParticles', 1000), 50000));
   g_Shells_SetMax(Min(config.ReadInt('Game', 'MaxShells', 300), 600));
   g_Gibs_SetMax(Min(config.ReadInt('Game', 'MaxGibs', 150), 500));
@@ -659,6 +664,9 @@ begin
 
   for i := 0 to e_MaxJoys-1 do
     config.WriteInt('Joysticks', 'Deadzone' + IntToStr(i), e_JoystickDeadzones[i]);
+
+  config.WriteInt('Touch', 'Size', Round(g_touch_size * 10));
+  config.WriteBool('Touch', 'Fire', g_touch_fire);
 
   with config do
     case gGibsCount of
