@@ -455,7 +455,7 @@ begin
   e_FastScreenshots := config.ReadBool('Game', 'FastScreenshots', True);
   gDefaultMegawadStart := config.ReadStr('Game', 'DefaultMegawadStart', DF_Default_Megawad_Start);
   gBerserkAutoswitch := config.ReadBool('Game', 'BerserkAutoswitching', True);
-  g_dbg_scale := Max(config.ReadInt('Game', 'Scale', 1), 1);
+  g_dbg_scale := Max(config.ReadInt('Game', 'Scale', 100) / 100, 1.0);
 
 // Геймплей в своей игре
   gcMap := config.ReadStr('GameplayCustom', 'Map', '');
@@ -696,7 +696,7 @@ begin
   config.WriteBool('Game', 'FastScreenshots', e_FastScreenshots);
   config.WriteStr('Game', 'DefaultMegawadStart', gDefaultMegawadStart);
   config.WriteBool('Game', 'BerserkAutoswitching', gBerserkAutoswitch);
-  config.WriteInt('Game', 'Scale', Round(g_dbg_scale));
+  config.WriteInt('Game', 'Scale', Round(g_dbg_scale * 100));
 
   config.WriteStr ('GameplayCustom', 'Map', gcMap);
   config.WriteStr ('GameplayCustom', 'GameMode', gcGameMode);
