@@ -1695,23 +1695,25 @@ begin
       begin
         if g_ActiveWindow = nil then
         begin
-          if e_KeyPressed(gGameControls.GameControls.Chat) then
+          if e_KeyPressed(gGameControls.GameControls.Chat) or e_KeyPressed(VK_CHAT) then
             g_Console_Chat_Switch(False)
-          else if (e_KeyPressed(gGameControls.GameControls.TeamChat)) and
+          else if (e_KeyPressed(gGameControls.GameControls.TeamChat) or e_KeyPressed(VK_TEAM)) and
                   (gGameSettings.GameMode in [GM_TDM, GM_CTF]) then
             g_Console_Chat_Switch(True);
         end;
       end else
         if not gChatEnter then
           if (not e_KeyPressed(gGameControls.GameControls.Chat))
-             and (not e_KeyPressed(gGameControls.GameControls.TeamChat)) then
+             and (not e_KeyPressed(gGameControls.GameControls.TeamChat))
+             and (not e_KeyPressed(VK_CHAT))
+             and (not e_KeyPressed(VK_TEAM)) then
             gChatEnter := True;
 
 // Статистика по Tab:
   if gGameOn then
     IsDrawStat := (not gConsoleShow) and (not gChatShow) and
                   (gGameSettings.GameType <> GT_SINGLE) and
-                  e_KeyPressed(gGameControls.GameControls.Stat);
+                  (e_KeyPressed(gGameControls.GameControls.Stat) or e_KeyPressed(VK_STATUS));
 
 // Игра идет:
   if gGameOn and not gPause and (gState <> STATE_FOLD) then
@@ -2011,7 +2013,7 @@ begin
   end;
 
 // Делаем скриншот (не чаще 200 миллисекунд):
-  if e_KeyPressed(gGameControls.GameControls.TakeScreenshot) then
+  if e_KeyPressed(gGameControls.GameControls.TakeScreenshot) or e_KeyPressed(VK_PRINTSCR) then
     if (GetTimer()-LastScreenShot) > 200000 div 1000 then
     begin
       g_TakeScreenShot();

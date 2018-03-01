@@ -29,7 +29,7 @@ const
   e_MaxJoyBtns  = 32;
   e_MaxJoyAxes  = 8;
   e_MaxJoyHats  = 8;
-  e_MaxVirtKeys = 32;
+  e_MaxVirtKeys = 48;
 
   e_MaxJoyKeys = e_MaxJoyBtns + e_MaxJoyAxes*2 + e_MaxJoyHats*4;
 
@@ -38,7 +38,7 @@ const
   // $$$..$$$ - 4*32 Joystick buttons
   // $$$..$$$ -  8*2 Joystick axes (- and +)
   // $$$..$$$ -  4*4 Joystick hats (L U R D)
-  // $$$..$$$ -   32 Virtual buttons/keys
+  // $$$..$$$ -   48 Virtual buttons/keys
 
   // these are apparently used in g_gui and g_game and elsewhere
   IK_INVALID = 65535;
@@ -118,6 +118,9 @@ const
   VK_PREV     = VK_FIRSTKEY + 28;
   VK_NEXT     = VK_FIRSTKEY + 29;
   VK_STRAFE   = VK_FIRSTKEY + 30;
+  VK_LSTRAFE  = VK_FIRSTKEY + 31;
+  VK_RSTRAFE  = VK_FIRSTKEY + 32;
+  VK_PRINTSCR = VK_FIRSTKEY + 33;
   VK_LASTKEY  = e_MaxKbdKeys + e_MaxJoys*e_MaxJoyKeys + e_MaxVirtKeys - 1;
 
   AX_MINUS  = 0;

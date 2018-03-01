@@ -35,12 +35,13 @@ implementation
     jab: Boolean;
     size: Single;
     enabled: Boolean;
+    angleFireEnabled, angleFire: Boolean;
     keyFinger: array [VK_FIRSTKEY..VK_LASTKEY] of Integer;
 
   procedure GetKeyRect(key: Word; out x, y, w, h: Integer; out founded: Boolean);
-     var
-       sw, sh, sz: Integer;
-       dpi: Single;
+    var
+      sw, sh, sz: Integer;
+      dpi: Single;
   begin
     if SDL_GetDisplayDPI(0, @dpi, nil, nil) <> 0 then
       dpi := 96;
@@ -81,32 +82,36 @@ implementation
     begin
       x := 0; y := 0; w := sz; h := sz;
       case key of
-        VK_LEFT:  begin x := 0;            y := sh div 2 - h div 2; end;
-        VK_RIGHT: begin x := w;            y := sh div 2 - h div 2; end;
-        VK_UP:    begin x := sw - w - 1;   y := sh div 2 - h div 2 - h; end;
-        VK_DOWN:  begin x := sw - w - 1;   y := sh div 2 - h div 2 + h; end;
-        VK_FIRE:  begin x := sw - 1*w - 1; y := sh div 2 - h div 2; end;
-        VK_OPEN:  begin x := sw - 3*w - 1; y := sh div 2 - h div 2; end;
-        VK_JUMP:  begin x := sw - 2*w - 1; y := sh div 2 - h div 2; end;
+        VK_LSTRAFE: begin x := 0;            y := sh div 2 - h div 2; w := w div 2 end;
+        VK_LEFT:    begin x := w div 2;      y := sh div 2 - h div 2 end;
+        VK_RIGHT:   begin x := w div 2 + 1*w;y := sh div 2 - h div 2 end;
+        VK_RSTRAFE: begin x := w div 2 + 2*w;y := sh div 2 - h div 2; w := w div 2 end;
+        VK_UP:      begin x := sw - w - 1;   y := sh div 2 - h div 2 - h end;
+        VK_FIRE:    begin x := sw - 1*w - 1; y := sh div 2 - h div 2 end;
+        VK_DOWN:    begin x := sw - w - 1;   y := sh div 2 - h div 2 + h end;
+        VK_NEXT:    begin x := sw - 2*w - 1; y := sh div 2 - h div 2 - h end;
+        VK_JUMP:    begin x := sw - 2*w - 1; y := sh div 2 - h div 2 end;
+        VK_PREV:    begin x := sw - 3*w - 1; y := sh div 2 - h div 2 - h end;
+        VK_OPEN:    begin x := sw - 3*w - 1; y := sh div 2 - h div 2 end;
       else
         w := sz div 2; h := sz div 2;
         case key of
-          VK_0:       begin x := sw div 2 - w div 2 - 5*w - 1; y := sh - 1*h - 1; end;
-          VK_1:       begin x := sw div 2 - w div 2 - 4*w - 1; y := sh - 1*h - 1; end;
-          VK_2:       begin x := sw div 2 - w div 2 - 3*w - 1; y := sh - 1*h - 1; end;
-          VK_3:       begin x := sw div 2 - w div 2 - 2*w - 1; y := sh - 1*h - 1; end;
-          VK_4:       begin x := sw div 2 - w div 2 - 1*w - 1; y := sh - 1*h - 1; end;
-          VK_5:       begin x := sw div 2 - w div 2 + 0*w - 1; y := sh - 1*h - 1; end;
-          VK_6:       begin x := sw div 2 - w div 2 + 1*w - 1; y := sh - 1*h - 1; end;
-          VK_7:       begin x := sw div 2 - w div 2 + 2*w - 1; y := sh - 1*h - 1; end;
-          VK_8:       begin x := sw div 2 - w div 2 + 3*w - 1; y := sh - 1*h - 1; end;
-          VK_9:       begin x := sw div 2 - w div 2 + 4*w - 1; y := sh - 1*h - 1; end;
-          VK_A:      begin x := sw div 2 - w div 2 + 5*w - 1; y := sh - 1*h - 1; end;
-          VK_CHAT:    begin x := sw div 2 - w div 2 - 2*w - 1; y := sh - 2*h - 1; end;
-          VK_ESCAPE:  begin x := sw div 2 - w div 2 - 1*w - 1; y := sh - 2*h - 1; end;
-          VK_CONSOLE: begin x := sw div 2 - w div 2 + 0*w - 1; y := sh - 2*h - 1; end;
-          VK_STATUS:  begin x := sw div 2 - w div 2 + 1*w - 1; y := sh - 2*h - 1; end;
-          VK_TEAM:    begin x := sw div 2 - w div 2 + 2*w - 1; y := sh - 2*h - 1; end;
+          VK_0:       begin x := sw div 2 - w div 2 - 5*w - 1; y := sh - 1*h - 1 end;
+          VK_1:       begin x := sw div 2 - w div 2 - 4*w - 1; y := sh - 1*h - 1 end;
+          VK_2:       begin x := sw div 2 - w div 2 - 3*w - 1; y := sh - 1*h - 1 end;
+          VK_3:       begin x := sw div 2 - w div 2 - 2*w - 1; y := sh - 1*h - 1 end;
+          VK_4:       begin x := sw div 2 - w div 2 - 1*w - 1; y := sh - 1*h - 1 end;
+          VK_5:       begin x := sw div 2 - w div 2 + 0*w - 1; y := sh - 1*h - 1 end;
+          VK_6:       begin x := sw div 2 - w div 2 + 1*w - 1; y := sh - 1*h - 1 end;
+          VK_7:       begin x := sw div 2 - w div 2 + 2*w - 1; y := sh - 1*h - 1 end;
+          VK_8:       begin x := sw div 2 - w div 2 + 3*w - 1; y := sh - 1*h - 1 end;
+          VK_9:       begin x := sw div 2 - w div 2 + 4*w - 1; y := sh - 1*h - 1 end;
+          VK_A:       begin x := sw div 2 - w div 2 + 5*w - 1; y := sh - 1*h - 1 end;
+          VK_CHAT:    begin x := sw div 2 - w div 2 - 2*w - 1; y := sh - 2*h - 1 end;
+          VK_ESCAPE:  begin x := sw div 2 - w div 2 - 1*w - 1; y := sh - 2*h - 1 end;
+          VK_CONSOLE: begin x := sw div 2 - w div 2 + 0*w - 1; y := sh - 2*h - 1 end;
+          VK_STATUS:  begin x := sw div 2 - w div 2 + 1*w - 1; y := sh - 2*h - 1 end;
+          VK_TEAM:    begin x := sw div 2 - w div 2 + 2*w - 1; y := sh - 2*h - 1 end;
         else
           founded := false
         end
@@ -145,8 +150,10 @@ implementation
       VK_CONSOLE: result := 'CON';
       VK_STATUS:  result := 'STAT';
       VK_TEAM:    result := 'TEAM';
-      VK_PREV:    result := '<PREV';
+      VK_PREV:    result := '<PREW';
       VK_NEXT:    result := 'NEXT>';
+      VK_LSTRAFE: result := '<';
+      VK_RSTRAFE: result := '>';
     else
       if (key > 0) and (key < e_MaxInputKeys) then
         result := e_KeyNames[key]
@@ -157,7 +164,7 @@ implementation
 
   procedure DrawRect(x, y, w, h: Integer);
   begin
-    e_DrawQuad(x, y, x + w, y + h, 0, 255, 0, 63);
+    e_DrawQuad(x, y, x + w, y + h, 0, 255, 0, 31);
   end;
 
   function IntersectControl(ctl, xx, yy: Integer): Boolean;
@@ -219,6 +226,57 @@ implementation
 
       e_KeyUpDown(i, keyFinger[i] <> 0);
     end;
+
+    (* emulate up+fire / donw+fire *)
+    if angleFireEnabled and (gGameSettings.GameType <> GT_NONE) then
+    begin
+      if keyFinger[VK_UP] <> 0 then
+      begin
+        angleFire := true;
+        keyFinger[VK_FIRE] := keyFinger[VK_UP];
+        e_KeyUpDown(VK_FIRE, true);
+      end
+      else if keyFinger[VK_DOWN] <> 0 then
+      begin
+        angleFire := true;
+        keyFinger[VK_FIRE] := keyFinger[VK_DOWN];
+        e_KeyUpDown(VK_FIRE, true);
+      end
+      else if angleFire then
+      begin
+        angleFire := false;
+        keyFinger[VK_FIRE] := 0;
+        e_KeyUpDown(VK_FIRE, false);
+      end
+    end;
+
+    (* left/right strafe *)
+    if gGameSettings.GameType <> GT_NONE then
+    begin
+      if keyFinger[VK_LSTRAFE] <> 0 then
+      begin
+        keyFinger[VK_LEFT] := finger;
+        keyFinger[VK_RIGHT] := 0;
+        keyFinger[VK_STRAFE] := finger;
+        e_KeyUpDown(VK_LEFT, true);
+        e_KeyUpDown(VK_RIGHT, false);
+        e_KeyUpDown(VK_STRAFE, true);
+      end
+      else if keyFinger[VK_RSTRAFE] <> 0 then
+      begin
+        keyFinger[VK_LEFT] := 0;
+        keyFinger[VK_RIGHT] := finger;
+        keyFinger[VK_STRAFE] := finger;
+        e_KeyUpDown(VK_LEFT, false);
+        e_KeyUpDown(VK_RIGHT, true);
+        e_KeyUpDown(VK_STRAFE, true);
+      end
+      else
+      begin
+        keyFinger[VK_STRAFE] := 0;
+        e_KeyUpDown(VK_STRAFE, false);
+      end
+    end;
   end;
 
   procedure g_Touch_Draw;
@@ -249,7 +307,9 @@ initialization
   enabled := true;
 {$ENDIF}
   size := 1;
+  angleFire := true;
   conRegVar('touch_enable', @enabled, 'enable/disable virtual buttons', 'draw buttons');
+  conRegVar('touch_anglefire', @angleFireEnabled, 'enable/disable fire when press virtual up/down', 'fire when press up/down');
   conRegVar('touch_size', @size, 0.1, 10, 'size of virtual buttons', 'button size');
   conRegVar('touch_alt', @jab, 'althernative virtual buttons layout', 'althernative layout');
 end.
