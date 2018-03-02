@@ -263,6 +263,7 @@ begin
     menu := TGUIMenu(g_GUI_GetWindow('OptionsControlsTouchMenu').GetControl('mOptionsControlsTouchMenu'));
     g_touch_size := TGUIScroll(menu.GetControl('scTouchSize')).Value / 10 + 0.5;
     g_touch_fire := TGUISwitch(menu.GetControl('swTouchFire')).ItemIndex = 1;
+    g_touch_offset := TGUIScroll(menu.GetControl('scTouchOffset')).Value * 5;
   end;
 
   menu := TGUIMenu(g_GUI_GetWindow('OptionsPlayersP1Menu').GetControl('mOptionsPlayersP1Menu'));
@@ -459,6 +460,7 @@ begin
     TGUIScroll(menu.GetControl('scTouchSize')).Value := Round((g_touch_size - 0.5) * 10);
     with TGUISwitch(menu.GetControl('swTouchFire')) do
       if g_touch_fire then ItemIndex := 1 else ItemIndex := 0;
+    TGUIScroll(menu.GetControl('scTouchOffset')).Value := Round(g_touch_offset / 5);
   end;
 
   menu := TGUIMenu(g_GUI_GetWindow('OptionsControlsMenu').GetControl('mOptionsControlsMenu'));
@@ -1291,6 +1293,7 @@ var
 begin
   menu := TGUIMenu(g_GUI_GetWindow('OptionsControlsTouchMenu').GetControl('mOptionsControlsTouchMenu'));
   g_touch_size := TGUIScroll(menu.GetControl('scTouchSize')).Value / 10 + 0.5;
+  g_touch_offset := TGUIScroll(menu.GetControl('scTouchOffset')).Value * 5;
 end;
 
 procedure ProcOptionsPlayersMIMenu();
@@ -2835,6 +2838,12 @@ begin
       Name := 'swTouchFire';
       AddItem(_lc[I_MENU_NO]);
       AddItem(_lc[I_MENU_YES]);
+    end;
+    with AddScroll(_lc[I_MENU_CONTROL_TOUCH_OFFSET]) do
+    begin
+      Name := 'scTouchOffset';
+      Max := 20;
+      OnChange := ProcChangeTouchSettings;
     end;
   end;
   Menu.DefControl := 'mOptionsControlsTouchMenu';

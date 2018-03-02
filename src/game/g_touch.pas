@@ -22,8 +22,9 @@ interface
     SDL2;
 
   var
-    g_touch_size: Single;
-    g_touch_fire: Boolean;
+    g_touch_size: Single = 1.0;
+    g_touch_offset: Single = 50;
+    g_touch_fire: Boolean = True;
 
   procedure g_Touch_Init;
   procedure g_Touch_ShowKeyboard(yes: Boolean);
@@ -84,21 +85,21 @@ implementation
     end
     else
     begin
-      x := 0; y := 0; w := sz; h := sz;
+      x := 0; y := Round(sh * g_touch_offset / 100); w := sz; h := sz;
       case key of
-        VK_LSTRAFE: begin x := 0;            y := sh div 2 - h div 2; w := w div 2 end;
-        VK_LEFT:    begin x := w div 2;      y := sh div 2 - h div 2 end;
-        VK_RIGHT:   begin x := w div 2 + 1*w;y := sh div 2 - h div 2 end;
-        VK_RSTRAFE: begin x := w div 2 + 2*w;y := sh div 2 - h div 2; w := w div 2 end;
-        VK_UP:      begin x := sw - w - 1;   y := sh div 2 - h div 2 - h end;
-        VK_FIRE:    begin x := sw - 1*w - 1; y := sh div 2 - h div 2 end;
-        VK_DOWN:    begin x := sw - w - 1;   y := sh div 2 - h div 2 + h end;
-        VK_NEXT:    begin x := sw - 2*w - 1; y := sh div 2 - h div 2 - h end;
-        VK_JUMP:    begin x := sw - 2*w - 1; y := sh div 2 - h div 2 end;
-        VK_PREV:    begin x := sw - 3*w - 1; y := sh div 2 - h div 2 - h end;
-        VK_OPEN:    begin x := sw - 3*w - 1; y := sh div 2 - h div 2 end;
+        VK_LSTRAFE: begin x := 0;             y := y - h div 2; w := w div 2 end;
+        VK_LEFT:    begin x := w div 2;       y := y - h div 2 end;
+        VK_RIGHT:   begin x := w div 2 + 1*w; y := y - h div 2 end;
+        VK_RSTRAFE: begin x := w div 2 + 2*w; y := y - h div 2; w := w div 2 end;
+        VK_UP:      begin x := sw - w - 1;    y := y - h div 2 - h end;
+        VK_FIRE:    begin x := sw - 1*w - 1;  y := y - h div 2 end;
+        VK_DOWN:    begin x := sw - w - 1;    y := y - h div 2 + h end;
+        VK_NEXT:    begin x := sw - 2*w - 1;  y := y - h div 2 - h end;
+        VK_JUMP:    begin x := sw - 2*w - 1;  y := y - h div 2 end;
+        VK_PREV:    begin x := sw - 3*w - 1;  y := y - h div 2 - h end;
+        VK_OPEN:    begin x := sw - 3*w - 1;  y := y - h div 2 end;
       else
-        w := sz div 2; h := sz div 2;
+        x := 0; y := 0; w := sz div 2; h := sz div 2;
         case key of
           VK_0:       begin x := sw div 2 - w div 2 - 5*w - 1; y := sh - 1*h - 1 end;
           VK_1:       begin x := sw div 2 - w div 2 - 4*w - 1; y := sh - 1*h - 1 end;
@@ -317,6 +318,7 @@ initialization
   conRegVar('touch_enable', @enabled, 'enable/disable virtual buttons', 'draw buttons');
   conRegVar('touch_fire', @g_touch_fire, 'enable/disable fire when press virtual up/down', 'fire when press up/down');
   conRegVar('touch_size', @g_touch_size, 0.1, 10, 'size of virtual buttons', 'button size');
+  conRegVar('touch_offset', @g_touch_offset, 0, 100, '', '');
   conRegVar('touch_alt', @jab, 'althernative virtual buttons layout', 'althernative layout');
 end.
 

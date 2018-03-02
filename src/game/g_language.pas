@@ -209,6 +209,7 @@ type
     I_MENU_CONTROL_TOUCH,
     I_MENU_CONTROL_TOUCH_FIRE,
     I_MENU_CONTROL_TOUCH_SIZE,
+    I_MENU_CONTROL_TOUCH_OFFSET,
 
     I_MENU_CONTROL_GLOBAL,
     I_MENU_CONTROL_SCREENSHOT,
@@ -991,6 +992,8 @@ const
                                        'Стрелять вверх/вниз:'),
     ('MENU CONTROL TOUCH SIZE',        'Button size:',
                                        'Размер кнопок:'),
+    ('MENU CONTROL TOUCH OFFSET',      'Vertical offset:',
+                                       'Вертикальное смещение:'),
 
     ('MENU CONTROL GLOBAL',            'Global Controls',
                                        'ОБЩЕЕ УПРАВЛЕНИЕ'),
