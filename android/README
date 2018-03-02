@@ -1,0 +1,82 @@
+D2DF-SDL for ANDROID
+--------------------
+
+Doom 2D Forever ported to Android 4.1+.
+
+Building
+--------
+
+Requirements:
+* Android SDK build-tools >= 19.1.0;
+* Android SDK platforms >= android-19;
+* Android NDK >= r16b;
+* Open JDK >= 8;
+* FPC >= 3.0.4;
+* SDL >= 2.0.7;
+* SDL_mixer >= 2.0;
+* libenet >= 1.3.13;
+* nanoGL.
+
+D2DF uses special version of nanoGL ( https://github.com/DeaDDooMER/nanogl ) with some added functions.
+Build all shared libraries using NDK toolchain and put into directory ./ass/lib/armeabi-v7a/.
+Also you need to build FPC crosscompiler ( http://wiki.freepascal.org/Android ).
+
+Generate keys:
+```
+keytool -genkey -validity 10000 \
+        -dname "CN=AndroidDebug, O=Android, C=US" \
+        -keystore d2df.keystore \
+        -storepass android \
+        -keypass android \
+        -alias androiddebugkey \
+        -keyalg RSA \
+        -keysize 2048 \
+        -v
+```
+
+Build D2DF:
+```
+rm -rf tmp
+mkdir -p tmp
+cd ../src/game
+ppcrossarm \
+        -g -gl -dUSE_SDLMIXER -dUSE_NANOGL -O3 \
+        -Tandroid \
+        -Cparmv7a \
+        -Cfvfpv3 \
+        -Fi../lib/vampimg \
+        -Fi../lib/vampimg/JpegLib \
+        -Fi../lib/vampimg/ZLib \
+        -Fu../lib/vampimg \
+        -Fu../lib/vampimg/JpegLib \
+        -Fu../lib/vampimg/ZLib \
+        -FU../../android/tmp \
+        -FE../../android/ass/lib/armeabi-v7a \
+        -Fl../../android/ass/lib/armeabi-v7a \
+        -olibDoom2DF.so \
+        Doom2DF.lpr
+```
+
+Build APK and sign it:
+```
+rm -rf bin obj gen
+mkdir -p bin obj gen
+aapt package -f -m -S res -J gen -M AndroidManifest.xml -I ${ANDROID_JAR}
+javac -source 1.6 -target 1.6 -d obj -bootclasspath ${ANDROID_JAR} -sourcepath src `find src -name '*.java'`
+dx --dex --output=bin/classes.dex obj
+aapt package -f \
+        -M AndroidManifest.xml \
+        -S res \
+        -J gen \
+        -I ${ANDROID_JAR} \
+        -F bin/d2df.unsigned.apk \
+        bin ass
+jarsigner -sigalg SHA1withRSA -digestalg SHA1 \
+        -keystore d2df.keystore \
+        -storepass android \
+        -keypass android \
+        -signedjar bin/d2df.signed.apk \
+        bin/d2df.unsigned.apk androiddebugkey
+```
+
+Where ${ANDROID_JAR} is path to android.jar file. Typically placed in ~/Android/android-sdk/platforms/android-19/android.jar.
