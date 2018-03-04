@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Objects;
 
 import android.content.Context;
 import android.os.*;
@@ -266,7 +265,7 @@ class SDLJoystickHandler_API16 extends SDLJoystickHandler_API12 {
     public String getJoystickDescriptor(InputDevice joystickDevice) {
         String desc = joystickDevice.getDescriptor();
 
-        if (desc != null && !Objects.equals(desc, "")) {
+        if (desc != null && !desc.equals("")) {
             return desc;
         }
 

@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
 import java.lang.reflect.Method;
-import java.util.Objects;
 
 import android.app.*;
 import android.content.*;
@@ -542,7 +541,7 @@ public class SDLActivity extends Activity {
     {
       int orientation = -1;
 
-      if (!Objects.equals(hint, "")) {
+      if (hint != null && !hint.equals("")) {
          if (hint.contains("LandscapeRight") && hint.contains("LandscapeLeft")) {
             orientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE;
          } else if (hint.contains("LandscapeRight")) {

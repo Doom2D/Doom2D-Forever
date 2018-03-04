@@ -8,7 +8,7 @@ Building
 
 Requirements:
 * Android SDK build-tools >= 19.1.0;
-* Android SDK platforms >= android-19;
+* Android SDK platforms >= android-16;
 * Android NDK >= r16b;
 * Open JDK >= 8;
 * FPC >= 3.0.4;
@@ -79,4 +79,4 @@ jarsigner -sigalg SHA1withRSA -digestalg SHA1 \
         bin/d2df.unsigned.apk androiddebugkey
 ```
 
-Where ${ANDROID_JAR} is path to android.jar file. Typically placed in ~/Android/android-sdk/platforms/android-19/android.jar.
+Where ${ANDROID_JAR} is path to android.jar file. Typically placed in ~/Android/android-sdk/platforms/android-16/android.jar.

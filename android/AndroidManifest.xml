@@ -29,7 +29,8 @@
                  android:icon="@drawable/ic_launcher"
                  android:allowBackup="true"
                  android:theme="@android:style/Theme.NoTitleBar.Fullscreen"
-                 android:hardwareAccelerated="true" >
+                 android:hardwareAccelerated="true"
+                 android:debuggable="true" >
         <activity android:name="Doom2DF"
                   android:label="Doom2D Forever"
                   android:configChanges="keyboardHidden|orientation|screenSize"
