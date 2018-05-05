@@ -170,6 +170,7 @@ begin
   g_touch_size := 1.0;
   g_touch_fire := True;
   g_touch_offset := 50;
+  g_touch_alt := False;
 
   for i := 0 to e_MaxJoys-1 do
     e_JoystickDeadzones[i] := 8192;
@@ -426,6 +427,7 @@ begin
   g_touch_size := Max(config.ReadInt('Touch', 'Size', 10) / 10, 0.1);
   g_touch_fire := config.ReadBool('Touch', 'Fire', True);
   g_touch_offset := Max(Min(config.ReadInt('Touch', 'Offset', 50), 100), 0);
+  g_touch_alt := config.ReadBool('Touch', 'Alt', False);
 
   g_GFX_SetMax(Min(config.ReadInt('Game', 'MaxParticles', 1000), 50000));
   g_Shells_SetMax(Min(config.ReadInt('Game', 'MaxShells', 300), 600));
@@ -670,6 +672,7 @@ begin
   config.WriteInt('Touch', 'Size', Round(g_touch_size * 10));
   config.WriteBool('Touch', 'Fire', g_touch_fire);
   config.WriteInt('Touch', 'Offset', Round(g_touch_offset));
+  config.WriteBool('Touch', 'Alt', g_touch_alt);
 
   with config do
     case gGibsCount of

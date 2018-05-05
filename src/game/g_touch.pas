@@ -22,9 +22,11 @@ interface
     SDL2;
 
   var
-    g_touch_size: Single = 1.0;
-    g_touch_offset: Single = 50;
-    g_touch_fire: Boolean = True;
+    g_touch_enabled: Boolean;
+    g_touch_size: Single;
+    g_touch_offset: Single;
+    g_touch_fire: Boolean;
+    g_touch_alt: Boolean;
 
   procedure g_Touch_Init;
   procedure g_Touch_ShowKeyboard(yes: Boolean);
@@ -38,8 +40,6 @@ implementation
     e_log, e_graphics, e_input, g_options, g_game, g_main, g_weapons, g_console;
 
   var
-    jab: Boolean;
-    enabled: Boolean;
     angleFire: Boolean;
     keyFinger: array [VK_FIRSTKEY..VK_LASTKEY] of Integer;
 
@@ -54,7 +54,7 @@ implementation
     founded := true;
     sz := Trunc(g_touch_size * dpi);
     sw := gScreenWidth; sh := gScreenHeight;
-    if jab then
+    if g_touch_alt then
     begin
       w := sz div 2; h := sz div 2;
       case key of
@@ -64,7 +64,7 @@ implementation
         VK_STATUS:  begin x := sw div 2 - w div 2 + 0; y := 0 end;
         VK_TEAM:    begin x := sw div 2 - w div 2 + w; y := 0 end;
         VK_PREV:    begin x := 0; y := sh - 4*sz - 1; w := sz end;
-        VK_NEXT:    begin x := sw - w - 1; y := sh - 4*sz - 1; w := sz end;
+        VK_NEXT:    begin x := sw - sz - 1; y := sh - 4*sz - 1; w := sz end;
       else
         w := sz; h := sz * 3;
         case key of
@@ -185,14 +185,14 @@ implementation
   procedure g_Touch_Init;
   begin
 {$IFNDEF HEADLESS}
-    enabled := SDL_GetNumTouchDevices() > 0
+    g_touch_enabled := SDL_GetNumTouchDevices() > 0
 {$ENDIF}
   end;
 
   procedure g_Touch_ShowKeyboard(yes: Boolean);
   begin
 {$IFNDEF HEADLESS}
-    if not enabled then
+    if not g_touch_enabled then
       Exit;
 
     if yes then
@@ -206,7 +206,7 @@ implementation
     var
       x, y, i, finger: Integer;
   begin
-    if not enabled then
+    if not g_touch_enabled then
       Exit;
     if SDL_IsTextInputActive() = SDL_True then
       Exit;
@@ -298,7 +298,7 @@ implementation
       founded: Boolean;
   begin
 {$IFNDEF HEADLESS}
-    if not enabled then
+    if not g_touch_enabled then
       Exit;
     if SDL_IsTextInputActive() = SDL_True then
       Exit;
@@ -316,9 +316,9 @@ implementation
   end;
 
 initialization
-  conRegVar('touch_enable', @enabled, 'enable/disable virtual buttons', 'draw buttons');
+  conRegVar('touch_enable', @g_touch_enabled, 'enable/disable virtual buttons', 'draw buttons');
   conRegVar('touch_fire', @g_touch_fire, 'enable/disable fire when press virtual up/down', 'fire when press up/down');
   conRegVar('touch_size', @g_touch_size, 0.1, 10, 'size of virtual buttons', 'button size');
   conRegVar('touch_offset', @g_touch_offset, 0, 100, '', '');
-  conRegVar('touch_alt', @jab, 'althernative virtual buttons layout', 'althernative layout');
+  conRegVar('touch_alt', @g_touch_alt, 'althernative virtual buttons layout', 'althernative layout');
 end.

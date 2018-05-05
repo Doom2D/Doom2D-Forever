@@ -207,6 +207,7 @@ type
     I_MENU_CONTROL_DEADZONE,
 
     I_MENU_CONTROL_TOUCH,
+    I_MENU_CONTROL_TOUCH_ALT,
     I_MENU_CONTROL_TOUCH_FIRE,
     I_MENU_CONTROL_TOUCH_SIZE,
     I_MENU_CONTROL_TOUCH_OFFSET,
@@ -988,6 +989,8 @@ const
 
     ('MENU CONTROL TOCUH',             'Touchscreen Settings',
                                        'Настройки сенсрного экрана'),
+    ('MENU CONTROL TOUCH ALT',         'Alternative layout:',
+                                       'Альтернативная раскладка:'),    
     ('MENU CONTROL TOUCH FIRE',        'Shoot Up/Down:',
                                        'Стрелять вверх/вниз:'),
     ('MENU CONTROL TOUCH SIZE',        'Button size:',

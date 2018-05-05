@@ -258,9 +258,10 @@ begin
     end;
   end;
 
-  if SDL_GetNumTouchDevices() > 0 then
+  if g_touch_enabled then
   begin
     menu := TGUIMenu(g_GUI_GetWindow('OptionsControlsTouchMenu').GetControl('mOptionsControlsTouchMenu'));
+    g_touch_alt := TGUISwitch(menu.GetControl('swTouchAlt')).ItemIndex = 1;
     g_touch_size := TGUIScroll(menu.GetControl('scTouchSize')).Value / 10 + 0.5;
     g_touch_fire := TGUISwitch(menu.GetControl('swTouchFire')).ItemIndex = 1;
     g_touch_offset := TGUIScroll(menu.GetControl('scTouchOffset')).Value * 5;
@@ -454,9 +455,11 @@ begin
     end;
   end;
 
-  if SDL_GetNumTouchDevices() > 0 then
+  if g_touch_enabled then
   begin
     menu := TGUIMenu(g_GUI_GetWindow('OptionsControlsTouchMenu').GetControl('mOptionsControlsTouchMenu'));
+    with TGUISwitch(menu.GetControl('swTouchAlt')) do
+      if g_touch_alt then ItemIndex := 1 else ItemIndex := 0;
     TGUIScroll(menu.GetControl('scTouchSize')).Value := Round((g_touch_size - 0.5) * 10);
     with TGUISwitch(menu.GetControl('swTouchFire')) do
       if g_touch_fire then ItemIndex := 1 else ItemIndex := 0;
@@ -1292,6 +1295,7 @@ var
   menu: TGUIMenu;
 begin
   menu := TGUIMenu(g_GUI_GetWindow('OptionsControlsTouchMenu').GetControl('mOptionsControlsTouchMenu'));
+  g_touch_alt := TGUISwitch(menu.GetControl('swTouchAlt')).ItemIndex = 1;
   g_touch_size := TGUIScroll(menu.GetControl('scTouchSize')).Value / 10 + 0.5;
   g_touch_offset := TGUIScroll(menu.GetControl('scTouchOffset')).Value * 5;
 end;
@@ -2742,7 +2746,7 @@ begin
       AddSpace();
       AddButton(nil, _lc[I_MENU_CONTROL_JOYSTICKS], 'OptionsControlsJoystickMenu');
     end;
-    if SDL_GetNumTouchDevices() > 0 then
+    if g_touch_enabled then
     begin
       AddSpace();
       AddButton(nil, _lc[I_MENU_CONTROL_TOUCH], 'OptionsControlsTouchMenu');
@@ -2827,6 +2831,13 @@ begin
   with TGUIMenu(Menu.AddChild(TGUIMenu.Create(gMenuFont, gMenuSmallFont, _lc[I_MENU_CONTROL_TOUCH]))) do
   begin
     Name := 'mOptionsControlsTouchMenu';
+    with AddSwitch(_lc[I_MENU_CONTROL_TOUCH_ALT]) do
+    begin
+      Name := 'swTouchAlt';
+      AddItem(_lc[I_MENU_NO]);
+      AddItem(_lc[I_MENU_YES]);
+      OnChange := ProcChangeTouchSettings;
+    end;
     with AddScroll(_lc[I_MENU_CONTROL_TOUCH_SIZE]) do
     begin
       Name := 'scTouchSize';
