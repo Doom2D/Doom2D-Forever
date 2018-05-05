@@ -56,27 +56,28 @@ implementation
     sw := gScreenWidth; sh := gScreenHeight;
     if jab then
     begin
-      w := sz div 2; h := sz div 3;
+      w := sz div 2; h := sz div 2;
       case key of
-        VK_CONSOLE: begin x := 0;                y := 0 end;
-        VK_ESCAPE:  begin x := sw - w - 1;       y := 0 end;
-        VK_CHAT:    begin x := sw div 2 - w - 4; y := 0 end;
-        VK_TEAM:    begin x := sw div 2 + 0 + 4; y := 0 end;
+        VK_CONSOLE: begin x := 0; y := 0 end;
+        VK_ESCAPE:  begin x := sw - w - 1; y := 0 end;
+        VK_CHAT:    begin x := sw div 2 - w div 2 - w; y := 0 end;
+        VK_STATUS:  begin x := sw div 2 - w div 2 + 0; y := 0 end;
+        VK_TEAM:    begin x := sw div 2 - w div 2 + w; y := 0 end;
+        VK_PREV:    begin x := 0; y := sh - 4*sz - 1; w := sz end;
+        VK_NEXT:    begin x := sw - w - 1; y := sh - 4*sz - 1; w := sz end;
       else
-        w := sz; h := sz * 2;
+        w := sz; h := sz * 3;
         case key of
           VK_LEFT:  begin x := 0; y := sh - h - 1 end;
           VK_RIGHT: begin x := w; y := sh - h - 1 end;
         else
           w := sz; h := sz;
           case key of
-            VK_OPEN: begin h := sz;       x := sw - 1*w - 1; y := sh - 1*h - 1 end;
-            VK_JUMP: begin h := sz;       x := sw - 1*w - 1; y := sh - 2*h - 1 end;
-            VK_UP:   begin h := sz div 2; x := sw - 2*w - 1; y := sh - 2*sz - 1 end;
-            VK_FIRE: begin h := sz;       x := sw - 2*w - 1; y := sh - sz div 2 - sz - 1 end;
-            VK_DOWN: begin h := sz div 2; x := sw - 2*w - 1; y := sh - sz div 2 - 1 end;
-            VK_PREV: begin h := sz div 2; x := 0;            y := sh - 3*sz - 1 end;
-            VK_NEXT: begin h := sz div 2; x := sw - w - 1;   y := sh - 3*sz - 1 end;
+            VK_UP:   begin x := sw - 2*w - 1; y := sh - 3*h - 1 end;
+            VK_FIRE: begin x := sw - 2*w - 1; y := sh - 2*h - 1 end;
+            VK_DOWN: begin x := sw - 2*w - 1; y := sh - 1*h - 1 end;
+            VK_OPEN: begin x := sw - 1*w - 1; y := sh - 1*h - h div 2 - 1 end;
+            VK_JUMP: begin x := sw - 1*w - 1; y := sh - 2*h - h div 2 - 1 end;
           else
             founded := false
           end
@@ -321,5 +322,3 @@ initialization
   conRegVar('touch_offset', @g_touch_offset, 0, 100, '', '');
   conRegVar('touch_alt', @jab, 'althernative virtual buttons layout', 'althernative layout');
 end.
-
-
