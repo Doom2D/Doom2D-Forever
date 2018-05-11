@@ -190,7 +190,7 @@ begin
            (AnsiLowerCase(filename) <> SHRSHADE_WAD) ) then
       begin
       // Копируем ресурс текстуры:
-        if not ProcessResource(WAD, tsection, filename, section, resource) then
+        if not f_packmap.ProcessResource(WAD, tsection, filename, section, resource) then
         begin
           mr.Free();
           WAD.Free();
@@ -219,7 +219,7 @@ begin
          (AnsiLowerCase(filename) <> SHRSHADE_WAD) ) then
     begin
     // Копируем ресурс неба:
-      if not ProcessResource(WAD, ssection, filename, section, resource) then
+      if not f_packmap.ProcessResource(WAD, ssection, filename, section, resource) then
       begin
         mr.Free();
         WAD.Free();
@@ -245,7 +245,7 @@ begin
          (AnsiLowerCase(filename) <> SHRSHADE_WAD) ) then
     begin
     // Копируем ресурс музыки:
-      if not ProcessResource(WAD, msection, filename, section, resource) then
+      if not f_packmap.ProcessResource(WAD, msection, filename, section, resource) then
       begin
         mr.Free();
         WAD.Free();
@@ -306,7 +306,7 @@ begin
                (AnsiLowerCase(filename) <> SHRSHADE_WAD) ) then
           begin
           // Копируем ресурс дополнительной текстуры:
-            if ProcessResource(WAD, tsection, filename, section, resource) then
+            if f_packmap.ProcessResource(WAD, tsection, filename, section, resource) then
             begin
 
               Нужно проверять есть такая текстура textures и есть ли она вообще?
