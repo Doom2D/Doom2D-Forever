@@ -299,6 +299,9 @@ begin
       ii^ := clr.b; Inc(ii);
       ii^ := clr.g; Inc(ii);
       ii^ := clr.r; Inc(ii);
+
+      (* Why this works in linux? *)
+      {$IFNDEF WINDOWS}Inc(ii){$ENDIF}
     end;
   end;
   FreeImage(img);
