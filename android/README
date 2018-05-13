@@ -20,6 +20,7 @@ Requirements:
 D2DF uses special version of nanoGL ( https://github.com/DeaDDooMER/nanogl ) with some added functions.
 Build all shared libraries using NDK toolchain and put into directory ./ass/lib/armeabi-v7a/.
 Also you need to build FPC crosscompiler ( http://wiki.freepascal.org/Android ).
+Put game resources into direcotor resources/ (or install it manually into external/internal storage).
 
 Generate keys:
 ```
@@ -60,7 +61,7 @@ ppcrossarm \
 Build APK and sign it:
 ```
 rm -rf bin obj gen
-mkdir -p bin obj gen
+mkdir -p bin obj gen resources
 aapt package -f -m -S res -J gen -M AndroidManifest.xml -I ${ANDROID_JAR}
 javac -source 1.6 -target 1.6 -d obj -bootclasspath ${ANDROID_JAR} -sourcepath src `find src -name '*.java'`
 dx --dex --output=bin/classes.dex obj
@@ -70,6 +71,7 @@ aapt package -f \
         -J gen \
         -I ${ANDROID_JAR} \
         -F bin/d2df.unsigned.apk \
+	-A resources
         bin ass
 jarsigner -sigalg SHA1withRSA -digestalg SHA1 \
         -keystore d2df.keystore \

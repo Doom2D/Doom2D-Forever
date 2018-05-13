@@ -148,14 +148,13 @@ begin
 {$IFDEF ANDROID}
 {$I-}
   e_SetSafeSlowLog(true);
-  Chdir('/sdcard/D2DF');
+  Chdir(SDL_AndroidGetExternalStoragePath());
   if IOresult <> 0 then
   begin
-    Mkdir('/sdcard/D2DF');
-    Chdir('/sdcard/D2DF');
+    Chdir(SDL_AndroidGetInternalStoragePath());
     if IOresult <> 0 then
     begin
-      e_WriteLog('Fail: cant chdir /sdcard/D2DF', TMsgType.Fatal);
+      e_WriteLog('Fuck! Cant chdir to any game directory :(', TMsgType.Fatal);
       result := 1;
       exit;
     end;
