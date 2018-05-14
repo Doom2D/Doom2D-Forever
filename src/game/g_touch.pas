@@ -168,11 +168,6 @@ implementation
     end
   end;
 
-  procedure DrawRect(x, y, w, h: Integer);
-  begin
-    e_DrawQuad(x, y, x + w, y + h, 0, 255, 0, 31);
-  end;
-
   function IntersectControl(ctl, xx, yy: Integer): Boolean;
     var
       x, y, w, h: Integer;
@@ -308,8 +303,8 @@ implementation
       GetKeyRect(i, x, y, w, h, founded);
       if founded then
       begin
-        DrawRect(x, y, w, h);
-        e_TextureFontPrint(x, y, GetKeyName(i), gStdFont)
+        e_DrawQuad(x, y, x + w, y + h, 0, 255, 0, 31);
+        e_TextureFontPrintEx(x, y, GetKeyName(i), gStdFont, 255, 255, 255, 1, True)
       end;
     end;
 {$ENDIF}
