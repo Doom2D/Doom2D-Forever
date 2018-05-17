@@ -316,7 +316,7 @@ var
 
   g_dbg_ignore_bounds: Boolean = false;
   r_smallmap_h: Integer = 0; // 0: left; 1: center; 2: right
-  r_smallmap_v: Integer = 0; // 0: top; 1: center; 2: bottom
+  r_smallmap_v: Integer = 2; // 0: top; 1: center; 2: bottom
 
   // move button values:
   // bits 0-1: l/r state:
