@@ -42,6 +42,7 @@ procedure g_Console_Chat_Switch (team: Boolean=false);
 
 procedure conRegVar (const conname: AnsiString; pvar: PBoolean; const ahelp: AnsiString; const amsg: AnsiString; acheat: Boolean=false; ahidden: Boolean=false); overload;
 procedure conRegVar (const conname: AnsiString; pvar: PSingle; amin, amax: Single; const ahelp: AnsiString; const amsg: AnsiString; acheat: Boolean=false; ahidden: Boolean=false); overload;
+procedure conRegVar (const conname: AnsiString; pvar: PInteger; const ahelp: AnsiString; const amsg: AnsiString; acheat: Boolean=false; ahidden: Boolean=false); overload;
 
 // poor man's floating literal parser; i'm sorry, but `StrToFloat()` sux cocks
 function conParseFloat (var res: Single; const s: AnsiString): Boolean;
@@ -192,6 +193,41 @@ begin
 end;
 
 
+procedure intVarHandler (me: PCommand; p: SSArray);
+  procedure binaryFlag (var flag: Boolean; msg: AnsiString);
+  begin
+    if (Length(p) > 2) then
+    begin
+      conwritefln('too many arguments to ''%s''', [p[0]]);
+    end
+    else
+    begin
+      case conGetBoolArg(p, 1) of
+        -1: begin end;
+         0: if not me.cheat or conIsCheatsEnabled then flag := false else begin conwriteln('not available'); exit; end;
+         1: if not me.cheat or conIsCheatsEnabled then flag := true else begin conwriteln('not available'); exit; end;
+         666: if not me.cheat or conIsCheatsEnabled then flag := not flag else begin conwriteln('not available'); exit; end;
+      end;
+      if (Length(msg) = 0) then msg := p[0] else msg += ':';
+      if flag then conwritefln('%s tan', [msg]) else conwritefln('%s ona', [msg]);
+    end;
+  end;
+begin
+  if (Length(p) <> 2) then
+  begin
+    conwritefln('%s %d', [me.cmd, PInteger(me.ptr)^]);
+  end
+  else
+  begin
+    try
+      PInteger(me.ptr)^ := StrToInt(p[1]);
+    except
+      conwritefln('invalid integer value: "%s"', [p[1]]);
+    end;
+  end;
+end;
+
+
 procedure conRegVar (const conname: AnsiString; pvar: PBoolean; const ahelp: AnsiString; const amsg: AnsiString; acheat: Boolean=false; ahidden: Boolean=false); overload;
 var
   f: Integer;
@@ -203,6 +239,25 @@ begin
   cp.cmd := LowerCase(conname);
   cp.proc := nil;
   cp.procEx := boolVarHandler;
+  cp.help := ahelp;
+  cp.hidden := ahidden;
+  cp.ptr := pvar;
+  cp.msg := amsg;
+  cp.cheat := acheat;
+end;
+
+
+procedure conRegVar (const conname: AnsiString; pvar: PInteger; const ahelp: AnsiString; const amsg: AnsiString; acheat: Boolean=false; ahidden: Boolean=false); overload;
+var
+  f: Integer;
+  cp: PCommand;
+begin
+  f := Length(commands);
+  SetLength(commands, f+1);
+  cp := @commands[f];
+  cp.cmd := LowerCase(conname);
+  cp.proc := nil;
+  cp.procEx := intVarHandler;
   cp.help := ahelp;
   cp.hidden := ahidden;
   cp.ptr := pvar;

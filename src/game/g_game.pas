@@ -315,6 +315,8 @@ var
   gChatSounds: Array of TChatSound;
 
   g_dbg_ignore_bounds: Boolean = false;
+  r_smallmap_h: Integer = 0; // 0: left; 1: center; 2: right
+  r_smallmap_v: Integer = 0; // 0: top; 1: center; 2: bottom
 
   // move button values:
   // bits 0-1: l/r state:
@@ -3342,6 +3344,7 @@ begin
   //conwritefln('OLD: (%s,%s)-(%s,%s)', [sX, sY, sWidth, sHeight]);
   fixViewportForScale();
   //conwritefln('     (%s,%s)-(%s,%s)', [sX, sY, sWidth, sHeight]);
+
   if (g_dbg_scale <> 1.0) and (not g_dbg_ignore_bounds) then
   begin
     if (sX+sWidth > gMapInfo.Width) then sX := gMapInfo.Width-sWidth;
@@ -3352,6 +3355,36 @@ begin
     if (gBackSize.X <= gPlayerScreenSize.X) or (gMapInfo.Width <= sWidth) then c := 0 else c := trunc((gBackSize.X-gPlayerScreenSize.X)*sX/(gMapInfo.Width-sWidth));
     if (gBackSize.Y <= gPlayerScreenSize.Y) or (gMapInfo.Height <= sHeight) then d := 0 else d := trunc((gBackSize.Y-gPlayerScreenSize.Y)*sY/(gMapInfo.Height-sHeight));
   end;
+
+  //r_smallmap_h: 0: left; 1: center; 2: right
+  //r_smallmap_v: 0: top; 1: center; 2: bottom
+  // horiz small map?
+  if (gMapInfo.Width = sWidth) then
+  begin
+    sX := 0;
+  end
+  else if (gMapInfo.Width < sWidth) then
+  begin
+    case r_smallmap_h of
+      1: sX := -((sWidth-gMapInfo.Width) div 2); // center
+      2: sX := -(sWidth-gMapInfo.Width); // right
+      else sX := 0; // left
+    end;
+  end;
+  // vert small map?
+  if (gMapInfo.Height = sHeight) then
+  begin
+    sY := 0;
+  end
+  else if (gMapInfo.Height < sHeight) then
+  begin
+    case r_smallmap_v of
+      1: sY := -((sHeight-gMapInfo.Height) div 2); // center
+      2: sY := -(sHeight-gMapInfo.Height); // bottom
+      else sY := 0; // top
+    end;
+  end;
+
   p.viewPortX := sX;
   p.viewPortY := sY;
   p.viewPortW := sWidth;
@@ -7563,4 +7596,7 @@ begin
 
   conRegVar('light_enabled', @gwin_k8_enable_light_experiments, 'enable/disable dynamic lighting', 'lighting');
   conRegVar('light_player_halo', @g_playerLight, 'enable/disable player halo', 'player light halo');
+
+  conRegVar('r_smallmap_align_h', @r_smallmap_h, 'halign: 0: left; 1: center; 2: right', 'horizontal aligning of small maps');
+  conRegVar('r_smallmap_align_v', @r_smallmap_v, 'valign: 0: top; 1: center; 2: bottom', 'vertial aligning of small maps');
 end.
