@@ -906,7 +906,7 @@ begin
     (FTextureIDs[FCurTexture].AnTex <> nil) and
     (Width > 0) and (Height > 0) and (FAlpha < 255) then
   begin
-    FCurFrame := ClampInt(Frame, 0, FTextureIDs[FCurTexture].AnTex.TotalFrames);
+    FCurFrame := ClampInt(Frame, 0, FTextureIDs[FCurTexture].AnTex.TotalFrames - 1);
     FCurFrameCount := Count;
     FTextureIDs[FCurTexture].AnTex.CurrentFrame := FCurFrame;
     FTextureIDs[FCurTexture].AnTex.CurrentCounter := FCurFrameCount;
