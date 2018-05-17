@@ -2456,16 +2456,19 @@ begin
       if gTriggers[I].ClientID = SID then
         with gTriggers[I] do
         begin
-          if SPlaying then
+          if Sound <> nil then
           begin
-            if tgcLocal then
-              Sound.PlayVolumeAt(X+(Width div 2), Y+(Height div 2), tgcVolume/255.0)
+            if SPlaying then
+            begin
+              if tgcLocal then
+                Sound.PlayVolumeAt(X+(Width div 2), Y+(Height div 2), tgcVolume/255.0)
+              else
+                Sound.PlayPanVolume((tgcPan-127.0)/128.0, tgcVolume/255.0);
+              Sound.SetPosition(SPos);
+            end
             else
-              Sound.PlayPanVolume((tgcPan-127.0)/128.0, tgcVolume/255.0);
-            Sound.SetPosition(SPos);
-          end
-          else
-            if Sound.IsPlaying then Sound.Stop;
+              if Sound.IsPlaying then Sound.Stop;
+          end;
 
           SoundPlayCount := SCount;
         end;
