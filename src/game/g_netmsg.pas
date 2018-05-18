@@ -3014,10 +3014,10 @@ var
   mapDataMsg: TMapDataMsg;
 begin
   e_WriteLog('NET: Received map request from ' +
-             DecodeIPV4(C.Peer.address.host), TMsgType.Notify);
+             DecodeIPV4(C^.Peer.address.host), TMsgType.Notify);
 
   mapDataMsg := CreateMapDataMsg(MapsDir + gGameSettings.WAD, gExternalResources);
-  peer := NetClients[C.ID].Peer;
+  peer := NetClients[C^.ID].Peer;
 
   MapDataMsgToBytes(payload, mapDataMsg);
   g_Net_SendData(payload, peer, True, NET_CHAN_DOWNLOAD);
@@ -3036,7 +3036,7 @@ var
 begin
   FileName := ExtractFileName(M.ReadString());
   e_WriteLog('NET: Received res request: ' + FileName +
-             ' from ' + DecodeIPV4(C.Peer.address.host), TMsgType.Notify);
+             ' from ' + DecodeIPV4(C^.Peer.address.host), TMsgType.Notify);
 
   if not IsValidFilePath(FileName) then
   begin
@@ -3044,7 +3044,7 @@ begin
     exit;
   end;
 
-  peer := NetClients[C.ID].Peer;
+  peer := NetClients[C^.ID].Peer;
 
   if gExternalResources.IndexOf(FileName) > -1 then
   begin

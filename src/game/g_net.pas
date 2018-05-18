@@ -173,7 +173,7 @@ function  g_Net_Client_ByName(Name: string): pTNetClient;
 function  g_Net_Client_ByPlayer(PID: Word): pTNetClient;
 function  g_Net_ClientName_ByID(ID: Integer): string;
 
-procedure g_Net_SendData(Data:AByte; peer: pENetPeer; Reliable: Boolean; Chan: Byte = NET_CHAN_DOWNLOAD);
+procedure g_Net_SendData(Data: AByte; peer: pENetPeer; Reliable: Boolean; Chan: Byte = NET_CHAN_DOWNLOAD);
 function  g_Net_Wait_Event(msgId: Word): TMemoryStream;
 
 function  IpToStr(IP: LongWord): string;
@@ -901,7 +901,7 @@ begin
     end;
 end;
 
-procedure g_Net_SendData(Data:AByte; peer: pENetPeer; Reliable: Boolean; Chan: Byte = NET_CHAN_DOWNLOAD);
+procedure g_Net_SendData(Data: AByte; peer: pENetPeer; Reliable: Boolean; Chan: Byte = NET_CHAN_DOWNLOAD);
 var
   P: pENetPacket;
   F: enet_uint32;
