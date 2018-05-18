@@ -130,16 +130,12 @@ var
   FromSL: Boolean;
 
   procedure ProcessLocal();
-  var
-    IPBuf: Array[0..19] of Byte;
   begin
     I := Length(SL);
     SetLength(SL, I + 1);
     with SL[I] do
     begin
-      FillChar(IPBuf, Length(IPBuf), 0);
-      enet_address_get_host_ip(Addr(SvAddr.host), PChar(Addr(IPBuf)), Length(IPBuf));
-      IP := PChar(Addr(IPBuf));
+      IP := DecodeIPV4(SvAddr.host);
       Port := InMsg.ReadWord();
       Ping := InMsg.ReadInt64();
       Ping := GetTimerMS() - Ping;
