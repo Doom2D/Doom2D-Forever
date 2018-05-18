@@ -22,7 +22,7 @@ uses
   e_log, e_msg, ENet, Classes, MAPDEF{$IFDEF USE_MINIUPNPC}, miniupnpc;{$ELSE};{$ENDIF}
 
 const
-  NET_PROTOCOL_VER = 173;
+  NET_PROTOCOL_VER = 174;
 
   NET_MAXCLIENTS = 24;
   NET_CHANS = 11;
@@ -44,6 +44,7 @@ const
   NET_CLIENT = 2;
 
   NET_BUFSIZE = $FFFF;
+  NET_PING_PORT = $DF2D;
 
   NET_EVERYONE = -1;
 
@@ -389,7 +390,7 @@ begin
   if NetPongSock <> ENET_SOCKET_NULL then
   begin
     NetPongAddr.host := IPAddr;
-    NetPongAddr.port := Port + 1;
+    NetPongAddr.port := NET_PING_PORT;
     if enet_socket_bind(NetPongSock, @NetPongAddr) < 0 then
     begin
       enet_socket_destroy(NetPongSock);
@@ -504,6 +505,7 @@ begin
     NetOut.Clear();
     NetOut.Write(Byte(Ord('D')));
     NetOut.Write(Byte(Ord('F')));
+    NetOut.Write(NetPort);
     NetOut.Write(ClTime);
     g_Net_Slist_WriteInfo();
     NPl := 0;
@@ -532,10 +534,8 @@ begin
   Result := 0;
 
   if NetUseMaster then
-  begin
     g_Net_Slist_Check;
-    g_Net_Host_CheckPings;
-  end;
+  g_Net_Host_CheckPings;
 
   while (enet_host_service(NetHost, @NetEvent, 0) > 0) do
   begin
@@ -1179,7 +1179,7 @@ begin
 
   if ForwardPongPort then
   begin
-    StrPort := IntToStr(NetPort + 1);
+    StrPort := IntToStr(NET_PING_PORT);
     I := UPNP_AddPortMapping(
       Urls.controlURL, Addr(data.first.servicetype[1]),
       PChar(StrPort), PChar(StrPort), Addr(LanAddr[0]), PChar('D2DF'),

@@ -104,6 +104,18 @@ begin
   enet_socket_send(Sock, Addr(S.PingAddr), @Buf, 1);
 end;
 
+procedure PingBcast(Sock: ENetSocket);
+var
+  S: TNetServer;
+begin
+  S.IP := '255.255.255.255';
+  S.Port := NET_PING_PORT;
+  enet_address_set_host(Addr(S.PingAddr), PChar(Addr(S.IP[1])));
+  S.Ping := -1;
+  S.PingAddr.port := S.Port;
+  PingServer(S, Sock);
+end;
+
 function g_Net_Slist_Fetch(var SL: TNetServerList): Boolean;
 var
   Cnt: Byte;
@@ -115,15 +127,84 @@ var
   Buf: ENetBuffer;
   InMsg: TMsg;
   SvAddr: ENetAddress;
+  FromSL: Boolean;
+
+  procedure ProcessLocal();
+  var
+    IPBuf: Array[0..19] of Byte;
+  begin
+    I := Length(SL);
+    SetLength(SL, I + 1);
+    with SL[I] do
+    begin
+      FillChar(IPBuf, Length(IPBuf), 0);
+      enet_address_get_host_ip(Addr(SvAddr.host), PChar(Addr(IPBuf)), Length(IPBuf));
+      IP := PChar(Addr(IPBuf));
+      Port := InMsg.ReadWord();
+      Ping := InMsg.ReadInt64();
+      Ping := GetTimerMS() - Ping;
+      Name := InMsg.ReadString();
+      Map := InMsg.ReadString();
+      GameMode := InMsg.ReadByte();
+      Players := InMsg.ReadByte();
+      MaxPlayers := InMsg.ReadByte();
+      Protocol := InMsg.ReadByte();
+      Password := InMsg.ReadByte() = 1;
+      LocalPl := InMsg.ReadByte();
+      Bots := InMsg.ReadWord();
+    end;
+  end;
+  procedure CheckLocalServers();
+  begin
+    SetLength(SL, 0);
+
+    Sock := enet_socket_create(ENET_SOCKET_TYPE_DATAGRAM);
+    if Sock = ENET_SOCKET_NULL then Exit;
+    enet_socket_set_option(Sock, ENET_SOCKOPT_NONBLOCK, 1);
+    enet_socket_set_option(Sock, ENET_SOCKOPT_BROADCAST, 1);
+    PingBcast(Sock);
+
+    T := GetTimerMS();
+
+    InMsg.Alloc(NET_BUFSIZE);
+    Buf.data := InMsg.Data;
+    Buf.dataLength := InMsg.MaxSize;
+    while GetTimerMS() - T <= 500 do
+    begin
+      InMsg.Clear();
+
+      RX := enet_socket_receive(Sock, @SvAddr, @Buf, 1);
+      if RX <= 0 then continue;
+      InMsg.CurSize := RX;
+
+      InMsg.BeginReading();
+
+      if InMsg.ReadChar() <> 'D' then continue;
+      if InMsg.ReadChar() <> 'F' then continue;
+
+      ProcessLocal();
+    end;
+
+    InMsg.Free();
+    enet_socket_destroy(Sock);
+
+    if Length(SL) = 0 then SL := nil;
+  end;
 begin
   Result := False;
   SL := nil;
 
   if (NetMHost <> nil) or (NetMPeer <> nil) then
+  begin
+    CheckLocalServers();
     Exit;
+  end;
 
   if not g_Net_Slist_Connect then
+  begin
+    CheckLocalServers();
     Exit;
+  end;
 
   e_WriteLog('Fetching serverlist...', TMsgType.Notify);
   g_Console_Add(_lc[I_NET_MSG] + _lc[I_NET_SLIST_FETCH]);
@@ -166,7 +247,7 @@ begin
           SL[I].Password := InMsg.ReadByte() = 1;
           enet_address_set_host(Addr(SL[I].PingAddr), PChar(Addr(SL[I].IP[1])));
           SL[I].Ping := -1;
-          SL[I].PingAddr.port := SL[I].Port + 1;
+          SL[I].PingAddr.port := NET_PING_PORT;
         end;
       end;
 
@@ -178,7 +259,11 @@ begin
   g_Net_Slist_Disconnect;
   NetOut.Clear();
 
-  if Length(SL) = 0 then Exit;
+  if Length(SL) = 0 then
+  begin
+    CheckLocalServers();
+    Exit;
+  end;
 
   Sock := enet_socket_create(ENET_SOCKET_TYPE_DATAGRAM);
   if Sock = ENET_SOCKET_NULL then Exit;
@@ -187,16 +272,17 @@ begin
   for I := Low(SL) to High(SL) do
     PingServer(SL[I], Sock);
 
+  enet_socket_set_option(Sock, ENET_SOCKOPT_BROADCAST, 1);
+  PingBcast(Sock);
+
   T := GetTimerMS();
 
   InMsg.Alloc(NET_BUFSIZE);
   Buf.data := InMsg.Data;
   Buf.dataLength := InMsg.MaxSize;
   Cnt := 0;
-  while Cnt < Length(SL) do
+  while GetTimerMS() - T <= 500 do
   begin
-    if GetTimerMS() - T > 500 then break;
-
     InMsg.Clear();
 
     RX := enet_socket_receive(Sock, @SvAddr, @Buf, 1);
@@ -208,12 +294,14 @@ begin
     if InMsg.ReadChar() <> 'D' then continue;
     if InMsg.ReadChar() <> 'F' then continue;
 
+    FromSL := False;
     for I := Low(SL) to High(SL) do
       if (SL[I].PingAddr.host = SvAddr.host) and
          (SL[I].PingAddr.port = SvAddr.port) then
       begin
         with SL[I] do
         begin
+          Port := InMsg.ReadWord();
           Ping := InMsg.ReadInt64();
           Ping := GetTimerMS() - Ping;
           Name := InMsg.ReadString();
@@ -226,9 +314,12 @@ begin
           LocalPl := InMsg.ReadByte();
           Bots := InMsg.ReadWord();
         end;
+        FromSL := True;
         Inc(Cnt);
         break;
       end;
+    if not FromSL then
+      ProcessLocal();
   end;
 
   InMsg.Free();
@@ -539,7 +630,8 @@ begin
           slWaitStr := _lc[I_NET_SLIST_NOSERVERS];
       end
       else
-        slWaitStr := _lc[I_NET_SLIST_ERROR];
+        if SL = nil then
+          slWaitStr := _lc[I_NET_SLIST_ERROR];
       slFetched := True;
       slSelection := 0;
     end;
