@@ -40,7 +40,7 @@ function DecodeIPV4 (ip: LongWord): string;
 // start Write/WriteLn driver. it will write everything to cbuf.
 procedure e_InitWritelnDriver ();
 
-procedure e_LogWritefln (const fmt: AnsiString; args: array of const; category: TMsgType=TMsgType.Notify; writeTime: Boolean=true);
+procedure e_LogWritefln (const fmt: AnsiString; args: array of const; category: TMsgType=TMsgType.Notify; writeTime: Boolean=true; writeConsole: Boolean=true);
 procedure e_LogWriteln (const s: AnsiString; category: TMsgType=TMsgType.Notify; writeTime: Boolean=true);
 
 
@@ -68,15 +68,24 @@ begin
 end;
 
 
+function consoleAllow (const s: String): Boolean;
+begin
+  Result := False;
+  if Pos('[Chat] ', s) = 1 then
+    Exit;
+  Result := True;
+end;
+
+
 procedure e_WriteLog (TextLine: String; RecordCategory: TMsgType; WriteTime: Boolean=True);
 begin
-  e_LogWritefln('%s', [TextLine], RecordCategory, WriteTime);
+  e_LogWritefln('%s', [TextLine], RecordCategory, WriteTime, consoleAllow(TextLine));
 end;
 
 
 procedure e_LogWriteln (const s: AnsiString; category: TMsgType=TMsgType.Notify; writeTime: Boolean=true);
 begin
-  e_LogWritefln('%s', [s], category, writeTime);
+  e_LogWritefln('%s', [s], category, writeTime, consoleAllow(s));
 end;
 
 
@@ -180,7 +189,7 @@ begin
 end;
 
 
-procedure e_LogWritefln (const fmt: AnsiString; args: array of const; category: TMsgType=TMsgType.Notify; writeTime: Boolean=true);
+procedure e_LogWritefln (const fmt: AnsiString; args: array of const; category: TMsgType=TMsgType.Notify; writeTime: Boolean=true; writeConsole: Boolean=true);
 
   procedure xwrite (const s: AnsiString);
   begin
@@ -189,7 +198,7 @@ procedure e_LogWritefln (const fmt: AnsiString; args: array of const; category: 
   end;
 
 begin
-  if driverInited and (length(fmt) > 0) then
+  if driverInited and (length(fmt) > 0) and writeConsole then
   begin
     case category of
       TMsgType.Fatal: write('FATAL: ');
