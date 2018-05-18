@@ -25,7 +25,7 @@ function g_Res_DownloadWAD(const FileName: string): string;
 
 implementation
 
-uses g_language, sfs, utils, wadreader;
+uses g_language, sfs, utils, wadreader, g_game;
 
 const DOWNLOAD_DIR = 'downloads';
 
@@ -132,6 +132,7 @@ begin
   SetLength(mapData.ExternalResources, 0);
   g_Console_Add(Format(_lc[I_NET_MAP_DL], [FileName]));
   e_WriteLog('Downloading map `' + FileName + '` from server', TMsgType.Notify);
+  g_Game_SetLoadingText(FileName + '...', 0, False);
   MC_SEND_MapRequest();
 
   msgStream := g_Net_Wait_Event(NET_MSG_MAP_RESPONSE);
@@ -151,6 +152,7 @@ begin
                            [mapData.ExternalResources[i].Name]));
       e_WriteLog('Downloading Wad `' + mapData.ExternalResources[i].Name +
                  '` from server', TMsgType.Notify);
+      g_Game_SetLoadingText(mapData.ExternalResources[i].Name + '...', 0, False);
       MC_SEND_ResRequest(mapData.ExternalResources[i].Name);
 
       msgStream := g_Net_Wait_Event(NET_MSG_RES_RESPONSE);
