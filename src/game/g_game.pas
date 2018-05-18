@@ -137,7 +137,7 @@ procedure GameCheats(P: SSArray);
 procedure DebugCommands(P: SSArray);
 procedure g_Game_Process_Params;
 procedure g_Game_SetLoadingText(Text: String; Max: Integer; reWrite: Boolean);
-procedure g_Game_StepLoading();
+procedure g_Game_StepLoading(Value: Integer = -1);
 procedure g_Game_ClearLoading();
 procedure g_Game_SetDebugMode();
 procedure DrawLoadingStat();
@@ -7312,13 +7312,18 @@ begin
   ProcessLoading(true);
 end;
 
-procedure g_Game_StepLoading();
+procedure g_Game_StepLoading(Value: Integer = -1);
 begin
   with LoadingStat do
   begin
-    Inc(CurValue);
-    Inc(ShowCount);
-    if (ShowCount > LOADING_SHOW_STEP) then
+    if Value = -1 then
+    begin
+      Inc(CurValue);
+      Inc(ShowCount);
+    end
+    else
+      CurValue := Value;
+    if (ShowCount > LOADING_SHOW_STEP) or (Value > -1) then
     begin
       ShowCount := 0;
       ProcessLoading();
