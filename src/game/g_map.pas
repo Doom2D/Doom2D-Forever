@@ -545,9 +545,9 @@ var
 procedure g_Map_ProfilersBegin ();
 begin
   if (profMapCollision = nil) then profMapCollision := TProfiler.Create('COLSOLID', g_profile_history_size);
-  profMapCollision.mainBegin(g_profile_collision);
+  if (profMapCollision <> nil) then profMapCollision.mainBegin(g_profile_collision);
   // create sections
-  if g_profile_collision then
+  if g_profile_collision and (profMapCollision <> nil) then
   begin
     profMapCollision.sectionBegin('*solids');
     profMapCollision.sectionEnd();

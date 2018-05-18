@@ -322,8 +322,8 @@ uses
 procedure g_Mons_ProfilersBegin ();
 begin
   if (profMonsLOS = nil) then profMonsLOS := TProfiler.Create('LOS CALC', g_profile_history_size);
-  profMonsLOS.mainBegin(g_profile_los);
-  if g_profile_los then
+  if (profMonsLOS <> nil) then profMonsLOS.mainBegin(g_profile_los);
+  if g_profile_los and (profMonsLOS <> nil) then
   begin
     profMonsLOS.sectionBegin('loscalc');
     profMonsLOS.sectionEnd();
@@ -332,17 +332,17 @@ end;
 
 procedure g_Mons_ProfilersEnd ();
 begin
-  if (profMonsLOS <> nil) and (g_profile_los) then profMapCollision.mainEnd();
+  if (profMonsLOS <> nil) and (g_profile_los) then profMonsLOS.mainEnd();
 end;
 
 procedure g_Mons_LOS_Start (); inline;
 begin
-  profMonsLOS.sectionBeginAccum('loscalc');
+  if (profMonsLOS <> nil) then profMonsLOS.sectionBeginAccum('loscalc');
 end;
 
 procedure g_Mons_LOS_End (); inline;
 begin
-  profMonsLOS.sectionEnd();
+  if (profMonsLOS <> nil) then profMonsLOS.sectionEnd();
 end;
 
 

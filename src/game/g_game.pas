@@ -3120,7 +3120,7 @@ var
     tagmask: Integer;
     pan: TPanel;
   begin
-    profileFrameDraw.sectionBegin(profname);
+    if (profileFrameDraw <> nil) then profileFrameDraw.sectionBegin(profname);
     if gdbg_map_use_accel_render then
     begin
       tagmask := panelTypeToTag(panType);
@@ -3136,31 +3136,31 @@ var
     begin
       if doDraw then g_Map_DrawPanels(panType, hasAmbient, ambColor);
     end;
-    profileFrameDraw.sectionEnd();
+    if (profileFrameDraw <> nil) then profileFrameDraw.sectionEnd();
   end;
 
   procedure drawOther (profname: AnsiString; cb: TDrawCB);
   begin
-    profileFrameDraw.sectionBegin(profname);
+    if (profileFrameDraw <> nil) then profileFrameDraw.sectionBegin(profname);
     if assigned(cb) then cb();
-    profileFrameDraw.sectionEnd();
+    if (profileFrameDraw <> nil) then profileFrameDraw.sectionEnd();
   end;
 
 begin
-  profileFrameDraw.sectionBegin('total');
+  if (profileFrameDraw <> nil) then profileFrameDraw.sectionBegin('total');
 
   // our accelerated renderer will collect all panels to gDrawPanelList
   // we can use panel tag to render level parts (see GridTagXXX in g_map.pas)
-  profileFrameDraw.sectionBegin('collect');
+  if (profileFrameDraw <> nil) then profileFrameDraw.sectionBegin('collect');
   if gdbg_map_use_accel_render then
   begin
     g_Map_CollectDrawPanels(sX, sY, sWidth, sHeight);
   end;
-  profileFrameDraw.sectionEnd();
+  if (profileFrameDraw <> nil) then profileFrameDraw.sectionEnd();
 
-  profileFrameDraw.sectionBegin('skyback');
+  if (profileFrameDraw <> nil) then profileFrameDraw.sectionBegin('skyback');
   g_Map_DrawBack(backXOfs, backYOfs);
-  profileFrameDraw.sectionEnd();
+  if (profileFrameDraw <> nil) then profileFrameDraw.sectionEnd();
 
   if setTransMatrix then
   begin
@@ -3217,7 +3217,7 @@ begin
     g_Player_DrawHealth();
   end;
 
-  profileFrameDraw.mainEnd(); // map rendering
+  if (profileFrameDraw <> nil) then profileFrameDraw.mainEnd(); // map rendering
 end;
 
 
@@ -3257,7 +3257,7 @@ begin
   end;
 
   if (profileFrameDraw = nil) then profileFrameDraw := TProfiler.Create('RENDER', g_profile_history_size);
-  profileFrameDraw.mainBegin(g_profile_frame_draw);
+  if (profileFrameDraw <> nil) then profileFrameDraw.mainBegin(g_profile_frame_draw);
 
   gPlayerDrawn := p;
 
@@ -3436,9 +3436,9 @@ var
   px: Integer = -1;
   py: Integer = -1;
 begin
-  if g_profile_frame_draw then px := px-drawProfiles(px, py, profileFrameDraw);
-  if g_profile_collision then begin px := px-drawProfiles(px, py, profMapCollision); py -= calcProfilesHeight(profMonsLOS); end;
-  if g_profile_los then begin px := px-drawProfiles(px, py, profMonsLOS); py -= calcProfilesHeight(profMonsLOS); end;
+  if g_profile_frame_draw and (profileFrameDraw <> nil) then px := px-drawProfiles(px, py, profileFrameDraw);
+  if g_profile_collision and (profMapCollision <> nil) then begin px := px-drawProfiles(px, py, profMapCollision); py -= calcProfilesHeight(profMonsLOS); end;
+  if g_profile_los and (profMonsLOS <> nil) then begin px := px-drawProfiles(px, py, profMonsLOS); py -= calcProfilesHeight(profMonsLOS); end;
 end;
 
 procedure g_Game_Draw();
