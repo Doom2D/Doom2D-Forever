@@ -140,7 +140,8 @@ begin
   begin
     mapData := MapDataFromMsgStream(msgStream);
     msgStream.Free;
-  end;
+  end else
+    mapData.FileSize := 0;
 
   for i := 0 to High(mapData.ExternalResources) do
   begin
@@ -156,6 +157,9 @@ begin
       MC_SEND_ResRequest(mapData.ExternalResources[i].Name);
 
       msgStream := g_Net_Wait_Event(NET_MSG_RES_RESPONSE);
+      if msgStream = nil then
+        continue;
+
       resData := ResDataFromMsgStream(msgStream);
 
       resStream := createDiskFile(GameDir+'/wads/'+mapData.ExternalResources[i].Name);
@@ -168,6 +172,8 @@ begin
   end;
 
   Result := SaveWAD(MapsDir, ExtractFileName(FileName), mapData.FileData);
+  if mapData.FileSize = 0 then
+    DeleteFile(Result);
 end;
 
 end.
