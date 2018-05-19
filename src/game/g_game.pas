@@ -1015,6 +1015,7 @@ begin
             gMusic.SetByName('MUSIC_INTERMUS');
             gMusic.Play();
             gState := STATE_INTERSINGLE;
+            e_UnpressAllKeys();
 
             g_Game_ExecuteEvent('oninter');
           end
@@ -1665,12 +1666,14 @@ begin
 
                 gMusic.Play();
                 gState := STATE_INTERCUSTOM;
+                e_UnpressAllKeys();
               end
             else // Закончилась последняя карта в Одиночной игре
               begin
                 gMusic.SetByName('MUSIC_INTERMUS');
                 gMusic.Play();
                 gState := STATE_INTERSINGLE;
+                e_UnpressAllKeys();
               end;
             g_Game_ExecuteEvent('oninter');
           end
