@@ -4342,6 +4342,12 @@ var
   Anim: TAnimation;
   ID: DWORD;
 begin
+  FIncCam := 0;
+  FBFGFireCounter := -1;
+  FShellTimer := -1;
+  FPain := 0;
+  FLastHit := 0;
+
   if not g_Game_IsServer then
     Exit;
   if FDummy then
@@ -4445,12 +4451,6 @@ begin
     FAngle := 180
   else
     FAngle := 0;
-
-  FIncCam := 0;
-  FBFGFireCounter := -1;
-  FShellTimer := -1;
-  FPain := 0;
-  FLastHit := 0;
 
   SetAction(A_STAND, True);
   FModel.Direction := FDirection;
