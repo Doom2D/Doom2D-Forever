@@ -483,8 +483,8 @@ begin
           exit;
         end;
         {$ENDIF}
-        if down then KeyPress(key);
         e_KeyUpDown(key, down);
+        if down then KeyPress(key);
       end;
 
     {$IF not DEFINED(HEADLESS)}
