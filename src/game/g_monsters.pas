@@ -3243,6 +3243,19 @@ _end:
               wx := FObj.X + wx;
               wy := FObj.Y + MONSTER_ANIMTABLE[FMonsterType].wY;
 
+            // Монстр не может целиться в объект за спиной, стреляя влево:
+              if (FDirection = TDirection.D_LEFT) and (tx > wx) then
+              begin
+                tx := wx - 32;
+                ty := wy + Random(11) - 5;
+              end;
+            // И аналогично, стреляя вправо:
+              if (FDirection = TDirection.D_RIGHT) and (tx < wx) then
+              begin
+                tx := wx + 32;
+                ty := wy + Random(11) - 5;
+              end;
+
             // Делаем выстрел нужным оружием:
               case FMonsterType of
                 MONSTER_IMP:
