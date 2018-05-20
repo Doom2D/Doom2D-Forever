@@ -535,6 +535,7 @@ Type
 
     I_LAB_ES_GRID,
     I_LAB_ES_GRID_COLOR,
+    I_LAB_ES_GRID_SIZE,
     I_LAB_ES_BACK,
     I_LAB_ES_PREVIEW,
     I_LAB_ES_MINIMAP,
@@ -1659,6 +1660,8 @@ Const
                                        'Шаг сетки:'),
     ('LAB ES GRID COLOR',              'Grid Color:',
                                        'Цвет сетки:'),
+    ('LAB ES GRID SIZE',               'Grid Dot Size:',
+                                       'Размер точек сетки:'),
     ('LAB ES BACK',                    'Background Color:',
                                        'Цвет фона:'),
     ('LAB ES PREVIEW',                 'Texture Preview Background Color:',
@@ -2322,6 +2325,7 @@ begin
     cbCheckerboard.Caption := _lc[I_CTRL_ES_CHECKERBOARD];
     LabelGrid.Caption := _lc[I_LAB_ES_GRID];
     LabelGridCol.Caption := _lc[I_LAB_ES_GRID_COLOR];
+    LabelGridSize.Caption := _lc[I_LAB_ES_GRID_SIZE];
     LabelBack.Caption := _lc[I_LAB_ES_BACK];
     LabelPreview.Caption := _lc[I_LAB_ES_PREVIEW];
     LabelMinimap.Caption := _lc[I_LAB_ES_MINIMAP];
