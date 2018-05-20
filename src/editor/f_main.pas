@@ -2726,6 +2726,8 @@ begin
   gAlphaTriggerArea := config.ReadInt('Editor', 'TriggerAlpha', ALPHA_AREA);
   if gAlphaTriggerArea = 255 then
     gAlphaTriggerArea := ALPHA_AREA;
+  gAlphaMonsterRect := config.ReadInt('Editor', 'MonsterRectAlpha', 0);
+  gAlphaAreaRect := config.ReadInt('Editor', 'AreaRectAlpha', 0);
   if config.ReadInt('Editor', 'Scale', 0) = 1 then
     Scale := 2
   else
@@ -4221,6 +4223,8 @@ begin
   config.WriteInt('Editor', 'EdgeAlpha', gAlphaEdge);
   config.WriteInt('Editor', 'LineAlpha', gAlphaTriggerLine);
   config.WriteInt('Editor', 'TriggerAlpha', gAlphaTriggerArea);
+  config.WriteInt('Editor', 'MonsterRectAlpha', gAlphaMonsterRect);
+  config.WriteInt('Editor', 'AreaRectAlpha', gAlphaAreaRect);
 
   for i := 0 to RecentCount-1 do
     if i < RecentFiles.Count then

@@ -194,6 +194,8 @@ var
   gAlphaEdge: Byte;
   gAlphaTriggerLine: Byte;
   gAlphaTriggerArea: Byte;
+  gAlphaMonsterRect: Byte;
+  gAlphaAreaRect: Byte;
   drEdge: Array[0..3] of Byte;
   gPanels: Array of TPanel;
   gItems: Array of TItem;
@@ -2198,6 +2200,7 @@ begin
         with MonsterSize[gMonsters[a].MonsterType] do
         begin
           ID := DWORD(-1);
+          sel := ObjectSelected(OBJECT_MONSTER, a);
 
           case gMonsters[a].MonsterType of
             0: Continue;
@@ -2256,7 +2259,7 @@ begin
           begin
             e_DrawQuad(MapOffset.X+gMonsters[a].X, MapOffset.Y+gMonsters[a].Y,
                        MapOffset.X+gMonsters[a].X+Width-1, MapOffset.Y+gMonsters[a].Y+Height-1,
-                       255, 255, 255);
+                       255, 255, 255, IfThen(sel, 0, gAlphaMonsterRect));
           end;
         end;
 
@@ -2273,6 +2276,7 @@ begin
         with AreaSize[gAreas[a].AreaType] do
         begin
           ID := DWORD(-1);
+          sel := ObjectSelected(OBJECT_AREA, a);
 
           case gAreas[a].AreaType of
             AREA_PLAYERPOINT1: g_GetTexture('AREA_PLAYERPOINT1', ID);
@@ -2302,7 +2306,7 @@ begin
           begin
             e_DrawQuad(MapOffset.X+gAreas[a].X, MapOffset.Y+gAreas[a].Y,
                        MapOffset.X+gAreas[a].X+Width-1, MapOffset.Y+gAreas[a].Y+Height-1,
-                       255, 255, 255);
+                       255, 255, 255, IfThen(sel, 0, gAlphaAreaRect));
 
             e_DrawPoint(2, MapOffset.X+gAreas[a].X, MapOffset.Y+gAreas[a].Y, 255, 0, 0);
           end;
