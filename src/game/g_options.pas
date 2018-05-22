@@ -75,61 +75,61 @@ const DF_Default_Megawad_Start = 'megawads/DOOM2D.WAD:\MAP01';
 
 var
   gGameControls: TControls;
-  gScreenWidth: Word          = 800;
-  gScreenHeight: Word         = 600;
-  gWinRealPosX: Integer       = 0;
-  gWinRealPosY: Integer       = 0;
-  gBPP: Byte                  = 32;
-  gFreq: Byte                 = 0;
-  gFullscreen: Boolean        = False;
-  gWinMaximized: Boolean      = False;
-  gVSync: Boolean             = False;
-  glLegacyNPOT: Boolean       = False;
-  gTextureFilter: Boolean     = True;
-  gNoSound: Boolean           = False;
-  gSoundLevel: Byte           = 75;
-  gMusicLevel: Byte           = 65;
-  gMaxSimSounds: Byte         = 8;
-  gMuteWhenInactive: Boolean  = False;
-  gAdvCorpses: Boolean        = True;
-  gAdvBlood: Boolean          = True;
-  gAdvGibs: Boolean           = True;
-  gGibsCount: Integer         = 32;
-  gBloodCount: Byte           = 3;
-  gFlash: Byte                = 1;
-  gDrawBackGround: Boolean    = True;
-  gShowMessages: Boolean      = True;
-  gRevertPlayers: Boolean     = False;
-  gLanguage: String           = LANGUAGE_ENGLISH;
-  gAskLanguage: Boolean       = True;
-  gcMap: String               = '';
-  gcGameMode: String          = '';
-  gcTimeLimit: Word           = 0;
-  gcGoalLimit: Word           = 0;
-  gcMaxLives: Byte            = 0;
-  gcPlayers: Byte             = 1;
-  gcTeamDamage: Boolean       = False;
-  gcAllowExit: Boolean        = True;
-  gcWeaponStay: Boolean       = False;
-  gcMonsters: Boolean         = False;
-  gcBotsVS: String            = 'Everybody';
-  gnMap: String               = '';
-  gnGameMode: String          = '';
-  gnTimeLimit: Word           = 0;
-  gnGoalLimit: Word           = 0;
-  gnMaxLives: Byte            = 0;
-  gnPlayers: Byte             = 1;
-  gnTeamDamage: Boolean       = False;
-  gnAllowExit: Boolean        = True;
-  gnWeaponStay: Boolean       = False;
-  gnMonsters: Boolean         = False;
-  gnBotsVS: String            = 'Everybody';
-  gsSDLSampleRate: Integer    = 44100;
-  gsSDLBufferSize: Integer    = 2048;
-  gSFSDebug: Boolean          = False;
-  gSFSFastMode: Boolean       = False;
-  gDefaultMegawadStart: AnsiString = DF_Default_Megawad_Start;
-  gBerserkAutoswitch: Boolean = True;
+  gScreenWidth: Word;
+  gScreenHeight: Word;
+  gWinRealPosX: Integer;
+  gWinRealPosY: Integer;
+  gBPP: Byte;
+  gFreq: Byte;
+  gFullscreen: Boolean;
+  gWinMaximized: Boolean;
+  gVSync: Boolean;
+  glLegacyNPOT: Boolean;
+  gTextureFilter: Boolean;
+  gNoSound: Boolean;
+  gSoundLevel: Byte;
+  gMusicLevel: Byte;
+  gMaxSimSounds: Byte;
+  gMuteWhenInactive: Boolean;
+  gAdvCorpses: Boolean;
+  gAdvBlood: Boolean;
+  gAdvGibs: Boolean;
+  gGibsCount: Integer;
+  gBloodCount: Byte;
+  gFlash: Byte;
+  gDrawBackGround: Boolean;
+  gShowMessages: Boolean;
+  gRevertPlayers: Boolean;
+  gLanguage: String;
+  gAskLanguage: Boolean;
+  gcMap: String;
+  gcGameMode: String;
+  gcTimeLimit: Word;
+  gcGoalLimit: Word;
+  gcMaxLives: Byte;
+  gcPlayers: Byte;
+  gcTeamDamage: Boolean;
+  gcAllowExit: Boolean;
+  gcWeaponStay: Boolean;
+  gcMonsters: Boolean;
+  gcBotsVS: String;
+  gnMap: String;
+  gnGameMode: String;
+  gnTimeLimit: Word;
+  gnGoalLimit: Word;
+  gnMaxLives: Byte;
+  gnPlayers: Byte;
+  gnTeamDamage: Boolean;
+  gnAllowExit: Boolean;
+  gnWeaponStay: Boolean;
+  gnMonsters: Boolean;
+  gnBotsVS: String;
+  gsSDLSampleRate: Integer;
+  gsSDLBufferSize: Integer;
+  gSFSDebug: Boolean;
+  gSFSFastMode: Boolean;
+  gDefaultMegawadStart: AnsiString;
+  gBerserkAutoswitch: Boolean;
 
 implementation
 
@@ -141,65 +141,92 @@ uses
 {$ENDIF}
   e_log, e_input, g_window, g_sound, g_gfx, g_player, Math,
   g_map, g_net, g_netmaster, SysUtils, CONFIG, g_game, g_main, e_texture,
-  g_items, wadreader, e_graphics, g_touch;
+  g_items, wadreader, e_graphics, g_touch, SDL2;
+
+procedure g_Options_SetDefaultVideo;
+{$IF DEFINED(ANDROID)}
+var
+  display: PSDL_DisplayMode;
+{$ENDIF}
+begin
+  {$IF DEFINED(ANDROID)}
+    (* On android set max screen size *)
+    SDL_GetCurrentDisplayMode(0, display);
+    gScreenWidth := display.w;
+    gScreenHeight := display.h;
+    gWinRealPosX := 0;
+    gWinRealPosY := 0;
+    gWinMaximized := False;
+    gFullScreen := False; (* if True then rotation not allowed *)
+    gBPP := 32;
+    gVSync := True;
+    gTextureFilter := True;
+    glLegacyNPOT := False;
+  {$ELSE}
+    (* On other systems use default 800x600 *)
+    gScreenWidth := 800;
+    gScreenHeight := 600;
+    gWinRealPosX := 0;
+    gWinRealPosY := 0;
+    gWinMaximized := False;
+    gFullScreen := False;
+    gBPP := 32;
+    gVSync := True;
+    gTextureFilter := True;
+    glLegacyNPOT := False;
+  {$ENDIF}
+end;
 
 procedure g_Options_SetDefault();
 var
   i: Integer;
 begin
-  g_Sound_SetupAllVolumes(75, 65);
+  (* section Sound *)
+  gNoSound := False;
+  gSoundLevel := 75;
+  gMusicLevel := 65;
   gMaxSimSounds := 8;
   gMuteWhenInactive := False;
   gAnnouncer := ANNOUNCE_MEPLUS;
   gSoundEffectsDF := True;
   gUseChatSounds := True;
-  g_GFX_SetMax(2000);
-  g_Gibs_SetMax(150);
-  g_Corpses_SetMax(20);
-  g_Shells_SetMax(300);
-  gGibsCount := 32;
-  gBloodCount := 3;
-  gAdvBlood := True;
-  gAdvCorpses := True;
-  gAdvGibs := True;
-  gFlash := 1;
-  gDrawBackGround := True;
-  gShowMessages := True;
-  gRevertPlayers := False;
-  g_dbg_scale := 1.0;
-  g_touch_size := 1.0;
-  g_touch_fire := True;
-  g_touch_offset := 50;
-  g_touch_alt := False;
+  gsSDLSampleRate := 44100;
+  gsSDLBufferSize := 2048;
 
-  for i := 0 to e_MaxJoys-1 do
-    e_JoystickDeadzones[i] := 8192;
+  g_Sound_SetupAllVolumes(gSoundLevel, gMusicLevel);
 
+  (* section GameControls *)
   with gGameControls.GameControls do
   begin
-    TakeScreenshot := 183;
-    Stat := 15;
-    Chat := 20; // [T]
-    TeamChat := 21; // [Y]
+    TakeScreenshot := SDL_SCANCODE_F12;
+    Stat := SDL_SCANCODE_L;
+    Chat := SDL_SCANCODE_T;
+    TeamChat := SDL_SCANCODE_Y;
   end;
 
+  (* section Player1 *)
   with gGameControls.P1Control do
   begin
-    KeyRight := 77;
-    KeyLeft := 75;
-    KeyUp := 72;
-    KeyDown := 76;
-    KeyFire := 184;
-    KeyJump := 157;
-    KeyNextWeapon := 73;
-    KeyPrevWeapon := 71;
-    KeyOpen := 54;
-    KeyStrafe := 0;
+    KeyRight := SDL_SCANCODE_KP_6;
+    KeyLeft := SDL_SCANCODE_KP_4;
+    KeyUp := SDL_SCANCODE_KP_8;
+    KeyDown := SDL_SCANCODE_KP_5;
+    KeyFire := SDL_SCANCODE_SLASH;
+    KeyJump := SDL_SCANCODE_RCTRL;
+    KeyNextWeapon := SDL_SCANCODE_KP_7;
+    KeyPrevWeapon := SDL_SCANCODE_KP_9;
+    KeyOpen := SDL_SCANCODE_RSHIFT;
+    KeyStrafe := SDL_SCANCODE_PERIOD;
+
     for i := 0 to 9 do
-      KeyWeapon[i] := 30 + i;
-    KeyWeapon[10] := 45;
-    for i := 10 to High(KeyWeapon) do
-      KeyWeapon[i] := 0;
+    begin
+      KeyWeapon[i] := SDL_SCANCODE_1 + i (* 1, ..., 9, 0 *)
+    end;
+    KeyWeapon[10] := SDL_SCANCODE_MINUS;
+    for i := 11 to High(KeyWeapon) do
+    begin
+      KeyWeapon[i] := 0
+    end;
 
     KeyRight2 := VK_RIGHT;
     KeyLeft2 := VK_LEFT;
@@ -211,37 +238,11 @@ begin
     KeyPrevWeapon2 := VK_PREV;
     KeyOpen2 := VK_OPEN;
     KeyStrafe2 := VK_STRAFE;
-    for i := 0 to High(KeyWeapon2) do
-      KeyWeapon2[i] := VK_0 + i;
-  end;
 
-  with gGameControls.P2Control do
-  begin
-    KeyRight := 33;
-    KeyLeft := 31;
-    KeyUp := 18;
-    KeyDown := 32;
-    KeyFire := 30;
-    KeyJump := 16;
-    KeyNextWeapon := 19;
-    KeyPrevWeapon := 17;
-    KeyOpen := 58;
-    KeyStrafe := 0;
-    for i := 0 to High(KeyWeapon) do
-      KeyWeapon[i] := 0;
-
-    KeyRight2 := 0;
-    KeyLeft2 := 0;
-    KeyUp2 := 0;
-    KeyDown2 := 0;
-    KeyFire2 := 0;
-    KeyJump2 := 0;
-    KeyNextWeapon2 := 0;
-    KeyPrevWeapon2 := 0;
-    KeyOpen2 := 0;
-    KeyStrafe2 := 0;
     for i := 0 to High(KeyWeapon2) do
-      KeyWeapon2[i] := 0;
+    begin
+      KeyWeapon2[i] := VK_0 + i
+    end;
   end;
 
   with gPlayer1Settings do
@@ -254,6 +255,41 @@ begin
     Team := TEAM_RED;
   end;
 
+  (* section Player2 *)
+  with gGameControls.P2Control do
+  begin
+    KeyRight := SDL_SCANCODE_D;
+    KeyLeft := SDL_SCANCODE_A;
+    KeyUp := SDL_SCANCODE_W;
+    KeyDown := SDL_SCANCODE_S;
+    KeyFire := SDL_SCANCODE_G;
+    KeyJump := SDL_SCANCODE_SPACE;
+    KeyNextWeapon := SDL_SCANCODE_E;
+    KeyPrevWeapon := SDL_SCANCODE_Q;
+    KeyOpen := SDL_SCANCODE_F;
+    KeyStrafe := SDL_SCANCODE_LSHIFT;
+    for i := 0 to High(KeyWeapon) do
+    begin
+      KeyWeapon[i] := 0
+    end;
+
+    KeyRight2 := 0;
+    KeyLeft2 := 0;
+    KeyUp2 := 0;
+    KeyDown2 := 0;
+    KeyFire2 := 0;
+    KeyJump2 := 0;
+    KeyNextWeapon2 := 0;
+    KeyPrevWeapon2 := 0;
+    KeyOpen2 := 0;
+    KeyStrafe2 := 0;
+
+    for i := 0 to High(KeyWeapon2) do
+    begin
+      KeyWeapon2[i] := 0;
+    end
+  end;
+
   with gPlayer2Settings do
   begin
     Name := 'Player2';
@@ -264,215 +300,342 @@ begin
     Team := TEAM_BLUE;
   end;
 
+  (* section Joysticks *)
+  for i := 0 to e_MaxJoys - 1 do
+  begin
+    e_JoystickDeadzones[i] := 8192
+  end;
+
+  (* section Touch *)
+  g_touch_size := 1.0;
+  g_touch_fire := True;
+  g_touch_offset := 50;
+  g_touch_alt := False;
+  
+  (* section Game *)
+  g_GFX_SetMax(2000);
+  g_Shells_SetMax(300);
+  g_Gibs_SetMax(150);
+  g_Corpses_SetMax(20);
+  gGibsCount := 32;
+  ITEM_RESPAWNTIME := 60 * 36;
+  gBloodCount := 4;
+  gAdvBlood := True;
+  gAdvCorpses := True;
+  gAdvGibs := True;
+  gFlash := 1;
+  gDrawBackGround := True;
+  gShowMessages := True;
+  gRevertPlayers := False;
+  gChatBubble := 4;
+  gSFSDebug := False;
+  gSFSFastMode := False;
+  e_FastScreenshots := True;
+  gDefaultMegawadStart := DF_Default_Megawad_Start;
+  gBerserkAutoswitch := True;
+  g_dbg_scale := 1.0;
+
+  gAskLanguage := True;
+  gLanguage := LANGUAGE_ENGLISH;
+
+  (* section GameplayCustom *)
+  gcMap := '';
+  gcGameMode := _lc[I_MENU_GAME_TYPE_DM];
+  gcTimeLimit := 0;
+  gcGoalLimit := 0;
+  gcMaxLives := 0;
+  gcPlayers := 1;
+  gcTeamDamage := False;
+  gcAllowExit := True;
+  gcWeaponStay := False;
+  gcMonsters := False;
+  gcBotsVS := 'Everybody';
+
+  (* section GameplayNetwork *)
+  gnMap := '';
+  gnGameMode := _lc[I_MENU_GAME_TYPE_DM];
+  gnTimeLimit := 0;
+  gnGoalLimit := 0;
+  gnMaxLives := 0;
+  gnPlayers := 1;
+  gnTeamDamage := False;
+  gnAllowExit := True;
+  gnWeaponStay := False;
+  gnMonsters := False;
+  gnBotsVS := 'Everybody';
+
+  (* section MasterServer *)
+  NetSlistIP := 'mpms.doom2d.org';
+  NetSlistPort := 25665;
+  g_Net_Slist_Set(NetSlistIP, NetSlistPort);
+
+  (* section Server *)
+  NetServerName := 'Unnamed Server';
+  NetPassword := '';
+  NetPort := 25666;
+  NetMaxClients := 16;
+  NetAllowRCON := False;
+  NetRCONPassword := 'default';
   NetUseMaster := True;
+  NetUpdateRate := 0;
+  NetRelupdRate := 18;
+  NetMasterRate := 60000;
   NetForwardPorts := False;
-  g_Net_Slist_Set('mpms.doom2d.org', 25665);
+
+  (* section Client *)
+  NetInterpLevel := 2;
+  NetForcePlayerUpdate := False;
+  NetPredictSelf := True;
+  NetClientIP := '127.0.0.1';
+  NetClientPort := NetPort;
 end;
 
 procedure g_Options_Read(FileName: String);
 var
-  config: TConfig;
-  str: String;
   i: Integer;
+  config: TConfig;
+  section: String;
+  
+  procedure ReadInteger (VAR v: Integer; param: String; minv: Integer = Low(Integer); maxv: Integer = High(Integer));
+  begin
+    v := Max(Min(config.ReadInt(section, param, v), maxv), minv)
+  end;
+
+  procedure ReadInteger (VAR v: Single; param: String; minv: Integer = Low(Integer); maxv: Integer = High(Integer)); overload;
+  begin
+    v := Max(Min(config.ReadInt(section, param, Integer(v)), maxv), minv)
+  end;
+
+  procedure ReadInteger (VAR v: LongWord; param: String; minv: LongWord = Low(LongWord); maxv: LongWord = High(LongWord)); overload;
+  begin
+    v := Max(Min(config.ReadInt(section, param, v), maxv), minv)
+  end;
+
+  procedure ReadInteger (VAR v: Word; param: String; minv: Word = Low(Word); maxv: Word = High(Word)); overload;
+  begin
+    v := Max(Min(config.ReadInt(section, param, v), maxv), minv)
+  end;
+
+  procedure ReadInteger (VAR v: Byte; param: String; minv: Byte = Low(Byte); maxv: Byte = High(Byte)); overload;
+  begin
+    v := Max(Min(config.ReadInt(section, param, v), maxv), minv)
+  end;
+
+  procedure ReadBoolean (VAR v: Boolean; param: String);
+  begin
+    v := config.ReadBool(section, param, v)
+  end;
+
+  procedure ReadString (VAR v: String; param: String);
+  begin
+    v := config.ReadStr(section, param, v)
+  end;
+
 begin
   gAskLanguage := True;
   e_WriteLog('Reading config', TMsgType.Notify);
+  g_Options_SetDefault;
 
-  if not FileExists(FileName) then
+  if FileExists(FileName) = False then
   begin
     e_WriteLog('Config file '+FileName+' not found', TMsgType.Warning);
-    g_Options_SetDefault();
-
-  // Default video options:
-    gScreenWidth := 800;
-    gScreenHeight := 600;
-    gWinRealPosX := 0;
-    gWinRealPosY := 0;
-    gWinMaximized := False;
-    gFullScreen := False;
-    gBPP := 32;
-    gVSync := False;
-    gTextureFilter := True;
-    glLegacyNPOT := False;
-
-    Exit;
+    g_Options_SetDefaultVideo;
+    Exit
   end;
 
   config := TConfig.CreateFile(FileName);
 
-  gScreenWidth := config.ReadInt('Video', 'ScreenWidth', 800);
-  if gScreenWidth < 640 then
-    gScreenWidth := 640;
-  gScreenHeight := config.ReadInt('Video', 'ScreenHeight', 600);
-  if gScreenHeight < 480 then
-    gScreenHeight := 480;
-  gWinRealPosX := config.ReadInt('Video', 'WinPosX', 60);
-  if gWinRealPosX < 0 then
-    gWinRealPosX := 60;
-  gWinRealPosY := config.ReadInt('Video', 'WinPosY', 60);
-  if gWinRealPosY < 0 then
-    gWinRealPosY := 60;
-  gFullScreen := config.ReadBool('Video', 'Fullscreen', False);
-  gWinMaximized := config.ReadBool('Video', 'Maximized', False);
-  gBPP := config.ReadInt('Video', 'BPP', 32);
-  gFreq := config.ReadInt('Video', 'Freq', 0);
-  gVSync := config.ReadBool('Video', 'VSync', True);
-  gTextureFilter := config.ReadBool('Video', 'TextureFilter', True);
-  glLegacyNPOT := config.ReadBool('Video', 'LegacyCompatible', False);
+  section := 'Video';
+  ReadInteger(gScreenWidth, 'ScreenWidth', 0);
+  ReadInteger(gScreenHeight, 'ScreenHeight', 0);
+  ReadInteger(gWinRealPosX, 'WinPosX', 60);
+  ReadInteger(gWinRealPosY, 'WinPosY', 60);
+  ReadBoolean(gFullScreen, 'Fullscreen');
+  ReadBoolean(gWinMaximized, 'Maximized');
+  ReadInteger(gBPP, 'BPP', 0);
+  ReadInteger(gFreq, 'Freq', 0);
+  ReadBoolean(gVSync, 'VSync');
+  ReadBoolean(gTextureFilter, 'TextureFilter');
+  ReadBoolean(glLegacyNPOT, 'LegacyCompatible');
 
-  gNoSound := config.ReadBool('Sound', 'NoSound', False);
-  gSoundLevel := Min(config.ReadInt('Sound', 'SoundLevel', 75), 255);
-  gMusicLevel := Min(config.ReadInt('Sound', 'MusicLevel', 65), 255);
-  gMaxSimSounds := Max(Min(config.ReadInt('Sound', 'MaxSimSounds', 8), 66), 2);
-  gMuteWhenInactive := config.ReadBool('Sound', 'MuteInactive', False);
-  gAnnouncer := Min(Max(config.ReadInt('Sound', 'Announcer', ANNOUNCE_MEPLUS), ANNOUNCE_NONE), ANNOUNCE_ALL);
-  gSoundEffectsDF := config.ReadBool('Sound', 'SoundEffectsDF', True);
-  gUseChatSounds := config.ReadBool('Sound', 'ChatSounds', True);
-  gsSDLSampleRate := Min(Max(config.ReadInt('Sound', 'SDLSampleRate', 44100), 11025), 96000);
-  gsSDLBufferSize := Min(Max(config.ReadInt('Sound', 'SDLBufferSize', 2048), 64), 16384);
+  section := 'Sound';
+  ReadBoolean(gNoSound, 'NoSound');
+  ReadInteger(gSoundLevel, 'SoundLevel', 0, 255);
+  ReadInteger(gMusicLevel, 'MusicLevel', 0, 255);
+  ReadInteger(gMaxSimSounds, 'MaxSimSounds', 2, 66);
+  ReadBoolean(gMuteWhenInactive, 'MuteInactive');
+  ReadInteger(gAnnouncer, 'Announcer', ANNOUNCE_NONE, ANNOUNCE_ALL);
+  ReadBoolean(gSoundEffectsDF, 'SoundEffectsDF');
+  ReadBoolean(gUseChatSounds, 'ChatSounds');
+  ReadInteger(gsSDLSampleRate, 'SDLSampleRate', 11025, 96000);
+  ReadInteger(gsSDLBufferSize, 'SDLBufferSize', 64, 16384);
 
+  section := 'GameControls';
   with gGameControls.GameControls do
   begin
-    TakeScreenshot := config.ReadInt('GameControls', 'TakeScreenshot', 183);
-    Stat := config.ReadInt('GameControls', 'Stat', 15);
-    Chat := config.ReadInt('GameControls', 'Chat', 20);
-    TeamChat := config.ReadInt('GameControls', 'TeamChat', 21);
+    ReadInteger(TakeScreenshot, 'TakeScreenshot');
+    ReadInteger(Stat, 'Stat');
+    ReadInteger(Chat, 'Chat');
+    ReadInteger(TeamChat, 'TeamChat');
   end;
 
-  with gGameControls.P1Control, config do
+  section := 'Player1';
+  with gGameControls.P1Control do
   begin
-    KeyRight := ReadInt('Player1', 'KeyRight', 33);
-    KeyLeft := ReadInt('Player1', 'KeyLeft', 31);
-    KeyUp := ReadInt('Player1', 'KeyUp', 18);
-    KeyDown := ReadInt('Player1', 'KeyDown', 32);
-    KeyFire := ReadInt('Player1', 'KeyFire', 30);
-    KeyJump := ReadInt('Player1', 'KeyJump', 16);
-    KeyNextWeapon := ReadInt('Player1', 'KeyNextWeapon', 19);
-    KeyPrevWeapon := ReadInt('Player1', 'KeyPrevWeapon', 17);
-    KeyOpen := ReadInt('Player1', 'KeyOpen', 58);
-    KeyStrafe := ReadInt('Player1', 'KeyStrafe', 0);
+    ReadInteger(KeyRight, 'KeyRight');
+    ReadInteger(KeyLeft, 'KeyLeft');
+    ReadInteger(KeyUp, 'KeyUp');
+    ReadInteger(KeyDown, 'KeyDown');
+    ReadInteger(KeyFire, 'KeyFire');
+    ReadInteger(KeyJump, 'KeyJump');
+    ReadInteger(KeyNextWeapon, 'KeyNextWeapon');
+    ReadInteger(KeyPrevWeapon, 'KeyPrevWeapon');
+    ReadInteger(KeyOpen, 'KeyOpen');
+    ReadInteger(KeyStrafe, 'KeyStrafe');
+
     for i := 0 to High(KeyWeapon) do
-      KeyWeapon[i] := ReadInt('Player1', 'KeyWeapon' + IntToStr(i), 0);
+    begin
+      ReadInteger(KeyWeapon[i], 'KeyWeapon' + IntToStr(i))
+    end;
 
-    KeyRight2 := ReadInt('Player1', 'KeyRight2', 0);
-    KeyLeft2 := ReadInt('Player1', 'KeyLeft2', 0);
-    KeyUp2 := ReadInt('Player1', 'KeyUp2', 0);
-    KeyDown2 := ReadInt('Player1', 'KeyDown2', 0);
-    KeyFire2 := ReadInt('Player1', 'KeyFire2', 0);
-    KeyJump2 := ReadInt('Player1', 'KeyJump2', 0);
-    KeyNextWeapon2 := ReadInt('Player1', 'KeyNextWeapon2', 0);
-    KeyPrevWeapon2 := ReadInt('Player1', 'KeyPrevWeapon2', 0);
-    KeyOpen2 := ReadInt('Player1', 'KeyOpen2', 0);
-    KeyStrafe2 := ReadInt('Player1', 'KeyStrafe2', 0);
+    ReadInteger(KeyRight2, 'KeyRight2');
+    ReadInteger(KeyLeft2, 'KeyLeft2');
+    ReadInteger(KeyUp2, 'KeyUp2');
+    ReadInteger(KeyDown2, 'KeyDown2');
+    ReadInteger(KeyFire2, 'KeyFire2');
+    ReadInteger(KeyJump2, 'KeyJump2');
+    ReadInteger(KeyNextWeapon2, 'KeyNextWeapon2');
+    ReadInteger(KeyPrevWeapon2, 'KeyPrevWeapon2');
+    ReadInteger(KeyOpen2, 'KeyOpen2');
+    ReadInteger(KeyStrafe2, 'KeyStrafe2');
+
     for i := 0 to High(KeyWeapon2) do
-      KeyWeapon2[i] := ReadInt('Player1', 'KeyWeapon2' + IntToStr(i), 0);
+    begin
+      ReadInteger(KeyWeapon2[i], 'KeyWeapon2' + IntToStr(i))
+    end;
   end;
 
-  with gPlayer1Settings, config do
+  section := 'Player1';
+  with gPlayer1Settings do
   begin
-    Name := ReadStr('Player1', 'name', 'Player1');
-    Model := ReadStr('Player1', 'model', STD_PLAYER_MODEL);
-    Color.R := Min(Abs(ReadInt('Player1', 'red', PLAYER1_DEF_COLOR.R)), 255);
-    Color.G := Min(Abs(ReadInt('Player1', 'green', PLAYER1_DEF_COLOR.G)), 255);
-    Color.B := Min(Abs(ReadInt('Player1', 'blue', PLAYER1_DEF_COLOR.B)), 255);
-    Team := ReadInt('Player1', 'team', TEAM_RED);
+    ReadString(Name, 'name');
+    ReadString(Model, 'model');
+    ReadInteger(Color.R, 'red', 0, 255);
+    ReadInteger(Color.G, 'green', 0, 255);
+    ReadInteger(Color.B, 'blue', 0, 255);
+    ReadInteger(Team, 'team');
     if (Team < TEAM_RED) or (Team > TEAM_BLUE) then
       Team := TEAM_RED;
   end;
 
-  with gGameControls.P2Control, config do
+  section := 'Player2';
+  with gGameControls.P2Control do
   begin
-    KeyRight := ReadInt('Player2', 'KeyRight', 205);
-    KeyLeft := ReadInt('Player2', 'KeyLeft', 203);
-    KeyUp := ReadInt('Player2', 'KeyUp', 200);
-    KeyDown := ReadInt('Player2', 'KeyDown', 208);
-    KeyFire := ReadInt('Player2', 'KeyFire', 184);
-    KeyJump := ReadInt('Player2', 'KeyJump', 157);
-    KeyNextWeapon := ReadInt('Player2', 'KeyNextWeapon', 73);
-    KeyPrevWeapon := ReadInt('Player2', 'KeyPrevWeapon', 71);
-    KeyOpen := ReadInt('Player2', 'KeyOpen', 54);
-    KeyStrafe := ReadInt('Player2', 'KeyStrafe', 0);
-    for i := 0 to High(KeyWeapon) do
-      KeyWeapon[i] := ReadInt('Player2', 'KeyWeapon' + IntToStr(i), 0);
+    ReadInteger(KeyRight, 'KeyRight');
+    ReadInteger(KeyLeft, 'KeyLeft');
+    ReadInteger(KeyUp, 'KeyUp');
+    ReadInteger(KeyDown, 'KeyDown');
+    ReadInteger(KeyFire, 'KeyFire');
+    ReadInteger(KeyJump, 'KeyJump');
+    ReadInteger(KeyNextWeapon, 'KeyNextWeapon');
+    ReadInteger(KeyPrevWeapon, 'KeyPrevWeapon');
+    ReadInteger(KeyOpen, 'KeyOpen');
+    ReadInteger(KeyStrafe, 'KeyStrafe');
 
-    KeyRight2 := ReadInt('Player2', 'KeyRight2', 0);
-    KeyLeft2 := ReadInt('Player2', 'KeyLeft2', 0);
-    KeyUp2 := ReadInt('Player2', 'KeyUp2', 0);
-    KeyDown2 := ReadInt('Player2', 'KeyDown2', 0);
-    KeyFire2 := ReadInt('Player2', 'KeyFire2', 0);
-    KeyJump2 := ReadInt('Player2', 'KeyJump2', 0);
-    KeyNextWeapon2 := ReadInt('Player2', 'KeyNextWeapon2', 0);
-    KeyPrevWeapon2 := ReadInt('Player2', 'KeyPrevWeapon2', 0);
-    KeyOpen2 := ReadInt('Player2', 'KeyOpen2', 0);
-    KeyStrafe2 := ReadInt('Player2', 'KeyStrafe2', 0);
+    for i := 0 to High(KeyWeapon) do
+    begin
+      ReadInteger(KeyWeapon[i], 'KeyWeapon' + IntToStr(i))
+    end;
+
+    ReadInteger(KeyRight2, 'KeyRight2');
+    ReadInteger(KeyLeft2, 'KeyLeft2');
+    ReadInteger(KeyUp2, 'KeyUp2');
+    ReadInteger(KeyDown2, 'KeyDown2');
+    ReadInteger(KeyFire2, 'KeyFire2');
+    ReadInteger(KeyJump2, 'KeyJump2');
+    ReadInteger(KeyNextWeapon2, 'KeyNextWeapon2');
+    ReadInteger(KeyPrevWeapon2, 'KeyPrevWeapon2');
+    ReadInteger(KeyOpen2, 'KeyOpen2');
+    ReadInteger(KeyStrafe2, 'KeyStrafe2');
+
     for i := 0 to High(KeyWeapon2) do
-      KeyWeapon2[i] := ReadInt('Player2', 'KeyWeapon2' + IntToStr(i), 0);
+    begin
+      ReadInteger(KeyWeapon2[i], 'KeyWeapon2' + IntToStr(i))
+    end;
   end;
 
-  with gPlayer2Settings, config do
+  section := 'Player2';
+  with gPlayer2Settings do
   begin
-    Name := ReadStr('Player2', 'name', 'Player2');
-    Model := ReadStr('Player2', 'model', STD_PLAYER_MODEL);
-    Color.R := Min(Abs(ReadInt('Player2', 'red', PLAYER2_DEF_COLOR.R)), 255);
-    Color.G := Min(Abs(ReadInt('Player2', 'green', PLAYER2_DEF_COLOR.G)), 255);
-    Color.B := Min(Abs(ReadInt('Player2', 'blue', PLAYER2_DEF_COLOR.B)), 255);
-    Team := ReadInt('Player2', 'team', TEAM_BLUE);
+    ReadString(Name, 'name');
+    ReadString(Model, 'model');
+    ReadInteger(Color.R, 'red', 0, 255);
+    ReadInteger(Color.G, 'green', 0, 255);
+    ReadInteger(Color.B, 'blue', 0, 255);
+    ReadInteger(Team, 'team');
     if (Team < TEAM_RED) or (Team > TEAM_BLUE) then
       Team := TEAM_RED;
   end;
 
-  for i := 0 to e_MaxJoys-1 do
-    e_JoystickDeadzones[i] := config.ReadInt('Joysticks', 'Deadzone' + IntToStr(i), 8192);
+  section := 'Joysticks';
+  for i := 0 to e_MaxJoys - 1 do
+  begin
+    ReadInteger(e_JoystickDeadzones[i], 'Deadzone' + IntToStr(i))
+  end;
 
-  g_touch_size := Max(config.ReadInt('Touch', 'Size', 10) / 10, 0.1);
-  g_touch_fire := config.ReadBool('Touch', 'Fire', True);
-  g_touch_offset := Max(Min(config.ReadInt('Touch', 'Offset', 50), 100), 0);
-  g_touch_alt := config.ReadBool('Touch', 'Alt', False);
+  section := 'Touch';
+  ReadInteger(g_touch_size, 'Size', 0); g_touch_size := g_touch_size / 10;
+  ReadBoolean(g_touch_fire, 'Fire');
+  ReadInteger(g_touch_offset, 'Offset', 0, 100);
+  ReadBoolean(g_touch_alt, 'Alt');
 
-  g_GFX_SetMax(Min(config.ReadInt('Game', 'MaxParticles', 1000), 50000));
-  g_Shells_SetMax(Min(config.ReadInt('Game', 'MaxShells', 300), 600));
-  g_Gibs_SetMax(Min(config.ReadInt('Game', 'MaxGibs', 150), 500));
-  g_Corpses_SetMax(Min(config.ReadInt('Game', 'MaxCorpses', 20), 100));
-
-  case config.ReadInt('Game', 'GibsCount', 3) of
+  section := 'Game';
+  ReadInteger(i, 'MaxParticles', 1000, 50000); g_GFX_SetMax(i);
+  ReadInteger(i, 'MaxShells', 300, 600); g_Shells_SetMax(i);
+  ReadInteger(i, 'MaxGibs', 150, 500); g_Gibs_SetMax(i);
+  ReadInteger(i, 'MaxCorpses', 20, 100); g_Corpses_SetMax(i);
+  ReadInteger(i, 'GibsCount');
+  case i of
     0: gGibsCount := 0;
     1: gGibsCount := 8;
     2: gGibsCount := 16;
     3: gGibsCount := 32;
     else gGibsCount := 48;
   end;
+  ReadInteger(ITEM_RESPAWNTIME, 'ItemRespawnTime', 0); ITEM_RESPAWNTIME := ITEM_RESPAWNTIME * 36;
+  ReadInteger(gBloodCount, 'BloodCount', 0, 4);
+  ReadBoolean(gAdvBlood, 'AdvancesBlood');
+  ReadBoolean(gAdvCorpses, 'AdvancesCorpses');
+  ReadBoolean(gAdvGibs, 'AdvancesGibs');
+  ReadInteger(gFlash, 'Flash', 0, 2);
+  ReadBoolean(gDrawBackGround, 'BackGround');
+  ReadBoolean(gShowMessages, 'Messages');
+  ReadBoolean(gRevertPlayers, 'RevertPlayers');
+  ReadInteger(gChatBubble, 'ChatBubble', 0, 4);
+  ReadBoolean(gSFSDebug, 'SFSDebug'); wadoptDebug := gSFSDebug;
+  ReadBoolean(gSFSFastMode, 'SFSFastMode'); wadoptFast := gSFSFastMode;
+  ReadBoolean(e_FastScreenshots, 'FastScreenshots');
+  ReadString(gDefaultMegawadStart, 'DefaultMegawadStart');
+  ReadBoolean(gBerserkAutoswitch, 'BerserkAutoswitching');
+  ReadInteger(g_dbg_scale, 'Scale', 1); g_dbg_scale := g_dbg_scale / 100;
+  ReadString(gLanguage, 'Language');
+  if (gLanguage = LANGUAGE_RUSSIAN) or (gLanguage = LANGUAGE_ENGLISH) then
+    gAskLanguage := False
+  else
+    gLanguage := LANGUAGE_ENGLISH;
 
-  ITEM_RESPAWNTIME := 36*Max(config.ReadInt('Game', 'ItemRespawnTime', 60), 0);
-  gBloodCount := Min(config.ReadInt('Game', 'BloodCount', 4), 4);
-  gAdvBlood := config.ReadBool('Game', 'AdvancesBlood', True);
-  gAdvCorpses := config.ReadBool('Game', 'AdvancesCorpses', True);
-  gAdvGibs := config.ReadBool('Game', 'AdvancesGibs', True);
-  gFlash := Min(Max(config.ReadInt('Game', 'Flash', 1), 0), 2);
-  gDrawBackGround := config.ReadBool('Game', 'BackGround', True);
-  gShowMessages := config.ReadBool('Game', 'Messages', True);
-  gRevertPlayers := config.ReadBool('Game', 'RevertPlayers', False);
-  gChatBubble := Min(Max(config.ReadInt('Game', 'ChatBubble', 4), 0), 4);
-  gSFSDebug := config.ReadBool('Game', 'SFSDebug', False);
-  wadoptDebug := gSFSDebug;
-  gSFSFastMode := config.ReadBool('Game', 'SFSFastMode', False);
-  wadoptFast := gSFSFastMode;
-  e_FastScreenshots := config.ReadBool('Game', 'FastScreenshots', True);
-  gDefaultMegawadStart := config.ReadStr('Game', 'DefaultMegawadStart', DF_Default_Megawad_Start);
-  gBerserkAutoswitch := config.ReadBool('Game', 'BerserkAutoswitching', True);
-  g_dbg_scale := Max(config.ReadInt('Game', 'Scale', 100) / 100, 1.0);
-
-// Геймплей в своей игре
-  gcMap := config.ReadStr('GameplayCustom', 'Map', '');
-  gcGameMode := config.ReadStr('GameplayCustom', 'GameMode', _lc[I_MENU_GAME_TYPE_DM]);
-  gcTimeLimit := Min(Max(config.ReadInt('GameplayCustom', 'TimeLimit', 0), 0), 65535);
-  gcGoalLimit := Min(Max(config.ReadInt('GameplayCustom', 'GoalLimit', 0), 0), 65535);
-  gcMaxLives := Min(Max(config.ReadInt('GameplayCustom', 'MaxLives', 0), 0), 255);
-  gcPlayers := Min(Max(config.ReadInt('GameplayCustom', 'Players', 1), 0), 2);
-  gcTeamDamage := config.ReadBool('GameplayCustom', 'TeamDamage', False);
-  gcAllowExit := config.ReadBool('GameplayCustom', 'AllowExit', True);
-  gcWeaponStay := config.ReadBool('GameplayCustom', 'WeaponStay', False);
-  gcMonsters := config.ReadBool('GameplayCustom', 'Monsters', False);
-  gcBotsVS := config.ReadStr('GameplayCustom', 'BotsVS', 'Everybody');
+  section := 'GameplayCustom';
+  ReadString(gcMap, 'Map');
+  ReadString(gcGameMode, 'GameMode');
+  ReadInteger(gcTimeLimit, 'TimeLimit', 0, 65535);
+  ReadInteger(gcGoalLimit, 'GoalLimit', 0, 65535);
+  ReadInteger(gcMaxLives, 'MaxLives', 0, 255);
+  ReadInteger(gcPlayers, 'Players', 0, 2);
+  ReadBoolean(gcTeamDamage, 'TeamDamage');
+  ReadBoolean(gcAllowExit, 'AllowExit');
+  ReadBoolean(gcWeaponStay, 'WeaponStay');
+  ReadBoolean(gcMonsters, 'Monsters');
+  ReadString(gcBotsVS, 'BotsVS');
 
   with gGameSettings do
   begin
@@ -502,53 +665,43 @@ begin
       Options := Options or GAME_OPTION_BOTVSMONSTER;
   end;
 
-// Геймплей в сетевой игре
-  gnMap := config.ReadStr('GameplayNetwork', 'Map', '');
-  gnGameMode := config.ReadStr('GameplayNetwork', 'GameMode', _lc[I_MENU_GAME_TYPE_DM]);
-  gnTimeLimit := Min(Max(config.ReadInt('GameplayNetwork', 'TimeLimit', 0), 0), 65535);
-  gnGoalLimit := Min(Max(config.ReadInt('GameplayNetwork', 'GoalLimit', 0), 0), 65535);
-  gnMaxLives := Min(Max(config.ReadInt('GameplayNetwork', 'MaxLives', 0), 0), 255);
-  gnPlayers := Min(Max(config.ReadInt('GameplayNetwork', 'Players', 1), 0), 2);
-  gnTeamDamage := config.ReadBool('GameplayNetwork', 'TeamDamage', False);
-  gnAllowExit := config.ReadBool('GameplayNetwork', 'AllowExit', True);
-  gnWeaponStay := config.ReadBool('GameplayNetwork', 'WeaponStay', False);
-  gnMonsters := config.ReadBool('GameplayNetwork', 'Monsters', False);
-  gnBotsVS := config.ReadStr('GameplayNetwork', 'BotsVS', 'Everybody');
+  section := 'GameplayNetwork';
+  ReadString(gnMap, 'Map');
+  ReadString(gnGameMode, 'GameMode');
+  ReadInteger(gnTimeLimit, 'TimeLimit', 0, 65535);
+  ReadInteger(gnGoalLimit, 'GoalLimit', 0, 65535);
+  ReadInteger(gnMaxLives, 'MaxLives', 0, 255);
+  ReadInteger(gnPlayers, 'Players', 0, 2);
+  ReadBoolean(gnTeamDamage, 'TeamDamage');
+  ReadBoolean(gnAllowExit, 'AllowExit');
+  ReadBoolean(gnWeaponStay, 'WeaponStay');
+  ReadBoolean(gnMonsters, 'Monsters');
+  ReadString(gnBotsVS, 'BotsVS');
 
-// Общие сетевые
-  NetSlistIP := config.ReadStr('MasterServer', 'IP', 'mpms.doom2d.org');
-  NetSlistPort := config.ReadInt('MasterServer', 'Port', 25665);
+  section := 'MasterServer';
+  ReadString(NetSlistIP, 'IP');
+  ReadInteger(NetSlistPort, 'Port', 0, 65535);
+  g_Net_Slist_Set(NetSlistIP, NetSlistPort);
 
-// Сервер
-  NetServerName := config.ReadStr('Server', 'Name', 'Unnamed Server');
-  NetPassword :=  config.ReadStr('Server', 'Password', '');
-  NetPort := Min(Max(0, config.ReadInt('Server', 'Port', 25666)), 65535);
-  NetMaxClients := Min(Max(0, config.ReadInt('Server', 'MaxClients', 16)), NET_MAXCLIENTS);
-  NetAllowRCON := config.ReadBool('Server', 'RCON', False);
-  NetRCONPassword := config.ReadStr('Server', 'RCONPassword', 'default');
-  NetUseMaster := config.ReadBool('Server', 'SyncWithMaster', True);
-  NetUpdateRate := Max(0, config.ReadInt('Server', 'UpdateInterval', 0));
-  NetRelupdRate := Max(0, config.ReadInt('Server', 'ReliableUpdateInterval', 18));
-  NetMasterRate := Max(1, config.ReadInt('Server', 'MasterSyncInterval', 60000));
-  NetForwardPorts := config.ReadBool('Server', 'ForwardPorts', False);
+  section := 'Server';
+  ReadString(NetServerName, 'Name');
+  ReadString(NetPassword, 'Password');
+  ReadInteger(NetPort, 'Port', 0, 65535);
+  ReadInteger(NetMaxClients, 'MaxClients', 0, NET_MAXCLIENTS);
+  ReadBoolean(NetAllowRCON, 'RCON');
+  ReadString(NetRCONPassword, 'RCONPassword');
+  ReadBoolean(NetUseMaster, 'SyncWithMaster');
+  ReadInteger(NetUpdateRate, 'UpdateInterval', 0);
+  ReadInteger(NetRelupdRate, 'ReliableUpdateInterval', 0);
+  ReadInteger(NetMasterRate, 'MasterSyncInterval', 1);
+  ReadBoolean(NetForwardPorts, 'ForwardPorts');
 
-// Клиент
-  NetInterpLevel := Max(0, config.ReadInt('Client', 'InterpolationSteps', 2));
-  NetForcePlayerUpdate := config.ReadBool('Client', 'ForcePlayerUpdate', False);
-  NetPredictSelf := config.ReadBool('Client', 'PredictSelf', True);
-  NetClientIP := config.ReadStr('Client', 'LastIP', '127.0.0.1');
-  NetClientPort := Max(0, config.ReadInt('Client', 'LastPort', 25666));
-
-// Язык:
-  str := config.ReadStr('Game', 'Language', '');
-  if (str = LANGUAGE_RUSSIAN) or
-     (str = LANGUAGE_ENGLISH) then
-  begin
-    gLanguage := str;
-    gAskLanguage := False;
-  end
-  else
-    gLanguage := LANGUAGE_ENGLISH;
+  section := 'Client';
+  ReadInteger(NetInterpLevel, 'InterpolationSteps', 0);
+  ReadBoolean(NetForcePlayerUpdate, 'ForcePlayerUpdate');
+  ReadBoolean(NetPredictSelf, 'PredictSelf');
+  ReadString(NetClientIP, 'LastIP');
+  ReadInteger(NetClientPort, 'LastPort', 0, 65535);
 
   config.Free();
 
