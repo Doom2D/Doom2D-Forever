@@ -368,7 +368,7 @@ begin
   // if control is only one in a group, mark is as "not grouped"
   for gidx := 0 to 1 do
   begin
-    if (gidx = 0) then gflg := not LongWord(FlagInGroupH) else gflg := not LongWord(FlagInGroupV);
+    if (gidx = 0) then gflg := LongWord(not FlagInGroupH) else gflg := LongWord(not FlagInGroupV);
     f := 0;
     while (f < Length(groups[gidx])) do
     begin
