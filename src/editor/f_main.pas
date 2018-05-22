@@ -1482,7 +1482,7 @@ begin
                   3: str := _lc[I_PROP_TR_SHOT_AIM_3];
                   else str := _lc[I_PROP_TR_SHOT_AIM_0];
                 end;
-                with ItemProps[InsertRow(_lc[I_PROP_TR_SHOT_AIM], str, True)-1] do
+                with ItemProps[InsertRow(_lc[I_PROP_TR_SHOT_AIM], str, True)] do
                 begin
                   EditStyle := esPickList;
                   ReadOnly := True;
