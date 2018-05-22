@@ -1776,6 +1776,7 @@ begin
   RemoveSelectFromObjects();
 
   MainForm.miUndo.Enabled := UndoBuffer <> nil;
+  MainForm.RecountSelectedObjects();
 end;
 
 procedure Undo_Add(ObjectType: Byte; ID: DWORD; Group: Boolean = False);
