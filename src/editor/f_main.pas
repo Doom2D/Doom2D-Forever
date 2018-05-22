@@ -3611,12 +3611,24 @@ procedure TMainForm.RenderPanelMouseUp(Sender: TObject;
 var
   panel: TPanel;
   trigger: TTrigger;
-  i: Integer;
-  IDArray: DWArray;
   rRect: TRectWH;
   rSelectRect: Boolean;
   wWidth, wHeight: Word;
   TextureID: DWORD;
+
+  procedure SelectObjects(ObjectType: Byte);
+  var
+    i: Integer;
+    IDArray: DWArray;
+  begin
+    IDArray := ObjectInRect(rRect.X, rRect.Y,
+                 rRect.Width, rRect.Height,
+                 ObjectType, rSelectRect);
+
+    if IDArray <> nil then
+      for i := 0 to High(IDArray) do
+        SelectObject(ObjectType, IDArray[i], (ssCtrl in Shift) or rSelectRect);
+  end;
 begin
   if Button = mbLeft then
     MouseLDown := False;
@@ -3982,14 +3994,16 @@ begin
         RemoveSelectFromObjects();
 
     // Выделяем всё в выбранном прямоугольнике:
-      IDArray := ObjectInRect(rRect.X, rRect.Y,
-                   rRect.Width, rRect.Height,
-                   pcObjects.ActivePageIndex+1, rSelectRect);
-
-      if IDArray <> nil then
-        for i := 0 to High(IDArray) do
-          SelectObject(pcObjects.ActivePageIndex+1, IDArray[i],
-            (ssCtrl in Shift) or rSelectRect);
+      if (ssCtrl in Shift) and (ssAlt in Shift) then
+        begin
+          SelectObjects(OBJECT_PANEL);
+          SelectObjects(OBJECT_ITEM);
+          SelectObjects(OBJECT_MONSTER);
+          SelectObjects(OBJECT_AREA);
+          SelectObjects(OBJECT_TRIGGER);
+        end
+      else
+        SelectObjects(pcObjects.ActivePageIndex+1);
 
       FillProperty();
     end;
