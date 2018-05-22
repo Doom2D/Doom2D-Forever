@@ -267,6 +267,7 @@ type
     procedure RefreshRecentMenu();
     procedure OpenMapFile(FileName: String);
     function RenderMousePos(): TPoint;
+    procedure RecountSelectedObjects();
   end;
 
 const
@@ -739,6 +740,7 @@ var
   str: String;
 begin
   MainForm.vleObjectProperty.Strings.Clear();
+  MainForm.RecountSelectedObjects();
 
 // Отображаем свойства если выделен только один объект:
   if SelectedObjectCount() <> 1 then
@@ -4019,6 +4021,14 @@ begin
   Result := RenderPanel.ScreenToClient(Mouse.CursorPos);
 end;
 
+procedure TMainForm.RecountSelectedObjects();
+begin
+  if SelectedObjectCount() = 0 then
+    StatusBar.Panels[0].Text := ''
+  else
+    StatusBar.Panels[0].Text := Format(_lc[I_CAP_STAT_SELECTED], [SelectedObjectCount()]);
+end;
+
 procedure TMainForm.RenderPanelMouseMove(Sender: TObject;
   Shift: TShiftState; X, Y: Integer);
 var
@@ -6416,6 +6426,8 @@ begin
           if gTriggers[a].TriggerType <> TRIGGER_NONE then
             SelectObject(OBJECT_TRIGGER, a, True);
   end;
+
+  RecountSelectedObjects();
 end;
 
 procedure TMainForm.tbGridOnClick(Sender: TObject);
@@ -6737,6 +6749,8 @@ begin
     for a := 0 to High(gTriggers) do
       if gTriggers[a].TriggerType <> TRIGGER_NONE then
         SelectObject(OBJECT_TRIGGER, a, True);
+
+  RecountSelectedObjects();
 end;
 
 procedure TMainForm.Splitter1CanResize(Sender: TObject;

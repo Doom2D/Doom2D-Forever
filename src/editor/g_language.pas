@@ -418,6 +418,7 @@ Type
     I_CAP_REMOVE,
     I_CAP_TEXTURE,
     I_CAP_ANIMATION,
+    I_CAP_STAT_SELECTED,
 
     I_CTRL_PROP_KEY,
     I_CTRL_PROP_VALUE,
@@ -1443,6 +1444,8 @@ Const
                                        'Текстура: %dx%d'),
     ('CAP ANIMATION',                  'Animation: %dx%d, %d frames',
                                        'Анимация: %dx%d, %d кадров'),
+    ('CAP STAT SELECTED',              'Selected objects: %d',
+                                       'Выделено объектов: %d'),
 
     ('CTRL PROP KEY',                  'Property',
                                        'Свойство'),
