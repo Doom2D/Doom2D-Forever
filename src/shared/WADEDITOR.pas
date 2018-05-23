@@ -585,19 +585,19 @@ begin
   Exit;
  end;
 
- Section := UpperCase(Section);
- Resource := UpperCase(Resource);
+ Section := toLowerCase1251(Section);
+ Resource := toLowerCase1251(Resource);
 
  i := -1;
  for a := 0 to High(FResTable) do
  begin
   if FResTable[a].Length = 0 then
   begin
-   CurrentSection := FResTable[a].ResourceName;
+   CurrentSection := toLowerCase1251(FResTable[a].ResourceName);
    Continue;
   end;
 
-  if (FResTable[a].ResourceName = Resource) and
+  if (toLowerCase1251(FResTable[a].ResourceName) = Resource) and
      (CurrentSection = Section) then
   begin
    i := a;

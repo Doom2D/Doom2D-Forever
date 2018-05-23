@@ -64,8 +64,10 @@ function addWadExtension (fn: AnsiString): AnsiString;
 // convert number to strig with nice commas
 function Int64ToStrComma (i: Int64): AnsiString;
 
-function UpCase1251 (ch: Char): Char;
-function LoCase1251 (ch: Char): Char;
+function UpCase1251 (ch: AnsiChar): AnsiChar; inline;
+function LoCase1251 (ch: AnsiChar): AnsiChar; inline;
+
+function toLowerCase1251 (const s: AnsiString): AnsiString;
 
 // `true` if strings are equal; ignoring case for cp1251
 function StrEquCI1251 (const s0, s1: AnsiString): Boolean;
@@ -451,7 +453,7 @@ begin
 end;
 
 
-function UpCase1251 (ch: Char): Char;
+function UpCase1251 (ch: AnsiChar): AnsiChar; inline;
 begin
   if ch < #128 then
   begin
@@ -475,7 +477,7 @@ begin
 end;
 
 
-function LoCase1251 (ch: Char): Char;
+function LoCase1251 (ch: AnsiChar): AnsiChar; inline;
 begin
   if ch < #128 then
   begin
@@ -507,6 +509,26 @@ begin
   if length(s0) <> length(s1) then exit;
   for i := 1 to length(s0) do if UpCase1251(s0[i]) <> UpCase1251(s1[i]) then exit;
   result := true;
+end;
+
+
+function toLowerCase1251 (const s: AnsiString): AnsiString;
+var
+  f: Integer;
+  ch: AnsiChar;
+begin
+  for ch in s do
+  begin
+    if (ch <> LoCase1251(ch)) then
+    begin
+      result := '';
+      SetLength(result, Length(s));
+      for f := 1 to Length(s) do result[f] := LoCase1251(s[f]);
+      exit;
+    end;
+  end;
+  // nothing to do
+  result := s;
 end;
 
 
