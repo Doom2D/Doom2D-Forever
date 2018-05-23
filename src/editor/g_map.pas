@@ -2793,6 +2793,7 @@ begin
  g_CreateTextureWADSize('ITEM_INVUL', EditorDir+'data/Game.wad:TEXTURES\INVUL', 0, 0, 32, 32);
  g_CreateTextureWADSize('ITEM_BOTTLE', EditorDir+'data/Game.wad:TEXTURES\BOTTLE', 0, 0, 16, 32);
  g_CreateTextureWADSize('ITEM_HELMET', EditorDir+'data/Game.wad:TEXTURES\HELMET', 0, 0, 16, 16);
+ g_CreateTextureWADSize('ITEM_JETPACK', EditorDir+'data/Game.wad:TEXTURES\JETPACK', 0, 0, 32, 32);
  g_CreateTextureWADSize('ITEM_INVIS', EditorDir+'data/Game.wad:TEXTURES\INVIS', 0, 0, 32, 32);
  g_CreateTextureWADSize('ITEM_WEAPON_FLAMETHROWER', EditorDir+'data/Game.wad:TEXTURES\FLAMETHROWER', 0, 0, 64, 32);
  g_CreateTextureWADSize('ITEM_AMMO_FUELCAN', EditorDir+'data/Game.wad:TEXTURES\FUELCAN', 0, 0, 16, 32);
@@ -2824,7 +2825,6 @@ begin
  g_CreateTextureWAD('ITEM_OXYGEN', EditorDir+'data/Game.wad:TEXTURES\OXYGEN');
  g_CreateTextureWAD('ITEM_SUIT', EditorDir+'data/Game.wad:TEXTURES\SUIT');
  g_CreateTextureWAD('ITEM_MEDKIT_BLACK', EditorDir+'data/Game.wad:TEXTURES\BMED');
- g_CreateTextureWAD('ITEM_JETPACK', EditorDir+'data/Game.wad:TEXTURES\JETPACK');
 
  g_CreateTextureWAD('AREA_PLAYERPOINT1', EditorDir+'data/Editor.wad:TEXTURES\P1POINT');
  g_CreateTextureWAD('AREA_PLAYERPOINT2', EditorDir+'data/Editor.wad:TEXTURES\P2POINT');
