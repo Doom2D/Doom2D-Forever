@@ -199,7 +199,7 @@ begin
   with gGameControls.GameControls do
   begin
     TakeScreenshot := SDL_SCANCODE_F12;
-    Stat := SDL_SCANCODE_L;
+    Stat := SDL_SCANCODE_TAB;
     Chat := SDL_SCANCODE_T;
     TeamChat := SDL_SCANCODE_Y;
   end;
@@ -213,8 +213,8 @@ begin
     KeyDown := SDL_SCANCODE_KP_5;
     KeyFire := SDL_SCANCODE_SLASH;
     KeyJump := SDL_SCANCODE_RCTRL;
-    KeyNextWeapon := SDL_SCANCODE_KP_7;
-    KeyPrevWeapon := SDL_SCANCODE_KP_9;
+    KeyNextWeapon := SDL_SCANCODE_KP_9;
+    KeyPrevWeapon := SDL_SCANCODE_KP_7;
     KeyOpen := SDL_SCANCODE_RSHIFT;
     KeyStrafe := SDL_SCANCODE_PERIOD;
 
@@ -401,11 +401,6 @@ var
     v := Max(Min(config.ReadInt(section, param, v), maxv), minv)
   end;
 
-  procedure ReadInteger (VAR v: Single; param: String; minv: Integer = Low(Integer); maxv: Integer = High(Integer)); overload;
-  begin
-    v := Max(Min(config.ReadInt(section, param, Integer(v)), maxv), minv)
-  end;
-
   procedure ReadInteger (VAR v: LongWord; param: String; minv: LongWord = Low(LongWord); maxv: LongWord = High(LongWord)); overload;
   begin
     v := Max(Min(config.ReadInt(section, param, v), maxv), minv)
@@ -584,9 +579,9 @@ begin
   end;
 
   section := 'Touch';
-  ReadInteger(g_touch_size, 'Size', 0); g_touch_size := g_touch_size / 10;
+  i := Trunc(g_touch_size * 10); ReadInteger(i, 'Size', 0); g_touch_size := i / 10;
   ReadBoolean(g_touch_fire, 'Fire');
-  ReadInteger(g_touch_offset, 'Offset', 0, 100);
+  i := Round(g_touch_offset); ReadInteger(i, 'Offset', 0, 100); g_touch_offset := i;
   ReadBoolean(g_touch_alt, 'Alt');
 
   section := 'Game';
@@ -602,7 +597,7 @@ begin
     3: gGibsCount := 32;
     else gGibsCount := 48;
   end;
-  ReadInteger(ITEM_RESPAWNTIME, 'ItemRespawnTime', 0); ITEM_RESPAWNTIME := ITEM_RESPAWNTIME * 36;
+  i := ITEM_RESPAWNTIME div 36; ReadInteger(i, 'ItemRespawnTime', 0); ITEM_RESPAWNTIME := i * 36;
   ReadInteger(gBloodCount, 'BloodCount', 0, 4);
   ReadBoolean(gAdvBlood, 'AdvancesBlood');
   ReadBoolean(gAdvCorpses, 'AdvancesCorpses');
@@ -617,7 +612,7 @@ begin
   ReadBoolean(e_FastScreenshots, 'FastScreenshots');
   ReadString(gDefaultMegawadStart, 'DefaultMegawadStart');
   ReadBoolean(gBerserkAutoswitch, 'BerserkAutoswitching');
-  ReadInteger(g_dbg_scale, 'Scale', 1); g_dbg_scale := g_dbg_scale / 100;
+  i := Trunc(g_dbg_scale * 100); ReadInteger(i, 'Scale', 100); g_dbg_scale := i / 100;
   ReadString(gLanguage, 'Language');
   if (gLanguage = LANGUAGE_RUSSIAN) or (gLanguage = LANGUAGE_ENGLISH) then
     gAskLanguage := False
