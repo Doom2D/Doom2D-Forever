@@ -949,7 +949,7 @@ begin
       lastfree := e;
     end;
   end;
-  if (lastfree <> nil) then e.nextFree := nil;
+  if (lastfree <> nil) then lastfree.nextFree := nil;
   {$IFDEF RBHASH_SANITY_CHECKS}
   if (cnt <> mBucketsUsed) then raise Exception.Create('internal error in hash table resize (invalid first/last range; 0)');
   if (cnt <> mEntriesUsed) then raise Exception.Create('internal error in hash table resize (invalid first/last range; 1)');
