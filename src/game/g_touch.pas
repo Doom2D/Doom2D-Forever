@@ -39,11 +39,14 @@ implementation
     SysUtils,
     e_log, e_graphics, e_input, g_options, g_game, g_main, g_weapons, g_console;
 
+  const
+    VS_KEYBOARD = 60000;
+
   var
     angleFire: Boolean;
     keyFinger: array [VK_FIRSTKEY..VK_LASTKEY] of Integer;
 
-  procedure GetKeyRect(key: Word; out x, y, w, h: Integer; out founded: Boolean);
+  procedure GetKeyRect(key: Integer; out x, y, w, h: Integer; out founded: Boolean);
     var
       sw, sh, sz: Integer;
       dpi: Single;
@@ -59,7 +62,8 @@ implementation
       w := sz div 2; h := sz div 2;
       case key of
         VK_CONSOLE: begin x := 0; y := 0 end;
-        VK_ESCAPE:  begin x := sw - w - 1; y := 0 end;
+        VK_ESCAPE:  begin x := sw - 1*w - 1; y := 0 end;
+        VS_KEYBOARD:begin x := sw - 2*w - 1; y := 0 end;
         VK_CHAT:    begin x := sw div 2 - w div 2 - w; y := 0 end;
         VK_STATUS:  begin x := sw div 2 - w div 2 + 0; y := 0 end;
         VK_TEAM:    begin x := sw div 2 - w div 2 + w; y := 0 end;
@@ -88,6 +92,7 @@ implementation
     begin
       x := 0; y := Round(sh * g_touch_offset / 100); w := sz; h := sz;
       case key of
+        VK_ESCAPE:  begin x := 0;             y := y - 3*h div 2; w := w; h := h div 2 end;
         VK_LSTRAFE: begin x := 0;             y := y - h div 2; w := w div 2 end;
         VK_LEFT:    begin x := w div 2;       y := y - h div 2 end;
         VK_RIGHT:   begin x := w div 2 + 1*w; y := y - h div 2 end;
@@ -114,10 +119,10 @@ implementation
           VK_9:       begin x := sw div 2 - w div 2 + 4*w - 1; y := sh - 1*h - 1 end;
           VK_A:       begin x := sw div 2 - w div 2 + 5*w - 1; y := sh - 1*h - 1 end;
           VK_CHAT:    begin x := sw div 2 - w div 2 - 2*w - 1; y := sh - 2*h - 1 end;
-          VK_ESCAPE:  begin x := sw div 2 - w div 2 - 1*w - 1; y := sh - 2*h - 1 end;
-          VK_CONSOLE: begin x := sw div 2 - w div 2 + 0*w - 1; y := sh - 2*h - 1 end;
-          VK_STATUS:  begin x := sw div 2 - w div 2 + 1*w - 1; y := sh - 2*h - 1 end;
-          VK_TEAM:    begin x := sw div 2 - w div 2 + 2*w - 1; y := sh - 2*h - 1 end;
+          VK_CONSOLE: begin x := sw div 2 - w div 2 - 1*w - 1; y := sh - 2*h - 1 end;
+          VK_STATUS:  begin x := sw div 2 - w div 2 + 0*w - 1; y := sh - 2*h - 1 end;
+          VK_TEAM:    begin x := sw div 2 - w div 2 + 1*w - 1; y := sh - 2*h - 1 end;
+          VS_KEYBOARD:begin x := sw div 2 - w div 2 + 2*w - 1; y := sh - 2*h - 1 end;
         else
           founded := false
         end
@@ -125,9 +130,10 @@ implementation
     end
   end;
 
-  function GetKeyName(key: Word): String;
+  function GetKeyName(key: Integer): String;
   begin
     case key of
+      VS_KEYBOARD: result := 'KBD';
       VK_LEFT:    result := 'LEFT';
       VK_RIGHT:   result := 'RIGHT';
       VK_UP:      result := 'UP';
@@ -235,6 +241,9 @@ implementation
       e_KeyUpDown(i, keyFinger[i] <> 0);
     end;
 
+    if IntersectControl(VS_KEYBOARD, x, y) then
+      g_Touch_ShowKeyboard(true);
+	
     (* emulate up+fire / donw+fire *)
     if g_touch_fire and (gGameSettings.GameType <> GT_NONE) then
     begin
@@ -288,17 +297,10 @@ implementation
   end;
 
   procedure g_Touch_Draw;
-    var
-      i, x, y, w, h: Integer;
-      founded: Boolean;
-  begin
-{$IFNDEF HEADLESS}
-    if not g_touch_enabled then
-      Exit;
-    if SDL_IsTextInputActive() = SDL_True then
-      Exit;
+    var i: Integer;
 
-    for i := VK_FIRSTKEY to VK_LASTKEY do
+    procedure Draw (i: Integer);
+      var x, y, w, h: Integer; founded: Boolean;
     begin
       GetKeyRect(i, x, y, w, h, founded);
       if founded then
@@ -307,6 +309,18 @@ implementation
         e_TextureFontPrintEx(x, y, GetKeyName(i), gStdFont, 255, 255, 255, 1, True)
       end;
     end;
+
+  begin
+{$IFNDEF HEADLESS}
+    if not g_touch_enabled then
+      Exit;
+    if SDL_IsTextInputActive() = SDL_True then
+      Exit;
+
+    for i := VK_FIRSTKEY to VK_LASTKEY do
+      Draw(i);
+
+    Draw(VS_KEYBOARD);
 {$ENDIF}
   end;
 
