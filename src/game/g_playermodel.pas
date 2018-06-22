@@ -21,7 +21,8 @@ interface
 
 uses
   {$IFDEF USE_MEMPOOL}mempool,{$ENDIF}
-  MAPDEF, g_textures, g_basic, g_weapons, e_graphics, utils;
+  MAPDEF, g_textures, g_basic, g_weapons, e_graphics, utils,
+  ImagingTypes, Imaging, ImagingUtility;
 
 const
   A_STAND      = 0;
@@ -322,6 +323,65 @@ begin
   end;
 end;
 
+function g_PlayerModel_CalcGibSize (pData: Pointer; dataSize, x, y, w, h: Integer): TRectWH;
+  var i, j: Integer; done: Boolean; img: TImageData;
+
+  function IsVoid (i, j: Integer): Boolean;
+  begin
+    result := Byte((PByte(img.bits) + (y+j)*img.width*4 + (x+i)*4 + 3)^) = 0
+  end;
+
+begin
+  InitImage(img);
+  assert(LoadImageFromMemory(pData, dataSize, img));
+
+  (* trace x from right to left *)
+  done := false; i := 0;
+  while not done and (i < w) do
+  begin
+    j := 0;
+    while (j < h) and IsVoid(i, j) do inc(j);
+    done := (j < h) and (IsVoid(i, j) = false);
+    result.x := i;
+    inc(i);
+  end;
+
+  (* trace y from up to down *)
+  done := false; j := 0;
+  while not done and (j < h) do
+  begin
+    i := 0;
+    while (i < w) and IsVoid(i, j) do inc(i);
+    done := (i < w) and (IsVoid(i, j) = false);
+    result.y := j;
+    inc(j);
+  end;
+  
+  (* trace x from right to left *)
+  done := false; i := w - 1;
+  while not done and (i >= 0) do
+  begin
+    j := 0;
+    while (j < h) and IsVoid(i, j) do inc(j);
+    done := (j < h) and (IsVoid(i, j) = false);
+    result.width := i - result.x + 1;
+    dec(i);
+  end;
+
+  (* trace y from down to up *)
+  done := false; j := h - 1;
+  while not done and (j >= 0) do
+  begin
+    i := 0;
+    while (i < w) and IsVoid(i, j) do inc(i);
+    done := (i < w) and (IsVoid(i, j) = false);
+    result.height := j - result.y + 1;
+    dec(j);
+  end;
+
+  FreeImage(img);
+end;
+
 function g_PlayerModel_Load(FileName: string): Boolean;
 var
   ID: DWORD;
@@ -470,7 +530,8 @@ begin
         if e_CreateTextureMemEx(pData, lenpd, Gibs[a].ID, a*32, 0, 32, 32) and
           e_CreateTextureMemEx(pData2, lenpd2, Gibs[a].MaskID, a*32, 0, 32, 32) then
         begin
-          Gibs[a].Rect := e_GetTextureSize2(Gibs[a].ID);
+          //Gibs[a].Rect := e_GetTextureSize2(Gibs[a].ID);
+          Gibs[a].Rect := g_PlayerModel_CalcGibSize(pData, lenpd, a*32, 0, 32, 32);
           with Gibs[a].Rect do
             if Height > 3 then Height := Height-1-Random(2);
           Gibs[a].OnlyOne := config.ReadInt('Gibs', 'once', -1) = a+1;

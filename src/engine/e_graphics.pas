@@ -95,7 +95,6 @@ function e_CreateTextureEx(FileName: string; var ID: DWORD; fX, fY, fWidth, fHei
 function e_CreateTextureMem(pData: Pointer; dataSize: LongInt; var ID: DWORD): Boolean;
 function e_CreateTextureMemEx(pData: Pointer; dataSize: LongInt; var ID: DWORD; fX, fY, fWidth, fHeight: Word): Boolean;
 procedure e_GetTextureSize(ID: DWORD; Width, Height: PWord);
-function e_GetTextureSize2(ID: DWORD): TRectWH;
 procedure e_DeleteTexture(ID: DWORD);
 procedure e_RemoveAllTextures();
 
@@ -368,106 +367,6 @@ procedure e_GetTextureSize(ID: DWORD; Width, Height: PWord);
 begin
  if Width <> nil then Width^ := e_Textures[ID].tx.Width;
  if Height <> nil then Height^ := e_Textures[ID].tx.Height;
-end;
-
-function e_GetTextureSize2(ID: DWORD): TRectWH;
-var
-  data: PChar;
-  x, y: Integer;
-  w, h: Word;
-  a: Boolean;
-  lastline: Integer;
-begin
- w := e_Textures[ID].tx.Width;
- h := e_Textures[ID].tx.Height;
-
- Result.Y := 0;
- Result.X := 0;
- Result.Width := w;
- Result.Height := h;
-
-{$IFNDEF USE_NANOGL} // FIXIT: nanoGL doesn't support glGetTexImage
- if e_NoGraphics then Exit;
-
- data := GetMemory(w*h*4);
- glEnable(GL_TEXTURE_2D);
- glBindTexture(GL_TEXTURE_2D, e_Textures[ID].tx.id);
- glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
-
- for y := h-1 downto 0 do
- begin
-  lastline := y;
-  a := True;
-
-  for x := 1 to w-4 do
-  begin
-   a := Byte((data+y*w*4+x*4+3)^) <> 0;
-   if a then Break;
-  end;
-
-  if a then
-  begin
-   Result.Y := h-lastline;
-   Break;
-  end;
- end;
-
- for y := 0 to h-1 do
- begin
-  lastline := y;
-  a := True;
-
-  for x := 1 to w-4 do
-  begin
-   a := Byte((data+y*w*4+x*4+3)^) <> 0;
-   if a then Break;
-  end;
-
-  if a then
-  begin
-   Result.Height := h-lastline-Result.Y;
-   Break;
-  end;
- end;
-
- for x := 0 to w-1 do
- begin
-  lastline := x;
-  a := True;
-
-  for y := 1 to h-4 do
-  begin
-   a := Byte((data+y*w*4+x*4+3)^) <> 0;
-   if a then Break;
-  end;
-
-  if a then
-  begin
-   Result.X := lastline+1;
-   Break;
-  end;
- end;
-
- for x := w-1 downto 0 do
- begin
-  lastline := x;
-  a := True;
-
-  for y := 1 to h-4 do
-  begin
-   a := Byte((data+y*w*4+x*4+3)^) <> 0;
-   if a then Break;
-  end;
-
-  if a then
-  begin
-   Result.Width := lastline-Result.X+1;
-   Break;
-  end;
- end;
-
- FreeMemory(data);
-{$ENDIF}
 end;
 
 procedure e_ResizeWindow(Width, Height: Integer);
