@@ -19,11 +19,7 @@ unit e_graphics;
 interface
 
 uses
-{$IFDEF USE_NANOGL}
-  nanoGL,
-{$ELSE}
-  GL, GLExt,
-{$ENDIF}
+  {$INCLUDE ../nogl/noGLuses.inc}
   SysUtils, Classes, Math, e_log, e_texture, SDL2, MAPDEF, ImagingTypes, Imaging, ImagingUtility;
 
 type
@@ -1525,7 +1521,7 @@ begin
 
  with e_TextureFonts[id] do
  begin
-{$IF not DEFINED(USE_NANOGL)}
+{$IF not DEFINED(USE_NANOGL) and not DEFINED(USE_NOGL)}
   Base := glGenLists(XCount*YCount);
 {$ENDIF}
   TextureID := e_Textures[Tex].tx.id;
@@ -1537,7 +1533,7 @@ begin
   SPC := Space;
  end;
 
-{$IF not DEFINED(USE_NANOGL)}
+{$IF not DEFINED(USE_NANOGL) and not DEFINED(USE_NOGL)}
  glBindTexture(GL_TEXTURE_2D, e_Textures[Tex].tx.id);
  for loop1 := 0 to XCount*YCount-1 do
  begin
@@ -1569,13 +1565,13 @@ end;
 procedure e_TextureFontKill(FontID: DWORD);
 begin
   if e_NoGraphics then Exit;
-{$IF not DEFINED(USE_NANOGL)}
+{$IF not DEFINED(USE_NANOGL) and not DEFINED(USE_NOGL)}
   glDeleteLists(e_TextureFonts[FontID].Base, 256);
 {$ENDIF}
   e_TextureFonts[FontID].Base := 0;
 end;
 
-{$IFDEF USE_NANOGL}
+{$IF DEFINED(USE_NANOGL) or DEFINED(USE_NOGL)}
 procedure e_TextureFontDrawChar(ch: Char; FontID: DWORD);
   var
     index: Integer;
@@ -1629,7 +1625,7 @@ begin
   glBindTexture(GL_TEXTURE_2D, e_TextureFonts[FontID].TextureID);
   glEnable(GL_TEXTURE_2D);
   glTranslatef(x, y, 0);
-{$IFDEF USE_NANOGL}
+{$IF DEFINED(USE_NANOGL) or DEFINED(USE_NOGL)}
   e_TextureFontDrawString(Text, FontID);
 {$ELSE}
   glListBase(DWORD(Integer(e_TextureFonts[FontID].Base)-32));
@@ -1651,7 +1647,7 @@ begin
   begin
    glColor4ub(0, 0, 0, 128);
    glTranslatef(X+1, Y+1, 0);
-{$IFDEF USE_NANOGL}
+{$IF DEFINED(USE_NANOGL) or DEFINED(USE_NOGL)}
    e_TextureFontDrawChar(Ch, FontID);
 {$ELSE}
    glCallLists(1, GL_UNSIGNED_BYTE, @Ch);
@@ -1662,7 +1658,7 @@ begin
 
   glColor4ub(e_Colors.R, e_Colors.G, e_Colors.B, 255);
   glTranslatef(X, Y, 0);
-{$IFDEF USE_NANOGL}
+{$IF DEFINED(USE_NANOGL) or DEFINED(USE_NOGL)}
   e_TextureFontDrawChar(Ch, FontID);
 {$ELSE}
   glCallLists(1, GL_UNSIGNED_BYTE, @Ch);
@@ -1715,7 +1711,7 @@ begin
     glBindTexture(GL_TEXTURE_2D, e_TextureFonts[FontID].TextureID);
     glEnable(GL_TEXTURE_2D);
 
-{$IF not DEFINED(USE_NANOGL)}
+{$IF not DEFINED(USE_NANOGL) and not DEFINED(USE_NOGL)}
     glListBase(DWORD(Integer(e_TextureFonts[FontID].Base)-32));
 {$ENDIF}
 
@@ -1795,7 +1791,7 @@ begin
   glBindTexture(GL_TEXTURE_2D, e_TextureFonts[FontID].TextureID);
   glEnable(GL_TEXTURE_2D);
 
-{$IF not DEFINED(USE_NANOGL)}
+{$IF not DEFINED(USE_NANOGL) and not DEFINED(USE_NOGL)}
   glListBase(DWORD(Integer(e_TextureFonts[FontID].Base)-32));
 {$ENDIF}
 
@@ -1807,7 +1803,7 @@ begin
    glColor4ub(0, 0, 0, 128);
    glTranslatef(x+1, y+1, 0);
    glScalef(Scale, Scale, 0);
-{$IFDEF USE_NANOGL}
+{$IF DEFINED(USE_NANOGL) or DEFINED(USE_NOGL)}
    e_TextureFontDrawString(Text, FontID);
 {$ELSE}
    glCallLists(Length(Text), GL_UNSIGNED_BYTE, PChar(Text));
@@ -1819,7 +1815,7 @@ begin
   glColor4ub(Red, Green, Blue, 255);
   glTranslatef(x, y, 0);
   glScalef(Scale, Scale, 0);
-{$IFDEF USE_NANOGL}
+{$IF DEFINED(USE_NANOGL) or DEFINED(USE_NOGL)}
   e_TextureFontDrawString(Text, FontID);
 {$ELSE}
   glCallLists(Length(Text), GL_UNSIGNED_BYTE, PChar(Text));
@@ -1852,7 +1848,7 @@ begin
  for i := 0 to High(e_TextureFonts) do
   if e_TextureFonts[i].Base <> 0 then
   begin
-{$IFNDEF USE_NANOGL}
+{$IF not DEFINED(USE_NANOGL) and not DEFINED(USE_NOGL)}  
    glDeleteLists(e_TextureFonts[i].Base, 256);
 {$ENDIF}
    e_TextureFonts[i].Base := 0;

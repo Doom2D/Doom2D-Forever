@@ -21,11 +21,7 @@ unit fui_gfx_gl;
 interface
 
 uses
-{$IFDEF USE_NANOGL}
-  nanoGL,
-{$ELSE}
-  GL, GLExt,
-{$ENDIF}
+  {$INCLUDE ../nogl/noGLuses.inc}
   SysUtils, Classes,
   SDL2,
   sdlcarcass,

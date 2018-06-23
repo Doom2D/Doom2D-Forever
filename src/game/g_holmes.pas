@@ -48,11 +48,7 @@ var
 implementation
 
 uses
-{$IFDEF USE_NANOGL}
-  nanoGL,
-{$ELSE}
-  GL,
-{$ENDIF}
+  {$INCLUDE ../nogl/noGLuses.inc}
   {rttiobj,} typinfo, e_texture,
   SysUtils, Classes, SDL2,
   MAPDEF, g_main, g_options,

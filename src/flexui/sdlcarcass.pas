@@ -69,11 +69,7 @@ implementation
 
 uses
   SysUtils, Classes,
-  {$IFDEF USE_NANOGL}
-    nanoGL,
-  {$ELSE}
-    GL, GLExt,
-  {$ENDIF}
+  {$INCLUDE ../nogl/noGLuses.inc}
   {$IF DEFINED(LINUX) OR DEFINED(ANDROID)}
     unixtype, linux
   {$ELSEIF DEFINED(WINDOWS)}

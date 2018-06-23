@@ -14,10 +14,8 @@ Requirements:
 * FPC >= 3.0.4;
 * SDL >= 2.0.7;
 * SDL_mixer >= 2.0;
-* libenet >= 1.3.13;
-* nanoGL.
+* libenet >= 1.3.13.
 
-D2DF uses special version of nanoGL ( https://github.com/DeaDDooMER/nanogl ) with some added functions.
 Build all shared libraries using NDK toolchain and put into directory ./ass/lib/armeabi-v7a/.
 Also you need to build FPC crosscompiler ( http://wiki.freepascal.org/Android ).
 Put game resources into direcotor resources/ (or install it manually into external/internal storage).
@@ -41,7 +39,7 @@ rm -rf tmp
 mkdir -p tmp
 cd ../src/game
 ppcrossarm \
-        -g -gl -dUSE_SDLMIXER -dUSE_NANOGL -O3 \
+        -g -gl -dUSE_SDLMIXER -dUSE_GLES1 -O3 \
         -Tandroid \
         -Cparmv7a \
         -Cfvfpv3 \

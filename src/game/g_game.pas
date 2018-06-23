@@ -354,11 +354,7 @@ function gPause (): Boolean; inline;
 implementation
 
 uses
-{$IFDEF USE_NANOGL}
-  nanoGL,
-{$ELSE}
-  GL, GLExt,
-{$ENDIF}
+{$INCLUDE ../nogl/noGLuses.inc}
 {$IFDEF ENABLE_HOLMES}
   g_holmes,
 {$ENDIF}

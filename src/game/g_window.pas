@@ -51,11 +51,7 @@ implementation
 
 uses
 {$IFDEF WINDOWS}Windows,{$ENDIF}
-{$IFDEF USE_NANOGL}
-  nanoGL,
-{$ELSE}
-  GL, GLExt,
-{$ENDIF}
+{$INCLUDE ../nogl/noGLuses.inc}
 {$IFDEF ENABLE_HOLMES}
   g_holmes, sdlcarcass, fui_ctls,
 {$ENDIF}
@@ -98,9 +94,15 @@ begin
   if (h_Wnd <> nil) then SDL_DestroyWindow(h_Wnd);
   if (h_GL <> nil) and (not preserveGL) then
   begin
+
 {$IFDEF USE_NANOGL}
     nanoGL_Destroy;
-{$ENDIF USE_NANOGL}
+{$ENDIF}
+
+{$IFDEF USE_NOGL}
+    nogl_Quit;
+{$ENDIF}
+
     SDL_GL_DeleteContext(h_GL);
   end;
   h_Wnd := nil;
@@ -565,6 +567,9 @@ begin
     exit;
   end;
 {$ENDIF}
+{$IFDEF USE_NOGL}
+  nogl_Init;
+{$ENDIF}
   {$IFDEF ENABLE_HOLMES}
     if (assigned(oglInitCB)) then oglInitCB();
   {$ENDIF}
@@ -819,7 +824,7 @@ end;
 procedure InitOpenGL ();
 begin
 {$IF not DEFINED(HEADLESS)}
-  {$IFDEF USE_NANOGL}
+  {$IFDEF USE_GLES1}
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 1);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);    

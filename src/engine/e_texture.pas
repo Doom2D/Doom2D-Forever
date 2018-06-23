@@ -23,13 +23,8 @@ unit e_texture;
 interface
 
 uses
-{$IFDEF USE_NANOGL}
-  nanoGL,
-{$ELSE}
-  GL, GLExt,
-{$ENDIF}
-  SysUtils, e_log,
-  ImagingTypes, Imaging, ImagingUtility;
+  {$INCLUDE ../nogl/noGLuses.inc}
+  SysUtils, e_log, ImagingTypes, Imaging, ImagingUtility;
 
 type
   GLTexture = record

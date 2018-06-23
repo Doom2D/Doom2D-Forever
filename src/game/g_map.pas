@@ -252,11 +252,7 @@ var
 implementation
 
 uses
-{$IFDEF USE_NANOGL}
-  nanoGL,
-{$ELSE}
-  GL, GLExt,
-{$ENDIF}
+  {$INCLUDE ../nogl/noGLuses.inc}
   e_input, g_main, e_log, e_texture, g_items, g_gfx, g_console,
   g_weapons, g_game, g_sound, e_sound, CONFIG,
   g_options, g_triggers, g_player,

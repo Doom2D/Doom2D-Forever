@@ -37,11 +37,7 @@ var
 implementation
 
 uses
-{$IFDEF USE_NANOGL}
-  nanoGL,
-{$ELSE}
-  GL, GLExt,
-{$ENDIF}
+{$INCLUDE ../nogl/noGLuses.inc}
 {$IFDEF ENABLE_HOLMES}
   g_holmes, fui_wadread, fui_style, fui_gfx_gl,
 {$ENDIF}

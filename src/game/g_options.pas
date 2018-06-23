@@ -134,11 +134,7 @@ var
 implementation
 
 uses
-{$IFDEF USE_NANOGL}
-  nanoGL,
-{$ELSE}
-  GL, GLExt,
-{$ENDIF}
+  {$INCLUDE ../nogl/noGLuses.inc}
   e_log, e_input, g_window, g_sound, g_gfx, g_player, Math,
   g_map, g_net, g_netmaster, SysUtils, CONFIG, g_game, g_main, e_texture,
   g_items, wadreader, e_graphics, g_touch, SDL2;

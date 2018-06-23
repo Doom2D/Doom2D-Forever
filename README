@@ -20,7 +20,8 @@ fpc -O3 -Fi../lib/vampimg -Fi../lib/vampimg/JpegLib -Fi../lib/vampimg/ZLib -Fu..
 
 If you want SDL_mixer instead of FMOD, add -dUSE_SDLMIXER.
 If you want the server to be able to forward ports via UPNP, add -dUSE_MINIUPNPC.
-If you want to debug game with Holmes, add -dENABLE_HOLMES.
+If you want to debug game with Holmes, add -dENABLE_HOLMES (not supported in GLES mode).
+If you want to render graphics using OpenGL ES, add -dUSE_GLES1.
 To build a headless (no video/audio, for dedicated servers) executable, add -dHEADLESS.
 Replace -O3 with -g -gl to enable debugging features. Run the game with --gdb when using a debugger to
 prevent it from eating exceptions.

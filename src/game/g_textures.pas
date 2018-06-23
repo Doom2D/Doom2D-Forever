@@ -119,11 +119,7 @@ function g_Texture_Light (): Integer;
 implementation
 
 uses
-{$IFDEF USE_NANOGL}
-  nanoGL,
-{$ELSE}
-  GL,
-{$ENDIF}
+  {$INCLUDE ../nogl/noGLuses.inc}
   g_game, e_log, g_basic, g_console, wadreader,
   g_language, utils, xstreams;
 

@@ -588,11 +588,7 @@ procedure g_Bot_RemoveAll();
 implementation
 
 uses
-{$IFDEF USE_NANOGL}
-  nanoGL,
-{$ELSE}
-  GL,
-{$ENDIF}
+{$INCLUDE ../nogl/noGLuses.inc}
 {$IFDEF ENABLE_HOLMES}
   g_holmes,
 {$ENDIF}
