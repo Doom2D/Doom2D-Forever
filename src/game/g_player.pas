@@ -593,10 +593,13 @@ uses
 {$ELSE}
   GL,
 {$ENDIF}
+{$IFDEF ENABLE_HOLMES}
+  g_holmes,
+{$ENDIF}
   e_log, g_map, g_items, g_console, g_gfx, Math,
   g_options, g_triggers, g_menu, g_game, g_grid,
   wadreader, g_main, g_monsters, CONFIG, g_language,
-  g_net, g_netmsg, g_window, g_holmes,
+  g_net, g_netmsg, g_window,
   utils, xstreams;
 
 const PLR_SAVE_VERSION = 0;
@@ -2414,10 +2417,13 @@ procedure TPlayer.DrawAim();
   var
     ex, ey: Integer;
   begin
+
+{$IFDEF ENABLE_HOLMES}
     if isValidViewPort and (self = gPlayer1) then
     begin
       g_Holmes_plrLaser(ax0, ay0, ax1, ay1);
     end;
+{$ENDIF}
 
     e_DrawLine(sz, ax0, ay0, ax1, ay1, 255, 0, 0, 96);
     if (g_Map_traceToNearestWall(ax0, ay0, ax1, ay1, @ex, @ey) <> nil) then

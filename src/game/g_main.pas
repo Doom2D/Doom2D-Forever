@@ -42,13 +42,16 @@ uses
 {$ELSE}
   GL, GLExt,
 {$ENDIF}
+{$IFDEF ENABLE_HOLMES}
+  g_holmes, fui_wadread, fui_style, fui_gfx_gl,
+{$ENDIF}
   SDL2, wadreader, e_log, g_window,
   e_graphics, e_input, g_game, g_console, g_gui,
   e_sound, g_options, g_sound, g_player, g_basic,
   g_weapons, SysUtils, g_triggers, MAPDEF, g_map,
-  g_menu, g_language, g_net, g_holmes, g_touch,
-  utils, conbuf, envvars, fui_wadread, fui_style,
-  fui_gfx_gl, xparser;
+  g_menu, g_language, g_net, g_touch,
+  utils, conbuf, envvars,
+  xparser;
 
 
 var
@@ -124,7 +127,7 @@ begin
 {$ENDIF}
 {$ENDIF}
 
-{$IFNDEF HEADLESS}
+{$IF not DEFINED(HEADLESS) and DEFINED(ENABLE_HOLMES)}
   flexloaded := true;
   if not fuiAddWad('flexui.wad') then
   begin

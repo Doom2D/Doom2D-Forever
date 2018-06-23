@@ -359,13 +359,16 @@ uses
 {$ELSE}
   GL, GLExt,
 {$ENDIF}
+{$IFDEF ENABLE_HOLMES}
+  g_holmes,
+{$ENDIF}
   e_texture, g_textures, g_main, g_window, g_menu,
   e_input, e_log, g_console, g_items, g_map, g_panel,
   g_playermodel, g_gfx, g_options, g_weapons, Math,
   g_triggers, g_monsters, e_sound, CONFIG,
   g_language, g_net,
   ENet, e_msg, g_netmsg, g_netmaster,
-  sfs, wadreader, g_holmes;
+  sfs, wadreader;
 
 
 var
@@ -3393,11 +3396,13 @@ begin
   p.viewPortW := sWidth;
   p.viewPortH := sHeight;
 
+{$IFDEF ENABLE_HOLMES}
   if (p = gPlayer1) then
   begin
     g_Holmes_plrViewPos(sX, sY);
     g_Holmes_plrViewSize(sWidth, sHeight);
   end;
+{$ENDIF}
 
   renderMapInternal(-c, -d, true);
 
@@ -3587,8 +3592,10 @@ begin
         e_DrawLine(2, 0, gScreenHeight div 2, gScreenWidth, gScreenHeight div 2, 0, 0, 0);
     end;
 
+{$IFDEF ENABLE_HOLMES}
     // draw inspector
     if (g_holmes_enabled) then g_Holmes_Draw();
+{$ENDIF}
 
     if MessageText <> '' then
     begin
@@ -3800,7 +3807,9 @@ begin
 
   if gGameOn then drawProfilers();
 
+{$IFDEF ENABLE_HOLMES}
   g_Holmes_DrawUI();
+{$ENDIF}
 
   g_Touch_Draw;
 end;
@@ -7596,7 +7605,9 @@ begin
   conRegVar('los_enabled', @gmon_dbg_los_enabled, 'enable/disable monster LOS calculations', 'monster LOS', true);
   conRegVar('mon_think', @gmon_debug_think, 'enable/disable monster thinking', 'monster thinking', true);
 
+{$IFDEF ENABLE_HOLMES}
   conRegVar('dbg_holmes', @g_holmes_enabled, 'enable/disable Holmes', 'Holmes', true);
+{$ENDIF}
 
   conRegVar('dbg_ignore_level_bounds', @g_dbg_ignore_bounds, 'ignore level bounds', '',  false);
 

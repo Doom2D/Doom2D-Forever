@@ -96,7 +96,6 @@ uses
   g_triggers in 'g_triggers.pas',
   g_weapons in 'g_weapons.pas',
   g_window in 'g_window.pas',
-  g_holmes in 'g_holmes.pas',
   SysUtils,
 {$IFDEF USE_FMOD}
   fmod in '../lib/FMOD/fmod.pas',
@@ -115,6 +114,9 @@ uses
   g_panel in 'g_panel.pas',
   g_language in 'g_language.pas',
 
+{$IFDEF ENABLE_HOLMES}
+  g_holmes in 'g_holmes.pas',
+
   sdlcarcass in '../flexui/sdlcarcass.pas',
   //sdlstandalone in '../flexui/sdlstandalone.pas',
 
@@ -125,6 +127,7 @@ uses
   fui_style in '../flexui/fui_style.pas',
   fui_flexlay in '../flexui/fui_flexlay.pas',
   fui_ctls in '../flexui/fui_ctls.pas',
+{$ENDIF}
 
   ImagingTypes,
   Imaging,

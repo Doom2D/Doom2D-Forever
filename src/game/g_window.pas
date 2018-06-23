@@ -56,12 +56,14 @@ uses
 {$ELSE}
   GL, GLExt,
 {$ENDIF}
+{$IFDEF ENABLE_HOLMES}
+  g_holmes, sdlcarcass, fui_ctls,
+{$ENDIF}
   SysUtils, Classes, MAPDEF,
   SDL2, e_graphics, e_log, e_texture, g_main,
   g_console, e_input, g_options, g_game,
   g_basic, g_textures, e_sound, g_sound, g_menu, ENet, g_net,
-  g_map, g_gfx, g_monsters, g_holmes, xprofiler,
-  sdlcarcass, fui_ctls,
+  g_map, g_gfx, g_monsters, xprofiler,
   g_touch;
 
 
@@ -90,7 +92,9 @@ var
 
 procedure KillGLWindow (preserveGL: Boolean);
 begin
+{$IFDEF ENABLE_HOLMES}
   if (h_GL <> nil) and (not preserveGL) then begin if (assigned(oglDeinitCB)) then oglDeinitCB(); end;
+{$ENDIF}
   if (h_Wnd <> nil) then SDL_DestroyWindow(h_Wnd);
   if (h_GL <> nil) and (not preserveGL) then
   begin
@@ -182,9 +186,12 @@ begin
       e_WriteLog('SDL: fullscreen window got invalid size: '+IntToStr(nw)+'x'+IntToStr(nh), TMsgType.Notify);
     end;
   end;
-  fuiScrWdt := gScreenWidth;
-  fuiScrHgt := gScreenHeight;
-  if (h_GL <> nil) and (not preserveGL) then begin if (assigned(oglInitCB)) then oglInitCB(); end;
+
+  {$IFDEF ENABLE_HOLMES}
+    fuiScrWdt := gScreenWidth;
+    fuiScrHgt := gScreenHeight;
+    if (h_GL <> nil) and (not preserveGL) then begin if (assigned(oglInitCB)) then oglInitCB(); end;
+  {$ENDIF}
 {$ENDIF}
 
   result := true;
@@ -231,8 +238,10 @@ begin
   gWinSizeX := gScreenWidth;
   gWinSizeY := gScreenHeight;
 {$IF not DEFINED(HEADLESS)}
-  fuiScrWdt := gScreenWidth;
-  fuiScrHgt := gScreenHeight;
+  {$IFDEF ENABLE_HOLMES}
+    fuiScrWdt := gScreenWidth;
+    fuiScrHgt := gScreenHeight;
+  {$ENDIF}
   e_ResizeWindow(gScreenWidth, gScreenHeight);
   g_Game_SetupScreenSize();
   g_Menu_Reset();
@@ -411,7 +420,9 @@ begin
 
       gWinActive := false;
 
-      if assigned(winBlurCB) then winBlurCB();
+      {$IFDEF ENABLE_HOLMES}
+        if assigned(winBlurCB) then winBlurCB();
+      {$ENDIF}
     end;
   end
   else if wActivate then
@@ -434,7 +445,10 @@ begin
       end;
 
       gWinActive := true;
-      if assigned(winFocusCB) then winFocusCB();
+
+      {$IFDEF ENABLE_HOLMES}
+        if assigned(winFocusCB) then winFocusCB();
+      {$ENDIF}
     end;
   end;
 end;
@@ -475,7 +489,7 @@ begin
         if key = SDL_SCANCODE_AC_BACK then
           key := SDL_SCANCODE_ESCAPE;
         down := (ev.type_ = SDL_KEYDOWN);
-        {$IF not DEFINED(HEADLESS)}
+        {$IF not DEFINED(HEADLESS) and DEFINED(ENABLE_HOLMES)}
         if fuiOnSDLEvent(ev) then
         begin
           // event eaten, but...
@@ -487,7 +501,7 @@ begin
         if down then KeyPress(key);
       end;
 
-    {$IF not DEFINED(HEADLESS)}
+    {$IF not DEFINED(HEADLESS) and DEFINED(ENABLE_HOLMES)}
     SDL_MOUSEBUTTONDOWN, SDL_MOUSEBUTTONUP, SDL_MOUSEWHEEL, SDL_MOUSEMOTION:
       fuiOnSDLEvent(ev);
     {$ENDIF}
@@ -538,8 +552,10 @@ begin
 {$IF not DEFINED(HEADLESS)}
   h_GL := SDL_GL_CreateContext(h_Wnd);
   if (h_GL = nil) then exit;
-  fuiScrWdt := gScreenWidth;
-  fuiScrHgt := gScreenHeight;
+  {$IFDEF ENABLE_HOLMES}
+    fuiScrWdt := gScreenWidth;
+    fuiScrHgt := gScreenHeight;
+  {$ENDIF}
   SDL_GL_MakeCurrent(h_Wnd, h_GL);
 {$IFDEF USE_NANOGL}
   if nanoGL_Init() = 0 then
@@ -549,7 +565,9 @@ begin
     exit;
   end;
 {$ENDIF}
-  if (assigned(oglInitCB)) then oglInitCB();
+  {$IFDEF ENABLE_HOLMES}
+    if (assigned(oglInitCB)) then oglInitCB();
+  {$ENDIF}
   if (h_GL <> nil) then g_SetVSync(gVSync);
 {$ENDIF}
 
@@ -875,11 +893,13 @@ begin
 {$IFDEF HEADLESS}
   e_NoGraphics := true;
 {$ELSE}
-  if (not g_holmes_imfunctional) then
-  begin
-    uiInitialize();
-    uiContext.font := 'win14';
-  end;
+  {$IFDEF ENABLE_HOLMES}
+    if (not g_holmes_imfunctional) then
+    begin
+      uiInitialize();
+      uiContext.font := 'win14';
+    end;
+  {$ENDIF}
 {$ENDIF}
 
   idx := 1;
@@ -908,6 +928,7 @@ begin
     if arg = '--aimline' then g_dbg_aimline_on := true;
     {.$ENDIF}
 
+{$IFDEF ENABLE_HOLMES}
     if arg = '--holmes' then begin g_holmes_enabled := true; g_Game_SetDebugMode(); end;
 
     if (arg = '--holmes-ui-scale') or (arg = '-holmes-ui-scale') then
@@ -942,6 +963,7 @@ begin
         Inc(idx);
       end;
     end;
+{$ENDIF}
 
     if (arg = '--game-scale') or (arg = '-game-scale') then
     begin
