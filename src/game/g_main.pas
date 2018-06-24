@@ -80,20 +80,10 @@ begin
     TMsgType.Notify
   );
 
-  e_WriteLog('Read config file', TMsgType.Notify);
-  g_Options_Read(GameDir + '/' + CONFIG_FILENAME);
-
 {$IFDEF HEADLESS}
   conbufDumpToStdOut := true;
 {$ENDIF}
   e_WriteToStdOut := False; //{$IFDEF HEADLESS}True;{$ELSE}False;{$ENDIF}
-
-  //GetSystemDefaultLCID()
-
-  //e_WriteLog('Read language file', MSG_NOTIFY);
-  //g_Language_Load(DataDir + gLanguage + '.txt');
-  e_WriteLog(gLanguage, TMsgType.Notify);
-  g_Language_Set(gLanguage);
 
 {$IFDEF HEADLESS}
  {$IFDEF USE_SDLMIXER}
@@ -116,6 +106,16 @@ begin
 
   if SDL_Init(sdlflags) < 0 then
     raise Exception.Create('SDL: Init failed: ' + SDL_GetError());
+
+  e_WriteLog('Read config file', TMsgType.Notify);
+  g_Options_Read(GameDir + '/' + CONFIG_FILENAME);
+
+  //GetSystemDefaultLCID()
+
+  //e_WriteLog('Read language file', MSG_NOTIFY);
+  //g_Language_Load(DataDir + gLanguage + '.txt');
+  e_WriteLog(gLanguage, TMsgType.Notify);
+  g_Language_Set(gLanguage);
 
 {$IFNDEF HEADLESS}
 {$IFNDEF ANDROID}

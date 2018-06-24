@@ -142,12 +142,12 @@ uses
 procedure g_Options_SetDefaultVideo;
 {$IF DEFINED(ANDROID)}
 var
-  display: PSDL_DisplayMode;
+  display: TSDL_DisplayMode;
 {$ENDIF}
 begin
   {$IF DEFINED(ANDROID)}
     (* On android set max screen size *)
-    SDL_GetCurrentDisplayMode(0, display);
+    SDL_GetCurrentDisplayMode(0, @display);
     gScreenWidth := display.w;
     gScreenHeight := display.h;
     gWinRealPosX := 0;
@@ -171,6 +171,7 @@ begin
     gTextureFilter := True;
     glLegacyNPOT := False;
   {$ENDIF}
+  e_LogWriteLn('g_Options_SetDefaultVideo: w = ' + IntToStr(gScreenWidth) + ' h = ' + IntToStr(gScreenHeight));
 end;
 
 procedure g_Options_SetDefault();
