@@ -1011,15 +1011,16 @@ begin
   e_LogWritefln('stencil buffer size: %s', [ltmp]);
   gwin_has_stencil := (ltmp > 0);
 
-  if not glHasExtension('GL_ARB_texture_non_power_of_two') then
-  begin
-    e_WriteLog('NPOT textures: NO', TMsgType.Warning);
-    glLegacyNPOT := true;
-  end
-  else
+  if glHasExtension('GL_ARB_texture_non_power_of_two') or
+     glHasExtension('GL_OES_texture_npot') then
   begin
     e_WriteLog('NPOT textures: YES', TMsgType.Notify);
     glLegacyNPOT := false;
+  end
+  else
+  begin
+    e_WriteLog('NPOT textures: NO', TMsgType.Warning);
+    glLegacyNPOT := true;
   end;
   gwin_dump_extensions := false;
 {$ENDIF}
