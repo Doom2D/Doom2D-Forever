@@ -33,6 +33,7 @@
                  android:debuggable="true" >
         <activity android:name="Doom2DF"
                   android:label="Doom2D Forever"
+                  android:screenOrientation="sensorLandscape"
                   android:configChanges="keyboardHidden|orientation|screenSize"
                   >
             <intent-filter>
