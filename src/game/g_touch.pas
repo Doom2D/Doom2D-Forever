@@ -40,7 +40,8 @@ implementation
     e_log, e_graphics, e_input, g_options, g_game, g_main, g_weapons, g_console;
 
   const
-    VS_KEYBOARD = 60000;
+    VS_KEYBOARD     = 60000;
+    VS_HIDEKEYBOARD = 60001;
 
   var
     angleFire: Boolean;
@@ -50,90 +51,91 @@ implementation
     var
       sw, sh, sz: Integer;
       dpi: Single;
+
+    procedure S (xx, yy, ww, hh: Single);
+    begin
+      x := Trunc(xx);
+      y := Trunc(yy);
+      w := Trunc(ww);
+      h := Trunc(hh);
+      founded := true;
+    end;
+
   begin
+    founded := false;
     if SDL_GetDisplayDPI(0, @dpi, nil, nil) <> 0 then
       dpi := 96;
 
-    founded := true;
-    sz := Trunc(g_touch_size * dpi);
-    sw := gScreenWidth; sh := gScreenHeight;
-    if g_touch_alt then
-    begin
-      w := sz div 2; h := sz div 2;
+    sz := Trunc(g_touch_size * dpi); sw := gScreenWidth; sh := gScreenHeight;
+    x := 0; y := Round(sh * g_touch_offset / 100);
+    w := sz; h := sz;
+
+    if SDL_IsTextInputActive() = SDL_True then
       case key of
-        VK_CONSOLE: begin x := 0; y := 0 end;
-        VK_ESCAPE:  begin x := sw - 1*w - 1; y := 0 end;
-        VS_KEYBOARD:begin x := sw - 2*w - 1; y := 0 end;
-        VK_CHAT:    begin x := sw div 2 - w div 2 - w; y := 0 end;
-        VK_STATUS:  begin x := sw div 2 - w div 2 + 0; y := 0 end;
-        VK_TEAM:    begin x := sw div 2 - w div 2 + w; y := 0 end;
-        VK_PREV:    begin x := 0; y := sh - 4*sz - 1; w := sz end;
-        VK_NEXT:    begin x := sw - sz - 1; y := sh - 4*sz - 1; w := sz end;
-      else
-        w := sz; h := sz * 3;
-        case key of
-          VK_LEFT:  begin x := 0; y := sh - h - 1 end;
-          VK_RIGHT: begin x := w; y := sh - h - 1 end;
-        else
-          w := sz; h := sz;
-          case key of
-            VK_UP:   begin x := sw - 2*w - 1; y := sh - 3*h - 1 end;
-            VK_FIRE: begin x := sw - 2*w - 1; y := sh - 2*h - 1 end;
-            VK_DOWN: begin x := sw - 2*w - 1; y := sh - 1*h - 1 end;
-            VK_OPEN: begin x := sw - 1*w - 1; y := sh - 1*h - h div 2 - 1 end;
-            VK_JUMP: begin x := sw - 1*w - 1; y := sh - 2*h - h div 2 - 1 end;
-          else
-            founded := false
-          end
-        end
+        VS_HIDEKEYBOARD: S(sw - (sz/2), 0, sz / 2, sz / 2);
       end
-    end
+    else if g_touch_alt then
+      case key of
+        (* top ------- x ------------------------------- y  w ----- h -- *)
+        VK_CONSOLE:  S(0,                                0, sz / 2, sz / 2);
+        VK_ESCAPE:   S(sw - 1*(sz/2) - 1,                0, sz / 2, sz / 2);
+        VS_KEYBOARD: S(sw - 2*(sz/2) - 1,                0, sz / 2, sz / 2);
+        VK_CHAT:     S(sw / 2 - (sz/2) / 2 - (sz/2) - 1, 0, sz / 2, sz / 2);
+        VK_STATUS:   S(sw / 2 - (sz/2) / 2 - 1,          0, sz / 2, sz / 2);
+        VK_TEAM:     S(sw / 2 - (sz/2) / 2 + (sz/2) - 1, 0, sz / 2, sz / 2);
+        (* left --- x - y -------------- w - h --- *)
+        VK_PREV:  S(0,  sh - 3.0*sz - 1, sz, sz / 2);
+        VK_LEFT:  S(0,  sh - 2.0*sz - 1, sz, sz * 2);
+        VK_RIGHT: S(sz, sh - 2.0*sz - 1, sz, sz * 2);
+        (* right - x ------------ y -------------- w - h -- *)
+        VK_NEXT: S(sw - 1*sz - 1, sh - 3.0*sz - 1, sz, sz / 2);
+        VK_UP:   S(sw - 2*sz - 1, sh - 2.0*sz - 1, sz, sz / 2);
+        VK_FIRE: S(sw - 2*sz - 1, sh - 1.5*sz - 1, sz, sz);
+        VK_DOWN: S(sw - 2*sz - 1, sh - 0.5*sz - 1, sz, sz / 2);
+        VK_JUMP: S(sw - 1*sz - 1, sh - 2.0*sz - 1, sz, sz);
+        VK_OPEN: S(sw - 1*sz - 1, sh - 1.0*sz - 1, sz, sz);
+      end
     else
-    begin
-      x := 0; y := Round(sh * g_touch_offset / 100); w := sz; h := sz;
       case key of
-        VK_ESCAPE:  begin x := 0;             y := y - 3*h div 2; w := w; h := h div 2 end;
-        VK_LSTRAFE: begin x := 0;             y := y - h div 2; w := w div 2 end;
-        VK_LEFT:    begin x := w div 2;       y := y - h div 2 end;
-        VK_RIGHT:   begin x := w div 2 + 1*w; y := y - h div 2 end;
-        VK_RSTRAFE: begin x := w div 2 + 2*w; y := y - h div 2; w := w div 2 end;
-        VK_UP:      begin x := sw - w - 1;    y := y - h div 2 - h end;
-        VK_FIRE:    begin x := sw - 1*w - 1;  y := y - h div 2 end;
-        VK_DOWN:    begin x := sw - w - 1;    y := y - h div 2 + h end;
-        VK_NEXT:    begin x := sw - 2*w - 1;  y := y - h div 2 - h end;
-        VK_JUMP:    begin x := sw - 2*w - 1;  y := y - h div 2 end;
-        VK_PREV:    begin x := sw - 3*w - 1;  y := y - h div 2 - h end;
-        VK_OPEN:    begin x := sw - 3*w - 1;  y := y - h div 2 end;
-      else
-        x := 0; y := 0; w := sz div 2; h := sz div 2;
-        case key of
-          VK_0:       begin x := sw div 2 - w div 2 - 5*w - 1; y := sh - 1*h - 1 end;
-          VK_1:       begin x := sw div 2 - w div 2 - 4*w - 1; y := sh - 1*h - 1 end;
-          VK_2:       begin x := sw div 2 - w div 2 - 3*w - 1; y := sh - 1*h - 1 end;
-          VK_3:       begin x := sw div 2 - w div 2 - 2*w - 1; y := sh - 1*h - 1 end;
-          VK_4:       begin x := sw div 2 - w div 2 - 1*w - 1; y := sh - 1*h - 1 end;
-          VK_5:       begin x := sw div 2 - w div 2 + 0*w - 1; y := sh - 1*h - 1 end;
-          VK_6:       begin x := sw div 2 - w div 2 + 1*w - 1; y := sh - 1*h - 1 end;
-          VK_7:       begin x := sw div 2 - w div 2 + 2*w - 1; y := sh - 1*h - 1 end;
-          VK_8:       begin x := sw div 2 - w div 2 + 3*w - 1; y := sh - 1*h - 1 end;
-          VK_9:       begin x := sw div 2 - w div 2 + 4*w - 1; y := sh - 1*h - 1 end;
-          VK_A:       begin x := sw div 2 - w div 2 + 5*w - 1; y := sh - 1*h - 1 end;
-          VK_CHAT:    begin x := sw div 2 - w div 2 - 2*w - 1; y := sh - 2*h - 1 end;
-          VK_CONSOLE: begin x := sw div 2 - w div 2 - 1*w - 1; y := sh - 2*h - 1 end;
-          VK_STATUS:  begin x := sw div 2 - w div 2 + 0*w - 1; y := sh - 2*h - 1 end;
-          VK_TEAM:    begin x := sw div 2 - w div 2 + 1*w - 1; y := sh - 2*h - 1 end;
-          VS_KEYBOARD:begin x := sw div 2 - w div 2 + 2*w - 1; y := sh - 2*h - 1 end;
-        else
-          founded := false
-        end
+        (* left ----- x ----- y -------------- w ----- h -- *)
+        VK_ESCAPE:  S(0.0*sz, y - 1*sz - sz/2, sz,     sz / 2);
+        VK_LSTRAFE: S(0.0*sz, y - 0*sz - sz/2, sz / 2, sz);
+        VK_LEFT:    S(0.5*sz, y - 0*sz - sz/2, sz,     sz);
+        VK_RIGHT:   S(1.5*sz, y - 0*sz - sz/2, sz,     sz);
+        VK_RSTRAFE: S(2.5*sz, y - 0*sz - sz/2, sz / 2, sz);
+        (* right - x ------------ y --------------- w - h *)
+        VK_UP:   S(sw - 1*sz - 1, y -  1*sz - sz/2, sz, sz);
+        VK_FIRE: S(sw - 1*sz - 1, y -  0*sz - sz/2, sz, sz);
+        VK_DOWN: S(sw - 1*sz - 1, y - -1*sz - sz/2, sz, sz);
+        VK_NEXT: S(sw - 2*sz - 1, y -  1*sz - sz/2, sz, sz);
+        VK_JUMP: S(sw - 2*sz - 1, y -  0*sz - sz/2, sz, sz);
+        VK_PREV: S(sw - 3*sz - 1, y -  1*sz - sz/2, sz, sz);
+        VK_OPEN: S(sw - 3*sz - 1, y -  0*sz - sz/2, sz, sz);
+        (* bottom ---- x -------------------------- y ---------------- w ----- h -- *)
+        VK_CHAT:     S(sw/2 - sz/4 -  2*(sz/2) - 1, sh - 2*(sz/2) - 1, sz / 2, sz / 2);
+        VK_CONSOLE:  S(sw/2 - sz/4 -  1*(sz/2) - 1, sh - 2*(sz/2) - 1, sz / 2, sz / 2);
+        VK_STATUS:   S(sw/2 - sz/4 -  0*(sz/2) - 1, sh - 2*(sz/2) - 1, sz / 2, sz / 2);
+        VK_TEAM:     S(sw/2 - sz/4 - -1*(sz/2) - 1, sh - 2*(sz/2) - 1, sz / 2, sz / 2);
+        VS_KEYBOARD: S(sw/2 - sz/4 - -2*(sz/2) - 1, sh - 2*(sz/2) - 1, sz / 2, sz / 2);
+        VK_0:        S(sw/2 - sz/4 -  5*(sz/2) - 1, sh - 1*(sz/2) - 1, sz / 2, sz / 2);
+        VK_1:        S(sw/2 - sz/4 -  4*(sz/2) - 1, sh - 1*(sz/2) - 1, sz / 2, sz / 2);
+        VK_2:        S(sw/2 - sz/4 -  3*(sz/2) - 1, sh - 1*(sz/2) - 1, sz / 2, sz / 2);
+        VK_3:        S(sw/2 - sz/4 -  2*(sz/2) - 1, sh - 1*(sz/2) - 1, sz / 2, sz / 2);
+        VK_4:        S(sw/2 - sz/4 -  1*(sz/2) - 1, sh - 1*(sz/2) - 1, sz / 2, sz / 2);
+        VK_5:        S(sw/2 - sz/4 -  0*(sz/2) - 1, sh - 1*(sz/2) - 1, sz / 2, sz / 2);
+        VK_6:        S(sw/2 - sz/4 - -1*(sz/2) - 1, sh - 1*(sz/2) - 1, sz / 2, sz / 2);
+        VK_7:        S(sw/2 - sz/4 - -2*(sz/2) - 1, sh - 1*(sz/2) - 1, sz / 2, sz / 2);
+        VK_8:        S(sw/2 - sz/4 - -3*(sz/2) - 1, sh - 1*(sz/2) - 1, sz / 2, sz / 2);
+        VK_9:        S(sw/2 - sz/4 - -4*(sz/2) - 1, sh - 1*(sz/2) - 1, sz / 2, sz / 2);
+        VK_A:        S(sw/2 - sz/4 - -5*(sz/2) - 1, sh - 1*(sz/2) - 1, sz / 2, sz / 2);
       end
-    end
   end;
 
   function GetKeyName(key: Integer): String;
   begin
     case key of
       VS_KEYBOARD: result := 'KBD';
+      VS_HIDEKEYBOARD: result := 'KBD';
       VK_LEFT:    result := 'LEFT';
       VK_RIGHT:   result := 'RIGHT';
       VK_UP:      result := 'UP';
@@ -209,8 +211,6 @@ implementation
   begin
     if not g_touch_enabled then
       Exit;
-    if SDL_IsTextInputActive() = SDL_True then
-      Exit;
 
     finger := ev.fingerId + 2;
     x := Trunc(ev.x * gScreenWidth);
@@ -243,6 +243,8 @@ implementation
 
     if IntersectControl(VS_KEYBOARD, x, y) then
       g_Touch_ShowKeyboard(true);
+    if IntersectControl(VS_HIDEKEYBOARD, x, y) then
+      g_Touch_ShowKeyboard(false);
 	
     (* emulate up+fire / donw+fire *)
     if g_touch_fire and (gGameSettings.GameType <> GT_NONE) then
@@ -293,6 +295,7 @@ implementation
         keyFinger[VK_STRAFE] := 0;
         e_KeyUpDown(VK_STRAFE, false);
       end
+
     end;
   end;
 
@@ -314,13 +317,12 @@ implementation
 {$IFNDEF HEADLESS}
     if not g_touch_enabled then
       Exit;
-    if SDL_IsTextInputActive() = SDL_True then
-      Exit;
 
     for i := VK_FIRSTKEY to VK_LASTKEY do
       Draw(i);
 
     Draw(VS_KEYBOARD);
+    Draw(VS_HIDEKEYBOARD);
 {$ENDIF}
   end;
 
