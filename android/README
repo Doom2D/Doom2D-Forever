@@ -18,7 +18,9 @@ Requirements:
 
 Build all shared libraries using NDK toolchain and put into directory ./ass/lib/armeabi-v7a/.
 Also you need to build FPC crosscompiler ( http://wiki.freepascal.org/Android ).
-Put game resources into direcotor resources/ (or install it manually into external/internal storage).
+
+If you want to pack game resources into APK, add it into directory "resources".
+If you want to play MIDI music, add instruments and timidity.cfg into directory "resources" (you can grab it from https://www.libsdl.org/projects/SDL_mixer/timidity/timidity.tar.gz).
 
 Generate keys:
 ```

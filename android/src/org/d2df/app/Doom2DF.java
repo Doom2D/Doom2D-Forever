@@ -29,5 +29,7 @@ public class Doom2DF extends SDLActivity {
 		CopyAssets.copyAssets(SDL.getContext(), "maps");
 		CopyAssets.copyAssets(SDL.getContext(), "maps/megawads");
 		CopyAssets.copyAssets(SDL.getContext(), "wads");
+		CopyAssets.copyAssets(SDL.getContext(), "instruments");
+		CopyAssets.copyAssets(SDL.getContext(), "timidity.cfg");
 	}
 }

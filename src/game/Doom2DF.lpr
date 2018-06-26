@@ -159,6 +159,7 @@ begin
       exit;
     end;
   end;
+  SetEnvVar('TIMIDITY_CFG', 'timidity.cfg');
 {$ENDIF ANDROID}
 
   for f := 1 to ParamCount do
