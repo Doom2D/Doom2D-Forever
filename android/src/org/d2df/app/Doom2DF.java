@@ -23,6 +23,7 @@ public class Doom2DF extends SDLActivity {
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
+
 		CopyAssets.copyAssets(SDL.getContext(), "");
 		CopyAssets.copyAssets(SDL.getContext(), "data");
 		CopyAssets.copyAssets(SDL.getContext(), "data/models");

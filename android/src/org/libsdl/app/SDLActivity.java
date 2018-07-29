@@ -217,6 +217,8 @@ public class SDLActivity extends Activity {
                 SDLActivity.onNativeDropFile(filename);
             }
         }
+
+	hideNavigationBar();
     }
 
     // Events
@@ -240,6 +242,8 @@ public class SDLActivity extends Activity {
         super.onResume();
         mNextNativeState = NativeState.RESUMED;
         mIsResumedCalled = true;
+
+	hideNavigationBar();
 
         if (SDLActivity.mBrokenLibraries) {
            return;
@@ -456,6 +460,8 @@ public class SDLActivity extends Activity {
                     InputMethodManager imm = (InputMethodManager) context.getSystemService(Context.INPUT_METHOD_SERVICE);
                     imm.hideSoftInputFromWindow(mTextEdit.getWindowToken(), 0);
                     
+                    hideNavigationBar();
+
                     mScreenKeyboardShown = false;
                 }
                 break;
@@ -841,6 +847,15 @@ public class SDLActivity extends Activity {
         // return selected value
 
         return messageboxSelection[0];
+    }
+
+    public static void hideNavigationBar() {
+        if (Build.VERSION.SDK_INT >= 19) {
+            int opt = View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                    | View.SYSTEM_UI_FLAG_FULLSCREEN
+                    | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY;
+            mSingleton.getWindow().getDecorView().setSystemUiVisibility(opt);
+        }
     }
 
     @Override
