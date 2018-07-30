@@ -392,7 +392,7 @@ begin
   }
 
   // Вылетел за нижнюю границу карты?
-  if (Obj^.Y > gMapInfo.Height+128) then begin result := MOVE_FALLOUT; Obj.slopeUpLeft := 0; Obj.slopeFramesLeft := 0; exit; end;
+  if (Obj^.Y > Integer(gMapInfo.Height)+128) then begin result := MOVE_FALLOUT; Obj.slopeUpLeft := 0; Obj.slopeFramesLeft := 0; exit; end;
 
   // Меняем скорость и ускорение только по четным кадрам
   c := (gTime mod (GAME_TICK*2) <> 0);
