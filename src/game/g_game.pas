@@ -931,6 +931,7 @@ begin
               end
               else
                 slWaitStr := _lc[I_NET_SLIST_ERROR];
+              g_Serverlist_GenerateTable(slCurrent, slTable);
             end;
 
             g_Game_ExecuteEvent('ongameend');
@@ -1690,7 +1691,7 @@ begin
       end;
 
     STATE_SLIST:
-        g_Serverlist_Control(slCurrent);
+        g_Serverlist_Control(slCurrent, slTable);
   end;
 
   if g_Game_IsNet then
@@ -3769,7 +3770,7 @@ begin
         //e_DrawFillQuad(0, 0, gScreenWidth-1, gScreenHeight-1, 48, 48, 48, 180);
         e_DarkenQuadWH(0, 0, gScreenWidth, gScreenHeight, 150);
       end;
-      g_Serverlist_Draw(slCurrent);
+      g_Serverlist_Draw(slCurrent, slTable);
     end;
   end;
 

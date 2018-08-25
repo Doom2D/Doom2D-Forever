@@ -764,6 +764,7 @@ begin
   end
   else
     slWaitStr := _lc[I_NET_SLIST_ERROR];
+  g_Serverlist_GenerateTable(slCurrent, slTable);
 end;
 
 procedure ProcStartCampaign();

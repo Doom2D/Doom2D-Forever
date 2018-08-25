@@ -45,15 +45,21 @@ type
     PingAddr: ENetAddress;
   end;
   pTNetServer = ^TNetServer;
+  TNetServerRow = record
+    Indices: Array of Integer;
+    Current: Integer;
+  end;
 
   TNetServerList = array of TNetServer;
   pTNetServerList = ^TNetServerList;
+  TNetServerTable = array of TNetServerRow;
 
 var
   NetMHost:       pENetHost = nil;
   NetMPeer:       pENetPeer = nil;
 
   slCurrent:       TNetServerList = nil;
+  slTable:         TNetServerTable = nil;
   slWaitStr:       string = '';
   slReturnPressed: Boolean = True;
 
@@ -66,8 +72,9 @@ procedure g_Net_Slist_Check();
 procedure g_Net_Slist_Disconnect();
 procedure g_Net_Slist_WriteInfo();
 
-procedure g_Serverlist_Draw(var SL: TNetServerList);
-procedure g_Serverlist_Control(var SL: TNetServerList);
+procedure g_Serverlist_GenerateTable(SL: TNetServerList; var ST: TNetServerTable);
+procedure g_Serverlist_Draw(var SL: TNetServerList; var ST: TNetServerTable);
+procedure g_Serverlist_Control(var SL: TNetServerList; var ST: TNetServerTable);
 
 implementation
 
@@ -467,8 +474,18 @@ begin
   end;
 end;
 
-procedure g_Serverlist_Draw(var SL: TNetServerList);
+function GetServerFromTable(Index: Integer; SL: TNetServerList; ST: TNetServerTable): TNetServer;
+begin
+  if ST = nil then
+    Exit;
+  if (Index < 0) or (Index >= Length(ST)) then
+    Exit;
+  Result := SL[ST[Index].Indices[ST[Index].Current]];
+end;
+
+procedure g_Serverlist_Draw(var SL: TNetServerList; var ST: TNetServerTable);
 var
+  Srv: TNetServer;
   sy, i, y, mw, mx, l: Integer;
   cw: Byte = 0;
   ch: Byte = 0;
@@ -504,17 +521,18 @@ begin
   end;
 
   y := 90;
-  if (slSelection < Length(SL)) then
+  if (slSelection < Length(ST)) then
   begin
     I := slSelection;
     sy := y + 42 * I - 4;
-    ip := _lc[I_NET_ADDRESS] + ' ' + SL[I].IP + ':' + IntToStr(SL[I].Port);
-    if SL[I].Password then
+    Srv := GetServerFromTable(I, SL, ST);
+    ip := _lc[I_NET_ADDRESS] + ' ' + Srv.IP + ':' + IntToStr(Srv.Port);
+    if Srv.Password then
       ip := ip + '  ' + _lc[I_NET_SERVER_PASSWORD] + ' ' + _lc[I_MENU_YES]
     else
       ip := ip + '  ' + _lc[I_NET_SERVER_PASSWORD] + ' ' + _lc[I_MENU_NO];
   end else
-    if Length(SL) > 0 then
+    if Length(ST) > 0 then
       slSelection := 0;
 
   mw := (gScreenWidth - 188);
@@ -535,65 +553,162 @@ begin
   e_TextureFontPrintEx(18, 68, 'NAME/MAP', gStdFont, 255, 127, 0, 1);
 
   y := 90;
-  for I := 0 to High(SL) do
+  for I := 0 to High(ST) do
   begin
-    e_TextureFontPrintEx(18, y, SL[I].Name, gStdFont, 255, 255, 255, 1);
-    e_TextureFontPrintEx(18, y + 16, SL[I].Map, gStdFont, 210, 210, 210, 1);
+    Srv := GetServerFromTable(I, SL, ST);
+    e_TextureFontPrintEx(18, y, Srv.Name, gStdFont, 255, 255, 255, 1);
+    e_TextureFontPrintEx(18, y + 16, Srv.Map, gStdFont, 210, 210, 210, 1);
 
     y := y + 42;
   end;
 
   e_TextureFontPrintEx(mx - 68, 68, 'PING', gStdFont, 255, 127, 0, 1);
   y := 90;
-  for I := 0 to High(SL) do
+  for I := 0 to High(ST) do
   begin
-    if (SL[I].Ping < 0) or (SL[I].Ping > 999) then
+    Srv := GetServerFromTable(I, SL, ST);
+    if (Srv.Ping < 0) or (Srv.Ping > 999) then
       e_TextureFontPrintEx(mx - 68, y, _lc[I_NET_SLIST_NO_ACCESS], gStdFont, 255, 0, 0, 1)
     else
-      if SL[I].Ping = 0 then
+      if Srv.Ping = 0 then
         e_TextureFontPrintEx(mx - 68, y, '<1' + _lc[I_NET_SLIST_PING_MS], gStdFont, 255, 255, 255, 1)
       else
-        e_TextureFontPrintEx(mx - 68, y, IntToStr(SL[I].Ping) + _lc[I_NET_SLIST_PING_MS], gStdFont, 255, 255, 255, 1);
+        e_TextureFontPrintEx(mx - 68, y, IntToStr(Srv.Ping) + _lc[I_NET_SLIST_PING_MS], gStdFont, 255, 255, 255, 1);
+
+    if Length(ST[I].Indices) > 1 then
+      e_TextureFontPrintEx(mx - 68, y + 16, '< ' + IntToStr(Length(ST[I].Indices)) + ' >', gStdFont, 210, 210, 210, 1);
 
     y := y + 42;
   end;
 
   e_TextureFontPrintEx(mx + 2, 68, 'MODE', gStdFont, 255, 127, 0, 1);
   y := 90;
-  for I := 0 to High(SL) do
+  for I := 0 to High(ST) do
   begin
-    e_TextureFontPrintEx(mx + 2, y, g_Game_ModeToText(SL[I].GameMode), gStdFont, 255, 255, 255, 1);
+    Srv := GetServerFromTable(I, SL, ST);
+    e_TextureFontPrintEx(mx + 2, y, g_Game_ModeToText(Srv.GameMode), gStdFont, 255, 255, 255, 1);
 
     y := y + 42;
   end;
 
   e_TextureFontPrintEx(mx + 54, 68, 'PLRS', gStdFont, 255, 127, 0, 1);
   y := 90;
-  for I := 0 to High(SL) do
+  for I := 0 to High(ST) do
   begin
-    e_TextureFontPrintEx(mx + 54, y, IntToStr(SL[I].Players) + '/' + IntToStr(SL[I].MaxPlayers), gStdFont, 255, 255, 255, 1);
-    e_TextureFontPrintEx(mx + 54, y + 16, IntToStr(SL[I].LocalPl) + '+' + IntToStr(SL[I].Bots), gStdFont, 210, 210, 210, 1);
+    Srv := GetServerFromTable(I, SL, ST);
+    e_TextureFontPrintEx(mx + 54, y, IntToStr(Srv.Players) + '/' + IntToStr(Srv.MaxPlayers), gStdFont, 255, 255, 255, 1);
+    e_TextureFontPrintEx(mx + 54, y + 16, IntToStr(Srv.LocalPl) + '+' + IntToStr(Srv.Bots), gStdFont, 210, 210, 210, 1);
     y := y + 42;
   end;
 
   e_TextureFontPrintEx(mx + 106, 68, 'VER', gStdFont, 255, 127, 0, 1);
   y := 90;
-  for I := 0 to High(SL) do
+  for I := 0 to High(ST) do
   begin
-    e_TextureFontPrintEx(mx + 106, y, IntToStr(SL[I].Protocol), gStdFont, 255, 255, 255, 1);
+    Srv := GetServerFromTable(I, SL, ST);
+    e_TextureFontPrintEx(mx + 106, y, IntToStr(Srv.Protocol), gStdFont, 255, 255, 255, 1);
 
     y := y + 42;
   end;
 
   e_TextureFontPrintEx(20, gScreenHeight-61, ip, gStdFont, 205, 205, 205, 1);
-  ip := IntToStr(Length(SL)) + _lc[I_NET_SLIST_SERVERS];
+  ip := IntToStr(Length(ST)) + _lc[I_NET_SLIST_SERVERS];
   e_TextureFontPrintEx(gScreenWidth - 48 - (Length(ip) + 1)*cw,
     gScreenHeight-61, ip, gStdFont, 205, 205, 205, 1);
 end;
 
-procedure g_Serverlist_Control(var SL: TNetServerList);
+procedure g_Serverlist_GenerateTable(SL: TNetServerList; var ST: TNetServerTable);
+var
+  i, j: Integer;
+
+  function FindServerInTable(Name: string): Integer;
+  var
+    i: Integer;
+  begin
+    Result := -1;
+    if ST = nil then
+      Exit;
+    for i := Low(ST) to High(ST) do
+    begin
+      if Length(ST[i].Indices) = 0 then
+        continue;
+      if SL[ST[i].Indices[0]].Name = Name then
+      begin
+        Result := i;
+        Exit;
+      end;
+    end;
+  end;
+  function ComparePing(i1, i2: Integer): Boolean;
+  var
+    p1, p2: Int64;
+  begin
+    p1 := SL[i1].Ping;
+    p2 := SL[i2].Ping;
+    if (p1 < 0) then p1 := 999;
+    if (p2 < 0) then p2 := 999;
+    Result := p1 > p2;
+  end;
+  procedure SortIndices(var ind: Array of Integer);
+  var
+    I, J: Integer;
+    T: Integer;
+  begin
+    for I := High(ind) downto Low(ind) do
+      for J := Low(ind) to High(ind) - 1 do
+        if ComparePing(ind[j], ind[j+1]) then
+        begin
+          T := ind[j];
+          ind[j] := ind[j+1];
+          ind[j+1] := T;
+        end;
+  end;
+  procedure SortRows();
+  var
+    I, J: Integer;
+    T: TNetServerRow;
+  begin
+    for I := High(ST) downto Low(ST) do
+      for J := Low(ST) to High(ST) - 1 do
+        if ComparePing(ST[j].Indices[0], ST[j+1].Indices[0]) then
+        begin
+          T := ST[j];
+          ST[j] := ST[j+1];
+          ST[j+1] := T;
+        end;
+  end;
+begin
+  ST := nil;
+  if SL = nil then
+    Exit;
+  for i := Low(SL) to High(SL) do
+  begin
+    j := FindServerInTable(SL[i].Name);
+    if j = -1 then
+    begin
+      j := Length(ST);
+      SetLength(ST, j + 1);
+      ST[j].Current := 0;
+      SetLength(ST[j].Indices, 1);
+      ST[j].Indices[0] := i;
+    end
+    else
+    begin
+      SetLength(ST[j].Indices, Length(ST[j].Indices) + 1);
+      ST[j].Indices[High(ST[j].Indices)] := i;
+    end;
+  end;
+
+  for i := Low(ST) to High(ST) do
+    SortIndices(ST[i].Indices);
+
+  SortRows();
+end;
+
+procedure g_Serverlist_Control(var SL: TNetServerList; var ST: TNetServerTable);
 var
   qm: Boolean;
+  Srv: TNetServer;
 begin
   if gConsoleShow or gChatShow then
     Exit;
@@ -603,6 +718,7 @@ begin
   if qm or e_KeyPressed(IK_ESCAPE) or e_KeyPressed(VK_ESCAPE) then
   begin
     SL := nil;
+    ST := nil;
     gState := STATE_MENU;
     g_GUI_ShowWindow('MainMenu');
     g_GUI_ShowWindow('NetGameMenu');
@@ -630,6 +746,7 @@ begin
           slWaitStr := _lc[I_NET_SLIST_ERROR];
       slFetched := True;
       slSelection := 0;
+      g_Serverlist_GenerateTable(SL, ST);
     end;
   end
   else
@@ -641,19 +758,22 @@ begin
   begin
     if not slReturnPressed then
     begin
-      if SL[slSelection].Password then
+      Srv := GetServerFromTable(slSelection, SL, ST);
+      if Srv.Password then
       begin
-        PromptIP := SL[slSelection].IP;
-        PromptPort := SL[slSelection].Port;
+        PromptIP := Srv.IP;
+        PromptPort := Srv.Port;
         gState := STATE_MENU;
         g_GUI_ShowWindow('ClientPasswordMenu');
         SL := nil;
+        ST := nil;
         slReturnPressed := True;
         Exit;
       end
       else
-        g_Game_StartClient(SL[slSelection].IP, SL[slSelection].Port, '');
+        g_Game_StartClient(Srv.IP, Srv.Port, '');
       SL := nil;
+      ST := nil;
       slReturnPressed := True;
       Exit;
     end;
@@ -666,7 +786,7 @@ begin
     if not slDirPressed then
     begin
       Inc(slSelection);
-      if slSelection > High(SL) then slSelection := 0;
+      if slSelection > High(ST) then slSelection := 0;
       slDirPressed := True;
     end;
   end;
@@ -675,14 +795,46 @@ begin
   begin
     if not slDirPressed then
     begin
-      if slSelection = 0 then slSelection := Length(SL);
+      if slSelection = 0 then slSelection := Length(ST);
       Dec(slSelection);
 
       slDirPressed := True;
     end;
   end;
 
-  if (not e_KeyPressed(IK_DOWN)) and (not e_KeyPressed(IK_UP)) and (not e_KeyPressed(IK_KPDOWN)) and (not e_KeyPressed(IK_KPUP)) and (not e_KeyPressed(VK_DOWN)) and (not e_KeyPressed(VK_UP)) then
+  if e_KeyPressed(IK_RIGHT) or e_KeyPressed(IK_KPRIGHT) or e_KeyPressed(VK_RIGHT) then
+  begin
+    if not slDirPressed then
+    begin
+      Inc(ST[slSelection].Current);
+      if ST[slSelection].Current > High(ST[slSelection].Indices) then ST[slSelection].Current := 0;
+      slDirPressed := True;
+    end;
+  end;
+
+  if e_KeyPressed(IK_LEFT) or e_KeyPressed(IK_KPLEFT) or e_KeyPressed(VK_LEFT) then
+  begin
+    if not slDirPressed then
+    begin
+      if ST[slSelection].Current = 0 then ST[slSelection].Current := Length(ST[slSelection].Indices);
+      Dec(ST[slSelection].Current);
+
+      slDirPressed := True;
+    end;
+  end;
+
+  if (not e_KeyPressed(IK_DOWN)) and
+     (not e_KeyPressed(IK_UP)) and
+     (not e_KeyPressed(IK_RIGHT)) and
+     (not e_KeyPressed(IK_LEFT)) and
+     (not e_KeyPressed(IK_KPDOWN)) and
+     (not e_KeyPressed(IK_KPUP)) and
+     (not e_KeyPressed(IK_KPRIGHT)) and
+     (not e_KeyPressed(IK_KPLEFT)) and
+     (not e_KeyPressed(VK_DOWN)) and
+     (not e_KeyPressed(VK_UP)) and
+     (not e_KeyPressed(VK_RIGHT)) and
+     (not e_KeyPressed(VK_LEFT)) then
     slDirPressed := False;
 end;
 
