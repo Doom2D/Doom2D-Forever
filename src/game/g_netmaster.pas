@@ -551,22 +551,20 @@ begin
   e_DrawLine(1, mx + 104, 64, mx + 104, gScreenHeight-64, 255, 127, 0);
 
   e_TextureFontPrintEx(18, 68, 'NAME/MAP', gStdFont, 255, 127, 0, 1);
+  e_TextureFontPrintEx(mx - 68, 68, 'PING', gStdFont, 255, 127, 0, 1);
+  e_TextureFontPrintEx(mx + 2, 68, 'MODE', gStdFont, 255, 127, 0, 1);
+  e_TextureFontPrintEx(mx + 54, 68, 'PLRS', gStdFont, 255, 127, 0, 1);
+  e_TextureFontPrintEx(mx + 106, 68, 'VER', gStdFont, 255, 127, 0, 1);
 
   y := 90;
   for I := 0 to High(ST) do
   begin
     Srv := GetServerFromTable(I, SL, ST);
+    // Name and map
     e_TextureFontPrintEx(18, y, Srv.Name, gStdFont, 255, 255, 255, 1);
     e_TextureFontPrintEx(18, y + 16, Srv.Map, gStdFont, 210, 210, 210, 1);
 
-    y := y + 42;
-  end;
-
-  e_TextureFontPrintEx(mx - 68, 68, 'PING', gStdFont, 255, 127, 0, 1);
-  y := 90;
-  for I := 0 to High(ST) do
-  begin
-    Srv := GetServerFromTable(I, SL, ST);
+    // Ping and similar count
     if (Srv.Ping < 0) or (Srv.Ping > 999) then
       e_TextureFontPrintEx(mx - 68, y, _lc[I_NET_SLIST_NO_ACCESS], gStdFont, 255, 0, 0, 1)
     else
@@ -578,34 +576,14 @@ begin
     if Length(ST[I].Indices) > 1 then
       e_TextureFontPrintEx(mx - 68, y + 16, '< ' + IntToStr(Length(ST[I].Indices)) + ' >', gStdFont, 210, 210, 210, 1);
 
-    y := y + 42;
-  end;
-
-  e_TextureFontPrintEx(mx + 2, 68, 'MODE', gStdFont, 255, 127, 0, 1);
-  y := 90;
-  for I := 0 to High(ST) do
-  begin
-    Srv := GetServerFromTable(I, SL, ST);
+    // Game mode
     e_TextureFontPrintEx(mx + 2, y, g_Game_ModeToText(Srv.GameMode), gStdFont, 255, 255, 255, 1);
 
-    y := y + 42;
-  end;
-
-  e_TextureFontPrintEx(mx + 54, 68, 'PLRS', gStdFont, 255, 127, 0, 1);
-  y := 90;
-  for I := 0 to High(ST) do
-  begin
-    Srv := GetServerFromTable(I, SL, ST);
+    // Players
     e_TextureFontPrintEx(mx + 54, y, IntToStr(Srv.Players) + '/' + IntToStr(Srv.MaxPlayers), gStdFont, 255, 255, 255, 1);
     e_TextureFontPrintEx(mx + 54, y + 16, IntToStr(Srv.LocalPl) + '+' + IntToStr(Srv.Bots), gStdFont, 210, 210, 210, 1);
-    y := y + 42;
-  end;
 
-  e_TextureFontPrintEx(mx + 106, 68, 'VER', gStdFont, 255, 127, 0, 1);
-  y := 90;
-  for I := 0 to High(ST) do
-  begin
-    Srv := GetServerFromTable(I, SL, ST);
+    // Version
     e_TextureFontPrintEx(mx + 106, y, IntToStr(Srv.Protocol), gStdFont, 255, 255, 255, 1);
 
     y := y + 42;
