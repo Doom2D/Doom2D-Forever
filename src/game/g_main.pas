@@ -56,7 +56,7 @@ var
 procedure Main();
 var
   sdlflags: LongWord;
-{$IFNDEF HEADLESS}
+{$IF not DEFINED(HEADLESS) and DEFINED(ENABLE_HOLMES)}
   flexloaded: Boolean;
 {$ENDIF}
 begin

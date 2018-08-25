@@ -892,8 +892,10 @@ var
   {$ENDIF}
   arg: AnsiString;
   mdfo: TStream;
+  {$IFDEF ENABLE_HOLMES}
   itmp: Integer;
   valres: Word;
+  {$ENDIF}
 begin
 {$IFDEF HEADLESS}
   e_NoGraphics := true;
