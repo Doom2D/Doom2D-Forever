@@ -263,6 +263,10 @@ var
   gSpectViewTwo: Boolean = False;
   gSpectPID1: Integer = -1;
   gSpectPID2: Integer = -1;
+  gSpectAuto: Boolean = False;
+  gSpectAutoNext: LongWord;
+  gSpectAutoStepX: Integer;
+  gSpectAutoStepY: Integer;
   gMusic: TMusic = nil;
   gLoadGameMode: Boolean;
   gCheats: Boolean = False;
@@ -1436,6 +1440,58 @@ begin
     Result := ids[(Length(ids) - 1 + idx) mod Length(ids)];
 end;
 
+function GetActivePlayerID_Random(Skip: Integer = -1): Integer;
+var
+  a, idx: Integer;
+  ids: Array of Word;
+begin
+  Result := -1;
+  if gPlayers = nil then
+    Exit;
+  SetLength(ids, 0);
+  idx := -1;
+  for a := Low(gPlayers) to High(gPlayers) do
+    if IsActivePlayer(gPlayers[a]) then
+    begin
+      SetLength(ids, Length(ids) + 1);
+      ids[High(ids)] := gPlayers[a].UID;
+      if gPlayers[a].UID = Skip then
+        idx := High(ids);
+    end;
+  if Length(ids) = 0 then
+    Exit;
+  if Length(ids) = 1 then
+  begin
+    Result := ids[0];
+    Exit;
+  end;
+  Result := ids[Random(Length(ids))];
+  a := 10;
+  while (idx <> -1) and (Result = Skip) and (a > 0) do
+  begin
+    Result := ids[Random(Length(ids))];
+    Dec(a);
+  end;
+end;
+
+function GetRandomSpectMode(Current: Byte): Byte;
+label
+  retry;
+begin
+retry:
+  case Random(7) of
+    0: Result := SPECT_STATS;
+    1: Result := SPECT_MAPVIEW;
+    2: Result := SPECT_MAPVIEW;
+    3: Result := SPECT_PLAYERS;
+    4: Result := SPECT_PLAYERS;
+    5: Result := SPECT_PLAYERS;
+    6: Result := SPECT_PLAYERS;
+  end;
+  if (Current in [SPECT_STATS, SPECT_MAPVIEW]) and (Current = Result) then
+    goto retry;
+end;
+
 function isKeyPressed (key1: Word; key2: Word): Boolean;
 begin
   if (key1 <> 0) and e_KeyPressed(key1) then begin result := true; exit; end;
@@ -1809,7 +1865,8 @@ begin
     begin
       if not gSpectKeyPress then
       begin
-        if isKeyPressed(gGameControls.P1Control.KeyJump, gGameControls.P1Control.KeyJump2) then
+        if isKeyPressed(gGameControls.P1Control.KeyJump, gGameControls.P1Control.KeyJump2)
+           and (not gSpectAuto) then
         begin
           // switch spect mode
           case gSpectMode of
@@ -1820,7 +1877,8 @@ begin
           end;
           gSpectKeyPress := True;
         end;
-        if gSpectMode = SPECT_MAPVIEW then
+        if (gSpectMode = SPECT_MAPVIEW)
+           and (not gSpectAuto) then
         begin
           if isKeyPressed(gGameControls.P1Control.KeyLeft, gGameControls.P1Control.KeyLeft2) then
             gSpectX := Max(gSpectX - gSpectStep, 0);
@@ -1843,7 +1901,8 @@ begin
             gSpectKeyPress := True;
           end;
         end;
-        if gSpectMode = SPECT_PLAYERS then
+        if (gSpectMode = SPECT_PLAYERS)
+           and (not gSpectAuto) then
         begin
           if isKeyPressed(gGameControls.P1Control.KeyUp, gGameControls.P1Control.KeyUp2) then
           begin
@@ -1882,9 +1941,27 @@ begin
             gSpectKeyPress := True;
           end;
         end;
+        if isKeyPressed(gGameControls.P1Control.KeyFire, gGameControls.P1Control.KeyFire2) then
+        begin
+          if (gSpectMode = SPECT_STATS) and (not gSpectAuto) then
+          begin
+            gSpectAuto := True;
+            gSpectAutoNext := 0;
+            gSpectViewTwo := False;
+            gSpectKeyPress := True;
+          end
+          else
+            if gSpectAuto then
+            begin
+              gSpectMode := SPECT_STATS;
+              gSpectAuto := False;
+              gSpectKeyPress := True;
+            end;
+        end;
       end
       else
         if (not isKeyPressed(gGameControls.P1Control.KeyJump, gGameControls.P1Control.KeyJump2)) and
+           (not isKeyPressed(gGameControls.P1Control.KeyFire, gGameControls.P1Control.KeyFire2)) and
            (not isKeyPressed(gGameControls.P1Control.KeyLeft, gGameControls.P1Control.KeyLeft2)) and
            (not isKeyPressed(gGameControls.P1Control.KeyRight, gGameControls.P1Control.KeyRight2)) and
            (not isKeyPressed(gGameControls.P1Control.KeyUp, gGameControls.P1Control.KeyUp2)) and
@@ -1892,6 +1969,54 @@ begin
            (not isKeyPressed(gGameControls.P1Control.KeyPrevWeapon, gGameControls.P1Control.KeyPrevWeapon2)) and
            (not isKeyPressed(gGameControls.P1Control.KeyNextWeapon, gGameControls.P1Control.KeyNextWeapon2)) then
           gSpectKeyPress := False;
+
+      if gSpectAuto then
+      begin
+        if gSpectMode = SPECT_MAPVIEW then
+        begin
+          i := Min(Max(gSpectX + gSpectAutoStepX, 0), gMapInfo.Width - gScreenWidth);
+          if i = gSpectX then
+            gSpectAutoNext := gTime
+          else
+            gSpectX := i;
+          i := Min(Max(gSpectY + gSpectAutoStepY, 0), gMapInfo.Height - gScreenHeight);
+          if i = gSpectY then
+            gSpectAutoNext := gTime
+          else
+            gSpectY := i;
+        end;
+        if gSpectAutoNext <= gTime then
+        begin
+          if gSpectAutoNext > 0 then
+          begin
+            gSpectMode := GetRandomSpectMode(gSpectMode);
+            case gSpectMode of
+              SPECT_MAPVIEW:
+              begin
+                gSpectX := Random(gMapInfo.Width - gScreenWidth);
+                gSpectY := Random(gMapInfo.Height - gScreenHeight);
+                gSpectAutoStepX := Random(9) - 4;
+                gSpectAutoStepY := Random(9) - 4;
+                if ((gSpectX < 800) and (gSpectAutoStepX < 0)) or
+                   ((gSpectX > gMapInfo.Width - gScreenWidth - 800) and (gSpectAutoStepX > 0)) then
+                  gSpectAutoStepX := gSpectAutoStepX * -1;
+                if ((gSpectY < 800) and (gSpectAutoStepY < 0)) or
+                   ((gSpectY > gMapInfo.Height - gScreenHeight - 800) and (gSpectAutoStepY > 0)) then
+                  gSpectAutoStepY := gSpectAutoStepY * -1;
+              end;
+              SPECT_PLAYERS:
+              begin
+                gSpectPID1 := GetActivePlayerID_Random(gSpectPID1);
+              end;
+            end;
+          end;
+          case gSpectMode of
+            SPECT_STATS:   gSpectAutoNext := gTime + (Random(3) + 5) * 1000;
+            SPECT_MAPVIEW: gSpectAutoNext := gTime + (Random(4) + 7) * 1000;
+            SPECT_PLAYERS: gSpectAutoNext := gTime + (Random(7) + 8) * 1000;
+          end;
+        end;
+      end;
     end;
 
   // Обновляем все остальное:
@@ -3609,7 +3734,7 @@ begin
 
     if IsDrawStat or (gSpectMode = 1) then DrawStat();
 
-    if gSpectHUD and (not gChatShow) and (gSpectMode <> SPECT_NONE) then
+    if gSpectHUD and (not gChatShow) and (gSpectMode <> SPECT_NONE) and (not gSpectAuto) then
     begin
     // Draw spectator GUI
       ww := 0;
@@ -3624,6 +3749,11 @@ begin
           e_TextureFontPrintEx(0, gScreenHeight - (hh+2)*2, 'MODE: Watch Players', gStdFont, 255, 255, 255, 1);
       end;
       e_TextureFontPrintEx(2*ww, gScreenHeight - (hh+2), '< jump >', gStdFont, 255, 255, 255, 1);
+      if gSpectMode = SPECT_STATS then
+      begin
+        e_TextureFontPrintEx(16*ww, gScreenHeight - (hh+2)*2, 'Autoview', gStdFont, 255, 255, 255, 1);
+        e_TextureFontPrintEx(16*ww, gScreenHeight - (hh+2), '< fire >', gStdFont, 255, 255, 255, 1);
+      end;
       if gSpectMode = SPECT_MAPVIEW then
       begin
         e_TextureFontPrintEx(22*ww, gScreenHeight - (hh+2)*2, '[-]', gStdFont, 255, 255, 255, 1);
