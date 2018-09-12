@@ -2354,8 +2354,15 @@ begin
       Mirror := TMirrorType.Horizontal;
 
     if FPunchAnim <> nil then
+    begin
       FPunchAnim.Draw(FObj.X+IfThen(Direction = TDirection.D_LEFT, 15-FObj.Rect.X, FObj.Rect.X-15),
                       FObj.Y+FObj.Rect.Y-11, Mirror);
+      if FPunchAnim.played then
+      begin
+        FPunchAnim.Free;
+        FPunchAnim := nil;
+      end;
+    end;
 
     if (FMegaRulez[MR_INVUL] > gTime) and (gPlayerDrawn <> Self) then
       if g_Texture_Get('TEXTURE_PLAYER_INVULPENTA', ID) then
@@ -2797,12 +2804,22 @@ end;
 procedure TPlayer.DoPunch();
 var
   id: DWORD;
+  st: String;
 begin
-  if FPunchAnim = nil then begin
-    g_Frames_Get(id, 'FRAMES_PUNCH');
-    FPunchAnim := TAnimation.Create(id, False, 1);
-  end else
+  if FPunchAnim <> nil then begin
     FPunchAnim.reset();
+    FPunchAnim.Free;
+    FPunchAnim := nil;
+  end;
+  st := 'FRAMES_PUNCH';
+  if R_BERSERK in FRulez then
+    st := st + '_BERSERK';
+  if FKeys[KEY_UP].Pressed then
+    st := st + '_UP'
+  else if FKeys[KEY_DOWN].Pressed then
+    st := st + '_DN';
+  g_Frames_Get(id, st);
+  FPunchAnim := TAnimation.Create(id, False, 1);
 end;
 
 procedure TPlayer.Fire();
@@ -2834,6 +2851,7 @@ begin
   case FCurrWeap of
     WEAPON_KASTET:
     begin
+      DoPunch();
       if R_BERSERK in FRulez then
       begin
         //g_Weapon_punch(FObj.X+FObj.Rect.X, FObj.Y+FObj.Rect.Y, 75, FUID);
@@ -2847,8 +2865,6 @@ begin
         locobj.Vel.Y := (yd-wy) div 2;
         locobj.Accel.X := xd-wx;
         locobj.Accel.y := yd-wy;
-
-        DoPunch();
 
         if g_Weapon_Hit(@locobj, 50, FUID, HIT_SOME) <> 0 then
           g_Sound_PlayExAt('SOUND_WEAPON_HITBERSERK', FObj.X, FObj.Y)
@@ -5296,6 +5312,7 @@ begin
   case FCurrWeap of
     WEAPON_KASTET:
     begin
+      DoPunch();
       if R_BERSERK in FRulez then
       begin
         //g_Weapon_punch(FObj.X+FObj.Rect.X, FObj.Y+FObj.Rect.Y, 75, FUID);
@@ -5309,8 +5326,6 @@ begin
         locobj.Vel.Y := (yd-wy) div 2;
         locobj.Accel.X := xd-wx;
         locobj.Accel.y := yd-wy;
-
-        DoPunch();
 
         if g_Weapon_Hit(@locobj, 50, FUID, HIT_SOME) <> 0 then
           g_Sound_PlayExAt('SOUND_WEAPON_HITBERSERK', FObj.X, FObj.Y)
