@@ -33,4 +33,12 @@ public class Doom2DF extends SDLActivity {
 		CopyAssets.copyAssets(SDL.getContext(), "instruments");
 		CopyAssets.copyAssets(SDL.getContext(), "timidity.cfg");
 	}
+
+	@Override
+	protected void onDestroy() {
+		super.onDestroy();
+
+		/* This will fix bug #31 and may be #32 */
+		System.exit(0);
+	}
 }
