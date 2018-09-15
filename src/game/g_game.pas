@@ -1478,6 +1478,7 @@ function GetRandomSpectMode(Current: Byte): Byte;
 label
   retry;
 begin
+  Result := Current;
 retry:
   case Random(7) of
     0: Result := SPECT_STATS;

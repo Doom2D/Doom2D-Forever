@@ -476,6 +476,20 @@ end;
 
 function GetServerFromTable(Index: Integer; SL: TNetServerList; ST: TNetServerTable): TNetServer;
 begin
+  Result.Number := 0;
+  Result.Protocol := 0;
+  Result.Name := '';
+  Result.IP := '';
+  Result.Port := 0;
+  Result.Map := '';
+  Result.Players := 0;
+  Result.MaxPlayers := 0;
+  Result.LocalPl := 0;
+  Result.Bots := 0;
+  Result.Ping := 0;
+  Result.GameMode := 0;
+  Result.Password := false;
+  FillChar(Result.PingAddr, SizeOf(ENetAddress), 0);
   if ST = nil then
     Exit;
   if (Index < 0) or (Index >= Length(ST)) then
