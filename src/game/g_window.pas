@@ -234,7 +234,7 @@ begin
 end;
 
 
-procedure ChangeWindowSize ();
+procedure ChangeWindowSize (requested: Boolean);
 begin
   e_LogWritefln('  ChangeWindowSize: (ws=%dx%d) (ss=%dx%d)', [gWinSizeX, gWinSizeY, gScreenWidth, gScreenHeight]);
   gWinSizeX := gScreenWidth;
@@ -246,7 +246,13 @@ begin
   {$ENDIF}
   e_ResizeWindow(gScreenWidth, gScreenHeight);
   g_Game_SetupScreenSize();
-  g_Menu_Reset();
+  {$IF DEFINED(ANDROID)}
+    (* This will fix menu reset on keyboard showing *)
+    if requested then
+      g_Menu_Reset;
+  {$ELSE}
+    g_Menu_Reset;
+  {$ENDIF}
   g_Game_ClearLoading();
 {$ENDIF}
 end;
@@ -281,7 +287,7 @@ begin
   if result then
   begin
     g_Window_SetDisplay(preserve);
-    ChangeWindowSize();
+    ChangeWindowSize(true);
   end;
 {$ENDIF}
 end;
@@ -337,7 +343,7 @@ begin
         gScreenWidth := ev.data1;
         gScreenHeight := ev.data2;
       end;
-      ChangeWindowSize();
+      ChangeWindowSize(false);
       SwapBuffers();
       if g_debug_WinMsgs then
       begin
