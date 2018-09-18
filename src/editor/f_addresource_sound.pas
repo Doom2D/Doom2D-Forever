@@ -43,7 +43,7 @@ var
 implementation
 
 uses
-  BinEditor, WADEDITOR, e_log, f_main, g_language
+  BinEditor, WADEDITOR, e_log, f_main, g_language, g_resources
 {$IFNDEF NOSOUND}, fmod, fmodtypes, fmoderrors;{$ELSE};{$ENDIF}
 
 {$R *.lfm}
@@ -118,7 +118,6 @@ end;
 
 function CreateSoundWAD(Resource: String): Boolean;
 var
-  WAD: TWADEditor_1;
   FileName, SectionName, ResourceName: String;
   ResLength: Integer;
   sz: LongWord;
@@ -132,11 +131,9 @@ begin
   Channel := nil;
 {$IFNDEF NOSOUND}
   g_ProcessResourceStr(Resource, FileName, SectionName, ResourceName);
+  g_ReadResource(FileName, SectionName, ResourceName, SoundData, ResLength);
 
-  WAD := TWADEditor_1.Create;
-  WAD.ReadFile(FileName);
-
-  if WAD.GetResource(utf2win(SectionName), utf2win(ResourceName), SoundData, ResLength) then
+  if SoundData <> nil then
     begin
       sz := SizeOf(FMOD_CREATESOUNDEXINFO);
       FillMemory(@soundExInfo, sz, 0);
@@ -151,19 +148,16 @@ begin
       begin
         e_WriteLog(Format('Error creating sound %s', [Resource]), MSG_WARNING);
         e_WriteLog(FMOD_ErrorString(res), MSG_WARNING);
-        WAD.Free();
         Exit;
       end;
     end
   else
     begin
       e_WriteLog(Format('Error loading sound %s', [Resource]), MSG_WARNING);
-      e_WriteLog(Format('WAD Reader error: %s', [WAD.GetLastErrorStr]), MSG_WARNING);
-      WAD.Free();
+      //e_WriteLog(Format('WAD Reader error: %s', [WAD.GetLastErrorStr]), MSG_WARNING);
       Exit;
     end;
  
-  WAD.Free();
   Result := True;
 {$ENDIF}
 end;

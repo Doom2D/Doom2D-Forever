@@ -15,6 +15,11 @@ uses
   WADEDITOR in '../shared/WADEDITOR.pas',
   WADSTRUCT in '../shared/WADSTRUCT.pas',
   CONFIG in '../shared/CONFIG.pas',
+  xstreams in '../shared/xstreams.pas',
+  sfs in '../sfs/sfs.pas',
+  sfsPlainFS in '../sfs/sfsPlainFS.pas',
+  sfsZipFS in '../sfs/sfsZipFS.pas',
+
   f_about in 'f_about.pas' {AboutForm},
   f_options in 'f_options.pas' {OptionsForm},
   f_main in 'f_main.pas' {MainForm},

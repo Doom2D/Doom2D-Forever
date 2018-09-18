@@ -339,7 +339,7 @@ uses
   MAPREADER, f_selectmap, f_savemap, WADEDITOR, WADSTRUCT, MAPDEF,
   g_map, f_saveminimap, f_addresource, CONFIG, f_packmap,
   f_addresource_sound, f_maptest, f_choosetype,
-  g_language, f_selectlang, ClipBrd;
+  g_language, f_selectlang, ClipBrd, g_resources;
 
 const
   UNDO_DELETE_PANEL   = 1;
@@ -2619,23 +2619,15 @@ var
   cwdt, chgt: Byte;
   spc: ShortInt;
   ID: DWORD;
-  wad: TWADEditor_1;
   cfgdata: Pointer;
   cfglen: Integer;
   config: TConfig;
 begin
-  cfgdata := nil;
-  cfglen := 0;
   ID := 0;
-
-  wad := TWADEditor_1.Create;
-  if wad.ReadFile(EditorDir+'data/Game.wad') then
-    wad.GetResource('FONTS', cfgres, cfgdata, cfglen);
-  wad.Free();
-
-  if cfglen <> 0 then
+  g_ReadResource(EditorDir + 'data/Game.wad', 'FONTS', cfgres, cfgdata, cfglen);
+  if cfgdata <> nil then
   begin
-    if not g_CreateTextureWAD('FONT_STD', EditorDir+'data/Game.wad:FONTS\'+texture) then
+    if not g_CreateTextureWAD('FONT_STD', EditorDir + 'data/Game.wad:FONTS\' + texture) then
       e_WriteLog('ERROR ERROR ERROR', MSG_WARNING);
 
     config := TConfig.CreateMem(cfgdata, cfglen);
@@ -2644,14 +2636,15 @@ begin
     spc := Min(Max(config.ReadInt('FontMap', 'Kerning', 0), -128), 127);
 
     if g_GetTexture('FONT_STD', ID) then
-      e_TextureFontBuild(ID, FontID, cwdt, chgt, spc-2);
+      e_TextureFontBuild(ID, FontID, cwdt, chgt, spc - 2);
 
     config.Free();
+    FreeMem(cfgdata)
   end
   else
-    e_WriteLog('Could not load FONT_STD', MSG_WARNING);
-
-  if cfglen <> 0 then FreeMem(cfgdata);
+  begin
+    e_WriteLog('Could not load FONT_STD', MSG_WARNING)
+  end
 end;
 
 procedure TMainForm.FormCreate(Sender: TObject);

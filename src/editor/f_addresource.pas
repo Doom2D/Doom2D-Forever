@@ -45,7 +45,7 @@ var
 implementation
 
 uses
-  f_main, WADSTRUCT, g_language, utils;
+  f_main, WADSTRUCT, g_language, utils, sfs;
 
 {$R *.lfm}
 
@@ -53,9 +53,8 @@ const
   STANDART_WAD = 'Standart.wad';
 
 procedure TAddResourceForm.FormActivate(Sender: TObject);
-var
-  SR: TSearchRec;
-  
+  var
+    SR: TSearchRec;
 begin
   cbWADList.Clear();
   cbSectionsList.Clear();
@@ -66,9 +65,10 @@ begin
   FResourceSelected := False;
 
   ChDir(EditorDir);
-  if FindFirst(EditorDir+'wads/*.wad', faAnyFile, SR) = 0 then
+  if FindFirst(EditorDir + 'wads/*.*', faAnyFile, SR) = 0 then
   repeat
-    cbWADList.Items.Add(SR.Name);
+    if (SR.name <> '.') and (SR.name <> '..') then
+      cbWADList.Items.Add(SR.Name);
   until FindNext(SR) <> 0;
   FindClose(SR);
 
@@ -103,87 +103,67 @@ begin
 end;
 
 procedure TAddResourceForm.cbWADListChange(Sender: TObject);
-var
-  WAD: TWADEditor_1;
-  SectionList: SArray;
-  i: Integer;
-  FileName, fn, sn, rn: String;
-
+  var
+    wad: TSFSFileList;
+    i: Integer;
+    FileName, Section, sn, rn: String;
 begin
-  WAD := TWADEditor_1.Create();
-
-// Внешний WAD:
   if cbWADList.Text <> _lc[I_WAD_SPECIAL_MAP] then
-     FileName := EditorDir+'wads/'+cbWADList.Text
-  else // WAD карты:
-    begin
-      g_ProcessResourceStr(OpenedMap, fn, sn, rn);
-      FileName := fn;
-    end;
-
-// Читаем секции:
-  WAD.ReadFile(FileName);
-  SectionList := WAD.GetSectionList();
-  WAD.Free();
+    FileName := EditorDir + 'wads/' + cbWADList.Text (* Resource wad *)
+  else
+    g_ProcessResourceStr(OpenedMap, FileName, sn, rn); (* Map wad *)
 
   cbSectionsList.Clear();
   lbResourcesList.Clear();
 
-  if SectionList <> nil then
-    for i := 0 to High(SectionList) do
-      if SectionList[i] <> '' then
-        cbSectionsList.Items.Add(win2utf(SectionList[i]))
-      else
-        cbSectionsList.Items.Add('..');
+  wad := SFSFileList(FileName);
+  if wad <> nil then
+  begin
+    for i := 0 to wad.Count - 1 do
+    begin
+      Section := win2utf(Copy(wad.Files[i].path, 1, Length(wad.Files[i].path) - 1));
+      if cbSectionsList.Items.IndexOf(Section) = -1 then
+        cbSectionsList.Items.Add(Section)
+    end;
+    wad.Destroy
+  end;
+
+  (* Update resource list (see below) *)
+  cbSectionsListChange(Sender)
 end;
 
 procedure TAddResourceForm.cbSectionsListChange(Sender: TObject);
-var
-  ResourceList: SArray;
-  WAD: TWADEditor_1;
-  i: DWORD;
-  FileName, SectionName, fn, sn, rn: String;
-
+  var
+    wad: TSFSFileList;
+    i: Integer;
+    FileName, Section, SectionName, sn, rn: String;
 begin
-  WAD := TWADEditor_1.Create();
-
-// Внешний WAD:
   if cbWADList.Text <> _lc[I_WAD_SPECIAL_MAP] then
-    FileName := EditorDir+'wads/'+cbWADList.Text
-  else // WAD карты:
-    begin
-      g_ProcessResourceStr(OpenedMap, fn, sn, rn);
-      FileName := fn;
-    end;
-
-// Читаем WAD:
-  WAD.ReadFile(FileName);
-
-  if cbSectionsList.Text <> '..' then
-    SectionName := cbSectionsList.Text
+    FileName := EditorDir + 'wads/' + cbWADList.Text (* Resource wad *)
   else
-    SectionName := '';
+    g_ProcessResourceStr(OpenedMap, FileName, sn, rn); (* Map wad *)
 
-// Читаем ресурсы выбранной секции:
-  ResourceList := WAD.GetResourcesList(utf2win(SectionName));
-
-  WAD.Free();
-
+  SectionName := cbSectionsList.Text;
   lbResourcesList.Clear();
 
-  if ResourceList <> nil then
-    for i := 0 to High(ResourceList) do
-      lbResourcesList.Items.Add(win2utf(ResourceList[i]));
+  wad := SFSFileList(FileName);
+  if wad <> nil then
+  begin
+    for i := 0 to wad.Count - 1 do
+    begin
+      Section := win2utf(Copy(wad.Files[i].path, 1, Length(wad.Files[i].path) - 1));
+      if Section = SectionName then
+        lbResourcesList.Items.Add(win2utf(wad.Files[i].name))
+    end;
+    wad.Destroy
+  end;
 end;
 
 procedure TAddResourceForm.lbResourcesListClick(Sender: TObject);
-var
-  FileName, SectionName, fn: String;
-
+  var
+    FileName, fn: String;
 begin
-  FResourceSelected := (lbResourcesList.SelCount > 0) or
-                       (lbResourcesList.ItemIndex > -1);
-
+  FResourceSelected := (lbResourcesList.SelCount > 0) or (lbResourcesList.ItemIndex > -1);
   if not FResourceSelected then
   begin
     FResourceName := '';
@@ -191,25 +171,18 @@ begin
     Exit;
   end;
 
-  if cbSectionsList.Text = '..' then
-    SectionName := ''
-  else
-    SectionName := cbSectionsList.Text;
-
   if cbWADList.Text[1] <> '<' then
     FileName := cbWADList.Text
   else
     FileName := '';
 
-  FResourceName := FileName+':'+SectionName+'\'+lbResourcesList.Items[lbResourcesList.ItemIndex];
+  FResourceName := FileName + ':' + cbSectionsList.Text + '\' + lbResourcesList.Items[lbResourcesList.ItemIndex];
 
+  g_ProcessResourceStr(OpenedMap, @fn, nil, nil);
   if FileName <> '' then
-    FFullResourceName := EditorDir+'wads/'+FResourceName
+    FFullResourceName := EditorDir + 'wads/' + FResourceName
   else
-    begin
-      g_ProcessResourceStr(OpenedMap, @fn, nil, nil);
-      FFullResourceName := fn+FResourceName;
-    end;
+    FFullResourceName := fn + FResourceName
 end;
 
 end.
