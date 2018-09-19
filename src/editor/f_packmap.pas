@@ -53,7 +53,7 @@ implementation
 
 uses
   BinEditor, WADEDITOR, g_map, MAPREADER, MAPWRITER, MAPSTRUCT,
-  f_main, math, g_language;
+  f_main, math, g_language, g_resources;
 
 {$R *.lfm}
 
@@ -70,66 +70,35 @@ begin
     eWAD.Text := SaveDialog.FileName;
 end;
 
-function ProcessResource(wad_to: TWADEditor_1;
-           section_to, filename, section, resource: String): Boolean;
-var
-  wad2: TWADEditor_1;
-  data: Pointer;
-  reslen: Integer;
-  //s: string;
-
+function ProcessResource(wad_to: TWADEditor_1; section_to, filename, section, resource: String): Boolean;
+  var
+    data: Pointer;
+    reslen: Integer;
 begin
-  Result := False;
- 
   if filename = '' then
     g_ProcessResourceStr(OpenedMap, @filename, nil, nil)
   else
-    filename := EditorDir+'wads/'+filename;
+    filename := EditorDir + 'wads/' + filename;
 
-// Читаем ресурс из WAD-файла карты или какого-то другого:
-  wad2 := TWADEditor_1.Create();
-
-  if not wad2.ReadFile(filename) then
+  g_ReadResource(filename, section, resource, data, reslen);
+  if data <> nil then
   begin
-    MessageBox(0, PChar(Format(_lc[I_MSG_WAD_ERROR],
-                                   [ExtractFileName(filename)])),
-               PChar(_lc[I_MSG_ERROR]), MB_OK + MB_ICONERROR);
-    wad2.Free();
-    Exit;
-  end;
-
-  if not wad2.GetResource(utf2win(section), utf2win(resource), data, reslen) then
+    (* Write resource only if it does not exists *)
+    if not wad_to.HaveResource(utf2win(section_to), utf2win(resource)) then
+    begin
+      if not wad_to.HaveSection(utf2win(section_to)) then
+        wad_to.AddSection(utf2win(section_to));
+      wad_to.AddResource(data, reslen, utf2win(resource), utf2win(section_to))
+    end;
+    FreeMem(data);
+    Result := True
+  end
+  else
   begin
-    MessageBox(0, PChar(Format(_lc[I_MSG_RES_ERROR],
-                                   [filename, section, resource])),
-               PChar(_lc[I_MSG_ERROR]), MB_OK + MB_ICONERROR);
-    wad2.Free();
-    Exit;
-  end;
-
-  wad2.Free();
-
- {if wad_to.HaveResource(utf2win(section_to), utf2win(resource)) then
- begin
-  for a := 2 to 256 do
-  begin
-   s := IntToStr(a);
-   if not wad_to.HaveResource(utf2win(section_to), utf2win(resource+s)) then Break;
-  end;
-  resource := resource+s;
- end;}
-
-// Если такого ресурса нет в WAD-файле-назначении, то копируем:
-  if not wad_to.HaveResource(utf2win(section_to), utf2win(resource)) then
-  begin
-    if not wad_to.HaveSection(utf2win(section_to)) then
-      wad_to.AddSection(utf2win(section_to));
-    wad_to.AddResource(data, reslen, utf2win(resource), utf2win(section_to));
-  end;
-
-  FreeMem(data);
-
-  Result := True;
+    //MessageBox(0, PChar(Format(_lc[I_MSG_WAD_ERROR], [ExtractFileName(filename)])), PChar(_lc[I_MSG_ERROR]), MB_OK + MB_ICONERROR);
+    MessageBox(0, PChar(Format(_lc[I_MSG_RES_ERROR], [filename, section, resource])), PChar(_lc[I_MSG_ERROR]), MB_OK + MB_ICONERROR);
+    Result := False
+  end
 end;
 
 procedure TPackMapForm.bPackClick(Sender: TObject);
