@@ -66,6 +66,12 @@ const
   BANLIST_FILENAME = 'banlist.txt';
   NETDUMP_FILENAME = 'netdump';
 
+  {$IFDEF FREEBSD}
+    NilThreadId = nil;
+  {$ELSE}
+    NilThreadId = 0;
+  {$ENDIF}
+
 type
   TNetClient = record
     ID:      Byte;
@@ -149,7 +155,7 @@ var
   NetIGDService: TURLStr;
 {$ENDIF}
 
-  NetPortThread: TThreadID = 0;
+  NetPortThread: TThreadID = NilThreadId;
 
   NetDumpFile: TStream;
 
@@ -319,10 +325,10 @@ begin
 
   NetMode := NET_NONE;
 
-  if NetPortThread <> 0 then
+  if NetPortThread <> NilThreadId then
     WaitForThreadTerminate(NetPortThread, 66666);
 
-  NetPortThread := 0;
+  NetPortThread := NilThreadId;
   g_Net_UnforwardPorts();
 
   if NetDump then
