@@ -3724,7 +3724,7 @@ begin
   if not switchAllowed then
   begin
     //HACK for weapon cycling
-    if (FNextWeap and $7000) <> 0 then FNextWeap := 0;
+    if (FNextWeap and $E000) <> 0 then FNextWeap := 0;
     exit;
   end;
 
