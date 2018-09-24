@@ -6337,6 +6337,12 @@ begin
         pm := g_PlayerModel_Get(FModelName);
         pm.PlaySound(MODELSOUND_DIE, 5, FObj.X, FObj.Y);
         pm.Free;
+
+        // Зловещий смех:
+        if (gBodyKillEvent <> -1)
+        and gDelayedEvents[gBodyKillEvent].Pending then
+          gDelayedEvents[gBodyKillEvent].Pending := False;
+        gBodyKillEvent := g_Game_DelayEvent(DE_BODYKILL, 1050, 0);
       end;
     end
   else

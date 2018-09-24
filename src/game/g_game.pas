@@ -124,6 +124,7 @@ function  g_Game_GetMegaWADInfo(WAD: String): TMegaWADInfo;
 procedure g_Game_ChatSound(Text: String; Taunt: Boolean = True);
 procedure g_Game_Announce_GoodShot(SpawnerUID: Word);
 procedure g_Game_Announce_KillCombo(Param: Integer);
+procedure g_Game_Announce_BodyKill(SpawnerUID: Word);
 procedure g_Game_StartVote(Command, Initiator: string);
 procedure g_Game_CheckVote;
 procedure g_TakeScreenShot();
@@ -201,6 +202,7 @@ const
   DE_GLOBEVENT = 0;
   DE_BFGHIT    = 1;
   DE_KILLCOMBO = 2;
+  DE_BODYKILL  = 3;
 
   ANNOUNCE_NONE   = 0;
   ANNOUNCE_ME     = 1;
@@ -234,6 +236,8 @@ var
   gAnnouncer: Byte = ANNOUNCE_NONE;
   goodsnd: array[0..3] of TPlayableSound;
   killsnd: array[0..3] of TPlayableSound;
+  hahasnd: array[0..2] of TPlayableSound;
+  gBodyKillEvent: Integer = -1;
   gDefInterTime: ShortInt = -1;
   gInterEndTime: LongWord = 0;
   gInterTime: LongWord = 0;
@@ -2184,6 +2188,9 @@ begin
               if g_Game_IsNet and g_Game_IsServer then
                 MH_SEND_GameEvent(NET_EV_KILLCOMBO, gDelayedEvents[a].DENum);
             end;
+          DE_BODYKILL:
+            if gGameOn then
+              g_Game_Announce_BodyKill(gDelayedEvents[a].DENum);
         end;
         gDelayedEvents[a].Pending := False;
       end;
@@ -2335,6 +2342,9 @@ begin
   g_Sound_CreateWADEx('SOUND_ANNOUNCER_KILL3X', GameWAD+':SOUNDS\KILL3X');
   g_Sound_CreateWADEx('SOUND_ANNOUNCER_KILL4X', GameWAD+':SOUNDS\KILL4X');
   g_Sound_CreateWADEx('SOUND_ANNOUNCER_KILLMX', GameWAD+':SOUNDS\KILLMX');
+  g_Sound_CreateWADEx('SOUND_ANNOUNCER_MUHAHA1', GameWAD+':SOUNDS\MUHAHA1');
+  g_Sound_CreateWADEx('SOUND_ANNOUNCER_MUHAHA2', GameWAD+':SOUNDS\MUHAHA2');
+  g_Sound_CreateWADEx('SOUND_ANNOUNCER_MUHAHA3', GameWAD+':SOUNDS\MUHAHA3');
 
   goodsnd[0] := TPlayableSound.Create();
   goodsnd[1] := TPlayableSound.Create();
@@ -2355,6 +2365,14 @@ begin
   killsnd[1].SetByName('SOUND_ANNOUNCER_KILL3X');
   killsnd[2].SetByName('SOUND_ANNOUNCER_KILL4X');
   killsnd[3].SetByName('SOUND_ANNOUNCER_KILLMX');
+
+  hahasnd[0] := TPlayableSound.Create();
+  hahasnd[1] := TPlayableSound.Create();
+  hahasnd[2] := TPlayableSound.Create();
+
+  hahasnd[0].SetByName('SOUND_ANNOUNCER_MUHAHA1');
+  hahasnd[1].SetByName('SOUND_ANNOUNCER_MUHAHA2');
+  hahasnd[2].SetByName('SOUND_ANNOUNCER_MUHAHA3');
 
   g_Game_LoadChatSounds(GameWAD+':CHATSND\SNDCFG');
 
@@ -2428,6 +2446,14 @@ begin
   g_Sound_Delete('SOUND_ANNOUNCER_KILL3X');
   g_Sound_Delete('SOUND_ANNOUNCER_KILL4X');
   g_Sound_Delete('SOUND_ANNOUNCER_KILLMX');
+
+  hahasnd[0].Free();
+  hahasnd[1].Free();
+  hahasnd[2].Free();
+
+  g_Sound_Delete('SOUND_ANNOUNCER_MUHAHA1');
+  g_Sound_Delete('SOUND_ANNOUNCER_MUHAHA2');
+  g_Sound_Delete('SOUND_ANNOUNCER_MUHAHA3');
 
   g_Game_FreeChatSounds();
 
@@ -7311,6 +7337,25 @@ begin
   if killsnd[n].IsPlaying() then
     killsnd[n].Stop();
   killsnd[n].Play();
+end;
+
+procedure g_Game_Announce_BodyKill(SpawnerUID: Word);
+var
+  a: Integer;
+begin
+  case gAnnouncer of
+    ANNOUNCE_NONE:
+      Exit;
+    ANNOUNCE_ME,
+    ANNOUNCE_MEPLUS:
+      if not g_Game_IsWatchedPlayer(SpawnerUID) then
+        Exit;
+  end;
+  for a := 0 to 2 do
+    if hahasnd[a].IsPlaying() then
+      Exit;
+
+  hahasnd[Random(3)].Play();
 end;
 
 procedure g_Game_StartVote(Command, Initiator: string);
