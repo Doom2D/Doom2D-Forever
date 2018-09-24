@@ -231,6 +231,8 @@ type
 
     procedure doDamage (v: Integer);
 
+    function followCorpse(): Boolean;
+
   public
     FDamageBuffer:   Integer;
 
@@ -463,7 +465,7 @@ type
 
   PGib = ^TGib;
   TGib = record
-    alive:     Boolean;
+    alive:    Boolean;
     ID:       DWORD;
     MaskID:   DWORD;
     RAngle:   Integer;
@@ -501,6 +503,7 @@ type
     FDamage:        Byte;
     FColor:         TRGB;
     FObj:           TObj;
+    FPlayerUID:     Word;
     FAnimation:     TAnimation;
     FAnimationMask: TAnimation;
 
@@ -1539,6 +1542,7 @@ begin
         gCorpses[find_id].FColor := FModel.Color;
         gCorpses[find_id].FObj.Vel := FObj.Vel;
         gCorpses[find_id].FObj.Accel := FObj.Accel;
+        gCorpses[find_id].FPlayerUID := FUID;
       end
     else
       g_Player_CreateGibs(FObj.X + PLAYER_RECT_CX,
@@ -4831,6 +4835,31 @@ begin
     Result := 1;
 end;
 
+function TPlayer.followCorpse(): Boolean;
+var
+  i: Integer;
+begin
+  Result := False;
+  if FAlive or FSpectator then
+    Exit;
+  if (gCorpses = nil) or (Length(gCorpses) = 0) then
+    Exit;
+  if gCorpses <> nil then
+    for i := 0 to High(gCorpses) do
+      if gCorpses[i] <> nil then
+        if gCorpses[i].FPlayerUID = FUID then
+        begin
+          Result := True;
+          FObj.X := gCorpses[i].FObj.X;
+          FObj.Y := gCorpses[i].FObj.Y;
+          FObj.Vel.X := gCorpses[i].FObj.Vel.X;
+          FObj.Vel.Y := gCorpses[i].FObj.Vel.Y;
+          FObj.Accel.X := gCorpses[i].FObj.Accel.X;
+          FObj.Accel.Y := gCorpses[i].FObj.Accel.Y;
+          break;
+        end;
+end;
+
 procedure TPlayer.Update();
 var
   b: Byte;
@@ -4907,7 +4936,8 @@ begin
 
     if FPhysics then
     begin
-      g_Obj_Move(@FObj, True, True, True);
+      if not followCorpse() then
+        g_Obj_Move(@FObj, True, True, True);
       positionChanged(); // this updates spatial accelerators
     end;
 
@@ -5033,7 +5063,8 @@ begin
 
   if FPhysics then
   begin
-    g_Obj_Move(@FObj, True, True, True);
+    if not followCorpse() then
+      g_Obj_Move(@FObj, True, True, True);
     positionChanged(); // this updates spatial accelerators
   end
   else
@@ -6383,6 +6414,7 @@ begin
   utils.writeInt(st, Byte(FColor.B));
   // Объект трупа
   Obj_SaveState(st, @FObj);
+  utils.writeInt(st, Word(FPlayerUID));
   // Есть ли анимация
   anim := (FAnimation <> nil);
   utils.writeBool(st, anim);
@@ -6415,6 +6447,7 @@ begin
   FColor.B := utils.readByte(st);
   // Объект трупа
   Obj_LoadState(@FObj, st);
+  FPlayerUID := utils.readWord(st);
   // Есть ли анимация
   anim := utils.readBool(st);
   // Если есть - загружаем
