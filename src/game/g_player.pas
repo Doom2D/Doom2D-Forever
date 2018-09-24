@@ -4518,6 +4518,13 @@ begin
       FRulez := [];
   end;
 
+// Разрываем связи с трупами:
+  if gCorpses <> nil then
+    for a := 0 to High(gCorpses) do
+      if gCorpses[a] <> nil then
+        if gCorpses[a].FPlayerUID = FUID then
+          gCorpses[a].FPlayerUID := 0;
+
 // Получаем координаты точки возрождения:
   if not g_Map_GetPoint(c, RespawnPoint) then
   begin
@@ -4844,20 +4851,19 @@ begin
     Exit;
   if (gCorpses = nil) or (Length(gCorpses) = 0) then
     Exit;
-  if gCorpses <> nil then
-    for i := 0 to High(gCorpses) do
-      if gCorpses[i] <> nil then
-        if gCorpses[i].FPlayerUID = FUID then
-        begin
-          Result := True;
-          FObj.X := gCorpses[i].FObj.X;
-          FObj.Y := gCorpses[i].FObj.Y;
-          FObj.Vel.X := gCorpses[i].FObj.Vel.X;
-          FObj.Vel.Y := gCorpses[i].FObj.Vel.Y;
-          FObj.Accel.X := gCorpses[i].FObj.Accel.X;
-          FObj.Accel.Y := gCorpses[i].FObj.Accel.Y;
-          break;
-        end;
+  for i := 0 to High(gCorpses) do
+    if gCorpses[i] <> nil then
+      if gCorpses[i].FPlayerUID = FUID then
+      begin
+        Result := True;
+        FObj.X := gCorpses[i].FObj.X;
+        FObj.Y := gCorpses[i].FObj.Y;
+        FObj.Vel.X := gCorpses[i].FObj.Vel.X;
+        FObj.Vel.Y := gCorpses[i].FObj.Vel.Y;
+        FObj.Accel.X := gCorpses[i].FObj.Accel.X;
+        FObj.Accel.Y := gCorpses[i].FObj.Accel.Y;
+        break;
+      end;
 end;
 
 procedure TPlayer.Update();
