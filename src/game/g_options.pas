@@ -142,6 +142,7 @@ uses
 procedure g_Options_SetDefaultVideo;
 var
   target, closest, display: TSDL_DisplayMode;
+  percentage: Integer;
 begin
   (* Display 0 = Primary display *)
   SDL_GetDesktopDisplayMode(0, @display);
@@ -153,12 +154,25 @@ begin
     gFullScreen := True; (* rotation not allowed? *)
   {$ELSE}
     (* Window must be smaller than display *)
-    target.w := display.w * 75 div 100;
-    target.h := display.h * 75 div 100;
-    target.format := 0; (* didn't care *)
-    target.refresh_rate := 0; (* didn't care *)
-    target.driverdata := nil; (* init *)
-    SDL_GetClosestDisplayMode(0, @target, @closest);
+    closest.w := display.w;
+    closest.h := display.h;
+    percentage := 75;
+    while (display.w - closest.w < 48) or (display.h - closest.h < 48) do
+    begin
+      if percentage < 25 then
+      begin
+        closest.w := display.w * 75 div 100;
+        closest.h := display.h * 75 div 100;
+        break;
+      end;
+      target.w := display.w * percentage div 100;
+      target.h := display.h * percentage div 100;
+      target.format := 0; (* didn't care *)
+      target.refresh_rate := 0; (* didn't care *)
+      target.driverdata := nil; (* init *)
+      SDL_GetClosestDisplayMode(0, @target, @closest);
+      Dec(percentage);
+    end;
     gScreenWidth := closest.w;
     gScreenHeight := closest.h;
     //gBPP := SDL_BITSPERPIXEL(closest.format); (* Resolution list didn't work for some reason *)
