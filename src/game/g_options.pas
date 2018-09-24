@@ -140,37 +140,38 @@ uses
   g_items, wadreader, e_graphics, g_touch, SDL2;
 
 procedure g_Options_SetDefaultVideo;
-{$IF DEFINED(ANDROID)}
 var
-  display: TSDL_DisplayMode;
-{$ENDIF}
+  target, closest, display: TSDL_DisplayMode;
 begin
+  (* Display 0 = Primary display *)
+  SDL_GetDesktopDisplayMode(0, @display);
   {$IF DEFINED(ANDROID)}
-    (* On android set max screen size *)
-    SDL_GetCurrentDisplayMode(0, @display);
     gScreenWidth := display.w;
     gScreenHeight := display.h;
-    gWinRealPosX := 0;
-    gWinRealPosY := 0;
-    gWinMaximized := False;
-    gFullScreen := False; (* if True then rotation not allowed *)
+    //gBPP := SDL_BITSPERPIXEL(dispaly.format);
     gBPP := 32;
-    gVSync := True;
-    gTextureFilter := True;
-    glLegacyNPOT := False;
+    gFullScreen := True; (* rotation not allowed? *)
   {$ELSE}
-    (* On other systems use default 800x600 *)
-    gScreenWidth := 800;
-    gScreenHeight := 600;
-    gWinRealPosX := 0;
-    gWinRealPosY := 0;
-    gWinMaximized := False;
-    gFullScreen := False;
+    (* Window must be smaller than display *)
+    target.w := display.w * 75 div 100;
+    target.h := display.h * 75 div 100;
+    target.format := 0; (* didn't care *)
+    target.refresh_rate := 0; (* didn't care *)
+    target.driverdata := nil; (* init *)
+    SDL_GetClosestDisplayMode(0, @target, @closest);
+    gScreenWidth := closest.w;
+    gScreenHeight := closest.h;
+    //gBPP := SDL_BITSPERPIXEL(closest.format); (* Resolution list didn't work for some reason *)
     gBPP := 32;
-    gVSync := True;
-    gTextureFilter := True;
-    glLegacyNPOT := False;
+    gFullScreen := False;
   {$ENDIF}
+  (* Must be positioned on primary display *)
+  gWinRealPosX := SDL_WINDOWPOS_CENTERED;
+  gWinRealPosY := SDL_WINDOWPOS_CENTERED;
+  gWinMaximized := False;
+  gVSync := True;
+  gTextureFilter := True;
+  glLegacyNPOT := False;
   e_LogWriteLn('g_Options_SetDefaultVideo: w = ' + IntToStr(gScreenWidth) + ' h = ' + IntToStr(gScreenHeight));
 end;
 
