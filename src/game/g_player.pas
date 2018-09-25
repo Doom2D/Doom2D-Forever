@@ -1512,11 +1512,20 @@ end;
 
 procedure g_Player_CreateCorpse(Player: TPlayer);
 var
+  i: Integer;
   find_id: DWORD;
   ok: Boolean;
 begin
   if Player.alive then
     Exit;
+
+// Разрываем связь с прежним трупом:
+  if gCorpses <> nil then
+    for i := 0 to High(gCorpses) do
+      if gCorpses[i] <> nil then
+        if gCorpses[i].FPlayerUID = Player.FUID then
+          gCorpses[i].FPlayerUID := 0;
+
   if Player.FObj.Y >= gMapInfo.Height+128 then
     Exit;
 
@@ -4517,13 +4526,6 @@ begin
     else
       FRulez := [];
   end;
-
-// Разрываем связи с трупами:
-  if gCorpses <> nil then
-    for a := 0 to High(gCorpses) do
-      if gCorpses[a] <> nil then
-        if gCorpses[a].FPlayerUID = FUID then
-          gCorpses[a].FPlayerUID := 0;
 
 // Получаем координаты точки возрождения:
   if not g_Map_GetPoint(c, RespawnPoint) then
