@@ -21,7 +21,7 @@ interface
 
 uses
   {$IFDEF USE_MEMPOOL}mempool,{$ENDIF}
-  MAPDEF, g_textures, g_basic, g_weapons, e_graphics, utils,
+  MAPDEF, g_textures, g_basic, g_weapons, e_graphics, utils, g_gfx,
   ImagingTypes, Imaging, ImagingUtility;
 
 const
@@ -65,6 +65,10 @@ type
     HaveWeapon:  Boolean;
   end;
 
+  TModelBlood = record
+    R, G, B, Kind: Byte;
+  end;
+
   TModelSound = record
     ID:    DWORD;
     Level: Byte;
@@ -88,6 +92,7 @@ type
     FName:             String;
     FDirection:        TDirection;
     FColor:            TRGB;
+    FBlood:            TModelBlood;
     FCurrentAnimation: Byte;
     FAnim:             Array [TDirection.D_LEFT..TDirection.D_RIGHT] of Array [A_STAND..A_LAST] of TAnimation;
     FMaskAnim:         Array [TDirection.D_LEFT..TDirection.D_RIGHT] of Array [A_STAND..A_LAST] of TAnimation;
@@ -126,6 +131,7 @@ type
 
   public
     property    Color: TRGB read FColor write FColor;
+    property    Blood: TModelBlood read FBlood;
   end;
 
 procedure g_PlayerModel_LoadData();
@@ -133,6 +139,7 @@ procedure g_PlayerModel_FreeData();
 function  g_PlayerModel_Load(FileName: String): Boolean;
 function  g_PlayerModel_GetNames(): SSArray;
 function  g_PlayerModel_GetInfo(ModelName: String): TModelInfo;
+function  g_PlayerModel_GetBlood(ModelName: String): TModelBlood;
 function  g_PlayerModel_Get(ModelName: String): TPlayerModel;
 function  g_PlayerModel_GetAnim(ModelName: String; Anim: Byte; var _Anim, _Mask: TAnimation): Boolean;
 function  g_PlayerModel_GetGibs(ModelName: String; var Gibs: TGibsArray): Boolean;
@@ -156,6 +163,7 @@ type
     PainSounds:   TModelSoundArray;
     DieSounds:    TModelSoundArray;
     SlopSound:    Byte;
+    Blood:        TModelBlood;
   end;
 
 const
@@ -432,6 +440,19 @@ begin
     Description := config.ReadStr('Model', 'description', '');
   end;
 
+  with PlayerModelsArray[ID] do
+  begin
+    Blood.R := MAX(0, MIN(255, config.ReadInt('Blood', 'R', 150)));
+    Blood.G := MAX(0, MIN(255, config.ReadInt('Blood', 'G', 0)));
+    Blood.B := MAX(0, MIN(255, config.ReadInt('Blood', 'B', 0)));
+    case config.ReadStr('Blood', 'Kind', 'NORMAL') of
+      'NORMAL': Blood.Kind := BLOOD_NORMAL;
+      'SPARKS': Blood.Kind := BLOOD_SPARKS;
+    else
+      Blood.Kind := BLOOD_NORMAL
+    end
+  end;
+
   for b := A_STAND to A_LAST do
   begin
     aname := s+'_RIGHTANIM'+IntToStr(b);
@@ -643,6 +664,7 @@ begin
       with PlayerModelsArray[a] do
       begin
         Result.FName := Info.Name;
+        Result.FBlood := Blood;
 
         for b := A_STAND to A_LAST do
         begin
@@ -781,6 +803,24 @@ begin
     if PlayerModelsArray[a].Info.Name = ModelName then
     begin
       Result := PlayerModelsArray[a].Info;
+      Break;
+    end;
+end;
+
+function g_PlayerModel_GetBlood(ModelName: string): TModelBlood;
+var
+  a: Integer;
+begin
+  Result.R := 150;
+  Result.G := 0;
+  Result.B := 0;
+  Result.Kind := BLOOD_NORMAL;
+  if PlayerModelsArray = nil then Exit;
+
+  for a := 0 to High(PlayerModelsArray) do
+    if PlayerModelsArray[a].Info.Name = ModelName then
+    begin
+      Result := PlayerModelsArray[a].Blood;
       Break;
     end;
 end;

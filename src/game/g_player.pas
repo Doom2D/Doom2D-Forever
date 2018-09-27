@@ -1611,11 +1611,13 @@ procedure g_Player_CreateGibs(fX, fY: Integer; ModelName: string; fColor: TRGB);
 var
   a: Integer;
   GibsArray: TGibsArray;
+  Blood: TModelBlood;
 begin
   if (gGibs = nil) or (Length(gGibs) = 0) then
     Exit;
   if not g_PlayerModel_GetGibs(ModelName, GibsArray) then
     Exit;
+  Blood := g_PlayerModel_GetBlood(ModelName);
 
   for a := 0 to High(GibsArray) do
     with gGibs[CurrentGib] do
@@ -1634,7 +1636,7 @@ begin
 
       if gBloodCount > 0 then
         g_GFX_Blood(fX, fY, 16*gBloodCount+Random(5*gBloodCount), -16+Random(33), -16+Random(33),
-                    Random(48), Random(48), 150, 0, 0);
+                    Random(48), Random(48), Blood.R, Blood.G, Blood.B, Blood.Kind);
 
       if CurrentGib >= High(gGibs) then
         CurrentGib := 0
@@ -3518,11 +3520,11 @@ begin
   g_GFX_Blood(FObj.X+PLAYER_RECT.X+(PLAYER_RECT.Width div 2)+8,
               FObj.Y+PLAYER_RECT.Y+(PLAYER_RECT.Height div 2),
               Count div 2, 3, -1, 16, (PLAYER_RECT.Height*2 div 3),
-              150, 0, 0);
+              FModel.Blood.R, FModel.Blood.G, FModel.Blood.B, FModel.Blood.Kind);
   g_GFX_Blood(FObj.X+PLAYER_RECT.X+(PLAYER_RECT.Width div 2)-8,
               FObj.Y+PLAYER_RECT.Y+(PLAYER_RECT.Height div 2),
               Count div 2, -3, -1, 16, (PLAYER_RECT.Height*2) div 3,
-              150, 0, 0);
+              FModel.Blood.R, FModel.Blood.G, FModel.Blood.B, FModel.Blood.Kind);
 end;
 
 procedure TPlayer.MakeBloodVector(Count: Word; VelX, VelY: Integer);
@@ -3530,7 +3532,7 @@ begin
   g_GFX_Blood(FObj.X+PLAYER_RECT.X+(PLAYER_RECT.Width div 2),
               FObj.Y+PLAYER_RECT.Y+(PLAYER_RECT.Height div 2),
               Count, VelX, VelY, 16, (PLAYER_RECT.Height*2) div 3,
-              150, 0, 0);
+              FModel.Blood.R, FModel.Blood.G, FModel.Blood.B, FModel.Blood.Kind);
 end;
 
 procedure TPlayer.QueueWeaponSwitch(Weapon: Byte);
@@ -6317,6 +6319,7 @@ end;
 procedure TCorpse.Damage(Value: Word; vx, vy: Integer);
 var
   pm: TPlayerModel;
+  Blood: TModelBlood;
 begin
   if FState = CORPSE_STATE_REMOVEME then
     Exit;
@@ -6349,12 +6352,13 @@ begin
     end
   else
     begin
+      Blood := g_PlayerModel_GetBlood(FModelName);
       FObj.Vel.X := FObj.Vel.X + vx;
       FObj.Vel.Y := FObj.Vel.Y + vy;
       g_GFX_Blood(FObj.X+PLAYER_CORPSERECT.X+(PLAYER_CORPSERECT.Width div 2),
                   FObj.Y+PLAYER_CORPSERECT.Y+(PLAYER_CORPSERECT.Height div 2),
                   Value, vx, vy, 16, (PLAYER_CORPSERECT.Height*2) div 3,
-                  150, 0, 0);
+                  Blood.R, Blood.G, Blood.B, Blood.Kind);
     end;
 end;
 
