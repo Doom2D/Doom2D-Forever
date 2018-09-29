@@ -3722,13 +3722,21 @@ begin
   // no cycling
   for i := 0 to High(wantThisWeapon) do wantThisWeapon[i] := false;
   wwc := 0;
+
+  curlidx := -1; // start from a weapon with a highest priority (-1, 'cause loop will immediately increment this index)
+
   for i := 0 to High(FWeapon) do
   begin
     if (FNextWeap and (1 shl i)) <> 0 then
     begin
       cwi := real2log(i);
-      if (cwi >= 0) then wantThisWeapon[cwi] := true;
-      Inc(wwc);
+      if (cwi >= 0) then
+      begin
+        wantThisWeapon[cwi] := true;
+        Inc(wwc);
+        // if we hit currently selected weapon, start seachring from it, so we'll get "next weaker" weapon
+        if (i = FCurrWeap) then curlidx := cwi; // compare real, start from logical
+      end;
     end;
   end;
 
@@ -3752,12 +3760,7 @@ begin
     exit;
   end;
 
-  // exclude currently selected weapon from the set
-  curlidx := real2log(FCurrWeap);
   //e_WriteLog(Format('*** wwc=%d; currweap=%d; logweap=%d', [wwc, FCurrWeap, curlidx]), TMsgType.Warning);
-  //e_WriteLog(Format('FCurrWeap=%d; curlidx=%d', [FCurrWeap, curlidx]), TMsgType.Warning);
-  //if (curlidx >= 0) then wantThisWeapon[curlidx] := false;
-  //if (wwc = 2) then begin Dec(wwc); end; // easy case: switch between two weapons
 
   // find next weapon to switch onto
   cwi := curlidx;
