@@ -3709,14 +3709,14 @@ begin
 
   // find next weapon to switch onto
   cwi := curlidx;
-  for i := 0 to High(FWeapon) do
+  for i := 0 to High(weaponOrder) do
   begin
-    cwi := (cwi+length(FWeapon)+1) mod length(FWeapon);
+    cwi := (cwi+length(weaponOrder)+1) mod length(weaponOrder);
     if (cwi = curlidx) then continue; // skip current weapon
     if not wantThisWeapon[cwi] then continue;
     rwidx := weaponOrder[cwi];
     if (rwidx < 0) then continue;
-    //e_WriteLog(Format('  trying logical %d (real %d)', [cwi, rwidx]), TMsgType.Warning);
+    //e_WriteLog(Format('  trying logical %d (real %d); has=%d, hasammo=%d', [cwi, rwidx, Integer(FWeapon[rwidx]), Integer(hasAmmoForWeapon(rwidx))]), TMsgType.Warning);
     if FWeapon[rwidx] and ((wwc = 1) or hasAmmoForWeapon(rwidx)) then
     begin
       //e_WriteLog('    I FOUND HER!', TMsgType.Warning);
