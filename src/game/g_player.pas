@@ -3598,18 +3598,18 @@ begin
   // two knuckles are for "normal" and "berserk" (see `if` below -- it removes the one that is not needed)
   // priorities:
   //   bfg, launcher, plasma, flamethrower, ssg, minigun, sg, pistol, berserk, chainsaw, fist
-  weaponOrder[0] := WEAPON_BFG;
-  weaponOrder[1] := WEAPON_ROCKETLAUNCHER;
-  weaponOrder[2] := WEAPON_PLASMA;
-  weaponOrder[3] := WEAPON_FLAMETHROWER;
-  weaponOrder[4] := WEAPON_SHOTGUN2;
-  weaponOrder[5] := WEAPON_CHAINGUN;
-  weaponOrder[6] := WEAPON_SHOTGUN1;
-  weaponOrder[7] := WEAPON_PISTOL;
-  weaponOrder[8] := WEAPON_KASTET+666; // berserk fist
-  weaponOrder[9] := WEAPON_SAW;
-  weaponOrder[10] := WEAPON_KASTET; // normal fist
-  weaponOrder[11] := WEAPON_SUPERPULEMET;
+  weaponOrder[0] := WEAPON_SUPERPULEMET;
+  weaponOrder[1] := WEAPON_BFG;
+  weaponOrder[2] := WEAPON_ROCKETLAUNCHER;
+  weaponOrder[3] := WEAPON_PLASMA;
+  weaponOrder[4] := WEAPON_FLAMETHROWER;
+  weaponOrder[5] := WEAPON_SHOTGUN2;
+  weaponOrder[6] := WEAPON_CHAINGUN;
+  weaponOrder[7] := WEAPON_SHOTGUN1;
+  weaponOrder[8] := WEAPON_PISTOL;
+  weaponOrder[9] := WEAPON_KASTET+666; // berserk fist
+  weaponOrder[10] := WEAPON_SAW;
+  weaponOrder[11] := WEAPON_KASTET; // normal fist
 
   for f := 0 to High(weaponOrder) do
   begin
