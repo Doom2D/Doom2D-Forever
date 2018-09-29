@@ -3567,9 +3567,9 @@ function TPlayer.getNextWeaponIndex (): Byte;
 var
   i: Word;
   wantThisWeapon: array[0..64] of Boolean;
-  weaponOrder: array[0..64] of Integer; // value: index in `FWeapon`
-  wwc: Integer = 0; //HACK!
-  dir, cwi, rwidx, curlidx: Integer;
+  weaponOrder: array[0..16] of Integer; // value: index in `FWeapon`
+  wwc: Integer;
+  f, dir, cwi, rwidx, curlidx: Integer;
 
   function real2log (ridx: Integer): Integer;
   var
@@ -3577,7 +3577,7 @@ var
   begin
     if (ridx >= 0) then
     begin
-      for f := 0 to 10 do if (weaponOrder[f] = ridx) then begin result := f; exit; end;
+      for f := 0 to High(weaponOrder) do if (weaponOrder[f] = ridx) then begin result := f; exit; end;
     end;
     result := -1;
   end;
@@ -3592,22 +3592,39 @@ begin
     FNextWeapDelay := 0;
   end;
 
-  // build weapon order (k8: i know, i know, learn how to do constants and such... gtfo, please!)
-  // priorities:
-  //   bfg, plasma, flamethrower, ssg, minigun, sg, pistol, berserk, chainsaw, fist
-  weaponOrder[0] := WEAPON_BFG;
-  weaponOrder[1] := WEAPON_PLASMA;
-  weaponOrder[2] := WEAPON_FLAMETHROWER;
-  weaponOrder[3] := WEAPON_SHOTGUN2;
-  weaponOrder[4] := WEAPON_CHAINGUN;
-  weaponOrder[5] := WEAPON_SHOTGUN1;
-  weaponOrder[6] := WEAPON_PISTOL;
-  weaponOrder[7] := WEAPON_KASTET;
-  weaponOrder[8] := WEAPON_SAW;
-  weaponOrder[9] := WEAPON_KASTET;
-  weaponOrder[10] := WEAPON_SUPERPULEMET;
+  for f := 0 to High(weaponOrder) do weaponOrder[f] := -1;
 
-  if (R_BERSERK in FRulez) then weaponOrder[9] := -1 else weaponOrder[7] := -1;
+  // build weapon order (k8: i know, i know, learn how to do constants and such... gtfo, please!)
+  // two knuckles are for "normal" and "berserk" (see `if` below -- it removes the one that is not needed)
+  // priorities:
+  //   bfg, launcher, plasma, flamethrower, ssg, minigun, sg, pistol, berserk, chainsaw, fist
+  weaponOrder[0] := WEAPON_BFG;
+  weaponOrder[1] := WEAPON_ROCKETLAUNCHER;
+  weaponOrder[2] := WEAPON_PLASMA;
+  weaponOrder[3] := WEAPON_FLAMETHROWER;
+  weaponOrder[4] := WEAPON_SHOTGUN2;
+  weaponOrder[5] := WEAPON_CHAINGUN;
+  weaponOrder[6] := WEAPON_SHOTGUN1;
+  weaponOrder[7] := WEAPON_PISTOL;
+  weaponOrder[8] := WEAPON_KASTET; // normal fist
+  weaponOrder[9] := WEAPON_SAW;
+  weaponOrder[10] := WEAPON_KASTET+666; // berserk fist
+  weaponOrder[11] := WEAPON_SUPERPULEMET;
+
+  for f := 0 to High(weaponOrder) do
+  begin
+    if (weaponOrder[f] = WEAPON_KASTET) then
+    begin
+      // normal fist: remove if we have a berserk pack
+      if (R_BERSERK in FRulez) then weaponOrder[f] := -1;
+    end
+    else
+    if (weaponOrder[f] = WEAPON_KASTET+666) then
+    begin
+      // berserk fist: remove if we don't have a berserk pack
+      if (R_BERSERK in FRulez) then weaponOrder[f] := WEAPON_KASTET else weaponOrder[f] := -1;
+    end;
+  end;
 
   (*
   WEAPON_KASTET         = 0;
@@ -3652,6 +3669,7 @@ begin
 
   // no cycling
   for i := 0 to High(wantThisWeapon) do wantThisWeapon[i] := false;
+  wwc := 0;
   for i := 0 to High(FWeapon) do
   begin
     if (FNextWeap and (1 shl i)) <> 0 then
@@ -3665,10 +3683,10 @@ begin
   // slow down alterations a little
   if (wwc > 1) then
   begin
-    //e_WriteLog(Format(' FNextWeap=%x; delay=%d', [FNextWeap, FNextWeapDelay]), MSG_WARNING);
     // more than one weapon requested, assume "alteration", and check alteration delay
     if FNextWeapDelay > 0 then
     begin
+      //e_WriteLog(Format(' FNextWeap=%x; delay=%d', [FNextWeap, FNextWeapDelay]), TMsgType.Warning);
       FNextWeap := 0;
       exit;
     end; // yeah
@@ -3681,10 +3699,10 @@ begin
     resetWeaponQueue();
     exit;
   end;
-  //e_WriteLog(Format('wwc=%d', [wwc]), TMsgType.Warning);
 
   // exclude currently selected weapon from the set
   curlidx := real2log(FCurrWeap);
+  //e_WriteLog(Format('*** wwc=%d; currweap=%d; logweap=%d', [wwc, FCurrWeap, curlidx]), TMsgType.Warning);
   //e_WriteLog(Format('FCurrWeap=%d; curlidx=%d', [FCurrWeap, curlidx]), TMsgType.Warning);
   //if (curlidx >= 0) then wantThisWeapon[curlidx] := false;
   //if (wwc = 2) then begin Dec(wwc); end; // easy case: switch between two weapons
@@ -3699,8 +3717,9 @@ begin
     rwidx := weaponOrder[cwi];
     if (rwidx < 0) then continue;
     //e_WriteLog(Format('  trying logical %d (real %d)', [cwi, rwidx]), TMsgType.Warning);
-    if FWeapon[cwi] and ((wwc = 1) or hasAmmoForWeapon(cwi)) then
+    if FWeapon[rwidx] and ((wwc = 1) or hasAmmoForWeapon(rwidx)) then
     begin
+      //e_WriteLog('    I FOUND HER!', TMsgType.Warning);
       // i found her!
       result := Byte(rwidx);
       resetWeaponQueue();
@@ -3748,7 +3767,7 @@ begin
   if nw > High(FWeapon) then
   begin
     // don't forget to reset queue here!
-    //e_WriteLog(' RealizeCurrentWeapon: WUTAFUUUU', MSG_WARNING);
+    //e_WriteLog(Format(' RealizeCurrentWeapon: WUTAFUUUU?! (%d)', [nw]), TMsgType.Warning);
     resetWeaponQueue();
     exit;
   end;
