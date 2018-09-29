@@ -201,7 +201,7 @@ type
     mEDamageType: Integer;
 
     // client-side only
-    weaponSwitchKeyReleased: array[0..16] of Boolean; // true: was release
+    weaponSwitchKeyReleased: array[0..16] of Byte; // bit 0: was released on prev frame; bit 1: new status
 
 
     function CollideLevel(XInc, YInc: Integer): Boolean;
@@ -339,6 +339,7 @@ type
     procedure releaseAllWeaponSwitchKeys ();
     procedure weaponSwitchKeysStateChange (index: Integer; pressed: Boolean);
     function isWeaponSwitchKeyReleased (index: Integer): Boolean;
+    procedure weaponSwitchKeysShiftNewStates ();
 
   public
     property    Vel: TPoint2i read FObj.Vel;
@@ -2143,14 +2144,15 @@ procedure TPlayer.releaseAllWeaponSwitchKeys ();
 var
   f: Integer;
 begin
-  for f := 0 to High(weaponSwitchKeyReleased) do weaponSwitchKeyReleased[f] := true;
+  for f := 0 to High(weaponSwitchKeyReleased) do weaponSwitchKeyReleased[f] := $03;
 end;
 
 procedure TPlayer.weaponSwitchKeysStateChange (index: Integer; pressed: Boolean);
 begin
   Inc(index, 2); // -2: prev; -1: next
   if (index < 0) or (index > High(weaponSwitchKeyReleased)) then exit;
-  weaponSwitchKeyReleased[index] := not pressed;
+  weaponSwitchKeyReleased[index] := weaponSwitchKeyReleased[index] or $02;
+  if (pressed) then weaponSwitchKeyReleased[index] := weaponSwitchKeyReleased[index] xor $02;
 end;
 
 function TPlayer.isWeaponSwitchKeyReleased (index: Integer): Boolean;
@@ -2162,7 +2164,20 @@ begin
   end
   else
   begin
-    result := weaponSwitchKeyReleased[index];
+    result := (weaponSwitchKeyReleased[index] and $01) <> 0;
+  end;
+end;
+
+procedure TPlayer.weaponSwitchKeysShiftNewStates ();
+var
+  f: Integer;
+begin
+  // copy bit 1 to bit 0
+  for f := 0 to High(weaponSwitchKeyReleased) do
+  begin
+    weaponSwitchKeyReleased[f] :=
+      (weaponSwitchKeyReleased[f] and $02) or
+      ((weaponSwitchKeyReleased[f] shr 1) and $01);
   end;
 end;
 
