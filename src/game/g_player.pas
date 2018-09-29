@@ -3606,9 +3606,9 @@ begin
   weaponOrder[5] := WEAPON_CHAINGUN;
   weaponOrder[6] := WEAPON_SHOTGUN1;
   weaponOrder[7] := WEAPON_PISTOL;
-  weaponOrder[8] := WEAPON_KASTET; // normal fist
+  weaponOrder[8] := WEAPON_KASTET+666; // berserk fist
   weaponOrder[9] := WEAPON_SAW;
-  weaponOrder[10] := WEAPON_KASTET+666; // berserk fist
+  weaponOrder[10] := WEAPON_KASTET; // normal fist
   weaponOrder[11] := WEAPON_SUPERPULEMET;
 
   for f := 0 to High(weaponOrder) do
