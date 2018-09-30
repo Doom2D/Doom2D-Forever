@@ -447,7 +447,8 @@ begin
     Blood.B := MAX(0, MIN(255, config.ReadInt('Blood', 'B', 0)));
     case config.ReadStr('Blood', 'Kind', 'NORMAL') of
       'NORMAL': Blood.Kind := BLOOD_NORMAL;
-      'SPARKS': Blood.Kind := BLOOD_SPARKS;
+      'SPARKS': Blood.Kind := BLOOD_CSPARKS;
+      'COMBINE': Blood.Kind := BLOOD_COMBINE;
     else
       Blood.Kind := BLOOD_NORMAL
     end

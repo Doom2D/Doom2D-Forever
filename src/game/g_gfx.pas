@@ -26,6 +26,8 @@ uses
 const
   BLOOD_NORMAL = 0;
   BLOOD_SPARKS = 1;
+  BLOOD_CSPARKS = 2;
+  BLOOD_COMBINE = 3;
 
   ONCEANIM_NONE  = 0;
   ONCEANIM_SMOKE = 1;
@@ -921,6 +923,11 @@ begin
   begin
     g_GFX_SparkVel(fX, fY, 2+Random(2), -vx div 2, -vy div 2, devX, devY);
     exit;
+  end
+  else if (kind = BLOOD_CSPARKS) OR (kind = BLOOD_COMBINE) then
+  begin
+    g_GFX_SparkVel(fX, fY, count, -vx div 2, -vy div 2, devX, devY);
+    if kind <> BLOOD_COMBINE then exit
   end;
 
   l := Length(Particles);
