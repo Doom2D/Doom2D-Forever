@@ -1023,6 +1023,7 @@ procedure MH_SEND_PlayerStats(PID: Word; ID: Integer = NET_EVERYONE);
 var
   P: TPlayer;
   I: Integer;
+  ww: Word;
 begin
   P := g_Player_Get(PID);
   if P = nil then Exit;
@@ -1041,8 +1042,10 @@ begin
     NetOut.Write(Lives);
     NetOut.Write(Team);
 
-    for I := WP_FIRST to WP_LAST do
-      NetOut.Write(Byte(FWeapon[I]));
+    // collect all weapons in one word
+    ww := 0;
+    for I := WP_FIRST to WP_LAST do if (FWeapon[I]) then ww := ww or (1 shl (i-WP_FIRST));
+    NetOut.Write(Word(ww));
 
     for I := A_BULLETS to A_HIGH do
       NetOut.Write(FAmmo[I]);
@@ -1053,22 +1056,29 @@ begin
     for I := MR_SUIT to MR_MAX do
       NetOut.Write(LongWord(FMegaRulez[I]));
 
-    NetOut.Write(Byte(R_ITEM_BACKPACK in FRulez));
-    NetOut.Write(Byte(R_KEY_RED in FRulez));
-    NetOut.Write(Byte(R_KEY_GREEN in FRulez));
-    NetOut.Write(Byte(R_KEY_BLUE in FRulez));
-    NetOut.Write(Byte(R_BERSERK in FRulez));
+    // collect all special flags in one byte
+    ww := 0;
+    if (R_ITEM_BACKPACK in FRulez) then ww := ww or $01;
+    if (R_KEY_RED in FRulez) then ww := ww or $02;
+    if (R_KEY_GREEN in FRulez) then ww := ww or $04;
+    if (R_KEY_BLUE in FRulez) then ww := ww or $08;
+    if (R_BERSERK in FRulez) then ww := ww or $10;
+    NetOut.Write(Byte(ww));
 
     NetOut.Write(Frags);
     NetOut.Write(Death);
 
     NetOut.Write(CurrWeap);
 
-    NetOut.Write(Byte(FSpectator));
-    NetOut.Write(Byte(FGhost));
-    NetOut.Write(Byte(FPhysics));
-    NetOut.Write(Byte(FNoRespawn));
-    NetOut.Write(Byte(FJetpack));
+    // other flags
+    ww := 0;
+    if (FSpectator) then ww := ww or $01;
+    if (FGhost) then ww := ww or $02;
+    if (FPhysics) then ww := ww or $04;
+    if (FNoRespawn) then ww := ww or $08;
+    if (FJetpack) then ww := ww or $10;
+    NetOut.Write(Byte(ww));
+
     NetOut.Write(FFireTime);
   end;
 
@@ -2068,6 +2078,7 @@ var
   I: Integer;
   OldJet: Boolean;
   NewTeam: Byte;
+  ww: Word;
 begin
   PID := M.ReadWord();
   Pl := g_Player_Get(PID);
@@ -2086,8 +2097,12 @@ begin
     Lives := M.ReadByte();
     NewTeam := M.ReadByte();
 
+    ww := M.ReadWord();
     for I := WP_FIRST to WP_LAST do
-      FWeapon[I] := (M.ReadByte() <> 0);
+    begin
+      FWeapon[I] := ((ww and $01) <> 0);
+      ww := ww shr 1;
+    end;
 
     for I := A_BULLETS to A_HIGH do
       FAmmo[I] := M.ReadWord();
@@ -2099,23 +2114,23 @@ begin
       FMegaRulez[I] := M.ReadLongWord();
 
     FRulez := [];
-    if (M.ReadByte() <> 0) then
-      FRulez := FRulez + [R_ITEM_BACKPACK];
-    if (M.ReadByte() <> 0) then
-      FRulez := FRulez + [R_KEY_RED];
-    if (M.ReadByte() <> 0) then
-      FRulez := FRulez + [R_KEY_GREEN];
-    if (M.ReadByte() <> 0) then
-      FRulez := FRulez + [R_KEY_BLUE];
-    if (M.ReadByte() <> 0) then
-      FRulez := FRulez + [R_BERSERK];
+    // unpack special flags
+    ww := M.ReadByte();
+    if ((ww and $01) <> 0) then FRulez := FRulez+[R_ITEM_BACKPACK];
+    if ((ww and $02) <> 0) then FRulez := FRulez+[R_KEY_RED];
+    if ((ww and $04) <> 0) then FRulez := FRulez+[R_KEY_GREEN];
+    if ((ww and $08) <> 0) then FRulez := FRulez+[R_KEY_BLUE];
+    if ((ww and $10) <> 0) then FRulez := FRulez+[R_BERSERK];
 
     Frags := M.ReadLongInt();
     Death := M.ReadLongInt();
 
     SetWeapon(M.ReadByte());
 
-    FSpectator := M.ReadByte() <> 0;
+    // other flags
+    ww := M.ReadByte();
+
+    FSpectator := ((ww and $01) <> 0);
     if FSpectator then
     begin
       if Pl = gPlayer1 then
@@ -2136,11 +2151,12 @@ begin
       if (gPlayer2 = nil) and (gLMSPID2 > 0) then
         gPlayer2 := g_Player_Get(gLMSPID2);
     end;
-    FGhost := M.ReadByte() <> 0;
-    FPhysics := M.ReadByte() <> 0;
-    FNoRespawn := M.ReadByte() <> 0;
+
+    FGhost := ((ww and $02) <> 0);
+    FPhysics := ((ww and $04) <> 0);
+    FNoRespawn := ((ww and $08) <> 0);
     OldJet := FJetpack;
-    FJetpack := M.ReadByte() <> 0;
+    FJetpack := ((ww and $10) <> 0);
     FFireTime := M.ReadLongInt();
     if OldJet and not FJetpack then
       JetpackOff
