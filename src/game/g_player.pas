@@ -1371,6 +1371,7 @@ begin
       if gPlayers[i] is TPlayer then
       begin
         gPlayers[i].Update();
+        if (not gPlayers[i].alive) then gPlayers[i].NetForceWeapFIdx := 0; // just in case
         //if g_Game_IsClient or not g_Game_IsNet then
         begin
           gPlayers[i].RealizeCurrentWeapon(); // WARNING! DO NOT MOVE THIS INTO `Update()`!
@@ -4362,7 +4363,7 @@ begin
   FSecrets := 0;
   //FCurrFrameIdx := 0;
   //FNetForceWeap := FCurrWeap;
-  //FNetForceWeapFIdx := 0;
+  FNetForceWeapFIdx := 0;
   if FNoRespawn then
   begin
     FSpectator := False;
@@ -4388,6 +4389,7 @@ begin
   FLastHit := 0;
   FLastFrag := 0;
   FComboEvnt := -1;
+  FNetForceWeapFIdx := 0;
 
   SetFlag(FLAG_NONE);
   SetAction(A_STAND, True);
@@ -4555,6 +4557,7 @@ begin
   FPain := 0;
   FLastHit := 0;
   //FNetForceWeap := FCurrWeap;
+  FNetForceWeapFIdx := 0;
 
   if not g_Game_IsServer then
     Exit;
