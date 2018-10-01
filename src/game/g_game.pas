@@ -1504,11 +1504,18 @@ begin
   result := false;
 end;
 
+function isOneKeyPressed (key1: Word): Boolean;
+begin
+  if (key1 <> 0) and e_KeyPressed(key1) then begin result := true; exit; end;
+  result := false;
+end;
+
 procedure processPlayerControls (plr: TPlayer; var ctrl: TPlayerControl; var MoveButton: Byte; p2hack: Boolean=false);
 var
   time: Word;
   strafeDir: Byte;
   i: Integer;
+  rwk: Boolean;
 begin
   if (plr = nil) then exit;
   if (p2hack) then time := 1000 else time := 1;
@@ -1552,13 +1559,42 @@ begin
     if isKeyPressed(KeyUp, KeyUp2) then plr.PressKey(KEY_UP, time);
     if isKeyPressed(KeyDown, KeyDown2) then plr.PressKey(KEY_DOWN, time);
     if isKeyPressed(KeyFire, KeyFire2) then plr.PressKey(KEY_FIRE);
-    if isKeyPressed(KeyNextWeapon, KeyNextWeapon2) then plr.PressKey(KEY_NEXTWEAPON);
-    if isKeyPressed(KeyPrevWeapon, KeyPrevWeapon2) then plr.PressKey(KEY_PREVWEAPON);
+    if isKeyPressed(KeyNextWeapon, KeyNextWeapon2) then
+    begin
+      rwk := plr.isWeaponSwitchKeyReleased(-1);
+      if rwk then plr.PressKey(KEY_NEXTWEAPON);
+      plr.weaponSwitchKeysStateChange(-1, true);
+    end
+    else
+    begin
+      plr.weaponSwitchKeysStateChange(-1, false);
+    end;
+    if isKeyPressed(KeyPrevWeapon, KeyPrevWeapon2) then
+    begin
+      rwk := plr.isWeaponSwitchKeyReleased(-2);
+      if rwk then plr.PressKey(KEY_PREVWEAPON);
+      plr.weaponSwitchKeysStateChange(-2, true);
+    end
+    else
+    begin
+      plr.weaponSwitchKeysStateChange(-2, false);
+    end;
     if isKeyPressed(KeyOpen, KeyOpen2) then plr.PressKey(KEY_OPEN);
 
     for i := 0 to High(KeyWeapon) do
+    begin
       if isKeyPressed(KeyWeapon[i], KeyWeapon2[i]) then
-        plr.QueueWeaponSwitch(i); // all choices are passed there, and god will take the best
+      begin
+        rwk := plr.isWeaponSwitchKeyReleased(i);
+        //writeln('rwk:', rwk);
+        plr.weaponSwitchKeysStateChange(i, true);
+        if rwk then plr.QueueWeaponSwitch(i); // all choices are passed there, and god will take the best
+      end
+      else
+      begin
+        plr.weaponSwitchKeysStateChange(i, false);
+      end;
+    end;
   end;
 
   // HACK: add dynlight here
