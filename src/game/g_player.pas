@@ -162,6 +162,9 @@ type
     FFlag:      Byte;
     FSecrets:   Integer;
     FCurrWeap:  Byte;
+    //FNetForceWeap: Byte; // spam server with this -- this is new weapon we want to use
+    FNetForceWeapFIdx: LongWord; // frame index; ignore weapon change if it is lesser than this
+    //FCurrFrameIdx: LongWord; // increased in each `Update()`
     FNextWeap:  WORD;
     FNextWeapDelay: Byte; // frames (unused)
     FBFGFireCounter: SmallInt;
@@ -357,6 +360,9 @@ type
     property    Death: Integer read FDeath write FDeath;
     property    Kills: Integer read FKills write FKills;
     property    CurrWeap: Byte read FCurrWeap write FCurrWeap;
+    //property    NetForceWeap: Byte read FNetForceWeap write FNetForceWeap;
+    property    NetForceWeapFIdx: LongWord read FNetForceWeapFIdx write FNetForceWeapFIdx;
+    //property    CurrFrameIdx: LongWord read FCurrFrameIdx write FCurrFrameIdx;
     property    MonsterKills: Integer read FMonsterKills write FMonsterKills;
     property    Secrets: Integer read FSecrets;
     property    GodMode: Boolean read FGodMode write FGodMode;
@@ -910,6 +916,7 @@ begin
   gPlayers[a].FSecrets := utils.readLongInt(st);
   // Текущее оружие
   gPlayers[a].FCurrWeap := utils.readByte(st);
+  //gPlayers[a].FNetForceWeap := gPlayers[a].FCurrWeap;
   // Следующее желаемое оружие
   gPlayers[a].FNextWeap := utils.readWord(st);
   // ...и пауза
@@ -1364,7 +1371,10 @@ begin
       if gPlayers[i] is TPlayer then
       begin
         gPlayers[i].Update();
-        gPlayers[i].RealizeCurrentWeapon(); // WARNING! DO NOT MOVE THIS INTO `Update()`!
+        if g_Game_IsClient or not g_Game_IsNet then
+        begin
+          gPlayers[i].RealizeCurrentWeapon(); // WARNING! DO NOT MOVE THIS INTO `Update()`!
+        end;
       end
       else
       begin
@@ -2135,6 +2145,10 @@ begin
   FBFGFireCounter := -1;
   FJustTeleported := False;
   FNetTime := 0;
+
+  //FNetForceWeap := FCurrWeap;
+  FNetForceWeapFIdx := 0;
+  //FCurrFrameIdx := 0;
 
   resetWeaponQueue();
   releaseAllWeaponSwitchKeys();
@@ -3832,11 +3846,23 @@ begin
 
   if FWeapon[nw] then
   begin
+    //k8: emulate this on client immediately, or wait for server confirmation?
+    {
+    if g_Game_IsClient then
+    begin
+      FNetForceWeap := nw;
+      //FNetForceWeapFIdx := FCurrFrameIdx+5; // force for ~5 frames
+      FNetForceWeapFIdx := gTime+5; // force for ~5 frames
+      writeln('NETWEAPONSWITCH: fw=', NetForceWeap, '; fwfidx=', NetForceWeapFIdx, '; cfrm=', gTime);
+    end;
+    }
+    FNetForceWeapFIdx := gTime+5; // force for ~5 frames
     FCurrWeap := nw;
+    if nw = WEAPON_SAW then FSawSoundSelect.PlayAt(FObj.X, FObj.Y);
+    FModel.SetWeapon(nw);
     FTime[T_SWITCH] := gTime+156;
-    if FCurrWeap = WEAPON_SAW then FSawSoundSelect.PlayAt(FObj.X, FObj.Y);
-    FModel.SetWeapon(FCurrWeap);
     if g_Game_IsNet then MH_SEND_PlayerStats(FUID);
+    //if g_Game_IsNet and g_Game_IsClient then
   end;
 end;
 
@@ -3852,15 +3878,16 @@ begin
   FNextWeap := $4000;
 end;
 
+// used by network layer
 procedure TPlayer.SetWeapon(W: Byte);
 begin
   if FCurrWeap <> W then
-    if W = WEAPON_SAW then
+    if (W = WEAPON_SAW) then
       FSawSoundSelect.PlayAt(FObj.X, FObj.Y);
 
   FCurrWeap := W;
   FModel.SetWeapon(CurrWeap);
-  resetWeaponQueue();
+  //if g_Game_IsClient then resetWeaponQueue();
 end;
 
 function TPlayer.PickItem(ItemType: Byte; arespawn: Boolean; var remove: Boolean): Boolean;
@@ -4219,6 +4246,7 @@ begin
           if allowBerserkSwitching then
           begin
             FCurrWeap := WEAPON_KASTET;
+            //FNetForceWeap := FCurrWeap;
             resetWeaponQueue();
             FModel.SetWeapon(WEAPON_KASTET);
           end;
@@ -4332,6 +4360,9 @@ begin
   FMonsterKills := 0;
   FDeath := 0;
   FSecrets := 0;
+  //FCurrFrameIdx := 0;
+  //FNetForceWeap := FCurrWeap;
+  //FNetForceWeapFIdx := 0;
   if FNoRespawn then
   begin
     FSpectator := False;
@@ -4523,6 +4554,7 @@ begin
   FShellTimer := -1;
   FPain := 0;
   FLastHit := 0;
+  //FNetForceWeap := FCurrWeap;
 
   if not g_Game_IsServer then
     Exit;
@@ -4586,6 +4618,7 @@ begin
     FWeapon[WEAPON_PISTOL] := True;
     FWeapon[WEAPON_KASTET] := True;
     FCurrWeap := WEAPON_PISTOL;
+    //FNetForceWeap := FCurrWeap;
     resetWeaponQueue();
 
     FModel.SetWeapon(FCurrWeap);
@@ -4664,6 +4697,8 @@ begin
     gPlayer1 := self;
   if (gPlayer2 = nil) and (gLMSPID2 = FUID) then
     gPlayer2 := self;
+
+  //FNetForceWeap := FCurrWeap;
 
   if g_Game_IsNet then
   begin
@@ -4957,6 +4992,8 @@ var
   AnyServer: Boolean;
   SetSpect: Boolean;
 begin
+  //Inc(FCurrFrameIdx);
+
   NetServer := g_Game_IsNet and g_Game_IsServer;
   AnyServer := g_Game_IsServer;
 
@@ -5887,6 +5924,7 @@ begin
   FAir := FSavedState.Air;
   FJetFuel := FSavedState.JetFuel;
   FCurrWeap := FSavedState.CurrWeap;
+  //FNetForceWeap := FCurrWeap;
   FNextWeap := FSavedState.NextWeap;
   FNextWeapDelay := FSavedState.NextWeapDelay;
 
@@ -6057,6 +6095,7 @@ begin
   FSecrets := utils.readLongInt(st);
   // Текущее оружие
   FCurrWeap := utils.readByte(st);
+  //FNetForceWeap := FCurrWeap;
   // Желаемое оружие
   FNextWeap := utils.readWord(st);
   // ...и пауза
@@ -6192,6 +6231,7 @@ begin
           if FBFGFireCounter < 1 then
           begin
             FCurrWeap := WEAPON_KASTET;
+            //FNetForceWeap := FCurrWeap;
             resetWeaponQueue();
             FModel.SetWeapon(WEAPON_KASTET);
           end;
