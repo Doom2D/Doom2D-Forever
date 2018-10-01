@@ -1371,7 +1371,7 @@ begin
       if gPlayers[i] is TPlayer then
       begin
         gPlayers[i].Update();
-        if g_Game_IsClient or not g_Game_IsNet then
+        //if g_Game_IsClient or not g_Game_IsNet then
         begin
           gPlayers[i].RealizeCurrentWeapon(); // WARNING! DO NOT MOVE THIS INTO `Update()`!
         end;
