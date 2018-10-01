@@ -1370,12 +1370,10 @@ begin
     begin
       if gPlayers[i] is TPlayer then
       begin
+        //if (gPlayers[i].NetForceWeapFIdx > gTime) then writeln('*** PLAYER #', i, '; gTime=', gTime, '; nfwf=', gPlayers[i].NetForceWeapFIdx);
         gPlayers[i].Update();
-        if (not gPlayers[i].alive) then gPlayers[i].NetForceWeapFIdx := 0; // just in case
-        //if g_Game_IsClient or not g_Game_IsNet then
-        begin
-          gPlayers[i].RealizeCurrentWeapon(); // WARNING! DO NOT MOVE THIS INTO `Update()`!
-        end;
+        if (not gPlayers[i].alive) or (gPlayers[i].NetForceWeapFIdx >= gTime+15) then gPlayers[i].NetForceWeapFIdx := 0; // just in case
+        gPlayers[i].RealizeCurrentWeapon(); // WARNING! DO NOT MOVE THIS INTO `Update()`!
       end
       else
       begin
@@ -3708,6 +3706,13 @@ begin
   WEAPON_FLAMETHROWER   = 10;
   *)
 
+  {
+  if (FNextWeap <> 0) or (FNextWeapDelay <> 0) then
+  begin
+    e_WriteLog(Format('!!! FNextWeap=%04x; FNextWeapDelay=%d', [FNextWeap, FNextWeapDelay]), TMsgType.Warning);
+  end;
+  }
+
   // cycling has priority
   if (FNextWeap and $C000) <> 0 then
   begin
@@ -3830,10 +3835,13 @@ begin
 
   if not switchAllowed then
   begin
+    //writeln('WEAPON SWITCHING IS NOT ALLOWED! FBFGFireCounter=', FBFGFireCounter, '; gTime=', gTime, '; FTime[T_SWITCH]=', FTime[T_SWITCH]);
     //HACK for weapon cycling
     if (FNextWeap and $E000) <> 0 then FNextWeap := 0;
     exit;
   end;
+
+  if (FNetForceWeapFIdx >= gTime+15) then FNetForceWeapFIdx := 0;
 
   nw := getNextWeaponIndex();
   if nw = 255 then exit; // don't reset anything here
@@ -4344,6 +4352,8 @@ begin
 end;
 
 procedure TPlayer.Reset(Force: Boolean);
+var
+  i: Integer;
 begin
   if Force then
     FAlive := False;
@@ -4364,6 +4374,7 @@ begin
   //FCurrFrameIdx := 0;
   //FNetForceWeap := FCurrWeap;
   FNetForceWeapFIdx := 0;
+  resetWeaponQueue();
   if FNoRespawn then
   begin
     FSpectator := False;
@@ -4374,10 +4385,16 @@ begin
   end;
   FLives := gGameSettings.MaxLives;
 
+  FBFGFireCounter := -1;
+  FTime[T_SWITCH] := 0;
+  for i := WP_FIRST to WP_LAST do FReloading[i] := 0;
+
   SetFlag(FLAG_NONE);
 end;
 
 procedure TPlayer.SoftReset();
+var
+  i: Integer;
 begin
   ReleaseKeys();
 
@@ -4390,6 +4407,11 @@ begin
   FLastFrag := 0;
   FComboEvnt := -1;
   FNetForceWeapFIdx := 0;
+  resetWeaponQueue();
+
+  FBFGFireCounter := -1;
+  FTime[T_SWITCH] := 0;
+  for i := WP_FIRST to WP_LAST do FReloading[i] := 0;
 
   SetFlag(FLAG_NONE);
   SetAction(A_STAND, True);
@@ -4550,6 +4572,7 @@ var
   a, b, c: Byte;
   Anim: TAnimation;
   ID: DWORD;
+  i: Integer;
 begin
   FIncCam := 0;
   FBFGFireCounter := -1;
@@ -4558,6 +4581,11 @@ begin
   FLastHit := 0;
   //FNetForceWeap := FCurrWeap;
   FNetForceWeapFIdx := 0;
+  resetWeaponQueue();
+
+  FBFGFireCounter := -1;
+  FTime[T_SWITCH] := 0;
+  for i := WP_FIRST to WP_LAST do FReloading[i] := 0;
 
   if not g_Game_IsServer then
     Exit;
@@ -4622,6 +4650,7 @@ begin
     FWeapon[WEAPON_KASTET] := True;
     FCurrWeap := WEAPON_PISTOL;
     //FNetForceWeap := FCurrWeap;
+    FNetForceWeapFIdx := 0;
     resetWeaponQueue();
 
     FModel.SetWeapon(FCurrWeap);
@@ -6235,6 +6264,7 @@ begin
           begin
             FCurrWeap := WEAPON_KASTET;
             //FNetForceWeap := FCurrWeap;
+            FNetForceWeapFIdx := 0;
             resetWeaponQueue();
             FModel.SetWeapon(WEAPON_KASTET);
           end;
@@ -6663,6 +6693,7 @@ begin
 
   FAIFlags := nil;
   FSelectedWeapon := FCurrWeap;
+  FNetForceWeapFIdx := 0;
   resetWeaponQueue();
   FTargetUID := 0;
 end;
