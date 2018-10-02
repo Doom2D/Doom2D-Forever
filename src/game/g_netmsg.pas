@@ -464,7 +464,7 @@ begin
       writeln('HOST PLRPOS: got: currweap=', CurrWeap, '; curfrm=', gTime, '; netweap=', newweapon, '; oldweap=', CurrWeap);
 {$ENDIF}
       //NetForceWeap := newweapon;
-      SetWeapon(newweapon);
+      SetWeaponHost(newweapon);
     end;
     //e_WriteLog(Format('R:ws=%d', [WeaponSelect]), MSG_WARNING);
     if Direction <> TDirection(Dir) then
@@ -2150,7 +2150,7 @@ begin
     if (gTime >= NetForceWeapFIdx) then
     begin
       //NetForceWeap := newweapon;
-      SetWeapon(newweapon);
+      SetWeaponHost(newweapon);
     end;
     //SetWeapon(M.ReadByte());
 
