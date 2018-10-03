@@ -7,7 +7,7 @@ interface
 
 implementation
 
-  uses sfs, utils, Classes;
+  uses sfs, xstreams, utils, Classes;
 
   procedure g_ReadResource (wad, section, name: String; out data: PByte; out len: Integer);
     var
@@ -19,8 +19,7 @@ implementation
     name := utf2win(name);
     data := nil;
     len := 0;
-    sfsGCDisable;
-    if SFSAddDataFileTemp(wad) then
+    if SFSAddDataFileTemp(wad, TRUE) then
     begin
       str := SFSGetLastVirtualName(section + '\' + name);
       stream := SFSFileOpen(wad + '::' + str);
@@ -34,32 +33,32 @@ implementation
         stream.Destroy
       end
     end;
-    sfsGCEnable
   end;
 
   procedure g_ReadSubResource (wad, section0, name0, section1, name1: String; out data: PByte; out len: Integer);
     var
       stream0, stream1: TStream;
       str0, str1: String;
-      i: Integer;
+      xdata: Pointer;
+      i, xlen: Integer;
   begin
+    data := nil;
+    len := 0;
+    if (wad = '') OR (section0 = '') OR (name0 = '') OR (section1 = '') OR (name1 = '') then Exit;
     section0 := utf2win(section0);
     name0 := utf2win(name0);
     section1 := utf2win(section1);
     name1 := utf2win(name1);
-    data := nil;
-    len := 0;
-    sfsGCDisable;
-    if SFSAddDataFile(wad) then
+    if SFSAddDataFileTemp(wad, TRUE) then
     begin
       str0 := SFSGetLastVirtualName(section0 + '\' + name0);
       stream0 := SFSFileOpen(wad + '::' + str0);
       if stream0 <> nil then
       begin
-        if SFSAddSubDataFile(wad + '\' + str0, stream0) then
+        if SFSAddSubDataFile(wad + '\' + str0, stream0, TRUE) then
         begin
           str1 := SFSGetLastVirtualName(section1 + '\' + name1);
-          stream1 := SFSFileOpen(wad + '\' + str0 + '::' + str1);
+          stream1 := SFSFileOpenEx(wad + '\' + str0 + '::' + str1);
           if stream1 <> nil then
           begin
             len := stream1.Size;
@@ -69,11 +68,13 @@ implementation
               data[i] := stream1.ReadByte();
             stream1.Destroy
           end
-        end;
-        //stream0.Destroy (* leads to memory corruption *)
+        end
       end
-    end;
-    sfsGCEnable;
+      else
+      begin
+        stream0.Destroy
+      end
+    end
   end;
 
 end.
