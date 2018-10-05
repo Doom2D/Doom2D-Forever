@@ -19,9 +19,10 @@ unit envvars;
 
 interface
 
-uses SysUtils, CTypes;
+  uses SysUtils, CTypes;
 
-function SetEnvVar(const VarName: AnsiString; const VarVal: AnsiString): Boolean;
+  function SetEnvVar(const VarName: AnsiString; const VarVal: AnsiString): Boolean;
+  function GetUserName: String;
 
 implementation
 
@@ -45,5 +46,16 @@ function SetEnvVar(const VarName: AnsiString; const VarVal: AnsiString): Boolean
 begin
   Result := (setenv(PChar(VarName), PChar(VarVal), 1) = 0);
 end;
+
+  function GetUserName: String;
+  begin
+    {$IF DEFINED(WINDOWS)}
+      Result := SysUtils.GetEnvironmentVariable('USERNAME')
+    {$ELSEIF DEFINED(UNIX)}
+      Result := SysUtils.GetEnvironmentVariable('USER')
+    {$ELSE}
+      Result := ''
+    {$ENDIF}
+  end;
 
 end.

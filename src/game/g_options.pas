@@ -61,6 +61,8 @@ type
     P2Control:    TPlayerControl;
   end;
 
+function GenPlayerName (n: Integer): String;
+
 procedure g_Options_SetDefault();
 procedure g_Options_Read(FileName: String);
 procedure g_Options_Write(FileName: String);
@@ -137,7 +139,18 @@ uses
   {$INCLUDE ../nogl/noGLuses.inc}
   e_log, e_input, g_window, g_sound, g_gfx, g_player, Math,
   g_map, g_net, g_netmaster, SysUtils, CONFIG, g_game, g_main, e_texture,
-  g_items, wadreader, e_graphics, g_touch, SDL2;
+  g_items, wadreader, e_graphics, g_touch, SDL2, envvars;
+
+  var
+    machine: Integer;
+
+  function GenPlayerName (n: Integer): String;
+  begin
+    ASSERT(n >= 1);
+    Result := GetUserName;
+    if Result = '' then Result := 'Player' + IntToStr(machine MOD 10000);
+    if n > 1 then Result := Copy(Result, 1, 10) + (' ' + IntToStr(n))
+  end;
 
 procedure g_Options_SetDefaultVideo;
 var
@@ -259,7 +272,7 @@ begin
 
   with gPlayer1Settings do
   begin
-    Name := 'Player1';
+    Name := GenPlayerName(1);
     Model := STD_PLAYER_MODEL;
     Color.R := PLAYER1_DEF_COLOR.R;
     Color.G := PLAYER1_DEF_COLOR.G;
@@ -304,7 +317,7 @@ begin
 
   with gPlayer2Settings do
   begin
-    Name := 'Player2';
+    Name := GenPlayerName(2);
     Model := STD_PLAYER_MODEL;
     Color.R := PLAYER2_DEF_COLOR.R;
     Color.G := PLAYER2_DEF_COLOR.G;
@@ -1039,4 +1052,6 @@ begin
   config.Free();
 end;
 
+initialization
+  machine := Random(10000)
 end.

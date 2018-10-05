@@ -286,8 +286,8 @@ begin
     gPlayer2Settings.Color := Model.Color;
   end;
 
-  if gPlayer1Settings.Name = '' then gPlayer1Settings.Name := 'Player1';
-  if gPlayer2Settings.Name = '' then gPlayer2Settings.Name := 'Player2';
+  if gPlayer1Settings.Name = '' then gPlayer1Settings.Name := GenPlayerName(1);
+  if gPlayer2Settings.Name = '' then gPlayer2Settings.Name := GenPlayerName(2);
 
   if g_Game_IsServer then
   begin
