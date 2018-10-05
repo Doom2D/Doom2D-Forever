@@ -456,8 +456,7 @@ begin
   while f < volumes.Count do
   begin
     vi := TVolumeInfo(volumes[f]);
-    if vi = nil then continue;
-    if (not vi.fPermanent) and (vi.fOpenedFilesCount = 0) then
+    if (vi <> nil) and (not vi.fPermanent) and (vi.fOpenedFilesCount = 0) then
     begin
       // this volume probably can be removed
       used := false;

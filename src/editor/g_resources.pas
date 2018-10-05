@@ -7,7 +7,7 @@ interface
 
 implementation
 
-  uses sfs, xstreams, utils, Classes;
+  uses sfs, utils, Classes;
 
   procedure g_ReadResource (wad, section, name: String; out data: PByte; out len: Integer);
     var
@@ -33,14 +33,14 @@ implementation
         stream.Destroy
       end
     end;
+    SFSGCCollect
   end;
 
   procedure g_ReadSubResource (wad, section0, name0, section1, name1: String; out data: PByte; out len: Integer);
     var
       stream0, stream1: TStream;
       str0, str1: String;
-      xdata: Pointer;
-      i, xlen: Integer;
+      i: Integer;
   begin
     data := nil;
     len := 0;
@@ -58,7 +58,7 @@ implementation
         if SFSAddSubDataFile(wad + '\' + str0, stream0, TRUE) then
         begin
           str1 := SFSGetLastVirtualName(section1 + '\' + name1);
-          stream1 := SFSFileOpenEx(wad + '\' + str0 + '::' + str1);
+          stream1 := SFSFileOpen(wad + '\' + str0 + '::' + str1);
           if stream1 <> nil then
           begin
             len := stream1.Size;
@@ -74,7 +74,8 @@ implementation
       begin
         stream0.Destroy
       end
-    end
+    end;
+    SFSGCCollect
   end;
 
 end.
