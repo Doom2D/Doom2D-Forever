@@ -437,7 +437,7 @@ var
   PID: Word;
   kByte: Word;
   Pl: TPlayer;
-  GT: LongWord;
+  GT, wctr: LongWord;
   newweapon: Byte;
 begin
   Result := 0;
@@ -456,15 +456,18 @@ begin
     NetTime := GT;
     kByte := M.ReadWord();
     Dir := M.ReadByte();
-    //WeaponSelect := M.ReadWord();
+    wctr := M.ReadLongWord();
     newweapon := M.ReadByte();
-    if (newweapon <> CurrWeap) then
+    if (wctr > Pl.NetWeapCtr) then
     begin
+      if (newweapon <> CurrWeap) then
+      begin
 {$IFDEF K8_XXX_WEAPON_DEBUG}
-      writeln('HOST PLRPOS: got: currweap=', CurrWeap, '; curfrm=', gTime, '; netweap=', newweapon, '; oldweap=', CurrWeap);
+        writeln('HOST PLRPOS: got: currweap=', CurrWeap, '; curfrm=', gTime, '; netweap=', newweapon, '; oldweap=', CurrWeap);
 {$ENDIF}
-      //NetForceWeap := newweapon;
-      SetWeaponHost(newweapon);
+        SetWeaponHost(newweapon);
+      end;
+      Pl.NetWeapCtr := wctr;
     end;
     //e_WriteLog(Format('R:ws=%d', [WeaponSelect]), MSG_WARNING);
     if Direction <> TDirection(Dir) then
@@ -1009,7 +1012,9 @@ begin
     NetOut.Write(FPing);
     NetOut.Write(FLoss);
     if IsKeyPressed(KEY_CHAT) then
-      kByte := NET_KEY_CHAT
+    begin
+      kByte := NET_KEY_CHAT;
+    end
     else
     begin
       if IsKeyPressed(KEY_LEFT) then kByte := kByte or NET_KEY_LEFT;
@@ -1022,6 +1027,10 @@ begin
 
     NetOut.Write(kByte);
     if Direction = TDirection.D_LEFT then NetOut.Write(Byte(0)) else NetOut.Write(Byte(1));
+
+    NetOut.Write(LongWord(Pl.NetWeapCtr));
+    NetOut.Write(Byte(Pl.CurrWeap));
+
     NetOut.Write(GameX);
     NetOut.Write(GameY);
     NetOut.Write(GameVelX);
@@ -1082,7 +1091,7 @@ begin
     NetOut.Write(Frags);
     NetOut.Write(Death);
 
-    //NetOut.Write(CurrWeap);
+    NetOut.Write(LongWord(NetWeapCtr));
     NetOut.Write(Byte(CurrWeap));
 
     // other flags
@@ -2027,11 +2036,11 @@ end;
 
 function MC_RECV_PlayerPos(var M: TMsg): Word;
 var
-  GT: LongWord;
+  GT, wctr: LongWord;
   PID: Word;
   kByte: Word;
   Pl: TPlayer;
-  Dir: Byte;
+  Dir, weapon: Byte;
   TmpX, TmpY: Integer;
 begin
   Result := 0;
@@ -2043,8 +2052,6 @@ begin
     Exit;
   end;
   gTime := GT;
-  if g_Game_IsClient and (gPlayer1 <> nil) and (gPlayer1.NetForceWeapFIdx >= gTime+15) then gPlayer1.NetForceWeapFIdx := 0;
-  if g_Game_IsClient and (gPlayer2 <> nil) and (gPlayer2.NetForceWeapFIdx >= gTime+15) then gPlayer2.NetForceWeapFIdx := 0;
 
   PID := M.ReadWord();
   Pl := g_Player_Get(PID);
@@ -2060,13 +2067,24 @@ begin
     kByte := M.ReadWord();
     Dir := M.ReadByte();
 
+    wctr := M.ReadLongWord();
+    weapon := M.ReadByte();
+    // `>=`, so server is still the authority
+    if (wctr >= Pl.NetWeapCtr) then
+    begin
+      Pl.CurrWeap := weapon;
+      Pl.NetWeapCtr := wctr;
+    end;
+
     TmpX := M.ReadLongInt();
     TmpY := M.ReadLongInt();
 
     ReleaseKeysNoWeapon;
 
     if (kByte = NET_KEY_CHAT) then
-      PressKey(KEY_CHAT, 10000)
+    begin
+      PressKey(KEY_CHAT, 10000);
+    end
     else
     begin
       if LongBool(kByte and NET_KEY_LEFT) then PressKey(KEY_LEFT, 10000);
@@ -2097,6 +2115,7 @@ var
   NewTeam: Byte;
   ww: Word;
   newweapon: Byte;
+  wctr: LongWord;
 begin
   PID := M.ReadWord();
   Pl := g_Player_Get(PID);
@@ -2143,16 +2162,17 @@ begin
     Frags := M.ReadLongInt();
     Death := M.ReadLongInt();
 
+    wctr := M.ReadLongWord();
     newweapon := M.ReadByte();
 {$IFDEF K8_XXX_WEAPON_DEBUG}
     writeln('CLIENT PLRSTATS: got: currweap=', CurrWeap, '; curfrm=', gTime, '; netweap=', newweapon, '; lastnwfrm=', NetForceWeapFIdx);
 {$ENDIF}
-    if (gTime >= NetForceWeapFIdx) then
+    // `>=`, so server is still the authority
+    if (wctr >= NetWeapCtr) then
     begin
-      //NetForceWeap := newweapon;
       SetWeaponHost(newweapon);
+      NetWeapCtr := wctr;
     end;
-    //SetWeapon(M.ReadByte());
 
     // other flags
     ww := M.ReadByte();
@@ -2866,6 +2886,7 @@ begin
   NetOut.Write(gTime);
   NetOut.Write(kByte);
   NetOut.Write(Byte(gPlayer1.Direction));
+  NetOut.Write(LongWord(gPlayer1.NetWeapCtr));
   NetOut.Write(Byte(gPlayer1.CurrWeap));
 {$IFDEF K8_XXX_WEAPON_DEBUG}
   if (kByte and NET_KEY_FIRE) <> 0 then writeln('FIRE: CurrWeap=', gPlayer1.CurrWeap);
@@ -2874,9 +2895,6 @@ begin
   //NetOut.Write(WeaponSelect);
   //e_WriteLog(Format('S:ws=%d', [WeaponSelect]), MSG_WARNING);
   g_Net_Client_Send(True, NET_CHAN_PLAYERPOS);
-
-  // force player weapon
-  //{if (gPlayer1.NetForceWeapFIdx < gTime) then} gPlayer1.SetWeapon(gPlayer1.NetForceWeap);
 
   //kBytePrev := kByte;
   //kDirPrev := gPlayer1.Direction;
