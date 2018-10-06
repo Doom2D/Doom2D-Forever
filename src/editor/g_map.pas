@@ -221,7 +221,7 @@ function  ObjectCollideLevel(fID: DWORD; ObjectType: Byte; dX, dY: Integer): Boo
 function  ObjectCollide(ObjectType: Byte; ID: DWORD; fX, fY: Integer; fWidth, fHeight: Word): Boolean;
 function  ObjectGetRect(ObjectType: Byte; ID: DWORD): TRectWH;
 procedure MoveObject(ObjectType: Byte; ID: DWORD; dX, dY: Integer);
-procedure ResizeObject(ObjectType: Byte; ID: DWORD; dWidth, dHeight: Integer; ResizeDir: Byte);
+function ResizeObject(ObjectType: Byte; ID: DWORD; dWidth, dHeight: Integer; ResizeDir: Byte): Boolean;
 function  ObjectSelected(ObjectType: Byte; ID: DWORD): Boolean;
 
 function  GetPanelName(PanelType: Word): String;
@@ -864,8 +864,9 @@ begin
   end;
 end;
 
-procedure ResizeObject(ObjectType: Byte; ID: DWORD; dWidth, dHeight: Integer; ResizeDir: Byte);
+function ResizeObject(ObjectType: Byte; ID: DWORD; dWidth, dHeight: Integer; ResizeDir: Byte): Boolean;
 begin
+  Result := True;
   case ObjectType of
     OBJECT_PANEL:
       with gPanels[ID] do
@@ -875,6 +876,7 @@ begin
         else
           begin
             Width := 0;
+            Result := False;
             Exit;
           end;
    
@@ -883,6 +885,7 @@ begin
         else
           begin
             Height := 0;
+            Result := False;
             Exit;
           end;
 
@@ -903,6 +906,7 @@ begin
         else
           begin
             Width := 0;
+            Result := False;
             Exit;
           end;
 
@@ -911,6 +915,7 @@ begin
         else
           begin
             Height := 0;
+            Result := False;
             Exit;
           end;
 

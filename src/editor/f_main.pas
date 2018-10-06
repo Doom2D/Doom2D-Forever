@@ -442,7 +442,6 @@ var
   MouseRDown: Boolean;
   MouseLDownPos: Types.TPoint;
   MouseRDownPos: Types.TPoint;
-  WASDOffset: TPoint;
 
   SelectFlag: Byte = SELECTFLAG_NONE;
   MouseAction: Byte = MOUSEACTION_NONE;
@@ -4108,10 +4107,8 @@ begin
       if MouseAction = MOUSEACTION_MOVEOBJ then
         begin
           MoveSelectedObjects(ssShift in Shift, ssCtrl in Shift,
-                              MousePos.X-LastMovePoint.X+WASDOffset.X,
-                              MousePos.Y-LastMovePoint.Y+WASDOffset.Y);
-          WASDOffset.X := 0;
-          WASDOffset.Y := 0;
+                              MousePos.X-LastMovePoint.X,
+                              MousePos.Y-LastMovePoint.Y);
         end
       else
       // Меняем размер выделенного объекта:
@@ -4120,10 +4117,8 @@ begin
           if (SelectedObjectCount = 1) and
              (SelectedObjects[GetFirstSelected].Live) then
           begin
-            dWidth := MousePos.X-LastMovePoint.X+WASDOffset.X;
-            dHeight := MousePos.Y-LastMovePoint.Y+WASDOffset.Y;
-            WASDOffset.X := 0;
-            WASDOffset.Y := 0;
+            dWidth := MousePos.X-LastMovePoint.X;
+            dHeight := MousePos.Y-LastMovePoint.Y;
 
             case ResizeType of
               RESIZETYPE_VERTICAL: dWidth := 0;
@@ -4135,11 +4130,10 @@ begin
               RESIZEDIR_LEFT: dWidth := -dWidth;
             end;
 
-            ResizeObject(SelectedObjects[GetFirstSelected].ObjectType,
-                         SelectedObjects[GetFirstSelected].ID,
-                         dWidth, dHeight, ResizeDirection);
-
-            LastMovePoint := MousePos;
+            if ResizeObject(SelectedObjects[GetFirstSelected].ObjectType,
+                           SelectedObjects[GetFirstSelected].ID,
+                           dWidth, dHeight, ResizeDirection) then
+              LastMovePoint := MousePos;
           end;
         end;
   end;
@@ -4382,7 +4376,7 @@ begin
               Inc(MouseLDownPos.y, DotStep);
               Inc(MouseRDownPos.y, DotStep);
             end;
-            Dec(WASDOffset.Y, DotStep);
+            Inc(LastMovePoint.Y, DotStep);
             RenderPanelMouseMove(Sender, Shift, RenderMousePos().X, RenderMousePos().Y);
           end;
           Position := IfThen(Position > DotStep, Position-DotStep, 0);
@@ -4398,7 +4392,7 @@ begin
               Dec(MouseLDownPos.y, DotStep);
               Dec(MouseRDownPos.y, DotStep);
             end;
-            Inc(WASDOffset.Y, DotStep);
+            Dec(LastMovePoint.Y, DotStep);
             RenderPanelMouseMove(Sender, Shift, RenderMousePos().X, RenderMousePos().Y);
           end;
           Position := IfThen(Position+DotStep < Max, Position+DotStep, Max);
@@ -4418,7 +4412,7 @@ begin
               Inc(MouseLDownPos.x, DotStep);
               Inc(MouseRDownPos.x, DotStep);
             end;
-            Dec(WASDOffset.X, DotStep);
+            Inc(LastMovePoint.X, DotStep);
             RenderPanelMouseMove(Sender, Shift, RenderMousePos().X, RenderMousePos().Y);
           end;
           Position := IfThen(Position > DotStep, Position-DotStep, 0);
@@ -4434,7 +4428,7 @@ begin
               Dec(MouseLDownPos.x, DotStep);
               Dec(MouseRDownPos.x, DotStep);
             end;
-            Inc(WASDOffset.X, DotStep);
+            Dec(LastMovePoint.X, DotStep);
             RenderPanelMouseMove(Sender, Shift, RenderMousePos().X, RenderMousePos().Y);
           end;
           Position := IfThen(Position+DotStep < Max, Position+DotStep, Max);
