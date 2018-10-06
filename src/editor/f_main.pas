@@ -4377,6 +4377,11 @@ begin
         begin
           if (MouseLDown or MouseRDown) and (Position >= DotStep) then
           begin
+            if DrawRect <> nil then
+            begin
+              Inc(MouseLDownPos.y, DotStep);
+              Inc(MouseRDownPos.y, DotStep);
+            end;
             Dec(WASDOffset.Y, DotStep);
             RenderPanelMouseMove(Sender, Shift, RenderMousePos().X, RenderMousePos().Y);
           end;
@@ -4388,6 +4393,11 @@ begin
         begin
           if (MouseLDown or MouseRDown) and (Position+DotStep <= Max) then
           begin
+            if DrawRect <> nil then
+            begin
+              Dec(MouseLDownPos.y, DotStep);
+              Dec(MouseRDownPos.y, DotStep);
+            end;
             Inc(WASDOffset.Y, DotStep);
             RenderPanelMouseMove(Sender, Shift, RenderMousePos().X, RenderMousePos().Y);
           end;
@@ -4403,6 +4413,11 @@ begin
         begin
           if (MouseLDown or MouseRDown) and (Position >= DotStep) then
           begin
+            if DrawRect <> nil then
+            begin
+              Inc(MouseLDownPos.x, DotStep);
+              Inc(MouseRDownPos.x, DotStep);
+            end;
             Dec(WASDOffset.X, DotStep);
             RenderPanelMouseMove(Sender, Shift, RenderMousePos().X, RenderMousePos().Y);
           end;
@@ -4414,6 +4429,11 @@ begin
         begin
           if (MouseLDown or MouseRDown) and (Position+DotStep <= Max) then
           begin
+            if DrawRect <> nil then
+            begin
+              Dec(MouseLDownPos.x, DotStep);
+              Dec(MouseRDownPos.x, DotStep);
+            end;
             Inc(WASDOffset.X, DotStep);
             RenderPanelMouseMove(Sender, Shift, RenderMousePos().X, RenderMousePos().Y);
           end;
