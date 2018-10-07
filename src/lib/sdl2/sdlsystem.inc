@@ -97,6 +97,9 @@ Function SDL_WinRTGetFSPathUTF8(pathType :TSDL_WinRT_Path):PChar;
 
 {$IF DEFINED(ANDROID)}
 
+Function SDL_AndroidGetExternalStorageState:SInt32;
+   cdecl; external SDL_LibName;
+
 Function SDL_AndroidGetExternalStoragePath:PChar;
    cdecl; external SDL_LibName;
 

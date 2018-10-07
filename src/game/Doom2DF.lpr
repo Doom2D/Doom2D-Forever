@@ -141,6 +141,7 @@ function SDL_main(argc: CInt; argv: PPChar): CInt; cdecl;
 var
   f: Integer;
   noct: Boolean = false;
+  storage: String;
   //tfo: Text;
 begin
   SetExceptionMask([exInvalidOp, exDenormalized, exZeroDivide, exOverflow, exUnderflow, exPrecision]); //k8: fuck off, that's why
@@ -148,16 +149,23 @@ begin
 {$IFDEF ANDROID}
 {$I-}
   e_SetSafeSlowLog(true);
-  Chdir(SDL_AndroidGetExternalStoragePath());
+  if SDL_AndroidGetExternalStorageState() <> 0 then
+  begin
+    storage := SDL_AndroidGetExternalStoragePath();
+    Chdir(storage);
+    e_WriteLog('Use external storage: ' + storage, TMsgType.Notify)
+  end
+  else
+  begin
+    storage := SDL_AndroidGetInternalStoragePath();
+    Chdir(storage);
+    e_WriteLog('Use internal storage: ' + storage, TMsgType.Notify)
+  end;
   if IOresult <> 0 then
   begin
-    Chdir(SDL_AndroidGetInternalStoragePath());
-    if IOresult <> 0 then
-    begin
-      e_WriteLog('Fuck! Cant chdir to any game directory :(', TMsgType.Fatal);
-      result := 1;
-      exit;
-    end;
+    SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, PChar('Invalid path'), PChar('Can''t chdir to ' + storage), nil);
+    result := 1;
+    exit
   end;
   SetEnvVar('TIMIDITY_CFG', 'timidity.cfg');
 {$ENDIF ANDROID}
