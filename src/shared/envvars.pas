@@ -26,8 +26,14 @@ interface
 
 implementation
 
+  uses
 {$IFDEF WINDOWS}
-uses Windows;
+    Windows,
+{$ENDIF}
+    utils;
+
+
+{$IFDEF WINDOWS}
 function setenv(const VarStr: PChar; const VarVal: PChar; Repl: cint): cint;
 begin
   if (SetEnvironmentVariable(VarStr, VarVal)) then
@@ -47,15 +53,25 @@ begin
   Result := (setenv(PChar(VarName), PChar(VarVal), 1) = 0);
 end;
 
-  function GetUserName: String;
+  (* Get system username already in cp1251 *)
+  function GetUserName: AnsiString;
+    var i: Integer;
   begin
     {$IF DEFINED(WINDOWS)}
-      Result := SysUtils.GetEnvironmentVariable('USERNAME')
+      Result := utf2win(UTF8String(SysUtils.GetEnvironmentVariable(WideString('USERNAME'))));
     {$ELSEIF DEFINED(UNIX)}
-      Result := SysUtils.GetEnvironmentVariable('USER')
+      Result := utf2win(SysUtils.GetEnvironmentVariable('USER'));
     {$ELSE}
-      Result := ''
+      Result := '';
     {$ENDIF}
+    (* invalidate username with non-cp1251 symbols *)
+    i := Low(Result);
+    while i <= High(Result) do
+    begin
+      if Result[i] = '?' then
+        Result := '';
+      Inc(i)
+    end
   end;
 
 end.

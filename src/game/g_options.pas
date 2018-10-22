@@ -148,8 +148,12 @@ uses
   begin
     ASSERT(n >= 1);
     Result := GetUserName;
-    if Result = '' then Result := 'Player' + IntToStr(machine MOD 10000);
-    if n > 1 then Result := Copy(Result, 1, 10) + (' ' + IntToStr(n))
+    if Result = '' then
+      Result := 'Player' + IntToStr(machine MOD 10000);
+    if n = 1 then
+      Result := Copy(Result, 1, 12) + ' '
+    else
+      Result := Copy(Result, 1, 10) + ' ' + IntToStr(n)
   end;
 
 procedure g_Options_SetDefaultVideo;
@@ -965,6 +969,9 @@ begin
   config.WriteInt('Video', 'WinPosY', gWinRealPosY);
   config.WriteBool('Video', 'Fullscreen', gFullscreen);
   config.WriteBool('Video', 'Maximized', gWinMaximized);
+
+  config.WriteStr('Player1', 'Name', gPlayer1Settings.Name);
+  config.WriteStr('Player2', 'Name', gPlayer2Settings.Name);
 
   config.SaveFile(FileName);
   config.Free();
