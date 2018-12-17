@@ -159,7 +159,7 @@ object PackMapForm: TPackMapForm
     object cbNonStandart: TCheckBox
       Left = 6
       Height = 17
-      Hint = 'Не сохранять ресурсы из стандартных WAD''ов - Standart.wad и пр.'
+      Hint = 'Не сохранять ресурсы из стандартных WAD''ов - standart.wad и пр.'
       Top = 158
       Width = 182
       Caption = 'Только нестандартные ресурсы'

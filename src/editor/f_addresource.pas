@@ -50,7 +50,7 @@ uses
 {$R *.lfm}
 
 const
-  STANDART_WAD = 'Standart.wad';
+  STANDART_WAD = 'standart.wad';
 
 procedure TAddResourceForm.FormActivate(Sender: TObject);
   var
@@ -72,7 +72,7 @@ begin
   until FindNext(SR) <> 0;
   FindClose(SR);
 
-// "Standart.wad" в начало списка:
+// "standart.wad" в начало списка:
   if cbWADList.Items.IndexOf(STANDART_WAD) > 0 then
   begin
     cbWADList.Items.Delete(cbWADList.Items.IndexOf(STANDART_WAD));
