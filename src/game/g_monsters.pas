@@ -2825,7 +2825,7 @@ begin
 
                   // Рыба плывет вверх:
                     if FObj.Vel.Y < 0 then
-                      if not g_Obj_CollideWater(@FObj, 0, -16) then
+                      if not g_Obj_CollideLiquid(@FObj, 0, -16) then
                       begin
                       // Всплыли до поверхности - стоп:
                         FObj.Vel.Y := 0;
@@ -3674,7 +3674,7 @@ begin
 
                   // Рыба плывет вверх:
                     if FObj.Vel.Y < 0 then
-                      if not g_Obj_CollideWater(@FObj, 0, -16) then
+                      if not g_Obj_CollideLiquid(@FObj, 0, -16) then
                       begin
                       // Всплыли до поверхности - стоп:
                         FObj.Vel.Y := 0;
