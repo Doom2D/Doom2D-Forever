@@ -160,6 +160,7 @@ begin
   gShowMessages := TGUISwitch(menu.GetControl('swMessages')).ItemIndex = 0;
   gRevertPlayers := TGUISwitch(menu.GetControl('swRevertPlayers')).ItemIndex = 0;
   gChatBubble := TGUISwitch(menu.GetControl('swChatBubble')).ItemIndex;
+  gPlayerIndicator := TGUISwitch(menu.GetControl('swPlayerIndicator')).ItemIndex = 0;
   g_dbg_scale := TGUIScroll(menu.GetControl('scScaleFactor')).Value + 1;
 
   menu := TGUIMenu(g_GUI_GetWindow('OptionsControlsMenu').GetControl('mOptionsControlsMenu'));
@@ -511,6 +512,9 @@ begin
 
   with TGUISwitch(menu.GetControl('swChatBubble')) do
     ItemIndex := gChatBubble;
+    
+  with TGUISwitch(menu.GetControl('swPlayerIndicator')) do
+    if gPlayerIndicator then ItemIndex := 0 else ItemIndex := 1;
 
   TGUIScroll(menu.GetControl('scScaleFactor')).Value := Round(g_dbg_scale - 1);
 
@@ -2710,6 +2714,12 @@ begin
       AddItem(_lc[I_MENU_GAME_CHAT_TYPE_ADV]);
       AddItem(_lc[I_MENU_GAME_CHAT_TYPE_COLOR]);
       AddItem(_lc[I_MENU_GAME_CHAT_TYPE_TEXTURE]);
+    end;
+    with AddSwitch(_lc[I_MENU_GAME_PLAYER_INDICATOR]) do
+    begin
+      Name := 'swPlayerIndicator';
+      AddItem(_lc[I_MENU_YES]);
+      AddItem(_lc[I_MENU_NO]);
     end;
     with AddScroll(_lc[I_MENU_GAME_SCALE_FACTOR]) do
     begin

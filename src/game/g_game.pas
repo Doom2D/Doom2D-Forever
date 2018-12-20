@@ -2313,6 +2313,7 @@ begin
   g_Texture_CreateWADEx('TEXTURE_PLAYER_BLUEFLAG_D', GameWAD+':TEXTURES\FLAGHUD_B_DROP');
   g_Texture_CreateWADEx('TEXTURE_PLAYER_TALKBUBBLE', GameWAD+':TEXTURES\TALKBUBBLE');
   g_Texture_CreateWADEx('TEXTURE_PLAYER_INVULPENTA', GameWAD+':TEXTURES\PENTA');
+  g_Texture_CreateWADEx('TEXTURE_PLAYER_INDICATOR', GameWAD+':TEXTURES\PLRIND');
 
   hasPBarGfx := true;
   if not g_Texture_CreateWADEx('UI_GFX_PBAR_LEFT', GameWAD+':TEXTURES\LLEFT') then hasPBarGfx := false;
@@ -3585,6 +3586,8 @@ begin
 
   renderMapInternal(-c, -d, true);
 
+  if (gGameSettings.GameMode <> GM_SINGLE) and gPlayerIndicator then
+    p.DrawIndicator();
   if p.FSpectator then
     e_TextureFontPrintEx(p.GameX + PLAYER_RECT_CX - 4,
                          p.GameY + PLAYER_RECT_CY - 4,

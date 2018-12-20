@@ -316,6 +316,7 @@ type
     procedure   DrawPickup();
     procedure   DrawRulez();
     procedure   DrawAim();
+    procedure   DrawIndicator();
     procedure   DrawBubble();
     procedure   DrawGUI();
     procedure   Update(); virtual;
@@ -554,6 +555,7 @@ var
   gFly: Boolean = False;
   gAimLine: Boolean = False;
   gChatBubble: Byte = 0;
+  gPlayerIndicator: Boolean = True;
   gNumBots: Word = 0;
   gLMSPID1: Word = 0;
   gLMSPID2: Word = 0;
@@ -2343,6 +2345,25 @@ begin
     FPunchAnim.Free();
 
   inherited;
+end;
+
+procedure TPlayer.DrawIndicator();
+var
+  indX, indY: Integer;
+  indW, indH: Word;
+  ID: DWORD;
+begin
+  if FAlive then
+    begin
+      indX := FObj.X+FObj.Rect.X;
+      indY := FObj.Y - 12;
+      if g_Texture_Get('TEXTURE_PLAYER_INDICATOR', ID) then
+        begin
+          e_GetTextureSize(ID, @indW, @indH);
+          e_Draw(ID, indX + indW div 2, indY, 0, True, False);
+        end;
+    end;
+  //e_TextureFontPrint(indX, indY, FName, gStdFont); // Shows player name overhead
 end;
 
 procedure TPlayer.DrawBubble();
