@@ -2151,7 +2151,7 @@ begin
 
       if Stopped = 0 then
       begin
-        st := g_Obj_Move(@Obj, False, spl);
+        st := g_Obj_Move_Projectile(@Obj, False, spl);
       end
       else
       begin

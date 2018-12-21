@@ -50,7 +50,8 @@ const
   MOVE_BLOCK      = 128;
 
 procedure g_Obj_Init(Obj: PObj); inline;
-function  g_Obj_Move(Obj: PObj; Fallable: Boolean; Splash: Boolean; ClimbSlopes: Boolean = False): Word;
+function  g_Obj_Move(Obj: PObj; Fallable: Boolean; Splash: Boolean; ClimbSlopes: Boolean=False; asProjectile: Boolean=false): Word;
+function  g_Obj_Move_Projectile (Obj: PObj; Fallable: Boolean; Splash: Boolean; ClimbSlopes: Boolean=False): Word;
 function  g_Obj_Collide(Obj1, Obj2: PObj): Boolean; inline; overload;
 function  g_Obj_Collide(X, Y: Integer; Width, Height: Word; Obj: PObj): Boolean; inline; overload;
 function  g_Obj_CollidePoint(X, Y: Integer; Obj: PObj): Boolean; inline;
@@ -64,6 +65,8 @@ function  g_Obj_CanMoveY(Obj: PObj; YInc: Integer): Boolean; inline;
 procedure g_Obj_Push(Obj: PObj; VelX, VelY: Integer); inline;
 procedure g_Obj_PushA(Obj: PObj; Vel: Integer; Angle: SmallInt); inline;
 procedure g_Obj_SetSpeed(Obj: PObj; s: Integer); inline;
+function  g_Obj_GetSpeedDirF(Obj: PObj; var dirx, diry, speed: Double): Boolean; inline; // `false`: zero speed
+function  g_Obj_GetAccelDirF(Obj: PObj; var dirx, diry, speed: Double): Boolean; inline; // `false`: zero speed
 function  z_dec(a, b: Integer): Integer; inline;
 function  z_fdec(a, b: Double): Double; inline;
 
@@ -365,13 +368,19 @@ begin
 end;
 
 
-function g_Obj_Move (Obj: PObj; Fallable: Boolean; Splash: Boolean; ClimbSlopes: Boolean=False): Word;
+function g_Obj_Move_Projectile (Obj: PObj; Fallable: Boolean; Splash: Boolean; ClimbSlopes: Boolean=False): Word;
+begin
+  result := g_Obj_Move(Obj, Fallable, Splash, ClimbSlopes, true);
+end;
+
+function g_Obj_Move (Obj: PObj; Fallable: Boolean; Splash: Boolean; ClimbSlopes: Boolean=False; asProjectile: Boolean=false): Word;
 var
   xv, yv, dx, dy: Integer;
   inwater: Boolean;
   c: Boolean;
   wtx: DWORD;
   slopeStep: Integer;
+  dirx, diry, speed: Double;
 label
   _move;
 begin
@@ -458,17 +467,44 @@ begin
   inwater := CollideLiquid(Obj, 0, 0);
   if inwater then
   begin
-    xv := abs(Obj^.Vel.X)+1;
-    if (xv > 5) then Obj^.Vel.X := z_dec(Obj^.Vel.X, (xv div 2)-2);
+    if asProjectile then
+    begin
+      //writeln('velocity=(', Obj^.Vel.X, ',', Obj^.Vel.Y, '); acceleration=(', Obj^.Accel.X, ',', Obj^.Accel.Y, ')');
+      if (g_Obj_GetSpeedDirF(Obj, dirx, diry, speed)) then
+      begin
+        if (speed > 4) then
+        begin
+          speed := speed/2.0;
+          Obj^.Vel.X := round(dirx*speed);
+          Obj^.Vel.Y := round(diry*speed);
+        end;
+      end;
 
-    yv := abs(Obj^.Vel.Y)+1;
-    if (yv > 5) then Obj^.Vel.Y := z_dec(Obj^.Vel.Y, (yv div 2)-2);
+      // acceleration
+      if (g_Obj_GetAccelDirF(Obj, dirx, diry, speed)) then
+      begin
+        if (speed > 4) then
+        begin
+          speed := speed/2.0;
+          Obj^.Accel.X := round(dirx*speed);
+          Obj^.Accel.Y := round(diry*speed);
+        end;
+      end;
+    end
+    else
+    begin
+      // velocity
+      xv := abs(Obj^.Vel.X)+1;
+      if (xv > 5) then Obj^.Vel.X := z_dec(Obj^.Vel.X, (xv div 2)-2);
+      yv := abs(Obj^.Vel.Y)+1;
+      if (yv > 5) then Obj^.Vel.Y := z_dec(Obj^.Vel.Y, (yv div 2)-2);
 
-    xv := abs(Obj^.Accel.X)+1;
-    if (xv > 5) then Obj^.Accel.X := z_dec(Obj^.Accel.X, (xv div 2)-2);
-
-    yv := abs(Obj^.Accel.Y)+1;
-    if (yv > 5) then Obj^.Accel.Y := z_dec(Obj^.Accel.Y, (yv div 2)-2);
+      // acceleration
+      xv := abs(Obj^.Accel.X)+1;
+      if (xv > 5) then Obj^.Accel.X := z_dec(Obj^.Accel.X, (xv div 2)-2);
+      yv := abs(Obj^.Accel.Y)+1;
+      if (yv > 5) then Obj^.Accel.Y := z_dec(Obj^.Accel.Y, (yv div 2)-2);
+    end;
   end;
 
   // Уменьшаем прибавку к скорости
@@ -573,6 +609,52 @@ begin
 
   Obj^.Vel.X := (vx*s) div m;
   Obj^.Vel.Y := (vy*s) div m;
+end;
+
+// `false`: zero speed
+function g_Obj_GetSpeedDirF(Obj: PObj; var dirx, diry, speed: Double): Boolean; inline;
+var
+  len, vx, vy: Double;
+begin
+  if (Obj^.Vel.X = 0) and (Obj^.Vel.Y = 0) then
+  begin
+    dirx := 0;
+    diry := 0;
+    speed := 0;
+    result := false;
+    exit;
+  end;
+
+  vx := Obj^.Vel.X;
+  vy := Obj^.Vel.Y;
+  len := sqrt(vx*vx+vy*vy);
+  dirx := vx/len;
+  diry := vy/len;
+  speed := len;
+  result := true;
+end;
+
+// `false`: zero acceleratin
+function g_Obj_GetAccelDirF(Obj: PObj; var dirx, diry, speed: Double): Boolean; inline;
+var
+  len, vx, vy: Double;
+begin
+  if (Obj^.Accel.X = 0) and (Obj^.Accel.Y = 0) then
+  begin
+    dirx := 0;
+    diry := 0;
+    speed := 0;
+    result := false;
+    exit;
+  end;
+
+  vx := Obj^.Accel.X;
+  vy := Obj^.Accel.Y;
+  len := sqrt(vx*vx+vy*vy);
+  dirx := vx/len;
+  diry := vy/len;
+  speed := len;
+  result := true;
 end;
 
 
