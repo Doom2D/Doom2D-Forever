@@ -512,7 +512,7 @@ begin
 
   with TGUISwitch(menu.GetControl('swChatBubble')) do
     ItemIndex := gChatBubble;
-    
+
   with TGUISwitch(menu.GetControl('swPlayerIndicator')) do
     if gPlayerIndicator then ItemIndex := 0 else ItemIndex := 1;
 
