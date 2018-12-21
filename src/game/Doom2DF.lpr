@@ -141,7 +141,9 @@ function SDL_main(argc: CInt; argv: PPChar): CInt; cdecl;
 var
   f: Integer;
   noct: Boolean = false;
+{$IFDEF ANDROID}
   storage: String;
+{$ENDIF}
   //tfo: Text;
 begin
   SetExceptionMask([exInvalidOp, exDenormalized, exZeroDivide, exOverflow, exUnderflow, exPrecision]); //k8: fuck off, that's why
