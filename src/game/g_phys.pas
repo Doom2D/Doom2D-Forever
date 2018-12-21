@@ -472,9 +472,10 @@ begin
       //writeln('velocity=(', Obj^.Vel.X, ',', Obj^.Vel.Y, '); acceleration=(', Obj^.Accel.X, ',', Obj^.Accel.Y, ')');
       if (g_Obj_GetSpeedDirF(Obj, dirx, diry, speed)) then
       begin
-        if (speed > 4) then
+        //writeln('SPEED: ', speed);
+        if (speed > 5) then
         begin
-          speed := speed/2.0;
+          speed := speed/1.4;
           Obj^.Vel.X := round(dirx*speed);
           Obj^.Vel.Y := round(diry*speed);
         end;
@@ -483,9 +484,9 @@ begin
       // acceleration
       if (g_Obj_GetAccelDirF(Obj, dirx, diry, speed)) then
       begin
-        if (speed > 4) then
+        if (speed > 5) then
         begin
-          speed := speed/2.0;
+          speed := speed/1.4;
           Obj^.Accel.X := round(dirx*speed);
           Obj^.Accel.Y := round(diry*speed);
         end;
