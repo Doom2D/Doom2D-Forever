@@ -806,6 +806,12 @@ begin
         snd := 'SOUND_WEAPON_EXPLODEBFG';
       end;
 
+    TRIGGER_SHOT_FLAME:
+      begin
+        g_Weapon_flame(wx, wy, dx, dy, 0, -1, True);
+        //snd := 'SOUND_WEAPON_FIREPLASMA';
+      end;
+
     else exit;
   end;
 
