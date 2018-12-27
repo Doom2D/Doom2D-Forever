@@ -96,6 +96,7 @@ Type
     I_ARRAY_SHOT_BFG,
     I_ARRAY_SHOT_EXPL,
     I_ARRAY_SHOT_BFGEXPL,
+    I_ARRAY_SHOT_FLAME,
 
     I_ARRAY_MON_DEMON,
     I_ARRAY_MON_IMP,
@@ -817,6 +818,8 @@ Const
                                        'Взрыв'),
     ('ARRAY SHOT BFGEXPL',             'BFG explosion',
                                        'Взрыв BFG'),
+    ('ARRAY SHOT FLAME',               'Flame',
+                                       'Огонь'),
 
     ('ARRAY MON DEMON',                'Pinky',
                                        'Демон'),
@@ -1908,6 +1911,7 @@ begin
   ShotNames[TRIGGER_SHOT_BFG] := _lc[I_ARRAY_SHOT_BFG];
   ShotNames[TRIGGER_SHOT_EXPL] := _lc[I_ARRAY_SHOT_EXPL];
   ShotNames[TRIGGER_SHOT_BFGEXPL] := _lc[I_ARRAY_SHOT_BFGEXPL];
+  ShotNames[TRIGGER_SHOT_FLAME] := _lc[I_ARRAY_SHOT_FLAME];
 
 // Названия монстров:
   MonsterNames[MONSTER_DEMON] := _lc[I_ARRAY_MON_DEMON];
