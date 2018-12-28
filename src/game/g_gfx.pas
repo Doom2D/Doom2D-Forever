@@ -334,31 +334,33 @@ end;
 function TParticle.checkAirStreams (): Boolean;
 var
   pan: TPanel;
+  r: Integer;
 begin
   pan := g_Map_PanelAtPoint(x, y, GridTagLift);
   result := (pan <> nil);
+  r := Random(3);
   if result then
   begin
     if ((pan.PanelType and PANEL_LIFTUP) <> 0) then
     begin
-      if (velY > -1-Random(3)) then velY -= 0.8;
+      if (velY > -1-r) then velY -= 0.8;
       if (abs(velX) > 0.1) then velX -= velX/10.0;
       velX += (Random-Random)*0.2;
       accelY := 0.15;
     end
     else if ((pan.PanelType and PANEL_LIFTDOWN) <> 0) then
     begin
-      if (velY < 1+Random(3)) then velY += 0.8;
+      if (velY < 1+r) then velY += 0.8;
       accelY := 0.15;
     end
     else if ((pan.PanelType and PANEL_LIFTLEFT) <> 0) then
     begin
-      if (velX > -8-Random(3)) then velX -= 0.8;
+      if (velX > -8-r) then velX -= (8+r) div 2;
       accelY := 0.15;
     end
     else if ((pan.PanelType and PANEL_LIFTRIGHT) <> 0) then
     begin
-      if (velX < 8+Random(3)) then velX += 0.8;
+      if (velX < 8+r) then velX += (8+r) div 2;
       accelY := 0.15;
     end
     else
@@ -597,7 +599,7 @@ var
   pan: TPanel;
   dx, dy: SmallInt;
   ex, ey: Integer;
-  checkEnv: Boolean;
+  checkEnv, inAir: Boolean;
   floorJustTraced: Boolean;
   {$IF DEFINED(D2F_DEBUG_FALL_MPLAT)}
   oldFloorY: Integer;
@@ -693,7 +695,7 @@ begin
     dx := round(velX);
     dy := round(velY);
 
-    if (state = TPartState.Normal) then checkAirStreams();
+    inAir := checkAirStreams();
 
     // gravity, if not stuck
     if (state <> TPartState.Stuck) and (abs(velX) < 0.1) and (abs(velY) < 0.1) then
@@ -818,7 +820,7 @@ begin
                     if (y <> floorY) then continue;
                   end;
                   // environment didn't changed
-                  hitAFloor();
+                  if not inAir then hitAFloor();
                   break; // done with vertical movement
                 end;
               TFloorType.LiquidIn: // entering the liquid
@@ -836,7 +838,7 @@ begin
                   findFloor(true); // force rescan
                   if (floorType = TFloorType.Wall) and (floorY = y) then
                   begin
-                    hitAFloor();
+                    if not inAir then hitAFloor();
                     break; // done with vertical movement
                   end;
                 end;
