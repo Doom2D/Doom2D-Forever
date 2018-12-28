@@ -341,9 +341,14 @@ begin
   begin
     if ((pan.PanelType and PANEL_LIFTUP) <> 0) then
     begin
-      if (velY > -4-Random(3)) then velY -= 0.8;
+      if (velY > -1-Random(3)) then velY -= 0.8;
       if (abs(velX) > 0.1) then velX -= velX/10.0;
       velX += (Random-Random)*0.2;
+      accelY := 0.15;
+    end
+    else if ((pan.PanelType and PANEL_LIFTDOWN) <> 0) then
+    begin
+      if (velY < 1+Random(3)) then velY += 0.8;
       accelY := 0.15;
     end
     else if ((pan.PanelType and PANEL_LIFTLEFT) <> 0) then
