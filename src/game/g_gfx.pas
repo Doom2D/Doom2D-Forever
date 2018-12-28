@@ -110,7 +110,7 @@ type
     particleType: TPartType;
     red, green, blue: Byte;
     alpha: Byte;
-    time, liveTime: Word;
+    time, liveTime, waitTime: Word;
     stickDX: Integer; // STATE_STICK: -1,1: stuck to a wall; 0: stuck to ceiling
     justSticked: Boolean; // not used
     floorY: Integer; // actually, floor-1; `Unknown`: unknown
@@ -866,7 +866,10 @@ _done:
   begin
     if (env = TEnvType.ELiquid) then
     begin
-      time += 1;
+      if waitTime > 0 then
+        waitTime -= 1
+      else
+        time += 1;
       if (liveTime <= 0) then begin die(); exit; end;
       ex := 255-trunc(255.0*time/liveTime);
       if (ex <= 10) then begin die(); exit; end;
@@ -878,7 +881,10 @@ _done:
   begin
     // water will disappear in any liquid
     if (env = TEnvType.ELiquid) then begin die(); exit; end;
-    time += 1;
+    if waitTime > 0 then
+      waitTime -= 1
+    else
+      time += 1;
     // dry water
     if (liveTime <= 0) then begin die(); exit; end;
     ex := 255-trunc(255.0*time/liveTime);
@@ -984,6 +990,7 @@ begin
       state := TPartState.Normal;
       time := 0;
       liveTime := 120+Random(40);
+      waitTime := 20;
       floorY := Unknown;
       ceilingY := Unknown;
     end;
@@ -1110,6 +1117,7 @@ begin
       state := TPartState.Normal;
       time := 0;
       liveTime := 60+Random(60);
+      waitTime := 120;
       floorY := Unknown;
       ceilingY := Unknown;
     end;
@@ -1148,7 +1156,10 @@ begin
 
   if (velY > -4) then velY += accelY;
 
-  time += 1;
+  if waitTime > 0 then
+    waitTime -= 1
+  else
+    time += 1;
 end;
 
 
@@ -1223,6 +1234,7 @@ begin
       particleType := TPartType.Bubbles;
       time := 0;
       liveTime := 65535;
+      waitTime := 0;
     end;
 
     if (CurrentParticle >= MaxParticles-1) then CurrentParticle := 0 else CurrentParticle += 1;
@@ -1316,7 +1328,10 @@ _done:
 
   //writeln('spark1: pos=(', x, ',', y, '); delta=(', velX:6:3, ',', velY:6:3, '); state=', state, '; ceilingY=', ceilingY, '; floorY=', floorY);
 
-  time += 1;
+  if waitTime > 0 then
+    waitTime -= 1
+  else
+    time += 1;
 end;
 
 
@@ -1383,6 +1398,7 @@ begin
       state := TPartState.Normal;
       time := 0;
       liveTime := 30+Random(60);
+      waitTime := 0;
       floorY := Unknown;
       ceilingY := Unknown;
     end;
@@ -1458,6 +1474,7 @@ begin
       state := TPartState.Normal;
       time := 0;
       liveTime := 30+Random(60);
+      waitTime := 0;
       floorY := Unknown;
       ceilingY := Unknown;
     end;
