@@ -16,6 +16,7 @@ uses
   WADSTRUCT in '../shared/WADSTRUCT.pas',
   CONFIG in '../shared/CONFIG.pas',
   xstreams in '../shared/xstreams.pas',
+  dfzip in '../shared/dfzip.pas',
   sfs in '../sfs/sfs.pas',
   sfsPlainFS in '../sfs/sfsPlainFS.pas',
   sfsZipFS in '../sfs/sfsZipFS.pas',

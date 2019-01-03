@@ -35,7 +35,7 @@ var
 implementation
 
 uses
-  BinEditor, MAPREADER, WADEDITOR, WADSTRUCT, MAPSTRUCT, g_language;
+  MAPREADER, MAPSTRUCT, g_language, g_resources, sfs;
 
 {$R *.lfm}
 
@@ -85,67 +85,64 @@ begin
 end;
 
 procedure TSaveMapForm.GetMaps(FileName: String; placeName: Boolean);
-var
-  WAD: TWADEditor_1;
-  a, max_num, j: Integer;
-  ResList: SArray;
-  Data: Pointer;
-  Len: Integer;
-  Sign: Array [0..2] of Char;
-  nm: String;
-
+  var
+    nm: String;
+    data: Pbyte;
+    list: TSFSFileList;
+    i, j, len, max_num: Integer;
+    sign: Array [0..2] of Char;
 begin
   lbMapList.Items.Clear();
   max_num := 1;
 
-  WAD := TWADEditor_1.Create();
-  WAD.ReadFile(FileName);
-  ResList := WAD.GetResourcesList('');  
-
-  if ResList <> nil then
-    for a := 0 to High(ResList) do
+  list := SFSFileList(FileName);
+  if list <> nil then
+  begin
+    for i := 0 to list.Count - 1 do
     begin
-      if not WAD.GetResource('', ResList[a], Data, Len) then
-        Continue;
+      g_ReadResource(FileName, list.Files[i].path, list.Files[i].name, data, len);
 
-      CopyMemory(@Sign[0], Data, 3);
-      FreeMem(Data);
-   
-      if Sign = MAP_SIGNATURE then
+      if len >= 3 then
       begin
-        nm := win2utf(ResList[a]);
-        lbMapList.Items.Add(nm);
-
-        if placeName then
+        sign[0] := chr(data[0]);
+        sign[1] := chr(data[1]);
+        sign[2] := chr(data[2]);
+        if sign = MAP_SIGNATURE then
         begin
-          nm := UpperCase(nm);
-          if (nm[1] = 'M') and
-             (nm[2] = 'A') and
-             (nm[3] = 'P') then
+          nm := win2utf(list.Files[i].name);
+          lbMapList.Items.Add(nm);
+          if placeName then
           begin
-            nm := Trim(Copy(nm, 4, Length(nm)-3));
-            j := StrToIntDef(nm, 0);
-            if j >= max_num then
-              max_num := j + 1;
-          end;
-        end;
+            nm := UpperCase(nm);
+            if (nm[1] = 'M') and (nm[2] = 'A') and (nm[3] = 'P') then
+            begin
+              nm := Trim(Copy(nm, 4, Length(nm)-3));
+              j := StrToIntDef(nm, 0);
+              if j >= max_num then
+                max_num := j + 1;
+            end
+          end
+        end
       end;
 
-      Sign := '';
+      if len > 0 then FreeMem(data)
     end;
 
-  WAD.Free();
+    list.Destroy;
+  end;
+
 
   if placeName then
-    begin
-      nm := IntToStr(max_num);
-      if Length(nm) < 2 then
-        nm := '0' + nm;
-      nm := 'MAP' + nm;
-      eMapName.Text := nm;
-    end
+  begin
+    nm := IntToStr(max_num);
+    if Length(nm) < 2 then
+      nm := '0' + nm;
+    eMapName.Text := 'MAP' + nm
+  end
   else
-    eMapName.Text := '';
+  begin
+    eMapName.Text := ''
+  end
 end;
 
 end.

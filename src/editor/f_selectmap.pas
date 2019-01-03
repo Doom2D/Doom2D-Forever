@@ -32,7 +32,7 @@ var
 implementation
 
 uses
-  BinEditor, MAPREADER, WADEDITOR, WADSTRUCT, MAPSTRUCT;
+  MAPREADER, MAPSTRUCT, g_resources, sfs;
 
 {$R *.lfm}
 
@@ -54,41 +54,35 @@ begin
 end;
 
 procedure TSelectMapForm.GetMaps(FileName: String);
-var
-  WAD: TWADEditor_1;
-  a: Integer;
-  ResList: SArray;
-  Data: Pointer;
-  Len: Integer;
-  Sign: Array [0..2] of Char;
-
+  var
+    data: PByte;
+    list: TSFSFileList;
+    sign: Array [0..2] of Char;
+    i, len: Integer;
 begin
   lbMapList.Items.Clear();
 
-  WAD := TWADEditor_1.Create();
-  if not WAD.ReadFile(FileName) then
+  list := SFSFileList(FileName);
+  if list = nil then Exit;
+
+  for i := 0 to list.Count - 1 do
   begin
-    WAD.Free();
-    Exit;
-  end;
+    writeln('GetMap "' + list.Files[i].path + '" "' + list.Files[i].name + '"');
+    g_ReadResource(FileName, list.Files[i].path, list.Files[i].name, data, len);
 
-  ResList := WAD.GetResourcesList('');
-
-  if ResList <> nil then
-    for a := 0 to High(ResList) do
+    if len >= 3 then
     begin
-      if not WAD.GetResource('', ResList[a], Data, Len) then
-        Continue;
-
-      CopyMemory(@Sign[0], Data, 3);
-      FreeMem(Data);
-
-      if Sign = MAP_SIGNATURE then
-        lbMapList.Items.Add(win2utf(ResList[a]));
-      Sign := '';
+      sign[0] := chr(data[0]);
+      sign[1] := chr(data[1]);
+      sign[2] := chr(data[2]);
+      if sign = MAP_SIGNATURE then
+        lbMapList.Items.Add(win2utf(list.Files[i].name))
     end;
 
-  WAD.Free();
+    if len > 0 then FreeMem(data)
+  end;
+
+  list.Destroy
 end;
 
 end.
