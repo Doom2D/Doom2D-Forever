@@ -5,21 +5,32 @@ interface
   (**
     g_ReadResource
       Read whole file from wad
+      (data <> nil) and (len > 0) when ok
+      use FreeMem(data) when done
 
     g_ReadSubResource
       Read whole file from folded wad
+      (data <> nil) and (len > 0) when ok
+      use FreeMem(data) when done
 
     g_DeleteResource
-      Delete file from wad, res = 0 when ok
+      Delete file from wad
+      res = 0 when ok
 
     g_AddResource
-      Add/overwrite file to wad, res = 0 when ok
+      Add/overwrite file to wad
+      res = 0 when ok
+
+    g_ExistsResource
+      Check that resource exists
+      res = 0 when ok
   **)
 
   procedure g_ReadResource (wad, section, name: String; out data: PByte; out len: Integer);
   procedure g_ReadSubResource (wad, section0, name0, section1, name1: String; out data: PByte; out len: Integer);
   procedure g_DeleteResource (wad, section, name: String; out res: Integer);
   procedure g_AddResource (wad, section, name: String; const data: PByte; len: Integer; out res: Integer);
+  procedure g_ExistsResource (wad, section, name: String; out res: Integer);
 
 implementation
 
@@ -29,6 +40,9 @@ implementation
     var f: TWADEditor_1;
   begin
     res := 1; (* error *)
+    wad := utf2win(wad);
+    section := utf2win(section);
+    name := utf2win(name);
     f := TWADEditor_1.Create();
     if not f.ReadFile(wad) then
     begin
@@ -37,6 +51,8 @@ implementation
     f.CreateImage;
     f.RemoveResource(section, name);
     f.AddResource(data, len, name, section);
+    if FileExists(wad) then
+      ASSERT(RenameFile(wad, wad + '.bak'));
     f.SaveTo(wad);
     f.Free;
     res := 0
@@ -64,6 +80,8 @@ implementation
   begin
     res := 1;
     wad := ExpandFileName(wad);
+    section := utf2win(section);
+    name := utf2win(name);
     list := SFSFileList(wad);
     tmp := wad + '.tmp' + IntToStr(Random(100000));
     ts := TFileStream.Create(tmp, fmCreate);
@@ -117,6 +135,8 @@ implementation
     var f: TWADEditor_1;
   begin
     res := 1; (* error *)
+    section := utf2win(section);
+    name := utf2win(name);
     f := TWADEditor_1.Create;
     if not f.ReadFile(wad) then
     begin
@@ -131,8 +151,59 @@ implementation
   end;
 
   procedure g_DeleteResourceFromZip (wad, section, name: String; out res: Integer);
+    var
+      data0: PByte;
+      i, n, len0: Integer;
+      list: TSFSFileList;
+      tmp, entry: String;
+      ts: TFileStream;
+      dir: array of TFileInfo;
+
+    procedure Add (name: String; data: PByte; len: Integer);
+      var ds: TSFSMemoryChunkStream;
+    begin
+      SetLength(dir, n + 1);
+      ds := TSFSMemoryChunkStream.Create(data, len, false);
+      dir[n] := dfzip.ZipOne(ts, name, ds);
+      ds.Free;
+      INC(n);
+    end;
+
   begin
-    res := 1 (* not implemented *)
+    res := 1;
+    wad := ExpandFileName(wad);
+    section := utf2win(section);
+    name := utf2win(name);
+    list := SFSFileList(wad);
+    tmp := wad + '.tmp' + IntToStr(Random(100000));
+    ts := TFileStream.Create(tmp, fmCreate);
+    n := 0;
+    SetLength(dir, 0);
+    if list <> nil then
+    begin
+      for i := 0 to list.Count - 1 do
+      begin
+        if (list.Files[i].path <> section) or (list.Files[i].name <> section) then
+        begin
+          g_ReadResource(wad, list.Files[i].path, list.Files[i].name, data0, len0);
+          if list.Files[i].path = '' then
+            entry := list.Files[i].name
+          else
+            entry := list.Files[i].path + '/' + list.Files[i].name;
+          Add(entry, data0, len0);
+          FreeMem(data0)
+        end
+      end;
+      list.Destroy
+    end;
+
+    dfzip.writeCentralDir(ts, dir);
+    ts.Free;
+
+    if FileExists(wad) then
+      ASSERT(RenameFile(wad, wad + '.bak'));
+    ASSERT(RenameFile(tmp, wad));
+    res := 0
   end;
 
   procedure g_DeleteResource (wad, section, name: String; out res: Integer);
@@ -146,11 +217,27 @@ implementation
       g_DeleteResourceFromZip(wad, section, name, res)
   end;
 
+  procedure g_ExistsResource (wad, section, name: String; out res: Integer);
+    var str: String; stream: TStream;
+  begin
+    res := 1;
+    section := utf2win(section);
+    name := utf2win(name);
+    if SFSAddDataFileTemp(wad, TRUE) then
+    begin
+      str := SFSGetLastVirtualName(section + '\' + name);
+      stream := SFSFileOpen(wad + '::' + str);
+      if stream <> nil then
+      begin
+        res := 0;
+        stream.Destroy
+      end
+    end;
+    SFSGCCollect
+  end;
+
   procedure g_ReadResource (wad, section, name: String; out data: PByte; out len: Integer);
-    var
-      stream: TStream;
-      str: String;
-      i: Integer;
+    var stream: TStream; str: String; i: Integer;
   begin
     section := utf2win(section);
     name := utf2win(name);
@@ -174,10 +261,7 @@ implementation
   end;
 
   procedure g_ReadSubResource (wad, section0, name0, section1, name1: String; out data: PByte; out len: Integer);
-    var
-      stream0, stream1: TStream;
-      str0, str1: String;
-      i: Integer;
+    var stream0, stream1: TStream; str0, str1: String; i: Integer;
   begin
     data := nil;
     len := 0;

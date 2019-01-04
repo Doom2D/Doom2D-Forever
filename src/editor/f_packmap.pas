@@ -70,25 +70,25 @@ begin
     eWAD.Text := SaveDialog.FileName;
 end;
 
-function ProcessResource(wad_to: TWADEditor_1; section_to, filename, section, resource: String): Boolean;
+function ProcessResource(wad_to, section_to, filename, section, resource: String): Boolean;
   var
     data: Pointer;
-    reslen: Integer;
+    res, len: Integer;
 begin
   if filename = '' then
     g_ProcessResourceStr(OpenedMap, @filename, nil, nil)
   else
     filename := EditorDir + 'wads/' + filename;
 
-  g_ReadResource(filename, section, resource, data, reslen);
+  g_ReadResource(filename, section, resource, data, len);
   if data <> nil then
   begin
     (* Write resource only if it does not exists *)
-    if not wad_to.HaveResource(utf2win(section_to), utf2win(resource)) then
+    g_ExistsResource(wad_to, section_to, resource, res);
+    if res <> 0 then
     begin
-      if not wad_to.HaveSection(utf2win(section_to)) then
-        wad_to.AddSection(utf2win(section_to));
-      wad_to.AddResource(data, reslen, utf2win(resource), utf2win(section_to))
+      g_AddResource(wad_to, section_to, resource, data, len, res);
+      ASSERT(res = 0)
     end;
     FreeMem(data);
     Result := True
@@ -103,7 +103,6 @@ end;
 
 procedure TPackMapForm.bPackClick(Sender: TObject);
 var
-  WAD: TWADEditor_1;
   mr: TMapReader_1;
   mw: TMapWriter_1;
   data: Pointer;
@@ -128,12 +127,10 @@ begin
   if data = nil then
     Exit;
 
-  WAD := TWADEditor_1.Create();
-
 // Не перезаписывать WAD, а дополнить:
-  if cbAdd.Checked then
-    if WAD.ReadFile(eWAD.Text) then
-      WAD.CreateImage();
+  if not cbAdd.Checked then
+    if FileExists(eWAD.Text) then
+      ASSERT(RenameFile(eWAD.Text, eWAD.Text + '.bak0'));
 
 // Читаем карту из памяти:
   mr := TMapReader_1.Create();
@@ -159,10 +156,9 @@ begin
            (AnsiLowerCase(filename) <> SHRSHADE_WAD) ) then
       begin
       // Копируем ресурс текстуры:
-        if not f_packmap.ProcessResource(WAD, tsection, filename, section, resource) then
+        if not f_packmap.ProcessResource(eWAD.Text, tsection, filename, section, resource) then
         begin
           mr.Free();
-          WAD.Free();
           Exit;
         end;
 
@@ -188,10 +184,9 @@ begin
          (AnsiLowerCase(filename) <> SHRSHADE_WAD) ) then
     begin
     // Копируем ресурс неба:
-      if not f_packmap.ProcessResource(WAD, ssection, filename, section, resource) then
+      if not f_packmap.ProcessResource(eWAD.Text, ssection, filename, section, resource) then
       begin
         mr.Free();
-        WAD.Free();
         Exit;
       end;
 
@@ -214,10 +209,9 @@ begin
          (AnsiLowerCase(filename) <> SHRSHADE_WAD) ) then
     begin
     // Копируем ресурс музыки:
-      if not f_packmap.ProcessResource(WAD, msection, filename, section, resource) then
+      if not f_packmap.ProcessResource(eWAD.Text, msection, filename, section, resource) then
       begin
         mr.Free();
-        WAD.Free();
         Exit;
       end;
 
@@ -275,7 +269,7 @@ begin
                (AnsiLowerCase(filename) <> SHRSHADE_WAD) ) then
           begin
           // Копируем ресурс дополнительной текстуры:
-            if f_packmap.ProcessResource(WAD, tsection, filename, section, resource) then
+            if f_packmap.ProcessResource(eWAD.Text, tsection, filename, section, resource) then
             begin
 
               Нужно проверять есть такая текстура textures и есть ли она вообще?
@@ -307,18 +301,13 @@ begin
 
 // Сохраняем карту из памяти под новым именем в WAD-файл:
   len := mw.SaveMap(data);
-  WAD.AddResource(data, len, eResource.Text, '');
-  WAD.SaveTo(eWAD.Text);
-
+  g_AddResource(eWAD.Text, '', eResource.Text, data, len, a);
   mw.Free();
   mr.Free();
-  WAD.Free();
-
-  MessageDlg(Format(_lc[I_MSG_PACKED],
-                    [eResource.Text, ExtractFileName(eWAD.Text)]),
-             mtInformation, [mbOK], 0);
-
   Close();
+
+  ASSERT(a = 0); (* saved *)
+  MessageDlg(Format(_lc[I_MSG_PACKED], [eResource.Text, ExtractFileName(eWAD.Text)]), mtInformation, [mbOK], 0);
 end;
 
 procedure TPackMapForm.FormCreate(Sender: TObject);

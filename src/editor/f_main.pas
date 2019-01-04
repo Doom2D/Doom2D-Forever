@@ -6178,7 +6178,7 @@ begin
   if MessageBox(0, PChar(Format(_lc[I_MSG_DELETE_MAP_PROMT], [MapName, OpenDialog.FileName])), PChar(_lc[I_MSG_DELETE_MAP]), MB_ICONQUESTION or MB_YESNO or MB_DEFBUTTON2) <> mrYes then
     Exit;
 
-  g_DeleteResource(FileName, '', utf2win(MapName), res);
+  g_DeleteResource(FileName, '', MapName, res);
   if res <> 0 then
   begin
     MessageBox(0, PChar('Cant delete map res=' + IntToStr(res)), PChar('Map not deleted!'), MB_ICONINFORMATION or MB_OK or MB_DEFBUTTON1);

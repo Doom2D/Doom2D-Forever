@@ -1339,7 +1339,7 @@ begin
   if Res <> '' then
   begin
     g_ProcessResourceStr(Res, FileName, SectionName, ResName);
-    g_AddResource(FileName, SectionName, utf2win(ResName), Data, Len, a);
+    g_AddResource(FileName, SectionName, ResName, Data, Len, a);
     ASSERT(a = 0);
     FreeMem(Data);
     Result := nil
