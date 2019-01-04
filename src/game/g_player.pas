@@ -280,7 +280,7 @@ type
     procedure   ReleaseKeysNoWeapon();
     procedure   SetModel(ModelName: String);
     procedure   SetColor(Color: TRGB);
-    procedure   SetWeaponHost(W: Byte);
+    procedure   SetWeapon(W: Byte);
     function    IsKeyPressed(K: Byte): Boolean;
     function    GetKeys(): Byte;
     function    PickItem(ItemType: Byte; arespawn: Boolean; var remove: Boolean): Boolean; virtual;
@@ -3908,12 +3908,9 @@ begin
   FNextWeap := $4000;
 end;
 
-// used exclusively by network layer
-procedure TPlayer.SetWeaponHost(W: Byte);
+// used by network layer
+procedure TPlayer.SetWeapon(W: Byte);
 begin
-  if (W > High(FWeapon)) then exit;
-  if (not FWeapon[W]) then exit; // server is authority!
-
   if FCurrWeap <> W then
     if (W = WEAPON_SAW) then
       FSawSoundSelect.PlayAt(FObj.X, FObj.Y);
