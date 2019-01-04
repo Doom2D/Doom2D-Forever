@@ -3588,81 +3588,34 @@ function TPlayer.getNextWeaponIndex (): Byte;
 var
   i: Word;
   wantThisWeapon: array[0..64] of Boolean;
-  weaponOrder: array[0..64] of Integer; // value: index in `FWeapon`
   wwc: Integer = 0; //HACK!
-  dir, cwi, rwidx, curlidx: Integer;
-
-  function real2log (ridx: Integer): Integer;
-  var
-    f: Integer;
-  begin
-    if (ridx >= 0) then
-    begin
-      for f := 0 to 10 do if (weaponOrder[f] = ridx) then begin result := f; exit; end;
-    end;
-    result := -1;
-  end;
-
+  dir, cwi: Integer;
 begin
   result := 255; // default result: "no switch"
-
   // had weapon cycling on previous frame? remove that flag
   if (FNextWeap and $2000) <> 0 then
   begin
     FNextWeap := FNextWeap and $1FFF;
     FNextWeapDelay := 0;
   end;
-
-  // build weapon order (k8: i know, i know, learn how to do constants and such... gtfo, please!)
-  // priorities:
-  //   bfg, plasma, flamethrower, ssg, minigun, sg, pistol, berserk, chainsaw, fist
-  weaponOrder[0] := WEAPON_BFG;
-  weaponOrder[1] := WEAPON_PLASMA;
-  weaponOrder[2] := WEAPON_FLAMETHROWER;
-  weaponOrder[3] := WEAPON_SHOTGUN2;
-  weaponOrder[4] := WEAPON_CHAINGUN;
-  weaponOrder[5] := WEAPON_SHOTGUN1;
-  weaponOrder[6] := WEAPON_PISTOL;
-  weaponOrder[7] := WEAPON_KASTET;
-  weaponOrder[8] := WEAPON_SAW;
-  weaponOrder[9] := WEAPON_KASTET;
-  weaponOrder[10] := WEAPON_SUPERPULEMET;
-
-  if (R_BERSERK in FRulez) then weaponOrder[9] := -1 else weaponOrder[7] := -1;
-
-  (*
-  WEAPON_KASTET         = 0;
-  WEAPON_SAW            = 1;
-  WEAPON_PISTOL         = 2;
-  WEAPON_SHOTGUN1       = 3;
-  WEAPON_SHOTGUN2       = 4;
-  WEAPON_CHAINGUN       = 5;
-  WEAPON_ROCKETLAUNCHER = 6;
-  WEAPON_PLASMA         = 7;
-  WEAPON_BFG            = 8;
-  WEAPON_SUPERPULEMET   = 9;
-  WEAPON_FLAMETHROWER   = 10;
-  *)
-
   // cycling has priority
   if (FNextWeap and $C000) <> 0 then
   begin
-    if (FNextWeap and $8000) <> 0 then dir := 1 else dir := -1; // should be reversed if we want "priority-driven cycling"
+    if (FNextWeap and $8000) <> 0 then
+      dir := 1
+    else
+      dir := -1;
     FNextWeap := FNextWeap or $2000; // we need this
-    if FNextWeapDelay > 0 then exit; // cooldown time
-    //cwi := real2log(FCurrWeap);
-    //if (cwi < 0) then cwi := 0;
+    if FNextWeapDelay > 0 then
+      exit; // cooldown time
     cwi := FCurrWeap;
     for i := 0 to High(FWeapon) do
     begin
       cwi := (cwi+length(FWeapon)+dir) mod length(FWeapon);
-      //rwidx := weaponOrder[cwi];
-      rwidx := cwi; // sorry
-      if (rwidx < 0) then continue;
-      if FWeapon[rwidx] then
+      if FWeapon[cwi] then
       begin
-        //e_WriteLog(Format(' SWITCH: cur=%d; new=%d (dir=%d; log=%d)', [FCurrWeap, rwidx, dir, cwi]), TMsgType.Warning);
-        result := Byte(rwidx);
+        //e_WriteLog(Format(' SWITCH: cur=%d; new=%d', [FCurrWeap, cwi]), MSG_WARNING);
+        result := Byte(cwi);
         FNextWeapDelay := 10;
         exit;
       end;
@@ -3670,66 +3623,48 @@ begin
     resetWeaponQueue();
     exit;
   end;
-
   // no cycling
-  for i := 0 to High(wantThisWeapon) do wantThisWeapon[i] := false;
+  for i := 0 to High(wantThisWeapon) do
+    wantThisWeapon[i] := false;
   for i := 0 to High(FWeapon) do
-  begin
     if (FNextWeap and (1 shl i)) <> 0 then
     begin
-      cwi := real2log(i);
-      if (cwi >= 0) then wantThisWeapon[cwi] := true;
+      wantThisWeapon[i] := true;
       Inc(wwc);
     end;
-  end;
-
+  // exclude currently selected weapon from the set
+  wantThisWeapon[FCurrWeap] := false;
   // slow down alterations a little
-  if (wwc > 1) then
+  if wwc > 1 then
   begin
     //e_WriteLog(Format(' FNextWeap=%x; delay=%d', [FNextWeap, FNextWeapDelay]), MSG_WARNING);
-    // more than one weapon requested, assume "alteration", and check alteration delay
+    // more than one weapon requested, assume "alteration" and check alteration delay
     if FNextWeapDelay > 0 then
     begin
       FNextWeap := 0;
       exit;
     end; // yeah
   end;
-
   // do not reset weapon queue, it will be done in `RealizeCurrentWeapon()`
   // but clear all counters if no weapon should be switched
-  if (wwc < 1) then
+  if wwc < 1 then
   begin
     resetWeaponQueue();
     exit;
   end;
-  //e_WriteLog(Format('wwc=%d', [wwc]), TMsgType.Warning);
-
-  // exclude currently selected weapon from the set
-  curlidx := real2log(FCurrWeap);
-  //e_WriteLog(Format('FCurrWeap=%d; curlidx=%d', [FCurrWeap, curlidx]), TMsgType.Warning);
-  //if (curlidx >= 0) then wantThisWeapon[curlidx] := false;
-  //if (wwc = 2) then begin Dec(wwc); end; // easy case: switch between two weapons
-
-  // find next weapon to switch onto
-  cwi := curlidx;
-  for i := 0 to High(FWeapon) do
+  //e_WriteLog(Format('wwc=%d', [wwc]), MSG_WARNING);
+  // try weapons in descending order
+  for i := High(FWeapon) downto 0 do
   begin
-    cwi := (cwi+length(FWeapon)+1) mod length(FWeapon);
-    if (cwi = curlidx) then continue; // skip current weapon
-    if not wantThisWeapon[cwi] then continue;
-    rwidx := weaponOrder[cwi];
-    if (rwidx < 0) then continue;
-    //e_WriteLog(Format('  trying logical %d (real %d)', [cwi, rwidx]), TMsgType.Warning);
-    if FWeapon[cwi] and ((wwc = 1) or hasAmmoForWeapon(cwi)) then
+    if wantThisWeapon[i] and FWeapon[i] and ((wwc = 1) or hasAmmoForWeapon(i)) then
     begin
       // i found her!
-      result := Byte(rwidx);
+      result := Byte(i);
       resetWeaponQueue();
       FNextWeapDelay := 10; // anyway, 'cause why not
       exit;
     end;
   end;
-
   // no suitable weapon found, so reset the queue, to avoid accidental "queuing" of weapon w/o ammo
   resetWeaponQueue();
 end;
