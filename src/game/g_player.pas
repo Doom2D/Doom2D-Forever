@@ -3574,8 +3574,8 @@ begin
   result := false;
   case weapon of
     WEAPON_KASTET, WEAPON_SAW: result := true;
-    WEAPON_SHOTGUN1, WEAPON_SHOTGUN2, WEAPON_SUPERPULEMET: result := (FAmmo[A_SHELLS] > 0);
-    WEAPON_PISTOL, WEAPON_CHAINGUN: result := (FAmmo[A_BULLETS] > 0);
+    WEAPON_SHOTGUN1, WEAPON_SHOTGUN2: result := (FAmmo[A_SHELLS] > 0);
+    WEAPON_PISTOL, WEAPON_CHAINGUN, WEAPON_SUPERPULEMET: result := (FAmmo[A_BULLETS] > 0);
     WEAPON_ROCKETLAUNCHER: result := (FAmmo[A_ROCKETS] > 0);
     WEAPON_PLASMA, WEAPON_BFG: result := (FAmmo[A_CELLS] > 0);
     WEAPON_FLAMETHROWER: result := (FAmmo[A_FUEL] > 0);
