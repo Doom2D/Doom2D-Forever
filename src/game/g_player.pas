@@ -4197,7 +4197,6 @@ begin
           Result := True;
           remove := True;
           FFireTime := 0;
-          //k8:do we need it? if g_Game_IsNet and g_Game_IsServer then MH_SEND_PlayerStats(FUID);
         end;
         if FHealth < PLAYER_HP_SOFT then
         begin
