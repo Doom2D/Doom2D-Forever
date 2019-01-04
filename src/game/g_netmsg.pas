@@ -2759,9 +2759,6 @@ begin
       end;
 
       gPlayer1.ReleaseKeys;
-      gPlayer1.weaponSwitchKeysStateChange(-1, isKeyPressed(KeyNextWeapon, KeyNextWeapon2));
-      gPlayer1.weaponSwitchKeysStateChange(-2, isKeyPressed(KeyPrevWeapon, KeyPrevWeapon2));
-
       if P1MoveButton = 1 then
       begin
         kByte := kByte or NET_KEY_LEFT;
@@ -2789,28 +2786,17 @@ begin
       end;
       if isKeyPressed(KeyFire, KeyFire2) then kByte := kByte or NET_KEY_FIRE;
       if isKeyPressed(KeyOpen, KeyOpen2) then kByte := kByte or NET_KEY_OPEN;
-      if isKeyPressed(KeyNextWeapon, KeyNextWeapon2) and gPlayer1.isWeaponSwitchKeyReleased(-1) then kByte := kByte or NET_KEY_NW;
-      if isKeyPressed(KeyPrevWeapon, KeyPrevWeapon2) and gPlayer1.isWeaponSwitchKeyReleased(-2) then kByte := kByte or NET_KEY_PW;
+      if isKeyPressed(KeyNextWeapon, KeyNextWeapon2) then kByte := kByte or NET_KEY_NW;
+      if isKeyPressed(KeyPrevWeapon, KeyPrevWeapon2) then kByte := kByte or NET_KEY_PW;
       for I := 0 to High(KeyWeapon) do
-      begin
         if isKeyPressed(KeyWeapon[I], KeyWeapon2[I]) then
-        begin
-          gPlayer1.weaponSwitchKeysStateChange(i, true);
-          if gPlayer1.isWeaponSwitchKeyReleased(i) then WeaponSelect := WeaponSelect or Word(1 shl I);
-        end
-        else
-        begin
-          gPlayer1.weaponSwitchKeysStateChange(i, false);
-        end;
-      end;
+          WeaponSelect := WeaponSelect or Word(1 shl I);
     end;
     // fix movebutton state
     P1MoveButton := P1MoveButton or (strafeDir shl 4);
   end
   else
     kByte := NET_KEY_CHAT;
-
-  gPlayer1.weaponSwitchKeysShiftNewStates();
 
   NetOut.Write(Byte(NET_MSG_PLRPOS));
   NetOut.Write(gTime);
