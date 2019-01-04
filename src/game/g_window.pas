@@ -314,6 +314,8 @@ begin
     SDL_WINDOWEVENT_MINIMIZED:
     begin
       e_UnpressAllKeys();
+      if (gPlayer1 <> nil) then gPlayer1.releaseAllWeaponSwitchKeys();
+      if (gPlayer2 <> nil) then gPlayer2.releaseAllWeaponSwitchKeys();
       if not wMinimized then
       begin
         e_ResizeWindow(0, 0);
@@ -402,6 +404,8 @@ begin
     begin
       wDeactivate := true;
       e_UnpressAllKeys();
+      if (gPlayer1 <> nil) then gPlayer1.releaseAllWeaponSwitchKeys();
+      if (gPlayer2 <> nil) then gPlayer2.releaseAllWeaponSwitchKeys();
       //e_WriteLog('window lost focus!', MSG_NOTIFY);
     end;
   end;
