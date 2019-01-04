@@ -2043,8 +2043,6 @@ begin
     Exit;
   end;
   gTime := GT;
-  if g_Game_IsClient and (gPlayer1.NetForceWeapFIdx >= gTime+5) then gPlayer1.NetForceWeapFIdx := 0;
-  if g_Game_IsClient and (gPlayer2 <> nil) and (gPlayer2.NetForceWeapFIdx >= gTime+5) then gPlayer2.NetForceWeapFIdx := 0;
 
   PID := M.ReadWord();
   Pl := g_Player_Get(PID);
