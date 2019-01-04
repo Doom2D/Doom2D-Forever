@@ -430,8 +430,8 @@ end;
 
 function  MH_RECV_PlayerPos(C: pTNetClient; var M: TMsg): Word;
 var
-  Dir{, i}: Byte;
-  //WeaponSelect: Word;
+  Dir, i: Byte;
+  WeaponSelect: Word;
   PID: Word;
   kByte: Word;
   Pl: TPlayer;
@@ -453,14 +453,13 @@ begin
     NetTime := GT;
     kByte := M.ReadWord();
     Dir := M.ReadByte();
-    //WeaponSelect := M.ReadWord();
-    SetWeapon(M.ReadByte());
+    WeaponSelect := M.ReadWord();
     //e_WriteLog(Format('R:ws=%d', [WeaponSelect]), MSG_WARNING);
     if Direction <> TDirection(Dir) then
       JustTeleported := False;
 
     SetDirection(TDirection(Dir));
-    ReleaseKeysNoWeapon();
+    ReleaseKeys;
 
     if kByte = NET_KEY_CHAT then
     begin
@@ -475,10 +474,9 @@ begin
     if LongBool(kByte and NET_KEY_JUMP) then PressKey(KEY_JUMP, 10000);
     if LongBool(kByte and NET_KEY_FIRE) then PressKey(KEY_FIRE, 10000);
     if LongBool(kByte and NET_KEY_OPEN) then PressKey(KEY_OPEN, 10000);
-    //if LongBool(kByte and NET_KEY_NW) then PressKey(KEY_NEXTWEAPON, 10000);
-    //if LongBool(kByte and NET_KEY_PW) then PressKey(KEY_PREVWEAPON, 10000);
+    if LongBool(kByte and NET_KEY_NW) then PressKey(KEY_NEXTWEAPON, 10000);
+    if LongBool(kByte and NET_KEY_PW) then PressKey(KEY_PREVWEAPON, 10000);
 
-    (*
     for i := 0 to 15 do
     begin
       if (WeaponSelect and Word(1 shl i)) <> 0 then
@@ -487,7 +485,6 @@ begin
         QueueWeaponSwitch(i);
       end;
     end;
-    *)
   end;
 
   // MH_SEND_PlayerPos(False, PID, C^.ID);
@@ -2049,7 +2046,7 @@ begin
     TmpX := M.ReadLongInt();
     TmpY := M.ReadLongInt();
 
-    ReleaseKeysNoWeapon;
+    ReleaseKeys;
 
     if (kByte = NET_KEY_CHAT) then
       PressKey(KEY_CHAT, 10000)
@@ -2741,7 +2738,7 @@ var
   kByte: Word;
   Predict: Boolean;
   strafeDir: Byte;
-  //WeaponSelect: Word = 0;
+  WeaponSelect: Word = 0;
   I: Integer;
 begin
   if not gGameOn then Exit;
@@ -2808,19 +2805,14 @@ begin
       end;
       if isKeyPressed(KeyFire, KeyFire2) then kByte := kByte or NET_KEY_FIRE;
       if isKeyPressed(KeyOpen, KeyOpen2) then kByte := kByte or NET_KEY_OPEN;
-      // do not send weapon switch keys, `MH_SEND_PlayerStats()` will send changed weapon anyway
-      if isKeyPressed(KeyNextWeapon, KeyNextWeapon2) and gPlayer1.isWeaponSwitchKeyReleased(-1) then gPlayer1.PressKey(KEY_NEXTWEAPON); //kByte := kByte or NET_KEY_NW;
-      if isKeyPressed(KeyPrevWeapon, KeyPrevWeapon2) and gPlayer1.isWeaponSwitchKeyReleased(-2) then gPlayer1.PressKey(KEY_PREVWEAPON); //kByte := kByte or NET_KEY_PW;
+      if isKeyPressed(KeyNextWeapon, KeyNextWeapon2) and gPlayer1.isWeaponSwitchKeyReleased(-1) then kByte := kByte or NET_KEY_NW;
+      if isKeyPressed(KeyPrevWeapon, KeyPrevWeapon2) and gPlayer1.isWeaponSwitchKeyReleased(-2) then kByte := kByte or NET_KEY_PW;
       for I := 0 to High(KeyWeapon) do
       begin
         if isKeyPressed(KeyWeapon[I], KeyWeapon2[I]) then
         begin
           gPlayer1.weaponSwitchKeysStateChange(i, true);
-          if gPlayer1.isWeaponSwitchKeyReleased(i) then
-          begin
-            gPlayer1.QueueWeaponSwitch(i); // all choices are passed there, and god will take the best
-            //WeaponSelect := WeaponSelect or Word(1 shl I);
-          end;
+          if gPlayer1.isWeaponSwitchKeyReleased(i) then WeaponSelect := WeaponSelect or Word(1 shl I);
         end
         else
         begin
@@ -2840,8 +2832,7 @@ begin
   NetOut.Write(gTime);
   NetOut.Write(kByte);
   NetOut.Write(Byte(gPlayer1.Direction));
-  NetOut.Write(Byte(gPlayer1.CurrWeap));
-  //NetOut.Write(WeaponSelect);
+  NetOut.Write(WeaponSelect);
   //e_WriteLog(Format('S:ws=%d', [WeaponSelect]), MSG_WARNING);
   g_Net_Client_Send(True, NET_CHAN_PLAYERPOS);
 

@@ -274,7 +274,6 @@ type
     function    GetRespawnPoint(): Byte;
     procedure   PressKey(Key: Byte; Time: Word = 1);
     procedure   ReleaseKeys();
-    procedure   ReleaseKeysNoWeapon();
     procedure   SetModel(ModelName: String);
     procedure   SetColor(Color: TRGB);
     procedure   SetWeapon(W: Byte);
@@ -3611,7 +3610,7 @@ end;
 
 procedure TPlayer.QueueWeaponSwitch(Weapon: Byte);
 begin
-  //if g_Game_IsClient then Exit;
+  if g_Game_IsClient then Exit;
   if Weapon > High(FWeapon) then Exit;
   FNextWeap := FNextWeap or (1 shl Weapon);
 end;
@@ -3863,13 +3862,13 @@ end;
 
 procedure TPlayer.NextWeapon();
 begin
-  //if g_Game_IsClient then Exit;
+  if g_Game_IsClient then Exit;
   FNextWeap := $8000;
 end;
 
 procedure TPlayer.PrevWeapon();
 begin
-  //if g_Game_IsClient then Exit;
+  if g_Game_IsClient then Exit;
   FNextWeap := $4000;
 end;
 
@@ -4988,7 +4987,6 @@ begin
       DoLerp(4);
 
   if NetServer then
-  begin
     if FClientID >= 0 then
     begin
       FPing := NetClients[FClientID].Peer^.lastRoundTripTime;
@@ -5001,7 +4999,6 @@ begin
       FPing := 0;
       FLoss := 0;
     end;
-  end;
 
   if FAlive and (FPunchAnim <> nil) then
     FPunchAnim.Update();
@@ -5032,8 +5029,8 @@ begin
   end;
 
   // no need to do that each second frame, weapon queue will take care of it
-  if FAlive and FKeys[KEY_NEXTWEAPON].Pressed {and AnyServer} then NextWeapon();
-  if FAlive and FKeys[KEY_PREVWEAPON].Pressed {and AnyServer} then PrevWeapon();
+  if FAlive and FKeys[KEY_NEXTWEAPON].Pressed and AnyServer then NextWeapon();
+  if FAlive and FKeys[KEY_PREVWEAPON].Pressed and AnyServer then PrevWeapon();
 
   if gTime mod (GAME_TICK*2) <> 0 then
   begin
@@ -5848,18 +5845,6 @@ var
 begin
   for a := Low(FKeys) to High(FKeys) do
   begin
-    FKeys[a].Pressed := False;
-    FKeys[a].Time := 0;
-  end;
-end;
-
-procedure TPlayer.ReleaseKeysNoWeapon();
-var
-  a: Integer;
-begin
-  for a := Low(FKeys) to High(FKeys) do
-  begin
-    if (a = KEY_PREVWEAPON) or (a = KEY_NEXTWEAPON) then continue;
     FKeys[a].Pressed := False;
     FKeys[a].Time := 0;
   end;
@@ -7071,7 +7056,7 @@ begin
             end;
         end;
 
-  //HACK! (does it belong there?)
+  //HACK! (does it belongs there?)
   RealizeCurrentWeapon();
 
 // Если есть возможные цели:
