@@ -1018,7 +1018,6 @@ var
 begin
   if (Length(Line) = 0) then
   begin
-    if (g_Game_IsNet and g_Game_IsServer) or (g_Game_IsClient) then exit;
     g_Console_Add('');
     for i := 0 to High(commands) do
     begin
