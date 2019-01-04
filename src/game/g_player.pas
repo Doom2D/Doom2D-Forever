@@ -163,7 +163,7 @@ type
     FSecrets:   Integer;
     FCurrWeap:  Byte;
     FNextWeap:  WORD;
-    FNextWeapDelay: Byte; // frames (unused)
+    FNextWeapDelay: Byte; // frames
     FBFGFireCounter: SmallInt;
     FLastSpawnerUID: Word;
     FLastHit:   Byte;
@@ -199,9 +199,6 @@ type
     FJustTeleported: Boolean;
     FNetTime: LongWord;
     mEDamageType: Integer;
-
-    // client-side only
-    weaponSwitchKeyReleased: array[0..16] of Boolean; // true: was release
 
 
     function CollideLevel(XInc, YInc: Integer): Boolean;
@@ -336,10 +333,6 @@ type
 
     procedure getMapBox (out x, y, w, h: Integer); inline;
     procedure moveBy (dx, dy: Integer); inline;
-
-    procedure releaseAllWeaponSwitchKeys ();
-    procedure weaponSwitchKeysStateChange (index: Integer; pressed: Boolean);
-    function isWeaponSwitchKeyReleased (index: Integer): Boolean;
 
   public
     property    Vel: TPoint2i read FObj.Vel;
@@ -2137,37 +2130,7 @@ begin
   FNetTime := 0;
 
   resetWeaponQueue();
-  releaseAllWeaponSwitchKeys();
 end;
-
-
-procedure TPlayer.releaseAllWeaponSwitchKeys ();
-var
-  f: Integer;
-begin
-  for f := 0 to High(weaponSwitchKeyReleased) do weaponSwitchKeyReleased[f] := true;
-end;
-
-procedure TPlayer.weaponSwitchKeysStateChange (index: Integer; pressed: Boolean);
-begin
-  Inc(index, 2); // -2: prev; -1: next
-  if (index < 0) or (index > High(weaponSwitchKeyReleased)) then exit;
-  weaponSwitchKeyReleased[index] := not pressed;
-end;
-
-function TPlayer.isWeaponSwitchKeyReleased (index: Integer): Boolean;
-begin
-  Inc(index, 2); // -2: prev; -1: next
-  if (index < 0) or (index > High(weaponSwitchKeyReleased)) then
-  begin
-    result := true;
-  end
-  else
-  begin
-    result := weaponSwitchKeyReleased[index];
-  end;
-end;
-
 
 procedure TPlayer.positionChanged (); inline;
 begin
@@ -3717,7 +3680,7 @@ begin
       begin
         //e_WriteLog(Format(' SWITCH: cur=%d; new=%d (dir=%d; log=%d)', [FCurrWeap, rwidx, dir, cwi]), TMsgType.Warning);
         result := Byte(rwidx);
-        //FNextWeapDelay := 10; //k8: not needed anymore
+        FNextWeapDelay := 10;
         exit;
       end;
     end;
@@ -3781,7 +3744,7 @@ begin
       // i found her!
       result := Byte(rwidx);
       resetWeaponQueue();
-      //FNextWeapDelay := 10; // anyway, 'cause why not; k8: not needed anymore
+      FNextWeapDelay := 10; // anyway, 'cause why not
       exit;
     end;
   end;
@@ -3811,9 +3774,7 @@ var
 begin
   //e_WriteLog(Format('***RealizeCurrentWeapon: FNextWeap=%x; FNextWeapDelay=%d', [FNextWeap, FNextWeapDelay]), MSG_WARNING);
   //FNextWeap := FNextWeap and $1FFF;
-  //HACK: alteration delay will be reset when player released any weapon switch key
-  FNextWeapDelay := 0; //k8: just in case
-  //if FNextWeapDelay > 0 then Dec(FNextWeapDelay); // "alteration delay"
+  if FNextWeapDelay > 0 then Dec(FNextWeapDelay); // "alteration delay"
 
   if not switchAllowed then
   begin
