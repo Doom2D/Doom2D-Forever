@@ -2839,11 +2839,9 @@ begin
       begin
         if isKeyPressed(KeyWeapon[I], KeyWeapon2[I]) then
         begin
-          //writeln('keyweapon #', i, ' is pressed; released=', Integer(gPlayer1.isWeaponSwitchKeyReleased(i)), '; frm=', gPlayer1.NetForceWeapFIdx, '; gTime=', gTime);
           gPlayer1.weaponSwitchKeysStateChange(i, true);
           if gPlayer1.isWeaponSwitchKeyReleased(i) then
           begin
-            //writeln('keyweapon #', i, ' is pressed; released=', Integer(gPlayer1.isWeaponSwitchKeyReleased(i)), '; frm=', gPlayer1.NetForceWeapFIdx, '; gTime=', gTime);
             gPlayer1.QueueWeaponSwitch(i); // all choices are passed there, and god will take the best
             //WeaponSelect := WeaponSelect or Word(1 shl I);
           end;
