@@ -14,6 +14,7 @@ type
 procedure e_InitLog(fFileName: String; fWriteMode: TWriteMode);
 procedure e_WriteLog(TextLine: String; RecordCategory: TRecordCategory;
                      WriteTime: Boolean = True);
+procedure e_WriteStackTrace (const msg: AnsiString);
 function DecodeIPV4(ip: LongWord): string;
 
 implementation
@@ -56,6 +57,24 @@ begin
     Writeln(LogFile, '['+TimeToStr(Time)+'] '+Prefix+' '+TextLine)
   else
     Writeln(LogFile, Prefix+' '+TextLine);
+  Close(LogFile);
+end;
+
+{$I-}
+procedure e_WriteStackTrace (const msg: AnsiString);
+  var LogFile: TextFile;
+begin
+  e_WriteLog(msg, TRecordCategory.MSG_FATALERROR);
+
+  Assign(LogFile, FileName);
+  if FileExists(FileName) then
+    Append(LogFile)
+  else
+    Rewrite(LogFile);
+
+  writeln(LogFile, '=====================');
+  DumpExceptionBackTrace(LogFile);
+
   Close(LogFile);
 end;
 

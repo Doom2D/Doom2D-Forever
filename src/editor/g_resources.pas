@@ -251,6 +251,7 @@ implementation
       begin
         len := stream.Size;
         GetMem(data, len);
+        ASSERT(data <> nil);
         //stream.ReadBuffer(data, len); (* leads to segfault *)
         for i := 0 to len - 1 do
           data[i] := stream.ReadByte();
@@ -284,6 +285,7 @@ implementation
           begin
             len := stream1.Size;
             GetMem(data, len);
+            ASSERT(data <> nil);
             //stream1.ReadBuffer(data, len); (* leads to segfault *)
             for i := 0 to len - 1 do
               data[i] := stream1.ReadByte();

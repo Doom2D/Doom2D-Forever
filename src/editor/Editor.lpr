@@ -3,8 +3,8 @@ program Editor;
 {$INCLUDE ../shared/a_modes.inc}
 
 uses
-  Forms, Interfaces,
-  GL, GLExt,
+  Forms, Interfaces, Dialogs,
+  GL, GLExt, SysUtils,
   e_graphics in '../engine/e_graphics.pas',
   e_log in '../engine/e_log.pas',
   e_textures in '../engine/e_textures.pas',
@@ -59,8 +59,23 @@ uses
   {$R *.res}
 {$ENDIF}
 
+  type
+    THandlerObject = class (TObject)
+      procedure ExceptionHandler (Sender: TObject; e: Exception);
+    end;
+
+  var
+    H: THandlerObject;
+
+  procedure THandlerObject.ExceptionHandler (Sender: TObject; e: Exception);
+  begin
+    e_WriteStackTrace(e.message);
+    MessageDlg('Unhandled exception: ' + e.message + ' (see Editor.log for more information)', mtError, [mbOK], 0);
+  end;
+
 begin
   Application.ExceptionDialog := aedOkMessageBox;
+  Application.AddOnExceptionHandler(H.ExceptionHandler, True);
   Application.Initialize();
 
   Application.CreateForm(TMainForm, MainForm);

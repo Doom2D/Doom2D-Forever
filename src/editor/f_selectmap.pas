@@ -67,7 +67,6 @@ begin
 
   for i := 0 to list.Count - 1 do
   begin
-    writeln('GetMap "' + list.Files[i].path + '" "' + list.Files[i].name + '"');
     g_ReadResource(FileName, list.Files[i].path, list.Files[i].name, data, len);
 
     if len >= 3 then
