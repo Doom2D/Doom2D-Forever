@@ -129,8 +129,14 @@ begin
 
 // Не перезаписывать WAD, а дополнить:
   if not cbAdd.Checked then
+  begin
     if FileExists(eWAD.Text) then
-      ASSERT(RenameFile(eWAD.Text, eWAD.Text + '.bak0'));
+    begin
+      if FileExists(eWAD.Text + '.bak0') then
+        ASSERT(DeleteFile(eWAD.Text + '.bak0'));
+      ASSERT(RenameFile(eWAD.Text, eWAD.Text + '.bak0'))
+    end
+  end;
 
 // Читаем карту из памяти:
   mr := TMapReader_1.Create();
