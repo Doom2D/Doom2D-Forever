@@ -52,7 +52,11 @@ implementation
     f.RemoveResource(section, name);
     f.AddResource(data, len, name, section);
     if FileExists(wad) then
-      ASSERT(RenameFile(wad, wad + '.bak'));
+    begin
+      if FileExists(wad + '.bak') then
+        ASSERT(DeleteFile(wad + '.bak'));
+      ASSERT(RenameFile(wad, wad + '.bak'))
+    end;
     f.SaveTo(wad);
     f.Free;
     res := 0
@@ -115,7 +119,11 @@ implementation
     ts.Free;
 
     if FileExists(wad) then
-      ASSERT(RenameFile(wad, wad + '.bak'));
+    begin
+      if FileExists(wad + '.bak') then
+        ASSERT(DeleteFile(wad + '.bak'));
+      ASSERT(RenameFile(wad, wad + '.bak'))
+    end;
     ASSERT(RenameFile(tmp, wad));
     res := 0
   end;
@@ -201,7 +209,11 @@ implementation
     ts.Free;
 
     if FileExists(wad) then
-      ASSERT(RenameFile(wad, wad + '.bak'));
+    begin
+      if FileExists(wad + '.bak') then
+        ASSERT(DeleteFile(wad + '.bak'));
+      ASSERT(RenameFile(wad, wad + '.bak'))
+    end;
     ASSERT(RenameFile(tmp, wad));
     res := 0
   end;
