@@ -328,7 +328,7 @@ begin
     ds.position := nfoofs;
     writeInt(ds, LongWord(result.crc)); // crc32
     ds.position := oldofs;
-    write('(S) ');
+    //write('(S) ');
   end;
 end;
 

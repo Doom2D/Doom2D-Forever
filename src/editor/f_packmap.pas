@@ -53,7 +53,7 @@ implementation
 
 uses
   BinEditor, WADEDITOR, g_map, MAPREADER, MAPWRITER, MAPSTRUCT,
-  f_main, math, g_language, g_resources;
+  f_main, math, g_language, g_resources, e_log;
 
 {$R *.lfm}
 
@@ -74,11 +74,16 @@ function ProcessResource(wad_to, section_to, filename, section, resource: String
   var
     data: Pointer;
     res, len: Integer;
+    us, un: String;
 begin
+  Result := True;
   if filename = '' then
-    g_ProcessResourceStr(OpenedMap, @filename, nil, nil)
+    g_GetResourceSection(OpenedMap, filename, us, un)
   else
     filename := EditorDir + 'wads/' + filename;
+  e_WriteLog('ProcessResource: "' + wad_to + '" "' + section_to + '" "' + filename + '" "' + section + '" "' + resource + '"', MSG_NOTIFY);
+
+  if resource = '' then Exit;
 
   g_ReadResource(filename, section, resource, data, len);
   if data <> nil then
@@ -91,7 +96,6 @@ begin
       ASSERT(res = 0)
     end;
     FreeMem(data);
-    Result := True
   end
   else
   begin
@@ -103,6 +107,7 @@ end;
 
 procedure TPackMapForm.bPackClick(Sender: TObject);
 var
+  WadFile: String;
   mr: TMapReader_1;
   mw: TMapWriter_1;
   data: Pointer;
@@ -127,9 +132,9 @@ begin
   if data = nil then
     Exit;
 
-// Не перезаписывать WAD, а дополнить:
   if not cbAdd.Checked then
   begin
+    (* Overwrite wad *)
     if FileExists(eWAD.Text) then
     begin
       if FileExists(eWAD.Text + '.bak0') then
@@ -154,7 +159,7 @@ begin
       if IsSpecialTexture(res) then
         Continue;
 
-      g_ProcessResourceStr(res, @filename, @section, @resource);
+      g_GetResourceSection(res, filename, section, resource);
 
     // Не записывать стандартные текстуры:
       if (not cbNonStandart.Checked) or
@@ -182,7 +187,7 @@ begin
   if cbSky.Checked then
   begin
     res := win2utf(header.SkyName);
-    g_ProcessResourceStr(res, @filename, @section, @resource);
+    g_GetResourceSection(res, filename, section, resource);
 
   // Не записывать стандартное небо:
     if (not cbNonStandart.Checked) or
@@ -207,7 +212,7 @@ begin
   if cbMusic.Checked then
   begin
     res := win2utf(header.MusicName);
-    g_ProcessResourceStr(res, @filename, @section, @resource);
+    g_GetResourceSection(res, filename, section, resource);
 
   // Не записывать стандартную музыку:
     if (not cbNonStandart.Checked) or
@@ -267,7 +272,7 @@ begin
           if res = '' then
             Break;
 
-          g_ProcessResourceStr(res, @filename, @section, @resource);
+          g_GetResourceSection(res, @filename, @section, @resource);
 
         // Не записывать стандартные дополнительные текстуры:
           if (not cbNonStandart.Checked) or

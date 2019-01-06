@@ -26,6 +26,8 @@ interface
       res = 0 when ok
   **)
 
+  procedure g_GetResourceSection (path: String; out wad, section, name: String);
+
   procedure g_ReadResource (wad, section, name: String; out data: PByte; out len: Integer);
   procedure g_ReadSubResource (wad, section0, name0, section1, name1: String; out data: PByte; out len: Integer);
   procedure g_DeleteResource (wad, section, name: String; out res: Integer);
@@ -34,15 +36,62 @@ interface
 
 implementation
 
-  uses sfs, xstreams, dfzip, utils, Classes, SysUtils, WADEDITOR;
+  uses sfs, xstreams, dfzip, utils, Classes, SysUtils, WADEDITOR, e_log;
+
+  function NoTrailing (path: String): String;
+    var i: Integer;
+  begin
+    i := Length(path);
+    while (i > 0) and ((path[i] = '/') or (path[i] = '\')) do dec(i);
+    result := Copy(path, 1, i)
+  end;
+
+  function g_CleanPath (path: String; sys: Boolean = False): String;
+    var i, len: Integer;
+  begin
+    i := 1;
+    result := '';
+    len := Length(path);
+    (* drop separators at the end *)
+    while (len > 1) and ((path[i] = '/') or (path[i] = '\')) do dec(len);
+    while i <= len do
+    begin
+      while (i <= len) and (path[i] <> '/') and (path[i] <> '\') do
+      begin
+        result := result + path[i];
+        inc(i)
+      end;
+      if i <= len then
+        if sys then
+          result := result + DirectorySeparator
+        else
+          result := result + '/';
+      inc(i);
+      while (i <= len) and ((path[i] = '/') or (path[i] = '\')) do inc(i)
+    end;
+  end;
+
+  procedure g_GetResourceSection (path: String; out wad, section, name: String);
+    var i, j, len: Integer;
+  begin
+    len := Length(path);
+    i := len;
+    while (i > 0) and (path[i] <> '/') and (path[i] <> '\') do dec(i);
+    name := Copy(path, i + 1, len);
+    j := i;
+    while (i > 0) and (path[i] <> ':') do dec(i);
+    section := Copy(path, i + 1, j - i - 1);
+    wad := Copy(path, 1, i - 1);
+  end;
 
   procedure g_AddResourceToDFWAD (wad, section, name: String; const data: PByte; len: Integer; out res: Integer);
     var f: TWADEditor_1;
   begin
     res := 1; (* error *)
     wad := utf2win(wad);
-    section := utf2win(section);
+    section := utf2win(NoTrailing(section));
     name := utf2win(name);
+    ASSERT(name <> '');
     f := TWADEditor_1.Create();
     if not f.ReadFile(wad) then
     begin
@@ -67,7 +116,7 @@ implementation
       i, n, len0: Integer;
       data0: PByte;
       list: TSFSFileList;
-      tmp, entry: String;
+      tmp, path: String;
       ts: TFileStream;
       dir: array of TFileInfo;
 
@@ -84,8 +133,9 @@ implementation
   begin
     res := 1;
     wad := ExpandFileName(wad);
-    section := utf2win(section);
+    section := utf2win(NoTrailing(section));
     name := utf2win(name);
+    ASSERT(name <> '');
     list := SFSFileList(wad);
     tmp := wad + '.tmp' + IntToStr(Random(100000));
     ts := TFileStream.Create(tmp, fmCreate);
@@ -95,14 +145,16 @@ implementation
     begin
       for i := 0 to list.Count - 1 do
       begin
-        if (list.Files[i].path <> section) or (list.Files[i].name <> section) then
+        path := NoTrailing(list.Files[i].path);
+        if (path <> section) or (list.Files[i].name <> section) then
         begin
-          g_ReadResource(wad, list.Files[i].path, list.Files[i].name, data0, len0);
-          if list.Files[i].path = '' then
-            entry := list.Files[i].name
+          g_ReadResource(wad, path, list.Files[i].name, data0, len0);
+          ASSERT(data0 <> nil);
+          if path = '' then
+            path := list.Files[i].name
           else
-            entry := list.Files[i].path + '/' + list.Files[i].name;
-          Add(entry, data0, len0);
+            path := path + '/' + list.Files[i].name;
+          Add(path, data0, len0);
           FreeMem(data0)
         end
       end;
@@ -110,11 +162,11 @@ implementation
     end;
 
     if section = '' then
-      entry := name
+      path := name
     else
-      entry := section + '/' + name;
+      path := section + '/' + name;
+    Add(path, data, len);
 
-    Add(entry, data, len);
     dfzip.writeCentralDir(ts, dir);
     ts.Free;
 
@@ -131,8 +183,10 @@ implementation
   procedure g_AddResource (wad, section, name: String; const data: PByte; len: Integer; out res: Integer);
     var ext: String;
   begin
+    ASSERT(name <> '');
     res := 2; (* unknown type *)
     ext := LowerCase(SysUtils.ExtractFileExt(wad));
+    e_WriteLog('g_AddResource "' + wad + '" "' + section + '" "' + name + '"', MSG_NOTIFY);
     if ext = '.wad' then
       g_AddResourceToDFWAD(wad, section, name, data, len, res)
     else if (ext = '.pk3') or (ext = '.zip') or (ext = '.dfzip') then
@@ -142,8 +196,9 @@ implementation
   procedure g_DeleteResourceFromDFWAD (wad, section, name: String; out res: Integer);
     var f: TWADEditor_1;
   begin
+    ASSERT(name <> '');
     res := 1; (* error *)
-    section := utf2win(section);
+    section := utf2win(NoTrailing(section));
     name := utf2win(name);
     f := TWADEditor_1.Create;
     if not f.ReadFile(wad) then
@@ -163,7 +218,7 @@ implementation
       data0: PByte;
       i, n, len0: Integer;
       list: TSFSFileList;
-      tmp, entry: String;
+      tmp, path: String;
       ts: TFileStream;
       dir: array of TFileInfo;
 
@@ -180,8 +235,9 @@ implementation
   begin
     res := 1;
     wad := ExpandFileName(wad);
-    section := utf2win(section);
+    section := utf2win(NoTrailing(section));
     name := utf2win(name);
+    ASSERT(name <> '');
     list := SFSFileList(wad);
     tmp := wad + '.tmp' + IntToStr(Random(100000));
     ts := TFileStream.Create(tmp, fmCreate);
@@ -191,14 +247,16 @@ implementation
     begin
       for i := 0 to list.Count - 1 do
       begin
-        if (list.Files[i].path <> section) or (list.Files[i].name <> section) then
+        path := NoTrailing(list.Files[i].path);
+        if (path <> section) or (list.Files[i].name <> section) then
         begin
-          g_ReadResource(wad, list.Files[i].path, list.Files[i].name, data0, len0);
-          if list.Files[i].path = '' then
-            entry := list.Files[i].name
+          g_ReadResource(wad, path, list.Files[i].name, data0, len0);
+          ASSERT(data0 <> nil);
+          if path = '' then
+            path := list.Files[i].name
           else
-            entry := list.Files[i].path + '/' + list.Files[i].name;
-          Add(entry, data0, len0);
+            path := path + '/' + list.Files[i].name;
+          Add(path, data0, len0);
           FreeMem(data0)
         end
       end;
@@ -221,11 +279,12 @@ implementation
   procedure g_DeleteResource (wad, section, name: String; out res: Integer);
     var ext: String;
   begin
+    ASSERT(name <> '');
     res := 2; (* unknown type *)
     ext := LowerCase(SysUtils.ExtractFileExt(wad));
     if ext = '.wad' then
       g_DeleteResourceFromDFWAD(wad, section, name, res)
-    else if (ext = '.pk3') or (ext = '.zip') or (ext = '.dfzip') then
+    else if (ext = '.dfz') or (ext = '.pk3') or (ext = '.zip') or (ext = '.dfzip') then
       g_DeleteResourceFromZip(wad, section, name, res)
   end;
 
@@ -233,8 +292,9 @@ implementation
     var str: String; stream: TStream;
   begin
     res := 1;
-    section := utf2win(section);
+    section := utf2win(NoTrailing(section));
     name := utf2win(name);
+    ASSERT(name <> '');
     if SFSAddDataFileTemp(wad, TRUE) then
     begin
       str := SFSGetLastVirtualName(section + '\' + name);
@@ -251,13 +311,16 @@ implementation
   procedure g_ReadResource (wad, section, name: String; out data: PByte; out len: Integer);
     var stream: TStream; str: String; i: Integer;
   begin
-    section := utf2win(section);
+    e_WriteLog('g_ReadResource: "' + wad + '" "' + section + '" "' + name + '"', MSG_NOTIFY);
+    section := utf2win(NoTrailing(section));
     name := utf2win(name);
     data := nil;
     len := 0;
+    //ASSERT(name <> '');
+    if name = '' then Exit; (* SKY can be void *)
     if SFSAddDataFileTemp(wad, TRUE) then
     begin
-      str := SFSGetLastVirtualName(section + '\' + name);
+      str := SFSGetLastVirtualName(section + '/' + name);
       stream := SFSFileOpen(wad + '::' + str);
       if stream <> nil then
       begin
@@ -278,11 +341,13 @@ implementation
   begin
     data := nil;
     len := 0;
-    if (wad = '') OR (section0 = '') OR (name0 = '') OR (section1 = '') OR (name1 = '') then Exit;
-    section0 := utf2win(section0);
+    section0 := utf2win(NoTrailing(section0));
     name0 := utf2win(name0);
-    section1 := utf2win(section1);
+    section1 := utf2win(NoTrailing(section1));
     name1 := utf2win(name1);
+    //ASSERT(name0 <> '');
+    //ASSERT(name1 <> '');
+    if (wad = '') OR (name0 = '') OR (name1 = '') then Exit; (* ??? *)
     if SFSAddDataFileTemp(wad, TRUE) then
     begin
       str0 := SFSGetLastVirtualName(section0 + '\' + name0);
