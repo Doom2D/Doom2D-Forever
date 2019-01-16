@@ -133,15 +133,7 @@ begin
     Exit;
 
   if not cbAdd.Checked then
-  begin
-    (* Overwrite wad *)
-    if FileExists(eWAD.Text) then
-    begin
-      if FileExists(eWAD.Text + '.bak0') then
-        ASSERT(DeleteFile(eWAD.Text + '.bak0'));
-      ASSERT(RenameFile(eWAD.Text, eWAD.Text + '.bak0'))
-    end
-  end;
+    g_DeleteFile(eWAD.Text, '.bak0');
 
 // Читаем карту из памяти:
   mr := TMapReader_1.Create();

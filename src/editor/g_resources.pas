@@ -3,6 +3,13 @@ unit g_resources;
 interface
 
   (**
+    g_GetResourceSection
+      Parse path in form 'path/to/file.wad:some/section/resouce' to
+      wad = 'path/to/file.wa', section = 'some/section', name = 'resource'
+
+    g_DeleteFile
+      Delete file if it exists. Make backup if enabled.
+
     g_ReadResource
       Read whole file from wad
       (data <> nil) and (len > 0) when ok
@@ -26,7 +33,13 @@ interface
       res = 0 when ok
   **)
 
+  (* Editor options *)
+  var
+    Compress: Boolean;
+    Backup: Boolean;
+
   procedure g_GetResourceSection (path: String; out wad, section, name: String);
+  procedure g_DeleteFile(wad: String; backupPostfix: String = '.bak');
 
   procedure g_ReadResource (wad, section, name: String; out data: PByte; out len: Integer);
   procedure g_ReadSubResource (wad, section0, name0, section1, name1: String; out data: PByte; out len: Integer);
@@ -84,6 +97,26 @@ implementation
     wad := Copy(path, 1, i - 1);
   end;
 
+  procedure g_DeleteFile (wad: String; backupPostfix: String = '.bak');
+    var newwad: String;
+  begin
+    if Backup then
+    begin
+      if FileExists(wad) then
+      begin
+        newwad := wad + backupPostfix;
+        if FileExists(newwad) then
+          ASSERT(DeleteFile(newwad));
+        ASSERT(RenameFile(wad, newwad))
+      end
+    end
+    else
+    begin
+      if FileExists(wad) then
+        ASSERT(DeleteFile(wad))
+    end
+  end;
+
   procedure g_AddResourceToDFWAD (wad, section, name: String; const data: PByte; len: Integer; out res: Integer);
     var f: TWADEditor_1;
   begin
@@ -100,12 +133,7 @@ implementation
     f.CreateImage;
     f.RemoveResource(section, name);
     f.AddResource(data, len, name, section);
-    if FileExists(wad) then
-    begin
-      if FileExists(wad + '.bak') then
-        ASSERT(DeleteFile(wad + '.bak'));
-      ASSERT(RenameFile(wad, wad + '.bak'))
-    end;
+    g_DeleteFile(wad);
     f.SaveTo(wad);
     f.Free;
     res := 0
@@ -124,8 +152,8 @@ implementation
       var ds: TSFSMemoryChunkStream;
     begin
       SetLength(dir, n + 1);
-      ds := TSFSMemoryChunkStream.Create(data, len, false);
-      dir[n] := dfzip.ZipOne(ts, name, ds);
+      ds := TSFSMemoryChunkStream.Create(data, len, False);
+      dir[n] := dfzip.ZipOne(ts, name, ds, Compress);
       ds.Free;
       INC(n);
     end;
@@ -146,7 +174,7 @@ implementation
       for i := 0 to list.Count - 1 do
       begin
         path := NoTrailing(list.Files[i].path);
-        if (path <> section) or (list.Files[i].name <> section) then
+        if (path <> section) or (list.Files[i].name <> name) then
         begin
           g_ReadResource(wad, path, list.Files[i].name, data0, len0);
           ASSERT(data0 <> nil);
@@ -170,12 +198,7 @@ implementation
     dfzip.writeCentralDir(ts, dir);
     ts.Free;
 
-    if FileExists(wad) then
-    begin
-      if FileExists(wad + '.bak') then
-        ASSERT(DeleteFile(wad + '.bak'));
-      ASSERT(RenameFile(wad, wad + '.bak'))
-    end;
+    g_DeleteFile(wad);
     ASSERT(RenameFile(tmp, wad));
     res := 0
   end;
@@ -189,7 +212,7 @@ implementation
     e_WriteLog('g_AddResource "' + wad + '" "' + section + '" "' + name + '"', MSG_NOTIFY);
     if ext = '.wad' then
       g_AddResourceToDFWAD(wad, section, name, data, len, res)
-    else if (ext = '.pk3') or (ext = '.zip') or (ext = '.dfzip') then
+    else
       g_AddResourceToZip(wad, section, name, data, len, res)
   end;
 
@@ -208,6 +231,7 @@ implementation
     end;
     f.CreateImage;
     f.RemoveResource(section, name);
+    g_DeleteFile(wad);
     f.SaveTo(wad);
     f.Free;
     res := 0 (* ok *)
@@ -226,8 +250,8 @@ implementation
       var ds: TSFSMemoryChunkStream;
     begin
       SetLength(dir, n + 1);
-      ds := TSFSMemoryChunkStream.Create(data, len, false);
-      dir[n] := dfzip.ZipOne(ts, name, ds);
+      ds := TSFSMemoryChunkStream.Create(data, len, False);
+      dir[n] := dfzip.ZipOne(ts, name, ds, Compress);
       ds.Free;
       INC(n);
     end;
@@ -248,7 +272,7 @@ implementation
       for i := 0 to list.Count - 1 do
       begin
         path := NoTrailing(list.Files[i].path);
-        if (path <> section) or (list.Files[i].name <> section) then
+        if (path <> section) or (list.Files[i].name <> name) then
         begin
           g_ReadResource(wad, path, list.Files[i].name, data0, len0);
           ASSERT(data0 <> nil);
@@ -266,12 +290,7 @@ implementation
     dfzip.writeCentralDir(ts, dir);
     ts.Free;
 
-    if FileExists(wad) then
-    begin
-      if FileExists(wad + '.bak') then
-        ASSERT(DeleteFile(wad + '.bak'));
-      ASSERT(RenameFile(wad, wad + '.bak'))
-    end;
+    g_DeleteFile(wad);
     ASSERT(RenameFile(tmp, wad));
     res := 0
   end;
@@ -284,7 +303,7 @@ implementation
     ext := LowerCase(SysUtils.ExtractFileExt(wad));
     if ext = '.wad' then
       g_DeleteResourceFromDFWAD(wad, section, name, res)
-    else if (ext = '.dfz') or (ext = '.pk3') or (ext = '.zip') or (ext = '.dfzip') then
+    else
       g_DeleteResourceFromZip(wad, section, name, res)
   end;
 

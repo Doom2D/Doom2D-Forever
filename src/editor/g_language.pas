@@ -543,6 +543,8 @@ Type
     I_LAB_ES_MINIMAP,
     I_LAB_ES_RECENT,
     I_LAB_ES_LANGUAGE,
+    I_LAB_ES_COMPRESS,
+    I_LAB_ES_BACKUP,
 
     I_LAB_PACK_SAVE_TO,
     I_LAB_PACK_MAP_NAME,
@@ -1678,6 +1680,10 @@ Const
                                        'Запоминать последних открытых карт:'),
     ('LAB ES LANGUAGE',                'Language:',
                                        'Язык:'),
+    ('LAB ES COMPRESS',                'Compress archive when save',
+                                       'Сжимать архив при сохранении'),
+    ('LAB ES BACKUP',                  'Make backup before save',
+                                       'Резервная копия при сохранении'),
 
     ('LAB PACK SAVE TO',               'Save to:',
                                        'Сохранить в:'),
@@ -1796,10 +1802,10 @@ Const
     ('WAD SPECIAL TEXS',               '<EXTRA TEXTURES>',
                                        '<СПЕЦТЕКСТУРЫ>'),
 
-    ('FILE FILTER ALL',                'Doom 2D: Forever Maps (*.wad)|*.wad|Old Doom 2D: Forever 0.30 Maps (*.ini)|*.ini|All Files (*.*)|*.*',
-                                       'Карты Doom 2D: Forever (*.wad)|*.wad|Старые карты Doom 2D: Forever 0.30 (*.ini)|*.ini|Все файлы (*.*)|*.*'),
-    ('FILE FILTER WAD',                'Doom 2D: Forever Maps (*.wad)|*.wad|All Files (*.*)|*.*',
-                                       'Карты Doom 2D: Forever (*.wad)|*.wad|Все файлы (*.*)|*.*'),
+    ('FILE FILTER ALL',                'Doom 2D: Forever Maps (*.dfz, *.wad)|*.dfz;*.wad|Doom 2D: Forever 0.30 Maps (*.ini)|*.ini|Все файлы (*.*)|*.*',
+                                       'Карты Doom 2D: Forever (*.dfz, *.wad)|*.dfz;*.wad|Старые карты Doom 2D: Forever 0.30 (*.ini)|*.ini|Все файлы (*.*)|*.*'),
+    ('FILE FILTER WAD',                'Doom 2D: Forever Maps (*.dfz)|*.dfz|Doom 2D: Forever Maps (*.wad)|*.wad|Все файлы (*.*)|*.*',
+                                       'Карты Doom 2D: Forever (*.dfz)|*.dfz|Карты Doom 2D: Forever (*.wad)|*.wad|Все файлы (*.*)|*.*'),
 
     ('EDITOR TITLE',                   'Doom 2D: Forever Map Editor',
                                        'Редактор карт Doom 2D: Forever'),
@@ -2330,6 +2336,8 @@ begin
     cbShowTexture.Caption := _lc[I_CTRL_ES_TEXTURE];
     cbShowSize.Caption := _lc[I_CTRL_ES_PANEL_SIZE];
     cbCheckerboard.Caption := _lc[I_CTRL_ES_CHECKERBOARD];
+    cbCompress.Caption := _lc[I_LAB_ES_COMPRESS];
+    cbBackup.Caption := _lc[I_LAB_ES_BACKUP];
     LabelGrid.Caption := _lc[I_LAB_ES_GRID];
     LabelGridCol.Caption := _lc[I_LAB_ES_GRID_COLOR];
     LabelGridSize.Caption := _lc[I_LAB_ES_GRID_SIZE];

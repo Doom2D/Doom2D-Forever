@@ -2737,6 +2737,9 @@ begin
   s := config.ReadStr('Editor', 'Language', '');
   gLanguage := s;
 
+  Compress := config.ReadBool('Editor', 'Compress', True);
+  Backup := config.ReadBool('Editor', 'Backup', True);
+
   RecentCount := config.ReadInt('Editor', 'RecentCount', 5);
   if RecentCount > 10 then
     RecentCount := 10;

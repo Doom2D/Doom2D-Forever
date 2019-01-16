@@ -10,10 +10,15 @@ uses
   ExtCtrls, ComCtrls, Registry;
 
 type
+
+  { TOptionsForm }
+
   TOptionsForm = class (TForm)
     bOK: TButton;
     bCancel: TButton;
     cbCheckerboard: TCheckBox;
+    cbCompress: TCheckBox;
+    cbBackup: TCheckBox;
     ColorDialog: TColorDialog;
     GroupBox1: TGroupBox;
   // Общие настройки:
@@ -72,7 +77,7 @@ procedure RegisterFileType(ext: String; FileName: String);
 implementation
 
 uses
-  f_main, StdConvs, CONFIG, g_language;
+  f_main, StdConvs, CONFIG, g_language, g_resources;
 
 {$R *.lfm}
 
@@ -117,6 +122,8 @@ begin
   sBackColor.Brush.Color := BackColor;
   sPreviewColor.Brush.Color := PreviewColor;
   cbCheckerboard.Checked := UseCheckerboard;
+  cbCompress.Checked := Compress;
+  cbBackup.Checked := Backup;
   if Scale = 2 then
     cbScale.ItemIndex := 1
   else
@@ -187,6 +194,8 @@ begin
   BackColor := sBackColor.Brush.Color;
   PreviewColor := sPreviewColor.Brush.Color;
   UseCheckerboard := cbCheckerboard.Checked;
+  Compress := cbCompress.Checked;
+  Backup := cbBackup.Checked;
 
   if cbScale.ItemIndex = 1 then
     Scale := 2
@@ -214,6 +223,8 @@ begin
   config.WriteInt('Editor', 'Scale', cbScale.ItemIndex);
   config.WriteInt('Editor', 'RecentCount', re);
   config.WriteStr('Editor', 'Language', gLanguage);
+  config.WriteBool('Editor', 'Compress', Compress);
+  config.WriteBool('Editor', 'Backup', Backup);
 
   if RecentCount <> re then
   begin

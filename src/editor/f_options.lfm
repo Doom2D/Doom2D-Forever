@@ -1,12 +1,12 @@
 object OptionsForm: TOptionsForm
   Left = 202
-  Height = 262
+  Height = 285
   Top = 174
   Width = 435
   BorderIcons = [biSystemMenu]
   BorderStyle = bsSingle
   Caption = 'Настройки редактора'
-  ClientHeight = 262
+  ClientHeight = 285
   ClientWidth = 435
   Color = clBtnFace
   Font.Color = clWindowText
@@ -14,14 +14,14 @@ object OptionsForm: TOptionsForm
   Font.Name = 'MS Sans Serif'
   OnActivate = FormActivate
   Position = poScreenCenter
-  LCLVersion = '1.6.4.0'
+  LCLVersion = '1.8.4.0'
   object GroupBox1: TGroupBox
     Left = 8
-    Height = 225
+    Height = 248
     Top = 0
     Width = 425
-    ClientHeight = 207
-    ClientWidth = 421
+    ClientHeight = 246
+    ClientWidth = 423
     TabOrder = 0
     object sDotColor: TShape
       Left = 344
@@ -31,25 +31,25 @@ object OptionsForm: TOptionsForm
     end
     object LabelGrid: TLabel
       Left = 6
-      Height = 13
+      Height = 14
       Top = 74
-      Width = 61
+      Width = 73
       Caption = 'Шаги сетки:'
       ParentColor = False
     end
     object LabelGridCol: TLabel
       Left = 190
-      Height = 13
+      Height = 14
       Top = 2
-      Width = 60
+      Width = 69
       Caption = 'Цвет сетки:'
       ParentColor = False
     end
     object LabelBack: TLabel
       Left = 190
-      Height = 13
+      Height = 14
       Top = 43
-      Width = 57
+      Width = 66
       Caption = 'Цвет фона:'
       ParentColor = False
     end
@@ -62,9 +62,9 @@ object OptionsForm: TOptionsForm
     end
     object LabelPreview: TLabel
       Left = 190
-      Height = 13
+      Height = 14
       Top = 72
-      Width = 216
+      Width = 252
       Caption = 'Цвет фона поля предпросмотра текстуры:'
       ParentColor = False
       WordWrap = True
@@ -78,49 +78,49 @@ object OptionsForm: TOptionsForm
     end
     object LabelMinimap: TLabel
       Left = 190
-      Height = 13
+      Height = 14
       Top = 129
-      Width = 112
+      Width = 129
       Caption = 'Масштаб мини-карты:'
       ParentColor = False
     end
     object LabelRecent: TLabel
       Left = 190
-      Height = 13
+      Height = 14
       Top = 162
-      Width = 199
+      Width = 233
       Caption = 'Запоминать последних открытых карт:'
       ParentColor = False
       WordWrap = True
     end
     object LabelLanguage: TLabel
       Left = 6
-      Height = 13
+      Height = 14
       Top = 162
-      Width = 31
+      Width = 34
       Caption = 'Язык:'
       ParentColor = False
     end
     object LabelGridSize: TLabel
       Left = 6
-      Height = 13
+      Height = 14
       Top = 122
-      Width = 105
+      Width = 121
       Caption = 'Размер точек сетки:'
       ParentColor = False
       WordWrap = True
     end
     object cbShowDots: TCheckBox
       Left = 6
-      Height = 17
+      Height = 21
       Top = 2
-      Width = 112
+      Width = 130
       Caption = 'Показывать сетку'
       TabOrder = 0
     end
     object UpDown1: TUpDown
       Left = 143
-      Height = 21
+      Height = 26
       Top = 74
       Width = 12
       Associate = eDotStepOne
@@ -132,7 +132,7 @@ object OptionsForm: TOptionsForm
     end
     object eDotStepOne: TEdit
       Left = 86
-      Height = 21
+      Height = 26
       Top = 74
       Width = 57
       TabOrder = 3
@@ -167,10 +167,10 @@ object OptionsForm: TOptionsForm
     end
     object cbScale: TComboBox
       Left = 344
-      Height = 21
+      Height = 27
       Top = 129
       Width = 70
-      ItemHeight = 13
+      ItemHeight = 0
       ItemIndex = 0
       Items.Strings = (
         '1x'
@@ -182,23 +182,23 @@ object OptionsForm: TOptionsForm
     end
     object cbShowTexture: TCheckBox
       Left = 6
-      Height = 17
+      Height = 21
       Top = 18
-      Width = 167
+      Width = 196
       Caption = 'Показывать текстуру панели'
       TabOrder = 1
     end
     object cbShowSize: TCheckBox
       Left = 6
-      Height = 17
+      Height = 21
       Top = 34
-      Width = 169
+      Width = 194
       Caption = 'Показывать размеры панели'
       TabOrder = 2
     end
     object eRecent: TEdit
       Left = 344
-      Height = 21
+      Height = 26
       Top = 180
       Width = 57
       TabOrder = 15
@@ -206,7 +206,7 @@ object OptionsForm: TOptionsForm
     end
     object UpDown3: TUpDown
       Left = 401
-      Height = 21
+      Height = 26
       Top = 180
       Width = 12
       Associate = eRecent
@@ -218,7 +218,7 @@ object OptionsForm: TOptionsForm
     end
     object eDotStepTwo: TEdit
       Left = 86
-      Height = 21
+      Height = 26
       Top = 98
       Width = 57
       TabOrder = 5
@@ -226,7 +226,7 @@ object OptionsForm: TOptionsForm
     end
     object UpDown2: TUpDown
       Left = 143
-      Height = 21
+      Height = 26
       Top = 98
       Width = 12
       Associate = eDotStepTwo
@@ -238,9 +238,9 @@ object OptionsForm: TOptionsForm
     end
     object rbRussian: TRadioButton
       Left = 86
-      Height = 17
+      Height = 21
       Top = 162
-      Width = 60
+      Width = 71
       Caption = 'Русский'
       Checked = True
       TabOrder = 8
@@ -248,18 +248,18 @@ object OptionsForm: TOptionsForm
     end
     object rbEnglish: TRadioButton
       Left = 86
-      Height = 17
+      Height = 21
       Top = 186
-      Width = 52
+      Width = 64
       Caption = 'English'
       TabOrder = 9
     end
     object cbDotSize: TComboBox
       Left = 82
-      Height = 21
+      Height = 27
       Top = 136
       Width = 73
-      ItemHeight = 13
+      ItemHeight = 0
       ItemIndex = 0
       Items.Strings = (
         '1'
@@ -270,19 +270,35 @@ object OptionsForm: TOptionsForm
     end
     object cbCheckerboard: TCheckBox
       Left = 190
-      Height = 17
+      Height = 21
       Top = 94
-      Width = 145
+      Width = 166
       Caption = 'Использовать шахматку'
       Checked = True
       State = cbChecked
       TabOrder = 12
     end
+    object cbCompress: TCheckBox
+      Left = 190
+      Height = 21
+      Top = 208
+      Width = 212
+      Caption = 'Сжимать архив при сохранении'
+      TabOrder = 17
+    end
+    object cbBackup: TCheckBox
+      Left = 190
+      Height = 21
+      Top = 224
+      Width = 222
+      Caption = 'Резервная копия при сохранении'
+      TabOrder = 18
+    end
   end
   object bOK: TButton
     Left = 262
     Height = 25
-    Top = 232
+    Top = 256
     Width = 75
     Caption = 'ОК'
     Default = True
@@ -292,7 +308,7 @@ object OptionsForm: TOptionsForm
   object bCancel: TButton
     Left = 358
     Height = 25
-    Top = 232
+    Top = 256
     Width = 75
     Cancel = True
     Caption = 'Отмена'
@@ -323,7 +339,7 @@ object OptionsForm: TOptionsForm
       'ColorS=F0FBFF'
       'ColorT=A4A0A0'
     )
-    left = 200
-    top = 232
+    left = 96
+    top = 216
   end
 end

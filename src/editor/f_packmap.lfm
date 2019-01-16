@@ -177,7 +177,7 @@ object PackMapForm: TPackMapForm
     TabOrder = 1
   end
   object SaveDialog: TSaveDialog
-    DefaultExt = '.wad'
+    DefaultExt = '.dfz'
     Filter = 'Карты Doom2D: Forever (*.wad)|*.wad|All files (*.*)|*.*'
     Options = [ofHideReadOnly, ofPathMustExist, ofEnableSizing, ofDontAddToRecent]
     left = 8
