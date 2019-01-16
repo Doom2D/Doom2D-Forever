@@ -2369,7 +2369,7 @@ begin
 
       Sort := True;
       Dirs := True;
-      FileMask := '*.wad|*.pk3|*.zip';
+      FileMask := '*.wad|*.pk3|*.zip|*.dfz';
       SetBase(MapsDir+'megawads/');
     end;
 
@@ -2424,7 +2424,7 @@ begin
 
       Sort := True;
       Dirs := True;
-      FileMask := '*.wad|*.pk3|*.zip';
+      FileMask := '*.wad|*.pk3|*.zip|*.dfz';
       SetBase(MapsDir);
     end;
     with AddList(_lc[I_MENU_MAP_RESOURCE], 12, 4) do

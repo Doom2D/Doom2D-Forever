@@ -813,7 +813,7 @@ var
   ext: AnsiString;
 begin
   ext := getFilenameExt(fn);
-  result := StrEquCI1251(ext, '.wad') or StrEquCI1251(ext, '.pk3') or StrEquCI1251(ext, '.zip');
+  result := StrEquCI1251(ext, '.wad') or StrEquCI1251(ext, '.pk3') or StrEquCI1251(ext, '.zip') or StrEquCI1251(ext, '.dfz');
 end;
 
 
@@ -839,7 +839,7 @@ begin
       if (pos-4 > 1) and (fn[pos-4] = '.') and ((fn[pos+1] = '\') or (fn[pos+1] = '/')) then
       begin
         s := Copy(fn, pos-4, 4);
-        if StrEquCI1251(s, '.wad') or StrEquCI1251(s, '.pk3') or StrEquCI1251(s, '.zip') then
+        if StrEquCI1251(s, '.wad') or StrEquCI1251(s, '.pk3') or StrEquCI1251(s, '.zip') or StrEquCI1251(s, '.dfz') then
         begin
           result := true;
           exit;
@@ -1129,7 +1129,7 @@ begin
 end;
 
 
-const fileExtensions: array [0..5] of AnsiString = ('.wad', '.dfzip', '.dfwad', '.pk3', '.pak', '.zip');
+const fileExtensions: array [0..6] of AnsiString = ('.wad', '.dfzip', '.dfwad', '.pk3', '.pak', '.zip', '.dfz');
 
 function findDiskWad (fname: AnsiString): AnsiString;
 var
