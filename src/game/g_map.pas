@@ -435,17 +435,19 @@ end;
 // ////////////////////////////////////////////////////////////////////////// //
 var
   NNF_PureName: String; // Имя текстуры без цифр в конце
+  NNF_PureExt: String; // extension postfix
   NNF_FirstNum: Integer; // Число у начальной текстуры
   NNF_CurrentNum: Integer; // Следующее число у текстуры
 
 
 function g_Texture_NumNameFindStart(name: String): Boolean;
 var
-  i: Integer;
+  i, j: Integer;
 
 begin
   Result := False;
   NNF_PureName := '';
+  NNF_PureExt := '';
   NNF_FirstNum := -1;
   NNF_CurrentNum := -1;
 
@@ -458,8 +460,11 @@ begin
         end
       else
         begin
+          j := i + 1;
+          while (j <= Length(name)) and (name[j] <> '.') do inc(j);
           NNF_PureName := Copy(name, 1, i);
-          Delete(name, 1, i);
+          NNF_PureExt := Copy(name, j);
+          name := Copy(name, i + 1, j - i - 1);
           Break;
         end;
     end;
@@ -483,7 +488,7 @@ begin
     Exit;
   end;
 
-  newName := NNF_PureName + IntToStr(NNF_CurrentNum);
+  newName := NNF_PureName + IntToStr(NNF_CurrentNum) + NNF_PureExt;
 
   if NNF_CurrentNum < NNF_FirstNum then
     Result := NNF_NAME_BEFORE
