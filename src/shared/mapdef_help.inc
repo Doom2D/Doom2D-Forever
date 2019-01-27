@@ -85,7 +85,7 @@ function trigHealMax (): Boolean; inline;
 // TRIGGER_SHOT
 function trigShotType (): Byte; inline;
 function trigShotTarget (): Byte; inline;
-function trigQuiet (): Boolean; inline;
+function trigShotSound (): Boolean; inline;
 function trigAim (): SmallInt; inline;
 function trigSight (): Word; inline;
 function trigAccuracy (): Word; inline;

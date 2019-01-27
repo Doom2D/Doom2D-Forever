@@ -129,7 +129,7 @@ begin
         tgt.tgcTY := tdata.trigTY;
         tgt.tgcShotType := tdata.trigShotType;
         tgt.tgcShotTarget := tdata.trigShotTarget;
-        tgt.tgcQuiet := tdata.trigQuiet;
+        tgt.tgcShotSound := tdata.trigShotSound;
         tgt.tgcAim := tdata.trigAim;
         tgt.tgcSight := tdata.trigSight;
         tgt.tgcAngle := tdata.trigAngle;

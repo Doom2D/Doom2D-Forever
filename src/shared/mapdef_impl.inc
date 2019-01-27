@@ -86,7 +86,7 @@ function TDynRecordHelper.trigHealMax (): Boolean; inline; begin result := (getF
 // TRIGGER_SHOT
 function TDynRecordHelper.trigShotType (): Byte; inline; begin result := Byte(getFieldWithType('type', TDynField.TType.TUByte).ival); end;
 function TDynRecordHelper.trigShotTarget (): Byte; inline; begin result := Byte(getFieldWithType('target', TDynField.TType.TUByte).ival); end;
-function TDynRecordHelper.trigQuiet (): Boolean; inline; begin result := (getFieldWithType('quiet', TDynField.TType.TBool).ival = 0); end;
+function TDynRecordHelper.trigShotSound (): Boolean; inline; begin result := (getFieldWithType('sound', TDynField.TType.TBool).ival = 0); end;
 function TDynRecordHelper.trigAim (): SmallInt; inline; begin result := ShortInt(getFieldWithType('aim', TDynField.TType.TByte).ival); end;
 function TDynRecordHelper.trigSight (): Word; inline; begin result := Word(getFieldWithType('sight', TDynField.TType.TUShort).ival); end;
 function TDynRecordHelper.trigAccuracy (): Word; inline; begin result := Word(getFieldWithType('accuracy', TDynField.TType.TUShort).ival); end;

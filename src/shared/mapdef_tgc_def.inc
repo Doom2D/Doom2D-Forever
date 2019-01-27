@@ -94,7 +94,7 @@ tgcHealMax: Boolean;
 //TRIGGER_SHOT
 tgcShotType: Byte;
 tgcShotTarget: Byte;
-tgcQuiet: Boolean;
+tgcShotSound: Boolean;
 tgcAim: SmallInt;
 tgcSight: Word;
 tgcAccuracy: Word;

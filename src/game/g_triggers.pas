@@ -853,7 +853,7 @@ begin
       dx += Random(tgcAccuracy)-Random(tgcAccuracy);
       dy += Random(tgcAccuracy)-Random(tgcAccuracy);
 
-      tr_SpawnShot(tgcShotType, wx, wy, dx, dy, not tgcQuiet, TargetUID);
+      tr_SpawnShot(tgcShotType, wx, wy, dx, dy, tgcShotSound, TargetUID);
     end
     else
     begin

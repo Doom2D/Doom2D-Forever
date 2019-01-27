@@ -514,7 +514,7 @@ TriggerData for TRIGGER_SHOT {
   "position" type point offset 0 as txy writedefault;
   "type" alias shotType type ubyte offset 8 enum TriggerShot writedefault;
   "target" alias shotTarget type ubyte offset 9 enum TriggerShotTarget writedefault;
-  "quiet" type negbool offset 10; // negbool!
+  "sound" alias shotSound type negbool offset 10; // negbool!
   "aim" type byte offset 11 enum TriggerShotAim default TRIGGER_SHOT_AIM_DEFAULT;
   "panelid" type int offset 12 panel default null writedefault;
   "sight" type ushort offset 16;
