@@ -337,35 +337,35 @@ var
   r: Integer;
 begin
   pan := g_Map_PanelAtPoint(x, y, GridTagLift);
-  result := (pan <> nil);
+  result := (pan <> nil) and WordBool(pan.PanelType and (PANEL_LIFTUP or PANEL_LIFTDOWN or PANEL_LIFTLEFT or PANEL_LIFTRIGHT));
   r := Random(3);
   if result then
   begin
-    if ((pan.PanelType and PANEL_LIFTUP) <> 0) then
-    begin
-      if (velY > -1-r) then velY -= 0.8;
-      if (abs(velX) > 0.1) then velX -= velX/10.0;
-      velX += (Random-Random)*0.2;
-      accelY := 0.15;
-    end
-    else if ((pan.PanelType and PANEL_LIFTDOWN) <> 0) then
-    begin
-      if (velY < 1+r) then velY += 0.8;
-      accelY := 0.15;
-    end
-    else if ((pan.PanelType and PANEL_LIFTLEFT) <> 0) then
-    begin
-      if (velX > -8-r) then velX -= (8+r) div 2;
-      accelY := 0.15;
-    end
-    else if ((pan.PanelType and PANEL_LIFTRIGHT) <> 0) then
-    begin
-      if (velX < 8+r) then velX += (8+r) div 2;
-      accelY := 0.15;
-    end
-    else
-    begin
-      result := false;
+    case pan.LiftType of
+      LIFTTYPE_UP:
+      begin
+        if (velY > -1-r) then velY -= 0.8;
+        if (abs(velX) > 0.1) then velX -= velX/10.0;
+        velX += (Random-Random)*0.2;
+        accelY := 0.15;
+      end;
+      LIFTTYPE_DOWN:
+      begin
+        if (velY < 1+r) then velY += 0.8;
+        accelY := 0.15;
+      end;
+      LIFTTYPE_LEFT:
+      begin
+        if (velX > -8-r) then velX -= (8+r) div 2;
+        accelY := 0.15;
+      end;
+      LIFTTYPE_RIGHT:
+      begin
+        if (velX < 8+r) then velX += (8+r) div 2;
+        accelY := 0.15;
+      end;
+      else
+        result := false;
     end;
     // awake
     if result and (state = TPartState.Sleeping) then state := TPartState.Normal;
