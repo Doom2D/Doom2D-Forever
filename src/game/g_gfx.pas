@@ -457,7 +457,7 @@ var
   ex: Integer;
 begin
   if (not force) and (ceilingY <> Unknown) then exit;
-  if (nil = g_Map_traceToNearest(x, y, x, g_Map_MinY, GridTagObstacle, @ex, @ceilingY)) then
+  if (nil = g_Map_traceToNearest(x, y, x, g_Map_MinY, GridTagSolid, @ex, @ceilingY)) then
   begin
     ceilingY := g_Map_MinY-2;
   end;
@@ -599,7 +599,7 @@ var
   pan: TPanel;
   dx, dy: SmallInt;
   ex, ey: Integer;
-  checkEnv, inAir: Boolean;
+  checkEnv, inAir, inStep: Boolean;
   floorJustTraced: Boolean;
   {$IF DEFINED(D2F_DEBUG_FALL_MPLAT)}
   oldFloorY: Integer;
@@ -743,7 +743,24 @@ begin
     if (dx <> 0) then
     begin
       // has some horizontal velocity
-      pan := g_Map_traceToNearest(x, y, x+dx, y+dy, GridTagObstacle, @ex, @ey);
+      inStep := False;
+      pan := g_Map_traceToNearest(x, y, x+dx, y+dy, GridTagSolid, @ex, @ey);
+      if (pan = nil) and (dy >= 0) then
+      begin
+        // do not stuck inside step
+        if g_Map_traceToNearest(x, y, x, y, GridTagStep, nil, nil) = nil then
+          // check for step panel below
+          pan := g_Map_traceToNearest(x, y, x, y+dy, GridTagStep, nil, @ey);
+        inStep := pan <> nil;
+        if inStep then
+        begin
+          // stick to panel edges
+          if ex < pan.X then
+            ex := pan.X
+          else if ex > pan.X + pan.Width - 1 then
+            ex := pan.X + pan.Width - 1;
+        end;
+      end;
       checkEnv := (x <> ex);
       x := ex;
       y := ey;
@@ -757,19 +774,24 @@ begin
       end;
       if (pan <> nil) then
       begin
-        // we stuck
-        // the only case when we can have both ceiling and wall is corner; stick to wall in this case
-        // check if we stuck to a wall
-        if (dx < 0) then dx := -1 else dx := 1;
-        if (g_Map_PanelAtPoint(x+dx, y, GridTagObstacle) <> nil) then
-        begin
-          // stuck to a wall
-          stickToWall(dx);
-        end
+        if inStep then
+          stickToWall(dx)
         else
         begin
-          // stuck to a ceiling
-          stickToCeiling();
+          // we stuck
+          // the only case when we can have both ceiling and wall is corner; stick to wall in this case
+          // check if we stuck to a wall
+          if (dx < 0) then dx := -1 else dx := 1;
+          if (g_Map_PanelAtPoint(x+dx, y, GridTagSolid) <> nil) then
+          begin
+            // stuck to a wall
+            stickToWall(dx);
+          end
+          else
+          begin
+            // stuck to a ceiling
+            stickToCeiling();
+          end;
         end;
       end;
     end
@@ -963,11 +985,11 @@ begin
       if (x < g_Map_MinX) or (y < g_Map_MinY) or (x > g_Map_MaxX) or (y > g_Map_MaxY) then continue;
 
       // in what environment we are starting in?
-      pan := g_Map_PanelAtPoint(x, y, (GridTagObstacle or GridTagLiquid));
+      pan := g_Map_PanelAtPoint(x, y, (GridTagSolid or GridTagLiquid));
       if (pan <> nil) then
       begin
         // either in a wall, or in a liquid
-        if ((pan.tag and GridTagObstacle) <> 0) then continue; // don't spawn in walls
+        if ((pan.tag and GridTagSolid) <> 0) then continue; // don't spawn in walls
         env := TEnvType.ELiquid;
       end
       else
@@ -1276,7 +1298,7 @@ begin
   if (dx <> 0) then
   begin
     // has some horizontal velocity
-    pan := g_Map_traceToNearest(x, y, x+dx, y+dy, (GridTagObstacle or GridTagLiquid), @ex, @ey);
+    pan := g_Map_traceToNearest(x, y, x+dx, y+dy, (GridTagSolid or GridTagLiquid), @ex, @ey);
     if (x <> ex) then begin floorY := Unknown; ceilingY := Unknown; end; // dunno yet
     x := ex;
     y := ey;
@@ -1372,11 +1394,11 @@ begin
       if (x < g_Map_MinX) or (y < g_Map_MinY) or (x > g_Map_MaxX) or (y > g_Map_MaxY) then continue;
 
       // in what environment we are starting in?
-      pan := g_Map_PanelAtPoint(x, y, (GridTagObstacle or GridTagLiquid));
+      pan := g_Map_PanelAtPoint(x, y, (GridTagSolid or GridTagLiquid));
       if (pan <> nil) then
       begin
         // either in a wall, or in a liquid
-        //if ((pan.tag and GridTagObstacle) <> 0) then continue; // don't spawn in walls
+        //if ((pan.tag and GridTagSolid) <> 0) then continue; // don't spawn in walls
         //env := TEnvType.ELiquid;
         continue;
       end
@@ -1454,11 +1476,11 @@ begin
       if (x < g_Map_MinX) or (y < g_Map_MinY) or (x > g_Map_MaxX) or (y > g_Map_MaxY) then continue;
 
       // in what environment we are starting in?
-      pan := g_Map_PanelAtPoint(x, y, (GridTagObstacle or GridTagLiquid));
+      pan := g_Map_PanelAtPoint(x, y, (GridTagSolid or GridTagLiquid));
       if (pan <> nil) then
       begin
         // either in a wall, or in a liquid
-        //if ((pan.tag and GridTagObstacle) <> 0) then continue; // don't spawn in walls
+        //if ((pan.tag and GridTagSolid) <> 0) then continue; // don't spawn in walls
         //env := TEnvType.ELiquid;
         continue;
       end

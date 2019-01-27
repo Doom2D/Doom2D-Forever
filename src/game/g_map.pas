@@ -196,6 +196,7 @@ const
   GridTagLift = 1 shl 8; // gLifts
   GridTagBlockMon = 1 shl 9; // gBlockMon
 
+  GridTagSolid = (GridTagWall or GridTagDoor);
   GridTagObstacle = (GridTagStep or GridTagWall or GridTagDoor);
   GridTagLiquid = (GridTagAcid1 or GridTagAcid2 or GridTagWater);
 
