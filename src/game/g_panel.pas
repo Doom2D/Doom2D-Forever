@@ -204,6 +204,12 @@ type
 
   TPanelArray = Array of TPanel;
 
+const
+  LIFTTYPE_UP = 0;
+  LIFTTYPE_DOWN = 1;
+  LIFTTYPE_LEFT = 2;
+  LIFTTYPE_RIGHT = 3;
+
 var
   g_dbgpan_mplat_active: Boolean = {$IF DEFINED(D2F_DEBUG)}true{$ELSE}true{$ENDIF};
   g_dbgpan_mplat_step: Boolean = false; // one step, and stop
@@ -261,16 +267,16 @@ begin
   PanelType := PanelRec.PanelType;
   Enabled := True;
   Door := False;
-  LiftType := 0;
+  LiftType := LIFTTYPE_UP;
   hasTexTrigger := False;
 
   case PanelType of
     PANEL_OPENDOOR: begin Enabled := False; Door := True; end;
     PANEL_CLOSEDOOR: Door := True;
-    PANEL_LIFTUP: LiftType := 0; //???
-    PANEL_LIFTDOWN: LiftType := 1;
-    PANEL_LIFTLEFT: LiftType := 2;
-    PANEL_LIFTRIGHT: LiftType := 3;
+    PANEL_LIFTUP: LiftType := LIFTTYPE_UP; //???
+    PANEL_LIFTDOWN: LiftType := LIFTTYPE_DOWN;
+    PANEL_LIFTLEFT: LiftType := LIFTTYPE_LEFT;
+    PANEL_LIFTRIGHT: LiftType := LIFTTYPE_RIGHT;
   end;
 
 // Невидимая:

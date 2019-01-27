@@ -3034,10 +3034,10 @@ begin
             aY2 := aY + aY2 - 1;
 
             case LiftType of
-              0: e_DrawFillQuad(aX, aY, aX2, aY2, 116,  72,  36, 0);
-              1: e_DrawFillQuad(aX, aY, aX2, aY2, 116, 124,  96, 0);
-              2: e_DrawFillQuad(aX, aY, aX2, aY2, 200,  80,   4, 0);
-              3: e_DrawFillQuad(aX, aY, aX2, aY2, 252, 140,  56, 0);
+              LIFTTYPE_UP:    e_DrawFillQuad(aX, aY, aX2, aY2, 116,  72,  36, 0);
+              LIFTTYPE_DOWN:  e_DrawFillQuad(aX, aY, aX2, aY2, 116, 124,  96, 0);
+              LIFTTYPE_LEFT:  e_DrawFillQuad(aX, aY, aX2, aY2, 200,  80,   4, 0);
+              LIFTTYPE_RIGHT: e_DrawFillQuad(aX, aY, aX2, aY2, 252, 140,  56, 0);
             end;
           end;
     end;

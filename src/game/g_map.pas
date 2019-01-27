@@ -606,10 +606,10 @@ begin
   begin
     // stop if the lift of the right type
     result :=
-      ((WordBool(PanelType and PANEL_LIFTUP) and (pan.LiftType = 0)) or
-       (WordBool(PanelType and PANEL_LIFTDOWN) and (pan.LiftType = 1)) or
-       (WordBool(PanelType and PANEL_LIFTLEFT) and (pan.LiftType = 2)) or
-       (WordBool(PanelType and PANEL_LIFTRIGHT) and (pan.LiftType = 3)));
+      ((WordBool(PanelType and PANEL_LIFTUP) and (pan.LiftType = LIFTTYPE_UP)) or
+       (WordBool(PanelType and PANEL_LIFTDOWN) and (pan.LiftType = LIFTTYPE_DOWN)) or
+       (WordBool(PanelType and PANEL_LIFTLEFT) and (pan.LiftType = LIFTTYPE_LEFT)) or
+       (WordBool(PanelType and PANEL_LIFTRIGHT) and (pan.LiftType = LIFTTYPE_RIGHT)));
     exit;
   end;
   result := true; // otherwise, stop anyway, 'cause `forEachAtPoint()` is guaranteed to call this only for correct panels
@@ -2748,10 +2748,10 @@ begin
       h := High(gLifts);
 
       for a := 0 to h do
-        if ((WordBool(PanelType and (PANEL_LIFTUP)) and (gLifts[a].LiftType = 0)) or
-           (WordBool(PanelType and (PANEL_LIFTDOWN)) and (gLifts[a].LiftType = 1)) or
-           (WordBool(PanelType and (PANEL_LIFTLEFT)) and (gLifts[a].LiftType = 2)) or
-           (WordBool(PanelType and (PANEL_LIFTRIGHT)) and (gLifts[a].LiftType = 3))) and
+        if ((WordBool(PanelType and (PANEL_LIFTUP)) and (gLifts[a].LiftType = LIFTTYPE_UP)) or
+           (WordBool(PanelType and (PANEL_LIFTDOWN)) and (gLifts[a].LiftType = LIFTTYPE_DOWN)) or
+           (WordBool(PanelType and (PANEL_LIFTLEFT)) and (gLifts[a].LiftType = LIFTTYPE_LEFT)) or
+           (WordBool(PanelType and (PANEL_LIFTRIGHT)) and (gLifts[a].LiftType = LIFTTYPE_RIGHT))) and
            g_Collide(X, Y, Width, Height,
            gLifts[a].X, gLifts[a].Y,
            gLifts[a].Width, gLifts[a].Height) then
@@ -2827,10 +2827,10 @@ const
     if ((tag and GridTagLift) <> 0) then
     begin
       result :=
-        ((WordBool(PanelType and PANEL_LIFTUP) and (pan.LiftType = 0)) or
-         (WordBool(PanelType and PANEL_LIFTDOWN) and (pan.LiftType = 1)) or
-         (WordBool(PanelType and PANEL_LIFTLEFT) and (pan.LiftType = 2)) or
-         (WordBool(PanelType and PANEL_LIFTRIGHT) and (pan.LiftType = 3))) {and
+        ((WordBool(PanelType and PANEL_LIFTUP) and (pan.LiftType = LIFTTYPE_UP)) or
+         (WordBool(PanelType and PANEL_LIFTDOWN) and (pan.LiftType = LIFTTYPE_DOWN)) or
+         (WordBool(PanelType and PANEL_LIFTLEFT) and (pan.LiftType = LIFTTYPE_LEFT)) or
+         (WordBool(PanelType and PANEL_LIFTRIGHT) and (pan.LiftType = LIFTTYPE_RIGHT))) {and
          g_Collide(X, Y, Width, Height, pan.X, pan.Y, pan.Width, pan.Height)};
       exit;
     end;
@@ -2876,10 +2876,10 @@ begin
         if ((pan.tag and GridTagLift) <> 0) then
         begin
           result :=
-            ((WordBool(PanelType and PANEL_LIFTUP) and (pan.LiftType = 0)) or
-             (WordBool(PanelType and PANEL_LIFTDOWN) and (pan.LiftType = 1)) or
-             (WordBool(PanelType and PANEL_LIFTLEFT) and (pan.LiftType = 2)) or
-             (WordBool(PanelType and PANEL_LIFTRIGHT) and (pan.LiftType = 3))) {and
+            ((WordBool(PanelType and PANEL_LIFTUP) and (pan.LiftType = LIFTTYPE_UP)) or
+             (WordBool(PanelType and PANEL_LIFTDOWN) and (pan.LiftType = LIFTTYPE_DOWN)) or
+             (WordBool(PanelType and PANEL_LIFTLEFT) and (pan.LiftType = LIFTTYPE_LEFT)) or
+             (WordBool(PanelType and PANEL_LIFTRIGHT) and (pan.LiftType = LIFTTYPE_RIGHT))) {and
              g_Collide(X, Y, Width, Height, pan.X, pan.Y, pan.Width, pan.Height)};
         end
         else if ((pan.tag and GridTagBlockMon) <> 0) then
@@ -3041,10 +3041,10 @@ begin
     //TODO: make separate lift tags, and change tag here
 
     case LiftType of
-      0: g_Mark(X, Y, Width, Height, MARK_LIFTUP);
-      1: g_Mark(X, Y, Width, Height, MARK_LIFTDOWN);
-      2: g_Mark(X, Y, Width, Height, MARK_LIFTLEFT);
-      3: g_Mark(X, Y, Width, Height, MARK_LIFTRIGHT);
+      LIFTTYPE_UP:    g_Mark(X, Y, Width, Height, MARK_LIFTUP);
+      LIFTTYPE_DOWN:  g_Mark(X, Y, Width, Height, MARK_LIFTDOWN);
+      LIFTTYPE_LEFT:  g_Mark(X, Y, Width, Height, MARK_LIFTLEFT);
+      LIFTTYPE_RIGHT: g_Mark(X, Y, Width, Height, MARK_LIFTRIGHT);
     end;
 
     //if g_Game_IsServer and g_Game_IsNet then MH_SEND_PanelState(pguid);

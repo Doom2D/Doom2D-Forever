@@ -592,17 +592,17 @@ begin
   if (gLifts[PanelID].PanelType = PANEL_LIFTUP) or (gLifts[PanelID].PanelType = PANEL_LIFTDOWN) then
   begin
     case d of
-      0: t := 0;
-      1: t := 1;
-      else t := IfThen(gLifts[PanelID].LiftType = 1, 0, 1);
+      0: t := LIFTTYPE_UP;
+      1: t := LIFTTYPE_DOWN;
+      else t := IfThen(gLifts[PanelID].LiftType = LIFTTYPE_DOWN, LIFTTYPE_UP, LIFTTYPE_DOWN);
     end
   end
   else if (gLifts[PanelID].PanelType = PANEL_LIFTLEFT) or (gLifts[PanelID].PanelType = PANEL_LIFTRIGHT) then
   begin
     case d of
-      0: t := 2;
-      1: t := 3;
-      else t := IfThen(gLifts[PanelID].LiftType = 2, 3, 2);
+      0: t := LIFTTYPE_LEFT;
+      1: t := LIFTTYPE_RIGHT;
+      else t := IfThen(gLifts[PanelID].LiftType = LIFTTYPE_LEFT, LIFTTYPE_RIGHT, LIFTTYPE_LEFT);
     end;
   end;
 
