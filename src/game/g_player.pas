@@ -95,6 +95,7 @@ const
   PLAYER_AP_SOFT  = 100;
   PLAYER_AP_LIMIT = 200;
   SUICIDE_DAMAGE  = 112;
+  WEAPON_DELAY    = 5;
 
   PLAYER1_DEF_COLOR: TRGB = (R:64; G:175; B:48);
   PLAYER2_DEF_COLOR: TRGB = (R:96; G:96; B:96);
@@ -3616,7 +3617,7 @@ begin
       begin
         //e_WriteLog(Format(' SWITCH: cur=%d; new=%d', [FCurrWeap, cwi]), MSG_WARNING);
         result := Byte(cwi);
-        FNextWeapDelay := 10;
+        FNextWeapDelay := WEAPON_DELAY;
         exit;
       end;
     end;
@@ -3661,7 +3662,7 @@ begin
       // i found her!
       result := Byte(i);
       resetWeaponQueue();
-      FNextWeapDelay := 10; // anyway, 'cause why not
+      FNextWeapDelay := WEAPON_DELAY; // anyway, 'cause why not
       exit;
     end;
   end;
