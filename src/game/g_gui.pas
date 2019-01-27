@@ -820,6 +820,10 @@ begin
     else
       e_Clear(GL_COLOR_BUFFER_BIT, 0.5, 0.5, 0.5);
 
+  // small hack here
+  if FName = 'AuthorsMenu' then
+    e_DarkenQuadWH(0, 0, gScreenWidth, gScreenHeight, 150);
+
   for i := 0 to High(Childs) do
     if Childs[i] <> nil then Childs[i].Draw;
 end;
