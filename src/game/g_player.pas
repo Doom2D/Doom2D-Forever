@@ -2444,7 +2444,9 @@ begin
   end;
 
   if (gChatBubble > 0) and (FKeys[KEY_CHAT].Pressed) and not FGhost then
-    DrawBubble();
+    if (FMegaRulez[MR_INVIS] <= gTime) or ((gPlayerDrawn <> nil) and ((Self = gPlayerDrawn) or
+       ((FTeam = gPlayerDrawn.Team) and (gGameSettings.GameMode <> GM_DM)))) then
+      DrawBubble();
  // e_DrawPoint(5, 335, 288, 255, 0, 0); // DL, UR, DL, UR
   if gAimLine and alive and
   ((Self = gPlayer1) or (Self = gPlayer2)) then
