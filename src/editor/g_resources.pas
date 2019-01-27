@@ -121,7 +121,6 @@ implementation
     var f: TWADEditor_1;
   begin
     res := 1; (* error *)
-    wad := utf2win(wad);
     section := utf2win(NoTrailing(section));
     name := utf2win(name);
     ASSERT(name <> '');
@@ -176,7 +175,7 @@ implementation
         path := NoTrailing(list.Files[i].path);
         if (path <> section) or (list.Files[i].name <> name) then
         begin
-          g_ReadResource(wad, path, list.Files[i].name, data0, len0);
+          g_ReadResource(wad, win2utf(path), win2utf(list.Files[i].name), data0, len0);
           ASSERT(data0 <> nil);
           if path = '' then
             path := list.Files[i].name
@@ -274,7 +273,7 @@ implementation
         path := NoTrailing(list.Files[i].path);
         if (path <> section) or (list.Files[i].name <> name) then
         begin
-          g_ReadResource(wad, path, list.Files[i].name, data0, len0);
+          g_ReadResource(wad, win2utf(path), win2utf(list.Files[i].name), data0, len0);
           ASSERT(data0 <> nil);
           if path = '' then
             path := list.Files[i].name

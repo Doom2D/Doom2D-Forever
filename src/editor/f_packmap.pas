@@ -107,7 +107,6 @@ end;
 
 procedure TPackMapForm.bPackClick(Sender: TObject);
 var
-  WadFile: String;
   mr: TMapReader_1;
   mw: TMapWriter_1;
   data: Pointer;
