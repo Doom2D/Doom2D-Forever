@@ -292,7 +292,7 @@ type
     procedure   BFGHit();
     function    GetFlag(Flag: Byte): Boolean;
     procedure   SetFlag(Flag: Byte);
-    function    DropFlag(): Boolean;
+    function    DropFlag(Silent: Boolean = True): Boolean;
     procedure   AllRulez(Health: Boolean);
     procedure   RestoreHealthArmor();
     procedure   FragCombo();
@@ -3403,7 +3403,7 @@ begin
     end;
 
 // ֲûבנמס פכאדא:
-    DropFlag();
+    DropFlag(KillType = K_FALLKILL);
   end;
 
   g_Player_CreateCorpse(Self);
@@ -5546,7 +5546,7 @@ end;
 function TPlayer.GetFlag(Flag: Byte): Boolean;
 var
   s, ts: String;
-  evtype: Byte;
+  evtype, a: Byte;
 begin
   Result := False;
 
@@ -5573,6 +5573,16 @@ begin
 
     g_Map_ResetFlag(FFlag);
     g_Game_Message(Format(_lc[I_MESSAGE_FLAG_CAPTURE], [AnsiUpperCase(s)]), 144);
+
+    if ((Self = gPlayer1) or (Self = gPlayer2)
+    or ((gPlayer1 <> nil) and (gPlayer1.Team = FTeam))
+    or ((gPlayer2 <> nil) and (gPlayer2.Team = FTeam))) then
+      a := 0
+    else
+      a := 1;
+
+    if not sound_cap_flag[a].IsPlaying() then
+      sound_cap_flag[a].Play();
 
     gTeamStat[FTeam].Goals := gTeamStat[FTeam].Goals + 1;
 
@@ -5605,6 +5615,16 @@ begin
     g_Map_ResetFlag(Flag);
     g_Game_Message(Format(_lc[I_MESSAGE_FLAG_RETURN], [AnsiUpperCase(s)]), 144);
 
+    if ((Self = gPlayer1) or (Self = gPlayer2)
+    or ((gPlayer1 <> nil) and (gPlayer1.Team = FTeam))
+    or ((gPlayer2 <> nil) and (gPlayer2.Team = FTeam))) then
+      a := 0
+    else
+      a := 1;
+
+    if not sound_ret_flag[a].IsPlaying() then
+      sound_ret_flag[a].Play();
+
     Result := True;
     if g_Game_IsNet then
     begin
@@ -5632,6 +5652,16 @@ begin
 
     gFlags[Flag].State := FLAG_STATE_CAPTURED;
 
+    if ((Self = gPlayer1) or (Self = gPlayer2)
+    or ((gPlayer1 <> nil) and (gPlayer1.Team = FTeam))
+    or ((gPlayer2 <> nil) and (gPlayer2.Team = FTeam))) then
+      a := 0
+    else
+      a := 1;
+
+    if not sound_get_flag[a].IsPlaying() then
+      sound_get_flag[a].Play();
+
     Result := True;
     if g_Game_IsNet then
     begin
@@ -5648,9 +5678,10 @@ begin
     FModel.SetFlag(FFlag);
 end;
 
-function TPlayer.DropFlag(): Boolean;
+function TPlayer.DropFlag(Silent: Boolean = True): Boolean;
 var
   s: String;
+  a: Byte;
 begin
   Result := False;
   if (not g_Game_IsServer) or (FFlag = FLAG_NONE) then
@@ -5674,6 +5705,16 @@ begin
 
     g_Console_Add(Format(_lc[I_PLAYER_FLAG_DROP], [FName, s]), True);
     g_Game_Message(Format(_lc[I_MESSAGE_FLAG_DROP], [AnsiUpperCase(s)]), 144);
+
+    if ((Self = gPlayer1) or (Self = gPlayer2)
+    or ((gPlayer1 <> nil) and (gPlayer1.Team = FTeam))
+    or ((gPlayer2 <> nil) and (gPlayer2.Team = FTeam))) then
+      a := 0
+    else
+      a := 1;
+
+    if (not Silent) and (not sound_lost_flag[a].IsPlaying()) then
+      sound_lost_flag[a].Play();
 
     if g_Game_IsNet then
       MH_SEND_FlagEvent(FLAG_STATE_DROPPED, Flag, FUID, False);

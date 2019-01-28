@@ -1838,7 +1838,7 @@ var
   PID: Word;
   Pl: TPlayer;
   EvType: Byte;
-  Fl: Byte;
+  Fl, a: Byte;
   Quiet: Boolean;
   s, ts: string;
 begin
@@ -1875,6 +1875,16 @@ begin
         s := _lc[I_PLAYER_FLAG_BLUE];
 
       g_Game_Message(Format(_lc[I_MESSAGE_FLAG_RETURN], [AnsiUpperCase(s)]), 144);
+
+      if ((Pl = gPlayer1) or (Pl = gPlayer2)
+      or ((gPlayer1 <> nil) and (gPlayer1.Team = Pl.Team))
+      or ((gPlayer2 <> nil) and (gPlayer2.Team = Pl.Team))) then
+        a := 0
+      else
+        a := 1;
+
+      if not sound_ret_flag[a].IsPlaying() then
+        sound_ret_flag[a].Play();
     end;
 
     FLAG_STATE_CAPTURED:
@@ -1890,6 +1900,16 @@ begin
 
       g_Console_Add(Format(_lc[I_PLAYER_FLAG_GET], [Pl.Name, s]), True);
       g_Game_Message(Format(_lc[I_MESSAGE_FLAG_GET], [AnsiUpperCase(s)]), 144);
+
+      if ((Pl = gPlayer1) or (Pl = gPlayer2)
+      or ((gPlayer1 <> nil) and (gPlayer1.Team = Pl.Team))
+      or ((gPlayer2 <> nil) and (gPlayer2.Team = Pl.Team))) then
+        a := 0
+      else
+        a := 1;
+
+      if not sound_get_flag[a].IsPlaying() then
+        sound_get_flag[a].Play();
     end;
 
     FLAG_STATE_DROPPED:
@@ -1905,6 +1925,16 @@ begin
 
       g_Console_Add(Format(_lc[I_PLAYER_FLAG_DROP], [Pl.Name, s]), True);
       g_Game_Message(Format(_lc[I_MESSAGE_FLAG_DROP], [AnsiUpperCase(s)]), 144);
+
+      if ((Pl = gPlayer1) or (Pl = gPlayer2)
+      or ((gPlayer1 <> nil) and (gPlayer1.Team = Pl.Team))
+      or ((gPlayer2 <> nil) and (gPlayer2.Team = Pl.Team))) then
+        a := 0
+      else
+        a := 1;
+
+      if not sound_lost_flag[a].IsPlaying() then
+        sound_lost_flag[a].Play();
     end;
 
     FLAG_STATE_SCORED:
@@ -1923,6 +1953,16 @@ begin
       Insert('.', ts, Length(ts) + 1 - 3);
       g_Console_Add(Format(_lc[I_PLAYER_FLAG_CAPTURE], [Pl.Name, s, ts]), True);
       g_Game_Message(Format(_lc[I_MESSAGE_FLAG_CAPTURE], [AnsiUpperCase(s)]), 144);
+
+      if ((Pl = gPlayer1) or (Pl = gPlayer2)
+      or ((gPlayer1 <> nil) and (gPlayer1.Team = Pl.Team))
+      or ((gPlayer2 <> nil) and (gPlayer2.Team = Pl.Team))) then
+        a := 0
+      else
+        a := 1;
+
+      if not sound_cap_flag[a].IsPlaying() then
+        sound_cap_flag[a].Play();
     end;
 
     FLAG_STATE_RETURNED:
@@ -1936,6 +1976,16 @@ begin
         s := _lc[I_PLAYER_FLAG_BLUE];
 
       g_Game_Message(Format(_lc[I_MESSAGE_FLAG_RETURN], [AnsiUpperCase(s)]), 144);
+
+      if ((Pl = gPlayer1) or (Pl = gPlayer2)
+      or ((gPlayer1 <> nil) and (gPlayer1.Team = Pl.Team))
+      or ((gPlayer2 <> nil) and (gPlayer2.Team = Pl.Team))) then
+        a := 0
+      else
+        a := 1;
+
+      if not sound_ret_flag[a].IsPlaying() then
+        sound_ret_flag[a].Play();
     end;
   end;
 end;

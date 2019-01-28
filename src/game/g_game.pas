@@ -237,6 +237,10 @@ var
   goodsnd: array[0..3] of TPlayableSound;
   killsnd: array[0..3] of TPlayableSound;
   hahasnd: array[0..2] of TPlayableSound;
+  sound_get_flag: array[0..1] of TPlayableSound;
+  sound_lost_flag: array[0..1] of TPlayableSound;
+  sound_ret_flag: array[0..1] of TPlayableSound;
+  sound_cap_flag: array[0..1] of TPlayableSound;
   gBodyKillEvent: Integer = -1;
   gDefInterTime: ShortInt = -1;
   gInterEndTime: LongWord = 0;
@@ -2346,6 +2350,14 @@ begin
   g_Sound_CreateWADEx('SOUND_ANNOUNCER_MUHAHA1', GameWAD+':SOUNDS\MUHAHA1');
   g_Sound_CreateWADEx('SOUND_ANNOUNCER_MUHAHA2', GameWAD+':SOUNDS\MUHAHA2');
   g_Sound_CreateWADEx('SOUND_ANNOUNCER_MUHAHA3', GameWAD+':SOUNDS\MUHAHA3');
+  g_Sound_CreateWADEx('SOUND_CTF_GET1', GameWAD+':SOUNDS\GETFLAG1');
+  g_Sound_CreateWADEx('SOUND_CTF_GET2', GameWAD+':SOUNDS\GETFLAG2');
+  g_Sound_CreateWADEx('SOUND_CTF_LOST1', GameWAD+':SOUNDS\LOSTFLG1');
+  g_Sound_CreateWADEx('SOUND_CTF_LOST2', GameWAD+':SOUNDS\LOSTFLG2');
+  g_Sound_CreateWADEx('SOUND_CTF_RETURN1', GameWAD+':SOUNDS\RETFLAG1');
+  g_Sound_CreateWADEx('SOUND_CTF_RETURN2', GameWAD+':SOUNDS\RETFLAG2');
+  g_Sound_CreateWADEx('SOUND_CTF_CAPTURE1', GameWAD+':SOUNDS\CAPFLAG1');
+  g_Sound_CreateWADEx('SOUND_CTF_CAPTURE2', GameWAD+':SOUNDS\CAPFLAG2');
 
   goodsnd[0] := TPlayableSound.Create();
   goodsnd[1] := TPlayableSound.Create();
@@ -2374,6 +2386,24 @@ begin
   hahasnd[0].SetByName('SOUND_ANNOUNCER_MUHAHA1');
   hahasnd[1].SetByName('SOUND_ANNOUNCER_MUHAHA2');
   hahasnd[2].SetByName('SOUND_ANNOUNCER_MUHAHA3');
+
+  sound_get_flag[0] := TPlayableSound.Create();
+  sound_get_flag[1] := TPlayableSound.Create();
+  sound_lost_flag[0] := TPlayableSound.Create();
+  sound_lost_flag[1] := TPlayableSound.Create();
+  sound_ret_flag[0] := TPlayableSound.Create();
+  sound_ret_flag[1] := TPlayableSound.Create();
+  sound_cap_flag[0] := TPlayableSound.Create();
+  sound_cap_flag[1] := TPlayableSound.Create();
+
+  sound_get_flag[0].SetByName('SOUND_CTF_GET1');
+  sound_get_flag[1].SetByName('SOUND_CTF_GET2');
+  sound_lost_flag[0].SetByName('SOUND_CTF_LOST1');
+  sound_lost_flag[1].SetByName('SOUND_CTF_LOST2');
+  sound_ret_flag[0].SetByName('SOUND_CTF_RETURN1');
+  sound_ret_flag[1].SetByName('SOUND_CTF_RETURN2');
+  sound_cap_flag[0].SetByName('SOUND_CTF_CAPTURE1');
+  sound_cap_flag[1].SetByName('SOUND_CTF_CAPTURE2');
 
   g_Game_LoadChatSounds(GameWAD+':CHATSND\SNDCFG');
 
@@ -2455,6 +2485,24 @@ begin
   g_Sound_Delete('SOUND_ANNOUNCER_MUHAHA1');
   g_Sound_Delete('SOUND_ANNOUNCER_MUHAHA2');
   g_Sound_Delete('SOUND_ANNOUNCER_MUHAHA3');
+
+  sound_get_flag[0].Free();
+  sound_get_flag[1].Free();
+  sound_lost_flag[0].Free();
+  sound_lost_flag[1].Free();
+  sound_ret_flag[0].Free();
+  sound_ret_flag[1].Free();
+  sound_cap_flag[0].Free();
+  sound_cap_flag[1].Free();
+
+  g_Sound_Delete('SOUND_CTF_GET1');
+  g_Sound_Delete('SOUND_CTF_GET2');
+  g_Sound_Delete('SOUND_CTF_LOST1');
+  g_Sound_Delete('SOUND_CTF_LOST2');
+  g_Sound_Delete('SOUND_CTF_RETURN1');
+  g_Sound_Delete('SOUND_CTF_RETURN2');
+  g_Sound_Delete('SOUND_CTF_CAPTURE1');
+  g_Sound_Delete('SOUND_CTF_CAPTURE2');
 
   g_Game_FreeChatSounds();
 

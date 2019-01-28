@@ -2515,6 +2515,7 @@ var
   a, d, j: Integer;
   m: Word;
   s: String;
+  b: Byte;
 
   procedure UpdatePanelArray(var panels: TPanelArray);
   var
@@ -2564,6 +2565,15 @@ begin
             else
               s := _lc[I_PLAYER_FLAG_BLUE];
             g_Game_Message(Format(_lc[I_MESSAGE_FLAG_RETURN], [AnsiUpperCase(s)]), 144);
+
+            if (((gPlayer1 <> nil) and (((gPlayer1.Team = TEAM_RED) and (a = FLAG_RED)) or ((gPlayer1.Team = TEAM_BLUE) and (a = FLAG_BLUE))))
+            or ((gPlayer2 <> nil) and (((gPlayer2.Team = TEAM_RED) and (a = FLAG_RED)) or ((gPlayer2.Team = TEAM_BLUE) and (a = FLAG_BLUE))))) then
+              b := 0
+            else
+              b := 1;
+
+            if not sound_ret_flag[b].IsPlaying() then
+              sound_ret_flag[b].Play();
 
             if g_Game_IsNet then
               MH_SEND_FlagEvent(FLAG_STATE_RETURNED, a, 0);
