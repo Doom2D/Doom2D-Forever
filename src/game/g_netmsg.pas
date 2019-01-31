@@ -2116,7 +2116,7 @@ function MC_RECV_PlayerStats(var M: TMsg): Word;
 var
   PID: Word;
   Pl: TPlayer;
-  I: Integer;
+  I, OldFire: Integer;
   OldJet, Flam: Boolean;
   NewTeam: Byte;
 begin
@@ -2192,7 +2192,10 @@ begin
     FNoRespawn := M.ReadByte() <> 0;
     OldJet := FJetpack;
     FJetpack := M.ReadByte() <> 0;
+    OldFire := FFireTime;
     FFireTime := M.ReadLongInt();
+    if (OldFire <= 0) and (FFireTime > 0) then
+      g_Sound_PlayExAt('SOUND_IGNITE', Obj.X, Obj.Y);
     Flam := M.ReadByte() <> 0;
     if OldJet and not FJetpack then
       JetpackOff
@@ -2632,7 +2635,7 @@ end;
 
 procedure MC_RECV_MonsterState(var M: TMsg);
 var
-  ID: Integer;
+  ID, OldFire: Integer;
   MState, MFAnm: Byte;
   Mon: TMonster;
   AnimRevert: Boolean;
@@ -2653,7 +2656,10 @@ begin
     MonsterAmmo := M.ReadLongInt();
     MonsterPain := M.ReadLongInt();
     AnimRevert := M.ReadByte() <> 0;
+    OldFire := FFireTime;
     FFireTime := M.ReadLongInt();
+    if (OldFire <= 0) and (FFireTime > 0) then
+      g_Sound_PlayExAt('SOUND_IGNITE', Obj.X, Obj.Y);
     RevertAnim(AnimRevert);
 
     if MonsterState <> MState then

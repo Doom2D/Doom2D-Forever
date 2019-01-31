@@ -2469,6 +2469,14 @@ begin
   st := g_Obj_Move(@FObj, fall, True, True);
   positionChanged(); // this updates spatial accelerators
 
+// Если горим - поджигаем других монстров:
+  if FFireTime > 0 then
+    for a := 0 to High(gMonsters) do
+      if (gMonsters[a] <> nil) and (gMonsters[a].alive) and
+         (gMonsters[a].FUID <> FUID) and
+         g_Obj_Collide(@FObj, @gMonsters[a].Obj) then
+        gMonsters[a].CatchFire(FFireAttacker);
+
 // Вылетел за карту - удаляем и запускаем триггеры:
   if WordBool(st and MOVE_FALLOUT) or (FObj.X < -1000) or
      (FObj.X > gMapInfo.Width+1000) or (FObj.Y < -1000) then
@@ -4638,6 +4646,8 @@ end;
 
 procedure TMonster.CatchFire(Attacker: Word);
 begin
+  if FFireTime <= 0 then
+    g_Sound_PlayExAt('SOUND_IGNITE', FObj.X, FObj.Y);
   FFireTime := 100;
   FFireAttacker := Attacker;
   if g_Game_IsNet and g_Game_IsServer then MH_SEND_MonsterState(FUID);

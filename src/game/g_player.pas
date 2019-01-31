@@ -3163,6 +3163,8 @@ end;
 
 procedure TPlayer.CatchFire(Attacker: Word);
 begin
+  if FFireTime <= 0 then
+    g_Sound_PlayExAt('SOUND_IGNITE', FObj.X, FObj.Y);
   FFireTime := 100;
   FFireAttacker := Attacker;
   if g_Game_IsNet and g_Game_IsServer then
