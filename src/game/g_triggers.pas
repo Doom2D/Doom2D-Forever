@@ -809,7 +809,7 @@ begin
     TRIGGER_SHOT_FLAME:
       begin
         g_Weapon_flame(wx, wy, dx, dy, 0, -1, True);
-        //snd := 'SOUND_WEAPON_FIREPLASMA';
+        snd := 'SOUND_GAME_BURNING';
       end;
 
     else exit;

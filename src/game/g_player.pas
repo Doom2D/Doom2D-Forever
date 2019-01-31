@@ -191,6 +191,9 @@ type
     FSawSoundIdle:   TPlayableSound;
     FSawSoundHit:    TPlayableSound;
     FSawSoundSelect: TPlayableSound;
+    FFlameSoundOn:   TPlayableSound;
+    FFlameSoundOff:  TPlayableSound;
+    FFlameSoundWork: TPlayableSound;
     FJetSoundOn:     TPlayableSound;
     FJetSoundOff:    TPlayableSound;
     FJetSoundFly:    TPlayableSound;
@@ -253,6 +256,7 @@ type
     FWantsInGame: Boolean;
     FGhost:     Boolean;
     FPhysics:   Boolean;
+    FFlaming:   Boolean;
     FJetpack:   Boolean;
     FActualModelName: string;
     FClientID:  SmallInt;
@@ -325,6 +329,8 @@ type
     procedure   SetLerp(XTo, YTo: Integer);
     procedure   QueueWeaponSwitch(Weapon: Byte);
     procedure   RealizeCurrentWeapon();
+    procedure   FlamerOn;
+    procedure   FlamerOff;
     procedure   JetpackOn;
     procedure   JetpackOff;
     procedure   CatchFire(Attacker: Word);
@@ -2099,6 +2105,9 @@ begin
   FSawSoundIdle := TPlayableSound.Create();
   FSawSoundHit := TPlayableSound.Create();
   FSawSoundSelect := TPlayableSound.Create();
+  FFlameSoundOn := TPlayableSound.Create();
+  FFlameSoundOff := TPlayableSound.Create();
+  FFlameSoundWork := TPlayableSound.Create();
   FJetSoundFly := TPlayableSound.Create();
   FJetSoundOn := TPlayableSound.Create();
   FJetSoundOff := TPlayableSound.Create();
@@ -2107,6 +2116,9 @@ begin
   FSawSoundIdle.SetByName('SOUND_WEAPON_IDLESAW');
   FSawSoundHit.SetByName('SOUND_WEAPON_HITSAW');
   FSawSoundSelect.SetByName('SOUND_WEAPON_SELECTSAW');
+  FFlameSoundOn.SetByName('SOUND_WEAPON_FLAMEON');
+  FFlameSoundOff.SetByName('SOUND_WEAPON_FLAMEOFF');
+  FFlameSoundWork.SetByName('SOUND_WEAPON_FLAMEWORK');
   FJetSoundFly.SetByName('SOUND_PLAYER_JETFLY');
   FJetSoundOn.SetByName('SOUND_PLAYER_JETON');
   FJetSoundOff.SetByName('SOUND_PLAYER_JETOFF');
@@ -2267,6 +2279,9 @@ begin
   FSawSoundIdle.Free();
   FSawSoundHit.Free();
   FSawSoundSelect.Free();
+  FFlameSoundOn.Free();
+  FFlameSoundOff.Free();
+  FFlameSoundWork.Free();
   FJetSoundFly.Free();
   FJetSoundOn.Free();
   FJetSoundOff.Free();
@@ -3046,11 +3061,17 @@ begin
       if FAmmo[A_FUEL] > 0 then
       begin
         g_Weapon_flame(wx, wy, xd, yd, FUID);
+        FlamerOn;
         FReloading[FCurrWeap] := WEAPON_RELOAD[FCurrWeap];
         Dec(FAmmo[A_FUEL]);
         FFireAngle := FAngle;
         f := True;
         DidFire := True;
+      end
+      else
+      begin
+        FlamerOff;
+        if g_Game_IsNet and g_Game_IsServer then MH_SEND_PlayerStats(FUID);
       end;
   end;
 
@@ -3092,6 +3113,35 @@ begin
   Result := g_Map_CollidePanel(FObj.X+PLAYER_HEADRECT.X+XInc, FObj.Y+PLAYER_HEADRECT.Y+YInc,
                                PLAYER_HEADRECT.Width, PLAYER_HEADRECT.Height,
                                PANEL_WATER or PANEL_ACID1 or PANEL_ACID2, True);
+end;
+
+procedure TPlayer.FlamerOn;
+begin
+  FFlameSoundOff.Stop();
+  FFlameSoundOff.SetPosition(0);
+  if FFlaming then
+  begin
+    if (not FFlameSoundOn.IsPlaying()) and (not FFlameSoundWork.IsPlaying()) then
+      FFlameSoundWork.PlayAt(FObj.X, FObj.Y);
+  end
+  else
+  begin
+    FFlameSoundOn.PlayAt(FObj.X, FObj.Y);
+    FFlaming := True;
+  end;
+end;
+
+procedure TPlayer.FlamerOff;
+begin
+  if FFlaming then
+  begin
+    FFlameSoundOn.Stop();
+    FFlameSoundOn.SetPosition(0);
+    FFlameSoundWork.Stop();
+    FFlameSoundWork.SetPosition(0);
+    FFlameSoundOff.PlayAt(FObj.X, FObj.Y);
+    FFlaming := False;
+  end;
 end;
 
 procedure TPlayer.JetpackOn;
@@ -4522,6 +4572,7 @@ begin
   FDamageBuffer := 0;
   FJetpack := False;
   FCanJetpack := False;
+  FFlaming := False;
   FFireTime := 0;
   FFirePainTime := 0;
   FFireAttacker := 0;
@@ -4923,7 +4974,15 @@ begin
     if FKeys[KEY_RIGHT].Pressed then Run(TDirection.D_RIGHT);
     //if FKeys[KEY_NEXTWEAPON].Pressed and AnyServer then NextWeapon();
     //if FKeys[KEY_PREVWEAPON].Pressed and AnyServer then PrevWeapon();
-    if FKeys[KEY_FIRE].Pressed and AnyServer then Fire();
+    if FKeys[KEY_FIRE].Pressed and AnyServer then Fire()
+    else
+    begin
+      if AnyServer then
+      begin
+        FlamerOff;
+        if NetServer then MH_SEND_PlayerStats(FUID);
+      end;
+    end;
     if FKeys[KEY_OPEN].Pressed and AnyServer then Use();
     if FKeys[KEY_JUMP].Pressed then Jump()
     else
@@ -5491,6 +5550,7 @@ begin
     WEAPON_FLAMETHROWER:
     begin
       g_Weapon_flame(wx, wy, xd, yd, FUID, WID);
+      FlamerOn;
       FFireAngle := FAngle;
       f := True;
     end;
@@ -6261,6 +6321,9 @@ begin
   FSawSoundIdle.Pause(Enable);
   FSawSoundHit.Pause(Enable);
   FSawSoundSelect.Pause(Enable);
+  FFlameSoundOn.Pause(Enable);
+  FFlameSoundOff.Pause(Enable);
+  FFlameSoundWork.Pause(Enable);
   FJetSoundFly.Pause(Enable);
   FJetSoundOn.Pause(Enable);
   FJetSoundOff.Pause(Enable);

@@ -1070,6 +1070,7 @@ begin
     NetOut.Write(Byte(FNoRespawn));
     NetOut.Write(Byte(FJetpack));
     NetOut.Write(FFireTime);
+    NetOut.Write(Byte(FFlaming));
   end;
 
   g_Net_Host_Send(ID, True, NET_CHAN_PLAYER);
@@ -2116,7 +2117,7 @@ var
   PID: Word;
   Pl: TPlayer;
   I: Integer;
-  OldJet: Boolean;
+  OldJet, Flam: Boolean;
   NewTeam: Byte;
 begin
   PID := M.ReadWord();
@@ -2192,10 +2193,13 @@ begin
     OldJet := FJetpack;
     FJetpack := M.ReadByte() <> 0;
     FFireTime := M.ReadLongInt();
+    Flam := M.ReadByte() <> 0;
     if OldJet and not FJetpack then
       JetpackOff
     else if not OldJet and FJetpack then
       JetpackOn;
+    if FFlaming and not Flam then
+      FlamerOff;
     if Team <> NewTeam then
       Pl.ChangeTeam(NewTeam);
   end;
