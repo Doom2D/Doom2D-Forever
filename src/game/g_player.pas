@@ -2266,6 +2266,7 @@ begin
   FSawSound.Free();
   FSawSoundIdle.Free();
   FSawSoundHit.Free();
+  FSawSoundSelect.Free();
   FJetSoundFly.Free();
   FJetSoundOn.Free();
   FJetSoundOff.Free();
@@ -6260,6 +6261,9 @@ begin
   FSawSoundIdle.Pause(Enable);
   FSawSoundHit.Pause(Enable);
   FSawSoundSelect.Pause(Enable);
+  FJetSoundFly.Pause(Enable);
+  FJetSoundOn.Pause(Enable);
+  FJetSoundOff.Pause(Enable);
 end;
 
 { T C o r p s e : }
