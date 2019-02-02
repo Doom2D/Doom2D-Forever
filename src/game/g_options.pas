@@ -615,10 +615,10 @@ begin
   ReadBoolean(g_touch_alt, 'Alt');
 
   section := 'Game';
-  ReadInteger(i, 'MaxParticles', 1000, 50000); g_GFX_SetMax(i);
-  ReadInteger(i, 'MaxShells', 300, 600); g_Shells_SetMax(i);
-  ReadInteger(i, 'MaxGibs', 150, 500); g_Gibs_SetMax(i);
-  ReadInteger(i, 'MaxCorpses', 20, 100); g_Corpses_SetMax(i);
+  ReadInteger(i, 'MaxParticles', 0, 50000); g_GFX_SetMax(i);
+  ReadInteger(i, 'MaxShells', 0, 600); g_Shells_SetMax(i);
+  ReadInteger(i, 'MaxGibs', 0, 500); g_Gibs_SetMax(i);
+  ReadInteger(i, 'MaxCorpses', 0, 100); g_Corpses_SetMax(i);
   ReadInteger(i, 'GibsCount');
   case i of
     0: gGibsCount := 0;
