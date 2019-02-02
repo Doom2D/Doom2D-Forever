@@ -1063,5 +1063,6 @@ begin
 end;
 
 initialization
+  Randomize;
   machine := Random(10000)
 end.
