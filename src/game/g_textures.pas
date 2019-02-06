@@ -222,13 +222,8 @@ begin
   if WAD.GetResource(g_ExtractFilePathName(Resource), TextureData, ResourceLength) then
   begin
     if e_CreateTextureMem(TextureData, ResourceLength, ID) then
-    begin
       result := true;
-    end
-    else
-    begin
-      FreeMem(TextureData);
-    end;
+    FreeMem(TextureData)
   end
   else
   begin
@@ -273,11 +268,8 @@ begin
       e_GetTextureSize(texturesArray[find_id].ID, @texturesArray[find_id].width, @texturesArray[find_id].height);
       texturesArray[find_id].used := true;
       texturesArray[find_id].Name := textureName;
-    end
-    else
-    begin
-      FreeMem(TextureData);
     end;
+    FreeMem(TextureData)
   end
   else
   begin
@@ -542,10 +534,12 @@ begin
 
   if not CreateFramesMem(TextureData, ResourceLength, ID, Name, mWidth, mHeight, mCount, BackAnimation) then
   begin
+    FreeMem(TextureData);
     WAD.Free();
     exit;
   end;
 
+  FreeMem(TextureData);
   WAD.Free();
 
   result := true;
