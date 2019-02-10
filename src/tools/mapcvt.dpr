@@ -32,7 +32,7 @@ var
   inname: AnsiString = '';
   outname: AnsiString = '';
   totext: Integer = -1; // <0: guess; force outname extension
-  sign: packed array[0..3] of AnsiChar;
+  //sign: packed array[0..3] of AnsiChar;
   wad: TWADFile = nil;
   waddata: Pointer;
   waddlen: Integer;
