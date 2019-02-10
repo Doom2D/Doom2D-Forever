@@ -20,10 +20,32 @@ unit xprofiler;
 
 interface
 
+{$IFNDEF IN_TOOLS}
   uses
     SysUtils;
 
   {$DEFINE STOPWATCH_IS_HERE}
+
+{$ELSE}
+  uses
+    SysUtils
+  {$IF DEFINED(LINUX) OR DEFINED(ANDROID)}
+    {$DEFINE STOPWATCH_IS_HERE}
+    , unixtype, linux
+  {$ELSEIF DEFINED(WINDOWS)}
+    {$DEFINE STOPWATCH_IS_HERE}
+    , Windows
+  {$ELSEIF DEFINED(HAIKU)}
+    {$DEFINE STOPWATCH_IS_HERE}
+    , unixtype
+  {$ELSE}
+    {$IFDEF STOPWATCH_IS_HERE}
+      {$UNDEF STOPWATCH_IS_HERE}
+    {$ENDIF}
+    {$WARNING You suck!}
+  {$ENDIF}
+  ;
+{$ENDIF} // IN_TOOLS
 
 {$IF DEFINED(STOPWATCH_IS_HERE)}
 type
@@ -138,23 +160,72 @@ function getTimeMilli (): UInt64; inline;
 
 implementation
 
-  uses
-    SDL2;
+{$IFNDEF IN_TOOLS}
+uses
+  SDL2;
 
-  type
-    THPTimeType = Int64;
+type
+  THPTimeType = Int64;
+{$ELSE}
+{$IF DEFINED(LINUX)}
+type THPTimeType = TTimeSpec;
+{$ELSE}
+type THPTimeType = Int64;
+{$ENDIF}
+
+var
+  mFrequency: Int64 = 0;
+  mHasHPTimer: Boolean = false;
+{$ENDIF}
+
 
 // ////////////////////////////////////////////////////////////////////////// //
 procedure initTimerIntr ();
+{$IFDEF IN_TOOLS}
+var
+  r: THPTimeType;
+{$ENDIF}
 begin
+{$IFDEF IN_TOOLS}
+  if (mFrequency = 0) then
+  begin
+{$IF DEFINED(LINUX)}
+    if (clock_getres(CLOCK_MONOTONIC, @r) <> 0) then raise Exception.Create('profiler error: cannot get timer resolution');
+    mHasHPTimer := (r.tv_nsec <> 0);
+    if not mHasHPTimer then raise Exception.Create('profiler error: hires timer is not available');
+    mFrequency := 1; // just a flag
+    if (r.tv_nsec <> 0) then mFrequency := 1000000000000000000 div r.tv_nsec;
+{$ELSEIF DEFINED(WINDOWS)}
+    mHasHPTimer := QueryPerformanceFrequency(r);
+    if not mHasHPTimer then raise Exception.Create('profiler error: hires timer is not available');
+    mFrequency := r;
+{$ENDIF}
+  end;
+{$ENDIF}
   (* init sdl timers? *)
 end;
 
 
+{$IFDEF IN_TOOLS}
+function getTimeMicro (): UInt64; inline;
+var
+  r: THPTimeType;
+begin
+  //if (mFrequency = 0) then initTimerIntr();
+  {$IF DEFINED(LINUX)}
+  clock_gettime(CLOCK_MONOTONIC, @r);
+  result := UInt64(r.tv_sec)*1000000+UInt64(r.tv_nsec) div 1000; // microseconds
+  {$ELSEIF DEFINED(WINDOWS)}
+  QueryPerformanceCounter(r);
+  result := UInt64(r)*1000000 div mFrequency;
+  {$ENDIF}
+end;
+{$ELSE}
 function getTimeMicro (): UInt64; inline;
 begin
   Result := SDL_GetPerformanceCounter() * 1000000 div SDL_GetPerformanceFrequency()
 end;
+{$ENDIF}
 
 
 function getTimeMilli (): UInt64; inline;
