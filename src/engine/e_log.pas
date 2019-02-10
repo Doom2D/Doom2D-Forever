@@ -54,7 +54,8 @@ var
 implementation
 
 uses
-  SDL2, conbuf, utils;
+  {SDL2,}
+  conbuf, utils;
 
 var
   FirstRecord: Boolean;
