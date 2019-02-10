@@ -54,7 +54,9 @@ var
 implementation
 
 uses
-  {SDL2,}
+  {$IFDEF ANDROID}
+    SDL2,
+  {$ENDIF}
   conbuf, utils;
 
 var
