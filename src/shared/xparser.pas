@@ -306,6 +306,14 @@ begin
   mTokInt := 0;
   mOptions := aopts;
   skipToken();
+  // fuck you, BOM!
+  {
+  if (mBufLen >= 3) and (mBuffer[0] = #$EF) and (mBuffer[1] = #$BB) and (mBuffer[2] = #$BF) then
+  begin
+    for f := 3 to mBufLen-1 do mBuffer[f-3] := mBuffer[f];
+    Dec(mBufLen, 3);
+  end;
+  }
 end;
 
 
@@ -426,6 +434,17 @@ function TTextParser.skipBlanks (): Boolean;
 var
   level: Integer;
 begin
+  //writeln('line=', mLine, '; col=', mCol, '; char0=', Integer(peekChar(0)));
+  if (mLine = 1) and (mCol = 1) and
+     (peekChar(0) = #$EF) and
+     (peekChar(1) = #$BB) and
+     (peekChar(2) = #$BF) then
+  begin
+    skipChar();
+    skipChar();
+    skipChar();
+  end;
+
   while (curChar <> #0) do
   begin
     if (curChar = '/') then
