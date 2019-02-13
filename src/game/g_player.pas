@@ -3717,7 +3717,7 @@ begin
       // i found her!
       result := Byte(i);
       resetWeaponQueue();
-      FNextWeapDelay := WEAPON_DELAY; // anyway, 'cause why not
+      FNextWeapDelay := WEAPON_DELAY * 2; // anyway, 'cause why not
       exit;
     end;
   end;
