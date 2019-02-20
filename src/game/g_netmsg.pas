@@ -109,6 +109,7 @@ const
   NET_EV_LMS_DRAW     = 16;
   NET_EV_KILLCOMBO    = 17;
   NET_EV_PLAYER_TOUCH = 18;
+  NET_EV_SECRET       = 19;
 
   NET_VE_STARTED      = 1;
   NET_VE_PASSED       = 2;
@@ -1829,6 +1830,16 @@ begin
       pl := g_Player_Get(EvNum);
       if pl <> nil then
         pl.Touch();
+    end;
+
+    NET_EV_SECRET:
+    begin
+      pl := g_Player_Get(EvNum);
+      if pl <> nil then
+      begin
+        g_Console_Add(Format(_lc[I_PLAYER_SECRET], [pl.Name]), True);
+        g_Sound_PlayEx('SOUND_GAME_SECRET');
+      end;
     end;
 
   end;

@@ -414,6 +414,7 @@ type
     I_PLAYER_NAME,
     I_PLAYER_CHTEAM_RED,
     I_PLAYER_CHTEAM_BLUE,
+    I_PLAYER_SECRET,
 
     I_PLAYER_SPECT,
     I_PLAYER_SPECT1,
@@ -1381,6 +1382,8 @@ const
                                        '%s перешел в Красную команду.'),
     ('PLAYER CHTEAM BLUE',             '%s is now on Blue.',
                                        '%s перешел в Синюю команду.'),
+    ('PLAYER SECRET',                  '%s found a secret!',
+                                       '%s нашёл секрет!'),
 
     ('PLAYER SPECT',                   'Spectating',
                                        'Наблюдение'),

@@ -1352,9 +1352,15 @@ begin
           Result := True;
           if gLMSRespawn = LMS_RESPAWN_NONE then
           begin
-            g_Player_Get(ActivateUID).GetSecret();
+            p := g_Player_Get(ActivateUID);
+            p.GetSecret();
             Inc(gCoopSecretsFound);
-            if g_Game_IsNet then MH_SEND_GameStats();
+            if g_Game_IsNet then
+            begin
+              MH_SEND_GameStats();
+              if p.FClientID >= 0 then
+                MH_SEND_GameEvent(NET_EV_SECRET, p.UID, '', p.FClientID);
+            end;
           end;
         end;
 

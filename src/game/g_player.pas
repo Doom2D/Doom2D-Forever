@@ -5788,6 +5788,11 @@ end;
 
 procedure TPlayer.GetSecret();
 begin
+  if (self = gPlayer1) or (self = gPlayer2) then
+  begin
+    g_Console_Add(Format(_lc[I_PLAYER_SECRET], [FName]), True);
+    g_Sound_PlayEx('SOUND_GAME_SECRET');
+  end;
   Inc(FSecrets);
 end;
 

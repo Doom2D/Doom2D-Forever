@@ -2330,6 +2330,7 @@ begin
   g_Frames_CreateWAD(nil, 'FRAMES_PUNCH_BERSERK_DN', GameWAD+':WEAPONS\PUNCHB_DN', 64, 64, 4, False);
   g_Sound_CreateWADEx('SOUND_GAME_TELEPORT', GameWAD+':SOUNDS\TELEPORT');
   g_Sound_CreateWADEx('SOUND_GAME_NOTELEPORT', GameWAD+':SOUNDS\NOTELEPORT');
+  g_Sound_CreateWADEx('SOUND_GAME_SECRET', GameWAD+':SOUNDS\SECRET');
   g_Sound_CreateWADEx('SOUND_GAME_DOOROPEN', GameWAD+':SOUNDS\DOOROPEN');
   g_Sound_CreateWADEx('SOUND_GAME_DOORCLOSE', GameWAD+':SOUNDS\DOORCLOSE');
   g_Sound_CreateWADEx('SOUND_GAME_BULK1', GameWAD+':SOUNDS\BULK1');
@@ -2450,6 +2451,7 @@ begin
   g_Frames_DeleteByName('FRAMES_PUNCH_BERSERK_DN');
   g_Sound_Delete('SOUND_GAME_TELEPORT');
   g_Sound_Delete('SOUND_GAME_NOTELEPORT');
+  g_Sound_Delete('SOUND_GAME_SECRET');
   g_Sound_Delete('SOUND_GAME_DOOROPEN');
   g_Sound_Delete('SOUND_GAME_DOORCLOSE');
   g_Sound_Delete('SOUND_GAME_BULK1');
