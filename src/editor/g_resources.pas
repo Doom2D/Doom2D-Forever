@@ -100,20 +100,23 @@ implementation
   procedure g_DeleteFile (wad: String; backupPostfix: String = '.bak');
     var newwad: String;
   begin
+    SFSGCCollect;
+    SFSGCCollect;
+    SFSGCCollect;
     if Backup then
     begin
       if FileExists(wad) then
       begin
         newwad := wad + backupPostfix;
         if FileExists(newwad) then
-          ASSERT(DeleteFile(newwad));
-        ASSERT(RenameFile(wad, newwad))
+          ASSERT(DeleteFile(newwad), 'Can''t delete file ' + newwad);
+        ASSERT(RenameFile(wad, newwad), 'Can''t rename file ' + wad + ' -> ' + newwad)
       end
     end
     else
     begin
       if FileExists(wad) then
-        ASSERT(DeleteFile(wad))
+        ASSERT(DeleteFile(wad), 'Can''t delete file ' + newwad)
     end
   end;
 
@@ -198,7 +201,7 @@ implementation
     ts.Free;
 
     g_DeleteFile(wad);
-    ASSERT(RenameFile(tmp, wad));
+    ASSERT(RenameFile(tmp, wad), 'Can''t rename file ' + tmp + ' -> ' + wad);
     res := 0
   end;
 
@@ -290,7 +293,7 @@ implementation
     ts.Free;
 
     g_DeleteFile(wad);
-    ASSERT(RenameFile(tmp, wad));
+    ASSERT(RenameFile(tmp, wad), 'Can''t rename file ' + tmp + ' -> ' + wad);
     res := 0
   end;
 
@@ -385,12 +388,17 @@ implementation
             for i := 0 to len - 1 do
               data[i] := stream1.ReadByte();
             stream1.Destroy
+            //stream0.Destroy (* leads to memory corruption, it destroyed with stream1? *)
+          end
+          else
+          begin
+            stream0.Destroy
           end
         end
-      end
-      else
-      begin
-        stream0.Destroy
+        else
+        begin
+          stream0.Destroy
+        end
       end
     end;
     SFSGCCollect
