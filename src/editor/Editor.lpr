@@ -78,6 +78,13 @@ begin
   Application.AddOnExceptionHandler(H.ExceptionHandler, True);
   Application.Initialize();
 
+{$IF DECLARED(UseHeapTrace)}
+  (* http://wiki.freepascal.org/heaptrc *)
+  GlobalSkipIfNoLeaks := True;
+  //SetHeapTraceOutput('EditorLeaks.log');
+  //HaltOnError := False;
+{$ENDIF}
+
   Application.CreateForm(TMainForm, MainForm);
   Application.CreateForm(TOptionsForm, OptionsForm);
   Application.CreateForm(TAboutForm, AboutForm);
