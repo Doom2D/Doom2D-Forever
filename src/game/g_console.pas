@@ -21,6 +21,35 @@ interface
 uses
   utils; // for SSArray
 
+  const
+    ACTION_MOVEUP = 1;
+    ACTION_MOVEDOWN = 2;
+    ACTION_MOVELEFT = 3;
+    ACTION_MOVERIGHT = 4;
+    ACTION_SPEED = 5;
+    ACTION_SCORES = 6;
+    ACTION_LOOKDOWN = 7;
+    ACTION_LOOKUP = 8;
+    ACTION_ATTACK = 9;
+    ACTION_ACTIVATE = 10;
+    ACTION_STRAFE = 11;
+    ACTION_WEAPNEXT = 12;
+    ACTION_WEAPPREV = 13;
+    ACTION_WEAP1 = 14;
+    ACTION_WEAP2 = 15;
+    ACTION_WEAP3 = 16;
+    ACTION_WEAP4 = 17;
+    ACTION_WEAP5 = 18;
+    ACTION_WEAP6 = 19;
+    ACTION_WEAP7 = 20;
+    ACTION_WEAP8 = 21;
+    ACTION_WEAP9 = 22;
+    ACTION_WEAP10 = 23;
+    ACTION_WEAP11 = 24;
+
+    LAST_ACTION = ACTION_WEAP11;
+    MAX_ACTION_WEAP = ACTION_WEAP11 - ACTION_WEAP1 + 1;
+
 procedure g_Console_Init ();
 procedure g_Console_Update ();
 procedure g_Console_Draw ();
@@ -31,6 +60,9 @@ procedure g_Console_Process (L: AnsiString; quiet: Boolean=false);
 procedure g_Console_Add (L: AnsiString; show: Boolean=false);
 procedure g_Console_Clear ();
 function  g_Console_CommandBlacklisted (C: AnsiString): Boolean;
+procedure g_Console_ReadConfig (filename: String);
+
+procedure g_Console_ProcessBind (key: Integer; down: Boolean);
 
 procedure conwriteln (const s: AnsiString; show: Boolean=false);
 procedure conwritefln (const s: AnsiString; args: array of const; show: Boolean=false);
@@ -55,7 +87,7 @@ var
   gAllowConsoleMessages: Boolean = true;
   gChatEnter: Boolean = true;
   gJustChatted: Boolean = false; // чтобы админ в интере чатясь не проматывал статистику
-
+  gPlayerAction: Array [0..1, 0..LAST_ACTION] of Boolean; // [player, action]
 
 implementation
 
@@ -115,6 +147,10 @@ var
                               Msg: AnsiString;
                               Time: Word;
                             end;
+  gInputBinds: Array [0..e_MaxInputKeys - 1] of record
+    cmd: AnsiString
+  end;
+  bindDown, bindProcess: Boolean;
 
 
 // poor man's floating literal parser; i'm sorry, but `StrToFloat()` sux cocks
@@ -375,7 +411,7 @@ procedure ConsoleCommands(p: SSArray);
 var
   cmd, s: AnsiString;
   a, b: Integer;
-  F: TextFile;
+  (* F: TextFile; *)
 begin
   cmd := LowerCase(p[0]);
   s := '';
@@ -477,48 +513,10 @@ begin
   if cmd = 'exec' then
   begin
     // exec <filename>
-    if Length(p) > 1 then
+    if Length(p) = 2 then
     begin
-      s := GameDir+'/'+p[1];
-
-      {$I-}
-      AssignFile(F, s);
-      Reset(F);
-      if IOResult <> 0 then
-      begin
-        g_Console_Add(Format(_lc[I_CONSOLE_ERROR_READ], [s]));
-        CloseFile(F);
-        Exit;
-      end;
-      g_Console_Add(Format(_lc[I_CONSOLE_EXEC], [s]));
-
-      while not EOF(F) do
-      begin
-        ReadLn(F, s);
-        if IOResult <> 0 then
-        begin
-          g_Console_Add(Format(_lc[I_CONSOLE_ERROR_READ], [s]));
-          CloseFile(F);
-          Exit;
-        end;
-        if Pos('#', s) <> 1 then // script comment
-        begin
-          // prevents endless loops
-          Inc(RecursionDepth);
-          RecursionLimitHit := (RecursionDepth > MaxScriptRecursion) or RecursionLimitHit;
-          if not RecursionLimitHit then
-            g_Console_Process(s, True);
-          Dec(RecursionDepth);
-        end;
-      end;
-      if (RecursionDepth = 0) and RecursionLimitHit then
-      begin
-        g_Console_Add(Format(_lc[I_CONSOLE_ERROR_CALL], [s]));
-        RecursionLimitHit := False;
-      end;
-
-      CloseFile(F);
-      {$I+}
+      s := GameDir + '/' + p[1];
+      g_Console_ReadConfig(s);
     end
     else
       g_Console_Add('exec <script file>');
@@ -595,6 +593,9 @@ begin
     else
       g_Console_Add('call <alias name>');
   end;
+
+  if cmd = '//' then
+    Exit;
 end;
 
 procedure WhitelistCommand(cmd: AnsiString);
@@ -633,9 +634,130 @@ begin
 end;
 
 
+procedure BindCommands (p: SSArray);
+  var cmd, key, act: AnsiString; i: Integer;
+begin
+  cmd := LowerCase(p[0]);
+  case cmd of
+  'bind':
+    // bind <key> <action>
+    if Length(p) = 3 then
+    begin
+      key := LowerCase(p[1]);
+      act := p[2];
+      i := 0;
+      while (i < e_MaxInputKeys) and (key <> LowerCase(e_KeyNames[i])) do inc(i);
+      if i < e_MaxInputKeys then
+        gInputBinds[i].cmd := act
+    end;
+  'bindlist':
+    for i := 0 to e_MaxInputKeys - 1 do
+      if gInputBinds[i].cmd <> '' then
+        g_Console_Add(LowerCase(e_KeyNames[i]) + ' "' + gInputBinds[i].cmd + '"');
+  'unbind':
+    // unbind <key>
+    if Length(p) = 2 then
+    begin
+      key := LowerCase(p[1]);
+      i := 0;
+      while (i < e_MaxInputKeys) and (key <> LowerCase(e_KeyNames[i])) do inc(i);
+      if i < e_MaxInputKeys then
+        gInputBinds[i].cmd := ''
+    end;
+  'unbindall':
+    for i := 0 to e_MaxInputKeys - 1 do
+      gInputBinds[i].cmd := '';
+  'bindkeys':
+    for i := 0 to e_MaxInputKeys - 1 do
+      if e_KeyNames[i] <> '' then
+        g_Console_Add(IntToStr(i) + ': ' + LowerCase(e_KeyNames[i]));
+  end
+end;
+
+
+procedure KeyActionCommands (p: SSArray);
+  var cmd: AnsiString; val: Boolean; player, action, offset: Integer;
+begin
+  // syntax: ("+" | "-") ["p" digit "_"] Command
+  cmd := LowerCase(p[0]);
+
+  if cmd[1] = '+' then
+    val := (not bindProcess) or (bindProcess and bindDown)
+  else if cmd[1] = '-' then
+    val := bindProcess and bindDown
+  else
+    Exit;
+
+  player := 0;
+  offset := 2;
+  if (Length(cmd) >= 4) and (cmd[2] = 'p') and (cmd[3] >= '1') and (cmd[3] <= '9') and (cmd[4] = '_') then
+  begin
+    player := ord(cmd[3]) - ord('1') - 1;
+    offset := 5;
+  end;
+
+  case Copy(cmd, offset) of
+    'moveup': action := ACTION_MOVEUP;
+    'movedown': action := ACTION_MOVEDOWN;
+    'moveleft': action := ACTION_MOVELEFT;
+    'moveright': action := ACTION_MOVERIGHT;
+    'speed': action := ACTION_SPEED;
+    'scores': action := ACTION_SCORES;
+    'lookup': action := ACTION_LOOKUP;
+    'lookdown': action := ACTION_LOOKDOWN;
+    'attack': action := ACTION_ATTACK;
+    'activate': action := ACTION_ACTIVATE;
+    'strafe': action := ACTION_STRAFE;
+    'weapnext': action := ACTION_WEAPNEXT;
+    'weapprev': action := ACTION_WEAPPREV;
+  else
+    Exit
+  end;
+
+  gPlayerAction[player, action] := val;
+end;
+
+procedure ActionCommands (p: SSArray);
+  var cmd: AnsiString; i, player, offset, action: Integer;
+begin
+  cmd := LowerCase(p[0]);
+
+  player := 0;
+  offset := 1;
+  if (Length(cmd) >= 3) and (cmd[1] = 'p') and (cmd[2] >= '1') and (cmd[2] <= '9') and (cmd[3] = '_') then
+  begin
+    player := ord(cmd[2]) - ord('1') - 1;
+    offset := 4;
+  end;
+
+  case Copy(cmd, offset) of
+    'weapnext': action := ACTION_WEAPNEXT;
+    'weapprev': action := ACTION_WEAPPREV;
+    'weapon':
+      if Length(p) = 2 then
+      begin
+        i := StrToInt(p[1]);
+        if (i > 0) and (i <= MAX_ACTION_WEAP) then
+          action := ACTION_WEAP1 + i - 1
+        else
+          Exit
+      end
+      else
+        Exit;
+  end;
+
+  gPlayerAction[player, action] := bindDown;
+end;
+
 procedure g_Console_Init();
-var
-  a: Integer;
+  const
+    PrefixList: array [0..1] of AnsiString = ('+', '-');
+    PlayerList: array [0..2] of AnsiString = ('', 'p1_', 'p2_');
+    KeyActionList: array [0..12] of AnsiString = ('moveup', 'movedown', 'moveleft', 'moveright', 'speed', 'scores', 'lookup', 'lookdown', 'attack', 'activate', 'strafe', 'weapnext', 'weapprev');
+    ActionList: array [0..2] of AnsiString = ('weapnext', 'weapprev', 'weapon');
+  var
+    a: Integer;
+    s0, s1, s2: AnsiString;
 begin
   g_Texture_CreateWAD(ID, GameWAD+':TEXTURES\CONSOLE');
   Cons_Y := -(gScreenHeight div 2);
@@ -652,6 +774,21 @@ begin
     end;
 
   AddCommand('segfault', segfault, 'make segfault');
+
+  AddCommand('bind', BindCommands);
+  AddCommand('bindlist', BindCommands);
+  AddCommand('unbind', BindCommands);
+  AddCommand('unbindall', BindCommands);
+  AddCommand('bindkeys', BindCommands);
+
+  for s0 in PrefixList do
+    for s1 in PlayerList do
+      for s2 in KeyActionList do
+        AddCommand(s0 + s1 + s2, KeyActionCommands);
+
+  for s1 in PlayerList do
+    for s2 in ActionList do
+      AddCommand(s1 + s2, ActionCommands);
 
   AddCommand('clear', ConsoleCommands, 'clear console');
   AddCommand('clearhistory', ConsoleCommands);
@@ -792,6 +929,9 @@ begin
 
   g_Console_Add(Format(_lc[I_CONSOLE_WELCOME], [GAME_VERSION]));
   g_Console_Add('');
+
+  g_Console_ReadConfig(GameDir + '/dfconfig.cfg');
+  g_Console_ReadConfig(GameDir + '/autoexec.cfg');
 end;
 
 procedure g_Console_Update();
@@ -1461,6 +1601,44 @@ begin
   end;
 
   g_Console_Add(Format(_lc[I_CONSOLE_UNKNOWN], [Arr[0]]));
+end;
+
+
+procedure g_Console_ProcessBind (key: Integer; down: Boolean);
+begin
+  if (key >= 0) and (key < e_MaxInputKeys) and (gInputBinds[key].cmd <> '') then
+  begin
+    bindDown := down;
+    bindProcess := True;
+    g_Console_Process(gInputBinds[key].cmd, True);
+    bindProcess := False;
+  end
+end;
+
+
+procedure g_Console_ReadConfig (filename: String);
+  var f: TextFile; s: AnsiString; i, len: Integer;
+begin
+  if FileExists(filename) then
+  begin
+    AssignFile(f, filename);
+    Reset(f);
+    while not EOF(f) do
+    begin
+      ReadLn(f, s);
+      len := Length(s);
+      if len > 0 then
+      begin
+        i := 1;
+        (* skip spaces *)
+        while (i <= len) and (s[i] <= ' ') do inc(i);
+        (* skip comments *)
+        if (i <= len) and ((s[i] <> '#') and ((i + 1 > len) or (s[i] <> '/') or (s[i + 1] <> '/'))) then
+          g_Console_Process(s)
+      end
+    end;
+    CloseFile(f)
+  end
 end;
 
 

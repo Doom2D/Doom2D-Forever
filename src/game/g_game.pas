@@ -1581,6 +1581,95 @@ begin
   if gwin_has_stencil and g_playerLight then g_AddDynLight(plr.GameX+32, plr.GameY+40, 128, 1, 1, 0, 0.6);
 end;
 
+procedure ProcessPlayerControls2 (plr: TPlayer; p: Integer; var MoveButton: Byte);
+  var
+    time: Word;
+    strafeDir: Byte;
+begin
+  if (plr = nil) then exit;
+  if (p = 2) then time := 1000 else time := 1;
+  strafeDir := MoveButton shr 4;
+  MoveButton := MoveButton and $0F;
+
+  if gPlayerAction[p, ACTION_MOVELEFT] and (not gPlayerAction[p, ACTION_MOVERIGHT]) then
+    MoveButton := 1 // Нажата только "Влево"
+  else if (not gPlayerAction[p, ACTION_MOVELEFT]) and gPlayerAction[p, ACTION_MOVERIGHT] then
+    MoveButton := 2 // Нажата только "Вправо"
+  else if (not gPlayerAction[p, ACTION_MOVELEFT]) and (not gPlayerAction[p, ACTION_MOVERIGHT]) then
+    MoveButton := 0; // Не нажаты ни "Влево", ни "Вправо"
+
+  // Сейчас или раньше были нажаты "Влево"/"Вправо" => передаем игроку:
+  if MoveButton = 1 then
+    plr.PressKey(KEY_LEFT, time)
+  else if MoveButton = 2 then
+    plr.PressKey(KEY_RIGHT, time);
+
+  // if we have "strafe" key, turn off old strafe mechanics
+  if gPlayerAction[p, ACTION_STRAFE] then
+  begin
+    // new strafe mechanics
+    if (strafeDir = 0) then
+      strafeDir := MoveButton; // start strafing
+    // now set direction according to strafe (reversed)
+    if (strafeDir = 2) then
+      plr.SetDirection(TDirection.D_LEFT)
+    else if (strafeDir = 1) then
+      plr.SetDirection(TDirection.D_RIGHT)
+  end
+  else
+  begin
+    strafeDir := 0; // not strafing anymore
+    // Раньше была нажата "Вправо", а сейчас "Влево" => бежим вправо, смотрим влево:
+    if (MoveButton = 2) and gPlayerAction[p, ACTION_MOVELEFT] then
+      plr.SetDirection(TDirection.D_LEFT)
+    // Раньше была нажата "Влево", а сейчас "Вправо" => бежим влево, смотрим вправо:
+    else if (MoveButton = 1) and gPlayerAction[p, ACTION_MOVERIGHT] then
+      plr.SetDirection(TDirection.D_RIGHT)
+    // Что-то было нажато и не изменилось => куда бежим, туда и смотрим:
+    else if MoveButton <> 0 then
+      plr.SetDirection(TDirection(MoveButton-1))
+  end;
+
+  // fix movebutton state
+  MoveButton := MoveButton or (strafeDir shl 4);
+
+  // Остальные клавиши:
+  if gPlayerAction[p, ACTION_MOVEUP] then plr.PressKey(KEY_JUMP, time);
+  if gPlayerAction[p, ACTION_LOOKUP] then plr.PressKey(KEY_UP, time);
+  if gPlayerAction[p, ACTION_LOOKDOWN] then plr.PressKey(KEY_DOWN, time);
+  if gPlayerAction[p, ACTION_ATTACK] then plr.PressKey(KEY_FIRE);
+  if gPlayerAction[p, ACTION_WEAPNEXT] then plr.PressKey(KEY_NEXTWEAPON);
+  if gPlayerAction[p, ACTION_WEAPPREV] then plr.PressKey(KEY_PREVWEAPON);
+  if gPlayerAction[p, ACTION_ACTIVATE] then plr.PressKey(KEY_OPEN);
+
+  if gPlayerAction[p, ACTION_WEAP1] then plr.QueueWeaponSwitch(WEAPON_KASTET);
+  if gPlayerAction[p, ACTION_WEAP2] then plr.QueueWeaponSwitch(WEAPON_SAW);
+  if gPlayerAction[p, ACTION_WEAP3] then plr.QueueWeaponSwitch(WEAPON_PISTOL);
+  if gPlayerAction[p, ACTION_WEAP4] then plr.QueueWeaponSwitch(WEAPON_SHOTGUN1);
+  if gPlayerAction[p, ACTION_WEAP5] then plr.QueueWeaponSwitch(WEAPON_SHOTGUN2);
+  if gPlayerAction[p, ACTION_WEAP6] then plr.QueueWeaponSwitch(WEAPON_CHAINGUN);
+  if gPlayerAction[p, ACTION_WEAP7] then plr.QueueWeaponSwitch(WEAPON_ROCKETLAUNCHER);
+  if gPlayerAction[p, ACTION_WEAP8] then plr.QueueWeaponSwitch(WEAPON_PLASMA);
+  if gPlayerAction[p, ACTION_WEAP9] then plr.QueueWeaponSwitch(WEAPON_BFG);
+  if gPlayerAction[p, ACTION_WEAP10] then plr.QueueWeaponSwitch(WEAPON_SUPERPULEMET);
+  if gPlayerAction[p, ACTION_WEAP11] then plr.QueueWeaponSwitch(WEAPON_FLAMETHROWER);
+
+  // HACK: add dynlight here
+  if gwin_k8_enable_light_experiments then
+  begin
+    if e_KeyPressed(IK_F8) and gGameOn and (not gConsoleShow) and (g_ActiveWindow = nil) then
+    begin
+      g_playerLight := true;
+    end;
+    if e_KeyPressed(IK_F9) and gGameOn and (not gConsoleShow) and (g_ActiveWindow = nil) then
+    begin
+      g_playerLight := false;
+    end;
+  end;
+
+  if gwin_has_stencil and g_playerLight then g_AddDynLight(plr.GameX+32, plr.GameY+40, 128, 1, 1, 0, 0.6);
+end;
+
 procedure g_Game_Update();
 var
   Msg: g_gui.TMessage;
@@ -1858,8 +1947,10 @@ begin
       if gPlayer2 <> nil then gPlayer2.ReleaseKeys();
       if (not gConsoleShow) and (not gChatShow) and (g_ActiveWindow = nil) then
       begin
-        processPlayerControls(gPlayer1, gGameControls.P1Control, P1MoveButton);
-        processPlayerControls(gPlayer2, gGameControls.P2Control, P2MoveButton, true);
+        //processPlayerControls(gPlayer1, gGameControls.P1Control, P1MoveButton);
+        //processPlayerControls(gPlayer2, gGameControls.P2Control, P2MoveButton, true);
+        ProcessPlayerControls2(gPlayer1, 0, P1MoveButton);
+        ProcessPlayerControls2(gPlayer2, 1, P2MoveButton);
       end  // if not console
       else
       begin

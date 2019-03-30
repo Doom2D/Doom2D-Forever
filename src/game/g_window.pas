@@ -505,7 +505,11 @@ begin
           exit;
         end;
         {$ENDIF}
-        e_KeyUpDown(key, down);
+        if ev.key._repeat = 0 then
+        begin
+          e_KeyUpDown(key, down);
+          g_Console_ProcessBind(key, down)
+        end;
         if down then KeyPress(key);
       end;
 
