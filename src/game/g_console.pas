@@ -22,33 +22,20 @@ uses
   utils; // for SSArray
 
   const
-    ACTION_MOVEUP = 1;
-    ACTION_MOVEDOWN = 2;
-    ACTION_MOVELEFT = 3;
-    ACTION_MOVERIGHT = 4;
-    ACTION_SPEED = 5;
+    ACTION_JUMP = 0;
+    ACTION_MOVELEFT = 1;
+    ACTION_MOVERIGHT = 2;
+    ACTION_LOOKDOWN = 3;
+    ACTION_LOOKUP = 4;
+    ACTION_ATTACK = 5;
     ACTION_SCORES = 6;
-    ACTION_LOOKDOWN = 7;
-    ACTION_LOOKUP = 8;
-    ACTION_ATTACK = 9;
-    ACTION_ACTIVATE = 10;
-    ACTION_STRAFE = 11;
-    ACTION_WEAPNEXT = 12;
-    ACTION_WEAPPREV = 13;
-    ACTION_WEAP1 = 14;
-    ACTION_WEAP2 = 15;
-    ACTION_WEAP3 = 16;
-    ACTION_WEAP4 = 17;
-    ACTION_WEAP5 = 18;
-    ACTION_WEAP6 = 19;
-    ACTION_WEAP7 = 20;
-    ACTION_WEAP8 = 21;
-    ACTION_WEAP9 = 22;
-    ACTION_WEAP10 = 23;
-    ACTION_WEAP11 = 24;
+    ACTION_ACTIVATE = 7;
+    ACTION_STRAFE = 8;
+    ACTION_WEAPNEXT = 9;
+    ACTION_WEAPPREV = 10;
 
-    LAST_ACTION = ACTION_WEAP11;
-    MAX_ACTION_WEAP = ACTION_WEAP11 - ACTION_WEAP1 + 1;
+    FIRST_ACTION = ACTION_JUMP;
+    LAST_ACTION = ACTION_WEAPPREV;
 
 procedure g_Console_Init ();
 procedure g_Console_Update ();
@@ -62,6 +49,8 @@ procedure g_Console_Clear ();
 function  g_Console_CommandBlacklisted (C: AnsiString): Boolean;
 procedure g_Console_ReadConfig (filename: String);
 
+function  g_Console_Interactive: Boolean;
+function  g_Console_Action (action: Integer): Boolean;
 procedure g_Console_ProcessBind (key: Integer; down: Boolean);
 
 procedure conwriteln (const s: AnsiString; show: Boolean=false);
@@ -85,9 +74,8 @@ var
   gChatShow: Boolean = false;
   gChatTeam: Boolean = false;
   gAllowConsoleMessages: Boolean = true;
-  gChatEnter: Boolean = true;
   gJustChatted: Boolean = false; // чтобы админ в интере чатясь не проматывал статистику
-  gPlayerAction: Array [0..1, 0..LAST_ACTION] of Boolean; // [player, action]
+  gPlayerAction, gDefaultAction: Array [0..1, 0..LAST_ACTION] of Boolean; // [player, action]
 
 implementation
 
@@ -112,6 +100,8 @@ type
     ptr: Pointer; // various data
     msg: AnsiString; // message for var changes
     cheat: Boolean;
+    action: Integer; // >= 0 for action commands
+    player: Integer; // used for action commands
   end;
 
   TAlias = record
@@ -147,10 +137,11 @@ var
                               Msg: AnsiString;
                               Time: Word;
                             end;
-  gInputBinds: Array [0..e_MaxInputKeys - 1] of record
-    cmd: AnsiString
-  end;
+
   bindDown, bindProcess: Boolean;
+  gInputBinds: Array [0..e_MaxInputKeys - 1] of record
+    commands: SSArray;
+  end;
 
 
 // poor man's floating literal parser; i'm sorry, but `StrToFloat()` sux cocks
@@ -280,6 +271,8 @@ begin
   cp.ptr := pvar;
   cp.msg := amsg;
   cp.cheat := acheat;
+  cp.action := -1;
+  cp.player := -1;
 end;
 
 
@@ -299,6 +292,8 @@ begin
   cp.ptr := pvar;
   cp.msg := amsg;
   cp.cheat := acheat;
+  cp.action := -1;
+  cp.player := -1;
 end;
 
 
@@ -372,6 +367,8 @@ begin
   cp.ptr := pv;
   cp.msg := amsg;
   cp.cheat := acheat;
+  cp.action := -1;
+  cp.player := -1;
 end;
 
 
@@ -607,6 +604,60 @@ begin
   Whitelist[a] := LowerCase(cmd);
 end;
 
+procedure segfault (p: SSArray);
+var
+  pp: PByte = nil;
+begin
+  pp^ := 0;
+end;
+
+procedure BindCommands (p: SSArray);
+  var cmd, key, act: AnsiString; i, j: Integer;
+begin
+  cmd := LowerCase(p[0]);
+  case cmd of
+  'bind':
+    // bind <key> <action>
+    if Length(p) = 3 then
+    begin
+      key := LowerCase(p[1]);
+      i := 0;
+      while (i < e_MaxInputKeys) and (key <> LowerCase(e_KeyNames[i])) do inc(i);
+      if i < e_MaxInputKeys then
+        gInputBinds[i].commands := ParseAlias(p[2])
+    end;
+  'bindlist':
+    for i := 0 to e_MaxInputKeys - 1 do
+    begin
+      if gInputBinds[i].commands <> nil then
+      begin
+        act := gInputBinds[i].commands[0];
+        for j := 1 to High(gInputBinds[i].commands) do
+          act := act + ' ;' + gInputBinds[i].commands[j];
+        g_Console_Add(LowerCase(e_KeyNames[i]) + ' "' + act + '"')
+      end
+    end;
+  'unbind':
+    // unbind <key>
+    if Length(p) = 2 then
+    begin
+      key := LowerCase(p[1]);
+      i := 0;
+      while (i < e_MaxInputKeys) and (key <> LowerCase(e_KeyNames[i])) do inc(i);
+      if i < e_MaxInputKeys then
+        gInputBinds[i].commands := nil
+    end;
+  'unbindall':
+    for i := 0 to e_MaxInputKeys - 1 do
+      if gInputBinds[i].commands <> nil then
+        gInputBinds[i].commands := nil;
+  'bindkeys':
+    for i := 0 to e_MaxInputKeys - 1 do
+      if e_KeyNames[i] <> '' then
+        g_Console_Add(LowerCase(e_KeyNames[i]));
+  end
+end;
+
 procedure AddCommand(cmd: AnsiString; proc: TCmdProc; ahelp: AnsiString=''; ahidden: Boolean=false; acheat: Boolean=false);
 var
   a: Integer;
@@ -623,141 +674,49 @@ begin
   cp.ptr := nil;
   cp.msg := '';
   cp.cheat := acheat;
+  cp.action := -1;
+  cp.player := -1;
 end;
 
+procedure AddAction (cmd: AnsiString; action: Integer; help: AnsiString = ''; hidden: Boolean = False; cheat: Boolean = False);
+  const
+    PrefixList: array [0..1] of AnsiString = ('+', '-');
+    PlayerList: array [0..1] of Integer = (1, 2);
+  var
+    s: AnsiString;
+    i: Integer;
 
-procedure segfault (p: SSArray);
-var
-  pp: PByte = nil;
+  procedure NewAction (cmd: AnsiString; player: Integer);
+    var cp: PCommand;
+  begin
+    SetLength(commands, Length(commands) + 1);
+    cp := @commands[High(commands)];
+    cp.cmd := LowerCase(cmd);
+    cp.proc := nil;
+    cp.procEx := nil;
+    cp.help := help;
+    cp.hidden := hidden;
+    cp.ptr := nil;
+    cp.msg := '';
+    cp.cheat := cheat;
+    cp.action := action;
+    cp.player := player;
+  end;
+
 begin
-  pp^ := 0;
-end;
-
-
-procedure BindCommands (p: SSArray);
-  var cmd, key, act: AnsiString; i: Integer;
-begin
-  cmd := LowerCase(p[0]);
-  case cmd of
-  'bind':
-    // bind <key> <action>
-    if Length(p) = 3 then
-    begin
-      key := LowerCase(p[1]);
-      act := p[2];
-      i := 0;
-      while (i < e_MaxInputKeys) and (key <> LowerCase(e_KeyNames[i])) do inc(i);
-      if i < e_MaxInputKeys then
-        gInputBinds[i].cmd := act
-    end;
-  'bindlist':
-    for i := 0 to e_MaxInputKeys - 1 do
-      if gInputBinds[i].cmd <> '' then
-        g_Console_Add(LowerCase(e_KeyNames[i]) + ' "' + gInputBinds[i].cmd + '"');
-  'unbind':
-    // unbind <key>
-    if Length(p) = 2 then
-    begin
-      key := LowerCase(p[1]);
-      i := 0;
-      while (i < e_MaxInputKeys) and (key <> LowerCase(e_KeyNames[i])) do inc(i);
-      if i < e_MaxInputKeys then
-        gInputBinds[i].cmd := ''
-    end;
-  'unbindall':
-    for i := 0 to e_MaxInputKeys - 1 do
-      gInputBinds[i].cmd := '';
-  'bindkeys':
-    for i := 0 to e_MaxInputKeys - 1 do
-      if e_KeyNames[i] <> '' then
-        g_Console_Add(IntToStr(i) + ': ' + LowerCase(e_KeyNames[i]));
+  ASSERT(action >= 0);
+  ASSERT(action <= LAST_ACTION);
+  for s in PrefixList do
+  begin
+    NewAction(s + cmd, 0);
+    for i in PlayerList do
+      NewAction(s + 'p' + IntToStr(i) + '_' + cmd, i - 1)
   end
 end;
 
-
-procedure KeyActionCommands (p: SSArray);
-  var cmd: AnsiString; val: Boolean; player, action, offset: Integer;
-begin
-  // syntax: ("+" | "-") ["p" digit "_"] Command
-  cmd := LowerCase(p[0]);
-
-  if cmd[1] = '+' then
-    val := (not bindProcess) or (bindProcess and bindDown)
-  else if cmd[1] = '-' then
-    val := bindProcess and bindDown
-  else
-    Exit;
-
-  player := 0;
-  offset := 2;
-  if (Length(cmd) >= 4) and (cmd[2] = 'p') and (cmd[3] >= '1') and (cmd[3] <= '9') and (cmd[4] = '_') then
-  begin
-    player := ord(cmd[3]) - ord('1') - 1;
-    offset := 5;
-  end;
-
-  case Copy(cmd, offset) of
-    'moveup': action := ACTION_MOVEUP;
-    'movedown': action := ACTION_MOVEDOWN;
-    'moveleft': action := ACTION_MOVELEFT;
-    'moveright': action := ACTION_MOVERIGHT;
-    'speed': action := ACTION_SPEED;
-    'scores': action := ACTION_SCORES;
-    'lookup': action := ACTION_LOOKUP;
-    'lookdown': action := ACTION_LOOKDOWN;
-    'attack': action := ACTION_ATTACK;
-    'activate': action := ACTION_ACTIVATE;
-    'strafe': action := ACTION_STRAFE;
-    'weapnext': action := ACTION_WEAPNEXT;
-    'weapprev': action := ACTION_WEAPPREV;
-  else
-    Exit
-  end;
-
-  gPlayerAction[player, action] := val;
-end;
-
-procedure ActionCommands (p: SSArray);
-  var cmd: AnsiString; i, player, offset, action: Integer;
-begin
-  cmd := LowerCase(p[0]);
-
-  player := 0;
-  offset := 1;
-  if (Length(cmd) >= 3) and (cmd[1] = 'p') and (cmd[2] >= '1') and (cmd[2] <= '9') and (cmd[3] = '_') then
-  begin
-    player := ord(cmd[2]) - ord('1') - 1;
-    offset := 4;
-  end;
-
-  case Copy(cmd, offset) of
-    'weapnext': action := ACTION_WEAPNEXT;
-    'weapprev': action := ACTION_WEAPPREV;
-    'weapon':
-      if Length(p) = 2 then
-      begin
-        i := StrToInt(p[1]);
-        if (i > 0) and (i <= MAX_ACTION_WEAP) then
-          action := ACTION_WEAP1 + i - 1
-        else
-          Exit
-      end
-      else
-        Exit;
-  end;
-
-  gPlayerAction[player, action] := bindDown;
-end;
-
 procedure g_Console_Init();
-  const
-    PrefixList: array [0..1] of AnsiString = ('+', '-');
-    PlayerList: array [0..2] of AnsiString = ('', 'p1_', 'p2_');
-    KeyActionList: array [0..12] of AnsiString = ('moveup', 'movedown', 'moveleft', 'moveright', 'speed', 'scores', 'lookup', 'lookdown', 'attack', 'activate', 'strafe', 'weapnext', 'weapprev');
-    ActionList: array [0..2] of AnsiString = ('weapnext', 'weapprev', 'weapon');
   var
     a: Integer;
-    s0, s1, s2: AnsiString;
 begin
   g_Texture_CreateWAD(ID, GameWAD+':TEXTURES\CONSOLE');
   Cons_Y := -(gScreenHeight div 2);
@@ -781,14 +740,17 @@ begin
   AddCommand('unbindall', BindCommands);
   AddCommand('bindkeys', BindCommands);
 
-  for s0 in PrefixList do
-    for s1 in PlayerList do
-      for s2 in KeyActionList do
-        AddCommand(s0 + s1 + s2, KeyActionCommands);
-
-  for s1 in PlayerList do
-    for s2 in ActionList do
-      AddCommand(s1 + s2, ActionCommands);
+  AddAction('jump', ACTION_JUMP);
+  AddAction('moveleft', ACTION_MOVELEFT);
+  AddAction('moveright', ACTION_MOVERIGHT);
+  AddAction('lookup', ACTION_LOOKUP);
+  AddAction('lookdown', ACTION_LOOKDOWN);
+  AddAction('attack', ACTION_ATTACK);
+  AddAction('scores', ACTION_SCORES);
+  AddAction('activate', ACTION_ACTIVATE);
+  AddAction('strafe', ACTION_STRAFE);
+  AddAction('weapnext', ACTION_WEAPNEXT);
+  AddAction('weapprev', ACTION_WEAPPREV);
 
   AddCommand('clear', ConsoleCommands, 'clear console');
   AddCommand('clearhistory', ConsoleCommands);
@@ -889,6 +851,12 @@ begin
   AddCommand('vote', GameCommands);
   AddCommand('clientlist', GameCommands);
   AddCommand('event', GameCommands);
+  AddCommand('screenshot', GameCommands);
+  AddCommand('togglechat', GameCommands);
+  AddCommand('toggleteamchat', GameCommands);
+  AddCommand('weapon', GameCommands);
+  AddCommand('p1_weapon', GameCommands);
+  AddCommand('p2_weapon', GameCommands);
 
   AddCommand('god', GameCheats);
   AddCommand('notarget', GameCheats);
@@ -927,11 +895,11 @@ begin
   WhitelistCommand('g_scorelimit');
   WhitelistCommand('g_timelimit');
 
-  g_Console_Add(Format(_lc[I_CONSOLE_WELCOME], [GAME_VERSION]));
-  g_Console_Add('');
-
   g_Console_ReadConfig(GameDir + '/dfconfig.cfg');
   g_Console_ReadConfig(GameDir + '/autoexec.cfg');
+
+  g_Console_Add(Format(_lc[I_CONSOLE_WELCOME], [GAME_VERSION]));
+  g_Console_Add('');
 end;
 
 procedure g_Console_Update();
@@ -1118,7 +1086,7 @@ end;
 
 procedure g_Console_Switch();
 begin
-  if gChatShow then Exit;
+  gChatShow := False;
   gConsoleShow := not gConsoleShow;
   Cons_Shown := True;
   g_Touch_ShowKeyboard(gConsoleShow or gChatShow);
@@ -1126,12 +1094,10 @@ end;
 
 procedure g_Console_Chat_Switch(Team: Boolean = False);
 begin
-  if gConsoleShow then Exit;
   if not g_Game_IsNet then Exit;
+  gConsoleShow := False;
   gChatShow := not gChatShow;
   gChatTeam := Team;
-  if gChatShow then
-    gChatEnter := False;
   Line := '';
   CPos := 1;
   g_Touch_ShowKeyboard(gConsoleShow or gChatShow);
@@ -1139,8 +1105,8 @@ end;
 
 procedure g_Console_Char(C: AnsiChar);
 begin
-  if gChatShow and (not gChatEnter) then
-    Exit;
+//  if gChatShow then
+//    Exit;
   Insert(C, Line, CPos);
   CPos := CPos + 1;
 end;
@@ -1587,30 +1553,70 @@ begin
   begin
     if commands[i].cmd = LowerCase(Arr[0]) then
     begin
+      if commands[i].action >= 0 then
+      begin
+        if bindProcess then
+        begin
+          if bindDown then
+            gPlayerAction[commands[i].player, commands[i].action] := commands[i].cmd[1] = '+'
+          else
+            gPlayerAction[commands[i].player, commands[i].action] := gDefaultAction[commands[i].player, commands[i].action]
+        end
+        else
+        begin
+          gPlayerAction[commands[i].player, commands[i].action] := commands[i].cmd[1] = '+';
+          gDefaultAction[commands[i].player, commands[i].action] := commands[i].cmd[1] = '+'
+        end;
+        exit
+      end
+      else if bindProcess and not bindDown then
+      begin
+        (* command is not action, so do not execute it again after button release *)
+        exit
+      end;
+
       if assigned(commands[i].procEx) then
       begin
         commands[i].procEx(@commands[i], Arr);
-        exit;
+        exit
       end;
       if assigned(commands[i].proc) then
       begin
         commands[i].proc(Arr);
-        exit;
-      end;
-    end;
+        exit
+      end
+    end
   end;
 
   g_Console_Add(Format(_lc[I_CONSOLE_UNKNOWN], [Arr[0]]));
 end;
 
 
-procedure g_Console_ProcessBind (key: Integer; down: Boolean);
+function g_Console_Interactive: Boolean;
 begin
-  if (key >= 0) and (key < e_MaxInputKeys) and (gInputBinds[key].cmd <> '') then
+  Result := not bindProcess
+end;
+
+function g_Console_Action (action: Integer): Boolean;
+  var i, len: Integer;
+begin
+  ASSERT(action >= 0);
+  ASSERT(action <= LAST_ACTION);
+  i := 0;
+  len := Length(gPlayerAction);
+  while (i < len) and (not gPlayerAction[i, action]) do inc(i);
+  Result := i < len
+end;
+
+procedure g_Console_ProcessBind (key: Integer; down: Boolean);
+  var i: Integer;
+begin
+  if (not gChatShow) and (not gConsoleShow) and (key >= 0) and (key < e_MaxInputKeys) and (gInputBinds[key].commands <> nil) then
   begin
     bindDown := down;
     bindProcess := True;
-    g_Console_Process(gInputBinds[key].cmd, True);
+    for i := 0 to High(gInputBinds[key].commands) do
+      g_Console_Process(gInputBinds[key].commands[i], True);
     bindProcess := False;
   end
 end;
@@ -1634,7 +1640,7 @@ begin
         while (i <= len) and (s[i] <= ' ') do inc(i);
         (* skip comments *)
         if (i <= len) and ((s[i] <> '#') and ((i + 1 > len) or (s[i] <> '/') or (s[i + 1] <> '/'))) then
-          g_Console_Process(s)
+          g_Console_Process(s, True)
       end
     end;
     CloseFile(f)

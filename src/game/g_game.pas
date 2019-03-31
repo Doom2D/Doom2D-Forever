@@ -381,6 +381,7 @@ uses
 
 var
   hasPBarGfx: Boolean = false;
+  nextQueueWeapon: Array [0..1] of Integer = (-1, -1); // [player]
 
 
 // ////////////////////////////////////////////////////////////////////////// //
@@ -567,7 +568,6 @@ var
   FPSCounter, UPSCounter: Word;
   FPSTime, UPSTime: LongWord;
   DataLoaded: Boolean = False;
-  LastScreenShot: Int64;
   IsDrawStat: Boolean = False;
   CustomStat: TEndCustomGameStat;
   SingleStat: TEndSingleGameStat;
@@ -1315,7 +1315,6 @@ begin
     gPauseMain := false;
     gPauseHolmes := false;
     gTime := 0;
-    LastScreenShot := 0;
 
     {e_MouseInfo.Accel := 1.0;}
 
@@ -1501,87 +1500,7 @@ retry:
     goto retry;
 end;
 
-function isKeyPressed (key1: Word; key2: Word): Boolean;
-begin
-  if (key1 <> 0) and e_KeyPressed(key1) then begin result := true; exit; end;
-  if (key2 <> 0) and e_KeyPressed(key2) then begin result := true; exit; end;
-  result := false;
-end;
-
-procedure processPlayerControls (plr: TPlayer; var ctrl: TPlayerControl; var MoveButton: Byte; p2hack: Boolean=false);
-var
-  time: Word;
-  strafeDir: Byte;
-  i: Integer;
-begin
-  if (plr = nil) then exit;
-  if (p2hack) then time := 1000 else time := 1;
-  strafeDir := MoveButton shr 4;
-  MoveButton := MoveButton and $0F;
-  with ctrl do
-  begin
-         if isKeyPressed(KeyLeft, KeyLeft2) and (not isKeyPressed(KeyRight, KeyRight2)) then MoveButton := 1 // Нажата только "Влево"
-    else if (not isKeyPressed(KeyLeft, KeyLeft2)) and isKeyPressed(KeyRight, KeyRight2) then MoveButton := 2 // Нажата только "Вправо"
-    else if (not isKeyPressed(KeyLeft, KeyLeft2)) and (not isKeyPressed(KeyRight, KeyRight2)) then MoveButton := 0; // Не нажаты ни "Влево", ни "Вправо"
-
-    // Сейчас или раньше были нажаты "Влево"/"Вправо" => передаем игроку:
-         if MoveButton = 1 then plr.PressKey(KEY_LEFT, time)
-    else if MoveButton = 2 then plr.PressKey(KEY_RIGHT, time);
-
-    // if we have "strafe" key, turn off old strafe mechanics
-    if isKeyPressed(KeyStrafe, KeyStrafe2) then
-    begin
-      // new strafe mechanics
-      if (strafeDir = 0) then strafeDir := MoveButton; // start strafing
-      // now set direction according to strafe (reversed)
-           if (strafeDir = 2) then plr.SetDirection(TDirection.D_LEFT)
-      else if (strafeDir = 1) then plr.SetDirection(TDirection.D_RIGHT);
-    end
-    else
-    begin
-      strafeDir := 0; // not strafing anymore
-      // Раньше была нажата "Вправо", а сейчас "Влево" => бежим вправо, смотрим влево:
-           if (MoveButton = 2) and isKeyPressed(KeyLeft, KeyLeft2) then plr.SetDirection(TDirection.D_LEFT)
-      // Раньше была нажата "Влево", а сейчас "Вправо" => бежим влево, смотрим вправо:
-      else if (MoveButton = 1) and isKeyPressed(KeyRight, KeyRight2) then plr.SetDirection(TDirection.D_RIGHT)
-      // Что-то было нажато и не изменилось => куда бежим, туда и смотрим:
-      else if MoveButton <> 0 then plr.SetDirection(TDirection(MoveButton-1));
-    end;
-
-    // fix movebutton state
-    MoveButton := MoveButton or (strafeDir shl 4);
-
-    // Остальные клавиши:
-    if isKeyPressed(KeyJump, KeyJump2) then plr.PressKey(KEY_JUMP, time);
-    if isKeyPressed(KeyUp, KeyUp2) then plr.PressKey(KEY_UP, time);
-    if isKeyPressed(KeyDown, KeyDown2) then plr.PressKey(KEY_DOWN, time);
-    if isKeyPressed(KeyFire, KeyFire2) then plr.PressKey(KEY_FIRE);
-    if isKeyPressed(KeyNextWeapon, KeyNextWeapon2) then plr.PressKey(KEY_NEXTWEAPON);
-    if isKeyPressed(KeyPrevWeapon, KeyPrevWeapon2) then plr.PressKey(KEY_PREVWEAPON);
-    if isKeyPressed(KeyOpen, KeyOpen2) then plr.PressKey(KEY_OPEN);
-
-    for i := 0 to High(KeyWeapon) do
-      if isKeyPressed(KeyWeapon[i], KeyWeapon2[i]) then
-        plr.QueueWeaponSwitch(i); // all choices are passed there, and god will take the best
-  end;
-
-  // HACK: add dynlight here
-  if gwin_k8_enable_light_experiments then
-  begin
-    if e_KeyPressed(IK_F8) and gGameOn and (not gConsoleShow) and (g_ActiveWindow = nil) then
-    begin
-      g_playerLight := true;
-    end;
-    if e_KeyPressed(IK_F9) and gGameOn and (not gConsoleShow) and (g_ActiveWindow = nil) then
-    begin
-      g_playerLight := false;
-    end;
-  end;
-
-  if gwin_has_stencil and g_playerLight then g_AddDynLight(plr.GameX+32, plr.GameY+40, 128, 1, 1, 0, 0.6);
-end;
-
-procedure ProcessPlayerControls2 (plr: TPlayer; p: Integer; var MoveButton: Byte);
+procedure ProcessPlayerControls (plr: TPlayer; p: Integer; var MoveButton: Byte);
   var
     time: Word;
     strafeDir: Byte;
@@ -1634,7 +1553,7 @@ begin
   MoveButton := MoveButton or (strafeDir shl 4);
 
   // Остальные клавиши:
-  if gPlayerAction[p, ACTION_MOVEUP] then plr.PressKey(KEY_JUMP, time);
+  if gPlayerAction[p, ACTION_JUMP] then plr.PressKey(KEY_JUMP, time);
   if gPlayerAction[p, ACTION_LOOKUP] then plr.PressKey(KEY_UP, time);
   if gPlayerAction[p, ACTION_LOOKDOWN] then plr.PressKey(KEY_DOWN, time);
   if gPlayerAction[p, ACTION_ATTACK] then plr.PressKey(KEY_FIRE);
@@ -1642,17 +1561,11 @@ begin
   if gPlayerAction[p, ACTION_WEAPPREV] then plr.PressKey(KEY_PREVWEAPON);
   if gPlayerAction[p, ACTION_ACTIVATE] then plr.PressKey(KEY_OPEN);
 
-  if gPlayerAction[p, ACTION_WEAP1] then plr.QueueWeaponSwitch(WEAPON_KASTET);
-  if gPlayerAction[p, ACTION_WEAP2] then plr.QueueWeaponSwitch(WEAPON_SAW);
-  if gPlayerAction[p, ACTION_WEAP3] then plr.QueueWeaponSwitch(WEAPON_PISTOL);
-  if gPlayerAction[p, ACTION_WEAP4] then plr.QueueWeaponSwitch(WEAPON_SHOTGUN1);
-  if gPlayerAction[p, ACTION_WEAP5] then plr.QueueWeaponSwitch(WEAPON_SHOTGUN2);
-  if gPlayerAction[p, ACTION_WEAP6] then plr.QueueWeaponSwitch(WEAPON_CHAINGUN);
-  if gPlayerAction[p, ACTION_WEAP7] then plr.QueueWeaponSwitch(WEAPON_ROCKETLAUNCHER);
-  if gPlayerAction[p, ACTION_WEAP8] then plr.QueueWeaponSwitch(WEAPON_PLASMA);
-  if gPlayerAction[p, ACTION_WEAP9] then plr.QueueWeaponSwitch(WEAPON_BFG);
-  if gPlayerAction[p, ACTION_WEAP10] then plr.QueueWeaponSwitch(WEAPON_SUPERPULEMET);
-  if gPlayerAction[p, ACTION_WEAP11] then plr.QueueWeaponSwitch(WEAPON_FLAMETHROWER);
+  if nextQueueWeapon[p] >= 0 then
+  begin
+    plr.QueueWeaponSwitch(nextQueueWeapon[p]);
+    nextQueueWeapon[p] := -1
+  end;
 
   // HACK: add dynlight here
   if gwin_k8_enable_light_experiments then
@@ -1848,31 +1761,9 @@ begin
         g_Serverlist_Control(slCurrent, slTable);
   end;
 
-  if g_Game_IsNet then
-    if not gConsoleShow then
-      if not gChatShow then
-      begin
-        if g_ActiveWindow = nil then
-        begin
-          if e_KeyPressed(gGameControls.GameControls.Chat) or e_KeyPressed(VK_CHAT) then
-            g_Console_Chat_Switch(False)
-          else if (e_KeyPressed(gGameControls.GameControls.TeamChat) or e_KeyPressed(VK_TEAM)) and
-                  (gGameSettings.GameMode in [GM_TDM, GM_CTF]) then
-            g_Console_Chat_Switch(True);
-        end;
-      end else
-        if not gChatEnter then
-          if (not e_KeyPressed(gGameControls.GameControls.Chat))
-             and (not e_KeyPressed(gGameControls.GameControls.TeamChat))
-             and (not e_KeyPressed(VK_CHAT))
-             and (not e_KeyPressed(VK_TEAM)) then
-            gChatEnter := True;
-
 // Статистика по Tab:
   if gGameOn then
-    IsDrawStat := (not gConsoleShow) and (not gChatShow) and
-                  (gGameSettings.GameType <> GT_SINGLE) and
-                  (e_KeyPressed(gGameControls.GameControls.Stat) or e_KeyPressed(VK_STATUS));
+    IsDrawStat := (not gConsoleShow) and (not gChatShow) and (gGameSettings.GameType <> GT_SINGLE) and g_Console_Action(ACTION_SCORES);
 
 // Игра идет:
   if gGameOn and not gPause and (gState <> STATE_FOLD) then
@@ -1947,10 +1838,8 @@ begin
       if gPlayer2 <> nil then gPlayer2.ReleaseKeys();
       if (not gConsoleShow) and (not gChatShow) and (g_ActiveWindow = nil) then
       begin
-        //processPlayerControls(gPlayer1, gGameControls.P1Control, P1MoveButton);
-        //processPlayerControls(gPlayer2, gGameControls.P2Control, P2MoveButton, true);
-        ProcessPlayerControls2(gPlayer1, 0, P1MoveButton);
-        ProcessPlayerControls2(gPlayer2, 1, P2MoveButton);
+        ProcessPlayerControls(gPlayer1, 0, P1MoveButton);
+        ProcessPlayerControls(gPlayer2, 1, P2MoveButton);
       end  // if not console
       else
       begin
@@ -1965,8 +1854,7 @@ begin
     begin
       if not gSpectKeyPress then
       begin
-        if isKeyPressed(gGameControls.P1Control.KeyJump, gGameControls.P1Control.KeyJump2)
-           and (not gSpectAuto) then
+        if gPlayerAction[0, ACTION_JUMP] and (not gSpectAuto) then
         begin
           // switch spect mode
           case gSpectMode of
@@ -1980,21 +1868,21 @@ begin
         if (gSpectMode = SPECT_MAPVIEW)
            and (not gSpectAuto) then
         begin
-          if isKeyPressed(gGameControls.P1Control.KeyLeft, gGameControls.P1Control.KeyLeft2) then
+          if gPlayerAction[0, ACTION_MOVELEFT] then
             gSpectX := Max(gSpectX - gSpectStep, 0);
-          if isKeyPressed(gGameControls.P1Control.KeyRight, gGameControls.P1Control.KeyRight2) then
+          if gPlayerAction[0, ACTION_MOVERIGHT] then
             gSpectX := Min(gSpectX + gSpectStep, gMapInfo.Width - gScreenWidth);
-          if isKeyPressed(gGameControls.P1Control.KeyUp, gGameControls.P1Control.KeyUp2) then
+          if gPlayerAction[0, ACTION_LOOKUP] then
             gSpectY := Max(gSpectY - gSpectStep, 0);
-          if isKeyPressed(gGameControls.P1Control.KeyDown, gGameControls.P1Control.KeyDown2) then
+          if gPlayerAction[0, ACTION_LOOKDOWN] then
             gSpectY := Min(gSpectY + gSpectStep, gMapInfo.Height - gScreenHeight);
-          if isKeyPressed(gGameControls.P1Control.KeyPrevWeapon, gGameControls.P1Control.KeyPrevWeapon2) then
+          if gPlayerAction[0, ACTION_WEAPPREV] then
           begin
             // decrease step
             if gSpectStep > 4 then gSpectStep := gSpectStep shr 1;
             gSpectKeyPress := True;
           end;
-          if isKeyPressed(gGameControls.P1Control.KeyNextWeapon, gGameControls.P1Control.KeyNextWeapon2) then
+          if gPlayerAction[0, ACTION_WEAPNEXT] then
           begin
             // increase step
             if gSpectStep < 64 then gSpectStep := gSpectStep shl 1;
@@ -2004,44 +1892,44 @@ begin
         if (gSpectMode = SPECT_PLAYERS)
            and (not gSpectAuto) then
         begin
-          if isKeyPressed(gGameControls.P1Control.KeyUp, gGameControls.P1Control.KeyUp2) then
+          if gPlayerAction[0, ACTION_LOOKUP] then
           begin
             // add second view
             gSpectViewTwo := True;
             gSpectKeyPress := True;
           end;
-          if isKeyPressed(gGameControls.P1Control.KeyDown, gGameControls.P1Control.KeyDown2) then
+          if gPlayerAction[0, ACTION_LOOKDOWN] then
           begin
             // remove second view
             gSpectViewTwo := False;
             gSpectKeyPress := True;
           end;
-          if isKeyPressed(gGameControls.P1Control.KeyLeft, gGameControls.P1Control.KeyLeft2) then
+          if gPlayerAction[0, ACTION_MOVELEFT] then
           begin
             // prev player (view 1)
             gSpectPID1 := GetActivePlayerID_Prev(gSpectPID1);
             gSpectKeyPress := True;
           end;
-          if isKeyPressed(gGameControls.P1Control.KeyRight, gGameControls.P1Control.KeyRight2) then
+          if gPlayerAction[0, ACTION_MOVERIGHT] then
           begin
             // next player (view 1)
             gSpectPID1 := GetActivePlayerID_Next(gSpectPID1);
             gSpectKeyPress := True;
           end;
-          if isKeyPressed(gGameControls.P1Control.KeyPrevWeapon, gGameControls.P1Control.KeyPrevWeapon2) then
+          if gPlayerAction[0, ACTION_WEAPPREV] then
           begin
             // prev player (view 2)
             gSpectPID2 := GetActivePlayerID_Prev(gSpectPID2);
             gSpectKeyPress := True;
           end;
-          if isKeyPressed(gGameControls.P1Control.KeyNextWeapon, gGameControls.P1Control.KeyNextWeapon2) then
+          if gPlayerAction[0, ACTION_WEAPNEXT] then
           begin
             // next player (view 2)
             gSpectPID2 := GetActivePlayerID_Next(gSpectPID2);
             gSpectKeyPress := True;
           end;
         end;
-        if isKeyPressed(gGameControls.P1Control.KeyFire, gGameControls.P1Control.KeyFire2) then
+        if gPlayerAction[0, ACTION_ATTACK] then
         begin
           if (gSpectMode = SPECT_STATS) and (not gSpectAuto) then
           begin
@@ -2060,14 +1948,14 @@ begin
         end;
       end
       else
-        if (not isKeyPressed(gGameControls.P1Control.KeyJump, gGameControls.P1Control.KeyJump2)) and
-           (not isKeyPressed(gGameControls.P1Control.KeyFire, gGameControls.P1Control.KeyFire2)) and
-           (not isKeyPressed(gGameControls.P1Control.KeyLeft, gGameControls.P1Control.KeyLeft2)) and
-           (not isKeyPressed(gGameControls.P1Control.KeyRight, gGameControls.P1Control.KeyRight2)) and
-           (not isKeyPressed(gGameControls.P1Control.KeyUp, gGameControls.P1Control.KeyUp2)) and
-           (not isKeyPressed(gGameControls.P1Control.KeyDown, gGameControls.P1Control.KeyDown2)) and
-           (not isKeyPressed(gGameControls.P1Control.KeyPrevWeapon, gGameControls.P1Control.KeyPrevWeapon2)) and
-           (not isKeyPressed(gGameControls.P1Control.KeyNextWeapon, gGameControls.P1Control.KeyNextWeapon2)) then
+        if (not gPlayerAction[0, ACTION_JUMP]) and
+           (not gPlayerAction[0, ACTION_ATTACK]) and
+           (not gPlayerAction[0, ACTION_MOVELEFT]) and
+           (not gPlayerAction[0, ACTION_MOVERIGHT]) and
+           (not gPlayerAction[0, ACTION_LOOKUP]) and
+           (not gPlayerAction[0, ACTION_LOOKDOWN]) and
+           (not gPlayerAction[0, ACTION_WEAPPREV]) and
+           (not gPlayerAction[0, ACTION_WEAPNEXT]) then
           gSpectKeyPress := False;
 
       if gSpectAuto then
@@ -2241,14 +2129,6 @@ begin
       gLanguageChange := False;
     end;
   end;
-
-// Делаем скриншот (не чаще 200 миллисекунд):
-  if e_KeyPressed(gGameControls.GameControls.TakeScreenshot) or e_KeyPressed(VK_PRINTSCR) then
-    if (GetTimer()-LastScreenShot) > 200000 div 1000 then
-    begin
-      g_TakeScreenShot();
-      LastScreenShot := GetTimer();
-    end;
 
 // Горячая клавиша для вызова меню выхода из игры (F10):
   if e_KeyPressed(IK_F10) and
@@ -2617,7 +2497,7 @@ begin
 
   g_ProcessMessages();
 
-  if e_KeyPressed(IK_TAB) or e_KeyPressed(VK_STATUS) then
+  if g_Console_Action(ACTION_SCORES) then
   begin
     if not gStatsPressed then
     begin
@@ -6930,6 +6810,42 @@ begin
           gPlayer2.Damage(SUICIDE_DAMAGE, gPlayer2.UID, 0, 0, HIT_SELF);
       end;
     end;
+  end
+  else if cmd = 'screenshot' then
+  begin
+    g_TakeScreenShot()
+  end
+  else if cmd = 'togglechat' then
+  begin
+    g_Console_Chat_Switch(False);
+    gSkipFirstChar := not g_Console_Interactive()
+  end
+  else if cmd = 'toggleteamchat' then
+  begin
+    if gGameSettings.GameMode in [GM_TDM, GM_CTF] then
+    begin
+      g_Console_Chat_Switch(True);
+      gSkipFirstChar := not g_Console_Interactive()
+    end
+  end
+  else if cmd = 'weapon' then
+  begin
+    if Length(p) = 2 then
+    begin
+      a := WP_FIRST + StrToInt(p[1]) - 1;
+      if (a >= WP_FIRST) and (a <= WP_LAST) then
+        nextQueueWeapon[0] := a
+    end
+  end
+  else if (cmd = 'p1_weapon') or (cmd = 'p2_weapon') then
+  begin
+    if Length(p) = 2 then
+    begin
+      a := WP_FIRST + StrToInt(p[1]) - 1;
+      b := ord(cmd[2]) - ord('1');
+      if (a >= WP_FIRST) and (a <= WP_LAST) then
+        nextQueueWeapon[b] := a
+    end
   end
 // Команды Своей игры:
   else if gGameSettings.GameType in [GT_CUSTOM, GT_SERVER, GT_CLIENT] then

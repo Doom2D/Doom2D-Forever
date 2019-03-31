@@ -32,7 +32,7 @@ var
   MapsDir: string;
   ModelsDir: string;
   GameWAD: string;
-
+  gSkipFirstChar: Boolean; (* hack for console/chat input *)
 
 implementation
 
@@ -496,7 +496,8 @@ begin
 
     IK_BACKQUOTE, VK_CONSOLE: // <`/~/¨/¸>:
       begin
-        g_Console_Switch();
+        if not gChatShow then
+          g_Console_Switch()
       end;
 
     IK_ESCAPE, VK_ESCAPE: // <Esc>:
@@ -588,6 +589,12 @@ var
   Msg: g_gui.TMessage;
   a: Integer;
 begin
+  if gSkipFirstChar then
+  begin
+    gSkipFirstChar := False;
+    Exit
+  end;
+
   if (not gChatShow) and ((C = '`') or (C = '~') or (C = '¸') or (C = '¨')) then Exit;
 
   if gConsoleShow or gChatShow then
