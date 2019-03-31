@@ -51,6 +51,8 @@ procedure g_Console_ReadConfig (filename: String);
 
 function  g_Console_Interactive: Boolean;
 function  g_Console_Action (action: Integer): Boolean;
+function  g_Console_FindBind (n: Integer; cmd: AnsiString): Integer;
+procedure g_Console_BindKey (key: Integer; cmd: AnsiString);
 procedure g_Console_ProcessBind (key: Integer; down: Boolean);
 
 procedure conwriteln (const s: AnsiString; show: Boolean=false);
@@ -1597,10 +1599,38 @@ begin
   Result := not bindProcess
 end;
 
+procedure g_Console_BindKey (key: Integer; cmd: AnsiString);
+begin
+  ASSERT(key >= 0);
+  ASSERT(key < e_MaxInputKeys);
+  gInputBinds[key].commands := ParseAlias(cmd)
+end;
+
+function g_Console_FindBind (n: Integer; cmd: AnsiString): Integer;
+  var i: Integer;
+begin
+  ASSERT(n >= 1);
+  result := 0;
+  if commands = nil then Exit;
+  i := 0;
+  cmd := LowerCase(cmd);
+  while (n >= 1) and (i < e_MaxInputKeys) do
+  begin
+    if (Length(gInputBinds[i].commands) = 1) and (gInputBinds[i].commands[0] = cmd) then
+    begin
+      result := i;
+      dec(n)
+    end;
+    inc(i)
+  end;
+  if n >= 1 then
+    result := 0
+end;
+
 function g_Console_Action (action: Integer): Boolean;
   var i, len: Integer;
 begin
-  ASSERT(action >= 0);
+  ASSERT(action >= FIRST_ACTION);
   ASSERT(action <= LAST_ACTION);
   i := 0;
   len := Length(gPlayerAction);
